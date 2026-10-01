@@ -13,6 +13,9 @@ const IDS := ["call_of_the_wild", "lasting_dreams",
 	"last_breath", "last_breath_ii", "watchful_rest", "watchful_rest_ii",
 	"glimmering_hunt", "straightaway", "straightaway_ii", "heart_of_the_maze"]
 
+# The lean starting pool (dream_design.md "The starting Dream pool", 2026-09-30): these moved to Grove nodes.
+const LEAN_GROVE := ["bitter_hedges", "bramble_oath", "briar_crown", "crossroads", "crowd_breaker", "desperate_bloom", "elder_kin", "eternal_static", "few_and_mighty", "forests_edge", "grand_tour", "hunters_moon", "hunters_patience", "last_leaf", "last_stand", "lucid_dreaming", "menagerie", "mixed_grove", "odd_one_out", "odd_one_out_ii", "reclaimed_earth", "restless_night", "rooted_nightmares", "scarred_bark", "scarred_bark_ii", "scented_hedge", "second_wind", "sharpened_light", "sharpened_light_ii", "solitude", "tended_forest", "thin_bark", "thorn_snare", "thorn_snare_ii", "thornheart", "wildwood_reclaimed"]
+
 var failures := 0
 var main: Node
 var dreams: DreamState
@@ -48,6 +51,9 @@ func _run() -> void:
 	_test_support_cards()
 	_test_needs_text()
 	_test_live_lines()
+	_test_reaction_links()
+	_test_grove_branches()
+	_test_clearing_payoffs()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -55,7 +61,7 @@ func _test_pool() -> void:
 	for id in IDS:
 		var card := _card(id)
 		if card:
-			_check(card.in_start_pool == (id != "wandering_mind"), "%s: pool" % id)
+			_check(card.in_start_pool == (id != "wandering_mind" and not LEAN_GROVE.has(id)), "%s: pool" % id)
 	_check(_card("glimmering_hunt").min_act == 2, "Glimmering Hunt from act 2")
 	_reset()
 	_check(not dreams.is_eligible(_card("heavy_air")), "Heavy Air needs a Warden that slows")
@@ -66,11 +72,11 @@ func _test_pool() -> void:
 
 func _test_economy() -> void:
 	_reset()
-	run_state._dispel_dew_carry = 0.0
-	var plain := run_state._scaled_dispel_dew(100)
+	var director = main.get_node("%DriftDirector")
+	var plain: float = director.get_effective_pot(12)
 	dreams.take(_card("morning_dew"))
-	run_state._dispel_dew_carry = 0.0
-	_check(run_state._scaled_dispel_dew(100) == roundi(plain * 1.1), "Morning Dew (absorbs Gathered Dew): +10%% dispel Dew (%d vs %d)" % [run_state._scaled_dispel_dew(100), plain])
+	_check(is_equal_approx(director.get_effective_pot(12), director.get_dew_pot(12) * 1.1) and plain < director.get_effective_pot(12),
+		"Morning Dew (absorbs Gathered Dew): each drift's Dew pot +10%% (%.1f vs %.1f)" % [director.get_effective_pot(12), plain])
 	var seller = main.get_node("%TowerSeller")
 	var tower := _plant("sporeling", Vector2(100, 100))
 	tower.invested_dew = 100
@@ -78,6 +84,8 @@ func _test_economy() -> void:
 	_check(dreams.get_call_early_bonus(7, 10) == 7, "call early: plain")
 	dreams.take(_card("call_of_the_wild"))
 	_check(dreams.get_call_early_bonus(7, 10) == 14 and dreams.get_call_early_bonus(30, 10) == 20 and dreams.get_call_early_bonus(30, 25) == 40, "Call of the Wild: double, up to 40")
+	_check(is_equal_approx(director.get_effective_pot(12, true), director.get_dew_pot(12) * 1.2) and is_equal_approx(director.get_effective_pot(12), director.get_dew_pot(12) * 1.1),
+		"Call of the Wild: +10% pot only on a drift called early")
 	dreams.take(_card("winding_path"))
 	_check(dreams.get_rest_bonus_add() == 10 + dreams.path_length / 5, "Winding Path: +1 Dew per 5 path tiles (%d tiles, + Morning Dew's 10)" % dreams.path_length)
 	var rerolls := dreams.rerolls_left
@@ -313,7 +321,7 @@ func _test_catalogue() -> void:
 	_check(not dreams.is_in_build(soft), "owning Sporeling doesn't make spore cards your build")
 	dreams.take(_card("glinting_dew"))
 	_check(dreams.is_in_build(_card("sharpened_light")) and not dreams.is_in_build(soft), "a taken precision card lifts the precision build")
-	_check(DreamState.ARCHETYPE_TAGS.size() == 8 and DreamState.OPPOSITE_DIRECTION.get("tall") == "overgrowth", "8 archetype tags; tall opposes overgrowth")
+	_check(DreamState.ARCHETYPE_TAGS.size() == 10 and dreams.tag_weight == 1.0, "10 archetype tags (swift and reach added); no build-tag steering")
 	dreams.stacks.clear()
 	# Nurture follow-ups: needing a Nurture card is soft (Kindred Roots weighs ×0.4 until you have one); Sunlit Rest is an opener
 	var kindred := _card("kindred_roots")
@@ -335,7 +343,7 @@ func _test_catalogue() -> void:
 	for id in ids:
 		var card := _card(id)
 		if card:
-			_check(card.in_start_pool and card.rarity != UpgradeData.Rarity.LEGENDARY and not card.tags.is_empty(), "%s: Start pool, tagged" % id)
+			_check(card.in_start_pool != LEAN_GROVE.has(id) and card.rarity != UpgradeData.Rarity.LEGENDARY and not card.tags.is_empty(), "%s: pool (lean), tagged" % id)
 	_check(_card("resonance").requires.size() == 2 and _card("thin_bark").is_bittersweet() and _card("thin_bark").min_act == 2, "Resonance crosses 2 families; Thin Bark bittersweet act 2+")
 	var eye := _plant("sporeling", Vector2(100, 104))
 	eye.rank = 5
@@ -383,7 +391,7 @@ func _test_eleven_cards() -> void:
 	for id in ["glinting_dew", "heavy_stones", "sharpened_light", "sharpened_light_ii"] + grove:
 		var card := _card(id)
 		if card:
-			_check(card.in_start_pool != grove.has(id) and not card.tags.is_empty(), "%s: pool and tags" % id)
+			_check(card.in_start_pool != (grove.has(id) or LEAN_GROVE.has(id)) and not card.tags.is_empty(), "%s: pool and tags" % id)
 	_check(_card("ring_dance").entwined and _card("carried_on_the_wind").entwined and _card("sharpened_light_ii").deepens == "sharpened_light",
 		"Ring Dance and Carried on the Wind are Entwined; Sharpened Light II deepens")
 	var pebble := _plant("pebbling", Vector2(100, 100))
@@ -428,7 +436,7 @@ func _test_cards_227() -> void:
 	for id in ["head_start", "second_wind", "scarred_bark", "desperate_bloom", "odd_one_out", "grand_tour", "crowd_breaker"]:
 		var card := _card(id)
 		if card:
-			_check(card.in_start_pool and not card.tags.is_empty(), "%s: Start pool, tagged" % id)
+			_check(card.in_start_pool != LEAN_GROVE.has(id) and not card.tags.is_empty(), "%s: pool (lean), tagged" % id)
 	for pair in [["head_start_ii", "head_start"], ["scarred_bark_ii", "scarred_bark"], ["odd_one_out_ii", "odd_one_out"]]:
 		_check(_card(pair[0]).deepens == pair[1], "%s deepens %s" % pair)
 	_check(_card("desperate_bloom").min_act == 2 and _card("grand_tour").min_owned_statuses == 2, "Desperate Bloom act 2+; Grand Tour needs 2 statuses")
@@ -559,7 +567,7 @@ func _test_seed_cards() -> void:
 	for id in ids:
 		var card := _card(id)
 		if card:
-			_check(card.tags.has("seed") and card.in_start_pool == (id == "bramble_oath") and card.grows_text != "", "%s: a Seed card" % id)
+			_check(card.tags.has("seed") and not card.in_start_pool and card.grows_text != "", "%s: a Seed card" % id)
 	_check(_card("golden_harvest").rarity == UpgradeData.Rarity.LEGENDARY and _card("golden_harvest").min_act == 2, "Golden Harvest: Legendary, act 2+")
 	# Offered without their Wardens
 	dreams.grove_cards.assign(ids)
@@ -612,13 +620,14 @@ func _test_seed_cards() -> void:
 # Support Warden cards (dream_design.md "Support Warden cards: the quiet Wardens").
 func _test_support_cards() -> void:
 	_reset()
-	var start := ["thorn_snare", "thorn_snare_ii", "scented_hedge"]
+	var start := []  # Lean starting pool: Thorn Snare (Thorn and Bramble) and Scented Hedge (Old Wood) are Grove cards now
 	for id in ["dew_trail", "dew_trail_ii", "overflowing_well", "acorn_cache", "hedgerow_roots",
 			"grandfather_stump", "thorn_snare", "thorn_snare_ii", "scented_hedge", "living_walls", "many_threads", "the_quiet_ones"]:
 		var card := _card(id)
 		if card:
 			var moved := ["thorn_snare", "thorn_snare_ii", "scented_hedge", "living_walls", "the_quiet_ones"].has(id)  # Round 3: support -> tending
 			_check(card.tags.has("tending" if moved else "support") and card.in_start_pool == start.has(id), "%s: support card (tending since round 3), pool" % id)
+	dreams.grove_cards.append_array(["thorn_snare", "scented_hedge"])
 	_check(dreams.can_offer(_card("thorn_snare")) and not dreams.can_offer(_card("scented_hedge")), "Thorn Snare needs nothing; Scented Hedge needs Honeysuckle")
 	dreams.grove_cards.assign(["acorn_cache", "the_quiet_ones"])
 	var acorn: TowerData = load("res://resource/tower/acorn.tres")
@@ -634,6 +643,137 @@ func _test_support_cards() -> void:
 	_reset()
 
 # How Needs are shown on a card: never the name of a Warden (only statuses, families, card names).
+# Reaction and Crowned names in card text are {combo:<id>} links (user: "Mushrooming should have the underline").
+func _test_reaction_links() -> void:
+	var names := ["Thunderclap", "Ignite", "Mushrooming", "Shatter", "Drown", "Smother", "Lightning Rod", "Tempest",
+		"Avalanche", "Nightbloom", "Starfall", "Fever Dream", "Prismstorm", "Fairy Circle", "Still Pool"]
+	var token := RegEx.create_from_string("\\{[^}]*\\}")
+	for card in dreams.pool:
+		for text in [card.description, card.cost_description]:
+			var bare: String = token.sub(text, "", true)
+			for name in names:
+				var word := RegEx.create_from_string("\\b%s\\b" % name)
+				_check(word.search(bare) == null, "%s: \"%s\" is a link, not bare text" % [card.id, name])
+	_check(IconInfo.format("{combo:mushrooming}") in ["Mushrooming", "???"], "plain text shows a combo's name (or ??? until found)")
+
+# Clearing payoffs on the map (cards 246–247): a tended stump lifts the Wardens touching it, a moved hollow
+# gives the Warden planted in it range; both open clearing; clears record what they left.
+func _test_clearing_payoffs() -> void:
+	_reset()
+	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
+	for id in ["tended_stumps", "tended_stumps_ii", "hollow_ground", "hollow_ground_ii"]:
+		var card := _card(id)
+		_check(card != null and not card.in_start_pool and card.tags.has("clearing") and card.tags.has("tending")
+			and DreamState.unlocks_clearing(card) and card.diagram != "", "%s: Grove, clearing + tending, opens clearing, has a diagram" % id)
+	dreams.cleared_kinds = {Vector2(110, 110): DreamState.STUMP, Vector2(120, 120): DreamState.HOLLOW}
+	dreams.bump_board()
+	dreams.take(_card("tended_stumps"))
+	_check(_has_row(sporeling, Vector2(111, 111), "tended_stumps", 0.25) and not _has_row(sporeling, Vector2(112, 110), "tended_stumps", 0.25),
+		"Tended Stumps: +25% touching a stump (diagonal too), not two cells away")
+	dreams.take(_card("tended_stumps_ii"))
+	_check(_has_row(sporeling, Vector2(110, 111), "tended_stumps_ii", 0.40), "…II: +40%")
+	dreams.take(_card("hollow_ground"))
+	_check(is_equal_approx(_row(sporeling, Vector2(120, 120), "hollow_ground").range, 1.0) and not _row(sporeling, Vector2(121, 120), "hollow_ground").active,
+		"Hollow Ground: +1 range planted in a hollow, nothing beside it")
+	dreams.take(_card("hollow_ground_ii"))
+	_check(is_equal_approx(_row(sporeling, Vector2(120, 120), "hollow_ground").range, 1.5), "…II: +1.5")
+	var tree: ObstacleData = load("res://resource/obstacle/tree.tres")
+	var rock: ObstacleData = load("res://resource/obstacle/rock.tres")
+	dreams._on_obstacle_cleared(Vector2(130, 130), tree)
+	dreams._on_obstacle_cleared(Vector2(131, 130), rock)
+	_check(dreams.cleared_kinds[Vector2(130, 130)] == DreamState.STUMP and dreams.cleared_kinds[Vector2(131, 130)] == DreamState.HOLLOW,
+		"a cleared Withered Tree leaves a stump, a Mossy Boulder a hollow")
+	var saved := dreams.to_save()
+	dreams.cleared_kinds.clear()
+	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
+	_check(dreams.cleared_kinds.get(Vector2(130, 130), "") == DreamState.STUMP, "…saved with the run")
+	dreams.cleared_kinds.clear()
+	_reset()
+
+# Grove build branches Swift and Wide Reach (cards 235–245): data, and the DreamState side (Tower Code hooks
+# the per-hit parts by rule id).
+func _test_grove_branches() -> void:
+	_reset()
+	var swift := ["momentum", "momentum_ii", "quickening", "flurry", "restless_roots", "hummingheart", "whirlwind_heart", "drumbeat"]
+	var reach := ["broad_splash", "lingering_splash", "lingering_splash_ii", "far_reach", "far_reach_ii", "spillover", "great_ripple", "overlap"]
+	for id in swift + reach:
+		var card := _card(id)
+		_check(card != null and not card.in_start_pool and card.tags == [("swift" if swift.has(id) else "reach")],
+			"%s: Grove pool, the %s tag" % [id, "swift" if swift.has(id) else "reach"])
+	_check(DreamState.ARCHETYPE_TAGS.has("swift") and DreamState.ARCHETYPE_TAGS.has("reach"), "swift and reach are build tags")
+	_check(_card("whirlwind_heart").rarity == UpgradeData.Rarity.LEGENDARY and _card("great_ripple").rarity == UpgradeData.Rarity.LEGENDARY
+		and _card("broad_splash").max_stacks == 3 and _card("momentum_ii").deepens == "momentum", "rarities, stacks, Deepened")
+	# Restless Roots: slow Wardens attack 45% faster
+	var slow: TowerData = null
+	var fast: TowerData = null
+	for data in main.get_node("%TowerPlacer").towers:
+		if data.can_attack and data.attacks_per_second < 1.0 and slow == null:
+			slow = data
+		elif data.can_attack and data.attacks_per_second >= 1.0 and fast == null:
+			fast = data
+	dreams.take(_card("restless_roots"))
+	if slow != null:
+		_check(_row(slow, Vector2(100, 100), "restless_roots").active and is_equal_approx(_row(slow, Vector2(100, 100), "restless_roots").speed, 0.45),
+			"Restless Roots: %s (%.2f/s) attacks 45%% faster" % [slow.display_name, slow.attacks_per_second])
+	if fast != null:
+		_check(not _row(fast, Vector2(100, 100), "restless_roots").active, "…not a fast Warden")
+	# Far Reach: area attackers +0.75 range (II +1.25)
+	var area: TowerData = null
+	var single: TowerData = null
+	for data in main.get_node("%TowerPlacer").towers:
+		if DreamState.has_area_attack(data) and area == null:
+			area = data
+		elif data.can_attack and not DreamState.has_area_attack(data) and single == null:
+			single = data
+	dreams.take(_card("far_reach"))
+	if area != null:
+		_check(is_equal_approx(_row(area, Vector2(100, 100), "far_reach").range, 0.75), "Far Reach: %s +0.75 range" % area.display_name)
+	if single != null:
+		_check(not _row(single, Vector2(100, 100), "far_reach").active, "…not a single-target Warden")
+	dreams.take(_card("far_reach_ii"))
+	if area != null:
+		_check(is_equal_approx(_row(area, Vector2(100, 100), "far_reach").range, 1.25), "Far Reach II: +1.25")
+	# Whirlwind Heart, Hummingheart, Broad Splash, Momentum, Lingering Splash: the numbers Tower reads
+	_check(dreams.attack_speed_bonus_factor() == 1.0 and dreams.get_hit_damage_multiplier() == 1.0, "no Whirlwind Heart: ×1")
+	dreams.take(_card("whirlwind_heart"))
+	_check(dreams.attack_speed_bonus_factor() == 2.0 and is_equal_approx(dreams.get_hit_damage_multiplier(), 0.8), "Whirlwind Heart: bonuses ×2, hits −20%")
+	dreams.take(_card("hummingheart"))
+	_check(is_equal_approx(dreams.hummingheart_bonus(0.35), 0.09) and is_equal_approx(dreams.hummingheart_bonus(5.0), 0.60), "Hummingheart: +3% per +10% speed, max +60%")
+	for i in 3:
+		dreams.take(_card("broad_splash"))
+	_check(is_equal_approx(dreams.get_area_radius_add(), 0.75), "Broad Splash ×3: area radius +0.75 cells")
+	dreams.take(_card("momentum"))
+	_check(dreams.momentum_step().is_equal_approx(Vector2(0.06, 0.45)), "Momentum: +6% per hit, max +45%")
+	dreams.take(_card("momentum_ii"))
+	_check(dreams.momentum_step().is_equal_approx(Vector2(0.08, 0.60)), "Momentum II: +8%, max +60%")
+	dreams.take(_card("lingering_splash"))
+	_check(dreams.lingering_splash_every() == 3, "Lingering Splash: every 3rd area attack")
+	dreams.take(_card("lingering_splash_ii"))
+	_check(dreams.lingering_splash_every() == 2, "…II: every 2nd")
+	# Drumbeat (248): touching 2+ other attacking Wardens = +30% attack speed
+	dreams.take(_card("drumbeat"))
+	var drum := _plant("sporeling", Vector2(140, 140))
+	_plant("sporeling", Vector2(141, 140))
+	dreams.bump_board()
+	_check(not _row(drum.tower_data, drum.cell, "drumbeat", drum).active, "Drumbeat: one neighbour isn't enough")
+	_plant("firefly_jar", Vector2(140, 141))
+	dreams.bump_board()
+	_check(_row(drum.tower_data, drum.cell, "drumbeat", drum).active and is_equal_approx(_row(drum.tower_data, drum.cell, "drumbeat", drum).speed, 0.30),
+		"…two touching attackers: +30% attack speed")
+	# Overlap (249): a different Warden's area hit within 1 s = ×1.4 on the second
+	var other := _plant("dewdrop", Vector2(150, 150))
+	var target := _spawn(Vector2(5, 5))
+	_check(dreams.overlap_multiplier(drum, target) == 1.0, "no Overlap card: ×1")
+	dreams.take(_card("overlap"))
+	_check(dreams.overlap_multiplier(drum, target) == 1.0, "Overlap: the first area hit is plain")
+	_check(is_equal_approx(dreams.overlap_multiplier(other, target), 1.4), "…a second Warden within 1 s: +40%")
+	_check(dreams.overlap_multiplier(other, target) == 1.0, "…the same Warden again: plain (never chains)")
+	dreams._game_clock += 1.5
+	_check(dreams.overlap_multiplier(drum, target) == 1.0, "…after 1 s: plain")
+	target.free()
+	_clear()
+	_reset()
+
 # Live lines on the card face (user, 2026-09-30: "Winding Path should give me the current bonus"; "the
 # tooltip for Crowded Path makes no sense" at a rest). "+0%", never "off"; plurals; last drift at a rest.
 func _test_live_lines() -> void:
@@ -659,6 +799,16 @@ func _test_live_lines() -> void:
 	line = fx.preview_line(_card("crowded_path"))
 	_check(line.begins_with("Last drift: 3.2 nightmares in range on average · about +"), "…at a rest: last drift's average (%s)" % line)
 	_check(fx.preview_line(_card("lone_hunter")).begins_with("Last drift: 40% of nightmares alone"), "Lone Hunter: last drift's share")
+	_check(fx.preview_line(_card("quick_step")) == "", "Quick Step at a rest: no live line (it's about calling drifts early)")
+	director.resting = false
+	_check(fx.preview_line(_card("quick_step")).contains(" called early this block · "), "…during a block: drifts called early (%s)" % fx.preview_line(_card("quick_step")))
+	director.resting = true
+	_check(fx.preview_line(_card("heart_of_the_maze")) == "", "a card with no run number shows no live line (not the attacker count)")
+	for card in dreams.pool:
+		var shown: String = fx.preview_line(card)
+		if shown.begins_with("You have"):
+			_check(["few_and_mighty", "last_light", "many_hands", "the_last_light"].has(String(card.rule_id)) or card.id in ["few_and_mighty", "the_last_light", "many_hands"],
+				"%s: the attacker count only on attacker-count cards (%s)" % [card.id, shown])
 	for card in dreams.pool:
 		_check(not fx.preview_line(card).contains("off"), "%s: no \"off\" in its live line" % card.id)
 	dreams.last_drift_stats = {}

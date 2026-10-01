@@ -107,6 +107,15 @@ func _run() -> void:
 		_check(saved.towers.any(func(t) -> bool: return t.data == sapling.tower_data.resource_path),
 			"the Sapling is saved")
 
+	# --- The first grow into each final form this run blooms (Fx.final_bloom + final_bloomed, once) ---
+	var chime: TowerData = load("res://resource/tower/chime_stone.tres")
+	var blooms := [0]
+	for i in 2:
+		var stone := _build_at(placer, chime, _open_area(map_generator, placer.tower_container))
+		stone.final_bloomed.connect(func(_t: Tower) -> void: blooms[0] += 1)
+		placer.evolve(stone, load("res://resource/tower/lullaby_bell.tres"))
+	_check(blooms[0] == 1, "only the first Lullaby Bell of the run blooms (%d)" % blooms[0])
+
 	# --- One Ascended form per family on the map (selling it frees the slot) ---
 	var bell_data: TowerData = load("res://resource/tower/great_bell.tres")
 	var lullaby: TowerData = load("res://resource/tower/lullaby_bell.tres")

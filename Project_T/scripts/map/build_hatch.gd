@@ -15,10 +15,13 @@ const LINE := 2  # px
 var map_generator: Node  # Set these before adding
 var tower_container: Node
 var tower_placer: Node
-static var _texture: Texture2D
+# Weak (exit crash hunt, like Fx bb5076e2); this node holds its own `_hatch` for drawing.
+static var _texture: WeakRef
+var _hatch: Texture2D
 
 func _ready() -> void:
 	z_index = HATCH_Z
+	_hatch = hatch_texture()  # Held here: draw commands don't keep it alive
 	visible = false
 	map_generator.path_changed.connect(queue_redraw)
 	if tower_placer != null:
@@ -51,16 +54,18 @@ func _draw() -> void:
 		return
 	var tile := Vector2(map_generator.MAP_GRID.cell_size)
 	for cell in get_hatched_cells():
-		draw_texture(hatch_texture(), cell * tile, color)
+		draw_texture(_hatch, cell * tile, color)
 
 # A 64×64 cell of diagonal lines that tiles with its neighbours.
 static func hatch_texture() -> Texture2D:
-	if _texture == null:
+	var held: Texture2D = _texture.get_ref() if _texture != null else null
+	if held == null:
 		var size := 64
 		var image := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
 		for y in size:
 			for x in size:
 				if posmod(x + y, SPACING) < LINE:
 					image.set_pixel(x, y, Color.WHITE)
-		_texture = ImageTexture.create_from_image(image)
-	return _texture
+		held = ImageTexture.create_from_image(image)
+		_texture = weakref(held)
+	return held

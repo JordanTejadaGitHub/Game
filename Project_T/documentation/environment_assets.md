@@ -43,16 +43,17 @@ two trees pulse in step.
 | `path.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8) | the creature path; e.g. column 5 = N+S straight, 15 = crossroads |
 | `path_rim.png` | 1024×64 | 16 tiles, **column = neighbour mask** like `path.png` | the path on the start and goal cells, which sit in the rim ring: the same path, transparent outside it (no grass border). Draw it over the matching `island_edge` tile so the rim's earth runs up to the path |
 | `border_wall.png` | 128×64 | 2 variants, seamless | the map's stone border |
-| `withered_tree.png` | 256×864 | **64×96 cells**: bottom 64 px = the cell (trunk base and shadow), top 32 px overhangs the cell above. 9 dead trees (rows) × 4 frames: 0–2 gnarled Withered Tree, 3 split trunk, 4 broken hollow snag (eyes glint), 5 weeping dead willow (strands sway), 6 dead pine, 7 dead birch, 8 thorn tree | obstacle, "Tend"; all 9 are in `tree.tres` |
+| `withered_tree.png` | 384×1152 | **96×128 cells** (bigger since 2026-09-30): the bottom 64 px rows, centred, are the cell (trunk base and shadow); the rest overhangs the cell above (64 px) and the sides (16 px each). Drawn from the 64 px designs with heights × 1.7 and widths × 1.3. 9 dead trees (rows) × 4 frames: 0–2 gnarled Withered Tree, 3 split trunk, 4 broken hollow snag (eyes glint), 5 weeping dead willow (strands sway), 6 dead pine, 7 dead birch, 8 thorn tree | obstacle, "Tend"; all 9 are in `tree.tres` |
 | `tended_stump.png` | 64×64 | 1 | walkable mark left after Tend |
 | `mossy_boulder.png` | 576×64 | 9 rocks, each about 68% of their first size (low in the cell with a shadow, clearly smaller than the trees): 0–1 Mossy Boulder, 2 slab stone, 3 cairn, 4 rock cluster, 5 split boulder, 6 lichen boulder, 7 carved boulder, 8 dream-crystal boulder | obstacle, "Move"; all 9 are in `rock.tres` |
 | `moved_hollow.png` | 64×64 | 1 | walkable mark left after Move |
 | `waystone.png` | 256×64 | 4 frames | proposed bonus build spot |
 | `dew_pool.png` | 256×64 | 4 frames (frozen in winter) | proposed special tile |
+| `pond.png` | 1024×256 | **column = neighbour mask** of pond cells (N=1, E=2, S=4, W=8, like `path.png`), **row = animation frame** (4 frames). Transparent outside the banks | the pond feature (2×2 to 3×3 cells of still water): earth-and-moss banks on its outer edges, teal water darkening toward the middle (depth = distance to the shore, so cells join into one body), moonlight glints that shimmer over the frames, the odd lily pad; ice with cracks in Heartwood Glade. Assumes a rectangle: where two sides join, the diagonal cell is pond too (no inner corners) |
 | `blight_patch.png` | 256×64 | 4 frames | proposed special tile |
 | `edge_mist.png` | 256×64 | 4 frames, transparent overlay | start cell / map edge mist |
 | `tree_round.png`, `tree_pine.png`, `tree_flowering.png` | 64×64 | 1 each | scenery on cells the maze never uses |
-| `ground_details.png` | 256×64 | 4 variants: mushrooms, ferns, pebbles, leaf litter | walkable decoration |
+| `ground_details.png` | 768×64 | 12 variants: the 4 kinds (column % 4: mushrooms, ferns, pebbles, leaf litter), each at 3 spots in the cell so a scatter never lines up on the grid | walkable decoration on about 30% of the cells in the noise's detail band (`DETAIL_SHARE`) |
 | `island_edge.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8: which neighbours are island) | the map's unbuildable rim (screens_ui.md): **no grass**, a sunken ledge of crumbled dark earth (value below the ground's; the pipeline checks it) whose open sides crumble and fade into the void, roots hanging off the lip, and a shadow step with overhanging grass where it meets the buildable ground; the south lip meets the cliff tops. Assumes a convex (blocky) island: no inner-corner tiles |
 | `cliff.png` | 256×256 | columns: bit 1 = the cell to the west also has cliff, bit 2 = the east does; rows: 4 variants | cliff face under island cells whose south neighbour is void; transparent below its ragged, dripping underside |
 | `heartwood.png` | 512×2688 | 128×128 frames: **row = leaves lost (0–20)**, 4 frames per row; the Memory Grove's Heartwood (twisted trunk, gold-rimmed mossy bark, the Hollow's light): rot spreads through the crown, a dream-fruit darkens per 4 leaves, the rim turns ember and the Hollow fades by 20 | the goal; anchor its bottom centre about 8 px below the goal cell's bottom centre, so it overhangs the cells around it |
@@ -73,9 +74,85 @@ healthy trees are no longer used.
 | `void_islets.png` | 256×64 | 4 small floating islands | scatter in the void |
 | `rope_bridge.png` | 128×64 | 2 tiles: east–west, north–south; repeat along the bridge | where nightmares cross from the void to the start cell |
 | `cloud_shadows.png` | 1536×128 | 6 cloud shadows, 256×128 each, transparent | cloud shadows seen from above (lobed, denser in the middle, wisps on the downwind side; 3 banded alpha steps of Dread). `EnvironmentAmbience` draws them drifting round the map edges and a few (`crossing_clouds`) across the whole map with `cloud_wind` |
+| `mist_banks.png` | 256×256 | seamless tile, transparent; dithered fog in the title's fog ramp (Pool, Slate, Stone, Mist) | the title and Grove screens' teal-grey mist: `EnvironmentAmbience` drifts two layers of it over the island (stretched 2× wide, 32 px bands, at the cloud shadows' z), thickest at the back of the map, a little at the front and down the sides, thin over the middle (`mist_strength`) |
+
+## Map layouts
+
+User report (via the design chat, 2026-10-01): "it feels like the map generates the same layout most
+of the time". Every map used to run from (1, 0) to the opposite corner, so ridges always alternated the
+same way. Now each map rolls a layout, ridges that follow it, and one feature.
+
+### Spec (Environment Discussion, 2026-10-01)
+
+1. **Layout per seed**, rolled from the map rng (a save rebuilds it). Map 23×18.
+   - **Corner → opposite corner** (~40%): all 4 mirrors.
+   - **Side → opposite side** (~35%): left↔right (long axis) or top↔bottom (short axis, with an extra
+     ridge so its route stays in band).
+   - **Inlet** (~25%): start and Heartwood on the same edge, so the run is a U.
+   - Start and end are jittered along their edge (never exact corners or midpoints). The rope bridge,
+     the edge mist and the bridge-end islet follow the start's edge outward. Cliffs stay under the south
+     row: a south start's bridge crosses out over them, a north Heartwood overhangs the void.
+2. **Ridges follow the layout**: across the main direction, 2–3 of varying length, keeping the taper
+   (root / middle / tip / strays) and the guaranteed bend. Inlet: one long spine ridge from the shared
+   edge between the start and the Heartwood (the U), plus 0–1 more. Blight 9's extra ridge applies.
+3. **One feature per map**: a pond (2×2–3×3 water: unwalkable, unbuildable, never cleared; the route
+   bends round it), a ruin (a ring of stones with a gap, cleared with Move), a dense grove, or a
+   fallen-log line (a short line of tree obstacles until it has its own art). At least 2 cells from the
+   start and end; counted in the obstacle budget.
+4. **Guards**: the route is always guaranteed; the starting route length and buildable-cell count stay
+   within ±25% of the old medians for every layout; the first-run camera glide follows the actual route;
+   RunSaver VERSION bumped.
+5. **Preview**: a sheet of ~12 seeds covering every layout and feature, labelled, route drawn.
+
+### As built
+
+- `scripts/map/map_layout.gd` (`MapLayout`): `roll(rng, size)` is the first thing drawn from the map
+  rng. Kinds `CORNER` / `SIDE` (`short_side`) / `INLET`, `start`, `end`, `ridge_axis` (ridges run along
+  x or y), `feature`. Over 2,000 seeds: 39% corner, 35% side (half each axis), 26% inlet. Corners sit
+  1–4 cells in from the corner along a top/bottom or left/right edge; side ends ±3 from the middle;
+  inlet ends at about ¼ and ¾ of their edge, ±2.
+- `MapGenerator` sets `startPath` / `endPath` from it before anything reads them (every system reads
+  them live). `force_layout` / `force_short` / `force_feature` are for tests.
+- `EnvironmentObjectGenerator` builds ridges in a frame where u runs along the ridge and v across it
+  (`_cell(u, v)`), so one ridge routine (`_ridge`) serves both axes:
+  - **Corner / side**: `_crossing_ridges`: 2 ridges (3 on the short axis, +1 at Blight 9) from
+    alternating walls, the first on the start's side and nearest the start. The bend rule: the second
+    ridge has no gaps, the two always overlap, and the first only gaps `BEND_DEPTH` (4) cells inside
+    the second's reach. Side layouts start mid-edge, so both their ridges are gap-free and longer
+    (`side_ridge_length_*`, `short_side_ridge_length_*`); the short axis also thins its trees
+    (`short_side_tree_scale`).
+  - **Inlet**: `_inlet_ridges`: a gap-free spine (`spine_length_*` of the way across) from the shared
+    edge, halfway between start and Heartwood, plus 0–1 ridges from the far wall (+1 at Blight 9).
+- **Features** (`_place_feature`, after the ridges): `feature_cells`; ponds are also `pond_cells`,
+  which are blocked in pathing but aren't obstacles (no Tend / Move, no build: the build hatch shows
+  them) and are only placed if the route survives with every ridge standing. A ruin uses the standing
+  stone, cairn and ruined waystone rocks; a grove is a tight tree cluster; a log is a 3–4 cell line of
+  trees. Feature cells keep `feature_clearance` (3, chessboard) from the start and end. Ponds draw
+  `pond.png` by neighbour mask (animated down its column).
+- **Carving** keeps ridges and the feature whole if it can, breaks the feature next, and ridges only as
+  a last resort (`_find_carve_route(level)`).
+- **Tests**: `tests/test_map_density.gd` checks 50 random seeds at Blight 0 and 9, then forces each
+  layout over 20 seeds (route length and buildable cells within ±25% of the old medians 46 / 275,
+  the bend, the obstacle floor, a median within 44–88) and each feature (placed, clear of the ends,
+  ponds block without being obstacles, ruins are stone). `tests/test_environment.gd -- --layouts=<png>`
+  renders the sheet; `-- --seed=N --preview=<png>` renders one map with the void and lighting.
+- **Guard**: a starting route over `max_route_length` (57) is trimmed back under it (`_trim_route_if_long`):
+  plain obstacles first, then a ridge cell as a last resort, each time the cell that brings it just
+  under the cap. Never the feature.
+- Measured (2026-10-01, 20 seeds per layout; bands 35–57 route, 206–344 buildable):
+
+  | Layout | Route | Buildable | Obstacles (median) |
+  |---|---|---|---|
+  | Corner | 39–57 (median 46) | 257–289 | 47–79 (66) |
+  | Side, long axis | 37–49 (43) | 255–289 | 47–77 (69) |
+  | Side, short axis | 37–56 (42) | 243–262 | 70–93 (80) |
+  | Inlet | 36–52 (45) | 267–305 | 31–68 (51) |
+
+  50 random seeds: 36–91 obstacles (mean 62) at Blight 0, 35–100 (69) at Blight 9. Every route bends.
 
 ## Notes
 
+- Colours (2026-09-30, to fit the title and Memory Grove screens): the ground is night-indigo with a moss grain (act 1–2 moss/teal, act 3 violet with rust, act 4 frost), the dead trees are cool night bark with a teal lit side and moss flecks (the Grove trunks), rocks stay lavender stone. Warmth is only the path, the Heartwood and the Wardens.
 - The Heartwood uses the same warm moss-gold in every act; only its surroundings change.
 - Sprites (trees, obstacles, Heartwood) include their own soft ground shadow.
 - **Regenerating** (`tools/environment_art/`): `powershell -File tools/environment_art/export.ps1`
@@ -83,7 +160,7 @@ healthy trees are no longer used.
   fixed seed 1207, with `export_tail.js`) in headless Chrome, then `process_environment.gd` puts every
   sheet through Theme Code's `DetailPass` and `HeartwoodPalette` (`tools/art/`) into
   `assets/environment/`: no added grain on grass / island rim / dew pool / blight patch, 0.3 on the
-  other ground tiles, full detail on obstacles, 64×96 tree cells, palette snap only for mist, void,
+  other ground tiles, full detail on obstacles, 96×128 tree cells, palette snap only for mist, void,
   cloud shadows and the Heartwood (drawn with its own rim and banded glow; redrawn 2026-09-30 to
   match the Memory Grove's Heartwood). It prints the value order per act and fails if it breaks. A run
   on unchanged sources reproduces the committed sheets byte for byte. Only PNGs are written (UIDs stay).

@@ -77,6 +77,9 @@ class Event:
 static var instance: DamageLog = null
 
 var numbers_mode := NumbersMode.OFF
+const NUMBER_MERGE_WINDOW := 0.25  # Seconds (game): a nightmare's hits within it share one number
+const MAX_NUMBERS := 48  # Ordinary numbers alive at once (big ones always show)
+var _last_number := {}  # Nightmare id -> [its last number, clock] (merging)
 # Per Warden: {tower instance id: {"name", "tower", "run", "run_combo", "drift", "drift_status",
 # "drift_combo", "combos": {tag: amount}}}.
 var _stats := {}
@@ -141,16 +144,15 @@ func report(event: Event) -> void:
 	if is_instance_valid(event.source):
 		var tower := event.source as Tower
 		event.source_name = tower.tower_data.display_name if tower else str(event.source.name)
-		var row: Dictionary = _row(event.source)
-		row.run += event.amount
-		row.run_combo += event.combo_amount
-		row.drift += event.amount
-		row["block"] = row.get("block", 0.0) + event.amount
-		row.drift_combo += event.combo_amount
-		if event.kind != &"hit":
-			row.drift_status += event.amount
-		for tag in event.combos:
-			row.combos[tag] = row.combos.get(tag, 0.0) + _combo_share(event, tag)
+		var split := _spore_split(event)
+		if split.is_empty():
+			var all := {}
+			for tag in event.combos:
+				all[tag] = 1.0
+			_credit(event.source, event, 1.0, all)
+		else:
+			for part in split:
+				_credit(part[0], event, part[1], part[2])
 	for tag in event.combos:
 		combo_counts_block[tag] = combo_counts_block.get(tag, 0) + 1
 		combo_counts_run[tag] = combo_counts_run.get(tag, 0) + 1
@@ -265,10 +267,24 @@ func _show_number(event: Event) -> void:
 	if event.kind == &"status":
 		size = 11
 		color = color.darkened(0.15)
+	# Thinning (platforms.md: busy fights stay smooth): a nightmare's ordinary hits and ticks within
+	# NUMBER_MERGE_WINDOW add to its last number instead of spawning more; past MAX_NUMBERS alive only
+	# big ones (crits, weak, Reactions) still appear. A busy 3× fight made hundreds of number nodes.
+	var enemy_id: int = event.enemy.get_instance_id()
+	if not big:
+		var last_any: Array = _last_number.get(enemy_id, [])
+		if not last_any.is_empty() and is_instance_valid(last_any[0]) and _clock - last_any[1] <= NUMBER_MERGE_WINDOW:
+			last_any[0].add(event.amount, color)
+			return
+		if get_child_count() >= MAX_NUMBERS:
+			return
 	var number := FloatingNumber.new(event.enemy.global_position + Vector2(randf_range(-10, 10), -30),
 		event.amount, color, size)
 	number.source = event.source
 	add_child(number)
+	if _last_number.size() > 256:
+		_last_number.clear()
+	_last_number[enemy_id] = [number, _clock]
 	if event.kind == &"hit":
 		if _last_hit_number.size() > 256:
 			_last_hit_number.clear()  # Forget long-gone nightmares now and then
@@ -361,3 +377,50 @@ class FloatingNumber:
 		draw_string(font, Vector2(-width / 2, 0), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, _size,
 			Color(_color, alpha))
 		WorldLabel.end_screen_size(self)
+
+# --- Credit ------------------------------------------------------------------------------------------
+
+# Adds `share` of `event` to `source`'s totals, with `weights` of each combo tag's part ({tag: 0..1}).
+func _credit(source: Node, event: Event, share: float, weights: Dictionary) -> void:
+	var row: Dictionary = _row(source)
+	var amount := event.amount * share
+	row.run += amount
+	row.drift += amount
+	row["block"] = row.get("block", 0.0) + amount
+	if event.kind != &"hit":
+		row.drift_status += amount
+	var combo := 0.0
+	for tag in weights:
+		var part: float = _combo_share(event, tag) * weights[tag]
+		row.combos[tag] = row.combos.get(tag, 0.0) + part
+		combo += part
+	if event.combos.size() > 1 and weights.size() == event.combos.size():
+		combo = event.combo_amount * share  # Whole-hit combos overlap: the event's combo total, not their sum
+	row.run_combo += combo
+	row.drift_combo += combo
+
+# A Spored tick's credit (balance_simulation.md "Human run 2"): the fog-boosted part to the fog's Warden,
+# the rest split by each applier's share of the stacks. [[source, share, {combo tag: weight}], …];
+# [] = the whole event to its source.
+func _spore_split(event: Event) -> Array:
+	if event.tag != &"spored" or not is_instance_valid(event.enemy) or event.amount <= 0.0:
+		return []
+	var statuses: EnemyStatuses = event.enemy.statuses
+	var appliers: Array = statuses.spore_credit()
+	var fog: Node = statuses.fog_source if is_instance_valid(statuses.fog_source) and event.combos.has(&"fog") else null
+	if appliers.is_empty() and fog == null:
+		return []
+	if appliers.is_empty():
+		appliers = [[event.source, 1.0]]
+	var out := []
+	var fog_share := 0.0
+	if fog != null:
+		fog_share = clampf(_combo_share(event, &"fog") / event.amount, 0.0, 1.0)
+		out.append([fog, fog_share, {&"fog": 1.0}])
+	for part in appliers:
+		var weights := {}
+		for tag in event.combos:
+			if tag != &"fog" or fog == null:
+				weights[tag] = part[1]
+		out.append([part[0], part[1] * (1.0 - fog_share), weights])
+	return out

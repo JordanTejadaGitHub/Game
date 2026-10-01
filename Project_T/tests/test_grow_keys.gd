@@ -128,6 +128,37 @@ func _run() -> void:
 	await process_frame
 	_check(not panel._choosing and seller.selected == nursling, "Esc closes the choices and keeps the selection")
 
+	# Can't afford (story chat, 2026-10-01): R still opens the choices, dimmed with the price in the poor
+	# colour; picking one plays the refusal (dew_short) and changes nothing. Same for a grow key.
+	var shorts: Array = []
+	run_state.dew_short.connect(func(cost: int) -> void: shorts.append(cost))
+	run_state.dew = 1
+	var rank_before := nursling.rank
+	seller.select(null)
+	seller.select(nursling)
+	await process_frame
+	_push(KEY_R)
+	await process_frame
+	var poor_rows: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.get_meta(&"choice", -1) >= 0)
+	_check(poor_rows.size() == 4 and poor_rows.all(func(b: Button) -> bool: return b.get_meta(&"short", false) and not b.disabled),
+		"R opens the four choices, marked short but pressable (%d)" % poor_rows.size())
+	_push(KEY_1)
+	await process_frame
+	_check(run_state.dew == 1 and nursling.rank == rank_before, "1 leaves Dew and the rank unchanged (%d Dew, rank %d)" % [run_state.dew, nursling.rank])
+	_check(shorts.size() == 1, "and plays the can't-buy refusal (%s)" % [shorts])
+	_push(KEY_ESCAPE)
+	await process_frame
+	shorts.clear()
+	run_state.dew = 10000
+	var poor := _build(placer, map, load("res://resource/tower/sporeling.tres"))
+	run_state.dew = 1
+	seller.select(poor)
+	await process_frame
+	var poor_data := poor.tower_data
+	_press(seller, KEY_Q)
+	_check(poor.tower_data == poor_data and run_state.dew == 1 and shorts.size() == 1,
+		"Q with too little Dew doesn't grow it and plays the refusal (%s)" % [shorts])
+
 	print("grow keys test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
 	await process_frame

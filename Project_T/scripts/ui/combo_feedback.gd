@@ -10,7 +10,7 @@ class_name ComboFeedback
 # (`combos_seen`, lifetime `combo_counts`; also in the demo; never tests; developer-run finds carry a
 # hidden flag, `combos_seen_dev`, and never count for the milestone), with the
 # "all_combos" milestone once all are found. Also counts Reactions per block for the rest report
-# (Fx shows their callouts). Sources: DamageLog combo tags (conducted, popped, fog), ReactionTracker
+# (Fx shows their callouts). Sources: DamageLog combo tags (conducted, fog), ReactionTracker
 # (Reactions), and ComboFeedback.report(id, near) from game code where a synergy happens (set_off,
 # marked_blow, caught, asleep).
 
@@ -23,7 +23,7 @@ const SEEN_KEY := "combos_seen"
 const COUNTS_KEY := "combo_counts"
 const LEGACY_KEY := "reactions_seen"  # Before synergies were combos
 const MILESTONE := "all_combos"
-const DAMAGE_TAGS: Array[StringName] = [&"conducted", &"popped", &"fog"]
+const DAMAGE_TAGS: Array[StringName] = [&"conducted", &"fog"]
 
 @onready var drift_director: DriftDirector = %DriftDirector
 @onready var run_state: RunState = %RunState
@@ -46,7 +46,14 @@ var _seen: Array = []  # Combo ids (String) discovered ever
 var _unsaved := {}  # Combo id -> count not yet added to the profile's lifetime counts
 var _queue: Array[StringName] = []
 var _card := PanelContainer.new()
-var _card_label := Label.new()
+var _card_label := Label.new()  # The body (18 px)
+var _card_title := Label.new()  # "Combo discovered: Thunderclap" (display 28, gold)
+var _card_icons := HFlowContainer.new()  # 48 px status icons, or a chain's Reactions with arrows
+var _dim := TextureRect.new()  # The world dimmed behind a pausing card, the nightmare left lit
+var card_text := ""  # The card's whole text (title + body; tests)
+const DIM_ALPHA := 0.6  # The world at ~40%
+const DIM_HOLE := 70.0  # Radius (px) left lit around the nightmare
+var _dim_gradient: Gradient
 var _card_id: StringName = &""
 var _card_tween: Tween
 var _crown_corners := Control.new()  # Gold corners, shown on Crowned discovery cards
@@ -55,6 +62,9 @@ var _pausing := false  # A pausing discovery is holding the game
 var _was_paused := false  # Whether the game was paused before it
 var _enemies := {}  # Combo id -> the nightmare it was discovered on (for the ring)
 var _ring: Node2D = null
+# Peek at the map (screens_ui.md "The discovery card can be minimised"): hides the card and lifts the dim, the
+# game stays paused; a small tab at the top ("Combo discovered") reopens it, Space / Enter continues.
+var peek: ChoicePeek
 
 const PAUSE_SETTING := "pause_on_combo"
 
@@ -106,13 +116,29 @@ func _ready() -> void:
 	_card.set_anchors_preset(Control.PRESET_CENTER)
 	_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_card.grow_vertical = Control.GROW_DIRECTION_BOTH
+	# It stands out in combat (screens_ui.md "The discovery card stands out in combat"): a solid panel
+	# with the gold thread, the title in the display font, 48 px icons, 18 px body.
+	var style := UiStyle.panel(28.0, 20.0)
+	style.center_alpha = UiStyle.TIP_ALPHA
+	style.edge_alpha = UiStyle.TIP_ALPHA
+	style.shadow_size = 14
+	_card.add_theme_stylebox_override("panel", style)
+	_card_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_card_title.custom_minimum_size = Vector2(440, 0)
+	_card_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiStyle.display(_card_title, 28)
+	_card_title.add_theme_color_override("font_color", UiStyle.GOLD)
+	_card_icons.alignment = FlowContainer.ALIGNMENT_CENTER
+	_card_icons.add_theme_constant_override("h_separation", 8)
 	_card_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_card_label.custom_minimum_size = Vector2(380, 0)
+	_card_label.custom_minimum_size = Vector2(440, 0)
 	_card_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_card_label.add_theme_font_size_override("font_size", 16)
+	_card_label.add_theme_font_size_override("font_size", 18)
 	var card_box := VBoxContainer.new()
-	card_box.add_theme_constant_override("separation", 10)
+	card_box.add_theme_constant_override("separation", 12)
 	_card.add_child(card_box)
+	card_box.add_child(_card_title)
+	card_box.add_child(_card_icons)
 	card_box.add_child(_card_label)
 	# Pausing cards: Continue (also Space / Enter / a tap on the card) and Open in Codex.
 	_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -151,7 +177,32 @@ func _ready() -> void:
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(holder)
+	_dim_gradient = Gradient.new()  # Lit in the middle (the nightmare), dark beyond
+	var gradient := _dim_gradient
+	gradient.set_color(0, Color(Palette.VOID, 0.0))
+	gradient.set_color(1, Color(Palette.VOID, DIM_ALPHA))
+	var hole := GradientTexture2D.new()
+	hole.gradient = gradient
+	hole.fill = GradientTexture2D.FILL_RADIAL
+	hole.fill_from = Vector2(0.5, 0.5)
+	hole.fill_to = Vector2(0.5, 0.0)
+	hole.width = 256
+	hole.height = 256
+	_dim.texture = hole
+	_dim.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_dim.stretch_mode = TextureRect.STRETCH_SCALE
+	_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dim.visible = false
+	holder.add_child(_dim)
 	holder.add_child(_card)
+	peek = ChoicePeek.new(holder, [_card, _dim], "Combo discovered")
+	peek.catch_mouse = false  # The holder stays click-through: the world under it pans, zooms and hovers
+	peek.place_back_at_top()
+	peek.changed.connect(func(on: bool) -> void:
+		if on:
+			var title := _card_title.text
+			peek.back_button().text = title.get_slice(":", 0) if title.contains(":") else "Discovery")
+	_buttons.add_child(peek.make_peek_button())
 	drift_director.rest_ended.connect(func(_block: int) -> void:
 		block_counts.clear()
 		block_longest_chain = 0
@@ -235,31 +286,56 @@ func _on_chain(links: int, _where: Vector2, _towers: Array) -> void:
 			var memory := HeartwoodMemory.load_data()
 			memory[CHAIN_BEST_KEY] = _best_this_session
 			HeartwoodMemory.save_data(memory)
-	for tier in CHAIN_TIERS:
-		if links < tier or _chains_seen.has(str(tier)):
-			continue
-		_chains_seen.append(str(tier))
-		block_new_chains.append(tier)
-		if _may_write():
-			var memory := HeartwoodMemory.load_data()
-			var seen: Array = memory.get(CHAINS_KEY, []).duplicate()
-			if not seen.has(str(tier)):
-				seen.append(str(tier))
-			memory[CHAINS_KEY] = seen
-			HeartwoodMemory.save_data(memory)
-		var id := StringName(CHAIN_PREFIX + str(tier))
-		_chain_orders[id] = order
-		_queue.append(id)
-		if not _card.visible:
-			_try_show()
+	# One discovery ever (screens_ui.md "Chains: one discovery, then Dawnbreak"): the first Chain 3+. Profiles
+	# that saw any tier before never see it again.
+	if links < CHAIN_TIERS[0] or has_seen_chain():
+		return
+	var tier: int = CHAIN_TIERS[0]
+	_note_seen(str(tier))
+	block_new_chains.append(tier)
+	var id := StringName(CHAIN_PREFIX + str(tier))
+	_chain_orders[id] = order
+	_queue.append(id)
+	if not showing():
+		_try_show()
+
+# Whether a chain was ever discovered (any tier: older profiles saw 3, 5, 10 separately).
+func has_seen_chain() -> bool:
+	return _chains_seen.any(func(s) -> bool: return String(s).is_valid_int())
+
+# Adds `key` to the profile's `chains_seen` (tiers, and "dawnbreak").
+func _note_seen(key: String) -> void:
+	_chains_seen.append(key)
+	if _may_write():
+		var memory := HeartwoodMemory.load_data()
+		var seen: Array = memory.get(CHAINS_KEY, []).duplicate()
+		if not seen.has(key):
+			seen.append(key)
+		memory[CHAINS_KEY] = seen
+		HeartwoodMemory.save_data(memory)
+
+# Dawnbreak (the Legendary that fires at a Chain 10) gets its own one-time card the first time it goes off.
+const DAWNBREAK_ID := &"dawnbreak"
+const DAWNBREAK_TEXT := "Dawnbreak discovered\nA Chain 10 broke into dawn: 10% of max health to every nightmare within 4 tiles (bosses 2%).\nAdded to the Codex."
+func _discover_dawnbreak(enemy: Node2D) -> void:
+	_note_seen(String(DAWNBREAK_ID))
+	_queue.append(DAWNBREAK_ID)
+	_enemies[DAWNBREAK_ID] = enemy
+	if not showing():
+		_try_show()
 
 var _best_this_session := {}  # Tests and scenes that don't write the profile
 
-static func chain_text(tier: int, order: Array) -> String:
+# The one chain discovery: what a chain is, then the longest so far (screens_ui.md "Chains: one discovery").
+const CHAIN_LINE := "A Reaction can spread its statuses and set off another. Past the fifth link each one hits a little softer, but the chain keeps counting."
+
+static func chain_text(tier: int, order: Array, longest: int = 0) -> String:
 	var text := "Chain discovered: Chain %d\n" % tier
 	if not order.is_empty():
 		text += " → ".join(order) + "\n"
-	return text + "Reactions can set each other off.\nAdded to the Codex."
+	text += CHAIN_LINE + "\n"
+	text += "Your longest: Chain %d\n" % maxi(longest, tier)
+	return text + "Added to the Codex."
 
 # Kinships (Tower Code's node, group "kinships"; tower_design.md "Kinships"): the first-ever bond of
 # each kind is a discovery like a combo, and bonds formed / Harmony strikes / families made Whole are
@@ -291,6 +367,8 @@ func _on_kinship(kinship: StringName, a: Node, b: Node) -> void:
 	record(kinship, a as Node2D)
 
 func _on_damage(event: DamageLog.Event) -> void:
+	if event.tag == DAWNBREAK_ID and not _chains_seen.has(String(DAWNBREAK_ID)):  # Its first Dawnburst ever
+		_discover_dawnbreak(event.enemy)
 	if event.combos.is_empty():  # Most hits (every hit and status tick comes through here)
 		return
 	for tag in event.combos:
@@ -329,7 +407,7 @@ func record(id: StringName, enemy: Node2D = null) -> void:
 	combo_discovered.emit(id)
 	_queue.append(id)
 	_enemies[id] = enemy
-	if not _card.visible:
+	if not showing():
 		_try_show()
 
 # --- Pausing discoveries (screens_ui.md "Combos (discovered in play)") -----------------------------
@@ -348,7 +426,7 @@ static func pause_setting() -> bool:
 	return bool(HeartwoodMemory.get_settings().get(PAUSE_SETTING, true))
 
 func _try_show() -> void:
-	if _queue.is_empty() or _card.visible:
+	if _queue.is_empty() or showing():
 		return
 	if pause_setting() and _blocked():
 		return  # _process tries again once the screen closes
@@ -366,12 +444,16 @@ func _blocked() -> bool:
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	return omens != null and omens.has_method("is_offering") and omens.is_offering()
 
+# A card is up: shown, or minimised while peeking at the map.
+func showing() -> bool:
+	return _card.visible or (peek != null and peek.peeking)
+
 func _process(_delta: float) -> void:
-	if not _queue.is_empty() and not _card.visible:
+	if not _queue.is_empty() and not showing():
 		_try_show()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not (_card.visible and _pausing):
+	if not (showing() and _pausing):
 		return
 	if event.is_action_pressed("pause_game") or event.is_action_pressed("start_drift") or event.is_action_pressed("ui_accept"):
 		continue_on()
@@ -379,11 +461,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # Continue: the next queued discovery, or the end of the pause (back to the previous speed).
 func continue_on() -> void:
+	if peek != null:
+		peek.set_peeking(false)
 	_clear_highlight()
 	if not _queue.is_empty():
 		_show_next()
 		return
 	_card.visible = false
+	_dim.visible = false
 	if _pausing:
 		_pausing = false
 		var speed = get_node_or_null("%GameSpeed")
@@ -424,6 +509,15 @@ class ComboRing extends Node2D:
 		draw_arc(Vector2.ZERO, 26.0 + pulse * 4.0, 0.0, TAU, 40, Color(UiStyle.LIVE, 0.9), 3.0, true)
 		draw_arc(Vector2.ZERO, 36.0 + pulse * 6.0, 0.0, TAU, 40, Color(UiStyle.LIVE, 0.35 * (1.0 - pulse)), 2.0, true)
 
+# A Legendary's gem at the card's icon size (Dawnbreak has no icon art of its own yet).
+class _LegendaryGem extends Control:
+	func _init() -> void:
+		custom_minimum_size = Vector2(48, 48)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		UiStyle.draw_gem(self, size / 2.0, 18.0, UpgradeData.Rarity.LEGENDARY)
+
 static func discovery_text(id: StringName) -> String:
 	var combo := CodexData.get_any(id)
 	if combo.is_empty():
@@ -441,16 +535,29 @@ static func discovery_text(id: StringName) -> String:
 func _show_next() -> void:
 	if _queue.is_empty():
 		_card.visible = false
+		_dim.visible = false
 		return
 	_card_id = _queue.pop_front()
-	if String(_card_id).begins_with(CHAIN_PREFIX):
-		_card_label.text = chain_text(int(String(_card_id).trim_prefix(CHAIN_PREFIX)), _chain_orders.get(_card_id, []))
+	var is_chain := String(_card_id).begins_with(CHAIN_PREFIX)
+	var order: Array = _chain_orders.get(_card_id, [])
+	if is_chain:
+		var best: Dictionary = chain_best() if _may_write() else _best_this_session
+		card_text = chain_text(int(String(_card_id).trim_prefix(CHAIN_PREFIX)), order, int(best.get("links", 0)))
+	elif _card_id == DAWNBREAK_ID:
+		card_text = DAWNBREAK_TEXT
 	else:
-		_card_label.text = discovery_text(_card_id)
+		card_text = discovery_text(_card_id)
 	if new_dreams.has(_card_id):  # "New Dreams: Rolling Thunder, Rain on Glass" (discovery unlocks)
-		_card_label.text += "\nNew Dreams: " + ", ".join(new_dreams[_card_id])
-	var reaction := Reactions.get_data(_card_id)
-	_card_label.add_theme_color_override("font_color", reaction.callout_color if reaction != null else UiStyle.INK)
+		card_text += "\nNew Dreams: " + ", ".join(new_dreams[_card_id])
+	# Title (display 28, gold), the icons, then the body (a chain's order is in the icons row).
+	var lines := card_text.split("\n")
+	_card_title.text = lines[0]
+	var body := lines.slice(1)
+	if is_chain and not order.is_empty() and body.size() > 0:
+		body = body.slice(1)
+	_card_label.text = "\n".join(body)
+	_card_label.add_theme_color_override("font_color", UiStyle.INK)
+	_build_card_icons(_card_id, is_chain, order)
 	_crown_corners.visible = CodexData.CROWNED.has(_card_id)
 	var pausing := pause_setting()
 	_buttons.visible = pausing
@@ -462,6 +569,7 @@ func _show_next() -> void:
 			speed.set_paused(true)
 	if pausing:
 		_highlight(_enemies.get(_card_id))
+		_show_dim(_enemies.get(_card_id))
 	_enemies.erase(_card_id)
 	_card.visible = true
 	_card.reset_size()
@@ -474,6 +582,12 @@ func _show_next() -> void:
 		_card_tween.kill()
 	_card_tween = create_tween()
 	_card_tween.tween_property(_card, "modulate:a", 1.0, 0.3)
+	if not bool(HeartwoodMemory.get_settings().get("reduced_motion", false)):  # A soft rise-in
+		_card.pivot_offset = _card.size / 2.0  # A soft rise-in: it grows into place (its rect never moves)
+		_card.scale = Vector2(0.95, 0.95)
+		_card_tween.parallel().tween_property(_card, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if is_chain:
+		combo_discovered.emit(_card_id)  # The discovery chime for chains too (combos emit when found)
 	if pausing:
 		return  # Stays until Continue
 	_card_tween.tween_interval(CARD_TIME)  # Setting off: the old slide-in card, for 5 s
@@ -560,3 +674,77 @@ func _save_counts() -> void:
 	memory[COUNTS_KEY] = counts
 	HeartwoodMemory.save_data(memory)
 	_unsaved.clear()
+
+# The world dims to ~40% behind a pausing card, except a soft circle around the nightmare it fired on.
+func _show_dim(enemy: Node2D) -> void:
+	var screen := get_viewport().get_visible_rect().size
+	var centre := screen / 2.0
+	var hole := 0.0
+	if is_instance_valid(enemy) and enemy.is_inside_tree():
+		centre = enemy.get_global_transform_with_canvas().origin
+		hole = DIM_HOLE
+	var reach := screen.length() * 1.2  # Big enough to cover the screen from any centre
+	_dim.size = Vector2(reach, reach) * 2.0
+	_dim.position = centre - Vector2(reach, reach)
+	_dim_gradient.set_offset(0, hole / reach)
+	_dim_gradient.set_offset(1, minf((hole * 2.0 + 1.0) / reach, 1.0))
+	_dim.visible = true
+
+# The card's icons: a combo's two statuses at 48 px ("Soaked + Charged"); a chain's Reactions in
+# order with arrows, repeats collapsed ("Drown → Nightbloom ×2").
+func _build_card_icons(id: StringName, is_chain: bool, order: Array) -> void:
+	for child in _card_icons.get_children():
+		_card_icons.remove_child(child)
+		child.queue_free()
+	if id == DAWNBREAK_ID:  # Its own icon (UI Asset, icons.json "legendary"), else the Legendary gem
+		_card_icons.add_child(_card_icon(id) if IconInfo.icon(id) != null else _LegendaryGem.new())
+		return
+	if is_chain:
+		var runs: Array = []  # [name, count]
+		for name in order:
+			if not runs.is_empty() and runs[-1][0] == name:
+				runs[-1][1] += 1
+			else:
+				runs.append([name, 1])
+		for i in runs.size():
+			if i > 0:
+				_card_icons.add_child(_card_word("→", UiStyle.INK_DIM))
+			var reaction_id := _reaction_id_named(String(runs[i][0]))
+			if reaction_id != &"" and IconInfo.icon(reaction_id) != null:
+				_card_icons.add_child(_card_icon(reaction_id))  # Each Reaction's own icon (UI Asset), 48 px
+			_card_icons.add_child(_card_word(runs[i][0] + (" ×%d" % runs[i][1] if runs[i][1] > 1 else ""), UiStyle.GOLD))
+		return
+	var combo := CodexData.get_any(id)
+	var statuses: Array = combo.get("statuses", [])
+	for i in statuses.size():
+		if i > 0:
+			_card_icons.add_child(_card_word("+", UiStyle.INK_DIM))
+		_card_icons.add_child(IconInfo.make_icon(statuses[i], 3))  # 48 px, with its tap tip
+	if IconInfo.icon(id) != null:  # A Reaction: its own icon after its statuses (it's discovered now)
+		_card_icons.add_child(_card_word("→", UiStyle.INK_DIM))
+		_card_icons.add_child(_card_icon(id))
+
+# A Reaction's icon at 48 px (16 px art ×3, nearest).
+func _card_icon(id: StringName) -> TextureRect:
+	var icon := TextureRect.new()
+	icon.texture = IconInfo.icon(id)
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.custom_minimum_size = Vector2(48, 48)
+	return icon
+
+# The Reaction (or Crowned Reaction) id for a name in a chain's order.
+static func _reaction_id_named(name: String) -> StringName:
+	for entry in CodexData.combos() + Array(CodexData.crowned()):
+		if entry.get("name", "") == name:
+			return StringName(entry.id)
+	return &""
+
+func _card_word(text: String, colour: Color) -> Label:
+	var word := Label.new()
+	word.text = text
+	UiStyle.display(word, 22)
+	word.add_theme_color_override("font_color", colour)
+	word.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	return word

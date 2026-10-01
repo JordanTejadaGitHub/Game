@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/barrow_wight.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/barrow_king.tres" id="2_frames"]
 [ext_resource type="Resource" path="res://resource/enemy/barrow_wight.tres" id="3_wight"]
 
 [resource]
@@ -13,8 +13,6 @@ speed = 40.0
 dew_reward = 80
 leaf_cost = 5
 is_boss = true
-sprite_scale = 1.8
-tint = Color(0.8, 0.75, 0.6, 1)
 resists = Array[String](["song", "water"])
 weak_to = Array[String](["root"])
 status_immune = Array[StringName]([&"held"])

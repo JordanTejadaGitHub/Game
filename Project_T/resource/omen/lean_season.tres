@@ -6,9 +6,10 @@
 script = ExtResource("1_omen")
 id = "lean_season"
 display_name = "Lean Season"
-description = "The {rest} bonus after this {block} is cut to a quarter."
+description = "No {rest} bonus after this {block}."
 flavor = "A thin season, with a strange gift at its end."
 kind = 1
 min_drift = 26
-rest_bonus_multiplier = 0.25
+requires_legendary = true
+rest_bonus_multiplier = 0.0
 reward_legendary = true

@@ -126,6 +126,7 @@ func _process(_delta: float) -> void:
 	var next := latest + 1
 
 	_start_button.disabled = not drift_director.can_start_next_drift()
+	_start_button.tooltip_text = MIST_FULL if drift_director.is_mist_full() else ""
 	# Remember moved to the top right (HUD RememberButton, run_design.md); this one stays hidden.
 	_remember_button.visible = false
 	_sapling_button.visible = drift_director.is_resting() and not drift_director.awaiting_family_pick \
@@ -138,7 +139,8 @@ func _process(_delta: float) -> void:
 		_status_label.text = "The last drift is walking"
 		_start_button.text = "Final drift"
 	elif drift_director.is_resting():
-		_status_label.text = "Resting · %d%% refunds" % roundi(tower_seller.build_phase_refund * 100)
+		_status_label.text = "Resting · %d%% refunds · Drift %d: %d Dew" % [roundi(tower_seller.build_phase_refund * 100), next,
+			roundi(drift_director.get_effective_pot(next))]  # The Dew pot (run_design.md)
 		var boss := " · boss" if drift_director.is_boss_drift(next) else ""
 		_start_button.text = "Start drift %d%s (Enter)" % [next, boss]
 	elif drift_director.can_start_next_drift():
@@ -148,6 +150,9 @@ func _process(_delta: float) -> void:
 		var bonus := drift_director.get_call_early_bonus()
 		_start_button.text = "Call drift %d early · +%d Dew" % [next, bonus] if bonus > 0 \
 			else "Start drift %d now" % next
+	elif drift_director.is_mist_full() and drift_director.get_block(next) == drift_director.get_block(latest):
+		_status_label.text = "The mist is full"  # Calling early waits until the queue is out
+		_start_button.text = "Start drift %d now" % next
 	else:
 		_status_label.text = "Rest once the field is clear"
 		_start_button.text = "Rest after drift %d" % block_end
@@ -159,6 +164,8 @@ func _process(_delta: float) -> void:
 		if pending == &"omen" and omens != null and bool(omens.get("faced")):
 			_start_button.text = "Choose an Omen"  # "Face an Omen" was picked: one of its Omens must be chosen
 		_start_button.disabled = false
+
+const MIST_FULL := "The mist is full: it holds nightmares back until there's room on the path. Calling early waits until they're out."
 
 # Screens_ui.md "Choice screens": what the Start button says while a choice waits.
 const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Face an Omen or Clear Skies"}

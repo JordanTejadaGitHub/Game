@@ -15,7 +15,7 @@ const GLOSSARY_SOURCE := [
 		["Leaves", "The Heartwood's life. A nightmare that reaches it takes leaves; lose them all and the dream goes dark.", ["Act"]],
 		["Seeds", "Earned every run, win or lose; spent in the Memory Grove between runs.", ["Memory Grove"]],
 		["Dreamlight shard", "Dreamcatchers gather shards from caught nightmares: 10 shards make 1 Dreamlight (at most 2 per run this way).", ["Dreamlight", "Caught"]],
-		["The thinning dream", "Each act, nightmares leave less Dew: all of it in act 1, then 68%, 65% and half.", ["Dew", "Act"]],
+		["The thinning dream", "Each act, nightmares leave less Dew: all of it in act 1, then 68%, 45% and 35%.", ["Dew", "Act"]],
 	]],
 	["The run", [
 		["Drift", "A wave of nightmares. A run is 100 drifts in 4 acts.", ["Block", "Act"]],
@@ -29,6 +29,7 @@ const GLOSSARY_SOURCE := [
 		["Omen", "From drift 10: a twist for the next block with a reward if you survive it. Clear Skies skips it.", ["Rest"]],
 		["Call early", "Starting the next drift while the current one is still arriving, for a little extra Dew.", ["Auto-drift"]],
 		["Auto-drift", "Drifts in a block start by themselves a few seconds after the last one arrived.", ["Call early", "Block"]],
+		["Mist", "Where nightmares enter. With the path full it holds the rest back until there's room; a \"+N\" over it counts them. While it holds any, the next drift can't be called early.", ["Call early"]],
 		["Remember screen", "Spend Dreamlight on a family's branches and final forms. The Remember button at the top right opens it any time (a drift pauses).", ["Dreamlight"]],
 		["Close call", "A nightmare past 85% of its route: the Heartwood trembles and its last stretch glows cold.", ["Leaves"], "Three close calls in a block: time to lengthen the maze."],
 		["Chain", "Reactions setting each other off within 1 s. Shown as Chain 5, not a damage multiplier; Chain 10 is a Dawnburst.", ["Reaction", "Dawnburst"], "Thunderclap → Lightning Rod → Mushrooming is a Chain 3."],
@@ -61,7 +62,7 @@ const GLOSSARY_SOURCE := [
 		["Nightmare", "The Hollow's dreams turned cruel, hunting the Heartwood's dream. Dispel them before they reach it.", ["Dispel"]],
 		["Dispel", "Breaking a nightmare apart with your Wardens' light. It leaves Dew behind.", ["Nightmare"]],
 		["Deeply Blighted", "An elite nightmare: three times the health and Dew, and it takes two leaves.", ["Leaves"]],
-		["Dread shell", "A shell that soaks chip damage: heavy hits break through.", ["Crit"]],
+		["Dread shell", "A shell that soaks part of every hit: chip damage barely gets through, heavy hits mostly do. Each hit wears it down until it cracks for good.", ["Crit"], "Shellbound wears one. Crits and big single hits get through it best."],
 		["Hidden", "Lurkers can't be seen or targeted until revealed or close.", ["Nightmare"]],
 		["Flying", "Flies straight over the maze, ignoring walls.", ["Nightmare"]],
 		["Restless", "A nightmare turned back by a change of route: +20% speed per stack, for good. Three make it Unbound. Not a status.", ["Unbound"]],
@@ -70,7 +71,7 @@ const GLOSSARY_SOURCE := [
 	["Statuses", [
 		["{damp}", "{tip:damp}", ["Conducted", "Thunderclap"]],
 		["{drowsy}", "{tip:drowsy}", ["{asleep}", "Drown"]],
-		["{spored}", "{tip:spored}", ["Popped", "Ignite"]],
+		["{spored}", "{tip:spored}", ["Ignite", "Mushrooming"]],
 		["{marked}", "{tip:marked}", ["Exposed Blow", "Lightning Rod"]],
 		["{static}", "{tip:static}", ["Set Off", "Thunderclap"]],
 		["{held}", "{tip:held}", ["Shatter", "Smother"]],
@@ -107,11 +108,10 @@ const GLOSSARY_SOURCE := [
 ]
 
 # The 7 synergies: id -> [name, ingredient statuses, what it does, which Wardens set it off].
-# The id is also the DamageLog combo tag where one exists (conducted, popped, fog); the rest are
+# The id is also the DamageLog combo tag where one exists (conducted, fog); the rest are
 # reported with ComboFeedback.report(id, …) where they happen.
 const SYNERGIES := {
 	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps farther and more often between {damp} nightmares.", "Stormcap"],
-	&"popped": ["Popped", [&"spored", &"spored"], "10+ {spored} bursts over the nightmare and its neighbors.", "Puffball"],
 	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "Full {drowsy}: the nightmare falls {asleep} for 3 s; a big hit (10%+ of its health) wakes it.", "Dreamshroom"],
 	&"fog": ["Spore Fog", [&"spored", &"damp"], "{spored} ticks harder inside Mistveil fog.", "Mistveil"],
 	&"set_off": ["Set Off", [&"static", &"static"], "A pulse sets off a {static} bolt.", "Chime Stone, Lullaby Bell"],
@@ -402,7 +402,6 @@ const CALLOUT_ENTRIES := [
 	# [callout id, entry name, line, related]
 	[&"crit", "Critical", "A critical hit: the Warden's hit landed for extra damage (its crit chance is on the Warden panel). Not the Shatter Reaction (\"Shatter!\").", ["Crit"]],
 	[&"conducted", "Conducted", "Lightning through {damp}: bolts jump farther and more often between {damp} nightmares (the Conducted combo).", ["Conducted"]],
-	[&"popped", "Popped", "Poison pops: 10+ {spored} bursts over the nightmare and its neighbors (the Popped combo).", ["Popped"]],
 	[&"asleep", "Asleep", "Full {drowsy}: the nightmare falls asleep for a moment; a big hit wakes it (the Asleep combo).", ["Asleep"]],
 	[&"weak", "Weak", "A hit from a family this nightmare is weak to: ×1.5 damage (the sparkle).", []],
 	[&"resisted", "Resisted", "A hit from a family this nightmare resists: ×0.5 damage (the gray puff).", []],
@@ -450,6 +449,8 @@ static func find_term(text: String) -> String:
 	for group in glossary():
 		for entry in group[1]:
 			if not _term_patterns.has(entry[0]):
+				if _term_patterns.is_empty():
+					UiStyle.release_at_exit(func() -> void: _term_patterns.clear())
 				var regex := RegEx.new()
 				regex.compile("(?i)\\b" + _escape(entry[0]) + "s?\\b")
 				_term_patterns[entry[0]] = regex

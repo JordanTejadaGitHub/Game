@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "tramplers"
+display_name = "Tramplers"
+description = "Each {drift}, the first nightmare to pass a Thornwall tramples it (no refund)."
+flavor = "Something heavy is coming through the hedges."
+min_drift = 26
+kind = 4
+waiting_for_hook = false
+trample_thornwall = true
+reward_dreamlight = 1

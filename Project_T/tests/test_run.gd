@@ -64,23 +64,31 @@ func _test_blocks_and_rests() -> void:
 	var speed: GameSpeed = main.get_node("%GameSpeed")
 	var family: Control = main.get_node("%FamilyPickScreen")
 	var dreams: DreamState = main.get_node("%DreamState")
+	# A boss staying at the Heartwood drains leaves: that block isn't perfect (it never reaches the goal).
+	if spawner.has_signal("boss_drained"):
+		var staying := Node2D.new()
+		director._block_leaked = false
+		spawner.boss_drained.emit(staying, 1)
+		_check(director._block_leaked, "a boss draining at the Heartwood marks the block as leaked")
+		director._block_leaked = false
+		staying.free()
 	var map_generator = main.get_node("%MapGenerator")
 
 	_check(director.is_resting() and director.drifts_started == 0, "the run starts resting")
 	_check(run_state.leaves == 15 and run_state.max_leaves == 15 and run_state.dew == 60, "15 leaves, 60 Dew")
 	_check(spawner.get_enemies().is_empty(), "no creatures before Start")
 	_check(director.get_extra_nightmares(9) == 1.0 and director.get_extra_nightmares(10) == 1.25, "extra nightmares from drift 10")
-	# Dispel Dew × 1.0 / 0.68 / 0.65 / 0.5 by act (act 2 tightened), fractions carried over.
+	# The Dew pot (run_design.md): a fixed pot per drift from the table, linear inside each act, bosses apart.
+	_check(is_equal_approx(director.get_dew_pot(1), 30.0) and is_equal_approx(director.get_dew_pot(24), 115.0)
+		and is_equal_approx(director.get_dew_pot(25), 220.0) and is_equal_approx(director.get_dew_pot(26), 115.0)
+		and is_equal_approx(director.get_dew_pot(49), 135.0) and is_equal_approx(director.get_dew_pot(50), 270.0)
+		and is_equal_approx(director.get_dew_pot(75), 320.0) and director.get_dew_pot(100) == 0.0,
+		"the pot table: 30 → 115 in act 1, bosses 220 / 270 / 320, the win pays nothing")
+	# Fractions carry: three shares of 0.5 pay 1 Dew, then the third half waits.
 	run_state._dispel_dew_carry = 0.0
-	_check(run_state._scaled_dispel_dew(20) == 20, "act 1 pays dispel Dew in full")
+	var halves := run_state._carried_dew(0.5) + run_state._carried_dew(0.5) + run_state._carried_dew(0.5)
+	_check(halves == 1 and is_equal_approx(run_state._dispel_dew_carry, 0.5), "a pot share's fraction carries to the next dispel")
 	run_state._dispel_dew_carry = 0.0
-	var started := director.drifts_started
-	director.drifts_started = 80  # Act 4
-	run_state._dispel_dew_carry = 0.0
-	var act_4_paid := run_state._scaled_dispel_dew(3) + run_state._scaled_dispel_dew(3)
-	director.drifts_started = started
-	run_state._dispel_dew_carry = 0.0
-	_check(act_4_paid == 3, "act 4 pays half, the halves adding up (3 + 3 → %d)" % act_4_paid)
 	# Mid-game rework: ×1.045 per drift to 25, ×1.055 for 26–50 (≈ ×11 by drift 50), ×1.045 from 51
 	# (≈ ×33 at 75, ×100 at 100).
 	_check(is_equal_approx(director.get_growth(25), pow(1.045, 24)) and is_equal_approx(director.get_growth(26), pow(1.045, 24) * 1.055)
@@ -98,13 +106,14 @@ func _test_blocks_and_rests() -> void:
 		and is_equal_approx(director.get_health_scale(shade_data, 51), director.get_growth(51) * late * director.get_health_multiplier(shade_data, 51))
 		and is_equal_approx(director.get_health_scale(oak_data, 100), director.boss_health_multiplier * director.final_boss_late_multiplier * director.get_health_multiplier(oak_data, 100)),
 		"acts 3–4 nightmares and bosses have ×%.1f health (the Hollow Oak at 100 its own)" % late)
-	# Act 1: ×1.0 to 9, ramping to ×1.15 at 20, held to 25. Act 2 (interim): act2_start at 26, ramping to
-	# act2_end at 45, held to 50.
-	var curve := {1: 1.0, 9: 1.0, 20: 1.15, 25: 1.15, 26: act2_start, 45: act2_end, 50: act2_end}
+	# Act 1: ×1.0 to 9, ramping to ×1.15 at 20, held to 25. Act 2 ("Human run 2"): act2_start at 26, the old
+	# gentle ramp to act2_steep_value at 37, then most of the rise to act2_end at 45, held to 50.
+	var curve := {1: 1.0, 9: 1.0, 20: 1.15, 25: 1.15, 26: act2_start, 37: director.act2_steep_value, 45: act2_end, 50: act2_end}
 	for number in curve:
 		_check(is_equal_approx(director.get_early_multiplier(number), curve[number]),
 			"drift %d: health ×%.2f (got %.3f)" % [number, curve[number], director.get_early_multiplier(number)])
-	_check(absf(director.get_early_multiplier(37) - lerpf(act2_start, act2_end, 11.0 / 19.0)) < 0.001 and director.get_early_multiplier(14) > 1.0
+	_check(absf(director.get_early_multiplier(31) - lerpf(act2_start, director.act2_steep_value, 5.0 / 11.0)) < 0.001
+		and absf(director.get_early_multiplier(41) - lerpf(director.act2_steep_value, act2_end, 0.5)) < 0.001 and director.get_early_multiplier(14) > 1.0
 		and director.get_early_multiplier(14) < 1.15, "both ramps are straight lines")
 	# One Deeply Blighted from drift 31 when the drift lists none (boss drifts: from the escort); two from 76.
 	for number in [25, 26, 30, 31, 35, 45, 50, 51, 75, 76, 100]:
@@ -119,7 +128,7 @@ func _test_blocks_and_rests() -> void:
 	_check(is_equal_approx(director.get_health_scale(stag, 25), director.act1_boss_health_multiplier * director.get_health_multiplier(stag, 25))
 		and is_equal_approx(director.get_health_scale(shade_data, 25), director.get_growth(25) * director.act1_health_multiplier * director.get_health_multiplier(shade_data, 25)),
 		"act 1's boss has its own multiplier (no ramp); its escort takes ×1.15")
-	_check(is_equal_approx(director.get_health_scale(stag, 50), director.boss_health_multiplier * act2_end * director.get_health_multiplier(stag, 50)),
+	_check(is_equal_approx(director.get_health_scale(stag, 50), director.mid_boss_health_multiplier * act2_end * director.get_health_multiplier(stag, 50)),
 		"later bosses keep their act's multiplier (act 2's end)")
 
 	# Selling in a rest what was planted this rest: a full refund (75% once it stood through a drift)

@@ -8,6 +8,7 @@ const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
 const SECONDARY_SIZE := 12  # Entwined / Deepened / "Needs Dewdrop" lines
 const SECONDARY_MIN_SIZE := 10
 const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
+const SIDE_MARGIN := 16.0  # Left and right of the card row when many cards (5) narrow it
 const ENTWINED_COLOR := Palette.SPRIG  # Vine border
 const DEEPENED_COLOR := Palette.DEWLIGHT
 const BITTERSWEET_COLOR := UiStyle.POOR  # The cost line: Ember, the palette's "bad" colour
@@ -19,10 +20,15 @@ const SEED_COLOR := Color("d4ec9c")  # Heartwood 32 "Newleaf": what a Seed card 
 var _was_paused := false
 var _title := Label.new()
 var _cards := HBoxContainer.new()
+var _card_width := CARD_SIZE.x  # Narrower when 5 cards (Thick Blight + Wider Dreams) would pass the screen
 var _skip := Button.new()
 var _reroll := Button.new()  # Second Thoughts (Memory Grove)
 var _dev_any := Button.new()  # "Dev: any card…" (dev runs of debug builds; demo_scope.md "Pick any card")
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
+var _diagram: CardDiagram = null  # The hovered placement card's map picture (dream_design.md "Placement cards show a diagram")
+var _scene: CardScene = null  # The living mini-scene (pooled: one view, reused card to card)
+var _held_for_diagram := false  # A long-press showed the diagram: that release doesn't take the card
+const LONG_PRESS := 0.45
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -77,6 +83,9 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	_dev_any.visible = DreamState.dev_tools_on()
 	_reroll.text = "Dream again · %d left" % dream_state.rerolls_left
 	_reroll.visible = dream_state.rerolls_left > 0
+	var gap := float(_cards.get_theme_constant("separation"))
+	var room := get_viewport_rect().size.x - 2.0 * SIDE_MARGIN - gap * (cards.size() - 1)
+	_card_width = minf(CARD_SIZE.x, floorf(room / maxf(cards.size(), 1.0)))
 	for child in _cards.get_children():
 		_cards.remove_child(child)  # Right away: a reroll rebuilds the row in the same frame
 		child.queue_free()
@@ -95,9 +104,25 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 
 func _make_card(card: UpgradeData) -> Button:
 	var button := Button.new()
-	button.custom_minimum_size = CARD_SIZE
+	button.custom_minimum_size = Vector2(_card_width, CARD_SIZE.y)
 	button.focus_mode = Control.FOCUS_NONE
-	button.pressed.connect(dream_state.choose.bind(card))
+	button.pressed.connect(func() -> void:
+		if _held_for_diagram:
+			_held_for_diagram = false  # The long-press was to look, not to take
+			return
+		dream_state.choose(card))
+	if CardDiagram.has_diagram(card):
+		button.mouse_entered.connect(show_diagram.bind(card, button))
+		button.mouse_exited.connect(hide_diagram)
+		button.button_down.connect(func() -> void:  # Touch: a long-press shows it
+			await get_tree().create_timer(LONG_PRESS, true).timeout
+			if is_instance_valid(button) and button.button_pressed:
+				_held_for_diagram = true
+				show_diagram(card, button))
+		button.button_up.connect(func() -> void:
+			if not _held_for_diagram:
+				return
+			hide_diagram())
 	# Moonlit Thread card (ui_style.md): solid fog, the top thread in the rarity colour (Entwined: the
 	# vine green; Woven: glowing).
 	UiStyle.card_button(button, ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity))
@@ -139,12 +164,16 @@ func _make_card(card: UpgradeData) -> Button:
 	UiStyle.title(name_label, UiStyle.CARD_NAME_SIZE)
 	box.add_child(name_label)
 	if dream_state.opens_clearing(card):
-		_add_opens_clearing(button, box)
+		_add_opens_clearing(box)
 	# The effect comes right after the name; it never shrinks.
 	_add_linked_line(box, card.description, UiStyle.INK, 16)
 	var res := dream_state.resonance_preview(card)
-	if res.bonus > 0.0:  # Tag resonance (dream_audit.md): "+20% from 2 spore cards"
-		_add_line(box, DreamState.resonance_text(res.bonus, res.tag, res.count), UiStyle.GOLD, 14).name = "ResonanceLine"
+	if res.bonus > 0.0:  # Resonance (text_style.md): "+20% from Soft Spores, Damp Rot", never the tag; hover lists them all
+		var res_line := _add_line(box, DreamState.resonance_text(res.bonus, res.cards), UiStyle.GOLD, 14)
+		res_line.name = "ResonanceLine"
+		res_line.tooltip_text = DreamState.resonance_tooltip(res.cards)
+		if res_line.tooltip_text != "":
+			res_line.mouse_filter = Control.MOUSE_FILTER_PASS  # Hover shows them; a click still takes the card
 	var live: String = dream_state.effects().preview_line(card)
 	if live != "":  # Scaling cards: where you stand now (dream_design.md #75)
 		_add_line(box, live, UiStyle.GOLD, 14).name = "LiveLine"
@@ -181,8 +210,8 @@ func _make_card(card: UpgradeData) -> Button:
 
 # While clearing is locked, a clearing card leads with what it unlocks (dream_design.md "Clearing
 # cards" / "Make the unlock obvious"): the Clear tool icon + "Unlocks clearing", what clearing is, a
-# thin divider, then the card's own effect; and a gold "Opens clearing" tag in the corner.
-func _add_opens_clearing(button: Button, box: VBoxContainer) -> void:
+# thin divider, then the card's own effect (one label: no corner tag, text_style.md 2026-10-01).
+func _add_opens_clearing(box: VBoxContainer) -> void:
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", 6)
@@ -206,14 +235,6 @@ func _add_opens_clearing(button: Button, box: VBoxContainer) -> void:
 	var divider := HSeparator.new()
 	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(divider)
-	var tag := Label.new()
-	tag.name = "OpensClearingTag"
-	tag.text = DreamState.OPENS_CLEARING_TAG
-	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.caps(tag, 12, UiStyle.GOLD)
-	tag.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 10)
-	tag.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	button.add_child(tag)
 
 # A card grows to fit its content (a Button doesn't size to its children), at least CARD_SIZE tall.
 # If that would pass the screen, the secondary lines shrink first, never the effect.
@@ -266,7 +287,7 @@ func _fit_card(button: Button, box: Control, secondary: Array[Label]) -> void:
 			for label in secondary:
 				if label.get_theme_font_size("font_size") > SECONDARY_MIN_SIZE:
 					label.add_theme_font_size_override("font_size", SECONDARY_MIN_SIZE)  # Refits via minimum_size_changed
-		button.custom_minimum_size = Vector2(CARD_SIZE.x, maxf(CARD_SIZE.y, needed))
+		button.custom_minimum_size = Vector2(_card_width, maxf(CARD_SIZE.y, needed))
 	box.minimum_size_changed.connect(fit)
 	fit.call_deferred()
 
@@ -288,7 +309,49 @@ func _add_linked_line(box: VBoxContainer, text: String, color: Color, font_size:
 	box.add_child(label)
 	return label
 
+# The diagram panel beside `button` (right of it, or left when there's no room), kept on screen.
+# Cards with a living mini-scene (CardScene.LIVE_CARDS) play it in the one pooled view; reduced motion and the
+# rest keep the still diagram.
+func show_diagram(card: UpgradeData, button: Control) -> void:
+	hide_diagram()
+	var panel: Control
+	if CardScene.can_show(card):
+		if _scene == null or not is_instance_valid(_scene):
+			_scene = CardScene.new()
+			_scene.name = "CardScene"
+			_scene.z_index = 10
+			add_child(_scene)
+		_scene.show_card(card)
+		panel = _scene
+	else:
+		_diagram = CardDiagram.make(card)
+		if _diagram == null:
+			return
+		_diagram.name = "CardDiagram"
+		_diagram.z_index = 10
+		add_child(_diagram)
+		panel = _diagram
+	await get_tree().process_frame
+	if not is_instance_valid(panel) or not panel.visible or not is_instance_valid(button):
+		return
+	var card_rect := button.get_global_rect()
+	var view := get_viewport_rect().size
+	var size := panel.get_combined_minimum_size()
+	var x := card_rect.end.x + 8.0
+	if x + size.x > view.x - 8.0:
+		x = card_rect.position.x - size.x - 8.0
+	var y := clampf(card_rect.position.y + 24.0, 8.0, view.y - size.y - 8.0)
+	panel.global_position = Vector2(maxf(x, 8.0), y)
+
+func hide_diagram() -> void:
+	if _diagram != null and is_instance_valid(_diagram):
+		_diagram.queue_free()
+	_diagram = null
+	if _scene != null and is_instance_valid(_scene):
+		_scene.stop()  # Pooled: kept, but nothing runs or draws
+
 func _on_closed() -> void:
+	hide_diagram()
 	# If another Dream is queued, offer_ready follows right away and shows (and pauses) again.
 	visible = false
 	game_speed.set_paused(_was_paused)

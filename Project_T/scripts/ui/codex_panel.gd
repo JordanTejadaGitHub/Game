@@ -411,7 +411,9 @@ func _status_extras(body: VBoxContainer, status: StringName) -> void:
 	for combo in CodexData.combos():
 		if combo.get("statuses", []).has(status) and CodexData.in_build(combo, _scope):
 			var found := CodexData.is_discovered(combo.id)
-			combos.add_child(_chip(combo.name if found else "???", jump.bind(String(combo.id)) if found else Callable()))
+			var status_chip := _chip(combo.name if found else "???", jump.bind(String(combo.id)) if found else Callable())
+			status_chip.tooltip_text = StatusLinks.combo_tip_text(combo.id)  # The combo tip (??? until found)
+			combos.add_child(status_chip)
 	if combos.get_child_count() > 0:
 		body.add_child(combos)
 
@@ -727,6 +729,14 @@ func _crowned_card(c: Dictionary, discovered: bool, times: int) -> Control:
 	if not discovered:
 		row.add_child(_crowned_silhouette(c))  # Only the crown frame while undiscovered
 	else:
+		var own := IconInfo.icon(StringName(c.id))  # The Crowned Reaction's own icon (UI Asset), ×2
+		if own != null:
+			var reaction_icon := TextureRect.new()
+			reaction_icon.texture = own
+			reaction_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			reaction_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			reaction_icon.custom_minimum_size = Vector2(32, 32)
+			row.add_child(reaction_icon)
 		for family in c.families:
 			var icon := TextureRect.new()
 			icon.texture = CodexData.family_icon(family)
@@ -766,6 +776,14 @@ func _combo_card(combo: Dictionary, discovered: bool, times: int) -> Control:
 	row.add_theme_constant_override("separation", 6)
 	box.add_child(row)
 	if discovered:  # Locked combos are just "???": icons would give the answer away (screens_ui.md)
+		var own := IconInfo.icon(StringName(combo.id))  # A Reaction's own icon (UI Asset), ×2
+		if own != null:
+			var icon := TextureRect.new()
+			icon.texture = own
+			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.custom_minimum_size = Vector2(32, 32)
+			row.add_child(icon)
 		for status in combo.statuses:
 			row.add_child(StatusIcon.new(status))
 	var name := Label.new()
@@ -814,6 +832,7 @@ static var _wardens: Array[TowerData] = []
 # Every Warden of the families this profile can pick (the starting 3 + Grove-grown families).
 static func get_player_wardens() -> Array[TowerData]:
 	if _wardens.is_empty():
+		UiStyle.release_at_exit(func() -> void: _wardens.clear())
 		for file in ResourceLoader.list_directory(TOWER_DIR):
 			if file.ends_with(".tres"):
 				var data := load(TOWER_DIR + file) as TowerData
@@ -842,6 +861,31 @@ static func get_player_wardens() -> Array[TowerData]:
 
 const SILHOUETTE := Color(UiStyle.FOG, 0.9)
 
+# The Families page (screens_ui.md "Families page, updated"): one tab per family (the base Warden's
+# portrait), then the family: a header (the base Warden large and animated, damage type, its role in
+# one line, its statuses, your record), its tree drawn like the Remember screen (tier, Dew to grow,
+# Dreamlight to unlock, Grove state; tapping a node shows its card), and under it its Kinships, combos
+# and Dream cards. Every number comes from the data (TowerData / DreamState constants).
+var _family := ""  # The family shown
+var _family_body := VBoxContainer.new()
+var _family_card := VBoxContainer.new()  # The tapped node's card, under the tree
+const FAMILY_ROLES := {
+	"sporeling": "Damage over time: stack {spored} and keep it.",
+	"dewdrop": "Water: splash, fog and ice. {damp} nightmares conduct lightning.",
+	"firefly_jar": "Light: lightning, marking and beams. {static} builds to free bolts; {marked} nightmares take more.",
+	"pebbling": "Heavy hits: slow, powerful shots for the toughest nightmares.",
+	"rootling": "Control: {held} nightmares in place, and pull them back.",
+	"bellflower": "Song and sleep: sing nightmares {drowsy}, then {asleep}.",
+	"acorn": "Support and economy: auras for the Wardens around it, and Dew.",
+	"nestling": "Birds: fast hunters for the quickest nightmares.",
+	"whirligig": "Wind: spread one nightmare's statuses to the crowd.",
+}
+const TREE_W := 640.0
+const TREE_H := 380.0
+const NODE_W := 120.0
+const NODE_H := 108.0
+const NODE_PORTRAIT := 56.0
+
 func _build_families() -> void:
 	for child in _families.get_children():
 		_families.remove_child(child)
@@ -854,80 +898,345 @@ func _build_families() -> void:
 			for id in unlock.families:
 				if not ids.has(id):
 					ids.append(id)
-	var seen := ComboFeedback.load_seen()
+	var roots: Array[TowerData] = []
 	for id in ids:
 		var path: String = TOWER_DIR + id + ".tres"
 		if ResourceLoader.exists(path):
-			var section := _family_section(load(path), seen)
-			_families.add_child(section)
-			family_cards[id] = section
+			roots.append(load(path))
+	if roots.is_empty():
+		return
+	if _family == "" or not roots.any(func(r: TowerData) -> bool: return r.get_id() == _family):
+		_family = roots[0].get_id()
+	var tab_row := HFlowContainer.new()
+	tab_row.add_theme_constant_override("h_separation", 6)
+	_families.add_child(tab_row)
+	for root in roots:
+		var tab := Button.new()
+		tab.toggle_mode = true
+		tab.button_pressed = root.get_id() == _family
+		tab.focus_mode = Control.FOCUS_NONE
+		tab.theme_type_variation = &"HudButton"
+		tab.icon = WardenIcon.make(root)
+		tab.expand_icon = true
+		tab.add_theme_constant_override("icon_max_width", 32)
+		tab.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		tab.text = root.display_name
+		tab.custom_minimum_size = Vector2(0, 48)
+		var id := root.get_id()
+		tab.pressed.connect(func() -> void:
+			_family = id
+			_build_families())
+		tab_row.add_child(tab)
+		family_cards[id] = tab
+	_families.add_child(HSeparator.new())
+	for root in roots:
+		if root.get_id() == _family:
+			_families.add_child(_family_page(root))
 
-func _family_section(root: TowerData, seen: Array) -> Control:
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
+func _family_page(root: TowerData) -> Control:
+	var page := VBoxContainer.new()
+	page.add_theme_constant_override("separation", 12)
+	page.add_child(_family_header(root))
+	var tree := FamilyTree.new(self, root)
+	tree.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	page.add_child(tree)
+	for child in _family_card.get_children():
+		child.queue_free()
+	if _family_card.get_parent() != null:
+		_family_card.get_parent().remove_child(_family_card)
+	page.add_child(_family_card)
+	_show_form_card(root)
+	page.add_child(_family_links(root))
+	return page
+
+func _family_header(root: TowerData) -> Control:
 	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 8)
-	head.add_child(_form_icon(root, true, 40.0))
+	head.add_theme_constant_override("separation", 16)
+	var portrait := RememberScreen.Portrait.new(root, 112.0)
+	head.add_child(portrait)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(box)
 	var name := Label.new()
 	name.text = "%s family" % root.display_name
-	name.add_theme_font_size_override("font_size", 20)
+	UiStyle.display(name, 28)
 	name.add_theme_color_override("font_color", TERM_COLOR)
-	name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	head.add_child(name)
-	box.add_child(head)
-	# Its forms, in growth order.
-	var forms := HFlowContainer.new()
-	forms.add_theme_constant_override("h_separation", 10)
-	var todo: Array = root.evolves_to.duplicate()
+	box.add_child(name)
+	var kind := Label.new()
+	kind.text = IconInfo.damage_type_text(root.line)
+	UiStyle.caps(kind, 15, IconInfo.damage_type_color(root.line))
+	box.add_child(kind)
+	var role := StatusLinks.make_label(IconInfo.format(FAMILY_ROLES.get(root.get_id(), root.description)), 16)  # Status words are links
+	role.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(role)
+	var statuses := _family_statuses(root)
+	if not statuses.is_empty():
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		for status in statuses:
+			row.add_child(IconInfo.make_icon(status, 2))
+		box.add_child(row)
+	var record := Label.new()
+	record.text = _family_record(root.get_id())
+	record.add_theme_font_size_override("font_size", 15)
+	record.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	box.add_child(record)
+	return head
+
+# Every status the family applies, in growth order.
+func _family_statuses(root: TowerData) -> Array[StringName]:
+	var out: Array[StringName] = []
+	for data in _family_forms(root):
+		for status in [data.applies_status, data.get("extra_status")]:
+			if status != null and status != &"" and not out.has(status):
+				out.append(status)
+	return out
+
+# The root and every form it grows into (each once), breadth first.
+func _family_forms(root: TowerData) -> Array[TowerData]:
+	var out: Array[TowerData] = []
+	var todo: Array = [root]
 	var done := {}
 	while not todo.is_empty():
 		var data := todo.pop_front() as TowerData
 		if data == null or done.has(data.get_id()):
 			continue
 		done[data.get_id()] = true
-		var in_scope: bool = _scope.get("all", false) or _scope.wardens.has(data.get_id())
-		var cell := VBoxContainer.new()
-		cell.add_theme_constant_override("separation", 0)
-		cell.custom_minimum_size = Vector2(92, 0)
-		cell.add_child(_form_icon(data, in_scope, 40.0))
-		var label := Label.new()
-		label.text = data.display_name if in_scope else "???"
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.add_theme_font_size_override("font_size", 13)
-		cell.add_child(label)
-		var how := Label.new()
-		how.text = "unlock with Dreamlight" if in_scope else "Memory Grove"
-		how.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		how.add_theme_font_size_override("font_size", 11)
-		how.add_theme_color_override("font_color", LOCKED_COLOR if in_scope else GROVE_COLOR)
-		cell.add_child(how)
-		forms.add_child(cell)
+		out.append(data)
 		todo.append_array(data.evolves_to)
-	box.add_child(forms)
-	# Its combos (in scope): discovered by name, the rest "???"; each jumps to its entry.
-	var links := HFlowContainer.new()
-	links.add_theme_constant_override("h_separation", 10)
+	return out
+
+# "Picked in 4 of your last 12 runs · won 1 with it" (RunHistory, normal runs only).
+func _family_record(id: String) -> String:
+	var runs := RunHistory.load_runs().filter(func(r: Dictionary) -> bool: return String(r.get("dev", "")) == "")
+	if runs.is_empty():
+		return "No runs recorded yet."
+	var picked := 0
+	var won := 0
+	for run in runs:
+		var chose: bool = run.get("family_picks", []).any(func(p: Dictionary) -> bool: return String(p.get("chosen", "")) == id)
+		if chose:
+			picked += 1
+			if run.get("won", false):
+				won += 1
+	return "Picked in %d of your last %d runs · won %d with it" % [picked, runs.size(), won]
+
+# A form's state for the tree: planted in the Codex's scope, or waiting in the Memory Grove.
+func _form_in_scope(data: TowerData) -> bool:
+	return _scope.get("all", false) or _scope.get("wardens", []).has(data.get_id())
+
+static func tier_name(data: TowerData) -> String:
+	if data.buildable_directly:
+		return "Base"
+	match data.tier:
+		4:
+			return "Ascended"
+		3:
+			return "Final form"
+	return "Branch"
+
+# "Branch · 120 Dew · 1 Dreamlight" (from the data).
+static func form_costs(data: TowerData) -> String:
+	if data.buildable_directly:
+		return "Base · %d Dew" % data.cost
+	var dreamlight: int = DreamState.ASCENDED_DREAMLIGHT if data.tier >= DreamState.ASCENDED_TIER \
+		else (DreamState.FINAL_DREAMLIGHT if data.tier >= 3 else DreamState.BRANCH_DREAMLIGHT)
+	return "%s · %d Dew · %d Dreamlight" % [tier_name(data), data.evolve_cost, dreamlight]
+
+# The tapped form's card under the tree (the Warden panel's top half when Tower Code's shared
+# builder lands; until then: portrait, name, tier and costs, stats, the description with links).
+func _show_form_card(data: TowerData) -> void:
+	for child in _family_card.get_children():
+		child.queue_free()
+	var shown := _form_in_scope(data)
+	var panel := PanelContainer.new()
+	var style := UiStyle.card(IconInfo.damage_type_color(data.line))
+	style.shadow_size = 0
+	panel.add_theme_stylebox_override("panel", style)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	panel.add_child(row)
+	if not shown:  # A known form's portrait and name come with its WardenHeaderView
+		row.add_child(RememberScreen.Portrait.new(data, 72.0, true))
+	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 3)
+	row.add_child(box)
+	if not shown:
+		var name := Label.new()
+		name.text = "???"
+		UiStyle.display(name, 22)
+		box.add_child(name)
+	var costs := Label.new()
+	costs.text = form_costs(data) + ("" if shown else " · in the Memory Grove")
+	UiStyle.caps(costs, 14, UiStyle.GOLD if shown else GROVE_COLOR)
+	box.add_child(costs)
+	if shown:
+		# The Warden panel's top half (Tower Code's shared WardenHeaderView): stats, statuses, Potency, Grows into.
+		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+		box.add_child(WardenHeaderView.build(data, null, dreams, true))
+	else:
+		var wait := Label.new()
+		wait.text = "Plant it in the Memory Grove to meet it."
+		wait.add_theme_font_size_override("font_size", 15)
+		wait.add_theme_color_override("font_color", GROVE_COLOR)
+		box.add_child(wait)
+	_family_card.add_child(panel)
+
+# Under the tree: its Kinships (pair, bond, stages), its combos as chips (??? until found), and its
+# Dream cards (a count, linking to the Dreams tab).
+func _family_links(root: TowerData) -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var seen := ComboFeedback.load_seen()
+	var kin := CodexData.kinships().filter(func(k: Dictionary) -> bool: return k.line == root.line and _covered(k))
+	if not kin.is_empty():
+		var header := Label.new()
+		header.text = "Kinships"
+		UiStyle.caps(header, 16, KIN_COLOR)
+		box.add_child(header)
+		for k in kin:
+			var line := Label.new()
+			var found := seen.has(String(k.id))
+			line.text = ("%s · %s + %s · Sapling, Blooming, Old Kin" % [k.name, k.a, k.b]) if found else "??? · %s + %s" % [k.a, k.b]
+			line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			line.add_theme_font_size_override("font_size", 15)
+			box.add_child(line)
+	var combos := HFlowContainer.new()
+	combos.add_theme_constant_override("h_separation", 6)
 	var caption := Label.new()
-	caption.text = "Combos:"
-	caption.add_theme_font_size_override("font_size", 14)
-	links.add_child(caption)
+	caption.text = "Combos"
+	UiStyle.caps(caption, 16, UiStyle.GOLD)
+	box.add_child(caption)
 	for entry in family_combos(root):
-		if not CodexData.is_discovered(entry.id, seen):  # "???": no name, no link (screens_ui.md)
-			var unknown := Label.new()
-			unknown.text = "???"
-			unknown.add_theme_color_override("font_color", LOCKED_COLOR)
-			links.add_child(unknown)
+		if entry.get("kind", "") == "Kinship":
 			continue
-		var link := LinkButton.new()
-		link.text = CodexData.combo_name(entry, seen)
-		link.focus_mode = Control.FOCUS_NONE
-		link.pressed.connect(func() -> void: jump(String(entry.id)))
-		links.add_child(link)
-	if links.get_child_count() == 1:
-		caption.text = "Combos: none yet"
-	box.add_child(links)
+		var found := CodexData.is_discovered(entry.id, seen)
+		var family_chip := _chip(CodexData.combo_name(entry, seen) if found else "???", jump.bind(String(entry.id)) if found else Callable())
+		family_chip.tooltip_text = StatusLinks.combo_tip_text(entry.id)  # The combo tip (??? until found)
+		combos.add_child(family_chip)
+	if combos.get_child_count() == 0:
+		var none := Label.new()
+		none.text = "None in reach yet."
+		none.add_theme_font_size_override("font_size", 15)
+		combos.add_child(none)
+	box.add_child(combos)
+	var cards := _family_dream_count(root)
+	if cards > 0:
+		box.add_child(_chip("%d Dream card%s for this family" % [cards, "" if cards == 1 else "s"], func() -> void:
+			for i in tabs.get_tab_count():
+				if tabs.get_tab_control(i).name == "Dreams":
+					tabs.current_tab = i))
 	return box
 
+# Dream cards that name this family: its damage type or Warden line, a family requirement or call.
+func _family_dream_count(root: TowerData) -> int:
+	var forms := _family_forms(root).map(func(d: TowerData) -> String: return d.get_id())
+	var count := 0
+	for card in DreamCodex.all_cards():
+		var hit := false
+		for field in ["stat_line", "count_line"]:
+			if String(card.get(field)) == root.line:
+				hit = true
+		for field in ["calls_family", "count_warden", "stat_warden", "set_cost_warden"]:
+			if forms.has(String(card.get(field))):
+				hit = true
+		var needs = card.get("requires")
+		if needs is Array and needs.any(func(r) -> bool: return forms.has(String(r))):
+			hit = true
+		if hit:
+			count += 1
+	return count
+
+# The family's tree, drawn like the Remember screen: the base at the bottom, its branches, their
+# finals, then the Ascended form at the top; lines between; each node a portrait on its waystone with
+# its name and costs, a silhouette while it waits in the Memory Grove. Tapping one shows its card.
+class FamilyTree extends Control:
+	var codex: CodexPanel
+	var nodes := {}  # TowerData -> Button
+	var edges: Array = []
+
+	func _init(owner_codex: CodexPanel, root: TowerData) -> void:
+		codex = owner_codex
+		custom_minimum_size = Vector2(TREE_W, TREE_H)
+		mouse_filter = Control.MOUSE_FILTER_PASS
+		var branches: Array = root.evolves_to.filter(func(d) -> bool: return d is TowerData)
+		var ascended: TowerData = null
+		for branch in branches:
+			for final_form in branch.evolves_to:
+				for next in final_form.evolves_to:
+					if next is TowerData and next.tier >= DreamState.ASCENDED_TIER:
+						ascended = next
+		var rows := 4 if ascended != null else 3
+		_place(root, Vector2(TREE_W / 2.0, _row_y(0, rows)))
+		for i in branches.size():
+			var lane_x := TREE_W * (i + 1) / float(branches.size() + 1)
+			var branch: TowerData = branches[i]
+			_place(branch, Vector2(lane_x, _row_y(1, rows)))
+			edges.append([root, branch])
+			var finals: Array = branch.evolves_to.filter(func(d) -> bool: return d is TowerData and d.tier < DreamState.ASCENDED_TIER)
+			for j in finals.size():
+				var spread := (j - (finals.size() - 1) / 2.0) * (NODE_W * 0.9)
+				_place(finals[j], Vector2(lane_x + spread, _row_y(2, rows)))
+				edges.append([branch, finals[j]])
+				if ascended != null and finals[j].evolves_to.has(ascended):
+					edges.append([finals[j], ascended])
+		if ascended != null:
+			_place(ascended, Vector2(TREE_W / 2.0, _row_y(3, rows)))
+
+	func _row_y(row: int, rows: int) -> float:
+		var span := TREE_H - NODE_H
+		return span - row * span / float(maxi(rows - 1, 1))
+
+	func _place(data: TowerData, centre_top: Vector2) -> void:
+		if nodes.has(data):
+			return
+		var shown := codex._form_in_scope(data)
+		var node := Button.new()
+		node.flat = true
+		node.focus_mode = Control.FOCUS_NONE
+		node.custom_minimum_size = Vector2(NODE_W, NODE_H)
+		node.size = Vector2(NODE_W, NODE_H)
+		node.position = Vector2(centre_top.x - NODE_W / 2.0, centre_top.y)
+		node.tooltip_text = (data.display_name if shown else "In the Memory Grove") + "\n" + CodexPanel.form_costs(data)
+		var portrait := RememberScreen.Portrait.new(data, NODE_PORTRAIT, not shown)
+		portrait.position = Vector2((NODE_W - NODE_PORTRAIT) / 2.0, 2.0)
+		portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		node.add_child(portrait)
+		var name := Label.new()
+		name.text = data.display_name if shown else "???"
+		name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name.position = Vector2(0, NODE_PORTRAIT + 4.0)
+		name.size = Vector2(NODE_W, 20)
+		name.add_theme_font_size_override("font_size", 15)
+		name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		node.add_child(name)
+		var costs := Label.new()
+		costs.text = ("%s · %d" % [CodexPanel.tier_name(data), data.cost]) if data.buildable_directly \
+			else ("%d Dew · %d ✦" % [data.evolve_cost, DreamState.ASCENDED_DREAMLIGHT if data.tier >= DreamState.ASCENDED_TIER \
+				else (DreamState.FINAL_DREAMLIGHT if data.tier >= 3 else DreamState.BRANCH_DREAMLIGHT)])
+		costs.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		costs.position = Vector2(0, NODE_PORTRAIT + 24.0)
+		costs.size = Vector2(NODE_W, 18)
+		costs.add_theme_font_size_override("font_size", 14)
+		costs.add_theme_color_override("font_color", UiStyle.GOLD if shown else GROVE_COLOR)
+		costs.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		node.add_child(costs)
+		node.pressed.connect(func() -> void: codex._show_form_card(data))
+		add_child(node)
+		nodes[data] = node
+
+	func _centre(data: TowerData) -> Vector2:
+		var node: Control = nodes[data]
+		return node.position + Vector2(NODE_W / 2.0, NODE_PORTRAIT / 2.0 + 2.0)
+
+	func _draw() -> void:
+		for edge in edges:
+			if not nodes.has(edge[0]) or not nodes.has(edge[1]):
+				continue
+			var lit: bool = codex._form_in_scope(edge[1])
+			draw_line(_centre(edge[0]), _centre(edge[1]), Color(UiStyle.GOLD, 0.55) if lit else Color(UiStyle.INK_DIM, 0.35), 3.0, true)
 # The combos, Crowned and Kinships in scope that `root`'s family takes part in.
 func family_combos(root: TowerData) -> Array:
 	var names := {}
@@ -1104,6 +1413,10 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 	gem.custom_minimum_size = DreamsRow.ICON_SIZE
 	gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	head.add_child(gem)
+	if card.rarity == UpgradeData.Rarity.LEGENDARY and IconInfo.icon(StringName(card.id)) != null:  # Own art (icons.json "legendary": Dawnbreak), ×2
+		var art := IconInfo.make_icon(StringName(card.id), 2)
+		art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		head.add_child(art)
 	var name := Label.new()
 	name.text = card.display_name
 	UiStyle.title(name, 20, UpgradeData.rarity_color(card.rarity))
@@ -1117,6 +1430,8 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 		head.add_child(fresh)
 	box.add_child(head)
 	box.add_child(StatusLinks.make_label(card.description, 15))
+	if CardDiagram.has_diagram(card):  # Placement cards show their diagram (dream_design.md)
+		box.add_child(CardDiagram.make(card))
 	var facts: Array[String] = [RARITY_NAMES[card.rarity], DreamsRow.group_of(card)]
 	for tag in card.tags:
 		facts.append(IconInfo.damage_type_name(tag) if IconInfo.DAMAGE_TYPES.has(tag) else tag.capitalize())
@@ -1396,24 +1711,23 @@ func _build_chains(live: ComboFeedback) -> void:
 				seen.append(tier)
 		if int(live._best_this_session.get("links", 0)) > int(best.get("links", 0)):
 			best = live._best_this_session
+	# One entry, then the longest chain (screens_ui.md "Chains: one discovery, then Dawnbreak": no tier list).
 	var header := Label.new()
-	header.text = "Chains · %d / %d" % [ComboFeedback.CHAIN_TIERS.filter(func(t: int) -> bool: return seen.has(str(t))).size(),
-		ComboFeedback.CHAIN_TIERS.size()]
+	header.text = "Chains"
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", TERM_COLOR)
 	_combos.add_child(header)
-	for tier in ComboFeedback.CHAIN_TIERS:
-		var card := PanelContainer.new()
-		var label := Label.new()
-		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		if seen.has(str(tier)):
-			label.text = "Chain %d\nReactions set each other off %d times in a row." % [tier, tier]
-		else:
-			label.text = "???"
-			label.add_theme_color_override("font_color", LOCKED_COLOR)
-		card.add_child(label)
-		_combos.add_child(card)
-		_entries[ComboFeedback.CHAIN_PREFIX + str(tier)] = card
+	var card := PanelContainer.new()
+	var label := Label.new()
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if seen.any(func(s) -> bool: return String(s).is_valid_int()):
+		label.text = "Chain\n" + ComboFeedback.CHAIN_LINE
+	else:
+		label.text = "???"
+		label.add_theme_color_override("font_color", LOCKED_COLOR)
+	card.add_child(label)
+	_combos.add_child(card)
+	_entries[ComboFeedback.CHAIN_PREFIX + str(ComboFeedback.CHAIN_TIERS[0])] = card
 	var links := int(best.get("links", 0))
 	if links >= 2:
 		var line := Label.new()

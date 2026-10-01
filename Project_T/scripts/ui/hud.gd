@@ -16,8 +16,13 @@ const SPROUT_ID := "sprout"
 const CLEAR_TOOL_GAP := 10.0
 const SEED_COLOR := Palette.SPRIG
 const COUNTER_ICON_GAP := 8.0  # Icon to number (UI Code: pairs group, counters stand apart)
+const COUNTER_ICON := 24.0  # Resource icons (the mock's .pxi 24 px; user: "the icons on the right seem too big")
+const BUTTON_GLYPH := 20  # The top-right buttons' icons and glyphs
+const HUD_COUNTER_ICONS := {&"dew": &"dew_hud", &"dreamlight": &"dreamlight_hud", &"leaves": &"leaf_hud", &"path_length": &"path_hud"}
+const HUD_GLYPHS := {&"MenuButton": &"menu_hud", &"CodexButton": &"help_hud", &"BuffLensButton": &"boosts_hud", &"RememberButton": &"remember_hud"}
+const BUTTON_BOX_INSET := 6.0  # Their visible box: ~36 px inside the 48 px hit area
 
-@onready var tower_bar: HFlowContainer = %TowerBar
+@onready var tower_bar: HBoxContainer = %TowerBar  # One row by construction (user: "should not stack")
 @onready var tower_placer: TowerPlacer = %TowerPlacer
 @onready var dew_label: Label = %DewLabel
 @onready var leaves_label: Label = %LeavesLabel
@@ -109,6 +114,9 @@ func _ready() -> void:
 	var close_calls := CloseCalls.new()
 	close_calls.name = "CloseCalls"
 	owner.add_child.call_deferred(close_calls)
+	var mist_count := MistCount.new(drift_director)  # "+N" waiting in the start mist (the field cap)
+	mist_count.name = "MistCount"
+	owner.add_child.call_deferred(mist_count)
 	# The Codex's Dreams: every card offered is seen on the account (DreamCodex).
 	add_child(DreamCodex.new(dream_state, run_state))
 	# The Codex's Nightmares: lifetime dispels per kind and the "Know every nightmare" milestone.
@@ -148,10 +156,13 @@ func _ready() -> void:
 	clears_label.offset_top = TOP_BUTTONS_Y + TOP_BUTTON_H + 6.0  # Under the button row (it shows only with free clears)
 	clears_label.offset_bottom = clears_label.offset_top + (path_label.offset_bottom - path_label.offset_top)
 	clears_label.tooltip_text = "Half-price clears: tending a tree or moving a rock costs half (never less than half its base price)."
+	UiStyle.number(clears_label, 16, UiStyle.GOLD)  # A small line under the patch (it was title-size: user)
+	clears_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	clears_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_child(clears_label)
 	_clears_label = clears_label
 	var update_clears := func(n: int) -> void:
-		clears_label.text = "Half-price clears %d" % n
+		clears_label.text = "%d" % n  # The icon (left of it) says what it counts; the tooltip explains
 		clears_label.visible = n > 0
 	run_state.free_clears_changed.connect(update_clears)
 	update_clears.call(run_state.free_clears)
@@ -167,6 +178,7 @@ func _ready() -> void:
 	_add_counter_icon(get_node("DreamlightLabel"), &"dreamlight", 2)
 	_add_counter_icon(leaves_label, &"leaves", 2)
 	_add_counter_icon(%PathLabel, &"path_length", 2)
+	_add_counter_icon(_clears_label, &"dew_cost", 1)  # Half-price clears: the cost icon, 16 px
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("buff_lens"):  # V: the buff lens on / off (a toggle, for touch too)
@@ -205,8 +217,12 @@ func _build_tower_bar() -> void:
 		button.theme_type_variation = &"WardenSlot"  # The HUD button frame; selected = the gold border
 		button.add_theme_font_size_override("font_size", 16)
 		button.custom_minimum_size = BUTTON_SIZE
-		button.tooltip_text = "%s (%s)\n%s · Cost: %d Dew\n%s" % [data.display_name, str(i + 1) if i < 9 else "no key",
-			IconInfo.damage_type_text(data.line), tower_placer.get_cost(data), IconInfo.format(data.description)]  # "Light damage"
+		# Hover (long-press on touch) shows the Warden card (WardenHeaderView + price), not a plain tooltip.
+		button.set_meta(&"price_line", "Cost: %d Dew · key %s" % [tower_placer.get_cost(data), str(i + 1) if i < 9 else "none"])
+		button.mouse_entered.connect(_show_hover_card.bind(button, data))
+		button.mouse_exited.connect(_hide_hover_card.bind(button))
+		button.button_down.connect(_on_slot_down.bind(button, data))
+		button.button_up.connect(_hide_hover_card.bind(button))
 		button.pressed.connect(_on_tower_pressed.bind(data))
 		if i < 9:
 			var hotkey := Label.new()
@@ -228,41 +244,84 @@ func _build_tower_bar() -> void:
 	_fit_tower_bar()
 
 # The bar is centred at the bottom and must stay clear of the Warden panel (left) and the drift
-# controls (right). With the Clear tool as one more slot on the left: one row at the widest slot that
-# fits (BUTTON_SIZE.x at most); if even BUTTON_MIN_WIDTH doesn't fit, the bar wraps upward into more
-# rows at that width (%TowerBar is an HFlowContainer; the Clear tool sits by the bottom row).
+# controls (right). It is always ONE row (user: "the tower bar should not stack like this"): the Clear
+# slot first, then the Wardens in key order. Slots shrink evenly to SLOT_MIN_WIDTH; past that the bar
+# shows a window of slots with ‹ › arrows at its ends (hotkeys still reach every Warden).
+const SLOT_MIN_WIDTH := 56.0
+const ARROW_W := 28.0
+var _bar_offset := 0  # The first Warden shown when the bar scrolls
+var _bar_arrows: Array[Button] = []
+
 func _fit_tower_bar() -> void:
 	if _tower_buttons.is_empty():
 		return
 	var room := get_viewport().get_visible_rect().size.x - BAR_CLEARANCE * 2.0
 	var n := _tower_buttons.size()
 	var width := floorf((room - CLEAR_TOOL_GAP - BAR_GAP * (n - 1)) / (n + 1))
-	var per_row := n
-	if width < BUTTON_MIN_WIDTH:
-		width = BUTTON_MIN_WIDTH
-		per_row = maxi(1, floori((room - width - CLEAR_TOOL_GAP + BAR_GAP) / (width + BAR_GAP)))
+	var shown := n
+	if width < SLOT_MIN_WIDTH:
+		width = SLOT_MIN_WIDTH
+		var inner := room - 2.0 * (ARROW_W + BAR_GAP)  # The arrows take their room first
+		shown = clampi(floori((inner - width - CLEAR_TOOL_GAP + BAR_GAP) / (width + BAR_GAP)), 1, n)
 	width = minf(width, BUTTON_SIZE.x)
-	var rows := ceili(float(n) / per_row)
+	_bar_offset = clampi(_bar_offset, 0, n - shown)
 	var icon := mini(UiStyle.HUD_SPRITE, int(width) - 12)
-	for button in _tower_buttons:
+	for i in n:
+		var button: Button = _tower_buttons[i]
 		button.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)
 		button.add_theme_constant_override("icon_max_width", icon)
+		button.visible = i >= _bar_offset and i < _bar_offset + shown
 		if button == _seed_badge_button():
 			_seed_badge.position.x = width - 14
 	clear_tool.add_theme_constant_override("icon_max_width", icon)
-	# Centre the tool + bar from the computed widths (the container only re-sorts its children next
-	# frame). The bar grows upward from 16 px above the bottom.
-	var bar_width := width * per_row + BAR_GAP * (per_row - 1)
-	var total := width + CLEAR_TOOL_GAP + bar_width
+	clear_tool.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)  # Exactly a Warden slot (user: not a different size)
+	# Centre the tool + bar (+ arrows) from the computed widths (the container only re-sorts its children
+	# next frame), one row, 16 px above the bottom.
+	var scrolling := shown < n
+	var bar_width := width * shown + BAR_GAP * (shown - 1)
+	var arrows_w := (ARROW_W + BAR_GAP) * 2.0 if scrolling else 0.0
+	var total := width + CLEAR_TOOL_GAP + bar_width + arrows_w
 	var left := -total / 2.0
 	clear_tool.offset_left = left
 	clear_tool.offset_right = left + width
 	clear_tool.offset_bottom = -16.0
 	clear_tool.offset_top = -16.0 - BUTTON_SIZE.y
-	tower_bar.offset_left = left + width + CLEAR_TOOL_GAP
-	tower_bar.offset_right = total / 2.0
+	var bar_left := left + width + CLEAR_TOOL_GAP + (ARROW_W + BAR_GAP if scrolling else 0.0)
+	tower_bar.offset_left = bar_left
+	tower_bar.offset_right = bar_left + bar_width
 	tower_bar.offset_bottom = -16.0
-	tower_bar.offset_top = -16.0 - BUTTON_SIZE.y * rows - BAR_GAP * (rows - 1)
+	tower_bar.offset_top = -16.0 - BUTTON_SIZE.y
+	_place_bar_arrows(scrolling, bar_left, bar_left + bar_width, n - shown)
+
+func _place_bar_arrows(scrolling: bool, bar_left: float, bar_right: float, hidden: int) -> void:
+	if _bar_arrows.is_empty():
+		for pair in [["‹", -1], ["›", 1]]:
+			var arrow := Button.new()
+			arrow.name = "BarArrowLeft" if pair[1] < 0 else "BarArrowRight"
+			arrow.text = pair[0]
+			arrow.focus_mode = Control.FOCUS_NONE
+			arrow.theme_type_variation = &"HudButton"
+			arrow.add_theme_font_size_override("font_size", 22)
+			arrow.anchor_left = 0.5
+			arrow.anchor_right = 0.5
+			arrow.anchor_top = 1.0
+			arrow.anchor_bottom = 1.0
+			arrow.tooltip_text = "More Wardens"
+			var step: int = pair[1]
+			arrow.pressed.connect(func() -> void:
+				_bar_offset += step
+				_fit_tower_bar())
+			add_child(arrow)
+			_bar_arrows.append(arrow)
+	for i in 2:
+		var arrow := _bar_arrows[i]
+		arrow.visible = scrolling
+		var x := bar_left - BAR_GAP - ARROW_W if i == 0 else bar_right + BAR_GAP
+		arrow.offset_left = x
+		arrow.offset_right = x + ARROW_W
+		arrow.offset_bottom = -16.0
+		arrow.offset_top = -16.0 - BUTTON_SIZE.y
+		arrow.disabled = (i == 0 and _bar_offset <= 0) or (i == 1 and _bar_offset >= hidden)
 
 func _seed_badge_button() -> Button:
 	return _seed_badge.get_parent() as Button if is_instance_valid(_seed_badge) else null
@@ -318,6 +377,7 @@ func _on_dew_changed(dew: int) -> void:
 			continue
 		_tower_buttons[i].set_meta(&"bar_state", bar_state)
 		_tower_buttons[i].text = str(cost)
+		_tower_buttons[i].set_meta(&"price_line", "Cost: %d Dew" % cost)
 		if _bar_towers[i].get_id() == SPROUT_ID:
 			_update_sprout_rule(_tower_buttons[i], cost)
 		_tower_buttons[i].modulate.a = 1.0 if affordable else UNAFFORDABLE_BUTTON_ALPHA
@@ -430,10 +490,12 @@ func _on_act_started(act: int, leaves_regrown: int) -> void:
 func _add_counter_icon(label: Label, id: StringName, scale: int) -> void:
 	var icon := TextureRect.new()
 	icon.name = "CounterIcon"
-	icon.texture = IconInfo.icon(id)
+	# The row's counters use the 12 px HUD icons at exactly ×2 (UI Asset 93963da1), the rest the 16 px set.
+	var hud_tex: Texture2D = IconInfo.hud_icon(HUD_COUNTER_ICONS[id]) if scale >= 2 and HUD_COUNTER_ICONS.has(id) else null
+	icon.texture = hud_tex if hud_tex != null else IconInfo.icon(id)
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.size = Vector2(16, 16) * scale
+	icon.size = Vector2(COUNTER_ICON, COUNTER_ICON) if scale >= 2 else Vector2(16, 16) * scale  # The mock: 24 px beside 28 px numbers
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE  # The label's own tooltip / tap explains it
 	label.add_child(icon)
 	label.set_meta(&"icon_width", icon.size.x + COUNTER_ICON_GAP)  # DreamMarks' shield goes left of it
@@ -531,14 +593,29 @@ func _add_buff_lens_button() -> void:
 # Puts a top-right button in its slot ([right, width]) of the row under the resources.
 func _place_top_button(button: Button, slot: Array) -> void:
 	button.theme_type_variation = &"HudButton"
-	# Icon buttons read at the counters' size (UI Code): glyphs at 26 px, pixel icons ×2 (32 px).
-	button.add_theme_font_size_override("font_size", 26)
+	# Compact icon buttons (the mock; user: "the icons on the right seem too big"): the glyph / icon at
+	# BUTTON_GLYPH, the visible box inset to ~36 px, the hit area still 48 (platforms.md).
+	button.add_theme_font_size_override("font_size", BUTTON_GLYPH)
 	button.expand_icon = true
 	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	button.add_theme_constant_override("icon_max_width", 32)
+	button.add_theme_constant_override("icon_max_width", BUTTON_GLYPH)
 	button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
+		var box := button.get_theme_stylebox(state, &"HudButton")
+		if box != null:
+			box = box.duplicate()
+			box.expand_margin_left = -BUTTON_BOX_INSET
+			box.expand_margin_right = -BUTTON_BOX_INSET
+			box.expand_margin_top = -BUTTON_BOX_INSET
+			box.expand_margin_bottom = -BUTTON_BOX_INSET
+			button.add_theme_stylebox_override(state, box)
 	if button.name == &"CodexButton":
 		button.add_theme_font_override("font", UiStyle.display_font())
+	# The 10 px glyphs at exactly ×2 (20 px, nearest) in place of the font glyphs (UI Asset 93963da1).
+	var glyph: Texture2D = IconInfo.hud_icon(HUD_GLYPHS[button.name]) if HUD_GLYPHS.has(button.name) else null
+	if glyph != null:
+		button.text = ""
+		button.icon = glyph
 	button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	button.offset_right = slot[0]
 	button.offset_left = slot[0] - slot[1]
@@ -554,7 +631,7 @@ func _place_top_button(button: Button, slot: Array) -> void:
 # right edge, packed right to left in TOP_ROW order so hidden buttons leave no gap; Remember ends up
 # nearest the Dreamlight counter above it.
 const TOP_ROW := ["MenuButton", "CodexButton", "BuffLensButton", "RememberButton"]  # Right to left
-const TOP_ROW_GAP := 6.0
+const TOP_ROW_GAP := 0.0  # The visible boxes are inset, so they sit 12 px apart
 # The top-right row as in the Moonlit Thread mock (screens_ui.md "Top-right layout, as in the Moonlit
 # Thread mock-up"): leaves · Dew · Dreamlight · path (icon + a big Cormorant number), then the icon
 # buttons Remember ✦ · Boosts · ? · ≡, all on one soft fog patch. When the buttons would run into the
@@ -656,8 +733,12 @@ func _layout_top_row() -> void:
 		fog.offset_top = ROW_TOP - ROW_PAD + 4.0
 		fog.offset_bottom = bottom + ROW_PAD - 2.0
 	if _clears_label != null:  # The half-price clears counter: just under the row
-		_clears_label.offset_top = bottom + 6.0
-		_clears_label.offset_bottom = bottom + 34.0
+		var clears_w := _clears_label.get_theme_font("font").get_string_size(_clears_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x + 16.0 + COUNTER_ICON_GAP + 2.0
+		_clears_label.offset_right = ROW_RIGHT
+		_clears_label.offset_left = ROW_RIGHT - clears_w
+		_clears_label.offset_top = bottom + ROW_PAD + 2.0  # Just under the patch
+		_clears_label.offset_bottom = _clears_label.offset_top + 22.0
+		_place_counter_icon.call_deferred(_clears_label)
 
 # The row's global rect (the fog patch), for tests and the banner check.
 func resource_row_rect() -> Rect2:
@@ -704,9 +785,10 @@ func _process(delta: float) -> void:
 	_row_check -= real
 	if _row_check <= 0.0:  # The top-right row follows its numbers, buttons and the banner (cheap key)
 		_row_check = 0.2
+		_update_boosts()
 		var banner := get_node_or_null("DriftBanner")
 		var key := "%s|%s|%s|%s|%s|%s|%d" % [leaves_label.text, dew_label.text, %PathLabel.text,
-			(get_node("DreamlightLabel") as Label).text, buff_lens_button.visible,
+			"%s%s" % [(get_node("DreamlightLabel") as Label).text, _clears_label.text if _clears_label else ""], buff_lens_button.visible,
 			banner.drawn_width() if banner != null and banner.has_method("drawn_width") else 0.0,
 			get_viewport().get_visible_rect().size.x]
 		if key != _row_key:
@@ -729,19 +811,19 @@ func _raise_overlays() -> void:
 			move_child(overlay, get_child_count() - 1)
 
 # --- The Sprout price rule (warden_stats.md "The rule is shown") -------------------------------------
-# Every TowerPlacer.SPROUTS_PER_STEP Sprouts on the map add SPROUT_STEP_DEW to the price; Seedfall fixes
-# it. The tooltip says so, a small "↑ 8/10" tag above the button counts to the next rise, and the
-# first rise in a run gets a one-line toast.
+# Every TowerPlacer.sprout_per_step() Sprouts on the map add sprout_step_dew() to the price (Seedfall:
+# a slower rise). The tooltip says so, a small "↑ 8/10" tag above the button counts to the next rise,
+# and the first rise in a run gets a one-line toast.
 var _sprout_rise_told := false
 var _sprout_last_cost := -1
 
 func sprout_rule_text(cost: int) -> String:
-	if tower_placer.sprout_price_halved():
-		return "Sprout · %d Dew, fixed (Seedfall)." % cost
-	var per := TowerPlacer.SPROUTS_PER_STEP
+	var per := tower_placer.sprout_per_step()
+	if per <= 0:
+		return "Sprout · %d Dew, fixed." % cost
 	var next := (tower_placer.count_paid_sprouts() / per + 1) * per
-	return "Sprout · %d Dew. Every %d Sprouts on the map add +%d Dew to the price (next rise at %d Sprouts). Selling or growing one lowers it." % [
-		cost, per, TowerPlacer.SPROUT_STEP_DEW, next]
+	return "Sprout · %d Dew. Every %d Sprouts on the map add +%d Dew to the price (next rise at %d Sprouts).%s Selling or growing one lowers it." % [
+		cost, per, tower_placer.sprout_step_dew(), next, " (Seedfall: a slower rise.)" if tower_placer.sprout_price_halved() else ""]
 
 func _update_sprout_rule(button: Button, cost: int) -> void:
 	var tag := button.get_node_or_null("SproutRise") as Label
@@ -754,21 +836,144 @@ func _update_sprout_rule(button: Button, cost: int) -> void:
 		tag.add_theme_color_override("font_outline_color", UiStyle.FOG)
 		tag.add_theme_constant_override("outline_size", 4)
 		button.add_child(tag)
-	var fixed := tower_placer.sprout_price_halved()
-	var per := TowerPlacer.SPROUTS_PER_STEP
+	var per := tower_placer.sprout_per_step()
 	var count := tower_placer.count_paid_sprouts()
-	tag.visible = not fixed and cost > 0
-	tag.text = "↑ %d/%d" % [count, (count / per + 1) * per]
+	tag.visible = per > 0 and cost > 0
+	if per > 0:
+		tag.text = "↑ %d/%d" % [count, (count / per + 1) * per]
 	tag.reset_size()
 	tag.position = Vector2((button.size.x - tag.size.x) / 2.0, -tag.size.y + 2.0)
-	var lines := button.tooltip_text.split("\n")
-	var rule := sprout_rule_text(cost)
-	if lines.size() >= 3 and lines[lines.size() - 1].begins_with("Sprout · "):
-		lines[lines.size() - 1] = rule
-		button.tooltip_text = "\n".join(lines)
-	else:
-		button.tooltip_text += "\n" + rule
-	if _sprout_last_cost >= 0 and cost > _sprout_last_cost and not fixed and not _sprout_rise_told:
+	button.set_meta(&"price_line", sprout_rule_text(cost))  # The hover card's price line
+	if _sprout_last_cost >= 0 and cost > _sprout_last_cost and per > 0 and not _sprout_rise_told:
 		_sprout_rise_told = true
 		show_toast("Sprouts now cost %d Dew: the more you have, the more they cost." % cost)
 	_sprout_last_cost = cost
+
+# --- The Warden bar's hover card (screens_ui.md, the bullets above "Readable tooltips") --------------
+# Hovering a Warden slot (a long press on touch) shows the Warden panel's top half for it: the shared
+# WardenHeaderView (portrait, name, damage type, description, stats with this run's Dreams, statuses,
+# Potency, Grows into) plus its price line (the Sprout's rising rule). No buttons. Above the slot.
+const HOVER_LONG_PRESS := 0.45  # Seconds held before the card shows on touch
+var hover_card: PanelContainer  # (tests)
+var _hover_box := VBoxContainer.new()
+var _hover_view: WardenHeaderView
+var _hover_price := Label.new()
+var _hover_for: Button = null
+var _press_serial := 0
+
+func _ensure_hover_card() -> void:
+	if hover_card != null:
+		return
+	hover_card = PanelContainer.new()
+	hover_card.name = "WardenHoverCard"
+	hover_card.add_theme_stylebox_override("panel", UiStyle.panel_in(UiStyle.GOLD, 14.0, 12.0))
+	hover_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hover_card.process_mode = Node.PROCESS_MODE_ALWAYS
+	hover_card.visible = false
+	_hover_box.add_theme_constant_override("separation", 6)
+	_hover_box.custom_minimum_size = Vector2(WardenHeaderView.WIDTH, 0)
+	_hover_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hover_card.add_child(_hover_box)
+	_hover_price.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_hover_price.custom_minimum_size = Vector2(WardenHeaderView.WIDTH, 0)
+	UiStyle.caps(_hover_price, 14, UiStyle.GOLD)
+	add_child(hover_card)
+
+func _show_hover_card(button: Button, data: TowerData) -> void:
+	_ensure_hover_card()
+	if is_instance_valid(_hover_view):
+		_hover_box.remove_child(_hover_view)
+		_hover_view.queue_free()
+	_hover_view = WardenHeaderView.build(data, null, dream_state, true)
+	_hover_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hover_box.add_child(_hover_view)
+	if _hover_price.get_parent() != null:
+		_hover_box.remove_child(_hover_price)
+	_hover_price.text = String(button.get_meta(&"price_line", ""))
+	_hover_price.text = _hover_price.text.replace("Cost:", "Plant for") if not _hover_price.text.begins_with("Sprout") else _hover_price.text
+	_hover_box.add_child(_hover_price)
+	_hover_for = button
+	move_child(hover_card, get_child_count() - 1)  # Above the rest of the HUD…
+	_raise_overlays()  # …but under the full-screen overlays and the pause menu
+	hover_card.visible = true
+	hover_card.reset_size()
+	_place_hover_card.call_deferred(button)
+
+func _place_hover_card(button: Button) -> void:
+	if hover_card == null or not hover_card.visible or _hover_for != button:
+		return
+	hover_card.reset_size()
+	var screen := get_viewport().get_visible_rect().size
+	var rect := button.get_global_rect()
+	var at := Vector2(rect.get_center().x - hover_card.size.x / 2.0, rect.position.y - hover_card.size.y - 10.0)
+	hover_card.position = Vector2(clampf(at.x, 8.0, screen.x - hover_card.size.x - 8.0), maxf(at.y, 8.0))
+
+func _hide_hover_card(button: Button) -> void:
+	_press_serial += 1  # A pending long press no longer shows it
+	if hover_card != null and _hover_for == button:
+		hover_card.visible = false
+		_hover_for = null
+
+# Touch: a long press shows the card (a tap still just picks the Warden).
+func _on_slot_down(button: Button, data: TowerData) -> void:
+	_press_serial += 1
+	var serial := _press_serial
+	get_tree().create_timer(HOVER_LONG_PRESS, true, false, true).timeout.connect(func() -> void:
+		if serial == _press_serial:  # Still held (button_up bumps the serial)
+			_show_hover_card(button, data))
+
+# --- Boosts (screens_ui.md "The lens button, revised") ------------------------------------------------
+# The Boosts button shows only once the map has a local boost source (an aura, a Kinship, Kindred /
+# Whole Tree: BuffOverlay.has_local_sources); while the lens is on, a small legend sits under the
+# top-right patch: each kind's pip (BuffOverlay.draw_pip) and name, hoverable and tappable.
+var boosts_legend: VBoxContainer  # (tests)
+var _legend_key := ""
+
+func _update_boosts() -> void:
+	var sources := BuffOverlay.has_local_sources(self)
+	buff_lens_button.visible = sources or buff_lens_button.button_pressed  # Never hidden while it's on
+	if not sources and buff_lens_button.button_pressed:
+		buff_lens_button.button_pressed = false  # The last source went: the lens goes off with it
+	var kinds: Array = BuffOverlay.legend_kinds(self) if BuffLens.on else []
+	var key := ",".join(kinds.map(func(k: Array) -> String: return String(k[0])))
+	if key == _legend_key and boosts_legend != null:
+		boosts_legend.visible = not kinds.is_empty()
+		return
+	_legend_key = key
+	if boosts_legend == null:
+		boosts_legend = VBoxContainer.new()
+		boosts_legend.name = "BoostsLegend"
+		boosts_legend.add_theme_constant_override("separation", 2)
+		boosts_legend.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		boosts_legend.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		add_child(boosts_legend)
+		_raise_overlays()  # Full-screen overlays and the pause menu stay on top
+	for child in boosts_legend.get_children():
+		boosts_legend.remove_child(child)
+		child.queue_free()
+	for kind in kinds:
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_END
+		row.add_theme_constant_override("separation", 6)
+		var name := Label.new()
+		name.text = String(kind[2])
+		name.add_theme_font_size_override("font_size", 15)
+		name.add_theme_color_override("font_color", UiStyle.INK)
+		name.add_theme_color_override("font_outline_color", UiStyle.FOG)
+		name.add_theme_constant_override("outline_size", 4)
+		row.add_child(name)
+		var pip := Control.new()
+		pip.custom_minimum_size = Vector2(18, 18)
+		var pip_kind := String(kind[0])
+		var pip_colour: Color = kind[1]
+		pip.draw.connect(func() -> void: BuffOverlay.draw_pip(pip, pip.size / 2.0, pip_kind, pip_colour))
+		row.add_child(pip)
+		TapTip.attach(row, "%s: a Warden boosted by %s shows this pip." % [kind[2], kind[2]])
+		boosts_legend.add_child(row)
+	boosts_legend.visible = not kinds.is_empty()
+	var fog := get_node_or_null("ResourcesFog") as Control
+	var top := fog.offset_bottom + 8.0 if fog != null else 140.0
+	if _clears_label != null and _clears_label.visible:
+		top = _clears_label.offset_bottom + 4.0
+	boosts_legend.offset_right = ROW_RIGHT
+	boosts_legend.offset_top = top

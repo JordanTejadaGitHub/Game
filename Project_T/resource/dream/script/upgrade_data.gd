@@ -81,6 +81,14 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var min_warden_count: int = 0
 @export var count_line: String = ""  # Own `min_warden_count` Wardens of this line on the map (Chorus: 2 song; soft)
 @export var min_families: int = 0  # Own this many families (Mixed Grove: 2; hard)
+# A placement card's map picture (dream_design.md "Placement cards show a diagram"): rows of 7 characters,
+# drawn by CardDiagram. Legend: . grass, P path, + path outlined gold, 1–9 numbered route steps (outlined),
+# W a Warden that qualifies (glows), w one that doesn't (dimmed, ✗), a another Warden, T Thornwall, X a
+# Thornwall outlined gold, O obstacle, Q a qualifying Warden on a cleared cell (a moved hollow), U a tended stump,
+# * a grass cell in range
+# (outlined), H the Heartwood, S the start. `diagram_caption`: one short line under it.
+@export_multiline var diagram: String = ""
+@export var diagram_caption: String = ""
 @export var extra_rules: Array[StringName] = []  # Rules this card also grants (pool trim merges: an absorbed card's rule id)
 # Reactions you can set off: pairs of statuses your owned Wardens apply (Quick Reactions: 2).
 @export var min_reaction_pairs: int = 0

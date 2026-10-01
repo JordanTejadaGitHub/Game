@@ -73,6 +73,29 @@ func _run() -> void:
 	_check(kin.get_pair(drift).get("id") == &"slumber_rot" and is_equal_approx(drift.kin_share(&"slumber_rot", "a"), 0.75),
 		"evolving into Puffball keeps the bond and its age")
 
+	# --- Bonds are sticky: a nearer newcomer never takes over a bond; it pairs with a free kin ---
+	var s1 := _plant("driftspore", Vector2(1, 8))
+	var s2 := _plant("bloomcap", Vector2(3, 8))  # 2 cells away
+	await process_frame
+	kin.refresh()
+	var sticky: Dictionary = kin.get_pair(s1)
+	_check(kin.get_partner(s1) == s2, "a pair to test sticky bonds with")
+	kin.ages[sticky.get("key", "")] = 3
+	var free_kin := _plant("driftspore", Vector2(2, 10))
+	var newcomer := _plant("bloomcap", Vector2(2, 9))  # 1 cell from the bonded Driftspore
+	await process_frame
+	kin.refresh()
+	_check(kin.get_partner(s1) == s2 and kin.ages.get(kin.get_pair(s1).get("key", ""), -1) == 3,
+		"a nearer Bloomcap doesn't take over the bond; its age stays (%s)" % [kin.ages.get(kin.get_pair(s1).get("key", ""), -1)])
+	_check(kin.get_partner(newcomer) == free_kin, "the newcomer bonds with the free Driftspore")
+	s1.evolve(load("res://resource/tower/puffball.tres"), 0)
+	kin.refresh()
+	_check(kin.get_partner(s1) == s2 and kin.ages.get(kin.get_pair(s1).get("key", ""), -1) == 3, "growing a partner keeps the bond and its age")
+	for tower in [s1, s2, free_kin, newcomer]:
+		tower.queue_free()
+	await process_frame
+	kin.refresh()
+
 	# --- Harmony strike ---
 	var enemy := _spawn(drift.global_position + Vector2(CELL, 0))
 	var harmony := []

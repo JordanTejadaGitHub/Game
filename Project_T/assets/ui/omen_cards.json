@@ -1,0 +1,8 @@
+{
+	"frame_size": 32,
+	"icons": {
+		"clear_skies_card": 1,
+		"omen_card": 0
+	},
+	"note": "Omen card emblems (run_design.md \"How an Omen looks\"). Show x2, nearest. Tags and lists use the 16 px omen / clear_skies in icons.png."
+}

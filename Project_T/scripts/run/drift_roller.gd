@@ -50,8 +50,11 @@ const META_TEMPLATE := &"roll_template"
 const ACT1_SMALL_GAP := 0.9
 const ACT1_SWARM_MAX := 20
 
-static var _roster: Array[EnemyData] = []
-static var _templates: Array[DriftTemplate] = []
+# The roster's and templates' resource paths (sorted). Only paths: a static holding the resources
+# themselves keeps them alive into the engine's teardown, which can crash on quit; load() hits the
+# resource cache, so loading them again per call is cheap.
+static var _roster_paths := PackedStringArray()
+static var _template_paths := PackedStringArray()
 
 # Rolls every rollable drift of the run into director.drifts (a DriftDirector). Deterministic for
 # a seed; calling it again rolls from the hand-made drifts again.
@@ -125,25 +128,37 @@ static func get_budget(drift: DriftData) -> float:
 
 # Every type with an intro drift (the rollable roster), sorted by intro.
 static func get_roster() -> Array[EnemyData]:
-	if _roster.is_empty():
+	if _roster_paths.is_empty():
+		var found: Array[EnemyData] = []
 		for file in ResourceLoader.list_directory(ENEMY_DIR):
 			if file.ends_with(".tres") or file.ends_with(".res"):
 				var data := load(ENEMY_DIR.path_join(file)) as EnemyData
 				if data != null and data.intro_drift > 0:
-					_roster.append(data)
-		_roster.sort_custom(func(a: EnemyData, b: EnemyData) -> bool:
+					found.append(data)
+		found.sort_custom(func(a: EnemyData, b: EnemyData) -> bool:
 			return a.intro_drift < b.intro_drift or (a.intro_drift == b.intro_drift and a.resource_path < b.resource_path))
-	return _roster
+		for data in found:
+			_roster_paths.append(data.resource_path)
+	var roster: Array[EnemyData] = []
+	for path in _roster_paths:
+		roster.append(load(path) as EnemyData)
+	return roster
 
 static func get_templates() -> Array[DriftTemplate]:
-	if _templates.is_empty():
+	if _template_paths.is_empty():
+		var found: Array[DriftTemplate] = []
 		for file in ResourceLoader.list_directory(TEMPLATE_DIR):
 			if file.ends_with(".tres") or file.ends_with(".res"):
 				var template := load(TEMPLATE_DIR.path_join(file)) as DriftTemplate
 				if template != null:
-					_templates.append(template)
-		_templates.sort_custom(func(a: DriftTemplate, b: DriftTemplate) -> bool: return String(a.id) < String(b.id))
-	return _templates
+					found.append(template)
+		found.sort_custom(func(a: DriftTemplate, b: DriftTemplate) -> bool: return String(a.id) < String(b.id))
+		for template in found:
+			_template_paths.append(template.resource_path)
+	var templates: Array[DriftTemplate] = []
+	for path in _template_paths:
+		templates.append(load(path) as DriftTemplate)
+	return templates
 
 
 # --- One drift ---------------------------------------------------------------------------------

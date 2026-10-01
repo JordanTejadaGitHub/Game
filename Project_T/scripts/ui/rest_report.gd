@@ -7,7 +7,7 @@ class_name RestReport
 # the next block starts or on click. Built in code.
 
 # ({damp} … are filled in with today's status names by IconInfo.format.)
-const COMBO_LINES := {&"conducted": "Lightning through {damp}", &"popped": "Poison pops", &"asleep": "Put to sleep",
+const COMBO_LINES := {&"conducted": "Lightning through {damp}", &"asleep": "Put to sleep",
 	&"crit": "Critical hits", &"weak": "Hits on weaknesses", &"marked": "Hits on {marked}", &"fog": "{spored} in fog",
 	&"static": "{static} bolts"}
 # Reaction damage tags that aren't a Reaction's own id (Echo Hollow's repeats): kept off the combo
@@ -18,6 +18,7 @@ const REACTION_TAGS: Array[StringName] = [&"echo", &"lightning_rod", &"dawnbreak
 
 var _label := StatusLinks.make_label("", 15)  # Status names are links
 var unbound_block := 0  # Nightmares that turned Unbound this block ("Unbound: N")
+var _omen_line := ""  # The Omen reward paid at this rest, and why it was cut ("Omens with teeth")
 # The last block's summary (the damage meter's "Last block" tab reads it; "" before the first rest).
 signal block_report_ready(block: int)
 var last_block_text := ""
@@ -34,6 +35,11 @@ func _ready() -> void:
 	drift_director.rest_ended.connect(func(_block: int) -> void:
 		visible = false
 		unbound_block = 0)
+	var omens := get_node_or_null("%OmenDirector")
+	if omens != null and omens.has_signal("omen_rewarded"):  # Paid on rest_started, before this report (deferred)
+		omens.omen_rewarded.connect(func(omen: OmenData, summary: String) -> void:
+			if summary != "":
+				_omen_line = "Omen · %s: %s" % [omen.display_name, summary])
 	var spawner := get_node_or_null("%EnemyContainer")
 	if spawner != null and spawner.has_signal("nightmare_unbound"):  # No maze juggling (run_design.md)
 		spawner.nightmare_unbound.connect(func(_e: Node2D) -> void: unbound_block += 1)
@@ -77,6 +83,11 @@ func show_report(block: int) -> void:
 		text += "\nClose calls: %d" % close_calls.block_count
 	if unbound_block > 0:
 		text += "\nUnbound: %d" % unbound_block
+	if drift_director.block_pot > 0.0:  # The Dew pot: what this block paid of what it held (leaks lose their share)
+		text += "\nDew this block: %d of %d" % [roundi(get_node("%RunState").pot_earned_block), roundi(drift_director.block_pot)]
+	if _omen_line != "":
+		text += "\n" + _omen_line
+		_omen_line = ""
 	last_block_text = text
 	last_block = block
 	block_report_ready.emit(block)

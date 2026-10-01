@@ -13,3 +13,4 @@ tags = Array[String](["clearing", "maze", "tending"])
 max_stacks = 1
 min_obstacles = 8
 rule_id = &"tended_forest"
+in_start_pool = false

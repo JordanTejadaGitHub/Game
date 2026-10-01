@@ -22,6 +22,7 @@ var _pending := {}  # Kind -> dispels not yet written
 # Every nightmare and boss, by act, then name; bosses last within their act.
 static func all_kinds() -> Array[EnemyData]:
 	if _all.is_empty():
+		UiStyle.release_at_exit(func() -> void: _all.clear())
 		for file in ResourceLoader.list_directory(DIR):
 			if file.ends_with(".tres") or file.ends_with(".res"):
 				var data := load(DIR + file) as EnemyData

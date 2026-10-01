@@ -34,7 +34,7 @@ function haloOut(out, cx, cy, r, sec, a) {
 // One node sprite. state: "locked" | "afford" (f 0-3) | "open" (f 0-3) | "bloom" (f 0-1). size 32 or 48 (Legendary).
 function nodeSprite(sec, state, f, big = false) {
   const S = big ? 48 : 32, c = S / 2, out = new Img(S, S), L = new Img(S, S);
-  const r = big ? 13 : 9, petals = big ? 8 : 5;
+  const r = big ? 11 : 9, petals = big ? 8 : 5;
   if (state === "locked") { bud(L, c, c + 2, sec); out.stamp(L, "#0e0a06"); return out; }
   if (state === "afford") {
     haloOut(out, c, c, big ? 20 : 13, sec, [.25, .38, .5, .38][f]);
@@ -49,11 +49,24 @@ function nodeSprite(sec, state, f, big = false) {
     return out;
   }
   // bloom
-  haloOut(out, c, c, big ? 22 : 14, sec, f ? .42 : .34);
+  haloOut(out, c, c, big ? 18 : 14, sec, f ? .42 : .34);
   if (big) flower(L, c, c, sec, r * .72, petals, 1, Math.PI / petals);
   flower(L, c, c, sec, r, petals, 1, f * .06);
   out.stamp(L, "#0e0a06");
   if (big) for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + f * .4; out.set(c + Math.cos(a) * (r + 5), c + Math.sin(a) * (r + 5), "#fffbe8"); }
+  // A Cards Legendary (purple level 3) gets its own mark, attached to the flower so it never reads as a
+  // background mote: a gold rim round the flower and a gold crescent moon hugging its upper right.
+  if (big && sec === "cards" && state === "bloom") {
+    for (let y = 1; y < S - 1; y++) for (let x = 1; x < S - 1; x++) {
+      const p = out.get(x, y); if (p[3] < 255 || !(p[0] === 14 && p[1] === 10 && p[2] === 6)) continue;
+      if (Math.hypot(x - c, y - c) > r * .7) out.set(x, y, HW.Gold);
+    }
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+      const a = Math.hypot(x + .5 - (c + 10), y + .5 - (c - 11)), b = Math.hypot(x + .5 - (c + 12.5), y + .5 - (c - 13));
+      if (a < 6 && b > 4.6) out.set(x, y, a < 4.5 && b < 6.2 ? HW.Heartlight : HW.Gold);
+    }
+    if (f) out.set(c + 7, c - 14, HW.Heartlight);
+  }
   out.set(c - 3 + f * 5, c - r + 1, "#ffffff");
   return out;
 }
@@ -116,5 +129,23 @@ function slotSprite(state) {
   inner((x, y, dx, dy) => { const r = Math.hypot(dx, dy); return r > .86 ? CA("#ffd27a", a) : CA("#3a2a18", .9 - r * .3); });
   for (let k = 0; k < 16; k++) { const t = k / 16 * Math.PI * 2; out.set(c + Math.cos(t) * 18, c + 2 + Math.sin(t) * 18, CA("#fff0b0", a)); }
   if (state === 3) haloOut(out, c, c + 2, 31, "perks", .35);
+  return out;
+}
+// A grown node with levels (Perks like Morning Stores): the same uniform flower, fuller per level.
+// Level 1 = the plain bloom; 2 adds an inner ring of lighter petals; 3 adds a gold ring and pips.
+// Sheet grove_level_blooms.png: rows Perks / Families / Cards; columns level 1 f0 f1, 2 f0 f1, 3 f0 f1.
+function levelBloom(sec, level, f) {
+  const S = 32, c = 16, out = new Img(S, S), L = new Img(S, S), P = SECTION[sec].petals;
+  haloOut(out, c, c, 14 + (level - 1), sec, (f ? .42 : .34) + (level - 1) * .04);
+  // Level 2+: a second ring of petals behind, their tips peeking out between the front ones.
+  if (level >= 2) for (let k = 0; k < 5; k++) petal(L, c, c, f * .06 + (k + .5) / 5 * Math.PI * 2 - Math.PI / 2, 12, 3, [P[0], P[1], P[2]]);
+  flower(L, c, c, sec, 9, 5, 1, f * .06);
+  ellipse(L, c, c, 2.4, 2.4, (x, y, dx, dy) => dy < 0 && dx < .3 ? SECTION[sec].mid : P[2]);
+  out.stamp(L, "#0e0a06");
+  if (level >= 3) {
+    for (let a = 0; a < Math.PI * 2; a += .12) out.set(c + Math.cos(a) * 12.5, c + Math.sin(a) * 12.5, HW.Gold);
+    for (let k = 0; k < 4; k++) { const a = (k + .5) / 4 * Math.PI * 2 + f * .2; out.set(c + Math.cos(a) * 12.5, c + Math.sin(a) * 12.5, HW.Heartlight); }
+  }
+  out.set(c - 3 + f * 5, c - 9, "#ffffff");
   return out;
 }

@@ -32,7 +32,7 @@ func _ready() -> void:
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 	offset_top = TOP
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_theme_constant_override("separation", 2)
+	add_theme_constant_override("separation", CAPTION_GAP)  # Caption → discs: the "New" badge sits 6 px above a disc
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UiStyle.caps(_caption, UiStyle.BODY_SIZE)  # At body size
 	add_child(_caption)
@@ -57,7 +57,10 @@ func _process(delta: float) -> void:
 	_clock = REFRESH
 	_stack()
 	var span := shown_span()
-	visible = span.y >= span.x
+	var pause := get_parent().get_node_or_null("PauseMenu") as Control if get_parent() != null else null  # A sibling (made in code: no % owner)
+	# Hidden under the pause menu: its panels (Settings, Codex) are tall enough to reach the strip at 1280×720
+	# virtual (user screenshot at the largest UI size).
+	visible = span.y >= span.x and not (pause != null and pause.visible)
 	if not visible:
 		_built_for = ""
 		return
@@ -142,6 +145,7 @@ static func kinds_in_block(director: DriftDirector, block: int) -> Array:
 # deep): one centred row of equal round discs, a second row only past PER_ROW kinds, and past two rows
 # a "+N" chip that opens the rest on tap. About 90 px tall at rests.
 const PER_ROW := 6
+const CAPTION_GAP := 14  # ~8 px clear between the caption and the disc row, "New" badges included (user)
 
 func _build(span: Vector2i) -> void:
 	_caption.text = "Still to come this block" if compact else "Coming this block"

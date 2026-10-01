@@ -1,32 +1,31 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/hedgehog.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/night_mare.tres" id="2_frames"]
 [ext_resource type="Resource" path="res://resource/enemy/leaf_bug.tres" id="3_shade"]
 
 [resource]
 script = ExtResource("1_edata")
 sprite_frames = ExtResource("2_frames")
 display_name = "The Night Mare"
-health = 2000
+health = 2286
 speed = 110.0
 dew_reward = 40
 leaf_cost = 3
 is_boss = true
-sprite_scale = 1.6
-tint = Color(0.55, 0.5, 0.7, 1)
 resists = Array[String](["root"])
 weak_to = Array[String](["light"])
-lap_leaves = 3
+lap_linger = 10.0
+lap_linger_step = 4.0
 lap_speed_multiplier = 1.3
 lap_spawn = ExtResource("3_shade")
 lap_spawn_count = 4
 charges_at_half = true
 charge_speed_multiplier = 1.5
 charge_time = 3.0
-trait_text = "Never stops at the Heartwood: it takes leaves and gallops around again, faster, with Shades behind it."
+trait_text = "At the Heartwood it can't be touched: it drains leaves, then runs the maze again, faster, with Shades behind it."
 cleanse_line = "The Night Mare is gone. The hoofbeats fade, and the dream is still."
 title = "the hoofbeats that never stop"
-abilities = Array[Dictionary]([{"name": "Laps", "icon": &"charge", "text": "Reaching the Heartwood costs {lap_leaves} leaves, then it gallops back to the start {lap_speed_multiplier:plus_pct} faster with {lap_spawn_count} {lap_spawn:name}s behind it, again and again.", "when": "each time it gets through"}, {"name": "Bolt", "icon": &"charge", "text": "It bolts {charge_speed_multiplier:plus_pct} faster for {charge_time} s.", "when": "at 50% health"}])
-tips = Array[String](["Every lap is another pass through your whole maze: make it long.", "It keeps the damage it's taken, so each lap brings it closer to the end.", "Lantern light spooks it."])
+abilities = Array[Dictionary]([{"name": "Laps", "icon": &"charge", "text": "At the Heartwood it can't be hit or given statuses: it stays {lap_linger} s, {lap_linger_step} s longer each lap, draining a leaf every 2 s, then gallops back to the start {lap_speed_multiplier:plus_pct} faster with {lap_spawn_count} {lap_spawn:name}s behind it, again and again.", "when": "each time it gets through"}, {"name": "Bolt", "icon": &"charge", "text": "It bolts {charge_speed_multiplier:plus_pct} faster for {charge_time} s.", "when": "at 50% health"}])
+tips = Array[String](["It can only be hurt on the path, never at the Heartwood: every lap is another pass through your whole maze, so make it long.", "It keeps the damage it's taken, so each lap brings it closer to the end.", "Lantern light spooks it."])
 whisper = "Hoofbeats. Something is running through the dream."

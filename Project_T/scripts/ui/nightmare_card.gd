@@ -85,6 +85,8 @@ static var _portraits := {}  # EnemyData path -> its cropped portrait
 static func portrait(data: EnemyData) -> Texture2D:
 	if _portraits.has(data.resource_path):
 		return _portraits[data.resource_path]
+	if _portraits.is_empty():
+		UiStyle.release_at_exit(func() -> void: _portraits.clear())
 	var frame := _first_frame(data)
 	var cropped := _crop(frame) if frame != null else null
 	_portraits[data.resource_path] = cropped

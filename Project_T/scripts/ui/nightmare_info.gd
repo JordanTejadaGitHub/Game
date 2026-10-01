@@ -101,6 +101,8 @@ func _process(delta: float) -> void:
 	var statuses: Array[String] = []
 	for id in _target.get_status_order():  # The badge row's order, most important first
 		statuses.append(_target.statuses.describe(id))
+	if _target.has_method("get_status_notes"):  # Slow / sleep limits: "Slowed to the limit", "Awake: …"
+		statuses.append_array(_target.get_status_notes())
 	if not statuses.is_empty():
 		lines.append("\n".join(statuses))
 	var body := StatusLinks.bbcode("\n".join(lines))

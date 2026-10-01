@@ -62,16 +62,14 @@ const STARLIT_AIM_CRIT := 0.25
 const FULL_MOON_CRIT := 0.10
 const RECKLESS_CRIT := 0.30
 const RECKLESS_PENALTY := 0.15
-# The 10 card builds (dream_design.md "Pool trim", layer 2): the only tags build weighting reads.
-# Tall and overgrowth halve each other once you own OPPOSED_FROM cards of one (round 4).
+# The 10 card builds (dream_design.md "Pool trim", layer 2): the tags resonance, the Stray slot and build_packages
+# read. Build-tag steering is off (2026-09-30, user: "change their build depending on the random cards they get,
+# not send them down a path"): tag_weight 1.0 and no Tall / Overgrowth opposition.
 const ARCHETYPE_TAGS: Array[String] = ["tall", "overgrowth", "daring", "precision", "affliction", "maze",
-	"tending", "kinship"]  # Round 2: swarm merged into affliction; round 3: support into tending
+	"tending", "kinship", "swift", "reach"]  # Round 2: swarm into affliction; round 3: support into tending; Grove builds swift + reach
 const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow", "sprout"]  # Old directions: rules and Needs only
 const NOT_BUILD_TAGS: Array[String] = ["bittersweet", "opener"]  # Structural tags, never a build
 const SOFT_TAG_NEEDS: Array[String] = ["nurture"]  # requires_tag Needs that only weigh (x0.4), never gate
-const OPPOSITE_DIRECTION := {"tall": "overgrowth", "overgrowth": "tall"}
-const OPPOSED_FROM := 2
-const OPPOSITE_WEIGHT := 0.5
 const SOFT_NEED_WEIGHT := 0.4  # A card whose soft Needs are unmet (dream_design.md "Adapt, don't get handed")
 const STRAY_FROM_DRIFT := 10  # The Stray Dream: one slot per offer from this rest on (never at boss rests)
 const STRAY_IN_BUILD_WEIGHT := 0.25
@@ -175,6 +173,8 @@ var first_pick_dreamlight := FIRST_PICK_DREAMLIGHT
 # The power pass (dream_audit.md, 2026-09-30): old save ids -> the card that absorbed them ("" = cut).
 const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_friends", "wide_bowl": "dew_trail",
 	"fair_trade": "", "still_waters": "", "echoing_steps": "",
+	# Clearing rework (2026-09-30): Cleared Ground and Heartwood's Reach II merge into Heartwood's Reach (stacks 2)
+	"cleared_ground": "heartwoods_reach", "heartwoods_reach_ii": "heartwoods_reach",
 	# Pool trim (dream_design.md "Pool trim", 2026-09-30)
 	"gathered_dew": "morning_dew", "fresh_soil": "reclaimed_earth", "tend_the_forest": "heartwoods_reach",
 	"mending_bark": "thick_bark", "heartwoods_fury": "last_stand", "warm_hands": "tender_care",
@@ -221,7 +221,7 @@ signal remember_requested(focus: TowerData)
 @export var unlock_everything: bool = false  # Debug/tests: every Warden and evolution available
 @export var cards_per_offer: int = 3
 @export var skip_dew: int = 15  # "Let it pass"
-@export var tag_weight: float = 1.3  # Cards sharing an archetype tag of a card you've taken (1.6 -> 1.3, 2026-09-30: "felt like cards were handed to me")
+@export var tag_weight: float = 1.0  # Off (1.0 = no boost): offers are random within the run's pool (2026-09-30; was 1.6, then 1.3)
 @export var pity_after: int = 3  # Dreams in a row without Rare+ before one is guaranteed
 # Bittersweet cards stay out of the pool until leaves are tuned (dream_design.md). Act 2+ only,
 # at most one per offer.
@@ -251,6 +251,7 @@ var current_offer_drift := 0
 var _dreams_without_rare := 0
 var _rare_dreams_left := 0  # Restless Dreams / Omens: the next N offers each include a Rare+
 var _extra_cards_next := 0  # Omens (Thick Blight): the next offer has this many more cards
+const MAX_OFFER_CARDS := 5  # Extra cards stop here (run_design.md "Omen audit fixes"); the Dream screen fits 5
 var _entwined_offered := {}  # Entwined card id -> true once its guaranteed offer happened
 var _banished := {}  # Card id -> true: Let Go took it out of this run's pool
 var _passed_count := {}  # Card id -> times offered and not taken this run
@@ -311,6 +312,9 @@ func _ready() -> void:
 		if reason == &"first":
 			add_dreamlight(first_pick_dreamlight, &"first_pick"))  # Act 1 can take a final form
 	map_generator.path_changed.connect(_update_bends)
+	var damage_log := get_node_or_null("%DamageLog")
+	if damage_log != null and damage_log.has_signal("damage_dealt"):
+		damage_log.damage_dealt.connect(_on_damage_dealt)  # Discovery: a crit on a Marked nightmare
 	spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	spawner.child_entered_tree.connect(_stamp_head_start)
 	map_generator.obstacle_cleared.connect(_on_obstacle_cleared)
@@ -1066,7 +1070,10 @@ func get_effect_bonus(enemy: Node2D) -> float:
 
 # Venom Bloom (bittersweet): every hit (not effects) deals this much of its damage.
 func get_hit_damage_multiplier() -> float:
-	return 1.0 - VENOM_HIT_PENALTY if has_rule(&"venom_bloom") else 1.0
+	var multiplier := 1.0 - VENOM_HIT_PENALTY if has_rule(&"venom_bloom") else 1.0
+	if has_rule(&"whirlwind_heart"):
+		multiplier *= 1.0 - WHIRLWIND_HIT_PENALTY  # Whirlwind Heart: every hit 20% less
+	return multiplier
 
 func get_status_strength_multiplier(status: StringName) -> float:
 	var bonus := 0.0
@@ -1203,7 +1210,7 @@ func can_clear() -> bool:
 
 # The cards that unlock clearing: the opener, and Burn Back (it clears the trees itself).
 static func unlocks_clearing(card: UpgradeData) -> bool:
-	return card.tags.has(OPENER_TAG) or card.clears_obstacle != null
+	return card.tags.has(OPENER_TAG) or card.tags.has("clearing") or card.clears_obstacle != null  # Any clearing card opens it (2026-09-30)
 
 const OPENER_TAG := "opener"
 
@@ -1213,12 +1220,11 @@ const OPENER_TAG := "opener"
 # that opened it says so in Dreams this run and the Codex.
 const OPENS_CLEARING_LINE := "Unlocks clearing"
 const OPENS_CLEARING_TEXT := "Tend Withered Trees and move Mossy Boulders for Dew (Clear tool, C)."
-const OPENS_CLEARING_TAG := "Opens clearing"
 const OPENED_CLEARING_LINE := "Unlocked clearing"
 var clearing_opened_by := ""  # The card id that unlocked clearing this run (saved)
 
 func opens_clearing(card: UpgradeData) -> bool:
-	return card != null and card.tags.has(OPENER_TAG) and not can_clear()
+	return card != null and unlocks_clearing(card) and not can_clear()  # Any clearing card shows "Unlocks clearing" (2026-09-30)
 
 # Tend the Forest: clears that cost nothing, spent before any half-price charge (ObstacleClearer).
 var free_first_clears := 0
@@ -1348,7 +1354,7 @@ func _update_bends() -> void:
 func take(card: UpgradeData) -> void:
 	if card_stacks(card.id) == 0:  # The first copy this run locks it
 		var preview := resonance_preview(card)
-		_resonance[card.id] = {"power": 1.0 + preview.bonus, "tag": preview.tag, "count": preview.count}  # Locked when taken
+		_resonance[card.id] = {"power": 1.0 + preview.bonus, "tag": preview.tag, "count": preview.count, "cards": preview.cards}  # Locked when taken
 	if unlocks_clearing(card) and not can_clear():
 		clearing_opened_by = card.id  # "Unlocked clearing" in Dreams this run and the Codex
 	for family in half_dreamed_missing(card):  # The next family pick will include one of them
@@ -1400,6 +1406,16 @@ func add_extra_cards(count: int) -> void:
 # Omen reward (Lean Season): the next Dream (from act 2) includes a Legendary.
 func add_legendary_dreams(count: int) -> void:
 	_legendary_next += count
+
+# Lean Season is only offered while its reward can pay: a Legendary unlocked (start pool or Grove), in this
+# run's pool, not banished and not taken yet. Its Needs are checked when the Dream is drawn.
+func has_legendary_left() -> bool:
+	for card in pool:
+		if card.rarity == UpgradeData.Rarity.LEGENDARY and (card.in_start_pool or grove_cards.has(card.id)) \
+				and not _banished.has(card.id) and in_run_pool(card) \
+				and not (card.max_stacks > 0 and card_stacks(card.id) >= card.max_stacks):
+			return true
+	return false
 
 # Restless Dreams (bittersweet) takes "Let it pass" away for the rest of the run.
 func can_skip() -> bool:
@@ -1559,11 +1575,13 @@ func _restore_offer_counters(counters: Dictionary) -> void:
 func make_offer(drift_number: int) -> Array[UpgradeData]:
 	dreams_seen += 1
 	_offer_drift = drift_number
-	var size := cards_per_offer + _extra_cards_next
+	var size := cards_per_offer
 	picks_left = 1
 	if has_rule(&"lucid_dreaming"):  # 4 cards, take 2, no Commons
 		size += LUCID_EXTRA_CARDS
 		picks_left = LUCID_PICKS
+	if _extra_cards_next > 0:  # Thick Blight / Second Wind: at most 5 cards (Wider Dreams too), never fewer than without them
+		size = maxi(size, mini(size + _extra_cards_next, MAX_OFFER_CARDS))
 	_extra_cards_next = 0
 	var offer: Array[UpgradeData] = []
 	var act := drift_director.get_act(drift_number)
@@ -1619,6 +1637,8 @@ func is_eligible(card: UpgradeData, act: int = 1) -> bool:
 func can_offer(card: UpgradeData, act: int = 1) -> bool:
 	if not (card.in_start_pool or grove_cards.has(card.id)) or _banished.has(card.id):
 		return false
+	if not in_run_pool(card):
+		return false  # Not in this run's drawn pool
 	if act < card.min_act or card.kind == UpgradeData.Kind.UNLOCK_WARDEN:
 		return false  # Base Wardens come from the family pick
 	if card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
@@ -1827,20 +1847,13 @@ func _roll_rarity(act: int, want_rare: bool, skip: Array[int] = []) -> int:
 # The build tags your Dreams have steered you to (dream_design.md "Pool trim", layer 2): the archetype
 # tags of the cards you've taken (a Legendary's too). Families, statuses and the old direction tags stay
 # on the cards for rules and discovery but never boost (round 3: family lines no longer weigh either).
-# Tall and overgrowth push each other away.
 func _owned_tags() -> Array:
 	var owned := {}
-	var opposed := {}
-	var counts := {}
 	for card in _taken_cards():
 		for tag in card.tags:
 			if ARCHETYPE_TAGS.has(tag):
 				owned[tag] = true
-				counts[tag] = int(counts.get(tag, 0)) + 1
-	for tag in counts:  # Round 4: the other direction halves only once you own OPPOSED_FROM of this one
-		if OPPOSITE_DIRECTION.has(tag) and counts[tag] >= OPPOSED_FROM:
-			opposed[OPPOSITE_DIRECTION[tag]] = true
-	return [owned, opposed]
+	return [owned]
 
 # Whether `card` belongs to the build (shares a tag the run has committed to).
 func is_in_build(card: UpgradeData) -> bool:
@@ -1856,13 +1869,12 @@ func _card_in_build(card: UpgradeData, owned: Dictionary) -> bool:
 			skip[root.line] = true
 	return card.tags.any(func(tag: String) -> bool: return owned.has(tag) and not skip.has(tag))
 
-# Picks one of `cards` by weight: build tags (×tag_weight), unmet soft Needs, opposed directions, the
+# Picks one of `cards` by weight: build tags (×tag_weight, 1.0 = off), unmet soft Needs, the
 # clearing boost, the passed-over fade. `stray` turns the build weighting around (the Stray Dream):
 # build cards ×STRAY_IN_BUILD_WEIGHT, soft Needs ignored.
 func _weighted_pick(cards: Array, stray: bool = false) -> UpgradeData:
 	var tags := _owned_tags()
 	var owned: Dictionary = tags[0]
-	var opposed: Dictionary = tags[1]
 	var weights: Array[float] = []
 	var total := 0.0
 	var clearing_locked := not can_clear()
@@ -1875,9 +1887,6 @@ func _weighted_pick(cards: Array, stray: bool = false) -> UpgradeData:
 			weight = tag_weight if in_build else 1.0
 			if not soft_needs_met(card):
 				weight *= SOFT_NEED_WEIGHT
-			for tag in opposed:  # e.g. an overgrowth card while you've gone tall
-				if card.tags.has(tag) and not card.tags.has(OPPOSITE_DIRECTION[tag]):
-					weight *= OPPOSITE_WEIGHT
 		if clearing_locked and card.tags.has(OPENER_TAG):
 			weight *= CLEARING_LOCKED_WEIGHT  # The opener, until clearing is unlocked
 		var half_missing := half_dreamed_missing(card)
@@ -1917,6 +1926,7 @@ func to_save() -> Dictionary:
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
 		"extra_cards_next": _extra_cards_next, "entwined_offered": _entwined_offered.keys(),
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
+		"run_pool": run_pool.keys(), "run_pool_waiting": _run_pool_waiting.keys(), "run_pool_families": _run_pool_families.keys(),
 		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
 		"dreamlight_shards": dreamlight_shards, "sprout_charges": run_state.sprout_charges,
 		"eldest_cell": [_eldest_cell.x, _eldest_cell.y], "court_pending": _court_pending,
@@ -1926,6 +1936,7 @@ func to_save() -> Dictionary:
 		"legendary_next": _legendary_next,
 		"clearing_opened_by": clearing_opened_by,
 		"free_first_clears": free_first_clears,
+		"cleared_kinds": cleared_kinds.keys().map(func(cell: Vector2) -> Array: return [cell.x, cell.y, cleared_kinds[cell]]),
 		"resonance": _resonance.duplicate(),
 		"grown_wardens": grown_wardens.keys(),
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
@@ -1956,6 +1967,15 @@ func load_save(data: Dictionary) -> void:
 	if data.has("rerolls_left"):  # Else keep what MetaRun set at run start
 		rerolls_left = int(data.rerolls_left)
 		banishes_left = int(data.banishes_left)
+	run_pool.clear()
+	for id in data.get("run_pool", []):
+		run_pool[id] = true
+	_run_pool_waiting.clear()
+	for id in data.get("run_pool_waiting", []):
+		_run_pool_waiting[id] = true
+	_run_pool_families.clear()
+	for id in data.get("run_pool_families", []):
+		_run_pool_families[id] = true
 	_banished.clear()
 	for id in data.get("banished", []):
 		_banished[id] = true
@@ -1973,6 +1993,9 @@ func load_save(data: Dictionary) -> void:
 	glimmer_shards = int(data.get("glimmer_shards", 0))
 	clearing_opened_by = String(data.get("clearing_opened_by", ""))
 	free_first_clears = int(data.get("free_first_clears", 0))
+	cleared_kinds.clear()
+	for entry in data.get("cleared_kinds", []):
+		cleared_kinds[Vector2(entry[0], entry[1])] = String(entry[2])
 	_resonance = data.get("resonance", {}).duplicate()
 	_legendary_next = int(data.get("legendary_next", 0))
 	_refill_bark()  # Saved at a rest, where Thick Bark is full again
@@ -2000,13 +2023,13 @@ func _clear_all(kind: ObstacleData) -> void:
 	run_state.clearing_without_seeds = false
 
 # Sunlit Rest: the ranked Warden(s) nearest the Heartwood that can still gain a rank get one free
-# (II: two). Wardens at rank II are skipped: rank III asks for a Focus, which is the player's choice.
+# (II: two). Nurture v3: a free rank takes the Warden's default choice (Tower.nurture(0), never asks).
 # With none, unranked attacking Wardens get rank I instead.
 func sunlit_rest() -> Array[Tower]:
 	var raised: Array[Tower] = []
 	var seller := get_node_or_null("%TowerSeller")
 	var ranked: Array = _towers().filter(func(t: Tower) -> bool:
-		return t.rank > 0 and t.rank != 2 and t.rank < mini(FREE_RANK_MAX, get_max_rank_for(t)) and t.can_nurture())  # Free ranks stop at VII (V unless the Eldest)
+		return t.rank > 0 and t.rank < mini(FREE_RANK_MAX, get_max_rank_for(t)) and t.can_nurture())  # Free ranks stop at VII (V unless the Eldest)
 	if ranked.is_empty():  # An opener (Pool trim round 2): rank I to the attacking Warden nearest the Heartwood
 		ranked = _towers().filter(func(t: Tower) -> bool:
 			return t.rank == 0 and t.tower_data.can_attack and t.can_nurture())
@@ -2054,7 +2077,9 @@ func _on_tower_built(tower: Tower) -> void:
 
 # Reclaimed Earth: every clear gives Dew and leaves the cell fertile. Not Burn Back's mass clear
 # (it would flood the Dew economy, same as its no-Seeds rule).
-func _on_obstacle_cleared(cell: Vector2, _data: ObstacleData) -> void:
+func _on_obstacle_cleared(cell: Vector2, data: ObstacleData) -> void:
+	cleared_kinds[cell] = STUMP if data != null and data.resource_path.get_file().begins_with("tree") else HOLLOW  # Tended Stumps / Hollow Ground
+	bump_board()  # Neighbours' card rows read it
 	var paid := last_clear_paid
 	last_clear_paid = 0
 	if run_state.clearing_without_seeds:
@@ -2334,9 +2359,19 @@ func get_old_growth_bonus(tower: Tower) -> float:
 # dream_design.md. Per-Warden damage / range report through DreamEffects; per-hit bonuses are in
 # on_hit_multiplier; the rest are hooks other scripts ask (RunState, TowerSeller, DriftDirector).
 
-# Gathered Dew: extra share of dispel Dew (RunState._scaled_dispel_dew adds it to Rich Dew).
+# Gathered Dew (Morning Dew): +10% Dew pot per stack.
 func get_dew_gain_bonus() -> float:
 	return GATHERED_DEW_PER * rule_stacks(&"gathered_dew") * rule_power(&"gathered_dew")
+
+# The Dew pot (run_design.md "The Dew pot"): what Dreams multiply drift `number`'s pot by (DriftDirector asks).
+# Morning Dew +10%; Call of the Wild +10% on a drift called early (its double call-early Dew stays on top).
+const CALL_OF_THE_WILD_POT := 0.10
+
+func get_dew_pot_multiplier(_number: int, called_early: bool) -> float:
+	var bonus := get_dew_gain_bonus()
+	if called_early and has_rule(&"call_of_the_wild"):
+		bonus += CALL_OF_THE_WILD_POT * rule_power(&"call_of_the_wild")
+	return 1.0 + bonus
 
 # The refund share for selling (TowerSeller.get_refund asks). Fair Trade was cut (dream_audit.md), so
 # no card changes it now.
@@ -2443,16 +2478,69 @@ func _sample_drift(delta: float) -> void:
 	var enemies: Array = spawner.get_enemies()
 	if enemies.is_empty():
 		return
-	var attackers := _towers().filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
-	var in_range := 0.0
-	for tower in attackers:
-		in_range += count_in_range(tower)
+	# The averages only feed live lines: a rotating slice of the attackers per sample is enough (perf:
+	# 200+ Wardens × 140 nightmares cost ~27 ms a sample when every Warden was counted).
+	var in_range := average_in_range()
+	if not _events_this_run.has(String(EVENT_CHARGED_DROWSY)) and enemies.any(func(e: Node2D) -> bool:
+			return e.statuses.has(EnemyStatuses.STATIC) and e.statuses.has(EnemyStatuses.DROWSY)):
+		note_discovery(EVENT_CHARGED_DROWSY)  # Discovery: Charged + Drowsy on one nightmare (Charged Bloom)
 	var alone := enemies.filter(func(e: Node2D) -> bool: return _is_alone(e)).size()
 	var near := enemies.filter(func(e: Node2D) -> bool: return is_near_heartwood(e)).size()
 	_drift_sums.samples += 1
-	_drift_sums.in_range += in_range / maxf(attackers.size(), 1.0)
+	_drift_sums.in_range += in_range
 	_drift_sums.alone += float(alone) / enemies.size()
 	_drift_sums.near += float(near) / enemies.size()
+
+const DRIFT_SAMPLE_WARDENS := 20  # Attacking Wardens counted per sample (rotating)
+var _sample_cursor := 0
+
+# Nightmares in an attacking Warden's range, averaged over a rotating slice of the attackers.
+func average_in_range() -> float:
+	var attackers := _towers().filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
+	if attackers.is_empty():
+		return 0.0
+	var slice := mini(attackers.size(), DRIFT_SAMPLE_WARDENS)
+	var total := 0.0
+	for i in slice:
+		total += count_in_range(attackers[(_sample_cursor + i) % attackers.size()])
+	_sample_cursor = (_sample_cursor + slice) % attackers.size()
+	return total / slice
+
+# Nightmare positions bucketed by map cell, rebuilt at most once a frame (Crowded Path, Lone Hunter).
+var _bucket_frame := -1
+var _bucket_children := -1  # A spawn in the same frame rebuilds too
+var _buckets := {}  # {Vector2i cell: Array[Node2D]}
+
+func _enemy_buckets() -> Dictionary:
+	var frame := Engine.get_process_frames()
+	if frame != _bucket_frame or spawner.get_child_count() != _bucket_children:
+		_bucket_frame = frame
+		_bucket_children = spawner.get_child_count()
+		_buckets.clear()
+		var size: float = map_generator.MAP_GRID.cell_size.x
+		for enemy in spawner.get_enemies():
+			var cell := Vector2i((enemy.global_position / size).floor())
+			if not _buckets.has(cell):
+				_buckets[cell] = []
+			_buckets[cell].append(enemy)
+	return _buckets
+
+# Nightmares within `reach` px of `at` (minus `skip`); stops counting at `limit` (0 = no limit).
+func _count_near(at: Vector2, reach: float, skip: Node2D = null, limit: int = 0) -> int:
+	var buckets := _enemy_buckets()
+	var size: float = map_generator.MAP_GRID.cell_size.x
+	var low := Vector2i(((at - Vector2(reach, reach)) / size).floor())
+	var high := Vector2i(((at + Vector2(reach, reach)) / size).floor())
+	var reach_sq := reach * reach
+	var count := 0
+	for x in range(low.x, high.x + 1):
+		for y in range(low.y, high.y + 1):
+			for enemy in buckets.get(Vector2i(x, y), []):
+				if enemy != skip and is_instance_valid(enemy) and not enemy.is_cleansed and at.distance_squared_to(enemy.global_position) <= reach_sq:
+					count += 1
+					if limit > 0 and count >= limit:
+						return count
+	return count
 
 # Crowded Path: nightmares in the Warden's range right now.
 var _counting := false  # count_in_range asks the range, whose rows ask Crowded Path again
@@ -2462,20 +2550,13 @@ func count_in_range(tower: Tower) -> int:
 		return 0
 	_counting = true
 	var reach: float = tower.get_range_cells() * map_generator.MAP_GRID.cell_size.x
-	var count := 0
-	for enemy in spawner.get_enemies():
-		if tower.global_position.distance_to(enemy.global_position) <= reach:
-			count += 1
+	var count := _count_near(tower.global_position, reach)
 	_counting = false
 	return count
 
 # Lone Hunter: no other nightmare within 2 cells of `enemy`.
 func _is_alone(enemy: Node2D) -> bool:
-	var reach: float = LONE_HUNTER_CELLS * map_generator.MAP_GRID.cell_size.x
-	for other in spawner.get_enemies():
-		if other != enemy and other.global_position.distance_to(enemy.global_position) <= reach:
-			return false
-	return true
+	return _count_near(enemy.global_position, LONE_HUNTER_CELLS * map_generator.MAP_GRID.cell_size.x, enemy, 1) == 0
 
 # Glimmering Hunt: a dispelled elite has a 30% chance to drop a Dreamlight shard (10 = 1 Dreamlight),
 # up to 3 Dreamlight per run from this card, apart from the Great Dreamcatcher's shards and cap.
@@ -2894,6 +2975,14 @@ func needs_text(card: UpgradeData) -> String:
 const WARDENS_BUILT_KEY := "wardens_built"
 const BEST_CHAIN_KEY := "best_chain"
 const DISCOVERY_CHAIN := 5
+const EVENTS_KEY := "discovery_events"  # Profile: one-off discovery moments (event:<id> keys)
+# The moments (dream_design.md Discovery unlocks, 2026-09-30): Charged + Drowsy on one nightmare (Charged
+# Bloom), a Puffball puff landing in Mistveil's fog (Chain Bloom; Tower Code calls note_discovery), a crit
+# on a Marked nightmare (Starlit Aim).
+const EVENT_CHARGED_DROWSY := &"charged_drowsy"
+const EVENT_PUFF_IN_FOG := &"puff_in_fog"
+const EVENT_CRIT_MARKED := &"crit_marked"
+var _events_this_run := {}
 
 # Tests: {"seen": [combo ids], "wardens_built": [ids], "best_chain": n} stands in for the profile.
 var discovery_profile = null
@@ -2905,12 +2994,12 @@ func _discovery_profile() -> Dictionary:
 		return discovery_profile
 	if _profile_discovery.is_empty():
 		if ResultsScreen.is_demo():
-			_profile_discovery = {"seen": [], WARDENS_BUILT_KEY: [], BEST_CHAIN_KEY: 0}
+			_profile_discovery = {"seen": [], WARDENS_BUILT_KEY: [], BEST_CHAIN_KEY: 0, EVENTS_KEY: []}
 		else:
 			var memory := HeartwoodMemory.load_data()
 			_profile_discovery = {"seen": ComboFeedback.profile_seen(),
 				WARDENS_BUILT_KEY: memory.get(WARDENS_BUILT_KEY, []).duplicate(),
-				BEST_CHAIN_KEY: int(memory.get(BEST_CHAIN_KEY, 0))}
+				BEST_CHAIN_KEY: int(memory.get(BEST_CHAIN_KEY, 0)), EVENTS_KEY: memory.get(EVENTS_KEY, []).duplicate()}
 	return _profile_discovery
 
 # Everything counts as discovered: dev runs, and tests that don't set a profile.
@@ -2940,11 +3029,35 @@ func _best_chain() -> int:
 func warden_discovered(id: String) -> bool:
 	return _built_this_run.has(id) or _discovery_profile().get(WARDENS_BUILT_KEY, []).has(id)
 
+func event_discovered(id: String) -> bool:
+	return _events_this_run.has(id) or _discovery_profile().get(EVENTS_KEY, []).has(id)
+
+# A discovery moment happened (once a run is enough; the profile keeps it). Toasts the Dreams it lets in.
+func note_discovery(event: StringName) -> void:
+	var id := String(event)
+	if _events_this_run.has(id):
+		return
+	var before := undiscovered_cards() if not _discovers_all() else ([] as Array[UpgradeData])
+	_events_this_run[id] = true
+	_toast_new_dreams(before)
+
+func _toast_new_dreams(before: Array[UpgradeData]) -> void:
+	var names := newly_discovered(before)
+	if not names.is_empty():
+		var hud := owner.get_node_or_null("HUD") if owner != null else null
+		if hud != null and hud.has_method("show_toast"):
+			hud.show_toast("New Dreams: " + ", ".join(names))
+
+# DamageLog: a crit on a Marked nightmare (Starlit Aim's discovery).
+func _on_damage_dealt(event) -> void:
+	if event.combos.has(&"crit") and event.combos.has(&"marked") and not _events_this_run.has(String(EVENT_CRIT_MARKED)):
+		note_discovery(EVENT_CRIT_MARKED)
+
 # The keys a card waits on: its discovered_by, plus "warden:<id>" entries for the Wardens its Needs
 # name (any one of them, "warden_any:a,b" for requires_any).
 func discovery_keys(card: UpgradeData) -> Array[String]:
 	if card.rarity == UpgradeData.Rarity.LEGENDARY:
-		return []  # Legendaries are never discovery-gated (Grove tips)
+		return card.discovered_by.duplicate()  # Only an explicit trigger (Dawnbreak, Grove of Kin; 2026-09-30), never Warden keys
 	var keys: Array[String] = card.discovered_by.duplicate()
 	if not card.shows_statuses.is_empty():
 		return keys
@@ -2986,6 +3099,8 @@ func _key_met(key: String, found: Array) -> bool:
 			return warden_discovered(arg)
 		"warden_any":
 			return Array(arg.split(",")).any(warden_discovered)
+		"event":
+			return event_discovered(arg)
 	return true
 
 # Cards in this run's pool still waiting on a discovery (the Codex / "New Dreams" lines).
@@ -3012,11 +3127,7 @@ func _discover_warden(tower: Tower) -> void:
 		return
 	var before := undiscovered_cards() if not _discovers_all() else ([] as Array[UpgradeData])
 	_built_this_run[id] = true
-	var names := newly_discovered(before)
-	if not names.is_empty():
-		var hud := owner.get_node_or_null("HUD") if owner != null else null
-		if hud != null and hud.has_method("show_toast"):
-			hud.show_toast("New Dreams: " + ", ".join(names))
+	_toast_new_dreams(before)
 
 # The profile keeps built Wardens and the best chain (the real game only; not the demo or dev runs).
 func _save_discoveries() -> void:
@@ -3029,6 +3140,11 @@ func _save_discoveries() -> void:
 			built.append(id)
 	memory[WARDENS_BUILT_KEY] = built
 	memory[BEST_CHAIN_KEY] = maxi(int(memory.get(BEST_CHAIN_KEY, 0)), _best_chain())
+	var events: Array = memory.get(EVENTS_KEY, []).duplicate()
+	for id in _events_this_run:
+		if not events.has(id):
+			events.append(id)
+	memory[EVENTS_KEY] = events
 	HeartwoodMemory.save_data(memory)
 
 
@@ -3136,17 +3252,18 @@ var resonance_enabled := true  # Tests of single-card numbers turn it off; test_
 
 # The resonance a card would get if taken now: {bonus, tag, count} (bonus 0 = none).
 func resonance_preview(card: UpgradeData) -> Dictionary:
-	var best := {"bonus": 0.0, "tag": "", "count": 0}
+	var best := {"bonus": 0.0, "tag": "", "count": 0, "cards": []}
 	if card == null or not resonance_enabled:
 		return best
 	var owned := _taken_cards(true)
 	for tag in card.tags:
 		if NOT_RESONANT.has(tag):
 			continue
-		var count := owned.filter(func(c: UpgradeData) -> bool:
-			return c.id != card.id and c.id != card.deepens and c.deepens != card.id and c.tags.has(tag)).size()  # Never its own base
-		if count > best.count:
-			best = {"bonus": minf(RESONANCE_PER * count, RESONANCE_MAX), "tag": tag, "count": count}
+		var sharing := owned.filter(func(c: UpgradeData) -> bool:
+			return c.id != card.id and c.id != card.deepens and c.deepens != card.id and c.tags.has(tag))  # Never its own base
+		if sharing.size() > best.count:
+			best = {"bonus": minf(RESONANCE_PER * sharing.size(), RESONANCE_MAX), "tag": tag, "count": sharing.size(),
+				"cards": sharing.map(func(c: UpgradeData) -> String: return c.display_name)}  # The player sees these, never the tag
 	return best
 
 # The multiplier a taken card's numbers get (1.0 = none).
@@ -3155,10 +3272,15 @@ func resonance(card: UpgradeData) -> float:
 		return 1.0
 	return float(_resonance[card.id].get("power", 1.0))
 
-# "+20% from 2 spore cards" for a taken card ("" = none): Dreams this run.
+# "+20% from Soft Spores, Damp Rot" for a taken card ("" = none): Dreams this run.
 func resonance_line(card: UpgradeData) -> String:
 	var r: Dictionary = _resonance.get(card.id, {}) if card != null else {}
-	return resonance_text(float(r.get("power", 1.0)) - 1.0, str(r.get("tag", "")), int(r.get("count", 0)))
+	return resonance_text(float(r.get("power", 1.0)) - 1.0, Array(r.get("cards", [])), int(r.get("count", 0)))
+
+# Every card a taken card's resonance came from ("" = none), for the line's hover.
+func resonance_cards(card: UpgradeData) -> Array:
+	var r: Dictionary = _resonance.get(card.id, {}) if card != null else {}
+	return Array(r.get("cards", []))
 
 # The strongest resonance among the taken cards with `rule` (for rule code in other scripts).
 func rule_power(rule: StringName) -> float:
@@ -3168,16 +3290,26 @@ func rule_power(rule: StringName) -> float:
 			power = maxf(power, resonance(card))
 	return power
 
-# "+20% from 2 Spore cards" (the card face, Dreams this run). "" = none. Tags that are names read capitalised
-# (text_style.md "Second pass"), plain categories stay lowercase ("+10% from 1 economy card").
-const TAG_NAMES := {"spore": "Spore", "water": "Water", "light": "Light", "stone": "Stone", "root": "Root", "song": "Song",
-	"wind": "Wind", "wing": "Wing", "acorn": "Acorn", "kinship": "Kinship", "reaction": "Reaction", "sprout": "Sprout",
-	"wall": "Thornwall", "nurture": "Nurture"}
+# "+10% from Seedfall", "+20% from Soft Spores, Damp Rot", past 2 "+30% from Soft Spores, Damp Rot and 1 more"
+# (the card face, Dreams this run; the hover lists them all). "" = none. text_style.md "Same-tag (resonance) lines
+# name the cards": the internal tag (wide, affliction, tempo…) never reaches the player. `count` is only for an
+# old save's entry without card names ("+20% from 2 of your cards").
+const RESONANCE_NAMED := 2
 
-static func resonance_text(bonus: float, tag: String, count: int) -> String:
+static func resonance_text(bonus: float, cards: Array, count: int = -1) -> String:
 	if bonus <= 0.0:
 		return ""
-	return "+%d%% from %d %s card%s" % [roundi(bonus * 100), count, TAG_NAMES.get(tag, tag), "" if count == 1 else "s"]
+	if cards.is_empty():
+		var n := maxi(count, 1)
+		return "+%d%% from %d of your cards" % [roundi(bonus * 100), n] if n > 1 else "+%d%% from one of your cards" % roundi(bonus * 100)
+	var shown := ", ".join(cards.slice(0, RESONANCE_NAMED))
+	if cards.size() > RESONANCE_NAMED:
+		shown += " and %d more" % (cards.size() - RESONANCE_NAMED)
+	return "+%d%% from %s" % [roundi(bonus * 100), shown]
+
+# The hover on a resonance line: every card it comes from.
+static func resonance_tooltip(cards: Array) -> String:
+	return "From: " + ", ".join(cards) if cards.size() > RESONANCE_NAMED else ""
 
 
 # --- Catalogue cards 204–226 (dream_design.md "New cards for the catalogue") ----------------------
@@ -3302,3 +3434,200 @@ func _second_wind() -> void:
 	if has_rule(&"second_wind") and _early_calls >= drift_director.drifts_per_block - 1:
 		_extra_cards_next += SECOND_WIND_EXTRA_CARDS
 		_rare_dreams_left = maxi(_rare_dreams_left, 1)
+
+
+# --- Grove build branches: Swift and Wide Reach (cards 235–245, dream_design.md 2026-09-30) ---------------
+# DreamState holds the numbers and the board-level parts (Restless Roots, Far Reach rows via DreamEffects;
+# Whirlwind Heart's hit penalty in get_hit_damage_multiplier). The per-hit parts are Tower Code's, by rule id:
+# momentum, quickening, flurry, hummingheart (hummingheart_bonus), whirlwind_heart (attack_speed_bonus_factor),
+# broad_splash (get_area_radius_add), lingering_splash, spillover, great_ripple.
+
+const MOMENTUM_PER: Array[float] = [0.06, 0.08]  # Attack speed per hit on the same nightmare (II)
+const MOMENTUM_MAX: Array[float] = [0.45, 0.60]
+const QUICKENING_SPEED := 0.30  # For QUICKENING_TIME after a dispel in the Warden's range
+const QUICKENING_TIME := 4.0
+const FLURRY_EVERY := 5  # Every 5th attack fires twice (the extra never counts)
+const RESTLESS_ROOTS_BELOW := 1.0  # Base attacks per second under this
+const RESTLESS_ROOTS_SPEED := 0.45
+const HUMMINGHEART_PER := 0.03  # Damage per +10% bonus attack speed
+const HUMMINGHEART_STEP := 0.10
+const HUMMINGHEART_MAX := 0.60
+const WHIRLWIND_HIT_PENALTY := 0.20
+const BROAD_SPLASH_PER := 0.25  # Cells of area radius per stack (max 3)
+const LINGERING_SPLASH_EVERY: Array[int] = [3, 2]  # II: every 2nd area attack
+const LINGERING_SPLASH_SHARE := 0.25  # Of the hit, per second, for LINGERING_SPLASH_TIME (effect damage)
+const LINGERING_SPLASH_TIME := 2.0
+const FAR_REACH_RANGE: Array[float] = [0.75, 1.25]
+const SPILLOVER_CELLS := 1.0
+const GREAT_RIPPLE_DELAY := 1.0
+const GREAT_RIPPLE_SHARE := 0.50
+const GREAT_RIPPLE_WIDER := 1.0  # Cells wider than the attack
+
+# Whirlwind Heart: attack speed bonuses (not base speed) count double; Tower multiplies its bonus part by this.
+func attack_speed_bonus_factor() -> float:
+	return 2.0 if has_rule(&"whirlwind_heart") else 1.0
+
+# Hummingheart: +3% damage per +10% of a Warden's bonus attack speed (Tower passes it), up to +60%.
+func hummingheart_bonus(bonus_speed: float) -> float:
+	if not has_rule(&"hummingheart") or bonus_speed <= 0.0:
+		return 0.0
+	return minf(floorf(bonus_speed / HUMMINGHEART_STEP + 0.0001) * HUMMINGHEART_PER * rule_power(&"hummingheart"), HUMMINGHEART_MAX)
+
+# Broad Splash: cells added to every area attack's radius.
+func get_area_radius_add() -> float:
+	return BROAD_SPLASH_PER * rule_stacks(&"broad_splash") * (rule_power(&"broad_splash") if has_rule(&"broad_splash") else 1.0)
+
+# Momentum's per-hit step and cap (Tower keeps the streak per Warden and target).
+func momentum_step() -> Vector2:
+	if not has_rule(&"momentum"):
+		return Vector2.ZERO
+	var level := rule_level(&"momentum")
+	return Vector2(MOMENTUM_PER[level], MOMENTUM_MAX[level]) * rule_power(&"momentum")
+
+# Lingering Splash: every Nth area attack leaves a patch (0 = off).
+func lingering_splash_every() -> int:
+	return LINGERING_SPLASH_EVERY[rule_level(&"lingering_splash")] if has_rule(&"lingering_splash") else 0
+
+# Whether `data` has an area attack (Far Reach): splashes, pulses, clouds, chains, sweeps, spins, lobs.
+static func has_area_attack(data: TowerData) -> bool:
+	if data == null or not data.can_attack:
+		return false
+	if data.splash_radius > 0.0 or data.cloud_radius > 0.0:
+		return true
+	return data.attack_kind in [TowerData.AttackKind.PULSE, TowerData.AttackKind.CLOUD, TowerData.AttackKind.CHAIN,
+		TowerData.AttackKind.SWEEP, TowerData.AttackKind.SPIN] or ("lob" in data and data.lob)
+
+
+# --- Clearing payoffs on the map: Tended Stumps and Hollow Ground (cards 246–247, 2026-09-30) ----------------
+# What each cleared cell left behind (saved): a tended stump (a Withered Tree) or a moved hollow (a Mossy
+# Boulder or Thorn-Sapling). DreamEffects reads it per Warden cell (live: a new clear bumps the board).
+const STUMP := "stump"
+const HOLLOW := "hollow"
+const TENDED_STUMPS_BONUS: Array[float] = [0.25, 0.40]  # II
+const HOLLOW_GROUND_RANGE: Array[float] = [1.0, 1.5]  # II
+var cleared_kinds := {}  # Cleared cell -> STUMP or HOLLOW
+
+# A tended stump in the 8 cells around `cell` (the Warden counts its best stump once).
+func touches_stump(cell: Vector2) -> bool:
+	for dx in [-1, 0, 1]:
+		for dy in [-1, 0, 1]:
+			if (dx != 0 or dy != 0) and cleared_kinds.get(cell + Vector2(dx, dy), "") == STUMP:
+				return true
+	return false
+
+func in_hollow(cell: Vector2) -> bool:
+	return cleared_kinds.get(cell, "") == HOLLOW
+
+
+# --- Each run draws its own pool (dream_design.md "Each run draws its own pool" -> Exact rules, 2026-09-30) ---
+# At the first offer the run draws its Dream pool: the core (basics, the cards of every family held and their
+# Blessings, Heartwood's Reach on maps with 8+ obstacles) plus 60% per rarity of everything else available
+# (start pool + Grove + discovered), seeded with the map, with floors 12 C / 12 U / 6 R / 3 L. Taking a card adds
+# nothing; family picks add their family cards; a card discovered mid-run joins at once; Entwined cards join
+# when due. Saved with the run. On in the real game; tests and tools switch it on with run_pool_forced.
+const RUN_POOL_BASICS: Array[String] = ["quickened_sap", "deeper_calm", "longer_roots", "deep_roots", "thick_bark",
+	"evergreen", "morning_dew"]
+const RUN_POOL_SHARE := 0.6
+const RUN_POOL_FLOORS := {UpgradeData.Rarity.COMMON: 12, UpgradeData.Rarity.UNCOMMON: 12, UpgradeData.Rarity.RARE: 6,
+	UpgradeData.Rarity.LEGENDARY: 3}
+var run_pool_forced := false
+var run_pool := {}  # Card id -> true (empty = not drawn yet)
+var _run_pool_waiting := {}  # Card id -> true: undiscovered when drawn; joins once discovered
+var _run_pool_families := {}  # Families whose cards are in the core
+
+func run_pool_active() -> bool:
+	return run_pool_forced or _is_real_game()
+
+# Whether `card` is in this run's pool (draws the pool on first use).
+func in_run_pool(card: UpgradeData) -> bool:
+	if not run_pool_active():
+		return true
+	if run_pool.is_empty():
+		build_run_pool()
+	_add_new_family_cards()
+	if run_pool.has(card.id) or card.entwined:
+		return true
+	return _run_pool_waiting.has(card.id) and discovery_met(card)
+
+# Family cards: the Needs name exactly one family (or its Wardens), or it's that family's Blessing.
+func _card_family(card: UpgradeData) -> String:
+	if card.id.begins_with("blessing_"):
+		return card.id.trim_prefix("blessing_")
+	var families := {}
+	for id in Array(card.requires) + Array(card.requires_any):
+		var family := family_of(id)
+		if family == "":
+			family = _every_family().get(id, "")
+		if family != "" and family != "wall":
+			families[family] = true
+	return families.keys()[0] if families.size() == 1 else ""
+
+func _held_families() -> Array:
+	return _family_roots().map(func(d: TowerData) -> String: return d.get_id()).filter(func(id: String) -> bool: return is_unlocked(id))
+
+func build_run_pool(seed_value: int = -1) -> void:
+	run_pool.clear()
+	_run_pool_waiting.clear()
+	_run_pool_families.clear()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value if seed_value >= 0 else int(map_generator.map_seed)
+	var held := _held_families()
+	var by_rarity := {}
+	for card in pool:
+		if not (card.in_start_pool or grove_cards.has(card.id)) or _banished.has(card.id):
+			continue
+		if card.kind == UpgradeData.Kind.UNLOCK_WARDEN or card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
+			continue
+		var family := _card_family(card)
+		if RUN_POOL_BASICS.has(card.id) or (card.deepens != "" and RUN_POOL_BASICS.has(card.deepens)) \
+				or (card.id == "heartwoods_reach" and count_obstacles() >= card.min_obstacles):
+			run_pool[card.id] = true
+		elif family != "":
+			if held.has(family):
+				run_pool[card.id] = true  # Family cards come with the family (and at each later family pick)
+		elif not discovery_met(card):
+			_run_pool_waiting[card.id] = true  # Joins the moment it's discovered
+		else:
+			by_rarity.get_or_add(card.rarity, []).append(card)
+	for family in held:
+		_run_pool_families[family] = true
+	for rarity in by_rarity:
+		var cards: Array = by_rarity[rarity]
+		cards.sort_custom(func(a: UpgradeData, b: UpgradeData) -> bool: return a.id < b.id)  # Same seed, same pool
+		for i in range(cards.size() - 1, 0, -1):
+			var j := rng.randi_range(0, i)
+			var swap = cards[i]
+			cards[i] = cards[j]
+			cards[j] = swap
+		var take := maxi(roundi(cards.size() * RUN_POOL_SHARE), mini(int(RUN_POOL_FLOORS.get(rarity, 0)), cards.size()))
+		for k in take:
+			run_pool[cards[k].id] = true
+
+# A family picked since the pool was drawn: its cards join the core.
+func _add_new_family_cards() -> void:
+	for family in _held_families():
+		if _run_pool_families.has(family):
+			continue
+		_run_pool_families[family] = true
+		for card in pool:
+			if _card_family(card) == family and (card.in_start_pool or grove_cards.has(card.id)):
+				run_pool[card.id] = true
+
+
+# --- Drumbeat and Overlap (cards 248–249, 2026-09-30): one more card for each Grove build branch ------------------
+const DRUMBEAT_TOUCHING := 2  # Other attacking Wardens in the 8 cells
+const DRUMBEAT_SPEED := 0.30
+const OVERLAP_WINDOW := 1.0  # Seconds
+const OVERLAP_BONUS := 0.40
+
+# Overlap: Tower calls this for every area hit. It remembers the nightmare's last area hit (Warden, time) and
+# returns the multiplier for this one: ×1.4 when a different Warden's area attack hit it within 1 s. One bonus
+# per hit; it never chains (the bonus hit just becomes the new "last" hit).
+func overlap_multiplier(tower: Node, enemy: Node2D) -> float:
+	if not has_rule(&"overlap") or tower == null or enemy == null or not is_instance_valid(enemy):
+		return 1.0
+	var last: Array = enemy.get_meta(&"overlap_last", [])
+	enemy.set_meta(&"overlap_last", [tower.get_instance_id(), _game_clock])
+	if not last.is_empty() and int(last[0]) != tower.get_instance_id() and _game_clock - float(last[1]) <= OVERLAP_WINDOW:
+		return 1.0 + OVERLAP_BONUS * rule_power(&"overlap")
+	return 1.0

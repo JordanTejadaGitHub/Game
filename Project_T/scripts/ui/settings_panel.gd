@@ -40,7 +40,7 @@ var _key_buttons := {}  # action -> Button
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_settings = HeartwoodMemory.get_settings()
-	custom_minimum_size = Vector2(480, 0)
+	custom_minimum_size = Vector2(760, 0)  # All six tabs on one row (user: only 3 showed at 1280×720 virtual)
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 8)
 	add_child(outer)
@@ -49,7 +49,7 @@ func _ready() -> void:
 	UiStyle.display(title, 24)
 	outer.add_child(title)
 	# Tabs as in screens_ui.md "Settings" (Language comes with translations).
-	tabs.custom_minimum_size = Vector2(0, 420)
+	tabs.custom_minimum_size = Vector2(0, 380)  # Fits 720 virtual with the title and Back row
 	outer.add_child(tabs)
 
 	var audio := _tab("Audio")
@@ -156,6 +156,8 @@ func _ready() -> void:
 		dev_note.add_theme_font_size_override("font_size", 13)
 		dev_note.modulate = Color(1, 1, 1, 0.7)
 		box.add_child(dev_note)
+		box.add_child(HSeparator.new())
+		box.add_child(_profile_reset_box())
 
 	var keys_title := Label.new()
 	keys_title.text = "Keys"
@@ -193,6 +195,83 @@ func _ready() -> void:
 		_waiting_action = ""
 		closed.emit())
 	row.add_child(back)
+
+# --- Start over as a new profile (demo_scope.md "Reset to a new profile"; Developer, debug builds) ---
+
+const RESET_WARNING := "This resets your Memory Grove, Seeds, records, discoveries and Codex. Your settings and run history stay."
+
+# The profile becomes a first launch: HeartwoodMemory backs it up, then writes a fresh one with the
+# settings kept; the saved run goes too (it belongs to the old profile). Run history and builds stay.
+static func start_over() -> void:
+	HeartwoodMemory.reset_profile(true)
+	if FileAccess.file_exists(RunSaver.file_path):
+		DirAccess.remove_absolute(RunSaver.file_path)
+	NightmareIntro.session_seen.clear()
+
+# Puts the newest backup back (the current profile is backed up first, so this can be undone too).
+static func restore_last() -> bool:
+	var path := HeartwoodMemory.latest_backup()
+	if path == "":
+		return false
+	HeartwoodMemory.backup_profile()
+	return HeartwoodMemory.restore_backup(path)
+
+func _profile_reset_box() -> VBoxContainer:
+	var box := VBoxContainer.new()
+	box.name = "ProfileReset"
+	var start := Button.new()
+	start.name = "StartOver"
+	start.text = "Start over as a new profile"
+	start.focus_mode = Control.FOCUS_NONE
+	box.add_child(start)
+	var confirm := VBoxContainer.new()  # Step two, in the panel (no pop-up)
+	confirm.name = "Confirm"
+	confirm.visible = false
+	var warning := Label.new()
+	warning.text = RESET_WARNING
+	warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	confirm.add_child(warning)
+	var row := HBoxContainer.new()
+	var reset := Button.new()
+	reset.name = "Reset"
+	reset.text = "Reset"
+	reset.focus_mode = Control.FOCUS_NONE
+	UiStyle.primary(reset)
+	row.add_child(reset)
+	var cancel := Button.new()
+	cancel.name = "Cancel"
+	cancel.text = "Cancel"
+	cancel.focus_mode = Control.FOCUS_NONE
+	row.add_child(cancel)
+	confirm.add_child(row)
+	box.add_child(confirm)
+	var restore := Button.new()
+	restore.name = "Restore"
+	restore.text = "Restore last backup"
+	restore.focus_mode = Control.FOCUS_NONE
+	var latest := HeartwoodMemory.latest_backup()
+	restore.disabled = latest == ""
+	restore.tooltip_text = latest.get_file() if latest != "" else "No backup yet."
+	box.add_child(restore)
+	start.pressed.connect(func() -> void:
+		start.visible = false
+		confirm.visible = true)
+	cancel.pressed.connect(func() -> void:
+		confirm.visible = false
+		start.visible = true)
+	reset.pressed.connect(func() -> void:
+		start_over()
+		_to_title())
+	restore.pressed.connect(func() -> void:
+		if restore_last():
+			_to_title())
+	return box
+
+# Back to the title, which reads the (new) profile as it starts.
+func _to_title() -> void:
+	HeartwoodMemory.apply_settings()
+	get_tree().paused = false
+	get_tree().change_scene_to_file.call_deferred(TITLE_SCENE)
 
 # A scrollable tab page.
 func _tab(title: String) -> VBoxContainer:

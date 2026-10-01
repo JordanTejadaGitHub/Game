@@ -331,13 +331,20 @@ function pick(r, t, x, y, dither = .5) {
   dither *= STYLE.dither;
   const n = r.length; return r[clamp(Math.floor(t * n + (bay(x, y) - .5) * dither), 0, n - 1)]; }
 
-// TT: an optional vertical transform for drawing tall sprites from 64 px designs (the dead trees):
-// ellipse / stroke / tset map a design y through it; the shapes' radii stay as drawn.
-let TT = null;
+// TT / TX: optional vertical and horizontal transforms for drawing big sprites from 64 px designs
+// (the dead trees): ellipse / stroke / tset map a design point through them; heights stay as drawn,
+// widths grow by TX_W so trunks and limbs fill the wider frame.
+let TT = null, TX = null;
+const TX_W = 1.3;
 const ty = y => TT ? TT(y) : y;
-function tset(L, x, y, c) { L.set(x, ty(y), c); }
-function talpha(L, x, y) { return L.alpha(x, Math.floor(ty(y))); }
-function ellipse(L, cx, cy, rx, ry, col) { ellipseRaw(L, cx, ty(cy), rx, ry, col); }
+const tx = x => TX ? TX(x) : x;
+function tset(L, x, y, c) {
+  if (!TX) { L.set(x, ty(y), c); return; }
+  const x0 = Math.floor(tx(x)), x1 = Math.max(x0 + 1, Math.floor(tx(x + 1)));  // a design pixel spans 1–2 columns
+  for (let ox = x0; ox < x1; ox++) L.set(ox, ty(y), c);
+}
+function talpha(L, x, y) { return L.alpha(Math.floor(tx(x)), Math.floor(ty(y))); }
+function ellipse(L, cx, cy, rx, ry, col) { ellipseRaw(L, tx(cx), ty(cy), TX ? rx * TX_W : rx, ry, col); }
 function ellipseRaw(L, cx, cy, rx, ry, col) {
   for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++)
     for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
@@ -362,8 +369,8 @@ function blob(L, cx, cy, rx, ry, ramp, o = {}) {
     }
 }
 function stroke(L, x0, y0, x1, y1, w0, w1, fn) {
-  y0 = ty(y0); y1 = ty(y1);
-  if (TT) { w0 *= 1.25; w1 *= 1.25; }  // tall trees get sturdier trunks and limbs
+  y0 = ty(y0); y1 = ty(y1); x0 = tx(x0); x1 = tx(x1);
+  if (TT) { const k = TX ? 1.25 * TX_W : 1.25; w0 *= k; w1 *= k; }  // big trees get sturdier trunks and limbs
   const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1, px = -dy / len, py = dx / len, n = Math.ceil(len * 2) + 1;
   for (let i = 0; i <= n; i++) {
     const t = i / n, cx = x0 + dx * t, cy = y0 + dy * t, r = Math.max(.6, (w0 + (w1 - w0) * t) / 2);
@@ -400,28 +407,28 @@ const BLIGHT = ["#0e0a14", "#1c1626", "#2c2438", "#3e344c", "#5a4e6a"];
 const ACTS = [
   { id:"edge", n:1, name:"Forest's Edge", drifts:"1–25", season:"Spring dusk", boss:"The Hollow Stag",
     swatch:"#4f7e4c",
-    grass:["#14261e","#1c3a2a","#244a32","#33603e","#4f7e4c"],
+    grass:["#140f26","#24243c","#1c3c2c","#2c4c5c","#34643c"],  // night ground, moss grain (the title / Grove look)
     canopy:["#0a1410","#142a20","#1e3e2c","#2c5638","#4a7648"],
     bark:["#120c10","#2a1e22","#44323a","#645058"],
     path:["#6c5c5c","#6c5c5c","#b4a494","#dccdb2"],  // Heartwood 32 Path ramp: Loam, Loam, Path, Moonpath
     dots:["#c8b8f0","#f0e8ff","#ffd27a"], accentName:"moonflower" },
   { id:"deep", n:2, name:"Deep Wood", drifts:"26–50", season:"Summer night", boss:"The Mire Hag or the Moth Queen",
     swatch:"#386254",
-    grass:["#0e1c1c","#142a2a","#1a3634","#244840","#386254"],
+    grass:["#05050d","#24243c","#2c4c5c","#1c3c2c","#34643c"],  // night ground, teal pool grain
     canopy:["#060e0e","#0e2020","#163030","#204440","#346058"],
     bark:["#0e0a0e","#221a20","#3a2e36","#584a52"],
     path:["#6c5c5c","#6c5c5c","#b4a494","#dccdb2"],  // Heartwood 32 Path ramp: Loam, Loam, Path, Moonpath
     dots:["#8ad8e8","#e0faff","#b0f0c0"], accentName:"glowcap" },
   { id:"misty", n:3, name:"Misty Hollow", drifts:"51–75", season:"Autumn fog", boss:"the other act 2 boss",
     swatch:"#a85a34",
-    grass:["#1c1e1a","#2a2c24","#3a3a2e","#4e4a3a","#6e6450"],
+    grass:["#140f26","#2c2444","#3c3c5c","#5c3c24","#8c5c34"],  // violet fog ground, rust tufts
     canopy:["#140a0c","#2e1216","#4e1e1c","#7a3424","#a85a34"],
     bark:["#120a0c","#2a1a1c","#44302e","#644a44"],
     path:["#6c5c5c","#6c5c5c","#b4a494","#dccdb2"],  // Heartwood 32 Path ramp: Loam, Loam, Path, Moonpath
     dots:["#c0663a","#e8a060","#f0e0c8"], accentName:"ember leaf" },
   { id:"glade", n:4, name:"Heartwood Glade", drifts:"76–100", season:"Winter dark", boss:"The Hollow Oak",
     swatch:"#a8b8d0", frozen:true,
-    grass:["#1a2230","#28324a","#3a4660","#5a6a86","#a8b8d0"],
+    grass:["#140f26","#24243c","#3c3c5c","#5c5a78","#b4b0c8"],  // night ground, frost
     canopy:["#0a1018","#142030","#203048","#6a7e9a","#d8e4f0"],
     bark:["#100c10","#241c22","#3c3038","#5a4a52"],
     path:["#6c5c5c","#6c5c5c","#b4a494","#dccdb2"],  // Heartwood 32 Path ramp: Loam, Loam, Path, Moonpath
@@ -578,16 +585,28 @@ function branch(L, x, y, a, len, w, d, seed, fn) {
 const HEART_CANOPY = ["#121a0c", "#243c16", "#3a5e22", "#5a8030", "#8aa844"];
 const HEART_LEAF_HI = "#b4c65c";
 const HEART_BARK = ["#1a0e08", "#3a2414", "#5e3c20", "#8a5e34"];
-// Ashen umber dead wood: a different hue from the lavender stone, so trees and rocks separate by
-// colour as well as shape, even under the cold edge lighting.
-const DEAD = ["#241a16", "#56463c", "#8a7462", "#bca38c"];
-// Dead trees are 64×96: the bottom 64 px are their cell (base and shadow where the old 64 px base
-// was), the top 32 px overhang the cell above. Heights above the base (design y 56) are × 1.5.
-const TREE_TT = y => 88 + (y - 56) * 1.5;
+// Since 2026-09-30 (fit the title and Grove screens): the Grove trunks' cool look, night-indigo bark with a
+// teal lit side and moss flecks. Rocks stay lavender stone, so trees and rocks still split by hue.
+const DEAD = ["#140f26", "#24243c", "#2c4c5c", "#4c8ca4"];
+// Moss flecks on the bark, like the Grove's trunks: a few green pixels inside the trunk and limbs.
+function mossFlecks(out, L, seed) {
+  for (let k = 0; k < 90; k++) {
+    const x = Math.floor(hash(k, 1, seed + 51) * L.w), y = Math.floor(hash(k, 2, seed + 51) * L.h);
+    if (!L.alpha(x, y) || !L.alpha(x - 1, y) || !L.alpha(x + 1, y)) continue;
+    out.set(x, y, hash(k, 3, seed + 51) < .6 ? "#34643c" : "#5c944c");
+    if (hash(k, 4, seed + 51) < .5) out.set(x, y + 1, "#1c3c2c");
+  }
+}
+// Dead trees are 96×128: the bottom 64 px rows are their cell (base and shadow where the old 64 px
+// base was), centred, so 16 px overhang each side and the top 64 px the cell above. Heights above the
+// base (design y 56) are × 2, widths × 1.3 (TX_W) around the centre (design x 32).
+const TREE_W = 96, TREE_H = 128;
+const TREE_TT = y => 120 + (y - 56) * 2.0;
+const TREE_TX = x => 48 + (x - 32) * TX_W;
 function withered(A, f, seed) {
   // Pale bark on the lit side so the tree reads as a pale shape on dark grass (value order).
-  const out = new Img(64, 96), L = new Img(64, 96);
-  TT = TREE_TT;  // drawn 1.5× taller from the 64 px design (see TREE_TT)
+  const out = new Img(TREE_W, TREE_H), L = new Img(TREE_W, TREE_H);
+  TT = TREE_TT; TX = TREE_TX;  // drawn bigger from the 64 px design (see TREE_TT / TREE_TX)
   const bf = (x, y, nx) => nx < .15 ? (hash(x, y >> 1, 77) < .15 ? DEAD[2] : DEAD[3]) : nx > .6 ? DEAD[1] : DEAD[2];
   ellipse(out, 32, 55, 20, 6, SHADOW(.42));
   ellipse(out, 32, 53, 21, 7, CA("#6a5a80", .18));
@@ -618,7 +637,8 @@ function withered(A, f, seed) {
     ellipse(out, x, y, r, r * .85, CA("#140e20", a));
     tset(out, x - 1, y - 1, CA("#6a4a9a", a));
   }
-  TT = null;
+  mossFlecks(out, L, seed);
+  TT = null; TX = null;
   return out;
 }
 
@@ -743,6 +763,85 @@ function pool(A, f) {
   return L;
 }
 
+// Pond (2026-10-01, the map's pond feature): one body of still water over a 2×2 to 3×3 patch, by
+// neighbour mask like the path (N=1 E=2 S=4 W=8), transparent outside its banks. Ponds are rectangles,
+// so where two sides join the diagonal cell is pond too (no inner corners). Earth-and-moss banks,
+// water darkening toward the middle, moonlight glints that shimmer over the 4 frames; ice in winter.
+// Distance in px from each pixel of a pond tile to the nearest shore (0 on land), measured over the
+// tile plus a 24 px border so water in the neighbouring cells counts. A min of the boxes' own distance
+// fields dipped where two boxes overlapped and drew light lines across the water. Same for every act
+// and frame, so it's cached per mask.
+const POND_SHORE = new Map();
+function pondShore(mask, D) {
+  const key = SEED + "|" + mask;
+  if (POND_SHORE.has(key)) return POND_SHORE.get(key);
+  const E = 24, G = T + E * 2, INF = 1e9, dist = new Float32Array(G * G);
+  for (let y = 0; y < G; y++) for (let x = 0; x < G; x++) dist[y * G + x] = D(x - E, y - E) < 0 ? INF : 0;
+  const relax = (i, j, c) => { if (dist[j] + c < dist[i]) dist[i] = dist[j] + c; };
+  for (let y = 1; y < G; y++) for (let x = 1; x < G - 1; x++) {  // chamfer pass, top-left to bottom-right
+    const i = y * G + x; relax(i, i - 1, 1); relax(i, i - G, 1); relax(i, i - G - 1, 1.414); relax(i, i - G + 1, 1.414);
+  }
+  for (let y = G - 2; y >= 0; y--) for (let x = G - 2; x >= 1; x--) {  // and back
+    const i = y * G + x; relax(i, i + 1, 1); relax(i, i + G, 1); relax(i, i + G + 1, 1.414); relax(i, i + G - 1, 1.414);
+  }
+  const out = new Float32Array(T * T);
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) out[y * T + x] = Math.min(dist[(y + E) * G + x + E], 99);
+  POND_SHORE.set(key, out);
+  return out;
+}
+function pondTile(A, mask, f) {
+  // Heartwood 32 names, not the old WATER / ICE ramps (those snapped to violet, the same as the night ground).
+  const POND_WATER = ["#2c4c5c", "#2c4c5c", "#4c8ca4", "#9cd4fc", "#dce8f4"], POND_ICE = ["#5c5a78", "#5c5a78", "#8c8cac", "#b4b0c8", "#dce8f4"];
+  const L = new Img(), W = A.frozen ? POND_ICE : POND_WATER, g = A.grass, s = SEED + 900, m = 7;
+  const boxes = [[m, m, T - m, T - m]];
+  if (mask & 1) boxes.push([m, -20, T - m, 32]);
+  if (mask & 2) boxes.push([32, m, T + 20, T - m]);
+  if (mask & 4) boxes.push([m, 32, T - m, T + 20]);
+  if (mask & 8) boxes.push([-20, m, 32, T - m]);
+  if ((mask & 1) && (mask & 2)) boxes.push([32, -20, T + 20, 32]);
+  if ((mask & 2) && (mask & 4)) boxes.push([32, 32, T + 20, T + 20]);
+  if ((mask & 4) && (mask & 8)) boxes.push([-20, 32, 32, T + 20]);
+  if ((mask & 8) && (mask & 1)) boxes.push([-20, -20, 32, 32]);
+  // The wobble noise wraps every 64 px, so banks and depth meet up across cell edges.
+  const D = (x, y) => { let d = 1e9; for (const b of boxes) d = Math.min(d, sdBox(x + .5, y + .5, b, 12)); return d + (pnoise(x, y, 8, s, 8) - .5) * 4; };
+  const shore = pondShore(mask, D);
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const d = D(x, y), r = shore[y * T + x];
+    if (d > 1) continue;
+    if (d > 0 || r < 2.5) {  // the bank: dark earth with moss creeping over its lip
+      const lip = d > 0 || r < 1;
+      L.set(x, y, A.frozen && lip ? "#dce8f4" : hash(x, y, s + 3) < .4 ? g[2] : lip ? "#241c14" : "#140f26");
+      continue;
+    }
+    const t = clamp((r - 2.5) / 16 + (pnoise(x, y, 16, s + 5, 4) - .5) * .25, 0, 1);
+    L.set(x, y, A.frozen ? pick([W[3], W[2], W[1]], t, x, y, .5) : pick([W[2], W[1], W[0]], t, x, y, .5));
+  }
+  const inner = (x, y) => x >= 0 && y >= 0 && x < T && y < T && shore[y * T + x] > 6;
+  if (A.frozen) {
+    // Cracks in the ice, kept inside the cell so they never cut off at its edge.
+    for (let k = 0; k < 2; k++) {
+      const x0 = 10 + hash(k, 1, s + mask) * 40, y0 = 10 + hash(k, 2, s + mask) * 40, a = hash(k, 3, s + mask) * Math.PI;
+      for (let i = 0; i < 9; i++) { const x = Math.round(x0 + Math.cos(a) * i), y = Math.round(y0 + Math.sin(a) * i * .6); if (x > 4 && x < 60 && inner(x, y)) L.set(x, y, W[4]); }
+    }
+  } else {
+    // Moonlight glints: short level dashes that slide and fade over the frames.
+    for (let k = 0; k < 7; k++) {
+      const x0 = 8 + Math.floor(hash(k, 1, s + mask) * 44), y = 8 + Math.floor(hash(k, 2, s + mask) * 48), len = 2 + Math.floor(hash(k, 3, s + mask) * 4);
+      const ph = (f + k) % 4, shift = ph - 1;
+      for (let i = 0; i < len; i++) { const x = x0 + shift + i; if (x > 3 && x < 61 && inner(x, y)) L.set(x, y, ph === 3 ? W[2] : ph === 0 ? W[4] : W[3]); }
+    }
+    // Now and then a lily pad, well inside the water.
+    if (hash(mask, 9, s) < .5) {
+      const px = 20 + Math.floor(hash(mask, 10, s) * 24), py = 20 + Math.floor(hash(mask, 11, s) * 24);
+      if (inner(px - 6, py) && inner(px + 6, py) && inner(px, py - 4) && inner(px, py + 4)) {
+        const pad = new Img();
+        ellipse(pad, px, py, 5, 3, (x, y, dx, dy) => (dx > .1 && Math.abs(dy) < .22) ? null : (dy < -.2 ? g[4] : g[3]));
+        L.stamp(pad, g[0]);
+      }
+    }
+  }
+  return L;
+}
 function blightPatch(A, f, seed) {
   const L = grass(A, 0), B = BLIGHT, s = seed + 60;
   for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
@@ -916,6 +1015,13 @@ function heartwood(A, f, lost = 0) {
   return out;
 }
 
+// Ground details: 12 variants = the 4 kinds (v % 4) each drawn at 3 spots in the cell, so a scatter of
+// them never lines up on the cell grid. Variants 0–3 are the four kinds, one spot each.
+const DECOR_SPOTS = [[-13, -18], [11, -6], [-6, 6]];
+function decorAt(A, v, seed) {
+  const kind = v % 4, [dx, dy] = DECOR_SPOTS[(Math.floor(v / 4) + kind) % 3];
+  return new Img().put(decor(A, kind, seed), dx, dy);
+}
 function decor(A, v, seed) {
   const out = new Img(), L = new Img(), g = A.grass;
   if (v === 0) {
@@ -968,19 +1074,19 @@ function glintEyes(out, f, pts) { if (f === 2) for (const [x, y] of pts) tset(ou
 
 // t: 0 split trunk, 1 broken snag, 2 weeping willow, 3 dead pine, 4 dead birch, 5 thorn tree
 function deadTree(A, t, f, seed) {
-  const out = new Img(64, 96), L = new Img(64, 96);
-  TT = TREE_TT;  // drawn 1.5× taller from the 64 px design (see TREE_TT)
+  const out = new Img(TREE_W, TREE_H), L = new Img(TREE_W, TREE_H);
+  TT = TREE_TT; TX = TREE_TX;  // drawn bigger from the 64 px design (see TREE_TT / TREE_TX)
   deadBase(out, seed);
   if (t === 0) {
     stroke(L, 32, 56, 32, 40, 13, 10, deadFn); deadRoots(L, deadFn);
     stroke(L, 29, 41, 19, 13, 7, 3, deadFn); stroke(L, 35, 41, 45, 11, 7, 3, deadFn);
     branch(L, 21, 19, -2.5, 7, 3, 0, seed, deadFn); branch(L, 43, 17, -.6, 8, 3, 0, seed + 3, deadFn);
     out.stamp(L, DEAD[0]);
-    for (let y = Math.round(ty(30)); y <= ty(45); y++) { const x = 32 + Math.round(Math.sin(y * .5) * 1.2); out.set(x, y, "#0c0a12"); if (y % 4 === 0) out.set(x + 1, y, "#d8d0e8"); }
+    for (let y = Math.round(ty(30)); y <= ty(45); y++) { const x = Math.round(tx(32) + Math.sin(y * .5) * 1.2); out.set(x, y, "#0c0a12"); if (y % 4 === 0) out.set(x + 1, y, "#d8d0e8"); }
     smoke(out, f, [22, 33, 42]);
   } else if (t === 1) {
     stroke(L, 32, 57, 32, 26, 17, 13, deadFn); stroke(L, 30, 54, 20, 58, 5, 2, deadFn); stroke(L, 34, 54, 44, 58, 5, 2, deadFn);
-    for (let x = 16; x <= 48; x++) { const top = 24 + [0, -5, -2, -7, -1, -4][(x + seed) % 6] + Math.floor(hash(x, 1, seed) * 2); for (let y = 0; y < ty(top); y++) copyPx(L, x, y, [0, 0, 0, 0]); }
+    for (let x = 16; x <= 48; x++) { const top = 24 + [0, -5, -2, -7, -1, -4][(x + seed) % 6] + Math.floor(hash(x, 1, seed) * 2); for (let ox = Math.floor(tx(x)); ox < Math.floor(tx(x + 1)); ox++) for (let y = 0; y < ty(top); y++) copyPx(L, ox, y, [0, 0, 0, 0]); }
     // Limbs reaching out, so it reads as a tree (branching, tall) and never as a stone pillar.
     branch(L, 38, 34, -.55, 11, 4, 1, seed, deadFn);
     branch(L, 26, 30, -2.55, 11, 4, 1, seed + 2, deadFn);
@@ -1005,8 +1111,8 @@ function deadTree(A, t, f, seed) {
     pts.forEach(([x, y], k) => {
       if (k % 2) return;
       const len = 8 + hash(k, 5, seed) * 16;
-      const y0 = Math.round(ty(y)), n = Math.round(len * 1.4);
-      for (let i = 1; i < n; i++) out.set(x + Math.round(sway * i / n * 1.5), y0 + i, i % 4 === 0 ? "#4a4054" : "#7a6e86");
+      const y0 = Math.round(ty(y)), n = Math.round(len * 1.6);
+      for (let i = 1; i < n; i++) out.set(Math.round(tx(x) + sway * i / n * 1.5), y0 + i, i % 4 === 0 ? "#4a4054" : "#7a6e86");
     });
     smoke(out, f, [26, 38]);
   } else if (t === 3) {
@@ -1036,10 +1142,11 @@ function deadTree(A, t, f, seed) {
     stroke(L, 32, 57, 31, 40, 13, 9, deadFn);
     for (const [a, len] of [[-2.9, 18], [-2.4, 16], [-1.9, 13], [-1.25, 13], [-.7, 16], [-.25, 18]]) branch(L, 31, 42, a, len, 4.5, 1, seed + len, deadFn);
     out.stamp(L, DEAD[0]);
-    for (let y = 4; y < ty(50); y++) for (let x = 2; x < 62; x++) if (L.alpha(x, y) && !L.alpha(x, y - 1) && hash(x, y, seed + 9) < .22) out.set(x, y - 1, DEAD[0]);
+    for (let y = 4; y < ty(50); y++) for (let x = 2; x < L.w - 2; x++) if (L.alpha(x, y) && !L.alpha(x, y - 1) && hash(x, y, seed + 9) < .22) out.set(x, y - 1, DEAD[0]);
     smoke(out, f, [22, 32, 42]);
   }
-  TT = null;
+  mossFlecks(out, L, seed);
+  TT = null; TX = null;
   return out;
 }
 
@@ -1240,6 +1347,19 @@ const WOOD = ["#1e1410", "#3a2618", "#5a3c24", "#7c5634", "#9c7448"];
 // Cloud shadows (256×128, transparent), seen from above as they pass over the map: an elongated,
 // lobed patch whose edge breaks into wisps on the downwind (right) side, denser in the middle.
 // Three banded alpha steps of Dread (dithered where they meet), never a soft blur.
+// Mist banks (2026-09-30, the title / Grove fog): a seamless 256×256 tile of dithered fog in the
+// title's fog ramp (Pool → Slate → Stone → Mist), opaque palette pixels in three density bands. The
+// game draws it at low alpha, stretched 2× wide so the banks lie flat, thicker at the map's back and edges.
+function mistBanks() {
+  const W = 256, out = new Img(W, W), ramp = ["#2c4c5c", "#5c5a78", "#8c8cac", "#b4b0c8"];
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+    const n = .6 * pnoise(x, y, 64, 1907, 4) + .4 * pnoise(x, y, 32, 1913, 8);
+    const d = clamp((n - .38) * 1.9, 0, 1);
+    if (d <= 0 || bay(x, y) >= d * .85) continue;
+    out.set(x, y, ramp[Math.min(3, Math.floor(d * 3.2))]);
+  }
+  return out;
+}
 function cloudShadow(v) {
   const W = 256, H = 128, L = new Img(W, H), s = 1300 + v * 37;
   const rx = 78 + hash(v, 1, s) * 26, ry = 30 + hash(v, 2, s) * 12, cx = 124, cy = 64;
@@ -1306,10 +1426,11 @@ const BUILD = {
   dent: A => dent(A),
   waystone: (A, v, f) => waystone(A, f),
   pool: (A, v, f) => pool(A, f),
+  pond: (A, v, f) => pondTile(A, v, f),
   blight: (A, v, f) => blightPatch(A, f, SEED + v * 5),
   mist: (A, v, f) => mist(A, f),
   heart: (A, v, f) => heartwood(A, f, v),
-  decor: (A, v) => decor(A, v, SEED + v),
+  decor: (A, v) => decorAt(A, v, SEED + v),
   dead: (A, v, f) => deadTree(A, v, f, SEED + v * 29),
   rock: (A, v) => shrinkRock(rock(A, v, SEED + v * 31)),
   isle: (A, m) => islandEdge(A, m),
@@ -1319,9 +1440,10 @@ const BUILD = {
   islet: (A, v) => islet(A, v),
   bridge: (A, v) => ropeBridge(v),
   cloud: (A, v) => cloudShadow(v),
+  mistbank: () => mistBanks(),
 };
-const ANIM = new Set(["withered", "waystone", "pool", "blight", "mist", "heart", "dead"]);
-const TILES = new Set(["grass", "path", "wall", "pool", "blight"]);
+const ANIM = new Set(["withered", "waystone", "pool", "pond", "blight", "mist", "heart", "dead"]);
+const TILES = new Set(["grass", "path", "wall", "pool", "pond", "blight"]);
 const SOLID = 200;
 function copyPx(dst, x, y, c) { const i = (y * dst.w + x) * 4; dst.d[i] = c[0]; dst.d[i+1] = c[1]; dst.d[i+2] = c[2]; dst.d[i+3] = c[3]; }
 // Storybook: halve the resolution (most common solid colour per 2×2 block), outline sprites in a
@@ -1463,7 +1585,8 @@ function buildGround() {
     else { const h = hash(x, y, SEED + 1); key = "grass:" + (h < .5 ? 0 : h < .72 ? 1 : h < .88 ? 2 : 3); }
     g.drawImage(getCan(key), x * T, y * T);
   }
-  for (const [k, x, y] of DECALS) g.drawImage(getCan(k), x * T, y * T);
+  // Big sprites (the 96×128 trees) sit bottom-centre on their cell, drawn top row first.
+  for (const [k, x, y] of DECALS.slice().sort((a, b) => a[2] - b[2])) { const cv = getCan(k); g.drawImage(cv, x * T - (cv.width - T) / 2, y * T - (cv.height - T)); }
   groundCanvas = c;
 }
 

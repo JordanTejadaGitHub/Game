@@ -27,9 +27,11 @@ var strength := 0.0  # 0 = gone, 1 = fully rolled in
 var _blobs: Array = []  # [home (Vector2), weight (0..1), phase, speed]
 var _path_cells := {}
 var _time := 0.0
+var _disc: Texture2D  # Held here: draw commands don't keep the shared light disc alive
 
 func _ready() -> void:
 	z_index = MIST_Z
+	_disc = EnvironmentLighting.light_texture()
 	visible = false
 	_scatter()
 	if map_generator != null:
@@ -52,7 +54,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	var disc := EnvironmentLighting.light_texture()
+	var disc := _disc
 	var lite := Fx.reduce_flashes()
 	var still := _reduced_motion()
 	var alpha := density * strength * (0.6 if still else 1.0) * (0.7 if lite else 1.0)

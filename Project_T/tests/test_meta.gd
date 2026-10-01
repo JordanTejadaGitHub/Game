@@ -237,8 +237,8 @@ func _run() -> void:
 	_check(dreams_first_pick(main) == DreamState.FIRST_PICK_DREAMLIGHT, "no Blight: the first family pick gives its Dreamlight")
 	_check(is_equal_approx(director.rest_bonus_perk_multiplier, 1.2), "Rested Roots II: rest bonus ×1.2")
 	_check(run_state.sprout_charges == 2, "Sprout Bed: 2 free Sprouts (%d)" % run_state.sprout_charges)
-	_check(dreams.card_stacks("cleared_ground") >= 1 and dreams.can_clear(), "Clear Sight: clearing opened and Cleared Ground from the start")
-	var starting := 0  # Clear Sight's cards (the opener Tend the Forest, once it exists, and Cleared Ground)
+	_check(dreams.card_stacks("heartwoods_reach") >= 1 and dreams.can_clear(), "Clear Sight: clearing opened from the start (Heartwood's Reach)")
+	var starting := 0  # Clear Sight's cards (Heartwood's Reach)
 	for id in _unlock(grove, "clear_sight").starting_cards:
 		if dreams.pool.any(func(c: UpgradeData) -> bool: return c.id == id):
 			starting += 1
@@ -249,8 +249,8 @@ func _run() -> void:
 	_check(run_state.free_nurtures == 0 and dreams.rerolls_left == 0, "perks not carried do nothing")
 	_check(not dreams.allow_bittersweet, "no Bittersweet Dreams node: no bittersweet cards")
 	var dew_before := run_state.dew
-	# Act 1 × its multiplier, Rich Dew +15%, and Gathered Dew if Kindling happened to draw it; fractions kept.
-	var expected_dew := floori(20 * run_state.act_dew_multipliers[0] * (1.0 + run_state.dew_gain_bonus + dreams.get_dew_gain_bonus()) + 0.0001)
+	# The Dew pot (run_design.md) folds Rich Dew / dew_gain into the table: a dispel pays its plain Dew.
+	var expected_dew := 20
 	for i in 20:  # 20 dispels of 1 Dew: the fractions carry over into whole Dew
 		var enemy := Node2D.new()
 		enemy.set_script(_FakeEnemy)
@@ -289,6 +289,41 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 
+	# --- Saves are atomic, and an unreadable profile never turns into a fresh one ---
+	var kept := HeartwoodMemory.load_data()
+	kept.seeds = 77
+	HeartwoodMemory.save_data(kept)
+	HeartwoodMemory.save_data(kept)  # Replaces an existing file, keeping the last as .bak
+	_check(int(HeartwoodMemory.load_data().seeds) == 77 and FileAccess.file_exists(PROFILE_PATH + ".bak")
+		and not FileAccess.file_exists("%s.%d.tmp" % [PROFILE_PATH, OS.get_process_id()]), "a save replaces the profile through a temp file and keeps a backup")
+	var torn := FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
+	torn.store_string("{\"version\": 6, \"seeds\": 7")  # Half-written
+	torn.close()
+	_check(int(HeartwoodMemory.load_data().seeds) == 77, "a half-written profile reads as the last good copy")
+	HeartwoodMemory.forget()
+	_check(int(HeartwoodMemory.load_data().seeds) == 77 and FileAccess.file_exists(PROFILE_PATH + ".unreadable"),
+		"with nothing cached, an unreadable profile reads from its backup and is kept aside")
+
+	# --- Reset to a new profile (demo_scope.md, Settings → Developer): backed up first, settings kept ---
+	var full_profile := HeartwoodMemory.load_data()
+	full_profile.seeds = 50
+	full_profile.unlocks = {"pebbling": 1}
+	full_profile.whispers_seen = ["first_build"]
+	full_profile.settings.master_volume = 0.3
+	HeartwoodMemory.save_data(full_profile)
+	HeartwoodMemory.reset_profile()
+	var reset := HeartwoodMemory.load_data()
+	_check(int(reset.seeds) == 0 and reset.unlocks.is_empty() and reset.whispers_seen.is_empty() and is_equal_approx(float(reset.settings.master_volume), 0.3),
+		"a reset profile is brand new but keeps its settings (%s)" % [reset.seeds])
+	var backup := HeartwoodMemory.latest_backup()
+	_check(backup != "" and backup.get_file().begins_with(PROFILE_PATH.get_file().get_basename() + ".backup-"), "the reset backed the old profile up beside it (%s)" % backup)
+	_check(HeartwoodMemory.restore_backup(backup) and int(HeartwoodMemory.load_data().seeds) == 50, "restoring the backup brings the old profile back")
+	for i in 7:
+		HeartwoodMemory.backup_profile()
+	_check(HeartwoodMemory._backups().size() == HeartwoodMemory.BACKUPS_KEPT, "only the newest 5 backups are kept (%d)" % HeartwoodMemory._backups().size())
+	for file in HeartwoodMemory._backups():
+		DirAccess.remove_absolute(file)
+
 	# --- Old profiles: version 1 Grove ids move to the layout ids ---
 	var old := FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
 	old.store_string(JSON.stringify({"version": 1, "seeds": 5, "unlocks": {"pebbling_line": 1, "cairn": 1, "sporeling_finals": 1, "morning_stores": 2}}))
@@ -301,13 +336,28 @@ func _run() -> void:
 	_check(migrated == {"pebbling": 1, "pebbling_hidden": 1, "morning_stores": 2}, "v1 ids migrate, the old final-forms node refunded (%s)" % [migrated])
 	_check(memory.loadout == [] and int(memory.seeds) == 5 + 50, "a migrated profile keeps its Seeds and gets the final-forms 50 back (%d)" % int(memory.seeds))
 	old = FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
-	old.store_string(JSON.stringify({"version": 2, "seeds": 10, "unlocks": {"reactions": 1, "kin_lore": 1, "bittersweet_dreams": 1, "spore_lore": 1}}))
+	old.store_string(JSON.stringify({"version": 2, "seeds": 10, "unlocks": {"reactions": 1, "kin_lore": 1, "bittersweet_dreams": 1, "sharpened": 1}}))
 	old.close()
 	HeartwoodMemory.forget()  # Written behind save_data: never read a cached copy
 	memory = HeartwoodMemory.load_data()
 	_check(int(memory.seeds) == 10 + 70 + 50 + 8 and not memory.unlocks.has("reactions") and not memory.unlocks.has("kin_lore")
-		and memory.unlocks.has("bittersweet_dreams") and memory.unlocks.has("spore_lore"),
+		and memory.unlocks.has("bittersweet_dreams") and memory.unlocks.has("sharpened"),
 		"v2 profiles: removed discovery nodes refund their Seeds, Bittersweet 8 back (%d, %s)" % [int(memory.seeds), memory.unlocks.keys()])
+	old = FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
+	old.store_string(JSON.stringify({"version": 6, "seeds": 3, "unlocks": {"storm_lore": 1, "guiding_lights": 1, "spore_lore": 1, "dawnbreak": 1, "grove_of_kin": 1, "sharpened": 1}}))
+	old.close()
+	HeartwoodMemory.forget()
+	memory = HeartwoodMemory.load_data()
+	_check(int(memory.seeds) == 3 + 40 + 60 + 40 + 120 + 120 and memory.unlocks.has("sharpened") and not memory.unlocks.has("storm_lore") and not memory.unlocks.has("dawnbreak"),
+		"v6 profiles: the combo-card nodes are gone and refunded (%d, %s)" % [int(memory.seeds), memory.unlocks.keys()])
+	_check(not HeartwoodMemory.defaults().unlocks.has("elders"), "fresh profiles start lean")
+	var every_card := {}
+	for unlock in HeartwoodMemory.load_grove():
+		for card in unlock.dream_cards:
+			every_card[card] = unlock.id
+	for card: String in ["hunters_patience", "sharpened_light", "crowd_breaker", "thornheart", "scented_hedge", "tended_stumps", "hollow_ground", "momentum", "great_ripple", "lucid_dreaming", "drumbeat", "overlap"]:
+		_check(every_card.has(card) and ResourceLoader.exists("res://resource/dream/%s.tres" % card), "a Grove node grants %s" % card)
+	_check(_unlock(HeartwoodMemory.load_grove(), "the_old_ones").requires_all == ["elders"], "The Old Ones needs Elders")
 
 	# --- The Grove screen: the tree, tapping a bud, planting, the canopy ---
 	memory = HeartwoodMemory.defaults()
@@ -320,6 +370,14 @@ func _run() -> void:
 	await process_frame
 	var view: GroveTreeView = grove_screen.tree_view
 	_check(view.get_canopy_stage() == 0, "a new Grove shows the first canopy stage")
+	var stone_sets: Dictionary = GroveTreeView.load_layout().get("loadout_stone_sets", {})
+	_check(view.stone_points().size() == 3 and view.stone_points()[0] == GroveTreeView.vec(stone_sets["3"][0]),
+		"a new Grove shows only its 3 open waystones, centred under the trunk")
+	var opened_stones := [false]
+	view.stones_pressed.connect(func() -> void: opened_stones[0] = true, CONNECT_ONE_SHOT)
+	view.tap(view.stone_points()[2])
+	_check(opened_stones[0], "tapping a waystone opens the loadout")
+	grove_screen.loadout.close(false)
 	var stores_node := _layout_node("morning_stores")
 	view.tap(GroveTreeView.vec(stores_node.pos))
 	_check(grove_screen.selected != null and grove_screen.selected.id == "morning_stores", "tapping a bud selects its node")
@@ -569,8 +627,9 @@ func _unlock(grove: Array[UnlockData], id: String) -> UnlockData:
 	return null
 
 func _delete(path: String) -> void:
-	if FileAccess.file_exists(path):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	for file in [path, path + ".bak", path + ".unreadable"]:  # With save_data's backup
+		if FileAccess.file_exists(file):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(file))
 
 func _check(condition: bool, label: String) -> void:
 	if not condition:
@@ -589,7 +648,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 73 and grove.size() == 73 - parked, "73 Grove spots, %d nodes on the tree (layout %d, data %d)" % [73 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 92 and grove.size() == 92 - parked, "92 Grove spots, %d nodes on the tree (layout %d, data %d)" % [92 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:
@@ -599,6 +658,20 @@ func _check_layout(grove: Array[UnlockData]) -> void:
 			continue
 		_check(unlock.get_section() == node.section, "%s is on the %s limb" % [node.id, node.section])
 		_check(maxi(unlock.get_levels(), 1) == int(node.levels), "%s has %d levels" % [node.id, int(node.levels)])
+		if node.section != "perks" and node.get("memory_row") == null:  # How deep it sits: drives its grown look
+			var depth := int(node.get("display_level", 0))
+			_check(depth >= 1 and depth <= 3 and (depth == 3) == (unlock.legendary or node.id.ends_with("_ascension")),
+				"%s shows display level %d" % [node.id, depth])
+		if int(node.levels) > 1:  # Grown perks with levels: a look per level (grove_level_blooms.png, 2 frames each)
+			var level_sheet: Texture2D = load("res://assets/meta/grove/grove_level_blooms.png")
+			_check(int(node.levels) <= 3 and level_sheet.get_width() >= int(node.levels) * 2 * GroveTreeView.NODE_FRAME
+				and level_sheet.get_height() >= 3 * GroveTreeView.NODE_FRAME, "%s has a look for each of its %d levels" % [node.id, int(node.levels)])
+		# Grown Ascensions have their own Legendary-sized bloom; every other node keeps the uniform flowers.
+		if node.id.ends_with("_ascension"):
+			var sheet: Texture2D = load("res://assets/meta/grove/grove_ascended_blooms.png")
+			var cell := int(GroveTreeView.load_layout().get("ascended_cell", 0))
+			_check(node.get("ascended_bloom") != null and cell == GroveTreeView.LEGENDARY_FRAME and (int(node.ascended_bloom) + 1) * cell <= sheet.get_height(),
+				"%s has its Ascension bloom" % node.id)
 		_check(unlock.legendary == bool(node.legendary) and unlock.start == bool(node.start), "%s: Legendary / start match" % node.id)
 		_check(ResourceLoader.exists("res://assets/meta/grove/branches/%s.png" % node.id), "%s has branch art" % node.id)
 		if node.parent != null and node.id != "firefly_jar_ascension":  # Drawn from Sunpetal, needs final forms

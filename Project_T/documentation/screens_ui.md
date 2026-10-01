@@ -471,6 +471,9 @@ Every combo starts **locked** and is **discovered the first time it actually fir
     closes (and pauses then).
   - Setting (Gameplay): **"Pause on new combos"**, on by default; off = the old 5 s slide-in card.
   - The rest report lists *"New combos: Thunderclap"*.
+  - **The discovery card stands out in combat** (2026-09-30, user: *"the discovery window should be more visible during combat and have the icons"*; it was a see-through panel with small text over a busy fight): a **solid panel** (the opaque tip fog, ~95%) with the gold thread, the world behind **dimmed to ~40%** except the nightmare it fired on (lit), a **title in the display font, 28 px gold** (*"Combo discovered: Thunderclap"*, *"Chain discovered: Chain 5"*), **icons at 48 px**: a combo shows its two status icons "+" its Reaction icon; a chain shows each Reaction's icon in order with arrows (repeats collapsed as "Nightbloom ×2"); body text 18 px; then Continue / Open in Codex. A soft rise-in and the discovery chime.
+  - **The discovery card can be minimised** (2026-10-01, user: *"when a combo unlocks, I should be able to minimise the window"*): a **"Peek at the map"** button (same as the choice screens, `ChoicePeek`) hides the card and lifts the dim, **the game stays paused**, and the world can be panned, zoomed and hovered (nightmare and Warden info work). A small "Combo discovered" tab at the top reopens it; Continue on the card (or Space / Enter while peeking) resumes.
+  - **Chains: one discovery, then Dawnbreak** (2026-10-01, user: *"for chains, just show the chain information once and that's it, then Dawnbreak comes in with a discovery once as well"*; replaces the three tiers below): the **first chain ever** (Chain 3+) shows **one** discovery card that explains chains (*"A Reaction can spread its statuses and set off another. Past the fifth link each one hits a little softer, but the chain keeps counting."*). No more cards at 5 or 10. **Dawnbreak** (the Legendary that fires at a Chain 10) gets its **own one-time discovery** the first time it actually goes off. The Codex Chains section keeps your longest chain.
   - **Chains are discovered too** (2026-09-30, user: *"discover chain too as well should be like
     discovering a combo"*). A Reaction chain (Reactions setting each other off, the tracker's chain
     length) gets the **same pause + discovery card** the first time ever it reaches **Chain 3, Chain 5 and Chain 10**
@@ -654,6 +657,7 @@ From a user playtest with screenshots; each line is the rule going forward.
     when I'm not hovering", the Warden panel's "Grow into Acorn"). Primary / affordable / keyboard-
     focused buttons don't get a resting fill either: at most the gold border. Keyboard focus shows
     as the border too (it must not look like hover).
+- **The Warden panel never fills the screen** (2026-09-30, user, a late-run Honeysuckle with ~14 Dreams listed: *"this fills the whole screen"*; it also ran up over the Dreams row): the panel is capped at **~55% of the screen height**, starts **below the Dreams row**, and scrolls inside if needed. "Dreams on this Warden" becomes **one compact row of card gems** (rarity shape + a small count), **only the cards that are active on it**, each gem hovering / tapping to its line ("Crossroads +48% damage"); inactive cards collapse to one muted line *"4 more don't apply here"* (hover lists why). The Buffs list is folded to its **Total** line with a "Details" toggle. Stats, Sell and Close always stay visible.
 - **Warden panel header shows the Warden's portrait** (its animated idle art), not the family
   emblem (user, 2026-09-30: "go back to the Warden portrait instead of the icon").
 - **Less hand-holding on buttons** (2026-09-30, user: "a bit too much hand holding"):
@@ -682,6 +686,8 @@ From a user playtest with screenshots; each line is the rule going forward.
     base Warden face with a shield or spark, `NightmareIcons`) predate the emblems and stay.
 - **Warden bar hover = the Warden panel's info** (2026-09-30, user: *"when you hover a tower in the tower bar, it should give you more detail, like when you select a tower"*). Hovering (or long-pressing on touch) a Warden bar button shows a card with **the same top half as the Warden panel**: portrait, name, damage type, description with status links, stats with this run's Dream bonuses (↑), statuses it applies, Potency, **"Grows into"** (its branches with their Dew and Dreamlight state), and the price line (Sprout: the rising price rule). No buttons. One shared view with the panel so the two never disagree.
 - **Top-right layout, as in the Moonlit Thread mock-up** (2026-09-30; user first asked "above or beside?", then: *"look at the UI asset for Moonlit, it should be like that in terms of the top right"*; mock: https://claude.ai/artifact/4Cs1PP2CrqTjth2dHiZFow). **One horizontal row** in the top-right corner on one soft fog patch (no thread, no boxes): **leaves "15/15" · Dew · Dreamlight · path length**, each a pixel icon plus a **big Cormorant number (~28 px)**, then the buttons as **compact 40 px icon buttons at the end of the same row**: Remember (✦, glows when Dreamlight can buy something), Boosts (only once a boost source exists), ? (Codex) and ☰ (Menu). Their names move to tooltips. Nothing stacks vertically; the half-price clears counter sits just under the row. Replaces the earlier "buttons under the resources" layout. Check it fits beside the drift banner at 1280×800.
+- **The Clear tool slot matches the Warden slots** (2026-09-30, user: *"it shouldn't be different in size from the rest"*; an earlier reading, a round separate button, was wrong): the **same size and shape** as a Warden slot, lined up with them on the same baseline; key badge in the same corner. No change otherwise.
+- **Every icon can be hovered or tapped, and tips are opaque** (2026-09-30, user: *"I can't click and hover over icons; also I can barely read them once they are hovering over text, like on the Warden detail panel bottom left"*): **every icon in a panel** (stat icons, status icons, damage type, resource icons, rarity gems, buff pips) shows its tip on hover and on tap (TapTip), with the term's glossary line. **Tooltips and tap tips are opaque**: a solid Void fog panel (`UiStyle.FOG` at ~95%, not the see-through fog of HUD patches) with the gold thread, a soft drop shadow, drawn **above every panel** (their own top layer), placed so they never cover the text the pointer is on (prefer above-right of the pointer, flip at screen edges).
 - **Readable tooltips and hover text** (user: "hovering things, in general, the text is too small
   and hard to read"): every tooltip, hover panel and tap popup uses **at least 16 px body text at
   1080p** (18 px for the first line / name), **1.35 line height**, a maximum width of about **42
@@ -721,11 +727,15 @@ From a user playtest with screenshots; each line is the rule going forward.
     Dreamlight"), since those are goals within reach.
   - Developer modes that unlock everything (Test Grove) show every family.
 - **Sell:** "+62 Dew" (full during a rest, half while nightmares walk; the button says which).
-- **Targeting** (**decided 2026-09-28**, user): three modes for attacking Wardens that pick a target:
+- **Targeting** (**decided 2026-09-28**, user; **Last added 2026-09-30**): four modes for attacking
+  Wardens that pick a target:
   - **First** (default): the nightmare closest to the Heartwood (today's rule).
+  - **Last**: the nightmare **furthest from the Heartwood** in range, the newest arrival. Good for
+    status Wardens (tag a nightmare so it walks the whole maze Spored, Marked or Static), for
+    Wardens near the start, and for mopping up stragglers.
   - **Strongest**: the most current health (bosses, elites, Husks).
   - **Closest**: the nearest to the Warden (good for short-range and splash Wardens).
-  - Set per Warden with a 3-way switch in its panel (icons + words); with several selected, the
+  - Set per Warden with a 4-way switch in its panel (icons + words); with several selected, the
     group panel sets all of them. **T** cycles the selected Wardens' mode. Kept through growing
     and in the run save. The Warden shows a tiny mode pip only while selected.
   - Hidden for Wardens that don't pick a target (pulses, auras, traps, rings, Thornwalls). Snipers'

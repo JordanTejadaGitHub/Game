@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "deep_water_ii"
 display_name = "Deep Water II"
-description = "Drown lasts 4 s and its damage grows 50% faster (bosses slowed 40%), and can happen twice to each nightmare."
+description = "{combo:drown} lasts 4 s and its damage grows 50% faster (bosses slowed 40%), and can happen twice to each nightmare."
 rarity = 1
 kind = 3
 tags = Array[String](["water", "sleep", "reaction"])

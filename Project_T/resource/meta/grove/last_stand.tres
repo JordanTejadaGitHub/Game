@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "last_stand"
+display_name = "Last Stand"
+description = "Daring Dreams join the pool: Desperate Bloom, Second Wind, Last Stand."
+root = 1
+costs = Array[int]([50])
+order = 37
+icon = 15
+requires_all = Array[String](["scarred_bark"])
+dream_cards = Array[String](["desperate_bloom", "second_wind", "last_stand"])

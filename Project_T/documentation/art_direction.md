@@ -136,18 +136,25 @@ lost 0–20). They're wired into the map (`EnvironmentTiles`), with the lighting
   In Godot: a `CanvasModulate` plus `PointLight2D`s.
 - **One palette per act** (the season changes at each act break, `run_design.md`):
 
-  | Act | Season / mood |
-  |---|---|
-  | 1. Forest's Edge | spring dusk |
-  | 2. Deep Wood | summer night |
-  | 3. Misty Hollow | autumn fog |
-  | 4. Heartwood Glade | winter dark |
+  | Act | Season / mood | Ground (colour pass, 2026-09-30) |
+  |---|---|---|
+  | 1. Forest's Edge | spring dusk | night-indigo with moss grain |
+  | 2. Deep Wood | summer night | night-indigo with moss / teal |
+  | 3. Misty Hollow | autumn fog | violet with rust |
+  | 4. Heartwood Glade | winter dark | frost |
 
-- **Readability order (value):** dark ground < pale obstacles < **palest path**. The path is pale,
-  moonlit earth and must always be the most readable thing on the map.
-- **Obstacles:** the **Withered Tree** is pale dead bark with dark smoke at its roots and two
-  knot-holes that sometimes glint like eyes. **Blight Patch** is violet-black rot. The **Mossy
-  Boulder** stays a readable pale shape.
+- **Colour pass (2026-09-30, Environment Assets, 5d222a19):** the map now matches the title and
+  Grove screens. The ground is night-indigo instead of saturated green. **Warmth on the map is only
+  the path, the Heartwood and the Wardens.** All sheets are on Heartwood 32; no per-act colours
+  were added.
+- **Readability order (value):** dark ground < pale obstacles < **palest path**, and the island rim
+  < the ground. The path is pale, moonlit earth and must always be the most readable thing on the
+  map. Checked in every act after the colour pass.
+- **Obstacles:** the **Withered Tree** is cool night bark with a teal lit side and moss flecks (like
+  the Grove trunks), dark smoke at its roots, and two knot-holes that sometimes glint like eyes. It's
+  drawn **96×128 px**, overhanging its 64 px cell like the Heartwood does; the cell and gameplay
+  stay 64. **Blight Patch** is violet-black rot. The **Mossy Boulder** stays a readable pale
+  lavender stone.
 - **The start:** mist at the start cell, with pale eyes that open now and then. Dark fog drifts
   along every map edge.
 - **The Heartwood** (redesigned 2026-09-27 on the concept page): a slowly twisting trunk with bark

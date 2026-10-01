@@ -78,7 +78,7 @@ func _run() -> void:
 	var hit := _spawn(Vector2(12.5, 8.5) * CELL)
 	var splashed := _spawn(hit.global_position + Vector2(0.8, 0) * CELL)
 	pebbling.hit(hit, 1.0, false, Tower.CRIT)
-	_check(_lost(splashed) == int(_lost(hit) * 0.5), "Shattering Blow: 50% of the crit splashes (%d of %d)" % [_lost(splashed), _lost(hit)])
+	_check(_lost(splashed) == int(_lost(hit) * 0.5), "Shattering Blow: 50%% of the crit splashes (%d of %d)" % [_lost(splashed), _lost(hit)])
 	await _clean()
 
 	# Crit hooks from DreamState (only when Roguelite's getters exist).

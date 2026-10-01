@@ -215,6 +215,8 @@ func _card_row(source: DreamIcon) -> Control:
 	var body := StatusLinks.make_label(card.description, 14, UiStyle.INK)
 	body.mouse_filter = Control.MOUSE_FILTER_PASS
 	text.add_child(body)
+	if CardDiagram.has_diagram(card):  # Placement cards show their diagram (dream_design.md)
+		text.add_child(CardDiagram.make(card))
 	var resonance: String = dream_state.resonance_line(card) if dream_state.has_method("resonance_line") else ""
 	if resonance != "":  # Tag resonance, locked when taken (dream_audit.md)
 		var res_label := Label.new()

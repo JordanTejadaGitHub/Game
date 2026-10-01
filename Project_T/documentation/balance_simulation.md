@@ -290,6 +290,76 @@ Decisions (design chat; the interim rise in run_design.md was too small for this
    the block's health lands on its 5th drift. Record health, damage and leaks **by the drift that
    spawned the nightmare**, not by the drift that was current when it happened.
 
+## Human run 2 (2026-09-30, build a596ea, after the Dream power pass and the health rise)
+
+Fresh profile (7 Grove nodes), Blight 0. **Won at drift 100, 2 leaves lost (both at the drift 25
+Scarecrow)**, 35 min. Build: **92 Thornwalls, 35 Honeysuckles**, 9 Morning Fog, 7 Puffball, 4 Dewdrop,
+3 Sporeling (a poison-in-fog maze, path 188 tiles). Top Wardens: **one Puffball 76% of all damage**,
+Morning Fog 20%.
+
+| Stretch | Closest approach | Reading |
+|---|---|---|
+| Act 1 (drifts 6–25) | **0.54–0.86** (one 1.00 at 23) | right: tense, readable, the target |
+| Early act 2 (26–40) | 0.28–0.72 | still has teeth |
+| **Drift 41 → 100** | **0.08–0.22**, no leaks | the maze kills in the first ~15% of the route: too easy, matches the user's *"good until mid act 2"* |
+
+- **Bosses:** Scarecrow 183 s (a real fight, cost the 2 leaves), Mire Hag 35 s, Moth Queen 92 s,
+  **Hollow Oak 17 s** (the drift 100 boss is trivial now that it was exempted from the ×3.5).
+- **Dew:** earned 15,274; spent on growing 6,915, ranks 2,450, clears 1,663; the bank rose to ~1–2.7k late
+  (better than run 1's 9k; the late cut works).
+- **Dreams:** 28 taken (Lucid Dreaming at 50), a poison build (Lingering Spores I+II, Spore Cascade
+  I+II, Mushroom Rain, Monoculture late).
+
+Decisions (design chat):
+1. **Puffball is the outlier** (one Warden, 76%): its area puff gives **1 Poisoned** (was 2) and **keeps its 16-stack cap** (revised: the cap is its identity, "the deepest poison"; user asked whether it stays unique). Not:
+   hit cap 16 → 12. Check the "Top" attribution too: Spore Cascade spreads
+   and fog-boosted ticks may all be credited to the first applier (fine if true, but verify).
+2. **Hollow Oak at drift 100:** ×1.6 → **×3.0** (17 s is no final boss; run 1's wall was before the
+   boss-stays rule and the old curve).
+3. **Steepen from mid act 2** (both runs agree): act 2 ends at **×3.0** (was 2.5) with the ramp's
+   steeper half from drift 38; acts 3–4 **×4.0** (was 3.5). Act 1 and drifts 26–37 unchanged.
+4. **Chain falloff** (already queued) lands with these. Next human run checks all four.
+
+## Human run 3 (2026-10-01, build ebc899, fresh profile with 0 Grove nodes)
+
+Abandoned at drift 50 by the user (*"I know I can beat 100 already"*), 6 leaves lost (4 at drift 9–10,
+2 at 31–32). Spore + water build: **2 Puffballs = 76% of all damage** (57% + 19%), 6 Bloomcap, 4
+Driftspore, 5 Rain Lily, 20 Sprouts. Bosses: **Hollow Stag 38 s, Lamplighter 29 s**. Dew earned 6,995,
+banked up to 1,671 at drift 25. Closest: act 1 mostly ~0.30 (one leak spike at 9); act 2 0.17–0.68,
+drifts 44–49 ~0.20.
+
+Decisions (design chat):
+1. **Puffball is still the outlier** after the stack nerf. The cause: Poisoned stacks tick at the
+   **strongest applier's Potency** (Puffball 1.3), so one Puffball lifts every Sporeling's and
+   Driftspore's poison. Puffball **Potency 1.3 → 1.0**; its deep cap (16) and area stay.
+2. **Act 2–3 bosses are trivial** (Mire Hag 35 s in run 2, Lamplighter 29 s here):
+   `boss_health_multiplier` **1.5 → 2.25** for acts 2–3 (act 1 keeps its tuned ×1.75, the Oak its ×3.0).
+3. Act 1's first half reads a little calm (~0.30) after the lean pool; watch, no change yet.
+4. A fresh profile reaching drift 50 comfortably and "knowing it can beat 100" says late acts are
+   still soft: the next run after these two fixes decides whether acts 3–4 go from ×4.0 to ×5.0.
+
+## Human run 4 (2026-10-01, build 82373f, 1 Grove node)
+
+*"Still lost, but felt easy."* Lost at **drift 50 to the Huntsman: 20 leaves in that one drift** (the
+first leak of the run). Drifts 1–49: **closest 0.07–0.48, mostly 0.10–0.25** (act 2 ~0.09–0.27), no
+leaks; leaves rose to 20 from Omen rewards. Night Mare 23 s. Two families only (spore + water);
+Puffballs 25% + 25%, Bloomcap 14% (Potency 1.0 is fairer). Dew earned 5,814 by 50.
+
+Reading: **easy drifts, then a wall.** Normal drifts never threaten, so the player has no warning,
+and the Huntsman (pack shield, hounds respawning every 12 s, now ×2.25 and staying to drain) becomes
+unkillable once he reaches the Heartwood.
+
+Decisions:
+1. **Normal drifts harder from act 2:** act 2 starts at **×1.6** (was 1.3) and ends at **×3.6** (was 3.0);
+   acts 3–4 **×4.8** (was 4.0). Act 1 unchanged. Target: closest ~0.4–0.7 most drifts, the odd leak.
+   The gentle half of the ramp keeps its shape: **×2.3 at drift 37** (`act2_steep_value`, was 1.995),
+   so act 2 goes 1.6 → 2.3 (26–37) → 3.6 (45). **In the game from 474e76c6** (local main; the next
+   human run should be on that build or later).
+2. **Huntsman at the Heartwood:** his horn stops (no new hounds while he drains), and his pack shield
+   only counts hounds within 3 tiles of him, so clearing the hounds around the tree lets the maze
+   finish him.
+3. Next run checks both; the act 2–3 boss ×2.25 stays.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's

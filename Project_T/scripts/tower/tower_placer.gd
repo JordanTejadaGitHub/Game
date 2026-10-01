@@ -145,7 +145,8 @@ func _tick_settling(delta: float) -> void:
 
 func _hover_cell_valid() -> bool:
 	return not frozen_ground() and not _hover_path.is_empty() and not _cells_occupied(_footprint(_hover_cell)) \
-		and not is_unique_placed(tower_data) and settling_left(_footprint(_hover_cell)) <= 0.0
+		and not is_unique_placed(tower_data) and settling_left(_footprint(_hover_cell)) <= 0.0 \
+		and not omen_locked(_footprint(_hover_cell))
 
 func _marks() -> Node2D:
 	if not is_instance_valid(_settling_marks):
@@ -314,6 +315,8 @@ func _draw() -> void:
 		tag += " · already planted (one per run)"
 	elif settling_left(_footprint(_hover_cell)) > 0.0:
 		tag += " · The ground is settling (%d s)" % ceili(settling_left(_footprint(_hover_cell)))
+	elif omen_locked(_footprint(_hover_cell)):
+		tag += " · the old way is open until the rest"  # Second Path (Omen)
 	elif hover_breaks_path():
 		tag += " · would close the dream"  # The forest's rule: it may bend, never close
 	elif _cells_occupied(_footprint(_hover_cell)):
@@ -616,6 +619,9 @@ func _try_build(cell: Vector2) -> bool:
 	if settling_left(_footprint(cell)) > 0.0:
 		build_rejected.emit(cell)  # Settling ground: sold here moments ago
 		return false
+	if omen_locked(_footprint(cell)):
+		build_rejected.emit(cell)  # Second Path: the crumbled wall's cells stay open until the rest
+		return false
 	if _cells_occupied(_footprint(cell)):
 		build_rejected.emit(cell)
 		return false
@@ -725,6 +731,7 @@ func evolve(tower: Tower, into: TowerData, origin: Vector2 = NO_CELL) -> bool:
 	if into.tier == DreamState.ASCENDED_TIER - 1 and not _finals_grown.has(into.get_id()):
 		_finals_grown[into.get_id()] = true  # The first of each final form this run gets its bloom
 		Fx.final_bloom(tower, into.display_name)
+		tower.final_bloomed.emit(tower)
 	return true
 
 # The 2×2 squares (top-left cells) `tower` could grow into `into` on (tower_design.md "Ascended forms",
@@ -1167,6 +1174,16 @@ func becomes_heart(cell: Vector2, route: PackedVector2Array) -> bool:
 
 # Frozen Ground (Omen): no planting, growing or nurturing while one of its block's drifts is on (rests,
 # selling and clearing are fine). OmenDirector.blocks_building() knows whether it's active.
+# Second Path (an Omen): cells it opened can't be planted on until the next rest (OmenDirector.locked_cells).
+func omen_locked(cells: Array) -> bool:
+	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
+	if omens == null or not omens.has_method("is_cell_locked"):
+		return false
+	for c in cells:
+		if omens.is_cell_locked(c):
+			return true
+	return false
+
 func frozen_ground() -> bool:
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	return omens != null and omens.has_method("blocks_building") and omens.blocks_building()

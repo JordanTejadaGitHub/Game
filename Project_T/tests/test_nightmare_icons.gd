@@ -93,6 +93,13 @@ func _run() -> void:
 	await process_frame
 	_check(info.visible and not _icons(info._rows_box, NightmareIcons.Kind.FAMILY, &"resist").is_empty(),
 		"the nightmare info shows the resist icons")
+	# Slow / sleep limits (Enemy's get_status_notes) are listed under the statuses.
+	enemy.statuses.sleep_cooldown = 3.0
+	await process_frame
+	await process_frame  # The panel rewrites its body in its own _process, after this frame's signal
+	var body: String = info._body.get_parsed_text()
+	_check(body.contains("Awake: can't fall asleep again"), "the info lists the status limits under the statuses: Awake (%s)" % body)
+	enemy.statuses.sleep_cooldown = 0.0
 
 	# --- Map pips in context -------------------------------------------------------------------
 	var pips: ResistPips = null
@@ -126,6 +133,17 @@ func _run() -> void:
 	await process_frame
 	_check(strip != null and strip.visible and strip.items().size() == ComingStrip.kinds_in_block(director, 1).size(),
 		"the strip shows block 1's kinds at the first rest")
+	if strip != null and strip.visible:
+		await process_frame
+		var caption_rect: Rect2 = strip._caption.get_global_rect()
+		var clear := strip.items().all(func(item: Control) -> bool:
+			var face := item.get_child(0) as Control
+			var top := face.get_global_rect().position.y
+			for badge in face.get_children():  # "New" sits above the disc
+				if badge is Label:
+					top = minf(top, (badge as Label).get_global_rect().position.y)
+			return top - caption_rect.end.y >= 6.0)
+		_check(clear, "the caption stands clear of the discs and their badges (user: the disc overlapped it)")
 	# "Too tall" (screens_ui.md): one row of equal discs, the count a badge on the disc, the name on hover.
 	var first_kinds := ComingStrip.kinds_in_block(director, 1)
 	if strip != null and not first_kinds.is_empty():

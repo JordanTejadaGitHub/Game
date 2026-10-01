@@ -57,6 +57,18 @@ const CREATURES := {
 	"dream_thief": {fps = 12.0},
 	"weeper": {fps = 5.0},
 	"hollow_oak": {fps = 5.0, size = 176, extra = ["grief"], extra_fps = 8.0},
+	# Pool bosses (enemy_design.md "Boss pools") and their followers.
+	"night_mare": {fps = 8.0, size = 112, extra = ["gallop"], extra_fps = 12.0},
+	"scarecrow": {fps = 6.0, size = 112, extra = ["burst"], extra_fps = 10.0, once = ["burst"]},
+	"crow": {fps = 12.0},
+	"huntsman": {fps = 7.0, size = 144, extra = ["horn"], extra_fps = 8.0, once = ["horn"]},
+	"lamplighter": {fps = 5.0, size = 112, extra = ["light"], extra_fps = 8.0, once = ["light"]},
+	"barrow_king": {fps = 4.0, size = 144, extra = ["shrug"], extra_fps = 8.0, once = ["shrug"]},
+	"mourning_mother": {fps = 4.0, size = 144, extra = ["sorrow"], extra_fps = 6.0},
+	"hollow_oak_withering": {fps = 5.0, size = 176, draw = "hollow_oak", variant = "withering", extra = ["wither"], extra_fps = 8.0, once = ["wither"]},
+	"hollow_oak_remembering": {fps = 5.0, size = 176, draw = "hollow_oak", variant = "remembering", extra = ["echo"], extra_fps = 6.0, once = ["echo"]},
+	# The Lamplighter's cold lantern (scripts/enemy/cold_lantern.gd): no walks, just its own rows.
+	"cold_lantern": {fps = 8.0, anims = ["ignite", "burn", "snuff"], extra_fps = 10.0, once = ["ignite", "snuff"]},
 	# Not a nightmare: the obstacle the Hollow Oak plants. No walks, just its own rows.
 	"thorn_sapling": {fps = 4.0, obstacle = true, anims = ["idle", "grow", "wither"], extra_fps = 8.0, once = ["grow", "wither"]},
 }
@@ -76,6 +88,7 @@ const BAYER := [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
 
 var light := Vector3(-0.45, -0.55, 0.7).normalized()  # from the upper left (art_direction.md)
 var sheets: Array[Image] = []
+var bounds := {}  # creature -> {frame, top, bottom}, for assets/creatures/bounds.json
 var S := 64  # frame size of the nightmare being drawn
 
 func _init() -> void:
@@ -84,7 +97,25 @@ func _init() -> void:
 	for creature: String in CREATURES:
 		_make(creature, CREATURES[creature])
 	_save_preview()
+	_save_bounds()
 	quit()
+
+# assets/creatures/bounds.json: per sheet, the highest and lowest solid pixel over every frame of
+# the walks, in px from the frame's centre (the sprite's origin in game; negative = above). The
+# game can hang health bars and status icons just above `top` instead of at a fixed height.
+func _save_bounds() -> void:
+	var file := FileAccess.open(OUT + "bounds.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify(bounds, "\t", false) + "\n")
+
+func _measure(creature: String, sheet: Image, rows: int) -> void:
+	var top := S
+	var bottom := 0
+	for y in S * rows:
+		for x in sheet.get_width():
+			if sheet.get_pixel(x, y).a >= 0.5:
+				top = mini(top, y % S)
+				bottom = maxi(bottom, y % S)
+	bounds[creature] = {frame = S, top = top - S / 2, bottom = bottom - S / 2}
 
 func _make(creature: String, info: Dictionary) -> void:
 	var walks: bool = not info.has("anims")
@@ -107,10 +138,19 @@ func _make(creature: String, info: Dictionary) -> void:
 	# The detailed-64 pass; glow radius 3 so boss frames get the same px spread as 64px ones.
 	var kind := DetailPass.Kind.OBSTACLE if info.get("obstacle", false) else DetailPass.Kind.NIGHTMARE
 	sheet = DetailPass.apply_sheet(sheet, Vector2i(S, S), kind, 3)
+	# Soft warm glow becomes a dither of solid pixels, so blending it on can't mix in-between colours
+	# off the palette.
+	for y in warm_sheet.get_height():
+		for x in warm_sheet.get_width():
+			var c := warm_sheet.get_pixel(x, y)
+			if c.a > 0.0 and c.a < 1.0:
+				c.a = 1.0 if _keep(x, y, c.a) else 0.0
+				warm_sheet.set_pixel(x, y, c)
 	HeartwoodPalette.snap_image(warm_sheet)
 	sheet.blend_rect(warm_sheet, Rect2i(Vector2i.ZERO, sheet.get_size()), Vector2i.ZERO)
 	sheet.save_png(OUT + creature + ".png")
 	sheets.append(sheet)
+	_measure(creature, sheet, WALKS.size() if walks else anims.size())
 	_save_sprite_frames(creature, anims, info.fps, info.get("extra_fps", info.fps), info.get("once", []))
 
 # Writes animation/enemy/<creature>.tres: one AtlasTexture per frame, one animation per row.
@@ -1100,14 +1140,14 @@ func _draw_old_stag(canvas: Image, st: Dictionary) -> void:
 				var x := 68 + i * 3
 				_line(canvas, [Vector2(x, 47 + bob - i * 2 + nod), Vector2(x - 1, 53 + bob - i * 2 + nod)], bark[0])
 			var hd := Vector2(84, 37 + bob + nod)
-			_bone_antler(canvas, hd + Vector2(-5, -5), -1.0, 0.85, bone, o, f, false)
+			_bone_antler(canvas, hd + Vector2(-5, -5), -1.0, 0.72, bone, o, f, false)
 			_blob(canvas, hd, Vector2(6.5, 5.5), bone, o)
 			_blob(canvas, hd + Vector2(7, 3), Vector2(4.5, 2.8), bone, o)
 			_flat_ellipse(canvas, hd + Vector2(0.5, -1), Vector2(2.2, 2.4), HOLLOW)
 			_glow(canvas, Vector2i(hd) + Vector2i(1, -1), EYE, EYE_HALO)
 			_px(canvas, int(hd.x) + 10, int(hd.y) + 2, HOLLOW)
 			_line(canvas, [hd + Vector2(3, 2), hd + Vector2(5, 5)], bone[0])
-			_bone_antler(canvas, hd + Vector2(-2, -5), -1.0, 1.0, bone, o, f, true)
+			_bone_antler(canvas, hd + Vector2(-2, -5), -1.0, 0.85, bone, o, f, true)
 		DOWN, UP:
 			var down: bool = st.dir == DOWN
 			_shadow(canvas, Vector2(56, 77), Vector2(20, 4))
@@ -1134,7 +1174,7 @@ func _draw_old_stag(canvas: Image, st: Dictionary) -> void:
 			var hd := Vector2(56, 37 + bob + nod)
 			if not down:
 				for side: int in [-1, 1]:
-					_bone_antler(canvas, hd + Vector2(side * 3, -6), side, 1.0, bone, o, f, true)
+					_bone_antler(canvas, hd + Vector2(side * 3, -6), side, 0.85, bone, o, f, true)
 			_blob(canvas, hd, Vector2(6.5, 8), bark if not down else bone, o)
 			if down:
 				_blob(canvas, hd + Vector2(0, 7), Vector2(4, 3.5), bone, o)
@@ -1144,7 +1184,7 @@ func _draw_old_stag(canvas: Image, st: Dictionary) -> void:
 				for x in range(54, 58):
 					_px(canvas, x, int(hd.y) + 8, HOLLOW)
 				for side: int in [-1, 1]:
-					_bone_antler(canvas, hd + Vector2(side * 3, -6), side, 1.0, bone, o, f, true)
+					_bone_antler(canvas, hd + Vector2(side * 3, -6), side, 0.85, bone, o, f, true)
 
 # Leg from `top`: upper leg, knee, shin and a dark hoof. The swing follows `phase`; the foot lifts
 # while it moves forward. `straight` is for front/back views (the leg lifts instead of swinging).
@@ -1186,7 +1226,7 @@ func _bone_antler(canvas: Image, root: Vector2, sx: float, scale: float, ramp: A
 
 # A flickering tongue of cold ghost-fire rising from `p`.
 func _ghost_fire(canvas: Image, p: Vector2, f: int) -> void:
-	var height: float = [5.0, 7.0, 4.5, 6.5, 5.5, 7.5][f % FRAMES]
+	var height: float = [4.0, 5.5, 3.5, 5.0, 4.5, 6.0][f % FRAMES]
 	for layer_i in 2:
 		var col := _c("Dew", 0.85) if layer_i == 0 else _c("Moonlight")
 		var r0 := 2.2 if layer_i == 0 else 1.0
@@ -2051,29 +2091,46 @@ func _draw_weeper(canvas: Image, st: Dictionary) -> void:
 # a 176px frame.
 
 func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
-	var bark := _ramp(["Void", "Night", "Dusk", "Slate"])
+	# st.variant: "" (Thorned, the original), "withering" (bare, grey, cracked, dragging dead leaves)
+	# or "remembering" (hung with pale faces, one for every great nightmare).
+	var withering: bool = st.variant == "withering"
+	var remembering: bool = st.variant == "remembering"
+	var bark := _ramp(["Night", "Dusk", "Slate", "Stone"] if withering else ["Void", "Night", "Dusk", "Slate"])
 	var thorn := _c("Void")
 	var o := NIGHT_O
 	var f: int = st.f
 	var ph: float = st.ph
 	var grief: bool = st.anim == "grief"
-	var dir: int = DOWN if grief else st.dir
+	var pose: bool = st.anim in ["grief", "wither", "echo"]
+	var dir: int = DOWN if pose else st.dir
 	var shake: int = [1, -1, 1, -1, 1, -1][f] if grief else 0
-	var b: int = 0 if grief else [0, 0, 1, 1, 0, 0][f]
+	var b: int = 0 if pose else [0, 0, 1, 1, 0, 0][f]
 	var cx := 88 + shake
 	_shadow(canvas, Vector2(88, 121), Vector2(48, 7))
-	# Roots it walks on: they lift and reach in turn.
+	# Roots it walks on: they lift and reach in turn. "wither": two lift high and stab down.
 	var roots := _layer()
 	for i in 6:
 		var side := -1 if i < 3 else 1
 		var j := i % 3
-		var lift := 0.0 if grief else maxf(sin(ph + i * 2.1), 0.0) * 4.0
+		var lift := 0.0 if pose else maxf(sin(ph + i * 2.1), 0.0) * 4.0
+		if st.anim == "wither" and j == 1:
+			lift = [2.0, 8.0, 14.0, 14.0, 0.0, 0.0][f]
 		var start := Vector2(cx + side * (6 + j * 5), 104 + b)
-		var foot := Vector2(88 + side * (20 + j * 14) + (0.0 if grief else sin(ph + i * 2.1) * 3.0), 116 + j * 3 - lift)
-		var mid := start.lerp(foot, 0.5) + Vector2(side * 2, -7)
+		var foot := Vector2(88 + side * (20 + j * 14) + (0.0 if pose else sin(ph + i * 2.1) * 3.0), 116 + j * 3 - lift)
+		var mid := start.lerp(foot, 0.5) + Vector2(side * 2, -7 - (lift * 0.3 if st.anim == "wither" else 0.0))
 		_stroke(roots, [start, mid], 4.0 - j * 0.5, bark[1])
 		_stroke(roots, [mid, foot], 2.5 - j * 0.4, bark[1])
+		if st.anim == "wither" and j == 1 and f >= 4:  # dust where it struck
+			for k in 5:
+				_blend_ellipse(canvas, foot + Vector2((k - 2) * 3.0 * (f - 3), -1 - k % 2 * (f - 3)), Vector2(1.8, 1.2), _c("Stone", 0.7))
 	_stamp(canvas, roots, o)
+	if withering:  # dead leaves dragged along round its roots
+		for k in 14:
+			var a := k * 2.4
+			var p := Vector2(88 + cos(a) * (30 + k % 4 * 6), 116 + sin(a) * 6 + k % 3) + Vector2(-float(f + k) * 0.8 if not pose else 0.0, 0)
+			var leaf := _layer()
+			_lens(leaf, p, p + Vector2(4, -1 + k % 3), 1.5, bark[3], bark[2])
+			_stamp(canvas, leaf, o)
 	# Branches: thick at the trunk, thinning to thorned twigs; thrown up in grief.
 	var top := Vector2(cx, 52 + b)
 	var branches: Array = [[Vector2(0, 0), Vector2(-8, -14), Vector2(-20, -26), Vector2(-34, -30)],
@@ -2085,7 +2142,11 @@ func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
 		[Vector2(6, 4), Vector2(22, 6), Vector2(36, 14)]]
 	var crown := _layer()
 	var twigs: Array[Vector2] = []
-	for br: Array in branches:
+	var tips: Array[Vector2] = []
+	for bi in branches.size():
+		var br: Array = branches[bi]
+		if withering and bi % 2 == 1:  # snapped off short
+			br = br.slice(0, br.size() - 1)
 		var pts: Array = []
 		for i in br.size():
 			var t := float(i) / (br.size() - 1)
@@ -2100,8 +2161,11 @@ func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
 		for i in pts.size() - 1:
 			for s in range(1, 4):
 				twigs.append((pts[i] as Vector2).lerp(pts[i + 1], s / 4.0))
+		tips.append(pts[pts.size() - 1])
 	_stamp(canvas, crown, o)
 	for i in twigs.size():  # thorns sticking out of the branches
+		if withering and i % 3 != 0:
+			continue
 		var p: Vector2 = twigs[i]
 		var d := Vector2(1, -1) if i % 2 == 0 else Vector2(-1, -1)
 		_px(canvas, roundi(p.x + d.x * 2), roundi(p.y + d.y * 2), thorn)
@@ -2113,6 +2177,9 @@ func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
 	var glow: Array[Vector2i] = []
 	if dir == UP:
 		glow = _crack(trunk, Vector2(cx, 80 + b), Vector2(14, 28), [[Vector2(0.1, -0.9), Vector2(-0.2, -0.4), Vector2(0.15, 0.1), Vector2(-0.1, 0.7)]], HOLLOW)
+	if withering:  # cracked all over, and nothing alive in the cracks
+		_crack(trunk, Vector2(cx, 80 + b), Vector2(20, 30), [[Vector2(-0.7, -0.8), Vector2(-0.5, -0.3), Vector2(-0.8, 0.2)],
+			[Vector2(0.6, -0.6), Vector2(0.4, 0.0), Vector2(0.7, 0.5), Vector2(0.5, 0.9)], [Vector2(-0.3, 0.5), Vector2(-0.6, 0.9)]], HOLLOW)
 	_stamp(canvas, trunk, o)
 	_crawl(canvas, glow, f, 3)
 	match dir:
@@ -2128,6 +2195,25 @@ func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
 			_flat_ellipse(canvas, e, Vector2(3, 4.5), HOLLOW)
 			_glow(canvas, Vector2i(e.round()), EYE, EYE_HALO)
 			_oak_mouth(canvas, Vector2(cx + 10, 90 + b), Vector2(5, 10), bark, f)
+	if remembering:  # pale faces set in the bark and hung from the branches
+		var faces: Array = {DOWN: [Vector2(-18, 84), Vector2(18, 84), Vector2(-12, 56), Vector2(13, 54)],
+			SIDE: [Vector2(-6, 60), Vector2(-4, 94), Vector2(-14, 80)],
+			UP: [Vector2(-8, 64), Vector2(8, 64), Vector2(0, 88), Vector2(-12, 98), Vector2(12, 98)]}[dir]
+		var all: Array[Vector2] = []
+		for p: Vector2 in faces:
+			all.append(Vector2(cx, b) + p)
+		for k in 3:  # the hanging ones
+			var tip: Vector2 = tips[[0, 2, 4][k]]
+			var hang := tip + Vector2(sin(ph + k) * 1.5, 7)
+			_line(canvas, [tip, hang + Vector2(0, -3)], bark[0])
+			all.append(hang)
+		for i in all.size():
+			var lit: bool = st.anim == "echo" and i == f % all.size()
+			_bark_face(canvas, all[i], lit)
+		if st.anim == "echo":  # an echo pulling free of its face and rising
+			var src: Vector2 = all[f % all.size()]
+			for k in 3:
+				_blend_ellipse(canvas, src + Vector2(0, -6 - k * 5 - f * 2), Vector2(4 - k, 5 - k), _c("Moonlight", 0.45 - k * 0.12))
 	if grief:  # the wail rings out
 		var r := 24.0 + f * 9.0
 		for y in S:
@@ -2135,6 +2221,18 @@ func _draw_hollow_oak(canvas: Image, st: Dictionary) -> void:
 				var q := ((Vector2(x + 0.5, y + 0.5) - Vector2(88, 72)) / Vector2(r, r * 0.7)).length()
 				if absf(q - 1.0) * r < 0.8 and (x + y) % 2 == 0:
 					_blend_px(canvas, x, y, _c("Moonlight", 0.4 * (1.0 - f / 6.0)))
+
+# One of the Remembering Oak's faces: a small pale mask with hollow eyes and mouth; `lit` when an
+# echo is rising out of it.
+func _bark_face(canvas: Image, p: Vector2, lit: bool) -> void:
+	var mask := _layer()
+	_flat_ellipse(mask, p, Vector2(3.2, 4.2), _c("Moonlight" if lit else "Mist"))
+	_stamp(canvas, mask, NIGHT_O)
+	_px(canvas, roundi(p.x) - 1, roundi(p.y) - 1, HOLLOW)
+	_px(canvas, roundi(p.x) + 1, roundi(p.y) - 1, HOLLOW)
+	_px(canvas, roundi(p.x), roundi(p.y) + 2, HOLLOW)
+	if lit:
+		_glow(canvas, Vector2i(p.round()) + Vector2i(0, -5), EYE, EYE_HALO)
 
 # The hollow mouth: dark, splintered at the rim, the heart's cold fire burning in its depths.
 func _oak_mouth(canvas: Image, c: Vector2, r: Vector2, bark: Array[Color], f: int) -> void:
@@ -2206,3 +2304,626 @@ func _draw_thorn_sapling(canvas: Image, st: Dictionary) -> void:
 			var p := Vector2(26 + k * 3, 20 + crumble * 20 + (k % 2) * 3)
 			_px(ghost, roundi(p.x), roundi(p.y), _c("Slate"))
 	_merge(canvas, ghost)
+
+# --- The Night Mare -----------------------------------------------------------------------------
+# Act 1 pool boss, laps the maze until dispelled: a black horse made of smoke, its mane and tail
+# streaming off as smoke, legs fading out before the hooves (they never touch the ground), eyes
+# like cold coals. "gallop" is its bolt: stretched low, mane flat, legs reaching. Drawn on a 112px
+# frame; _horse() is also the Huntsman's mount.
+
+func _draw_night_mare(canvas: Image, st: Dictionary) -> void:
+	_shadow(canvas, Vector2(56, 78), Vector2(28 if st.dir == SIDE or st.anim == "gallop" else 16, 3.5))
+	_horse(canvas, st, st.anim == "gallop")
+
+# Draws the smoke horse on a 112px frame (ground at 77, hooves floating at ~71). Returns the point
+# on its back where a rider sits.
+func _horse(canvas: Image, st: Dictionary, gallop: bool) -> Vector2:
+	var body := _ramp(NIGHT)
+	var o := NIGHT_O
+	var f: int = st.f
+	var ph: float = st.ph
+	var smoke := _c("Shade", 0.75)
+	var ghost := _layer()
+	var eyes: Array[Vector2i] = []
+	var saddle := Vector2(50, 38)
+	var dir: int = SIDE if gallop else st.dir
+	match dir:
+		SIDE:
+			var ext := sin(ph)
+			var b: float = (2.0 + maxf(-ext, 0.0) * 2.0) if gallop else float([0, -1, -2, -1, 0, -1][f])
+			var tail: Array = [Vector2(26, 44 + b), Vector2(14, 44 + b), Vector2(2, 46 + b)] if gallop else [Vector2(26, 44 + b), Vector2(16, 48 + b), Vector2(6, 56 + b)]
+			_smoke_trail(canvas, tail, f, 4.5, smoke)
+			var far := _layer()
+			var near := _layer()
+			if gallop:
+				for leg: Vector2 in [Vector2(68, 1), Vector2(36, -1)]:  # x, forward sign
+					var top := Vector2(leg.x, 52 + b)
+					var foot := top + Vector2(leg.y * (ext * 10.0 + 3.0), 15.0 - absf(ext) * 5.0)
+					_stroke(near, [top, top.lerp(foot, 0.5) + Vector2(-leg.y * 2.0, 1.0), foot], 1.6, body[1])
+					_stroke(far, [top + Vector2(-3 * leg.y, 0), foot + Vector2(-4 * leg.y, -2)], 1.4, body[0])
+			else:
+				_mare_leg(far, Vector2(70, 52 + b), ph + PI, true, body[0])
+				_mare_leg(far, Vector2(38, 52 + b), ph, false, body[0])
+				_mare_leg(near, Vector2(66, 53 + b), ph, true, body[1])
+				_mare_leg(near, Vector2(34, 53 + b), ph + PI, false, body[1])
+			_stamp(ghost, far, o)
+			var fig := _layer()
+			var stretch := 1.1 if gallop else 1.0
+			_ellipse(fig, Vector2(36, 47 + b), Vector2(11, 10), body)
+			_ellipse(fig, Vector2(52, 48 + b), Vector2(18 * stretch, 9.5 - (1.0 if gallop else 0.0)), body)
+			_ellipse(fig, Vector2(68, 47 + b), Vector2(9, 10.5), body)
+			var hd := Vector2(90, 30 + b) if gallop else Vector2(84, 25 + b)
+			_stroke(fig, [Vector2(70, 42 + b), hd.lerp(Vector2(70, 42 + b), 0.5) + Vector2(0, -3), hd], 5.5, body[2])
+			_ellipse(fig, hd, Vector2(6, 5.5), body)
+			_lens(fig, hd + Vector2(0, 2), hd + Vector2(15, 9), 4.5, body[2], body[1])
+			if gallop:
+				_lens(fig, hd + Vector2(-2, -4), hd + Vector2(-10, -8), 1.6, body[2], body[1])
+			else:
+				_lens(fig, hd + Vector2(-2, -5), hd + Vector2(-5, -13), 1.6, body[2], body[1])
+				_lens(fig, hd + Vector2(2, -5), hd + Vector2(1, -13), 1.5, body[2], body[1])
+			_stamp(ghost, fig, o)
+			_stamp(ghost, near, o)
+			_px(ghost, int(hd.x) + 13, int(hd.y) + 7, HOLLOW)
+			eyes = [Vector2i(hd) + Vector2i(3, -2)]
+			var mane: Array = [hd + Vector2(-3, -5), hd + Vector2(-12, -4), Vector2(62, 36 + b)] if gallop else [hd + Vector2(-3, -5), hd + Vector2(-9, 3), Vector2(66, 38 + b)]
+			_merge(canvas, _fade_legs(ghost, 66 + roundi(b), 73 + roundi(b)))
+			_smoke_trail(canvas, mane, f, 3.0, smoke)
+			saddle = Vector2(50, 38 + b)
+			if gallop:
+				for i in 3:  # the coals streak behind
+					_px(canvas, eyes[0].x - 1 - i, eyes[0].y, [EYE, _c("Dewlight"), _c("Dew")][i])
+		DOWN, UP:
+			var down: bool = dir == DOWN
+			var b: int = [0, -1, -2, -1, 0, -1][f]
+			var legs := _layer()
+			for side: int in [-1, 1]:
+				var s := sin(ph + (PI if side > 0 else 0.0))
+				var lift := 3.0 if s > 0.3 else 0.0
+				var fx := 56 + side * (6 if down else 7)
+				_stroke(legs, [Vector2(56 + side * 11, 54 + b), Vector2(56 + side * 11, 68 - lift * 0.5)], 1.4, body[0])  # far pair
+				_stroke(legs, [Vector2(fx, 58 + b), Vector2(fx, 66 - lift), Vector2(fx, 72 - lift)], 1.7, body[1])
+			if not down:
+				_smoke_trail(canvas, [Vector2(56, 60 + b), Vector2(58, 68 + b), Vector2(55, 76)], f, 4.0, smoke)
+			var fig := _layer()
+			if down:
+				_smoke_trail(canvas, [Vector2(56, 32 + b), Vector2(54, 24 + b), Vector2(57, 14 + b)], f, 4.0, smoke)
+				_ellipse(fig, Vector2(56, 44 + b), Vector2(11, 13), body)
+				_ellipse(fig, Vector2(56, 54 + b), Vector2(16, 10.5), body)
+			else:
+				_ellipse(fig, Vector2(56, 28 + b), Vector2(5.5, 6), body)
+				for side: int in [-1, 1]:
+					_lens(fig, Vector2(56 + side * 3, 24 + b), Vector2(56 + side * 5, 16 + b), 1.6, body[2], body[1])
+				_ellipse(fig, Vector2(56, 42 + b), Vector2(11, 13), body)
+				_ellipse(fig, Vector2(56, 55 + b), Vector2(13, 10), body)
+			_stamp(ghost, legs, o)
+			_stamp(ghost, fig, o)
+			if down:
+				var head := _layer()
+				for side: int in [-1, 1]:
+					_lens(head, Vector2(56 + side * 3, 34 + b), Vector2(56 + side * 7, 25 + b), 1.7, body[2], body[1])
+				_ellipse(head, Vector2(56, 39 + b), Vector2(6.5, 6), body)
+				_lens(head, Vector2(56, 36 + b), Vector2(56, 64 + b), 5.5, body[2], body[1])
+				_stamp(ghost, head, o)
+				_px(ghost, 54, 61 + b, HOLLOW)
+				_px(ghost, 58, 61 + b, HOLLOW)
+				eyes = [Vector2i(50, 40 + b), Vector2i(62, 40 + b)]
+			_merge(canvas, _fade_legs(ghost, 64 + b, 72 + b))
+			if not down:
+				_smoke_trail(canvas, [Vector2(56, 22 + b), Vector2(58, 14 + b), Vector2(55, 6 + b)], f, 3.0, smoke)
+			saddle = Vector2(56, 38 + b)
+	for e in eyes:  # cold coals
+		_glow(canvas, e, EYE, EYE_HALO)
+		_px(canvas, e.x + 1, e.y, _c("Dewlight"))
+	return saddle
+
+# Horse leg from shoulder or hip: two segments, the knee bending the right way, swinging with
+# `phase`; the foot lifts as it comes forward.
+func _mare_leg(layer: Image, top: Vector2, phase: float, fore: bool, color: Color) -> void:
+	var s := sin(phase)
+	var lift := 3.0 if cos(phase) > 0.3 else 0.0
+	var knee := top + Vector2(s * 2.0 + (1.0 if fore else -2.0), 8.0 - lift * 0.5)
+	var foot := top + Vector2(s * 5.0, 18.0 - lift)
+	_stroke(layer, [top, knee], 1.8, color)
+	_stroke(layer, [knee, foot], 1.4, color)
+
+# Legs (and anything else low) dissolve into smoke between two rows.
+func _fade_legs(img: Image, from_y: int, to_y: int) -> Image:
+	_dissolve(img, Vector2(0, from_y), Vector2(0, to_y))
+	return img
+
+# Smoke streaming along a polyline: soft puffs shrinking and thinning towards the end, rippling.
+func _smoke_trail(canvas: Image, pts: Array, f: int, r0: float, color: Color) -> void:
+	var n := 14
+	for i in n:
+		var t := float(i) / (n - 1)
+		var seg := minf(t * (pts.size() - 1), pts.size() - 1.001)
+		var k := int(seg)
+		var p: Vector2 = (pts[k] as Vector2).lerp(pts[k + 1], seg - k)
+		p += Vector2(sin(f * 1.1 + t * 7.0), cos(f * 0.9 + t * 5.0)) * t * 1.8
+		var col := color
+		col.a = color.a * (1.0 - t * 0.85)
+		_blend_ellipse(canvas, p, Vector2.ONE * (r0 * (1.0 - t * 0.6)), col)
+
+# --- The Scarecrow ------------------------------------------------------------------------------
+# Act 1 pool boss: a sack-headed scarecrow hopping on its crooked pole, a stitched grin under
+# hollow eyes, a floppy hat, a ragged coat on a crossbar with straw poking from the cuffs, and
+# crows peering out from under the coat. "burst": the coat flies open and a flock bursts out.
+
+func _draw_scarecrow(canvas: Image, st: Dictionary) -> void:
+	var coat := _ramp(["Void", "Night", "Dusk", "Slate"])
+	var sack := _ramp(["Slate", "Stone", "Mist"])  # pale burlap, so the stitched face reads
+	var straw := _c("Mist")
+	var wood := _c("Night")
+	var o := NIGHT_O
+	var f: int = st.f
+	var ph: float = st.ph
+	var burst: bool = st.anim == "burst"
+	var dir: int = DOWN if burst else st.dir
+	var y: int = 0 if burst else -[0, 2, 4, 4, 2, 0][f]
+	var flare: float = [16.0, 20.0, 24.0, 24.0, 20.0, 17.0][f] if burst else 16.0
+	var side_view := dir == SIDE
+	_shadow(canvas, Vector2(56, 78), Vector2(14, 3))
+	var pole := _layer()
+	_stroke(pole, [Vector2(57, 77 + y), Vector2(55, 70 + y), Vector2(56, 60 + y)], 1.5, wood)
+	_stamp(canvas, pole, o)
+	if not burst:  # crows peering out from under the coat
+		for p: Vector2i in ([Vector2i(52, 63)] if side_view else [Vector2i(47, 62), Vector2i(65, 63)]):
+			_crow_head(canvas, p + Vector2i(0, y), f)
+	var arms: Array = [[Vector2(56, 38), Vector2(76, 40)], [Vector2(56, 38), Vector2(45, 39)]] if side_view else [[Vector2(56, 38), Vector2(26, 40)], [Vector2(56, 38), Vector2(86, 38)]]
+	if burst:
+		arms = [[Vector2(56, 38), Vector2(26, 34 - f)], [Vector2(56, 38), Vector2(86, 32 - f)]]
+	for arm: Array in arms:  # the crossbar poking out of the sleeves
+		var a: Vector2 = arm[0] + Vector2(0, y)
+		var e: Vector2 = arm[1] + Vector2(0, y)
+		_line(canvas, [e, e + (e - a).normalized() * 4.0], wood)
+	var fig := _layer()
+	for arm: Array in arms:
+		_stroke(fig, [arm[0] + Vector2(0, y), arm[1] + Vector2(0, y)], 3.4, coat[2])
+	_robe(fig, 56.0, 34.0 + y, 7.0 if side_view else 10.0, 64.0 + y, flare * (0.75 if side_view else 1.0), -2.0 if side_view else 0.0, ph, coat)
+	for p: Vector2 in ([Vector2(54, 50)] if side_view else [Vector2(50, 48), Vector2(61, 55)]):  # patches
+		for yy in 4:
+			for xx in 4:
+				if fig.get_pixel(int(p.x) + xx, int(p.y) + y + yy).a > 0.0:
+					fig.set_pixel(int(p.x) + xx, int(p.y) + y + yy, coat[3] if (xx + yy) % 3 else coat[1])
+	_stamp(canvas, fig, o)
+	for arm: Array in arms:  # straw poking out of the cuffs
+		var e: Vector2 = arm[1] + Vector2(0, y)
+		var out := signf(e.x - 56.0)
+		for k in 4:
+			_line(canvas, [e + Vector2(0, k - 1), e + Vector2(out * (3 + k % 2), k + 2)], straw)
+	# The sack head, tied at the neck, and the hat.
+	var hc := Vector2(57 if side_view else 56, 24 + y)
+	var head := _layer()
+	_ellipse(head, hc, Vector2(9 if side_view else 10, 11), sack)
+	for yy in S:
+		for xx in S:
+			if head.get_pixel(xx, yy).a > 0.0 and (xx + yy) % 4 == 0:
+				head.set_pixel(xx, yy, _darker(sack, head.get_pixel(xx, yy)))
+	_stamp(canvas, head, o)
+	_line(canvas, [hc + Vector2(-5, 10), hc + Vector2(5, 10)], wood)
+	var hat := _layer()
+	_flat_ellipse(hat, hc + Vector2(0, -10), Vector2(10 if side_view else 14, 3), coat[1])
+	_lens(hat, hc + Vector2(-5, -10), hc + Vector2(6 if side_view else 4, -15), 6.0, coat[2], coat[1])  # short enough to clear the frame at the top of a hop
+	_stamp(canvas, hat, o)
+	match dir:
+		DOWN:
+			for side: int in [-1, 1]:
+				_flat_ellipse(canvas, hc + Vector2(side * 5, -3), Vector2(2.2, 2.2), HOLLOW)
+				_glow(canvas, Vector2i(hc) + Vector2i(side * 5 - (1 if side < 0 else 0), -3))
+			_line(canvas, [hc + Vector2(-8, 5), hc + Vector2(0, 8), hc + Vector2(8, 5)], HOLLOW)
+			for x in range(int(hc.x) - 7, int(hc.x) + 8, 2):  # the stitches across the grin
+				var gy := roundi(hc.y + 5 + 3.0 * (1.0 - absf(x - hc.x) / 8.0))
+				_px(canvas, x, gy - 1, HOLLOW)
+				_px(canvas, x, gy + 1, HOLLOW)
+		SIDE:
+			_flat_ellipse(canvas, hc + Vector2(5, -3), Vector2(1.8, 2.2), HOLLOW)
+			_glow(canvas, Vector2i(hc) + Vector2i(5, -3))
+			_line(canvas, [hc + Vector2(2, 6), hc + Vector2(6, 7), hc + Vector2(9, 4)], HOLLOW)
+			for x: int in [3, 5, 7]:
+				_px(canvas, int(hc.x) + x, int(hc.y) + 5, HOLLOW)
+				_px(canvas, int(hc.x) + x, int(hc.y) + 8, HOLLOW)
+	if burst:  # the flock bursting out of the coat
+		for i in 6:
+			var a := -PI * 0.5 + (i - 2.5) * 0.55
+			var r := 8.0 + (f + 1) * 7.0
+			var p := Vector2(56, 52) + Vector2(cos(a) * 1.4, sin(a)) * r
+			_crow_small(canvas, Vector2i(p.round()), (f + i) % 2 == 0)
+		for k in 8:  # loose feathers
+			var t := (f + 1) / 6.0
+			var p := Vector2(56 + (k - 3.5) * 5.0 * t * 1.6, 54 - sin(k * 1.3) * 16.0 * t)
+			_px(canvas, roundi(p.x), roundi(p.y), NIGHT_O)
+
+# A crow's head peeking out: dark round head, beak tip, one cold eye that blinks now and then.
+func _crow_head(canvas: Image, p: Vector2i, f: int) -> void:
+	var layer := _layer()
+	_flat_ellipse(layer, Vector2(p), Vector2(2.6, 2.2), _c("Dread"))
+	_stamp(canvas, layer, NIGHT_O)
+	_px(canvas, p.x + 3, p.y + 1, _c("Dusk"))
+	if f % 5 != 4:
+		_px(canvas, p.x + 1, p.y - 1, EYE)
+
+# A tiny flying crow for the burst: body and two wing strokes, up or down.
+func _crow_small(canvas: Image, p: Vector2i, up: bool) -> void:
+	for d: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1)]:
+		_px(canvas, p.x + d.x, p.y + d.y, _c("Dread"))
+	var wy := -2 if up else 1
+	_line(canvas, [Vector2(p) + Vector2(-1, 0), Vector2(p) + Vector2(-4, wy)], NIGHT_O)
+	_line(canvas, [Vector2(p) + Vector2(1, 0), Vector2(p) + Vector2(4, wy)], NIGHT_O)
+	_px(canvas, p.x + 1, p.y, EYE)
+
+# --- Crow ---------------------------------------------------------------------------------------
+# The Scarecrow's crows (fast, 1 leaf): a small ragged black crow flying the route, cold eye,
+# tattered wings beating.
+
+func _draw_crow(canvas: Image, st: Dictionary) -> void:
+	var body := _ramp(["Void", "Dread", "Night", "Dusk"])
+	var o := NIGHT_O
+	var f: int = st.f
+	var d: float = [0.0, 0.3, 0.7, 1.0, 0.6, 0.25][f]  # wing: 0 = up, 1 = down
+	var h := roundi(sin(st.ph) * 1.5)
+	_shadow(canvas, Vector2(32, 46), Vector2(5, 1.5))
+	var fig := _layer()
+	match st.dir:
+		SIDE:
+			var sh := Vector2(31, 25 + h)
+			_lens(fig, sh + Vector2(1, 0), sh + Vector2(-9, -9 + 18 * d), 3.2, body[2], body[1])  # far wing
+			_ellipse(fig, Vector2(31, 27 + h), Vector2(6, 3.5), body)
+			_ellipse(fig, Vector2(37, 25 + h), Vector2(3.2, 3), body)
+			_poly_fill(fig, PackedVector2Array([Vector2(26, 26 + h), Vector2(18, 23 + h), Vector2(17, 27 + h), Vector2(19, 30 + h)]), body[1])
+			_lens(fig, sh, sh + Vector2(-8, -10 + 20 * d), 3.4, body[3], body[2])
+		DOWN, UP:
+			var down: bool = st.dir == DOWN
+			for side: int in [-1, 1]:
+				_lens(fig, Vector2(32 + side * 2, 26 + h), Vector2(32 + side * 15, 18 + 16 * d + h), 3.2, body[3], body[2])
+			_ellipse(fig, Vector2(32, 27 + h), Vector2(4, 6), body)
+			var tail_y := 20 if down else 34
+			_poly_fill(fig, PackedVector2Array([Vector2(32, 27 + h), Vector2(28, tail_y + h), Vector2(36, tail_y + h)]), body[1])
+			_ellipse(fig, Vector2(32, (33 if down else 21) + h), Vector2(3, 3), body)
+	for y in S:  # ragged: nick the feather edges
+		for x in S:
+			if fig.get_pixel(x, y).a > 0.0 and (x * 3 + y * 5) % 7 == 0 and (x == 0 or x == S - 1 or fig.get_pixel(x - 1, y).a == 0.0 or fig.get_pixel(x + 1, y).a == 0.0):
+				fig.set_pixel(x, y, Color(0, 0, 0, 0))
+	_stamp(canvas, fig, o)
+	match st.dir:
+		SIDE:
+			_line(canvas, [Vector2(40, 25 + h), Vector2(44, 26 + h)], _c("Dusk"))
+			_px(canvas, 38, 24 + h, EYE)
+		DOWN:
+			_line(canvas, [Vector2(32, 36 + h), Vector2(32, 38 + h)], _c("Dusk"))
+			_px(canvas, 30, 32 + h, EYE)
+			_px(canvas, 33, 32 + h, EYE)
+
+# --- The Huntsman -------------------------------------------------------------------------------
+# Act 2 pool boss, leads a pack of Night Hounds: a tall antlered rider without a face (an empty
+# hood) in a long cloak, riding the smoke horse, a bone horn at his hip. "horn": he lifts the horn
+# to where a face should be and blows; rings of sound roll out (a new hound joins). 144px frame.
+
+func _draw_huntsman(canvas: Image, st: Dictionary) -> void:
+	var horn_anim: bool = st.anim == "horn"
+	var dir: int = DOWN if horn_anim else st.dir
+	var f: int = st.f
+	var off := Vector2(16, 20)
+	_shadow(canvas, Vector2(72, 98), Vector2(30 if dir == SIDE else 18, 4))
+	# The mount: the smoke horse on its own 112px layer, placed under the rider.
+	var frame := S
+	S = 112
+	var mount := _layer()
+	var saddle := _horse(mount, {anim = "walk", dir = dir, f = 0 if horn_anim else f, ph = 0.0 if horn_anim else st.ph, k = 1.0}, false)
+	S = frame
+	var seat := saddle + off
+	if dir == DOWN:  # he's behind the horse's head from the front
+		_huntsman_rider(canvas, seat, dir, st, horn_anim)
+		canvas.blend_rect(mount, Rect2i(0, 0, 112, 112), Vector2i(off))
+	else:
+		canvas.blend_rect(mount, Rect2i(0, 0, 112, 112), Vector2i(off))
+		_huntsman_rider(canvas, seat, dir, st, horn_anim)
+
+func _huntsman_rider(canvas: Image, seat: Vector2, dir: int, st: Dictionary, horn_anim: bool) -> void:
+	var cloak := _ramp(["Void", "Dread", "Night", "Dusk"])
+	var bone := _ramp(["Slate", "Stone", "Mist"])
+	var o := NIGHT_O
+	var f: int = st.f
+	var fig := _layer()
+	var side_view := dir == SIDE
+	var head := seat + Vector2(1 if side_view else 0, -26)
+	_robe(fig, seat.x, seat.y - 16, 5.0, seat.y + 12, 8.5 if not side_view else 10.0, -6.0 if side_view else 0.0, st.ph, cloak)  # narrow from the front so the mount shows
+	_ellipse(fig, seat + Vector2(0, -12), Vector2(6, 9), cloak)
+	_ellipse(fig, head, Vector2(5, 6), cloak)
+	var ghost := _layer()
+	_stamp(ghost, fig, o)
+	_dissolve(ghost, Vector2(0, seat.y + 6), Vector2(0, seat.y + 14))
+	_merge(canvas, ghost)
+	if dir != UP:  # the empty hood: no face at all
+		_flat_ellipse(canvas, head + Vector2(2 if side_view else 0, 1), Vector2(2.6 if side_view else 3.4, 4), HOLLOW)
+	for sx: int in ([-1, 1] if not side_view else [1]):
+		_bone_antler(canvas, head + Vector2(sx * 3 if not side_view else -2, -5), float(sx) if not side_view else -1.0, 0.75, bone, o, f, false)
+	# The bone horn: at his hip, or lifted to the empty face and blown.
+	var hip := seat + Vector2(7 if not side_view else 4, -2)
+	var mouth := head + Vector2(0, 1)
+	var t: float = [0.0, 0.4, 0.8, 1.0, 1.0, 1.0][f] if horn_anim else 0.0
+	var at := hip.lerp(mouth + Vector2(4, 2), t)
+	var horn := _layer()
+	_stroke(horn, [at, at + Vector2(3, 1), at + Vector2(6, -1)], 1.2, bone[1])
+	_stroke(horn, [at + Vector2(6, -1), at + Vector2(8, -3)], 1.8, bone[2])
+	_stamp(canvas, horn, o)
+	var arm := _layer()
+	_stroke(arm, [seat + Vector2(4, -18), at + Vector2(1, 0)], 1.1, cloak[2])
+	_stamp(canvas, arm, o)
+	if horn_anim and f >= 3:  # rings of sound rolling out
+		var c := at + Vector2(9, -4)
+		for k in 2:
+			var r := 6.0 + (f - 3) * 7.0 + k * 5.0
+			for a_i in 24:
+				var a := a_i * TAU / 24.0
+				if absf(wrapf(a, -PI, PI)) < 1.1 and (a_i + f) % 2 == 0:
+					_blend_px(canvas, roundi(c.x + cos(a) * r), roundi(c.y + sin(a) * r * 0.8), _c("Moonlight", 0.55 - k * 0.2))
+
+# --- The Lamplighter ----------------------------------------------------------------------------
+# Act 2 pool boss, lights cold lanterns that slow Wardens: a thin, stooped ghost in a long robe,
+# a narrow pale face under the hood, carrying a tall pole with a cold blue flame at its hook.
+# "light": it bends and lowers the pole, and a cold lantern kindles on the ground. 112px frame.
+
+func _draw_lamplighter(canvas: Image, st: Dictionary) -> void:
+	var robe := _ramp(["Void", "Dread", "Night", "Dusk"])
+	var face := _ramp(["Slate", "Stone", "Mist"])
+	var wood := _c("Night")
+	var o := NIGHT_O
+	var f: int = st.f
+	var ph: float = st.ph
+	var lighting: bool = st.anim == "light"
+	var dir: int = DOWN if lighting else st.dir
+	var h := 0 if lighting else roundi(sin(ph) * 1.5)
+	var bow: float = [0.0, 2.0, 4.0, 5.0, 5.0, 4.0][f] if lighting else 0.0
+	var side_view := dir == SIDE
+	_shadow(canvas, Vector2(56, 78), Vector2(12, 3))
+	var fig := _layer()
+	var hood := Vector2(62, 28 + h) if side_view else Vector2(56, 24 + h + bow)
+	_robe(fig, 54.0 if side_view else 56.0, 30.0 + h, 5.0, 76.0, 11.0, -4.0 if side_view else 0.0, ph * 0.6, robe)
+	_ellipse(fig, Vector2(52, 30 + h) if side_view else Vector2(56, 30 + h + bow * 0.5), Vector2(8, 7), robe)  # the stoop
+	_ellipse(fig, hood, Vector2(5.5, 6), robe)
+	var ghost := _layer()
+	_stamp(ghost, fig, o)
+	_dissolve(ghost, Vector2(0, 68), Vector2(0, 78))
+	_merge(canvas, ghost, 0.92)
+	match dir:
+		SIDE:
+			var mask := _layer()
+			_lens(mask, hood + Vector2(1, -3), hood + Vector2(4, 9), 2.4, face[2], face[1])
+			_stamp(canvas, mask, o)
+			_glow(canvas, Vector2i(hood) + Vector2i(3, 0), EYE, EYE_HALO)
+		DOWN:
+			var mask := _layer()
+			_lens(mask, hood + Vector2(0, -4), hood + Vector2(0, 10), 3.0, face[2], face[1])
+			_stamp(canvas, mask, o)
+			_glow(canvas, Vector2i(hood) + Vector2i(-2, 0), EYE, EYE_HALO)
+			_glow(canvas, Vector2i(hood) + Vector2i(1, 0), EYE, EYE_HALO)
+	# The pole and its cold flame.
+	var hand := Vector2(64, 44 + h) if side_view else Vector2(66, 46 + h + bow * 0.5)
+	var top := Vector2(82, 8 + h) if side_view else Vector2(72, 6 + h)
+	if lighting:
+		var t: float = [0.0, 0.3, 0.6, 0.85, 1.0, 1.0][f]
+		top = top.lerp(Vector2(88, 68), t)
+	if dir == UP:
+		hand = Vector2(66, 44 + h)
+	var pole_end := hand + (hand - top).normalized() * 10.0
+	_line(canvas, [pole_end, top], wood)
+	_line(canvas, [pole_end + Vector2.RIGHT, top + Vector2.RIGHT], wood)
+	_line(canvas, [top, top + Vector2(3, 0), top + Vector2(3, 3)], wood)  # the hook
+	_ghost_fire(canvas, top + Vector2(3, 4), f)
+	if dir != UP:
+		var fingers := _layer()
+		_flat_ellipse(fingers, hand, Vector2(2, 1.6), face[1])
+		_stamp(canvas, fingers, o)
+	if lighting and f >= 3:  # a cold lantern kindles where the pole touched
+		_lantern(canvas, Vector2(90, 70), f, 77.0)
+
+# --- The Barrow King ----------------------------------------------------------------------------
+# Act 3 pool boss, shrugs off every status: a very tall crowned corpse-king in chainmail and a
+# ragged cloak, a gaunt bone face with cold eyes and a long grey beard, dragging a rusted sword that
+# scrapes up grave-dust. He holds still, then shuffles. "shrug": his shoulders heave and a pulse
+# of grave-dust rolls out. 144px frame.
+
+func _draw_barrow_king(canvas: Image, st: Dictionary) -> void:
+	var cloak := _ramp(["Void", "Night", "Dusk", "Slate"])
+	var mail := _ramp(["Night", "Dusk", "Slate", "Stone"])
+	var bone := _ramp(["Slate", "Stone", "Mist"])
+	var crown := _ramp(["Night", "Dusk", "Stone"])
+	var blade := _ramp(["Night", "Dusk", "Slate"])
+	var o := NIGHT_O
+	var f: int = st.f
+	var ph: float = st.ph
+	var shrug: bool = st.anim == "shrug"
+	var dir: int = DOWN if shrug else st.dir
+	var h: int = ([0, -2, -3, -1, 0, 0][f] if shrug else [0, 0, 0, 1, 1, 0][f])
+	var side_view := dir == SIDE
+	var cx := 72.0
+	_shadow(canvas, Vector2(72, 98), Vector2(20, 4))
+	# The sword, dragged behind him (behind = left in side view, towards us from the back).
+	var hand := Vector2(58, 62 + h) if side_view else Vector2(91, 60 + h)
+	var tip := Vector2(34, 96) if side_view else (Vector2(106, 96) if dir == DOWN else Vector2(104, 98))
+	var sword := _layer()
+	_stroke(sword, [hand, tip], 1.6, blade[1])
+	_stroke(sword, [hand + Vector2(-3, -1), hand + Vector2(3, 1)], 1.2, blade[2])  # the crossguard
+	for k in 5:  # notches of rust
+		var p := hand.lerp(tip, 0.3 + k * 0.13).round()
+		sword.set_pixelv(Vector2i(p) + Vector2i(1, 0), blade[0])
+	var behind := dir != UP
+	if behind:
+		_stamp(canvas, sword, o)
+	var fig := _layer()
+	_robe(fig, cx, 34.0 + h, 9.0, 97.0, 17.0, -3.0 if side_view else 0.0, ph * 0.3, cloak)
+	var torso := _layer()
+	_ellipse(torso, Vector2(cx + (2 if side_view else 0), 50 + h), Vector2(7 if side_view else 9, 12), mail)
+	for y in S:  # chainmail: rings in a staggered grid
+		for x in S:
+			var c := torso.get_pixel(x, y)
+			if c.a > 0.0 and y % 2 == 0 and (x + y / 2) % 2 == 0:
+				torso.set_pixel(x, y, _darker(mail, c))
+	_stamp(fig, torso, o)
+	var head := Vector2(cx + (3 if side_view else 0), 24 + h)
+	_ellipse(fig, head, Vector2(7, 8.5), bone)
+	var ghost := _layer()
+	_stamp(ghost, fig, o)
+	_merge(canvas, ghost)
+	if dir != UP:
+		for s: int in ([1] if side_view else [-1, 1]):  # sunken sockets, cold eyes
+			var e := head + Vector2(3 if side_view else s * 2.5, -1)
+			_flat_ellipse(canvas, e, Vector2(1.8, 2), HOLLOW)
+			_glow(canvas, Vector2i(e.round()), EYE, EYE_HALO)
+		for k in 6:  # the long grey beard
+			var x := head.x + (k - 2.5) * (1.0 if not side_view else 0.6) + (2 if side_view else 0)
+			_line(canvas, [Vector2(x, head.y + 5), Vector2(x + sin(k + ph * 0.3) * 1.2, head.y + 14 + k % 3 * 2)], bone[1] if k % 2 else bone[0])
+	_big_crown(canvas, head + Vector2(0, -7), 7, crown, o)
+	if not behind:
+		_stamp(canvas, sword, o)
+	var gauntlet := _layer()
+	_flat_ellipse(gauntlet, hand, Vector2(2.4, 2), mail[1])
+	_stamp(canvas, gauntlet, o)
+	if not shrug and (f == 3 or f == 4):  # grave-dust scraped up at the tip
+		for k in 4:
+			_blend_px(canvas, int(tip.x) + (k - 1) * 2, int(tip.y) - 1 - k % 2 - (f - 3), _c("Slate", 0.8 - k * 0.15))
+	if shrug and f >= 2:  # a pulse of grave-dust rolling out
+		var r := 10.0 + (f - 2) * 12.0
+		for a_i in 40:
+			var a := a_i * TAU / 40.0
+			var p := Vector2(72, 94) + Vector2(cos(a) * r, sin(a) * r * 0.32)
+			if (a_i + f) % 3 != 0:
+				_blend_ellipse(canvas, p, Vector2(2.2, 1.4), _c("Stone" if a_i % 2 else "Slate", 0.7 - (f - 2) * 0.15))
+
+# A tall iron crown: a band with five points, the middle one tallest.
+func _big_crown(canvas: Image, c: Vector2, half: int, ramp: Array[Color], o: Color) -> void:
+	var layer := _layer()
+	for x in range(int(c.x) - half, int(c.x) + half + 1):
+		layer.set_pixel(x, int(c.y), ramp[1])
+		layer.set_pixel(x, int(c.y) + 1, ramp[0])
+	var heights := [3, 5, 7, 5, 3]
+	for i in 5:
+		var x := int(c.x) - half + roundi(i * half * 0.5)
+		for k in range(1, heights[i] + 1):
+			layer.set_pixel(x, int(c.y) - k, ramp[2] if k == heights[i] else ramp[1])
+	_stamp(canvas, layer, o)
+
+# --- The Mourning Mother ------------------------------------------------------------------------
+# Act 3 pool boss, heals when left alone: a vast veiled figure, pale eyes glowing through the veil,
+# black tears running down it, two Weepers clinging to her skirts. "sorrow": she lifts her hands
+# to her face and the black tears pour (she's mending). 144px frame.
+
+func _draw_mourning_mother(canvas: Image, st: Dictionary) -> void:
+	var veil := _ramp(["Night", "Dusk", "Slate", "Stone"])
+	var skin := _ramp(["Slate", "Stone", "Mist"])
+	var shroud := _ramp(["Night", "Dusk", "Slate"])
+	var tear := HOLLOW
+	var o := NIGHT_O
+	var f: int = st.f
+	var ph: float = st.ph
+	var sorrow: bool = st.anim == "sorrow"
+	var dir: int = DOWN if sorrow else st.dir
+	var h := roundi(sin(ph) * 1.5)
+	var side_view := dir == SIDE
+	_shadow(canvas, Vector2(72, 98), Vector2(30, 4.5))
+	# The Weepers clinging to her skirts, behind the hem.
+	var clingers: Array = [Vector2(40, 84), Vector2(104, 86)] if not side_view else [Vector2(46, 86)]
+	for i in clingers.size():
+		_clinging_weeper(canvas, clingers[i] + Vector2(0, roundi(sin(ph + i * 2.0))), shroud, skin, o, i == 0)
+	var fig := _layer()
+	_robe(fig, 72.0, 34.0 + h, 11.0, 97.0, 30.0 if not side_view else 22.0, -4.0 if side_view else 0.0, ph * 0.5, veil)
+	var head := Vector2(72 + (3 if side_view else 0), 26 + h)
+	_ellipse(fig, head, Vector2(12, 13), veil)
+	var ghost := _layer()
+	_stamp(ghost, fig, o)
+	_dissolve(ghost, Vector2(0, 88), Vector2(0, 99))
+	# The face behind the veil: a dark hollow, the veil's weave drawn over it.
+	if dir != UP:
+		var fc := head + Vector2(3 if side_view else 0, 3)
+		var face_r := Vector2(5 if side_view else 7, 8)
+		for y in range(int(fc.y - face_r.y), int(fc.y + face_r.y) + 1):
+			for x in range(int(fc.x - face_r.x), int(fc.x + face_r.x) + 1):
+				if ((Vector2(x + 0.5, y + 0.5) - fc) / face_r).length_squared() <= 1.0:
+					ghost.set_pixel(x, y, veil[1] if (x + y) % 3 == 0 else HOLLOW)
+		var eyes: Array = [fc + Vector2(2, -2)] if side_view else [fc + Vector2(-3, -2), fc + Vector2(3, -2)]
+		var pour := 10 if sorrow else 6
+		for e: Vector2 in eyes:
+			_glow(ghost, Vector2i(e.round()), EYE, EYE_HALO)
+			for k in pour:  # black tears running down the veil
+				ghost.set_pixel(int(e.x), int(e.y) + 2 + k, tear)
+			ghost.set_pixel(int(e.x), int(e.y) + 4 + pour + (f % 3) * 2, tear)
+			if sorrow:
+				ghost.set_pixel(int(e.x) + 1, int(e.y) + 6 + ((f + 1) % 3) * 3, tear)
+	_merge(canvas, ghost, 0.92)
+	# Her long pale hands: folded at her chest, or lifted to her face in sorrow.
+	if dir != UP:
+		var t: float = [0.3, 0.7, 1.0, 1.0, 1.0, 0.7][f] if sorrow else 0.0
+		for s: int in ([1] if side_view else [-1, 1]):
+			var rest := Vector2(72 + s * 5 + (4 if side_view else 0), 52 + h)
+			var at := rest.lerp(head + Vector2(s * 7 + (4 if side_view else 0), 6), t)
+			var hand := _layer()
+			_stroke(hand, [Vector2(72 + s * 11, 40 + h), at], 1.2, veil[2])
+			_flat_ellipse(hand, at, Vector2(2, 3), skin[1])
+			_stamp(canvas, hand, o)
+	if sorrow:  # the mending: a dark hush around her
+		var r := 26.0 + f * 3.0
+		for a_i in 36:
+			var a := a_i * TAU / 36.0
+			if (a_i + f) % 2 == 0:
+				_blend_px(canvas, roundi(72 + cos(a) * r * 1.3), roundi(62 + sin(a) * r), _c("Wraithlight", 0.35))
+
+# A small Weeper clinging to the Mourning Mother's hem: hunched, pale head bowed, an arm reaching.
+func _clinging_weeper(canvas: Image, p: Vector2, shroud: Array[Color], skin: Array[Color], o: Color, left: bool) -> void:
+	var s := 1.0 if left else -1.0
+	var fig := _layer()
+	_ellipse(fig, p, Vector2(6, 9), shroud)
+	_ellipse(fig, p + Vector2(s * 4, -8), Vector2(4.5, 4.5), skin)
+	_stroke(fig, [p + Vector2(s * 3, -3), p + Vector2(s * 12, -10)], 1.2, skin[1])
+	_stamp(canvas, fig, o)
+	_px(canvas, int(p.x + s * 5), int(p.y) - 9, EYE)
+	_line(canvas, [Vector2(p.x + s * 5, p.y - 7), Vector2(p.x + s * 5, p.y - 4)], HOLLOW)
+
+# --- Cold lantern (the Lamplighter's) -----------------------------------------------------------
+# An iron lantern on a crooked stake, a cold blue flame behind its glass. "ignite": a spark catches
+# and the flame climbs; "burn": it flickers; "snuff": it gutters out into a curl of smoke. Its
+# origin (frame centre) matches ColdLantern's: stake from +14 to -6, lantern from -18 to -6.
+
+func _draw_cold_lantern(canvas: Image, st: Dictionary) -> void:
+	var iron := _ramp(["Void", "Night", "Dusk"])
+	var o := NIGHT_O
+	var f: int = st.f
+	var flame: float = 1.0
+	match st.anim:
+		"ignite":
+			flame = [0.1, 0.25, 0.45, 0.7, 0.9, 1.0][f]
+		"burn":
+			flame = [1.0, 0.85, 1.05, 0.9, 1.0, 0.8][f]
+		"snuff":
+			flame = [0.8, 0.55, 0.3, 0.12, 0.0, 0.0][f]
+	var c := Vector2(32, 32)
+	_shadow(canvas, c + Vector2(0, 15), Vector2(5, 1.5))
+	if flame > 0.0:  # cold light on the ground
+		_blend_ellipse(canvas, c + Vector2(0, 15), Vector2(9, 2.5) * flame, _c("Dewlight", 0.18 * flame))
+	var body := _layer()
+	_stroke(body, [c + Vector2(0, 14), c + Vector2(1, 4), c + Vector2(0, -6)], 1.1, iron[1])
+	_poly_fill(body, PackedVector2Array([c + Vector2(-6, -7), c + Vector2(6, -7), c + Vector2(5, -17), c + Vector2(-5, -17)]), iron[1])
+	_poly_fill(body, PackedVector2Array([c + Vector2(-4, -17), c + Vector2(4, -17), c + Vector2(0, -21)]), iron[2])
+	_stamp(canvas, body, o)
+	for y in range(int(c.y) - 15, int(c.y) - 8):  # the glass
+		for x in range(int(c.x) - 3, int(c.x) + 4):
+			var lit := flame > 0.0 and absf(x - c.x) + (c.y - 9 - y) * 0.5 < 2.0 + flame * 3.0
+			_px(canvas, x, y, _c("Dewlight") if lit else _c("Dread"))
+	if flame > 0.0:
+		var core := Vector2(c.x, c.y - 11)
+		_flat_ellipse(canvas, core + Vector2(0, -flame), Vector2(1.2, 1.2 + flame * 1.5), _c("Moonlight"))
+		for k in 6:  # the halo, flickering
+			var a := k * TAU / 6.0 + f * 0.4
+			_blend_px(canvas, roundi(core.x + cos(a) * (6 + flame * 2)), roundi(core.y + sin(a) * (6 + flame * 2)), _c("Dewlight", 0.4 * flame))
+	if st.anim == "ignite" and f < 3:  # the spark catching
+		_px(canvas, int(c.x) + [2, -1, 1][f], int(c.y) - 12 - f, _c("Moonlight"))
+	if st.anim == "snuff" and f >= 2:  # a curl of smoke
+		_smoke_trail(canvas, [c + Vector2(0, -21), c + Vector2(2, -26 - f), c + Vector2(-1, -31 - f * 2)], f, 2.0, _c("Dusk", 0.7))
+
+func _poly_fill(layer: Image, pts: PackedVector2Array, color: Color) -> void:
+	var box := Rect2(pts[0], Vector2.ZERO)
+	for p in pts:
+		box = box.expand(p)
+	for y in range(maxi(0, floori(box.position.y)), mini(S, ceili(box.end.y) + 1)):
+		for x in range(maxi(0, floori(box.position.x)), mini(S, ceili(box.end.x) + 1)):
+			if Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), pts):
+				layer.set_pixel(x, y, color)

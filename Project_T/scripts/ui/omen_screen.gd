@@ -6,13 +6,17 @@ extends Control
 # active Omen in a small tag under the toast, and toasts when one starts and when its reward is paid.
 # Built in code.
 
-const CARD_SIZE := Vector2(270, 200)
+const CARD_SIZE := Vector2(380, 220)  # Wide enough that the 16–18 px lines don't wrap much (user: "can barely read this")
 const CARD_PAD := Vector2(18, 16)  # Inner padding on every side (x: left and right, y: top and bottom)
-const BODY_SIZE := 15  # Revealed Omens' reward line
+const REWARD_SIZE := 16  # The reward line (screens_ui.md readable text: 16 px+ body)
 const FRONT_BODY_SIZE := 18  # Face an Omen and Clear Skies: the Dream card body size (user: "a bit bigger")
-const EMBLEM_SCALE := 3  # The 16 px icons drawn x3, nearest
+const EMBLEM_SCALE := 2  # The 16 px icons drawn x2 (32 px), nearest: the fallback until the card emblems exist (x3+ read as a skull: user)
+const CARD_EMBLEM_SHEET := "res://assets/ui/omen_cards.png"  # UI Asset's 32 px card emblems (omen_cards.json)
+const CARD_EMBLEMS := {&"omen": 0, &"clear_skies": 1}  # Frame per emblem: omen_card, clear_skies_card
+const CARD_EMBLEM_SIZE := 32.0
+const CARD_EMBLEM_SCALE := 2.0  # Shown x2 (64 px), nearest
 const FLAVOR_SIZE := 17  # The whisper face runs large; this sits level with the 18 px body
-const SECONDARY_MIN_SIZE := 12  # Secondary lines shrink to this before a card outgrows the screen
+const SECONDARY_MIN_SIZE := 16  # Lines never shrink below the readable floor (screens_ui.md); the card grows instead
 const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
 const OMEN_COLOR := UiStyle.BUTTON_GOLD  # Heartwood 32 "Gold"
 const REWARD_COLOR := UiStyle.GOLD  # Heartwood 32 "Glow": the reward in gold (run_design.md)
@@ -81,6 +85,9 @@ func _ready() -> void:
 	omens.offer_closed.connect(_on_closed)
 	omens.omen_started.connect(_on_omen_started)
 	omens.omen_rewarded.connect(_on_omen_rewarded)
+	var run_state := get_node_or_null("%RunState")
+	if run_state:
+		run_state.leaves_changed.connect(func(_l: int, _m: int) -> void: _refresh_tag())  # The reward line follows the block's losses
 
 # Commit blind (run_design.md "Commit blind, then the Omen is revealed"): a face-down "Face an Omen"
 # card and Clear Skies. Facing it flips to the drawn Omens (2; Omen Reader 3): pick one, no going back.
@@ -125,21 +132,28 @@ func _make_face_down_card() -> Button:
 	button.pressed.connect(func() -> void: _reveal(omens.face(), button))
 	return button
 
-# A card's emblem (run_design.md "How an Omen looks"): the icon from assets/ui/icons.png x3 when the sheet has
-# `id`, else the old wind swirl (`swirl`) or an empty space. Fills the card's middle either way.
-func _emblem(id: StringName, swirl: bool) -> Control:
-	var icon := IconInfo.icon(id)
+# A card's emblem (run_design.md "How an Omen looks"): the icon from assets/ui/icons.png drawn x4 (64 px, nearest)
+# on a soft glow (`glow`), centred in the card's spare space; without the icon, the old wind swirl (`swirl`) or an
+# empty space.
+func _emblem(id: StringName, swirl: bool, glow: Color = OMEN_COLOR) -> Control:
+	var icon: Texture2D = _card_emblem(id)  # UI Asset's 32 px card emblem, x2
+	var side := CARD_EMBLEM_SIZE * CARD_EMBLEM_SCALE
+	if icon == null:
+		icon = IconInfo.icon(id)  # Until then the 16 px icon, x2 (x3 read as a skull: user)
+		side = 16.0 * EMBLEM_SCALE
 	if icon != null:
-		var rect := TextureRect.new()
-		rect.texture = icon
-		rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		rect.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-		rect.custom_minimum_size = Vector2(16, 16) * EMBLEM_SCALE
-		rect.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		rect.name = "Emblem"
-		return rect
+		var canvas := Control.new()
+		canvas.custom_minimum_size = Vector2(side, side + 12)
+		canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		canvas.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		canvas.name = "Emblem"
+		canvas.draw.connect(func() -> void:
+			var centre := canvas.size / 2.0
+			for i in 6:  # A soft round glow, faint at the edge
+				canvas.draw_circle(centre, side * (0.95 - i * 0.1), Color(glow, 0.05 + i * 0.02))
+			canvas.draw_texture_rect(icon, Rect2(centre - Vector2(side, side) / 2.0, Vector2(side, side)), false))
+		return canvas
 	var canvas := Control.new()
 	canvas.custom_minimum_size = Vector2(0, 64 if swirl else 0)
 	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -147,6 +161,19 @@ func _emblem(id: StringName, swirl: bool) -> Control:
 	if swirl:
 		canvas.draw.connect(func() -> void: _draw_swirl(canvas))
 	return canvas
+
+# The 32 px card emblem for `id` from UI Asset's sheet (null until it's there). Kept on the instance, not static.
+var _emblem_sheet: Texture2D = null
+
+func _card_emblem(id: StringName) -> Texture2D:
+	if not CARD_EMBLEMS.has(id) or not ResourceLoader.exists(CARD_EMBLEM_SHEET):
+		return null
+	if _emblem_sheet == null:
+		_emblem_sheet = load(CARD_EMBLEM_SHEET)
+	var atlas := AtlasTexture.new()
+	atlas.atlas = _emblem_sheet
+	atlas.region = Rect2(CARD_EMBLEMS[id] * CARD_EMBLEM_SIZE, 0, CARD_EMBLEM_SIZE, CARD_EMBLEM_SIZE)
+	return atlas
 
 # Three nested wind arcs.
 func _draw_swirl(canvas: Control) -> void:
@@ -239,12 +266,14 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(divider)
 	var reward := omens.describe_reward(omen, act)
-	var reward_line := _add_line(box, "Reward · " + (reward if reward != "" else "the twist itself (double-edged)"), REWARD_COLOR, FRONT_BODY_SIZE)
+	if reward != "" and omen.kind != OmenData.Kind.DOUBLE_EDGED:
+		reward += " · 25% less per leaf lost"  # Omens with teeth: the block decides the reward
+	var reward_line := _add_line(box, "Reward · " + (reward if reward != "" else "the twist itself (double-edged)"), REWARD_COLOR, REWARD_SIZE)
 	reward_line.name = "Reward"
-	var rest := Control.new()  # Any spare height goes below, so both cards keep the same spots
-	rest.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	rest.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(rest)
+	var spare := Control.new()  # No emblem on a revealed Omen (user: "just the beginning"); its spare height still goes here
+	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(spare)
 	var secondary: Array = [twist, reward_line]
 	if flavor != null:
 		secondary.push_front(flavor)
@@ -274,10 +303,20 @@ func _on_closed() -> void:
 	game_speed.set_paused(_was_paused)
 
 func _on_omen_started(omen: OmenData, first_drift: int, last_drift: int) -> void:
-	_active_tag.text = "Omen: %s · drifts %d–%d · %s" % [omen.display_name, first_drift, last_drift,
+	_tag_base = "Omen: %s · drifts %d–%d · %s" % [omen.display_name, first_drift, last_drift,
 		IconInfo.format(omen.description)]
 	_active_tag.visible = true
+	_refresh_tag()
 	_toast("Omen faced: %s" % omen.display_name)
+
+# The tag's second line: what the reward stands at ("Reward · 75% · 1 leaf lost"; none for double-edged Omens).
+var _tag_base := ""
+
+func _refresh_tag() -> void:
+	if not _active_tag.visible or omens.active == null:
+		return
+	var status := omens.get_reward_status()
+	_active_tag.text = _tag_base + ("\n" + status if status != "" else "")
 
 func _on_omen_rewarded(omen: OmenData, summary: String) -> void:
 	_active_tag.visible = false
@@ -312,7 +351,7 @@ func _make_clear_skies_card() -> Button:
 	UiStyle.title(_add_line(box, "Clear Skies", CLEAR_SKIES_COLOR, 22), UiStyle.CARD_NAME_SIZE, CLEAR_SKIES_COLOR)
 	_add_flavor(box, "The night stays still.")
 	var calm := _add_line(box, "Nothing changes. No reward.", UiStyle.INK, FRONT_BODY_SIZE)  # The same rules spot as Face an Omen's
-	box.add_child(_emblem(&"clear_skies", false))  # The moon and stars (an empty space until the icon exists)
+	box.add_child(_emblem(&"clear_skies", false, CLEAR_SKIES_COLOR))  # The moon and stars (an empty space until the icon exists)
 	UiStyle.caps(_add_line(box, "The default", UiStyle.INK_DIM, 13), 14)
 	_fit_card(button, box, [calm])
 	return button

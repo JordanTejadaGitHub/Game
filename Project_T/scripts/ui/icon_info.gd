@@ -81,6 +81,28 @@ static func damage_type_icon(line: String) -> Texture2D:
 
 const ICON_SHEET := "res://assets/ui/icons.png"
 const ICON_MANIFEST := "res://assets/ui/icons.json"
+# HUD-size icons (UI Asset, hud_icons.json): 12 px counters and 10 px button glyphs, drawn for exactly ×2.
+const HUD_MANIFEST := "res://assets/ui/hud_icons.json"
+static var _hud_sets := {}  # Parsed hud_icons.json (plain data)
+
+# A HUD icon by id ("dew_hud", "menu_hud"…) from its set's sheet, or null. `frame_size` gives its pixel size.
+static func hud_icon(id: StringName) -> Texture2D:
+	if _hud_sets.is_empty():
+		var data = JSON.parse_string(FileAccess.get_file_as_string(HUD_MANIFEST)) if FileAccess.file_exists(HUD_MANIFEST) else null
+		_hud_sets = data if data is Dictionary else {"_": {}}
+	for set_name in _hud_sets:
+		var entry = _hud_sets[set_name]
+		if not entry is Dictionary or not entry.get("icons", {}).has(String(id)):
+			continue
+		var sheet := "res://assets/ui/" + String(entry.image)
+		if not ResourceLoader.exists(sheet):
+			return null
+		var frame := int(entry.frame_size)
+		var atlas := AtlasTexture.new()
+		atlas.atlas = load(sheet)
+		atlas.region = Rect2(int(entry.icons[String(id)]) * frame, 0, frame, frame)
+		return atlas
+	return null
 const ICON_ALIASES := {&"elite": &"deeply_blighted"}  # IconInfo id -> sheet id
 static var _columns := {}
 static var _frame := 16
@@ -153,6 +175,7 @@ const TERMS := {
 	&"dreamlight": ["Dreamlight", "Dreamlight", "Dreamlight"],
 	&"family_pick": ["family pick", "family picks", "Family pick"],
 	&"deeply_blighted": ["Deeply Blighted", "Deeply Blighted", "Deeply Blighted"],
+	&"dread_shell": ["dread shell", "dread shells", "Dread shell"],
 	&"kinship": ["Kinship", "Kinships", "Kinship"],
 	&"harmony": ["Harmony strike", "Harmony strikes", "Harmony strike", "harmonies"],  # {harmonies}: the plural
 }
@@ -198,13 +221,26 @@ static func format(text: String) -> String:
 		for found in family_pattern().search_all(text):
 			var data := family_data(found.get_string(1))
 			text = text.replace(found.get_string(), data.display_name if data != null else found.get_string(1).capitalize())
+	if text.contains("{combo:"):  # A combo (or Crowned Reaction): its name, or ??? until discovered
+		for found in _combo_pattern().search_all(text):
+			var id := StringName(found.get_string(1))
+			var combo := CodexData.get_any(id)
+			text = text.replace(found.get_string(), combo.get("name", "???") if not combo.is_empty() and CodexData.is_discovered(id) else "???")
 	return text
+
+static var _combo_regex: RegEx = null
+static func _combo_pattern() -> RegEx:
+	if _combo_regex == null:
+		UiStyle.release_at_exit(func() -> void: _combo_regex = null)
+		_combo_regex = RegEx.create_from_string("\\{combo:([a-z_]+)\\}")
+	return _combo_regex
 
 # Family names as links (screens_ui.md "remove Half-dreamed"): "{family:dewdrop}" is the family's
 # name, a link (StatusLinks) whose popup is its emblem, damage type and identity.
 static var _family_pattern: RegEx = null
 static func family_pattern() -> RegEx:
 	if _family_pattern == null:
+		UiStyle.release_at_exit(func() -> void: _family_pattern = null)
 		_family_pattern = RegEx.create_from_string("\\{family:([a-z_]+)\\}")
 	return _family_pattern
 

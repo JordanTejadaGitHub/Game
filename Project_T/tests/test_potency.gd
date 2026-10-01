@@ -28,6 +28,9 @@ func _run() -> void:
 	await process_frame
 
 	var puffball := _plant("puffball", Vector2(2, 2))
+	puffball.tower_data = puffball.tower_data.duplicate()  # The mechanism at Potency 130% (Puffball itself is 100% since "Human run 3")
+	puffball.tower_data.potency = 1.3
+	puffball._apply_data()
 	var sprout := _plant("sprout", Vector2(2, 4))
 	_check(is_equal_approx(puffball.get_potency(), 1.3), "Puffball: Potency 130%% (%.2f)" % puffball.get_potency())
 	_check(is_equal_approx(sprout.get_potency(), 1.0), "the default is 100%")

@@ -31,6 +31,7 @@ func _run() -> void:
 	await _test_discovery(main)
 	_test_grown_needs(main)
 	_test_blessing_dream(main)
+	_test_run_pool(main)
 	_test_resonance(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
@@ -356,20 +357,20 @@ func _test_clearing_cards(main: Node) -> void:
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	_reset_dreams(main)
 
-	# Clearing is locked until the opener (Heartwood's Reach, which absorbed Tend the Forest); until then it weighs double and the other
-	# clearing cards are never offered (dream_design.md "Clearing: one opener, the rest follow").
+	# Clearing is locked until a clearing card is taken (2026-09-30: any clearing card opens it; Heartwood's
+	# Reach is the start-pool one); until then the opener weighs double.
 	dreams.clearing_open = false
 	run_state.dew = 100
 	var locked_cell: Vector2 = map_generator.obstacles.keys()[0]
 	_check(clearer.is_locked() and not clearer.try_clear(locked_cell) and run_state.dew == 100,
-		"obstacles can't be cleared before the opener")
+		"obstacles can't be cleared before a clearing card")
 	var opener := _card(dreams, "heartwoods_reach")
-	for id in ["cleared_ground", "reclaimed_earth", "tended_forest", "wildwood_reclaimed"]:
-		_check(not dreams.can_offer(_card(dreams, id), 4), "%s isn't offered while clearing is locked" % id)
-	_check(dreams.can_offer(opener) and dreams.opens_clearing(opener), "Heartwood's Reach is, with the Unlocks clearing layout")
+	for id in ["heartwoods_reach", "reclaimed_earth", "tended_forest", "tended_stumps", "hollow_ground", "wildwood_reclaimed"]:
+		_check(DreamState.unlocks_clearing(_card(dreams, id)), "%s opens clearing (any clearing card does)" % id)
+	_check(dreams.can_offer(opener) and dreams.opens_clearing(opener), "Heartwood's Reach is offered, with the Unlocks clearing layout")
 	var picks := 0
 	var clearing_picks := 0
-	var cards_with_one: Array = [opener, _card(dreams, "quickened_sap")]
+	var cards_with_one: Array = [opener, _card(dreams, "deeper_calm")]
 	for i in 2000:
 		if dreams._weighted_pick(cards_with_one) == opener:
 			clearing_picks += 1
@@ -377,7 +378,7 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(clearing_picks > picks * 0.6, "the opener weighs double while clearing is locked (%d / %d)" % [clearing_picks, picks])
 	dreams.take(opener)
 	_check(dreams.can_clear() and not clearer.is_locked(), "Heartwood's Reach unlocks clearing")
-	_check(not dreams.opens_clearing(opener) and dreams.can_offer(_card(dreams, "cleared_ground")), "…then the follow-ups can come")
+	_check(not dreams.opens_clearing(opener), "…and no longer says so")
 	_check(clearer.try_clear(locked_cell) and run_state.dew < 100 and dreams.free_first_clears == 0, "…and clearing always costs Dew (no free clears)")
 	run_state.add_free_clears(-run_state.free_clears)
 	var saved := dreams.to_save()
@@ -385,52 +386,51 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(not dreams.can_clear(), "a new run starts locked")
 	dreams.load_save(saved)
 	_check(dreams.can_clear(), "the unlock survives a mid-run save (it's in the taken cards)")
-	dreams.take(_card(dreams, "heartwoods_reach_ii"))
-	_check(dreams.can_clear(), "taking Heartwood's Reach II (it replaces the opener) keeps clearing open")
+	var old := dreams.to_save()
+	old.stacks = {"cleared_ground": 2, "heartwoods_reach_ii": 1}
+	dreams.load_save(old)
+	_check(dreams.card_stacks("heartwoods_reach") >= 1 and dreams.card_stacks("cleared_ground") == 0, "an old save's Cleared Ground / Heartwood's Reach II become Heartwood's Reach")
 	_reset_dreams(main)
 	dreams.clearing_open = true  # The rest of these checks: clearing open
 
 	# Offered only while 8+ obstacles are left
-	var ground := _card(dreams, "cleared_ground")
-	_check(dreams.is_eligible(ground), "Cleared Ground offered on a full map (%d obstacles)" % dreams.count_obstacles())
+	_check(dreams.is_eligible(opener), "Heartwood's Reach offered on a full map (%d obstacles)" % dreams.count_obstacles())
 	var all_obstacles: Dictionary = map_generator.obstacles
 	map_generator.obstacles = {}
-	_check(not dreams.is_eligible(ground), "clearing cards need 8+ obstacles left")
+	_check(not dreams.is_eligible(opener), "clearing cards need 8+ obstacles left")
 	map_generator.obstacles = all_obstacles
 
-	# Cleared Ground: −30% per stack, max −50%, through the clearer's one cost function; +1 Dew per clear
-	# this run after the discounts. Clearing always costs Dew: never below half the base (tree 12 → 6, boulder 18 → 9).
+	# Heartwood's Reach (absorbed Cleared Ground): −25% per stack (max 2: −50%) through the clearer's one cost
+	# function, +3 half-price clears per stack; +1 Dew per clear this run after the discounts. Clearing always
+	# costs Dew: never below half the base (tree 12 → 6, boulder 18 → 9).
 	var rock: ObstacleData = load("res://resource/obstacle/rock.tres")
 	run_state.tended_cells.clear()  # No clears yet: no surcharge
-	dreams.take(ground)
-	_check(clearer.get_clear_cost(tree) == roundi(tree.clear_cost * 0.7), "Cleared Ground: −30%% (tree %d → %d)" % [tree.clear_cost, clearer.get_clear_cost(tree)])
-	for i in 3:
-		dreams.take(ground)
-	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) and clearer.get_clear_cost(rock) == ceili(rock.clear_cost / 2.0),
-		"Cleared Ground stacks to −50%%, never below half the base (tree %d, boulder %d)" % [clearer.get_clear_cost(tree), clearer.get_clear_cost(rock)])
+	run_state.add_free_clears(-run_state.free_clears)
+	dreams.take(opener)
+	_check(clearer.get_clear_cost(tree) == roundi(tree.clear_cost * 0.75) and run_state.free_clears == 3,
+		"Heartwood's Reach: −25%% (tree %d → %d) and 3 half-price clears (%d)" % [tree.clear_cost, clearer.get_clear_cost(tree), run_state.free_clears])
+	dreams.take(opener)
+	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) and clearer.get_clear_cost(rock) == ceili(rock.clear_cost / 2.0)
+		and run_state.free_clears == 6 and opener.max_stacks == 2,
+		"…two stacks: −50%%, never below half the base (tree %d, boulder %d), 6 charges" % [clearer.get_clear_cost(tree), clearer.get_clear_cost(rock)])
 	_check(clearer.get_clear_cost(tree, true) == ceili(tree.clear_cost / 2.0), "…a half-price charge on top still hits the floor")
 	run_state.tended_cells.assign([Vector2(-1, -1), Vector2(-2, -2), Vector2(-3, -3)])
 	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) + 3, "every clear so far adds +1 Dew after the discounts (%d)" % clearer.get_clear_cost(tree))
 	run_state.tended_cells.clear()
 	_check(tree.clear_cost == 12 and rock.clear_cost == 18, "raised base prices: tree 12, boulder 18")
 
-	# Heartwood's Reach: half-price clears (used first), still +1 Seed each; II gives 7
-	dreams.stacks.erase("cleared_ground")
-	dreams.take(_card(dreams, "heartwoods_reach"))
-	_check(run_state.free_clears == 4, "Heartwood's Reach: 4 half-price clears (%d)" % run_state.free_clears)
+	# The charges: used first, half price (never free), still +1 Seed each
 	run_state.dew = 0
 	var tended := run_state.obstacles_tended
 	var cell: Vector2 = map_generator.obstacles.keys()[0]
-	_check(not clearer.try_clear(cell) and run_state.free_clears == 4, "a charge doesn't make a clear free: no Dew, no clear, charge kept")
+	_check(not clearer.try_clear(cell) and run_state.free_clears == 6, "a charge doesn't make a clear free: no Dew, no clear, charge kept")
 	var cost := clearer.get_next_clear_cost(map_generator.get_obstacle(cell))
 	_check(cost == ceili(map_generator.get_obstacle(cell).clear_cost / 2.0), "…it halves the price (%d)" % cost)
 	run_state.dew = 100
-	_check(clearer.try_clear(cell) and run_state.free_clears == 3 and run_state.dew == 100 - cost, "a half-price clear")
+	_check(clearer.try_clear(cell) and run_state.free_clears == 5 and run_state.dew == 100 - cost, "a half-price clear")
 	_check(run_state.obstacles_tended == tended + 1, "half-price clears still give a Seed")
-	_check(dreams.is_eligible(_card(dreams, "heartwoods_reach_ii")), "Heartwood's Reach II once the base is owned")
-	dreams.take(_card(dreams, "heartwoods_reach_ii"))
-	_check(run_state.free_clears == 6, "Heartwood's Reach II: 7 in all (3 left + 3 more)")
 	run_state.add_free_clears(-run_state.free_clears)
+	dreams.stacks.erase("heartwoods_reach")
 
 	# Reclaimed Earth: refunds 40% of the Dew paid (never a profit), and the cell halves its first Warden
 	dreams.take(_card(dreams, "reclaimed_earth"))
@@ -509,9 +509,8 @@ func _test_meta_hooks(main: Node) -> void:
 	dreams.unlocked["mistveil"] = true
 	dreams.grown_wardens["puffball"] = true  # Grown this run too (round 5)
 	dreams.grown_wardens["mistveil"] = true
-	_check(bloom.entwined and bloom.rule_id == &"chain_bloom" and not dreams.is_eligible(bloom),
-		"Chain Bloom stays out until the Grove unlocks it")
-	dreams.grove_cards.assign(["chain_bloom"])
+	_check(bloom.entwined and bloom.rule_id == &"chain_bloom" and bloom.in_start_pool and Array(bloom.discovered_by) == ["event:puff_in_fog"],
+		"Chain Bloom: start pool, discovered by a Puffball puff in Mistveil's fog")
 	dreams.unlocked.erase("mistveil")
 	_check(not dreams.is_eligible(bloom), "Chain Bloom needs Mistveil too")
 	dreams.unlocked["mistveil"] = true
@@ -768,7 +767,8 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 		var full := drawable.filter(func(c: UpgradeData) -> bool: return dreams.is_eligible(c, 1))
 		print("act 1 Rares with %s: %d drawable, %d with every Need met (%s)" % [family, drawable.size(), full.size(),
 			", ".join(drawable.map(func(c: UpgradeData) -> String: return c.id))])
-		_check(full.size() >= 5 and full.size() <= 8, "act 1 board with %s: ~5–7 eligible Rares (%d)" % [family, full.size()])
+		# The lean starting pool (2026-09-30): 10 Rares on a fresh account, a few need families or discovery
+		_check(full.size() >= 3 and full.size() <= 8, "act 1 board with %s: 3–8 eligible generic Rares (%d)" % [family, full.size()])
 	const RUNS := 300
 	var results := []  # Per mode: [offers by 35, by 50, offers after 2nd pass, of them with it]
 	for fading in [false, true]:
@@ -856,7 +856,7 @@ func _test_stray_dream(main: Node) -> void:
 	# Weighting turned around: build cards ×0.25, soft Needs ignored
 	var in_build := _card(dreams, "cozy_corners")
 	dreams.take(_card(dreams, "crossroads"))  # Its archetype ("maze") joins the build
-	var plain := _card(dreams, "quickened_sap")
+	var plain := _card(dreams, "deeper_calm")
 	var build_picks := 0
 	var soft_picks := 0
 	var soft := _card(dreams, "many_hands")  # Soft Need unmet (15 attackers)
@@ -960,7 +960,7 @@ func _test_half_dreamed(main: Node) -> void:
 		forced_soil += 1 if dreams._draw_card(1, [], true) == soil else 0
 	_check(dreams.is_half_dreamed(soil) and forced_soil == 0, "…never in a guaranteed Rare slot")
 	# Declined: Dewdrop was offered at the last pick and not taken → ×0.3 instead of ×0.6
-	var plain := _card(dreams, "quickened_sap")
+	var plain := _card(dreams, "deeper_calm")
 	var shares := []
 	for declined in [false, true]:
 		dreams.note_family_pick(["dewdrop", "sporeling"] if declined else [], "sporeling")
@@ -1072,10 +1072,28 @@ func _test_discovery(main: Node) -> void:
 		_check(not dreams.discovery_met(_card(dreams, "eye_of_the_tempest")), "a Woven card waits for its Crowned Reaction")
 	dreams.discovery_profile["seen"] = [String(Kinships.KINSHIPS.keys()[0])]
 	_check(dreams.discovery_met(_card(dreams, "extended_family")), "any Kinship lets the Kinship cards in")
-	_check(dreams.discovery_met(_card(dreams, "dawnbreak")), "Legendaries are never discovery-gated")
+	_check(dreams.discovery_met(_card(dreams, "grove_of_kin")), "…Grove of Kin too (a Legendary with an explicit trigger)")
+	_check(not dreams.discovery_met(_card(dreams, "dawnbreak")), "Dawnbreak waits for a ×10 chain")
 	_check(not dreams._key_met("chain:5", []), "a ×5 chain key waits…")
 	dreams.discovery_profile["best_chain"] = 5
 	_check(dreams._key_met("chain:5", []), "…the profile's best chain counts")
+	dreams.discovery_profile["best_chain"] = 10
+	_check(dreams.discovery_met(_card(dreams, "dawnbreak")), "…and comes with the first ×10")
+	# The discovery moments (2026-09-30): a crit on a Marked nightmare, a Puffball puff in Mistveil's fog
+	dreams._events_this_run.clear()
+	var starlit := _card(dreams, "starlit_aim")
+	var fog_card := _card(dreams, "chain_bloom")
+	_check(starlit.in_start_pool and not dreams.discovery_met(starlit) and not dreams.discovery_met(fog_card),
+		"Starlit Aim and Chain Bloom are start pool, waiting for their moments")
+	var crit := DamageLog.Event.new()
+	crit.combos.assign([&"crit"])
+	dreams._on_damage_dealt(crit)
+	_check(not dreams.event_discovered("crit_marked"), "a plain crit isn't it")
+	crit.combos.assign([&"crit", &"marked"])
+	dreams._on_damage_dealt(crit)
+	_check(dreams.event_discovered("crit_marked") and dreams._key_met("event:crit_marked", []), "a crit on a Marked nightmare discovers Starlit Aim")
+	dreams.note_discovery(DreamState.EVENT_PUFF_IN_FOG)  # Tower Code calls this when a puff lands in Mistveil's fog
+	_check(dreams.event_discovered("puff_in_fog"), "a Puffball puff in Mistveil's fog discovers Chain Bloom")
 	var cache := _card(dreams, "acorn_cache")
 	_check(not dreams.discovery_met(cache), "Acorn Cache waits for an Acorn to be built")
 	var before: Array[UpgradeData] = [cache]  # A Grove card: not in this run's pool
@@ -1086,6 +1104,8 @@ func _test_discovery(main: Node) -> void:
 	dreams.unlocked["firefly_jar"] = true
 	dreams._offer_drift = 10
 	var beaks := _card(dreams, "static_bloom")  # Stormcap (Firefly Jar's) + Bloomcap
+	_check(not dreams.discovery_met(beaks), "Charged Bloom waits for Charged + Drowsy on one nightmare")
+	dreams.note_discovery(DreamState.EVENT_CHARGED_DROWSY)
 	_check(dreams.is_half_dreamed(beaks) and dreams.discovery_met(beaks), "a half-dreamed card skips the Warden gate (%s)" % [dreams.half_dreamed_missing(beaks)])
 	for family in dreams.half_dreamed_missing(beaks):
 		dreams.unlocked[family] = true
@@ -1094,6 +1114,7 @@ func _test_discovery(main: Node) -> void:
 	acorn.queue_free()
 	dreams.discovery_profile = null
 	dreams._built_this_run.clear()
+	dreams._events_this_run.clear()
 	if feedback != null:
 		feedback.run_counts = run_counts
 	if tracker != null:
@@ -1117,17 +1138,21 @@ func _test_resonance(main: Node) -> void:
 	var preview := dreams.resonance_preview(lingering)
 	_check(is_equal_approx(preview.bonus, 0.2) and preview.tag == "spore" and preview.count == 2,
 		"2 spore cards: +20% (%s)" % preview)
-	_check(DreamState.resonance_text(preview.bonus, preview.tag, preview.count) == "+20% from 2 Spore cards", "…shown as \"+20% from 2 Spore cards\"")
+	var shown := DreamState.resonance_text(preview.bonus, preview.cards)
+	_check(shown == "+20% from Soft Spores, Chain Bloom" or shown == "+20% from Chain Bloom, Soft Spores", "…shown with the cards' names, never the tag (%s)" % shown)
+	_check(DreamState.resonance_text(0.3, ["A", "B", "C"]) == "+30% from A, B and 1 more" and DreamState.resonance_tooltip(["A", "B", "C"]) == "From: A, B, C",
+		"…past 2: \"and 1 more\", the hover lists them all")
+	_check(DreamState.resonance_text(0.1, ["Seedfall"]) == "+10% from Seedfall" and DreamState.resonance_tooltip(["Seedfall"]) == "", "…one card: just its name")
 	dreams.take(lingering)
 	_check(is_equal_approx(dreams.get_status_duration(sporeling, EnemyStatuses.SPORED), base + 3.0 * 1.2), "Lingering Spores: +3 s × 1.2")
-	_check(dreams.resonance_line(lingering) == "+20% from 2 Spore cards", "…Dreams this run shows the locked bonus")
+	_check(dreams.resonance_line(lingering) == shown, "…Dreams this run shows the locked bonus (%s)" % dreams.resonance_line(lingering))
 	dreams.take(_card(dreams, "bitter_sap"))  # Another tag: doesn't change the locked one
 	_check(is_equal_approx(dreams.resonance(lingering), 1.2), "…locked when taken")
 	_check(dreams.resonance_preview(_card(dreams, "deeper_calm")).bonus == 0.0, "untagged cards never resonate")
 	var saved := dreams.to_save()
 	dreams._resonance.clear()
 	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
-	_check(is_equal_approx(dreams.resonance(lingering), 1.2), "…kept in the run save")
+	_check(is_equal_approx(dreams.resonance(lingering), 1.2) and dreams.resonance_line(lingering) == shown, "…kept in the run save, names too")
 	_check(is_equal_approx(dreams.resonance_preview(_card(dreams, "lingering_spores_ii")).bonus, 0.2), "a Deepened card never resonates off its own base")
 	dreams.resonance_enabled = false
 	dreams._resonance.clear()
@@ -1171,6 +1196,74 @@ func _spawn_near(main: Node, cell: Vector2, offset: Vector2 = Vector2.ZERO) -> N
 func _free_enemies(main: Node) -> void:
 	for child in main.get_node("%EnemyContainer").get_children():
 		child.free()
+
+# Each run draws its own pool (dream_design.md "Exact rules"): seeded by the map, floors per rarity, nothing pulled
+# in by taking a card, family picks and discoveries add; offers always fill on a fresh profile.
+func _test_run_pool(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	dreams.run_pool_forced = true
+	dreams.discovery_profile = {"seen": [], "wardens_built": [], "best_chain": 0}  # A fresh account
+	dreams.grove_cards.clear()
+	dreams.unlocked["sporeling"] = true
+	dreams.build_run_pool(11)
+	var first := dreams.run_pool.keys()
+	dreams.build_run_pool(11)
+	var again := dreams.run_pool.keys()
+	dreams.build_run_pool(12)
+	var other := dreams.run_pool.keys()
+	first.sort()
+	again.sort()
+	other.sort()
+	_check(first == again and first != other, "same map seed, same pool; another seed, another pool")
+	_check(first.has("quickened_sap") and first.has("morning_dew") and first.has("soft_spores"), "the core: basics and the held family's cards")
+	var available := {}
+	for card in dreams.pool:
+		if card.in_start_pool and dreams._card_family(card) == "" and not DreamState.RUN_POOL_BASICS.has(card.id) and dreams.discovery_met(card) \
+				and card.kind != UpgradeData.Kind.UNLOCK_WARDEN and card.kind != UpgradeData.Kind.UNLOCK_EVOLUTION and card.id != "heartwoods_reach":
+			available[card.rarity] = int(available.get(card.rarity, 0)) + 1
+	for rarity in DreamState.RUN_POOL_FLOORS:
+		var drawn := dreams.pool.filter(func(c: UpgradeData) -> bool:
+			return c.rarity == rarity and dreams.run_pool.has(c.id) and dreams._card_family(c) == "" \
+				and not DreamState.RUN_POOL_BASICS.has(c.id) and c.id != "heartwoods_reach").size()
+		_check(drawn >= mini(DreamState.RUN_POOL_FLOORS[rarity], int(available.get(rarity, 0))),
+			"rarity %d: %d drawn, floor %d of %d available" % [rarity, drawn, DreamState.RUN_POOL_FLOORS[rarity], int(available.get(rarity, 0))])
+	var before := dreams.run_pool.size()
+	var tagged: UpgradeData = dreams.pool.filter(func(c: UpgradeData) -> bool: return dreams.run_pool.has(c.id) and c.tags.has("maze")).front()
+	dreams.take(tagged)
+	_check(dreams.run_pool.size() == before, "taking a maze card adds nothing to the pool")
+	dreams.unlocked["dewdrop"] = true  # A family pick
+	dreams.in_run_pool(tagged)
+	_check(dreams.run_pool.has("soaked_through") and dreams.run_pool.size() > before, "a family pick adds its family cards")
+	var waiting: Array = dreams._run_pool_waiting.keys()
+	if not waiting.is_empty():
+		var card := _card(dreams, waiting[0])
+		_check(not dreams.in_run_pool(card), "an undiscovered card waits outside the pool")
+		dreams.discovery_profile = null  # Everything discovered
+		_check(dreams.in_run_pool(card), "…and joins the moment it's discovered")
+		dreams.discovery_profile = {"seen": [], "wardens_built": [], "best_chain": 0}
+	var saved := dreams.to_save()
+	dreams.run_pool.clear()
+	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
+	_check(dreams.run_pool.has(tagged.id) and dreams.run_pool.size() >= before, "the run's pool is saved")
+	# 19 Dreams on a fresh profile: every offer shows 3 different cards
+	_reset_dreams(main)
+	dreams.unlocked["sporeling"] = true
+	dreams.build_run_pool(7)
+	var short := 0
+	for drift in range(5, 100, 5):
+		var offer := dreams.make_offer(drift)
+		var unique := {}
+		for c in offer:
+			unique[c.id] = true
+		if offer.size() < 3 or unique.size() != offer.size():
+			short += 1
+		dreams._note_passed(offer, drift / 5)  # Passed over: the fade and "not in the next offer" apply
+	_check(short == 0, "19 offers on a fresh profile: never fewer than 3 cards, never a repeat (%d short)" % short)
+	dreams.run_pool_forced = false
+	dreams.run_pool.clear()
+	dreams.discovery_profile = null
+	_reset_dreams(main)
 
 # Family Blessings are Rare Dream cards now (meta_design.md "Replaced 2026-09-30"): offered once you own the
 # family (and a Warden of it has stood on the map), never before; one per family.

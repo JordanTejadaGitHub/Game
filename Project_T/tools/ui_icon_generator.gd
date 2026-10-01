@@ -39,6 +39,8 @@ func _init() -> void:
 	sheet.save_png(OUT + "clear_tool.png")
 	_save_preview(sheet)
 	_make_icons()
+	_make_omen_cards()
+	_make_hud_icons()
 	print("ui icons written")
 	quit()
 
@@ -243,7 +245,7 @@ func _save_preview(sheet: Image) -> void:
 # 16 px icons in one row (assets/ui/icons.png) with assets/ui/icons.json ({id: column}). Each icon
 # is built from shapes on a 16x16 grid of cells; every cell gets its ramp's light colour on its
 # top/left edge, dark on its bottom/right edge, mid inside, and the shape gets a dark 1 px outline.
-# Statuses differ by SHAPE, not only colour. No icons for combos or Reactions: they are discovered.
+# Statuses differ by SHAPE, not only colour. Reaction icons exist but only show once discovered (see REACTION_ICONS).
 
 const ICON := 16
 const ICON_OUTLINE := Color("#1a1420")
@@ -265,15 +267,24 @@ const DAMAGE_TYPE_ICONS := ["spore", "stone", "water", "light", "root", "song", 
 const RESOURCE_ICONS := ["leaves", "path_length", "seeds"]
 # Omens (run_design.md "How an Omen looks"): a moth before the moon, and the calm moon of Clear Skies.
 const OMEN_ICONS := ["omen", "clear_skies"]
+# Reactions and Crowned Reactions (tower_design.md): shown only once discovered (discovery card, combo
+# tips, unlocked Codex entries), never on locked "???" entries (screens_ui.md). Each pairs its two
+# statuses' colours; Crowned ones wear a small gold crown.
+const REACTION_ICONS := ["thunderclap", "ignite", "mushrooming", "drown", "shatter", "pinned", "smother", "lightning_rod"]
+const CROWNED_ICONS := ["tempest", "still_pool", "fever_dream", "starfall", "avalanche", "prismstorm", "nightbloom", "fairy_circle"]
+# Legendary Dream marks for discovery cards and the Codex (Dawnbreak fires at a Chain 10).
+const LEGENDARY_ICONS := ["dawnbreak"]
 # Ids that share another icon's column.
 const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_cost", "dreamlight": "dreamlight_cost"}
 
 var _cells := {}  # Vector2i -> ramp index
 var _ramps: Array = []  # [light, mid, dark]
 var _details: Array = []  # [Vector2i, Color], painted last
+var _n := ICON  # size of the icon being drawn (16; the Omen card emblems are 32)
 
 func _make_icons() -> void:
-	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS + OMEN_ICONS
+	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS + OMEN_ICONS \
+		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
@@ -288,6 +299,7 @@ func _make_icons() -> void:
 		nightmare = NIGHTMARE_ICONS + ["hidden", "always_damp", "burrows"], damage_type = DAMAGE_TYPE_ICONS,
 		resources = RESOURCE_ICONS + ["dew", "dreamlight"],
 		omen = OMEN_ICONS,
+		reactions = REACTION_ICONS, crowned = CROWNED_ICONS, legendary = LEGENDARY_ICONS,
 		note = "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering."}
 	var file := FileAccess.open(OUT + "icons.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
@@ -309,12 +321,13 @@ func _make_icons() -> void:
 		pre.blend_rect(ic, Rect2i(0, 0, ICON, ICON), Vector2i(48 + i * 72, 108))
 	pre.save_png("res://tools/previews/ui_icon_set.png")
 
-func _icon(id: String) -> Image:
+func _icon(id: String, size := ICON) -> Image:
+	_n = size
 	_cells = {}
 	_ramps = []
 	_details = []
 	call("_ic_" + id)
-	var img := Image.create(ICON, ICON, false, Image.FORMAT_RGBA8)
+	var img := Image.create(_n, _n, false, Image.FORMAT_RGBA8)
 	for cell: Vector2i in _cells:
 		var k: int = _cells[cell]
 		var r: Array = _ramps[k]
@@ -328,8 +341,8 @@ func _icon(id: String) -> Image:
 		elif down or right:
 			col = r[2]
 		img.set_pixelv(cell, col)
-	for y in ICON:
-		for x in ICON:
+	for y in _n:
+		for x in _n:
 			var p := Vector2i(x, y)
 			if _cells.has(p):
 				continue
@@ -339,7 +352,7 @@ func _icon(id: String) -> Image:
 					break
 	for d: Array in _details:
 		var p: Vector2i = d[0]
-		if p.x >= 0 and p.y >= 0 and p.x < ICON and p.y < ICON:
+		if p.x >= 0 and p.y >= 0 and p.x < _n and p.y < _n:
 			img.set_pixelv(p, d[1])
 	return img
 
@@ -348,31 +361,31 @@ func _rp(light: String, mid: String, dark: String) -> int:
 	return _ramps.size() - 1
 
 func _cset(x: int, y: int, k: int) -> void:
-	if x >= 0 and y >= 0 and x < ICON and y < ICON:
+	if x >= 0 and y >= 0 and x < _n and y < _n:
 		_cells[Vector2i(x, y)] = k
 
 func _c_disc(c: Vector2, r: float, k: int) -> void:
-	for y in ICON:
-		for x in ICON:
+	for y in _n:
+		for x in _n:
 			if Vector2(x + 0.5, y + 0.5).distance_to(c) <= r:
 				_cset(x, y, k)
 
 func _c_ring(c: Vector2, ro: float, ri: float, k: int) -> void:
-	for y in ICON:
-		for x in ICON:
+	for y in _n:
+		for x in _n:
 			var d := Vector2(x + 0.5, y + 0.5).distance_to(c)
 			if d <= ro and d > ri:
 				_cset(x, y, k)
 
 func _c_ell(c: Vector2, r: Vector2, k: int, angle: float = 0.0) -> void:
-	for y in ICON:
-		for x in ICON:
+	for y in _n:
+		for x in _n:
 			if ((Vector2(x + 0.5, y + 0.5) - c).rotated(-angle) / r).length() <= 1.0:
 				_cset(x, y, k)
 
 func _c_poly(pts: PackedVector2Array, k: int) -> void:
-	for y in ICON:
-		for x in ICON:
+	for y in _n:
+		for x in _n:
 			if Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), pts):
 				_cset(x, y, k)
 
@@ -380,8 +393,8 @@ func _c_line(pts: Array, w: float, k: int) -> void:
 	for i in pts.size() - 1:
 		var a: Vector2 = pts[i]
 		var b: Vector2 = pts[i + 1]
-		for y in ICON:
-			for x in ICON:
+		for y in _n:
+			for x in _n:
 				var p := Vector2(x + 0.5, y + 0.5)
 				var t := clampf((p - a).dot(b - a) / maxf((b - a).length_squared(), 0.001), 0.0, 1.0)
 				if p.distance_to(a.lerp(b, t)) <= w * 0.5:
@@ -1022,12 +1035,12 @@ func _ic_leaves() -> void:
 	_dt(6, 6, Color("#f0ffd0"))
 
 func _ic_path_length() -> void:
-	# A pale winding path between two dark banks, like the moonlit path on the map.
-	var k := _rp("#f4ecd8", "#d0c0a0", "#8a7a60")
-	_c_line([Vector2(3, 15), Vector2(4, 11), Vector2(11, 9), Vector2(12, 5), Vector2(6, 2.5)], 2.4, k)
-	_dt(12, 1, Color("#ffe890"))
-	_dt(11, 1, Color("#ffe890"))
-	_dt(12, 2, Color("#ffe890"))
+	# A footpath: eight stepping stones winding in an S from the bottom up, in the path tiles' sandy
+	# colours. Each stone is its own shape, so the generator outlines every one and it reads on fog.
+	var k := _rp(Palette.color("moonpath").to_html(false), Palette.color("path").to_html(false), Palette.color("loam").to_html(false))
+	for p: Vector2i in [Vector2i(2, 13), Vector2i(6, 13), Vector2i(10, 11), Vector2i(10, 7), Vector2i(6, 7),
+			Vector2i(2, 4), Vector2i(5, 1), Vector2i(10, 1)]:
+		_c_rect(Rect2i(p, Vector2i(3, 2)), k)
 
 func _ic_seeds() -> void:
 	# An acorn-brown seed with a small green sprout (Seeds, the meta currency).
@@ -1051,37 +1064,105 @@ func _star(x: int, y: int) -> void:
 	for d: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
 		_dt(x + d.x, y + d.y, Palette.color("glow"))
 
-# The moth, drawn by hand: "m" = silhouette (Void), "g" = Gold rim light, "l" = Glow.
-const MOTH := [
-	"................",
-	"................",
-	"................",
-	"................",
-	".....m....m.....",
-	"......m..m......",
-	"..g....mm....g..",
-	"..lm...mm...ml..",
-	"..mmm.mmmm.mmm..",
-	"...mmmmmmmmmm...",
-	"....mmmmmmmm....",
-	".....mmmmmm.....",
-	"....mmm..mmm....",
-	".....m.mm.m.....",
-	"................",
-	"................"]
+func _moth_ramps() -> Array:
+	# [wings, wing band, body] by palette name: dark night wings with a pale band, never a face.
+	return [_rpn("slate", "shade", "dread"), _rpn("mist", "stone", "slate"), _rpn("dusk", "night", "void")]
 
 func _ic_omen() -> void:
-	# A dark moth crossing a pale full moon: a flat silhouette so it reads at 16 px, with Gold rim
-	# light only on the wingtips. The moon shows all round it.
-	_moon(Vector2(8, 8), 6.8)
-	_dt(4, 11, Palette.color("mist"))
-	_dt(11, 3, Palette.color("mist"))
-	var cols := {"m": Palette.color("void"), "g": Palette.color("gold"), "l": Palette.color("glow")}
-	for y in MOTH.size():
-		for x in MOTH[y].length():
-			var ch: String = MOTH[y][x]
-			if cols.has(ch):
-				_dt(x, y, cols[ch])
+	# Revised 2026-10-01 (run_design.md): the moth's spread wings come first, in front of a moon that
+	# only peeks out at the top right; no dark-blobs-on-a-white-disc symmetry.
+	_moon(Vector2(12, 4.4), 4.0)
+	var r := _moth_ramps()
+	_c_poly(PackedVector2Array([Vector2(6.6, 7.4), Vector2(0.4, 3.6), Vector2(0.4, 8.6), Vector2(6.6, 10.6)]), r[0])
+	_c_poly(PackedVector2Array([Vector2(8.4, 7.4), Vector2(14.6, 3.6), Vector2(14.6, 8.6), Vector2(8.4, 10.6)]), r[0])
+	_c_ell(Vector2(4.4, 12.2), Vector2(2.6, 2.0), r[0])
+	_c_ell(Vector2(10.6, 12.2), Vector2(2.6, 2.0), r[0])
+	_c_line([Vector2(7.5, 7), Vector2(7.5, 14.6)], 1.2, r[2])
+	_dt_line(Vector2i(7, 6), Vector2i(5, 3), Palette.color("night"))
+	_dt_line(Vector2i(8, 6), Vector2i(10, 3), Palette.color("night"))
+	_dt(1, 4, Palette.color("gold"))
+	_dt(14, 4, Palette.color("gold"))
+	_dt(2, 5, Palette.color("glow"))
+	_dt(13, 5, Palette.color("glow"))
+	_dt(4, 12, Palette.color("gold"))
+	_dt(10, 12, Palette.color("gold"))
+
+func _c_erase_disc(c: Vector2, r: float) -> void:
+	for y in _n:
+		for x in _n:
+			if Vector2(x + 0.5, y + 0.5).distance_to(c) <= r:
+				_cells.erase(Vector2i(x, y))
+
+func _big_star(c: Vector2i, arm: int) -> void:
+	var gold := _rpn("heartlight", "glow", "gold")
+	_c_rect(Rect2i(c.x - arm, c.y, arm * 2 + 1, 1), gold)
+	_c_rect(Rect2i(c.x, c.y - arm, 1, arm * 2 + 1), gold)
+	_c_rect(Rect2i(c.x - 1, c.y - 1, 3, 3), gold)
+
+# --- Omen card emblems (32x32, shown x2 on the Face an Omen / Clear Skies cards) --------------------
+
+const OMEN_CARD_ICONS := ["omen_card", "clear_skies_card"]
+
+func _make_omen_cards() -> void:
+	var sheet := Image.create(32 * OMEN_CARD_ICONS.size(), 32, false, Image.FORMAT_RGBA8)
+	var index := {}
+	for i in OMEN_CARD_ICONS.size():
+		var icon := _icon(OMEN_CARD_ICONS[i], 32)
+		Palette.snap_image(icon)
+		sheet.blit_rect(icon, Rect2i(0, 0, 32, 32), Vector2i(i * 32, 0))
+		index[OMEN_CARD_ICONS[i]] = i
+	sheet.save_png(OUT + "omen_cards.png")
+	var file := FileAccess.open(OUT + "omen_cards.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify({frame_size = 32, icons = index,
+		note = "Omen card emblems (run_design.md \"How an Omen looks\"). Show x2, nearest. Tags and lists use the 16 px omen / clear_skies in icons.png."}, "\t") + "\n")
+	_n = ICON
+
+func _ic_omen_card() -> void:
+	# A moth with wide, patterned wings in front of a pale moon that shows only behind its right wing.
+	_moon(Vector2(25, 6.6), 7.0)
+	_dt(23, 3, Palette.color("mist"))
+	_dt(28, 6, Palette.color("mist"))
+	_dt(25, 9, Palette.color("mist"))
+	var r := _moth_ramps()
+	# Forewings, swept up and out, each crossed by a pale band.
+	_c_poly(PackedVector2Array([Vector2(13.6, 13), Vector2(1, 7), Vector2(0.4, 13.6), Vector2(4.4, 19), Vector2(13.6, 18.6)]), r[0])
+	_c_poly(PackedVector2Array([Vector2(16.4, 13), Vector2(29, 7), Vector2(29.6, 13.6), Vector2(25.6, 19), Vector2(16.4, 18.6)]), r[0])
+	_c_line([Vector2(3, 10.6), Vector2(8, 13.6), Vector2(12.6, 14.4)], 1.4, r[1])
+	_c_line([Vector2(27, 10.6), Vector2(22, 13.6), Vector2(17.4, 14.4)], 1.4, r[1])
+	# Hindwings, rounder, with gold-ringed eye-spots low down.
+	_c_ell(Vector2(9, 22.4), Vector2(5.4, 4.4), r[0], 0.3)
+	_c_ell(Vector2(21, 22.4), Vector2(5.4, 4.4), r[0], -0.3)
+	var gold := _rpn("heartlight", "glow", "gold")
+	_c_ring(Vector2(8.6, 23), 2.3, 1.1, gold)
+	_c_ring(Vector2(21.4, 23), 2.3, 1.1, gold)
+	_dt(8, 22, Palette.color("void"))
+	_dt(21, 22, Palette.color("void"))
+	# A thin body and feathered antennae.
+	_c_line([Vector2(15, 11), Vector2(15, 27.6)], 1.4, r[2])
+	_c_disc(Vector2(15, 11.2), 1.4, r[2])
+	_dt_line(Vector2i(14, 9), Vector2i(10, 3), Palette.color("night"))
+	_dt_line(Vector2i(15, 9), Vector2i(19, 3), Palette.color("night"))
+	for p: Vector2i in [Vector2i(11, 5), Vector2i(12, 6), Vector2i(17, 6), Vector2i(18, 5)]:
+		_dt(p.x - 1, p.y, Palette.color("night"))
+	# Rim light along the forewing tips.
+	for p: Vector2i in [Vector2i(1, 7), Vector2i(2, 7), Vector2i(3, 8), Vector2i(28, 7), Vector2i(27, 7), Vector2i(26, 8)]:
+		_dt(p.x, p.y, Palette.color("gold"))
+	_dt(1, 8, Palette.color("glow"))
+	_dt(28, 8, Palette.color("glow"))
+
+func _ic_clear_skies_card() -> void:
+	# A calm crescent moon and three small stars; no moth.
+	_moon(Vector2(13, 16), 11)
+	_c_erase_disc(Vector2(19.4, 11.6), 9.6)
+	_dt(6, 18, Palette.color("mist"))
+	_dt(9, 24, Palette.color("mist"))
+	_big_star(Vector2i(25, 5), 2)
+	_big_star(Vector2i(27, 19), 2)
+	_dt(20, 26, Palette.color("glow"))
+	_dt(19, 26, Palette.color("gold"))
+	_dt(21, 26, Palette.color("gold"))
+	_dt(20, 25, Palette.color("gold"))
+	_dt(20, 27, Palette.color("gold"))
 
 func _ic_clear_skies() -> void:
 	# The same moon, alone and calm, with a few small stars.
@@ -1093,3 +1174,356 @@ func _ic_clear_skies() -> void:
 	_star(14, 8)
 	_dt(9, 1, Palette.color("glow"))
 	_dt(2, 2, Palette.color("glow"))
+
+# Reactions --------------------------------------------------------------------------------------
+# Status colours by name: water (Soaked), sleep (Drowsy), spore (Poisoned), gold (Exposed / Charged),
+# vine (Rooted), ice (Frozen), stone (rocks, clouds).
+
+func _rpn(light: String, mid: String, dark: String) -> int:
+	return _rp(Palette.color(light).to_html(false), Palette.color(mid).to_html(false), Palette.color(dark).to_html(false))
+
+func _bolt(pts: PackedVector2Array) -> void:
+	_c_poly(pts, _rpn("heartlight", "glow", "gold"))
+
+func _drop(c: Vector2, r: float, k: int) -> void:
+	_c_disc(c, r, k)
+	_c_poly(PackedVector2Array([c + Vector2(0, -r * 2.1), c + Vector2(-r * 0.95, -r * 0.3), c + Vector2(r * 0.95, -r * 0.3)]), k)
+
+func _zz(x: int, y: int, k: int) -> void:
+	# A small "z".
+	_c_rect(Rect2i(x, y, 4, 1), k)
+	_c_line([Vector2(x + 3.4, y + 1.0), Vector2(x + 0.6, y + 2.8)], 1.2, k)
+	_c_rect(Rect2i(x, y + 3, 4, 1), k)
+
+func _crown() -> void:
+	# The Crowned mark: a small three-point gold crown along the top.
+	_c_poly(PackedVector2Array([Vector2(3.6, 3.6), Vector2(3.6, 0.4), Vector2(6, 2.2), Vector2(8, 0), Vector2(10, 2.2),
+		Vector2(12.4, 0.4), Vector2(12.4, 3.6)]), _rpn("heartlight", "glow", "gold"))
+	_dt(8, 2, Palette.color("dewlight"))
+
+func _ic_thunderclap() -> void:
+	# Soaked + Charged: a gold bolt splitting a water drop.
+	_drop(Vector2(6, 10.6), 4.0, _rpn("dewlight", "dew", "pool"))
+	_bolt(PackedVector2Array([Vector2(12.6, 0.6), Vector2(7.6, 7.2), Vector2(10.2, 7.2), Vector2(6.4, 15.2),
+		Vector2(13.6, 5.8), Vector2(11, 5.8), Vector2(14.6, 0.6)]))
+	_dt(2, 6, Palette.color("glow"))
+	_dt(14, 12, Palette.color("glow"))
+
+func _ic_ignite() -> void:
+	# Poisoned + Charged: spores going off in a gold burst.
+	var spore := _rpn("newleaf", "sprig", "leaf")
+	_c_disc(Vector2(4.6, 11.4), 2.8, spore)
+	_c_disc(Vector2(9.4, 12.8), 2.0, spore)
+	_c_disc(Vector2(3.6, 6.0), 1.8, spore)
+	var gold := _rpn("heartlight", "glow", "gold")
+	var c := Vector2(10.6, 5.4)
+	for i in 8:
+		var d := Vector2.from_angle(i * TAU / 8.0)
+		_c_line([c + d * 1.5, c + d * (4.4 if i % 2 == 0 else 3.4)], 1.2, gold)
+	_c_disc(c, 1.6, gold)
+	_dt(4, 10, Palette.color("heartlight"))
+
+func _ic_mushrooming() -> void:
+	# Poisoned + Soaked: a spore mushroom swelling, a drop at its foot.
+	var cap := _rpn("newleaf", "sprig", "leaf")
+	_c_poly(PackedVector2Array([Vector2(1.4, 8.4), Vector2(3, 4), Vector2(8, 1.6), Vector2(13, 4), Vector2(14.6, 8.4)]), cap)
+	_c_rect(Rect2i(6, 8, 4, 6), _rpn("moonpath", "deadwood", "loam"))
+	_drop(Vector2(12.6, 13.2), 1.8, _rpn("dewlight", "dew", "pool"))
+	for p: Vector2i in [Vector2i(5, 4), Vector2i(10, 5), Vector2i(8, 3)]:
+		_dt(p.x, p.y, Palette.color("heartlight"))
+
+func _ic_drown() -> void:
+	# Soaked + Drowsy: a heavy drop falling asleep.
+	_drop(Vector2(6.4, 10.2), 4.4, _rpn("dewlight", "dew", "pool"))
+	_zz(10, 1, _rpn("moonlight", "wraithlight", "bruise"))
+	_dt(4, 9, Palette.color("moonlight"))
+	_dt_line(Vector2i(4, 11), Vector2i(5, 12), Palette.color("pool"))
+	_dt_line(Vector2i(8, 11), Vector2i(7, 12), Palette.color("pool"))
+
+func _ic_shatter() -> void:
+	# Rooted + Soaked, then a hard hit: ice bursting into shards.
+	var ice := _rpn("moonlight", "dewlight", "dew")
+	_c_poly(PackedVector2Array([Vector2(7.6, 6.6), Vector2(2, 1.4), Vector2(4.4, 8.2)]), ice)
+	_c_poly(PackedVector2Array([Vector2(8.8, 6.4), Vector2(14.6, 2.6), Vector2(11.6, 8.6)]), ice)
+	_c_poly(PackedVector2Array([Vector2(7.2, 9.4), Vector2(3.2, 14.8), Vector2(9.4, 11.6)]), ice)
+	_c_poly(PackedVector2Array([Vector2(10, 10), Vector2(14.6, 13.6), Vector2(11.4, 9)]), ice)
+	_dt(8, 8, Palette.color("heartlight"))
+	_dt_line(Vector2i(1, 12), Vector2i(3, 10), Palette.color("leaf"))
+
+func _ic_smother() -> void:
+	# Rooted + Poisoned: a spore cluster bound tight by dark vines.
+	var spore := _rpn("newleaf", "sprig", "leaf")
+	_c_disc(Vector2(6.4, 6.4), 3.6, spore)
+	_c_disc(Vector2(10.4, 9.6), 3.4, spore)
+	_c_disc(Vector2(5.6, 11.6), 2.6, spore)
+	var vine := _rpn("leaf", "moss", "deepmoss")
+	_c_line([Vector2(0.8, 4.6), Vector2(7, 8.4), Vector2(15.2, 7.2)], 1.6, vine)
+	_c_line([Vector2(1.2, 13.6), Vector2(8.6, 11.2), Vector2(14.6, 14.4)], 1.6, vine)
+	_dt(5, 5, Palette.color("heartlight"))
+	_dt(9, 9, Palette.color("heartlight"))
+
+# Crowned Reactions: crown on rows 0-3, the motif below.
+
+func _ic_tempest() -> void:
+	# Thunderclap + Poisoned: a storm cloud raining bolts and spores.
+	_crown()
+	var cloud := _rpn("mist", "stone", "slate")
+	_c_disc(Vector2(5, 8), 2.6, cloud)
+	_c_disc(Vector2(9, 7), 3.0, cloud)
+	_c_disc(Vector2(12, 8.6), 2.2, cloud)
+	_c_rect(Rect2i(3, 8, 11, 2), cloud)
+	_bolt(PackedVector2Array([Vector2(8.6, 10), Vector2(6.4, 13.4), Vector2(8, 13.4), Vector2(6.8, 15.8),
+		Vector2(10.6, 12), Vector2(9, 12), Vector2(10.4, 10)]))
+	var spore := _rpn("newleaf", "sprig", "leaf")
+	_c_disc(Vector2(3.4, 13.4), 1.3, spore)
+	_c_disc(Vector2(13.2, 13.6), 1.3, spore)
+
+func _ic_still_pool() -> void:
+	# Drown + Rooted: a calm, sleeping pool ringed by vines.
+	_crown()
+	_c_ell(Vector2(8, 11), Vector2(6.6, 3.4), _rpn("leaf", "moss", "deepmoss"))
+	_c_ell(Vector2(8, 11), Vector2(5.0, 2.2), _rpn("dewlight", "dew", "pool"))
+	_dt_line(Vector2i(5, 10), Vector2i(8, 10), Palette.color("moonlight"))
+	_zz(11, 5, _rpn("moonlight", "wraithlight", "bruise"))
+
+func _ic_fever_dream() -> void:
+	# Smother ending in sleep: a drowsy spiral shedding spores.
+	_crown()
+	var sleep := _rpn("moonlight", "wraithlight", "bruise")
+	_c_line([Vector2(8, 10), Vector2(9.6, 9.2), Vector2(10.2, 11), Vector2(8.6, 12.8), Vector2(5.6, 12.2),
+		Vector2(4.6, 9.2), Vector2(6.4, 6.4), Vector2(10, 5.8), Vector2(12.8, 8.2), Vector2(13, 12)], 1.5, sleep)
+	var spore := _rpn("newleaf", "sprig", "leaf")
+	_c_disc(Vector2(2.4, 14), 1.2, spore)
+	_c_disc(Vector2(13.6, 14.6), 1.0, spore)
+	_c_disc(Vector2(2.2, 6.4), 1.0, spore)
+
+func _ic_starfall() -> void:
+	# Pinned + Charged: a falling star striking a gold target.
+	_crown()
+	var gold := _rpn("heartlight", "glow", "gold")
+	_c_ring(Vector2(5.4, 11.4), 4.0, 2.2, gold)
+	_c_disc(Vector2(5.4, 11.4), 1.0, gold)
+	_c_poly(PackedVector2Array([Vector2(12, 4.4), Vector2(12.8, 6.4), Vector2(15, 6.6), Vector2(13.2, 7.8), Vector2(13.8, 10),
+		Vector2(12, 8.6), Vector2(10.2, 10), Vector2(10.8, 7.8), Vector2(9, 6.6), Vector2(11.2, 6.4)]), gold)
+	_dt_line(Vector2i(9, 10), Vector2i(7, 12), Palette.color("glow"))
+
+func _ic_avalanche() -> void:
+	# A Cairn lob sets off Shatter: tumbling boulders and ice shards.
+	_crown()
+	var rock := _rpn("mist", "stone", "slate")
+	_c_disc(Vector2(5, 11.4), 3.2, rock)
+	_c_disc(Vector2(10.6, 13.2), 2.2, rock)
+	var ice := _rpn("moonlight", "dewlight", "dew")
+	_c_poly(PackedVector2Array([Vector2(9.6, 9.6), Vector2(14.6, 5.2), Vector2(12.4, 10.4)]), ice)
+	_c_poly(PackedVector2Array([Vector2(7.6, 7.2), Vector2(9.2, 4.6), Vector2(9.6, 8.2)]), ice)
+	_dt(4, 10, Palette.color("moonlight"))
+
+func _ic_prismstorm() -> void:
+	# Shatter + Charged: an ice prism carrying lightning.
+	_crown()
+	_c_poly(PackedVector2Array([Vector2(8, 4.4), Vector2(12.6, 10), Vector2(8, 15.6), Vector2(3.4, 10)]), _rpn("moonlight", "dewlight", "dew"))
+	_dt_line(Vector2i(8, 6), Vector2i(8, 14), Palette.color("moonlight"))
+	_bolt(PackedVector2Array([Vector2(15.4, 5.6), Vector2(10.4, 10.2), Vector2(12, 10.2), Vector2(9.6, 14.4),
+		Vector2(15.6, 9), Vector2(13.6, 9), Vector2(15.8, 5.6)]))
+	_dt(1, 7, Palette.color("glow"))
+
+func _ic_nightbloom() -> void:
+	# Mushrooming + Drowsy: a mushroom glowing in sleep, where nothing wakes.
+	_crown()
+	_c_poly(PackedVector2Array([Vector2(1.6, 10.6), Vector2(3.4, 6.6), Vector2(8, 5), Vector2(12.6, 6.6), Vector2(14.4, 10.6)]),
+		_rpn("moonlight", "wraithlight", "bruise"))
+	_c_rect(Rect2i(6, 10, 4, 5), _rpn("moonpath", "deadwood", "loam"))
+	for p: Vector2i in [Vector2i(5, 7), Vector2i(10, 8), Vector2i(8, 6)]:
+		_dt(p.x, p.y, Palette.color("sprig"))
+	_dt(2, 13, Palette.color("newleaf"))
+	_dt(13, 14, Palette.color("newleaf"))
+
+
+func _ic_pinned() -> void:
+	# Exposed + Rooted: a thorn pin driven into a gold target, head out at the top right.
+	var gold := _rpn("heartlight", "glow", "gold")
+	_c_ring(Vector2(6.6, 9.4), 5.6, 3.6, gold)
+	_c_disc(Vector2(6.6, 9.4), 1.4, gold)
+	var vine := _rpn("sprig", "leaf", "moss")
+	_c_line([Vector2(7.4, 8.6), Vector2(13, 3)], 1.5, vine)
+	_c_disc(Vector2(13.4, 2.6), 2.0, vine)
+
+func _ic_fairy_circle() -> void:
+	# Mushrooming + Rooted: a ring of little mushrooms on a dark vine.
+	_crown()
+	_c_ring(Vector2(8, 11), 5.6, 4.4, _rpn("moss", "deepmoss", "deepmoss"))
+	var cap := _rpn("newleaf", "sprig", "leaf")
+	var stem := _rpn("moonpath", "deadwood", "loam")
+	for c: Vector2 in [Vector2(2.8, 8.4), Vector2(13.2, 8.4), Vector2(3.4, 13.4), Vector2(12.6, 13.4), Vector2(8, 6)]:
+		_c_rect(Rect2i(int(c.x) - 0, int(c.y) + 1, 1, 2), stem)
+		_c_ell(c, Vector2(2.2, 1.4), cap)
+
+func _ic_lightning_rod() -> void:
+	# Exposed + Charged: a bolt bent off its path onto a gold crosshair.
+	var gold := _rpn("heartlight", "glow", "gold")
+	var c := Vector2(9.6, 10.2)
+	_c_ring(c, 3.8, 2.0, gold)
+	_c_disc(c, 0.9, gold)
+	for d: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+		_c_line([c + d * 4.2, c + d * 5.6], 1.1, gold)
+	_c_line([Vector2(0.8, 0.8), Vector2(5.6, 2.6), Vector2(3.0, 5.0), Vector2(7.4, 7.4)], 1.6, _rpn("heartlight", "glow", "gold"))
+
+# Legendary marks ---------------------------------------------------------------------------------
+
+func _ic_dawnbreak() -> void:
+	# Dawnbreak: the dawn breaking up between dark nightmare petals, thin rays fanning out above.
+	var c := Vector2(8, 11.2)
+	for i in 7:
+		var d := Vector2.from_angle(PI + (i + 0.0) * PI / 6.0)
+		var a := Vector2i((c + d * 5.4).round())
+		var b := Vector2i((c + d * (7.6 if i % 2 == 1 else 6.6)).round())
+		_dt_line(a, b, Palette.color("glow") if i % 2 == 1 else Palette.color("gold"))
+	_c_disc(c, 3.8, _rpn("heartlight", "glow", "gold"))
+	var petal := _rpn("slate", "shade", "dread")
+	_c_poly(PackedVector2Array([Vector2(0.4, 15.8), Vector2(1.4, 8.8), Vector2(5.4, 15.8)]), petal)
+	_c_poly(PackedVector2Array([Vector2(3.8, 15.8), Vector2(5.8, 12.4), Vector2(8, 15.8)]), petal)
+	_c_poly(PackedVector2Array([Vector2(8, 15.8), Vector2(10.2, 12.4), Vector2(12.2, 15.8)]), petal)
+	_c_poly(PackedVector2Array([Vector2(10.6, 15.8), Vector2(14.6, 8.8), Vector2(15.6, 15.8)]), petal)
+	_dt(7, 9, Palette.color("heartlight"))
+
+# --- HUD-size icons (drawn by hand, shown at exactly x2) --------------------------------------------
+# The top-right counters at 12 px (x2 = 24 px) and the HUD button glyphs at 10 px (x2 = 20 px), so
+# nothing is ever scaled by a fraction. Same designs as the 16 px icons, simplified.
+# Letters are Heartwood 32 names; "o" is the icon outline.
+
+const HUD_INK := {
+	"o": "dread", "H": "heartlight", "G": "glow", "g": "gold",
+	"N": "newleaf", "S": "sprig", "L": "leaf", "b": "oak",
+	"D": "dewlight", "d": "dew", "P": "pool",
+	"W": "wraithlight", "U": "bruise",
+	"m": "moonpath", "p": "path", "l": "loam",
+}
+
+const HUD_COUNTERS := {
+	"leaf_hud": [
+		"........ooo.",
+		"......ooNNo.",
+		".....oNNSSo.",
+		"....oNSSSgo.",
+		"...oNSSSgLo.",
+		"..oNSSSgSLo.",
+		"..oSSSgSLo..",
+		".oSSSgSLLo..",
+		".oSSgSLLo...",
+		".oSgLLoo....",
+		"obgooo......",
+		"bo.........."],
+	"dew_hud": [
+		".....oo.....",
+		"....oDdo....",
+		"...oDDddo...",
+		"...oDdddo...",
+		"..oDHdddPo..",
+		".oDHHddddPo.",
+		".oDHdddddPo.",
+		".oDddddddPo.",
+		".oddddddPPo.",
+		"..oddddPPo..",
+		"...oPPPPo...",
+		"....oooo...."],
+	"dreamlight_hud": [
+		".....oo.....",
+		"....oHWo....",
+		"...oHWWUo...",
+		"..oHWWWWUo..",
+		".oHWWWWWWUo.",
+		"oHHWWGWWWWUo",
+		"oHWWWWWWWUUo",
+		".oWWWWWWUUo.",
+		"..oWWWWUUo..",
+		"...oWWUUo...",
+		"....oUUo....",
+		".....oo....."],
+	"path_hud": [
+		".......ooo..",
+		"......ommpo.",
+		"......opplo.",
+		"..ooo..ooo..",
+		".ommpo......",
+		".opplo.ooo..",
+		"..ooo.ommpo.",
+		"......opplo.",
+		"..ooo..ooo..",
+		".ommpo......",
+		".opplo......",
+		"..ooo......."],
+}
+
+const HUD_GLYPHS := {
+	"remember_hud": [
+		"....oo....",
+		"...oHgo...",
+		"...oGgo...",
+		"..oHGGgo..",
+		"oHGGHHGGgo",
+		"ogggHGgggo",
+		"..oGGggo..",
+		"...oGgo...",
+		"...oggo...",
+		"....oo...."],
+	"boosts_hud": [
+		"....oo....",
+		"...oHGo...",
+		"..oHGGgo..",
+		".oHGGGggo.",
+		"ooooGgoooo",
+		"...oGgo...",
+		"...oGgo...",
+		"...oGgo...",
+		"...oggo...",
+		"...oooo..."],
+	"help_hud": [
+		"..oooooo..",
+		".oHGGGGgo.",
+		".oGgo.oGgo",
+		"..oo.oGggo",
+		"....oGGgo.",
+		"...oGgoo..",
+		"...oooo...",
+		"...oHGo...",
+		"...oGgo...",
+		"...oooo..."],
+	"menu_hud": [
+		".oooooooo.",
+		".oHGGGGgo.",
+		".oggggggo.",
+		".oooooooo.",
+		".oHGGGGgo.",
+		".oggggggo.",
+		".oooooooo.",
+		".oHGGGGgo.",
+		".oggggggo.",
+		".oooooooo."],
+}
+
+func _hud_sheet(maps: Dictionary, size: int, file_name: String) -> Dictionary:
+	var ids := maps.keys()
+	var sheet := Image.create(size * ids.size(), size, false, Image.FORMAT_RGBA8)
+	var index := {}
+	for i in ids.size():
+		var rows: Array = maps[ids[i]]
+		assert(rows.size() == size, "%s: %d rows" % [ids[i], rows.size()])
+		for y in size:
+			var row: String = rows[y]
+			assert(row.length() == size, "%s row %d: %d wide" % [ids[i], y, row.length()])
+			for x in size:
+				var ch := row[x]
+				if HUD_INK.has(ch):
+					sheet.set_pixel(i * size + x, y, Palette.color(HUD_INK[ch]))
+		index[ids[i]] = i
+	sheet.save_png(OUT + file_name)
+	return {image = file_name, frame_size = size, icons = index}
+
+func _make_hud_icons() -> void:
+	var data := {
+		counters = _hud_sheet(HUD_COUNTERS, 12, "hud_counters.png"),
+		glyphs = _hud_sheet(HUD_GLYPHS, 10, "hud_glyphs.png"),
+		note = "HUD-size icons, drawn for exactly x2: counters 12 px -> 24 px, button glyphs 10 px -> 20 px. Nearest filtering.",
+	}
+	var file := FileAccess.open(OUT + "hud_icons.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify(data, "\t") + "\n")

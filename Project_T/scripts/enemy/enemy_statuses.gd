@@ -43,6 +43,18 @@ const SPORE_TICK := 0.5  # Spored soothes in ticks this long
 const FOG_SPORE_BONUS := 0.5  # Spored ticks +50% while in fog (Mistveil)
 
 var is_boss := false
+var is_elite := false  # Deeply Blighted (Enemy sets it with is_boss): its own slow floor
+var slow_capped := false  # All slows together hit the floor ("Slowed to the limit" in the status UI)
+var sleep_cooldown := 0.0  # After waking, seconds before it can fall Asleep again
+var hold_cooldown := 0.0  # After a Hold ends, seconds before it can be Held again
+var _hold_just_ended := false  # The frame a Hold ran out (Snare's release-pull Hold may follow)
+const SLOW_FLOOR := 0.5
+const SLOW_FLOOR_ELITE := 0.6
+const SLOW_FLOOR_BOSS := 0.7
+const SLEEP_COOLDOWN := 4.0
+const SLEEP_COOLDOWN_BOSS := 8.0
+const HOLD_COOLDOWN := 1.5
+const HOLD_COOLDOWN_BOSS := 3.0
 var ignores_slows := false  # Drowned One: statuses still apply, they just don't slow it
 # From EnemyData: statuses that don't take, and {status id: duration multiplier}.
 var immune: Array[StringName] = []
@@ -53,6 +65,8 @@ var duration_multiplier_all := 1.0
 var _active := {}
 var _spore_timer := 0.0
 var _fog_time := 0.0
+var fog_source: Node = null  # The Warden whose fog it's in (credit for the fog-boosted part of Spored ticks)
+var _spore_by := {}  # Spored credit: applier instance id -> [applier, stacks it added] (DamageLog splits ticks by it)
 var _stag_time := 0.0  # Seconds left inside the White Stag's aura
 
 # Reactions (tower_design.md "Reactions"; rules in Reactions). Per nightmare:
@@ -87,6 +101,7 @@ var tempest_time := 0.0
 var gust_time := 0.0
 var prism_pending := false
 var smother_ended := false
+var veil_time := 0.0  # Morning Fog's Veil (FinalTwists): while > 0 it can't be healed (Enemy.heal reads it)
 var marked_extra := 0.0  # Beacon: its Marked is stronger (+35% instead of +25%) until Marked ends
 var marked_bonus := 0.0  # Bright Marks (Dream): added to either (the nightmare sets it each frame)
 # Hunter's Moon / Eternal Charge (Legendary rules): Marked / Static on this nightmare never run out.
@@ -152,9 +167,15 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		max_stacks: int = 0, line: String = "", source: Node = null) -> float:
 	if id in immune:
 		return 0.0
+	if id == HELD and hold_cooldown > 0.0 and not has(HELD) and not _hold_just_ended:
+		return 0.0  # Just shook off a Hold (an ongoing Hold can still be stretched; Snare's release-pull Hold, in
+		# the very frame the Hold ended, is the designed hold -> pull -> hold cycle and still lands)
 	var cap := get_max_stacks(id, max_stacks)
 	var status: Dictionary = _active.get(id, {"stacks": 0, "time": 0.0, "potency": 0.0})
+	var before: int = status.stacks
 	status.stacks = mini(status.stacks + stacks, cap)
+	if id == SPORED and source != null:
+		_note_spores(source, status.stacks - before, before == 0)
 	var length: float = (duration if duration > 0.0 else DEFAULT_DURATION[id]) * duration_multipliers.get(id, 1.0) \
 		* duration_multiplier_all
 	if length >= status.time:
@@ -248,8 +269,10 @@ func snapshot() -> Array:
 	return result
 
 # Keeps the creature "in fog" (Mistveil) for `seconds`.
-func set_in_fog(seconds: float) -> void:
+func set_in_fog(seconds: float, from: Node = null) -> void:
 	_fog_time = maxf(_fog_time, seconds)
+	if from != null:
+		fog_source = from  # Credited with the fog part of Spored ticks (DamageLog)
 
 func is_in_fog() -> bool:
 	return _fog_time > 0.0
@@ -277,7 +300,11 @@ func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 		slow += STAG_SLOW
 	if slow_time > 0.0:
 		slow += slow_amount
-	return maxf(1.0 - slow, 0.1)
+	# Slow and sleep have limits (tower_design.md, 2026-10-01): all slows together never take a nightmare below
+	# SLOW_FLOOR of its speed (bosses / elites higher). Full stops (Held, Asleep) are separate.
+	var floor_share := SLOW_FLOOR_BOSS if is_boss else (SLOW_FLOOR_ELITE if is_elite else SLOW_FLOOR)
+	slow_capped = 1.0 - slow < floor_share
+	return maxf(1.0 - slow, floor_share)
 
 # Soothe taken multiplier (Marked, and the White Stag's aura).
 func get_damage_taken_multiplier() -> float:
@@ -315,11 +342,20 @@ func tick(delta: float) -> float:
 		sleep_locked_time = maxf(sleep_locked_time - delta, 0.0)
 	if slow_time > 0.0:
 		slow_time = maxf(slow_time - delta, 0.0)
+	if veil_time > 0.0:
+		veil_time = maxf(veil_time - delta, 0.0)
+	if sleep_cooldown > 0.0:
+		sleep_cooldown = maxf(sleep_cooldown - delta, 0.0)
+	_hold_just_ended = false
+	if hold_cooldown > 0.0:
+		hold_cooldown = maxf(hold_cooldown - delta, 0.0)
 	if sleep_time > 0.0:
 		if is_boss:
 			sleep_time = 0.0  # Bosses never sleep
 		elif sleep_locked_time <= 0.0:
 			sleep_time = maxf(sleep_time - delta, 0.0)  # Nightbloom's lock: sleep doesn't end
+			if sleep_time <= 0.0:
+				sleep_cooldown = SLEEP_COOLDOWN_BOSS if is_boss else SLEEP_COOLDOWN  # Awake: a breather first
 	if caught_time > 0.0:
 		caught_time = maxf(caught_time - delta, 0.0)
 	if cut_time > 0.0:
@@ -368,6 +404,9 @@ func tick(delta: float) -> float:
 		for id in expired:
 			_active.erase(id)
 			changes += 1
+			if id == HELD:
+				hold_cooldown = HOLD_COOLDOWN_BOSS if is_boss else HOLD_COOLDOWN  # A Hold ran out: a breather first
+				_hold_just_ended = true
 	if marked_extra != 0.0 and not has(MARKED):
 		marked_extra = 0.0
 	return spore_damage
@@ -375,3 +414,41 @@ func tick(delta: float) -> float:
 # Static bolts in fog (Morning Fog) and on a nightmare Caught by a Great Dreamcatcher hit harder.
 func _static_tick_multiplier() -> float:
 	return 1.0 + (FOG_STATIC_BONUS if is_in_fog() else 0.0) + get_caught_tick_bonus()
+
+# Spored credit (balance_simulation.md "Human run 2"): every applier's share of the stacks it added.
+# The damage rule doesn't change (all stacks tick at the strongest applier's potency); only who gets
+# the credit. `fresh`: the first stacks after Spored had worn off start the count over.
+func _note_spores(source: Node, added: int, fresh: bool) -> void:
+	if fresh:
+		_spore_by.clear()
+	if added <= 0:
+		return
+	var key := source.get_instance_id()
+	var entry: Array = _spore_by.get(key, [source, 0])
+	entry[1] += added
+	_spore_by[key] = entry
+
+# [[applier, share], …] of the Spored stacks (shares add up to 1), or [] when unknown.
+func spore_credit() -> Array:
+	if not has(SPORED):
+		return []
+	var total := 0
+	for key in _spore_by:
+		if is_instance_valid(_spore_by[key][0]):
+			total += _spore_by[key][1]
+	if total <= 0:
+		return []
+	var out := []
+	for key in _spore_by:
+		var entry: Array = _spore_by[key]
+		if is_instance_valid(entry[0]):
+			out.append([entry[0], float(entry[1]) / total])
+	return out
+
+# Puts it to sleep for `seconds` (longest wins), unless it woke less than SLEEP_COOLDOWN ago (or is a
+# boss). Every sleep source goes through here. Returns whether it's asleep now.
+func sleep(seconds: float) -> bool:
+	if is_boss or (sleep_cooldown > 0.0 and sleep_time <= 0.0):
+		return sleep_time > 0.0
+	sleep_time = maxf(sleep_time, seconds)
+	return true

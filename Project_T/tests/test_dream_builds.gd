@@ -129,16 +129,16 @@ func _test_nurture_rules() -> void:
 		and is_equal_approx(dreams.get_soothe_multiplier(weak) - weak_base, -0.15), "Chosen Few: +50% at rank V, −15% below III")
 	_clear_towers()
 
-	# Sunlit Rest: a free rank for the ranked Warden nearest the Heartwood; rank II waits for a Focus
+	# Sunlit Rest: a free rank for the ranked Warden nearest the Heartwood (Nurture v3: it takes the default choice)
 	_reset()
 	dreams.take(_card("sunlit_rest"))
 	var path: PackedVector2Array = main.get_node("%MapGenerator").get_path_from(main.get_node("%MapGenerator").startPath)
 	var early := _plant_at("sporeling", _beside(path, 5), 1)
 	var late := _plant_at("sporeling", _beside(path, path.size() - 6), 1)
-	var focus_wait := _plant_at("sporeling", _beside(path, path.size() - 4), 2)
+	var nearest := _plant_at("sporeling", _beside(path, path.size() - 4), 2)
 	var raised := dreams.sunlit_rest()
-	_check(raised == [late] and late.rank == 2 and early.rank == 1 and focus_wait.rank == 2,
-		"Sunlit Rest raises the ranked Warden nearest the Heartwood (skipping rank II)")
+	_check(raised == [nearest] and nearest.rank == 3 and late.rank == 1 and early.rank == 1,
+		"Sunlit Rest raises the ranked Warden nearest the Heartwood, rank II included (%s)" % [raised])
 	dreams.take(_card("sunlit_rest_ii"))
 	late.rank = 1
 	_check(dreams.sunlit_rest().size() == 2, "Sunlit Rest II raises two")
@@ -158,7 +158,7 @@ func _test_wide_and_narrow() -> void:
 	_reset()
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	dreams.take(_card("seedfall"))
-	_check(dreams.get_build_cost(sprout) == 6, "Seedfall: Sprouts cost 6")
+	_check(dreams.get_build_cost(sprout) == 8, "Seedfall: Sprouts start at 8")
 
 	# Counts: only attacking Wardens (Thornwalls never)
 	var many := _card("many_hands")
@@ -181,6 +181,7 @@ func _test_wide_and_narrow() -> void:
 	var lone := _plant("sporeling", 0, 0)
 	for i in 6:
 		_plant("sporeling", 10 + i * 3, 0)
+	dreams.grove_cards.append("few_and_mighty")  # A Grove card since the lean starting pool (Elders node)
 	_check(dreams.is_eligible(few), "Few and Mighty offered with 7 attacking Wardens")
 	base = dreams.get_soothe_multiplier(lone)
 	dreams.take(few)
@@ -235,31 +236,30 @@ func _test_wide_and_narrow() -> void:
 	dreams._attackers_planted = 0
 	_clear_towers()
 
-# Owning an archetype makes its cards likelier (tag_weight) and tall ↔ overgrowth halve each other (Pool trim).
+# Build-tag steering is off (2026-09-30): owning overgrowth cards neither lifts overgrowth nor pushes tall away;
+# only Needs shape the weights.
 func _test_direction_weighting() -> void:
 	_reset()
 	dreams.take(_card("seedfall"))  # Overgrowth
 	var wide := _card("many_hands")
 	var narrow := _card("solitude")
-	_check(not dreams._owned_tags()[1].has("tall"), "one overgrowth card doesn't push tall away yet (round 4: 2+)")
-	dreams.take(_card("sprout_chorus"))  # A second overgrowth card: now tall halves
-	_check(dreams._owned_tags()[1].has("tall"), "…two do")
+	dreams.take(_card("sprout_chorus"))  # Two overgrowth cards
+	_check(dreams.tag_weight == 1.0, "tag_weight is 1.0 (steering off)")
 	for i in 15:  # Many Hands' soft Need (15 attacking Wardens) met, so only the tags count
 		_plant("sporeling", 60 + i * 3, 0)
 	var wide_picks := 0
 	for i in 2000:
 		if dreams._weighted_pick([wide, narrow]) == wide:
 			wide_picks += 1
-	var tw := dreams.tag_weight
-	var expected := 2000.0 * tw / (tw + 0.5)  # tag_weight vs the opposite direction's ×0.5
-	_check(absf(wide_picks - expected) < 110, "overgrowth %.1f×, tall 0.5× once you've gone overgrowth (%d / 2000, expected %d)" % [tw, wide_picks, expected])
+	var expected := 1000.0  # No boost for overgrowth, no penalty for tall
+	_check(absf(wide_picks - expected) < 110, "an overgrowth card and a tall card are equally likely (%d / 2000)" % wide_picks)
 	# Unmet soft Need: ×0.4 on top
 	_clear_towers()
 	wide_picks = 0
 	for i in 2000:
 		if dreams._weighted_pick([wide, narrow]) == wide:
 			wide_picks += 1
-	expected = 2000.0 * tw * 0.4 / (tw * 0.4 + 0.5)
+	expected = 2000.0 * 0.4 / (0.4 + 1.0)
 	_check(absf(wide_picks - expected) < 110, "…an unmet soft Need weighs ×0.4 (%d / 2000, expected %d)" % [wide_picks, expected])
 	_check(dreams.can_offer(wide) and not dreams.is_eligible(wide), "…but never blocks the card (can_offer)")
 	_clear_towers()
@@ -392,7 +392,8 @@ func _test_seedling_gift() -> void:
 # The Grove's Cards limb (meta_design.md Section 3): 12 cards + Deepened, and Bittersweet Dreams.
 func _test_grove_cards() -> void:
 	_reset()
-	var ids := ["static_bloom", "static_field", "guiding_light", "starlit_aim", "twin_puff", "still_target",
+	# Charged Bloom, Charged Field, Guiding Light, Starlit Aim and Twin Puff left the Grove (2026-09-30: start pool, discovery-gated)
+	var ids := ["still_target",
 		"shattering_blow", "full_moon", "rootbound", "monoculture", "the_long_walk",
 		"deep_sleep", "restless_dreams"]
 	for id in ids:
@@ -695,11 +696,9 @@ func _test_kinship_cards() -> void:
 			"blood_is_thicker"]:
 		var card := _card(id)
 		if card:
-			# Discovery unlocks: every Kinship card but the Legendary Grove of Kin (a Grove tip) is in the
-			# start pool and waits for any Kinship.
-			var legendary: bool = id == "grove_of_kin"
-			_check(card.in_start_pool != legendary and card.tags.has("kinship")
-					and Array(card.discovered_by) == (["kinship:any"] if not legendary else []),
+			# Discovery unlocks: every Kinship card, the Legendary Grove of Kin too (2026-09-30), is in the start pool
+			# and waits for any Kinship.
+			_check(card.in_start_pool and card.tags.has("kinship") and Array(card.discovered_by) == ["kinship:any"],
 				"Kinship card %s: pool, tag and discovery" % id)
 	_check(_card("family_ties").max_stacks == 0, "Family Ties stacks (Quick Bonds merged into Old Friends)")
 	var kin := Kinships.find(dreams)

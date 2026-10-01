@@ -38,7 +38,8 @@ func _init(tower: Tower, center: Vector2) -> void:
 	_data = tower.attack_data  # What it was made with (a legacy attack, a Graftling's copy)
 	_boost = tower._hit_boost  # Sudden Bloom / Watchful Rest
 	# attack_data: a Graftling copying a Bloomcap drops the Bloomcap's cloud.
-	_radius = _data.cloud_radius * Tower.MAP_GRID.cell_size.x
+	var broad: float = tower._dream_state.get_area_radius_add() if tower._dream_state and tower._dream_state.has_method("get_area_radius_add") else 0.0
+	_radius = (_data.cloud_radius + broad) * Tower.MAP_GRID.cell_size.x  # Broad Splash widens clouds too
 	_duration = _data.cloud_duration
 	_fog = _data.cloud_fog
 	_color = _data.projectile_color
@@ -63,11 +64,13 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _tick() -> void:
+	if _data.get_id() == "morning_fog":
+		FinalTwists.veil(self, _radius, TICK * 1.5)  # Veil: nothing inside hides or heals
 	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
 		if enemy.global_position.distance_to(global_position) > _radius:
 			continue
 		if _fog:
-			enemy.statuses.set_in_fog(TICK * 1.5)
+			enemy.statuses.set_in_fog(TICK * 1.5, _tower)  # Credited with the fog part of Spored ticks
 		var data: TowerData = _data if is_instance_valid(_tower) else null
 		if data and data.cloud_slow > 0.0:
 			enemy.statuses.slow_time = maxf(enemy.statuses.slow_time, TICK * 1.6)
@@ -124,9 +127,9 @@ func _draw() -> void:
 			var at := (Vector2(x, (i - 1) * _radius * 0.35) - WISP_SIZE / 2.0).round()
 			draw_texture_rect_region(WISPS, Rect2(at, WISP_SIZE), Rect2(Vector2(i * WISP_SIZE.x, 0), WISP_SIZE), Color(tint, 0.7 * fade * edge))
 
-# Is `where` inside a fog cloud (Mistveil's, Morning Fog's)? Chain Bloom widens Puffball puffs there.
-static func fog_at(tree: SceneTree, where: Vector2) -> bool:
+# Is `where` inside a fog cloud (of Warden `from_id` if given)? Chain Bloom widens Puffball puffs in Mistveil's.
+static func fog_at(tree: SceneTree, where: Vector2, from_id: String = "") -> bool:
 	for cloud in tree.get_nodes_in_group(FOG_GROUP):
-		if cloud.global_position.distance_to(where) <= cloud._radius:
+		if (from_id == "" or cloud._data.get_id() == from_id) and cloud.global_position.distance_to(where) <= cloud._radius:
 			return true
 	return false

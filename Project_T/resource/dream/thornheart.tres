@@ -13,3 +13,4 @@ tags = Array[String](["wall", "maze"])
 requires = Array[String](["bramble"])
 max_stacks = 1
 rule_id = &"thornheart"
+in_start_pool = false

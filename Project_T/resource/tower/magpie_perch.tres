@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Magpie Perch"
-description = "A thief: each hit strips a buff (chips a shell twice as fast, stops a Weeper's mending for 3 s, takes an Omen's boosts), and a nightmare it robbed drops +1 Dew when dispelled."
+description = "A thief: each hit strips a buff, and a nightmare it robbed drops +1 Dew when dispelled."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

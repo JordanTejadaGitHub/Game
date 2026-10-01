@@ -19,6 +19,25 @@ points.
   Conductive Soil, Charged Bloom, Chain Bloom and Spore Cascade only **amplify** a combo or **add a
   new twist**. Any new card must follow this.
 
+## Placement cards show a diagram (2026-09-30)
+
+**Revised: a living mini-scene, not a static diagram** (2026-10-01, user: *"the visual tool isn't really helpful when hovering; can it be like a mini video of gameplay?"*). The hover panel plays a **looping 4–6 s mini-scene with the real sprites** in a small SubViewport, built from the card's existing `diagram` layout (no recorded video, so it follows art and balance changes and costs no file size): nightmares walk the diagram's path, the **qualifying Warden** attacks with its **boosted damage numbers in gold** (e.g. "×2" for Heart of the Maze), the non-qualifying one attacks normally in white, and the caption names the difference. Statuses and Reactions show with their real effects where the card is about them. Stops when the hover ends; reduced motion = the still diagram. Placement cards first, then status / Reaction cards.
+User: *"confusing cards like Crossroads should have a diagram of what that looks like when you
+hover."* Cards whose condition is about **where** a Warden stands get a small map picture:
+- **Shown on hover** of the card (Dream offer, Dreams this run, Codex) and on **long-press** on touch,
+  as a panel beside the card: a mini grid of **7×5 tiles** (path tiles sandy, grass dark, walls,
+  obstacles, the Heartwood or start where relevant), **one Warden that qualifies, glowing**, the
+  tiles that make it qualify **outlined in gold** (and numbered steps for Crossroads), and one
+  short caption (*"Touches the path twice, 6+ steps apart: +40%"*). A second, dimmed Warden that
+  doesn't qualify where that helps ("✗ only touches it once").
+- **Data, not art:** each card carries a small ASCII layout (`diagram` field on `UpgradeData`, e.g.
+  `"..P.P..\n..PWP..\n..PPP.."` with a legend: P path, W qualifying Warden, w non-qualifying, T
+  Thornwall, O obstacle, H Heartwood, S start, * highlighted), drawn by one shared `CardDiagram`
+  view in the Moonlit style. Same view later for the glossary and the Codex.
+- **First set:** Crossroads, Cozy Corners / II, Straightaway / II, Shelter of Stones, Solitude, Rootbound,
+  Kind Canopy, Shared Light, Heart of the Maze, Cliffside, Forest's Edge, Last Stand, Hedgerow Roots,
+  Bitter Hedges, Briar Crown, Root Network / II, Sprout Chorus, Wildwood Reclaimed, Short Roots.
+
 ## Dreams must matter (2026-09-30)
 
 User: *"cards aren't impactful enough to a run; I can play and beat it without choosing optimal
@@ -72,6 +91,57 @@ matter, confirmed.
 
 ## How Dream offers work
 
+**Each run draws its own pool, and it follows your build** (2026-09-30, user: *"doesn't a lean starting pool create optimal builds though?"* → *"yes, depending on the build you're going for"*). With ~55 cards against ~57 offers a run, a fixed pool shows almost everything every run and the best picks become a solved routine. So:
+- **At run start** the run draws its **Dream pool**: the **core** (basic stat cards and the cards of the families you hold) plus a **random ~60%** of everything else you have available (seeded with the map).
+- ~~The pool follows your build~~ **Removed (user, same day: "I want the player to be able to change their build depending on the random cards they get, not send them down a path").** Taking a card adds nothing to the pool: the run's random draw is the run, and the player adapts to it.
+- **New families** (family picks at 25 / 50 / 75) add their family cards to the core when picked.
+- The Grove grows what can be drawn, so meta progress means **more varied runs**, not just stronger ones.
+- Owner: Roguelite Mechanic Discussion (rules), Roguelite Code (DreamState). The offer weights, fade and pity rules work inside the run's pool. Codex "Dreams" keeps showing every card.
+- **Exact rules (Roguelite design chat, 2026-09-30):**
+  - **Available** = every card this profile could be offered (start pool + Grove unlocks +
+    discoveries), before in-run Needs.
+  - **Core** (always in the run's pool):
+    - the **basics**: Quickened Sap, Deeper Calm, Longer Roots, Deep Roots, Thick Bark, Evergreen,
+      Morning Dew (stacking, untagged cards that every build uses);
+    - **family cards of every family you hold** (cards whose Needs name that family or one of its
+      Wardens, and its Blessing), added at each family pick;
+    - **the clearing opener** (Heartwood's Reach) on maps with 8+ obstacles, so clearing is always
+      reachable.
+  - **The rest** (generic and direction cards, combo cards, Legendaries) is sampled at **60%**,
+    seeded with the map seed (same map, same pool), **per rarity** so the split doesn't skew, with
+    **floors**: at least **12 Common, 12 Uncommon, 6 Rare** and (if available) **3 Legendary** from
+    the rest. If fewer exist, take them all.
+  - **Starvation check:** a run has 19 Dreams (up to ~28 offers with Lucid Dreaming, rerolls and
+    Grove perks), 3–4 cards each.
+    - **New account:** ~55 available → core ~14 + rest ~40 sampled to the floors ≈ **~45 cards**.
+      Stat cards stack, the fade lets a passed card return after a gap, and every rarity has its
+      floor: offers always fill.
+    - **Full Grove:** ~200 available → **~120 cards**: very varied runs, still far more than offers.
+    - The boss and pity Rare+ guarantee: with ≥ 6 Rares in the run's pool plus the family Rares,
+      a forced Rare+ offer finds a card. If none is eligible, the existing fall-through applies.
+  - ~~**The pool follows your build:** taking an archetype-tagged card pulls that archetype's
+    remaining cards into the run's pool.~~ **Removed** (user, 2026-09-30: *"I want the player to be
+    able to change their build depending on the random cards they get, not send them down a
+    path."*). The run's pool is fixed at run start; only family picks and discoveries add to it.
+  - **Discovery mid-run** adds the discovered cards to this run's pool right away (you just did the
+    thing; the half-dreamed rule still applies).
+  - **Unaffected:** Entwined guaranteed slots (their card joins the pool when due), Seed cards'
+    "calls", Banish (removes from the run's pool), the Stray slot (draws from the run's pool, outside
+    your tags).
+  - **Shown:** nothing new on screen. The Codex lists every card; the "Dreams this run" panel could
+    later show "dreams in reach this run" (optional).
+  - **Tests:** two map seeds give different pools (same seed, same pool); the floors hold on a fresh
+    profile; taking a tagged card adds **nothing** to the pool; a family pick adds its family cards;
+    19 offers on a fresh profile never show fewer than 3 cards.
+  - **Targets (design hub, 2026-09-30):** a **decent build** (3+ of a package by drift 50) in
+    **~50%** of runs; the **full dream build** (5+ by drift 100) in **~5%** with a full Grove and
+    **close to 0%** on a fresh profile.
+  - **Measured (09a9a069: lean pool, Grove nodes, 60% run pool, steering off):** decent build **57%**
+    fresh / **52%** full (mixed picker; broad spread at full) ✓; dream build ~0% fresh (except Kinship
+    12, Affliction 8, Precision 7) / **~5%** full (Tall 5, Overgrowth 6, Daring 4, Precision 9,
+    Affliction 8, Maze 8, Tending 4, Kinship 4, Swift 0, Wide Reach 0) ✓; Adapt 95–96% ✓; every
+    offer fills. **The 60% share stays.** Optional later: one more card each for Swift and Wide Reach,
+    so their dream build is possible at all.
 - **3 cards per Dream**, after drifts 5, 10, … 95. No duplicates within an offer.
 - **Passed-over cards fade** (added 2026-09-28; playtest: Few and Mighty was offered ~5 times by
   drift 35 to a player not going narrow). A card that was offered and **not taken**:
@@ -287,7 +357,11 @@ the profile like the Codex). The forest dreams of what it has seen.
 |---|---|---|
 | **A Reaction** | the first time that Reaction fires, ever (profile `reactions_seen`) | cards that name that Reaction: Thunderclap → Rolling Thunder, Rain on Glass, Conductive Soil; Ignite → Wildfire Spores, Sparking Spores; Mushrooming → Mushroom Rain, Damp Rot; Drown → Deep Water. **Any 2 Reactions** → Quick Reactions |
 | **A Crowned Reaction** | the first time it fires | its Woven card (Tempest → Eye of the Tempest, Still Pool → Deep Stillness, …) |
-| ~~**A chain**~~ | — | (Dawnbreak is a Legendary: not discovery-gated, it stays a Grove tip; resolved 2026-09-29) |
+| **A ×10 chain** | the first ×10 Reaction chain, ever (profile `best_chain`) | **Dawnbreak** (Legendary; moved out of the Grove 2026-09-30) |
+| **A first Kinship** | the first time any Kinship forms (same as the row below) | also **Grove of Kin** (Legendary; moved out of the Grove 2026-09-30) |
+| **Charged + Drowsy** | the first time one nightmare carries Charged and Drowsy together | **Charged Bloom** (id `static_bloom`) |
+| **Puffball in the fog** | the first Puffball pop on a nightmare inside Mistveil's fog | **Chain Bloom** |
+| **A crit on a Marked nightmare** | the first crit that lands on a Marked nightmare | **Starlit Aim** |
 | **A Kinship** | the first time **any** Kinship forms | the Kinship cards (124–133) |
 | **A Warden** | the first time you **build or grow into** that Warden | cards whose Needs name it (Soft Spores → Sporeling, Shiny Things → Magpie Perch, Heavy Stones → Pebbling, Twin Puff → Sporeling, …) and its branch / final-form unlock cards |
 
@@ -322,6 +396,12 @@ the profile like the Codex). The forest dreams of what it has seen.
   a Stormcap, which defeats a card meant to tempt toward the other family.
 - **Not covered** (stay as they are): generic cards, stat cards, Legendaries (they start builds and
   need no discovery), clearing and Nurture cards (their openers already read the run).
+  **Exception (2026-09-30, "no combo cards in the Grove", `meta_design.md` Section 3):** the two
+  *combo* Legendaries, **Dawnbreak** and **Grove of Kin**, now unlock by discovery (rows above)
+  instead of being Grove tips; this replaces the 2026-09-29 "Resolved" note for them. Discovery is
+  a profile unlock like the Grove, not an in-run Need, so the Legendary rules still hold (no card
+  Needs in a run). **Static Field, Twin Puff and Guiding Light** come with their starting families
+  and are in the pool from the first run.
 - **Demo:** nothing is saved, so discoveries count **for the current run only**. **Dev modes** (Test
   Grove, Unlock all families) treat everything as discovered.
 - **Data:** `UpgradeData.discovered_by` (a list: `reaction:<id>`, `crowned:<id>`, `chain:5`,
@@ -629,11 +709,39 @@ unlocks clearing":
 | # | Card | Rarity | Effect | Tags | Pool |
 |---|---|---|---|---|---|
 | 54 | **Cleared Ground** | Common | clearing obstacles costs **25% less** Dew (stacks, **max −50%**) | clearing, economy | Start |
-| 55 | **Heartwood's Reach** | Common | gain **4 half-price clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
+| 55 | **Heartwood's Reach** | Common | *(2026-09-30: now absorbs Cleared Ground: clearing −25% (−50% at 2 stacks) and 3 half-price clears per stack, see "Finalized" under Clearing follow-ups.)* Was: gain **4 half-price clears**; use them any time (a charge counter on the HUD; unused charges last all run). Deepened II: 7 | clearing | Start |
 | 56 | **Reclaimed Earth** | Common | each clear **refunds 40% of the Dew you paid for it**, and the cell is left **fertile**: the first Warden planted there costs 50% less | clearing, economy | Start |
 | 57 | **Tended Forest** | Common | **+1% damage for every obstacle cleared this run** (max +25%; clears from before the card count) | clearing, maze | Start |
 | 58 | **Burn Back the Dead Wood** | Rare, **Bittersweet** | clear **every Withered Tree** on the map right now for **5 Dew each** (paid when taken; only offered if you can pay). **Cost:** nightmares +10% speed for the rest of the run | clearing, bittersweet | Grove |
 
+**Clearing follow-ups need a payoff on the map** (2026-09-30, user: *"the obstacle clearing cards become useless once you unlock it first; only good with the Legendary"*). After Tend the Forest, the follow-ups are mostly discounts (Cleared Ground, Heartwood's Reach) on something you do a few times a run; only Wildwood Reclaimed (Wardens on cleared cells) pays off. Direction for the redesign (Roguelite Mechanic Discussion owns the cards):
+- **The cleared spot itself becomes worth something**, as a smaller version of Wildwood: a **tended stump** (a cleared Withered Tree) gives the Wardens touching it **+10% damage**; a **moved hollow** (a cleared boulder) gives a Warden planted in it **+1 range**. These come from Uncommon cards (one each), and stack up to Wildwood at the top.
+- **Merge the two discount cards into one Common** (cheaper clears and a few free ones), so the clearing line has room for payoffs.
+- **Tended Forest** stays (global % per clear) and **Reclaimed Earth** stays (fertile cells).
+- Goal: a clearing build that reshapes the map and is rewarded for **where** it clears, with Wildwood as its Legendary peak, not its only card.
+- **Finalized (Roguelite design chat, 2026-09-30):**
+
+  | # | Card | Rarity | Effect | Diagram | Where |
+  |---|---|---|---|---|---|
+  | (55) | **Heartwood's Reach** (absorbs Cleared Ground) | Common, stacks (max 2) | clearing costs **25% less** (−50% at 2 stacks, still above the floor), and gain **3 half-price clears** per stack | — | **Start pool** (the clearing opener: any clearing card unlocks clearing) |
+  | 246 | **Tended Stumps** | Uncommon | each **tended stump** (a Withered Tree you cleared) gives the Wardens **touching it +25% damage** (a Warden counts its best stump once; stumps don't stack) | `".......\n..WWW..\n..WUW..\n..www..\n......."` with `U` = stump; caption *"Touching a tended stump: +25%."* (the dimmed `w` row shows Wardens one cell too far) | Grove · **Reclaiming node 1** |
+  | 247 | **Hollow Ground** | Uncommon | a Warden **planted in a moved hollow** (where you cleared a Mossy Boulder or Thorn-Sapling) gets **+1 range** | `".......\n.PPPPP.\n...Q...\n.....w.\n......."` with `Q` = Warden in a hollow; caption *"Planted in a moved hollow: +1 range."* | Grove · **Reclaiming node 1** |
+
+  - **Why +25%, not +10%:** the `dream_audit.md` budget for an Uncommon conditional card is +45%;
+    +10% would be "too small to change a choice". +25% because one stump can reach several Wardens.
+  - **Why half-price, not free:** "clearing always costs Dew" (user rule): the merged card gives
+    half-price charges, never free clears. Merged, it also frees a Common slot.
+  - **Reclaiming branch** (`meta_design.md`, Meta owns the final call): node 1 (50) = **Reclaimed
+    Earth, Tended Stumps, Hollow Ground** (the "where you clear" payoffs come first, so buying the
+    branch fixes the user's complaint at once); node 2 (70) = **Tended Forest, Thorn Snare, Bramble
+    Oath**; tip **Wildwood Reclaimed** (120).
+  - **Starting pool:** Cleared Ground leaves (merged); Commons go 25 → **24**. Heartwood's Reach stays
+    the one start-pool clearing card (the taster).
+  - **Deepened:** Tended Stumps II (+40%, and diagonal-only Wardens count too: it already counts the
+    8 cells, so II is the number only), Hollow Ground II (+1.5 range).
+  - **Tower hooks:** Tended Stumps and Hollow Ground read the cleared cells' marks
+    (`ObstacleData.cleared_source_id`: tended stump / moved hollow) per Warden cell, live (a new clear
+    updates neighbours). Tower Code adds them to the Warden's stat breakdown.
 **Clear prices, raised** (2026-09-30, user: "clearing obstacles seems too cheap"). At 5 / 8 Dew a
 clear cost less than a Sprout, so by act 2 the map was free to reshape and each clear was a cheap
 +1 Seed. Now:
@@ -1210,7 +1318,7 @@ card builds sit at **40–66%**; Emergence (mixed) 66%, Adapt 93–94%. Round 5 
    coming together by the middle of act 3 is right, and the user's playtest said builds came too
    easily. Chasing target: **3+ by drift 75 in 35–65%**, 5+ by 100 in 25–50%. Emergence stays
    judged at drift 50 (≥ 60% mixed).
-3. `tag_weight` stays **1.3**.
+3. `tag_weight` stays **1.3**. **Superseded 2026-09-30:** the user turned build tag steering off: `tag_weight` = **1.0** and the Tall ↔ Overgrowth ×0.5 opposition is removed. Offers are shaped only by rarity, the fade, the run's random pool, Needs and the Stray slot; archetype tags stay for tag resonance, the Legendary rules and measurement.
 
 **Round 5 measured (a399d702) — the pass ends here.** At 1.3, all 8 card builds reach their target on
 at least one measure:
@@ -1231,6 +1339,112 @@ are short at 5+ by 100 (both board-heavy, no stacking card: a card change if wan
 the three-family Warden builds (Full Moon, Gale, Hairpin Mill, Rockfall, Thunder Chimes, The Grove)
 stay rare by nature; overall power after the free-branch change belongs to the balance sim
 (`balance_simulation.md`), not to Dream weighting.
+
+## The starting Dream pool (2026-09-30, user-approved)
+
+**Status: approved by the user via the design hub ("implement"). Final Grove node list, costs and old-save rule: `meta_design.md` Section 3 (Meta Game Discussion, 2026-09-30); the "suggested homes" table below is superseded there (Kinship cards stay discovery, not a node; Lucid Dreaming is the Bittersweet tip).**
+Why: a new account's first run can be offered most of the pool (123 base cards in the start pool:
+32 C / 50 U / 31 R / **10 Legendary**), so builds come together too easily. Target **~25 C / 30 U /
+10 R / 0 L**. Rules:
+- **Starting pool** = the basics, the three starting families' cards, and **one or two "taster"
+  cards per build direction**, so a new player meets every build without being handed one.
+- **Build-defining cards** (a direction's payoffs and Rares, and **all Legendaries**) move to **Grove
+  Card nodes, one direction per node** (Meta owns the nodes).
+- **Not counted / unchanged:** family cards of **Grove families** (Pebbling, Rootling, Bellflower,
+  Acorn, Nestling, Whirligig) stay "start pool" but can't be offered until that family is unlocked;
+  **combo cards** stay start pool but are discovery-gated (a new account hasn't found the combo).
+  So a brand-new account's first run really sees **~55** cards.
+
+**The starting pool (65):**
+
+| Rarity | Cards |
+|---|---|
+| **Common (25)** | *Basics:* Quickened Sap, Deeper Calm, Longer Roots, Deep Roots, Thick Bark · *Starting families:* Soft Spores, Brighter Jars, Heavy Dew, Bright Marks, Live Wire · *Combo (discovery):* Damp Rot, Rain on Glass, Sparking Spores · *Economy:* Morning Dew, Call of the Wild · *Tasters, one per direction:* Tender Care (Tall), Seedfall (Overgrowth), Quick Step (Daring), Glinting Dew (Precision), Bitter Sap (Affliction), Winding Path (Maze), Cleared Ground + Heartwood's Reach (Tending / clearing), Family Ties (Kinship) · Lasting Dreams |
+| **Uncommon (30)** | *Starting families:* Lingering Spores, Soaked Through, Lingering Mark, Twin Puff · *Bridges with them:* Mycelium, Fireflies in the Grass, Spore Kin · *Combo (discovery):* Rolling Thunder, Wildfire Spores, Mushroom Rain, Deep Water · *Maze basics:* Cozy Corners, Straightaway, Hedge Maze, Weathered Walls · *General:* Evergreen, Sudden Insight, Glimmering Hunt, Heavy Air · *Second tasters:* Crowded Path, Last Breath (Affliction), Lone Hunter, Watchful Rest (Precision), Sprout Chorus, Many Hands (Overgrowth), Kindred Roots (Tall), Sweet Harmony, Old Friends (Kinship), Fresh Growth, Head Start (Daring) |
+| **Rare (10)** | *Starting families:* Charged Field, Guiding Light, Called Shot · *Combo:* Conductive Soil, Spore Cascade (Entwined) · *General:* Heart of the Maze, First Light, Root Network, Thinning the Herd, Steadfast |
+| **Legendary (0)** | all Legendaries are Grove tips (or discovery, for Dawnbreak and Grove of Kin) |
+
+**Moving to Grove nodes (suggested homes; Meta owns the final node list):**
+
+| Direction node | Cards that move there | Tip (Legendary) suggestions |
+|---|---|---|
+| Tall | Solitude, Elder Kin, Few and Mighty (+ its existing Sunlit Rest, Deeper Rings, Nursery, Chosen Few) | The Old Ones + Endless Rings; The Last Light; Monoculture |
+| Overgrowth | Mixed Grove, Odd One Out, Grand Tour (+ Seedling Gift, Canopy) | Menagerie; Rootbound |
+| Daring | Scarred Bark, Thin Bark, Desperate Bloom, Second Wind, Last Stand | Restless Night; Last Leaf |
+| Precision | Hunter's Patience (+ Still Target, Shattering Blow) | Full Moon; Hunter's Moon |
+| Affliction | Crowd Breaker (+ Seeping, Venom Bloom) | Nightshade; Eternal Charge |
+| Maze | Forest's Edge, Bitter Hedges (+ Burn Back) | The Long Walk; Crossroads; Briar Crown; Rooted Nightmares |
+| Tending | Reclaimed Earth, Tended Forest, Thorn Snare, Bramble Oath | Wildwood Reclaimed; The Quiet Ones |
+| Kinship | Rooted Bond, Extended Family, Blood Is Thicker | (Grove of Kin is discovery) |
+| Swift / Wide Reach | their new cards (235–245) | Whirlwind Heart; Great Ripple |
+| Dreams | Lucid Dreaming (a small node, or with Bittersweet) | — |
+
+- **Counts after the move:** start pool 65 (+ Grove-family cards and discovery cards that a new
+  account can't see yet). Each Grove direction node adds 2–5 cards, so buying one deliberately
+  widens one build.
+- **Interaction with the trim's measurements:** tasters keep every card build discoverable on run
+  one (Emergence), while the payoffs need the Grove (a build you choose to grow into, across runs).
+  Re-measure with a fresh-profile preset (`MetaRun.load_preset(&"fresh")`) after the move.
+
+## Grove build branches: Swift and Wide Reach (2026-09-30)
+
+For `meta_design.md` Section 3 (Meta Game Discussion, after the user's "no combo cards in the
+Grove"). Two **generic** build branches: no combo payoffs, no single-family cards; each works with
+any Warden. Grove pool (they join once the node is bought). Two new archetype tags, so taking one
+lifts its branch: **`swift`** and **`reach`** (card builds C9 and C10). Numbers sized to the
+`dream_audit.md` budget.
+
+**Swift (attack speed)**
+
+| Node | # | Card | Rarity | Effect |
+|---|---|---|---|---|
+| 1 *Quickening* (50) | 235 | **Momentum** | Uncommon | a Warden attacking the **same nightmare** again gains **+6% attack speed per hit** (max +45%); resets on a new target |
+| | 236 | **Quickening** | Common | when a nightmare is dispelled in a Warden's range, that Warden gets **+30% attack speed for 4 s** |
+| | 237 | **Flurry** | Uncommon | every **5th attack** from a Warden **fires twice** |
+| 2 *Light Feet* (70) | 238 | **Restless Roots** | Uncommon | Wardens with **under 1 attack per second** (before bonuses) get **+45% attack speed** |
+| | 239 | **Hummingheart** | Rare | every **+10% bonus attack speed** a Warden has also gives it **+3% damage** (max +60%) |
+| | 248 | **Drumbeat** | Uncommon | a Warden **touching 2+ other attacking Wardens** gets **+30% attack speed**. Diagram `".......\n..www..\n..wWw..\n.......\n...W..."` (the lone `W` below is dimmed: ✗ alone), caption *"Touching 2+ Wardens: +30% attack speed."* *(added 2026-09-30 so Swift's dream build is possible)* |
+| Tip (120) | 240 | **Whirlwind Heart** | Legendary | **all attack-speed bonuses count double**; every hit deals **−20% damage**. You build around stacking attack speed |
+
+**Wide Reach (area, splash)**: "area attacks" = splashes, pulses, clouds, lobs, chains, sweeps
+(anything `Tower.hit(..., is_area = true)`).
+
+| Node | # | Card | Rarity | Effect |
+|---|---|---|---|---|
+| 1 *Broad Strokes* (50) | 241 | **Broad Splash** | Common, stacks (max 3) | **splashes and clouds** reach **0.25 cells wider** per stack (pulses use their range: not affected) |
+| | 242 | **Lingering Splash** | Uncommon | every **3rd area attack** leaves a patch (1 cell, 2 s) that deals **25% of that hit per second** to nightmares inside (effect damage) |
+| | 249 | **Overlap** | Uncommon | a nightmare hit by **two different Wardens' area attacks within 1 s** takes **+40%** from the second. Diagram `".......\n.PPPPP.\n.W.*.W.\n.......\n......."` (`*` = where both splashes land), caption *"Two area Wardens covering the same spot: +40%."* *(added 2026-09-30 so Wide Reach's dream build is possible)* |
+| 2 *Far Reach* (70) | 243 | **Far Reach** | Uncommon | Wardens with an **area attack** get **+0.75 range** |
+| | 244 | **Spillover** | Rare | when an area attack **dispels** a nightmare, the **leftover damage** splashes to nightmares within 1 cell |
+| Tip (120) | 245 | **Great Ripple** | Legendary | every area attack **hits again 1 s later** in a ring **1 cell wider**, at **50%** (an aftershock). You build around big area Wardens |
+
+- **Generic by design:** every family has attackers with both normal and area attacks, so neither
+  branch needs a family. Swift helps single-target and fast Wardens; Wide Reach helps splash, pulse
+  and cloud Wardens: the two pull a board different ways.
+- **Archetypes:** `swift` and `reach` join the build tags (two more card builds, C9 Swift and C10
+  Wide Reach, measured like the others). They're Grove-only, so a fresh profile never sees them.
+  `reach` and `affliction` overlap a little (area and effect damage both hit crowds); that's fine,
+  as a bridge.
+- **Limits:** Flurry's extra shot and Great Ripple's aftershock never trigger themselves (no chains).
+  Spillover doesn't trigger off its own splash. Whirlwind Heart's doubling applies to bonuses only,
+  not base speed, and attack speed is capped where the attack animation can't go faster (Tower
+  Code's existing cap).
+- **Deepened:** Momentum II (+8% per hit, max +60%), Broad Splash II not needed (it stacks), Lingering
+  Splash II (every 2nd area attack), Far Reach II (+1.25 range).
+- **Bridges, not more cards** (2026-09-30, after Drumbeat and Overlap still left their dream build at
+  0–1%: with only 5–6 Grove cards, a 60% run pool rarely holds a full set). Every other card build has
+  bridges; these two had none. Existing cards that already do the job get the second tag (no new
+  cards, no pool growth, the 60% stays):
+  - **`swift`** also on **Quick Step**
+    (attack speed after calling early; Daring). Swift's package: 6 → **7**. (Quickened Sap was tagged first, but as a core basic it sits in every run's pool and pushed Swift's dream build to 9%: untagged again.)
+  - **`reach`** also on **Crowd Breaker** (area attacks +5% per nightmare hit) and **Last Breath** (a
+    dispel burst on nearby nightmares; Affliction), and **Shattering Blow** (crits splash; Precision).
+    Wide Reach's package: 5 → **8** (at 7 it measured 2%, short).
+  - Their effects don't change; the tag adds tag resonance and counts them in the package.
+    Target: 5+ by 100 at **~3–5%** with a full Grove, like the other card builds.
+  - **Measured (61f25e69, Full, 300 runs):** Wide Reach (8) **5%** ✓; Swift (7) **2%** (accepted:
+    within noise of the band; a core basic as a bridge pushed it to 9%). Precision unchanged (8%).
+    Pass closed.
 
 ## Status effect numbers
 
@@ -1609,3 +1823,7 @@ requirement fields (*Card requirements*): `requires_tag` + `requires_tag_count` 
 (e.g. rank V, 1; any rank, 2),
 plus effect parameters (stat modifiers: target line + stat + amount; or a `rule_id` the game
 checks for).
+
+**Offers are random within the run's pool (2026-09-30, user):** the build tag weight ("Dreams steer your Dreams", 1.6 → 1.3) is **turned off (1.0)**. The player adapts their build to the random cards they get; nothing steers them down a path. Tag resonance (+10% per owned card of a tag, up to +50%) stays: committing is still rewarded, by choice.
+
+**No "Needs" line on cards (2026-10-01, user: "can remove the Needs Water"):** the Dream card face no longer shows a "Needs …" line (families, statuses or forms). The card text already names what it works with; a card for a family you don't have yet stays a quiet lure for the family pick. In "Dreams this run", a card that isn't doing anything yet is shown dimmed with a hover line "Not active yet: needs a Water Warden", so the information is there when asked.

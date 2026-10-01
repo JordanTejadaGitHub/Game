@@ -48,6 +48,10 @@ func _run() -> void:
 	placer._try_build(cell)
 	main.get_node("%TowerSeller").get_tower_at(cell).set_meta(&"drifts_stood", 7)  # Old Growth
 	main.get_node("%TowerSeller").get_tower_at(cell).set_meta(&"underdog", true)  # Underdog's mark
+	var ranked: Tower = main.get_node("%TowerSeller").get_tower_at(cell)
+	ranked.rank = 2  # Nurture v3: one choice per rank, saved with the run
+	var saved_choices: Array[int] = [ranked.focus_options()[0], ranked.focus_options()[-1]]
+	ranked.rank_choices.assign(saved_choices)
 	var obstacle_cell: Vector2 = map_generator.obstacles.keys()[0]
 	clearer.try_clear(obstacle_cell)
 	run_state.add_free_clears(2)  # Clearing Dream cards
@@ -89,6 +93,7 @@ func _run() -> void:
 		"Seed counters restored")
 	var tower: Tower = main.get_node("%TowerSeller").get_tower_at(cell)
 	_check(tower != null and tower.tower_data.get_id() == "sprout" and tower.invested_dew == sprout_cost, "the Sprout is back")
+	_check(tower != null and tower.rank == 2 and Array(tower.rank_choices) == Array(saved_choices), "its rank choices are back (%s)" % [tower.rank_choices if tower else []])
 	_check(tower != null and int(tower.get_meta(&"drifts_stood", 0)) == 7, "Old Growth: its drifts stood are kept")
 	_check(tower != null and tower.get_meta(&"underdog", false) == true, "Underdog: its mark is kept")
 	_check(not map_generator.is_buildable(cell), "and it blocks its cell again")

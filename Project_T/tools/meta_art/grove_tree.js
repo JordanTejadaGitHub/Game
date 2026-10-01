@@ -62,28 +62,48 @@ N("memory_white_stag", "families", "Memory Warden: The White Stag", 600, 560, [6
 N("memory_pond_keeper", "families", "Memory Warden: The Pond Keeper", 680, 560, [640, 575]);
 N("memory_moon_moth", "families", "Memory Warden: The Moon Moth", 640, 530, [640, 560]);
 // Cards: one branch per build style, Legendary flower at the tip.
-N("storm_lore", "cards", "Storm Lore", 760, 522, [742, 602]);
-N("guiding_lights", "cards", "Guiding Lights", 790, 452, "storm_lore");
-N("spore_lore", "cards", "Spore Lore", 852, 482, [842, 560]);
-N("dawnbreak", "cards", "Dawnbreak", 884, 330, "spore_lore", { legendary: true });  // Reactions and Woven are discovery unlocks now
 N("sharpened", "cards", "Sharpened", 952, 440, [942, 516]);
 N("full_moon", "cards", "Full Moon", 1000, 288, "sharpened", { legendary: true });  // Reckless was cut in the pool trim
+N("hunters_moon", "cards", "Hunter's Moon", 930, 300, "sharpened", { legendary: true });
 N("tending_hands", "cards", "Tending Hands", 1062, 392, [1044, 465]);
 N("nursery", "cards", "Nursery", 1090, 320, "tending_hands");
-N("the_old_ones", "cards", "The Old Ones", 1102, 238, "nursery", { legendary: true });
+N("elders", "cards", "Elders", 1096, 260, "nursery");
+N("the_old_ones", "cards", "The Old Ones", 1104, 190, "elders", { legendary: true });
 N("seedbed", "cards", "Seedbed", 1172, 340, [1134, 404]);
 N("rootbound", "cards", "Rootbound", 1228, 206, "seedbed", { legendary: true });  // Wild Planting was cut in the pool trim
+N("mixed_company", "cards", "Mixed Company", 1190, 270, "seedbed");
+N("menagerie", "cards", "Menagerie", 1170, 200, "mixed_company", { legendary: true });
 N("one_line", "cards", "One Line", 832, 640, [846, 562]);
 N("the_last_light", "cards", "The Last Light", 800, 710, "one_line", { legendary: true });
 N("dead_wood", "cards", "Dead Wood", 962, 600, [944, 518]);
 N("the_long_walk", "cards", "The Long Walk", 992, 676, "dead_wood", { legendary: true });
+N("winding_roads", "cards", "Winding Roads", 950, 680, "dead_wood");
+N("crossroads", "cards", "Crossroads", 960, 750, "winding_roads", { legendary: true });
 N("bittersweet_dreams", "cards", "Bittersweet Dreams", 1152, 482, [1128, 410]);
+N("lucid_dreaming", "cards", "Lucid Dreaming", 1190, 540, "bittersweet_dreams", { legendary: true });
 // Deep Poison hangs under the limb past Keen Edges.
 N("seeping", "cards", "Seeping", 1102, 552, [1090, 436]);
 N("venom", "cards", "Venom", 1120, 622, "seeping");
 N("nightshade", "cards", "Nightshade", 1132, 702, "venom", { legendary: true });
+N("eternal_static", "cards", "Eternal Charge", 1160, 690, "venom", { legendary: true });
+// Swift and Wide Reach near the trunk (where Storm and Spores grew); Daring, Hedgerows and Reclaiming below the limb.
+N("quickening", "cards", "Quickening", 760, 522, [742, 602]);
+N("light_feet", "cards", "Light Feet", 790, 452, "quickening");
+N("whirlwind_heart", "cards", "Whirlwind Heart", 800, 380, "light_feet", { legendary: true });
+N("broad_strokes", "cards", "Broad Strokes", 852, 482, [842, 560]);
+N("far_reach", "cards", "Far Reach", 870, 410, "broad_strokes");
+N("great_ripple", "cards", "Great Ripple", 884, 330, "far_reach", { legendary: true });
+N("scarred_bark", "cards", "Scarred Bark", 760, 680, [760, 600]);
+N("last_stand", "cards", "Last Stand", 750, 750, "scarred_bark");
+N("last_leaf", "cards", "Last Leaf", 720, 810, "last_stand", { legendary: true });
+N("restless_night", "cards", "Restless Night", 780, 820, "last_stand", { legendary: true });
+N("bitter_hedges", "cards", "Bitter Hedges", 1040, 600, [1030, 500]);
+N("briar_crown", "cards", "Briar Crown", 1020, 680, "bitter_hedges", { legendary: true });
+N("rooted_nightmares", "cards", "Rooted Nightmares", 1060, 690, "bitter_hedges", { legendary: true });
+N("reclaimed_earth", "cards", "Reclaimed Earth", 1200, 420, [1170, 400]);
+N("thorn_and_bramble", "cards", "Thorn and Bramble", 1230, 480, "reclaimed_earth");
+N("wildwood_reclaimed", "cards", "Wildwood Reclaimed", 1240, 550, "thorn_and_bramble", { legendary: true });
 // Grove of Kin: the Kinship Legendary (its cards come from discovering a Kinship).
-N("grove_of_kin", "cards", "Grove of Kin", 742, 808, "storm_lore", { legendary: true });  // Kin Lore / Deep Bonds became discovery unlocks
 // Seeds (support and economy bets).
 N("planted_promises", "cards", "Planted Promises", 1010, 470, [1000, 480]);
 N("deep_promises", "cards", "Deep Promises", 1030, 400, "planted_promises");
@@ -241,15 +261,8 @@ function groveTree() {
     out.set(x - 1, y - 1, "#f4f0ff"); ellipse(out, x, y, 9 * s, 7 * s, (xx, yy, dx, dy) => CA("#c8b0ff", Math.max(0, 1 - Math.hypot(dx, dy)) * .22));
   }
   // The loadout's waystones: five small carved stones in an arc at the roots ("Carry into the dream").
-  LOADOUT_STONES.forEach(([x, y], i) => {
-    const S = new Img(GW, GH);
-    ellipse(out, x, y + 13, 20, 5, SHADOW(.4));
-    blob(S, x, y, 16, 13, [ST.d1, ST.m, ST.l1, ST.l2, ST.hi], { tex: .1, rim: true, seed: i });
-    blob(S, x - 6, y - 9, 7, 3, [LEAFG[1], LEAFG[2], LEAFG[3]], { tex: .2 });
-    out.stamp(S, ST.out);
-    for (let a = 0; a < Math.PI * 2; a += .3) out.set(x + Math.cos(a) * 6, y + 2 + Math.sin(a) * 4.5, "#8ad8c8");
-    out.set(x, y + 2, "#c8fff0");
-  });
+  // The loadout waystones are no longer painted here: the game draws grove/waystone.png at the
+  // layout's loadout_stone_sets for the slots the player has (centred under the trunk).
   hollow(out, 610, 824);
   // Threads of dream-light curling up out of the Hollow into the trunk, dithered, thinning as they rise.
   for (const [ph, amp] of [[0, 16], [2.2, 12], [4.1, 20]]) for (let t = 0; t < 1; t += .002) {
@@ -264,23 +277,25 @@ function groveTree() {
     const len = 6 + hash(k, 3, 50) * 16;
     for (let i = 1; i < len; i++) out.set(x + Math.round(Math.sin(i * .3 + k)), y + i, i % 3 ? "#56624e" : "#3e4a3a");
   }
+  // The limb sigils stay readable: no moss or mist over them.
+  const nearSigil = (x, y) => [[600, 640], [641, 596], [684, 640]].some(([sx, sy]) => Math.hypot(x - sx, y - sy) < 18);
   // Moss patches all over the trunk and roots, like the title's giant.
   for (let y = 560; y < 960; y++) for (let x = 400; x < 880; x++) {
-    if (!L.alpha(x, y) || (x > 560 && x < 665 && y > 735 && y < 835)) continue;  // keep the Hollow clear
+    if (!L.alpha(x, y) || (x > 560 && x < 665 && y > 735 && y < 835) || nearSigil(x, y)) continue;  // keep the Hollow and sigils clear
     const n = pnoise(x, y, 14, 95) * .7 + pnoise(x, y, 5, 96) * .3;
     if (n > .6) out.set(x, y, n > .72 ? HW.Moss : HW.Deepmoss);
     else if (n > .57 && hash(x, y, 97) < .5) out.set(x, y, HW.Leaf);
   }
   // A cool veil of mist over the wood (the fog's teal and dusk, never white), thicker low down.
   for (let y = 520; y < GH; y++) for (let x = 0; x < GW; x++) {
-    if (!out.alpha(x, y) || (x > 570 && x < 655 && y > 745 && y < 830)) continue;
+    if (!out.alpha(x, y) || (x > 570 && x < 655 && y > 745 && y < 830) || nearSigil(x, y)) continue;
     const d = clamp((y - 520) / 300, 0, 1) * clamp((900 - y) / 60, 0, 1) * (.55 + pnoise(x, y, 50, 101) * .6);  // fades out before the roots and waystones
     if (bay(x, y) < d * .24) out.set(x, y, d > .6 ? HW.Pool : HW.Dusk);
   }
   // Wisps of mist drifting IN FRONT of the tree and on across the background at the same heights, so
   // the tree stands inside the fog. Cool, sparse, opaque dither; the Hollow stays clear.
   const wisps = (cy, h, dens, seed) => { for (let y = cy - h; y < cy + h; y++) for (let x = 0; x < GW; x++) {
-    if (x > 575 && x < 650 && y > 748 && y < 828) continue;
+    if ((x > 575 && x < 650 && y > 748 && y < 828) || nearSigil(x, y)) continue;
     if (LOADOUT_STONES.some(([sx, sy]) => Math.hypot(x - sx, (y - sy) * 1.3) < 26)) continue;  // waystones stay clear
     const wob = (pnoise(x, 0, 90, seed + 2) - .5) * h * 1.2, yy = y - wob;  // the band drifts up and down
     const band = clamp(1 - Math.abs(yy - cy) / h, 0, 1) ** 1.5, n = pnoise(x * .6, yy, 34, seed) * .75 + pnoise(x, yy, 12, seed + 1) * .25;
@@ -290,7 +305,7 @@ function groveTree() {
   // The drifting mist bands are separate strips now (groveMistStrip, animated by GroveTreeView).
   // Mist curling across the trunk itself (a little denser than the haze round it), the Hollow clear.
   for (let y = 590; y < 900; y++) for (let x = 470; x < 820; x++) {
-    if (x > 572 && x < 652 && y > 745 && y < 832) continue;
+    if ((x > 572 && x < 652 && y > 745 && y < 832) || nearSigil(x, y)) continue;
     const tx = trunkX(Math.min(y, 905)), dx = (x - tx) / 150;
     const n = pnoise(x * .7, y, 28, 131) * .7 + pnoise(x, y, 10, 132) * .3, curl = Math.sin(y / 38 + dx * 3) * .5 + .5;
     const d = Math.max(0, 1 - dx * dx) * clamp((n - .4) * 2.4, 0, 1) * (.55 + curl * .45) * (.6 + (y - 590) / 310 * .5);
@@ -662,13 +677,15 @@ function spreadNodes(mask) {
     const sx = new Float64Array(list.length), sy = new Float64Array(list.length), sc = new Float64Array(list.length);
     for (const [x, y] of samples) {
       let best = 0, bd = 1e12;
-      for (let i = 0; i < list.length; i++) { const d = (list[i].x - x) ** 2 + (list[i].y - y) ** 2; if (d < bd) { bd = d; best = i; } }
+      // The right of the crown belongs to the Cards: its samples go to the nearest Cards node, so they spread up into it.
+      const pool = x > 800 ? list.map((n, i) => n.section === "cards" ? i : -1).filter(i => i >= 0) : list.map((n, i) => i);
+      for (const i of pool) { const d = (list[i].x - x) ** 2 + (list[i].y - y) ** 2; if (d < bd) { bd = d; best = i; } }
       sx[best] += x; sy[best] += y; sc[best]++;
     }
     list.forEach((n, i) => {
       if (!sc[i]) return;
       let mx = (sx[i] / sc[i] - n.x) * .6, my = (sy[i] / sc[i] - n.y) * .6;
-      const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * (n.parent ? 1.6 : .75)) { mx *= .2; my *= .2; }
+      const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * (n.parent ? (n.section === "cards" ? 2.4 : 1.6) : (n.section === "cards" ? 1.1 : .75))) { mx *= .2; my *= .2; }
       mx = clamp(mx, -8, 8); my = clamp(my, -8, 8);
       if (inMask(n.x + mx, n.y + my, 26)) { n.x += mx; n.y += my; }
     });
@@ -932,3 +949,20 @@ function groveMistStrip(m) {
 }
 // The centre of the Hollow's light (GroveTreeView pulses a warm glow here).
 const HOLLOW_LIGHT = [608, 792];
+
+// ---- loadout waystones (drawn by the game, only for unlocked slots) ----
+// One stone, 48x40, its centre at WAYSTONE_ANCHOR. Positions for 3, 4 and 5 stones, centred on the
+// trunk along the roots' arc (slot order left to right); the secret sixth keeps SECRET_STONE.
+const WAYSTONE_ANCHOR = [24, 18];
+function waystoneSprite() {
+  const out = new Img(48, 40), S = new Img(48, 40), [x, y] = WAYSTONE_ANCHOR;
+  ellipse(out, x, y + 13, 20, 5, SHADOW(.4));
+  blob(S, x, y, 16, 13, [ST.d1, ST.m, ST.l1, ST.l2, ST.hi], { tex: .1, rim: true, seed: 0 });
+  blob(S, x - 6, y - 9, 7, 3, [LEAFG[1], LEAFG[2], LEAFG[3]], { tex: .2 });
+  out.stamp(S, ST.out);
+  for (let a = 0; a < Math.PI * 2; a += .3) out.set(x + Math.cos(a) * 6, y + 2 + Math.sin(a) * 4.5, "#8ad8c8");
+  out.set(x, y + 2, "#c8fff0");
+  return out;
+}
+const stoneArc = n => [...Array(n).keys()].map(i => { const x = 640 + (i - (n - 1) / 2) * 81; return [Math.round(x), Math.round(934 - ((x - 640) / 162) ** 2 * 28)]; });
+const LOADOUT_STONE_SETS = { 3: stoneArc(3), 4: stoneArc(4), 5: stoneArc(5) };

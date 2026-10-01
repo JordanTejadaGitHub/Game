@@ -77,11 +77,19 @@ static func info(effect: StringName) -> Dictionary:
 			_index = parsed.get("effects", {})
 	return _index.get(String(effect), {})
 
+# Weak references (exit crash hunt, 2026-09-30): a static dictionary holding Texture2Ds kept them alive
+# into the engine's teardown, which can crash on quit after the scene is gone. Effects playing hold their
+# own reference; an unused sheet is simply loaded again (ResourceLoader's cache makes that cheap).
 static func texture(effect: StringName) -> Texture2D:
-	if not _textures.has(effect):
+	var held: WeakRef = _textures.get(effect)
+	var tex: Texture2D = held.get_ref() if held != null else null
+	if tex == null:
 		var entry := info(effect)
-		_textures[effect] = load(DIR + entry.file) if not entry.is_empty() else null
-	return _textures[effect]
+		if entry.is_empty():
+			return null
+		tex = load(DIR + entry.file)
+		_textures[effect] = weakref(tex)
+	return tex
 
 static func setting(key: String, fallback: Variant) -> Variant:
 	var now := Time.get_ticks_msec()

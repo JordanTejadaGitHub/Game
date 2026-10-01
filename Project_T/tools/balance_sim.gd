@@ -32,7 +32,7 @@ const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, 
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
 	"dew_rest", "dew_other", "spent_plant", "spent_walls", "spent_grow", "spent_nurture", "banked",
 	"attackers", "walls", "tier1", "tier2", "tier3", "tier4", "avg_rank", "route", "families", "cards",
-	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach"]
+	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain"]
 
 # Per style: [attacker room at drift 0, + per drift, cap], walls per attacker, nurture weight.
 const STYLE_PLAN := {
@@ -57,13 +57,16 @@ var start_cards: Array[String] = []
 var forced_families: Array[String] = []
 var hand_drifts := false  # --hand-drifts: the hand-made drift files instead of rolled ones (DriftDirector.random_drifts)
 var save_mode := ""  # --save=spender (never saves up) or saver (holds Dew up to SAVER_DRIFTS drifts for a growth)
-var omen_mode := ""  # --omens=face: faces every Omen drawn (DreamSimPolicy.face_omens); default: Clear Skies, no Omens
+var omen_mode := ""  # --omens=face (every Omen, the lower-risk one) | clear | always | clean (DreamSimPolicy.omen_mode); default: no Omens drawn
 var all_families := false  # --all-families: the developer "Unlock all families" run (MetaRun.force_all_families)
 var favored: Array[String] = []  # --favor=many_hands,seedfall: these Dream cards score highest (a player's build)
 var dream_mode := "balanced"  # --dreams=skip|random|balanced (dream_design.md "Dreams must matter")
 var director_overrides := {}  # --director=act1_boss_health_multiplier=3.0 (repeatable): DriftDirector exports for tuning sweeps
+var enemy_overrides := {}  # --enemy=id.field=value (repeatable): EnemyData fields for sweeps
+var _keep: Array = []  # The edited EnemyData, held so the cache keeps them
 var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.preset_bosses); "" = the default draw
-var dream_share := {}  # Drift -> the share of the maze's damage per second that the taken Dreams add (50, 75)
+var dream_share := {}  # Drift -> the share of the maze's damage per second that the taken Dreams add (20, 25, 50, 75)
+var dreams_20 := ""  # The Dreams taken by drift 20 ("a+b")
 var omens: OmenDirector
 var omens_faced: Array[String] = []
 var _save_since := -1  # The drift the saver started holding Dew at
@@ -85,7 +88,7 @@ var _spend_timer := 0.0
 var _busy := false  # A family pick / rest is being handled
 var rows: Array = []
 var d := {}  # The current drift window's counters
-var run := {"sprout_cards_25": -1, "first_leak": 0, "lost_by": {25: -1, 50: -1, 75: -1}, "banked_at_act": {}, "rest_banked": [],
+var run := {"sprout_cards_25": -1, "first_leak": 0, "boss_drained": 0, "lost_by": {25: -1, 50: -1, 75: -1}, "banked_at_act": {}, "rest_banked": [],
 	"rest_bonus": [], "top_wardens": {}, "max_top_share": 0.0, "max_top_warden": "", "max_asleep": 0.0}
 var _last_dew := 0
 var _spent_now := 0
@@ -113,9 +116,23 @@ func _run() -> void:
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
+			"--no-falloff": Reactions.chain_falloff_on = false  # Measure without chain falloff
 			"--director":
 				var setting := arg.substr(arg.find("=") + 1)
 				director_overrides[setting.get_slice("=", 0)] = float(setting.get_slice("=", 1))
+			"--enemy":  # --enemy=night_mare.lap_leaves=4 (repeatable): an EnemyData field for this run (the loaded resource)
+				var setting := arg.substr(arg.find("=") + 1)
+				var target := setting.get_slice("=", 0)
+				var data: EnemyData = load("res://resource/enemy/%s.tres" % target.get_slice(".", 0))
+				var field := target.get_slice(".", 1)
+				var current: Variant = data.get(field) if data else null
+				if current == null:
+					printerr("--enemy: no field %s" % target)
+					quit(1)
+					return
+				data.set(field, int(setting.get_slice("=", 1)) if current is int else float(setting.get_slice("=", 1)))
+				enemy_overrides[target] = setting.get_slice("=", 1)
+				_keep.append(data)
 	if profile != "fresh":
 		var meta: Script = load("res://scripts/meta/meta_run.gd")
 		if not meta.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "load_preset"):
@@ -152,8 +169,9 @@ func _run() -> void:
 	policy.mode = dream_mode
 	policy.rng.seed = map_seed
 	omens = main.get_node_or_null("%OmenDirector")
-	if omen_mode == "face" and omens:
-		policy.face_omens = true
+	if _facing() and omens:
+		policy.face_omens = omen_mode == "face"
+		policy.omen_mode = "" if omen_mode == "face" else omen_mode  # clear / always / clean (DreamSimPolicy.pick_omen)
 		omens.mode_override = "ask"
 	for r in Reactions.all() + Reactions.crowned():
 		reaction_tags[r.id] = true
@@ -181,8 +199,10 @@ func _run() -> void:
 		if _approach_timer <= 0.0:
 			_approach_timer = APPROACH_EVERY
 			_sample_approach()
-		if director.drifts_started in [50, 75] and not dream_share.has(director.drifts_started):
+		if director.drifts_started in [20, 25, 50, 75] and not dream_share.has(director.drifts_started):
 			dream_share[director.drifts_started] = _dream_share()
+			if director.drifts_started == 20:
+				dreams_20 = "+".join(dreams._taken_cards().map(func(c: UpgradeData) -> String: return c.id))
 		if _spend_timer <= 0.0 and not _busy:
 			_spend_timer = SPEND_EVERY
 			_spend()
@@ -197,7 +217,7 @@ func _run() -> void:
 func _take_over_choices() -> void:
 	for c in director.rest_started.get_connections():
 		var target: Object = c.callable.get_object()
-		if target == dreams or (target is OmenDirector and omen_mode != "face"):  # Facing: it draws and pays Omens
+		if target == dreams or (target is OmenDirector and not _facing()):  # Facing: it draws and pays Omens
 			director.rest_started.disconnect(c.callable)
 	for c in director.family_pick_requested.get_connections():
 		var target: Object = c.callable.get_object()
@@ -222,7 +242,7 @@ func _on_rest(perfect: bool) -> void:
 	_busy = true
 	var n := director.drifts_started
 	policy.rest(n, perfect)
-	if omen_mode == "face" and omens and not omens.current_offer.is_empty():
+	if _facing() and omens and not omens.current_offer.is_empty():
 		omens._offer_waiting = false  # The bot answers instead of the screen
 		var omen: OmenData = policy.pick_omen(omens.current_offer)
 		omens.choose(omen)
@@ -443,6 +463,8 @@ func _hook_stats() -> void:
 		d.leaks += 1
 		if run.first_leak == 0:
 			run.first_leak = maxi(director.drifts_started, 1))
+	if spawner.has_signal("boss_drained"):  # A boss at the Heartwood drains leaves (no enemy_reached_goal)
+		spawner.boss_drained.connect(func(_e, leaves: int) -> void: run.boss_drained += leaves)
 	if spawner.has_signal("nightmare_restless"):
 		spawner.nightmare_restless.connect(func(_e, _stacks) -> void: d.restless += 1)
 	if spawner.has_signal("wall_trampled"):
@@ -456,7 +478,7 @@ func _hook_stats() -> void:
 	director.drift_cleared.connect(func(n, _b, _p) -> void: _close_window(n))
 
 func _new_window() -> void:
-	d = {"start": game_time, "health_spawned": 0.0, "damage": 0.0, "leaks": 0, "leaves_left": run_state.leaves,
+	d = {"start": game_time, "health_spawned": 0.0, "damage": 0.0, "chain_deep": 0.0, "leaks": 0, "leaves_left": run_state.leaves,
 		"leaves_before": run_state.leaves, "dew_rest": 0, "dew_other": 0, "spent_plant": 0, "spent_walls": 0,
 		"spent_grow": 0, "spent_nurture": 0, "by_tower": {}, "asleep": 0.0, "reaction": 0.0, "crit": 0.0,
 		"restless": 0, "trampled": 0, "approach": 0.0}
@@ -468,6 +490,9 @@ func _on_damage(event) -> void:
 	d.by_tower[key] = d.by_tower.get(key, 0.0) + event.amount
 	if reaction_tags.has(event.tag):
 		d.reaction += event.amount
+		var hit_enemy = event.enemy
+		if is_instance_valid(hit_enemy) and hit_enemy.statuses.chain_time > 0.0 and hit_enemy.statuses.chain_count >= Reactions.CHAIN_FALLOFF_FROM:
+			d.chain_deep += event.amount  # Reactions from the 6th link on (where chain falloff bites)
 	if event.crit_multiplier > 1.0:
 		d.crit += event.amount
 	var e = event.enemy
@@ -501,7 +526,7 @@ func _close_window(n: int) -> void:
 		"avg_rank": snappedf(float(ranks) / maxf(_attackers().size(), 1), 0.1),
 		"route": map.get_path_from(map.startPath).size(), "families": lines.size(), "cards": dreams.stacks.size(),
 		"dreamlight": dreams.dreamlight, "top_warden": top, "top_share": snappedf(top_amount / damage, 0.001),
-		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001),
+		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "longest_chain": _longest_chain(),
 		"crit_share": snappedf(d.crit / damage, 0.001), "restless": d.restless, "trampled": d.trampled,
 		"approach": snappedf(d.approach, 0.01)}
 	rows.append(row)
@@ -571,7 +596,7 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "enemy": ";".join(enemy_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, enemy_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "omen_paid": _omen_stat("paid"), "omen_share": _omen_stat("share"), "omen_leaves_lost": _omen_stat("leaves_lost"), "omen_dew": _omen_stat("dew"), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
@@ -684,11 +709,17 @@ func _sprout_waits(tower: Tower) -> bool:
 class FavorPolicy extends DreamSimPolicy:
 	const FAVOR := 1000.0
 	var favored: Array[String] = []
-	var mode := "balanced"  # --dreams: "skip" lets every offer pass, "random" takes any card, "balanced" the style's pick
+	var mode := "balanced"  # --dreams: "skip" lets every offer pass, "random" takes any card, "balanced" the style's pick; "damage":
+	# damage, attack speed and Potency cards first, economy last (act 1 "damage-first")
 	var rng := RandomNumberGenerator.new()
 
 	func score(card: UpgradeData) -> float:
-		return super.score(card) + (FAVOR if favored.has(card.id) else 0.0)
+		var value := super.score(card) + (FAVOR if favored.has(card.id) else 0.0)
+		if mode == "damage":
+			value += 1000.0 * (card.soothe_bonus + card.attack_speed_bonus + card.potency_bonus + 0.5 * card.status_strength_bonus)
+			if card.dew_now > 0 or card.rest_bonus_add > 0 or card.dew_per_clear > 0 or card.evolve_discount > 0.0 or card.set_cost > 0:
+				value -= 500.0  # Economy last
+		return value
 
 	func pick_dream(offer: Array) -> UpgradeData:
 		match mode:
@@ -697,3 +728,18 @@ class FavorPolicy extends DreamSimPolicy:
 			"random":
 				return offer[rng.randi_range(0, offer.size() - 1)] if not offer.is_empty() else null
 		return super.pick_dream(offer)
+
+# The run's longest Reaction chain so far (ReactionTracker; 0 before the first Reaction).
+func _longest_chain() -> int:
+	var tracker := main.get_tree().get_first_node_in_group(ReactionTracker.GROUP) as ReactionTracker
+	return tracker.longest_chain if tracker else 0
+
+# Whether the bot answers Omen offers (any --omens mode); without one the OmenDirector is cut off.
+func _facing() -> bool:
+	return omen_mode in ["face", "clear", "always", "clean"]
+
+# OmenDirector.stats (Roguelite 7477d9ba: paid, share, leaves_lost, dew for the run), -1 without Omens.
+func _omen_stat(key: String) -> Variant:
+	if omens == null or not "stats" in omens or typeof(omens.stats) != TYPE_DICTIONARY:
+		return -1
+	return omens.stats.get(key, -1)

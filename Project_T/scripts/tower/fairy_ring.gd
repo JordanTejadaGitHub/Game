@@ -49,13 +49,17 @@ func _process(delta: float) -> void:
 		return
 	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
 		if not enemy.is_flying() and enemy.get_current_cell() == cell:
-			_set_off()
+			_set_off(enemy)
 			return
 
-func _set_off() -> void:
+# `stepper`: the nightmare that stepped on it (Elf Circle's Fairy dance counts it); null when set off
+# by another ring (Ring Dance).
+func _set_off(stepper: Node2D = null) -> void:
 	_burst = 0.0
 	if not is_instance_valid(_tower):
 		return
+	if stepper != null:
+		FinalTwists.ring_stepped(_tower, stepper)
 	_tower.trap_triggered.emit(_tower, global_position)
 	var reach := _data.trap_radius * Tower.MAP_GRID.cell_size.x
 	var caught: Array[Node2D] = []

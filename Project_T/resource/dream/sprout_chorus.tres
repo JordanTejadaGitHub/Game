@@ -14,3 +14,5 @@ max_stacks = 1
 count_warden = "sprout"
 min_warden_count = 6
 rule_id = &"sprout_chorus"
+diagram = ".*****.\n.***a*.\n.a*W**.\n.****a.\n.*****a"
+diagram_caption = "+8% attack speed per other Sprout within 2 cells: +24% here (up to +60%)."

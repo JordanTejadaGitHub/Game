@@ -11,6 +11,7 @@ signal snuffed(lantern: ColdLantern, by_player: bool)
 const COLOR := Palette.DEWLIGHT
 const CLICK_RADIUS := 24.0
 const FADE_TIME := 0.4
+const FRAMES := preload("res://animation/enemy/cold_lantern.tres")  # ignite (once), burn (loop), snuff (once)
 
 var cell := Vector2.ZERO
 var radius := 1.5  # Cells
@@ -20,10 +21,19 @@ var owner_boss: Node2D = null
 var cell_size := 64.0
 var _age := 0.0
 var _out := false
+var _sprite: AnimatedSprite2D
 
 func _ready() -> void:
 	z_index = 2  # Over the ground, under the nightmares' bars
 	process_mode = Node.PROCESS_MODE_PAUSABLE
+	# The lantern itself (Enemy Assets' sheet; origin = the frame centre): it kindles, then burns.
+	_sprite = AnimatedSprite2D.new()
+	_sprite.sprite_frames = FRAMES
+	_sprite.animation_finished.connect(func() -> void:
+		if not _out and _sprite.animation == &"ignite":
+			_sprite.play(&"burn"))
+	add_child(_sprite)
+	_sprite.play(&"ignite")
 
 func _process(delta: float) -> void:
 	if _out:
@@ -46,7 +56,12 @@ func snuff(by_player: bool) -> void:
 		return
 	_out = true
 	snuffed.emit(self, by_player)
+	var fade_after := 0.0
+	if _sprite != null and FRAMES.has_animation(&"snuff"):
+		_sprite.play(&"snuff")  # The flame gutters out, then it fades
+		fade_after = FRAMES.get_frame_count(&"snuff") / maxf(FRAMES.get_animation_speed(&"snuff"), 1.0)
 	var tween := create_tween()
+	tween.tween_interval(fade_after)
 	tween.tween_property(self, "modulate:a", 0.0, FADE_TIME)
 	tween.tween_callback(queue_free)
 
@@ -62,8 +77,5 @@ func _draw() -> void:
 	var fade := clampf((life - _age) / 2.0, 0.3, 1.0)  # Gutters in its last seconds
 	draw_circle(Vector2.ZERO, get_reach(), Color(COLOR, 0.07 * fade))
 	draw_arc(Vector2.ZERO, get_reach(), 0.0, TAU, 48, Color(COLOR, 0.25 * fade), 1.5)
-	# The lantern: a dark post with a cold flame in a small cage
-	draw_line(Vector2(0, 14), Vector2(0, -6), Palette.VOID, 3.0)
-	draw_rect(Rect2(-6, -18, 12, 12), Palette.NIGHT)
-	draw_circle(Vector2(0, -12), 4.5 * flicker, Color(COLOR, 0.95 * fade))
-	draw_circle(Vector2(0, -12), 9.0 * flicker, Color(COLOR, 0.3 * fade))
+	# The lantern itself is the sprite (_ready); a faint cold glow round its cage, flickering
+	draw_circle(Vector2(0, -12), 9.0 * flicker, Color(COLOR, 0.2 * fade))

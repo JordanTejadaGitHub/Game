@@ -143,7 +143,17 @@ static func caps_font() -> Font:
 static func whisper_font() -> Font:
 	return _variation("whisper", "CormorantGaramond-Italic-Variable.ttf", 500, false)
 
+# A static cache that holds engine objects (fonts, textures, resources with textures) must let go of them
+# before the servers shut down at quit, or Godot can crash on exit (headless tests: PASS, then exit 139).
+# Call this when the cache is first filled: `clear` runs once, when the root leaves the tree.
+static func release_at_exit(clear: Callable) -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree != null and tree.root != null:
+		tree.root.tree_exiting.connect(clear, CONNECT_ONE_SHOT)
+
 static func _file(file: String) -> Font:
+	if _fonts.is_empty():
+		release_at_exit(func() -> void: _fonts.clear())
 	if not _fonts.has(file):
 		_fonts[file] = load(FONT_DIR + file)
 	return _fonts[file]
@@ -169,6 +179,49 @@ static func panel(margin_x: float = 16.0, margin_y: float = 12.0) -> MoonStyleBo
 	var box := MoonStyleBox.new()
 	_margins(box, margin_x, margin_y)
 	return box
+
+# Tips (native tooltips, TapTip, status / term popups): solid fog, the gold thread, a soft shadow, so
+# the text never fights what's under it (user: "I can barely read them once they're hovering over text").
+const TIP_ALPHA := 0.95
+static func tip_panel() -> MoonStyleBox:
+	var box := panel(12.0, 8.0)
+	box.center_alpha = TIP_ALPHA
+	box.edge_alpha = TIP_ALPHA
+	box.shadow_size = 10
+	return box
+
+# One CanvasLayer above every panel, screen and HUD layer for tips (created once per tree).
+const TIP_LAYER := 120
+static func tip_layer(tree: SceneTree) -> CanvasLayer:
+	var layer := tree.root.get_node_or_null("TipLayer") as CanvasLayer
+	if layer == null:
+		layer = CanvasLayer.new()
+		layer.name = "TipLayer"
+		layer.layer = TIP_LAYER
+		layer.process_mode = Node.PROCESS_MODE_ALWAYS
+		tree.root.add_child(layer)  # At input time (a tip shown); install_tooltip_wrap makes it early, deferred
+	return layer
+
+# Lifts `tip` (a top-level Control) onto the tip layer while it shows; it's freed with `host`.
+static func lift_tip(tip: Control, host: Node) -> void:
+	if not tip.is_inside_tree() or host == null or not host.is_inside_tree():
+		return
+	var layer := tip_layer(tip.get_tree())
+	if not layer.is_inside_tree() or tip.get_parent() == layer:
+		return
+	tip.reparent(layer, false)
+	if not host.tree_exiting.is_connected(tip.queue_free):
+		host.tree_exiting.connect(tip.queue_free)
+
+# Where a tip goes: above-right of the pointer, flipped left / below at the screen edges, so it never
+# covers the text under the pointer.
+static func tip_position(pointer: Vector2, tip_size: Vector2, screen: Vector2) -> Vector2:
+	var at := pointer + Vector2(16.0, -tip_size.y - 12.0)
+	if at.x + tip_size.x > screen.x - 4.0:
+		at.x = pointer.x - tip_size.x - 16.0
+	if at.y < 4.0:
+		at.y = pointer.y + 24.0
+	return Vector2(clampf(at.x, 4.0, maxf(screen.x - tip_size.x - 4.0, 4.0)), clampf(at.y, 4.0, maxf(screen.y - tip_size.y - 4.0, 4.0)))
 
 # A panel whose thread and diamond take `colour` (a boss, a Kinship, a Crowned Reaction).
 static func panel_in(colour: Color, margin_x: float = 10.0, margin_y: float = 10.0) -> MoonStyleBox:
@@ -370,6 +423,12 @@ static func install_tooltip_wrap(tree: SceneTree) -> void:
 	if tree == null or _tooltip_tree == tree:
 		return
 	_tooltip_tree = tree
+	if tree.root.get_node_or_null("TipLayer") == null:  # The tip layer, ready before any tip shows
+		var layer := CanvasLayer.new()
+		layer.name = "TipLayer"
+		layer.layer = TIP_LAYER
+		layer.process_mode = Node.PROCESS_MODE_ALWAYS
+		tree.root.add_child.call_deferred(layer)
 	tree.node_added.connect(func(node: Node) -> void:
 		if node is Label and node.theme_type_variation == &"TooltipLabel":
 			_wrap_tooltip.call_deferred(node))
@@ -382,23 +441,20 @@ static func _wrap_tooltip(label: Label) -> void:
 	var widest := 0.0
 	for line in label.text.split("\n"):
 		widest = maxf(widest, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
-	if widest <= TIP_WIDTH:
-		return  # Short tips keep their natural width
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.custom_minimum_size.x = TIP_WIDTH
+	if widest > TIP_WIDTH:  # Short tips keep their natural width
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.custom_minimum_size.x = TIP_WIDTH
 	var panel := label.get_parent() as Window
 	if panel == null:
 		return
 	panel.size = Vector2i(panel.get_contents_minimum_size())
-	# Kept at the pointer where Godot put it; only pulled back if the new height runs off the window.
-	# The popup's position is in window pixels, so clamp against the window's size, never the UI-scaled
-	# visible rect (that pulled a top-right tooltip to the top centre at UI scale 1.5).
+	# Above-right of the pointer, flipped at the edges, so it never covers the text being pointed at
+	# (screens_ui.md "tips are opaque"). The popup lives in window pixels, so the pointer is too.
 	var window := panel.get_tree().root if panel.is_inside_tree() else null
 	if window == null:
 		return
-	var screen: Vector2i = window.size
-	panel.position = Vector2i(clampi(panel.position.x, 0, maxi(screen.x - panel.size.x, 0)),
-		clampi(panel.position.y, 0, maxi(screen.y - panel.size.y, 0)))
+	var pointer := Vector2(DisplayServer.mouse_get_position() - DisplayServer.window_get_position())
+	panel.position = Vector2i(tip_position(pointer, Vector2(panel.size), Vector2(window.size)))
 
 static func caps(label: Control, font_size: int = LABEL_SIZE, colour: Color = INK_DIM) -> void:
 	_font(label, caps_font(), font_size, colour)
@@ -444,7 +500,7 @@ static func make_theme() -> Theme:
 
 	# Panels and tooltips carry the thread.
 	for type in ["PanelContainer", "Panel", "PopupPanel", "TooltipPanel", "PopupMenu", "AcceptDialog"]:
-		theme.set_stylebox("panel", type, panel(12.0 if type == "TooltipPanel" else 16.0, 8.0 if type == "TooltipPanel" else 12.0))
+		theme.set_stylebox("panel", type, tip_panel() if type == "TooltipPanel" else panel(16.0, 12.0))  # Tips: solid
 	theme.set_font_size("font_size", "TooltipLabel", TIP_SIZE)
 	theme.set_constant("line_spacing", "TooltipLabel", TIP_LINE_SPACING)
 	theme.set_stylebox("separator", "HSeparator", MoonDivider.new())
@@ -477,6 +533,7 @@ static func make_theme() -> Theme:
 	var slot_boxes := [button_box(), hover_box(), selected_box(), hover_box(true), disabled_box()]
 	for box: StyleBoxFlat in slot_boxes:
 		_margins(box, 4.0, 4.0)
+		box.bg_color.a = maxf(box.bg_color.a, TIP_ALPHA)  # Solid: the map never shows through a slot (user)
 	for i in 5:
 		theme.set_stylebox(["normal", "hover", "pressed", "hover_pressed", "disabled"][i], "WardenSlot", slot_boxes[i])
 	theme.set_stylebox("focus", "WardenSlot", StyleBoxEmpty.new())

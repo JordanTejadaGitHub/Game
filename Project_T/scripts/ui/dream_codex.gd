@@ -29,6 +29,7 @@ var _taken_this_run: Array[String] = []
 # Family Blessings are never offered, so they aren't listed.
 static func all_cards() -> Array[UpgradeData]:
 	if _all.is_empty():
+		UiStyle.release_at_exit(func() -> void: _all.clear())
 		for file in ResourceLoader.list_directory(DREAM_DIR):
 			if file.ends_with(".tres") or file.ends_with(".res"):
 				var card := load(DREAM_DIR + file) as UpgradeData

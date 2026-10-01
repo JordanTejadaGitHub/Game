@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://resource/enemy/script/enemy_data.gd" id="1_edata"]
-[ext_resource type="SpriteFrames" path="res://animation/enemy/weeper.tres" id="2_frames"]
+[ext_resource type="SpriteFrames" path="res://animation/enemy/mourning_mother.tres" id="2_frames"]
 [ext_resource type="Resource" path="res://resource/enemy/weeper.tres" id="3_weeper"]
 
 [resource]
@@ -13,8 +13,6 @@ speed = 45.0
 dew_reward = 80
 leaf_cost = 5
 is_boss = true
-sprite_scale = 1.8
-tint = Color(0.7, 0.68, 0.8, 1)
 resists = Array[String](["stone", "light"])
 weak_to = Array[String](["song"])
 regen_rate = 0.02

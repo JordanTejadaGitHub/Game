@@ -325,6 +325,14 @@ it**. No burst at a stack count anywhere:
 - "Popped!" callouts and the pop effect go; Fever Dream and Ignite stay as they are (sleep and burn,
   not pops). The Spore Bomb build becomes stack-and-fog (Tower Discussion renames it).
 
+### Slow and sleep have limits (2026-10-01)
+
+User, a fresh-profile run at drift 28: *"builds feel super strong already with a new profile, slowing them by a lot as well"* (Bloomcap clouds, Drowsy stacks, Honeysuckles: nightmares crawled or slept through the maze). Rules:
+- **Combined slow floor:** however many slows stack (Drowsy, Soaked + Frostfern, Heavy Air, rubble, fog, Omens), a nightmare never moves slower than **50% of its speed** (bosses **70%**, elites **60%**). Held / Rooted (a full stop) and Asleep are separate.
+- **Sleep has a cooldown:** after a nightmare wakes up it can't fall **Asleep** again for **4 s** (bosses 8 s); Drowsy stacks still build meanwhile. Shown as a faint "awake" ring.
+- **Hold has a cooldown too:** after a hold ends, 1.5 s before it can be Held again (bosses 3 s).
+- The status badges and the nightmare info show the floor ("Slowed to the limit").
+
 ### Status jobs (overlap review, 2026-09-29)
 
 Several statuses and Wardens did the same thing (many slows, four kinds of "takes more damage",
@@ -409,6 +417,7 @@ Hummingbird's pecks apply on-hit statuses six times per attack, so both families
 
 ### Chains
 
+**Chain falloff** (2026-09-30, user: *"everything was good until mid act 2 in terms of difficulty"*; their drift 68 screenshot showed **Chain 120** and nightmares dying at the very start of a long maze): from the **6th link** of a chain, each Reaction in it deals **15% less** than the one before (links 1–5 full; 6th ×0.85, 7th ×0.70 …), **never below 25%**. Short chains keep their full punch; a hundred-link chain stops wiping a drift on its own. Chain *counts*, discoveries and Dawnbreak still count every link. If acts 2–4 are still easy after this, the health curve steepens from drift 38 (act 2 to ×3.0, acts 3–4 to ×4.5), never before.
 Reactions can set off Reactions: Thunderclap arcs add Static to wet nightmares (more
 Thunderclaps), Ignite spreads spores onto charged ones (more Ignites), Mushrooming clouds spread
 Spored into Damp crowds. When a Reaction is caused by another within **1 s**, or a different
@@ -437,6 +446,39 @@ Final forms get one unmistakable moment each, so reaching one feels like a rewar
 | Moonstone | its first shot on each nightmare is a **moonbeam from above** | `moonstone_beam` |
 | Puffball | each pop is a **big bloom of light** | `puffball_bloom` |
 | Long Way Home | you see the **roots drag** the nightmare back along the path | `long_way_home_drag` |
+
+**Signature twists for the other finals** (added 2026-09-30, user: "do all the Wardens feel fleshed
+out and unique?"). Only 5 of 27 finals had a signature; the rest were "more of the same" (more
+targets, more rings, a higher %), which doesn't feel worth ~310 Dew and 2 Dreamlight. Each flat
+final now gets a **small new rule plus a visible moment**, inside its family's job. Finals that
+already had a twist keep it: Rockslide (rubble), Jewelwing Court (Flurry), Autumn Gale (catch
+rhythm), Magpie's Hoard (crit Dew), Whispering Hollow (echoes as chain links), Wellspring (the
+Harvest), Grove Heart (grows per Warden). Numbers are starting points.
+
+| Final | Twist | Rule | Visible moment |
+|---|---|---|---|
+| **Snugroot** | **Logjam** | a nightmare it Holds **blocks the path cell** for the Hold: nightmares behind it stop and queue (they don't path around; the route is unchanged), bunching a crowd for area damage. Flyers and Phantoms ignore it; bosses aren't Held long enough to jam | the queue visibly bunches; a small root knot under the held one |
+| **Dreamshroom** | **Dream spores** | an **asleep** nightmare breathes out spores: **1 Spored per second** to nightmares within 1 cell (the sleeper's applier's Potency) | slow violet spore puffs rise from sleepers |
+| **Boulderback** | **Landslide** | every **4th hit** rolls a boulder **2 tiles along the path** from the target (toward the start), hitting everything it passes for 60% of the hit | a rolling boulder with a dust trail |
+| **Lullaby Bell** | **Chorus** | its pulse is **+10% per other Bellflower-family Warden within 3 cells** (max +40%) | its pulse ring shimmers with a note for each voice in the chorus |
+| **Morning Fog** | **Veil** | nothing inside its fog can **hide** (Lurkers are revealed) or be **healed** (a Weeper's mending does nothing there) | the fog glows faintly gold where it cancels something |
+| **Hoarfrost** | **Shatter chain** | a **frozen** nightmare that's dispelled bursts into shards that **freeze** nightmares within 1 cell for **0.5 s** (shard-frozen nightmares don't chain again) | an ice burst with shards flying out |
+| **Beacon** | **Flare** | every **8 s** a flare reveals the **whole map** for 2 s and **Marks the 5 nightmares furthest along**, anywhere | a flare arcs up from the Beacon and lights the map |
+| **Midsummer** | **Solstice** | at **full ramp** the beam **splits onto a second target** for 2 s (it keeps its ramp) | the beam forks with a bright flash |
+| **Starcave** | **Starlit snare** | each lit tile **Holds the first nightmare to step on it each drift** for 0.5 s | a star-glint pops on the tile |
+| **Great Dreamcatcher** | **Mended leaves** | every **25** Caught nightmares dispelled **restores 1 leaf** (max **3 per run**; the only leaf healing outside act breaks). If that's too strong: shards count double instead | a leaf drifts from the dreamcatcher to the Heartwood |
+| **Grafted Elder** | **Double graft** | copies its **two** strongest neighbours and **alternates** between their attacks | its graft glows in the two borrowed colours, swapping |
+| **Starling Murmuration** | **Dark swirl** | every **6 s** the flock forms a swirl (1 cell) over the busiest path tile for 2 s; **Phantoms gliding through it are swept up: a 0.5 s pause** (once each; a non-status pause, since Phantoms are immune to Held and "immune" should stay trustworthy) | a spinning swirl of starlings |
+| **Zephyr** | **Gale lane** | every **10 s** a gust sweeps **3 path tiles** in range, copying statuses (half stacks) onto everything on them | a gust streak along the path |
+| **Windmill** | **Momentum** | attack speed ramps **+5% per second** while nightmares are in reach (max **+50%**), and drops back after 2 s idle | the blades visibly spin up |
+| **Elf Circle** | **Fairy dance** | a nightmare that steps on **3 rings in one walk** is caught dancing: **Held 1 s** (once per nightmare) | a little ring of lights spins around it |
+
+- These follow the status jobs: Holds are Held (Rootling-style), Marked is Firefly's, nobody else
+  slows or adds "+damage taken".
+- Bosses: Logjam, Fairy dance, Starlit snare and Dark swirl use the boss Held rule (halved); Mended
+  leaves counts boss dispels as 5.
+- **Watch in playtests:** Logjam (it changes crowd flow), Mended leaves (the lose condition) and
+  Momentum (Windmill could outscale).
 
 ### Crowned Reactions: three families at once
 
@@ -484,6 +526,8 @@ three families are reachable with 4 per run.
 + Marked: dragged back, every hit crits), Flare (Ignite + Marked: the burst Marks and reveals).
 
 ## Kinships: two branches of one family
+**Bonds are sticky** (2026-10-01, user: *"it seems like building new Wardens restarts the Kinship"*): a bond, once formed, is **kept until one of its two Wardens is sold or moved**. A newly planted or grown Warden **never takes over an existing bond**, even if it's nearer; it only bonds with kin that are still unbonded. Pairing nearest-first applies only among unbonded Wardens. Growing either partner keeps the bond and its age.
+
 
 Added 2026-09-28 (user decision). Reactions reward going **wide** (2–3 families); Kinships reward
 going **deep** in one. The two are kept visibly different:
@@ -643,10 +687,12 @@ every Warden has two damage axes, and builds lean one way:
 
 ## Target priority
 
-Most Wardens target the nightmare **furthest along** the path. **Standing Stone and Moonstone** let
-the player choose (click the Warden): *Furthest along* (default), *Strongest*, or *Bosses first*.
-Only snipers get this, since that's where the choice matters most and it keeps everything else
-simple.
+Most Wardens target the nightmare **furthest along** the path by default. Since 2026-09-28 every
+attacking Warden that picks a target has a switch (`screens_ui.md` "Targeting"): **First**
+(default), **Last** (furthest back, the newest arrival; added 2026-09-30), **Strongest** and
+**Closest**; snipers keep *Bosses first* as well. **Last** pairs with status Wardens near the start
+(Driftspore, Lanternmoth, Firefly Jar tagging nightmares so they carry the status through the whole
+maze).
 
 ## Maze and placement synergies
 

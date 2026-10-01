@@ -40,7 +40,7 @@ const FAMILY_BASE := {"spore": "sporeling", "stone": "pebbling", "water": "dewdr
 	"root": "rootling", "song": "bellflower", "acorn": "acorn", "wing": "nestling", "wind": "whirligig"}
 const PULSE_THROTTLE_MS := {"bramble": 800, "honeysuckle": 3000, "acorn": 5000, "tempest": 400}
 # Sound id prefixes a Warden can have (warden_sounds, tests).
-const EVENT_PREFIXES := ["attack_", "hit_", "drowsy_", "pop_", "cloud_", "fog_", "sleep_", "trap_", "trigger_",
+const EVENT_PREFIXES := ["attack_", "hit_", "drowsy_", "cloud_", "fog_", "sleep_", "trap_", "trigger_",
 	"crit_", "storm_", "loop_", "echo_", "shard_", "place_", "plop_", "dew_", "turn_", "catch_", "event_",
 	"ascend_", "plant_", "sap_", "ripen_", "wither_", "recover_"]
 # Ascended Wardens (tier 4, audio_direction.md 4d1f283): their big events are the loudest Warden
@@ -50,7 +50,6 @@ const ASCENDED_EVENT_DB := -2.0
 const ASCENDED_GROWTH_DB := 1.5  # Per doubling of nightmares hit, up to ASCENDED_GROWTH_MAX
 const ASCENDED_GROWTH_MAX := 4.0
 const ASCENDED_DUCK_INTERVAL_MS := 1500  # Stormheart chains often; its duck doesn't pump
-const ASCENDED_POP_MS := 300  # Sporemother's crowds popping read as one rolling fwoomp
 const PRESENCE_LEVEL := 0.45  # Presence loops: very quiet, a little fuller while nightmares walk
 const ASCEND_SWELL_DELAY := 0.8  # Evolve bloom, then the material swell, then the first event
 const ASCEND_EVENT_DELAY := 2.6
@@ -89,6 +88,10 @@ const HARVEST_WINDOW_MS := 4000  # Pours within this of the first belong to the 
 # Close calls: a soft tension cue, one per 2 s at most (like the Heartwood's tremble).
 const CLOSE_CALL_DB := -8.0
 const BOSS_REVEAL_DB := -4.0  # The boss card's sting (UI bus)
+const BOSS_DRAIN_DB := 1.0  # A boss draining the Heartwood: leaf lost, heavier
+const BOSS_DRAIN_PITCH := 0.8
+const FINAL_BLOOM_DB := -4.0  # A final form's first bloom per run
+const FINAL_SIGNATURE_DELAY := 0.9  # Then the new form's hit, as its signature
 const REMEMBER_DB := -4.0  # The Remember screen (UI bus)
 const REMEMBER_TRAVEL := 0.45  # Seconds for the unlock swell to travel the gold line before the bloom
 const PULL_BOSS_PITCH := 0.8  # Rootcurl dragging a boss: lower, strained
@@ -126,7 +129,6 @@ var _attack_counts := {}  # Tower instance id -> attacks released (storms, sleep
 var _loop_until := {}  # loop id -> [until msec, level]
 var _slept_at := {}  # Warden id -> msec of its last sleep drone
 var _withered := {}  # Tower instance id -> Sapling withered since the last rest
-var _popped_at := {}  # Tower instance id -> msec of its last pop sound (Sporemother)
 var _ducked_at := {}  # Tower instance id -> msec of its last Ascended duck
 var _nurture_frame := -1  # Group nurtures arrive in one frame
 var _nurture_index := 0
@@ -141,6 +143,7 @@ var _presence := {}  # Tower instance id -> a Warden with a presence loop
 var _dew_catch_at := -100000
 var _close_call_at := -100000
 var _drags := {}  # Nightmare instance id -> its soil-drag player (cut when the pull ends)
+var _final_blooming := {}  # Tower instance id -> a Final Bloom is playing its hit (skip the first breath)
 var _harvest_at := -100000  # msec of this rest's harvest sound (later pours add droplets)
 
 func _ready() -> void:
@@ -160,6 +163,12 @@ func _ready() -> void:
 	enemy_container.enemy_reached_goal.connect(func(_enemy: Node2D) -> void:
 		sound.duck(8.0, 1.0)
 		sound.play(&"leaf_lost", null, 0.0, 1.0, 0.03))
+	# A boss at the Heartwood drains a leaf every 2 s until dispelled (Enemy Code cfd21fe5): the leaf-lost
+	# sound, lower and heavier, with a lighter duck so the music doesn't pump every 2 s.
+	if enemy_container.has_signal("boss_drained"):
+		enemy_container.boss_drained.connect(func(_enemy: Node2D, _leaves: int) -> void:
+			sound.duck(4.0, 0.6)
+			sound.play(&"leaf_lost", null, BOSS_DRAIN_DB, BOSS_DRAIN_PITCH, 0.02))
 	enemy_container.enemy_split.connect(func(parent: Node2D, child: Node2D) -> void:
 		if parent.is_cleansed:  # Followers (Wraiths) also come through here; only real splits crack
 			sound.play(&"split", child.global_position, -4.0))
@@ -443,18 +452,13 @@ func _on_tower_added(node: Node) -> void:
 			sound.play(&"crit_punch", enemy.global_position, -4.0)
 		if t.attack_data.crit_dew > 0:
 			_event("dew_", t, enemy.global_position, EVENT_DB - 3.0))
-	tower.popped.connect(func(t: Tower, enemy: Node2D, _stacks: int) -> void:
-		if t.tower_data.tier >= ASCENDED_TIER:  # A crowd popping reads as one rolling fwoomp
-			var now := Time.get_ticks_msec()
-			if now - int(_popped_at.get(t.get_instance_id(), -100000)) < ASCENDED_POP_MS:
-				return
-			_popped_at[t.get_instance_id()] = now
-		_event("pop_", t, enemy.global_position))
 	# Beams (Sunpetal / Midsummer): one warm loop per Warden type, swelling with the ramp (1 -> 4 or 5).
 	tower.beam_ticked.connect(func(t: Tower, ramp: float) -> void:
 		_touch_loop("loop_" + warden_id(t.attack_data), 0.5 + 0.5 * clampf((ramp - 1.0) / 3.0, 0.0, 1.0), BEAM_HOLD))
 	tower.nurtured.connect(_on_nurtured)
 	# Ascended Wardens and the Sapling (Tower Code a187e96); connected only if present.
+	if tower.has_signal("final_bloomed"):
+		tower.final_bloomed.connect(_on_final_bloomed)
 	if tower.has_signal("ascended"):
 		tower.ascended.connect(_on_ascended)
 	if tower.has_signal("ascended_event"):
@@ -536,6 +540,28 @@ func _nurture_swell(tower_id: int, id: StringName, volume: float, pitch: float, 
 	if lean != &"":
 		sound.play(lean, tower.global_position, volume, 1.0, 0.03)
 
+# Final Bloom (audio_direction.md 23c6c5d7; the first grow into each final form per run): after the
+# evolve bloom, a warm harp strum in D over a slow swell of the family's material, then the new form's
+# hit once (instead of the usual first breath), with a small duck. Unpositioned: growing works while
+# the game is paused. Later grows into the same form use the normal evolve.
+func _on_final_bloomed(tower: Tower) -> void:
+	var tower_id := tower.get_instance_id()
+	_final_blooming[tower_id] = true
+	sound.duck(3.0, 0.5)
+	sound.play(&"final_bloom", null, FINAL_BLOOM_DB, 1.0, 0.0)
+	var material := StringName("nurture_" + tower.tower_data.line)
+	sound.play(material if sound.has_sound(material) else &"nurture_sprout", null, FINAL_BLOOM_DB - 2.0, 0.8, 0.0)
+	get_tree().create_timer(FINAL_SIGNATURE_DELAY).timeout.connect(_final_signature.bind(tower_id))
+
+func _final_signature(tower_id: int) -> void:
+	_final_blooming.erase(tower_id)
+	var tower := _tower_from(tower_id)
+	if tower == null:
+		return
+	var id := _sound_for("hit_", tower.attack_data)
+	if id != &"":
+		sound.play(id, null, HIT_DB, 1.0, 0.0, _bus_for(tower))
+
 # Ascending: the evolve bloom (evolved), then a slow, deep swell of the family's material, then the
 # Warden's first event (or its hit, for Wardens without one).
 func _on_ascended(tower: Tower) -> void:
@@ -565,8 +591,8 @@ func _tower_from(tower_id: int) -> Tower:
 # The evolved Warden's first hit, as a "first breath" after the bloom.
 func _first_breath(tower_id: int) -> void:
 	var tower := _tower_from(tower_id)
-	if tower == null:
-		return
+	if tower == null or _final_blooming.has(tower_id):
+		return  # A Final Bloom plays the new form's hit itself
 	var id := _sound_for("hit_", tower.attack_data)
 	if id != &"":
 		sound.play(id, tower.global_position, HIT_DB, 1.0, 0.03, _bus_for(tower))
@@ -864,9 +890,10 @@ func _remember_bloom(data: TowerData) -> void:
 			sound.play(deep, null, REMEMBER_DB - 2.0, 1.0, 0.0, &"UI")
 
 # Sources (Roguelite Code 9c3c25ee): boss, shard, glimmer, first_pick, wake, card, omen, other. "other"
-# is the Sapling (it plays its own ripening swell) and Early Light at run start, so it stays quiet.
+# is Early Light at run start, and "sapling" (Tower Code ee849b19) plays its own ripening swell, so both
+# stay quiet here.
 func _on_dreamlight_earned(_amount = 0, source = &"") -> void:
-	if source == &"other":
+	if source == &"other" or source == &"sapling":
 		return
 	sound.play(&"dreamlight_glow", null, REMEMBER_DB, 1.0, 0.0, &"UI")
 

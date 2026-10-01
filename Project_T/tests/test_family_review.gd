@@ -168,7 +168,8 @@ func _test_lob() -> void:
 	var close := _spawn(cairn.global_position + Vector2(CELL, 0))
 	var far := _spawn(cairn.global_position + Vector2(5 * CELL, 0))
 	var beside := _spawn(far.global_position + Vector2(0, 0.8 * CELL))
-	_check(cairn.find_target() == far, "Cairn can't lob at nightmares within 2 cells")
+	var lob_target := cairn.find_target()
+	_check(lob_target != close and (lob_target == far or lob_target == beside), "Cairn can't lob at nightmares within 2 cells (it picks one further out)")
 	cairn.fire_at(far)
 	await _wait(2.0)
 	_check(_lost(far) > 0 and _lost(beside) > 0, "the stone splashes everything within 1 cell of where it lands")
@@ -240,6 +241,7 @@ func _test_seeds() -> void:
 	var first := _spawn(samara.global_position + Vector2(1.5 * CELL, 0))
 	var second := _spawn(samara.global_position + Vector2(3 * CELL, 0))
 	var aside := _spawn(samara.global_position + Vector2(2 * CELL, 2 * CELL))
+	samara.set_target_mode(TowerData.TargetMode.CLOSEST)  # Fresh nightmares tie on progress: aim down the line on purpose
 	first.apply_status(EnemyStatuses.SPORED, 4, 10.0, 1.0)
 	samara._release()
 	await _wait(0.6)

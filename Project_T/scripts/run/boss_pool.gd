@@ -18,20 +18,26 @@ const PROFILE_KEY := "last_bosses"
 const SEED_SALT := 0x5b055  # So the draw doesn't mirror the map's own random numbers
 
 static var force_draw := false  # Tests: draw as a real run would (tests otherwise meet the defaults)
-static var _pools := {}  # {act: Array[BossData]} (sorted by id, so draws are reproducible)
+# {act: Array of resource paths} (sorted by id, so draws are reproducible). Only paths: a static that
+# holds the resources themselves keeps them alive into the engine's teardown, which can crash on quit.
+# load() hits the resource cache, so loading them again per call is cheap.
+static var _pools := {}
 
 static func get_pool(act: int) -> Array[BossData]:
 	if not _pools.has(act):
-		var pool: Array[BossData] = []
+		var found: Array[BossData] = []
 		var dir := DIR % act
 		for file in ResourceLoader.list_directory(dir):
 			if file.ends_with(".tres") or file.ends_with(".res"):
 				var data := load(dir.path_join(file)) as BossData
 				if data != null and data.boss != null and data.drift != null:
-					pool.append(data)
-		pool.sort_custom(func(a: BossData, b: BossData) -> bool: return a.get_id() < b.get_id())
-		_pools[act] = pool
-	return _pools[act]
+					found.append(data)
+		found.sort_custom(func(a: BossData, b: BossData) -> bool: return a.get_id() < b.get_id())
+		_pools[act] = found.map(func(data: BossData) -> String: return data.resource_path)
+	var pool: Array[BossData] = []
+	for path: String in _pools[act]:
+		pool.append(load(path) as BossData)
+	return pool
 
 static func find(act: int, id: String) -> BossData:
 	for data in get_pool(act):

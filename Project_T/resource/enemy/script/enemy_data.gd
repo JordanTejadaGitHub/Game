@@ -92,9 +92,11 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 
 # Boss pools (enemy_design.md, 2026-09-29): the new bosses' abilities. 0 / empty = off.
 @export_group("Boss pools")
-# Night Mare: reaching the Heartwood costs `lap_leaves` and it gallops back to the start, ×
-# `lap_speed_multiplier` faster each lap (stacking), until dispelled.
-@export var lap_leaves: int = 0
+# Night Mare, revised (enemy_design.md): at the Heartwood it stays and drains like any boss (a leaf
+# every Enemy.HEARTWOOD_DRAIN_EVERY s) for lap_linger s, + lap_linger_step s each visit (6, 10, 14…),
+# then gallops back to the start for another lap.
+@export var lap_linger: float = 0.0
+@export var lap_linger_step: float = 0.0
 @export var lap_speed_multiplier: float = 1.2
 # …and each new lap drops `lap_spawn_count` `lap_spawn` in behind it at the start.
 @export var lap_spawn: EnemyData
@@ -109,6 +111,7 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # (the horn) only calls while the pack is short, and joins the pack. At half health the whole pack
 # returns at once and the horn falls silent (`pack_regroup_at_half`).
 @export var pack_shield: float = 1.0
+@export var pack_shield_reach: float = 0.0  # Tiles: only hounds this close shield him (0 = anywhere; Human run 4)
 @export var pack_regroup_at_half: bool = false
 # Lamplighter: every `lantern_interval` s lights a cold lantern beside its route (up to `lantern_max`,
 # each burning `lantern_life` s). Wardens within `lantern_radius` cells attack × (1 − `lantern_slow`).
@@ -272,7 +275,7 @@ func get_summons() -> Array:
 
 # Walks the maze again after reaching the Heartwood (Night Mare).
 func laps() -> bool:
-	return lap_leaves > 0
+	return lap_linger > 0.0
 
 # Ability text with this resource's numbers filled in: {field} → its value ({leap_tiles} → "3",
 # {brood_interval} → "4"), {field:pct} → "50%", {field:plus_pct} → "+50%" (a multiplier),

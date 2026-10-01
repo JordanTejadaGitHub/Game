@@ -100,6 +100,20 @@ func _run() -> void:
 	tower.projectile_landed(target, target.global_position)
 	_check(outer.statuses.has(EnemyStatuses.SPORED), "Chain Bloom in Mistveil's fog: the puff covers 2 tiles")
 	fog.queue_free()
+	await process_frame
+	# Only Mistveil's own fog (the card and its Entwined ingredients), not Morning Fog's.
+	outer.statuses.remove(EnemyStatuses.SPORED)
+	var morning: Tower = placer.tower_scene.instantiate()
+	morning.tower_data = load("res://resource/tower/morning_fog.tres")
+	morning.cell = Vector2(3, 2)
+	container.add_child(morning)
+	morning.set_process(false)
+	var morning_fog := PathCloud.new(morning, target.global_position)
+	main.add_child(morning_fog)
+	await process_frame
+	tower.projectile_landed(target, target.global_position)
+	_check(not outer.statuses.has(EnemyStatuses.SPORED), "Morning Fog's fog doesn't count for Chain Bloom")
+	morning_fog.queue_free()
 
 	# Sporemother: 2 Poisoned a second to everything in range, refreshed every breath so it never wears off there.
 	var mother_data: TowerData = load("res://resource/tower/sporemother.tres")

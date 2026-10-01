@@ -41,7 +41,8 @@ var _since_redraw := 0.0
 func _process(delta: float) -> void:
 	_since_redraw += delta / maxf(Engine.time_scale, 0.001)
 	var boss_health := int(_boss.health) if is_instance_valid(_boss) and not _boss.is_cleansed else -1
-	var key := "%s|%d|%s|%d|%s" % [get_drift_text(), drift_director.drifts_started, drift_director.is_resting(), boss_health, size]
+	var pulse_step := int(Time.get_ticks_msec() / 50) if _boss_at_heartwood() else 0  # The drain pulse redraws ~20×/s
+	var key := "%s|%d|%s|%d|%s|%d" % [get_drift_text(), drift_director.drifts_started, drift_director.is_resting(), boss_health, size, pulse_step]
 	if key == _shown_key and _since_redraw < SAFETY_REDRAW:
 		return
 	_shown_key = key
@@ -142,7 +143,22 @@ func _draw_boss_bar(font: Font, center_x: float) -> void:
 		_markers.append([Rect2(x - 14, bar.position.y - 14, 28, 32), lines[share]])
 	# The rest of the bar (and the name) opens the dossier too.
 	_countdown_rect = Rect2(bar.position.x, bar.position.y - 4, bar.size.x, bar.size.y + 26)
-	_draw_centered(font, _boss.enemy_data.display_name, Vector2(center_x, bar.end.y + 16), SMALL_FONT_SIZE, BOSS_COLOR.lightened(0.3))
+	if _boss_at_heartwood():  # It got through and stays, draining leaves: say so, and pulse
+		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * TAU * 0.8)
+		draw_rect(bar.grow(4), Color(UiStyle.POOR, 0.35 + 0.45 * pulse), false, 2.0)
+		var at_text := "%s · at the Heartwood" % _boss.enemy_data.display_name
+		if _boss.has_method("linger_left") and _boss.linger_left() > 0.0:  # The Night Mare lingers, then laps on
+			at_text = "%s · At the Heartwood: %d s" % [_boss.enemy_data.display_name, ceili(_boss.linger_left())]
+		if _boss.has_method("is_untouchable") and _boss.is_untouchable():  # Can't be hit while it lingers
+			at_text += " · Untouchable"
+		_draw_centered(font, at_text, Vector2(center_x, bar.end.y + 16),
+			SMALL_FONT_SIZE, UiStyle.POOR)
+		return
+	var name: String = _boss.enemy_data.display_name
+	_draw_centered(font, name, Vector2(center_x, bar.end.y + 16), SMALL_FONT_SIZE, BOSS_COLOR.lightened(0.3))
+
+func _boss_at_heartwood() -> bool:
+	return is_instance_valid(_boss) and bool(_boss.get("at_heartwood"))
 
 func _has_point(point: Vector2) -> bool:
 	return _marker_at(point) != "" or _countdown_rect.has_point(point)

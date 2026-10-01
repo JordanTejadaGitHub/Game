@@ -588,10 +588,8 @@ func _make_wardens() -> void:
 	_ws("hit_driftspore", 3, 0.45, func(_v: int) -> PackedFloat32Array:  # A double puff, the second smaller
 		return _layers([[_puff(0.3, 1.0), 1.0], [_puff(0.25, 0.8), 0.55, 0.09]]))
 	_ws("attack_puffball", 2, 0.3, func(_v: int) -> PackedFloat32Array: return _air(0.25, 650.0, 0.04, 0.18))
-	_ws("hit_puffball", 3, 0.5, func(_v: int) -> PackedFloat32Array: return _puff(0.35, 1.2))
-	_ws("pop_puffball", 1, 0.7, func(_v: int) -> PackedFloat32Array:  # Signature: a deep, soft fwoomp, wide and airy
-		return _layers([[_thump(0.6, 90.0, 0.15), 1.0], [_air(0.9, 500.0, 0.02, 0.65, 0.9), 0.6],
-			[_rumble(0.9, 200.0, 0.02, 0.55), 0.4]]))
+	_ws("hit_puffball", 3, 0.5, func(_v: int) -> PackedFloat32Array:  # Its landing burst: a wide, soft fwoomp of spores spreading over the tile
+		return _layers([[_air(0.7, 700.0, 0.02, 0.55, 0.9), 0.8], [_thump(0.4, 100.0, 0.08), 1.0], [_air(0.7, 350.0, 0.08, 0.5, 0.8), 0.5, 0.05]]))
 	_ws("attack_bloomcap", 2, 0.45, func(_v: int) -> PackedFloat32Array: return _cap_thup(150.0))
 	_ws("cloud_bloomcap", 1, 0.4, func(_v: int) -> PackedFloat32Array: return _exhale(1.2, 450.0))
 	_ws("attack_dreamshroom", 2, 0.5, func(_v: int) -> PackedFloat32Array: return _cap_thup(110.0))
@@ -798,8 +796,6 @@ func _make_ascended() -> void:
 	# The big events.
 	_ws("event_sporemother", 2, 0.75, func(_v: int) -> PackedFloat32Array:  # The spore storm: a soft wind and a rolling fwoomp
 		return _layers([[_air(1.8, 450.0, 0.3, 1.2, 0.9), 0.8], [_thump(0.8, 80.0, 0.2), 1.0, 0.2], [_rumble(1.8, 150.0, 0.2, 1.2), 0.5]]))
-	_ws("pop_sporemother", 2, 0.6, func(_v: int) -> PackedFloat32Array:  # The Puffball pop, for its crowds
-		return _layers([[_thump(0.6, 90.0, 0.15), 1.0], [_air(0.9, 500.0, 0.02, 0.65, 0.9), 0.6], [_rumble(0.9, 200.0, 0.02, 0.55), 0.4]]))
 	_ws("event_tidecaller", 2, 0.8, func(_v: int) -> PackedFloat32Array:  # The tide: a long low wave, then a heavy wash
 		return _layers([[_rumble(2.4, 300.0, 0.8, 1.2), 1.0], [_air(2.4, 500.0, 0.9, 1.0, 0.8), 0.5], [_splash(2.0, 0.6), 0.7, 1.0]]))
 	_ws("event_stormheart", 2, 0.8, func(v: int) -> PackedFloat32Array:  # One big warm bloom over a far thunder roll
@@ -1637,6 +1633,14 @@ func _make_economy() -> void:
 	_ws("soil_drag_short", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _soil_drag(0.45))
 	_ws("soil_drag_long", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _soil_drag(0.8))
 	_ws("boss_reveal", 1, 0.6, func(_v: int) -> PackedFloat32Array: return _boss_reveal())
+	# Final Bloom (audio_direction.md 23c6c5d7): a warm harp strum in D, the music's own instrument, so the
+	# score answers. SoundHooks lays it over a slow swell of the family's material and the new form's hit.
+	_ws("final_bloom", 2, 0.5, func(v: int) -> PackedFloat32Array:
+		var strum := _seg(1.6, SFX_RATE)
+		var notes: Array = [50, 57, 62, 66, 69] if v == 0 else [50, 57, 62, 69, 74]
+		for i in notes.size():
+			_mix(strum, _pluck(SFX_RATE, hz(notes[i]), 0.4, 1.5, 0.6, 0.998), SFX_RATE, i * 0.05)
+		return strum)
 	_make_remember()
 
 # The boss card (BossDossier, 6a57ff6e): a low, cold sting as the portrait fades up, then one heartbeat

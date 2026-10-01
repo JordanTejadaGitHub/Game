@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "hollow_ground"
+display_name = "Hollow Ground"
+description = "A Warden planted in a moved hollow (where you cleared a Mossy Boulder or Thorn-Sapling) gets +1 range."
+rarity = 1
+kind = 3
+tags = Array[String](["clearing", "tending"])
+max_stacks = 1
+in_start_pool = false
+min_obstacles = 8
+rule_id = &"hollow_ground"
+diagram = ".......\n.PPPPP.\n...Q...\n.....w.\n......."
+diagram_caption = "Planted in a moved hollow: +1 range. ✗ not in a hollow."

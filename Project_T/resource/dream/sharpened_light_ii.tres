@@ -14,3 +14,4 @@ requires = Array[String]([])
 max_stacks = 1
 deepens = "sharpened_light"
 rule_id = &"sharpened_light"
+in_start_pool = false
