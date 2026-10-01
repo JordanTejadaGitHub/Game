@@ -583,6 +583,7 @@ func _run() -> void:
 		mist._process(0.0)
 	_check(mist != null and mist.waiting == (main.get_node("%DriftDirector") as DriftDirector).get_waiting_count(),
 		"the start mist counts the nightmares waiting there")
+	await _check_mist_full(main)
 	var strip_node: Node = order_hud.get_children().filter(func(c: Node) -> bool: return c is ComingStrip).front()
 	_check(strip_node.get_index() < idx.call("OmenScreen"), "the Coming strip stays under the Omen screen")
 	# UI scrolling never moves the map: a wheel over the open Codex leaves the zoom alone; over the
@@ -841,6 +842,32 @@ func _free_cell(map_generator) -> Vector2:
 			if not path.has(cell) and map_generator.can_block(cell):
 				return cell
 	return Vector2(-1, -1)
+
+# The field cap's side effects (platforms.md "Cap side effects, fixed"): with nightmares held in the mist,
+# Call early greys out with "The mist is full", and comes back once the queue is out.
+func _check_mist_full(main: Node) -> void:
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var panel := main.get_node("HUD/DriftPanel")
+	var saved := [director.resting, director.drifts_started, director._arriving.duplicate()]
+	var shade: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	director.resting = false
+	director.drifts_started = 2  # Drift 3 is next, in the same block: calling early is possible
+	director._arriving = {2: {"schedule": [[0.0, shade, false], [0.5, shade, false], [30.0, shade, false]], "clock": 1.0}}
+	_check(director.is_mist_full() and not director.can_start_next_drift() and not director.start_next_drift(),
+		"two nightmares held in the mist: calling the next drift early is refused")
+	panel._process(0.0)
+	var button: Button = panel._start_button
+	_check(button.disabled and button.tooltip_text.begins_with("The mist is full"),
+		"…and the Call early button greys out with \"The mist is full\"")
+	director._arriving[2].schedule = [[30.0, shade, false]]  # The queue is out (the last one isn't due yet)
+	_check(not director.is_mist_full() and director.can_start_next_drift(), "once the mist's queue is out, calling early is back")
+	panel._process(0.0)
+	_check(not button.disabled and button.tooltip_text == "", "…and the button with it")
+	director.resting = saved[0]
+	director.drifts_started = saved[1]
+	director._arriving = saved[2]
+	panel._process(0.0)
+	await process_frame
 
 func _check(condition: bool, label: String) -> void:
 	if not condition:

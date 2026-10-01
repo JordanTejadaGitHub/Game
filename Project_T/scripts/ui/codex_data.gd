@@ -29,6 +29,7 @@ const GLOSSARY_SOURCE := [
 		["Omen", "From drift 10: a twist for the next block with a reward if you survive it. Clear Skies skips it.", ["Rest"]],
 		["Call early", "Starting the next drift while the current one is still arriving, for a little extra Dew.", ["Auto-drift"]],
 		["Auto-drift", "Drifts in a block start by themselves a few seconds after the last one arrived.", ["Call early", "Block"]],
+		["Mist", "Where nightmares enter. With the path full it holds the rest back until there's room; a \"+N\" over it counts them. While it holds any, the next drift can't be called early.", ["Call early"]],
 		["Remember screen", "Spend Dreamlight on a family's branches and final forms. The Remember button at the top right opens it any time (a drift pauses).", ["Dreamlight"]],
 		["Close call", "A nightmare past 85% of its route: the Heartwood trembles and its last stretch glows cold.", ["Leaves"], "Three close calls in a block: time to lengthen the maze."],
 		["Chain", "Reactions setting each other off within 1 s. Shown as Chain 5, not a damage multiplier; Chain 10 is a Dawnburst.", ["Reaction", "Dawnburst"], "Thunderclap → Lightning Rod → Mushrooming is a Chain 3."],

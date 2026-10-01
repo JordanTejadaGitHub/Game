@@ -7,10 +7,14 @@ class_name MistCount
 
 const REFRESH := 0.25  # Seconds (real time) between counts
 const LIFT := 40.0  # Pixels above the start cell's centre
+const HINT := "The mist holds them back until there's room on the path."
+const HINT_LIFT := 26.0
+const HOVER_RADIUS := 36.0  # Screen px around the "+N"
 
 var drift_director: DriftDirector
 var map
 var waiting := 0  # (tests)
+var hovered := false  # The pointer is on the "+N" (tests)
 var _clock := 0.0
 
 func _init(director: DriftDirector = null) -> void:
@@ -27,12 +31,27 @@ func _process(delta: float) -> void:
 		return
 	_clock = REFRESH
 	var now: int = drift_director.get_waiting_count()
-	if now != waiting:
+	var hover := now > 0 and _is_pointer_on_tag()
+	if now != waiting or hover != hovered:
 		waiting = now
+		hovered = hover
 		queue_redraw()
 
 func _draw() -> void:
 	if waiting <= 0 or map == null:
 		return
+	var at := _tag_point()
+	WorldLabel.draw_tag(self, at.x, at.y, "+%d" % waiting, UiStyle.INK)
+	if hovered:  # Pointed at (or tapped: touch moves the pointer there): what the number means
+		WorldLabel.draw_tag(self, at.x, at.y - HINT_LIFT * WorldLabel.text_scale(self), HINT, UiStyle.INK_DIM)
+
+
+func _tag_point() -> Vector2:
 	var at: Vector2 = map.MAP_GRID.calculate_map_position(map.startPath)
-	WorldLabel.draw_tag(self, at.x, at.y - LIFT, "+%d" % waiting, UiStyle.INK)
+	return Vector2(at.x, at.y - LIFT)
+
+func _is_pointer_on_tag() -> bool:
+	if map == null or not is_inside_tree():
+		return false
+	var s := WorldLabel.text_scale(self)
+	return get_global_mouse_position().distance_to(_tag_point()) <= HOVER_RADIUS * s
