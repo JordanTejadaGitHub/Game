@@ -40,6 +40,7 @@ func _init() -> void:
 	_save_preview(sheet)
 	_make_icons()
 	_make_omen_cards()
+	_make_hud_icons()
 	print("ui icons written")
 	quit()
 
@@ -1384,3 +1385,145 @@ func _ic_dawnbreak() -> void:
 	_c_poly(PackedVector2Array([Vector2(8, 15.8), Vector2(10.2, 12.4), Vector2(12.2, 15.8)]), petal)
 	_c_poly(PackedVector2Array([Vector2(10.6, 15.8), Vector2(14.6, 8.8), Vector2(15.6, 15.8)]), petal)
 	_dt(7, 9, Palette.color("heartlight"))
+
+# --- HUD-size icons (drawn by hand, shown at exactly x2) --------------------------------------------
+# The top-right counters at 12 px (x2 = 24 px) and the HUD button glyphs at 10 px (x2 = 20 px), so
+# nothing is ever scaled by a fraction. Same designs as the 16 px icons, simplified.
+# Letters are Heartwood 32 names; "o" is the icon outline.
+
+const HUD_INK := {
+	"o": "dread", "H": "heartlight", "G": "glow", "g": "gold",
+	"N": "newleaf", "S": "sprig", "L": "leaf", "b": "oak",
+	"D": "dewlight", "d": "dew", "P": "pool",
+	"W": "wraithlight", "U": "bruise",
+	"m": "moonpath", "p": "path", "l": "loam",
+}
+
+const HUD_COUNTERS := {
+	"leaf_hud": [
+		"........ooo.",
+		"......ooNNo.",
+		".....oNNSSo.",
+		"....oNSSSgo.",
+		"...oNSSSgLo.",
+		"..oNSSSgSLo.",
+		"..oSSSgSLo..",
+		".oSSSgSLLo..",
+		".oSSgSLLo...",
+		".oSgLLoo....",
+		"obgooo......",
+		"bo.........."],
+	"dew_hud": [
+		".....oo.....",
+		"....oDdo....",
+		"...oDDddo...",
+		"...oDdddo...",
+		"..oDHdddPo..",
+		".oDHHddddPo.",
+		".oDHdddddPo.",
+		".oDddddddPo.",
+		".oddddddPPo.",
+		"..oddddPPo..",
+		"...oPPPPo...",
+		"....oooo...."],
+	"dreamlight_hud": [
+		".....oo.....",
+		"....oHWo....",
+		"...oHWWUo...",
+		"..oHWWWWUo..",
+		".oHWWWWWWUo.",
+		"oHHWWGWWWWUo",
+		"oHWWWWWWWUUo",
+		".oWWWWWWUUo.",
+		"..oWWWWUUo..",
+		"...oWWUUo...",
+		"....oUUo....",
+		".....oo....."],
+	"path_hud": [
+		".......ooo..",
+		"......ommpo.",
+		"......opplo.",
+		"..ooo..ooo..",
+		".ommpo......",
+		".opplo.ooo..",
+		"..ooo.ommpo.",
+		"......opplo.",
+		"..ooo..ooo..",
+		".ommpo......",
+		".opplo......",
+		"..ooo......."],
+}
+
+const HUD_GLYPHS := {
+	"remember_hud": [
+		"....oo....",
+		"...oHgo...",
+		"...oGgo...",
+		"..oHGGgo..",
+		"oHGGHHGGgo",
+		"ogggHGgggo",
+		"..oGGggo..",
+		"...oGgo...",
+		"...oggo...",
+		"....oo...."],
+	"boosts_hud": [
+		"....oo....",
+		"...oHGo...",
+		"..oHGGgo..",
+		".oHGGGggo.",
+		"ooooGgoooo",
+		"...oGgo...",
+		"...oGgo...",
+		"...oGgo...",
+		"...oggo...",
+		"...oooo..."],
+	"help_hud": [
+		"..oooooo..",
+		".oHGGGGgo.",
+		".oGgo.oGgo",
+		"..oo.oGggo",
+		"....oGGgo.",
+		"...oGgoo..",
+		"...oooo...",
+		"...oHGo...",
+		"...oGgo...",
+		"...oooo..."],
+	"menu_hud": [
+		".oooooooo.",
+		".oHGGGGgo.",
+		".oggggggo.",
+		".oooooooo.",
+		".oHGGGGgo.",
+		".oggggggo.",
+		".oooooooo.",
+		".oHGGGGgo.",
+		".oggggggo.",
+		".oooooooo."],
+}
+
+func _hud_sheet(maps: Dictionary, size: int, file_name: String) -> Dictionary:
+	var ids := maps.keys()
+	var sheet := Image.create(size * ids.size(), size, false, Image.FORMAT_RGBA8)
+	var index := {}
+	for i in ids.size():
+		var rows: Array = maps[ids[i]]
+		assert(rows.size() == size, "%s: %d rows" % [ids[i], rows.size()])
+		for y in size:
+			var row: String = rows[y]
+			assert(row.length() == size, "%s row %d: %d wide" % [ids[i], y, row.length()])
+			for x in size:
+				var ch := row[x]
+				if HUD_INK.has(ch):
+					sheet.set_pixel(i * size + x, y, Palette.color(HUD_INK[ch]))
+		index[ids[i]] = i
+	sheet.save_png(OUT + file_name)
+	return {image = file_name, frame_size = size, icons = index}
+
+func _make_hud_icons() -> void:
+	var data := {
+		counters = _hud_sheet(HUD_COUNTERS, 12, "hud_counters.png"),
+		glyphs = _hud_sheet(HUD_GLYPHS, 10, "hud_glyphs.png"),
+		note = "HUD-size icons, drawn for exactly x2: counters 12 px -> 24 px, button glyphs 10 px -> 20 px. Nearest filtering.",
+	}
+	var file := FileAccess.open(OUT + "hud_icons.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify(data, "\t") + "\n")

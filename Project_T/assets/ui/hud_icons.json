@@ -1,0 +1,23 @@
+{
+	"counters": {
+		"frame_size": 12,
+		"icons": {
+			"dew_hud": 1,
+			"dreamlight_hud": 2,
+			"leaf_hud": 0,
+			"path_hud": 3
+		},
+		"image": "hud_counters.png"
+	},
+	"glyphs": {
+		"frame_size": 10,
+		"icons": {
+			"boosts_hud": 1,
+			"help_hud": 2,
+			"menu_hud": 3,
+			"remember_hud": 0
+		},
+		"image": "hud_glyphs.png"
+	},
+	"note": "HUD-size icons, drawn for exactly x2: counters 12 px -> 24 px, button glyphs 10 px -> 20 px. Nearest filtering."
+}
