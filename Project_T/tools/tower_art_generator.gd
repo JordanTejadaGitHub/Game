@@ -382,7 +382,7 @@ func _make_attack(tower_name: String) -> Image:
 # Tall Wardens (64x96 frames, the body's 64x64 frame in the bottom 64 rows; the 32 rows above hold
 # what rises over it). In game: TowerData.sprite_offset (0, -16) keeps the slab on its cell, and the
 # attacks.json point stays in body-frame pixels (it's measured from the body, not the tall frame).
-const TALL_WARDENS := ["beacon", "thunderhead"]
+const TALL_WARDENS := ["beacon", "thunderhead", "wellspring"]
 const TALL_H := 96
 
 func _frame_h(tower_name: String) -> int:
@@ -2573,6 +2573,37 @@ func _tall_thunderhead(back: Image, front: Image, st: Dictionary) -> void:
 	for p: Vector2i in [Vector2i(22, int(base_y) - 25), Vector2i(40, int(base_y) - 24)]:
 		if (p.x + st.f) % 3 == 0:
 			_px(front, p.x, p.y, Color("#c0f0ff"))
+
+# Wellspring's tall rows: the spring shoots up out of the well on its head as a tall jet, crowned with
+# a splash, its spray arcing down either side (narrow: little of the cell above is hidden).
+func _tall_wellspring(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var top_well := 32.0 + 5 + dy  # the well's water, in tall-frame rows
+	var crest: float = 9.0 + [0.0, 1.0, 2.0, 1.0][st.f % 4]
+	var jet := _layer()
+	for y in range(int(crest), int(top_well)):
+		var w := 2.0 + (y - crest) / (top_well - crest) * 1.6
+		_flat_ellipse(jet, Vector2(30.5, y + 0.5), Vector2(w, 0.6), Color("#4c8ca4"))
+	_stamp(front, jet, Color("#2c4c5c"))
+	for y in range(int(crest) + 1, int(top_well)):
+		_px(front, 30, y, Color("#dce8f4") if (y + st.f) % 3 != 0 else Color("#9cd4fc"))
+	# The splash crown on top.
+	var crown := _layer()
+	_flat_ellipse(crown, Vector2(30.5, crest), Vector2(7.5, 3.0), Color("#9cd4fc"))
+	_flat_ellipse(crown, Vector2(24.5, crest + 3.0), Vector2(2.5, 2.0), Color("#4c8ca4"))
+	_flat_ellipse(crown, Vector2(36.5, crest + 3.0), Vector2(2.5, 2.0), Color("#4c8ca4"))
+	_stamp(front, crown, Color("#2c4c5c"))
+	_px(front, 29, int(crest) - 1, Color("#dce8f4"))
+	_px(front, 32, int(crest) - 1, Color("#dce8f4"))
+	# Spray arcing down either side.
+	for k in 10:
+		var t := fposmod(float(st.f) / st.n + k / 10.0, 1.0)
+		var side := -1.0 if k % 2 == 0 else 1.0
+		var p := Vector2(30.5 + side * (5.0 + t * 11.0), crest + 2.0 + t * t * 24.0)
+		var bead := _layer()
+		_flat_ellipse(bead, p, Vector2(1.5, 1.5), Color("#9cd4fc"))
+		_stamp(front, bead, Color("#2c4c5c"))
+		_px(front, int(p.x), int(p.y) - 1, Color("#dce8f4"))
 
 # Lanternmoth: an amber lantern golem with soft moth wings, feathery antennae and a warm light
 # glowing in its chest.
