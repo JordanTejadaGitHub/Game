@@ -1539,11 +1539,11 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	if kin_share(&"sunspot", "b") > 0.0:  # Sunspot: hits in a row on one nightmare ramp up
 		_ramp_hits = _ramp_hits + 1 if enemy == _ramp_target else 0
 		_ramp_target = enemy
-	if _dream_state and _dream_state.has_method("get_hit_damage_multiplier"):
+	if _dream_state:  # (Direct calls: has_method() was four string lookups per hit, the hot path)
 		soothe *= _dream_state.get_hit_damage_multiplier()  # Venom Bloom: hits weaker, effects stronger
 	if is_area and _dream_state and _has_rule(&"overlap"):
 		soothe *= _dream_state.overlap_multiplier(self, enemy)  # Overlap: another Warden's area hit within 1 s
-	if _dream_state and _dream_state.has_method("on_hit_multiplier"):
+	if _dream_state:
 		# First Light, Last Stand, Hunter's Patience, Bitter Hedges (tracked inside: once per hit).
 		soothe *= _dream_state.on_hit_multiplier(self, enemy)
 	# Reactions that change a hit: Pinned (a guaranteed ×3 crit) and Shatter (×2.5, shards).
@@ -1560,10 +1560,10 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 			enemy.strip_buff(self)
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)
 		_kin_fired(&"flock_together")
-	if is_crit and _dream_state and _dream_state.has_method("get_crit_overflow_multiplier"):
+	if is_crit and _dream_state:
 		crit_multiplier += _dream_state.get_crit_overflow_multiplier(get_raw_crit_chance(enemy))  # Full Moon
 	var non_crit := 1.0
-	if not is_crit and _dream_state and _dream_state.has_method("get_non_crit_multiplier"):
+	if not is_crit and _dream_state:
 		non_crit = _dream_state.get_non_crit_multiplier()  # Reckless Bloom
 	var dealt: float = soothe * (crit_multiplier if is_crit else non_crit) * reaction.multiplier
 	if reaction.tag != &"":
