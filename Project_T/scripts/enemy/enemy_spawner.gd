@@ -35,6 +35,10 @@ var caught_linger := 0.0  # Lullaby: seconds Caught lasts after leaving a Dreamc
 var marked_bonus := 0.0  # Bright Marks: added to Marked's extra damage taken
 var overlay: NightmareOverlay  # Draws every nightmare's health bar and status badges (see NightmareOverlay)
 var blight_materials := {}  # {outlined: ShaderMaterial} shared by the nightmares (Enemy._blight_material)
+# Most nightmares on the field at once (platforms.md "Calling drifts early stacks them"): drifts
+# called early stack, so the drift schedule holds new arrivals in the start mist while it's full
+# (DriftDirector asks has_room). Split children, followers and summons still always come.
+@export var max_field := 180
 var thin_cards := false  # Any of the above owned (else nightmares skip their per-frame bookkeeping)
 var rooted_cells := {}  # {cell: Held nightmare} (Rooted Nightmares; see _update_rooted_cells)
 var waiting_cells := {}  # {cell: nightmare waiting behind a rooted one}
@@ -68,6 +72,11 @@ func _ready() -> void:
 	(owner if owner != null else get_parent()).add_child.call_deferred(overlay)
 	map_generator.path_changed.connect(_on_path_changed)
 	map_generator.obstacle_cleared.connect(func(cell: Vector2, _data: ObstacleData) -> void: _wither_sprite(cell))
+
+# Room for another scheduled arrival (fewer than max_field nightmares out, the dispelled ones fading
+# away included: they still draw).
+func has_room() -> bool:
+	return get_child_count() < max_field
 
 # Spawns a creature at the start of the maze. Returns it, or null if there's no route.
 # `modifiers`: Omen multipliers for the creature (see Enemy.modifiers). `elite`: Deeply Blighted.

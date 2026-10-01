@@ -575,6 +575,34 @@ func _run() -> void:
 	_check(boss_walker.get_restless() == 3 and not boss_walker.is_unbound(), "a boss gains Restless but never turns Unbound")
 	_clear_enemies()
 
+	# --- Field cap (platforms.md "Calling drifts early stacks them"): arrivals wait in the start mist ---
+	_clear_enemies()
+	await process_frame
+	var director = main.get_node("%DriftDirector")
+	var shade_kind: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	var cap_before: int = spawner.max_field
+	spawner.max_field = 3
+	var due := []
+	for i in 6:
+		due.append([0.0, shade_kind, false])
+	director._active[999] = {"remaining": 0, "arriving": true, "leaked": false}
+	director._arriving[999] = {"clock": 10.0, "schedule": due}
+	director._process(0.0)
+	_check(spawner.get_child_count() == 3 and director.get_waiting_count() == 3,
+		"a full field holds the rest in the mist (%d out, %d waiting)" % [spawner.get_child_count(), director.get_waiting_count()])
+	_check(director.is_arriving(), "the drift is still arriving while they wait")
+	spawner.get_child(0).free()
+	spawner.get_child(0).free()
+	director._process(0.0)
+	_check(spawner.get_child_count() == 3 and director.get_waiting_count() == 1, "they walk in as room frees up (%d waiting)" % director.get_waiting_count())
+	var split_parent: Node2D = spawner.get_child(0)
+	spawner._run_from_start(shade_kind, 2, split_parent)
+	_check(spawner.get_child_count() == 5, "summons are never held back (%d)" % spawner.get_child_count())
+	director._arriving.erase(999)
+	director._active.erase(999)
+	spawner.max_field = cap_before
+	_clear_enemies()
+
 	# --- Status badges (screens_ui.md "Status icons, clearer") ---
 	_clear_enemies()
 	var badged := _still("leaf_bug", route[6])

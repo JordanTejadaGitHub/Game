@@ -177,7 +177,9 @@ func _process(delta: float) -> void:
 		var arrival: Dictionary = _arriving[number]
 		arrival.clock += delta
 		var schedule: Array = arrival.schedule
-		while not schedule.is_empty() and schedule[0][0] <= arrival.clock:
+		# A due arrival waits in the start mist while the field is full (EnemyContainer.max_field); the
+		# order holds, the drift stays arriving, and it walks in as soon as there's room.
+		while not schedule.is_empty() and schedule[0][0] <= arrival.clock and spawner.has_room():
 			var next: Array = schedule.pop_front()
 			_spawn(next[1], number, next[2] if next.size() > 2 else false)
 		if schedule.is_empty():
@@ -204,6 +206,18 @@ func is_resting() -> bool:
 
 func is_arriving() -> bool:
 	return not _arriving.is_empty()
+
+# Nightmares due to arrive but held in the start mist because the field is full (EnemyContainer
+# max_field; platforms.md "Calling drifts early stacks them"): for the "+N" on the mist.
+func get_waiting_count() -> int:
+	var waiting := 0
+	for number in _arriving:
+		var arrival: Dictionary = _arriving[number]
+		for entry in arrival.schedule:
+			if entry[0] > arrival.clock:
+				break  # The schedule is in time order: the rest aren't due yet
+			waiting += 1
+	return waiting
 
 func has_next_drift() -> bool:
 	return drifts_started < drifts.size()
