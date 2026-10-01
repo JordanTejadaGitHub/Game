@@ -655,6 +655,7 @@ From a user playtest with screenshots; each line is the rule going forward.
     when I'm not hovering", the Warden panel's "Grow into Acorn"). Primary / affordable / keyboard-
     focused buttons don't get a resting fill either: at most the gold border. Keyboard focus shows
     as the border too (it must not look like hover).
+- **The Warden panel never fills the screen** (2026-09-30, user, a late-run Honeysuckle with ~14 Dreams listed: *"this fills the whole screen"*; it also ran up over the Dreams row): the panel is capped at **~55% of the screen height**, starts **below the Dreams row**, and scrolls inside if needed. "Dreams on this Warden" becomes **one compact row of card gems** (rarity shape + a small count), **only the cards that are active on it**, each gem hovering / tapping to its line ("Crossroads +48% damage"); inactive cards collapse to one muted line *"4 more don't apply here"* (hover lists why). The Buffs list is folded to its **Total** line with a "Details" toggle. Stats, Sell and Close always stay visible.
 - **Warden panel header shows the Warden's portrait** (its animated idle art), not the family
   emblem (user, 2026-09-30: "go back to the Warden portrait instead of the icon").
 - **Less hand-holding on buttons** (2026-09-30, user: "a bit too much hand holding"):
