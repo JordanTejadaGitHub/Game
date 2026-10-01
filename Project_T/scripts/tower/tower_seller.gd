@@ -66,6 +66,9 @@ const GROW_OPTION_KEYS: Array[Key] = [KEY_Q, KEY_E, KEY_Z]
 signal grow_option_held(index: int, held: bool)
 # R (nurture_warden): the Warden panel arms its rank choices (1–4); Nurture v3 asks every rank.
 signal nurture_asked
+# A grow couldn't be paid for (refuse_if_short): option `index` (-1 = G), and the toast's text. The Warden
+# panel shakes that button and shows the toast.
+signal grow_refused(index: int, text: String)
 
 func _ready() -> void:
 	# Build mode owns the mouse; selling is available the rest of the time.
@@ -471,8 +474,10 @@ func grow_option(index: int) -> bool:
 		if index >= options.size():
 			continue
 		var next: TowerData = options[index][0]
+		if refuse_if_short(group[1], next, options[index][1], index):
+			return false  # The "can't buy": nothing opens, nothing is spent
 		if not options[index][1]:
-			dreams.open_remember(next)
+			dreams.open_remember(next)  # Affordable: the Remember tree unlocks it
 			return true
 		if group[1].size() == 1 and next.footprint > group[1][0].get_footprint():
 			acted = tower_placer.begin_grow_choice(group[1][0], next) or acted
@@ -497,9 +502,48 @@ func grow_selected() -> bool:
 				break
 			if option[1]:
 				wanted.append(group[1][0].get_grow_cost(option[0]).total)
-	if not grown:
+	if not grown and not wanted.is_empty():
 		_short_of_dew(wanted)
+		grow_refused.emit(-1, dew_message(wanted.min()))
 	return grown
+
+# Growing `towers` into `next` (option `index`; `unlocked` = the form is already unlocked) can't be paid for:
+# a locked form short of Dreamlight (or not open yet), or an unlocked one nobody can pay Dew for. Then the
+# refusal plays (dew_short / dreamlight_short and grow_refused: the panel's button shakes, a toast) and this
+# returns true; nothing opens and nothing is spent. Q / E / Z, G and the Warden panel's buttons all use it.
+func refuse_if_short(towers: Array, next: TowerData, unlocked: bool, index: int) -> bool:
+	var dreams := _dreams()
+	if dreams == null or towers.is_empty():
+		return false
+	if not unlocked:
+		if not dreams.has_method("get_unlock_cost"):
+			return false
+		var blocker: String = dreams.get_unlock_blocker(next)
+		var cost: int = dreams.get_unlock_cost(next)
+		if blocker != "":
+			grow_refused.emit(index, blocker_message(blocker))
+			return true
+		if cost > dreams.dreamlight:
+			dreams.dreamlight_short.emit(cost)
+			grow_refused.emit(index, "Not enough Dreamlight")
+			return true
+		return false
+	if count_affordable(towers, next) > 0:
+		return false
+	var prices: Array = towers.map(func(t: Tower) -> int: return t.get_grow_cost(next).total)
+	_short_of_dew(prices)
+	grow_refused.emit(index, dew_message(prices.min()))
+	return true
+
+# The refusal toast: no counts (user: "a bit too much hand holding").
+func dew_message(_cost: int) -> String:
+	return "Not enough Dew"
+
+# Why a form can't be unlocked yet, as a toast ("Memory Grove", "needs Stormcap", "from drift 51").
+static func blocker_message(blocker: String) -> String:
+	if blocker == "Memory Grove":
+		return "Plant it in the Memory Grove first"
+	return "Not yet: %s" % blocker
 
 func _dreams() -> DreamState:
 	return get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState

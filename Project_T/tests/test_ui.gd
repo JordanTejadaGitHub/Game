@@ -846,7 +846,7 @@ func _run() -> void:
 		seller.select(tip_tower)
 		await process_frame
 		var panel := main.find_child("WardenPanel", true, false)
-		var priced: Array = panel._buttons.get_children().filter(func(b) -> bool: return b.has_meta(&"cost"))
+		var priced: Array = panel._buttons.get_children().filter(func(b) -> bool: return b.has_meta(&"cost") and b.get_meta(&"currency", &"dew") == &"dew")  # Dew prices (a locked form is priced in Dreamlight)
 		var ids: Array = panel._buttons.get_children().map(func(b) -> int: return b.get_instance_id())
 		run_state.dew = 0
 		run_state.dew_changed.emit(0)

@@ -38,8 +38,17 @@ func _run() -> void:
 	_check(options.size() >= 2 and not options[1][1], "a fresh run: the Sporeling's forms are still locked")
 	var focused := [null]
 	dreams.remember_requested.connect(func(form) -> void: focused[0] = form)
+	# Short of Dreamlight (user 2026-10-01): E refuses like R; the button shakes, a toast, the counter flashes.
+	var dark := []
+	dreams.dreamlight_short.connect(func(cost: int) -> void: dark.append(cost))
+	var refusals: int = panel.grow_refused
+	dreams.dreamlight = 0
 	_press(seller, KEY_E)
-	_check(focused[0] == options[1][0], "E on a locked form opens Remember on it (%s)" % focused[0])
+	_check(focused[0] == null and dark == [dreams.get_unlock_cost(options[1][0])] and panel.grow_refused == refusals + 1,
+		"E on a locked form short of Dreamlight opens nothing and refuses (%s)" % [dark])
+	dreams.dreamlight = dreams.get_unlock_cost(options[1][0])
+	_press(seller, KEY_E)
+	_check(focused[0] == options[1][0], "with the Dreamlight, E opens Remember on it (%s)" % focused[0])
 	_check(spore.tower_data.get_id() == "sporeling", "and doesn't grow it")
 
 	# Unlocked: holding E previews (held signal), letting go grows into the 2nd option.
@@ -152,6 +161,28 @@ func _run() -> void:
 	_press(seller, KEY_Q)
 	_check(poor.tower_data == poor_data and run_state.dew == 1 and shorts.size() == 1,
 		"Q with too little Dew doesn't grow it and plays the refusal (%s)" % [shorts])
+	# One can't-afford style (user 2026-10-01, no "more needed"): "Grow into X · 120 Dew (Q)" with only the cost in POOR;
+	# the same for Nurture; live: affordable again, the normal look at once.
+	var grow_button: Button = panel._buttons.get_children().filter(func(b) -> bool: return b is Button and b.get_meta(&"grow_index", -1) == 0).front()
+	var first_form: TowerData = Tower.grow_options(dreams, poor.tower_data)[0][0]
+	var want: int = poor.get_grow_cost(first_form).total
+	_check(grow_button.text == "Grow into %s · %s Dew (Q)" % [first_form.display_name, BossDossier.thousands(want)]
+		and grow_button.get_meta(&"short") and grow_button.has_node("Short"), "a short Grow shows its cost (%s)" % grow_button.text)
+	var nurture_button: Button = panel._buttons.get_children().filter(func(b) -> bool: return b is Button and b.text.begins_with("Nurture")).front()
+	_check(nurture_button.text.ends_with("· %d Dew (R)" % poor.get_nurture_price()) and nurture_button.get_meta(&"short"),
+		"a short Nurture reads the same way (%s)" % nurture_button.text)
+	_check(grow_button.tooltip_text.begins_with("Not enough Dew.") and (grow_button.get_node("Short").get_child(1) as Label).get_theme_color("font_color") == UiStyle.POOR, "only the cost in POOR; its tip says why")
+	run_state.dew = want
+	run_state.dew_changed.emit(want)
+	_check(not grow_button.get_meta(&"short") and not grow_button.has_node("Short") and grow_button.text.ends_with("%s Dew (Q)" % BossDossier.thousands(want))
+		and grow_button.theme_type_variation == &"PrimaryButton", "affordable: the normal look at once (%s)" % grow_button.text)
+	# G short of Dew: nothing grows, the refusal plays.
+	run_state.dew = 1
+	run_state.dew_changed.emit(1)
+	shorts.clear()
+	var refused_before: int = panel.grow_refused
+	_check(not seller.grow_selected() and poor.tower_data == poor_data and shorts.size() == 1 and panel.grow_refused == refused_before + 1,
+		"G with too little Dew grows nothing and refuses (%s)" % [shorts])
 
 	print("grow keys test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()

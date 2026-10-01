@@ -1,8 +1,8 @@
 extends SceneTree
 
 # Headless test for the Warden panel's Dreamlight unlocks (run_design.md "Dreamlight"):
-# a locked final form reads "Grow into <final> · Unlock with N Dreamlight"; a click opens the Remember screen on that form
-# (with or without enough Dreamlight), where it's unlocked for Dreamlight.
+# a locked final form reads "Grow into <final> · N Dreamlight" and a click opens the Remember screen on
+# that form, where it is unlocked; short of Dreamlight the cost turns POOR and a click refuses.
 #   godot --headless --path . --script res://tests/test_dreamlight_panel.gd --fixed-fps 60
 
 var failures := 0
@@ -36,17 +36,22 @@ func _run() -> void:
 	await process_frame
 	_check(not dreams.is_unlocked(final_form.get_id()), "the final form starts locked")
 
-	# No Dreamlight: the button says what it costs, and opens the Remember screen.
+	# No Dreamlight: the can't-afford style says what's missing, and a press refuses (user 2026-10-01: the
+	# button shakes, a toast, the Dreamlight counter flashes, nothing opens).
 	dreams.dreamlight = 0
 	dreams.dreamlight_changed.emit(0)
 	await process_frame
+	var cost := dreams.get_unlock_cost(final_form)
 	var button := _button(panel, "Grow into " + final_name)
-	_check(button != null and ("Unlock with %d Dreamlight" % dreams.get_unlock_cost(final_form)) in button.text,
-		"a locked form shows its Dreamlight cost (%s)" % (button.text if button else "none"))
+	_check(button != null and ("· %d Dreamlight" % cost) in button.text and button.get_meta(&"short", false)
+		and not button.disabled, "a locked form shows its Dreamlight cost in POOR (%s)" % (button.text if button else "none"))
 	var asked := []
+	var shorts := []
 	dreams.remember_requested.connect(func(focus: TowerData) -> void: asked.append(focus))
+	dreams.dreamlight_short.connect(func(c: int) -> void: shorts.append(c))
 	button.pressed.emit()
-	_check(asked == [final_form], "without enough Dreamlight it opens the Remember screen on that form")
+	_check(asked.is_empty() and shorts == [cost] and panel.grow_refused == 1,
+		"without enough Dreamlight a press refuses: nothing opens, the counter flashes (%s, %s)" % [asked, shorts])
 	var remember := main.find_child("RememberScreen", true, false)
 	if remember != null and remember.visible and remember.has_method("close"):
 		remember.close()
@@ -60,6 +65,8 @@ func _run() -> void:
 	dreams.dreamlight_changed.emit(dreams.dreamlight)
 	await process_frame
 	asked.clear()
+	_check(("· %d Dreamlight" % cost) in _button(panel, "Grow into " + final_name).text
+		and not _button(panel, "Grow into " + final_name).get_meta(&"short", true), "with the Dreamlight it's the normal look at once")
 	_button(panel, "Grow into " + final_name).pressed.emit()
 	await process_frame
 	_check(asked == [final_form] and not dreams.is_unlocked(final_form.get_id()), "with enough Dreamlight it opens Remember as well, nothing spent")
