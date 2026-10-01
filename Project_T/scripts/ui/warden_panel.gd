@@ -125,7 +125,16 @@ func _refresh() -> void:
 			lines.append("This run: %d damage · %.0f/s · from combos %d%%" % [roundi(run),
 				log.get_dps(_tower), roundi(100.0 * stats.get("run_combo", 0.0) / run)])
 	var links := Synergies.find_links(data, _tower.cell, _tower.get_parent().get_children())
-	if not links.is_empty():
+	# Combos with: the shared combo links (hover / tap = its tip, ??? until found; a click opens the Codex).
+	var combo_ids: Array[String] = []
+	for l in links:
+		var id: String = String(Synergies.link_combo(data, l[0].tower_data).get("id", ""))
+		if id != "" and not combo_ids.has(id):
+			combo_ids.append(id)
+	if not combo_ids.is_empty():
+		_stats.add_child(StatusLinks.make_label("Combos with: " + ", ".join(combo_ids.map(func(id: String) -> String:
+			return "{combo:%s}" % id)), 15))
+	elif not links.is_empty():
 		lines.append("Combos with: " + ", ".join(links.map(func(l: Array) -> String: return l[1])))
 	var kin := Kinships.find(_tower)
 	if kin != null:
@@ -374,6 +383,7 @@ func _group_row(data: TowerData, count: int) -> Control:
 		icon.texture = atlas
 		icon.custom_minimum_size = Vector2(32, 32)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		TapTip.attach(icon, "%s: %s" % [data.display_name, IconInfo.format(data.description)])
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		row.add_child(icon)
 	var label := Label.new()
@@ -719,9 +729,10 @@ func _kindred_row(line: String, bonus: float) -> HBoxContainer:
 	row.add_theme_constant_override("separation", 4)
 	var whole := bonus > Kinships.KINDRED_BONUS
 	var name := "Whole Tree" if whole else "Kindred"
-	row.tooltip_text = ("All three branches of the %s family are planted: its Wardens deal +%d%% damage." if whole \
+	var tip := ("All three branches of the %s family are planted: its Wardens deal +%d%% damage." if whole \
 		else "Two branches of the %s family are planted: its Wardens deal +%d%% damage.") \
 		% [NightmareIcons.family_name(line), roundi(bonus * 100)]
+	TapTip.attach(row, tip)  # Hover or tap (screens_ui.md "Every icon can be hovered or tapped")
 	var icon := TextureRect.new()
 	icon.texture = IconInfo.damage_type_icon(line)
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED

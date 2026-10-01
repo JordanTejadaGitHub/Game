@@ -149,8 +149,7 @@ func _fill_growth(data: TowerData, dreams: DreamState) -> void:
 		else:
 			line.text = "%s · needs a Dream" % next.display_name
 			line.add_theme_color_override("font_color", UiStyle.INK_DIM)
-		line.tooltip_text = IconInfo.format(next.description)
-		line.mouse_filter = Control.MOUSE_FILTER_PASS
+		TapTip.attach(line, IconInfo.format(next.description))  # Hover or tap
 		growth.add_child(line)
 
 func tower_grow_cost(next: TowerData, dreams: DreamState) -> int:
@@ -163,7 +162,8 @@ func _show_damage_type(data: TowerData) -> void:
 	var label := damage_type.get_child(0) as Label
 	label.text = IconInfo.damage_type_text(data.line)
 	label.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
-	damage_type.tooltip_text = "Nightmares can resist or be weak to a damage type."
+	if label.tooltip_text == "":
+		TapTip.attach(label, "Nightmares can resist or be weak to a damage type.")  # Hover or tap
 
 # An unplanted Warden's stats: a Tower that never enters the tree, reading this run's Dreams.
 func _probe_for(data: TowerData, dreams: DreamState) -> Tower:
