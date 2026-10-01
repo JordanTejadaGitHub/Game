@@ -1,15 +1,15 @@
 class_name CantAfford
 
 # One can't-afford style for every buy button (user via the story chat, 2026-10-01): the same frame, the label dimmed
-# (INK_DIM) and only the missing amount in POOR ("Unlock · 2 Dreamlight · 2 more needed"); its hover / tap says how
-# to get there. Pressing it refuses out loud: the button shakes, a toast explains, the resource counter flashes.
+# (INK_DIM) and the cost in POOR ("Unlock · 2 Dreamlight"; no "N more needed": the user found it too much
+# hand-holding); its hover / tap says where the resource comes from. Pressing it refuses out loud: the button shakes, a toast explains, the resource counter flashes.
 # The button stays enabled so the press can explain (never a silent dead button). `clear` puts the normal look back
 # the moment it's affordable. Static helpers; Remember screen now, the Warden panel can share them.
 
 const TEXT_NODE := "CantAffordText"
 
-# Dims `button` to "<label> · <missing>" with only `missing` in POOR, and sets its tooltip.
-static func apply(button: Button, label: String, missing: String, tip: String) -> void:
+# Dims `button` to "<label> · <cost>" with only `cost` in POOR, and sets its tooltip.
+static func apply(button: Button, label: String, cost: String, tip: String) -> void:
 	button.text = ""
 	button.tooltip_text = tip
 	var rich := button.get_node_or_null(TEXT_NODE) as RichTextLabel
@@ -25,7 +25,7 @@ static func apply(button: Button, label: String, missing: String, tip: String) -
 		rich.add_theme_font_size_override("normal_font_size", button.get_theme_font_size("font_size"))
 		button.add_child(rich)
 	rich.text = "[center][color=#%s]%s · [/color][color=#%s]%s[/color][/center]" % [
-		UiStyle.INK_DIM.to_html(false), label, UiStyle.POOR.to_html(false), missing]
+		UiStyle.INK_DIM.to_html(false), label, UiStyle.POOR.to_html(false), cost]
 	button.set_meta(&"cant_afford", true)
 	# Centre the text vertically once it's laid out
 	rich.resized.connect(func() -> void: rich.offset_top = (button.size.y - rich.size.y) / 2.0, CONNECT_ONE_SHOT)

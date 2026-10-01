@@ -421,28 +421,27 @@ func _add_unlock(data: TowerData) -> void:
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(0, 48)
 	var label := "Unlock · %d Dreamlight" % cost
-	var short := cost - dream_state.dreamlight
+	var short := cost - dream_state.dreamlight  # > 0: can't afford
 	button.disabled = blocker != ""  # Locked for another reason: a plain disabled button (the line says why)
 	UiStyle.primary(button)
 	_side_box.add_child(button)
-	if blocker == "" and short > 0:  # Can't afford yet (CantAfford): enabled, so a press explains instead of nothing
-		CantAfford.apply(button, label, "%d more needed" % short, IconInfo.format(_short_tip(short)))
-		button.pressed.connect(_refuse_unlock.bind(data, button, short))
+	if blocker == "" and short > 0:  # Can't afford yet (CantAfford): the cost in POOR, no count (user); a press refuses
+		CantAfford.apply(button, "Unlock", "%d Dreamlight" % cost, IconInfo.format(SHORT_TIP))
+		button.pressed.connect(_refuse_unlock.bind(data, button))
 	else:
 		button.text = label
 		button.pressed.connect(unlock.bind(data))
 
-# "Earn 2 more Dreamlight …": how to get there (the button's hover / tap and the refusal toast).
-static func _short_tip(short: int) -> String:
-	return "Earn %d more Dreamlight to unlock this. Dreamlight comes at {rests} and from bosses." % short
+# The short button's hover / tap: no count (user: "too much hand-holding"), just where Dreamlight comes from.
+const SHORT_TIP := "Not enough Dreamlight. It comes at {rests} and from bosses."
 
 # Pressed while short: the shake, the toast, the Dreamlight counter flashing (and Sound's refusal via unlock_rejected).
-func _refuse_unlock(data: TowerData, button: Button, short: int) -> void:
+func _refuse_unlock(data: TowerData, button: Button) -> void:
 	unlock_rejected.emit(data)
 	CantAfford.shake(button)
 	var hud := get_parent()
 	if hud != null and hud.has_method("show_toast"):
-		hud.show_toast("Not enough Dreamlight: %d more needed." % short)
+		hud.show_toast("Not enough Dreamlight")
 	var counter := hud.get_node_or_null("DreamlightLabel") as Label if hud != null else null
 	if counter != null:
 		CantAfford.flash_counter(counter, UiStyle.GOLD)

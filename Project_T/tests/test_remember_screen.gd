@@ -74,9 +74,9 @@ func _run() -> void:
 		_check(buy != null and not buy.disabled and CantAfford.is_shown(buy), "short of Dreamlight: the dim can't-afford button, still pressable")
 		if buy != null:
 			var rich: RichTextLabel = buy.get_node_or_null(CantAfford.TEXT_NODE)
-			_check(rich != null and rich.get_parsed_text().contains("Unlock · %d Dreamlight · %d more needed" % [cost, cost])
-				and rich.text.contains(UiStyle.POOR.to_html(false)), "…\"Unlock · %d Dreamlight · %d more needed\", the missing amount in POOR" % [cost, cost])
-			_check(buy.tooltip_text.begins_with("Earn %d more Dreamlight" % cost), "…its hover says how to get there (%s)" % buy.tooltip_text)
+			_check(rich != null and rich.get_parsed_text().strip_edges() == "Unlock · %d Dreamlight" % cost and not rich.get_parsed_text().contains("needed")
+				and rich.text.contains(UiStyle.POOR.to_html(false)), "…\"Unlock · %d Dreamlight\", the cost in POOR, no count" % cost)
+			_check(buy.tooltip_text.begins_with("Not enough Dreamlight") and not buy.tooltip_text.contains(str(cost)), "…its hover says where Dreamlight comes from, no count (%s)" % buy.tooltip_text)
 			var refused := []
 			screen.unlock_rejected.connect(func(d: TowerData) -> void: refused.append(d), CONNECT_ONE_SHOT)
 			buy.pressed.emit()
