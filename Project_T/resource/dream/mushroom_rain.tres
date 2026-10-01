@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "mushroom_rain"
 display_name = "Mushroom Rain"
-description = "Mushrooming's spore cloud lasts twice as long and covers the 8 tiles around it too."
+description = "{combo:mushrooming}'s spore cloud lasts twice as long and covers the 8 tiles around it too."
 rarity = 1
 kind = 3
 tags = Array[String](["spore", "water", "reaction"])

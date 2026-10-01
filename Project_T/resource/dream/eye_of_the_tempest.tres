@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "eye_of_the_tempest"
 display_name = "Eye of the Tempest"
-description = "Tempest arcs reach 1 cell further, and its Ignites spread 2 stacks."
+description = "{combo:tempest} arcs reach 1 cell further, and its {combo:ignite}s spread 2 stacks."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])

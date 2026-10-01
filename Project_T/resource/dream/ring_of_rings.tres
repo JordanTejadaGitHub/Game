@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "ring_of_rings"
 display_name = "Ring of Rings"
-description = "Fairy Circle rings last until stepped on (up to 8 per Circle)."
+description = "{combo:fairy_circle} rings last until stepped on (up to 8 per Circle)."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])
