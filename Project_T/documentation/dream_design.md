@@ -1402,7 +1402,7 @@ lifts its branch: **`swift`** and **`reach`** (card builds C9 and C10). Numbers 
 | | 237 | **Flurry** | Uncommon | every **5th attack** from a Warden **fires twice** |
 | 2 *Light Feet* (70) | 238 | **Restless Roots** | Uncommon | Wardens with **under 1 attack per second** (before bonuses) get **+45% attack speed** |
 | | 239 | **Hummingheart** | Rare | every **+10% bonus attack speed** a Warden has also gives it **+3% damage** (max +60%) |
-| | 248 | **Drumbeat** | Uncommon | a Warden **touching 2+ other attacking Wardens** gets **+30% attack speed**. Diagram `".......\n..www..\n..wWw..\n.......\n...W..."` (the lone `W` below is dimmed: ✗ alone), caption *"Touching 2+ Wardens: +30% attack speed."* *(added 2026-09-30 so Swift's dream build is possible)* | |
+| | 248 | **Drumbeat** | Uncommon | a Warden **touching 2+ other attacking Wardens** gets **+30% attack speed**. Diagram `".......\n..www..\n..wWw..\n.......\n...W..."` (the lone `W` below is dimmed: ✗ alone), caption *"Touching 2+ Wardens: +30% attack speed."* *(added 2026-09-30 so Swift's dream build is possible)* |
 | Tip (120) | 240 | **Whirlwind Heart** | Legendary | **all attack-speed bonuses count double**; every hit deals **−20% damage**. You build around stacking attack speed |
 
 **Wide Reach (area, splash)**: "area attacks" = splashes, pulses, clouds, lobs, chains, sweeps
