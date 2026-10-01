@@ -143,7 +143,17 @@ static func caps_font() -> Font:
 static func whisper_font() -> Font:
 	return _variation("whisper", "CormorantGaramond-Italic-Variable.ttf", 500, false)
 
+# A static cache that holds engine objects (fonts, textures, resources with textures) must let go of them
+# before the servers shut down at quit, or Godot can crash on exit (headless tests: PASS, then exit 139).
+# Call this when the cache is first filled: `clear` runs once, when the root leaves the tree.
+static func release_at_exit(clear: Callable) -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree != null and tree.root != null:
+		tree.root.tree_exiting.connect(clear, CONNECT_ONE_SHOT)
+
 static func _file(file: String) -> Font:
+	if _fonts.is_empty():
+		release_at_exit(func() -> void: _fonts.clear())
 	if not _fonts.has(file):
 		_fonts[file] = load(FONT_DIR + file)
 	return _fonts[file]

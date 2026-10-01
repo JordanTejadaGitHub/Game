@@ -832,6 +832,7 @@ static var _wardens: Array[TowerData] = []
 # Every Warden of the families this profile can pick (the starting 3 + Grove-grown families).
 static func get_player_wardens() -> Array[TowerData]:
 	if _wardens.is_empty():
+		UiStyle.release_at_exit(func() -> void: _wardens.clear())
 		for file in ResourceLoader.list_directory(TOWER_DIR):
 			if file.ends_with(".tres"):
 				var data := load(TOWER_DIR + file) as TowerData

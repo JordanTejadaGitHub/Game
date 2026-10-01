@@ -109,6 +109,7 @@ static func draw_diamond(ci: RID, centre: Vector2, colour: Color) -> void:
 
 static func _radial_texture() -> GradientTexture2D:
 	if _radial == null:
+		UiStyle.release_at_exit(func() -> void: _radial = null)
 		var gradient := Gradient.new()
 		gradient.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
 		gradient.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.7), Color(1, 1, 1, 0)])
