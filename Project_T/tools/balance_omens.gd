@@ -34,6 +34,8 @@ func _initialize() -> void:
 			quit(1)
 			return
 	_print_table(stats)
+	_print_acts(stats)
+	_print_blocks(stats)
 	_print_targets(stats)
 	quit(0)
 
@@ -42,7 +44,7 @@ func _mode_stats(dir: String) -> Dictionary:
 	if runs.is_empty():
 		return {}
 	var out := {"runs": runs.size(), "reached": [], "dormant": 0, "per10": [], "paid": [], "share": [],
-		"omen_lost": [], "omen_dew": [], "omen_pot_dew": [], "omen_dreamlight": [], "lost_total": []}
+		"omen_lost": [], "omen_dew": [], "omen_pot_dew": [], "omen_dreamlight": [], "lost_total": [], "acts": {}, "blocks": {}}
 	var sums := {"share": 0.0, "omen_lost": 0.0, "lost": 0.0}
 	var last: int = marks.max()
 	for mark in marks:
@@ -83,6 +85,10 @@ func _mode_stats(dir: String) -> Dictionary:
 		out.share.append(share)
 		out.omen_lost.append(omen_lost)
 		out.omen_dew.append(int(run.omen_dew))
+		_add_acts(out, run, rows, dormant, reached)
+		for block in str(run.get("omen_blocks", "")).split(";", false):
+			var parts := block.split(":")
+			out.blocks.get_or_add(parts[0], []).append([int(parts[1]), int(parts[2]), int(parts[3]), int(parts[4])])
 		out.omen_pot_dew.append(int(run.get("omen_pot_dew", 0)))
 		out.omen_dreamlight.append(int(run.get("omen_dreamlight", -1)))
 		sums.share += share
@@ -172,3 +178,80 @@ func _read_csv(path: String) -> Array:
 			row[keys[i]] = values[i]
 		rows.append(row)
 	return rows
+
+# Per act (balance_sim's omen_*_aN columns; leaves from the drift rows): only runs that started the act.
+func _add_acts(out: Dictionary, run: Dictionary, rows: Array, dormant: bool, reached: int) -> void:
+	for act in range(1, 5):
+		var first := (act - 1) * 25 + 1
+		if reached + 1 < first or not run.has("omen_dew_a%d" % act):
+			continue
+		var bucket: Dictionary = out.acts.get_or_add(act, {"runs": 0, "lost": [], "dew": [], "pot": [], "share": 0.0, "omen_lost": 0, "paid": 0})
+		bucket.runs += 1
+		bucket.lost.append(_lost_by(rows, act * 25, dormant, reached) - _lost_by(rows, first - 1, dormant, reached))
+		bucket.dew.append(int(run["omen_dew_a%d" % act]))
+		bucket.pot.append(int(run["omen_pot_a%d" % act]))
+		bucket.share += float(run["omen_share_a%d" % act])
+		bucket.omen_lost += int(run["omen_lost_a%d" % act])
+		bucket.paid += int(run["omen_paid_a%d" % act])
+
+# Leaves lost by the end of drift `mark` (leaves_lost is the run's running total; a run that ended by then
+# lost what it had left too).
+func _lost_by(rows: Array, mark: int, dormant: bool, reached: int) -> int:
+	var lost := 0
+	for row in rows:
+		if int(row.drift) <= mark:
+			lost = int(row.leaves_lost)
+	if dormant and reached < mark and not rows.is_empty():
+		lost = int(rows[-1].leaves_lost) + int(rows[-1].leaves_left)
+	return lost
+
+func _print_acts(stats: Dictionary) -> void:
+	var acts := {}
+	for mode in stats:
+		for act in stats[mode].acts:
+			acts[act] = true
+	if acts.is_empty():
+		return
+	var keys := acts.keys()
+	keys.sort()
+	for act in keys:
+		print("  -- act %d --" % act)
+		for line in [["runs in the act", "runs"], ["leaves lost in the act", "lost"], ["Omen reward Dew (all)", "dew"],
+				["  of it, pot multipliers", "pot"], ["Omens paid", "paid"], ["shares / Omen-block leaf", "per_leaf"]]:
+			var text := "  %-26s" % line[0]
+			for mode in stats:
+				var bucket: Dictionary = stats[mode].acts.get(act, {})
+				var cell := "-"
+				if not bucket.is_empty():
+					match line[1]:
+						"runs", "paid": cell = str(bucket[line[1]])
+						"per_leaf": cell = "%.2f (%.1f / %d)" % [bucket.share / maxf(bucket.omen_lost, 1.0), bucket.share, bucket.omen_lost]
+						_: cell = _cell(bucket[line[1]])
+				text += " %24s" % cell
+			print(text)
+
+# Per Omen, all modes together: blocks paid, median reward Dew and pot part, and the net as a share of the
+# block's plain pot (Dry Spell's check: a clean block ≈ +25%).
+func _print_blocks(stats: Dictionary) -> void:
+	var all := {}
+	for mode in stats:
+		for id in stats[mode].blocks:
+			all.get_or_add(id, []).append_array(stats[mode].blocks[id])
+	if all.is_empty():
+		return
+	print("  -- per Omen (all modes; median) --")
+	print("  %-18s %6s %8s %8s %10s %16s" % ["Omen", "blocks", "reward", "pot", "lost", "net / plain pot"])
+	var ids := all.keys()
+	ids.sort()
+	for id in ids:
+		var blocks: Array = all[id]
+		var nets := []
+		var clean_nets := []
+		for b in blocks:
+			if b[2] > 0:
+				nets.append(100.0 * (b[0] + b[1]) / b[2])
+				if b[3] == 0:
+					clean_nets.append(100.0 * (b[0] + b[1]) / b[2])
+		var net := "-" if nets.is_empty() else "%+.0f%% (clean %s)" % [_median(nets), "-" if clean_nets.is_empty() else "%+.0f%%" % _median(clean_nets)]
+		print("  %-18s %6d %8s %8s %10s %16s" % [id, blocks.size(), _num(_median(blocks.map(func(b): return b[0]))),
+			_num(_median(blocks.map(func(b): return b[1]))), _num(_median(blocks.map(func(b): return b[3]))), net])

@@ -71,6 +71,10 @@ var omens: OmenDirector
 var omens_faced: Array[String] = []
 var dreamlight_by_source := {}  # DreamState.dreamlight_earned totals per source (omen_dreamlight column)
 var omen_pot_dew := 0.0  # Dew the active Omen's pot multiplier added (or took) vs the unmodified pot, assuming the whole pot is dispelled
+var omen_by_act := {}  # Act -> {dew, pot, share, lost, paid}: Omen rewards by the act their rest falls in (the rest after drift 25 is act 1)
+var _omen_seen := {"dew": 0, "share": 0.0, "leaves_lost": 0, "paid": 0}  # OmenDirector.stats already put in an act
+var omen_blocks: Array[String] = []  # Per paid Omen: "id:reward Dew:pot part:plain pot:leaves lost" (omen_blocks column)
+var _block_pot := Vector2.ZERO  # The current Omen block's pot part (x) and its plain pot (y)
 var _save_since := -1  # The drift the saver started holding Dew at
 var _approach_timer := 0.0
 
@@ -177,6 +181,7 @@ func _run() -> void:
 		policy.omen_mode = "" if omen_mode == "face" else omen_mode  # clear / always / clean (DreamSimPolicy.pick_omen)
 		omens.mode_override = "ask"
 		director.drift_started.connect(_note_omen_pot)
+		omens.omen_rewarded.connect(func(omen, _summary) -> void: _on_omen_rewarded(omen))
 	for r in Reactions.all() + Reactions.crowned():
 		reaction_tags[r.id] = true
 	_take_over_choices()
@@ -604,6 +609,8 @@ func _finish() -> void:
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
+	summary.merge(_omen_act_columns())
+	summary.omen_blocks = ";".join(omen_blocks)
 	var runs_path := out_dir.path_join("runs.csv")
 	var keys := summary.keys()
 	var new_file := not FileAccess.file_exists(runs_path)
@@ -757,4 +764,45 @@ func _note_omen_pot(n: int) -> void:
 	var plain := director.get_dew_pot(n) * (1.0 + run_state.dew_gain_bonus) * director.blight_dew_multiplier
 	if dreams.has_method("get_dew_pot_multiplier"):
 		plain *= dreams.get_dew_pot_multiplier(n, false)
-	omen_pot_dew += plain * (omen_multiplier - 1.0)
+	var extra := plain * (omen_multiplier - 1.0)
+	omen_pot_dew += extra
+	_block_pot += Vector2(extra, plain)
+	_omen_act(director.get_act(n)).pot += extra
+
+func _omen_act(act: int) -> Dictionary:
+	return omen_by_act.get_or_add(act, {"dew": 0, "pot": 0.0, "share": 0.0, "lost": 0, "paid": 0})
+
+# Puts what OmenDirector.stats gained since the last call into `act` (a reward just paid, or at the end the
+# block a lost run died in: its leaves count, with no reward).
+func _book_omen_stats(act: int) -> void:
+	if omens == null or typeof(omens.get("stats")) != TYPE_DICTIONARY:
+		return
+	var bucket := _omen_act(act)
+	bucket.dew += int(omens.stats.dew) - _omen_seen.dew
+	bucket.share += float(omens.stats.share) - _omen_seen.share
+	bucket.lost += int(omens.stats.leaves_lost) - _omen_seen.leaves_lost
+	bucket.paid += int(omens.stats.paid) - _omen_seen.paid
+	_omen_seen = {"dew": int(omens.stats.dew), "share": float(omens.stats.share), "leaves_lost": int(omens.stats.leaves_lost),
+		"paid": int(omens.stats.paid)}
+
+# runs.csv columns omen_<key>_a1..a4 (omen_dew_aN = reward + pot part, as omen_dew).
+func _omen_act_columns() -> Dictionary:
+	var columns := {}
+	var on := omens != null and _facing()
+	if on:
+		_book_omen_stats(director.get_act(maxi(director.drifts_started, 1)))
+	for act in range(1, 5):
+		var bucket := _omen_act(act)
+		columns["omen_dew_a%d" % act] = bucket.dew + roundi(bucket.pot) if on else -1  # Same keys every run (runs.csv rows line up)
+		columns["omen_pot_a%d" % act] = roundi(bucket.pot) if on else -1
+		columns["omen_share_a%d" % act] = snappedf(bucket.share, 0.01) if on else -1.0
+		columns["omen_lost_a%d" % act] = bucket.lost if on else -1
+		columns["omen_paid_a%d" % act] = bucket.paid if on else -1
+	return columns
+
+func _on_omen_rewarded(omen: OmenData) -> void:
+	var before: Dictionary = _omen_seen.duplicate()
+	_book_omen_stats(director.get_act(maxi(director.drifts_started, 1)))
+	omen_blocks.append("%s:%d:%d:%d:%d" % [omen.id, int(_omen_seen.dew) - int(before.dew), roundi(_block_pot.x), roundi(_block_pot.y),
+		int(_omen_seen.leaves_lost) - int(before.leaves_lost)])
+	_block_pot = Vector2.ZERO
