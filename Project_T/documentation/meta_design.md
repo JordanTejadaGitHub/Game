@@ -65,6 +65,11 @@ roots, with **three sections**. Each node costs Seeds and needs its parent node(
 - **Planting a node grows the branch** out to it with a short animation, and **a flower blooms**
   there, its colour by section (e.g. gold for Perks, green for Families, violet for Cards). Owned
   nodes stay in bloom, so **the more you unlock, the fuller and brighter the Heartwood gets**.
+- **Bloom levels show depth on the green and purple limbs** (user 2026-09-30, visual only, no
+  balance change): a node's bloom uses the level art for **how far up its branch it sits**: a
+  Cards branch's first bundle = level 1, its second = level 2, **its Legendary = level 3**; a
+  family node = level 1, its hidden branch = level 2, **its Ascension (the Ascended Warden) =
+  level 3**. Perks keep showing their real purchase levels.
 - **The canopy fills in** behind the branches in four stages as the share of owned nodes grows, so
   the whole tree gets fuller, not just its flowers (`meta_assets.md`).
 - **The perk loadout slots are five waystones at the Heartwood's roots** (3 open from the start;
