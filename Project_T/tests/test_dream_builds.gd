@@ -235,31 +235,30 @@ func _test_wide_and_narrow() -> void:
 	dreams._attackers_planted = 0
 	_clear_towers()
 
-# Owning an archetype makes its cards likelier (tag_weight) and tall ↔ overgrowth halve each other (Pool trim).
+# Build-tag steering is off (2026-09-30): owning overgrowth cards neither lifts overgrowth nor pushes tall away;
+# only Needs shape the weights.
 func _test_direction_weighting() -> void:
 	_reset()
 	dreams.take(_card("seedfall"))  # Overgrowth
 	var wide := _card("many_hands")
 	var narrow := _card("solitude")
-	_check(not dreams._owned_tags()[1].has("tall"), "one overgrowth card doesn't push tall away yet (round 4: 2+)")
-	dreams.take(_card("sprout_chorus"))  # A second overgrowth card: now tall halves
-	_check(dreams._owned_tags()[1].has("tall"), "…two do")
+	dreams.take(_card("sprout_chorus"))  # Two overgrowth cards
+	_check(dreams.tag_weight == 1.0, "tag_weight is 1.0 (steering off)")
 	for i in 15:  # Many Hands' soft Need (15 attacking Wardens) met, so only the tags count
 		_plant("sporeling", 60 + i * 3, 0)
 	var wide_picks := 0
 	for i in 2000:
 		if dreams._weighted_pick([wide, narrow]) == wide:
 			wide_picks += 1
-	var tw := dreams.tag_weight
-	var expected := 2000.0 * tw / (tw + 0.5)  # tag_weight vs the opposite direction's ×0.5
-	_check(absf(wide_picks - expected) < 110, "overgrowth %.1f×, tall 0.5× once you've gone overgrowth (%d / 2000, expected %d)" % [tw, wide_picks, expected])
+	var expected := 1000.0  # No boost for overgrowth, no penalty for tall
+	_check(absf(wide_picks - expected) < 110, "an overgrowth card and a tall card are equally likely (%d / 2000)" % wide_picks)
 	# Unmet soft Need: ×0.4 on top
 	_clear_towers()
 	wide_picks = 0
 	for i in 2000:
 		if dreams._weighted_pick([wide, narrow]) == wide:
 			wide_picks += 1
-	expected = 2000.0 * tw * 0.4 / (tw * 0.4 + 0.5)
+	expected = 2000.0 * 0.4 / (0.4 + 1.0)
 	_check(absf(wide_picks - expected) < 110, "…an unmet soft Need weighs ×0.4 (%d / 2000, expected %d)" % [wide_picks, expected])
 	_check(dreams.can_offer(wide) and not dreams.is_eligible(wide), "…but never blocks the card (can_offer)")
 	_clear_towers()

@@ -62,16 +62,14 @@ const STARLIT_AIM_CRIT := 0.25
 const FULL_MOON_CRIT := 0.10
 const RECKLESS_CRIT := 0.30
 const RECKLESS_PENALTY := 0.15
-# The 10 card builds (dream_design.md "Pool trim", layer 2): the only tags build weighting reads.
-# Tall and overgrowth halve each other once you own OPPOSED_FROM cards of one (round 4).
+# The 10 card builds (dream_design.md "Pool trim", layer 2): the tags resonance, the Stray slot and build_packages
+# read. Build-tag steering is off (2026-09-30, user: "change their build depending on the random cards they get,
+# not send them down a path"): tag_weight 1.0 and no Tall / Overgrowth opposition.
 const ARCHETYPE_TAGS: Array[String] = ["tall", "overgrowth", "daring", "precision", "affliction", "maze",
 	"tending", "kinship", "swift", "reach"]  # Round 2: swarm into affliction; round 3: support into tending; Grove builds swift + reach
 const DIRECTION_TAGS: Array[String] = ["nurture", "wide", "narrow", "sprout"]  # Old directions: rules and Needs only
 const NOT_BUILD_TAGS: Array[String] = ["bittersweet", "opener"]  # Structural tags, never a build
 const SOFT_TAG_NEEDS: Array[String] = ["nurture"]  # requires_tag Needs that only weigh (x0.4), never gate
-const OPPOSITE_DIRECTION := {"tall": "overgrowth", "overgrowth": "tall"}
-const OPPOSED_FROM := 2
-const OPPOSITE_WEIGHT := 0.5
 const SOFT_NEED_WEIGHT := 0.4  # A card whose soft Needs are unmet (dream_design.md "Adapt, don't get handed")
 const STRAY_FROM_DRIFT := 10  # The Stray Dream: one slot per offer from this rest on (never at boss rests)
 const STRAY_IN_BUILD_WEIGHT := 0.25
@@ -221,7 +219,7 @@ signal remember_requested(focus: TowerData)
 @export var unlock_everything: bool = false  # Debug/tests: every Warden and evolution available
 @export var cards_per_offer: int = 3
 @export var skip_dew: int = 15  # "Let it pass"
-@export var tag_weight: float = 1.3  # Cards sharing an archetype tag of a card you've taken (1.6 -> 1.3, 2026-09-30: "felt like cards were handed to me")
+@export var tag_weight: float = 1.0  # Off (1.0 = no boost): offers are random within the run's pool (2026-09-30; was 1.6, then 1.3)
 @export var pity_after: int = 3  # Dreams in a row without Rare+ before one is guaranteed
 # Bittersweet cards stay out of the pool until leaves are tuned (dream_design.md). Act 2+ only,
 # at most one per offer.
@@ -1833,20 +1831,13 @@ func _roll_rarity(act: int, want_rare: bool, skip: Array[int] = []) -> int:
 # The build tags your Dreams have steered you to (dream_design.md "Pool trim", layer 2): the archetype
 # tags of the cards you've taken (a Legendary's too). Families, statuses and the old direction tags stay
 # on the cards for rules and discovery but never boost (round 3: family lines no longer weigh either).
-# Tall and overgrowth push each other away.
 func _owned_tags() -> Array:
 	var owned := {}
-	var opposed := {}
-	var counts := {}
 	for card in _taken_cards():
 		for tag in card.tags:
 			if ARCHETYPE_TAGS.has(tag):
 				owned[tag] = true
-				counts[tag] = int(counts.get(tag, 0)) + 1
-	for tag in counts:  # Round 4: the other direction halves only once you own OPPOSED_FROM of this one
-		if OPPOSITE_DIRECTION.has(tag) and counts[tag] >= OPPOSED_FROM:
-			opposed[OPPOSITE_DIRECTION[tag]] = true
-	return [owned, opposed]
+	return [owned]
 
 # Whether `card` belongs to the build (shares a tag the run has committed to).
 func is_in_build(card: UpgradeData) -> bool:
@@ -1862,13 +1853,12 @@ func _card_in_build(card: UpgradeData, owned: Dictionary) -> bool:
 			skip[root.line] = true
 	return card.tags.any(func(tag: String) -> bool: return owned.has(tag) and not skip.has(tag))
 
-# Picks one of `cards` by weight: build tags (×tag_weight), unmet soft Needs, opposed directions, the
+# Picks one of `cards` by weight: build tags (×tag_weight, 1.0 = off), unmet soft Needs, the
 # clearing boost, the passed-over fade. `stray` turns the build weighting around (the Stray Dream):
 # build cards ×STRAY_IN_BUILD_WEIGHT, soft Needs ignored.
 func _weighted_pick(cards: Array, stray: bool = false) -> UpgradeData:
 	var tags := _owned_tags()
 	var owned: Dictionary = tags[0]
-	var opposed: Dictionary = tags[1]
 	var weights: Array[float] = []
 	var total := 0.0
 	var clearing_locked := not can_clear()
@@ -1881,9 +1871,6 @@ func _weighted_pick(cards: Array, stray: bool = false) -> UpgradeData:
 			weight = tag_weight if in_build else 1.0
 			if not soft_needs_met(card):
 				weight *= SOFT_NEED_WEIGHT
-			for tag in opposed:  # e.g. an overgrowth card while you've gone tall
-				if card.tags.has(tag) and not card.tags.has(OPPOSITE_DIRECTION[tag]):
-					weight *= OPPOSITE_WEIGHT
 		if clearing_locked and card.tags.has(OPENER_TAG):
 			weight *= CLEARING_LOCKED_WEIGHT  # The opener, until clearing is unlocked
 		var half_missing := half_dreamed_missing(card)

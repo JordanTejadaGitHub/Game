@@ -315,7 +315,7 @@ func _test_catalogue() -> void:
 	_check(not dreams.is_in_build(soft), "owning Sporeling doesn't make spore cards your build")
 	dreams.take(_card("glinting_dew"))
 	_check(dreams.is_in_build(_card("sharpened_light")) and not dreams.is_in_build(soft), "a taken precision card lifts the precision build")
-	_check(DreamState.ARCHETYPE_TAGS.size() == 10 and DreamState.OPPOSITE_DIRECTION.get("tall") == "overgrowth", "10 archetype tags (swift and reach added); tall opposes overgrowth")
+	_check(DreamState.ARCHETYPE_TAGS.size() == 10 and dreams.tag_weight == 1.0, "10 archetype tags (swift and reach added); no build-tag steering")
 	dreams.stacks.clear()
 	# Nurture follow-ups: needing a Nurture card is soft (Kindred Roots weighs ×0.4 until you have one); Sunlit Rest is an opener
 	var kindred := _card("kindred_roots")
