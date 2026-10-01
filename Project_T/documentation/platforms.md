@@ -35,6 +35,7 @@ made now must not block it**. This doc is the checklist.
    COLOR / modulate) and **all health bars and status badges drawn by one overlay node** (Enemy
    Code, target −10 ms); cached Warden stats, retargeting every ~0.1 s, idle Wardens skipped (Tower
    Code). The thinning ladder's **first rung is simplifying nightmare bars and badges**, not Fx.
+   **Calling drifts early stacks them** (2026-09-30, user: *"it gets laggy when I call the drifts early at late drifts"*): late drifts called back to back put several drifts' nightmares on the field at once. Rule: **at most ~180 nightmares on the field**; spawns beyond that **wait in the start mist** (still "arriving", shown as a count on the mist, "+24") and walk in as room frees up. Calling early still pays its Dew and still stacks pressure; only the *simultaneous* count is capped. The stress test adds this case: drift 90, three drifts called back to back, at 3×.
    Rules:
    - No per-frame work that scales with **Wardens × nightmares** (targeting uses a spatial grid or a
      cheap interval, not a scan of every nightmare every frame).
