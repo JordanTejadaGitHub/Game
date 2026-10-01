@@ -71,6 +71,8 @@ signal nurture_asked
 signal grow_refused(index: int, text: String)
 
 func _ready() -> void:
+	Tower.seller_ref = weakref(self)  # Tall Wardens fade when the cell behind them is hovered / selected
+	FxCache.find.call_deferred(self)  # Load the effect sheets at the run's start, not mid-fight on the first effect (a one-off ~70 ms hitch)
 	# Build mode owns the mouse; selling is available the rest of the time.
 	_ensure_grow_actions()
 	if OS.is_debug_build():

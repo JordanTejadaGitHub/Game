@@ -390,6 +390,7 @@ func _apply_data() -> void:
 	_flush_pull()  # Grown mid-lash: the pull still happens
 	_stop_beam()
 	sprite.offset = tower_data.sprite_offset
+	_set_up_tall_fade()
 	_show_idle()
 	_update_withered()
 	_refresh_neighbours()
@@ -430,6 +431,8 @@ func _process(delta: float) -> void:
 	if is_instance_valid(_leaf_mote):
 		_leaf_mote.position = LEAF_MOTE_AT + Vector2(0, -fmod(_anim_time * LEAF_MOTE_RISE, LEAF_MOTE_SPAN))
 	_tick_dream_cache(delta)
+	if _tall_fade != null:
+		_update_tall_fade(delta)
 	_neighbour_timer -= delta
 	if _neighbour_timer <= 0.0 and _refresh_slot():
 		_refresh_neighbours()
@@ -3777,3 +3780,56 @@ func has_enemy_in_range() -> bool:
 			if distance_squared <= (sky_squared if flying else range_squared) and distance_squared >= min_squared:
 				return true
 	return false
+
+# --- Tall Wardens: the top band fades over what's behind (story chat 2026-10-01) ---------------------------
+# A 64x96 Warden's top 32 px overhang the cell above. While a nightmare stands there, or that cell is hovered
+# or selected, the band fades to TALL_FADE_ALPHA so the path and the nightmare stay readable. Only tall forms
+# get the material; the check runs TALL_FADE_CHECK times a second against the nightmare buckets.
+const TALL_FADE_SHADER := preload("res://shaders/tall_fade.gdshader")
+const TALL_FADE_ALPHA := 0.5
+const TALL_FADE_CHECK := 0.1  # Seconds between checks
+const TALL_FADE_RATE := 10.0
+var _tall_fade: ShaderMaterial = null
+static var seller_ref: WeakRef = null  # Set by TowerSeller / TowerPlacer (weak: Nodes in statics must not outlive the run)
+static var placer_ref: WeakRef = null
+var _tall_alpha := 1.0
+var _tall_behind := false
+var _tall_check_left := 0.0
+
+func is_tall() -> bool:
+	return tower_data.texture != null and tower_data.get_frame_rect(0).size.y > MAP_GRID.cell_size.y and tower_data.tier < DreamState.ASCENDED_TIER
+
+func _set_up_tall_fade() -> void:
+	if is_tall():
+		if _tall_fade == null:
+			_tall_fade = ShaderMaterial.new()
+			_tall_fade.shader = TALL_FADE_SHADER
+		sprite.material = _tall_fade
+		_tall_fade.set_shader_parameter(&"top_share", (tower_data.get_frame_rect(0).size.y - MAP_GRID.cell_size.y) / tower_data.get_frame_rect(0).size.y)
+	elif _tall_fade != null:
+		sprite.material = null
+		_tall_fade = null
+		_tall_alpha = 1.0
+
+# Whether something the player should see is in the cell above (behind the overhang).
+func tall_behind() -> bool:
+	var above := cell + Vector2.UP
+	var centre := MAP_GRID.calculate_map_position(above)
+	for enemy in nightmares_near(get_tree(), centre, MAP_GRID.cell_size.x):
+		if is_instance_valid(enemy) and not enemy.is_cleansed and MAP_GRID.calculate_grid_coordinates(enemy.global_position) == above:
+			return true
+	var seller: TowerSeller = seller_ref.get_ref() if seller_ref != null else null
+	if seller != null and (seller._hover_cell == above or (is_instance_valid(seller.selected) and seller.selected.cell == above)):
+		return true
+	var placer: TowerPlacer = placer_ref.get_ref() if placer_ref != null else null
+	return placer != null and placer.build_mode and placer._hover_cell == above
+
+func _update_tall_fade(delta: float) -> void:
+	_tall_check_left -= delta
+	if _tall_check_left <= 0.0:
+		_tall_check_left = TALL_FADE_CHECK
+		_tall_behind = tall_behind()
+	var target := TALL_FADE_ALPHA if _tall_behind else 1.0
+	if absf(_tall_alpha - target) > 0.01:
+		_tall_alpha = lerpf(_tall_alpha, target, 1.0 - exp(-TALL_FADE_RATE * delta))
+		_tall_fade.set_shader_parameter(&"top_alpha", _tall_alpha)
