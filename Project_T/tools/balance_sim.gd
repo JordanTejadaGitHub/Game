@@ -70,6 +70,7 @@ var dreams_20 := ""  # The Dreams taken by drift 20 ("a+b")
 var omens: OmenDirector
 var omens_faced: Array[String] = []
 var dreamlight_by_source := {}  # DreamState.dreamlight_earned totals per source (omen_dreamlight column)
+var omen_pot_dew := 0.0  # Dew the active Omen's pot multiplier added (or took) vs the unmodified pot, assuming the whole pot is dispelled
 var _save_since := -1  # The drift the saver started holding Dew at
 var _approach_timer := 0.0
 
@@ -175,6 +176,7 @@ func _run() -> void:
 		policy.face_omens = omen_mode == "face"
 		policy.omen_mode = "" if omen_mode == "face" else omen_mode  # clear / always / clean (DreamSimPolicy.pick_omen)
 		omens.mode_override = "ask"
+		director.drift_started.connect(_note_omen_pot)
 	for r in Reactions.all() + Reactions.crowned():
 		reaction_tags[r.id] = true
 	_take_over_choices()
@@ -598,7 +600,7 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "enemy": ";".join(enemy_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, enemy_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "omen_paid": _omen_stat("paid"), "omen_share": _omen_stat("share"), "omen_leaves_lost": _omen_stat("leaves_lost"), "omen_dew": _omen_stat("dew"), "omen_dreamlight": dreamlight_by_source.get(&"omen", 0) if omen_mode != "" else -1, "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "enemy": ";".join(enemy_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, enemy_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "omen_paid": _omen_stat("paid"), "omen_share": _omen_stat("share"), "omen_leaves_lost": _omen_stat("leaves_lost"), "omen_dew": (_omen_stat("dew") + roundi(omen_pot_dew)) if omens != null and _facing() else -1, "omen_pot_dew": roundi(omen_pot_dew), "omen_dreamlight": dreamlight_by_source.get(&"omen", 0) if omen_mode != "" else -1, "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
@@ -745,3 +747,14 @@ func _omen_stat(key: String) -> Variant:
 	if omens == null or not "stats" in omens or typeof(omens.stats) != TYPE_DICTIONARY:
 		return -1
 	return omens.stats.get(key, -1)
+
+# omen_dew's pot part (Bountiful Night, Blood Moon, Dry Spell): drift `n`'s pot with the Omen's multiplier
+# minus the same pot without it. The Omen's fixed reward comes from OmenDirector.stats.
+func _note_omen_pot(n: int) -> void:
+	var omen_multiplier: float = omens.get_dew_pot_multiplier(n)
+	if is_equal_approx(omen_multiplier, 1.0):
+		return
+	var plain := director.get_dew_pot(n) * (1.0 + run_state.dew_gain_bonus) * director.blight_dew_multiplier
+	if dreams.has_method("get_dew_pot_multiplier"):
+		plain *= dreams.get_dew_pot_multiplier(n, false)
+	omen_pot_dew += plain * (omen_multiplier - 1.0)

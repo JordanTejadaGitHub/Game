@@ -6,6 +6,7 @@ extends SceneTree
 #   godot --headless --path . --script res://tools/balance_omens.gd -- \
 #       --mode=clear=<dir> --mode=always=<dir> --mode=clean=<dir> [--at=25,40]
 #
+# Omen reward Dew = the fixed reward paid + the pot multipliers' extra or loss (balance_sim omen_pot_dew).
 # Leaves lost by drift N = the drift rows' leaves_lost up to N, plus the leaves left at the last row
 # when the run ended (dormant) by N (the losing drift writes no row). Dormant = ended before --last.
 
@@ -41,7 +42,7 @@ func _mode_stats(dir: String) -> Dictionary:
 	if runs.is_empty():
 		return {}
 	var out := {"runs": runs.size(), "reached": [], "dormant": 0, "per10": [], "paid": [], "share": [],
-		"omen_lost": [], "omen_dew": [], "omen_dreamlight": [], "lost_total": []}
+		"omen_lost": [], "omen_dew": [], "omen_pot_dew": [], "omen_dreamlight": [], "lost_total": []}
 	var sums := {"share": 0.0, "omen_lost": 0.0, "lost": 0.0}
 	var last: int = marks.max()
 	for mark in marks:
@@ -82,6 +83,7 @@ func _mode_stats(dir: String) -> Dictionary:
 		out.share.append(share)
 		out.omen_lost.append(omen_lost)
 		out.omen_dew.append(int(run.omen_dew))
+		out.omen_pot_dew.append(int(run.get("omen_pot_dew", 0)))
 		out.omen_dreamlight.append(int(run.get("omen_dreamlight", -1)))
 		sums.share += share
 		sums.omen_lost += omen_lost
@@ -100,7 +102,7 @@ func _print_table(stats: Dictionary) -> void:
 		lines.append(["leaves lost by %d" % mark, "lost_%d" % mark])
 	lines.append_array([["leaves lost / 10 drifts", "per10"], ["leaves lost, run", "lost_total"],
 		["Omens paid", "paid"], ["reward shares", "share"], ["leaves lost in Omen blocks", "omen_lost"],
-		["Omen reward Dew", "omen_dew"]])
+		["Omen reward Dew (all)", "omen_dew"], ["  of it, pot multipliers", "omen_pot_dew"]])
 	for mark in marks:
 		lines.append(["Dew earned by %d" % mark, "earned_%d" % mark])
 		lines.append(["Dew banked at %d (alive)" % mark, "banked_%d" % mark])
