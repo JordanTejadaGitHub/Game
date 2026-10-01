@@ -19,6 +19,24 @@ points.
   Conductive Soil, Charged Bloom, Chain Bloom and Spore Cascade only **amplify** a combo or **add a
   new twist**. Any new card must follow this.
 
+## Placement cards show a diagram (2026-09-30)
+
+User: *"confusing cards like Crossroads should have a diagram of what that looks like when you
+hover."* Cards whose condition is about **where** a Warden stands get a small map picture:
+- **Shown on hover** of the card (Dream offer, Dreams this run, Codex) and on **long-press** on touch,
+  as a panel beside the card: a mini grid of **7×5 tiles** (path tiles sandy, grass dark, walls,
+  obstacles, the Heartwood or start where relevant), **one Warden that qualifies, glowing**, the
+  tiles that make it qualify **outlined in gold** (and numbered steps for Crossroads), and one
+  short caption (*"Touches the path twice, 6+ steps apart: +40%"*). A second, dimmed Warden that
+  doesn't qualify where that helps ("✗ only touches it once").
+- **Data, not art:** each card carries a small ASCII layout (`diagram` field on `UpgradeData`, e.g.
+  `"..P.P..\n..PWP..\n..PPP.."` with a legend: P path, W qualifying Warden, w non-qualifying, T
+  Thornwall, O obstacle, H Heartwood, S start, * highlighted), drawn by one shared `CardDiagram`
+  view in the Moonlit style. Same view later for the glossary and the Codex.
+- **First set:** Crossroads, Cozy Corners / II, Straightaway / II, Shelter of Stones, Solitude, Rootbound,
+  Kind Canopy, Shared Light, Heart of the Maze, Cliffside, Forest's Edge, Last Stand, Hedgerow Roots,
+  Bitter Hedges, Briar Crown, Root Network / II, Sprout Chorus, Wildwood Reclaimed, Short Roots.
+
 ## Dreams must matter (2026-09-30)
 
 User: *"cards aren't impactful enough to a run; I can play and beat it without choosing optimal
