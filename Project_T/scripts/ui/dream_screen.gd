@@ -126,6 +126,7 @@ func _make_card(card: UpgradeData) -> Button:
 	# Moonlit Thread card (ui_style.md): solid fog, the top thread in the rarity colour (Entwined: the
 	# vine green; Woven: glowing).
 	UiStyle.card_button(button, ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity))
+	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot); a Starlit back thins it again below
 	if card.woven:
 		for state in ["normal", "hover", "pressed", "hover_pressed"]:
 			(button.get_theme_stylebox(state) as MoonStyleBox).underline = true  # A glowing line along the foot too
