@@ -588,6 +588,13 @@ Potency stays ~1.0–1.37 because the bot nurtures Power, never Deep. Harmless f
 untested for Deep builds: a `--focus=deep` check follows. Per Warden, **Bloomcap ~18% of all damage
 each** (mostly Spored ticks) vs Driftspore 7%, Sporeling 5%; Dreamshroom too rare for the bot (2/80);
 a fixed-maze finals probe measures it.
+
+**Finals probe** (`tools/balance_finals.gd`, ≥ 144d371b, drifts 61–65, 4 copies in the same spots +
+8 fixed finals, rank IV Power, no Dreams, 3 map seeds): per Warden over 5 drifts, **Dreamshroom
+~319k vs Puffball ~154k, Morning Fog ~137k, Mistveil (branch) ~51k**; at the same 1,090 Dew,
+**Dreamshroom is ~2.1× Puffball**, and its board leaks 19% of spawned health vs ~50%. 73–88% of its
+damage is credited as status ticks (which ticks: being broken down). **Dreamshroom is a real outlier**:
+the nerf targets whatever makes the 2× (target ≈ 1.1–1.2× Puffball), once the breakdown is in.
 This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
 off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
 then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.
