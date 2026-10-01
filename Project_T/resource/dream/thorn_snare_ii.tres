@@ -13,4 +13,4 @@ tags = Array[String](["tending", "wall"])
 max_stacks = 1
 deepens = "thorn_snare"
 rule_id = &"thorn_snare"
-in_start_pool = true
+in_start_pool = false

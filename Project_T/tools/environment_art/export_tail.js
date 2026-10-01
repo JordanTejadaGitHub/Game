@@ -50,7 +50,7 @@ for (const A of ACTS) {
   emit(d + "tree_round.png", getImg("tree:0"));
   emit(d + "tree_pine.png", getImg("tree:1"));
   emit(d + "tree_flowering.png", getImg("tree:2"));
-  emit(d + "ground_details.png", strip([0, 1, 2, 3].map(v => getImg("decor:" + v))));
+  emit(d + "ground_details.png", strip([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(v => getImg("decor:" + v))));
   emit(d + "heartwood.png", stack(Array.from({ length: 21 }, (_, lost) => frames("heart:" + lost))));
 }
 document.body.appendChild(Object.assign(document.createElement("p"), { id: "done", textContent: "done" }));

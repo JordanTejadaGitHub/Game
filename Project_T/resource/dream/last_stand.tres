@@ -15,3 +15,4 @@ rule_id = &"last_stand"
 extra_rules = Array[StringName]([&"heartwoods_fury"])
 diagram = "w.*****\n..*W***\nPPPPPPH\n..*****\n..*****"
 diagram_caption = "Within 4 cells of the Heartwood: nightmares there take +35%, Wardens there +3% per missing leaf."
+in_start_pool = false

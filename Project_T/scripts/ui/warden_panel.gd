@@ -34,6 +34,9 @@ var _content: VBoxContainer
 var _footer := HBoxContainer.new()  # Sell and Close: always visible
 var _buffs_open := false  # Buffs: folded to the Total line until "Details"
 const MAX_SHARE := 0.55  # The panel never takes more of the screen's height than this
+const TOP_CLEAR := 150.0  # Keeps clear of the Dreams row and the top-right buttons
+const BOTTOM_MARGIN := 16.0  # The panel's offset from the bottom edge
+const MIN_INFO := 80.0  # The info part never squeezes below this (it scrolls)
 var _confirm_sell := false  # Selling a group during a drift asks once more
 var _confirm_unlock: TowerData = null  # Unlocking a form with Dreamlight asks once more
 var _confirm_eldest := false  # Rank VI would crown the Eldest: asks once more
@@ -49,9 +52,8 @@ func _ready() -> void:
 	# The header (portrait + name, damage type, description, stats, Dreams on it) is the shared
 	# WardenHeaderView, also on the Warden bar's hover card and the Codex, so they never disagree.
 	_header.growth.visible = false
-	box.add_child(_header)
-	# screens_ui.md "The Warden panel never fills the screen": the header stays, the middle scrolls inside a
-	# cap (MAX_SHARE of the screen, below the Dreams row) and Sell / Close stay in the footer.
+	# screens_ui.md "The Warden panel never fills the screen": the info part (header, Buffs, notes) scrolls
+	# inside a cap; the action buttons (Grow, Nurture, Targeting ...) and Sell / Close stay below it, always on screen.
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(_scroll)
@@ -60,13 +62,14 @@ func _ready() -> void:
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(content)
 	_content = content
+	content.add_child(_header)
 	_buffs.add_theme_constant_override("separation", 1)
 	content.add_child(_buffs)
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.custom_minimum_size = Vector2(280, 0)
 	content.add_child(_body)
 	content.add_child(_groups)
-	content.add_child(_buttons)
+	box.add_child(_buttons)  # Actions: never scrolled away
 	_footer.add_theme_constant_override("separation", 6)
 	box.add_child(_footer)
 	get_viewport().size_changed.connect(_fit_height)
@@ -803,7 +806,16 @@ func _fit_height() -> void:
 	if _content == null:
 		return
 	var screen: float = get_viewport().get_visible_rect().size.y
-	var room := screen * MAX_SHARE - _header.get_combined_minimum_size().y - _footer.get_combined_minimum_size().y - 40.0
+	# The whole panel (info + actions + footer) within MAX_SHARE of the screen, never past its top margin.
+	var actions := _buttons.get_combined_minimum_size().y + _footer.get_combined_minimum_size().y + 40.0
+	var room := minf(screen * MAX_SHARE, screen - TOP_CLEAR - BOTTOM_MARGIN) - actions
 	var wanted := _content.get_combined_minimum_size().y
-	_scroll.custom_minimum_size.y = clampf(wanted, 0.0, maxf(room, 120.0))
-	reset_size()
+	_scroll.custom_minimum_size.y = clampf(wanted, 0.0, maxf(room, MIN_INFO))
+	# No reset_size(): the panel is anchored to the bottom and grows upward; resetting kept its top and pushed
+	# the buttons off the bottom of the screen (the "can't upgrade" bug). It's placed from its bottom edge instead.
+	_place_from_bottom.call_deferred()
+
+# Anchored to the bottom: its top edge follows its height (grows up, shrinks down), never past the screen.
+func _place_from_bottom() -> void:
+	var height := get_combined_minimum_size().y
+	offset_top = offset_bottom - height

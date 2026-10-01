@@ -25,9 +25,9 @@ func _init() -> void:
 		and env.get_cell_atlas_coords(Vector2i(0, 5)).x == 1 | 2 | 4, "the left rim: island to the N, E and S")
 	_check(env.get_cell_atlas_coords(Vector2i(0, 0)).x == 2 | 4, "the top-left corner: island to the E and S")
 	var tree_sheet := map.tile_set.get_source(EnvironmentTiles.WITHERED_TREE) as TileSetAtlasSource
-	_check(tree_sheet.texture_region_size == Vector2i(64, 96) and tree_sheet.get_tiles_count() == 9
-		and tree_sheet.get_tile_data(Vector2i(0, 8), 0).texture_origin == Vector2i(0, 16),
-		"Withered Trees are 64x96, 9 kinds, bottom 64 px on their own cell")
+	_check(tree_sheet.texture_region_size == Vector2i(96, 128) and tree_sheet.get_tiles_count() == 9
+		and tree_sheet.get_tile_data(Vector2i(0, 8), 0).texture_origin == Vector2i(0, 32),
+		"Withered Trees are 96x128, 9 kinds, bottom 64 px on their own cell")
 	_check(env.get_cell_source_id(Vector2i(5, size.y)) == EnvironmentTiles.CLIFF
 		and env.get_cell_atlas_coords(Vector2i(5, size.y)).x == 3, "a cliff hangs under the bottom row")
 	_check(env.get_cell_source_id(Vector2i(map.startPath) + Vector2i.UP) == EnvironmentTiles.ROPE_BRIDGE,

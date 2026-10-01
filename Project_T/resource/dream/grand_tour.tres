@@ -14,3 +14,4 @@ requires = Array[String]([])
 max_stacks = 1
 min_owned_statuses = 2
 rule_id = &"grand_tour"
+in_start_pool = false

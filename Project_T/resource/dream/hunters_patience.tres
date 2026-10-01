@@ -14,3 +14,4 @@ max_stacks = 1
 min_act = 2
 rule_id = &"hunters_patience"
 extra_rules = Array[StringName]([&"skyward_gaze"])
+in_start_pool = false

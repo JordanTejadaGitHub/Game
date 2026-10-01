@@ -40,8 +40,8 @@ const SHEETS := {
 const DREAM_FOLDER := "dream"
 const SHARED_SHEETS := {ROPE_BRIDGE: "rope_bridge"}
 const ANIMATED: Array[int] = [WITHERED_TREE, EDGE_MIST, WAYSTONE, DEW_POOL, BLIGHT_PATCH]
-# Sheets whose cells are taller than a map cell (withered_tree.png: 64×96, overhanging the cell above).
-const TALL := {WITHERED_TREE: Vector2i(64, 96)}
+# Sheets whose cells are bigger than a map cell (withered_tree.png: 96×128, overhanging the cell above and its sides).
+const TALL := {WITHERED_TREE: Vector2i(96, 128)}
 # Animated tiles start at a random point per cell (so a field of them never pulses in step), and
 # each dead-tree type (row) runs at its own pace with uneven frame timing: one frame held, one quick.
 const TREE_SPEEDS: Array[float] = [0.8, 0.95, 0.7, 0.85, 0.6, 1.1, 0.75, 0.9, 0.65]
@@ -88,7 +88,7 @@ static func create_tile_set(act: int = 1) -> TileSet:
 		tile_set.add_source(source, id)
 	return tile_set
 
-# A tall tile (64×96) puts its bottom 64 px on its own cell; the rest overhangs the cell above.
+# A big tile (96×128) puts its bottom 64 px rows on its own cell, centred; the rest overhangs the cells around.
 static func _anchor_bottom(source: TileSetAtlasSource, coords: Vector2i, region: Vector2i) -> void:
 	if region.y > SIZE.y:
 		source.get_tile_data(coords, 0).texture_origin = Vector2i(0, (region.y - SIZE.y) / 2)

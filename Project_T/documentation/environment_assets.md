@@ -43,7 +43,7 @@ two trees pulse in step.
 | `path.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8) | the creature path; e.g. column 5 = N+S straight, 15 = crossroads |
 | `path_rim.png` | 1024×64 | 16 tiles, **column = neighbour mask** like `path.png` | the path on the start and goal cells, which sit in the rim ring: the same path, transparent outside it (no grass border). Draw it over the matching `island_edge` tile so the rim's earth runs up to the path |
 | `border_wall.png` | 128×64 | 2 variants, seamless | the map's stone border |
-| `withered_tree.png` | 256×864 | **64×96 cells**: bottom 64 px = the cell (trunk base and shadow), top 32 px overhangs the cell above. 9 dead trees (rows) × 4 frames: 0–2 gnarled Withered Tree, 3 split trunk, 4 broken hollow snag (eyes glint), 5 weeping dead willow (strands sway), 6 dead pine, 7 dead birch, 8 thorn tree | obstacle, "Tend"; all 9 are in `tree.tres` |
+| `withered_tree.png` | 384×1152 | **96×128 cells** (bigger since 2026-09-30): the bottom 64 px rows, centred, are the cell (trunk base and shadow); the rest overhangs the cell above (64 px) and the sides (16 px each). Drawn from the 64 px designs with heights × 1.7 and widths × 1.3. 9 dead trees (rows) × 4 frames: 0–2 gnarled Withered Tree, 3 split trunk, 4 broken hollow snag (eyes glint), 5 weeping dead willow (strands sway), 6 dead pine, 7 dead birch, 8 thorn tree | obstacle, "Tend"; all 9 are in `tree.tres` |
 | `tended_stump.png` | 64×64 | 1 | walkable mark left after Tend |
 | `mossy_boulder.png` | 576×64 | 9 rocks, each about 68% of their first size (low in the cell with a shadow, clearly smaller than the trees): 0–1 Mossy Boulder, 2 slab stone, 3 cairn, 4 rock cluster, 5 split boulder, 6 lichen boulder, 7 carved boulder, 8 dream-crystal boulder | obstacle, "Move"; all 9 are in `rock.tres` |
 | `moved_hollow.png` | 64×64 | 1 | walkable mark left after Move |
@@ -52,7 +52,7 @@ two trees pulse in step.
 | `blight_patch.png` | 256×64 | 4 frames | proposed special tile |
 | `edge_mist.png` | 256×64 | 4 frames, transparent overlay | start cell / map edge mist |
 | `tree_round.png`, `tree_pine.png`, `tree_flowering.png` | 64×64 | 1 each | scenery on cells the maze never uses |
-| `ground_details.png` | 256×64 | 4 variants: mushrooms, ferns, pebbles, leaf litter | walkable decoration |
+| `ground_details.png` | 768×64 | 12 variants: the 4 kinds (column % 4: mushrooms, ferns, pebbles, leaf litter), each at 3 spots in the cell so a scatter never lines up on the grid | walkable decoration on about 30% of the cells in the noise's detail band (`DETAIL_SHARE`) |
 | `island_edge.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8: which neighbours are island) | the map's unbuildable rim (screens_ui.md): **no grass**, a sunken ledge of crumbled dark earth (value below the ground's; the pipeline checks it) whose open sides crumble and fade into the void, roots hanging off the lip, and a shadow step with overhanging grass where it meets the buildable ground; the south lip meets the cliff tops. Assumes a convex (blocky) island: no inner-corner tiles |
 | `cliff.png` | 256×256 | columns: bit 1 = the cell to the west also has cliff, bit 2 = the east does; rows: 4 variants | cliff face under island cells whose south neighbour is void; transparent below its ragged, dripping underside |
 | `heartwood.png` | 512×2688 | 128×128 frames: **row = leaves lost (0–20)**, 4 frames per row; the Memory Grove's Heartwood (twisted trunk, gold-rimmed mossy bark, the Hollow's light): rot spreads through the crown, a dream-fruit darkens per 4 leaves, the rim turns ember and the Hollow fades by 20 | the goal; anchor its bottom centre about 8 px below the goal cell's bottom centre, so it overhangs the cells around it |
@@ -83,7 +83,7 @@ healthy trees are no longer used.
   fixed seed 1207, with `export_tail.js`) in headless Chrome, then `process_environment.gd` puts every
   sheet through Theme Code's `DetailPass` and `HeartwoodPalette` (`tools/art/`) into
   `assets/environment/`: no added grain on grass / island rim / dew pool / blight patch, 0.3 on the
-  other ground tiles, full detail on obstacles, 64×96 tree cells, palette snap only for mist, void,
+  other ground tiles, full detail on obstacles, 96×128 tree cells, palette snap only for mist, void,
   cloud shadows and the Heartwood (drawn with its own rim and banded glow; redrawn 2026-09-30 to
   match the Memory Grove's Heartwood). It prints the value order per act and fails if it breaks. A run
   on unchanged sources reproduces the committed sheets byte for byte. Only PNGs are written (UIDs stay).

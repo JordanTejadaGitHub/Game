@@ -81,8 +81,7 @@ func _run() -> void:
 	# Never more than MAX_SHARE of the screen; Sell and Close in the footer.
 	root.size = Vector2i(1280, 800)
 	await process_frame
-	for i in 30:
-		panel._add_button("filler %d" % i)  # A long panel
+	panel._body.text = "\n".join(range(40).map(func(i: int) -> String: return "A long note %d" % i))  # A long info part (it scrolls)
 	panel._fit_height()
 	await process_frame
 	var screen: float = panel.get_viewport().get_visible_rect().size.y

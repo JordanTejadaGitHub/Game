@@ -13,3 +13,4 @@ tags = Array[String](["tempo", "dreams", "daring"])
 requires = Array[String]([])
 max_stacks = 1
 rule_id = &"second_wind"
+in_start_pool = false

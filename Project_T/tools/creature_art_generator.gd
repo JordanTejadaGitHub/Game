@@ -138,6 +138,14 @@ func _make(creature: String, info: Dictionary) -> void:
 	# The detailed-64 pass; glow radius 3 so boss frames get the same px spread as 64px ones.
 	var kind := DetailPass.Kind.OBSTACLE if info.get("obstacle", false) else DetailPass.Kind.NIGHTMARE
 	sheet = DetailPass.apply_sheet(sheet, Vector2i(S, S), kind, 3)
+	# Soft warm glow becomes a dither of solid pixels, so blending it on can't mix in-between colours
+	# off the palette.
+	for y in warm_sheet.get_height():
+		for x in warm_sheet.get_width():
+			var c := warm_sheet.get_pixel(x, y)
+			if c.a > 0.0 and c.a < 1.0:
+				c.a = 1.0 if _keep(x, y, c.a) else 0.0
+				warm_sheet.set_pixel(x, y, c)
 	HeartwoodPalette.snap_image(warm_sheet)
 	sheet.blend_rect(warm_sheet, Rect2i(Vector2i.ZERO, sheet.get_size()), Vector2i.ZERO)
 	sheet.save_png(OUT + creature + ".png")

@@ -16,3 +16,4 @@ min_warden_count = 6
 rule_id = &"bitter_hedges"
 diagram = ".......\n.XX.X..\nPPPPPPP\n..X....\n......."
 diagram_caption = "Each Thornwall a nightmare walks past: +8% damage taken for 2 s (up to +40%)."
+in_start_pool = false

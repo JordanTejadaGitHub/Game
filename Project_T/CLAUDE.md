@@ -352,8 +352,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 ## Layout
 - `scenes/main.tscn` — root scene: MapGenerator (Ground / Path / EnvironmentObject TileMapLayers,
   TowerContainer, EnemyContainer (spawner)), HUD, GameCameraNode. **MapGenerator is the one y-sort root**:
-  the object layer, TowerContainer and EnemyContainer are y-sorted by cell centre (64×96 sprites put
-  their bottom 64 px on their cell and overhang the one above); Ground/Path are z −1. Ground effects
+  the object layer, TowerContainer and EnemyContainer are y-sorted by cell centre (tall sprites, Wardens 64×96 and
+  Withered Trees 96×128, put their bottom on their cell and overhang the cells above and beside); Ground/Path are z −1. Ground effects
   (vines, rubble, rings, clouds) go in Main at z −1; effects above everything keep a positive z.
 - `scripts/map/` — `map_generator.gd` orchestrates generation. Note the confusing names:
   `path.gd` defines `class_name PathGenerator` (draws path tiles), `path_generator.gd` defines

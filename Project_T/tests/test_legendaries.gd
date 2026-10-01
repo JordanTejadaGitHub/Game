@@ -34,11 +34,12 @@ func _test_card_changes() -> void:
 	dreams.clearing_open = true  # Wildwood Reclaimed is a clearing follow-up
 	var ids := ["crossroads", "briar_crown", "menagerie", "restless_night", "last_leaf", "lucid_dreaming",
 		"hunters_moon", "eternal_static", "rooted_nightmares", "wildwood_reclaimed"]
+	dreams.grove_cards.assign(ids)  # Every Legendary is a Grove tip since the lean starting pool (2026-09-30)
 	for id in ids:
 		var card := _card(id)
 		_check(card.rarity == UpgradeData.Rarity.LEGENDARY and card.min_act == 2 and card.max_stacks == 1
-			and card.in_start_pool and card.requires.is_empty() and card.requires_tag == "",
-			"%s: a Start-pool Legendary with no Needs" % id)
+			and not card.in_start_pool and card.requires.is_empty() and card.requires_tag == "",
+			"%s: a Grove Legendary with no Needs" % id)
 		_check(dreams.is_eligible(card, 2) and not dreams.is_eligible(card, 1), "%s is offered from act 2" % id)
 	for id in ["thousand_cuts", "seed_storm", "eye_of_the_tempest", "ring_of_rings"]:
 		_check(_card(id).rarity == UpgradeData.Rarity.RARE, "%s is now Rare" % id)
