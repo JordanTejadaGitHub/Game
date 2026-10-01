@@ -136,6 +136,31 @@ func _run() -> void:
 	feedback.continue_on()
 	_check(feedback._card.visible and feedback.card_text.begins_with("Combo discovered: Thunderclap") and game_speed.paused,
 		"Continue shows the next discovery, still paused")
+	# Peek at the map (screens_ui.md "The discovery card can be minimised"): the card and the dim go, the
+	# game stays paused, the world pans; a "Combo discovered" tab at the top reopens it.
+	feedback.peek.set_peeking(true)
+	var tab := feedback.peek.back_button()
+	_check(not feedback._card.visible and not feedback._dim.visible and tab.visible and tab.text == "Combo discovered"
+		and game_speed.paused and feedback.showing(), "Peek hides the card and the dim; still paused, the tab says Combo discovered")
+	_check((tab.get_parent() as Control).mouse_filter == Control.MOUSE_FILTER_IGNORE, "…the overlay lets the world take the mouse (hover, pan)")
+	var camera := main.get_node("GameCameraNode") as Node2D
+	var before: Vector2 = camera.target_position
+	Input.action_press("move_camera_right")
+	for i in 10:
+		await process_frame
+	Input.action_release("move_camera_right")
+	_check(camera.target_position.x > before.x, "…and the camera pans while peeking (%s -> %s)" % [before, camera.target_position])
+	_check(not feedback._card.visible and feedback._queue.is_empty(), "…without the next card popping up meanwhile")
+	tab.pressed.emit()
+	_check(feedback._card.visible and feedback._dim.visible and not tab.visible and game_speed.paused, "the tab reopens the card")
+	feedback.peek.set_peeking(true)
+	var enter := InputEventAction.new()
+	enter.action = &"ui_accept"
+	enter.pressed = true
+	feedback._unhandled_input(enter)  # Enter (or Space) while peeking continues
+	_check(not feedback.peek.peeking and not game_speed.paused, "Enter while peeking continues and resumes")
+	# The Thunderclap card was the last: back to it for the checks below.
+	feedback._queue.clear()
 	feedback.continue_on()
 	_check(not feedback._card.visible and not game_speed.paused and not is_instance_valid(feedback._ring),
 		"the last Continue resumes at the previous speed")

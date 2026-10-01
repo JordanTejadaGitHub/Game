@@ -62,6 +62,9 @@ var _pausing := false  # A pausing discovery is holding the game
 var _was_paused := false  # Whether the game was paused before it
 var _enemies := {}  # Combo id -> the nightmare it was discovered on (for the ring)
 var _ring: Node2D = null
+# Peek at the map (screens_ui.md "The discovery card can be minimised"): hides the card and lifts the dim, the
+# game stays paused; a small tab at the top ("Combo discovered") reopens it, Space / Enter continues.
+var peek: ChoicePeek
 
 const PAUSE_SETTING := "pause_on_combo"
 
@@ -192,6 +195,14 @@ func _ready() -> void:
 	_dim.visible = false
 	holder.add_child(_dim)
 	holder.add_child(_card)
+	peek = ChoicePeek.new(holder, [_card, _dim], "Combo discovered")
+	peek.catch_mouse = false  # The holder stays click-through: the world under it pans, zooms and hovers
+	peek.place_back_at_top()
+	peek.changed.connect(func(on: bool) -> void:
+		if on:
+			var title := _card_title.text
+			peek.back_button().text = title.get_slice(":", 0) if title.contains(":") else "Discovery")
+	_buttons.add_child(peek.make_peek_button())
 	drift_director.rest_ended.connect(func(_block: int) -> void:
 		block_counts.clear()
 		block_longest_chain = 0
@@ -290,7 +301,7 @@ func _on_chain(links: int, _where: Vector2, _towers: Array) -> void:
 		var id := StringName(CHAIN_PREFIX + str(tier))
 		_chain_orders[id] = order
 		_queue.append(id)
-		if not _card.visible:
+		if not showing():
 			_try_show()
 
 var _best_this_session := {}  # Tests and scenes that don't write the profile
@@ -369,7 +380,7 @@ func record(id: StringName, enemy: Node2D = null) -> void:
 	combo_discovered.emit(id)
 	_queue.append(id)
 	_enemies[id] = enemy
-	if not _card.visible:
+	if not showing():
 		_try_show()
 
 # --- Pausing discoveries (screens_ui.md "Combos (discovered in play)") -----------------------------
@@ -388,7 +399,7 @@ static func pause_setting() -> bool:
 	return bool(HeartwoodMemory.get_settings().get(PAUSE_SETTING, true))
 
 func _try_show() -> void:
-	if _queue.is_empty() or _card.visible:
+	if _queue.is_empty() or showing():
 		return
 	if pause_setting() and _blocked():
 		return  # _process tries again once the screen closes
@@ -406,12 +417,16 @@ func _blocked() -> bool:
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	return omens != null and omens.has_method("is_offering") and omens.is_offering()
 
+# A card is up: shown, or minimised while peeking at the map.
+func showing() -> bool:
+	return _card.visible or (peek != null and peek.peeking)
+
 func _process(_delta: float) -> void:
-	if not _queue.is_empty() and not _card.visible:
+	if not _queue.is_empty() and not showing():
 		_try_show()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not (_card.visible and _pausing):
+	if not (showing() and _pausing):
 		return
 	if event.is_action_pressed("pause_game") or event.is_action_pressed("start_drift") or event.is_action_pressed("ui_accept"):
 		continue_on()
@@ -419,6 +434,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # Continue: the next queued discovery, or the end of the pause (back to the previous speed).
 func continue_on() -> void:
+	if peek != null:
+		peek.set_peeking(false)
 	_clear_highlight()
 	if not _queue.is_empty():
 		_show_next()

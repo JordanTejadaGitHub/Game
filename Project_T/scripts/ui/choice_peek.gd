@@ -11,6 +11,8 @@ class_name ChoicePeek
 signal changed(peeking: bool)
 
 var peeking := false
+var catch_mouse := true  # The screen catches the mouse while not peeking (off for a click-through overlay)
+var _at_top := false
 var _screen: Control
 var _content: Array
 var _back := Button.new()
@@ -38,11 +40,26 @@ func _init(screen: Control, content: Array, back_text: String) -> void:
 
 # Just above the Warden bar's top, which moves: the bar can wrap into two rows (hud.gd _fit_tower_bar).
 func _place_back() -> void:
+	if _at_top:
+		return
 	var bar := _screen.get_parent().get_node_or_null("TowerBar") as Control if _screen.get_parent() != null else null
 	if bar == null:
 		return
 	_back.offset_bottom = minf(bar.offset_top, -76.0) - 12.0
 	_back.offset_top = _back.offset_bottom - 48.0
+
+# The "back" button as a small tab at the top centre instead (the discovery card, screens_ui.md), `y` px down.
+func place_back_at_top(y: float = 96.0) -> void:
+	_at_top = true
+	_back.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_back.custom_minimum_size = Vector2(220, 40)
+	_back.offset_left = -110
+	_back.offset_right = 110
+	_back.offset_top = y
+	_back.offset_bottom = y + 40
+
+func back_button() -> Button:
+	return _back
 
 # A "Peek at the map" button for the choice screen's own layout.
 func make_peek_button(text: String = "Peek at the map") -> Button:
@@ -63,5 +80,6 @@ func set_peeking(on: bool) -> void:
 	_back.visible = on
 	if on:
 		_place_back()
-	_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE if on else Control.MOUSE_FILTER_STOP
+	if catch_mouse:
+		_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE if on else Control.MOUSE_FILTER_STOP
 	changed.emit(on)
