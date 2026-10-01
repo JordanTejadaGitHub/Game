@@ -93,6 +93,7 @@ static func hook(label: RichTextLabel) -> void:
 		label.mouse_filter = Control.MOUSE_FILTER_PASS
 	var popup := StatusLinks.new()
 	label.add_child(popup)
+	label.set_meta(&"status_popup", popup)  # It moves to the tip layer when shown (tests find it here)
 	label.meta_clicked.connect(func(meta: Variant) -> void: popup._show_for(String(meta), label, true))
 	label.meta_hover_started.connect(func(meta: Variant) -> void: popup._show_for(String(meta), label, false))
 	label.meta_hover_ended.connect(func(_meta: Variant) -> void: popup._hide_soon())
@@ -105,6 +106,7 @@ static func _escape(s: String) -> String:
 
 func _init() -> void:
 	top_level = true
+	add_theme_stylebox_override("panel", UiStyle.tip_panel())  # Opaque, the gold thread, a soft shadow
 	visible = false
 	z_index = 60
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -158,17 +160,12 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 		_icon.visible = _icon.texture != null
 		_name.text = IconInfo.status_name(id)
 		_text.text = IconInfo.format(IconInfo.STATUSES.get(id, ["", ""])[1])
+	var mouse := host.get_global_mouse_position()
+	UiStyle.lift_tip(self, host)  # Above every panel and screen (screens_ui.md "tips are opaque")
 	visible = true
 	reset_size()
-	var mouse := host.get_global_mouse_position()
-	var screen := get_viewport_rect().size
-	# Below the word first (above it sat over screen titles and card names: user screenshot of the Omen
-	# cards), above only when there's no room below; always on screen.
-	var y := mouse.y + 20.0
-	if y + size.y > screen.y - 4.0:
-		y = mouse.y - size.y - 12.0
-	global_position = Vector2(clampf(mouse.x - size.x / 2.0, 4, screen.x - size.x - 4),
-		clampf(y, 4.0, maxf(screen.y - size.y - 4.0, 4.0)))
+	# Above-right of the pointer, flipped at the edges: never over the word or the line being read.
+	global_position = UiStyle.tip_position(mouse, size, get_viewport_rect().size)
 	_hide_in = -1.0
 
 func _hide_soon() -> void:

@@ -826,6 +826,9 @@ content_margin_top = 8.0
 content_margin_right = 12.0
 content_margin_bottom = 8.0
 script = ExtResource("1_k4cr1")
+center_alpha = 0.95
+edge_alpha = 0.95
+shadow_size = 10
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_m0cud"]
 

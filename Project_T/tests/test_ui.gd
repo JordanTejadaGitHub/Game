@@ -242,8 +242,13 @@ func _run() -> void:
 	var light_tip: TapTip = main.get_node("HUD").dreamlight_tip
 	_check(light_tip.visible and light_tip._label.text.begins_with("Dreamlight") and light_tip._label.text.contains("(%d)" % dreams.dreamlight),
 		"tapping the counter explains it at the counter (no hover-only info)")
-	_check(light_tip.global_position.y >= light.global_position.y and absf(light_tip.global_position.x - light.global_position.x) < 400.0,
-		"…right under the counter, not at the top centre (%s vs %s)" % [light_tip.global_position, light.global_position])
+	# Tips are opaque and on their own top layer, by the pointer (screens_ui.md "tips are opaque").
+	_check(light_tip.get_parent() is CanvasLayer and (light_tip.get_parent() as CanvasLayer).layer == UiStyle.TIP_LAYER,
+		"the tip draws on the top tip layer")
+	var above_right := UiStyle.tip_position(Vector2(400, 400), Vector2(200, 60), Vector2(1280, 800))
+	var flipped := UiStyle.tip_position(Vector2(1250, 20), Vector2(200, 60), Vector2(1280, 800))
+	_check(above_right == Vector2(416, 328) and flipped.x + 200.0 <= 1250.0 and flipped.y >= 20.0,
+		"tips sit above-right of the pointer and flip at the edges (%s, %s)" % [above_right, flipped])
 	light_tip.visible = false
 	# Resources explain themselves on hover and tap (IconInfo, TapTip).
 	var dew_label: Label = main.get_node("%DewLabel")
@@ -293,7 +298,7 @@ func _run() -> void:
 	main.get_node("HUD").add_child(link_label)
 	await process_frame
 	link_label.meta_clicked.emit("status:damp")
-	var popup: StatusLinks = link_label.get_children().filter(func(c: Node) -> bool: return c is StatusLinks)[0]
+	var popup: StatusLinks = link_label.get_meta(&"status_popup")
 	_check(popup.visible and popup._name.text == "Soaked" and popup._text.text.begins_with("Water hits deal 20% more"), "tapping a status shows its definition")
 	link_label.meta_clicked.emit("status:damp")
 	_check(not popup.visible, "tapping it again closes it")
