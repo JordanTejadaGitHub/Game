@@ -85,18 +85,20 @@ roots, with **three sections**. Each node costs Seeds and needs its parent node(
     (about 4: young → fuller → broad → great old tree), with the same silhouette, palette and
     blossoms as the Grove art, so it reads as the same tree.
   - **Lit nodes** (user: *"the amount of nodes unlocked with colour should match the one in game"*):
-    every planted Grove node shows as a **small coloured blossom or light** on the in-run
+    every planted Grove node shows as a **tiny 1–2 px glint** on the in-run
     Heartwood, in the **same relative place** as on the Grove tree (`grove_layout.json` positions
     scaled onto the in-run canopy and roots), coloured by limb as on the Grove screen (Families
     green, Cards violet, Perks gold). Unplanted nodes are absent. A full tree is fully lit, so a
     glance at the tree you defend shows your Grove.
+  - **Dream-fruit = Memories** (user via Environment Discussion, 2026-10-01): one fruit hangs on the
+    in-run Heartwood per unlocked Memory (0–10, as on the Grove tree), and darkens with leaf loss.
   - **Readability first:** leaf loss stays just as readable at every stage (leaves dim and fall
     **over** the blossoms), and the lights stay subtle under the Heartwood's leaf-loss dimming and
-    the close-call glow. It fits the Heartwood's 128 px canopy and keeps its fade when something is
+    the close-call glow. It stays 128 px (later stages get fuller, not bigger) and keeps its fade when something is
     behind it.
   - **Cost:** built once at run start (one baked texture or a handful of sprites), nothing per
     frame.
-  - **Scope:** full game only; the demo keeps a fixed young tree. Dev runs (Dev Grove, Test Grove,
+  - **Scope:** full game only; the demo keeps a fixed tree (stage 0, 3 fruit, no glints). Dev runs (Dev Grove, Test Grove,
     "Unlock all families") show their preset's tree. A Grove change shows from the next run.
   - **Who builds what:** the ~4 canopy stages (in-run size) are Environment Assets' art, checked
     against `assets/meta/` by Meta Game Asset so both trees match; the stage pick and the node lights
