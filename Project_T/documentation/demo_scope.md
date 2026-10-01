@@ -82,6 +82,18 @@ bundles, Ascension nodes, Blight Levels and loadouts all work, so any Grove cont
 - Turns **Demo mode** off while on (the Grove only applies in the full game). Debug builds only.
   Can combine with Test Grove and Unlock all families.
 
+**Reset to a new profile** (added 2026-09-30, user request: "add an option for devs to reset to a
+new profile"): Settings → Developer → **Start over as a new profile**, debug builds only.
+- Two-step confirm in the panel itself ("This resets your Memory Grove, Seeds, records,
+  discoveries and Codex. Your settings and run history stay." → **Reset** / Cancel).
+- **Backs up first:** copies `user://heartwood.json` to `user://heartwood.backup-<date-time>.json`
+  (keeps the last 5), so nothing is lost by accident. A "Restore last backup" button sits next to it.
+- Resets everything the profile holds (Grove nodes, Seeds, run counts, milestones, Blight, account
+  knowledge: combos / nightmares / Dreams / chains seen, whispers, intros, last first pick, boss
+  records), **keeps settings** (volumes, keybinds, the Developer toggles), deletes the saved run
+  (`run.json`), and **keeps `run_history.json` and `builds.json`** (balance data).
+- Returns to the title screen as a first launch (first-run whisper, first-run Seed bonus).
+
 **Pick any card** (added 2026-09-28, user request: "for the dev run, allow picking cards from all
 the card selection"): in **any dev run** (Test Grove, Unlock all families or Dev Grove), the Dream
 screen gets a **"Dev: any card…"** button beside "Let it pass". It opens a searchable grid of **every
