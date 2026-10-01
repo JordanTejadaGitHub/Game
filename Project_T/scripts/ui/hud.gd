@@ -114,7 +114,7 @@ func _ready() -> void:
 	var close_calls := CloseCalls.new()
 	close_calls.name = "CloseCalls"
 	owner.add_child.call_deferred(close_calls)
-	var start_arrows := StartArrows.new()  # Chevrons on the route from the start as each drift begins (world)
+	var start_arrows := StartArrows.new()  # Route arrows, start to Heartwood, until the first drift (world)
 	start_arrows.name = "StartArrows"
 	owner.add_child.call_deferred(start_arrows)
 	var mist_count := MistCount.new(drift_director)  # "+N" waiting in the start mist (the field cap)
