@@ -92,6 +92,8 @@ const CARD_LINES := ["spore", "water", "wind", "song", "acorn", "wing", "root", 
 var wardens_24 := ""  # The Wardens on the map as drift 25 starts ("id:n+…", wardens_24 column)
 var auras_24 := -1  # Attackers under at least one aura Warden as drift 25 starts (auras_24 column)
 var heart_cover_24 := -1  # Attackers with the Heartwood cell in range as drift 25 starts (heart_cover_24 column)
+var damage_by_tag := {}  # Damage tag (or kind for plain hits) -> soothe dealt over the run (dmg_tags column)
+var status_samples := {}  # Status id -> {"n", "cap", "strengths": []}: every active status on every nightmare, 4x per game second (status_* columns)
 
 var main: Node
 var map
@@ -139,6 +141,7 @@ func _run() -> void:
 			"--boss": act1_boss = value
 			"--no-aura": aura_placement = false
 			"--no-kin": kin_placement = false
+			"--no-status-potency": Tower.status_potency_on = false  # The old status rules (87fb47fb A/B)
 			"--no-falloff": Reactions.chain_falloff_on = false  # Measure without chain falloff
 			"--director":
 				var setting := arg.substr(arg.find("=") + 1)
@@ -543,6 +546,8 @@ func _new_window() -> void:
 
 func _on_damage(event) -> void:
 	d.damage += event.amount
+	var tag := String(event.tag) if event.tag != &"" else String(event.kind)
+	damage_by_tag[tag] = float(damage_by_tag.get(tag, 0.0)) + event.amount
 	if is_instance_valid(event.enemy) and event.enemy.enemy_data.is_boss:
 		_note_boss_hit(event.enemy, event.amount)
 	# Per Warden (instance), not per kind: twenty Sporelings are twenty Wardens for the "one Warden" check.
@@ -668,6 +673,8 @@ func _finish() -> void:
 	summary.wardens_24 = wardens_24
 	summary.auras_24 = auras_24
 	summary.heart_cover_24 = heart_cover_24
+	summary.status_potency = Tower.status_potency_on
+	summary.merge(_status_columns())
 	summary.kin_pairs_24 = kin_pairs.get(25, -1)
 	summary.kin_pairs_50 = kin_pairs.get(51, -1)
 	summary.dream_off_ids = "+".join(dream_off_ids.keys().map(func(id) -> String: return "%s:%d" % [id, dream_off_ids[id]]))
@@ -763,6 +770,8 @@ func _sample_approach() -> void:
 	for enemy in spawner.get_enemies():
 		if is_instance_valid(enemy) and enemy.enemy_data.is_boss:
 			_watch_boss(enemy)
+		if is_instance_valid(enemy) and not enemy.is_cleansed:
+			_sample_statuses(enemy.statuses)
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
 			d.approach = maxf(d.approach, clampf(1.0 - enemy.get_remaining_distance() / route_px, 0.0, 1.0))
 
@@ -1035,3 +1044,48 @@ func _kin_bonus(cell: Vector2, data: TowerData, exclude: Tower = null) -> float:
 
 func _count_on_map(id: String) -> int:
 	return _attackers().filter(func(t: Tower) -> bool: return t.tower_data.get_id() == id).size()
+
+# --- Status strength and caps (Potency scales statuses, 87fb47fb) -------------------------------------
+# One sample per active status: its strength (the strongest applier's Potency; 1.0 with the switch off)
+# and whether its cap binds right now: Soaked's water bonus or Exposed's extra damage past +40%, a Hold
+# lengthened to the 2 s cap. Shares are of sampled status-time, not of applications.
+func _sample_statuses(statuses: EnemyStatuses) -> void:
+	for id in [EnemyStatuses.DAMP, EnemyStatuses.MARKED, EnemyStatuses.DROWSY, EnemyStatuses.HELD, EnemyStatuses.SPORED, EnemyStatuses.STATIC]:
+		if not statuses.has(id):
+			continue
+		var strength := statuses.strength(id)
+		var capped := false
+		match id:
+			EnemyStatuses.DAMP:
+				var base := EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP))
+				capped = base * strength > maxf(EnemyStatuses.SOAKED_CAP, base)
+			EnemyStatuses.MARKED:
+				var extra := maxf(EnemyStatuses.MARKED_EXTRA, statuses.marked_extra) + statuses.marked_bonus
+				capped = extra * strength > maxf(EnemyStatuses.EXPOSED_CAP, extra)
+			EnemyStatuses.HELD:
+				capped = Tower.status_potency_on and float(statuses._active.get(id, {}).get("full", 0.0)) >= EnemyStatuses.HELD_POTENCY_CAP - 0.001
+		var bucket: Dictionary = status_samples.get_or_add(String(id), {"n": 0, "cap": 0, "strengths": []})
+		bucket.n += 1
+		if capped:
+			bucket.cap += 1
+		if bucket.strengths.size() < 20000:
+			bucket.strengths.append(snappedf(strength, 0.01))
+
+# status_<id>_n (samples), _cap (share at the cap), _med / _max (strength); dmg_tags ("tag:share+…", top 12).
+func _status_columns() -> Dictionary:
+	var columns := {}
+	for id in ["damp", "marked", "drowsy", "held", "spored", "static"]:
+		var bucket: Dictionary = status_samples.get(id, {"n": 0, "cap": 0, "strengths": []})
+		var strengths: Array = bucket.strengths.duplicate()
+		strengths.sort()
+		columns["status_%s_n" % id] = bucket.n
+		columns["status_%s_cap" % id] = snappedf(float(bucket.cap) / maxf(bucket.n, 1.0), 0.001)
+		columns["status_%s_med" % id] = strengths[strengths.size() / 2] if not strengths.is_empty() else -1.0
+		columns["status_%s_max" % id] = strengths[-1] if not strengths.is_empty() else -1.0
+	var total := 0.0
+	for tag in damage_by_tag:
+		total += damage_by_tag[tag]
+	var tags := damage_by_tag.keys()
+	tags.sort_custom(func(a, b) -> bool: return damage_by_tag[a] > damage_by_tag[b])
+	columns.dmg_tags = "+".join(tags.slice(0, 12).map(func(t) -> String: return "%s:%.3f" % [t, damage_by_tag[t] / maxf(total, 1.0)]))
+	return columns
