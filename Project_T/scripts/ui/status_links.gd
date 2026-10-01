@@ -60,6 +60,7 @@ static func bbcode(text: String) -> String:
 static var _combo_regex: RegEx = null
 static func _combo_pattern() -> RegEx:
 	if _combo_regex == null:
+		UiStyle.release_at_exit(func() -> void: _combo_regex = null)
 		_combo_regex = RegEx.create_from_string("\\{combo:([a-z_]+)\\}")
 	return _combo_regex
 
@@ -101,6 +102,7 @@ static func _statuses(text: String) -> String:
 		for id in IconInfo.STATUSES:
 			names.append(_escape(IconInfo.STATUSES[id][0]))
 		names.sort_custom(func(a: String, b: String) -> bool: return a.length() > b.length())
+		UiStyle.release_at_exit(func() -> void: _pattern = null)
 		_pattern = RegEx.new()
 		_pattern.compile("\\b(" + "|".join(names) + ")\\b")
 	var out := ""

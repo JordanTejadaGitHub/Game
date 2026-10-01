@@ -209,6 +209,7 @@ static func format(text: String) -> String:
 static var _combo_regex: RegEx = null
 static func _combo_pattern() -> RegEx:
 	if _combo_regex == null:
+		UiStyle.release_at_exit(func() -> void: _combo_regex = null)
 		_combo_regex = RegEx.create_from_string("\\{combo:([a-z_]+)\\}")
 	return _combo_regex
 
@@ -217,6 +218,7 @@ static func _combo_pattern() -> RegEx:
 static var _family_pattern: RegEx = null
 static func family_pattern() -> RegEx:
 	if _family_pattern == null:
+		UiStyle.release_at_exit(func() -> void: _family_pattern = null)
 		_family_pattern = RegEx.create_from_string("\\{family:([a-z_]+)\\}")
 	return _family_pattern
 

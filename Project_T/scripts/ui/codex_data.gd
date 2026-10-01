@@ -449,6 +449,8 @@ static func find_term(text: String) -> String:
 	for group in glossary():
 		for entry in group[1]:
 			if not _term_patterns.has(entry[0]):
+				if _term_patterns.is_empty():
+					UiStyle.release_at_exit(func() -> void: _term_patterns.clear())
 				var regex := RegEx.new()
 				regex.compile("(?i)\\b" + _escape(entry[0]) + "s?\\b")
 				_term_patterns[entry[0]] = regex
