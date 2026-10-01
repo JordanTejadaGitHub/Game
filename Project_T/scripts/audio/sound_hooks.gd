@@ -90,6 +90,8 @@ const CLOSE_CALL_DB := -8.0
 const BOSS_REVEAL_DB := -4.0  # The boss card's sting (UI bus)
 const BOSS_DRAIN_DB := 1.0  # A boss draining the Heartwood: leaf lost, heavier
 const BOSS_DRAIN_PITCH := 0.8
+const BOLT_DB := -10.0  # Static bolts: under the Warden hits
+const BOLT_THROTTLE_MS := 150
 const FINAL_BLOOM_DB := -4.0  # A final form's first bloom per run
 const FINAL_SIGNATURE_DELAY := 0.9  # Then the new form's hit, as its signature
 const REMEMBER_DB := -4.0  # The Remember screen (UI bus)
@@ -142,6 +144,7 @@ var _resting := true
 var _presence := {}  # Tower instance id -> a Warden with a presence loop
 var _dew_catch_at := -100000
 var _close_call_at := -100000
+var _bolt_at := -100000  # msec of the last bolt sound
 var _drags := {}  # Nightmare instance id -> its soil-drag player (cut when the pull ends)
 var _final_blooming := {}  # Tower instance id -> a Final Bloom is playing its hit (skip the first breath)
 var _harvest_at := -100000  # msec of this rest's harvest sound (later pours add droplets)
@@ -774,10 +777,20 @@ static func _weight_pitch_for(base_health: int, elite: bool, boss: bool) -> floa
 # duck, and count as 2 links. Chains build a warm swell link by link, never higher; ×5 surges,
 # ×10 is the Dawnburst with its stinger.
 
+# A Static (Charged) bolt striking: a soft rounded zap, quiet and throttled (bolts can come fast).
+func _on_bolt_struck(at: Vector2, _damage: float) -> void:
+	var now := Time.get_ticks_msec()
+	if now - _bolt_at < BOLT_THROTTLE_MS:
+		return
+	_bolt_at = now
+	sound.play(&"bolt_strike", at, BOLT_DB, 1.0, 0.04)
+
 func _on_node_added(node: Node) -> void:
 	if node is ReactionTracker and not node.reaction_fired.is_connected(_on_reaction):
 		node.reaction_fired.connect(_on_reaction)
 		node.chain_reached.connect(_on_chain)
+		if node.has_signal("bolt_struck"):  # Tower Code 3d6f86e9
+			node.bolt_struck.connect(_on_bolt_struck)
 	_hook_kinships(node)
 	_hook_economy(node)
 	_hook_remember(node)

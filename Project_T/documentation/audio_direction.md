@@ -264,6 +264,7 @@ foley-like, no chiptune.
 | Beacon *(not built)* | — | marking everything: a slow, warm **swell** like a lamp turning up |
 | Sunpetal | — | beam loop: warm, airy hum like sunlight through leaves, **swelling** with the ramp |
 | Midsummer | — | beam loop fuller; signature: a second, lower hum layer when it hits the one behind |
+| **Static bolt** (any Warden's Charged / Static discharge; `bolt_strike`) | — | a soft, rounded **zap** in the light family's warm material: a tiny bloom + an air flick, no crackle or buzz; −10 dB, throttled 150 ms. Smaller than the Firefly Jar hit, and never a rumble (thunder stays with Thunderclap and the finals). From the story chat's spec, built f61256f8 |
 
 **Rootling line** (root: earth and creaking wood, felt more than heard)
 
@@ -466,7 +467,7 @@ sister of the dispel: there a twisted dream is set free, here a lost one comes h
 |---|---|
 | Open the Remember screen | a slow **breath in**; the music muffles like other choice screens |
 | Select / tap a node | a soft woody tap (like a button, a little warmer); no hover-only sound (touch) |
-| Can't unlock (not enough Dreamlight, or its branch first) | the muted wooden knock (invalid), soft |
+| Can't unlock (not enough Dreamlight, or its branch first) | the muted wooden knock (invalid), soft. Built: Dreamlight-short plays it (97d5e2e7) |
 | **Unlock a branch form** | the **memory returning**: a warm swell travels along the gold line from the root to the node (a soft rising breath, panned along the line where it can be), then the node **blooms**: that family's **material** (spore breath, stone settling, water welling, warm glow, root creak, low bell hum, bark, wingbeat, gust) + a warm **sung note** in key, ~1 s |
 | **Unlock a final form** | the same, fuller: two sung notes (a fifth), a longer bloom (~1.5 s) |
 | **Unlock an Ascended form** | the same, then the **crown** layer (the shared warm choir swell of the Crowned Reactions) and a slow, deep swell of the family's material; the biggest moment on this screen (~2.5 s) |

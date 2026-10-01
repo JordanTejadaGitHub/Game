@@ -1633,6 +1633,10 @@ func _make_economy() -> void:
 	_ws("soil_drag_short", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _soil_drag(0.45))
 	_ws("soil_drag_long", 2, 0.35, func(_v: int) -> PackedFloat32Array: return _soil_drag(0.8))
 	_ws("boss_reveal", 1, 0.6, func(_v: int) -> PackedFloat32Array: return _boss_reveal())
+	# A Static (Charged) bolt striking: a soft rounded "zap" in the light family's warm material, a tiny
+	# short bloom with a soft flick of air. No crackle, no electric buzz (Rounded, never sharp).
+	_ws("bolt_strike", 3, 0.35, func(v: int) -> PackedFloat32Array:
+		return _lowpass(_layers([[_hit("light", v, false), 1.0], [_air(0.12, 1100.0, 0.005, 0.08, 0.7), 0.3]]), 2200.0))
 	# Final Bloom (audio_direction.md 23c6c5d7): a warm harp strum in D, the music's own instrument, so the
 	# score answers. SoundHooks lays it over a slow swell of the family's material and the new form's hit.
 	_ws("final_bloom", 2, 0.5, func(v: int) -> PackedFloat32Array:

@@ -133,6 +133,13 @@ static func find(near: Node) -> Kinships:
 func _ready() -> void:
 	add_to_group(GROUP)
 	z_index = -1  # With the ground and path (drawn after them), under the y-sorted Wardens and nightmares
+	# Kin knots: a small glowing knot at each partner's base, above the sprites (a bond reads even when the
+	# vine is covered; user: "can't see the visual root if they're above each other").
+	_knots.name = "KinKnots"
+	_knots.z_as_relative = false
+	_knots.z_index = 1  # Above the y-sorted Wardens (z 0), under the lighting pass (z 3)
+	_knots.draw.connect(_draw_knots)
+	add_child(_knots)
 	var scene := get_parent()
 	_placer = scene.get_node_or_null("%TowerPlacer")
 	_seller = scene.get_node_or_null("%TowerSeller")
@@ -743,6 +750,32 @@ func _draw() -> void:
 		if from.distance_to(to) < 8.0:
 			continue
 		_draw_vine(pair, stage, mode, alpha)
+	_knots.queue_redraw()
+
+var _knots := Node2D.new()
+const KNOT_RADIUS := 3.0
+
+# One knot per bonded Warden, at its base's front edge, in the family colour (Subtle: fainter; Off: none).
+func _draw_knots() -> void:
+	var mode := _effects()
+	if mode == 2:
+		return
+	var alpha := 0.9 if mode == 0 else 0.55
+	var seen := {}
+	for pair in pairs:
+		if not is_instance_valid(pair.a) or not is_instance_valid(pair.b):
+			continue
+		for tower in [pair.a, pair.b]:
+			if seen.has(tower):
+				continue
+			seen[tower] = true
+			var at := _knots.to_local(tower.global_position + ARCH_FOOT)
+			draw_knot(_knots, at, _colour(pair), alpha)
+
+static func draw_knot(canvas: CanvasItem, at: Vector2, colour: Color, alpha: float) -> void:
+	canvas.draw_circle(at, KNOT_RADIUS + 1.5, Color(Palette.DEEPMOSS, 0.7 * alpha))
+	canvas.draw_circle(at, KNOT_RADIUS, Color(colour, alpha))
+	canvas.draw_circle(at + Vector2(-0.8, -0.8), 1.2, Color(Palette.HEARTLIGHT, 0.8 * alpha))  # Its glint
 
 # The Kinship vine (tower_design.md / screens_ui.md, playtest "kinship" 2026-10-01): a thin, slightly
 # wavy vine in the family colour on the ground, base to base (it was a tinted 32x10 strip at body
@@ -763,6 +796,7 @@ func _draw_vine(pair: Dictionary, stage: int, mode: int, alpha: float) -> void:
 		alpha *= 0.6
 	var dir := (to - from) / length
 	var side := dir.orthogonal()
+	var bow := bow_offset(pair)  # A hidden bond (vertical / short) bows out beside the sprites
 	var path := {}
 	for cell in _route_cells_cached():
 		path[cell] = true
@@ -772,7 +806,8 @@ func _draw_vine(pair: Dictionary, stage: int, mode: int, alpha: float) -> void:
 	for i in steps + 1:
 		var t := float(i) / steps
 		var d := length * t
-		var p := from + dir * d + side * sin(d / VINE_WAVELENGTH * TAU + pair.a.cell.x) * VINE_WAVE * sin(t * PI)
+		var p := from + dir * d + bow * 4.0 * t * (1.0 - t) \
+			+ side * sin(d / VINE_WAVELENGTH * TAU + pair.a.cell.x) * VINE_WAVE * sin(t * PI)
 		points.append(p)
 		var on_path: bool = path.has(Tower.MAP_GRID.calculate_grid_coordinates(to_global(p)))
 		shades.append(VINE_PATH_ALPHA if on_path else 1.0)
@@ -801,6 +836,35 @@ func _draw_vine(pair: Dictionary, stage: int, mode: int, alpha: float) -> void:
 		if stage >= 2 and k % 2 == 1:
 			draw_circle(p - out * 2.5, 2.5, Color(Palette.BLOSSOM, alpha))  # A flower
 			draw_circle(p - out * 2.5, 1.0, Color(Palette.GLOW, alpha))
+
+# A bond whose straight vine the sprites cover (user: "can't see the visual root if they're above each other"):
+# a vertical bond, or any shorter than BOW_UNDER, bows out BOW cells to the side with more free ground
+# (a horizontal one bows down, in front of the sprites). Returns the offset at the vine's middle (zero = straight).
+const BOW := 0.45  # Cells
+const BOW_UNDER := 1.5  # Cells: shorter bonds are mostly under the sprites
+
+func bow_offset(pair: Dictionary) -> Vector2:
+	if not is_instance_valid(pair.a) or not is_instance_valid(pair.b):
+		return Vector2.ZERO
+	var delta: Vector2 = pair.b.global_position - pair.a.global_position
+	var cell_size: float = Tower.MAP_GRID.cell_size.x
+	var vertical := absf(delta.normalized().y) > 0.8
+	if not vertical and delta.length() >= BOW_UNDER * cell_size:
+		return Vector2.ZERO  # Diagonal and horizontal bonds stay straight
+	if not vertical:
+		return Vector2(0, BOW * cell_size)  # Short and level: down, in front of the sprites
+	return Vector2(_freer_side(pair) * BOW * cell_size, 0)
+
+# -1 (left) or 1 (right): the side of a vertical pair with fewer Wardens beside it.
+func _freer_side(pair: Dictionary) -> float:
+	var taken := {}
+	for tower in _towers():
+		for cell in tower.get_cells():
+			taken[cell] = true
+	var score := 0
+	for tower in [pair.a, pair.b]:
+		score += int(taken.has(tower.cell + Vector2.LEFT)) - int(taken.has(tower.cell + Vector2.RIGHT))
+	return 1.0 if score >= 0 else -1.0  # Left busier (or a tie): bow right
 
 var _route_cache: Array = []
 var _route_cache_at := -1.0

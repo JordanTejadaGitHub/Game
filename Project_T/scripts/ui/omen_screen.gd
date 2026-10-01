@@ -121,6 +121,7 @@ func _make_face_down_card() -> Button:
 	button.custom_minimum_size = CARD_SIZE
 	button.focus_mode = Control.FOCUS_NONE
 	UiStyle.card_button(button, OMEN_COLOR)
+	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot)
 	var box := _card_box(button)
 	UiStyle.title(_add_line(box, "Face an Omen", UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
 	_add_flavor(box, "Something stirs out in the dark.")
@@ -251,6 +252,7 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(omens.choose.bind(omen))
 	UiStyle.card_button(button, OMEN_COLOR)  # Moonlit Thread card (ui_style.md)
+	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot)
 	var box := _card_box(button)
 	UiStyle.title(_add_line(box, omen.display_name, UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
 	# Name, flavour (whisper), the twist, a thin divider, the reward right under it (run_design.md "Omen voice")
@@ -377,6 +379,7 @@ func _make_clear_skies_card() -> Button:
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(omens.choose.bind(null))
 	UiStyle.card_button(button, CLEAR_SKIES_COLOR)
+	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot)
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
 		var style := button.get_theme_stylebox(state) as MoonStyleBox
 		style.glow_color = CLEAR_SKIES_GLOW.lightened(0.08) if state.begins_with("hover") else CLEAR_SKIES_GLOW

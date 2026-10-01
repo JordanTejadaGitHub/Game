@@ -96,6 +96,25 @@ func _run() -> void:
 	await process_frame
 	kin.refresh()
 
+	# A vertical pair (user: "can't see the visual root if they're above each other"): its vine bows out
+	# sideways beside the sprites; a knot at each base shows above them; a long diagonal stays straight.
+	var top := _plant("driftspore", Vector2(2, 8))
+	var below := _plant("bloomcap", Vector2(2, 9))
+	await process_frame
+	kin.refresh()
+	var upright: Dictionary = kin.get_pair(top)
+	var bow: Vector2 = kin.bow_offset(upright) if not upright.is_empty() else Vector2.ZERO
+	_check(kin.get_partner(top) == below and absf(bow.x) >= 0.4 * CELL and is_zero_approx(bow.y),
+		"a vertical pair's vine bows sideways (%s)" % bow)
+	var knots: Node2D = kin.get_node_or_null("KinKnots")
+	_check(knots != null and not knots.z_as_relative and knots.z_index > 0, "kin knots draw above the Wardens")
+	_check(kin.bow_offset({"a": drift, "b": bloom}) == Vector2.ZERO,
+		"a bond 2 cells across stays straight")
+	for tower in [top, below]:
+		tower.queue_free()
+	await process_frame
+	kin.refresh()
+
 	# --- Harmony strike ---
 	var enemy := _spawn(drift.global_position + Vector2(CELL, 0))
 	var harmony := []

@@ -130,6 +130,7 @@ func _init() -> void:
 	# Inland, the canopy covers the 3 cells behind the Heartwood: something there fades it.
 	_check(not heartwood.is_something_behind(), "nothing behind the Heartwood at first")
 	var behind := _add_warden(main, "res://resource/tower/sprout.tres", map.endPath + Vector2(0, -1))
+	await process_frame  # The Heartwood rechecks its Wardens a frame after one joins
 	_check(heartwood.is_something_behind(), "a Warden behind the Heartwood is seen")
 	for i in 30:
 		await process_frame
