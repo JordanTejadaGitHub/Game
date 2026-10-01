@@ -6,7 +6,7 @@ class_name RememberScreen
 # portraits: the base at the root, its two branches above, each branch's final form above that, the
 # hidden branch (Memory Grove) in a third lane, and the Ascended form at the crown. Node states:
 # grown on the map (×N), unlocked, can unlock (cost in motes, pulsing), locked (needs its branch
-# first: chained), Memory Grove (a leaf badge and its name); every form not unlocked is a silhouette on a moonlit disc. Selecting a node opens a side panel (on phones it
+# first: chained); not unlocked = its portrait at ~80% on a moonlit disc with its name; Memory Grove = a silhouette with a leaf badge. Selecting a node opens a side panel (on phones it
 # slides up from the bottom) with its stats, Dew to grow, Kinship, combos and the Unlock button; an
 # unlock blooms along the tree line. Opens from the HUD's Remember button (any time; pauses) and
 # after each boss's family pick. Built in code.
@@ -274,15 +274,13 @@ func _fill_side(data: TowerData) -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 10)
 	_side_box.add_child(head)
-	head.add_child(Portrait.new(data, 72.0))  # The side panel shows the full portrait in every state
-	if grove:  # run_design.md "Grove forms readable too": the portrait, its name, one line on what it does, the invitation
+	head.add_child(Portrait.new(data, 72.0, grove))  # A Grove-locked form stays a silhouette here too (user)
+	if grove:  # run_design.md: a Grove-locked form shows only its silhouette, name, "Locked" and the invitation
 		var grove_name := Label.new()
 		grove_name.text = data.display_name
 		UiStyle.display(grove_name, 22)
 		head.add_child(grove_name)
-		var first := IconInfo.format(data.description).get_slice(". ", 0).trim_suffix(".")
-		if first != "":
-			_line(first + ".", UiStyle.INK_DIM, 14)
+		UiStyle.caps(_line("Locked", UiStyle.INK_DIM, 14), 14)  # No description, stats or combos until it's planted
 		_line("Plant it in the Memory Grove", UiStyle.INK_DIM, 15)
 		if _dev_free.button_pressed:
 			_add_unlock(data)  # Dev: even Grove-hidden forms
@@ -584,7 +582,9 @@ class FormNode extends Button:
 		focus_mode = Control.FOCUS_NONE
 		process_mode = Node.PROCESS_MODE_ALWAYS
 		var state := screen.state_of(data)
-		portrait = Portrait.new(data, PORTRAIT, not RememberScreen.is_unlocked_state(state))
+		portrait = Portrait.new(data, PORTRAIT, state == State.GROVE)  # Only forms the Grove hasn't planted are silhouettes
+		if state != State.GROVE and not RememberScreen.is_unlocked_state(state):
+			portrait.modulate = Color.WHITE.darkened(0.2)  # Grove-available, not unlocked this run: its real colours, ~80%
 		portrait.position = Vector2((NODE_SIZE.x - PORTRAIT) / 2.0, 4)
 		add_child(portrait)
 		tooltip_text = data.display_name + (" · Memory Grove" if state == State.GROVE else "")
@@ -615,10 +615,11 @@ class FormNode extends Button:
 			State.GROWN:
 				text = "×%d" % screen.count_on_map(data)
 			State.CAN_UNLOCK, State.NEEDS_LIGHT:
+				_caption(data.display_name, UiStyle.caps_font(), 11, UiStyle.INK_DIM, NODE_SIZE.y - 19)  # Its name above the motes
 				text = MOTE.repeat(screen.dream_state.get_unlock_cost(data))
 				colour = UiStyle.GOLD if state == State.CAN_UNLOCK else UiStyle.INK_DIM
 			State.LOCKED:
-				text = "locked"
+				text = data.display_name  # The chain on its line says it's locked
 				colour = UiStyle.INK_DIM
 			State.GROVE:
 				text = data.display_name  # Its name under it, and a Grove leaf badge on the stone
@@ -628,13 +629,16 @@ class FormNode extends Button:
 			# Counts and motes in the number face; "locked" / "Grove" as small-caps labels.
 			var words := state == State.LOCKED or state == State.GROVE
 			var font := UiStyle.caps_font() if words else UiStyle.number_font()
-			var font_size := (12 if state == State.GROVE else 14) if words else 16
-			var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
-			if width > NODE_SIZE.x - 4 and font_size > 10:  # A long Grove name: smaller, never past the node
-				font_size = 10
-				width = minf(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x, NODE_SIZE.x - 4)
-			draw_string(font, Vector2((NODE_SIZE.x - width) / 2.0, NODE_SIZE.y - 6), text,
-				HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
+			var font_size := 12 if words else 16
+			_caption(text, font, font_size, colour, NODE_SIZE.y - 6)
+
+	# One centred line under the portrait; a long name shrinks to 10 px, never past the node.
+	func _caption(text: String, font: Font, font_size: int, colour: Color, baseline: float) -> void:
+		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		if width > NODE_SIZE.x - 4 and font_size > 10:
+			font_size = 10
+			width = minf(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x, NODE_SIZE.x - 4)
+		draw_string(font, Vector2((NODE_SIZE.x - width) / 2.0, baseline), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
 
 
 	# The Memory Grove's leaf: a small two-arc leaf on the portrait's shoulder.

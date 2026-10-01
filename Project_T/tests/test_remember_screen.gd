@@ -39,7 +39,8 @@ func _run() -> void:
 	var final: TowerData = branch.evolves_to[0] if not branch.evolves_to.is_empty() else null
 	if final != null:
 		_check(nodes.has(final) and screen.state_of(final) == RememberScreen.State.LOCKED, "its final form is locked behind it")
-		_check(nodes[final].portrait.material == RememberScreen.Portrait.silhouette_material(), "…drawn as a silhouette on the moonlit disc")
+		_check(nodes[final].portrait.material == null and nodes[final].portrait.modulate == Color.WHITE.darkened(0.2),
+			"…its real portrait, dimmed to ~80% (the Grove has made it available)")
 	_check(nodes[sporeling].portrait.material == null, "an owned form is full colour")
 	_check(nodes[sporeling].position.y > nodes[branch].position.y, "the root sits below its branches")
 
@@ -105,13 +106,13 @@ func _run() -> void:
 		_check(not screen._canvas.edges.any(func(e: Array) -> bool: return e[0] == hidden), "…and so is the line up to it")
 		screen._select(hidden)
 		var side: Array = screen._side_box.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
-		_check(side.size() >= 2 and side[0] == hidden.display_name and side[-1] == "Plant it in the Memory Grove",
-			"its side panel: the name, what it does, and to plant it (%s)" % " | ".join(side))
+		_check(side.size() == 3 and side[0] == hidden.display_name and side[1].to_lower() == "locked" and side[2] == "Plant it in the Memory Grove",
+			"its side panel: the name, \"Locked\" and to plant it, nothing else (%s)" % " | ".join(side))
 		var grove_node: Control = nodes[hidden]
 		_check(grove_node.portrait.material == RememberScreen.Portrait.silhouette_material(),
 			"a Grove form is a silhouette (on the moonlit disc)")
 		var side_portrait: Array = screen._side_box.find_children("*", "TextureRect", true, false)
-		_check(not side_portrait.is_empty() and side_portrait[0].material == null, "…the side panel shows its full portrait")
+		_check(not side_portrait.is_empty() and side_portrait[0].material == RememberScreen.Portrait.silhouette_material(), "…and its silhouette, not the picture")
 		_check(grove_node.tooltip_text.begins_with(hidden.display_name), "…and named")
 		screen.close()
 
