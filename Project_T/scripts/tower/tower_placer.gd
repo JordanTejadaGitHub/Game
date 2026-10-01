@@ -257,6 +257,7 @@ func _draw() -> void:
 		_draw_stroke()
 		return
 	_draw_grow_preview()
+	_draw_rank_preview()
 	_draw_kin_spots()
 	if not _catch_preview.is_empty():
 		_draw_catch_zone(_catch_preview.at, _catch_preview.radius)
@@ -376,6 +377,57 @@ func hide_grow_preview() -> void:
 func is_previewing_growth() -> bool:
 	return not _grow_preview.is_empty()
 
+# Nurture range preview (user: "hovering Nurture range should show the range it would go into"): while the
+# Nurture button or a rank choice is pointed at, each Warden that would rank shows its current range faint
+# and, if the rank widens it (Reach), the new range bright. [[Tower, range now, range after], …]
+var _rank_preview: Array = []
+
+func show_rank_preview(towers: Array, focus: Tower.Focus = Tower.Focus.NONE) -> void:
+	_rank_preview = []
+	for tower in towers:
+		if is_instance_valid(tower) and tower.can_nurture() and tower.tower_data.can_attack:
+			_rank_preview.append([tower, tower.get_range_cells(), range_after_rank(tower, focus)])
+	queue_redraw()
+
+func hide_rank_preview() -> void:
+	if not _rank_preview.is_empty():
+		_rank_preview = []
+		queue_redraw()
+
+func rank_preview() -> Array:
+	return _rank_preview
+
+# The real range `tower` would have after one more rank of `focus` (the same getters as combat: Dreams,
+# Kinships, rank and Focus bonuses): the rank is tried on the Warden and put back.
+func range_after_rank(tower: Tower, focus: Tower.Focus = Tower.Focus.NONE) -> float:
+	var rank_before: int = tower.rank
+	var choices_before: Array = tower.rank_choices.duplicate()
+	tower.rank += 1
+	if focus != Tower.Focus.NONE:
+		tower.rank_choices.append(focus)
+	tower.clear_dream_cache()
+	var after := tower.get_range_cells()
+	tower.rank = rank_before
+	tower.rank_choices.assign(choices_before)
+	tower.clear_dream_cache()
+	return after
+
+func _draw_rank_preview() -> void:
+	for entry in _rank_preview:
+		var tower: Tower = entry[0]
+		if not is_instance_valid(tower):
+			continue
+		draw_set_transform(to_local(tower.global_position))
+		var now_px := Tower.range_to_pixels(entry[1])
+		var after_px := Tower.range_to_pixels(entry[2])
+		if after_px - now_px >= 2.0:
+			draw_arc(Vector2.ZERO, now_px, 0.0, TAU, 64, Color(VALID_TINT, 0.25), 1.5)
+			draw_circle(Vector2.ZERO, after_px, Color(BONUS_ON, 0.08))
+			draw_arc(Vector2.ZERO, after_px, 0.0, TAU, 64, Color(BONUS_ON, 0.85), 2.5)
+		else:
+			draw_arc(Vector2.ZERO, now_px, 0.0, TAU, 64, Color(VALID_TINT, 0.5), 2.0)  # Same reach: the current ring
+	draw_set_transform(Vector2.ZERO)
+
 # The range `tower` would have as `into`: its own extras (ranks, Focus, cards) kept on the new base.
 func preview_range(tower: Tower, into: TowerData) -> float:
 	return tower.get_range_cells() - Tower.get_range_for(tower.tower_data, dream_state) + Tower.get_range_for(into, dream_state)
@@ -434,6 +486,9 @@ func _draw_grow_preview() -> void:
 				var dead := Tower.range_to_pixels(into.min_range)
 				draw_circle(Vector2.ZERO, dead, Color(INVALID_TINT, 0.12))
 				draw_arc(Vector2.ZERO, dead, 0.0, TAU, 48, Color(INVALID_TINT, 0.6), 1.5)
+		if into.aura_radius > 0.0:  # A form with an aura: the cells it would cover (open "grow aura previews" item)
+			var reach := Tower.range_to_pixels(into.aura_radius)
+			draw_arc(Vector2.ZERO, reach, 0.0, TAU, 48, Color(BuffSources.color(into.get_id()), 0.7), 2.0)
 		if into.texture == null:
 			Tower.draw_placeholder(self, Color(1, 1, 1, PREVIEW_ALPHA))
 		else:

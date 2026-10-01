@@ -73,6 +73,8 @@ signal grow_refused(index: int, text: String)
 func _ready() -> void:
 	# Build mode owns the mouse; selling is available the rest of the time.
 	_ensure_grow_actions()
+	if OS.is_debug_build():
+		get_parent().add_child.call_deferred(PerfOverlay.new())  # F3: FPS, frame ms, draw calls, effects (dev builds)
 	# Buff pips, source threads and the buff lens (screens_ui.md "Buff readability").
 	var overlay := BuffOverlay.new()
 	overlay.name = "BuffOverlay"  # test_perf_stress --breakdown switches it off by name

@@ -264,6 +264,16 @@ func _note_firing(id: StringName, link: int) -> void:
 		_recent.pop_front()
 	_recent.append([id, link, now])
 
+# A Reaction's display name, looked up once (perf, Tower's lag probe: CodexData.get_any rebuilds the Crowned and
+# Kinship lists on every call, and chain_order asked it for every recent firing on every chain link: 6–130 ms
+# per chain in a dense storm build).
+var _names := {}
+func _display_name(id: StringName) -> String:
+	if not _names.has(id):
+		var combo := CodexData.get_any(id)
+		_names[id] = combo.name if not combo.is_empty() else String(id).capitalize()
+	return _names[id]
+
 # The Reaction names of the chain whose newest link is `links`, first to last.
 func chain_order(links: int) -> Array[String]:
 	var names: Array[String] = []
@@ -271,8 +281,7 @@ func chain_order(links: int) -> Array[String]:
 	for i in range(_recent.size() - 1, -1, -1):
 		var link: int = _recent[i][1]
 		if link < below:
-			var combo := CodexData.get_any(_recent[i][0])
-			names.push_front(combo.name if not combo.is_empty() else String(_recent[i][0]).capitalize())
+			names.push_front(_display_name(_recent[i][0]))
 			below = link
 			if link <= 1:
 				break

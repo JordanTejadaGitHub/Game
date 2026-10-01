@@ -359,11 +359,6 @@ var _crit_dew_drift := -1  # Magpie's Hoard: drift the crit-Dew count belongs to
 var _crit_dew_given := 0
 
 func _ready() -> void:
-	# The beam draws on its own layer above the sprite (Tower._draw is under it: the Warden's art hid the start
-	# of its own beam, so it seemed to come from the slab).
-	_beam_layer.name = "BeamLayer"
-	_beam_layer.draw.connect(_draw_beam)
-	add_child(_beam_layer)
 	_dream_state = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if _dream_state:
 		GroveRules.listen(self)  # Quickening: dispels in range speed Wardens up
@@ -439,7 +434,8 @@ func _process(delta: float) -> void:
 		# Performance: frames change a few times a second; only set them when they do (each set redraws),
 		# and the rank art / Withered overlay are looked up by name only when this frame changed.
 		var idle_frame := int(_anim_time * tower_data.animation_fps)
-		if idle_frame != _last_idle_frame:
+		# Effects quality Reduced / long frames: an off-screen Warden doesn't animate (nobody sees it).
+		if idle_frame != _last_idle_frame and (not Fx.reduced() or Fx.on_screen(global_position, 96.0)):
 			_last_idle_frame = idle_frame
 			if _beam_target == null:
 				sprite.frame = idle_frame % tower_data.frame_count
@@ -2569,7 +2565,10 @@ func _bob_bowl() -> void:
 		return
 	var bob: Array = DewCatch.bowl_info(tower_data).get("dy_by_frame", [])
 	var dy: float = bob[sprite.frame % bob.size()] if not bob.is_empty() else 0.0
-	fill.offset = sprite.offset + Vector2(0, dy)
+	# A tall 64×96 Warden (body = the bottom 64 rows, sprite_offset (0, −16)) has its body on the node centre, like
+	# the 64×64 bowl fill: only Ascended art, laid out differently, moves the bowl by its offset.
+	var lift: Vector2 = sprite.offset if tower_data.tier >= DreamState.ASCENDED_TIER else Vector2.ZERO
+	fill.offset = lift + Vector2(0, dy)
 
 # --- Wall cards (Thornwall; dream_design.md "Support Warden cards") -------------------------------
 
@@ -3107,7 +3106,17 @@ func _update_beam(delta: float) -> void:
 		_stop_beam()  # The target is gone: back to the idle sheet (8 frames), not the 6-frame pose
 	queue_redraw()
 
-var _beam_layer := Node2D.new()
+var _beam_layer: Node2D = null  # Made the first time this Warden beams (_beam_layer_ready)
+
+# The beam draws on its own layer above the sprite (Tower._draw is under it: the Warden's art hid the start
+# of its own beam, so it seemed to come from the slab). Only beaming Wardens get one.
+func _beam_layer_ready() -> Node2D:
+	if _beam_layer == null:
+		_beam_layer = Node2D.new()
+		_beam_layer.name = "BeamLayer"
+		_beam_layer.draw.connect(_draw_beam)
+		add_child(_beam_layer)
+	return _beam_layer
 
 # The beam, from the attack point (the flower's face) to its target, above the Warden's own art.
 func _draw_beam() -> void:
@@ -3127,7 +3136,7 @@ func _draw_beam() -> void:
 # While the beam is on, the attack sheet loops from its release frame to its last (it used to hold the
 # release frame: user, "the Sunpetal animation gets stuck when attacking").
 func _animate_beam_pose() -> void:
-	_beam_layer.queue_redraw()
+	_beam_layer_ready().queue_redraw()
 	if _legacy_active:
 		return
 	# Channelling: the data's channel loop (beam_sustain_texture, ping-ponged) or the idle loop. The attack
@@ -3161,7 +3170,8 @@ func _stop_beam() -> void:
 	if was_beaming and is_node_ready() and not _legacy_active:
 		_show_idle()
 	queue_redraw()
-	_beam_layer.queue_redraw()
+	if _beam_layer != null:
+		_beam_layer.queue_redraw()
 
 # The nightmare right behind `target` on the path (Midsummer's beam carries through to it).
 func _find_behind(target: Node2D) -> Node2D:

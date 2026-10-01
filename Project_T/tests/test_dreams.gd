@@ -1140,7 +1140,7 @@ func _test_resonance(main: Node) -> void:
 	dreams.take(_card(dreams, "chain_bloom"))
 	var preview := dreams.resonance_preview(lingering)
 	_check(is_equal_approx(preview.bonus, 0.2) and preview.tag == "spore" and preview.count == 2,
-		"2 spore cards: +20% (%s)" % preview)
+		"2 spore cards: +20%% (%s)" % preview)
 	var shown := DreamState.resonance_text(preview.bonus, preview.cards)
 	_check(shown == "+20% from Soft Spores, Chain Bloom" or shown == "+20% from Chain Bloom, Soft Spores", "…shown with the cards' names, never the tag (%s)" % shown)
 	_check(DreamState.resonance_text(0.3, ["A", "B", "C"]) == "+30% from A, B and 1 more" and DreamState.resonance_tooltip(["A", "B", "C"]) == "From: A, B, C",

@@ -27,6 +27,33 @@ static func find(near: Node) -> FxCache:
 
 func _init() -> void:
 	add_to_group(GROUP)
+	process_mode = Node.PROCESS_MODE_ALWAYS  # Frame time counts while paused too
+
+# Real frame time (platforms.md: decorative effects thin first, automatically, when frames run long):
+# a smoothed frame time steps Fx down above SLOW_MS and back up below FAST_MS (hysteresis, so it doesn't
+# flicker). Also the visible world rect, for skipping off-screen decoration (Fx.on_screen).
+const SLOW_MS := 22.0
+const FAST_MS := 14.0
+const SMOOTHING := 0.1
+var _last_usec := 0
+var _average_ms := 16.0
+
+func _process(_delta: float) -> void:
+	var now := Time.get_ticks_usec()
+	if _last_usec > 0:
+		var ms := minf((now - _last_usec) / 1000.0, 100.0)  # A one-off stall (loading) can't decide alone
+		_average_ms = lerpf(_average_ms, ms, SMOOTHING)
+		if not Fx.auto_reduced and _average_ms > SLOW_MS:
+			Fx.auto_reduced = true
+		elif Fx.auto_reduced and _average_ms < FAST_MS:
+			Fx.auto_reduced = false
+	_last_usec = now
+	var viewport := get_viewport()
+	if viewport != null:
+		Fx.view_rect = viewport.get_canvas_transform().affine_inverse() * viewport.get_visible_rect()
+
+func average_ms() -> float:
+	return _average_ms
 
 # Loads every sheet in the index now (once per run).
 func warm() -> void:

@@ -72,6 +72,7 @@ var _keep: Array = []  # The edited EnemyData, held so the cache keeps them
 var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.preset_bosses); "" = the default draw
 var aura_placement := true  # --no-aura: place and grow aura Wardens (Acorn, Elder Stump, Grove Heart, Moon Moth) by path only
 var kin_placement := true  # --no-kin: no Kinship placement, and growth takes the first open form in evolves_to (the old bot)
+var focus_mode := ""  # --focus=deep: Nurture picks Deep where it's offered and Potency cards score high (a committed Deep build)
 var kin_pairs := {}  # Drift -> Kinships on the map as it starts (kin_pairs_24 / kin_pairs_50 columns: as drifts 25 / 51 start)
 var dream_share := {}  # Drift -> the share of the maze's damage per second that the taken Dreams add (20, 25, 50, 75)
 var dreams_20 := ""  # The Dreams taken by drift 20 ("a+b")
@@ -93,6 +94,7 @@ var wardens_24 := ""  # The Wardens on the map as drift 25 starts ("id:n+…", w
 var auras_24 := -1  # Attackers under at least one aura Warden as drift 25 starts (auras_24 column)
 var heart_cover_24 := -1  # Attackers with the Heartwood cell in range as drift 25 starts (heart_cover_24 column)
 var damage_by_tag := {}  # Damage tag (or kind for plain hits) -> soothe dealt over the run (dmg_tags column)
+var damage_by_form := {}  # Warden form id -> {total, hit, cloud, status, combo, asleep} over the run (forms column)
 var status_samples := {}  # Status id -> {"n", "cap", "strengths": []}: every active status on every nightmare, 4x per game second (status_* columns)
 
 var main: Node
@@ -141,6 +143,7 @@ func _run() -> void:
 			"--boss": act1_boss = value
 			"--no-aura": aura_placement = false
 			"--no-kin": kin_placement = false
+			"--focus": focus_mode = value
 			"--no-status-potency": Tower.status_potency_on = false  # The old status rules (87fb47fb A/B)
 			"--no-falloff": Reactions.chain_falloff_on = false  # Measure without chain falloff
 			"--director":
@@ -195,6 +198,7 @@ func _run() -> void:
 	policy.favored = favored
 	policy.on_offer = _note_offer
 	policy.branches_first = kin_placement
+	policy.deep = focus_mode == "deep"
 	policy.mode = dream_mode
 	policy.rng.seed = map_seed
 	omens = main.get_node_or_null("%OmenDirector")
@@ -502,6 +506,8 @@ func _nurture() -> bool:
 	towers.sort_custom(func(a, b) -> bool:
 		return a.rank < b.rank or (a.rank == b.rank and _coverage(a) > _coverage(b)))
 	var tower: Tower = towers[0]
+	if focus_mode == "deep" and tower.needs_focus() and tower.focus_options().has(Tower.Focus.DEEP):
+		return placer.nurture(tower, Tower.Focus.DEEP)  # --focus=deep
 	return placer.nurture(tower, tower.focus_options()[0] if tower.needs_focus() else Tower.Focus.NONE)  # Power; support Wardens Wide
 
 func _family_count(base: TowerData) -> int:
@@ -548,6 +554,7 @@ func _on_damage(event) -> void:
 	d.damage += event.amount
 	var tag := String(event.tag) if event.tag != &"" else String(event.kind)
 	damage_by_tag[tag] = float(damage_by_tag.get(tag, 0.0)) + event.amount
+	_note_form_damage(event)
 	if is_instance_valid(event.enemy) and event.enemy.enemy_data.is_boss:
 		_note_boss_hit(event.enemy, event.amount)
 	# Per Warden (instance), not per kind: twenty Sporelings are twenty Wardens for the "one Warden" check.
@@ -674,7 +681,9 @@ func _finish() -> void:
 	summary.auras_24 = auras_24
 	summary.heart_cover_24 = heart_cover_24
 	summary.status_potency = Tower.status_potency_on
+	summary.focus = focus_mode
 	summary.merge(_status_columns())
+	summary.forms = _form_column()
 	summary.kin_pairs_24 = kin_pairs.get(25, -1)
 	summary.kin_pairs_50 = kin_pairs.get(51, -1)
 	summary.dream_off_ids = "+".join(dream_off_ids.keys().map(func(id) -> String: return "%s:%d" % [id, dream_off_ids[id]]))
@@ -796,9 +805,12 @@ class FavorPolicy extends DreamSimPolicy:
 	# damage, attack speed and Potency cards first, economy last (act 1 "damage-first")
 	var rng := RandomNumberGenerator.new()
 	var on_offer: Callable  # The runner logs each offer (Dream pool size, build relevance)
+	var deep := false  # --focus=deep: Potency cards first
 
 	func score(card: UpgradeData) -> float:
 		var value := super.score(card) + (FAVOR if favored.has(card.id) else 0.0)
+		if deep and (card.potency_bonus > 0.0 or card.tags.has("potency")):
+			value += 500.0  # A committed Deep build takes its Potency cards
 		if mode == "damage":
 			value += 1000.0 * (card.soothe_bonus + card.attack_speed_bonus + card.potency_bonus + 0.5 * card.status_strength_bonus)
 			if card.dew_now > 0 or card.rest_bonus_add > 0 or card.dew_per_clear > 0 or card.evolve_discount > 0.0 or card.set_cost > 0:
@@ -1089,3 +1101,40 @@ func _status_columns() -> Dictionary:
 	tags.sort_custom(func(a, b) -> bool: return damage_by_tag[a] > damage_by_tag[b])
 	columns.dmg_tags = "+".join(tags.slice(0, 12).map(func(t) -> String: return "%s:%.3f" % [t, damage_by_tag[t] / maxf(total, 1.0)]))
 	return columns
+
+# --- Damage per Warden form (is a final an outlier per Warden, or just its family's strongest?) ------
+# Split: combo = the part combos added; of the rest, cloud (tag "cloud"), status (status ticks and Static
+# bolts) or hit. asleep = all damage onto a nightmare asleep at that moment.
+func _note_form_damage(event) -> void:
+	if not (is_instance_valid(event.source) and event.source is Tower):
+		return
+	var id: String = event.source.tower_data.get_id()
+	var form: Dictionary = damage_by_form.get_or_add(id, {"total": 0.0, "hit": 0.0, "cloud": 0.0, "status": 0.0, "combo": 0.0, "asleep": 0.0})
+	var amount: float = event.amount
+	var combo := clampf(event.combo_amount, 0.0, amount)
+	form.total += amount
+	form.combo += combo
+	if event.tag == &"cloud":
+		form.cloud += amount - combo
+	elif event.kind == &"status" or event.kind == &"bolt":
+		form.status += amount - combo
+	else:
+		form.hit += amount - combo
+	if is_instance_valid(event.enemy) and event.enemy.statuses.is_asleep():
+		form.asleep += amount
+
+# "id:share:count:hit:cloud:status:combo:asleep;…" by total damage: share of the run's Warden damage, the
+# form's Wardens on the map at the end (0 = grown away / sold), then each part as a share of its own total.
+func _form_column() -> String:
+	var total := 0.0
+	for id in damage_by_form:
+		total += damage_by_form[id].total
+	var ids := damage_by_form.keys()
+	ids.sort_custom(func(a, b) -> bool: return damage_by_form[a].total > damage_by_form[b].total)
+	var parts := []
+	for id in ids:
+		var form: Dictionary = damage_by_form[id]
+		var t := maxf(form.total, 1.0)
+		parts.append("%s:%.3f:%d:%.2f:%.2f:%.2f:%.2f:%.2f" % [id, form.total / maxf(total, 1.0), _count_on_map(id),
+			form.hit / t, form.cloud / t, form.status / t, form.combo / t, form.asleep / t])
+	return ";".join(parts)

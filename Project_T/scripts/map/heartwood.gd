@@ -67,6 +67,7 @@ var _fruit: Node2D
 var _fruit_sprites: Array[Sprite2D] = []
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS  # For the canopy fade; _process skips the rest while paused
 	if not _configured:
 		_load_profile()
 	if tower_container != null:  # Recheck the Wardens only when one joins or leaves
@@ -129,6 +130,9 @@ func setup(new_stage: int, new_planted: Array[Dictionary], new_memories: int) ->
 		_build()
 
 func _process(delta: float) -> void:
+	_update_fade(delta)
+	if get_tree().paused:
+		return  # The tree and its light rest with the world
 	_frame_time = fmod(_frame_time + delta * EnvironmentTiles.FPS, EnvironmentTiles.FRAMES)
 	if int(_frame_time) != frame_coords.x:
 		frame_coords.x = int(_frame_time)
@@ -137,6 +141,11 @@ func _process(delta: float) -> void:
 	var flicker := 1.0 + sin(_light_time * 2.3) * 0.04
 	_light.scale = Vector2.ONE * flicker
 	_glow.scale = Vector2.ONE * flicker * GLOW_RADIUS / (_glow.texture.get_width() / 2.0)
+	if not _glint_points.is_empty() and not _reduced_motion():
+		_glints.queue_redraw()  # The twinkle: the only per-frame work
+
+# The canopy fade runs while paused too (process_mode ALWAYS): Wardens are planted and sold while paused.
+func _update_fade(delta: float) -> void:
 	_behind_check -= delta
 	if _behind_check <= 0.0:
 		_behind_check = BEHIND_CHECK_EVERY
@@ -144,8 +153,6 @@ func _process(delta: float) -> void:
 	self_modulate.a = lerpf(self_modulate.a, BEHIND_ALPHA if _behind else 1.0, 1.0 - exp(-FADE_RATE * delta))
 	_glints.modulate.a = self_modulate.a  # Every layer fades with the canopy
 	_fruit.modulate.a = self_modulate.a
-	if not _glint_points.is_empty() and not _reduced_motion():
-		_glints.queue_redraw()  # The twinkle: the only per-frame work
 
 # --- The Grove mirror -----------------------------------------------------------------------------
 

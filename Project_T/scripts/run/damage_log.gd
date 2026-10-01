@@ -79,6 +79,8 @@ static var instance: DamageLog = null
 var numbers_mode := NumbersMode.OFF
 const NUMBER_MERGE_WINDOW := 0.25  # Seconds (game): a nightmare's hits within it share one number
 const MAX_NUMBERS := 48  # Ordinary numbers alive at once (big ones always show)
+const REDUCED_MERGE_WINDOW := 0.6  # Effects quality Reduced: longer merges…
+const REDUCED_MAX_NUMBERS := 16  # …and fewer ordinary numbers alive
 var _last_number := {}  # Nightmare id -> [its last number, clock] (merging)
 # Per Warden: {tower instance id: {"name", "tower", "run", "run_combo", "drift", "drift_status",
 # "drift_combo", "combos": {tag: amount}}}.
@@ -273,13 +275,14 @@ func _show_number(event: Event) -> void:
 	# Thinning (platforms.md: busy fights stay smooth): a nightmare's ordinary hits and ticks within
 	# NUMBER_MERGE_WINDOW add to its last number instead of spawning more; past MAX_NUMBERS alive only
 	# big ones (crits, weak, Reactions) still appear. A busy 3× fight made hundreds of number nodes.
+	var reduced := Fx.reduced()  # Effects quality Reduced, or Fx stepped down on long frames: thinner still
 	var enemy_id: int = event.enemy.get_instance_id()
 	if not big:
 		var last_any: Array = _last_number.get(enemy_id, [])
-		if not last_any.is_empty() and is_instance_valid(last_any[0]) and _clock - last_any[1] <= NUMBER_MERGE_WINDOW:
+		if not last_any.is_empty() and is_instance_valid(last_any[0]) and _clock - last_any[1] <= (REDUCED_MERGE_WINDOW if reduced else NUMBER_MERGE_WINDOW):
 			last_any[0].add(event.amount, color)
 			return
-		if get_child_count() >= MAX_NUMBERS:
+		if get_child_count() >= (REDUCED_MAX_NUMBERS if reduced else MAX_NUMBERS):
 			return
 	var number := FloatingNumber.new(event.enemy.global_position + Vector2(randf_range(-10, 10), -30),
 		event.amount, color, size)

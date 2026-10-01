@@ -52,6 +52,7 @@ const CROWN_OFFSET := Vector2(0, -34)  # The Crowned crown mark over its callout
 const CALLOUT_LIFE := 0.9
 const CALLOUT_COOLDOWN := 0.5  # Per reaction, so a chain doesn't wall the screen with words
 const MAX_CALLOUTS := 3
+const CALLOUT_CLEAR := Vector2(110, 20)  # Two callouts closer than this stack (a line apart)
 const BADGE_OFFSET := Vector2(0, -60)
 const HITSTOP_SECONDS := 0.07
 const HITSTOP_SCALE := 0.05  # Speed during a hitstop
@@ -69,6 +70,22 @@ static var _badge: Node2D
 static var longest_chain := 0  # This run's longest chain (reset with reset_run())
 
 # --- Data ---------------------------------------------------------------------------------------
+
+# Effects quality (Settings → Display "effects_quality": 0 Full, 1 Reduced) plus the automatic step-down
+# when real frames run long (FxCache measures them). Reduced: Reaction sheets play their lite versions,
+# fewer full Reactions a second, Kinship root pulses off, off-screen Wardens skip their idle animation.
+static var auto_reduced := false
+static var view_rect := Rect2()  # The visible world rect (FxCache, each frame)
+const REDUCED_FULL_PER_SECOND := 2
+
+static func reduced() -> bool:
+	return auto_reduced or int(setting("effects_quality", 0)) == 1
+
+# Whether `at` (world) is on screen, with `margin` px around it (true when the rect isn't known yet).
+static func on_screen(at: Vector2, margin: float = 64.0) -> bool:
+	if view_rect.size.x < 256.0 or view_rect.size.y < 256.0:
+		return true  # Not known yet, or a headless / tiny viewport (64×64): never call the map off-screen
+	return view_rect.grow(margin).has_point(at)
 
 # Photosensitivity (user: "a flash in the middle of my screen"): at most MAX_BRIGHT_PER_SECOND bright
 # flashes (Dawnburst, chain surges) on screen a second; the rest are skipped. Every effect is at most
@@ -154,7 +171,8 @@ static func _pick(effect: StringName, lite_ok: bool) -> StringName:
 	var now := Time.get_ticks_msec()
 	while not _full_times.is_empty() and now - _full_times[0] > 1000:
 		_full_times.pop_front()
-	if lite_ok and _full_times.size() >= FULL_PER_SECOND:
+	var budget := REDUCED_FULL_PER_SECOND if reduced() else FULL_PER_SECOND  # Effects quality / long frames
+	if lite_ok and _full_times.size() >= budget:
 		return lite
 	_full_times.append(now)
 	return effect
@@ -246,6 +264,13 @@ static func callout(text: String, colour: Color, at: Vector2, parent: Node, key:
 	if _callouts_alive.size() >= MAX_CALLOUTS or now < _callout_cooldown.get(key, 0):
 		return null
 	_callout_cooldown[key] = now + int(CALLOUT_COOLDOWN * 1000)
+	# Stacked, never drawn over each other (user: "Lightning Rod!" over "Thunderclap!"): a callout that would
+	# land on a live one moves up a line, up to MAX_CALLOUTS lines.
+	for i in MAX_CALLOUTS:
+		if not _callouts_alive.any(func(c) -> bool: return is_instance_valid(c) \
+				and absf(c.global_position.x - at.x) < CALLOUT_CLEAR.x and absf(c.global_position.y - at.y) < CALLOUT_CLEAR.y):
+			break
+		at.y -= CALLOUT_CLEAR.y
 	var node := FxCallout.new(text, colour)
 	parent.add_child(node)
 	node.global_position = at

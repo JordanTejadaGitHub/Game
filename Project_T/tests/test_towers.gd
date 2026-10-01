@@ -9,6 +9,7 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	HeartwoodMemory.file_path = "user://test_towers_%d.json" % OS.get_process_id()  # Like the suite: a fresh profile, not the player's
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
@@ -71,6 +72,7 @@ func _run() -> void:
 	for child in spawner.get_children():
 		child.queue_free()
 	await process_frame
+	await _clear_onboarding(main)  # A fresh profile (the suite's isolated user://) opens first-run cards that pause the run
 
 	# Projectile: winds up on the attack sheet, fires on the release frame, then idles again.
 	var sprout: Tower = tower_container.get_child(0)
@@ -120,7 +122,7 @@ func _run() -> void:
 	await process_frame
 	var beamed = _spawn_still(spawner, leaf_bug, midsummer.global_position + Vector2(40, 0))
 	midsummer._update_beam(0.1)
-	_check(midsummer.sprite.hframes == midsummer.tower_data.attack_frame_count, "Midsummer holds its attack pose while beaming")
+	_check(midsummer.sprite.texture == midsummer.tower_data.beam_sustain_texture and midsummer.sprite.hframes == midsummer.tower_data.beam_sustain_frames, "Midsummer channels on its channel sheet while beaming")
 	beamed.dispel()
 	await process_frame
 	midsummer._update_beam(0.1)
@@ -183,3 +185,17 @@ func _cell_next_to_path(map_generator, path: PackedVector2Array) -> Vector2:
 			if not path.has(cell) and map_generator.can_block(cell):
 				return cell
 	return Vector2(-1, -1)
+
+# First-run onboarding (a nightmare card, a whisper, the boss dossier) pauses the run on a fresh profile:
+# close what's open and unpause, so the timed checks see the Wardens move.
+func _clear_onboarding(main: Node) -> void:
+	for name in ["NightmareIntro", "BossDossier"]:
+		var screen := main.find_child(name, true, false)
+		if screen != null and screen.visible and screen.has_method("close"):
+			screen.close()
+	await process_frame
+	var speed := main.get_node_or_null("%GameSpeed") as GameSpeed
+	if speed != null:
+		speed.set_paused(false)
+	paused = false
+	await process_frame

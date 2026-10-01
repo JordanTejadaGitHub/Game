@@ -49,13 +49,22 @@ func _init() -> void:
 	add_to_group(GROUP)
 	add_to_group(BuffLens.GROUP)  # BuffLens.set_on calls set_lens on every change
 	lens = BuffLens.on
-	z_index = -1  # On the ground, under Wardens and nightmares
+	# Pips, threads and the lens markers draw above the Wardens (z 7: over the lighting, 3, and the ambience, 6);
+	# under the Wardens the next row's overhanging sprites hid them (Main: "toggling Boosts doesn't change
+	# anything"). Only the lens' aura tint stays on the ground (_ground).
+	z_index = 7
+	_ground.name = "LensGround"
+	_ground.z_as_relative = false
+	_ground.z_index = -1
+	_ground.draw.connect(_draw_ground)
+	add_child(_ground)
 	process_mode = Node.PROCESS_MODE_ALWAYS  # Paused: the pips show
 
 func set_lens(on: bool) -> void:
 	lens = on
 	lens_changed.emit(on)
 	queue_redraw()
+	_ground.queue_redraw()
 
 # Performance (test_perf_stress: redrawing every Warden's pips every 0.2 s cost ~75 ms spikes): redraw when
 # what's asked about changes (lens, rest / pause / build mode, hovered / selected Warden, the board), and
@@ -72,6 +81,7 @@ func _process(delta: float) -> void:
 		_last_key = key
 		_redraw_left = REDRAW_EVERY
 		queue_redraw()
+		_ground.queue_redraw()
 
 func _show_all() -> bool:
 	return lens or (director != null and director.is_resting()) or get_tree().paused \
@@ -96,8 +106,18 @@ func _towers() -> Array:
 		return []
 	return container.get_children().filter(func(t) -> bool: return t is Tower and not t.is_queued_for_deletion())
 
+var _ground := Node2D.new()
+var drawn_pips := 0  # Pip rows and lens markers drawn last frame (tests)
+var drawn_markers := 0
+
+func _draw_ground() -> void:
+	if lens:
+		_draw_lens_areas(_towers())
+
 func _draw() -> void:
 	var towers := _towers()
+	drawn_pips = 0
+	drawn_markers = 0
 	if lens:
 		_draw_lens(towers)
 	var focus := _focus()
@@ -115,6 +135,7 @@ func _draw_pips(tower: Tower) -> void:
 	var rows := BuffSources.pips(tower)
 	if rows.is_empty():
 		return
+	drawn_pips += 1
 	var at := to_local(tower.global_position) + Vector2(-(rows.size() - 1) * PIP_STEP / 2.0, PIP_Y)
 	WorldLabel.begin_screen_size(self, at + Vector2((rows.size() - 1) * PIP_STEP / 2.0, 0.0))  # Screen size when zoomed in
 	var font := ThemeDB.fallback_font
@@ -243,20 +264,33 @@ func _relay_wall(from: Tower, to: Tower) -> Tower:
 
 # --- Lens --------------------------------------------------------------------------------------------
 
-func _draw_lens(towers: Array) -> void:
+# The lens on the ground: every aura's area tinted by kind (the only part under the Wardens).
+func _draw_lens_areas(towers: Array) -> void:
 	for tower in towers:
 		if AuraView.is_aura(tower.tower_data):
 			var colour := BuffSources.color(tower.tower_data.get_id())
 			for cell in AuraView.cells(tower.global_position, tower.get_aura_reach()):
-				var c := to_local(Tower.MAP_GRID.calculate_map_position(cell))
-				draw_rect(Rect2(c - Tower.MAP_GRID.cell_size / 2.0, Tower.MAP_GRID.cell_size), Color(colour, LENS_FILL))
-	# Only local sources light a Warden up (auras, Kinships, Kindred / Whole Tree): global Dreams and Nurture
-	# would make the whole map glow (screens_ui.md "The lens button, revised").
+				var c := _ground.to_local(Tower.MAP_GRID.calculate_map_position(cell))
+				_ground.draw_rect(Rect2(c - Tower.MAP_GRID.cell_size / 2.0, Tower.MAP_GRID.cell_size), Color(colour, LENS_FILL))
+
+# The lens above the Wardens: a gold halo over every boosted one (brighter the more it gets) and the rest
+# dimmed a little, so switching it on visibly changes the map, at rests too. Only local sources light a Warden
+# (auras, Kinships, Kindred / Whole Tree): global Dreams and Nurture would make the whole map glow
+# (screens_ui.md "The lens button, revised").
+const HALO_Y := -20.0  # Over the Warden's body
+const DIM_ALPHA := 0.3
+
+func _draw_lens(towers: Array) -> void:
 	for tower in towers:
+		var at := to_local(tower.global_position)
 		var boost := local_boost(tower)
 		if boost > 0.001:
-			draw_circle(to_local(tower.global_position), Tower.MAP_GRID.cell_size.x * 0.42,
-				Color(Palette.GLOW, clampf(boost, 0.08, 0.6)))
+			var strength := clampf(boost, 0.25, 0.9)
+			draw_arc(at + Vector2(0, HALO_Y), Tower.MAP_GRID.cell_size.x * 0.38, 0.0, TAU, 32, Color(Palette.GLOW, strength), 2.5)
+			draw_arc(at + Vector2(0, HALO_Y), Tower.MAP_GRID.cell_size.x * 0.38 + 3.0, 0.0, TAU, 32, Color(Palette.GLOW, strength * 0.35), 2.0)
+			drawn_markers += 1
+		else:
+			draw_circle(at + Vector2(0, HALO_Y * 0.5), Tower.MAP_GRID.cell_size.x * 0.45, Color(Palette.DREAD, DIM_ALPHA))
 
 # The damage + attack speed a Warden gets from local sources (auras, Kindred / Whole Tree).
 static func local_boost(tower: Tower) -> float:

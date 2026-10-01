@@ -153,7 +153,20 @@ const FAMILY_NAMES := {"sporeling": "Sporeling", "firefly_jar": "Firefly Jar", "
 
 # The Crowned Reactions: [{id, name, kind "Crowned", base, statuses (base's + the third), families, text}].
 # A ReactionData of the same id (if Tower Code adds one) supplies the name and text.
+# Perf (Tower's lag probe: combat looked these up per chain link, and each call rebuilt every list): the lists are
+# built once per session from fixed data (Reactions, Kinships.KINSHIPS, SYNERGIES: no {combo:} tokens) and copied
+# out; get_any / get_combo read one index. Plain dictionaries only (no resources in statics).
+static var _crowned_list: Array[Dictionary] = []
+static var _kinship_list: Array[Dictionary] = []
+static var _combo_list: Array[Dictionary] = []
+static var _index := {}  # id -> its dictionary (combos first, then Crowned, then Kinships)
+
 static func crowned() -> Array[Dictionary]:
+	if _crowned_list.is_empty():
+		_crowned_list = _build_crowned()
+	return _crowned_list.duplicate()
+
+static func _build_crowned() -> Array[Dictionary]:
 	var list: Array[Dictionary] = []
 	for id in CROWNED:
 		var c: Array = CROWNED[id]
@@ -166,12 +179,11 @@ static func crowned() -> Array[Dictionary]:
 
 # A combo, a Crowned Reaction or a Kinship by id ({} if none).
 static func get_any(id: StringName) -> Dictionary:
-	var found := get_combo(id)
-	if found.is_empty():
-		for c in crowned() + kinships():
-			if c.id == id:
-				return c
-	return found
+	if _index.is_empty():
+		for c in combos() + crowned() + kinships():
+			if not _index.has(c.id):
+				_index[c.id] = c
+	return _index.get(id, {})
 
 # Kinships (tower_design.md "Kinships"; Tower Code's Kinships.KINSHIPS: id -> [name, line, branch A,
 # branch B, …]): two branches of one family side by side, each borrowing a trait from the other.
@@ -202,6 +214,11 @@ const KINSHIP_GROWTH := "Within 2 cells they bond; the bond grows (Blooming at 5
 
 # [{id, name, kind "Kinship", line, a, b (Warden names), text}], or [] before Kinships exist.
 static func kinships() -> Array[Dictionary]:
+	if _kinship_list.is_empty():
+		_kinship_list = _build_kinships()
+	return _kinship_list.duplicate()
+
+static func _build_kinships() -> Array[Dictionary]:
 	var list: Array[Dictionary] = []
 	if not ResourceLoader.exists(KINSHIPS_SCRIPT):
 		return list
@@ -239,6 +256,11 @@ const FAMILY_ICONS := "res://assets/meta/icons/family_icons.png"
 
 # Every combo: [{id, name, kind ("Synergy" / "Reaction"), statuses, text, by}], synergies first.
 static func combos() -> Array[Dictionary]:
+	if _combo_list.is_empty():
+		_combo_list = _build_combos()
+	return _combo_list.duplicate()
+
+static func _build_combos() -> Array[Dictionary]:
 	var list: Array[Dictionary] = []
 	for id in SYNERGIES:
 		var s: Array = SYNERGIES[id]
@@ -333,10 +355,8 @@ static func in_build(entry: Dictionary, in_scope: Dictionary = {}) -> bool:
 	return entry.get("statuses", []).all(func(status: StringName) -> bool: return s.statuses.has(status))
 
 static func get_combo(id: StringName) -> Dictionary:
-	for combo in combos():
-		if combo.id == id:
-			return combo
-	return {}
+	var found := get_any(id)  # The one index (combos come first in it)
+	return found if found.get("kind", "") in ["Synergy", "Reaction"] else {}
 
 # "Soaked + Charged" (a synergy on one status reads just "Poisoned").
 static func ingredients_text(combo: Dictionary) -> String:

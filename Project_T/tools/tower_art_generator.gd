@@ -382,7 +382,7 @@ func _make_attack(tower_name: String) -> Image:
 # Tall Wardens (64x96 frames, the body's 64x64 frame in the bottom 64 rows; the 32 rows above hold
 # what rises over it). In game: TowerData.sprite_offset (0, -16) keeps the slab on its cell, and the
 # attacks.json point stays in body-frame pixels (it's measured from the body, not the tall frame).
-const TALL_WARDENS := ["beacon", "thunderhead"]
+const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave", "snugroot", "grafted_elder"]
 const TALL_H := 96
 
 func _frame_h(tower_name: String) -> int:
@@ -399,7 +399,35 @@ func _tall_frame(tower_name: String, body: Image, st: Dictionary) -> Image:
 	frame.blend_rect(back, Rect2i(0, 0, S, S), Vector2i.ZERO)
 	frame.blend_rect(body, Rect2i(0, 0, S, S), Vector2i(0, TALL_H - S))
 	frame.blend_rect(front, Rect2i(0, 0, S, S), Vector2i.ZERO)
+	if has_method("_tall_full_" + tower_name):
+		call("_tall_full_" + tower_name, frame, st)  # drawn over the whole 64x96 frame
 	return frame
+
+# A thick outlined stroke straight onto a tall frame (any size), for parts spanning body and tall rows.
+func _tall_stroke(frame: Image, pts: Array, r: float, color: Color, o: Color) -> void:
+	var w := frame.get_width()
+	var h := frame.get_height()
+	var layer := Image.create_empty(w, h, false, Image.FORMAT_RGBA8)
+	for i in pts.size() - 1:
+		var a: Vector2 = pts[i]
+		var b: Vector2 = pts[i + 1]
+		var steps := int(a.distance_to(b) * 2.0) + 1
+		for s in steps + 1:
+			var p := a.lerp(b, s / float(steps))
+			for y in range(floori(p.y - r), ceili(p.y + r) + 1):
+				for x in range(floori(p.x - r), ceili(p.x + r) + 1):
+					if x >= 0 and y >= 0 and x < w and y < h and Vector2(x + 0.5, y + 0.5).distance_to(p) <= r:
+						layer.set_pixel(x, y, color)
+	for y in h:
+		for x in w:
+			if layer.get_pixel(x, y).a == 0.0:
+				continue
+			var edge := false
+			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var q := Vector2i(x, y) + d
+				if q.x < 0 or q.y < 0 or q.x >= w or q.y >= h or layer.get_pixelv(q).a == 0.0:
+					edge = true
+			frame.set_pixel(x, y, o if edge else color)
 
 # <name>_channel.png for the BEAM Wardens (Sunpetal, Midsummer): 3 frames the game ping-pongs while
 # the beam is held (TowerData.beam_sustain_texture). The code draws the beam itself, toward the
@@ -2574,6 +2602,125 @@ func _tall_thunderhead(back: Image, front: Image, st: Dictionary) -> void:
 		if (p.x + st.f) % 3 == 0:
 			_px(front, p.x, p.y, Color("#c0f0ff"))
 
+# Wellspring's tall rows: the spring shoots up out of the well on its head as a tall jet, crowned with
+# a splash, its spray arcing down either side (narrow: little of the cell above is hidden).
+func _tall_wellspring(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var top_well := 32.0 + 5 + dy  # the well's water, in tall-frame rows
+	var crest: float = 9.0 + [0.0, 1.0, 2.0, 1.0][st.f % 4]
+	var jet := _layer()
+	for y in range(int(crest), int(top_well)):
+		var w := 2.0 + (y - crest) / (top_well - crest) * 1.6
+		_flat_ellipse(jet, Vector2(30.5, y + 0.5), Vector2(w, 0.6), Color("#4c8ca4"))
+	_stamp(front, jet, Color("#2c4c5c"))
+	for y in range(int(crest) + 1, int(top_well)):
+		_px(front, 30, y, Color("#dce8f4") if (y + st.f) % 3 != 0 else Color("#9cd4fc"))
+	# The splash crown on top.
+	var crown := _layer()
+	_flat_ellipse(crown, Vector2(30.5, crest), Vector2(7.5, 3.0), Color("#9cd4fc"))
+	_flat_ellipse(crown, Vector2(24.5, crest + 3.0), Vector2(2.5, 2.0), Color("#4c8ca4"))
+	_flat_ellipse(crown, Vector2(36.5, crest + 3.0), Vector2(2.5, 2.0), Color("#4c8ca4"))
+	_stamp(front, crown, Color("#2c4c5c"))
+	_px(front, 29, int(crest) - 1, Color("#dce8f4"))
+	_px(front, 32, int(crest) - 1, Color("#dce8f4"))
+	# Spray arcing down either side.
+	for k in 10:
+		var t := fposmod(float(st.f) / st.n + k / 10.0, 1.0)
+		var side := -1.0 if k % 2 == 0 else 1.0
+		var p := Vector2(30.5 + side * (5.0 + t * 11.0), crest + 2.0 + t * t * 24.0)
+		var bead := _layer()
+		_flat_ellipse(bead, p, Vector2(1.5, 1.5), Color("#9cd4fc"))
+		_stamp(front, bead, Color("#2c4c5c"))
+		_px(front, int(p.x), int(p.y) - 1, Color("#dce8f4"))
+
+# Elf Circle's tall rows: a tall pointed leaf hat rising off its head, its tip bending over with a
+# glowing teal light hanging from it (narrow: little of the cell above is hidden).
+func _tall_elf_circle(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var base := 32.0 + 6 + dy  # the hat brim, in tall-frame rows
+	var sway: float = [0.0, 0.5, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5][st.f % 8]
+	var tip := Vector2(41 + sway, 9)
+	var hat := _layer()
+	_flat_polygon(hat, PackedVector2Array([Vector2(22, base), Vector2(27, base - 14), Vector2(32 + sway * 0.5, base - 24),
+		tip, Vector2(37 + sway * 0.5, base - 20), Vector2(36, base - 10), Vector2(40, base)]), Color(LEAF[1]))
+	for y in S:
+		for x in S:
+			if hat.get_pixel(x, y).a > 0.0 and x > 31 + (base - y) * 0.15:
+				hat.set_pixel(x, y, Color(LEAF[0]))  # its shaded side
+	_stamp(front, hat, Color("#17174d"))
+	# The leaf's midrib and a band of mushrooms round the brim.
+	_line(front, [Vector2(31, base - 1), Vector2(32 + sway * 0.5, base - 22), tip + Vector2(-1, 1)], Color(LEAF[2]))
+	for k in 4:
+		var x := 24 + k * 5
+		_px(front, x, int(base) - 1, Color("#7ff0e0"))
+		_px(front, x + 1, int(base) - 1, Color("#7ff0e0"))
+		_px(front, x, int(base) - 2, Color("#d8fff8"))
+	# The light hanging off the tip, swinging.
+	var light := Vector2i((tip + Vector2(1, 4)).round())
+	_px(front, light.x, light.y - 1, Color("#17174d"))
+	_glow_dot(front, light + Vector2i(0, 1), Color("#d8fff8"), Color("#7ff0e0"))
+
+# Starcave's tall rows: a cluster of crystal spires grown up behind it (drawn behind the body so its
+# head and shoulders sit in front), stars twinkling round their tips.
+func _tall_starcave(back: Image, front: Image, st: Dictionary) -> void:
+	var gems := _ramp(["#8a60d0", "#c0a0ff", "#f0e8ff"])
+	var o := Color("#1e120a")
+	for c: Vector4 in [Vector4(24, 50, 22, -3), Vector4(41, 50, 18, 3), Vector4(32.5, 52, 38, 0)]:
+		_prism(back, Vector2(c.x, c.y), 3.2, c.z, c.w, gems, o)
+	for k in 4:
+		var p: Vector2i = [Vector2i(32, 11), Vector2i(19, 26), Vector2i(46, 30), Vector2i(38, 18)][k]
+		if (st.f + k) % 2 == 0:
+			_sparkle(front, p, Color("#f0e8ff"))
+		else:
+			_px(front, p.x, p.y, Color("#c0a0ff"))
+
+# Snugroot's tall frame: two roots rise from the slab's back corners and arch over its head into a
+# bower (thin, so the cell above shows through), hung with blossoms; the tall rows behind are empty.
+func _tall_snugroot(back: Image, front: Image, st: Dictionary) -> void:
+	pass
+
+func _tall_full_snugroot(frame: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var root := Color("#d8c08a")
+	var o := Color("#1e160e")
+	var apex := 12 + dy
+	_tall_stroke(frame, [Vector2(8, 76), Vector2(7, 52), Vector2(10, 30), Vector2(18, apex + 8), Vector2(31, apex), Vector2(44, apex + 8), Vector2(53, 30), Vector2(56, 52), Vector2(55, 76)], 1.4, root, o)
+	# Twigs off the arch and blossoms along it.
+	for b: Vector2 in [Vector2(12, 26), Vector2(22, apex + 4), Vector2(31, apex - 1), Vector2(40, apex + 4), Vector2(51, 26), Vector2(8, 44), Vector2(56, 44)]:
+		var p := Vector2i(b)
+		frame.set_pixel(p.x, p.y - 1, Color("#6ab04a"))
+		frame.set_pixel(p.x + 1, p.y - 2, Color("#9ad86a"))
+		for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			frame.set_pixelv(p + d + Vector2i(0, 1), Color("#f4a0c0"))
+		frame.set_pixelv(p + Vector2i(0, 1), Color("#ffd24a"))
+
+# Grafted Elder's tall rows: a small grafted tree grows up out of its stump-top, its trunk splitting
+# into three compact crowns, blossom, leaf and gold (one per graft), each swaying a little.
+func _tall_grafted_elder(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var o := Color("#22160e")
+	var foot := Vector2(31, 32 + 5 + dy)  # its stump-top, in tall-frame rows
+	var fork := Vector2(31, 26 + dy)
+	var trunk := _layer()
+	_stroke(trunk, [foot, fork], 1.6, Color("#7a5234"))
+	var crowns := [[Vector2(22, 14 + dy), _ramp(["#c05080", "#f090b8", "#ffd0e4"])],
+		[Vector2(31, 9 + dy), _ramp(LEAF)],
+		[Vector2(40, 14 + dy), _ramp(["#b87a20", "#e8b040", "#ffe080"])]]
+	for c: Array in crowns:
+		_stroke(trunk, [fork, (c[0] as Vector2) + Vector2(0, 4)], 1.0, Color("#7a5234"))
+	_stamp(front, trunk, o)
+	for i in crowns.size():
+		var c: Vector2 = crowns[i][0]
+		var sway: float = [0.0, 0.5, 0.0, -0.5][(st.f + i * 2) % 4]
+		var crown := _layer()
+		_ellipse(crown, c + Vector2(sway, 0), Vector2(5.2, 4.4), crowns[i][1])
+		_ellipse(crown, c + Vector2(sway - 3, 2), Vector2(3.0, 2.6), crowns[i][1])
+		_ellipse(crown, c + Vector2(sway + 3, 2), Vector2(3.0, 2.6), crowns[i][1])
+		_stamp(front, crown, o)
+	# Twine where the grafts are bound.
+	_px(front, int(fork.x) - 1, int(fork.y) + 1, Color("#e8d8b0"))
+	_px(front, int(fork.x) + 1, int(fork.y) + 1, Color("#e8d8b0"))
+
 # Lanternmoth: an amber lantern golem with soft moth wings, feathery antennae and a warm light
 # glowing in its chest.
 func _draw_lanternmoth(canvas: Image, st: Dictionary) -> void:
@@ -3307,7 +3454,17 @@ func _fairy_body(canvas: Image, st: Dictionary, elf: bool) -> void:
 		_px(canvas, x, y - 2, fig.o)
 		_px(canvas, x - 1, y - 1, cap.lightened(0.35))
 	if elf:
-		_leaf(canvas, Vector2(30.5, 6 + dy), Vector2(36 + st.sway, -2), 4.0, _ramp(LEAF), fig.o)
+		# Two tall glowing toadstools on the slab either side (its hat is in _tall_elf_circle).
+		for t: Vector3 in [Vector3(9, 45, 11), Vector3(55, 44, 9)]:
+			var foot := Vector2(t.x, t.y)
+			var stem := _layer()
+			_stroke(stem, [foot, foot + Vector2(0, -t.z)], 0.9, Color("#f0e4d8"))
+			_stamp(canvas, stem, fig.o)
+			var cap_l := _layer()
+			_ellipse(cap_l, foot + Vector2(0.5, -t.z - 0.5), Vector2(4.2, 2.6), _ramp(["#2a8878", "#5ad0c0", "#b8fff4"]), foot.y - t.z + 0.5)
+			_stamp(canvas, cap_l, fig.o)
+			_px(canvas, int(foot.x) - 1, int(foot.y - t.z) - 2, Color("#d8fff8"))
+			_px(canvas, int(foot.x) + 2, int(foot.y - t.z) - 1, Color("#d8fff8"))
 	for k in (6 if elf else 4):
 		var a: float = TAU * float(st.f) / st.n + k * TAU / (6 if elf else 4)
 		var p := Vector2i((Vector2(31, 22) + Vector2(cos(a) * 22.0, sin(a) * 9.0 - 6)).round())

@@ -209,6 +209,20 @@ func _run() -> void:
 	var extra := drift.get_next_rank_growth_extra(next)
 	placer.nurture(drift)
 	_check(drift.get_grow_cost(next).total == before_grow + extra, "the note matches the new grow cost (%d -> %d)" % [before_grow, drift.get_grow_cost(next).total])
+	# Nurture range preview: pointing at Reach shows exactly the range the Warden has after that rank.
+	var reacher := _build(placer, map_generator, sporeling_data)
+	run_state.dew = 100000
+	placer.show_rank_preview([reacher], Tower.Focus.REACH)
+	var shown: Array = placer.rank_preview()
+	var before_range := reacher.get_range_cells()
+	_check(shown.size() == 1 and is_equal_approx(shown[0][1], before_range) and shown[0][2] > before_range,
+		"the preview shows the current ring and a bigger one for Reach (%s)" % [shown])
+	_check(is_equal_approx(reacher.get_range_cells(), before_range) and reacher.rank == 0, "previewing leaves the Warden as it was")
+	placer.nurture(reacher, Tower.Focus.REACH)
+	_check(shown.size() == 1 and is_equal_approx(reacher.get_range_cells(), shown[0][2]),
+		"the preview radius is the post-Nurture range (%.2f vs %.2f)" % [shown[0][2] if shown.size() == 1 else -1.0, reacher.get_range_cells()])
+	placer.hide_rank_preview()
+	_check(placer.rank_preview().is_empty(), "the rings go on hover end")
 	print("nurture test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
