@@ -27,6 +27,22 @@ func _run() -> void:
 	_check(arrows.is_showing() and arrows._cells.size() == route.size(), "shown from run start, along the whole route (%d of %d cells)" % [arrows._cells.size(), route.size()])
 	_check(arrows._cells[0] == map_generator.MAP_GRID.calculate_map_position(route[0])
 		and arrows._cells[-1] == map_generator.MAP_GRID.calculate_map_position(route[-1]), "…from the start to the Heartwood")
+	# Spread out (user: "spread them out more"): about one per 3 cells, evenly along the route's length, one on the start
+	# and one on the last cell before the Heartwood
+	var count := arrows.mark_count()
+	var expected := maxi(1, roundi(arrows._length_to(route.size() - 2) / (StartArrows.SPACING_CELLS * StartArrows.CELL))) + 1
+	_check(count == expected and count < route.size() / 2, "chevrons spread out: %d for %d route cells" % [count, route.size()])
+	_check(arrows.mark_position(0).is_equal_approx(arrows._cells[0]) and arrows.mark_position(count - 1).is_equal_approx(arrows._cells[-2]),
+		"…one on the start, one on the last cell before the Heartwood")
+	var gaps: Array[float] = []
+	for i in count - 1:
+		gaps.append(arrows.mark_position(i).distance_to(arrows.mark_position(i + 1)))
+	var even := true
+	var spacing: float = arrows._length_to(route.size() - 2) / maxf(count - 1, 1.0)
+	for i in count - 1:  # Along the route they're exactly `spacing` apart; straight-line gaps can only be shorter (corners)
+		even = even and gaps[i] <= spacing + 0.5
+	_check(even and spacing >= 2.0 * StartArrows.CELL and spacing <= 4.0 * StartArrows.CELL, "…evenly spaced along the route (%.0f px)" % spacing)
+	_check(StartArrows.SIZE * 2.0 <= 0.45 * StartArrows.CELL and StartArrows.BASE_ALPHA <= 0.45 and StartArrows.LIT_ALPHA <= 0.75, "…small and subtle")
 	_check(arrows.z_index < 0, "…drawn under the build ghost's route preview")
 	# Planting changes the route: they follow it live
 	var blocked := Vector2(-1, -1)
