@@ -75,6 +75,7 @@ func _run() -> void:
 	var empty := NightmareIcons.make_rows(load("res://resource/enemy/leaf_bug.tres"), 16.0, true)
 	_check(empty.get_child_count() == 0 or not stag.resists.is_empty(), "a compact row with nothing to show is empty")
 
+	NightmareIntro.pause_in_tests = true  # This test checks the cards that open by themselves (first rest, mid-block)
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
@@ -279,7 +280,6 @@ func _run() -> void:
 		intro.close()
 		_check(not speed_node.paused, "closing it resumes")
 		_check(NightmareIntro.enabled(), "introductions are always on")
-		NightmareIntro.pause_in_tests = true  # This part checks the mid-drift card
 		var sob: Node2D = click_spawner.spawn_enemy(load("res://resource/enemy/puffcaplet.tres"))
 		sob.set_process(false)
 		await process_frame
@@ -288,7 +288,6 @@ func _run() -> void:
 			"a never-seen kind appearing mid-block opens its centred card")
 		intro.close()
 		sob.queue_free()
-		NightmareIntro.pause_in_tests = false
 	# --- Record ----------------------------------------------------------------------------------
 	BossDossier.record_dispel(stag, 65.0)
 	BossDossier.record_dispel(stag, 80.0)
