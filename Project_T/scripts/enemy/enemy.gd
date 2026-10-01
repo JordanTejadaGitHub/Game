@@ -1826,7 +1826,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	var family := enemy_data.get_soothe_multiplier(line, is_area)
 	if line == "water" and statuses.has(EnemyStatuses.DAMP):
 		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
-		family *= 1.0 + EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP))
+		family *= 1.0 + statuses.soaked_bonus(EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP)))  # × the applier's Potency, capped
 	var taken := statuses.get_damage_taken_multiplier()
 	var soothe := amount * family * taken * get_pack_multiplier()  # Huntsman: the pack shields him
 	var soothe_before_coat := soothe

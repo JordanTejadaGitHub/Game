@@ -96,14 +96,21 @@ func _run() -> void:
 	_check(tower.rank == 5 and not tower.can_nurture() and not placer.nurture(tower), "rank V is the most")
 	_check(tower.choices_text() == "Power ×3, Swift, Reach", "the story of its ranks (%s)" % tower.choices_text())
 
-	# Deep: +18% Potency (effect damage) and status duration per rank.
+	# Deep: +18% Potency per rank, which strengthens its statuses (tower_design.md "Potency: effect damage and
+	# status strength"); no separate duration bonus any more (only with status Potency off, for the A/B).
 	var deep := _build(placer, map_generator, sporeling_data)
 	placer.nurture(deep, Tower.Focus.DEEP)
 	var soaked := _spawn(main, deep.global_position + Vector2(64, 0))
 	deep.hit(soaked, 1.0, false, Tower.NO_CRIT)
 	_check(is_equal_approx(deep.get_potency(), 1.0 + Tower.FOCUS_DEEP), "Deep: +18% Potency")
-	_check(is_equal_approx(soaked.statuses.time_left(EnemyStatuses.SPORED), EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.SPORED] * (1.0 + Tower.FOCUS_DEEP)),
-		"Deep: +18% status duration")
+	_check(is_equal_approx(soaked.statuses.time_left(EnemyStatuses.SPORED), EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.SPORED]),
+		"Deep: no longer lengthens its statuses")
+	Tower.status_potency_on = false
+	var old_rule := _spawn(main, deep.global_position + Vector2(64, 0))
+	deep.hit(old_rule, 1.0, false, Tower.NO_CRIT)
+	_check(is_equal_approx(old_rule.statuses.time_left(EnemyStatuses.SPORED), EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.SPORED] * (1.0 + Tower.FOCUS_DEEP)),
+		"status Potency off: Deep's old +18% duration")
+	Tower.status_potency_on = true
 
 	# Old saves: a rank and a Focus chosen at III migrate to Power for I–II and the Focus from III.
 	var old := _build(placer, map_generator, sporeling_data)

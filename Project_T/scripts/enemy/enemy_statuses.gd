@@ -188,6 +188,14 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		status["line"] = line  # The strongest applier's family sets the ticks' family
 		status["source"] = source  # …and gets the credit for them
 	status.potency = maxf(status.potency, potency)
+	# Status strength (tower_design.md "Potency: effect damage and status strength"): the strongest applier's
+	# Potency while the status lasts (never a sum). Rooted's length scales with it here, capped.
+	var strength := _applier_potency(source)
+	status["strength"] = maxf(status.get("strength", 0.0), strength)
+	if id == HELD and Tower.status_potency_on and strength > 1.0:
+		var held := minf(length * strength, maxf(HELD_POTENCY_CAP, length))
+		status.time = maxf(status.time, held)
+		status["full"] = maxf(status.get("full", 0.0), held)
 	# Driftspore's higher cap sticks once reached, even if a Sporeling hits next.
 	status["cap"] = maxi(status.get("cap", 0), cap)
 	_active[id] = status
@@ -200,6 +208,26 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 			return potency * STATIC_BOLT_MULTIPLIER * _static_tick_multiplier()  # Eternal Charge: the Warden that added the last charge
 		return status.potency * STATIC_BOLT_MULTIPLIER * _static_tick_multiplier()
 	return 0.0
+
+# Caps on what Potency can make of a status (Balancing Discussion, 2026-10-01). A cap never lowers a
+# status below its base (a card that already pushes it past the cap keeps its value).
+const SOAKED_CAP := 0.40  # Water hits on a Soaked nightmare: at most +40%
+const EXPOSED_CAP := 0.40  # Damage taken while Exposed: at most +40% (Beacon's bonus inside it)
+const HELD_POTENCY_CAP := 2.0  # Seconds: the longest Potency makes a Hold
+
+func _applier_potency(source: Node) -> float:
+	return source.get_potency() if source is Tower and is_instance_valid(source) else 1.0
+
+# The strength multiplier of status `id`: its strongest applier's Potency (1.0 with the switch off,
+# Tower.status_potency_on, or with no Warden behind it).
+func strength(id: StringName) -> float:
+	if not Tower.status_potency_on:
+		return 1.0
+	return float(_active.get(id, {}).get("strength", 1.0))
+
+# Soaked's water-hit bonus with its strength (Enemy.take_damage), from `base` (+20%, more with cards).
+func soaked_bonus(base: float) -> float:
+	return minf(base * strength(DAMP), maxf(SOAKED_CAP, base))
 
 func get_max_stacks(id: StringName, override: int = 0) -> int:
 	var cap: int = override if override > 0 else DEFAULT_MAX_STACKS[id]
@@ -298,7 +326,7 @@ func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 		return 1.0
 	# Slowing belongs to Drowsy (status jobs, 2026-09-29): Damp conducts instead (Enemy.take_damage).
 	var slow := extra_slow
-	slow += DROWSY_SLOW_PER_STACK * stacks(DROWSY)
+	slow += DROWSY_SLOW_PER_STACK * stacks(DROWSY) * strength(DROWSY)  # Potency; the floors below still hold
 	if is_in_stag_aura():
 		slow += STAG_SLOW
 	if slow_time > 0.0:
@@ -313,7 +341,8 @@ func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 func get_damage_taken_multiplier() -> float:
 	var multiplier := 1.0
 	if has(MARKED):
-		multiplier += maxf(MARKED_EXTRA, marked_extra) + marked_bonus  # Bright Marks on top (Beacon too)
+		var extra := maxf(MARKED_EXTRA, marked_extra) + marked_bonus  # Bright Marks on top (Beacon too)
+		multiplier += minf(extra * strength(MARKED), maxf(EXPOSED_CAP, extra))  # Potency, capped
 	if is_in_stag_aura():
 		multiplier += STAG_EXTRA
 	if cut_stacks > 0:

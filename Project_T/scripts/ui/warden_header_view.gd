@@ -107,7 +107,10 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			second.append(["×%s" % str(attack.crit_multiplier), &"crit_damage"])
 		var potency := _tower.get_potency()
 		if not is_equal_approx(potency, 1.0):
-			second.append(["Potency %d%%" % roundi(potency * 100), &"potency"])  # Effect damage
+			second.append(["Potency %d%%" % roundi(potency * 100), &"potency"])  # Statuses and effect damage
+		var strength := status_strength_text(attack.applies_status, potency, attack.status_duration)
+		if strength != "":
+			second.append([strength, attack.applies_status, true])  # "Soaked: water hits +24%", "Rooted 1.2 s"
 		if not second.is_empty():
 			_stat_row(second)
 		if attack.applies_status != &"":
@@ -216,7 +219,29 @@ func _stat_row(parts: Array) -> void:
 		row.add_child(target)
 	stats.add_child(row)
 
-const LOCAL_BUFF_STATS := {&"damage": "damage", &"attack_speed": "attack_speed", &"range": "range"}
+# What this Warden's status does at its Potency (tower_design.md "Potency: effect damage and status strength"),
+# with the same caps as EnemyStatuses: "Soaked: water hits +24%", "Exposed: +30% damage taken",
+# "Drowsy −9% speed a stack", "Rooted 1.2 s". "" for Poisoned / Charged (their damage is in the hit) or with
+# status Potency off.
+static func status_strength_text(status: StringName, potency: float, duration: float = 0.0) -> String:
+	if not Tower.status_potency_on:
+		return ""
+	match status:
+		EnemyStatuses.DAMP:
+			return "Soaked: water hits +%d%%" % roundi(minf(EnemyStatuses.DAMP_WATER_BONUS * potency,
+				maxf(EnemyStatuses.SOAKED_CAP, EnemyStatuses.DAMP_WATER_BONUS)) * 100)
+		EnemyStatuses.MARKED:
+			return "Exposed: +%d%% damage taken" % roundi(minf(EnemyStatuses.MARKED_EXTRA * potency,
+				maxf(EnemyStatuses.EXPOSED_CAP, EnemyStatuses.MARKED_EXTRA)) * 100)
+		EnemyStatuses.DROWSY:
+			return "Drowsy −%d%% speed a stack" % roundi(EnemyStatuses.DROWSY_SLOW_PER_STACK * potency * 100)
+		EnemyStatuses.HELD:
+			var base := duration if duration > 0.0 else float(EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.HELD])
+			var held := minf(base * maxf(potency, 1.0), maxf(EnemyStatuses.HELD_POTENCY_CAP, base))
+			return "Rooted %s s" % str(snappedf(held, 0.1))
+	return ""
+
+const LOCAL_BUFF_STATS :={&"damage": "damage", &"attack_speed": "attack_speed", &"range": "range"}
 
 # What `stat` means for the shown Warden, then what made it ("base 24 · Nurture II +20% · Acorn +5%").
 func stat_tip(stat: StringName) -> String:
@@ -237,7 +262,11 @@ func stat_tip(stat: StringName) -> String:
 		&"crit_damage":
 			meaning = "Critical hits deal ×%s damage" % str(attack.crit_multiplier)
 		&"potency":
-			meaning = "Potency: its effects (statuses, clouds, Reactions) deal %d%%" % roundi(_tower.get_potency() * 100)
+			var p := _tower.get_potency()
+			if Tower.status_potency_on:
+				meaning = "Potency ×%s: its statuses and effects are %d%% %s" % [str(snappedf(p, 0.01)), roundi(absf(p - 1.0) * 100), "stronger" if p >= 1.0 else "weaker"]
+			else:
+				meaning = "Potency ×%s: its effects (Poisoned ticks, Charged bolts, clouds, Reactions) deal %d%%" % [str(snappedf(p, 0.01)), roundi(p * 100)]
 		_:
 			return IconInfo.stat_tooltip(stat)
 	var why: Array[String] = []

@@ -174,7 +174,7 @@ enum Focus { NONE, POWER, SWIFT, REACH, DEEP, WIDE, STRONG, KINDRED }  # Append 
 const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "Reach", Focus.DEEP: "Deep",
 	Focus.WIDE: "Wide", Focus.STRONG: "Strong", Focus.KINDRED: "Kindred"}
 const FOCUS_TEXT := {Focus.POWER: "+18% damage", Focus.SWIFT: "+12% attack speed", Focus.REACH: "+0.3 range",
-	Focus.DEEP: "+18% Potency and status duration",
+	Focus.DEEP: "+18% Potency (stronger statuses and effects)",
 	Focus.WIDE: "+0.2 aura reach", Focus.STRONG: "+5% aura", Focus.KINDRED: "ignores the aura falloff"}
 const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
 	Focus.REACH: Palette.DEWLIGHT, Focus.DEEP: Palette.ORCHID,
@@ -183,7 +183,11 @@ const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
 const FOCUS_POWER := 0.18  # Damage
 const FOCUS_SWIFT := 0.12  # Attack speed
 const FOCUS_REACH := 0.3  # Range, cells
-const FOCUS_DEEP := 0.18  # Potency and status duration
+const FOCUS_DEEP := 0.18  # Potency per Deep rank (status duration too only with status_potency_on off)
+# Potency strengthens every status (tower_design.md "Potency: effect damage and status strength", 2026-10-01):
+# Soaked, Exposed, Drowsy and Rooted read their strongest applier's Potency (EnemyStatuses.strength). Off =
+# the old rules (Potency only for effect damage, Deep lengthens statuses), for Balancing's A/B.
+static var status_potency_on := true
 # Support Wardens (warden_stats.md "Support Wardens and Nurture", fdd7003): ranks multiply the aura (×1.1
 # each) instead of damage, speed and range; their rank III Focus is Wide / Strong / Kindred.
 const SUPPORT_AURA_WARDENS := ["elder_stump", "grove_heart"]  # Acorn keeps attacker ranks + Focus: its family's opener
@@ -1855,7 +1859,9 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		potency *= cached[0]
 		duration = cached[1]
 		max_stacks = cached[2]
-	var deep := get_status_focus_multiplier()  # Deep Focus: stronger and longer
+	# Deep Focus: with status Potency on, Deep is only +18% Potency (which now strengthens every status);
+	# the old rule (statuses last 18% longer per Deep rank) only with the switch off, for Balancing's A/B.
+	var deep := 1.0 if status_potency_on else get_status_focus_multiplier()
 	if deep != 1.0:
 		if duration <= 0.0:
 			duration = EnemyStatuses.DEFAULT_DURATION[status]
