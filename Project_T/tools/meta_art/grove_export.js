@@ -87,9 +87,9 @@ layout.nodes.forEach(e => {
   if (b >= 0) e.bloom = b;
   if (a >= 0) e.ascended_bloom = a;
 });
-layout.bloom_cell = BLOOM_CELL; layout.ascended_cell = ASC_CELL;
+layout.bloom_cell = BLOOM_CELL; layout.ascended_cell = 48;
 emitImg("grove/grove_blooms.png", stack(bloomNodes.map(n => strip([0, 1].map(f => bloomSprite(n, f))))));
-PENDING.push(ascendedSheet(ascNodes).then(sheet => { emitImg("grove/grove_ascended_blooms.png", sheet); return PENDING[PENDING.length - 1]; }));
+emitImg("grove/grove_ascended_blooms.png", stack(ascNodes.map(() => strip([0, 1, 2, 3].map(ascendedBloomPlain)))));
 GROVE_MISTS.forEach(m => emitImg("grove/" + m.file, groveMistStrip(m)));
 emitText("grove/grove_layout.json", JSON.stringify(layout, null, 1));
 emitImg("grove/grove_nodes.png", stack(["perks", "families", "cards"].map(s => nodeRow(s, false))));

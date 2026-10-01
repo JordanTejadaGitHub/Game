@@ -79,3 +79,13 @@ function ascendedSheet(nodes) {
     im.src = ASCENDED_ART[n.id.replace(/_ascension$/, "")];
   }))).then(wardens => stack(nodes.map((n, i) => strip([0, 1, 2, 3].map(f => ascendedBloom(n, wardens[i], f))))));
 }
+// Ascension blooms, uniform version (2026-09-30, user: the icon blooms looked out of place): the
+// Legendary tip's big 48 px flower in the Families colours with a small gold crown above it.
+function ascendedBloomPlain(f) {
+  const S = 48, out = new Img(S, S), b = nodeSprite("families", "bloom", f % 2, true);
+  out.put(b);
+  [[-6, 3], [0, 5], [6, 3]].forEach(([dx, h]) => { for (let i = 0; i < h; i++) out.set(24 + dx, 9 - i, i === h - 1 ? HW.Heartlight : HW.Gold); });
+  for (let x = 17; x <= 31; x++) out.set(x, 9, HW.Gold);
+  if (f >= 2) out.set(f === 2 ? 18 : 30, 6, HW.Glow);
+  return out;
+}
