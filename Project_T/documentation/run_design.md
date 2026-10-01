@@ -562,6 +562,43 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
   5. **Thick Blight's** extra cards: the next Dream shows at most **5 cards** (with Wider Dreams too); the Dream screen must fit 5.
   6. Text: **"N% more Dew"** everywhere (Bountiful "100% more Dew"); **"move"** for speed (Swift Stream "Nightmares move 25% faster"); Stubborn Blight **"Statuses last a third as long."**; Leaf Fall **"Every leak costs double leaves, and a boss at the Heartwood drains two at a time."** (boss leaks no longer cost a flat 5 / 10).
 
+- **Omens with teeth (2026-09-30, user: "do you think the Omens are dangerous enough" → "write the
+  changes").** The user's run reached drift 60 at full leaves: for a strong maze most Omens were
+  free. Three reasons: their only danger was leaking, and an overbuilt maze doesn't leak; the reward
+  was paid even after a bad block; and several Omens cost nothing. Four changes:
+  1. **The reward depends on the block.** A **clean block** (no leaf lost during the Omen's 5
+     drifts) pays the **full reward**; **each leaf lost cuts it by 25%**; **4+ leaves lost pays
+     nothing**. Dew, Seeds and Dreamlight scale (rounded down); max leaves too (a +2 needs a clean
+     block for both). **Dream rewards** (a Rare+ card, 4 cards, a Legendary) are kept with **≤ 1
+     leaf lost**, gone otherwise. A boss leak counts as its leaves. **Double-edged** Omens (Blood
+     Moon, Bountiful Night) are unchanged: their reward is the twist. The active-Omen tag shows it
+     live (*"Reward · 75% · 1 leaf lost"*); the rest report says what was paid and why.
+  2. **No more free Omens:**
+     - **Frozen Ground:** no planting, growing, **selling or Nurture** during drifts (rests only).
+     - **Leaf Fall:** leaks cost double **and nightmares move 20% faster**, so a leak is likely.
+     - **Lean Season:** **no rest bonus** at the block's end (was a quarter).
+     - **Dry Spell:** the rest bonus is **×1.5** (was ×2), so no Dew from nightmares is a real loss.
+     - **Shifting Ground:** its trees may sprout **beside the path** (still never blocking the
+       route or on a Warden), so they can cut a Warden off from its stretch.
+     - **Sleepless:** immune to Drowsy and Held **and +15% health**, so it bites builds that don't
+       sleep too.
+  3. **A new kind: Omens that test the maze, not the numbers** (kind "the maze"; the offer rule of
+     two different kinds includes it):
+
+     | Omen | The next block | Reward | Flavour |
+     |---|---|---|---|
+     | **Tramplers** (act 2+) | each drift, the **first nightmare to walk past a Thornwall tramples it** (gone, no refund; the route re-forms) | +1 Dreamlight | *"Something heavy is coming through the hedges."* |
+     | **Second Path** (from drift 15) | at the block's start, the **Thornwall whose removal shortens the route most crumbles** (full refund); it can't be replanted until the next rest | +4 Seeds | *"An old way opens in the dark."* |
+     | **Burrowers** (act 2+) | at every bend, nightmares **burrow ahead 2 path tiles** (untargetable for ~0.5 s) | next Dream: one card is Rare+ | *"They dig beneath the roots."* |
+
+     A tall, narrow maze can't ignore these: it has to adapt during the block. Burrowers is stopped
+     where Rootlight's lit tiles are (as for Gravecrawlers).
+  4. **Measure the old target** ("facing an Omen every rest should lose clearly more leaves"): the
+     balance sim (`balance_simulation.md`, `DreamSimPolicy` Omens are Clear Skies today) runs a
+     Balanced bot three ways: **always Clear Skies**, **always Face an Omen** (picks the first),
+     **picks its moments** (faces only after a clean block). Targets: *always* loses **≥ 3 more
+     leaves** per run than *Clear Skies* and has a clearly higher dormancy rate (≥ +10 points);
+     *picks its moments* earns more reward per leaf lost than *always*.
 - **Blight Levels** can make Omens harsher or remove Clear Skies ("an Omen is always chosen").
 - **Grove perks** later: a third Omen option, or Omen rewards +25% (`meta_design.md`).
 - **Data:** `OmenData` resource: `display_name`, `description`, `min_drift`, `requires` (e.g.
