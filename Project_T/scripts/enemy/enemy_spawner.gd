@@ -45,7 +45,7 @@ var blight_materials := {}  # {outlined: ShaderMaterial} shared by the nightmare
 # Leaves an act boss takes when it reaches the Heartwood, by act (1, 2, 3, …); then it's gone, a leak
 # like any other. The Hollow Oak stays and drains instead (EnemyData.stays_at_heartwood), and the
 # Night Mare runs its laps (balance_simulation.md 538b85b7).
-@export var boss_bite_leaves: Array[int] = [8, 10, 12]
+@export var boss_bite_leaves: Array[int] = [10, 10, 12]
 
 # The bite for a boss in act `act` (the last entry for later acts).
 func get_boss_bite(act: int) -> int:
