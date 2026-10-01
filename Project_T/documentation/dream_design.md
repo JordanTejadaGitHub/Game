@@ -662,6 +662,11 @@ unlocks clearing":
 | 57 | **Tended Forest** | Common | **+1% damage for every obstacle cleared this run** (max +25%; clears from before the card count) | clearing, maze | Start |
 | 58 | **Burn Back the Dead Wood** | Rare, **Bittersweet** | clear **every Withered Tree** on the map right now for **5 Dew each** (paid when taken; only offered if you can pay). **Cost:** nightmares +10% speed for the rest of the run | clearing, bittersweet | Grove |
 
+**Clearing follow-ups need a payoff on the map** (2026-09-30, user: *"the obstacle clearing cards become useless once you unlock it first; only good with the Legendary"*). After Tend the Forest, the follow-ups are mostly discounts (Cleared Ground, Heartwood's Reach) on something you do a few times a run; only Wildwood Reclaimed (Wardens on cleared cells) pays off. Direction for the redesign (Roguelite Mechanic Discussion owns the cards):
+- **The cleared spot itself becomes worth something**, as a smaller version of Wildwood: a **tended stump** (a cleared Withered Tree) gives the Wardens touching it **+10% damage**; a **moved hollow** (a cleared boulder) gives a Warden planted in it **+1 range**. These come from Uncommon cards (one each), and stack up to Wildwood at the top.
+- **Merge the two discount cards into one Common** (cheaper clears and a few free ones), so the clearing line has room for payoffs.
+- **Tended Forest** stays (global % per clear) and **Reclaimed Earth** stays (fertile cells).
+- Goal: a clearing build that reshapes the map and is rewarded for **where** it clears, with Wildwood as its Legendary peak, not its only card.
 **Clear prices, raised** (2026-09-30, user: "clearing obstacles seems too cheap"). At 5 / 8 Dew a
 clear cost less than a Sprout, so by act 2 the map was free to reshape and each clear was a cheap
 +1 Seed. Now:
