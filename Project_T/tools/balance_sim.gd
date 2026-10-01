@@ -80,6 +80,8 @@ var _block_pot := Vector2.ZERO  # The current Omen block's pot part (x) and its 
 var _save_since := -1  # The drift the saver started holding Dew at
 var _approach_timer := 0.0
 var bosses := {}  # Instance id -> a boss fight: drift, kind, health, route and Heartwood seconds and damage (bosses column)
+var dream_offers := {"offers": 0, "pool": 0, "pool_5": -1, "cards": 0, "matched": 0, "generic": 0, "off": 0}  # Dream pool / build relevance (dream_* columns)
+var wardens_24 := ""  # The Wardens on the map as drift 25 starts ("id:n+…", wardens_24 column)
 
 var main: Node
 var map
@@ -176,6 +178,7 @@ func _run() -> void:
 			dreams.take(card)
 	policy = FavorPolicy.new(dreams, STYLES.get(style, 0))
 	policy.favored = favored
+	policy.on_offer = _note_offer
 	policy.mode = dream_mode
 	policy.rng.seed = map_seed
 	omens = main.get_node_or_null("%OmenDirector")
@@ -211,6 +214,8 @@ func _run() -> void:
 		if _approach_timer <= 0.0:
 			_approach_timer = APPROACH_EVERY
 			_sample_approach()
+		if director.drifts_started >= 25 and wardens_24 == "":
+			wardens_24 = _warden_counts()
 		if director.drifts_started in [20, 25, 50, 75] and not dream_share.has(director.drifts_started):
 			dream_share[director.drifts_started] = _dream_share()
 			if director.drifts_started == 20:
@@ -628,6 +633,10 @@ func _finish() -> void:
 	summary.merge(_omen_act_columns())
 	summary.omen_blocks = ";".join(omen_blocks)
 	summary.bosses = ";".join(bosses.values().map(_boss_text))
+	for key in ["offers", "pool_5", "cards", "matched", "generic", "off"]:
+		summary["dream_" + key] = dream_offers[key]
+	summary.wardens_24 = wardens_24
+	summary.dream_pool_mean = snappedf(float(dream_offers.pool) / maxf(dream_offers.offers, 1.0), 0.1)
 	var runs_path := out_dir.path_join("runs.csv")
 	var keys := summary.keys()
 	var new_file := not FileAccess.file_exists(runs_path)
@@ -742,6 +751,7 @@ class FavorPolicy extends DreamSimPolicy:
 	var mode := "balanced"  # --dreams: "skip" lets every offer pass, "random" takes any card, "balanced" the style's pick; "damage":
 	# damage, attack speed and Potency cards first, economy last (act 1 "damage-first")
 	var rng := RandomNumberGenerator.new()
+	var on_offer: Callable  # The runner logs each offer (Dream pool size, build relevance)
 
 	func score(card: UpgradeData) -> float:
 		var value := super.score(card) + (FAVOR if favored.has(card.id) else 0.0)
@@ -752,6 +762,8 @@ class FavorPolicy extends DreamSimPolicy:
 		return value
 
 	func pick_dream(offer: Array) -> UpgradeData:
+		if on_offer.is_valid():
+			on_offer.call(offer)
 		match mode:
 			"skip":
 				return null  # Let it pass (DreamState.sim_rest skips)
@@ -882,3 +894,43 @@ func _boss_leaked(enemy: Node2D) -> void:
 		fight.hp_arrive = enemy.health
 	fight.end = game_time
 	fight.leaked = true
+
+# --- Dream pool and build relevance (Grove control: does a big Grove pool dilute the Dreams?) -----------
+# Per offer: the drawable pool (DreamState.can_offer now) and each offered card as matched (its tags /
+# stat line / stat Warden belong to a family on the map), generic (no family at all) or off (another family's).
+func _note_offer(offer: Array) -> void:
+	var act := director.get_act(maxi(director.drifts_started, 1))
+	var pool_size := dreams.pool.filter(func(c: UpgradeData) -> bool: return dreams.can_offer(c, act)).size()
+	dream_offers.offers += 1
+	dream_offers.pool += pool_size
+	if dream_offers.pool_5 < 0:
+		dream_offers.pool_5 = pool_size
+	var lines := {}
+	var families := {}
+	for tower in container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion():
+			lines[tower.tower_data.line] = true
+			families[dreams.family_of(tower.tower_data.get_id())] = true
+	for card in offer:
+		dream_offers.cards += 1
+		var own: Array = card.tags.duplicate()
+		if card.stat_line != "":
+			own.append(card.stat_line)
+		if own.is_empty() and card.stat_warden == "":
+			dream_offers.generic += 1
+		elif own.any(func(t: String) -> bool: return lines.has(t)) \
+				or (card.stat_warden != "" and families.has(dreams.family_of(card.stat_warden))):
+			dream_offers.matched += 1
+		else:
+			dream_offers.off += 1
+
+# "id:count+…" of every Warden on the map, most first.
+func _warden_counts() -> String:
+	var counts := {}
+	for tower in container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion():
+			var id: String = tower.tower_data.get_id()
+			counts[id] = int(counts.get(id, 0)) + 1
+	var ids := counts.keys()
+	ids.sort_custom(func(a, b) -> bool: return counts[a] > counts[b])
+	return "+".join(ids.map(func(id) -> String: return "%s:%d" % [id, counts[id]]))
