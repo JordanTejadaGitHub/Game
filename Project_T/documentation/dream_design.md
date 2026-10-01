@@ -96,6 +96,41 @@ matter, confirmed.
 - **New families** (family picks at 25 / 50 / 75) add their family cards to the core when picked.
 - The Grove grows what can be drawn, so meta progress means **more varied runs**, not just stronger ones.
 - Owner: Roguelite Mechanic Discussion (rules), Roguelite Code (DreamState). The offer weights, fade and pity rules work inside the run's pool. Codex "Dreams" keeps showing every card.
+- **Exact rules (Roguelite design chat, 2026-09-30):**
+  - **Available** = every card this profile could be offered (start pool + Grove unlocks +
+    discoveries), before in-run Needs.
+  - **Core** (always in the run's pool):
+    - the **basics**: Quickened Sap, Deeper Calm, Longer Roots, Deep Roots, Thick Bark, Evergreen,
+      Morning Dew (stacking, untagged cards that every build uses);
+    - **family cards of every family you hold** (cards whose Needs name that family or one of its
+      Wardens, and its Blessing), added at each family pick;
+    - **the clearing opener** (Heartwood's Reach) on maps with 8+ obstacles, so clearing is always
+      reachable.
+  - **The rest** (generic and direction cards, combo cards, Legendaries) is sampled at **60%**,
+    seeded with the map seed (same map, same pool), **per rarity** so the split doesn't skew, with
+    **floors**: at least **12 Common, 12 Uncommon, 6 Rare** and (if available) **3 Legendary** from
+    the rest. If fewer exist, take them all.
+  - **Starvation check:** a run has 19 Dreams (up to ~28 offers with Lucid Dreaming, rerolls and
+    Grove perks), 3–4 cards each.
+    - **New account:** ~55 available → core ~14 + rest ~40 sampled to the floors ≈ **~45 cards**.
+      Stat cards stack, the fade lets a passed card return after a gap, and every rarity has its
+      floor: offers always fill.
+    - **Full Grove:** ~200 available → **~120 cards**: very varied runs, still far more than offers.
+    - The boss and pity Rare+ guarantee: with ≥ 6 Rares in the run's pool plus the family Rares,
+      a forced Rare+ offer finds a card. If none is eligible, the existing fall-through applies.
+  - **The pool follows your build:** taking a card with an **archetype tag** adds **all remaining
+    available cards of that archetype** to the run's pool (bridges pull both). Passed cards don't
+    pull. Pulled cards are still drawn by the normal weights (×`tag_weight` 1.3 for a taken tag).
+  - **Discovery mid-run** adds the discovered cards to this run's pool right away (you just did the
+    thing; the half-dreamed rule still applies).
+  - **Unaffected:** Entwined guaranteed slots (their card joins the pool when due), Seed cards'
+    "calls", Banish (removes from the run's pool), the Stray slot (draws from the run's pool, outside
+    your tags).
+  - **Shown:** nothing new on screen. The Codex lists every card; the "Dreams this run" panel could
+    later show "dreams in reach this run" (optional).
+  - **Tests:** two map seeds give different pools (same seed, same pool); the floors hold on a fresh
+    profile; taking a `maze` card adds every remaining available maze card; a family pick adds its
+    family cards; 19 offers on a fresh profile never show fewer than 3 cards.
 - **3 cards per Dream**, after drifts 5, 10, … 95. No duplicates within an offer.
 - **Passed-over cards fade** (added 2026-09-28; playtest: Few and Mighty was offered ~5 times by
   drift 35 to a player not going narrow). A card that was offered and **not taken**:
