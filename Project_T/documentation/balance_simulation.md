@@ -595,6 +595,11 @@ a fixed-maze finals probe measures it.
 **Dreamshroom is ~2.1× Puffball**, and its board leaks 19% of spawned health vs ~50%. 73–88% of its
 damage is credited as status ticks (which ticks: being broken down). **Dreamshroom is a real outlier**:
 the nerf targets whatever makes the 2× (target ≈ 1.1–1.2× Puffball), once the breakdown is in.
+**Breakdown** (457a9807): ~88% is its **Dream Spores** twist (each sleeper in range puffs Spored onto
+neighbours every 1 s at `get_damage() × 0.25` = 2× Puffball's stack, which also lifts the whole stack
+to its potency and credit; every overlapping Dreamshroom puffs separately). Cloud 10%; the sleep is
+only the trigger. **Nerf:** Dream Spores at **half soothe**, and **one puff per sleeper per second
+across all Dreamshrooms**. Re-probe after Tower Code's commit.
 This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
 off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
 then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.
