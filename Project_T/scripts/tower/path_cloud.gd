@@ -69,7 +69,7 @@ func _tick() -> void:
 		if enemy.global_position.distance_to(global_position) > _radius:
 			continue
 		if _fog:
-			enemy.statuses.set_in_fog(TICK * 1.5)
+			enemy.statuses.set_in_fog(TICK * 1.5, _tower)  # Credited with the fog part of Spored ticks
 		var data: TowerData = _data if is_instance_valid(_tower) else null
 		if data and data.cloud_slow > 0.0:
 			enemy.statuses.slow_time = maxf(enemy.statuses.slow_time, TICK * 1.6)
