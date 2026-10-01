@@ -16,6 +16,7 @@ class_name StatusLinks
 const META_PREFIX := "status:"
 const TERM_PREFIX := "term:"  # Game terms ({block} …): the popup is the Codex glossary's line
 const FAMILY_PREFIX := "family:"  # Family names ({family:dewdrop}): emblem, damage type, identity
+const COMBO_PREFIX := "combo:"  # Combos ({combo:thunderclap}): name, statuses, what it does, times set off; ??? until found
 const CODEX_HOST_GROUP := &"codex_host"
 const HIDE_DELAY := 0.5  # Seconds after the pointer leaves the word (or the popup) before it hides
 const LINK_COLOR := UiStyle.INK  # Ink text on a 1 px gold underline (ui_style.md "Links")
@@ -29,6 +30,8 @@ var _text := Label.new()
 var _status: StringName = &""
 var _is_term := false  # _status is a term id, not a status
 var _is_family := false  # _status is a family id
+var _is_combo := false  # _status is a combo id
+var _host: Control = null  # The label the popup belongs to (it draws on the tip layer)
 var _hide_in := -1.0
 
 # `text` with every status name (and {damp}-style token) and every term token ({block}, {Drifts} …)
@@ -46,10 +49,47 @@ static func bbcode(text: String) -> String:
 			var data := IconInfo.family_data(id)
 			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
 			terms.append(_link(FAMILY_PREFIX + id, data.display_name if data != null else id.capitalize()))
+		for found in _combo_pattern().search_all(text):  # {combo:thunderclap}: its name, or ??? until found
+			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
+			terms.append(combo_link(StringName(found.get_string(1))))
 	text = _statuses(IconInfo.format(text).replace("[", "[lb]"))
 	for i in terms.size():
 		text = text.replace("\u0001%d\u0001" % i, terms[i])
 	return text
+
+static var _combo_regex: RegEx = null
+static func _combo_pattern() -> RegEx:
+	if _combo_regex == null:
+		_combo_regex = RegEx.create_from_string("\\{combo:([a-z_]+)\\}")
+	return _combo_regex
+
+# A combo as a link (screens_ui.md: every combo link everywhere works the same): its name, or "???"
+# until discovered; hover / tap shows its tip, a second tap or a click opens it in the Codex.
+static func combo_link(id: StringName) -> String:
+	var combo := CodexData.get_any(id)
+	var found := CodexData.is_discovered(id)
+	return _link(COMBO_PREFIX + String(id), combo.get("name", String(id).capitalize()) if found and not combo.is_empty() else "???")
+
+# The combo tip's text: "Soaked + Charged. Lightning arcs … Set off 12 times." (??? until found).
+static func combo_tip_text(id: StringName) -> String:
+	var combo := CodexData.get_any(id)
+	if combo.is_empty() or not CodexData.is_discovered(id):
+		return "Not discovered yet: set it off in a run to learn it."
+	var parts: Array[String] = []
+	if combo.has("statuses"):
+		parts.append(CodexData.ingredients_text(combo) + ".")
+	parts.append(IconInfo.format(String(combo.get("text", ""))))
+	var times := combo_times(id)
+	parts.append("Set off %d time%s." % [times, "" if times == 1 else "s"] if times > 0 else "Not set off yet on this profile.")
+	return " ".join(parts)
+
+static func combo_times(id: StringName) -> int:
+	var times := int(HeartwoodMemory.load_data().get(ComboFeedback.COUNTS_KEY, {}).get(String(id), 0))
+	var tree := Engine.get_main_loop() as SceneTree
+	var live := tree.get_first_node_in_group(ComboFeedback.GROUP) as ComboFeedback if tree != null else null
+	if live != null:
+		times += int(live._unsaved.get(id, 0))
+	return times
 
 static func _link(meta: String, word: String) -> String:
 	return "[url=%s][u color=#%s][color=#%s]%s[/color][/u][/url]" % [meta, LINK_LINE.to_html(true),
@@ -136,16 +176,30 @@ func _init() -> void:
 func _show_for(meta: String, host: Control, tapped: bool) -> void:
 	var is_term := meta.begins_with(TERM_PREFIX)
 	var is_family := meta.begins_with(FAMILY_PREFIX)
-	if not meta.begins_with(META_PREFIX) and not is_term and not is_family:
+	var is_combo := meta.begins_with(COMBO_PREFIX)
+	if not meta.begins_with(META_PREFIX) and not is_term and not is_family and not is_combo:
 		return
 	var id := StringName(meta.get_slice(":", 1))
-	if tapped and visible and id == _status and _is_term == is_term and _is_family == is_family:
-		visible = false  # Tapping the same word again closes it
+	if tapped and visible and id == _status and _is_term == is_term and _is_family == is_family and _is_combo == is_combo:
+		if is_combo and CodexData.is_discovered(id):
+			_open_codex()  # A combo: the second tap (or a click after hovering) opens it in the Codex
+		else:
+			visible = false  # Tapping the same word again closes it
 		return
 	_status = id
+	_host = host
 	_is_term = is_term
 	_is_family = is_family
-	if is_family:  # A family: its base Warden's icon, "Dewdrop family", its damage type and identity
+	_is_combo = is_combo
+	if is_combo:  # A combo: its name (??? until found), its statuses, what it does, times set off
+		var combo := CodexData.get_any(id)
+		var found := CodexData.is_discovered(id) and not combo.is_empty()
+		var statuses: Array = combo.get("statuses", [])
+		_icon.texture = IconInfo.icon(statuses[0]) if found and not statuses.is_empty() else null  # Its first status
+		_icon.visible = _icon.texture != null
+		_name.text = combo.get("name", String(id)) if found else "???"
+		_text.text = combo_tip_text(id)
+	elif is_family:  # A family: its base Warden's icon, "Dewdrop family", its damage type and identity
 		var data := IconInfo.family_data(String(id))
 		_icon.texture = WardenIcon.make(data) if data != null else null  # Its base Warden (no family emblems)
 		_icon.visible = _icon.texture != null
@@ -187,8 +241,8 @@ static func term_name(id: StringName) -> String:
 
 func _open_codex() -> void:
 	visible = false
-	var name := term_name(_status) if _is_term else IconInfo.status_name(_status)
-	var node: Node = get_parent()
+	var name := String(_status) if _is_combo else (term_name(_status) if _is_term else IconInfo.status_name(_status))
+	var node: Node = _host if is_instance_valid(_host) else get_parent()  # (The popup itself sits on the tip layer)
 	while node != null:  # Inside the Codex: just jump there
 		if node is CodexPanel:
 			if _is_family:
@@ -199,4 +253,5 @@ func _open_codex() -> void:
 		node = node.get_parent()
 	var host := get_tree().get_first_node_in_group(CODEX_HOST_GROUP)
 	if host != null and host.has_method("open_codex"):
-		host.open_codex(&"families" if _is_family else &"glossary", "" if _is_family else name)
+		var tab := &"families" if _is_family else (&"combos" if _is_combo else &"glossary")
+		host.open_codex(tab, "" if _is_family else name)

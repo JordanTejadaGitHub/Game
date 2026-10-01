@@ -327,6 +327,20 @@ func _run() -> void:
 	_check(popup.visible and popup._name.text == "Soaked" and popup._text.text.begins_with("Water hits deal 20% more"), "tapping a status shows its definition")
 	link_label.meta_clicked.emit("status:damp")
 	_check(not popup.visible, "tapping it again closes it")
+	# Combo links (user: "hovering over combos doesn't do anything"): {combo:id} is a link; hovering shows
+	# its tip (name, statuses, what it does, times set off), "???" until discovered.
+	var combo_label := StatusLinks.make_label("Pairs with {combo:thunderclap}.")
+	main.get_node("HUD").add_child(combo_label)
+	await process_frame
+	var combo_found := CodexData.is_discovered(&"thunderclap")
+	_check(combo_label.text.contains("[url=combo:thunderclap]") and combo_label.text.contains("Thunderclap" if combo_found else "???"),
+		"a combo token becomes a link (its name, or ??? until found)")
+	combo_label.meta_hover_started.emit("combo:thunderclap")
+	var combo_popup: StatusLinks = combo_label.get_meta(&"status_popup")
+	_check(combo_popup.visible and combo_popup._name.text == ("Thunderclap" if combo_found else "???") and combo_popup._text.text != "",
+		"hovering a combo link shows its tip (%s: %s)" % [combo_popup._name.text, combo_popup._text.text])
+	combo_popup.visible = false
+	combo_label.queue_free()
 	# Game terms (playtest fixes 2026-09-30): {block}-style tokens are links to their glossary line.
 	var term_text := StatusLinks.bbcode("{Perfect_block}: no leaf lost in a {block} of {drifts}. Soaked {deeply_blighted}.")
 	_check(term_text.contains("[url=term:perfect_block]") and term_text.contains("Perfect block[/color]")

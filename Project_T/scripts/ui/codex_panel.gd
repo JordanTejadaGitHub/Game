@@ -411,7 +411,9 @@ func _status_extras(body: VBoxContainer, status: StringName) -> void:
 	for combo in CodexData.combos():
 		if combo.get("statuses", []).has(status) and CodexData.in_build(combo, _scope):
 			var found := CodexData.is_discovered(combo.id)
-			combos.add_child(_chip(combo.name if found else "???", jump.bind(String(combo.id)) if found else Callable()))
+			var status_chip := _chip(combo.name if found else "???", jump.bind(String(combo.id)) if found else Callable())
+			status_chip.tooltip_text = StatusLinks.combo_tip_text(combo.id)  # The combo tip (??? until found)
+			combos.add_child(status_chip)
 	if combos.get_child_count() > 0:
 		body.add_child(combos)
 
@@ -1094,7 +1096,9 @@ func _family_links(root: TowerData) -> Control:
 		if entry.get("kind", "") == "Kinship":
 			continue
 		var found := CodexData.is_discovered(entry.id, seen)
-		combos.add_child(_chip(CodexData.combo_name(entry, seen) if found else "???", jump.bind(String(entry.id)) if found else Callable()))
+		var family_chip := _chip(CodexData.combo_name(entry, seen) if found else "???", jump.bind(String(entry.id)) if found else Callable())
+		family_chip.tooltip_text = StatusLinks.combo_tip_text(entry.id)  # The combo tip (??? until found)
+		combos.add_child(family_chip)
 	if combos.get_child_count() == 0:
 		var none := Label.new()
 		none.text = "None in reach yet."
