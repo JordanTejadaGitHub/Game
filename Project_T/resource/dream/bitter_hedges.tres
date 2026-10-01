@@ -14,3 +14,5 @@ max_stacks = 1
 count_warden = "thornwall"
 min_warden_count = 6
 rule_id = &"bitter_hedges"
+diagram = ".......\n.XX.X..\nPPPPPPP\n..X....\n......."
+diagram_caption = "Each Thornwall a nightmare walks past: +8% damage taken for 2 s (up to +40%)."

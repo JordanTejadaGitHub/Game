@@ -13,3 +13,5 @@ tags = Array[String](["maze"])
 max_stacks = 1
 deepens = "straightaway"
 rule_id = &"straightaway"
+diagram = ".......\n...W...\n.+++++.\n.......\n......."
+diagram_caption = "Beside a straight stretch of 5+ path tiles: +50% and +0.5 range."
