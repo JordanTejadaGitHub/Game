@@ -297,8 +297,34 @@ func _make(tower_name: String, draw: Callable) -> Image:
 		draw.call(canvas, _idle_state(f))
 		sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, 0))
 	sheet = _warden_night(_detail_pass(sheet, Vector2i(S, S)))
+	if NIGHT_RIM.has(tower_name):
+		_night_rim(sheet, HeartwoodPalette_color(NIGHT_RIM[tower_name]))
 	sheet.save_png(OUT + tower_name + ".png")
 	return sheet
+
+# The darkest Wardens sink into the night-indigo map ground (2026-09-30 re-theme), so they get a thin
+# moonlit rim: the silhouette's edge on its lit (top / left) sides, where it's dark, turns
+# one lighter palette colour. A hand fix inside Warden Night: no new colours.
+const NIGHT_RIM := {"firefly_jar": "Stone", "stormcap": "Stone", "thunderhead": "Stone",
+	"starling_murmuration": "Stone", "thornwall": "Sprig"}
+
+func HeartwoodPalette_color(color_name: String) -> Color:
+	return (load(PALETTE) as Script).color(color_name)
+
+func _night_rim(sheet: Image, rim: Color) -> void:
+	# The silhouette's own edge pixels on its lit sides (open space above or to the left) turn the rim
+	# colour where they're dark; right and bottom edges keep their dark outline.
+	var src := sheet.duplicate() as Image
+	var w := sheet.get_width()
+	var h := sheet.get_height()
+	var lum := func(c: Color) -> float: return c.r * 0.3 + c.g * 0.59 + c.b * 0.11
+	for y in range(1, h):
+		for x in range(1, w):
+			var c := src.get_pixel(x, y)
+			if c.a < 1.0 or lum.call(c) > 0.3 or x % S == 0:
+				continue
+			if src.get_pixel(x - 1, y).a < 0.6 or src.get_pixel(x, y - 1).a < 0.6:
+				sheet.set_pixel(x, y, rim)
 
 # Warden Night (art_direction.md, 2026-09-30): idle sheets only step one shade darker inside their
 # own ramp (HeartwoodPalette.warden_night, after the palette pass), so the Wardens sit in the fog.
