@@ -485,6 +485,10 @@ leaks in normal act 1 drifts. Whirligig holds normal drifts, no change. Sporelin
 vs 6/9 on fresh: possibly a big Grove Dream pool diluting the cards; the same-family Grove control
 (Sporeling + Firefly Jar, fresh / half / full) measures it. The "skip loses by 25" target is still
 unmet (Sporeling skip on full survives 70%); act 1 health is held for the next fresh human run.
+**Caveat (user: "are we testing that we have Wardens around it?"):** no. The bot places by path in
+range only, so Acorn's auras (the 8 around; Grove Heart radius 2, +3% per Warden) land by chance and
+the support family is undersold. Balancing Code adds aura-aware placement; the Acorn re-check runs
+with and without it on the same seeds.
 
 ## Later
 
