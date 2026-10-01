@@ -113,7 +113,7 @@ func _run() -> void:
 	_check(_count(husk_data) == 6, "once")
 	_clear_enemies()
 
-	# --- A boss that reaches the Heartwood stays, draining a leaf every 2 s (enemy_design.md) ---
+	# --- Act bosses take a flat bite and leave; only the Hollow Oak stays and drains (balance 538b85b7) ---
 	var drains := []
 	spawner.boss_drained.connect(func(e: Node2D, n: int) -> void: drains.append(n))
 	var leaks := [0]
@@ -121,19 +121,29 @@ func _run() -> void:
 	var through := _still("old_stag", route[-1])
 	through.set_path(PackedVector2Array([route[-1]]))
 	var before_leaves := run_state.leaves
+	_check(through.get_leaf_cost() == spawner.get_boss_bite(1) and spawner.get_boss_bite(1) == 8
+		and spawner.get_boss_bite(2) == 10 and spawner.get_boss_bite(3) == 12, "an act boss bites 8 / 10 / 12 by act")
 	through._process(0.016)
-	through._process(0.016)
-	_check(is_instance_valid(through) and not through.is_queued_for_deletion() and through.at_heartwood,
-		"a boss that gets through stays at the Heartwood")
+	_check(not is_instance_valid(through) or through.is_queued_for_deletion(), "an act boss that gets through is gone")
+	_check(run_state.leaves == before_leaves - 8 and leaks[0] == 1 and drains.is_empty(),
+		"it takes its bite as a leak (%d → %d, %d leak)" % [before_leaves, run_state.leaves, leaks[0]])
+	_clear_enemies()
+	var staying_oak := _still("hollow_oak", route[-1])
+	staying_oak.set_path(PackedVector2Array([route[-1]]))
+	before_leaves = run_state.leaves
+	staying_oak._process(0.016)
+	staying_oak._process(0.016)
+	_check(is_instance_valid(staying_oak) and not staying_oak.is_queued_for_deletion() and staying_oak.at_heartwood,
+		"the Hollow Oak that gets through stays at the Heartwood")
 	_check(run_state.leaves == before_leaves - 1 and drains == [1], "it takes one leaf at once (%d → %d)" % [before_leaves, run_state.leaves])
 	for f in 60:
-		through._process(1.0 / 30.0)  # 2 s
+		staying_oak._process(1.0 / 30.0)  # 2 s
 	_check(run_state.leaves == before_leaves - 2 and drains.size() == 2, "and one more every 2 s (%d)" % drains.size())
-	_check(leaks[0] == 0, "it never leaks away (no reached_goal)")
-	var hp: int = through.health
-	through.take_damage(100.0)
-	_check(through.health < hp and through.is_in_group(through.GROUP), "Wardens can still hit it there")
+	var staying_oak_hp: int = staying_oak.health
+	staying_oak.take_damage(100.0)
+	_check(staying_oak.health < staying_oak_hp and staying_oak.is_in_group(staying_oak.GROUP), "Wardens can still hit it there")
 	_clear_enemies()
+	run_state.leaves = run_state.max_leaves  # (The bite and the drain above took most of them)
 
 	# --- Night Mare: it lingers at the Heartwood, draining, then laps (10 s, 14 s, 18 s…) ---
 	var mare := _still("night_mare", route[-1])
@@ -223,11 +233,6 @@ func _run() -> void:
 	before = huntsman.health
 	huntsman.take_damage(100.0)
 	_check(before - huntsman.health == 100, "full damage once the pack is gone")
-	huntsman.at_heartwood = true
-	huntsman._brood_timer = 100.0
-	huntsman._update_presence(0.2)
-	_check(huntsman.pack_alive() == 0, "the horn is silent while he's at the Heartwood")
-	huntsman.at_heartwood = false
 	spawner._on_brood_requested(huntsman)
 	_check(huntsman.pack_alive() == 1, "the horn calls one hound while the pack is short")
 	_check(huntsman.sprite.animation == &"horn", "he blows the horn as a hound joins")

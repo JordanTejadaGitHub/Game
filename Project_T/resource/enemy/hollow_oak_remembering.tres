@@ -12,6 +12,7 @@ speed = 35.0
 dew_reward = 100
 leaf_cost = 5
 is_boss = true
+stays_at_heartwood = true
 resists = Array[String](["spore", "water"])
 weak_to = Array[String](["light"])
 echo_at = Array[float]([0.75, 0.5, 0.25])
