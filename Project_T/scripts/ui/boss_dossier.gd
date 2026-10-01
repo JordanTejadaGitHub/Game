@@ -421,12 +421,9 @@ func _build(data: EnemyData, drift: int) -> void:
 	numbers.add_child(_stat("Speed", "%.1f tiles/s" % (data.speed / 64.0), "How fast it walks."))
 	right.add_child(numbers)
 	var leaves := Label.new()  # What it costs you, large
-	var lap_leaves := int(data.get("lap_leaves")) if data.laps() else 0
-	var lap_step := int(data.get("lap_leaves_step")) if data.laps() else 0
-	if lap_leaves > 0 and lap_step > 0:
-		leaves.text = "%d leaves for its first lap, %d more each lap after" % [lap_leaves, lap_step]
-	elif lap_leaves > 0:
-		leaves.text = "%d leaves each lap" % lap_leaves
+	if data.laps():  # The Night Mare: it lingers, longer each lap
+		leaves.text = "Stays at the Heartwood a little longer each lap, draining a leaf every %s s" % \
+			String.num(ENEMY_SCRIPT.HEARTWOOD_DRAIN_EVERY)
 	else:
 		leaves.text = "Stays at the Heartwood, draining a leaf every %s s" % String.num(ENEMY_SCRIPT.HEARTWOOD_DRAIN_EVERY)
 	UiStyle.display(leaves, 26)
