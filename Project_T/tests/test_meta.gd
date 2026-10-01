@@ -645,6 +645,10 @@ func _check_layout(grove: Array[UnlockData]) -> void:
 			continue
 		_check(unlock.get_section() == node.section, "%s is on the %s limb" % [node.id, node.section])
 		_check(maxi(unlock.get_levels(), 1) == int(node.levels), "%s has %d levels" % [node.id, int(node.levels)])
+		if node.section != "perks" and node.get("memory_row") == null:  # How deep it sits: drives its grown look
+			var depth := int(node.get("display_level", 0))
+			_check(depth >= 1 and depth <= 3 and (depth == 3) == (unlock.legendary or node.id.ends_with("_ascension")),
+				"%s shows display level %d" % [node.id, depth])
 		if int(node.levels) > 1:  # Grown perks with levels: a look per level (grove_level_blooms.png, 2 frames each)
 			var level_sheet: Texture2D = load("res://assets/meta/grove/grove_level_blooms.png")
 			_check(int(node.levels) <= 3 and level_sheet.get_width() >= int(node.levels) * 2 * GroveTreeView.NODE_FRAME

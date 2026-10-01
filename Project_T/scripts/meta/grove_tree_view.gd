@@ -447,11 +447,14 @@ func _draw_node(node: Dictionary, font: Font) -> void:
 				column = 1 + int(_time * 6.0) % 4
 			State.OWNED:
 				column = 9 + int(_time * 2.0) % 2
+				# Each level its own look (grove_level_blooms.png): plain flower, + petal ring, + gold ring with pips. Perks show
+				# their bought level; Families and Cards how deep they sit on their branch (layout "display_level",
+				# meta_design.md c2d98792). Legendary tips and Ascensions keep their own bigger blooms.
 				var levels := int(node.get("levels", 1))
-				if levels > 1 and _level_texture != null and not legendary and node.get("memory_row") == null:
-					# Each level its own look (Meta Game Asset): plain flower, + petal ring, + gold ring with pips.
+				var level := HeartwoodMemory.node_level(_memory, unlock) if levels > 1 else int(node.get("display_level", 0))
+				if level > 0 and _level_texture != null and not legendary and node.get("memory_row") == null:
 					texture = _level_texture
-					var level := clampi(HeartwoodMemory.node_level(_memory, unlock), 1, mini(levels, 3))
+					level = clampi(level, 1, 3)
 					column = (level - 1) * 2 + (0 if _reduced_motion else int(_time * 2.0) % 2)
 	var pos := vec(node.pos)
 	var rect := Rect2(pos - Vector2.ONE * frame_px / 2.0, Vector2.ONE * frame_px)
