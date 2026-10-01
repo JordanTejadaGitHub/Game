@@ -304,6 +304,26 @@ func _run() -> void:
 	_check(int(HeartwoodMemory.load_data().seeds) == 77 and FileAccess.file_exists(PROFILE_PATH + ".unreadable"),
 		"with nothing cached, an unreadable profile reads from its backup and is kept aside")
 
+	# --- Reset to a new profile (demo_scope.md, Settings → Developer): backed up first, settings kept ---
+	var full_profile := HeartwoodMemory.load_data()
+	full_profile.seeds = 50
+	full_profile.unlocks = {"pebbling": 1}
+	full_profile.whispers_seen = ["first_build"]
+	full_profile.settings.master_volume = 0.3
+	HeartwoodMemory.save_data(full_profile)
+	HeartwoodMemory.reset_profile()
+	var reset := HeartwoodMemory.load_data()
+	_check(int(reset.seeds) == 0 and reset.unlocks.is_empty() and reset.whispers_seen.is_empty() and is_equal_approx(float(reset.settings.master_volume), 0.3),
+		"a reset profile is brand new but keeps its settings (%s)" % [reset.seeds])
+	var backup := HeartwoodMemory.latest_backup()
+	_check(backup != "" and backup.get_file().begins_with(PROFILE_PATH.get_file().get_basename() + ".backup-"), "the reset backed the old profile up beside it (%s)" % backup)
+	_check(HeartwoodMemory.restore_backup(backup) and int(HeartwoodMemory.load_data().seeds) == 50, "restoring the backup brings the old profile back")
+	for i in 7:
+		HeartwoodMemory.backup_profile()
+	_check(HeartwoodMemory._backups().size() == HeartwoodMemory.BACKUPS_KEPT, "only the newest 5 backups are kept (%d)" % HeartwoodMemory._backups().size())
+	for file in HeartwoodMemory._backups():
+		DirAccess.remove_absolute(file)
+
 	# --- Old profiles: version 1 Grove ids move to the layout ids ---
 	var old := FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
 	old.store_string(JSON.stringify({"version": 1, "seeds": 5, "unlocks": {"pebbling_line": 1, "cairn": 1, "sporeling_finals": 1, "morning_stores": 2}}))

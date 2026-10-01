@@ -123,6 +123,73 @@ static func _shared(path: String) -> Dictionary:
 	_cache[path] = [stamp, data]
 	return data
 
+# --- Reset to a new profile (demo_scope.md, Settings → Developer) ---
+# The real profile, never a Dev Grove preset (those are rebuilt from presets anyway).
+const BACKUPS_KEPT := 5
+
+static func _real_path() -> String:
+	return real_settings_path if real_settings_path != "" else file_path
+
+# "<dir>/<name>.backup-" for the real profile: backups sit next to it and follow file_path (tests use temp files).
+static func _backup_prefix() -> String:
+	var path := _real_path()
+	return path.get_base_dir().path_join(path.get_file().get_basename() + ".backup-")
+
+# Copies the real profile to "<name>.backup-YYYYMMDD-HHMMSS.json" beside it and keeps the newest 5.
+# Returns the backup's path, or "" when there's no profile yet.
+static func backup_profile() -> String:
+	var path := _real_path()
+	if not FileAccess.file_exists(path):
+		return ""
+	var t := Time.get_datetime_dict_from_system()
+	var stamp := "%04d%02d%02d-%02d%02d%02d" % [t.year, t.month, t.day, t.hour, t.minute, t.second]
+	var backup := "%s%s.json" % [_backup_prefix(), stamp]
+	var n := 1
+	while FileAccess.file_exists(backup):  # Two in one second: keep both
+		n += 1
+		backup = "%s%s-%d.json" % [_backup_prefix(), stamp, n]
+	if DirAccess.copy_absolute(path, backup) != OK:
+		push_error("Could not back up %s" % path)
+		return ""
+	var backups := _backups()
+	while backups.size() > BACKUPS_KEPT:
+		DirAccess.remove_absolute(backups.pop_front())
+	return backup
+
+# Every backup of the real profile, oldest first (the timestamp names sort by time).
+static func _backups() -> Array[String]:
+	var dir := _real_path().get_base_dir()
+	var name := _backup_prefix().get_file()
+	var result: Array[String] = []
+	for file in DirAccess.get_files_at(dir):
+		if file.begins_with(name) and file.ends_with(".json"):
+			result.append(dir.path_join(file))
+	result.sort_custom(func(a: String, b: String) -> bool: return a.naturalnocasecmp_to(b) < 0)
+	return result
+
+static func latest_backup() -> String:
+	var backups := _backups()
+	return backups.back() if not backups.is_empty() else ""
+
+# A brand-new profile (backed up first): Grove, Seeds, counts, milestones, Blight, account knowledge, whispers,
+# loadout and the rest all go; only the settings stay when `keep_settings`.
+static func reset_profile(keep_settings := true) -> void:
+	var path := _real_path()
+	backup_profile()
+	var data := defaults()
+	if keep_settings and FileAccess.file_exists(path):
+		data.settings = _shared(path).settings.duplicate(true)
+	_write_atomic(path, JSON.stringify(data, "\t"))
+	forget()
+
+# Puts a backup back over the real profile. False when it's missing or unreadable.
+static func restore_backup(path: String) -> bool:
+	if path == "" or not FileAccess.file_exists(path) or typeof(_parse_file(path)) != TYPE_DICTIONARY:
+		return false
+	_write_atomic(_real_path(), FileAccess.get_file_as_string(path))
+	forget()
+	return true
+
 # The JSON in the file at `path`, or null when it doesn't parse (quietly: the callers handle a torn file).
 static func _parse_file(path: String) -> Variant:
 	var json := JSON.new()
