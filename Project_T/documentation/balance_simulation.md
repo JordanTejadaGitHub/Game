@@ -463,6 +463,9 @@ fresh runs here are all Sporeling, so act 1 boss health is set once the family s
 laps never show, and one visit (5 leaves) is half the other bosses' bite. **Health ×1.5 (3,430 base)**
 so a typical maze needs two passes; visits stay 5 / 7 / 9 leaves (one lap is kinder than a bite, two are
 worse). Check: Night Mare forced, fresh Balanced / skip; target Balanced laps once+ in ~60% of fights.
+**Result** (cde782f3, 6,003 health, 20 seeds): Balanced **laps 88%**, dies on lap 2 in 12 of 15
+dispels, **survives 75%**, median 5 leaves drained ✓ all three. Skip survives **35%** (12 leaves): the
+act 1 boss that best separates Dreams from skipping. **Kept.**
 
 **Per-family act 1** (e19b9230, **full profile** so every family has its branches; first family
 forced, 10 seeds; the fresh run was confounded: unowned families had no branches):
