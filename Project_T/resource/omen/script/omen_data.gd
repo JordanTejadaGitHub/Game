@@ -13,6 +13,7 @@ class_name OmenData
 @export var requires_flyers: bool = false  # Only offered if the next block has flying creatures
 @export var requires_coat: bool = false  # Only offered if the next block has a coated nightmare (Hard Bark)
 @export var requires_legendary: bool = false  # Only offered if a Legendary can still be offered this run (Lean Season)
+@export var requires_clearing: bool = false  # Only offered once clearing is unlocked this run (Shifting Ground: its reward is for clearing)
 # The offer shows 2 Omens of different kinds (run_design.md "More Omens").
 enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP, MAZE }  # MAZE: Omens that test the maze, not the numbers
 @export var kind: Kind = Kind.NIGHTMARES

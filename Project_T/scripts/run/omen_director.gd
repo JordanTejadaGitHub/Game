@@ -211,6 +211,8 @@ func make_offer(block: int) -> Array[OmenData]:
 			continue
 		if omen.requires_legendary and not dream_state.has_legendary_left():
 			continue
+		if omen.requires_clearing and not dream_state.can_clear():
+			continue
 		if omen.needs_free_cells > 0 and get_free_cells(omen.sprouts_beside_path).size() < omen.needs_free_cells:
 			continue
 		if omen.crumble_thornwall and second_path_target() == null:

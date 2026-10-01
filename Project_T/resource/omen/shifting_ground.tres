@@ -12,4 +12,5 @@ kind = 3
 needs_free_cells = 5
 sprout_obstacles = 5
 sprouts_beside_path = true
+requires_clearing = true
 reward_tree_seeds = 2

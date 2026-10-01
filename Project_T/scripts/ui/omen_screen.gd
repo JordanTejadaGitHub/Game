@@ -10,7 +10,11 @@ const CARD_SIZE := Vector2(380, 220)  # Wide enough that the 16–18 px lines do
 const CARD_PAD := Vector2(18, 16)  # Inner padding on every side (x: left and right, y: top and bottom)
 const REWARD_SIZE := 16  # The reward line (screens_ui.md readable text: 16 px+ body)
 const FRONT_BODY_SIZE := 18  # Face an Omen and Clear Skies: the Dream card body size (user: "a bit bigger")
-const EMBLEM_SCALE := 4  # The 16 px icons drawn x4 (64 px), nearest (user: "icons need to be bigger")
+const EMBLEM_SCALE := 2  # The 16 px icons drawn x2 (32 px), nearest: the fallback until the card emblems exist (x3+ read as a skull: user)
+const CARD_EMBLEM_SHEET := "res://assets/ui/omen_cards.png"  # UI Asset's 32 px card emblems (omen_cards.json)
+const CARD_EMBLEMS := {&"omen": 0, &"clear_skies": 1}  # Frame per emblem: omen_card, clear_skies_card
+const CARD_EMBLEM_SIZE := 32.0
+const CARD_EMBLEM_SCALE := 2.0  # Shown x2 (64 px), nearest
 const FLAVOR_SIZE := 17  # The whisper face runs large; this sits level with the 18 px body
 const SECONDARY_MIN_SIZE := 16  # Lines never shrink below the readable floor (screens_ui.md); the card grows instead
 const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
@@ -132,10 +136,13 @@ func _make_face_down_card() -> Button:
 # on a soft glow (`glow`), centred in the card's spare space; without the icon, the old wind swirl (`swirl`) or an
 # empty space.
 func _emblem(id: StringName, swirl: bool, glow: Color = OMEN_COLOR) -> Control:
-	var icon := IconInfo.icon(id)
+	var icon: Texture2D = _card_emblem(id)  # UI Asset's 32 px card emblem, x2
+	var side := CARD_EMBLEM_SIZE * CARD_EMBLEM_SCALE
+	if icon == null:
+		icon = IconInfo.icon(id)  # Until then the 16 px icon, x2 (x3 read as a skull: user)
+		side = 16.0 * EMBLEM_SCALE
 	if icon != null:
 		var canvas := Control.new()
-		var side := 16.0 * EMBLEM_SCALE
 		canvas.custom_minimum_size = Vector2(side, side + 12)
 		canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -154,6 +161,19 @@ func _emblem(id: StringName, swirl: bool, glow: Color = OMEN_COLOR) -> Control:
 	if swirl:
 		canvas.draw.connect(func() -> void: _draw_swirl(canvas))
 	return canvas
+
+# The 32 px card emblem for `id` from UI Asset's sheet (null until it's there). Kept on the instance, not static.
+var _emblem_sheet: Texture2D = null
+
+func _card_emblem(id: StringName) -> Texture2D:
+	if not CARD_EMBLEMS.has(id) or not ResourceLoader.exists(CARD_EMBLEM_SHEET):
+		return null
+	if _emblem_sheet == null:
+		_emblem_sheet = load(CARD_EMBLEM_SHEET)
+	var atlas := AtlasTexture.new()
+	atlas.atlas = _emblem_sheet
+	atlas.region = Rect2(CARD_EMBLEMS[id] * CARD_EMBLEM_SIZE, 0, CARD_EMBLEM_SIZE, CARD_EMBLEM_SIZE)
+	return atlas
 
 # Three nested wind arcs.
 func _draw_swirl(canvas: Control) -> void:
@@ -250,7 +270,10 @@ func _make_card(omen: OmenData, act: int) -> Button:
 		reward += " · 25% less per leaf lost"  # Omens with teeth: the block decides the reward
 	var reward_line := _add_line(box, "Reward · " + (reward if reward != "" else "the twist itself (double-edged)"), REWARD_COLOR, REWARD_SIZE)
 	reward_line.name = "Reward"
-	box.add_child(_emblem(&"omen", false))  # The same 64 px emblem as the front card; spare height goes here, so both cards keep the same spots
+	var spare := Control.new()  # No emblem on a revealed Omen (user: "just the beginning"); its spare height still goes here
+	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(spare)
 	var secondary: Array = [twist, reward_line]
 	if flavor != null:
 		secondary.push_front(flavor)

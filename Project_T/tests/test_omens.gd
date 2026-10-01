@@ -22,6 +22,7 @@ func _run() -> void:
 	_test_new_omens(main)
 	_test_offer_conditions(main)
 	_test_teeth(main)
+	await _test_screenshot_fixes(main)
 	print("omens test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -510,6 +511,39 @@ func _test_teeth(main: Node) -> void:
 	policy._last_block_clean = true
 	_check(clear_pick == null and always_pick == two[0] and after_leak == null and policy.pick_omen(two) == two[0],
 		"sim Omen modes: clear / always the first / clean only after a clean block")
+
+# User screenshot fixes (run_design.md): Shifting Ground waits for clearing; the emblem only on the two front cards.
+func _test_screenshot_fixes(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var dreams: DreamState = main.get_node("%DreamState")
+	var open_before: bool = dreams.clearing_open
+	var offered := func() -> bool:
+		for i in 80:
+			omens._last_offer_ids.clear()
+			if omens.make_offer(11).any(func(o: OmenData) -> bool: return o.id == "shifting_ground"):
+				return true
+		return false
+	dreams.clearing_open = false
+	_check(not dreams.can_clear() and not offered.call(), "Shifting Ground: never offered while clearing is locked")
+	dreams.clearing_open = true
+	_check(offered.call(), "…offered once clearing is open")
+	dreams.clearing_open = open_before
+	omens._last_offer_ids.clear()
+	var screen = main.get_node("HUD/OmenScreen")
+	screen._show_offer([] as Array[OmenData], 2)
+	await _frames(2)
+	var fronts: Array = screen._cards.get_children()
+	_check(fronts.size() == 2 and fronts.all(func(c: Node) -> bool: return c.find_child("Emblem", true, false) != null),
+		"the two front cards keep their emblem")
+	var emblem: Control = fronts[0].find_child("Emblem", true, false) if not fronts.is_empty() else null
+	_check(emblem != null and emblem.custom_minimum_size.x == 64.0, "…UI Asset's 32 px card emblem at ×2 (%s)" % [emblem.custom_minimum_size if emblem else "none"])
+	screen._clear_cards()
+	screen._reveal(omens.pool.slice(0, 2), null)
+	await _frames(2)
+	_check(not screen._cards.get_children().any(func(c: Node) -> bool: return c.find_child("Emblem", true, false) != null),
+		"revealed Omen cards have no emblem")
+	screen._clear_cards()
+	screen._on_closed()
 
 func _frames(n: int) -> void:
 	for i in n:
