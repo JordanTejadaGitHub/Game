@@ -358,6 +358,8 @@ func _run() -> void:
 	for card: String in ["hunters_patience", "sharpened_light", "crowd_breaker", "thornheart", "scented_hedge", "tended_stumps", "hollow_ground", "momentum", "great_ripple", "lucid_dreaming", "drumbeat", "overlap"]:
 		_check(every_card.has(card) and ResourceLoader.exists("res://resource/dream/%s.tres" % card), "a Grove node grants %s" % card)
 	_check(_unlock(HeartwoodMemory.load_grove(), "the_old_ones").requires_all == ["elders"], "The Old Ones needs Elders")
+	_check(_unlock(HeartwoodMemory.load_grove(), "acorn").dream_cards.has("acorn_cache") and HeartwoodMemory.get_unlock("catchers") == null
+		and _unlock(HeartwoodMemory.load_grove(), "old_wood").requires_all.is_empty(), "the Acorn family brings its own cards; Old Wood starts its branch")
 
 	# --- The Grove screen: the tree, tapping a bud, planting, the canopy ---
 	memory = HeartwoodMemory.defaults()
@@ -651,7 +653,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 92 and grove.size() == 92 - parked, "92 Grove spots, %d nodes on the tree (layout %d, data %d)" % [92 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 91 and grove.size() == 91 - parked, "91 Grove spots, %d nodes on the tree (layout %d, data %d)" % [91 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:

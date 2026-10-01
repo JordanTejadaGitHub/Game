@@ -109,8 +109,7 @@ N("planted_promises", "cards", "Planted Promises", 1010, 470, [1000, 480]);
 N("deep_promises", "cards", "Deep Promises", 1030, 400, "planted_promises");
 N("golden_harvest", "cards", "Golden Harvest", 1050, 330, "deep_promises", { legendary: true });
 // The Quiet Ones (support Wardens).
-N("catchers", "cards", "Catchers", 900, 620, [900, 540]);
-N("old_wood", "cards", "Old Wood", 890, 690, "catchers");
+N("old_wood", "cards", "Old Wood", 900, 620, [900, 540]);  // Catchers removed: its cards come with the Acorn family
 N("the_quiet_ones", "cards", "The Quiet Ones", 880, 760, "old_wood", { legendary: true });
 const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
 NODES.forEach(n => { n.depth = n.parent ? byId[n.parent].depth + 1 : 1; });

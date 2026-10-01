@@ -11,5 +11,4 @@ root = 1
 costs = Array[int]([70])
 order = 61
 icon = 12
-requires_all = Array[String](["catchers"])
 dream_cards = Array[String](["overflowing_well", "hedgerow_roots", "grandfather_stump", "living_walls", "scented_hedge", "many_threads"])
