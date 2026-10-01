@@ -697,8 +697,13 @@ every Warden has two damage axes, and builds lean one way:
 - **Several Wardens on one status:** the status uses the **strongest current applier's** Potency
   (as Poisoned already does), never a sum. With the caps, this stops one high-Potency Warden from
   lifting everyone's statuses past the limits.
-- **Built behind one toggle** (e.g. `Tower.status_potency_on`, on by default) so Balancing Code can
-  A/B the same seeds with and without it.
+- **Built behind one toggle** (`Tower.status_potency_on`, on by default) so Balancing Code can
+  A/B the same seeds with and without it; off restores the old rules exactly.
+- **As built (87fb47fb):** a cap **never lowers a status below its own base**: a card that already
+  sets it higher (e.g. *Soaked Through II*'s +30%) keeps that value, and Potency can't push it past
+  the cap. The panel shows the status line at this Warden's Potency ("Soaked: water hits +24%",
+  "Exposed: +30% damage taken", "Drowsy −9% speed a stack", "Rooted 1.3 s").
+  `tests/test_status_potency.gd`.
 - **Why it matters:** a status family (Dewdrop, Firefly Jar, Bellflower, Rootling) can now grow its
   *control* through Potency, not only its damage. The caps keep a single Warden from making Exposed
   or Soaked the whole build.
