@@ -553,6 +553,14 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
   leak multiplier, rest-bonus multiplier below 1, status immunities, always-applied status, extra
   elites per drift, all-flyer drift count, obstacles to sprout, per-tree Seed bonus; rewards
   `dreamlight`, `dream_legendary`. Blood Moon and Bountiful Night have no separate reward (their Dew is it); **Heavy Rain keeps +30 Dew**, because its +35% health hurts every build while the Soaked only helps some.
+- **Current values (2026-09-30, the data in `resource/omen/` is authoritative; the tables above show the pre-×1.5 numbers):** Thick Blight +30% health · Crowded Paths +45% nightmares · Hard Bark coats +75% · Heavy Rain always Soaked, +50% health · Blood Moon +35% speed, +75% Dew · Bountiful Night +35% health, **+100% Dew** · Elder Night +2 elites per drift · Hollow Wind first 3 drifts flyers · Moth Night +60% flyers · Restless Wind 45% closer · Swift Stream +25% speed · Wilting 22% slower attacks · Fog Bank −1 range · Shifting Ground 5 trees · Lean Season rest bonus to a quarter · Leaf Fall double leaves.
+- **Omen audit fixes (Meta Game Discussion, decided by the design chat):**
+  1. **Hard Bark** is only offered when the next block has a nightmare with a blight coat (Shellbound, any `coat_total` > 0); "blight coat" becomes a glossary link.
+  2. **Lean Season** is only offered when a Legendary can be offered this run (none unlocked = not in the draw).
+  3. **Bountiful Night** reward ×1.6 → **×2 Dew** (100% more): health hurts more than Blood Moon's speed, so it must pay at least as well.
+  4. **Shifting Ground** needs 5 free cells (it sprouts 5).
+  5. **Thick Blight's** extra cards: the next Dream shows at most **5 cards** (with Wider Dreams too); the Dream screen must fit 5.
+  6. Text: **"N% more Dew"** everywhere (Bountiful "100% more Dew"); **"move"** for speed (Swift Stream "Nightmares move 25% faster"); Stubborn Blight **"Statuses last a third as long."**; Leaf Fall **"Every leak costs double leaves, and a boss at the Heartwood drains two at a time."** (boss leaks no longer cost a flat 5 / 10).
 
 - **Blight Levels** can make Omens harsher or remove Clear Skies ("an Omen is always chosen").
 - **Grove perks** later: a third Omen option, or Omen rewards +25% (`meta_design.md`).
