@@ -27,6 +27,8 @@ for (const A of ACTS) {
   emit(d + "grass.png", strip([0, 1, 2, 3, 4, 5, 6, 7].map(v => getImg("grass:" + v))));
   emit(d + "path.png", strip(Array.from({ length: 16 }, (_, m) => getImg("path:" + m))));
   emit(d + "path_rim.png", strip(Array.from({ length: 16 }, (_, m) => getImg("pathrim:" + m))));
+  // pond.png: column = neighbour mask, row = animation frame.
+  emit(d + "pond.png", stack([0, 1, 2, 3].map(fr => strip(Array.from({ length: 16 }, (_, m) => getImg("pond:" + m, fr))))));
   emit(d + "border_wall.png", strip([getImg("wall:0"), getImg("wall:1")]));
   emit(d + "dew_pool.png", frames("pool:0"));
   emit(d + "blight_patch.png", frames("blight:0"));

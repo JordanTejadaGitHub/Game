@@ -763,6 +763,85 @@ function pool(A, f) {
   return L;
 }
 
+// Pond (2026-10-01, the map's pond feature): one body of still water over a 2×2 to 3×3 patch, by
+// neighbour mask like the path (N=1 E=2 S=4 W=8), transparent outside its banks. Ponds are rectangles,
+// so where two sides join the diagonal cell is pond too (no inner corners). Earth-and-moss banks,
+// water darkening toward the middle, moonlight glints that shimmer over the 4 frames; ice in winter.
+// Distance in px from each pixel of a pond tile to the nearest shore (0 on land), measured over the
+// tile plus a 24 px border so water in the neighbouring cells counts. A min of the boxes' own distance
+// fields dipped where two boxes overlapped and drew light lines across the water. Same for every act
+// and frame, so it's cached per mask.
+const POND_SHORE = new Map();
+function pondShore(mask, D) {
+  const key = SEED + "|" + mask;
+  if (POND_SHORE.has(key)) return POND_SHORE.get(key);
+  const E = 24, G = T + E * 2, INF = 1e9, dist = new Float32Array(G * G);
+  for (let y = 0; y < G; y++) for (let x = 0; x < G; x++) dist[y * G + x] = D(x - E, y - E) < 0 ? INF : 0;
+  const relax = (i, j, c) => { if (dist[j] + c < dist[i]) dist[i] = dist[j] + c; };
+  for (let y = 1; y < G; y++) for (let x = 1; x < G - 1; x++) {  // chamfer pass, top-left to bottom-right
+    const i = y * G + x; relax(i, i - 1, 1); relax(i, i - G, 1); relax(i, i - G - 1, 1.414); relax(i, i - G + 1, 1.414);
+  }
+  for (let y = G - 2; y >= 0; y--) for (let x = G - 2; x >= 1; x--) {  // and back
+    const i = y * G + x; relax(i, i + 1, 1); relax(i, i + G, 1); relax(i, i + G + 1, 1.414); relax(i, i + G - 1, 1.414);
+  }
+  const out = new Float32Array(T * T);
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) out[y * T + x] = Math.min(dist[(y + E) * G + x + E], 99);
+  POND_SHORE.set(key, out);
+  return out;
+}
+function pondTile(A, mask, f) {
+  // Heartwood 32 names, not the old WATER / ICE ramps (those snapped to violet, the same as the night ground).
+  const POND_WATER = ["#2c4c5c", "#2c4c5c", "#4c8ca4", "#9cd4fc", "#dce8f4"], POND_ICE = ["#5c5a78", "#5c5a78", "#8c8cac", "#b4b0c8", "#dce8f4"];
+  const L = new Img(), W = A.frozen ? POND_ICE : POND_WATER, g = A.grass, s = SEED + 900, m = 7;
+  const boxes = [[m, m, T - m, T - m]];
+  if (mask & 1) boxes.push([m, -20, T - m, 32]);
+  if (mask & 2) boxes.push([32, m, T + 20, T - m]);
+  if (mask & 4) boxes.push([m, 32, T - m, T + 20]);
+  if (mask & 8) boxes.push([-20, m, 32, T - m]);
+  if ((mask & 1) && (mask & 2)) boxes.push([32, -20, T + 20, 32]);
+  if ((mask & 2) && (mask & 4)) boxes.push([32, 32, T + 20, T + 20]);
+  if ((mask & 4) && (mask & 8)) boxes.push([-20, 32, 32, T + 20]);
+  if ((mask & 8) && (mask & 1)) boxes.push([-20, -20, 32, 32]);
+  // The wobble noise wraps every 64 px, so banks and depth meet up across cell edges.
+  const D = (x, y) => { let d = 1e9; for (const b of boxes) d = Math.min(d, sdBox(x + .5, y + .5, b, 12)); return d + (pnoise(x, y, 8, s, 8) - .5) * 4; };
+  const shore = pondShore(mask, D);
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const d = D(x, y), r = shore[y * T + x];
+    if (d > 1) continue;
+    if (d > 0 || r < 2.5) {  // the bank: dark earth with moss creeping over its lip
+      const lip = d > 0 || r < 1;
+      L.set(x, y, A.frozen && lip ? "#dce8f4" : hash(x, y, s + 3) < .4 ? g[2] : lip ? "#241c14" : "#140f26");
+      continue;
+    }
+    const t = clamp((r - 2.5) / 16 + (pnoise(x, y, 16, s + 5, 4) - .5) * .25, 0, 1);
+    L.set(x, y, A.frozen ? pick([W[3], W[2], W[1]], t, x, y, .5) : pick([W[2], W[1], W[0]], t, x, y, .5));
+  }
+  const inner = (x, y) => x >= 0 && y >= 0 && x < T && y < T && shore[y * T + x] > 6;
+  if (A.frozen) {
+    // Cracks in the ice, kept inside the cell so they never cut off at its edge.
+    for (let k = 0; k < 2; k++) {
+      const x0 = 10 + hash(k, 1, s + mask) * 40, y0 = 10 + hash(k, 2, s + mask) * 40, a = hash(k, 3, s + mask) * Math.PI;
+      for (let i = 0; i < 9; i++) { const x = Math.round(x0 + Math.cos(a) * i), y = Math.round(y0 + Math.sin(a) * i * .6); if (x > 4 && x < 60 && inner(x, y)) L.set(x, y, W[4]); }
+    }
+  } else {
+    // Moonlight glints: short level dashes that slide and fade over the frames.
+    for (let k = 0; k < 7; k++) {
+      const x0 = 8 + Math.floor(hash(k, 1, s + mask) * 44), y = 8 + Math.floor(hash(k, 2, s + mask) * 48), len = 2 + Math.floor(hash(k, 3, s + mask) * 4);
+      const ph = (f + k) % 4, shift = ph - 1;
+      for (let i = 0; i < len; i++) { const x = x0 + shift + i; if (x > 3 && x < 61 && inner(x, y)) L.set(x, y, ph === 3 ? W[2] : ph === 0 ? W[4] : W[3]); }
+    }
+    // Now and then a lily pad, well inside the water.
+    if (hash(mask, 9, s) < .5) {
+      const px = 20 + Math.floor(hash(mask, 10, s) * 24), py = 20 + Math.floor(hash(mask, 11, s) * 24);
+      if (inner(px - 6, py) && inner(px + 6, py) && inner(px, py - 4) && inner(px, py + 4)) {
+        const pad = new Img();
+        ellipse(pad, px, py, 5, 3, (x, y, dx, dy) => (dx > .1 && Math.abs(dy) < .22) ? null : (dy < -.2 ? g[4] : g[3]));
+        L.stamp(pad, g[0]);
+      }
+    }
+  }
+  return L;
+}
 function blightPatch(A, f, seed) {
   const L = grass(A, 0), B = BLIGHT, s = seed + 60;
   for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
@@ -1347,6 +1426,7 @@ const BUILD = {
   dent: A => dent(A),
   waystone: (A, v, f) => waystone(A, f),
   pool: (A, v, f) => pool(A, f),
+  pond: (A, v, f) => pondTile(A, v, f),
   blight: (A, v, f) => blightPatch(A, f, SEED + v * 5),
   mist: (A, v, f) => mist(A, f),
   heart: (A, v, f) => heartwood(A, f, v),
@@ -1362,8 +1442,8 @@ const BUILD = {
   cloud: (A, v) => cloudShadow(v),
   mistbank: () => mistBanks(),
 };
-const ANIM = new Set(["withered", "waystone", "pool", "blight", "mist", "heart", "dead"]);
-const TILES = new Set(["grass", "path", "wall", "pool", "blight"]);
+const ANIM = new Set(["withered", "waystone", "pool", "pond", "blight", "mist", "heart", "dead"]);
+const TILES = new Set(["grass", "path", "wall", "pool", "pond", "blight"]);
 const SOLID = 200;
 function copyPx(dst, x, y, c) { const i = (y * dst.w + x) * 4; dst.d[i] = c[0]; dst.d[i+1] = c[1]; dst.d[i+2] = c[2]; dst.d[i+3] = c[3]; }
 // Storybook: halve the resolution (most common solid colour per 2×2 block), outline sprites in a

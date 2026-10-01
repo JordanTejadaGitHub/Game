@@ -49,6 +49,7 @@ two trees pulse in step.
 | `moved_hollow.png` | 64×64 | 1 | walkable mark left after Move |
 | `waystone.png` | 256×64 | 4 frames | proposed bonus build spot |
 | `dew_pool.png` | 256×64 | 4 frames (frozen in winter) | proposed special tile |
+| `pond.png` | 1024×256 | **column = neighbour mask** of pond cells (N=1, E=2, S=4, W=8, like `path.png`), **row = animation frame** (4 frames). Transparent outside the banks | the pond feature (2×2 to 3×3 cells of still water): earth-and-moss banks on its outer edges, teal water darkening toward the middle (depth = distance to the shore, so cells join into one body), moonlight glints that shimmer over the frames, the odd lily pad; ice with cracks in Heartwood Glade. Assumes a rectangle: where two sides join, the diagonal cell is pond too (no inner corners) |
 | `blight_patch.png` | 256×64 | 4 frames | proposed special tile |
 | `edge_mist.png` | 256×64 | 4 frames, transparent overlay | start cell / map edge mist |
 | `tree_round.png`, `tree_pine.png`, `tree_flowering.png` | 64×64 | 1 each | scenery on cells the maze never uses |
