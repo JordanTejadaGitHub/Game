@@ -1430,6 +1430,16 @@ lifts its branch: **`swift`** and **`reach`** (card builds C9 and C10). Numbers 
   Code's existing cap).
 - **Deepened:** Momentum II (+8% per hit, max +60%), Broad Splash II not needed (it stacks), Lingering
   Splash II (every 2nd area attack), Far Reach II (+1.25 range).
+- **Bridges, not more cards** (2026-09-30, after Drumbeat and Overlap still left their dream build at
+  0–1%: with only 5–6 Grove cards, a 60% run pool rarely holds a full set). Every other card build has
+  bridges; these two had none. Existing cards that already do the job get the second tag (no new
+  cards, no pool growth, the 60% stays):
+  - **`swift`** also on **Quickened Sap** (all Wardens +attack speed; a core basic) and **Quick Step**
+    (attack speed after calling early; Daring). Swift's package: 6 → **8**.
+  - **`reach`** also on **Crowd Breaker** (area attacks +5% per nightmare hit) and **Last Breath** (a
+    dispel burst on nearby nightmares; Affliction). Wide Reach's package: 5 → **7**.
+  - Their effects don't change; the tag adds tag resonance and counts them in the package.
+    Target: 5+ by 100 at **~3–5%** with a full Grove, like the other card builds.
 
 ## Status effect numbers
 
