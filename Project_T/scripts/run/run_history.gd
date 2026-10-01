@@ -238,7 +238,7 @@ func _on_spawned(node: Node) -> void:
 	if not data is EnemyData or _open.is_empty():
 		return
 	(func() -> void:  # Its health and drift are set once it's in (the director tags it after spawning)
-		if not is_instance_valid(node):
+		if not is_instance_valid(node) or _open.is_empty():  # The rows may have closed before this ran (Tower Code found it)
 			return
 		var number := drift_director.drift_of(node)
 		if number <= 0 or not _open.has(number):
