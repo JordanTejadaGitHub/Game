@@ -416,16 +416,36 @@ func _add_unlock(data: TowerData) -> void:
 	var blocker := dream_state.get_unlock_blocker(data)
 	if blocker != "":
 		_line("Locked: " + blocker, UiStyle.INK_DIM, 13)
-	elif cost > dream_state.dreamlight:
-		_line("Needs %d more %s" % [cost - dream_state.dreamlight, MOTE], UiStyle.INK_DIM, 13)
 	var button := Button.new()
+	button.name = "UnlockButton"
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(0, 48)
-	button.text = "Unlock · %d %s" % [cost, MOTE]
-	button.disabled = not dream_state.can_unlock(data)
+	var label := "Unlock · %d Dreamlight" % cost
+	var short := cost - dream_state.dreamlight
+	button.disabled = blocker != ""  # Locked for another reason: a plain disabled button (the line says why)
 	UiStyle.primary(button)
-	button.pressed.connect(unlock.bind(data))
 	_side_box.add_child(button)
+	if blocker == "" and short > 0:  # Can't afford yet (CantAfford): enabled, so a press explains instead of nothing
+		CantAfford.apply(button, label, "%d more needed" % short, IconInfo.format(_short_tip(short)))
+		button.pressed.connect(_refuse_unlock.bind(data, button, short))
+	else:
+		button.text = label
+		button.pressed.connect(unlock.bind(data))
+
+# "Earn 2 more Dreamlight …": how to get there (the button's hover / tap and the refusal toast).
+static func _short_tip(short: int) -> String:
+	return "Earn %d more Dreamlight to unlock this. Dreamlight comes at {rests} and from bosses." % short
+
+# Pressed while short: the shake, the toast, the Dreamlight counter flashing (and Sound's refusal via unlock_rejected).
+func _refuse_unlock(data: TowerData, button: Button, short: int) -> void:
+	unlock_rejected.emit(data)
+	CantAfford.shake(button)
+	var hud := get_parent()
+	if hud != null and hud.has_method("show_toast"):
+		hud.show_toast("Not enough Dreamlight: %d more needed." % short)
+	var counter := hud.get_node_or_null("DreamlightLabel") as Label if hud != null else null
+	if counter != null:
+		CantAfford.flash_counter(counter, UiStyle.GOLD)
 
 func _select(data: TowerData) -> void:
 	selected = data

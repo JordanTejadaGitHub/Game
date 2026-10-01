@@ -64,6 +64,31 @@ func _run() -> void:
 	_check(screen.state_of(branch) == RememberScreen.State.UNLOCKED and not screen._canvas._bloom_edge.is_empty(),
 		"…it blooms along the tree line")
 
+	# Can't afford (CantAfford, user): the final form costs more than the 0 Dreamlight left. The button stays enabled
+	# in the dim style with only the missing amount in POOR; a press refuses out loud; it turns normal once affordable.
+	if final != null and dreams.get_unlock_blocker(final) == "":
+		screen._select(final)
+		await process_frame
+		var buy: Button = screen._side_box.find_child("UnlockButton", true, false)
+		var cost := dreams.get_unlock_cost(final)
+		_check(buy != null and not buy.disabled and CantAfford.is_shown(buy), "short of Dreamlight: the dim can't-afford button, still pressable")
+		if buy != null:
+			var rich: RichTextLabel = buy.get_node_or_null(CantAfford.TEXT_NODE)
+			_check(rich != null and rich.get_parsed_text().contains("Unlock · %d Dreamlight · %d more needed" % [cost, cost])
+				and rich.text.contains(UiStyle.POOR.to_html(false)), "…\"Unlock · %d Dreamlight · %d more needed\", the missing amount in POOR" % [cost, cost])
+			_check(buy.tooltip_text.begins_with("Earn %d more Dreamlight" % cost), "…its hover says how to get there (%s)" % buy.tooltip_text)
+			var refused := []
+			screen.unlock_rejected.connect(func(d: TowerData) -> void: refused.append(d), CONNECT_ONE_SHOT)
+			buy.pressed.emit()
+			_check(refused == [final] and not dreams.is_unlocked(final.get_id()), "…pressing it refuses (signal for Sound, nothing unlocked)")
+		dreams.add_dreamlight(cost)
+		await process_frame
+		var buy_now: Button = screen._side_box.find_child("UnlockButton", true, false)
+		_check(buy_now != null and not CantAfford.is_shown(buy_now) and buy_now.text == "Unlock · %d Dreamlight" % cost,
+			"…and the normal button the moment it's affordable")
+		dreams.add_dreamlight(-cost)
+		screen._select(branch)
+
 	# The screen fits 1280×800
 	await process_frame
 	var frame_rect := (screen.get_child(1).get_child(0) as Control).get_global_rect()
