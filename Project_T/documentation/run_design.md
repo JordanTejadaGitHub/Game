@@ -594,14 +594,14 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
 | Omen | Kind | The next block | Reward |
 |---|---|---|---|
 | **Fog Bank** | your side | every Warden **−1 range** (min 1) | +4 Seeds |
-| **Wilting** | your side | every Warden **−15% attack speed** | +1 Dreamlight |
+| **Wilting** | your side | every Warden **−15% attack speed** | ~~+1 Dreamlight~~ next Dream offers 4 cards (no Omen gives Dreamlight) |
 | **Frozen Ground** | your side | **no planting or growing during drifts** (rests only) | +50 Dew |
 | **Leaf Fall** | your side | every leak costs **double leaves** | +2 max leaves |
 | **Lean Season** | your side | **rest bonus halved** at the end of the block | next Dream **includes a Legendary** (act 2+) |
 | **Heavy Rain** | double-edged | every nightmare is **always Soaked**, but has **+35% health** | +30 Dew |
 | **Blood Moon** | double-edged | nightmares **+25% speed**, and give **+50% Dew** | (the Dew is the reward) |
 | **Bountiful Night** | double-edged | nightmares **+25% health**, and give **×2 Dew** | (the Dew is the reward) |
-| **Elder Night** | nightmares | **+1 elite** in every drift (act 2+) | +1 Dreamlight |
+| **Elder Night** | nightmares | **+1 elite** in every drift (act 2+) | ~~+1 Dreamlight~~ next Dream includes a Rare+ card |
 | **Hollow Wind** | nightmares | the block's **first 2 drifts are all flyers** (act 2+, flyers exist) | next Dream: one card is Rare+ |
 | **Sleepless** | nightmares | nightmares are **immune to Drowsy and Held** | +40 Dew |
 | **Shifting Ground** | the map | **3 Withered Trees sprout** on empty cells at the block's start (never blocking the route or on a Warden) | each tree you clear this run gives **+2 Seeds** instead of 1 |
@@ -640,7 +640,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
   was paid even after a bad block; and several Omens cost nothing. Four changes:
   1. **The reward depends on the block.** A **clean block** (no leaf lost during the Omen's 5
      drifts) pays the **full reward**; **each leaf lost cuts it by 25%**; **4+ leaves lost pays
-     nothing**. Dew, Seeds and Dreamlight scale (rounded down). (No Omen gives leaves or max leaves
+     nothing**. Dew and Seeds scale (rounded down); no Omen gives Dreamlight (line 820). (No Omen gives leaves or max leaves
      any more: "Omen rewards: no leaf regrowth", Balancing Discussion 0891119a.) **Dream rewards** (a Rare+ card, 4 cards, a Legendary) are kept with **≤ 1
      leaf lost**, gone otherwise. A boss leak counts as its leaves. **Double-edged** Omens (Blood
      Moon, Bountiful Night) are unchanged: their reward is the twist. The active-Omen tag shows it
@@ -659,7 +659,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
 
      | Omen | The next block | Reward | Flavour |
      |---|---|---|---|
-     | **Tramplers** (act 2+) | each drift, the **first nightmare to walk past a Thornwall tramples it** (gone, no refund; the route re-forms) | +1 Dreamlight | *"Something heavy is coming through the hedges."* |
+     | **Tramplers** (act 2+) | each drift, the **first nightmare to walk past a Thornwall tramples it** (gone, no refund; the route re-forms) | ~~+1 Dreamlight~~ +50 Dew | *"Something heavy is coming through the hedges."* |
      | **Second Path** (from drift 15) | at the block's start, the **Thornwall whose removal shortens the route most crumbles** (full refund); it can't be replanted until the next rest | +4 Seeds | *"An old way opens in the dark."* |
      | **Burrowers** (act 2+) | at every bend, nightmares **burrow ahead 2 path tiles** (untargetable for ~0.5 s) | next Dream: one card is Rare+ | *"They dig beneath the roots."* |
 
