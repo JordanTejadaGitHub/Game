@@ -350,7 +350,7 @@ func _run() -> void:
 	for unlock in HeartwoodMemory.load_grove():
 		for card in unlock.dream_cards:
 			every_card[card] = unlock.id
-	for card: String in ["hunters_patience", "sharpened_light", "crowd_breaker", "thornheart", "scented_hedge", "tended_stumps", "hollow_ground", "momentum", "great_ripple", "lucid_dreaming"]:
+	for card: String in ["hunters_patience", "sharpened_light", "crowd_breaker", "thornheart", "scented_hedge", "tended_stumps", "hollow_ground", "momentum", "great_ripple", "lucid_dreaming", "drumbeat", "overlap"]:
 		_check(every_card.has(card) and ResourceLoader.exists("res://resource/dream/%s.tres" % card), "a Grove node grants %s" % card)
 	_check(_unlock(HeartwoodMemory.load_grove(), "the_old_ones").requires_all == ["elders"], "The Old Ones needs Elders")
 
