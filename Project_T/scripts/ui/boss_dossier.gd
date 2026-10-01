@@ -421,9 +421,8 @@ func _build(data: EnemyData, drift: int) -> void:
 	numbers.add_child(_stat("Speed", "%.1f tiles/s" % (data.speed / 64.0), "How fast it walks."))
 	right.add_child(numbers)
 	var leaves := Label.new()  # What it costs you, large
-	if data.laps():  # The Night Mare: it lingers, longer each lap
-		leaves.text = "Stays at the Heartwood a little longer each lap, draining a leaf every %s s" % \
-			String.num(ENEMY_SCRIPT.HEARTWOOD_DRAIN_EVERY)
+	if data.laps():  # The Night Mare: untouchable while it lingers, longer each lap
+		leaves.text = "At the Heartwood it can't be touched: it drains, then runs the maze again, faster"
 	else:
 		leaves.text = "Stays at the Heartwood, draining a leaf every %s s" % String.num(ENEMY_SCRIPT.HEARTWOOD_DRAIN_EVERY)
 	UiStyle.display(leaves, 26)

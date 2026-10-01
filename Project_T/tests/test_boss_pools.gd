@@ -145,9 +145,16 @@ func _run() -> void:
 	_check(is_instance_valid(mare) and mare.at_heartwood and mare.laps == 0, "the Night Mare stays at the Heartwood")
 	_check(run_state.leaves == leaves - 1 and is_equal_approx(mare.linger_left(), 10.0 - 0.016),
 		"drains a leaf at once and lingers 10 s (%d → %d, %.2f s)" % [leaves, run_state.leaves, mare.linger_left()])
+	var lingering_hp: int = mare.health
+	mare.take_damage(500.0)
+	mare.apply_status(EnemyStatuses.MARKED, 1, 5.0, 1.0)
+	_check(mare.is_untouchable() and not mare.is_in_group(mare.GROUP) and mare.health == lingering_hp
+		and mare.statuses.count() == 0, "while it lingers it can't be hit, given statuses or targeted")
 	for f in 300:
 		mare._process(1.0 / 30.0)
 	_check(run_state.leaves == leaves - 5, "5 leaves in its first 10 s (%d → %d)" % [leaves, run_state.leaves])
+	_check(not mare.is_untouchable() and mare.is_in_group(mare.GROUP) and mare.sprite.self_modulate.a == 1.0,
+		"back on the path it can be hit again")
 	_check(mare.laps == 1 and not mare.at_heartwood and is_equal_approx(mare.speed, mare_speed * 1.3),
 		"then it goes round again 30% faster")
 	_check(mare.get_target_cell() == route[0] or mare.grid.calculate_grid_coordinates(mare.position) == map_generator.startPath,

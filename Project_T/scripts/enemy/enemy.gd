@@ -77,6 +77,8 @@ const GROUP := "enemies"
 const BLIGHT_SHADER := preload("res://shaders/blight.gdshader")
 const HEALTH_BAR_SIZE := Vector2(40, 5)
 const HEARTWOOD_DRAIN_EVERY := 2.0  # A boss at the Heartwood takes a leaf this often (s)
+const UNTOUCHABLE_TINT := Color(0.42, 0.38, 0.55)  # The Night Mare lingering: a dark, smoky shimmer
+const UNTOUCHABLE_ALPHA := 0.55
 # Enemy Assets' art bounds: {sheet: {"frame", "top", "bottom"}} (px from the frame centre). The bar
 # goes BAR_ABOVE_HEAD over the top of tall art (the big bosses), never lower than HEALTH_BAR_OFFSET.
 const ART_BOUNDS_PATH := "res://assets/creatures/bounds.json"
@@ -180,6 +182,7 @@ var _charge_left := 0.0
 var at_heartwood := false  # A boss that got through: it stays, draining leaves (see heartwood_drained)
 var _drain_left := 0.0  # Seconds to its next leaf (0 on arrival: the first goes at once)
 var _linger_left := 0.0  # Night Mare: seconds left of this visit before it gallops off again
+var _untouchable := false  # Night Mare lingering: no hits, no statuses, not targeted (_set_untouchable)
 var straight_charging := false  # Hollow Stag: on a straight of straight_charge_tiles+ (see _update_straight_charge)
 var _bellowed := false
 var _leaping := false  # Sinking / underground / rising (Mire Hag, Gravecrawler): not walking
@@ -433,11 +436,13 @@ func _process(delta: float) -> void:
 		if _path_index < _path.size():
 			at_heartwood = false  # Pulled back off the Heartwood, or re-routed: it walks in again
 		else:
-			if enemy_data.laps():  # Night Mare: it lingers (6 s: leaves at 0, 2, 4), then gallops off again
+			if enemy_data.laps():  # Night Mare: it lingers (10 s: leaves at 0, 2 … 8), then gallops off again
 				_linger_left -= delta
+				sprite.self_modulate.a = UNTOUCHABLE_ALPHA + 0.15 * sin(Time.get_ticks_msec() / 180.0)  # Smoky shimmer
 				if _linger_left <= 0.0:
 					_linger_left = 0.0
 					at_heartwood = false
+					_set_untouchable(false)  # Back on the path: it can be hit again
 					_lap()
 					return
 			_drain_left -= delta  # It stays, draining a leaf every HEARTWOOD_DRAIN_EVERY s
@@ -499,6 +504,7 @@ func _process(delta: float) -> void:
 		if enemy_data.laps() and _linger_left <= 0.0:  # Night Mare: a new visit, a little longer each lap
 			_linger_left = enemy_data.lap_linger + enemy_data.lap_linger_step * laps
 			_drain_left = 0.0  # Its first leaf of the visit at once
+			_set_untouchable(true)  # At the Heartwood it can't be touched
 		if (enemy_data.is_boss and not is_echo) or enemy_data.laps():
 			at_heartwood = true  # Bosses stay (the timers keep running if it's re-routed and walks back in)
 			return
@@ -508,6 +514,25 @@ func _process(delta: float) -> void:
 # Night Mare: seconds left of its stay at the Heartwood (0 when it isn't there): the boss bar shows it.
 func linger_left() -> float:
 	return _linger_left if at_heartwood else 0.0
+
+# Night Mare lingering at the Heartwood: it can't be hit or given statuses, and no Warden targets it
+# (it leaves the enemies group, as hidden nightmares do); a dark, smoky shimmer. The boss bar tags it.
+func is_untouchable() -> bool:
+	return _untouchable
+
+func _set_untouchable(value: bool) -> void:
+	if value == _untouchable:
+		return
+	_untouchable = value
+	if value:
+		remove_from_group(GROUP)
+		for id in statuses.active_ids():
+			statuses.remove(id)  # Nothing sticks while it lingers
+		sprite.self_modulate = Color(UNTOUCHABLE_TINT, UNTOUCHABLE_ALPHA)
+	else:
+		if not _hidden and not is_cleansed:
+			add_to_group(GROUP)
+		sprite.self_modulate = Color(1, 1, 1, HIDDEN_ALPHA if _hidden else 1.0)
 
 # Night Mare: the Heartwood loses its lap leaves (the spawner takes them) and the Mare gallops back to
 # the start, faster each time.
@@ -1681,7 +1706,7 @@ func _try_rise() -> bool:
 # Damp) feed the DamageLog; crit/weak/Marked/fog combos are worked out here.
 func take_damage(amount: float, line: String = "", is_area: bool = false, is_crit: bool = false,
 		source: Node = null, tag: StringName = &"") -> void:
-	if is_cleansed:
+	if is_cleansed or _untouchable:  # (Night Mare lingering at the Heartwood: nothing touches it)
 		return
 	if source is Tower and Reactions.is_effect(tag):
 		amount *= Reactions.effect_multiplier(self, source)  # Potency (and Seeping)
@@ -1739,7 +1764,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 # fills up sets off a free bolt right away.
 func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potency: float = 0.0,
 		max_stacks: int = 0, line: String = "", source: Node = null) -> void:
-	if is_cleansed:
+	if is_cleansed or _untouchable:
 		return
 	if id in statuses.immune or (rolling and id in enemy_data.immune_while_sprinting):
 		_refuse_status(id)  # Night Hound: can't be Held mid-sprint
