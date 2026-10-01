@@ -83,6 +83,7 @@ func _ready() -> void:
 		path_layer.set_cell_blocked(cell, true)
 	_carve_route_if_blocked()
 	_trim_route_if_long()
+	path_layer.prefer_route(_straightest_route())  # Fewest turns among the shortest routes
 
 	path_layer.draw()
 	var no_details := unwalkable_cells + path_layer.current_path + PackedVector2Array(obstacles.keys())
@@ -137,6 +138,59 @@ func _carve_route_if_blocked() -> void:
 	for cell in route:
 		if obstacles.has(cell):
 			_remove_obstacle(cell, false)  # Generation: no clearing mark
+
+# Among the shortest start-to-end routes, the one with the fewest turns (ties left to the search order):
+# a breadth-first pass gives each cell its distance, then each shortest-path layer keeps, per cell and
+# heading, the fewest turns to get there. Same length as any shortest route, but no one-tile staircases
+# where a couple of long runs would do.
+func _straightest_route() -> PackedVector2Array:
+	var size := Vector2i(MAP_GRID.size)
+	var start := Vector2i(startPath)
+	var goal := Vector2i(endPath)
+	var steps: Array[Vector2i] = [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT]
+	var distance := {start: 0}
+	var layers: Array = [[start]]
+	while not layers[-1].is_empty() and not distance.has(goal):
+		var next: Array[Vector2i] = []
+		for cell: Vector2i in layers[-1]:
+			for step in steps:
+				var to := cell + step
+				if to.x < 0 or to.y < 0 or to.x >= size.x or to.y >= size.y or distance.has(to) \
+						or path_layer.is_cell_blocked(Vector2(to)):
+					continue
+				distance[to] = layers.size()
+				next.append(to)
+		layers.append(next)
+	if not distance.has(goal):
+		return PackedVector2Array()
+	# best[[cell, heading]] = [turns, previous key]; headings index `steps`.
+	var best := {}
+	for heading in steps.size():
+		best[[start, heading]] = [0, null]
+	for layer in range(1, distance[goal] + 1):
+		for cell: Vector2i in layers[layer]:
+			for heading in steps.size():
+				var from: Vector2i = cell - steps[heading]
+				if distance.get(from, -1) != layer - 1:
+					continue
+				for before in steps.size():
+					var previous: Array = best.get([from, before], [])
+					if previous.is_empty():
+						continue
+					var turns: int = previous[0] + (1 if before != heading and from != start else 0)
+					var here: Array = best.get([cell, heading], [])
+					if here.is_empty() or turns < here[0]:
+						best[[cell, heading]] = [turns, [from, before]]
+	var key: Variant = null
+	for heading in steps.size():
+		var here: Array = best.get([goal, heading], [])
+		if not here.is_empty() and (key == null or here[0] < best[key][0]):
+			key = [goal, heading]
+	var route := PackedVector2Array()
+	while key != null:
+		route.insert(0, Vector2(key[0]))
+		key = best[key][1]
+	return route
 
 # A route much longer than usual (trees piling up along the ridges) is trimmed back under
 # `max_route_length`, one cell at a time: a plain obstacle if one helps, else a ridge cell as a last

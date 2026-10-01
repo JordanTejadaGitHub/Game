@@ -110,6 +110,7 @@ func _layout_case(kind: int, short: int) -> void:
 # One feature over a few seeds: placed, clear of the start and end, and of the right kind.
 func _feature_case(feature: int) -> void:
 	var placed := 0
+	var near_route := 0
 	for seed_value in range(1, 9):
 		var main := await _make(seed_value, -1, -1, feature)
 		var map = main.get_node("%MapGenerator")
@@ -130,8 +131,20 @@ func _feature_case(feature: int) -> void:
 			if feature == MapLayout.Feature.RUIN:
 				_check(map.obstacles.get(cell) == env.rock_obstacle, "ruin seed %d: %s is stone (Move)" % [seed_value, cell])
 		_check(not map.get_path_from(map.startPath).is_empty(), "%s seed %d: a route exists" % [MapLayout.FEATURE_NAMES[feature], seed_value])
+		if feature == MapLayout.Feature.POND or feature == MapLayout.Feature.RUIN:  # They shape the opening
+			var route: PackedVector2Array = map.get_path_from(map.startPath)
+			var close := false
+			for cell in cells:
+				for r in route:
+					if maxf(absf(cell.x - r.x), absf(cell.y - r.y)) <= 2:
+						close = true
+			if close:
+				near_route += 1
 		main.free()
 	_check(placed >= 6, "%s placed on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], placed])
+	if feature == MapLayout.Feature.POND or feature == MapLayout.Feature.RUIN:
+		_check(near_route >= 6, "%s within 2 cells of the opening route on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], near_route])
+		print("  feature %s: near the opening route on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], near_route])
 	print("  feature %s: placed on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], placed])
 
 # Longer than the straightest possible route: the maze makes the route turn back at least once.

@@ -57,6 +57,11 @@ const RUIN_STONES: Array[int] = [2, 3, 7]  # mossy_boulder.png: standing stone, 
 # A gap in the first ridge sits at least this far inside the second ridge's reach, so going through it
 # still means doubling back that far. SIDE layouts (which start mid-edge) keep both ridges gap-free.
 const BEND_DEPTH := 4
+# Pond shapes: mostly the longer blobs. pond.png assumes convex outlines (no inner-corner tiles yet), so
+# dropped corners and L shapes wait for that art.
+const POND_SIZES: Array[Vector2i] = [Vector2i(2, 3), Vector2i(3, 2), Vector2i(2, 3), Vector2i(3, 2), Vector2i(3, 3), Vector2i(2, 2)]
+const NEAR_ROUTE := 2  # A pond or ruin first tries to come this close (chessboard) to the opening route
+const NEAR_ROUTE_TRIES := 50
 @onready var path_tile_map_layer: PathGenerator = %PathTileMapLayer
 
 var unwalkable_cells: PackedVector2Array
@@ -410,9 +415,15 @@ func _place_feature(rng: RandomNumberGenerator, skip: PackedVector2Array, obstac
 	feature_cells.clear()
 	if layout == null:
 		return
+	# A pond or ruin should shape the opening: the first tries must come within NEAR_ROUTE cells of the
+	# route as the ridges leave it; then anywhere, as before.
+	var shapes_route := layout.feature == MapLayout.Feature.POND or layout.feature == MapLayout.Feature.RUIN
+	var route := _provisional_route() if shapes_route else {}
 	for attempt in 80:
 		var cells := _feature_shape(rng, layout.feature)
 		if cells.is_empty() or not cells.all(func(c: Vector2) -> bool: return _feature_cell_ok(c, skip, obstacles)):
+			continue
+		if shapes_route and attempt < NEAR_ROUTE_TRIES and not _near(cells, route):
 			continue
 		if not _route_survives(cells):  # Never across the only way through (ponds can't be cleared at all)
 			continue
@@ -437,10 +448,10 @@ func _feature_shape(rng: RandomNumberGenerator, feature: MapLayout.Feature) -> A
 	var at := Vector2(rng.randi_range(2, int(MAP_GRID.size.x) - 3), rng.randi_range(2, int(MAP_GRID.size.y) - 3))
 	var cells: Array[Vector2] = []
 	match feature:
-		MapLayout.Feature.POND:  # A 2×2 to 3×3 patch of water
-			var side := rng.randi_range(2, 3)
-			for dx in side:
-				for dy in side:
+		MapLayout.Feature.POND:  # A blob of water 2-3 cells each way (convex until pond.png has inner corners)
+			var size: Vector2i = POND_SIZES[rng.randi_range(0, POND_SIZES.size() - 1)]
+			for dx in size.x:
+				for dy in size.y:
 					cells.append(at + Vector2(dx, dy))
 		MapLayout.Feature.RUIN:  # A ring of stones 3 or 4 across, open on one side
 			var side := rng.randi_range(3, 4)
@@ -501,3 +512,47 @@ func _route_survives(pond: Array[Vector2]) -> bool:
 func _place_obstacle_tile(cell: Vector2, data: ObstacleData, tile: Vector2i, obstacles: Dictionary) -> void:
 	set_cell(Vector2i(cell), data.source_id, tile)
 	obstacles[cell] = data
+
+# The opening route as the ridges leave it (before trees and rocks): a shortest walk from the start to
+# the end past the rim and the ridges. {cell (Vector2i): true}; empty if there's none yet.
+func _provisional_route() -> Dictionary:
+	var blocked := {}
+	for cell in unwalkable_cells:
+		blocked[Vector2i(cell)] = true
+	for cell in ridge_cells:
+		blocked[Vector2i(cell)] = true
+	var came_from := {_start: _start}
+	var queue: Array[Vector2i] = [_start]
+	var size := Vector2i(MAP_GRID.size)
+	var head := 0
+	while head < queue.size():
+		var at := queue[head]
+		head += 1
+		if at == _end:
+			break
+		for step: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			var next := at + step
+			if next.x < 0 or next.y < 0 or next.x >= size.x or next.y >= size.y or came_from.has(next):
+				continue
+			if blocked.has(next) and next != _end:
+				continue
+			came_from[next] = at
+			queue.append(next)
+	var route := {}
+	if not came_from.has(_end):
+		return route
+	var cell := _end
+	while cell != _start:
+		route[cell] = true
+		cell = came_from[cell]
+	route[_start] = true
+	return route
+
+# True if any of `cells` is within NEAR_ROUTE (chessboard) of the route.
+func _near(cells: Array[Vector2], route: Dictionary) -> bool:
+	for cell in cells:
+		for dx in range(-NEAR_ROUTE, NEAR_ROUTE + 1):
+			for dy in range(-NEAR_ROUTE, NEAR_ROUTE + 1):
+				if route.has(Vector2i(cell) + Vector2i(dx, dy)):
+					return true
+	return false
