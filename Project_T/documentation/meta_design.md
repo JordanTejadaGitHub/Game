@@ -204,7 +204,7 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   **this run** (`run_design.md`). A final form not yet grown here shows as *"Memory Grove"* on the
   Remember screen.
 - A family's own Dream cards (`dream_design.md`, "Cards for the new Wardens") come with its family
-  or hidden-branch node automatically.
+  or hidden-branch node automatically: **every family gets at least 2–3 of its own cards** with its family node (or the start pool). Checked 2026-10-01: only Acorn fell short (just Warm Hearth), so **Acorn Cache and Dew Trail (+ II) moved to the Acorn family node** and the empty Catchers node was removed (−50 Seeds). Build-defining support cards (Grandfather Stump, Overflowing Well, Hedgerow Roots, Golden Harvest…) stay on The Quiet Ones / Seeds.
 - **Ascension nodes** (added 2026-09-27): each family gets one more node at the top of its stack,
   **Ascension (120 Seeds)**, after its hidden branch (or its final forms where a family has no
   hidden-branch node). It makes that family's **Ascended** endgame Warden exist in runs
@@ -270,7 +270,7 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 | **The Long Way** (path length) | *Dead Wood*: Burn Back the Dead Wood (40) | *Winding Roads*: Forest's Edge (50) | **The Long Walk** (100; needs Dead Wood) · **Crossroads** (80; needs Winding Roads) |
 | **Hedgerows** (walls, holding) *(new)* | *Bitter Hedges*: Bitter Hedges, **Thornheart** (40) | — | **Briar Crown** (80) · **Rooted Nightmares** (80) |
 | **Reclaiming** (clearing) *(new)* | *Reclaimed Earth*: Reclaimed Earth, Tended Stumps, Hollow Ground (50; the "where you clear" payoffs first) | *Thorn and Bramble*: Tended Forest, Thorn Snare, Bramble Oath (70) | **Wildwood Reclaimed** (80) |
-| **The Quiet Ones** (support Wardens) | *Catchers*: Dew Trail, Acorn Cache (50; Wide Bowl merged into Dew Trail, Still Waters cut in the power pass) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, **Scented Hedge**, Many Threads (70) | **The Quiet Ones** (120) |
+| **The Quiet Ones** (support Wardens) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, **Scented Hedge**, Many Threads (70) | — (*Catchers* removed 2026-10-01: Dew Trail and Acorn Cache moved to the Acorn family node) | **The Quiet Ones** (120; needs Old Wood) |
 | **Seeds** (support and economy bets) | *Planted Promises*: Dew Bowl, Harvest Moon, Kind Canopy, Patient Roots (50) | *Deep Promises*: Deep Well, Shared Light (70) | **Golden Harvest** (120) |
 | **Bittersweet** | *Bittersweet Dreams*: Deep Sleep, Restless Dreams (60; needs any 2 other nodes) | — | **Lucid Dreaming** (80; the "dreams" Legendary: 4 cards, take 2, no Commons) |
 
