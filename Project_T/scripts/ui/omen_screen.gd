@@ -68,17 +68,15 @@ func _ready() -> void:
 	_active_tag.add_theme_color_override("font_outline_color", Palette.DREAD)
 	_active_tag.add_theme_constant_override("outline_size", 6)
 	_active_tag.visible = false
-	var tag_icon := IconInfo.icon(&"omen")  # The Omen icon x2 before the tag (once UI Asset adds it)
-	if tag_icon != null:
-		var icon_rect := TextureRect.new()
-		icon_rect.texture = tag_icon
-		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon_rect.size = Vector2(32, 32)
-		icon_rect.position = Vector2(-38, -4)
-		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon_rect.name = "OmenIcon"
-		_active_tag.add_child(icon_rect)
+	# The Omen's icon inline at the start of the first line ("[icon] Omen: Stubborn Blight · drifts 11–15"), placed by
+	# _place_tag_icon after layout (user: the old one floated off into the void).
+	_tag_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_tag_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_tag_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tag_icon.name = "OmenIcon"
+	_active_tag.add_child(_tag_icon)
+	_active_tag.mouse_filter = Control.MOUSE_FILTER_PASS  # Its tooltip says where the reward stands
+	_active_tag.resized.connect(_place_tag_icon)
 	get_parent().add_child.call_deferred(_active_tag)
 
 	omens.offer_ready.connect(_show_offer)
@@ -303,20 +301,55 @@ func _on_closed() -> void:
 	game_speed.set_paused(_was_paused)
 
 func _on_omen_started(omen: OmenData, first_drift: int, last_drift: int) -> void:
-	_tag_base = "Omen: %s · drifts %d–%d · %s" % [omen.display_name, first_drift, last_drift,
-		IconInfo.format(omen.description)]
+	_tag_title = "Omen: %s · drifts %d–%d" % [omen.display_name, first_drift, last_drift]
+	_tag_twist = IconInfo.format(omen.description)
+	var own := IconInfo.icon(StringName(omen.id))  # The Omen's own icon if it has one, else the generic one
+	_tag_icon.texture = own if own != null else IconInfo.icon(&"omen")
 	_active_tag.visible = true
 	_refresh_tag()
 	_toast("Omen faced: %s" % omen.display_name)
 
-# The tag's second line: what the reward stands at ("Reward · 75% · 1 leaf lost"; none for double-edged Omens).
-var _tag_base := ""
+# The tag: "[icon] Omen: <name> · drifts 11–15", the twist, then the plain reward line ("Reward: +1 Dreamlight, less
+# for each leaf lost"; none for double-edged Omens). Where the reward stands now is only in the tooltip.
+var _tag_title := ""
+var _tag_twist := ""
+var _tag_icon := TextureRect.new()
 
 func _refresh_tag() -> void:
 	if not _active_tag.visible or omens.active == null:
 		return
-	var status := omens.get_reward_status()
-	_active_tag.text = _tag_base + ("\n" + status if status != "" else "")
+	var reward := omens.get_reward_line()
+	_active_tag.text = "%s\n%s%s" % [_tag_title, _tag_twist, ("\n" + reward) if reward != "" else ""]
+	_active_tag.tooltip_text = omens.get_reward_status()
+	_place_tag_icon.call_deferred()
+
+# The icon sits in leading spaces at the start of the (centred) first line, so it stays inside the tag even when
+# that line is the widest; one text line tall (16 px ×1, or ×2 for big text).
+const TAG_ICON_GAP := 6.0
+
+func _tag_icon_side() -> float:
+	return 32.0 if _active_tag.get_theme_font("font").get_height(_active_tag.get_theme_font_size("font_size")) >= 28.0 else 16.0
+
+# Spaces wide enough for the icon and its gap ("" without an icon).
+func _icon_pad() -> String:
+	if _tag_icon.texture == null:
+		return ""
+	var font := _active_tag.get_theme_font("font")
+	var space := maxf(font.get_string_size(" ", HORIZONTAL_ALIGNMENT_LEFT, -1, _active_tag.get_theme_font_size("font_size")).x, 1.0)
+	return " ".repeat(ceili((_tag_icon_side() + TAG_ICON_GAP) / space))
+
+func _place_tag_icon() -> void:
+	if _tag_icon.texture == null:
+		_tag_icon.visible = false
+		return
+	var font := _active_tag.get_theme_font("font")
+	var font_size := _active_tag.get_theme_font_size("font_size")
+	var line_height := font.get_height(font_size)
+	var side := _tag_icon_side()
+	var width := font.get_string_size(_icon_pad() + _tag_title, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	_tag_icon.size = Vector2(side, side)
+	_tag_icon.position = Vector2(maxf((_active_tag.size.x - width) / 2.0, 0.0), (line_height - side) / 2.0)
+	_tag_icon.visible = true
 
 func _on_omen_rewarded(omen: OmenData, summary: String) -> void:
 	_active_tag.visible = false

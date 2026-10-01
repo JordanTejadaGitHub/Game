@@ -50,11 +50,12 @@ enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP, MAZE }  # MAZE: Omens that
 # Dew and Seeds scale with the act (OmenDirector.ACT_REWARD_SCALE).
 @export var reward_dew: int = 0
 @export var reward_seeds: int = 0
-@export var reward_leaves: int = 0  # Regrow now
-@export var reward_max_leaves: int = 0  # The Heartwood holds more (and regrows them)
+@export var reward_leaves: int = 0  # Unused: no Omen heals leaves (run_design.md "Omen rewards: no leaf regrowth")
+@export var reward_max_leaves: int = 0  # Unused: no Omen gives leaves of any kind (run_design.md, 2026-10-01)
 @export var reward_rare_dreams: int = 0  # The next N Dreams each include a Rare+ card
 @export var reward_extra_dream_cards: int = 0  # The next Dream offers N more cards
 @export var reward_rest_bonus_multiplier: float = 1.0  # This rest's bonus × N (Dry Spell: 2)
-@export var reward_dreamlight: int = 0
+@export var reward_pot_multiplier: float = 0.0  # Dry Spell: at the rest, the block's base Dew pot × this (what it would have earned, and more)
+@export var reward_dreamlight: int = 0  # Unused: no Omen gives Dreamlight, it stays in cards (run_design.md, 2026-10-01)
 @export var reward_legendary: bool = false  # The next Dream includes a Legendary (act 2+)
 @export var reward_tree_seeds: int = 0  # Shifting Ground: each tree cleared from now on gives this many extra Seeds

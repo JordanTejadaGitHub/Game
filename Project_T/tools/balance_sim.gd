@@ -27,6 +27,8 @@ const MIXED_SPROUTS := 0.4  # Mixed: the share of attackers kept as Sprouts
 const SAVER_DRIFTS := 5  # Saver: holds Dew at most this many drifts for a growth
 const APPROACH_EVERY := 0.25  # Game seconds between closest-approach samples
 const CLOSE_CALL := 0.85  # A drift where a nightmare got this far along the route
+const COVER_HEARTWOOD_FROM := 18  # From this drift one attacker keeps the Heartwood in range (a boss that gets through stays there; humans cover it)
+const LAST_STRETCH := 8  # Route tiles before the Heartwood a covering Warden should also reach
 var _saving_for_final := false  # The cheapest open growth is a final form (saves longer for it)
 const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, "sprout": 5, "grove": 3, "mixed": 6}  # DreamSimPolicy.Style; grove = the hand-written Grove player (Combo cards, --families); mixed = Style.MIXED
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
@@ -69,8 +71,15 @@ var dream_share := {}  # Drift -> the share of the maze's damage per second that
 var dreams_20 := ""  # The Dreams taken by drift 20 ("a+b")
 var omens: OmenDirector
 var omens_faced: Array[String] = []
+var dreamlight_by_source := {}  # DreamState.dreamlight_earned totals per source (omen_dreamlight column)
+var omen_pot_dew := 0.0  # Dew the active Omen's pot multiplier added (or took) vs the unmodified pot, assuming the whole pot is dispelled
+var omen_by_act := {}  # Act -> {dew, pot, share, lost, paid}: Omen rewards by the act their rest falls in (the rest after drift 25 is act 1)
+var _omen_seen := {"dew": 0, "share": 0.0, "leaves_lost": 0, "paid": 0}  # OmenDirector.stats already put in an act
+var omen_blocks: Array[String] = []  # Per paid Omen: "id:reward Dew:pot part:plain pot:leaves lost" (omen_blocks column)
+var _block_pot := Vector2.ZERO  # The current Omen block's pot part (x) and its plain pot (y)
 var _save_since := -1  # The drift the saver started holding Dew at
 var _approach_timer := 0.0
+var bosses := {}  # Instance id -> a boss fight: drift, kind, health, route and Heartwood seconds and damage (bosses column)
 
 var main: Node
 var map
@@ -156,6 +165,7 @@ func _run() -> void:
 	map = main.get_node("%MapGenerator")
 	placer = main.get_node("%TowerPlacer")
 	dreams = main.get_node("%DreamState")
+	dreams.dreamlight_earned.connect(func(amount: int, source: StringName) -> void: dreamlight_by_source[source] = dreamlight_by_source.get(source, 0) + amount)
 	run_state = main.get_node("%RunState")
 	director = main.get_node("%DriftDirector")
 	spawner = main.get_node("%EnemyContainer")
@@ -173,6 +183,8 @@ func _run() -> void:
 		policy.face_omens = omen_mode == "face"
 		policy.omen_mode = "" if omen_mode == "face" else omen_mode  # clear / always / clean (DreamSimPolicy.pick_omen)
 		omens.mode_override = "ask"
+		director.drift_started.connect(_note_omen_pot)
+		omens.omen_rewarded.connect(func(omen, _summary) -> void: _on_omen_rewarded(omen))
 	for r in Reactions.all() + Reactions.crowned():
 		reaction_tags[r.id] = true
 	_take_over_choices()
@@ -279,6 +291,8 @@ func _next_buy() -> String:
 	# Sprouts are planted (players don't sit on five Sprouts while drift 3 walks in).
 	if style != "sprout" and _grow_sprout_into_family():
 		return "grow"
+	if director.drifts_started >= COVER_HEARTWOOD_FROM and not _heartwood_covered() and _plant_attacker(true):
+		return "plant"  # Cover the Heartwood (past the planned room)
 	if attackers < target and _plant_attacker():
 		return "plant"
 	if walls < int(attackers * plan.walls) and _plant_wall():
@@ -338,18 +352,19 @@ func _walls() -> Array:
 	return container.get_children().filter(func(t) -> bool:
 		return t is Tower and not t.is_queued_for_deletion() and not t.tower_data.can_attack)
 
-func _plant_attacker() -> bool:
+# `cover_heart`: only cells with the Heartwood in range, scored by the last stretch they also reach.
+func _plant_attacker(cover_heart := false) -> bool:
 	var plan: Dictionary = STYLE_PLAN.get(style, STYLE_PLAN.balanced)
 	if plan.has("plant"):
 		var only: TowerData = load("res://resource/tower/%s.tres" % plan.plant)
 		if not run_state.can_afford(placer.get_cost(only)):
 			return false
-		var at := _best_cell(only.attack_range, plan.get("growth_weight", 0.5))
+		var at := _best_cell(only.attack_range, plan.get("growth_weight", 0.5), cover_heart)
 		return at != NO_CELL and _build(only, at)
 	if style == "mixed" and _sprout_share() < MIXED_SPROUTS:
 		var sprout: TowerData = load("res://resource/tower/sprout.tres")
 		if run_state.can_afford(placer.get_cost(sprout)):
-			var at := _best_cell(sprout.attack_range, 0.5)
+			var at := _best_cell(sprout.attack_range, 0.5, cover_heart)
 			if at != NO_CELL and _build(sprout, at):
 				return true
 	var options: Array = placer.get_buildable_towers().filter(func(t: TowerData) -> bool:
@@ -367,7 +382,7 @@ func _plant_attacker() -> bool:
 	var data: TowerData = options[0]
 	if not run_state.can_afford(placer.get_cost(data)):
 		return false
-	var cell := _best_cell(data.attack_range, 0.5)
+	var cell := _best_cell(data.attack_range, 0.5, cover_heart)
 	return cell != NO_CELL and _build(data, cell)
 
 func _plant_wall() -> bool:
@@ -382,8 +397,9 @@ func _build(data: TowerData, cell: Vector2) -> bool:
 	return placer._try_build(cell)
 
 # The open cell scoring best: path cells within `reach` + `growth_weight` × the path it adds. Walls
-# (reach 0) only count if they add path.
-func _best_cell(reach: float, growth_weight: float) -> Vector2:
+# (reach 0) only count if they add path. `cover_heart`: only cells reaching the Heartwood, the last
+# LAST_STRETCH route tiles counting double.
+func _best_cell(reach: float, growth_weight: float, cover_heart := false) -> Vector2:
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
 	var enemy_cells := PackedVector2Array()
 	for enemy in spawner.get_maze_walkers():
@@ -395,14 +411,16 @@ func _best_cell(reach: float, growth_weight: float) -> Vector2:
 			var cell := Vector2(x, y)
 			if not map.is_buildable(cell) or placer.settling_left([cell]) > 0.0 or placer._cells_occupied([cell]):
 				continue
+			if cover_heart and cell.distance_to(map.endPath) > reach:
+				continue
 			var new_route: PackedVector2Array = map.get_path_if_blocked_cells([cell])
 			if new_route.is_empty() or not map.can_block_cells([cell], enemy_cells):
 				continue
 			var cover := 0
 			if reach > 0.0:
-				for at in new_route:
-					if at.distance_to(cell) <= reach:
-						cover += 1
+				for i in new_route.size():
+					if new_route[i].distance_to(cell) <= reach:
+						cover += 2 if cover_heart and i >= new_route.size() - LAST_STRETCH else 1
 			var score := cover + growth_weight * (new_route.size() - route.size())
 			if score > best_score:
 				best_score = score
@@ -485,6 +503,8 @@ func _new_window() -> void:
 
 func _on_damage(event) -> void:
 	d.damage += event.amount
+	if is_instance_valid(event.enemy) and event.enemy.enemy_data.is_boss:
+		_note_boss_hit(event.enemy, event.amount)
 	# Per Warden (instance), not per kind: twenty Sporelings are twenty Wardens for the "one Warden" check.
 	var key: String = "%s#%d" % [event.source_name, event.source.get_instance_id()] if is_instance_valid(event.source) else event.source_name
 	d.by_tower[key] = d.by_tower.get(key, 0.0) + event.amount
@@ -596,10 +616,13 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "enemy": ";".join(enemy_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, enemy_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "omen_paid": _omen_stat("paid"), "omen_share": _omen_stat("share"), "omen_leaves_lost": _omen_stat("leaves_lost"), "omen_dew": _omen_stat("dew"), "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "enemy": ";".join(enemy_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, enemy_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "omen_paid": _omen_stat("paid"), "omen_share": _omen_stat("share"), "omen_leaves_lost": _omen_stat("leaves_lost"), "omen_dew": (_omen_stat("dew") + roundi(omen_pot_dew)) if omens != null and _facing() else -1, "omen_pot_dew": roundi(omen_pot_dew), "omen_dreamlight": dreamlight_by_source.get(&"omen", 0) if omen_mode != "" else -1, "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
+	summary.merge(_omen_act_columns())
+	summary.omen_blocks = ";".join(omen_blocks)
+	summary.bosses = ";".join(bosses.values().map(_boss_text))
 	var runs_path := out_dir.path_join("runs.csv")
 	var keys := summary.keys()
 	var new_file := not FileAccess.file_exists(runs_path)
@@ -689,6 +712,8 @@ func _sprout_share() -> float:
 func _sample_approach() -> void:
 	var route_px := maxf((map.get_path_from(map.startPath).size() - 1) * Tower.MAP_GRID.cell_size.x, 1.0)
 	for enemy in spawner.get_enemies():
+		if is_instance_valid(enemy) and enemy.enemy_data.is_boss:
+			_watch_boss(enemy)
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
 			d.approach = maxf(d.approach, clampf(1.0 - enemy.get_remaining_distance() / route_px, 0.0, 1.0))
 
@@ -743,3 +768,97 @@ func _omen_stat(key: String) -> Variant:
 	if omens == null or not "stats" in omens or typeof(omens.stats) != TYPE_DICTIONARY:
 		return -1
 	return omens.stats.get(key, -1)
+
+# omen_dew's pot part (Bountiful Night, Blood Moon, Dry Spell): drift `n`'s pot with the Omen's multiplier
+# minus the same pot without it. The Omen's fixed reward comes from OmenDirector.stats.
+func _note_omen_pot(n: int) -> void:
+	var omen_multiplier: float = omens.get_dew_pot_multiplier(n)
+	if is_equal_approx(omen_multiplier, 1.0):
+		return
+	var plain := director.get_dew_pot(n) * (1.0 + run_state.dew_gain_bonus) * director.blight_dew_multiplier
+	if dreams.has_method("get_dew_pot_multiplier"):
+		plain *= dreams.get_dew_pot_multiplier(n, false)
+	var extra := plain * (omen_multiplier - 1.0)
+	omen_pot_dew += extra
+	_block_pot += Vector2(extra, plain)
+	_omen_act(director.get_act(n)).pot += extra
+
+func _omen_act(act: int) -> Dictionary:
+	return omen_by_act.get_or_add(act, {"dew": 0, "pot": 0.0, "share": 0.0, "lost": 0, "paid": 0})
+
+# Puts what OmenDirector.stats gained since the last call into `act` (a reward just paid, or at the end the
+# block a lost run died in: its leaves count, with no reward).
+func _book_omen_stats(act: int) -> void:
+	if omens == null or typeof(omens.get("stats")) != TYPE_DICTIONARY:
+		return
+	var bucket := _omen_act(act)
+	bucket.dew += int(omens.stats.dew) - _omen_seen.dew
+	bucket.share += float(omens.stats.share) - _omen_seen.share
+	bucket.lost += int(omens.stats.leaves_lost) - _omen_seen.leaves_lost
+	bucket.paid += int(omens.stats.paid) - _omen_seen.paid
+	_omen_seen = {"dew": int(omens.stats.dew), "share": float(omens.stats.share), "leaves_lost": int(omens.stats.leaves_lost),
+		"paid": int(omens.stats.paid)}
+
+# runs.csv columns omen_<key>_a1..a4 (omen_dew_aN = reward + pot part, as omen_dew).
+func _omen_act_columns() -> Dictionary:
+	var columns := {}
+	var on := omens != null and _facing()
+	if on:
+		_book_omen_stats(director.get_act(maxi(director.drifts_started, 1)))
+	for act in range(1, 5):
+		var bucket := _omen_act(act)
+		columns["omen_dew_a%d" % act] = bucket.dew + roundi(bucket.pot) if on else -1  # Same keys every run (runs.csv rows line up)
+		columns["omen_pot_a%d" % act] = roundi(bucket.pot) if on else -1
+		columns["omen_share_a%d" % act] = snappedf(bucket.share, 0.01) if on else -1.0
+		columns["omen_lost_a%d" % act] = bucket.lost if on else -1
+		columns["omen_paid_a%d" % act] = bucket.paid if on else -1
+	return columns
+
+func _on_omen_rewarded(omen: OmenData) -> void:
+	var before: Dictionary = _omen_seen.duplicate()
+	_book_omen_stats(director.get_act(maxi(director.drifts_started, 1)))
+	omen_blocks.append("%s:%d:%d:%d:%d" % [omen.id, int(_omen_seen.dew) - int(before.dew), roundi(_block_pot.x), roundi(_block_pot.y),
+		int(_omen_seen.leaves_lost) - int(before.leaves_lost)])
+	_block_pot = Vector2.ZERO
+
+# --- Boss fights (the "Stag wall" probe) --------------------------------------------------------------
+# Per boss: health at spawn, seconds on the route, health left when it reached the Heartwood, damage dealt
+# on the route and at the Heartwood, seconds it stayed there, Wardens in range of it there, how it ended.
+func _boss_fight(enemy: Node2D) -> Dictionary:
+	var id := enemy.get_instance_id()
+	if not bosses.has(id):
+		bosses[id] = {"drift": director.drifts_started, "kind": enemy.enemy_data.resource_path.get_file().get_basename(),
+			"health": enemy.max_health, "spawn": game_time, "arrive": -1.0, "hp_arrive": -1, "route_damage": 0.0,
+			"heart_damage": 0.0, "in_range": -1, "end": -1.0, "echo": bool(enemy.get("is_echo"))}
+	return bosses[id]
+
+func _note_boss_hit(enemy: Node2D, amount: float) -> void:
+	var fight := _boss_fight(enemy)
+	fight["heart_damage" if enemy.at_heartwood else "route_damage"] += amount
+
+func _watch_boss(enemy: Node2D) -> void:
+	var fight := _boss_fight(enemy)
+	if enemy.at_heartwood and fight.arrive < 0.0:
+		fight.arrive = game_time
+		fight.hp_arrive = enemy.health
+		fight.in_range = _attackers().filter(func(t: Tower) -> bool:
+			return t.global_position.distance_to(enemy.global_position) <= t.get_range_cells() * Tower.MAP_GRID.cell_size.x).size()
+	if not enemy.is_cleansed:
+		fight.end = game_time
+
+# drift:kind:health:route s:health at the Heartwood (-1 = never got there):route damage:Heartwood damage:
+# Heartwood s:Wardens in range there:dispelled 1/0
+func _boss_text(fight: Dictionary) -> String:
+	var arrived: bool = fight.arrive >= 0.0
+	var route_s: float = (fight.arrive if arrived else fight.end) - fight.spawn
+	var heart_s: float = fight.end - fight.arrive if arrived else 0.0
+	var dispelled: bool = fight.route_damage + fight.heart_damage >= fight.health * 0.999
+	return "%d:%s%s:%d:%.0f:%d:%.0f:%.0f:%.0f:%d:%d" % [fight.drift, fight.kind, "(echo)" if fight.echo else "", fight.health,
+		route_s, fight.hp_arrive, fight.route_damage, fight.heart_damage, heart_s, fight.in_range, 1 if dispelled else 0]
+
+# An attacker has the Heartwood cell in range (a boss that gets through stays there, draining leaves).
+func _heartwood_covered() -> bool:
+	for tower in _attackers():
+		if tower.cell.distance_to(map.endPath) <= tower.get_range_cells():
+			return true
+	return false

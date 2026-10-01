@@ -194,10 +194,8 @@ func _make_card(card: UpgradeData) -> Button:
 		secondary.append(_add_line(box, "Deepened · replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, SECONDARY_SIZE))
 	elif card.is_bittersweet():
 		secondary.append(_add_line(box, "Bittersweet", BITTERSWEET_COLOR, SECONDARY_SIZE))
-	if dream_state.is_half_dreamed(card):  # One muted line, no label (dream_design.md half-dreamed "Card face")
-		_add_missing_row(box, card)  # "Needs Wind": the damage type, linked
-	else:
-		_add_needs_row(box, card)  # "Needs: Soaked + Charged" / "Nestling family": never a Warden's name
+	# No "Needs …" line (dream_design.md 2026-10-01, user: "can remove the Needs Water"): the card text names what it
+	# uses; Dreams this run dims a card that isn't active yet and says why on hover (DreamState.not_active_reason).
 	if dream_state.calls_family_now(card) != "":  # A Seed card calls its family to the next pick (not one you own)
 		secondary.append(_add_line(box, "Seed · calls %s to your next family pick" % dream_state.get_display_name(card.calls_family), SEED_COLOR, SECONDARY_SIZE))
 	for label in secondary:
@@ -365,48 +363,3 @@ static func _roman(n: int) -> String:
 func _grows_with_names(card: UpgradeData) -> String:
 	var id := card.calls_family if card.calls_family != "" else (card.grows_with[0] if not card.grows_with.is_empty() else "")
 	return "the %s line" % dream_state.family_name_for(id)
-
-# The Needs row (dream_design.md "How Needs are shown on a card", 2026-09-30): only what's still missing.
-# Missing families in the damage-type style ("Needs Water"); statuses none of your Wardens apply (icon +
-# name); card ingredients not taken yet. Nothing missing = no line.
-func _add_needs_row(box: VBoxContainer, card: UpgradeData) -> void:
-	_add_missing_row(box, card)  # Families you don't own yet
-	var parts := dream_state.needs_parts(card)
-	var statuses: Array = parts.statuses.filter(func(s: Array) -> bool: return not s[1])
-	var cards: Array = []
-	for id in card.requires:
-		if dream_state.family_name_for(id) == "" and not dream_state.has_card(id) and dream_state.get_display_name(id) != id:
-			cards.append(dream_state.get_display_name(id))
-	if statuses.is_empty() and cards.is_empty():
-		return
-	var row := HFlowContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("h_separation", 4)
-	box.add_child(row)
-	row.add_child(_needs_label("Needs", UiStyle.INK_DIM))
-	for i in statuses.size():
-		var status: StringName = statuses[i][0]
-		if i > 0:
-			row.add_child(_needs_label("+", UiStyle.INK_DIM))
-		var icon := IconInfo.make_icon(status)
-		if icon != null:
-			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			row.add_child(icon)
-		row.add_child(_needs_label(IconInfo.status_name(status), UiStyle.INK_DIM))
-	if not cards.is_empty():
-		row.add_child(_needs_label((" + " if not statuses.is_empty() else "") + " + ".join(cards), UiStyle.INK_DIM))
-
-# "Needs Wind" (NeedsRow, shared with "Dreams this run").
-func _add_missing_row(box: VBoxContainer, card: UpgradeData) -> void:
-	var row := NeedsRow.make(dream_state.missing_needs(card), SECONDARY_SIZE, UiStyle.INK_DIM)
-	if row != null:
-		row.modulate.a = 0.85
-		box.add_child(row)
-
-func _needs_label(text: String, colour: Color) -> Label:
-	var label := Label.new()
-	label.text = text
-	label.add_theme_color_override("font_color", colour)
-	label.add_theme_font_size_override("font_size", SECONDARY_SIZE)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return label

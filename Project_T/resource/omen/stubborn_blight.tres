@@ -9,4 +9,4 @@ display_name = "Stubborn Blight"
 description = "Statuses last a third as long."
 flavor = "They shake off every charm."
 status_duration_multiplier = 0.33
-reward_leaves = 3
+reward_dew = 40

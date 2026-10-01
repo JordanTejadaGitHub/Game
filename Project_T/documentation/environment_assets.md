@@ -50,6 +50,7 @@ two trees pulse in step.
 | `waystone.png` | 256×64 | 4 frames | proposed bonus build spot |
 | `dew_pool.png` | 256×64 | 4 frames (frozen in winter) | proposed special tile |
 | `pond.png` | 1024×256 | **column = neighbour mask** of pond cells (N=1, E=2, S=4, W=8, like `path.png`), **row = animation frame** (4 frames). Transparent outside the banks | the pond feature (2×2 to 3×3 cells of still water): earth-and-moss banks on its outer edges, teal water darkening toward the middle (depth = distance to the shore, so cells join into one body), moonlight glints that shimmer over the frames, the odd lily pad; ice with cracks in Heartwood Glade. Assumes a rectangle: where two sides join, the diagonal cell is pond too (no inner corners) |
+| `pond_inner.png` | 256×64 | 4 overlay tiles, columns **NE, SE, SW, NW**; static, transparent except one corner | for ponds that aren't rectangles: draw over the pond tile of a cell whose two neighbours on that corner's sides are pond but whose diagonal isn't (1–2 per cell). A small rounded point of land with its bank (lines up with the two neighbouring cells' banks) and shallows round it; ice in Heartwood Glade |
 | `blight_patch.png` | 256×64 | 4 frames | proposed special tile |
 | `edge_mist.png` | 256×64 | 4 frames, transparent overlay | start cell / map edge mist |
 | `tree_round.png`, `tree_pine.png`, `tree_flowering.png` | 64×64 | 1 each | scenery on cells the maze never uses |
@@ -129,6 +130,15 @@ same way. Now each map rolls a layout, ridges that follow it, and one feature.
   stone, cairn and ruined waystone rocks; a grove is a tight tree cluster; a log is a 3–4 cell line of
   trees. Feature cells keep `feature_clearance` (3, chessboard) from the start and end. Ponds draw
   `pond.png` by neighbour mask (animated down its column).
+- **Follow-ups** (2026-10-01, after the first sheet): the opening route is the **straightest of the
+  shortest** (`MapGenerator._straightest_route`: per cell and heading, the fewest turns along shortest
+  paths, handed to `PathGenerator.prefer_route` so the first draw and the sticky re-routes start from
+  it; lengths unchanged). One-tile steps on the 12 sheet seeds 68 → 12 (turns 174 → 88), over 50 seeds
+  270 → 47 (700 → 364). **Ponds** are organic: half are blobs (2×3, 3×2, 3×3, 2×2; `POND_SIZES`), the rest
+  a 3×3 with 1–2 corners dropped or an occasional L; `pond_inner.png` covers their inside corners
+  (`pond_corners`, drawn as small sprites by `MapGenerator._draw_pond_corners`, season-swapped). **Ponds and ruins shape the opening**: their first
+  `NEAR_ROUTE_TRIES` (50) placements must come within `NEAR_ROUTE` (2) cells of the route as the ridges
+  leave it (`_provisional_route`), then anywhere as before; 8 of 8 test seeds each land near the route.
 - **Carving** keeps ridges and the feature whole if it can, breaks the feature next, and ridges only as
   a last resort (`_find_carve_route(level)`).
 - **Tests**: `tests/test_map_density.gd` checks 50 random seeds at Blight 0 and 9, then forces each

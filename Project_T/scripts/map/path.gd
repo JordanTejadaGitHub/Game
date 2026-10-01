@@ -120,6 +120,11 @@ func _get_tile_score(tile:Vector2i) -> int:
 	
 	return score
 
+# Makes the next draw() (and the sticky re-routes after it) take `cells` when it's among the shortest
+# routes: MapGenerator hands it the straightest one so the opening route isn't a staircase.
+func prefer_route(cells: PackedVector2Array) -> void:
+	_pathGenerator.set_preferred_cells(cells)
+
 # `path_drawn` is only parented once draw_unit_path() runs; free it ourselves otherwise so it doesn't leak.
 func _exit_tree() -> void:
 	if path_drawn.get_parent() == null:

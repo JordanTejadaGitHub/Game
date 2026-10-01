@@ -12,4 +12,4 @@ min_drift = 26
 kind = 4
 waiting_for_hook = false
 trample_thornwall = true
-reward_dreamlight = 1
+reward_dew = 50

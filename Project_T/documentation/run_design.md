@@ -366,14 +366,16 @@ User: *"should we have a set Dew you can get from each drift, but it can be modi
       has its pot +10%**; its "call-early Dew ×2" stays on top. *Glimmering Hunt* (Dreamlight shards),
       *Reclaimed Earth* (clear refunds), catchers (Dewcatcher, Wellspring), Magpie Dew, call-early Dew
       and rest bonuses: **unchanged, on top of the pot**.
-    - **Omens:** *Bountiful Night* +100% → **pot ×2**; *Blood Moon* +75% → **pot ×1.75**; *Dry Spell*
-      → **pot ×0** (its ×1.5 rest bonus stays); *Crowded Paths*, *Elder Night*, *Moth Night*,
+    - **Omens** (numbers revised by Balancing Discussion, balance_simulation.md 95762f14):
+      *Bountiful Night* → **pot ×1.5**; *Blood Moon* → **pot ×1.4**; *Dry Spell* → **no Dew during
+      the block**; at the rest it pays **the block's pot ×1.25**, cut by leaves lost (−25% per leaf,
+      like other Omen rewards). *Crowded Paths*, *Elder Night*, *Moth Night*,
       *Hollow Wind*: their added nightmares **share** the pot (no extra Dew: that was the double
       benefit). Omen Dew rewards (e.g. Frozen Ground's) are paid on top as rewards.
   - **Leaks:** a leaked nightmare's share is lost (the rest report shows "840 of 900").
   - **Tests:** a drift's dispels sum to its pot (± rounding); a leak loses exactly its share; an elite
     gets 3× a normal share; splits and followers sum to the parent's share; Crowded Paths doesn't
-    change a drift's total; Bountiful Night doubles it.
+    change a drift's total; Bountiful Night makes it ×1.5.
 
 ### Dreamlight: choosing your build paths
 
@@ -594,14 +596,14 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
 | Omen | Kind | The next block | Reward |
 |---|---|---|---|
 | **Fog Bank** | your side | every Warden **−1 range** (min 1) | +4 Seeds |
-| **Wilting** | your side | every Warden **−15% attack speed** | +1 Dreamlight |
+| **Wilting** | your side | every Warden **−15% attack speed** | ~~+1 Dreamlight~~ next Dream offers 4 cards (no Omen gives Dreamlight) |
 | **Frozen Ground** | your side | **no planting or growing during drifts** (rests only) | +50 Dew |
 | **Leaf Fall** | your side | every leak costs **double leaves** | +2 max leaves |
 | **Lean Season** | your side | **rest bonus halved** at the end of the block | next Dream **includes a Legendary** (act 2+) |
 | **Heavy Rain** | double-edged | every nightmare is **always Soaked**, but has **+35% health** | +30 Dew |
 | **Blood Moon** | double-edged | nightmares **+25% speed**, and give **+50% Dew** | (the Dew is the reward) |
 | **Bountiful Night** | double-edged | nightmares **+25% health**, and give **×2 Dew** | (the Dew is the reward) |
-| **Elder Night** | nightmares | **+1 elite** in every drift (act 2+) | +1 Dreamlight |
+| **Elder Night** | nightmares | **+1 elite** in every drift (act 2+) | ~~+1 Dreamlight~~ next Dream includes a Rare+ card |
 | **Hollow Wind** | nightmares | the block's **first 2 drifts are all flyers** (act 2+, flyers exist) | next Dream: one card is Rare+ |
 | **Sleepless** | nightmares | nightmares are **immune to Drowsy and Held** | +40 Dew |
 | **Shifting Ground** | the map | **3 Withered Trees sprout** on empty cells at the block's start (never blocking the route or on a Warden) | each tree you clear this run gives **+2 Seeds** instead of 1 |
@@ -640,8 +642,8 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
   was paid even after a bad block; and several Omens cost nothing. Four changes:
   1. **The reward depends on the block.** A **clean block** (no leaf lost during the Omen's 5
      drifts) pays the **full reward**; **each leaf lost cuts it by 25%**; **4+ leaves lost pays
-     nothing**. Dew, Seeds and Dreamlight scale (rounded down); max leaves too (a +2 needs a clean
-     block for both). **Dream rewards** (a Rare+ card, 4 cards, a Legendary) are kept with **≤ 1
+     nothing**. Dew and Seeds scale (rounded down); no Omen gives Dreamlight (line 820). (No Omen gives leaves or max leaves
+     any more: "Omen rewards: no leaf regrowth", Balancing Discussion 0891119a.) **Dream rewards** (a Rare+ card, 4 cards, a Legendary) are kept with **≤ 1
      leaf lost**, gone otherwise. A boss leak counts as its leaves. **Double-edged** Omens (Blood
      Moon, Bountiful Night) are unchanged: their reward is the twist. The active-Omen tag shows it
      live (*"Reward · 75% · 1 leaf lost"*); the rest report says what was paid and why.
@@ -649,7 +651,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
      - **Frozen Ground:** no planting, growing, **selling or Nurture** during drifts (rests only).
      - **Leaf Fall:** leaks cost double **and nightmares move 20% faster**, so a leak is likely.
      - **Lean Season:** **no rest bonus** at the block's end (was a quarter).
-     - **Dry Spell:** the rest bonus is **×1.5** (was ×2), so no Dew from nightmares is a real loss.
+     - **Dry Spell:** (superseded under the Dew pot) no Dew during the block; the rest pays the block's pot ×1.25, cut by leaves lost (Balancing Discussion 95762f14).
      - **Shifting Ground:** its trees may sprout **beside the path** (still never blocking the
        route or on a Warden), so they can cut a Warden off from its stretch.
      - **Sleepless:** immune to Drowsy and Held **and +15% health**, so it bites builds that don't
@@ -659,7 +661,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
 
      | Omen | The next block | Reward | Flavour |
      |---|---|---|---|
-     | **Tramplers** (act 2+) | each drift, the **first nightmare to walk past a Thornwall tramples it** (gone, no refund; the route re-forms) | +1 Dreamlight | *"Something heavy is coming through the hedges."* |
+     | **Tramplers** (act 2+) | each drift, the **first nightmare to walk past a Thornwall tramples it** (gone, no refund; the route re-forms) | ~~+1 Dreamlight~~ +50 Dew | *"Something heavy is coming through the hedges."* |
      | **Second Path** (from drift 15) | at the block's start, the **Thornwall whose removal shortens the route most crumbles** (full refund); it can't be replanted until the next rest | +4 Seeds | *"An old way opens in the dark."* |
      | **Burrowers** (act 2+) | at every bend, nightmares **burrow ahead 2 path tiles** (untargetable for ~0.5 s) | next Dream: one card is Rare+ | *"They dig beneath the roots."* |
 
@@ -816,3 +818,11 @@ Named to fit the fiction: **Withered Tree** ("Tend") and **Mossy Boulder** ("Mov
 - Do overlapping drifts feel good, or do players prefer Auto-drift off?
 
 **Omen rewards: no leaf regrowth (2026-10-01, user: "don't offer regrow leaves if I haven't lost any, and regrowing leaves doesn't feel like a good reward").** Stubborn Blight's "regrow 3 leaves" becomes **+1 Dreamlight** (scaled by act like other rewards: +1 / +1 / +2 / +2). Max-leaf rewards (Leaf Fall +3 max leaves, Restless Wind +2) stay, since they're always useful, but are never offered when you're already at the absolute leaf cap. No Omen reward heals leaves.
+**Revised the same day (user: "don't think we should be offering leaves back for omens as well since they can feel easy sometimes"; human run 4 climbed to 20 leaves on them): no Omen gives leaves of any kind, max leaves included.** Leaf Fall's +3 max leaves becomes **+2 Dreamlight** (by act, as Elder Night); Restless Wind's +2 max leaves becomes **the next Dream includes a Rare+ card, +25 Dew** (as Hard Bark / Moth Night). `reward_max_leaves` stays unused.
+**Revised again (2026-10-01, user: "Omens also shouldn't give Dreamlight, leave it in cards"): no Omen gives Dreamlight.** Dreamlight comes only from family picks, bosses and Dream cards (Glimmering Hunt, Wardens that ripen it). Omen rewards are Dew, Seeds and Dream rewards (a Rare+ card, 4 cards, a Legendary). Replacements (Dew scales by act as before; Balancing Discussion tunes the amounts):
+- **Wilting** (+1 Dreamlight) → **the next Dream offers 4 cards**.
+- **Elder Night** (+1 Dreamlight) → **the next Dream includes a Rare+ card**.
+- **Tramplers** (+1 Dreamlight) → **+50 Dew** (pays back the trampled Thornwalls).
+- **Stubborn Blight** (+1 Dreamlight) → **+40 Dew**.
+- **Leaf Fall** (+2 Dreamlight) → **the next Dream offers 4 cards, one of them Rare+** (the hardest Omen on your side gets the best Dream reward short of Lean Season's Legendary).
+The block rule stays the same: Dew is cut 25% per leaf lost, and a Dream reward is kept with ≤ 1 leaf lost. `reward_dreamlight` on `OmenData` stays unused.

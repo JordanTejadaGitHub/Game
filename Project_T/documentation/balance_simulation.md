@@ -360,6 +360,77 @@ Decisions:
    finish him.
 3. Next run checks both; the act 2–3 boss ×2.25 stays.
 
+**Note: run 4 called most drifts early** (user, 2026-10-01). Early calls stack drifts on the field, so
+"closest 0.10–0.25" was measured under *harder* conditions than normal play: the act 2 "too easy"
+reading is stronger, and a player who never calls early will find the new curve gentler still.
+- **Per-drift rows are fine for runs 2–4:** RunHistory counts each nightmare under the drift that
+  spawned it since ae47049e (2026-09-30 10:36); only run 1 is blurred per drift (per block is fine).
+  Early calls are recorded **from 9a31505a**: run-level `early_calls` and `dew_call_early`, per-drift
+  `called_early` (last CSV column), report line "Called early: N drifts · X Dew". Runs 1–4 lack them.
+- **Call-early Dew stays outside the pot, unchanged** (+1 per 2 s skipped, cap 10 per drift, ~500 by
+  drift 50 = ~9% of run 4's income). It pays for a real risk (stacked drifts), which the harder act 2
+  makes bite. Revisit if a run with `early_calls` data shows calling early as both safe and the
+  bigger Dew source.
+- **Omen rewards** (user, 2026-10-01): no leaves (0891119a), then **no Dreamlight either** ("leave it in
+  cards", f2f2a428). Tramplers +50 Dew and Stubborn Blight +40 Dew are starting numbers; the
+  three-mode Omen sim on the new rewards sets them.
+
+## Omen three-mode sim (2026-10-01, build f214066a, full profile, 20 seeds per mode, to 40)
+
+Balancing Code, `tools/balance_omens.gd`. **Saturated by the act 1 boss:** 9–10 of 20 bots per mode
+die exactly at drift 25 (the Hollow Stag drains 14–18 leaves from untouched bots), so run-level leaf
+and dormancy targets read 18 vs 18 and 100% vs 100%. **Measured before the wall (by 20), Omens bite:**
+always +5 leaves (median), +25 points dormancy, clean 0.87 reward shares per Omen-block leaf vs 0.38;
+drift reached always −5.0, clean −4.2 (mean).
+
+Decisions:
+1. **Measure without the boss:** re-run with `--last=24` on the build with the no-Dreamlight rewards
+   (f2f2a428); a half-profile batch to 50 later for acts 2–3 rewards.
+2. **The Stag wall is the bot, not the game** for now: humans passed him in runs 2–4 (38 s in run 3).
+   Watch the next fresh human run (target: beats him ~75%).
+3. **Pot-multiplier Omens are out of scale** (Bountiful Night ×2 = +580–800 Dew a block in act 2,
+   5–8× the biggest fixed reward): **Bountiful Night ×2.0 → ×1.5**, **Blood Moon ×1.75 → ×1.4**;
+   their twists (+35% health / +35% speed) stay.
+4. **Dry Spell is a pure loss under the pot** (−556 to −769 Dew in act 2 for +27–35 rest bonus).
+   New: **no Dew from nightmares during the block; at the rest the Heartwood releases the block's
+   pot ×1.25**, cut by leaves lost like any reward (25% per leaf). The twist becomes "build without
+   income, get paid late"; the ×1.5 rest bonus goes.
+5. Fixed Dew rewards are in scale (≤ one drift's pot); Tramplers +50 and Stubborn Blight +40 stay.
+6. The sim's `omen_dew` should count the pot multipliers' extra (or loss) too (321811ef).
+   In the game: e5de9471 (rewards, Bountiful / Blood Moon, Dry Spell) and bd507e42 (Dry Spell pays the
+   pot the block would really have paid, with the player's own multipliers, × 1.25).
+
+**Batch (a), act 1 without the boss** (e5de9471, full profile, `--last=24`, 20 seeds × 3 modes):
+**all three targets met.** Always vs Clear Skies: **+9.5 leaves** (median, by 24; target ≥ 3), dormancy
+**30% vs 5%** (+25 points; target ≥ +10); picking moments **0.52 vs 0.38** reward shares per Omen-block
+leaf ✓ (per run leaf a tie, 0.15 vs 0.16). Mean drift reached 23.9 / 21.8 / 23.3. Omen reward Dew
+~50 median per run: in scale. No change. Batch (c) (half profile to 50, on 4993001b) checks acts 2–3
+and the Dry Spell +25%.
+
+**Batch (c)** (4993001b, half profile to 50): **the Omen Dew is right**: clean Dry Spell nets exactly
+**+25%**, Bountiful Night +50%, Blood Moon +40%, fixed rewards at their table values. The acts 2–3
+check failed to run: **12/20 Clear Skies bots die at the Stag** again; only 3–8 runs per mode start act
+2. Next: Balancing Code finds out **why untouched bots lose all 18 leaves to the Stag** (maze DPS vs
+his health and route time, Dew banked at 24, drain speed). That's the "easy, then a wall" shape
+from human run 4, so it may be a game change, not just a bot fix. Then an Omen batch with the act 1
+boss at ×1.0 (test-only) for acts 2–3.
+
+## The Stag wall and the boss drain (2026-10-01)
+
+**Diagnosis** (Balancing Code, full profile, 20 seeds): the drain, not DPS or banking. 13/18 Stags
+reached the Heartwood, 12 of them with **no Warden in range there**, so health left didn't matter: 38
+health (0.7%) left cost all 18 leaves, the same as 3,400. The bot now covers the Heartwood from drift 18
+(23736625): Stag dispelled **28% → 79%**, median 0 leaves drained in wins. But one covering Warden
+(~45–100 DPS) only saves it below ~1,000–1,800 health left, so the game-side cliff stays.
+
+**Decision (user, 2026-10-01: "most bosses just lose a lot of leaves and have 1 boss that sticks"):**
+- **Only the Hollow Oak (drift 100, every form) stays and drains** until dispelled: the last stand.
+- **Every other act boss takes a flat bite and leaves:** **8 leaves in act 1, 10 in act 2, 12 in act 3**
+  (user chose flat over health-scaled). Elite/escort leaks unchanged.
+- **The Night Mare keeps its own laps** (untouchable lingers that drain, then another lap).
+- This replaces enemy_design.md's "A boss that reaches the Heartwood stays" for every boss but the Oak.
+  Act 1's target "always-skip loses to the boss" now has to come from leaks before 25 plus the 8.
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's

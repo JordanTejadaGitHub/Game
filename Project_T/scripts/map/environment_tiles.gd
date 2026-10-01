@@ -29,13 +29,14 @@ const CLIFF := 16  # Under the bottom row: column bit 1 = cliff to the west, bit
 const ROPE_BRIDGE := 17  # Shared (dream/): column 0 = east-west, 1 = north-south
 const PATH_RIM := 18  # path.png's art, transparent outside the path: for the start and goal, over the rim
 const POND := 19  # Column = neighbour mask of pond cells (N=1, E=2, S=4, W=8); its 4 frames run down the rows
+const POND_INNER := 20  # Inside-corner overlays for ponds that aren't rectangles: columns NE, SE, SW, NW (static)
 # (Ids 2 and 8-10 were the drystone wall and healthy trees; the island and the void replaced them.)
 
 const SHEETS := {
 	GRASS: "grass", PATH: "path", WITHERED_TREE: "withered_tree",
 	TENDED_STUMP: "tended_stump", MOSSY_BOULDER: "mossy_boulder", MOVED_HOLLOW: "moved_hollow",
 	EDGE_MIST: "edge_mist", GROUND_DETAILS: "ground_details", WAYSTONE: "waystone",
-	DEW_POOL: "dew_pool", BLIGHT_PATCH: "blight_patch", ISLAND_EDGE: "island_edge", CLIFF: "cliff", PATH_RIM: "path_rim", POND: "pond",
+	DEW_POOL: "dew_pool", BLIGHT_PATCH: "blight_patch", ISLAND_EDGE: "island_edge", CLIFF: "cliff", PATH_RIM: "path_rim", POND: "pond", POND_INNER: "pond_inner",
 }
 # The dream's outer layer, the same in every act (assets/environment/dream/).
 const DREAM_FOLDER := "dream"

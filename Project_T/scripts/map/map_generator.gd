@@ -32,6 +32,7 @@ var unwalkable_cells: PackedVector2Array
 var obstacles: Dictionary = {}
 var tile_set: TileSet  # Shared by the ground, path and object layers (EnvironmentTiles)
 var heartwood: Heartwood  # The goal tree on the end cell
+var _pond_corners: Array[Sprite2D] = []  # pond_inner overlays on a non-rectangular pond's inside corners
 var dream_void: DreamVoid  # The starry void around the island
 var omen_mist: OmenMist  # Low gold-violet mist while an Omen twists the block
 var build_hatch: BuildHatch  # In build mode: a cold hatch on every unbuildable cell
@@ -83,11 +84,13 @@ func _ready() -> void:
 		path_layer.set_cell_blocked(cell, true)
 	_carve_route_if_blocked()
 	_trim_route_if_long()
+	path_layer.prefer_route(_straightest_route())  # Fewest turns among the shortest routes
 
 	path_layer.draw()
 	var no_details := unwalkable_cells + path_layer.current_path + PackedVector2Array(obstacles.keys())
 	no_details.append_array(PackedVector2Array(environment_object_layer.pond_cells))
 	environment_object_layer.generate_details(rng, no_details)
+	_draw_pond_corners()
 
 	heartwood = Heartwood.new()
 	heartwood.position = MAP_GRID.calculate_map_position(endPath)
@@ -117,9 +120,25 @@ func _ready() -> void:
 	ambience.heartwood_position = heartwood.position
 	add_child(ambience)
 
+# A pond that isn't a rectangle gets pond_inner.png's inside corners over its tiles: one small sprite
+# per corner, sorted with the pond cell and drawn just after it (a cell can need two).
+func _draw_pond_corners() -> void:
+	var sheet := (tile_set.get_source(EnvironmentTiles.POND_INNER) as TileSetAtlasSource).texture
+	for corner: Array in environment_object_layer.pond_corners:
+		var sprite := Sprite2D.new()
+		sprite.name = "PondCorner"
+		sprite.texture = sheet
+		sprite.region_enabled = true
+		sprite.region_rect = Rect2(Vector2(corner[1] * EnvironmentTiles.SIZE.x, 0), Vector2(EnvironmentTiles.SIZE))
+		sprite.position = MAP_GRID.calculate_map_position(corner[0])
+		add_child(sprite)
+		_pond_corners.append(sprite)
+
 # Swaps the environment art to act `act`'s season (every sheet, and the Heartwood's).
 func set_act(act: int) -> void:
 	EnvironmentTiles.set_act(tile_set, act)
+	for corner: Sprite2D in _pond_corners:  # The inside corners follow the season's pond sheet
+		corner.texture = (tile_set.get_source(EnvironmentTiles.POND_INNER) as TileSetAtlasSource).texture
 	heartwood.set_act(act)
 	ambience.act = act
 
@@ -137,6 +156,59 @@ func _carve_route_if_blocked() -> void:
 	for cell in route:
 		if obstacles.has(cell):
 			_remove_obstacle(cell, false)  # Generation: no clearing mark
+
+# Among the shortest start-to-end routes, the one with the fewest turns (ties left to the search order):
+# a breadth-first pass gives each cell its distance, then each shortest-path layer keeps, per cell and
+# heading, the fewest turns to get there. Same length as any shortest route, but no one-tile staircases
+# where a couple of long runs would do.
+func _straightest_route() -> PackedVector2Array:
+	var size := Vector2i(MAP_GRID.size)
+	var start := Vector2i(startPath)
+	var goal := Vector2i(endPath)
+	var steps: Array[Vector2i] = [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT]
+	var distance := {start: 0}
+	var layers: Array = [[start]]
+	while not layers[-1].is_empty() and not distance.has(goal):
+		var next: Array[Vector2i] = []
+		for cell: Vector2i in layers[-1]:
+			for step in steps:
+				var to := cell + step
+				if to.x < 0 or to.y < 0 or to.x >= size.x or to.y >= size.y or distance.has(to) \
+						or path_layer.is_cell_blocked(Vector2(to)):
+					continue
+				distance[to] = layers.size()
+				next.append(to)
+		layers.append(next)
+	if not distance.has(goal):
+		return PackedVector2Array()
+	# best[[cell, heading]] = [turns, previous key]; headings index `steps`.
+	var best := {}
+	for heading in steps.size():
+		best[[start, heading]] = [0, null]
+	for layer in range(1, distance[goal] + 1):
+		for cell: Vector2i in layers[layer]:
+			for heading in steps.size():
+				var from: Vector2i = cell - steps[heading]
+				if distance.get(from, -1) != layer - 1:
+					continue
+				for before in steps.size():
+					var previous: Array = best.get([from, before], [])
+					if previous.is_empty():
+						continue
+					var turns: int = previous[0] + (1 if before != heading and from != start else 0)
+					var here: Array = best.get([cell, heading], [])
+					if here.is_empty() or turns < here[0]:
+						best[[cell, heading]] = [turns, [from, before]]
+	var key: Variant = null
+	for heading in steps.size():
+		var here: Array = best.get([goal, heading], [])
+		if not here.is_empty() and (key == null or here[0] < best[key][0]):
+			key = [goal, heading]
+	var route := PackedVector2Array()
+	while key != null:
+		route.insert(0, Vector2(key[0]))
+		key = best[key][1]
+	return route
 
 # A route much longer than usual (trees piling up along the ridges) is trimmed back under
 # `max_route_length`, one cell at a time: a plain obstacle if one helps, else a ridge cell as a last

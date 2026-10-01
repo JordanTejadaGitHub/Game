@@ -197,7 +197,8 @@ func _on_drift_started(number: int) -> void:
 		var map := drift_director.get_node_or_null("%MapGenerator")
 		run.seed = int(map.map_seed) if map != null else 0
 	_drift = {"drift": number, "act": drift_director.get_act(number), "seconds": 0.0, "health_spawned": 0,
-		"damage": 0, "leaks": 0, "leaves_lost": 0, "leaves_left": run_state.leaves if run_state else 0, "banked": 0, "closest": 0.0}
+		"damage": 0, "leaks": 0, "leaves_lost": 0, "leaves_left": run_state.leaves if run_state else 0, "banked": 0, "closest": 0.0,
+		"called_early": drift_director.is_calling_early()}  # Started while the previous one was still arriving
 	_open[number] = _drift
 	_started[number] = _clock
 	if DamageLog.instance != null and not DamageLog.instance.damage_dealt.is_connected(_on_damage):
@@ -301,6 +302,8 @@ func _on_run_ended(won: bool) -> void:
 	run.won = won
 	run.result = "won" if won else ("abandoned" if run_state.abandoned else "lost")
 	run.survived = drift_director.drifts_started
+	run["early_calls"] = drift_director.early_calls  # Drifts called early (balancing)
+	run["dew_call_early"] = drift_director.call_early_dew
 	run.seconds = snappedf(run_state.play_time, 1.0)
 	var calls := CloseCalls.find(self)
 	run.close_calls = calls.run_count if calls != null else 0
@@ -412,10 +415,12 @@ static func report_text(record: Dictionary) -> String:
 		return "%s %d%%" % [t.name, roundi(float(t.share) * 100.0)])))
 	lines.append("Grove: %d nodes · perks %s · Dreamlight +%d / −%d" % [record.get("grove", {}).size(),
 		", ".join(record.get("perks", [])), int(record.get("dreamlight", {}).get("earned", 0)), int(record.get("dreamlight", {}).get("spent", 0))])
-	lines.append("drift,act,seconds,health_spawned,damage,leaks,leaves_lost,leaves_left,banked,closest")
+	lines.append("Called early: %d drifts · %d Dew" % [int(record.get("early_calls", 0)), int(record.get("dew_call_early", 0))])
+	lines.append("drift,act,seconds,health_spawned,damage,leaks,leaves_lost,leaves_left,banked,closest,called_early")
 	for row in record.get("drifts", []):
-		lines.append("%d,%d,%.1f,%d,%d,%d,%d,%d,%d,%.2f" % [int(row.drift), int(row.act), float(row.seconds), int(row.health_spawned),
-			int(row.damage), int(row.leaks), int(row.leaves_lost), int(row.leaves_left), int(row.banked), float(row.closest)])
+		lines.append("%d,%d,%.1f,%d,%d,%d,%d,%d,%d,%.2f,%d" % [int(row.drift), int(row.act), float(row.seconds), int(row.health_spawned),
+			int(row.damage), int(row.leaks), int(row.leaves_lost), int(row.leaves_left), int(row.banked), float(row.closest),
+			1 if row.get("called_early", false) else 0])
 	return "\n".join(lines)
 
 static func _time_text(seconds: float) -> String:

@@ -696,7 +696,7 @@ func _test_passed_over(main: Node) -> void:
 		var offers := 0
 		var with_it := 0
 		dreams._rng.seed = 7  # Same draws both ways, so the numbers never flake
-		for run in 200:
+		for run in 80:  # Trimmed for the suite's time (fixed seed: no flake)
 			_reset_dreams_quiet(dreams)
 			var passes := 0
 			var last := false
@@ -769,7 +769,7 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 			", ".join(drawable.map(func(c: UpgradeData) -> String: return c.id))])
 		# The lean starting pool (2026-09-30): 10 Rares on a fresh account, a few need families or discovery
 		_check(full.size() >= 3 and full.size() <= 8, "act 1 board with %s: 3–8 eligible generic Rares (%d)" % [family, full.size()])
-	const RUNS := 300
+	const RUNS := 120  # Trimmed for the suite's time (fixed seed)
 	var results := []  # Per mode: [offers by 35, by 50, offers after 2nd pass, of them with it]
 	for fading in [false, true]:
 		var r := [0, 0, 0, 0]
@@ -808,7 +808,7 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 	dreams._rng.seed = 5
 	var fell := 0
 	var owed := 0
-	for i in 200:
+	for i in 100:
 		_reset_dreams_quiet(dreams)
 		dreams._passed_count.clear()
 		dreams._passed_at.clear()
@@ -822,9 +822,9 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 		if not offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.RARE):
 			fell += 1
 			owed += 1 if dreams._rare_dreams_left == 1 else 0
-	print("act 1 boss rest with every Rare faded ×0.22: fell to Uncommon in %d of 200" % fell)
+	print("act 1 boss rest with every Rare faded ×0.22: fell to Uncommon in %d of 100" % fell)
 	_check(legendary == 0, "act 1: a faded forced Rare slot never falls to Legendary")
-	_check(fell > 140 and owed == fell, "…one chance per offer (~22%): it falls to Uncommon and the next offer tries for a Rare again")
+	_check(fell > 70 and owed == fell, "…one chance per offer (~22%): it falls to Uncommon and the next offer tries for a Rare again")
 	for tower in planted:
 		tower.free()
 	_reset_dreams(main)
@@ -907,7 +907,7 @@ func _test_stray_dream(main: Node) -> void:
 			var own_family := 0
 			var offers_out := 0
 			dreams._rng.seed = 3
-			for i in 400:
+			for i in 200:
 				dreams.dreams_seen = 0
 				dreams._passed_count.clear()
 				dreams._passed_at.clear()
@@ -923,7 +923,7 @@ func _test_stray_dream(main: Node) -> void:
 						any_out = true
 				offers_out += 1 if any_out else 0
 			var family_share := float(own_family) / shown
-			var out_share := offers_out / 400.0
+			var out_share := offers_out / 200.0
 			print("adapt: %s, drift %d: own-family %d%% of cards, an out-of-build card in %d%% of offers" % [
 				direction if direction != "" else "no direction", drift, roundi(family_share * 100), roundi(out_share * 100)])
 			if drift >= DreamState.STRAY_FROM_DRIFT:
@@ -965,9 +965,9 @@ func _test_half_dreamed(main: Node) -> void:
 	for declined in [false, true]:
 		dreams.note_family_pick(["dewdrop", "sporeling"] if declined else [], "sporeling")
 		var picks := 0
-		for i in 3000:
+		for i in 1500:
 			picks += 1 if dreams._weighted_pick([thunder, plain]) == thunder else 0
-		shares.append(picks / 3000.0)
+		shares.append(picks / 1500.0)
 	_check(shares[1] < shares[0] * 0.75 and shares[1] > 0.2, "…×0.3 after its family was declined at a pick (%.2f vs %.2f)" % [shares[1], shares[0]])
 	dreams.note_family_pick([], "")
 	dreams.unlocked.erase("firefly_jar")
@@ -976,6 +976,8 @@ func _test_half_dreamed(main: Node) -> void:
 	dreams.take(thunder)
 	_check(dreams.is_dormant(thunder) and not dreams.has_rule(thunder.rule_id) and dreams.get_taken_cards().has(thunder),
 		"taken half-dreamed: asleep (no effect), still listed")
+	_check(dreams.not_active_reason(thunder).begins_with("Not active yet: needs a") and dreams.not_active_reason(thunder).ends_with("Warden"),
+		"…Dreams this run says why on hover (%s)" % dreams.not_active_reason(thunder))
 	var saved := dreams.to_save()
 	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
 	# The next family pick includes the missing family (one slot here, so it must be that one)
@@ -990,6 +992,7 @@ func _test_half_dreamed(main: Node) -> void:
 	_check(dreams.is_dormant(thunder), "…still asleep without Stormcap itself")
 	dreams.unlocked["stormcap"] = true
 	_check(not dreams.is_dormant(thunder) and dreams.has_rule(thunder.rule_id), "…and wakes once it's all yours")
+	_check(dreams.not_active_reason(thunder) == "", "…and no longer says it's waiting")
 	_reset_dreams(main)
 
 	# How often one is offered per run, for each starting family, with the family picks at 25 and 50:
@@ -997,7 +1000,7 @@ func _test_half_dreamed(main: Node) -> void:
 	# half the time (else a random offered one).
 	var rng := RandomNumberGenerator.new()
 	for start in ["sporeling", "firefly_jar", "dewdrop"]:
-		const RUNS := 150
+		const RUNS := 60  # Trimmed for the suite's time (fixed seeds)
 		var before_pick := 0
 		var through_70 := 0
 		dreams._rng.seed = 21

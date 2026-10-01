@@ -151,7 +151,7 @@ func claim_trample(drift_number: int) -> bool:
 # The reward line for `omen` when paid in `act`, e.g. "+60 Dew · next Dream offers 4 cards".
 # `rest_bonus` >= 0: the rest bonus it multiplies is known, so show the extra Dew instead of "×2".
 # `lost` >= 0: what a block with that many leaves lost paid (scaled, with why); -1: the full promise.
-func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int = -1) -> String:
+func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int = -1, block: int = 0) -> String:
 	var parts: Array[String] = []
 	var scale := _act_scale(act)
 	var share := 1.0
@@ -159,15 +159,14 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 	if lost >= 0 and omen.kind != OmenData.Kind.DOUBLE_EDGED:
 		share = clampf(1.0 - REWARD_CUT_PER_LEAF * lost, 0.0, 1.0)
 		dreams = lost <= DREAM_REWARD_MAX_LOST
-	var dew := floori(roundi(omen.reward_dew * scale) * share)
+	var dew := floori((roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)) * share)
 	if dew > 0:
 		parts.append("+%d Dew" % dew)
+	elif omen.reward_pot_multiplier > 0.0 and block <= 0:  # Dry Spell before its block is known
+		parts.append("the block's Dew back, and a quarter more")
 	var seeds := floori(roundi(omen.reward_seeds * scale) * share)
 	if seeds > 0:
 		parts.append("+%d Seeds" % seeds)
-	var regrow := floori(omen.reward_leaves * share)
-	if regrow > 0:
-		parts.append("regrow %d %s" % [regrow, "leaf" if regrow == 1 else "leaves"])
 	var max_leaves := floori(omen.reward_max_leaves * share)
 	if max_leaves > 0:
 		parts.append("+%d max %s" % [max_leaves, "leaf" if max_leaves == 1 else "leaves"])
@@ -183,7 +182,7 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 				parts.append("rest bonus +%d Dew" % extra)
 		else:
 			parts.append("rest bonus ×%s" % str(omen.reward_rest_bonus_multiplier).trim_suffix(".0"))
-	var dreamlight := floori(omen.reward_dreamlight * share)
+	var dreamlight := floori(floori(omen.reward_dreamlight * scale) * share)  # By act: +1 / +1 / +2 / +2
 	if dreamlight > 0:
 		parts.append("+%d Dreamlight" % dreamlight)
 	if omen.reward_legendary and dreams:
@@ -371,6 +370,9 @@ func _crumble_thornwall() -> void:
 # Shifting Ground: Withered Trees sprout on free cells at the start of its block (once).
 # Second Path: its Thornwall crumbles at the start of its block (once).
 func _on_drift_started(number: int) -> void:
+	if is_active_for(number) and active.reward_pot_multiplier > 0.0:
+		_withheld[number] = drift_director.get_dew_pot(number) \
+			* drift_director.get_dew_pot_multiplier(number, drift_director.is_calling_early(), false)
 	if is_active_for(number) and active.crumble_thornwall and _crumbled_block != active_block:
 		_crumbled_block = active_block
 		_crumble_thornwall()
@@ -408,6 +410,7 @@ func choose(omen: OmenData) -> void:
 		active = omen
 		active_block = current_offer_block
 		_leaves_lost_at_start = run_state.leaves_lost
+		_withheld.clear()
 		var drifts := get_block_range(active_block)
 		omen_started.emit(omen, drifts.x, drifts.y)
 	current_offer = []
@@ -469,17 +472,27 @@ func keeps_dream_reward(lost: int = -1) -> bool:
 		return true
 	return (leaves_lost_in_block() if lost < 0 else lost) <= DREAM_REWARD_MAX_LOST
 
-# The active-Omen tag's line: "Reward · 75% · 1 leaf lost" ("" with no Omen or a double-edged one).
+# Where the active Omen's reward stands now, for the tag's tooltip ("" with no Omen or a double-edged one):
+# "You'd get it all right now." / "You'd get 75% right now: 1 leaf lost." (+ "The Dream reward is gone.")
 func get_reward_status() -> String:
 	if active == null or active.kind == OmenData.Kind.DOUBLE_EDGED:
 		return ""
 	var lost := leaves_lost_in_block()
 	if lost == 0:
-		return "Reward · 100% · no leaf lost"
-	var text := "Reward · %d%% · %d %s lost" % [roundi(get_reward_share(lost) * 100), lost, "leaf" if lost == 1 else "leaves"]
+		return "You'd get it all right now."
+	var share := get_reward_share(lost)
+	var why := "%d %s lost" % [lost, "leaf" if lost == 1 else "leaves"]
+	var text := ("You'd get nothing right now: %s." % why) if share <= 0.0 else ("You'd get %d%% right now: %s." % [roundi(share * 100), why])
 	if not keeps_dream_reward(lost) and _has_dream_reward(active):
-		text += " · Dream reward gone"
+		text += " The Dream reward is gone."
 	return text
+
+# The tag's plain reward line: "Reward: +1 Dreamlight, less for each leaf lost" ("" for a double-edged Omen).
+func get_reward_line() -> String:
+	if active == null or active.kind == OmenData.Kind.DOUBLE_EDGED:
+		return ""
+	var reward := describe_reward(active, drift_director.get_act(maxi(drift_director.drifts_started, 1)), -1, -1, active_block)
+	return "Reward: %s, less for each leaf lost" % reward if reward != "" else ""
 
 static func _has_dream_reward(omen: OmenData) -> bool:
 	return omen.reward_rare_dreams > 0 or omen.reward_extra_dream_cards > 0 or omen.reward_legendary
@@ -488,11 +501,29 @@ static func _has_dream_reward(omen: OmenData) -> bool:
 # Omen blocks and Dew paid.
 var stats := {"paid": 0, "share": 0.0, "leaves_lost": 0, "dew": 0}
 
+# Dry Spell: the block's base Dew pot (the drifts' pots before any multiplier) × reward_pot_multiplier, 0 for other
+# Omens or an unknown block. The leaves-lost share is applied by the caller.
+func get_pot_reward(omen: OmenData, block: int) -> int:
+	if omen.reward_pot_multiplier <= 0.0 or block <= 0:
+		return 0
+	var drifts := get_block_range(block)
+	var pot := 0.0
+	for number in range(drifts.x, drifts.y + 1):
+		# Started: what it would really have paid (the player's own multipliers, called early or not); still to come:
+		# today's multipliers, not called early. Never Dry Spell's own ×0.
+		pot += _withheld.get(number, drift_director.get_dew_pot(number) * drift_director.get_dew_pot_multiplier(number, false, false))
+	return roundi(pot * omen.reward_pot_multiplier)
+
+# Dry Spell: each of its drifts' real pot without the Omen (Rich Dew, Morning Dew, Call of the Wild if called early,
+# Blight), recorded as the drift starts. {drift number: pot}; saved.
+var _withheld := {}
+
 func _pay_reward(rest_bonus: int) -> void:
 	var lost := leaves_lost_in_block()
 	var share := get_reward_share(lost)
 	var dreams := keeps_dream_reward(lost)
 	var omen := active
+	var block := active_block
 	active = null
 	stats.leaves_lost += lost
 	if run_state.is_over and not run_state.won:
@@ -501,14 +532,14 @@ func _pay_reward(rest_bonus: int) -> void:
 	stats.share += share
 	var act := drift_director.get_act(drift_director.drifts_started)
 	var scale := _act_scale(act)
-	var dew := floori((roundi(omen.reward_dew * scale) + _extra_rest_bonus(omen, rest_bonus)) * share)
+	var dew := floori((roundi(omen.reward_dew * scale) + _extra_rest_bonus(omen, rest_bonus) + get_pot_reward(omen, block)) * share)
 	run_state.add_dew(dew)
 	stats.dew += dew
 	if omen.rest_bonus_multiplier < 1.0:  # Lean Season: this rest's bonus shrinks (the twist, never scaled)
 		var gone := mini(roundi(rest_bonus * (1.0 - omen.rest_bonus_multiplier)), run_state.dew)
 		if gone > 0:
 			run_state.spend_dew(gone)
-	var dreamlight := floori(omen.reward_dreamlight * share)
+	var dreamlight := floori(floori(omen.reward_dreamlight * scale) * share)  # By act: +1 / +1 / +2 / +2
 	if dreamlight > 0:
 		dream_state.add_dreamlight(dreamlight, &"omen")
 	if omen.reward_legendary and dreams:
@@ -518,13 +549,12 @@ func _pay_reward(rest_bonus: int) -> void:
 	var max_leaves := floori(omen.reward_max_leaves * share)
 	if max_leaves > 0:
 		run_state.max_leaves += max_leaves
-	var regrow := floori(omen.reward_leaves * share) + max_leaves
-	if regrow > 0:
-		run_state.regrow_leaves(regrow)
+	if max_leaves > 0:
+		run_state.regrow_leaves(max_leaves)  # The new leaves grow in (no Omen heals lost ones: run_design.md)
 	if dreams:
 		dream_state.add_rare_dreams(omen.reward_rare_dreams)
 		dream_state.add_extra_cards(omen.reward_extra_dream_cards)
-	omen_rewarded.emit(omen, describe_reward(omen, act, rest_bonus, lost))
+	omen_rewarded.emit(omen, describe_reward(omen, act, rest_bonus, lost, block))
 
 # The run was won during an Omen's block: there's no rest after it, so pay now (Seeds still count).
 func _on_run_ended(won: bool) -> void:
@@ -572,6 +602,7 @@ func to_save() -> Dictionary:
 		"last_offer": _last_offer_ids.duplicate(), "tree_seed_bonus": tree_seed_bonus, "sprouted_block": _sprouted_block,
 		"crumbled_block": _crumbled_block, "locked_cells": locked_cells.map(func(c: Vector2) -> Array: return [c.x, c.y]),
 		"leaves_lost_at_start": _leaves_lost_at_start, "trampled_drift": _trampled_drift,
+		"withheld": _withheld.keys().map(func(k: int) -> Array: return [k, _withheld[k]]),
 		"offer": current_offer.map(func(o: OmenData) -> String: return o.id), "offer_block": current_offer_block,
 		"faced": faced,
 		"rng_state": str(_rng.state)}
@@ -586,6 +617,9 @@ func load_save(data: Dictionary) -> void:
 	locked_cells.assign(Array(data.get("locked_cells", [])).map(func(c: Array) -> Vector2: return Vector2(c[0], c[1])))
 	_leaves_lost_at_start = int(data.get("leaves_lost_at_start", 0))
 	_trampled_drift = int(data.get("trampled_drift", 0))
+	_withheld.clear()
+	for pair in data.get("withheld", []):
+		_withheld[int(pair[0])] = float(pair[1])
 	# An offer still open at a save comes back as the Omen screen
 	current_offer = []
 	showing = false

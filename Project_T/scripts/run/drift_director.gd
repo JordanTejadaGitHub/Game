@@ -319,6 +319,9 @@ func start_next_drift() -> bool:
 	if bonus > 0:
 		run_state.add_dew(bonus)
 	_called_early = is_arriving()  # Call of the Wild: a drift called early has its pot +10%
+	if _called_early:  # Run history (balancing: "the user calls most drifts early")
+		early_calls += 1
+		call_early_dew += bonus
 	_start_drift()
 	_called_early = false
 	return true
@@ -494,6 +497,12 @@ func _spawn(data: EnemyData, number: int, elite: bool = false, share: float = -1
 # --- The Dew pot --------------------------------------------------------------------------------------
 
 var _called_early := false  # Set while start_next_drift starts a drift early
+var early_calls := 0  # Drifts started while the previous one was still arriving, this run
+var call_early_dew := 0  # Dew paid by calling early, this run
+
+# Whether the drift being started right now was called early (drift_started's listeners ask).
+func is_calling_early() -> bool:
+	return _called_early
 var block_pot := 0.0  # The pots of this block's drifts (rest report: "Dew this block: 840 of 900")
 
 # Drift `number`'s base pot from the table (before Dreams / Omens).
@@ -509,7 +518,8 @@ func get_dew_pot(number: int) -> float:
 # What multiplies the pot: Dream cards (Morning Dew; Call of the Wild when called early) and Omens
 # (Bountiful Night, Blood Moon, Dry Spell), Rich Dew (Grove dew_gain) and a Blight Dew cut. Catchers, call-early
 # Dew and rest bonuses come on top instead.
-func get_dew_pot_multiplier(number: int, called_early: bool = false) -> float:
+# `with_omen` false: everything but the active Omen's factor (Dry Spell pays back what the block would have held).
+func get_dew_pot_multiplier(number: int, called_early: bool = false, with_omen: bool = true) -> float:
 	var multiplier := 1.0
 	if run_state != null:  # Rich Dew (Grove dew_gain, +5% a level): the pot, not each nightmare (run_design.md, fixed)
 		multiplier *= 1.0 + run_state.dew_gain_bonus
@@ -518,7 +528,7 @@ func get_dew_pot_multiplier(number: int, called_early: bool = false) -> float:
 	if dreams != null and dreams.has_method("get_dew_pot_multiplier"):
 		multiplier *= dreams.get_dew_pot_multiplier(number, called_early)
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) if is_inside_tree() else null
-	if omens != null and omens.has_method("get_dew_pot_multiplier"):
+	if with_omen and omens != null and omens.has_method("get_dew_pot_multiplier"):
 		multiplier *= omens.get_dew_pot_multiplier(number)
 	return multiplier
 

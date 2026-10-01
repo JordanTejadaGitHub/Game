@@ -88,7 +88,7 @@ func _run() -> void:
 	screen._show_offer(cards, 25)
 	for i in 3:
 		await process_frame
-	# Half-dreamed stays internal: the card shows only "Needs <damage type>" (no emblem), no label, no "Sleeps"
+	# No Needs line on the card face (dream_design.md 2026-10-01, user: "can remove the Needs Water"), even half-dreamed
 	var bloom_button := screen._cards.get_child(0).get_child(0) as Button
 	var bloom_texts: Array = bloom_button.find_children("*", "", true, false) \
 		.filter(func(n: Node) -> bool: return n is Label or n is RichTextLabel) \
@@ -96,9 +96,11 @@ func _run() -> void:
 	var joined := " | ".join(bloom_texts)
 	var needs := dreams.missing_needs(bloom)
 	var row := bloom_button.find_child("MissingRow", true, false)
-	_check(not needs.is_empty() and row != null and bloom_texts.has(needs[0].type) and row.get_children().filter(func(c: Node) -> bool: return c is TextureRect).is_empty()
+	_check(not needs.is_empty() and row == null and not bloom_texts.any(func(t: String) -> bool: return t.begins_with("Needs"))
 		and not joined.to_lower().contains("half-dreamed") and not joined.contains("Sleeps"),
-		"a half-dreamed card: one \"Needs <type>\" line, no emblem (%s)" % joined)
+		"a half-dreamed card: no \"Needs …\" line, no label (%s)" % joined)
+	_check(dreams.not_active_reason(bloom) == "Not active yet: needs a %s Warden" % needs[0].type or dreams.not_active_reason(bloom).begins_with("Not active yet: needs a"),
+		"…the reason lives on for the Dreams this run hover (%s)" % dreams.not_active_reason(bloom))
 	_check(dreams.missing_families_text(bloom) == "Needs " + needs[0].type and needs[0].type == IconInfo.damage_type_name(needs[0].line),
 		"…named by damage type, not the family (%s)" % dreams.missing_families_text(bloom))
 	_check(not joined.contains("Entwined"), "no \"Entwined\" label, the vine border says it (%s)" % joined)
@@ -170,14 +172,14 @@ func _run() -> void:
 	cross_button.mouse_entered.emit()
 	for i in 3:
 		await process_frame
-	var shown_diagram: Control = screen._diagram
-	_check(shown_diagram != null and is_instance_valid(shown_diagram) and shown_diagram.visible, "hovering Crossroads shows its diagram")
+	var shown_diagram: Control = screen._scene if screen._scene != null and screen._scene.visible else screen._diagram  # The living scene (still diagram under reduced motion)
+	_check(shown_diagram != null and is_instance_valid(shown_diagram) and shown_diagram.visible, "hovering Crossroads shows its scene")
 	if shown_diagram != null and is_instance_valid(shown_diagram):
 		var diagram_rect := shown_diagram.get_global_rect()
 		_check(Rect2(Vector2.ZERO, Vector2(root.size)).encloses(diagram_rect) and not diagram_rect.intersects(cross_button.get_global_rect()),
 			"…beside the card, on screen (%s, card %s)" % [diagram_rect, cross_button.get_global_rect()])
 	cross_button.mouse_exited.emit()
-	_check(screen._diagram == null, "…and leaving the card hides it")
+	_check(screen._diagram == null and (screen._scene == null or not screen._scene.visible), "…and leaving the card hides it")
 	# The living mini-scene (dream_design.md "Revised: a living mini-scene"): Heart of the Maze plays one in the pooled view
 	var heart: UpgradeData = null
 	for card in dreams.pool:
@@ -211,6 +213,29 @@ func _run() -> void:
 			_check(golds > 0 and whites > 0, "…the favoured Warden hits for gold \"×2\", the others for white numbers (%d / %d)" % [golds, whites])
 			heart_button.mouse_exited.emit()
 			_check(not scene.visible and not scene.is_processing() and scene._world == null, "…and leaving stops it (pooled, nothing running)")
+		# Every placement card plays one (user approved Heart of the Maze, 2026-10-01): a walkable path, its gold
+		# effect in CardScene.EFFECTS, and something that shows it (a favoured Warden or a marked Thornwall)
+		var tester := CardScene.new()
+		screen.add_child(tester)
+		await process_frame
+		for card in dreams.pool.filter(func(c: UpgradeData) -> bool: return CardDiagram.has_diagram(c)):
+			tester.show_card(card)
+			var shows: bool = tester._wardens.any(func(w: Dictionary) -> bool: return w.boosted) or not tester._walls.is_empty()
+			_check(CardScene.can_show(card) and CardScene.EFFECTS.has(card.id) and tester._path.size() >= 5 and shows,
+				"%s: a living scene (path %d cells, %d Wardens, %d marked walls)" % [card.id, tester._path.size(), tester._wardens.size(), tester._walls.size()])
+		tester.stop()
+		tester.queue_free()
+		# The dev card grid previews it too, so it can be reviewed without waiting for a Dream to offer it
+		var picker := DevCardPicker.open(screen, dreams, func(_c: UpgradeData) -> void: pass)
+		picker._search.text = "Heart of the Maze"
+		picker._refresh()
+		await process_frame
+		var grid_button: Button = picker._grid.get_child(0) if picker._grid.get_child_count() > 0 else null
+		if grid_button != null:
+			grid_button.mouse_entered.emit()
+			await process_frame
+		_check(picker._scene != null and picker._scene.visible, "the dev card grid plays Heart of the Maze's scene on hover")
+		picker.queue_free()
 	print("dream screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

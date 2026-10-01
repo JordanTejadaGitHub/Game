@@ -57,6 +57,11 @@ const RUIN_STONES: Array[int] = [2, 3, 7]  # mossy_boulder.png: standing stone, 
 # A gap in the first ridge sits at least this far inside the second ridge's reach, so going through it
 # still means doubling back that far. SIDE layouts (which start mid-edge) keep both ridges gap-free.
 const BEND_DEPTH := 4
+# Pond blob sizes (half the ponds; the rest are 3×3 with corners dropped or an L, with pond_inner.png
+# drawing their inside corners).
+const POND_SIZES: Array[Vector2i] = [Vector2i(2, 3), Vector2i(3, 2), Vector2i(2, 3), Vector2i(3, 2), Vector2i(3, 3), Vector2i(2, 2)]
+const NEAR_ROUTE := 2  # A pond or ruin first tries to come this close (chessboard) to the opening route
+const NEAR_ROUTE_TRIES := 50
 @onready var path_tile_map_layer: PathGenerator = %PathTileMapLayer
 
 var unwalkable_cells: PackedVector2Array
@@ -78,6 +83,7 @@ var _axis_u := 0  # The ridge frame: ridges run along x (0) or y (1)
 # The map's one feature (MapLayout.feature): pond cells block the route but aren't obstacles (never
 # cleared); a ruin, grove or log are obstacles like any other.
 var pond_cells: Array[Vector2] = []
+var pond_corners: Array = []  # [cell (Vector2), pond_inner column (0 NE, 1 SE, 2 SW, 3 NW)] per inside corner
 var feature_cells: Array[Vector2] = []
 
 func initialize(startPath: Vector2i, endPath: Vector2i) -> PackedVector2Array:
@@ -408,11 +414,18 @@ func _outward(cell: Vector2i) -> Vector2i:
 func _place_feature(rng: RandomNumberGenerator, skip: PackedVector2Array, obstacles: Dictionary) -> void:
 	pond_cells.clear()
 	feature_cells.clear()
+	pond_corners.clear()
 	if layout == null:
 		return
+	# A pond or ruin should shape the opening: the first tries must come within NEAR_ROUTE cells of the
+	# route as the ridges leave it; then anywhere, as before.
+	var shapes_route := layout.feature == MapLayout.Feature.POND or layout.feature == MapLayout.Feature.RUIN
+	var route := _provisional_route() if shapes_route else {}
 	for attempt in 80:
 		var cells := _feature_shape(rng, layout.feature)
 		if cells.is_empty() or not cells.all(func(c: Vector2) -> bool: return _feature_cell_ok(c, skip, obstacles)):
+			continue
+		if shapes_route and attempt < NEAR_ROUTE_TRIES and not _near(cells, route):
 			continue
 		if not _route_survives(cells):  # Never across the only way through (ponds can't be cleared at all)
 			continue
@@ -423,6 +436,7 @@ func _place_feature(rng: RandomNumberGenerator, skip: PackedVector2Array, obstac
 						| (4 if cells.has(cell + Vector2.DOWN) else 0) | (8 if cells.has(cell + Vector2.LEFT) else 0))
 					set_cell(Vector2i(cell), EnvironmentTiles.POND, Vector2i(mask, 0))
 				pond_cells.assign(cells)
+				_find_pond_corners(cells)
 			MapLayout.Feature.RUIN:
 				for cell in cells:  # Standing stones, cairns and ruined waystones
 					_place_obstacle_tile(cell, rock_obstacle, Vector2i(RUIN_STONES[rng.randi_range(0, RUIN_STONES.size() - 1)], 0), obstacles)
@@ -437,11 +451,26 @@ func _feature_shape(rng: RandomNumberGenerator, feature: MapLayout.Feature) -> A
 	var at := Vector2(rng.randi_range(2, int(MAP_GRID.size.x) - 3), rng.randi_range(2, int(MAP_GRID.size.y) - 3))
 	var cells: Array[Vector2] = []
 	match feature:
-		MapLayout.Feature.POND:  # A 2×2 to 3×3 patch of water
-			var side := rng.randi_range(2, 3)
-			for dx in side:
-				for dy in side:
-					cells.append(at + Vector2(dx, dy))
+		MapLayout.Feature.POND:  # Organic: a blob, a 3×3 with 1-2 corners dropped, or an occasional L
+			var shape := rng.randf()
+			var size: Vector2i = POND_SIZES[rng.randi_range(0, POND_SIZES.size() - 1)] if shape < 0.5 else Vector2i(3, 3)
+			var dropped := {}
+			var corners: Array[Vector2i] = [Vector2i(0, 0), Vector2i(2, 0), Vector2i(0, 2), Vector2i(2, 2)]
+			var first := corners[rng.randi_range(0, 3)]
+			var second := corners[rng.randi_range(0, 3)]
+			if shape >= 0.5 and shape < 0.9:
+				dropped[first] = true
+				if shape >= 0.75:
+					dropped[second] = true  # Sometimes the same corner: then just one
+			elif shape >= 0.9:  # An L: a 2×2 bite out of one corner
+				var bite := Vector2i(mini(first.x, 1), mini(first.y, 1))
+				for dx in 2:
+					for dy in 2:
+						dropped[bite + Vector2i(dx, dy)] = true
+			for dx in size.x:
+				for dy in size.y:
+					if not dropped.has(Vector2i(dx, dy)):
+						cells.append(at + Vector2(dx, dy))
 		MapLayout.Feature.RUIN:  # A ring of stones 3 or 4 across, open on one side
 			var side := rng.randi_range(3, 4)
 			var gap_side := rng.randi_range(0, 3)
@@ -501,3 +530,57 @@ func _route_survives(pond: Array[Vector2]) -> bool:
 func _place_obstacle_tile(cell: Vector2, data: ObstacleData, tile: Vector2i, obstacles: Dictionary) -> void:
 	set_cell(Vector2i(cell), data.source_id, tile)
 	obstacles[cell] = data
+
+# The opening route as the ridges leave it (before trees and rocks): a shortest walk from the start to
+# the end past the rim and the ridges. {cell (Vector2i): true}; empty if there's none yet.
+func _provisional_route() -> Dictionary:
+	var blocked := {}
+	for cell in unwalkable_cells:
+		blocked[Vector2i(cell)] = true
+	for cell in ridge_cells:
+		blocked[Vector2i(cell)] = true
+	var came_from := {_start: _start}
+	var queue: Array[Vector2i] = [_start]
+	var size := Vector2i(MAP_GRID.size)
+	var head := 0
+	while head < queue.size():
+		var at := queue[head]
+		head += 1
+		if at == _end:
+			break
+		for step: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			var next := at + step
+			if next.x < 0 or next.y < 0 or next.x >= size.x or next.y >= size.y or came_from.has(next):
+				continue
+			if blocked.has(next) and next != _end:
+				continue
+			came_from[next] = at
+			queue.append(next)
+	var route := {}
+	if not came_from.has(_end):
+		return route
+	var cell := _end
+	while cell != _start:
+		route[cell] = true
+		cell = came_from[cell]
+	route[_start] = true
+	return route
+
+# True if any of `cells` is within NEAR_ROUTE (chessboard) of the route.
+func _near(cells: Array[Vector2], route: Dictionary) -> bool:
+	for cell in cells:
+		for dx in range(-NEAR_ROUTE, NEAR_ROUTE + 1):
+			for dy in range(-NEAR_ROUTE, NEAR_ROUTE + 1):
+				if route.has(Vector2i(cell) + Vector2i(dx, dy)):
+					return true
+	return false
+
+# Inside corners of a pond that isn't a rectangle: a cell whose two neighbours on a corner's sides are
+# pond but whose diagonal isn't gets that corner's pond_inner overlay (MapGenerator draws them).
+func _find_pond_corners(cells: Array[Vector2]) -> void:
+	var diagonals: Array[Vector2] = [Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1), Vector2(-1, -1)]  # NE, SE, SW, NW
+	for cell in cells:
+		for column in diagonals.size():
+			var d := diagonals[column]
+			if cells.has(cell + Vector2(d.x, 0)) and cells.has(cell + Vector2(0, d.y)) and not cells.has(cell + d):
+				pond_corners.append([cell, column])
