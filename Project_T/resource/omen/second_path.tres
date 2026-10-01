@@ -10,6 +10,5 @@ description = "At the {block}'s start, the Thornwall that lengthens the route mo
 flavor = "An old way opens in the dark."
 min_drift = 15
 kind = 4
-waiting_for_hook = true
 crumble_thornwall = true
 reward_seeds = 4
