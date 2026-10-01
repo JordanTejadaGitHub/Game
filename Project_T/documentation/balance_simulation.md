@@ -553,6 +553,15 @@ at drift 20, spent at that rest.
   A/B (4c8050a9 vs 722cf38b, Sporeling and Firefly first, 20 seeds): **no map effect**; inland is if
 anything a little easier (Firefly: leaves lost by 25 8.5 → 3, first leak 9 → 14; survived 90% both).
 Run 6's early pressure was that seed or the opening, not the inland change. Closed.
+
+## Potency scales statuses (user, 2026-10-01; tower_design.md 175bf263)
+
+Caps confirmed: **Soaked** water bonus 20% × Potency, cap +40%; **Exposed** 25% × Potency (Beacon
+included), cap +40%; **Drowsy** slow per stack × Potency, floors unchanged; **Rooted** duration ×
+Potency, cap 2 s. **Deep rank = +18% Potency only** (the separate duration bonus goes). Several
+appliers: the strongest current applier's Potency (as Poisoned). Exposed caps at Potency 1.6 (~3 Deep
+ranks on a base Warden). Built behind a toggle; A/B on the same seeds (maze DPS, Exposed share, how
+often the caps bind) once it lands.
 This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
 off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
 then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.
