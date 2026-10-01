@@ -1308,7 +1308,7 @@ card builds sit at **40–66%**; Emergence (mixed) 66%, Adapt 93–94%. Round 5 
    coming together by the middle of act 3 is right, and the user's playtest said builds came too
    easily. Chasing target: **3+ by drift 75 in 35–65%**, 5+ by 100 in 25–50%. Emergence stays
    judged at drift 50 (≥ 60% mixed).
-3. `tag_weight` stays **1.3**.
+3. `tag_weight` stays **1.3**. **Superseded 2026-09-30:** the user turned build tag steering off: `tag_weight` = **1.0** and the Tall ↔ Overgrowth ×0.5 opposition is removed. Offers are shaped only by rarity, the fade, the run's random pool, Needs and the Stray slot; archetype tags stay for tag resonance, the Legendary rules and measurement.
 
 **Round 5 measured (a399d702) — the pass ends here.** At 1.3, all 8 card builds reach their target on
 at least one measure:
