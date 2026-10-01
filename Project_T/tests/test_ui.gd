@@ -756,7 +756,7 @@ func _run() -> void:
 		await process_frame
 		var ids_after: Array = panel._buttons.get_children().map(func(b) -> int: return b.get_instance_id())
 		_check(ids_after == ids, "a Dew change keeps the Warden panel's buttons (a tooltip under the pointer stays)")
-		_check(priced.all(func(b) -> bool: return b.disabled), "and their affordability updates in place")
+		_check(priced.all(func(b) -> bool: return b.get_meta(&"short", false) and not b.disabled), "and their affordability updates in place (dimmed, still pressable for the can't-buy refusal)")
 		run_state.dew = 100000
 		run_state.dew_changed.emit(100000)
 		_check(priced.all(func(b) -> bool: return not b.disabled or b.text.contains("Dreamlight")), "back when there's Dew")
