@@ -264,6 +264,8 @@ func _init() -> void:
 		for warden: String in LINES[line]:
 			var idle := _make(warden, Callable(self, "_draw_" + warden))
 			rows.append([idle, _make_attack(warden) if ATTACKS.has(warden) else null])
+			if warden in CHANNEL_WARDENS:
+				_make_channel(warden)
 		_save_line_preview(rows, PREVIEWS + line + ".png")
 	_save_attack_info()
 	_make_ranks()
@@ -372,6 +374,41 @@ func _make_attack(tower_name: String) -> Image:
 		sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(a * S, 0))
 	sheet = _detail_pass(sheet, Vector2i(S, S))
 	sheet.save_png(OUT + tower_name + "_attack.png")
+	return sheet
+
+# <name>_channel.png for the BEAM Wardens (Sunpetal, Midsummer): 3 frames the game ping-pongs while
+# the beam is held (TowerData.beam_sustain_texture). The code draws the beam itself, toward the
+# target in any direction, so these frames draw no ray: the flower in its release pose, glowing and
+# pouring light from the attack point (attacks.json), sparks round it on every side.
+const CHANNEL_WARDENS := ["sunpetal", "midsummer"]
+const CHANNEL_FRAMES := 3
+
+func _make_channel(tower_name: String) -> Image:
+	_warden_name = tower_name
+	var sheet := Image.create_empty(S * CHANNEL_FRAMES, S, false, Image.FORMAT_RGBA8)
+	var at := Vector2(ATTACKS[tower_name].point)
+	for c in CHANNEL_FRAMES:
+		var canvas := _layer()
+		var st := _attack_state(RELEASE_FRAME)
+		st.f = c
+		st.power = [0.85, 1.0, 0.9][c]
+		call("_draw_" + tower_name, canvas, st)
+		# The pouring light: a bright core on the flower's face, a ring that breathes, eight short
+		# sparks round it (no direction), all warm.
+		var r: float = [2.0, 2.6, 2.3][c]
+		var core := _layer()
+		_flat_ellipse(core, at + Vector2(0.5, 0.5), Vector2(r, r), Color("#fff4a0"))
+		_stamp(canvas, core)
+		_px(canvas, int(at.x), int(at.y), Color.WHITE)
+		for k in 8:
+			var d := Vector2.from_angle(k * TAU / 8.0 + c * TAU / 24.0)
+			var len := 2 + (k + c) % 2
+			for i in range(int(r) + 2, int(r) + 2 + len):
+				_px(canvas, roundi(at.x + d.x * i), roundi(at.y + d.y * i), Color("#ffd24a") if i > int(r) + 2 else Color("#fff4a0"))
+		_warm_glow(canvas, at, Vector2(8.0 + c, 7.0 + c), c)
+		sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(c * S, 0))
+	sheet = _detail_pass(sheet, Vector2i(S, S))
+	sheet.save_png(OUT + tower_name + "_channel.png")
 	return sheet
 
 func _save_attack_info() -> void:
