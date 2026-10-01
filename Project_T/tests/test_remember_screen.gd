@@ -109,14 +109,15 @@ func _run() -> void:
 		_check(not screen._canvas.edges.any(func(e: Array) -> bool: return e[0] == hidden), "…and so is the line up to it")
 		screen._select(hidden)
 		var side: Array = screen._side_box.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
-		_check(side.size() == 3 and side[0] == hidden.display_name and side[1].to_lower() == "locked" and side[2] == "Plant it in the Memory Grove",
-			"its side panel: the name, \"Locked\" and to plant it, nothing else (%s)" % " | ".join(side))
+		_check(side.size() == 3 and side[0] == "???" and side[1].to_lower() == "locked" and side[2] == "Plant it in the Memory Grove",
+			"its side panel: \"???\" (no name), \"Locked\" and to plant it, nothing else (%s)" % " | ".join(side))
 		var grove_node: Control = nodes[hidden]
 		_check(grove_node.portrait.material == RememberScreen.Portrait.silhouette_material(),
 			"a Grove form is a silhouette (on the moonlit disc)")
 		var side_portrait: Array = screen._side_box.find_children("*", "TextureRect", true, false)
 		_check(not side_portrait.is_empty() and side_portrait[0].material == RememberScreen.Portrait.silhouette_material(), "…and its silhouette, not the picture")
-		_check(grove_node.tooltip_text.begins_with(hidden.display_name), "…and named")
+		_check(grove_node.tooltip_text.begins_with("???") and not grove_node.tooltip_text.contains(hidden.display_name) and grove_node.name_shown() == "???",
+			"…and unnamed: \"???\" under it and in its tooltip (%s)" % grove_node.name_shown())
 		screen.close()
 
 	# The Ascended crown: hidden until its Grove node is planted and drift 51 is reached.

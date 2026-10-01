@@ -19,6 +19,7 @@ signal unlocked(data: TowerData)  # A successful unlock (Sound reads data.tier)
 signal unlock_rejected(data: TowerData)  # Not enough Dreamlight, or still locked
 
 const MOTE := "✦"  # Dreamlight
+const UNKNOWN_NAME := "???"  # A form the Memory Grove hasn't planted: no name, on the tree or in the panel (user)
 const NODE_SIZE := Vector2(76, 92)  # 48 px+ for touch
 const PORTRAIT := 56.0
 const TREE_SIZE := Vector2(560, 440)
@@ -275,9 +276,9 @@ func _fill_side(data: TowerData) -> void:
 	head.add_theme_constant_override("separation", 10)
 	_side_box.add_child(head)
 	head.add_child(Portrait.new(data, 72.0, grove))  # A Grove-locked form stays a silhouette here too (user)
-	if grove:  # run_design.md: a Grove-locked form shows only its silhouette, name, "Locked" and the invitation
+	if grove:  # run_design.md: a Grove-locked form shows only its silhouette, "???", "Locked" and the invitation
 		var grove_name := Label.new()
-		grove_name.text = data.display_name
+		grove_name.text = UNKNOWN_NAME
 		UiStyle.display(grove_name, 22)
 		head.add_child(grove_name)
 		UiStyle.caps(_line("Locked", UiStyle.INK_DIM, 14), 14)  # No description, stats or combos until it's planted
@@ -572,7 +573,7 @@ class FormNode extends Button:
 			portrait.modulate = Color.WHITE.darkened(0.2)  # Grove-available, not unlocked this run: its real colours, ~80%
 		portrait.position = Vector2((NODE_SIZE.x - PORTRAIT) / 2.0, 4)
 		add_child(portrait)
-		tooltip_text = data.display_name + (" · Memory Grove" if state == State.GROVE else "")
+		tooltip_text = UNKNOWN_NAME + " · Memory Grove" if state == State.GROVE else data.display_name  # Grove-locked: no name (user)
 		pressed.connect(func() -> void: screen._select(data))
 
 	func _process(delta: float) -> void:
@@ -607,7 +608,7 @@ class FormNode extends Button:
 				text = data.display_name  # The chain on its line says it's locked
 				colour = UiStyle.INK_DIM
 			State.GROVE:
-				text = data.display_name  # Its name under it, and a Grove leaf badge on the stone
+				text = name_shown()  # "???" under it (user: no name until planted), and a Grove leaf badge on the stone
 				colour = UiStyle.INK_DIM
 				_draw_leaf(centre + Vector2(PORTRAIT / 2.0 - 8, -PORTRAIT / 2.0 + 8))
 		if text != "":
@@ -616,6 +617,10 @@ class FormNode extends Button:
 			var font := UiStyle.caps_font() if words else UiStyle.number_font()
 			var font_size := 12 if words else 16
 			_caption(text, font, font_size, colour, NODE_SIZE.y - 6)
+
+	# The name this node shows: "???" for a form the Memory Grove hasn't planted (user), else its own.
+	func name_shown() -> String:
+		return UNKNOWN_NAME if screen.state_of(data) == State.GROVE else data.display_name
 
 	# One centred line under the portrait; a long name shrinks to 10 px, never past the node.
 	func _caption(text: String, font: Font, font_size: int, colour: Color, baseline: float) -> void:
