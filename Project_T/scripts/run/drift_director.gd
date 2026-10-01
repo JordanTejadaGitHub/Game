@@ -105,6 +105,7 @@ var blight_speed_multiplier := 1.0
 var blight_rest_bonus_multiplier := 1.0  # The block's rest bonus (before perfect / Dreams)
 var rest_bonus_perk_multiplier := 1.0  # Rested Roots (Grove perk), same part of the rest bonus
 var blight_elites_per_drift := 0  # Nightmares per drift made Deeply Blighted
+var blight_dew_multiplier := 1.0  # A Blight Level's Dew cut: multiplies every drift's pot (none set yet)
 
 @onready var run_state: RunState = %RunState
 @onready var spawner = %EnemyContainer
@@ -506,9 +507,13 @@ func get_dew_pot(number: int) -> float:
 	return lerpf(row.x, row.y, clampf(float(number - first) / maxf(last - first, 1), 0.0, 1.0))
 
 # What multiplies the pot: Dream cards (Morning Dew; Call of the Wild when called early) and Omens
-# (Bountiful Night, Blood Moon, Dry Spell). Catchers, call-early Dew and rest bonuses come on top instead.
+# (Bountiful Night, Blood Moon, Dry Spell), Rich Dew (Grove dew_gain) and a Blight Dew cut. Catchers, call-early
+# Dew and rest bonuses come on top instead.
 func get_dew_pot_multiplier(number: int, called_early: bool = false) -> float:
 	var multiplier := 1.0
+	if run_state != null:  # Rich Dew (Grove dew_gain, +5% a level): the pot, not each nightmare (run_design.md, fixed)
+		multiplier *= 1.0 + run_state.dew_gain_bonus
+	multiplier *= blight_dew_multiplier
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
 	if dreams != null and dreams.has_method("get_dew_pot_multiplier"):
 		multiplier *= dreams.get_dew_pot_multiplier(number, called_early)

@@ -50,7 +50,7 @@ func add_sprout_charges(amount: int) -> void:
 var creatures_cleansed := 0
 var leaves_lost := 0
 var seed_bonus := 0.0  # +share of Seeds at run end (Seed Pouch, Blight Levels); set by MetaRun
-var dew_gain_bonus := 0.0  # Rich Dew (Grove dew_gain), set by MetaRun: no longer applied (The Dew pot folds it in)
+var dew_gain_bonus := 0.0  # Rich Dew (Grove dew_gain), set by MetaRun: multiplies every drift's Dew pot (DriftDirector)
 var free_nurtures := 0  # Nurture ranks left that cost no Dew (First Care); set by MetaRun
 var longest_path := 0  # Longest route the maze reached this run, in tiles
 var play_time := 0.0  # Seconds of unpaused play this run
