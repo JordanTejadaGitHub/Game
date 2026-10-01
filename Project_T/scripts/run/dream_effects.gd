@@ -34,7 +34,7 @@ const REPORTERS := {
 	&"sudden_bloom": "_sudden_bloom", &"watchful_rest": "_watchful_rest", &"straightaway": "_straightaway",
 	&"many_rings": "_many_rings", &"hedgerow": "_hedgerow", &"spinning_corners": "_spinning_corners",
 	&"fresh_soil": "_fresh_soil", &"heartwoods_fury": "_heartwoods_fury", &"patchwork": "_patchwork",
-	&"mixed_grove": "_mixed_grove", &"quick_step": "_quick_step", &"restless_roots": "_restless_roots", &"far_reach": "_far_reach", &"tended_stumps": "_tended_stumps", &"hollow_ground": "_hollow_ground",
+	&"mixed_grove": "_mixed_grove", &"quick_step": "_quick_step", &"restless_roots": "_restless_roots", &"far_reach": "_far_reach", &"tended_stumps": "_tended_stumps", &"hollow_ground": "_hollow_ground", &"drumbeat": "_drumbeat",
 	&"long_shadows": "_long_shadows", &"scarred_bark": "_scarred_bark", &"desperate_bloom": "_desperate_bloom",
 	&"odd_one_out": "_odd_one_out", &"grand_tour": "_grand_tour",
 	&"heart_of_the_maze": "_heart_of_the_maze",
@@ -647,6 +647,16 @@ func _golden_harvest(_spot: Dictionary, _board: Board, card: UpgradeData) -> Dic
 	var grown := ds.seed_grown(card)
 	return {"run_wide": true, "active": grown and bonus > 0.0, "damage": bonus, "note": "%d Dew harvested" % dew,
 		"reason": "" if grown and bonus > 0.0 else ("no catcher yet" if not grown else "harvest 100 Dew")}
+
+# Drumbeat (card 248, Swift): touching 2+ other attacking Wardens (the 8 cells) = +30% attack speed. Live.
+func _drumbeat(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var touching := board.touching(spot).filter(func(o: Dictionary) -> bool: return DreamEffects._data(o).can_attack).size()
+	var on := touching >= DreamState.DRUMBEAT_TOUCHING
+	return {"positional": true, "radius": 1.0, "active": on, "speed": DreamState.DRUMBEAT_SPEED,
+		"note": count_text(touching, "attacking Warden") + " touching",
+		"reason": "" if on else "touches %d attacking Wardens (needs %d)" % [touching, DreamState.DRUMBEAT_TOUCHING]}
 
 # Clearing payoffs (cards 246–247): a Warden touching a tended stump, or planted in a moved hollow.
 func _tended_stumps(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:

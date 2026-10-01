@@ -692,8 +692,8 @@ func _test_clearing_payoffs() -> void:
 # the per-hit parts by rule id).
 func _test_grove_branches() -> void:
 	_reset()
-	var swift := ["momentum", "momentum_ii", "quickening", "flurry", "restless_roots", "hummingheart", "whirlwind_heart"]
-	var reach := ["broad_splash", "lingering_splash", "lingering_splash_ii", "far_reach", "far_reach_ii", "spillover", "great_ripple"]
+	var swift := ["momentum", "momentum_ii", "quickening", "flurry", "restless_roots", "hummingheart", "whirlwind_heart", "drumbeat"]
+	var reach := ["broad_splash", "lingering_splash", "lingering_splash_ii", "far_reach", "far_reach_ii", "spillover", "great_ripple", "overlap"]
 	for id in swift + reach:
 		var card := _card(id)
 		_check(card != null and not card.in_start_pool and card.tags == [("swift" if swift.has(id) else "reach")],
@@ -748,6 +748,27 @@ func _test_grove_branches() -> void:
 	_check(dreams.lingering_splash_every() == 3, "Lingering Splash: every 3rd area attack")
 	dreams.take(_card("lingering_splash_ii"))
 	_check(dreams.lingering_splash_every() == 2, "…II: every 2nd")
+	# Drumbeat (248): touching 2+ other attacking Wardens = +30% attack speed
+	dreams.take(_card("drumbeat"))
+	var drum := _plant("sporeling", Vector2(140, 140))
+	_plant("sporeling", Vector2(141, 140))
+	dreams.bump_board()
+	_check(not _row(drum.tower_data, drum.cell, "drumbeat", drum).active, "Drumbeat: one neighbour isn't enough")
+	_plant("firefly_jar", Vector2(140, 141))
+	dreams.bump_board()
+	_check(_row(drum.tower_data, drum.cell, "drumbeat", drum).active and is_equal_approx(_row(drum.tower_data, drum.cell, "drumbeat", drum).speed, 0.30),
+		"…two touching attackers: +30% attack speed")
+	# Overlap (249): a different Warden's area hit within 1 s = ×1.4 on the second
+	var other := _plant("dewdrop", Vector2(150, 150))
+	var target := _spawn(Vector2(5, 5))
+	_check(dreams.overlap_multiplier(drum, target) == 1.0, "no Overlap card: ×1")
+	dreams.take(_card("overlap"))
+	_check(dreams.overlap_multiplier(drum, target) == 1.0, "Overlap: the first area hit is plain")
+	_check(is_equal_approx(dreams.overlap_multiplier(other, target), 1.4), "…a second Warden within 1 s: +40%")
+	_check(dreams.overlap_multiplier(other, target) == 1.0, "…the same Warden again: plain (never chains)")
+	dreams._game_clock += 1.5
+	_check(dreams.overlap_multiplier(drum, target) == 1.0, "…after 1 s: plain")
+	target.free()
 	_clear()
 	_reset()
 

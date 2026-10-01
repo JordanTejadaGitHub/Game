@@ -3531,3 +3531,22 @@ func _add_new_family_cards() -> void:
 		for card in pool:
 			if _card_family(card) == family and (card.in_start_pool or grove_cards.has(card.id)):
 				run_pool[card.id] = true
+
+
+# --- Drumbeat and Overlap (cards 248–249, 2026-09-30): one more card for each Grove build branch ------------------
+const DRUMBEAT_TOUCHING := 2  # Other attacking Wardens in the 8 cells
+const DRUMBEAT_SPEED := 0.30
+const OVERLAP_WINDOW := 1.0  # Seconds
+const OVERLAP_BONUS := 0.40
+
+# Overlap: Tower calls this for every area hit. It remembers the nightmare's last area hit (Warden, time) and
+# returns the multiplier for this one: ×1.4 when a different Warden's area attack hit it within 1 s. One bonus
+# per hit; it never chains (the bonus hit just becomes the new "last" hit).
+func overlap_multiplier(tower: Node, enemy: Node2D) -> float:
+	if not has_rule(&"overlap") or tower == null or enemy == null or not is_instance_valid(enemy):
+		return 1.0
+	var last: Array = enemy.get_meta(&"overlap_last", [])
+	enemy.set_meta(&"overlap_last", [tower.get_instance_id(), _game_clock])
+	if not last.is_empty() and int(last[0]) != tower.get_instance_id() and _game_clock - float(last[1]) <= OVERLAP_WINDOW:
+		return 1.0 + OVERLAP_BONUS * rule_power(&"overlap")
+	return 1.0
