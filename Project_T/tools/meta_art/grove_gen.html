@@ -910,12 +910,12 @@ function grovesky(pad = 0) {
   for (const x of [180, 430, 860, 1080]) trunk(x + (hash(x, 1, 84) - .5) * 40, 10 + hash(x, 2, 84) * 8, (hash(x, 3, 84) - .5) * .08, 10, x, [HW.Pool, HW.Pool, HW.Slate], HW.Slate, 360 + hash(x, 4, 84) * 160);
   if (pad) for (const x of [-520, -260, 1540, 1790]) trunk(x + (hash(x + 999, 1, 84) - .5) * 40, 10 + hash(x + 999, 2, 84) * 8, (hash(x + 999, 3, 84) - .5) * .08, 10, x, [HW.Pool, HW.Pool, HW.Slate], HW.Slate, 360 + hash(x + 999, 4, 84) * 160);
   mistBand(380, 900, .34, HW.Slate);
-  for (const x of [90, 330, 960, 1170]) trunk(x + (hash(x, 1, 85) - .5) * 50, 20 + hash(x, 2, 85) * 12, (hash(x, 3, 85) - .5) * .1, 14, x + 20, [HW.Night, HW.Night, HW.Pool], HW.Dew, 560 + hash(x, 4, 85) * 200);
-  if (pad) for (const x of [-420, -140, 1420, 1700]) trunk(x + (hash(x + 999, 1, 85) - .5) * 50, 20 + hash(x + 999, 2, 85) * 12, (hash(x + 999, 3, 85) - .5) * .1, 14, x + 20, [HW.Night, HW.Night, HW.Pool], HW.Dew, 560 + hash(x + 999, 4, 85) * 200);
+  for (const x of [90, 330, 960, 1170]) trunk(x + (hash(x, 1, 85) - .5) * 50, 20 + hash(x, 2, 85) * 12, (hash(x, 3, 85) - .5) * .1, 14, x + 20, [HW.Night, HW.Night, HW.Pool], HW.Pool, 560 + hash(x, 4, 85) * 200);
+  if (pad) for (const x of [-420, -140, 1420, 1700]) trunk(x + (hash(x + 999, 1, 85) - .5) * 50, 20 + hash(x + 999, 2, 85) * 12, (hash(x + 999, 3, 85) - .5) * .1, 14, x + 20, [HW.Night, HW.Night, HW.Pool], HW.Pool, 560 + hash(x + 999, 4, 85) * 200);
   mistBand(520, 900, .28, HW.Pool);
   island(200, 640, 40, .35, 1); island(1090, 610, 34, .4, 2); island(410, 730, 20, .55, 3); island(890, 710, 22, .5, 4); island(1215, 750, 14, .6, 5);
   if (pad) { island(-330, 600, 36, .4, 6); island(1600, 660, 30, .45, 7); }
-  for (const [x, w, lean] of [[28, 58, .04], [1256, 62, -.05]]) trunk(x, w, lean, 10, x, [HW.Void, HW.Dread, HW.Night], HW.Pool, 900);
+  for (const [x, w, lean] of [[28, 58, .04], [1256, 62, -.05]]) trunk(x, w, lean, 10, x, [HW.Void, HW.Dread, HW.Night], HW.Dusk, 900);
   mistBand(660, 900, .3, HW.Slate);
   // Still dark water at the bottom: ripple lines, the trunks' dim reflections, and the Heartwood's
   // warm light reflected in a broken column below it.
