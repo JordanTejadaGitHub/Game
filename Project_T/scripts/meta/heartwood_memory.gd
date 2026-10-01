@@ -391,6 +391,7 @@ static func load_grove() -> Array[UnlockData]:
 # The Grove node with this id, or null.
 static func get_unlock(id: String) -> UnlockData:
 	if _grove_by_id.is_empty():
+		UiStyle.release_at_exit(func() -> void: _grove_by_id.clear())  # Resources in a static var crash the exit (exit 139)
 		for unlock in load_grove():
 			_grove_by_id[unlock.id] = unlock
 	return _grove_by_id.get(id)
