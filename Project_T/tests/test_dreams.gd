@@ -1219,7 +1219,25 @@ func _test_run_pool(main: Node) -> void:
 	again.sort()
 	other.sort()
 	_check(first == again and first != other, "same map seed, same pool; another seed, another pool")
-	_check(first.has("quickened_sap") and first.has("morning_dew") and first.has("soft_spores"), "the core: basics and the held family's cards")
+	_check(first.has("quickened_sap") and first.has("morning_dew"), "the core: the basics")
+	# A held family's cards are not core (user: "there shouldn't always be a family card"): a seeded ~60%, never all
+	var spore_cards := _family_cards(dreams, "sporeling")
+	var spore_in := spore_cards.filter(func(c: UpgradeData) -> bool: return dreams.run_pool.has(c.id) or dreams._run_pool_waiting.has(c.id)).size()
+	_check(spore_cards.size() < 5 or (spore_in < spore_cards.size() and spore_in >= floori(spore_cards.size() * 0.4)),
+		"Sporeling's cards: about 60%% drawn, never all (%d of %d)" % [spore_in, spore_cards.size()])
+	var family_draws := {}
+	var seed_before: int = dreams.map_generator.map_seed
+	for s in [11, 12, 13, 14, 15]:
+		dreams.map_generator.map_seed = s
+		dreams.build_run_pool(s)
+		var drawn_ids: Array = []
+		for c in spore_cards:
+			if dreams.run_pool.has(c.id) or dreams._run_pool_waiting.has(c.id):
+				drawn_ids.append(c.id)
+		family_draws[",".join(drawn_ids)] = true
+	_check(family_draws.size() > 1, "…a different family sample on another map seed (%d different over 5 seeds)" % family_draws.size())
+	dreams.map_generator.map_seed = seed_before
+	dreams.build_run_pool(11)
 	var available := {}
 	for card in dreams.pool:
 		if card.in_start_pool and dreams._card_family(card) == "" and not DreamState.RUN_POOL_BASICS.has(card.id) and dreams.discovery_met(card) \
@@ -1237,7 +1255,10 @@ func _test_run_pool(main: Node) -> void:
 	_check(dreams.run_pool.size() == before, "taking a maze card adds nothing to the pool")
 	dreams.unlocked["dewdrop"] = true  # A family pick
 	dreams.in_run_pool(tagged)
-	_check(dreams.run_pool.has("soaked_through") and dreams.run_pool.size() > before, "a family pick adds its family cards")
+	var dew_cards := _family_cards(dreams, "dewdrop")
+	var dew_in := dew_cards.filter(func(c: UpgradeData) -> bool: return dreams.run_pool.has(c.id) or dreams._run_pool_waiting.has(c.id)).size()
+	_check(dew_in > 0 and (dew_cards.size() < 5 or dew_in < dew_cards.size()),  # Drawn (or waiting for discovery)
+		"a family pick adds a sample of its family cards, never all (%d of %d)" % [dew_in, dew_cards.size()])
 	var waiting: Array = dreams._run_pool_waiting.keys()
 	if not waiting.is_empty():
 		var card := _card(dreams, waiting[0])
@@ -1401,3 +1422,12 @@ func _check(condition: bool, label: String) -> void:
 	if not condition:
 		failures += 1
 		printerr("FAIL: " + label)
+
+# A family's cards in the start pool (the run pool samples ~60% of them when the family is held).
+func _family_cards(dreams: DreamState, family: String) -> Array:
+	var out: Array = []
+	for c in dreams.pool:
+		if dreams._card_family(c) == family and c.in_start_pool and c.kind != UpgradeData.Kind.UNLOCK_WARDEN \
+				and c.kind != UpgradeData.Kind.UNLOCK_EVOLUTION:
+			out.append(c)
+	return out

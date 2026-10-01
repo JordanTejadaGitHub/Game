@@ -3571,11 +3571,10 @@ func in_hollow(cell: Vector2) -> bool:
 
 
 # --- Each run draws its own pool (dream_design.md "Each run draws its own pool" -> Exact rules, 2026-09-30) ---
-# At the first offer the run draws its Dream pool: the core (basics, the cards of every family held and their
-# Blessings, Heartwood's Reach on maps with 8+ obstacles) plus 60% per rarity of everything else available
+# At the first offer the run draws its Dream pool: the core (basics, Heartwood's Reach on maps with 8+ obstacles), a seeded
+# 60% of each held family's cards (and at each later family pick: _sample_family), plus 60% per rarity of everything else available
 # (start pool + Grove + discovered), seeded with the map, with floors 12 C / 12 U / 6 R / 3 L. Taking a card adds
-# nothing; family picks add their family cards; a card discovered mid-run joins at once; Entwined cards join
-# when due. Saved with the run. On in the real game; tests and tools switch it on with run_pool_forced.
+# nothing; a card discovered mid-run joins at once; an Entwined card only if it was drawn. Saved with the run. On in the real game; tests and tools switch it on with run_pool_forced.
 const RUN_POOL_BASICS: Array[String] = ["quickened_sap", "deeper_calm", "longer_roots", "deep_roots", "thick_bark",
 	"evergreen", "morning_dew"]
 const RUN_POOL_SHARE := 0.6
@@ -3596,8 +3595,8 @@ func in_run_pool(card: UpgradeData) -> bool:
 	if run_pool.is_empty():
 		build_run_pool()
 	_add_new_family_cards()
-	if run_pool.has(card.id) or card.entwined:
-		return true
+	if run_pool.has(card.id):
+		return true  # An Entwined card sampled out gets no guaranteed slot (dream_design.md "Exact rules", 2026-10-01)
 	return _run_pool_waiting.has(card.id) and discovery_met(card)
 
 # Family cards: the Needs name exactly one family (or its Wardens), or it's that family's Blessing.
@@ -3634,14 +3633,14 @@ func build_run_pool(seed_value: int = -1) -> void:
 				or (card.id == "heartwoods_reach" and count_obstacles() >= card.min_obstacles):
 			run_pool[card.id] = true
 		elif family != "":
-			if held.has(family):
-				run_pool[card.id] = true  # Family cards come with the family (and at each later family pick)
+			pass  # Family cards: a seeded 60% joins when the family is held (_sample_family), not the core
 		elif not discovery_met(card):
 			_run_pool_waiting[card.id] = true  # Joins the moment it's discovered
 		else:
 			by_rarity.get_or_add(card.rarity, []).append(card)
 	for family in held:
 		_run_pool_families[family] = true
+		_sample_family(family)
 	for rarity in by_rarity:
 		var cards: Array = by_rarity[rarity]
 		cards.sort_custom(func(a: UpgradeData, b: UpgradeData) -> bool: return a.id < b.id)  # Same seed, same pool
@@ -3654,15 +3653,47 @@ func build_run_pool(seed_value: int = -1) -> void:
 		for k in take:
 			run_pool[cards[k].id] = true
 
-# A family picked since the pool was drawn: its cards join the core.
+# A family picked since the pool was drawn: a seeded 60% of its cards joins.
 func _add_new_family_cards() -> void:
 	for family in _held_families():
 		if _run_pool_families.has(family):
 			continue
 		_run_pool_families[family] = true
-		for card in pool:
-			if _card_family(card) == family and (card.in_start_pool or grove_cards.has(card.id)):
-				run_pool[card.id] = true
+		_sample_family(family)
+
+# A held family's cards (Needs name it or its Wardens, and its Blessing) are not core (user 2026-10-01: "there
+# shouldn't always be a family card in the pool"): a seeded RUN_POOL_SHARE per rarity joins (seed: the map seed and
+# the family id, so a run and its save draw the same), no floors, and never every card of a family with 5 or more.
+# Undiscovered ones drawn wait for their discovery like the rest.
+func _sample_family(family: String) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(map_generator.map_seed) + hash(family)
+	var by_rarity := {}
+	var total := 0
+	for card in pool:
+		if _card_family(card) != family or not (card.in_start_pool or grove_cards.has(card.id)) or _banished.has(card.id):
+			continue
+		if card.kind == UpgradeData.Kind.UNLOCK_WARDEN or card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
+			continue
+		by_rarity.get_or_add(card.rarity, []).append(card)
+		total += 1
+	var drawn: Array = []
+	for rarity in by_rarity:
+		var cards: Array = by_rarity[rarity]
+		cards.sort_custom(func(a: UpgradeData, b: UpgradeData) -> bool: return a.id < b.id)
+		for i in range(cards.size() - 1, 0, -1):
+			var j := rng.randi_range(0, i)
+			var swap = cards[i]
+			cards[i] = cards[j]
+			cards[j] = swap
+		drawn.append_array(cards.slice(0, roundi(cards.size() * RUN_POOL_SHARE)))
+	if total >= 5 and drawn.size() >= total:
+		drawn.remove_at(rng.randi_range(0, drawn.size() - 1))  # Never the whole family
+	for card in drawn:
+		if discovery_met(card):
+			run_pool[card.id] = true
+		else:
+			_run_pool_waiting[card.id] = true
 
 
 # --- Drumbeat and Overlap (cards 248–249, 2026-09-30): one more card for each Grove build branch ------------------
