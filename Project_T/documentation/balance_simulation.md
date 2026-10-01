@@ -353,7 +353,8 @@ Decisions:
 1. **Normal drifts harder from act 2:** act 2 starts at **×1.6** (was 1.3) and ends at **×3.6** (was 3.0);
    acts 3–4 **×4.8** (was 4.0). Act 1 unchanged. Target: closest ~0.4–0.7 most drifts, the odd leak.
    The gentle half of the ramp keeps its shape: **×2.3 at drift 37** (`act2_steep_value`, was 1.995),
-   so act 2 goes 1.6 → 2.3 (26–37) → 3.6 (45).
+   so act 2 goes 1.6 → 2.3 (26–37) → 3.6 (45). **In the game from 474e76c6** (local main; the next
+   human run should be on that build or later).
 2. **Huntsman at the Heartwood:** his horn stops (no new hounds while he drains), and his pack shield
    only counts hounds within 3 tiles of him, so clearing the hounds around the tree lets the maze
    finish him.
