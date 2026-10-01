@@ -76,6 +76,7 @@ healthy trees are no longer used.
 
 ## Notes
 
+- Colours (2026-09-30, to fit the title and Memory Grove screens): the ground is night-indigo with a moss grain (act 1–2 moss/teal, act 3 violet with rust, act 4 frost), the dead trees are cool night bark with a teal lit side and moss flecks (the Grove trunks), rocks stay lavender stone. Warmth is only the path, the Heartwood and the Wardens.
 - The Heartwood uses the same warm moss-gold in every act; only its surroundings change.
 - Sprites (trees, obstacles, Heartwood) include their own soft ground shadow.
 - **Regenerating** (`tools/environment_art/`): `powershell -File tools/environment_art/export.ps1`
