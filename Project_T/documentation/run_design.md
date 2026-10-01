@@ -397,6 +397,12 @@ right; the family tree should include the portraits"):
     not yours. Can-unlock adds its Dreamlight motes and a soft pulse; Grove adds the leaf badge;
     locked keeps the chain to its parent. Unlocked and grown forms are full colour. The side panel
     shows the full portrait and name for every state.
+  - **Refined: only Grove-locked forms are silhouettes** (same day, user: *"if you've unlocked it
+    in the Grove, you should see what it upgrades to"*). A form your Memory Grove has made available
+    but you haven't unlocked **this run** (can-unlock, or locked behind its branch) shows its **real
+    portrait in colour**, a little dimmed (~80%), on the lit disc, with its name under it and its cost
+    motes / chain. Only forms the Grove hasn't planted stay **silhouettes** with the leaf badge.
+    Unlocked and grown forms are full brightness.
   - **The Ascended crown is hidden** until it can be unlocked this run: its Grove node planted **and**
     drift 51 reached. Before that there is no node and no line to it. From drift 51 it appears
     (the "can unlock" state once a final form of the family is grown).
