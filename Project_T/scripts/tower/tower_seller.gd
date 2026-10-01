@@ -363,6 +363,8 @@ func nurture_group(towers: Array, focus: Tower.Focus = Tower.Focus.NONE) -> int:
 			raised += 1
 	if raised > 0:
 		_selection_updated()
+	else:
+		_short_of_dew(towers.filter(func(t) -> bool: return _nurturable(t, focus)).map(func(t: Tower) -> int: return t.get_nurture_price()))
 	return raised
 
 # Dew for selling the whole selection right now.
@@ -487,11 +489,16 @@ func grow_selected() -> bool:
 	if dreams == null or selection.is_empty():
 		return false
 	var grown := false
+	var wanted: Array = []  # Unlocked forms nobody could pay for: the "can't buy" below
 	for group in get_selection_groups():
 		for option in Tower.grow_options(dreams, group[0]):
 			if option[1] and count_affordable(group[1], option[0]) > 0:
 				grown = grow_group(group[1], option[0]) > 0 or grown
 				break
+			if option[1]:
+				wanted.append(group[1][0].get_grow_cost(option[0]).total)
+	if not grown:
+		_short_of_dew(wanted)
 	return grown
 
 func _dreams() -> DreamState:
@@ -678,3 +685,12 @@ static func _ensure_target_action() -> void:
 	var key := InputEventKey.new()
 	key.physical_keycode = KEY_T
 	InputMap.action_add_event("cycle_target", key)
+
+# Nothing could be paid for: the "can't buy" feedback (RunState.dew_short: the Dew counter's shake and the
+# "needs N Dew" toast) at the cheapest price asked, so a refused group Nurture / G isn't silent.
+func _short_of_dew(prices: Array) -> void:
+	if prices.is_empty() or tower_placer == null or tower_placer.run_state == null:
+		return
+	var cheapest: int = prices.min()
+	if cheapest > tower_placer.run_state.dew:
+		tower_placer.run_state.dew_short.emit(cheapest)

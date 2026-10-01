@@ -111,6 +111,7 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # (the horn) only calls while the pack is short, and joins the pack. At half health the whole pack
 # returns at once and the horn falls silent (`pack_regroup_at_half`).
 @export var pack_shield: float = 1.0
+@export var pack_shield_reach: float = 0.0  # Tiles: only hounds this close shield him (0 = anywhere; Human run 4)
 @export var pack_regroup_at_half: bool = false
 # Lamplighter: every `lantern_interval` s lights a cold lantern beside its route (up to `lantern_max`,
 # each burning `lantern_life` s). Wardens within `lantern_radius` cells attack × (1 − `lantern_slow`).

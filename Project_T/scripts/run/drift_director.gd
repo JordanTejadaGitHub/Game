@@ -61,7 +61,7 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var act1_boss_health_multiplier: float = 1.75  # Act 1's boss (drift 25) instead (boss stays and drains: ×1.75 = Dreams 11/15, skip 5/15 vs the Stag)
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
 # `late_acts_from_act`, bosses included, on top of the growth / boss multiplier.
-@export var late_acts_health_multiplier: float = 4.0  # Acts 3–4, bosses included ("Human run 2"; was 3.5, 1.6)
+@export var late_acts_health_multiplier: float = 4.8  # Acts 3–4, bosses included ("Human run 4"; was 4.0, 3.5, 1.6)
 @export var final_boss_late_multiplier: float = 3.0  # …except the Hollow Oak at drift 100 ("Human run 2": it died in 17 s at 1.6)
 @export var late_acts_from_act: int = 3
 # Acts 1–2 (run_design.md 72860af, balance batches): act 1 is x1.0 through `act1_ramp_from`, rising
@@ -71,12 +71,12 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var act1_health_multiplier: float = 1.15
 @export var act1_ramp_from: int = 9
 @export var act1_ramp_to: int = 20
-@export var early_acts_health_multiplier: float = 3.0  # Act 2 ends at this ("Human run 2"; was 2.5, 1.55)
-@export var act2_start_health_multiplier: float = 1.3  # …starting from this at act 2's first drift (interim; was act 1's 1.15)
+@export var early_acts_health_multiplier: float = 3.6  # Act 2 ends at this ("Human run 4"; was 3.0, 2.5, 1.55)
+@export var act2_start_health_multiplier: float = 1.6  # …starting from this at act 2's first drift ("Human run 4"; was 1.3, act 1's 1.15)
 @export var early_ramp_from: int = 26
 @export var early_ramp_to: int = 45
 @export var act2_steep_from: int = 37  # "Human run 2": drifts 26-37 keep the old ramp (to act2_steep_value), the rest of the rise comes after
-@export var act2_steep_value: float = 1.995  # The old ramp's value at drift 37 (1.3 -> 2.5 over 26-45)
+@export var act2_steep_value: float = 2.455  # Drift 37: the gentle ramp scaled with the start ("Human run 4": 1.995 × 1.6 / 1.3)
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
 @export var extra_nightmares_from: int = 10  # The intro drifts before it are unchanged
 # Rest bonus = base + per_block × block number (economy pass v2, run_design.md: was 20 + 10 × block,
@@ -105,6 +105,7 @@ var blight_speed_multiplier := 1.0
 var blight_rest_bonus_multiplier := 1.0  # The block's rest bonus (before perfect / Dreams)
 var rest_bonus_perk_multiplier := 1.0  # Rested Roots (Grove perk), same part of the rest bonus
 var blight_elites_per_drift := 0  # Nightmares per drift made Deeply Blighted
+var blight_dew_multiplier := 1.0  # A Blight Level's Dew cut: multiplies every drift's pot (none set yet)
 
 @onready var run_state: RunState = %RunState
 @onready var spawner = %EnemyContainer
@@ -506,9 +507,13 @@ func get_dew_pot(number: int) -> float:
 	return lerpf(row.x, row.y, clampf(float(number - first) / maxf(last - first, 1), 0.0, 1.0))
 
 # What multiplies the pot: Dream cards (Morning Dew; Call of the Wild when called early) and Omens
-# (Bountiful Night, Blood Moon, Dry Spell). Catchers, call-early Dew and rest bonuses come on top instead.
+# (Bountiful Night, Blood Moon, Dry Spell), Rich Dew (Grove dew_gain) and a Blight Dew cut. Catchers, call-early
+# Dew and rest bonuses come on top instead.
 func get_dew_pot_multiplier(number: int, called_early: bool = false) -> float:
 	var multiplier := 1.0
+	if run_state != null:  # Rich Dew (Grove dew_gain, +5% a level): the pot, not each nightmare (run_design.md, fixed)
+		multiplier *= 1.0 + run_state.dew_gain_bonus
+	multiplier *= blight_dew_multiplier
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
 	if dreams != null and dreams.has_method("get_dew_pot_multiplier"):
 		multiplier *= dreams.get_dew_pot_multiplier(number, called_early)

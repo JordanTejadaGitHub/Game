@@ -748,6 +748,13 @@ func _run() -> void:
 	var bar_px := int(badged.HEALTH_BAR_SIZE.x * badged.health / badged.max_health)
 	_check(badged.hud_builds > builds and badged._hud_health == bar_px,
 		"a hit rebuilds the bars at their new width (%d px, %d builds)" % [badged._hud_health, badged.hud_builds - builds])
+	badged.statuses.slow_capped = true
+	badged.statuses.sleep_cooldown = 2.0
+	await process_frame
+	_check(badged._hud_slow_capped and badged._hud_awake and badged.get_status_notes().size() == 2,
+		"slowed to the limit and just-woke show (floor mark, awake ring, info lines: %s)" % [badged.get_status_notes()])
+	badged.statuses.slow_capped = false
+	badged.statuses.sleep_cooldown = 0.0
 	badged.statuses.apply(&"drowsy", 1, 4.0, 1.0)
 	await process_frame
 	_check(badged._hud_pops.has(&"drowsy"), "a stack added: its icon pops")
@@ -762,6 +769,7 @@ func _run() -> void:
 	Fx._settings = {}  # Defaults, whatever the player's profile says
 	Fx._settings_at = Time.get_ticks_msec()
 	var plain: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"), 1.0, {}, true)
+	_check(plain.statuses.is_elite, "an elite tells its statuses (its own slow floor)")
 	_check(not plain._bars_always and plain._outline_alpha() == 0.0, "by default: bars once hit, no outline")
 	Fx._settings = {"health_bars": 1, "blight_outline": true}
 	Fx._settings_at = Time.get_ticks_msec()

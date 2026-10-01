@@ -72,11 +72,11 @@ func _test_pool() -> void:
 
 func _test_economy() -> void:
 	_reset()
-	run_state._dispel_dew_carry = 0.0
-	var plain := run_state._scaled_dispel_dew(100)
+	var director = main.get_node("%DriftDirector")
+	var plain: float = director.get_effective_pot(12)
 	dreams.take(_card("morning_dew"))
-	run_state._dispel_dew_carry = 0.0
-	_check(run_state._scaled_dispel_dew(100) == roundi(plain * 1.1), "Morning Dew (absorbs Gathered Dew): +10%% dispel Dew (%d vs %d)" % [run_state._scaled_dispel_dew(100), plain])
+	_check(is_equal_approx(director.get_effective_pot(12), director.get_dew_pot(12) * 1.1) and plain < director.get_effective_pot(12),
+		"Morning Dew (absorbs Gathered Dew): each drift's Dew pot +10%% (%.1f vs %.1f)" % [director.get_effective_pot(12), plain])
 	var seller = main.get_node("%TowerSeller")
 	var tower := _plant("sporeling", Vector2(100, 100))
 	tower.invested_dew = 100
@@ -84,6 +84,8 @@ func _test_economy() -> void:
 	_check(dreams.get_call_early_bonus(7, 10) == 7, "call early: plain")
 	dreams.take(_card("call_of_the_wild"))
 	_check(dreams.get_call_early_bonus(7, 10) == 14 and dreams.get_call_early_bonus(30, 10) == 20 and dreams.get_call_early_bonus(30, 25) == 40, "Call of the Wild: double, up to 40")
+	_check(is_equal_approx(director.get_effective_pot(12, true), director.get_dew_pot(12) * 1.2) and is_equal_approx(director.get_effective_pot(12), director.get_dew_pot(12) * 1.1),
+		"Call of the Wild: +10% pot only on a drift called early")
 	dreams.take(_card("winding_path"))
 	_check(dreams.get_rest_bonus_add() == 10 + dreams.path_length / 5, "Winding Path: +1 Dew per 5 path tiles (%d tiles, + Morning Dew's 10)" % dreams.path_length)
 	var rerolls := dreams.rerolls_left

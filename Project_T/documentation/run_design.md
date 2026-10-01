@@ -671,6 +671,11 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
      **picks its moments** (faces only after a clean block). Targets: *always* loses **≥ 3 more
      leaves** per run than *Clear Skies* and has a clearly higher dormancy rate (≥ +10 points);
      *picks its moments* earns more reward per leaf lost than *always*.
+     **Measured (a3610b99, before the Dew pot):** fresh (15 seeds, to 40): *always* +1.7 leaves, +6
+     points dormancy (both saturated by bot deaths at ~30–38). Half profile (25 seeds, to 50): every
+     bot died before 50, but **always facing reached 7 drifts less** (24.9 vs 31.9); *picks its
+     moments* only 2.5 less and paid **0.77 reward shares per leaf vs 0.60** ✓. So the Omens bite now.
+     The leaf target is re-measured after the Dew pot lands (full profile, to 40).
 - **Blight Levels** can make Omens harsher or remove Clear Skies ("an Omen is always chosen").
 - **Grove perks** later: a third Omen option, or Omen rewards +25% (`meta_design.md`).
 - **Data:** `OmenData` resource: `display_name`, `description`, `min_drift`, `requires` (e.g.

@@ -35,6 +35,9 @@ func _run() -> void:
 		strip._stack()
 		_check(strip.offset_top >= omen_tag.offset_top + omen_tag.size.y, "the Coming strip stacks under the Omen line (%.0f vs %.0f)"
 			% [strip.offset_top, omen_tag.offset_top + omen_tag.size.y])
+		var banner_end: float = main.get_node("%DriftBanner").drawn_rect().end.y
+		_check(omen_tag.get_global_rect().position.y >= banner_end - 0.5, "the Omen line starts under the drift banner (%.0f vs %.0f)"
+			% [omen_tag.get_global_rect().position.y, banner_end])
 		omen_tag.visible = false
 		strip._stack()
 	else:
@@ -44,7 +47,7 @@ func _run() -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
 	dreams.unlock_everything = true  # Every Warden in the bar, as in Test Grove
 	dreams.unlocks_changed.emit()
-	var bar: HFlowContainer = main.get_node("%TowerBar")
+	var bar: HBoxContainer = main.get_node("%TowerBar")
 	var first_button := bar.get_child(0) as Button
 	var hotkey_label := first_button.get_node_or_null("Hotkey") as Label
 	_check(first_button.text.is_valid_int() and hotkey_label != null and hotkey_label.text == "1",
@@ -92,9 +95,27 @@ func _run() -> void:
 	run_state.add_sprout_charges(2)
 	_check(hud_node._seed_badge.visible, "free Sprouts show a seed badge on the Sprout button")
 	run_state.add_sprout_charges(-2)
-	for screen in [Vector2i(1920, 1080), Vector2i(1280, 800), Vector2i(1280, 720)]:
-		root.size = screen
+	# Real windows, then the UI scale cases (user screenshots: 2560x1440 at the largest UI size = 1280x720
+	# virtual, and at 40%): [window, UI share (0 = no stretch)]. `screen` is the virtual size the HUD lays out in.
+	var layout_was := [root.content_scale_mode, root.content_scale_size, root.content_scale_aspect, root.content_scale_factor]
+	for case in [[Vector2i(1920, 1080), 0.0], [Vector2i(1280, 800), 0.0], [Vector2i(1280, 720), 0.0],
+			[Vector2i(2560, 1440), 1.0], [Vector2i(1920, 1080), 1.0], [Vector2i(3840, 2160), 1.0], [Vector2i(2560, 1440), 0.4]]:
+		if case[1] > 0.0:
+			root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+			root.content_scale_size = UiStyle.LAYOUT_MIN
+			root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+			root.content_scale_factor = case[1]
+		else:
+			root.content_scale_mode = layout_was[0]
+			root.content_scale_size = layout_was[1]
+			root.content_scale_aspect = layout_was[2]
+			root.content_scale_factor = layout_was[3]
+		root.size = case[0]
 		await _frames(2)
+		hud_node._fit_tower_bar()
+		hud_node._layout_top_row()
+		await _frames(2)
+		var screen := Vector2i(main.get_viewport().get_visible_rect().size)
 		# The Clear tool + the Warden bar, centred together at the bottom.
 		var tool_rect := (main.get_node("HUD/ClearTool") as Control).get_global_rect()
 		var bar_rect := bar.get_global_rect().merge(tool_rect)
@@ -140,6 +161,7 @@ func _run() -> void:
 			was_shown[n] = b.visible
 			b.visible = true
 		var row_hud = main.get_node("HUD")
+		row_hud.set_process(false)  # Its 0.2 s relayout would hide Boosts again (no boost source here)
 		row_hud._layout_top_row()
 		await _frames(2)
 		var row_rect: Rect2 = row_hud.resource_row_rect()
@@ -156,6 +178,7 @@ func _run() -> void:
 			"the top-right row: counters and buttons in order on one fog patch, clear of the banner at %s (row %s, banner %s, wrapped %s)" % [screen, row_rect, banner_rect, row_hud.row_wrapped])
 		for n in top_names:
 			(main.get_node("HUD/" + n) as Control).visible = was_shown[n]
+		row_hud.set_process(true)
 		# The expanded damage meter (both tabs, the top rows + "and N more") never covers the DriftPanel
 		# (user: "maze dps shouldn't go over the call drift").
 		var meter := main.get_node("HUD/DriftMeter") as DriftMeter
@@ -184,29 +207,103 @@ func _run() -> void:
 			var panel_rect := (main.get_node("HUD/DriftPanel") as Control).get_global_rect()
 			_check(not meter_rect.intersects(panel_rect) and meter_rect.position.y >= DriftMeter.TOP_LIMIT - 1.0,
 				"the damage meter (%s tab) clears the DriftPanel at %s (%s vs %s)" % ["block" if summary else "Wardens", screen, meter_rect, panel_rect])
+		# With the nightmare info open (user screenshot: a Mourner pinned), the meter shrinks to its header line
+		# and never reaches the DriftPanel; it opens again when the info closes.
+		meter.block_summary = false
+		meter._user_open = true
+		meter._body.visible = true
+		var info_node := main.get_node("%NightmareInfo") as Control
+		var pinned: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+		pinned.set_process(false)
+		info_node._target = pinned
+		for f in 4:
+			await process_frame
+			meter._fit()
+		var meter_info_rect := meter.get_global_rect()
+		var panel_info_rect := (main.get_node("HUD/DriftPanel") as Control).get_global_rect()
+		_check(info_node.visible and meter.collapsed and not meter._body.visible and not meter_info_rect.intersects(panel_info_rect),
+			"with the nightmare info open the meter is its header line, clear of the DriftPanel at %s (%s vs %s)" % [screen, meter_info_rect, panel_info_rect])
+		info_node._target = null
+		pinned.queue_free()
+		for f in 3:
+			await process_frame
+			meter._fit()
+		_check(not meter.collapsed and meter._body.visible, "…and opens again when the info closes at %s" % screen)
+		meter._user_open = false
 		for row in fake_rows.filter(func(r) -> bool: return is_instance_valid(r)):
 			row.queue_free()
 		meter._more.visible = false
 		meter.block_summary = false
 		meter.visible = meter_was
 		meter.set_process(true)
+	# The pause menu's Settings at 1280×720 virtual (the largest UI size): on screen, all six tabs on one row,
+	# and the Coming strip hidden under the menu (user screenshot: it showed through over the panel).
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	root.content_scale_size = UiStyle.LAYOUT_MIN
+	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+	root.content_scale_factor = 1.0
+	root.size = Vector2i(2560, 1440)
+	await _frames(2)
+	var pause_menu := main.get_node("%PauseMenu")
+	pause_menu.open()
+	pause_menu._show_settings()
+	await _frames(3)
+	var settings_panel: SettingsPanel = pause_menu._settings
+	var view_rect := main.get_viewport().get_visible_rect()
+	var tab_bar := settings_panel.tabs.get_tab_bar()
+	await create_timer(0.3, true, false, true).timeout  # The strip checks every 0.2 s
+	var strip_hidden: bool = main.get_node("HUD").get_children().filter(func(c: Node) -> bool: return c is ComingStrip and c.visible).is_empty()
+	_check(view_rect.encloses(settings_panel.get_global_rect()) and not tab_bar.get_offset_buttons_visible() and strip_hidden,
+		"at %s virtual the Settings panel fits, shows all %d tabs and hides the Coming strip (%s in %s, tab arrows %s, strip hidden %s)"
+		% [view_rect.size, settings_panel.tabs.get_tab_count(), settings_panel.get_global_rect(), view_rect, tab_bar.get_offset_buttons_visible(), strip_hidden])
+	pause_menu.close()
+	root.content_scale_mode = layout_was[0]
+	root.content_scale_size = layout_was[1]
+	root.content_scale_aspect = layout_was[2]
+	root.content_scale_factor = layout_was[3]
+	root.size = Vector2i(1920, 1080)
+	await _frames(2)
 	# The Warden bar is always one row (user: "the tower bar should not stack like this"), even with every
 	# family: slots shrink to 56 px, then the bar scrolls with arrows.
 	var bar_dreams: DreamState = main.get_node("%DreamState")
 	var was_everything := bar_dreams.unlock_everything
 	bar_dreams.unlock_everything = true
 	bar_dreams.unlocks_changed.emit()
-	for screen in [Vector2i(1280, 800), Vector2i(1920, 1080)]:
-		root.size = screen
-		await _frames(3)
-		var shown_slots: Array = bar.get_children().filter(func(b: Node) -> bool: return b is Button and b.visible)
-		var tool_y := (main.get_node("HUD/ClearTool") as Control).get_global_rect().position.y
-		var one_row := not shown_slots.is_empty() and shown_slots.all(func(b: Button) -> bool:
-			return absf(b.get_global_rect().position.y - tool_y) < 1.0 and b.get_global_rect().size.x >= 55.0)
-		var all_slots := bar.get_children().filter(func(b: Node) -> bool: return b is Button).size()
-		var arrows := main.get_node("HUD").get_node_or_null("BarArrowRight") as Control
-		_check(one_row and (shown_slots.size() == all_slots or (arrows != null and arrows.visible)),
-			"the Warden bar stays one row with %d Wardens at %s (%d shown, arrows %s)" % [all_slots, screen, shown_slots.size(), arrows != null and arrows.visible])
+	# Every UI scale share too (user screenshot: two rows at a high UI scale): canvas_items stretch from
+	# UiStyle.LAYOUT_MIN with the share as the factor, as UiStyle.apply_ui_scale sets it outside headless.
+	var scale_was := [root.content_scale_mode, root.content_scale_size, root.content_scale_aspect, root.content_scale_factor, root.size]
+	var bar_hud := main.get_node("HUD")
+	for share in [0.0, 0.4, 0.5, 0.75, 1.0, 2.0]:  # 0 = no stretch (headless default); 2.0 = an old saved value
+		if share > 0.0:
+			root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+			root.content_scale_size = UiStyle.LAYOUT_MIN
+			root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+			root.content_scale_factor = share
+		for screen in [Vector2i(1280, 800), Vector2i(1920, 1080), Vector2i(2560, 1440), Vector2i(3840, 2160)]:
+			root.size = screen
+			await _frames(3)
+			bar_hud._fit_tower_bar()
+			await _frames(2)
+			var shown_slots: Array = bar.get_children().filter(func(b: Node) -> bool: return b is Button and b.visible)
+			var tool_rect := (main.get_node("HUD/ClearTool") as Control).get_global_rect()
+			var view := bar_hud.get_viewport().get_visible_rect()
+			var one_row := not shown_slots.is_empty() and shown_slots.all(func(b: Button) -> bool:
+				var r := b.get_global_rect()
+				return absf(r.position.y - tool_rect.position.y) < 1.0 and r.size.x >= 55.0 and view.encloses(r))
+			var all_slots := bar.get_children().filter(func(b: Node) -> bool: return b is Button).size()
+			var arrows := bar_hud.get_node_or_null("BarArrowRight") as Control
+			_check(one_row and (shown_slots.size() == all_slots or (arrows != null and arrows.visible)),
+				"the Warden bar stays one row, on screen, with %d Wardens at %s, UI scale %s (%d shown, arrows %s)" % [all_slots, screen,
+				share, shown_slots.size(), arrows != null and arrows.visible])
+	root.content_scale_mode = scale_was[0]
+	root.content_scale_size = scale_was[1]
+	root.content_scale_aspect = scale_was[2]
+	root.content_scale_factor = scale_was[3]
+	root.size = scale_was[4]
+	await _frames(2)
+	# The slots are solid (user: the map showed through them).
+	var slot_box := (bar.get_child(0) as Button).get_theme_stylebox("normal") as StyleBoxFlat
+	_check(slot_box != null and slot_box.bg_color.a >= 0.9, "Warden slots are solid (fill alpha %.2f)" % (slot_box.bg_color.a if slot_box else 0.0))
 	bar_dreams.unlock_everything = was_everything
 	bar_dreams.unlocks_changed.emit()
 	await _frames(2)
@@ -756,7 +853,7 @@ func _run() -> void:
 		await process_frame
 		var ids_after: Array = panel._buttons.get_children().map(func(b) -> int: return b.get_instance_id())
 		_check(ids_after == ids, "a Dew change keeps the Warden panel's buttons (a tooltip under the pointer stays)")
-		_check(priced.all(func(b) -> bool: return b.disabled), "and their affordability updates in place")
+		_check(priced.all(func(b) -> bool: return b.get_meta(&"short", false) and not b.disabled), "and their affordability updates in place (dimmed, still pressable for the can't-buy refusal)")
 		run_state.dew = 100000
 		run_state.dew_changed.emit(100000)
 		_check(priced.all(func(b) -> bool: return not b.disabled or b.text.contains("Dreamlight")), "back when there's Dew")

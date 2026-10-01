@@ -76,6 +76,80 @@ healthy trees are no longer used.
 | `cloud_shadows.png` | 1536×128 | 6 cloud shadows, 256×128 each, transparent | cloud shadows seen from above (lobed, denser in the middle, wisps on the downwind side; 3 banded alpha steps of Dread). `EnvironmentAmbience` draws them drifting round the map edges and a few (`crossing_clouds`) across the whole map with `cloud_wind` |
 | `mist_banks.png` | 256×256 | seamless tile, transparent; dithered fog in the title's fog ramp (Pool, Slate, Stone, Mist) | the title and Grove screens' teal-grey mist: `EnvironmentAmbience` drifts two layers of it over the island (stretched 2× wide, 32 px bands, at the cloud shadows' z), thickest at the back of the map, a little at the front and down the sides, thin over the middle (`mist_strength`) |
 
+## Map layouts
+
+User report (via the design chat, 2026-10-01): "it feels like the map generates the same layout most
+of the time". Every map used to run from (1, 0) to the opposite corner, so ridges always alternated the
+same way. Now each map rolls a layout, ridges that follow it, and one feature.
+
+### Spec (Environment Discussion, 2026-10-01)
+
+1. **Layout per seed**, rolled from the map rng (a save rebuilds it). Map 23×18.
+   - **Corner → opposite corner** (~40%): all 4 mirrors.
+   - **Side → opposite side** (~35%): left↔right (long axis) or top↔bottom (short axis, with an extra
+     ridge so its route stays in band).
+   - **Inlet** (~25%): start and Heartwood on the same edge, so the run is a U.
+   - Start and end are jittered along their edge (never exact corners or midpoints). The rope bridge,
+     the edge mist and the bridge-end islet follow the start's edge outward. Cliffs stay under the south
+     row: a south start's bridge crosses out over them, a north Heartwood overhangs the void.
+2. **Ridges follow the layout**: across the main direction, 2–3 of varying length, keeping the taper
+   (root / middle / tip / strays) and the guaranteed bend. Inlet: one long spine ridge from the shared
+   edge between the start and the Heartwood (the U), plus 0–1 more. Blight 9's extra ridge applies.
+3. **One feature per map**: a pond (2×2–3×3 water: unwalkable, unbuildable, never cleared; the route
+   bends round it), a ruin (a ring of stones with a gap, cleared with Move), a dense grove, or a
+   fallen-log line (a short line of tree obstacles until it has its own art). At least 2 cells from the
+   start and end; counted in the obstacle budget.
+4. **Guards**: the route is always guaranteed; the starting route length and buildable-cell count stay
+   within ±25% of the old medians for every layout; the first-run camera glide follows the actual route;
+   RunSaver VERSION bumped.
+5. **Preview**: a sheet of ~12 seeds covering every layout and feature, labelled, route drawn.
+
+### As built
+
+- `scripts/map/map_layout.gd` (`MapLayout`): `roll(rng, size)` is the first thing drawn from the map
+  rng. Kinds `CORNER` / `SIDE` (`short_side`) / `INLET`, `start`, `end`, `ridge_axis` (ridges run along
+  x or y), `feature`. Over 2,000 seeds: 39% corner, 35% side (half each axis), 26% inlet. Corners sit
+  1–4 cells in from the corner along a top/bottom or left/right edge; side ends ±3 from the middle;
+  inlet ends at about ¼ and ¾ of their edge, ±2.
+- `MapGenerator` sets `startPath` / `endPath` from it before anything reads them (every system reads
+  them live). `force_layout` / `force_short` / `force_feature` are for tests.
+- `EnvironmentObjectGenerator` builds ridges in a frame where u runs along the ridge and v across it
+  (`_cell(u, v)`), so one ridge routine (`_ridge`) serves both axes:
+  - **Corner / side**: `_crossing_ridges`: 2 ridges (3 on the short axis, +1 at Blight 9) from
+    alternating walls, the first on the start's side and nearest the start. The bend rule: the second
+    ridge has no gaps, the two always overlap, and the first only gaps `BEND_DEPTH` (4) cells inside
+    the second's reach. Side layouts start mid-edge, so both their ridges are gap-free and longer
+    (`side_ridge_length_*`, `short_side_ridge_length_*`); the short axis also thins its trees
+    (`short_side_tree_scale`).
+  - **Inlet**: `_inlet_ridges`: a gap-free spine (`spine_length_*` of the way across) from the shared
+    edge, halfway between start and Heartwood, plus 0–1 ridges from the far wall (+1 at Blight 9).
+- **Features** (`_place_feature`, after the ridges): `feature_cells`; ponds are also `pond_cells`,
+  which are blocked in pathing but aren't obstacles (no Tend / Move, no build: the build hatch shows
+  them) and are only placed if the route survives with every ridge standing. A ruin uses the standing
+  stone, cairn and ruined waystone rocks; a grove is a tight tree cluster; a log is a 3–4 cell line of
+  trees. Feature cells keep `feature_clearance` (3, chessboard) from the start and end. Ponds draw
+  `pond.png` by neighbour mask (animated down its column).
+- **Carving** keeps ridges and the feature whole if it can, breaks the feature next, and ridges only as
+  a last resort (`_find_carve_route(level)`).
+- **Tests**: `tests/test_map_density.gd` checks 50 random seeds at Blight 0 and 9, then forces each
+  layout over 20 seeds (route length and buildable cells within ±25% of the old medians 46 / 275,
+  the bend, the obstacle floor, a median within 44–88) and each feature (placed, clear of the ends,
+  ponds block without being obstacles, ruins are stone). `tests/test_environment.gd -- --layouts=<png>`
+  renders the sheet; `-- --seed=N --preview=<png>` renders one map with the void and lighting.
+- **Guard**: a starting route over `max_route_length` (57) is trimmed back under it (`_trim_route_if_long`):
+  plain obstacles first, then a ridge cell as a last resort, each time the cell that brings it just
+  under the cap. Never the feature.
+- Measured (2026-10-01, 20 seeds per layout; bands 35–57 route, 206–344 buildable):
+
+  | Layout | Route | Buildable | Obstacles (median) |
+  |---|---|---|---|
+  | Corner | 39–57 (median 46) | 257–289 | 47–79 (66) |
+  | Side, long axis | 37–49 (43) | 255–289 | 47–77 (69) |
+  | Side, short axis | 37–56 (42) | 243–262 | 70–93 (80) |
+  | Inlet | 36–52 (45) | 267–305 | 31–68 (51) |
+
+  50 random seeds: 36–91 obstacles (mean 62) at Blight 0, 35–100 (69) at Blight 9. Every route bends.
+
 ## Notes
 
 - Colours (2026-09-30, to fit the title and Memory Grove screens): the ground is night-indigo with a moss grain (act 1–2 moss/teal, act 3 violet with rust, act 4 frost), the dead trees are cool night bark with a teal lit side and moss flecks (the Grove trunks), rocks stay lavender stone. Warmth is only the path, the Heartwood and the Wardens.

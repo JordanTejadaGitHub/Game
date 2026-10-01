@@ -205,14 +205,29 @@ func _run() -> void:
 	# --- Huntsman: the pack shields him ---
 	var huntsman := _still("huntsman", route[8])
 	_check(huntsman.pack_alive() == 4, "4 Night Hounds run with him (%d)" % huntsman.pack_alive())
+	for hound in huntsman.pack:
+		hound.position = huntsman.position  # (_still moved only him: the pack runs with him)
 	var before: int = huntsman.health
 	huntsman.take_damage(100.0)
 	_check(before - huntsman.health == 50, "half damage while a hound hunts (%d)" % (before - huntsman.health))
+	var hound_away := Vector2(5 * 64, 0)  # 5 tiles: past the shield's 3
+	for hound in huntsman.pack:
+		hound.position += hound_away
+	before = huntsman.health
+	huntsman.take_damage(100.0)
+	_check(before - huntsman.health == 100, "full damage when no hound is within 3 tiles (Human run 4; %d)" % (before - huntsman.health))
+	for hound in huntsman.pack:
+		hound.position -= hound_away
 	for hound in huntsman.pack:
 		hound.dispel()
 	before = huntsman.health
 	huntsman.take_damage(100.0)
 	_check(before - huntsman.health == 100, "full damage once the pack is gone")
+	huntsman.at_heartwood = true
+	huntsman._brood_timer = 100.0
+	huntsman._update_presence(0.2)
+	_check(huntsman.pack_alive() == 0, "the horn is silent while he's at the Heartwood")
+	huntsman.at_heartwood = false
 	spawner._on_brood_requested(huntsman)
 	_check(huntsman.pack_alive() == 1, "the horn calls one hound while the pack is short")
 	_check(huntsman.sprite.animation == &"horn", "he blows the horn as a hound joins")

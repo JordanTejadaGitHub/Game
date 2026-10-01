@@ -19,8 +19,9 @@ data-driven enemies, **tower building** (build mode, placement validation, enemi
 **combat** (towers target the enemy closest to the goal and fire homing spore puffs; nightmares are
 *dispelled*: they crack with light and burst into motes. Code identifiers still say
 `cleansed` / `is_cleansed` / `cleanse_line` from the old cozy theme; player-facing text says dispel),
-**clearable obstacles** (random map each run: 2 short, gappy ridges of rocks/trees from alternating walls
-(3 at Blight 9), small tree groves and rock clusters, ~60 obstacles (min 10; `tests/test_map_density.gd`) so
+**clearable obstacles** (random map each run: a layout (`MapLayout`: corner, side or inlet; start and
+Heartwood move per seed; environment_assets.md "Map layouts"), 2–3 tapering ridges across the route,
+one feature (pond, ruin, grove, log), +1 ridge at Blight 9, small tree groves and rock clusters, ~60 obstacles (min 10; `tests/test_map_density.gd`) so
 the Wardens build most of the maze; outside build mode, hover shows
 cost + the route that would open, left-click clears. Obstacles are "Withered Tree" (Tend) and
 "Mossy Boulder" (Move); `RunState.obstacles_tended` counts clears for +1 Seed each at run end).
@@ -364,7 +365,9 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `get_path_if_blocked`, `block_cell`, `get_path_from`, and the `path_changed` signal.
   Obstacles: `obstacles` ({cell: `ObstacleData`}), `get_obstacle`, `get_path_if_cleared`,
   `clear_obstacle`, `obstacle_cleared` signal. `map_seed` export: 0 = random map, else reproducible.
-  Generation guarantees a route (`_carve_route_if_blocked` clears the fewest obstacles, avoiding ridges).
+  Generation guarantees a route (`_carve_route_if_blocked` clears the fewest obstacles, sparing ridges and
+  the feature) and caps it (`_trim_route_if_long`, `max_route_length`). `startPath` / `endPath` come from
+  `layout` (`MapLayout`, rolled first from the map rng); never assume a corner. `force_layout` etc. for tests.
   `obstacle_clearer.gd` (`ObstacleClearer`) is the hover/click tool; input action `clear_obstacle` (LMB).
   Obstacle types are `resource/obstacle/*.tres` (`ObstacleData`: name, verb, cost, `source_id` +
   `tiles`, and the `cleared_source_id` mark left when the player clears one: tended stump, moved hollow).

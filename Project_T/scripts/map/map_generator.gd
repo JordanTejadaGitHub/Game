@@ -16,8 +16,16 @@ const CARVE_OBSTACLE_WEIGHT := 100.0
 const CARVE_RIDGE_WEIGHT := 1000.0
 
 
-@export var startPath: Vector2 = Vector2(1,0)
-@export var endPath: Vector2 = Vector2(MAP_GRID.size.x - 2, MAP_GRID.size.y - 1)
+# Set per seed by the map's layout (MapLayout: corner, side or inlet), before anything reads them.
+var startPath: Vector2 = Vector2(1, 0)
+var endPath: Vector2 = Vector2(MAP_GRID.size.x - 2, MAP_GRID.size.y - 1)
+var layout: MapLayout
+# Tests force a layout (MapLayout.Kind), the short side (1) or a feature (MapLayout.Feature); -1 = roll.
+@export var force_layout := -1
+@export var force_short := -1
+@export var force_feature := -1
+# Starting-route cap: environment_assets.md "Map layouts" keeps it within ±25% of the old median (46).
+@export var max_route_length := 57
 @export var map_seed: int = 0  # 0 = new random map every run; anything else reproduces a map
 var unwalkable_cells: PackedVector2Array
 # Clearable trees/rocks still on the map: {cell (Vector2): ObstacleData}.
@@ -38,6 +46,9 @@ func _ready() -> void:
 		map_seed = randi_range(1, 2147483646)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = map_seed
+	layout = MapLayout.roll(rng, Vector2i(MAP_GRID.size), force_layout, force_short, force_feature)
+	startPath = Vector2(layout.start)
+	endPath = Vector2(layout.end)
 
 	tile_set = EnvironmentTiles.create_tile_set()
 	for layer: TileMapLayer in [ground_layer, path_layer, environment_object_layer]:
@@ -64,13 +75,18 @@ func _ready() -> void:
 	var skip := unwalkable_cells.duplicate()
 	skip.append(startPath)
 	skip.append(endPath)
+	environment_object_layer.layout = layout
 	obstacles = environment_object_layer.generate_obstacles(rng, skip)
 	for cell in obstacles:
 		path_layer.set_cell_blocked(cell, true)
+	for cell in environment_object_layer.pond_cells:  # Water: never walkable, buildable or cleared
+		path_layer.set_cell_blocked(cell, true)
 	_carve_route_if_blocked()
+	_trim_route_if_long()
 
 	path_layer.draw()
 	var no_details := unwalkable_cells + path_layer.current_path + PackedVector2Array(obstacles.keys())
+	no_details.append_array(PackedVector2Array(environment_object_layer.pond_cells))
 	environment_object_layer.generate_details(rng, no_details)
 
 	heartwood = Heartwood.new()
@@ -112,16 +128,55 @@ func set_act(act: int) -> void:
 func _carve_route_if_blocked() -> void:
 	if not path_layer.find_path_from(startPath).is_empty():
 		return
-	var route := _find_carve_route(false)
+	# Keep ridges and the feature whole; else break the feature (it's scenery); ridges only as a last resort.
+	var route := _find_carve_route(0)
 	if route.is_empty():
-		route = _find_carve_route(true)
+		route = _find_carve_route(1)
+	if route.is_empty():
+		route = _find_carve_route(2)
 	for cell in route:
 		if obstacles.has(cell):
 			_remove_obstacle(cell, false)  # Generation: no clearing mark
 
-# Cheapest start-to-end route where obstacles are passable but costly. Ridge cells are solid unless
-# `break_ridges`.
-func _find_carve_route(break_ridges: bool) -> PackedVector2Array:
+# A route much longer than usual (trees piling up along the ridges) is trimmed back under
+# `max_route_length`, one cell at a time: a plain obstacle if one helps, else a ridge cell as a last
+# resort. Each time it takes the cell that brings the route just under the cap (the least change),
+# or failing that the one that shortens it most, so the zig-zag survives. Never the feature.
+func _trim_route_if_long() -> void:
+	for attempt in 8:
+		var length := path_layer.find_path_from(startPath).size()
+		if length <= max_route_length:
+			return
+		var cell := _best_trim(length, false)
+		if cell == Vector2(-1, -1):
+			cell = _best_trim(length, true)
+		if cell == Vector2(-1, -1):
+			return
+		environment_object_layer.ridge_cells.erase(cell)  # A ridge cut back is a shorter ridge
+		_remove_obstacle(cell, false)
+
+func _best_trim(length: int, ridges: bool) -> Vector2:
+	var under := Vector2(-1, -1)
+	var under_length := 0
+	var shortest := Vector2(-1, -1)
+	var shortest_length := length
+	for cell in obstacles:
+		if environment_object_layer.feature_cells.has(cell) or environment_object_layer.ridge_cells.has(cell) != ridges:
+			continue
+		var new_length := get_path_if_cleared(cell).size()
+		if new_length <= 0 or new_length >= length:
+			continue
+		if new_length <= max_route_length and new_length > under_length:
+			under = cell
+			under_length = new_length
+		if new_length < shortest_length:
+			shortest = cell
+			shortest_length = new_length
+	return under if under != Vector2(-1, -1) else shortest
+
+# Cheapest start-to-end route where obstacles are passable but costly. `level` 0: ridges and the map's
+# feature (a ruin, grove or log) are solid; 1: the feature may break (costly); 2: ridges may too (costlier).
+func _find_carve_route(level: int) -> PackedVector2Array:
 	var astar := AStarGrid2D.new()
 	astar.region = Rect2i(Vector2i.ZERO, Vector2i(MAP_GRID.size))
 	astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
@@ -131,9 +186,16 @@ func _find_carve_route(break_ridges: bool) -> PackedVector2Array:
 	for cell in unwalkable_cells:
 		if astar.is_in_boundsv(Vector2i(cell)):
 			astar.set_point_solid(Vector2i(cell), true)
+	for cell in environment_object_layer.pond_cells:
+		astar.set_point_solid(Vector2i(cell), true)
 	for cell in obstacles:
 		if environment_object_layer.ridge_cells.has(cell):
-			if break_ridges:
+			if level >= 2:
+				astar.set_point_weight_scale(Vector2i(cell), CARVE_RIDGE_WEIGHT * 10.0)
+			else:
+				astar.set_point_solid(Vector2i(cell), true)
+		elif environment_object_layer.feature_cells.has(cell):
+			if level >= 1:
 				astar.set_point_weight_scale(Vector2i(cell), CARVE_RIDGE_WEIGHT)
 			else:
 				astar.set_point_solid(Vector2i(cell), true)

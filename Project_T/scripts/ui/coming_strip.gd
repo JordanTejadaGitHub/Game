@@ -57,7 +57,10 @@ func _process(delta: float) -> void:
 	_clock = REFRESH
 	_stack()
 	var span := shown_span()
-	visible = span.y >= span.x
+	var pause := get_parent().get_node_or_null("PauseMenu") as Control if get_parent() != null else null  # A sibling (made in code: no % owner)
+	# Hidden under the pause menu: its panels (Settings, Codex) are tall enough to reach the strip at 1280×720
+	# virtual (user screenshot at the largest UI size).
+	visible = span.y >= span.x and not (pause != null and pause.visible)
 	if not visible:
 		_built_for = ""
 		return

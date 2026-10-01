@@ -203,7 +203,7 @@ func _refresh() -> void:
 			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 			if grow.ranks > 0:
 				button.tooltip_text += "\n\n%d Dew + %d for its rank %s." % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
-			button.disabled = not run_state.can_afford(cost)
+			_mark_affordable(button, run_state.can_afford(cost))  # Dimmed, still clickable: a click plays the "can't afford"
 			button.set_meta(&"cost", cost)  # Affordability updates in place on Dew changes
 			var awake := tower_placer.ascended_blocker(next)
 			if awake != "":
@@ -252,7 +252,7 @@ func _refresh() -> void:
 				var nurture := _add_button("Nurture to rank %s · %s (R)" % [Tower.rank_name(_tower.rank + 1), _price(cost)])
 				nurture.tooltip_text = ("Choose what rank %s adds. Kept when it grows; can't be changed." % Tower.rank_name(_tower.rank + 1)
 					if _tower.needs_focus() else "Rank %s: %s." % [Tower.rank_name(_tower.rank + 1), _tower.focus_text(_tower.default_choice())]) + _growth_note()
-				nurture.disabled = not run_state.can_afford(cost)
+				_mark_affordable(nurture, run_state.can_afford(cost))  # R / a click still opens the choices (prices shown)
 				nurture.set_meta(&"cost", cost)  # Affordability updates in place on Dew changes
 				nurture.pressed.connect(_toggle_choices)
 			else:
@@ -262,7 +262,7 @@ func _refresh() -> void:
 					var button := _choice_row(index, Tower.FOCUS_NAMES[which], _choice_preview(_tower, which), _price(cost))
 					button.tooltip_text = "Rank %s: %s. Kept when it grows; can't be changed." % [
 						Tower.rank_name(_tower.rank + 1), _tower.focus_text(which)] + _growth_note()
-					button.disabled = not run_state.can_afford(cost)
+					_mark_affordable(button, run_state.can_afford(cost))  # Picking one plays the refusal (spend_dew)
 					button.set_meta(&"cost", cost)
 					button.pressed.connect(_nurture_with.bind(which))
 	elif _tower.can_be_nurtured() and _tower.rank > 0:
@@ -376,7 +376,7 @@ func _refresh_group() -> void:
 			button = _choice_row(index, Tower.FOCUS_NAMES[which], "all %d" % cost[0], _price(cost[1]))
 		else:
 			button = _choice_row(index, Tower.FOCUS_NAMES[which], "%d of %d" % [plan_focus[0].size(), cost[0]], _price(plan_focus[1]))
-			button.disabled = plan_focus[0].is_empty()
+			_mark_affordable(button, not plan_focus[0].is_empty())  # None affordable: the press plays the refusal
 		button.tooltip_text = "Each gains a rank of %s: %s. Kept when it grows; can't be changed." % [
 			Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which]]
 		button.pressed.connect(func() -> void:
@@ -723,9 +723,7 @@ const GROUP_REFRESH_MS := 250  # A big selection's refresh walks every Warden: a
 func _on_dew_changed() -> void:
 	for button in _buttons.get_children():
 		if button is Button and button.has_meta(&"cost"):
-			var disabled: bool = not run_state.can_afford(int(button.get_meta(&"cost")))
-			if button.disabled != disabled:
-				button.disabled = disabled
+			_mark_affordable(button, run_state.can_afford(int(button.get_meta(&"cost"))))
 	if _pointer_inside():
 		_dew_dirty = true
 	elif tower_seller.selection.size() > 1:
@@ -819,3 +817,18 @@ func _fit_height() -> void:
 func _place_from_bottom() -> void:
 	var height := get_combined_minimum_size().y
 	offset_top = offset_bottom - height
+
+# A price the player can't pay right now (screens_ui.md "can't buy"): dimmed, its price in the poor colour,
+# but still clickable, so a click goes through run_state.spend_dew and plays the refusal (the Dew shake and
+# the "needs N Dew" toast). Back to normal once it's affordable.
+func _mark_affordable(button: Button, affordable: bool) -> void:
+	button.set_meta(&"short", not affordable)
+	button.modulate.a = 1.0 if affordable else 0.6
+	var price_colour: Color = UiStyle.INK if affordable else UiStyle.POOR
+	if affordable:
+		button.remove_theme_color_override("font_color")
+	else:
+		button.add_theme_color_override("font_color", UiStyle.POOR)
+	var row := button.get_child(0) as HBoxContainer if button.get_child_count() > 0 else null
+	if row != null and row.get_child_count() >= 3:
+		(row.get_child(2) as Label).add_theme_color_override("font_color", price_colour)  # A choice row's price column

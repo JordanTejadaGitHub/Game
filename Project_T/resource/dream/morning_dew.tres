@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "morning_dew"
 display_name = "Morning Dew"
-description = "+20 Dew now, +10 Dew at every {rest}, and nightmares give 10% more Dew."
+description = "+20 Dew now, +10 Dew at every {rest}, and every {drift} holds 10% more Dew."
 rarity = 0
 kind = 4
 tags = Array[String](["economy", "tending"])

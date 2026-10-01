@@ -2359,9 +2359,19 @@ func get_old_growth_bonus(tower: Tower) -> float:
 # dream_design.md. Per-Warden damage / range report through DreamEffects; per-hit bonuses are in
 # on_hit_multiplier; the rest are hooks other scripts ask (RunState, TowerSeller, DriftDirector).
 
-# Gathered Dew: extra share of dispel Dew (RunState._scaled_dispel_dew adds it to Rich Dew).
+# Gathered Dew (Morning Dew): +10% Dew pot per stack.
 func get_dew_gain_bonus() -> float:
 	return GATHERED_DEW_PER * rule_stacks(&"gathered_dew") * rule_power(&"gathered_dew")
+
+# The Dew pot (run_design.md "The Dew pot"): what Dreams multiply drift `number`'s pot by (DriftDirector asks).
+# Morning Dew +10%; Call of the Wild +10% on a drift called early (its double call-early Dew stays on top).
+const CALL_OF_THE_WILD_POT := 0.10
+
+func get_dew_pot_multiplier(_number: int, called_early: bool) -> float:
+	var bonus := get_dew_gain_bonus()
+	if called_early and has_rule(&"call_of_the_wild"):
+		bonus += CALL_OF_THE_WILD_POT * rule_power(&"call_of_the_wild")
+	return 1.0 + bonus
 
 # The refund share for selling (TowerSeller.get_refund asks). Fair Trade was cut (dream_audit.md), so
 # no card changes it now.

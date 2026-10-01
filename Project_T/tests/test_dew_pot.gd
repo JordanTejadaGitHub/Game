@@ -45,6 +45,13 @@ func _run() -> void:
 	_check(is_equal_approx(boss_shares[0], director.get_effective_pot(25) * 0.5) and is_equal_approx(boss_shares[1], boss_shares[2]),
 		"a boss drift's boss takes half its pot (%.0f of %.0f)" % [boss_shares[0], director.get_effective_pot(25)])
 	# Bountiful Night (Roguelite's Omen hook): pot ×2, once the hook exists.
+	# Rich Dew (Grove dew_gain, +5% a level) multiplies the pot: level 1 = a drift's dispels 5% more in total.
+	run_state.dew_gain_bonus = 0.05
+	var rich_total := 0.0
+	for s in director.pot_shares(schedule, 12):
+		rich_total += s
+	run_state.dew_gain_bonus = 0.0
+	_check(is_equal_approx(rich_total, total * 1.05), "Rich Dew level 1: the drift's shares total 5%% more (%.2f vs %.2f)" % [rich_total, total])
 	var omens := main.get_node("%OmenDirector")
 	if omens.has_method("get_dew_pot_multiplier"):
 		for omen in omens.all_omens() if omens.has_method("all_omens") else []:
