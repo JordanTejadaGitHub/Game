@@ -1,4 +1,9 @@
 
+// The icon sheets' orders (used by the per-node blooms before the icon sheets are written).
+const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", "clear_sight", "sprout_bed", "kindling", "early_bloom", "early_light", "first_care", "deep_taproot", "second_thoughts", "let_go", "omen_reader", "wider_dreams"];
+const FAMILY_ORDER = ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"];
+const CARD_ORDER = ["storm", "spores_and_reactions", "keen_edges", "tending", "overgrowth", "lone_lantern", "the_long_way", "bittersweet", "woven", "deep_poison", "kinship", "seeds", "quiet_ones"];
+
 // ---------- export (assets/meta/...) ----------
 function strip(imgs) { const w = imgs.reduce((s, i) => s + i.w, 0), h = Math.max(...imgs.map(i => i.h)), S = new Img(w, h); let x = 0; for (const i of imgs) { S.put(i, x, 0); x += i.w; } return S; }
 function stack(rows) { const w = Math.max(...rows.map(r => r.w)), h = rows.reduce((s, r) => s + r.h, 0), S = new Img(w, h); let y = 0; for (const r of rows) { S.put(r, 0, y); y += r.h; } return S; }
@@ -73,6 +78,18 @@ for (const n of NODES) {
   layout.nodes.push({ id: n.id, section: n.section, name: n.name, pos: [n.x, n.y], parent: n.parent || null, from: n.from || null,
     levels: n.lv || 1, start: !!n.start, legendary: !!n.legendary, ...(MEMORY_WARDENS.includes(n.id) ? { memory_row: MEMORY_WARDENS.indexOf(n.id) } : {}), branch: { offset: [s.box[0], s.box[1]], frame_size: [s.W, s.H], frames: 5 } });
 }
+// Per-node blooms (fully grown): grove_blooms.png, a row per node, and grove_ascended_blooms.png for
+// the Ascension nodes. Each layout node gets its row ("bloom" / "ascended_bloom").
+const bloomNodes = NODES.filter(n => NODE_ICON[n.id] && !n.id.endsWith("_ascension") && !n.id.startsWith("memory_"));
+const ascNodes = NODES.filter(n => n.id.endsWith("_ascension") && ASCENDED_ART[n.id.replace(/_ascension$/, "")]);
+layout.nodes.forEach(e => {
+  const b = bloomNodes.findIndex(n => n.id === e.id), a = ascNodes.findIndex(n => n.id === e.id);
+  if (b >= 0) e.bloom = b;
+  if (a >= 0) e.ascended_bloom = a;
+});
+layout.bloom_cell = BLOOM_CELL; layout.ascended_cell = ASC_CELL;
+emitImg("grove/grove_blooms.png", stack(bloomNodes.map(n => strip([0, 1].map(f => bloomSprite(n, f))))));
+PENDING.push(ascendedSheet(ascNodes).then(sheet => { emitImg("grove/grove_ascended_blooms.png", sheet); return PENDING[PENDING.length - 1]; }));
 GROVE_MISTS.forEach(m => emitImg("grove/" + m.file, groveMistStrip(m)));
 emitText("grove/grove_layout.json", JSON.stringify(layout, null, 1));
 emitImg("grove/grove_nodes.png", stack(["perks", "families", "cards"].map(s => nodeRow(s, false))));
@@ -129,11 +146,8 @@ emitImg("ui/starlit_card.png", strip(starlit));
   });
   emitImg("_preview/starlit_preview.png", P);
 }
-const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", "clear_sight", "sprout_bed", "kindling", "early_bloom", "early_light", "first_care", "deep_taproot", "second_thoughts", "let_go", "omen_reader", "wider_dreams"];
 emitImg("icons/perk_icons.png", strip(PERK_ORDER.map(k => PERK_ICONS[k]())));
-const FAMILY_ORDER = ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"];
 emitImg("icons/family_icons.png", strip(FAMILY_ORDER.map(k => FAMILY_ICONS[k]())));
-const CARD_ORDER = ["storm", "spores_and_reactions", "keen_edges", "tending", "overgrowth", "lone_lantern", "the_long_way", "bittersweet", "woven", "deep_poison", "kinship", "seeds", "quiet_ones"];
 emitImg("icons/card_bundle_icons.png", strip(CARD_ORDER.map(cardIcon)));
 for (let i = 0; i < 10; i++) emitImg("memories/memory_" + String(i + 1).padStart(2, "0") + ".png", memory(i));
 

@@ -30,7 +30,8 @@
      94
     ],
     "frames": 5
-   }
+   },
+   "bloom": 0
   },
   {
    "id": "rich_dew",
@@ -55,7 +56,8 @@
      142
     ],
     "frames": 5
-   }
+   },
+   "bloom": 1
   },
   {
    "id": "rested_roots",
@@ -80,7 +82,8 @@
      136
     ],
     "frames": 5
-   }
+   },
+   "bloom": 2
   },
   {
    "id": "seed_pouch",
@@ -105,7 +108,8 @@
      150
     ],
     "frames": 5
-   }
+   },
+   "bloom": 3
   },
   {
    "id": "sprout_bed",
@@ -130,7 +134,8 @@
      151
     ],
     "frames": 5
-   }
+   },
+   "bloom": 4
   },
   {
    "id": "deep_taproot",
@@ -158,7 +163,8 @@
      159
     ],
     "frames": 5
-   }
+   },
+   "bloom": 5
   },
   {
    "id": "first_care",
@@ -183,7 +189,8 @@
      133
     ],
     "frames": 5
-   }
+   },
+   "bloom": 6
   },
   {
    "id": "clear_sight",
@@ -208,7 +215,8 @@
      128
     ],
     "frames": 5
-   }
+   },
+   "bloom": 7
   },
   {
    "id": "second_thoughts",
@@ -236,7 +244,8 @@
      97
     ],
     "frames": 5
-   }
+   },
+   "bloom": 8
   },
   {
    "id": "let_go",
@@ -261,7 +270,8 @@
      216
     ],
     "frames": 5
-   }
+   },
+   "bloom": 9
   },
   {
    "id": "omen_reader",
@@ -286,7 +296,8 @@
      131
     ],
     "frames": 5
-   }
+   },
+   "bloom": 10
   },
   {
    "id": "wider_dreams",
@@ -311,7 +322,8 @@
      128
     ],
     "frames": 5
-   }
+   },
+   "bloom": 11
   },
   {
    "id": "early_bloom",
@@ -336,7 +348,8 @@
      127
     ],
     "frames": 5
-   }
+   },
+   "bloom": 12
   },
   {
    "id": "early_light",
@@ -361,7 +374,8 @@
      130
     ],
     "frames": 5
-   }
+   },
+   "bloom": 13
   },
   {
    "id": "kindling",
@@ -386,7 +400,8 @@
      121
     ],
     "frames": 5
-   }
+   },
+   "bloom": 14
   },
   {
    "id": "slot_4",
@@ -414,7 +429,8 @@
      118
     ],
     "frames": 5
-   }
+   },
+   "bloom": 15
   },
   {
    "id": "slot_5",
@@ -439,7 +455,8 @@
      91
     ],
     "frames": 5
-   }
+   },
+   "bloom": 16
   },
   {
    "id": "sporeling",
@@ -467,7 +484,8 @@
      88
     ],
     "frames": 5
-   }
+   },
+   "bloom": 17
   },
   {
    "id": "sporeling_hidden",
@@ -492,7 +510,8 @@
      117
     ],
     "frames": 5
-   }
+   },
+   "bloom": 18
   },
   {
    "id": "sporeling_ascension",
@@ -517,7 +536,8 @@
      145
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 0
   },
   {
    "id": "firefly_jar",
@@ -545,7 +565,8 @@
      98
     ],
     "frames": 5
-   }
+   },
+   "bloom": 19
   },
   {
    "id": "firefly_jar_hidden",
@@ -570,7 +591,8 @@
      81
     ],
     "frames": 5
-   }
+   },
+   "bloom": 20
   },
   {
    "id": "firefly_jar_ascension",
@@ -595,7 +617,8 @@
      123
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 1
   },
   {
    "id": "dewdrop",
@@ -623,7 +646,8 @@
      87
     ],
     "frames": 5
-   }
+   },
+   "bloom": 21
   },
   {
    "id": "dewdrop_hidden",
@@ -648,7 +672,8 @@
      115
     ],
     "frames": 5
-   }
+   },
+   "bloom": 22
   },
   {
    "id": "dewdrop_ascension",
@@ -673,7 +698,8 @@
      103
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 2
   },
   {
    "id": "pebbling",
@@ -701,7 +727,8 @@
      113
     ],
     "frames": 5
-   }
+   },
+   "bloom": 23
   },
   {
    "id": "pebbling_hidden",
@@ -726,7 +753,8 @@
      109
     ],
     "frames": 5
-   }
+   },
+   "bloom": 24
   },
   {
    "id": "pebbling_ascension",
@@ -751,7 +779,8 @@
      115
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 3
   },
   {
    "id": "rootling",
@@ -779,7 +808,8 @@
      86
     ],
     "frames": 5
-   }
+   },
+   "bloom": 25
   },
   {
    "id": "rootling_hidden",
@@ -804,7 +834,8 @@
      104
     ],
     "frames": 5
-   }
+   },
+   "bloom": 26
   },
   {
    "id": "rootling_ascension",
@@ -829,7 +860,8 @@
      84
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 4
   },
   {
    "id": "bellflower",
@@ -857,7 +889,8 @@
      132
     ],
     "frames": 5
-   }
+   },
+   "bloom": 27
   },
   {
    "id": "bellflower_hidden",
@@ -882,7 +915,8 @@
      157
     ],
     "frames": 5
-   }
+   },
+   "bloom": 28
   },
   {
    "id": "bellflower_ascension",
@@ -907,7 +941,8 @@
      99
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 5
   },
   {
    "id": "acorn",
@@ -935,7 +970,8 @@
      105
     ],
     "frames": 5
-   }
+   },
+   "bloom": 29
   },
   {
    "id": "acorn_hidden",
@@ -960,7 +996,8 @@
      162
     ],
     "frames": 5
-   }
+   },
+   "bloom": 30
   },
   {
    "id": "acorn_ascension",
@@ -985,7 +1022,8 @@
      98
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 6
   },
   {
    "id": "nestling",
@@ -1013,7 +1051,8 @@
      92
     ],
     "frames": 5
-   }
+   },
+   "bloom": 31
   },
   {
    "id": "nestling_hidden",
@@ -1038,7 +1077,8 @@
      166
     ],
     "frames": 5
-   }
+   },
+   "bloom": 32
   },
   {
    "id": "nestling_ascension",
@@ -1063,7 +1103,8 @@
      106
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 7
   },
   {
    "id": "whirligig",
@@ -1091,7 +1132,8 @@
      88
     ],
     "frames": 5
-   }
+   },
+   "bloom": 33
   },
   {
    "id": "whirligig_hidden",
@@ -1116,7 +1158,8 @@
      148
     ],
     "frames": 5
-   }
+   },
+   "bloom": 34
   },
   {
    "id": "whirligig_ascension",
@@ -1141,7 +1184,8 @@
      147
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 8
   },
   {
    "id": "memory_white_stag",
@@ -1256,7 +1300,8 @@
      103
     ],
     "frames": 5
-   }
+   },
+   "bloom": 35
   },
   {
    "id": "guiding_lights",
@@ -1281,7 +1326,8 @@
      145
     ],
     "frames": 5
-   }
+   },
+   "bloom": 36
   },
   {
    "id": "spore_lore",
@@ -1309,7 +1355,8 @@
      115
     ],
     "frames": 5
-   }
+   },
+   "bloom": 37
   },
   {
    "id": "dawnbreak",
@@ -1334,7 +1381,8 @@
      85
     ],
     "frames": 5
-   }
+   },
+   "bloom": 38
   },
   {
    "id": "sharpened",
@@ -1362,7 +1410,8 @@
      100
     ],
     "frames": 5
-   }
+   },
+   "bloom": 39
   },
   {
    "id": "full_moon",
@@ -1387,7 +1436,8 @@
      78
     ],
     "frames": 5
-   }
+   },
+   "bloom": 40
   },
   {
    "id": "tending_hands",
@@ -1415,7 +1465,8 @@
      111
     ],
     "frames": 5
-   }
+   },
+   "bloom": 41
   },
   {
    "id": "nursery",
@@ -1440,7 +1491,8 @@
      142
     ],
     "frames": 5
-   }
+   },
+   "bloom": 42
   },
   {
    "id": "the_old_ones",
@@ -1465,7 +1517,8 @@
      123
     ],
     "frames": 5
-   }
+   },
+   "bloom": 43
   },
   {
    "id": "seedbed",
@@ -1493,7 +1546,8 @@
      104
     ],
     "frames": 5
-   }
+   },
+   "bloom": 44
   },
   {
    "id": "rootbound",
@@ -1518,7 +1572,8 @@
      141
     ],
     "frames": 5
-   }
+   },
+   "bloom": 45
   },
   {
    "id": "one_line",
@@ -1546,7 +1601,8 @@
      115
     ],
     "frames": 5
-   }
+   },
+   "bloom": 46
   },
   {
    "id": "the_last_light",
@@ -1571,7 +1627,8 @@
      153
     ],
     "frames": 5
-   }
+   },
+   "bloom": 47
   },
   {
    "id": "dead_wood",
@@ -1599,7 +1656,8 @@
      104
     ],
     "frames": 5
-   }
+   },
+   "bloom": 48
   },
   {
    "id": "the_long_walk",
@@ -1624,7 +1682,8 @@
      82
     ],
     "frames": 5
-   }
+   },
+   "bloom": 49
   },
   {
    "id": "bittersweet_dreams",
@@ -1652,7 +1711,8 @@
      93
     ],
     "frames": 5
-   }
+   },
+   "bloom": 50
   },
   {
    "id": "seeping",
@@ -1680,7 +1740,8 @@
      128
     ],
     "frames": 5
-   }
+   },
+   "bloom": 51
   },
   {
    "id": "venom",
@@ -1705,7 +1766,8 @@
      130
     ],
     "frames": 5
-   }
+   },
+   "bloom": 52
   },
   {
    "id": "nightshade",
@@ -1730,7 +1792,8 @@
      276
     ],
     "frames": 5
-   }
+   },
+   "bloom": 53
   },
   {
    "id": "grove_of_kin",
@@ -1755,7 +1818,8 @@
      106
     ],
     "frames": 5
-   }
+   },
+   "bloom": 54
   },
   {
    "id": "planted_promises",
@@ -1783,7 +1847,8 @@
      88
     ],
     "frames": 5
-   }
+   },
+   "bloom": 55
   },
   {
    "id": "deep_promises",
@@ -1808,7 +1873,8 @@
      73
     ],
     "frames": 5
-   }
+   },
+   "bloom": 56
   },
   {
    "id": "golden_harvest",
@@ -1833,7 +1899,8 @@
      129
     ],
     "frames": 5
-   }
+   },
+   "bloom": 57
   },
   {
    "id": "catchers",
@@ -1861,7 +1928,8 @@
      165
     ],
     "frames": 5
-   }
+   },
+   "bloom": 58
   },
   {
    "id": "old_wood",
@@ -1886,7 +1954,8 @@
      88
     ],
     "frames": 5
-   }
+   },
+   "bloom": 59
   },
   {
    "id": "the_quiet_ones",
@@ -1911,7 +1980,8 @@
      105
     ],
     "frames": 5
-   }
+   },
+   "bloom": 60
   }
  ],
  "fruit_spots": [
@@ -2009,5 +2079,7 @@
  ],
  "node_cell": 32,
  "legendary_cell": 48,
- "fruit_cell": 48
+ "fruit_cell": 48,
+ "bloom_cell": 56,
+ "ascended_cell": 72
 }
