@@ -286,8 +286,11 @@ func _test_new_omens(main: Node) -> void:
 	omens.active = by_id["frozen_ground"]
 	director.resting = false
 	_check(omens.blocks_building(), "Frozen Ground: no building during a drift")
+	var seller: TowerSeller = main.get_node("%TowerSeller")
+	_check(not seller.can_sell() and seller.sell_block_reason().begins_with("Frozen Ground"),
+		"…and no selling either (the Warden panel and sell key say why)")
 	director.resting = true
-	_check(not omens.blocks_building(), "…fine at a rest")
+	_check(not omens.blocks_building() and seller.can_sell(), "…both fine at a rest")
 	omens.active = by_id["leaf_fall"]
 	_check(omens.get_leak_multiplier() == 2.0, "Leaf Fall: leaks ×2")
 
@@ -494,6 +497,19 @@ func _test_teeth(main: Node) -> void:
 		omens._offer_waiting = false
 	omens.active = null
 	director.drifts_started = 0
+	# The balance bot's three Omen modes
+	var policy := DreamSimPolicy.new(dreams)
+	var two: Array = [by_id["hard_bark"], by_id["dry_spell"]]
+	policy.omen_mode = "clear"
+	var clear_pick := policy.pick_omen(two)
+	policy.omen_mode = "always"
+	var always_pick := policy.pick_omen(two)
+	policy.omen_mode = "clean"
+	policy._last_block_clean = false
+	var after_leak := policy.pick_omen(two)
+	policy._last_block_clean = true
+	_check(clear_pick == null and always_pick == two[0] and after_leak == null and policy.pick_omen(two) == two[0],
+		"sim Omen modes: clear / always the first / clean only after a clean block")
 
 func _frames(n: int) -> void:
 	for i in n:

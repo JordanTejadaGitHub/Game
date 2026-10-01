@@ -86,6 +86,7 @@ func pick_dream(offer: Array) -> UpgradeData:
 
 # The rest after `drift`: its Dream, then Dreamlight. Returns the cards taken.
 func rest(drift: int, perfect: bool = true) -> Array[UpgradeData]:
+	_last_block_clean = perfect
 	var taken := dreams.sim_rest(drift, pick_dream, perfect)
 	for card in taken:
 		choices.append("drift %d: Dream %s" % [drift, card.id])
@@ -188,9 +189,23 @@ const AREA_FIRST := {"pebbling": "cairn", "nestling": "wrens_nest"}  # Cairn's l
 # The baseline takes Clear Skies (no Omen); `face_omens` faces every one and picks the lower-risk of
 # the revealed Omens (omen_risk). Pass the result to OmenDirector.choose().
 var face_omens := false
+# Omens with teeth (run_design.md, the three-way measurement): "clear" Clear Skies always; "always" faces
+# every Omen and takes the first revealed; "clean" faces only after a clean block (no leaf lost), taking
+# the first revealed. "" = face_omens (the older "face": every Omen, the lower-risk one).
+var omen_mode := ""
+var _last_block_clean := true  # The block before this rest lost no leaf (rest's `perfect`)
 
 func pick_omen(offer: Array) -> OmenData:
-	if not face_omens or offer.is_empty():
+	if offer.is_empty():
+		return null
+	match omen_mode:
+		"clear":
+			return null
+		"always":
+			return offer[0]
+		"clean":
+			return offer[0] if _last_block_clean else null
+	if not face_omens:
 		return null
 	var best: OmenData = offer[0]
 	for omen in offer:

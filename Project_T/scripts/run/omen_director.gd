@@ -474,18 +474,26 @@ func get_reward_status() -> String:
 static func _has_dream_reward(omen: OmenData) -> bool:
 	return omen.reward_rare_dreams > 0 or omen.reward_extra_dream_cards > 0 or omen.reward_legendary
 
+# This run's Omen tally (balance sim, run report): blocks paid, the reward shares they paid, leaves lost in
+# Omen blocks and Dew paid.
+var stats := {"paid": 0, "share": 0.0, "leaves_lost": 0, "dew": 0}
+
 func _pay_reward(rest_bonus: int) -> void:
 	var lost := leaves_lost_in_block()
 	var share := get_reward_share(lost)
 	var dreams := keeps_dream_reward(lost)
 	var omen := active
 	active = null
+	stats.leaves_lost += lost
 	if run_state.is_over and not run_state.won:
 		return
+	stats.paid += 1
+	stats.share += share
 	var act := drift_director.get_act(drift_director.drifts_started)
 	var scale := _act_scale(act)
 	var dew := floori((roundi(omen.reward_dew * scale) + _extra_rest_bonus(omen, rest_bonus)) * share)
 	run_state.add_dew(dew)
+	stats.dew += dew
 	if omen.rest_bonus_multiplier < 1.0:  # Lean Season: this rest's bonus shrinks (the twist, never scaled)
 		var gone := mini(roundi(rest_bonus * (1.0 - omen.rest_bonus_multiplier)), run_state.dew)
 		if gone > 0:
