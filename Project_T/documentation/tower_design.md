@@ -325,6 +325,14 @@ it**. No burst at a stack count anywhere:
 - "Popped!" callouts and the pop effect go; Fever Dream and Ignite stay as they are (sleep and burn,
   not pops). The Spore Bomb build becomes stack-and-fog (Tower Discussion renames it).
 
+### Slow and sleep have limits (2026-10-01)
+
+User, a fresh-profile run at drift 28: *"builds feel super strong already with a new profile, slowing them by a lot as well"* (Bloomcap clouds, Drowsy stacks, Honeysuckles: nightmares crawled or slept through the maze). Rules:
+- **Combined slow floor:** however many slows stack (Drowsy, Soaked + Frostfern, Heavy Air, rubble, fog, Omens), a nightmare never moves slower than **50% of its speed** (bosses **70%**, elites **60%**). Held / Rooted (a full stop) and Asleep are separate.
+- **Sleep has a cooldown:** after a nightmare wakes up it can't fall **Asleep** again for **4 s** (bosses 8 s); Drowsy stacks still build meanwhile. Shown as a faint "awake" ring.
+- **Hold has a cooldown too:** after a hold ends, 1.5 s before it can be Held again (bosses 3 s).
+- The status badges and the nightmare info show the floor ("Slowed to the limit").
+
 ### Status jobs (overlap review, 2026-09-29)
 
 Several statuses and Wardens did the same thing (many slows, four kinds of "takes more damage",
