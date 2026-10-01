@@ -2130,6 +2130,12 @@ const ascNodes = NODES.filter(n => n.id.endsWith("_ascension") && ASCENDED_ART[n
 layout.nodes.forEach(e => {
   const b = bloomNodes.findIndex(n => n.id === e.id), a = ascNodes.findIndex(n => n.id === e.id);
   if (a >= 0) e.ascended_bloom = a;
+  // How deep a node sits on its branch (meta_design.md c2d98792, visual only): which grove_level_blooms
+  // column set a grown Families / Cards node shows. Perks keep their real purchase levels (no field).
+  // Families: family 1, hidden branch 2, Ascension 3. Cards: a branch's first bundle 1, later bundles 2,
+  // Legendary tips 3. Legendary tips and Ascensions keep their own bigger blooms as their level 3.
+  if (e.section === "families" && !e.id.startsWith("memory_")) e.display_level = e.id.endsWith("_ascension") ? 3 : e.id.endsWith("_hidden") ? 2 : 1;
+  if (e.section === "cards") e.display_level = e.legendary ? 3 : e.parent && byId[e.parent] && byId[e.parent].section === "cards" ? 2 : 1;
 });
 layout.ascended_cell = 48;
 emitImg("grove/grove_ascended_blooms.png", stack(ascNodes.map(() => strip([0, 1, 2, 3].map(ascendedBloomPlain)))));
