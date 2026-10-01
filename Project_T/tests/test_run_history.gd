@@ -51,7 +51,12 @@ func _run() -> void:
 	root.add_child(straggler)
 	history._on_drift_started(90)
 	history._origin[straggler.get_instance_id()] = 90
+	director._called_early = true  # As start_next_drift sets it while 90 is still arriving
 	history._on_drift_started(91)
+	director._called_early = false
+	_check(not history._open[90].called_early and history._open[91].called_early, "a drift row says whether it was called early")
+	director.early_calls = 3
+	director.call_early_dew = 7
 	var hit := DamageLog.Event.new()
 	hit.enemy = straggler
 	hit.amount = 50.0
@@ -74,6 +79,9 @@ func _run() -> void:
 			"per-drift rows use the bot's column names (%s)" % [drifts[0] if not drifts.is_empty() else {}])
 		var report := RunHistory.report_text(record)
 		_check(report.contains("Result: abandoned") and report.contains("drift,act,seconds,health_spawned"), "the copyable report")
+		_check(int(record.get("early_calls", -1)) == 3 and int(record.get("dew_call_early", -1)) == 7
+			and report.contains("Called early: 3 drifts · 7 Dew") and report.contains(",closest,called_early"),
+			"the record counts drifts called early and their Dew; the CSV has a called_early column")
 		# The exact build (balance_simulation.md): content id + label, and the tuning snapshot.
 		_check(String(record.get("build", {}).get("id", "")).length() == 6 and report.contains("Build ")
 			and int(record.get("balance", {}).get("starting_dew", 0)) > 0 and record.balance.has("health_by_drift"),

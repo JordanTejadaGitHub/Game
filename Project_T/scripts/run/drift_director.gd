@@ -319,6 +319,9 @@ func start_next_drift() -> bool:
 	if bonus > 0:
 		run_state.add_dew(bonus)
 	_called_early = is_arriving()  # Call of the Wild: a drift called early has its pot +10%
+	if _called_early:  # Run history (balancing: "the user calls most drifts early")
+		early_calls += 1
+		call_early_dew += bonus
 	_start_drift()
 	_called_early = false
 	return true
@@ -494,6 +497,12 @@ func _spawn(data: EnemyData, number: int, elite: bool = false, share: float = -1
 # --- The Dew pot --------------------------------------------------------------------------------------
 
 var _called_early := false  # Set while start_next_drift starts a drift early
+var early_calls := 0  # Drifts started while the previous one was still arriving, this run
+var call_early_dew := 0  # Dew paid by calling early, this run
+
+# Whether the drift being started right now was called early (drift_started's listeners ask).
+func is_calling_early() -> bool:
+	return _called_early
 var block_pot := 0.0  # The pots of this block's drifts (rest report: "Dew this block: 840 of 900")
 
 # Drift `number`'s base pot from the table (before Dreams / Omens).

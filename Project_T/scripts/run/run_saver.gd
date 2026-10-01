@@ -137,6 +137,7 @@ func save_now() -> bool:
 		"drifts_cleared": drift_director.drifts_cleared,
 		"blocks_rested": drift_director.blocks_rested,
 		"bosses_cleansed": drift_director.bosses_cleansed,
+		"early_calls": drift_director.early_calls, "call_early_dew": drift_director.call_early_dew,
 		"auto_drift": drift_director.auto_drift,
 		"bosses": BossPool.ids(drift_director.bosses),  # Boss pools: the bosses this run drew
 		"dreams": dream_state.to_save(),
@@ -242,6 +243,8 @@ func _restore(data: Dictionary) -> void:
 	drift_director.drifts_cleared = int(data.drifts_cleared)
 	drift_director.blocks_rested = int(data.blocks_rested)
 	drift_director.bosses_cleansed = int(data.bosses_cleansed)
+	drift_director.early_calls = int(data.get("early_calls", 0))
+	drift_director.call_early_dew = int(data.get("call_early_dew", 0))
 	drift_director.set_auto_drift(bool(data.auto_drift))
 	drift_director.resting = true
 	drift_director.build_phase_changed.emit(true)
