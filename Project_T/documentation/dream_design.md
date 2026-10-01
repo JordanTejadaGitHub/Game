@@ -90,6 +90,12 @@ matter, confirmed.
 
 ## How Dream offers work
 
+**Each run draws its own pool, and it follows your build** (2026-09-30, user: *"doesn't a lean starting pool create optimal builds though?"* → *"yes, depending on the build you're going for"*). With ~55 cards against ~57 offers a run, a fixed pool shows almost everything every run and the best picks become a solved routine. So:
+- **At run start** the run draws its **Dream pool**: the **core** (basic stat cards and the cards of the families you hold) plus a **random ~60%** of everything else you have available (seeded with the map).
+- **The pool follows your build:** when you **take** a card of a direction (its build tag), the rest of that direction's available cards **join the run's pool** (not all offered at once; they become possible). Passed cards don't pull. So a direction you commit to can come together, while the directions you didn't draw or take stay out, and each run leans differently.
+- **New families** (family picks at 25 / 50 / 75) add their family cards to the core when picked.
+- The Grove grows what can be drawn, so meta progress means **more varied runs**, not just stronger ones.
+- Owner: Roguelite Mechanic Discussion (rules), Roguelite Code (DreamState). The offer weights, fade and pity rules work inside the run's pool. Codex "Dreams" keeps showing every card.
 - **3 cards per Dream**, after drifts 5, 10, … 95. No duplicates within an offer.
 - **Passed-over cards fade** (added 2026-09-28; playtest: Few and Mighty was offered ~5 times by
   drift 35 to a player not going narrow). A card that was offered and **not taken**:
