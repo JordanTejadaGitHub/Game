@@ -34,7 +34,7 @@ function haloOut(out, cx, cy, r, sec, a) {
 // One node sprite. state: "locked" | "afford" (f 0-3) | "open" (f 0-3) | "bloom" (f 0-1). size 32 or 48 (Legendary).
 function nodeSprite(sec, state, f, big = false) {
   const S = big ? 48 : 32, c = S / 2, out = new Img(S, S), L = new Img(S, S);
-  const r = big ? 13 : 9, petals = big ? 8 : 5;
+  const r = big ? 11 : 9, petals = big ? 8 : 5;
   if (state === "locked") { bud(L, c, c + 2, sec); out.stamp(L, "#0e0a06"); return out; }
   if (state === "afford") {
     haloOut(out, c, c, big ? 20 : 13, sec, [.25, .38, .5, .38][f]);
@@ -49,11 +49,19 @@ function nodeSprite(sec, state, f, big = false) {
     return out;
   }
   // bloom
-  haloOut(out, c, c, big ? 22 : 14, sec, f ? .42 : .34);
+  haloOut(out, c, c, big ? 18 : 14, sec, f ? .42 : .34);
   if (big) flower(L, c, c, sec, r * .72, petals, 1, Math.PI / petals);
   flower(L, c, c, sec, r, petals, 1, f * .06);
   out.stamp(L, "#0e0a06");
   if (big) for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + f * .4; out.set(c + Math.cos(a) * (r + 5), c + Math.sin(a) * (r + 5), "#fffbe8"); }
+  // A Cards Legendary (purple level 3) gets its own mark, like the Ascension crown and the Perks gold ring:
+  // a twinkling gold four-point star above the flower with a short trail of sparks.
+  if (big && sec === "cards" && state === "bloom") {
+    const sx = c + 9, sy = 7, arm = f ? 5 : 4;
+    for (let i = -arm; i <= arm; i++) { out.set(sx + i, sy, Math.abs(i) < 2 ? HW.Heartlight : HW.Gold); out.set(sx, sy + i, Math.abs(i) < 2 ? HW.Heartlight : HW.Gold); }
+    out.set(sx - 1, sy - 1, HW.Glow); out.set(sx + 1, sy + 1, HW.Glow); out.set(sx + 1, sy - 1, HW.Glow); out.set(sx - 1, sy + 1, HW.Glow);
+    [[-7, 3], [-11, 6], [-14, 10]].forEach(([dx, dy], k) => out.set(sx + dx, sy + dy, k === (f ? 1 : 2) ? HW.Glow : HW.Gold));
+  }
   out.set(c - 3 + f * 5, c - r + 1, "#ffffff");
   return out;
 }

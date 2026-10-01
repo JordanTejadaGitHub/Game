@@ -677,13 +677,15 @@ function spreadNodes(mask) {
     const sx = new Float64Array(list.length), sy = new Float64Array(list.length), sc = new Float64Array(list.length);
     for (const [x, y] of samples) {
       let best = 0, bd = 1e12;
-      for (let i = 0; i < list.length; i++) { const d = (list[i].x - x) ** 2 + (list[i].y - y) ** 2; if (d < bd) { bd = d; best = i; } }
+      // The right of the crown belongs to the Cards: its samples go to the nearest Cards node, so they spread up into it.
+      const pool = x > 800 ? list.map((n, i) => n.section === "cards" ? i : -1).filter(i => i >= 0) : list.map((n, i) => i);
+      for (const i of pool) { const d = (list[i].x - x) ** 2 + (list[i].y - y) ** 2; if (d < bd) { bd = d; best = i; } }
       sx[best] += x; sy[best] += y; sc[best]++;
     }
     list.forEach((n, i) => {
       if (!sc[i]) return;
       let mx = (sx[i] / sc[i] - n.x) * .6, my = (sy[i] / sc[i] - n.y) * .6;
-      const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * (n.parent ? 1.6 : .75)) { mx *= .2; my *= .2; }
+      const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * (n.parent ? (n.section === "cards" ? 2.4 : 1.6) : (n.section === "cards" ? 1.1 : .75))) { mx *= .2; my *= .2; }
       mx = clamp(mx, -8, 8); my = clamp(my, -8, 8);
       if (inMask(n.x + mx, n.y + my, 26)) { n.x += mx; n.y += my; }
     });
