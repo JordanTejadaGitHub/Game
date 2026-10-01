@@ -22,7 +22,7 @@ const KINDS := {
 	"heartwood": DetailPass.Kind.WARDEN,
 }
 # Palette snap only: soft alpha overlays and the seamless 256 px void (a per-64 pass would seam it).
-const SNAP_ONLY := ["edge_mist", "void_sky", "void_stars", "cloud_shadows", "heartwood"]  # heartwood: drawn with its own rim and banded glow (matches the Memory Grove)
+const SNAP_ONLY := ["edge_mist", "void_sky", "void_stars", "cloud_shadows", "mist_banks", "heartwood"]  # heartwood: drawn with its own rim and banded glow (matches the Memory Grove)
 # Grain strength (the user's picks, 2026-09-28): no added grain on anything grassy, a light grain on
 # the other ground tiles, full detail on props.
 const NO_GRAIN := ["grass", "island_edge", "dew_pool", "blight_patch"]

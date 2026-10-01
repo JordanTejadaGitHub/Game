@@ -15,8 +15,13 @@ const CONCEPT_SIZE := Vector2(960, 576)  # The concept page's sample map, in px
 const FOG_COLOR := Color(16 / 255.0, 10 / 255.0, 30 / 255.0)
 
 const CLOUD_SIZE := Vector2(256, 128)  # One cloud shadow in dream/cloud_shadows.png (a row of them)
+# Mist banks (dream/mist_banks.png, a seamless 256 px tile): the title and Grove screens' teal-grey fog,
+# drawn with the cloud shadows (under the cold multiply) in flat 32 px bands, stretched 2× wide.
+const MIST_BAND := 32.0
+const MIST_STRETCH := Vector2(2, 1)
 
 @export var edge_fog_per_edge_cell := 0.46
+@export var mist_strength := 1.0  # 0 = no mist banks
 @export var crossing_clouds := 4  # Cloud shadows drifting across the whole map with the wind
 @export var cloud_wind := Vector2(9, 3)  # px/s; each cloud varies it a little
 @export var particle_scale := 1.0  # Multiplies every act's particle count
@@ -29,6 +34,8 @@ var _area_scale: float  # Map area / concept area
 var _clouds: Texture2D  # Cloud shadow shapes (null = fall back to plain ovals)
 var _cloud_count := 1
 var _shadows: Node2D  # Draws the crossing cloud shadows at CLOUD_SHADOW_Z
+var _mist: Texture2D
+var _mist_layer: Node2D  # Draws the mist banks at CLOUD_SHADOW_Z, over the cloud shadows
 
 func _ready() -> void:
 	z_index = AMBIENCE_Z
@@ -43,11 +50,21 @@ func _ready() -> void:
 	_shadows.z_index = CLOUD_SHADOW_Z - AMBIENCE_Z  # Relative to this node
 	_shadows.draw.connect(_draw_crossing_clouds)
 	add_child(_shadows)
+	var mist_path := EnvironmentTiles.shared_path("mist_banks")
+	if ResourceLoader.exists(mist_path):
+		_mist = load(mist_path)
+	_mist_layer = Node2D.new()
+	_mist_layer.name = "MistBanks"
+	_mist_layer.z_index = CLOUD_SHADOW_Z - AMBIENCE_Z
+	_mist_layer.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED  # The tile wraps as it drifts
+	_mist_layer.draw.connect(_draw_mist)
+	add_child(_mist_layer)
 
 func _process(delta: float) -> void:
 	_time += delta
 	queue_redraw()
 	_shadows.queue_redraw()
+	_mist_layer.queue_redraw()
 
 func _draw() -> void:
 	_draw_edge_fog()
@@ -90,6 +107,31 @@ func _draw_crossing_clouds() -> void:
 		var p := Vector2(_rand(k, 5) * span.x, _rand(k, 6) * span.y) + wind * _time
 		var at := Vector2(fposmod(p.x, span.x), fposmod(p.y, span.y)) - CLOUD_SIZE
 		_cloud(at, k * 2 + 1, 0.7 + 0.1 * sin(_time * 0.3 + k), _shadows)
+
+# Two layers of mist banks drifting opposite ways: thickest at the back of the map (the top, like the
+# title art's fog behind the trees), a little at the front, thin over the middle where the fighting is,
+# and thicker again down the left and right edges. Alpha steps per band, so the fog reads banded.
+func _draw_mist() -> void:
+	if _mist == null or mist_strength <= 0.0:
+		return
+	# Only over the island: past its rim the void's own dark fog takes over (a box of mist out there showed its edge).
+	var edge := float(MAP_GRID.cell_size.x) * 2
+	for layer in 2:
+		var drift := Vector2((7.0 if layer == 0 else -4.5) * _time + layer * 97.0, layer * 61.0).floor()
+		var weight := 1.0 if layer == 0 else 0.6
+		var y := 0.0
+		while y < _size.y:
+			var mid := (y + MIST_BAND * 0.5) / _size.y
+			var back := clampf(1.0 - mid / 0.7, 0.0, 1.0)
+			var front := clampf((mid - 0.85) / 0.15, 0.0, 1.0)
+			_mist_band(Rect2(0, y, _size.x, MIST_BAND), drift, (0.07 + 0.3 * back + 0.1 * front) * weight)
+			y += MIST_BAND
+		for side in 2:
+			_mist_band(Rect2(0.0 if side == 0 else _size.x - edge, 0, edge, _size.y), drift, 0.12 * weight)
+
+func _mist_band(rect: Rect2, drift: Vector2, alpha: float) -> void:
+	var src := Rect2((rect.position + drift) / MIST_STRETCH, rect.size / MIST_STRETCH)
+	_mist_layer.draw_texture_rect_region(_mist, rect, src, Color(1, 1, 1, alpha * mist_strength))
 
 # Nightmare fog drifting round the map's edge as cloud shadows, one side per cloud.
 func _draw_edge_fog() -> void:

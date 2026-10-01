@@ -1268,6 +1268,19 @@ const WOOD = ["#1e1410", "#3a2618", "#5a3c24", "#7c5634", "#9c7448"];
 // Cloud shadows (256×128, transparent), seen from above as they pass over the map: an elongated,
 // lobed patch whose edge breaks into wisps on the downwind (right) side, denser in the middle.
 // Three banded alpha steps of Dread (dithered where they meet), never a soft blur.
+// Mist banks (2026-09-30, the title / Grove fog): a seamless 256×256 tile of dithered fog in the
+// title's fog ramp (Pool → Slate → Stone → Mist), opaque palette pixels in three density bands. The
+// game draws it at low alpha, stretched 2× wide so the banks lie flat, thicker at the map's back and edges.
+function mistBanks() {
+  const W = 256, out = new Img(W, W), ramp = ["#2c4c5c", "#5c5a78", "#8c8cac", "#b4b0c8"];
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+    const n = .6 * pnoise(x, y, 64, 1907, 4) + .4 * pnoise(x, y, 32, 1913, 8);
+    const d = clamp((n - .38) * 1.9, 0, 1);
+    if (d <= 0 || bay(x, y) >= d * .85) continue;
+    out.set(x, y, ramp[Math.min(3, Math.floor(d * 3.2))]);
+  }
+  return out;
+}
 function cloudShadow(v) {
   const W = 256, H = 128, L = new Img(W, H), s = 1300 + v * 37;
   const rx = 78 + hash(v, 1, s) * 26, ry = 30 + hash(v, 2, s) * 12, cx = 124, cy = 64;
@@ -1347,6 +1360,7 @@ const BUILD = {
   islet: (A, v) => islet(A, v),
   bridge: (A, v) => ropeBridge(v),
   cloud: (A, v) => cloudShadow(v),
+  mistbank: () => mistBanks(),
 };
 const ANIM = new Set(["withered", "waystone", "pool", "blight", "mist", "heart", "dead"]);
 const TILES = new Set(["grass", "path", "wall", "pool", "blight"]);

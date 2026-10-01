@@ -43,6 +43,7 @@ for (const A of ACTS) {
     emit("dream/void_islets.png", strip([0, 1, 2, 3].map(v => getImg("islet:" + v))));
     emit("dream/rope_bridge.png", strip([getImg("bridge:0"), getImg("bridge:1")]));
     emit("dream/cloud_shadows.png", strip([0, 1, 2, 3, 4, 5].map(v => getImg("cloud:" + v))));
+    emit("dream/mist_banks.png", getImg("mistbank"));
   }
   emit(d + "moved_hollow.png", getImg("dent"));
   emit(d + "waystone.png", frames("waystone"));
