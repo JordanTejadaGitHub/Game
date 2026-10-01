@@ -526,6 +526,8 @@ three families are reachable with 4 per run.
 + Marked: dragged back, every hit crits), Flare (Ignite + Marked: the burst Marks and reveals).
 
 ## Kinships: two branches of one family
+**Bonds are sticky** (2026-10-01, user: *"it seems like building new Wardens restarts the Kinship"*): a bond, once formed, is **kept until one of its two Wardens is sold or moved**. A newly planted or grown Warden **never takes over an existing bond**, even if it's nearer; it only bonds with kin that are still unbonded. Pairing nearest-first applies only among unbonded Wardens. Growing either partner keeps the bond and its age.
+
 
 Added 2026-09-28 (user decision). Reactions reward going **wide** (2–3 families); Kinships reward
 going **deep** in one. The two are kept visibly different:
