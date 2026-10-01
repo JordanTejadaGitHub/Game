@@ -293,12 +293,14 @@ func _attack_state(a: int) -> Dictionary:
 
 func _make(tower_name: String, draw: Callable) -> Image:
 	_warden_name = tower_name
-	var sheet := Image.create_empty(S * FRAMES, S, false, Image.FORMAT_RGBA8)
+	var h := _frame_h(tower_name)
+	var sheet := Image.create_empty(S * FRAMES, h, false, Image.FORMAT_RGBA8)
 	for f in FRAMES:
 		var canvas := _layer()
-		draw.call(canvas, _idle_state(f))
-		sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, 0))
-	sheet = _warden_night(_detail_pass(sheet, Vector2i(S, S)))
+		var st := _idle_state(f)
+		draw.call(canvas, st)
+		sheet.blit_rect(_tall_frame(tower_name, canvas, st), Rect2i(0, 0, S, h), Vector2i(f * S, 0))
+	sheet = _warden_night(_detail_pass(sheet, Vector2i(S, h)))
 	if NIGHT_RIM.has(tower_name):
 		_night_rim(sheet, HeartwoodPalette_color(NIGHT_RIM[tower_name]))
 	sheet.save_png(OUT + tower_name + ".png")
@@ -365,16 +367,39 @@ func _detail_pass(sheet: Image, frame: Vector2i) -> Image:
 # <name>_attack.png: the Warden's body in attack poses plus its attack effect on top.
 func _make_attack(tower_name: String) -> Image:
 	_warden_name = tower_name
-	var sheet := Image.create_empty(S * ATTACK_FRAMES, S, false, Image.FORMAT_RGBA8)
+	var h := _frame_h(tower_name)
+	var sheet := Image.create_empty(S * ATTACK_FRAMES, h, false, Image.FORMAT_RGBA8)
 	for a in ATTACK_FRAMES:
 		var canvas := _layer()
 		var st := _attack_state(a)
 		call("_draw_" + tower_name, canvas, st)
 		call("_attack_" + tower_name, canvas, st)
-		sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(a * S, 0))
-	sheet = _detail_pass(sheet, Vector2i(S, S))
+		sheet.blit_rect(_tall_frame(tower_name, canvas, st), Rect2i(0, 0, S, h), Vector2i(a * S, 0))
+	sheet = _detail_pass(sheet, Vector2i(S, h))
 	sheet.save_png(OUT + tower_name + "_attack.png")
 	return sheet
+
+# Tall Wardens (64x96 frames, the body's 64x64 frame in the bottom 64 rows; the 32 rows above hold
+# what rises over it). In game: TowerData.sprite_offset (0, -16) keeps the slab on its cell, and the
+# attacks.json point stays in body-frame pixels (it's measured from the body, not the tall frame).
+const TALL_WARDENS := ["beacon"]
+const TALL_H := 96
+
+func _frame_h(tower_name: String) -> int:
+	return TALL_H if tower_name in TALL_WARDENS else S
+
+# Puts a drawn 64x64 body frame into its tall frame with the Warden's tall parts (behind and in front).
+func _tall_frame(tower_name: String, body: Image, st: Dictionary) -> Image:
+	if not tower_name in TALL_WARDENS:
+		return body
+	var frame := Image.create_empty(S, TALL_H, false, Image.FORMAT_RGBA8)
+	var back := _layer()   # tall-frame rows 0..63
+	var front := _layer()
+	call("_tall_" + tower_name, back, front, st)
+	frame.blend_rect(back, Rect2i(0, 0, S, S), Vector2i.ZERO)
+	frame.blend_rect(body, Rect2i(0, 0, S, S), Vector2i(0, TALL_H - S))
+	frame.blend_rect(front, Rect2i(0, 0, S, S), Vector2i.ZERO)
+	return frame
 
 # <name>_channel.png for the BEAM Wardens (Sunpetal, Midsummer): 3 frames the game ping-pongs while
 # the beam is held (TowerData.beam_sustain_texture). The code draws the beam itself, toward the
@@ -2538,24 +2563,23 @@ func _moth_body(canvas: Image, st: Dictionary, beacon: bool) -> void:
 	var span := 18.0 if beacon else 16.0
 	var flap: int = st.sway
 	_draw_waystone(canvas, st, "night", beacon)
-	if beacon:
-		for k in 12:
-			if (k + st.f) % 2 == 0:
-				var d := Vector2.from_angle(k * TAU / 12.0)
-				_line(canvas, [Vector2(30.5, 8 + dy) + d * 9.0, Vector2(30.5, 8 + dy) + d * 15.0], Color("#fff4c0"))
-	_leaf(canvas, Vector2(21, 21 + dy), Vector2(21 - span + flap, 5 + dy), 7.5, wing, fig.o)
-	_leaf(canvas, Vector2(40, 21 + dy), Vector2(40 + span - flap, 4 + dy), 7.5, wing, fig.o)
-	_leaf(canvas, Vector2(22, 29 + dy), Vector2(22 - span * 0.8, 38), 5.0, wing, fig.o)
-	_leaf(canvas, Vector2(39, 29 + dy), Vector2(39 + span * 0.8, 38), 5.0, wing, fig.o)
-	for s: Vector2 in [Vector2(21 - span * 0.55 + flap * 0.5, 12 + dy), Vector2(40 + span * 0.55 - flap * 0.5, 11 + dy)]:
-		var eye := _layer()
-		_flat_ellipse(eye, s, Vector2(2.2, 2.2), Color("#5a3a2a"))
-		_flat_ellipse(eye, s, Vector2(1.2, 1.2), Color("#ffffff") if beacon else Color("#f0a040"))
-		_stamp(canvas, eye)
+	if not beacon:
+		_leaf(canvas, Vector2(21, 21 + dy), Vector2(21 - span + flap, 5 + dy), 7.5, wing, fig.o)
+		_leaf(canvas, Vector2(40, 21 + dy), Vector2(40 + span - flap, 4 + dy), 7.5, wing, fig.o)
+		_leaf(canvas, Vector2(22, 29 + dy), Vector2(22 - span * 0.8, 38), 5.0, wing, fig.o)
+		_leaf(canvas, Vector2(39, 29 + dy), Vector2(39 + span * 0.8, 38), 5.0, wing, fig.o)
+		for s: Vector2 in [Vector2(21 - span * 0.55 + flap * 0.5, 12 + dy), Vector2(40 + span * 0.55 - flap * 0.5, 11 + dy)]:
+			var eye := _layer()
+			_flat_ellipse(eye, s, Vector2(2.2, 2.2), Color("#5a3a2a"))
+			_flat_ellipse(eye, s, Vector2(1.2, 1.2), Color("#f0a040"))
+			_stamp(canvas, eye)
+	else:
+		_beacon_wings_and_crook(canvas, st, fig, wing)
 	var mask := _draw_template_figure(canvas, st.pose, fig)
 	_glass(canvas, mask, st, fig, Color("#f8d8a0"))
 	# The light in its chest, pulsing.
-	var pulse: float = 1.0 + 0.2 * sin(TAU * float(st.f) / st.n) + st.power * 0.4
+	# Beacon's light is steady and brighter; Lanternmoth's flickers.
+	var pulse: float = (1.3 + st.power * 0.3) if beacon else (1.0 + 0.2 * sin(TAU * float(st.f) / st.n) + st.power * 0.4)
 	for y in S:
 		for x in S:
 			var q := ((Vector2(x + 0.5, y + 0.5) - Vector2(30, 29 + dy)) / (Vector2(5, 6) * pulse)).length()
@@ -2574,6 +2598,80 @@ func _moth_body(canvas: Image, st: Dictionary, beacon: bool) -> void:
 		_line(canvas, [base, base + Vector2(side * 3, -2), base + Vector2(side * 6, -3)], fig.o)
 		_px(canvas, int(base.x + side * 5), int(base.y - 4), fig.c)
 	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), false)
+
+# Beacon: broad, flat-spread wings with eye-spots and bands (a resting moth, not Lanternmoth's raised
+# wings), and a shepherd's crook planted beside it that lifts a big lantern high above it: Beacon is
+# a TALL Warden (64x96, see TALL_WARDENS), its light the highest point of the sprite. The crook's
+# foot is drawn here in body space; its top, the lantern and the light cone in _tall_beacon.
+const BEACON_STAFF_X := 55
+
+func _beacon_wings_and_crook(canvas: Image, st: Dictionary, fig: Dictionary, wing: Array[Color]) -> void:
+	var dy: int = st.dy
+	var flap: int = st.sway
+	var layer := _layer()
+	_leaf(layer, Vector2(21, 21 + dy), Vector2(1 + flap, 10 + dy), 9.0, wing, fig.o)
+	_leaf(layer, Vector2(40, 21 + dy), Vector2(62 - flap, 10 + dy), 9.0, wing, fig.o)
+	_leaf(layer, Vector2(22, 29 + dy), Vector2(4, 37), 6.5, wing, fig.o)
+	_leaf(layer, Vector2(39, 29 + dy), Vector2(58, 37), 6.5, wing, fig.o)
+	# Bands across the upper wings and a big eye-spot on each.
+	for side: int in [-1, 1]:
+		for b in 2:
+			var bx := 30.5 + side * (14.0 + b * 6.0)
+			for y in range(4, 26):
+				var x := int(bx + (y - 14) * 0.3 * side)
+				var c := layer.get_pixel(x, y + dy)
+				if c.a > 0.0 and c != fig.o:
+					layer.set_pixel(x, y + dy, wing[0])
+		var spot := Vector2(30.5 + side * 20.0 - side * flap * 0.5, 13 + dy)
+		var eye := _layer()
+		_flat_ellipse(eye, spot, Vector2(3.2, 2.8), Color("#5a3a2a"))
+		_flat_ellipse(eye, spot, Vector2(2.0, 1.8), Color("#fcd47c"))
+		_flat_ellipse(eye, spot, Vector2(0.8, 0.8), Color.WHITE)
+		for y in S:
+			for x in S:
+				if eye.get_pixel(x, y).a > 0.0 and layer.get_pixel(x, y).a > 0.0 and layer.get_pixel(x, y) != fig.o:
+					layer.set_pixel(x, y, eye.get_pixel(x, y))
+	canvas.blend_rect(layer, Rect2i(0, 0, S, S), Vector2i.ZERO)
+	# The crook's foot, planted on the slab, rising out of the top of the body frame.
+	var staff := _layer()
+	_stroke(staff, [Vector2(BEACON_STAFF_X - 1, 45), Vector2(BEACON_STAFF_X, 20), Vector2(BEACON_STAFF_X, -2)], 0.9, Color("#8a5c34"))
+	_stamp(canvas, staff, fig.o)
+	# Clear the stamp's outline across the top edge so the staff runs on into the tall rows.
+	for x in range(BEACON_STAFF_X - 3, BEACON_STAFF_X + 4):
+		if canvas.get_pixel(x, 0) == fig.o:
+			canvas.set_pixel(x, 0, Color("#8a5c34") if absi(x - BEACON_STAFF_X) <= 0 else Color(0, 0, 0, 0))
+
+# Beacon's tall rows (frame y 0..63 of the 64x96 frame; the body frame starts at y 32): the crook's top
+# hooking over, the big lantern hanging from it, and a soft cone of light falling towards the moth.
+const BEACON_LAMP := Vector2(46, 15)
+
+func _tall_beacon(back: Image, front: Image, st: Dictionary) -> void:
+	var o := Color("#2a1a10")
+	var bright: bool = st.f % 4 < 2 or st.power > 0.5
+	# The light cone (behind the moth), in alpha steps.
+	for y in range(int(BEACON_LAMP.y) + 5, 46):
+		var half := (y - BEACON_LAMP.y - 2) * 0.5
+		for x in range(int(BEACON_LAMP.x - half), int(BEACON_LAMP.x + half) + 1):
+			if x >= 0 and x < S:
+				back.set_pixel(x, y, Color("#fcd47c", snappedf(0.3 * (1.0 - (y - BEACON_LAMP.y) / 32.0), 0.04)))
+	var staff := _layer()
+	_stroke(staff, [Vector2(BEACON_STAFF_X, 64), Vector2(BEACON_STAFF_X, 8), Vector2(BEACON_STAFF_X - 1, 4),
+		Vector2(BEACON_STAFF_X - 4, 2), Vector2(BEACON_LAMP.x + 1, 3), Vector2(BEACON_LAMP.x, 6)], 0.9, Color("#8a5c34"))
+	_stamp(front, staff, o)
+	var lamp := _layer()
+	_round_rect(lamp, Rect2i(int(BEACON_LAMP.x) - 4, int(BEACON_LAMP.y) - 6, 9, 11), 2, Color("#e9a83c"))
+	_stamp(front, lamp, o)
+	# Glass panes, the steady flame, the cap and a little ring it hangs from.
+	_round_rect(front, Rect2i(int(BEACON_LAMP.x) - 2, int(BEACON_LAMP.y) - 4, 5, 7), 1, Color("#fff4dc"))
+	_round_rect(front, Rect2i(int(BEACON_LAMP.x) - 1, int(BEACON_LAMP.y) - 2, 3, 4), 0, Color.WHITE if bright else Color("#fcd47c"))
+	_line(front, [BEACON_LAMP + Vector2(-4, -7), BEACON_LAMP + Vector2(4, -7)], Color("#5c3c24"))
+	_line(front, [BEACON_LAMP + Vector2(-3, -8), BEACON_LAMP + Vector2(3, -8)], Color("#5c3c24"))
+	_px(front, int(BEACON_LAMP.x), int(BEACON_LAMP.y) - 9, o)
+	_warm_glow(front, BEACON_LAMP, Vector2(8, 8), st.f)
+	# Motes rising off the light.
+	for k in 3:
+		var t := fposmod(float(st.f) / st.n + k / 3.0, 1.0)
+		_px(front, int(BEACON_LAMP.x) - 4 + k * 4, int(BEACON_LAMP.y - 9 - t * 8), Color("#fff4dc", 1.0 - t))
 
 # Sunpetal (hidden branch): a sunflower golem, a slowly turning ring of petals round its seed-disc
 # face, leaves on its arms.
