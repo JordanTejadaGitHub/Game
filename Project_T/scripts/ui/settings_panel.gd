@@ -25,6 +25,11 @@ const REBINDABLE := [
 ]
 
 const TITLE_SCENE := "res://scenes/title.tscn"
+const EFFECTS_SETTING := "effects_quality"  # 0 Full (default), 1 Reduced
+
+# Effects quality set to Reduced (read through Fx.setting: cached). Fx's own frame-time step-down is Tower's.
+static func effects_reduced() -> bool:
+	return int(Fx.setting(EFFECTS_SETTING, 0)) == 1
 const VSYNC_SETTING := "vsync"
 const WINDOW_SIZE_SETTING := "window_size"  # Index into WINDOW_SIZES (windowed mode)
 const WINDOW_SIZES: Array[Vector2i] = [Vector2i(1280, 720), Vector2i(1280, 800), Vector2i(1600, 900),
@@ -67,6 +72,10 @@ func _ready() -> void:
 	# big as the layout allows (1.5× at 1920×1080); the map never zooms with it. A dropdown of presets
 	# (UiStyle.UI_SIZES; user, 2026-10-01), not a slider.
 	_choice_nearest(display, "UI size", "ui_scale", UiStyle.UI_SIZES, 1.0)
+	# Effects quality (platforms.md thinning ladder as a switch; the story chat 2026-10-01: performance shouldn't need the
+	# accessibility toggles): Reduced thins particles, bursts, damage numbers, callouts, Kinship pulses and off-screen idle
+	# animation. Fx can also step down by itself when frames run long (Tower Code).
+	_choice(display, "Effects quality", EFFECTS_SETTING, ["Full", "Reduced"], 0)
 
 	var gameplay := _tab("Gameplay")
 	_toggle(gameplay, "Heartwood whispers", "whispers", true, "Short hints the first time something happens.")
