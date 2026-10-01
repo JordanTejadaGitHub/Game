@@ -31,6 +31,7 @@ func _run() -> void:
 	await _test_discovery(main)
 	_test_grown_needs(main)
 	_test_blessing_dream(main)
+	_test_run_pool(main)
 	_test_resonance(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
@@ -1190,6 +1191,74 @@ func _spawn_near(main: Node, cell: Vector2, offset: Vector2 = Vector2.ZERO) -> N
 func _free_enemies(main: Node) -> void:
 	for child in main.get_node("%EnemyContainer").get_children():
 		child.free()
+
+# Each run draws its own pool (dream_design.md "Exact rules"): seeded by the map, floors per rarity, nothing pulled
+# in by taking a card, family picks and discoveries add; offers always fill on a fresh profile.
+func _test_run_pool(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	dreams.run_pool_forced = true
+	dreams.discovery_profile = {"seen": [], "wardens_built": [], "best_chain": 0}  # A fresh account
+	dreams.grove_cards.clear()
+	dreams.unlocked["sporeling"] = true
+	dreams.build_run_pool(11)
+	var first := dreams.run_pool.keys()
+	dreams.build_run_pool(11)
+	var again := dreams.run_pool.keys()
+	dreams.build_run_pool(12)
+	var other := dreams.run_pool.keys()
+	first.sort()
+	again.sort()
+	other.sort()
+	_check(first == again and first != other, "same map seed, same pool; another seed, another pool")
+	_check(first.has("quickened_sap") and first.has("morning_dew") and first.has("soft_spores"), "the core: basics and the held family's cards")
+	var available := {}
+	for card in dreams.pool:
+		if card.in_start_pool and dreams._card_family(card) == "" and not DreamState.RUN_POOL_BASICS.has(card.id) and dreams.discovery_met(card) \
+				and card.kind != UpgradeData.Kind.UNLOCK_WARDEN and card.kind != UpgradeData.Kind.UNLOCK_EVOLUTION and card.id != "heartwoods_reach":
+			available[card.rarity] = int(available.get(card.rarity, 0)) + 1
+	for rarity in DreamState.RUN_POOL_FLOORS:
+		var drawn := dreams.pool.filter(func(c: UpgradeData) -> bool:
+			return c.rarity == rarity and dreams.run_pool.has(c.id) and dreams._card_family(c) == "" \
+				and not DreamState.RUN_POOL_BASICS.has(c.id) and c.id != "heartwoods_reach").size()
+		_check(drawn >= mini(DreamState.RUN_POOL_FLOORS[rarity], int(available.get(rarity, 0))),
+			"rarity %d: %d drawn, floor %d of %d available" % [rarity, drawn, DreamState.RUN_POOL_FLOORS[rarity], int(available.get(rarity, 0))])
+	var before := dreams.run_pool.size()
+	var tagged: UpgradeData = dreams.pool.filter(func(c: UpgradeData) -> bool: return dreams.run_pool.has(c.id) and c.tags.has("maze")).front()
+	dreams.take(tagged)
+	_check(dreams.run_pool.size() == before, "taking a maze card adds nothing to the pool")
+	dreams.unlocked["dewdrop"] = true  # A family pick
+	dreams.in_run_pool(tagged)
+	_check(dreams.run_pool.has("soaked_through") and dreams.run_pool.size() > before, "a family pick adds its family cards")
+	var waiting: Array = dreams._run_pool_waiting.keys()
+	if not waiting.is_empty():
+		var card := _card(dreams, waiting[0])
+		_check(not dreams.in_run_pool(card), "an undiscovered card waits outside the pool")
+		dreams.discovery_profile = null  # Everything discovered
+		_check(dreams.in_run_pool(card), "…and joins the moment it's discovered")
+		dreams.discovery_profile = {"seen": [], "wardens_built": [], "best_chain": 0}
+	var saved := dreams.to_save()
+	dreams.run_pool.clear()
+	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
+	_check(dreams.run_pool.has(tagged.id) and dreams.run_pool.size() >= before, "the run's pool is saved")
+	# 19 Dreams on a fresh profile: every offer shows 3 different cards
+	_reset_dreams(main)
+	dreams.unlocked["sporeling"] = true
+	dreams.build_run_pool(7)
+	var short := 0
+	for drift in range(5, 100, 5):
+		var offer := dreams.make_offer(drift)
+		var unique := {}
+		for c in offer:
+			unique[c.id] = true
+		if offer.size() < 3 or unique.size() != offer.size():
+			short += 1
+		dreams._note_passed(offer, drift / 5)  # Passed over: the fade and "not in the next offer" apply
+	_check(short == 0, "19 offers on a fresh profile: never fewer than 3 cards, never a repeat (%d short)" % short)
+	dreams.run_pool_forced = false
+	dreams.run_pool.clear()
+	dreams.discovery_profile = null
+	_reset_dreams(main)
 
 # Family Blessings are Rare Dream cards now (meta_design.md "Replaced 2026-09-30"): offered once you own the
 # family (and a Warden of it has stood on the map), never before; one per family.

@@ -1224,7 +1224,7 @@ const OPENED_CLEARING_LINE := "Unlocked clearing"
 var clearing_opened_by := ""  # The card id that unlocked clearing this run (saved)
 
 func opens_clearing(card: UpgradeData) -> bool:
-	return card != null and card.tags.has(OPENER_TAG) and not can_clear()
+	return card != null and unlocks_clearing(card) and not can_clear()  # Any clearing card shows "Unlocks clearing" (2026-09-30)
 
 # Tend the Forest: clears that cost nothing, spent before any half-price charge (ObstacleClearer).
 var free_first_clears := 0
@@ -1625,6 +1625,8 @@ func is_eligible(card: UpgradeData, act: int = 1) -> bool:
 func can_offer(card: UpgradeData, act: int = 1) -> bool:
 	if not (card.in_start_pool or grove_cards.has(card.id)) or _banished.has(card.id):
 		return false
+	if not in_run_pool(card):
+		return false  # Not in this run's drawn pool
 	if act < card.min_act or card.kind == UpgradeData.Kind.UNLOCK_WARDEN:
 		return false  # Base Wardens come from the family pick
 	if card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
@@ -1912,6 +1914,7 @@ func to_save() -> Dictionary:
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
 		"extra_cards_next": _extra_cards_next, "entwined_offered": _entwined_offered.keys(),
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
+		"run_pool": run_pool.keys(), "run_pool_waiting": _run_pool_waiting.keys(), "run_pool_families": _run_pool_families.keys(),
 		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
 		"dreamlight_shards": dreamlight_shards, "sprout_charges": run_state.sprout_charges,
 		"eldest_cell": [_eldest_cell.x, _eldest_cell.y], "court_pending": _court_pending,
@@ -1952,6 +1955,15 @@ func load_save(data: Dictionary) -> void:
 	if data.has("rerolls_left"):  # Else keep what MetaRun set at run start
 		rerolls_left = int(data.rerolls_left)
 		banishes_left = int(data.banishes_left)
+	run_pool.clear()
+	for id in data.get("run_pool", []):
+		run_pool[id] = true
+	_run_pool_waiting.clear()
+	for id in data.get("run_pool_waiting", []):
+		_run_pool_waiting[id] = true
+	_run_pool_families.clear()
+	for id in data.get("run_pool_families", []):
+		_run_pool_families[id] = true
 	_banished.clear()
 	for id in data.get("banished", []):
 		_banished[id] = true
@@ -3424,3 +3436,98 @@ func touches_stump(cell: Vector2) -> bool:
 
 func in_hollow(cell: Vector2) -> bool:
 	return cleared_kinds.get(cell, "") == HOLLOW
+
+
+# --- Each run draws its own pool (dream_design.md "Each run draws its own pool" -> Exact rules, 2026-09-30) ---
+# At the first offer the run draws its Dream pool: the core (basics, the cards of every family held and their
+# Blessings, Heartwood's Reach on maps with 8+ obstacles) plus 60% per rarity of everything else available
+# (start pool + Grove + discovered), seeded with the map, with floors 12 C / 12 U / 6 R / 3 L. Taking a card adds
+# nothing; family picks add their family cards; a card discovered mid-run joins at once; Entwined cards join
+# when due. Saved with the run. On in the real game; tests and tools switch it on with run_pool_forced.
+const RUN_POOL_BASICS: Array[String] = ["quickened_sap", "deeper_calm", "longer_roots", "deep_roots", "thick_bark",
+	"evergreen", "morning_dew"]
+const RUN_POOL_SHARE := 0.6
+const RUN_POOL_FLOORS := {UpgradeData.Rarity.COMMON: 12, UpgradeData.Rarity.UNCOMMON: 12, UpgradeData.Rarity.RARE: 6,
+	UpgradeData.Rarity.LEGENDARY: 3}
+var run_pool_forced := false
+var run_pool := {}  # Card id -> true (empty = not drawn yet)
+var _run_pool_waiting := {}  # Card id -> true: undiscovered when drawn; joins once discovered
+var _run_pool_families := {}  # Families whose cards are in the core
+
+func run_pool_active() -> bool:
+	return run_pool_forced or _is_real_game()
+
+# Whether `card` is in this run's pool (draws the pool on first use).
+func in_run_pool(card: UpgradeData) -> bool:
+	if not run_pool_active():
+		return true
+	if run_pool.is_empty():
+		build_run_pool()
+	_add_new_family_cards()
+	if run_pool.has(card.id) or card.entwined:
+		return true
+	return _run_pool_waiting.has(card.id) and discovery_met(card)
+
+# Family cards: the Needs name exactly one family (or its Wardens), or it's that family's Blessing.
+func _card_family(card: UpgradeData) -> String:
+	if card.id.begins_with("blessing_"):
+		return card.id.trim_prefix("blessing_")
+	var families := {}
+	for id in Array(card.requires) + Array(card.requires_any):
+		var family := family_of(id)
+		if family == "":
+			family = _every_family().get(id, "")
+		if family != "" and family != "wall":
+			families[family] = true
+	return families.keys()[0] if families.size() == 1 else ""
+
+func _held_families() -> Array:
+	return _family_roots().map(func(d: TowerData) -> String: return d.get_id()).filter(func(id: String) -> bool: return is_unlocked(id))
+
+func build_run_pool(seed_value: int = -1) -> void:
+	run_pool.clear()
+	_run_pool_waiting.clear()
+	_run_pool_families.clear()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value if seed_value >= 0 else int(map_generator.map_seed)
+	var held := _held_families()
+	var by_rarity := {}
+	for card in pool:
+		if not (card.in_start_pool or grove_cards.has(card.id)) or _banished.has(card.id):
+			continue
+		if card.kind == UpgradeData.Kind.UNLOCK_WARDEN or card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
+			continue
+		var family := _card_family(card)
+		if RUN_POOL_BASICS.has(card.id) or (card.deepens != "" and RUN_POOL_BASICS.has(card.deepens)) \
+				or (card.id == "heartwoods_reach" and count_obstacles() >= card.min_obstacles):
+			run_pool[card.id] = true
+		elif family != "":
+			if held.has(family):
+				run_pool[card.id] = true  # Family cards come with the family (and at each later family pick)
+		elif not discovery_met(card):
+			_run_pool_waiting[card.id] = true  # Joins the moment it's discovered
+		else:
+			by_rarity.get_or_add(card.rarity, []).append(card)
+	for family in held:
+		_run_pool_families[family] = true
+	for rarity in by_rarity:
+		var cards: Array = by_rarity[rarity]
+		cards.sort_custom(func(a: UpgradeData, b: UpgradeData) -> bool: return a.id < b.id)  # Same seed, same pool
+		for i in range(cards.size() - 1, 0, -1):
+			var j := rng.randi_range(0, i)
+			var swap = cards[i]
+			cards[i] = cards[j]
+			cards[j] = swap
+		var take := maxi(roundi(cards.size() * RUN_POOL_SHARE), mini(int(RUN_POOL_FLOORS.get(rarity, 0)), cards.size()))
+		for k in take:
+			run_pool[cards[k].id] = true
+
+# A family picked since the pool was drawn: its cards join the core.
+func _add_new_family_cards() -> void:
+	for family in _held_families():
+		if _run_pool_families.has(family):
+			continue
+		_run_pool_families[family] = true
+		for card in pool:
+			if _card_family(card) == family and (card.in_start_pool or grove_cards.has(card.id)):
+				run_pool[card.id] = true

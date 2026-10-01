@@ -45,7 +45,8 @@ func _test_card_changes() -> void:
 	_check(_card("nightshade").potency_bonus == 0.0 and _card("the_old_ones").rank_crit_bonus == 0.0,
 		"Nightshade and The Old Ones keep to one archetype")
 	dreams.clearing_open = false
-	_check(not dreams.can_offer(_card("wildwood_reclaimed"), 2), "Wildwood Reclaimed waits for clearing (a follow-up)")
+	_check(dreams.can_offer(_card("wildwood_reclaimed"), 2) and dreams.opens_clearing(_card("wildwood_reclaimed")),
+		"Wildwood Reclaimed opens clearing itself (2026-09-30: any clearing card does)")
 	dreams.clearing_open = true
 
 # Ranks past V belong to one Warden, the Eldest.
@@ -173,8 +174,6 @@ func _test_damage_legendaries() -> void:
 	var off_clear := _plant("sporeling", Vector2(104, 100), 0)
 	var on_base := dreams.get_soothe_multiplier(on_clear)
 	var off_base := dreams.get_soothe_multiplier(off_clear)
-	dreams.clearing_open = false
-	_check(not dreams.can_offer(_card("wildwood_reclaimed"), 2), "Wildwood Reclaimed waits for clearing (a follow-up)")
 	dreams.clearing_open = true
 	dreams.take(_card("wildwood_reclaimed"))
 	_check(is_equal_approx(dreams.get_soothe_multiplier(on_clear) - on_base, 0.36)
