@@ -78,18 +78,17 @@ func _test_blocks_and_rests() -> void:
 	_check(run_state.leaves == 15 and run_state.max_leaves == 15 and run_state.dew == 60, "15 leaves, 60 Dew")
 	_check(spawner.get_enemies().is_empty(), "no creatures before Start")
 	_check(director.get_extra_nightmares(9) == 1.0 and director.get_extra_nightmares(10) == 1.25, "extra nightmares from drift 10")
-	# Dispel Dew × 1.0 / 0.68 / 0.65 / 0.5 by act (act 2 tightened), fractions carried over.
+	# The Dew pot (run_design.md): a fixed pot per drift from the table, linear inside each act, bosses apart.
+	_check(is_equal_approx(director.get_dew_pot(1), 30.0) and is_equal_approx(director.get_dew_pot(24), 115.0)
+		and is_equal_approx(director.get_dew_pot(25), 220.0) and is_equal_approx(director.get_dew_pot(26), 115.0)
+		and is_equal_approx(director.get_dew_pot(49), 135.0) and is_equal_approx(director.get_dew_pot(50), 270.0)
+		and is_equal_approx(director.get_dew_pot(75), 320.0) and director.get_dew_pot(100) == 0.0,
+		"the pot table: 30 → 115 in act 1, bosses 220 / 270 / 320, the win pays nothing")
+	# Fractions carry: three shares of 0.5 pay 1 Dew, then the third half waits.
 	run_state._dispel_dew_carry = 0.0
-	_check(run_state._scaled_dispel_dew(20) == 20, "act 1 pays dispel Dew in full")
+	var halves := run_state._carried_dew(0.5) + run_state._carried_dew(0.5) + run_state._carried_dew(0.5)
+	_check(halves == 1 and is_equal_approx(run_state._dispel_dew_carry, 0.5), "a pot share's fraction carries to the next dispel")
 	run_state._dispel_dew_carry = 0.0
-	var started := director.drifts_started
-	director.drifts_started = 80  # Act 4
-	run_state._dispel_dew_carry = 0.0
-	var act_4_paid := run_state._scaled_dispel_dew(3) + run_state._scaled_dispel_dew(3)
-	director.drifts_started = started
-	run_state._dispel_dew_carry = 0.0
-	var act_4_expected := floori(6.0 * run_state.act_dew_multipliers[3] + 0.0001)  # The fractions carry
-	_check(act_4_paid == act_4_expected, "act 4 pays its share, the fractions adding up (3 + 3 → %d, expected %d)" % [act_4_paid, act_4_expected])
 	# Mid-game rework: ×1.045 per drift to 25, ×1.055 for 26–50 (≈ ×11 by drift 50), ×1.045 from 51
 	# (≈ ×33 at 75, ×100 at 100).
 	_check(is_equal_approx(director.get_growth(25), pow(1.045, 24)) and is_equal_approx(director.get_growth(26), pow(1.045, 24) * 1.055)

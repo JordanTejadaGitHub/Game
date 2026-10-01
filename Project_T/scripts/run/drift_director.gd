@@ -89,6 +89,14 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var auto_drift_delay: float = 3.0  # Seconds after the previous drift finished arriving
 @export var call_early_seconds_per_dew: float = 2.0
 @export var call_early_cap: int = 10  # Max Dew for calling one drift early
+# The Dew pot (run_design.md "The Dew pot", 2026-10-01): each drift has a fixed Dew pot, split across the
+# nightmares it spawns by weight (EnemyData.dew_reward, Deeply Blighted ×3; a boss drift's boss takes half).
+# Added nightmares (Omens, extra_nightmares, splits, followers) share it; a leak loses its share. Per act:
+# the first → last non-boss drift (linear), then its boss drift.
+@export var dew_pot_acts: Array[Vector2] = [Vector2(30, 115), Vector2(115, 135), Vector2(135, 145), Vector2(140, 145)]
+@export var dew_pot_bosses: Array[float] = [220.0, 270.0, 320.0, 0.0]  # Drift 100 pays nothing: it's the win
+const POT_ELITE_WEIGHT := 3.0
+const POT_BOSS_SHARE := 0.5
 
 # Blight Levels (meta_design.md), set by MetaRun at run start. 1.0 / 0 = no change.
 var blight_health_multiplier := 1.0  # Nightmares (not bosses)
@@ -184,7 +192,9 @@ func _process(delta: float) -> void:
 		# order holds, the drift stays arriving, and it walks in as soon as there's room.
 		while not schedule.is_empty() and schedule[0][0] <= arrival.clock and spawner.has_room():
 			var next: Array = schedule.pop_front()
-			_spawn(next[1], number, next[2] if next.size() > 2 else false)
+			var shares: Array = arrival.get("shares", [])
+			var share: float = shares.pop_front() if not shares.is_empty() else -1.0
+			_spawn(next[1], number, next[2] if next.size() > 2 else false, share)
 		if schedule.is_empty():
 			_arriving.erase(number)
 			_active[number].arriving = false
@@ -307,7 +317,9 @@ func start_next_drift() -> bool:
 	var bonus := get_call_early_bonus()
 	if bonus > 0:
 		run_state.add_dew(bonus)
+	_called_early = is_arriving()  # Call of the Wild: a drift called early has its pot +10%
 	_start_drift()
+	_called_early = false
 	return true
 
 # Leaves the rest and starts the next drift.
@@ -315,6 +327,9 @@ func start_next_block() -> bool:
 	if not resting or not can_start_next_drift():
 		return false
 	resting = false
+	if drifts_started == 0 or get_block(drifts_started + 1) != get_block(drifts_started):
+		block_pot = 0.0  # A new block's pot (the quick rest after drift 1 stays in block 1)
+		run_state.pot_earned_block = 0.0
 	build_phase_changed.emit(false)
 	rest_ended.emit(get_block(drifts_started + 1))
 	_start_drift()
@@ -352,6 +367,7 @@ func _start_drift() -> void:
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	if omens:
 		omens.shape_schedule(_arriving[number].schedule, number)  # Elder Night, Hollow Wind
+	_arriving[number].shares = pot_shares(_arriving[number].schedule, number, _called_early)
 	drift_started.emit(number)
 	# Creatures due at t=0 arrive right away, not a frame later.
 	_process(0.0)
@@ -463,13 +479,74 @@ func _add_blight_elites(schedule: Array) -> void:
 		else:
 			schedule[i].append(true)
 
-func _spawn(data: EnemyData, number: int, elite: bool = false) -> void:
+func _spawn(data: EnemyData, number: int, elite: bool = false, share: float = -1.0) -> void:
 	var enemy: Node2D = spawner.spawn_enemy(data, get_health_scale(data, number),
 		get_spawn_modifiers(data, number), elite)
 	if enemy == null:
 		return  # No route (shouldn't happen: building never fully blocks the path)
 	_drift_of[enemy] = number
 	_active[number].remaining += 1
+	if share >= 0.0 and enemy.has_method("set_dew_share"):
+		enemy.set_dew_share(share)  # Its followers take their part of it (Enemy.FOLLOWER_DEW_SHARE)
+
+
+# --- The Dew pot --------------------------------------------------------------------------------------
+
+var _called_early := false  # Set while start_next_drift starts a drift early
+var block_pot := 0.0  # The pots of this block's drifts (rest report: "Dew this block: 840 of 900")
+
+# Drift `number`'s base pot from the table (before Dreams / Omens).
+func get_dew_pot(number: int) -> float:
+	var act := get_act(number)
+	if is_boss_drift(number):
+		return dew_pot_bosses[clampi(act - 1, 0, dew_pot_bosses.size() - 1)]
+	var row: Vector2 = dew_pot_acts[clampi(act - 1, 0, dew_pot_acts.size() - 1)]
+	var first := (act - 1) * drifts_per_act + 1
+	var last := act * drifts_per_act - 1
+	return lerpf(row.x, row.y, clampf(float(number - first) / maxf(last - first, 1), 0.0, 1.0))
+
+# What multiplies the pot: Dream cards (Morning Dew; Call of the Wild when called early) and Omens
+# (Bountiful Night, Blood Moon, Dry Spell). Catchers, call-early Dew and rest bonuses come on top instead.
+func get_dew_pot_multiplier(number: int, called_early: bool = false) -> float:
+	var multiplier := 1.0
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
+	if dreams != null and dreams.has_method("get_dew_pot_multiplier"):
+		multiplier *= dreams.get_dew_pot_multiplier(number, called_early)
+	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) if is_inside_tree() else null
+	if omens != null and omens.has_method("get_dew_pot_multiplier"):
+		multiplier *= omens.get_dew_pot_multiplier(number)
+	return multiplier
+
+# The pot drift `number` would pay if started now (the DriftPanel shows it before it starts).
+func get_effective_pot(number: int, called_early: bool = false) -> float:
+	return get_dew_pot(number) * get_dew_pot_multiplier(number, called_early)
+
+# Each schedule entry's share of the pot, in schedule order: weight = dew_reward (Deeply Blighted ×3); a
+# boss drift's bosses take POT_BOSS_SHARE between them, the escorts the rest. Adds the pot to the block's.
+func pot_shares(schedule: Array, number: int, called_early: bool = false) -> Array:
+	var pot := get_effective_pot(number, called_early)
+	block_pot += pot
+	var weights: Array[float] = []
+	var boss_weight := 0.0
+	var other_weight := 0.0
+	for entry in schedule:
+		var data: EnemyData = entry[1]
+		var weight := maxf(float(data.dew_reward), 1.0) * (POT_ELITE_WEIGHT if entry.size() > 2 and entry[2] else 1.0)
+		weights.append(weight)
+		if data.is_boss:
+			boss_weight += weight
+		else:
+			other_weight += weight
+	var boss_pot := 0.0
+	if boss_weight > 0.0:
+		boss_pot = pot * (POT_BOSS_SHARE if other_weight > 0.0 else 1.0)
+	var other_pot := pot - boss_pot
+	var shares := []
+	for i in schedule.size():
+		var is_boss: bool = schedule[i][1].is_boss
+		var total := boss_weight if is_boss else other_weight
+		shares.append((boss_pot if is_boss else other_pot) * weights[i] / total if total > 0.0 else 0.0)
+	return shares
 
 
 # --- Bookkeeping ----------------------------------------------------------------------------------

@@ -83,6 +83,8 @@ func show_report(block: int) -> void:
 		text += "\nClose calls: %d" % close_calls.block_count
 	if unbound_block > 0:
 		text += "\nUnbound: %d" % unbound_block
+	if drift_director.block_pot > 0.0:  # The Dew pot: what this block paid of what it held (leaks lose their share)
+		text += "\nDew this block: %d of %d" % [roundi(get_node("%RunState").pot_earned_block), roundi(drift_director.block_pot)]
 	if _omen_line != "":
 		text += "\n" + _omen_line
 		_omen_line = ""

@@ -139,7 +139,8 @@ func _process(_delta: float) -> void:
 		_status_label.text = "The last drift is walking"
 		_start_button.text = "Final drift"
 	elif drift_director.is_resting():
-		_status_label.text = "Resting · %d%% refunds" % roundi(tower_seller.build_phase_refund * 100)
+		_status_label.text = "Resting · %d%% refunds · Drift %d: %d Dew" % [roundi(tower_seller.build_phase_refund * 100), next,
+			roundi(drift_director.get_effective_pot(next))]  # The Dew pot (run_design.md)
 		var boss := " · boss" if drift_director.is_boss_drift(next) else ""
 		_start_button.text = "Start drift %d%s (Enter)" % [next, boss]
 	elif drift_director.can_start_next_drift():

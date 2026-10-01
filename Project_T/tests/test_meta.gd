@@ -249,8 +249,8 @@ func _run() -> void:
 	_check(run_state.free_nurtures == 0 and dreams.rerolls_left == 0, "perks not carried do nothing")
 	_check(not dreams.allow_bittersweet, "no Bittersweet Dreams node: no bittersweet cards")
 	var dew_before := run_state.dew
-	# Act 1 × its multiplier, Rich Dew +15%, and Gathered Dew if Kindling happened to draw it; fractions kept.
-	var expected_dew := floori(20 * run_state.act_dew_multipliers[0] * (1.0 + run_state.dew_gain_bonus + dreams.get_dew_gain_bonus()) + 0.0001)
+	# The Dew pot (run_design.md) folds Rich Dew / dew_gain into the table: a dispel pays its plain Dew.
+	var expected_dew := 20
 	for i in 20:  # 20 dispels of 1 Dew: the fractions carry over into whole Dew
 		var enemy := Node2D.new()
 		enemy.set_script(_FakeEnemy)
