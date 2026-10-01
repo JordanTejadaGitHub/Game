@@ -22,6 +22,8 @@ func get_dew_reward() -> int:
 	_run.call_deferred()
 
 func _run() -> void:
+	_check(HeartwoodMemory.file_path != HeartwoodMemory.PATH and HeartwoodMemory.file_path.contains(str(OS.get_process_id())),
+		"a --script run never uses the real profile by default (%s)" % HeartwoodMemory.file_path)
 	HeartwoodMemory.file_path = PROFILE_PATH
 	_delete(PROFILE_PATH)
 	GrovePresets.file_path = SIM_PATH

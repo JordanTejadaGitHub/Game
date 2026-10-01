@@ -10,8 +10,25 @@ class_name HeartwoodMemory
 const PATH := "user://heartwood.json"
 const VERSION := 9  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3; 4: REFUNDED_V4; 5: REFUNDED_V5; 6: REFUNDED_V6; 7: REFUNDED_V7; 8–9: nothing (free lean-pool grants dropped: the game isn't out, no players to protect)
 
-# Where the profile lives (tests point this elsewhere so they never touch the player's Seeds).
-static var file_path := PATH
+# Where the profile lives. Under a --script run (tests, tools) it defaults to a fresh per-process temp profile,
+# so a test starts from defaults() and never reads or writes the player's real settings or Seeds. A tool that
+# wants the real profile passes "-- --real-profile". Tests may still point it elsewhere.
+static var file_path := _default_path()
+
+static func _default_path() -> String:
+	var args := OS.get_cmdline_args()
+	if not args.has("--script") or OS.get_cmdline_user_args().has("--real-profile"):
+		return PATH
+	var temp := "user://test_heartwood_%d.json" % OS.get_process_id()
+	for file in [temp, temp + ".bak", temp + ".unreadable"]:  # A crashed run with the same pid left one behind
+		if FileAccess.file_exists(file):
+			DirAccess.remove_absolute(file)
+	UiStyle.release_at_exit(func() -> void:  # Tidy up at quit: one temp profile per test process otherwise piles up
+		for file in [temp, temp + ".bak", temp + ".unreadable"]:
+			if FileAccess.file_exists(file):
+				DirAccess.remove_absolute(file))
+	return temp
+
 # Dev Grove (DevGrove): while set, the profile is a dev one but settings stay in this real file.
 static var real_settings_path := ""
 # Parsed files, so the many callers don't re-read and re-parse the JSON each time (Tower Code's perf
