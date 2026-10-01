@@ -160,9 +160,10 @@ func _test_twists(main: Node) -> void:
 	_check(closer[-1][0] < drift.get_schedule()[-1][0] * 0.71, "Restless Wind: arrivals 30% closer together")
 
 	_activate(omens, "dry_spell", 3)
-	var dry: Node2D = spawner.spawn_enemy(bug, 1.0, director.get_spawn_modifiers(bug, 12))
-	_check(dry.get_dew_reward() == 0, "Dry Spell: creatures give no Dew")
-	dry.free()
+	_check(director.get_effective_pot(12) == 0.0 and omens.get_dew_pot_multiplier(12) == 0.0, "Dry Spell: the block's Dew pot is empty")
+	_activate(omens, "bountiful_night", 3)
+	_check(is_equal_approx(omens.get_dew_pot_multiplier(12), 2.0) and not director.get_spawn_modifiers(bug, 12).has("dew"),
+		"Bountiful Night: the pot ×2, never a per-nightmare Dew modifier (the pot carries it)")
 	_activate(omens, "swift_stream", 3)
 	var swift: Node2D = spawner.spawn_enemy(bug, 1.0, director.get_spawn_modifiers(bug, 12))
 	_check(is_equal_approx(swift.speed, bug.speed * 1.25), "Swift Stream: +25% speed")

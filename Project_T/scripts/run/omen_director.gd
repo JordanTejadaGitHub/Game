@@ -113,12 +113,20 @@ func get_schedule_modifiers(drift_number: int) -> Dictionary:
 	return {"count": active.count_multiplier, "flyers": active.flyer_count_multiplier,
 		"spacing": active.arrival_spacing_multiplier}
 
+# The Dew pot (run_design.md "The Dew pot"): the active Omen multiplies drift `number`'s pot (Bountiful Night ×2,
+# Blood Moon ×1.75, Dry Spell ×0). Added nightmares (Crowded Paths, Elder Night…) share the pot, so they add nothing.
+func get_dew_pot_multiplier(number: int) -> float:
+	return active.creature_dew_multiplier if is_active_for(number) else 1.0
+
+func all_omens() -> Array[OmenData]:
+	return pool
+
 # Per-creature multipliers (see Enemy.modifiers). Callers leave bosses out.
 func get_spawn_modifiers(drift_number: int) -> Dictionary:
 	if not is_active_for(drift_number):
 		return {}
 	var modifiers := {"speed": active.speed_multiplier, "omen_speed": active.speed_multiplier, "coat": active.coat_multiplier,
-		"dew": active.creature_dew_multiplier, "status_duration": active.status_duration_multiplier}
+		"status_duration": active.status_duration_multiplier}  # Dew: the pot (get_dew_pot_multiplier), never per nightmare
 	# omen_speed: the Omen's share of "speed" (DriftDirector folds Dreams and Blight into it); Magpies strip it.
 	if not active.status_immune.is_empty():
 		modifiers["status_immune"] = active.status_immune  # Sleepless (Enemy Code adds them)
