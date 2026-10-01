@@ -432,7 +432,7 @@ func _process(delta: float) -> void:
 	# or an animation that's playing (flashes, haze, embers, glow); off screen it waits until it's back.
 	var aura := statuses.is_in_stag_aura()
 	var animating := _bolt_flash > 0.0 or _shrug_flash > 0.0 or _hit_mark_time > 0.0 or elite or _crit_flash > 0.0 \
-		or not _ash_cells.is_empty() or unbound
+		or not _ash_cells.is_empty() or unbound or enemy_data.pack_shield < 1.0  # (The Huntsman's shield ring follows his hounds)
 	if animating or _was_animating or aura != _drawn_aura:
 		_drawn_aura = aura
 		_redraw_pending = true  # (One more after an animation ends, to clear its last frame.)
@@ -607,7 +607,7 @@ func _draw() -> void:
 		var t := _shrug_flash / SHRUG_FLASH_TIME
 		draw_arc(Vector2.ZERO, enemy_data.shrug_radius * grid.cell_size.x * (1.0 - t * 0.6), 0.0, TAU, 48,
 			Color(SHRUG_COLOR, 0.6 * t), 4.0)
-	if enemy_data.pack_shield < 1.0 and pack_alive() > 0:  # Huntsman: the faint ring the pack keeps round him
+	if enemy_data.pack_shield < 1.0 and get_pack_multiplier() < 1.0:  # Huntsman: the faint ring while the pack shields him
 		draw_arc(Vector2(0, -8), 30.0 * sprite.scale.x, 0.0, TAU, 32, Color(Palette.DEWLIGHT, 0.35), 2.0)
 	if _hit_mark_time > 0.0:
 		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
@@ -1569,11 +1569,12 @@ func _update_presence(delta: float) -> void:
 			if other != self and other.statuses.has(EnemyStatuses.SPORED) and _ash_cells.has(other.get_current_cell()):
 				other.statuses.remove(EnemyStatuses.SPORED)
 				other.queue_redraw()
-	if enemy_data.brood != null:  # Moth Queen
+	if enemy_data.brood != null:  # Moth Queen (and the Huntsman's horn)
 		_brood_timer += elapsed
 		if _brood_timer >= enemy_data.brood_interval:
 			_brood_timer = 0.0
-			brood_requested.emit(self)
+			if not (at_heartwood and enemy_data.pack_shield < 1.0):  # The horn is silent at the Heartwood
+				brood_requested.emit(self)
 	if enemy_data.sapling != null:  # Hollow Oak
 		_sapling_timer += elapsed * _sapling_speed
 		if _sapling_timer >= enemy_data.sapling_interval:
@@ -1623,12 +1624,15 @@ func shrug() -> void:
 	shrugged.emit(self)
 	queue_redraw()
 
-# Huntsman: the soothe share it takes while any of its hounds still hunts (1.0 once they're gone).
+# Huntsman: the soothe share it takes while any of its hounds still hunts near it (within
+# pack_shield_reach tiles; 1.0 once none is close, so clearing the hounds round him lets the maze finish him).
 func get_pack_multiplier() -> float:
 	if enemy_data.pack_shield >= 1.0:
 		return 1.0
+	var reach := enemy_data.pack_shield_reach * grid.cell_size.x
 	for hound in pack:
-		if is_instance_valid(hound) and not hound.is_cleansed:
+		if is_instance_valid(hound) and not hound.is_cleansed \
+				and (reach <= 0.0 or hound.global_position.distance_to(global_position) <= reach):
 			return enemy_data.pack_shield
 	return 1.0
 
