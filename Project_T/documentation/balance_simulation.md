@@ -371,6 +371,9 @@ reading is stronger, and a player who never calls early will find the new curve 
   drift 50 = ~9% of run 4's income). It pays for a real risk (stacked drifts), which the harder act 2
   makes bite. Revisit if a run with `early_calls` data shows calling early as both safe and the
   bigger Dew source.
+- **Omen rewards** (user, 2026-10-01): no leaves (0891119a), then **no Dreamlight either** ("leave it in
+  cards", f2f2a428). Tramplers +50 Dew and Stubborn Blight +40 Dew are starting numbers; the
+  three-mode Omen sim on the new rewards sets them.
 
 ## Later
 
