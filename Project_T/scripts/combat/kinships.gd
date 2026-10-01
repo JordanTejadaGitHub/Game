@@ -730,40 +730,73 @@ func _draw() -> void:
 		to -= direction * _edge(pair.b)
 		if from.distance_to(to) < 8.0:
 			continue
-		if stage == 2 and mode == 0:
-			_draw_arch(pair)
-		var colour := Color(_colour(pair), alpha)
-		var sheet: StringName = [&"kin_vine_sapling", &"kin_vine_blooming", &"kin_vine_oldkin"][stage]
-		var tex := Fx.texture(sheet)
-		if tex != null:
-			# Tile the 32×10 swaying segment along the pair (anchored at its middle row).
-			var entry := Fx.info(sheet)
-			var frames: int = int(entry.get("frames", 4))
-			var fps: float = float(entry.get("fps", 4.0))
-			var frame := int(_clock * fps) % maxi(frames, 1)
-			var seg := Vector2(tex.get_width() / float(frames), tex.get_height())
-			var length := from.distance_to(to)
-			draw_set_transform(from, from.angle_to_point(to))
-			var x := 0.0
-			while x < length:
-				var w := minf(seg.x, length - x)
-				draw_texture_rect_region(tex, Rect2(x, -seg.y / 2.0, w, seg.y),
-					Rect2(seg.x * frame, 0, w, seg.y), colour)
-				x += seg.x
-			draw_set_transform(Vector2.ZERO)
+		_draw_vine(pair, stage, mode, alpha)
+
+# The Kinship vine (tower_design.md / screens_ui.md, playtest "kinship" 2026-10-01): a thin, slightly
+# wavy vine in the family colour on the ground, base to base (it was a tinted 32x10 strip at body
+# height, which read as a debug bar). Sapling: a bare vine; Blooming: leaves and buds; Old Kin: flowers.
+# Fainter over path tiles (nightmares walk there). Subtle mode: fainter, no leaves or flowers.
+const VINE_WIDTH := 3.0
+const VINE_WAVE := 2.5  # px either side
+const VINE_WAVELENGTH := 26.0
+const VINE_PATH_ALPHA := 0.45  # Its share of the vine's alpha over path tiles
+
+func _draw_vine(pair: Dictionary, stage: int, mode: int, alpha: float) -> void:
+	var from: Vector2 = to_local(pair.a.global_position + ARCH_FOOT)
+	var to: Vector2 = to_local(pair.b.global_position + ARCH_FOOT)
+	var length := from.distance_to(to)
+	if length < 8.0:
+		return
+	if mode == 1:
+		alpha *= 0.6
+	var dir := (to - from) / length
+	var side := dir.orthogonal()
+	var path := {}
+	for cell in _route_cells_cached():
+		path[cell] = true
+	var steps := maxi(int(length / 4.0), 4)
+	var points := PackedVector2Array()
+	var shades: Array[float] = []
+	for i in steps + 1:
+		var t := float(i) / steps
+		var d := length * t
+		var p := from + dir * d + side * sin(d / VINE_WAVELENGTH * TAU + pair.a.cell.x) * VINE_WAVE * sin(t * PI)
+		points.append(p)
+		var on_path: bool = path.has(Tower.MAP_GRID.calculate_grid_coordinates(to_global(p)))
+		shades.append(VINE_PATH_ALPHA if on_path else 1.0)
+	var colour := _colour(pair)
+	for i in steps:
+		var a := alpha * shades[i]
+		draw_line(points[i], points[i + 1], Color(Palette.DEEPMOSS, 0.55 * a), VINE_WIDTH + 1.5)
+		draw_line(points[i], points[i + 1], Color(colour, a), VINE_WIDTH)
+	if mode != 0:
+		return
+	# Leaves (Blooming on), buds (Blooming), flowers (Old Kin): along the vine, off its path tiles.
+	var spacing := 14.0
+	var n := int(length / spacing)
+	for k in range(1, n):
+		var i := clampi(int(float(k) / n * steps), 0, steps)
+		if shades[i] < 1.0:
 			continue
-		var bend := (to - from).orthogonal().normalized() * 6.0
-		var points := PackedVector2Array()
-		for i in 9:
-			var t := i / 8.0
-			points.append(from.lerp(to, t) + bend * sin(t * TAU))
-		draw_polyline(points, Color(Palette.MOSS, alpha * 0.8), 2.0 + stage * 1.5)
-		draw_polyline(points, colour, 1.0 + stage)
+		var p := points[i]
+		var out := side * (1.0 if k % 2 == 0 else -1.0)
 		if stage >= 1:
-			for i in [2, 6]:  # Leaves
-				draw_circle(points[i] + bend.normalized() * 3.0, 2.0 + stage, Color(Palette.SPRIG, alpha))
-		if stage >= 2:
-			draw_circle(points[4], 3.5, Color(Palette.BLOSSOM, alpha))  # A flower (Old Kin)
+			var leaf := p + out * 3.0
+			draw_colored_polygon(PackedVector2Array([p, leaf + dir * 2.0, leaf + out * 2.0, leaf - dir * 2.0]),
+				Color(Palette.SPRIG, alpha * 0.9))
+		if stage == 1 and k % 3 == 1:
+			draw_circle(p - out * 2.0, 1.5, Color(Palette.BLOSSOM, alpha * 0.8))  # A bud
+		if stage >= 2 and k % 2 == 1:
+			draw_circle(p - out * 2.5, 2.5, Color(Palette.BLOSSOM, alpha))  # A flower
+			draw_circle(p - out * 2.5, 1.0, Color(Palette.GLOW, alpha))
+
+var _route_cache: Array = []
+var _route_cache_at := -1.0
+func _route_cells_cached() -> Array:
+	if _route_cache_at < 0.0 or _clock - _route_cache_at > 1.0:
+		_route_cache = Reactions._route_cells(self)
+		_route_cache_at = _clock
+	return _route_cache
 
 # Old Kin: a small flowering arch (kin_oldkin_arch, 64x32, feet at (0,31) and (63,31)) spans the pair's
 # bases, stretched along x only, never upside down. Full effects only.
