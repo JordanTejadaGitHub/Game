@@ -983,10 +983,10 @@ func _update_boosts() -> void:
 		name.add_theme_constant_override("outline_size", 4)
 		row.add_child(name)
 		var pip := Control.new()
-		pip.custom_minimum_size = Vector2(18, 18)
+		pip.custom_minimum_size = Vector2(22, 22)  # The 10 px pip art at ×2
 		var pip_kind := String(kind[0])
 		var pip_colour: Color = kind[1]
-		pip.draw.connect(func() -> void: BuffOverlay.draw_pip(pip, pip.size / 2.0, pip_kind, pip_colour))
+		pip.draw.connect(func() -> void: BuffOverlay.draw_pip(pip, pip.size / 2.0, pip_kind, pip_colour, 10.0))  # r 10 = the art ×2 (panels)
 		row.add_child(pip)
 		TapTip.attach(row, "%s: a Warden boosted by %s shows this pip." % [kind[2], kind[2]])
 		boosts_legend.add_child(row)
