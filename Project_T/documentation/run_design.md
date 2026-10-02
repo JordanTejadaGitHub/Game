@@ -668,7 +668,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
      | Omen | The next block | Reward | Flavour |
      |---|---|---|---|
      | **Tramplers** (act 2+) | each drift, the **first nightmare to walk past a Thornwall tramples it** (gone, no refund; the route re-forms) | ~~+1 Dreamlight~~ +50 Dew | *"Something heavy is coming through the hedges."* |
-     | **Second Path** (from drift 15) | at the block's start, the **Thornwall whose removal shortens the route most crumbles** (full refund); it can't be replanted until the next rest | +4 Seeds | *"An old way opens in the dark."* |
+     | **Second Path** (from drift 26; was 15, changed by Balancing Discussion after human run 10 lost all 15 leaves to it in act 1) | at the block's start, the **Thornwall whose removal shortens the route most crumbles** (full refund); it can't be replanted until the next rest | +4 Seeds | *"An old way opens in the dark."* |
      | **Burrowers** (act 2+) | at every bend, nightmares **burrow ahead 2 path tiles** (untargetable for ~0.5 s) | next Dream: one card is Rare+ | *"They dig beneath the roots."* |
 
      A tall, narrow maze can't ignore these: it has to adapt during the block. Burrowers is stopped
