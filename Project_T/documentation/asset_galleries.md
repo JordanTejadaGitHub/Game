@@ -29,7 +29,7 @@ Every gallery follows the same structure, so any page reads the same way:
 | Enemy Assets | nightmare sprite sheets, bosses, Thorn-Sapling | https://claude.ai/artifact/YUa3SG93MgF6JhJ2reGhn3 |
 | Environment Assets | per-act environment sheets + dream-layer sheets (`assets/environment/`) | https://claude.ai/artifact/V4QRayu3d7ckStH2btwvGQ |
 | Theme Asset | style references (`assets/style_reference/`), Warden Night | https://claude.ai/artifact/1Mq111zHWpf3EbgsWwF6d8 (whole-look overview: https://claude.ai/artifact/34adEMHN6xJNnMXPK7ziWq) |
-| UI Asset | icons (`assets/ui/icons.png`), Clear tool frames | https://claude.ai/artifact/3PZKNfNnBtBTzMouyqyDPN (style concept page: https://claude.ai/artifact/4Cs1PP2CrqTjth2dHiZFow) |
+| UI Asset | all of `assets/ui/` except `title/`, the theme and the fonts: icons.png, hud_counters / hud_glyphs, buff_pips / buff_stacks, dream_glyphs, the grow-hint marks, omen_cards, clear_tool | https://claude.ai/artifact/3PZKNfNnBtBTzMouyqyDPN (style concept page: https://claude.ai/artifact/4Cs1PP2CrqTjth2dHiZFow) |
 | Meta Game Asset | Memory Grove art (`assets/meta/`); the 10 Memories are placeholders | https://claude.ai/artifact/Buk9SDW2NhCo32BZgRX6Sp |
 | Title Screen | title screen art and layers (`assets/ui/title/`) | https://claude.ai/artifact/CJTTD5Y43kdDHM5gSfj6Bc |
 
