@@ -49,6 +49,7 @@ func _run() -> void:
 			"--out": out_path = value
 			"--rank": rank = int(value)
 			"--cast": cast = {"act1": CAST_ACT1, "nocharge": CAST_NOCHARGE}.get(value, CAST)
+	ProjectSettings.set_setting("game/demo", false)  # The full game (as the user plays it)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
 	root.add_child(main)
