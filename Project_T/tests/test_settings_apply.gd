@@ -28,8 +28,8 @@ func _run() -> void:
 	var panel := SettingsPanel.new()
 	root.add_child(panel)
 	await process_frame
-	_check(not panel.has_changes() and panel.apply_button.disabled and panel.cancel_button.disabled,
-		"opens with nothing changed: Apply and Cancel greyed")
+	_check(not panel.has_changes() and panel.apply_button.disabled and not panel.cancel_button.disabled,
+		"opens with nothing changed: Apply greyed (Cancel always closes)")
 
 	# A change previews (readers see it) but isn't saved.
 	panel._set_value("reduce_flashes", true)
@@ -41,10 +41,30 @@ func _run() -> void:
 	_check(panel.tabs.get_tab_title(access.get_index()).ends_with("•"), "and its tab")
 	_check(not panel.apply_button.disabled, "Apply is live")
 
-	# Cancel restores.
+	# Cancel restores and closes, without asking (user, 2026-10-01).
+	var cancel_closes := [0]
+	var count_close := func() -> void: cancel_closes[0] += 1
+	panel.closed.connect(count_close)
 	panel.cancel()
+	panel.closed.disconnect(count_close)
 	_check(not panel.has_changes() and not bool(HeartwoodMemory.get_settings().reduce_flashes), "Cancel puts the saved value back")
 	_check(HeartwoodMemory.preview_settings.is_empty(), "…and ends the preview")
+	_check(cancel_closes[0] == 1 and not panel.close_prompt.visible, "…and closes, no question asked")
+
+	# Developer switches wait for Apply too (user, 2026-10-01).
+	if TestGrove.is_available():
+		panel._set_value(TestGrove.SETTING, true)
+		var dev := panel.tabs.get_node("Developer")
+		_check(panel.is_changed(TestGrove.SETTING) and not bool(_saved().get(TestGrove.SETTING, false))
+			and panel.tabs.get_tab_title(dev.get_index()).ends_with("•"), "a Developer switch waits for Apply, with its dot")
+		panel._set_value(DevGrove.SETTING, "half")
+		_check(str(_saved().get(DevGrove.SETTING, "off")) == "off", "…Dev Grove too")
+		panel.apply()
+		_check(bool(_saved().get(TestGrove.SETTING, false)) and str(_saved().get(DevGrove.SETTING, "")) == "half",
+			"Apply saves them")
+		panel._set_value(TestGrove.SETTING, false)
+		panel._set_value(DevGrove.SETTING, "off")
+		panel.apply()
 
 	# Apply saves.
 	panel._set_value("music_volume", 0.2)
@@ -59,7 +79,7 @@ func _run() -> void:
 	_check(is_equal_approx(float(panel._settings.music_volume), 0.55), "Defaults resets the tab's settings")
 	_check(bool(panel._settings.reduce_flashes), "…not other tabs'")
 	_check(is_equal_approx(float(_saved().music_volume), 0.2), "…and needs Apply")
-	panel.cancel()
+	panel._discard()
 
 	# Closing with changes asks: Keep editing, Discard, Apply.
 	var closes := [0]
@@ -105,7 +125,7 @@ func _run() -> void:
 	_check(not panel.get_conflict_lines().is_empty() and panel.conflict_label.visible,
 		"a rebind onto Build mode's key shows the conflict (%s)" % [panel.get_conflict_lines()])
 	_check(panel._key_dots["pause_game"].modulate.a > 0.5, "the rebound key has its dot")
-	panel.cancel()
+	panel._discard()
 	_check(panel.get_conflict_lines().is_empty() and not panel.conflict_label.visible, "Cancel clears it")
 
 	# Hidden mid-change (the pause menu closing): the change is dropped.

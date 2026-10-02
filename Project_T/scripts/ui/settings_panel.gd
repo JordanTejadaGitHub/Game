@@ -5,10 +5,9 @@ class_name SettingsPanel
 # scale), Gameplay, Accessibility (reduced motion, flashes, hit-stop, high-contrast route line),
 # Controls (rebinding) and, in debug builds, Developer. Used by the title screen and the pause menu.
 # Apply and Cancel (screens_ui.md "Settings", 2026-10-01): changes preview live (HeartwoodMemory.preview_settings)
-# but save only on Apply; Cancel puts back the saved values, Defaults resets the current tab (still needs Apply).
+# but save only on Apply; Cancel drops them and closes, Defaults resets the current tab (still needs Apply).
 # A gold dot marks a changed setting and its tab; closing with unapplied changes asks first. Display changes
 # that could lock the player out (RISKY) ask "Keep these settings?" after Apply and revert on no answer.
-# Developer switches still save at once (debug builds; several act on the saved profile right away).
 
 signal closed
 
@@ -129,67 +128,34 @@ func _ready() -> void:
 
 	var controls := _tab("Controls")
 	if TestGrove.is_available():  # Debug builds only; never in the demo or release
-		box = _tab("Developer")
-		_building_tab = ""  # Developer switches save at once: no dots, no Defaults
-		var grove := CheckButton.new()
-		grove.text = "Test Grove: every Warden unlocked (from the next run)"
-		grove.button_pressed = _settings.get(TestGrove.SETTING, false)
-		grove.focus_mode = Control.FOCUS_NONE
-		grove.toggled.connect(func(on: bool) -> void: _commit_now(TestGrove.SETTING, on))
-		box.add_child(grove)
-		var families := CheckButton.new()
-		families.text = "Unlock all families: normal runs, every family in the picks (no Seeds banked)"
-		families.tooltip_text = "As if the Memory Grove's Warden root were fully grown, for this and later runs while on.\nYour real Grove unlocks are not changed."
-		families.button_pressed = _settings.get(MetaRun.ALL_FAMILIES_SETTING, false)
-		families.focus_mode = Control.FOCUS_NONE
-		families.toggled.connect(func(on: bool) -> void: _commit_now(MetaRun.ALL_FAMILIES_SETTING, on))
-		box.add_child(families)
-		var dreams_rewards := CheckButton.new()  # meta_design.md "Dev options"
-		dreams_rewards.text = "Dream of Everything rewards · starlit card backs, +1 Dream reroll"
-		dreams_rewards.tooltip_text = "For testing: nothing is recorded and no Seeds are banked."
-		dreams_rewards.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		dreams_rewards.button_pressed = _settings.get(MetaRun.ALL_DREAMS_SETTING, false)
-		dreams_rewards.focus_mode = Control.FOCUS_NONE
-		dreams_rewards.toggled.connect(func(on: bool) -> void: _commit_now(MetaRun.ALL_DREAMS_SETTING, on))
-		box.add_child(dreams_rewards)
-		var sixth_slot := CheckButton.new()  # meta_design.md: the secret 6th loadout slot, for testing
-		sixth_slot.text = "Secret 6th loadout slot"
-		sixth_slot.tooltip_text = "For testing: no milestone is recorded and no Seeds are banked."
-		sixth_slot.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		sixth_slot.button_pressed = _settings.get(MetaRun.SIXTH_SLOT_SETTING, false)
-		sixth_slot.focus_mode = Control.FOCUS_NONE
-		sixth_slot.toggled.connect(func(on: bool) -> void: _commit_now(MetaRun.SIXTH_SLOT_SETTING, on))
-		box.add_child(sixth_slot)
-		# Demo mode (demo_scope.md): overrides game/demo in this build; switching goes back to the title.
+		box = _tab("Developer")  # Waits for Apply like every tab (user, 2026-10-01); Demo mode / Dev Grove act then
+		_toggle(box, "Test Grove: every Warden unlocked (from the next run)", TestGrove.SETTING)
+		_toggle(box, "Unlock all families: normal runs, every family in the picks (no Seeds banked)", MetaRun.ALL_FAMILIES_SETTING,
+			false, "As if the Memory Grove's Warden root were fully grown, for this and later runs while on.\nYour real Grove unlocks are not changed.")
+		_toggle(box, "Dream of Everything rewards · starlit card backs, +1 Dream reroll", MetaRun.ALL_DREAMS_SETTING,  # meta_design.md "Dev options"
+			false, "For testing: nothing is recorded and no Seeds are banked.").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_toggle(box, "Secret 6th loadout slot", MetaRun.SIXTH_SLOT_SETTING,  # meta_design.md: the secret 6th loadout slot, for testing
+			false, "For testing: no milestone is recorded and no Seeds are banked.").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		# Demo mode (demo_scope.md): overrides game/demo in this build (-1 project setting, 0 full, 1 demo); applying a
+		# change goes back to the title.
+		var demo_row := HBoxContainer.new()
+		_dots[ResultsScreen.DEMO_MODE_SETTING] = _dot(demo_row)
 		var demo := CheckButton.new()
 		demo.text = "Demo mode (off = FULL GAME: Memory Grove, Blight Levels, Seeds spent from your real profile)"
 		demo.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		demo.tooltip_text = "Overrides the project's game/demo setting in this debug build only.\nExported builds always use the project setting. Switching returns to the title screen."
-		demo.button_pressed = ResultsScreen.is_demo()
+		demo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		demo.tooltip_text = "Overrides the project's game/demo setting in this debug build only.\nExported builds always use the project setting. Applying a switch returns to the title screen."
 		demo.focus_mode = Control.FOCUS_NONE
-		demo.toggled.connect(func(on: bool) -> void:
-			_commit_now(ResultsScreen.DEMO_MODE_SETTING, 1 if on else 0)
-			get_tree().paused = false
-			get_tree().change_scene_to_file.call_deferred(TITLE_SCENE))
-		box.add_child(demo)
+		demo.toggled.connect(func(on: bool) -> void: _set_value(ResultsScreen.DEMO_MODE_SETTING, 1 if on else 0))
+		demo_row.add_child(demo)
+		box.add_child(demo_row)
+		_register(ResultsScreen.DEMO_MODE_SETTING, -1, func() -> void:
+			var mode := int(_value(ResultsScreen.DEMO_MODE_SETTING))
+			demo.set_pressed_no_signal(mode == 1 or (mode == -1 and ProjectSettings.get_setting("game/demo", false))))
 		# Dev Grove (demo_scope.md): runs and the Memory Grove on a preset profile, never the real one.
-		var dev_row := HBoxContainer.new()
-		var dev_label := Label.new()
-		dev_label.text = "Dev Grove"
-		dev_label.custom_minimum_size = Vector2(120, 0)
-		dev_row.add_child(dev_label)
-		var dev := OptionButton.new()
-		for level in DevGrove.LEVELS:
-			dev.add_item(String(level).capitalize())
-		dev.selected = maxi(DevGrove.LEVELS.find(StringName(str(_settings.get(DevGrove.SETTING, "off")))), 0)
-		dev.focus_mode = Control.FOCUS_NONE
-		dev.item_selected.connect(func(index: int) -> void:
-			_commit_now(DevGrove.SETTING, String(DevGrove.LEVELS[index]))
-			var title_node := get_tree().get_first_node_in_group(&"title_screen")
-			if title_node and get_tree().current_scene == title_node:
-				title_node.refresh())  # Mid-run it waits for the title, so the run keeps its profile
-		dev_row.add_child(dev)
-		box.add_child(dev_row)
+		var levels: Array = DevGrove.LEVELS.map(func(level: StringName) -> String: return String(level))
+		_choice_values(box, "Dev Grove", DevGrove.SETTING, levels.map(func(level: String) -> String: return level.capitalize()),
+			levels, "off")
 		var dev_note := Label.new()  # Shown, not a tooltip (touch)
 		dev_note.text = "Plays runs and the Memory Grove with that much of the tree unlocked (dev profile; nothing saved to your real profile). The full game while on; applies at the title screen."
 		dev_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -240,7 +206,7 @@ func _ready() -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
 	cancel_button = _footer_button(row, "Cancel", cancel)
-	cancel_button.tooltip_text = "Puts back the saved settings."
+	cancel_button.tooltip_text = "Closes without saving the changes."
 	apply_button = _footer_button(row, "Apply", apply)
 	UiStyle.primary(apply_button)
 	_footer_button(row, "Back", request_close)
@@ -423,7 +389,7 @@ func _slider(box: VBoxContainer, text: String, key: String, min_value: float = 0
 	box.add_child(row)
 	_register(key, max_value, func() -> void: slider.set_value_no_signal(float(_value(key))))
 
-func _toggle(box: VBoxContainer, text: String, key: String, default: bool = false, tip: String = "") -> void:
+func _toggle(box: VBoxContainer, text: String, key: String, default: bool = false, tip: String = "") -> CheckButton:
 	var row := HBoxContainer.new()
 	_dots[key] = _dot(row)
 	var check := CheckButton.new()
@@ -434,6 +400,7 @@ func _toggle(box: VBoxContainer, text: String, key: String, default: bool = fals
 	row.add_child(check)
 	box.add_child(row)
 	_register(key, default, func() -> void: check.set_pressed_no_signal(bool(_value(key))))
+	return check
 
 # A dropdown of [name, number] presets for a number setting; the saved value selects the nearest one
 # (older saves can hold any number, e.g. from the old slider).
@@ -536,7 +503,7 @@ static func same(a, b) -> bool:
 func is_changed(key: String) -> bool:
 	return not same(_settings.get(key, _default_of(key)), _saved.get(key, _default_of(key)))
 
-# Every key with an unapplied change (Developer switches never have one: they save at once).
+# Every key with an unapplied change.
 func get_changes() -> Array[String]:
 	var keys: Array[String] = []
 	for key in _refreshers:
@@ -551,13 +518,6 @@ func _set_value(key: String, value) -> void:
 	_settings[key] = value
 	_preview(key)
 	_mark()
-
-# Developer switches: saved at once (and kept through Cancel).
-func _commit_now(key: String, value) -> void:
-	_settings[key] = value
-	_saved[key] = value
-	HeartwoodMemory.save_settings(_saved.duplicate(true))
-	_preview(key)
 
 # The working copy goes live everywhere (HeartwoodMemory.get_settings readers, buses, UI scale, keys) unsaved.
 func _preview(key: String = "") -> void:
@@ -580,15 +540,31 @@ func apply() -> void:
 	for key in RISKY:
 		if is_changed(key):
 			before[key] = _saved.get(key, _default_of(key))
+	var demo_switched := is_changed(ResultsScreen.DEMO_MODE_SETTING)
+	var dev_grove_switched := is_changed(DevGrove.SETTING)
 	_saved = _settings.duplicate(true)
 	HeartwoodMemory.save_settings(_saved.duplicate(true))
 	HeartwoodMemory.preview_settings = {}
 	_mark()
+	if demo_switched:  # Demo mode: back to the title, which starts as the other build
+		get_tree().paused = false
+		get_tree().change_scene_to_file.call_deferred(TITLE_SCENE)
+		return
+	if dev_grove_switched:  # On the title it rebuilds on the new profile; mid-run it waits for the title
+		var title_node := get_tree().get_first_node_in_group(&"title_screen")
+		if title_node and get_tree().current_scene == title_node:
+			title_node.refresh()
 	if not before.is_empty():
 		_ask_keep(before)
 
-# Puts back the saved settings (the panel stays open).
+# Cancel: drops the unapplied changes and closes (no question: Cancel means discard).
 func cancel() -> void:
+	_discard()
+	_hide_prompts()
+	closed.emit()
+
+# Puts back the saved settings.
+func _discard() -> void:
 	_waiting_action = ""
 	_settings = _saved.duplicate(true)
 	_preview()
@@ -627,7 +603,7 @@ func _close_apply() -> void:
 
 func _close_discard() -> void:
 	_hide_prompts()
-	cancel()
+	_discard()
 	closed.emit()
 
 func _hide_prompts() -> void:
@@ -694,7 +670,7 @@ func _closing() -> void:
 	if _revert_at != 0:
 		revert()
 	if has_changes():
-		cancel()
+		_discard()
 	_hide_prompts()
 
 func _notification(what: int) -> void:
@@ -723,7 +699,7 @@ func _mark() -> void:
 		tabs.set_tab_title(i, tab_name + (" •" if dirty else ""))
 	var changes := has_changes()
 	apply_button.disabled = not changes
-	cancel_button.disabled = not changes
+	cancel_button.disabled = false  # Cancel always closes
 	var current := tabs.get_current_tab_control()
 	defaults_button.disabled = current == null or _tab_keys.get(String(current.name), []).is_empty()
 	var lines := get_conflict_lines()
