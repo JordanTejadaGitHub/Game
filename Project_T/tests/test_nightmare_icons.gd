@@ -343,6 +343,10 @@ func _settle(dossier: BossDossier, dreams: DreamState, omens: OmenDirector, intr
 		if dreams.is_offering() or dreams.has_pending_offer():
 			_check(not dossier.visible, "the dossier waits for the Dream")
 			dreams.skip()
+		var gifts := HeartwoodGifts.find(dossier)  # Spire: the act-break gift, before the Omen and the dossier
+		if gifts != null and gifts.is_offering():
+			_check(not dossier.visible, "the dossier waits for the gift")
+			gifts.let_pass()
 		if omens != null and omens.is_offering():
 			_check(not dossier.visible, "the dossier waits for the Omen")
 			omens.choose(null)

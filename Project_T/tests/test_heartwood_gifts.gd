@@ -60,6 +60,14 @@ func _run() -> void:
 	_check(screen.visible and director.pending_choice() == &"gift" and not director.can_start_next_drift(),
 		"after the Dream the gift screen opens and holds Start (%s)" % director.pending_choice())
 	_check(main.get_node("HUD/DriftPanel").PENDING_TEXT[&"gift"] == "Choose a gift", "the Start button names it")
+	_check(screen.preview != null and screen.preview.get_meta(&"gift", &"") == gifts.current_offer[0], "the first card's mini-scene plays above the cards")
+	_check(HeartwoodGifts.POOL.keys().all(func(id: StringName) -> bool: return GiftScreen.SCENES.has(id)), "every gift has a before / after scene")
+	for id in GiftScreen.SCENES:
+		screen.show_scene(id)
+		for frame in 3:
+			await process_frame
+	_check(screen.preview.get_meta(&"gift", &"") == &"memory_seed", "each of the 18 scenes plays (no errors in the log)")
+	screen.show_scene(gifts.current_offer[0])
 	var omens = main.get_node("%OmenDirector")
 	_check(not omens.is_offering(), "the Omen waits while the gift is up (Roguelite 13aaf91a)")
 	_check(not main.get_node("%RunSaver").can_save_now(), "no save while the gift waits")

@@ -183,12 +183,15 @@ func _on_rest_started(block: int, boss_rest: bool, _bonus: int, _perfect: bool) 
 
 # The rest's other screens (family pick, Dream, Omen, pause menu, results) are all done.
 func screens_clear() -> bool:
-	for path in ["HUD/FamilyPickScreen", "HUD/DreamScreen", "HUD/OmenScreen", "HUD/RememberScreen", "HUD/PauseMenu", "HUD/ResultsScreen"]:
+	for path in ["HUD/FamilyPickScreen", "HUD/DreamScreen", "HUD/GiftScreen", "HUD/OmenScreen", "HUD/RememberScreen", "HUD/PauseMenu", "HUD/ResultsScreen"]:
 		var screen := drift_director.owner.get_node_or_null(path) as CanvasItem if drift_director.owner != null else null
 		if screen != null and screen.visible:
 			return false
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams != null and (dreams.is_offering() or dreams.has_pending_offer()):
+		return false
+	var gifts := get_tree().get_first_node_in_group(&"heartwood_gifts")  # Heartwood's Gifts (Spire): the gift first
+	if gifts != null and gifts.is_offering():
 		return false
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	if omens != null and omens.is_offering():

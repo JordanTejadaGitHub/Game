@@ -22,8 +22,51 @@ const HINTS := {
 	&"kinship": "Click a Warden in a Kinship.",
 }
 
+# Each gift's living mini-scene (heartwood_gifts.md "an animated mini-scene like the placement Dream cards"): Roguelite
+# Code's CardScene.show_scene(before, after, effect, caption), 7×5 rows in UpgradeData.diagram's legend plus the gift
+# letters (L log, ~ pond, m moonwell, b bell stone, z lightning tree, u stump, k mushroom ring, B bog, r roots).
+const SCENES := {
+	&"sow_ridge": [".......\n.......\nSPPPPPH\n.......\n.......", ".......\n.PPPPP.\nSP.O.PH\n...O...\n...O...", {},
+		"A ridge across the way: they take the long road."],
+	&"fallen_giant": [".......\n.......\nSPPPPPH\n.......\n.......", ".......\n.PPPPP.\nSPLLLPH\n.......\n.......", {},
+		"A fallen giant they must walk around, for good."],
+	&"glade": [".OO....\n.OO....\nSPPPPPH\n.......\n.......", ".......\n.a.....\nSPPPPPH\n.......\n.......", {},
+		"Cleared for free, and every tree counts as tended."],
+	&"shift_stones": ["OO.....\n.......\nSPPPPPH\n.......\n.O.....", ".......\n.PPPPP.\nSP.O.PH\n...O...\n...O...", {},
+		"The stones move where you need a wall."],
+	&"mire": [".......\n...a...\nSPPPPPH\n.......\n.......", ".......\n...a...\nSPBBBPH\n.......\n.......", {},
+		"Bog underfoot: they slow to 80%."],
+	&"spring": [".......\n...a...\n.......\nSPPPPPH\n.......", ".......\n.~~W...\n.~~....\nSPPPPPH\n.......",
+		{"text": "+20%", "damage": 1.2}, "Water Wardens beside the spring hit harder."],
+	&"mushroom_ring": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n.kkkW..\nSPPPPPH\n.kkk...\n.......",
+		{"text": "+2 Poisoned cap"}, "Spore Wardens touching the ring poison deeper."],
+	&"lightning_tree": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n..z.W..\nSPPPPPH\n.......\n.......",
+		{"text": "+25% bolts", "damage": 1.25}, "Bolts near the dead tree strike harder."],
+	&"moonwell": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n...mW..\nSPPPPPH\n.......\n.......",
+		{"text": "+1 range", "range": 1.0}, "Wardens beside the moonwell see further."],
+	&"bell_stone": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n...bW..\nSPPPPPH\n.......\n.......",
+		{"text": "+15% speed", "speed": 1.15}, "Song Wardens beside the stone pulse faster."],
+	&"ancient_stump": [".......\n.......\nSPPPPPH\n.......\n.......", ".......\n.u.u.u.\nSPPPPPH\n.......\n.......", {},
+		"Plant on a stump: the Warden starts at rank I."],
+	&"heartwood_roots": [".......\n....a..\nSPPPPPH\n.......\n.......", ".......\n....W..\nSPrrrrH\n.......\n.......",
+		{"text": "+15% taken", "damage": 1.15}, "Roots before the Heartwood: they take more there."],
+	&"thick_mist": [".......\n...a...\nSPPPPPH\n.......\n.......", ".......\n...a...\nSPPPPPH\n.......\n.......", {},
+		"Next act, they leave the mist further apart."],
+	&"bramble_verge": [".......\n.T.T.T.\nSPPPPPH\n.......\n.......", ".......\n.X.X.X.\nSPPPPPH\n.......\n.......",
+		{"proc": "+1 Drowsy cap"}, "Thornwalls for half, and they make nightmares drowsy."],
+	&"old_kin": [".......\n..aa...\nSPPPPPH\n.......\n.......", ".......\n..WW...\nSPPPPPH\n.......\n.......",
+		{"text": "kin +1 stage", "damage": 1.1}, "A Kinship grows a stage at once."],
+	&"deeper_glade": [".....O.\n....OO.\nSPPPPPH\n....OO.\n.....O.", ".......\n.......\nSPPPPPH\n.......\n.......", {},
+		"The Heartwood's glade grows, and one more leaf."],
+	&"waking_root": [".......\n...a...\nSPPPPPH\n.......\n.......", ".......\n...W...\nSPPPPPH\n.......\n.......",
+		{"text": "-1 Dreamlight"}, "The next form you unlock costs less."],
+	&"memory_seed": [".......\n.a.....\nSPPPPPH\n.......\n.......", ".......\n.....W.\nSPPPPPH\n.......\n.......",
+		{"text": "keeps its ranks"}, "Move a Warden this act: it keeps its ranks and kin."],
+}
+
 var drift_director: DriftDirector
 var gifts: HeartwoodGifts
+var preview: CardScene  # The hovered (else the first) gift's mini-scene, above the cards
 var placer: GiftPlacer
 var peek: ChoicePeek
 var arm: ChoiceArm
@@ -62,6 +105,10 @@ func _ready() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UiStyle.display(title, 28)
 	box.add_child(title)
+	preview = CardScene.new()  # Always there (touch: no hover needed); hovering a card plays its scene
+	preview.name = "GiftScene"
+	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	box.add_child(preview)
 	_cards.add_theme_constant_override("separation", 16)
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_cards)
@@ -125,6 +172,8 @@ func open() -> void:
 	for id in gifts.current_offer:
 		_cards.add_child(_card(id))
 	_pass.text = "Let them pass · +%d Dew" % gifts.pass_dew()
+	if not gifts.current_offer.is_empty():
+		show_scene(gifts.current_offer[0])
 	visible = true
 	_show_cards(true)
 	arm.arm()
@@ -139,7 +188,16 @@ func _card(id: StringName) -> Button:
 	button.focus_mode = Control.FOCUS_NONE
 	UiStyle.card_button(button, UiStyle.LIVE if gift.map else UiStyle.GOLD)
 	button.pressed.connect(pick.bind(id))
+	button.mouse_entered.connect(show_scene.bind(id))
 	return button
+
+# Plays gift `id`'s before → after mini-scene in the preview (a still after-diagram under reduced motion).
+func show_scene(id: StringName) -> void:
+	if not SCENES.has(id) or preview == null:
+		return
+	var scene: Array = SCENES[id]
+	preview.show_scene(scene[0], scene[1], scene[2], scene[3])
+	preview.set_meta(&"gift", id)
 
 # A card: placed first (map gifts), else taken now.
 func pick(id: StringName) -> void:
@@ -149,15 +207,20 @@ func pick(id: StringName) -> void:
 		return
 	placing = id
 	_show_cards(false)
+	if preview != null:
+		preview.stop()  # Hidden while placing: nothing runs
 	placer = GiftPlacer.new(drift_director, id, BLOCKING.has(id))
 	drift_director.owner.add_child(placer)
 
 func cancel_placing() -> void:
+	var was := placing
 	if placer != null:
 		placer.queue_free()
 		placer = null
 	placing = &""
 	_show_cards(true)
+	if was != &"":
+		show_scene(was)
 
 func confirm_placing() -> void:
 	if placer == null or not placer.is_complete():
@@ -179,6 +242,8 @@ func _close() -> void:
 		placer.queue_free()
 		placer = null
 	placing = &""
+	if preview != null:
+		preview.stop()
 	visible = false
 
 func _unhandled_input(event: InputEvent) -> void:
