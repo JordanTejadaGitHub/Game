@@ -70,7 +70,8 @@ func _run() -> void:
 		await process_frame
 	var mist := whispers.get_theme_stylebox("normal") as MoonStyleBox
 	_check(whispers.get_theme_font_size("normal_font_size") == 26 and whispers.get_theme_font("normal_font") == UiStyle.whisper_font()
-		and whispers.get_theme_constant("outline_size") >= 4 and mist != null and mist.edge_alpha == 0.0 and mist.center_alpha <= 0.5,
+		and whispers.get_theme_constant("outline_size") >= 6 and whispers.get_theme_color("default_color") == UiStyle.GOLD
+		and mist != null and mist.edge_alpha == 0.0 and is_equal_approx(mist.center_alpha, 0.7),
 		"26 px whisper italic, outlined, over a faint feathered mist (no box)")
 	var hint_rect: Rect2 = whispers.get_global_rect()
 	_check(hint_rect.position.y < 300.0 and absf(hint_rect.get_center().x - 640.0) < 2.0, "top centre, as before (%s)" % hint_rect)
