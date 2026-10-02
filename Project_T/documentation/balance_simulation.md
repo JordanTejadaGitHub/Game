@@ -761,6 +761,10 @@ Wellspring, Great Dreamcatcher, Magpie's Hoard) are low on direct damage by desi
 is a Static enabler (Puffball's Ignite, Morning Fog's Thunderclap). **Decisions:** damage ×0.75 on
 Autumn Gale, Moonstone, Elf Circle, Snugroot; Midsummer ×2, Starling Murmuration ×1.5. Role check with
 Tower Discussion on Whispering Hollow, Zephyr, Grafted Elder, Jewelwing Court and Hoarfrost. Re-probe after.
+Roles (Tower Discussion): **Jewelwing Court** is a damage final → **damage 23 → 28**. Whispering Hollow
+and Zephyr are amplifiers, Hoarfrost a combo piece, Grafted Elder a copier (~0.85× its neighbours):
+judged by the **board with vs without them** (vs 4 Puffballs) on boards that suit them, not by their
+own damage per Dew. Support probes queued.
 
 ## Route profiles in the run history (user, 2026-10-01)
 
