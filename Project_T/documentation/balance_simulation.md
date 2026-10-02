@@ -730,6 +730,15 @@ amounts + Reaction damage) ÷ total damage, by block, for the bot (Balancing Cod
 batch) and in the run history (Main Merger adds `combo_damage` / `reaction_damage` / `status_damage` /
 `combo_share`, in 731537b5; the record only had counts). Levers if far above: lower Reaction base damage, raise
 Wardens' direct damage, or both. Main first, the Spire branch after.
+**Bot measurement** (9b1a73ee, Resonance removed, real boss draw, 20 seeds per mode): combo share
+(DamageLog combo_amount ÷ damage) rises **0.06 → 0.39** fresh by drifts 36–40 (full profile 0.12 → 0.31);
+Reactions stay small (≤ 0.10). Top Wardens' "from combos": Stormcap 0.43–0.49, Firefly Jar 0.30–0.35,
+Driftspore 0.23–0.28, Sporeling 0.15. **Within the 25–40% target for the bot**; the user's 52–76% comes
+from human builds deeper into combos (and a Static bolt counts whole as combo). Decision waits for the
+first human runs carrying the new `combo_share` fields. No lever change yet.
+**Resonance removal check** (same batch): fresh with Dreams passes the act 1 boss **15/20 (75%)** ✓, skip
+**5/20 (25%)** ✓; runs with ≥ 3 Dream picks of one tag (a decent-build proxy) **55% fresh / 60% full** ✓
+(target ~50%). **No card re-basing needed.**
 **Combo cards as choices** (dream_design.md 784680b2): power signed off, with **Quick Reactions'**
 trade set at **−35%** Reaction damage (not −25%: double frequency × 0.75 was still +50%). Pick rates vs
 same-rarity cards are checked once offers are logged.
