@@ -69,6 +69,15 @@ label ("Rank III needs a Nurture Dream"), lowercase in a sentence ("grow past ra
 - **Scaling cards show the live value** on the card: "You have 7 · +40%".
 - Two lines at most on a button; tooltips at most ~42 characters wide (`screens_ui.md`).
 
+**Card wording, one way each** (card text audit, 2026-10-02: 335 cards used two forms for the same
+thing):
+- **Distance is in cells:** "within 2 cells", "reach 3 cells" (never "tiles" for a distance).
+  **Path squares are path tiles:** "5+ path tiles", "+1 Dew per 10 path tiles".
+- **Caps are "up to":** "(up to +45%)", never "(max +45%)".
+- **Warden bonuses read as verbs:** "deal 30% more damage", "attack 20% faster", "+0.5 range";
+  not "+30% damage" / "+20% attack speed". Nightmare side: "take 25% more damage".
+- **Stacking:** "(stacks, up to +X)" for stacking cards; nothing for one-copy cards.
+
 ## Text lint test
 
 `tests/test_text_style.gd` (Main Merger) scans every player-facing string it can reach: every
