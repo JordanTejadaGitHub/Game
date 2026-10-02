@@ -200,7 +200,7 @@ func _run() -> void:
 	_check(scarecrow.sprite.animation == &"burst", "and its coat flies open (the burst pose)")
 	scarecrow.take_damage(scarecrow.max_health * 0.4)
 	_check(_count(crow_data) == 12, "4 more at 60%% and 40%% (%d)" % _count(crow_data))
-	_check(crow_data.leaf_cost == 2, "each Crow that gets through takes 2 leaves")
+	_check(crow_data.leaf_cost == 1, "each Crow that gets through takes 1 leaf (human run 12)")
 	var crows := spawner.get_children().filter(func(e) -> bool: return e.enemy_data == crow_data)
 	var airborne := true
 	for crow in crows:
