@@ -12,6 +12,14 @@ class_name GrowHints
 # a rest; unlocks; cards), draws nothing during drifts (test_perf_stress: polling every Warden 4×/s cost frames).
 
 const SETTING := "growth_hints"
+# The marks retire themselves (onboarding.md "Can grow" marks, user-approved): once the profile has grown RETIRE_GROWN
+# Wardens or finished RETIRE_RUNS runs, the setting turns Off once, silently; RETIRED_KEY keeps it from flipping again
+# if the player turns it back on. Real game only (dev runs don't count).
+const GROWN_KEY := "wardens_grown"  # Profile: Wardens grown, all runs
+const RETIRED_KEY := "growth_hints_retired"
+const RETIRE_GROWN := 10
+const RETIRE_RUNS := 3
+const MARK_ALPHA := 0.6  # The marks are quiet (no glow, no pulse); the first-time spotlight stays loud
 const PROFILE_KEY := "grow_hints_seen"  # ["spotlight", "nurture"]: once per profile
 const REMIND_DRIFT := 15
 const BASE := Vector2(0, 22)  # A Warden's base from its cell centre
@@ -56,8 +64,37 @@ func _ready() -> void:
 	dream_state.card_taken.connect(_mark_dirty.unbind(1))
 	if tower_container != null:
 		tower_container.child_exiting_tree.connect(_mark_dirty.unbind(1))
+		tower_container.child_entered_tree.connect(func(node: Node) -> void:
+			if node is Tower and not node.evolved.is_connected(_on_evolved):
+				node.evolved.connect(_on_evolved))
 	if tower_seller != null:
 		tower_seller.selection_changed.connect(_on_selection_changed)
+	if _counts():
+		var memory := HeartwoodMemory.load_data()
+		if retire_check(memory):
+			HeartwoodMemory.save_data(memory)
+
+# The real game, not a dev run (Test Grove, all families, Dev Grove): only these count and flip the setting.
+func _counts() -> bool:
+	return get_tree().current_scene == drift_director.owner and not MetaRun.is_dev_run()
+
+func _on_evolved(_tower: Tower) -> void:
+	if not _counts():
+		return
+	var memory := HeartwoodMemory.load_data()
+	memory[GROWN_KEY] = int(memory.get(GROWN_KEY, 0)) + 1
+	retire_check(memory)
+	HeartwoodMemory.save_data(memory)
+
+# Turns the marks Off in `memory` once enough has been grown or played; true if it flipped now.
+static func retire_check(memory: Dictionary) -> bool:
+	if bool(memory.get(RETIRED_KEY, false)):
+		return false
+	if int(memory.get(GROWN_KEY, 0)) < RETIRE_GROWN and int(memory.get("runs_played", 0)) < RETIRE_RUNS:
+		return false
+	memory[RETIRED_KEY] = true
+	memory.settings[SETTING] = false
+	return true
 
 static func enabled() -> bool:
 	return bool(HeartwoodMemory.get_settings().get(SETTING, true))
@@ -171,10 +208,10 @@ func _draw() -> void:
 			continue
 		var base := to_local(tower.global_position) + BASE
 		if mark.grow and tower != spotlight:
-			_arrow(base + Vector2(-MARK_OFFSET, 0), 5.0)
+			_arrow(base + Vector2(-MARK_OFFSET, 0), 5.0, MARK_ALPHA)
 		if mark.rank:
-			draw_circle(base + Vector2(MARK_OFFSET, 0), 4.0, Palette.DREAD)
-			draw_circle(base + Vector2(MARK_OFFSET, 0), 2.5, UiStyle.GOLD)
+			draw_circle(base + Vector2(MARK_OFFSET, 0), 4.0, Color(Palette.DREAD, MARK_ALPHA))
+			draw_circle(base + Vector2(MARK_OFFSET, 0), 2.5, Color(UiStyle.GOLD, MARK_ALPHA))
 	if spotlight != null and is_instance_valid(spotlight):
 		var base := to_local(spotlight.global_position) + BASE
 		var still := bool(Fx.setting("reduced_motion", false))
@@ -183,10 +220,10 @@ func _draw() -> void:
 		_arrow(base + Vector2(0, -2 - 4.0 * beat), 9.0)
 
 # A gold "↑" with a dark rim (readable on grass and path).
-func _arrow(at: Vector2, size: float) -> void:
+func _arrow(at: Vector2, size: float, alpha: float = 1.0) -> void:
 	var head := PackedVector2Array([at + Vector2(0, -size * 1.6), at + Vector2(size, -size * 0.4), at + Vector2(-size, -size * 0.4)])
 	var rim := PackedVector2Array([at + Vector2(0, -size * 1.6 - 2), at + Vector2(size + 2, -size * 0.4 + 1), at + Vector2(-size - 2, -size * 0.4 + 1)])
-	draw_colored_polygon(rim, Palette.DREAD)
-	draw_line(at + Vector2(0, -size * 0.4), at + Vector2(0, size * 0.6), Palette.DREAD, size * 0.7 + 2)
-	draw_colored_polygon(head, UiStyle.GOLD)
-	draw_line(at + Vector2(0, -size * 0.4), at + Vector2(0, size * 0.6), UiStyle.GOLD, size * 0.7)
+	draw_colored_polygon(rim, Color(Palette.DREAD, alpha))
+	draw_line(at + Vector2(0, -size * 0.4), at + Vector2(0, size * 0.6), Color(Palette.DREAD, alpha), size * 0.7 + 2)
+	draw_colored_polygon(head, Color(UiStyle.GOLD, alpha))
+	draw_line(at + Vector2(0, -size * 0.4), at + Vector2(0, size * 0.6), Color(UiStyle.GOLD, alpha), size * 0.7)

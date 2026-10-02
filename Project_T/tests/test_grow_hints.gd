@@ -92,6 +92,24 @@ func _run() -> void:
 	_check(not GrowHints.enabled(), "and can be turned off")
 	HeartwoodMemory.preview_settings = {}
 
+	# The marks retire themselves: 10 Wardens grown or 3 runs finished, once (user-approved, onboarding.md).
+	var memory := HeartwoodMemory.defaults()
+	memory[GrowHints.GROWN_KEY] = 9
+	memory.runs_played = 2
+	_check(not GrowHints.retire_check(memory) and bool(memory.settings.get(GrowHints.SETTING, true)), "9 grown, 2 runs: still on")
+	memory[GrowHints.GROWN_KEY] = 10
+	_check(GrowHints.retire_check(memory) and not bool(memory.settings[GrowHints.SETTING]) and memory[GrowHints.RETIRED_KEY],
+		"the 10th Warden grown turns the marks off")
+	memory.settings[GrowHints.SETTING] = true  # The player turns them back on
+	_check(not GrowHints.retire_check(memory) and bool(memory.settings[GrowHints.SETTING]), "…once: never flipped again")
+	var by_runs := HeartwoodMemory.defaults()
+	by_runs.runs_played = 3
+	_check(GrowHints.retire_check(by_runs), "3 runs finished turn them off too")
+	var before_grown := int(HeartwoodMemory.load_data().get(GrowHints.GROWN_KEY, 0))
+	hints._on_evolved(sprout)
+	_check(int(HeartwoodMemory.load_data().get(GrowHints.GROWN_KEY, 0)) == before_grown, "tests (not the real game) never count")
+	_check(is_equal_approx(GrowHints.MARK_ALPHA, 0.6), "the marks are quiet (60%)")
+
 	# Drift 15: nothing grown or ranked this run → the reminder (a whisper, once per profile).
 	_check(not hints.grown_this_run(), "nothing grown yet")
 	hints._on_drift_started(GrowHints.REMIND_DRIFT)
