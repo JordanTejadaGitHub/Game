@@ -183,6 +183,9 @@ func _restore(data: Dictionary) -> void:
 		map_generator._remove_obstacle(Vector2(cell[0], cell[1]))
 	var gifts := HeartwoodGifts.find(self)  # Heartwood's Gifts (Spire): their terrain back before the Wardens
 	if gifts != null and data.has("gifts"):
+		# The tended cells first: restoring terrain gifts skip what the player tended after them (Environment Code;
+		# set again below, after anything a restoring effect appended).
+		run_state.tended_cells.assign(data.tended.map(func(c: Array) -> Vector2: return Vector2(c[0], c[1])))
 		gifts.load_save(data.gifts)
 	for saved in data.towers:
 		var tower: Tower = tower_placer.tower_scene.instantiate()

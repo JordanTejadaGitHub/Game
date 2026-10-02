@@ -66,10 +66,21 @@ const BUILT_IN: Array[StringName] = [&"thick_mist"]  # Effects that live here
 
 static var _effects := {}  # Gift id -> Callable(main, placement): registered by the owning systems
 
+static var _release_hooked := false
+
 static func register(id: StringName, apply: Callable) -> void:
-	if _effects.is_empty():
-		UiStyle.release_at_exit(func() -> void: _effects.clear())  # Callables keep their scripts: let go at quit
 	_effects[id] = apply
+	_hook_release()
+
+# Callables keep their scripts (and lambdas their owners): let go at quit, or Godot crashes at exit. Owners may
+# register from _static_init, before there's a tree: hooked at the first chance (here, or when the node is ready).
+static func _hook_release() -> void:
+	if _release_hooked:
+		return
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree != null and tree.root != null:
+		UiStyle.release_at_exit(func() -> void: _effects.clear())
+		_release_hooked = true
 
 static func has_effect(id: StringName) -> bool:
 	return BUILT_IN.has(id) or _effects.has(id)
@@ -91,6 +102,7 @@ func _init(director: DriftDirector = null) -> void:
 func _ready() -> void:
 	name = "HeartwoodGifts"
 	add_to_group(GROUP)
+	_hook_release()  # Effects registered from _static_init (no tree yet then)
 	run_state = drift_director.get_node_or_null("%RunState")
 	drift_director.rest_started.connect(_on_rest_started)
 	drift_director.rest_ended.connect(func(_block: int) -> void:
@@ -158,7 +170,12 @@ static func needs_placing(id: StringName) -> bool:
 func choose(id: StringName, placement: Dictionary = {}) -> void:
 	if not waiting or not current_offer.has(id):
 		return
-	var record := {"id": String(id), "act": offer_act, "placement": _plain(placement)}
+	var place := placement.duplicate()
+	place["tended_before"] = run_state.tended_cells.size()  # Environment: tended before this gift vs after (resume)
+	var map := drift_director.get_node_or_null("%MapGenerator")
+	if id == &"heartwood_roots" and map != null and map.get("gifts") != null and map.gifts.has_method("roots_cells"):
+		place["cells"] = map.gifts.roots_cells()  # The route at pick time (on resume the Wardens come back after)
+	var record := {"id": String(id), "act": offer_act, "placement": _plain(place)}
 	taken.append(record)
 	_apply(id, record.placement, false)
 	_close()

@@ -93,6 +93,7 @@ func _run() -> void:
 		await process_frame
 	_check(omens.is_offering() or omens.get_mode() == "never", "then the Omen shows")
 	_check(gifts.has_taken(&"lightning_tree") and not gifts.draw(2).has(&"lightning_tree"), "never offered again this run")
+	_check(int(gifts.taken[0].placement.get("tended_before", -1)) == run_state.tended_cells.size(), "the record keeps how many cells were tended before it (Environment: resumes)")
 
 	# Let them pass (act 2).
 	director.drifts_started = 50
