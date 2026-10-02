@@ -238,6 +238,7 @@ func _refresh() -> void:
 			_locked_form_button(button, "Unlock %s" % next.display_name, next, [_tower], index)
 			continue  # Locked: no ring, no ghost
 		_preview_on(button, [[_tower, next]])
+	_not_in_dream_button(data)
 	if _tower.can_nurture():
 		var cost := _tower.get_nurture_cost()
 		# The Eldest (a Legendary): rank VI crowns the one Warden that can grow past V, so ask first.
@@ -721,6 +722,19 @@ func _nurture_with(which: Tower.Focus) -> void:
 # A Nurture price for a button: "40 Dew", or "free" (First Care's free ranks).
 static func _price(dew: int) -> String:
 	return "free" if dew <= 0 else "%d Dew" % dew
+
+# Branch expansion: the branches this run didn't draw aren't Grow buttons (Tower.grow_options); one quiet line
+# points at Remember, where a misty branch can be called back into the dream for Dreamlight.
+func _not_in_dream_button(data: TowerData) -> void:
+	var hidden := Tower.not_in_dream(dream_state, data)
+	if hidden.is_empty():
+		return
+	var button := _add_button("%d more not in this dream · Remember" % hidden.size())
+	button.flat = true
+	button.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	button.tooltip_text = "%s: not in this dream. Call one back on Remember." % ", ".join(hidden.map(
+		func(form: TowerData) -> String: return form.display_name))
+	button.pressed.connect(func() -> void: dream_state.open_remember(hidden[0]))
 
 func _add_button(text: String) -> Button:
 	var button := Button.new()
