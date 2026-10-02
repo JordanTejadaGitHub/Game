@@ -317,3 +317,8 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: **fence probe** (1db2b118, pairs on the route): the arc works (fence 90–96% of damage) but is
   weak: Jarlink 0.32× Driftspore, Lightning Fence 0.36 / 0.31× Puffball. **arc_dps: Jarlink 120, Lightning
   Fence 400** (in d8df6151).
+- 2026-10-02: **round-2 re-probe** (d8df6151): in band Jetreed 0.53, Maelstrom 0.82 / 0.92; close Undercurrent
+  0.45, Jarlink 0.45 / 0.44, Lightning Fence 0.58 / 0.60, Silence 0.66, Hushbell 0.44; still low Prism Jar 0.22,
+  Rainbow Prism 0.43 / 0.39, Silver Bell 0.13, Vesper Bell 0.22. **Round 3 (last):** Undercurrent 40, Jarlink arc
+  140, Lightning Fence arc 560, Hushbell 35, Silence 75, Prism Jar 80, Rainbow 200, Silver Bell 150, Vesper
+  350. **The new-branch probe series closes after this; human runs judge.**
