@@ -43,18 +43,19 @@ func _run() -> void:
 	for unlock in grove:
 		if unlock.root == UnlockData.Root.WARDENS and not unlock.costs.is_empty():
 			limb += unlock.costs[0]
-	_check(limb == 1390 + 1080 - 470, "the Families limb costs 2,000 Seeds (final-forms nodes removed) (%d)" % limb)
+	_check(limb == 1390 + 1080 - 470 - 60, "the Families limb costs 1,940 Seeds (final-forms nodes removed, Bellflower starts) (%d)" % limb)
 	for family: String in ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"]:
 		_check(HeartwoodMemory.get_unlock(family + "_final") == null, "no final-forms node for %s (finals come with the family)" % family)
-	_check(_unlock(grove, "bellflower").requires_any == ["pebbling", "rootling"], "Bellflower needs Pebbling or Rootling")
+	_check(_unlock(grove, "bellflower").start and _unlock(grove, "bellflower").costs.is_empty() and _unlock(grove, "bellflower").requires_any.is_empty(),
+		"Bellflower is a starting family (meta_design.md a3375108)")
 	for family: String in ["sporeling", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"]:
 		var hidden := family + "_hidden"
 		var node := _unlock(grove, hidden)
 		var start := family in ["sporeling", "dewdrop"]
 		_check(node != null and node.requires_all == ([] if start else [family]),
 			"hidden branch %s needs only its family" % hidden)
-	_check(_unlock(grove, "nestling").requires_any.has("bellflower") and _unlock(grove, "nestling").requires_any_count == 2,
-		"Nestling needs 2 of Pebbling / Rootling / Bellflower / Acorn")
+	_check(_unlock(grove, "nestling").requires_any == ["pebbling", "rootling", "acorn"] and _unlock(grove, "nestling").requires_any_count == 2
+		and _unlock(grove, "whirligig").requires_any == ["pebbling", "rootling", "acorn"], "Nestling and Whirligig need 2 of Pebbling / Rootling / Acorn")
 	var acorn := _unlock(grove, "acorn")
 	_check(HeartwoodMemory.buy_problem(HeartwoodMemory.load_data(), acorn) != "", "Acorn needs Pebbling or Rootling first")
 	_check(HeartwoodMemory.buy(_unlock(grove, "pebbling")), "buy the Pebbling line")
@@ -375,8 +376,8 @@ func _run() -> void:
 	var view: GroveTreeView = grove_screen.tree_view
 	_check(view.get_canopy_stage() == 0, "a new Grove shows the first canopy stage")
 	var planted := HeartwoodMemory.planted_nodes(HeartwoodMemory.load_data())
-	_check(planted.size() == 3 and planted.all(func(p: Dictionary) -> bool: return p.limb == "families" and p.pos is Vector2),
-		"a new Grove has only its 3 starting families planted, for the in-run Heartwood (%s)" % [planted])
+	_check(planted.size() == 4 and planted.all(func(p: Dictionary) -> bool: return p.limb == "families" and p.pos is Vector2),
+		"a new Grove has only its 4 starting families planted, for the in-run Heartwood (%s)" % [planted])
 	var stone_sets: Dictionary = GroveTreeView.load_layout().get("loadout_stone_sets", {})
 	_check(view.stone_points().size() == 3 and view.stone_points()[0] == GroveTreeView.vec(stone_sets["3"][0]),
 		"a new Grove shows only its 3 open waystones, centred under the trunk")

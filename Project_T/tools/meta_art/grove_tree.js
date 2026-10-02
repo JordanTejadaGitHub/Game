@@ -50,7 +50,7 @@ N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
 // Families: a short branch of three per family (family, hidden branch, Ascension),
 // alternating sides up the middle limb.
 [["sporeling", "Sporeling", true], ["firefly_jar", "Firefly Jar", true], ["dewdrop", "Dewdrop", true], ["pebbling", "Pebbling"],
- ["rootling", "Rootling"], ["bellflower", "Bellflower"], ["acorn", "Acorn"], ["nestling", "Nestling"], ["whirligig", "Whirligig"]]
+ ["rootling", "Rootling"], ["bellflower", "Bellflower", true], ["acorn", "Acorn"], ["nestling", "Nestling"], ["whirligig", "Whirligig"]]
   .forEach(([id, name, start], i) => {
     const side = i % 2 ? 1 : -1, ay = 604 - i * 50, ax = 640 + Math.sin((604 - ay) / 90) * 4;
     N(id, "families", name, ax + side * 38, ay - 20, [ax, ay], start ? { start: true } : {});

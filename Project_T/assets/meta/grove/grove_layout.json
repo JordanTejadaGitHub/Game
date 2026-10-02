@@ -865,7 +865,7 @@
     315
    ],
    "levels": 1,
-   "start": false,
+   "start": true,
    "legendary": false,
    "branch": {
     "offset": [
