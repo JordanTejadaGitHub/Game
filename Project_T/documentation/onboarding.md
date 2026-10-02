@@ -34,7 +34,11 @@ trigger at these moments:
 | First rest (after drift 5) | Dreams and rests | The first Dream. *"The Heartwood stirs, and dreams of…"* Then: *"Rest here. Rearrange the forest while they're gone."* (75% refunds during rests) |
 | First rest | Saving | *"The forest will wait for you."* Save & Quit is highlighted once. |
 | First blocked placement | The dream's rule | The ghost turns red. *"A dream can bend, but never close."* |
-| First affordable evolution | Growing | The Sprout under the cursor shimmers. *"This Sprout could grow."* |
+| ~~First affordable evolution~~ | ~~Growing~~ | ~~The Sprout under the cursor shimmers.~~ Replaced below: it only fired if the player happened to hover a Sprout. |
+| **First rest where Dew can grow a planted Warden** (revised 2026-10-01: human run 12, a non-gamer, reached drift 30 with 60 Sporelings + 10 Firefly Jars and never grew or ranked one) | Growing | The nearest growable Warden to the camera centre **shimmers and gets a gold "↑" at its base**, and the whisper names it: *"That Sporeling could grow. Click it."* Clicking it opens the Warden panel with the Grow buttons pulsing once. |
+| **"Can grow" marks** | Growing, always visible | At **rests**, every Warden that can grow **and** that you can afford right now shows a **small gold ↑ leaf** at its base (one per Warden, quiet, no pulse). Same for Nurture: a **small gold dot** when its next rank is affordable. Setting *Gameplay → Growth hints* (On by default; Off hides the marks, never the whispers). Hidden during drifts so the fight stays clean. |
+| **Drift 15 with nothing grown** (once per profile) | Growing reminder | If no Warden has grown or ranked yet and Dew ≥ the cheapest grow: *"Your Wardens can become much more than this."* The marks pulse once. |
+| **First rank affordable on a selected Warden** | Nurture | The Nurture button pulses once; tooltip *"Nurture it: each rank makes it stronger, your choice how."* |
 | First hover on an obstacle | Obstacles | Before clearing is unlocked: *"Dead wood. I can't move it… yet."* (the hover tag says a clearing Dream is needed). After the first clearing card: *"Tend the forest, and it will remember you."* (+1 Seed at run end) |
 | First leaf lost | Stakes | The leaf counter shakes. *"It fed. A leaf blackens and falls."* |
 | First leaf lost to a Phantom | Flyers ignore the maze | *"Some of them don't walk. Guard the ground near the Heartwood."* (added 2026-09-29) |
