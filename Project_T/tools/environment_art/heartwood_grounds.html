@@ -1519,16 +1519,21 @@ function mistBanks() {
 const ROUTE_W = 64, ROUTE_H = 24;
 function routeMistPx(L, x, xs, fade, s) {
   // xs = position in the strip's 64 px period; the noise wraps there, so every piece lines up.
-  const thick = (6 + pnoise(xs, 0, 16, s, 4) * 4) * fade, mid = 12 + (pnoise(xs, 3, 32, s + 1, 2) - .5) * 3;
+  // v2 (2026-10-01, it vanished on the pale path at play zoom): a denser body, a pale Mist core (reads on
+  // dark grass) inside Slate, inside a cold Shade edge (a cold shadow that reads on the pale stone).
+  const thick = (5.5 + pnoise(xs, 0, 16, s, 4) * 5) * fade, mid = 12 + (pnoise(xs, 3, 32, s + 1, 2) - .5) * 2;
   for (let y = 0; y < ROUTE_H; y++) {
-    const d = Math.abs(y + .5 - mid) / Math.max(thick, .01) + (pnoise(xs, y, 8, s + 2, 8) - .5) * .5;
-    const a = d < .45 ? .6 : d < .8 ? .4 : d < 1.1 ? .2 : 0;
-    if (a > 0 && y > 1 && y < ROUTE_H - 2) L.set(x, y, CA("#5c5a78", a));
+    const d = Math.abs(y + .5 - mid) / Math.max(thick, .01) + (pnoise(xs, y, 8, s + 2, 8) - .5) * .6;
+    if (y < 1 || y > ROUTE_H - 2 || d >= 1.15) continue;
+    if (d >= .78 && bay(x, y) > .65) continue;  // a broken, dithered cold edge (an even band read as a pipe)
+    L.set(x, y, d < .4 ? CA("#b4b0c8", .75 * fade) : d < .78 ? CA("#5c5a78", .65 * fade) : CA("#2c2444", .7 * fade));
   }
-  // Two thin wisps weaving through the body.
-  for (const [k, col, amp, ph] of [[1, "#9a84e8", 3.2, 0], [2, "#dce8f4", 2.4, 2.1]]) {
-    const y = Math.round(mid + Math.sin((xs / ROUTE_W) * Math.PI * 2 * k + ph) * amp * fade);
-    if (pnoise(xs, k * 9, 8, s + 3 + k, 8) > .35 && fade > .25) L.set(x, y, CA(col, .85 * Math.min(1, fade * 1.5)));
+  // Soft broken strands of pale mist drifting through the core (a continuous sharp violet line read as
+  // lightning, i.e. the Charged status): 2 px tall, gently wavy, in short pieces.
+  for (const [k, col, ph] of [[1, "#dce8f4", 0], [2, "#9a84e8", 2.4]]) {
+    const y = Math.round(mid - 1 + Math.sin((xs / ROUTE_W) * Math.PI * 2 + ph) * 1.6 * fade) + (k === 2 ? 2 : 0);
+    if (pnoise(xs, k * 9, 16, s + 3 + k, 4) < .5 || fade < .3) continue;
+    L.set(x, y, CA(col, .7 * fade)); L.set(x, y + 1, CA(col, .45 * fade));
   }
 }
 function routeMist(part) {
@@ -1548,18 +1553,23 @@ function routeMist(part) {
   }
   return L;
 }
-// route_wisp.png: a brighter wisp for the run start, drifting along the route. 16×16 frames (6), facing
-// right: a Moonlight core in a banded Wraithlight glow, its tail swaying behind it.
+// route_wisp.png: a brighter wisp for the run start, drifting along the route. 24×24 frames (6), facing
+// right, centre (15, 12): a Heartlight / Moonlight core in a banded Wraithlight glow with a thin cold
+// Shade rim (so it reads on the pale path), a soft 2 px tail swaying behind it.
 function routeWisp(f) {
-  const L = new Img(16, 16), sway = Math.sin(f / 6 * Math.PI * 2), pulse = .5 + .5 * Math.cos(f / 6 * Math.PI * 2);
-  for (let i = 0; i < 7; i++) {  // the tail, thinning to the left
-    const x = 8 - i, y = Math.round(8 + Math.sin(i * .8 + f) * sway * (i / 4));
-    L.set(x, y, CA("#9a84e8", .7 - i * .09)); if (i < 3) L.set(x, y + 1, CA("#5c5a78", .4));
+  const L = new Img(24, 24), sway = Math.sin(f / 6 * Math.PI * 2), pulse = .5 + .5 * Math.cos(f / 6 * Math.PI * 2);
+  for (let i = 0; i < 12; i++) {  // the tail, thinning to the left
+    const x = 12 - i, y = Math.round(12 + Math.sin(i * .6 + f) * sway * (i / 5));
+    L.set(x, y, CA("#9a84e8", .8 - i * .06)); if (i < 8) L.set(x, y + 1, CA(i < 4 ? "#dce8f4" : "#9a84e8", .55 - i * .05));
+    if (i < 6) L.set(x, y + 2, CA("#2c2444", .45));
   }
-  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-    const r = Math.hypot(x + .5 - 10, y + .5 - 8);
-    const a = r < 1.6 ? 1 : r < 2.6 ? .75 : r < 3.8 ? .35 + .15 * pulse : r < 5 ? .15 * (1 + pulse) : 0;
-    if (a > 0) L.set(x, y, CA(r < 1.6 ? "#fff4dc" : r < 2.6 ? "#dce8f4" : "#9a84e8", a));
+  for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) {
+    const r = Math.hypot(x + .5 - 15, y + .5 - 12);
+    if (r < 2.2) L.set(x, y, "#fff4dc");
+    else if (r < 3.4) L.set(x, y, CA("#dce8f4", .95));
+    else if (r < 5) L.set(x, y, CA("#9a84e8", .55 + .2 * pulse));
+    else if (r < 6.4) L.set(x, y, CA("#9a84e8", .2 + .15 * pulse));
+    else if (r < 7.4) L.set(x, y, CA("#2c2444", .5));
   }
   return L;
 }

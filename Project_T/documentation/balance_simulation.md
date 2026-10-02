@@ -665,6 +665,14 @@ mid (behind Driftspore, ~2× Stormcap). **Chime Stone accepted.** Flag: **Lullab
 line's damage is Static bolts, which they charge and set off themselves (Static + set-off at 3). Finals probe next (Bell vs
 Puffball / Dreamshroom / Morning Fog, with and without Thunderhead).
 
+**Lullaby Bell finals probe** (3d7c5d9f, 4 copies, rank IV, no Dreams, 3 seeds; "finals" cast with
+Thunderhead, "nocharge" without): per Dew vs Puffball, **Bell 1.65× (45–49) / 2.62× (61–65)**, 3.2× /
+5.4× without a Static partner (it charges and sets off its own Static; half pulse, half bolts); act 2
+board leak ~0%. Dreamshroom (post-nerf) 0.89× / 1.21× ✓. Morning Fog 0.75× with Thunderhead, 0.25×
+without (87% of its damage is Thunderclap): a combo final, no change. Puffball loses ~half without
+Thunderhead (cause not traced). **Bell: damage 123 → 80 and set-off at 4 stacks (was 3)**, expected
+~0.95× / ~1.5×; re-probe (band ~0.9–1.5×, area finals scale with crowds).
+
 **Act 2 boss too hard** (user: *"is the boss too hard? Didn't feel close to killing it"*): **0 of 3**
 human runs killed it: run 7 (×3.6 act 2) ~10% of drift 50's health left, run 8 Lamplighter ~21%, run 9
 Huntsman ~25% (health spawned vs damage at drift 50). The ×2.25 was set when act 2 ended at ×3.0; it
