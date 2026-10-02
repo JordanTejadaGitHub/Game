@@ -79,6 +79,9 @@ healthy trees are no longer used.
 | `rope_bridge.png` | 128×64 | 2 tiles: east–west, north–south; repeat along the bridge | where nightmares cross from the void to the start cell |
 | `cloud_shadows.png` | 1536×128 | 6 cloud shadows, 256×128 each, transparent | cloud shadows seen from above (lobed, denser in the middle, wisps on the downwind side; 3 banded alpha steps of Dread). `EnvironmentAmbience` draws them drifting round the map edges and a few (`crossing_clouds`) across the whole map with `cloud_wind` |
 | `mist_banks.png` | 256×256 | seamless tile, transparent; dithered fog in the title's fog ramp (Pool, Slate, Stone, Mist) | the title and Grove screens' teal-grey mist: `EnvironmentAmbience` drifts two layers of it over the island (stretched 2× wide, 32 px bands, at the cloud shadows' z), thickest at the back of the map, a little at the front and down the sides, thin over the middle (`mist_strength`) |
+| `route_mist.png` | 64×24 | a strip that tiles left ↔ right, forward = +x; transparent top and bottom | the route's cold mist (screens_ui.md "Route mist"): a Slate fog body in 3 alpha bands (0.6 core, 0.4, 0.2) with thin Wraithlight and Moonlight wisps; reads over the pale path and dark grass without hiding the path. Tiled along a Line2D (width = 24) by the run-start route and the build preview |
+| `route_mist_start.png`, `route_mist_end.png` | 32×24 each | caps for the strip's two ends | sampled from the strip's own pattern (start = its last 32 px, end = its first 32), so start cap + strips + end cap join without seams: the start thin and fading in, the end fading out with a curl reaching forward |
+| `route_wisp.png` | 96×16 | 6 frames of 16×16, facing right (+x) | a brighter wisp drifting along the route at the run start: Moonlight core, banded Wraithlight glow, a swaying tail |
 
 ## Map layouts
 

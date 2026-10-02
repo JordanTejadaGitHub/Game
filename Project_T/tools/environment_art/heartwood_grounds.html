@@ -1510,6 +1510,59 @@ function mistBanks() {
   }
   return out;
 }
+// Route mist (screens_ui.md "Route mist", 2026-10-01): the cold mist the route preview draws along the
+// path. route_mist.png is a 64×24 strip that tiles left to right; route_mist_start / _end are 32×24 caps
+// sampled from the same pattern (the start cap from the strip's last 32 px, the end cap from its first
+// 32), so cap–strip–cap joins without seams. A Slate fog body in 3 alpha bands (0.6 core) that fades
+// out at the top and bottom edges, with thin Wraithlight and Moonlight wisps. `fade(x)` (0..1) thins
+// it toward a cap's open end; `curl` adds the end cap's forward curl.
+const ROUTE_W = 64, ROUTE_H = 24;
+function routeMistPx(L, x, xs, fade, s) {
+  // xs = position in the strip's 64 px period; the noise wraps there, so every piece lines up.
+  const thick = (6 + pnoise(xs, 0, 16, s, 4) * 4) * fade, mid = 12 + (pnoise(xs, 3, 32, s + 1, 2) - .5) * 3;
+  for (let y = 0; y < ROUTE_H; y++) {
+    const d = Math.abs(y + .5 - mid) / Math.max(thick, .01) + (pnoise(xs, y, 8, s + 2, 8) - .5) * .5;
+    const a = d < .45 ? .6 : d < .8 ? .4 : d < 1.1 ? .2 : 0;
+    if (a > 0 && y > 1 && y < ROUTE_H - 2) L.set(x, y, CA("#5c5a78", a));
+  }
+  // Two thin wisps weaving through the body.
+  for (const [k, col, amp, ph] of [[1, "#9a84e8", 3.2, 0], [2, "#dce8f4", 2.4, 2.1]]) {
+    const y = Math.round(mid + Math.sin((xs / ROUTE_W) * Math.PI * 2 * k + ph) * amp * fade);
+    if (pnoise(xs, k * 9, 8, s + 3 + k, 8) > .35 && fade > .25) L.set(x, y, CA(col, .85 * Math.min(1, fade * 1.5)));
+  }
+}
+function routeMist(part) {
+  const s = SEED + 960;
+  if (part === 0) { const L = new Img(ROUTE_W, ROUTE_H); for (let x = 0; x < ROUTE_W; x++) routeMistPx(L, x, x, 1, s); return L; }
+  const L = new Img(32, ROUTE_H);
+  for (let x = 0; x < 32; x++) {
+    if (part === 1) routeMistPx(L, x, x + 32, clamp((x + .5) / 26, 0, 1) ** 1.5, s);  // start: thin, fading in
+    else routeMistPx(L, x, x, clamp(1 - (x + .5) / 30, 0, 1) ** .8, s);  // end: fading out...
+  }
+  if (part === 2) {  // ...with a curl reaching forward
+    for (let i = 0; i <= 24; i++) {
+      const t = i / 24, a = -Math.PI / 2 + t * Math.PI * 1.6, r = 5.5 - t * 3;
+      const x = Math.round(18 + t * 6 + Math.cos(a) * r), y = Math.round(12 + Math.sin(a) * r);
+      L.set(x, y, CA(t < .7 ? "#9a84e8" : "#dce8f4", .85 - t * .35));
+    }
+  }
+  return L;
+}
+// route_wisp.png: a brighter wisp for the run start, drifting along the route. 16×16 frames (6), facing
+// right: a Moonlight core in a banded Wraithlight glow, its tail swaying behind it.
+function routeWisp(f) {
+  const L = new Img(16, 16), sway = Math.sin(f / 6 * Math.PI * 2), pulse = .5 + .5 * Math.cos(f / 6 * Math.PI * 2);
+  for (let i = 0; i < 7; i++) {  // the tail, thinning to the left
+    const x = 8 - i, y = Math.round(8 + Math.sin(i * .8 + f) * sway * (i / 4));
+    L.set(x, y, CA("#9a84e8", .7 - i * .09)); if (i < 3) L.set(x, y + 1, CA("#5c5a78", .4));
+  }
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+    const r = Math.hypot(x + .5 - 10, y + .5 - 8);
+    const a = r < 1.6 ? 1 : r < 2.6 ? .75 : r < 3.8 ? .35 + .15 * pulse : r < 5 ? .15 * (1 + pulse) : 0;
+    if (a > 0) L.set(x, y, CA(r < 1.6 ? "#fff4dc" : r < 2.6 ? "#dce8f4" : "#9a84e8", a));
+  }
+  return L;
+}
 function cloudShadow(v) {
   const W = 256, H = 128, L = new Img(W, H), s = 1300 + v * 37;
   const rx = 78 + hash(v, 1, s) * 26, ry = 30 + hash(v, 2, s) * 12, cx = 124, cy = 64;
@@ -1594,8 +1647,10 @@ const BUILD = {
   bridge: (A, v) => ropeBridge(v),
   cloud: (A, v) => cloudShadow(v),
   mistbank: () => mistBanks(),
+  route: (A, v) => routeMist(v),  // 0 strip, 1 start cap, 2 end cap
+  rwisp: (A, v, f) => routeWisp(f),
 };
-const ANIM = new Set(["withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "dead"]);
+const ANIM = new Set(["withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "dead"]);
 const TILES = new Set(["grass", "path", "wall", "pool", "pond", "pondin", "blight"]);
 const SOLID = 200;
 function copyPx(dst, x, y, c) { const i = (y * dst.w + x) * 4; dst.d[i] = c[0]; dst.d[i+1] = c[1]; dst.d[i+2] = c[2]; dst.d[i+3] = c[3]; }

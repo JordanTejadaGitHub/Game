@@ -61,6 +61,10 @@ for (const A of ACTS) {
     emit("dream/rope_bridge.png", strip([getImg("bridge:0"), getImg("bridge:1")]));
     emit("dream/cloud_shadows.png", strip([0, 1, 2, 3, 4, 5].map(v => getImg("cloud:" + v))));
     emit("dream/mist_banks.png", getImg("mistbank"));
+    emit("dream/route_mist.png", getImg("route:0"));
+    emit("dream/route_mist_start.png", getImg("route:1"));
+    emit("dream/route_mist_end.png", getImg("route:2"));
+    emit("dream/route_wisp.png", frames("rwisp", 6));
   }
   emit(d + "moved_hollow.png", getImg("dent"));
   emit(d + "waystone.png", frames("waystone"));
