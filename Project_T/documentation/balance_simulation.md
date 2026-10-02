@@ -722,6 +722,13 @@ on target for a fresh profile (and act 1's "teaches" side holds). Decisions:
 "Never grew a Warden" is partly that; **her economy (plant-only) is not a fresh player's normal.** Since
 c8d1fc33 the always-on Growth hint marks are a separate setting from whispers.
 
+## Tag Resonance removed (user, 2026-10-02; dream_audit.md a6628056)
+
+Resonance (+10% per same-tag card, max +50%) was a bonus on top of rarity-budgeted cards, so **no
+re-basing** (agreed with Roguelite Mechanic Discussion; fits "runs too strong / cards handed to me").
+Check: Dreams vs skip on main after the removal lands (act 1 targets: Balanced ~75%, skip clearly
+lower); specific cards are raised only if builds fall short.
+
 ## Caveat: fresh-profile sims ran as the demo (found 2026-10-02)
 
 Until e3f3a211, every **fresh** sim ran as the demo (`game/demo` true under `--script`): act 1–2 bosses
