@@ -49,7 +49,13 @@ func _run() -> void:
 	var saver: RunSaver = main.get_node("%RunSaver")
 	_check(not saver.can_save_now(), "no save before the choice")
 	# Full leaves: Rest becomes Clear (enough obstacles) or Forage.
-	_check(screen.offer[0] == &"clear" and screen.offer.has(&"tend") and screen.offer.has(&"dream"), "full leaves: Clear, Tend, Dream (%s)" % [screen.offer])
+	_check(screen.offer[0] == (&"clear" if dreams.can_clear() else &"forage") and screen.offer.has(&"tend") and screen.offer.has(&"dream"),
+		"full leaves: Clear (Forage while clearing is locked), Tend, Dream (%s)" % [screen.offer])
+	dreams.clearing_open = true
+	_check(screen.make_offer()[0] == &"clear", "clearing open: Clear")
+	dreams.clearing_open = false
+	_check(screen.make_offer()[0] == &"forage", "clearing locked: Forage instead")
+	dreams.clearing_open = true
 	var obstacles: Dictionary = main.get_node("%MapGenerator").obstacles
 	main.get_node("%MapGenerator").obstacles = {}
 	_check(screen.make_offer()[0] == &"forage" and screen.forage_dew() == 20, "few obstacles left: Forage, +20 Dew in act 1")

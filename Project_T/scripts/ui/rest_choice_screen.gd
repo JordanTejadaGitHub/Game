@@ -88,11 +88,13 @@ func _process(_delta: float) -> void:
 	if waiting and not visible and drift_director.pending_choice() == &"rest":
 		open()
 
-# The three options for now: the leaf when one is missing, else a clear (or Forage with few obstacles left).
+# The three options for now: the leaf when one is missing, else a clear (or Forage with few obstacles left, or while
+# clearing is still locked: a reward that waits is a weak pick, Balancing).
 func make_offer() -> Array[StringName]:
 	var first := &"rest"
 	if run_state.leaves >= run_state.max_leaves:
-		first = &"clear" if map != null and map.obstacles.size() >= MIN_OBSTACLES else &"forage"
+		var can_clear: bool = dream_state == null or not dream_state.has_method("can_clear") or dream_state.can_clear()
+		first = &"clear" if can_clear and map != null and map.obstacles.size() >= MIN_OBSTACLES else &"forage"
 	var options: Array[StringName] = [first, &"tend", &"dream"]
 	return options
 
