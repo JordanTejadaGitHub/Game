@@ -357,9 +357,6 @@ func _play_until(main: Node, done: Callable, leave: int = 0, max_frames: int = 4
 				dreams.choose(dreams.current_offer[0])
 		if omens != null and omens.is_offering():
 			omens.choose(null)
-		var rest = get_first_node_in_group(&"rest_choice")  # Spire: the rest choice (Tend) after the Dream and Omen
-		if rest != null and rest.visible:
-			rest.choose(&"tend")
 		var remember := main.get_node_or_null("%RememberScreen") as RememberScreen
 		if remember != null and remember.visible:
 			remember.close()  # The boss-rest Remember screen: the Dream waits behind it
@@ -396,9 +393,6 @@ func _settle(main: Node, frames: int = 10) -> void:
 		var omens = get_first_node_in_group(&"omens")
 		if omens != null and omens.is_offering():
 			omens.choose(null)
-		var rest = get_first_node_in_group(&"rest_choice")  # Spire: the rest choice (Tend) after the Dream and Omen
-		if rest != null and rest.visible:
-			rest.choose(&"tend")
 
 # Puts `enemy` one step from the Heartwood so it reaches it next frame.
 func _send_to_goal(enemy: Node2D, map_generator) -> void:

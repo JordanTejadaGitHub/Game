@@ -152,8 +152,6 @@ func _ready() -> void:
 	owner.add_child.call_deferred(CardBloom.new())
 	# Grow onboarding (onboarding.md): ↑ / dot marks at rests, the first-grow spotlight, the drift 15 reminder (world).
 	owner.add_child.call_deferred(GrowHints.new(drift_director))
-	# Spire rest choices (spire_difficulty.md Phase 3): Rest / Tend / Dream at every rest, after the Dream and the Omen.
-	add_child(RestChoiceScreen.new(drift_director))
 	if dream_state.has_signal("card_chosen"):
 		dream_state.connect("card_chosen", func(_card: UpgradeData, _towers: Array, impact: String) -> void:
 			if impact.contains(" · "):  # A card with no effect yet sends just its name: "Dreamed: X" stays

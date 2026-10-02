@@ -182,9 +182,6 @@ func _dismiss(main: Node) -> void:
 	var omens = get_first_node_in_group(&"omens")
 	if omens != null and omens.is_offering():
 		omens.choose(null)
-	var rest = get_first_node_in_group(&"rest_choice")  # Spire: the rest choice (Tend) after the Dream and Omen
-	if rest != null and rest.visible:
-		rest.choose(&"tend")
 
 func _free_cell(map_generator) -> Vector2:
 	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
