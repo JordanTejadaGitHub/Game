@@ -303,3 +303,5 @@ full game (`game/demo` false), and the demo reads main's exports.
   dmg/s**; Fireworks Fence: every 2 s a nightmare on the fence sets off a 2-spark burst at half damage.
 - 2026-10-02: damaging-line fence in **d0f82044** (Tower Code). The arc covers the cells between the
   two jars (jar cells excluded; side-by-side jars make no arc). Corridor probe queued.
+- 2026-10-02: Jarlink links to the nearest jar that makes an arc, and the build ghost shows the arc
+  (**f8d69e40**, usability).
