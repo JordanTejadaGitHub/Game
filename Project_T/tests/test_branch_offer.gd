@@ -48,16 +48,16 @@ func _run() -> void:
 	_check(dreams.not_offered_branches(base).size() == 3, "…the other 3 are not in this dream")
 	if has_tags:
 		_check(offer.has("test_b5") or offer.has("test_b3"), "the smart draw adds an uncovered counter tag (%s)" % [offer])
-		var tank_every_seed := true
-		for s in 12:
+		var with_tank := 0
+		for s in 40:
 			main.get_node("MapGenerator").map_seed = 900 + s
 			dreams.branch_offers.erase(base.get_id())
-			if not dreams.get_branch_offer(base).has("test_b5"):
-				tank_every_seed = false
+			if dreams.get_branch_offer(base).has("test_b5"):
+				with_tank += 1
 		main.get_node("MapGenerator").map_seed = 777
 		dreams.branch_offers.erase(base.get_id())
 		offer = dreams.get_branch_offer(base)
-		_check(tank_every_seed, "the weighted draw always brings the missing anti_tank (it counts double, and it's rarer)")
+		_check(with_tank >= 22, "the weighted draw favours the missing anti_tank (%d of 40 runs; a plain draw: 16)" % with_tank)
 	else:
 		print("  (smart draw check skipped: TowerData.counter_tags isn't on this branch yet)")
 	# Seeded: the same map and family draw the same pair

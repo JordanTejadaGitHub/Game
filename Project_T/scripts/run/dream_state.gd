@@ -568,12 +568,16 @@ func is_hidden_branch(form: TowerData) -> bool:
 func is_branch_offered(form: TowerData) -> bool:
 	if not branch_expansion_on() or form == null:
 		return true
+	if unlocked.has(form.get_id()):
+		return true  # Owned (called back, unlocked by a card or a dev tool): in this run
 	var branch := form
 	if form.tier == 3:
 		branch = _parent_in_tree(form)
 		if branch == null or branch.tier != 2:
 			return true  # A wall growth or a final straight from a base
 	if branch.tier != 2 or is_hidden_branch(branch):
+		return true
+	if unlocked.has(branch.get_id()):
 		return true
 	var base := _parent_in_tree(branch)
 	if base == null or not is_unlocked(base.get_id()):
@@ -630,8 +634,8 @@ func _draw_branch_offer(base: TowerData) -> Array:
 			if pair_ids != last:
 				pairs.append(pair)
 	# The weighted smart draw (tower_design.md 5ba12e1e): each pair scores the rarest still-missing tags it adds
-	# (Σ 1 / how many regular branches carry the tag, anti_tank ×2); random among the top band (within
-	# TOP_PAIR_BAND of the best), or among all pairs when none adds a missing tag
+	# (Σ 1 / how many regular branches carry the tag, anti_tank ×2); drawn in proportion to the score (pair_proportional,
+	# floor 10% of the best) or among the top band (pair_band), or among all pairs when none adds a missing tag
 	var covered := _covered_tags()
 	var frequency := _tag_frequency()
 	var best := 0.0
@@ -648,20 +652,25 @@ func _draw_branch_offer(base: TowerData) -> Array:
 		scores.append(score)
 		best = maxf(best, score)
 	var pool_pairs: Array = pairs
+	var weights: Array[float] = []
 	if best > 0.0:
 		pool_pairs = []
 		for i in pairs.size():
-			if scores[i] >= best * TOP_PAIR_BAND:
+			if pair_proportional or scores[i] >= best * pair_band:
 				pool_pairs.append(pairs[i])
+				weights.append(maxf(scores[i], best * 0.1) if pair_proportional else 1.0)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(map_generator.map_seed) + hash("branches:" + base.get_id()) if map_generator != null else hash(base.get_id())
-	var chosen: Array = pool_pairs[rng.randi_range(0, pool_pairs.size() - 1)]
+	var chosen: Array = pool_pairs[rng.rand_weighted(PackedFloat32Array(weights))] if not weights.is_empty() else pool_pairs[rng.randi_range(0, pool_pairs.size() - 1)]
 	var offer: Array = chosen.map(func(f: TowerData) -> String: return f.get_id())
 	_remember_branch_offer(base.get_id(), offer)
 	return offer
 
 const TAG_WEIGHTS := {&"anti_tank": 2.0}  # Counts double in the smart draw (Tower Discussion + Balancing: tanks matter)
 const TOP_PAIR_BAND := 0.8  # Pairs scoring within 80% of the best are drawn among
+var pair_band := TOP_PAIR_BAND  # (tunable for probes)
+var pair_proportional := true  # Pairs drawn in proportion to their score (floor 10% of the best): the top band alone
+# (pair_band, 0.8) locked Sporeling to one pair in every run; proportional keeps 9–10 pairs per family and anti_tank at 90%
 
 # How many regular branches (of every family in the roster, this edition) carry each counter tag.
 func _tag_frequency() -> Dictionary:
