@@ -105,6 +105,9 @@ var tempest_time := 0.0
 var gust_time := 0.0
 var prism_pending := false
 var smother_ended := false
+# The Warden whose charge the last bolt from apply() was (the strongest Static applier, whose potency it used),
+# not whoever added the final stack (story chat: a spore Warden's carried Static took Live Wire bolts' credit).
+var bolt_source: Node = null
 var every_hits := {}  # Warden instance id -> hits on this nightmare (TowerData.status_every counts per nightmare)
 var veil_time := 0.0  # Morning Fog's Veil (FinalTwists): while > 0 it can't be healed (Enemy.heal reads it)
 var marked_extra := 0.0  # Beacon: its Marked is stronger (+35% instead of +25%) until Marked ends
@@ -212,7 +215,9 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		_active.erase(STATIC)
 		changes += 1
 		if static_forever and potency > 0.0:
+			bolt_source = source
 			return potency * STATIC_BOLT_MULTIPLIER * _static_tick_multiplier()  # Eternal Charge: the Warden that added the last charge
+		bolt_source = status.get("source")  # The bolt is the strongest applier's charge: its credit too
 		return status.potency * STATIC_BOLT_MULTIPLIER * _static_tick_multiplier()
 	return 0.0
 

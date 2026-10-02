@@ -1884,8 +1884,10 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 		_spread_root_web(source)
 	if bolt > 0.0:
 		_bolt_flash = BOLT_FLASH_TIME
-		# Static bolts count as light; a Lightning Rod nearby takes the bolt instead.
-		Reactions.strike_bolt(self, bolt, source, &"static")
+		# Static bolts count as light; a Lightning Rod nearby takes the bolt instead. Credited to the Warden
+		# whose charge it was (EnemyStatuses.bolt_source), not the last stack's.
+		var charger: Node = statuses.bolt_source if is_instance_valid(statuses.bolt_source) else source
+		Reactions.strike_bolt(self, bolt, charger, &"static")
 	if not is_cleansed and id in statuses.ALL:
 		Reactions.on_status(self, id, source)  # Two statuses may meet: a Reaction
 

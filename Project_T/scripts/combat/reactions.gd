@@ -514,12 +514,16 @@ static func _ignite(enemy: Node2D, source: Node, carry_static: float = 0.0, spre
 	# Status jobs (2026-09-29): no detonation. The spores burn for BURN_TIME s (Spored ticks
 	# BURN_SPORE_RATE x as fast) and each second a stack spreads to nightmares nearby (who may start
 	# burning in turn). Uses up the Static, not the Spored.
+	var static_source: Node = s.source(STATIC)  # Tempest's carried Static stays its charger's (bolts, Live Wire)
+	if static_source == null:
+		static_source = source
 	s.remove(STATIC)
-	burn(enemy, spore_source, chain, carry_static, spread)
+	burn(enemy, spore_source, chain, carry_static, spread, static_source)
 
 # Sets `enemy` burning (Ignite; Tempest's arcs): its Spored ticks faster, and a BurnTicker spreads a stack
 # each second while it burns. Sparking Spores (card 170, get_ignite_multiplier) makes it burn faster.
-static func burn(enemy: Node2D, spore_source: Node, chain: int = 1, carry_static: float = 0.0, spread: int = 0) -> void:
+static func burn(enemy: Node2D, spore_source: Node, chain: int = 1, carry_static: float = 0.0, spread: int = 0,
+		static_source: Node = null) -> void:
 	var s: EnemyStatuses = enemy.statuses
 	var dreams := _dreams(enemy)
 	var sparking: float = dreams.get_ignite_multiplier() if dreams and dreams.has_method("get_ignite_multiplier") else 1.0
@@ -528,24 +532,26 @@ static func burn(enemy: Node2D, spore_source: Node, chain: int = 1, carry_static
 	s.burn_time = maxf(s.burn_time, BURN_TIME)
 	var world := _world(enemy)
 	if not already and world:
-		world.add_child(BurnTicker.new(enemy, spore_source, chain, carry_static, spread))
+		world.add_child(BurnTicker.new(enemy, spore_source, chain, carry_static, spread, static_source))
 
 # One burning nightmare: every second, 1 Spored stack (Wildfire Spores: 2) to each nightmare within reach,
 # at its Spored's strength; Tempest's burns also carry 1 Static. Frees itself when the burn ends.
 class BurnTicker extends Node:
 	var enemy: Node2D
 	var source: Node
+	var charger: Node  # Tempest: whose Static the burn carries (credited with it, not the spores)
 	var chain := 1
 	var carry_static := 0.0
 	var spread := 0
 	var _next := 1.0
 
-	func _init(target: Node2D, spore_source: Node, chain_count: int, static_carry: float, stacks: int) -> void:
+	func _init(target: Node2D, spore_source: Node, chain_count: int, static_carry: float, stacks: int, static_source: Node = null) -> void:
 		enemy = target
 		source = spore_source
 		chain = chain_count
 		carry_static = static_carry
 		spread = stacks
+		charger = static_source
 
 	func _process(delta: float) -> void:
 		if not is_instance_valid(enemy) or enemy.is_cleansed or enemy.statuses.burn_time <= 0.0:
@@ -555,9 +561,11 @@ class BurnTicker extends Node:
 		if _next > 0.0:
 			return
 		_next += 1.0
-		Reactions._burn_spread(enemy, source if is_instance_valid(source) else null, chain, carry_static, spread)
+		Reactions._burn_spread(enemy, source if is_instance_valid(source) else null, chain, carry_static, spread,
+			charger if is_instance_valid(charger) else null)
 
-static func _burn_spread(enemy: Node2D, spore_source: Node, chain: int, carry_static: float, spread: int) -> void:
+static func _burn_spread(enemy: Node2D, spore_source: Node, chain: int, carry_static: float, spread: int,
+		static_source: Node = null) -> void:
 	var s: EnemyStatuses = enemy.statuses
 	if not s.has(SPORED):
 		return
@@ -571,7 +579,7 @@ static func _burn_spread(enemy: Node2D, spore_source: Node, chain: int, carry_st
 			continue
 		_touch(other, chain, _towers(spore_source))
 		if carry_static > 0.0:
-			other.apply_status(STATIC, 1, 0.0, carry_static, 0, "light", spore_source)  # Tempest: burns carry Static
+			other.apply_status(STATIC, 1, 0.0, carry_static, 0, "light", static_source if static_source else spore_source)  # Tempest: burns carry Static (its charger's)
 		if is_instance_valid(other) and not other.is_cleansed:
 			other.apply_status(SPORED, stacks, 0.0, potency, 0, line, spore_source)
 
