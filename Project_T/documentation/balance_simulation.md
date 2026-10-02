@@ -748,6 +748,9 @@ Decisions: **Bellflower damage 14 → 17** (in 756676ac; the only family off tar
 in drifts 1–5). **Sporeling unchanged:** its 45% skip in item 1 doesn't repeat in item 2, where most
 skip runs opened with Sporeling and survived 15–30%.
 
+**Bellflower re-check** (3608f4fc, damage 17, same seeds): Balanced survives the boss **75%** ✓ (was
+50%), skip 30% (was 25%); block 1 leaks 4 over 20 runs (was 29). **Closed.**
+
 **4. Act 2 bosses at drift 50** (40d26ed1, fixed board of 12 finals, rank IV, no Dreams, 3 seeds): none
 dispelled; health left at the Heartwood Huntsman 44–88%, Lamplighter 10–34%, Mire Hag 45–53%. A
 no-Dream board is a floor, not a player's board. Bosses at **×1.75** (confirmed: Huntsman 6,500 × 1.75
