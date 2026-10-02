@@ -1,5 +1,6 @@
 extends SceneTree
-# Generates the Warden (tower) spritesheets in assets/towers/ (64x64 frames, FRAMES per row) and
+# Generates the Warden (tower) spritesheets in assets/towers/ (64x80 frames: a 64x64 body with HEADROOM rows
+# of headroom above it, tall Wardens 64x96; FRAMES per row) and
 # their projectiles in assets/towers/projectiles/ (16x16 frames). Wardens are listed in
 # documentation/tower_design.md. Each Warden is a golem in the pose of the original concept mock
 # (POSE_UP / POSE_DOWN below), dozing on the mock's slab as a mossy waystone; the Sporeling is the
@@ -302,6 +303,8 @@ func _init() -> void:
 			if warden in CHANNEL_WARDENS:
 				_make_channel(warden)
 		_save_line_preview(rows, PREVIEWS + line + ".png")
+	if not overflow.is_empty():
+		push_warning("Wardens cut off at the top of their frame (rows above the body): %s" % overflow)
 	_save_attack_info()
 	_make_ranks()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT + "projectiles/"))
@@ -332,6 +335,7 @@ func _make(tower_name: String, draw: Callable) -> Image:
 	var h := _frame_h(tower_name)
 	var sheet := Image.create_empty(S * FRAMES, h, false, Image.FORMAT_RGBA8)
 	for f in FRAMES:
+		OY = HEADROOM
 		var canvas := _layer()
 		var st := _idle_state(f)
 		draw.call(canvas, st)
@@ -408,6 +412,7 @@ func _make_attack(tower_name: String) -> Image:
 	var h := _frame_h(tower_name)
 	var sheet := Image.create_empty(S * ATTACK_FRAMES, h, false, Image.FORMAT_RGBA8)
 	for a in ATTACK_FRAMES:
+		OY = HEADROOM
 		var canvas := _layer()
 		var st := _attack_state(a)
 		call("_draw_" + tower_name, canvas, st)
@@ -423,24 +428,45 @@ func _make_attack(tower_name: String) -> Image:
 # attacks.json point stays in body-frame pixels (it's measured from the body, not the tall frame).
 const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave", "snugroot", "grafted_elder", "midsummer", "puffball", "monsoon"]
 const TALL_H := 96
+# Rows of headroom over the 64x64 body: every Warden is drawn with them (see OY) and the frame keeps
+# them (64x80; tall Wardens 64x96), so nothing is cut off at the top. Wardens that still rise past
+# their frame are collected in `overflow` and warned about.
+const HEADROOM := 16
+var overflow := {}
 
 func _frame_h(tower_name: String) -> int:
-	return TALL_H if tower_name in TALL_WARDENS else S
+	return TALL_H if tower_name in TALL_WARDENS else S + HEADROOM
 
 # Puts a drawn 64x64 body frame into its tall frame with the Warden's tall parts (behind and in front).
 func _tall_frame(tower_name: String, body: Image, st: Dictionary) -> Image:
+	# The body was drawn with HEADROOM rows of headroom (OY); the frame keeps what fits its height.
+	var head := OY
+	OY = 0
+	var top := _top_row(body) - head
+	var h := _frame_h(tower_name)
+	if top < S - h:
+		overflow[tower_name] = mini(overflow.get(tower_name, 0), top)
+	var frame := Image.create_empty(S, h, false, Image.FORMAT_RGBA8)
 	if not tower_name in TALL_WARDENS:
-		return body
-	var frame := Image.create_empty(S, TALL_H, false, Image.FORMAT_RGBA8)
+		frame.blit_rect(body, Rect2i(0, S + head - h, S, h), Vector2i.ZERO)
+		return frame
 	var back := _layer()   # tall-frame rows 0..63
 	var front := _layer()
 	call("_tall_" + tower_name, back, front, st)
 	frame.blend_rect(back, Rect2i(0, 0, S, S), Vector2i.ZERO)
-	frame.blend_rect(body, Rect2i(0, 0, S, S), Vector2i(0, TALL_H - S))
+	frame.blend_rect(body, Rect2i(0, 0, S, S + head), Vector2i(0, TALL_H - S - head))
 	frame.blend_rect(front, Rect2i(0, 0, S, S), Vector2i.ZERO)
 	if has_method("_tall_full_" + tower_name):
 		call("_tall_full_" + tower_name, frame, st)  # drawn over the whole 64x96 frame
 	return frame
+
+# The first image row with anything on it (the image height when empty).
+func _top_row(img: Image) -> int:
+	for y in img.get_height():
+		for x in img.get_width():
+			if img.get_pixel(x, y).a > 0.0:
+				return y
+	return img.get_height()
 
 # A thick outlined stroke straight onto a tall frame (any size), for parts spanning body and tall rows.
 func _tall_stroke(frame: Image, pts: Array, r: float, color: Color, o: Color) -> void:
@@ -456,15 +482,15 @@ func _tall_stroke(frame: Image, pts: Array, r: float, color: Color, o: Color) ->
 			for y in range(floori(p.y - r), ceili(p.y + r) + 1):
 				for x in range(floori(p.x - r), ceili(p.x + r) + 1):
 					if x >= 0 and y >= 0 and x < w and y < h and Vector2(x + 0.5, y + 0.5).distance_to(p) <= r:
-						layer.set_pixel(x, y, color)
+						_sp(layer, x, y, color)
 	for y in h:
 		for x in w:
-			if layer.get_pixel(x, y).a == 0.0:
+			if _gp(layer, x, y).a == 0.0:
 				continue
 			var edge := false
 			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
 				var q := Vector2i(x, y) + d
-				if q.x < 0 or q.y < 0 or q.x >= w or q.y >= h or layer.get_pixelv(q).a == 0.0:
+				if q.x < 0 or q.y < 0 or q.x >= w or q.y >= h or _gpv(layer, q).a == 0.0:
 					edge = true
 			frame.set_pixel(x, y, o if edge else color)
 
@@ -481,6 +507,7 @@ func _make_channel(tower_name: String) -> Image:
 	var sheet := Image.create_empty(S * CHANNEL_FRAMES, h, false, Image.FORMAT_RGBA8)
 	var at := Vector2(ATTACKS[tower_name].point)
 	for c in CHANNEL_FRAMES:
+		OY = HEADROOM
 		var canvas := _layer()
 		var st := _attack_state(RELEASE_FRAME)
 		st.f = c
@@ -530,17 +557,19 @@ func _save_line_preview(rows: Array, path: String) -> void:
 	var pad := 6
 	var gap := 24
 	var width := pad + FRAMES * (S + pad) + gap + ATTACK_FRAMES * (S + pad)
-	var preview := Image.create_empty(width, pad + rows.size() * (S + pad), false, Image.FORMAT_RGBA8)
+	var fh := TALL_H  # every row as tall as the tallest frame, bodies lined up at the bottom
+	var preview := Image.create_empty(width, pad + rows.size() * (fh + pad), false, Image.FORMAT_RGBA8)
 	preview.fill(Color("#5fa844"))
 	for i in rows.size():
-		var y := pad + i * (S + pad)
 		var idle: Image = rows[i][0]
+		var h := idle.get_height()
+		var y := pad + i * (fh + pad) + fh - h
 		for f in FRAMES:
-			preview.blend_rect(idle, Rect2i(f * S, 0, S, S), Vector2i(pad + f * (S + pad), y))
+			preview.blend_rect(idle, Rect2i(f * S, 0, S, h), Vector2i(pad + f * (S + pad), y))
 		if rows[i][1] != null:
 			var attack: Image = rows[i][1]
 			for a in ATTACK_FRAMES:
-				preview.blend_rect(attack, Rect2i(a * S, 0, S, S), Vector2i(pad + FRAMES * (S + pad) + gap + a * (S + pad), y))
+				preview.blend_rect(attack, Rect2i(a * S, 0, S, h), Vector2i(pad + FRAMES * (S + pad) + gap + a * (S + pad), y))
 	preview.resize(preview.get_width() * 3, preview.get_height() * 3, Image.INTERPOLATE_NEAREST)
 	preview.save_png(path)
 # --- Template -----------------------------------------------------------------------------------
@@ -585,9 +614,9 @@ func _draw_template_figure(canvas: Image, pose: Dictionary, pal: Dictionary) -> 
 			var rock := _is_rock(pose, i % S, i / S)
 			if rock and _rock_group(i % S, i / S) in _hidden_rocks():
 				continue  # This Warden's own props stand there.
-			canvas.set_pixel(i % S, i / S, ROCK_PAL[ch] if rock else pal[ch])
+			_sp(canvas, i % S, i / S, ROCK_PAL[ch] if rock else pal[ch])
 			if not rock:
-				mask.set_pixel(i % S, i / S, Color.WHITE)
+				_sp(mask, i % S, i / S, Color.WHITE)
 	var rock_px := {}
 	for i in S * S:
 		if pose.grid[i] != "." and pose.outside[i] == 0 and _is_rock(pose, i % S, i / S) \
@@ -642,11 +671,11 @@ func _touch_rocks(canvas: Image, px: Dictionary, touch: String) -> void:
 	var w := canvas.get_width()
 	var h := canvas.get_height()
 	var put := func(p: Vector2i, c: Color) -> void:
-		if p.x >= 0 and p.y >= 0 and p.x < w and p.y < h:
-			canvas.set_pixelv(p, c)
+		if p.x >= 0 and p.y >= -OY and p.x < w and p.y < h - OY:
+			_spv(canvas, p, c)
 	var tops: Array[Vector2i] = []  # rock pixels with open space above: where things settle
 	for p: Vector2i in px:
-		if not px.has(p + Vector2i.UP) and canvas.get_pixelv(p) != ROCK_PAL.o:
+		if not px.has(p + Vector2i.UP) and _gpv(canvas, p) != ROCK_PAL.o:
 			tops.append(p)
 	tops.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.x < b.x)
 	var hash := func(p: Vector2i) -> int: return absi(p.x * 73 + p.y * 151) % 7
@@ -659,7 +688,7 @@ func _touch_rocks(canvas: Image, px: Dictionary, touch: String) -> void:
 					put.call(p + Vector2i.DOWN, greens[0])
 		"ice":
 			for p: Vector2i in px:
-				var c := canvas.get_pixelv(p)
+				var c := _gpv(canvas, p)
 				if c != ROCK_PAL.o:
 					put.call(p, c.lerp(Color("#bfe8ff"), 0.4))
 			for p in tops:
@@ -685,7 +714,7 @@ func _touch_rocks(canvas: Image, px: Dictionary, touch: String) -> void:
 				put.call(p, Color("#fff27a"))
 		"roots":
 			for p: Vector2i in px:
-				if (p.y + p.x / 3) % 4 == 0 and canvas.get_pixelv(p) != ROCK_PAL.o:
+				if (p.y + p.x / 3) % 4 == 0 and _gpv(canvas, p) != ROCK_PAL.o:
 					put.call(p, Color("#7a5234"))
 		"bells":
 			for k in range(1, tops.size(), 5):
@@ -715,7 +744,7 @@ func _touch_rocks(canvas: Image, px: Dictionary, touch: String) -> void:
 				put.call(p + Vector2i(2, -1), Color("#f8d8a0"))
 		"runes":
 			for p: Vector2i in px:
-				if hash.call(p) == 0 and canvas.get_pixelv(p) != ROCK_PAL.o:
+				if hash.call(p) == 0 and _gpv(canvas, p) != ROCK_PAL.o:
 					put.call(p, Color("#c8b0ff"))
 		"thorns":
 			for k in range(0, tops.size(), 3):
@@ -800,8 +829,25 @@ func _blink(canvas: Image, dy: int, skin: Color, outline: Color) -> void:
 
 # --- Primitives -------------------------------------------------------------------------------
 
+# Headroom: while a Warden frame is drawn, canvases are OY rows taller than S and drawing
+# coordinates stay body-frame pixels (row y lives at image row y + OY), so parts that rise above the
+# 64x64 body (hats, leaves, glows, the attack stretch) aren't cut off. 0 everywhere else.
+var OY := 0
+
 func _layer() -> Image:
-	return Image.create_empty(S, S, false, Image.FORMAT_RGBA8)
+	return Image.create_empty(S, S + OY, false, Image.FORMAT_RGBA8)
+
+func _gp(img: Image, x: int, y: int) -> Color:
+	return img.get_pixel(x, y + OY)
+
+func _sp(img: Image, x: int, y: int, c: Color) -> void:
+	img.set_pixel(x, y + OY, c)
+
+func _gpv(img: Image, p: Vector2i) -> Color:
+	return img.get_pixel(p.x, p.y + OY)
+
+func _spv(img: Image, p: Vector2i, c: Color) -> void:
+	img.set_pixel(p.x, p.y + OY, c)
 
 func _ramp(hexes: Array) -> Array[Color]:
 	var out: Array[Color] = []
@@ -821,7 +867,7 @@ func _shade(ramp: Array[Color], n: Vector3) -> Color:
 	return ramp[3]
 
 func _ellipse(layer: Image, c: Vector2, r: Vector2, ramp: Array[Color], max_y: float = INF) -> void:
-	for y in range(maxi(0, floori(c.y - r.y)), mini(S, ceili(c.y + r.y) + 1)):
+	for y in range(maxi(-OY, floori(c.y - r.y)), mini(S, ceili(c.y + r.y) + 1)):
 		for x in range(maxi(0, floori(c.x - r.x)), mini(S, ceili(c.x + r.x) + 1)):
 			var p := Vector2(x + 0.5, y + 0.5)
 			if p.y > max_y:
@@ -829,13 +875,13 @@ func _ellipse(layer: Image, c: Vector2, r: Vector2, ramp: Array[Color], max_y: f
 			var d := (p - c) / r
 			var q := d.length_squared()
 			if q <= 1.0:
-				layer.set_pixel(x, y, _shade(ramp, Vector3(d.x, d.y, sqrt(1.0 - q))))
+				_sp(layer, x, y, _shade(ramp, Vector3(d.x, d.y, sqrt(1.0 - q))))
 
 func _flat_ellipse(layer: Image, c: Vector2, r: Vector2, color: Color) -> void:
-	for y in range(maxi(0, floori(c.y - r.y)), mini(S, ceili(c.y + r.y) + 1)):
+	for y in range(maxi(-OY, floori(c.y - r.y)), mini(S, ceili(c.y + r.y) + 1)):
 		for x in range(maxi(0, floori(c.x - r.x)), mini(S, ceili(c.x + r.x) + 1)):
 			if ((Vector2(x + 0.5, y + 0.5) - c) / r).length_squared() <= 1.0:
-				layer.set_pixel(x, y, color)
+				_sp(layer, x, y, color)
 
 # Faceted stone: pixels are grouped into wedges around the centre, each wedge lit as a flat face.
 func _rock(canvas: Image, pts: PackedVector2Array, ramp: Array[Color], outline: Color) -> void:
@@ -844,7 +890,7 @@ func _rock(canvas: Image, pts: PackedVector2Array, ramp: Array[Color], outline: 
 		centre += p
 	centre /= pts.size()
 	var layer := _layer()
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			var p := Vector2(x + 0.5, y + 0.5)
 			if not Geometry2D.is_point_in_polygon(p, pts):
@@ -854,7 +900,7 @@ func _rock(canvas: Image, pts: PackedVector2Array, ramp: Array[Color], outline: 
 			if d.length() > 2.0:
 				var a := snappedf(d.angle(), TAU / 6.0)
 				n = Vector3(cos(a), sin(a), 0.8)
-			layer.set_pixel(x, y, _shade(ramp, n.normalized()))
+			_sp(layer, x, y, _shade(ramp, n.normalized()))
 	_stamp(canvas, layer, outline)
 
 func _line(canvas: Image, pts: Array, color: Color, mask: Image = null) -> void:
@@ -864,28 +910,28 @@ func _line(canvas: Image, pts: Array, color: Color, mask: Image = null) -> void:
 		var steps := int(maxf(absf(b.x - a.x), absf(b.y - a.y)))
 		for s in steps + 1:
 			var p := a.lerp(b, s / maxf(steps, 1.0)).round()
-			if mask == null or mask.get_pixel(int(p.x), int(p.y)).a > 0.0:
+			if mask == null or _gp(mask, int(p.x), int(p.y)).a > 0.0:
 				_px(canvas, int(p.x), int(p.y), color)
 
 func _px(canvas: Image, x: int, y: int, color: Color) -> void:
-	if x >= 0 and y >= 0 and x < S and y < S:
-		canvas.set_pixel(x, y, color)
+	if x >= 0 and y >= -OY and x < S and y < S:
+		_sp(canvas, x, y, color)
 
 # Copies a layer onto the canvas, turning the layer's own border pixels into an outline.
 func _stamp(canvas: Image, layer: Image, outline: Color = Color(0, 0, 0, 0)) -> void:
 	var dirs := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			var col := layer.get_pixel(x, y)
+			var col := _gp(layer, x, y)
 			if col.a == 0.0:
 				continue
 			if outline.a > 0.0:
 				for d: Vector2i in dirs:
 					var p: Vector2i = Vector2i(x, y) + d
-					if p.x < 0 or p.y < 0 or p.x >= S or p.y >= S or layer.get_pixelv(p).a == 0.0:
+					if p.x < 0 or p.y < -OY or p.x >= S or p.y >= S or _gpv(layer, p).a == 0.0:
 						col = outline
 						break
-			canvas.set_pixel(x, y, col)
+			_sp(canvas, x, y, col)
 
 func _pal(o: String, a: String, b: String, c: String) -> Dictionary:
 	return {o = Color(o), a = Color(a), b = Color(b), c = Color(c)}
@@ -937,21 +983,21 @@ func _spinning_rock(canvas: Image, f: int, r: float, ramp: Array[Color], o: Colo
 # zoom, breathing a little with the frame. It only lights empty pixels: draw it after the shot.
 func _soft_glow(canvas: Image, c: Vector2, r: Vector2, f: int = 0, col: Color = GLOW_OUTER, strength: float = 0.34) -> void:
 	var rr: Vector2 = r * (1.0 + [0.0, 0.06, 0.1, 0.06][f % 4])
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if canvas.get_pixel(x, y).a > 0.0:
+			if _gp(canvas, x, y).a > 0.0:
 				continue
 			var q: float = ((Vector2(x + 0.5, y + 0.5) - c) / rr).length()
 			if q >= 1.0:
 				continue
 			var a := snappedf(strength * pow(1.0 - q, 1.5), 0.05)
 			if a > 0.0:
-				canvas.set_pixel(x, y, Color(col.lerp(GLOW_INNER, 1.0 - q), a))
+				_sp(canvas, x, y, Color(col.lerp(GLOW_INNER, 1.0 - q), a))
 
 # A pixel that only lands on empty canvas (trails and streaks stay behind the shot).
 func _px_under(canvas: Image, x: int, y: int, color: Color) -> void:
-	if x >= 0 and y >= 0 and x < S and y < S and canvas.get_pixel(x, y).a == 0.0:
-		canvas.set_pixel(x, y, color)
+	if x >= 0 and y >= -OY and x < S and y < S and _gp(canvas, x, y).a == 0.0:
+		_sp(canvas, x, y, color)
 
 # A fading, wavy trail running left (behind the shot) from `from`, broken up towards its end.
 func _trail(canvas: Image, from: Vector2, length: int, col: Color, f: int, wobble: float = 0.0) -> void:
@@ -1108,10 +1154,10 @@ func _proj_moon_shard(canvas: Image, f: int) -> void:
 	var layer := _layer()
 	_ellipse(layer, Vector2(34, 32), Vector2(6, 6), _ramp(["#8aa0d8", "#c0d4f4", "#e8f2ff", "#ffffff"]))
 	var hole := Vector2(31.2, 30.6)
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			if Vector2(x + 0.5, y + 0.5).distance_to(hole) < 5.2:
-				layer.set_pixel(x, y, Color(0, 0, 0, 0))
+				_sp(layer, x, y, Color(0, 0, 0, 0))
 	_stamp(canvas, layer, Color("#2a2a5a"))
 	_px(canvas, 38, 33, Color.WHITE)
 	_px(canvas, 37, 35, Color.WHITE)
@@ -1310,13 +1356,13 @@ func _maple_key(canvas: Image, f: int, wing: Array) -> void:
 	for q: Vector2 in outline_pts:
 		pts.append(c + q.rotated(a))
 	var layer := _layer()
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			var p := Vector2(x + 0.5, y + 0.5)
 			if Geometry2D.is_point_in_polygon(p, pts):
 				# Lighter towards the leading (upper) edge of the wing.
 				var local := (p - c).rotated(-a)
-				layer.set_pixel(x, y, Color(wing[3] if local.y < -3.0 else (wing[2] if local.y < -1.0 else wing[1])))
+				_sp(layer, x, y, Color(wing[3] if local.y < -3.0 else (wing[2] if local.y < -1.0 else wing[1])))
 	_stamp(canvas, layer, o)
 	for v: Vector2 in [Vector2(10, -3.8), Vector2(10.5, -1.2)]:
 		_line(canvas, [c + Vector2(2, 0).rotated(a), c + v.rotated(a)], Color(wing[0]))
@@ -1334,10 +1380,10 @@ func _spin_blur(canvas: Image, c: Vector2, f: int, col: Color) -> void:
 
 
 func _flat_polygon(layer: Image, pts: PackedVector2Array, color: Color) -> void:
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			if Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), pts):
-				layer.set_pixel(x, y, color)
+				_sp(layer, x, y, color)
 
 # Faceted prism: shadow / mid / light facets, pointed top, optional pointed bottom and lean.
 
@@ -1380,32 +1426,32 @@ func _draw_waystone(canvas: Image, st: Dictionary, theme: String = "moss", lush:
 		# The top face lies above the slab's two front edges (2:1 slopes down to the front corner).
 		var on_top := y <= 40 + mini(x, 63 - x) / 2
 		if pose.outside[i] == 1:
-			canvas.set_pixel(x, y, stone[ch])
+			_sp(canvas, x, y, stone[ch])
 			if ch == "a" and on_top:
-				top.set_pixel(x, y, Color.WHITE)
+				_sp(top, x, y, Color.WHITE)
 			else:
-				side.set_pixel(x, y, Color.WHITE)
+				_sp(side, x, y, Color.WHITE)
 			continue
 		# Under the figure: the top face, bounded by the slab's back edges.
 		var xl := 2 * (40 - y) - 1
 		var xr := 64 - 2 * (40 - y) + 1
 		if y > 40 or (x > xl + 1 and x < xr - 1):
-			canvas.set_pixel(x, y, stone.a)
-			top.set_pixel(x, y, Color.WHITE)
+			_sp(canvas, x, y, stone.a)
+			_sp(top, x, y, Color.WHITE)
 		elif x >= xl and x <= xr:
-			canvas.set_pixel(x, y, stone.d)
+			_sp(canvas, x, y, stone.d)
 	for c: Vector2i in [Vector2i(28, 34), Vector2i(29, 34), Vector2i(36, 30), Vector2i(40, 45), Vector2i(41, 45), Vector2i(24, 44)]:
 		_px(canvas, c.x, c.y, stone.d)
 	call("_decor_" + theme, canvas, top, side, st, lush)
 	return top
 
 func _on(mask: Image, x: int, y: int) -> bool:
-	return x >= 0 and y >= 0 and x < S and y < S and mask.get_pixel(x, y).a > 0.0
+	return x >= 0 and y >= -OY and x < S and y < S and _gp(mask, x, y).a > 0.0
 
 # Soft blobs on the top face: lighter towards the top, dithered at the edges.
 func _patches(canvas: Image, top: Image, blobs: Array, ramp: Array[Color]) -> void:
 	for blob: Rect2 in blobs:
-		for y in range(maxi(0, floori(blob.position.y - blob.size.y)), mini(S, ceili(blob.position.y + blob.size.y) + 1)):
+		for y in range(maxi(-OY, floori(blob.position.y - blob.size.y)), mini(S, ceili(blob.position.y + blob.size.y) + 1)):
 			for x in range(maxi(0, floori(blob.position.x - blob.size.x)), mini(S, ceili(blob.position.x + blob.size.x) + 1)):
 				if not _on(top, x, y):
 					continue
@@ -1413,7 +1459,7 @@ func _patches(canvas: Image, top: Image, blobs: Array, ramp: Array[Color]) -> vo
 				var q := d.length()
 				if q > 1.0 or (q > 0.8 and (x + y) % 2 == 0):
 					continue
-				canvas.set_pixel(x, y, ramp[2] if (q < 0.5 and d.y < 0.0) else (ramp[0] if q > 0.8 else ramp[1]))
+				_sp(canvas, x, y, ramp[2] if (q < 0.5 and d.y < 0.0) else (ramp[0] if q > 0.8 else ramp[1]))
 
 const MOSS_BLOBS := [Rect2(11, 40, 9, 3.5), Rect2(51, 41, 8, 3), Rect2(30, 51, 10, 3), Rect2(42, 30, 6, 2.5), Rect2(21, 31, 5, 2)]
 # Spots on the top face that stay visible around the seated figure.
@@ -1425,13 +1471,13 @@ func _decor_moss(canvas: Image, top: Image, _side: Image, _st: Dictionary, _lush
 
 # Tilled soil with furrows and seedlings.
 func _decor_soil(canvas: Image, top: Image, _side: Image, _st: Dictionary, lush: bool) -> void:
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			if not _on(top, x, y):
 				continue
 			var furrow := int(floor(x * 0.5 + y)) % 4 == 0
 			var clod := (x * 37 + y * 91) % 11 == 0
-			canvas.set_pixel(x, y, Color("#5a3a24") if furrow else (Color("#9a6e48") if clod else Color("#7a5234")))
+			_sp(canvas, x, y, Color("#5a3a24") if furrow else (Color("#9a6e48") if clod else Color("#7a5234")))
 	var seedlings: Array = OPEN_SPOTS.slice(0, 9 if lush else 6)
 	for p: Vector2i in seedlings:
 		if _on(top, p.x, p.y):
@@ -1477,7 +1523,7 @@ func _decor_cobble(canvas: Image, top: Image, _side: Image, _st: Dictionary, lus
 	# Neutral grey a step darker than the side rocks (ROCK_PAL) so they stand out on it; bluer greys
 	# turn icy in the palette pass.
 	var shades := [Color("#94919f"), Color("#878494"), Color("#7b7889")]
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			if not _on(top, x, y):
 				continue
@@ -1485,16 +1531,16 @@ func _decor_cobble(canvas: Image, top: Image, _side: Image, _st: Dictionary, lus
 			var v := x * 0.5 - y
 			if fposmod(u, 5.0) < 1.0 or fposmod(v, 5.0) < 1.0:
 				var mossy := (x * 13 + y * 7) % (3 if lush else 5) == 0
-				canvas.set_pixel(x, y, Color("#5a9a48") if mossy else Color("#5f5c70"))
+				_sp(canvas, x, y, Color("#5a9a48") if mossy else Color("#5f5c70"))
 			else:
-				canvas.set_pixel(x, y, shades[absi(int(floor(u / 5.0)) * 7 + int(floor(v / 5.0)) * 3) % 3])
+				_sp(canvas, x, y, shades[absi(int(floor(u / 5.0)) * 7 + int(floor(v / 5.0)) * 3) % 3])
 
 # Stone with rain pools (a ripple travels across them); a lily flowers on one when lush.
 func _decor_pond(canvas: Image, top: Image, _side: Image, st: Dictionary, lush: bool) -> void:
 	_patches(canvas, top, [Rect2(42, 30, 6, 2.5), Rect2(21, 31, 5, 2)], _ramp(["#3f7a3e", "#5a9a48", "#7cbc5a"]))
 	var ripple := float(st.f % 4) / 4.0
 	for pool: Rect2 in [Rect2(12, 42, 9, 3.5), Rect2(53, 42, 7, 3), Rect2(38, 51, 7, 2.5)]:
-		for y in S:
+		for y in range(-OY, S):
 			for x in S:
 				if not _on(top, x, y):
 					continue
@@ -1507,7 +1553,7 @@ func _decor_pond(canvas: Image, top: Image, _side: Image, st: Dictionary, lush: 
 					col = Color("#6ab0e8") if d.y < -0.2 else Color("#4a8ed0")
 					if absf(q - ripple) < 0.12:
 						col = Color("#bfe8ff")
-				canvas.set_pixel(x, y, col)
+				_sp(canvas, x, y, col)
 		_px(canvas, int(pool.position.x) - 2, int(pool.position.y) - 1, Color.WHITE)
 	if lush:
 		_flower(canvas, Vector2i(13, 42), Color("#f4c0dc"), Color("#ffd24a"))
@@ -1523,12 +1569,12 @@ func _decor_night(canvas: Image, top: Image, _side: Image, st: Dictionary, lush:
 
 # Meadow grass with wildflowers.
 func _decor_meadow(canvas: Image, top: Image, _side: Image, _st: Dictionary, lush: bool) -> void:
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			if not _on(top, x, y):
 				continue
 			var h := (x * 29 + y * 53) % 9
-			canvas.set_pixel(x, y, Color("#8ad060") if h == 0 else (Color("#3f7a3e") if h == 4 else Color("#5a9a48")))
+			_sp(canvas, x, y, Color("#8ad060") if h == 0 else (Color("#3f7a3e") if h == 4 else Color("#5a9a48")))
 	var flowers: Array = OPEN_SPOTS.slice(0, 8 if lush else 5)
 	for i in flowers.size():
 		var p: Vector2i = flowers[i]
@@ -1537,7 +1583,7 @@ func _decor_meadow(canvas: Image, top: Image, _side: Image, _st: Dictionary, lus
 
 # A tree stump: growth rings on top, bark grain down the sides.
 func _decor_stump(canvas: Image, top: Image, side: Image, _st: Dictionary, lush: bool) -> void:
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			if _on(top, x, y):
 				var q := Vector2((x + 0.5 - 31.5) / 2.0, y + 0.5 - 44.0).length()
@@ -1546,9 +1592,9 @@ func _decor_stump(canvas: Image, top: Image, side: Image, _st: Dictionary, lush:
 					col = Color("#a07850")
 				if q < 1.5:
 					col = Color("#8a6040")
-				canvas.set_pixel(x, y, col)
+				_sp(canvas, x, y, col)
 			elif _on(side, x, y) and x % 3 == 0:
-				canvas.set_pixel(x, y, canvas.get_pixel(x, y).darkened(0.25))
+				_sp(canvas, x, y, _gp(canvas, x, y).darkened(0.25))
 	_line(canvas, [Vector2(44, 39), Vector2(52, 41), Vector2(58, 40)], Color("#8a6040"), top)
 	if lush:
 		_patches(canvas, top, [Rect2(11, 40, 7, 3), Rect2(52, 41, 6, 2.5)], _ramp(["#3f7a3e", "#5a9a48", "#7cbc5a"]))
@@ -1584,7 +1630,7 @@ func _leaf(canvas: Image, base: Vector2, tip: Vector2, width: float, ramp: Array
 	var length := axis.length()
 	var dir := axis / length
 	var nrm := Vector2(-dir.y, dir.x)
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			var p := Vector2(x + 0.5, y + 0.5) - base
 			var t := p.dot(dir) / length
@@ -1596,7 +1642,7 @@ func _leaf(canvas: Image, base: Vector2, tip: Vector2, width: float, ramp: Array
 			var col: Color = ramp[2] if s < 0.0 else ramp[1]
 			if absf(s) < 0.6 and t > 0.15 and t < 0.8:
 				col = ramp[0]
-			layer.set_pixel(x, y, col)
+			_sp(layer, x, y, col)
 	_stamp(canvas, layer, o)
 
 # Thick line of round dabs, for stems, roots and arms.
@@ -1643,13 +1689,13 @@ func _golem_face(canvas: Image, st: Dictionary, fig: Dictionary, eye: Color = Co
 # Pixels of the figure that aren't outline, for texture and decorations.
 func _skin_px(canvas: Image, mask: Image, o: Color, pts: Array, color: Color) -> void:
 	for p: Vector2i in pts:
-		if p.x >= 0 and p.y >= 0 and p.x < S and p.y < S and mask.get_pixelv(p).a > 0.0 and canvas.get_pixelv(p) != o:
-			canvas.set_pixelv(p, color)
+		if p.x >= 0 and p.y >= -OY and p.x < S and p.y < S and _gpv(mask, p).a > 0.0 and _gpv(canvas, p) != o:
+			_spv(canvas, p, color)
 
 func _glow_dot(canvas: Image, p: Vector2i, core: Color, halo: Color, mask: Image = null) -> void:
 	for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
 		var q := p + d
-		if mask == null or (q.x >= 0 and q.y >= 0 and q.x < S and q.y < S and mask.get_pixelv(q).a > 0.0):
+		if mask == null or (q.x >= 0 and q.y >= -OY and q.x < S and q.y < S and _gpv(mask, q).a > 0.0):
 			_px(canvas, q.x, q.y, halo)
 	_px(canvas, p.x, p.y, core)
 
@@ -1699,17 +1745,17 @@ func _bramble_body(canvas: Image, st: Dictionary, bloom: bool) -> void:
 		_ellipse(t, tuft.position, tuft.size, bush)
 		_stamp(canvas, t, fig.o)
 	var mask := _draw_template_figure(canvas, st.pose, fig)
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if mask.get_pixel(x, y).a == 0.0 or canvas.get_pixel(x, y) == fig.o:
+			if _gp(mask, x, y).a == 0.0 or _gp(canvas, x, y) == fig.o:
 				continue
 			var h := (x * 73 + y * 151) % 11
 			if h == 0:
-				canvas.set_pixel(x, y, bush[0])
-			elif h == 4 and canvas.get_pixel(x, y) == fig.a:
-				canvas.set_pixel(x, y, Color("#a8dc7a") if bloom else Color("#86b060"))
+				_sp(canvas, x, y, bush[0])
+			elif h == 4 and _gp(canvas, x, y) == fig.a:
+				_sp(canvas, x, y, Color("#a8dc7a") if bloom else Color("#86b060"))
 	var on := func(x: int, y: int) -> bool:
-		return x >= 0 and y >= 0 and x < S and y < S and mask.get_pixel(x, y).a > 0.0
+		return x >= 0 and y >= -OY and x < S and y < S and _gp(mask, x, y).a > 0.0
 	if bloom:
 		# Small thorns poking out of the top only.
 		for y in range(1, S):
@@ -1806,7 +1852,7 @@ func _draw_pebbling(canvas: Image, st: Dictionary) -> void:
 	var cap := _layer()
 	_ellipse(cap, Vector2(30.5, 9 + dy), Vector2(9.5, 5), moss, 9.0 + dy)
 	for p: Vector2i in [Vector2i(22, 9), Vector2i(22, 10), Vector2i(29, 9), Vector2i(38, 9), Vector2i(38, 10)]:
-		cap.set_pixel(p.x, p.y + dy, moss[1])
+		_sp(cap, p.x, p.y + dy, moss[1])
 	_stamp(canvas, cap, fig.o)
 	for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
 		_px(canvas, 34 + d.x, 5 + dy + d.y, Color("#fff4f0"))
@@ -1857,11 +1903,11 @@ func _draw_firefly_jar(canvas: Image, st: Dictionary) -> void:
 	var cork := _ramp(["#6a4428", "#8a5a3a", "#b07a4a", "#d09a6a"])
 	var bright: bool = st.f % 4 < 2 or st.power > 0.5
 	var top := _draw_waystone(canvas, st, "night")
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			var q := ((Vector2(x + 0.5, y + 0.5) - Vector2(31, 45)) / Vector2(24, 8)).length()
-			if bright and top.get_pixel(x, y).a > 0.0 and q < 1.0 and q > 0.7 and (x + y) % 2 == 0:
-				canvas.set_pixel(x, y, Color("#d8d890"))
+			if bright and _gp(top, x, y).a > 0.0 and q < 1.0 and q > 0.7 and (x + y) % 2 == 0:
+				_sp(canvas, x, y, Color("#d8d890"))
 	var mask := _draw_template_figure(canvas, st.pose, fig)
 	# Glass highlights down the left side and on the head.
 	for y in range(24, 40):
@@ -1875,17 +1921,17 @@ func _draw_firefly_jar(canvas: Image, st: Dictionary) -> void:
 		var p := Vector2i(drift.lerp(Vector2(31, 16), st.power * 0.6).round()) + Vector2i(0, dy)
 		if (st.f + k) % 4 == 0 and st.power < 0.5:
 			_skin_px(canvas, mask, fig.o, [p], Color("#8aa860"))
-		elif mask.get_pixelv(p).a > 0.0:
+		elif _gpv(mask, p).a > 0.0:
 			_glow_dot(canvas, p, Color("#fff27a"), Color("#a8c868"), mask)
 	_neck_string(canvas, mask, st, fig.o)
 	# Cork hat and its sprout (it pops up when the jar fires).
 	var cy: int = dy + maxi(-2, mini(0, st.lift))
 	var lid := _layer()
 	_round_rect(lid, Rect2i(24, 1 + cy, 14, 7), 2, cork[1])
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if lid.get_pixel(x, y).a > 0.0:
-				lid.set_pixel(x, y, cork[2] if y < 3 + cy else (cork[0] if x > 34 else cork[1]))
+			if _gp(lid, x, y).a > 0.0:
+				_sp(lid, x, y, cork[2] if y < 3 + cy else (cork[0] if x > 34 else cork[1]))
 	_stamp(canvas, lid, fig.o)
 	_px(canvas, 27, 4 + cy, cork[0])
 	_px(canvas, 31, 5 + cy, cork[3])
@@ -1943,20 +1989,20 @@ func _draw_acorn(canvas: Image, st: Dictionary) -> void:
 	_leaf(canvas, Vector2(32, 2 + dy), Vector2(41 + sway, st.lift), 3.0, _ramp(LEAF), fig.o)
 	var cap := _layer()
 	_ellipse(cap, Vector2(30.5, 10 + dy), Vector2(12.5, 7), shell, 10.5 + dy)
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if cap.get_pixel(x, y).a > 0.0 and (x + 2 * y) % 4 == 0 and y < 9 + dy:
-				cap.set_pixel(x, y, shell[0])
+			if _gp(cap, x, y).a > 0.0 and (x + 2 * y) % 4 == 0 and y < 9 + dy:
+				_sp(cap, x, y, shell[0])
 	_stamp(canvas, cap, fig.o)
 	_golem_face(canvas, st, fig)
 
 func _round_rect(layer: Image, rect: Rect2i, r: int, color: Color) -> void:
-	for y in range(maxi(0, rect.position.y), mini(S, rect.end.y)):
+	for y in range(maxi(-OY, rect.position.y), mini(S, rect.end.y)):
 		for x in range(maxi(0, rect.position.x), mini(S, rect.end.x)):
 			var cx := clampi(x, rect.position.x + r, rect.end.x - 1 - r)
 			var cy := clampi(y, rect.position.y + r, rect.end.y - 1 - r)
 			if Vector2(x - cx, y - cy).length() <= r + 0.25:
-				layer.set_pixel(x, y, color)
+				_sp(layer, x, y, color)
 
 # Teardrop built from a column of shrinking circles; the upper part bends with sway.
 func _flame(layer: Image, base: Vector2, r: float, height: float, sway: float, color: Color) -> void:
@@ -1977,15 +2023,15 @@ const GLOW_OUTER := Color("#ffc860")
 # Warm light spilling round an attack or projectile, dithered so it reads as a glow. It only lights
 # empty pixels, so it never paints over the Warden or its base: draw it after the effect itself.
 func _warm_glow(canvas: Image, c: Vector2, r: Vector2, phase: int = 0) -> void:
-	for y in range(maxi(0, floori(c.y - r.y)), mini(S, ceili(c.y + r.y) + 1)):
+	for y in range(maxi(-OY, floori(c.y - r.y)), mini(S, ceili(c.y + r.y) + 1)):
 		for x in range(maxi(0, floori(c.x - r.x)), mini(S, ceili(c.x + r.x) + 1)):
-			if canvas.get_pixel(x, y).a > 0.0:
+			if _gp(canvas, x, y).a > 0.0:
 				continue
 			var q := ((Vector2(x + 0.5, y + 0.5) - c) / r).length()
 			if q < 0.6 and (x + y + phase) % 2 == 0:
-				canvas.set_pixel(x, y, GLOW_INNER)
+				_sp(canvas, x, y, GLOW_INNER)
 			elif q < 1.0 and (x + 2 * y + phase) % 4 == 0:
-				canvas.set_pixel(x, y, GLOW_OUTER)
+				_sp(canvas, x, y, GLOW_OUTER)
 
 # A puff that bursts on release, then scatters into dots and fades.
 func _burst(canvas: Image, c: Vector2, a: int, light_col: Color, dark_col: Color, o: Color) -> void:
@@ -1994,10 +2040,10 @@ func _burst(canvas: Image, c: Vector2, a: int, light_col: Color, dark_col: Color
 		_flat_ellipse(puff, c, Vector2(4, 3.4), light_col)
 		_flat_ellipse(puff, c + Vector2(-3.5, 2), Vector2(2.4, 2.2), light_col)
 		_flat_ellipse(puff, c + Vector2(3.5, 2), Vector2(2.6, 2.4), light_col)
-		for y in S:
+		for y in range(-OY, S):
 			for x in S:
-				if puff.get_pixel(x, y).a > 0.0 and y > c.y + 2:
-					puff.set_pixel(x, y, dark_col)
+				if _gp(puff, x, y).a > 0.0 and y > c.y + 2:
+					_sp(puff, x, y, dark_col)
 		_stamp(canvas, puff, o)
 		for k in 4:
 			var d := Vector2.from_angle(k * TAU / 4.0 + 0.4) * 8.0
@@ -2016,11 +2062,11 @@ func _burst(canvas: Image, c: Vector2, a: int, light_col: Color, dark_col: Color
 
 # A 1px ellipse ring on the ground; dithered when fading.
 func _ring(canvas: Image, c: Vector2, r: Vector2, color: Color, fading: bool) -> void:
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			var q := ((Vector2(x + 0.5, y + 0.5) - c) / r).length()
 			if absf(q - 1.0) * minf(r.x, r.y) < 0.55 and not (fading and (x + y) % 2 == 0):
-				canvas.set_pixel(x, y, color)
+				_sp(canvas, x, y, color)
 
 func _pulse(canvas: Image, st: Dictionary, color: Color) -> void:
 	var c := Vector2(ATTACKS["rootling"].point)
@@ -2151,13 +2197,13 @@ func _cloud(canvas: Image, c: Vector2, w: float, ramp: Array[Color], o: Color) -
 
 # Dithered mist: dense in the middle, wispy at the edges; `phase` shifts the dither to drift it.
 func _fog(canvas: Image, c: Vector2, r: Vector2, color: Color, phase: int) -> void:
-	for y in range(maxi(0, floori(c.y - r.y)), mini(S, ceili(c.y + r.y) + 1)):
+	for y in range(maxi(-OY, floori(c.y - r.y)), mini(S, ceili(c.y + r.y) + 1)):
 		for x in range(maxi(0, floori(c.x - r.x)), mini(S, ceili(c.x + r.x) + 1)):
 			var q := ((Vector2(x + 0.5, y + 0.5) - c) / r).length()
 			if q > 1.0:
 				continue
 			if (q < 0.55 and (x + y + phase) % 2 == 0) or (q >= 0.55 and (x + 2 * y + phase) % 4 == 0):
-				canvas.set_pixel(x, y, color)
+				_sp(canvas, x, y, color)
 
 # Zigzag lightning from a to b with a glow beside it.
 func _bolt(canvas: Image, a: Vector2, b: Vector2, core: Color, glow: Color, kinks: int = 4) -> void:
@@ -2236,10 +2282,10 @@ func _driftspore_body(canvas: Image, st: Dictionary, puffy: bool) -> void:
 			_puffball(canvas, Vector2(p.x, p.y), p.z, puff, fig.o)
 		var cap := _layer()
 		_ellipse(cap, Vector2(30.5, 7 + dy), Vector2(11.5, 7), puff, 9.5 + dy)
-		for y in S:
+		for y in range(-OY, S):
 			for x in S:
-				if cap.get_pixel(x, y).a > 0.0 and (x + 2 * y) % 5 == 0:
-					cap.set_pixel(x, y, puff[0])
+				if _gp(cap, x, y).a > 0.0 and (x + 2 * y) % 5 == 0:
+					_sp(cap, x, y, puff[0])
 		_stamp(canvas, cap, fig.o)
 	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), false)
 	_orbit_sacs(canvas, st, 2 if puffy else 3, sac, fig.o)
@@ -2248,10 +2294,10 @@ func _driftspore_body(canvas: Image, st: Dictionary, puffy: bool) -> void:
 func _puffball(canvas: Image, c: Vector2, r: float, ramp: Array[Color], o: Color) -> void:
 	var layer := _layer()
 	_ellipse(layer, c, Vector2(r, r * 0.9), ramp)
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if layer.get_pixel(x, y).a > 0.0 and (x + 2 * y) % 5 == 0:
-				layer.set_pixel(x, y, ramp[0])
+			if _gp(layer, x, y).a > 0.0 and (x + 2 * y) % 5 == 0:
+				_sp(layer, x, y, ramp[0])
 	_stamp(canvas, layer, o)
 
 # Bloomcap: the Sporeling under a big frilly bloom cap, always drowsy, a sleepy cloud beside it.
@@ -2322,7 +2368,7 @@ func _moss_cap(canvas: Image, dy: int, o: Color) -> void:
 	var cap := _layer()
 	_ellipse(cap, Vector2(30.5, 9 + dy), Vector2(9.5, 5), moss, 9.0 + dy)
 	for p: Vector2i in [Vector2i(22, 9), Vector2i(22, 10), Vector2i(29, 9), Vector2i(38, 9), Vector2i(38, 10)]:
-		cap.set_pixel(p.x, p.y + dy, moss[1])
+		_sp(cap, p.x, p.y + dy, moss[1])
 	_stamp(canvas, cap, o)
 	_flower(canvas, Vector2i(34, 5 + dy), Color("#fff4f0"), Color("#ffd24a"))
 
@@ -2333,14 +2379,14 @@ func _shell(canvas: Image, c: Vector2, r: Vector2, o: Color, flowers: int) -> vo
 	var layer := _layer()
 	_ellipse(layer, c, r, stone)
 	var garden_c := c - Vector2(0, r.y * 0.45)
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if layer.get_pixel(x, y).a == 0.0:
+			if _gp(layer, x, y).a == 0.0:
 				continue
 			if ((Vector2(x + 0.5, y + 0.5) - garden_c) / Vector2(r.x * 0.85, r.y * 0.55)).length() < 1.0:
-				layer.set_pixel(x, y, moss[2] if y < garden_c.y - 2 else moss[1])
+				_sp(layer, x, y, moss[2] if y < garden_c.y - 2 else moss[1])
 			elif (x + 2 * y) % 9 == 0 or (x - 2 * y + 90) % 9 == 0:
-				layer.set_pixel(x, y, stone[0])
+				_sp(layer, x, y, stone[0])
 	_stamp(canvas, layer, o)
 	var tufts := [-12.0, -6.0, 6.0, 12.0, -16.0, 16.0]
 	for i in tufts.size():
@@ -2408,8 +2454,8 @@ func _chime_body(canvas: Image, st: Dictionary, bell: bool) -> void:
 		var layer := _layer()
 		_round_rect(layer, Rect2i(x - 1, y0, 3, rod[2]), 1, Color("#c8b8e8"))
 		for y in range(y0, y0 + rod[2]):
-			if y >= 0 and y < S:
-				layer.set_pixel(clampi(x - 1, 0, S - 1), y, fig.a)
+			if y >= -OY and y < S:
+				_sp(layer, clampi(x - 1, 0, S - 1), y, fig.a)
 		_stamp(canvas, layer, fig.o)
 	if bell:
 		_line(canvas, [Vector2(30.5, 17 + dy), Vector2(30.5, 21 + dy)], Color("#e0c8a0"))
@@ -2426,14 +2472,14 @@ func _bell(canvas: Image, top: Vector2, s: float, swing: int, ramp: Array[Color]
 	_ellipse(layer, c + Vector2(0, s * 0.6), Vector2(s * 0.55, s * 0.6), ramp, c.y + s * 0.6)
 	var body := PackedVector2Array([c + Vector2(-s * 0.55, s * 0.55), c + Vector2(s * 0.55, s * 0.55),
 		c + Vector2(s * 0.9, s * 1.4), c + Vector2(-s * 0.9, s * 1.4)])
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			var p := Vector2(x + 0.5, y + 0.5)
 			if Geometry2D.is_point_in_polygon(p, body):
 				var nx := clampf((p.x - c.x) / (s * 0.9), -1.0, 1.0)
-				layer.set_pixel(x, y, _shade(ramp, Vector3(nx, 0.0, sqrt(1.0 - nx * nx))))
+				_sp(layer, x, y, _shade(ramp, Vector3(nx, 0.0, sqrt(1.0 - nx * nx))))
 				if p.y > c.y + s * 1.25:
-					layer.set_pixel(x, y, ramp[3])
+					_sp(layer, x, y, ramp[3])
 	_stamp(canvas, layer, o)
 	var clapper := _layer()
 	_flat_ellipse(clapper, c + Vector2(swing, s * 1.55), Vector2(1.3, 1.3), ramp[0])
@@ -2569,10 +2615,10 @@ func _neck_string(canvas: Image, mask: Image, st: Dictionary, o: Color) -> void:
 	for x in range(24, 45):
 		var t := (x - 24) / 20.0
 		var y := 19 + dy + roundi(sin(t * PI) * 1.4)
-		if mask.get_pixel(x, y).a == 0.0:
+		if _gp(mask, x, y).a == 0.0:
 			continue
 		_px(canvas, x, y, twine if (x % 3) != 0 else Color("#d8b880"))  # a twist every few pixels
-		if mask.get_pixel(x, y + 1).a > 0.0:
+		if _gp(mask, x, y + 1).a > 0.0:
 			_px(canvas, x, y + 1, under)
 	# The knot, and its two ends hanging down (swaying with the idle).
 	var kx := 44
@@ -2684,10 +2730,10 @@ func _tall_elf_circle(back: Image, front: Image, st: Dictionary) -> void:
 	var hat := _layer()
 	_flat_polygon(hat, PackedVector2Array([Vector2(22, base), Vector2(27, base - 14), Vector2(32 + sway * 0.5, base - 24),
 		tip, Vector2(37 + sway * 0.5, base - 20), Vector2(36, base - 10), Vector2(40, base)]), Color(LEAF[1]))
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if hat.get_pixel(x, y).a > 0.0 and x > 31 + (base - y) * 0.15:
-				hat.set_pixel(x, y, Color(LEAF[0]))  # its shaded side
+			if _gp(hat, x, y).a > 0.0 and x > 31 + (base - y) * 0.15:
+				_sp(hat, x, y, Color(LEAF[0]))  # its shaded side
 	_stamp(front, hat, Color("#17174d"))
 	# The leaf's midrib and a band of mushrooms round the brim.
 	_line(front, [Vector2(31, base - 1), Vector2(32 + sway * 0.5, base - 22), tip + Vector2(-1, 1)], Color(LEAF[2]))
@@ -2766,7 +2812,7 @@ func _tall_grafted_elder(back: Image, front: Image, st: Dictionary) -> void:
 # to the light, so the final towers over Sunpetal's single bloom.
 func _tall_midsummer(back: Image, front: Image, st: Dictionary) -> void:
 	var o := Color("#1e3a14")
-	for s: Vector3 in [Vector3(12, 20, -1), Vector3(51, 13, 1)]:
+	for s: Vector3 in [Vector3(12, 20, -1), Vector3(51, 16, 1)]:
 		var head := Vector2(s.x, s.y + (1.0 if st.f % 4 == 2 else 0.0))
 		var stalk := _layer()
 		_stroke(stalk, [Vector2(s.x - s.z * 3, 63), Vector2(s.x - s.z, 40), head], 1.0, Color(LEAF[1]))
@@ -2812,8 +2858,8 @@ func _tall_monsoon(back: Image, front: Image, st: Dictionary) -> void:
 	_ellipse(cloud, c + Vector2(13, 0), Vector2(5, 4), ramp)
 	_stamp(front, cloud, o)
 	for x in range(int(c.x) - 13, int(c.x) + 14):
-		if front.get_pixel(x, int(c.y) + 4).a > 0.0 and front.get_pixel(x, int(c.y) + 4) != o:
-			front.set_pixel(x, int(c.y) + 4, ramp[0])  # its dark rainy underside
+		if _gp(front, x, int(c.y) + 4).a > 0.0 and _gp(front, x, int(c.y) + 4) != o:
+			_sp(front, x, int(c.y) + 4, ramp[0])  # its dark rainy underside
 	for k in 9:
 		var x := int(c.x) - 12 + k * 3
 		var y0: int = int(c.y) + 6 + ((st.f * 4 + k * 7) % 18)
@@ -2950,7 +2996,7 @@ func _final_extra_grove_heart(canvas: Image, st: Dictionary) -> void:
 	# Keep its face clear: nothing below the brow line.
 	for y in range(EYE_TOP - 4 + dy, S):
 		for x in S:
-			canopy.set_pixel(x, y, Color(0, 0, 0, 0))
+			_sp(canopy, x, y, Color(0, 0, 0, 0))
 	_stamp(canvas, canopy, o)
 	for p: Vector2i in [Vector2i(20, 2), Vector2i(31, 0), Vector2i(41, 2)]:
 		_px(canvas, p.x, p.y + dy, Color("#fcd47c"))  # blossoms in it
@@ -2964,8 +3010,8 @@ func _final_extra_beacon(canvas: Image, st: Dictionary) -> void:
 	_stamp(canvas, staff, o)
 	# Clear the stamp's outline across the top edge so the staff runs on into the tall rows.
 	for x in range(BEACON_STAFF_X - 3, BEACON_STAFF_X + 4):
-		if canvas.get_pixel(x, 0) == o:
-			canvas.set_pixel(x, 0, Color("#8a5c34") if absi(x - BEACON_STAFF_X) <= 0 else Color(0, 0, 0, 0))
+		if _gp(canvas, x, -OY) == o:
+			_sp(canvas, x, -OY, Color("#8a5c34") if absi(x - BEACON_STAFF_X) <= 0 else Color(0, 0, 0, 0))
 
 # Lanternmoth: an amber lantern golem with soft moth wings, feathery antennae and a warm light
 # glowing in its chest.
@@ -3000,14 +3046,14 @@ func _moth_body(canvas: Image, st: Dictionary, beacon: bool) -> void:
 	# The light in its chest, pulsing.
 	# Beacon's light is steady and brighter; Lanternmoth's flickers.
 	var pulse: float = (1.3 + st.power * 0.3) if beacon else (1.0 + 0.2 * sin(TAU * float(st.f) / st.n) + st.power * 0.4)
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			var q := ((Vector2(x + 0.5, y + 0.5) - Vector2(30, 29 + dy)) / (Vector2(5, 6) * pulse)).length()
-			if q < 1.0 and mask.get_pixel(x, y).a > 0.0 and canvas.get_pixel(x, y) != fig.o:
+			if q < 1.0 and _gp(mask, x, y).a > 0.0 and _gp(canvas, x, y) != fig.o:
 				if q < 0.5:
-					canvas.set_pixel(x, y, Color.WHITE if beacon else Color("#fff0b0"))
+					_sp(canvas, x, y, Color.WHITE if beacon else Color("#fff0b0"))
 				elif (x + y) % 2 == 0:
-					canvas.set_pixel(x, y, Color("#f8d890"))
+					_sp(canvas, x, y, Color("#f8d890"))
 	var lid := _layer()
 	_round_rect(lid, Rect2i(25, 3 + dy, 12, 3), 1, Color("#5a5a6a"))
 	_stamp(canvas, lid, fig.o)
@@ -3039,23 +3085,23 @@ func _beacon_wings_and_crook(canvas: Image, st: Dictionary, fig: Dictionary, win
 			var bx := 30.5 + side * (14.0 + b * 6.0)
 			for y in range(4, 26):
 				var x := int(bx + (y - 14) * 0.3 * side)
-				var c := layer.get_pixel(x, y + dy)
+				var c := _gp(layer, x, y + dy)
 				if c.a > 0.0 and c != fig.o:
-					layer.set_pixel(x, y + dy, wing[0])
+					_sp(layer, x, y + dy, wing[0])
 		var spot := Vector2(30.5 + side * 20.0 - side * flap * 0.5, 13 + dy)
 		var eye := _layer()
 		_flat_ellipse(eye, spot, Vector2(3.2, 2.8), Color("#5a3a2a"))
 		_flat_ellipse(eye, spot, Vector2(2.0, 1.8), Color("#fcd47c"))
 		_flat_ellipse(eye, spot, Vector2(0.8, 0.8), Color.WHITE)
-		for y in S:
+		for y in range(-OY, S):
 			for x in S:
-				if eye.get_pixel(x, y).a > 0.0 and layer.get_pixel(x, y).a > 0.0 and layer.get_pixel(x, y) != fig.o:
-					layer.set_pixel(x, y, eye.get_pixel(x, y))
-	canvas.blend_rect(layer, Rect2i(0, 0, S, S), Vector2i.ZERO)
+				if _gp(eye, x, y).a > 0.0 and _gp(layer, x, y).a > 0.0 and _gp(layer, x, y) != fig.o:
+					_sp(layer, x, y, _gp(eye, x, y))
+	canvas.blend_rect(layer, Rect2i(0, 0, S, S + OY), Vector2i.ZERO)
 
 # Beacon's tall rows (frame y 0..63 of the 64x96 frame; the body frame starts at y 32): the crook's top
 # hooking over, the big lantern hanging from it, and a soft cone of light falling towards the moth.
-const BEACON_LAMP := Vector2(46, 15)
+const BEACON_LAMP := Vector2(46, 18)
 
 func _tall_beacon(back: Image, front: Image, st: Dictionary) -> void:
 	var o := Color("#2a1a10")
@@ -3065,10 +3111,10 @@ func _tall_beacon(back: Image, front: Image, st: Dictionary) -> void:
 		var half := (y - BEACON_LAMP.y - 2) * 0.5
 		for x in range(int(BEACON_LAMP.x - half), int(BEACON_LAMP.x + half) + 1):
 			if x >= 0 and x < S:
-				back.set_pixel(x, y, Color("#fcd47c", snappedf(0.3 * (1.0 - (y - BEACON_LAMP.y) / 32.0), 0.04)))
+				_sp(back, x, y, Color("#fcd47c", snappedf(0.3 * (1.0 - (y - BEACON_LAMP.y) / 32.0), 0.04)))
 	var staff := _layer()
-	_stroke(staff, [Vector2(BEACON_STAFF_X, 64), Vector2(BEACON_STAFF_X, 8), Vector2(BEACON_STAFF_X - 1, 4),
-		Vector2(BEACON_STAFF_X - 4, 2), Vector2(BEACON_LAMP.x + 1, 3), Vector2(BEACON_LAMP.x, 6)], 0.9, Color("#8a5c34"))
+	_stroke(staff, [Vector2(BEACON_STAFF_X, 64), Vector2(BEACON_STAFF_X, 11), Vector2(BEACON_STAFF_X - 1, 7),
+		Vector2(BEACON_STAFF_X - 4, 5), Vector2(BEACON_LAMP.x + 1, 6), Vector2(BEACON_LAMP.x, 9)], 0.9, Color("#8a5c34"))
 	_stamp(front, staff, o)
 	var lamp := _layer()
 	_round_rect(lamp, Rect2i(int(BEACON_LAMP.x) - 4, int(BEACON_LAMP.y) - 6, 9, 11), 2, Color("#e9a83c"))
@@ -3095,10 +3141,10 @@ func _draw_sunpetal(canvas: Image, st: Dictionary) -> void:
 	_petals(canvas, face_c, 12, 6.5, 13.5 - st.lift * 0.5, 2.6, _ramp(["#d89a20", "#f0c030", "#ffe070"]), fig.o, float(st.f) * TAU / 96.0)
 	_leaf(canvas, Vector2(18, 31), Vector2(9, 25), 3.0, _ramp(LEAF), fig.o)
 	var mask := _draw_template_figure(canvas, st.pose, fig)
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if ((Vector2(x + 0.5, y + 0.5) - face_c) / Vector2(8.5, 6.5)).length() < 1.0 and mask.get_pixel(x, y).a > 0.0 and canvas.get_pixel(x, y) != fig.o:
-				canvas.set_pixel(x, y, Color("#8a5a2a") if (x + y) % 2 == 0 else Color("#6a4020"))
+			if ((Vector2(x + 0.5, y + 0.5) - face_c) / Vector2(8.5, 6.5)).length() < 1.0 and _gp(mask, x, y).a > 0.0 and _gp(canvas, x, y) != fig.o:
+				_sp(canvas, x, y, Color("#8a5a2a") if (x + y) % 2 == 0 else Color("#6a4020"))
 	_leaf(canvas, Vector2(43, 30), Vector2(52, 24), 3.0, _ramp(LEAF), fig.o)
 	_golem_face(canvas, st, fig, Color("#ffe070"), false)
 
@@ -3151,10 +3197,10 @@ func _draw_long_way_home(canvas: Image, st: Dictionary) -> void:
 	var beard := _layer()
 	_flat_polygon(beard, PackedVector2Array([Vector2(24, 16 + dy), Vector2(37, 16 + dy), Vector2(35, 21 + dy),
 		Vector2(30.5, 25 + dy), Vector2(26, 21 + dy)]), Color("#5a9a48"))
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if beard.get_pixel(x, y).a > 0.0 and (x + y) % 3 == 0:
-				beard.set_pixel(x, y, Color("#7cbc5a"))
+			if _gp(beard, x, y).a > 0.0 and (x + y) % 3 == 0:
+				_sp(beard, x, y, Color("#7cbc5a"))
 	_stamp(canvas, beard, Color("#1e3a24"))
 
 func _curls(canvas: Image, st: Dictionary, fig: Dictionary) -> void:
@@ -3294,7 +3340,7 @@ func _draw_wellspring(canvas: Image, st: Dictionary) -> void:
 		for k in 5:
 			var y: int = 9 + dy + ((k * 3 + st.f) % 12)
 			var x: int = 30 + side * (10 + (y - 9 - dy) / 3)
-			if mask.get_pixel(x, y).a > 0.0 and canvas.get_pixel(x, y) != fig.o:
+			if _gp(mask, x, y).a > 0.0 and _gp(canvas, x, y) != fig.o:
 				_px(canvas, x, y, water)
 	var rim := _layer()
 	_ellipse(rim, Vector2(30.5, 6 + dy), Vector2(10, 3.2), _ramp(["#6a5a4a", "#8a7a6a", "#b0a090", "#d0c4b4"]))
@@ -3304,7 +3350,7 @@ func _draw_wellspring(canvas: Image, st: Dictionary) -> void:
 	_stamp(canvas, pool)
 	# The spring spouting up out of the well.
 	var spout_h: int = 4 + (st.f % 2)
-	for y in range(maxi(0, 5 + dy - spout_h), 5 + dy):
+	for y in range(maxi(-OY, 5 + dy - spout_h), 5 + dy):
 		_px(canvas, 30, y, water)
 		_px(canvas, 31, y, Color("#e8faff"))
 	for k in 4:
@@ -3564,7 +3610,7 @@ const MEMORY_GOLD := Color("#f0c860")
 # Waystone themes for the new lines.
 func _decor_nest(canvas: Image, top: Image, _side: Image, _st: Dictionary, lush: bool) -> void:
 	var twigs := [Color("#5a4228"), Color("#8a6a40"), Color("#b08a50")]
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			if not _on(top, x, y):
 				continue
@@ -3577,7 +3623,7 @@ func _decor_nest(canvas: Image, top: Image, _side: Image, _st: Dictionary, lush:
 				col = twigs[0]
 			if (x * 31 + y * 17) % 13 == 0:
 				col = Color("#e0c070")  # straw
-			canvas.set_pixel(x, y, col)
+			_sp(canvas, x, y, col)
 	var eggs: Array = [Vector2i(9, 42), Vector2i(54, 43)] if lush else [Vector2i(54, 43)]
 	for e: Vector2i in eggs:
 		if _on(top, e.x, e.y):
@@ -3587,13 +3633,13 @@ func _decor_nest(canvas: Image, top: Image, _side: Image, _st: Dictionary, lush:
 			_px(canvas, e.x - 1, e.y - 1, Color("#5a8898"))
 
 func _decor_windswept(canvas: Image, top: Image, _side: Image, st: Dictionary, lush: bool) -> void:
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			if not _on(top, x, y):
 				continue
 			var h := (x * 29 + y * 53) % 9
 			var streak: bool = (x + 2 * y + st.f) % 11 == 0
-			canvas.set_pixel(x, y, Color("#b8e0a0") if streak else (Color("#8ad060") if h == 0 else (Color("#3f7a3e") if h == 4 else Color("#5a9a48"))))
+			_sp(canvas, x, y, Color("#b8e0a0") if streak else (Color("#8ad060") if h == 0 else (Color("#3f7a3e") if h == 4 else Color("#5a9a48"))))
 	var seeds: Array = OPEN_SPOTS.slice(0, 7 if lush else 4)
 	for p: Vector2i in seeds:
 		if _on(top, p.x, p.y):
@@ -3605,13 +3651,13 @@ func _decor_windswept(canvas: Image, top: Image, _side: Image, st: Dictionary, l
 func _decor_memory(canvas: Image, top: Image, _side: Image, st: Dictionary, _lush: bool) -> void:
 	_patches(canvas, top, MOSS_BLOBS, _ramp(["#4a8a5a", "#6aaa6a", "#9ad88a"]))
 	var bright: bool = st.f % 4 < 2 or st.power > 0.5
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			if not _on(top, x, y):
 				continue
 			var q := ((Vector2(x + 0.5, y + 0.5) - Vector2(31.5, 45)) / Vector2(26, 9.5)).length()
 			if absf(q - 1.0) < 0.05 or (absf(q - 0.82) < 0.04 and (x + y) % 2 == 0):
-				canvas.set_pixel(x, y, MEMORY_GOLD if bright else Color("#c8a048"))
+				_sp(canvas, x, y, MEMORY_GOLD if bright else Color("#c8a048"))
 	for k in 6:
 		var p := Vector2i((Vector2(31.5, 45) + Vector2.from_angle(k * TAU / 6.0 + 0.5) * Vector2(26, 9.5)).round())
 		if _on(top, p.x, p.y):
@@ -3649,12 +3695,12 @@ func _prism(canvas: Image, base: Vector2, w: float, h: float, lean: float, ramp:
 	var pts := PackedVector2Array([base + Vector2(-w, 0), base + Vector2(-w + lean * 0.7, -h * 0.7), tip,
 		base + Vector2(w + lean * 0.7, -h * 0.7), base + Vector2(w, 0)])
 	var layer := _layer()
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			var p := Vector2(x + 0.5, y + 0.5)
 			if Geometry2D.is_point_in_polygon(p, pts):
 				var rel := p.x - (base.x + (base.y - p.y) / h * lean)
-				layer.set_pixel(x, y, ramp[0] if rel < -w / 3.0 else (ramp[2] if rel > w / 3.0 else ramp[1]))
+				_sp(layer, x, y, ramp[0] if rel < -w / 3.0 else (ramp[2] if rel > w / 3.0 else ramp[1]))
 	_stamp(canvas, layer, o)
 
 func _wisp(canvas: Image, from: Vector2, t: float, color: Color) -> void:
@@ -3727,12 +3773,12 @@ func _menhir_body(canvas: Image, st: Dictionary, moon: bool) -> void:
 	var stone := _layer()
 	# The menhir stands on the slab where the left rock was, its foot set a little into the ground.
 	_flat_polygon(stone, PackedVector2Array([Vector2(6, 44), Vector2(7, 12), Vector2(11, 5), Vector2(17, 7), Vector2(19, 14), Vector2(19, 43)]), fig.b)
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if stone.get_pixel(x, y).a > 0.0 and x < 10:
-				stone.set_pixel(x, y, fig.a)
-			elif stone.get_pixel(x, y).a > 0.0 and x > 16:
-				stone.set_pixel(x, y, fig.c)
+			if _gp(stone, x, y).a > 0.0 and x < 10:
+				_sp(stone, x, y, fig.a)
+			elif _gp(stone, x, y).a > 0.0 and x > 16:
+				_sp(stone, x, y, fig.c)
 	_stamp(canvas, stone, fig.o)
 	_line(canvas, [Vector2(12, 13), Vector2(14, 15), Vector2(12, 18), Vector2(10, 16), Vector2(12, 14)], rune, stone)
 	_line(canvas, [Vector2(12, 23), Vector2(12, 32)], rune, stone)
@@ -3795,19 +3841,19 @@ func _draw_midsummer(canvas: Image, st: Dictionary) -> void:
 	_draw_waystone(canvas, st, "meadow", true)
 	var halo := _layer()
 	_flat_ellipse(halo, face_c, Vector2(17, 16), Color("#fff0a0"))
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if halo.get_pixel(x, y).a > 0.0 and (x + y + st.f) % 3 != 0:
-				halo.set_pixel(x, y, Color(0, 0, 0, 0))
+			if _gp(halo, x, y).a > 0.0 and (x + y + st.f) % 3 != 0:
+				_sp(halo, x, y, Color(0, 0, 0, 0))
 	_stamp(canvas, halo)
 	_petals(canvas, face_c, 14, 9.0, 16.0 - st.lift * 0.5, 2.6, _ramp(["#e07a20", "#f0a030", "#ffc860"]), fig.o, float(st.f) * TAU / 128.0 + 0.2)
 	_petals(canvas, face_c, 12, 6.5, 13.0 - st.lift * 0.5, 2.6, _ramp(["#d89a20", "#f0c030", "#ffe070"]), fig.o, float(st.f) * TAU / 96.0)
 	_leaf(canvas, Vector2(18, 31), Vector2(8, 24), 3.2, _ramp(LEAF), fig.o)
 	var mask := _draw_template_figure(canvas, st.pose, fig)
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if ((Vector2(x + 0.5, y + 0.5) - face_c) / Vector2(8.5, 6.5)).length() < 1.0 and mask.get_pixel(x, y).a > 0.0 and canvas.get_pixel(x, y) != fig.o:
-				canvas.set_pixel(x, y, Color("#8a5a2a") if (x + y) % 2 == 0 else Color("#6a4020"))
+			if ((Vector2(x + 0.5, y + 0.5) - face_c) / Vector2(8.5, 6.5)).length() < 1.0 and _gp(mask, x, y).a > 0.0 and _gp(canvas, x, y) != fig.o:
+				_sp(canvas, x, y, Color("#8a5a2a") if (x + y) % 2 == 0 else Color("#6a4020"))
 	_leaf(canvas, Vector2(43, 30), Vector2(53, 23), 3.2, _ramp(LEAF), fig.o)
 	_golem_face(canvas, st, fig, Color("#ffe070"), false)
 	for k in 3:
@@ -3912,10 +3958,10 @@ func _nest_ring(canvas: Image, o: Color) -> void:
 	var nest := _layer()
 	_ellipse(nest, Vector2(31.5, 45), Vector2(22, 6), _ramp(["#5a4228", "#8a6a40", "#b08a50"]))
 	_flat_ellipse(nest, Vector2(31.5, 43.5), Vector2(18, 3.8), Color(0, 0, 0, 0))
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if nest.get_pixel(x, y).a > 0.0 and (x * 2 + y) % 5 == 0:
-				nest.set_pixel(x, y, Color("#e0c070"))
+			if _gp(nest, x, y).a > 0.0 and (x * 2 + y) % 5 == 0:
+				_sp(nest, x, y, Color("#e0c070"))
 	_stamp(canvas, nest, o)
 
 func _feathers(canvas: Image, mask: Image, fig: Dictionary, dy: int) -> void:
@@ -3989,8 +4035,8 @@ func _magpie_body(canvas: Image, st: Dictionary, hoard: bool) -> void:
 	# Dark hood with a blue sheen over the head.
 	for y in range(0, 18 + dy):
 		for x in S:
-			if mask.get_pixel(x, y).a > 0.0 and canvas.get_pixel(x, y) != fig.o:
-				canvas.set_pixel(x, y, ink[1] if x < 30 else ink[2])
+			if _gp(mask, x, y).a > 0.0 and _gp(canvas, x, y) != fig.o:
+				_sp(canvas, x, y, ink[1] if x < 30 else ink[2])
 	_nest_ring(canvas, fig.o)
 	_golem_face(canvas, st, fig, Color("#f4f2f0"), false)
 	var gold := _ramp(["#b8862a", "#e8b840", "#fff0a0"])
@@ -4019,7 +4065,7 @@ func _magpie_body(canvas: Image, st: Dictionary, hoard: bool) -> void:
 		# A gold chain with a ruby pendant across the chest.
 		for x in range(24, 43):
 			var y := 21 + dy + roundi(sin((x - 24) / 18.0 * PI) * 3.0)
-			if mask.get_pixel(x, y).a > 0.0:
+			if _gp(mask, x, y).a > 0.0:
 				_px(canvas, x, y, Color("#ffe070") if x % 2 == 0 else Color("#c8902a"))
 		_px(canvas, 33, 25 + dy, Color("#e04a6a"))
 		_px(canvas, 34, 25 + dy, Color("#e04a6a"))
@@ -4155,10 +4201,10 @@ func _draw_honeysuckle(canvas: Image, st: Dictionary) -> void:
 	var fig := _pal("#1e2412", "#b8cc6a", "#94ae52", "#6e8a3e")
 	_draw_waystone(canvas, st, "bramble", true)
 	var mask := _draw_template_figure(canvas, st.pose, fig)
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if mask.get_pixel(x, y).a > 0.0 and canvas.get_pixel(x, y) != fig.o and (x * 73 + y * 151) % 11 == 0:
-				canvas.set_pixel(x, y, Color("#7a9a44"))
+			if _gp(mask, x, y).a > 0.0 and _gp(canvas, x, y) != fig.o and (x * 73 + y * 151) % 11 == 0:
+				_sp(canvas, x, y, Color("#7a9a44"))
 	var vine := Color("#3e5a22")
 	var trumpet_o := Color("#4a2410")
 	# The garland across the chest (sagging), a thick outlined vine.
@@ -4244,8 +4290,8 @@ func _draw_pond_keeper(canvas: Image, st: Dictionary) -> void:
 	# Pale belly.
 	for y in range(28, 44):
 		for x in range(26, 37):
-			if mask.get_pixel(x, y).a > 0.0 and canvas.get_pixel(x, y) != fig.o and ((Vector2(x, y) - Vector2(31, 36)) / Vector2(5.5, 8)).length() < 1.0:
-				canvas.set_pixel(x, y, Color("#e8f0c0"))
+			if _gp(mask, x, y).a > 0.0 and _gp(canvas, x, y) != fig.o and ((Vector2(x, y) - Vector2(31, 36)) / Vector2(5.5, 8)).length() < 1.0:
+				_sp(canvas, x, y, Color("#e8f0c0"))
 	# Bulging eyes on top of the head, then a wide smile.
 	var skin: Array[Color] = [fig.c, fig.b, fig.a]
 	for ex: int in [25, 36]:
@@ -4550,10 +4596,10 @@ func _lichen_plate(canvas: Image, c: Vector2, r: float, o: Color, mask: Image = 
 	var layer := _layer()
 	_ellipse(layer, c, Vector2(r, r * 0.6), _ramp(LICHEN))
 	if mask != null:
-		for y in S:
+		for y in range(-OY, S):
 			for x in S:
-				if layer.get_pixel(x, y).a > 0.0 and mask.get_pixel(x, y).a == 0.0:
-					layer.set_pixel(x, y, Color(0, 0, 0, 0))
+				if _gp(layer, x, y).a > 0.0 and _gp(mask, x, y).a == 0.0:
+					_sp(layer, x, y, Color(0, 0, 0, 0))
 	_stamp(canvas, layer, o)
 
 # A broad, flat shelf cap (one tier, or two for Old Lichen) with lichen frills along its rim.
@@ -4652,10 +4698,10 @@ func _brood_body(canvas: Image, st: Dictionary, hive: bool) -> void:
 	var cap := _layer()
 	_ellipse(cap, Vector2(30.5, 8 + dy), Vector2(19.0 if hive else 17.0, 9.0 if hive else 8.0), _ramp(["#8a3aa0", "#c060d0", "#e898f0", "#ffd0ff"]), 10.0 + dy)
 	if hive:
-		for y in S:
+		for y in range(-OY, S):
 			for x in S:
-				if cap.get_pixel(x, y).a > 0.0 and absi((x - 30) % 5) == 0:
-					cap.set_pixel(x, y, Color("#8a3aa0"))  # its ribs
+				if _gp(cap, x, y).a > 0.0 and absi((x - 30) % 5) == 0:
+					_sp(cap, x, y, Color("#8a3aa0"))  # its ribs
 	_stamp(canvas, cap, fig.o)
 	var spots: Array = [Vector2(14, 9), Vector2(47, 9), Vector2(15, 19), Vector2(46, 19), Vector2(30, -1)]  # on the cap rim and shoulders
 	if hive:
@@ -4707,10 +4753,10 @@ func _ink_body(canvas: Image, st: Dictionary, melt: bool) -> void:
 	var cap := _layer()
 	_flat_polygon(cap, PackedVector2Array([top + Vector2(-2, 0), top + Vector2(2, 0), top + Vector2(w - 3, 7), top + Vector2(w, hem),
 		top + Vector2(w - 6, hem - 2), top + Vector2(w - 7, 10), top + Vector2(-w + 7, 10), top + Vector2(-w + 6, hem - 2), top + Vector2(-w, hem)]), Color(INK[1]))
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if cap.get_pixel(x, y).a > 0.0 and x < 30 - (y - top.y) * 0.3:
-				cap.set_pixel(x, y, Color(INK[2]))
+			if _gp(cap, x, y).a > 0.0 and x < 30 - (y - top.y) * 0.3:
+				_sp(cap, x, y, Color(INK[2]))
 	_stamp(canvas, cap, Color(INK[0]))
 	for i in 4:
 		_px(canvas, 26 + i * 2, int(top.y) + 2 + i, Color("#dce8f4"))  # a sheen down it
@@ -5040,14 +5086,14 @@ func _faceted_crystal(canvas: Image, c: Vector2, w: float, h: float, o: Color, f
 	var pts := PackedVector2Array([c + Vector2(0, -h), c + Vector2(w, -h * 0.4), c + Vector2(w, h * 0.4), c + Vector2(0, h),
 		c + Vector2(-w, h * 0.4), c + Vector2(-w, -h * 0.4)])
 	_flat_polygon(gem, pts, Color(PRISM[1]))
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if gem.get_pixel(x, y).a > 0.0:
+			if _gp(gem, x, y).a > 0.0:
 				var d := Vector2(x + 0.5, y + 0.5) - c
 				if d.x < 0 and d.y < 0:
-					gem.set_pixel(x, y, Color(PRISM[2]))
+					_sp(gem, x, y, Color(PRISM[2]))
 				elif d.x > 0 and d.y > 0:
-					gem.set_pixel(x, y, Color(PRISM[0]))
+					_sp(gem, x, y, Color(PRISM[0]))
 	_stamp(canvas, gem, o)
 	_line(canvas, [c + Vector2(0, -h), c + Vector2(0, h)], Color(PRISM[3]))
 	var glints := [Color("#ec9cf4"), Color("#fcd47c"), Color("#9cc46c")]
@@ -5272,10 +5318,10 @@ func _horn_flower(canvas: Image, base: Vector2, dir: Vector2, length: float, fla
 	pts.append(base + dir * length - n * flare)
 	pts.append(base - n * 1.5)
 	_flat_polygon(horn, pts, Color("#c0a8ec"))
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
-			if horn.get_pixel(x, y).a > 0.0 and (Vector2(x + 0.5, y + 0.5) - base).dot(n) > 0.0:
-				horn.set_pixel(x, y, Color("#e0d0f8"))
+			if _gp(horn, x, y).a > 0.0 and (Vector2(x + 0.5, y + 0.5) - base).dot(n) > 0.0:
+				_sp(horn, x, y, Color("#e0d0f8"))
 	_stamp(canvas, horn, o)
 	var mouth := base + dir * (length - 0.5)
 	_line(canvas, [mouth + n * (flare - 1.5), mouth - n * (flare - 1.5)], Color("#fff4dc"))
@@ -5386,12 +5432,12 @@ func _slab_masks() -> Dictionary:
 			var xl := 2 * (40 - y) - 1
 			var xr := 64 - 2 * (40 - y) + 1
 			if y > 40 or (x > xl + 1 and x < xr - 1):
-				top.set_pixel(x, y, Color.WHITE)
+				_sp(top, x, y, Color.WHITE)
 	var rim := _layer()
 	for y in range(S - 1):
 		for x in S:
 			if _on(top, x, y) and _on(side, x, y + 1) and y >= 40:
-				rim.set_pixel(x, y, Color.WHITE)
+				_sp(rim, x, y, Color.WHITE)
 	return {top = top, side = side, rim = rim, grid = pose.grid}
 
 # The rim's y at column x (the front edge of the top face), or -1.
@@ -5425,7 +5471,7 @@ func _rank_over(canvas: Image, rank: int, f: int, masks: Dictionary) -> void:
 	# VI+: the whole slab is gilded: gold side faces that keep the template's brick lines and streaks.
 	if rank >= 6:
 		var lit: bool = f % 4 < 2
-		for y in S:
+		for y in range(-OY, S):
 			for x in S:
 				if not _on(masks.side, x, y):
 					continue
@@ -5435,7 +5481,7 @@ func _rank_over(canvas: Image, rank: int, f: int, masks: Dictionary) -> void:
 					col = Color("#f4d070") if ch == "d" else (Color("#d0a040") if ch == "e" else Color("#fff0b8"))
 				if (x * 3 + y * 5) % 11 == 0:
 					col = col.lightened(0.3) if lit else col.lightened(0.15)
-				canvas.set_pixel(x, y, col)
+				_sp(canvas, x, y, col)
 	# VI: a second gold ring just inside the trim, and ring emblems in the stone.
 	if rank >= 6:
 		for x in S:
@@ -5529,15 +5575,15 @@ func _rank_under(canvas: Image, rank: int, f: int, _masks: Dictionary) -> void:
 				var p := c + Vector2(d.x * r.x, d.y * r.y) * lerpf(0.75, reach, s / 11.0)
 				if (s + f) % 2 == 0:
 					_px(canvas, roundi(p.x), roundi(p.y), Color(GLOW_INNER, 0.8))
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			var q := ((Vector2(x + 0.5, y + 0.5) - c) / r).length()
 			if q > 1.0:
 				continue
 			if q > 0.85 and (x + y + f) % 2 == 0:
-				canvas.set_pixel(x, y, Color(GLOW_OUTER, 0.55))
+				_sp(canvas, x, y, Color(GLOW_OUTER, 0.55))
 			elif q <= 0.85 and (x + 2 * y + f) % (3 if rank >= 4 else 4) == 0:
-				canvas.set_pixel(x, y, Color(GLOW_INNER, 0.6))
+				_sp(canvas, x, y, Color(GLOW_INNER, 0.6))
 
 # A 16x16 badge: a gold seed-medallion with the rank's numeral, dressed up at higher ranks.
 func _rank_badge(rank: int) -> Image:
@@ -5647,12 +5693,12 @@ const BELL_GLOW := Color("#ffe890")
 
 # Lilac-grey stone under a meadow of bellflowers, some glowing warm gold.
 func _decor_bellflower(canvas: Image, top: Image, _side: Image, st: Dictionary, lush: bool) -> void:
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			if not _on(top, x, y):
 				continue
 			var h := (x * 29 + y * 53) % 9
-			canvas.set_pixel(x, y, Color("#8ab07a") if h == 0 else (Color("#4a7a50") if h == 4 else Color("#5f8f5c")))
+			_sp(canvas, x, y, Color("#8ab07a") if h == 0 else (Color("#4a7a50") if h == 4 else Color("#5f8f5c")))
 	var spots: Array = OPEN_SPOTS.slice(0, 9 if lush else 6)
 	for i in spots.size():
 		var p: Vector2i = spots[i]
@@ -5684,12 +5730,12 @@ func _bell_cap(canvas: Image, c: Vector2, w: float, h: float, o: Color) -> void:
 	var pts := PackedVector2Array([c + Vector2(-w, 0), c + Vector2(-w * 0.8, -h * 0.55), c + Vector2(-w * 0.35, -h),
 		c + Vector2(w * 0.35, -h), c + Vector2(w * 0.8, -h * 0.55), c + Vector2(w, 0)])
 	var layer := _layer()
-	for y in S:
+	for y in range(-OY, S):
 		for x in S:
 			var p := Vector2(x + 0.5, y + 0.5)
 			if Geometry2D.is_point_in_polygon(p, pts):
 				var nx := clampf((p.x - c.x) / w, -1.0, 1.0)
-				layer.set_pixel(x, y, _shade(ramp, Vector3(nx, -0.3, sqrt(maxf(0.1, 1.0 - nx * nx)))))
+				_sp(layer, x, y, _shade(ramp, Vector3(nx, -0.3, sqrt(maxf(0.1, 1.0 - nx * nx)))))
 	var x := c.x - w + 1.5
 	while x < c.x + w - 1.0:
 		_flat_ellipse(layer, Vector2(x, c.y), Vector2(1.8, 1.5), ramp[1])
@@ -5821,12 +5867,12 @@ func _hollow_body(canvas: Image, st: Dictionary, whispering: bool) -> void:
 		var trunk := _layer()
 		_flat_polygon(trunk, PackedVector2Array([Vector2(4, 44), Vector2(6, 12), Vector2(3, 2), Vector2(12, 4),
 			Vector2(17, 1), Vector2(19, 12), Vector2(21, 44)]), fig.b)
-		for y in S:
+		for y in range(-OY, S):
 			for x in S:
-				if trunk.get_pixel(x, y).a > 0.0 and x % 4 == 0:
-					trunk.set_pixel(x, y, fig.c)
-				elif trunk.get_pixel(x, y).a > 0.0 and x < 8:
-					trunk.set_pixel(x, y, fig.a)
+				if _gp(trunk, x, y).a > 0.0 and x % 4 == 0:
+					_sp(trunk, x, y, fig.c)
+				elif _gp(trunk, x, y).a > 0.0 and x < 8:
+					_sp(trunk, x, y, fig.a)
 		_stamp(canvas, trunk, fig.o)
 		for hole: Vector2 in [Vector2(12, 14), Vector2(11, 28)]:
 			var h := _layer()
