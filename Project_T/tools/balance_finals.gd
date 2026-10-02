@@ -16,6 +16,7 @@ const CAST := ["thunderhead", "boulderback", "moonstone", "rockslide", "starcave
 const CAST_ACT1 := ["sporeling", "firefly_jar", "dewdrop", "bellflower", "pebbling", "acorn", "rootling", "nestling"]  # --cast=act1: base Wardens (an act 1 board)
 const CAST_NOCHARGE := ["boulderback", "boulderback", "moonstone", "rockslide", "starcave", "midsummer", "magpies_hoard", "great_dreamcatcher"]  # --cast=nocharge: the finals cast without its only Charged source (Thunderhead -> a 2nd Boulderback)
 var cast: Array = CAST
+var next_to: Array = []  # --next-to=puffball,lullaby_bell: the cast is planted first and each candidate goes beside one of these
 
 var main: Node
 var form_id := "dreamshroom"
@@ -51,7 +52,8 @@ func _run() -> void:
 			"--out": out_path = value
 			"--boss2": boss2 = value
 			"--rank": rank = int(value)
-			"--cast": cast = {"act1": CAST_ACT1, "nocharge": CAST_NOCHARGE}.get(value, CAST)
+			"--cast": cast = {"act1": CAST_ACT1, "nocharge": CAST_NOCHARGE, "finals": CAST}.get(value, Array(value.split(",")))  # or a list: --cast=rain_lily,rain_lily,…
+			"--next-to": next_to = Array(value.split(","))
 	ProjectSettings.set_setting("game/demo", false)  # The full game (as the user plays it)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
@@ -67,15 +69,19 @@ func _run() -> void:
 	dreams.unlock_everything = true
 	run_state.dew = 10000000
 	run_state.invulnerable = true
+	if not next_to.is_empty():  # The cast first, so the candidates can stand beside it
+		for id in cast:
+			_plant(placer, id)
 	for i in COPIES:
-		var tower := _plant(placer, form_id)
+		var tower := _plant(placer, form_id, next_to)
 		if tower == null:
 			printerr("could not plant %s" % form_id)
 			quit(1)
 			return
 		candidates.append(tower)
-	for id in cast:
-		_plant(placer, id)
+	if next_to.is_empty():
+		for id in cast:
+			_plant(placer, id)
 	if DamageLog.instance:
 		DamageLog.instance.damage_dealt.connect(_on_damage)
 	spawner.child_entered_tree.connect(func(n) -> void:
@@ -131,7 +137,8 @@ func _run() -> void:
 
 # Builds the base form on the best open cell next to the path, grows it to `id` and ranks it to `rank`,
 # all paid with Dew. Returns the Warden, or null.
-func _plant(placer: TowerPlacer, id: String) -> Tower:
+# `next_to`: only cells touching (8 around) a planted Warden whose id is in the list (Grafted Elder copies a neighbour).
+func _plant(placer: TowerPlacer, id: String, next_to: Array = []) -> Tower:
 	var chain := _chain_to(id)
 	if chain.is_empty():
 		return null
@@ -140,10 +147,20 @@ func _plant(placer: TowerPlacer, id: String) -> Tower:
 	var path: PackedVector2Array = map.get_path_from(map.startPath)
 	placer.tower_data = chain[0]
 	var tower: Tower = null
-	for i in range(4, path.size() - 2):
-		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-			var cell: Vector2 = path[i] + offset
-			if tower != null or path.has(cell) or not map.can_block(cell):
+	var spots: Array = []  # [[path index, cell], …] in the order to try
+	if next_to.is_empty():
+		for i in range(4, path.size() - 2):
+			for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+				spots.append(path[i] + offset)
+	else:  # Any free cell touching a target Warden (the 8 around), targets in planting order
+		for t in container.get_children():
+			if t is Tower and next_to.has(t.tower_data.get_id()):
+				for dx in [-1, 0, 1]:
+					for dy in [-1, 0, 1]:
+						spots.append(t.cell + Vector2(dx, dy))
+	for cell in spots:
+		if tower == null:
+			if path.has(cell) or not map.can_block(cell):
 				continue
 			var before := container.get_child_count()
 			if placer._try_build(cell):
@@ -228,7 +245,7 @@ func _report(director: DriftDirector) -> void:
 		"share": snappedf(damage / maxf(total, 1.0), 0.001), "rank": candidates[0].rank,
 		"hit": snappedf(split.hit / t, 0.01), "cloud": snappedf(split.cloud / t, 0.01), "status": snappedf(split.status / t, 0.01),
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
-		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else "finals"),
+		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "board_damage": roundi(total),
 		"bosses": ";".join(boss_fights.values().map(func(b) -> String: return "%s:%d:%s:%.0f:%d" % [b.kind, b.health, "1" if b.dispelled else "0", (b.end - b.spawn) if b.dispelled else -1.0, b.hp_arrive])),
 		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001)}
 	print("FINALS %s" % JSON.stringify(row))
