@@ -183,22 +183,43 @@ func _test_dewdrop() -> void:
 		_check(flyer.health < fly_hp, "…a flyer over it too")
 	await _clean()
 
-	# Undercurrent: a whirlpool draws a nightmare past its centre back toward it, never further.
+	# Undercurrent (tower_design.md 9fcb8cdf): a nightmare reaching the whirlpool pauses in the eddy, once, never
+	# moved backward; a boss pauses half as long.
 	var pool := _plant("undercurrent", _route_cell(9) + Vector2(0, 1))
 	var route := pool._route()
-	var ahead = _spawn(route[10])
-	ahead.set_path(route)
-	ahead._path_index = 11  # Walked past the whirlpool on its own route
-	var zone := BranchKit.GroundZone.new(pool, &"whirlpool", Tower.MAP_GRID.calculate_map_position(route[9]), 1.5 * CELL, 3.0, 0.25)
-	zone.gather = 0.6
-	zone.route_index = 9
-	zone.route_length = route.size()
-	main.add_child(zone)
-	var before: float = ahead.get_remaining_distance()
-	for i in 40:
+	var spinner = _spawn(route[9])
+	var boss = _spawn(route[9], "res://resource/enemy/old_stag.tres")
+	BranchKit.release(pool)  # It opens where the nightmares are
+	var start: Vector2 = spinner.global_position
+	for i in 20:
 		await process_frame
-	_check(ahead.is_dragged() or ahead.get_remaining_distance() > before, "the whirlpool draws a nightmare past its centre back toward it")
+	var pause := BranchKit.p(pool, "pause", 0.8)
+	_check(spinner.hold_time > 0.0 and spinner.hold_time <= pause and spinner.global_position == start and not spinner.is_dragged(),
+		"a nightmare reaching the whirlpool pauses in place, not dragged (%.2f s)" % spinner.hold_time)
+	if boss:
+		_check(boss.hold_time > 0.0 and boss.hold_time <= pause * 0.5 + 0.01, "a boss pauses half as long (%.2f s)" % boss.hold_time)
+	spinner.hold_time = 0.0
+	for i in 20:
+		await process_frame
+	_check(spinner.hold_time == 0.0, "only once per nightmare per whirlpool")
 	await _clean()
+
+	# A silenced Lantern Bearer's Wraiths are lost; they find the way when the silence ends.
+	var hush := _plant("hushbell", Vector2(6, 10))
+	var bearer: Node2D = spawner.spawn_enemy(load("res://resource/enemy/mother_duck.tres"))
+	bearer.set_process(false)
+	await process_frame
+	var wraiths: Array = bearer.dew_followers.filter(func(w) -> bool: return is_instance_valid(w))
+	for w in wraiths:
+		w.set_process(false)
+	BranchKit.silence(bearer, 1.0, hush)
+	_check(not wraiths.is_empty() and wraiths.all(func(w) -> bool: return w.lost), "a silenced Lantern Bearer's Wraiths are lost (%d)" % wraiths.size())
+	bearer.statuses.silence_time = 0.0
+	for i in 30:
+		await process_frame
+	_check(wraiths.all(func(w) -> bool: return not w.lost), "…and find the way again when the silence ends")
+	await _clean()
+
 
 	# Jetreed: an instant jet through a line, +50% on a Soaked nightmare.
 	var jet := _plant("jetreed", Vector2(4, 12))

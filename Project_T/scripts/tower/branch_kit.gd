@@ -167,12 +167,8 @@ static func _rain(tower: Tower) -> void:
 	zone.hits_flyers = true
 	zone.damage_per_second = p(tower, "dps", 12.0)
 	zone.status = EnemyStatuses.DAMP
-	# Eye of the Storm (a): its rain draws nightmares gently toward its centre.
-	zone.gather = 0.3 * tower.kin_share(EYE_OF_THE_STORM, "a")
-	if zone.gather > 0.0:
-		var route := tower._route()
-		zone.route_index = _nearest_index(route, at)
-		zone.route_length = route.size()
+	# Eye of the Storm (a): its rain draws nightmares in gently, a short eddy pause under it (never backward).
+	zone.pause = 0.3 * tower.kin_share(EYE_OF_THE_STORM, "a")
 	world(tower).add_child(zone)
 
 static func _nearest_index(route: PackedVector2Array, at: Vector2) -> int:
@@ -217,12 +213,10 @@ static func _whirl(tower: Tower) -> void:
 	var zone := GroundZone.new(tower, &"whirlpool", Tower.MAP_GRID.calculate_map_position(best), radius * CELL,
 		p(tower, "duration", 3.0), 0.25)
 	zone.damage_per_second = p(tower, "dps", 10.0)
-	zone.gather = p(tower, "gather", 0.6)
+	zone.pause = p(tower, "pause", 0.8)  # Maelstrom: 1.2 s (Balancing)
 	# Maelstrom Soaks; Eye of the Storm (b): the whirlpool is rained on.
 	if is_final(tower) or tower.kin_share(EYE_OF_THE_STORM, "b") > 0.0:
 		zone.status = EnemyStatuses.DAMP
-	zone.route_index = route.find(best)
-	zone.route_length = route.size()
 	world(tower).add_child(zone)
 
 # --- Jetreed / Torrent: an instant piercing jet ------------------------------------------------------------------
@@ -398,6 +392,10 @@ static func _update_silence(tower: Tower, delta: float) -> void:
 static func silence(enemy: Node2D, seconds: float, by: Tower) -> void:
 	var was: bool = enemy.statuses.silence_time > 0.0
 	enemy.statuses.silence_time = maxf(enemy.statuses.silence_time, seconds)
+	# The Procession's Lantern Bearer (tower_design.md 9fcb8cdf): silenced, its lantern goes dark and its Wraiths
+	# are lost, as if it had been dispelled first; they find the way again when the silence ends (SilenceWatch).
+	if not was and enemy.enemy_data.followers != null and not enemy.enemy_data.is_boss and is_instance_valid(by):
+		SilenceWatch.find(by).darken(enemy)
 	if not was and is_instance_valid(by) and by.attack_data.special == HUSH and Tower._kin_roll(by.kin_share(VESPERS, "b")):
 		by._apply_one_status(enemy, EnemyStatuses.DROWSY, 1, by.get_damage())
 
@@ -528,9 +526,10 @@ class GroundZone extends Node2D:
 	var damage_per_second := 0.0
 	var status: StringName = &""
 	var status_stacks := 1
-	var gather := 0.0  # Tiles a second drawn toward the centre (never backward past it)
-	var route_index := -1
-	var route_length := 0
+	# The eddy (tower_design.md 9fcb8cdf): a nightmare reaching it stops for this many seconds, a plain pause (not
+	# Held; Enemy.hold_time), once per nightmare per zone, bosses half; the ones behind catch up. Never backward.
+	var pause := 0.0
+	var _paused := {}  # Enemy instance ids already paused here
 	var _next := 0.0
 	var _duration := 3.0
 
@@ -560,7 +559,6 @@ class GroundZone extends Node2D:
 		return (maxf(d.x, d.y) <= radius) if square else (e.global_position.distance_to(global_position) <= radius)
 
 	func _tick() -> void:
-		var centre_left := (route_length - 1 - route_index) * CELL if route_index >= 0 else -1.0
 		for e in BranchKit.targetable(tower):
 			if (e.is_flying() and not hits_flyers) or not _inside(e):
 				continue
@@ -570,11 +568,9 @@ class GroundZone extends Node2D:
 				continue
 			if status != &"":
 				tower._apply_one_status(e, status, status_stacks, tower.get_damage())
-			if gather > 0.0 and centre_left >= 0.0 and not e.is_flying():
-				# Toward the centre: only nightmares already past it are drawn back, never beyond it.
-				var past: float = centre_left - e.get_remaining_distance()
-				if past > 2.0:
-					e.push_back(minf(gather * CELL * tick, past))
+			if pause > 0.0 and not e.is_flying() and not _paused.has(e.get_instance_id()):
+				_paused[e.get_instance_id()] = true
+				e.hold_time = maxf(e.hold_time, pause * (0.5 if e.enemy_data.is_boss else 1.0))  # It spins in the eddy
 
 	func _draw() -> void:
 		var fade := clampf(left / 0.5, 0.0, 1.0)
@@ -664,6 +660,51 @@ class InkField extends Node:
 
 	func ink_at(cell: Vector2) -> bool:
 		return cells.has(cell) and _clock < cells[cell][0]
+
+
+# Silenced Lantern Bearers: their Wraiths are lost until the silence ends (a dispel keeps them lost for good).
+class SilenceWatch extends Node:
+	const TICK := 0.25
+	var leaders := {}  # Leader instance id -> [leader, [Wraiths it set lost]]
+	var _next := 0.0
+
+	static func find(near: Node) -> SilenceWatch:
+		var scene := BranchKit.world(near)
+		var found: SilenceWatch = scene.get_node_or_null("SilenceWatch") if scene else null
+		if found == null and scene:
+			found = SilenceWatch.new()
+			found.name = "SilenceWatch"
+			scene.add_child(found)
+		return found
+
+	func darken(leader: Node2D) -> void:
+		var lost: Array = leaders.get(leader.get_instance_id(), [leader, []])[1]
+		for f in leader.dew_followers:
+			if is_instance_valid(f) and not f.is_cleansed and not f.lost:
+				f.set_lost()
+				lost.append(f)
+		leaders[leader.get_instance_id()] = [leader, lost]
+
+	func _process(delta: float) -> void:
+		_next -= delta
+		if _next > 0.0:
+			return
+		_next = TICK
+		for id in leaders.keys():
+			var leader = leaders[id][0]
+			if not is_instance_valid(leader) or leader.is_cleansed:
+				leaders.erase(id)  # Dispelled: its Wraiths stay lost (the spawner's rule)
+				continue
+			if leader.statuses.silence_time > 0.0:
+				continue
+			for f in leaders[id][1]:
+				if is_instance_valid(f) and not f.is_cleansed:
+					f.lost = false  # The lantern lights again: they find the way
+					f._speed_stale = true
+			leaders.erase(id)
+
+	func is_darkened(leader: Node2D) -> bool:
+		return leaders.has(leader.get_instance_id())
 
 
 # Jarlink arcs, drawn in one layer (one per run scene): note() each frame for each linked pair.
