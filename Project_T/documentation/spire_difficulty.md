@@ -305,3 +305,10 @@ full game (`game/demo` false), and the demo reads main's exports.
   two jars (jar cells excluded; side-by-side jars make no arc). Corridor probe queued.
 - 2026-10-02: Jarlink links to the nearest jar that makes an arc, and the build ghost shows the arc
   (**f8d69e40**, usability).
+- 2026-10-02: **re-probe on 706d5d3e** (n = 6 per row): in band Inkcap 1.02, Sparkler 0.74, Thrum 0.58
+  (× Driftspore); Nimbus 1.00 / 0.85, Torrent 0.89 / 1.02 (× Puffball). Low: Jetreed 0.44, Undercurrent 0.18,
+  Maelstrom 0.44 / 0.38, Prism Jar 0.07 / Rainbow Prism 0.15 (their boards leak more), Silver Bell 0.05
+  (board leak 0.43 vs 0.29), Hushbell (0.72 vs 0.65). **Round 2:** Jetreed 40; Undercurrent 35 dmg/s;
+  Maelstrom 50 dmg/s + link 0.45; Prism Jar hit 45, Rainbow 120; Silver Bell 80, Vesper Bell 180;
+  Hushbell 30, Silence 60. (Supports get real damage: an aura or control alone couldn't hold a slot.)
+- 2026-10-02: round 2 in **423887aa** (Tower Code, after Main's merge adb6c0d8). Re-probe queued.
