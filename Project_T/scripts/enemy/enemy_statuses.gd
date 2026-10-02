@@ -105,6 +105,7 @@ var tempest_time := 0.0
 var gust_time := 0.0
 var prism_pending := false
 var smother_ended := false
+var every_hits := {}  # Warden instance id -> hits on this nightmare (TowerData.status_every counts per nightmare)
 var veil_time := 0.0  # Morning Fog's Veil (FinalTwists): while > 0 it can't be healed (Enemy.heal reads it)
 var marked_extra := 0.0  # Beacon: its Marked is stronger (+35% instead of +25%) until Marked ends
 var marked_bonus := 0.0  # Bright Marks (Dream): added to either (the nightmare sets it each frame)
@@ -156,6 +157,11 @@ func mark_chain(count: int, towers: Array, window: float = 1.0) -> void:
 		chain_count = count
 		chain_towers = towers
 	chain_time = maxf(chain_time, window)
+
+# One more hit from the Warden `key` (its instance id); returns how many it has landed on this nightmare.
+func count_hit(key: int) -> int:
+	every_hits[key] = int(every_hits.get(key, 0)) + 1
+	return every_hits[key]
 
 func is_on_cooldown(reaction: StringName) -> bool:
 	return reaction_cooldowns.get(reaction, 0.0) > 0.0

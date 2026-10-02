@@ -1338,6 +1338,7 @@ func _any_rule(key: StringName, rules: Array[StringName]) -> bool:
 var _aim_idle := 0.0
 var _last_release := 0.0
 var _area_count := 0  # Nightmares the current area attack hits (Crowd Breaker)
+var _status_pulse_hits: Array[Vector2] = []  # Where this pulse's status_every status landed (DrowsyRing motes)
 var _shiny: Array[float] = []  # Shiny Things: _anim_time each stolen buff runs out
 
 func _card_hit_multiplier(enemy: Node2D, is_area: bool) -> float:
@@ -1467,6 +1468,7 @@ func _release_attack() -> void:
 		TowerData.AttackKind.PULSE:
 			var in_range := get_enemies_in_range()
 			_area_count = in_range.size()
+			_status_pulse_hits.clear()
 			var statics := 0
 			if attack_data.rain:
 				var world := Reactions._world(self)
@@ -1491,6 +1493,8 @@ func _release_attack() -> void:
 			if attack_data.pulse_hold_every > 0 and _attack_count % attack_data.pulse_hold_every == 0:
 				_pulse_hold(in_range)
 			_kin_chime_catch(in_range)
+			if not _status_pulse_hits.is_empty():
+				DrowsyRing.play(self, get_range_pixels(), _status_pulse_hits)  # Bellflower: this pulse brought Drowsy
 		TowerData.AttackKind.CHAIN:
 			var target := find_target()
 			if target != null:
@@ -1785,9 +1789,14 @@ func _give_crit_dew(where: Vector2) -> void:
 	_dream_state.run_state.earn_dew_at(attack_data.crit_dew, where)
 
 func apply_status_to(enemy: Node2D, soothe: float) -> void:
-	# Bellflower: its Drowsy only comes with every Nth pulse.
-	if attack_data.status_every <= 1 or _attack_count % attack_data.status_every == 0:
+	# Bellflower: its Drowsy only comes with every Nth pulse on that nightmare (counted per nightmare, so one
+	# walking in on an odd pulse still gets it on its 2nd).
+	if attack_data.status_every <= 1:
 		_apply_one_status(enemy, attack_data.applies_status, attack_data.status_stacks, soothe)
+	elif enemy.statuses.count_hit(get_instance_id()) % attack_data.status_every == 0:
+		_apply_one_status(enemy, attack_data.applies_status, attack_data.status_stacks, soothe)
+		if _status_pulse_hits.size() < DrowsyRing.MAX_MOTES:
+			_status_pulse_hits.append(enemy.global_position)
 	if attack_data.extra_status != &"":
 		_apply_one_status(enemy, attack_data.extra_status, attack_data.extra_status_stacks, soothe)  # Lullaby Bell
 	if _kin_roll(kin_share(&"slumber_rot", "a")):
