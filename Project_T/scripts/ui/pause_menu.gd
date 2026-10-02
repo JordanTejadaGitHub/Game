@@ -65,7 +65,7 @@ func _ready() -> void:
 	_save_button = _add_button("Save & Quit", _save_and_quit)
 	_add_button("Abandon run", func() -> void: _confirm_abandon.popup_centered())
 	_add_button("Quit game", func() -> void: get_tree().quit())
-	_whispers_toggle.text = "Heartwood whispers"
+	_whispers_toggle.text = "Hints"  # The Heartwood's hints (were "Heartwood whispers")
 	_whispers_toggle.focus_mode = Control.FOCUS_NONE
 	_whispers_toggle.toggled.connect(_set_whispers)
 	_menu.add_child(_whispers_toggle)

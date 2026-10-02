@@ -106,7 +106,11 @@ func _ready() -> void:
 	_choice(display, "Effects quality", EFFECTS_SETTING, ["Full", "Reduced"], 0)
 
 	var gameplay := _tab("Gameplay")
-	_toggle(gameplay, "Heartwood whispers", "whispers", true, "Short hints the first time something happens.")
+	# Hints (user, 2026-10-01: "update it to hints"; were "Heartwood whispers"): the Heartwood's lines the first time
+	# something happens, and under them the Growth marks (GrowHints), so hints live in one place.
+	_toggle(gameplay, "Hints", "whispers", true, "The Heartwood's short hints, the first time something happens.")
+	var growth_marks := _toggle(gameplay, "Growth marks", GrowHints.SETTING, true, "At rests, a gold ↑ on Wardens that can grow now and a dot when a rank is affordable.")
+	growth_marks.get_parent().get_child(0).custom_minimum_size.x = 36  # Indented under Hints (its dot holds the space)
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"], 0)
 	_choice(gameplay, "Warden DPS tags", DpsTags.SETTING, ["Rests only", "Always", "Off"], 0)
@@ -118,7 +122,6 @@ func _ready() -> void:
 	# Omens (run_design.md "Ask first"): "ask" at each Omen rest, or "never" = always Clear Skies.
 	_choice_values(gameplay, "Omens", OmenDirector.MODE_SETTING, ["Ask each rest", "Never"], ["ask", "never"], "ask")
 	_choice(gameplay, "Health bars", "health_bars", ["On hit", "Always"], 0)
-	_toggle(gameplay, "Growth hints", GrowHints.SETTING, true, "At rests, a gold ↑ on Wardens that can grow now and a dot when a rank is affordable.")
 
 	var box := _tab("Accessibility")
 	_toggle(box, "Reduced motion", "reduced_motion")

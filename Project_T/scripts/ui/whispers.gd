@@ -2,7 +2,8 @@ extends RichTextLabel
 
 # Heartwood whispers (onboarding.md): one-line italic hints at the top of the screen, in the story's
 # voice, each shown the first time it matters and then never again (remembered in HeartwoodMemory).
-# Off when the "Heartwood whispers" setting is off. Mostly polls simple conditions each frame, so it
+# Off when the "Hints" setting is off (player-facing "Hints" since 2026-10-01; the code keeps "whispers").
+# Mostly polls simple conditions each frame, so it
 # needs no hooks in the systems it teaches.
 
 const SHOW_TIME := 5.0
@@ -13,7 +14,7 @@ const TEXT := {
 	&"walls": "Wardens are walls. Make them take the long way.",
 	&"flow": "They don't stop. They come in {drifts}, like fog.",
 	&"speed": "Pause if you need to think. They'll wait.",
-	&"rest": "Rest here. Rearrange the forest; nothing is lost.",
+	&"rest": "Rest here. Rearrange the forest while they're gone.",  # (Rests refund 75%, not everything: onboarding.md)
 	&"save": "The forest will wait for you.",
 	&"cage": "A dream can bend, but never close.",
 	&"grow": "That %s could grow. Click it.",  # The Warden's name (GrowHints, the first rest one can grow)
@@ -25,11 +26,11 @@ const TEXT := {
 	&"chain": "One reaction set off another: a chain. Reach 10 for a Dawnburst.",
 	&"leaf": "It fed. A leaf blackens and falls.",
 	&"flyer": "Some of them don't walk. Guard the ground near the Heartwood.",
-	&"sell": "Selling gives everything back during a {rest}, and half while nightmares walk.",
+	&"sell": "Selling gives back most of it during a {rest}, and half while nightmares walk.",  # 75% / 50% (TowerSeller)
 	&"boss": "Something old has found the dream.",
 	&"after_boss": "It's gone, and something I'd forgotten came back.",
 	&"again": "The Heartwood dreams again.",
-	&"damp": "{damp}: slower, and lightning loves it.",
+	&"damp": "{damp}: water hits it harder, and lightning loves it.",  # Soaked no longer slows (IconInfo)
 	&"drowsy": "{drowsy}: heavy-eyed and slow.",
 	&"spored": "{spored}: the poison keeps eating at it.",
 	&"marked": "{marked}: every Warden hits it harder.",
