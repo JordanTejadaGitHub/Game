@@ -673,7 +673,7 @@ without (87% of its damage is Thunderclap): a combo final, no change. Puffball l
 Thunderhead (cause not traced). **Bell: damage 123 → 80 and set-off at 4 stacks (was 3)**, expected
 ~0.95× / ~1.5×; re-probe (band ~0.9–1.5×, area finals scale with crowds).
 Why Puffball halves without Thunderhead: **Ignite** (Spored 3+ and Static → Spored ticks ×3 for 3 s,
-re-fired while Static keeps coming). A combo working as designed: no change. But its extra ticks were
+re-fired while Static keeps coming): measured, 63% of Puffball's damage with Thunderhead (183k vs 76k per Warden without). A combo working as designed: no change. But its extra ticks were
 tagged only "spored", invisible to combo feedback and the sims: Tower Code tags them "ignite".
 
 **Act 2 boss too hard** (user: *"is the boss too hard? Didn't feel close to killing it"*): **0 of 3**
