@@ -355,7 +355,7 @@ static func _starfall(enemy: Node2D, tower: Tower) -> void:
 		if other != enemy:
 			_segment(&"thunderclap_arc", other.global_position, enemy.global_position, enemy, 0.3)
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
-			enemy.take_damage(bolt, "light", false, true, applier, &"starfall")
+			enemy.take_damage(_rx(enemy, bolt), "light", false, true, applier, &"starfall")
 
 # Avalanche (a lob's Shatter): every Damp + Held nightmare under the lob Shatters too (×2.5 of the
 # lobber's hit). Mountain's Fall: rubble where each spread Shatter lands.
@@ -372,7 +372,7 @@ static func _avalanche(enemy: Node2D, tower: Tower) -> void:
 		o.remove(HELD)
 		_touch(other, o.chain_count if o.chain_time > 0.0 else 1, [tower])
 		_effect(&"shatter", other.global_position, enemy)
-		other.take_damage(tower.get_damage() * SHATTER_MULTIPLIER, tower.tower_data.line, true, false, tower,
+		other.take_damage(_rx(other, tower.get_damage() * SHATTER_MULTIPLIER), tower.tower_data.line, true, false, tower,
 			&"avalanche")
 		if is_instance_valid(other):
 			rubble.append(Tower.MAP_GRID.calculate_grid_coordinates(other.global_position))
@@ -392,7 +392,7 @@ static func shatter_splash(enemy: Node2D, tower: Tower, dealt: float) -> void:
 	var reach := (PRISM_REACH[level] if prism else 1.0) + _storm_front(enemy)
 	for other in _others_within(enemy, reach):
 		_touch(other, chain, [tower])
-		other.take_damage(dealt * SHATTER_SPLASH, tower.tower_data.line, true, false, tower, &"shatter")
+		other.take_damage(_rx(other, dealt * SHATTER_SPLASH), tower.tower_data.line, true, false, tower, &"shatter")
 		if prism and is_instance_valid(other) and not other.is_cleansed:
 			other.apply_status(STATIC, PRISM_STATIC[level], 0.0, tower.get_damage(), 0, "light", tower)
 
@@ -407,13 +407,13 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 	if rod == null:
 		var at := target.global_position
 		var tracker := ReactionTracker.find(target) if tag == &"static" else null  # Found first: the bolt may dispel it
-		target.take_damage(damage, "light", false, false, tower, tag)
+		target.take_damage(damage if tag == &"static" else _rx(target, damage), "light", false, false, tower, tag)  # A Charged bolt isn't a Reaction
 		if tag == &"static":
 			var reach := _static_field(target, at, damage, tower)
 			_bolt_seen(target, at, damage, reach, tracker)
 		return target
 	_fire(rod, &"lightning_rod", [tower] if tower else [], true)
-	rod.take_damage(damage * ROD_MULTIPLIER, "light", false, false, tower, &"lightning_rod")
+	rod.take_damage(_rx(rod, damage * ROD_MULTIPLIER), "light", false, false, tower, &"lightning_rod")
 	return rod
 
 # A Charged bolt struck at `at` (screens_ui.md "Charged bolt"): the bolt and spark burst (ChargedBolt, budgeted),
@@ -496,7 +496,7 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 		var at: Vector2 = enemy.global_position
 		arcs.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
 		arcs = arcs.slice(0, max_arcs)
-	enemy.take_damage(base * THUNDERCLAP_DAMAGE, _line(tower, "light"), false, false, tower, &"thunderclap")
+	enemy.take_damage(_rx(enemy, base * THUNDERCLAP_DAMAGE), _line(tower, "light"), false, false, tower, &"thunderclap")
 	for other in arcs:
 		if not is_instance_valid(other) or other.is_cleansed:
 			continue
@@ -537,7 +537,7 @@ static func burn(enemy: Node2D, spore_source: Node, chain: int = 1, carry_static
 		static_source: Node = null) -> void:
 	var s: EnemyStatuses = enemy.statuses
 	var dreams := _dreams(enemy)
-	var sparking: float = dreams.get_ignite_multiplier() if dreams and dreams.has_method("get_ignite_multiplier") else 1.0
+	var sparking: float = dreams.get_ignite_multiplier(enemy) if dreams and dreams.has_method("get_ignite_multiplier") else 1.0  # Sparking Spores: from 5 Poisoned (read before anything spends them)
 	s.burn_rate = BURN_SPORE_RATE * sparking
 	var already := s.burn_time > 0.0
 	s.burn_time = maxf(s.burn_time, BURN_TIME)
@@ -735,7 +735,7 @@ class PullUnder extends Node:
 		_next += 1.0
 		_second += 1
 		var step: float = Reactions.PULL_UNDER_STEP * (Reactions.DEEP_WATER_GROWTH if deep else 1.0)
-		enemy.take_damage(applier.get_damage() * step * _second, applier.tower_data.line, true, false, applier, &"drown")
+		enemy.take_damage(Reactions._rx(enemy, applier.get_damage() * step * _second), applier.tower_data.line, true, false, applier, &"drown")
 
 # Marked + (Held or asleep or full Drowsy): the next Warden hit is a guaranteed ×3 crit. Uses up Marked.
 static func _pinned(enemy: Node2D, source: Node) -> void:
@@ -789,7 +789,7 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 				s.pinned = true
 			_:
 				if strength > 0.0:
-					enemy.take_damage(strength * share, _line(applier, echo_tower.tower_data.line), true, false,
+					enemy.take_damage(_rx(enemy, strength * share), _line(applier, echo_tower.tower_data.line), true, false,
 						echo_tower, &"echo")
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
 			echo_tower.resonant_set_off(enemy)  # Resonant Hollow: the echo rings like a chime
@@ -871,7 +871,7 @@ static func _dawnburst(enemy: Node2D) -> void:
 	for other in _field(enemy):
 		if other.global_position.distance_to(at) <= DAWNBREAK_REACH * CELL:
 			var share := DAWNBREAK_BOSS_SHARE if other.enemy_data.is_boss else DAWNBREAK_SHARE
-			other.take_damage(other.max_health * share, "", true, false, null, &"dawnbreak")
+			other.take_damage(_rx(other, other.max_health * share), "", true, false, null, &"dawnbreak")
 
 
 # --- Helpers ----------------------------------------------------------------------------------------
@@ -904,7 +904,7 @@ static func carry(id: StringName, enemy: Node2D, seed_tower: Tower, applier: Tow
 		_:
 			var strength: float = ECHO_DAMAGE.get(base, 2.0)
 			var damage := (applier.get_damage() if is_instance_valid(applier) else seed_tower.get_damage())
-			enemy.take_damage(strength * damage * CARRIED_SHARE, _line(applier if is_instance_valid(applier) else seed_tower,
+			enemy.take_damage(_rx(enemy, strength * damage * CARRIED_SHARE), _line(applier if is_instance_valid(applier) else seed_tower,
 				seed_tower.tower_data.line), true, false, seed_tower, &"carried_storm")
 
 static func _field(near: Node2D) -> Array:
@@ -928,6 +928,12 @@ static func _towers(a = null, b = null) -> Array:
 		if is_instance_valid(t) and t is Tower and not list.has(t):
 			list.append(t)
 	return list
+
+# Reaction damage after Quick Reactions' cut (DreamState.get_reaction_damage_multiplier: 0.65 with the card, Balancing;
+# dream_design.md 83c40cd7). Every Reaction's damage goes through it; Charged bolts and Static Field don't (not Reactions).
+static func _rx(near: Node, amount: float) -> float:
+	var dreams := _dreams(near)
+	return amount * (dreams.get_reaction_damage_multiplier() if dreams and dreams.has_method("get_reaction_damage_multiplier") else 1.0)
 
 static func _applier_damage(tower: Tower, fallback: float) -> float:
 	return tower.get_damage() if tower != null else fallback

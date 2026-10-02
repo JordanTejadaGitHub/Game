@@ -170,6 +170,29 @@ func _run() -> void:
 	_check(not glass.statuses.has(EnemyStatuses.DAMP) and puddle.statuses.has(EnemyStatuses.DAMP), "Rain on Glass: light hits dry the Soaked, others don't")
 	await _clean()
 
+	# Sparking Spores (Roguelite e328fb55): Ignite burns hotter only from 5 Poisoned.
+	_take("sparking_spores")
+	var lighter := _plant("sporeling", Vector2(2, 4))
+	var four = _spawn(Vector2(6, 10))
+	var five = _spawn(Vector2(10, 10))
+	four.apply_status(EnemyStatuses.SPORED, 4, 0.0, 10.0, 0, "spore", lighter)
+	five.apply_status(EnemyStatuses.SPORED, 5, 0.0, 10.0, 0, "spore", lighter)
+	Reactions.burn(four, lighter)
+	Reactions.burn(five, lighter)
+	_check(is_equal_approx(four.statuses.burn_rate, Reactions.BURN_SPORE_RATE) and five.statuses.burn_rate > Reactions.BURN_SPORE_RATE,
+		"Sparking Spores: hotter from 5 Poisoned, not at 4 (%.2f / %.2f)" % [four.statuses.burn_rate, five.statuses.burn_rate])
+	await _clean()
+
+	# Quick Reactions (Roguelite e328fb55): Reactions deal 35% less; a Charged bolt isn't a Reaction.
+	var plain_clap := Reactions._rx(main, 100.0)
+	_take("quick_reactions")
+	_check(is_equal_approx(plain_clap, 100.0) and is_equal_approx(Reactions._rx(main, 100.0), 100.0 * dreams.get_reaction_damage_multiplier())
+		and dreams.get_reaction_damage_multiplier() < 1.0, "Quick Reactions: Reaction damage ×%.2f" % dreams.get_reaction_damage_multiplier())
+	var bolted = _spawn(Vector2(12, 4))
+	Reactions.strike_bolt(bolted, 100.0, null)
+	_check(bolted.max_health - bolted.health >= 99, "…a Charged bolt keeps its full damage (%d)" % (bolted.max_health - bolted.health))
+	await _clean()
+
 	print("combo costs test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	Kinships.force_full = false
 	main.queue_free()
