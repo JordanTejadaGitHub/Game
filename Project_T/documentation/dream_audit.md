@@ -173,9 +173,12 @@ for the same rarity.
 
 ## New rules that come with it
 
-1. **Builds pay off (tag resonance):** each card you own with a tag makes the **next** cards of that
-   tag **+10% stronger** (their numbers, not their rules), up to +50%. Shown on the card: *"+20% from
-   2 spore cards"*. Committing beats grabbing the biggest number. Generic cards (no tag) don't resonate.
+1. ~~**Builds pay off (tag resonance):** each card you own with a tag makes the next cards of that
+   tag +10% stronger, up to +50%.~~ **Removed 2026-10-02** (user: *"keep the card amount for now,
+   remove the resonance, check every card's text"*). Every card does exactly what its text says,
+   always: no shared-tag scaling, no "+X% from …" lines. **No numbers are re-based:** every card was
+   sized to its rarity budget (above) without Resonance, which was a bonus on top, so cards simply
+   return to budget (Balancing Discussion signs off; the user's playtests found runs too strong).
 2. ~~The first Dream is a keystone~~ **Rejected** (user: "too forgiving and too narrow of a path"):
    the drift-5 offer stays a normal offer. Finding a direction is the player's job.
 3. **Nightmares rise with the cards:** once the pass is in, Tower Code raises nightmare health until

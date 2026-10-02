@@ -314,6 +314,14 @@ func get_attack_origin() -> Vector2:
 	return _origin_from_json if _origin_from_json is Vector2 else attack_origin
 
 # Region of `texture` holding idle frame `frame`.
+# Where the sprite sits so its slab is on the cell: sprite_offset when a .tres sets it (the Sapling), else from the
+# frame height (Tower Assets 2026-10-02: regular art is 64×80, tall 64×96, Ascended 128): the body is the bottom 64
+# rows, so a frame h tall moves up (h − 64) / 2.
+func get_sprite_offset() -> Vector2:
+	if sprite_offset != Vector2.ZERO or texture == null:
+		return sprite_offset
+	return Vector2(0, -(texture.get_height() - 64) / 2.0)
+
 func get_frame_rect(frame: int) -> Rect2:
 	var size := Vector2(texture.get_width() / float(frame_count), texture.get_height())
 	return Rect2(Vector2(size.x * frame, 0), size)

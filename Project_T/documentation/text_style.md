@@ -31,7 +31,9 @@ list at the end tracks the first sweep.
 kept slipping:
 - **Families and damage types are names:** "Any Nestling-family final form" (not "any wing final
   form"), "Spore cards", "Water damage". Internal line ids (wing, acorn, song…) never reach the player.
-- **Same-tag (resonance) lines name the cards, not the tag** (2026-10-01, user: *"what are wide cards?"*): *"+10% from Seedfall"*, *"+20% from Soft Spores, Damp Rot"* (more than 2: *"… and 2 more"*, hover lists all). Internal archetype words (wide, narrow, affliction, tempo…) never reach the player.
+- ~~Same-tag (resonance) lines~~ **Removed 2026-10-02** with tag Resonance itself (user: "remove the
+  resonance"): no "+X% from …" lines anywhere. What stays from that rule: **internal archetype words**
+  (wide, narrow, affliction, tempo…) **never reach the player.**
 - **Card tags on screen:** tags that are names are capitalised (Spore, Water, Kinship, Reaction,
   Sprout, Thornwall, Nurture); plain categories stay lowercase (economy, maze, tempo, crit, wide,
   narrow, status): *"+20% from 2 Spore cards"*, *"+10% from 1 economy card"*.

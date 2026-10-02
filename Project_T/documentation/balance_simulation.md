@@ -722,6 +722,25 @@ on target for a fresh profile (and act 1's "teaches" side holds). Decisions:
 "Never grew a Warden" is partly that; **her economy (plant-only) is not a fresh player's normal.** Since
 c8d1fc33 the always-on Growth hint marks are a separate setting from whispers.
 
+## Combo share of damage (user-approved, 2026-10-02)
+
+The user's Warden panels showed 52–76% of damage "from combos". **Target: in a good build, combos and
+Reactions make ~25–40% of all damage**: a real boost, not the majority. Measured as (combo bonus
+amounts + Reaction damage) ÷ total damage, by block, for the bot (Balancing Code, on the Dreams-vs-skip
+batch) and in the run history (Main Merger adds `combo_damage` / `reaction_damage` / `status_damage` /
+`combo_share`; the record only had counts). Levers if far above: lower Reaction base damage, raise
+Wardens' direct damage, or both. Main first, the Spire branch after.
+**Combo cards as choices** (dream_design.md 784680b2): power signed off, with **Quick Reactions'**
+trade set at **−35%** Reaction damage (not −25%: double frequency × 0.75 was still +50%). Pick rates vs
+same-rarity cards are checked once offers are logged.
+
+## Tag Resonance removed (user, 2026-10-02; dream_audit.md a6628056)
+
+Resonance (+10% per same-tag card, max +50%) was a bonus on top of rarity-budgeted cards, so **no
+re-basing** (agreed with Roguelite Mechanic Discussion; fits "runs too strong / cards handed to me").
+Removal in 854a537e. Check: Dreams vs skip on main (act 1 targets: Balanced ~75%, skip clearly
+lower); specific cards are raised only if builds fall short.
+
 ## Caveat: fresh-profile sims ran as the demo (found 2026-10-02)
 
 Until e3f3a211, every **fresh** sim ran as the demo (`game/demo` true under `--script`): act 1–2 bosses

@@ -62,7 +62,7 @@ const STARLIT_AIM_CRIT := 0.25
 const FULL_MOON_CRIT := 0.10
 const RECKLESS_CRIT := 0.30
 const RECKLESS_PENALTY := 0.15
-# The 10 card builds (dream_design.md "Pool trim", layer 2): the tags resonance, the Stray slot and build_packages
+# The 10 card builds (dream_design.md "Pool trim", layer 2): the tags the Stray slot and build_packages
 # read. Build-tag steering is off (2026-09-30, user: "change their build depending on the random cards they get,
 # not send them down a path"): tag_weight 1.0 and no Tall / Overgrowth opposition.
 const ARCHETYPE_TAGS: Array[String] = ["tall", "overgrowth", "daring", "precision", "affliction", "maze",
@@ -1393,7 +1393,7 @@ func get_status_strength_multiplier(status: StringName) -> float:
 	var bonus := 0.0
 	for card in _taken_cards():
 		if card.status_id == status:
-			bonus += card.status_strength_bonus * stacks[card.id] * resonance(card)
+			bonus += card.status_strength_bonus * stacks[card.id]
 	if SLOW_STATUSES.has(status) and has_rule(&"heavy_air"):
 		bonus += HEAVY_AIR_BONUS * rule_power(&"heavy_air")  # Heavy Air: every slow 20% stronger
 	return 1.0 + bonus
@@ -1405,7 +1405,7 @@ func get_status_duration(data: TowerData, status: StringName) -> float:
 	for card in _taken_cards():
 		if card.status_id != status or not _applies_to(card, data):
 			continue
-		duration += card.status_duration_add * stacks[card.id] * resonance(card)
+		duration += card.status_duration_add * stacks[card.id]
 		multiplier *= pow(card.status_duration_multiplier, stacks[card.id])
 	duration += LASTING_DREAMS_PER * rule_stacks(&"lasting_dreams")  # Lasting Dreams: every status +1 s
 	return duration * multiplier
@@ -1473,7 +1473,7 @@ func get_rest_bonus_add() -> int:
 	for card in _taken_cards():
 		add += card.rest_bonus_add * stacks[card.id]
 	if has_rule(&"winding_path"):
-		add += roundi(path_length / WINDING_PATH_TILES * rule_power(&"winding_path"))  # Winding Path: +1 Dew per 5 path tiles (resonance scales it)
+		add += roundi(path_length / WINDING_PATH_TILES * rule_power(&"winding_path"))  # Winding Path: +1 Dew per 5 path tiles
 	return add
 
 # Dew to clear `data` (Cleared Ground: −40% per stack, never below 1 Dew).
@@ -1592,23 +1592,22 @@ func is_beside_bend(cell: Vector2, reach: int = 1) -> bool:
 func get_stat_bonus(data: TowerData, stat: String) -> float:
 	return _sum_stat(data, stat)
 
-# Cached per card set (Wardens ask on every stat rebuild; 3x perf bar): cleared when _taken_cards() rebuilds
-# or a resonance is locked.
+# Cached per card set (Wardens ask on every stat rebuild; 3x perf bar): cleared when _taken_cards() rebuilds.
 var _stat_sums := {}  # stat -> {TowerData: total}
-var _stat_sums_of: Array = [null, -1]  # [the _taken_cards() array, _resonance.size()]
+var _stat_sums_of: Array = [null]  # [the _taken_cards() array]
 
 func _sum_stat(data: TowerData, stat: String) -> float:
 	var taken := _taken_cards()
-	if not is_same(_stat_sums_of[0], taken) or _stat_sums_of[1] != _resonance.size():
+	if not is_same(_stat_sums_of[0], taken):
 		_stat_sums.clear()
-		_stat_sums_of = [taken, _resonance.size()]
+		_stat_sums_of = [taken]
 	var by_data: Dictionary = _stat_sums.get_or_add(stat, {})
 	if by_data.has(data):
 		return by_data[data]
 	var total := 0.0
 	for card in taken:
 		if _applies_to(card, data):
-			total += float(card.get(stat)) * stacks[card.id] * resonance(card)
+			total += float(card.get(stat)) * stacks[card.id]
 	by_data[data] = total
 	return total
 
@@ -1666,9 +1665,6 @@ func _update_bends() -> void:
 # --- Taking cards -------------------------------------------------------------------------------------
 
 func take(card: UpgradeData) -> void:
-	if card_stacks(card.id) == 0:  # The first copy this run locks it
-		var preview := resonance_preview(card)
-		_resonance[card.id] = {"power": 1.0 + preview.bonus, "tag": preview.tag, "count": preview.count, "cards": preview.cards}  # Locked when taken
 	if unlocks_clearing(card) and not can_clear():
 		clearing_opened_by = card.id  # "Unlocked clearing" in Dreams this run and the Codex
 	for family in half_dreamed_missing(card):  # The next family pick will include one of them
@@ -2349,7 +2345,6 @@ func to_save() -> Dictionary:
 		"clearing_opened_by": clearing_opened_by,
 		"free_first_clears": free_first_clears,
 		"cleared_kinds": cleared_kinds.keys().map(func(cell: Vector2) -> Array: return [cell.x, cell.y, cleared_kinds[cell]]),
-		"resonance": _resonance.duplicate(),
 		"grown_wardens": grown_wardens.keys(),
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
@@ -2421,7 +2416,7 @@ func load_save(data: Dictionary) -> void:
 	cleared_kinds.clear()
 	for entry in data.get("cleared_kinds", []):
 		cleared_kinds[Vector2(entry[0], entry[1])] = String(entry[2])
-	_resonance = data.get("resonance", {}).duplicate()
+	# An old save's "resonance" key is ignored (tag resonance was removed)
 	_legendary_next = int(data.get("legendary_next", 0))
 	_refill_bark()  # Saved at a rest, where Thick Bark is full again
 	dreamlight = int(data.get("dreamlight", 0))
@@ -3713,79 +3708,11 @@ func get_swoop_return_multiplier() -> float:
 	return HOMING_SPEED[rule_level(&"homing_instinct")] if has_rule(&"homing_instinct") else 1.0
 
 
-# --- Tag resonance (dream_audit.md "Builds pay off", 2026-09-30) ------------------------------------
-# Each card you own with a tag makes later cards of that tag +RESONANCE_PER stronger (their numbers,
-# not their rules), up to +RESONANCE_MAX: counted on the card's best-represented tag and locked when the
-# card is taken. Untagged (generic) cards neither resonate nor count. Applied to stat and status
-# numbers (_sum_stat, statuses), DreamEffects rows (damage / speed / range) and the per-hit rules
-# here; other scripts scale their rule numbers with rule_power(rule_id).
-const RESONANCE_PER := 0.10
-const RESONANCE_MAX := 0.50
-const NOT_RESONANT: Array[String] = ["bittersweet", "opener"]  # Structural tags, not builds
-
-var _resonance := {}  # Card id -> {power, tag, count} locked when it was taken (saved)
-var resonance_enabled := true  # Tests of single-card numbers turn it off; test_dreams checks the rule
-
-# The resonance a card would get if taken now: {bonus, tag, count} (bonus 0 = none).
-func resonance_preview(card: UpgradeData) -> Dictionary:
-	var best := {"bonus": 0.0, "tag": "", "count": 0, "cards": []}
-	if card == null or not resonance_enabled:
-		return best
-	var owned := _taken_cards(true)
-	for tag in card.tags:
-		if NOT_RESONANT.has(tag):
-			continue
-		var sharing := owned.filter(func(c: UpgradeData) -> bool:
-			return c.id != card.id and c.id != card.deepens and c.deepens != card.id and c.tags.has(tag))  # Never its own base
-		if sharing.size() > best.count:
-			best = {"bonus": minf(RESONANCE_PER * sharing.size(), RESONANCE_MAX), "tag": tag, "count": sharing.size(),
-				"cards": sharing.map(func(c: UpgradeData) -> String: return c.display_name)}  # The player sees these, never the tag
-	return best
-
-# The multiplier a taken card's numbers get (1.0 = none).
-func resonance(card: UpgradeData) -> float:
-	if card == null or not _resonance.has(card.id):
-		return 1.0
-	return float(_resonance[card.id].get("power", 1.0))
-
-# "+20% from Soft Spores, Damp Rot" for a taken card ("" = none): Dreams this run.
-func resonance_line(card: UpgradeData) -> String:
-	var r: Dictionary = _resonance.get(card.id, {}) if card != null else {}
-	return resonance_text(float(r.get("power", 1.0)) - 1.0, Array(r.get("cards", [])), int(r.get("count", 0)))
-
-# Every card a taken card's resonance came from ("" = none), for the line's hover.
-func resonance_cards(card: UpgradeData) -> Array:
-	var r: Dictionary = _resonance.get(card.id, {}) if card != null else {}
-	return Array(r.get("cards", []))
-
-# The strongest resonance among the taken cards with `rule` (for rule code in other scripts).
-func rule_power(rule: StringName) -> float:
-	var power := 1.0
-	for card in _taken_cards():
-		if card.rule_id == rule or card.extra_rules.has(rule):
-			power = maxf(power, resonance(card))
-	return power
-
-# "+10% from Seedfall", "+20% from Soft Spores, Damp Rot", past 2 "+30% from Soft Spores, Damp Rot and 1 more"
-# (the card face, Dreams this run; the hover lists them all). "" = none. text_style.md "Same-tag (resonance) lines
-# name the cards": the internal tag (wide, affliction, tempo…) never reaches the player. `count` is only for an
-# old save's entry without card names ("+20% from 2 of your cards").
-const RESONANCE_NAMED := 2
-
-static func resonance_text(bonus: float, cards: Array, count: int = -1) -> String:
-	if bonus <= 0.0:
-		return ""
-	if cards.is_empty():
-		var n := maxi(count, 1)
-		return "+%d%% from %d of your cards" % [roundi(bonus * 100), n] if n > 1 else "+%d%% from one of your cards" % roundi(bonus * 100)
-	var shown := ", ".join(cards.slice(0, RESONANCE_NAMED))
-	if cards.size() > RESONANCE_NAMED:
-		shown += " and %d more" % (cards.size() - RESONANCE_NAMED)
-	return "+%d%% from %s" % [roundi(bonus * 100), shown]
-
-# The hover on a resonance line: every card it comes from.
-static func resonance_tooltip(cards: Array) -> String:
-	return "From: " + ", ".join(cards) if cards.size() > RESONANCE_NAMED else ""
+# A rule card's number multiplier for code in other scripts (Tower, Kinships, FairyRing…): always 1.0 now. Tag
+# resonance was removed (user, dream_audit.md rule 1 struck, a6628056): a card's numbers are its base value × its rule
+# level (rule_level), nothing more. Kept so the callers needn't change.
+func rule_power(_rule: StringName) -> float:
+	return 1.0
 
 
 # --- Catalogue cards 204–226 (dream_design.md "New cards for the catalogue") ----------------------
@@ -4148,7 +4075,7 @@ func overlap_multiplier(tower: Node, enemy: Node2D) -> float:
 signal card_chosen(card: UpgradeData, towers: Array, impact: String)
 
 # {text, towers: [Tower], kind: &"stat" | &"position" | &"trigger" | &"economy" | &"none"}, computed by taking the card
-# for a moment (its stacks and its resonance, then undone) and comparing every Warden's Dream stat parts.
+# for a moment (its stacks, then undone) and comparing every Warden's Dream stat parts.
 func preview_card_impact(card: UpgradeData) -> Dictionary:
 	var result := {"text": "None of your Wardens yet", "towers": [], "kind": &"none"}
 	if card == null:
@@ -4158,9 +4085,6 @@ func preview_card_impact(card: UpgradeData) -> Dictionary:
 	for tower in towers:
 		before[tower] = _dream_stat_factors(tower)
 	var had: int = stacks.get(card.id, 0)
-	var had_resonance = _resonance.get(card.id)
-	if had == 0:
-		_resonance[card.id] = {"power": 1.0 + resonance_preview(card).bonus}
 	stacks[card.id] = had + 1
 	bump_board()
 	var changed: Array = []
@@ -4184,10 +4108,6 @@ func preview_card_impact(card: UpgradeData) -> Dictionary:
 	stacks[card.id] = had
 	if had == 0:
 		stacks.erase(card.id)
-		if had_resonance == null:
-			_resonance.erase(card.id)
-		else:
-			_resonance[card.id] = had_resonance
 	bump_board()
 	if not changed.is_empty():
 		var what := ""

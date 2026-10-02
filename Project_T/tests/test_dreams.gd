@@ -15,7 +15,6 @@ func _run() -> void:
 	main.get_node("MapGenerator").map_seed = 424242  # Same map every run, so failures reproduce
 	root.add_child(main)
 	await process_frame
-	main.get_node("%DreamState").resonance_enabled = false  # Single-card numbers; _test_resonance turns it on
 	await _test_attacks(main)
 	await _test_evolution(main)
 	await _test_dream_flow(main)
@@ -32,7 +31,6 @@ func _run() -> void:
 	_test_grown_needs(main)
 	_test_blessing_dream(main)
 	_test_run_pool(main)
-	_test_resonance(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -1123,43 +1121,6 @@ func _test_discovery(main: Node) -> void:
 	if tracker != null:
 		tracker.longest_chain = chain
 	_check(dreams.discovery_met(thunder), "tests without a profile have everything discovered")
-
-# Tag resonance (dream_audit.md "Builds pay off"): each owned card with a tag makes later cards of that
-# tag +10% stronger (numbers, not rules), up to +50%, locked when taken; untagged cards never resonate.
-func _test_resonance(main: Node) -> void:
-	var dreams: DreamState = main.get_node("%DreamState")
-	_reset_dreams(main)
-	dreams.resonance_enabled = true
-	dreams._resonance.clear()
-	dreams.unlocked["sporeling"] = true
-	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
-	var base := dreams.get_status_duration(sporeling, EnemyStatuses.SPORED)
-	var lingering := _card(dreams, "lingering_spores")
-	_check(dreams.resonance_preview(lingering).bonus == 0.0, "resonance: nothing with no spore cards")
-	dreams.take(_card(dreams, "soft_spores"))
-	dreams.take(_card(dreams, "chain_bloom"))
-	var preview := dreams.resonance_preview(lingering)
-	_check(is_equal_approx(preview.bonus, 0.2) and preview.tag == "spore" and preview.count == 2,
-		"2 spore cards: +20%% (%s)" % preview)
-	var shown := DreamState.resonance_text(preview.bonus, preview.cards)
-	_check(shown == "+20% from Soft Spores, Chain Bloom" or shown == "+20% from Chain Bloom, Soft Spores", "…shown with the cards' names, never the tag (%s)" % shown)
-	_check(DreamState.resonance_text(0.3, ["A", "B", "C"]) == "+30% from A, B and 1 more" and DreamState.resonance_tooltip(["A", "B", "C"]) == "From: A, B, C",
-		"…past 2: \"and 1 more\", the hover lists them all")
-	_check(DreamState.resonance_text(0.1, ["Seedfall"]) == "+10% from Seedfall" and DreamState.resonance_tooltip(["Seedfall"]) == "", "…one card: just its name")
-	dreams.take(lingering)
-	_check(is_equal_approx(dreams.get_status_duration(sporeling, EnemyStatuses.SPORED), base + 3.0 * 1.2), "Lingering Spores: +3 s × 1.2")
-	_check(dreams.resonance_line(lingering) == shown, "…Dreams this run shows the locked bonus (%s)" % dreams.resonance_line(lingering))
-	dreams.take(_card(dreams, "bitter_sap"))  # Another tag: doesn't change the locked one
-	_check(is_equal_approx(dreams.resonance(lingering), 1.2), "…locked when taken")
-	_check(dreams.resonance_preview(_card(dreams, "deeper_calm")).bonus == 0.0, "untagged cards never resonate")
-	var saved := dreams.to_save()
-	dreams._resonance.clear()
-	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
-	_check(is_equal_approx(dreams.resonance(lingering), 1.2) and dreams.resonance_line(lingering) == shown, "…kept in the run save, names too")
-	_check(is_equal_approx(dreams.resonance_preview(_card(dreams, "lingering_spores_ii")).bonus, 0.2), "a Deepened card never resonates off its own base")
-	dreams.resonance_enabled = false
-	dreams._resonance.clear()
-	_reset_dreams(main)
 
 func _card(dreams: DreamState, id: String) -> UpgradeData:
 	for card in dreams.pool:

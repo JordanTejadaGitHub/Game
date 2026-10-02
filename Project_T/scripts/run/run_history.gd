@@ -96,12 +96,18 @@ func _ready() -> void:
 			_offer_ids = cards.map(func(c: UpgradeData) -> String: return c.id)
 			_offer_drift = drift
 			_taken_in_offer = false)
+		# Every offer as [drift, [offered ids], taken id or "" for Let it pass] (Roguelite Mechanic Discussion
+		# 2026-10-02: pick rates from real runs). A second pick (Lucid Dreaming) is its own row on the smaller offer;
+		# a reroll replaces the offer before anything is taken.
 		dream_state.card_taken.connect(func(card: UpgradeData) -> void:
 			run.dreams_taken.append([card.id, drift_director.drifts_started])
+			if not _offer_ids.is_empty() and _offer_ids.has(card.id):
+				run.dream_offers.append([_offer_drift, _offer_ids.duplicate(), card.id])
 			_taken_in_offer = true)
 		dream_state.offer_closed.connect(func() -> void:
 			if not _taken_in_offer and not _offer_ids.is_empty():
 				run.dreams_skipped.append([_offer_ids.duplicate(), _offer_drift])
+				run.dream_offers.append([_offer_drift, _offer_ids.duplicate(), ""])
 			_offer_ids = [])
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	if omens != null:
@@ -144,7 +150,7 @@ func _start_record() -> void:
 		"experiment": String(ProjectSettings.get_setting("game/experiment", "")),  # A branch build ("spire"), else ""
 		"grove": profile.get("unlocks", {}).duplicate(), "perks": HeartwoodMemory.get_loadout(profile),
 		"result": "", "survived": 0, "won": false, "first_leak": 0, "seconds": 0.0, "leaves_lost_by_act": {},
-		"close_calls": 0, "family_picks": [], "dreams_taken": [], "dreams_skipped": [], "omens": [], "clear_skies": 0,
+		"close_calls": 0, "family_picks": [], "dreams_taken": [], "dreams_skipped": [], "dream_offers": [], "omens": [], "clear_skies": 0,
 		"bosses": [], "dew": {"earned": 0, "plant": 0, "grow": 0, "rank": 0, "clear": 0, "other": 0, "banked_at_rest": []},
 		"wardens": {}, "ranks": {}, "attackers": 0, "top": [], "combos": {}, "reactions": {},
 		"dreamlight": {"earned": 0, "spent": 0}, "drifts": [], "route_blocks": [], "heart_share": 0.0,
@@ -238,6 +244,9 @@ func _flush_rows() -> void:
 	for number in numbers:
 		var row: Dictionary = _open[number]
 		row["damage"] = roundi(float(row.get("damage", 0.0)))
+		for key in ["combo_damage", "reaction_damage", "status_damage"]:
+			row[key] = roundi(float(row.get(key, 0.0)))
+		row["combo_share"] = snappedf(combo_share(row, "damage"), 0.001)
 		run.drifts.append(row)
 	_open.clear()
 	_started.clear()
@@ -397,9 +406,40 @@ func save_heat_map(path: String) -> bool:
 	return image.save_png(path) == OK
 
 func _on_damage(event: DamageLog.Event) -> void:
+	# Where damage comes from (Balancing Discussion 2026-10-02, how much is combos): the part combos added, Reaction
+	# damage (its tag a Reaction id, Crowned too; less any combo part, so nothing counts twice), plain status ticks.
+	var parts := damage_parts(event, _reaction_ids())
+	_add_parts(run, event.amount, parts)
 	var row := _row_for(event.enemy)
 	if not row.is_empty():
 		row["damage"] = float(row.get("damage", 0.0)) + event.amount
+		_add_parts(row, 0.0, parts)
+
+# [combo, reaction, status] parts of one event's damage.
+static func damage_parts(event: DamageLog.Event, reaction_ids: Dictionary) -> Array[float]:
+	var combo := event.combo_amount
+	var reaction := maxf(event.amount - combo, 0.0) if reaction_ids.has(event.tag) else 0.0
+	var status := event.amount if event.kind != &"hit" and event.combos.is_empty() and reaction == 0.0 else 0.0
+	return [combo, reaction, status]
+
+func _add_parts(into: Dictionary, damage: float, parts: Array[float]) -> void:
+	if damage > 0.0:
+		into["damage_total"] = float(into.get("damage_total", 0.0)) + damage
+	into["combo_damage"] = float(into.get("combo_damage", 0.0)) + parts[0]
+	into["reaction_damage"] = float(into.get("reaction_damage", 0.0)) + parts[1]
+	into["status_damage"] = float(into.get("status_damage", 0.0)) + parts[2]
+
+var _reaction_set := {}
+func _reaction_ids() -> Dictionary:
+	if _reaction_set.is_empty():
+		for data in Reactions.all() + Reactions.crowned():
+			_reaction_set[data.id] = true
+	return _reaction_set
+
+# (combo + reaction) / damage, 0..1.
+static func combo_share(record: Dictionary, damage_key: String = "damage_total") -> float:
+	var damage := float(record.get(damage_key, 0.0))
+	return (float(record.get("combo_damage", 0.0)) + float(record.get("reaction_damage", 0.0))) / damage if damage > 0.0 else 0.0
 
 func _on_leaves_changed(leaves: int, _max: int) -> void:
 	var lost := _last_leaves - leaves
@@ -475,8 +515,13 @@ func _on_run_ended(won: bool) -> void:
 		for row in log.get_top_towers("run", 1000):
 			total += float(row.amount)
 		for row in log.get_top_towers("run", 5):
-			run.top.append({"name": row.name, "damage": roundi(row.amount), "share": snappedf(row.amount / maxf(total, 1.0), 0.001)})
+			var stats: Dictionary = log.get_tower_stats(row.tower) if row.tower != null else {}
+			run.top.append({"name": row.name, "damage": roundi(row.amount), "share": snappedf(row.amount / maxf(total, 1.0), 0.001),
+				"combo_share": snappedf(float(stats.get("run_combo", 0.0)) / maxf(float(stats.get("run", 0.0)), 1.0), 0.001)})  # As the Warden panel's "from combos"
 		run.combos = log.combo_counts_run.duplicate()
+	run["combo_share"] = snappedf(combo_share(run), 0.001)
+	for key in ["damage_total", "combo_damage", "reaction_damage", "status_damage"]:
+		run[key] = roundi(float(run.get(key, 0.0)))
 	var tracker := get_tree().get_first_node_in_group(&"reaction_tracker")
 	if tracker != null:
 		run.reactions = tracker.counts.duplicate()
@@ -560,6 +605,8 @@ static func report_text(record: Dictionary) -> String:
 	lines.append("Families: %s" % ", ".join(record.get("family_picks", []).map(func(p: Dictionary) -> String:
 		return "%s (of %s, drift %d)" % [p.chosen, "/".join(p.offered), int(p.drift)])))
 	lines.append("Dreams: %s" % ", ".join(record.get("dreams_taken", []).map(func(d: Array) -> String: return "%s@%d" % [d[0], int(d[1])])))
+	lines.append("Dream offers: %s" % ", ".join(record.get("dream_offers", []).map(func(o: Array) -> String:
+		return "%d: %s → %s" % [int(o[0]), "/".join(o[1]), o[2] if o[2] != "" else "passed"])))
 	lines.append("Dreams passed: %d · Omens: %s · Clear Skies: %d" % [record.get("dreams_skipped", []).size(),
 		", ".join(record.get("omens", []).map(func(o: Dictionary) -> String: return o.name)), int(record.get("clear_skies", 0))])
 	lines.append("Bosses: %s" % ", ".join(record.get("bosses", []).map(func(b: Dictionary) -> String:
@@ -569,7 +616,11 @@ static func report_text(record: Dictionary) -> String:
 		int(dew.get("plant", 0)), int(dew.get("grow", 0)), int(dew.get("rank", 0)), int(dew.get("clear", 0)), int(dew.get("other", 0))])
 	lines.append("Wardens: %d attackers · %s" % [int(record.get("attackers", 0)), JSON.stringify(record.get("wardens", {}))])
 	lines.append("Top: %s" % ", ".join(record.get("top", []).map(func(t: Dictionary) -> String:
-		return "%s %d%%" % [t.name, roundi(float(t.share) * 100.0)])))
+		return "%s %d%% (from combos %d%%)" % [t.name, roundi(float(t.share) * 100.0), roundi(float(t.get("combo_share", 0.0)) * 100.0)])))
+	var damage := maxf(float(record.get("damage_total", 0.0)), 1.0)
+	lines.append("Combos: %d%% of damage (Reactions %d%%, combo bonuses %d%%) · status ticks %d%%" % [
+		roundi(float(record.get("combo_share", 0.0)) * 100.0), roundi(float(record.get("reaction_damage", 0)) / damage * 100.0),
+		roundi(float(record.get("combo_damage", 0)) / damage * 100.0), roundi(float(record.get("status_damage", 0)) / damage * 100.0)])
 	lines.append("Grove: %d nodes · perks %s · Dreamlight +%d / −%d" % [record.get("grove", {}).size(),
 		", ".join(record.get("perks", [])), int(record.get("dreamlight", {}).get("earned", 0)), int(record.get("dreamlight", {}).get("spent", 0))])
 	lines.append("Called early: %d drifts · %d Dew" % [int(record.get("early_calls", 0)), int(record.get("dew_call_early", 0))])
@@ -586,11 +637,12 @@ static func report_text(record: Dictionary) -> String:
 	if record.has("route_blocks"):
 		lines.append("Heart share: %d%% of Warden Dew within %d cells of the Heartwood%s" % [roundi(float(record.get("heart_share", 0.0)) * 100.0),
 			int(HEART_REACH), " · heat map %s" % record.heat_map if record.has("heat_map") else ""])
-	lines.append("drift,act,seconds,health_spawned,damage,leaks,leaves_lost,leaves_left,banked,closest,called_early")
+	lines.append("drift,act,seconds,health_spawned,damage,leaks,leaves_lost,leaves_left,banked,closest,called_early,combo_damage,reaction_damage,status_damage,combo_share")
 	for row in record.get("drifts", []):
-		lines.append("%d,%d,%.1f,%d,%d,%d,%d,%d,%d,%.2f,%d" % [int(row.drift), int(row.act), float(row.seconds), int(row.health_spawned),
+		lines.append("%d,%d,%.1f,%d,%d,%d,%d,%d,%d,%.2f,%d,%d,%d,%d,%.3f" % [int(row.drift), int(row.act), float(row.seconds), int(row.health_spawned),
 			int(row.damage), int(row.leaks), int(row.leaves_lost), int(row.leaves_left), int(row.banked), float(row.closest),
-			1 if row.get("called_early", false) else 0])
+			1 if row.get("called_early", false) else 0, int(row.get("combo_damage", 0)), int(row.get("reaction_damage", 0)),
+			int(row.get("status_damage", 0)), float(row.get("combo_share", 0.0))])
 	return "\n".join(lines)
 
 static func _time_text(seconds: float) -> String:

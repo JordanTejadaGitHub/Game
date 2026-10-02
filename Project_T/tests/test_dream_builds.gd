@@ -18,7 +18,6 @@ func _run() -> void:
 	root.add_child(main)
 	await process_frame
 	dreams = main.get_node("%DreamState")
-	dreams.resonance_enabled = false  # Single-card numbers (test_dreams checks resonance)
 	run_state = main.get_node("%RunState")
 	_test_requirements()
 	_test_nurture_effects()
@@ -83,7 +82,6 @@ func _test_nurture_effects() -> void:
 	_check(dreams.rank_cost_factor(1) == 0.0 and dreams.rank_cost_factor(2) == 1.0, "Tender Care: rank I free, rank II full price")
 	_check(is_equal_approx(dreams.get_nurture_cost_multiplier(), 1.0) and dreams.get_rank_damage_bonus() == 0.0,
 		"…and nothing else (the old −15% and +3% per rank are gone)")
-	_check(dreams.resonance_preview(_card("tender_care_ii")).tag != "economy", "no economy resonance line on it")
 	dreams.take(_card("tender_care_ii"))
 	_check(dreams.rank_cost_factor(1) == 0.0 and is_equal_approx(dreams.rank_cost_factor(2), 0.8)
 		and is_equal_approx(dreams.rank_cost_factor(5), 0.8) and dreams.rank_cost_factor(6) == 1.0, "Tender Care II: ranks II–V 20% less")

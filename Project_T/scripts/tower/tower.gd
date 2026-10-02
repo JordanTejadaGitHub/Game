@@ -407,7 +407,7 @@ func _apply_data() -> void:
 	_attack_time = -1.0
 	_flush_pull()  # Grown mid-lash: the pull still happens
 	_stop_beam()
-	sprite.offset = tower_data.sprite_offset
+	sprite.offset = tower_data.get_sprite_offset()
 	_set_up_tall_fade()
 	_show_idle()
 	_update_withered()
@@ -923,7 +923,7 @@ func _update_rank_art() -> void:
 		overlay.texture = tower_data.rank_overlay_texture
 		overlay.hframes = tower_data.rank_overlay_frames
 		overlay.frame = mini(art_rank, tower_data.rank_overlay_frames) - 1
-		overlay.offset = tower_data.sprite_offset
+		overlay.offset = tower_data.get_sprite_offset()
 		return
 	if art_rank <= 0:
 		for node in [under, over]:
@@ -1061,7 +1061,7 @@ func get_aura_bonus(speed: bool) -> float:
 	if base <= 0.0:
 		return 0.0
 	if not speed and tower_data.get_id() == "acorn" and _rule_stacks(&"acorn_cache") > 0:
-		base = 0.05 + (ACORN_CACHE_AURA - 0.05) * _rule_power(&"acorn_cache")  # Tag resonance scales the card's part
+		base = 0.05 + (ACORN_CACHE_AURA - 0.05) * _rule_power(&"acorn_cache")  # (rule_power is 1.0 since tag resonance was removed, dream_audit.md a6628056)
 	if is_aura_support():
 		var ranks := get_effective_rank()
 		base *= pow(AURA_PER_RANK, ranks)  # Grove Heart: its base only, not the per-Warden extra
@@ -1360,7 +1360,7 @@ func _release() -> void:
 
 # Card hit multipliers (dream_design.md): Patient Aim (+15% per second it didn't fire, max +60%), Crush (area
 # hits on a crowded nightmare), Crowd Breaker (area attacks +5% per nightmare hit, max +45%), Shiny Things
-# (the Magpie's stolen buffs). Tag resonance on each.
+# (the Magpie's stolen buffs).
 const HIT_CARD_RULES: Array[StringName] = [&"patient_aim", &"crush", &"crowd_breaker", &"shiny_things"]
 const CATALOGUE_HIT_RULES: Array[StringName] = [&"mycelium", &"fireflies_in_the_grass", &"resonance"]
 
@@ -2763,7 +2763,7 @@ func _update_withered() -> void:
 		move_child(overlay, sprite.get_index() + 1)
 	overlay.texture = tower_data.withered_texture
 	overlay.hframes = tower_data.frame_count
-	overlay.offset = tower_data.sprite_offset
+	overlay.offset = tower_data.get_sprite_offset()
 	overlay.modulate.a = clampf(WITHER_PER_LEAF * _wither * 4.0, 0.0, 1.0)  # 5 leaves = fully withered
 	overlay.visible = overlay.modulate.a > 0.0
 
@@ -2774,7 +2774,7 @@ func _play_ripen() -> void:
 	var ripen := Sprite2D.new()
 	ripen.texture = tower_data.ripen_texture
 	ripen.hframes = tower_data.ripen_frames
-	ripen.offset = tower_data.sprite_offset
+	ripen.offset = tower_data.get_sprite_offset()
 	ripen.z_index = 1
 	add_child(ripen)
 	var tween := ripen.create_tween()
@@ -2982,7 +2982,7 @@ func _has_rule(rule: StringName) -> bool:
 func _rule_level(rule: StringName) -> int:
 	return _rule_entry(rule)[1]
 
-# Tag resonance (dream_audit.md): a card's numbers scale with the owned cards sharing its tags (1.0 = none).
+# A card's power: 1.0 (tag resonance was removed, dream_audit.md a6628056); kept as one place to scale rule numbers.
 func _rule_power(rule: StringName) -> float:
 	return _dream_state.rule_power(rule) if _dream_state and _dream_state.has_method("rule_power") else 1.0
 
@@ -3311,7 +3311,7 @@ func _draw() -> void:
 	_draw_target_pip()
 	if _dream_state and _dream_state.has_method("is_eldest") and _dream_state.is_eldest(self):
 		# The Eldest: a small crown of three golden rings over the slab.
-		var top := Vector2(0, -MAP_GRID.cell_size.y * 0.5 - 4.0) + tower_data.sprite_offset
+		var top := Vector2(0, -MAP_GRID.cell_size.y * 0.5 - 4.0) + tower_data.get_sprite_offset()
 		for i in 3:
 			draw_arc(top + Vector2((i - 1) * 7.0, -absf(i - 1) * -2.0), 3.5, 0.0, TAU, 12, Color(Palette.GLOW, 0.95), 1.5)
 

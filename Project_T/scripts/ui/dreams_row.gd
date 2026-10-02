@@ -226,13 +226,6 @@ func _card_row(source: DreamIcon) -> Control:
 	text.add_child(body)
 	if CardDiagram.has_diagram(card):  # Placement cards show their diagram (dream_design.md)
 		text.add_child(CardDiagram.make(card))
-	var resonance: String = dream_state.resonance_line(card) if dream_state.has_method("resonance_line") else ""
-	if resonance != "":  # Tag resonance, locked when taken (dream_audit.md)
-		var res_label := Label.new()
-		res_label.text = resonance
-		res_label.add_theme_color_override("font_color", UiStyle.GOLD)
-		res_label.add_theme_font_size_override("font_size", 13)
-		text.add_child(res_label)
 	if source.credit != "":  # Feeling the cards: what it did this run
 		var credit := Label.new()
 		credit.name = "Credit"
