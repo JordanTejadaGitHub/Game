@@ -739,6 +739,15 @@ Mare 3): survived the boss, Balanced / skip: **Sporeling 85% / 45%**, Firefly Ja
 others 0–1) and in the boss block, but has the calmest blocks 2–4. Sporeling skip is the main miss on
 "skip loses". Decisions after item 2 (bosses forced).
 
+**2. Act 1 bosses forced** (fresh, 20 seeds each): survived with Dreams / skip: **Stag 80% / 30%,
+Night Mare 80% / 15%, Scarecrow 80% / 25%** ✓ all targets. The Stag is survived by its bite (55%
+dispelled); the Night Mare and Scarecrow are mostly dispelled (80%) at a median 5 leaves (laps,
+Crows). The boss pool is fine.
+
+Decisions: **Bellflower damage 14 → 17** (the only family off target, 50%, and the only one leaking
+in drifts 1–5). **Sporeling unchanged:** its 45% skip in item 1 doesn't repeat in item 2, where most
+skip runs opened with Sporeling and survived 15–30%.
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
