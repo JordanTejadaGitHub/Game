@@ -381,6 +381,9 @@ func _resolve_choices(main: Node) -> void:
 		var omens = get_first_node_in_group(&"omens")
 		if omens != null and (omens.is_offering() or omens.has_pending_offer()) and not dreams.is_offering():
 			omens.choose(null)
+		var gifts = get_first_node_in_group(&"heartwood_gifts")  # Spire: the act break's Heartwood's Gift
+		if gifts != null and gifts.is_offering() and not dreams.is_offering():
+			gifts.let_pass()
 		await process_frame
 
 func _settle(main: Node, frames: int = 10) -> void:
