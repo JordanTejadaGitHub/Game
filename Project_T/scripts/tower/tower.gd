@@ -115,19 +115,27 @@ const RANK_NAMES: Array[String] = ["", "I", "II", "III", "IV", "V", "VI", "VII"]
 # The forms `data` can grow into, as the Warden panel lists them (screens_ui.md "Grow into"): a Sprout
 # lists only the families picked this run (unpicked ones are hidden, not greyed); every other Warden
 # lists all its forms, locked or not, except branches not in this run (branch expansion: they're called back on
-# Remember, Main 2026-10-02; not_in_dream lists them). [[TowerData, unlocked], …]
+# Remember, Main 2026-10-02; not_in_dream lists them). A branch on the map always lists its final; Test Grove
+# (unlock_everything) lists everything. [[TowerData, unlocked], …]
 static func grow_options(dreams: DreamState, data: TowerData) -> Array:
-	var options: Array = dreams.get_evolutions(data).filter(func(option: Array) -> bool:
-		return dreams.is_branch_offered(option[0]))
+	var options: Array = dreams.get_evolutions(data)
+	if not dreams.unlock_everything:
+		options = options.filter(func(option: Array) -> bool: return not _left_out(dreams, option[0]))
 	if data.line != "sprout" or dreams.unlock_everything:
 		return options
 	return options.filter(func(option: Array) -> bool: return option[1])
 
+# A branch this run didn't draw (only branches: a final's branch is already on the map).
+static func _left_out(dreams: DreamState, form: TowerData) -> bool:
+	return form.tier == 2 and not dreams.is_branch_offered(form)
+
 # The forms of `data` this run didn't draw (branch expansion), for the "not in this dream · Remember" pointer.
 static func not_in_dream(dreams: DreamState, data: TowerData) -> Array[TowerData]:
 	var forms: Array[TowerData] = []
+	if dreams.unlock_everything:
+		return forms
 	for option in dreams.get_evolutions(data):
-		if not dreams.is_branch_offered(option[0]):
+		if _left_out(dreams, option[0]):
 			forms.append(option[0])
 	return forms
 
