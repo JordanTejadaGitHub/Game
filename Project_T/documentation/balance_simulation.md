@@ -614,6 +614,19 @@ Also (user, run_design.md 20df1914): **steady Dreamlight 3 per act boss** (was 4
 from drift 51**: 10 by drift 76 with the first pick's 1. Fewer finals and Ascended late: watch late-act
 power in the next human run (it may offset part of the +25% acts 2–4 health).
 
+## Human run 8 (2026-10-01, build a8e311 = a2353925+: run-7 curve, Bellflower a start family)
+
+**Lost at drift 50 to the Lamplighter's bite** (13 leaves with 3 left), 17 min, 1 Grove node. Bellflower
+first, Dewdrop at 25; 75 attackers (45 Sprouts, 13 Chime Stones, 12 Bellflowers, 4 Morning Fog). Four
+Chime Stones = 76% of damage, with Live Wire ×3 and Hush ×2. Dew earned 6,023 (grow 3,750, ranks only
+130). Banked up to 986 at 45.
+- **Act 1 closest 0.08–0.25**, no leaks; the Night Mare dispelled in 22 s.
+- **Act 2:** 0.08–0.68, spikes from ~38, **1.0 at 46, 47, 49, 50**; first leak at 49; all 15 leaves in act 2.
+- **On target:** a ~fresh profile ends in act 2, and act 2 gets hard from its second half. **No curve
+  change.** Act 1 reads calm with a Bellflower opener; watch against Firefly runs 5–6 (much harder).
+- Chime Stone: a branch probe (no Dreams, drifts 45–49) before judging, since run 8's share came with
+  Live Wire ×3 and 13 Chime Stones.
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
