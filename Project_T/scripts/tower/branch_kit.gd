@@ -129,6 +129,8 @@ static func on_spore_tick(enemy: Node2D) -> void:
 
 # Prism Jar's aura: the crit chance `tower` gets from the strongest Prism within reach (no stacking; not itself).
 static func crit_aura(tower: Tower) -> float:
+	if not tower.is_inside_tree():
+		return 0.0  # A probe (the Warden header for an unplanted form) has no neighbours
 	var best := 0.0
 	for other in tower.get_tree().get_nodes_in_group(Tower.GROUP):
 		if other == tower or not (other is Tower) or other.attack_data == null or other.attack_data.special != PRISM:
@@ -632,7 +634,10 @@ class InkField extends Node:
 				continue
 			if not enemy.is_flying():
 				var cell: Vector2 = enemy.get_current_cell()
-				cells[cell] = [_clock + entry[2], entry[1], 1.0, _clock + 1.0]
+				if cells.has(cell):
+					cells[cell][0] = maxf(cells[cell][0], _clock + entry[2])  # Fresh ink lasts longer and keeps its tick
+				else:
+					cells[cell] = [_clock + entry[2], entry[1], 1.0, _clock + 1.0]
 		for cell in cells.keys():
 			var ink: Array = cells[cell]
 			if _clock >= ink[0] or not is_instance_valid(ink[1]):
