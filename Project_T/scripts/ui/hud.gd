@@ -147,6 +147,13 @@ func _ready() -> void:
 	TapTip.attach(leaves_label, IconInfo.resource_tooltip(&"leaves"))
 	TapTip.attach(%PathLabel, IconInfo.resource_tooltip(&"path"))
 	dream_state.card_taken.connect(func(card: UpgradeData) -> void: show_toast("Dreamed: %s" % card.display_name))
+	# Feeling the cards (dream_design.md): a pick from an offer blooms on the Wardens it affects, and the toast says
+	# what it does on the board ("Cozy Corners · 6 Wardens +30%"), right after the "Dreamed" one.
+	owner.add_child.call_deferred(CardBloom.new())
+	if dream_state.has_signal("card_chosen"):
+		dream_state.connect("card_chosen", func(_card: UpgradeData, _towers: Array, impact: String) -> void:
+			if impact != "":
+				show_toast(impact))
 	drift_director.rest_started.connect(_on_rest_started)
 	# Path length ("Wardens are walls: make their walk longer").
 	var map_generator = %MapGenerator

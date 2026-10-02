@@ -76,6 +76,7 @@ func show_report(block: int) -> void:
 		text += kinship_text(0 if not combos.kin_names_block.is_empty() else combos.kin_formed_block,
 			combos.harmony_block, combos.whole_block)
 	text += _kin_hint()
+	text += dreams_text(self, &"block", "Dreams this block")  # Read at rest_started: the block that just ended
 	text += support_text(self, "block")
 	text += templates_text(drift_director, block)
 	var close_calls := CloseCalls.find(self)
@@ -142,6 +143,54 @@ static func support_text(near: Node, period: String) -> String:
 
 # Kinships (screens_ui.md "Kinship feedback"): "Kinships formed: 2 · Harmony strikes: 84" and "The
 # Sporeling line is whole." ("" when there's nothing). Shared with the results screen (the run).
+# --- Feeling the cards (dream_design.md 2026-10-01): each Dream's credit, from DreamState (Roguelite Code) ---
+
+# The run's taken cards with credit, best first: [{id, name, kind, amount, damage, text}] (`limit` 0 = all).
+static func card_credits(near: Node, period: StringName, limit: int = 0) -> Array:
+	var dreams := near.get_tree().get_first_node_in_group(DreamState.GROUP) if near.is_inside_tree() else null
+	if dreams == null or not dreams.has_method("get_top_cards"):
+		return []
+	var rows: Array = []
+	for id in dreams.get_top_cards(period, limit if limit > 0 else 1000):
+		var credit: Dictionary = dreams.get_card_credit(id, period)
+		if String(credit.get("text", "")) == "":
+			continue
+		rows.append({"id": String(id), "kind": StringName(credit.get("kind", &"damage")), "amount": float(credit.get("amount", 0.0)),
+			"damage": float(credit.get("damage", 0.0)), "text": String(credit.text)})
+	return rows
+
+# "Dreams this block · Lingering Spores +1,840 · Cozy Corners +920 · Flurry +610" (the top 3 by damage), then a line
+# per card credited with something else ("Morning Dew · +60 Dew", "Thick Bark · saved 2 leaves").
+static func dreams_text(near: Node, period: StringName, heading: String, top: int = 3) -> String:
+	var damage: Array[String] = []
+	var other: Array[String] = []
+	for row in card_credits(near, period):
+		if row.kind == &"damage":
+			if top <= 0 or damage.size() < top:
+				damage.append(row.text.replace(" · ", " "))
+		else:
+			other.append(row.text)
+	var text := ""
+	if not damage.is_empty():
+		text += "\n%s · %s" % [heading, " · ".join(damage)]
+	for line in other:
+		text += "\n" + line
+	return text
+
+# "Best Dream: Lingering Spores · 18% of your damage" (results), "" with no damage credited.
+static func best_dream_line(near: Node) -> String:
+	var log := DamageLog.instance
+	if log == null:
+		return ""
+	var total := 0.0
+	for row in log.get_top_towers("run", 1000):
+		total += float(row.amount)
+	for row in card_credits(near, &"run"):
+		if row.kind == &"damage" and row.damage > 0.0 and total > 0.0:
+			var card_name: String = row.text.get_slice(" · ", 0)
+			return "Best Dream: %s · %d%% of your damage" % [card_name, roundi(row.damage / total * 100.0)]
+	return ""
+
 static func kinship_text(formed: int, harmony: int, whole: Array) -> String:
 	var text := ""
 	var parts: Array[String] = []

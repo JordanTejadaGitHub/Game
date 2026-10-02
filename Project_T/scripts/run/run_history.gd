@@ -475,6 +475,9 @@ func _on_run_ended(won: bool) -> void:
 	var tracker := get_tree().get_first_node_in_group(&"reaction_tracker")
 	if tracker != null:
 		run.reactions = tracker.counts.duplicate()
+	# Each taken Dream's credit (dream_design.md "Feeling the cards"): damage added, or its Dew / leaves / clears.
+	run["dream_credit"] = RestReport.card_credits(self, &"run").map(func(row: Dictionary) -> Dictionary:
+		return {"id": row.id, "kind": String(row.kind), "amount": roundi(row.amount), "damage": roundi(row.damage), "text": row.text})
 	save_run(run)
 
 # The record so far, for the run save (RunSaver, at each rest): a Save & quit run is recorded whole.
@@ -564,6 +567,8 @@ static func report_text(record: Dictionary) -> String:
 	lines.append("Grove: %d nodes · perks %s · Dreamlight +%d / −%d" % [record.get("grove", {}).size(),
 		", ".join(record.get("perks", [])), int(record.get("dreamlight", {}).get("earned", 0)), int(record.get("dreamlight", {}).get("spent", 0))])
 	lines.append("Called early: %d drifts · %d Dew" % [int(record.get("early_calls", 0)), int(record.get("dew_call_early", 0))])
+	if not record.get("dream_credit", []).is_empty():
+		lines.append("Dream credit: %s" % ", ".join(record.dream_credit.map(func(c: Dictionary) -> String: return c.text)))
 	var join := func(values: Array) -> String: return " ".join(values.map(func(v) -> String: return str(int(v))))
 	for block in record.get("route_blocks", []):  # Route bins: start → Heartwood, tenths of the route
 		lines.append("Block %d kills by route: %s · leaked %d" % [int(block.block), join.call(block.dispels), int(block.leaked)])
