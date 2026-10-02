@@ -566,8 +566,8 @@ static func report_text(record: Dictionary) -> String:
 	lines.append("Called early: %d drifts · %d Dew" % [int(record.get("early_calls", 0)), int(record.get("dew_call_early", 0))])
 	var join := func(values: Array) -> String: return " ".join(values.map(func(v) -> String: return str(int(v))))
 	for block in record.get("route_blocks", []):  # Route bins: start → Heartwood, tenths of the route
-		lines.append("Block %d kills by route: %s | leaked %d" % [int(block.block), join.call(block.dispels), int(block.leaked)])
-		lines.append("Block %d Dew by route: %s | off-route %d · heart %d%%" % [int(block.block), join.call(block.invested),
+		lines.append("Block %d kills by route: %s · leaked %d" % [int(block.block), join.call(block.dispels), int(block.leaked)])
+		lines.append("Block %d Dew by route: %s · off-route %d · heart %d%%" % [int(block.block), join.call(block.invested),
 			int(block.off_route), roundi(float(block.heart_share) * 100.0)])
 	if record.has("route_blocks"):
 		lines.append("Heart share: %d%% of Warden Dew within %d cells of the Heartwood%s" % [roundi(float(record.get("heart_share", 0.0)) * 100.0),

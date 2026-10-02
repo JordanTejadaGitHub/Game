@@ -110,7 +110,7 @@ func _run() -> void:
 		var blocks: Array = record.get("route_blocks", [])
 		_check(not blocks.is_empty() and blocks[-1].dispels.size() == RunHistory.ROUTE_BINS and blocks[-1].invested.size() == RunHistory.ROUTE_BINS
 			and int(blocks[-1].leaked) >= 1 and record.has("heart_share"), "route profiles per block (%s)" % [blocks])
-		_check(report.contains("kills by route: ") and report.contains("| leaked ") and report.contains("Dew by route: ")
+		_check(report.contains("kills by route: ") and report.contains(" · leaked ") and report.contains("Dew by route: ")
 			and report.contains("Heart share: "), "the report's route lines")
 		var heat_map := String(record.get("heat_map", ""))
 		_check(heat_map != "" and FileAccess.file_exists(heat_map), "a heat map PNG next to the record (%s)" % heat_map)
