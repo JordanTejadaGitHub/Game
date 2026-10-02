@@ -3,7 +3,7 @@ extends Node2D
 
 # Heartwood's Gifts, the terrain (heartwood_gifts.md; numbers spire_difficulty.md Phase 3). Made by MapGenerator
 # (`map_generator.gifts`). Main's HeartwoodGifts runs the offer, the placement (GiftPlacer checks the cells and
-# the route) and the save; the effects registered here (_static_init) change the map. On a resumed run the
+# the route) and the save; the effects registered here (register_effects, from _ready) change the map. On a resumed run the
 # map is regenerated from its seed and HeartwoodGifts calls each effect again in order (placement["restoring"]):
 # the tended cells are restored before that call, the Wardens after it. Tower Code's GiftGround keeps the
 # Warden-side marks and bonuses for the living-ground gifts; this draws their terrain and blocks their cells.
@@ -66,9 +66,11 @@ var _sheets := {}
 var _tick := 0.0
 var _frame_time := 0.0
 
-static func _static_init() -> void:
+# Registered at run time (from _ready, not _static_init: a Callable stored from a static init can crash the
+# engine at exit, Tower Code 3af4bb5b). A test's stand-in may already hold the id.
+static func register_effects() -> void:
 	for id in TERRAIN_GIFTS:
-		if not HeartwoodGifts.has_effect(id):  # A test's stand-in may already hold it
+		if not HeartwoodGifts.has_effect(id):
 			HeartwoodGifts.register(id, _effect.bind(id))
 
 # HeartwoodGifts' call: placement.cells (Shift the Stones: placement.from, pairwise), placement.restoring.
@@ -83,6 +85,7 @@ static func _effect(main: Node, placement: Dictionary, id: StringName) -> void:
 
 func _ready() -> void:
 	z_index = -1  # Ground overlays: over the path (added after it), under everything standing
+	register_effects()
 	map.obstacle_cleared.connect(_on_obstacle_cleared)
 	map.path_changed.connect(queue_redraw)
 	_load_sheets()
