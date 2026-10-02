@@ -778,7 +778,8 @@ class SilenceWatch extends Node:
 
 # Jarlink arcs, drawn in one layer (one per run scene): note() each frame for each linked pair.
 class FenceLayer extends Node2D:
-	var arcs := {}  # "id:id" -> [a pos, b pos, frame noted]
+	var arcs := {}  # "id:id" -> [jar a, jar b, frame noted, the arc_fence segment]
+	const ARC_SECONDS := 36000.0  # Fx.segment frees after this; the arc is replaced or freed long before
 
 	static func find(near: Node) -> FenceLayer:
 		var scene := BranchKit.world(near)
@@ -791,7 +792,16 @@ class FenceLayer extends Node2D:
 		return found
 
 	func note(a: Tower, b: Tower) -> void:
-		arcs["%d:%d" % [a.get_instance_id(), b.get_instance_id()]] = [a.global_position, b.global_position, Engine.get_process_frames()]
+		var key := "%d:%d" % [a.get_instance_id(), b.get_instance_id()]
+		var from := a.global_position + a.tower_data.get_attack_origin()  # Jar to jar
+		var to := b.global_position + b.tower_data.get_attack_origin()
+		var arc: Array = arcs.get(key, [])
+		var node = arc[3] if arc.size() > 3 else null
+		if arc.is_empty() or not arc[0].is_equal_approx(from) or not arc[1].is_equal_approx(to) or not is_instance_valid(node):
+			if is_instance_valid(node):
+				node.queue_free()  # A jar moved: a new arc
+			node = Fx.segment(&"arc_fence", from, to, self, ARC_SECONDS)  # Tower Assets' looping zigzag, kept alive while linked
+		arcs[key] = [from, to, Engine.get_process_frames(), node]
 
 	func touches(at: Vector2, reach: float) -> bool:
 		for key in arcs:
@@ -806,6 +816,8 @@ class FenceLayer extends Node2D:
 		var frame := Engine.get_process_frames()
 		for key in arcs.keys():
 			if frame - int(arcs[key][2]) > 2:
+				if arcs[key].size() > 3 and is_instance_valid(arcs[key][3]):
+					arcs[key][3].queue_free()
 				arcs.erase(key)  # The pair broke (sold, moved apart)
 		queue_redraw()
 
@@ -813,6 +825,8 @@ class FenceLayer extends Node2D:
 		var wobble := sin(Time.get_ticks_msec() / 90.0) * 3.0
 		for key in arcs:
 			var arc: Array = arcs[key]
+			if arc.size() > 3 and is_instance_valid(arc[3]):
+				continue  # The sheet shows it
 			var mid: Vector2 = (arc[0] + arc[1]) / 2.0 + Vector2(0, -10 + wobble)
 			var points := PackedVector2Array([arc[0] - global_position, mid - global_position, arc[1] - global_position])
 			draw_polyline(points, Color(Palette.GLOW, 0.85), 2.0)
