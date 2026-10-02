@@ -15,7 +15,7 @@ Code). Tower Code's rule list is `tower_rule_hooks.md`. This file is the verdict
 2. **Mechanics.** For every card whose numbers live in code, the rule was read in the code
    (DreamState, DreamEffects, tower.gd, reactions.gd, kinships.gd, crowned_ground.gd).
 
-## Findings
+## Findings (fixed in Roguelite Code 848e07b6 and e328fb55 unless marked)
 
 | Card(s) | Text says | Code / data does | Verdict | Fix |
 |---|---|---|---|---|
