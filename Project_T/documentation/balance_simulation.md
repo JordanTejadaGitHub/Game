@@ -655,6 +655,16 @@ plays a front-loaded kill zone with no second line, so once act 2's late drifts 
 nothing behind it catches them, and the act 2 boss bites. A playstyle read, not a number change; worth
 telling the user, and worth a bot style (`--style=front`) if bot and human should compare.
 
+**Forced first family, act 1** (1c9fb3bd = 3faea358 in; fresh, 10 seeds): survived the boss
+**Sporeling 70%, Firefly Jar 70%, Dewdrop 90%, Bellflower 90%** (Bellflower by taking the bite: 1/9
+dispels). **Every starting family is viable in act 1: closed.**
+**Branch probe** (no Dreams): drifts 15–19 rank II, Chime Stone (26) ≈ Rootcurl ≈ Stormcap at the top
+per Dew (the field is cleared, so this is who takes the kills); drifts 45–49 rank IV, Chime Stone is
+mid (behind Driftspore, ~2× Stormcap). **Chime Stone accepted.** Flag: **Lullaby Bell** (its final) is
+~3× Driftspore per Dew with a ~0% board leak, maybe the real carrier of runs 8–9; 40–53% of the Chime
+line's damage is Static bolts, which depend on a Charged source nearby. Finals probe next (Bell vs
+Puffball / Dreamshroom / Morning Fog, with and without Thunderhead).
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
