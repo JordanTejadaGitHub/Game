@@ -286,6 +286,13 @@
 			],
 			"projectile": "ink_drop"
 		},
+		"jarlink": {
+			"kind": "fence",
+			"point": [
+				8,
+				9
+			]
+		},
 		"jetreed": {
 			"kind": "jet",
 			"point": [
@@ -316,6 +323,13 @@
 				6
 			],
 			"projectile": "lichen_flake"
+		},
+		"lightning_fence": {
+			"kind": "fence",
+			"point": [
+				7,
+				7
+			]
 		},
 		"long_way_home": {
 			"kind": "pull",
@@ -451,6 +465,13 @@
 				30
 			]
 		},
+		"prism_jar": {
+			"kind": "aura",
+			"point": [
+				30,
+				9
+			]
+		},
 		"puffball": {
 			"kind": "projectile",
 			"point": [
@@ -466,6 +487,13 @@
 				2
 			],
 			"projectile": "dew_drop"
+		},
+		"rainbow_prism": {
+			"kind": "beam",
+			"point": [
+				30,
+				9
+			]
 		},
 		"rockslide": {
 			"kind": "lob",
@@ -511,6 +539,13 @@
 				46
 			]
 		},
+		"sparkler": {
+			"kind": "firework",
+			"point": [
+				54,
+				12
+			]
+		},
 		"sporeling": {
 			"kind": "projectile",
 			"point": [
@@ -534,6 +569,13 @@
 				11
 			],
 			"projectile": "sling_stone"
+		},
+		"starburst": {
+			"kind": "firework",
+			"point": [
+				56,
+				13
+			]
 		},
 		"starcave": {
 			"kind": "light",

@@ -161,7 +161,8 @@ const LINES := {
 	"bellflower": ["bellflower", "chime_stone", "lullaby_bell", "dreamcatcher", "great_dreamcatcher", "echo_hollow", "whispering_hollow"],
 	"dewdrop": ["dewdrop", "rain_lily", "monsoon", "mistveil", "morning_fog", "frostfern", "hoarfrost",
 		"cloudlet", "nimbus", "undercurrent", "maelstrom", "jetreed", "torrent"],
-	"firefly_jar": ["firefly_jar", "stormcap", "thunderhead", "lanternmoth", "beacon", "sunpetal", "midsummer"],
+	"firefly_jar": ["firefly_jar", "stormcap", "thunderhead", "lanternmoth", "beacon", "sunpetal", "midsummer",
+		"jarlink", "lightning_fence", "prism_jar", "rainbow_prism", "sparkler", "starburst"],
 	"rootling": ["rootling", "rootcurl", "long_way_home", "tangleroot", "snugroot", "rootlight", "starcave"],
 	"acorn": ["acorn", "elder_stump", "grove_heart", "dewcatcher", "wellspring", "graftling", "grafted_elder"],
 	"nestling": ["nestling", "wrens_nest", "starling_murmuration", "magpie_perch", "magpies_hoard", "hummingbird_bower", "jewelwing_court"],
@@ -206,6 +207,14 @@ const ATTACKS := {
 	"mistveil": {kind = "cloud", point = Vector2i(31, 46)},
 	"morning_fog": {kind = "cloud", point = Vector2i(31, 46)},
 	"firefly_jar": {kind = "projectile", projectile = "spark", point = Vector2i(31, 6)},
+	# Branch expansion (2026-10-02): Firefly Jar C, D, E. The fence arc, crystal-split beams and
+	# fireworks are drawn by the code (effects arc_fence, prism_beam, firework_burst).
+	"jarlink": {kind = "fence", point = Vector2i(8, 9)},
+	"lightning_fence": {kind = "fence", point = Vector2i(7, 7)},
+	"prism_jar": {kind = "aura", point = Vector2i(30, 9)},
+	"rainbow_prism": {kind = "beam", point = Vector2i(30, 9)},
+	"sparkler": {kind = "firework", point = Vector2i(54, 12)},
+	"starburst": {kind = "firework", point = Vector2i(56, 13)},
 	"stormcap": {kind = "chain", point = Vector2i(40, 6)},
 	"thunderhead": {kind = "chain", point = Vector2i(44, 5)},
 	"lanternmoth": {kind = "projectile", projectile = "light_orb", point = Vector2i(31, 4)},
@@ -328,7 +337,8 @@ func _make(tower_name: String, draw: Callable) -> Image:
 # The darkest Wardens sink into the night-indigo map ground (2026-09-30 re-theme), so they get a thin
 # moonlit rim: the silhouette's edge on its lit (top / left) sides, where it's dark, turns
 # one lighter palette colour. A hand fix inside Warden Night: no new colours.
-const NIGHT_RIM := {"firefly_jar": "Stone", "stormcap": "Stone", "thunderhead": "Stone",
+const NIGHT_RIM := {"firefly_jar": "Stone", "stormcap": "Stone", "thunderhead": "Stone", "jarlink": "Stone",
+	"lightning_fence": "Stone", "prism_jar": "Stone", "rainbow_prism": "Stone", "sparkler": "Stone", "starburst": "Stone",
 	"starling_murmuration": "Stone", "thornwall": "Sprig"}
 
 func HeartwoodPalette_color(color_name: String) -> Color:
@@ -4963,6 +4973,163 @@ func _jet_attack(canvas: Image, st: Dictionary, key: String, width: int) -> void
 			var q := p + dir.orthogonal() * w
 			_px(canvas, int(q.x), int(q.y), Color("#e8faff") if w == 0 else Color("#5aa8ec"))
 	_warm_glow(canvas, from, Vector2(5, 4), k)
+
+
+# --- Branch expansion, Firefly Jar -------------------------------------------------------------
+# Jarlink -> Lightning Fence (a jar on a tall pole with a wire coil; two coiled poles with an arc
+# between them), Prism Jar -> Rainbow Prism (a faceted crystal for a cork; a crystal crown, shoulder
+# crystals and three coloured beams), Sparkler -> Starburst (a fizzing sparkler held up; one in each
+# hand and a starburst above). All drawn over the Firefly Jar's body.
+
+const PRISM := ["#4c8ca4", "#9cd4fc", "#dce8f4", "#ffffff"]
+const COPPER := Color("#b8662c")
+
+# A tall pole planted on the slab, a copper wire coiled round it, a little jar of light on top.
+func _coil_pole(canvas: Image, x: float, top: float, st: Dictionary, o: Color) -> void:
+	var pole := _layer()
+	_stroke(pole, [Vector2(x, 46), Vector2(x, top + 6)], 1.5, Color("#5c3c24"))
+	_stamp(canvas, pole, o)
+	for y in range(int(top) + 9, 42, 3):
+		_px(canvas, int(x) - 2, y, COPPER)
+		_px(canvas, int(x) + 2, y + 1, COPPER)
+		_px(canvas, int(x), y + 2, COPPER)
+	var jar := _layer()
+	_round_rect(jar, Rect2i(int(x) - 4, int(top), 9, 8), 2, Color("#4e7482"))
+	_stamp(canvas, jar, o)
+	_round_rect(canvas, Rect2i(int(x) - 3, int(top) - 2, 7, 2), 0, Color("#8a5a3a"))  # its cork
+	_glow_dot(canvas, Vector2i(int(x), int(top) + 3), Color("#fff27a") if st.f % 4 < 2 else Color("#ffe8a0"), Color("#a8c868"))
+
+func _draw_jarlink(canvas: Image, st: Dictionary) -> void:
+	_draw_firefly_jar(canvas, st)
+	_coil_pole(canvas, 8, 6, st, Color("#1a2230"))
+
+func _draw_lightning_fence(canvas: Image, st: Dictionary) -> void:
+	_draw_firefly_jar(canvas, st)
+	_coil_pole(canvas, 7, 4, st, Color("#1a2230"))
+	_coil_pole(canvas, 56, 4, st, Color("#1a2230"))
+	# The arc between the two jars, crackling over its head (a different path each frame).
+	if st.f % 2 == 0 or st.attack >= 0:
+		_bolt(canvas, Vector2(10, 7), Vector2(53, 7), Color("#fff6a0"), Color("#8a8af0"), 6)
+
+func _attack_jarlink(canvas: Image, st: Dictionary) -> void:
+	_attack_firefly_jar(canvas, st)
+	_jar_arc_flash(canvas, st, Vector2(8, 9))
+
+func _attack_lightning_fence(canvas: Image, st: Dictionary) -> void:
+	_attack_firefly_jar(canvas, st)
+	_jar_arc_flash(canvas, st, Vector2(7, 7))
+	_jar_arc_flash(canvas, st, Vector2(56, 7))
+
+func _jar_arc_flash(canvas: Image, st: Dictionary, p: Vector2) -> void:
+	if st.attack == RELEASE_FRAME:
+		_sparkle(canvas, Vector2i(p), Color.WHITE)
+		_warm_glow(canvas, p, Vector2(6, 6))
+
+# A faceted crystal: a hexagonal gem, light facets on the upper left, rainbow glints.
+func _faceted_crystal(canvas: Image, c: Vector2, w: float, h: float, o: Color, f: int) -> void:
+	var gem := _layer()
+	var pts := PackedVector2Array([c + Vector2(0, -h), c + Vector2(w, -h * 0.4), c + Vector2(w, h * 0.4), c + Vector2(0, h),
+		c + Vector2(-w, h * 0.4), c + Vector2(-w, -h * 0.4)])
+	_flat_polygon(gem, pts, Color(PRISM[1]))
+	for y in S:
+		for x in S:
+			if gem.get_pixel(x, y).a > 0.0:
+				var d := Vector2(x + 0.5, y + 0.5) - c
+				if d.x < 0 and d.y < 0:
+					gem.set_pixel(x, y, Color(PRISM[2]))
+				elif d.x > 0 and d.y > 0:
+					gem.set_pixel(x, y, Color(PRISM[0]))
+	_stamp(canvas, gem, o)
+	_line(canvas, [c + Vector2(0, -h), c + Vector2(0, h)], Color(PRISM[3]))
+	var glints := [Color("#ec9cf4"), Color("#fcd47c"), Color("#9cc46c")]
+	_px(canvas, int(c.x) - int(w * 0.5), int(c.y) - 1, glints[f % 3])
+	_px(canvas, int(c.x) + int(w * 0.5), int(c.y) + 1, glints[(f + 1) % 3])
+
+func _draw_prism_jar(canvas: Image, st: Dictionary) -> void:
+	_draw_firefly_jar(canvas, st)
+	_faceted_crystal(canvas, Vector2(30.5, 9 + st.dy), 8.0, 9.0, Color("#1a2230"), st.f)
+
+func _draw_rainbow_prism(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	_draw_firefly_jar(canvas, st)
+	# Three coloured beams fanning up out of the crown (its hits split three ways).
+	var cols := [Color("#ec9cf4"), Color("#fcd47c"), Color("#9cd4fc")]
+	for k in 3:
+		var a: float = -PI / 2.0 + (k - 1) * 1.05
+		for i in range(11, 20 + (st.f + k) % 3):
+			var p := Vector2(30.5, 9 + dy) + Vector2.from_angle(a) * i
+			_px(canvas, int(p.x), int(p.y), cols[k])
+	_faceted_crystal(canvas, Vector2(30.5, 9 + dy), 10.0, 9.0, Color("#1a2230"), st.f)
+	_faceted_crystal(canvas, Vector2(14, 21 + dy), 4.0, 5.0, Color("#1a2230"), st.f + 1)
+	_faceted_crystal(canvas, Vector2(47, 21 + dy), 4.0, 5.0, Color("#1a2230"), st.f + 2)
+
+func _attack_prism_jar(canvas: Image, st: Dictionary) -> void:
+	_prism_flash(canvas, st, "prism_jar", 1)
+
+func _attack_rainbow_prism(canvas: Image, st: Dictionary) -> void:
+	_prism_flash(canvas, st, "rainbow_prism", 3)
+
+# The crystal flares and splits its light into beams (one, or three coloured ones).
+func _prism_flash(canvas: Image, st: Dictionary, key: String, beams: int) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var c := Vector2(ATTACKS[key].point)
+	var cols := [Color("#ec9cf4"), Color("#fcd47c"), Color("#9cd4fc")]
+	for b in beams:
+		var a: float = -0.3 + (b - (beams - 1) / 2.0) * 0.4
+		for i in range(3, 24):
+			var p := c + Vector2.from_angle(a) * i
+			_px(canvas, int(p.x), int(p.y), Color.WHITE if beams == 1 else cols[b])
+	_sparkle(canvas, Vector2i(c), Color.WHITE)
+	_warm_glow(canvas, c, Vector2(7, 6), k)
+
+# A sparkler: a thin stick held up, a fizzing star of sparks at its tip, a few falling.
+func _sparkler(canvas: Image, hand: Vector2, tip: Vector2, f: int, o: Color) -> void:
+	var stick := _layer()
+	_stroke(stick, [hand, tip], 1.0, Color("#8c8cac"))
+	_stamp(canvas, stick, o)
+	for k in 8:
+		var a: float = k * TAU / 8.0 + f * 0.4
+		var r: float = 4.0 + (k + f) % 3
+		var p := tip + Vector2.from_angle(a) * r
+		_px(canvas, int(p.x), int(p.y), Color("#fff4dc") if k % 2 == 0 else Color("#fcd47c"))
+	_glow_dot(canvas, Vector2i(tip), Color.WHITE, Color("#fcd47c"))
+	for k in 2:
+		var p := tip + Vector2(-2 + k * 4, 4 + (f + k * 2) % 5)
+		_px(canvas, int(p.x), int(p.y), Color("#e9a83c"))
+
+func _draw_sparkler(canvas: Image, st: Dictionary) -> void:
+	_draw_firefly_jar(canvas, st)
+	_sparkler(canvas, Vector2(44, 30), Vector2(54, 12 + st.dy), st.f, Color("#1a2230"))
+
+func _draw_starburst(canvas: Image, st: Dictionary) -> void:
+	_draw_firefly_jar(canvas, st)
+	_sparkler(canvas, Vector2(44, 30), Vector2(56, 13 + st.dy), st.f, Color("#1a2230"))
+	_sparkler(canvas, Vector2(18, 30), Vector2(6, 13 + st.dy), st.f + 2, Color("#1a2230"))
+
+func _attack_sparkler(canvas: Image, st: Dictionary) -> void:
+	_firework_burst(canvas, st, "sparkler", 6, false)
+
+func _attack_starburst(canvas: Image, st: Dictionary) -> void:
+	_firework_burst(canvas, st, "starburst", 6, true)
+
+# A firework shoots up out of the sparkler and bursts into sparks (twice for Starburst).
+func _firework_burst(canvas: Image, st: Dictionary, key: String, n: int, double: bool) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	var from := Vector2(ATTACKS[key].point)
+	if k == 0:
+		_line(canvas, [from, from + Vector2(2, -8)], Color("#fcd47c"))
+		_glow_dot(canvas, Vector2i(from + Vector2(2, -9)), Color.WHITE, Color("#fcd47c"))
+	elif k == 1 or k == 2:
+		var centres := [from + Vector2(2, -10)]
+		if double:
+			centres.append(from + Vector2(-12, -6))
+		for c: Vector2 in centres:
+			for s in n:
+				var d := Vector2.from_angle(s * TAU / n) * (4.0 + k * 3.0)
+				_px(canvas, int(c.x + d.x), int(c.y + d.y), Color("#fff4dc") if k == 1 else Color("#e9a83c"))
+			_warm_glow(canvas, c, Vector2(6, 6), k)
 
 # --- Nurture ranks (warden_stats.md "Ranks: Nurture") -----------------------------------------
 # Every Warden stands on the same waystone slab (the mock's), so rank art is drawn once and layered
