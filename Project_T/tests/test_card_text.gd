@@ -39,6 +39,10 @@ func _initialize() -> void:
 	var acorn: UpgradeData = load("res://resource/dream/dream_acorn.tres")
 	_check(IconInfo.format(acorn.description).contains("(15 Dew)") or IconInfo.format(acorn.description).contains("(%d Dew)" % (load("res://resource/tower/acorn.tres") as TowerData).evolve_cost),
 		"the price tokens read the Warden (\"%s\")" % IconInfo.format(acorn.description))
+	# {pct:warden.field} reads the Warden's share field (Beacon's Mark, Grafted Elder's copy), so the text can't drift
+	var beacon: UpgradeData = load("res://resource/dream/dream_beacon.tres")
+	var mark := "+%d%%" % roundi((load("res://resource/tower/beacon.tres") as TowerData).marked_bonus * 100.0)
+	_check(IconInfo.format(beacon.description).contains(mark), "Beacon's text shows its marked_bonus (%s): \"%s\"" % [mark, IconInfo.format(beacon.description)])
 	# text_style.md "Card wording, one way each" (e2176ea3) on every card's text and cost line, and the stacking note
 	for card in Check.load_cards():
 		for text in [card.description, card.cost_description]:
