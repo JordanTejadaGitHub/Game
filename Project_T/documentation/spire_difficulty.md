@@ -112,3 +112,5 @@ too brittle.
   **50%** (target ~60%), skip **10%** ✓; 7/20 Balanced runs die before 25 (blocks 3–4, closest .81 / .97);
   finales at 10 / 15 cost 0 leaks, 20 about 1. **Pressure moves from the ramp to the finales:**
   `act1_health_multiplier` 1.35 → **1.25**, `block_finale_elites` → **{10: 2, 30: 3, 60: 4}**.
+- 2026-10-02: ramp 1.25 and finales {10: 2, 30: 3, 60: 4} both in **0f1c3944** (Tower Code's commit
+  swept in Enemy Code's finale edit, as intended); test_run's elite check is being updated by Enemy Code.
