@@ -106,3 +106,5 @@ too brittle.
 (newest at the bottom)
 - 2026-10-02: Phase 1 curve and Dew pot in **b69c72ef** (Tower Code): act 1 ramp from 3 to ×1.35, act 2
   2.0 → 4.5 linear, `act4_health_multiplier` 1.2, Dew pot acts 2–4 ×0.9 (bosses 243 / 288).
+- 2026-10-02: block finales in **e65e6dcf** (Enemy Code): `block_finale_elites` {10: 1, 30: 2, 60: 3};
+  elites the drift already lists count toward it; boss drifts keep the normal rule. **Phase 1 playable.**
