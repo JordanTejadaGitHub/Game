@@ -50,11 +50,9 @@ func _ready() -> void:
 	_mist.show_behind_parent = true  # The wisps (drawn by this node) over the ribbon
 	RouteLine.apply(_mist, MIST_COLOR, MIST_WIDTH)
 	if ResourceLoader.exists(MIST_TEXTURE) and not RouteLine.is_high_contrast():
-		# The shared mist look (RouteLine): whole-texel flow on TIME (a sub-texel scroll flickered), sharp joints
+		# The shared mist look (RouteLine): flows in 2-texel steps on TIME (a sub-texel scroll flickered, and 1-texel
+		# steps flipped the strip's checker-dither edges), texture repeat, sharp joints
 		RouteLine.style_mist(_mist)
-		_mist.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED  # The tiled UVs run past 1
-		# Steps of 2 texels: the strip's edges are a checker dither, and a 1-texel step flips the checker each time
-		(_mist.material as ShaderMaterial).set_shader_parameter(&"texels", _mist.texture.get_width() / 2.0)
 	add_child(_mist)
 	if ResourceLoader.exists(WISP_TEXTURE):
 		_wisp = load(WISP_TEXTURE)
