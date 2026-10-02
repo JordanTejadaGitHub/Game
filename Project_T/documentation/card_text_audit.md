@@ -58,3 +58,15 @@ The other 137 cards passed the tool's number check directly.
 This pass checked **numbers** and the rules behind them. A wording pass against `text_style.md`
 (plain words, consistent names, no internal tags) is next, after the combo rework's new texts land,
 so they're read once.
+
+## Late findings (2026-10-02, after the unlock-card check)
+
+| Card | Text said | Data | Verdict | Fix |
+|---|---|---|---|---|
+| Beacon (unlock) | Exposed "at +35%" | `marked_bonus` 0.5: +50%, replacing the base +25% (late-game pass 54155266) | ❌ stale card | "…is {marked}, at +50%." |
+| Grafted Elder (unlock) | copies "at 85%" | `copy_share` 1.0: full strength (Graftling 80%) | ❌ stale card | "…copies its strongest neighbour's attack at full strength." |
+| Shiny Things | 15% for 10 s, up to 3 (+45%) | `SHINY_THINGS_*` 0.15 / 10 / 3 | ✓ derived | — |
+
+Prevention (Tower Code's suggestion, for Roguelite Code): a `{pct:<warden>:<field>}` token beside
+`{grow_cost:}`, reading a TowerData field as a percentage ("full" for 1.0 copy shares), so Warden
+numbers in card text can't go stale.
