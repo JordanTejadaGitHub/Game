@@ -69,19 +69,27 @@ func _run() -> void:
 	dreams.unlock_everything = true
 	run_state.dew = 10000000
 	run_state.invulnerable = true
-	if not next_to.is_empty():  # The cast first, so the candidates can stand beside it
-		for id in cast:
-			_plant(placer, id)
+	var rest: Array = cast.duplicate()
 	for i in COPIES:
-		var tower := _plant(placer, form_id, next_to)
+		var tower: Tower = null
+		if next_to.is_empty():
+			tower = _plant(placer, form_id)
+		else:  # Pair by pair: a target from the cast, then a candidate in a free cell touching it; a target
+			# hemmed in by obstacles gets another planted next to the route (up to 4 tries; extras stay in the board)
+			for attempt in 4:
+				var target: String = next_to[(i + attempt) % next_to.size()]
+				rest.erase(target)
+				var beside := _plant(placer, target)
+				tower = _plant(placer, form_id, next_to, beside) if beside != null else null
+				if tower != null:
+					break
 		if tower == null:
 			printerr("could not plant %s" % form_id)
 			quit(1)
 			return
 		candidates.append(tower)
-	if next_to.is_empty():
-		for id in cast:
-			_plant(placer, id)
+	for id in rest:
+		_plant(placer, id)
 	if DamageLog.instance:
 		DamageLog.instance.damage_dealt.connect(_on_damage)
 	spawner.child_entered_tree.connect(func(n) -> void:
@@ -138,7 +146,7 @@ func _run() -> void:
 # Builds the base form on the best open cell next to the path, grows it to `id` and ranks it to `rank`,
 # all paid with Dew. Returns the Warden, or null.
 # `next_to`: only cells touching (8 around) a planted Warden whose id is in the list (Grafted Elder copies a neighbour).
-func _plant(placer: TowerPlacer, id: String, next_to: Array = []) -> Tower:
+func _plant(placer: TowerPlacer, id: String, next_to: Array = [], beside: Tower = null) -> Tower:
 	var chain := _chain_to(id)
 	if chain.is_empty():
 		return null
@@ -154,7 +162,7 @@ func _plant(placer: TowerPlacer, id: String, next_to: Array = []) -> Tower:
 				spots.append(path[i] + offset)
 	else:  # Any free cell touching a target Warden (the 8 around), targets in planting order
 		for t in container.get_children():
-			if t is Tower and next_to.has(t.tower_data.get_id()):
+			if t is Tower and (t == beside if beside != null else next_to.has(t.tower_data.get_id())):
 				for dx in [-1, 0, 1]:
 					for dy in [-1, 0, 1]:
 						spots.append(t.cell + Vector2(dx, dy))
