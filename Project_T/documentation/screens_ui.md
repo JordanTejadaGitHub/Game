@@ -1070,6 +1070,14 @@ Side: a run summary (Dreams, families, active Omen, time played).
 | Accessibility | colour-blind-friendly blight cue (outline/haze), text size, reduced motion, high-contrast route line, **reduce flashes** (photosensitivity: lite effects everywhere, no `surge`/Dawnburst flash), **hitstop and slow-motion** on/off |
 | Language | once translations exist |
 
+**Apply and Cancel** (2026-10-01, user: *"can you have a confirm or apply on the settings"*). Changes no longer save the moment you touch them:
+- Every change **previews live** (you hear the volume, see the UI scale, the effects), but is only **saved with Apply**. The panel's footer: **Apply** (primary; greyed out with no changes) · **Cancel** (puts everything back as it was when the panel opened) · **Defaults** (this tab only, still needs Apply).
+- A changed setting shows a small gold dot beside its label until applied. The tab names get the dot too.
+- Closing the panel (Esc, ✕, Back on a controller) with unapplied changes asks: *"Apply your changes?"* **Apply** · **Discard** · **Keep editing**.
+- **Risky display changes** (resolution, fullscreen / windowed, UI scale, V-sync): after Apply, a **"Keep these settings? Reverting in 10 s"** prompt with **Keep** / **Revert**. No answer reverts, so a bad resolution or a huge UI scale can never lock the player out.
+- **Keybinds:** the same rule; a rebind conflict is shown before Apply, not after.
+- Same panel and rules on the title screen and the pause menu. Touch and controller: Apply / Cancel are always on screen (no hover-only).
+
 ## Controls (keyboard and mouse)
 
 | Action | Key |
