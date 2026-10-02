@@ -120,3 +120,6 @@ too brittle.
   goes back to ×1.15 (still from drift 3) to pay for it.
 - 2026-10-02: finale health in **f2195173** (`block_finale_health_multiplier` 1.4 from drift 10, never
   boss drifts; act 1 ramp ×1.15 from drift 3).
+- 2026-10-02: **run 3 on f2195173:** finales bite (Balanced loses 1.63 / 0.94 / 1.00 leaves at drifts
+  10 / 15 / 20 ✓), skip 5% ✓, Balanced 50% (target ~60%): drift 10 is the run's hardest point. **First
+  finale eased:** `block_finale_elites` {10: 1, 15: 2, 30: 3, 60: 4}. After this, the user's runs judge.
