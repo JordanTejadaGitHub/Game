@@ -101,11 +101,24 @@ func _run() -> void:
 		and is_equal_approx(float(director.get_schedule_modifiers(30).get("spacing", 1.0)), 1.25 * float(main.get_node("%OmenDirector").get_schedule_modifiers(30).get("spacing", 1.0))),
 		"Thick Mist taken in act 1: act 2 spaced ×1.25, act 3 not")
 
+	# Deeper Glade: the leaf is ours (the ring Environment's stand-in here).
+	var max_before := run_state.max_leaves
+	var leaves_before := run_state.leaves
+	director.drifts_started = 75
+	director.rest_started.emit(15, true, 0, false)
+	gifts.current_offer = [&"deeper_glade"]
+	gifts.waiting = true
+	gifts.choose(&"deeper_glade")
+	_check(run_state.max_leaves == max_before + 1 and run_state.leaves == mini(leaves_before + 1, run_state.max_leaves),
+		"Deeper Glade: +1 max leaf, and the leaf (%d -> %d)" % [max_before, run_state.max_leaves])
+
 	# Saved and rebuilt.
+	var max_now := run_state.max_leaves
 	var saved := gifts.to_save()
 	applied.clear()
 	gifts.load_save(saved)
-	_check(gifts.taken.size() == 2 and applied.size() == 1 and applied[0][1].restoring, "a resumed run rebuilds the placed gifts (restoring)")
+	_check(gifts.taken.size() == 3 and applied.size() == 2 and applied.all(func(a: Array) -> bool: return a[1].restoring) and run_state.max_leaves == max_now,
+		"a resumed run rebuilds the gifts (restoring), and Deeper Glade's leaf isn't added twice")
 
 	main.queue_free()
 	await process_frame

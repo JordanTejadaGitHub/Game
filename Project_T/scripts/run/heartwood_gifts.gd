@@ -181,9 +181,14 @@ func _close() -> void:
 	current_offer = []
 	offer_closed.emit()
 
+const DEEPER_GLADE_LEAVES := 1
+
 func _apply(id: StringName, placement: Dictionary, restoring: bool) -> void:
 	if BUILT_IN.has(id):
 		return  # Read where they act (get_spacing_multiplier)
+	if id == &"deeper_glade" and not restoring:  # Its leaf is ours (RunState; saved with the run), the ring Environment's
+		run_state.max_leaves += DEEPER_GLADE_LEAVES
+		run_state.regrow_leaves(DEEPER_GLADE_LEAVES)
 	if _effects.has(id):
 		var data := placement.duplicate(true)
 		data["restoring"] = restoring
