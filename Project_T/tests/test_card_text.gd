@@ -1,0 +1,38 @@
+extends SceneTree
+
+# Card text check (Roguelite Mechanic Discussion, 2026-10-02: "check every card's text"): every stat-field Dream
+# card (no rule id, an effect number in its fields) states numbers its fields carry (0.25 ↔ 25%, 1.25 ↔ +25%,
+# 0.75 ↔ 25% less). Cards whose text is not yet fixed are KNOWN, with why; the list shrinks as texts are fixed
+# (a known card that now passes is reported, so it can come off). The full audit: tools/card_text_audit.gd.
+#   godot --headless --path . --script res://tests/test_card_text.gd
+
+const Check := preload("res://tools/card_text_check.gd")
+const KNOWN := {
+	"burn_back": "5 Dew a tree is DreamState.BURN_BACK_PER_TREE, not a field",
+	"deeper_rings": "130 / 180 Dew are rank cost constants, not fields",
+	"soaked_through_ii": "says 30% instead of 20%; status_strength_bonus is 0.5: to review",
+}
+
+var failures := 0
+
+func _initialize() -> void:
+	var stat_cards := 0
+	for card in Check.load_cards():
+		if not Check.is_stat_card(card):
+			continue
+		stat_cards += 1
+		var missing := Check.unmatched(card)
+		if missing.is_empty():
+			if KNOWN.has(card.id):
+				print("  %s now matches its fields: take it off KNOWN" % card.id)
+			continue
+		if not KNOWN.has(card.id):
+			_check(false, "%s: \"%s\" states %s, which no field carries (%s)" % [card.id, card.description, missing, Check.numeric_fields(card)])
+	_check(stat_cards >= 20, "the check sees the stat cards (%d)" % stat_cards)
+	print("card text test: %s (%d stat cards, %d known exceptions)" % ["PASS" if failures == 0 else "%d FAILED" % failures, stat_cards, KNOWN.size()])
+	quit(failures)
+
+func _check(condition: bool, label: String) -> void:
+	if not condition:
+		failures += 1
+		printerr("FAIL: " + label)
