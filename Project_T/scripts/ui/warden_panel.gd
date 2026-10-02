@@ -599,7 +599,7 @@ func _locked_form_button(button: Button, label: String, next: TowerData, towers:
 		button.text = "%s · needs a Dream" % label  # Before Dreamlight
 		button.disabled = true
 		return
-	var cost: int = dream_state.get_unlock_cost(next)
+	var cost: int = dream_state.get_unlock_price(next)  # Waking Root's discount included (it can reach 0)
 	var blocker: String = dream_state.get_unlock_blocker(next)
 	if blocker == "Memory Grove":
 		label = RememberScreen.UNKNOWN_NAME
@@ -609,7 +609,7 @@ func _locked_form_button(button: Button, label: String, next: TowerData, towers:
 		button.set_meta(&"price", WardenHeaderView.blocker_text(blocker))
 		_set_short(button, true, false)  # Not a price: just the dim look
 	else:
-		_priced(button, label, "%d Dreamlight" % cost, cost, &"dreamlight", true)
+		_priced(button, label, ("%d Dreamlight" % cost) if cost > 0 else "free", cost, &"dreamlight", true)
 	button.pressed.connect(func() -> void:
 		_confirm_unlock = null
 		if tower_seller.refuse_if_short(towers, next, false, index):

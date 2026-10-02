@@ -162,7 +162,7 @@ func _fill_growth(data: TowerData, dreams: DreamState) -> void:
 				line.text = "%s · %s" % [RememberScreen.UNKNOWN_NAME, blocker_text(blocker)]
 				tip = RememberScreen.UNKNOWN_NAME
 			else:
-				line.text = "Unlock %s · %s" % [next.display_name, blocker_text(blocker) if blocker != "" else "%d Dreamlight" % dreams.get_unlock_cost(next)]
+				line.text = "Unlock %s · %s" % [next.display_name, blocker_text(blocker) if blocker != "" else ("%d Dreamlight" % dreams.get_unlock_price(next)) if dreams.get_unlock_price(next) > 0 else "free"]
 			line.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		else:
 			line.text = "%s · needs a Dream" % next.display_name

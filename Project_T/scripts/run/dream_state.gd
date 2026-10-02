@@ -482,8 +482,9 @@ func get_unlock_price(data: TowerData) -> int:
 	var cost := get_unlock_cost(data)
 	return maxi(cost - 1, 0) if cost > 0 and unlock_discounts > 0 else cost
 
-# Heartwood's Gifts (heartwood_gifts.md, Spire branch): Waking Root = the next `count` forms unlocked on the Remember
-# screen each cost 1 less Dreamlight (never below 0). Used by unlock_with_dreamlight; saved with the run.
+# Heartwood's Gifts (heartwood_gifts.md, Spire branch): Waking Root = the next `count` forms unlocked (Remember screen,
+# Warden panel: every price reads get_unlock_price) each cost 1 less Dreamlight (never below 0). Used by
+# unlock_with_dreamlight; saved with the run.
 var unlock_discounts := 0
 
 func add_unlock_discount(count: int = 1) -> void:

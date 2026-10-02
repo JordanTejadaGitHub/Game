@@ -523,7 +523,7 @@ func refuse_if_short(towers: Array, next: TowerData, unlocked: bool, index: int)
 		if not dreams.has_method("get_unlock_cost"):
 			return false
 		var blocker: String = dreams.get_unlock_blocker(next)
-		var cost: int = dreams.get_unlock_cost(next)
+		var cost: int = dreams.get_unlock_price(next)  # Waking Root's discount included
 		if blocker != "":
 			grow_refused.emit(index, blocker_message(blocker))
 			return true

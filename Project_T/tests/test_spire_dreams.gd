@@ -102,6 +102,10 @@ func _run() -> void:
 		dreams.unlock_discounts = 0
 		dreams.load_save(saved)
 		_check(dreams.unlock_discounts == 1, "…saved with the run")
+		# Any path: the Warden panel's refusal (TowerSeller) reads the same lower price
+		var seller = main.get_node("%TowerSeller")
+		dreams.dreamlight = maxi(full - 1, 0)
+		_check(not seller.refuse_if_short([branch], branch, false, 0), "the Warden panel doesn't refuse at the lower price")
 		dreams.dreamlight = 5
 		_check(dreams.unlock_with_dreamlight(branch) and dreams.dreamlight == 5 - maxi(full - 1, 0), "…and the unlock pays the lower price")
 		_check(dreams.unlock_discounts == 0, "…one use")

@@ -42,7 +42,7 @@ const POOL := {
 	&"lightning_tree": {"name": "Lightning Tree", "group": "Living ground", "map": true, "place": &"cell", "size": 1,
 		"text": "A dead tree you place. {static} bolts within 2 cells of it deal +25%."},
 	&"moonwell": {"name": "Moonwell", "group": "Living ground", "map": true, "place": &"cell", "size": 1,
-		"text": "A lit stone cell. Wardens within 1 cell get +1 range."},
+		"text": "A lit stone cell. Wardens beside it (not diagonally) get +1 range."},
 	&"bell_stone": {"name": "Bell Stone", "group": "Living ground", "map": true, "place": &"cell", "size": 1,
 		"text": "A singing stone. Song Wardens within 1 cell pulse 15% faster."},
 	&"ancient_stump": {"name": "Ancient Stump", "group": "Living ground", "map": true, "place": &"cells", "size": 3,
@@ -58,7 +58,7 @@ const POOL := {
 	&"deeper_glade": {"name": "Deeper Glade", "group": "Heartwood and kin", "map": true, "place": &"none", "size": 0,
 		"text": "The Heartwood's glade grows by one ring of clear cells, and +1 max leaf."},
 	&"waking_root": {"name": "Waking Root", "group": "Heartwood and kin", "map": false, "place": &"none", "size": 0,
-		"text": "The next form you unlock on the Remember screen costs 1 less Dreamlight."},
+		"text": "The next form you unlock costs 1 less Dreamlight."},
 	&"memory_seed": {"name": "Memory Seed", "group": "Heartwood and kin", "map": false, "place": &"warden", "size": 1,
 		"text": "Choose a Warden: this act, selling and replanting it keeps its ranks and Kinship age."},
 }
