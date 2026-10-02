@@ -48,15 +48,19 @@ func _place_back() -> void:
 	_back.offset_bottom = minf(bar.offset_top, -76.0) - 12.0
 	_back.offset_top = _back.offset_bottom - 48.0
 
-# The "back" button as a small tab at the top centre instead (the discovery card, screens_ui.md), `y` px down.
-func place_back_at_top(y: float = 96.0) -> void:
-	_at_top = true
-	_back.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_back.custom_minimum_size = Vector2(220, 40)
-	_back.offset_left = -110
-	_back.offset_right = 110
-	_back.offset_top = y
-	_back.offset_bottom = y + 40
+# Pausing cards (discoveries, the new-nightmare card): the "Return" pill sits in the middle of the screen, a little
+# below centre, solid (user: "just put the placement in the middle for paused things like that, since they need to
+# close it before starting or resuming the drift"). Never at the top (it covered the Coming strip) or at the edges.
+const CENTRE_DROP := 70.0  # Pixels below the middle
+func place_back_centre() -> void:
+	_at_top = true  # A fixed place: not moved with the Warden bar
+	_back.set_anchors_preset(Control.PRESET_CENTER)
+	_back.custom_minimum_size = Vector2(280, 44)
+	_back.offset_left = -140
+	_back.offset_right = 140
+	_back.offset_top = CENTRE_DROP
+	_back.offset_bottom = CENTRE_DROP + 44
+	UiStyle.primary(_back)  # Solid
 
 func back_button() -> Button:
 	return _back

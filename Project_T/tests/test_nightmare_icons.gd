@@ -280,6 +280,20 @@ func _run() -> void:
 		var card_centre: Vector2 = intro._panel.get_global_rect().get_center()
 		var screen_centre: Vector2 = intro.get_viewport_rect().size / 2.0
 		_check(card_centre.distance_to(screen_centre) < 2.0, "the card is centred on screen (%s vs %s)" % [card_centre, screen_centre])
+		# Peek: the card goes, a solid "Return to …" pill waits mid-screen, a little below centre; still paused.
+		intro.peek.set_peeking(true)
+		await process_frame
+		var pill := intro.peek.back_button()
+		var pill_rect := pill.get_global_rect()
+		_check(not intro._panel.is_visible_in_tree() and pill.visible and pill.text.begins_with("Return to") and speed_node.paused
+			and pill_rect.get_center().y > screen_centre.y and pill_rect.get_center().y < screen_centre.y + 150.0
+			and absf(pill_rect.get_center().x - screen_centre.x) < 2.0,
+			"peeking leaves a \"%s\" pill mid-screen (%s), still paused" % [pill.text, pill_rect])
+		intro.queue.append(load("res://resource/enemy/leaf_bug.tres"))
+		_check(intro.return_text() == "Return (2)", "several waiting: Return (2)")
+		intro.queue.clear()
+		pill.pressed.emit()
+		_check(not intro.peek.peeking and intro._panel.is_visible_in_tree(), "the pill brings the card back")
 		root.size = old_size
 		intro.close()
 		_check(not speed_node.paused, "closing it resumes")

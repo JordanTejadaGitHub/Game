@@ -142,11 +142,15 @@ func _run() -> void:
 	_check(feedback._card.visible and feedback.card_text.begins_with("Combo discovered: Thunderclap") and game_speed.paused,
 		"Continue shows the next discovery, still paused")
 	# Peek at the map (screens_ui.md "The discovery card can be minimised"): the card and the dim go, the
-	# game stays paused, the world pans; a "Combo discovered" tab at the top reopens it.
+	# game stays paused, the world pans; a solid "Return to Thunderclap" pill mid-screen reopens it (pausing cards).
 	feedback.peek.set_peeking(true)
 	var tab := feedback.peek.back_button()
-	_check(not feedback._card.visible and not feedback._dim.visible and tab.visible and tab.text == "Combo discovered"
-		and game_speed.paused and feedback.showing(), "Peek hides the card and the dim; still paused, the tab says Combo discovered")
+	_check(not feedback._card.visible and not feedback._dim.visible and tab.visible and tab.text == "Return to Thunderclap"
+		and game_speed.paused and feedback.showing(), "Peek hides the card and the dim; still paused, the pill says Return to Thunderclap (%s)" % tab.text)
+	_check(tab.anchor_top == 0.5 and tab.anchor_left == 0.5 and tab.offset_top > 0.0, "…in the middle of the screen, a little below centre")
+	feedback._queue.append(&"conducted")
+	_check(feedback.return_text() == "Return (2)", "several waiting: one pill, Return (2)")
+	feedback._queue.pop_back()
 	_check((tab.get_parent() as Control).mouse_filter == Control.MOUSE_FILTER_IGNORE, "…the overlay lets the world take the mouse (hover, pan)")
 	var camera := main.get_node("GameCameraNode") as Node2D
 	var before: Vector2 = camera.target_position
