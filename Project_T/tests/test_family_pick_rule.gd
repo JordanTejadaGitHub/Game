@@ -21,6 +21,8 @@ func _run() -> void:
 	family.show_pick(&"first")
 	_check(family.offer.size() == mini(family.families.size(), family.cards_per_pick) and family.offer.all(func(o) -> bool: return o is TowerData),
 		"the first pick offers the starting families (%s)" % [family._ids(family.offer)])
+	_check(family.arm != null and not family.arm.is_armed() and family.arm.visible,
+		"the cards arm first: a press in the first moment can't pick (ChoiceArm)")
 	var first = family.offer[0]  # Any of them: the first pick is 3 random of the 4 starting families (Sporeling may not be there)
 	family.choose(first)
 	await process_frame

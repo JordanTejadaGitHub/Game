@@ -43,6 +43,7 @@ var offer: Array = []  # TowerData (a new family) or UpgradeData (a Family Bless
 var _was_paused := false
 var _title := Label.new()
 var _cards := HBoxContainer.new()
+var arm: ChoiceArm  # The arm delay (choice_arm.gd)
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
 
 func _ready() -> void:
@@ -67,6 +68,9 @@ func _ready() -> void:
 	box.add_child(_cards)
 	peek = ChoicePeek.new(self, [dim, center], "Back to the family pick")
 	box.add_child(peek.make_peek_button())
+	# A press for 0.6 s after the cards show never picks (Roguelite's ChoiceArm; user: "sometimes I click on cards when
+	# waves end because I'm trying to place towers").
+	arm = ChoiceArm.attach(self, _cards)
 	visible = false
 	previous_first_offer = HeartwoodMemory.load_data().get("last_first_pick", [])
 	previous_first_offer.sort()
@@ -115,6 +119,7 @@ func show_pick(reason: StringName = &"first") -> void:
 			game_speed.set_paused(true)
 			visible = true
 			_show_sapling()
+			arm.arm()
 			return
 		drift_director.family_picked()  # Nothing left to offer
 		return
@@ -133,6 +138,7 @@ func show_pick(reason: StringName = &"first") -> void:
 		else:
 			_cards.add_child(_make_card(data))
 	visible = true
+	arm.arm()
 
 # Sorted Warden ids of the families in `datas`.
 func _ids(datas: Array) -> Array:
