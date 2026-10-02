@@ -316,4 +316,4 @@ full game (`game/demo` false), and the demo reads main's exports.
   0.64 → **165** (1801c8a1).
 - 2026-10-02: **fence probe** (1db2b118, pairs on the route): the arc works (fence 90–96% of damage) but is
   weak: Jarlink 0.32× Driftspore, Lightning Fence 0.36 / 0.31× Puffball. **arc_dps: Jarlink 120, Lightning
-  Fence 400.**
+  Fence 400** (in d8df6151).
