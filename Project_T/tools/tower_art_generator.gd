@@ -2874,6 +2874,8 @@ func _tall_monsoon(back: Image, front: Image, st: Dictionary) -> void:
 func _final_extra(tower_name: String, canvas: Image, st: Dictionary) -> void:
 	if has_method("_final_extra_" + tower_name):
 		call("_final_extra_" + tower_name, canvas, st)
+	if EPIC.has(tower_name):
+		_epic_final(tower_name, canvas, st)
 
 # Hoarfrost: great ice spikes jutting out of both shoulders and icicles off the arms (Frostfern has
 # a few small crystals).
@@ -6138,3 +6140,687 @@ func _seed_throw(canvas: Image, st: Dictionary, key: String, wing: Array, seeds:
 		for s in 3:
 			_px(canvas, int(p.x) - 5 - s * 3, int(p.y) + (s % 2), Color("#e8f8f0"))
 		_warm_glow(canvas, p, Vector2(7, 6), k + i)
+
+# --- Epic finals (user 2026-10-02: "keep the warden look all around but just make it epic"; "each
+# family should be unique but still be epic") ---------------------------------------------------------
+# Every Warden stays a golem. A final is its branch's golem become a boss: on top of its own design
+# (through _final_extra, idle and attack sheets) it gets its family's own epic motif, tinted per final,
+# and its eyes glow:
+#   Sporeling: a grove of tall glowing mushrooms rising behind it
+#   Pebbling: rune stones floating round it
+#   Bellflower: rings of sound rippling out behind it
+#   Dewdrop: a flowing mantle of water (ice for Hoarfrost, mist for Morning Fog) and a crown of drops
+#   Firefly Jar: a swarm of fireflies circling it
+#   Rootling: a throne of roots risen behind it
+#   Acorn: great branching antlers with leaves
+#   Nestling: huge spread wings
+#   Whirligig: a wind vortex spiralling round it, leaves riding it
+
+# glow / core: its light. tint: the motif's material ramp (shadow → light).
+const EPIC := {
+	"puffball": {glow = "#ec9cf4", core = "#fff4dc", tint = ["#bca48c", "#dccdb2", "#dccdb2", "#fff4dc"]},
+	"dreamshroom": {glow = "#9cd4fc", core = "#dce8f4", tint = ["#2c2444", "#4c3c74", "#4c3c74", "#9a84e8"]},
+	"elf_circle": {glow = "#9cd4fc", core = "#dce8f4", tint = ["#2c4c5c", "#4c8ca4", "#4c8ca4", "#9cd4fc"]},
+	"boulderback": {glow = "#e9a83c", core = "#fcd47c", tint = ["#65627a", "#8f8ca2", "#b9b6c6", "#d6d3e0"]},
+	"moonstone": {glow = "#9cd4fc", core = "#dce8f4", tint = ["#65627a", "#8f8ca2", "#b9b6c6", "#d6d3e0"]},
+	"rockslide": {glow = "#e9a83c", core = "#fcd47c", tint = ["#5c3c24", "#8c5c34", "#bca48c", "#dccdb2"]},
+	"lullaby_bell": {glow = "#fcd47c", core = "#fff4dc", tint = []},
+	"great_dreamcatcher": {glow = "#ec9cf4", core = "#fff4dc", tint = []},
+	"whispering_hollow": {glow = "#9a84e8", core = "#dce8f4", tint = []},
+	"monsoon": {glow = "#9cd4fc", core = "#dce8f4", tint = ["#2c4c5c", "#4c8ca4", "#9cd4fc", "#dce8f4"]},
+	"morning_fog": {glow = "#dce8f4", core = "#ffffff", tint = ["#8c8cac", "#b4b0c8", "#dce8f4", "#ffffff"]},
+	"hoarfrost": {glow = "#9cd4fc", core = "#ffffff", tint = ["#4c8ca4", "#9cd4fc", "#dce8f4", "#ffffff"]},
+	"thunderhead": {glow = "#fcd47c", core = "#fff4dc", tint = []},
+	"beacon": {glow = "#fcd47c", core = "#fff4dc", tint = []},
+	"midsummer": {glow = "#e9a83c", core = "#fff4dc", tint = []},
+	"long_way_home": {glow = "#e9a83c", core = "#fcd47c", tint = ["#241c14", "#5c3c24", "#8c5c34", "#bca48c"]},
+	"snugroot": {glow = "#d4ec9c", core = "#fff4dc", tint = ["#5c3c24", "#8c5c34", "#bca48c", "#dccdb2"]},
+	"starcave": {glow = "#9a84e8", core = "#dce8f4", tint = ["#241c14", "#5c3c24", "#8c5c34", "#bca48c"]},
+	"grove_heart": {glow = "#d4ec9c", core = "#fff4dc", tint = ["#241c14", "#5c3c24", "#8c5c34", "#bca48c"], leaf = ["#1c3c2c", "#34643c", "#5c944c", "#9cc46c"]},
+	"wellspring": {glow = "#9cd4fc", core = "#dce8f4", tint = ["#241c14", "#5c3c24", "#8c5c34", "#bca48c"], leaf = ["#2c4c5c", "#4c8ca4", "#9cd4fc", "#dce8f4"]},
+	"grafted_elder": {glow = "#d4ec9c", core = "#fff4dc", tint = ["#241c14", "#5c3c24", "#8c5c34", "#bca48c"], leaf = ["#5c3c24", "#b8662c", "#e9a83c", "#fcd47c"]},
+	"starling_murmuration": {glow = "#dce8f4", core = "#ffffff", tint = ["#140f26", "#24243c", "#3c3c5c", "#9cd4fc"]},
+	"magpies_hoard": {glow = "#fcd47c", core = "#fff4dc", tint = ["#140f26", "#24243c", "#dce8f4", "#ffffff"]},
+	"jewelwing_court": {glow = "#ec9cf4", core = "#fff4dc", tint = ["#2c4c5c", "#4c8ca4", "#9cd4fc", "#ec9cf4"]},
+	"zephyr": {glow = "#dce8f4", core = "#ffffff", tint = ["#4c8ca4", "#9cd4fc", "#dce8f4", "#ffffff"], leaf = ["#34643c", "#5c944c", "#9cc46c", "#d4ec9c"]},
+	"windmill": {glow = "#fcd47c", core = "#fff4dc", tint = ["#bca48c", "#dccdb2", "#dccdb2", "#fff4dc"], leaf = ["#5c3c24", "#8c5c34", "#bca48c", "#dccdb2"]},
+	"autumn_gale": {glow = "#fcd47c", core = "#fff4dc", tint = ["#b8662c", "#e9a83c", "#fcd47c", "#fff4dc"], leaf = ["#b8662c", "#e9a83c", "#fcd47c", "#fff4dc"]},
+}
+const EPIC_O := Color("#140f26")
+
+func _epic_family(tower_name: String) -> String:
+	for line: String in LINES:
+		if tower_name in LINES[line]:
+			return line
+	return ""
+
+# The golem's own pixels (the template figure without its rocks).
+func _figure_mask(st: Dictionary) -> Image:
+	var pose: Dictionary = st.pose
+	var mask := _layer()
+	for i in S * S:
+		if pose.grid[i] != "." and pose.outside[i] == 0 and not _is_rock(pose, i % S, i / S):
+			_sp(mask, i % S, i / S, Color.WHITE)
+	return mask
+
+# Puts `layer` behind what's already on the canvas (only into its empty pixels).
+func _under(canvas: Image, layer: Image) -> void:
+	for y in range(-OY, S):
+		for x in S:
+			var c := _gp(layer, x, y)
+			if c.a > 0.0 and _gp(canvas, x, y).a == 0.0:
+				_sp(canvas, x, y, c)
+
+# Outlines a layer's shapes (EPIC_O round their outer edge) so they read as bold shapes.
+func _outline_layer(layer: Image) -> void:
+	var src := layer.duplicate() as Image
+	for y in range(-OY, S):
+		for x in S:
+			if _gp(src, x, y).a > 0.0:
+				continue
+			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var q := Vector2i(x, y) + d
+				if q.x >= 0 and q.x < S and q.y >= -OY and q.y < S and _gpv(src, q).a > 0.0:
+					_sp(layer, x, y, EPIC_O)
+					break
+
+func _epic_final(tower_name: String, canvas: Image, st: Dictionary) -> void:
+	var cfg: Dictionary = EPIC[tower_name]
+	var glow := Color(cfg.glow)
+	var core := Color(cfg.core)
+	if has_method("_epic_" + tower_name):
+		call("_epic_" + tower_name, canvas, cfg, st, glow, core)
+	else:
+		_epic_family_motif(_epic_family(tower_name), canvas, cfg, st, glow, core)
+	# Its eyes glow in its light.
+	if not st.blink:
+		for ex: int in EYES:
+			for k in 3:
+				_px(canvas, ex, EYE_TOP + k + st.dy, core if k == 1 else glow)
+
+# Each family's own motif (a final without its own version takes it as it is).
+func _epic_family_motif(family: String, canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	match family:
+		"sporeling": _epic_mushroom_grove(canvas, cfg, st, glow, core)
+		"pebbling": _epic_rune_stones(canvas, cfg, st, glow, core)
+		"bellflower": _epic_sound_rings(canvas, st, glow, core)
+		"dewdrop": _epic_water_mantle(canvas, cfg, st, glow, core)
+		"firefly_jar": _epic_swarm(canvas, st, glow, core)
+		"rootling": _epic_root_throne(canvas, cfg, st, glow, core)
+		"acorn": _epic_antlers(canvas, cfg, st, glow, core)
+		"nestling": _epic_wings(canvas, cfg, st, glow, core)
+		"whirligig": _epic_vortex(canvas, cfg, st, glow, core)
+
+# Sporeling: a grove of tall mushrooms risen behind it, caps glowing at the rim, spores drifting up.
+func _epic_mushroom_grove(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var grove := _layer()
+	var cap := _ramp(cfg.tint)
+	var sway: float = [0.0, 0.5, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5][st.f % 8]
+	# x, cap height (top of cap), cap half-width
+	for m: Vector3 in [Vector3(7, 10, 6.5), Vector3(16, -4, 8.5), Vector3(47, -8, 9.0), Vector3(56, 6, 6.5)]:
+		var top := Vector2(m.x + sway * (1.0 if m.x > 31 else -1.0), m.y)
+		var stem := _layer()
+		_stroke(stem, [Vector2(m.x, 40), top + Vector2(0, m.z * 0.6)], 1.6, Color("#dccdb2"))
+		for y in range(-OY, S):
+			for x in S:
+				if _gp(stem, x, y).a > 0.0:
+					_sp(grove, x, y, Color("#bca48c") if x > int(m.x) else Color("#dccdb2"))
+		_ellipse(grove, top + Vector2(0, m.z * 0.65), Vector2(m.z, m.z * 0.7), cap, top.y + m.z * 0.65)
+		for x in range(int(top.x - m.z) + 1, int(top.x + m.z)):
+			_px(grove, x, int(top.y + m.z * 0.65), glow)  # the glowing gill rim
+	_outline_layer(grove)
+	_under(canvas, grove)
+	for k in 6:
+		var t := float((st.f + k * 3) % 8) / 8.0
+		var p := Vector2([10, 18, 46, 54, 24, 40][k] + sin(t * TAU + k) * 2.0, 6 - t * 18.0 + (k % 3) * 4)
+		_px(canvas, roundi(p.x), roundi(p.y), core if k % 2 == 0 else glow)
+
+# Pebbling: three rune stones floating round it, bobbing, a glowing rune cut in each, light under them.
+func _epic_rune_stones(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var ramp := _ramp(cfg.tint)
+	for k in 3:
+		var bob: float = [0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 0.0][(st.f + k * 3) % 8]
+		var c: Vector2 = [Vector2(7, 14), Vector2(56, 10), Vector2(31.5, -10)][k] + Vector2(0, bob)
+		var s: float = [7.5, 7.0, 8.0][k]
+		var pts := PackedVector2Array()
+		for i in 6:
+			var a := i * TAU / 6.0 + 0.3 + k
+			pts.append(c + Vector2(cos(a) * s * 0.85, sin(a) * s))
+		if k == 2:
+			var back := _layer()
+			_rock(back, pts, ramp, EPIC_O)
+			_under(canvas, back)
+		else:
+			_rock(canvas, pts, ramp, EPIC_O)
+		# The rune: a little glowing glyph.
+		var g := Vector2i(c.round())
+		for p: Vector2i in [[Vector2i(0, -2), Vector2i(0, -1), Vector2i(0, 0), Vector2i(0, 1), Vector2i(-1, -1), Vector2i(1, 0)],
+				[Vector2i(-1, -2), Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 2)],
+				[Vector2i(0, -2), Vector2i(-1, -1), Vector2i(1, -1), Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)]][k]:
+			_px(canvas, g.x + p.x, g.y + p.y, core if p.y == 0 else glow)
+		# Light falling from it.
+		for i in 3:
+			if (st.f + i + k) % 2 == 0:
+				_px(canvas, g.x - 1 + i, g.y + int(s) + 2 + i, Color(glow, 0.7))
+
+# Bellflower: rings of sound rippling out behind its head, travelling outward over the loop.
+func _epic_sound_rings(canvas: Image, st: Dictionary, glow: Color, core: Color) -> void:
+	var rings := _layer()
+	var c := Vector2(31.5, 16 + st.dy)
+	var t := float(st.f % 8) / 8.0
+	for k in 3:
+		var r := 19.0 + k * 6.0 + t * 6.0
+		if r > 34.0:
+			continue
+		for i in 64:
+			var a := PI + 0.2 + i * (PI - 0.4) / 63.0
+			if i % 8 == 7:
+				continue  # a gap now and then, so they read as sound, not a wall
+			var p := c + Vector2(cos(a), sin(a)) * Vector2(r, r * 0.9)
+			_px(rings, roundi(p.x), roundi(p.y), core if k == 0 else glow)
+			_px(rings, roundi(p.x), roundi(p.y) + 1, glow)
+	_outline_layer(rings)
+	_under(canvas, rings)
+	for k in 2:
+		_glyph(canvas, Vector2i([8, 53][k], 6 - (st.f + k * 4) % 8), NOTE_GLYPH, core)
+
+# Dewdrop: a flowing mantle of water off its shoulders to the slab, its hem rippling, and a crown of
+# three drops floating over its head.
+func _epic_water_mantle(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var ramp := _ramp(cfg.tint)
+	var dy: int = st.dy
+	var mantle := _layer()
+	var wave: float = st.f * TAU / 8.0
+	for s: int in [-1, 1]:
+		var pts := PackedVector2Array()
+		pts.append(Vector2(31.5 + s * 6, 14 + dy))
+		pts.append(Vector2(31.5 + s * 20, 15 + dy))
+		for i in 7:
+			pts.append(Vector2(31.5 + s * (27.0 + sin(i * 1.3 + wave) * 2.0), 20.0 + i * 4.0))
+		pts.append(Vector2(31.5 + s * 22, 48))
+		pts.append(Vector2(31.5 + s * 16, 45 + sin(wave + s) * 1.5))
+		pts.append(Vector2(31.5 + s * 12, 30))
+		_flat_polygon(mantle, pts, ramp[1])
+	# Flowing water: light ripples running down it, a bright rim on its outer edge.
+	for y in range(-OY, S):
+		for x in S:
+			if _gp(mantle, x, y).a == 0.0:
+				continue
+			var ox: float = absf(x - 31.5)
+			var ripple: bool = (y + roundi(sin(ox * 0.5 + wave) * 2.0)) % 5 == 0
+			_sp(mantle, x, y, ramp[3] if ox > 24.5 else (ramp[2] if ripple else (ramp[0] if ox < 15.0 else ramp[1])))
+	_outline_layer(mantle)
+	_under(canvas, mantle)
+	# The clasp at its throat and a crown of three drops floating over its head.
+	for d: Vector2i in [Vector2i.ZERO, Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		_px(canvas, 31 + d.x, 20 + dy + d.y, core if d == Vector2i.ZERO else glow)
+	for k in 3:
+		var bob: int = [0, -1, -1, 0, 0, 1, 1, 0][(st.f + k * 2) % 8]
+		var p := Vector2(21 + k * 10.5, (-1 if k == 1 else 3) + dy + bob)
+		var drop := _layer()
+		_ellipse(drop, p + Vector2(0, 1.5), Vector2(3.2, 3.2), ramp)
+		_flat_polygon(drop, PackedVector2Array([p + Vector2(-2.6, 0.5), p + Vector2(0, -5.5), p + Vector2(2.6, 0.5)]), ramp[2])
+		_stamp(canvas, drop, EPIC_O)
+		_px(canvas, int(p.x) - 1, int(p.y), core)
+		_px(canvas, int(p.x) - 1, int(p.y) + 1, core)
+
+# Firefly Jar: a swarm of fireflies circling it, the ones behind it dimmer, each with a warm halo.
+func _epic_swarm(canvas: Image, st: Dictionary, glow: Color, core: Color) -> void:
+	var back := _layer()
+	for k in 11:
+		var a: float = k * TAU / 11.0 + st.f * TAU / 32.0
+		var h := sin(k * 2.3) * 9.0
+		var p := Vector2(31.5 + cos(a) * 28.0, 22 + sin(a) * 11.0 + h)
+		var front := sin(a) > 0.0
+		var target := canvas if front else back
+		var q := Vector2i(p.round())
+		# Its trail: two fading dots behind it.
+		for i in range(1, 3):
+			var b := Vector2(31.5 + cos(a - i * 0.12) * 28.0, 22 + sin(a - i * 0.12) * 11.0 + h)
+			_px(target, roundi(b.x), roundi(b.y), Color(glow, 0.7 - i * 0.2))
+		for d: Vector2i in [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1), Vector2i(-2, 0), Vector2i(2, 0), Vector2i(0, -2), Vector2i(0, 2)]:
+			_px(target, q.x + d.x, q.y + d.y, Color(glow, 0.55))
+		for d: Vector2i in [Vector2i.ZERO, Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			_px(target, q.x + d.x, q.y + d.y, core if d == Vector2i.ZERO or (k + st.f) % 3 == 0 else glow)
+	_under(canvas, back)
+
+# Rootling: a throne of roots risen behind it: two great roots curling over its head, smaller ones
+# twisting up between, light in the knots.
+func _epic_root_throne(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var wood := _ramp(cfg.tint)
+	var throne := _layer()
+	for s: int in [-1, 1]:
+		var x0 := 31.5 + s * 22.0
+		_stroke(throne, [Vector2(x0, 44), Vector2(x0 + s * 2, 26), Vector2(x0 - s * 1, 8), Vector2(x0 - s * 8, -4), Vector2(x0 - s * 14, -2), Vector2(x0 - s * 13, 4)], 2.6, wood[1])
+		_stroke(throne, [Vector2(x0 - s * 6, 40), Vector2(x0 - s * 4, 22), Vector2(x0 - s * 9, 6)], 1.4, wood[2])
+	# Light the bark: darker on the inner side.
+	for y in range(-OY, S):
+		for x in S:
+			if _gp(throne, x, y).a > 0.0 and (x + y * 2) % 7 == 0:
+				_sp(throne, x, y, wood[0])
+	_outline_layer(throne)
+	_under(canvas, throne)
+	for p: Vector2i in [Vector2i(10, 20), Vector2i(53, 18), Vector2i(17, -1), Vector2i(46, -1)]:
+		if (st.f + p.x) % 4 < 2:
+			_px(canvas, p.x, p.y, core)
+			_px(canvas, p.x + 1, p.y, glow)
+
+# Acorn: great branching antlers of wood rising from its head, leaves budding at the tips.
+func _epic_antlers(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var wood := _ramp(cfg.tint)
+	var leaf := _ramp(cfg.get("leaf", ["#1c3c2c", "#34643c", "#5c944c", "#9cc46c"]))
+	var dy: int = st.dy
+	var antlers := _layer()
+	var tips: Array = []
+	for s: int in [-1, 1]:
+		var root := Vector2(31.5 + s * 7, 8 + dy)
+		var bend := root + Vector2(s * 9, -8)
+		var tip := root + Vector2(s * 22, -14)
+		_stroke(antlers, [root, bend, tip], 1.5, wood[1])
+		for b: Array in [[0.35, Vector2(s * 2, -9)], [0.65, Vector2(s * 1, -8)], [0.9, Vector2(s * 5, -3)]]:
+			var from := root.lerp(tip, b[0]) + Vector2(0, -3)
+			_stroke(antlers, [from, from + b[1]], 1.0, wood[2])
+			tips.append(from + b[1])
+		tips.append(tip)
+	_outline_layer(antlers)
+	_under(canvas, antlers)
+	for i in tips.size():
+		var t: Vector2 = tips[i]
+		_leaf(canvas, t + Vector2(0, 1), t + Vector2(2 if i % 2 == 0 else -2, -5), 2.0, leaf, EPIC_O)
+	if st.f % 4 < 2:
+		_sparkle(canvas, Vector2i(tips[3]) + Vector2i(0, -6), core)
+
+# Nestling: huge feathered wings spread from its shoulders, the long flight feathers fanned out.
+func _epic_wings(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var ramp := _ramp(cfg.tint)
+	var dy: int = st.dy
+	var lift: float = [0.0, -1.0, -2.0, -1.0, 0.0, 1.0, 1.0, 0.0][st.f % 8] if st.attack < 0 else -3.0
+	var wings := _layer()
+	for s: int in [-1, 1]:
+		var root := Vector2(31.5 + s * 10, 20 + dy)
+		for k in 6:
+			var a: float = deg_to_rad(-80.0 + k * 22.0)
+			var d := Vector2(cos(a) * s, sin(a))
+			var len: float = 26.0 - absf(k - 2) * 3.0
+			_leaf(wings, root, root + d * len + Vector2(0, lift * (1.0 - k / 6.0)), 3.6, ramp, EPIC_O)
+		# The covert feathers over their roots.
+		_ellipse(wings, root + Vector2(s * 6, -4), Vector2(7, 4.5), ramp)
+	_outline_layer(wings)
+	_under(canvas, wings)
+	for s: int in [-1, 1]:
+		_px(canvas, int(31.5 + s * 20), 4 + dy, core)  # a glint on each wing
+
+# Whirligig: a wind vortex spiralling up round it, the back of each ribbon behind it, leaves riding it.
+func _epic_vortex(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var ramp := _ramp(cfg.tint)
+	var leaf := _ramp(cfg.get("leaf", ["#34643c", "#5c944c", "#9cc46c", "#d4ec9c"]))
+	var back := _layer()
+	var front := _layer()
+	for ribbon in 2:
+		for i in 140:
+			var t := i / 139.0
+			var a: float = t * TAU * 1.6 + ribbon * PI + st.f * TAU / 8.0
+			var r := 26.0 - t * 8.0
+			var p := Vector2(31.5 + cos(a) * r, 46 - t * 50.0 + sin(a) * 5.0)
+			var target := front if sin(a) > 0.0 else back
+			var col := ramp[2] if i % 6 < 4 else ramp[3]
+			_px(target, roundi(p.x), roundi(p.y), col)
+			_px(target, roundi(p.x), roundi(p.y) + 1, ramp[1])
+	_outline_layer(back)
+	_under(canvas, back)
+	_outline_layer(front)
+	for y in range(-OY, S):
+		for x in S:
+			var c := _gp(front, x, y)
+			if c.a > 0.0 and c != EPIC_O:
+				_sp(canvas, x, y, c)
+	for k in 3:
+		var a: float = k * TAU / 3.0 + st.f * TAU / 8.0
+		var p := Vector2(31.5 + cos(a) * 22.0, 14 + k * 9 + sin(a) * 4.0)
+		_leaf(canvas, p, p + Vector2(cos(a + 1.2), sin(a + 1.2)) * 5.0, 1.8, leaf, EPIC_O)
+
+# --- Each final its own take on its family's motif (user: "don't make the same family exactly the
+# same as well, but they should tell they came from the same family") ------------------------------
+# _epic_final calls _epic_<name> when a final has its own version, else its family's motif.
+
+# Puffball: a cluster of great puffballs on stout stalks rising behind it, puffing spores.
+func _epic_puffball(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var grove := _layer()
+	var puff := _ramp(cfg.tint)
+	for m: Vector3 in [Vector3(8, 14, 5.5), Vector3(17, 0, 7.0), Vector3(46, -2, 7.5), Vector3(55, 12, 5.5)]:
+		_stroke(grove, [Vector2(m.x, 40), Vector2(m.x, m.y + m.z)], 1.8, Color("#bca48c"))
+		_puffball(grove, Vector2(m.x, m.y), m.z, puff, Color(LAVENDER[0]))
+		_px(grove, int(m.x), int(m.y - m.z) + 1, Color("#8c5c34"))
+	_outline_layer(grove)
+	_under(canvas, grove)
+	for k in 6:
+		var t := float((st.f + k * 3) % 8) / 8.0
+		var src: Vector2 = [Vector2(17, -7), Vector2(46, -9), Vector2(8, 8)][k % 3]
+		var p := src + Vector2(sin(t * TAU + k) * (1.0 + t * 4.0), -t * 12.0)
+		_px(canvas, roundi(p.x), roundi(p.y), core if k % 2 == 0 else glow)
+
+# Elf Circle: an arch of little glowing mushrooms over it, a fairy ring standing on end.
+func _epic_elf_circle(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var arch := _layer()
+	var c := Vector2(31.5, 26)
+	var cap := _ramp(cfg.tint)
+	for k in 11:
+		var a: float = PI + k * PI / 10.0
+		var p := c + Vector2(cos(a) * 25.0, sin(a) * 28.0)
+		_small_shroom(arch, p + Vector2(0, 3), 2.6 + (k % 2) * 0.8, cap, EPIC_O)
+	_under(canvas, arch)
+	for k in 3:
+		if (st.f + k * 3) % 8 < 3:
+			_sparkle(canvas, [Vector2i(10, 4), Vector2i(31, -6), Vector2i(53, 4)][k], core)
+
+# Boulderback: two heavy boulders floating low at its shoulders, molten light in their cracks.
+func _epic_boulderback(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	for k in 2:
+		var bob: float = [0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 0.0][(st.f + k * 4) % 8]
+		var c: Vector2 = [Vector2(6, 12), Vector2(57, 9)][k] + Vector2(0, bob)
+		var pts := PackedVector2Array()
+		for i in 7:
+			var a := i * TAU / 7.0 + k
+			pts.append(c + Vector2(cos(a) * 9.5, sin(a) * 8.5 * (0.85 + (i % 2) * 0.15)))
+		_rock(canvas, pts, _ramp(cfg.tint), EPIC_O)
+		var crack := [c + Vector2(-4, -3), c + Vector2(-1, 0), c + Vector2(-2, 3), c + Vector2(2, 5)]
+		_line(canvas, crack, glow)
+		_line(canvas, [c + Vector2(-1, 0), c + Vector2(4, -2)], core)
+		for i in 2:
+			_px(canvas, int(c.x) - 1 + i * 2, int(c.y) + 9 + (st.f + i) % 3, Color(glow, 0.7))
+
+# Moonstone: three pale rune stones floating round it (the family motif) under a small moon.
+func _epic_moonstone(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	_epic_rune_stones(canvas, cfg, st, glow, core)
+	var moon := _layer()
+	var c := Vector2(48, -4)
+	for y in range(-OY, S):
+		for x in S:
+			var p := Vector2(x + 0.5, y + 0.5)
+			if p.distance_to(c) <= 5.0 and p.distance_to(c + Vector2(2.5, -1.5)) > 4.2:
+				_sp(moon, x, y, core)
+	_outline_layer(moon)
+	_under(canvas, moon)
+
+# Rockslide: a ring of rubble swirling round it, big and small stones tumbling.
+func _epic_rockslide(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var back := _layer()
+	for k in 9:
+		var a: float = k * TAU / 9.0 + st.f * TAU / 24.0
+		var c := Vector2(31.5 + cos(a) * 28.0, 22 + sin(a) * 13.0 - (k % 3) * 3.0)
+		var s: float = [5.5, 3.8, 4.6][k % 3]
+		var pts := PackedVector2Array()
+		for i in 5:
+			var b: float = i * TAU / 5.0 + k + st.f * 0.3
+			pts.append(c + Vector2(cos(b), sin(b)) * s)
+		_rock(back if sin(a) < 0.0 else canvas, pts, _ramp(cfg.tint), EPIC_O)
+		if k % 3 == 0:
+			_px(back if sin(a) < 0.0 else canvas, int(c.x), int(c.y) + int(s) + 1, Color(glow, 0.8))
+	_under(canvas, back)
+
+# Great Dreamcatcher: a giant hoop behind it, a web strung across it, feathers and beads hanging.
+func _epic_great_dreamcatcher(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var hoop := _layer()
+	var c := Vector2(31.5, 16 + st.dy)
+	var r := 24.0
+	for i in 160:
+		var a := i * TAU / 160.0
+		var p := c + Vector2(cos(a), sin(a)) * r
+		if p.y < 34.0:
+			_px(hoop, roundi(p.x), roundi(p.y), Color("#8c5c34"))
+			_px(hoop, roundi(p.x + cos(a)), roundi(p.y + sin(a)), Color("#bca48c"))
+	for k in 8:
+		var a: float = PI + k * PI / 7.0
+		var a2: float = PI + (k + 3) * PI / 7.0
+		if k + 3 <= 7:
+			_line(hoop, [c + Vector2(cos(a), sin(a)) * r, c + Vector2(cos(a2), sin(a2)) * r], Color(glow, 0.8))
+	_outline_layer(hoop)
+	_under(canvas, hoop)
+	for s: int in [-1, 1]:
+		var top := c + Vector2(s * r, 2)
+		_line(canvas, [top, top + Vector2(0, 8)], Color("#bca48c"))
+		_leaf(canvas, top + Vector2(0, 8), top + Vector2(s, 16), 2.0, _ramp(["#4c3c74", "#9a84e8", "#ec9cf4", "#fff4dc"]), EPIC_O)
+		_px(canvas, int(top.x), int(top.y) + 5, core)
+
+# Whispering Hollow: whispers curling up out of it in pairs of wisps, fading as they rise.
+func _epic_whispering_hollow(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var wisps := _layer()
+	for s: int in [-1, 1]:
+		for k in 2:
+			var pts: Array = []
+			for i in 24:
+				var t := i / 23.0
+				var a: float = t * TAU * 1.2 + st.f * TAU / 8.0 + k * PI
+				pts.append(Vector2(31.5 + s * (16.0 + k * 7.0 + cos(a) * 4.0), 34 - t * 40.0 + sin(a) * 2.0))
+			for i in pts.size() - 1:
+				if i % 7 != 6:
+					_line(wisps, [pts[i], pts[i + 1]], core if i < 8 else glow)
+	_outline_layer(wisps)
+	_under(canvas, wisps)
+	for k in 2:
+		_glyph(canvas, Vector2i([7, 54][k], 2 - (st.f + k * 4) % 8), NOTE_GLYPH, core)
+
+# Morning Fog: a wide shawl of mist over its shoulders, drifting off in wisps, a pale sun behind it.
+func _epic_morning_fog(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var sun := _layer()
+	_flat_ellipse(sun, Vector2(31.5, 8 + st.dy), Vector2(15, 15), Color("#fff4dc"))
+	_flat_ellipse(sun, Vector2(31.5, 8 + st.dy), Vector2(12, 12), Color("#fcd47c"))
+	_outline_layer(sun)
+	_under(canvas, sun)
+	for k in 3:
+		_fog(canvas, Vector2([12, 51, 31][k], [24, 22, 40][k]) + Vector2(sin((st.f + k * 3) * TAU / 8.0) * 2.0, st.dy), Vector2(11, 6), core, st.f + k)
+
+# Hoarfrost: a collar of great ice spikes fanned behind its shoulders and a snowflake crown.
+func _epic_hoarfrost(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var collar := _layer()
+	var gems := _ramp(cfg.tint)
+	for k in 7:
+		var a: float = PI + 0.25 + k * (PI - 0.5) / 6.0
+		var base := Vector2(31.5, 22 + st.dy) + Vector2(cos(a) * 12.0, sin(a) * 6.0)
+		var tip := Vector2(31.5, 22 + st.dy) + Vector2(cos(a) * (28.0 - absf(k - 3) * 2.0), sin(a) * (30.0 - absf(k - 3) * 3.0))
+		var n := (tip - base).normalized().orthogonal()
+		_flat_polygon(collar, PackedVector2Array([base - n * 3.0, tip, base + n * 3.0]), gems[1])
+		_line(collar, [base, tip], gems[3])
+	_outline_layer(collar)
+	_under(canvas, collar)
+	var flake := Vector2i(31, -4 + st.dy)
+	for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN, Vector2i(-1, -1), Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1)]:
+		_px(canvas, flake.x + d.x * 2, flake.y + d.y * 2, glow)
+		_px(canvas, flake.x + d.x, flake.y + d.y, core)
+
+# Thunderhead: a ring of crackling lightning round it, a different path every frame.
+func _epic_thunderhead(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var back := _layer()
+	var pts: Array = []
+	for k in 7:
+		var a: float = k * TAU / 7.0 + st.f * 0.4
+		pts.append(Vector2(31.5 + cos(a) * 27.0, 26 + sin(a) * 11.0))
+	for k in 7:
+		if (k + st.f) % 3 == 0:
+			continue
+		var a: Vector2 = pts[k]
+		var b: Vector2 = pts[(k + 1) % 7]
+		_bolt(back if (a.y + b.y) * 0.5 < 26.0 else canvas, a, b, core, glow, 3)
+	_under(canvas, back)
+	for p: Vector2 in pts:
+		_glow_dot(canvas, Vector2i(p.round()), core, glow)
+
+# Midsummer: sun rays fanned behind it and warm petals drifting round it.
+func _epic_midsummer(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var rays := _layer()
+	var c := Vector2(31.5, 18 + st.dy)
+	for k in 11:
+		var a: float = PI + 0.15 + k * (PI - 0.3) / 10.0
+		var d := Vector2(cos(a), sin(a))
+		var len := 30.0 if k % 2 == 0 else 23.0
+		_stroke(rays, [c + d * 16.0, c + d * len], 1.4 if k % 2 == 0 else 0.9, glow if k % 2 == 0 else core)
+	_outline_layer(rays)
+	_under(canvas, rays)
+	for k in 5:
+		var t := float((st.f + k * 2) % 8) / 8.0
+		var p := Vector2([6, 57, 12, 50, 31][k] + sin(t * TAU + k) * 2.0, 30 - t * 20.0 - (k % 2) * 6)
+		_leaf(canvas, p, p + Vector2(2, -2), 1.2, _ramp(["#b8662c", "#e9a83c", "#fcd47c"]), EPIC_O)
+
+# Long Way Home: roots sprawled out over the slab and beyond it like a map of ways home, curling up
+# at the ends round little lights.
+func _epic_long_way_home(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var wood := _ramp(cfg.tint)
+	var roots := _layer()
+	for s: int in [-1, 1]:
+		_stroke(roots, [Vector2(31.5 + s * 10, 40), Vector2(31.5 + s * 22, 38), Vector2(31.5 + s * 29, 30), Vector2(31.5 + s * 28, 20), Vector2(31.5 + s * 23, 21)], 2.6, wood[3])
+		_stroke(roots, [Vector2(31.5 + s * 18, 30), Vector2(31.5 + s * 22, 12), Vector2(31.5 + s * 18, 2), Vector2(31.5 + s * 14, 5)], 1.8, wood[2])
+	_outline_layer(roots)
+	_under(canvas, roots)
+	for p: Vector2i in [Vector2i(8, 21), Vector2i(55, 21), Vector2i(13, 4), Vector2i(50, 4)]:
+		if (st.f + p.x) % 4 < 2:
+			_glow_dot(canvas, p, core, glow)
+		else:
+			_px(canvas, p.x, p.y, glow)
+
+# Snugroot: the root throne (the family motif).
+func _epic_snugroot(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	_epic_root_throne(canvas, cfg, st, glow, core)
+
+# Starcave: the root throne grown through with violet crystals.
+func _epic_starcave(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	_epic_root_throne(canvas, cfg, st, glow, core)
+	var gems := _ramp(["#4c3c74", "#9a84e8", "#dce8f4"])
+	var back := _layer()
+	for c: Vector4 in [Vector4(8, 28, 8, -2), Vector4(55, 26, 9, 2), Vector4(14, 8, 6, -1), Vector4(49, 6, 6, 1)]:
+		_prism(back, Vector2(c.x, c.y), 2.4, c.z, c.w, gems, EPIC_O)
+	_under(canvas, back)
+
+# Grove Heart: leafy antlers (the family motif).
+func _epic_grove_heart(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	_epic_antlers(canvas, cfg, st, glow, core)
+
+# Wellspring: antlers of living water, branching like coral, drops at the tips.
+func _epic_wellspring(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var water := _ramp(["#2c4c5c", "#4c8ca4", "#9cd4fc", "#dce8f4"])
+	var dy: int = st.dy
+	var coral := _layer()
+	var tips: Array = []
+	for s: int in [-1, 1]:
+		var root := Vector2(31.5 + s * 8, 10 + dy)
+		var mid := root + Vector2(s * 8, -10)
+		_stroke(coral, [root, mid, mid + Vector2(s * 9, -4)], 1.6, water[1])
+		_stroke(coral, [mid, mid + Vector2(s * 1, -10)], 1.2, water[2])
+		_stroke(coral, [root.lerp(mid, 0.5), root.lerp(mid, 0.5) + Vector2(s * 9, 2)], 1.0, water[2])
+		tips.append_array([mid + Vector2(s * 9, -4), mid + Vector2(s * 1, -10), root.lerp(mid, 0.5) + Vector2(s * 9, 2)])
+	_outline_layer(coral)
+	_under(canvas, coral)
+	for i in tips.size():
+		var t: Vector2 = tips[i]
+		var fall: int = (st.f + i * 3) % 8
+		_px(canvas, int(t.x), int(t.y) - 1, core)
+		_px(canvas, int(t.x), int(t.y) + fall, Color(glow, 1.0 - fall / 8.0))
+
+# Grafted Elder: antlers hung with blossoms and little grafted fruits.
+func _epic_grafted_elder(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var wood := _ramp(cfg.tint)
+	var dy: int = st.dy
+	var antlers := _layer()
+	var tips: Array = []
+	for s: int in [-1, 1]:
+		var root := Vector2(31.5 + s * 7, 8 + dy)
+		var tip := root + Vector2(s * 20, -12)
+		_stroke(antlers, [root, root + Vector2(s * 10, -5), tip], 1.5, wood[1])
+		for b: Array in [[0.4, Vector2(s * 3, -8)], [0.75, Vector2(s * 4, 5)]]:
+			var from := root.lerp(tip, b[0])
+			_stroke(antlers, [from, from + b[1]], 1.0, wood[2])
+			tips.append(from + b[1])
+		tips.append(tip)
+	_outline_layer(antlers)
+	_under(canvas, antlers)
+	for i in tips.size():
+		var t: Vector2 = tips[i]
+		if i % 3 == 1:
+			var fruit := _layer()
+			_ellipse(fruit, t + Vector2(0, 3), Vector2(2.4, 2.4), _ramp(["#b8662c", "#e9a83c", "#fcd47c"]))
+			_stamp(canvas, fruit, EPIC_O)
+		else:
+			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				_px(canvas, int(t.x) + d.x, int(t.y) + d.y, Color("#ec9cf4"))
+			_px(canvas, int(t.x), int(t.y), Color("#fcd47c"))
+
+# Starling Murmuration: the great dark wings (the family motif).
+func _epic_starling_murmuration(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	_epic_wings(canvas, cfg, st, glow, core)
+
+# Magpie's Hoard: pied wings, white-banded, gold glinting in the feathers and spilling below.
+func _epic_magpies_hoard(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var dy: int = st.dy
+	var lift: float = [0.0, -1.0, -2.0, -1.0, 0.0, 1.0, 1.0, 0.0][st.f % 8] if st.attack < 0 else -3.0
+	var wings := _layer()
+	for s: int in [-1, 1]:
+		var root := Vector2(31.5 + s * 10, 22 + dy)
+		for k in 5:
+			var a: float = deg_to_rad(-60.0 + k * 22.0)
+			var d := Vector2(cos(a) * s, sin(a))
+			var ramp := _ramp(["#140f26", "#24243c", "#3c3c5c", "#4c8ca4"]) if k > 1 else _ramp(["#b4b0c8", "#dce8f4", "#dce8f4", "#ffffff"])
+			_leaf(wings, root, root + d * (24.0 - k * 2.0) + Vector2(0, lift), 3.8, ramp, EPIC_O)
+	_outline_layer(wings)
+	_under(canvas, wings)
+	for p: Vector2i in [Vector2i(9, 14), Vector2i(54, 16), Vector2i(13, 30), Vector2i(50, 28)]:
+		if (st.f + p.x) % 4 < 2:
+			_sparkle(canvas, p + Vector2i(0, dy), core)
+	for p: Vector2i in [Vector2i(10, 44), Vector2i(13, 45), Vector2i(50, 46), Vector2i(53, 45)]:
+		_px(canvas, p.x, p.y, Color("#fcd47c"))
+		_px(canvas, p.x + 1, p.y, Color("#e9a83c"))
+
+# Jewelwing Court: four jewelled dragonfly wings, clear and veined, shimmering.
+func _epic_jewelwing_court(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var dy: int = st.dy
+	var flick: float = [0.0, 1.0, 0.0, -1.0][st.f % 4]
+	var wings := _layer()
+	var shimmer := [Color("#9cd4fc"), Color("#ec9cf4"), Color("#d4ec9c")]
+	for s: int in [-1, 1]:
+		for k in 2:
+			var root := Vector2(31.5 + s * 8, 18 + dy + k * 5)
+			var tip := root + Vector2(s * (24.0 - k * 4.0), -10.0 + k * 14.0 + flick)
+			_leaf(wings, root, tip, 4.6 - k * 0.6, _ramp(["#2c4c5c", "#4c8ca4", "#9cd4fc", "#dce8f4"]), EPIC_O)
+			_line(wings, [root, tip], Color(shimmer[(st.f + k) % 3]))
+	_outline_layer(wings)
+	_under(canvas, wings)
+
+# Zephyr: wind ribbons spiralling round it (the family motif).
+func _epic_zephyr(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	_epic_vortex(canvas, cfg, st, glow, core)
+
+# Windmill: a great sail wheel turning behind it, four canvas sails on a wooden cross.
+func _epic_windmill(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var wheel := _layer()
+	var c := Vector2(31.5, 12 + st.dy)
+	var turn: float = st.f * TAU / 32.0
+	for k in 4:
+		var a: float = turn + k * TAU / 4.0
+		var d := Vector2(cos(a), sin(a))
+		var n := d.orthogonal()
+		_stroke(wheel, [c, c + d * 28.0], 1.0, Color("#8c5c34"))
+		_flat_polygon(wheel, PackedVector2Array([c + d * 9.0, c + d * 27.0, c + d * 27.0 + n * 6.5, c + d * 9.0 + n * 5.0]), Color("#dccdb2"))
+		for i in range(10, 27, 4):
+			_line(wheel, [c + d * i, c + d * i + n * 5.5], Color("#bca48c"))
+	_outline_layer(wheel)
+	_under(canvas, wheel)
+
+# Autumn Gale: a storm of autumn leaves whirling round it, no ribbons, only leaves.
+func _epic_autumn_gale(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var leaf := _ramp(cfg.leaf)
+	var back := _layer()
+	for k in 16:
+		var a: float = k * TAU / 16.0 + st.f * TAU / 16.0
+		var h := 42.0 - (k % 8) * 6.5
+		var p := Vector2(31.5 + cos(a) * (28.0 - (k % 8) * 1.2), h + sin(a) * 6.0)
+		var dir := Vector2(cos(a + 1.6), sin(a + 1.6)) * 7.5
+		_leaf(back if sin(a) < 0.0 else canvas, p, p + dir, 3.0, leaf, EPIC_O)
+		if k % 4 == 0:
+			_line(back if sin(a) < 0.0 else canvas, [p - dir * 0.6, p - dir * 1.4], glow)
+	_under(canvas, back)
+
+# A small mushroom: a pale stem and a round cap.
+func _small_shroom(canvas: Image, p: Vector2, s: float, cap: Array[Color], o: Color) -> void:
+	var layer := _layer()
+	_flat_ellipse(layer, p + Vector2(0, -s * 0.8), Vector2(s * 0.45, s * 0.9), Color("#f0e4d8"))
+	_ellipse(layer, p + Vector2(0, -s * 1.7), Vector2(s * 1.1, s * 0.75), cap, p.y - s * 1.55)
+	_stamp(canvas, layer, o)
+	_px(canvas, int(p.x), int(p.y - s * 2.0), cap[cap.size() - 1])
