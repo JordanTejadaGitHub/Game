@@ -191,7 +191,7 @@ static func _update_cloudburst(tower: Tower, delta: float) -> void:
 	for e in targetable(tower):
 		if e.global_position.distance_to(tower.global_position) <= reach:
 			tower._apply_one_status(e, EnemyStatuses.DAMP, 1, tower.get_damage())  # Cloudburst: Soaked refreshed
-	Reactions._effect(&"rain_sweep", tower.global_position, tower)
+	Fx.play(&"rain_sweep", tower.global_position, world(tower), reach / (1.5 * CELL))  # Cloudburst: rain sweeps out over the range
 
 # --- Undercurrent / Maelstrom: a whirlpool that gathers --------------------------------------------------------
 
@@ -238,7 +238,7 @@ static func _jet(tower: Tower) -> void:
 			continue
 		var mult := 1.0 + (soaked_bonus if e.statuses.has(EnemyStatuses.DAMP) else 0.0)
 		tower.hit(e, mult)
-	world(tower).add_child(LineFlash.new(from, from + dir * length, Palette.DEWLIGHT, 0.25))
+	Fx.segment(&"water_jet", from, from + dir * length, world(tower), 0.25)
 	if is_final(tower):  # Flood: a 3-tile wet trail where the jet met the path
 		var cells: Array[Vector2] = []
 		var route := tower._route()
@@ -310,9 +310,13 @@ static func _on_fence(near: Node, at: Vector2) -> bool:
 
 static func _prism_beams(tower: Tower) -> void:
 	var share := p(tower, "beam_share", 0.5)
-	for target in tower.find_targets(int(p(tower, "beams", 3))):
-		tower.hit(target, share)
-		world(tower).add_child(LineFlash.new(tower.global_position, target.global_position, Palette.GLOW, 0.2))
+	var colours: Array[Color] = [Palette.BLOSSOM, Palette.GLOW, Palette.DEWLIGHT]  # The white sheet tinted (Tower Assets)
+	var targets := tower.find_targets(int(p(tower, "beams", 3)))
+	for i in targets.size():
+		tower.hit(targets[i], share)
+		var beam := Fx.segment(&"prism_beam", tower.global_position, targets[i].global_position, world(tower), 0.2)
+		if beam:
+			beam.modulate = colours[i % colours.size()]
 
 # --- Sparkler / Starburst: a firework over a crowd ---------------------------------------------------------------
 
@@ -331,7 +335,7 @@ static func _burst_sparks(tower: Tower) -> void:
 static func _spark_burst_at(tower: Tower, at: Vector2, sparks: int, each: float, may_rebound: bool) -> void:
 	var radius := p(tower, "burst_radius", 1.5) * CELL
 	var near := targetable(tower).filter(func(e) -> bool: return e.global_position.distance_to(at) <= radius)
-	Reactions._effect(&"spark_burst", at, tower, 0.8)
+	Fx.play(&"spark_burst" if not may_rebound else &"firework_burst", at, world(tower))  # A full burst, or the small spark of a fence crossing
 	if near.is_empty():
 		return
 	var mult := each / maxf(float(tower.attack_data.damage), 1.0)
@@ -369,7 +373,7 @@ static func _toll_one(tower: Tower, enemy: Node2D, share: float) -> void:
 	var vespers := tower.kin_share(VESPERS, "a")
 	if vespers > 0.0 and is_instance_valid(enemy):
 		silence(enemy, 2.0 * vespers, tower)
-	world(tower).add_child(LineFlash.new(tower.global_position, enemy.global_position, Palette.MOONLIGHT, 0.3))
+	Fx.play(&"toll_ring", enemy.global_position, world(tower))
 
 # --- Hushbell / Silence ---------------------------------------------------------------------------------------------------
 
@@ -394,6 +398,8 @@ static func silence(enemy: Node2D, seconds: float, by: Tower) -> void:
 	enemy.statuses.silence_time = maxf(enemy.statuses.silence_time, seconds)
 	# The Procession's Lantern Bearer (tower_design.md 9fcb8cdf): silenced, its lantern goes dark and its Wraiths
 	# are lost, as if it had been dispelled first; they find the way again when the silence ends (SilenceWatch).
+	if is_instance_valid(by):
+		SilenceWatch.find(by).mark(enemy)  # The silence_mark over its head
 	if not was and enemy.enemy_data.followers != null and not enemy.enemy_data.is_boss and is_instance_valid(by):
 		SilenceWatch.find(by).darken(enemy)
 	if not was and is_instance_valid(by) and by.attack_data.special == HUSH and Tower._kin_roll(by.kin_share(VESPERS, "b")):
@@ -418,7 +424,10 @@ static func _thrum(tower: Tower) -> void:
 	for e in in_reach:
 		if absf(dir.angle_to(e.global_position - tower.global_position)) <= half:
 			tower.hit(e, 1.0 + (bonus if e.statuses.has(EnemyStatuses.DROWSY) else 0.0), true)
-	world(tower).add_child(ConeFlash.new(tower.global_position, dir, reach, half))
+	world(tower).add_child(ConeFlash.new(tower.global_position, dir, reach, half))  # The cone itself (what it hits)
+	var wave := Fx.play(&"sound_cone", tower.global_position, world(tower), reach / 48.0)
+	if wave:
+		wave.rotation = dir.angle()
 
 
 # ===== World nodes (script-only, placeholder drawing) ================================================================
@@ -473,6 +482,9 @@ class BroodSprite extends Node2D:
 			queue_free()
 			return
 		var goal := Tower.MAP_GRID.calculate_map_position(route[index - 1])
+		_age += delta
+		if absf(goal.x - global_position.x) > 0.5:
+			_left_facing = goal.x < global_position.x
 		global_position = global_position.move_toward(goal, speed * delta)
 		if global_position.distance_to(goal) < 1.0:
 			index -= 1
@@ -507,10 +519,24 @@ class BroodSprite extends Node2D:
 				small.global_position = global_position + Vector2(randf_range(-10, 10), randf_range(-10, 10))
 		queue_free()
 
+	const SHEET := "res://assets/towers/projectiles/spore_sprite.png"  # 24×24, 4 walk frames drawn walking right
+	var _tex: Texture2D = load(SHEET) if ResourceLoader.exists(SHEET) else null  # Per sprite (cached): never a static
+	var _age := 0.0
+	var _left_facing := false
+
 	func _draw() -> void:
-		var r := 7.0 if big else 4.5
-		draw_circle(Vector2.ZERO, r, Color(Palette.NEWLEAF, 0.9))
-		draw_circle(Vector2(0, -r * 0.4), r * 0.45, Color(Palette.SPRIG, 0.9))
+		if _tex == null:
+			var r := 7.0 if big else 4.5
+			draw_circle(Vector2.ZERO, r, Color(Palette.NEWLEAF, 0.9))
+			draw_circle(Vector2(0, -r * 0.4), r * 0.45, Color(Palette.SPRIG, 0.9))
+			return
+		var size := Vector2(24, 24) * (1.5 if big else 1.0)  # Hatchery's big one, scaled up
+		var frame := int(_age * 8.0) % 4
+		var region := Rect2(frame * 24, 0, 24, 24)
+		var rect := Rect2(-size / 2.0 - Vector2(0, size.y * 0.3), size)
+		if _left_facing:
+			rect = Rect2(rect.position + Vector2(rect.size.x, 0), Vector2(-rect.size.x, rect.size.y))
+		draw_texture_rect_region(_tex, rect, region)
 
 
 # A patch of ground with an effect for a while: rain clouds, whirlpools, ink, wet trails. Ticks every `tick` s on the
@@ -543,6 +569,22 @@ class GroundZone extends Node2D:
 		tick = every
 		z_index = -1 if k != &"rain" else 5
 
+	var _art := false  # Tower Assets' sheet shows it (else the drawn stand-in)
+
+	func _ready() -> void:
+		match kind:
+			&"rain":  # rain_zone tiles seamlessly 3×3
+				for dx in range(-1, 2):
+					for dy in range(-1, 2):
+						_art = Fx.play(&"rain_zone", global_position + Vector2(dx, dy) * CELL, self, 1.0, true, left) != null or _art
+			&"whirlpool":
+				_art = Fx.play(&"whirlpool", global_position, self, radius * 2.0 / CELL, true, left) != null
+			&"wet":  # Torrent's trail: the ink sheet, tinted water-blue
+				var trail := Fx.segment(&"ink_trail", global_position - Vector2(CELL / 2.0, 0), global_position + Vector2(CELL / 2.0, 0), self, left)
+				if trail:
+					trail.modulate = Palette.DEWLIGHT  # multiplier (a tint on the ink sheet)
+					_art = true
+
 	func _process(delta: float) -> void:
 		left -= delta
 		if left <= 0.0 or not is_instance_valid(tower):
@@ -573,6 +615,8 @@ class GroundZone extends Node2D:
 				e.hold_time = maxf(e.hold_time, pause * (0.5 if e.enemy_data.is_boss else 1.0))  # It spins in the eddy
 
 	func _draw() -> void:
+		if _art:
+			return  # The sheet shows it
 		var fade := clampf(left / 0.5, 0.0, 1.0)
 		var colour: Color
 		match kind:
@@ -634,6 +678,7 @@ class InkField extends Node:
 					cells[cell][0] = maxf(cells[cell][0], _clock + entry[2])  # Fresh ink lasts longer and keeps its tick
 				else:
 					cells[cell] = [_clock + entry[2], entry[1], 1.0, _clock + 1.0]
+					_show(cell, entry[2])
 		for cell in cells.keys():
 			var ink: Array = cells[cell]
 			if _clock >= ink[0] or not is_instance_valid(ink[1]):
@@ -656,7 +701,15 @@ class InkField extends Node:
 		var pool: Array[Vector2] = [here, enemy.get_target_cell()]
 		for cell in pool:
 			cells[cell] = [_clock + BranchKit.p(tower, "pool_time", 4.0), tower, BranchKit.p(tower, "pool_every", 0.5), _clock]
+			_show(cell, BranchKit.p(tower, "pool_time", 4.0))
 		marked.erase(enemy.get_instance_id())
+
+	# The ink on `cell` for `seconds` (Tower Assets' ink_trail across the cell).
+	func _show(cell: Vector2, seconds: float) -> void:
+		var at := Tower.MAP_GRID.calculate_map_position(cell)
+		var ink := Fx.segment(&"ink_trail", at - Vector2(BranchKit.CELL / 2.0, 0), at + Vector2(BranchKit.CELL / 2.0, 0), get_parent(), seconds)
+		if ink:
+			ink.z_index = -1  # On the ground
 
 	func ink_at(cell: Vector2) -> bool:
 		return cells.has(cell) and _clock < cells[cell][0]
@@ -666,7 +719,17 @@ class InkField extends Node:
 class SilenceWatch extends Node:
 	const TICK := 0.25
 	var leaders := {}  # Leader instance id -> [leader, [Wraiths it set lost]]
+	var marks := {}  # Silenced nightmare instance id -> [nightmare, its silence_mark over its head]
 	var _next := 0.0
+
+	# The silence_mark over a silenced nightmare's head while the silence lasts (it follows the nightmare).
+	func mark(enemy: Node2D) -> void:
+		var entry: Array = marks.get(enemy.get_instance_id(), [])
+		if not entry.is_empty() and is_instance_valid(entry[1]):
+			return
+		var node := Fx.play(&"silence_mark", enemy.global_position + Vector2(0, -30), enemy, 1.0, true, 0.0)
+		if node:
+			marks[enemy.get_instance_id()] = [enemy, node]
 
 	static func find(near: Node) -> SilenceWatch:
 		var scene := BranchKit.world(near)
@@ -690,6 +753,12 @@ class SilenceWatch extends Node:
 		if _next > 0.0:
 			return
 		_next = TICK
+		for id in marks.keys():
+			var entry: Array = marks[id]
+			if not is_instance_valid(entry[0]) or entry[0].is_cleansed or entry[0].statuses.silence_time <= 0.0:
+				if is_instance_valid(entry[1]):
+					entry[1].queue_free()
+				marks.erase(id)
 		for id in leaders.keys():
 			var leader = leaders[id][0]
 			if not is_instance_valid(leader) or leader.is_cleansed:

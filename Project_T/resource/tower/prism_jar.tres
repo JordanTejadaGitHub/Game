@@ -19,6 +19,7 @@ line = "light"
 tier = 2
 buildable_directly = false
 evolve_cost = 120
+counter_tags = Array[StringName]([&"anti_tank"])
 expansion_phase = 1
 special = &"prism"
 special_params = {"crit_aura": 0.10, "aura_radius": 1.5}
