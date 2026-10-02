@@ -202,7 +202,7 @@ func _lint(owner: String, source: String, text: String, is_title := false, is_co
 
 # Card wording, one way each (text_style.md, 2026-10-02): distances in cells, caps as "up to", Warden bonuses as
 # verbs. Its findings go under "<owner> wording": enforced for WORDING_ENFORCED, TODO for the rest until their sweep.
-const WORDING_ENFORCED := ["Main"]
+const WORDING_ENFORCED := ["Main", "Roguelite Code", "Tower Code", "Enemy Code", "Meta Game Code"]  # Every owner swept (2026-10-02)
 var _wording_rules: Array = []
 func _wording(owner: String, source: String, text: String) -> void:
 	if _wording_rules.is_empty():
