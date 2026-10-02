@@ -96,12 +96,18 @@ func _ready() -> void:
 			_offer_ids = cards.map(func(c: UpgradeData) -> String: return c.id)
 			_offer_drift = drift
 			_taken_in_offer = false)
+		# Every offer as [drift, [offered ids], taken id or "" for Let it pass] (Roguelite Mechanic Discussion
+		# 2026-10-02: pick rates from real runs). A second pick (Lucid Dreaming) is its own row on the smaller offer;
+		# a reroll replaces the offer before anything is taken.
 		dream_state.card_taken.connect(func(card: UpgradeData) -> void:
 			run.dreams_taken.append([card.id, drift_director.drifts_started])
+			if not _offer_ids.is_empty() and _offer_ids.has(card.id):
+				run.dream_offers.append([_offer_drift, _offer_ids.duplicate(), card.id])
 			_taken_in_offer = true)
 		dream_state.offer_closed.connect(func() -> void:
 			if not _taken_in_offer and not _offer_ids.is_empty():
 				run.dreams_skipped.append([_offer_ids.duplicate(), _offer_drift])
+				run.dream_offers.append([_offer_drift, _offer_ids.duplicate(), ""])
 			_offer_ids = [])
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	if omens != null:
@@ -144,7 +150,7 @@ func _start_record() -> void:
 		"experiment": String(ProjectSettings.get_setting("game/experiment", "")),  # A branch build ("spire"), else ""
 		"grove": profile.get("unlocks", {}).duplicate(), "perks": HeartwoodMemory.get_loadout(profile),
 		"result": "", "survived": 0, "won": false, "first_leak": 0, "seconds": 0.0, "leaves_lost_by_act": {},
-		"close_calls": 0, "family_picks": [], "dreams_taken": [], "dreams_skipped": [], "omens": [], "clear_skies": 0,
+		"close_calls": 0, "family_picks": [], "dreams_taken": [], "dreams_skipped": [], "dream_offers": [], "omens": [], "clear_skies": 0,
 		"bosses": [], "dew": {"earned": 0, "plant": 0, "grow": 0, "rank": 0, "clear": 0, "other": 0, "banked_at_rest": []},
 		"wardens": {}, "ranks": {}, "attackers": 0, "top": [], "combos": {}, "reactions": {},
 		"dreamlight": {"earned": 0, "spent": 0}, "drifts": [], "route_blocks": [], "heart_share": 0.0,
@@ -556,6 +562,8 @@ static func report_text(record: Dictionary) -> String:
 	lines.append("Families: %s" % ", ".join(record.get("family_picks", []).map(func(p: Dictionary) -> String:
 		return "%s (of %s, drift %d)" % [p.chosen, "/".join(p.offered), int(p.drift)])))
 	lines.append("Dreams: %s" % ", ".join(record.get("dreams_taken", []).map(func(d: Array) -> String: return "%s@%d" % [d[0], int(d[1])])))
+	lines.append("Dream offers: %s" % ", ".join(record.get("dream_offers", []).map(func(o: Array) -> String:
+		return "%d: %s → %s" % [int(o[0]), "/".join(o[1]), o[2] if o[2] != "" else "passed"])))
 	lines.append("Dreams passed: %d · Omens: %s · Clear Skies: %d" % [record.get("dreams_skipped", []).size(),
 		", ".join(record.get("omens", []).map(func(o: Dictionary) -> String: return o.name)), int(record.get("clear_skies", 0))])
 	lines.append("Bosses: %s" % ", ".join(record.get("bosses", []).map(func(b: Dictionary) -> String:

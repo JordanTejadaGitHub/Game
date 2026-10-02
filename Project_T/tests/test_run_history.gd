@@ -89,6 +89,19 @@ func _run() -> void:
 	history._note_leak(walker)
 	_check(int(history._route_block.dispels[0]) == 1 and float(history._route_block.dispel_health[0]) > 0.0
 		and int(history._route_block.leaked) == 1, "a dispel counts in its route bin (just spawned: the first), a leak apart")
+	# Every Dream offer (Roguelite Mechanic Discussion: pick rates): [drift, [offered ids], taken or "" for Let it pass].
+	var dreams: DreamState = main.get_node("%DreamState")
+	var cards: Array[UpgradeData] = []
+	for card in dreams.pool:
+		if cards.size() < 3:
+			cards.append(card)
+	var ids: Array = cards.map(func(c: UpgradeData) -> String: return c.id)
+	dreams.offer_ready.emit(cards, 5)
+	dreams.card_taken.emit(cards[1])
+	dreams.offer_closed.emit()
+	dreams.offer_ready.emit(cards, 10)
+	dreams.offer_closed.emit()
+	_check(history.run.dream_offers == [[5, ids, ids[1]], [10, ids, ""]], "each Dream offer is recorded with its pick or a pass (%s)" % [history.run.dream_offers])
 	run_state.abandoned = true
 	run_state.end_run(false)
 	await process_frame
@@ -104,6 +117,8 @@ func _run() -> void:
 			"per-drift rows use the bot's column names (%s)" % [drifts[0] if not drifts.is_empty() else {}])
 		var report := RunHistory.report_text(record)
 		_check(report.contains("Result: abandoned") and report.contains("drift,act,seconds,health_spawned"), "the copyable report")
+		_check(record.get("dream_offers", []).size() == 2 and report.contains("Dream offers: 5: ") and report.contains("→ passed"),
+			"the offers are saved and in the report")
 		_check(record.has("experiment") and String(record.experiment) == String(ProjectSettings.get_setting("game/experiment", "")),
 			"the record names its experiment branch (\"\" on main, \"spire\" on the Spire build)")
 		_check(int(record.get("early_calls", -1)) == 3 and int(record.get("dew_call_early", -1)) == 7
