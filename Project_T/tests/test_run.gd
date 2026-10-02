@@ -128,7 +128,9 @@ func _test_blocks_and_rests() -> void:
 		var eligible: int = schedule.filter(func(a: Array) -> bool: return not a[1].is_boss and a[1].intro_drift != number).size()
 		director.add_guaranteed_elite(schedule, number)
 		var elites: Array = schedule.filter(func(a: Array) -> bool: return a[2])
-		var expected := listed if number < 31 or listed > 0 else mini(2 if number >= 76 else 1, eligible)
+		var finale: int = director.get_block_finale_elites(number)  # Block finales (spire_difficulty.md) set their own count
+		var normal: int = listed if number < 31 or listed > 0 else mini(2 if number >= 76 else 1, eligible)
+		var expected: int = maxi(listed, listed + mini(finale - listed, eligible)) if finale >= 0 else normal
 		if number == 32:
 			_check(eligible > 0 and elites.size() >= 1, "drift 32 (older kinds again) gets its guaranteed elite")
 		_check(elites.size() == expected and elites.all(func(a: Array) -> bool: return not a[1].is_boss),
