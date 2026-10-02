@@ -247,6 +247,20 @@ inland. This replaces the Heartwood half of the layouts above.
   enough, glade clear; every route bends. Ponds near the route on 7 of 8 seeds, ruins 6 of 8.
   RunSaver VERSION 9.
 
+
+### Heartwood's Gifts (experiment/spire-difficulty, heartwood_gifts.md)
+
+Map pieces the act-break gifts place, one set per act folder like the rest.
+
+| File | Size | Layout | Use |
+|---|---|---|---|
+| `lightning_tree.png` | 384×128 | 4 frames of 96×128, the Withered Tree format (bottom 64 px rows centred on the cell) | Lightning Tree (an obstacle): a split, scorched dead tree with a charred cleft and Wraithlight static in its bark that flickers; a spark jumps between its tops on frame 2 |
+| `moonwell.png` | 256×64 | 4 frames of 64×64 | Moonwell (an unbuildable lit cell): a waystone ring with still water holding the moon's wobbling reflection, moonlight motes rising |
+| `bell_stone.png` | 256×64 | 4 frames of 64×64 | Bell Stone: a standing stone with a bronze bell in its hollow, a rune that glows gold as it sings, a ring of sound spreading beside it |
+| `mushroom_ring.png` | 768×192 | 4 frames of 192×192 (one 3×3 patch), transparent but the ring | Mushroom Ring (a ground patch under Wardens): a fairy ring of lush moss with 15 toadstools whose caps breathe a glow out of step |
+| `heartwood_roots.png` | 1024×64 | 16 columns = the path's neighbour mask, transparent overlay | Heartwood Roots: two gnarled warm root strands per path side meeting in a knot, glints of gold sap; drawn over the path tile, joins across cells |
+| `bog_path.png` | 1024×64 | 16 columns = neighbour mask, replaces `path.png` on its cells | Mire: the path's shape turned to dark peat with still puddles, reeds and a wet dark edge |
+| `ancient_stump.png` | 192×64 | 3 variants of 64×64 | Ancient Stump: a broad cut stump with its year rings, roots and a little moss, flat enough to plant a Warden on |
 ## Notes
 
 - Colours (2026-09-30, to fit the title and Memory Grove screens): the ground is night-indigo with a moss grain (act 1–2 moss/teal, act 3 violet with rust, act 4 frost), the dead trees are cool night bark with a teal lit side and moss flecks (the Grove trunks), rocks stay lavender stone. Warmth is only the path, the Heartwood and the Wardens.
