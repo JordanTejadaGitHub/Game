@@ -744,7 +744,7 @@ Night Mare 80% / 15%, Scarecrow 80% / 25%** ✓ all targets. The Stag is survive
 dispelled); the Night Mare and Scarecrow are mostly dispelled (80%) at a median 5 leaves (laps,
 Crows). The boss pool is fine.
 
-Decisions: **Bellflower damage 14 → 17** (the only family off target, 50%, and the only one leaking
+Decisions: **Bellflower damage 14 → 17** (in 756676ac; the only family off target, 50%, and the only one leaking
 in drifts 1–5). **Sporeling unchanged:** its 45% skip in item 1 doesn't repeat in item 2, where most
 skip runs opened with Sporeling and survived 15–30%.
 
