@@ -566,7 +566,7 @@ func is_hidden_branch(form: TowerData) -> bool:
 # Whether `form` (a branch, or a final through its branch) is in this run. True outside the expansion, for hidden
 # branches (the Grove gates those), and for families not picked yet.
 func is_branch_offered(form: TowerData) -> bool:
-	if not branch_expansion_on() or form == null:
+	if not branch_expansion_on() or form == null or unlock_everything:
 		return true
 	if unlocked.has(form.get_id()):
 		return true  # Owned (called back, unlocked by a card or a dev tool): in this run
