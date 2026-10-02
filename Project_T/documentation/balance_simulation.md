@@ -703,6 +703,21 @@ kills at 0.0–0.3, Heartwood share 0%. Driftspore 50%, Puffball 28%; Quickened 
 User on Omens with a hurt Heartwood: **keep as is** (Clear Skies is the choice; losing to an Omen is
 the gamble). No change.
 
+## Human run 12 (2026-10-01, build 238191 = 483e43ec; **a first-time player who doesn't play games**)
+
+**Lost at drift 30**, Sporeling → Firefly Jar, 2 Grove nodes. **Planted only: 60 Sporelings + 10 Firefly
+Jars, grow 0, ranks 0** (all 2,058 Dew spent on planting). Act 1 closest 0.70–0.94 to drift 10, then
+0.29–0.48, **no leaks until the boss**. Dew spread evenly along the route, Heartwood share 5–13% (unlike
+the user's front-loaded mazes). **The Scarecrow was dispelled (36 s), yet 6 Crows leaked: 12 leaves**,
+more than the 10-leaf bite for *failing* a boss. Act 2 with 4 leaves: 3 leaks at 29, dead at 30. Omens
+4 faced (Leaf Fall, Dry Spell ×2, Wilting).
+
+Reading: a total newcomer with a pure "plant base Wardens" plan holds act 1 and reaches act 2, which is
+on target for a fresh profile (and act 1's "teaches" side holds). Decisions:
+1. **Crow `leaf_cost` 2 → 1**: a won boss fight must not cost more than a lost one (Enemy Code).
+2. Never growing or ranking is an onboarding point, not a number: passed to the hub (a whisper when
+   Dew sits on a growable Warden?).
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
