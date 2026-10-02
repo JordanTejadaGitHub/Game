@@ -154,6 +154,8 @@ func spend_dreamlight() -> void:
 			var cost := dreams.get_unlock_cost(form)
 			if cost == 0 or dreams.get_unlock_blocker(form) != "":
 				continue  # Owned, or not open yet (Memory Grove, Ascended before drift 51…)
+			if dreams.dreamlight < cost and form.tier >= DreamState.ASCENDED_TIER:
+				continue  # Ascended only when affordable: never saved for (it would hold every other form back)
 			if dreams.dreamlight < cost or not dreams.unlock_with_dreamlight(form):
 				return  # Save up for the next form of this family
 			choices.append("Dreamlight: %s" % form.get_id())
