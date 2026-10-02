@@ -245,3 +245,6 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: branch offer (2 of 5), call-back (3 Dreamlight, once per family) and Lucid Dream (Rare, one
   free call that skips the price and the limit) in **320b4969** (Roguelite Code). The new branches
   themselves wait on Tower Code.
+- 2026-10-02: **Phase 6 built** (Tower Code): generic Kin 50dbcb28, BranchKit 75f378f3 / e05bdd81, the 12
+  branches + 12 finals + named pairs ab455f24, tests 991f5553. Numbers live in each `.tres`
+  (`special_params`). **Branch expansion playable**; branch probe queued.
