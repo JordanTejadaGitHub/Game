@@ -298,7 +298,7 @@ func _run() -> void:
 	memory = HeartwoodMemory.load_data()
 	for id in ["morning_stores", "early_bloom", "early_light"]:
 		memory.unlocks[id] = _unlock(grove, id).get_levels()
-	memory.loadout = ["rich_dew", "rested_roots", "sprout_bed", "clear_sight", "kindling"]
+	memory.loadout = ["rich_dew", "rested_roots", "sprout_bed", "clear_sight"]  # Kindling has its own run: its random Common may give Dew
 	HeartwoodMemory.save_data(memory)
 	_check(MetaRun.perk_extra_ridges() == 1, "sidegrade Clear Sight: the map gets one more ridge")
 	_check(_unlock(grove, "clear_sight").get_description().contains("Costs:"), "the node card shows the sidegrade text")
@@ -312,7 +312,6 @@ func _run() -> void:
 	_check(is_equal_approx(run_state.dew_gain_bonus, 0.15), "Rich Dew III +15%% pot; Rested Roots is plain power (Hades-style) (%s)" % run_state.dew_gain_bonus)
 	_check(is_equal_approx(director.rest_bonus_perk_multiplier, 1.0 + 0.2 - 0.3), "Rested Roots II +20%% (plain), Rich Dew III −30%% rest bonus (%s)" % director.rest_bonus_perk_multiplier)
 	_check(run_state.dew == run_state.starting_dew - 30 and run_state.sprout_charges == 2, "sidegrade Sprout Bed: 2 Sprouts, 30 less starting Dew (%d)" % run_state.dew)
-	_check(dreams.first_offer_cards == 2, "sidegrade Kindling: the first Dream offer has 2 cards")
 	main.queue_free()
 	await process_frame
 	memory = HeartwoodMemory.load_data()
@@ -331,11 +330,12 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 	memory = HeartwoodMemory.load_data()
-	memory.loadout = ["wider_dreams"]
+	memory.loadout = ["wider_dreams", "kindling"]
 	HeartwoodMemory.save_data(memory)
 	main = await _new_run()
 	dreams = main.get_node("%DreamState")
 	_check(dreams.cards_per_offer == 4 and dreams.skip_dew == 0, "sidegrade Wider Dreams: 4 cards, Let it pass gives no Dew")
+	_check(dreams.first_offer_cards == 2, "sidegrade Kindling: the first Dream offer has 2 cards")
 	main.queue_free()
 	await process_frame
 	MetaRun.force_sidegrade = 0
