@@ -610,6 +610,10 @@ Meta Game Discussion → Meta Game Code. The first pick now offers 3 of 4 (Spore
 Also (user): **the first family pick gives 1 Dreamlight, not 2**, so act 1 gets one branch and no final
 before the boss (+4). Both make act 1 a little harder; act 1 re-baseline once they land.
 
+Also (user, run_design.md 20df1914): **steady Dreamlight 3 per act boss** (was 4), **no +1 per rest
+from drift 51**: 10 by drift 76 with the first pick's 1. Fewer finals and Ascended late: watch late-act
+power in the next human run (it may offset part of the +25% acts 2–4 health).
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
