@@ -256,7 +256,7 @@ func _run() -> void:
 		for mark in [25, 51]:
 			if director.drifts_started >= mark and not kin_pairs.has(mark):
 				kin_pairs[mark] = Kinships.count_on_map(main)
-		if director.drifts_started in [20, 25, 50, 75] and not dream_share.has(director.drifts_started):
+		if director.drifts_started in [20, 25, 35, 50, 75] and not dream_share.has(director.drifts_started):
 			dream_share[director.drifts_started] = _dream_share()
 			if director.drifts_started == 20:
 				dreams_20 = "+".join(dreams._taken_cards().map(func(c: UpgradeData) -> String: return c.id))
@@ -687,7 +687,7 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "boss_draw": BossPool.force_draw, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "enemy": ";".join(enemy_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, enemy_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "omen_paid": _omen_stat("paid"), "omen_share": _omen_stat("share"), "omen_leaves_lost": _omen_stat("leaves_lost"), "omen_dew": (_omen_stat("dew") + roundi(omen_pot_dew)) if omens != null and _facing() else -1, "omen_pot_dew": roundi(omen_pot_dew), "omen_dreamlight": dreamlight_by_source.get(&"omen", 0) if omen_mode != "" else -1, "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "boss_draw": BossPool.force_draw, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "enemy": ";".join(enemy_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, enemy_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_35": dream_share.get(35, -1.0), "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "omen_paid": _omen_stat("paid"), "omen_share": _omen_stat("share"), "omen_leaves_lost": _omen_stat("leaves_lost"), "omen_dew": (_omen_stat("dew") + roundi(omen_pot_dew)) if omens != null and _facing() else -1, "omen_pot_dew": roundi(omen_pot_dew), "omen_dreamlight": dreamlight_by_source.get(&"omen", 0) if omen_mode != "" else -1, "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
