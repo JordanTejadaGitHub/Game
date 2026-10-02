@@ -91,6 +91,8 @@ var changes := 0
 var sleep_locked_time := 0.0  # Nightbloom: while > 0, sleep neither breaks on a big hit nor ends (Enemy's wake rule reads it)
 var slow_time := 0.0  # Drown on bosses (and Held-immune nightmares): an extra slow instead of sleep
 var slow_amount := 0.0
+var ground_taken := 0.0  # Heartwood Roots (MapGifts): extra soothe taken while on the marked cells
+var ground_taken_time := 0.0  # Refreshed by MapGifts while the nightmare stands there
 var smothering := false  # Held + Spored right now (Spored ticks faster)
 
 # Sleep (Drown; Great Dreamcatcher lengthens it): can't move while > 0. Not a status (no icon, no
@@ -359,6 +361,8 @@ func get_damage_taken_multiplier() -> float:
 		multiplier += STAG_EXTRA
 	if cut_stacks > 0:
 		multiplier *= 1.0 + CUT_BONUS * cut_stacks
+	if ground_taken_time > 0.0:
+		multiplier *= 1.0 + ground_taken  # Heartwood Roots (MapGifts)
 	if held_bonus > 0.0 and is_held():
 		multiplier *= 1.0 + held_bonus  # World Root: Held nightmares take more from everything
 	return multiplier
@@ -370,6 +374,8 @@ func tick(delta: float) -> float:
 	# frame for every nightmare).
 	if tempest_time > 0.0:
 		tempest_time = maxf(tempest_time - delta, 0.0)
+	if ground_taken_time > 0.0:
+		ground_taken_time = maxf(ground_taken_time - delta, 0.0)
 	if gust_time > 0.0:
 		gust_time = maxf(gust_time - delta, 0.0)
 	if _fog_time > 0.0:
