@@ -102,6 +102,21 @@ func _run() -> void:
 	dreams.offer_ready.emit(cards, 10)
 	dreams.offer_closed.emit()
 	_check(history.run.dream_offers == [[5, ids, ids[1]], [10, ids, ""]], "each Dream offer is recorded with its pick or a pass (%s)" % [history.run.dream_offers])
+	# Where damage comes from (Balancing Discussion: how much is combos): a combo bonus, a Reaction, a plain status tick.
+	var before := [float(history.run.get("combo_damage", 0.0)), float(history.run.get("reaction_damage", 0.0)), float(history.run.get("status_damage", 0.0))]
+	var parts_events: Array = []
+	for spec in [[&"hit", &"", 100.0, 30.0, [&"weak"]], [&"hit", &"thunderclap", 50.0, 0.0, []], [&"status", &"spored", 20.0, 0.0, []]]:
+		var e := DamageLog.Event.new()
+		e.kind = spec[0]
+		e.tag = spec[1]
+		e.amount = spec[2]
+		e.combo_amount = spec[3]
+		e.combos.assign(spec[4])
+		parts_events.append(e)
+		history._on_damage(e)
+	var after := [float(history.run.combo_damage), float(history.run.reaction_damage), float(history.run.status_damage)]
+	_check(is_equal_approx(after[0] - before[0], 30.0) and is_equal_approx(after[1] - before[1], 50.0) and is_equal_approx(after[2] - before[2], 20.0),
+		"combo bonuses, Reaction damage and status ticks are summed apart (%s → %s)" % [before, after])
 	run_state.abandoned = true
 	run_state.end_run(false)
 	await process_frame
@@ -117,6 +132,9 @@ func _run() -> void:
 			"per-drift rows use the bot's column names (%s)" % [drifts[0] if not drifts.is_empty() else {}])
 		var report := RunHistory.report_text(record)
 		_check(report.contains("Result: abandoned") and report.contains("drift,act,seconds,health_spawned"), "the copyable report")
+		_check(record.has("combo_share") and float(record.combo_share) > 0.0 and record.top.all(func(t: Dictionary) -> bool: return t.has("combo_share"))
+			and report.contains("Combos: ") and report.contains("combo_damage,reaction_damage,status_damage,combo_share")
+			and drifts[0].has("combo_damage"), "the run's combo share, each top Warden's, the report line and the CSV columns")
 		_check(record.get("dream_offers", []).size() == 2 and report.contains("Dream offers: 5: ") and report.contains("→ passed"),
 			"the offers are saved and in the report")
 		_check(record.has("experiment") and String(record.experiment) == String(ProjectSettings.get_setting("game/experiment", "")),
