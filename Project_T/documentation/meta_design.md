@@ -177,7 +177,7 @@ Dew gain +15%, leaves +3, rerolls 2 (3 with the "Dream of everything" milestone)
 
 ### Section 2: Families and family upgrades
 
-The starting families (Sporeling, Firefly Jar, Dewdrop) sit at the base of this limb, already grown.
+The **4 starting families** (Sporeling, Firefly Jar, Dewdrop and, since 2026-10-01, **Bellflower**) sit at the base of this limb, already grown. **Bellflower became a starting family** (user via Balancing Discussion, 2026-10-01): with 3, a fresh account's picks at drifts 1 / 25 / 50 used them all and the drift 75 pick fell back to +2 Dreamlight. Bellflower combos with all three starters (Drowsy, Static) and is mid-strength, so the stronger families stay Grove goals. Its node is a `start` node (never bought, its 60 Seeds gone); the first pick offers 3 of the 4. The demo starts with the same 4.
 Each family has three nodes stacked above it: **the family** (joins the family picks, with its
 branches), **its final forms**, **its hidden branch**.
 
@@ -188,14 +188,14 @@ branches), **its final forms**, **its hidden branch**.
 | Dewdrop | *(start)* | 50 (Monsoon, Morning Fog) | 40 (Frostfern + Hoarfrost) |
 | Pebbling | 50 (branches: Mossback, **Standing Stone**) | 50 (Boulderback, Moonstone) | 50 (Cairn + Rockslide) |
 | Rootling | 50 | 50 | 40 (Rootlight + Starcave) |
-| Bellflower | 60 (needs Pebbling or Rootling) | 50 (Lullaby Bell, Great Dreamcatcher) | 60 (Echo Hollow + Whispering Hollow) |
+| Bellflower | *(start, since 2026-10-01)* | 50 (Lullaby Bell, Great Dreamcatcher) | 60 (Echo Hollow + Whispering Hollow) |
 | Acorn | 70 (needs Pebbling or Rootling) | 50 | 60 (Graftling + Grafted Elder) |
-| Nestling | 120 (needs 2 of Pebbling / Rootling / Bellflower / Acorn) | 60 | 80 (Hummingbird Bower + Jewelwing Court; brings the on-hit cards) |
-| Whirligig | 120 (needs 2 of Pebbling / Rootling / Bellflower / Acorn) | 60 | 80 (Samara + Autumn Gale; brings the boomerang cards) |
+| Nestling | 120 (needs 2 of Pebbling / Rootling / Acorn; Bellflower dropped from the list when it became a starter, so these stay late) | 60 | 80 (Hummingbird Bower + Jewelwing Court; brings the on-hit cards) |
+| Whirligig | 120 (needs 2 of Pebbling / Rootling / Acorn) | 60 | 80 (Samara + Autumn Gale; brings the boomerang cards) |
 
-**Unlock order, by design:** the 3 starting families are the easiest to read (spores, water,
-light). Pebbling and Rootling come next (plain roles: hit hard, control). Bellflower and Acorn need
-one of those first, because sleep payoffs and support are better once you know the basics.
+**Unlock order, by design:** the starting families are the easiest to read (spores, water,
+light, and Bellflower's sleep since 2026-10-01). Pebbling and Rootling come next (plain roles: hit hard, control). Acorn needs
+one of those first, because support is better once you know the basics.
 Nestling and Whirligig are the full-game families, and **every hidden branch is a late node**
 above its family's final forms, so veterans keep finding new playstyles. Reviewed 2026-09-27
 (`tower_design.md`, "Family design rules").
@@ -222,7 +222,7 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   Dreamlight on, and the starting families' finals (Thunderhead, Beacon, Puffball, …) are there
   from the first run. So:
   - The **Final forms node** column above is gone (9 nodes, ~470 Seeds). **Hidden-branch nodes now
-    need only their family** (the family node, or nothing for the starting three).
+    need only their family** (the family node, or nothing for the starting four).
   - **Stormheart's Ascension** (the Firefly Jar exception) needs nothing but its Seeds.
   - The Seeds this frees should go to the other roots or lower the tree's total; the meta chat
     rebalances (`meta_design.md` Seeds totals, Grove node data).
@@ -297,8 +297,8 @@ Dawnbreak, Grove of Kin (2026-09-30, no combo cards in the Grove).
   new player already has a full Dream pool; this limb adds depth and big payoffs.
 - Total ≈ 3,370 Seeds as of 2026-09-30 (lean starting pool). New cards join an existing branch's bundle or start a new branch; **combo cards never go here**.
 
-**Families before the Grove fills in:** a new player has only 3 families (Sporeling, Firefly Jar,
-Dewdrop), but a run offers family picks at drift 1 and at the 25/50/75 bosses. When there are
+**Families before the Grove fills in:** a new player has only 4 families (Sporeling, Firefly Jar,
+Dewdrop, Bellflower; was 3 until 2026-10-01), but a run offers family picks at drift 1 and at the 25/50/75 bosses. When there are
 fewer than 3 new families to offer, the empty slots become **Family Blessings**: a strong boon for
 a family you already own (e.g. *"Sporeling Blessing: Sporeling family +25% soothe, evolutions 25%
 cheaper"*). So early runs deepen few families; unlocking Pebbling, Rootling, Bellflower and Acorn widens later
