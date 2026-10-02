@@ -205,8 +205,8 @@ sleep, then make sleep dangerous. Owns **Drowsy**.
 | A+ | Lullaby Bell | bigger pulse that also applies Drowsy | Drowsy | Static, Held |
 | B | Dreamcatcher | hangs a dreamcatcher over the path: **sleeping or max-Drowsy nightmares in range are Caught**: **their statuses stop wearing off** while Caught (Spored keeps ticking, Static doesn't decay, Damp / Marked / Held timers pause). *Reworked 2026-09-29 (overlap review): it was +25–60% damage taken, which duplicated Marked, and measured at 1.5% of damage.* | — | Drowsy, sleep, any status |
 | B+ | Great Dreamcatcher | a bigger range, and Caught statuses also tick **+25%**; sleep in its range lasts 1 s longer; Caught nightmares that are dispelled drop **Dreamlight shards** | — | Drowsy, sleep |
-| Hidden | Echo Hollow | a hollow log that **echoes Reactions**: a Reaction nearby repeats 1 s later at 50% **on the same nightmare**, wherever it has walked | — | Reactions |
-| Hidden+ | Whispering Hollow | 75%, bigger radius; **echoes count as chain links** | — | Reactions, chains |
+| Hidden | Echo Hollow | a hollow log that **echoes Reactions**: a Reaction nearby repeats 1 s later at its **echo share** (set by Balancing Discussion; data 75% on 2026-10-02) **on the same nightmare**, wherever it has walked | — | Reactions |
+| Hidden+ | Whispering Hollow | a bigger echo share (set by Balancing Discussion; data 100% on 2026-10-02), bigger radius; **echoes count as chain links** | — | Reactions, chains |
 
 **Acorn line**
 
