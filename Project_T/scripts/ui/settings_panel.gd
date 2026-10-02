@@ -297,6 +297,7 @@ func _profile_reset_box() -> VBoxContainer:
 # Back to the title, which reads the (new) profile as it starts.
 func _to_title() -> void:
 	HeartwoodMemory.preview_settings = {}
+	RouteLine.reload()
 	HeartwoodMemory.apply_settings()
 	get_tree().paused = false
 	get_tree().change_scene_to_file.call_deferred(TITLE_SCENE)
@@ -678,6 +679,7 @@ func _notification(what: int) -> void:
 		if _revert_at != 0 or has_changes():
 			HeartwoodMemory.preview_settings = {}
 			HeartwoodMemory.apply_settings()  # Freed mid-preview (a scene change): the saved settings again
+			RouteLine.reload()
 
 func _refresh_all() -> void:
 	for key in _refreshers:

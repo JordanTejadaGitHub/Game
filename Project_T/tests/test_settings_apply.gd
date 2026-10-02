@@ -134,8 +134,30 @@ func _run() -> void:
 	_check(not bool(HeartwoodMemory.get_settings().reduced_motion) and HeartwoodMemory.preview_settings.is_empty(),
 		"hiding the panel drops unapplied changes")
 
+	# The route line follows the preview and always ends on the saved value (user screenshot: a stuck high-contrast line).
+	panel.visible = true
+	panel._set_value(RouteLine.SETTING, true)
+	_check(RouteLine.is_high_contrast(), "previewing the high-contrast route line shows it")
+	panel.cancel()
+	_check(not RouteLine.is_high_contrast(), "Cancel turns it back off")
+	panel._set_value(RouteLine.SETTING, true)
+	panel.request_close()
+	panel._close_discard()
+	_check(not RouteLine.is_high_contrast(), "…as does Discard")
+	panel._set_value(RouteLine.SETTING, true)
+	panel.visible = false
+	_check(not RouteLine.is_high_contrast(), "…and hiding the panel")
+	panel.visible = true
+	panel._set_value(RouteLine.SETTING, true)
+	panel.apply()
+	_check(RouteLine.is_high_contrast() and bool(_saved()[RouteLine.SETTING]), "Apply keeps it")
+	panel._set_value(RouteLine.SETTING, false)
+	panel.apply()
+	_check(not RouteLine.is_high_contrast(), "and turning it off applies")
+	panel._set_value(RouteLine.SETTING, true)
 	panel.queue_free()
 	await process_frame
+	_check(not RouteLine.is_high_contrast(), "freed mid-preview (a scene change): the saved value again")
 	HeartwoodMemory.preview_settings = {}
 	InputMap.load_from_project_settings()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
