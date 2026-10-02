@@ -113,6 +113,7 @@ static func style_mist(line: Line2D, alpha: float = 1.0) -> void:
 	line.texture = texture
 	line.texture_mode = Line2D.LINE_TEXTURE_TILE
 	line.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	line.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED  # TILE runs the UVs past 1: without it the strip clamps to a thin line
 	line.width = float(texture.get_height())
 	line.default_color = Color(1, 1, 1, alpha)  # multiplier: the art carries the colour
 	line.joint_mode = Line2D.LINE_JOINT_SHARP
@@ -125,7 +126,8 @@ static func style_mist(line: Line2D, alpha: float = 1.0) -> void:
 	var still := bool(Fx.setting("reduced_motion", false))
 	# Tile = the strip's width at this line width: FLOW_CELLS cells a second in tiles.
 	material.set_shader_parameter(&"speed", 0.0 if still else FLOW_CELLS * MAP_GRID.cell_size.x / float(texture.get_width()))
-	material.set_shader_parameter(&"texels", float(texture.get_width()))
+	# Steps of 2 texels: the strip's edges are a checker dither, and a 1-texel step flipped it every step (still a flicker).
+	material.set_shader_parameter(&"texels", float(texture.get_width()) / 2.0)
 	line.material = material
 
 # The cap sprites and the old route lines, made once under `line`.

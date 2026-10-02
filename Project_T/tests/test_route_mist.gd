@@ -47,7 +47,7 @@ func _run() -> void:
 	_check(material != null and float(material.get_shader_parameter(&"speed")) > 0.0, "the mist flows toward the Heartwood")
 	RouteLine.draw_route(line, longer, Color.WHITE, 6.0, old)
 	await process_frame
-	_check(line.material == material and is_equal_approx(float(material.get_shader_parameter(&"texels")), float(line.texture.get_width())), "the material is kept; the flow steps in whole texels")
+	_check(line.material == material and is_equal_approx(float(material.get_shader_parameter(&"texels")), line.texture.get_width() / 2.0) and line.texture_repeat == CanvasItem.TEXTURE_REPEAT_ENABLED, "the material is kept; the flow steps 2 texels at a time; the strip repeats")
 	RouteLine.draw_route(line, old, Color.WHITE, 6.0, old)
 	await process_frame
 	_check(extras.get_node("Old").get_child_count() == 0,
