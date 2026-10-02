@@ -78,7 +78,7 @@ matter, confirmed.
    number.
 4. ~~"Let it pass" pays less~~ **Rejected** (user: "keep skipping if we're making the cards more powerful"): Let it pass stays +15 Dew. Skipping is punished by the missing card, not by the reward.
 
-## Combo cards are choices, not musts (2026-10-02, PROPOSAL for the user's sign-off)
+## Combo cards are choices, not musts (2026-10-02, user-approved)
 
 User: *"I don't want the combo cards to feel like a must when you see them."* There are 32 combo or
 Entwined cards. Most say "+X to a combo you already run", so when one shows up beside an unrelated
@@ -125,7 +125,7 @@ offered cards to the run history.
   checks them with the pick-rate sim before and after.
 - **Text:** these go through the card text audit (same pass), with the trade on its own line like a
   Bittersweet cost, so it's readable at a glance.
-- **Status:** waiting for the user's sign-off via the design hub; then Roguelite Code (data, offers,
+- **Status:** **approved by the user** (via the design hub, 2026-10-02); routed to Roguelite Code (data, offers,
   the exclusive pair) and Tower Code (the reaction and hit rules).
 
 ## Feeling the cards (2026-10-01)
