@@ -251,3 +251,5 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: **Undercurrent / Maelstrom: an eddy pause instead of a draw** (Tower Discussion 9fcb8cdf;
   the draw was Rootling's job): a nightmare reaching the whirlpool pauses **0.8 s / 1.2 s** (bosses
   half), once per nightmare per whirlpool. Replaces 0.6 / 0.9 tiles/s.
+- 2026-10-02: eddy pause in **1fb636f3** (Tower Code); Eye of the Storm's draw trait became a **0.3 s**
+  pause under the rain (accepted).
