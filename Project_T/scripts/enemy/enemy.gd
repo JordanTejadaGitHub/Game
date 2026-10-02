@@ -77,6 +77,7 @@ const GROUP := "enemies"
 const BLIGHT_SHADER := preload("res://shaders/blight.gdshader")
 const HEALTH_BAR_SIZE := Vector2(40, 5)
 const HEARTWOOD_DRAIN_EVERY := 2.0  # A boss at the Heartwood takes a leaf this often (s)
+const BOSS_SILENCE_SPEED := 0.5  # A silenced boss's timed abilities run this fast (Hushbell; tower_design.md 279ebb63)
 const UNTOUCHABLE_TINT := Color(0.42, 0.38, 0.55)  # The Night Mare lingering: a dark, smoky shimmer (a self_modulate multiplier)
 const UNTOUCHABLE_ALPHA := 0.55
 const AWAKE_RING_COLOR := Color(Palette.MOONLIGHT, 0.35)  # Just woke: can't fall asleep again yet
@@ -1557,7 +1558,13 @@ func _update_presence(delta: float) -> void:
 	if _settings_elapsed >= SETTINGS_TICK:  # The settings panel's changes show within half a second
 		_settings_elapsed = 0.0
 		_refresh_display_settings()
-	var silenced := statuses.silence_time > 0.0  # Hushbell (BranchKit): no abilities while silenced; boss timers wait
+	var silenced := statuses.silence_time > 0.0  # Hushbell (BranchKit): no abilities while silenced
+	# Timed abilities' clock: a silenced boss runs them at BOSS_SILENCE_SPEED (a delay, never a stop;
+	# tower_design.md 279ebb63), anything else silenced doesn't run them at all. Health-threshold
+	# abilities (grief, bursts, echoes, bellow, laps) don't use this clock.
+	var ability_elapsed := elapsed
+	if silenced:
+		ability_elapsed = elapsed * BOSS_SILENCE_SPEED if enemy_data.is_boss else 0.0
 	if enemy_data.wake_radius > 0.0 and not silenced:  # Watcher
 		for other in _others_within(enemy_data.wake_radius):
 			if other.statuses.has(EnemyStatuses.DROWSY):
@@ -1574,17 +1581,17 @@ func _update_presence(delta: float) -> void:
 			if other != self and other.statuses.has(EnemyStatuses.SPORED) and _ash_cells.has(other.get_current_cell()):
 				other.statuses.remove(EnemyStatuses.SPORED)
 				other.queue_redraw()
-	if enemy_data.brood != null and not silenced:  # Moth Queen (and the Huntsman's horn)
-		_brood_timer += elapsed
+	if enemy_data.brood != null:  # Moth Queen (and the Huntsman's horn)
+		_brood_timer += ability_elapsed
 		if _brood_timer >= enemy_data.brood_interval:
 			_brood_timer = 0.0
 			brood_requested.emit(self)
-	if enemy_data.sapling != null and not silenced:  # Hollow Oak
-		_sapling_timer += elapsed * _sapling_speed
+	if enemy_data.sapling != null:  # Hollow Oak
+		_sapling_timer += ability_elapsed * _sapling_speed
 		if _sapling_timer >= enemy_data.sapling_interval:
 			_sapling_timer = 0.0
 			sapling_requested.emit(self)
-	_update_boss_pool_abilities(0.0 if silenced else elapsed)
+	_update_boss_pool_abilities(ability_elapsed)
 
 # The new bosses' timed abilities (enemy_design.md "Boss pools"), on the presence tick.
 func _update_boss_pool_abilities(elapsed: float) -> void:
