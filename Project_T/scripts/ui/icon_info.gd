@@ -29,7 +29,7 @@ const STATS := {
 	&"range": ["Range", "How far it reaches, in tiles."],
 	&"crit_chance": ["Crit chance", "The chance a hit is a critical hit."],
 	&"crit_damage": ["Crit damage", "How much harder a critical hit lands."],
-	&"potency": ["Potency", "Effect damage: scales status and poison damage and Reactions."],
+	&"potency": ["Potency", "Its statuses and effects are stronger: status damage, poison and Reactions."],
 	&"rank": ["Rank", "How nurtured it is (I–V): each rank adds damage, speed and range."],
 	&"focus": ["Focus", "Chosen at rank III: Power, Swift, Reach or Deep."],
 	&"focus_power": ["Power focus", "+8% damage."],
@@ -178,6 +178,7 @@ const TERMS := {
 	&"dread_shell": ["dread shell", "dread shells", "Dread shell"],
 	&"kinship": ["Kinship", "Kinships", "Kinship"],
 	&"harmony": ["Harmony strike", "Harmony strikes", "Harmony strike", "harmonies"],  # {harmonies}: the plural
+	&"potency": ["Potency", "Potency", "Potency"],  # Also linked as a plain word (StatusLinks.PLAIN_TERMS: card text says "Potency")
 }
 
 # Every term token form: [token text, term id, word shown]. Longest tokens first.
