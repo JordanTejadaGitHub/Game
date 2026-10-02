@@ -189,7 +189,7 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
     choices (a pass, a reroll) instead of arriving by itself. Card power stays.
   - Then read the run history after each playtest and adjust.
   - **Current (2026-10-01, Balancing Discussion, after human runs 4–7; balance_simulation.md):**
-    act 1 ×1.0 → 1.15 (drifts 9–20); act 2 **×2.0** at 26 → **×2.9** at 37 → **×4.5** at 45, held to 50;
+    act 1 ×1.0 → 1.15 (drifts 9–20); act 2 **×1.7** at 26 rising in a straight line to **×4.5** at 45, held to 50 (run 8);
     acts 3–4 **×6.0**. Bosses: act 1 ×1.75, acts 2–3 ×2.25, the Oak ×3.0. Bosses other than the Oak
     take a flat **10 / 10 / 12 leaves** and leave.
 - **Act 3 probe** (Tower Code, `tools/balance_act3.gd`, 2026-09-28): drifts 61–70, 12 final forms at

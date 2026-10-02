@@ -632,7 +632,7 @@ and let them sweep past to drift 40. Maybe have a smoother difficulty curve."* D
 1. **Chime Stone damage 35 → 26** (area pulse 28 DPS + its own Static set off every 3 pulses: one
    upgrade carried act 1). Static and set-off unchanged; branch probe (drifts 15–19 and 45–49) checks it.
 2. **Act 2 linear, no knee:** **×1.7 at 26 → ×4.5 at 45** in one line (`act2_steep_value` 3.3 at 37; was
-   2.0 → 2.9 → 4.5, gentle then steep where run 8 broke). Act 1, acts 3–4 unchanged.
+   2.0 → 2.9 → 4.5, gentle then steep where run 8 broke). Act 1, acts 3–4 unchanged. Both in 3faea358.
 
 **Act 1 baseline with the first pick at 1 Dreamlight** (781b1cbb, Bellflower a start node, fresh, 20
 seeds): Balanced survives the boss **70%** (target ~75% ✓; was 95% with 2 Dreamlight), skip **45%**
