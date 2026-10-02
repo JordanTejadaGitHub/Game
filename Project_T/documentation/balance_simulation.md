@@ -764,6 +764,11 @@ The damage branches spread 0.25–1.0×; support / economy branches sit near zer
 (their board leak tells more: Bloomcap and Rain Lily boards leak less than higher-damage ones). Role
 check with Tower Discussion on the low ones (Hummingbird Bower, Sunpetal, Frostfern, Stormcap, Gust,
 Echo Hollow, Wren's Nest, Mossback).
+Roles and decisions: **Stormcap** (0.22×, yet even with Chime Stone at drift 15) and **Sunpetal**
+(0.11×, a ramping beam) are checked for bugs first (chain / bolt scaling; does the beam's ramp reset
+on retarget?). Buffs: **Hummingbird Bower ×3** (9 → 27), **Mossback ×1.5**, **Wren's Nest ×1.5** (a
+fast-nightmare specialist), **Frostfern ×2** (an enabler that shouldn't feel dead). Gust and Echo
+Hollow are support: board-lift probes.
 
 **4. Act 2 bosses at drift 50** (40d26ed1, fixed board of 12 finals, rank IV, no Dreams, 3 seeds): none
 dispelled; health left at the Heartwood Huntsman 44–88%, Lamplighter 10–34%, Mire Hag 45–53%. A
