@@ -118,3 +118,5 @@ too brittle.
   leaves (its normal drifts leak twice as often). Extra elites alone don't make a spike. **Finale drifts
   get ×1.4 health on every non-boss nightmare** (`block_finale_health_multiplier`), and act 1's ramp
   goes back to ×1.15 (still from drift 3) to pay for it.
+- 2026-10-02: finale health in **f2195173** (`block_finale_health_multiplier` 1.4 from drift 10, never
+  boss drifts; act 1 ramp ×1.15 from drift 3).
