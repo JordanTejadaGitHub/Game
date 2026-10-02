@@ -191,3 +191,6 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: Deeper Glade's **+1 max leaf and the leaf itself** in 911257d2 (Main Merger; applied once,
   saved). Accepted: the new slot arrives filled, so a full Heartwood stays full. The glade ring is
   Environment Code's; the gift is drawn once it's registered.
+- 2026-10-02: **Waking Root** in 10d39cfa + 13aaf91a (Roguelite Code; registered, so it's drawn; also holds
+  the Omen while a gift is offered). Asked to apply it on every unlock path (the Warden panel too).
+  `add_next_offer_cards` removed (94906845).
