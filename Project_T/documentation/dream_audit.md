@@ -178,7 +178,9 @@ for the same rarity.
    remove the resonance, check every card's text"*). Every card does exactly what its text says,
    always: no shared-tag scaling, no "+X% from …" lines. **No numbers are re-based:** every card was
    sized to its rarity budget (above) without Resonance, which was a bonus on top, so cards simply
-   return to budget (Balancing Discussion signs off; the user's playtests found runs too strong).
+   return to budget (Balancing Discussion signed off; the user's playtests found runs too strong).
+   **Checked after the removal (854a537e):** fresh with Dreams survives the act 1 boss 75%, skipping
+   25%; 3+ Dreams of one tag in 55% fresh / 60% full runs (target ~50%). No re-basing needed.
 2. ~~The first Dream is a keystone~~ **Rejected** (user: "too forgiving and too narrow of a path"):
    the drift-5 offer stays a normal offer. Finding a direction is the player's job.
 3. **Nightmares rise with the cards:** once the pass is in, Tower Code raises nightmare health until
