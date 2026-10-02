@@ -227,7 +227,26 @@ static func format(text: String) -> String:
 			var id := StringName(found.get_string(1))
 			var combo := CodexData.get_any(id)
 			text = text.replace(found.get_string(), combo.get("name", "???") if not combo.is_empty() and CodexData.is_discovered(id) else "???")
+	if text.contains("{echo:"):  # An echo Warden's echo_share, so a retune updates its texts: "75%", or "full"
+		for found in _echo_pattern().search_all(text):
+			text = text.replace(found.get_string(), echo_text(found.get_string(1)))
 	return text
+
+# "{echo:echo_hollow}" -> "75%" ("full" at 1.0), read from that Warden's echo_share (Tower Discussion: the
+# texts follow Balancing's numbers).
+static func echo_text(warden_id: String) -> String:
+	var path := "res://resource/tower/%s.tres" % warden_id
+	var data := load(path) as TowerData if ResourceLoader.exists(path) else null
+	if data == null:
+		return warden_id
+	return "full" if is_equal_approx(data.echo_share, 1.0) else "%d%%" % roundi(data.echo_share * 100.0)
+
+static var _echo_regex: RegEx = null
+static func _echo_pattern() -> RegEx:
+	if _echo_regex == null:
+		UiStyle.release_at_exit(func() -> void: _echo_regex = null)
+		_echo_regex = RegEx.create_from_string("\\{echo:([a-z_]+)\\}")
+	return _echo_regex
 
 static var _combo_regex: RegEx = null
 static func _combo_pattern() -> RegEx:

@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Whispering Hollow"
-description = "Echoes at full strength over a wider area, and every echo counts as a chain link."
+description = "Echoes at {echo:whispering_hollow} strength over a wider area, and every echo counts as a chain link."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

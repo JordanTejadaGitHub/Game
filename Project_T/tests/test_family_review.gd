@@ -170,6 +170,16 @@ func _test_echo() -> void:
 	_check(tracker.longest_chain >= maxi(longest, 2), "Whispering Hollow's echo counts as a chain link")
 	await _clean()
 
+	# The texts follow the data (Tower Discussion: the echo shares are Balancing's): each echo text shows its
+	# Warden's echo_share, read through {echo:<id>}.
+	for path in ["res://resource/tower/echo_hollow.tres", "res://resource/dream/dream_echo_hollow.tres",
+			"res://resource/tower/whispering_hollow.tres", "res://resource/dream/dream_whispering_hollow.tres"]:
+		var shown := IconInfo.format(load(path).description)
+		var id := "whispering_hollow" if path.contains("whispering") else "echo_hollow"
+		var share: float = load("res://resource/tower/%s.tres" % id).echo_share
+		var wanted := "full strength" if is_equal_approx(share, 1.0) else "%d%% strength" % roundi(share * 100.0)
+		_check(shown.contains(wanted) and not shown.contains("{"), "%s states its echo as the data does (%s): %s" % [path.get_file(), wanted, shown])
+
 	# The echo follows the nightmare (tower_design.md 369de303; Balancing: echoes on the old spot missed every
 	# walking nightmare): a walking Shade is hit 1 s later though it moved more than a cell; one dispelled in
 	# the meantime echoes where it died.
