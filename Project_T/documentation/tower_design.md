@@ -473,7 +473,7 @@ family can promise an answer to everything. Two layers keep runs fair:
   | Family | Pair | Kinship | A learns from B | B learns from A |
   |---|---|---|---|---|
   | Sporeling | Lichenling + Brood Cap | **Crusted Brood** | 1 in 4 of its shots also hatches a sprite on the target | its sprites also eat dread shell |
-  | Dewdrop | Cloudlet + Undercurrent | **Eye of the Storm** | its rain zone draws nightmares gently toward its centre | its whirlpool is rained on (Soaks everything in it) |
+  | Dewdrop | Cloudlet + Undercurrent | **Eye of the Storm** | nightmares in its rain zone get a short eddy pause (0.3 s at full stage; not a pull, as built 1fb636f3) | its whirlpool is rained on (Soaks everything in it) |
   | Firefly Jar | Jarlink + Sparkler | **Fireworks Fence** | a crossing of its fence sets off a small spark burst | a burst landing on a fence re-bursts once |
   | Bellflower | Silver Bell + Hushbell | **Vespers** | its toll also silences its target for 2 s | nightmares it silences gain 1 Drowsy |
 - **Whole Tree** becomes **"3 different branches of one family on the map"**. With 2 offered,
