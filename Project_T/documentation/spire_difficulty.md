@@ -201,3 +201,5 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: **terrain gifts in cc503dd7** (Environment Code, `MapGifts`; art 46525c97). Confirmed:
   Deeper Glade's clears count as tended; Moonwell and Bell Stone block walking (a free wall cell). **All
   18 gifts are drawable: Heartwood's Gifts playable.** Exact-resume save hooks pending with Main Merger.
+- 2026-10-02: resume + exit-crash fixes for gifts in 8cf3ff1b (Main Merger); the gift offer is now the
+  full 3 from 18.
