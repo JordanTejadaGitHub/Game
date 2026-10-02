@@ -48,7 +48,7 @@ const POOL := {
 	&"ancient_stump": {"name": "Ancient Stump", "group": "Living ground", "map": true, "place": &"cells", "size": 3,
 		"text": "3 stumps: a Warden planted on one starts at rank I."},
 	&"heartwood_roots": {"name": "Heartwood Roots", "group": "The nightmares' way", "map": true, "place": &"none", "size": 0,
-		"text": "Roots over the last 4 path cells before the Heartwood: nightmares there take +15% damage."},
+		"text": "Roots over the last 4 path cells before the Heartwood: nightmares there take 15% more damage."},
 	&"thick_mist": {"name": "Thick Mist", "group": "The nightmares' way", "map": false, "place": &"none", "size": 0,
 		"text": "For the next act, nightmares leave the start mist 25% further apart."},
 	&"bramble_verge": {"name": "Bramble Verge", "group": "The nightmares' way", "map": false, "place": &"none", "size": 0,

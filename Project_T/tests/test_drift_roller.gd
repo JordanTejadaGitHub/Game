@@ -13,6 +13,7 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	ResultsScreen.demo_override = 0  # The full game: block finales are off in the demo (DriftDirector.DEMO_RULES)
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	main.get_node("MapGenerator").map_seed = 777
 	root.add_child(main)
