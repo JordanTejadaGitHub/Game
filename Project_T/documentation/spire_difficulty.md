@@ -188,3 +188,6 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: rest choices removed in **a794bc9e**; **gift screen, draw, placement, save, Let them pass
   (+30 Dew × act) and Thick Mist in d3d85731** (Main Merger). Only gifts with a registered effect are
   drawn, so the pool grows as owners land theirs. Deeper Glade's +1 max leaf: Main Merger.
+- 2026-10-02: Deeper Glade's **+1 max leaf and the leaf itself** in 911257d2 (Main Merger; applied once,
+  saved). Accepted: the new slot arrives filled, so a full Heartwood stays full. The glade ring is
+  Environment Code's; the gift is drawn once it's registered.
