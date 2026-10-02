@@ -684,6 +684,7 @@ func _finish() -> void:
 	summary.focus = focus_mode
 	summary.merge(_status_columns())
 	summary.forms = _form_column()
+	summary.merge(_route_columns())
 	summary.kin_pairs_24 = kin_pairs.get(25, -1)
 	summary.kin_pairs_50 = kin_pairs.get(51, -1)
 	summary.dream_off_ids = "+".join(dream_off_ids.keys().map(func(id) -> String: return "%s:%d" % [id, dream_off_ids[id]]))
@@ -1138,3 +1139,17 @@ func _form_column() -> String:
 		parts.append("%s:%.3f:%d:%.2f:%.2f:%.2f:%.2f:%.2f" % [id, form.total / maxf(total, 1.0), _count_on_map(id),
 			form.hit / t, form.cloud / t, form.status / t, form.combo / t, form.asleep / t])
 	return ";".join(parts)
+
+# --- Route profiles (RunHistory d8010456: where nightmares die, where the Dew sits) -----------------
+# Read from the run's own RunHistory node, so bot and human use the same code. Per block, ";"-separated:
+# route_dispels "block:d0/…/d9:leaked", route_health "block:h0/…/h9:leaked_health",
+# route_invested "block:i0/…/i9:off_route:heart_share" (bins = tenths of route progress, start → Heartwood).
+func _route_columns() -> Dictionary:
+	var history := main.get_tree().get_first_node_in_group(RunHistory.GROUP)
+	var blocks: Array = history.run.get("route_blocks", []) if history != null and history.get("run") is Dictionary else []
+	var join := func(values: Array) -> String: return "/".join(values.map(func(v) -> String: return str(v)))
+	return {
+		"route_dispels": ";".join(blocks.map(func(b) -> String: return "%d:%s:%d" % [b.block, join.call(b.dispels), b.leaked])),
+		"route_health": ";".join(blocks.map(func(b) -> String: return "%d:%s:%d" % [b.block, join.call(b.dispel_health), b.leaked_health])),
+		"route_invested": ";".join(blocks.map(func(b) -> String: return "%d:%s:%d:%.2f" % [b.block, join.call(b.invested), b.off_route, b.heart_share])),
+	}
