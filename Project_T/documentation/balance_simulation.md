@@ -714,7 +714,7 @@ more than the 10-leaf bite for *failing* a boss. Act 2 with 4 leaves: 3 leaks at
 
 Reading: a total newcomer with a pure "plant base Wardens" plan holds act 1 and reaches act 2, which is
 on target for a fresh profile (and act 1's "teaches" side holds). Decisions:
-1. **Crow `leaf_cost` 2 → 1**: a won boss fight must not cost more than a lost one (Enemy Code).
+1. **Crow `leaf_cost` 2 → 1**: a won boss fight must not cost more than a lost one (in 5c716b8d).
 2. Never growing or ranking is an onboarding point, not a number: passed to the hub (a whisper when
    Dew sits on a growable Warden?).
 
