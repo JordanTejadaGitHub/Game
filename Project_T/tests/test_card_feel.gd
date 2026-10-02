@@ -80,6 +80,17 @@ func _run() -> void:
 			"the rest report's Dreams line (%s)" % text.strip_edges())
 		if row != null and card != null:
 			_check(row.credit_text(card) == "" or row.credit_text(card).begins_with("This run: "), "the Dreams row's credit")
+		if dreams.has_method("_credit") and card != null:
+			dreams._credit(card.id, "damage", 1840.0)
+			var entries := RestReport.credit_entries(main, &"block")
+			_check(entries.size() >= 1 and entries[0][1] == "+1,840", "credit entries from the data (%s)" % [entries])
+			var report := main.find_child("RestReport", true, false) as RestReport
+			if report != null:
+				report.show_report(1)
+				_check(report.dreams_label.visible and report.dreams_label.text.contains("Dreams this block")
+					and report.last_block_text.contains("Dreams this block · "),
+					"the report's credit line in its own label, and in the plain text")
+				_check(not StatusLinks.bbcode(report.last_block_text).is_empty(), "the plain report still converts")
 
 	main.queue_free()
 	await process_frame
