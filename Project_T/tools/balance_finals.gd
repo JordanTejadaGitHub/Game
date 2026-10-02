@@ -14,6 +14,7 @@ var rank := 4  # --rank=N: ranks bought for every Warden (Power)
 const COPIES := 4
 const CAST := ["thunderhead", "boulderback", "moonstone", "rockslide", "starcave", "midsummer", "magpies_hoard", "great_dreamcatcher"]
 const CAST_ACT1 := ["sporeling", "firefly_jar", "dewdrop", "bellflower", "pebbling", "acorn", "rootling", "nestling"]  # --cast=act1: base Wardens (an act 1 board)
+const CAST_NOCHARGE := ["boulderback", "boulderback", "moonstone", "rockslide", "starcave", "midsummer", "magpies_hoard", "great_dreamcatcher"]  # --cast=nocharge: the finals cast without its only Charged source (Thunderhead -> a 2nd Boulderback)
 var cast: Array = CAST
 
 var main: Node
@@ -46,7 +47,7 @@ func _run() -> void:
 			"--seed": map_seed = int(value)
 			"--out": out_path = value
 			"--rank": rank = int(value)
-			"--cast": cast = CAST_ACT1 if value == "act1" else CAST
+			"--cast": cast = {"act1": CAST_ACT1, "nocharge": CAST_NOCHARGE}.get(value, CAST)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
 	root.add_child(main)
@@ -200,7 +201,7 @@ func _report(director: DriftDirector) -> void:
 		"share": snappedf(damage / maxf(total, 1.0), 0.001), "rank": candidates[0].rank,
 		"hit": snappedf(split.hit / t, 0.01), "cloud": snappedf(split.cloud / t, 0.01), "status": snappedf(split.status / t, 0.01),
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
-		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else "finals",
+		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else "finals"),
 		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t)}
 	print("FINALS %s" % JSON.stringify(row))
 	if out_path != "":
