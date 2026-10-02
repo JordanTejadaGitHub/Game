@@ -278,6 +278,13 @@
 			],
 			"projectile": "hummingbird"
 		},
+		"hushbell": {
+			"kind": "aura",
+			"point": [
+				31,
+				40
+			]
+		},
 		"inkcap": {
 			"kind": "projectile",
 			"point": [
@@ -495,6 +502,13 @@
 				9
 			]
 		},
+		"resonance": {
+			"kind": "cone",
+			"point": [
+				47,
+				8
+			]
+		},
 		"rockslide": {
 			"kind": "lob",
 			"point": [
@@ -531,6 +545,20 @@
 				14
 			],
 			"projectile": "maple_seed"
+		},
+		"silence": {
+			"kind": "aura",
+			"point": [
+				31,
+				40
+			]
+		},
+		"silver_bell": {
+			"kind": "toll",
+			"point": [
+				48,
+				15
+			]
 		},
 		"snugroot": {
 			"kind": "hold",
@@ -613,6 +641,13 @@
 				46
 			]
 		},
+		"thrum": {
+			"kind": "cone",
+			"point": [
+				51,
+				9
+			]
+		},
 		"thunderhead": {
 			"kind": "chain",
 			"point": [
@@ -632,6 +667,13 @@
 			"point": [
 				31,
 				44
+			]
+		},
+		"vesper_bell": {
+			"kind": "toll",
+			"point": [
+				48,
+				16
 			]
 		},
 		"whirligig": {

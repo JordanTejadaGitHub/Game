@@ -158,7 +158,8 @@ const LINES := {
 	"sporeling": ["sporeling", "driftspore", "puffball", "bloomcap", "dreamshroom", "fairy_ring", "elf_circle",
 		"lichenling", "old_lichen", "brood_cap", "hatchery", "inkcap", "deliquescent"],
 	"pebbling": ["pebbling", "mossback", "boulderback", "standing_stone", "moonstone", "cairn", "rockslide"],
-	"bellflower": ["bellflower", "chime_stone", "lullaby_bell", "dreamcatcher", "great_dreamcatcher", "echo_hollow", "whispering_hollow"],
+	"bellflower": ["bellflower", "chime_stone", "lullaby_bell", "dreamcatcher", "great_dreamcatcher", "echo_hollow", "whispering_hollow",
+		"silver_bell", "vesper_bell", "hushbell", "silence", "thrum", "resonance"],
 	"dewdrop": ["dewdrop", "rain_lily", "monsoon", "mistveil", "morning_fog", "frostfern", "hoarfrost",
 		"cloudlet", "nimbus", "undercurrent", "maelstrom", "jetreed", "torrent"],
 	"firefly_jar": ["firefly_jar", "stormcap", "thunderhead", "lanternmoth", "beacon", "sunpetal", "midsummer",
@@ -261,6 +262,14 @@ const ATTACKS := {
 	# over the maze; echo = repeats a nearby Reaction; multi = one bird, several quick pecks;
 	# boomerang = a seed thrown down a line and back.
 	"bellflower": {kind = "pulse", point = Vector2i(31, 46)},
+	# Branch expansion (2026-10-02): Bellflower C, D, E. The toll ring, silence and sound cone are
+	# drawn by the code (effects toll_ring, silence_mark, sound_cone).
+	"silver_bell": {kind = "toll", point = Vector2i(48, 15)},
+	"vesper_bell": {kind = "toll", point = Vector2i(48, 16)},
+	"hushbell": {kind = "aura", point = Vector2i(31, 40)},
+	"silence": {kind = "aura", point = Vector2i(31, 40)},
+	"thrum": {kind = "cone", point = Vector2i(51, 9)},
+	"resonance": {kind = "cone", point = Vector2i(47, 8)},
 	"dreamcatcher": {kind = "projectile", projectile = "dream_mote", point = Vector2i(46, 14)},
 	"great_dreamcatcher": {kind = "projectile", projectile = "dream_mote", point = Vector2i(46, 14)},
 	"echo_hollow": {kind = "echo", point = Vector2i(34, 29)},
@@ -5130,6 +5139,192 @@ func _firework_burst(canvas: Image, st: Dictionary, key: String, n: int, double:
 				var d := Vector2.from_angle(s * TAU / n) * (4.0 + k * 3.0)
 				_px(canvas, int(c.x + d.x), int(c.y + d.y), Color("#fff4dc") if k == 1 else Color("#e9a83c"))
 			_warm_glow(canvas, c, Vector2(6, 6), k)
+
+
+# --- Branch expansion, Bellflower --------------------------------------------------------------
+# Silver Bell -> Vesper Bell (one big silver bell hung from a post and crossbeam; a little peaked
+# belfry with an evening star), Hushbell -> Silence (its bell cap muffled in moss, a finger to its
+# lips; a moss cloak to the ground, eyes shut), Thrum -> Resonance (a trumpet flower on its head
+# facing forward; a great horn flower on a stem beside it, sound rings rolling out).
+
+const SILVER := ["#8c8cac", "#b4b0c8", "#dce8f4", "#ffffff"]
+
+func _bell_fig() -> Dictionary:
+	return _pal("#22183a", "#e0d0f8", "#c0a8ec", "#9a80d0")
+
+func _bell_base(canvas: Image, st: Dictionary, lush: bool) -> Dictionary:
+	var fig := _bell_fig()
+	_draw_waystone(canvas, st, "bellflower", lush)
+	_draw_template_figure(canvas, st.pose, fig)
+	return fig
+
+func _draw_silver_bell(canvas: Image, st: Dictionary) -> void:
+	_silver_body(canvas, st, false)
+
+func _draw_vesper_bell(canvas: Image, st: Dictionary) -> void:
+	_silver_body(canvas, st, true)
+
+func _silver_body(canvas: Image, st: Dictionary, vesper: bool) -> void:
+	var dy: int = st.dy
+	var fig := _bell_base(canvas, st, vesper)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true, st.attack < 0)
+	_bell_cap(canvas, Vector2(30.5, 10 + dy), 12.0, 8, fig.o)
+	# The post, planted on the slab at its right, and the crossbeam it hangs the bell from.
+	var wood := _layer()
+	_stroke(wood, [Vector2(56, 46), Vector2(56, 3)], 2.0, Color("#5c3c24"))
+	_stroke(wood, [Vector2(56, 4), Vector2(42, 4)], 1.6, Color("#5c3c24"))
+	if vesper:
+		_stroke(wood, [Vector2(40, 46), Vector2(40, 3)], 1.8, Color("#5c3c24"))
+	_stamp(canvas, wood, fig.o)
+	if vesper:
+		# A little peaked roof over the bell, an evening star above it.
+		var roof := _layer()
+		_flat_polygon(roof, PackedVector2Array([Vector2(35, 5), Vector2(48, -3), Vector2(61, 5), Vector2(61, 6), Vector2(35, 6)]), Color("#8c5c34"))
+		_stamp(canvas, roof, fig.o)
+		_sparkle(canvas, Vector2i(48, 1), Color("#fcd47c") if st.f % 4 < 2 else Color("#fff4dc"))
+	var swing: int = [0, 1, 0, -1][st.f % 4]
+	_line(canvas, [Vector2(48, 4), Vector2(48 + swing, 7)], fig.o)
+	_bell(canvas, Vector2(48, 7), 8.5 if vesper else 7.5, swing, _ramp(SILVER), fig.o)
+
+func _attack_silver_bell(canvas: Image, st: Dictionary) -> void:
+	_toll(canvas, st, "silver_bell", 1)
+
+func _attack_vesper_bell(canvas: Image, st: Dictionary) -> void:
+	_toll(canvas, st, "vesper_bell", 2)
+
+# One toll: rings going out from the bell, long and thin (it reaches far); Vesper's echoes.
+func _toll(canvas: Image, st: Dictionary, key: String, echoes: int) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var c := Vector2(ATTACKS[key].point)
+	for e in echoes:
+		var r := 4.0 + k * 4.0 + e * 5.0
+		for s in 20:
+			var a := s * TAU / 20.0
+			if (s + k + e) % 2 == 0:
+				_px(canvas, int(c.x + cos(a) * r), int(c.y + sin(a) * r * 0.7), Color(SILVER[2]) if e == 0 else Color(SILVER[1]))
+	if k == 0:
+		_warm_glow(canvas, c, Vector2(7, 6))
+
+func _draw_hushbell(canvas: Image, st: Dictionary) -> void:
+	_hush_body(canvas, st, false)
+
+func _draw_silence(canvas: Image, st: Dictionary) -> void:
+	_hush_body(canvas, st, true)
+
+func _hush_body(canvas: Image, st: Dictionary, deep: bool) -> void:
+	var dy: int = st.dy
+	var fig := _bell_fig()
+	_draw_waystone(canvas, st, "bellflower", deep)
+	if deep:
+		# A moss cloak over its back and shoulders, falling to the slab either side.
+		var cloak := _layer()
+		_flat_polygon(cloak, PackedVector2Array([Vector2(16, 12 + dy), Vector2(45, 12 + dy), Vector2(53, 45), Vector2(9, 45)]), Color(MOSS[1]))
+		_stamp(canvas, cloak, Color("#1e3a24"))
+		for x in range(11, 52, 4):
+			_px(canvas, x, 44, Color(MOSS[3]))
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true, deep)
+	# Its bell cap, muffled in a thick cushion of moss.
+	_bell_cap(canvas, Vector2(30.5, 10 + dy), 13.0, 9, fig.o)
+	var muffle := _layer()
+	_ellipse(muffle, Vector2(30.5, 4 + dy), Vector2(15.0 if deep else 13.0, 5.5), _ramp(MOSS), 8.0 + dy)
+	_stamp(canvas, muffle, Color("#1e3a24"))
+	for x in [20, 26, 34, 40]:
+		_px(canvas, x, 8 + dy, Color(MOSS[0]))
+	# A finger to its lips: a hand raised to the mouth, one finger up.
+	var hand := _layer()
+	_flat_ellipse(hand, Vector2(33, 17 + dy), Vector2(2.4, 2.0), fig.a)
+	_stroke(hand, [Vector2(32, 16 + dy), Vector2(32, 12 + dy)], 0.7, fig.a)
+	_stroke(hand, [Vector2(35, 18 + dy), Vector2(41, 26 + dy)], 1.3, fig.a)  # the forearm
+	_stamp(canvas, hand, fig.o)
+	if st.attack < 0 and st.f % 4 < 2:
+		_px(canvas, 38, 10 + dy, Color("#dce8f4"))  # a hush: "sh"
+		_px(canvas, 39, 9 + dy, Color("#dce8f4"))
+
+func _attack_hushbell(canvas: Image, st: Dictionary) -> void:
+	_hush_wave(canvas, st, 1.0)
+
+func _attack_silence(canvas: Image, st: Dictionary) -> void:
+	_hush_wave(canvas, st, 1.3)
+
+# A soft muffling ring spreading out low (no sound: a dim, quiet wave).
+func _hush_wave(canvas: Image, st: Dictionary, size: float) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var c := Vector2(31, 40)
+	var r := Vector2(10 + k * 7, 3 + k * 2) * size
+	for s in 28:
+		var a := s * TAU / 28.0
+		if (s + k) % 3 != 0:
+			_px(canvas, int(c.x + cos(a) * r.x), int(c.y + sin(a) * r.y), Color(MOSS[2]))
+
+# A trumpet flower: a stem, a long flaring horn facing `dir`, a pale throat.
+func _horn_flower(canvas: Image, base: Vector2, dir: Vector2, length: float, flare: float, o: Color) -> void:
+	var horn := _layer()
+	var pts := PackedVector2Array()
+	var n := dir.orthogonal()
+	pts.append(base + n * 1.5)
+	pts.append(base + dir * length + n * flare)
+	pts.append(base + dir * (length + 1.5))
+	pts.append(base + dir * length - n * flare)
+	pts.append(base - n * 1.5)
+	_flat_polygon(horn, pts, Color("#c0a8ec"))
+	for y in S:
+		for x in S:
+			if horn.get_pixel(x, y).a > 0.0 and (Vector2(x + 0.5, y + 0.5) - base).dot(n) > 0.0:
+				horn.set_pixel(x, y, Color("#e0d0f8"))
+	_stamp(canvas, horn, o)
+	var mouth := base + dir * (length - 0.5)
+	_line(canvas, [mouth + n * (flare - 1.5), mouth - n * (flare - 1.5)], Color("#fff4dc"))
+
+func _draw_thrum(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _bell_base(canvas, st, false)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true, st.attack < 0)
+	# A trumpet flower on its head, its horn flaring out ahead of it.
+	_horn_flower(canvas, Vector2(32, 6 + dy), Vector2(1, 0.15).normalized(), 18.0, 5.5, fig.o)
+	_leaf(canvas, Vector2(30, 6 + dy), Vector2(22, 1 + dy), 2.6, _ramp(LEAF), fig.o)
+
+func _draw_resonance(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _bell_base(canvas, st, true)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true, st.attack < 0)
+	_horn_flower(canvas, Vector2(32, 6 + dy), Vector2(1, 0.15).normalized(), 14.0, 4.5, fig.o)
+	# A great horn flower on a tall stem beside it, aimed ahead, sound rings rolling out of it.
+	var stem := _layer()
+	_stroke(stem, [Vector2(12, 46), Vector2(11, 28), Vector2(13, 22)], 1.6, Color(LEAF[1]))
+	_stamp(canvas, stem, fig.o)
+	_horn_flower(canvas, Vector2(13, 22), Vector2(-0.2, -1).normalized(), 16.0, 9.5, fig.o)
+	if st.attack < 0:
+		for k in 2:
+			var r: float = 3.0 + ((st.f * 2 + k * 4) % 8)
+			var c := Vector2(10, 4)
+			for s in 8:
+				var a := -PI / 2.0 + (s - 3.5) * 0.25
+				_px(canvas, int(c.x + cos(a) * r - r * 0.3), int(c.y + sin(a) * r * 0.5), Color("#e0c8ff", 1.0 - r / 12.0))
+
+func _attack_thrum(canvas: Image, st: Dictionary) -> void:
+	_sound_cone(canvas, st, "thrum", 0.45)
+
+func _attack_resonance(canvas: Image, st: Dictionary) -> void:
+	_sound_cone(canvas, st, "resonance", 0.7)
+
+# Arcs of sound rolling out of the horn in a cone ahead of it.
+func _sound_cone(canvas: Image, st: Dictionary, key: String, spread: float) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var c := Vector2(ATTACKS[key].point)
+	for ring in 2:
+		var r := 4.0 + k * 4.0 + ring * 4.0
+		for s in 9:
+			var a := (s - 4) / 4.0 * spread
+			var p := c + Vector2.from_angle(a) * r
+			_px(canvas, int(p.x), int(p.y), Color("#e0c8ff") if ring == 0 else Color("#c0a8ec"))
+	_warm_glow(canvas, c, Vector2(5, 5), k)
 
 # --- Nurture ranks (warden_stats.md "Ranks: Nurture") -----------------------------------------
 # Every Warden stands on the same waystone slab (the mock's), so rank art is drawn once and layered
