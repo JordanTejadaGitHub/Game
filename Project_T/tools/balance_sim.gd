@@ -211,6 +211,7 @@ func _run() -> void:
 	policy = FavorPolicy.new(dreams, STYLES.get(style, 0))
 	policy.favored = favored
 	policy.on_offer = _note_offer
+	policy.on_pick = _log_pick
 	policy.branches_first = kin_placement
 	policy.deep = focus_mode == "deep"
 	policy.mode = dream_mode
@@ -841,15 +842,22 @@ class FavorPolicy extends DreamSimPolicy:
 				value -= 500.0  # Economy last
 		return value
 
+	var on_pick: Callable  # The runner logs each offer with the card taken (offers.csv)
+
 	func pick_dream(offer: Array) -> UpgradeData:
 		if on_offer.is_valid():
 			on_offer.call(offer)
+		var pick: UpgradeData = null
 		match mode:
 			"skip":
-				return null  # Let it pass (DreamState.sim_rest skips)
+				pick = null  # Let it pass (DreamState.sim_rest skips)
 			"random":
-				return offer[rng.randi_range(0, offer.size() - 1)] if not offer.is_empty() else null
-		return super.pick_dream(offer)
+				pick = offer[rng.randi_range(0, offer.size() - 1)] if not offer.is_empty() else null
+			_:
+				pick = super.pick_dream(offer)
+		if on_pick.is_valid():
+			on_pick.call(offer, pick)
+		return pick
 
 # The run's longest Reaction chain so far (ReactionTracker; 0 before the first Reaction).
 func _longest_chain() -> int:
@@ -1176,3 +1184,20 @@ func _route_columns() -> Dictionary:
 		"route_health": ";".join(blocks.map(func(b) -> String: return "%d:%s:%d" % [b.block, join.call(b.dispel_health), b.leaked_health])),
 		"route_invested": ";".join(blocks.map(func(b) -> String: return "%d:%s:%d:%.2f" % [b.block, join.call(b.invested), b.off_route, b.heart_share])),
 	}
+
+# One line per Dream offer in <out>/offers.csv: run, drift, each card offered as id:rarity, the card taken
+# ("-" = let it pass) and the Entwined guaranteed card of the offer ("" = none). For pick-rate-when-offered.
+func _log_pick(offer: Array, pick) -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
+	var path := out_dir.path_join("offers.csv")
+	var new_file := not FileAccess.file_exists(path)
+	var file := FileAccess.open(path, FileAccess.READ_WRITE if not new_file else FileAccess.WRITE)
+	if file == null:
+		return
+	if new_file:
+		file.store_line("profile,style,dreams,seed,drift,offered,taken,guaranteed")
+	file.seek_end()
+	var cards := "+".join(offer.map(func(c: UpgradeData) -> String: return "%s:%d" % [c.id, c.rarity]))
+	file.store_line("%s,%s,%s,%d,%d,%s,%s,%s" % [profile, style, dream_mode, map_seed, director.drifts_started, cards,
+		pick.id if pick != null else "-", dreams.get("_guaranteed_id")])
+	file.close()
