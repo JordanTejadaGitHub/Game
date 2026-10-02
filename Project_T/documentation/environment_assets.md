@@ -106,7 +106,8 @@ same way. Now each map rolls a layout, ridges that follow it, and one feature.
    edge between the start and the Heartwood (the U), plus 0–1 more. Blight 9's extra ridge applies.
 3. **One feature per map**: a pond (2×2–3×3 water: unwalkable, unbuildable, never cleared; the route
    bends round it), a ruin (a ring of stones with a gap, cleared with Move), a dense grove, or a
-   fallen log (`fallen_log.png`, one obstacle over 3–4 cells, Tended as a unit). At least 2 cells from the
+   fallen log (`fallen_log.png`, one obstacle over 3–4 cells, Tended as a unit; it first tries to lie across the
+   opening route, `LOG_ACROSS_TRIES`, so Tending it is a shortcut). At least 2 cells from the
    start and end; counted in the obstacle budget.
 4. **Guards**: the route is always guaranteed; the starting route length and buildable-cell count stay
    within ±25% of the old medians for every layout; the first-run camera glide follows the actual route;

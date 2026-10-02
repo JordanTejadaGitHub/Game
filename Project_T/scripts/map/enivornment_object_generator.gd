@@ -58,6 +58,7 @@ const RIDGE_END_GAP := 3  # Ridge rows keep this far from the start's row and th
 const POND_SIZES: Array[Vector2i] = [Vector2i(2, 3), Vector2i(3, 2), Vector2i(2, 3), Vector2i(3, 2), Vector2i(3, 3), Vector2i(2, 2)]
 const NEAR_ROUTE := 2  # A pond or ruin first tries to come this close (chessboard) to the opening route
 const NEAR_ROUTE_TRIES := 120
+const LOG_ACROSS_TRIES := 80  # A log first tries to lie across the opening route (it gets longer round it), so Tending it is a shortcut
 @onready var path_tile_map_layer: PathGenerator = %PathTileMapLayer
 
 var unwalkable_cells: PackedVector2Array
@@ -377,13 +378,16 @@ func _place_feature(rng: RandomNumberGenerator, skip: PackedVector2Array, obstac
 	pond_corners.clear()
 	if layout == null:
 		return
-	# A pond or ruin should shape the opening: the first tries must come within NEAR_ROUTE cells of the
-	# route as the ridges leave it; then anywhere, as before.
-	var shapes_route := layout.feature == MapLayout.Feature.POND or layout.feature == MapLayout.Feature.RUIN
+	# A pond, ruin or log should shape the opening: the first tries must come within NEAR_ROUTE cells of the
+	# route as the ridges leave it (a log: first across it, so the route bends round the log); then anywhere.
+	var shapes_route := layout.feature in [MapLayout.Feature.POND, MapLayout.Feature.RUIN, MapLayout.Feature.LOG]
 	var route := _provisional_route() if shapes_route else {}
+	var base_length := _route_length([]) if layout.feature == MapLayout.Feature.LOG else 0
 	for attempt in 160:
 		var cells := _feature_shape(rng, layout.feature)
 		if cells.is_empty() or not cells.all(func(c: Vector2) -> bool: return _feature_cell_ok(c, skip, obstacles)):
+			continue
+		if layout.feature == MapLayout.Feature.LOG and attempt < LOG_ACROSS_TRIES and _route_length(cells) <= base_length:
 			continue
 		if shapes_route and attempt < NEAR_ROUTE_TRIES and not _near(cells, route):
 			continue
@@ -491,6 +495,34 @@ func _route_survives(pond: Array[Vector2]) -> bool:
 			seen[next] = true
 			queue.append(next)
 	return false
+
+# Steps from the start to the end past the rim, the ridges and `extra` (-1 = no way through).
+func _route_length(extra: Array) -> int:
+	var blocked := {}
+	for cell in unwalkable_cells:
+		blocked[Vector2i(cell)] = true
+	for cell in ridge_cells:
+		blocked[Vector2i(cell)] = true
+	for cell in extra:
+		blocked[Vector2i(cell)] = true
+	var distance := {_start: 0}
+	var queue: Array[Vector2i] = [_start]
+	var size := Vector2i(MAP_GRID.size)
+	var head := 0
+	while head < queue.size():
+		var at := queue[head]
+		head += 1
+		if at == _end:
+			return distance[at]
+		for step: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			var next := at + step
+			if next.x < 0 or next.y < 0 or next.x >= size.x or next.y >= size.y or distance.has(next):
+				continue
+			if blocked.has(next) and next != _end:
+				continue
+			distance[next] = distance[at] + 1
+			queue.append(next)
+	return -1
 
 func _place_obstacle_tile(cell: Vector2, data: ObstacleData, tile: Vector2i, obstacles: Dictionary) -> void:
 	set_cell(Vector2i(cell), data.source_id, tile)

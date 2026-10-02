@@ -56,13 +56,19 @@ func _run() -> void:
 	var preview: PackedVector2Array = map.get_path_if_cleared(log[1])
 	var tended := run_state.obstacles_tended
 	var clears := run_state.tended_cells.size()
+	var piece_at := {}
+	for c in log:
+		piece_at[c] = env.get_cell_atlas_coords(Vector2i(c)).x
 	_check(clearer.try_clear(log[1]) and run_state.dew == 10000 - cost, "one Tend pays for the whole log")
 	_check(log.all(func(c: Vector2) -> bool: return map.get_obstacle(c) == null and not map.path_layer.is_cell_blocked(c)),
 		"every cell is cleared")
 	_check(run_state.obstacles_tended == tended + 1 and run_state.tended_cells.size() == clears + 1, "it counts as one clear (one Seed)")
-	var furrow: Array = log.map(func(c: Vector2) -> int: return env.get_cell_atlas_coords(Vector2i(c)).x if env.get_cell_source_id(Vector2i(c)) == EnvironmentTiles.LOG_FURROW else -1)
-	furrow.sort()
-	_check(furrow == pieces, "a furrow on every cell, piece for piece (%s)" % [furrow])
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var marks_ok := log.all(func(c: Vector2) -> bool:
+		if route.has(c):  # The path wears clearing marks away (WORN_BY_PATH)
+			return env.get_cell_source_id(Vector2i(c)) == -1
+		return env.get_cell_source_id(Vector2i(c)) == EnvironmentTiles.LOG_FURROW and env.get_cell_atlas_coords(Vector2i(c)).x == piece_at[c])
+	_check(marks_ok, "a furrow piece for piece where the path doesn't wear it away")
 	_check(map.get_path_from(map.startPath) == preview, "the hover preview was the route it opened")
 	var tended_cells: Array[Vector2] = run_state.tended_cells.duplicate()
 	main.free()
