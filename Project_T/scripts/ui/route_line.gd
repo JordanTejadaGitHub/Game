@@ -166,5 +166,5 @@ static func flow_shader() -> Shader:
 	var shader := Shader.new()
 	# `speed` in tiles a second; the offset moves in whole texels (`texels` = the strip's width) and wraps every tile:
 	# a sub-texel scroll on the nearest-filtered art flickered (user, run start).
-	shader.code = "shader_type canvas_item;\nuniform float speed = 0.0;\nuniform float texels = 64.0;\nvoid fragment() {\n\tfloat shift = floor(mod(TIME * speed * texels, texels)) / texels;\n\tCOLOR = texture(TEXTURE, vec2(UV.x - shift, UV.y)) * COLOR;\n}\n"
+	shader.code = "shader_type canvas_item;\nuniform float speed = 0.0;\nuniform float texels = 64.0;\nvoid fragment() {\n\tfloat shift = floor(mod(TIME * speed * texels, texels)) / texels;\n\tCOLOR = texture(TEXTURE, vec2(UV.x-shift, UV.y)) * COLOR;\n}\n"
 	return shader

@@ -21,8 +21,8 @@ func _run() -> void:
 	family.show_pick(&"first")
 	_check(family.offer.size() == mini(family.families.size(), family.cards_per_pick) and family.offer.all(func(o) -> bool: return o is TowerData),
 		"the first pick offers the starting families (%s)" % [family._ids(family.offer)])
-	var sporeling = family.offer.filter(func(o) -> bool: return o.get_id() == "sporeling").front()
-	family.choose(sporeling)
+	var first = family.offer[0]  # Any of them: the first pick is 3 random of the 4 starting families (Sporeling may not be there)
+	family.choose(first)
 	await process_frame
 	var left: int = family.families.size() - 1  # Starting families not picked yet
 	while left > 0:
