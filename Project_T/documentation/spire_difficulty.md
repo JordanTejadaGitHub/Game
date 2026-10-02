@@ -181,3 +181,7 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: **Phases 2 and 3 playable in 4053690c** (Main Merger, with 8f43d628): finale line on the
   DriftPanel, rest report result, the rest choice (Rest only below max / Clear / Forage, Tend, Dream),
   recorded as `rest_choices`. Clear becomes Forage while clearing is locked.
+- 2026-10-02: **user decision: rest choices dropped, Heartwood's Gifts instead** (act breaks only;
+  `heartwood_gifts.md` 449c7437). Rest-choice step being removed (Main Merger). Gifts routed: screen /
+  draw / placement / Thick Mist (Main Merger), terrain (Environment Code), Warden effects (Tower Code),
+  Waking Root (Roguelite Code), art (Environment Assets).
