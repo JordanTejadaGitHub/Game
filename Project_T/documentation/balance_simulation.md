@@ -735,7 +735,7 @@ the Night Mare check forced its boss and stands. Fixed: all sims run as the full
 
 **Morning summary.** In the game: Bellflower 17 (756676ac), the Sunpetal beam fix (d4efe268), the echo
 follows its nightmare (dd977146). Act 1 is on target for all four start families and all three bosses;
-the economy matches the design. **Waiting on the user's commit approval in Tower Code's session:** 16
+the economy matches the design. **Committed in 2ef6d56f:** 16
 Warden files (Autumn Gale 85, Moonstone 490, Elf Circle 68, Snugroot 56, Fairy Ring 30; Starling
 Murmuration 57, Jewelwing Court 28, Midsummer 170, Sunpetal 81, Hummingbird Bower 27, Mossback 372,
 Wren's Nest 27, Frostfern 72, Whispering Hollow 50, Echo Hollow 22; Stormcap chains 4). Then a
