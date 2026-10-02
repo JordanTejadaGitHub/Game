@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Silence"
+description = "A wider hush that lingers 2 s after they leave."
+cost = 0
+placeholder_color = Color(0.705882, 0.690196, 0.784314, 1)
+line = "song"
+tier = 3
+buildable_directly = false
+evolve_cost = 300
+counter_tags = Array[StringName]([&"anti_support", &"boss_abilities"])
+expansion_phase = 1
+special = &"hush"
+special_params = {"radius": 2.5, "linger": 2.0}
+special_final = true
+attack_range = 2.5
+damage = 20
+attacks_per_second = 1.0
+attack_kind = 1

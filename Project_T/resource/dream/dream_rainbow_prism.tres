@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/rainbow_prism.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_rainbow_prism"
+display_name = "Rainbow Prism"
+description = "Prism Jars can now grow into Rainbow Prisms (300 Dew): a stronger crit aura, and its shot splits into 3 beams."
+rarity = 2
+kind = 1
+tags = Array[String](["light"])
+requires = Array[String](["prism_jar"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")
+in_start_pool = false

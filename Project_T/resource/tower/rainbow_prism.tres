@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Rainbow Prism"
+description = "+15% crit chance around it; its own shot splits into 3 coloured beams."
+cost = 0
+placeholder_color = Color(0.705882, 0.690196, 0.784314, 1)
+line = "light"
+tier = 3
+buildable_directly = false
+evolve_cost = 300
+expansion_phase = 1
+special = &"prism"
+special_params = {"crit_aura": 0.15, "aura_radius": 1.5, "beams": 3, "beam_share": 0.5}
+special_final = true
+attack_range = 3
+damage = 40
+attacks_per_second = 1.0
+attack_kind = 0

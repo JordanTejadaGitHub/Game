@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Hatchery"
+description = "Spore-sprites that burst for more; every 5th is a big one that splits into 3."
+cost = 0
+placeholder_color = Color(0.831373, 0.925490, 0.611765, 1)
+line = "spore"
+tier = 3
+buildable_directly = false
+evolve_cost = 300
+counter_tags = Array[StringName]([&"detection"])
+expansion_phase = 1
+special = &"brood"
+special_params = {"max_alive": 4, "sprite_speed": 3.0, "spored": 3, "big_every": 5}
+special_final = true
+attack_range = 2.5
+damage = 40
+attacks_per_second = 0.667
+attack_kind = 0
+applies_status = &"spored"
+status_stacks = 3

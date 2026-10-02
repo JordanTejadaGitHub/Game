@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Nimbus"
+description = "Heavier rain clouds; every 10 s a Cloudburst refreshes {damp} on everything within 4."
+cost = 0
+placeholder_color = Color(0.862745, 0.909804, 0.956863, 1)
+line = "water"
+tier = 3
+buildable_directly = false
+evolve_cost = 300
+counter_tags = Array[StringName]([&"anti_air"])
+expansion_phase = 1
+special = &"cloud"
+special_params = {"dps": 24.0, "cloud_time": 4.0, "cloudburst_every": 10.0, "cloudburst_range": 4.0}
+special_final = true
+attack_range = 4
+damage = 24
+attacks_per_second = 0.5
+attack_kind = 0
+applies_status = &"damp"
+status_stacks = 1

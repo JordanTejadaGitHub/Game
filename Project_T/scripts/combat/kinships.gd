@@ -63,6 +63,11 @@ const KINSHIPS := {
 	&"true_graft": ["True Graft", "acorn", "graftling", "elder_stump", false],
 	&"jewel_thieves": ["Jewel Thieves", "wing", "hummingbird_bower", "magpie_perch", false],
 	&"tailwind": ["Tailwind", "wind", "samara", "gust", false],
+	# Branch expansion, Phase 1 (tower_design.md; traits in BranchKit): one named pair per starting family.
+	&"crusted_brood": ["Crusted Brood", "spore", "lichenling", "brood_cap", false],
+	&"eye_of_the_storm": ["Eye of the Storm", "water", "cloudlet", "undercurrent", false],
+	&"fireworks_fence": ["Fireworks Fence", "light", "jarlink", "sparkler", false],
+	&"vespers": ["Vespers", "song", "silver_bell", "hushbell", false],
 }
 # The colours of each family, for vines and Harmony sparks.
 const FAMILY_COLORS := {"spore": Palette.NEWLEAF, "water": Palette.DEWLIGHT,  # One palette colour each

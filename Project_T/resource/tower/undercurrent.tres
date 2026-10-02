@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Resource" path="res://resource/tower/maelstrom.tres" id="ev_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Undercurrent"
+description = "Opens a whirlpool on the path that draws nightmares toward its centre, bunching them up."
+cost = 0
+placeholder_color = Color(0.611765, 0.831373, 0.988235, 1)
+line = "water"
+tier = 2
+buildable_directly = false
+evolve_cost = 120
+expansion_phase = 1
+special = &"whirlpool"
+special_params = {"radius": 1.5, "duration": 3.0, "gather": 0.6, "dps": 10.0}
+attack_range = 2.5
+damage = 10
+attacks_per_second = 0.1667
+attack_kind = 0
+evolves_to = Array[Resource]([ExtResource("ev_1")])
