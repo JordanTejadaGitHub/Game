@@ -172,7 +172,8 @@ func _style() -> void:
 	add_theme_color_override("font_outline_color", Color(UiStyle.FOG, 0.9))
 	add_theme_constant_override("outline_size", 4)
 	var box := UiStyle.fog_patch(18.0, 10.0)
-	box.center_alpha = 0.94  # Opaque enough over pale path and effects
+	box.center_alpha = 0.94  # Opaque enough over pale path and effects (edges too: a fog patch fades to nothing)
+	box.edge_alpha = 0.85
 	add_theme_stylebox_override("normal", box)
 	fit_content = true
 	autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
