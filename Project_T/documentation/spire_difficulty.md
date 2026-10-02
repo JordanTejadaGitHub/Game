@@ -301,3 +301,5 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: **fence redesign** (Tower Discussion de57a7c6: a damaging line): **Jarlink 60 dmg/s + 1
   Charged/s** to nightmares touching the arc, a flyer crossing takes **3 Charged**; **Lightning Fence 150
   dmg/s**; Fireworks Fence: every 2 s a nightmare on the fence sets off a 2-spark burst at half damage.
+- 2026-10-02: damaging-line fence in **d0f82044** (Tower Code). The arc covers the cells between the
+  two jars (jar cells excluded; side-by-side jars make no arc). Corridor probe queued.
