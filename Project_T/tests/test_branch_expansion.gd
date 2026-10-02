@@ -37,6 +37,8 @@ func _run() -> void:
 	await _test_dewdrop()
 	await _test_firefly()
 	await _test_bellflower()
+	await _test_finals()
+	await _test_named_pairs()
 
 	print("branch expansion test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	Kinships.force_full = false
@@ -270,6 +272,123 @@ func _test_bellflower() -> void:
 	_check(front.health < front.max_health and behind.health == behind.max_health, "Thrum's cone hits in front, not behind")
 	_check(drowsy.max_health - drowsy.health > front.max_health - front.health, "…harder on the Drowsy one")
 	await _clean()
+
+# --- The finals' twists ---------------------------------------------------------------------------------------------
+
+func _test_finals() -> void:
+	# Hatchery: every 5th sprite is big and splits into 3 when it bursts.
+	var hatch := _plant("hatchery", _route_cell(10) + Vector2(0, 1))
+	for i in 5:
+		BranchKit._hatch(hatch)
+	var sprites := root.find_children("*", "Node2D", true, false).filter(func(n) -> bool: return n is BranchKit.BroodSprite)
+	_check(sprites.filter(func(s) -> bool: return s.big).size() == 1, "Hatchery: the 5th sprite is big")
+	await _clean()
+
+	# Deliquescent: a Poisoned nightmare it marked melts into an ink pool when dispelled.
+	var deli := _plant("deliquescent", Vector2(6, 6))
+	var melting = _spawn(Vector2(7, 6))
+	deli.hit(melting, 1.0, false, Tower.NO_CRIT)
+	var field := BranchKit.InkField.find(deli)
+	var cell: Vector2 = melting.get_current_cell()
+	field._on_dispelled(melting)
+	_check(field.ink_at(cell), "Deliquescent: a dispelled Poisoned nightmare leaves an ink pool")
+	await _clean()
+
+	# Nimbus: Cloudburst refreshes Soaked on everything within 4.
+	var nimbus := _plant("nimbus", Vector2(6, 10))
+	var wetted = _spawn(Vector2(9, 10))
+	nimbus.set_meta(&"cloudburst", 0.01)
+	BranchKit.process(nimbus, 0.1)
+	_check(wetted.statuses.has(EnemyStatuses.DAMP), "Nimbus: Cloudburst Soaks everything within 4")
+	await _clean()
+
+	# Torrent: the jet leaves a wet trail on the path.
+	var torrent := _plant("torrent", _route_cell(8) + Vector2(0, 1))
+	var route := torrent._route()
+	var in_line = _spawn(route[8])
+	BranchKit.release(torrent)
+	var trails := main.get_children().filter(func(n) -> bool: return n is BranchKit.GroundZone and n.kind == &"wet")
+	_check(not trails.is_empty(), "Torrent: the jet leaves a wet trail (%d tiles)" % trails.size())
+	await _clean()
+
+	# Lightning Fence: catches flyers crossing it; a Jarlink fence doesn't.
+	var a := _plant("lightning_fence", Vector2(5, 12))
+	var b := _plant("lightning_fence", Vector2(8, 12))
+	var crow = _spawn(Vector2(6.5, 12), "res://resource/enemy/crow.tres")
+	BranchKit.process(a, 0.016)
+	_check(crow.health < crow.max_health, "Lightning Fence: a flyer crossing it is hit")
+	await _clean()
+
+	# Rainbow Prism: its shot splits into 3 beams at half.
+	var prism := _plant("rainbow_prism", Vector2(6, 6))
+	var targets := [_spawn(Vector2(7, 6)), _spawn(Vector2(7, 7)), _spawn(Vector2(6, 7))]
+	BranchKit.release(prism)
+	_check(targets.all(func(e) -> bool: return e.health < e.max_health), "Rainbow Prism: 3 beams, one on each nightmare")
+	await _clean()
+
+	# Starburst: every 4th burst is a double (12 sparks).
+	var star := _plant("starburst", Vector2(6, 10))
+	star.set_meta(&"bursts", 3)
+	var lone = _spawn(Vector2(8, 10))
+	BranchKit.release(star)
+	var spark_damage := float(star.attack_data.damage)
+	_check(lone.max_health - lone.health >= int(spark_damage * 11), "Starburst: the 4th burst is a double (%d)" % (lone.max_health - lone.health))
+	await _clean()
+
+	# Vesper Bell: the toll echoes to the next-strongest at half.
+	var vesper := _plant("vesper_bell", Vector2(4, 6))
+	var first = _spawn(Vector2(6, 6))
+	var second = _spawn(Vector2(7, 6))
+	first.max_health = 900000
+	first.health = 900000
+	BranchKit.release(vesper)
+	_check(second.health < second.max_health and second.statuses.has(EnemyStatuses.DROWSY), "Vesper Bell: the toll echoes to the next-strongest")
+	await _clean()
+
+	# Silence: the silence lingers after they leave.
+	var quiet := _plant("silence", Vector2(6, 10))
+	var leaving = _spawn(Vector2(7, 10))
+	BranchKit.process(quiet, 0.3)
+	_check(leaving.statuses.silence_time > 2.0, "Silence: lingers 2 s (%.2f)" % leaving.statuses.silence_time)
+	await _clean()
+
+	# Resonance: the cone widens for each Drowsy nightmare in it.
+	var reso := _plant("resonance", Vector2(4, 12))
+	reso.target_chosen = true
+	reso.target_mode = TowerData.TargetMode.STRONGEST
+	var ahead = _spawn(Vector2(6, 12))
+	ahead.max_health = 900000
+	ahead.health = 900000
+	var sleepers := [_spawn(Vector2(5.8, 12.4)), _spawn(Vector2(5.8, 11.6))]
+	for s in sleepers:
+		s.apply_status(EnemyStatuses.DROWSY)
+	var side = _spawn(Vector2(5.0, 13.4))  # ~55° off the aim: outside the 90° cone (45° each side), inside 60° once 2 Drowsy widen it
+	BranchKit.release(reso)
+	_check(side.health < side.max_health, "Resonance: two Drowsy in the cone widen it to reach the side")
+	await _clean()
+
+# --- The four named Kinships (Phase 1) --------------------------------------------------------------------------------
+
+func _test_named_pairs() -> void:
+	for row in [["lichenling", "brood_cap", &"crusted_brood"], ["cloudlet", "undercurrent", &"eye_of_the_storm"],
+			["jarlink", "sparkler", &"fireworks_fence"], ["silver_bell", "hushbell", &"vespers"]]:
+		var a := _plant(row[0], Vector2(6, 6))
+		var b := _plant(row[1], Vector2(7, 6))
+		await process_frame  # (Wardens find the run's Kinships deferred)
+		var kin := Kinships.find(main)
+		kin.refresh()
+		var pairs: Array = kin.get_pairs(a)
+		_check(pairs.size() == 1 and pairs[0].id == row[2], "%s + %s form %s" % [row[0], row[1], row[2]])
+		if pairs.size() == 1:
+			kin.ages[pairs[0].key] = 99  # Full stage
+		_check(is_equal_approx(a.kin_share(row[2], "a"), 1.0) and is_equal_approx(b.kin_share(row[2], "b"), 1.0),
+			"%s: both learn their trait at full stage" % row[2])
+		if row[2] == &"vespers":
+			var target = _spawn(Vector2(9, 6))
+			BranchKit.release(a)
+			_check(target.statuses.silence_time > 0.0, "Vespers (a): the toll also silences its target")
+		await _clean()
+		kin.refresh()
 
 func _route_cell(index: int) -> Vector2:
 	var map = main.get_node("%MapGenerator")
