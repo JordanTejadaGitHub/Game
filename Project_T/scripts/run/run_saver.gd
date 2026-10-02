@@ -65,6 +65,7 @@ func _ready() -> void:
 	get_tree().auto_accept_quit = false
 	# Never in tests, and never in Test Grove (a dev playtest would overwrite the real saved run).
 	autosave = get_tree().current_scene == owner and not TestGrove.is_active()
+	MetaRun.resumed_extra_ridges = -1  # A new run reads Clear Sight from the loadout; a resumed one from its save
 	# Runs before MapGenerator (earlier sibling), so the map is rebuilt from the saved seed.
 	if resume_next:
 		resume_next = false
@@ -72,6 +73,7 @@ func _ready() -> void:
 		if not _saved_data.is_empty():
 			map_generator.map_seed = int(_saved_data.map_seed)
 			MetaRun.blight_level = int(_saved_data.get("blight_level", 0))  # Before MetaRun applies it
+			MetaRun.resumed_extra_ridges = int(_saved_data.get("extra_ridges", -1))  # Sidegrade Clear Sight: the same map
 			drift_director.preset_bosses = _saved_data.get("bosses", [])  # Before the (deferred) boss draw
 	drift_director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _perfect: bool) -> void: _dirty = true)
 	drift_director.family_pick_requested.connect(func(_reason: StringName) -> void: _dirty = true)
@@ -120,6 +122,7 @@ func save_now() -> bool:
 		"version": VERSION,
 		"map_seed": map_generator.map_seed,
 		"blight_level": MetaRun.blight_level,
+		"extra_ridges": MetaRun.run_extra_ridges,  # Sidegrade Clear Sight's ridge, so a resume rebuilds the same map
 		"tended": run_state.tended_cells.map(func(c: Vector2) -> Array: return [c.x, c.y]),
 		"towers": towers,
 		"dew": run_state.dew,

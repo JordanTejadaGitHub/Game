@@ -301,6 +301,9 @@ func _run() -> void:
 	memory.loadout = ["rich_dew", "rested_roots", "sprout_bed", "clear_sight"]  # Kindling has its own run: its random Common may give Dew
 	HeartwoodMemory.save_data(memory)
 	_check(MetaRun.perk_extra_ridges() == 1, "sidegrade Clear Sight: the map gets one more ridge")
+	MetaRun.resumed_extra_ridges = 0  # A run saved before Clear Sight was carried
+	_check(MetaRun.perk_extra_ridges() == 0 and MetaRun.run_extra_ridges == 0, "a resumed run keeps the ridges it was saved with")
+	MetaRun.resumed_extra_ridges = -1
 	_check(_unlock(grove, "clear_sight").get_description().contains("Costs:"), "the node card shows the sidegrade text")
 	var taproot := _unlock(grove, "deep_taproot")
 	_check(taproot.get_levels() == 2 and taproot.get_cost(2) == -1 and taproot.get_spent(3) == 25 + 50,
