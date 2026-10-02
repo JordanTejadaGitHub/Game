@@ -923,7 +923,7 @@ func _update_rank_art() -> void:
 		overlay.texture = tower_data.rank_overlay_texture
 		overlay.hframes = tower_data.rank_overlay_frames
 		overlay.frame = mini(art_rank, tower_data.rank_overlay_frames) - 1
-		overlay.offset = tower_data.get_sprite_offset()
+		overlay.offset = Vector2(0, -(overlay.texture.get_height() - 64) / 2.0) if overlay.texture else Vector2.ZERO  # 64×64 body art: its own height, not the Warden's 64×80 frame
 		return
 	if art_rank <= 0:
 		for node in [under, over]:
@@ -3882,7 +3882,8 @@ var _tall_behind := false
 var _tall_check_left := 0.0
 
 func is_tall() -> bool:
-	return tower_data.texture != null and tower_data.get_frame_rect(0).size.y > MAP_GRID.cell_size.y and tower_data.tier < DreamState.ASCENDED_TIER
+	# Taller than the 64×80 frame every Warden has (16 rows of headroom, Tower Assets bdafee95): the 64×96 ones.
+	return tower_data.texture != null and tower_data.get_frame_rect(0).size.y > MAP_GRID.cell_size.y + 16.0 and tower_data.tier < DreamState.ASCENDED_TIER
 
 func _set_up_tall_fade() -> void:
 	if is_tall():
