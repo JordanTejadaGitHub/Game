@@ -159,7 +159,8 @@ const LINES := {
 		"lichenling", "old_lichen", "brood_cap", "hatchery", "inkcap", "deliquescent"],
 	"pebbling": ["pebbling", "mossback", "boulderback", "standing_stone", "moonstone", "cairn", "rockslide"],
 	"bellflower": ["bellflower", "chime_stone", "lullaby_bell", "dreamcatcher", "great_dreamcatcher", "echo_hollow", "whispering_hollow"],
-	"dewdrop": ["dewdrop", "rain_lily", "monsoon", "mistveil", "morning_fog", "frostfern", "hoarfrost"],
+	"dewdrop": ["dewdrop", "rain_lily", "monsoon", "mistveil", "morning_fog", "frostfern", "hoarfrost",
+		"cloudlet", "nimbus", "undercurrent", "maelstrom", "jetreed", "torrent"],
 	"firefly_jar": ["firefly_jar", "stormcap", "thunderhead", "lanternmoth", "beacon", "sunpetal", "midsummer"],
 	"rootling": ["rootling", "rootcurl", "long_way_home", "tangleroot", "snugroot", "rootlight", "starcave"],
 	"acorn": ["acorn", "elder_stump", "grove_heart", "dewcatcher", "wellspring", "graftling", "grafted_elder"],
@@ -193,6 +194,14 @@ const ATTACKS := {
 	"lullaby_bell": {kind = "pulse", point = Vector2i(31, 46)},
 	"dewdrop": {kind = "projectile", projectile = "dew_drop", point = Vector2i(30, 2)},
 	"rain_lily": {kind = "projectile", projectile = "dew_drop", point = Vector2i(30, 2)},
+	# Branch expansion (2026-10-02): Dewdrop C, D, E. Rain / whirlpool zones and the jet are
+	# drawn by the code (effects rain_zone, whirlpool, water_jet); the point is where they leave from.
+	"cloudlet": {kind = "zone", point = Vector2i(11, 12)},
+	"nimbus": {kind = "zone", point = Vector2i(52, 9)},
+	"undercurrent": {kind = "zone", point = Vector2i(31, 44)},
+	"maelstrom": {kind = "zone", point = Vector2i(31, 44)},
+	"jetreed": {kind = "jet", point = Vector2i(60, 20)},
+	"torrent": {kind = "jet", point = Vector2i(61, 18)},
 	"monsoon": {kind = "pulse", point = Vector2i(31, 46)},
 	"mistveil": {kind = "cloud", point = Vector2i(31, 46)},
 	"morning_fog": {kind = "cloud", point = Vector2i(31, 46)},
@@ -4743,6 +4752,217 @@ func _proj_spore_sprite(canvas: Image, f: int) -> void:
 	var bob: float = [0.0, -1.0, 0.0, -1.0][f]
 	_spore_sprite(canvas, Vector2(32, 32 + bob) , Color("#17174d"), f, true)
 	_px(canvas, 36, 31 + int(bob), Color("#f7c8fa"))
+
+
+# --- Branch expansion, Dewdrop -----------------------------------------------------------------
+# Cloudlet -> Nimbus (a cloud floating beside it; Nimbus wears a cloud mantle round its shoulders,
+# unlike Monsoon's cloud overhead), Undercurrent -> Maelstrom (a swirl of water round its feet; a
+# whirlpool filling the slab), Jetreed -> Torrent (a reed pipe held like a hose; a bundle of reeds
+# with a jet arcing out).
+
+const CLOUD_RAMP := ["#6a7aa0", "#9aaac8", "#c8d4e8", "#f0f4fc"]
+
+func _dew_body(canvas: Image, st: Dictionary, lush: bool) -> Dictionary:
+	var fig := _pal(WATER[0], WATER[1], WATER[2], WATER[3])
+	_draw_waystone(canvas, st, "pond", lush)
+	_droplet_tip(canvas, st, fig)
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	_water_gloss(canvas, mask, st, fig)
+	_golem_face(canvas, st, fig)
+	return fig
+
+# A small fluffy cloud (lumps on a flat underside), drizzling a few drops.
+func _puffy_cloud(canvas: Image, c: Vector2, w: float, o: Color, f: int, drizzle: int) -> void:
+	var cl := _layer()
+	_ellipse(cl, c, Vector2(w, w * 0.45), _ramp(CLOUD_RAMP))
+	_ellipse(cl, c + Vector2(-w * 0.45, w * 0.1), Vector2(w * 0.5, w * 0.38), _ramp(CLOUD_RAMP))
+	_ellipse(cl, c + Vector2(w * 0.4, w * 0.12), Vector2(w * 0.55, w * 0.36), _ramp(CLOUD_RAMP))
+	_stamp(canvas, cl, o)
+	for k in drizzle:
+		var x := int(c.x - w * 0.6 + k * (w * 1.2 / maxf(drizzle - 1, 1)))
+		var y := int(c.y + w * 0.5) + 1 + (f + k * 2) % 5
+		_px(canvas, x, y, Color("#9ad4ff"))
+		_px(canvas, x, y + 1, Color("#5aa8ec"))
+
+func _draw_cloudlet(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _dew_body(canvas, st, false)
+	var bob: float = [0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 0.0][st.f % 8]
+	_puffy_cloud(canvas, Vector2(12, 8 + bob), 11.0, fig.o, st.f, 4)
+
+func _draw_nimbus(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _dew_body(canvas, st, true)
+	# A cloud mantle draped round its shoulders, wider than its body, rain beading off it.
+	var mantle := _layer()
+	for c: Vector3 in [Vector3(14, 21, 6.5), Vector3(22, 19, 6.0), Vector3(30.5, 20, 6.0), Vector3(39, 19, 6.0), Vector3(47, 21, 6.5), Vector3(9, 26, 4.5), Vector3(52, 26, 4.5)]:
+		_ellipse(mantle, Vector2(c.x, c.y + dy), Vector2(c.z, c.z * 0.7), _ramp(CLOUD_RAMP))
+	_stamp(canvas, mantle, fig.o)
+	for k in 5:
+		var x := 9 + k * 11
+		_px(canvas, x, 28 + dy + (st.f + k * 3) % 6, Color("#9ad4ff"))
+	var bob: float = [0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 0.0][st.f % 8]
+	_puffy_cloud(canvas, Vector2(52, 6 + bob), 7.0, fig.o, st.f, 3)
+
+func _attack_cloudlet(canvas: Image, st: Dictionary) -> void:
+	_cloud_rain_attack(canvas, st, "cloudlet")
+
+func _attack_nimbus(canvas: Image, st: Dictionary) -> void:
+	_cloud_rain_attack(canvas, st, "nimbus")
+
+# The cloud darkens and lets go a burst of rain on release.
+func _cloud_rain_attack(canvas: Image, st: Dictionary, key: String) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	var c := Vector2(ATTACKS[key].point)
+	if k < 0 or k > 2:
+		return
+	for i in 7:
+		var x := int(c.x) - 6 + i * 2
+		for j in 3:
+			_px(canvas, x - j / 2, int(c.y) + 4 + k * 3 + j * 2 + i % 2, Color("#9ad4ff") if j == 0 else Color("#5aa8ec"))
+	if k == 0:
+		_bolt(canvas, c + Vector2(-2, 2), c + Vector2(-4, 10), Color("#e8faff"), Color("#5aa8ec"), 2)
+
+# A swirl of water round its feet (a ring of foam turning); Maelstrom's fills the slab, spray rising.
+func _swirl(canvas: Image, st: Dictionary, r: Vector2, arms: int, spray: bool) -> void:
+	var c := Vector2(31, 44)
+	var water := _layer()
+	_flat_ellipse(water, c, r, Color("#3a78c8"))
+	_flat_ellipse(water, c, r * 0.7, Color("#5aa8ec"))
+	_flat_ellipse(water, c, r * 0.35, Color("#2a5eb0"))
+	_stamp(canvas, water, Color("#16305e"))
+	for a in arms:
+		for s in 14:
+			var t := s / 13.0
+			var ang: float = a * TAU / arms + t * PI * 1.2 + st.f * TAU / 16.0
+			var p := c + Vector2(cos(ang) * r.x * (0.3 + t * 0.65), sin(ang) * r.y * (0.3 + t * 0.65))
+			_px(canvas, int(p.x), int(p.y), Color("#e8faff") if s % 3 != 0 else Color("#9ad4ff"))
+	if spray:
+		for k in 6:
+			var ang: float = k * TAU / 6.0 + st.f * 0.4
+			var p := c + Vector2(cos(ang) * r.x, sin(ang) * r.y - 3 - (st.f + k) % 3)
+			_px(canvas, int(p.x), int(p.y), Color("#e8faff"))
+
+func _draw_undercurrent(canvas: Image, st: Dictionary) -> void:
+	var fig := _pal(WATER[0], WATER[1], WATER[2], WATER[3])
+	_draw_waystone(canvas, st, "pond")
+	_swirl(canvas, st, Vector2(21, 6), 3, false)
+	_droplet_tip(canvas, st, fig)
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	_water_gloss(canvas, mask, st, fig)
+	_golem_face(canvas, st, fig)
+	# A ring of water whirling round its feet, raised off the slab, cresting into a wave at each side
+	# (its outline spreads wide at the bottom, unlike Dewdrop's).
+	var ring := _layer()
+	var pts: Array = []
+	for s in 25:
+		var a: float = PI * (s / 24.0)
+		pts.append(Vector2(31 + cos(a) * 26.0, 41 + sin(a) * 5.0))
+	_stroke(ring, pts, 1.8, Color("#5aa8ec"))
+	for side: int in [-1, 1]:
+		var base := Vector2(31 + side * 26.0, 41)
+		_stroke(ring, [base, base + Vector2(side * 1.0, -6), base + Vector2(-side * 2.5, -9)], 1.6, Color("#9ad4ff"))
+	_stamp(canvas, ring, fig.o)
+	for s in range(0, 25, 3):
+		var p: Vector2 = pts[(s + st.f) % 25]
+		_px(canvas, int(p.x), int(p.y) - 1, Color("#e8faff"))  # foam running round it
+
+func _draw_maelstrom(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _pal(WATER[0], WATER[1], WATER[2], WATER[3])
+	_draw_waystone(canvas, st, "pond", true)
+	_swirl(canvas, st, Vector2(28, 8), 4, true)
+	_droplet_tip(canvas, st, fig)
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	_water_gloss(canvas, mask, st, fig)
+	_golem_face(canvas, st, fig)
+	# Water spiralling up round its body in a ribbon, out past its sides.
+	var ribbon := _layer()
+	var pts: Array = []
+	for s in 20:
+		var t := s / 19.0
+		var ang: float = t * TAU * 1.5 + st.f * TAU / 16.0
+		pts.append(Vector2(31 + cos(ang) * (20.0 - t * 6.0), 40 - t * 26.0 + sin(ang) * 3.0 + (dy if t > 0.5 else 0)))
+	_stroke(ribbon, pts, 2.0, Color("#9ad4ff"))
+	_stamp(canvas, ribbon, fig.o)
+
+func _attack_undercurrent(canvas: Image, st: Dictionary) -> void:
+	_whirl_pulse(canvas, st, 1.0)
+
+func _attack_maelstrom(canvas: Image, st: Dictionary) -> void:
+	_whirl_pulse(canvas, st, 1.4)
+
+# Rings of water drawn in towards the middle on release (it gathers, it doesn't push).
+func _whirl_pulse(canvas: Image, st: Dictionary, size: float) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var c := Vector2(31, 44)
+	var r := Vector2(28, 8) * size * (1.0 - k * 0.3)
+	for s in 32:
+		var ang := s * TAU / 32.0
+		var p := c + Vector2(cos(ang) * r.x, sin(ang) * r.y)
+		if (s + k) % 2 == 0:
+			_px(canvas, int(p.x), int(p.y), Color("#e8faff"))
+			var inward := (c - p).normalized()
+			_px(canvas, int(p.x + inward.x * 2), int(p.y + inward.y * 2), Color("#9ad4ff"))
+
+# A green reed pipe, banded, held out like a hose (from the hand, pointing ahead and up).
+func _reed(canvas: Image, a: Vector2, b: Vector2, o: Color) -> void:
+	var reed := _layer()
+	_stroke(reed, [a, b], 2.0, Color(LEAF[1]))
+	_flat_ellipse(reed, b, Vector2(2.6, 2.6), Color(LEAF[1]))  # its flared nozzle
+	_stamp(canvas, reed, o)
+	var d := (b - a)
+	for i in range(2, int(d.length()), 4):
+		var p := a + d.normalized() * i
+		_px(canvas, int(p.x), int(p.y), Color(LEAF[0]))
+	_px(canvas, int(b.x), int(b.y), Color("#9ad4ff"))
+
+func _draw_jetreed(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _dew_body(canvas, st, false)
+	_reed(canvas, Vector2(43, 30), Vector2(60, 20 + dy), fig.o)
+	if st.f % 4 == 1:
+		_px(canvas, 61, 19 + dy, Color("#9ad4ff"))  # a drip at the nozzle
+
+func _draw_torrent(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _dew_body(canvas, st, true)
+	# A bundle of three reeds bound together, and a gourd of water slung at its other side.
+	for o2: Vector2 in [Vector2(0, -2), Vector2(0, 0), Vector2(0, 2)]:
+		_reed(canvas, Vector2(43, 30) + o2, Vector2(61, 18 + dy) + o2, fig.o)
+	_line(canvas, [Vector2(48, 25 + dy), Vector2(48, 30 + dy)], Color("#b09070"))
+	var gourd := _layer()
+	_ellipse(gourd, Vector2(11, 32), Vector2(5, 6), _ramp(["#8a6a44", "#b09070", "#d0b48c"]))
+	_ellipse(gourd, Vector2(11, 25), Vector2(2.4, 2.4), _ramp(["#8a6a44", "#b09070", "#d0b48c"]))
+	_stamp(canvas, gourd, fig.o)
+	_line(canvas, [Vector2(13, 24), Vector2(20, 20 + dy)], Color("#5c3c24"))
+	# Its jet, always running a little: an arc of water out of the bundle.
+	for s in 6:
+		var t := s / 5.0
+		var p := Vector2(62 + t * 1.5, 18 + dy + t * t * 10.0 + (st.f % 2))
+		_px(canvas, int(p.x), int(p.y), Color("#9ad4ff") if s % 2 == 0 else Color("#e8faff"))
+
+func _attack_jetreed(canvas: Image, st: Dictionary) -> void:
+	_jet_attack(canvas, st, "jetreed", 2)
+
+func _attack_torrent(canvas: Image, st: Dictionary) -> void:
+	_jet_attack(canvas, st, "torrent", 3)
+
+# A straight jet of water out of the reed's tip on release (the line pierces).
+func _jet_attack(canvas: Image, st: Dictionary, key: String, width: int) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var from := Vector2(ATTACKS[key].point)
+	var dir := Vector2(1, -0.55).normalized()
+	for i in 20:
+		var p := from + dir * i
+		for w in range(-width / 2, width / 2 + 1):
+			var q := p + dir.orthogonal() * w
+			_px(canvas, int(q.x), int(q.y), Color("#e8faff") if w == 0 else Color("#5aa8ec"))
+	_warm_glow(canvas, from, Vector2(5, 4), k)
 
 # --- Nurture ranks (warden_stats.md "Ranks: Nurture") -----------------------------------------
 # Every Warden stands on the same waystone slab (the mock's), so rank art is drawn once and layered

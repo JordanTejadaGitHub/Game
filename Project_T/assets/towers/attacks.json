@@ -119,6 +119,13 @@
 				46
 			]
 		},
+		"cloudlet": {
+			"kind": "zone",
+			"point": [
+				11,
+				12
+			]
+		},
 		"deliquescent": {
 			"kind": "projectile",
 			"point": [
@@ -279,6 +286,13 @@
 			],
 			"projectile": "ink_drop"
 		},
+		"jetreed": {
+			"kind": "jet",
+			"point": [
+				60,
+				20
+			]
+		},
 		"jewelwing_court": {
 			"kind": "multi",
 			"point": [
@@ -315,6 +329,13 @@
 			"point": [
 				31,
 				46
+			]
+		},
+		"maelstrom": {
+			"kind": "zone",
+			"point": [
+				31,
+				44
 			]
 		},
 		"magpie_perch": {
@@ -392,6 +413,13 @@
 				6
 			],
 			"projectile": "sparrow"
+		},
+		"nimbus": {
+			"kind": "zone",
+			"point": [
+				52,
+				9
+			]
 		},
 		"old_lichen": {
 			"kind": "projectile",
@@ -548,6 +576,20 @@
 			"point": [
 				44,
 				5
+			]
+		},
+		"torrent": {
+			"kind": "jet",
+			"point": [
+				61,
+				18
+			]
+		},
+		"undercurrent": {
+			"kind": "zone",
+			"point": [
+				31,
+				44
 			]
 		},
 		"whirligig": {
