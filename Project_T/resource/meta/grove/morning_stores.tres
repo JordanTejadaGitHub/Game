@@ -7,7 +7,6 @@ script = ExtResource("1_unlock")
 id = "morning_stores"
 display_name = "Morning Stores"
 description = "+10 starting Dew per level, up to +30."
-sidegrade_description = "+10 starting Dew per level, up to +30. Costs: {drift}s 1–5 pay 15% less Dew per level."
 root = 2
 costs = Array[int]([20, 40, 60])
 order = 1

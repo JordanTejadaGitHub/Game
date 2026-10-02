@@ -80,6 +80,7 @@ static func sixth_slot_dev_active() -> bool:
 # adds a downside (SIDEGRADE_*). Developer setting "Perk style" (0 Power / 1 Sidegrade); its default is
 # Sidegrade on the Spire experiment build (project setting game/experiment "spire"), Power elsewhere.
 const PERK_STYLE_SETTING := "perk_style"
+const SIDEGRADE_LEAF_CAP := 2  # Deep Taproot's leaves in sidegrade mode (its level III adds nothing more)
 static var force_sidegrade := -1  # Tests: 0 Power, 1 Sidegrade, -1 = the setting
 
 static func sidegrade_active() -> bool:
@@ -239,7 +240,7 @@ func _apply_grove(memory: Dictionary) -> void:
 		dew += unlock.starting_dew * level
 		run_state.dew_gain_bonus += unlock.dew_gain * level
 		drift_director.rest_bonus_perk_multiplier += unlock.rest_bonus * level
-		leaves += unlock.max_leaves * level
+		leaves += unlock.max_leaves * (mini(level, SIDEGRADE_LEAF_CAP) if sidegrade_active() else level)  # Hades-style: Deep Taproot tops out at +2
 		rerolls += unlock.dream_rerolls * level
 		banishes += unlock.dream_banishes * level
 		extra_cards += unlock.extra_dream_cards * level
@@ -288,21 +289,15 @@ func _apply_grove(memory: Dictionary) -> void:
 		if not commons.is_empty():
 			dream_state.take(commons.pick_random())
 
-# Sidegrade perks: the downside (and Rested Roots' bigger upside) of carried perk `id` at `level`, on top of
+# Sidegrade perks: the downside of carried perk `id` at `level`, on top of
 # its normal effect. Returns the starting Dew it changes. Seed Pouch, Second Thoughts, Let Go, Omen Reader
 # and the slots are unchanged.
+# Hades-style (user, 2026-10-02): Morning Stores, Rested Roots and Deep Taproot stay honest power (Deep Taproot
+# capped at +2 leaves, SIDEGRADE_LEAF_CAP), so struggling new players get a little help.
 func _apply_sidegrade(id: String, level: int) -> int:
 	match id:
-		"morning_stores":  # Drifts 1–5 pay −15% of their Dew pot per level
-			if "early_pot_multiplier" in drift_director:
-				drift_director.early_pot_multiplier -= 0.15 * level
 		"rich_dew":  # Rest bonus −10% per level
 			drift_director.rest_bonus_perk_multiplier -= 0.1 * level
-		"rested_roots":  # Rest bonus +20% per level (not +10%), Dew pot −5% per level
-			drift_director.rest_bonus_perk_multiplier += 0.1 * level
-			run_state.dew_gain_bonus -= 0.05 * level
-		"deep_taproot":  # No leaf regrows at act breaks
-			drift_director.act_break_leaves = 0
 		"sprout_bed":  # −30 starting Dew
 			return -30
 		"first_care":  # After the free ranks, Nurture costs +15% this run

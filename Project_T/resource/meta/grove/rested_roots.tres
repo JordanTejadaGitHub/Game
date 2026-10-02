@@ -7,7 +7,6 @@ script = ExtResource("1_unlock")
 id = "rested_roots"
 display_name = "Rested Roots"
 description = "+10% {rest} bonus per level, up to +20%."
-sidegrade_description = "+20% {rest} bonus per level, up to +40%. Costs: every {drift} pays 5% less Dew per level."
 root = 2
 costs = Array[int]([40, 80])
 order = 3
