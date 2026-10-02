@@ -733,6 +733,14 @@ the Night Mare check forced its boss and stands. Fixed: all sims run as the full
 
 ## Overnight batch (2026-10-02, full game, real boss draw, build e3f3a211)
 
+**Morning summary.** In the game: Bellflower 17 (756676ac), the Sunpetal beam fix (d4efe268), the echo
+follows its nightmare (dd977146). Act 1 is on target for all four start families and all three bosses;
+the economy matches the design. **Waiting on the user's commit approval in Tower Code's session:** 16
+Warden files (Autumn Gale 85, Moonstone 490, Elf Circle 68, Snugroot 56, Fairy Ring 30; Starling
+Murmuration 57, Jewelwing Court 28, Midsummer 170, Sunpetal 81, Hummingbird Bower 27, Mossback 372,
+Wren's Nest 27, Frostfern 72, Whispering Hollow 50, Echo Hollow 22; Stormcap chains 4). Then a
+129-run re-probe of branches + finals and an 18-run Hollow re-check.
+
 **1. Act 1 per start family** (fresh, forced first family, 20 seeds; draw: Scarecrow 10, Stag 5, Night
 Mare 3): survived the boss, Balanced / skip: **Sporeling 85% / 45%**, Firefly Jar 70% / 20%, Dewdrop
 70% / 30%, **Bellflower 50% / 25%**. Bellflower leaks in block 1 (29 nightmares over 20 runs; the
