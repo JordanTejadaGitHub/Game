@@ -12,7 +12,6 @@ signal changed(peeking: bool)
 
 var peeking := false
 var catch_mouse := true  # The screen catches the mouse while not peeking (off for a click-through overlay)
-var _at_top := false
 var _screen: Control
 var _content: Array
 var _back := Button.new()
@@ -22,14 +21,9 @@ func _init(screen: Control, content: Array, back_text: String) -> void:
 	_content = content
 	_back.text = back_text
 	_back.focus_mode = Control.FOCUS_NONE
-	_back.custom_minimum_size = Vector2(260, 48)
-	# Bottom centre, just above the Warden bar: never over the drift banner, the Omen line or the Coming
-	# strip at the top (user playtest: it covered the strip's portraits).
-	_back.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_back.offset_left = -130
-	_back.offset_right = 130
-	_back.offset_top = -158
-	_back.offset_bottom = -110
+	# Mid-screen for every paused screen (choices and pausing cards: one spot; user: "the middle for paused things like
+	# that"): never over the drift banner, the Omen line or the Coming strip at the top.
+	place_back_centre()
 	_back.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_back.visible = false
 	_back.pressed.connect(set_peeking.bind(false))
@@ -38,22 +32,12 @@ func _init(screen: Control, content: Array, back_text: String) -> void:
 		if not screen.visible:
 			set_peeking(false))
 
-# Just above the Warden bar's top, which moves: the bar can wrap into two rows (hud.gd _fit_tower_bar).
-func _place_back() -> void:
-	if _at_top:
-		return
-	var bar := _screen.get_parent().get_node_or_null("TowerBar") as Control if _screen.get_parent() != null else null
-	if bar == null:
-		return
-	_back.offset_bottom = minf(bar.offset_top, -76.0) - 12.0
-	_back.offset_top = _back.offset_bottom - 48.0
-
-# Pausing cards (discoveries, the new-nightmare card): the "Return" pill sits in the middle of the screen, a little
-# below centre, solid (user: "just put the placement in the middle for paused things like that, since they need to
-# close it before starting or resuming the drift"). Never at the top (it covered the Coming strip) or at the edges.
+# Every paused screen (the Dream / family / Omen choices, the discovery and new-nightmare cards): the "Back" / "Return"
+# pill sits in the middle of the screen, a little below centre, solid (user: "just put the placement in the middle for
+# paused things like that, since they need to close it before starting or resuming the drift"). Never at the top (it
+# covered the Coming strip) or at the edges.
 const CENTRE_DROP := 70.0  # Pixels below the middle
 func place_back_centre() -> void:
-	_at_top = true  # A fixed place: not moved with the Warden bar
 	_back.set_anchors_preset(Control.PRESET_CENTER)
 	_back.custom_minimum_size = Vector2(280, 44)
 	_back.offset_left = -140
@@ -82,8 +66,6 @@ func set_peeking(on: bool) -> void:
 	for node in _content:
 		node.visible = not on
 	_back.visible = on
-	if on:
-		_place_back()
 	if catch_mouse:
 		_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE if on else Control.MOUSE_FILTER_STOP
 	changed.emit(on)
