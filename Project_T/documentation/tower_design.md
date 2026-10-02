@@ -281,15 +281,70 @@ take 1 cell and can't evolve.
 
 The Hollow Oak ends the run, so it has no Memory Warden (its memory is the true ending).
 
-## Branch expansion: 5 branches, 3 per run (PROPOSED, 2026-10-02)
+## Branch expansion: 5 branches, 2 per run (PROPOSED, 2026-10-02)
 
 > **Proposal, not approved yet.** Design hub task from the user: stop players forcing the same build
-> every run. Nothing here goes to Tower Code or Tower Assets until the user approves the scope
-> (~27 new branches + ~27 finals of art).
+> every run. Nothing here goes to Tower Code or Tower Assets until the user approves the scope.
+> **Revised the same day** (user feedback): the offer is **2 of 5** (was 3), a stricter coverage
+> check, and a family audit: **Nestling and Whirligig merge into one sky family** (9 → 8 families).
 
-**The idea:** each family gets **5 regular branches + 1 hidden** (today 2 + 1). Each run the
-Remember screen offers **3 of the 5**, plus the hidden one if the Grove has it. Builds stay
-possible, never guaranteed, like Slay the Spire card rewards or Hades boons.
+**The idea:** each family has **5 regular branches + 1 hidden** (today 2 + 1). Each run the
+Remember screen offers **2 of the 5** per family, plus the hidden one if the Grove has it. Builds
+stay possible, never guaranteed, like Slay the Spire card rewards or Hades boons.
+
+### Family audit: are the families distinct?
+
+Checked on role, owned status, attack shapes and their 5 branches.
+
+| Family | One-line role | Owns | Attack shapes | Verdict |
+|---|---|---|---|---|
+| **Sporeling** | damage over time | Poisoned | puffs, clouds, traps, trails, spawned sprites | distinct |
+| **Dewdrop** | water, the conductor | Soaked | splash, fog, ice, rain zone, whirlpool, jet | distinct |
+| **Firefly Jar** | light: lightning and marking | Charged, Exposed | chain, long-range marks, beam, fence, firework | distinct |
+| **Bellflower** | song and sleep | Drowsy | pulses, catch, echo, toll, silence, cone | distinct |
+| **Pebbling** | heavy hits (the payoff family) | — | single heavy hit, sniper, mortar, slam | distinct |
+| **Rootling** | control | Rooted | pull, hold, light, grounding, goal guard | distinct |
+| **Acorn** | support and economy | — | auras, catchers, copy, growing Sprouts, wards | distinct |
+| **Nestling** | birds: hunters that pick targets | — | swoops, multi-hit | **merge** with Whirligig |
+| **Whirligig** | wind: spreads statuses, shapes the maze | copies | spread, blades, boomerang | **merge** with Nestling |
+
+- **Rootling and Acorn stay separate.** They share a "tree" look but not a job: Rootling *controls
+  nightmares* (Rooted, pulls, grounding), Acorn *boosts Wardens and the economy* and barely
+  attacks. Merging them would break rule 1 (one role per family) and make a family that's half
+  control, half support.
+- **Nestling and Whirligig merge.** Both are air-flavoured, both are full-game families, and
+  Whirligig's new branches were a grab bag of "wind things" (a range aura, a kite, a scatter). The
+  six branches they already have between them fill a 5 + 1 family **with no new branch art**. The
+  merged family's job: **the sky carries the fight**, with birds that hunt and wind that spreads.
+
+### The merged sky family (Nestling + Whirligig → **Nestling**)
+
+| Slot | Branch → final (all already built) | Job | Was |
+|---|---|---|---|
+| A | **Wren's Nest → Starling Murmuration** | hunt the fastest (Phantoms, sprinting Hounds) | Nestling A |
+| B | **Magpie Perch → Magpie's Hoard** | thief: strip nightmare buffs | Nestling B |
+| C | **Gust → Zephyr** | spread statuses (the amplifier) | Whirligig A |
+| D | **Pinwheel → Windmill** | blades on corners and hairpin bends | Whirligig B |
+| E | **Samara → Autumn Gale** | boomerang down straight corridors | Whirligig hidden |
+| Hidden | **Hummingbird Bower → Jewelwing Court** | multi-hit on-hit engine | Nestling hidden |
+
+- **Base:** the **Nestling** (a nest the wind catches). The Whirligig base is **parked** (art and
+  data kept, like the Memory Wardens).
+- **Ascended:** **Dawnwing**, which also takes The Whirlwind's job: its patrol carries every status
+  it touches along its loop. The Whirlwind (id `tempest`) is parked.
+- **Line id:** `wing` (the `wind` id folds into it). Enemy design needs to fold the `wind`
+  resist/weak entries into `wing` and re-check the tally (Enemy Design / Enemy Code).
+- **Kinships:** the four built named pairs all stay, since they're now inside one family: Flock
+  Together (Wren + Magpie), Jewel Thieves (Hummingbird + Magpie), Dust Devil (Gust + Pinwheel),
+  Tailwind (Samara + Gust). All other pairs are generic Kin.
+- **Cards:** `wing` and `wind` cards share the family tag; Samara's cards (94–99) move from its
+  hidden node to the family node; Hummingbird's on-hit cards stay with the hidden node.
+- **Grove:** the two family nodes become one family node; the Whirligig hidden node goes (Samara is
+  now regular); the Ascension nodes become one. No refunds (pre-release).
+- **Codex:** one family page; the Whirligig base and The Whirlwind are hidden while parked.
+- **Roster: 9 → 8 families**, still 4 per run. Dropped from the earlier proposal (never built):
+  Owlet, Pelican, Woodpecker, Breeze Vane, Sky Kite, Scatterwind. Their counter jobs are covered
+  elsewhere (see the coverage check).
 
 ### Rules for the new branches
 
@@ -304,7 +359,7 @@ possible, never guaranteed, like Slay the Spire card rewards or Hades boons.
 - The existing branches keep their places (2 regular + hidden), so the 3 new ones per family are
   branches **C, D, E**. Numbers come later, from Balancing Discussion.
 
-### The 27 new branches
+### The new branches (7 families; the sky family needs none)
 
 **Sporeling** (Poisoned)
 
@@ -362,79 +417,88 @@ possible, never guaranteed, like Slay the Spire card rewards or Hades boons.
 | **Bark Shield → Ironbark** | **protection** | Wardens in range can't be withered, dimmed or trampled | protected Wardens also shrug off the first boss ability each drift | boss wither / dim / trample (Hollow Stag, Lamplighter) | thick bark armour plates |
 | **Dream Oak → Dreamroot** | **Dreamlight economy** | gains 1 Dreamlight shard per drift (10 shards = 1 Dreamlight; capped per run) | shards double on perfect blocks | — (more branches and finals per run) | a small oak with a glowing fruit |
 
-**Nestling** *(full game)*
 
-| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
-|---|---|---|---|---|---|
-| **Owlet → Night Owl** | **hidden-prey hunter** | targets hidden and burrowing nightmares first, +50% vs them; can strike a burrowed Gravecrawler | **Silent strike:** its first hit on each nightmare can't be resisted | Lurkers, Gravecrawlers | a round owl with ear tufts |
-| **Pelican Perch → Great Pelican** | **execute small** | swallows a small nightmare below a health threshold (Sob, Creep, Wraith…) | swallowed ones drop double Dew | Mourner / Widow splits, Wraiths | a long beak and a throat pouch |
-| **Woodpecker Post → Drummer** | **shell drill + clearing** | pecks strip dread shell ×3; between drifts it chips Withered Trees nearby (clearing them is cheaper) | **Drum roll:** every 10th peck stuns the shell's regrowth | Shellbound | a woodpecker clinging to a post |
+### Coverage with only 2 of 5 (the stricter check)
 
-**Whirligig** *(full game)*
+With 4 families × 2 offered branches (+ hidden), a run sees about 8–12 branches, so no single
+family can promise an answer to everything. Two layers keep runs fair:
 
-| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
-|---|---|---|---|---|---|
-| **Breeze Vane → Weathervane** | **range and speed support** | aura: Wardens within 2 cells +1 range and their projectiles fly 50% faster | it turns to face the busiest lane, and that side gets +2 range | — (helps snipers and slow shots) | a tall weathervane arrow |
-| **Kite String → Sky Kite** | **anti-air** | a kite flies high, hitting flyers and Phantoms anywhere within range 6 | the kite tail sweeps everything it passes | Phantoms, flyers, the Moth Queen | a kite flying above the golem |
-| **Scatterwind → Squall** | **break formations** | gusts split groups that move together: followers lose their leader | broken-up nightmares are Soaked-style "scattered" (Dew +1 each) | the Procession, Huntsman packs | puffed cheeks blowing a gust |
+1. **Every nightmare has a generic answer any build has** (enemy_design.md: never immune to
+   damage). Lurkers are revealed up close, so Wardens hugging the path see them; Phantoms are
+   stopped by any damage near the Heartwood; Shellbound shells break to big hits or many hits;
+   swarms fall to splash and pulses, which every family's base or branches have. A run with the
+   wrong offers is harder, never unwinnable.
+2. **Specialist answers are spread so a run usually has one,** and the draw makes sure of it:
+   - **A smart draw:** when a family is picked, its 2 branches are drawn at random **among the
+     pairs that add a counter tag the run's offers don't cover yet** (tags: *anti-air*, *detection*,
+     *anti-armour*, *anti-swarm*, *anti-tank*, *anti-support*, *boss abilities*). It's still random,
+     still seeded, and still never the same 2 as that family's last run; it just avoids a run with
+     no anti-air at all, for example.
+   - Every counter tag sits on **at least 3 branches across at least 2 families**:
 
-**Counter coverage check:** every nightmare type now has 2+ answers across families: flyers and
-Phantoms (Nimbus, Lightning Fence, Earthbind, Sky Kite, plus snipers and Wren's Nest), Lurkers
-(Lanternmoth, Rootlight, Brood Cap, Night Owl), Shellbound (Pebbling, Old Lichen, Drummer, Magpie),
-support nightmares (Silence, Magpie, Old Lichen), swarms (Starburst, Pelican, area Wardens), tanks
-and bosses (Edgestone, Torrent, Vesper Bell), boss abilities (Ironbark, Silence, Earthshaker).
+| Tag | Branches |
+|---|---|
+| anti-air (flyers, Phantoms) | Cloudlet (Dewdrop), Jarlink (Firefly), Groundroot (Rootling), Wren's Nest (Nestling), Standing Stone (Pebbling) |
+| detection (Lurkers) | Lanternmoth (Firefly), Brood Cap (Sporeling), Rootlight (Rootling, hidden) |
+| anti-armour (Shellbound) | Lichenling (Sporeling), Mossback / Whetstone (Pebbling), Magpie Perch (Nestling) |
+| anti-swarm | Sparkler (Firefly), Rain Lily (Dewdrop), Thrum (Bellflower), Pinwheel (Nestling), Chime Stone (Bellflower) |
+| anti-tank / boss | Whetstone (Pebbling), Jetreed (Dewdrop), Silver Bell (Bellflower), Standing Stone (Pebbling) |
+| anti-support (Watcher, Weeper) | Hushbell (Bellflower), Lichenling (Sporeling), Magpie Perch (Nestling) |
+| boss abilities | Bark Shield (Acorn), Hushbell (Bellflower), Quaker (Pebbling) |
+
+- **Lucid Dream** (Rare card, +1 not-offered branch): with only 2 of 5 offered it's a real find,
+  since it raises a family's choices by half. It **shows you the 3 branches not offered** and you
+  pick one, so it can rescue a run that's missing a counter. A Grove perk could add one per run
+  (Meta Game Discussion's call).
 
 ### Kinships with 6 branches: a rule, not a 15-pair table
 
 - **Any two different branches of one family within 2 cells bond** with a **generic Kinship**
   ("Kin"). Both Wardens get **+10% damage**, and the pair earns **Harmony strikes** as today. The
   bond still grows (Sapling, Blooming, Old Kin) and shows the vine.
-- **Named Kinships stay special:** the 18 built ones (each family's main pair + hidden pair) keep
-  their unique "teach each other" traits. Add **1 new named pair per family** among the new
-  branches (9 more), chosen where the two jobs tell a story (e.g. *Silence + Vesper Bell*,
+- **Named Kinships stay special:** the 18 built ones keep their "teach each other" traits (the
+  merged sky family keeps all four of its pairs). Add **1 new named pair per family** among the new
+  branches (7 more), chosen where the two jobs tell a story (e.g. *Hushbell + Silver Bell*,
   *Groundroot + Thorncoil*). Everything else is generic Kin.
-- **Whole Tree** becomes **"3 different branches of one family on the map"** (any 3, hidden or
-  not), since a run can't count on any particular branch.
-- Kindred (2 branches: +10%) is unchanged.
+- **Whole Tree** becomes **"3 different branches of one family on the map"**. With 2 offered,
+  that needs the hidden branch or *Lucid Dream*: a real milestone of a run, not a given.
+- Kindred (2 branches: +10%) is unchanged, and now the common case.
 
 ### The per-run offer on the Remember screen
 
-- **3 of the 5 regular branches** per family, drawn at run start from the map seed (a resume gets
-  the same), **never the same 3 as that family's last run** (profile `last_branch_offer`).
-- **The hidden branch doesn't count:** if the Grove has planted it, it's always offered as a 4th
+- **2 of the 5 regular branches** per family, drawn by the smart draw above at the family pick,
+  from the map seed (a resume gets the same), **never the same 2 as that family's last run**
+  (profile `last_branch_offer`).
+- **The hidden branch doesn't count:** if the Grove has planted it, it's always offered as a 3rd
   lane. It's earned meta progress.
-- **The 2 not offered** show as **"not in this dream"**: a faint misty silhouette with no cost,
-  lower in the tree, and the side panel says *"Not in this dream. The Heartwood may remember it
-  next time."* Their finals aren't shown.
-- **A Dream card can reveal a 4th:** ***Lucid Dream*** (Rare): pick one family; one of its
-  not-offered branches joins this run. A Grove perk could add one per run (Meta Game Discussion's
-  call).
-- **Cards follow the offer:** a card that needs a branch (e.g. Stormcap cards, Entwined
-  *Conductive Soil*) is only offered if that branch is offered this run. Storm Grid becomes a run
-  you *find*, not one you force.
-- Families with fewer than 5 regular branches (during phasing) offer all they have.
+- **The 3 not offered** show as **"not in this dream"**: faint misty silhouettes with no cost,
+  lower in the tree; the side panel says *"Not in this dream. The Heartwood may remember it next
+  time."* Their finals aren't shown.
+- **Cards follow the offer:** a card that needs a branch (e.g. Stormcap cards, Entwined *Conductive
+  Soil*) is only offered if that branch is offered this run. Storm Grid becomes a run you *find*.
+- Families with fewer than 5 regular branches (during phasing) offer 2 of what they have.
+- **Dreamlight:** fewer branches on offer means Dreamlight goes further per family. Balancing
+  Discussion should re-check the budget (branch 1, final 2) against 2 offered.
 
 ### The demo
 
-**Keep today's 2 branches per family, no 3-of-5** (and no hidden branches, as now). Reasons: the
-demo is short, players should learn the core branches first, it needs no new art, and "more
-branches every run" becomes a clear full-game selling point. The demo's 4 starting families
-(Sporeling, Firefly Jar, Dewdrop, Bellflower) stay exactly as they are.
+**Keep today's 2 branches per family, no 2-of-5** (and no hidden branches, as now). The demo is
+short, players should learn the core branches first, it needs no new art, and "different branches
+every run" becomes a clear full-game selling point. The demo's 4 starting families (Sporeling,
+Firefly Jar, Dewdrop, Bellflower) stay exactly as they are.
 
 ### Phasing (art is the cost)
 
-Each new branch + final = 2 sprites (plus attack sheets and effects): ~54 sprites in total.
+With the merge, the sky family needs **no new branches**. That leaves **21 new branches + 21
+finals** (~42 sprites plus attack sheets and effects), down from 27 + 27.
 
-1. **Phase 1: the 4 starting families** (Sporeling, Dewdrop, Firefly Jar, Bellflower): 12
-   branches, 12 finals, the 3-of-5 offer, generic Kin, Lucid Dream. The full game gets the system
-   first where most runs live.
+1. **Phase 1: the 4 starting families** (Sporeling, Dewdrop, Firefly Jar, Bellflower): 12 branches,
+   12 finals, the 2-of-5 offer with the smart draw, generic Kin, Lucid Dream.
 2. **Phase 2:** Pebbling, Rootling, Acorn (9 + 9).
-3. **Phase 3:** Nestling, Whirligig (6 + 6), the full-game families.
+3. **Phase 3:** the Nestling + Whirligig merge (no new branch art: a parked base and Ascended,
+   Dawnwing's carry twist, the resistance fold).
 
-Each phase is playable on its own: un-expanded families just offer their 2.
-
-**To check with Balancing Discussion:** the Dreamlight budget with 3 offered (unchanged costs), and
-whether Kindred / Whole Tree need retuning when any 3 branches count.
+Each phase is playable on its own: un-expanded families offer 2 of what they have.
 
 ## Evolution rules
 
