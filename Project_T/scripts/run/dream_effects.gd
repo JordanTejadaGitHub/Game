@@ -507,7 +507,7 @@ func _first_light(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dicti
 	return {"effect": "first hit on each nightmare ×3"}
 
 func _last_stand(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	return {"effect": "+%d%% damage to nightmares within %d cells of the Heartwood" % [
+	return {"effect": "deal %d%% more damage to nightmares within %d cells of the Heartwood" % [
 		roundi(DreamState.LAST_STAND_BONUS * 100), DreamState.LAST_STAND_CELLS]}
 
 func _old_growth(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
@@ -522,7 +522,7 @@ func _old_growth(spot: Dictionary, _board: Board, _card: UpgradeData) -> Diction
 		"reason": "" if bonus > 0.0 else "has stood %d of %d drifts" % [stood, DreamState.OLD_GROWTH_STEPS[-1][0]]}
 
 func _hunters_patience(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	return {"effect": "+%d%% damage to Deeply Blighted nightmares, +%d%% to bosses" % [
+	return {"effect": "deal %d%% more damage to Deeply Blighted nightmares, %d%% more to bosses" % [
 		roundi(DreamState.HUNTERS_PATIENCE_ELITE * 100), roundi(DreamState.HUNTERS_PATIENCE_BOSS * 100)]}
 
 func _thinning_the_herd(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
@@ -560,11 +560,11 @@ func _crowded_path(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dicti
 		"reason": "" if bonus > 0.0 else "no nightmare in range"}
 
 func _lone_hunter(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	return {"effect": "+%d%% damage to a nightmare with no other within 2 cells" % roundi(
+	return {"effect": "deal %d%% more damage to a nightmare with no other within 2 cells" % roundi(
 		DreamState.LONE_HUNTER_BONUS[ds.rule_level(&"lone_hunter")] * 100)}
 
 func _skyward_gaze(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	return {"effect": "+%d%% damage and +%d range against flying nightmares" % [
+	return {"effect": "deal %d%% more damage and get +%d range against flying nightmares" % [
 		roundi(DreamState.SKYWARD_BONUS * 100), roundi(DreamState.SKYWARD_RANGE)]}
 
 func _fresh_growth(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
@@ -616,7 +616,7 @@ func _heart_of_the_maze(spot: Dictionary, _board: Board, _card: UpgradeData) -> 
 func _rain_on_glass(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.data.line != "light":
 		return {}
-	return {"effect": "+%d%% damage to Soaked nightmares" % roundi(DreamState.RAIN_ON_GLASS_PER * ds.rule_stacks(&"rain_on_glass") * 100)}
+	return {"effect": "deal %d%% more damage to Soaked nightmares" % roundi(DreamState.RAIN_ON_GLASS_PER * ds.rule_stacks(&"rain_on_glass") * 100)}
 
 # Seed cards (dream_design.md "Seed cards"): the "Now" effects that change a Warden's damage.
 func _kind_canopy(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:

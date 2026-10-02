@@ -15,5 +15,5 @@ min_act = 2
 rule_id = &"golden_harvest"
 in_start_pool = false
 grows_with = Array[String](["dewcatcher", "wellspring"])
-grows_text = "Every 100 Dew your catchers harvest or earn as interest this run gives all Wardens +2% damage (up to +30%)."
+grows_text = "Every 100 Dew your catchers harvest or earn as interest this run makes all Wardens deal 2% more damage (up to +30%)."
 calls_family = "acorn"
