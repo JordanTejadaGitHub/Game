@@ -3085,9 +3085,11 @@ func _light() -> void:
 	for enemy in get_enemies_in_range():
 		hit(enemy, 1.0, true)
 
-# Sunpetal: a beam on one target that ramps up the longer it holds (faster on Drowsy or Held).
+# Sunpetal: a beam on one target that ramps up the longer it holds (faster on Drowsy or Held). It holds that
+# target until it's dispelled or leaves range (Balancing: First targeting switching front-runners kept
+# resetting the ramp, 0.11× its peers); only then does it pick a new one.
 func _update_beam(delta: float) -> void:
-	var target := find_target()
+	var target := _beam_target if _beam_holds() else find_target()
 	if target != _beam_target:
 		if target == null:
 			_stop_beam()  # Back to the idle sheet (it knows a beam was on only before the target is cleared)
@@ -3546,6 +3548,10 @@ func _target_score(enemy: Node2D, mode: TowerData.TargetMode) -> float:
 	return -enemy.get_remaining_distance()
 
 # Blighted enemies within attack range (and outside a sniper's minimum range).
+# The beam's current target is still there to hold: alive and in range (min range and flyers as targeting).
+func _beam_holds() -> bool:
+	return is_instance_valid(_beam_target) and not _beam_target.is_cleansed and get_enemies_in_range().has(_beam_target)
+
 func get_enemies_in_range() -> Array[Node2D]:
 	var range_squared := get_range_pixels() ** 2
 	# Skyward Gaze (card, rule skyward_gaze): flying nightmares count from further away.
