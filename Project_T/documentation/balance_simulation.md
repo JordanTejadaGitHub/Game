@@ -758,6 +758,13 @@ designed); the bot banks ~20–50 at each rest. **Dreamlight is spent the moment
 Omen Dew −626 to +690 per run (negative runs: likely Dry Spell, the only pot cut; not checked), median drift reached 24
 vs 27. **No change:** income matches the design, and Omens are the gamble they should be.
 
+**Branch sweep** (40d26ed1, every branch ×4, rank IV, no Dreams, drifts 45–49, per Dew vs Driftspore):
+**Fairy Ring ~1.6× Driftspore** (1.5× Puffball, the only branch above a final) → **damage 44 → 30**.
+The damage branches spread 0.25–1.0×; support / economy branches sit near zero on their own damage
+(their board leak tells more: Bloomcap and Rain Lily boards leak less than higher-damage ones). Role
+check with Tower Discussion on the low ones (Hummingbird Bower, Sunpetal, Frostfern, Stormcap, Gust,
+Echo Hollow, Wren's Nest, Mossback).
+
 **4. Act 2 bosses at drift 50** (40d26ed1, fixed board of 12 finals, rank IV, no Dreams, 3 seeds): none
 dispelled; health left at the Heartwood Huntsman 44–88%, Lamplighter 10–34%, Mire Hag 45–53%. A
 no-Dream board is a floor, not a player's board. Bosses at **×1.75** (confirmed: Huntsman 6,500 × 1.75
