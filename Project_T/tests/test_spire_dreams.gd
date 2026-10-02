@@ -106,6 +106,36 @@ func _run() -> void:
 		_check(dreams.unlock_with_dreamlight(branch) and dreams.dreamlight == 5 - maxi(full - 1, 0), "…and the unlock pays the lower price")
 		_check(dreams.unlock_discounts == 0, "…one use")
 
+	# At an act break the gift screen comes before the Omen: the Omen waits while a gift is offering, then shows
+	# The gift registry has Waking Root (it only enters the draw once registered); restoring doesn't add twice
+	_check(HeartwoodGifts.has_effect(&"waking_root"), "Waking Root is registered with HeartwoodGifts")
+	DreamState._waking_root_gift(main, {})
+	DreamState._waking_root_gift(main, {"restoring": true})
+	_check(dreams.unlock_discounts == 1, "…its effect adds one discount, and a resumed run keeps the saved one (%d)" % dreams.unlock_discounts)
+	dreams.unlock_discounts = 0
+	var gifts := HeartwoodGifts.find(main)
+	_check(gifts != null, "the HUD makes HeartwoodGifts")
+	if gifts == null:
+		gifts = HeartwoodGifts.new()
+		main.add_child(gifts)
+	gifts.waiting = true
+	var omens = main.get_node("%OmenDirector")
+	dreams.current_offer = []
+	dreams._pending_drifts.clear()
+	var omen: OmenData = null
+	for file in DirAccess.get_files_at("res://resource/omen/"):
+		if omen == null and file.trim_suffix(".remap").ends_with(".tres"):
+			omen = load("res://resource/omen/" + file.trim_suffix(".remap")) as OmenData
+	omens.current_offer.assign([omen])
+	omens._offer_waiting = true
+	omens._try_show()
+	_check(omens._offer_waiting, "the Omen waits while a Heartwood's Gift is offering")
+	gifts.waiting = false
+	gifts.offer_closed.emit()
+	await process_frame
+	await process_frame
+	_check(not omens._offer_waiting, "…and shows once the gift closes")
+
 	main.queue_free()
 	await process_frame
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))

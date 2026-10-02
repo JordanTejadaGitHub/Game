@@ -302,6 +302,7 @@ var _effects: DreamEffects = null  # effects(): card rows per Warden
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	HeartwoodGifts.register(&"waking_root", DreamState._waking_root_gift)  # Heartwood's Gifts (Spire branch)
 	_rng.randomize()
 	if pool.is_empty():
 		pool = load_pool()
@@ -488,6 +489,14 @@ var unlock_discounts := 0
 func add_unlock_discount(count: int = 1) -> void:
 	unlock_discounts += count
 	unlocks_changed.emit()  # The Remember screen's prices
+
+# The gift's effect (HeartwoodGifts calls it): on a resumed run the discount comes back with this run's save instead.
+static func _waking_root_gift(main: Node, placement: Dictionary) -> void:
+	if placement.get("restoring", false):
+		return
+	var dreams := main.get_node_or_null("%DreamState") as DreamState
+	if dreams != null:
+		dreams.add_unlock_discount(1)
 
 # Why `data` can't be unlocked yet ("" = it can, given enough Dreamlight): its parent form isn't
 # unlocked, or it's a hidden branch the Memory Grove hasn't opened. Ascended forms: from drift 51,
