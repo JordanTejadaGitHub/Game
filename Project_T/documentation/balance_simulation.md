@@ -751,6 +751,13 @@ skip runs opened with Sporeling and survived 15–30%.
 **Bellflower re-check** (3608f4fc, damage 17, same seeds): Balanced survives the boss **75%** ✓ (was
 50%), skip 30% (was 25%); block 1 leaks 4 over 20 runs (was 29). **Closed.**
 
+**5. Economy** (40d26ed1, full profile to 40, 20 seeds, Clear Skies vs always face): Dew earned in
+drifts 1–25 **2,387 vs the pot table's 1,960** (+22%: rest bonuses, Rich Dew and call-early on top, as
+designed); the bot banks ~20–50 at each rest. **Dreamlight is spent the moment it arrives**: first pick
+→ one branch, the boss's 3 → a second branch + a final (~2.5 forms per run by 40). Always facing Omens:
+Omen Dew −626 to +690 per run (negative = Dry Spell blocks with leaves lost), median drift reached 24
+vs 27. **No change:** income matches the design, and Omens are the gamble they should be.
+
 **4. Act 2 bosses at drift 50** (40d26ed1, fixed board of 12 finals, rank IV, no Dreams, 3 seeds): none
 dispelled; health left at the Heartwood Huntsman 44–88%, Lamplighter 10–34%, Mire Hag 45–53%. A
 no-Dream board is a floor, not a player's board. Bosses at **×1.75** (confirmed: Huntsman 6,500 × 1.75
