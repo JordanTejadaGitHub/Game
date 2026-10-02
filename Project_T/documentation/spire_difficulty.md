@@ -159,3 +159,6 @@ full game (`game/demo` false), and the demo reads main's exports.
   4), Blight 11–20 (Phase 5); decisions over health from here; the demo stays on main's curve.
 - 2026-10-02: **capped Grove in 2114956d** (Meta Game Code): power Morning Stores, Rested Roots, Deep
   Taproot I–II; 8 sidegrades; `perk_style` Sidegrade by default on this branch. Cap measurement queued.
+- 2026-10-02: **finale reward + rest-choice Dream effect in 8f43d628** (Roguelite Code): clean finale →
+  one Rare+ slot in the next Dream (survives a reroll, saved); `add_next_offer_cards(1)` for the Dream
+  rest choice. Banner / rest report / the rest step itself are Main Merger's (pending).
