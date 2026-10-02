@@ -8,7 +8,7 @@
 
 [resource]
 script = ExtResource("1_tdata")
-counter_tags = Array[StringName]([&"anti_armour", &"anti_support"])
+counter_tags = Array[StringName]([&"anti_armour", &"anti_support", &"boss_abilities"])
 display_name = "Magpie Perch"
 description = "A thief: each hit strips a buff, and a nightmare it robbed drops +1 Dew when dispelled."
 cost = 0
