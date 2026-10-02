@@ -17,6 +17,7 @@ const CAST_ACT1 := ["sporeling", "firefly_jar", "dewdrop", "bellflower", "pebbli
 const CAST_NOCHARGE := ["boulderback", "boulderback", "moonstone", "rockslide", "starcave", "midsummer", "magpies_hoard", "great_dreamcatcher"]  # --cast=nocharge: the finals cast without its only Charged source (Thunderhead -> a 2nd Boulderback)
 var cast: Array = CAST
 var next_to: Array = []  # --next-to=puffball,lullaby_bell: the cast is planted first and each candidate goes beside one of these
+var pairs := false  # --pairs: every second copy goes beside the one before it (Jarlink works in linked pairs)
 
 var main: Node
 var form_id := "dreamshroom"
@@ -54,6 +55,7 @@ func _run() -> void:
 			"--rank": rank = int(value)
 			"--cast": cast = {"act1": CAST_ACT1, "nocharge": CAST_NOCHARGE, "finals": CAST}.get(value, Array(value.split(",")))  # or a list: --cast=rain_lily,rain_lily,…
 			"--next-to": next_to = Array(value.split(","))
+			"--pairs": pairs = true
 	ProjectSettings.set_setting("game/demo", false)  # The full game (as the user plays it)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
@@ -72,7 +74,9 @@ func _run() -> void:
 	var rest: Array = cast.duplicate()
 	for i in COPIES:
 		var tower: Tower = null
-		if next_to.is_empty():
+		if pairs and i % 2 == 1:
+			tower = _plant(placer, form_id, [form_id], candidates[i - 1])  # Beside its partner
+		elif next_to.is_empty():
 			tower = _plant(placer, form_id)
 		else:  # Pair by pair: a target from the cast, then a candidate in a free cell touching it; a target
 			# hemmed in by obstacles gets another planted next to the route (up to 4 tries; extras stay in the board)
@@ -253,7 +257,7 @@ func _report(director: DriftDirector) -> void:
 		"share": snappedf(damage / maxf(total, 1.0), 0.001), "rank": candidates[0].rank,
 		"hit": snappedf(split.hit / t, 0.01), "cloud": snappedf(split.cloud / t, 0.01), "status": snappedf(split.status / t, 0.01),
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
-		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "board_damage": roundi(total),
+		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "pairs": pairs, "board_damage": roundi(total),
 		"bosses": ";".join(boss_fights.values().map(func(b) -> String: return "%s:%d:%s:%.0f:%d" % [b.kind, b.health, "1" if b.dispelled else "0", (b.end - b.spawn) if b.dispelled else -1.0, b.hp_arrive])),
 		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001)}
 	print("FINALS %s" % JSON.stringify(row))
