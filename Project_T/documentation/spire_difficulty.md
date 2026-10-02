@@ -1,8 +1,12 @@
-# Spire Difficulty (experiment branch `experiment/spire-difficulty`)
+# Spire Difficulty
 
-Owner: Balancing Discussion (numbers); code by the owning chats, **committed on
-`experiment/spire-difficulty`, never on main**. Main keeps today's balance until the user compares the
-two and picks. Started 2026-10-02.
+**Status: in main** (merged bebfb22c, 2026-10-02, user: "just merge the Slay branch with main"). The
+**full game** uses these rules; the **demo** keeps the old ones (`DriftDirector.DEMO_RULES`: act 1 ramp
+from 9, act 2 from 1.7 via 3.3, act 4 ×1.0, full Dew pots, no block finales; gifts and the branch
+expansion off). Built and live in the full game: Phases 1–4 and branch expansion phase 1. **Still the
+plan:** Blight 11–20 (Phase 5) and branch expansion phases 2–3. Work continues on main; the experiment
+branch stays until the user says. Owner: Balancing Discussion (numbers); code by the owning chats.
+Started 2026-10-02.
 
 User: *"Make it feel like Slay the Spire difficulty."* Tried on a branch first. Direction (user,
 2026-10-02): **"Spire difficulty, ladder and decision focus, plus a small, capped Grove power,

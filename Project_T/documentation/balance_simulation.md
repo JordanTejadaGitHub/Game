@@ -6,6 +6,29 @@ targets in `run_design.md` ("Difficulty curve targets"), so balance changes are 
 not by feel alone. It grows out of Tower Code's probes (`tools/balance_act3.gd`,
 `tools/balance_run.gd`) and Roguelite Code's `sim_rest` / `sim_family_pick`.
 
+## Current targets (from 2026-10-02: the Spire rules are in main, bebfb22c)
+
+These replace the older targets below for the **full game**; the demo keeps the old curve
+(`DriftDirector.DEMO_RULES`) and the old act 1 targets. Detail and history: `spire_difficulty.md`.
+
+| What | Target |
+|---|---|
+| Average player | **first win after ~10–15 runs** |
+| Skilled player, Blight 0 | **wins ~30–50%** |
+| Fresh profile | usually dies in **act 2–3** |
+| Act 4 | a real test |
+| Every block | can kill you; the **block finale** (last drift, ×1.4 health + elites) costs an average maze ~1 leaf; a clean finale earns a Rare+ Dream slot |
+| Bot, fresh, act 1 boss (full game, real boss draw) | Balanced **~55–60%** survive, skip **≤ 15%** |
+| Grove | a full carried loadout adds **≤ +10–15 points** of bot survival / reach over no perks (measured +15) |
+| Combos + Reactions | **~25–40%** of a good build's damage (`combo_share`) |
+| Damage branches | **0.5–1.0× Driftspore** per Dew on the fixed board (drift 45) |
+| Final forms | **0.8–1.5× Puffball** per Dew (drifts 45 and 61) |
+| Supports / control | their board does **≥ par** with 4 of the reference |
+| Dream builds | a decent build (≥ 3 picks of one tag) in **~50%** of runs; skipping Dreams loses |
+| Every family | viable from act 1 (each start family survives the act 1 boss 70–90% for the bot) |
+
+Human runs set acts 2–4 (the bot dies in act 2); the bot sets act 1, bosses, per-form probes and A/B.
+
 ## What it answers
 
 1. Does a **fresh profile** start leaking around drift 12–18 and usually end in act 2?
