@@ -722,6 +722,15 @@ on target for a fresh profile (and act 1's "teaches" side holds). Decisions:
 "Never grew a Warden" is partly that; **her economy (plant-only) is not a fresh player's normal.** Since
 c8d1fc33 the always-on Growth hint marks are a separate setting from whispers.
 
+## Caveat: fresh-profile sims ran as the demo (found 2026-10-02)
+
+Until e3f3a211, every **fresh** sim ran as the demo (`game/demo` true under `--script`): act 1–2 bosses
+were the defaults whatever the seed, the demo's Kinship set applied, and the Grove was inert (no effect
+on fresh). Half / full sims and all human runs were the full game. Affected: the fresh act 1 baselines,
+the bite-10 checks, the per-family act 1 tables and the first-pick-1 baseline (all on the Hollow Stag);
+the Night Mare check forced its boss and stands. Fixed: all sims run as the full game, and
+`--boss-draw` gives the real per-seed draw. The overnight batch re-measures act 1 per family and per boss.
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
