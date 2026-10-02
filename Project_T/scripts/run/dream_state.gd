@@ -629,21 +629,49 @@ func _draw_branch_offer(base: TowerData) -> Array:
 			pair_ids.sort()
 			if pair_ids != last:
 				pairs.append(pair)
-	# The smart draw: pairs that add a counter tag the run's offers don't cover yet, when any do
+	# The weighted smart draw (tower_design.md 5ba12e1e): each pair scores the rarest still-missing tags it adds
+	# (Σ 1 / how many regular branches carry the tag, anti_tank ×2); random among the top band (within
+	# TOP_PAIR_BAND of the best), or among all pairs when none adds a missing tag
 	var covered := _covered_tags()
-	var adding := pairs.filter(func(pair: Array) -> bool:
+	var frequency := _tag_frequency()
+	var best := 0.0
+	var scores: Array[float] = []
+	for pair: Array in pairs:
+		var adds := {}
 		for form: TowerData in pair:
 			for tag in _counter_tags(form):
 				if not covered.has(tag):
-					return true
-		return false)
-	var pool_pairs: Array = adding if not adding.is_empty() else pairs
+					adds[tag] = true
+		var score := 0.0
+		for tag in adds:
+			score += (TAG_WEIGHTS.get(tag, 1.0)) / float(maxi(int(frequency.get(tag, 1)), 1))
+		scores.append(score)
+		best = maxf(best, score)
+	var pool_pairs: Array = pairs
+	if best > 0.0:
+		pool_pairs = []
+		for i in pairs.size():
+			if scores[i] >= best * TOP_PAIR_BAND:
+				pool_pairs.append(pairs[i])
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(map_generator.map_seed) + hash("branches:" + base.get_id()) if map_generator != null else hash(base.get_id())
 	var chosen: Array = pool_pairs[rng.randi_range(0, pool_pairs.size() - 1)]
 	var offer: Array = chosen.map(func(f: TowerData) -> String: return f.get_id())
 	_remember_branch_offer(base.get_id(), offer)
 	return offer
+
+const TAG_WEIGHTS := {&"anti_tank": 2.0}  # Counts double in the smart draw (Tower Discussion + Balancing: tanks matter)
+const TOP_PAIR_BAND := 0.8  # Pairs scoring within 80% of the best are drawn among
+
+# How many regular branches (of every family in the roster, this edition) carry each counter tag.
+func _tag_frequency() -> Dictionary:
+	var out := {}
+	for base in _roster():
+		if base is TowerData and base.tier == 1 and base.buildable_directly:
+			for form in regular_branches(base):
+				for tag in _counter_tags(form):
+					out[tag] = int(out.get(tag, 0)) + 1
+	return out
 
 static func _counter_tags(form: TowerData) -> Array:
 	var tags = form.get("counter_tags")

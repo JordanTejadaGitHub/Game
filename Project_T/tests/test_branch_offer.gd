@@ -36,6 +36,8 @@ func _run() -> void:
 		branch.evolves_to.append(_form("test_f%d" % (i + 1), 3))
 		if has_tags and i == 2:
 			branch.set("counter_tags", [&"anti_air"] as Array[StringName])
+		if has_tags and i == 4:
+			branch.set("counter_tags", [&"anti_tank"] as Array[StringName])  # Rarer, and counting double
 		branches.append(branch)
 		base.evolves_to.append(branch)
 	placer.towers.append(base)
@@ -45,7 +47,17 @@ func _run() -> void:
 	_check(offer.size() == 2 and dreams.branch_offers.has(base.get_id()), "a family pick draws 2 of its 5 branches (%s)" % [offer])
 	_check(dreams.not_offered_branches(base).size() == 3, "…the other 3 are not in this dream")
 	if has_tags:
-		_check(offer.has("test_b3"), "the smart draw adds the uncovered counter tag (anti_air: test_b3 in %s)" % [offer])
+		_check(offer.has("test_b5") or offer.has("test_b3"), "the smart draw adds an uncovered counter tag (%s)" % [offer])
+		var tank_every_seed := true
+		for s in 12:
+			main.get_node("MapGenerator").map_seed = 900 + s
+			dreams.branch_offers.erase(base.get_id())
+			if not dreams.get_branch_offer(base).has("test_b5"):
+				tank_every_seed = false
+		main.get_node("MapGenerator").map_seed = 777
+		dreams.branch_offers.erase(base.get_id())
+		offer = dreams.get_branch_offer(base)
+		_check(tank_every_seed, "the weighted draw always brings the missing anti_tank (it counts double, and it's rarer)")
 	else:
 		print("  (smart draw check skipped: TowerData.counter_tags isn't on this branch yet)")
 	# Seeded: the same map and family draw the same pair
