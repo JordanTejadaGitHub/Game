@@ -198,3 +198,6 @@ full game (`game/demo` false), and the demo reads main's exports.
   Bramble Verge, Old Kin and Memory Seed (no terrain) are drawn now; the six terrain-bound ones wait on
   Environment Code's MapGifts. Accepted edge case: a Memory Seed's ranks are lost if the run is
   saved and reloaded between the sale and the replant.
+- 2026-10-02: **terrain gifts in cc503dd7** (Environment Code, `MapGifts`; art 46525c97). Confirmed:
+  Deeper Glade's clears count as tended; Moonwell and Bell Stone block walking (a free wall cell). **All
+  18 gifts are drawable: Heartwood's Gifts playable.** Exact-resume save hooks pending with Main Merger.
