@@ -452,9 +452,10 @@ family can promise an answer to everything. Two layers keep runs fair:
   since it raises a family's choices by half. It **shows you the 3 branches not offered** and you
   pick one, so it can rescue a run that's missing a counter. A Grove perk could add one per run
   (Meta Game Discussion's call). It's the **free, lucky** version of the call-back below.
+  **Rarity: Rare** (Balancing Discussion).
 - **The Dreamlight call-back** (approved 2026-10-02): on the Remember screen, a "not in this
-  dream" branch can be **called into the run for Dreamlight** (start at **2–3**; Balancing
-  Discussion sets it), **once per family per run**. The called branch then works like an offered
+  dream" branch can be **called into the run for Dreamlight**: **3 Dreamlight** (set by Balancing
+  Discussion: a whole act's boss income, so steering costs), **once per family per run**. The called branch then works like an offered
   one (unlocking it is part of the call; its final still costs 2). This makes a missing counter a
   choice you can pay for, not just luck.
 
@@ -481,6 +482,10 @@ family can promise an answer to everything. Two layers keep runs fair:
 
 ### The per-run offer on the Remember screen
 
+- **Numbers (Phase 1):** all set by Balancing Discussion in `spire_difficulty.md` **Phase 6** (f9d04da8, on
+  the Spire branch): the 12 branches (120 Dew) and 12 finals (300 Dew) with damage, rate, status and
+  twist numbers; generic Kin +10% each; named Kinship traits at about +20% of the pair's effect at full
+  stage; the Dreamlight budget unchanged. That file is the source of truth for them.
 - **Where it's built (Phase 1):** Tower Code (the 12 Wardens, generic Kin, Whole Tree, the named
   pairs), Roguelite Code (the 2-of-5 offer and smart draw, the Remember UI with "not in this dream"
   and the call-back, Lucid Dream, card gating), Tower Assets (12 branches + 12 finals), Balancing
