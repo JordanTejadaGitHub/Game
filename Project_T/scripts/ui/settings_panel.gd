@@ -3,8 +3,12 @@ class_name SettingsPanel
 
 # Settings (screens_ui.md "Settings"): tabs Audio, Display (fullscreen, window size, V-sync, UI
 # scale), Gameplay, Accessibility (reduced motion, flashes, hit-stop, high-contrast route line),
-# Controls (rebinding) and, in debug builds, Developer. Changes apply at once and are saved to
-# HeartwoodMemory. Used by the title screen and the pause menu.
+# Controls (rebinding) and, in debug builds, Developer. Used by the title screen and the pause menu.
+# Apply and Cancel (screens_ui.md "Settings", 2026-10-01): changes preview live (HeartwoodMemory.preview_settings)
+# but save only on Apply; Cancel puts back the saved values, Defaults resets the current tab (still needs Apply).
+# A gold dot marks a changed setting and its tab; closing with unapplied changes asks first. Display changes
+# that could lock the player out (RISKY) ask "Keep these settings?" after Apply and revert on no answer.
+# Developer switches still save at once (debug builds; several act on the saved profile right away).
 
 signal closed
 
@@ -37,18 +41,43 @@ const WINDOW_SIZES: Array[Vector2i] = [Vector2i(1280, 720), Vector2i(1280, 800),
 
 static var _display_applied := false  # The window size is set once at startup, then on request
 
+const RISKY := ["fullscreen", WINDOW_SIZE_SETTING, "ui_scale", VSYNC_SETTING]  # Apply asks to keep these
+const KEEP_TEXT := "Keep these settings? Reverting in %d s"
+
 var tabs := TabContainer.new()
-var _settings: Dictionary
+var revert_seconds := 10.0  # The keep prompt's countdown (tests shorten it)
+var apply_button: Button
+var cancel_button: Button
+var defaults_button: Button
+var conflict_label: Label  # Keybind conflicts, shown before Apply
+var close_prompt: Control  # "Apply your changes?" Apply · Discard · Keep editing
+var keep_prompt: Control  # "Keep these settings?" Keep · Revert
+var _settings: Dictionary  # The working copy: previewed, saved on Apply
+var _saved: Dictionary  # As saved (when the panel opened, or the last Apply)
+var _defaults := {}  # key -> its control's default (for keys HeartwoodMemory.defaults() doesn't list)
+var _refreshers := {}  # key -> Callable showing the working value on its control
+var _dots := {}  # key -> the gold "changed" dot
+var _key_dots := {}  # action -> its dot
+var _tab_keys := {}  # tab name -> keys on it
+var _building_tab := ""
+var _content: Control
+var _keep_label: Label
+var _revert_to := {}  # The risky keys' values before the Apply the keep prompt asks about
+var _revert_at := 0  # Ticks (msec) when the keep prompt reverts; 0 = not counting
+var _close_after_keep := false
+var _previewed_keys = null  # The keybinds InputMap holds now (null = the saved ones)
 var _waiting_action := ""  # Action waiting for a key press
 var _key_buttons := {}  # action -> Button
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	HeartwoodMemory.preview_settings = {}
 	_settings = HeartwoodMemory.get_settings()
 	custom_minimum_size = Vector2(760, 0)  # All six tabs on one row (user: only 3 showed at 1280×720 virtual)
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 8)
 	add_child(outer)
+	_content = outer
 	var title := Label.new()
 	title.text = "Settings"
 	UiStyle.display(title, 24)
@@ -101,18 +130,19 @@ func _ready() -> void:
 	var controls := _tab("Controls")
 	if TestGrove.is_available():  # Debug builds only; never in the demo or release
 		box = _tab("Developer")
+		_building_tab = ""  # Developer switches save at once: no dots, no Defaults
 		var grove := CheckButton.new()
 		grove.text = "Test Grove: every Warden unlocked (from the next run)"
 		grove.button_pressed = _settings.get(TestGrove.SETTING, false)
 		grove.focus_mode = Control.FOCUS_NONE
-		grove.toggled.connect(func(on: bool) -> void: _set_value(TestGrove.SETTING, on))
+		grove.toggled.connect(func(on: bool) -> void: _commit_now(TestGrove.SETTING, on))
 		box.add_child(grove)
 		var families := CheckButton.new()
 		families.text = "Unlock all families: normal runs, every family in the picks (no Seeds banked)"
 		families.tooltip_text = "As if the Memory Grove's Warden root were fully grown, for this and later runs while on.\nYour real Grove unlocks are not changed."
 		families.button_pressed = _settings.get(MetaRun.ALL_FAMILIES_SETTING, false)
 		families.focus_mode = Control.FOCUS_NONE
-		families.toggled.connect(func(on: bool) -> void: _set_value(MetaRun.ALL_FAMILIES_SETTING, on))
+		families.toggled.connect(func(on: bool) -> void: _commit_now(MetaRun.ALL_FAMILIES_SETTING, on))
 		box.add_child(families)
 		var dreams_rewards := CheckButton.new()  # meta_design.md "Dev options"
 		dreams_rewards.text = "Dream of Everything rewards · starlit card backs, +1 Dream reroll"
@@ -120,7 +150,7 @@ func _ready() -> void:
 		dreams_rewards.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		dreams_rewards.button_pressed = _settings.get(MetaRun.ALL_DREAMS_SETTING, false)
 		dreams_rewards.focus_mode = Control.FOCUS_NONE
-		dreams_rewards.toggled.connect(func(on: bool) -> void: _set_value(MetaRun.ALL_DREAMS_SETTING, on))
+		dreams_rewards.toggled.connect(func(on: bool) -> void: _commit_now(MetaRun.ALL_DREAMS_SETTING, on))
 		box.add_child(dreams_rewards)
 		var sixth_slot := CheckButton.new()  # meta_design.md: the secret 6th loadout slot, for testing
 		sixth_slot.text = "Secret 6th loadout slot"
@@ -128,7 +158,7 @@ func _ready() -> void:
 		sixth_slot.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		sixth_slot.button_pressed = _settings.get(MetaRun.SIXTH_SLOT_SETTING, false)
 		sixth_slot.focus_mode = Control.FOCUS_NONE
-		sixth_slot.toggled.connect(func(on: bool) -> void: _set_value(MetaRun.SIXTH_SLOT_SETTING, on))
+		sixth_slot.toggled.connect(func(on: bool) -> void: _commit_now(MetaRun.SIXTH_SLOT_SETTING, on))
 		box.add_child(sixth_slot)
 		# Demo mode (demo_scope.md): overrides game/demo in this build; switching goes back to the title.
 		var demo := CheckButton.new()
@@ -138,7 +168,7 @@ func _ready() -> void:
 		demo.button_pressed = ResultsScreen.is_demo()
 		demo.focus_mode = Control.FOCUS_NONE
 		demo.toggled.connect(func(on: bool) -> void:
-			_set_value(ResultsScreen.DEMO_MODE_SETTING, 1 if on else 0)
+			_commit_now(ResultsScreen.DEMO_MODE_SETTING, 1 if on else 0)
 			get_tree().paused = false
 			get_tree().change_scene_to_file.call_deferred(TITLE_SCENE))
 		box.add_child(demo)
@@ -154,7 +184,7 @@ func _ready() -> void:
 		dev.selected = maxi(DevGrove.LEVELS.find(StringName(str(_settings.get(DevGrove.SETTING, "off")))), 0)
 		dev.focus_mode = Control.FOCUS_NONE
 		dev.item_selected.connect(func(index: int) -> void:
-			_set_value(DevGrove.SETTING, String(DevGrove.LEVELS[index]))
+			_commit_now(DevGrove.SETTING, String(DevGrove.LEVELS[index]))
 			var title_node := get_tree().get_first_node_in_group(&"title_screen")
 			if title_node and get_tree().current_scene == title_node:
 				title_node.refresh())  # Mid-run it waits for the title, so the run keeps its profile
@@ -177,34 +207,55 @@ func _ready() -> void:
 	var grid := GridContainer.new()
 	grid.columns = 2
 	controls.add_child(grid)
+	_tab_keys["Controls"] = ["keybinds"]
+	_defaults["keybinds"] = {}
 	for pair in REBINDABLE:
+		var name_row := HBoxContainer.new()
+		name_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_key_dots[pair[0]] = _dot(name_row)
 		var label := Label.new()
 		label.text = pair[1]
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		grid.add_child(label)
+		name_row.add_child(label)
+		grid.add_child(name_row)
 		var button := Button.new()
 		button.focus_mode = Control.FOCUS_NONE
 		button.custom_minimum_size = Vector2(140, 0)
 		button.pressed.connect(_listen.bind(pair[0]))
 		grid.add_child(button)
 		_key_buttons[pair[0]] = button
-	_refresh_keys()
+	_refreshers["keybinds"] = _refresh_keys
 
+	conflict_label = Label.new()
+	conflict_label.name = "Conflicts"
+	conflict_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	conflict_label.add_theme_color_override("font_color", UiStyle.POOR)
+	conflict_label.visible = false
+	outer.add_child(conflict_label)
+	# Footer, always on screen (touch, controller): Defaults · Cancel · Apply · Back.
 	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_END
 	outer.add_child(row)
-	var reset := Button.new()
-	reset.text = "Default keys"
-	reset.focus_mode = Control.FOCUS_NONE
-	reset.pressed.connect(_reset_keys)
-	row.add_child(reset)
-	var back := Button.new()
-	back.text = "Back"
-	back.focus_mode = Control.FOCUS_NONE
-	back.pressed.connect(func() -> void:
-		_waiting_action = ""
-		closed.emit())
-	row.add_child(back)
+	defaults_button = _footer_button(row, "Defaults", reset_tab)
+	defaults_button.tooltip_text = "This tab's defaults (Apply to keep them)."
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+	cancel_button = _footer_button(row, "Cancel", cancel)
+	cancel_button.tooltip_text = "Puts back the saved settings."
+	apply_button = _footer_button(row, "Apply", apply)
+	UiStyle.primary(apply_button)
+	_footer_button(row, "Back", request_close)
+	tabs.tab_changed.connect(func(_index: int) -> void: _mark())
+
+	close_prompt = _prompt("ClosePrompt", "Apply your changes?",
+		[["Apply", _close_apply, true], ["Discard", _close_discard, false], ["Keep editing", _hide_prompts, false]])
+	keep_prompt = _prompt("KeepPrompt", KEEP_TEXT % int(revert_seconds), [["Keep", keep, true], ["Revert", revert, false]])
+	_keep_label = keep_prompt.find_child("Text", true, false)
+	visibility_changed.connect(func() -> void:
+		if visible:
+			_open()
+		else:
+			_closing())
+	_open()
 
 # --- Start over as a new profile (demo_scope.md "Reset to a new profile"; Developer, debug builds) ---
 
@@ -279,6 +330,7 @@ func _profile_reset_box() -> VBoxContainer:
 
 # Back to the title, which reads the (new) profile as it starts.
 func _to_title() -> void:
+	HeartwoodMemory.preview_settings = {}
 	HeartwoodMemory.apply_settings()
 	get_tree().paused = false
 	get_tree().change_scene_to_file.call_deferred(TITLE_SCENE)
@@ -287,6 +339,8 @@ func _to_title() -> void:
 func _tab(title: String) -> VBoxContainer:
 	var scroll := ScrollContainer.new()
 	scroll.name = title
+	_building_tab = title
+	_tab_keys[title] = []
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	tabs.add_child(scroll)
 	var page := VBoxContainer.new()
@@ -314,122 +368,452 @@ static func apply_display(settings: Dictionary, resize: bool = true) -> void:
 		DisplayServer.window_set_position(DisplayServer.screen_get_position()
 			+ (DisplayServer.screen_get_size() - size) / 2)
 
-func _choice(box: VBoxContainer, text: String, key: String, options: Array, default: int = 1) -> void:
+# --- Controls: each registers its key (tab, default, refresher) and gets a gold "changed" dot ---
+
+func _register(key: String, default, refresh: Callable) -> void:
+	_defaults[key] = default
+	_refreshers[key] = refresh
+	if _building_tab != "":
+		_tab_keys[_building_tab].append(key)
+
+# A row with the dot and the setting's name.
+func _label_row(text: String, key: String) -> HBoxContainer:
 	var row := HBoxContainer.new()
+	_dots[key] = _dot(row)
 	var label := Label.new()
 	label.text = text
 	label.custom_minimum_size = Vector2(120, 0)
 	row.add_child(label)
+	return row
+
+# The gold dot of a changed setting: always there (no layout jump), shown by its alpha.
+func _dot(parent: Control) -> Label:
+	var dot := Label.new()
+	dot.name = "Dot"
+	dot.text = "•"
+	dot.custom_minimum_size = Vector2(12, 0)
+	dot.add_theme_color_override("font_color", UiStyle.GOLD)
+	dot.modulate.a = 0.0  # multiplier
+	dot.tooltip_text = "Changed: Apply to keep it."
+	parent.add_child(dot)
+	return dot
+
+func _choice(box: VBoxContainer, text: String, key: String, options: Array, default: int = 1) -> void:
+	var row := _label_row(text, key)
 	var pick := OptionButton.new()
 	for option in options:
 		pick.add_item(option)
-	pick.selected = int(_settings.get(key, default))
 	pick.focus_mode = Control.FOCUS_NONE
 	pick.item_selected.connect(func(index: int) -> void: _set_value(key, index))
 	row.add_child(pick)
 	box.add_child(row)
+	_register(key, default, func() -> void: pick.selected = int(_value(key)))
 
 func _slider(box: VBoxContainer, text: String, key: String, min_value: float = 0.0,
 		max_value: float = 1.0, step: float = 0.05) -> void:
-	var row := HBoxContainer.new()
-	var label := Label.new()
-	label.text = text
-	label.custom_minimum_size = Vector2(120, 0)
-	row.add_child(label)
+	var row := _label_row(text, key)
 	var slider := HSlider.new()
 	slider.min_value = min_value
 	slider.max_value = max_value
 	slider.step = step
-	slider.value = _settings[key]
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.focus_mode = Control.FOCUS_NONE
 	slider.value_changed.connect(func(value: float) -> void: _set_value(key, value))
 	row.add_child(slider)
 	box.add_child(row)
+	_register(key, max_value, func() -> void: slider.set_value_no_signal(float(_value(key))))
 
 func _toggle(box: VBoxContainer, text: String, key: String, default: bool = false, tip: String = "") -> void:
+	var row := HBoxContainer.new()
+	_dots[key] = _dot(row)
 	var check := CheckButton.new()
 	check.text = text
 	check.tooltip_text = tip
-	check.button_pressed = bool(_settings.get(key, default))
 	check.focus_mode = Control.FOCUS_NONE
 	check.toggled.connect(func(on: bool) -> void: _set_value(key, on))
-	box.add_child(check)
+	row.add_child(check)
+	box.add_child(row)
+	_register(key, default, func() -> void: check.set_pressed_no_signal(bool(_value(key))))
+
+# A dropdown of [name, number] presets for a number setting; the saved value selects the nearest one
+# (older saves can hold any number, e.g. from the old slider).
+func _choice_nearest(box: VBoxContainer, text: String, key: String, presets: Array, default: float) -> void:
+	var row := _label_row(text, key)
+	var pick := OptionButton.new()
+	for preset in presets:
+		pick.add_item(preset[0])
+	pick.focus_mode = Control.FOCUS_NONE
+	pick.item_selected.connect(func(index: int) -> void: _set_value(key, float(presets[index][1])))
+	row.add_child(pick)
+	box.add_child(row)
+	_register(key, default, func() -> void:
+		var saved := float(_value(key))
+		var best := 0
+		for i in presets.size():
+			if absf(float(presets[i][1]) - saved) < absf(float(presets[best][1]) - saved):
+				best = i
+		pick.selected = best)
+
+# Like _choice, but saves `values[index]` (a string) instead of the index.
+func _choice_values(box: VBoxContainer, text: String, key: String, options: Array, values: Array, default: String) -> void:
+	var row := _label_row(text, key)
+	var pick := OptionButton.new()
+	for option in options:
+		pick.add_item(option)
+	pick.focus_mode = Control.FOCUS_NONE
+	pick.item_selected.connect(func(index: int) -> void: _set_value(key, values[index]))
+	row.add_child(pick)
+	box.add_child(row)
+	_register(key, default, func() -> void: pick.selected = maxi(values.find(str(_value(key))), 0))
+
+func _footer_button(row: HBoxContainer, text: String, action: Callable) -> Button:
+	var button := Button.new()
+	button.name = text.replace(" ", "")
+	button.text = text
+	button.focus_mode = Control.FOCUS_NONE
+	button.custom_minimum_size = Vector2(96, 0)
+	button.pressed.connect(action)
+	row.add_child(button)
+	return button
+
+# A question over the panel (no pop-up window): text and a row of [text, action, primary] buttons.
+func _prompt(prompt_name: String, text: String, buttons: Array) -> Control:
+	var center := CenterContainer.new()
+	center.name = prompt_name
+	center.mouse_filter = Control.MOUSE_FILTER_STOP
+	center.visible = false
+	var panel := PanelContainer.new()
+	center.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	panel.add_child(box)
+	var label := Label.new()
+	label.name = "Text"
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiStyle.display(label, 20)
+	box.add_child(label)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	box.add_child(row)
+	for spec in buttons:
+		var button := _footer_button(row, spec[0], spec[1])
+		button.custom_minimum_size = Vector2(120, 48)
+		if spec[2]:
+			UiStyle.primary(button)
+	add_child(center)
+	return center
+
+# --- Working copy, preview, Apply / Cancel / Defaults ---
+
+func _value(key: String):
+	return _settings.get(key, _default_of(key))
+
+func _default_of(key: String):
+	var base: Dictionary = HeartwoodMemory.defaults().settings
+	return base[key] if base.has(key) else _defaults.get(key)
+
+# Equal as settings: numbers loosely (JSON reads ints back as floats), arrays and dictionaries by content.
+static func same(a, b) -> bool:
+	var numbers := [TYPE_INT, TYPE_FLOAT]
+	if typeof(a) in numbers and typeof(b) in numbers:
+		return is_equal_approx(float(a), float(b))
+	if a is Array and b is Array:
+		if a.size() != b.size():
+			return false
+		for i in a.size():
+			if not same(a[i], b[i]):
+				return false
+		return true
+	if a is Dictionary and b is Dictionary:
+		for k in a.keys() + b.keys():
+			if not same(a.get(k), b.get(k)):
+				return false
+		return true
+	return typeof(a) == typeof(b) and a == b
+
+func is_changed(key: String) -> bool:
+	return not same(_settings.get(key, _default_of(key)), _saved.get(key, _default_of(key)))
+
+# Every key with an unapplied change (Developer switches never have one: they save at once).
+func get_changes() -> Array[String]:
+	var keys: Array[String] = []
+	for key in _refreshers:
+		if is_changed(key):
+			keys.append(key)
+	return keys
+
+func has_changes() -> bool:
+	return not get_changes().is_empty()
 
 func _set_value(key: String, value) -> void:
 	_settings[key] = value
-	HeartwoodMemory.save_settings(_settings)
+	_preview(key)
+	_mark()
+
+# Developer switches: saved at once (and kept through Cancel).
+func _commit_now(key: String, value) -> void:
+	_settings[key] = value
+	_saved[key] = value
+	HeartwoodMemory.save_settings(_saved.duplicate(true))
+	_preview(key)
+
+# The working copy goes live everywhere (HeartwoodMemory.get_settings readers, buses, UI scale, keys) unsaved.
+func _preview(key: String = "") -> void:
+	HeartwoodMemory.preview_settings = _settings.duplicate(true) if has_changes() else {}
+	var binds = _settings.get("keybinds", {})
+	if _previewed_keys == null or not same(binds, _previewed_keys):
+		InputMap.load_from_project_settings()  # Drops rebinds the working copy no longer has
+		_previewed_keys = binds.duplicate(true)
 	HeartwoodMemory.apply_settings(_settings)
 	RouteLine.reload()
-	if key in [VSYNC_SETTING, WINDOW_SIZE_SETTING, "fullscreen"]:
+	if key == "" or key in [VSYNC_SETTING, WINDOW_SIZE_SETTING, "fullscreen"]:
 		apply_display(_settings)
+	_refresh_keys()
+
+# Saves the working copy. A risky display change then asks to be kept (and reverts on no answer).
+func apply() -> void:
+	if not has_changes():
+		return
+	var before := {}
+	for key in RISKY:
+		if is_changed(key):
+			before[key] = _saved.get(key, _default_of(key))
+	_saved = _settings.duplicate(true)
+	HeartwoodMemory.save_settings(_saved.duplicate(true))
+	HeartwoodMemory.preview_settings = {}
+	_mark()
+	if not before.is_empty():
+		_ask_keep(before)
+
+# Puts back the saved settings (the panel stays open).
+func cancel() -> void:
+	_waiting_action = ""
+	_settings = _saved.duplicate(true)
+	_preview()
+	_refresh_all()
+	_mark()
+
+# The current tab's defaults, previewed (Apply keeps them).
+func reset_tab() -> void:
+	var tab_name := String(tabs.get_current_tab_control().name)
+	for key in _tab_keys.get(tab_name, []):
+		_settings[key] = _default_of(key)
+	_preview()
+	_refresh_all()
+	_mark()
+
+# Back, Esc: asks first when something is unapplied.
+func request_close() -> void:
+	if keep_prompt.visible:
+		revert()  # No "Keep" given
+		return
+	_waiting_action = ""
+	if has_changes():
+		_hide_prompts()
+		close_prompt.visible = true
+		_content.modulate.a = 0.35  # multiplier
+		return
+	closed.emit()
+
+func _close_apply() -> void:
+	_hide_prompts()
+	apply()
+	if keep_prompt.visible:
+		_close_after_keep = true  # Closes once kept or reverted
+	else:
+		closed.emit()
+
+func _close_discard() -> void:
+	_hide_prompts()
+	cancel()
+	closed.emit()
+
+func _hide_prompts() -> void:
+	close_prompt.visible = false
+	keep_prompt.visible = false
+	_content.modulate.a = 1.0
+
+func _ask_keep(before: Dictionary) -> void:
+	_revert_to = before
+	_revert_at = Time.get_ticks_msec() + int(revert_seconds * 1000.0)
+	_hide_prompts()
+	keep_prompt.visible = true
+	_content.modulate.a = 0.35  # multiplier
+	_keep_label.text = KEEP_TEXT % ceili(revert_seconds)
+
+func keep() -> void:
+	_revert_at = 0
+	_revert_to = {}
+	_hide_prompts()
+	_after_keep()
+
+# The risky keys go back to their values before that Apply (the rest of it stays).
+func revert() -> void:
+	_revert_at = 0
+	for key in _revert_to:
+		_saved[key] = _revert_to[key]
+		_settings[key] = _revert_to[key]
+	_revert_to = {}
+	HeartwoodMemory.save_settings(_saved.duplicate(true))
+	HeartwoodMemory.preview_settings = {}
+	_preview()
+	_refresh_all()
+	_mark()
+	_hide_prompts()
+	_after_keep()
+
+func _after_keep() -> void:
+	if _close_after_keep:
+		_close_after_keep = false
+		closed.emit()
+
+func _process(_delta: float) -> void:
+	if _revert_at == 0:
+		return
+	var left := _revert_at - Time.get_ticks_msec()  # Real time: the game may be paused or sped up
+	if left <= 0:
+		revert()
+	else:
+		_keep_label.text = KEEP_TEXT % ceili(left / 1000.0)
+
+# Opening: the saved settings, nothing changed.
+func _open() -> void:
+	HeartwoodMemory.preview_settings = {}
+	_saved = HeartwoodMemory.get_settings()
+	_settings = _saved.duplicate(true)
+	_previewed_keys = null
+	_hide_prompts()
+	_refresh_all()
+	_mark()
+
+# Hidden some other way (the pause menu closing): unapplied changes are dropped, a pending keep reverts.
+func _closing() -> void:
+	_waiting_action = ""
+	if _revert_at != 0:
+		revert()
+	if has_changes():
+		cancel()
+	_hide_prompts()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and not _saved.is_empty():
+		if _revert_at != 0 or has_changes():
+			HeartwoodMemory.preview_settings = {}
+			HeartwoodMemory.apply_settings()  # Freed mid-preview (a scene change): the saved settings again
+
+func _refresh_all() -> void:
+	for key in _refreshers:
+		_refreshers[key].call()
+
+# The dots, the tab names' dots, the footer's state and keybind conflicts.
+func _mark() -> void:
+	if apply_button == null:
+		return  # Still building
+	for key in _dots:
+		_dots[key].modulate.a = 1.0 if is_changed(key) else 0.0  # multiplier
+	var saved_binds: Dictionary = _saved.get("keybinds", {})
+	var binds: Dictionary = _settings.get("keybinds", {})
+	for action in _key_dots:
+		_key_dots[action].modulate.a = 0.0 if same(binds.get(action), saved_binds.get(action)) else 1.0  # multiplier
+	for i in tabs.get_tab_count():
+		var tab_name := String(tabs.get_tab_control(i).name)
+		var dirty: bool = _tab_keys.get(tab_name, []).any(func(key: String) -> bool: return is_changed(key))
+		tabs.set_tab_title(i, tab_name + (" •" if dirty else ""))
+	var changes := has_changes()
+	apply_button.disabled = not changes
+	cancel_button.disabled = not changes
+	var current := tabs.get_current_tab_control()
+	defaults_button.disabled = current == null or _tab_keys.get(String(current.name), []).is_empty()
+	var lines := get_conflict_lines()
+	conflict_label.text = "\n".join(lines)
+	conflict_label.visible = not lines.is_empty()
+
+# --- Keys ---
 
 func _listen(action: String) -> void:
 	_waiting_action = action
 	_key_buttons[action].text = "Press a key…"
 
 func _input(event: InputEvent) -> void:
-	if _waiting_action == "" or not visible:
+	if not is_visible_in_tree():
+		return
+	if _waiting_action == "":
+		# Esc / controller Back closes through the question (before the pause menu sees it).
+		if event.is_action_pressed("ui_cancel") or (InputMap.has_action("open_menu") and event.is_action_pressed("open_menu")):
+			get_viewport().set_input_as_handled()
+			if close_prompt.visible:
+				_hide_prompts()  # Esc on the question = Keep editing
+			else:
+				request_close()
 		return
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:
 		return
 	get_viewport().set_input_as_handled()
 	if key.physical_keycode != KEY_ESCAPE:  # Esc cancels the rebind
-		var binds: Dictionary = _settings.keybinds
+		var binds: Dictionary = _settings.get("keybinds", {}).duplicate(true)
 		binds[_waiting_action] = [key.physical_keycode]
+		_waiting_action = ""
 		_set_value("keybinds", binds)
 	_waiting_action = ""
 	_refresh_keys()
 
-func _reset_keys() -> void:
-	_settings.keybinds = {}
-	HeartwoodMemory.save_settings(_settings)
-	InputMap.load_from_project_settings()
-	HeartwoodMemory.apply_settings(_settings)
-	_refresh_keys()
-
 func _refresh_keys() -> void:
+	var clashing := {}
+	for pair in get_conflicts():
+		for action in pair[1]:
+			clashing[action] = true
 	for action in _key_buttons:
 		var names: Array[String] = []
 		for event in InputMap.action_get_events(action):
 			if event is InputEventKey:
-				names.append(OS.get_keycode_string(event.physical_keycode))
-		_key_buttons[action].text = ", ".join(names) if not names.is_empty() else "—"
+				names.append(OS.get_keycode_string(_keycode(event)))
+		var button: Button = _key_buttons[action]
+		if action != _waiting_action:
+			button.text = ", ".join(names) if not names.is_empty() else "—"
+		if clashing.has(action):
+			button.add_theme_color_override("font_color", UiStyle.POOR)
+		else:
+			button.remove_theme_color_override("font_color")
 
-# Like _choice, but saves `values[index]` (a string) instead of the index.
-# A dropdown of [name, number] presets for a number setting; the saved value selects the nearest one
-# (older saves can hold any number, e.g. from the old slider).
-func _choice_nearest(box: VBoxContainer, text: String, key: String, presets: Array, default: float) -> void:
-	var row := HBoxContainer.new()
-	var label := Label.new()
-	label.text = text
-	label.custom_minimum_size = Vector2(120, 0)
-	row.add_child(label)
-	var pick := OptionButton.new()
-	var saved := float(_settings.get(key, default))
-	var best := 0
-	for i in presets.size():
-		pick.add_item(presets[i][0])
-		if absf(float(presets[i][1]) - saved) < absf(float(presets[best][1]) - saved):
-			best = i
-	pick.selected = best
-	pick.focus_mode = Control.FOCUS_NONE
-	pick.item_selected.connect(func(index: int) -> void: _set_value(key, float(presets[index][1])))
-	row.add_child(pick)
-	box.add_child(row)
+static func _keycode(event: InputEventKey) -> Key:
+	return event.physical_keycode if event.physical_keycode != KEY_NONE else event.keycode
 
-func _choice_values(box: VBoxContainer, text: String, key: String, options: Array, values: Array, default: String) -> void:
-	var row := HBoxContainer.new()
-	var label := Label.new()
-	label.text = text
-	label.custom_minimum_size = Vector2(120, 0)
-	row.add_child(label)
-	var pick := OptionButton.new()
-	for option in options:
-		pick.add_item(option)
-	pick.selected = maxi(values.find(str(_settings.get(key, default))), 0)
-	pick.focus_mode = Control.FOCUS_NONE
-	pick.item_selected.connect(func(index: int) -> void: _set_value(key, values[index]))
-	row.add_child(pick)
-	box.add_child(row)
+# Keys a rebound action shares with another action: [[keycode, [actions]], …] (the project's own shared
+# keys, like Esc for cancel and the menu, only count once the player rebinds one of them).
+func get_conflicts() -> Array:
+	var binds: Dictionary = _settings.get("keybinds", {})
+	var by_key := {}
+	for action in InputMap.get_actions():
+		if String(action).begins_with("ui_"):
+			continue
+		for event in InputMap.action_get_events(action):
+			if event is InputEventKey:
+				var code := _keycode(event)
+				if not by_key.has(code):
+					by_key[code] = []
+				if not by_key[code].has(String(action)):
+					by_key[code].append(String(action))
+	var found := []
+	for code in by_key:
+		var actions: Array = by_key[code]
+		if actions.size() > 1 and actions.any(func(a: String) -> bool: return binds.has(a)):
+			found.append([code, actions])
+	return found
+
+func get_conflict_lines() -> Array[String]:
+	var lines: Array[String] = []
+	for pair in get_conflicts():
+		var names: Array[String] = []
+		for action in pair[1]:
+			names.append(_action_label(action))
+		lines.append("%s is used by %s." % [OS.get_keycode_string(pair[0]), " and ".join(names)])
+	return lines
+
+static func _action_label(action: String) -> String:
+	for pair in REBINDABLE:
+		if pair[0] == action:
+			return pair[1]
+	return action.capitalize()

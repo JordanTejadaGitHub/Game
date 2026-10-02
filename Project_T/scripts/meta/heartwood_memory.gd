@@ -562,7 +562,13 @@ static func max_blight_level(data: Dictionary) -> int:
 		return 0
 	return mini(int(data.highest_blight_won) + 1, 10)
 
+# Settings' unapplied changes, previewed live (SettingsPanel "Apply and Cancel"): every reader sees them, nothing
+# saves them; empty = none. The panel clears it on Apply, Cancel and close.
+static var preview_settings := {}
+
 static func get_settings() -> Dictionary:  # Only the settings are copied (read often)
+	if not preview_settings.is_empty():
+		return preview_settings.duplicate(true)
 	return _shared(real_settings_path if real_settings_path != "" else file_path).settings.duplicate(true)
 
 static func save_settings(settings: Dictionary) -> void:
