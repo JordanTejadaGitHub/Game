@@ -177,19 +177,23 @@ static func dreams_text(near: Node, period: StringName, heading: String, top: in
 		text += "\n" + line
 	return text
 
-# "Best Dream: Lingering Spores · 18% of your damage" (results), "" with no damage credited.
+# "Best Dream: Lingering Spores · 18% of your damage" (results, run report), "" with no damage credited.
 static func best_dream_line(near: Node) -> String:
+	var best := best_dream(near)
+	return "" if best.is_empty() else "Best Dream: %s · %s" % best
+
+# [card name, "18% of your damage"] for the run's best damage Dream, [] if none (the results' credit_bbcode).
+static func best_dream(near: Node) -> Array:
 	var log := DamageLog.instance
 	if log == null:
-		return ""
+		return []
 	var total := 0.0
 	for row in log.get_top_towers("run", 1000):
 		total += float(row.amount)
 	for row in card_credits(near, &"run"):
 		if row.kind == &"damage" and row.damage > 0.0 and total > 0.0:
-			var card_name: String = row.text.get_slice(" · ", 0)
-			return "Best Dream: %s · %d%% of your damage" % [card_name, roundi(row.damage / total * 100.0)]
-	return ""
+			return [row.text.get_slice(" · ", 0), "%d%% of your damage" % roundi(row.damage / total * 100.0)]
+	return []
 
 static func kinship_text(formed: int, harmony: int, whole: Array) -> String:
 	var text := ""

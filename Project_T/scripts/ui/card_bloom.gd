@@ -8,11 +8,8 @@ class_name CardBloom
 
 const STAGGER_TOTAL := 1.0  # Seconds from the first pulse to the last
 const STAGGER_MAX := 0.12  # Between two pulses at most (a few Wardens don't wait long)
-const PULSE_TIME := 0.7
-const RING_FROM := 14.0
-const RING_TO := 40.0
-const GEM_RISE := 14.0
-const GEM_ABOVE := 52.0  # Over the Warden's head (tall Wardens are 96 px)
+const PULSE_TIME := 0.6  # UiStyle.draw_bloom runs t 0 → 1 over this
+const STILL_T := 0.35  # Reduced motion: one soft highlight, held
 
 var pulses: Array = []  # {pos (world), at (msec), colour, card}
 var _still := false
@@ -50,14 +47,5 @@ func _draw() -> void:
 		var t: float = (now - int(p.at)) / (PULSE_TIME * 1000.0)
 		if t < 0.0:
 			continue
-		var at := to_local(p.pos)
-		var colour: Color = p.colour
-		if _still:  # One soft highlight
-			draw_circle(at, RING_TO * 0.8, Color(colour, 0.25 * (1.0 - t)))
-			draw_arc(at, RING_TO * 0.8, 0.0, TAU, 40, Color(colour, 0.6 * (1.0 - t)), 2.0)
-			continue
-		var grow := 1.0 - pow(1.0 - t, 3.0)  # Ease out
-		draw_arc(at, lerpf(RING_FROM, RING_TO, grow), 0.0, TAU, 40, Color(colour, 0.9 * (1.0 - t)), 3.0)
-		draw_circle(at, lerpf(RING_FROM, RING_TO, grow) * 0.9, Color(colour, 0.18 * (1.0 - t)))
-		if t < 0.8:
-			UiStyle.draw_gem(self, at - Vector2(0, GEM_ABOVE + GEM_RISE * grow), 10.0, p.card.rarity, UiStyle.dream_glyph(p.card))
+		# UI Code's look (UiStyle.draw_bloom): the ring at the base, the gem rising. Reduced motion: held at 0.35.
+		UiStyle.draw_bloom(self, to_local(p.pos), STILL_T if _still else t, p.card.rarity, UiStyle.dream_glyph(p.card))

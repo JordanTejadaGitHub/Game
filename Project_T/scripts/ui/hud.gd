@@ -153,7 +153,7 @@ func _ready() -> void:
 	if dream_state.has_signal("card_chosen"):
 		dream_state.connect("card_chosen", func(_card: UpgradeData, _towers: Array, impact: String) -> void:
 			if impact != "":
-				show_toast(impact))
+				show_impact_toast(impact))
 	drift_director.rest_started.connect(_on_rest_started)
 	# Path length ("Wardens are walls: make their walk longer").
 	var map_generator = %MapGenerator
@@ -559,9 +559,34 @@ func _style_resources() -> void:
 	toast_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
 
 # Shows a message at the top of the screen for a few seconds.
+var impact_label: Label  # The card toast's own label (UiStyle.impact_toast), in the toast's place
+var _impact_tween: Tween
+
+# "Cozy Corners · 6 Wardens +30%" after a Dream is taken (dream_design.md "Feeling the cards"), in UI Code's
+# impact face, replacing the plain "Dreamed" toast.
+func show_impact_toast(text: String) -> void:
+	if impact_label == null:
+		impact_label = toast_label.duplicate() as Label
+		impact_label.name = "ImpactToast"
+		UiStyle.impact_toast(impact_label)
+		toast_label.add_sibling(impact_label)
+	if _toast_tween:
+		_toast_tween.kill()
+	toast_label.modulate.a = 0.0
+	if _impact_tween:
+		_impact_tween.kill()
+	impact_label.text = text
+	impact_label.modulate.a = 1.0
+	_impact_tween = create_tween()
+	_impact_tween.tween_interval(TOAST_TIME)
+	_impact_tween.tween_property(impact_label, "modulate:a", 0.0, 0.6)
+
 func show_toast(text: String) -> void:
 	if _toast_tween:
 		_toast_tween.kill()
+	if impact_label != null and _impact_tween:  # A newer message takes the place
+		_impact_tween.kill()
+		impact_label.modulate.a = 0.0
 	toast_label.text = text
 	toast_label.modulate.a = 1.0
 	_toast_tween = create_tween()
