@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "damp_rot"
 display_name = "Damp Rot"
-description = "{spored} ticks on {damp} nightmares deal 50% more."
+description = "{spored} ticks on {damp} nightmares deal 50% more (stacks, up to +150%)."
 cost_description = "{damp} no longer makes water hits stronger on them."
 rarity = 0
 kind = 3

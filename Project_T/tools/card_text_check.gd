@@ -129,6 +129,19 @@ static func _scripts() -> Array[String]:
 				out.append(dir + file)
 	return out
 
+# Every number a Warden's TowerData holds: its int / float fields and the numbers in its dictionaries (special_params).
+static func warden_numbers(data: TowerData) -> Array[float]:
+	var out: Array[float] = []
+	for prop in data.get_property_list():
+		if not (prop.usage & PROPERTY_USAGE_SCRIPT_VARIABLE):
+			continue
+		var value = data.get(prop.name)
+		if value is int or value is float:
+			out.append(float(value))
+		elif value is Dictionary or value is Array:
+			out.append_array(numbers_in(str(value)))
+	return out
+
 # Every number in a constant's value text ("0.25", "[0.30, 0.50]", "{1: 2}").
 static func numbers_in(text: String) -> Array[float]:
 	var out: Array[float] = []
@@ -164,6 +177,11 @@ static func unmatched(card: UpgradeData, constants: Dictionary = {}) -> Array[St
 			values.append(float(fields[name]))
 	for name in constants:
 		values.append_array(numbers_in(String(constants[name])))
+	if card.unlocks != null:  # An unlock card quotes its Warden's own numbers (Beacon's +35%, Elder Stump's 20%…)
+		values.append_array(warden_numbers(card.unlocks))
+	if card.max_stacks > 1:  # "(stacks, up to +45%)": each value at every copy
+		for v in values.duplicate():
+			values.append(v * card.max_stacks)
 	var out: Array[String] = []
 	for s in text_numbers(card):
 		var n := float(s.trim_prefix("×").trim_prefix("x").trim_suffix("%"))
@@ -177,6 +195,33 @@ static func unmatched(card: UpgradeData, constants: Dictionary = {}) -> Array[St
 		if not hit:
 			out.append(s)
 	return out
+
+# text_style.md "Card wording, one way each" (e2176ea3): the wording breaks in `text` ([] = none). Distances in cells
+# ("within 2 cells"; path squares stay "path tiles"), "up to" never "max", Warden bonuses as verbs ("deal 30% more
+# damage", "attack 20% faster"; "+0.5 range" and nightmares' "take X% more" stay).
+static func wording_breaks(text: String) -> Array[String]:
+	var out: Array[String] = []
+	var rules := [
+		["\\b(within|reach(?:es)?|cover|over) \\d+(?:\\.\\d+)? tiles?\\b|\\b\\d+(?:\\.\\d+)? tiles? (away|further|around)\\b", "a distance in tiles (cells)"],
+		["\\(max \\+", "\"(max +\" (up to)"],
+		["\\+\\d+(?:\\.\\d+)?% (damage|attack speed)\\b", "\"+N% damage / attack speed\" (deal N% more damage / attack N% faster)"],
+	]
+	for rule in rules:
+		var m := RegEx.create_from_string(rule[0]).search(text)
+		if m != null:
+			out.append("%s: \"%s\"" % [rule[1], m.get_string()])
+	return out
+
+# A stacking card says so: "(stacks)" without a limit, "(stacks, up to …)" with one; a one-copy card never says "(stacks".
+static func stacking_break(card: UpgradeData) -> String:
+	var says := card.description.contains("(stacks")
+	if card.max_stacks == 1:
+		return "a one-copy card says it stacks" if says else ""
+	if not says:
+		return "a stacking card (max_stacks %d) doesn't say \"(stacks…)\"" % card.max_stacks
+	if card.max_stacks > 1 and not card.description.contains("(stacks, up to"):
+		return "a stacking card with a limit (%d) needs \"(stacks, up to …)\"" % card.max_stacks
+	return ""
 
 # An unlock card stating a Dew price by hand ("(120 Dew)") instead of {grow_cost:id} / {plant_cost:id} (they went stale).
 static func has_written_price(card: UpgradeData) -> bool:

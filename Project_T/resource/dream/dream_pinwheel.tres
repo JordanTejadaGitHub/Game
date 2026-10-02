@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_pinwheel"
 display_name = "Pinwheel"
-description = "Whirligigs can now grow into Pinwheels ({grow_cost:pinwheel} Dew): spinning blades hit every nightmare on the 8 tiles around it; stronger the more of them are path."
+description = "Whirligigs can now grow into Pinwheels ({grow_cost:pinwheel} Dew): spinning blades hit every nightmare on the 8 cells around it; stronger the more of them are path."
 rarity = 1
 kind = 1
 tags = Array[String](["wind"])

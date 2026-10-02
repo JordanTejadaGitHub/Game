@@ -39,6 +39,13 @@ func _initialize() -> void:
 	var acorn: UpgradeData = load("res://resource/dream/dream_acorn.tres")
 	_check(IconInfo.format(acorn.description).contains("(15 Dew)") or IconInfo.format(acorn.description).contains("(%d Dew)" % (load("res://resource/tower/acorn.tres") as TowerData).evolve_cost),
 		"the price tokens read the Warden (\"%s\")" % IconInfo.format(acorn.description))
+	# text_style.md "Card wording, one way each" (e2176ea3) on every card's text and cost line, and the stacking note
+	for card in Check.load_cards():
+		for text in [card.description, card.cost_description]:
+			for problem in Check.wording_breaks(text):
+				_check(false, "%s: %s" % [card.id, problem])
+		var stacking := Check.stacking_break(card)
+		_check(stacking == "", "%s: %s (\"%s\")" % [card.id, stacking, card.description])
 	print("card text test: %s (%d stat cards, %d known exceptions)" % ["PASS" if failures == 0 else "%d FAILED" % failures, stat_cards, KNOWN.size()])
 	quit(failures)
 

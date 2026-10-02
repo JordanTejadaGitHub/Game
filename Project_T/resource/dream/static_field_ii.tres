@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "static_field_ii"
 display_name = "Charged Field II"
-description = "{static} bolts also hit nightmares within 1.5 tiles, and give them 1 {static} stack."
+description = "{static} bolts also hit nightmares within 1.5 cells, and give them 1 {static} stack."
 rarity = 2
 kind = 3
 tags = Array[String](["storm"])

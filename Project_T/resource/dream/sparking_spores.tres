@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "sparking_spores"
 display_name = "Sparking Spores"
-description = "{combo:ignite} burns 50% hotter."
+description = "{combo:ignite} burns 50% hotter (stacks, up to +150%)."
 cost_description = "Only on nightmares with 5 or more {spored} stacks."
 rarity = 0
 kind = 3

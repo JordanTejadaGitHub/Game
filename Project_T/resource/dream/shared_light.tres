@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "shared_light"
 display_name = "Shared Light"
-description = "Every Warden gives the Wardens touching it +4% damage (up to +20% on one Warden)."
+description = "Every Warden makes the Wardens touching it deal 4% more damage (up to +20% on one Warden)."
 rarity = 2
 kind = 3
 tags = Array[String](["seed", "acorn", "support"])

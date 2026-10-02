@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "grand_tour"
 display_name = "Grand Tour"
-description = "+10% damage for each different status your Wardens can apply (max +70%)."
+description = "Wardens deal 10% more damage for each different status your Wardens can apply (up to +70%)."
 rarity = 2
 kind = 3
 tags = Array[String](["variety", "overgrowth"])

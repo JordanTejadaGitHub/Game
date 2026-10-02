@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "blood_is_thicker"
 display_name = "Blood Is Thicker"
-description = "Wardens in a {kinship} +50% damage."
+description = "Wardens in a {kinship} deal 50% more damage."
 rarity = 1
 kind = 3
 tags = Array[String](["kinship", "bittersweet"])

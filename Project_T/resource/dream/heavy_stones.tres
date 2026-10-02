@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "heavy_stones"
 display_name = "Heavy Stones"
-description = "The Pebbling line +15% crit chance (stacks)."
+description = "The Pebbling line +15% crit chance (stacks, up to +45%)."
 rarity = 0
 kind = 3
 tags = Array[String](["stone", "crit", "precision"])

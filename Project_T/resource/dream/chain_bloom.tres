@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "chain_bloom"
 display_name = "Chain Bloom"
-description = "Puffball's puffs cover 2 tiles inside Mistveil's fog."
+description = "Puffball's puffs cover 2 cells inside Mistveil's fog."
 rarity = 2
 kind = 3
 tags = Array[String](["spore"])

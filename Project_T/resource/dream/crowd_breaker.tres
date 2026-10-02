@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "crowd_breaker"
 display_name = "Crowd Breaker"
-description = "An area attack deals 5% more for each nightmare it hits (max +45%), and 30% more to a nightmare touching 2 or more others."
+description = "An area attack deals 5% more for each nightmare it hits (up to +45%), and 30% more to a nightmare touching 2 or more others."
 rarity = 1
 kind = 3
 tags = Array[String](["affliction", "reach"])

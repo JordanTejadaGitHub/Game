@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "live_wire"
 display_name = "Live Wire"
-description = "{static} bolts deal 15% more (stacks)."
+description = "{static} bolts deal 15% more (stacks, up to +45%)."
 rarity = 0
 kind = 3
 tags = Array[String](["storm"])
