@@ -388,11 +388,13 @@ card luck**. Dispelling a great nightmare frees the light it stole from the drea
 
 | Source | Dreamlight |
 |---|---|
-| First family pick (after drift 1) | **2** (was 1; 2026-09-30: branches now come free, so this buys your first final form in act 1) |
-| Each boss (drifts 25, 50, 75) | **4** (was 3, 2026-09-29: runs earned only 3–6 Dreamlight, so no run ever reached an Ascended form) |
-| Dream cards (Sudden Insight, Borrowed Memory) | +1 / +2 |
+| First family pick (after drift 1) | **1** (2026-10-01, user; was 2) |
+| Each boss (drifts 25, 50, 75) | **3** (2026-10-01, user: *"should only be giving 3 Dreamlight every 25 drifts"*; was 4) |
+| Dream cards (Sudden Insight, Borrowed Memory, Glimmering Hunt), Great Dreamcatcher shards, the Heartwood Sapling | as before: these are build choices, on top of the steady 3 per act |
 | Grove perk *Early Light* | +1 at run start |
-| Every rest from drift 51 (2026-09-29) | **+1** (the Heartwood wakes: no run had ever reached an Ascended form) |
+| ~~Every rest from drift 51: +1~~ | **removed** (2026-10-01, same decision: the steady income is 3 per act, from its boss) |
+
+Steady Dreamlight per run: 1 + 3 + 3 + 3 = **10** by drift 76 (a branch is 1, a final 2, an Ascended 3), so an Ascended form costs real choices; more only comes from cards and Wardens you chose.
 
 **Spending (per run, like the old unlock cards):**
 
