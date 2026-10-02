@@ -158,7 +158,7 @@ existing badges).
       **sampled at 60% like the rest**: a family pick adds a seeded 60% of that family's cards.
       Why: with 3–4 families held, ~10 guaranteed cards each outnumbered the 60%-sampled general
       cards, so offers filled with family cards. Not steering (tag weighting is off, and tag
-      resonance only changes a taken card's power, never the odds; checked in `_weighted_pick`).
+      resonance only changed a taken card's power, never the odds; Resonance itself was removed 2026-10-02).
       If offers still lean family-heavy, the next step is an offer rule (at least 1 general card
       per offer), not more weighting. **Measured (cdbcbe64, drift 35, 3 families, 100 seeds):** family
       cards are 22% of the eligible pool on a fresh profile (12% with a full Grove), **0.72 / 0.38 per
@@ -1498,7 +1498,7 @@ lifts its branch: **`swift`** and **`reach`** (card builds C9 and C10). Numbers 
   - **`reach`** also on **Crowd Breaker** (area attacks +5% per nightmare hit) and **Last Breath** (a
     dispel burst on nearby nightmares; Affliction), and **Shattering Blow** (crits splash; Precision).
     Wide Reach's package: 5 → **8** (at 7 it measured 2%, short).
-  - Their effects don't change; the tag adds tag resonance and counts them in the package.
+  - Their effects don't change; the tag only counts them in the package (tag Resonance was removed 2026-10-02).
     Target: 5+ by 100 at **~3–5%** with a full Grove, like the other card builds.
   - **Measured (61f25e69, Full, 300 runs):** Wide Reach (8) **5%** ✓; Swift (7) **2%** (accepted:
     within noise of the band; a core basic as a bridge pushed it to 9%). Precision unchanged (8%).
