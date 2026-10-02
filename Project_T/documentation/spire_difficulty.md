@@ -277,3 +277,8 @@ full game (`game/demo` false), and the demo reads main's exports.
   boss_abilities 82, detection 79, anti_air 75 (was 84; watch: flyers come from drift 31); 9–10 pairs per
   family, none above 26% of runs. The strict top-band version (100% everywhere, same Sporeling pair
   every run) was rightly not shipped.
+- 2026-10-02: **probe of the reworked forms** (1685cae4, 3 seeds): Cloudlet 0.91× Driftspore ✓; Jetreed
+  0.44; Undercurrent board 0.85 (fails); Maelstrom 0.41× Puffball; Nimbus 0.87 / 0.66 (45 / 61); Torrent
+  1.01 / 1.51, with erosion ~3.5× its base hit at 45 and 7–11× at 61. Game error: `tide_link` meta
+  missing in `_relink` (Tower Code to fix). Decisions: **erosion capped at 4× the hit's base**; Jetreed
+  base 20 → **30**; Nimbus 24 → **30** dmg/s; Maelstrom and Undercurrent re-probed after the fix.
