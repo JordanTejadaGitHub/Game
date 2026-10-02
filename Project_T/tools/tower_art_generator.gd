@@ -2918,6 +2918,18 @@ func _final_extra_grove_heart(canvas: Image, st: Dictionary) -> void:
 	for p: Vector2i in [Vector2i(20, 2), Vector2i(31, 0), Vector2i(41, 2)]:
 		_px(canvas, p.x, p.y + dy, Color("#fcd47c"))  # blossoms in it
 
+# Beacon's crook foot, drawn after the body so the pole stands in front of the slab rock it's planted
+# beside (the rock tucked behind its base), rising out of the top of the body frame into the tall rows.
+func _final_extra_beacon(canvas: Image, st: Dictionary) -> void:
+	var o := Color("#2a1a10")
+	var staff := _layer()
+	_stroke(staff, [Vector2(BEACON_STAFF_X - 1, 45), Vector2(BEACON_STAFF_X, 20), Vector2(BEACON_STAFF_X, -2)], 0.9, Color("#8a5c34"))
+	_stamp(canvas, staff, o)
+	# Clear the stamp's outline across the top edge so the staff runs on into the tall rows.
+	for x in range(BEACON_STAFF_X - 3, BEACON_STAFF_X + 4):
+		if canvas.get_pixel(x, 0) == o:
+			canvas.set_pixel(x, 0, Color("#8a5c34") if absi(x - BEACON_STAFF_X) <= 0 else Color(0, 0, 0, 0))
+
 # Lanternmoth: an amber lantern golem with soft moth wings, feathery antennae and a warm light
 # glowing in its chest.
 func _draw_lanternmoth(canvas: Image, st: Dictionary) -> void:
@@ -3003,14 +3015,6 @@ func _beacon_wings_and_crook(canvas: Image, st: Dictionary, fig: Dictionary, win
 				if eye.get_pixel(x, y).a > 0.0 and layer.get_pixel(x, y).a > 0.0 and layer.get_pixel(x, y) != fig.o:
 					layer.set_pixel(x, y, eye.get_pixel(x, y))
 	canvas.blend_rect(layer, Rect2i(0, 0, S, S), Vector2i.ZERO)
-	# The crook's foot, planted on the slab, rising out of the top of the body frame.
-	var staff := _layer()
-	_stroke(staff, [Vector2(BEACON_STAFF_X - 1, 45), Vector2(BEACON_STAFF_X, 20), Vector2(BEACON_STAFF_X, -2)], 0.9, Color("#8a5c34"))
-	_stamp(canvas, staff, fig.o)
-	# Clear the stamp's outline across the top edge so the staff runs on into the tall rows.
-	for x in range(BEACON_STAFF_X - 3, BEACON_STAFF_X + 4):
-		if canvas.get_pixel(x, 0) == fig.o:
-			canvas.set_pixel(x, 0, Color("#8a5c34") if absi(x - BEACON_STAFF_X) <= 0 else Color(0, 0, 0, 0))
 
 # Beacon's tall rows (frame y 0..63 of the 64x96 frame; the body frame starts at y 32): the crook's top
 # hooking over, the big lantern hanging from it, and a soft cone of light falling towards the moth.
