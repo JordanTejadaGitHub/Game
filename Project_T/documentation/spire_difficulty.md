@@ -269,3 +269,6 @@ full game (`game/demo` false), and the demo reads main's exports.
     drift is dragged back **4 tiles**. **Nurse Log:** Nurture **25%** cheaper within 1.5; **Mother Log 35%**,
     plus a sold Warden's rank stays on its cell for the next plant. **Dream Oak:** +1 shard per different
     family within 2 (max +3). New Kinships Fault Line, Bramble Bed, Nursery at ~+20% of the pair's effect.
+- 2026-10-02: branch-review reworks in **67beac23** (Tower Code): Undercurrent / Maelstrom links,
+  Jetreed / Torrent erosion, Nimbus drift, Eye of the Storm 10%. Probe queued; if Torrent outscales in
+  acts 3–4, cap the % part per hit (Tower Discussion agrees), not the base.
