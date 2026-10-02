@@ -448,7 +448,7 @@ family can promise an answer to everything. Two layers keep runs fair:
 | anti-support (Watcher, Weeper) | Hushbell (Bellflower), Lichenling (Sporeling), Magpie Perch (Nestling) |
 | boss abilities | Bark Shield (Acorn), Hushbell (Bellflower), Quaker (Pebbling) |
 
-- **Lucid Dream** (Rare card, +1 not-offered branch): with only 2 of 5 offered it's a real find,
+- **Remembered Path** (Rare card, +1 not-offered branch; named *Lucid Dream* in the proposal, renamed 2026-10-02 so it isn't confused with the Legendary *Lucid Dreaming*). **As built** (320b4969, Spire branch): taking it opens Remember with **one free call**, which skips both the price and the once-per-family limit; it's only offered while some family has a branch not in this dream. Design: with only 2 of 5 offered it's a real find,
   since it raises a family's choices by half. It **shows you the 3 branches not offered** and you
   pick one, so it can rescue a run that's missing a counter. A Grove perk could add one per run
   (Meta Game Discussion's call). It's the **free, lucky** version of the call-back below.
@@ -477,7 +477,7 @@ family can promise an answer to everything. Two layers keep runs fair:
   | Firefly Jar | Jarlink + Sparkler | **Fireworks Fence** | a crossing of its fence sets off a small spark burst | a burst landing on a fence re-bursts once |
   | Bellflower | Silver Bell + Hushbell | **Vespers** | its toll also silences its target for 2 s | nightmares it silences gain 1 Drowsy |
 - **Whole Tree** becomes **"3 different branches of one family on the map"**. With 2 offered,
-  that needs the hidden branch or *Lucid Dream*: a real milestone of a run, not a given.
+  that needs the hidden branch or *Remembered Path*: a real milestone of a run, not a given.
 - Kindred (2 branches: +10%) is unchanged, and now the common case.
 
 ### The per-run offer on the Remember screen
@@ -488,7 +488,7 @@ family can promise an answer to everything. Two layers keep runs fair:
   stage; the Dreamlight budget unchanged. That file is the source of truth for them.
 - **Where it's built (Phase 1):** Tower Code (the 12 Wardens, generic Kin, Whole Tree, the named
   pairs), Roguelite Code (the 2-of-5 offer and smart draw, the Remember UI with "not in this dream"
-  and the call-back, Lucid Dream, card gating), Tower Assets (12 branches + 12 finals), Balancing
+  and the call-back, Remembered Path, card gating), Tower Assets (12 branches + 12 finals), Balancing
   Discussion (all numbers, the call-back price and the Dreamlight budget).
 - **2 of the 5 regular branches** per family, drawn by the smart draw above at the family pick,
   from the map seed (a resume gets the same), **never the same 2 as that family's last run**
@@ -517,7 +517,7 @@ With the merge, the sky family needs **no new branches**. That leaves **21 new b
 finals** (~42 sprites plus attack sheets and effects), down from 27 + 27.
 
 1. **Phase 1: the 4 starting families** (Sporeling, Dewdrop, Firefly Jar, Bellflower): 12 branches,
-   12 finals, the 2-of-5 offer with the smart draw, generic Kin, Lucid Dream.
+   12 finals, the 2-of-5 offer with the smart draw, generic Kin, Remembered Path.
 2. **Phase 2:** Pebbling, Rootling, Acorn (9 + 9).
 3. **Phase 3:** the Nestling + Whirligig merge (no new branch art: a parked base and Ascended,
    Dawnwing's carry twist, the resistance fold).
