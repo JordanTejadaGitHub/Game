@@ -607,6 +607,8 @@ owned 3 families, so the picks at 1 / 25 / 50 used them all and drift 75's pick 
 Dreamlight. **Bellflower becomes a starting family** (user's pick from four options: it combos with all
 three starters through Drowsy and Static, and it's mid-strength in the act 1 batch, 90% survive). With
 Meta Game Discussion → Meta Game Code. The first pick now offers 3 of 4 (Sporeling not guaranteed).
+Also (user): **the first family pick gives 1 Dreamlight, not 2**, so act 1 gets one branch and no final
+before the boss (+4). Both make act 1 a little harder; act 1 re-baseline once they land.
 
 **Finals probe** (`tools/balance_finals.gd`, ≥ 144d371b, drifts 61–65, 4 copies in the same spots +
 8 fixed finals, rank IV Power, no Dreams, 3 map seeds): per Warden over 5 drifts, **Dreamshroom
