@@ -303,6 +303,7 @@ var _effects: DreamEffects = null  # effects(): card rows per Warden
 func _ready() -> void:
 	add_to_group(GROUP)
 	HeartwoodGifts.register(&"waking_root", DreamState._waking_root_gift)  # Heartwood's Gifts (Spire branch)
+	unlocks_changed.connect(_draw_branch_offers)  # Branch expansion: a family pick draws its 2 branches
 	_rng.randomize()
 	if pool.is_empty():
 		pool = load_pool()
@@ -510,6 +511,10 @@ func get_unlock_blocker(data: TowerData) -> String:
 			return "from drift %d" % ASCENDED_FROM_DRIFT
 		if not _has_unlocked_final(data):
 			return "needs a final form"
+	if not in_this_edition(data):
+		return "not in the demo"
+	if (data.tier == 2 or data.tier == 3) and not is_branch_offered(data):
+		return NOT_IN_DREAM  # Branch expansion: not one of this run's 2 (its final follows it)
 	var parent := get_parent_form(data) if data.tier < ASCENDED_TIER else null
 	if parent != null and not is_unlocked(parent.get_id()):
 		return "needs %s" % parent.display_name
@@ -517,6 +522,245 @@ func get_unlock_blocker(data: TowerData) -> String:
 	if card != null and not (card.in_start_pool or grove_cards.has(card.id)) and not _is_regular_final(data):
 		return "Memory Grove"
 	return ""
+
+# --- Branch expansion (tower_design.md "Branch expansion: 5 branches, 2 per run", Spire branch) --------------
+# At each family pick, 2 of the family's regular branches are offered for the run (the hidden branch, once the
+# Grove has planted it, is always a 3rd lane). Drawn from the map seed and the family, never the same 2 as that
+# family's last run (profile last_branch_offer), and by the smart draw: among the pairs adding a counter tag the
+# run's offers don't cover yet (TowerData.counter_tags, Tower Code), when any pair does. A branch not offered is
+# "not in this dream": the Remember screen shows it misty, and it can be called back once per family for
+# CALL_BACK_DREAMLIGHT (the unlock included; its final still costs FINAL_DREAMLIGHT). Lucid Dream gives a free call.
+# Families with 2 or fewer regular branches offer them all; the demo keeps today's branches (no draw).
+
+const NOT_IN_DREAM := "not in this dream"
+const BRANCH_OFFER_SIZE := 2
+const CALL_BACK_DREAMLIGHT := 3  # Balancing Discussion (spire_difficulty.md Phase 6)
+
+signal branch_called(form: TowerData, free: bool)
+
+var branch_offers := {}  # Base id -> Array of branch ids this run (the drawn 2, the planted hidden one, called back)
+var called_families := {}  # Base id -> the branch id called back with Dreamlight (once per family per run)
+var free_calls := 0  # Lucid Dream: calls back without Dreamlight or the once-per-family limit
+var _last_branch_offer_written := {}  # What this run wrote to the profile (tests read it)
+
+static func branch_expansion_on() -> bool:
+	return not ResultsScreen.is_demo()
+
+# The demo keeps today's branches: forms of the expansion (TowerData.expansion_phase > 0, Tower Code) aren't in it.
+static func in_this_edition(form: TowerData) -> bool:
+	var phase = form.get("expansion_phase")
+	return branch_expansion_on() or phase == null or int(phase) <= 0
+
+# A base family's regular branches: tier-2 forms whose unlock card is in the start pool (hidden ones are Grove-only).
+func regular_branches(base: TowerData) -> Array[TowerData]:
+	var out: Array[TowerData] = []
+	for form in base.evolves_to:
+		if form is TowerData and form.tier == 2 and not form.parked and not is_hidden_branch(form) and in_this_edition(form):
+			out.append(form)
+	return out
+
+func is_hidden_branch(form: TowerData) -> bool:
+	var card := _unlock_card_for(form)
+	return card != null and not card.in_start_pool
+
+# Whether `form` (a branch, or a final through its branch) is in this run. True outside the expansion, for hidden
+# branches (the Grove gates those), and for families not picked yet.
+func is_branch_offered(form: TowerData) -> bool:
+	if not branch_expansion_on() or form == null:
+		return true
+	var branch := form
+	if form.tier == 3:
+		branch = _parent_in_tree(form)
+		if branch == null or branch.tier != 2:
+			return true  # A wall growth or a final straight from a base
+	if branch.tier != 2 or is_hidden_branch(branch):
+		return true
+	var base := _parent_in_tree(branch)
+	if base == null or not is_unlocked(base.get_id()):
+		return true
+	return get_branch_offer(base).has(branch.get_id())
+
+# The form `form` grows from, searched through every family tree (get_parent_form looks one level deep).
+func _parent_in_tree(form: TowerData) -> TowerData:
+	var parent := get_parent_form(form)
+	if parent != null:
+		return parent
+	for base in _roster():
+		if base is TowerData:
+			for branch in base.evolves_to:
+				if branch is TowerData and branch.evolves_to.has(form):
+					return branch
+	return null
+
+# The branch ids on offer for `base` this run (drawn on first ask once the family is yours).
+func get_branch_offer(base: TowerData) -> Array:
+	var id := base.get_id()
+	if not branch_offers.has(id):
+		branch_offers[id] = _draw_branch_offer(base)
+	var offer: Array = branch_offers[id]
+	for form in base.evolves_to:  # The hidden branch joins once the Grove has planted it
+		if form is TowerData and form.tier == 2 and is_hidden_branch(form) and grove_cards.has(_unlock_card_for(form).id) \
+				and not offer.has(form.get_id()):
+			offer.append(form.get_id())
+	return offer
+
+# The forms of `base`'s family that are not in this run ("not in this dream"): its regular branches not offered.
+func not_offered_branches(base: TowerData) -> Array[TowerData]:
+	var out: Array[TowerData] = []
+	if not branch_expansion_on():
+		return out
+	var offer := get_branch_offer(base)
+	for form in regular_branches(base):
+		if not offer.has(form.get_id()):
+			out.append(form)
+	return out
+
+func _draw_branch_offer(base: TowerData) -> Array:
+	var branches := regular_branches(base)
+	var ids: Array = branches.map(func(f: TowerData) -> String: return f.get_id())
+	if not branch_expansion_on() or branches.size() <= BRANCH_OFFER_SIZE:
+		return ids
+	var pairs: Array = []  # Every 2 of them, except last run's pair for this family
+	var last: Array = _last_branch_offer().get(base.get_id(), [])
+	for i in branches.size():
+		for j in range(i + 1, branches.size()):
+			var pair := [branches[i], branches[j]]
+			var pair_ids: Array = [branches[i].get_id(), branches[j].get_id()]
+			pair_ids.sort()
+			if pair_ids != last:
+				pairs.append(pair)
+	# The smart draw: pairs that add a counter tag the run's offers don't cover yet, when any do
+	var covered := _covered_tags()
+	var adding := pairs.filter(func(pair: Array) -> bool:
+		for form: TowerData in pair:
+			for tag in _counter_tags(form):
+				if not covered.has(tag):
+					return true
+		return false)
+	var pool_pairs: Array = adding if not adding.is_empty() else pairs
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(map_generator.map_seed) + hash("branches:" + base.get_id()) if map_generator != null else hash(base.get_id())
+	var chosen: Array = pool_pairs[rng.randi_range(0, pool_pairs.size() - 1)]
+	var offer: Array = chosen.map(func(f: TowerData) -> String: return f.get_id())
+	_remember_branch_offer(base.get_id(), offer)
+	return offer
+
+static func _counter_tags(form: TowerData) -> Array:
+	var tags = form.get("counter_tags")
+	return tags if tags is Array else []
+
+# The counter tags every family's offered branches cover so far this run.
+func _covered_tags() -> Dictionary:
+	var covered := {}
+	for base_id in branch_offers:
+		for branch_id in branch_offers[base_id]:
+			var form := _form_by_id(branch_id)
+			if form != null:
+				for tag in _counter_tags(form):
+					covered[tag] = true
+	return covered
+
+func _form_by_id(id: String) -> TowerData:
+	var stack: Array = _roster().duplicate()
+	var seen := {}
+	while not stack.is_empty():
+		var form = stack.pop_back()
+		if not (form is TowerData) or seen.has(form):
+			continue
+		seen[form] = true
+		if form.get_id() == id:
+			return form
+		stack.append_array(form.evolves_to)
+	return null
+
+func _last_branch_offer() -> Dictionary:
+	var saved = HeartwoodMemory.load_data().get("last_branch_offer", {})
+	return saved if saved is Dictionary else {}
+
+# Kept in the profile so the family's next run draws another pair; real game only (never tests or dev runs).
+func _remember_branch_offer(base_id: String, offer: Array) -> void:
+	var sorted := offer.duplicate()
+	sorted.sort()
+	_last_branch_offer_written[base_id] = sorted
+	if not is_inside_tree() or get_tree().current_scene != owner or MetaRun.is_dev_run():
+		return
+	var memory := HeartwoodMemory.load_data()
+	var last: Dictionary = memory.get("last_branch_offer", {})
+	last[base_id] = sorted
+	memory["last_branch_offer"] = last
+	HeartwoodMemory.save_data(memory)
+
+# Why `form` can't be called back now ("" = it can): only a not-offered regular branch of a family you have, once per
+# family (a free call from Lucid Dream skips the once and the price).
+func call_back_problem(form: TowerData) -> String:
+	if form == null or form.tier != 2 or is_hidden_branch(form) or is_branch_offered(form):
+		return "not a branch to call back"
+	var base := _parent_in_tree(form)
+	if free_calls > 0:
+		return ""
+	if base != null and called_families.has(base.get_id()):
+		return "already called one back for %s" % base.display_name
+	if dreamlight < CALL_BACK_DREAMLIGHT:
+		return "Not enough Dreamlight"
+	return ""
+
+# Calls `form` into this run: it joins the offer and is unlocked (the call includes the unlock).
+func call_back(form: TowerData) -> bool:
+	if call_back_problem(form) != "":
+		return false
+	var base := _parent_in_tree(form)
+	var free := free_calls > 0
+	if free:
+		free_calls -= 1
+	else:
+		add_dreamlight(-CALL_BACK_DREAMLIGHT)
+		called_families[base.get_id()] = form.get_id()
+	get_branch_offer(base).append(form.get_id())
+	unlocked[form.get_id()] = true
+	branch_called.emit(form, free)
+	unlocks_changed.emit()
+	return true
+
+# Any family of yours has a branch not in this dream (Lucid Dream is only offered then).
+func has_branch_to_call() -> bool:
+	for base in _roster():
+		if base is TowerData and base.tier == 1 and is_unlocked(base.get_id()) and not not_offered_branches(base).is_empty():
+			return true
+	return false
+
+# Draws the offer of every family you have (on each unlock: a family pick).
+func _draw_branch_offers() -> void:
+	if not branch_expansion_on():
+		return
+	for base in _roster():
+		if base is TowerData and base.tier == 1 and base.buildable_directly and is_unlocked(base.get_id()) \
+				and not branch_offers.has(base.get_id()):
+			get_branch_offer(base)
+
+# Card gating: a card naming a branch (or its final) is only offered while that branch is in this run; a card it
+# requires (an Entwined ingredient) is checked the same way. `requires_any` needs one of its forms in the run.
+func branch_cards_open(card: UpgradeData, depth: int = 0) -> bool:
+	if not branch_expansion_on():
+		return true
+	for id in card.requires:
+		var form := _form_by_id(id)
+		if form != null and not is_branch_offered(form):
+			return false
+		if form == null and depth < 2:
+			var needed := _card_by_id(id)
+			if needed != null and not branch_cards_open(needed, depth + 1):
+				return false
+	var any_forms: Array = card.requires_any.map(func(id: String) -> TowerData: return _form_by_id(id)).filter(func(f) -> bool: return f != null)
+	if not any_forms.is_empty() and any_forms.size() == card.requires_any.size() \
+			and not any_forms.any(func(f: TowerData) -> bool: return is_branch_offered(f)):
+		return false
+	return true
+
+func _card_by_id(id: String) -> UpgradeData:
+	for card in pool:
+		if card.id == id:
+			return card
+	return null
 
 # run_design.md "Dreamlight" (2026-09-30): a final form of a family (not a wall growth) needs no Grove node,
 # only its branch and 2 Dreamlight.
@@ -1414,6 +1658,9 @@ func take(card: UpgradeData) -> void:
 	if card.leaves_now != 0 or card.max_leaves_add != 0:
 		run_state.regrow_leaves(maxi(card.leaves_now, 0))  # Also clamps to a lower maximum
 	add_rare_dreams(card.rare_dreams_add)
+	if card.rule_id == &"lucid_dream":  # Branch expansion: call one not-offered branch into the run, free
+		free_calls += 1
+		open_remember.call_deferred(null)
 	if card.dreamlight_now > 0:
 		add_dreamlight(card.dreamlight_now, &"card")
 	if card.free_first_clears_add > 0:
@@ -1795,6 +2042,10 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false  # A half-dreamed combo card may be offered before its families are all yours
 	if not is_half_dreamed(card) and not grown_needs_met(card):
 		return false  # Round 5: a Warden it names must have been built or grown this run
+	if not branch_cards_open(card):
+		return false  # Branch expansion: its branch isn't in this run
+	if card.rule_id == &"lucid_dream" and not has_branch_to_call():
+		return false
 	return true
 
 # The hard run-state and card Needs (dream_design.md "Card requirements"). Only gates new offers:
@@ -2048,7 +2299,7 @@ func to_save() -> Dictionary:
 	return {
 		"unlocked": unlocked.keys(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
-		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "unlock_discounts": unlock_discounts, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next}, "entwined_offered": _entwined_offered.keys(),
+		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "unlock_discounts": unlock_discounts, "branch_offers": branch_offers.duplicate(true), "called_families": called_families.duplicate(), "free_calls": free_calls, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next}, "entwined_offered": _entwined_offered.keys(),
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
 		"run_pool": run_pool.keys(), "run_pool_waiting": _run_pool_waiting.keys(), "run_pool_families": _run_pool_families.keys(),
 		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
@@ -2067,6 +2318,7 @@ func to_save() -> Dictionary:
 	}
 
 func load_save(data: Dictionary) -> void:
+	branch_offers = data.get("branch_offers", {}).duplicate(true)  # First: an unlock signal below must not draw anew
 	unlocked.clear()
 	for id in data.get("unlocked", []):
 		unlocked[id] = true
@@ -2086,6 +2338,8 @@ func load_save(data: Dictionary) -> void:
 	_rare_dreams_left = int(data.get("rare_dreams_left", 0))
 	_extra_cards_next = int(data.get("extra_cards_next", 0))
 	unlock_discounts = int(data.get("unlock_discounts", 0))
+	called_families = data.get("called_families", {}).duplicate()
+	free_calls = int(data.get("free_calls", 0))
 	var finale: Dictionary = data.get("finale", {})
 	finale_results.clear()
 	for drift in finale.get("results", {}):
