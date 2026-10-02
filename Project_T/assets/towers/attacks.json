@@ -96,6 +96,14 @@
 				46
 			]
 		},
+		"brood_cap": {
+			"kind": "spawn",
+			"point": [
+				44,
+				14
+			],
+			"projectile": "spore_sprite"
+		},
 		"cairn": {
 			"kind": "lob",
 			"point": [
@@ -110,6 +118,14 @@
 				31,
 				46
 			]
+		},
+		"deliquescent": {
+			"kind": "projectile",
+			"point": [
+				40,
+				12
+			],
+			"projectile": "ink_drop"
 		},
 		"dewdrop": {
 			"kind": "projectile",
@@ -224,6 +240,14 @@
 				46
 			]
 		},
+		"hatchery": {
+			"kind": "spawn",
+			"point": [
+				44,
+				14
+			],
+			"projectile": "spore_sprite"
+		},
 		"hoarfrost": {
 			"kind": "projectile",
 			"point": [
@@ -247,6 +271,14 @@
 			],
 			"projectile": "hummingbird"
 		},
+		"inkcap": {
+			"kind": "projectile",
+			"point": [
+				40,
+				12
+			],
+			"projectile": "ink_drop"
+		},
 		"jewelwing_court": {
 			"kind": "multi",
 			"point": [
@@ -262,6 +294,14 @@
 				4
 			],
 			"projectile": "light_orb"
+		},
+		"lichenling": {
+			"kind": "projectile",
+			"point": [
+				46,
+				6
+			],
+			"projectile": "lichen_flake"
 		},
 		"long_way_home": {
 			"kind": "pull",
@@ -352,6 +392,14 @@
 				6
 			],
 			"projectile": "sparrow"
+		},
+		"old_lichen": {
+			"kind": "projectile",
+			"point": [
+				48,
+				4
+			],
+			"projectile": "lichen_flake"
 		},
 		"pebbling": {
 			"kind": "projectile",

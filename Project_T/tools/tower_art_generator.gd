@@ -155,7 +155,8 @@ const POSE_DY := [0, 1, -1]
 # image per line is written to tools/previews/.
 const LINES := {
 	"starters": ["sprout", "thornwall", "bramble", "honeysuckle"],
-	"sporeling": ["sporeling", "driftspore", "puffball", "bloomcap", "dreamshroom", "fairy_ring", "elf_circle"],
+	"sporeling": ["sporeling", "driftspore", "puffball", "bloomcap", "dreamshroom", "fairy_ring", "elf_circle",
+		"lichenling", "old_lichen", "brood_cap", "hatchery", "inkcap", "deliquescent"],
 	"pebbling": ["pebbling", "mossback", "boulderback", "standing_stone", "moonstone", "cairn", "rockslide"],
 	"bellflower": ["bellflower", "chime_stone", "lullaby_bell", "dreamcatcher", "great_dreamcatcher", "echo_hollow", "whispering_hollow"],
 	"dewdrop": ["dewdrop", "rain_lily", "monsoon", "mistveil", "morning_fog", "frostfern", "hoarfrost"],
@@ -174,6 +175,13 @@ const ATTACKS := {
 	"sprout": {kind = "projectile", projectile = "spore", point = Vector2i(46, 9)},
 	"bramble": {kind = "pulse", point = Vector2i(31, 46)},
 	"sporeling": {kind = "projectile", projectile = "spore", point = Vector2i(46, 9)},
+	# Branch expansion (2026-10-02): Sporeling C, D, E.
+	"lichenling": {kind = "projectile", projectile = "lichen_flake", point = Vector2i(46, 6)},
+	"old_lichen": {kind = "projectile", projectile = "lichen_flake", point = Vector2i(48, 4)},
+	"brood_cap": {kind = "spawn", projectile = "spore_sprite", point = Vector2i(44, 14)},
+	"hatchery": {kind = "spawn", projectile = "spore_sprite", point = Vector2i(44, 14)},
+	"inkcap": {kind = "projectile", projectile = "ink_drop", point = Vector2i(40, 12)},
+	"deliquescent": {kind = "projectile", projectile = "ink_drop", point = Vector2i(40, 12)},
 	"driftspore": {kind = "projectile", projectile = "spore", point = Vector2i(46, 9)},
 	"puffball": {kind = "projectile", projectile = "spore", point = Vector2i(46, 9)},
 	"bloomcap": {kind = "cloud", point = Vector2i(49, 14)},
@@ -272,7 +280,8 @@ func _init() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT + "projectiles/"))
 	for p: String in ["spore", "pebble", "boulder", "dew_drop", "spark", "light_orb", "sling_stone", "moon_shard",
 			"frost_shard", "sparrow", "wren", "magpie", "starling", "moon_mote", "fairy_ring", "elf_circle",
-			"dream_mote", "lob_stone", "hummingbird", "maple_seed", "autumn_seed", "starling_bird"]:
+			"dream_mote", "lob_stone", "hummingbird", "maple_seed", "autumn_seed", "starling_bird",
+			"lichen_flake", "ink_drop", "spore_sprite"]:
 		_make_projectile(p)
 	_save_projectile_preview()
 	quit()
@@ -4495,6 +4504,245 @@ func _attack_white_stag(canvas: Image, st: Dictionary) -> void:
 
 func _attack_moon_moth(canvas: Image, st: Dictionary) -> void:
 	_flash(canvas, st, Vector2(ATTACKS["moon_moth"].point), Color("#f4f8ff"), MEMORY_GOLD)
+
+
+# --- Branch expansion, Sporeling (tower_design.md "Branch expansion", 2026-10-02) ----------------
+# Lichenling -> Old Lichen (a crust of flat lichen plates, a broad flat cap), Brood Cap -> Hatchery
+# (a cap with tiny spore-sprites clinging to it), Inkcap -> Deliquescent (a tall dripping ink cap).
+
+const LICHEN := ["#5c944c", "#9cc46c", "#d4ec9c"]
+# Ink in the Ink ramp (never the nightmare ramp: a Warden must never read as a nightmare).
+const INK := ["#24243c", "#3c3c5c", "#5c5a78"]
+
+func _spore_fig() -> Dictionary:
+	return _pal("#17174d", "#ed9df2", "#de73e5", "#ba41d9")
+
+# A flat lichen plate: a little uneven disc, lit on top, a darker rim.
+func _lichen_plate(canvas: Image, c: Vector2, r: float, o: Color, mask: Image = null) -> void:
+	var layer := _layer()
+	_ellipse(layer, c, Vector2(r, r * 0.6), _ramp(LICHEN))
+	if mask != null:
+		for y in S:
+			for x in S:
+				if layer.get_pixel(x, y).a > 0.0 and mask.get_pixel(x, y).a == 0.0:
+					layer.set_pixel(x, y, Color(0, 0, 0, 0))
+	_stamp(canvas, layer, o)
+
+# A broad, flat shelf cap (one tier, or two for Old Lichen) with lichen frills along its rim.
+func _shelf_cap(canvas: Image, c: Vector2, w: float, o: Color, tiers: int) -> void:
+	for t in tiers:
+		var cc := c + Vector2(0, -t * 4.0)
+		var ww := w - t * 5.0
+		var cap := _layer()
+		_ellipse(cap, cc, Vector2(ww, 3.2), _ramp(["#7a8a5a", "#a8b880", "#d4e0b0"]))
+		_stamp(canvas, cap, o)
+		var x := cc.x - ww + 2.0
+		while x < cc.x + ww - 1.0:
+			_px(canvas, int(x), int(cc.y) + 2, Color(LICHEN[1]))
+			x += 3.0
+
+func _draw_lichenling(canvas: Image, st: Dictionary) -> void:
+	_lichen_body(canvas, st, false)
+
+func _draw_old_lichen(canvas: Image, st: Dictionary) -> void:
+	_lichen_body(canvas, st, true)
+
+func _lichen_body(canvas: Image, st: Dictionary, old: bool) -> void:
+	# Lichen shelves jut out sideways from its shoulders and arms like bracket fungus (no other
+	# Sporeling branch has a sideways outline), a broad flat shelf cap; Old Lichen is crusted all over,
+	# more and bigger shelves, a two-tier cap and long lichen beards.
+	var dy: int = st.dy
+	var fig := _spore_fig()
+	_draw_waystone(canvas, st, "fairy_ring", old)
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	for p: Vector3 in [Vector3(25, 27, 2.6), Vector3(35, 33, 2.4), Vector3(29, 38, 2.2)]:
+		_lichen_plate(canvas, Vector2(p.x, p.y + (dy if p.y < 30 else 0)), p.z, fig.o, mask)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true)
+	# The shelves: flat half-discs sticking out past the body's edge, in steps down each side.
+	var shelves: Array = [Vector4(13, 20, 7, -1), Vector4(48, 21, 7, 1), Vector4(11, 30, 6, -1), Vector4(51, 31, 6, 1)]
+	if old:
+		shelves.append_array([Vector4(9, 25, 8, -1), Vector4(54, 26, 8, 1), Vector4(14, 37, 5, -1), Vector4(49, 38, 5, 1)])
+	for s: Vector4 in shelves:
+		var shelf := _layer()
+		var c := Vector2(s.x, s.y + (dy if s.y < 30 else 0))
+		_ellipse(shelf, c, Vector2(s.z, 2.4), _ramp(["#7a8a5a", "#a8b880", "#d4e0b0"]))
+		_stamp(canvas, shelf, fig.o)
+		for x in range(int(c.x - s.z) + 2, int(c.x + s.z) - 1, 2):
+			_px(canvas, x, int(c.y) + 1, Color(LICHEN[1]))
+	_shelf_cap(canvas, Vector2(30.5, 5 + dy), 22.0 if old else 18.0, fig.o, 2 if old else 1)
+	if old:
+		for x in [12, 17, 44, 49]:
+			for i in 7 + x % 4:
+				_px(canvas, x, 8 + dy + i, Color(LICHEN[1]) if i % 2 == 0 else Color(LICHEN[0]))
+		for p: Vector3 in [Vector3(10, 45, 3.0), Vector3(54, 44, 2.6)]:
+			_lichen_plate(canvas, Vector2(p.x, p.y), p.z, fig.o)
+	_motes(canvas, st, [16, 46], 18, 12, [Color(LICHEN[2]), Color("#de73e5")])
+
+func _attack_lichenling(canvas: Image, st: Dictionary) -> void:
+	_blow(canvas, st, Color("#ed9df2"), Color("#17174d"), Color(LICHEN[2]))
+	_burst(canvas, Vector2(ATTACKS["lichenling"].point), st.attack, Color(LICHEN[2]), Color(LICHEN[0]), Color("#17174d"))
+
+func _attack_old_lichen(canvas: Image, st: Dictionary) -> void:
+	_blow(canvas, st, Color("#ed9df2"), Color("#17174d"), Color(LICHEN[2]))
+	_burst(canvas, Vector2(ATTACKS["old_lichen"].point), st.attack, Color(LICHEN[2]), Color(LICHEN[0]), Color("#17174d"))
+	if st.attack == RELEASE_FRAME + 1:
+		for p: Vector2i in [Vector2i(10, 4), Vector2i(52, 3)]:
+			_sparkle(canvas, p, Color(LICHEN[2]))
+
+# A tiny spore-sprite: a round pink body, two dot eyes, stubby legs (Brood Cap's brood).
+func _spore_sprite(canvas: Image, p: Vector2, o: Color, f: int, big: bool = false) -> void:
+	var layer := _layer()
+	_ellipse(layer, p, Vector2(2.6, 2.2) * (1.5 if big else 1.0), _ramp(["#c8a8e0", "#f0dcff", "#fff4fc"]))
+	_stamp(canvas, layer, o)
+	_px(canvas, int(p.x) - 1, int(p.y), o)
+	_px(canvas, int(p.x) + 1, int(p.y), o)
+	var leg := 1 if f % 2 == 0 else 0
+	_px(canvas, int(p.x) - 1 - leg, int(p.y + 2.5 * (1.5 if big else 1.0)), o)
+	_px(canvas, int(p.x) + 1 + leg, int(p.y + 2.5 * (1.5 if big else 1.0)), o)
+
+func _draw_brood_cap(canvas: Image, st: Dictionary) -> void:
+	_brood_body(canvas, st, false)
+
+func _draw_hatchery(canvas: Image, st: Dictionary) -> void:
+	_brood_body(canvas, st, true)
+
+func _brood_body(canvas: Image, st: Dictionary, hive: bool) -> void:
+	# A big round brood cap with its spore-sprites riding on top and clinging to the shoulders (a
+	# bumpy outline); Hatchery's cap is a ribbed hive dome and egg piles rise either side of the slab.
+	var dy: int = st.dy
+	var fig := _spore_fig()
+	_draw_waystone(canvas, st, "fairy_ring", hive)
+	if hive:
+		for e: Vector3 in [Vector3(9, 40, 4.2), Vector3(14, 43, 3.6), Vector3(7, 45, 3.2), Vector3(11, 35, 3.2),
+				Vector3(54, 39, 4.0), Vector3(50, 43, 3.4), Vector3(57, 44, 3.0), Vector3(53, 34, 3.0)]:
+			var egg := _layer()
+			_ellipse(egg, Vector2(e.x, e.y), Vector2(e.z, e.z * 0.9), _ramp(["#c8a8e0", "#f0dcff", "#fff4fc"]))
+			_stamp(canvas, egg, fig.o)
+			_px(canvas, int(e.x), int(e.y), Color("#ba41d9"))
+	_draw_template_figure(canvas, st.pose, fig)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), false)
+	var cap := _layer()
+	_ellipse(cap, Vector2(30.5, 8 + dy), Vector2(19.0 if hive else 17.0, 9.0 if hive else 8.0), _ramp(["#8a3aa0", "#c060d0", "#e898f0", "#ffd0ff"]), 10.0 + dy)
+	if hive:
+		for y in S:
+			for x in S:
+				if cap.get_pixel(x, y).a > 0.0 and absi((x - 30) % 5) == 0:
+					cap.set_pixel(x, y, Color("#8a3aa0"))  # its ribs
+	_stamp(canvas, cap, fig.o)
+	var spots: Array = [Vector2(14, 9), Vector2(47, 9), Vector2(15, 19), Vector2(46, 19), Vector2(30, -1)]  # on the cap rim and shoulders
+	if hive:
+		spots.append_array([Vector2(13, 28), Vector2(48, 28), Vector2(22, 0), Vector2(39, 0)])  # down the arms, up the dome
+	for i in spots.size():
+		var p: Vector2 = spots[i] + Vector2(0, dy + (1 if (st.f + i) % 4 == 0 else 0) + 3)
+		_spore_sprite(canvas, p, fig.o, st.f + i, true)
+
+func _attack_brood_cap(canvas: Image, st: Dictionary) -> void:
+	_brood_release(canvas, st, "brood_cap")
+
+func _attack_hatchery(canvas: Image, st: Dictionary) -> void:
+	_brood_release(canvas, st, "hatchery")
+
+# A sprite drops off the cap and scurries out towards the path.
+func _brood_release(canvas: Image, st: Dictionary, key: String) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0:
+		return
+	var p := Vector2(ATTACKS[key].point) + Vector2(k * 4.0, k * 5.0)
+	_spore_sprite(canvas, p, Color("#17174d"), st.attack, key == "hatchery" and k == 0)
+	if k <= 1:
+		_warm_glow(canvas, p, Vector2(6, 5), k)
+
+func _draw_inkcap(canvas: Image, st: Dictionary) -> void:
+	_ink_body(canvas, st, false)
+
+func _draw_deliquescent(canvas: Image, st: Dictionary) -> void:
+	_ink_body(canvas, st, true)
+
+func _ink_body(canvas: Image, st: Dictionary, melt: bool) -> void:
+	# A long inky bell cap hanging down round its face like a hood, ink dripping from its ragged hem
+	# (a tall narrow dark shape, unlike the wide domes of the other branches); Deliquescent's cap has
+	# melted wider, runnels down its sides into a wide ink pool on the slab.
+	var dy: int = st.dy
+	var fig := _spore_fig()
+	_draw_waystone(canvas, st, "fairy_ring", melt)
+	if melt:
+		var pool := _layer()
+		_flat_ellipse(pool, Vector2(31, 47), Vector2(23, 4.5), Color(INK[1]))
+		_stamp(canvas, pool, Color(INK[0]))
+		for p: Vector2i in [Vector2i(14, 46), Vector2i(26, 48), Vector2i(41, 46), Vector2i(50, 47)]:
+			_px(canvas, p.x, p.y, Color(INK[2]))
+	_draw_template_figure(canvas, st.pose, fig)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true)
+	var w: float = 15.0 if melt else 12.0
+	var hem: float = 25.0 if melt else 23.0
+	var top := Vector2(30.5, 0 + dy)
+	var cap := _layer()
+	_flat_polygon(cap, PackedVector2Array([top + Vector2(-2, 0), top + Vector2(2, 0), top + Vector2(w - 3, 7), top + Vector2(w, hem),
+		top + Vector2(w - 6, hem - 2), top + Vector2(w - 7, 10), top + Vector2(-w + 7, 10), top + Vector2(-w + 6, hem - 2), top + Vector2(-w, hem)]), Color(INK[1]))
+	for y in S:
+		for x in S:
+			if cap.get_pixel(x, y).a > 0.0 and x < 30 - (y - top.y) * 0.3:
+				cap.set_pixel(x, y, Color(INK[2]))
+	_stamp(canvas, cap, Color(INK[0]))
+	for i in 4:
+		_px(canvas, 26 + i * 2, int(top.y) + 2 + i, Color("#dce8f4"))  # a sheen down it
+	if melt:
+		# Its hem has melted into two thick streams running down to the pool.
+		var streams := _layer()
+		for side: int in [-1, 1]:
+			var x0: float = 30.5 + side * (w - 1.0)
+			_stroke(streams, [Vector2(x0, hem + dy), Vector2(x0 + side * 2.0, hem + 10 + dy), Vector2(x0 + side * 3.0, 44)], 1.3, Color(INK[1]))
+		_stamp(canvas, streams, Color(INK[0]))
+	# Drips off the hem, longer on Deliquescent.
+	for i in 4:
+		var d := Vector2([20.5, 23.5, 37.5, 40.5][i] + (-2.0 if i < 2 else 2.0) * (w - 10.0) * 0.5, hem + dy + 1)
+		var len: int = (3 + (st.f + i * 3) % 5) if not melt else (8 + (st.f + i * 2) % 10)
+		for j in len:
+			_px(canvas, int(d.x), int(d.y) + j, Color(INK[1]) if j < len - 1 else Color(INK[0]))
+
+func _attack_inkcap(canvas: Image, st: Dictionary) -> void:
+	_burst(canvas, Vector2(ATTACKS["inkcap"].point), st.attack, Color("#dce8f4"), Color(INK[1]), Color(INK[0]))
+
+func _attack_deliquescent(canvas: Image, st: Dictionary) -> void:
+	_burst(canvas, Vector2(ATTACKS["deliquescent"].point), st.attack, Color("#dce8f4"), Color(INK[1]), Color(INK[0]))
+	if st.attack == RELEASE_FRAME + 1:
+		var pool := _layer()
+		_flat_ellipse(pool, Vector2(31, 48), Vector2(24, 4.5), Color(INK[2]))
+		_stamp(canvas, pool)
+
+# Projectiles: a spinning lichen flake (Lichenling), a falling ink drop (Inkcap), and the brood's
+# walking spore-sprite (Brood Cap: 4 walk frames, drawn walking right).
+func _proj_lichen_flake(canvas: Image, f: int) -> void:
+	var a := f * TAU / 8.0
+	var layer := _layer()
+	var pts := PackedVector2Array()
+	for k in 7:
+		var r := 5.0 if k % 2 == 0 else 3.8
+		pts.append(Vector2(32, 32) + Vector2(cos(a + k * TAU / 7.0) * r, sin(a + k * TAU / 7.0) * r * 0.6))
+	_flat_polygon(layer, pts, Color(LICHEN[1]))
+	_stamp(canvas, layer, Color("#1e3a1a"))
+	_px(canvas, 31, 31, Color(LICHEN[2]))
+	_px(canvas, 33, 32, Color(LICHEN[0]))
+	for k in 3:
+		_px_under(canvas, 25 - k * 2, 32 + (k + f) % 2, Color(LICHEN[2], 0.8 - k * 0.2))
+
+func _proj_ink_drop(canvas: Image, f: int) -> void:
+	var layer := _layer()
+	for step in 14:
+		var t := step / 13.0
+		var rr := 4.2 * pow(1.0 - t, 1.2)
+		if rr >= 0.5:
+			_flat_ellipse(layer, Vector2(35 - t * 11, 32), Vector2(rr, rr), Color(INK[1]))
+	_stamp(canvas, layer, Color(INK[0]))
+	_px(canvas, 36, 30, Color("#dce8f4"))
+	_px(canvas, 37, 31, Color(INK[2]))
+	for k in 2:
+		_px_under(canvas, 22 - k * 3, 33 + (k + f) % 2, Color(INK[1], 0.7))
+
+func _proj_spore_sprite(canvas: Image, f: int) -> void:
+	var bob: float = [0.0, -1.0, 0.0, -1.0][f]
+	_spore_sprite(canvas, Vector2(32, 32 + bob) , Color("#17174d"), f, true)
+	_px(canvas, 36, 31 + int(bob), Color("#f7c8fa"))
 
 # --- Nurture ranks (warden_stats.md "Ranks: Nurture") -----------------------------------------
 # Every Warden stands on the same waystone slab (the mock's), so rank art is drawn once and layered
