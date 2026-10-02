@@ -66,7 +66,7 @@ static func process(tower: Tower, delta: float) -> bool:
 			_update_silence(tower, delta)
 		CLOUD:
 			if is_final(tower):
-				_update_cloudburst(tower, delta)
+				_update_cloud_drift(tower, delta)
 	return false
 
 # Whether an attack now would do anything (null = the normal rule).
@@ -149,11 +149,11 @@ static func _hatch(tower: Tower) -> void:
 
 # --- Cloudlet / Nimbus: a rain cloud over a 3×3 anywhere in range ------------------------------------------------
 
-static func _rain(tower: Tower) -> void:
+# The busiest spot in range: the cell of the nightmare with the most others within 1.5 cells (null if none).
+static func _densest(tower: Tower):
 	var targets := tower.get_enemies_in_range()
 	if targets.is_empty():
-		return
-	# The busiest spot: the nightmare with the most others within 1 cell.
+		return null
 	var best: Node2D = targets[0]
 	var most := -1
 	for e in targets:
@@ -161,40 +161,43 @@ static func _rain(tower: Tower) -> void:
 		if n > most:
 			most = n
 			best = e
-	var at := Tower.MAP_GRID.calculate_map_position(Tower.MAP_GRID.calculate_grid_coordinates(best.global_position))
+	return Tower.MAP_GRID.calculate_map_position(Tower.MAP_GRID.calculate_grid_coordinates(best.global_position))
+
+static func _rain(tower: Tower) -> void:
+	var at = _densest(tower)
+	if at == null:
+		return
 	var zone := GroundZone.new(tower, &"rain", at, 1.5 * CELL, p(tower, "cloud_time", 4.0), 0.5)
 	zone.square = true
 	zone.hits_flyers = true
 	zone.damage_per_second = p(tower, "dps", 12.0)
 	zone.status = EnemyStatuses.DAMP
-	# Eye of the Storm (a): its rain draws nightmares in gently, a short eddy pause under it (never backward).
-	zone.pause = 0.3 * tower.kin_share(EYE_OF_THE_STORM, "a")
+	# Eye of the Storm (a): nightmares under its cloud are linked at 10% (tower_design.md "Branch review").
+	var eye := tower.kin_share(EYE_OF_THE_STORM, "a")
+	if eye > 0.0:
+		zone.link_share = 0.10 * eye
+		zone.link_max = 6
 	world(tower).add_child(zone)
 
-static func _nearest_index(route: PackedVector2Array, at: Vector2) -> int:
-	var best := -1
-	var best_d := INF
-	for i in route.size():
-		var d := Tower.MAP_GRID.calculate_map_position(route[i]).distance_to(at)
-		if d < best_d:
-			best_d = d
-			best = i
-	return best
-
-static func _update_cloudburst(tower: Tower, delta: float) -> void:
-	var left := float(tower.get_meta(&"cloudburst", p(tower, "cloudburst_every", 10.0))) - delta
+# Nimbus (tower_design.md "Branch review"): every 4 s its clouds drift to the densest 3×3 in range, the Cloudburst
+# sweeping along the way and Soaking what they pass.
+static func _update_cloud_drift(tower: Tower, delta: float) -> void:
+	var left := float(tower.get_meta(&"cloud_drift", p(tower, "drift_every", 4.0))) - delta
 	if left > 0.0:
-		tower.set_meta(&"cloudburst", left)
+		tower.set_meta(&"cloud_drift", left)
 		return
-	tower.set_meta(&"cloudburst", p(tower, "cloudburst_every", 10.0))
-	var reach := p(tower, "cloudburst_range", 4.0) * CELL
-	for e in targetable(tower):
-		if e.global_position.distance_to(tower.global_position) <= reach:
-			tower._apply_one_status(e, EnemyStatuses.DAMP, 1, tower.get_damage())  # Cloudburst: Soaked refreshed
-	Fx.play(&"rain_sweep", tower.global_position, world(tower), reach / (1.5 * CELL))  # Cloudburst: rain sweeps out over the range
+	tower.set_meta(&"cloud_drift", p(tower, "drift_every", 4.0))
+	var to = _densest(tower)
+	if to == null:
+		return
+	for zone in world(tower).get_children():
+		if zone is GroundZone and zone.tower == tower and zone.kind == &"rain" and not zone.is_queued_for_deletion():
+			zone.drift_to(to)
 
-# --- Undercurrent / Maelstrom: a whirlpool that gathers --------------------------------------------------------
+# --- Undercurrent / Maelstrom: a whirlpool that links ------------------------------------------------------------
 
+# The whirlpool (tower_design.md "Branch review"): every nightmare in it is linked, and a share of any hit on one
+# reaches each other linked one. Maelstrom's also Soaks, and a Charged bolt on a linked one travels the current.
 static func _whirl(tower: Tower) -> void:
 	var route := tower._route()
 	var best := Vector2(-1, -1)
@@ -212,15 +215,37 @@ static func _whirl(tower: Tower) -> void:
 		return
 	var zone := GroundZone.new(tower, &"whirlpool", Tower.MAP_GRID.calculate_map_position(best), radius * CELL,
 		p(tower, "duration", 3.0), 0.25)
-	zone.damage_per_second = p(tower, "dps", 10.0)
-	zone.pause = p(tower, "pause", 0.8)  # Maelstrom: 1.2 s (Balancing)
+	zone.damage_per_second = p(tower, "dps", 14.0)
+	zone.link_share = p(tower, "link_share", 0.25)
+	zone.link_max = int(p(tower, "link_max", 6))
+	if is_final(tower):
+		zone.bolt_share = p(tower, "bolt_share", 0.5)
 	# Maelstrom Soaks; Eye of the Storm (b): the whirlpool is rained on.
 	if is_final(tower) or tower.kin_share(EYE_OF_THE_STORM, "b") > 0.0:
 		zone.status = EnemyStatuses.DAMP
 	world(tower).add_child(zone)
 
-# --- Jetreed / Torrent: an instant piercing jet ------------------------------------------------------------------
+const LINK_META := &"tide_link"  # On a linked nightmare: the GroundZone that links it
 
+# Tower.hit, after `dealt` landed on `enemy`: a linked nightmare shares it with the others in its current. Effect
+# damage: no crit, no on-hit, never shared again, never a Reaction.
+static func share_hit(enemy: Node2D, dealt: float, tower: Tower) -> void:
+	var zone = enemy.get_meta(LINK_META, null)
+	if not is_instance_valid(zone) or not zone.linked.has(enemy) or zone.link_share <= 0.0:
+		return
+	zone.share(enemy, dealt * zone.link_share, tower.tower_data.line, tower)
+
+# Reactions.strike_bolt: Maelstrom's current carries a Charged bolt to every other linked nightmare at half.
+static func share_bolt(enemy: Node2D, damage: float, source: Node) -> void:
+	var zone = enemy.get_meta(LINK_META, null) if is_instance_valid(enemy) else null
+	if not is_instance_valid(zone) or not zone.linked.has(enemy) or zone.bolt_share <= 0.0:
+		return
+	zone.share(enemy, damage * zone.bolt_share, "light", source)
+
+# --- Jetreed / Torrent: erosion -----------------------------------------------------------------------------------
+
+# A jet (tower_design.md "Branch review"): its target takes the small hit plus a share of its max health (bosses
+# less); the jet carries on down the line with the small hit only. Torrent's Flood trail as before.
 static func _jet(tower: Tower) -> void:
 	var target := tower.find_target()
 	if target == null:
@@ -228,16 +253,17 @@ static func _jet(tower: Tower) -> void:
 	var from := tower.global_position
 	var dir := (target.global_position - from).normalized()
 	var length := p(tower, "length", 6.0) * CELL
-	var soaked_bonus := p(tower, "vs_soaked", 0.5)
+	var share := p(tower, "erosion_boss", 0.005) if target.enemy_data.is_boss else p(tower, "erosion", 0.02)
+	var erosion := float(target.max_health) * share
+	tower.hit(target, 1.0 + erosion / maxf(tower.get_damage(), 1.0))  # The small hit plus the erosion
 	for e in targetable(tower):
-		if e.is_flying():
+		if e == target or e.is_flying():
 			continue
 		var rel: Vector2 = e.global_position - from
 		var along := rel.dot(dir)
 		if along < 0.0 or along > length or absf(rel.cross(dir)) > CELL * 0.45:
 			continue
-		var mult := 1.0 + (soaked_bonus if e.statuses.has(EnemyStatuses.DAMP) else 0.0)
-		tower.hit(e, mult)
+		tower.hit(e, 1.0)  # Down the line: the small hit only
 	Fx.segment(&"water_jet", from, from + dir * length, world(tower), 0.25)
 	if is_final(tower):  # Flood: a 3-tile wet trail where the jet met the path
 		var cells: Array[Vector2] = []
@@ -552,10 +578,19 @@ class GroundZone extends Node2D:
 	var damage_per_second := 0.0
 	var status: StringName = &""
 	var status_stacks := 1
-	# The eddy (tower_design.md 9fcb8cdf): a nightmare reaching it stops for this many seconds, a plain pause (not
-	# Held; Enemy.hold_time), once per nightmare per zone, bosses half; the ones behind catch up. Never backward.
-	var pause := 0.0
-	var _paused := {}  # Enemy instance ids already paused here
+	# The current (tower_design.md "Branch review"): the nightmares inside are linked (up to link_max, nearest the
+	# centre first); link_share of a hit on one reaches each other one (BranchKit.share_hit), bolt_share of a Charged
+	# bolt (Maelstrom). Water threads join them, pulsing when a hit is shared.
+	var link_share := 0.0
+	var link_max := 6
+	var bolt_share := 0.0
+	var linked: Array = []
+	var _pulse := 0.0
+	# Nimbus: the cloud drifts to a new spot (drift_to), Soaking what it passes.
+	var _drift_from := Vector2.ZERO
+	var _drift_to := Vector2.ZERO
+	var _drift_t := -1.0
+	const DRIFT_TIME := 0.6
 	var _next := 0.0
 	var _duration := 3.0
 
@@ -590,17 +625,55 @@ class GroundZone extends Node2D:
 		if left <= 0.0 or not is_instance_valid(tower):
 			queue_free()
 			return
+		if _drift_t >= 0.0:
+			_drift_t = minf(_drift_t + delta / DRIFT_TIME, 1.0)
+			global_position = _drift_from.lerp(_drift_to, 1.0 - pow(1.0 - _drift_t, 2.0))
+			if _drift_t >= 1.0:
+				_drift_t = -1.0
+		_pulse = maxf(_pulse - delta, 0.0)
 		_next -= delta
 		if _next <= 0.0:
 			_next += tick
 			_tick()
 		queue_redraw()
 
+	func _exit_tree() -> void:
+		for e in linked:
+			if is_instance_valid(e) and e.get_meta(BranchKit.LINK_META, null) == self:
+				e.remove_meta(BranchKit.LINK_META)
+		linked = []
+
+	# Nimbus: drift to `to` (the Cloudburst sweeping along, Soaking every nightmare within a cell of the way).
+	func drift_to(to: Vector2) -> void:
+		if to.distance_to(global_position) < 1.0:
+			return
+		_drift_from = global_position
+		_drift_to = to
+		_drift_t = 0.0
+		var seg := to - global_position
+		for e in BranchKit.targetable(tower):
+			var t := clampf((e.global_position - global_position).dot(seg) / maxf(seg.length_squared(), 1.0), 0.0, 1.0)
+			if e.global_position.distance_to(global_position + seg * t) <= CELL:
+				tower._apply_one_status(e, EnemyStatuses.DAMP, 1, tower.get_damage())
+		for i in 3:
+			Fx.play(&"rain_sweep", global_position + seg * (i / 2.0), get_parent(), 1.0)
+
+	# Shares `amount` from `from` with every other linked nightmare (effect damage, tagged "linked").
+	func share(from: Node2D, amount: float, line: String, source: Node) -> void:
+		if amount <= 0.0:
+			return
+		_pulse = 0.3
+		for other in linked:
+			if other != from and is_instance_valid(other) and not other.is_cleansed:
+				other.take_damage(amount, line, true, false, source, &"linked")
+
 	func _inside(e: Node2D) -> bool:
 		var d: Vector2 = (e.global_position - global_position).abs()
 		return (maxf(d.x, d.y) <= radius) if square else (e.global_position.distance_to(global_position) <= radius)
 
 	func _tick() -> void:
+		if link_share > 0.0:
+			_relink()
 		for e in BranchKit.targetable(tower):
 			if (e.is_flying() and not hits_flyers) or not _inside(e):
 				continue
@@ -610,11 +683,27 @@ class GroundZone extends Node2D:
 				continue
 			if status != &"":
 				tower._apply_one_status(e, status, status_stacks, tower.get_damage())
-			if pause > 0.0 and not e.is_flying() and not _paused.has(e.get_instance_id()):
-				_paused[e.get_instance_id()] = true
-				e.hold_time = maxf(e.hold_time, pause * (0.5 if e.enemy_data.is_boss else 1.0))  # It spins in the eddy
+
+	# The nightmares inside now (walkers; flyers too under a rain cloud), nearest the centre first, up to link_max.
+	func _relink() -> void:
+		var inside := BranchKit.targetable(tower).filter(func(e) -> bool:
+			return (hits_flyers or not e.is_flying()) and _inside(e))
+		inside.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(global_position) < b.global_position.distance_squared_to(global_position))
+		var now := inside.slice(0, link_max)
+		for e in linked:
+			if is_instance_valid(e) and not now.has(e) and e.get_meta(BranchKit.LINK_META, null) == self:
+				e.remove_meta(BranchKit.LINK_META)
+		for e in now:
+			e.set_meta(BranchKit.LINK_META, self)
+		linked = now
 
 	func _draw() -> void:
+		# Water threads between linked nightmares, brighter while a hit is shared.
+		if linked.size() > 1:
+			var thread := Color(Palette.DEWLIGHT, 0.35 + 0.5 * (_pulse / 0.3))
+			for i in range(1, linked.size()):
+				if is_instance_valid(linked[i - 1]) and is_instance_valid(linked[i]):
+					draw_line(linked[i - 1].global_position - global_position, linked[i].global_position - global_position, thread, 1.5)
 		if _art:
 			return  # The sheet shows it
 		var fade := clampf(left / 0.5, 0.0, 1.0)
@@ -746,6 +835,8 @@ class SilenceWatch extends Node:
 			if is_instance_valid(f) and not f.is_cleansed and not f.lost:
 				f.set_lost()
 				lost.append(f)
+		if not leaders.has(leader.get_instance_id()):
+			_dark_art(leader, true)  # Its lantern goes dark (Enemy Assets' <kind>_silenced frames)
 		leaders[leader.get_instance_id()] = [leader, lost]
 
 	func _process(delta: float) -> void:
@@ -770,7 +861,21 @@ class SilenceWatch extends Node:
 				if is_instance_valid(f) and not f.is_cleansed:
 					f.lost = false  # The lantern lights again: they find the way
 					f._speed_stale = true
+			_dark_art(leader, false)
 			leaders.erase(id)
+
+	# The lantern-off look while silenced: `<frames>_silenced.tres` beside the nightmare's own frames, swapped 1:1.
+	func _dark_art(leader: Node2D, dark: bool) -> void:
+		var own: SpriteFrames = leader.enemy_data.sprite_frames
+		if own == null or not leader.has_method("_swap_frames"):
+			return
+		if not dark:
+			leader._swap_frames(own)
+			return
+		var path := own.resource_path.get_basename() + "_silenced.tres"
+		var dark_frames: SpriteFrames = load(path) if ResourceLoader.exists(path) else null
+		if dark_frames != null:
+			leader._swap_frames(dark_frames)
 
 	func is_darkened(leader: Node2D) -> bool:
 		return leaders.has(leader.get_instance_id())

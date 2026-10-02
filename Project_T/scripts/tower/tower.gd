@@ -1624,6 +1624,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var damage_line := "light" if _resonance() else tower_data.line  # Resonance: Chime Stone pulses count as lightning
 	var health_before: int = enemy.health
 	enemy.take_damage(dealt, damage_line, is_area, is_crit, self, combo)
+	if enemy.has_meta(BranchKit.LINK_META):
+		BranchKit.share_hit(enemy, dealt, self)  # Undercurrent's current: a share reaches the other linked nightmares
 	if _dream_state and not is_area and _has_rule(&"momentum"):
 		GroveRules.note_hit(self, enemy)  # Momentum: a streak on one nightmare
 	if _dream_state and is_area and combo != &"spillover" and enemy.is_cleansed and _has_rule(&"spillover"):

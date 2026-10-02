@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_jetreed"
 display_name = "Jetreed"
-description = "Dewdrops can now grow into Jetreeds (120 Dew): an instant jet through a line, harder on {damp} nightmares."
+description = "Dewdrops can now grow into Jetreeds (120 Dew): an erosion jet that wears down a share of its target's max health."
 rarity = 1
 kind = 1
 tags = Array[String](["water"])

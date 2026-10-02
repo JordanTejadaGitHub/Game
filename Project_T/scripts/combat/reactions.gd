@@ -407,6 +407,8 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 		var at := target.global_position
 		var tracker := ReactionTracker.find(target) if tag == &"static" else null  # Found first: the bolt may dispel it
 		target.take_damage(damage, "light", false, false, tower, tag)
+		if tag == &"static" and is_instance_valid(target) and target.has_meta(BranchKit.LINK_META):
+			BranchKit.share_bolt(target, damage, tower)  # Maelstrom: the bolt travels the current
 		if tag == &"static":
 			var reach := _static_field(target, at, damage, tower)
 			_bolt_seen(target, at, damage, reach, tracker)

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_undercurrent"
 display_name = "Undercurrent"
-description = "Dewdrops can now grow into Undercurrents (120 Dew): a whirlpool where each nightmare spins a moment, so they bunch up."
+description = "Dewdrops can now grow into Undercurrents (120 Dew): a whirlpool that links the nightmares in it, sharing a part of every hit."
 rarity = 1
 kind = 1
 tags = Array[String](["water"])

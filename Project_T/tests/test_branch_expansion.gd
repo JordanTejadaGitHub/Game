@@ -183,25 +183,25 @@ func _test_dewdrop() -> void:
 		_check(flyer.health < fly_hp, "…a flyer over it too")
 	await _clean()
 
-	# Undercurrent (tower_design.md 9fcb8cdf): a nightmare reaching the whirlpool pauses in the eddy, once, never
-	# moved backward; a boss pauses half as long.
+	# Undercurrent (tower_design.md "Branch review"): the whirlpool links the nightmares in it; 25% of a hit on one
+	# reaches each other one (effect damage, never shared again); nightmares outside aren't linked.
 	var pool := _plant("undercurrent", _route_cell(9) + Vector2(0, 1))
 	var route := pool._route()
-	var spinner = _spawn(route[9])
-	var boss = _spawn(route[9], "res://resource/enemy/old_stag.tres")
+	var struck = _spawn(route[9])
+	var partner = _spawn(route[9])
+	var outside = _spawn(route[16])
 	BranchKit.release(pool)  # It opens where the nightmares are
-	var start: Vector2 = spinner.global_position
 	for i in 20:
 		await process_frame
-	var pause := BranchKit.p(pool, "pause", 0.8)
-	_check(spinner.hold_time > 0.0 and spinner.hold_time <= pause and spinner.global_position == start and not spinner.is_dragged(),
-		"a nightmare reaching the whirlpool pauses in place, not dragged (%.2f s)" % spinner.hold_time)
-	if boss:
-		_check(boss.hold_time > 0.0 and boss.hold_time <= pause * 0.5 + 0.01, "a boss pauses half as long (%.2f s)" % boss.hold_time)
-	spinner.hold_time = 0.0
-	for i in 20:
-		await process_frame
-	_check(spinner.hold_time == 0.0, "only once per nightmare per whirlpool")
+	var partner_before: int = partner.health
+	var outside_before: int = outside.health
+	var probe := _plant("sporeling", Vector2(2, 2))
+	await process_frame
+	probe.hit(struck, 10.0, false, Tower.NO_CRIT)
+	var shared: int = partner_before - partner.health
+	_check(shared > 0 and outside.health == outside_before, "Undercurrent: a hit on a linked nightmare is shared with the other (%d), not outside" % shared)
+	var zone = struck.get_meta(BranchKit.LINK_META, null)
+	_check(zone != null and zone.linked.size() == 2 and is_equal_approx(zone.link_share, 0.25), "the whirlpool links the 2 inside at 25%")
 	await _clean()
 
 	# A silenced Lantern Bearer's Wraiths are lost; they find the way when the silence ends.
@@ -214,22 +214,26 @@ func _test_dewdrop() -> void:
 		w.set_process(false)
 	BranchKit.silence(bearer, 1.0, hush)
 	_check(not wraiths.is_empty() and wraiths.all(func(w) -> bool: return w.lost), "a silenced Lantern Bearer's Wraiths are lost (%d)" % wraiths.size())
+	_check(bearer.sprite.sprite_frames.resource_path.ends_with("_silenced.tres"), "…and its lantern goes dark (the silenced frames)")
 	bearer.statuses.silence_time = 0.0
 	for i in 30:
 		await process_frame
 	_check(wraiths.all(func(w) -> bool: return not w.lost), "…and find the way again when the silence ends")
+	_check(bearer.sprite.sprite_frames == bearer.enemy_data.sprite_frames, "…its lantern lit again")
 	await _clean()
 
 
-	# Jetreed: an instant jet through a line, +50% on a Soaked nightmare.
+	# Jetreed (tower_design.md "Branch review"): erosion: its target loses 2% of its max health per hit on top of the
+	# small hit; the jet carries on down the line with the small hit only.
 	var jet := _plant("jetreed", Vector2(4, 12))
-	var dry = _spawn(Vector2(6, 12))
-	var wet = _spawn(Vector2(7, 12))
-	wet.apply_status(EnemyStatuses.DAMP)
+	var aim = _spawn(Vector2(6, 12))
+	var beyond = _spawn(Vector2(7, 12))
+	jet.target_chosen = true
+	jet.target_mode = TowerData.TargetMode.CLOSEST
 	BranchKit.release(jet)
-	var dry_lost: int = dry.max_health - dry.health
-	var wet_lost: int = wet.max_health - wet.health
-	_check(dry_lost > 0 and wet_lost > dry_lost, "Jetreed's jet pierces the line, harder on the Soaked one (%d vs %d)" % [wet_lost, dry_lost])
+	var aim_lost: int = aim.max_health - aim.health
+	var beyond_lost: int = beyond.max_health - beyond.health
+	_check(beyond_lost > 0 and aim_lost > beyond_lost + int(aim.max_health * 0.015), "Jetreed: the target loses ~2%% of its max health, the line only the small hit (%d vs %d)" % [aim_lost, beyond_lost])
 	await _clean()
 
 # --- Firefly Jar: Jarlink, Prism Jar, Sparkler ------------------------------------------------------------------
@@ -315,12 +319,23 @@ func _test_finals() -> void:
 	_check(field.ink_at(cell), "Deliquescent: a dispelled Poisoned nightmare leaves an ink pool")
 	await _clean()
 
-	# Nimbus: Cloudburst refreshes Soaked on everything within 4.
+	# Nimbus (tower_design.md "Branch review"): every 4 s its clouds drift to the busiest spot in range, leaving
+	# what they pass Soaked.
 	var nimbus := _plant("nimbus", Vector2(6, 10))
-	var wetted = _spawn(Vector2(9, 10))
-	nimbus.set_meta(&"cloudburst", 0.01)
+	var crowd_a = _spawn(Vector2(8, 10))
+	BranchKit.release(nimbus)
+	var cloud = main.get_children().filter(func(n) -> bool: return n is BranchKit.GroundZone and n.kind == &"rain").front()
+	var start: Vector2 = cloud.global_position
+	crowd_a.queue_free()
+	await process_frame
+	var crowd := [_spawn(Vector2(6, 13)), _spawn(Vector2(6, 13)), _spawn(Vector2(6, 13))]
+	var passed = _spawn(Vector2(7, 11.5))
+	nimbus.set_meta(&"cloud_drift", 0.01)
 	BranchKit.process(nimbus, 0.1)
-	_check(wetted.statuses.has(EnemyStatuses.DAMP), "Nimbus: Cloudburst Soaks everything within 4")
+	for i in 50:
+		await process_frame
+	_check(cloud.global_position.distance_to(start) > 32.0, "Nimbus: the cloud drifts to the busiest spot")
+	_check(passed.statuses.has(EnemyStatuses.DAMP), "…Soaking what it passes")
 	await _clean()
 
 	# Torrent: the jet leaves a wet trail on the path.
