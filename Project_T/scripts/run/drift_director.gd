@@ -59,7 +59,7 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 # Block finales (spire_difficulty.md, Slay the Spire's elite fights): the last drift of every block
 # (not a boss drift) gets this many guaranteed Deeply Blighted, by the drift they start from
 # ({start drift: count}; the highest start at or below the drift wins). Replaces the rule above there.
-@export var block_finale_elites := {10: 1, 30: 2, 60: 3}
+@export var block_finale_elites := {10: 2, 30: 3, 60: 4}  # Was {10: 1, 30: 2, 60: 3}: drifts 10 / 15 cost the bot nothing
 
 # The guaranteed elites for drift `number` if it's a block finale (0 before the first start), else -1.
 func get_block_finale_elites(number: int) -> int:
@@ -85,7 +85,7 @@ func get_block_finale_elites(number: int) -> int:
 # evenly to `act1_health_multiplier` at `act1_ramp_to` and holding to the act's end; act 2 holds that
 # for its first drifts (a breather while the first finals arrive) until `early_ramp_from`, then rises
 # evenly to `early_acts_health_multiplier` at `early_ramp_to`, held until acts 3–4 take over (no stacking).
-@export var act1_health_multiplier: float = 1.35  # Spire (spire_difficulty.md 3bdf9969): was 1.15
+@export var act1_health_multiplier: float = 1.25  # Spire: pressure moved into the block finales (was 1.35; main 1.15)
 @export var act1_ramp_from: int = 3  # Spire: the ramp starts at drift 3 (was 9)
 @export var act1_ramp_to: int = 20
 @export var early_acts_health_multiplier: float = 4.5  # Act 2 ends at this ("Human run 7"; was 3.6, 3.0, 2.5, 1.55)
