@@ -610,6 +610,15 @@ Meta Game Discussion → Meta Game Code. The first pick now offers 3 of 4 (Spore
 Also (user): **the first family pick gives 1 Dreamlight, not 2**, so act 1 gets one branch and no final
 before the boss (+4). Both make act 1 a little harder; act 1 re-baseline once they land.
 
+## Route profiles in the run history (user, 2026-10-01)
+
+User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
+Requested from Main Merger: `dispels_by_progress` (kills + health per 0.1 of route progress, plus
+leaked, per block), `invested_by_progress` (Wardens' Dew spread over the route cells they cover, at
+each rest) and `heart_share` (Dew within 3 cells of the Heartwood), with report lines and, if cheap, a
+heat-map PNG. The bot logs the same. Reads: front-loaded vs last-ditch builds, where leaks slip
+through, and whether a kill zone pays for its Dew.
+
 **Finals probe** (`tools/balance_finals.gd`, ≥ 144d371b, drifts 61–65, 4 copies in the same spots +
 8 fixed finals, rank IV Power, no Dreams, 3 map seeds): per Warden over 5 drifts, **Dreamshroom
 ~319k vs Puffball ~154k, Morning Fog ~137k, Mistveil (branch) ~51k**; at the same 1,090 Dew,
