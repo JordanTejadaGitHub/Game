@@ -203,3 +203,8 @@ full game (`game/demo` false), and the demo reads main's exports.
   18 gifts are drawable: Heartwood's Gifts playable.** Exact-resume save hooks pending with Main Merger.
 - 2026-10-02: resume + exit-crash fixes for gifts in 8cf3ff1b (Main Merger); the gift offer is now the
   full 3 from 18.
+- 2026-10-02: **Grove cap measured** (0919b032, full profile, 20 seeds; the first batch was void, as
+  parallel sims shared a profile file): full carried loadout (Sidegrade mode) **+15 points** act 1 boss
+  survival (55% vs 40%) and **+3.5 drifts** (26.1 vs 22.6) over no perks: the top edge of the +10–15
+  band. **No trim.** Power perks came out at 50% / 24.8 (not separable from Sidegrade at 20 seeds).
+  No cell reaches 50. Re-measure if a perk changes.
