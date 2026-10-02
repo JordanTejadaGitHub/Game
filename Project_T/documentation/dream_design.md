@@ -108,7 +108,7 @@ offered cards to the run history.
 | ✎ Wildfire Spores (U) | Ignite spreads 2 Poisoned within 1.5 cells | spreads 2 Poisoned within 1.5 cells, **and the burning nightmare loses its own Poisoned** | trade: spread vs depth |
 | ✎ Mushroom Rain (U) | Mushrooming cloud ×2 duration and the 8 tiles around | covers the 8 tiles around, **but lasts half as long** | shape: wide vs long |
 | ✎ Deep Water (U) | Drown 4 s, damage +50% faster | Drown 4 s, damage +50% faster, **only within 5 cells of the Heartwood** | condition: last stand |
-| ✎ Quick Reactions (R) | Reaction cooldowns 1.5 → 0.75 s | cooldowns 0.75 s, **but Reactions deal 25% less** | trade: often vs big |
+| ✎ Quick Reactions (R) | Reaction cooldowns 1.5 → 0.75 s | cooldowns 0.75 s, **but Reactions deal 35% less** (was 25%: Balancing Discussion, 2× as often × 0.75 was still +50% output; × 0.65 ≈ +30%) | trade: often vs big |
 | ✎ Conductive Soil (R) | lightning jumps to every Soaked nightmare in range | jumps to every Soaked nightmare, **and each jump uses up that nightmare's Soaked** | trade: one burst vs steady |
 | ✎ Charged Bloom (R) | Stormcap chains add 1 Drowsy | chains add 1 Drowsy, **but jump 1 fewer time** | trade: sleep vs reach |
 | ✎ Starlit Aim (R) | Marked: +25% crit chance from every Warden | +25% crit chance on Marked, **and a crit uses up the Mark** | trade: burst vs sustain |
