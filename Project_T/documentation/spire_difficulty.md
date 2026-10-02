@@ -248,3 +248,6 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: **Phase 6 built** (Tower Code): generic Kin 50dbcb28, BranchKit 75f378f3 / e05bdd81, the 12
   branches + 12 finals + named pairs ab455f24, tests 991f5553. Numbers live in each `.tres`
   (`special_params`). **Branch expansion playable**; branch probe queued.
+- 2026-10-02: **Undercurrent / Maelstrom: an eddy pause instead of a draw** (Tower Discussion 9fcb8cdf;
+  the draw was Rootling's job): a nightmare reaching the whirlpool pauses **0.8 s / 1.2 s** (bosses
+  half), once per nightmare per whirlpool. Replaces 0.6 / 0.9 tiles/s.
