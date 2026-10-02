@@ -72,10 +72,14 @@ func _run() -> void:
 	open_button.mouse_entered.emit()
 	_check(placer.is_previewing_growth() and placer._grow_preview == [[spore, open_form]],
 		"hovering an unlocked form's Grow button shows its ring and ghost")
+	# Windowed playtest bug: the placer was hidden outside build mode, so the preview never drew.
+	_check(not placer.build_mode and placer.is_visible_in_tree() and is_equal_approx(spore.sprite.modulate.a, TowerPlacer.PREVIEW_FADE),
+		"outside build mode the preview is drawn (placer visible) and the Warden fades under the ghost")
 	_check(open_button.tooltip_text.contains(open_form.display_name + ":") and open_button.tooltip_text.contains("→"),
 		"its tooltip names the form and its changes (%s)" % open_button.tooltip_text.get_slice("\n", 0))
 	open_button.mouse_exited.emit()
 	_check(not placer.is_previewing_growth(), "pointer off: the preview goes")
+	_check(not placer.visible and is_equal_approx(spore.sprite.modulate.a, 1.0), "and the placer hides again, the Warden back to full")
 	dreams.unlocked.erase(open_form.get_id())
 
 	# Unlocked: holding E previews (held signal), letting go grows into the 2nd option.
@@ -123,6 +127,13 @@ func _run() -> void:
 		var named: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool:
 			return b.text.begins_with("Grow into %s" % into.display_name) and b.text.ends_with("(%s)" % key_name))
 		_check(sprout_options.size() >= 2 and named.size() == 1, "the %s button names %s (%d options)" % [key_name, into.display_name, sprout_options.size()])
+		# A Sprout's family Wardens preview too (user: "it helps decide which Warden to grow into, if the range fits").
+		if named.size() == 1:
+			named[0].mouse_entered.emit()
+			_check(placer._grow_preview == [[sprout, into]] and placer.is_visible_in_tree()
+				and is_equal_approx(sprout.sprite.modulate.a, TowerPlacer.PREVIEW_FADE),
+				"hovering Grow into %s on a Sprout shows its range and ghost" % into.display_name)
+			named[0].mouse_exited.emit()
 		var price: int = sprout.get_grow_cost(into).total
 		var dew_before := run_state.dew
 		_press(seller, [KEY_Q, KEY_E][index])

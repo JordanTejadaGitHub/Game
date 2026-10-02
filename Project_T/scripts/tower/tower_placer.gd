@@ -176,7 +176,7 @@ func set_build_mode(active: bool) -> void:
 		cancel_stroke()
 	build_mode = active
 	Tower.set_badges_visible(&"build", active)  # Card badges show in build mode
-	visible = active
+	_update_visible()
 	_hover_cell = NO_CELL
 	build_mode_changed.emit(active)
 
@@ -368,15 +368,42 @@ var _grow_preview_time := 0.0
 func show_grow_preview(pairs: Array) -> void:
 	_grow_preview = pairs.filter(func(p: Array) -> bool: return is_instance_valid(p[0]) and is_form_open(p[1]))
 	_grow_preview_time = 0.0
-	queue_redraw()
+	_fade_previewed()
+	_update_visible()
 
 func hide_grow_preview() -> void:
 	if not _grow_preview.is_empty():
 		_grow_preview = []
-		queue_redraw()
+		_fade_previewed()
+		_update_visible()
+
+# While previewed, the Warden itself fades back so the new form's ghost over it reads (windowed check: at
+# full strength the two sprites blended into one).
+const PREVIEW_FADE := 0.3
+var _faded: Array = []
+
+func _fade_previewed() -> void:
+	for tower in _faded:
+		if is_instance_valid(tower) and tower.sprite:
+			tower.sprite.modulate.a = 1.0
+	_faded = []
+	for pair in _grow_preview:
+		var tower: Tower = pair[0]
+		if tower.sprite and pair[1].footprint <= tower.get_footprint():  # A 2×2 form shows squares, no ghost
+			tower.sprite.modulate.a = PREVIEW_FADE
+			_faded.append(tower)
 
 func is_previewing_growth() -> bool:
 	return not _grow_preview.is_empty()
+
+# Shown in build mode, while choosing a 2×2 form's square, and while a Warden panel preview is up (grow,
+# rank, catch: those come outside build mode; user "hovering Grow into doesn't preview"). The route line
+# is build mode's and the square choice's only.
+func _update_visible() -> void:
+	visible = build_mode or is_choosing_square() or not _grow_preview.is_empty() or not _rank_preview.is_empty() \
+		or not _catch_preview.is_empty()
+	_path_preview.visible = build_mode or is_choosing_square()
+	queue_redraw()
 
 # Nurture range preview (user: "hovering Nurture range should show the range it would go into"): while the
 # Nurture button or a rank choice is pointed at, each Warden that would rank shows its current range faint
@@ -388,12 +415,12 @@ func show_rank_preview(towers: Array, focus: Tower.Focus = Tower.Focus.NONE) -> 
 	for tower in towers:
 		if is_instance_valid(tower) and tower.can_nurture() and tower.tower_data.can_attack:
 			_rank_preview.append([tower, tower.get_range_cells(), range_after_rank(tower, focus)])
-	queue_redraw()
+	_update_visible()
 
 func hide_rank_preview() -> void:
 	if not _rank_preview.is_empty():
 		_rank_preview = []
-		queue_redraw()
+		_update_visible()
 
 func rank_preview() -> Array:
 	return _rank_preview
@@ -519,12 +546,12 @@ var _catch_preview := {}  # {"at": world position, "radius": cells} while the Wa
 # pointed at; the build ghost shows it for a catcher.
 func show_catch_preview(at: Vector2, radius: float) -> void:
 	_catch_preview = {"at": at, "radius": radius}
-	queue_redraw()
+	_update_visible()
 
 func hide_catch_preview() -> void:
 	if not _catch_preview.is_empty():
 		_catch_preview = {}
-		queue_redraw()
+		_update_visible()
 
 func _draw_catch_zone(at: Vector2, radius: float) -> void:
 	var reach := radius * MAP_GRID.cell_size.x
@@ -909,7 +936,7 @@ func begin_grow_choice(tower: Tower, into: TowerData) -> bool:
 		return evolve(tower, into, squares[0])
 	set_build_mode(false)
 	_grow_choice = {"tower": tower, "into": into, "squares": squares, "hover": NO_CELL}
-	visible = true
+	_update_visible()
 	grow_choice_changed.emit(true)
 	queue_redraw()
 	return true
@@ -921,7 +948,7 @@ func cancel_grow_choice() -> void:
 	if _grow_choice.is_empty():
 		return
 	_grow_choice = {}
-	visible = build_mode
+	_update_visible()
 	_path_preview.clear_points()
 	grow_choice_changed.emit(false)
 	queue_redraw()
