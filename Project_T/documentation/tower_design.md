@@ -502,8 +502,12 @@ family can promise an answer to everything. Two layers keep runs fair:
      still seeded, and still never the same 2 as that family's last run; it just avoids a run with
      no anti-air at all, for example. **Weighting** (2026-10-02, after the 50-seed probe): among the
      eligible pairs it prefers the ones covering the **rarest tags still missing**, and **anti-tank
-     counts double** (every act boss is a tank check). Target: anti-tank in 80%+ of runs with the 4
-     starting families. Anti-armour may stay lower (Shellbound only arrive at drift 79).
+     counts double** (every act boss is a tank check). Each pair's chance is **proportional to its
+     score** (floor: 10% of the best, so no pair is impossible); picking only among the top pairs
+     gave Sporeling the same pair in 100 of 100 runs. As built (c8bb187e, 100-seed probe):
+     anti-tank 90%, anti-air 75%, detection 79%, anti-armour 80%, swarm 89%, support 96%, boss
+     82%; every family keeps 9–10 different pairs, none above 26% of runs. Target: anti-tank in
+     80%+ of runs with the 4 starting families. Anti-armour may stay lower (Shellbound only arrive at drift 79).
    - Every counter tag sits on **at least 3 branches across at least 2 families**:
 
 | Tag | Branches |
