@@ -595,7 +595,7 @@ class FormNode extends Button:
 
 	func _process(delta: float) -> void:
 		if screen.state_of(data) == State.CAN_UNLOCK:
-			_pulse += delta
+			_pulse += CardScene.real_delta(delta)  # Real time at any game speed
 			queue_redraw()
 
 	func _draw() -> void:
@@ -710,7 +710,7 @@ void fragment() {
 	func _process(delta: float) -> void:
 		if data.texture == null or data.frame_count <= 1:
 			return
-		_clock += delta
+		_clock += CardScene.real_delta(delta)  # Real time at any game speed
 		if _clock < FRAME_TIME:
 			return
 		_clock = 0.0

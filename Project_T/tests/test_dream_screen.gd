@@ -223,6 +223,20 @@ func _run() -> void:
 			var shows: bool = tester._wardens.any(func(w: Dictionary) -> bool: return w.boosted) or not tester._walls.is_empty()
 			_check(CardScene.can_show(card) and CardScene.EFFECTS.has(card.id) and tester._path.size() >= 5 and shows,
 				"%s: a living scene (path %d cells, %d Wardens, %d marked walls)" % [card.id, tester._path.size(), tester._wardens.size(), tester._walls.size()])
+		# Real time (user: "make sure the video previews aren't sped up"): at 3× game speed the scene walks the same
+		# distance in the same frames as at 1×, and its sprites' frames don't run faster
+		var walked := {}
+		for speed in [1.0, 3.0]:
+			Engine.time_scale = speed
+			tester.show_card(bloom if CardScene.can_show(bloom) else dreams.pool.filter(func(c: UpgradeData) -> bool: return CardScene.can_show(c))[0])
+			for i in 30:
+				await process_frame
+			walked[speed] = tester._walkers[0].distance if not tester._walkers.is_empty() else -1.0
+			var sprite: AnimatedSprite2D = tester._walkers[0].sprite if not tester._walkers.is_empty() else null
+			_check(sprite != null and is_equal_approx(sprite.speed_scale * speed, 1.0), "at %d×: the walkers' frames play at real speed" % int(speed))
+		Engine.time_scale = 1.0
+		_check(walked[1.0] > 0.0 and absf(walked[3.0] - walked[1.0]) < 0.05 * walked[1.0],
+			"the scene runs in real time at 3× (%.0f px vs %.0f px at 1×)" % [walked[3.0], walked[1.0]])
 		tester.stop()
 		tester.queue_free()
 		# The dev card grid previews it too, so it can be reviewed without waiting for a Dream to offer it
