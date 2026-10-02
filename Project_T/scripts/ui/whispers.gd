@@ -35,6 +35,13 @@ const TEXT := {
 	&"marked": "{marked}: every Warden hits it harder.",
 	&"static": "{static}: five charges, and a bolt.",
 	&"held": "{held}: it can't move. Now's the time.",
+	# Approved 2026-10-02 (story chat, user: "Players will get used to it."):
+	&"omen": "Face it, or let the sky stay clear.",  # The first Omen offer
+	&"dreamlight": "Dreamlight remembers what your Wardens could become.",  # The first Dreamlight earned
+	&"boss_toll": "It took its toll, and went back into the dark.",  # The first boss to reach the Heartwood
+	&"rule_breaker": "This one doesn't keep to the path. Watch for it.",  # The first rule-breaker warning (RuleBreakers)
+	&"nurture": "Tend it, and it grows deeper roots.",  # The first rank
+	&"let_pass": "Not every dream is yours to keep. You can let one pass.",  # The first Dream offer that can be let pass
 }
 
 @onready var run_state: RunState = %RunState
@@ -102,10 +109,23 @@ func _ready() -> void:
 	var spawner = %EnemyContainer
 	spawner.enemy_cleansed.connect(func(_e: Node2D) -> void: whisper(&"first_cleanse"), CONNECT_ONE_SHOT)
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
-		if reason == &"first":
-			whisper(&"walls")
-		else:
+		if reason != &"first":
 			whisper(&"after_boss"))
+	# "Wardens are walls" once the first pick closes (the pick screen hid it when it came as the pick opened).
+	%FamilyPickScreen.family_chosen.connect(func(_offered: Array, _chosen: Resource) -> void:
+		if drift_director.drifts_started <= 1:
+			whisper(&"walls"))
+	# The approved lines (2026-10-02): the first Omen offer, Dreamlight, a boss's toll, a rule-breaker, a rank, Let it pass.
+	%OmenDirector.offer_ready.connect(func(_omens: Array[OmenData], _block: int) -> void: whisper(&"omen"))
+	dream_state.dreamlight_earned.connect(func(amount: int, _source: StringName) -> void:
+		if amount > 0:
+			whisper(&"dreamlight"))
+	dream_state.offer_ready.connect(func(_cards: Array[UpgradeData], _drift: int) -> void:
+		if dream_state.can_skip():
+			whisper(&"let_pass"))
+	tower_container.child_entered_tree.connect(func(node: Node) -> void:
+		if node is Tower and not node.nurtured.is_connected(_on_nurtured):
+			node.nurtured.connect(_on_nurtured))
 	drift_director.drift_started.connect(func(number: int) -> void:
 		if number == 2:
 			whisper(&"flow")
@@ -114,15 +134,23 @@ func _ready() -> void:
 		whisper(&"rest")
 		whisper(&"save")
 		if drift_director.is_boss_drift(drift_director.drifts_started + drift_director.drifts_per_block):
-			whisper(&"boss"))
+			whisper(&"boss")
+		if not RuleBreakers.coming(drift_director).is_empty():
+			whisper(&"rule_breaker"))  # As the Coming strip and DriftPanel warn of it
 	run_state.leaves_changed.connect(func(leaves: int, _max: int) -> void:
 		if leaves < run_state.max_leaves:
 			whisper(&"leaf"))
 	# The first leaf lost to a flyer (a Phantom): it never walked the maze (onboarding.md).
 	%EnemyContainer.enemy_reached_goal.connect(func(enemy: Node2D) -> void:
 		if enemy.has_method("is_flying") and enemy.is_flying():
-			whisper(&"flyer"))
+			whisper(&"flyer")
+		var data = enemy.get("enemy_data")
+		if data is EnemyData and data.is_boss:
+			whisper(&"boss_toll"))  # Acts 1–3: a flat leaf toll, then it leaves
 	%TowerSeller.tower_sold.connect(func(_t: Tower, _refund: int) -> void: whisper(&"sell"), CONNECT_ONE_SHOT)
+
+func _on_nurtured(_tower: Tower) -> void:
+	whisper(&"nurture")
 
 # First run: the camera glides from the forest's edge to the Heartwood along the path.
 func _glide_along_path() -> void:

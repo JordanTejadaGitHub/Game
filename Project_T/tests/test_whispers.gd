@@ -100,9 +100,13 @@ func _run() -> void:
 	Engine.time_scale = 8.0
 	director.start_next_drift()
 	var rested := [false]  # (A lambda captures a local by value: an array carries the change out)
+	var walls_checked := [false]
 	director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _p: bool) -> void: rested[0] = true, CONNECT_ONE_SHOT)
 	for frame in 60 * 400:
 		if director.awaiting_family_pick and not family.offer.is_empty():
+			if not walls_checked[0]:
+				walls_checked[0] = true
+				_check(not _fired(whispers).has(&"walls"), "\"Wardens are walls\" waits while the first pick is open")
 			family.choose(family.offer[0])
 			director.start_next_drift()  # After the pick the run waits for Start (test_run)
 		if rested[0]:
@@ -163,6 +167,20 @@ func _run() -> void:
 	director.drifts_started = 20  # The rest before the boss block
 	director.rest_started.emit(4, false, 0, false)
 	director.family_pick_requested.emit(&"boss")
+	# The approved lines (2026-10-02): a rule-breaker warning (Phantoms come at drift 31), the first Omen offer, a boss at
+	# the Heartwood, the first rank (Dreamlight and Let it pass came with drifts 1–5 for real).
+	director.drifts_started = 30
+	director.resting = true
+	director.rest_started.emit(6, false, 0, false)
+	var no_omens: Array[OmenData] = []
+	main.get_node("%OmenDirector").offer_ready.emit(no_omens, 7)
+	var stag: Node2D = spawner.spawn_enemy(load("res://resource/enemy/old_stag.tres"), 1.0, {}, false)
+	await process_frame
+	spawner.enemy_reached_goal.emit(stag)
+	for tower in main.get_node("%TowerContainer").get_children():
+		if tower is Tower:
+			tower.nurtured.emit(tower)
+			break
 	for frame in 3:
 		await process_frame
 	fired = _fired(whispers)
