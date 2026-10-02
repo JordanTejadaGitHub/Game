@@ -152,7 +152,7 @@ func _ready() -> void:
 	owner.add_child.call_deferred(CardBloom.new())
 	if dream_state.has_signal("card_chosen"):
 		dream_state.connect("card_chosen", func(_card: UpgradeData, _towers: Array, impact: String) -> void:
-			if impact != "":
+			if impact.contains(" · "):  # A card with no effect yet sends just its name: "Dreamed: X" stays
 				show_impact_toast(impact))
 	drift_director.rest_started.connect(_on_rest_started)
 	# Path length ("Wardens are walls: make their walk longer").
