@@ -253,3 +253,19 @@ full game (`game/demo` false), and the demo reads main's exports.
   half), once per nightmare per whirlpool. Replaces 0.6 / 0.9 tiles/s.
 - 2026-10-02: eddy pause in **1fb636f3** (Tower Code); Eye of the Storm's draw trait became a **0.3 s**
   pause under the rain (accepted).
+- 2026-10-02: **branch review** (Tower Discussion, tower_design.md 7816b7e0), numbers (replace the
+  table rows above where they differ):
+  - **Undercurrent:** the eddy pause is dropped; the whirlpool **links** the nightmares in it: **25%** of a
+    hit on one is shared with each other linked one (effect damage, max 6 linked); own 14 dmg/s.
+    **Maelstrom:** **35%**, max 8, Soaks, Static bolts travel the current at half.
+  - **Jetreed:** **20 + 2% max health** per hit (bosses 0.5%), 0.8/s, 6-tile line; no Soaked bonus.
+    **Torrent:** **45 + 3%** (bosses 0.75%), wet trail as before.
+  - **Nimbus:** the cloud moves to the densest 3×3 in range every **4 s**; 24 dmg/s; no range Soak refresh.
+  - **Eye of the Storm:** the cloud links at **10%**.
+  - Phase 2 (not built): **Whetstone** 40 dmg, 0.8/s, **×2.5 below 30%** (bosses ×1.5); **Edgestone** 95,
+    overkill spills **100%** to the nearest nightmare within 2 cells. **Rampart** 50 dmg on the adjacent
+    path tiles, 0.6/s, **+15% per touching Thornwall** (max 4), touching walls turn to stone; **Bastion** 110,
+    a rock from a stone wall every **6 s** (60, 1-tile splash). **Heartroot:** the first non-boss leak per
+    drift is dragged back **4 tiles**. **Nurse Log:** Nurture **25%** cheaper within 1.5; **Mother Log 35%**,
+    plus a sold Warden's rank stays on its cell for the next plant. **Dream Oak:** +1 shard per different
+    family within 2 (max +3). New Kinships Fault Line, Bramble Bed, Nursery at ~+20% of the pair's effect.
