@@ -80,7 +80,7 @@ func _process(delta: float) -> void:
 		_title.text += " · Deeply Blighted"
 	# Numbers: a plain label, rewritten freely.
 	var numbers: Array[String] = ["Health %d / %d" % [_target.health, _target.max_health],
-		"Speed %.1f tiles/s   Leaves %d" % [_target.get_move_speed() / 64.0, _target.get_leaf_cost()]]
+		"Speed %.1f cells/s   Leaves %d" % [_target.get_move_speed() / 64.0, _target.get_leaf_cost()]]
 	var restless := restless_text(_target)
 	if restless != "":
 		numbers.append(restless)

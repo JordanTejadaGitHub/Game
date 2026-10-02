@@ -93,7 +93,7 @@ func _run() -> void:
 	var speed_tip: String = stat_tips.filter(func(t: String) -> bool: return t.begins_with("Attack speed:")).front() if stat_tips.any(func(t: String) -> bool: return t.begins_with("Attack speed:")) else ""
 	_check(stat_tips.any(func(t: String) -> bool: return t.begins_with("Damage: ") and t.contains("per hit"))
 		and speed_tip.contains("attacks a second") and speed_tip.contains("Elder Stump +")
-		and stat_tips.any(func(t: String) -> bool: return t.begins_with("Range: ") and t.contains("tiles")),
+		and stat_tips.any(func(t: String) -> bool: return t.begins_with("Range: ") and t.contains("cells")),
 		"each stat's tip says its value and what changed it (%s)" % [stat_tips])
 	var speed_targets: Array = panel._stats.find_children("*", "TapTip", true, false).filter(func(t: TapTip) -> bool: return t._label.text.begins_with("Attack speed:"))
 	_check(speed_targets.size() == 1 and speed_targets[0].get_parent().get_child_count() == 3,

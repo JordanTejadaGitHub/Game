@@ -155,7 +155,7 @@ static func support_text(near: Node, period: String) -> String:
 		if held >= 1.0:
 			parts.append("Held for %d s" % roundi(held))
 		if pulled > 0:
-			parts.append("pulled back %d tiles" % pulled)
+			parts.append("pulled back %d cells" % pulled)
 		lines.append(" · ".join(parts))
 	return "" if lines.is_empty() else "\n" + "\n".join(lines)
 

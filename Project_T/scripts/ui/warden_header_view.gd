@@ -290,8 +290,8 @@ func stat_tip(stat: StringName) -> String:
 		&"attack_speed":
 			meaning = "Attack speed: %.2f attacks a second" % _tower.get_attacks_per_second()
 		&"range":
-			meaning = ("Range: %.1f–%.1f tiles" % [attack.min_range, _tower.get_range_cells()]) if attack.min_range > 0.0 \
-				else "Range: %.1f tiles" % _tower.get_range_cells()
+			meaning = ("Range: %.1f–%.1f cells" % [attack.min_range, _tower.get_range_cells()]) if attack.min_range > 0.0 \
+				else "Range: %.1f cells" % _tower.get_range_cells()
 		&"crit_chance":
 			meaning = "Crit chance: %d%% of its hits are critical" % roundi(_tower.get_crit_chance() * 100)
 		&"crit_damage":

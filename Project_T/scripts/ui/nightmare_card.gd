@@ -70,7 +70,7 @@ static func build(data: EnemyData, drift: int, director: DriftDirector) -> VBoxC
 # "Health 240 · Speed 1.2 tiles/s · Leaves 1" as it would arrive in drift `drift` (this run's growth,
 # Blight, Dreams and the Omen on that block).
 static func numbers_text(data: EnemyData, drift: int, director: DriftDirector) -> String:
-	return "Health %d   Speed %.1f tiles/s   Leaves %d" % [health_at(data, drift, director), data.speed / 64.0,
+	return "Health %d   Speed %.1f cells/s   Leaves %d" % [health_at(data, drift, director), data.speed / 64.0,
 		data.leaf_cost]
 
 static func health_at(data: EnemyData, drift: int, director: DriftDirector) -> int:

@@ -324,7 +324,7 @@ func _note_seen(key: String) -> void:
 
 # Dawnbreak (the Legendary that fires at a Chain 10) gets its own one-time card the first time it goes off.
 const DAWNBREAK_ID := &"dawnbreak"
-const DAWNBREAK_TEXT := "Dawnbreak discovered\nA Chain 10 broke into dawn: 10% of max health to every nightmare within 4 tiles (bosses 2%).\nAdded to the Codex."
+const DAWNBREAK_TEXT := "Dawnbreak discovered\nA Chain 10 broke into dawn: 10% of max health to every nightmare within 4 cells (bosses 2%).\nAdded to the Codex."
 func _discover_dawnbreak(enemy: Node2D) -> void:
 	_note_seen(String(DAWNBREAK_ID))
 	_queue.append(DAWNBREAK_ID)

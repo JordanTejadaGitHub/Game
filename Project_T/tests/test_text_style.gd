@@ -46,11 +46,17 @@ func _init() -> void:
 		_lint("Main", "whisper %s" % id, whispers[id])
 	_scan_script_strings("res://scripts/ui", "Main")
 	_scan_script_strings("res://scripts/run", "Main")
+	# Card wording (text_style.md "Card wording, one way each", story chat 2026-10-02: all player-facing text, not just
+	# cards): the other owners' script strings for those rules only (stat tips, Reactions, nightmare text, the Grove).
+	_scan_script_strings("res://scripts/tower", "Tower Code", true)
+	_scan_script_strings("res://scripts/combat", "Tower Code", true)
+	_scan_script_strings("res://scripts/enemy", "Enemy Code", true)
+	_scan_script_strings("res://scripts/meta", "Meta Game Code", true)
 	_self_check()
 	var failures := 0
 	for owner in findings:
 		var list: Array = findings[owner]
-		var enforced := ENFORCED.has(owner)
+		var enforced: bool = WORDING_ENFORCED.has(owner.trim_suffix(" wording")) if owner.ends_with(" wording") else ENFORCED.has(owner)
 		print("%s %s: %d" % ["FAIL" if enforced else "TODO", owner, list.size()])
 		for line in list.slice(0, 40):
 			print("  ", line)
@@ -123,8 +129,12 @@ func _owner_of(path: String) -> String:
 			return pair[1]
 	return "Main"
 
+# Scripts in a folder another chat owns most of (scripts/run is Main's run flow; the Dream and Omen code is Roguelite's).
+const FILE_OWNERS := {"dream_state.gd": "Roguelite Code", "dream_effects.gd": "Roguelite Code", "omen_director.gd": "Roguelite Code",
+	"dream_sim_policy.gd": "Roguelite Code"}
+
 # String literals in the UI scripts: separators and lowercase names only (they're format strings).
-func _scan_script_strings(dir: String, owner: String) -> void:
+func _scan_script_strings(dir: String, owner: String, wording_only := false) -> void:
 	var literal := RegEx.create_from_string("\"((?:[^\"\\\\]|\\\\.)*)\"")
 	for file in DirAccess.get_files_at(dir):
 		if not file.ends_with(".gd"):
@@ -138,7 +148,11 @@ func _scan_script_strings(dir: String, owner: String) -> void:
 			for m in literal.search_all(line):
 				var text := m.get_string(1)
 				if text.contains(" ") and not text.begins_with("res://") and not text.begins_with("user://"):
-					_lint(owner, "%s:%d" % [file, i + 1], text, false, true)
+					var file_owner: String = FILE_OWNERS.get(file, owner)
+					if wording_only:
+						_wording(file_owner, "%s:%d" % [file, i + 1], text)
+					else:
+						_lint(file_owner, "%s:%d" % [file, i + 1], text, false, true)
 
 func _lint(owner: String, source: String, text: String, is_title := false, is_code := false) -> void:
 	var problems: Array[String] = []
@@ -184,6 +198,32 @@ func _lint(owner: String, source: String, text: String, is_title := false, is_co
 		if not findings.has(owner):
 			findings[owner] = []
 		findings[owner].append("%s: %s  [%s]" % [source, problem, text.left(90).replace("\n", " / ")])
+	_wording(owner, source, text)
+
+# Card wording, one way each (text_style.md, 2026-10-02): distances in cells, caps as "up to", Warden bonuses as
+# verbs. Its findings go under "<owner> wording": enforced for WORDING_ENFORCED, TODO for the rest until their sweep.
+const WORDING_ENFORCED := ["Main"]
+var _wording_rules: Array = []
+func _wording(owner: String, source: String, text: String) -> void:
+	if _wording_rules.is_empty():
+		_wording_rules = [
+			# "4.5 tiles", "%.1f tiles", "3+ tiles"; "5+ path tiles" counts path squares and is fine.
+			[RegEx.create_from_string("(?i)(?:\\d+(?:\\.\\d+)?|%[-+.\\d]*[dfs])\\+?\\s+tiles?\\b"), "a distance in tiles (say cells)"],
+			# A cap: "(max +45%)", "max 3"; "+3 max leaves" names a stat and is fine.
+			[RegEx.create_from_string("(?i)\\bmax\\.?\\s*(?=[+\\d]|%[-+.\\d]*[df])"), "\"max\" for a cap (say \"up to\")"],
+			# A Warden's bonus; the nightmare side ("+25% damage taken") is fine.
+			[RegEx.create_from_string("(?i)(?:\\+\\d+(?:\\.\\d+)?|\\+%[-+.\\d]*[dfs])%%?\\s+(?:damage|attack speed)\\b(?!\\s+taken)"),
+				"a Warden bonus as \"+N% damage\" (say \"deal N% more damage\" / \"attack N% faster\")"],
+		]
+	var plain := RegEx.create_from_string("\\{[^}]*\\}").sub(text, "", true)
+	plain = RegEx.create_from_string("(?i)longest path: [^\\s]+ tiles").sub(plain, "", true)  # A path's length in path tiles
+	for rule in _wording_rules:
+		var hit: RegExMatch = rule[0].search(plain)
+		if hit != null:
+			var key := owner + " wording"
+			if not findings.has(key):
+				findings[key] = []
+			findings[key].append("%s: %s \"%s\"  [%s]" % [source, rule[1], hit.get_string(), text.left(90).replace("\n", " / ")])
 
 func _excepted(lower_text: String, match_text: String) -> bool:
 	for exception in EXCEPTIONS:

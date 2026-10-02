@@ -814,8 +814,8 @@ func _kindred_row(line: String, bonus: float) -> HBoxContainer:
 	row.add_theme_constant_override("separation", 4)
 	var whole := bonus > Kinships.KINDRED_BONUS
 	var name := "Whole Tree" if whole else "Kindred"
-	var tip := ("All three branches of the %s family are planted: its Wardens deal +%d%% damage." if whole \
-		else "Two branches of the %s family are planted: its Wardens deal +%d%% damage.") \
+	var tip := ("All three branches of the %s family are planted: its Wardens deal %d%% more damage." if whole \
+		else "Two branches of the %s family are planted: its Wardens deal %d%% more damage.") \
 		% [NightmareIcons.family_name(line), roundi(bonus * 100)]
 	TapTip.attach(row, tip)  # Hover or tap (screens_ui.md "Every icon can be hovered or tapped")
 	var icon := TextureRect.new()
