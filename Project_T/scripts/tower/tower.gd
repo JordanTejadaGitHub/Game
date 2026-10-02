@@ -477,6 +477,8 @@ func _process(delta: float) -> void:
 	_update_legacy(delta)
 	if _twist != &"":
 		FinalTwists.update(self, delta)  # Signature twists (tower_design.md)
+	if attack_data.special != &"" and BranchKit.process(self, delta):
+		return  # Expansion branches: fences, silence, Cloudburst (BranchKit)
 	match attack_data.attack_kind:
 		TowerData.AttackKind.AURA:
 			_update_aura(delta)
@@ -510,6 +512,10 @@ func _process(delta: float) -> void:
 
 # Whether an attack now would do anything.
 func _has_work() -> bool:
+	if attack_data.special != &"":
+		var custom = BranchKit.has_work(self)
+		if custom != null:
+			return custom
 	match attack_data.attack_kind:
 		TowerData.AttackKind.TRAP:
 			# Untyped lambda + assign(): a freed ring can't be passed to a typed parameter, and filter()
@@ -949,7 +955,7 @@ func get_raw_crit_chance(enemy: Node2D = null) -> float:
 	if not cached.is_empty() and cached[1] == attack_data.crit_chance:
 		chance = cached[0]
 	else:
-		chance = attack_data.crit_chance + _aura_crit + 0.1 * kin_share(&"hammer_and_anvil", "a")  # Hammer and Anvil: the sniper's eye
+		chance = attack_data.crit_chance + _aura_crit + BranchKit.crit_aura(self) + 0.1 * kin_share(&"hammer_and_anvil", "a")  # Hammer and Anvil: the sniper's eye
 		if _dream_state and _dream_state.has_method("get_rank_crit_bonus"):
 			chance += _dream_state.get_rank_crit_bonus() * get_effective_rank()  # The Old Ones
 		_stats[&"crit_base"] = [chance, attack_data.crit_chance]  # (the data's own chance too: tests change it in place)
@@ -1483,6 +1489,8 @@ func _update_watch(delta: float) -> void:
 		queue_redraw()
 
 func _release_attack() -> void:
+	if attack_data.special != &"" and BranchKit.release(self):
+		return  # The expansion branches' own attacks (BranchKit)
 	match attack_data.attack_kind:
 		TowerData.AttackKind.PULSE:
 			var in_range := get_enemies_in_range()
@@ -1618,6 +1626,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		enemy.statuses.add_cut()  # Every hit within 2 s: +2% damage taken from everyone (max +60%)
 	hit_landed.emit(self, enemy, is_area, is_crit)
 	apply_status_to(enemy, soothe)
+	if attack_data.special != &"":
+		BranchKit.on_hit(self, enemy)  # The expansion branches' on-hit effects (Inkcap's ink, Crusted Brood)
 	_after_hit(enemy, is_crit)
 	_catalogue_hit(enemy)
 	_legendary_hit_rules(enemy, soothe)

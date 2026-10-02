@@ -112,6 +112,7 @@ var smother_ended := false
 var bolt_source: Node = null
 var every_hits := {}  # Warden instance id -> hits on this nightmare (TowerData.status_every counts per nightmare)
 var veil_time := 0.0  # Morning Fog's Veil (FinalTwists): while > 0 it can't be healed (Enemy.heal reads it)
+var silence_time := 0.0  # Hushbell (BranchKit.silence): while > 0 it uses no abilities (Enemy._update_presence reads it)
 var marked_extra := 0.0  # Beacon: its Marked is stronger (+35% instead of +25%) until Marked ends
 var marked_bonus := 0.0  # Bright Marks (Dream): added to either (the nightmare sets it each frame)
 # Hunter's Moon / Eternal Charge (Legendary rules): Marked / Static on this nightmare never run out.
@@ -392,6 +393,8 @@ func tick(delta: float) -> float:
 		sleep_locked_time = maxf(sleep_locked_time - delta, 0.0)
 	if slow_time > 0.0:
 		slow_time = maxf(slow_time - delta, 0.0)
+	if silence_time > 0.0:
+		silence_time = maxf(silence_time - delta, 0.0)
 	if veil_time > 0.0:
 		veil_time = maxf(veil_time - delta, 0.0)
 	if sleep_cooldown > 0.0:

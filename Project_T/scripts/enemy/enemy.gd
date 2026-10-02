@@ -394,6 +394,7 @@ func _process(delta: float) -> void:
 		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 		if dreams != null:
 			spore_soothe *= dreams.get_spored_tick_multiplier(self)  # Damp Rot: harder on Soaked nightmares
+		BranchKit.on_spore_tick(self)  # Lichenling: its spores strip the dread shell and stop mending
 		take_damage(spore_soothe, statuses.spore_line(), true, false, statuses.source(EnemyStatuses.SPORED),
 			&"spored")
 		if is_cleansed:
@@ -1556,7 +1557,8 @@ func _update_presence(delta: float) -> void:
 	if _settings_elapsed >= SETTINGS_TICK:  # The settings panel's changes show within half a second
 		_settings_elapsed = 0.0
 		_refresh_display_settings()
-	if enemy_data.wake_radius > 0.0:  # Watcher
+	var silenced := statuses.silence_time > 0.0  # Hushbell (BranchKit): no abilities while silenced; boss timers wait
+	if enemy_data.wake_radius > 0.0 and not silenced:  # Watcher
 		for other in _others_within(enemy_data.wake_radius):
 			if other.statuses.has(EnemyStatuses.DROWSY):
 				other.statuses.remove(EnemyStatuses.DROWSY)
@@ -1564,7 +1566,7 @@ func _update_presence(delta: float) -> void:
 			if other.statuses.sleep_time > 0.0 and other.statuses.sleep_locked_time <= 0.0:
 				other.statuses.sleep_time = 0.0  # Wakes sleepers too (not under Nightbloom's lock)
 	_mend_stopped = maxf(_mend_stopped - elapsed, 0.0)
-	if enemy_data.mend_radius > 0.0 and _mend_stopped <= 0.0:  # Weeper (a magpie can stop it)
+	if enemy_data.mend_radius > 0.0 and _mend_stopped <= 0.0 and not silenced:  # Weeper (a magpie or a Hushbell can stop it)
 		for other in _others_within(enemy_data.mend_radius):
 			other.heal(other.max_health * enemy_data.mend_rate * elapsed)
 	if not _ash_cells.is_empty():  # Ash Crawler
@@ -1572,17 +1574,17 @@ func _update_presence(delta: float) -> void:
 			if other != self and other.statuses.has(EnemyStatuses.SPORED) and _ash_cells.has(other.get_current_cell()):
 				other.statuses.remove(EnemyStatuses.SPORED)
 				other.queue_redraw()
-	if enemy_data.brood != null:  # Moth Queen (and the Huntsman's horn)
+	if enemy_data.brood != null and not silenced:  # Moth Queen (and the Huntsman's horn)
 		_brood_timer += elapsed
 		if _brood_timer >= enemy_data.brood_interval:
 			_brood_timer = 0.0
 			brood_requested.emit(self)
-	if enemy_data.sapling != null:  # Hollow Oak
+	if enemy_data.sapling != null and not silenced:  # Hollow Oak
 		_sapling_timer += elapsed * _sapling_speed
 		if _sapling_timer >= enemy_data.sapling_interval:
 			_sapling_timer = 0.0
 			sapling_requested.emit(self)
-	_update_boss_pool_abilities(elapsed)
+	_update_boss_pool_abilities(0.0 if silenced else elapsed)
 
 # The new bosses' timed abilities (enemy_design.md "Boss pools"), on the presence tick.
 func _update_boss_pool_abilities(elapsed: float) -> void:
