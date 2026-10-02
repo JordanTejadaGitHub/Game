@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_cloudlet"
 display_name = "Cloudlet"
-description = "Dewdrops can now grow into Cloudlets (120 Dew): rain clouds over any spot in range, flyers too."
+description = "Dewdrops can now grow into Cloudlets ({grow_cost:cloudlet} Dew): rain clouds over any spot in range, flyers too."
 rarity = 1
 kind = 1
 tags = Array[String](["water"])

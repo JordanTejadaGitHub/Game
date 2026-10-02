@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_lightning_fence"
 display_name = "Lightning Fence"
-description = "Jarlinks can now grow into Lightning Fences (300 Dew): a stronger fence that catches Phantoms too."
+description = "Jarlinks can now grow into Lightning Fences ({grow_cost:lightning_fence} Dew): a stronger fence that catches Phantoms too."
 rarity = 2
 kind = 1
 tags = Array[String](["light"])

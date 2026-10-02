@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_starburst"
 display_name = "Starburst"
-description = "Sparklers can now grow into Starbursts (300 Dew): bigger sparks, and every 4th burst is a double."
+description = "Sparklers can now grow into Starbursts ({grow_cost:starburst} Dew): bigger sparks, and every 4th burst is a double."
 rarity = 2
 kind = 1
 tags = Array[String](["light"])

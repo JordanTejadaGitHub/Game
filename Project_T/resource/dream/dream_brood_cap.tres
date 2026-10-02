@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_brood_cap"
 display_name = "Brood Cap"
-description = "Sporelings can now grow into Brood Caps (120 Dew): spore-sprites walk up the path and burst on nightmares, hidden ones too."
+description = "Sporelings can now grow into Brood Caps ({grow_cost:brood_cap} Dew): spore-sprites walk up the path and burst on nightmares, hidden ones too."
 rarity = 1
 kind = 1
 tags = Array[String](["spore"])

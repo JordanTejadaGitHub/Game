@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_hatchery"
 display_name = "Hatchery"
-description = "Brood Caps can now grow into Hatcheries (300 Dew): every 5th sprite is big and splits into 3."
+description = "Brood Caps can now grow into Hatcheries ({grow_cost:hatchery} Dew): every 5th sprite is big and splits into 3."
 rarity = 2
 kind = 1
 tags = Array[String](["spore"])

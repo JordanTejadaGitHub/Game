@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_old_lichen"
 display_name = "Old Lichen"
-description = "Lichenlings can now grow into Old Lichens (300 Dew): at 8 {spored} a dread shell cracks off at once."
+description = "Lichenlings can now grow into Old Lichens ({grow_cost:old_lichen} Dew): at 8 {spored} a dread shell cracks off at once."
 rarity = 2
 kind = 1
 tags = Array[String](["spore"])

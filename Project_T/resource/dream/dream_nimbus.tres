@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_nimbus"
 display_name = "Nimbus"
-description = "Cloudlets can now grow into Nimbuses (300 Dew): heavier rain clouds that drift to the busiest spot every 4 s."
+description = "Cloudlets can now grow into Nimbuses ({grow_cost:nimbus} Dew): heavier rain clouds that drift to the busiest spot every 4 s."
 rarity = 2
 kind = 1
 tags = Array[String](["water"])

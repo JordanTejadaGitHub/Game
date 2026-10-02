@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_torrent"
 display_name = "Torrent"
-description = "Jetreeds can now grow into Torrents (300 Dew): heavier erosion, and a wet trail."
+description = "Jetreeds can now grow into Torrents ({grow_cost:torrent} Dew): heavier erosion, and a wet trail."
 rarity = 2
 kind = 1
 tags = Array[String](["water"])

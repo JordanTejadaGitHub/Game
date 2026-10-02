@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_deliquescent"
 display_name = "Deliquescent"
-description = "Inkcaps can now grow into Deliquescents (300 Dew): a {spored} nightmare it dispels melts into a pool of ink."
+description = "Inkcaps can now grow into Deliquescents ({grow_cost:deliquescent} Dew): a {spored} nightmare it dispels melts into a pool of ink."
 rarity = 2
 kind = 1
 tags = Array[String](["spore"])

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_silver_bell"
 display_name = "Silver Bell"
-description = "Bellflowers can now grow into Silver Bells (120 Dew): a long-range toll that fills the strongest nightmare's {drowsy}."
+description = "Bellflowers can now grow into Silver Bells ({grow_cost:silver_bell} Dew): a long-range toll that fills the strongest nightmare's {drowsy}."
 rarity = 1
 kind = 1
 tags = Array[String](["song"])

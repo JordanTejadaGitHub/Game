@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_sparkler"
 display_name = "Sparkler"
-description = "Firefly Jars can now grow into Sparklers (120 Dew): fireworks over a crowd, each spark adding {static}."
+description = "Firefly Jars can now grow into Sparklers ({grow_cost:sparkler} Dew): fireworks over a crowd, each spark adding {static}."
 rarity = 1
 kind = 1
 tags = Array[String](["light"])
