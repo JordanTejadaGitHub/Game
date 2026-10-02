@@ -290,3 +290,9 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: **31c89068** (Tower Code): tide_link fix, the erosion cap, Jetreed 30, Nimbus 30, and the
   round 1 changes; Jarlink's arc did fire on every crossing, but only one jar of a pair was credited (it
   alternates now). Re-probe queued.
+- 2026-10-02: **new finals probe** (9d5cb88f, × Puffball per Dew, 45 / 61): Deliquescent 1.02 / 1.18 ✓,
+  Hatchery 0.85 / 0.81 ✓; Old Lichen 0.70; Resonance, Starburst, Silence ~0.25; Rainbow Prism 0.13;
+  Vesper Bell 0.09; Lightning Fence 0.02. Decisions: **Old Lichen 40**, **Resonance 135**, **Starburst 78 per
+  spark**; Silence, Vesper Bell and Rainbow Prism get a board test (control / support); **Jarlink /
+  Lightning Fence** can't reach the band through crossing damage (each nightmare crosses once or
+  twice), so the arc design goes back to Tower Discussion (proposed: a damaging line laid along the route).
