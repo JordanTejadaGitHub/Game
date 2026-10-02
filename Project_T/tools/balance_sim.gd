@@ -73,6 +73,7 @@ var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.pre
 var aura_placement := true  # --no-aura: place and grow aura Wardens (Acorn, Elder Stump, Grove Heart, Moon Moth) by path only
 var empty_loadout := false
 var sidegrade := -1
+var demo_run := false  # --demo: game/demo stays true (DEMO_RULES, demo bosses and Kinships), for the demo sanity check
 var kin_placement := true  # --no-kin: no Kinship placement, and growth takes the first open form in evolves_to (the old bot)
 var focus_mode := ""  # --focus=deep: Nurture picks Deep where it's offered and Potency cards score high (a committed Deep build)
 var kin_pairs := {}  # Drift -> Kinships on the map as it starts (kin_pairs_24 / kin_pairs_50 columns: as drifts 25 / 51 start)
@@ -141,6 +142,7 @@ func _run() -> void:
 			"--save": save_mode = value
 			"--omens": omen_mode = value
 			"--all-families": all_families = true
+			"--demo": demo_run = true
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
@@ -168,7 +170,7 @@ func _run() -> void:
 				data.set(field, int(setting.get_slice("=", 1)) if current is int else float(setting.get_slice("=", 1)))
 				enemy_overrides[target] = setting.get_slice("=", 1)
 				_keep.append(data)
-	ProjectSettings.set_setting("game/demo", false)  # Sims are the full game, fresh too (it was the demo before 2026-10-02: fixed act 1-2 bosses, demo Kinships)
+	ProjectSettings.set_setting("game/demo", demo_run)  # Sims are the full game unless --demo, fresh too (it was the demo before 2026-10-02: fixed act 1-2 bosses, demo Kinships)
 	if profile != "fresh":
 		var meta: Script = load("res://scripts/meta/meta_run.gd")
 		if not meta.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "load_preset"):
