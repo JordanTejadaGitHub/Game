@@ -178,7 +178,11 @@ func _make_card(card: UpgradeData) -> Button:
 		if res_line.tooltip_text != "":
 			res_line.mouse_filter = Control.MOUSE_FILTER_PASS  # Hover shows them; a click still takes the card
 	var live: String = dream_state.effects().preview_line(card)
-	if live != "":  # Scaling cards: where you stand now (dream_design.md #75)
+	# What it would do to your board now (dream_design.md "Feeling the cards"), computed once as the offer opens
+	var impact: Dictionary = dream_state.preview_card_impact(card)
+	var impact_line := _add_line(box, impact.text, UiStyle.GOLD if impact.kind != &"none" else UiStyle.INK_DIM, 14)
+	impact_line.name = "ImpactLine"
+	if live != "" and impact.kind != &"economy":  # Scaling cards: where you stand now (dream_design.md #75)
 		_add_line(box, live, UiStyle.GOLD, 14).name = "LiveLine"
 	if card.cost_description != "":
 		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, 15)

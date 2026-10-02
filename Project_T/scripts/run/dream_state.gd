@@ -305,8 +305,10 @@ func _ready() -> void:
 		pool = load_pool()
 	for id in starting_unlocks:
 		unlocked[id] = true
+	drift_director.rest_started.connect(_credit_rest.unbind(4))  # Before the rest report reads the block
 	drift_director.rest_started.connect(_on_rest_started)
 	drift_director.rest_started.connect(_save_discoveries.unbind(4))
+	drift_director.rest_ended.connect(func(_block: int) -> void: card_credit["block"] = {})  # A new block's credit
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":
@@ -1373,6 +1375,7 @@ func take(card: UpgradeData) -> void:
 		unlocks_changed.emit()
 	if card.dew_now > 0:
 		run_state.add_dew(card.dew_now)
+		_credit(card.id, "dew", card.dew_now)  # Card credit (Morning Dew…)
 	if card.max_leaves_add != 0:
 		run_state.max_leaves = maxi(run_state.max_leaves + card.max_leaves_add, 1)
 	if card.leaves_now < 0:
@@ -1473,7 +1476,9 @@ func _show_next_offer() -> void:
 func choose(card: UpgradeData) -> void:
 	if not current_offer.has(card):
 		return
+	var impact := preview_card_impact(card)  # Before taking it: the change it makes (the bloom)
 	take(card)
+	_announce_pick(card, impact)
 	_taken_this_offer.append(card.id)
 	picks_left -= 1
 	if picks_left > 0 and current_offer.size() > 1:  # Lucid Dreaming: take a second card
@@ -1923,7 +1928,7 @@ func to_save() -> Dictionary:
 	return {
 		"unlocked": unlocked.keys(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
-		"extra_cards_next": _extra_cards_next, "entwined_offered": _entwined_offered.keys(),
+		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "entwined_offered": _entwined_offered.keys(),
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
 		"run_pool": run_pool.keys(), "run_pool_waiting": _run_pool_waiting.keys(), "run_pool_families": _run_pool_families.keys(),
 		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
@@ -1960,6 +1965,8 @@ func load_save(data: Dictionary) -> void:
 	_dreams_without_rare = int(data.get("dreams_without_rare", 0))
 	_rare_dreams_left = int(data.get("rare_dreams_left", 0))
 	_extra_cards_next = int(data.get("extra_cards_next", 0))
+	var credit: Dictionary = data.get("card_credit", {})
+	card_credit = {"block": credit.get("block", {}).duplicate(true), "run": credit.get("run", {}).duplicate(true)}
 	_entwined_offered.clear()
 	for id in data.get("entwined_offered", []):
 		_entwined_offered[id] = true
@@ -2079,6 +2086,8 @@ func _on_tower_built(tower: Tower) -> void:
 func _on_obstacle_cleared(cell: Vector2, data: ObstacleData) -> void:
 	cleared_kinds[cell] = STUMP if data != null and data.resource_path.get_file().begins_with("tree") else HOLLOW  # Tended Stumps / Hollow Ground
 	bump_board()  # Neighbours' card rows read it
+	if has_card("heartwoods_reach"):
+		_credit("heartwoods_reach", "clears", 1.0)  # Card credit: a cheaper (or free) clear
 	var paid := last_clear_paid
 	last_clear_paid = 0
 	if run_state.clearing_without_seeds:
@@ -2389,6 +2398,7 @@ func absorb_leak() -> bool:
 		return false
 	bark_charges -= 1
 	bark_changed.emit(bark_charges)
+	_credit(_card_with_rule(&"thick_bark"), "leaves", 1.0)  # Card credit: a leaf saved
 	return true
 
 func _refill_bark() -> void:
@@ -2788,7 +2798,9 @@ static func dev_tools_on() -> bool:
 func choose_any(card: UpgradeData) -> bool:
 	if card == null or not is_offering() or (card.max_stacks > 0 and card_stacks(card.id) >= card.max_stacks):
 		return false
+	var impact := preview_card_impact(card)
 	take(card)
+	_announce_pick(card, impact)
 	_taken_this_offer.append(card.id)
 	picks_left -= 1
 	if picks_left > 0 and current_offer.size() > 1:  # Lucid Dreaming: still one to take
@@ -3095,6 +3107,8 @@ func _toast_new_dreams(before: Array[UpgradeData]) -> void:
 func _on_damage_dealt(event) -> void:
 	if event.combos.has(&"crit") and event.combos.has(&"marked") and not _events_this_run.has(String(EVENT_CRIT_MARKED)):
 		note_discovery(EVENT_CRIT_MARKED)
+	if not stacks.is_empty():
+		_credit_hit(event)  # Feeling the cards: each card's share of the damage it added
 
 # The keys a card waits on: its discovered_by, plus "warden:<id>" entries for the Wardens its Needs
 # name (any one of them, "warden_any:a,b" for requires_any).
@@ -3705,3 +3719,248 @@ func overlap_multiplier(tower: Node, enemy: Node2D) -> float:
 	if not last.is_empty() and int(last[0]) != tower.get_instance_id() and _game_clock - float(last[1]) <= OVERLAP_WINDOW:
 		return 1.0 + OVERLAP_BONUS * rule_power(&"overlap")
 	return 1.0
+
+
+# --- Feeling the cards (dream_design.md "Feeling the cards", 2026-10-01) -------------------------------------
+# 1. The impact preview: what a card would do to the board right now (one gold line on the Dream card).
+# 2. card_chosen: the Wardens a picked card affects and its impact line (Main pulses them and toasts).
+# 3. Card credit: the extra damage each taken card adds (and Dew, leaves saved, clears), per block and per run.
+
+signal card_chosen(card: UpgradeData, towers: Array, impact: String)
+
+# {text, towers: [Tower], kind: &"stat" | &"position" | &"trigger" | &"economy" | &"none"}, computed by taking the card
+# for a moment (its stacks and its resonance, then undone) and comparing every Warden's Dream stat parts.
+func preview_card_impact(card: UpgradeData) -> Dictionary:
+	var result := {"text": "None of your Wardens yet", "towers": [], "kind": &"none"}
+	if card == null:
+		return result
+	var towers := _towers()
+	var before := {}
+	for tower in towers:
+		before[tower] = _dream_stat_factors(tower)
+	var had: int = stacks.get(card.id, 0)
+	var had_resonance = _resonance.get(card.id)
+	if had == 0:
+		_resonance[card.id] = {"power": 1.0 + resonance_preview(card).bonus}
+	stacks[card.id] = had + 1
+	bump_board()
+	var changed: Array = []
+	var dmg_gain := 0.0
+	var speed_gain := 0.0
+	var range_gain := 0.0
+	var weight := 0.0
+	var qualifying := 0
+	for tower in towers:
+		var after := _dream_stat_factors(tower)
+		var was: Dictionary = before[tower]
+		if card.diagram != "" and _card_active_on(card, tower):
+			qualifying += 1
+		if absf(after.damage - was.damage) > 0.0001 or absf(after.speed - was.speed) > 0.0001 or absf(after.range - was.range) > 0.0001:
+			changed.append(tower)
+			var base_dps: float = maxf(tower.tower_data.damage * tower.tower_data.attacks_per_second, 0.001)
+			weight += base_dps
+			dmg_gain += (after.damage / was.damage - 1.0) * base_dps
+			speed_gain += (after.speed / was.speed - 1.0) * base_dps
+			range_gain += after.range - was.range
+	stacks[card.id] = had
+	if had == 0:
+		stacks.erase(card.id)
+		if had_resonance == null:
+			_resonance.erase(card.id)
+		else:
+			_resonance[card.id] = had_resonance
+	bump_board()
+	if not changed.is_empty():
+		var what := ""
+		if absf(dmg_gain) >= absf(speed_gain) and absf(dmg_gain) > 0.0:
+			what = "%+d%% damage" % roundi(100.0 * dmg_gain / weight)  # DPS-weighted over the Wardens it changes
+		elif absf(speed_gain) > 0.0:
+			what = "%+d%% attack speed" % roundi(100.0 * speed_gain / weight)
+		else:
+			what = "%+.1f range" % (range_gain / changed.size())
+		result.towers = changed
+		if card.diagram != "":
+			result.kind = &"position"
+			result.text = "%d of your Wardens qualify · %s" % [changed.size(), what]
+		else:
+			result.kind = &"stat"
+			result.text = "On your board · %s on %d %s" % [what, changed.size(), "Warden" if changed.size() == 1 else "Wardens"]
+		return result
+	if card.kind == UpgradeData.Kind.ECONOMY or card.dew_now > 0 or card.rest_bonus_add != 0 or card.free_clears_add > 0:
+		var live := effects().preview_line(card)
+		result.kind = &"economy"
+		result.text = ("On your board · " + live.trim_prefix("Now: ")) if live != "" else _economy_line(card)
+		return result
+	if card.diagram != "":
+		result.kind = &"position"
+		result.text = ("%d of your Wardens qualify" % qualifying) if qualifying > 0 else "None of your Wardens qualify yet"
+		return result
+	if card.kind == UpgradeData.Kind.RULE:
+		var attackers: Array = towers.filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
+		if not attackers.is_empty():
+			result.kind = &"trigger"
+			result.towers = attackers
+			result.text = ("Triggers on all %d attackers" % attackers.size()) if attackers.size() > 1 else "Triggers on your attacker"
+	return result
+
+func _card_active_on(card: UpgradeData, tower: Tower) -> bool:
+	for row in get_card_effects(tower.tower_data, tower.cell, tower):
+		if row.active and (row.card == card or String(row.get("card_id", "")) == card.id):
+			return true
+	return false
+
+func _economy_line(card: UpgradeData) -> String:
+	var bits: Array[String] = []
+	if card.dew_now > 0:
+		bits.append("+%d Dew now" % card.dew_now)
+	if card.rest_bonus_add > 0:
+		bits.append("+%d Dew every rest" % card.rest_bonus_add)
+	if card.free_clears_add > 0:
+		bits.append("%d free clears" % card.free_clears_add)
+	return ("On your board · " + ", ".join(bits)) if not bits.is_empty() else "None of your Wardens yet"
+
+# A Warden's Dream multipliers now: {damage: 1 + Σ damage parts, speed: 1 + Σ speed parts, range: Σ range parts}.
+func _dream_stat_factors(tower: Tower) -> Dictionary:
+	var out := {"damage": 1.0, "speed": 1.0, "range": 0.0}
+	for row in get_card_effects(tower.tower_data, tower.cell, tower):
+		if not row.active:
+			continue
+		out.damage += float(row.get("damage", 0.0))
+		out.speed += float(row.get("speed", 0.0))
+		out.range += float(row.get("range", 0.0))
+	return out
+
+# The player's pick from an offer: the impact line and the Wardens it reaches, for the bloom (Main).
+func _announce_pick(card: UpgradeData, impact: Dictionary) -> void:
+	var line := ("%s · %s" % [card.display_name, impact.text]) if impact.kind != &"none" else card.display_name
+	card_chosen.emit(card, impact.towers, line)
+
+# --- Card credit --------------------------------------------------------------------------------------------
+# {"block": {card id: {damage, dew, leaves, clears}}, "run": {…}}. Damage: on each Warden hit, the part the taken
+# cards' damage and attack-speed bonuses added (1 − 1 / ((1 + ΣD)(1 + ΣA))), split in proportion to each card's
+# bonus; a hit tagged with a card's rule (Last Breath's burst…) goes to that card whole. Saved with the run.
+var card_credit := {"block": {}, "run": {}}
+var _credit_parts := {}  # Tower instance id -> [board_version, {card id: total bonus}, ΣD, ΣA]
+var _credit_rules := {}  # Damage tag -> card id, rebuilt with the taken cards
+var _credit_rules_of := -1
+
+func _credit(card_id: String, key: String, amount: float) -> void:
+	if amount <= 0.0 or card_id == "":
+		return
+	for period in ["block", "run"]:
+		var rows: Dictionary = card_credit[period]
+		if not rows.has(card_id):
+			rows[card_id] = {"damage": 0.0, "dew": 0.0, "leaves": 0.0, "clears": 0.0}
+		rows[card_id][key] += amount
+
+func _credit_hit(event) -> void:
+	if event.amount <= 0.0:
+		return
+	var by_tag := _credit_rule_map()
+	if event.tag != &"" and by_tag.has(event.tag):  # A trigger card's own damage
+		_credit(by_tag[event.tag], "damage", event.amount)
+		return
+	var tower := event.source as Tower
+	if tower == null or not is_instance_valid(tower) or event.kind != &"hit":
+		return
+	var entry: Array = _credit_parts.get(tower.get_instance_id(), [])
+	if entry.is_empty() or entry[0] != board_version:
+		var parts := {}
+		var sum_d := 0.0
+		var sum_a := 0.0
+		for row in get_card_effects(tower.tower_data, tower.cell, tower):
+			if not row.active:
+				continue
+			var d: float = maxf(float(row.get("damage", 0.0)), 0.0)
+			var a: float = maxf(float(row.get("speed", 0.0)), 0.0)
+			if d <= 0.0 and a <= 0.0:
+				continue
+			var id := _row_card_id(row)
+			parts[id] = float(parts.get(id, 0.0)) + d + a
+			sum_d += d
+			sum_a += a
+		entry = [board_version, parts, sum_d, sum_a]
+		_credit_parts[tower.get_instance_id()] = entry
+	var total: float = entry[2] + entry[3]
+	if total <= 0.0:
+		return
+	var bonus: float = event.amount * (1.0 - 1.0 / ((1.0 + entry[2]) * (1.0 + entry[3])))
+	for id in entry[1]:
+		_credit(id, "damage", bonus * float(entry[1][id]) / total)
+
+static func _row_card_id(row: Dictionary) -> String:
+	var card = row.get("card")
+	if card is UpgradeData:
+		return card.id
+	return String(card) if card != null else String(row.get("id", ""))
+
+# Damage tags that belong to a taken card (its rule id or its id), e.g. "last_breath".
+func _credit_rule_map() -> Dictionary:
+	var key := hash(stacks)
+	if key != _credit_rules_of:
+		_credit_rules_of = key
+		_credit_rules.clear()
+		for card in _taken_cards():
+			if card.rule_id != &"":
+				_credit_rules[card.rule_id] = card.id
+			_credit_rules[StringName(card.id)] = card.id
+	return _credit_rules
+
+# {"damage", "kind", "amount", "text"} for card `id` this &"block" or &"run".
+func get_card_credit(id: String, period: StringName) -> Dictionary:
+	var row: Dictionary = card_credit.get(String(period), {}).get(id, {})
+	var name := get_display_name(id)
+	var damage: float = row.get("damage", 0.0)
+	if damage > 0.0:
+		return {"damage": damage, "kind": &"damage", "amount": damage, "text": "%s · +%s" % [name, _thousands(roundi(damage))]}
+	var dew: float = row.get("dew", 0.0)
+	if dew > 0.0:
+		return {"damage": 0.0, "kind": &"dew", "amount": dew, "text": "%s · +%d Dew" % [name, roundi(dew)]}
+	var leaves: float = row.get("leaves", 0.0)
+	if leaves > 0.0:
+		return {"damage": 0.0, "kind": &"leaves", "amount": leaves, "text": "%s · saved %d %s" % [name, roundi(leaves), "leaf" if roundi(leaves) == 1 else "leaves"]}
+	var clears: float = row.get("clears", 0.0)
+	if clears > 0.0:
+		return {"damage": 0.0, "kind": &"clears", "amount": clears, "text": "%s · %d half-price %s" % [name, roundi(clears), "clear" if roundi(clears) == 1 else "clears"]}
+	return {"damage": 0.0, "kind": &"damage", "amount": 0.0, "text": "%s · +0" % name}
+
+# The top `n` card ids this period: damage first (by amount), then the non-damage ones.
+func get_top_cards(period: StringName, n: int) -> Array[String]:
+	var scored: Array = []
+	for id in card_credit.get(String(period), {}):
+		var credit := get_card_credit(id, period)
+		if credit.amount > 0.0:
+			scored.append({"id": id, "c": credit})
+	scored.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if (a.c.kind == &"damage") != (b.c.kind == &"damage"):
+			return a.c.kind == &"damage"
+		return a.c.amount > b.c.amount)
+	var out: Array[String] = []
+	for e in scored.slice(0, n):
+		out.append(e.id)
+	return out
+
+static func _thousands(n: int) -> String:
+	var s := str(absi(n))
+	var out := ""
+	while s.length() > 3:
+		out = "," + s.right(3) + out
+		s = s.left(s.length() - 3)
+	return ("-" if n < 0 else "") + s + out
+
+# At each rest, the Dew the cards added this block: their rest bonus (Morning Dew's +10…), and their share of the
+# Dew pot (Morning Dew's +10% pot: the pot earned × its bonus ÷ the whole multiplier).
+func _credit_rest() -> void:
+	for card in _taken_cards():
+		if card.rest_bonus_add > 0:
+			_credit(card.id, "dew", card.rest_bonus_add * card_stacks(card.id))
+	var gain := get_dew_gain_bonus()
+	if gain > 0.0 and run_state.pot_earned_block > 0.0:
+		_credit(_card_with_rule(&"gathered_dew"), "dew", run_state.pot_earned_block * gain / (1.0 + gain))
+
+# The taken card granting `rule` (its rule_id or one of its extra_rules), "" if none.
+func _card_with_rule(rule: StringName) -> String:
+	for card in _taken_cards():
+		if card.rule_id == rule or card.extra_rules.has(rule):
+			return card.id
+	return ""

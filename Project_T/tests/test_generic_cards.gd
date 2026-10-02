@@ -39,6 +39,7 @@ func _run() -> void:
 	_test_stat_rules()
 	_test_hit_rules()
 	_test_crowd_counts()
+	_test_card_feel()
 	_test_rest_rules()
 	_test_map_rules()
 	_test_sim_entry()
@@ -987,3 +988,44 @@ func _test_crowd_counts() -> void:
 
 func await_frame_hint() -> void:
 	dreams._bucket_frame = -1  # Spawned this frame: rebuild the buckets
+
+# Feeling the cards (dream_design.md 2026-10-01): the impact preview matches the real change once taken; card credit is
+# at most the bonus damage and splits it; a trigger card's own damage is credited to it; card_chosen names the Wardens.
+func _test_card_feel() -> void:
+	_reset()
+	var a := _plant("sporeling", Vector2(100, 100))
+	var b := _plant("sporeling", Vector2(102, 100))
+	var calm := _card("deeper_calm")  # +15% damage on every Warden
+	var impact := dreams.preview_card_impact(calm)
+	_check(impact.kind == &"stat" and impact.towers.size() == 2 and impact.text == "On your board · +15% damage on 2 Wardens",
+		"impact preview: %s" % impact.text)
+	var before := a.get_damage()
+	dreams.take(calm)
+	var after := a.get_damage()
+	_check(absf(after / before - 1.15) < 0.011, "…matches the real change once taken (×%.3f)" % (after / before))
+	_check(not dreams.stacks.has("thick_bark") and dreams.preview_card_impact(_card("thick_bark")).kind != &"stat", "…and taking nothing for a preview")
+	var event := DamageLog.Event.new()
+	event.source = a
+	event.kind = &"hit"
+	event.amount = 115.0
+	dreams.card_credit = {"block": {}, "run": {}}
+	dreams._credit_hit(event)
+	var credit := dreams.get_card_credit("deeper_calm", &"run")
+	_check(credit.kind == &"damage" and absf(credit.damage - 15.0) < 0.01 and credit.damage <= event.amount,
+		"card credit: the bonus part of a hit (%.2f of 115)" % credit.damage)
+	_check(credit.text == "Deeper Calm · +15", "…named for the reports (%s)" % credit.text)
+	dreams.take(_card("last_breath"))
+	var burst := DamageLog.Event.new()
+	burst.source = a
+	burst.kind = &"hit"
+	burst.tag = &"last_breath"
+	burst.amount = 40.0
+	dreams._credit_hit(burst)
+	_check(absf(dreams.get_card_credit("last_breath", &"run").damage - 40.0) < 0.01, "…a trigger card gets the damage it causes")
+	_check(dreams.get_top_cards(&"run", 3) == ["last_breath", "deeper_calm"], "…top cards by damage (%s)" % [dreams.get_top_cards(&"run", 3)])
+	var saved := dreams.to_save()
+	dreams.card_credit = {"block": {}, "run": {}}
+	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
+	_check(absf(dreams.get_card_credit("deeper_calm", &"run").damage - 15.0) < 0.01, "…kept in the run save")
+	dreams.card_credit = {"block": {}, "run": {}}
+	_clear()
