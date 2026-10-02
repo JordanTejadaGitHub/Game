@@ -160,10 +160,9 @@ func _glide_along_path() -> void:
 	var map_generator = %MapGenerator
 	var cells: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	var points := PackedVector2Array()
-	for i in range(0, cells.size(), maxi(cells.size() / 12, 1)):
-		points.append(map_generator.MAP_GRID.calculate_map_position(cells[i]))
-	points.append(map_generator.MAP_GRID.calculate_map_position(cells[-1]))
-	camera.glide(points, 6.0)
+	for cell in cells:  # Every cell: the camera paces itself by distance (GameCameraNode.glide_route)
+		points.append(map_generator.MAP_GRID.calculate_map_position(cell))
+	camera.glide_route(points)  # No glide when the whole route already fits on screen
 
 # Shows `id` once ever (queued behind whatever is showing).
 var _args := {}  # Whisper id -> the words for its %s (the grow whisper's Warden name)
