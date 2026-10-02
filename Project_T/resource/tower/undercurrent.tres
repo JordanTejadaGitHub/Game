@@ -19,6 +19,7 @@ line = "water"
 tier = 2
 buildable_directly = false
 evolve_cost = 120
+counter_tags = Array[StringName]([&"anti_swarm"])
 expansion_phase = 1
 special = &"whirlpool"
 special_params = {"radius": 1.5, "duration": 3.0, "link_share": 0.25, "link_max": 6, "dps": 14.0}
