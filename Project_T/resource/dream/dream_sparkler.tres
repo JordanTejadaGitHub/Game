@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/sparkler.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_sparkler"
+display_name = "Sparkler"
+description = "Firefly Jars can now grow into Sparklers ({grow_cost:sparkler} Dew): fireworks over a crowd, each spark adding {static}."
+rarity = 1
+kind = 1
+tags = Array[String](["light"])
+requires = Array[String](["firefly_jar"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")

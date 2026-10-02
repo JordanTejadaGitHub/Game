@@ -22,6 +22,8 @@ var _label := StatusLinks.make_label("", 15)  # Status names are links
 var dreams_label := RichTextLabel.new()
 var unbound_block := 0  # Nightmares that turned Unbound this block ("Unbound: N")
 var _omen_line := ""  # The Omen reward paid at this rest, and why it was cut ("Omens with teeth")
+var _finale_drift := 0  # Spire block finale: the finale drift this block (0 = none)
+var _finale_lost_before := 0  # RunState.leaves_lost when it started
 # The last block's summary (the damage meter's "Last block" tab reads it; "" before the first rest).
 signal block_report_ready(block: int)
 var last_block_text := ""
@@ -46,6 +48,10 @@ func _ready() -> void:
 	visible = false
 	# Deferred: the Harvest pours on rest_started too, so its totals are in by then.
 	drift_director.rest_started.connect(func(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void: show_report.call_deferred(block))
+	drift_director.drift_started.connect(func(number: int) -> void:
+		if drift_director.has_method("get_block_finale_elites") and drift_director.get_block_finale_elites(number) > 0:
+			_finale_drift = number
+			_finale_lost_before = get_node("%RunState").leaves_lost)
 	drift_director.rest_ended.connect(func(_block: int) -> void:
 		visible = false
 		unbound_block = 0)
@@ -104,6 +110,7 @@ func show_report(block: int) -> void:
 		text += "\nUnbound: %d" % unbound_block
 	if drift_director.block_pot > 0.0:  # The Dew pot: what this block paid of what it held (leaks lose their share)
 		text += "\nDew this block: %d of %d" % [roundi(get_node("%RunState").pot_earned_block), roundi(drift_director.block_pot)]
+	text += finale_line(block)
 	if _omen_line != "":
 		text += "\n" + _omen_line
 		_omen_line = ""
@@ -237,6 +244,27 @@ static func best_dream(near: Node) -> Array:
 		if row.kind == &"damage" and row.damage > 0.0 and total > 0.0:
 			return [row.text.get_slice(" · ", 0), "%d%% of your damage" % roundi(row.damage / total * 100.0)]
 	return []
+
+# Spire block finales (spire_difficulty.md Phase 2): "Finale cleared clean: a Rare dream waits" / "Finale cost 2 leaves",
+# "" for a block without one. Roguelite Code's DreamState.finale_result(block) when it's there (it judges the finale), else counted here.
+func finale_line(block: int) -> String:
+	var clean := false
+	var lost := 0
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
+	if dreams != null and dreams.has_method("finale_result"):
+		var result: Dictionary = dreams.finale_result(block)
+		if int(result.get("finale", 0)) <= 0:
+			return ""
+		clean = bool(result.get("clean", false))
+		lost = int(result.get("leaves_lost", 0))
+	else:
+		if _finale_drift <= 0 or drift_director.get_block(_finale_drift) != block:
+			return ""
+		lost = int(get_node("%RunState").leaves_lost) - _finale_lost_before
+		clean = lost <= 0
+	if clean:
+		return "\nFinale cleared clean: a Rare dream waits"
+	return "\nFinale cost %d %s" % [lost, "leaf" if lost == 1 else "leaves"]
 
 static func kinship_text(formed: int, harmony: int, whole: Array) -> String:
 	var text := ""

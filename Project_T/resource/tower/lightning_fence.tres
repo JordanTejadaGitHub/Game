@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Resource" path="res://resource/tower/stormheart.tres" id="asc_1"]
+[ext_resource type="Texture2D" path="res://assets/towers/lightning_fence.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/lightning_fence_attack.png" id="4_atk"]
+
+[resource]
+script = ExtResource("1_tdata")
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+display_name = "Lightning Fence"
+description = "A stronger arc that also catches Phantoms gliding through it."
+cost = 0
+placeholder_color = Color(0.988235, 0.831373, 0.486275, 1)
+line = "light"
+tier = 3
+buildable_directly = false
+evolve_cost = 300
+counter_tags = Array[StringName]([&"anti_air"])
+expansion_phase = 1
+special = &"jarlink"
+special_params = {"link_range": 4.0, "arc_dps": 150.0, "charge_every": 1.0, "flyer_charge": 3}
+special_final = true
+attack_range = 3
+damage = 10
+attacks_per_second = 1.0
+attack_kind = 0
+evolves_to = Array[Resource]([ExtResource("asc_1")])

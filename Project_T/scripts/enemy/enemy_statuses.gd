@@ -91,6 +91,8 @@ var changes := 0
 var sleep_locked_time := 0.0  # Nightbloom: while > 0, sleep neither breaks on a big hit nor ends (Enemy's wake rule reads it)
 var slow_time := 0.0  # Drown on bosses (and Held-immune nightmares): an extra slow instead of sleep
 var slow_amount := 0.0
+var ground_taken := 0.0  # Heartwood Roots (MapGifts): extra soothe taken while on the marked cells
+var ground_taken_time := 0.0  # Refreshed by MapGifts while the nightmare stands there
 var smothering := false  # Held + Spored right now (Spored ticks faster)
 
 # Sleep (Drown; Great Dreamcatcher lengthens it): can't move while > 0. Not a status (no icon, no
@@ -110,6 +112,7 @@ var smother_ended := false
 var bolt_source: Node = null
 var every_hits := {}  # Warden instance id -> hits on this nightmare (TowerData.status_every counts per nightmare)
 var veil_time := 0.0  # Morning Fog's Veil (FinalTwists): while > 0 it can't be healed (Enemy.heal reads it)
+var silence_time := 0.0  # Hushbell (BranchKit.silence): while > 0 it uses no abilities (Enemy._update_presence reads it)
 var marked_extra := 0.0  # Beacon: its Marked is stronger (+35% instead of +25%) until Marked ends
 var marked_bonus := 0.0  # Bright Marks (Dream): added to either (the nightmare sets it each frame)
 # Hunter's Moon / Eternal Charge (Legendary rules): Marked / Static on this nightmare never run out.
@@ -359,6 +362,8 @@ func get_damage_taken_multiplier() -> float:
 		multiplier += STAG_EXTRA
 	if cut_stacks > 0:
 		multiplier *= 1.0 + CUT_BONUS * cut_stacks
+	if ground_taken_time > 0.0:
+		multiplier *= 1.0 + ground_taken  # Heartwood Roots (MapGifts)
 	if held_bonus > 0.0 and is_held():
 		multiplier *= 1.0 + held_bonus  # World Root: Held nightmares take more from everything
 	return multiplier
@@ -370,6 +375,8 @@ func tick(delta: float) -> float:
 	# frame for every nightmare).
 	if tempest_time > 0.0:
 		tempest_time = maxf(tempest_time - delta, 0.0)
+	if ground_taken_time > 0.0:
+		ground_taken_time = maxf(ground_taken_time - delta, 0.0)
 	if gust_time > 0.0:
 		gust_time = maxf(gust_time - delta, 0.0)
 	if _fog_time > 0.0:
@@ -386,6 +393,8 @@ func tick(delta: float) -> float:
 		sleep_locked_time = maxf(sleep_locked_time - delta, 0.0)
 	if slow_time > 0.0:
 		slow_time = maxf(slow_time - delta, 0.0)
+	if silence_time > 0.0:
+		silence_time = maxf(silence_time - delta, 0.0)
 	if veil_time > 0.0:
 		veil_time = maxf(veil_time - delta, 0.0)
 	if sleep_cooldown > 0.0:

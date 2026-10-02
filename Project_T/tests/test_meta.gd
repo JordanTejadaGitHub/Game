@@ -22,6 +22,7 @@ func get_dew_reward() -> int:
 	_run.call_deferred()
 
 func _run() -> void:
+	MetaRun.force_sidegrade = 0  # The Power perks below; the sidegrade section switches it on
 	_check(HeartwoodMemory.file_path != HeartwoodMemory.PATH and HeartwoodMemory.file_path.contains(str(OS.get_process_id())),
 		"a --script run never uses the real profile by default (%s)" % HeartwoodMemory.file_path)
 	HeartwoodMemory.file_path = PROFILE_PATH
@@ -291,6 +292,54 @@ func _run() -> void:
 	_check(dreams.allow_bittersweet and dreams.grove_cards.has("deep_sleep"), "the Bittersweet Dreams node lets bittersweet cards be offered")
 	main.queue_free()
 	await process_frame
+
+	# --- Sidegrade perks (Spire experiment, MetaRun.sidegrade_active): each carried perk adds a cost ---
+	MetaRun.force_sidegrade = 1
+	memory = HeartwoodMemory.load_data()
+	for id in ["morning_stores", "early_bloom", "early_light"]:
+		memory.unlocks[id] = _unlock(grove, id).get_levels()
+	memory.loadout = ["rich_dew", "rested_roots", "sprout_bed", "clear_sight"]  # Kindling has its own run: its random Common may give Dew
+	HeartwoodMemory.save_data(memory)
+	_check(MetaRun.perk_extra_ridges() == 1, "sidegrade Clear Sight: the map gets one more ridge")
+	_check(_unlock(grove, "clear_sight").get_description().contains("Costs:"), "the node card shows the sidegrade text")
+	var taproot := _unlock(grove, "deep_taproot")
+	_check(taproot.get_levels() == 2 and taproot.get_cost(2) == -1 and taproot.get_spent(3) == 25 + 50,
+		"Hades-style Deep Taproot stops at level II (no Seed trap, full bloom doesn't need level III)")
+	main = await _new_run()
+	run_state = main.get_node("%RunState")
+	director = main.get_node("%DriftDirector")
+	dreams = main.get_node("%DreamState")
+	_check(is_equal_approx(run_state.dew_gain_bonus, 0.15), "Rich Dew III +15%% pot; Rested Roots is plain power (Hades-style) (%s)" % run_state.dew_gain_bonus)
+	_check(is_equal_approx(director.rest_bonus_perk_multiplier, 1.0 + 0.2 - 0.3), "Rested Roots II +20%% (plain), Rich Dew III −30%% rest bonus (%s)" % director.rest_bonus_perk_multiplier)
+	_check(run_state.dew == run_state.starting_dew - 30 and run_state.sprout_charges == 2, "sidegrade Sprout Bed: 2 Sprouts, 30 less starting Dew (%d)" % run_state.dew)
+	main.queue_free()
+	await process_frame
+	memory = HeartwoodMemory.load_data()
+	memory.loadout = ["morning_stores", "first_care", "deep_taproot", "early_bloom", "early_light"]
+	HeartwoodMemory.save_data(memory)
+	main = await _new_run()
+	run_state = main.get_node("%RunState")
+	director = main.get_node("%DriftDirector")
+	dreams = main.get_node("%DreamState")
+	_check(is_equal_approx(director.get_dew_pot_multiplier(3, false, false), director.get_dew_pot_multiplier(6, false, false))
+		and run_state.dew == run_state.starting_dew + 30, "Hades-style Morning Stores III: plain +30 starting Dew, no pot cost (%d)" % run_state.dew)
+	_check(is_equal_approx(dreams.nurture_perk_multiplier, 1.15) and run_state.free_nurtures == 3, "sidegrade First Care: 3 free ranks, then +15%%")
+	_check(director.act_break_leaves == 1 and run_state.max_leaves == run_state.starting_leaves + 2, "Hades-style Deep Taproot III: +2 leaves (capped), act-break regrow kept")
+	_check(main.get_node("%FamilyPickScreen").first_boss_pick_fewer == 1, "sidegrade Early Bloom: the drift 25 pick shows one fewer")
+	_check(dreams.first_pick_dreamlight == 0, "sidegrade Early Light: the first family pick gives no Dreamlight")
+	main.queue_free()
+	await process_frame
+	memory = HeartwoodMemory.load_data()
+	memory.loadout = ["wider_dreams", "kindling"]
+	HeartwoodMemory.save_data(memory)
+	main = await _new_run()
+	dreams = main.get_node("%DreamState")
+	_check(dreams.cards_per_offer == 4 and dreams.skip_dew == 0, "sidegrade Wider Dreams: 4 cards, Let it pass gives no Dew")
+	_check(dreams.first_offer_cards == 2, "sidegrade Kindling: the first Dream offer has 2 cards")
+	main.queue_free()
+	await process_frame
+	MetaRun.force_sidegrade = 0
+	_check(not _unlock(grove, "clear_sight").get_description().contains("Costs:") and MetaRun.perk_extra_ridges() == 0, "Power perks: the plain text, no extra ridge")
 
 	# --- Saves are atomic, and an unreadable profile never turns into a fresh one ---
 	var kept := HeartwoodMemory.load_data()

@@ -184,6 +184,7 @@ func _refresh() -> void:
 
 	for child in _buttons.get_children() + _footer.get_children():
 		child.queue_free()
+	_clear_not_in_dream()
 	if _tower.can_choose_target():
 		_add_target_switch([_tower])
 	if data.has_bird_toggle:
@@ -238,6 +239,7 @@ func _refresh() -> void:
 			_locked_form_button(button, "Unlock %s" % next.display_name, next, [_tower], index)
 			continue  # Locked: no ring, no ghost
 		_preview_on(button, [[_tower, next]])
+	_not_in_dream_button(data)
 	if _tower.can_nurture():
 		var cost := _tower.get_nurture_cost()
 		# The Eldest (a Legendary): rank VI crowns the one Warden that can grow past V, so ask first.
@@ -326,6 +328,7 @@ func _refresh_group() -> void:
 
 	for child in _buttons.get_children() + _footer.get_children():
 		child.queue_free()
+	_clear_not_in_dream()
 	var aimed := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_choose_target())
 	if not aimed.is_empty():
 		_add_target_switch(aimed)
@@ -599,7 +602,7 @@ func _locked_form_button(button: Button, label: String, next: TowerData, towers:
 		button.text = "%s · needs a Dream" % label  # Before Dreamlight
 		button.disabled = true
 		return
-	var cost: int = dream_state.get_unlock_cost(next)
+	var cost: int = dream_state.get_unlock_price(next)  # Waking Root's discount included (it can reach 0)
 	var blocker: String = dream_state.get_unlock_blocker(next)
 	if blocker == "Memory Grove":
 		label = RememberScreen.UNKNOWN_NAME
@@ -609,7 +612,7 @@ func _locked_form_button(button: Button, label: String, next: TowerData, towers:
 		button.set_meta(&"price", WardenHeaderView.blocker_text(blocker))
 		_set_short(button, true, false)  # Not a price: just the dim look
 	else:
-		_priced(button, label, "%d Dreamlight" % cost, cost, &"dreamlight", true)
+		_priced(button, label, ("%d Dreamlight" % cost) if cost > 0 else "free", cost, &"dreamlight", true)
 	button.pressed.connect(func() -> void:
 		_confirm_unlock = null
 		if tower_seller.refuse_if_short(towers, next, false, index):
@@ -721,6 +724,32 @@ func _nurture_with(which: Tower.Focus) -> void:
 # A Nurture price for a button: "40 Dew", or "free" (First Care's free ranks).
 static func _price(dew: int) -> String:
 	return "free" if dew <= 0 else "%d Dew" % dew
+
+# Branch expansion: the branches this run didn't draw aren't Grow buttons (Tower.grow_options); one quiet line
+# points at Remember, where a misty branch can be called back into the dream for Dreamlight. It sits in the info part
+# (which scrolls), not among the actions, so the panel keeps within MAX_SHARE.
+func _not_in_dream_button(data: TowerData) -> void:
+	_clear_not_in_dream()
+	var hidden := Tower.not_in_dream(dream_state, data)
+	if hidden.is_empty():
+		return
+	var button := Button.new()
+	button.name = "NotInDream"
+	button.text = "%d more not in this dream · Remember" % hidden.size()
+	button.focus_mode = Control.FOCUS_NONE
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_content.add_child(button)
+	button.flat = true
+	button.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	button.tooltip_text = "%s: not in this dream. Call one back on Remember." % ", ".join(hidden.map(
+		func(form: TowerData) -> String: return form.display_name))
+	button.pressed.connect(func() -> void: dream_state.open_remember(hidden[0]))
+
+func _clear_not_in_dream() -> void:
+	var old := _content.get_node_or_null("NotInDream")
+	if old != null:
+		_content.remove_child(old)
+		old.queue_free()
 
 func _add_button(text: String) -> Button:
 	var button := Button.new()

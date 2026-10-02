@@ -33,7 +33,8 @@ func _run() -> void:
 	_check(tab_names.has("Sporeling") and tab_names.has("Thornwall"), "a tab per owned family plus Thornwall (%s)" % ", ".join(tab_names))
 	var nodes: Dictionary = screen._canvas.nodes
 	_check(nodes.has(sporeling), "the base Warden at the root")
-	var branch: TowerData = sporeling.evolves_to[0]
+	# The branch expansion offers 2 of 5 per run: the first branch this run draws (offered ones have a node).
+	var branch: TowerData = sporeling.evolves_to.filter(func(b) -> bool: return dreams.is_branch_offered(b) and b.tier == 2 and dreams.get_unlock_blocker(b) == "")[0]
 	_check(nodes.has(branch) and screen.state_of(branch) == RememberScreen.State.CAN_UNLOCK,
 		"a branch can be unlocked with 1 Dreamlight")
 	var final: TowerData = branch.evolves_to[0] if not branch.evolves_to.is_empty() else null
@@ -104,7 +105,8 @@ func _run() -> void:
 		_check(screen.visible and screen.selected == final and screen._canvas.nodes.has(final), "open_remember(form) opens on that form")
 		screen.close()
 	# …also a final form whose branch isn't unlocked yet
-	var other: TowerData = sporeling.evolves_to[1] if sporeling.evolves_to.size() > 1 else null
+	var offered: Array = sporeling.evolves_to.filter(func(b) -> bool: return dreams.is_branch_offered(b) and b.tier == 2 and b != branch and dreams.get_unlock_blocker(b) == "")
+	var other: TowerData = offered[0] if not offered.is_empty() else null  # Another branch this run offers
 	if other != null and not other.evolves_to.is_empty() and not dreams.is_unlocked(other.get_id()):
 		var locked_final: TowerData = other.evolves_to[0]
 		dreams.open_remember(locked_final)

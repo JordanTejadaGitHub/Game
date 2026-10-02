@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Resource" path="res://resource/tower/stormheart.tres" id="asc_1"]
+[ext_resource type="Texture2D" path="res://assets/towers/rainbow_prism.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/rainbow_prism_attack.png" id="4_atk"]
+
+[resource]
+script = ExtResource("1_tdata")
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+display_name = "Rainbow Prism"
+description = "+20% crit chance and +25% crit damage around it; its own shot splits into 3 coloured beams."
+cost = 0
+placeholder_color = Color(0.705882, 0.690196, 0.784314, 1)
+line = "light"
+tier = 3
+buildable_directly = false
+evolve_cost = 300
+counter_tags = Array[StringName]([&"anti_tank"])
+expansion_phase = 1
+special = &"prism"
+special_params = {"crit_aura": 0.20, "crit_damage_aura": 0.25, "aura_radius": 1.5, "beams": 3, "beam_share": 0.5}
+special_final = true
+attack_range = 3
+damage = 120
+attacks_per_second = 1.0
+attack_kind = 0
+evolves_to = Array[Resource]([ExtResource("asc_1")])

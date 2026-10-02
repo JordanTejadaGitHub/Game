@@ -295,13 +295,16 @@ static func is_asleep(enemy: Node2D) -> bool:
 	return enemy.statuses.is_asleep()
 
 # Heavy Eyelids: Drowsy cap +2 (Heavy Eyelids II: +3), bosses +1.
+# Heartwood's Gift Bramble Verge: +1 more for a nightmare touching a Thornwall (GiftGround).
 static func drowsy_cap_bonus(enemy: Node2D) -> int:
+	var gifts := GiftGround.active_for(enemy)
+	var gift := gifts.drowsy_cap_bonus(enemy) if gifts else 0
 	var dreams := _dreams(enemy)
 	if dreams == null or not dreams.has_rule(&"heavy_eyelids"):
-		return 0
+		return gift
 	if enemy.enemy_data.is_boss:
-		return 1
-	return 3 if dreams.rule_level(&"heavy_eyelids") > 0 else 2
+		return 1 + gift
+	return (3 if dreams.rule_level(&"heavy_eyelids") > 0 else 2) + gift
 
 # Before a Warden's hit: Pinned turns it into a ×3 crit, and Shatter (Held + Damp, hit by a crit or
 # a heavy hitter) makes it ×2.5. Returns {"crit", "crit_multiplier", "multiplier", "shatter", "tag"}.
@@ -403,11 +406,16 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 		var dreams := _dreams(target)
 		if dreams != null and dreams.has_method("get_bolt_multiplier"):
 			damage *= dreams.get_bolt_multiplier()  # Live Wire (Dream): Charged bolts +15% per stack
+		var gifts := GiftGround.active_for(target)
+		if gifts:
+			damage *= gifts.bolt_multiplier(target.global_position)  # Heartwood's Gift Lightning Tree: +25% within 2 cells
 	var rod := _find_rod(target)
 	if rod == null:
 		var at := target.global_position
 		var tracker := ReactionTracker.find(target) if tag == &"static" else null  # Found first: the bolt may dispel it
 		target.take_damage(damage if tag == &"static" else _rx(target, damage), "light", false, false, tower, tag)  # A Charged bolt isn't a Reaction
+		if tag == &"static" and is_instance_valid(target) and target.has_meta(BranchKit.LINK_META):
+			BranchKit.share_bolt(target, damage, tower)  # Maelstrom: the bolt travels the current
 		if tag == &"static":
 			var reach := _static_field(target, at, damage, tower)
 			_bolt_seen(target, at, damage, reach, tracker)

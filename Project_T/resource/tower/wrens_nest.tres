@@ -8,6 +8,7 @@
 
 [resource]
 script = ExtResource("1_tdata")
+counter_tags = Array[StringName]([&"anti_air"])
 display_name = "Wren's Nest"
 description = "Quick wrens hunt the fastest nightmare in range and strike one more beside it for half; extra damage to Phantoms and sprinting Night Hounds."
 cost = 0

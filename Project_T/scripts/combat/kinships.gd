@@ -63,6 +63,11 @@ const KINSHIPS := {
 	&"true_graft": ["True Graft", "acorn", "graftling", "elder_stump", false],
 	&"jewel_thieves": ["Jewel Thieves", "wing", "hummingbird_bower", "magpie_perch", false],
 	&"tailwind": ["Tailwind", "wind", "samara", "gust", false],
+	# Branch expansion, Phase 1 (tower_design.md; traits in BranchKit): one named pair per starting family.
+	&"crusted_brood": ["Crusted Brood", "spore", "lichenling", "brood_cap", false],
+	&"eye_of_the_storm": ["Eye of the Storm", "water", "cloudlet", "undercurrent", false],
+	&"fireworks_fence": ["Fireworks Fence", "light", "jarlink", "sparkler", false],
+	&"vespers": ["Vespers", "song", "silver_bell", "hushbell", false],
 }
 # The colours of each family, for vines and Harmony sparks.
 const FAMILY_COLORS := {"spore": Palette.NEWLEAF, "water": Palette.DEWLIGHT,  # One palette colour each
@@ -211,7 +216,28 @@ static func branch_for(tower: Tower) -> String:
 	tower._branch_cached = branch
 	return branch
 
-# The Kinship two branches form ("" if none).
+# Generic Kin (tower_design.md "Kinships with 6 branches", branch expansion): any two different branches of one
+# family that aren't a named pair still bond: +10% damage each, Harmony strikes, stages and the vine, no traits.
+const GENERIC := &"kin"
+const GENERIC_NAME := "Kin"
+const GENERIC_BONUS := 0.10
+
+# The bond two different branches of one family form: their named Kinship, else generic Kin.
+static func kinship_or_kin(branch_a: String, branch_b: String) -> StringName:
+	var id := kinship_for(branch_a, branch_b)
+	return id if id != &"" else GENERIC
+
+# A Kinship's name ("Kin" for the generic bond).
+static func name_of(id: StringName) -> String:
+	return KINSHIPS[id][0] if KINSHIPS.has(id) else GENERIC_NAME
+
+# A pair's family line.
+static func line_of(pair: Dictionary) -> String:
+	if KINSHIPS.has(pair.id):
+		return KINSHIPS[pair.id][1]
+	return pair.a.tower_data.line if is_instance_valid(pair.a) else ""
+
+# The named Kinship two branches form ("" if none).
 static func kinship_for(branch_a: String, branch_b: String) -> StringName:
 	for id in KINSHIPS:
 		var row: Array = KINSHIPS[id]
@@ -223,6 +249,8 @@ static func _demo() -> bool:
 	return ResultsScreen.is_demo() and not force_full
 
 static func is_available(id: StringName) -> bool:
+	if id == GENERIC:
+		return not _demo()  # Generic Kin: the full game (the demo keeps its 4 named Kinships)
 	return KINSHIPS[id][4] or not _demo()
 
 
@@ -293,13 +321,13 @@ func refresh() -> void:
 				var bb: String = kin[j][1]
 				if bb == ba:
 					continue
-				var id := kinship_for(ba, bb)
+				var id := kinship_or_kin(ba, bb)
 				if id == &"" or not is_available(id):
 					continue
 				var distance := _distance(ta, tb)
 				if distance <= get_reach():
 					# Side A is the Warden from the table's first branch.
-					var first: bool = KINSHIPS[id][2] == ba
+					var first: bool = KINSHIPS[id][2] == ba if KINSHIPS.has(id) else true
 					edges.append([distance, id, ta if first else tb, tb if first else ta])
 	edges.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
 	# Bonds are sticky (tower_design.md): a bond still in reach is kept before anyone else pairs, so a
@@ -352,7 +380,21 @@ func refresh() -> void:
 				if not memory.is_empty() and not memory.standing.has(kin.get_instance_id()):
 					ages[pair.key] = maxi(ages[pair.key], memory.age)
 					_remembered.erase(tower.get_instance_id())
+			# Memory Seed (Heartwood's Gift): a replanted Warden bonds with an old partner at the old age.
+			for side in [[pair.a, pair.b], [pair.b, pair.a]]:
+				var seeded: Dictionary = _inherited.get(side[0].get_instance_id(), {})
+				if seeded.has(side[1].get_instance_id()):
+					ages[pair.key] = maxi(ages[pair.key], int(seeded[side[1].get_instance_id()]))
 			_on_formed(pair)
+	# Bonds that just ended, by Warden (Memory Seed reads them once the sold Warden has left the tree).
+	for old in pairs:
+		if not keys.has(old.key) and is_instance_valid(old.a) and is_instance_valid(old.b):
+			for side in [[old.a, old.b], [old.b, old.a]]:
+				var ended: Dictionary = _ended_bonds.get(side[0].get_instance_id(), {})
+				ended[side[1].get_instance_id()] = int(ages.get(old.key, 0))
+				_ended_bonds[side[0].get_instance_id()] = ended
+	if _ended_bonds.size() > ENDED_BONDS_KEPT:
+		_ended_bonds.erase(_ended_bonds.keys()[0])
 	for key in ages.keys():
 		if not keys.has(key):
 			ages.erase(key)
@@ -426,11 +468,54 @@ func get_stage_drifts() -> Array[int]:
 		result.append(maxi(STAGE_DRIFTS[i] - cut, 1))
 	return result
 
-# Old Friends: new bonds start at Blooming (II: Old Kin), counting on from there.
+# Old Friends: new bonds start at Blooming (II: Old Kin), counting on from there. Heartwood's Gift Old Kin
+# (GiftGround): one stage up on top, for its act.
 func _start_age() -> int:
-	if not _has(&"old_friends"):
-		return 0
-	return get_stage_drifts()[2 if _level(&"old_friends") > 0 else 1]
+	var stage := 0
+	if _has(&"old_friends"):
+		stage = 2 if _level(&"old_friends") > 0 else 1
+	var gifts := GiftGround.active_for(self)
+	if gifts:
+		stage += gifts.kin_start_stages()
+	var thresholds := get_stage_drifts()
+	return thresholds[mini(stage, thresholds.size() - 1)]
+
+# Old Kin (Heartwood's Gift): the Kinship `key` jumps a stage now (announced like any stage-up).
+func raise_stage(key: String) -> bool:
+	for pair in pairs:
+		if pair.key != key:
+			continue
+		var thresholds := get_stage_drifts()
+		var before := get_stage(pair)
+		if before >= thresholds.size() - 1:
+			return false  # Already at its last stage
+		ages[key] = maxi(int(ages.get(key, 0)), thresholds[before + 1])
+		version += 1
+		_queue(["grew", pair, before + 1])
+		return true
+	return false
+
+# Memory Seed (Heartwood's Gift): `tower`, replanted, bonds again with its old partners at their old ages
+# ({partner instance id: bond age}), used when those pairs form (refresh).
+var _inherited := {}  # Tower instance id -> {partner instance id: age}
+
+const ENDED_BONDS_KEPT := 64
+var _ended_bonds := {}  # Warden instance id -> {partner instance id: age} of bonds that ended
+
+# The bonds `tower` had when they last ended ({partner instance id: age}), or {}.
+func ended_bonds(tower: Tower) -> Dictionary:
+	return _ended_bonds.get(tower.get_instance_id(), {})
+
+func inherit_ages(tower: Tower, partners: Dictionary) -> void:
+	if not partners.is_empty():
+		_inherited[tower.get_instance_id()] = partners.duplicate()
+	refresh()
+	# A bond that already formed as it was planted takes the old age now.
+	for pair in pairs:
+		for side in [[pair.a, pair.b], [pair.b, pair.a]]:
+			if side[0] == tower and partners.has(side[1].get_instance_id()):
+				ages[pair.key] = maxi(int(ages.get(pair.key, 0)), int(partners[side[1].get_instance_id()]))
+				version += 1
 
 # Kinships on the map (card prerequisites at offer time).
 func count() -> int:
@@ -445,6 +530,8 @@ static func count_on_map(near: Node) -> int:
 func damage_bonus(tower: Tower) -> float:
 	var bonus := family_bonus(tower.tower_data.line)
 	var bonded := not get_pairs(tower).is_empty()
+	if get_pairs(tower).any(func(p) -> bool: return p.id == GENERIC):
+		bonus += GENERIC_BONUS  # Generic Kin: +10% each
 	if bonded:
 		bonus += FAMILY_TIES_PER * _stacks(&"family_ties") * _power(&"family_ties")
 	if _has(&"blood_is_thicker") and tower.tower_data.can_attack:
@@ -545,7 +632,7 @@ func describe(tower: Tower) -> String:
 		var partner: Tower = pair.b if pair.a == tower else pair.a
 		var stage := get_stage(pair)
 		var text := "Kin: %s · %s · %s" % [partner.tower_data.display_name if is_instance_valid(partner) else "?",
-			KINSHIPS[pair.id][0], STAGE_NAMES[stage]]
+			name_of(pair.id), STAGE_NAMES[stage]]
 		if stage < thresholds.size() - 1:
 			var left: int = thresholds[stage + 1] - ages.get(pair.key, 0)
 			text += " (%d drift%s to %s)" % [left, "" if left == 1 else "s", STAGE_NAMES[stage + 1]]
@@ -639,11 +726,11 @@ func preview(data: TowerData, cell: Vector2) -> Dictionary:
 		var other := branch_for(tower)
 		if other == "" or other == branch:
 			continue
-		var id := kinship_for(branch, other)
+		var id := kinship_or_kin(branch, other)
 		var distance := _distance_to_cell(tower, cell)
 		if id != &"" and is_available(id) and distance <= REACH and distance < best_distance:
 			best_distance = distance
-			best = {"id": id, "name": KINSHIPS[id][0], "partner": tower}
+			best = {"id": id, "name": name_of(id), "partner": tower}
 	return best
 
 
@@ -702,9 +789,9 @@ func _on_formed(pair: Dictionary) -> void:
 	formed_run += 1
 	var mid: Vector2 = (pair.a.global_position + pair.b.global_position) / 2.0
 	kinship_formed.emit(pair.id, pair.a, pair.b)
-	kin_bonded.emit(KINSHIPS[pair.id][1], mid)
+	kin_bonded.emit(line_of(pair), mid)
 	if _effects() == 0:
-		Fx.callout("Kinship: %s" % KINSHIPS[pair.id][0], _colour(pair), mid, get_parent(), &"kinship")
+		Fx.callout("Kinship: %s" % name_of(pair.id), _colour(pair), mid, get_parent(), &"kinship")
 		if not Fx.reduce_flashes():
 			_burst(pair.a.global_position, pair)
 			_burst(pair.b.global_position, pair)
@@ -742,9 +829,9 @@ func _announce(event: Array) -> void:
 			if not is_instance_valid(pair.a) or not is_instance_valid(pair.b):
 				return
 			var mid: Vector2 = (pair.a.global_position + pair.b.global_position) / 2.0
-			kin_stage_grew.emit(KINSHIPS[pair.id][1], event[2], mid)
+			kin_stage_grew.emit(line_of(pair), event[2], mid)
 			if _effects() == 0:
-				Fx.callout("%s: %s" % [KINSHIPS[pair.id][0], STAGE_NAMES[event[2]]], _colour(pair), mid,
+				Fx.callout("%s: %s" % [name_of(pair.id), STAGE_NAMES[event[2]]], _colour(pair), mid,
 					get_parent(), &"kinship")
 				for tower in [pair.a, pair.b]:
 					var up := Fx.play(&"kin_stage_up", tower.global_position, get_parent())
@@ -770,7 +857,7 @@ static func _effects() -> int:
 	return int(Fx.setting("kinship_effects", 0))  # Cached (get_settings reads the profile from disk)
 
 func _colour(pair: Dictionary) -> Color:
-	return FAMILY_COLORS.get(KINSHIPS[pair.id][1], Palette.NEWLEAF)
+	return FAMILY_COLORS.get(line_of(pair), Palette.NEWLEAF)
 
 
 # --- Drawing -----------------------------------------------------------------------------------------

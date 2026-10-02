@@ -162,7 +162,7 @@ func _fill_growth(data: TowerData, dreams: DreamState) -> void:
 				line.text = "%s · %s" % [RememberScreen.UNKNOWN_NAME, blocker_text(blocker)]
 				tip = RememberScreen.UNKNOWN_NAME
 			else:
-				line.text = "Unlock %s · %s" % [next.display_name, blocker_text(blocker) if blocker != "" else "%d Dreamlight" % dreams.get_unlock_cost(next)]
+				line.text = "Unlock %s · %s" % [next.display_name, blocker_text(blocker) if blocker != "" else ("%d Dreamlight" % dreams.get_unlock_price(next)) if dreams.get_unlock_price(next) > 0 else "free"]
 			line.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		else:
 			line.text = "%s · needs a Dream" % next.display_name
@@ -170,6 +170,13 @@ func _fill_growth(data: TowerData, dreams: DreamState) -> void:
 		TapTip.attach(line, tip)  # Hover or tap
 		_grow_preview_on(line, next, option[1])
 		growth.add_child(line)
+	var hidden := Tower.not_in_dream(dreams, data)  # Branch expansion: called back on Remember, not listed
+	if not hidden.is_empty():
+		var more := Label.new()
+		more.text = "%d more not in this dream" % hidden.size()
+		more.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		TapTip.attach(more, "%s: call one back on Remember." % ", ".join(hidden.map(func(form: TowerData) -> String: return form.display_name)))
+		growth.add_child(more)
 
 # A planted Warden's "Grows into" line, pointed at: the map preview (ring + ghost) of an unlocked form, as the
 # panel's Grow buttons do. The hover card for the bar's unplanted Wardens has no Warden to preview on.

@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/silver_bell.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/silver_bell_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/vesper_bell.tres" id="ev_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+display_name = "Silver Bell"
+description = "A long-range toll on the strongest nightmare: fills its {drowsy} (bosses to 3)."
+cost = 0
+placeholder_color = Color(0.862745, 0.909804, 0.956863, 1)
+line = "song"
+tier = 2
+buildable_directly = false
+evolve_cost = 120
+counter_tags = Array[StringName]([&"anti_tank"])
+expansion_phase = 1
+special = &"silver_bell"
+special_params = {}
+attack_range = 6
+damage = 80
+attacks_per_second = 0.4
+attack_kind = 0
+evolves_to = Array[Resource]([ExtResource("ev_1")])

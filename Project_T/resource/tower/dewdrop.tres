@@ -7,6 +7,9 @@
 [ext_resource type="Resource" path="res://resource/tower/rain_lily.tres" id="ev_1"]
 [ext_resource type="Resource" path="res://resource/tower/mistveil.tres" id="ev_2"]
 [ext_resource type="Resource" path="res://resource/tower/frostfern.tres" id="ev_3"]
+[ext_resource type="Resource" path="res://resource/tower/cloudlet.tres" id="ev_4"]
+[ext_resource type="Resource" path="res://resource/tower/undercurrent.tres" id="ev_5"]
+[ext_resource type="Resource" path="res://resource/tower/jetreed.tres" id="ev_6"]
 
 [resource]
 script = ExtResource("1_tdata")
@@ -28,6 +31,6 @@ description = "A small splash that makes nightmares {damp}."
 line = "water"
 tier = 1
 evolve_cost = 15
-evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2"), ExtResource("ev_3")])
+evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2"), ExtResource("ev_3"), ExtResource("ev_4"), ExtResource("ev_5"), ExtResource("ev_6")])
 applies_status = &"damp"
 splash_radius = 0.6

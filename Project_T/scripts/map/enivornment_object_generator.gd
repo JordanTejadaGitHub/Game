@@ -151,6 +151,7 @@ func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 	var count := rng.randi_range(ridge_count_min, ridge_count_max)
 	if MetaRun.blight_level >= 9:
 		count += blight_extra_ridges  # Blight Level 9: one extra ridge
+	count += MetaRun.perk_extra_ridges()  # Sidegrade Clear Sight (Spire experiment): one extra ridge
 	var a := _v_of(_start)
 	var b := _v_of(_end)
 	var rows := _pick_ridge_rows(rng, count, mini(a, b) + RIDGE_END_GAP, maxi(a, b) - RIDGE_END_GAP)

@@ -489,6 +489,10 @@ func _on_run_ended(won: bool) -> void:
 	run.survived = drift_director.drifts_started
 	run["early_calls"] = drift_director.early_calls  # Drifts called early (balancing)
 	run["dew_call_early"] = drift_director.call_early_dew
+	var gifts := HeartwoodGifts.find(self)  # Heartwood's Gifts (Spire): [{id, act, placement}], acts let pass
+	if gifts != null:
+		run["gifts"] = gifts.taken.map(func(t: Dictionary) -> Dictionary: return {"id": t.id, "act": t.act})
+		run["gifts_passed"] = gifts.passed.duplicate()
 	run.seconds = snappedf(run_state.play_time, 1.0)
 	var calls := CloseCalls.find(self)
 	run.close_calls = calls.run_count if calls != null else 0
@@ -620,6 +624,9 @@ static func report_text(record: Dictionary) -> String:
 	lines.append("Grove: %d nodes · perks %s · Dreamlight +%d / −%d" % [record.get("grove", {}).size(),
 		", ".join(record.get("perks", [])), int(record.get("dreamlight", {}).get("earned", 0)), int(record.get("dreamlight", {}).get("spent", 0))])
 	lines.append("Called early: %d drifts · %d Dew" % [int(record.get("early_calls", 0)), int(record.get("dew_call_early", 0))])
+	if not record.get("gifts", []).is_empty() or not record.get("gifts_passed", []).is_empty():
+		lines.append("Gifts: %s%s" % [", ".join(record.get("gifts", []).map(func(g: Dictionary) -> String: return "%s (act %d)" % [g.id, int(g.act)])),
+			" · passed in act %s" % ", ".join(record.get("gifts_passed", []).map(func(a) -> String: return str(int(a)))) if not record.get("gifts_passed", []).is_empty() else ""])
 	if not record.get("dream_credit", []).is_empty():
 		lines.append("Dream credit: %s" % ", ".join(record.dream_credit.map(func(c: Dictionary) -> String: return c.text)))
 	var join := func(values: Array) -> String: return " ".join(values.map(func(v) -> String: return str(int(v))))

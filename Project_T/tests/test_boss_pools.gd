@@ -275,6 +275,17 @@ func _run() -> void:
 			far.free()
 	_clear_enemies()
 
+	# --- Silence (Hushbell, tower_design.md 279ebb63): a boss's timed abilities run at half speed ---
+	var queen := _still("moth_queen", route[10])
+	queen.statuses.silence_time = 100.0
+	queen._brood_timer = 0.0
+	queen._update_presence(0.2)
+	_check(is_equal_approx(queen._brood_timer, 0.1), "a silenced boss's timers run at half speed (%.2f of 0.2 s)" % queen._brood_timer)
+	queen.statuses.silence_time = 0.0
+	queen._update_presence(0.2)
+	_check(is_equal_approx(queen._brood_timer, 0.3), "full speed again once the silence ends (%.2f)" % queen._brood_timer)
+	_clear_enemies()
+
 	# --- Barrow King: Iron Will and the Shrug ---
 	var king := _still("barrow_king", route[8])
 	var near := _still("leaf_bug", route[9])

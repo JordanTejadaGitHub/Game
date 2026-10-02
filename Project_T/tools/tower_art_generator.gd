@@ -156,11 +156,15 @@ const POSE_DY := [0, 1, -1]
 # image per line is written to tools/previews/.
 const LINES := {
 	"starters": ["sprout", "thornwall", "bramble", "honeysuckle"],
-	"sporeling": ["sporeling", "driftspore", "puffball", "bloomcap", "dreamshroom", "fairy_ring", "elf_circle"],
+	"sporeling": ["sporeling", "driftspore", "puffball", "bloomcap", "dreamshroom", "fairy_ring", "elf_circle",
+		"lichenling", "old_lichen", "brood_cap", "hatchery", "inkcap", "deliquescent"],
 	"pebbling": ["pebbling", "mossback", "boulderback", "standing_stone", "moonstone", "cairn", "rockslide"],
-	"bellflower": ["bellflower", "chime_stone", "lullaby_bell", "dreamcatcher", "great_dreamcatcher", "echo_hollow", "whispering_hollow"],
-	"dewdrop": ["dewdrop", "rain_lily", "monsoon", "mistveil", "morning_fog", "frostfern", "hoarfrost"],
-	"firefly_jar": ["firefly_jar", "stormcap", "thunderhead", "lanternmoth", "beacon", "sunpetal", "midsummer"],
+	"bellflower": ["bellflower", "chime_stone", "lullaby_bell", "dreamcatcher", "great_dreamcatcher", "echo_hollow", "whispering_hollow",
+		"silver_bell", "vesper_bell", "hushbell", "silence", "thrum", "resonance"],
+	"dewdrop": ["dewdrop", "rain_lily", "monsoon", "mistveil", "morning_fog", "frostfern", "hoarfrost",
+		"cloudlet", "nimbus", "undercurrent", "maelstrom", "jetreed", "torrent"],
+	"firefly_jar": ["firefly_jar", "stormcap", "thunderhead", "lanternmoth", "beacon", "sunpetal", "midsummer",
+		"jarlink", "lightning_fence", "prism_jar", "rainbow_prism", "sparkler", "starburst"],
 	"rootling": ["rootling", "rootcurl", "long_way_home", "tangleroot", "snugroot", "rootlight", "starcave"],
 	"acorn": ["acorn", "elder_stump", "grove_heart", "dewcatcher", "wellspring", "graftling", "grafted_elder"],
 	"nestling": ["nestling", "wrens_nest", "starling_murmuration", "magpie_perch", "magpies_hoard", "hummingbird_bower", "jewelwing_court"],
@@ -175,6 +179,13 @@ const ATTACKS := {
 	"sprout": {kind = "projectile", projectile = "spore", point = Vector2i(46, 9)},
 	"bramble": {kind = "pulse", point = Vector2i(31, 46)},
 	"sporeling": {kind = "projectile", projectile = "spore", point = Vector2i(46, 9)},
+	# Branch expansion (2026-10-02): Sporeling C, D, E.
+	"lichenling": {kind = "projectile", projectile = "lichen_flake", point = Vector2i(46, 6)},
+	"old_lichen": {kind = "projectile", projectile = "lichen_flake", point = Vector2i(48, 4)},
+	"brood_cap": {kind = "spawn", projectile = "spore_sprite", point = Vector2i(44, 14)},
+	"hatchery": {kind = "spawn", projectile = "spore_sprite", point = Vector2i(44, 14)},
+	"inkcap": {kind = "projectile", projectile = "ink_drop", point = Vector2i(40, 12)},
+	"deliquescent": {kind = "projectile", projectile = "ink_drop", point = Vector2i(40, 12)},
 	"driftspore": {kind = "projectile", projectile = "spore", point = Vector2i(46, 9)},
 	"puffball": {kind = "projectile", projectile = "spore", point = Vector2i(46, 9)},
 	"bloomcap": {kind = "cloud", point = Vector2i(49, 14)},
@@ -186,10 +197,26 @@ const ATTACKS := {
 	"lullaby_bell": {kind = "pulse", point = Vector2i(31, 46)},
 	"dewdrop": {kind = "projectile", projectile = "dew_drop", point = Vector2i(30, 2)},
 	"rain_lily": {kind = "projectile", projectile = "dew_drop", point = Vector2i(30, 2)},
+	# Branch expansion (2026-10-02): Dewdrop C, D, E. Rain / whirlpool zones and the jet are
+	# drawn by the code (effects rain_zone, whirlpool, water_jet); the point is where they leave from.
+	"cloudlet": {kind = "zone", point = Vector2i(11, 12)},
+	"nimbus": {kind = "zone", point = Vector2i(52, 9)},
+	"undercurrent": {kind = "zone", point = Vector2i(31, 44)},
+	"maelstrom": {kind = "zone", point = Vector2i(31, 44)},
+	"jetreed": {kind = "jet", point = Vector2i(60, 20)},
+	"torrent": {kind = "jet", point = Vector2i(61, 18)},
 	"monsoon": {kind = "pulse", point = Vector2i(31, 46)},
 	"mistveil": {kind = "cloud", point = Vector2i(31, 46)},
 	"morning_fog": {kind = "cloud", point = Vector2i(31, 46)},
 	"firefly_jar": {kind = "projectile", projectile = "spark", point = Vector2i(31, 6)},
+	# Branch expansion (2026-10-02): Firefly Jar C, D, E. The fence arc, crystal-split beams and
+	# fireworks are drawn by the code (effects arc_fence, prism_beam, firework_burst).
+	"jarlink": {kind = "fence", point = Vector2i(8, 9)},
+	"lightning_fence": {kind = "fence", point = Vector2i(7, 7)},
+	"prism_jar": {kind = "aura", point = Vector2i(30, 9)},
+	"rainbow_prism": {kind = "beam", point = Vector2i(30, 9)},
+	"sparkler": {kind = "firework", point = Vector2i(54, 12)},
+	"starburst": {kind = "firework", point = Vector2i(56, 13)},
 	"stormcap": {kind = "chain", point = Vector2i(40, 6)},
 	"thunderhead": {kind = "chain", point = Vector2i(44, 5)},
 	"lanternmoth": {kind = "projectile", projectile = "light_orb", point = Vector2i(31, 4)},
@@ -236,6 +263,14 @@ const ATTACKS := {
 	# over the maze; echo = repeats a nearby Reaction; multi = one bird, several quick pecks;
 	# boomerang = a seed thrown down a line and back.
 	"bellflower": {kind = "pulse", point = Vector2i(31, 46)},
+	# Branch expansion (2026-10-02): Bellflower C, D, E. The toll ring, silence and sound cone are
+	# drawn by the code (effects toll_ring, silence_mark, sound_cone).
+	"silver_bell": {kind = "toll", point = Vector2i(48, 15)},
+	"vesper_bell": {kind = "toll", point = Vector2i(48, 16)},
+	"hushbell": {kind = "aura", point = Vector2i(31, 40)},
+	"silence": {kind = "aura", point = Vector2i(31, 40)},
+	"thrum": {kind = "cone", point = Vector2i(51, 9)},
+	"resonance": {kind = "cone", point = Vector2i(47, 8)},
 	"dreamcatcher": {kind = "projectile", projectile = "dream_mote", point = Vector2i(46, 14)},
 	"great_dreamcatcher": {kind = "projectile", projectile = "dream_mote", point = Vector2i(46, 14)},
 	"echo_hollow": {kind = "echo", point = Vector2i(34, 29)},
@@ -275,7 +310,8 @@ func _init() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT + "projectiles/"))
 	for p: String in ["spore", "pebble", "boulder", "dew_drop", "spark", "light_orb", "sling_stone", "moon_shard",
 			"frost_shard", "sparrow", "wren", "magpie", "starling", "moon_mote", "fairy_ring", "elf_circle",
-			"dream_mote", "lob_stone", "hummingbird", "maple_seed", "autumn_seed", "starling_bird"]:
+			"dream_mote", "lob_stone", "hummingbird", "maple_seed", "autumn_seed", "starling_bird",
+			"lichen_flake", "ink_drop", "spore_sprite"]:
 		_make_projectile(p)
 	_save_projectile_preview()
 	quit()
@@ -314,7 +350,8 @@ func _make(tower_name: String, draw: Callable) -> Image:
 # The darkest Wardens sink into the night-indigo map ground (2026-09-30 re-theme), so they get a thin
 # moonlit rim: the silhouette's edge on its lit (top / left) sides, where it's dark, turns
 # one lighter palette colour. A hand fix inside Warden Night: no new colours.
-const NIGHT_RIM := {"firefly_jar": "Stone", "stormcap": "Stone", "thunderhead": "Stone",
+const NIGHT_RIM := {"firefly_jar": "Stone", "stormcap": "Stone", "thunderhead": "Stone", "jarlink": "Stone",
+	"lightning_fence": "Stone", "prism_jar": "Stone", "rainbow_prism": "Stone", "sparkler": "Stone", "starburst": "Stone",
 	"starling_murmuration": "Stone", "thornwall": "Sprig"}
 
 func HeartwoodPalette_color(color_name: String) -> Color:
@@ -4541,6 +4578,799 @@ func _attack_white_stag(canvas: Image, st: Dictionary) -> void:
 
 func _attack_moon_moth(canvas: Image, st: Dictionary) -> void:
 	_flash(canvas, st, Vector2(ATTACKS["moon_moth"].point), Color("#f4f8ff"), MEMORY_GOLD)
+
+
+# --- Branch expansion, Sporeling (tower_design.md "Branch expansion", 2026-10-02) ----------------
+# Lichenling -> Old Lichen (a crust of flat lichen plates, a broad flat cap), Brood Cap -> Hatchery
+# (a cap with tiny spore-sprites clinging to it), Inkcap -> Deliquescent (a tall dripping ink cap).
+
+const LICHEN := ["#5c944c", "#9cc46c", "#d4ec9c"]
+# Ink in the Ink ramp (never the nightmare ramp: a Warden must never read as a nightmare).
+const INK := ["#24243c", "#3c3c5c", "#5c5a78"]
+
+func _spore_fig() -> Dictionary:
+	return _pal("#17174d", "#ed9df2", "#de73e5", "#ba41d9")
+
+# A flat lichen plate: a little uneven disc, lit on top, a darker rim.
+func _lichen_plate(canvas: Image, c: Vector2, r: float, o: Color, mask: Image = null) -> void:
+	var layer := _layer()
+	_ellipse(layer, c, Vector2(r, r * 0.6), _ramp(LICHEN))
+	if mask != null:
+		for y in range(-OY, S):
+			for x in S:
+				if _gp(layer, x, y).a > 0.0 and _gp(mask, x, y).a == 0.0:
+					_sp(layer, x, y, Color(0, 0, 0, 0))
+	_stamp(canvas, layer, o)
+
+# A broad, flat shelf cap (one tier, or two for Old Lichen) with lichen frills along its rim.
+func _shelf_cap(canvas: Image, c: Vector2, w: float, o: Color, tiers: int) -> void:
+	for t in tiers:
+		var cc := c + Vector2(0, -t * 4.0)
+		var ww := w - t * 5.0
+		var cap := _layer()
+		_ellipse(cap, cc, Vector2(ww, 3.2), _ramp(["#7a8a5a", "#a8b880", "#d4e0b0"]))
+		_stamp(canvas, cap, o)
+		var x := cc.x - ww + 2.0
+		while x < cc.x + ww - 1.0:
+			_px(canvas, int(x), int(cc.y) + 2, Color(LICHEN[1]))
+			x += 3.0
+
+func _draw_lichenling(canvas: Image, st: Dictionary) -> void:
+	_lichen_body(canvas, st, false)
+
+func _draw_old_lichen(canvas: Image, st: Dictionary) -> void:
+	_lichen_body(canvas, st, true)
+
+func _lichen_body(canvas: Image, st: Dictionary, old: bool) -> void:
+	# Lichen shelves jut out sideways from its shoulders and arms like bracket fungus (no other
+	# Sporeling branch has a sideways outline), a broad flat shelf cap; Old Lichen is crusted all over,
+	# more and bigger shelves, a two-tier cap and long lichen beards.
+	var dy: int = st.dy
+	var fig := _spore_fig()
+	_draw_waystone(canvas, st, "fairy_ring", old)
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	for p: Vector3 in [Vector3(25, 27, 2.6), Vector3(35, 33, 2.4), Vector3(29, 38, 2.2)]:
+		_lichen_plate(canvas, Vector2(p.x, p.y + (dy if p.y < 30 else 0)), p.z, fig.o, mask)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true)
+	# The shelves: flat half-discs sticking out past the body's edge, in steps down each side.
+	var shelves: Array = [Vector4(13, 20, 7, -1), Vector4(48, 21, 7, 1), Vector4(11, 30, 6, -1), Vector4(51, 31, 6, 1)]
+	if old:
+		shelves.append_array([Vector4(9, 25, 8, -1), Vector4(54, 26, 8, 1), Vector4(14, 37, 5, -1), Vector4(49, 38, 5, 1)])
+	for s: Vector4 in shelves:
+		var shelf := _layer()
+		var c := Vector2(s.x, s.y + (dy if s.y < 30 else 0))
+		_ellipse(shelf, c, Vector2(s.z, 2.4), _ramp(["#7a8a5a", "#a8b880", "#d4e0b0"]))
+		_stamp(canvas, shelf, fig.o)
+		for x in range(int(c.x - s.z) + 2, int(c.x + s.z) - 1, 2):
+			_px(canvas, x, int(c.y) + 1, Color(LICHEN[1]))
+	_shelf_cap(canvas, Vector2(30.5, 5 + dy), 22.0 if old else 18.0, fig.o, 2 if old else 1)
+	if old:
+		for x in [12, 17, 44, 49]:
+			for i in 7 + x % 4:
+				_px(canvas, x, 8 + dy + i, Color(LICHEN[1]) if i % 2 == 0 else Color(LICHEN[0]))
+		for p: Vector3 in [Vector3(10, 45, 3.0), Vector3(54, 44, 2.6)]:
+			_lichen_plate(canvas, Vector2(p.x, p.y), p.z, fig.o)
+	_motes(canvas, st, [16, 46], 18, 12, [Color(LICHEN[2]), Color("#de73e5")])
+
+func _attack_lichenling(canvas: Image, st: Dictionary) -> void:
+	_blow(canvas, st, Color("#ed9df2"), Color("#17174d"), Color(LICHEN[2]))
+	_burst(canvas, Vector2(ATTACKS["lichenling"].point), st.attack, Color(LICHEN[2]), Color(LICHEN[0]), Color("#17174d"))
+
+func _attack_old_lichen(canvas: Image, st: Dictionary) -> void:
+	_blow(canvas, st, Color("#ed9df2"), Color("#17174d"), Color(LICHEN[2]))
+	_burst(canvas, Vector2(ATTACKS["old_lichen"].point), st.attack, Color(LICHEN[2]), Color(LICHEN[0]), Color("#17174d"))
+	if st.attack == RELEASE_FRAME + 1:
+		for p: Vector2i in [Vector2i(10, 4), Vector2i(52, 3)]:
+			_sparkle(canvas, p, Color(LICHEN[2]))
+
+# A tiny spore-sprite: a round pink body, two dot eyes, stubby legs (Brood Cap's brood).
+func _spore_sprite(canvas: Image, p: Vector2, o: Color, f: int, big: bool = false) -> void:
+	var layer := _layer()
+	_ellipse(layer, p, Vector2(2.6, 2.2) * (1.5 if big else 1.0), _ramp(["#c8a8e0", "#f0dcff", "#fff4fc"]))
+	_stamp(canvas, layer, o)
+	_px(canvas, int(p.x) - 1, int(p.y), o)
+	_px(canvas, int(p.x) + 1, int(p.y), o)
+	var leg := 1 if f % 2 == 0 else 0
+	_px(canvas, int(p.x) - 1 - leg, int(p.y + 2.5 * (1.5 if big else 1.0)), o)
+	_px(canvas, int(p.x) + 1 + leg, int(p.y + 2.5 * (1.5 if big else 1.0)), o)
+
+func _draw_brood_cap(canvas: Image, st: Dictionary) -> void:
+	_brood_body(canvas, st, false)
+
+func _draw_hatchery(canvas: Image, st: Dictionary) -> void:
+	_brood_body(canvas, st, true)
+
+func _brood_body(canvas: Image, st: Dictionary, hive: bool) -> void:
+	# A big round brood cap with its spore-sprites riding on top and clinging to the shoulders (a
+	# bumpy outline); Hatchery's cap is a ribbed hive dome and egg piles rise either side of the slab.
+	var dy: int = st.dy
+	var fig := _spore_fig()
+	_draw_waystone(canvas, st, "fairy_ring", hive)
+	if hive:
+		for e: Vector3 in [Vector3(9, 40, 4.2), Vector3(14, 43, 3.6), Vector3(7, 45, 3.2), Vector3(11, 35, 3.2),
+				Vector3(54, 39, 4.0), Vector3(50, 43, 3.4), Vector3(57, 44, 3.0), Vector3(53, 34, 3.0)]:
+			var egg := _layer()
+			_ellipse(egg, Vector2(e.x, e.y), Vector2(e.z, e.z * 0.9), _ramp(["#c8a8e0", "#f0dcff", "#fff4fc"]))
+			_stamp(canvas, egg, fig.o)
+			_px(canvas, int(e.x), int(e.y), Color("#ba41d9"))
+	_draw_template_figure(canvas, st.pose, fig)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), false)
+	var cap := _layer()
+	_ellipse(cap, Vector2(30.5, 8 + dy), Vector2(19.0 if hive else 17.0, 9.0 if hive else 8.0), _ramp(["#8a3aa0", "#c060d0", "#e898f0", "#ffd0ff"]), 10.0 + dy)
+	if hive:
+		for y in range(-OY, S):
+			for x in S:
+				if _gp(cap, x, y).a > 0.0 and absi((x - 30) % 5) == 0:
+					_sp(cap, x, y, Color("#8a3aa0"))  # its ribs
+	_stamp(canvas, cap, fig.o)
+	var spots: Array = [Vector2(14, 9), Vector2(47, 9), Vector2(15, 19), Vector2(46, 19), Vector2(30, -1)]  # on the cap rim and shoulders
+	if hive:
+		spots.append_array([Vector2(13, 28), Vector2(48, 28), Vector2(22, 0), Vector2(39, 0)])  # down the arms, up the dome
+	for i in spots.size():
+		var p: Vector2 = spots[i] + Vector2(0, dy + (1 if (st.f + i) % 4 == 0 else 0) + 3)
+		_spore_sprite(canvas, p, fig.o, st.f + i, true)
+
+func _attack_brood_cap(canvas: Image, st: Dictionary) -> void:
+	_brood_release(canvas, st, "brood_cap")
+
+func _attack_hatchery(canvas: Image, st: Dictionary) -> void:
+	_brood_release(canvas, st, "hatchery")
+
+# A sprite drops off the cap and scurries out towards the path.
+func _brood_release(canvas: Image, st: Dictionary, key: String) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0:
+		return
+	var p := Vector2(ATTACKS[key].point) + Vector2(k * 4.0, k * 5.0)
+	_spore_sprite(canvas, p, Color("#17174d"), st.attack, key == "hatchery" and k == 0)
+	if k <= 1:
+		_warm_glow(canvas, p, Vector2(6, 5), k)
+
+func _draw_inkcap(canvas: Image, st: Dictionary) -> void:
+	_ink_body(canvas, st, false)
+
+func _draw_deliquescent(canvas: Image, st: Dictionary) -> void:
+	_ink_body(canvas, st, true)
+
+func _ink_body(canvas: Image, st: Dictionary, melt: bool) -> void:
+	# A long inky bell cap hanging down round its face like a hood, ink dripping from its ragged hem
+	# (a tall narrow dark shape, unlike the wide domes of the other branches); Deliquescent's cap has
+	# melted wider, runnels down its sides into a wide ink pool on the slab.
+	var dy: int = st.dy
+	var fig := _spore_fig()
+	_draw_waystone(canvas, st, "fairy_ring", melt)
+	if melt:
+		var pool := _layer()
+		_flat_ellipse(pool, Vector2(31, 47), Vector2(23, 4.5), Color(INK[1]))
+		_stamp(canvas, pool, Color(INK[0]))
+		for p: Vector2i in [Vector2i(14, 46), Vector2i(26, 48), Vector2i(41, 46), Vector2i(50, 47)]:
+			_px(canvas, p.x, p.y, Color(INK[2]))
+	_draw_template_figure(canvas, st.pose, fig)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true)
+	var w: float = 15.0 if melt else 12.0
+	var hem: float = 25.0 if melt else 23.0
+	var top := Vector2(30.5, 0 + dy)
+	var cap := _layer()
+	_flat_polygon(cap, PackedVector2Array([top + Vector2(-2, 0), top + Vector2(2, 0), top + Vector2(w - 3, 7), top + Vector2(w, hem),
+		top + Vector2(w - 6, hem - 2), top + Vector2(w - 7, 10), top + Vector2(-w + 7, 10), top + Vector2(-w + 6, hem - 2), top + Vector2(-w, hem)]), Color(INK[1]))
+	for y in range(-OY, S):
+		for x in S:
+			if _gp(cap, x, y).a > 0.0 and x < 30 - (y - top.y) * 0.3:
+				_sp(cap, x, y, Color(INK[2]))
+	_stamp(canvas, cap, Color(INK[0]))
+	for i in 4:
+		_px(canvas, 26 + i * 2, int(top.y) + 2 + i, Color("#dce8f4"))  # a sheen down it
+	if melt:
+		# Its hem has melted into two thick streams running down to the pool.
+		var streams := _layer()
+		for side: int in [-1, 1]:
+			var x0: float = 30.5 + side * (w - 1.0)
+			_stroke(streams, [Vector2(x0, hem + dy), Vector2(x0 + side * 2.0, hem + 10 + dy), Vector2(x0 + side * 3.0, 44)], 1.3, Color(INK[1]))
+		_stamp(canvas, streams, Color(INK[0]))
+	# Drips off the hem, longer on Deliquescent.
+	for i in 4:
+		var d := Vector2([20.5, 23.5, 37.5, 40.5][i] + (-2.0 if i < 2 else 2.0) * (w - 10.0) * 0.5, hem + dy + 1)
+		var len: int = (3 + (st.f + i * 3) % 5) if not melt else (8 + (st.f + i * 2) % 10)
+		for j in len:
+			_px(canvas, int(d.x), int(d.y) + j, Color(INK[1]) if j < len - 1 else Color(INK[0]))
+
+func _attack_inkcap(canvas: Image, st: Dictionary) -> void:
+	_burst(canvas, Vector2(ATTACKS["inkcap"].point), st.attack, Color("#dce8f4"), Color(INK[1]), Color(INK[0]))
+
+func _attack_deliquescent(canvas: Image, st: Dictionary) -> void:
+	_burst(canvas, Vector2(ATTACKS["deliquescent"].point), st.attack, Color("#dce8f4"), Color(INK[1]), Color(INK[0]))
+	if st.attack == RELEASE_FRAME + 1:
+		var pool := _layer()
+		_flat_ellipse(pool, Vector2(31, 48), Vector2(24, 4.5), Color(INK[2]))
+		_stamp(canvas, pool)
+
+# Projectiles: a spinning lichen flake (Lichenling), a falling ink drop (Inkcap), and the brood's
+# walking spore-sprite (Brood Cap: 4 walk frames, drawn walking right).
+func _proj_lichen_flake(canvas: Image, f: int) -> void:
+	var a := f * TAU / 8.0
+	var layer := _layer()
+	var pts := PackedVector2Array()
+	for k in 7:
+		var r := 5.0 if k % 2 == 0 else 3.8
+		pts.append(Vector2(32, 32) + Vector2(cos(a + k * TAU / 7.0) * r, sin(a + k * TAU / 7.0) * r * 0.6))
+	_flat_polygon(layer, pts, Color(LICHEN[1]))
+	_stamp(canvas, layer, Color("#1e3a1a"))
+	_px(canvas, 31, 31, Color(LICHEN[2]))
+	_px(canvas, 33, 32, Color(LICHEN[0]))
+	for k in 3:
+		_px_under(canvas, 25 - k * 2, 32 + (k + f) % 2, Color(LICHEN[2], 0.8 - k * 0.2))
+
+func _proj_ink_drop(canvas: Image, f: int) -> void:
+	var layer := _layer()
+	for step in 14:
+		var t := step / 13.0
+		var rr := 4.2 * pow(1.0 - t, 1.2)
+		if rr >= 0.5:
+			_flat_ellipse(layer, Vector2(35 - t * 11, 32), Vector2(rr, rr), Color(INK[1]))
+	_stamp(canvas, layer, Color(INK[0]))
+	_px(canvas, 36, 30, Color("#dce8f4"))
+	_px(canvas, 37, 31, Color(INK[2]))
+	for k in 2:
+		_px_under(canvas, 22 - k * 3, 33 + (k + f) % 2, Color(INK[1], 0.7))
+
+func _proj_spore_sprite(canvas: Image, f: int) -> void:
+	var bob: float = [0.0, -1.0, 0.0, -1.0][f]
+	_spore_sprite(canvas, Vector2(32, 32 + bob) , Color("#17174d"), f, true)
+	_px(canvas, 36, 31 + int(bob), Color("#f7c8fa"))
+
+
+# --- Branch expansion, Dewdrop -----------------------------------------------------------------
+# Cloudlet -> Nimbus (a cloud floating beside it; Nimbus wears a cloud mantle round its shoulders,
+# unlike Monsoon's cloud overhead), Undercurrent -> Maelstrom (a swirl of water round its feet; a
+# whirlpool filling the slab), Jetreed -> Torrent (a reed pipe held like a hose; a bundle of reeds
+# with a jet arcing out).
+
+const CLOUD_RAMP := ["#6a7aa0", "#9aaac8", "#c8d4e8", "#f0f4fc"]
+
+func _dew_body(canvas: Image, st: Dictionary, lush: bool) -> Dictionary:
+	var fig := _pal(WATER[0], WATER[1], WATER[2], WATER[3])
+	_draw_waystone(canvas, st, "pond", lush)
+	_droplet_tip(canvas, st, fig)
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	_water_gloss(canvas, mask, st, fig)
+	_golem_face(canvas, st, fig)
+	return fig
+
+# A small fluffy cloud (lumps on a flat underside), drizzling a few drops.
+func _puffy_cloud(canvas: Image, c: Vector2, w: float, o: Color, f: int, drizzle: int) -> void:
+	var cl := _layer()
+	_ellipse(cl, c, Vector2(w, w * 0.45), _ramp(CLOUD_RAMP))
+	_ellipse(cl, c + Vector2(-w * 0.45, w * 0.1), Vector2(w * 0.5, w * 0.38), _ramp(CLOUD_RAMP))
+	_ellipse(cl, c + Vector2(w * 0.4, w * 0.12), Vector2(w * 0.55, w * 0.36), _ramp(CLOUD_RAMP))
+	_stamp(canvas, cl, o)
+	for k in drizzle:
+		var x := int(c.x - w * 0.6 + k * (w * 1.2 / maxf(drizzle - 1, 1)))
+		var y := int(c.y + w * 0.5) + 1 + (f + k * 2) % 5
+		_px(canvas, x, y, Color("#9ad4ff"))
+		_px(canvas, x, y + 1, Color("#5aa8ec"))
+
+func _draw_cloudlet(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _dew_body(canvas, st, false)
+	var bob: float = [0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 0.0][st.f % 8]
+	_puffy_cloud(canvas, Vector2(12, 8 + bob), 11.0, fig.o, st.f, 4)
+
+func _draw_nimbus(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _dew_body(canvas, st, true)
+	# A cloud mantle draped round its shoulders, wider than its body, rain beading off it.
+	var mantle := _layer()
+	for c: Vector3 in [Vector3(14, 21, 6.5), Vector3(22, 19, 6.0), Vector3(30.5, 20, 6.0), Vector3(39, 19, 6.0), Vector3(47, 21, 6.5), Vector3(9, 26, 4.5), Vector3(52, 26, 4.5)]:
+		_ellipse(mantle, Vector2(c.x, c.y + dy), Vector2(c.z, c.z * 0.7), _ramp(CLOUD_RAMP))
+	_stamp(canvas, mantle, fig.o)
+	for k in 5:
+		var x := 9 + k * 11
+		_px(canvas, x, 28 + dy + (st.f + k * 3) % 6, Color("#9ad4ff"))
+	var bob: float = [0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 0.0][st.f % 8]
+	_puffy_cloud(canvas, Vector2(52, 6 + bob), 7.0, fig.o, st.f, 3)
+
+func _attack_cloudlet(canvas: Image, st: Dictionary) -> void:
+	_cloud_rain_attack(canvas, st, "cloudlet")
+
+func _attack_nimbus(canvas: Image, st: Dictionary) -> void:
+	_cloud_rain_attack(canvas, st, "nimbus")
+
+# The cloud darkens and lets go a burst of rain on release.
+func _cloud_rain_attack(canvas: Image, st: Dictionary, key: String) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	var c := Vector2(ATTACKS[key].point)
+	if k < 0 or k > 2:
+		return
+	for i in 7:
+		var x := int(c.x) - 6 + i * 2
+		for j in 3:
+			_px(canvas, x - j / 2, int(c.y) + 4 + k * 3 + j * 2 + i % 2, Color("#9ad4ff") if j == 0 else Color("#5aa8ec"))
+	if k == 0:
+		_bolt(canvas, c + Vector2(-2, 2), c + Vector2(-4, 10), Color("#e8faff"), Color("#5aa8ec"), 2)
+
+# A swirl of water round its feet (a ring of foam turning); Maelstrom's fills the slab, spray rising.
+func _swirl(canvas: Image, st: Dictionary, r: Vector2, arms: int, spray: bool) -> void:
+	var c := Vector2(31, 44)
+	var water := _layer()
+	_flat_ellipse(water, c, r, Color("#3a78c8"))
+	_flat_ellipse(water, c, r * 0.7, Color("#5aa8ec"))
+	_flat_ellipse(water, c, r * 0.35, Color("#2a5eb0"))
+	_stamp(canvas, water, Color("#16305e"))
+	for a in arms:
+		for s in 14:
+			var t := s / 13.0
+			var ang: float = a * TAU / arms + t * PI * 1.2 + st.f * TAU / 16.0
+			var p := c + Vector2(cos(ang) * r.x * (0.3 + t * 0.65), sin(ang) * r.y * (0.3 + t * 0.65))
+			_px(canvas, int(p.x), int(p.y), Color("#e8faff") if s % 3 != 0 else Color("#9ad4ff"))
+	if spray:
+		for k in 6:
+			var ang: float = k * TAU / 6.0 + st.f * 0.4
+			var p := c + Vector2(cos(ang) * r.x, sin(ang) * r.y - 3 - (st.f + k) % 3)
+			_px(canvas, int(p.x), int(p.y), Color("#e8faff"))
+
+func _draw_undercurrent(canvas: Image, st: Dictionary) -> void:
+	var fig := _pal(WATER[0], WATER[1], WATER[2], WATER[3])
+	_draw_waystone(canvas, st, "pond")
+	_swirl(canvas, st, Vector2(21, 6), 3, false)
+	_droplet_tip(canvas, st, fig)
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	_water_gloss(canvas, mask, st, fig)
+	_golem_face(canvas, st, fig)
+	# A ring of water whirling round its feet, raised off the slab, cresting into a wave at each side
+	# (its outline spreads wide at the bottom, unlike Dewdrop's).
+	var ring := _layer()
+	var pts: Array = []
+	for s in 25:
+		var a: float = PI * (s / 24.0)
+		pts.append(Vector2(31 + cos(a) * 26.0, 41 + sin(a) * 5.0))
+	_stroke(ring, pts, 1.8, Color("#5aa8ec"))
+	for side: int in [-1, 1]:
+		var base := Vector2(31 + side * 26.0, 41)
+		_stroke(ring, [base, base + Vector2(side * 1.0, -6), base + Vector2(-side * 2.5, -9)], 1.6, Color("#9ad4ff"))
+	_stamp(canvas, ring, fig.o)
+	for s in range(0, 25, 3):
+		var p: Vector2 = pts[(s + st.f) % 25]
+		_px(canvas, int(p.x), int(p.y) - 1, Color("#e8faff"))  # foam running round it
+
+func _draw_maelstrom(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _pal(WATER[0], WATER[1], WATER[2], WATER[3])
+	_draw_waystone(canvas, st, "pond", true)
+	_swirl(canvas, st, Vector2(28, 8), 4, true)
+	_droplet_tip(canvas, st, fig)
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	_water_gloss(canvas, mask, st, fig)
+	_golem_face(canvas, st, fig)
+	# Water spiralling up round its body in a ribbon, out past its sides.
+	var ribbon := _layer()
+	var pts: Array = []
+	for s in 20:
+		var t := s / 19.0
+		var ang: float = t * TAU * 1.5 + st.f * TAU / 16.0
+		pts.append(Vector2(31 + cos(ang) * (20.0 - t * 6.0), 40 - t * 26.0 + sin(ang) * 3.0 + (dy if t > 0.5 else 0)))
+	_stroke(ribbon, pts, 2.0, Color("#9ad4ff"))
+	_stamp(canvas, ribbon, fig.o)
+
+func _attack_undercurrent(canvas: Image, st: Dictionary) -> void:
+	_whirl_pulse(canvas, st, 1.0)
+
+func _attack_maelstrom(canvas: Image, st: Dictionary) -> void:
+	_whirl_pulse(canvas, st, 1.4)
+
+# Rings of water drawn in towards the middle on release (it gathers, it doesn't push).
+func _whirl_pulse(canvas: Image, st: Dictionary, size: float) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var c := Vector2(31, 44)
+	var r := Vector2(28, 8) * size * (1.0 - k * 0.3)
+	for s in 32:
+		var ang := s * TAU / 32.0
+		var p := c + Vector2(cos(ang) * r.x, sin(ang) * r.y)
+		if (s + k) % 2 == 0:
+			_px(canvas, int(p.x), int(p.y), Color("#e8faff"))
+			var inward := (c - p).normalized()
+			_px(canvas, int(p.x + inward.x * 2), int(p.y + inward.y * 2), Color("#9ad4ff"))
+
+# A green reed pipe, banded, held out like a hose (from the hand, pointing ahead and up).
+func _reed(canvas: Image, a: Vector2, b: Vector2, o: Color) -> void:
+	var reed := _layer()
+	_stroke(reed, [a, b], 2.0, Color(LEAF[1]))
+	_flat_ellipse(reed, b, Vector2(2.6, 2.6), Color(LEAF[1]))  # its flared nozzle
+	_stamp(canvas, reed, o)
+	var d := (b - a)
+	for i in range(2, int(d.length()), 4):
+		var p := a + d.normalized() * i
+		_px(canvas, int(p.x), int(p.y), Color(LEAF[0]))
+	_px(canvas, int(b.x), int(b.y), Color("#9ad4ff"))
+
+func _draw_jetreed(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _dew_body(canvas, st, false)
+	_reed(canvas, Vector2(43, 30), Vector2(60, 20 + dy), fig.o)
+	if st.f % 4 == 1:
+		_px(canvas, 61, 19 + dy, Color("#9ad4ff"))  # a drip at the nozzle
+
+func _draw_torrent(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _dew_body(canvas, st, true)
+	# A bundle of three reeds bound together, and a gourd of water slung at its other side.
+	for o2: Vector2 in [Vector2(0, -2), Vector2(0, 0), Vector2(0, 2)]:
+		_reed(canvas, Vector2(43, 30) + o2, Vector2(61, 18 + dy) + o2, fig.o)
+	_line(canvas, [Vector2(48, 25 + dy), Vector2(48, 30 + dy)], Color("#b09070"))
+	var gourd := _layer()
+	_ellipse(gourd, Vector2(11, 32), Vector2(5, 6), _ramp(["#8a6a44", "#b09070", "#d0b48c"]))
+	_ellipse(gourd, Vector2(11, 25), Vector2(2.4, 2.4), _ramp(["#8a6a44", "#b09070", "#d0b48c"]))
+	_stamp(canvas, gourd, fig.o)
+	_line(canvas, [Vector2(13, 24), Vector2(20, 20 + dy)], Color("#5c3c24"))
+	# Its jet, always running a little: an arc of water out of the bundle.
+	for s in 6:
+		var t := s / 5.0
+		var p := Vector2(62 + t * 1.5, 18 + dy + t * t * 10.0 + (st.f % 2))
+		_px(canvas, int(p.x), int(p.y), Color("#9ad4ff") if s % 2 == 0 else Color("#e8faff"))
+
+func _attack_jetreed(canvas: Image, st: Dictionary) -> void:
+	_jet_attack(canvas, st, "jetreed", 2)
+
+func _attack_torrent(canvas: Image, st: Dictionary) -> void:
+	_jet_attack(canvas, st, "torrent", 3)
+
+# A straight jet of water out of the reed's tip on release (the line pierces).
+func _jet_attack(canvas: Image, st: Dictionary, key: String, width: int) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var from := Vector2(ATTACKS[key].point)
+	var dir := Vector2(1, -0.55).normalized()
+	for i in 20:
+		var p := from + dir * i
+		for w in range(-width / 2, width / 2 + 1):
+			var q := p + dir.orthogonal() * w
+			_px(canvas, int(q.x), int(q.y), Color("#e8faff") if w == 0 else Color("#5aa8ec"))
+	_warm_glow(canvas, from, Vector2(5, 4), k)
+
+
+# --- Branch expansion, Firefly Jar -------------------------------------------------------------
+# Jarlink -> Lightning Fence (a jar on a tall pole with a wire coil; two coiled poles with an arc
+# between them), Prism Jar -> Rainbow Prism (a faceted crystal for a cork; a crystal crown, shoulder
+# crystals and three coloured beams), Sparkler -> Starburst (a fizzing sparkler held up; one in each
+# hand and a starburst above). All drawn over the Firefly Jar's body.
+
+const PRISM := ["#4c8ca4", "#9cd4fc", "#dce8f4", "#ffffff"]
+const COPPER := Color("#b8662c")
+
+# A tall pole planted on the slab, a copper wire coiled round it, a little jar of light on top.
+func _coil_pole(canvas: Image, x: float, top: float, st: Dictionary, o: Color) -> void:
+	var pole := _layer()
+	_stroke(pole, [Vector2(x, 46), Vector2(x, top + 6)], 1.5, Color("#5c3c24"))
+	_stamp(canvas, pole, o)
+	for y in range(int(top) + 9, 42, 3):
+		_px(canvas, int(x) - 2, y, COPPER)
+		_px(canvas, int(x) + 2, y + 1, COPPER)
+		_px(canvas, int(x), y + 2, COPPER)
+	var jar := _layer()
+	_round_rect(jar, Rect2i(int(x) - 4, int(top), 9, 8), 2, Color("#4e7482"))
+	_stamp(canvas, jar, o)
+	_round_rect(canvas, Rect2i(int(x) - 3, int(top) - 2, 7, 2), 0, Color("#8a5a3a"))  # its cork
+	_glow_dot(canvas, Vector2i(int(x), int(top) + 3), Color("#fff27a") if st.f % 4 < 2 else Color("#ffe8a0"), Color("#a8c868"))
+
+func _draw_jarlink(canvas: Image, st: Dictionary) -> void:
+	_draw_firefly_jar(canvas, st)
+	_coil_pole(canvas, 8, 6, st, Color("#1a2230"))
+
+func _draw_lightning_fence(canvas: Image, st: Dictionary) -> void:
+	_draw_firefly_jar(canvas, st)
+	_coil_pole(canvas, 7, 4, st, Color("#1a2230"))
+	_coil_pole(canvas, 56, 4, st, Color("#1a2230"))
+	# The arc between the two jars, crackling over its head (a different path each frame).
+	if st.f % 2 == 0 or st.attack >= 0:
+		_bolt(canvas, Vector2(10, 7), Vector2(53, 7), Color("#fff6a0"), Color("#8a8af0"), 6)
+
+func _attack_jarlink(canvas: Image, st: Dictionary) -> void:
+	_attack_firefly_jar(canvas, st)
+	_jar_arc_flash(canvas, st, Vector2(8, 9))
+
+func _attack_lightning_fence(canvas: Image, st: Dictionary) -> void:
+	_attack_firefly_jar(canvas, st)
+	_jar_arc_flash(canvas, st, Vector2(7, 7))
+	_jar_arc_flash(canvas, st, Vector2(56, 7))
+
+func _jar_arc_flash(canvas: Image, st: Dictionary, p: Vector2) -> void:
+	if st.attack == RELEASE_FRAME:
+		_sparkle(canvas, Vector2i(p), Color.WHITE)
+		_warm_glow(canvas, p, Vector2(6, 6))
+
+# A faceted crystal: a hexagonal gem, light facets on the upper left, rainbow glints.
+func _faceted_crystal(canvas: Image, c: Vector2, w: float, h: float, o: Color, f: int) -> void:
+	var gem := _layer()
+	var pts := PackedVector2Array([c + Vector2(0, -h), c + Vector2(w, -h * 0.4), c + Vector2(w, h * 0.4), c + Vector2(0, h),
+		c + Vector2(-w, h * 0.4), c + Vector2(-w, -h * 0.4)])
+	_flat_polygon(gem, pts, Color(PRISM[1]))
+	for y in range(-OY, S):
+		for x in S:
+			if _gp(gem, x, y).a > 0.0:
+				var d := Vector2(x + 0.5, y + 0.5) - c
+				if d.x < 0 and d.y < 0:
+					_sp(gem, x, y, Color(PRISM[2]))
+				elif d.x > 0 and d.y > 0:
+					_sp(gem, x, y, Color(PRISM[0]))
+	_stamp(canvas, gem, o)
+	_line(canvas, [c + Vector2(0, -h), c + Vector2(0, h)], Color(PRISM[3]))
+	var glints := [Color("#ec9cf4"), Color("#fcd47c"), Color("#9cc46c")]
+	_px(canvas, int(c.x) - int(w * 0.5), int(c.y) - 1, glints[f % 3])
+	_px(canvas, int(c.x) + int(w * 0.5), int(c.y) + 1, glints[(f + 1) % 3])
+
+func _draw_prism_jar(canvas: Image, st: Dictionary) -> void:
+	_draw_firefly_jar(canvas, st)
+	_faceted_crystal(canvas, Vector2(30.5, 9 + st.dy), 8.0, 9.0, Color("#1a2230"), st.f)
+
+func _draw_rainbow_prism(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	_draw_firefly_jar(canvas, st)
+	# Three coloured beams fanning up out of the crown (its hits split three ways).
+	var cols := [Color("#ec9cf4"), Color("#fcd47c"), Color("#9cd4fc")]
+	for k in 3:
+		var a: float = -PI / 2.0 + (k - 1) * 1.05
+		for i in range(11, 20 + (st.f + k) % 3):
+			var p := Vector2(30.5, 9 + dy) + Vector2.from_angle(a) * i
+			_px(canvas, int(p.x), int(p.y), cols[k])
+	_faceted_crystal(canvas, Vector2(30.5, 9 + dy), 10.0, 9.0, Color("#1a2230"), st.f)
+	_faceted_crystal(canvas, Vector2(14, 21 + dy), 4.0, 5.0, Color("#1a2230"), st.f + 1)
+	_faceted_crystal(canvas, Vector2(47, 21 + dy), 4.0, 5.0, Color("#1a2230"), st.f + 2)
+
+func _attack_prism_jar(canvas: Image, st: Dictionary) -> void:
+	_prism_flash(canvas, st, "prism_jar", 1)
+
+func _attack_rainbow_prism(canvas: Image, st: Dictionary) -> void:
+	_prism_flash(canvas, st, "rainbow_prism", 3)
+
+# The crystal flares and splits its light into beams (one, or three coloured ones).
+func _prism_flash(canvas: Image, st: Dictionary, key: String, beams: int) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var c := Vector2(ATTACKS[key].point)
+	var cols := [Color("#ec9cf4"), Color("#fcd47c"), Color("#9cd4fc")]
+	for b in beams:
+		var a: float = -0.3 + (b - (beams - 1) / 2.0) * 0.4
+		for i in range(3, 24):
+			var p := c + Vector2.from_angle(a) * i
+			_px(canvas, int(p.x), int(p.y), Color.WHITE if beams == 1 else cols[b])
+	_sparkle(canvas, Vector2i(c), Color.WHITE)
+	_warm_glow(canvas, c, Vector2(7, 6), k)
+
+# A sparkler: a thin stick held up, a fizzing star of sparks at its tip, a few falling.
+func _sparkler(canvas: Image, hand: Vector2, tip: Vector2, f: int, o: Color) -> void:
+	var stick := _layer()
+	_stroke(stick, [hand, tip], 1.0, Color("#8c8cac"))
+	_stamp(canvas, stick, o)
+	for k in 8:
+		var a: float = k * TAU / 8.0 + f * 0.4
+		var r: float = 4.0 + (k + f) % 3
+		var p := tip + Vector2.from_angle(a) * r
+		_px(canvas, int(p.x), int(p.y), Color("#fff4dc") if k % 2 == 0 else Color("#fcd47c"))
+	_glow_dot(canvas, Vector2i(tip), Color.WHITE, Color("#fcd47c"))
+	for k in 2:
+		var p := tip + Vector2(-2 + k * 4, 4 + (f + k * 2) % 5)
+		_px(canvas, int(p.x), int(p.y), Color("#e9a83c"))
+
+func _draw_sparkler(canvas: Image, st: Dictionary) -> void:
+	_draw_firefly_jar(canvas, st)
+	_sparkler(canvas, Vector2(44, 30), Vector2(54, 12 + st.dy), st.f, Color("#1a2230"))
+
+func _draw_starburst(canvas: Image, st: Dictionary) -> void:
+	_draw_firefly_jar(canvas, st)
+	_sparkler(canvas, Vector2(44, 30), Vector2(56, 13 + st.dy), st.f, Color("#1a2230"))
+	_sparkler(canvas, Vector2(18, 30), Vector2(6, 13 + st.dy), st.f + 2, Color("#1a2230"))
+
+func _attack_sparkler(canvas: Image, st: Dictionary) -> void:
+	_firework_burst(canvas, st, "sparkler", 6, false)
+
+func _attack_starburst(canvas: Image, st: Dictionary) -> void:
+	_firework_burst(canvas, st, "starburst", 6, true)
+
+# A firework shoots up out of the sparkler and bursts into sparks (twice for Starburst).
+func _firework_burst(canvas: Image, st: Dictionary, key: String, n: int, double: bool) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	var from := Vector2(ATTACKS[key].point)
+	if k == 0:
+		_line(canvas, [from, from + Vector2(2, -8)], Color("#fcd47c"))
+		_glow_dot(canvas, Vector2i(from + Vector2(2, -9)), Color.WHITE, Color("#fcd47c"))
+	elif k == 1 or k == 2:
+		var centres := [from + Vector2(2, -10)]
+		if double:
+			centres.append(from + Vector2(-12, -6))
+		for c: Vector2 in centres:
+			for s in n:
+				var d := Vector2.from_angle(s * TAU / n) * (4.0 + k * 3.0)
+				_px(canvas, int(c.x + d.x), int(c.y + d.y), Color("#fff4dc") if k == 1 else Color("#e9a83c"))
+			_warm_glow(canvas, c, Vector2(6, 6), k)
+
+
+# --- Branch expansion, Bellflower --------------------------------------------------------------
+# Silver Bell -> Vesper Bell (one big silver bell hung from a post and crossbeam; a little peaked
+# belfry with an evening star), Hushbell -> Silence (its bell cap muffled in moss, a finger to its
+# lips; a moss cloak to the ground, eyes shut), Thrum -> Resonance (a trumpet flower on its head
+# facing forward; a great horn flower on a stem beside it, sound rings rolling out).
+
+const SILVER := ["#8c8cac", "#b4b0c8", "#dce8f4", "#ffffff"]
+
+func _bell_fig() -> Dictionary:
+	return _pal("#22183a", "#e0d0f8", "#c0a8ec", "#9a80d0")
+
+func _bell_base(canvas: Image, st: Dictionary, lush: bool) -> Dictionary:
+	var fig := _bell_fig()
+	_draw_waystone(canvas, st, "bellflower", lush)
+	_draw_template_figure(canvas, st.pose, fig)
+	return fig
+
+func _draw_silver_bell(canvas: Image, st: Dictionary) -> void:
+	_silver_body(canvas, st, false)
+
+func _draw_vesper_bell(canvas: Image, st: Dictionary) -> void:
+	_silver_body(canvas, st, true)
+
+func _silver_body(canvas: Image, st: Dictionary, vesper: bool) -> void:
+	var dy: int = st.dy
+	var fig := _bell_base(canvas, st, vesper)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true, st.attack < 0)
+	_bell_cap(canvas, Vector2(30.5, 10 + dy), 12.0, 8, fig.o)
+	# The post, planted on the slab at its right, and the crossbeam it hangs the bell from.
+	var wood := _layer()
+	_stroke(wood, [Vector2(56, 46), Vector2(56, 3)], 2.0, Color("#5c3c24"))
+	_stroke(wood, [Vector2(56, 4), Vector2(42, 4)], 1.6, Color("#5c3c24"))
+	if vesper:
+		_stroke(wood, [Vector2(40, 46), Vector2(40, 3)], 1.8, Color("#5c3c24"))
+	_stamp(canvas, wood, fig.o)
+	if vesper:
+		# A little peaked roof over the bell, an evening star above it.
+		var roof := _layer()
+		_flat_polygon(roof, PackedVector2Array([Vector2(35, 5), Vector2(48, -3), Vector2(61, 5), Vector2(61, 6), Vector2(35, 6)]), Color("#8c5c34"))
+		_stamp(canvas, roof, fig.o)
+		_sparkle(canvas, Vector2i(48, 1), Color("#fcd47c") if st.f % 4 < 2 else Color("#fff4dc"))
+	var swing: int = [0, 1, 0, -1][st.f % 4]
+	_line(canvas, [Vector2(48, 4), Vector2(48 + swing, 7)], fig.o)
+	_bell(canvas, Vector2(48, 7), 8.5 if vesper else 7.5, swing, _ramp(SILVER), fig.o)
+
+func _attack_silver_bell(canvas: Image, st: Dictionary) -> void:
+	_toll(canvas, st, "silver_bell", 1)
+
+func _attack_vesper_bell(canvas: Image, st: Dictionary) -> void:
+	_toll(canvas, st, "vesper_bell", 2)
+
+# One toll: rings going out from the bell, long and thin (it reaches far); Vesper's echoes.
+func _toll(canvas: Image, st: Dictionary, key: String, echoes: int) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var c := Vector2(ATTACKS[key].point)
+	for e in echoes:
+		var r := 4.0 + k * 4.0 + e * 5.0
+		for s in 20:
+			var a := s * TAU / 20.0
+			if (s + k + e) % 2 == 0:
+				_px(canvas, int(c.x + cos(a) * r), int(c.y + sin(a) * r * 0.7), Color(SILVER[2]) if e == 0 else Color(SILVER[1]))
+	if k == 0:
+		_warm_glow(canvas, c, Vector2(7, 6))
+
+func _draw_hushbell(canvas: Image, st: Dictionary) -> void:
+	_hush_body(canvas, st, false)
+
+func _draw_silence(canvas: Image, st: Dictionary) -> void:
+	_hush_body(canvas, st, true)
+
+func _hush_body(canvas: Image, st: Dictionary, deep: bool) -> void:
+	var dy: int = st.dy
+	var fig := _bell_fig()
+	_draw_waystone(canvas, st, "bellflower", deep)
+	if deep:
+		# A moss cloak over its back and shoulders, falling to the slab either side.
+		var cloak := _layer()
+		_flat_polygon(cloak, PackedVector2Array([Vector2(16, 12 + dy), Vector2(45, 12 + dy), Vector2(53, 45), Vector2(9, 45)]), Color(MOSS[1]))
+		_stamp(canvas, cloak, Color("#1e3a24"))
+		for x in range(11, 52, 4):
+			_px(canvas, x, 44, Color(MOSS[3]))
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true, deep)
+	# Its bell cap, muffled in a thick cushion of moss.
+	_bell_cap(canvas, Vector2(30.5, 10 + dy), 13.0, 9, fig.o)
+	var muffle := _layer()
+	_ellipse(muffle, Vector2(30.5, 4 + dy), Vector2(15.0 if deep else 13.0, 5.5), _ramp(MOSS), 8.0 + dy)
+	_stamp(canvas, muffle, Color("#1e3a24"))
+	for x in [20, 26, 34, 40]:
+		_px(canvas, x, 8 + dy, Color(MOSS[0]))
+	# A finger to its lips: a hand raised to the mouth, one finger up.
+	var hand := _layer()
+	_flat_ellipse(hand, Vector2(33, 17 + dy), Vector2(2.4, 2.0), fig.a)
+	_stroke(hand, [Vector2(32, 16 + dy), Vector2(32, 12 + dy)], 0.7, fig.a)
+	_stroke(hand, [Vector2(35, 18 + dy), Vector2(41, 26 + dy)], 1.3, fig.a)  # the forearm
+	_stamp(canvas, hand, fig.o)
+	if st.attack < 0 and st.f % 4 < 2:
+		_px(canvas, 38, 10 + dy, Color("#dce8f4"))  # a hush: "sh"
+		_px(canvas, 39, 9 + dy, Color("#dce8f4"))
+
+func _attack_hushbell(canvas: Image, st: Dictionary) -> void:
+	_hush_wave(canvas, st, 1.0)
+
+func _attack_silence(canvas: Image, st: Dictionary) -> void:
+	_hush_wave(canvas, st, 1.3)
+
+# A soft muffling ring spreading out low (no sound: a dim, quiet wave).
+func _hush_wave(canvas: Image, st: Dictionary, size: float) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var c := Vector2(31, 40)
+	var r := Vector2(10 + k * 7, 3 + k * 2) * size
+	for s in 28:
+		var a := s * TAU / 28.0
+		if (s + k) % 3 != 0:
+			_px(canvas, int(c.x + cos(a) * r.x), int(c.y + sin(a) * r.y), Color(MOSS[2]))
+
+# A trumpet flower: a stem, a long flaring horn facing `dir`, a pale throat.
+func _horn_flower(canvas: Image, base: Vector2, dir: Vector2, length: float, flare: float, o: Color) -> void:
+	var horn := _layer()
+	var pts := PackedVector2Array()
+	var n := dir.orthogonal()
+	pts.append(base + n * 1.5)
+	pts.append(base + dir * length + n * flare)
+	pts.append(base + dir * (length + 1.5))
+	pts.append(base + dir * length - n * flare)
+	pts.append(base - n * 1.5)
+	_flat_polygon(horn, pts, Color("#c0a8ec"))
+	for y in range(-OY, S):
+		for x in S:
+			if _gp(horn, x, y).a > 0.0 and (Vector2(x + 0.5, y + 0.5) - base).dot(n) > 0.0:
+				_sp(horn, x, y, Color("#e0d0f8"))
+	_stamp(canvas, horn, o)
+	var mouth := base + dir * (length - 0.5)
+	_line(canvas, [mouth + n * (flare - 1.5), mouth - n * (flare - 1.5)], Color("#fff4dc"))
+
+func _draw_thrum(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _bell_base(canvas, st, false)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true, st.attack < 0)
+	# A trumpet flower on its head, its horn flaring out ahead of it.
+	_horn_flower(canvas, Vector2(32, 6 + dy), Vector2(1, 0.15).normalized(), 18.0, 5.5, fig.o)
+	_leaf(canvas, Vector2(30, 6 + dy), Vector2(22, 1 + dy), 2.6, _ramp(LEAF), fig.o)
+
+func _draw_resonance(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var fig := _bell_base(canvas, st, true)
+	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), true, st.attack < 0)
+	_horn_flower(canvas, Vector2(32, 6 + dy), Vector2(1, 0.15).normalized(), 14.0, 4.5, fig.o)
+	# A great horn flower on a tall stem beside it, aimed ahead, sound rings rolling out of it.
+	var stem := _layer()
+	_stroke(stem, [Vector2(12, 46), Vector2(11, 28), Vector2(13, 22)], 1.6, Color(LEAF[1]))
+	_stamp(canvas, stem, fig.o)
+	_horn_flower(canvas, Vector2(13, 22), Vector2(-0.2, -1).normalized(), 16.0, 9.5, fig.o)
+	if st.attack < 0:
+		for k in 2:
+			var r: float = 3.0 + ((st.f * 2 + k * 4) % 8)
+			var c := Vector2(10, 4)
+			for s in 8:
+				var a := -PI / 2.0 + (s - 3.5) * 0.25
+				_px(canvas, int(c.x + cos(a) * r - r * 0.3), int(c.y + sin(a) * r * 0.5), Color("#e0c8ff", 1.0 - r / 12.0))
+
+func _attack_thrum(canvas: Image, st: Dictionary) -> void:
+	_sound_cone(canvas, st, "thrum", 0.45)
+
+func _attack_resonance(canvas: Image, st: Dictionary) -> void:
+	_sound_cone(canvas, st, "resonance", 0.7)
+
+# Arcs of sound rolling out of the horn in a cone ahead of it.
+func _sound_cone(canvas: Image, st: Dictionary, key: String, spread: float) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var c := Vector2(ATTACKS[key].point)
+	for ring in 2:
+		var r := 4.0 + k * 4.0 + ring * 4.0
+		for s in 9:
+			var a := (s - 4) / 4.0 * spread
+			var p := c + Vector2.from_angle(a) * r
+			_px(canvas, int(p.x), int(p.y), Color("#e0c8ff") if ring == 0 else Color("#c0a8ec"))
+	_warm_glow(canvas, c, Vector2(5, 5), k)
 
 # --- Nurture ranks (warden_stats.md "Ranks: Nurture") -----------------------------------------
 # Every Warden stands on the same waystone slab (the mock's), so rank art is drawn once and layered
