@@ -40,6 +40,7 @@ const CREATURES := {
 	"hedgehog": {fps = 9.0, extra = ["roll"], extra_fps = 14.0},  # Night Hound; "roll" = sprint
 	"wandering_hare": {fps = 5.0},  # Sleepwalker
 	"mother_duck": {fps = 6.0},  # Lantern Bearer
+	"mother_duck_silenced": {fps = 6.0, draw = "mother_duck", variant = "silenced"},  # its lantern snuffed by a Hushbell
 	"duckling": {fps = 7.0},  # Wraith
 	"old_stag": {fps = 7.0, size = 112},  # The Hollow Stag
 	"great_toad": {fps = 6.0, size = 144},  # The Mire Hag
@@ -1024,7 +1025,7 @@ func _draw_mother_duck(canvas: Image, st: Dictionary) -> void:
 			lantern = Vector2(39 + swing * 0.4, 32 + h)
 		UP:
 			lantern = Vector2(42 + swing * 0.4, 30 + h)
-			_lantern(canvas, lantern, f, ground)
+			_lantern(canvas, lantern, f, ground, st.variant != "silenced")
 			_robe(fig, 32.0, 17.0 + h, 5.0, ground - 1.0 + h, 10.0, 0.0, ph, robe)
 			_ellipse(fig, Vector2(32, 12 + h), Vector2(5, 6), robe)
 			_lens(fig, Vector2(32, 9 + h), Vector2(32, 2 + h), 2.2, robe[2], robe[1])
@@ -1043,10 +1044,13 @@ func _draw_mother_duck(canvas: Image, st: Dictionary) -> void:
 	_merge(canvas, ghost, 0.92)
 	if st.dir != UP:
 		_line(canvas, [hand, lantern + Vector2(0, -4)], _c("Pool"))
-		_lantern(canvas, lantern, f, ground)
+		_lantern(canvas, lantern, f, ground, st.variant != "silenced")
 
 # A cold lantern: dark cap and base, glowing glass, a flickering halo and light pooled on the ground.
-func _lantern(canvas: Image, p: Vector2, f: int, ground: float) -> void:
+func _lantern(canvas: Image, p: Vector2, f: int, ground: float, lit: bool = true) -> void:
+	if not lit:  # snuffed (Hushbell's silence): dark glass, no light, a thin curl of smoke
+		_lantern_dark(canvas, Vector2i(p.round()), f)
+		return
 	var halo_r: float = [6.0, 6.5, 5.5, 6.5, 6.0, 7.0][f]
 	_blend_ellipse(canvas, Vector2(p.x, ground), Vector2(8, 2.5), _c("Dewlight", 0.14))
 	for y in range(floori(p.y - halo_r), ceili(p.y + halo_r) + 1):
@@ -2927,3 +2931,17 @@ func _poly_fill(layer: Image, pts: PackedVector2Array, color: Color) -> void:
 		for x in range(maxi(0, floori(box.position.x)), mini(S, ceili(box.end.x) + 1)):
 			if Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), pts):
 				layer.set_pixel(x, y, color)
+
+func _lantern_dark(canvas: Image, q: Vector2i, f: int) -> void:
+	var metal := _c("Night")
+	_px(canvas, q.x, q.y - 4, metal)
+	for x in range(q.x - 1, q.x + 2):
+		_px(canvas, x, q.y - 3, metal)
+	for y in range(q.y - 2, q.y + 2):
+		_px(canvas, q.x - 2, y, metal)
+		_px(canvas, q.x + 2, y, metal)
+		for x in range(q.x - 1, q.x + 2):
+			_px(canvas, x, y, _c("Dread"))
+	for x in range(q.x - 2, q.x + 3):
+		_px(canvas, x, q.y + 2, metal)
+	_smoke_trail(canvas, [Vector2(q) + Vector2(0, -5), Vector2(q) + Vector2(1, -9), Vector2(q) + Vector2(-1, -13)], f, 1.4, _c("Dusk", 0.7))
