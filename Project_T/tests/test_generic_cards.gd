@@ -214,17 +214,16 @@ func _test_sim_entry() -> void:
 	_check(passed.is_empty() and not dreams.is_offering(), "…null lets it pass")
 	light = dreams.dreamlight
 	dreams.sim_rest(25, func(offer: Array) -> UpgradeData: return offer[0])
-	_check(dreams.dreamlight == light + DreamState.BOSS_DREAMLIGHT, "…a boss rest gives +4 Dreamlight")
+	_check(dreams.dreamlight == light + DreamState.BOSS_DREAMLIGHT, "…a boss rest gives +3 Dreamlight")
 	light = dreams.dreamlight
 	dreams.sim_rest(50, func(offer: Array) -> UpgradeData: return offer[0])
-	_check(dreams.dreamlight >= light + DreamState.BOSS_DREAMLIGHT and DreamState.rest_dreamlight(50) == 0, "…the drift 50 boss rest: no wake bonus yet")
+	_check(dreams.dreamlight >= light + DreamState.BOSS_DREAMLIGHT and DreamState.BOSS_DREAMLIGHT == 3, "…the drift 50 boss rest: +3 too")
 	light = dreams.dreamlight
 	dreams.sim_rest(55, func(offer: Array) -> UpgradeData:
 		var plain := offer.filter(func(c: UpgradeData) -> bool: return c.dreamlight_now == 0)  # Not a card that gives Dreamlight
 		return plain[0] if not plain.is_empty() else null)
-	# Only the wake bonus is measured (other cards can add Dreamlight at a rest too)
-	_check(DreamState.rest_dreamlight(55) == DreamState.WAKE_DREAMLIGHT and dreams.dreamlight >= light + DreamState.WAKE_DREAMLIGHT,
-		"…every rest from drift 51: +1 Dreamlight (the Heartwood wakes)")
+	# No Dreamlight from an ordinary rest any more, from drift 51 either (user: "only 3 Dreamlight every 25 drifts")
+	_check(dreams.dreamlight == light, "…an ordinary rest at drift 55 gives no Dreamlight (%d)" % (dreams.dreamlight - light))
 	_check(dreams.sim_dreamlight_for(&"first") == DreamState.FIRST_PICK_DREAMLIGHT and dreams.sim_dreamlight_for(&"boss") == DreamState.BOSS_DREAMLIGHT, "sim_dreamlight_for")
 	dreams.first_pick_dreamlight = 0
 	_check(dreams.sim_dreamlight_for(&"first") == 0, "…first_pick_dreamlight 0 (Blight 2): none")

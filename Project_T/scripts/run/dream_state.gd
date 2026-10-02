@@ -184,10 +184,7 @@ const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_fr
 	"reckless_bloom": "", "overgrowth": "", "borrowed_memory": "", "remembered_care": "", "remembered_care_ii": "",
 	"seasoned_eye": "", "many_rings": "", "big_family": "", "sudden_bloom": "", "underdog": "", "underdog_ii": "",
 	"cliffside": "", "tangled": "", "patchwork": "", "hedgerow": "", "shelter_of_stones": "", "short_roots": ""}
-const BOSS_DREAMLIGHT := 4
-# "The Heartwood wakes" (run_design.md Dreamlight sources): every rest from drift 51 frees +1 more.
-const WAKE_DREAMLIGHT := 1
-const WAKE_FROM_DRIFT := 51
+const BOSS_DREAMLIGHT := 3  # Each boss rest (user 2026-10-01: "only 3 Dreamlight every 25 drifts"; was 4, plus +1 a rest from drift 51)
 const BRANCH_DREAMLIGHT := 1  # Branch (regular or hidden), wall growth: bought with Dreamlight in a run (clarified 2026-09-30)
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
 # Ascended forms (tower_design.md): tier 4, grown from any of the family's final forms.
@@ -210,7 +207,7 @@ signal dreamlight_changed(dreamlight: int)
 # flashes, like RunState.dew_short for Dew.
 signal dreamlight_short(cost: int)
 # Dreamlight gained (never spent), for Sound: `source` &"boss", &"shard", &"glimmer", &"sapling", &"first_pick",
-# &"wake", &"card", &"omen", &"grove" (Early Light), or &"other".
+# &"card", &"omen", &"grove" (Early Light), or &"other".
 signal dreamlight_earned(amount: int, source: StringName)
 # The Eldest changed (null = the title is free). Tower Code shows its crown and panel line.
 signal eldest_changed(tower: Tower)
@@ -1449,9 +1446,8 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 	_second_wind()
 	_early_calls = 0  # Restless Night counts per block
 	_rest_rules(_perfect)
-	add_dreamlight(rest_dreamlight(drift_director.drifts_started), &"wake")
 	if is_boss_rest:
-		# The freed light: +4 Dreamlight, and the Remember screen opens before the Dream.
+		# The freed light: +3 Dreamlight, and the Remember screen opens before the Dream.
 		add_dreamlight(BOSS_DREAMLIGHT, &"boss")
 		_remember_open = true
 		remember_requested.emit(null)
@@ -2717,12 +2713,11 @@ func sim_dreamlight_for(kind: StringName) -> int:
 	return first_pick_dreamlight if kind == &"first" else (BOSS_DREAMLIGHT if kind == &"boss" else 0)
 
 # The rest after drift `drift`: what _on_rest_started does (rest rules, Sunlit Rest, Seedling Gift,
-# the boss's +4 Dreamlight) and a real offer. `pick.call(offer: Array) -> UpgradeData` (null = let it
+# the boss's +3 Dreamlight) and a real offer. `pick.call(offer: Array) -> UpgradeData` (null = let it
 # pass); with Lucid Dreaming it's called again with what's left. Returns the cards taken.
 func sim_rest(drift: int, pick: Callable, perfect: bool = true) -> Array[UpgradeData]:
 	_early_calls = 0
 	_rest_rules(perfect)
-	add_dreamlight(rest_dreamlight(drift))
 	if drift_director.is_boss_drift(drift):
 		add_dreamlight(sim_dreamlight_for(&"boss"))
 	if has_rule(&"sunlit_rest"):
@@ -2785,9 +2780,6 @@ func sim_family_pick(kind: StringName, pick: Callable) -> StringName:
 # --- Developer: pick any card, unlock free (demo_scope.md "Pick any card") -------------------------
 
 # Dev tools are on in a dev run (Test Grove, Unlock all families, Dev Grove) of a debug build only.
-# Dreamlight every rest after `drift` frees on its own (the boss rest's BOSS_DREAMLIGHT comes on top).
-static func rest_dreamlight(drift: int) -> int:
-	return WAKE_DREAMLIGHT if drift >= WAKE_FROM_DRIFT else 0
 
 static func dev_tools_on() -> bool:
 	return OS.is_debug_build() and MetaRun.is_dev_run()

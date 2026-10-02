@@ -485,8 +485,6 @@ func _on_leaves_changed(leaves: int, max_leaves: int) -> void:
 
 func _on_rest_started(_block: int, _is_boss_rest: bool, bonus: int, perfect: bool) -> void:
 	var text := "Rest · +%d Dew" % bonus
-	if DreamState.rest_dreamlight(drift_director.drifts_started) > 0:
-		text += " · +%d ✦" % DreamState.rest_dreamlight(drift_director.drifts_started)  # The Heartwood wakes (drift 51+)
 	if perfect:
 		text += " · perfect block"
 	show_toast(text)
