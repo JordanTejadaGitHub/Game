@@ -6,6 +6,7 @@ extends SceneTree
 #   godot --headless --path . --script res://tests/test_tall_fade.gd --fixed-fps 60
 
 var failures := 0
+var ids_done := 0
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -37,6 +38,30 @@ func _run() -> void:
 		tall._update_tall_fade(1.0 / 60.0)
 		await process_frame
 	_check(tall._tall_alpha > 0.95, "it comes back once the cell is clear (%.2f)" % tall._tall_alpha)
+	# Every tall form is drawn whole in every state (user: "some of the Wardens' top parts being cut off"): the
+	# map sprite idle / attacking / channelling and the UI icon are 96 px tall; only multi-cell art (the Sapling)
+	# gets the cropped icon.
+	for id in ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave", "snugroot", "grafted_elder", "midsummer", "puffball", "monsoon"]:
+		var data: TowerData = load("res://resource/tower/%s.tres" % id)
+		var warden := _plant(placer, container, id, Vector2(3 + (ids_done % 8) * 2, 12 + (ids_done / 8) * 3))
+		ids_done += 1
+		await process_frame
+		var heights := [warden.sprite.get_rect().size.y]
+		if data.attack_texture != null:
+			warden.sprite.texture = data.attack_texture
+			warden.sprite.hframes = data.attack_frame_count
+			heights.append(warden.sprite.get_rect().size.y)
+		if data.beam_sustain_texture != null:
+			warden.sprite.texture = data.beam_sustain_texture
+			warden.sprite.hframes = data.beam_sustain_frames
+			heights.append(warden.sprite.get_rect().size.y)
+		heights.append(WardenIcon.region(data).size.y)
+		_check(heights.all(func(h: float) -> bool: return is_equal_approx(h, 96.0)) and warden.sprite.offset == Vector2(0, -16),
+			"%s is drawn whole (96 px) idle / attacking / channelling / as an icon (%s)" % [id, heights])
+		warden.queue_free()
+	var sapling: TowerData = load("res://resource/tower/heartwood_sapling.tres")
+	_check(WardenIcon.region(sapling).size == Vector2(64, 64), "the Sapling's big art keeps its cropped 64x64 icon (%s)" % WardenIcon.region(sapling).size)
+
 	print("tall fade test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
 	await process_frame
