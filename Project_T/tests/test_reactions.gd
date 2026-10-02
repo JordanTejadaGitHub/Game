@@ -89,6 +89,15 @@ func _run() -> void:
 	var burning: float = c.statuses.tick(1.0)
 	var calm_tick: float = calm.statuses.tick(1.0)
 	_check(absf(burning - calm_tick * Reactions.BURN_SPORE_RATE) < calm_tick * 0.4, "burning Spored ticks 3x as fast (%.1f vs %.1f)" % [burning, calm_tick])
+	# The burn's extra share of a Spored tick is the "ignite" combo (Balancing: the sims couldn't see it),
+	# credited to the Spored applier; a calm nightmare's tick has none.
+	c.take_damage(30.0, "spore", true, false, sporeling, &"spored")
+	var burnt: DamageLog.Event = c.recent_hits.back()
+	var share: float = 1.0 - 1.0 / c.statuses.burn_rate
+	_check(burnt.combos.has(&"ignite") and burnt.source == sporeling and (burnt.combos.size() > 1 or absf(burnt.combo_amount - burnt.amount * share) < 0.01),
+		"a burning Spored tick: its extra share is the ignite combo (%s, %.2f of %.2f)" % [burnt.combos, burnt.combo_amount, burnt.amount])
+	calm.take_damage(30.0, "spore", true, false, sporeling, &"spored")
+	_check(not calm.recent_hits.back().combos.has(&"ignite"), "a calm Spored tick carries no ignite")
 	calm.queue_free()
 	await _wait(1.1)
 	_check(beside.statuses.stacks(EnemyStatuses.SPORED) >= 1, "after a second, a Spored stack spreads to the neighbour")

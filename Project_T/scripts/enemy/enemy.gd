@@ -1978,6 +1978,11 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 	if tag == &"spored" and statuses.is_in_fog():
 		event.combos.append(&"fog")
 		factor *= 1.0 + EnemyStatuses.FOG_SPORE_BONUS
+	if tag == &"spored" and statuses.burn_time > 0.0 and statuses.burn_rate > 1.0:
+		# Ignite's burn: Spored ticks burn_rate× as often, so (1 - 1/rate) of this tick is the Reaction's
+		# (Balancing: the sims and "from combos" couldn't see it); still credited to the Spored applier.
+		event.combos.append(&"ignite")
+		factor *= statuses.burn_rate
 	if tag == &"conducted" or tag == &"static" or tag == &"popped" or tag in REACTION_TAGS:
 		event.combos.append(tag)
 		event.combo_amount = dealt  # The whole hit only happened thanks to the combo
