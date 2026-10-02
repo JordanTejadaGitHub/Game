@@ -191,8 +191,9 @@ func _process(_delta: float) -> void:
 const MIST_FULL := "The mist is full: it holds nightmares back until there's room on the path. Calling early waits until they're out."
 
 # Screens_ui.md "Choice screens": what the Start button says while a choice waits.
-const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Face an Omen or Clear Skies"}
-const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen", &"omen": "OmenScreen"}
+const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Face an Omen or Clear Skies",
+	&"gift": "Choose a gift"}  # Heartwood's Gifts (Spire)
+const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen", &"omen": "OmenScreen", &"gift": "GiftScreen"}
 
 func _on_start_pressed() -> void:
 	var pending := drift_director.pending_choice()

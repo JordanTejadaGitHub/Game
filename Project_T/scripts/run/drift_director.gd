@@ -308,6 +308,9 @@ func pending_choice() -> StringName:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
 	if dreams != null and (dreams.is_offering() or dreams.has_pending_offer()):
 		return &"dream"
+	var gifts := get_tree().get_first_node_in_group(&"heartwood_gifts") if is_inside_tree() else null
+	if gifts != null and gifts.is_offering():
+		return &"gift"  # Heartwood's Gifts (Spire): after the Dream and the family pick, before the Omen
 	var omens := get_tree().get_first_node_in_group(&"omens") if is_inside_tree() else null
 	if omens != null and (omens.is_offering() or omens.has_pending_offer()):
 		return &"omen"
@@ -458,7 +461,11 @@ func get_health_multiplier(data: EnemyData, number: int) -> float:
 # Omens: {"count", "flyers", "spacing"} multipliers for drift `number`'s schedule.
 func get_schedule_modifiers(number: int) -> Dictionary:
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
-	return omens.get_schedule_modifiers(number) if omens else {}
+	var mods: Dictionary = omens.get_schedule_modifiers(number).duplicate() if omens else {}
+	var gifts := get_tree().get_first_node_in_group(&"heartwood_gifts")  # Thick Mist (Heartwood's Gifts): arrivals further apart
+	if gifts != null and gifts.get_spacing_multiplier(number) != 1.0:
+		mods["spacing"] = float(mods.get("spacing", 1.0)) * gifts.get_spacing_multiplier(number)
+	return mods
 
 # Per-creature modifiers (see Enemy.modifiers) for drift `number`: the Omen's (bosses ignore
 # Omens), times Dreams that change every nightmare (Burn Back the Dead Wood: speed).

@@ -152,6 +152,10 @@ func _ready() -> void:
 	owner.add_child.call_deferred(CardBloom.new())
 	# Grow onboarding (onboarding.md): ↑ / dot marks at rests, the first-grow spotlight, the drift 15 reminder (world).
 	owner.add_child.call_deferred(GrowHints.new(drift_director))
+	# Heartwood's Gifts (heartwood_gifts.md, Spire): the act-break gift and its screen.
+	var gifts := HeartwoodGifts.new(drift_director)
+	add_child(gifts)
+	add_child(GiftScreen.new(drift_director, gifts))
 	if dream_state.has_signal("card_chosen"):
 		dream_state.connect("card_chosen", func(_card: UpgradeData, _towers: Array, impact: String) -> void:
 			if impact.contains(" · "):  # A card with no effect yet sends just its name: "Dreamed: X" stays

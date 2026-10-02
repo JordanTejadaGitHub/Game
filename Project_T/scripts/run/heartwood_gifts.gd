@@ -1,0 +1,235 @@
+extends Node
+class_name HeartwoodGifts
+
+# Heartwood's Gifts (heartwood_gifts.md, Spire experiment; replaces the per-rest choices): at each act break (the rests
+# after the bosses at 25 / 50 / 75), after the Dream and the family pick and before the Omen, 3 gifts from the pool,
+# at least MIN_MAP of them shaping the map, never one already taken this run. Pick one (map gifts are placed with a
+# ghost on the gift screen, GiftScreen), or let them pass for PASS_DEW Dew × the act.
+# Effects belong to the systems they touch: their owners register a static Callable per gift id
+#   HeartwoodGifts.register(&"spring", MyScript.apply_spring)   # apply_spring(main: Node, placement: Dictionary)
+# and the same call rebuilds it on a resumed run (placement["restoring"] = true). Only gifts with an effect (built in
+# here, or registered) are drawn, so the pool grows as the code chats add theirs. Made by the HUD; saved by RunSaver.
+
+signal offer_ready(gifts: Array[StringName], act: int)
+signal offer_closed
+signal gift_taken(id: StringName, placement: Dictionary)
+
+const GROUP := &"heartwood_gifts"
+const OFFER_SIZE := 3
+const MIN_MAP := 2
+const PASS_DEW := 30
+const THICK_MIST_SPACING := 1.25
+
+# id -> {name, group, text, map: changes the map, place: how it's placed (GiftPlacer), size}.
+# place: &"none"; &"chain" (adjacent cells, size [min, max]); &"line" (straight, [min, max]); &"cell" (one);
+# &"cells" (size n, anywhere); &"path" (size n connected route cells); &"area" (size Vector2i); &"move" (n obstacles);
+# &"warden" (pick a Warden); &"kinship" (pick a bonded Warden).
+const POOL := {
+	&"sow_ridge": {"name": "Sow a Ridge", "group": "Shape the land", "map": true, "place": &"chain", "size": [3, 5],
+		"text": "Draw a ridge of 3–5 Withered Trees, cell by cell. Clearable later at the normal cost."},
+	&"fallen_giant": {"name": "Fallen Giant", "group": "Shape the land", "map": true, "place": &"line", "size": [2, 4],
+		"text": "Lay a fallen log 2–4 cells long, straight, where you choose. It can't be cleared this run."},
+	&"glade": {"name": "Glade", "group": "Shape the land", "map": true, "place": &"cell", "size": 1,
+		"text": "Clear every obstacle within 2 cells of a chosen cell, free. Each still counts as tended."},
+	&"shift_stones": {"name": "Shift the Stones", "group": "Shape the land", "map": true, "place": &"move", "size": 3,
+		"text": "Move up to 3 obstacles to new empty cells."},
+	&"mire": {"name": "Mire", "group": "Shape the land", "map": true, "place": &"path", "size": 3,
+		"text": "3 connected path cells turn to bog: nightmares move 20% slower there."},
+	&"spring": {"name": "Spring", "group": "Living ground", "map": true, "place": &"area", "size": Vector2i(2, 2),
+		"text": "A 2×2 pond. Water Wardens beside it deal +20%; {damp} lasts 1 s longer within 2 cells."},
+	&"mushroom_ring": {"name": "Mushroom Ring", "group": "Living ground", "map": true, "place": &"area", "size": Vector2i(3, 3),
+		"text": "A ring of toadstools on a 3×3 patch. Spore Wardens touching it get +2 {spored} cap."},
+	&"lightning_tree": {"name": "Lightning Tree", "group": "Living ground", "map": true, "place": &"cell", "size": 1,
+		"text": "A dead tree you place. {static} bolts within 2 cells of it deal +25%."},
+	&"moonwell": {"name": "Moonwell", "group": "Living ground", "map": true, "place": &"cell", "size": 1,
+		"text": "A lit stone cell. Wardens within 1 cell get +1 range."},
+	&"bell_stone": {"name": "Bell Stone", "group": "Living ground", "map": true, "place": &"cell", "size": 1,
+		"text": "A singing stone. Song Wardens within 1 cell pulse 15% faster."},
+	&"ancient_stump": {"name": "Ancient Stump", "group": "Living ground", "map": true, "place": &"cells", "size": 3,
+		"text": "3 stumps: a Warden planted on one starts at rank I."},
+	&"heartwood_roots": {"name": "Heartwood Roots", "group": "The nightmares' way", "map": true, "place": &"none", "size": 0,
+		"text": "Roots over the last 4 path cells before the Heartwood: nightmares there take +15% damage."},
+	&"thick_mist": {"name": "Thick Mist", "group": "The nightmares' way", "map": false, "place": &"none", "size": 0,
+		"text": "For the next act, nightmares leave the start mist 25% further apart."},
+	&"bramble_verge": {"name": "Bramble Verge", "group": "The nightmares' way", "map": false, "place": &"none", "size": 0,
+		"text": "Thornwalls cost half this run; nightmares touching one gain +1 {drowsy} cap."},
+	&"old_kin": {"name": "Old Kin", "group": "Heartwood and kin", "map": false, "place": &"kinship", "size": 1,
+		"text": "One Kinship jumps a stage; new bonds start one stage up for the next act."},
+	&"deeper_glade": {"name": "Deeper Glade", "group": "Heartwood and kin", "map": true, "place": &"none", "size": 0,
+		"text": "The Heartwood's glade grows by one ring of clear cells, and +1 max leaf."},
+	&"waking_root": {"name": "Waking Root", "group": "Heartwood and kin", "map": false, "place": &"none", "size": 0,
+		"text": "The next form you unlock on the Remember screen costs 1 less Dreamlight."},
+	&"memory_seed": {"name": "Memory Seed", "group": "Heartwood and kin", "map": false, "place": &"warden", "size": 1,
+		"text": "Choose a Warden: this act, selling and replanting it keeps its ranks and Kinship age."},
+}
+const BUILT_IN: Array[StringName] = [&"thick_mist"]  # Effects that live here
+
+static var _effects := {}  # Gift id -> Callable(main, placement): registered by the owning systems
+
+static func register(id: StringName, apply: Callable) -> void:
+	if _effects.is_empty():
+		UiStyle.release_at_exit(func() -> void: _effects.clear())  # Callables keep their scripts: let go at quit
+	_effects[id] = apply
+
+static func has_effect(id: StringName) -> bool:
+	return BUILT_IN.has(id) or _effects.has(id)
+
+static func find(node: Node) -> HeartwoodGifts:
+	return node.get_tree().get_first_node_in_group(GROUP) as HeartwoodGifts if node.is_inside_tree() else null
+
+var drift_director: DriftDirector
+var run_state: RunState
+var taken: Array = []  # [{id, act, placement}] in order
+var passed: Array = []  # [act, …] acts whose gifts were let pass
+var current_offer: Array[StringName] = []
+var waiting := false  # An offer is owed at this act break (shown, waiting behind the Dream, or minimised)
+var offer_act := 0
+
+func _init(director: DriftDirector = null) -> void:
+	drift_director = director
+
+func _ready() -> void:
+	name = "HeartwoodGifts"
+	add_to_group(GROUP)
+	run_state = drift_director.get_node_or_null("%RunState")
+	drift_director.rest_started.connect(_on_rest_started)
+	drift_director.rest_ended.connect(func(_block: int) -> void:
+		if waiting:
+			let_pass()  # Never carried into a drift
+	)
+
+# Off in the demo (heartwood_gifts.md); acts 1–3's breaks only (the Hollow Oak's is the win).
+func _on_rest_started(_block: int, boss_rest: bool, _bonus: int, _perfect: bool) -> void:
+	if not boss_rest or ResultsScreen.is_demo() or not drift_director.has_next_drift():
+		return
+	var act := drift_director.get_act(drift_director.drifts_started)
+	if taken.any(func(t: Dictionary) -> bool: return int(t.act) == act) or passed.has(act):
+		return  # Already given this act (a resumed run)
+	current_offer = draw(act)
+	if current_offer.is_empty():
+		return
+	offer_act = act
+	waiting = true
+	offer_ready.emit(current_offer, act)
+
+func is_offering() -> bool:
+	return waiting
+
+# 3 gifts with an effect, never taken this run, at least MIN_MAP shaping the map (as many as there are), in a
+# seeded order (the map seed and the act: a resumed run draws the same).
+func draw(act: int) -> Array[StringName]:
+	var rng := RandomNumberGenerator.new()
+	var map := drift_director.get_node_or_null("%MapGenerator")
+	rng.seed = hash([int(map.map_seed) if map != null else 0, act, "heartwood_gifts"])
+	var taken_ids := taken.map(func(t: Dictionary) -> StringName: return StringName(t.id))
+	var maps: Array[StringName] = []
+	var others: Array[StringName] = []
+	for id in POOL:
+		if taken_ids.has(id) or not has_effect(id):
+			continue
+		(maps if POOL[id].map else others).append(id)
+	_shuffle(maps, rng)
+	_shuffle(others, rng)
+	var offer: Array[StringName] = []
+	for id in maps.slice(0, MIN_MAP):
+		offer.append(id)
+	var rest: Array[StringName] = []
+	rest.append_array(maps.slice(MIN_MAP))
+	rest.append_array(others)
+	_shuffle(rest, rng)
+	for id in rest:
+		if offer.size() >= OFFER_SIZE:
+			break
+		offer.append(id)
+	_shuffle(offer, rng)
+	return offer
+
+static func _shuffle(list: Array, rng: RandomNumberGenerator) -> void:
+	for i in range(list.size() - 1, 0, -1):
+		var j := rng.randi_range(0, i)
+		var swap = list[i]
+		list[i] = list[j]
+		list[j] = swap
+
+static func needs_placing(id: StringName) -> bool:
+	return POOL.has(id) and POOL[id].place != &"none"
+
+# Takes `id` (placed at `placement`: {cells, from, to, tower, …} as GiftPlacer built it) and applies it.
+func choose(id: StringName, placement: Dictionary = {}) -> void:
+	if not waiting or not current_offer.has(id):
+		return
+	var record := {"id": String(id), "act": offer_act, "placement": _plain(placement)}
+	taken.append(record)
+	_apply(id, record.placement, false)
+	_close()
+	gift_taken.emit(id, placement)
+
+func let_pass() -> void:
+	if not waiting:
+		return
+	passed.append(offer_act)
+	var map := drift_director.get_node_or_null("%MapGenerator")
+	var at: Vector2 = map.MAP_GRID.calculate_map_position(map.endPath) if map != null else Vector2.ZERO
+	run_state.earn_dew_at(pass_dew(), at)
+	_close()
+
+func pass_dew() -> int:
+	return PASS_DEW * maxi(offer_act, 1)
+
+func _close() -> void:
+	waiting = false
+	current_offer = []
+	offer_closed.emit()
+
+func _apply(id: StringName, placement: Dictionary, restoring: bool) -> void:
+	if BUILT_IN.has(id):
+		return  # Read where they act (get_spacing_multiplier)
+	if _effects.has(id):
+		var data := placement.duplicate(true)
+		data["restoring"] = restoring
+		_effects[id].call(drift_director.owner, data)
+
+# Thick Mist: the act after the one it was taken at leaves the mist further apart (DriftDirector schedule "spacing").
+func get_spacing_multiplier(drift: int) -> float:
+	var act := drift_director.get_act(drift)
+	for t in taken:
+		if StringName(t.id) == &"thick_mist" and int(t.act) + 1 == act:
+			return THICK_MIST_SPACING
+	return 1.0
+
+func has_taken(id: StringName) -> bool:
+	return taken.any(func(t: Dictionary) -> bool: return StringName(t.id) == id)
+
+# Cells (Vector2) as [x, y] pairs for JSON; back with _cells_of.
+static func _plain(placement: Dictionary) -> Dictionary:
+	var out := {}
+	for key in placement:
+		var value = placement[key]
+		if value is Array or value is PackedVector2Array:
+			var list := []
+			for v in value:
+				list.append([v.x, v.y] if v is Vector2 else v)
+			out[key] = list
+		elif value is Vector2:
+			out[key] = [value.x, value.y]
+		elif value is Object:
+			continue  # Nodes (a Warden): owners record what they need by cell
+		else:
+			out[key] = value
+	return out
+
+static func cells_of(placement: Dictionary, key: String = "cells") -> Array[Vector2]:
+	var cells: Array[Vector2] = []
+	for v in placement.get(key, []):
+		cells.append(v if v is Vector2 else Vector2(float(v[0]), float(v[1])))
+	return cells
+
+func to_save() -> Dictionary:
+	return {"taken": taken.duplicate(true), "passed": passed.duplicate()}
+
+# A resumed run: the gifts come back, and their effects are rebuilt (before the Wardens: RunSaver's order).
+func load_save(data: Dictionary) -> void:
+	taken = data.get("taken", []).duplicate(true)
+	passed = data.get("passed", []).duplicate()
+	for t in taken:
+		_apply(StringName(t.id), t.get("placement", {}), true)
