@@ -726,7 +726,7 @@ c8d1fc33 the always-on Growth hint marks are a separate setting from whispers.
 
 Resonance (+10% per same-tag card, max +50%) was a bonus on top of rarity-budgeted cards, so **no
 re-basing** (agreed with Roguelite Mechanic Discussion; fits "runs too strong / cards handed to me").
-Check: Dreams vs skip on main after the removal lands (act 1 targets: Balanced ~75%, skip clearly
+Removal in 854a537e. Check: Dreams vs skip on main (act 1 targets: Balanced ~75%, skip clearly
 lower); specific cards are raised only if builds fall short.
 
 ## Caveat: fresh-profile sims ran as the demo (found 2026-10-02)
