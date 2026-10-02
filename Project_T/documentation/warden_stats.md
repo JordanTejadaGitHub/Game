@@ -264,7 +264,7 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | ✓ Lanternmoth | branch | +45 | 4.5 | 12 × 1.0 | 12 | projectile | Marked; **reveals** fog-hidden creatures in range |
 | Beacon | final | +90 | 5 | 16 × 1.0 | 16 | projectile + pulse | every 2 s, **Marks everything** in range; its Marked is **+35%** |
 | ✓ Sunpetal *(hidden)* | branch | +45 | 3.5 | 12/s, ramping | 12 → 48 | beam | ramps +25% per second on one target (max ×4); ramps **2× as fast** on Drowsy or Held |
-| ✓ Midsummer *(hidden)* | final | +90 | 4 | 18/s, ramping | 18 → 90 | beam | ramps +35%/s (max ×5), 2× on Drowsy/Held; beam **also hits the nightmare right behind** its target at 50%. **Buffed 2026-09-28** (probe: ~3%): starts at **45/s** (27 → 36 in be7fd06, the row's 18 predates the ×1.5 finals pass; then +25% after a rerun at ~5–6% share) and keeps **half its ramp** for 1 s when it switches target. Target ~6–8%; *Balancing 2026-10-02 (finals sweep, damage per Dew vs Puffball): damage ×2 (was 0.28×).* |
+| ✓ Midsummer *(hidden)* | final | +90 | 4 | 18/s, ramping | 18 → 90 | beam | ramps +35%/s (max ×5), 2× on Drowsy/Held; beam **also hits the nightmare right behind** its target at 50%. **Buffed 2026-09-28** (probe: ~3%): starts at **45/s** (27 → 36 in be7fd06, the row's 18 predates the ×1.5 finals pass; then +25% after a rerun at ~5–6% share) and keeps **half its ramp** for 1 s when it switches target. Target ~6–8%; *Balancing 2026-10-02 (finals sweep, damage per Dew vs Puffball): damage 68 → 170 (×2.5, after the beam fix; was 0.28×).* |
 
 ## Pebbling family (stone) — heavy hits: close, far, area
 
@@ -442,7 +442,7 @@ closed; **human runs judge from here**. Full measurements: `balance_simulation.m
 | Autumn Gale | ×0.75, then **85 → 72** | 1.3–1.6× in act 2, 2.1–2.4× in act 3 |
 | Moonstone, Elf Circle | ×0.75 | the same |
 | Snugroot | ×0.75, then **56 → 48** | the same; act 3 still ~2.1× after the first cut |
-| Midsummer | ×2 | was 0.28× |
+| Midsummer | **68 → 170** (×2.5, after the beam fix) | was 0.28× |
 | Starling Murmuration | ×1.5 | was 0.5× |
 | Fairy Ring | burst **44 → 30** | ~1.6× Driftspore |
 | Hummingbird Bower | **27 → 40** | 0.10× Driftspore |
