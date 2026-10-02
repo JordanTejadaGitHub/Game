@@ -61,6 +61,10 @@ At **every rest**, after the Dream and the Omen, pick **one**:
 | **Tend** | **one free Nurture rank** on a Warden you pick (`RunState.free_nurtures` + 1) |
 | **Dream** | **one extra card** in the next Dream offer |
 
+**Rest is only offered below max leaves** (user: regrowing isn't a reward when nothing was lost). At
+full leaves it's replaced by **Clear: one free clear** (`RunState.free_clears` + 1), or, with fewer
+than 3 obstacles left, **Forage: +20 Dew × act**.
+
 Healing becomes a choice that costs power. The rest bonus (Dew) stays as it is. Code: Main Merger (the
 rest step, UI) + Roguelite Code (the Dream effect; free Nurture exists). Saved with the run.
 
