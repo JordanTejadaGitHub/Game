@@ -679,10 +679,8 @@ func _refresh_hover() -> void:
 	_hover_path = PackedVector2Array()
 	if _footprint(_hover_cell).all(func(c: Vector2) -> bool: return map_generator.is_buildable(c)):
 		_hover_path = map_generator.get_path_if_blocked_cells(_footprint(_hover_cell))
-	_path_preview.clear_points()
-	RouteLine.apply(_path_preview, PREVIEW_COLOR)
-	for point in _hover_path:
-		_path_preview.add_point(MAP_GRID.calculate_map_position(point))
+	# Route mist (screens_ui.md): the new route, the old one faint where it differs, a glint when it gets longer.
+	RouteLine.draw_route(_path_preview, _hover_path, PREVIEW_COLOR, 6.0, map_generator.get_path_from(map_generator.startPath))
 	_hover_valid = _hover_cell_valid()
 	_heart_here = becomes_heart(_hover_cell, _hover_path)
 	_hover_affordable = run_state.can_afford(get_cost(null, _hover_cell))
@@ -949,7 +947,7 @@ func cancel_grow_choice() -> void:
 		return
 	_grow_choice = {}
 	_update_visible()
-	_path_preview.clear_points()
+	RouteLine.clear(_path_preview)
 	grow_choice_changed.emit(false)
 	queue_redraw()
 
@@ -966,10 +964,11 @@ func _update_grow_choice() -> void:
 	if hover == _grow_choice.hover:
 		return
 	_grow_choice.hover = hover
-	_path_preview.clear_points()
 	if hover != NO_CELL:
-		for point in map_generator.get_path_if_blocked_cells(Tower.footprint_cells(hover, 2)):
-			_path_preview.add_point(MAP_GRID.calculate_map_position(point))
+		RouteLine.draw_route(_path_preview, map_generator.get_path_if_blocked_cells(Tower.footprint_cells(hover, 2)),
+			PREVIEW_COLOR, 6.0, map_generator.get_path_from(map_generator.startPath))
+	else:
+		RouteLine.clear(_path_preview)
 	queue_redraw()
 
 func _draw_grow_choice() -> void:
@@ -1208,10 +1207,7 @@ func _plan_stroke() -> void:
 	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	var new_route: PackedVector2Array = map_generator.get_path_if_blocked_cells(blocked) if not blocked.is_empty() else route
 	_stroke_growth = new_route.size() - route.size()
-	_path_preview.clear_points()
-	RouteLine.apply(_path_preview, PREVIEW_COLOR)
-	for point in new_route:
-		_path_preview.add_point(MAP_GRID.calculate_map_position(point))
+	RouteLine.draw_route(_path_preview, new_route, PREVIEW_COLOR, 6.0, route)
 	queue_redraw()
 
 func _draw_stroke() -> void:

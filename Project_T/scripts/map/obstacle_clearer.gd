@@ -197,12 +197,11 @@ func _refresh_hover() -> void:
 		obstacle_hovered.emit(_hover_obstacle, is_locked())
 	if pending_cell != NO_CELL and map_generator.get_obstacle(pending_cell) == null:
 		_set_pending(NO_CELL)
-	_path_preview.clear_points()
-	RouteLine.apply(_path_preview, Color(HIGHLIGHT_COLOR, 0.6))
+	RouteLine.clear(_path_preview)
 	if _hover_obstacle != null and tool_active:
-		# Only preview when clearing actually changes the route creatures take.
+		# Only preview when clearing actually changes the route creatures take (route mist, screens_ui.md).
 		var new_path: PackedVector2Array = map_generator.get_path_if_cleared(_hover_cell)
-		if new_path != map_generator.get_path_from(map_generator.startPath):
-			for point in new_path:
-				_path_preview.add_point(MAP_GRID.calculate_map_position(point))
+		var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+		if new_path != route:
+			RouteLine.draw_route(_path_preview, new_path, Color(HIGHLIGHT_COLOR, 0.6), 6.0, route)
 	queue_redraw()
