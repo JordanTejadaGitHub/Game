@@ -475,6 +475,20 @@ func get_unlock_cost(data: TowerData) -> int:
 		return ASCENDED_DREAMLIGHT
 	return FINAL_DREAMLIGHT if data.tier >= 3 else BRANCH_DREAMLIGHT
 
+# What unlocking `data` costs now: get_unlock_cost less Waking Root's discount (it can reach 0; get_unlock_cost stays
+# the "0 = owned" answer for every other caller).
+func get_unlock_price(data: TowerData) -> int:
+	var cost := get_unlock_cost(data)
+	return maxi(cost - 1, 0) if cost > 0 and unlock_discounts > 0 else cost
+
+# Heartwood's Gifts (heartwood_gifts.md, Spire branch): Waking Root = the next `count` forms unlocked on the Remember
+# screen each cost 1 less Dreamlight (never below 0). Used by unlock_with_dreamlight; saved with the run.
+var unlock_discounts := 0
+
+func add_unlock_discount(count: int = 1) -> void:
+	unlock_discounts += count
+	unlocks_changed.emit()  # The Remember screen's prices
+
 # Why `data` can't be unlocked yet ("" = it can, given enough Dreamlight): its parent form isn't
 # unlocked, or it's a hidden branch the Memory Grove hasn't opened. Ascended forms: from drift 51,
 # once the family has any final form, and with the Grove's Ascension node.
@@ -500,14 +514,16 @@ func _is_regular_final(data: TowerData) -> bool:
 	return data.tier == 3 and data.line != "wall"
 
 func can_unlock(data: TowerData) -> bool:
-	var cost := get_unlock_cost(data)
-	return cost > 0 and cost <= dreamlight and get_unlock_blocker(data) == ""
+	return get_unlock_cost(data) > 0 and get_unlock_price(data) <= dreamlight and get_unlock_blocker(data) == ""
 
 # Spends Dreamlight to make `data` available for the run (evolving each Warden still costs Dew).
 func unlock_with_dreamlight(data: TowerData) -> bool:
 	if not can_unlock(data):
 		return false
-	add_dreamlight(-get_unlock_cost(data))
+	var price := get_unlock_price(data)
+	if price > 0:
+		add_dreamlight(-price)
+	unlock_discounts = maxi(unlock_discounts - 1, 0)  # Waking Root: one use
 	unlocked[data.get_id()] = true
 	unlocks_changed.emit()
 	return true
@@ -2022,7 +2038,7 @@ func to_save() -> Dictionary:
 	return {
 		"unlocked": unlocked.keys(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
-		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next}, "entwined_offered": _entwined_offered.keys(),
+		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "unlock_discounts": unlock_discounts, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next}, "entwined_offered": _entwined_offered.keys(),
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
 		"run_pool": run_pool.keys(), "run_pool_waiting": _run_pool_waiting.keys(), "run_pool_families": _run_pool_families.keys(),
 		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
@@ -2059,6 +2075,7 @@ func load_save(data: Dictionary) -> void:
 	_dreams_without_rare = int(data.get("dreams_without_rare", 0))
 	_rare_dreams_left = int(data.get("rare_dreams_left", 0))
 	_extra_cards_next = int(data.get("extra_cards_next", 0))
+	unlock_discounts = int(data.get("unlock_discounts", 0))
 	var finale: Dictionary = data.get("finale", {})
 	finale_results.clear()
 	for drift in finale.get("results", {}):

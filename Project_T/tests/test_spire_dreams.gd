@@ -79,6 +79,33 @@ func _run() -> void:
 		"the slot and the results survive the run save")
 	dreams._finale_rare_next = 0
 
+	# Heartwood's Gifts, Waking Root: the next form unlocked on the Remember screen costs 1 less Dreamlight, once
+	dreams.unlock_everything = false
+	var branch: TowerData = null
+	for file in DirAccess.get_files_at("res://resource/tower/"):
+		var parent = load("res://resource/tower/" + file.trim_suffix(".remap"))
+		if not (parent is TowerData) or not parent.buildable_directly:
+			continue
+		for form in parent.evolves_to:
+			if branch == null and form is TowerData and form.tier == 2:
+				dreams.unlocked[parent.get_id()] = true
+				dreams.unlocked.erase(form.get_id())
+				if dreams.get_unlock_blocker(form) == "":
+					branch = form
+	_check(branch != null, "a branch form to unlock")
+	if branch != null:
+		var full := dreams.get_unlock_cost(branch)
+		dreams.add_unlock_discount(1)
+		_check(dreams.get_unlock_price(branch) == maxi(full - 1, 0) and dreams.get_unlock_cost(branch) == full,
+			"Waking Root: %d Dreamlight → %d (the cost stays the \"0 = owned\" answer)" % [full, dreams.get_unlock_price(branch)])
+		saved = JSON.parse_string(JSON.stringify(dreams.to_save())) as Dictionary
+		dreams.unlock_discounts = 0
+		dreams.load_save(saved)
+		_check(dreams.unlock_discounts == 1, "…saved with the run")
+		dreams.dreamlight = 5
+		_check(dreams.unlock_with_dreamlight(branch) and dreams.dreamlight == 5 - maxi(full - 1, 0), "…and the unlock pays the lower price")
+		_check(dreams.unlock_discounts == 0, "…one use")
+
 	main.queue_free()
 	await process_frame
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))

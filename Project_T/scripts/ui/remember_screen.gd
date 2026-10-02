@@ -257,7 +257,7 @@ func state_of(data: TowerData) -> State:
 		return State.GROWN if count_on_map(data) > 0 else State.UNLOCKED
 	if blocker != "":
 		return State.LOCKED
-	return State.CAN_UNLOCK if cost <= dream_state.dreamlight else State.NEEDS_LIGHT
+	return State.CAN_UNLOCK if dream_state.get_unlock_price(data) <= dream_state.dreamlight else State.NEEDS_LIGHT  # Waking Root's discount
 
 func count_on_map(data: TowerData) -> int:
 	return dream_state.count_wardens(data.get_id())
@@ -420,13 +420,16 @@ func _add_unlock(data: TowerData) -> void:
 	button.name = "UnlockButton"
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(0, 48)
-	var label := "Unlock · %d Dreamlight" % cost
-	var short := cost - dream_state.dreamlight  # > 0: can't afford
+	var price := dream_state.get_unlock_price(data)  # Waking Root (Heartwood's Gifts): 1 less, once
+	var label := ("Unlock · %d Dreamlight" % price) if price > 0 else "Unlock · free"
+	if price < cost:
+		label += " (Waking Root)"
+	var short := price - dream_state.dreamlight  # > 0: can't afford
 	button.disabled = blocker != ""  # Locked for another reason: a plain disabled button (the line says why)
 	UiStyle.primary(button)
 	_side_box.add_child(button)
 	if blocker == "" and short > 0:  # Can't afford yet (CantAfford): the cost in POOR, no count (user); a press refuses
-		CantAfford.apply(button, "Unlock", "%d Dreamlight" % cost, IconInfo.format(SHORT_TIP))
+		CantAfford.apply(button, "Unlock", "%d Dreamlight" % price, IconInfo.format(SHORT_TIP))
 		button.pressed.connect(_refuse_unlock.bind(data, button))
 	else:
 		button.text = label
@@ -442,7 +445,7 @@ func _refuse_unlock(data: TowerData, button: Button) -> void:
 	var hud := get_parent()
 	if hud != null and hud.has_method("show_toast"):
 		hud.show_toast("Not enough Dreamlight")
-	dream_state.dreamlight_short.emit(dream_state.get_unlock_cost(data))  # The HUD flashes the Dreamlight counter
+	dream_state.dreamlight_short.emit(dream_state.get_unlock_price(data))  # The HUD flashes the Dreamlight counter
 
 func _select(data: TowerData) -> void:
 	selected = data
@@ -619,7 +622,8 @@ class FormNode extends Button:
 				text = "×%d" % screen.count_on_map(data)
 			State.CAN_UNLOCK, State.NEEDS_LIGHT:
 				_caption(data.display_name, UiStyle.caps_font(), 11, UiStyle.INK_DIM, NODE_SIZE.y - 19)  # Its name above the motes
-				text = MOTE.repeat(screen.dream_state.get_unlock_cost(data))
+				var price: int = screen.dream_state.get_unlock_price(data)
+				text = MOTE.repeat(price) if price > 0 else "free"
 				colour = UiStyle.GOLD if state == State.CAN_UNLOCK else UiStyle.INK_DIM
 			State.LOCKED:
 				text = data.display_name  # The chain on its line says it's locked
