@@ -2466,6 +2466,10 @@ func _branch_effects() -> void:
 		{note = "Hushbell / Silence: over a silenced nightmare's head (anchor = the top of its head), loop while silenced. A muffled bell, its sound crossed out."})
 	_sheet("sound_cone", Vector2i(48, 32), 6, 14, Vector2i(2, 16), false, "signature", _sound_cone_fx,
 		{note = "Thrum / Resonance: arcs of sound rolling out in a cone, drawn pointing right from the anchor (rotate to aim; scale y to widen the cone for Resonance)."})
+	_sheet("spark_burst", Vector2i(32, 32), 6, 16, Vector2i(16, 16), false, "signature", _spark_burst,
+		{note = "Sparkler / Starburst's firework at the burst point (and Fireworks Fence's crossing burst): a smaller, quicker burst than firework_burst."})
+	_sheet("rain_sweep", Vector2i(96, 64), 8, 12, Vector2i(48, 40), false, "signature", _rain_sweep,
+		{note = "Nimbus's Cloudburst, played on the Warden (anchor = its base): its cloud bursts and a ring of rain sweeps out from it (it reads as range ~1.5 cells; scale up for range 4)."})
 
 func _ink_trail(img: Image, _f: int) -> void:
 	var ink := [Color("#24243c"), Color("#3c3c5c"), Color("#5c5a78")]
@@ -2847,3 +2851,35 @@ func _save_preview() -> void:
 		y += sheet.get_height() + pad
 	out.resize(out.get_width() * 2, out.get_height() * 2, Image.INTERPOLATE_NEAREST)
 	out.save_png(PREVIEW)
+
+func _spark_burst(img: Image, f: int) -> void:
+	var c := Vector2(16, 16)
+	var t := f / 5.0
+	if f < 2:
+		_disc(img, c, 3.0 - f * 1.2, CORE)
+	for k in 8:
+		var d := Vector2.from_angle(k * TAU / 8.0 + 0.2)
+		var p := c + d * (2.0 + t * 12.0)
+		_px(img, int(p.x), int(p.y), Color(CORE if k % 2 == 0 else GOLD, 1.0 - t * 0.6))
+		var q := p - d * 2.0
+		_px(img, int(q.x), int(q.y), Color(WARM, 0.8 - t * 0.6))
+
+func _rain_sweep(img: Image, f: int) -> void:
+	var c := Vector2(48, 40)
+	var t := f / 7.0
+	# The cloud bursting over the Warden (first frames), then a ring of rain sweeping out on the ground.
+	if f < 3:
+		for k in 3:
+			_ellipse(img, c + Vector2((k - 1) * 7, -26 - f), Vector2(7 + f, 4 + f * 0.5), Color("#9aaac8", 0.9 - f * 0.25))
+	var r := Vector2(8.0 + t * 38.0, 4.0 + t * 18.0)
+	for s in 40:
+		var a := s * TAU / 40.0
+		var p := c + Vector2(cos(a) * r.x, sin(a) * r.y)
+		for i in 3:
+			_px(img, int(p.x) - i / 2, int(p.y) - 4 + i * 2, Color("#9cd4fc", (1.0 - t * 0.7) * (1.0 - i * 0.25)))
+	if f >= 2:
+		var r2 := r * 0.7
+		for s in 30:
+			var a := s * TAU / 30.0 + 0.1
+			if s % 2 == 0:
+				_px(img, int(c.x + cos(a) * r2.x), int(c.y + sin(a) * r2.y), Color("#dce8f4", 0.8 - t * 0.6))
