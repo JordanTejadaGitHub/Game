@@ -157,3 +157,5 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: **user direction:** ladder and decision focus plus a small, capped Grove power
   (Hades-style). Plan reordered: finale rewards (Phase 2), rest choices (Phase 3), capped Grove (Phase
   4), Blight 11–20 (Phase 5); decisions over health from here; the demo stays on main's curve.
+- 2026-10-02: **capped Grove in 2114956d** (Meta Game Code): power Morning Stores, Rested Roots, Deep
+  Taproot I–II; 8 sidegrades; `perk_style` Sidegrade by default on this branch. Cap measurement queued.
