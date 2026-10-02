@@ -99,7 +99,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var caught_bonus: float = 0.0
 @export var sleep_extend: float = 0.0  # Great Dreamcatcher: sleep in range lasts this much longer (once each)
 @export var caught_shards: bool = false  # Great Dreamcatcher: Caught nightmares dispelled drop Dreamlight shards
-# Echo Hollow: a Reaction within range repeats 1 s later at this share on the same spot (0 = no echo).
+# Echo Hollow: a Reaction within range repeats 1 s later at this share on the same nightmare, wherever it is now (where it died if dispelled; 0 = no echo).
 @export var echo_share: float = 0.0
 @export var echo_is_chain_link: bool = false  # Whispering Hollow: echoes count as chain links
 

@@ -170,6 +170,35 @@ func _test_echo() -> void:
 	_check(tracker.longest_chain >= maxi(longest, 2), "Whispering Hollow's echo counts as a chain link")
 	await _clean()
 
+	# The echo follows the nightmare (tower_design.md 369de303; Balancing: echoes on the old spot missed every
+	# walking nightmare): a walking Shade is hit 1 s later though it moved more than a cell; one dispelled in
+	# the meantime echoes where it died.
+	var walker: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+	walker.max_health = 100000
+	walker.health = 100000
+	await _wait(2.0)  # Onto the map, walking
+	var listener := _plant("whispering_hollow", Tower.MAP_GRID.calculate_grid_coordinates(walker.global_position) + Vector2(0, 1))
+	listener.position = walker.global_position + Vector2(0, CELL)
+	var charger := _plant("firefly_jar", Vector2(1, 1))
+	await process_frame
+	walker.apply_status(EnemyStatuses.DAMP)
+	walker.apply_status(EnemyStatuses.STATIC, 3, 0.0, charger.get_damage(), 0, "light", charger)  # Thunderclap
+	var clap_at := walker.global_position
+	await _wait(1.25)
+	var echoed: Array = walker.recent_hits.filter(func(e) -> bool: return e.tag == &"echo" and e.source == listener)
+	_check(walker.global_position.distance_to(clap_at) > CELL and echoed.size() == 1,
+		"a walking Shade (moved %.0f px) still takes the echo 1 s later (%d echo hits)" % [walker.global_position.distance_to(clap_at), echoed.size()])
+	var doomed := _spawn(listener.global_position + Vector2(CELL, 0))
+	doomed.apply_status(EnemyStatuses.DAMP)
+	doomed.apply_status(EnemyStatuses.STATIC, 3, 0.0, charger.get_damage(), 0, "light", charger)
+	var died_at := doomed.global_position + Vector2(0, CELL * 2.0)  # Walked 2 cells on before it was dispelled
+	doomed.global_position = died_at
+	doomed.dispel()
+	var mourner := _spawn(died_at)
+	await _wait(1.25)
+	_check(mourner.recent_hits.any(func(e) -> bool: return e.tag == &"echo"), "one dispelled before its echo echoes where it died")
+	await _clean()
+
 
 # --- Cairn / Rockslide ---------------------------------------------------------------------------------
 
