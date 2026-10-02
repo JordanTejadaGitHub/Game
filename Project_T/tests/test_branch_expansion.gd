@@ -200,7 +200,7 @@ func _test_dewdrop() -> void:
 	probe.hit(struck, 10.0, false, Tower.NO_CRIT)
 	var shared: int = partner_before - partner.health
 	_check(shared > 0 and outside.health == outside_before, "Undercurrent: a hit on a linked nightmare is shared with the other (%d), not outside" % shared)
-	var zone = struck.get_meta(BranchKit.LINK_META, null)
+	var zone = struck.get_meta(BranchKit.LINK_META) if struck.has_meta(BranchKit.LINK_META) else null
 	_check(zone != null and zone.linked.size() == 2 and is_equal_approx(zone.link_share, 0.25), "the whirlpool links the 2 inside at 25%")
 	await _clean()
 
@@ -233,7 +233,9 @@ func _test_dewdrop() -> void:
 	BranchKit.release(jet)
 	var aim_lost: int = aim.max_health - aim.health
 	var beyond_lost: int = beyond.max_health - beyond.health
-	_check(beyond_lost > 0 and aim_lost > beyond_lost + int(aim.max_health * 0.015), "Jetreed: the target loses ~2%% of its max health, the line only the small hit (%d vs %d)" % [aim_lost, beyond_lost])
+	var cap := 4.0 * jet.get_damage()  # The erosion is at most 4× the hit
+	_check(beyond_lost > 0 and aim_lost > beyond_lost * 2 and aim_lost <= beyond_lost + int(cap) + 2,
+		"Jetreed: the target loses a share of its max health, capped at 4× the hit; the line only the small hit (%d vs %d)" % [aim_lost, beyond_lost])
 	await _clean()
 
 # --- Firefly Jar: Jarlink, Prism Jar, Sparkler ------------------------------------------------------------------
@@ -248,11 +250,44 @@ func _test_firefly() -> void:
 	_check(crosser.health < crosser.max_health and crosser.statuses.has(EnemyStatuses.STATIC), "a nightmare crossing the Jarlinks' arc is hit and Charged")
 	await _clean()
 
+	# Jarlinks across the route (Balancing: partners there read ~0.03×): a nightmare walking between them is struck by
+	# the arc, the hit tagged "fence".
+	var map = main.get_node("%MapGenerator")
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var k := 8
+	var along: Vector2 = (route[k + 1] - route[k]).normalized()
+	var across := Vector2(along.y, -along.x)
+	var left := _plant("jarlink", route[k] + across * 2)
+	var right := _plant("jarlink", route[k] - across * 2)
+	left.set_process(true)
+	right.set_process(true)
+	var walker = _spawn(route[k - 2])
+	walker.set_path(route)
+	walker._path_index = k - 1
+	walker.set_process(true)
+	var fence_hits := []
+	var walker_id: int = walker.get_instance_id()
+	var on_damage := func(event) -> void:
+		if is_instance_valid(event.enemy) and event.enemy.get_instance_id() == walker_id and event.tag == &"fence":
+			fence_hits.append(event.tag)
+	var log := DamageLog.instance
+	if log:
+		log.damage_dealt.connect(on_damage)
+	for i in 180:
+		await process_frame
+		if not fence_hits.is_empty():
+			break
+	_check(not fence_hits.is_empty(), "a nightmare walking between two Jarlinks across the route is struck by the arc (tagged fence)")
+	if log:
+		log.damage_dealt.disconnect(on_damage)
+	await _clean()
+
 	# Prism Jar: Wardens within 1.5 cells +10% crit; not further away.
 	var prism := _plant("prism_jar", Vector2(6, 10))
 	var near := _plant("sporeling", Vector2(7, 10))
 	var far := _plant("sporeling", Vector2(12, 10))
-	_check(is_equal_approx(near.get_crit_chance() - far.get_crit_chance(), 0.10), "Prism Jar: +10%% crit chance beside it (%.2f vs %.2f)" % [near.get_crit_chance(), far.get_crit_chance()])
+	_check(is_equal_approx(near.get_crit_chance() - far.get_crit_chance(), BranchKit.p(prism, "crit_aura", 0.15)) and is_equal_approx(BranchKit.crit_damage_aura(near), BranchKit.p(prism, "crit_damage_aura", 0.25)) and BranchKit.crit_damage_aura(far) == 0.0,
+		"Prism Jar: more crit chance and crit damage beside it (%.2f vs %.2f)" % [near.get_crit_chance(), far.get_crit_chance()])
 	await _clean()
 
 	# Sparkler: a burst of sparks over the crowd, each adding Charged.

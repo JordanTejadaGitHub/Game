@@ -139,6 +139,18 @@ static func crit_aura(tower: Tower) -> float:
 			best = maxf(best, p(other, "crit_aura", 0.10))
 	return best
 
+# Prism Jar's aura, crit damage: the strongest Prism within reach adds this to crit damage (Balancing: +25%).
+static func crit_damage_aura(tower: Tower) -> float:
+	if not tower.is_inside_tree():
+		return 0.0
+	var best := 0.0
+	for other in tower.get_tree().get_nodes_in_group(Tower.GROUP):
+		if other == tower or not (other is Tower) or other.attack_data == null or other.attack_data.special != PRISM:
+			continue
+		if Kinships._distance(tower, other) <= p(other, "aura_radius", 1.5):
+			best = maxf(best, p(other, "crit_damage_aura", 0.0))
+	return best
+
 # --- Brood Cap / Hatchery: spore-sprites walk up the path ------------------------------------------------------
 
 static func _hatch(tower: Tower) -> void:
@@ -230,14 +242,14 @@ const LINK_META := &"tide_link"  # On a linked nightmare: the GroundZone that li
 # Tower.hit, after `dealt` landed on `enemy`: a linked nightmare shares it with the others in its current. Effect
 # damage: no crit, no on-hit, never shared again, never a Reaction.
 static func share_hit(enemy: Node2D, dealt: float, tower: Tower) -> void:
-	var zone = enemy.get_meta(LINK_META, null)
+	var zone = enemy.get_meta(LINK_META) if enemy.has_meta(LINK_META) else null  # (get_meta with a null default still errors when missing)
 	if not is_instance_valid(zone) or not zone.linked.has(enemy) or zone.link_share <= 0.0:
 		return
 	zone.share(enemy, dealt * zone.link_share, tower.tower_data.line, tower)
 
 # Reactions.strike_bolt: Maelstrom's current carries a Charged bolt to every other linked nightmare at half.
 static func share_bolt(enemy: Node2D, damage: float, source: Node) -> void:
-	var zone = enemy.get_meta(LINK_META, null) if is_instance_valid(enemy) else null
+	var zone = enemy.get_meta(LINK_META) if is_instance_valid(enemy) and enemy.has_meta(LINK_META) else null
 	if not is_instance_valid(zone) or not zone.linked.has(enemy) or zone.bolt_share <= 0.0:
 		return
 	zone.share(enemy, damage * zone.bolt_share, "light", source)
@@ -254,7 +266,8 @@ static func _jet(tower: Tower) -> void:
 	var dir := (target.global_position - from).normalized()
 	var length := p(tower, "length", 6.0) * CELL
 	var share := p(tower, "erosion_boss", 0.005) if target.enemy_data.is_boss else p(tower, "erosion", 0.02)
-	var erosion := float(target.max_health) * share
+	# Capped at erosion_cap × the hit's base damage (Balancing: Torrent reached 7–11× its base at drift 61).
+	var erosion := minf(float(target.max_health) * share, p(tower, "erosion_cap", 4.0) * tower.get_damage())
 	tower.hit(target, 1.0 + erosion / maxf(tower.get_damage(), 1.0))  # The small hit plus the erosion
 	for e in targetable(tower):
 		if e == target or e.is_flying():
@@ -305,10 +318,14 @@ static func _update_fence(tower: Tower, delta: float) -> void:
 		if now < float(e.get_meta(key, 0.0)):
 			continue
 		e.set_meta(key, now + cooldown)
-		var crossing := p(tower, "cross_damage", 20.0)
-		tower.hit(e, crossing / maxf(float(tower.attack_data.damage), 1.0), true)
+		# The pair takes turns striking (each crossing alternates), so both jars carry their share in the DamageLog.
+		var turn := tower.get_meta(&"fence_turn", 0) as int
+		tower.set_meta(&"fence_turn", turn + 1)
+		var striker: Tower = tower if turn % 2 == 0 else partner
+		var crossing := p(striker, "cross_damage", 20.0)
+		striker.hit(e, crossing / maxf(float(striker.attack_data.damage), 1.0), true, Tower.ROLL_CRIT, &"fence")  # Tagged: DamageLog tells crossings from its shots
 		if is_instance_valid(e) and not e.is_cleansed:
-			e.apply_status(EnemyStatuses.STATIC, 1, 0.0, tower.get_damage(), 0, "light", tower)
+			e.apply_status(EnemyStatuses.STATIC, 1, 0.0, striker.get_damage(), 0, "light", striker)
 		# Fireworks Fence (a): a crossing sets off a small spark burst.
 		for side in [tower, partner]:
 			var share: float = side.kin_share(FIREWORKS_FENCE, "a")
@@ -639,7 +656,7 @@ class GroundZone extends Node2D:
 
 	func _exit_tree() -> void:
 		for e in linked:
-			if is_instance_valid(e) and e.get_meta(BranchKit.LINK_META, null) == self:
+			if is_instance_valid(e) and e.has_meta(BranchKit.LINK_META) and e.get_meta(BranchKit.LINK_META) == self:
 				e.remove_meta(BranchKit.LINK_META)
 		linked = []
 
@@ -691,7 +708,7 @@ class GroundZone extends Node2D:
 		inside.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(global_position) < b.global_position.distance_squared_to(global_position))
 		var now := inside.slice(0, link_max)
 		for e in linked:
-			if is_instance_valid(e) and not now.has(e) and e.get_meta(BranchKit.LINK_META, null) == self:
+			if is_instance_valid(e) and not now.has(e) and e.has_meta(BranchKit.LINK_META) and e.get_meta(BranchKit.LINK_META) == self:
 				e.remove_meta(BranchKit.LINK_META)
 		for e in now:
 			e.set_meta(BranchKit.LINK_META, self)

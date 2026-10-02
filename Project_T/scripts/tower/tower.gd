@@ -1611,6 +1611,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var reaction := Reactions.before_hit(enemy, self, is_crit)
 	is_crit = reaction.crit
 	var crit_multiplier: float = reaction.crit_multiplier
+	if is_crit:
+		crit_multiplier += BranchKit.crit_damage_aura(self)  # Prism Jar's aura: harder crits around it
 	var hammer := kin_share(&"hammer_and_anvil", "a")
 	if hammer > 0.0:
 		crit_multiplier = maxf(crit_multiplier, 2.0 + 0.5 * hammer)  # Hammer and Anvil: the sniper's eye
