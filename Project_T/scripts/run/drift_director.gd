@@ -59,7 +59,7 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 # Block finales (spire_difficulty.md, Slay the Spire's elite fights): the last drift of every block
 # (not a boss drift) gets this many guaranteed Deeply Blighted, by the drift they start from
 # ({start drift: count}; the highest start at or below the drift wins). Replaces the rule above there.
-@export var block_finale_elites := {10: 2, 30: 3, 60: 4}  # Was {10: 1, 30: 2, 60: 3}: drifts 10 / 15 cost the bot nothing
+@export var block_finale_elites := {10: 1, 15: 2, 30: 3, 60: 4}  # Drift 10 eased (it was the run's hardest point at 2)
 # Elites alone didn't make a spike (Balancing: +2 elites cost the bot 0.35 leaves), so every non-boss nightmare on a
 # block finale from `block_finale_health_from` has this much more health, on top of everything else.
 @export var block_finale_health_multiplier: float = 1.4

@@ -42,17 +42,17 @@ func _run() -> void:
 	var later := intro.duplicate(true)
 	director.add_guaranteed_elite(later, 32)
 	_check(later.any(func(a: Array) -> bool: return a.size() > 2 and a[2]), "a normal drift 32 still gets its elite")
-	# Block finales (spire_difficulty.md): the last drift of a block gets 2 / 3 / 4 elites from 10 / 30 / 60
+	# Block finales (spire_difficulty.md): the last drift of a block gets 1 / 2 / 3 / 4 elites from 10 / 15 / 30 / 60
 	var ten_shades := []
 	for i in 10:
 		ten_shades.append([float(i), shade, false])
 	var finale_counts := {}
-	for drift_n in [5, 10, 30, 60, 11]:
+	for drift_n in [5, 10, 15, 30, 60, 11]:
 		var schedule := ten_shades.duplicate(true)
 		director.add_guaranteed_elite(schedule, drift_n)
 		finale_counts[drift_n] = schedule.filter(func(a: Array) -> bool: return a.size() > 2 and a[2]).size()
-	_check(finale_counts[5] == 0 and finale_counts[10] == 2 and finale_counts[30] == 3 and finale_counts[60] == 4,
-		"block finales: drift 5 / 10 / 30 / 60 get 0 / 2 / 3 / 4 elites (%s)" % [finale_counts])
+	_check(finale_counts[5] == 0 and finale_counts[10] == 1 and finale_counts[15] == 2 and finale_counts[30] == 3 and finale_counts[60] == 4,
+		"block finales: drift 5 / 10 / 15 / 30 / 60 get 0 / 1 / 2 / 3 / 4 elites (%s)" % [finale_counts])
 	_check(finale_counts[11] == 0, "drift 11 keeps the normal rule (none before 31)")
 	var boss_finale := ten_shades.duplicate(true)
 	director.add_guaranteed_elite(boss_finale, 50)
