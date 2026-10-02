@@ -364,13 +364,19 @@ static func _arc_cells(a: Vector2, b: Vector2) -> Dictionary:
 	return cells
 
 static func _fence_partner(tower: Tower) -> Tower:
+	return fence_partner_at(tower, tower.cell, p(tower, "link_range", 4.0), tower)
+
+# The Jarlink a jar on `cell` links to: the nearest within `reach` whose arc would cover at least one cell (side by
+# side jars make no arc, so they're skipped: Balancing, a second pair planted beside the first cross-linked into
+# nothing). `skip`: the jar itself. Also the build ghost's preview (TowerPlacer).
+static func fence_partner_at(near: Node, cell: Vector2, reach: float, skip: Node = null) -> Tower:
 	var best: Tower = null
 	var best_d := INF
-	for other in tower.get_tree().get_nodes_in_group(Tower.GROUP):
-		if other == tower or not (other is Tower) or other.attack_data == null or other.attack_data.special != JARLINK:
+	for other in near.get_tree().get_nodes_in_group(Tower.GROUP):
+		if other == skip or not (other is Tower) or other.attack_data == null or other.attack_data.special != JARLINK:
 			continue
-		var d := Kinships._distance(tower, other)
-		if d <= p(tower, "link_range", 4.0) and d < best_d:
+		var d := Kinships._cheb(cell, other.cell)
+		if d <= reach and d < best_d and not _arc_cells(cell, other.cell).is_empty():
 			best_d = d
 			best = other
 	return best

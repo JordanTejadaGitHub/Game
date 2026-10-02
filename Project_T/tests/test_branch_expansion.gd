@@ -389,6 +389,23 @@ func _test_finals() -> void:
 	BranchKit.process(a, 0.016)
 	_check(crow.health < crow.max_health and crow.statuses.stacks(EnemyStatuses.STATIC) >= 3, "Lightning Fence: a gliding flyer on it is hit and takes 3 Charged at once")
 	await _clean()
+	# Side-by-side jars make no arc, so a jar links past them to one that does (Balancing: a second pair planted
+	# beside the first cross-linked into nothing).
+	var j1 := _plant("jarlink", Vector2(5, 3))
+	var j2 := _plant("jarlink", Vector2(6, 3))
+	var j3 := _plant("jarlink", Vector2(9, 3))
+	_check(BranchKit._fence_partner(j1) == j3 and BranchKit._fence_partner(j2) == j3,
+		"a jar skips its side-by-side neighbour and links to the one that makes an arc")
+	# The build ghost previews the arc to the jar it would link with.
+	placer.tower_data = load("res://resource/tower/jarlink.tres")
+	placer.set_build_mode(true)
+	placer._hover_cell = Vector2(12, 3)
+	placer.queue_redraw()
+	await process_frame
+	await process_frame
+	_check(BranchKit.fence_partner_at(placer, Vector2(12, 3), 4.0) == j3, "the ghost on (12, 3) would link to the jar 3 cells away")
+	placer.set_build_mode(false)
+	await _clean()
 	# A plain Jarlink's arc doesn't touch a Phantom gliding through (only the Lightning Fence does).
 	var c := _plant("jarlink", Vector2(5, 12))
 	var d := _plant("jarlink", Vector2(8, 12))
