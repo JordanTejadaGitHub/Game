@@ -34,6 +34,7 @@ var omen_seeds := 0  # Seeds earned from Omen rewards (Swift Stream), paid at ru
 # Dream clears obstacles without Seeds (Burn Back the Dead Wood). Every clear still lands in
 # `tended_cells`, so tended_cells.size() is the run's total clears (Tended Forest).
 var free_clears := 0
+var rest_choices: Array = []  # Spire rest choices: [{block, choice}] (RestChoiceScreen; saved by RunSaver)
 var fertile_cells := {}
 var clearing_without_seeds := false
 var invulnerable := false  # Test Grove: leaves can't fall

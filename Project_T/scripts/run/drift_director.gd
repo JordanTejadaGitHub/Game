@@ -311,6 +311,9 @@ func pending_choice() -> StringName:
 	var omens := get_tree().get_first_node_in_group(&"omens") if is_inside_tree() else null
 	if omens != null and (omens.is_offering() or omens.has_pending_offer()):
 		return &"omen"
+	var rest := get_tree().get_first_node_in_group(&"rest_choice") if is_inside_tree() else null
+	if rest != null and rest.is_offering():
+		return &"rest"  # Spire rest choices: after the Dream and the Omen (RestChoiceScreen)
 	return &""
 
 # Dew for starting the next drift right now: +1 per `call_early_seconds_per_dew` seconds of the

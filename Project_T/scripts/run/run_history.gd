@@ -449,6 +449,7 @@ func _on_run_ended(won: bool) -> void:
 	run.survived = drift_director.drifts_started
 	run["early_calls"] = drift_director.early_calls  # Drifts called early (balancing)
 	run["dew_call_early"] = drift_director.call_early_dew
+	run["rest_choices"] = run_state.rest_choices.duplicate(true)  # Spire rest choices: [{block, choice}]
 	run.seconds = snappedf(run_state.play_time, 1.0)
 	var calls := CloseCalls.find(self)
 	run.close_calls = calls.run_count if calls != null else 0
@@ -569,6 +570,8 @@ static func report_text(record: Dictionary) -> String:
 	lines.append("Grove: %d nodes · perks %s · Dreamlight +%d / −%d" % [record.get("grove", {}).size(),
 		", ".join(record.get("perks", [])), int(record.get("dreamlight", {}).get("earned", 0)), int(record.get("dreamlight", {}).get("spent", 0))])
 	lines.append("Called early: %d drifts · %d Dew" % [int(record.get("early_calls", 0)), int(record.get("dew_call_early", 0))])
+	if not record.get("rest_choices", []).is_empty():
+		lines.append("Rest choices: %s" % ", ".join(record.rest_choices.map(func(c: Dictionary) -> String: return "%s@%d" % [c.choice, int(c.block)])))
 	if not record.get("dream_credit", []).is_empty():
 		lines.append("Dream credit: %s" % ", ".join(record.dream_credit.map(func(c: Dictionary) -> String: return c.text)))
 	var join := func(values: Array) -> String: return " ".join(values.map(func(v) -> String: return str(int(v))))

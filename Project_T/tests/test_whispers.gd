@@ -130,6 +130,9 @@ func _run() -> void:
 	for frame in 30:  # The rest's Dream offer (built deferred) holds Start, as in play: let it pass
 		if dreams.is_offering() or dreams.has_pending_offer():
 			dreams.skip()
+		var rest = get_first_node_in_group(&"rest_choice")  # Spire: the rest choice (Tend) after the Dream
+		if rest != null and rest.visible:
+			rest.choose(&"tend")
 		if director.pending_choice() == &"":
 			break
 		await process_frame
