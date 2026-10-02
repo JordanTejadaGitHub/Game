@@ -665,6 +665,12 @@ mid (behind Driftspore, ~2× Stormcap). **Chime Stone accepted.** Flag: **Lullab
 line's damage is Static bolts, which depend on a Charged source nearby. Finals probe next (Bell vs
 Puffball / Dreamshroom / Morning Fog, with and without Thunderhead).
 
+**Act 2 boss too hard** (user: *"is the boss too hard? Didn't feel close to killing it"*): **0 of 3**
+human runs killed it: run 7 (×3.6 act 2) ~10% of drift 50's health left, run 8 Lamplighter ~21%, run 9
+Huntsman ~25% (health spawned vs damage at drift 50). The ×2.25 was set when act 2 ended at ×3.0; it
+rides the act multiplier, now ×4.5. **`mid_boss_health_multiplier` 2.25 → 1.75** (act 3's boss lands
+near its old effective health under ×6.0). Act 1 boss, the Oak and the bite unchanged.
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
