@@ -230,6 +230,9 @@ static func format(text: String) -> String:
 	if text.contains("{echo:"):  # An echo Warden's echo_share, so a retune updates its texts: "75%", or "full"
 		for found in _echo_pattern().search_all(text):
 			text = text.replace(found.get_string(), echo_text(found.get_string(1)))
+	if text.contains("{grow_cost:") or text.contains("{plant_cost:"):  # A Warden's Dew price from its TowerData (card text audit:
+		for found in _cost_pattern().search_all(text):  # hand-written prices went stale)
+			text = text.replace(found.get_string(), cost_text(found.get_string(1), found.get_string(2)))
 	return text
 
 # "{echo:echo_hollow}" -> "75%" ("full" at 1.0), read from that Warden's echo_share (Tower Discussion: the
@@ -240,6 +243,21 @@ static func echo_text(warden_id: String) -> String:
 	if data == null:
 		return warden_id
 	return "full" if is_equal_approx(data.echo_share, 1.0) else "%d%%" % roundi(data.echo_share * 100.0)
+
+# "{grow_cost:beacon}" -> its evolve_cost, "{plant_cost:acorn}" -> its cost (as a number: the text says "Dew").
+static func cost_text(kind: String, warden_id: String) -> String:
+	var path := "res://resource/tower/%s.tres" % warden_id
+	var data := load(path) as TowerData if ResourceLoader.exists(path) else null
+	if data == null:
+		return warden_id
+	return str(data.evolve_cost if kind == "grow_cost" else data.cost)
+
+static var _cost_regex: RegEx = null
+static func _cost_pattern() -> RegEx:
+	if _cost_regex == null:
+		UiStyle.release_at_exit(func() -> void: _cost_regex = null)
+		_cost_regex = RegEx.create_from_string("\\{(grow_cost|plant_cost):([a-z_0-9]+)\\}")
+	return _cost_regex
 
 static var _echo_regex: RegEx = null
 static func _echo_pattern() -> RegEx:

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_firefly_jar"
 display_name = "Firefly Jar"
-description = "Sprouts can now grow into Firefly Jars (20 Dew), or plant one directly (30 Dew). Sparks build {static} for free bolts."
+description = "Sprouts can now grow into Firefly Jars ({grow_cost:firefly_jar} Dew), or plant one directly ({plant_cost:firefly_jar} Dew). Sparks build {static} for free bolts."
 rarity = 0
 kind = 0
 tags = Array[String](["light"])

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_beacon"
 display_name = "Beacon"
-description = "Lanternmoths can now grow into Beacons (200 Dew): every 2 s everything in range is {marked}, at +35%."
+description = "Lanternmoths can now grow into Beacons ({grow_cost:beacon} Dew): every 2 s everything in range is {marked}, at +35%."
 rarity = 2
 kind = 1
 tags = Array[String](["light"])

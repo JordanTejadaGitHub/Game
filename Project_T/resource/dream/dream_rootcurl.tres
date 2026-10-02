@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_rootcurl"
 display_name = "Rootcurl"
-description = "Rootlings can now grow into Rootcurls (80 Dew): every 4 s the nightmare furthest along is pulled back a tile."
+description = "Rootlings can now grow into Rootcurls ({grow_cost:rootcurl} Dew): every 4 s the nightmare furthest along is pulled back a tile."
 rarity = 1
 kind = 1
 tags = Array[String](["root"])
