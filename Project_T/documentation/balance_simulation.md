@@ -769,6 +769,10 @@ Roles and decisions: **Stormcap** (0.22×, yet even with Chime Stone at drift 15
 on retarget?). Buffs: **Hummingbird Bower ×3** (9 → 27), **Mossback ×1.5**, **Wren's Nest ×1.5** (a
 fast-nightmare specialist), **Frostfern ×2** (an enabler that shouldn't feel dead). Gust and Echo
 Hollow are support: board-lift probes.
+Bug checks: **Sunpetal was a bug** (the beam retargeted to each new front-runner and its ramp reset;
+fixed in d4efe268: beams hold their target while it's alive and in range). **Midsummer's ×2 reverted**
+(measured with the bug; re-probe first). **Stormcap: no bug** (chains and bolts use ranked damage);
+its data is the lever: **chain targets 3 → 4**.
 
 **4. Act 2 bosses at drift 50** (40d26ed1, fixed board of 12 finals, rank IV, no Dreams, 3 seeds): none
 dispelled; health left at the Heartwood Huntsman 44–88%, Lamplighter 10–34%, Mire Hag 45–53%. A
