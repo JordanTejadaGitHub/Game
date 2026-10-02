@@ -308,6 +308,7 @@ func _ready() -> void:
 	for id in starting_unlocks:
 		unlocked[id] = true
 	drift_director.rest_started.connect(_credit_rest.unbind(4))  # Before the rest report reads the block
+	drift_director.rest_started.connect(_judge_finale.unbind(4))  # Before the offer is built (spire_difficulty.md)
 	drift_director.rest_started.connect(_on_rest_started)
 	drift_director.rest_started.connect(_save_discoveries.unbind(4))
 	drift_director.rest_ended.connect(func(_block: int) -> void: card_credit["block"] = {})  # A new block's credit
@@ -329,6 +330,7 @@ func _ready() -> void:
 	if seller:
 		seller.tower_sold.connect(_on_tower_sold)
 	drift_director.drift_started.connect(_on_drift_started)
+	drift_director.drift_started.connect(_finale_on_drift)
 	# The board version (DreamEffects' shared board and cached rows): any Warden, card, route, rest,
 	# drift, leaf or Eldest change bumps it.
 	tower_container.child_entered_tree.connect(_on_tower_added)
@@ -1409,6 +1411,69 @@ func add_rare_dreams(count: int) -> void:
 func add_extra_cards(count: int) -> void:
 	_extra_cards_next += count
 
+# --- Block finales and rest choices (spire_difficulty.md Phases 2 and 3) -------------------------------------
+# A block finale (DriftDirector.get_block_finale_elites(n) >= 0, from block_finale_health_from) cleared clean (no
+# leaf lost from its start to the rest after it: the run history's per-drift leaves_lost) earns one Rare+ slot in
+# the next Dream. The rest choice "Dream" adds cards to the next Dream offer. Both are saved with the run.
+
+signal finale_judged(drift: int, clean: bool)
+
+var finale_results := {}  # Finale drift -> leaves lost on it (0 = cleared clean)
+var _finale_drift := 0  # The finale being played (0: none)
+var _finale_lost_at := 0  # RunState.leaves_lost as it started
+var _finale_rare_next := 0  # Earned Rare+ slots for the next Dream
+
+func _finale_on_drift(number: int) -> void:
+	if number >= drift_director.block_finale_health_from and drift_director.get_block_finale_elites(number) >= 0:
+		_finale_drift = number
+		_finale_lost_at = run_state.leaves_lost
+
+# Judges the finale once its rest begins (from the rest, or first from a getter: Main's rest report may read first).
+func _judge_finale() -> void:
+	if _finale_drift == 0 or finale_results.has(_finale_drift) or not drift_director.is_build_phase() \
+			or drift_director.drifts_started != _finale_drift or run_state.is_over:
+		return
+	var lost := maxi(run_state.leaves_lost - _finale_lost_at, 0)
+	finale_results[_finale_drift] = lost
+	if lost == 0:
+		_finale_rare_next += 1
+	var drift := _finale_drift
+	_finale_drift = 0
+	finale_judged.emit(drift, lost == 0)
+
+# Whether finale `drift` was cleared clean (while it's still on the field: no leaf lost so far).
+func finale_cleared_clean(drift: int) -> bool:
+	_judge_finale()
+	if finale_results.has(drift):
+		return int(finale_results[drift]) == 0
+	return drift == _finale_drift and run_state.leaves_lost == _finale_lost_at
+
+# The finale of block `block` (Main's banner / rest report): {"finale": its drift or 0, "clean", "leaves_lost"}.
+func finale_result(block: int) -> Dictionary:
+	_judge_finale()
+	var drift: int = block * drift_director.drifts_per_block
+	if not finale_results.has(drift):
+		return {"finale": 0, "clean": false, "leaves_lost": 0}
+	var lost := int(finale_results[drift])
+	return {"finale": drift, "clean": lost == 0, "leaves_lost": lost}
+
+# A clean finale's Rare+ slot is waiting for the next Dream.
+func has_rare_slot_pending() -> bool:
+	_judge_finale()
+	return _finale_rare_next > 0
+
+func finale_reward_pending() -> bool:  # Balancing's name for the same
+	return has_rare_slot_pending()
+
+# The rest choice "Dream" (Main's rest step): `count` more cards in the next Dream offer, a one-shot (at most
+# MAX_OFFER_CARDS, like Thick Blight's).
+func add_next_offer_cards(count: int) -> void:
+	add_extra_cards(count)
+
+# Extra cards waiting for the next Dream offer (the rest choice, Thick Blight, Second Wind).
+func extra_cards_pending() -> int:
+	return _extra_cards_next
+
 # Omen reward (Lean Season): the next Dream (from act 2) includes a Legendary.
 func add_legendary_dreams(count: int) -> void:
 	_legendary_next += count
@@ -1592,7 +1657,7 @@ func times_passed(card_id: String) -> int:
 func _offer_counters() -> Dictionary:
 	return {"dreams_seen": dreams_seen, "without_rare": _dreams_without_rare,
 		"rare_left": _rare_dreams_left, "extra": _extra_cards_next, "entwined": _entwined_offered.duplicate(),
-		"legendary": _legendary_next}
+		"legendary": _legendary_next, "finale_rare": _finale_rare_next}
 
 func _restore_offer_counters(counters: Dictionary) -> void:
 	if counters.is_empty():
@@ -1602,6 +1667,7 @@ func _restore_offer_counters(counters: Dictionary) -> void:
 	_rare_dreams_left = counters.rare_left
 	_extra_cards_next = counters.extra
 	_legendary_next = counters.get("legendary", 0)
+	_finale_rare_next = counters.get("finale_rare", 0)  # A reroll keeps the clean finale's Rare+ slot
 	_entwined_offered = counters.entwined.duplicate()
 
 # Builds a Dream offer for after drift `drift_number` (see dream_design.md, "How offers work").
@@ -1643,6 +1709,12 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 		current_stray = _draw_card(act, offer, false, true)
 		if current_stray != null:
 			offer.append(current_stray)
+	# A clean block finale's reward (spire_difficulty.md): one slot drawn as a Rare+
+	if _finale_rare_next > 0 and offer.size() < size:
+		_finale_rare_next -= 1
+		var finale_rare := _draw_card(act, offer, true)
+		if finale_rare != null:
+			offer.append(finale_rare)
 	var force_rare := drift_director.is_boss_drift(drift_number) or _dreams_without_rare >= pity_after \
 		or _rare_dreams_left > 0
 	_rare_dreams_left = maxi(_rare_dreams_left - 1, 0)
@@ -1959,7 +2031,7 @@ func to_save() -> Dictionary:
 	return {
 		"unlocked": unlocked.keys(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
-		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "entwined_offered": _entwined_offered.keys(),
+		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next}, "entwined_offered": _entwined_offered.keys(),
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
 		"run_pool": run_pool.keys(), "run_pool_waiting": _run_pool_waiting.keys(), "run_pool_families": _run_pool_families.keys(),
 		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
@@ -1996,6 +2068,13 @@ func load_save(data: Dictionary) -> void:
 	_dreams_without_rare = int(data.get("dreams_without_rare", 0))
 	_rare_dreams_left = int(data.get("rare_dreams_left", 0))
 	_extra_cards_next = int(data.get("extra_cards_next", 0))
+	var finale: Dictionary = data.get("finale", {})
+	finale_results.clear()
+	for drift in finale.get("results", {}):
+		finale_results[int(drift)] = int(finale.results[drift])  # JSON keys come back as strings
+	_finale_drift = int(finale.get("drift", 0))
+	_finale_lost_at = int(finale.get("lost_at", 0))
+	_finale_rare_next = int(finale.get("rare_next", 0))
 	var credit: Dictionary = data.get("card_credit", {})
 	card_credit = {"block": credit.get("block", {}).duplicate(true), "run": credit.get("run", {}).duplicate(true)}
 	_entwined_offered.clear()
