@@ -300,7 +300,7 @@ func _add_warden(cell: Vector2i, c: String) -> void:
 	var sprite := Sprite2D.new()
 	sprite.texture = data.texture
 	sprite.hframes = maxi(data.frame_count, 1)
-	sprite.offset = Vector2(0, -16) + data.sprite_offset  # 64×96: the bottom 64 px on the cell
+	sprite.offset = Vector2(0, -16) + data.get_sprite_offset()  # 64×96: the bottom 64 px on the cell
 	sprite.position = _centre(cell)
 	sprite.z_index = 1  # Over the Heartwood's canopy (the favoured Warden often stands beside it)
 	if c == "w":

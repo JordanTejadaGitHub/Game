@@ -302,7 +302,7 @@ func _draw() -> void:
 		Tower.draw_placeholder(self, tint)
 	else:
 		var frame := tower_data.get_frame_rect(0)
-		draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.sprite_offset, frame.size), frame, tint)
+		draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.get_sprite_offset(), frame.size), frame, tint)
 	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost(null, _hover_cell)]
 	if tower_data.can_attack:
 		tag = "%s · %s · %d Dew" % [tower_data.display_name, IconInfo.damage_type_name(tower_data.line), get_cost(null, _hover_cell)]
@@ -340,7 +340,7 @@ func _draw() -> void:
 	WorldLabel.draw_tag(self, 0.0, MAP_GRID.cell_size.y / 2.0 + 18.0, tag,
 		WorldLabel.cost_color(_hover_affordable))
 	# Bonus chips above the ghost: each position card, on (green, what it gives) or off (grey, why).
-	var y := -MAP_GRID.cell_size.y / 2.0 - 10.0 + minf(tower_data.sprite_offset.y, 0.0)
+	var y := -MAP_GRID.cell_size.y / 2.0 - 10.0 + minf(tower_data.get_sprite_offset().y, 0.0)
 	if received != "":
 		WorldLabel.draw_tag(self, 0.0, y, received, BuffSources.COLORS.acorn)
 		y -= CHIP_STEP
@@ -533,7 +533,7 @@ func _draw_grow_preview() -> void:
 			Tower.draw_placeholder(self, Color(1, 1, 1, PREVIEW_ALPHA))
 		else:
 			var frame := into.get_frame_rect(int(_grow_preview_time * into.animation_fps) % maxi(into.frame_count, 1))
-			draw_texture_rect_region(into.texture, Rect2(-frame.size / 2.0 + into.sprite_offset, frame.size), frame,
+			draw_texture_rect_region(into.texture, Rect2(-frame.size / 2.0 + into.get_sprite_offset(), frame.size), frame,
 				Color(1, 1, 1, PREVIEW_ALPHA))
 	draw_set_transform(Vector2.ZERO)
 
@@ -982,7 +982,7 @@ func _draw_grow_choice() -> void:
 		if hovered and into.texture != null:
 			var frame := into.get_frame_rect(0)
 			var centre := Tower.footprint_centre(origin, 2)
-			draw_texture_rect_region(into.texture, Rect2(centre - frame.size / 2.0 + into.sprite_offset, frame.size), frame,
+			draw_texture_rect_region(into.texture, Rect2(centre - frame.size / 2.0 + into.get_sprite_offset(), frame.size), frame,
 				Color(1, 1, 1, 0.6))  # A texture modulate (fade), not a colour
 	var tower: Tower = _grow_choice.tower
 	if is_instance_valid(tower):
@@ -1219,7 +1219,7 @@ func _draw_stroke() -> void:
 			Tower.draw_placeholder(self, tint)
 		else:
 			var frame := tower_data.get_frame_rect(0)
-			draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.sprite_offset, frame.size), frame, tint)
+			draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.get_sprite_offset(), frame.size), frame, tint)
 	if _stroke.is_empty():
 		return
 	draw_set_transform(MAP_GRID.calculate_map_position(_stroke.back()))

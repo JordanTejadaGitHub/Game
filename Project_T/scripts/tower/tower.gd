@@ -389,7 +389,7 @@ func _apply_data() -> void:
 	_attack_time = -1.0
 	_flush_pull()  # Grown mid-lash: the pull still happens
 	_stop_beam()
-	sprite.offset = tower_data.sprite_offset
+	sprite.offset = tower_data.get_sprite_offset()
 	_set_up_tall_fade()
 	_show_idle()
 	_update_withered()
@@ -880,7 +880,7 @@ func _update_rank_art() -> void:
 		overlay.texture = tower_data.rank_overlay_texture
 		overlay.hframes = tower_data.rank_overlay_frames
 		overlay.frame = mini(art_rank, tower_data.rank_overlay_frames) - 1
-		overlay.offset = tower_data.sprite_offset
+		overlay.offset = tower_data.get_sprite_offset()
 		return
 	if art_rank <= 0:
 		for node in [under, over]:
@@ -2702,7 +2702,7 @@ func _update_withered() -> void:
 		move_child(overlay, sprite.get_index() + 1)
 	overlay.texture = tower_data.withered_texture
 	overlay.hframes = tower_data.frame_count
-	overlay.offset = tower_data.sprite_offset
+	overlay.offset = tower_data.get_sprite_offset()
 	overlay.modulate.a = clampf(WITHER_PER_LEAF * _wither * 4.0, 0.0, 1.0)  # 5 leaves = fully withered
 	overlay.visible = overlay.modulate.a > 0.0
 
@@ -2713,7 +2713,7 @@ func _play_ripen() -> void:
 	var ripen := Sprite2D.new()
 	ripen.texture = tower_data.ripen_texture
 	ripen.hframes = tower_data.ripen_frames
-	ripen.offset = tower_data.sprite_offset
+	ripen.offset = tower_data.get_sprite_offset()
 	ripen.z_index = 1
 	add_child(ripen)
 	var tween := ripen.create_tween()
@@ -3250,7 +3250,7 @@ func _draw() -> void:
 	_draw_target_pip()
 	if _dream_state and _dream_state.has_method("is_eldest") and _dream_state.is_eldest(self):
 		# The Eldest: a small crown of three golden rings over the slab.
-		var top := Vector2(0, -MAP_GRID.cell_size.y * 0.5 - 4.0) + tower_data.sprite_offset
+		var top := Vector2(0, -MAP_GRID.cell_size.y * 0.5 - 4.0) + tower_data.get_sprite_offset()
 		for i in 3:
 			draw_arc(top + Vector2((i - 1) * 7.0, -absf(i - 1) * -2.0), 3.5, 0.0, TAU, 12, Color(Palette.GLOW, 0.95), 1.5)
 
