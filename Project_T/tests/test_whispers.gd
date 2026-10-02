@@ -56,29 +56,38 @@ func _run() -> void:
 	_check(whispers.enabled, "a fresh profile has hints on")
 	_check(_fired(whispers).has(&"start") and _fired(whispers).has(&"plant"), "run start: start, plant")
 
-	# Readable (user: "hard to see while playing"): body face 22 px in Ink on an opaque patch, above the Warden bar,
-	# clear of the DriftPanel; long enough to read; hover / tap holds, a second tap dismisses; one at a time.
+	# Readable, in the Heartwood's place (user: "go back to how it was before, but more readable, and lasting a bit longer
+	# no matter the speed"): the italic whisper at 26 px with a dark outline and shadow over a faint feathered mist (no
+	# box), top centre; on screen in real time; hover / tap holds, a second tap dismisses; one at a time.
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS  # A real 1280×720 layout (as test_ui)
 	root.content_scale_size = UiStyle.LAYOUT_MIN
 	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
 	root.size = Vector2i(1280, 720)
 	for frame in 2:
 		await process_frame
-	main.get_node("HUD")._fit_tower_bar()
 	whispers._place()
 	for frame in 2:
 		await process_frame
-	whispers._place()
-	_check(whispers.get_theme_font_size("normal_font_size") == 22 and whispers.get_theme_color("default_color") == UiStyle.INK
-		and (whispers.get_theme_stylebox("normal") as MoonStyleBox) != null
-		and (whispers.get_theme_stylebox("normal") as MoonStyleBox).center_alpha >= 0.9, "22 px Ink on an opaque fog patch")
-	var bar_rect: Rect2 = main.get_node("%TowerBar").get_global_rect()
+	var mist := whispers.get_theme_stylebox("normal") as MoonStyleBox
+	_check(whispers.get_theme_font_size("normal_font_size") == 26 and whispers.get_theme_font("normal_font") == UiStyle.whisper_font()
+		and whispers.get_theme_constant("outline_size") >= 4 and mist != null and mist.edge_alpha == 0.0 and mist.center_alpha <= 0.5,
+		"26 px whisper italic, outlined, over a faint feathered mist (no box)")
 	var hint_rect: Rect2 = whispers.get_global_rect()
-	var drift_rect: Rect2 = main.get_node("HUD/DriftPanel").get_global_rect()
-	_check(hint_rect.end.y <= bar_rect.position.y and not hint_rect.intersects(drift_rect) and hint_rect.position.y > bar_rect.position.y - 200.0,
-		"lower-middle, above the Warden bar, clear of the DriftPanel (%s, bar %s, panel %s)" % [hint_rect, bar_rect, drift_rect])
-	_check(is_equal_approx(whispers.show_time("Short."), 6.0) and is_equal_approx(whispers.show_time("x".repeat(100)), 8.5),
-		"on screen 6 s at least, 2.5 s + 0.06 s a character for long lines")
+	_check(hint_rect.position.y < 300.0 and absf(hint_rect.get_center().x - 640.0) < 2.0, "top centre, as before (%s)" % hint_rect)
+	_check(is_equal_approx(whispers.show_time("Short."), 7.0) and is_equal_approx(whispers.show_time("x".repeat(100)), 10.0),
+		"on screen 7 s at least, 3 s + 0.07 s a character for long lines")
+	# Real time: at 3× speed a 7 s hint is still up after 4 real seconds (12 game seconds).
+	for id in whispers._queue:  # (Queued ones did fire: kept for the audit below)
+		if not whispers._seen.has(String(id)):
+			whispers._seen.append(String(id))
+	whispers._queue.clear()
+	whispers._seen.erase("speed")
+	Engine.time_scale = 3.0
+	whispers.whisper(&"speed")
+	for frame in 60 * 4:
+		await process_frame
+	_check(whispers.modulate.a > 0.9, "3× speed doesn't shorten it (still showing after 4 real seconds)")
+	Engine.time_scale = 1.0
 	var showing := String(whispers._queue[0]) if not whispers._queue.is_empty() else ""
 	var click := InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
@@ -159,6 +168,7 @@ func _run() -> void:
 		if tower is Tower:
 			seller.tower_sold.emit(tower, 0)
 			break
+	run_state.dew = 2000  # (Drifts 1–6 spent some: the two branches always get planted)
 	placer.select_tower(load("res://resource/tower/driftspore.tres"))
 	placer._try_build(_free_cell(map, 10))
 	placer.select_tower(load("res://resource/tower/bloomcap.tres"))

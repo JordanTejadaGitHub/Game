@@ -178,34 +178,38 @@ func whisper(id: StringName, args: Array = []) -> void:
 	if _queue.size() == 1:
 		_show_next()
 
-# Readable over a busy map (user: "hard to see while playing"): the body face at HINT_SIZE in Ink on an opaque fog
-# patch, lower-middle just above the Warden bar (clear of the DriftPanel), on screen for show_time(); hovering or
-# tapping holds it, tapping again dismisses it (a hint naming a Codex term opens it instead); one at a time.
-const HINT_SIZE := 22
-const HINT_MAX_WIDTH := 600.0
-const BAR_GAP := 14.0  # Above the Warden bar
-const MIN_TIME := 6.0
-const BASE_TIME := 2.5
-const PER_CHAR := 0.06
+# The Heartwood's voice at the top of the screen (user, 2026-10-02: "go back to how it was before, but more readable,
+# and lasting a bit longer no matter the speed"): the italic whisper face at HINT_SIZE in the whisper colour, a dark
+# outline and a soft shadow, and only a faint feathered mist behind the line (no box) so it reads on the pale path and
+# on effects. On screen for show_time() in REAL time (game speed and pause don't shorten it), with a slow fade;
+# hovering or tapping holds it, tapping again dismisses it (a hint naming a Codex term opens it instead); one at a time.
+const HINT_SIZE := 26
+const HINT_MAX_WIDTH := 760.0
+const TOP := 214.0  # Under the drift banner and the Coming strip (as before)
+const MIN_TIME := 7.0
+const BASE_TIME := 3.0
+const PER_CHAR := 0.07
+const FADE_OUT := 1.5
 var held := false  # Tapped (or hovered): stays until dismissed
 
-# Seconds a hint stays: at least MIN_TIME, longer for long lines.
+# Real seconds a hint stays: at least MIN_TIME, longer for long lines.
 static func show_time(line: String) -> float:
 	return maxf(MIN_TIME, BASE_TIME + PER_CHAR * line.length())
 
 func _style() -> void:
-	add_theme_font_override("normal_font", UiStyle.body_medium_font())
-	add_theme_font_size_override("normal_font_size", HINT_SIZE)
-	add_theme_color_override("default_color", UiStyle.INK)
-	add_theme_color_override("font_outline_color", Color(UiStyle.FOG, 0.9))
-	add_theme_constant_override("outline_size", 4)
-	var box := UiStyle.fog_patch(18.0, 10.0)
-	box.center_alpha = 0.94  # Opaque enough over pale path and effects (edges too: a fog patch fades to nothing)
-	box.edge_alpha = 0.85
-	add_theme_stylebox_override("normal", box)
+	UiStyle.whisper(self, HINT_SIZE)  # Cormorant italic in the whisper colour (ui_style.md)
+	add_theme_color_override("font_outline_color", Palette.DREAD)
+	add_theme_constant_override("outline_size", 4)  # About 2 px each side
+	add_theme_color_override("font_shadow_color", Color(Palette.VOID, 0.7))
+	add_theme_constant_override("shadow_offset_x", 1)
+	add_theme_constant_override("shadow_offset_y", 2)
+	add_theme_constant_override("shadow_outline_size", 6)
+	var mist := UiStyle.fog_patch(28.0, 8.0)  # Feathered: fades to nothing at its edges, no hard box
+	mist.center_alpha = 0.4
+	mist.edge_alpha = 0.0
+	add_theme_stylebox_override("normal", mist)
 	fit_content = true
 	autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	set_anchors_preset(Control.PRESET_TOP_LEFT)
 	mouse_entered.connect(func() -> void:
 		if _tween and modulate.a > 0.0:
 			_tween.pause())
@@ -213,25 +217,16 @@ func _style() -> void:
 		if _tween and not held:
 			_tween.play())
 
-# Lower-middle, centred over the Warden bar, never under the DriftPanel; as wide as the line needs.
+# Top centre (as before), as wide as the line needs.
 func _place() -> void:
-	var font := UiStyle.body_medium_font()
-	var width := clampf(font.get_string_size(plain, HORIZONTAL_ALIGNMENT_LEFT, -1, HINT_SIZE).x + 48.0, 280.0, HINT_MAX_WIDTH)
-	custom_minimum_size = Vector2(width, 0)  # (A wrapping label shrinks to its minimum on reset_size)
-	reset_size()
-	var view := get_viewport_rect().size
-	var bar := get_node_or_null("%TowerBar") as Control
-	var bottom := view.y - 120.0
-	var centre := view.x / 2.0
-	if bar != null and bar.is_visible_in_tree():
-		var rect := bar.get_global_rect()
-		bottom = rect.position.y - BAR_GAP
-		centre = rect.get_center().x
-	var x := centre - width / 2.0
-	var panel := get_parent().get_node_or_null("DriftPanel") as Control if get_parent() else null
-	if panel != null and panel.is_visible_in_tree():
-		x = minf(x, panel.get_global_rect().position.x - 8.0 - width)
-	position = Vector2(clampf(x, 8.0, view.x - width - 8.0), bottom - size.y)
+	var font := UiStyle.whisper_font()
+	var width := clampf(font.get_string_size(plain, HORIZONTAL_ALIGNMENT_LEFT, -1, HINT_SIZE).x + 80.0, 280.0, HINT_MAX_WIDTH)
+	set_anchors_preset(Control.PRESET_CENTER_TOP)
+	offset_left = -width / 2.0
+	offset_right = width / 2.0
+	offset_top = TOP
+	offset_bottom = TOP
+	custom_minimum_size = Vector2(width, 0)
 
 func _show_next() -> void:
 	if _queue.is_empty():
@@ -258,9 +253,10 @@ func _show_next() -> void:
 	if _tween:
 		_tween.kill()
 	_tween = create_tween()
+	_tween.set_ignore_time_scale(true)  # Real time: 3× speed doesn't cut it short (and the node runs while paused)
 	_tween.tween_property(self, "modulate:a", 1.0, 0.3)  # A fade only: nothing moves (reduced motion too)
 	_tween.tween_interval(show_time(plain))
-	_tween.tween_property(self, "modulate:a", 0.0, 0.8)
+	_tween.tween_property(self, "modulate:a", 0.0, FADE_OUT)
 	_tween.tween_callback(_finish)
 
 # The showing hint ends (its time ran out, or a tap dismissed it); the next queued one follows.
