@@ -865,6 +865,53 @@ function pondInner(A, k) {
   }
   return L;
 }
+// Fallen log (fallen_log.png; the map's log feature and the Fallen Giant gift): a dead tree lying
+// along a line of cells, in the dead trees' cool bark with moss on its back. k: 0 west end, 1 east–west
+// middle, 2 east end, 3 north end, 4 north–south middle, 5 south end. Drawn on a wider canvas and
+// cropped, so its outline never lands on a cell edge and pieces join; the bark grain wraps every 64 px.
+// The north–south pieces are the east–west ones turned (x ↔ y), lit from the upper left like the rest.
+function fallenLog(A, k) {
+  const vertical = k >= 3, part = k % 3, M = 16, W = T + M * 2, g = A.grass, s = SEED + 811;
+  const L = new Img(W, T), out = new Img(W, T), cy = 38, r = 15;
+  const jag = y => Math.floor(hash(y >> 1, 1, s) * 7);
+  const rad = x => r + (pnoise(((x - M) % T + T) % T, 0, 16, s + 5, 4) - .5) * 3;  // the trunk swells a little along its length
+  const x0 = part === 0 ? M + 10 : 0, x1 = part === 2 ? M + T - 10 : W;  // the log's ends on the wide canvas
+  for (let x = 0; x < W; x++) for (let y = cy + r - 2; y <= cy + r + 3; y++) if (x >= x0 - 2 && x < x1 + 3) out.set(x, y, SHADOW(.38));
+  for (let y = Math.floor(cy - r - 2); y <= cy + r + 2; y++) {
+    const xa = part === 0 ? x0 + jag(y) : x0, xb = part === 2 ? x1 - jag(y + 7) : x1;
+    for (let x = xa; x < xb; x++) {
+      const a = (y + .5 - cy) / rad(x); if (Math.abs(a) > 1) continue;
+      const xs = ((x - M) % T + T) % T, grain = pnoise(xs, y * 3, 8, s + 1, 8);
+      let c = a < -.3 ? DEAD[3] : a < .3 ? DEAD[2] : DEAD[1];
+      if (grain > .66) c = a < -.3 ? DEAD[2] : DEAD[1];  // bark furrows along the log
+      L.set(x, y, c);
+    }
+    // the broken ends: a pale splintered face with dark rings
+    const a0 = (y + .5 - cy) / r;
+    if (Math.abs(a0) <= 1) {
+      if (part === 0) for (let i = 0; i < 4; i++) L.set(xa + i, y, i < 2 ? "#b4b0c8" : (y + i) % 4 ? "#8c8cac" : "#5c5a78");
+      if (part === 2) for (let i = 1; i <= 4; i++) L.set(xb - i, y, i < 3 ? "#b4b0c8" : (y + i) % 4 ? "#8c8cac" : "#5c5a78");
+    }
+  }
+  if (part === 1) {  // a broken branch stub reaching up off the trunk
+    const bx = M + 22 + Math.floor(hash(k, 4, s) * 18);
+    stroke(L, bx, cy - r + 3, bx - 6, cy - r - 8, 5, 3, (x, y, nx) => nx < -.2 ? DEAD[3] : DEAD[2]);
+    L.set(bx - 7, cy - r - 9, "#b4b0c8"); L.set(bx - 6, cy - r - 9, "#8c8cac");
+  }
+  out.stamp(L, DEAD[0]);
+  // moss along its back, and a little moss and fungus on the sides
+  for (let x = 0; x < W; x++) {
+    const xs = ((x - M) % T + T) % T, n = pnoise(xs, 0, 16, s + 2, 4);
+    for (let y = Math.floor(cy - r); y < cy - r + 4; y++) if (L.alpha(x, y) && n > .45 && (y > cy - r + 1 || n > .6)) out.set(x, y, n > .62 ? g[4] : g[3]);
+  }
+  for (let kk = 0; kk < 3; kk++) {
+    const x = M + 8 + Math.floor(hash(kk, part, s + 3) * 48), y = cy + 3 + kk;
+    if (L.alpha(x, y) && L.alpha(x + 2, y)) { out.set(x, y, "#9a84e8"); out.set(x + 1, y, "#bc44dc"); out.set(x + 2, y, "#9a84e8"); }
+  }
+  const crop = new Img();
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) { const c = out.get(x + M, y); if (c[3]) crop.set(vertical ? y : x, vertical ? x : y, c); }
+  return crop;
+}
 function blightPatch(A, f, seed) {
   const L = grass(A, 0), B = BLIGHT, s = seed + 60;
   for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
@@ -1641,6 +1688,7 @@ const BUILD = {
   pool: (A, v, f) => pool(A, f),
   pond: (A, v, f) => pondTile(A, v, f),
   pondin: (A, v) => pondInner(A, v),
+  flog: (A, k) => fallenLog(A, k),  // 0 W end, 1 E-W middle, 2 E end, 3 N end, 4 N-S middle, 5 S end
   blight: (A, v, f) => blightPatch(A, f, SEED + v * 5),
   mist: (A, v, f) => mist(A, f),
   heart: (A, v, f) => heartwood(A, f, v),
@@ -1661,7 +1709,7 @@ const BUILD = {
   rwisp: (A, v, f) => routeWisp(f),
 };
 const ANIM = new Set(["withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "dead"]);
-const TILES = new Set(["grass", "path", "wall", "pool", "pond", "pondin", "blight"]);
+const TILES = new Set(["grass", "path", "wall", "pool", "pond", "pondin", "flog", "blight"]);
 const SOLID = 200;
 function copyPx(dst, x, y, c) { const i = (y * dst.w + x) * 4; dst.d[i] = c[0]; dst.d[i+1] = c[1]; dst.d[i+2] = c[2]; dst.d[i+3] = c[3]; }
 // Storybook: halve the resolution (most common solid colour per 2×2 block), outline sprites in a
