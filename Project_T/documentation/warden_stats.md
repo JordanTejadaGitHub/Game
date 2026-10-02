@@ -442,7 +442,7 @@ closed; **human runs judge from here**. Full measurements: `balance_simulation.m
 | Autumn Gale | ×0.75, then **85 → 72** | 1.3–1.6× in act 2, 2.1–2.4× in act 3 |
 | Moonstone, Elf Circle | ×0.75 | the same |
 | Snugroot | ×0.75, then **56 → 48** | the same; act 3 still ~2.1× after the first cut |
-| Midsummer | ×2 | was 0.28× |
+| Midsummer | **68 → 170** (×2.5, after the beam fix) | was 0.28× |
 | Starling Murmuration | ×1.5 | was 0.5× |
 | Fairy Ring | burst **44 → 30** | ~1.6× Driftspore |
 | Hummingbird Bower | **27 → 40** | 0.10× Driftspore |
