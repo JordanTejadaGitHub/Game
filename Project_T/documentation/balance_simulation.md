@@ -786,6 +786,10 @@ number.
 **Found:** echoes fire and are credited correctly, but land 1 s later on the **same spot** (1-cell
 reach), after the nightmare has walked on (a walking Shade took 0 echo hits). Recommended to Tower
 Discussion: the echo **follows the nightmare** the Reaction fired on. Re-probe both Hollows after.
+**After the fix** (dd977146): echoes land (Whispering Hollow's echo share 1% → 4–5%, Echo Hollow ~70%),
+but both boards still fail (WH 0.61–0.90× with far more leak; EH 0.86–1.05×): Reactions are too rare
+for echoes to carry a Warden. **Own pulse up: Whispering Hollow 18 → 50, Echo Hollow 10 → 22.** Echo
+shares final at 0.75 (Echo Hollow) / 1.0 (Whispering Hollow).
 
 **4. Act 2 bosses at drift 50** (40d26ed1, fixed board of 12 finals, rank IV, no Dreams, 3 seeds): none
 dispelled; health left at the Heartwood Huntsman 44–88%, Lamplighter 10–34%, Mire Hag 45–53%. A
