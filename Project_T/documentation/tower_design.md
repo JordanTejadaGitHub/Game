@@ -392,7 +392,7 @@ Checked on role, owned status, attack shapes and their 5 branches.
 | Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
 |---|---|---|---|---|---|
 | **Silver Bell → Vesper Bell** | **long-range sleep** on one strong target | a single toll at range 6: fills Drowsy on the strongest nightmare (bosses to 3) | the toll echoes to the next-strongest | Husks, elites, bosses | a single tall bell on a bell frame |
-| **Hushbell → Silence** | **silence** | nightmares in range can't use abilities: the Watcher can't wake, Weepers can't mend, a silenced **Lantern Bearer's lantern goes dark so its Wraiths lose the way** (as when it's dispelled) while silenced, boss abilities are delayed | its silence lingers 2 s after they leave | Watcher, Weeper, Procession, boss abilities | a bell muffled in moss, finger to lips |
+| **Hushbell → Silence** | **silence** | nightmares in range can't use abilities: the Watcher can't wake, Weepers can't mend, a silenced **Lantern Bearer's lantern goes dark so its Wraiths lose the way** (as when it's dispelled) while silenced. **Bosses:** their timed abilities run at **half speed** while silenced (a delay, never a stop; health-threshold abilities are unaffected; decided 2026-10-02) | its silence lingers 2 s after they leave | Watcher, Weeper, Procession, boss abilities | a bell muffled in moss, finger to lips |
 | **Thrum → Resonance** | a **cone** of sound | a sound wave in a cone in front; more damage vs Drowsy | the cone widens for each Drowsy nightmare in it | crowds in corridors | a horn-shaped flower facing forward |
 
 **Pebbling** (heavy hits)
