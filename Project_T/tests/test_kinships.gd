@@ -386,8 +386,8 @@ func _run() -> void:
 	# --- The demo has only its three ---
 	Kinships.force_full = false
 	if ResultsScreen.is_demo():
-		_check(not Kinships.is_available(&"snare") and Kinships.is_available(&"slumber_rot"),
-			"the demo has Slumber Rot, Rainfog and Storm Beacon only")
+		_check(not Kinships.is_available(&"snare") and Kinships.is_available(&"slumber_rot") and Kinships.is_available(&"night_chimes"),
+			"the demo has Slumber Rot, Rainfog, Storm Beacon and Night Chimes only (Bellflower starts in the demo)")
 	Kinships.force_full = true
 
 	print("kinships test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
