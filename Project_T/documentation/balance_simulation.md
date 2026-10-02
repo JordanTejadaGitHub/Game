@@ -662,7 +662,7 @@ dispels). **Every starting family is viable in act 1: closed.**
 per Dew (the field is cleared, so this is who takes the kills); drifts 45–49 rank IV, Chime Stone is
 mid (behind Driftspore, ~2× Stormcap). **Chime Stone accepted.** Flag: **Lullaby Bell** (its final) is
 ~3× Driftspore per Dew with a ~0% board leak (a probe finding; runs 8–9 had no Bell, their carrier was pre-nerf Chime Stone); 40–53% of the Chime
-line's damage is Static bolts, which depend on a Charged source nearby. Finals probe next (Bell vs
+line's damage is Static bolts, which they charge and set off themselves (Static + set-off at 3). Finals probe next (Bell vs
 Puffball / Dreamshroom / Morning Fog, with and without Thunderhead).
 
 **Act 2 boss too hard** (user: *"is the boss too hard? Didn't feel close to killing it"*): **0 of 3**
