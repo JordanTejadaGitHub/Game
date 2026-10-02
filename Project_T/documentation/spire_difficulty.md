@@ -123,3 +123,5 @@ too brittle.
 - 2026-10-02: **run 3 on f2195173:** finales bite (Balanced loses 1.63 / 0.94 / 1.00 leaves at drifts
   10 / 15 / 20 ✓), skip 5% ✓, Balanced 50% (target ~60%): drift 10 is the run's hardest point. **First
   finale eased:** `block_finale_elites` {10: 1, 15: 2, 30: 3, 60: 4}. After this, the user's runs judge.
+- 2026-10-02: first finale eased in **fd776918** (`block_finale_elites` {10: 1, 15: 2, 30: 3, 60: 4}).
+  **Phase 1 handed to the user's runs.** Next: Phase 2 (sidegrade perks, Meta Game Code), then Blight 11–20.
