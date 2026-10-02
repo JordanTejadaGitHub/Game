@@ -80,6 +80,13 @@ func _run() -> void:
 	open_button.mouse_exited.emit()
 	_check(not placer.is_previewing_growth(), "pointer off: the preview goes")
 	_check(not placer.visible and is_equal_approx(spore.sprite.modulate.a, 1.0), "and the placer hides again, the Warden back to full")
+	# Renamed (user: "rename Grow to Unlock if they haven't unlocked it yet"): locked slots read "Unlock X",
+	# the unlocked one "Grow into X"; the onboarding pulse (Main's GrowHints) only touches the Grow ones.
+	var slots: Array = panel._buttons.get_children().filter(func(b) -> bool: return b is Button and not b.is_queued_for_deletion() and b.has_meta(&"grow_index"))
+	_check(slots.filter(func(b: Button) -> bool: return b.text.begins_with("Grow into")).size() == 1
+		and slots.filter(func(b: Button) -> bool: return b.text.begins_with("Unlock ") or b.text.begins_with(RememberScreen.UNKNOWN_NAME)).size() == slots.size() - 1,
+		"one Grow into, the locked ones Unlock / ??? (%s)" % [slots.map(func(b: Button) -> String: return b.text)])
+	_check(panel.pulse(&"grow") == 1, "pulse(&\"grow\") pulses only the Grow button")
 	dreams.unlocked.erase(open_form.get_id())
 
 	# Unlocked: holding E previews (held signal), letting go grows into the 2nd option.

@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Headless test for the Warden panel's Dreamlight unlocks (run_design.md "Dreamlight"):
-# a locked final form reads "Grow into <final> · N Dreamlight" and a click opens the Remember screen on
+# a locked final form reads "Unlock <final> · N Dreamlight" ("Grow into" once unlocked) and a click opens the Remember screen on
 # that form, where it is unlocked; short of Dreamlight the cost turns POOR and a click refuses.
 #   godot --headless --path . --script res://tests/test_dreamlight_panel.gd --fixed-fps 60
 
@@ -42,7 +42,7 @@ func _run() -> void:
 	dreams.dreamlight_changed.emit(0)
 	await process_frame
 	var cost := dreams.get_unlock_cost(final_form)
-	var button := _button(panel, "Grow into " + final_name)
+	var button := _button(panel, "Unlock " + final_name)
 	_check(button != null and ("· %d Dreamlight" % cost) in button.text and button.get_meta(&"short", false)
 		and not button.disabled, "a locked form shows its Dreamlight cost in POOR (%s)" % (button.text if button else "none"))
 	var asked := []
@@ -65,9 +65,9 @@ func _run() -> void:
 	dreams.dreamlight_changed.emit(dreams.dreamlight)
 	await process_frame
 	asked.clear()
-	_check(("· %d Dreamlight" % cost) in _button(panel, "Grow into " + final_name).text
-		and not _button(panel, "Grow into " + final_name).get_meta(&"short", true), "with the Dreamlight it's the normal look at once")
-	_button(panel, "Grow into " + final_name).pressed.emit()
+	_check(("· %d Dreamlight" % cost) in _button(panel, "Unlock " + final_name).text
+		and not _button(panel, "Unlock " + final_name).get_meta(&"short", true), "with the Dreamlight it's the normal look at once")
+	_button(panel, "Unlock " + final_name).pressed.emit()
 	await process_frame
 	_check(asked == [final_form] and not dreams.is_unlocked(final_form.get_id()), "with enough Dreamlight it opens Remember as well, nothing spent")
 	remember = main.find_child("RememberScreen", true, false)
@@ -82,7 +82,8 @@ func _run() -> void:
 	_check(dreams.is_unlocked(final_form.get_id()) and dreams.dreamlight == 0 and run_state.dew == dew,
 		"unlocking spends its Dreamlight (not Dew) and unlocks the final form")
 	var grow := _button(panel, "Grow into " + final_name)
-	_check(grow != null and "Dew" in grow.text, "then it offers growing for Dew as usual (%s)" % (grow.text if grow else "none"))
+	_check(grow != null and "Dew" in grow.text and _button(panel, "Unlock " + final_name) == null,
+		"then the same slot reads Grow into for Dew, no Unlock (%s)" % (grow.text if grow else "none"))
 
 	print("dreamlight panel test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

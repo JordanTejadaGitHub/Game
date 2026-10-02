@@ -20,7 +20,11 @@ var desc: RichTextLabel  # What it does, with its status words as links (StatusL
 var stats := VBoxContainer.new()  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var growth := VBoxContainer.new()  # "Grows into" (the hover card and Codex; the panel has its Grow buttons)
 
-const LOCKED_FORM_TIP := "Unlock it on the Remember screen."  # A form not unlocked this run (no stats, no preview)
+const LOCKED_FORM_TIP := "Unlock it with Dreamlight, then grow it with Dew."  # A form not unlocked this run (no stats, no preview)
+
+# A form's unlock blocker as the line shows it: "in the Memory Grove", "needs Stormcap", "from drift 51".
+static func blocker_text(blocker: String) -> String:
+	return "in the Memory Grove" if blocker == "Memory Grove" else blocker
 
 var _tower: Tower = null  # The planted Warden shown, or a probe carrying this run's bonuses (never in the tree)
 var _probe: Tower = null
@@ -154,11 +158,12 @@ func _fill_growth(data: TowerData, dreams: DreamState) -> void:
 				tip = TowerPlacer.describe_growth(_tower, next, dreams) + "\n\n" + tip
 		elif dreams.has_method("get_unlock_cost"):
 			var blocker: String = dreams.get_unlock_blocker(next) if dreams.has_method("get_unlock_blocker") else ""
-			var shown := RememberScreen.UNKNOWN_NAME if blocker == "Memory Grove" else next.display_name
-			line.text = "%s · %s" % [shown, blocker if blocker != "" else "unlock with %d Dreamlight" % dreams.get_unlock_cost(next)]
-			line.add_theme_color_override("font_color", UiStyle.INK_DIM)
-			if blocker == "Memory Grove":
+			if blocker == "Memory Grove":  # Can't be unlocked in a run: no name, no Unlock wording
+				line.text = "%s · %s" % [RememberScreen.UNKNOWN_NAME, blocker_text(blocker)]
 				tip = RememberScreen.UNKNOWN_NAME
+			else:
+				line.text = "Unlock %s · %s" % [next.display_name, blocker_text(blocker) if blocker != "" else "%d Dreamlight" % dreams.get_unlock_cost(next)]
+			line.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		else:
 			line.text = "%s · needs a Dream" % next.display_name
 			line.add_theme_color_override("font_color", UiStyle.INK_DIM)
