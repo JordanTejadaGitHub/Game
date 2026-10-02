@@ -51,23 +51,39 @@ Dream** (the rest right after it). Chosen over +1 Dreamlight because Dreamlight 
 dream"); the rest report says whether it was earned. Code: Roguelite Code (DreamState: the slot,
 DriftDirector: finale cleared clean) + Main Merger (banner, rest report).
 
-## Phase 3: rest choices (Spire's campfire), before Blight 11–20
+## Phase 3: Heartwood's Gifts (replaces the per-rest choices)
 
-At **every rest**, after the Dream and the Omen, pick **one**:
+User, 2026-10-02: drop Rest / Tend / Dream (too close to Spire's campfire; rests are busy). Instead,
+**once per act break (after the bosses at 25 / 50 / 75), pick 1 of 3 gifts** from an 18-gift pool that
+mostly reshapes the map. Spec: `heartwood_gifts.md` (design hub, 449c7437). The rest-choice code is
+removed from the branch; Roguelite's `add_next_offer_cards` may stay unused.
 
-| Choice | Effect |
+**Numbers (Balancing Discussion, starting values):**
+
+| Gift | Number |
 |---|---|
-| **Rest** | regrow **1 leaf** (up to max) |
-| **Tend** | **one free Nurture rank** on a Warden you pick (`RunState.free_nurtures` + 1) |
-| **Dream** | **one extra card** in the next Dream offer |
+| Let them pass | **+30 Dew × act** |
+| Sow a Ridge | 3–5 Withered Trees |
+| Fallen Giant | 2–4 cells, never clearable this run |
+| Glade | radius 2, free, each counts as tended |
+| Shift the Stones | up to 3 obstacles |
+| Mire | 3 path cells, nightmares **−20% speed** there (respects the slow floors) |
+| Spring | 2×2 pond; adjacent water Wardens **+20% damage**; Soaked **+1 s** within 2 cells |
+| Mushroom Ring | 3×3; spore Wardens touching it **+2 Poisoned cap** |
+| Lightning Tree | Charged bolts within 2 cells **+25%** |
+| Moonwell | Wardens in the **4 orthogonal** cells **+1 range** (not all 8: +1 range on 8 Wardens is too much) |
+| Bell Stone | song Wardens within 1 cell pulse **15% faster** |
+| Ancient Stump | **3** stumps; a Warden planted on one starts at **rank I** |
+| Heartwood Roots | last **4** path cells, nightmares take **+15%** |
+| Thick Mist | next act, spawn spacing **×1.25** |
+| Bramble Verge | Thornwalls **half cost**; nightmares touching one **+1 Drowsy cap** |
+| Old Kin | one Kinship **+1 stage**; new bonds start **+1 stage** next act |
+| Deeper Glade | glade **+1 ring**; **+1 max leaf** (the only leaf gift; a max, not a regrow) |
+| Waking Root | next unlock **−1 Dreamlight** |
+| Memory Seed | one Warden keeps ranks + Kinship age when sold and replanted, this act |
 
-**Rest is only offered below max leaves** (user: regrowing isn't a reward when nothing was lost). At
-full leaves it's replaced by **Clear: one free clear** (`RunState.free_clears` + 1), or, with fewer
-than 3 obstacles left, **Forage: +20 Dew × act**.
-
-Healing becomes a choice that costs power. The rest bonus (Dew) stays as it is. Code: Main Merger (the
-rest step, UI) + Roguelite Code (the Dream effect; free Nurture exists). Saved with the run.
-
+Judged by human runs (which gifts get picked, and whether a pick changes how the act plays); a gift
+nobody picks gets a bigger number, one always picked a smaller one.
 ## Phase 4: Grove power, capped (with Meta Game Discussion)
 
 Model: **most perks are sidegrades** (Meta Game Discussion's table below); **a few stay honest
