@@ -1018,7 +1018,7 @@ func get_aura_bonus(speed: bool) -> float:
 	if base <= 0.0:
 		return 0.0
 	if not speed and tower_data.get_id() == "acorn" and _rule_stacks(&"acorn_cache") > 0:
-		base = 0.05 + (ACORN_CACHE_AURA - 0.05) * _rule_power(&"acorn_cache")  # Tag resonance scales the card's part
+		base = 0.05 + (ACORN_CACHE_AURA - 0.05) * _rule_power(&"acorn_cache")  # (rule_power is 1.0 since tag resonance was removed, dream_audit.md a6628056)
 	if is_aura_support():
 		var ranks := get_effective_rank()
 		base *= pow(AURA_PER_RANK, ranks)  # Grove Heart: its base only, not the per-Warden extra
@@ -1317,7 +1317,7 @@ func _release() -> void:
 
 # Card hit multipliers (dream_design.md): Patient Aim (+15% per second it didn't fire, max +60%), Crush (area
 # hits on a crowded nightmare), Crowd Breaker (area attacks +5% per nightmare hit, max +45%), Shiny Things
-# (the Magpie's stolen buffs). Tag resonance on each.
+# (the Magpie's stolen buffs).
 const HIT_CARD_RULES: Array[StringName] = [&"patient_aim", &"crush", &"crowd_breaker", &"shiny_things"]
 const CATALOGUE_HIT_RULES: Array[StringName] = [&"mycelium", &"fireflies_in_the_grass", &"resonance"]
 
@@ -2921,7 +2921,7 @@ func _has_rule(rule: StringName) -> bool:
 func _rule_level(rule: StringName) -> int:
 	return _rule_entry(rule)[1]
 
-# Tag resonance (dream_audit.md): a card's numbers scale with the owned cards sharing its tags (1.0 = none).
+# A card's power: 1.0 (tag resonance was removed, dream_audit.md a6628056); kept as one place to scale rule numbers.
 func _rule_power(rule: StringName) -> float:
 	return _dream_state.rule_power(rule) if _dream_state and _dream_state.has_method("rule_power") else 1.0
 

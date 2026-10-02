@@ -406,7 +406,7 @@ func _stacks(rule: StringName) -> int:
 	var dreams := _dreams()
 	return dreams.rule_stacks(rule) if dreams else 0
 
-# Tag resonance (dream_audit.md): the card's numbers scale with owned cards sharing its tags.
+# A card's power: 1.0 (tag resonance was removed, dream_audit.md a6628056).
 func _power(rule: StringName) -> float:
 	var dreams := _dreams()
 	return dreams.rule_power(rule) if dreams and dreams.has_method("rule_power") else 1.0
