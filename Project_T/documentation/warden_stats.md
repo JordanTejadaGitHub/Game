@@ -239,7 +239,7 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | Puffball | final | +90 | 2.5 | 12 × 2.0 | 24 | projectile | Spored 2 per hit, cap 12. At **10+ stacks** the target **pops**: soothes it and creatures within 1 cell for **6 × stacks**, and half its stacks spread to up to 3 nearby creatures |
 | ✓ Bloomcap | branch | +45 | 2.5 | 10 × 0.5 | cloud | cloud | leaves a sleepy cloud on the path (radius 0.75, 3 s): Drowsy |
 | Dreamshroom | final | +90 | 2.5 | 14 × 0.6 | cloud | cloud | bigger cloud (radius 1.0, 4 s), **2 Drowsy** per tick; at 5 Drowsy a creature **sleeps 1.5 s** (once each; bosses cap at 3 Drowsy, so they never sleep) |
-| ✓ Fairy Ring *(hidden)* | branch | +45 | 2.5 | 35 per burst | trap | trap | every 2 s plants a ring on a random path tile in range (max 4, last 10 s); stepping on one: 35 damage within 0.6 cells + **Spored 2** |
+| ✓ Fairy Ring *(hidden)* | branch | +45 | 2.5 | 35 per burst | trap | trap | every 2 s plants a ring on a random path tile in range (max 4, last 10 s); stepping on one: 35 damage within 0.6 cells + **Spored 2**; *Balancing 2026-10-02 (branch sweep, per Dew vs Driftspore): ~1.6× Driftspore, so burst damage 44 → 30.* |
 | ✓ Elf Circle *(hidden)* | final | +90 | 3 | 60 per burst | trap | trap | every 1.5 s, max 6 rings, **rings last until stepped on**; Spored 3; *Balancing 2026-10-02 (finals sweep, damage per Dew vs Puffball): damage ×0.75 (was 1.3–1.6× in act 2, 2.1–2.4× in act 3).* |
 
 ## Dewdrop family (water)
