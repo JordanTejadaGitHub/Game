@@ -173,7 +173,7 @@ const STAT_TOP_RANK := 7  # Attack speed and range from ranks stop at VII (Endle
 enum Focus { NONE, POWER, SWIFT, REACH, DEEP, WIDE, STRONG, KINDRED }  # Append only (saved as ints)
 const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "Reach", Focus.DEEP: "Deep",
 	Focus.WIDE: "Wide", Focus.STRONG: "Strong", Focus.KINDRED: "Kindred"}
-const FOCUS_TEXT := {Focus.POWER: "+18% damage", Focus.SWIFT: "+12% attack speed", Focus.REACH: "+0.3 range",
+const FOCUS_TEXT := {Focus.POWER: "deals 18% more damage", Focus.SWIFT: "attacks 12% faster", Focus.REACH: "+0.3 range",
 	Focus.DEEP: "+25% Potency (stronger statuses and effects)",
 	Focus.WIDE: "+0.2 aura reach", Focus.STRONG: "+5% aura", Focus.KINDRED: "ignores the aura falloff"}
 const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
@@ -1127,7 +1127,7 @@ func _stack_auras(auras: Dictionary) -> void:
 				top_speed = speed
 				_aura_speed_from = giver
 
-# The Warden panel's aura lines: "Elder Stump ×3: +35% attack speed", one per kind touching this Warden.
+# The Warden panel's aura lines: "Elder Stump ×3: attacks 35% faster", one per kind touching this Warden.
 func get_aura_lines() -> Array[String]:
 	var kinds := {}
 	for source in _aura_sources:
@@ -1143,9 +1143,9 @@ func get_aura_lines() -> Array[String]:
 		var row: Array = kinds[kind]
 		var parts: Array[String] = []
 		if row[2] > 0.0:
-			parts.append("+%d%% damage" % roundi(row[2] * 100.0))
+			parts.append("deals %d%% more damage" % roundi(row[2] * 100.0))
 		if row[3] > 0.0:
-			parts.append("+%d%% attack speed" % roundi(row[3] * 100.0))
+			parts.append("attacks %d%% faster" % roundi(row[3] * 100.0))
 		if parts.is_empty():
 			continue
 		var name: String = row[0] if kind != "old_growth" else "Old Growth"
