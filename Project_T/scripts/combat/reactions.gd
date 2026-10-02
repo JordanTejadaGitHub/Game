@@ -27,6 +27,7 @@ const THUNDERCLAP_STATIC_BOSS := 5
 const THUNDERCLAP_DAMAGE := 4.0  # × the applier's damage, to the nightmare that discharges
 const THUNDERCLAP_ARC_DAMAGE := 2.0  # × the applier's damage, to each wet nightmare it arcs to
 const THUNDERCLAP_MAX_ARCS := 8
+const ROLLING_THUNDER_ARCS := 3  # Rolling Thunder: its longer arcs strike at most this many
 const THUNDERCLAP_REACH: Array[float] = [2.5, 3.5, 4.5]  # Cells: base, Rolling Thunder, Rolling Thunder II
 const THUNDERCLAP_ARC_STATIC: Array[int] = [1, 1, 2]
 const IGNITE_MIN_SPORES := 3
@@ -38,7 +39,7 @@ const MUSHROOM_MIN_SPORES := 3
 const MUSHROOM_TIME := 4.0
 const MUSHROOM_CLOUD_RADIUS := 0.6  # Cells
 const MUSHROOM_CLOUD_TIME := 4.0
-const MUSHROOM_RAIN_TIME := 2.0  # Mushroom Rain: ×2 duration…
+const MUSHROOM_RAIN_TIME := 0.5  # Mushroom Rain: half the duration…
 const MUSHROOM_RAIN_RADIUS := 1.5  # …and the 3×3 around its tile (cells from the centre, reaching the corners' middles)
 const SHATTER_MULTIPLIER := 2.5
 const SHATTER_SPLASH := 0.5  # Share of the hit the shards deal within 1 cell
@@ -48,6 +49,7 @@ const PULL_UNDER_BOSS_SLOW: Array[float] = [0.3, 0.4]  # Bosses (base, Deep Wate
 const PULL_UNDER_STEP := 0.5  # Drowning damage in second n: n × this × the applier's damage
 const DEEP_WATER_GROWTH := 1.5  # Deep Water: the damage grows 50% faster
 const DROWN_TIMES: Array[int] = [1, 1, 2]  # Per nightmare: base, Deep Water, Deep Water II
+const DEEP_WATER_REACH := 5.0  # Cells from the Heartwood (straight line) where Deep Water works
 const PINNED_MULTIPLIER := 3.0
 const ROD_REACH := 3.0  # Cells
 const ROD_MULTIPLIER := 2.0
@@ -88,6 +90,11 @@ const CARRIED_REACH := 0.75  # Cells from the Reaction's spot
 const CROWNED_BASE := {&"tempest": &"thunderclap", &"still_pool": &"drown", &"fever_dream": &"smother",
 	&"starfall": &"pinned", &"avalanche": &"shatter", &"prismstorm": &"shatter", &"nightbloom": &"mushrooming",
 	&"fairy_circle": &"mushrooming"}
+# Each Crowned Reaction's Woven card (its cost: that Crowned Reaction's cooldown ×WOVEN_COOLDOWN).
+const WOVEN_RULE := {&"tempest": &"eye_of_the_tempest", &"still_pool": &"deep_stillness", &"fever_dream": &"fever_pitch",
+	&"starfall": &"falling_stars", &"avalanche": &"mountains_fall", &"prismstorm": &"prism_heart", &"nightbloom": &"endless_night",
+	&"fairy_circle": &"ring_of_rings"}
+const WOVEN_COOLDOWN := 2.0
 
 # Reaction id -> its resource path (not the resource: a static holding Resources at exit can crash the
 # engine's teardown, the exit-crash hunt). load() hits ResourceLoader's cache after the first time.
@@ -483,10 +490,12 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 			arcs.append(other)
 	# At most the THUNDERCLAP_MAX_ARCS nearest Soaked nightmares per clap (design chat; also bounds a
 	# chain's cost). Chains still continue from those.
-	if arcs.size() > THUNDERCLAP_MAX_ARCS:
+	# Rolling Thunder's cost (dream_design.md 83c40cd7): its longer arcs strike at most ROLLING_THUNDER_ARCS nightmares.
+	var max_arcs := ROLLING_THUNDER_ARCS if level > 0 else THUNDERCLAP_MAX_ARCS
+	if arcs.size() > max_arcs:
 		var at: Vector2 = enemy.global_position
 		arcs.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
-		arcs = arcs.slice(0, THUNDERCLAP_MAX_ARCS)
+		arcs = arcs.slice(0, max_arcs)
 	enemy.take_damage(base * THUNDERCLAP_DAMAGE, _line(tower, "light"), false, false, tower, &"thunderclap")
 	for other in arcs:
 		if not is_instance_valid(other) or other.is_cleansed:
@@ -494,6 +503,8 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 		_segment(&"thunderclap_arc", enemy.global_position, other.global_position, enemy, 0.25)
 		_touch(other, chain, _towers(tower))
 		var struck := strike_bolt(other, base * THUNDERCLAP_ARC_DAMAGE, tower, &"thunderclap")
+		if is_instance_valid(other) and dreams and dreams.has_rule(&"conductive_soil"):
+			other.statuses.remove(DAMP)  # Conductive Soil's cost: each jump uses up that nightmare's Soaked
 		if is_instance_valid(struck) and not struck.is_cleansed:
 			struck.apply_status(STATIC, THUNDERCLAP_ARC_STATIC[level], 0.0, potency, 0, "light", tower)
 		# Tempest: every arc also sets off Ignite on a Spored target (not bosses), whose spread spores
@@ -574,6 +585,7 @@ static func _burn_spread(enemy: Node2D, spore_source: Node, chain: int, carry_st
 	var stacks: int = spread if spread > 0 else IGNITE_SPREAD[level]
 	var potency := s.potency(SPORED)
 	var line := s.spore_line()
+	var spread_any := false
 	for other in _others_within(enemy, IGNITE_REACH[level] + _storm_front(enemy)):
 		if not is_instance_valid(other) or other.is_cleansed:
 			continue
@@ -582,6 +594,9 @@ static func _burn_spread(enemy: Node2D, spore_source: Node, chain: int, carry_st
 			other.apply_status(STATIC, 1, 0.0, carry_static, 0, "light", static_source if static_source else spore_source)  # Tempest: burns carry Static (its charger's)
 		if is_instance_valid(other) and not other.is_cleansed:
 			other.apply_status(SPORED, stacks, 0.0, potency, 0, line, spore_source)
+			spread_any = true
+	if level > 0 and spread_any and is_instance_valid(enemy) and not enemy.is_cleansed:
+		s.remove(SPORED)  # Wildfire Spores' cost (dream_design.md 83c40cd7): spreading 2 burns away its own Poisoned
 
 # 3+ Spored + Damp: the Spored ticks +50% for 4 s and a spore cloud grows on the tile. Uses up Damp.
 static func _mushrooming(enemy: Node2D, source: Node) -> void:
@@ -634,7 +649,7 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 		time = NIGHTBLOOM_TIME[1]
 	var radius := (MUSHROOM_CLOUD_RADIUS * wide + _storm_front(enemy)) * CELL
 	if dreams and dreams.has_rule(&"mushroom_rain"):
-		# Mushroom Rain (card 134): the cloud lasts twice as long and covers the 8 tiles around it too.
+		# Mushroom Rain (card 134; dream_design.md 83c40cd7): the cloud covers the 8 tiles around it but lasts half as long.
 		time *= MUSHROOM_RAIN_TIME
 		radius = maxf(radius, MUSHROOM_RAIN_RADIUS * CELL)
 	var cloud := ReactionCloud.new(Tower.MAP_GRID.calculate_map_position(cell), radius, time, s.potency(SPORED),
@@ -644,12 +659,20 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 	_world(enemy).add_child(cloud)
 
 # Damp + full Drowsy: falls asleep for 2 s, once per nightmare (bosses and nightmares that can't be
+
+# Whether `enemy` is within `cells` (straight line) of the Heartwood.
+static func _near_heartwood(enemy: Node2D, dreams: DreamState, cells: float) -> bool:
+	var map = dreams.map_generator if dreams else null
+	if map == null:
+		return true
+	return enemy.global_position.distance_to(Tower.MAP_GRID.calculate_map_position(map.endPath)) <= cells * CELL
 # held are slowed instead). Uses up the Drowsy.
 static func _drown(enemy: Node2D, source: Node) -> void:
 	var s: EnemyStatuses = enemy.statuses
 	var dreams := _dreams(enemy)
 	var level := 0
-	if dreams and dreams.has_rule(&"deep_water"):
+	# Deep Water's cost (dream_design.md 83c40cd7): only for Drowns within DEEP_WATER_REACH cells (straight line) of the Heartwood.
+	if dreams and dreams.has_rule(&"deep_water") and _near_heartwood(enemy, dreams, DEEP_WATER_REACH):
 		level = 1 + dreams.rule_level(&"deep_water")
 	if s.drowned >= DROWN_TIMES[level]:
 		return
@@ -800,6 +823,8 @@ static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown:
 	var cooldown: float = data.cooldown if data else 1.5
 	if dreams and dreams.has_rule(&"quick_reactions"):
 		cooldown = minf(cooldown, QUICK_COOLDOWN)
+	if dreams and WOVEN_RULE.has(id) and dreams.has_rule(WOVEN_RULE[id]):
+		cooldown *= WOVEN_COOLDOWN  # A Woven card's cost (dream_design.md 83c40cd7): its Crowned Reaction fires half as often
 	s.start_cooldown(key, cooldown)
 	# Storm Front: a Reaction a Gust-copied status completed counts one more link.
 	var storm_front := s.gust_time > 0.0

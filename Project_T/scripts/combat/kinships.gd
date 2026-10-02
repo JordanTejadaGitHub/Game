@@ -678,13 +678,16 @@ func note_hit(tower: Tower, enemy: Node2D, dealt: float) -> void:
 		_harmony_look(enemy.global_position, pair)
 		harmony_struck.emit(tower, enemy)
 		# Credited to the Warden whose hit just landed, so DamageLog merges it into that hit's number (green).
-		enemy.take_damage(damage, tower.tower_data.line, true, false, tower, &"harmony")
+		# Kin and Kindling (dream_design.md 83c40cd7): the strike applies both statuses instead of dealing damage.
+		var kindling := _has(&"kin_and_kindling")
+		if not kindling:
+			enemy.take_damage(damage, tower.tower_data.line, true, false, tower, &"harmony")
 		# Spore Kin (Dream): a Sporeling-line pair's Harmony strike also poisons.
 		if _has(&"spore_kin") and tower.tower_data.line == "spore" and is_instance_valid(enemy) and not enemy.is_cleansed:
 			tower._apply_one_status(enemy, EnemyStatuses.SPORED, roundi(DreamState.SPORE_KIN_SPORED * _power(&"spore_kin")), weaker.get_damage())
-		# Kin and Kindling: the strike also applies both Wardens' statuses (1 stack each); they can
+		# Kin and Kindling: the strike applies both Wardens' statuses (1 stack each) instead of its damage; they can
 		# complete Reactions, but the strike itself is never a chain link.
-		if _has(&"kin_and_kindling"):
+		if kindling:
 			for kin_warden in [pair.a, pair.b]:
 				if is_instance_valid(kin_warden) and is_instance_valid(enemy) and not enemy.is_cleansed \
 						and kin_warden.attack_data.applies_status != &"":
