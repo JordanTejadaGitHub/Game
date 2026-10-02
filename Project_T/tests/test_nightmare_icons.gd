@@ -186,10 +186,14 @@ func _run() -> void:
 	_check(dossier.visible and dossier.shown_drift == 25, "act 1: the dossier opens by itself at the first rest (drift %d)" % dossier.shown_drift)
 	var text := _text(dossier._content)
 	var health := NightmareCard.health_at(stag, 25, director)
-	_check(health == maxi(roundi(stag.health * director.get_health_scale(stag, 25)), 1) and text.contains(BossDossier.thousands(health)),
-		"the real boss health (%d)" % health)
+	var on_page: bool = dossier._content.find_children("*", "Label", true, false).any(func(l: Label) -> bool: return l.is_visible_in_tree() and l.text.contains(BossDossier.thousands(health)))
+	_check(health == maxi(roundi(stag.health * director.get_health_scale(stag, 25)), 1) and not on_page
+		and dossier._stage.tooltip_text.contains(BossDossier.thousands(health)),
+		"the real boss health (%d) is in the portrait's tip, not on the page" % health)
 	_check(text.contains(stag.title) and text.contains("drift 25 · the last drift of the act") and text.contains("the boss of act 1") and text.contains("Arrives in"), "header: eyebrow, title, drift and arrival")
-	_check(text.contains("leaves") and text.contains("about "), "the leaves it takes, and its health in Husks (%s)" % text.left(300))
+	_check(text.contains("Takes 10 leaves if it reaches the Heartwood") and not text.contains("tiles/s") and not text.contains("It brings"),
+		"only the leaf toll, large; no speed, no \"It brings\" (user: \"a lot of information on the boss page\") (%s)" % text.left(300))
+	_check(BossDossier.toll_text(stag, 1) == "Takes 10 leaves if it reaches the Heartwood", "the toll without a run (the Codex on the title screen)")
 	var revealed := []
 	dossier.boss_revealed.connect(func(d: EnemyData) -> void: revealed.append(d))
 	dossier.open(25)

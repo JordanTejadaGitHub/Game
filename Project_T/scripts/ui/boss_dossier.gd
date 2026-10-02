@@ -12,16 +12,16 @@ class_name BossDossier
 #             slow vignette pulse, a Wraithlight frame; an entrance (portrait fades up, the name writes in;
 #             reduced motion = a plain fade) and `boss_revealed` for Sound (boss_reveal)
 #   header    eyebrow, name · title, a whisper line, "Drift 25 · the last drift of the act", "New"
-#   numbers   real health with context ("about 13 Husks"), speed, and the leaves it takes, large
+#   the toll  the leaves it takes, large (health: the portrait's tip; speed and "It brings" removed, user 2026-10-02)
 #   defences  the Resists / Weak to / Immune rows, larger (NightmareIcons)
 #   abilities icon, name, what it does, WHEN (EnemyData.get_ability: numbers filled from the data)
-#   it brings summons (EnemyData.get_summons) + the boss drift's escorts
 #   your record (times dispelled, best time; profile "boss_records")
 # Reopen any time from the drift banner's "Boss in N" or the boss portrait in Coming this block
 # (BossDossier.open_for). Opened during a drift it pauses until closed. Made by the HUD.
 
 const GROUP := &"boss_dossier"
 const ENEMY_SCRIPT := preload("res://scripts/enemy/enemy.gd")  # HEARTWOOD_DRAIN_EVERY
+const SPAWNER_SCRIPT := preload("res://scripts/enemy/enemy_spawner.gd")  # boss_bite_leaves (toll_text without a run)
 const RECORDS_KEY := "boss_records"  # Profile: {kind: {"dispelled": n, "best": seconds}}
 const WIDTH := 880.0
 const PORTRAIT := 240.0  # The boss's portrait, ~3× the old one
@@ -383,21 +383,6 @@ func boss_data(drift: int) -> EnemyData:
 				return entry.enemy
 	return null
 
-# The boss drift's other arrivals: [[EnemyData, count], …].
-func escorts(drift: int) -> Array:
-	var counts := {}
-	var order: Array = []
-	var extra := drift_director.get_extra_nightmares(drift)
-	for group in drift_director.drifts[drift - 1].groups:
-		for entry in group.entries:
-			if entry.enemy == null or entry.enemy.is_boss:
-				continue
-			if not counts.has(entry.enemy):
-				order.append(entry.enemy)
-				counts[entry.enemy] = 0
-			counts[entry.enemy] += entry.get_count(1.0, 1.0, extra)
-	return order.map(func(data: EnemyData) -> Array: return [data, counts[data]])
-
 # --- The card ------------------------------------------------------------------------------------
 
 # The portrait in its mist on the left, everything else in the right column.
@@ -413,23 +398,14 @@ func _build(data: EnemyData, drift: int) -> void:
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	columns.add_child(right)
 	right.add_child(_header(data, drift))
-	var numbers := HBoxContainer.new()
-	numbers.add_theme_constant_override("separation", 22)
+	# Less on the page (user: "a lot of information on the boss page, remove health and speed and what it brings"):
+	# health lives on the boss bar in the fight, and in the portrait's tip here; speed and "It brings" are gone
+	# (escorts show in the Coming strip; a summoning ability's row names what it calls).
 	var health := NightmareCard.health_at(data, drift, drift_director)
-	numbers.add_child(_stat("Health", thousands(health) + _compare_text(health, drift),
-		"With this run's growth, Blight and Dreams."))
-	numbers.add_child(_stat("Speed", "%.1f tiles/s" % (data.speed / 64.0), "How fast it walks."))
-	right.add_child(numbers)
+	TapTip.attach(_stage, "Health %s%s (with this run's growth, Blight and Dreams)" % [thousands(health), _compare_text(health, drift)])
 	var leaves := Label.new()  # What it costs you, large
-	if data.laps():  # The Night Mare: untouchable while it lingers, longer each lap
-		leaves.text = "At the Heartwood it can't be touched: it drains, then runs the maze again, faster"
-	elif data.stays_at_heartwood:  # The Hollow Oak
-		leaves.text = "Stays at the Heartwood, draining a leaf every %s s" % String.num(ENEMY_SCRIPT.HEARTWOOD_DRAIN_EVERY)
-	else:  # Every other act boss: a flat bite by act (EnemyContainer.boss_bite_leaves), then it's gone
-		var spawner = drift_director.get_node_or_null("%EnemyContainer") if drift_director != null else null
-		var act: int = drift_director.get_act(drift) if drift_director != null else 1
-		var bite: int = spawner.get_boss_bite(act) if spawner != null else data.leaf_cost
-		leaves.text = "Reaching the Heartwood costs %d leaves" % bite
+	var spawner = drift_director.get_node_or_null("%EnemyContainer") if drift_director != null else null
+	leaves.text = toll_text(data, drift_director.get_act(drift) if drift_director != null else 1, spawner)
 	UiStyle.display(leaves, 26)
 	leaves.add_theme_color_override("font_color", BOSS_COLOR.lightened(0.25))
 	TapTip.attach(leaves, IconInfo.resource_tooltip(&"leaves"))
@@ -441,12 +417,26 @@ func _build(data: EnemyData, drift: int) -> void:
 		right.add_child(_section("What it does"))
 		for i in data.abilities.size():
 			right.add_child(_ability_row(data.get_ability(i)))
-	var brings := _brings(data, drift)
-	if brings.get_child_count() > 0:
-		right.add_child(_section("It brings"))
-		right.add_child(brings)
 	right.add_child(_section("Your record"))
 	right.add_child(StatusLinks.make_label(record_text(data), 15))
+
+# What a boss costs you at the Heartwood (the dossier, large; the Codex's boss entry): "Takes 10 leaves if it reaches
+# the Heartwood"; the Night Mare and the Hollow Oak in their own words. Without a run's EnemyContainer (the Codex on the
+# title screen), the bite table's default from the spawner script.
+static func toll_text(data: EnemyData, act: int, spawner: Node = null) -> String:
+	if data.laps():  # The Night Mare: untouchable while it lingers, longer each lap
+		return "At the Heartwood it can't be touched: it drains, then runs the maze again, faster"
+	if data.stays_at_heartwood:  # The Hollow Oak
+		return "Stays at the Heartwood, draining a leaf every %s s" % String.num(ENEMY_SCRIPT.HEARTWOOD_DRAIN_EVERY)
+	var bite := data.leaf_cost
+	if spawner != null and spawner.has_method("get_boss_bite"):
+		bite = spawner.get_boss_bite(act)  # A flat bite by act (EnemyContainer.boss_bite_leaves), then it's gone
+	else:
+		var spawner_script: Script = SPAWNER_SCRIPT
+		var table = spawner_script.get_property_default_value("boss_bite_leaves")
+		if table is Array and not table.is_empty():
+			bite = int(table[clampi(act - 1, 0, table.size() - 1)])
+	return "Takes %d leaves if it reaches the Heartwood" % bite
 
 # " · about 13 Husks": its health in the act's everyday nightmare, at the same drift.
 func _compare_text(health: int, drift: int) -> String:
@@ -495,21 +485,6 @@ static func whisper_line(data: EnemyData) -> String:
 	var line = data.get("whisper")
 	return String(line) if line != null and String(line) != "" else DEFAULT_WHISPER
 
-func _stat(caption: String, value: String, tip: String) -> Control:
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 0)
-	var top := Label.new()
-	top.text = caption
-	top.add_theme_font_size_override("font_size", 13)
-	top.add_theme_color_override("font_color", UiStyle.INK_DIM)
-	box.add_child(top)
-	var number := Label.new()
-	number.text = value
-	number.add_theme_font_size_override("font_size", 20)
-	box.add_child(number)
-	TapTip.attach(box, tip)
-	return box
-
 func _section(text: String) -> Label:
 	var label := Label.new()
 	label.text = text
@@ -542,35 +517,6 @@ static func _links_keep_tags(text: String) -> String:
 		out = out.replace("[lb]%s]" % tag, "[%s]" % tag)
 	var colour := RegEx.create_from_string("\\[lb\\](color=#[0-9a-fA-F]{6})\\]")
 	return colour.sub(out, "[$1]", true)
-
-func _brings(data: EnemyData, drift: int) -> VBoxContainer:
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
-	for summon in data.get_summons():
-		box.add_child(_escort_row(summon.data, int(summon.count), String(summon.how), drift))
-	for pair in escorts(drift):
-		box.add_child(_escort_row(pair[0], pair[1], "in the same drift", drift))
-	return box
-
-func _escort_row(data: EnemyData, count: int, how: String, drift: int) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	var face := TextureRect.new()
-	face.texture = NightmareCard.portrait(data)
-	face.modulate = data.tint
-	face.custom_minimum_size = Vector2(36, 36)
-	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	TapTip.attach(face, "%s: %s" % [data.display_name, NightmareCard.numbers_text(data, drift, drift_director)])
-	row.add_child(UiStyle.on_moon_disc(face))  # Readable on the night sky (screens_ui.md)
-	var label := Label.new()
-	label.text = "%s ×%d · %s" % [data.display_name, count, how]
-	label.add_theme_font_size_override("font_size", 15)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(label)
-	row.add_child(NightmareIcons.make_rows(data, 20.0, true))
-	return row
 
 # --- Your record ---------------------------------------------------------------------------------
 
