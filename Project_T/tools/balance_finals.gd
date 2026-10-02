@@ -10,9 +10,11 @@ extends SceneTree
 #       [--drift=45] [--count=5] [--seed=7] [--out=<file.csv>]   (appends one row per run to --out)
 
 const SPEED := 4.0
-const RANK := 4
+var rank := 4  # --rank=N: ranks bought for every Warden (Power)
 const COPIES := 4
 const CAST := ["thunderhead", "boulderback", "moonstone", "rockslide", "starcave", "midsummer", "magpies_hoard", "great_dreamcatcher"]
+const CAST_ACT1 := ["sporeling", "firefly_jar", "dewdrop", "bellflower", "pebbling", "acorn", "rootling", "nestling"]  # --cast=act1: base Wardens (an act 1 board)
+var cast: Array = CAST
 
 var main: Node
 var form_id := "dreamshroom"
@@ -43,6 +45,8 @@ func _run() -> void:
 			"--count": count = int(value)
 			"--seed": map_seed = int(value)
 			"--out": out_path = value
+			"--rank": rank = int(value)
+			"--cast": cast = CAST_ACT1 if value == "act1" else CAST
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
 	root.add_child(main)
@@ -62,7 +66,7 @@ func _run() -> void:
 			quit(1)
 			return
 		candidates.append(tower)
-	for id in CAST:
+	for id in cast:
 		_plant(placer, id)
 	if DamageLog.instance:
 		DamageLog.instance.damage_dealt.connect(_on_damage)
@@ -99,7 +103,7 @@ func _run() -> void:
 	_report(director)
 	quit(0)
 
-# Builds the base form on the best open cell next to the path, grows it to `id` and ranks it to RANK,
+# Builds the base form on the best open cell next to the path, grows it to `id` and ranks it to `rank`,
 # all paid with Dew. Returns the Warden, or null.
 func _plant(placer: TowerPlacer, id: String) -> Tower:
 	var chain := _chain_to(id)
@@ -124,7 +128,7 @@ func _plant(placer: TowerPlacer, id: String) -> Tower:
 		return null
 	for step in chain.slice(1):
 		placer.evolve(tower, step)
-	for r in RANK:
+	for r in rank:
 		if not placer.nurture(tower, Tower.Focus.POWER):
 			for focus in [Tower.Focus.STRONG, Tower.Focus.WIDE, Tower.Focus.SWIFT]:
 				if placer.nurture(tower, focus):
@@ -196,7 +200,7 @@ func _report(director: DriftDirector) -> void:
 		"share": snappedf(damage / maxf(total, 1.0), 0.001), "rank": candidates[0].rank,
 		"hit": snappedf(split.hit / t, 0.01), "cloud": snappedf(split.cloud / t, 0.01), "status": snappedf(split.status / t, 0.01),
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
-		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on,
+		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else "finals",
 		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t)}
 	print("FINALS %s" % JSON.stringify(row))
 	if out_path != "":
