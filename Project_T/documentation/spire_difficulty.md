@@ -272,3 +272,8 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: branch-review reworks in **67beac23** (Tower Code): Undercurrent / Maelstrom links,
   Jetreed / Torrent erosion, Nimbus drift, Eye of the Storm 10%. Probe queued; if Torrent outscales in
   acts 3–4, cap the % part per hit (Tower Discussion agrees), not the base.
+- 2026-10-02: **weighted smart draw** (Roguelite c8bb187e) + Prism Jar anti_tank (Tower 3d0eb468). 100
+  seeds, 4 start families: **anti_tank 90%** (was 68), anti_armour 80, anti_swarm 89, anti_support 96,
+  boss_abilities 82, detection 79, anti_air 75 (was 84; watch: flyers come from drift 31); 9–10 pairs per
+  family, none above 26% of runs. The strict top-band version (100% everywhere, same Sporeling pair
+  every run) was rightly not shipped.
