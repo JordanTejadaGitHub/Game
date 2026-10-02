@@ -6,8 +6,8 @@ class_name CodexPanel
 # - Glossary: every term (CodexData.glossary()), grouped and searchable, with "see also" links that
 #   jump (to another term, or to a combo); bosses and late nightmares appear once met
 #   (profile nightmares_seen).
-# - Combos: those the families you can get make (CodexData.scope: the starting three + Grove
-#   families; the demo its three; dev runs all), "N more wait in the Memory Grove." for the rest;
+# - Combos: those the families you can get make (CodexData.scope: the starting four + Grove
+#   families; the demo its four; dev runs all), "N more wait in the Memory Grove." for the rest;
 #   locked ones are just "???" (no icons: they would give it away); discovered ones (ComboFeedback,
 #   profile combos_seen) show what they do, which of your Wardens apply each ingredient, and how often
 #   you've set them off. Newly covered ones wear a "New from the Grove" leaf (profile codex_covered).
@@ -16,7 +16,7 @@ class_name CodexPanel
 
 const TOWER_DIR := "res://resource/tower/"
 const ENEMY_DIR := "res://resource/enemy/"
-const START_FAMILIES := ["sporeling", "firefly_jar", "dewdrop"]
+const START_FAMILIES := CodexData.DEMO_FAMILIES  # The starting four (one list: CodexData)
 const LOCKED_COLOR := UiStyle.OFF
 const TERM_COLOR := UiStyle.LIVE
 const HIGHLIGHT := Color(UiStyle.LIVE, 0.18)
@@ -854,7 +854,7 @@ static func get_player_wardens() -> Array[TowerData]:
 	return result
 
 # --- Families --------------------------------------------------------------------------------------
-# The families you have (CodexData.scope: the starting three + Grove families; every family in dev
+# The families you have (CodexData.scope: the starting four + Grove families; every family in dev
 # runs): the base Warden, then its branches, final forms and Ascended form. Forms a Grove node still
 # keeps are silhouettes ("Memory Grove"); the rest are unlocked in a run with Dreamlight. Below, its
 # combos: names once discovered, "???" before; each jumps to its entry.

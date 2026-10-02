@@ -2,7 +2,7 @@ extends SceneTree
 
 # Family picks offer only real new families (meta_design.md "Replaced 2026-09-30"): no Blessing
 # filler; with none left, a boss pick is skipped for +2 Dreamlight. A fresh profile that picked
-# Sporeling first sees 2 cards at drift 25, 1 at 50 and none at 75.
+# Sporeling first sees the rest one by one (the starting four since 2026-10-01: 3, 2, 1, then none).
 
 var failures := 0
 
@@ -19,12 +19,15 @@ func _run() -> void:
 	var family = main.get_node("%FamilyPickScreen")
 	var dreams: DreamState = main.get_node("%DreamState")
 	family.show_pick(&"first")
-	_check(family.offer.size() == 3 and family.offer.all(func(o) -> bool: return o is TowerData),
-		"the first pick offers the starting three (%s)" % [family._ids(family.offer)])
+	_check(family.offer.size() == mini(family.families.size(), family.cards_per_pick) and family.offer.all(func(o) -> bool: return o is TowerData),
+		"the first pick offers the starting families (%s)" % [family._ids(family.offer)])
 	var sporeling = family.offer.filter(func(o) -> bool: return o.get_id() == "sporeling").front()
 	family.choose(sporeling)
 	await process_frame
-	for expected in [2, 1]:
+	var left: int = family.families.size() - 1  # Starting families not picked yet
+	while left > 0:
+		var expected := mini(left, family.cards_per_pick)
+		left -= 1
 		family.show_pick(&"boss")
 		_check(family.offer.size() == expected and family.offer.all(func(o) -> bool: return o is TowerData),
 			"a boss pick shows only the %d new famil%s left, no Blessings (%s)" % [expected, "y" if expected == 1 else "ies", family._ids(family.offer)])

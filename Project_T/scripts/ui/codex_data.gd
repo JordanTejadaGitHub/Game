@@ -275,12 +275,12 @@ static func _build_combos() -> Array[Dictionary]:
 	return list
 
 # --- What the Codex covers (screens_ui.md "What the Codex covers") ---------------------------------
-# The families you can get in a run: the starting three plus every family planted in the Memory Grove;
+# The families you can get in a run: the starting four plus every family planted in the Memory Grove;
 # a form a Grove node unlocks (hidden branches, finals, Ascended) only once that node is planted.
-# The demo covers its three families' trees (demo_scope.md "Wardens"); dev runs cover everything.
+# The demo covers its four families' trees (demo_scope.md "Wardens"); dev runs cover everything.
 # Combos, Crowned and Kinships are listed once all they need is in scope (in_build).
 
-const DEMO_FAMILIES := ["sporeling", "firefly_jar", "dewdrop"]  # Also the full game's starting three
+const DEMO_FAMILIES := ["sporeling", "firefly_jar", "dewdrop", "bellflower"]  # Also the full game's starting four (Bellflower joined 2026-10-01, meta_design.md a3375108)
 const TOWER_DIR := "res://resource/tower/"
 const DREAM_DIR := "res://resource/dream/"
 static var _grove_forms := {}  # Warden id -> the Grove node id whose Dream card unlocks it

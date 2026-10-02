@@ -41,7 +41,8 @@ func _run() -> void:
 	var waiting := codex._combos.find_children("Waiting", "Label", false, false)
 	_check(not waiting.is_empty() and (waiting[0] as Label).text.ends_with("wait in the Memory Grove."),
 		"…one line says how many wait in the Memory Grove (%s)" % ((waiting[0] as Label).text if not waiting.is_empty() else "none"))
-	_check(codex.family_cards.size() == 3 and not codex.family_cards.has("pebbling"), "the Families page shows the three")
+	_check(codex.family_cards.size() == CodexData.DEMO_FAMILIES.size() and codex.family_cards.has("bellflower") and not codex.family_cards.has("pebbling"),
+		"the Families page shows the starting four (%s)" % [codex.family_cards.keys()])
 	var covered_before: Array = (CodexData.combos() + CodexData.crowned() + CodexData.kinships()).filter(
 		func(e: Dictionary) -> bool: return CodexData.in_build(e, scope)).map(func(e: Dictionary) -> String: return String(e.id))
 
