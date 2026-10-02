@@ -56,6 +56,22 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var endgame_growth_from: int = 51
 @export var guaranteed_elite_from: int = 31  # run_design.md f2eb4f8: was 26 (the drift 28–29 death cluster)
 @export var second_elite_from: int = 76  # Two Deeply Blighted per drift from here
+# Block finales (spire_difficulty.md, Slay the Spire's elite fights): the last drift of every block
+# (not a boss drift) gets this many guaranteed Deeply Blighted, by the drift they start from
+# ({start drift: count}; the highest start at or below the drift wins). Replaces the rule above there.
+@export var block_finale_elites := {10: 1, 30: 2, 60: 3}
+
+# The guaranteed elites for drift `number` if it's a block finale (0 before the first start), else -1.
+func get_block_finale_elites(number: int) -> int:
+	if number % drifts_per_block != 0 or number % drifts_per_act == 0:
+		return -1  # Not a block's last drift, or a boss drift
+	var count := 0
+	var best := -1
+	for start in block_finale_elites:
+		if int(start) <= number and int(start) > best:
+			best = int(start)
+			count = int(block_finale_elites[start])
+	return count
 @export var boss_health_multiplier: float = 1.5  # On the bosses' base health
 @export var mid_boss_health_multiplier: float = 1.75  # Acts 2-3 bosses instead ("Human runs 7-9": 0 of 3 killed the act 2 boss once act 2 ended at x4.5; was 2.25, from "Human run 3": the Lamplighter died in 29 s); act 1 and the Oak keep theirs
 @export var act1_boss_health_multiplier: float = 1.75  # Act 1's boss (drift 25) instead (boss stays and drains: ×1.75 = Dreams 11/15, skip 5/15 vs the Stag)
@@ -456,9 +472,14 @@ func get_spawn_modifiers(data: EnemyData, number: int) -> Dictionary:
 # From drift 31, a drift that lists no elites gets one (two from drift 76): each time a random
 # non-boss kind in it (boss drifts: from the escort), and one of that kind becomes Deeply Blighted.
 func add_guaranteed_elite(schedule: Array, number: int) -> void:
-	if number < guaranteed_elite_from or schedule.any(func(a: Array) -> bool: return a.size() > 2 and a[2]):
-		return
-	for n in (2 if number >= second_elite_from else 1):
+	var listed := schedule.filter(func(a: Array) -> bool: return a.size() > 2 and a[2]).size()
+	var wanted := 0
+	var finale := get_block_finale_elites(number)
+	if finale >= 0:  # A block's last drift (spire_difficulty.md "block finales"): its own count
+		wanted = finale - listed
+	elif number >= guaranteed_elite_from and listed == 0:
+		wanted = 2 if number >= second_elite_from else 1
+	for n in wanted:
 		var by_kind := {}  # EnemyData -> [schedule index, …] not elite yet
 		for i in schedule.size():
 			# Never a kind on its intro drift: that drift teaches it (human run 5: an elite Phantom on drift 31)
