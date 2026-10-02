@@ -211,7 +211,28 @@ static func branch_for(tower: Tower) -> String:
 	tower._branch_cached = branch
 	return branch
 
-# The Kinship two branches form ("" if none).
+# Generic Kin (tower_design.md "Kinships with 6 branches", branch expansion): any two different branches of one
+# family that aren't a named pair still bond: +10% damage each, Harmony strikes, stages and the vine, no traits.
+const GENERIC := &"kin"
+const GENERIC_NAME := "Kin"
+const GENERIC_BONUS := 0.10
+
+# The bond two different branches of one family form: their named Kinship, else generic Kin.
+static func kinship_or_kin(branch_a: String, branch_b: String) -> StringName:
+	var id := kinship_for(branch_a, branch_b)
+	return id if id != &"" else GENERIC
+
+# A Kinship's name ("Kin" for the generic bond).
+static func name_of(id: StringName) -> String:
+	return KINSHIPS[id][0] if KINSHIPS.has(id) else GENERIC_NAME
+
+# A pair's family line.
+static func line_of(pair: Dictionary) -> String:
+	if KINSHIPS.has(pair.id):
+		return KINSHIPS[pair.id][1]
+	return pair.a.tower_data.line if is_instance_valid(pair.a) else ""
+
+# The named Kinship two branches form ("" if none).
 static func kinship_for(branch_a: String, branch_b: String) -> StringName:
 	for id in KINSHIPS:
 		var row: Array = KINSHIPS[id]
@@ -223,6 +244,8 @@ static func _demo() -> bool:
 	return ResultsScreen.is_demo() and not force_full
 
 static func is_available(id: StringName) -> bool:
+	if id == GENERIC:
+		return not _demo()  # Generic Kin: the full game (the demo keeps its 4 named Kinships)
 	return KINSHIPS[id][4] or not _demo()
 
 
@@ -293,13 +316,13 @@ func refresh() -> void:
 				var bb: String = kin[j][1]
 				if bb == ba:
 					continue
-				var id := kinship_for(ba, bb)
+				var id := kinship_or_kin(ba, bb)
 				if id == &"" or not is_available(id):
 					continue
 				var distance := _distance(ta, tb)
 				if distance <= get_reach():
 					# Side A is the Warden from the table's first branch.
-					var first: bool = KINSHIPS[id][2] == ba
+					var first: bool = KINSHIPS[id][2] == ba if KINSHIPS.has(id) else true
 					edges.append([distance, id, ta if first else tb, tb if first else ta])
 	edges.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
 	# Bonds are sticky (tower_design.md): a bond still in reach is kept before anyone else pairs, so a
@@ -502,6 +525,8 @@ static func count_on_map(near: Node) -> int:
 func damage_bonus(tower: Tower) -> float:
 	var bonus := family_bonus(tower.tower_data.line)
 	var bonded := not get_pairs(tower).is_empty()
+	if get_pairs(tower).any(func(p) -> bool: return p.id == GENERIC):
+		bonus += GENERIC_BONUS  # Generic Kin: +10% each
 	if bonded:
 		bonus += FAMILY_TIES_PER * _stacks(&"family_ties") * _power(&"family_ties")
 	if _has(&"blood_is_thicker") and tower.tower_data.can_attack:
@@ -602,7 +627,7 @@ func describe(tower: Tower) -> String:
 		var partner: Tower = pair.b if pair.a == tower else pair.a
 		var stage := get_stage(pair)
 		var text := "Kin: %s · %s · %s" % [partner.tower_data.display_name if is_instance_valid(partner) else "?",
-			KINSHIPS[pair.id][0], STAGE_NAMES[stage]]
+			name_of(pair.id), STAGE_NAMES[stage]]
 		if stage < thresholds.size() - 1:
 			var left: int = thresholds[stage + 1] - ages.get(pair.key, 0)
 			text += " (%d drift%s to %s)" % [left, "" if left == 1 else "s", STAGE_NAMES[stage + 1]]
@@ -696,11 +721,11 @@ func preview(data: TowerData, cell: Vector2) -> Dictionary:
 		var other := branch_for(tower)
 		if other == "" or other == branch:
 			continue
-		var id := kinship_for(branch, other)
+		var id := kinship_or_kin(branch, other)
 		var distance := _distance_to_cell(tower, cell)
 		if id != &"" and is_available(id) and distance <= REACH and distance < best_distance:
 			best_distance = distance
-			best = {"id": id, "name": KINSHIPS[id][0], "partner": tower}
+			best = {"id": id, "name": name_of(id), "partner": tower}
 	return best
 
 
@@ -756,9 +781,9 @@ func _on_formed(pair: Dictionary) -> void:
 	formed_run += 1
 	var mid: Vector2 = (pair.a.global_position + pair.b.global_position) / 2.0
 	kinship_formed.emit(pair.id, pair.a, pair.b)
-	kin_bonded.emit(KINSHIPS[pair.id][1], mid)
+	kin_bonded.emit(line_of(pair), mid)
 	if _effects() == 0:
-		Fx.callout("Kinship: %s" % KINSHIPS[pair.id][0], _colour(pair), mid, get_parent(), &"kinship")
+		Fx.callout("Kinship: %s" % name_of(pair.id), _colour(pair), mid, get_parent(), &"kinship")
 		if not Fx.reduce_flashes():
 			_burst(pair.a.global_position, pair)
 			_burst(pair.b.global_position, pair)
@@ -796,9 +821,9 @@ func _announce(event: Array) -> void:
 			if not is_instance_valid(pair.a) or not is_instance_valid(pair.b):
 				return
 			var mid: Vector2 = (pair.a.global_position + pair.b.global_position) / 2.0
-			kin_stage_grew.emit(KINSHIPS[pair.id][1], event[2], mid)
+			kin_stage_grew.emit(line_of(pair), event[2], mid)
 			if _effects() == 0:
-				Fx.callout("%s: %s" % [KINSHIPS[pair.id][0], STAGE_NAMES[event[2]]], _colour(pair), mid,
+				Fx.callout("%s: %s" % [name_of(pair.id), STAGE_NAMES[event[2]]], _colour(pair), mid,
 					get_parent(), &"kinship")
 				for tower in [pair.a, pair.b]:
 					var up := Fx.play(&"kin_stage_up", tower.global_position, get_parent())
@@ -824,7 +849,7 @@ static func _effects() -> int:
 	return int(Fx.setting("kinship_effects", 0))  # Cached (get_settings reads the profile from disk)
 
 func _colour(pair: Dictionary) -> Color:
-	return FAMILY_COLORS.get(KINSHIPS[pair.id][1], Palette.NEWLEAF)
+	return FAMILY_COLORS.get(line_of(pair), Palette.NEWLEAF)
 
 
 # --- Drawing -----------------------------------------------------------------------------------------

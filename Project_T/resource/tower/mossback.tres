@@ -8,6 +8,7 @@
 
 [resource]
 script = ExtResource("1_tdata")
+counter_tags = Array[StringName]([&"anti_armour"])
 display_name = "Mossback"
 description = "One huge, slow hit at short range; double damage against Exposed nightmares."
 cost = 0

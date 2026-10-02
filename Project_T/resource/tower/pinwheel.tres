@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("1_tdata")
+counter_tags = Array[StringName]([&"anti_swarm"])
 display_name = "Pinwheel"
 description = "Spinning blades hit every nightmare on the 8 tiles around it; stronger the more of them are path."
 cost = 0

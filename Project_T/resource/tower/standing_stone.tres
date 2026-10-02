@@ -8,6 +8,7 @@
 
 [resource]
 script = ExtResource("1_tdata")
+counter_tags = Array[StringName]([&"anti_air", &"anti_tank"])
 display_name = "Standing Stone"
 description = "Sniper: one slow, heavy shot that hits harder the further away; it can't hit nightmares right beside it."
 cost = 0

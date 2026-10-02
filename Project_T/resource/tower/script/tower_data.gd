@@ -39,6 +39,21 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 # TowerData resources this can grow into. Typed as Resource because a script whose export is an
 # array of its own class never gets freed (leaks at exit).
 @export var evolves_to: Array[Resource] = []
+# Branch expansion (tower_design.md "Branch expansion"): the nightmare types this branch answers, for the
+# 2-of-5 smart draw (Roguelite's DreamState): &"anti_air", &"detection", &"anti_armour", &"anti_swarm",
+# &"anti_tank", &"anti_support", &"boss_abilities".
+@export var counter_tags: Array[StringName] = []
+# 1 = a Phase 1 expansion branch or its final (the demo keeps today's 2 branches per family); 0 = the original roster.
+@export var expansion_phase: int = 0
+
+@export_group("Special")
+# The expansion branches' own mechanics (BranchKit): &"lichen", &"brood", &"inkcap", &"cloud", &"whirlpool",
+# &"jet", &"jarlink", &"prism", &"sparkler", &"silver_bell", &"hush", &"thrum"; "" = none.
+@export var special: StringName = &""
+# Its numbers (Balancing Discussion's), by name: each special's keys are listed in BranchKit.
+@export var special_params: Dictionary = {}
+# A final form: its branch's special plus the final's twist (BranchKit reads it).
+@export var special_final: bool = false
 
 @export_group("Attack")
 @export var can_attack: bool = true

@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("1_tdata")
+counter_tags = Array[StringName]([&"detection"])
 display_name = "Rootlight"
 description = "Glowing roots light the path around it; Held lasts 50% longer on lit tiles, and hidden nightmares show in the light."
 cost = 0
