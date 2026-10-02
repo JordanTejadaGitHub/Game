@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="TowerData" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Resource" path="res://resource/tower/stormheart.tres" id="asc_1"]
 [ext_resource type="Texture2D" path="res://assets/towers/starburst.png" id="2_tex"]
 [ext_resource type="Texture2D" path="res://assets/towers/starburst_attack.png" id="4_atk"]
 
@@ -27,3 +28,4 @@ attack_range = 3
 damage = 26
 attacks_per_second = 0.5
 attack_kind = 0
+evolves_to = Array[Resource]([ExtResource("asc_1")])

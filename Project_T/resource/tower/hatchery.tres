@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="TowerData" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Resource" path="res://resource/tower/sporemother.tres" id="asc_1"]
 [ext_resource type="Texture2D" path="res://assets/towers/hatchery.png" id="2_tex"]
 [ext_resource type="Texture2D" path="res://assets/towers/hatchery_attack.png" id="4_atk"]
 
@@ -29,3 +30,4 @@ attacks_per_second = 0.667
 attack_kind = 0
 applies_status = &"spored"
 status_stacks = 3
+evolves_to = Array[Resource]([ExtResource("asc_1")])
