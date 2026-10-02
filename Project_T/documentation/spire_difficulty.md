@@ -108,3 +108,7 @@ too brittle.
   2.0 → 4.5 linear, `act4_health_multiplier` 1.2, Dew pot acts 2–4 ×0.9 (bosses 243 / 288).
 - 2026-10-02: block finales in **e65e6dcf** (Enemy Code): `block_finale_elites` {10: 1, 30: 2, 60: 3};
   elites the drift already lists count toward it; boss drifts keep the normal rule. **Phase 1 playable.**
+- 2026-10-02: **act 1 baseline** (6e1dc434, fresh, full game, 20 seeds): Balanced survives the boss
+  **50%** (target ~60%), skip **10%** ✓; 7/20 Balanced runs die before 25 (blocks 3–4, closest .81 / .97);
+  finales at 10 / 15 cost 0 leaks, 20 about 1. **Pressure moves from the ramp to the finales:**
+  `act1_health_multiplier` 1.35 → **1.25**, `block_finale_elites` → **{10: 2, 30: 3, 60: 4}**.
