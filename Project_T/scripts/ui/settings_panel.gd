@@ -137,18 +137,16 @@ func _ready() -> void:
 		_toggle(box, "Unlock all families: normal runs, every family in the picks (no Seeds banked)", MetaRun.ALL_FAMILIES_SETTING,
 			false, "As if the Memory Grove's Warden root were fully grown, for this and later runs while on.\nYour real Grove unlocks are not changed.")
 		_toggle(box, "Dream of Everything rewards · starlit card backs, +1 Dream reroll", MetaRun.ALL_DREAMS_SETTING,  # meta_design.md "Dev options"
-			false, "For testing: nothing is recorded and no Seeds are banked.").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			false, "For testing: nothing is recorded and no Seeds are banked.")
 		_toggle(box, "Secret 6th loadout slot", MetaRun.SIXTH_SLOT_SETTING,  # meta_design.md: the secret 6th loadout slot, for testing
-			false, "For testing: no milestone is recorded and no Seeds are banked.").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			false, "For testing: no milestone is recorded and no Seeds are banked.")
 		# Demo mode (demo_scope.md): overrides game/demo in this build (-1 project setting, 0 full, 1 demo); applying a
 		# change goes back to the title.
 		var demo_row := HBoxContainer.new()
 		_dots[ResultsScreen.DEMO_MODE_SETTING] = _dot(demo_row)
 		var demo := CheckButton.new()
-		demo.text = "Demo mode (off = FULL GAME: Memory Grove, Blight Levels, Seeds spent from your real profile)"
-		demo.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		demo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		demo.tooltip_text = "Overrides the project's game/demo setting in this debug build only.\nExported builds always use the project setting. Applying a switch returns to the title screen."
+		demo.text = "Demo mode (off: the full game on your real profile)"  # Short: the switch sits inline, as on every tab
+		demo.tooltip_text = "Off = the FULL GAME: the Memory Grove, Blight Levels, and Seeds spent from your real profile.\nOverrides the project's game/demo setting in this debug build only; exported builds always use the project setting.\nApplying a switch returns to the title screen."
 		demo.focus_mode = Control.FOCUS_NONE
 		demo.toggled.connect(func(on: bool) -> void: _set_value(ResultsScreen.DEMO_MODE_SETTING, 1 if on else 0))
 		demo_row.add_child(demo)
@@ -406,7 +404,6 @@ func _toggle(box: VBoxContainer, text: String, key: String, default: bool = fals
 	box.add_child(row)
 	_register(key, default, func() -> void: check.set_pressed_no_signal(bool(_value(key))))
 	return check
-
 # A dropdown of [name, number] presets for a number setting; the saved value selects the nearest one
 # (older saves can hold any number, e.g. from the old slider).
 func _choice_nearest(box: VBoxContainer, text: String, key: String, presets: Array, default: float) -> void:
