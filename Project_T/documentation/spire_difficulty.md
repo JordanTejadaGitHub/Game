@@ -242,3 +242,6 @@ full game (`game/demo` false), and the demo reads main's exports.
   survival (55% vs 40%) and **+3.5 drifts** (26.1 vs 22.6) over no perks: the top edge of the +10–15
   band. **No trim.** Power perks came out at 50% / 24.8 (not separable from Sidegrade at 20 seeds).
   No cell reaches 50. Re-measure if a perk changes.
+- 2026-10-02: branch offer (2 of 5), call-back (3 Dreamlight, once per family) and Lucid Dream (Rare, one
+  free call that skips the price and the limit) in **320b4969** (Roguelite Code). The new branches
+  themselves wait on Tower Code.
