@@ -429,6 +429,35 @@ For the coding chat, in rough order of need:
    (Rootlight), **attack copying** (Graftling), **swoop** projectiles that return, **status
    copying** (Gust), **adjacent-tile blades** (Pinwheel), **unique** Memory Wardens.
 
+## Tuning from the 2026-10-02 probe series (Balancing Discussion)
+
+The current numbers after Balancing Discussion's overnight sweeps (every final and every branch ×4
+on a fixed board, rank IV, no Dreams, damage per Dew vs Puffball / Driftspore), the follow-up
+re-probes and the last step on 2ef6d56f. **Where this list and an older row in the tables above
+disagree, this list wins** (the tables keep pre-pass values plus row notes). The probe series is
+closed; **human runs judge from here**. Full measurements: `balance_simulation.md`.
+
+| Warden | Change | Why |
+|---|---|---|
+| Autumn Gale | ×0.75, then **85 → 72** | 1.3–1.6× in act 2, 2.1–2.4× in act 3 |
+| Moonstone, Elf Circle | ×0.75 | the same |
+| Snugroot | ×0.75, then **56 → 48** | the same; act 3 still ~2.1× after the first cut |
+| Midsummer | ×2 | was 0.28× |
+| Starling Murmuration | ×1.5 | was 0.5× |
+| Fairy Ring | burst **44 → 30** | ~1.6× Driftspore |
+| Hummingbird Bower | **27 → 40** | 0.10× Driftspore |
+| Sunpetal | **81 → 113** | 0.11× (also check beam target retention) |
+| Stormcap | damage **18 → 24** | 0.22× at drifts 45–49 |
+| Echo Hollow | echo share **75%** (final); pulse **10 → 22 → 28** | echoes now follow the nightmare, but Reactions are too rare to carry it |
+| Whispering Hollow | echo share **100%** (final); pulse **18 → 50 → 62** | the same |
+| Dreamshroom | Dream spores at **half** soothe, one puff per sleeper per second | ~2.1× Puffball per Warden |
+| Deep focus | **+25% Potency** per rank (was +18%) | committed Deep builds trailed Power |
+| Acorn family | **+15% attack damage** (auras unchanged) | weakest family in act 1 |
+
+Role notes from the same series (`tower_design.md` roles): Gust, Zephyr, Echo/Whispering Hollow,
+Frostfern and the support Wardens are judged by **what they add to the board** (support credit),
+not by direct damage per Dew.
+
 ## To check in playtests
 
 - Is each family roughly as strong as the others at the same Dew? (Compare Dew spent vs creatures
