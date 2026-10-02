@@ -132,6 +132,8 @@ static func group_of(card: UpgradeData) -> String:
 # Plain text of the list (tests, and the pause menu's run summary).
 func get_list_text() -> String:
 	var lines: Array[String] = ["Dreams this run"]
+	if dream_state.supply_line() != "":
+		lines.append(dream_state.supply_line())
 	for icon in _icons:
 		var line := icon.card.display_name
 		if icon.stacks > 1:
@@ -154,6 +156,12 @@ func _build_list() -> void:
 	title.text = "Dreams this run"
 	UiStyle.title(title, 20)
 	_list_box.add_child(title)
+	if dream_state.supply_line() != "":  # Rerolls and let-gos are a run-long supply (DreamState)
+		var supply := Label.new()
+		supply.name = "Supply"
+		supply.text = dream_state.supply_line()
+		UiStyle.caps(supply)
+		_list_box.add_child(supply)
 	if _icons.is_empty():
 		var none := Label.new()
 		none.text = "None yet. Dreams come at every rest."

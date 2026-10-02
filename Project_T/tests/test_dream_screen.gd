@@ -236,6 +236,38 @@ func _run() -> void:
 			await process_frame
 		_check(picker._scene != null and picker._scene.visible, "the dev card grid plays Heart of the Maze's scene on hover")
 		picker.queue_free()
+	# Rerolls and let-gos are a run-long supply (user thought "Dream again" was once per Dream): "N left this run",
+	# a tooltip saying they don't refill; the last one used leaves the button disabled for the rest of that Dream,
+	# then it's gone on later Dreams; a run that never had any never shows it. The Dreams panel lists what's left.
+	var offer: Array[UpgradeData] = [longest[0], longest[1], longest[2]]
+	dreams.rerolls_left = 1
+	dreams.banishes_left = 0
+	dreams.current_offer = offer
+	dreams.current_offer_drift = 35
+	screen._show_offer(offer, 35)
+	_check(screen._reroll.visible and not screen._reroll.disabled and screen._reroll.text == "Dream again · 1 left this run",
+		"the reroll says it's for the run (\"%s\")" % screen._reroll.text)
+	_check(screen._reroll.tooltip_text.contains("don't refill") and screen._reroll.tooltip_text.contains("Second Thoughts")
+		and screen._reroll.tooltip_text.contains("Wandering Mind"), "…and its tooltip says rerolls don't refill and where more come from")
+	var dreams_row = main.get_node("HUD/DreamsRow")
+	_check(dreams_row.get_list_text().contains("Rerolls left: 1"), "the Dreams this run panel shows the rerolls left")
+	screen._reroll.pressed.emit()
+	await process_frame
+	_check(dreams.rerolls_left == 0 and screen._reroll.visible and screen._reroll.disabled
+		and screen._reroll.text == "No rerolls left this run", "after the last one: disabled, \"%s\", for the rest of that Dream" % screen._reroll.text)
+	_check(not dreams_row.get_list_text().contains("Rerolls left"), "…and the panel no longer lists rerolls")
+	dreams.current_offer_drift = 40
+	screen._show_offer(dreams.current_offer, 40)
+	_check(not screen._reroll.visible, "…hidden on later Dreams")
+	screen._rerolled_in = -1
+	screen._show_offer(dreams.current_offer, 45)
+	_check(not screen._reroll.visible, "a run without rerolls never shows the button")
+	dreams.banishes_left = 2
+	screen._show_offer(dreams.current_offer, 45)
+	var let_go := screen._cards.get_child(0).get_child(1) as Button if screen._cards.get_child(0).get_child_count() > 1 else null
+	_check(let_go != null and let_go.text == "Let go · 2 left this run" and let_go.tooltip_text.contains("don't refill"),
+		"let-gos say the same (\"%s\")" % (let_go.text if let_go else "none"))
+	dreams.current_offer = []
 	print("dream screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

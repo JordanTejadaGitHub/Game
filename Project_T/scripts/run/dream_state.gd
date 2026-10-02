@@ -1534,6 +1534,32 @@ func banish(card: UpgradeData) -> bool:
 		offer_ready.emit(current_offer, current_offer_drift)
 	return true
 
+# Rerolls and let-gos are a supply for the whole run, never refilled per Dream (user thought "Dream again" was once
+# per Dream). The words for the Dream screen's buttons and the "Dreams this run" panel.
+static func _left_this_run(n: int) -> String:
+	return "%d left this run" % n
+
+func reroll_label() -> String:
+	return ("Dream again · " + _left_this_run(rerolls_left)) if rerolls_left > 0 else "No rerolls left this run"
+
+func reroll_tip() -> String:
+	return "Shows three new cards. Rerolls don't refill: this run has %d left. More come from Second Thoughts (Memory Grove) and the Wandering Mind card." % rerolls_left
+
+func banish_label() -> String:
+	return ("Let go · " + _left_this_run(banishes_left)) if banishes_left > 0 else "No let-gos left this run"
+
+func banish_tip() -> String:
+	return "This card won't come back this run; another takes its place. Let-gos don't refill: this run has %d left. More come from Let Go (Memory Grove)." % banishes_left
+
+# "Rerolls left: 2 · Let-gos left: 1" (only the ones above 0; "" when none).
+func supply_line() -> String:
+	var bits: Array[String] = []
+	if rerolls_left > 0:
+		bits.append("Rerolls left: %d" % rerolls_left)
+	if banishes_left > 0:
+		bits.append("Let-gos left: %d" % banishes_left)
+	return " · ".join(bits)
+
 # Passed-over cards fade: every card of `offer` not taken counts as passed over in offer `offer_number`.
 # The Entwined guaranteed card is unaffected.
 func _note_passed(offer: Array[UpgradeData], offer_number: int) -> void:
