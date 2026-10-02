@@ -804,7 +804,7 @@ scale with the bigger act 3 field). Branches: Fairy Ring 1.19× Driftspore (was 
 band; still under 0.5: Wren's Nest 0.47, Sunpetal 0.37, Hummingbird Bower 0.31, Stormcap 0.28,
 Frostfern 0.26 (an enabler), plus the support / economy tail. **Last step, then the probe series
 closes:** Autumn Gale 85 → 72, Snugroot 56 → 48; Hummingbird Bower 27 → 40, Sunpetal 81 → 113, Stormcap
-damage 18 → 24; Whispering Hollow 50 → 62, Echo Hollow 22 → 28. Everything else stays; human runs judge
+damage 18 → 24; Whispering Hollow 50 → 62, Echo Hollow 22 → 28 (in 14546411). Everything else stays; human runs judge
 from here.
 **Re-check on 2ef6d56f:** Whispering Hollow board **0.95–1.03× at 45** (par) but 0.69–0.82× at 61, and
 still leakier; Echo Hollow board unchanged (0.85 / 0.85 / 1.07). Held for the full re-probe, then one

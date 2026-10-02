@@ -316,6 +316,11 @@ func _add_warden(cell: Vector2i, c: String) -> void:
 func _process(delta: float) -> void:
 	if _world == null or _path.size() < 2:
 		return
+	delta = real_delta(delta)  # Real time (user: "make sure the video previews aren't sped up"): 1×, 2×, 3× or paused alike
+	var sprite_speed := 1.0 / maxf(Engine.time_scale, 0.001)  # AnimatedSprite2D frames run on scaled time
+	for walker in _walkers:
+		if is_instance_valid(walker.sprite):
+			walker.sprite.speed_scale = sprite_speed
 	_spawn_left -= delta
 	if _spawn_left <= 0.0 and _walkers.size() < NIGHTMARES:
 		_spawn_left = SPAWN_EVERY
@@ -325,9 +330,14 @@ func _process(delta: float) -> void:
 		_animate_warden(warden, delta)
 	_tick_effects(delta)
 
+# A frame's delta in real seconds, whatever the game speed (capped, so a hitch doesn't jump the scene). Previews use it.
+static func real_delta(delta: float) -> float:
+	return minf(delta / maxf(Engine.time_scale, 0.001), 0.1)
+
 func _spawn_walker() -> void:
 	var sprite := AnimatedSprite2D.new()
 	sprite.sprite_frames = NIGHTMARE.sprite_frames
+	sprite.speed_scale = 1.0 / maxf(Engine.time_scale, 0.001)  # Real time
 	sprite.scale = Vector2.ONE * NIGHTMARE.sprite_scale
 	sprite.play(&"walk_side")
 	sprite.position = _path[0]

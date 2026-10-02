@@ -598,6 +598,9 @@ class BossPortrait extends Control:
 		resized.connect(func() -> void: _sprite.position = size / 2.0)
 		_sprite.position = size / 2.0
 
+	func _process(_delta: float) -> void:
+		_sprite.speed_scale = 1.0 / maxf(Engine.time_scale, 0.001)  # Real time at any game speed (user: previews not sped up)
+
 	func _draw() -> void:
 		# The moon disc, rimmed in the boss colour (screens_ui.md "Readable on the night sky").
 		UiStyle.draw_moon_disc(self, size / 2.0, size.x / 2.0, BOSS_COLOR)

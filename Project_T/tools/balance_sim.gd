@@ -71,6 +71,8 @@ var enemy_overrides := {}  # --enemy=id.field=value (repeatable): EnemyData fiel
 var _keep: Array = []  # The edited EnemyData, held so the cache keeps them
 var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.preset_bosses); "" = the default draw
 var aura_placement := true  # --no-aura: place and grow aura Wardens (Acorn, Elder Stump, Grove Heart, Moon Moth) by path only
+var empty_loadout := false
+var sidegrade := -1
 var kin_placement := true  # --no-kin: no Kinship placement, and growth takes the first open form in evolves_to (the old bot)
 var focus_mode := ""  # --focus=deep: Nurture picks Deep where it's offered and Potency cards score high (a committed Deep build)
 var kin_pairs := {}  # Drift -> Kinships on the map as it starts (kin_pairs_24 / kin_pairs_50 columns: as drifts 25 / 51 start)
@@ -142,6 +144,8 @@ func _run() -> void:
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
 			"--boss-draw": BossPool.force_draw = true  # The real per-seed boss draw (sims otherwise meet the defaults, like tests)
+			"--loadout": empty_loadout = value == "none"  # --loadout=none: the profile carries no perks (the Grove cap A/B)
+			"--sidegrade": sidegrade = int(value)  # MetaRun.force_sidegrade (Spire branch): 0 Power perks, 1 Sidegrades
 			"--no-aura": aura_placement = false
 			"--no-kin": kin_placement = false
 			"--focus": focus_mode = value
@@ -170,7 +174,16 @@ func _run() -> void:
 			printerr("profile %s needs MetaRun.load_preset (Meta Game Code's presets)" % profile)
 			quit(1)
 			return
+		var presets: Script = load("res://scripts/meta/grove_presets.gd")
+		if presets.get("file_path") != null:  # A profile per process: parallel sims with different loadouts must not share one file
+			presets.set("file_path", "user://sim_heartwood_%d.json" % OS.get_process_id())
 		meta.call("load_preset", StringName(profile))
+		if empty_loadout:  # Same Grove, nothing carried
+			var data: Dictionary = HeartwoodMemory.load_data()
+			data["loadout"] = []
+			HeartwoodMemory.save_data(data)
+	if sidegrade >= 0:
+		load("res://scripts/meta/meta_run.gd").set("force_sidegrade", sidegrade)  # Only on builds that have it (the Spire branch)
 	if all_families:
 		load("res://scripts/meta/meta_run.gd").set("force_all_families", true)
 	main = load("res://scenes/main.tscn").instantiate()
@@ -253,6 +266,10 @@ func _run() -> void:
 	_finish()
 	if profile != "fresh" and ResourceLoader.exists("res://scripts/meta/grove_presets.gd"):
 		load("res://scripts/meta/grove_presets.gd").call("unload")  # Back to the real profile path
+		var sim_profile := ProjectSettings.globalize_path("user://sim_heartwood_%d.json" % OS.get_process_id())
+		for path in [sim_profile, sim_profile + ".bak"]:  # save_data keeps a .bak of the last write
+			if FileAccess.file_exists(path):
+				DirAccess.remove_absolute(path)
 	quit(0)
 
 # The real rest and family pick open screens and offers; the bot answers them through the policy
@@ -683,6 +700,8 @@ func _finish() -> void:
 	summary.heart_cover_24 = heart_cover_24
 	summary.status_potency = Tower.status_potency_on
 	summary.focus = focus_mode
+	summary.sidegrade = sidegrade
+	summary.empty_loadout = empty_loadout
 	summary.demo = ResultsScreen.is_demo()  # The demo build applies no Grove (MetaRun inert)
 	var meta_run = main.get_node_or_null("%MetaRun")
 	summary.meta_active = meta_run.get("active") if meta_run != null else null
