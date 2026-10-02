@@ -281,10 +281,12 @@ take 1 cell and can't evolve.
 
 The Hollow Oak ends the run, so it has no Memory Warden (its memory is the true ending).
 
-## Branch expansion: 5 branches, 2 per run (PROPOSED, 2026-10-02)
+## Branch expansion: 5 branches, 2 per run (APPROVED 2026-10-02, Spire branch first)
 
-> **Proposal, not approved yet.** Design hub task from the user: stop players forcing the same build
-> every run. Nothing here goes to Tower Code or Tower Assets until the user approves the scope.
+> **APPROVED by the user (2026-10-02), all of it**, plus the Dreamlight call-back below. Built
+> **Phase 1 first, on `experiment/spire-difficulty`** (checkout `D:\Projects\Game_spire`), **not
+> main**; Main Merger merges main into that branch. **Phase 3** (the Nestling + Whirligig merge)
+> waits until Phase 1 plays well. Design hub task: stop players forcing the same build every run.
 > **Revised the same day** (user feedback): the offer is **2 of 5** (was 3), a stricter coverage
 > check, and a family audit: **Nestling and Whirligig merge into one sky family** (9 → 8 families).
 
@@ -449,7 +451,12 @@ family can promise an answer to everything. Two layers keep runs fair:
 - **Lucid Dream** (Rare card, +1 not-offered branch): with only 2 of 5 offered it's a real find,
   since it raises a family's choices by half. It **shows you the 3 branches not offered** and you
   pick one, so it can rescue a run that's missing a counter. A Grove perk could add one per run
-  (Meta Game Discussion's call).
+  (Meta Game Discussion's call). It's the **free, lucky** version of the call-back below.
+- **The Dreamlight call-back** (approved 2026-10-02): on the Remember screen, a "not in this
+  dream" branch can be **called into the run for Dreamlight** (start at **2–3**; Balancing
+  Discussion sets it), **once per family per run**. The called branch then works like an offered
+  one (unlocking it is part of the call; its final still costs 2). This makes a missing counter a
+  choice you can pay for, not just luck.
 
 ### Kinships with 6 branches: a rule, not a 15-pair table
 
@@ -458,14 +465,26 @@ family can promise an answer to everything. Two layers keep runs fair:
   bond still grows (Sapling, Blooming, Old Kin) and shows the vine.
 - **Named Kinships stay special:** the 18 built ones keep their "teach each other" traits (the
   merged sky family keeps all four of its pairs). Add **1 new named pair per family** among the new
-  branches (7 more), chosen where the two jobs tell a story (e.g. *Hushbell + Silver Bell*,
-  *Groundroot + Thorncoil*). Everything else is generic Kin.
+  branches (7 more), chosen where the two jobs tell a story. Everything else is generic Kin.
+- **Phase 1's four named pairs** (each Warden learns one trait from the other, at the usual stage
+  shares):
+
+  | Family | Pair | Kinship | A learns from B | B learns from A |
+  |---|---|---|---|---|
+  | Sporeling | Lichenling + Brood Cap | **Crusted Brood** | 1 in 4 of its shots also hatches a sprite on the target | its sprites also eat dread shell |
+  | Dewdrop | Cloudlet + Undercurrent | **Eye of the Storm** | its rain zone draws nightmares gently toward its centre | its whirlpool is rained on (Soaks everything in it) |
+  | Firefly Jar | Jarlink + Sparkler | **Fireworks Fence** | a crossing of its fence sets off a small spark burst | a burst landing on a fence re-bursts once |
+  | Bellflower | Silver Bell + Hushbell | **Vespers** | its toll also silences its target for 2 s | nightmares it silences gain 1 Drowsy |
 - **Whole Tree** becomes **"3 different branches of one family on the map"**. With 2 offered,
   that needs the hidden branch or *Lucid Dream*: a real milestone of a run, not a given.
 - Kindred (2 branches: +10%) is unchanged, and now the common case.
 
 ### The per-run offer on the Remember screen
 
+- **Where it's built (Phase 1):** Tower Code (the 12 Wardens, generic Kin, Whole Tree, the named
+  pairs), Roguelite Code (the 2-of-5 offer and smart draw, the Remember UI with "not in this dream"
+  and the call-back, Lucid Dream, card gating), Tower Assets (12 branches + 12 finals), Balancing
+  Discussion (all numbers, the call-back price and the Dreamlight budget).
 - **2 of the 5 regular branches** per family, drawn by the smart draw above at the family pick,
   from the map seed (a resume gets the same), **never the same 2 as that family's last run**
   (profile `last_branch_offer`).
