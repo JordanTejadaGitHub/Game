@@ -34,6 +34,8 @@ var total := 0.0
 var spawned_health := 0.0
 var leaked_health := 0.0
 var game_time := 0.0
+var boss2 := ""  # --boss2=huntsman: act 2's boss forced (DriftDirector.preset_bosses); run --drift=45 --count=6 to meet it at 50
+var boss_fights := {}  # Instance id -> {kind, health, spawn, arrive, hp_arrive, end, dispelled}
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -47,11 +49,14 @@ func _run() -> void:
 			"--count": count = int(value)
 			"--seed": map_seed = int(value)
 			"--out": out_path = value
+			"--boss2": boss2 = value
 			"--rank": rank = int(value)
 			"--cast": cast = {"act1": CAST_ACT1, "nocharge": CAST_NOCHARGE}.get(value, CAST)
 	ProjectSettings.set_setting("game/demo", false)  # The full game (as the user plays it)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
+	if boss2 != "":
+		main.get_node("%DriftDirector").preset_bosses = ["hollow_stag", boss2]  # Set before the deferred draw
 	root.add_child(main)
 	await process_frame
 	var dreams: DreamState = main.get_node("%DreamState")
@@ -76,7 +81,18 @@ func _run() -> void:
 	spawner.child_entered_tree.connect(func(n) -> void:
 		if n.has_method("take_damage"):
 			(func() -> void: spawned_health += n.max_health).call_deferred())
-	spawner.enemy_reached_goal.connect(func(e) -> void: leaked_health += e.health)
+	spawner.enemy_reached_goal.connect(func(e) -> void:
+		leaked_health += e.health
+		if is_instance_valid(e) and e.enemy_data.is_boss:
+			var fight := _fight(e)
+			if fight.arrive < 0.0:
+				fight.arrive = game_time
+				fight.hp_arrive = e.health)
+	spawner.enemy_cleansed.connect(func(e) -> void:
+		if is_instance_valid(e) and e.enemy_data.is_boss:
+			var fight := _fight(e)
+			fight.end = game_time
+			fight.dispelled = true)
 	director.family_pick_requested.connect(func(_kind) -> void: director.family_picked.call_deferred())  # No new family: the probe's board is fixed
 	director.drifts_started = first - 1
 	director.drifts_cleared = first - 1
@@ -98,6 +114,13 @@ func _run() -> void:
 		await process_frame
 		frames += 1
 		game_time += SPEED / 60.0
+		if frames % 15 == 0:  # Bosses: first seen, and the health they reach the Heartwood with (a lingering one too)
+			for e in spawner.get_enemies():
+				if is_instance_valid(e) and e.enemy_data.is_boss:
+					var fight := _fight(e)
+					if e.get("at_heartwood") and fight.arrive < 0.0:
+						fight.arrive = game_time
+						fight.hp_arrive = e.health
 		if frames % (60 * 60) == 0:  # Watchdog: the director's state every minute of wall time
 			print("  t %.0f s: started %d cleared %d resting %s arriving %s awaiting pick %s over %s field %d" % [game_time,
 				director.drifts_started, director.drifts_cleared, director.is_resting(), director._arriving.keys(),
@@ -206,6 +229,7 @@ func _report(director: DriftDirector) -> void:
 		"hit": snappedf(split.hit / t, 0.01), "cloud": snappedf(split.cloud / t, 0.01), "status": snappedf(split.status / t, 0.01),
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
 		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else "finals"),
+		"bosses": ";".join(boss_fights.values().map(func(b) -> String: return "%s:%d:%s:%.0f:%d" % [b.kind, b.health, "1" if b.dispelled else "0", (b.end - b.spawn) if b.dispelled else -1.0, b.hp_arrive])),
 		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001)}
 	print("FINALS %s" % JSON.stringify(row))
 	if out_path != "":
@@ -227,3 +251,9 @@ func _share_text(d: Dictionary, t: float) -> String:
 	var keys := d.keys()
 	keys.sort_custom(func(a, b) -> bool: return d[a] > d[b])
 	return "|".join(keys.map(func(k) -> String: return "%s:%.3f" % [k, d[k] / t]))
+
+# A boss fight: kind, health, when first seen, when (and with how much health) it reached the Heartwood,
+# whether and when it was dispelled. bosses column: "kind:health:dispelled:seconds to dispel:health at the Heartwood (-1 = never)".
+func _fight(enemy: Node2D) -> Dictionary:
+	return boss_fights.get_or_add(enemy.get_instance_id(), {"kind": enemy.enemy_data.resource_path.get_file().get_basename(),
+		"health": enemy.max_health, "spawn": game_time, "arrive": -1.0, "hp_arrive": -1, "end": -1.0, "dispelled": false})
