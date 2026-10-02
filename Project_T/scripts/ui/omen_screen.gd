@@ -56,6 +56,7 @@ func _ready() -> void:
 	box.add_child(_cards)
 	peek = ChoicePeek.new(self, [dim, center], "Back to the Omens")
 	box.add_child(peek.make_peek_button())
+	arm = ChoiceArm.attach(self, _cards)
 	visible = false
 
 	# The active-Omen tag lives on the HUD, outside this (usually hidden) screen.
@@ -115,6 +116,7 @@ func _show_offer(_offer: Array[OmenData], block: int) -> void:
 	_title.text = "The wind stirs · drifts %d–%d" % [_drifts.x, _drifts.y]
 	_clear_cards()
 	visible = true
+	arm.arm()
 	if omens.forced or omens.faced:
 		if omens.forced:
 			_title.text = "An Omen must be faced · drifts %d–%d" % [_drifts.x, _drifts.y]
@@ -125,6 +127,7 @@ func _show_offer(_offer: Array[OmenData], block: int) -> void:
 	_cards.add_child(_make_clear_skies_card())
 
 var _drifts := Vector2i.ZERO
+var arm: ChoiceArm  # Cards and Esc / right-click ignore input for a moment as the screen appears
 
 func _clear_cards() -> void:
 	for child in _cards.get_children():
@@ -450,7 +453,7 @@ func _toast(text: String) -> void:
 
 # Esc / right-click = Clear Skies (not once faced, nor when an Omen must be faced: then pick one).
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible or omens.forced or omens.faced or peek.peeking:
+	if not visible or omens.forced or omens.faced or peek.peeking or not arm.is_armed():  # A right-click cancelling build mode isn't Clear Skies
 		return
 	var right_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT
 	if event.is_action_pressed("ui_cancel") or right_click:

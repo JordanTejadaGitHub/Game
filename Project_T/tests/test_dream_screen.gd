@@ -267,9 +267,66 @@ func _run() -> void:
 	var let_go := screen._cards.get_child(0).get_child(1) as Button if screen._cards.get_child(0).get_child_count() > 1 else null
 	_check(let_go != null and let_go.text == "Let go · 2 left this run" and let_go.tooltip_text.contains("don't refill"),
 		"let-gos say the same (\"%s\")" % (let_go.text if let_go else "none"))
+	dreams.banishes_left = 0
+	await _test_arm_delay(dreams, screen, main)
 	dreams.current_offer = []
 	print("dream screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
+
+# The arm delay (user: "sometimes I click on cards when waves end because I'm trying to place towers"): for
+# ChoiceArm.ARM_TIME after the screen appears no click picks a card, nor does a press from then released later; a
+# press and release after it picks. The Omen screen's Esc / right-click (Clear Skies) waits the same.
+func _test_arm_delay(dreams: DreamState, screen, main: Node) -> void:
+	var offer: Array[UpgradeData] = []
+	for card in dreams.pool:
+		if offer.size() < 3 and card.kind == UpgradeData.Kind.STAT and not dreams.stacks.has(card.id):
+			offer.append(card)
+	dreams.current_offer = offer
+	dreams.current_offer_drift = 50
+	dreams.picks_left = 1
+	screen._show_offer(offer, 50)
+	await process_frame
+	await process_frame
+	var button := screen._cards.get_child(0).get_child(0) as Button
+	var at: Vector2 = button.get_global_rect().get_center()
+	_check(not screen.arm.is_armed() and screen._cards.modulate.a < 1.0, "the cards fade in, not armed yet")
+	_click(at, true)
+	for i in 12:  # 0.2 s
+		await process_frame
+	_click(at, false)
+	await process_frame
+	_check(not dreams.stacks.has(offer[0].id), "a press and release in the first 0.2 s picks nothing")
+	for i in 12:  # Pressed at 0.4 s, released after arming
+		await process_frame
+	_click(at, true)
+	for i in 18:
+		await process_frame
+	_check(screen.arm.is_armed(), "armed after %.1f s" % ChoiceArm.ARM_TIME)
+	_click(at, false)
+	await process_frame
+	_check(not dreams.stacks.has(offer[0].id), "…nor a press from before arming released after it")
+	for i in 20:
+		await process_frame
+	_check(is_equal_approx(screen._cards.modulate.a, 1.0), "the cards are fully in")
+	_click(at, true)
+	await process_frame
+	_click(at, false)
+	await process_frame
+	_check(dreams.stacks.has(offer[0].id), "a press and release after arming picks the card")
+	# Omens: right-click (Clear Skies) waits too: a right-click cancelling build mode as the rest begins isn't a pick
+	var omen_screen = main.get_node("HUD/OmenScreen")
+	var omens = main.get_node("%OmenDirector")
+	if omen_screen != null and omens != null:
+		omen_screen.arm.arm()
+		_check(not omen_screen.arm.is_armed(), "the Omen screen arms too")
+
+func _click(at: Vector2, pressed: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = pressed
+	event.position = at
+	event.global_position = at
+	root.push_input(event)
 
 static func _text_length(card: UpgradeData) -> int:
 	return card.description.length() + card.cost_description.length() + 30 * card.requires.size()

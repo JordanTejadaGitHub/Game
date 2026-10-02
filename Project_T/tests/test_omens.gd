@@ -69,6 +69,9 @@ func _test_flow(main: Node) -> void:
 	esc.action = &"ui_cancel"
 	esc.pressed = true
 	screen._unhandled_input(esc)
+	_check(omens.is_offering(), "Esc as the screen appears does nothing (the arm delay: a cancel meant for build mode)")
+	await _frames(int(ChoiceArm.ARM_TIME * 60.0) + 2)
+	screen._unhandled_input(esc)
 	_check(omens.active == null and not omens.is_offering() and not paused, "Esc = Clear Skies: nothing changes")
 	# Face an Omen: the drawn Omens are revealed, one must be picked (no going back)
 	director.drifts_started = 15
