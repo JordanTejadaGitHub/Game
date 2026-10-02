@@ -1411,10 +1411,10 @@ func add_rare_dreams(count: int) -> void:
 func add_extra_cards(count: int) -> void:
 	_extra_cards_next += count
 
-# --- Block finales and rest choices (spire_difficulty.md Phases 2 and 3) -------------------------------------
+# --- Block finales (spire_difficulty.md Phase 2) ---------------------------------------------------------------
 # A block finale (DriftDirector.get_block_finale_elites(n) >= 0, from block_finale_health_from) cleared clean (no
 # leaf lost from its start to the rest after it: the run history's per-drift leaves_lost) earns one Rare+ slot in
-# the next Dream. The rest choice "Dream" adds cards to the next Dream offer. Both are saved with the run.
+# the next Dream. Saved with the run. (The Phase 3 rest choices were replaced by heartwood_gifts.md.)
 
 signal finale_judged(drift: int, clean: bool)
 
@@ -1464,15 +1464,6 @@ func has_rare_slot_pending() -> bool:
 
 func finale_reward_pending() -> bool:  # Balancing's name for the same
 	return has_rare_slot_pending()
-
-# The rest choice "Dream" (Main's rest step): `count` more cards in the next Dream offer, a one-shot (at most
-# MAX_OFFER_CARDS, like Thick Blight's).
-func add_next_offer_cards(count: int) -> void:
-	add_extra_cards(count)
-
-# Extra cards waiting for the next Dream offer (the rest choice, Thick Blight, Second Wind).
-func extra_cards_pending() -> int:
-	return _extra_cards_next
 
 # Omen reward (Lean Season): the next Dream (from act 2) includes a Legendary.
 func add_legendary_dreams(count: int) -> void:

@@ -2,7 +2,7 @@ extends SceneTree
 
 # Headless test for spire_difficulty.md Phases 2 and 3 (DreamState): a block finale cleared clean earns one Rare+
 # slot in the next Dream (a leaf lost on it doesn't; nor a normal drift or a boss drift; drift 5 is before the
-# finales), kept through a reroll and the run save; the rest choice "Dream" adds one card to the next offer only.
+# finales), kept through a reroll and the run save. (The Phase 3 rest choices were replaced by Heartwood's Gifts.)
 #   godot --headless --path . --script res://tests/test_spire_dreams.gd --fixed-fps 60
 
 var failures := 0
@@ -78,19 +78,6 @@ func _run() -> void:
 	_check(dreams.has_rare_slot_pending() and dreams.finale_result(4).finale == 20 and dreams.finale_result(3).leaves_lost == 1,
 		"the slot and the results survive the run save")
 	dreams._finale_rare_next = 0
-
-	# Phase 3: the rest choice "Dream" adds one card to the next offer, then it's gone
-	var base := dreams.make_offer(30).size()
-	dreams.add_next_offer_cards(1)
-	_check(dreams.extra_cards_pending() == 1, "the rest choice waits for the next offer")
-	var wider := dreams.make_offer(30).size()
-	_check(wider == mini(base + 1, DreamState.MAX_OFFER_CARDS), "the next offer has one more card (%d → %d)" % [base, wider])
-	_check(dreams.make_offer(30).size() == base and dreams.extra_cards_pending() == 0, "…only that one offer")
-	dreams.add_next_offer_cards(1)
-	saved = JSON.parse_string(JSON.stringify(dreams.to_save())) as Dictionary
-	dreams._extra_cards_next = 0
-	dreams.load_save(saved)
-	_check(dreams.extra_cards_pending() == 1, "…and it's saved with the run")
 
 	main.queue_free()
 	await process_frame
