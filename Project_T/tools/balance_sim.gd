@@ -37,7 +37,7 @@ const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, 
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
 	"dew_rest", "dew_other", "spent_plant", "spent_walls", "spent_grow", "spent_nurture", "banked",
 	"attackers", "walls", "tier1", "tier2", "tier3", "tier4", "avg_rank", "route", "families", "cards",
-	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain"]
+	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain", "combo_share", "status_share", "hit_share"]
 
 # Per style: [attacker room at drift 0, + per drift, cap], walls per attacker, nurture weight.
 const STYLE_PLAN := {
@@ -567,7 +567,7 @@ func _new_window() -> void:
 	d = {"start": game_time, "health_spawned": 0.0, "damage": 0.0, "chain_deep": 0.0, "leaks": 0, "leaves_left": run_state.leaves,
 		"leaves_before": run_state.leaves, "dew_rest": 0, "dew_other": 0, "spent_plant": 0, "spent_walls": 0,
 		"spent_grow": 0, "spent_nurture": 0, "by_tower": {}, "asleep": 0.0, "reaction": 0.0, "crit": 0.0,
-		"restless": 0, "trampled": 0, "approach": 0.0}
+		"restless": 0, "trampled": 0, "approach": 0.0, "combo": 0.0, "status": 0.0, "hit": 0.0}
 
 func _on_damage(event) -> void:
 	d.damage += event.amount
@@ -579,6 +579,13 @@ func _on_damage(event) -> void:
 	# Per Warden (instance), not per kind: twenty Sporelings are twenty Wardens for the "one Warden" check.
 	var key: String = "%s#%d" % [event.source_name, event.source.get_instance_id()] if is_instance_valid(event.source) else event.source_name
 	d.by_tower[key] = d.by_tower.get(key, 0.0) + event.amount
+	d.combo += clampf(event.combo_amount, 0.0, event.amount)  # Overlaps the three below (a combo rides on a hit, tick or Reaction)
+	if reaction_tags.has(event.tag):
+		pass  # Counted below as reaction
+	elif event.kind == &"status" or event.kind == &"bolt":
+		d.status += event.amount
+	else:
+		d.hit += event.amount
 	if reaction_tags.has(event.tag):
 		d.reaction += event.amount
 		var hit_enemy = event.enemy
@@ -617,7 +624,7 @@ func _close_window(n: int) -> void:
 		"avg_rank": snappedf(float(ranks) / maxf(_attackers().size(), 1), 0.1),
 		"route": map.get_path_from(map.startPath).size(), "families": lines.size(), "cards": dreams.stacks.size(),
 		"dreamlight": dreams.dreamlight, "top_warden": top, "top_share": snappedf(top_amount / damage, 0.001),
-		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "longest_chain": _longest_chain(),
+		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "combo_share": snappedf(d.combo / damage, 0.001), "status_share": snappedf(d.status / damage, 0.001), "hit_share": snappedf(d.hit / damage, 0.001), "longest_chain": _longest_chain(),
 		"crit_share": snappedf(d.crit / damage, 0.001), "restless": d.restless, "trampled": d.trampled,
 		"approach": snappedf(d.approach, 0.01)}
 	rows.append(row)
