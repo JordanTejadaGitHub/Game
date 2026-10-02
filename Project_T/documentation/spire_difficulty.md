@@ -321,4 +321,4 @@ full game (`game/demo` false), and the demo reads main's exports.
   0.45, Jarlink 0.45 / 0.44, Lightning Fence 0.58 / 0.60, Silence 0.66, Hushbell 0.44; still low Prism Jar 0.22,
   Rainbow Prism 0.43 / 0.39, Silver Bell 0.13, Vesper Bell 0.22. **Round 3 (last):** Undercurrent 40, Jarlink arc
   140, Lightning Fence arc 560, Hushbell 35, Silence 75, Prism Jar 80, Rainbow 200, Silver Bell 150, Vesper
-  350. **The new-branch probe series closes after this; human runs judge.**
+  350 (in 6ad580f3). **The new-branch probe series is closed; human runs judge.**
