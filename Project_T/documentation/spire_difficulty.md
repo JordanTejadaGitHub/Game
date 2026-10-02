@@ -114,3 +114,7 @@ too brittle.
   `act1_health_multiplier` 1.35 → **1.25**, `block_finale_elites` → **{10: 2, 30: 3, 60: 4}**.
 - 2026-10-02: ramp 1.25 and finales {10: 2, 30: 3, 60: 4} both in **0f1c3944** (Tower Code's commit
   swept in Enemy Code's finale edit, as intended); test_run's elite check is being updated by Enemy Code.
+- 2026-10-02: **re-run on 0f1c3944:** Balanced 55%, skip 10%; finales still cost the bot only 0.35
+  leaves (its normal drifts leak twice as often). Extra elites alone don't make a spike. **Finale drifts
+  get ×1.4 health on every non-boss nightmare** (`block_finale_health_multiplier`), and act 1's ramp
+  goes back to ×1.15 (still from drift 3) to pay for it.
