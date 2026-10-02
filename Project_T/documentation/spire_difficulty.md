@@ -134,6 +134,40 @@ problem each:
 +10% Seeds per level as now. With rest choices in, consider level 11 or 12 → **"Rest regrows
 nothing"** instead.
 
+## Phase 6: branch expansion (Tower Discussion, tower_design.md 46ba53c0)
+
+User-approved: each family gets **5 branches + a hidden one**; a run **offers 2** of them (a smart draw),
+plus Lucid Dream, generic Kin, and a **Dreamlight call-back** for a branch that wasn't offered (once per
+family per run). Its first step: the **4 starting families**, built on this branch only.
+
+Balancing sets: the new branches' numbers (branch probe: 0.5–1.0× Driftspore for damage branches, board
+lift for supports), the **call-back cost (start at 2–3 Dreamlight)**, and the **Dreamlight budget** with
+2 offered branches (today: 1 at the first pick + 3 per act boss). Numbers arrive from Tower Discussion.
+
+**Numbers (Balancing Discussion, 2026-10-02; starting values, the branch probe checks them).** All new
+branches grow for 120 Dew (tier 2), finals for 300 (tier 3), ranges as their family base unless given.
+
+| Branch → final | Branch stats | Final stats + twist |
+|---|---|---|
+| Lichenling → Old Lichen | projectile 16 dmg, 1.5/s, Spored 1; Spored ticks strip **1% of a dread shell / coat** and block healing | 32 dmg, 1.5/s, Spored 2; at **8 stacks** a shell cracks off |
+| Brood Cap → Hatchery | a sprite every **2.0 s** (max 4 alive), walks up the path at 3 tiles/s, bursts for **20** + Spored 2 | every **1.5 s**, **40** + Spored 3; every 5th is big and splits into 3 |
+| Inkcap → Deliquescent | projectile 18 dmg, 1.0/s, Spored 1; a Poisoned nightmare leaves ink for **2 s**: +1 Spored per s to walkers | 36 dmg; a dispelled Poisoned nightmare leaves a **2-tile pool for 4 s** (+1 Spored per 0.5 s) |
+| Cloudlet → Nimbus | a 3×3 rain cloud anywhere in range 4 for 4 s, a new one every 2 s: **12 dmg/s** to everything under it (flyers too), Soaked 1 | **24 dmg/s**; Cloudburst every **10 s**: refresh Soaked within 4 |
+| Undercurrent → Maelstrom | a whirlpool (radius 1.5) on a path tile every 6 s for 3 s, draws **0.6 tiles/s** toward its centre (never backward past it), 10 dmg/s | radius 2, **0.9 tiles/s**, 20 dmg/s, Soaks |
+| Jetreed → Torrent | a 6-tile jet, **40** dmg, 0.8/s, **+50% vs Soaked** | **90** dmg; leaves a 3-tile wet trail for 3 s (Soaked) |
+| Jarlink → Lightning Fence | own hit 10, 1.0/s; an arc to another Jarlink within 4 cells: **20** + Charged 1 per crossing (each nightmare at most every 0.5 s) | **45** per crossing; hits Phantoms |
+| Prism Jar → Rainbow Prism | aura within 1.5: **+10% crit chance** (the highest Prism counts, no stacking); own hit 15, 1.0/s | aura **+15%**; its hit 40 splits into 3 beams at 50% each |
+| Sparkler → Starburst | 6 sparks over radius 1.5, **12** each + Charged 1, 0.5/s | **26** each; every 4th burst is a double |
+| Silver Bell → Vesper Bell | range 6 toll every 2.5 s: **30** dmg, fills Drowsy on the strongest (bosses to 3) | **70** dmg; echoes to the next-strongest at half |
+| Hushbell → Silence | silence radius 2 (no abilities, no mending, lanterns dim, boss abilities delayed); pulse 10 dmg, 1.0/s | radius 2.5, lingers **2 s**; pulse 20 |
+| Thrum → Resonance | a 90° cone, range 3, **22** dmg, 1.0/s, **+30% vs Drowsy** | **50** dmg; +15° per Drowsy nightmare in it (max 180°) |
+
+- **Generic Kin:** +10% damage each, Harmony strikes and stages as named Kinships; Whole Tree = any 3 different branches (as designed).
+- **Named Kinships** (Crusted Brood, Eye of the Storm, Fireworks Fence, Vespers): each trait worth about **+20% of the pair's effect** at full stage, the same scale as the built named pairs.
+- **Call-back:** **3 Dreamlight** (includes the branch unlock; its final still 2), once per family per run: a whole act's boss income, so steering is a real cost.
+- **Dreamlight budget:** unchanged (1 at the first pick + 3 per act boss = 10 by drift 76, plus shards); with 2 offered, a typical family path is branch 1 → final 2 → second branch 1 → final 2.
+- **Lucid Dream:** **Rare** (shows the 3 not offered, you pick one).
+
 ## Demo
 
 The demo stays on **main's curve**: if this branch ever merges, every Spire value applies only to the
