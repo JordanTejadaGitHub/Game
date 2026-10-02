@@ -298,3 +298,6 @@ full game (`game/demo` false), and the demo reads main's exports.
   twice), so the arc design goes back to Tower Discussion (proposed: a damaging line laid along the route).
 - 2026-10-02: Old Lichen 40, Resonance 135, Starburst 78 in **49ab5779**; the new finals grow into
   their family's Ascended form (e4217267).
+- 2026-10-02: **fence redesign** (Tower Discussion de57a7c6: a damaging line): **Jarlink 60 dmg/s + 1
+  Charged/s** to nightmares touching the arc, a flyer crossing takes **3 Charged**; **Lightning Fence 150
+  dmg/s**; Fireworks Fence: every 2 s a nightmare on the fence sets off a 2-spark burst at half damage.
