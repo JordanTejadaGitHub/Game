@@ -29,6 +29,7 @@ var split := {"hit": 0.0, "cloud": 0.0, "status": 0.0, "combo": 0.0, "asleep": 0
 var by_tag := {}  # "kind/tag" -> the candidates' damage (tags column)
 var spore_appliers := {}  # For Spored ticks credited to the candidates: applier form id -> damage share (by stacks added)
 var spore_combos := {}  # …and their combo tags -> damage
+var spored_burning := 0.0  # The candidates' Spored damage dealt while the nightmare burns (Ignite: ticks 3x as fast)
 var total := 0.0
 var spawned_health := 0.0
 var leaked_health := 0.0
@@ -172,6 +173,8 @@ func _on_damage(event) -> void:
 	var tag_key := "%s/%s" % [event.kind, event.tag if event.tag != &"" else &"-"]
 	by_tag[tag_key] = float(by_tag.get(tag_key, 0.0)) + event.amount
 	if event.tag == &"spored" and is_instance_valid(event.enemy):
+		if event.enemy.statuses.burn_time > 0.0:
+			spored_burning += event.amount
 		var credit: Array = event.enemy.statuses.spore_credit()
 		if credit.is_empty():
 			spore_appliers["(none)"] = float(spore_appliers.get("(none)", 0.0)) + event.amount
@@ -202,7 +205,7 @@ func _report(director: DriftDirector) -> void:
 		"hit": snappedf(split.hit / t, 0.01), "cloud": snappedf(split.cloud / t, 0.01), "status": snappedf(split.status / t, 0.01),
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
 		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else "finals"),
-		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t)}
+		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001)}
 	print("FINALS %s" % JSON.stringify(row))
 	if out_path != "":
 		var exists := FileAccess.file_exists(out_path)
