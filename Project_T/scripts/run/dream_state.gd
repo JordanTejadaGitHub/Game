@@ -529,7 +529,7 @@ func get_unlock_blocker(data: TowerData) -> String:
 # family's last run (profile last_branch_offer), and by the smart draw: among the pairs adding a counter tag the
 # run's offers don't cover yet (TowerData.counter_tags, Tower Code), when any pair does. A branch not offered is
 # "not in this dream": the Remember screen shows it misty, and it can be called back once per family for
-# CALL_BACK_DREAMLIGHT (the unlock included; its final still costs FINAL_DREAMLIGHT). Lucid Dream gives a free call.
+# CALL_BACK_DREAMLIGHT (the unlock included; its final still costs FINAL_DREAMLIGHT). Remembered Path gives a free call.
 # Families with 2 or fewer regular branches offer them all; the demo keeps today's branches (no draw).
 
 const NOT_IN_DREAM := "not in this dream"
@@ -540,7 +540,7 @@ signal branch_called(form: TowerData, free: bool)
 
 var branch_offers := {}  # Base id -> Array of branch ids this run (the drawn 2, the planted hidden one, called back)
 var called_families := {}  # Base id -> the branch id called back with Dreamlight (once per family per run)
-var free_calls := 0  # Lucid Dream: calls back without Dreamlight or the once-per-family limit
+var free_calls := 0  # Remembered Path: calls back without Dreamlight or the once-per-family limit
 var _last_branch_offer_written := {}  # What this run wrote to the profile (tests read it)
 
 static func branch_expansion_on() -> bool:
@@ -691,7 +691,7 @@ func _remember_branch_offer(base_id: String, offer: Array) -> void:
 	HeartwoodMemory.save_data(memory)
 
 # Why `form` can't be called back now ("" = it can): only a not-offered regular branch of a family you have, once per
-# family (a free call from Lucid Dream skips the once and the price).
+# family (a free call from Remembered Path skips the once and the price).
 func call_back_problem(form: TowerData) -> String:
 	if form == null or form.tier != 2 or is_hidden_branch(form) or is_branch_offered(form):
 		return "not a branch to call back"
@@ -721,7 +721,7 @@ func call_back(form: TowerData) -> bool:
 	unlocks_changed.emit()
 	return true
 
-# Any family of yours has a branch not in this dream (Lucid Dream is only offered then).
+# Any family of yours has a branch not in this dream (Remembered Path is only offered then).
 func has_branch_to_call() -> bool:
 	for base in _roster():
 		if base is TowerData and base.tier == 1 and is_unlocked(base.get_id()) and not not_offered_branches(base).is_empty():

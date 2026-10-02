@@ -403,7 +403,7 @@ func _add_combos(data: TowerData) -> void:
 	_side_box.add_child(links)
 
 # Branch expansion: a branch not in this run. Its silhouette and name, the line, what it does (to judge a call),
-# and the call-back: CALL_BACK_DREAMLIGHT once per family, or free with Lucid Dream.
+# and the call-back: CALL_BACK_DREAMLIGHT once per family, or free with Remembered Path.
 const NOT_IN_DREAM_LINE := "Not in this dream. The Heartwood may remember it next time."
 
 func _fill_not_in_dream(data: TowerData) -> void:
@@ -436,7 +436,7 @@ func _add_call_back(data: TowerData) -> void:
 		CantAfford.apply(button, "Call into this dream", "%d Dreamlight" % DreamState.CALL_BACK_DREAMLIGHT, IconInfo.format(SHORT_TIP))
 		button.pressed.connect(_refuse_call_back.bind(button))
 		return
-	button.text = "Call into this dream · free (Lucid Dream)" if free else "Call into this dream · %d Dreamlight" % DreamState.CALL_BACK_DREAMLIGHT
+	button.text = "Call into this dream · free (Remembered Path)" if free else "Call into this dream · %d Dreamlight" % DreamState.CALL_BACK_DREAMLIGHT
 	if problem != "":
 		button.disabled = true
 		_line(problem[0].to_upper() + problem.substr(1) + ".", UiStyle.INK_DIM, 13)

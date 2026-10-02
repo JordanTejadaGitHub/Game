@@ -3,7 +3,7 @@ extends SceneTree
 # Headless test for the branch expansion's run offer (tower_design.md "Branch expansion: 5 branches, 2 per run",
 # Spire branch; DreamState): 2 of a family's 5 regular branches per run, seeded, never last run's pair, the smart
 # draw adding an uncovered counter tag, the rest "not in this dream" (their finals too), the Dreamlight call-back
-# once per family, Lucid Dream's free call, card gating (Entwined ingredients too), the run save, small families
+# once per family, Remembered Path's free call, card gating (Entwined ingredients too), the run save, small families
 # offering all, and the demo keeping today's branches. Never touches the player's saves.
 #   godot --headless --path . --script res://tests/test_branch_offer.gd --fixed-fps 60
 
@@ -82,12 +82,12 @@ func _run() -> void:
 		"…its final then unlocks for %d as usual" % DreamState.FINAL_DREAMLIGHT)
 	var second: TowerData = dreams.not_offered_branches(base)[0]
 	_check(dreams.call_back_problem(second).begins_with("already called"), "…once per family per run")
-	# Lucid Dream: a free call, past the once
+	# Remembered Path: a free call, past the once
 	var lucid: UpgradeData = load("res://resource/dream/lucid_dream.tres")
-	_check(lucid.rarity == UpgradeData.Rarity.RARE and dreams.can_offer(lucid, 2) == dreams.in_run_pool(lucid), "Lucid Dream is a Rare card, offered while a branch is missing")
+	_check(lucid.rarity == UpgradeData.Rarity.RARE and dreams.can_offer(lucid, 2) == dreams.in_run_pool(lucid), "Remembered Path is a Rare card, offered while a branch is missing")
 	dreams.take(lucid)
 	_check(dreams.free_calls == 1 and dreams.call_back(second) and dreams.dreamlight == 4 and dreams.free_calls == 0,
-		"Lucid Dream calls one more back, free")
+		"Remembered Path calls one more back, free")
 	_check(not dreams.can_offer(lucid, 2) or dreams.has_branch_to_call(), "…and it isn't offered with nothing left to call")
 
 	# Card gating: a card naming a branch not in this run waits; an Entwined card needing it too
@@ -119,7 +119,7 @@ func _run() -> void:
 	_check(dreams.get_branch_offer(base) == offer_before and dreams.called_families.has(base.get_id()), "the offer and the call survive the save")
 
 	# The Remember screen: the last branch not in this dream is a misty silhouette at the root's level, its final
-	# hidden; the side panel says so and calls it back (once per family: here only Lucid Dream's free call can)
+	# hidden; the side panel says so and calls it back (once per family: here only Remembered Path's free call can)
 	var screen := main.get_node("%RememberScreen") as RememberScreen
 	var misty: TowerData = dreams.not_offered_branches(base)[0]
 	screen.open(base)
@@ -139,7 +139,7 @@ func _run() -> void:
 	dreams.free_calls = 1
 	screen._select(misty)
 	call = screen._side_box.find_child("CallBackButton", true, false)
-	_check(call != null and not call.disabled and call.text.contains("free"), "…a Lucid Dream call is free (\"%s\")" % (call.text if call else ""))
+	_check(call != null and not call.disabled and call.text.contains("free"), "…a Remembered Path call is free (\"%s\")" % (call.text if call else ""))
 	if call != null:
 		call.pressed.emit()
 	_check(dreams.is_unlocked(misty.get_id()) and screen.state_of(misty) == RememberScreen.State.UNLOCKED, "…and calling it unlocks it there")
