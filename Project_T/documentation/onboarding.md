@@ -45,6 +45,12 @@ trigger at these moments:
 | Drift 2 starts | Speed and pause | The speed buttons glow once. *"Pause if you need to think. They'll wait."* |
 | First sell | Refunds | A tooltip on the sell button: 75% during a rest, half while nightmares walk. |
 | Rest before drift 25 | Bosses | The Hollow Stag's silhouette appears at the forest edge, antlers burning. *"Something old has found the dream."* |
+| First Omen offer (drift 10 rest) | Omens | *"Face it, or let the sky stay clear."* (added 2026-10-02) |
+| First Dreamlight earned / Remember lit | Dreamlight | *"Dreamlight remembers what your Wardens could become."* |
+| First boss reaching the Heartwood | Boss toll | *"It took its toll, and went back into the dark."* |
+| First rule-breaker warning (flyers, sprinters, …) | Rule-breakers | *"This one doesn't keep to the path. Watch for it."* (kept on purpose, user: players get used to the warnings, so they notice when one comes) |
+| First Nurture | Ranks | *"Tend it, and it grows deeper roots."* |
+| First "Let it pass" available | Skipping a Dream | *"Not every dream is yours to keep. You can let one pass."* |
 | After the Hollow Stag | New family | The second family pick. *"It's gone, and something I'd forgotten came back."* |
 
 **Run end (win or lose):**
