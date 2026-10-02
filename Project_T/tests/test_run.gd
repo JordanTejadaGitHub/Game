@@ -79,11 +79,13 @@ func _test_blocks_and_rests() -> void:
 	_check(spawner.get_enemies().is_empty(), "no creatures before Start")
 	_check(director.get_extra_nightmares(9) == 1.0 and director.get_extra_nightmares(10) == 1.25, "extra nightmares from drift 10")
 	# The Dew pot (run_design.md): a fixed pot per drift from the table, linear inside each act, bosses apart.
-	_check(is_equal_approx(director.get_dew_pot(1), 30.0) and is_equal_approx(director.get_dew_pot(24), 115.0)
-		and is_equal_approx(director.get_dew_pot(25), 220.0) and is_equal_approx(director.get_dew_pot(26), 115.0)
-		and is_equal_approx(director.get_dew_pot(49), 135.0) and is_equal_approx(director.get_dew_pot(50), 270.0)
-		and is_equal_approx(director.get_dew_pot(75), 320.0) and director.get_dew_pot(100) == 0.0,
-		"the pot table: 30 → 115 in act 1, bosses 220 / 270 / 320, the win pays nothing")
+	var pots: Array[Vector2] = director.dew_pot_acts
+	var boss_pots: Array[float] = director.dew_pot_bosses
+	_check(is_equal_approx(director.get_dew_pot(1), pots[0].x) and is_equal_approx(director.get_dew_pot(24), pots[0].y)
+		and is_equal_approx(director.get_dew_pot(25), boss_pots[0]) and is_equal_approx(director.get_dew_pot(26), pots[1].x)
+		and is_equal_approx(director.get_dew_pot(49), pots[1].y) and is_equal_approx(director.get_dew_pot(50), boss_pots[1])
+		and is_equal_approx(director.get_dew_pot(75), boss_pots[2]) and director.get_dew_pot(100) == 0.0,
+		"the pot table: linear per act from dew_pot_acts, bosses from dew_pot_bosses, the win pays nothing")
 	# Fractions carry: three shares of 0.5 pay 1 Dew, then the third half waits.
 	run_state._dispel_dew_carry = 0.0
 	var halves := run_state._carried_dew(0.5) + run_state._carried_dew(0.5) + run_state._carried_dew(0.5)
@@ -104,17 +106,20 @@ func _test_blocks_and_rests() -> void:
 	var oak_data: EnemyData = load("res://resource/enemy/hollow_oak.tres")
 	_check(is_equal_approx(director.get_health_scale(shade_data, 50), director.get_growth(50) * act2_end * director.get_health_multiplier(shade_data, 50))
 		and is_equal_approx(director.get_health_scale(shade_data, 51), director.get_growth(51) * late * director.get_health_multiplier(shade_data, 51))
-		and is_equal_approx(director.get_health_scale(oak_data, 100), director.boss_health_multiplier * director.final_boss_late_multiplier * director.get_health_multiplier(oak_data, 100)),
+		and is_equal_approx(director.get_health_scale(oak_data, 100), director.boss_health_multiplier * director.final_boss_late_multiplier * director.act4_health_multiplier * director.get_health_multiplier(oak_data, 100)),
 		"acts 3–4 nightmares and bosses have ×%.1f health (the Hollow Oak at 100 its own)" % late)
-	# Act 1: ×1.0 to 9, ramping to ×1.15 at 20, held to 25. Act 2 ("Human run 2"): act2_start at 26, the old
+	_check(is_equal_approx(director.get_health_scale(shade_data, 76), director.get_growth(76) * late * director.act4_health_multiplier * director.get_health_multiplier(shade_data, 76)),
+		"act 4 adds act4_health_multiplier ×%.2f on top (Spire)" % director.act4_health_multiplier)
+	# Act 1: ×1.0 to act1_ramp_from, ramping to act1_health_multiplier at act1_ramp_to, held to 25. Act 2 ("Human run 2"): act2_start at 26, the old
 	# gentle ramp to act2_steep_value at 37, then most of the rise to act2_end at 45, held to 50.
-	var curve := {1: 1.0, 9: 1.0, 20: 1.15, 25: 1.15, 26: act2_start, 37: director.act2_steep_value, 45: act2_end, 50: act2_end}
+	var a1 := director.act1_health_multiplier
+	var curve := {1: 1.0, director.act1_ramp_from: 1.0, director.act1_ramp_to: a1, 25: a1, 26: act2_start, 37: director.act2_steep_value, 45: act2_end, 50: act2_end}
 	for number in curve:
 		_check(is_equal_approx(director.get_early_multiplier(number), curve[number]),
 			"drift %d: health ×%.2f (got %.3f)" % [number, curve[number], director.get_early_multiplier(number)])
 	_check(absf(director.get_early_multiplier(31) - lerpf(act2_start, director.act2_steep_value, 5.0 / 11.0)) < 0.001
 		and absf(director.get_early_multiplier(41) - lerpf(director.act2_steep_value, act2_end, 0.5)) < 0.001 and director.get_early_multiplier(14) > 1.0
-		and director.get_early_multiplier(14) < 1.15, "both ramps are straight lines")
+		and director.get_early_multiplier(14) < a1, "both ramps are straight lines")
 	# One Deeply Blighted from drift 31 when the drift lists none (boss drifts: from the escort); two from 76.
 	# Never a kind on its intro drift (ade9a9ef, human run 5): a drift of only new kinds (31: the Phantom) gets none.
 	for number in [25, 26, 30, 31, 32, 35, 45, 50, 51, 75, 76, 100]:
@@ -203,7 +208,7 @@ func _test_blocks_and_rests() -> void:
 	_check(director.drifts_started == 7 and run_state.dew == dew + bonus_now[0], "call early pays")
 	var bug: Node2D = spawner.get_enemies().filter(func(e: Node2D) -> bool:
 		return _kind(e.enemy_data) == "leaf_bug")[0]
-	_check(bug.max_health == roundi(100 * pow(1.045, 6)), "drift 7 Leaf Bug health ×1.045^6 (%d)" % bug.max_health)
+	_check(bug.max_health == roundi(100 * pow(1.045, 6) * director.get_early_multiplier(7)), "drift 7 Leaf Bug health ×1.045^6 × the act 1 ramp (%d)" % bug.max_health)
 	var leaves_before := run_state.leaves
 	_send_to_goal(bug, map_generator)
 	await _frames(5)

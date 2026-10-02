@@ -62,21 +62,22 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
 # `late_acts_from_act`, bosses included, on top of the growth / boss multiplier.
 @export var late_acts_health_multiplier: float = 6.0  # Acts 3–4, bosses included ("Human run 7"; was 4.8, 4.0, 3.5, 1.6)
+@export var act4_health_multiplier: float = 1.2  # Spire: act 4 on top of the late multiplier, bosses and the Oak too
 @export var final_boss_late_multiplier: float = 3.0  # …except the Hollow Oak at drift 100 ("Human run 2": it died in 17 s at 1.6)
 @export var late_acts_from_act: int = 3
 # Acts 1–2 (run_design.md 72860af, balance batches): act 1 is x1.0 through `act1_ramp_from`, rising
 # evenly to `act1_health_multiplier` at `act1_ramp_to` and holding to the act's end; act 2 holds that
 # for its first drifts (a breather while the first finals arrive) until `early_ramp_from`, then rises
 # evenly to `early_acts_health_multiplier` at `early_ramp_to`, held until acts 3–4 take over (no stacking).
-@export var act1_health_multiplier: float = 1.15
-@export var act1_ramp_from: int = 9
+@export var act1_health_multiplier: float = 1.35  # Spire (spire_difficulty.md 3bdf9969): was 1.15
+@export var act1_ramp_from: int = 3  # Spire: the ramp starts at drift 3 (was 9)
 @export var act1_ramp_to: int = 20
 @export var early_acts_health_multiplier: float = 4.5  # Act 2 ends at this ("Human run 7"; was 3.6, 3.0, 2.5, 1.55)
-@export var act2_start_health_multiplier: float = 1.7  # …starting from this at act 2's first drift ("Human run 8": one straight line to 4.5 @45; was 2.0, 1.6, 1.3)
+@export var act2_start_health_multiplier: float = 2.0  # …starting from this at act 2's first drift (Spire: one straight line to 4.5 @45; was 1.7, 2.0, 1.6, 1.3)
 @export var early_ramp_from: int = 26
 @export var early_ramp_to: int = 45
 @export var act2_steep_from: int = 37  # "Human run 2": drifts 26-37 keep the old ramp (to act2_steep_value), the rest of the rise comes after
-@export var act2_steep_value: float = 3.3  # Drift 37: on the straight line 1.7 @26 → 4.5 @45, so no knee ("Human run 8", Balancing Discussion; was 2.9, 2.3, 1.995)
+@export var act2_steep_value: float = 3.45  # Drift 37: on the straight line 2.0 @26 → 4.5 @45, so no knee (Spire, Balancing Discussion; was 3.3, 2.9, 2.3, 1.995)
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
 @export var extra_nightmares_from: int = 10  # The intro drifts before it are unchanged
 # Rest bonus = base + per_block × block number (economy pass v2, run_design.md: was 20 + 10 × block,
@@ -93,8 +94,8 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 # nightmares it spawns by weight (EnemyData.dew_reward, Deeply Blighted ×3; a boss drift's boss takes half).
 # Added nightmares (Omens, extra_nightmares, splits, followers) share it; a leak loses its share. Per act:
 # the first → last non-boss drift (linear), then its boss drift.
-@export var dew_pot_acts: Array[Vector2] = [Vector2(30, 115), Vector2(115, 135), Vector2(135, 145), Vector2(140, 145)]
-@export var dew_pot_bosses: Array[float] = [220.0, 270.0, 320.0, 0.0]  # Drift 100 pays nothing: it's the win
+@export var dew_pot_acts: Array[Vector2] = [Vector2(30, 115), Vector2(103.5, 121.5), Vector2(121.5, 130.5), Vector2(126, 130.5)]  # Spire: acts 2-4 x0.9
+@export var dew_pot_bosses: Array[float] = [220.0, 243.0, 288.0, 0.0]  # Drift 100 pays nothing: it's the win (Spire: acts 2-3 x0.9)
 const POT_ELITE_WEIGHT := 3.0
 const POT_BOSS_SHARE := 0.5
 
@@ -405,6 +406,8 @@ func get_health_scale(data: EnemyData, number: int) -> float:
 	if get_act(number) >= late_acts_from_act:
 		var final_boss := data.is_boss and number >= drifts_per_act * 4
 		scale *= final_boss_late_multiplier if final_boss else late_acts_health_multiplier
+		if act >= 4:
+			scale *= act4_health_multiplier  # Spire: act 4 harder still, bosses and the Oak included
 	elif not (data.is_boss and get_act(number) == 1):  # Act 1's boss keeps its own multiplier (its escort takes the ramp)
 		scale *= get_early_multiplier(number)
 	return scale * get_health_multiplier(data, number)
