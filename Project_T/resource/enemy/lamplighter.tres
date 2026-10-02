@@ -23,6 +23,6 @@ lantern_snuff_dew = 2
 trait_text = "Lights cold lanterns that slow the Wardens near them."
 cleanse_line = "The cold lanterns go out, one by one."
 title = "the keeper of the cold flame"
-abilities = Array[Dictionary]([{"name": "Cold Lanterns", "icon": &"sapling", "text": "Lights a cold lantern beside the path, up to {lantern_max} at once. Each burns for {lantern_life} s.", "when": "every {lantern_interval} s"}, {"name": "Cold Light", "icon": &"hidden", "text": "Wardens within {lantern_radius} tiles of a lantern attack {lantern_slow:pct} slower. Click a lantern to snuff it.", "when": "while a lantern burns"}])
+abilities = Array[Dictionary]([{"name": "Cold Lanterns", "icon": &"sapling", "text": "Lights a cold lantern beside the path, up to {lantern_max} at once. Each burns for {lantern_life} s.", "when": "every {lantern_interval} s"}, {"name": "Cold Light", "icon": &"hidden", "text": "Wardens within {lantern_radius} cells of a lantern attack {lantern_slow:pct} slower. Click a lantern to snuff it.", "when": "while a lantern burns"}])
 tips = Array[String](["Don't put everything in one place: its lanterns dim whole clusters.", "Snuff the lanterns that fall among your strongest Wardens.", "Rain puts out cold flame too."])
 whisper = "A cold light is moving through the dream."

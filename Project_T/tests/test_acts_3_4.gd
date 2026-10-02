@@ -319,9 +319,9 @@ func _run() -> void:
 	var mourner_intro: String = load("res://resource/enemy/puffcap.tres").get_intro_lines()[0]
 	_check(mourner_intro == "Breaks into 3 Sobs when dispelled.", "intro numbers come from the data (%s)" % mourner_intro)
 	var weeper_intro: String = load("res://resource/enemy/weeper.tres").get_intro_lines()[0]
-	_check(weeper_intro.contains("1.5 tiles") and weeper_intro.contains("2%"), "Weeper intro: %s" % weeper_intro)
+	_check(weeper_intro.contains("1.5 cells") and weeper_intro.contains("2%"), "Weeper intro: %s" % weeper_intro)
 	var stag_charge: Dictionary = load("res://resource/enemy/old_stag.tres").get_ability(1)
-	_check(stag_charge.text.contains("2.5×") and stag_charge.when.contains("4+ tiles"), "numbers come from the data (%s / %s)" % [stag_charge.when, stag_charge.text])
+	_check(stag_charge.text.contains("2.5×") and stag_charge.when.contains("4+ cells"), "numbers come from the data (%s / %s)" % [stag_charge.when, stag_charge.text])
 	var oak_grief: Dictionary = load("res://resource/enemy/hollow_oak.tres").get_ability(1)
 	_check(oak_grief.when == "at 67% and 33% health" and oak_grief.text.contains("6 Mourners"), "Grief: %s / %s" % [oak_grief.when, oak_grief.text])
 	var summons: Array = load("res://resource/enemy/moth_queen.tres").get_summons()
