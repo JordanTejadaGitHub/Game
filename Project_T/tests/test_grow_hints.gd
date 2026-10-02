@@ -36,6 +36,15 @@ func _run() -> void:
 	if hints == null:
 		quit(1)
 		return
+	# UI Asset's art (8ae32bef): bud, dewdrop and spotlight load from grow_hints.json; the bud sways 0-1-2-1 and
+	# stays on its first frame under reduced motion.
+	_check(hints._art.has("grow_bud") and hints._art.has("rank_dew") and hints._art.has("grow_spotlight")
+		and hints._art.grow_bud.size == 16 and hints._art.grow_spotlight.frames == 4, "the grow hint art loads (%s)" % [hints._art.keys()])
+	var sway: Array = []
+	for t in [0.0, 0.34, 0.67, 1.0, 1.34]:
+		sway.append(GrowHints.frame_at(GrowHints.BUD_ORDER, t, 3.0, false))
+	_check(sway == [0, 1, 2, 1, 0] and GrowHints.frame_at(GrowHints.BUD_ORDER, 0.67, 3.0, true) == 0,
+		"the bud sways 0-1-2-1, still under reduced motion (%s)" % [sway])
 	var director: DriftDirector = main.get_node("%DriftDirector")
 	var map: Node = main.get_node("%MapGenerator")
 	var placer: TowerPlacer = main.get_node("%TowerPlacer")

@@ -17,6 +17,7 @@ const CAST_ACT1 := ["sporeling", "firefly_jar", "dewdrop", "bellflower", "pebbli
 const CAST_NOCHARGE := ["boulderback", "boulderback", "moonstone", "rockslide", "starcave", "midsummer", "magpies_hoard", "great_dreamcatcher"]  # --cast=nocharge: the finals cast without its only Charged source (Thunderhead -> a 2nd Boulderback)
 var cast: Array = CAST
 var next_to: Array = []  # --next-to=puffball,lullaby_bell: the cast is planted first and each candidate goes beside one of these
+var pairs := false  # --pairs: every second copy goes across the route from the one before it, within 4 cells (Jarlink arcs over the route)
 
 var main: Node
 var form_id := "dreamshroom"
@@ -31,6 +32,7 @@ var by_tag := {}  # "kind/tag" -> the candidates' damage (tags column)
 var spore_appliers := {}  # For Spored ticks credited to the candidates: applier form id -> damage share (by stacks added)
 var spore_combos := {}  # …and their combo tags -> damage
 var spored_burning := 0.0  # The candidates' Spored damage dealt while the nightmare burns (Ignite: ticks 3x as fast)
+var hit_target_hp := Vector2.ZERO  # Plain hits by the candidates: (sum of the target's max health, count): erosion per hit = share × mean max health
 var total := 0.0
 var spawned_health := 0.0
 var leaked_health := 0.0
@@ -54,6 +56,7 @@ func _run() -> void:
 			"--rank": rank = int(value)
 			"--cast": cast = {"act1": CAST_ACT1, "nocharge": CAST_NOCHARGE, "finals": CAST}.get(value, Array(value.split(",")))  # or a list: --cast=rain_lily,rain_lily,…
 			"--next-to": next_to = Array(value.split(","))
+			"--pairs": pairs = true
 	ProjectSettings.set_setting("game/demo", false)  # The full game (as the user plays it)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
@@ -72,7 +75,9 @@ func _run() -> void:
 	var rest: Array = cast.duplicate()
 	for i in COPIES:
 		var tower: Tower = null
-		if next_to.is_empty():
+		if pairs and i % 2 == 1:
+			tower = _plant(placer, form_id, [form_id], candidates[i - 1], true)  # Across the route from its partner
+		elif next_to.is_empty():
 			tower = _plant(placer, form_id)
 		else:  # Pair by pair: a target from the cast, then a candidate in a free cell touching it; a target
 			# hemmed in by obstacles gets another planted next to the route (up to 4 tries; extras stay in the board)
@@ -146,7 +151,7 @@ func _run() -> void:
 # Builds the base form on the best open cell next to the path, grows it to `id` and ranks it to `rank`,
 # all paid with Dew. Returns the Warden, or null.
 # `next_to`: only cells touching (8 around) a planted Warden whose id is in the list (Grafted Elder copies a neighbour).
-func _plant(placer: TowerPlacer, id: String, next_to: Array = [], beside: Tower = null) -> Tower:
+func _plant(placer: TowerPlacer, id: String, next_to: Array = [], beside: Tower = null, across := false) -> Tower:
 	var chain := _chain_to(id)
 	if chain.is_empty():
 		return null
@@ -160,6 +165,15 @@ func _plant(placer: TowerPlacer, id: String, next_to: Array = [], beside: Tower 
 		for i in range(4, path.size() - 2):
 			for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 				spots.append(path[i] + offset)
+	elif across and beside != null:  # --pairs: across the route from its partner (within 4 cells, the route between them)
+		for dist in range(2, 5):
+			for dx in range(-dist, dist + 1):
+				for dy in range(-dist, dist + 1):
+					if maxi(absi(dx), absi(dy)) != dist:
+						continue
+					var cell: Vector2 = beside.cell + Vector2(dx, dy)
+					if path.has(((beside.cell + cell) / 2.0).round()):
+						spots.append(cell)
 	else:  # Any free cell touching a target Warden (the 8 around), targets in planting order
 		for t in container.get_children():
 			if t is Tower and (t == beside if beside != null else next_to.has(t.tower_data.get_id())):
@@ -219,6 +233,8 @@ func _on_damage(event) -> void:
 		return
 	var combo := clampf(event.combo_amount, 0.0, event.amount)
 	split.combo += combo
+	if event.kind == &"hit" and event.tag == &"" and is_instance_valid(event.enemy):
+		hit_target_hp += Vector2(float(event.enemy.max_health), 1.0)
 	var tag_key := "%s/%s" % [event.kind, event.tag if event.tag != &"" else &"-"]
 	by_tag[tag_key] = float(by_tag.get(tag_key, 0.0)) + event.amount
 	if event.tag == &"spored" and is_instance_valid(event.enemy):
@@ -253,9 +269,9 @@ func _report(director: DriftDirector) -> void:
 		"share": snappedf(damage / maxf(total, 1.0), 0.001), "rank": candidates[0].rank,
 		"hit": snappedf(split.hit / t, 0.01), "cloud": snappedf(split.cloud / t, 0.01), "status": snappedf(split.status / t, 0.01),
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
-		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "board_damage": roundi(total),
+		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "pairs": pairs, "board_damage": roundi(total),
 		"bosses": ";".join(boss_fights.values().map(func(b) -> String: return "%s:%d:%s:%.0f:%d" % [b.kind, b.health, "1" if b.dispelled else "0", (b.end - b.spawn) if b.dispelled else -1.0, b.hp_arrive])),
-		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001)}
+		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001), "hit_target_hp": roundi(hit_target_hp.x / maxf(hit_target_hp.y, 1.0)), "base_damage": snappedf(candidates[0].get_damage(), 0.1)}
 	print("FINALS %s" % JSON.stringify(row))
 	if out_path != "":
 		var exists := FileAccess.file_exists(out_path)

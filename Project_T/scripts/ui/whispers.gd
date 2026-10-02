@@ -196,15 +196,17 @@ static func show_time(line: String) -> float:
 	return maxf(MIN_TIME, BASE_TIME + PER_CHAR * line.length())
 
 func _style() -> void:
-	UiStyle.whisper(self, HINT_SIZE)  # Cormorant italic in the whisper colour (ui_style.md)
+	UiStyle.whisper(self, HINT_SIZE)  # Cormorant italic (ui_style.md)
+	# The Heartwood's gold, not cream: cream sat on the pale path's own colour (user: "the text colour is a bit too close")
+	add_theme_color_override("default_color", UiStyle.GOLD)
 	add_theme_color_override("font_outline_color", Palette.DREAD)
-	add_theme_constant_override("outline_size", 4)  # About 2 px each side
+	add_theme_constant_override("outline_size", 6)  # 3 px each side (scales with the UI)
 	add_theme_color_override("font_shadow_color", Color(Palette.VOID, 0.7))
 	add_theme_constant_override("shadow_offset_x", 1)
 	add_theme_constant_override("shadow_offset_y", 2)
-	add_theme_constant_override("shadow_outline_size", 6)
+	add_theme_constant_override("shadow_outline_size", 8)
 	var mist := UiStyle.fog_patch(28.0, 8.0)  # Feathered: fades to nothing at its edges, no hard box
-	mist.center_alpha = 0.4
+	mist.center_alpha = 0.7  # Dark enough behind the line to read on the path and on effects
 	mist.edge_alpha = 0.0
 	add_theme_stylebox_override("normal", mist)
 	fit_content = true
