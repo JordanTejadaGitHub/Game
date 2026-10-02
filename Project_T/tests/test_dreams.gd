@@ -104,7 +104,7 @@ func _test_attacks(main: Node) -> void:
 		row.append(_spawn_near(main, storm.cell + Vector2(1, 0), Vector2(0, 64 * i - 128)))
 	storm._chain_strike(row[2])
 	var hit := row.filter(func(e: Node2D) -> bool: return e.health < e.max_health).size()
-	_check(hit == 3, "Stormcap chains to 3 (hit %d)" % hit)
+	_check(hit == storm.attack_data.chain_targets, "Stormcap chains to its chain_targets (%d; hit %d)" % [storm.attack_data.chain_targets, hit])
 	for e in row:
 		e.health = e.max_health
 		e.apply_status(EnemyStatuses.DAMP)
