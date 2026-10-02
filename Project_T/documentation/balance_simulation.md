@@ -718,6 +718,10 @@ on target for a fresh profile (and act 1's "teaches" side holds). Decisions:
 2. Never growing or ranking is an onboarding point, not a number: passed to the hub (a whisper when
    Dew sits on a growable Warden?).
 
+**Correction:** whispers / hints were **switched off** for this run, so she got no onboarding at all.
+"Never grew a Warden" is partly that; **her economy (plant-only) is not a fresh player's normal.** Since
+c8d1fc33 the always-on Growth hint marks are a separate setting from whispers.
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
