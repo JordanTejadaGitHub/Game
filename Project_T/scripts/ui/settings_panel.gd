@@ -118,6 +118,7 @@ func _ready() -> void:
 	# Omens (run_design.md "Ask first"): "ask" at each Omen rest, or "never" = always Clear Skies.
 	_choice_values(gameplay, "Omens", OmenDirector.MODE_SETTING, ["Ask each rest", "Never"], ["ask", "never"], "ask")
 	_choice(gameplay, "Health bars", "health_bars", ["On hit", "Always"], 0)
+	_toggle(gameplay, "Growth hints", GrowHints.SETTING, true, "At rests, a gold ↑ on Wardens that can grow now and a dot when a rank is affordable.")
 
 	var box := _tab("Accessibility")
 	_toggle(box, "Reduced motion", "reduced_motion")

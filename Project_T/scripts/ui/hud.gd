@@ -150,6 +150,8 @@ func _ready() -> void:
 	# Feeling the cards (dream_design.md): a pick from an offer blooms on the Wardens it affects, and the toast says
 	# what it does on the board ("Cozy Corners · 6 Wardens +30%"), right after the "Dreamed" one.
 	owner.add_child.call_deferred(CardBloom.new())
+	# Grow onboarding (onboarding.md): ↑ / dot marks at rests, the first-grow spotlight, the drift 15 reminder (world).
+	owner.add_child.call_deferred(GrowHints.new(drift_director))
 	if dream_state.has_signal("card_chosen"):
 		dream_state.connect("card_chosen", func(_card: UpgradeData, _towers: Array, impact: String) -> void:
 			if impact.contains(" · "):  # A card with no effect yet sends just its name: "Dreamed: X" stays

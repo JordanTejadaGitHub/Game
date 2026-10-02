@@ -16,7 +16,8 @@ const TEXT := {
 	&"rest": "Rest here. Rearrange the forest; nothing is lost.",
 	&"save": "The forest will wait for you.",
 	&"cage": "A dream can bend, but never close.",
-	&"grow": "This Sprout could grow.",
+	&"grow": "That %s could grow. Click it.",  # The Warden's name (GrowHints, the first rest one can grow)
+	&"grow_more": "Your Wardens can become much more than this.",  # Drift 15, nothing grown or ranked yet (GrowHints)
 	&"kin": "Two of one family, planted close, learn from each other.",
 	&"unbound": "Turn them too often, and they stop listening.",
 	&"dead_wood": "Dead wood. I can't move it… yet.",
@@ -138,9 +139,14 @@ func _glide_along_path() -> void:
 	camera.glide(points, 6.0)
 
 # Shows `id` once ever (queued behind whatever is showing).
-func whisper(id: StringName) -> void:
+var _args := {}  # Whisper id -> the words for its %s (the grow whisper's Warden name)
+
+# `args` fill the text's %s ("That %s could grow." + ["Sporeling"]).
+func whisper(id: StringName, args: Array = []) -> void:
 	if not enabled or _seen.has(String(id)) or _queue.has(id):
 		return
+	if not args.is_empty():
+		_args[id] = args
 	_queue.append(id)
 	if _queue.size() == 1:
 		_show_next()
@@ -151,8 +157,11 @@ func _show_next() -> void:
 	var id: StringName = _queue[0]
 	_seen.append(String(id))
 	_remember()
-	plain = IconInfo.format(TEXT.get(id, ""))  # {damp} … become today's status names
-	var linked := StatusLinks.bbcode(TEXT.get(id, ""))  # From the tokens: game terms become links too
+	var raw: String = TEXT.get(id, "")
+	if _args.has(id):
+		raw = raw % _args[id]
+	plain = IconInfo.format(raw)  # {damp} … become today's status names
+	var linked := StatusLinks.bbcode(raw)  # From the tokens: game terms become links too
 	text = "[center]%s[/center]" % linked
 	whispered.emit(id)
 	# Status names are links of their own (hover / tap: their definition). A whisper without one is
@@ -193,13 +202,7 @@ func _process(_delta: float) -> void:
 	# Kinships (screens_ui.md "Kinship feedback", playtest fix): two branches of one family planted.
 	if not _seen.has("kin") and RestReport.two_branch_family(tower_container.get_children()) != "":
 		whisper(&"kin")
-	if not _seen.has("grow"):
-		for tower in tower_container.get_children():
-			if tower is Tower and tower.tower_data.get_id() == "sprout":
-				for option in dream_state.get_evolutions(tower.tower_data):
-					if option[1] and run_state.can_afford(tower.get_grow_cost(option[0]).total):  # Ranked: + the rank difference
-						whisper(&"grow")
-						return
+	# "That Sporeling could grow. Click it." comes from GrowHints at the first rest a Warden can grow.
 
 func _any_creature_has(id: StringName) -> bool:
 	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
