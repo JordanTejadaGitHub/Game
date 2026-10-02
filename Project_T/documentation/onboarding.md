@@ -14,7 +14,7 @@ has to nail (`pitch.md`).
   guaranteed, so even a quick loss moves the player forward.
 - **Hide what isn't needed yet.** Systems appear when the player can use them (see the table
   below).
-- **Skippable.** A "Heartwood whispers" setting (on / off) for experienced players; restarting the
+- **Skippable.** A **"Hints"** setting (on / off; was "Heartwood whispers", renamed 2026-10-01; the lines stay in the Heartwood's voice) for experienced players; restarting the
   first-run tips is also possible from settings.
 
 ## Run 1: the core loop (and the first taste of meta)
@@ -36,7 +36,7 @@ trigger at these moments:
 | First blocked placement | The dream's rule | The ghost turns red. *"A dream can bend, but never close."* |
 | ~~First affordable evolution~~ | ~~Growing~~ | ~~The Sprout under the cursor shimmers.~~ Replaced below: it only fired if the player happened to hover a Sprout. |
 | **First rest where Dew can grow a planted Warden** (revised 2026-10-01: human run 12, a non-gamer, reached drift 30 with 60 Sporelings + 10 Firefly Jars and never grew or ranked one) | Growing | The nearest growable Warden to the camera centre **shimmers and gets a gold "↑" at its base**, and the whisper names it: *"That Sporeling could grow. Click it."* Clicking it opens the Warden panel with the Grow buttons pulsing once. |
-| **"Can grow" marks** | Growing, always visible | At **rests**, every Warden that can grow **and** that you can afford right now shows a **small gold ↑ leaf** at its base (one per Warden, quiet, no pulse). Same for Nurture: a **small gold dot** when its next rank is affordable. Setting *Gameplay → Growth hints* (On by default; Off hides the marks, never the whispers). Hidden during drifts so the fight stays clean. **They retire themselves** (2026-10-01, user: "is that too obvious?"): shown until the profile has grown **10 Wardens in total** or finished **3 runs**, whichever comes first; then the setting quietly flips to Off (the player can turn it back on). The marks are small and dim (about 60% opacity, no glow); only the first-time shimmer is loud. |
+| **"Can grow" marks** | Growing, always visible | At **rests**, every Warden that can grow **and** that you can afford right now shows a **small glowing bud** at its base (the ↑ arrow was replaced: user, "doesn't fit the theme") (one per Warden, quiet, no pulse). Same for Nurture: a **small glowing dewdrop** when its next rank is affordable. Setting *Gameplay → Hints → Growth marks* (On by default; Off hides the marks, never the whispers). Hidden during drifts so the fight stays clean. **They retire themselves** (2026-10-01, user: "is that too obvious?"): shown until the profile has grown **10 Wardens in total** or finished **3 runs**, whichever comes first; then the setting quietly flips to Off (the player can turn it back on). The marks are small and dim (about 60% opacity, no glow); only the first-time shimmer is loud. |
 | **Drift 15 with nothing grown** (once per profile) | Growing reminder | If no Warden has grown or ranked yet and Dew ≥ the cheapest grow: *"Your Wardens can become much more than this."* The marks pulse once. |
 | **First rank affordable on a selected Warden** | Nurture | The Nurture button pulses once; tooltip *"Nurture it: each rank makes it stronger, your choice how."* |
 | First hover on an obstacle | Obstacles | Before clearing is unlocked: *"Dead wood. I can't move it… yet."* (the hover tag says a clearing Dream is needed). After the first clearing card: *"Tend the forest, and it will remember you."* (+1 Seed at run end) |
