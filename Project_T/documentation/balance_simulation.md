@@ -745,6 +745,14 @@ on target for a fresh profile (and act 1's "teaches" side holds). Decisions:
 "Never grew a Warden" is partly that; **her economy (plant-only) is not a fresh player's normal.** Since
 c8d1fc33 the always-on Growth hint marks are a separate setting from whispers.
 
+## Nap batch on main (2026-10-02, 175058a0: Spire rules + round 3)
+
+**1. Round-3 re-probe of the new branches** (fixed board, 3 seeds): **in band:** Undercurrent 0.52×,
+Jarlink 0.52× (fence 96%) Driftspore; Silence 0.82× Puffball. **Just under:** Lightning Fence 0.68 / 0.78×,
+Rainbow Prism 0.72 / 0.64×, Prism Jar 0.38× → **last nudge:** Fence arc 650, Rainbow 240, Prism Jar 105.
+**Bells** (Silver Bell, Vesper Bell, Hushbell) still below par on leak; left for human runs (their
+sleep / silence value needs real builds). The new-branch probe series is closed.
+
 ## Combo share of damage (user-approved, 2026-10-02)
 
 The user's Warden panels showed 52–76% of damage "from combos". **Target: in a good build, combos and
