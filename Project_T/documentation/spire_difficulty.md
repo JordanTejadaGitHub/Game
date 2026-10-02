@@ -162,3 +162,6 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: **finale reward + rest-choice Dream effect in 8f43d628** (Roguelite Code): clean finale →
   one Rare+ slot in the next Dream (survives a reroll, saved); `add_next_offer_cards(1)` for the Dream
   rest choice. Banner / rest report / the rest step itself are Main Merger's (pending).
+- 2026-10-02: **Phases 2 and 3 playable in 4053690c** (Main Merger, with 8f43d628): finale line on the
+  DriftPanel, rest report result, the rest choice (Rest only below max / Clear / Forage, Tend, Dream),
+  recorded as `rest_choices`. Clear becomes Forage while clearing is locked.
