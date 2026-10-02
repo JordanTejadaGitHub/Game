@@ -29,7 +29,7 @@ const STATS := {
 	&"range": ["Range", "How far it reaches, in tiles."],
 	&"crit_chance": ["Crit chance", "The chance a hit is a critical hit."],
 	&"crit_damage": ["Crit damage", "How much harder a critical hit lands."],
-	&"potency": ["Potency", "Its statuses and effects are stronger: status damage, poison and Reactions."],
+	&"potency": ["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and Reactions, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}."],
 	&"rank": ["Rank", "How nurtured it is (I–V): each rank adds damage, speed and range."],
 	&"focus": ["Focus", "Chosen at rank III: Power, Swift, Reach or Deep."],
 	&"focus_power": ["Power focus", "+8% damage."],
