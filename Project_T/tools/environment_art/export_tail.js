@@ -41,6 +41,7 @@ for (const A of ACTS) {
   emit(d + "path.png", strip(Array.from({ length: 16 }, (_, m) => getImg("path:" + m))));
   emit(d + "path_rim.png", strip(Array.from({ length: 16 }, (_, m) => getImg("pathrim:" + m))));
   emit(d + "fallen_log.png", strip([0, 1, 2, 3, 4, 5].map(k => getImg("flog:" + k))));  // W end, E-W middle, E end, N end, N-S middle, S end
+  emit(d + "log_furrow.png", strip([0, 1, 2, 3, 4, 5].map(k => getImg("lfurrow:" + k))));  // where a Tended log lay, same layout
   // pond.png: column = neighbour mask, row = animation frame.
   emit(d + "pond.png", stack([0, 1, 2, 3].map(fr => strip(Array.from({ length: 16 }, (_, m) => getImg("pond:" + m, fr))))));
   emit(d + "pond_inner.png", strip([0, 1, 2, 3].map(k => getImg("pondin:" + k))));  // NE, SE, SW, NW

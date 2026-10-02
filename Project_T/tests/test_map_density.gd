@@ -111,6 +111,7 @@ func _layout_case(kind: int, short: int) -> void:
 func _feature_case(feature: int) -> void:
 	var placed := 0
 	var near_route := 0
+	var shortcuts := 0  # Log: Tending it shortens the route
 	var corners := 0
 	for seed_value in range(1, 9):
 		var main := await _make(seed_value, -1, -1, feature)
@@ -134,7 +135,10 @@ func _feature_case(feature: int) -> void:
 			if feature == MapLayout.Feature.RUIN:
 				_check(map.obstacles.get(cell) == env.rock_obstacle, "ruin seed %d: %s is stone (Move)" % [seed_value, cell])
 		_check(not map.get_path_from(map.startPath).is_empty(), "%s seed %d: a route exists" % [MapLayout.FEATURE_NAMES[feature], seed_value])
-		if feature == MapLayout.Feature.POND or feature == MapLayout.Feature.RUIN:  # They shape the opening
+		if (feature == MapLayout.Feature.LOG and env.log_cells.size() > 0
+				and map.get_path_if_cleared(env.log_cells[0]).size() < map.get_path_from(map.startPath).size()):
+			shortcuts += 1
+		if feature != MapLayout.Feature.GROVE:  # Pond, ruin and log shape the opening
 			var route: PackedVector2Array = map.get_path_from(map.startPath)
 			var close := false
 			for cell in cells:
@@ -147,9 +151,12 @@ func _feature_case(feature: int) -> void:
 	_check(placed >= 6, "%s placed on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], placed])
 	if feature == MapLayout.Feature.POND:
 		print("  feature pond: %d inside corners over 8 seeds (non-rectangular ponds)" % corners)
-	if feature == MapLayout.Feature.POND or feature == MapLayout.Feature.RUIN:
+	if feature != MapLayout.Feature.GROVE:
 		_check(near_route >= 6, "%s within 2 cells of the opening route on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], near_route])
 		print("  feature %s: near the opening route on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], near_route])
+	if feature == MapLayout.Feature.LOG:
+		_check(shortcuts >= 6, "Tending the log shortens the route on %d of 8 seeds" % shortcuts)
+		print("  feature fallen log: Tending it is a shortcut on %d of 8 seeds" % shortcuts)
 	print("  feature %s: placed on %d of 8 seeds" % [MapLayout.FEATURE_NAMES[feature], placed])
 
 # The Heartwood (environment_assets.md "Inland Heartwood"): inland, in the half away from the start, at
