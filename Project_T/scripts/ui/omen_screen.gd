@@ -287,7 +287,7 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	var reward_line := _add_line(box, "Reward", REWARD_COLOR, REWARD_SIZE)
 	UiStyle.caps(reward_line, REWARD_SIZE, REWARD_COLOR)
 	reward_line.name = "Reward"
-	reward_line.tooltip_text = OmenDirector.REWARD_RULE if omen.kind != OmenData.Kind.DOUBLE_EDGED else ""
+	reward_line.tooltip_text = OmenDirector.REWARD_RULE if not OmenDirector.is_dew_prize(omen) else ""
 	reward_line.mouse_filter = Control.MOUSE_FILTER_PASS  # The tooltip; a click still picks the Omen
 	var bullet_labels: Array[Label] = []
 	for text in omens.reward_bullets(omen, act, omens.current_offer_block):
@@ -393,7 +393,7 @@ func _refresh_tag() -> void:
 # "Reward lost"; "" if double-edged.
 func tag_share_text() -> String:
 	var omen := omens.active
-	if omen == null or omen.kind == OmenData.Kind.DOUBLE_EDGED:
+	if omen == null or OmenDirector.is_dew_prize(omen):
 		return ""
 	var dream_only := omen.reward_dew <= 0 and omen.reward_seeds <= 0 and omen.reward_tree_seeds <= 0 \
 		and omen.reward_pot_multiplier <= 0.0 and omen.reward_rest_bonus_multiplier <= 1.0

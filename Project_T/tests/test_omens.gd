@@ -26,6 +26,7 @@ func _run() -> void:
 	_test_leaf_rewards(main)
 	await _test_active_tag(main)
 	_test_reward_words(main)
+	_test_bullets_match_data(main)
 	print("omens test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -706,6 +707,46 @@ func _test_reward_words(main: Node) -> void:
 	_check(omens.reward_bullets(by_id["wilting"], 1) == ["+30 Dew, minus 7 for each leaf you lose", "Next Dream offers 4 cards, if you lose at most 1 leaf"],
 		"Wilting's bullets (%s)" % [omens.reward_bullets(by_id["wilting"], 1)])
 	_check(omens.reward_bullets(by_id["blood_moon"], 1) == ["The extra Dew is the prize"], "double-edged: one bullet")
+
+# Every Omen's reward bullets match its data (user screenshot: Heavy Rain said "The extra Dew is the prize" but pays its
+# own +45 Dew). Only an Omen whose prize is its nightmares' extra Dew (is_dew_prize) gets that line.
+func _test_bullets_match_data(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var dreams: DreamState = main.get_node("%DreamState")
+	dreams.cards_per_offer = 3
+	for omen in omens.pool:
+		var bullets: Array = omens.reward_bullets(omen, 1)
+		var expected := 0
+		if OmenDirector.is_dew_prize(omen):
+			_check(bullets == ["The extra Dew is the prize"], "%s: its prize is the extra Dew (%s)" % [omen.id, bullets])
+			continue
+		if omen.reward_dew > 0 or omen.reward_pot_multiplier > 0.0:
+			expected += 1
+			if omen.reward_dew > 0:
+				_check(bullets[0] == "+%d Dew, minus %d for each leaf you lose" % [omen.reward_dew, floori(omen.reward_dew * 0.25)],
+					"%s: +%d Dew with its cut per leaf (%s)" % [omen.id, omen.reward_dew, bullets[0]])
+		if omen.reward_seeds > 0:
+			expected += 1
+		if omen.reward_tree_seeds > 0:
+			expected += 1
+		if omen.reward_extra_dream_cards > 0 or omen.reward_rare_dreams > 0:
+			expected += 1
+		if omen.reward_legendary:
+			expected += 1
+		_check(bullets.size() == expected and expected > 0 and not bullets.has("The extra Dew is the prize"),
+			"%s: a bullet per reward field (%d of %d: %s)" % [omen.id, bullets.size(), expected, bullets])
+	var heavy: OmenData = null
+	for omen in omens.pool:
+		if omen.id == "heavy_rain":
+			heavy = omen
+	_check(not OmenDirector.is_dew_prize(heavy) and omens.reward_bullets(heavy, 1) == ["+45 Dew, minus 11 for each leaf you lose"],
+		"Heavy Rain lists its own +45 Dew")
+	_check(omens.paid_sentence(heavy, 1, 0, 1, 0) == "Reward: +33 Dew (1 leaf lost).", "…and its rest report is cut like any reward (%s)" % omens.paid_sentence(heavy, 1, 0, 1, 0))
+	_activate(omens, "heavy_rain", 3)
+	main.get_node("%DriftDirector").drifts_started = 11
+	_check(omens.live_reward_text() == "+45 Dew", "…and the compact tag shows its Dew (%s)" % omens.live_reward_text())
+	omens.active = null
+	main.get_node("%DriftDirector").drifts_started = 0
 
 func _frames(n: int) -> void:
 	for i in n:

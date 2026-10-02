@@ -156,7 +156,7 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 	var scale := _act_scale(act)
 	var share := 1.0
 	var dreams := true
-	if lost >= 0 and omen.kind != OmenData.Kind.DOUBLE_EDGED:
+	if lost >= 0 and not is_dew_prize(omen):
 		share = clampf(1.0 - REWARD_CUT_PER_LEAF * lost, 0.0, 1.0)
 		dreams = lost <= DREAM_REWARD_MAX_LOST
 	var dew := floori((roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)) * share)
@@ -191,7 +191,7 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 	if tree_seeds > 0:
 		parts.append("Withered Trees you clear this run give %d Seeds (not 1)" % (1 + tree_seeds))
 	var text := " · ".join(parts)
-	if lost > 0 and omen.kind != OmenData.Kind.DOUBLE_EDGED:  # Why it's less (the rest report and toast show it)
+	if lost > 0 and not is_dew_prize(omen):  # Why it's less (the rest report and toast show it)
 		var why := "%d %s lost" % [lost, "leaf" if lost == 1 else "leaves"]
 		text = ("%s (%d%%: %s)" % [text, roundi(share * 100), why]) if text != "" else "nothing (%s)" % why
 	return text
@@ -203,8 +203,18 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 const REWARD_RULE := "Lose no leaf in the Omen's drifts and its reward is yours in full. Each leaf lost takes a quarter of its Dew and Seeds away (4 leaves: nothing). A Dream reward stays only if you lose at most 1 leaf."
 const DOUBLE_EDGED_LINE := "No other reward: the extra Dew is the prize."
 
+# An Omen whose only prize is the extra Dew from its nightmares (Blood Moon, Bountiful Night: creature Dew above ×1 and no
+# reward of its own). Their twist is the reward: no reward bullets, never cut by leaves. A double-edged Omen with its own
+# reward (Heavy Rain's +45 Dew) lists and cuts it like any other.
+static func is_dew_prize(omen: OmenData) -> bool:
+	if omen == null or omen.creature_dew_multiplier <= 1.0:
+		return false
+	return omen.reward_dew <= 0 and omen.reward_seeds <= 0 and omen.reward_tree_seeds <= 0 and omen.reward_rare_dreams <= 0 \
+		and omen.reward_extra_dream_cards <= 0 and not omen.reward_legendary and omen.reward_pot_multiplier <= 0.0 \
+		and omen.reward_rest_bonus_multiplier <= 1.0 and omen.reward_dreamlight <= 0 and omen.reward_max_leaves <= 0
+
 func reward_sentence(omen: OmenData, act: int, block: int = 0) -> String:
-	if omen.kind == OmenData.Kind.DOUBLE_EDGED:
+	if is_dew_prize(omen):
 		return DOUBLE_EDGED_LINE
 	var parts := _reward_parts(omen, act, block, 1.0, true)
 	var scaled: Array = parts[0]
@@ -238,7 +248,7 @@ func per_leaf_text(omen: OmenData, act: int, block: int = 0) -> String:
 # leaf", "A Rare+ card in your next Dream, if you lose at most 1 leaf"; double-edged: "The extra Dew is the prize".
 func reward_bullets(omen: OmenData, act: int, block: int = 0) -> Array[String]:
 	var bullets: Array[String] = []
-	if omen.kind == OmenData.Kind.DOUBLE_EDGED:
+	if is_dew_prize(omen):
 		bullets.append("The extra Dew is the prize")
 		return bullets
 	var scale := _act_scale(act)
@@ -266,7 +276,7 @@ func reward_bullets(omen: OmenData, act: int, block: int = 0) -> Array[String]:
 
 # The live amount for the compact tag ("+30 Dew"), "" when the reward has no amount (Dream rewards, double-edged).
 func live_reward_text() -> String:
-	if active == null or active.kind == OmenData.Kind.DOUBLE_EDGED:
+	if active == null or is_dew_prize(active):
 		return ""
 	var parts := _reward_parts(active, drift_director.get_act(maxi(drift_director.drifts_started, 1)), active_block,
 		get_reward_share(), true)
@@ -276,7 +286,7 @@ func live_reward_text() -> String:
 # What a block with `lost` leaves lost paid, in the same words (the rest report and the toast): "Reward: +30 Dew
 # (1 leaf lost).", "No reward: 4 leaves lost.", "… The Dream reward is gone."
 func paid_sentence(omen: OmenData, act: int, rest_bonus: int, lost: int, block: int) -> String:
-	if omen.kind == OmenData.Kind.DOUBLE_EDGED:
+	if is_dew_prize(omen):
 		return "No other reward: the extra Dew was the prize."
 	var share := clampf(1.0 - REWARD_CUT_PER_LEAF * lost, 0.0, 1.0)
 	var parts := _reward_parts(omen, act, block, share, lost <= DREAM_REWARD_MAX_LOST, rest_bonus)
@@ -599,21 +609,21 @@ func leaves_lost_in_block() -> int:
 
 # The share of the active Omen's reward a rest now would pay: 1.0, 0.75, 0.5, 0.25, then 0.
 func get_reward_share(lost: int = -1) -> float:
-	if active != null and active.kind == OmenData.Kind.DOUBLE_EDGED:
+	if active != null and is_dew_prize(active):
 		return 1.0
 	if lost < 0:
 		lost = leaves_lost_in_block()
 	return clampf(1.0 - REWARD_CUT_PER_LEAF * lost, 0.0, 1.0)
 
 func keeps_dream_reward(lost: int = -1) -> bool:
-	if active != null and active.kind == OmenData.Kind.DOUBLE_EDGED:
+	if active != null and is_dew_prize(active):
 		return true
 	return (leaves_lost_in_block() if lost < 0 else lost) <= DREAM_REWARD_MAX_LOST
 
 # Where the active Omen's reward stands now, for the tag's tooltip ("" with no Omen or a double-edged one):
 # "You'd get it all right now." / "You'd get 75% right now: 1 leaf lost." (+ "The Dream reward is gone.")
 func get_reward_status() -> String:
-	if active == null or active.kind == OmenData.Kind.DOUBLE_EDGED:
+	if active == null or is_dew_prize(active):
 		return ""
 	var lost := leaves_lost_in_block()
 	if lost == 0:
