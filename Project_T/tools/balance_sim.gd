@@ -1208,7 +1208,7 @@ func _route_columns() -> Dictionary:
 	}
 
 # One line per Dream offer in <out>/offers.csv: run, drift, each card offered as id:rarity, the card taken
-# ("-" = let it pass) and the Entwined guaranteed card of the offer ("" = none). For pick-rate-when-offered.
+# ("-" = let it pass) and the Entwined guaranteed card of the offer ("" = none; always "" since e328fb55 removed the slot, kept so before/after files line up). For pick-rate-when-offered.
 func _log_pick(offer: Array, pick) -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
 	var path := out_dir.path_join("offers.csv")
@@ -1221,5 +1221,5 @@ func _log_pick(offer: Array, pick) -> void:
 	file.seek_end()
 	var cards := "+".join(offer.map(func(c: UpgradeData) -> String: return "%s:%d" % [c.id, c.rarity]))
 	file.store_line("%s,%s,%s,%d,%d,%s,%s,%s" % [profile, style, dream_mode, map_seed, director.drifts_started, cards,
-		pick.id if pick != null else "-", dreams.get("_guaranteed_id")])
+		pick.id if pick != null else "-", str(dreams.get("_guaranteed_id")) if dreams.get("_guaranteed_id") != null else ""])
 	file.close()
