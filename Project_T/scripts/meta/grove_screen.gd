@@ -288,7 +288,7 @@ func _update_card() -> void:
 		tags.append("Level %d of %d" % [level, levels])
 	_card_section.text = " · ".join(tags)
 	_card_section.add_theme_color_override("font_color", colour)
-	_card_text.text = StatusLinks.bbcode(selected.description)
+	_card_text.text = StatusLinks.bbcode(selected.get_description())
 	var problem := HeartwoodMemory.buy_problem(_memory, selected)
 	var cost := selected.get_cost(HeartwoodMemory.unlock_level(_memory, selected.id))
 	_plant.visible = problem != "Grown" and not selected.is_free()

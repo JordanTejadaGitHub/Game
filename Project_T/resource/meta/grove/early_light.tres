@@ -7,6 +7,7 @@ script = ExtResource("1_unlock")
 id = "early_light"
 display_name = "Early Light"
 description = "Start every run with +1 {dreamlight}."
+sidegrade_description = "Start every run with +1 {dreamlight}. Costs: the first {family_pick} gives no {dreamlight}."
 root = 2
 costs = Array[int]([120])
 order = 9

@@ -221,6 +221,8 @@ signal remember_requested(focus: TowerData)
 @export var unlock_everything: bool = false  # Debug/tests: every Warden and evolution available
 @export var cards_per_offer: int = 3
 @export var skip_dew: int = 15  # "Let it pass"
+var nurture_perk_multiplier := 1.0  # Sidegrade perks (MetaRun, Spire experiment): First Care's cost
+var first_offer_cards := 0  # Sidegrade Kindling: the first Dream offer (drifts 1–5) has this many cards; 0 = normal
 @export var tag_weight: float = 1.0  # Off (1.0 = no boost): offers are random within the run's pool (2026-09-30; was 1.6, then 1.3)
 @export var pity_after: int = 3  # Dreams in a row without Rare+ before one is guaranteed
 # Bittersweet cards stay out of the pool until leaves are tuned (dream_design.md). Act 2+ only,
@@ -989,6 +991,7 @@ func get_nurture_cost_multiplier(tower: Tower = null) -> float:
 	for card in _taken_cards():
 		discount += card.nurture_discount * stacks[card.id]
 	var multiplier := 1.0 - minf(discount, NURTURE_DISCOUNT_MAX)
+	multiplier *= nurture_perk_multiplier  # Sidegrade First Care: +15% once its free ranks are spent
 	if has_rule(&"nursery") and tower != null and tower.tower_data.get_id() == "sprout":
 		multiplier *= 0.5
 	return multiplier
@@ -1607,6 +1610,8 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	_offer_drift = drift_number
 	var size := cards_per_offer
 	picks_left = 1
+	if first_offer_cards > 0 and drift_number <= 5:
+		size = first_offer_cards
 	if has_rule(&"lucid_dreaming"):  # 4 cards, take 2, no Commons
 		size += LUCID_EXTRA_CARDS
 		picks_left = LUCID_PICKS

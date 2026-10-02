@@ -177,7 +177,7 @@ func _perk_button(unlock: UnlockData) -> Button:
 	button.expand_icon = false
 	var roman := ["", " I", " II", " III"]
 	var level_text: String = roman[level] if unlock.get_levels() > 1 and level < roman.size() else ""
-	button.text = "%s%s\n%s" % [unlock.display_name, level_text, IconInfo.format(unlock.description)]  # No hover needed (touch)
+	button.text = "%s%s\n%s" % [unlock.display_name, level_text, IconInfo.format(unlock.get_description())]  # No hover needed (touch)
 	button.disabled = not carried and _carried.size() >= HeartwoodMemory.loadout_slots(_memory)
 	button.add_theme_color_override("font_pressed_color", Palette.GLOW)
 	button.pressed.connect(toggle.bind(unlock.id))
