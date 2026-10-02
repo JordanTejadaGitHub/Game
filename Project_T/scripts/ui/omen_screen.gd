@@ -393,8 +393,10 @@ func _refresh_tag() -> void:
 # "Reward lost"; "" if double-edged.
 func tag_share_text() -> String:
 	var omen := omens.active
-	if omen == null or OmenDirector.is_dew_prize(omen):
+	if omen == null:
 		return ""
+	if OmenDirector.is_dew_prize(omen):
+		return omens.live_reward_text()  # "+120 of ~310": the extra Dew so far
 	var dream_only := omen.reward_dew <= 0 and omen.reward_seeds <= 0 and omen.reward_tree_seeds <= 0 \
 		and omen.reward_pot_multiplier <= 0.0 and omen.reward_rest_bonus_multiplier <= 1.0
 	if dream_only:

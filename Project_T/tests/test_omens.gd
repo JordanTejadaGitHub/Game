@@ -27,6 +27,7 @@ func _run() -> void:
 	await _test_active_tag(main)
 	_test_reward_words(main)
 	_test_bullets_match_data(main)
+	_test_extra_dew_estimate(main)
 	print("omens test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -678,7 +679,7 @@ func _test_active_tag(main: Node) -> void:
 	_check(tag.text.strip_edges().ends_with("· Reward kept"), "a Dream reward: \"Reward kept\" (%s)" % tag.text.strip_edges())
 	_activate(omens, "blood_moon", 4)
 	screen._on_omen_started(omens.active, 16, 20)
-	_check(tag.text.strip_edges() == "Blood Moon · 16–20", "double-edged: just the name and drifts (%s)" % tag.text.strip_edges())
+	_check(tag.text.strip_edges().begins_with("Blood Moon · 16–20 · +0 of ~"), "Blood Moon: the extra Dew earned so far of the estimate (%s)" % tag.text.strip_edges())
 	screen._on_omen_rewarded(omens.active, "")
 	omens.active = null
 	director.drifts_started = 0
@@ -706,7 +707,7 @@ func _test_reward_words(main: Node) -> void:
 		"Hard Bark's bullets (%s)" % [omens.reward_bullets(by_id["hard_bark"], 1)])
 	_check(omens.reward_bullets(by_id["wilting"], 1) == ["+30 Dew, minus 7 for each leaf you lose", "Next Dream offers 4 cards, if you lose at most 1 leaf"],
 		"Wilting's bullets (%s)" % [omens.reward_bullets(by_id["wilting"], 1)])
-	_check(omens.reward_bullets(by_id["blood_moon"], 1) == ["The extra Dew is the prize"], "double-edged: one bullet")
+	_check(omens.reward_bullets(by_id["blood_moon"], 1, 4).size() == 1 and omens.reward_bullets(by_id["blood_moon"], 1, 4)[0].begins_with("About +"), "Blood Moon: one bullet, the computed extra Dew")
 
 # Every Omen's reward bullets match its data (user screenshot: Heavy Rain said "The extra Dew is the prize" but pays its
 # own +45 Dew). Only an Omen whose prize is its nightmares' extra Dew (is_dew_prize) gets that line.
@@ -718,7 +719,7 @@ func _test_bullets_match_data(main: Node) -> void:
 		var bullets: Array = omens.reward_bullets(omen, 1)
 		var expected := 0
 		if OmenDirector.is_dew_prize(omen):
-			_check(bullets == ["The extra Dew is the prize"], "%s: its prize is the extra Dew (%s)" % [omen.id, bullets])
+			_check(bullets == ["Extra Dew from every nightmare"] and omens.reward_bullets(omen, 1, 4)[0].begins_with("About +"), "%s: its prize is the computed extra Dew (%s)" % [omen.id, omens.reward_bullets(omen, 1, 4)])
 			continue
 		if omen.reward_dew > 0 or omen.reward_pot_multiplier > 0.0:
 			expected += 1
@@ -747,6 +748,31 @@ func _test_bullets_match_data(main: Node) -> void:
 	_check(omens.live_reward_text() == "+45 Dew", "…and the compact tag shows its Dew (%s)" % omens.live_reward_text())
 	omens.active = null
 	main.get_node("%DriftDirector").drifts_started = 0
+
+# The extra Dew estimate (user: "should calculate how much Dew would come from the Omen") matches what the pot actually
+# pays on top for a clean block, within 5%, including a boss block (bosses ignore Omens: only the escorts' half).
+func _test_extra_dew_estimate(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var run_state: RunState = main.get_node("%RunState")
+	for case in [["bountiful_night", 5], ["blood_moon", 3]]:
+		_activate(omens, case[0], case[1])
+		var drifts := omens.get_block_range(case[1])
+		var with_omen := 0.0
+		var without := 0.0
+		for n in range(drifts.x, drifts.y + 1):
+			with_omen += director.get_effective_pot(n)
+			omens.active = null
+			without += director.get_effective_pot(n)
+			_activate(omens, case[0], case[1])
+		var actual := with_omen - without
+		var estimate := omens.estimate_extra_dew(omens.active, case[1])
+		_check(absf(estimate - actual) <= maxf(actual * 0.05, 5.0), "%s: about +%d extra Dew, the pot pays +%.0f" % [case[0], estimate, actual])
+		run_state.pot_earned_block = with_omen  # A clean block: every share dispelled
+		var paid := omens.paid_sentence(omens.active, 1, 0, 0, case[1])
+		_check(paid == "+%d extra Dew" % floori(actual + 0.001) or paid == "+%d extra Dew" % roundi(actual), "…the rest report: %s" % paid)
+		run_state.pot_earned_block = 0.0
+	omens.active = null
 
 func _frames(n: int) -> void:
 	for i in n:
