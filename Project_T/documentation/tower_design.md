@@ -376,7 +376,7 @@ Checked on role, owned status, attack shapes and their 5 branches.
 | Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
 |---|---|---|---|---|---|
 | **Cloudlet → Nimbus** | **anti-air** rain over a zone | a small cloud over a 3×3 area anywhere in range; rains on everything under it, flyers and Phantoms included | **Cloudburst:** every 10 s, refreshes Soaked on everything in range 4 | Phantoms, flyers, the Moth Queen | a cloud floating above the golem |
-| **Undercurrent → Maelstrom** | **gather** control | a whirlpool on a path tile draws nightmares toward its centre (bunches them; not a pull back) | the whirlpool also Soaks everything in it | spread-out swarms; sets up area combos | a swirl of water around its feet |
+| **Undercurrent → Maelstrom** | **gather** control | a whirlpool on a path tile: a nightmare reaching it **spins in the eddy for a moment** (a plain pause, not Held, once per nightmare per whirlpool; bosses half), so the ones behind catch up and bunch. **Never moves anyone backward** (pulling back is Rootling's; changed 2026-10-02 after the first build pulled nightmares back toward the centre) | the whirlpool also Soaks everything in it | spread-out swarms; sets up area combos | a swirl of water around its feet |
 | **Jetreed → Torrent** | **piercing line** vs tanks | an instant jet through a line; more damage vs Soaked | **Flood:** the jet leaves a 3-tile wet trail | Husks, elites | a reed pipe held like a hose |
 
 **Firefly Jar** (Charged, Exposed)
@@ -392,7 +392,7 @@ Checked on role, owned status, attack shapes and their 5 branches.
 | Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
 |---|---|---|---|---|---|
 | **Silver Bell → Vesper Bell** | **long-range sleep** on one strong target | a single toll at range 6: fills Drowsy on the strongest nightmare (bosses to 3) | the toll echoes to the next-strongest | Husks, elites, bosses | a single tall bell on a bell frame |
-| **Hushbell → Silence** | **silence** | nightmares in range can't use abilities: the Watcher can't wake, Weepers can't mend, the Lantern Bearer's lantern dims, boss abilities are delayed | its silence lingers 2 s after they leave | Watcher, Weeper, Procession, boss abilities | a bell muffled in moss, finger to lips |
+| **Hushbell → Silence** | **silence** | nightmares in range can't use abilities: the Watcher can't wake, Weepers can't mend, a silenced **Lantern Bearer's lantern goes dark so its Wraiths lose the way** (as when it's dispelled) while silenced, boss abilities are delayed | its silence lingers 2 s after they leave | Watcher, Weeper, Procession, boss abilities | a bell muffled in moss, finger to lips |
 | **Thrum → Resonance** | a **cone** of sound | a sound wave in a cone in front; more damage vs Drowsy | the cone widens for each Drowsy nightmare in it | crowds in corridors | a horn-shaped flower facing forward |
 
 **Pebbling** (heavy hits)
