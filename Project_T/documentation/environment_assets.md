@@ -106,7 +106,7 @@ same way. Now each map rolls a layout, ridges that follow it, and one feature.
    edge between the start and the Heartwood (the U), plus 0–1 more. Blight 9's extra ridge applies.
 3. **One feature per map**: a pond (2×2–3×3 water: unwalkable, unbuildable, never cleared; the route
    bends round it), a ruin (a ring of stones with a gap, cleared with Move), a dense grove, or a
-   fallen-log line (a short line of tree obstacles until it has its own art). At least 2 cells from the
+   fallen log (`fallen_log.png`, one obstacle over 3–4 cells, Tended as a unit). At least 2 cells from the
    start and end; counted in the obstacle budget.
 4. **Guards**: the route is always guaranteed; the starting route length and buildable-cell count stay
    within ±25% of the old medians for every layout; the first-run camera glide follows the actual route;
@@ -135,8 +135,11 @@ same way. Now each map rolls a layout, ridges that follow it, and one feature.
 - **Features** (`_place_feature`, after the ridges): `feature_cells`; ponds are also `pond_cells`,
   which are blocked in pathing but aren't obstacles (no Tend / Move, no build: the build hatch shows
   them) and are only placed if the route survives with every ridge standing. A ruin uses the standing
-  stone, cairn and ruined waystone rocks; a grove is a tight tree cluster; a log is a 3–4 cell line of
-  trees. Feature cells keep `feature_clearance` (3, chessboard) from the start and end. Ponds draw
+  stone, cairn and ruined waystone rocks; a grove is a tight tree cluster; a log is one obstacle over a
+  3–4 cell line (`fallen_log.tres`, `EnvironmentTiles.FALLEN_LOG` pieces by `log_piece`; `MapGenerator.get_obstacle_cells`
+  gives its cells: one Tend clears all of them for a tree's cost per cell (`ObstacleClearer.get_clear_cost_at`), counts as
+  one clear, previews the route with all cells open, leaves `log_furrow.png` piece for piece; carving breaks it whole;
+  `tests/test_fallen_log.gd`). Feature cells keep `feature_clearance` (3, chessboard) from the start and end. Ponds draw
   `pond.png` by neighbour mask (animated down its column).
 - **Follow-ups** (2026-10-01, after the first sheet): the opening route is the **straightest of the
   shortest** (`MapGenerator._straightest_route`: per cell and heading, the fewest turns along shortest

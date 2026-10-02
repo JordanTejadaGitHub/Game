@@ -7,6 +7,7 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 @export var noise_texture: NoiseTexture2D
 @export var tree_obstacle: ObstacleData = preload("res://resource/obstacle/tree.tres")
 @export var rock_obstacle: ObstacleData = preload("res://resource/obstacle/rock.tres")
+@export var log_obstacle: ObstacleData = preload("res://resource/obstacle/fallen_log.tres")  # The log feature (one unit)
 @export_group("Trees")
 # Share of the noise range that becomes trees; each map rolls a value in this range.
 @export_range(0.0, 0.6) var tree_density_min: float = 0.08
@@ -80,6 +81,7 @@ var _axis_u := 0  # The ridge frame: ridges run along x (0) or y (1)
 var pond_cells: Array[Vector2] = []
 var pond_corners: Array = []  # [cell (Vector2), pond_inner column (0 NE, 1 SE, 2 SW, 3 NW)] per inside corner
 var feature_cells: Array[Vector2] = []
+var log_cells: Array[Vector2] = []  # The log feature's cells: one obstacle, cleared as a unit (MapGenerator.get_obstacle_cells)
 
 func initialize(startPath: Vector2i, endPath: Vector2i) -> PackedVector2Array:
 	_start = startPath
@@ -275,7 +277,9 @@ func _place_obstacle(rng: RandomNumberGenerator, cell: Vector2, data: ObstacleDa
 
 # Leaves the walkable mark of a cleared obstacle (tended stump, moved hollow) on `cell`.
 func mark_cleared(cell: Vector2, data: ObstacleData) -> void:
-	if data.cleared_source_id >= 0:
+	if data.cleared_source_id == EnvironmentTiles.LOG_FURROW:  # The furrow piece matching the log piece there
+		set_cell(Vector2i(cell), data.cleared_source_id, get_cell_atlas_coords(Vector2i(cell)))
+	elif data.cleared_source_id >= 0:
 		set_cell(Vector2i(cell), data.cleared_source_id, data.cleared_tile)
 	else:
 		erase_cell(Vector2i(cell))
@@ -283,7 +287,7 @@ func mark_cleared(cell: Vector2, data: ObstacleData) -> void:
 # Decorations the path wears away when it's drawn over them (ground details, clearing marks). Obstacles,
 # the start's mist and the island's rim are never worn: obstacles are blocked, so no path lies on them.
 const WORN_BY_PATH: Array[int] = [EnvironmentTiles.GROUND_DETAILS, EnvironmentTiles.TENDED_STUMP,
-	EnvironmentTiles.MOVED_HOLLOW]
+	EnvironmentTiles.MOVED_HOLLOW, EnvironmentTiles.LOG_FURROW]
 
 # The path now runs over `cell`: erase any decoration there. It stays bare if the path moves away.
 func wear_away(cell: Vector2i) -> void:
@@ -369,6 +373,7 @@ func _outward(cell: Vector2i) -> Vector2i:
 func _place_feature(rng: RandomNumberGenerator, skip: PackedVector2Array, obstacles: Dictionary) -> void:
 	pond_cells.clear()
 	feature_cells.clear()
+	log_cells.clear()
 	pond_corners.clear()
 	if layout == null:
 		return
@@ -395,6 +400,11 @@ func _place_feature(rng: RandomNumberGenerator, skip: PackedVector2Array, obstac
 			MapLayout.Feature.RUIN:
 				for cell in cells:  # Standing stones, cairns and ruined waystones
 					_place_obstacle_tile(cell, rock_obstacle, Vector2i(RUIN_STONES[rng.randi_range(0, RUIN_STONES.size() - 1)], 0), obstacles)
+			MapLayout.Feature.LOG:  # One obstacle over its cells: end and middle pieces, cleared as a unit
+				for cell in cells:
+					rng.randi_range(0, tree_obstacle.tiles.size() - 1)  # The draw the trees it replaced took: same maps
+					_place_obstacle_tile(cell, log_obstacle, EnvironmentTiles.log_piece(cell, cells), obstacles)
+				log_cells.assign(cells)
 			_:
 				for cell in cells:
 					_place_obstacle(rng, cell, tree_obstacle, obstacles)
@@ -443,7 +453,7 @@ func _feature_shape(rng: RandomNumberGenerator, feature: MapLayout.Feature) -> A
 				for dy in range(-2, 3):
 					if Vector2(dx, dy).length() <= 1.6 and rng.randf() < 0.85:
 						cells.append(at + Vector2(dx, dy))
-		MapLayout.Feature.LOG:  # A short straight line of trees (a fallen log, until it has its own art)
+		MapLayout.Feature.LOG:  # A fallen log, 3-4 cells in a straight line
 			var along := Vector2(1, 0) if rng.randf() < 0.5 else Vector2(0, 1)
 			for i in rng.randi_range(3, 4):
 				cells.append(at + along * i)
