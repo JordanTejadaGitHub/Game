@@ -728,7 +728,7 @@ The user's Warden panels showed 52–76% of damage "from combos". **Target: in a
 Reactions make ~25–40% of all damage**: a real boost, not the majority. Measured as (combo bonus
 amounts + Reaction damage) ÷ total damage, by block, for the bot (Balancing Code, on the Dreams-vs-skip
 batch) and in the run history (Main Merger adds `combo_damage` / `reaction_damage` / `status_damage` /
-`combo_share`; the record only had counts). Levers if far above: lower Reaction base damage, raise
+`combo_share`, in 731537b5; the record only had counts). Levers if far above: lower Reaction base damage, raise
 Wardens' direct damage, or both. Main first, the Spire branch after.
 **Combo cards as choices** (dream_design.md 784680b2): power signed off, with **Quick Reactions'**
 trade set at **−35%** Reaction damage (not −25%: double frequency × 0.75 was still +50%). Pick rates vs
