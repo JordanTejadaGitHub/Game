@@ -773,6 +773,8 @@ Bug checks: **Sunpetal was a bug** (the beam retargeted to each new front-runner
 fixed in d4efe268: beams hold their target while it's alive and in range). **Midsummer's ×2 reverted**
 (measured with the bug; re-probe first). **Stormcap: no bug** (chains and bolts use ranked damage);
 its data is the lever: **chain targets 3 → 4**.
+**Clean beam probe** (d4efe268): the fix adds only 10–20%: Midsummer ~0.31 / 0.35× Puffball, Sunpetal
+~0.12×. Buffs: **Midsummer 68 → 170 (×2.5)**, **Sunpetal 27 → 81 (×3)**; re-probe after.
 
 **Support check** (d4efe268; 4 of the support vs 4 of a reference on the same board, 3 seeds; pass =
 board damage ≥ and leak ≤): **Hoarfrost ✓** (board 0.96–1.24×, Shatter 41–55% of its credit, act 2 leak
