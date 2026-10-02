@@ -1,5 +1,21 @@
 {
 	"effects": {
+		"arc_fence": {
+			"anchor": [
+				0,
+				8
+			],
+			"file": "arc_fence.png",
+			"fps": 14.0,
+			"frame_size": [
+				32,
+				16
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "Jarlink / Lightning Fence: the arc between two Jarlinks' jars, stretched along x (y = 8 on the line). Loop."
+		},
 		"aura_ring_breath": {
 			"anchor": [
 				32,
@@ -718,6 +734,22 @@
 			"loop": true,
 			"note": "Elf Circle: a ring of lights spinning round a nightmare's feet (anchor = the ground under it), loop."
 		},
+		"firework_burst": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "firework_burst.png",
+			"fps": 16.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 7,
+			"kind": "signature",
+			"loop": false,
+			"note": "Sparkler / Starburst: a firework bursting over a crowd into 6 sparks (Starburst: play two, offset)."
+		},
 		"fog_wisps": {
 			"anchor": [
 				28,
@@ -958,6 +990,22 @@
 			"frames": 6,
 			"kind": "reaction",
 			"loop": false
+		},
+		"ink_trail": {
+			"anchor": [
+				0,
+				6
+			],
+			"file": "ink_trail.png",
+			"fps": 1.0,
+			"frame_size": [
+				32,
+				12
+			],
+			"frames": 1,
+			"kind": "ground",
+			"loop": false,
+			"note": "Inkcap / Deliquescent: the ink a Poisoned nightmare leaves on the path. Tile along x behind it (y = 6 on the line), under the nightmares; fade over its life. Deliquescent's 2-tile pool: two segments side by side, or scale it."
 		},
 		"kin_bond_burst": {
 			"anchor": [
@@ -1428,6 +1476,22 @@
 			"loop": false,
 			"reaction": "Marked + Held or asleep"
 		},
+		"prism_beam": {
+			"anchor": [
+				0,
+				3
+			],
+			"file": "prism_beam.png",
+			"fps": 16.0,
+			"frame_size": [
+				32,
+				6
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "Rainbow Prism: a split beam, white so it tints (pink #ec9cf4, gold #fcd47c, blue #9cd4fc for the three). Stretch along x, y = 3."
+		},
 		"puffball_bloom": {
 			"anchor": [
 				64,
@@ -1443,6 +1507,22 @@
 			"kind": "signature",
 			"loop": false,
 			"note": "Puffball's pop at 10+ Spored stacks."
+		},
+		"rain_zone": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "rain_zone.png",
+			"fps": 10.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Cloudlet / Nimbus: rain over a 3x3 zone. Tile it 3x3 (it tiles seamlessly), above the nightmares at ~80% alpha."
 		},
 		"root_grab": {
 			"anchor": [
@@ -1517,6 +1597,22 @@
 			"loop": false,
 			"note": "Hoarfrost: an ice burst with shards flying out (smaller than crowned_prismstorm)."
 		},
+		"silence_mark": {
+			"anchor": [
+				12,
+				20
+			],
+			"file": "silence_mark.png",
+			"fps": 6.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 8,
+			"kind": "status",
+			"loop": true,
+			"note": "Hushbell / Silence: over a silenced nightmare's head (anchor = the top of its head), loop while silenced. A muffled bell, its sound crossed out."
+		},
 		"smother": {
 			"anchor": [
 				32,
@@ -1550,6 +1646,22 @@
 			"kind": "signature",
 			"loop": false,
 			"note": "Midsummer: a bright flash where the beam forks (anchor = the fork point; rays drawn pointing right, rotate to the beam)."
+		},
+		"sound_cone": {
+			"anchor": [
+				2,
+				16
+			],
+			"file": "sound_cone.png",
+			"fps": 14.0,
+			"frame_size": [
+				48,
+				32
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Thrum / Resonance: arcs of sound rolling out in a cone, drawn pointing right from the anchor (rotate to aim; scale y to widen the cone for Resonance)."
 		},
 		"starlit_snare": {
 			"anchor": [
@@ -1712,6 +1824,22 @@
 			"loop": false,
 			"note": "Thunderhead's every 5th strike. Anchor = ground impact; the bolt comes from the sky above."
 		},
+		"toll_ring": {
+			"anchor": [
+				32,
+				20
+			],
+			"file": "toll_ring.png",
+			"fps": 12.0,
+			"frame_size": [
+				64,
+				32
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Silver Bell / Vesper Bell: the toll landing on its far target: a silver ring spreading on the ground under it (anchor = its feet)."
+		},
 		"veil_glint": {
 			"anchor": [
 				8,
@@ -1727,6 +1855,38 @@
 			"kind": "signature",
 			"loop": false,
 			"note": "Morning Fog: a faint gold glint where the fog cancels hiding or healing. Play at ~70% alpha."
+		},
+		"water_jet": {
+			"anchor": [
+				0,
+				5
+			],
+			"file": "water_jet.png",
+			"fps": 14.0,
+			"frame_size": [
+				32,
+				10
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "Jetreed / Torrent: the jet, stretched or tiled along x from the reed to the end of its line (y = 5). ~0.3 s. Torrent's wet trail: ink_trail-style decal not needed, reuse dew_pool art or tint ink_trail blue."
+		},
+		"whirlpool": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "whirlpool.png",
+			"fps": 8.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "ground",
+			"loop": true,
+			"note": "Undercurrent / Maelstrom: a whirlpool on one path tile, under the nightmares. Loop."
 		},
 		"whole_tree_badge": {
 			"anchor": [
