@@ -194,3 +194,7 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: **Waking Root** in 10d39cfa + 13aaf91a (Roguelite Code; registered, so it's drawn; also holds
   the Omen while a gift is offered). Asked to apply it on every unlock path (the Warden panel too).
   `add_next_offer_cards` removed (94906845).
+- 2026-10-02: **Warden-side gift effects in 39b8cc2b** (Tower Code), all nine at the table's numbers;
+  Bramble Verge, Old Kin and Memory Seed (no terrain) are drawn now; the six terrain-bound ones wait on
+  Environment Code's MapGifts. Accepted edge case: a Memory Seed's ranks are lost if the run is
+  saved and reloaded between the sale and the replant.
