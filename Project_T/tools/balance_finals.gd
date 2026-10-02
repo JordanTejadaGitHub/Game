@@ -17,7 +17,7 @@ const CAST_ACT1 := ["sporeling", "firefly_jar", "dewdrop", "bellflower", "pebbli
 const CAST_NOCHARGE := ["boulderback", "boulderback", "moonstone", "rockslide", "starcave", "midsummer", "magpies_hoard", "great_dreamcatcher"]  # --cast=nocharge: the finals cast without its only Charged source (Thunderhead -> a 2nd Boulderback)
 var cast: Array = CAST
 var next_to: Array = []  # --next-to=puffball,lullaby_bell: the cast is planted first and each candidate goes beside one of these
-var pairs := false  # --pairs: every second copy goes beside the one before it (Jarlink works in linked pairs)
+var pairs := false  # --pairs: every second copy goes across the route from the one before it, within 4 cells (Jarlink arcs over the route)
 
 var main: Node
 var form_id := "dreamshroom"
@@ -75,7 +75,7 @@ func _run() -> void:
 	for i in COPIES:
 		var tower: Tower = null
 		if pairs and i % 2 == 1:
-			tower = _plant(placer, form_id, [form_id], candidates[i - 1])  # Beside its partner
+			tower = _plant(placer, form_id, [form_id], candidates[i - 1], true)  # Across the route from its partner
 		elif next_to.is_empty():
 			tower = _plant(placer, form_id)
 		else:  # Pair by pair: a target from the cast, then a candidate in a free cell touching it; a target
@@ -150,7 +150,7 @@ func _run() -> void:
 # Builds the base form on the best open cell next to the path, grows it to `id` and ranks it to `rank`,
 # all paid with Dew. Returns the Warden, or null.
 # `next_to`: only cells touching (8 around) a planted Warden whose id is in the list (Grafted Elder copies a neighbour).
-func _plant(placer: TowerPlacer, id: String, next_to: Array = [], beside: Tower = null) -> Tower:
+func _plant(placer: TowerPlacer, id: String, next_to: Array = [], beside: Tower = null, across := false) -> Tower:
 	var chain := _chain_to(id)
 	if chain.is_empty():
 		return null
@@ -164,6 +164,15 @@ func _plant(placer: TowerPlacer, id: String, next_to: Array = [], beside: Tower 
 		for i in range(4, path.size() - 2):
 			for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 				spots.append(path[i] + offset)
+	elif across and beside != null:  # --pairs: across the route from its partner (within 4 cells, the route between them)
+		for dist in range(2, 5):
+			for dx in range(-dist, dist + 1):
+				for dy in range(-dist, dist + 1):
+					if maxi(absi(dx), absi(dy)) != dist:
+						continue
+					var cell: Vector2 = beside.cell + Vector2(dx, dy)
+					if path.has(((beside.cell + cell) / 2.0).round()):
+						spots.append(cell)
 	else:  # Any free cell touching a target Warden (the 8 around), targets in planting order
 		for t in container.get_children():
 			if t is Tower and (t == beside if beside != null else next_to.has(t.tower_data.get_id())):
