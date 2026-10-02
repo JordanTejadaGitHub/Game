@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_nestling"
 display_name = "Nestling"
-description = "Sprouts can now grow into Nestlings (15 Dew), or plant one directly (25 Dew). A bird swoops at a nightmare and flies home; extra damage to Phantoms."
+description = "Sprouts can now grow into Nestlings ({grow_cost:nestling} Dew), or plant one directly ({plant_cost:nestling} Dew). A bird swoops at a nightmare and flies home; extra damage to Phantoms."
 rarity = 0
 kind = 0
 tags = Array[String](["wing"])

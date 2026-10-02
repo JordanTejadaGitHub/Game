@@ -57,6 +57,35 @@ static func needs_text(card: UpgradeData) -> String:
 
 # --- Rule constants from the code --------------------------------------------------------------------------
 
+# Every `const NAME := value` in scripts/: {NAME: "value text"} (first declaration wins).
+static func code_constants() -> Dictionary:
+	var consts := {}
+	var const_re := RegEx.create_from_string("^\\s*const\\s+([A-Z][A-Z0-9_]*)\\s*(?::[^=]*)?:?=\\s*(.+?)\\s*(?:#.*)?$")
+	for path in _scripts():
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			continue
+		for line in file.get_as_text().split("\n"):
+			var c := const_re.search(line)
+			if c != null and not consts.has(c.get_string(1)):
+				consts[c.get_string(1)] = c.get_string(2)
+	return consts
+
+# The constants for `card`'s rules: those used on the lines naming its rule id or extra rules (`by_rule`, from
+# rule_constants), plus every constant named after them (RULE_ID or RULE_ID_*: HERD_*, PULL_UNDER_*, FURY_*…).
+static func constants_for(card: UpgradeData, by_rule: Dictionary, consts: Dictionary) -> Dictionary:
+	var out := {}
+	for rule in [card.rule_id] + Array(card.extra_rules):
+		var id := String(rule)
+		if id == "":
+			continue
+		out.merge(by_rule.get(id, {}))
+		var prefix := id.to_upper()
+		for name in consts:
+			if name == prefix or String(name).begins_with(prefix + "_"):
+				out[name] = consts[name]
+	return out
+
 # {rule id: {CONST: "value text"}} for every rule id named in the code, with the constants used on those lines.
 static func rule_constants() -> Dictionary:
 	var consts := {}  # NAME -> value text (first declaration wins)
@@ -149,6 +178,12 @@ static func unmatched(card: UpgradeData, constants: Dictionary = {}) -> Array[St
 			out.append(s)
 	return out
 
+# An unlock card stating a Dew price by hand ("(120 Dew)") instead of {grow_cost:id} / {plant_cost:id} (they went stale).
+static func has_written_price(card: UpgradeData) -> bool:
+	if card.kind != UpgradeData.Kind.UNLOCK_EVOLUTION and card.kind != UpgradeData.Kind.UNLOCK_WARDEN:
+		return false
+	return RegEx.create_from_string("\\(\\+?\\d+ Dew").search(card.description) != null  # Prices sit in brackets; "gives 10 Dew" is an effect
+
 # A stat-field card: no rule id, at least one effect number in its fields (the test's scope).
 static func is_stat_card(card: UpgradeData) -> bool:
 	if card.rule_id != &"" or not card.extra_rules.is_empty():
@@ -165,16 +200,14 @@ const COLUMNS: Array[String] = ["id", "display_name", "rarity", "max_stacks", "d
 
 static func csv_rows() -> Array[PackedStringArray]:
 	var rules := rule_constants()
+	var consts := code_constants()
 	var rows: Array[PackedStringArray] = [PackedStringArray(COLUMNS)]
 	for card in load_cards():
 		var fields := numeric_fields(card)
 		var field_text: Array[String] = []
 		for name in fields:
 			field_text.append("%s=%s" % [name, fields[name]])
-		var constants := {}
-		for rule in [card.rule_id] + Array(card.extra_rules):
-			if rule != &"" and rules.has(String(rule)):
-				constants.merge(rules[String(rule)])
+		var constants := constants_for(card, rules, consts)
 		var const_text: Array[String] = []
 		for name in constants:
 			const_text.append("%s=%s" % [name, constants[name]])

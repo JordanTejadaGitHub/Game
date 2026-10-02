@@ -383,7 +383,7 @@ Checked on role, owned status, attack shapes and their 5 branches.
 
 | Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
 |---|---|---|---|---|---|
-| **Jarlink → Lightning Fence** | **maze geometry** | two Jarlinks within 4 cells join with an arc; nightmares crossing it take damage + Charged (flyers too: the arc hangs in the air, so place it across their straight line) | the fence also hits Phantoms gliding through it | Phantoms, straight rushes | a jar on a tall pole with a wire coil |
+| **Jarlink → Lightning Fence** | **maze geometry** | two Jarlinks within 4 cells join with an arc, a **damaging line**: nightmares touching it take damage per second and **1 Charged per second**. Lay it **along** a corridor and it works like a wall of lightning (revised 2026-10-02: a damage-per-crossing fence measured ~0.04× Driftspore, since a nightmare crosses an arc only once or twice). **Flyers** crossing it (the arc hangs in the air) take **3 Charged** at once, so it still answers them across their straight line | the fence also hits Phantoms gliding through it | Phantoms, flyers, long straight corridors | a jar on a tall pole with a wire coil |
 | **Prism Jar → Rainbow Prism** | **crit support** (the only crit aura) | aura: Wardens within 1.5 cells +10% crit chance | its own hits split into 3 coloured beams | tanks (via allies' crits) | a faceted crystal jar |
 | **Sparkler → Starburst** | **anti-swarm** burst | a firework bursting into 6 sparks over a crowd, each adding Charged | every 4th burst is a double | Whisper Swarm, Sobs, Creeps | a jar with a fizzing stick of sparks |
 
@@ -546,7 +546,7 @@ family can promise an answer to everything. Two layers keep runs fair:
   |---|---|---|---|---|
   | Sporeling | Lichenling + Brood Cap | **Crusted Brood** | 1 in 4 of its shots also hatches a sprite on the target | its sprites also eat dread shell |
   | Dewdrop | Cloudlet + Undercurrent | **Eye of the Storm** | nightmares under its cloud are **linked** like the whirlpool's (10% shared; review 2026-10-02, was a 0.3 s eddy pause) | its whirlpool is rained on (Soaks everything in it) |
-  | Firefly Jar | Jarlink + Sparkler | **Fireworks Fence** | a crossing of its fence sets off a small spark burst | a burst landing on a fence re-bursts once |
+  | Firefly Jar | Jarlink + Sparkler | **Fireworks Fence** | every 2 s, a nightmare on its fence sets off a small spark burst (was "a crossing", revised with the damaging line) | a burst landing on a fence re-bursts once |
   | Bellflower | Silver Bell + Hushbell | **Vespers** | its toll also silences its target for 2 s | nightmares it silences gain 1 Drowsy |
 - **Phase 2's three named pairs** (review 2026-10-02; each tells a story with the two jobs):
 

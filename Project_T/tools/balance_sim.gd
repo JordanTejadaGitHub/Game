@@ -37,7 +37,7 @@ const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, 
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
 	"dew_rest", "dew_other", "spent_plant", "spent_walls", "spent_grow", "spent_nurture", "banked",
 	"attackers", "walls", "tier1", "tier2", "tier3", "tier4", "avg_rank", "route", "families", "cards",
-	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain", "combo_share", "status_share", "hit_share"]
+	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain", "combo_amount_share", "status_share", "hit_share", "combo_damage", "reaction_damage", "status_damage", "combo_share"]
 
 # Per style: [attacker room at drift 0, + per drift, cap], walls per attacker, nurture weight.
 const STYLE_PLAN := {
@@ -97,6 +97,7 @@ var auras_24 := -1  # Attackers under at least one aura Warden as drift 25 start
 var heart_cover_24 := -1  # Attackers with the Heartwood cell in range as drift 25 starts (heart_cover_24 column)
 var damage_by_tag := {}  # Damage tag (or kind for plain hits) -> soothe dealt over the run (dmg_tags column)
 var damage_by_form := {}  # Warden form id -> {total, hit, cloud, status, combo, asleep} over the run (forms column)
+var run_parts := {"damage_total": 0.0, "combo_damage": 0.0, "reaction_damage": 0.0, "status_damage": 0.0}  # RunHistory's run totals
 var status_samples := {}  # Status id -> {"n", "cap", "strengths": []}: every active status on every nightmare, 4x per game second (status_* columns)
 
 var main: Node
@@ -567,7 +568,7 @@ func _new_window() -> void:
 	d = {"start": game_time, "health_spawned": 0.0, "damage": 0.0, "chain_deep": 0.0, "leaks": 0, "leaves_left": run_state.leaves,
 		"leaves_before": run_state.leaves, "dew_rest": 0, "dew_other": 0, "spent_plant": 0, "spent_walls": 0,
 		"spent_grow": 0, "spent_nurture": 0, "by_tower": {}, "asleep": 0.0, "reaction": 0.0, "crit": 0.0,
-		"restless": 0, "trampled": 0, "approach": 0.0, "combo": 0.0, "status": 0.0, "hit": 0.0}
+		"restless": 0, "trampled": 0, "approach": 0.0, "combo": 0.0, "status": 0.0, "hit": 0.0, "combo_damage": 0.0, "reaction_damage": 0.0, "status_damage": 0.0}
 
 func _on_damage(event) -> void:
 	d.damage += event.amount
@@ -580,6 +581,17 @@ func _on_damage(event) -> void:
 	var key: String = "%s#%d" % [event.source_name, event.source.get_instance_id()] if is_instance_valid(event.source) else event.source_name
 	d.by_tower[key] = d.by_tower.get(key, 0.0) + event.amount
 	d.combo += clampf(event.combo_amount, 0.0, event.amount)  # Overlaps the three below (a combo rides on a hit, tick or Reaction)
+	# RunHistory's split (731537b5), the same formula so bot and human compare: combo = combo_amount; reaction = a Reaction
+	# tag's damage less its combo part; status = non-hit damage with no combo and no Reaction.
+	var rh_reaction: float = maxf(event.amount - event.combo_amount, 0.0) if reaction_tags.has(event.tag) else 0.0
+	var rh_status: float = event.amount if event.kind != &"hit" and event.combos.is_empty() and rh_reaction == 0.0 else 0.0
+	d.combo_damage += event.combo_amount
+	d.reaction_damage += rh_reaction
+	d.status_damage += rh_status
+	run_parts.damage_total += event.amount
+	run_parts.combo_damage += event.combo_amount
+	run_parts.reaction_damage += rh_reaction
+	run_parts.status_damage += rh_status
 	if reaction_tags.has(event.tag):
 		pass  # Counted below as reaction
 	elif event.kind == &"status" or event.kind == &"bolt":
@@ -624,7 +636,7 @@ func _close_window(n: int) -> void:
 		"avg_rank": snappedf(float(ranks) / maxf(_attackers().size(), 1), 0.1),
 		"route": map.get_path_from(map.startPath).size(), "families": lines.size(), "cards": dreams.stacks.size(),
 		"dreamlight": dreams.dreamlight, "top_warden": top, "top_share": snappedf(top_amount / damage, 0.001),
-		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "combo_share": snappedf(d.combo / damage, 0.001), "status_share": snappedf(d.status / damage, 0.001), "hit_share": snappedf(d.hit / damage, 0.001), "longest_chain": _longest_chain(),
+		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "combo_amount_share": snappedf(d.combo / damage, 0.001), "status_share": snappedf(d.status / damage, 0.001), "hit_share": snappedf(d.hit / damage, 0.001), "combo_damage": roundi(d.combo_damage), "reaction_damage": roundi(d.reaction_damage), "status_damage": roundi(d.status_damage), "combo_share": snappedf((d.combo_damage + d.reaction_damage) / damage, 0.001), "longest_chain": _longest_chain(),
 		"crit_share": snappedf(d.crit / damage, 0.001), "restless": d.restless, "trampled": d.trampled,
 		"approach": snappedf(d.approach, 0.01)}
 	rows.append(row)
@@ -715,6 +727,9 @@ func _finish() -> void:
 	summary.meta_active = meta_run.get("active") if meta_run != null else null
 	summary.merge(_status_columns())
 	summary.forms = _form_column()
+	for key in run_parts:
+		summary[key] = roundi(run_parts[key])
+	summary.combo_share = snappedf((run_parts.combo_damage + run_parts.reaction_damage) / maxf(run_parts.damage_total, 1.0), 0.001)
 	summary.merge(_route_columns())
 	summary.kin_pairs_24 = kin_pairs.get(25, -1)
 	summary.kin_pairs_50 = kin_pairs.get(51, -1)

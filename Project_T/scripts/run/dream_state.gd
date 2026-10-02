@@ -254,12 +254,10 @@ var _dreams_without_rare := 0
 var _rare_dreams_left := 0  # Restless Dreams / Omens: the next N offers each include a Rare+
 var _extra_cards_next := 0  # Omens (Thick Blight): the next offer has this many more cards
 const MAX_OFFER_CARDS := 5  # Extra cards stop here (run_design.md "Omen audit fixes"); the Dream screen fits 5
-var _entwined_offered := {}  # Entwined card id -> true once its guaranteed offer happened
 var _banished := {}  # Card id -> true: Let Go took it out of this run's pool
 var _passed_count := {}  # Card id -> times offered and not taken this run
 var _passed_at := {}  # Card id -> the offer number (dreams_seen) it was last passed over in
 var _taken_this_offer: Array[String] = []
-var _guaranteed_id := ""  # The Entwined guaranteed card of the current offer (never fades)
 var current_stray: UpgradeData = null  # The Stray Dream card of the current offer (null = none)
 var _legendary_next := 0  # Lean Season: Dreams still owed a Legendary
 var _owed_families: Array[String] = []  # Half-dreamed cards taken: the next family pick includes one
@@ -1662,9 +1660,20 @@ func _update_bends() -> void:
 	_heart_cache.clear()
 
 
+# An exclusive pair (dream_design.md "Combo cards are choices, not musts"): a card a taken card excludes, or one that
+# excludes a taken card, is out of the run.
+func is_excluded(card: UpgradeData) -> bool:
+	for other in _taken_cards(true):
+		if other != card and (other.excludes.has(card.id) or card.excludes.has(other.id)):
+			return true
+	return false
+
 # --- Taking cards -------------------------------------------------------------------------------------
 
 func take(card: UpgradeData) -> void:
+	for other in current_offer.duplicate():  # An exclusive pair: the partner leaves this offer too (Lucid Dreaming's 2nd pick)
+		if other != card and (card.excludes.has(other.id) or other.excludes.has(card.id)):
+			current_offer.erase(other)
 	if unlocks_clearing(card) and not can_clear():
 		clearing_opened_by = card.id  # "Unlocked clearing" in Dreams this run and the Codex
 	for family in half_dreamed_missing(card):  # The next family pick will include one of them
@@ -1926,10 +1935,9 @@ func supply_line() -> String:
 	return " · ".join(bits)
 
 # Passed-over cards fade: every card of `offer` not taken counts as passed over in offer `offer_number`.
-# The Entwined guaranteed card is unaffected.
 func _note_passed(offer: Array[UpgradeData], offer_number: int) -> void:
 	for card in offer:
-		if _taken_this_offer.has(card.id) or card.id == _guaranteed_id:
+		if _taken_this_offer.has(card.id):
 			continue
 		_passed_count[card.id] = int(_passed_count.get(card.id, 0)) + 1
 		_passed_at[card.id] = offer_number
@@ -1953,7 +1961,7 @@ func times_passed(card_id: String) -> int:
 
 func _offer_counters() -> Dictionary:
 	return {"dreams_seen": dreams_seen, "without_rare": _dreams_without_rare,
-		"rare_left": _rare_dreams_left, "extra": _extra_cards_next, "entwined": _entwined_offered.duplicate(),
+		"rare_left": _rare_dreams_left, "extra": _extra_cards_next,
 		"legendary": _legendary_next, "finale_rare": _finale_rare_next}
 
 func _restore_offer_counters(counters: Dictionary) -> void:
@@ -1965,7 +1973,6 @@ func _restore_offer_counters(counters: Dictionary) -> void:
 	_extra_cards_next = counters.extra
 	_legendary_next = counters.get("legendary", 0)
 	_finale_rare_next = counters.get("finale_rare", 0)  # A reroll keeps the clean finale's Rare+ slot
-	_entwined_offered = counters.entwined.duplicate()
 
 # Builds a Dream offer for after drift `drift_number` (see dream_design.md, "How offers work").
 func make_offer(drift_number: int) -> Array[UpgradeData]:
@@ -1983,16 +1990,9 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	_extra_cards_next = 0
 	var offer: Array[UpgradeData] = []
 	var act := drift_director.get_act(drift_number)
-	_guaranteed_id = ""
 	_taken_this_offer.clear()
-	# Entwined: a combo whose ingredients just came together gets one guaranteed slot.
-	if offer.size() < size:
-		for card in pool:
-			if card.entwined and not _entwined_offered.has(card.id) and is_eligible(card, act):
-				_entwined_offered[card.id] = true
-				_guaranteed_id = card.id
-				offer.append(card)
-				break
+	# Entwined cards have no guaranteed slot (dream_design.md "Combo cards are choices, not musts", 2026-10-02): once
+	# their ingredients are owned they're drawn at their rarity's normal odds like any card.
 	# The Stray Dream: from drift 10's rest (never a boss rest), one slot leans away from the build.
 	# Lean Season's reward: one Legendary slot (act 2+), before the Stray and the normal slots.
 	if _legendary_next > 0 and act >= 2 and offer.size() < size:
@@ -2041,6 +2041,8 @@ func is_eligible(card: UpgradeData, act: int = 1) -> bool:
 func can_offer(card: UpgradeData, act: int = 1) -> bool:
 	if not (card.in_start_pool or grove_cards.has(card.id)) or _banished.has(card.id):
 		return false
+	if is_excluded(card):
+		return false  # An exclusive pair: its partner was taken (Charged Feathers / Pollen Beaks)
 	if not in_run_pool(card):
 		return false  # Not in this run's drawn pool
 	if act < card.min_act or card.kind == UpgradeData.Kind.UNLOCK_WARDEN:
@@ -2332,7 +2334,7 @@ func to_save() -> Dictionary:
 	return {
 		"unlocked": unlocked.keys(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
-		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "unlock_discounts": unlock_discounts, "branch_offers": branch_offers.duplicate(true), "called_families": called_families.duplicate(), "free_calls": free_calls, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next}, "entwined_offered": _entwined_offered.keys(),
+		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "unlock_discounts": unlock_discounts, "branch_offers": branch_offers.duplicate(true), "called_families": called_families.duplicate(), "free_calls": free_calls, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next},
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
 		"run_pool": run_pool.keys(), "run_pool_waiting": _run_pool_waiting.keys(), "run_pool_families": _run_pool_families.keys(),
 		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
@@ -2381,9 +2383,6 @@ func load_save(data: Dictionary) -> void:
 	_finale_rare_next = int(finale.get("rare_next", 0))
 	var credit: Dictionary = data.get("card_credit", {})
 	card_credit = {"block": credit.get("block", {}).duplicate(true), "run": credit.get("run", {}).duplicate(true)}
-	_entwined_offered.clear()
-	for id in data.get("entwined_offered", []):
-		_entwined_offered[id] = true
 	if data.has("rerolls_left"):  # Else keep what MetaRun set at run start
 		rerolls_left = int(data.rerolls_left)
 		banishes_left = int(data.banishes_left)
@@ -3123,9 +3122,25 @@ func get_spored_tick_multiplier(enemy: Node2D) -> float:
 		return 1.0
 	return 1.0 + DAMP_ROT_PER * n
 
-# Sparking Spores: Ignite detonation multiplier (Reactions._ignite asks; 1.0 without it).
-func get_ignite_multiplier() -> float:
+# Sparking Spores: Ignite detonation multiplier (Reactions._ignite asks; 1.0 without it), only on a nightmare carrying
+# SPARKING_SPORES_MIN_POISONED+ Poisoned (dream_design.md "Combo cards are choices": a condition). Without `enemy`
+# (old callers) the condition can't be checked and the bonus applies.
+const SPARKING_SPORES_MIN_POISONED := 5
+
+func get_ignite_multiplier(enemy: Node2D = null) -> float:
+	if enemy != null and is_instance_valid(enemy) and enemy.statuses.stacks(EnemyStatuses.SPORED) < SPARKING_SPORES_MIN_POISONED:
+		return 1.0
 	return 1.0 + SPARKING_SPORES_PER * rule_stacks(&"sparking_spores")
+
+# Damp Rot's trade: with it, Soaked no longer boosts water hits on a nightmare (Enemy.take_damage asks).
+func soaked_boosts_water() -> bool:
+	return not has_rule(&"damp_rot")
+
+# Quick Reactions' trade: Reactions twice as often, each dealing this share (Reactions asks for its damage).
+const QUICK_REACTIONS_DAMAGE := 0.65  # Balancing Discussion: 35% less (×0.75 still left +50% output)
+
+func get_reaction_damage_multiplier() -> float:
+	return QUICK_REACTIONS_DAMAGE if has_rule(&"quick_reactions") else 1.0
 
 
 # --- Headless simulation entry points (tools/balance_run.gd, tests) -------------------------------

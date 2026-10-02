@@ -323,7 +323,7 @@ func _test_family_review_cards() -> void:
 	_own("stormcap")  # Rolling Thunder's Wardens (else it sleeps: half-dreamed)
 	_own("dewdrop")
 	dreams.take(_card("rolling_thunder"))
-	_check(dreams.is_eligible(encore) and dreams.make_offer(10).has(encore), "…then Entwined: guaranteed next offer")
+	_check(dreams.is_eligible(encore), "…then Entwined: offered at normal odds")
 
 	_own("samara")
 	_own("rain_lily")
@@ -361,7 +361,7 @@ func _test_seedling_gift() -> void:
 
 	_check(not dreams.is_eligible(nursery), "Nursery needs Tender Care too")
 	dreams.take(_card("tender_care"))
-	_check(dreams.is_eligible(nursery) and dreams.make_offer(10).has(nursery), "…then Nursery is Entwined: guaranteed")
+	_check(dreams.is_eligible(nursery), "…then Nursery is Entwined: offered at normal odds")
 	dreams.take(nursery)
 	_check(is_equal_approx(dreams.get_nurture_cost_multiplier(sprout), 0.5), "Nursery: Sprouts nurture for half price")
 	run_state.add_sprout_charges(1)
@@ -405,7 +405,7 @@ func _test_grove_cards() -> void:
 	_own("stormcap")
 	_check(not dreams.is_eligible(_card("static_bloom")), "Static Bloom: Entwined, needs Bloomcap too")
 	_own("bloomcap")
-	_check(dreams.make_offer(10).has(_card("static_bloom")), "…then guaranteed")
+	_check(dreams.is_eligible(_card("static_bloom")), "…then offered at normal odds")
 	_check(dreams.is_eligible(_card("still_target")), "Still Target: a Drowsy / Held Warden (Bloomcap)")
 	_check(dreams.is_eligible(_card("full_moon"), 2) and not dreams.is_eligible(_card("full_moon"), 1),
 		"Full Moon: a Legendary with no Needs, act 2+")
@@ -544,7 +544,7 @@ func _test_ascended() -> void:
 	dreams.unlocked.erase("stormheart")
 	director.drifts_started = 0
 
-# Woven cards 100–107: three ingredients, guaranteed once all are owned, Legendary, Grove-only.
+# Woven cards 100–107: three ingredients, then offered at normal odds (no guaranteed slot), Rare.
 func _test_woven() -> void:
 	_reset()
 	var ids := ["eye_of_the_tempest", "deep_stillness", "fever_pitch", "falling_stars", "mountains_fall",
@@ -561,7 +561,7 @@ func _test_woven() -> void:
 	_check(not dreams.is_eligible(stars, 2), "Falling Stars needs its third vine")
 	_own("chime_stone")
 	_check(dreams.is_eligible(stars, 2) and not dreams.is_eligible(stars, 1), "…Chime Stone (or Bellflower) completes it, act 2+")
-	_check(dreams.make_offer(30).has(stars), "a Woven card is guaranteed once all three are owned")
+	_check(dreams.is_eligible(stars, 3), "a Woven card is offered at normal odds once all three are owned")
 
 # Potency cards 109–112 and Endless Rings (108).
 func _test_potency_and_endless() -> void:
@@ -719,8 +719,6 @@ func _test_kinship_cards() -> void:
 	_check(not dreams.is_eligible(kindling), "Kin and Kindling needs a Reaction card too")
 	dreams.take(_card("seeping"))  # A Reaction card
 	_check(dreams.is_eligible(kindling), "…Entwined once a Kinship and a Reaction card are both there")
-	var offer := dreams.make_offer(12)
-	_check(offer.has(kindling), "…and gets the guaranteed slot")
 	kin.pairs = saved
 	_reset()
 

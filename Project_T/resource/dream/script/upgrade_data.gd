@@ -72,6 +72,7 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var requires_tag: String = ""  # Own this many taken cards with the tag (e.g. "nurture")
 @export var requires_tag_count: int = 1
 @export var requires_any: Array[String] = []  # Own any one of these Wardens / cards
+@export var excludes: Array[String] = []  # Card ids this one rules out: taking it removes them from the run (an exclusive pair)
 @export var min_rank_dew: int = 0  # Dew spent on Nurture ranks this run
 @export var min_rank_count: int = 0  # Own this many Wardens at rank `min_rank_owned` or higher
 @export var min_rank_owned: int = 1

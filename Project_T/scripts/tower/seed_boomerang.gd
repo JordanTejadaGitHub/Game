@@ -10,6 +10,7 @@ class_name SeedBoomerang
 const SPEED := 420.0  # Pixels per second
 const HIT_RADIUS := 26.0  # Pixels either side of the line
 const BACKSPIN_CRIT := 0.40  # dream_audit.md (was 0.25)
+const WINDBORNE_RAIN_DAMAGE := 0.75  # Windborne Rain's cost: seeds deal 25% less
 const ANIMATION_FPS := 14.0
 
 var _tower: Tower
@@ -128,6 +129,8 @@ func _hit_along(from: Vector2, to: Vector2) -> void:
 			crit = Tower.CRIT
 		# Heavy Seed (card): the return pass hits for double (status jobs review: no knockback any more).
 		var pass_multiplier := _damage_multiplier * (2.0 if _returning and dreams and dreams.has_rule(&"heavy_seed") else 1.0)
+		if dreams and dreams.has_rule(&"windborne_rain"):
+			pass_multiplier *= WINDBORNE_RAIN_DAMAGE  # Windborne Rain (dream_design.md 83c40cd7): the seeds Soak but deal 25% less
 		_tower.run_as(_data, _boost, func() -> void: _tower.hit(enemy, pass_multiplier, false, crit))
 		if not _storm.is_empty() and not _stormed.has(id) and is_instance_valid(enemy) and not enemy.is_cleansed:
 			_stormed[id] = true

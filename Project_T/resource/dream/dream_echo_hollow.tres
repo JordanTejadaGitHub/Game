@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_echo_hollow"
 display_name = "Echo Hollow"
-description = "Bellflowers can now grow into Echo Hollows (80 Dew): a hollow log that echoes Reactions: one nearby repeats a second later on the same nightmare, at {echo:echo_hollow} strength."
+description = "Bellflowers can now grow into Echo Hollows ({grow_cost:echo_hollow} Dew): a hollow log that echoes Reactions: one nearby repeats a second later on the same nightmare, at {echo:echo_hollow} strength."
 rarity = 1
 kind = 1
 tags = Array[String](["song"])

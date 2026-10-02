@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "nightshade"
 display_name = "Nightshade"
-description = "Effects tick together: whenever any effect on a nightmare deals damage, every other effect on it deals 25% of its own tick too."
+description = "Effects deal 20% more for each status the nightmare carries."
 rarity = 3
 kind = 3
 tags = Array[String](["potency", "affliction"])

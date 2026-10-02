@@ -381,6 +381,7 @@ func _run() -> void:
 	var wet_loss: int = 100000 - rot_wet.health
 	_check(dry_loss > 0 and is_equal_approx(float(wet_loss) / dry_loss, 1.0 + DreamState.DAMP_ROT_PER),
 		"Damp Rot: a Soaked nightmare's Poisoned tick is +50%% (%d vs %d)" % [wet_loss, dry_loss])
+	dreams.stacks.erase("damp_rot")  # It trades Soaked's water boost away (e328fb55): the checks below need it gone
 	_clear_enemies()
 
 	# --- Status jobs (tower_design.md, 2026-09-29) ---

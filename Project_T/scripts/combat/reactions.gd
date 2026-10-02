@@ -27,6 +27,7 @@ const THUNDERCLAP_STATIC_BOSS := 5
 const THUNDERCLAP_DAMAGE := 4.0  # × the applier's damage, to the nightmare that discharges
 const THUNDERCLAP_ARC_DAMAGE := 2.0  # × the applier's damage, to each wet nightmare it arcs to
 const THUNDERCLAP_MAX_ARCS := 8
+const ROLLING_THUNDER_ARCS := 3  # Rolling Thunder: its longer arcs strike at most this many
 const THUNDERCLAP_REACH: Array[float] = [2.5, 3.5, 4.5]  # Cells: base, Rolling Thunder, Rolling Thunder II
 const THUNDERCLAP_ARC_STATIC: Array[int] = [1, 1, 2]
 const IGNITE_MIN_SPORES := 3
@@ -38,7 +39,7 @@ const MUSHROOM_MIN_SPORES := 3
 const MUSHROOM_TIME := 4.0
 const MUSHROOM_CLOUD_RADIUS := 0.6  # Cells
 const MUSHROOM_CLOUD_TIME := 4.0
-const MUSHROOM_RAIN_TIME := 2.0  # Mushroom Rain: ×2 duration…
+const MUSHROOM_RAIN_TIME := 0.5  # Mushroom Rain: half the duration…
 const MUSHROOM_RAIN_RADIUS := 1.5  # …and the 3×3 around its tile (cells from the centre, reaching the corners' middles)
 const SHATTER_MULTIPLIER := 2.5
 const SHATTER_SPLASH := 0.5  # Share of the hit the shards deal within 1 cell
@@ -48,6 +49,7 @@ const PULL_UNDER_BOSS_SLOW: Array[float] = [0.3, 0.4]  # Bosses (base, Deep Wate
 const PULL_UNDER_STEP := 0.5  # Drowning damage in second n: n × this × the applier's damage
 const DEEP_WATER_GROWTH := 1.5  # Deep Water: the damage grows 50% faster
 const DROWN_TIMES: Array[int] = [1, 1, 2]  # Per nightmare: base, Deep Water, Deep Water II
+const DEEP_WATER_REACH := 5.0  # Cells from the Heartwood (straight line) where Deep Water works
 const PINNED_MULTIPLIER := 3.0
 const ROD_REACH := 3.0  # Cells
 const ROD_MULTIPLIER := 2.0
@@ -88,6 +90,11 @@ const CARRIED_REACH := 0.75  # Cells from the Reaction's spot
 const CROWNED_BASE := {&"tempest": &"thunderclap", &"still_pool": &"drown", &"fever_dream": &"smother",
 	&"starfall": &"pinned", &"avalanche": &"shatter", &"prismstorm": &"shatter", &"nightbloom": &"mushrooming",
 	&"fairy_circle": &"mushrooming"}
+# Each Crowned Reaction's Woven card (its cost: that Crowned Reaction's cooldown ×WOVEN_COOLDOWN).
+const WOVEN_RULE := {&"tempest": &"eye_of_the_tempest", &"still_pool": &"deep_stillness", &"fever_dream": &"fever_pitch",
+	&"starfall": &"falling_stars", &"avalanche": &"mountains_fall", &"prismstorm": &"prism_heart", &"nightbloom": &"endless_night",
+	&"fairy_circle": &"ring_of_rings"}
+const WOVEN_COOLDOWN := 2.0
 
 # Reaction id -> its resource path (not the resource: a static holding Resources at exit can crash the
 # engine's teardown, the exit-crash hunt). load() hits ResourceLoader's cache after the first time.
@@ -351,7 +358,7 @@ static func _starfall(enemy: Node2D, tower: Tower) -> void:
 		if other != enemy:
 			_segment(&"thunderclap_arc", other.global_position, enemy.global_position, enemy, 0.3)
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
-			enemy.take_damage(bolt, "light", false, true, applier, &"starfall")
+			enemy.take_damage(_rx(enemy, bolt), "light", false, true, applier, &"starfall")
 
 # Avalanche (a lob's Shatter): every Damp + Held nightmare under the lob Shatters too (×2.5 of the
 # lobber's hit). Mountain's Fall: rubble where each spread Shatter lands.
@@ -368,7 +375,7 @@ static func _avalanche(enemy: Node2D, tower: Tower) -> void:
 		o.remove(HELD)
 		_touch(other, o.chain_count if o.chain_time > 0.0 else 1, [tower])
 		_effect(&"shatter", other.global_position, enemy)
-		other.take_damage(tower.get_damage() * SHATTER_MULTIPLIER, tower.tower_data.line, true, false, tower,
+		other.take_damage(_rx(other, tower.get_damage() * SHATTER_MULTIPLIER), tower.tower_data.line, true, false, tower,
 			&"avalanche")
 		if is_instance_valid(other):
 			rubble.append(Tower.MAP_GRID.calculate_grid_coordinates(other.global_position))
@@ -388,7 +395,7 @@ static func shatter_splash(enemy: Node2D, tower: Tower, dealt: float) -> void:
 	var reach := (PRISM_REACH[level] if prism else 1.0) + _storm_front(enemy)
 	for other in _others_within(enemy, reach):
 		_touch(other, chain, [tower])
-		other.take_damage(dealt * SHATTER_SPLASH, tower.tower_data.line, true, false, tower, &"shatter")
+		other.take_damage(_rx(other, dealt * SHATTER_SPLASH), tower.tower_data.line, true, false, tower, &"shatter")
 		if prism and is_instance_valid(other) and not other.is_cleansed:
 			other.apply_status(STATIC, PRISM_STATIC[level], 0.0, tower.get_damage(), 0, "light", tower)
 
@@ -406,7 +413,7 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 	if rod == null:
 		var at := target.global_position
 		var tracker := ReactionTracker.find(target) if tag == &"static" else null  # Found first: the bolt may dispel it
-		target.take_damage(damage, "light", false, false, tower, tag)
+		target.take_damage(damage if tag == &"static" else _rx(target, damage), "light", false, false, tower, tag)  # A Charged bolt isn't a Reaction
 		if tag == &"static" and is_instance_valid(target) and target.has_meta(BranchKit.LINK_META):
 			BranchKit.share_bolt(target, damage, tower)  # Maelstrom: the bolt travels the current
 		if tag == &"static":
@@ -414,7 +421,7 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 			_bolt_seen(target, at, damage, reach, tracker)
 		return target
 	_fire(rod, &"lightning_rod", [tower] if tower else [], true)
-	rod.take_damage(damage * ROD_MULTIPLIER, "light", false, false, tower, &"lightning_rod")
+	rod.take_damage(_rx(rod, damage * ROD_MULTIPLIER), "light", false, false, tower, &"lightning_rod")
 	return rod
 
 # A Charged bolt struck at `at` (screens_ui.md "Charged bolt"): the bolt and spark burst (ChargedBolt, budgeted),
@@ -491,17 +498,21 @@ static func _thunderclap(enemy: Node2D, source: Node) -> void:
 			arcs.append(other)
 	# At most the THUNDERCLAP_MAX_ARCS nearest Soaked nightmares per clap (design chat; also bounds a
 	# chain's cost). Chains still continue from those.
-	if arcs.size() > THUNDERCLAP_MAX_ARCS:
+	# Rolling Thunder's cost (dream_design.md 83c40cd7): its longer arcs strike at most ROLLING_THUNDER_ARCS nightmares.
+	var max_arcs := ROLLING_THUNDER_ARCS if level > 0 else THUNDERCLAP_MAX_ARCS
+	if arcs.size() > max_arcs:
 		var at: Vector2 = enemy.global_position
 		arcs.sort_custom(func(a, b) -> bool: return a.global_position.distance_squared_to(at) < b.global_position.distance_squared_to(at))
-		arcs = arcs.slice(0, THUNDERCLAP_MAX_ARCS)
-	enemy.take_damage(base * THUNDERCLAP_DAMAGE, _line(tower, "light"), false, false, tower, &"thunderclap")
+		arcs = arcs.slice(0, max_arcs)
+	enemy.take_damage(_rx(enemy, base * THUNDERCLAP_DAMAGE), _line(tower, "light"), false, false, tower, &"thunderclap")
 	for other in arcs:
 		if not is_instance_valid(other) or other.is_cleansed:
 			continue
 		_segment(&"thunderclap_arc", enemy.global_position, other.global_position, enemy, 0.25)
 		_touch(other, chain, _towers(tower))
 		var struck := strike_bolt(other, base * THUNDERCLAP_ARC_DAMAGE, tower, &"thunderclap")
+		if is_instance_valid(other) and dreams and dreams.has_rule(&"conductive_soil"):
+			other.statuses.remove(DAMP)  # Conductive Soil's cost: each jump uses up that nightmare's Soaked
 		if is_instance_valid(struck) and not struck.is_cleansed:
 			struck.apply_status(STATIC, THUNDERCLAP_ARC_STATIC[level], 0.0, potency, 0, "light", tower)
 		# Tempest: every arc also sets off Ignite on a Spored target (not bosses), whose spread spores
@@ -534,7 +545,7 @@ static func burn(enemy: Node2D, spore_source: Node, chain: int = 1, carry_static
 		static_source: Node = null) -> void:
 	var s: EnemyStatuses = enemy.statuses
 	var dreams := _dreams(enemy)
-	var sparking: float = dreams.get_ignite_multiplier() if dreams and dreams.has_method("get_ignite_multiplier") else 1.0
+	var sparking: float = dreams.get_ignite_multiplier(enemy) if dreams and dreams.has_method("get_ignite_multiplier") else 1.0  # Sparking Spores: from 5 Poisoned (read before anything spends them)
 	s.burn_rate = BURN_SPORE_RATE * sparking
 	var already := s.burn_time > 0.0
 	s.burn_time = maxf(s.burn_time, BURN_TIME)
@@ -582,6 +593,7 @@ static func _burn_spread(enemy: Node2D, spore_source: Node, chain: int, carry_st
 	var stacks: int = spread if spread > 0 else IGNITE_SPREAD[level]
 	var potency := s.potency(SPORED)
 	var line := s.spore_line()
+	var spread_any := false
 	for other in _others_within(enemy, IGNITE_REACH[level] + _storm_front(enemy)):
 		if not is_instance_valid(other) or other.is_cleansed:
 			continue
@@ -590,6 +602,9 @@ static func _burn_spread(enemy: Node2D, spore_source: Node, chain: int, carry_st
 			other.apply_status(STATIC, 1, 0.0, carry_static, 0, "light", static_source if static_source else spore_source)  # Tempest: burns carry Static (its charger's)
 		if is_instance_valid(other) and not other.is_cleansed:
 			other.apply_status(SPORED, stacks, 0.0, potency, 0, line, spore_source)
+			spread_any = true
+	if level > 0 and spread_any and is_instance_valid(enemy) and not enemy.is_cleansed:
+		s.remove(SPORED)  # Wildfire Spores' cost (dream_design.md 83c40cd7): spreading 2 burns away its own Poisoned
 
 # 3+ Spored + Damp: the Spored ticks +50% for 4 s and a spore cloud grows on the tile. Uses up Damp.
 static func _mushrooming(enemy: Node2D, source: Node) -> void:
@@ -642,7 +657,7 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 		time = NIGHTBLOOM_TIME[1]
 	var radius := (MUSHROOM_CLOUD_RADIUS * wide + _storm_front(enemy)) * CELL
 	if dreams and dreams.has_rule(&"mushroom_rain"):
-		# Mushroom Rain (card 134): the cloud lasts twice as long and covers the 8 tiles around it too.
+		# Mushroom Rain (card 134; dream_design.md 83c40cd7): the cloud covers the 8 tiles around it but lasts half as long.
 		time *= MUSHROOM_RAIN_TIME
 		radius = maxf(radius, MUSHROOM_RAIN_RADIUS * CELL)
 	var cloud := ReactionCloud.new(Tower.MAP_GRID.calculate_map_position(cell), radius, time, s.potency(SPORED),
@@ -652,12 +667,20 @@ static func _mushrooming(enemy: Node2D, source: Node) -> void:
 	_world(enemy).add_child(cloud)
 
 # Damp + full Drowsy: falls asleep for 2 s, once per nightmare (bosses and nightmares that can't be
+
+# Whether `enemy` is within `cells` (straight line) of the Heartwood.
+static func _near_heartwood(enemy: Node2D, dreams: DreamState, cells: float) -> bool:
+	var map = dreams.map_generator if dreams else null
+	if map == null:
+		return true
+	return enemy.global_position.distance_to(Tower.MAP_GRID.calculate_map_position(map.endPath)) <= cells * CELL
 # held are slowed instead). Uses up the Drowsy.
 static func _drown(enemy: Node2D, source: Node) -> void:
 	var s: EnemyStatuses = enemy.statuses
 	var dreams := _dreams(enemy)
 	var level := 0
-	if dreams and dreams.has_rule(&"deep_water"):
+	# Deep Water's cost (dream_design.md 83c40cd7): only for Drowns within DEEP_WATER_REACH cells (straight line) of the Heartwood.
+	if dreams and dreams.has_rule(&"deep_water") and _near_heartwood(enemy, dreams, DEEP_WATER_REACH):
 		level = 1 + dreams.rule_level(&"deep_water")
 	if s.drowned >= DROWN_TIMES[level]:
 		return
@@ -720,7 +743,7 @@ class PullUnder extends Node:
 		_next += 1.0
 		_second += 1
 		var step: float = Reactions.PULL_UNDER_STEP * (Reactions.DEEP_WATER_GROWTH if deep else 1.0)
-		enemy.take_damage(applier.get_damage() * step * _second, applier.tower_data.line, true, false, applier, &"drown")
+		enemy.take_damage(Reactions._rx(enemy, applier.get_damage() * step * _second), applier.tower_data.line, true, false, applier, &"drown")
 
 # Marked + (Held or asleep or full Drowsy): the next Warden hit is a guaranteed ×3 crit. Uses up Marked.
 static func _pinned(enemy: Node2D, source: Node) -> void:
@@ -774,7 +797,7 @@ static func echo(id: StringName, spot: Vector2, share: float, echo_tower: Tower,
 				s.pinned = true
 			_:
 				if strength > 0.0:
-					enemy.take_damage(strength * share, _line(applier, echo_tower.tower_data.line), true, false,
+					enemy.take_damage(_rx(enemy, strength * share), _line(applier, echo_tower.tower_data.line), true, false,
 						echo_tower, &"echo")
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
 			echo_tower.resonant_set_off(enemy)  # Resonant Hollow: the echo rings like a chime
@@ -808,6 +831,8 @@ static func _fire(enemy: Node2D, id: StringName, towers: Array, ignore_cooldown:
 	var cooldown: float = data.cooldown if data else 1.5
 	if dreams and dreams.has_rule(&"quick_reactions"):
 		cooldown = minf(cooldown, QUICK_COOLDOWN)
+	if dreams and WOVEN_RULE.has(id) and dreams.has_rule(WOVEN_RULE[id]):
+		cooldown *= WOVEN_COOLDOWN  # A Woven card's cost (dream_design.md 83c40cd7): its Crowned Reaction fires half as often
 	s.start_cooldown(key, cooldown)
 	# Storm Front: a Reaction a Gust-copied status completed counts one more link.
 	var storm_front := s.gust_time > 0.0
@@ -854,7 +879,7 @@ static func _dawnburst(enemy: Node2D) -> void:
 	for other in _field(enemy):
 		if other.global_position.distance_to(at) <= DAWNBREAK_REACH * CELL:
 			var share := DAWNBREAK_BOSS_SHARE if other.enemy_data.is_boss else DAWNBREAK_SHARE
-			other.take_damage(other.max_health * share, "", true, false, null, &"dawnbreak")
+			other.take_damage(_rx(other, other.max_health * share), "", true, false, null, &"dawnbreak")
 
 
 # --- Helpers ----------------------------------------------------------------------------------------
@@ -887,7 +912,7 @@ static func carry(id: StringName, enemy: Node2D, seed_tower: Tower, applier: Tow
 		_:
 			var strength: float = ECHO_DAMAGE.get(base, 2.0)
 			var damage := (applier.get_damage() if is_instance_valid(applier) else seed_tower.get_damage())
-			enemy.take_damage(strength * damage * CARRIED_SHARE, _line(applier if is_instance_valid(applier) else seed_tower,
+			enemy.take_damage(_rx(enemy, strength * damage * CARRIED_SHARE), _line(applier if is_instance_valid(applier) else seed_tower,
 				seed_tower.tower_data.line), true, false, seed_tower, &"carried_storm")
 
 static func _field(near: Node2D) -> Array:
@@ -911,6 +936,12 @@ static func _towers(a = null, b = null) -> Array:
 		if is_instance_valid(t) and t is Tower and not list.has(t):
 			list.append(t)
 	return list
+
+# Reaction damage after Quick Reactions' cut (DreamState.get_reaction_damage_multiplier: 0.65 with the card, Balancing;
+# dream_design.md 83c40cd7). Every Reaction's damage goes through it; Charged bolts and Static Field don't (not Reactions).
+static func _rx(near: Node, amount: float) -> float:
+	var dreams := _dreams(near)
+	return amount * (dreams.get_reaction_damage_multiplier() if dreams and dreams.has_method("get_reaction_damage_multiplier") else 1.0)
 
 static func _applier_damage(tower: Tower, fallback: float) -> float:
 	return tower.get_damage() if tower != null else fallback

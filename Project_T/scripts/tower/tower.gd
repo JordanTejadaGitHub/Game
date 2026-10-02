@@ -1636,6 +1636,13 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	enemy.take_damage(dealt, damage_line, is_area, is_crit, self, combo)
 	if enemy.has_meta(BranchKit.LINK_META):
 		BranchKit.share_hit(enemy, dealt, self)  # Undercurrent's current: a share reaches the other linked nightmares
+	if _dream_state and is_instance_valid(enemy) and not enemy.is_cleansed:
+		# Costs of two crit cards (dream_design.md 83c40cd7): Rain on Glass's light hits dry a Soaked nightmare;
+		# Starlit Aim's crit uses up its Marked.
+		if tower_data.line == "light" and enemy.statuses.has(EnemyStatuses.DAMP) and _has_rule(&"rain_on_glass"):
+			enemy.statuses.remove(EnemyStatuses.DAMP)
+		if is_crit and enemy.statuses.has(EnemyStatuses.MARKED) and _has_rule(&"starlit_aim"):
+			enemy.statuses.remove(EnemyStatuses.MARKED)
 	if _dream_state and not is_area and _has_rule(&"momentum"):
 		GroveRules.note_hit(self, enemy)  # Momentum: a streak on one nightmare
 	if _dream_state and is_area and combo != &"spillover" and enemy.is_cleansed and _has_rule(&"spillover"):
@@ -2326,6 +2333,8 @@ func _chain_strike(first: Node2D) -> void:
 	var max_hits := attack_data.chain_targets
 	if first.statuses.has(EnemyStatuses.DAMP):
 		max_hits += CHAIN_DAMP_EXTRA_JUMPS
+	if _dream_state and _has_rule(&"static_bloom"):
+		max_hits = maxi(max_hits - 1, 1)  # Charged Bloom's cost (dream_design.md 83c40cd7): one fewer jump
 	while hits.size() < max_hits:
 		var next := _nearest_jump(hits)
 		if next == null:
@@ -2348,6 +2357,7 @@ func _chain_strike(first: Node2D) -> void:
 	# Jumps past the normal count only happened through Damp (DamageLog: "conducted").
 	var points := PackedVector2Array([global_position + tower_data.get_attack_origin()])
 	# Static Bloom: every nightmare the chain strikes also gets Drowsy (II: 2 stacks).
+	var conductive := _dream_state != null and _has_rule(&"conductive_soil")
 	var bloom := 0
 	if _dream_state and _has_rule(&"static_bloom"):
 		bloom = 2 if _rule_level(&"static_bloom") > 0 else 1
@@ -2361,6 +2371,8 @@ func _chain_strike(first: Node2D) -> void:
 			enemy.apply_status(EnemyStatuses.MARKED, 1, 2.0 * beacon, 0.0, 0, tower_data.line, self)  # Storm Beacon
 		if bloom > 0 and is_instance_valid(enemy) and not enemy.is_cleansed:
 			enemy.apply_status(EnemyStatuses.DROWSY, bloom, 0.0, 0.0, 0, tower_data.line, self)
+		if i > 0 and conductive and is_instance_valid(enemy) and not enemy.is_cleansed:
+			enemy.statuses.remove(EnemyStatuses.DAMP)  # Conductive Soil's cost: each jump uses up that nightmare's Soaked
 	if attack_data.tier >= 4:
 		ascended_event.emit(self, first.global_position, hits.size())
 	var bolt := ChainBolt.new(points)
@@ -3013,6 +3025,8 @@ func _spread() -> void:
 		others = _eddy_targets(others.slice(0, attack_data.spread_targets), source)
 	var points := PackedVector2Array()
 	var copies := others.size() if tower_data.line == "wind" and _rule_stacks(&"eddy") > 0 else mini(attack_data.spread_targets, others.size())
+	if full_copy:
+		copies = mini(copies, 1)  # Carried on the Wind (dream_design.md 83c40cd7): full stacks, to one nightmare only
 	for i in copies:
 		others[i].statuses.gust_time = 0.5  # Storm Front: a Reaction these statuses complete reaches further
 		for status in copied:

@@ -7,6 +7,7 @@ script = ExtResource("1_card")
 id = "quick_reactions"
 display_name = "Quick Reactions"
 description = "Reactions can fire again on the same nightmare after 0.75 s instead of 1.5 s."
+cost_description = "Reactions deal 35% less."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])
