@@ -77,11 +77,9 @@ func _run() -> void:
 	var grow_lines := texts.filter(func(t: String) -> bool: return t.contains("test_b"))
 	_check(grow_lines.size() == 2 and not texts.any(func(t: String) -> bool: return t.contains(DreamState.NOT_IN_DREAM + " (")),
 		"the panel shows 2 grow lines, no dead \"not in this dream\" buttons (%s)" % [texts])
-	var more: Button = null
-	for child in panel._buttons.get_children():
-		if child is Button and child.text == "3 more not in this dream · Remember":
-			more = child
-	_check(more != null and more.tooltip_text.contains(hidden[0].display_name), "one quiet line points at Remember")
+	var more := panel._content.get_node_or_null("NotInDream") as Button
+	_check(more != null and more.text == "3 more not in this dream · Remember" and more.tooltip_text.contains(hidden[0].display_name),
+		"one quiet line points at Remember, in the info part (it scrolls; the actions stay put)")
 	var asked := [null]
 	dreams.remember_requested.connect(func(focus: TowerData) -> void: asked[0] = focus)
 	if more != null:

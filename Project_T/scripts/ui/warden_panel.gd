@@ -184,6 +184,7 @@ func _refresh() -> void:
 
 	for child in _buttons.get_children() + _footer.get_children():
 		child.queue_free()
+	_clear_not_in_dream()
 	if _tower.can_choose_target():
 		_add_target_switch([_tower])
 	if data.has_bird_toggle:
@@ -327,6 +328,7 @@ func _refresh_group() -> void:
 
 	for child in _buttons.get_children() + _footer.get_children():
 		child.queue_free()
+	_clear_not_in_dream()
 	var aimed := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_choose_target())
 	if not aimed.is_empty():
 		_add_target_switch(aimed)
@@ -724,17 +726,30 @@ static func _price(dew: int) -> String:
 	return "free" if dew <= 0 else "%d Dew" % dew
 
 # Branch expansion: the branches this run didn't draw aren't Grow buttons (Tower.grow_options); one quiet line
-# points at Remember, where a misty branch can be called back into the dream for Dreamlight.
+# points at Remember, where a misty branch can be called back into the dream for Dreamlight. It sits in the info part
+# (which scrolls), not among the actions, so the panel keeps within MAX_SHARE.
 func _not_in_dream_button(data: TowerData) -> void:
+	_clear_not_in_dream()
 	var hidden := Tower.not_in_dream(dream_state, data)
 	if hidden.is_empty():
 		return
-	var button := _add_button("%d more not in this dream · Remember" % hidden.size())
+	var button := Button.new()
+	button.name = "NotInDream"
+	button.text = "%d more not in this dream · Remember" % hidden.size()
+	button.focus_mode = Control.FOCUS_NONE
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_content.add_child(button)
 	button.flat = true
 	button.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	button.tooltip_text = "%s: not in this dream. Call one back on Remember." % ", ".join(hidden.map(
 		func(form: TowerData) -> String: return form.display_name))
 	button.pressed.connect(func() -> void: dream_state.open_remember(hidden[0]))
+
+func _clear_not_in_dream() -> void:
+	var old := _content.get_node_or_null("NotInDream")
+	if old != null:
+		_content.remove_child(old)
+		old.queue_free()
 
 func _add_button(text: String) -> Button:
 	var button := Button.new()
