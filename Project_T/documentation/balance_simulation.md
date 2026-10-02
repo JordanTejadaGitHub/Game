@@ -627,6 +627,13 @@ Chime Stones = 76% of damage, with Live Wire ×3 and Hush ×2. Dew earned 6,023 
 - Chime Stone: a branch probe (no Dreams, drifts 45–49) before judging, since run 8's share came with
   Live Wire ×3 and 13 Chime Stones.
 
+User: *"Felt balanced; the Chimes in the beginning felt broken though, since I just upgraded them once
+and let them sweep past to drift 40. Maybe have a smoother difficulty curve."* Decisions:
+1. **Chime Stone damage 35 → 26** (area pulse 28 DPS + its own Static set off every 3 pulses: one
+   upgrade carried act 1). Static and set-off unchanged; branch probe (drifts 15–19 and 45–49) checks it.
+2. **Act 2 linear, no knee:** **×1.7 at 26 → ×4.5 at 45** in one line (`act2_steep_value` 3.3 at 37; was
+   2.0 → 2.9 → 4.5, gentle then steep where run 8 broke). Act 1, acts 3–4 unchanged.
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
