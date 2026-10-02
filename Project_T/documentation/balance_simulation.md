@@ -672,6 +672,9 @@ board leak ~0%. Dreamshroom (post-nerf) 0.89× / 1.21× ✓. Morning Fog 0.75× 
 without (87% of its damage is Thunderclap): a combo final, no change. Puffball loses ~half without
 Thunderhead (cause not traced). **Bell: damage 123 → 80 and set-off at 4 stacks (was 3)**, expected
 ~0.95× / ~1.5×; re-probe (band ~0.9–1.5×, area finals scale with crowds).
+Why Puffball halves without Thunderhead: **Ignite** (Spored 3+ and Static → Spored ticks ×3 for 3 s,
+re-fired while Static keeps coming). A combo working as designed: no change. But its extra ticks were
+tagged only "spored", invisible to combo feedback and the sims: Tower Code tags them "ignite".
 
 **Act 2 boss too hard** (user: *"is the boss too hard? Didn't feel close to killing it"*): **0 of 3**
 human runs killed it: run 7 (×3.6 act 2) ~10% of drift 50's health left, run 8 Lamplighter ~21%, run 9
