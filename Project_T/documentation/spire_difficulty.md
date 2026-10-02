@@ -72,18 +72,19 @@ perks (Balancing Code measures full loadout vs none, fresh-equivalent families).
 comparison: `MetaRun.sidegrade_perks` (Developer setting "Perk style: Power / Sidegrade"); on the branch
 it's on, and the perks listed as **power** ignore it.
 
-Proposed honest power perks (Meta Game Discussion confirms): **Deep Taproot I–III** (+1/2/3 max
-leaves), **Rich Dew I–III** (Dew pot +5/10/15%), **First Care** (first 3 Nurture ranks free). If the
-cap is exceeded, the power values shrink first.
+**Honest power perks** (Meta Game Discussion, 2026-10-02: the new-player rescues): **Morning Stores
+I–III** (+10/20/30 starting Dew), **Deep Taproot I–II** (+1/+2 max leaves, act-break regrow kept; level
+III dropped in this mode), **Rested Roots I–II** (rest bonus +10/20%). Over the cap: trim Morning Stores
+to +5/10/15 first, then Rested Roots to +5/10%; leaves last. Under the cap is fine (it's a ceiling).
 
-| Perk | Power (main) | Sidegrade (branch) |
+| Perk | Power (main) | Branch |
 |---|---|---|
-| Morning Stores I–III | +10/20/30 starting Dew | same, but drifts 1–5 pay −15/30/45% of their pot |
-| Rich Dew I–III | Dew pot +5/10/15% | *(stays power, proposed)* |
-| Rested Roots I–II | rest bonus +10/20% | rest bonus +20/40%, Dew pot −5/10% |
-| Deep Taproot I–III | +1/2/3 max leaves | *(stays power, proposed)* |
+| Morning Stores I–III | +10/20/30 starting Dew | **power** |
+| Rich Dew I–III | Dew pot +5/10/15% | sidegrade: same, rest bonus −10/20/30% |
+| Rested Roots I–II | rest bonus +10/20% | **power** |
+| Deep Taproot I–III | +1/2/3 max leaves | **power, I–II only** |
 | Sprout Bed | 2 free Sprouts | 2 Sprouts planted where you choose at the start, 30 less starting Dew |
-| First Care | first 3 Nurture ranks free | *(stays power, proposed)* |
+| First Care | first 3 Nurture ranks free | sidegrade: same, then Nurture +15% for the run |
 | Early Bloom | first pick shows every unlocked family | same, the drift 25 pick shows one fewer |
 | Early Light | +1 Dreamlight at start | same, the first family pick gives none |
 | Kindling | a random Common Dream at start | same, the first Dream offer has 2 cards |
