@@ -8,7 +8,8 @@ class_name ClearToolButton
 # A badge shows free clears (Heartwood's Reach). On touch, a marked obstacle gets Clear / Cancel
 # buttons above the tool. Icon: assets/ui/clear_tool.png (locked / available / active frames).
 
-const LOCKED_TEXT := "Take a clearing Dream to tend the forest."
+const LOCKED_TEXT := "Clearing needs a Dream. Take a clearing card to tend the forest."  # Tooltip and tap toast (user)
+const TOOL_TIP := "Clear tool (0 / C): Tend Withered Trees and move Mossy Boulders."
 # assets/ui/clear_tool.png: three 64×64 frames, locked / available / active (Game tower assets).
 const ICON_SHEET := preload("res://assets/ui/clear_tool.png")
 const FRAME_LOCKED := 0
@@ -52,7 +53,7 @@ func _ready() -> void:
 	hotkey.add_theme_constant_override("outline_size", 3)
 	add_child(hotkey)
 	_update_icon()
-	tooltip_text = "Clear tool (0 / C): Tend Withered Trees and move Mossy Boulders."
+	_show_locked(clearer.is_locked())
 	pressed.connect(toggle_tool)
 	clearer.tool_changed.connect(func(active: bool) -> void: set_pressed_no_signal(active))
 	clearer.tool_refused.connect(func() -> void: toast.call(LOCKED_TEXT))
@@ -83,11 +84,33 @@ func toggle_tool() -> void:
 	if clearer.is_locked():
 		set_pressed_no_signal(false)
 		toast.call(LOCKED_TEXT)
+		CantAfford.shake(self)  # The refusal (none under reduced motion)
 		return
 	clearer.set_tool_active(not clearer.is_tool_active())
 	set_pressed_no_signal(clearer.is_tool_active())
 
+# Until a clearing card is owned the tool looks disabled (user: "the Clear should be greyed out and have a tooltip")
+# but isn't: a press still reaches it, says why and shakes.
+const STYLE_STATES := ["normal", "hover", "pressed", "hover_pressed"]
+var shows_locked := false
+
+func _show_locked(locked: bool) -> void:
+	shows_locked = locked
+	tooltip_text = LOCKED_TEXT if locked else TOOL_TIP
+	for state in STYLE_STATES:
+		if locked:
+			add_theme_stylebox_override(state, get_theme_stylebox("disabled"))
+		else:
+			remove_theme_stylebox_override(state)
+	if locked:
+		add_theme_color_override("icon_normal_color", get_theme_color("icon_disabled_color"))
+		add_theme_color_override("icon_hover_color", get_theme_color("icon_disabled_color"))
+	else:
+		remove_theme_color_override("icon_normal_color")
+		remove_theme_color_override("icon_hover_color")
+
 func _on_lock_changed(locked: bool) -> void:
+	_show_locked(locked)
 	if not locked:
 		_glow = 1.0  # A short glow as the tool lights up
 	queue_redraw()
@@ -108,6 +131,8 @@ func _update_icon() -> void:
 	var frame := FRAME_LOCKED if clearer.is_locked() else (FRAME_ACTIVE if clearer.is_tool_active() else FRAME_AVAILABLE)
 	if frame == _frame:
 		return
+	if (frame == FRAME_LOCKED) != shows_locked:
+		_show_locked(frame == FRAME_LOCKED)  # Also when the lock changes without a signal (a loaded run)
 	_frame = frame
 	var atlas := AtlasTexture.new()
 	atlas.atlas = ICON_SHEET

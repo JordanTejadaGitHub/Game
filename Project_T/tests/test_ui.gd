@@ -526,6 +526,8 @@ func _run() -> void:
 	var tool: ClearToolButton = main.get_node("HUD/ClearTool")
 	tool._update_icon()
 	_check(tool._frame == ClearToolButton.FRAME_AVAILABLE, "the icon shows the tool available once clearing opens")
+	_check(not tool.shows_locked and tool.tooltip_text == ClearToolButton.TOOL_TIP
+		and not tool.has_theme_stylebox_override("normal"), "open: the normal look and the tool's tooltip")
 	tool.toggle_tool()
 	tool._update_icon()
 	_check(clearer.is_tool_active() and tool.button_pressed and tool._frame == ClearToolButton.FRAME_ACTIVE,
@@ -536,6 +538,10 @@ func _run() -> void:
 	tool.toggle_tool()
 	_check(not clearer.is_tool_active() and (main.get_node("%ToastLabel") as Label).text == ClearToolButton.LOCKED_TEXT,
 		"while locked it explains why instead")
+	tool._update_icon()
+	_check(tool.shows_locked and tool.tooltip_text == ClearToolButton.LOCKED_TEXT
+		and tool.get_theme_stylebox("normal") == tool.get_theme_stylebox("disabled") and not tool.disabled,
+		"locked: greyed out (the disabled look), \"Clearing needs a Dream\" tooltip, still pressable to say why")
 	_check(InputMap.has_action("clear_tool"), "0 / C pick the Clear tool")
 	clearer._hover_obstacle = null
 	clearer.set_process(true)
