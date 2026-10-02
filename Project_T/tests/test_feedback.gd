@@ -44,6 +44,11 @@ func _run() -> void:
 	placer.select_tower(dewdrop)
 	placer.set_process(false)  # Its hover follows the mouse each frame; hold it on our cell
 	placer._hover_cell = _free_cell(map_generator, 5)
+	for side in [Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0), Vector2(0, -1), Vector2(1, 1), Vector2(-1, 1)]:
+		var beside: Vector2 = storm_cell + side  # Right beside it (a random map's next free cell can be far away)
+		if map_generator.is_buildable(beside) and not map_generator.get_path_if_blocked(beside).is_empty():
+			placer._hover_cell = beside
+			break
 	placer._refresh_hover()
 	var links = main.get_node("%PlacementLinks")
 	await process_frame
