@@ -6,7 +6,6 @@ extends RichTextLabel
 # Mostly polls simple conditions each frame, so it
 # needs no hooks in the systems it teaches.
 
-const SHOW_TIME := 5.0
 const TEXT := {
 	&"start": "Something moves at the edge of the dream.",
 	&"plant": "Plant a Warden near the path.",
@@ -71,8 +70,7 @@ var _tween: Tween
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	StatusLinks.hook(self)  # Status names in whispers are links
-	UiStyle.whisper(self, 22)  # Cormorant italic, warm, with a dark outline and no panel (ui_style.md)
-	add_theme_color_override("font_outline_color", Color(UiStyle.FOG, 0.9))
+	_style()  # The body face on a fog patch above the Warden bar (was Cormorant italic, top centre: hard to read)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE  # On only while a whisper with links or a term shows
 	var memory := HeartwoodMemory.load_data()
 	enabled = memory.settings.whispers
@@ -152,6 +150,60 @@ func whisper(id: StringName, args: Array = []) -> void:
 	if _queue.size() == 1:
 		_show_next()
 
+# Readable over a busy map (user: "hard to see while playing"): the body face at HINT_SIZE in Ink on an opaque fog
+# patch, lower-middle just above the Warden bar (clear of the DriftPanel), on screen for show_time(); hovering or
+# tapping holds it, tapping again dismisses it (a hint naming a Codex term opens it instead); one at a time.
+const HINT_SIZE := 22
+const HINT_MAX_WIDTH := 600.0
+const BAR_GAP := 14.0  # Above the Warden bar
+const MIN_TIME := 6.0
+const BASE_TIME := 2.5
+const PER_CHAR := 0.06
+var held := false  # Tapped (or hovered): stays until dismissed
+
+# Seconds a hint stays: at least MIN_TIME, longer for long lines.
+static func show_time(line: String) -> float:
+	return maxf(MIN_TIME, BASE_TIME + PER_CHAR * line.length())
+
+func _style() -> void:
+	add_theme_font_override("normal_font", UiStyle.body_medium_font())
+	add_theme_font_size_override("normal_font_size", HINT_SIZE)
+	add_theme_color_override("default_color", UiStyle.INK)
+	add_theme_color_override("font_outline_color", Color(UiStyle.FOG, 0.9))
+	add_theme_constant_override("outline_size", 4)
+	var box := UiStyle.fog_patch(18.0, 10.0)
+	box.center_alpha = 0.94  # Opaque enough over pale path and effects
+	add_theme_stylebox_override("normal", box)
+	fit_content = true
+	autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	set_anchors_preset(Control.PRESET_TOP_LEFT)
+	mouse_entered.connect(func() -> void:
+		if _tween and modulate.a > 0.0:
+			_tween.pause())
+	mouse_exited.connect(func() -> void:
+		if _tween and not held:
+			_tween.play())
+
+# Lower-middle, centred over the Warden bar, never under the DriftPanel; as wide as the line needs.
+func _place() -> void:
+	var font := UiStyle.body_medium_font()
+	var width := clampf(font.get_string_size(plain, HORIZONTAL_ALIGNMENT_LEFT, -1, HINT_SIZE).x + 48.0, 280.0, HINT_MAX_WIDTH)
+	custom_minimum_size = Vector2(width, 0)  # (A wrapping label shrinks to its minimum on reset_size)
+	reset_size()
+	var view := get_viewport_rect().size
+	var bar := get_node_or_null("%TowerBar") as Control
+	var bottom := view.y - 120.0
+	var centre := view.x / 2.0
+	if bar != null and bar.is_visible_in_tree():
+		var rect := bar.get_global_rect()
+		bottom = rect.position.y - BAR_GAP
+		centre = rect.get_center().x
+	var x := centre - width / 2.0
+	var panel := get_parent().get_node_or_null("DriftPanel") as Control if get_parent() else null
+	if panel != null and panel.is_visible_in_tree():
+		x = minf(x, panel.get_global_rect().position.x - 8.0 - width)
+	position = Vector2(clampf(x, 8.0, view.x - width - 8.0), bottom - size.y)
+
 func _show_next() -> void:
 	if _queue.is_empty():
 		return
@@ -169,26 +221,46 @@ func _show_next() -> void:
 	# tappable as a whole when it names a Codex term (screens_ui.md "The Codex").
 	var has_links := linked != plain.replace("[", "[lb]")
 	term = "" if has_links else CodexData.find_term(plain)
-	mouse_filter = Control.MOUSE_FILTER_STOP if has_links or term != "" else Control.MOUSE_FILTER_IGNORE
+	mouse_filter = Control.MOUSE_FILTER_STOP  # Hover / tap hold it
 	tooltip_text = "%s in the Codex" % term if term != "" else ""
+	held = false
+	_place()
+	_place.call_deferred()  # Again once the text has its height
 	if _tween:
 		_tween.kill()
 	_tween = create_tween()
-	_tween.tween_property(self, "modulate:a", 1.0, 0.4)
-	_tween.tween_interval(SHOW_TIME)
+	_tween.tween_property(self, "modulate:a", 1.0, 0.3)  # A fade only: nothing moves (reduced motion too)
+	_tween.tween_interval(show_time(plain))
 	_tween.tween_property(self, "modulate:a", 0.0, 0.8)
-	_tween.tween_callback(func() -> void:
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		term = ""
+	_tween.tween_callback(_finish)
+
+# The showing hint ends (its time ran out, or a tap dismissed it); the next queued one follows.
+func _finish() -> void:
+	if _tween:
+		_tween.kill()
+	modulate.a = 0.0
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	term = ""
+	held = false
+	if not _queue.is_empty():
 		_queue.pop_front()
-		_show_next())
+	_show_next()
 
 func _gui_input(event: InputEvent) -> void:
-	if term != "" and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+		return
+	accept_event()
+	if term != "":
 		var pause := get_node_or_null("%PauseMenu")
 		if pause != null and pause.has_method("open_codex"):
 			pause.open_codex(&"glossary", term)
-		accept_event()
+		_finish()
+	elif held:
+		_finish()  # The second tap dismisses it
+	else:
+		held = true  # The first tap holds it
+		if _tween:
+			_tween.pause()
 
 # Conditions that are easiest to notice by looking.
 func _process(_delta: float) -> void:

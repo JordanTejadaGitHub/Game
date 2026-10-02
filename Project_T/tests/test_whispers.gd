@@ -56,6 +56,40 @@ func _run() -> void:
 	_check(whispers.enabled, "a fresh profile has hints on")
 	_check(_fired(whispers).has(&"start") and _fired(whispers).has(&"plant"), "run start: start, plant")
 
+	# Readable (user: "hard to see while playing"): body face 22 px in Ink on an opaque patch, above the Warden bar,
+	# clear of the DriftPanel; long enough to read; hover / tap holds, a second tap dismisses; one at a time.
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS  # A real 1280×720 layout (as test_ui)
+	root.content_scale_size = UiStyle.LAYOUT_MIN
+	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+	root.size = Vector2i(1280, 720)
+	for frame in 2:
+		await process_frame
+	main.get_node("HUD")._fit_tower_bar()
+	whispers._place()
+	for frame in 2:
+		await process_frame
+	whispers._place()
+	_check(whispers.get_theme_font_size("normal_font_size") == 22 and whispers.get_theme_color("default_color") == UiStyle.INK
+		and (whispers.get_theme_stylebox("normal") as MoonStyleBox) != null
+		and (whispers.get_theme_stylebox("normal") as MoonStyleBox).center_alpha >= 0.9, "22 px Ink on an opaque fog patch")
+	var bar_rect: Rect2 = main.get_node("%TowerBar").get_global_rect()
+	var hint_rect: Rect2 = whispers.get_global_rect()
+	var drift_rect: Rect2 = main.get_node("HUD/DriftPanel").get_global_rect()
+	_check(hint_rect.end.y <= bar_rect.position.y and not hint_rect.intersects(drift_rect) and hint_rect.position.y > bar_rect.position.y - 200.0,
+		"lower-middle, above the Warden bar, clear of the DriftPanel (%s, bar %s, panel %s)" % [hint_rect, bar_rect, drift_rect])
+	_check(is_equal_approx(whispers.show_time("Short."), 6.0) and is_equal_approx(whispers.show_time("x".repeat(100)), 8.5),
+		"on screen 6 s at least, 2.5 s + 0.06 s a character for long lines")
+	var showing := String(whispers._queue[0]) if not whispers._queue.is_empty() else ""
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	whispers.term = ""
+	whispers._gui_input(click)
+	_check(whispers.held, "a tap holds the hint")
+	whispers._gui_input(click)
+	_check(not whispers.held and (whispers._queue.is_empty() or String(whispers._queue[0]) != showing),
+		"a second tap dismisses it, and the next queued one follows (one at a time)")
+
 	# Drifts 1–6 for real (leaves can't fall: the block ends when the field is clear).
 	run_state.invulnerable = true
 	run_state.dew = 500
