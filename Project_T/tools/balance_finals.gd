@@ -32,6 +32,7 @@ var by_tag := {}  # "kind/tag" -> the candidates' damage (tags column)
 var spore_appliers := {}  # For Spored ticks credited to the candidates: applier form id -> damage share (by stacks added)
 var spore_combos := {}  # …and their combo tags -> damage
 var spored_burning := 0.0  # The candidates' Spored damage dealt while the nightmare burns (Ignite: ticks 3x as fast)
+var hit_target_hp := Vector2.ZERO  # Plain hits by the candidates: (sum of the target's max health, count): erosion per hit = share × mean max health
 var total := 0.0
 var spawned_health := 0.0
 var leaked_health := 0.0
@@ -232,6 +233,8 @@ func _on_damage(event) -> void:
 		return
 	var combo := clampf(event.combo_amount, 0.0, event.amount)
 	split.combo += combo
+	if event.kind == &"hit" and event.tag == &"" and is_instance_valid(event.enemy):
+		hit_target_hp += Vector2(float(event.enemy.max_health), 1.0)
 	var tag_key := "%s/%s" % [event.kind, event.tag if event.tag != &"" else &"-"]
 	by_tag[tag_key] = float(by_tag.get(tag_key, 0.0)) + event.amount
 	if event.tag == &"spored" and is_instance_valid(event.enemy):
@@ -268,7 +271,7 @@ func _report(director: DriftDirector) -> void:
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
 		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "pairs": pairs, "board_damage": roundi(total),
 		"bosses": ";".join(boss_fights.values().map(func(b) -> String: return "%s:%d:%s:%.0f:%d" % [b.kind, b.health, "1" if b.dispelled else "0", (b.end - b.spawn) if b.dispelled else -1.0, b.hp_arrive])),
-		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001)}
+		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001), "hit_target_hp": roundi(hit_target_hp.x / maxf(hit_target_hp.y, 1.0)), "base_damage": snappedf(candidates[0].get_damage(), 0.1)}
 	print("FINALS %s" % JSON.stringify(row))
 	if out_path != "":
 		var exists := FileAccess.file_exists(out_path)
