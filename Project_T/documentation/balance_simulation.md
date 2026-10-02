@@ -753,6 +753,15 @@ dispelled; health left at the Heartwood Huntsman 44–88%, Lamplighter 10–34%,
 no-Dream board is a floor, not a player's board. Bosses at **×1.75** (confirmed: Huntsman 6,500 × 1.75
 × 4.5 = 51,188). No change; the next human run on ×1.75 decides.
 
+**3. Finals sweep** (40d26ed1, every final ×4, rank IV, no Dreams, finals cast, 3 seeds, per Dew vs
+Puffball; band 0.8–1.5×). **High:** Autumn Gale 1.61 / 2.36, Moonstone 1.54 / 2.11, Elf Circle 1.42 /
+2.10, Snugroot 1.34 / 2.36 (act 2 / act 3); Lullaby Bell (72) 1.34 / 1.53 (accepted). **Low damage
+dealers:** Midsummer ~0.28, Starling Murmuration ~0.53. Supports / economy (Grove Heart, Beacon,
+Wellspring, Great Dreamcatcher, Magpie's Hoard) are low on direct damage by design; Thunderhead (0.37)
+is a Static enabler (Puffball's Ignite, Morning Fog's Thunderclap). **Decisions:** damage ×0.75 on
+Autumn Gale, Moonstone, Elf Circle, Snugroot; Midsummer ×2, Starling Murmuration ×1.5. Role check with
+Tower Discussion on Whispering Hollow, Zephyr, Grafted Elder, Jewelwing Court and Hoarfrost. Re-probe after.
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
