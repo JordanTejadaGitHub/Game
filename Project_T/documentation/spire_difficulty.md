@@ -287,3 +287,6 @@ full game (`game/demo` false), and the demo reads main's exports.
   Hushbell boards 0.8× (fail). Decisions: **Inkcap 14**, **Thrum 50**, **Sparkler 36 per spark**,
   **Jarlink crossing 40** (+ a "fence" tag and a firing check), **Prism Jar +15% crit chance / +25% crit
   damage** (Rainbow +20 / +25). Silver Bell and Hushbell are re-judged as control on suitable boards.
+- 2026-10-02: **31c89068** (Tower Code): tide_link fix, the erosion cap, Jetreed 30, Nimbus 30, and the
+  round 1 changes; Jarlink's arc did fire on every crossing, but only one jar of a pair was credited (it
+  alternates now). Re-probe queued.
