@@ -366,7 +366,7 @@ var _grow_preview_time := 0.0
 # Shows each Warden as the form it would grow into: its sprite in place (translucent, idling), the new
 # range bright over the current faint one (a sniper's dead zone too), and a 2×2 form's squares.
 func show_grow_preview(pairs: Array) -> void:
-	_grow_preview = pairs.filter(func(p: Array) -> bool: return is_instance_valid(p[0]) and p[1] != null)
+	_grow_preview = pairs.filter(func(p: Array) -> bool: return is_instance_valid(p[0]) and is_form_open(p[1]))
 	_grow_preview_time = 0.0
 	queue_redraw()
 
@@ -431,36 +431,48 @@ func _draw_rank_preview() -> void:
 
 # The range `tower` would have as `into`: its own extras (ranks, Focus, cards) kept on the new base.
 func preview_range(tower: Tower, into: TowerData) -> float:
-	return tower.get_range_cells() - Tower.get_range_for(tower.tower_data, dream_state) + Tower.get_range_for(into, dream_state)
+	return range_as(tower, into, dream_state)
 
-# The stat changes for the Grow button's tooltip: "Damage 24 → 38 · Range 2.7 → 3.2 · adds Rooted".
+static func range_as(tower: Tower, into: TowerData, dreams: DreamState) -> float:
+	return tower.get_range_cells() - Tower.get_range_for(tower.tower_data, dreams) + Tower.get_range_for(into, dreams)
+
+# Only a form unlocked this run is previewed on the map (user: "only if you have it unlocked"); a locked one
+# (Dreamlight on Remember, or the Memory Grove) shows no ring and no ghost.
+func is_form_open(into: TowerData) -> bool:
+	return into != null and (dream_state == null or dream_state.is_unlocked(into.get_id()))
+
+# The Grow tooltip's headline (story chat 2026-10-01): "Thunderhead: damage 30 → 48, chains 3 → 5, range 3.0 → 3.5".
 func grow_changes(tower: Tower, into: TowerData) -> String:
+	return describe_growth(tower, into, dream_state)
+
+static func describe_growth(tower: Tower, into: TowerData, dreams: DreamState) -> String:
 	var from := tower.tower_data
 	var parts: Array[String] = []
 	if into.can_attack and from.can_attack and from.damage > 0:
 		var now := tower.get_damage()
 		var then := now * float(into.damage) / float(from.damage)
 		if roundi(then) != roundi(now):
-			parts.append("Damage %d → %d" % [roundi(now), roundi(then)])
+			parts.append("damage %d → %d" % [roundi(now), roundi(then)])
 		var speed := tower.get_attacks_per_second()
 		var faster := speed * into.attacks_per_second / maxf(from.attacks_per_second, 0.01)
 		if absf(faster - speed) >= 0.05:
-			parts.append("Speed %.1f → %.1f/s" % [speed, faster])
-		# The headline first (warden_stats.md "Branches: pricier and worth it"): damage per second, before
-		# the mechanic (chains, splash, statuses).
-		var ratio := (then * faster) / maxf(now * speed, 0.001)
-		if absf(ratio - 1.0) >= 0.05:
-			parts.push_front("%.1f× damage" % ratio)
+			parts.append("speed %.1f → %.1f/s" % [speed, faster])
+			# Damage and speed both move: their product (warden_stats.md "Branches: pricier and worth it").
+			var ratio := (then * faster) / maxf(now * speed, 0.001)
+			if absf(ratio - 1.0) >= 0.05:
+				parts.append("%.1f× damage per second" % ratio)
 	elif into.can_attack and not from.can_attack:
-		parts.append("Damage %d" % into.damage)
-	var reach := preview_range(tower, into)
+		parts.append("damage %d" % into.damage)
+	if into.chain_targets > 0 and into.chain_targets != from.chain_targets:
+		parts.append("chains %d → %d" % [from.chain_targets, into.chain_targets] if from.chain_targets > 0 else "chains to %d" % into.chain_targets)
+	var reach := range_as(tower, into, dreams)
 	if into.can_attack and absf(reach - tower.get_range_cells()) >= 0.05:
-		parts.append("Range %.1f → %.1f" % [tower.get_range_cells(), reach])
+		parts.append("range %.1f → %.1f" % [tower.get_range_cells(), reach])
 	if into.min_range > 0.0 and into.min_range != from.min_range:
 		parts.append("can't hit within %.1f" % into.min_range)
 	if into.applies_status != &"" and into.applies_status != from.applies_status:
 		parts.append("adds %s" % IconInfo.status_name(into.applies_status))
-	return " · ".join(parts)
+	return into.display_name + (": " + ", ".join(parts) if not parts.is_empty() else "")
 
 func _draw_grow_preview() -> void:
 	for pair in _grow_preview:

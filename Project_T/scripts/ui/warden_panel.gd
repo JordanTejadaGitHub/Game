@@ -33,6 +33,7 @@ var _scroll := ScrollContainer.new()  # Everything between the header and the fo
 var _content: VBoxContainer
 var _footer := HBoxContainer.new()  # Sell and Close: always visible
 var _buffs_open := false  # Buffs: folded to the Total line until "Details"
+const LOCKED_FORM_TIP := WardenHeaderView.LOCKED_FORM_TIP  # A locked form's Grow tooltip
 const MAX_SHARE := 0.55  # The panel never takes more of the screen's height than this
 const TOP_CLEAR := 150.0  # Keeps clear of the Dreams row and the top-right buttons
 const BOTTOM_MARGIN := 16.0  # The panel's offset from the bottom edge
@@ -203,12 +204,10 @@ func _refresh() -> void:
 		if option[1]:
 			var grow := _tower.get_grow_cost(next)  # Ranked Wardens also pay the rank difference
 			var cost: int = grow.total
-			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
+			# The form's name and key changes first ("Thunderhead: damage 30 → 48, chains 3 → 5, range 3.0 → 3.5").
+			button.tooltip_text = tower_placer.grow_changes(_tower, next) + "\n\n" + IconInfo.format(next.description)  # {spored}-style tokens as words
 			if grow.ranks > 0:
 				button.tooltip_text += "\n\n%d Dew + %d for its rank %s." % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
-			var changes := tower_placer.grow_changes(_tower, next)
-			if changes != "":
-				button.tooltip_text += "\n\n" + changes
 			var label := "Grow" if _confirm_grow == next else "Grow into %s" % next.display_name  # Touch: the second tap grows
 			var awake := tower_placer.ascended_blocker(next)
 			if awake != "":
@@ -237,6 +236,7 @@ func _refresh() -> void:
 				button.mouse_exited.connect(tower_placer.hide_catch_preview)
 		else:
 			_locked_form_button(button, "Grow into %s" % next.display_name, next, [_tower], index)
+			continue  # Locked: no ring, no ghost
 		_preview_on(button, [[_tower, next]])
 	if _tower.can_nurture():
 		var cost := _tower.get_nurture_cost()
@@ -339,11 +339,10 @@ func _refresh_group() -> void:
 			var button := _add_button("")
 			UiStyle.primary(button)
 			_grow_key(button, index)
-			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 			if not option[1]:
 				_locked_form_button(button, "%s → %s" % [_plural(data, towers.size()), next.display_name], next, towers, index)
-				_preview_on(button, towers.map(func(t: Tower) -> Array: return [t, next]))
-				continue
+				continue  # Locked: no ring, no ghost
+			button.tooltip_text = tower_placer.grow_changes(towers[0], next) + "\n\n" + IconInfo.format(next.description)  # As the first of them
 			# Each pays Tower.get_grow_cost (ranked ones their rank difference too).
 			var plan: Array = tower_seller.plan_grow(towers, next)
 			var affordable: int = plan[0]
@@ -592,17 +591,21 @@ func _grow_key(button: Button, index: int) -> void:
 # Dreamlight it's the can't-afford style (the cost in POOR) and a press refuses; not open yet (Memory Grove,
 # its branch first, drift 51) it's dim with the reason, and a press refuses too.
 func _locked_form_button(button: Button, label: String, next: TowerData, towers: Array, index: int) -> void:
-	button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
+	# No preview of a locked form (story chat 2026-10-01): the tooltip only says where it's unlocked, and a
+	# Grove-locked one stays "???", name and all, as on the Remember screen.
+	button.tooltip_text = LOCKED_FORM_TIP
 	if not dream_state.has_method("get_unlock_cost"):
 		button.text = "%s · needs a Dream" % label  # Before Dreamlight
 		button.disabled = true
 		return
 	var cost: int = dream_state.get_unlock_cost(next)
 	var blocker: String = dream_state.get_unlock_blocker(next)
+	if blocker == "Memory Grove":
+		label = label.replace(next.display_name, RememberScreen.UNKNOWN_NAME)
+		button.tooltip_text = RememberScreen.UNKNOWN_NAME
 	if blocker != "":
 		button.set_meta(&"label", label)
 		button.set_meta(&"price", blocker)
-		button.tooltip_text = TowerSeller.blocker_message(blocker) + ".\n\n" + button.tooltip_text
 		_set_short(button, true, false)  # Not a price: just the dim look
 	else:
 		_priced(button, label, "%d Dreamlight" % cost, cost, &"dreamlight", true)

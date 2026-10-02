@@ -20,6 +20,8 @@ var desc: RichTextLabel  # What it does, with its status words as links (StatusL
 var stats := VBoxContainer.new()  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var growth := VBoxContainer.new()  # "Grows into" (the hover card and Codex; the panel has its Grow buttons)
 
+const LOCKED_FORM_TIP := "Unlock it on the Remember screen."  # A form not unlocked this run (no stats, no preview)
+
 var _tower: Tower = null  # The planted Warden shown, or a probe carrying this run's bonuses (never in the tree)
 var _probe: Tower = null
 
@@ -142,18 +144,46 @@ func _fill_growth(data: TowerData, dreams: DreamState) -> void:
 	for option in options:
 		var next: TowerData = option[0]
 		var line := Label.new()
+		var tip := LOCKED_FORM_TIP  # Locked (story chat 2026-10-01): only where it's unlocked; Grove-locked: "???"
 		if option[1]:
 			var cost: int = tower_grow_cost(next, dreams)
 			line.text = "%s · %d Dew" % [next.display_name, cost]
+			# Unlocked: its name and key changes ("Thunderhead: damage 30 → 48, chains 3 → 5, range 3.0 → 3.5").
+			tip = IconInfo.format(next.description)
+			if is_instance_valid(_tower):
+				tip = TowerPlacer.describe_growth(_tower, next, dreams) + "\n\n" + tip
 		elif dreams.has_method("get_unlock_cost"):
 			var blocker: String = dreams.get_unlock_blocker(next) if dreams.has_method("get_unlock_blocker") else ""
-			line.text = "%s · %s" % [next.display_name, blocker if blocker != "" else "unlock with %d Dreamlight" % dreams.get_unlock_cost(next)]
+			var shown := RememberScreen.UNKNOWN_NAME if blocker == "Memory Grove" else next.display_name
+			line.text = "%s · %s" % [shown, blocker if blocker != "" else "unlock with %d Dreamlight" % dreams.get_unlock_cost(next)]
 			line.add_theme_color_override("font_color", UiStyle.INK_DIM)
+			if blocker == "Memory Grove":
+				tip = RememberScreen.UNKNOWN_NAME
 		else:
 			line.text = "%s · needs a Dream" % next.display_name
 			line.add_theme_color_override("font_color", UiStyle.INK_DIM)
-		TapTip.attach(line, IconInfo.format(next.description))  # Hover or tap
+		TapTip.attach(line, tip)  # Hover or tap
+		_grow_preview_on(line, next, option[1])
 		growth.add_child(line)
+
+# A planted Warden's "Grows into" line, pointed at: the map preview (ring + ghost) of an unlocked form, as the
+# panel's Grow buttons do. The hover card for the bar's unplanted Wardens has no Warden to preview on.
+func _grow_preview_on(line: Label, next: TowerData, unlocked: bool) -> void:
+	if not unlocked or not is_instance_valid(_tower) or _tower == _probe or not _tower.is_inside_tree():
+		return
+	var placer: TowerPlacer = Tower.placer_ref.get_ref() if Tower.placer_ref != null else null
+	if placer == null:
+		return
+	var tower := _tower
+	line.mouse_filter = Control.MOUSE_FILTER_STOP
+	var hide := func() -> void:
+		if is_instance_valid(placer):
+			placer.hide_grow_preview()
+	line.mouse_entered.connect(func() -> void:
+		if is_instance_valid(placer) and is_instance_valid(tower):
+			placer.show_grow_preview([[tower, next]]))
+	line.mouse_exited.connect(hide)
+	line.tree_exiting.connect(hide)
 
 func tower_grow_cost(next: TowerData, dreams: DreamState) -> int:
 	return _tower.get_grow_cost(next).total if is_instance_valid(_tower) and _tower != _probe else dreams.get_evolve_cost(next)
