@@ -20,10 +20,6 @@ func _initialize() -> void:
 
 func _run() -> void:
 	HeartwoodMemory.file_path = "user://test_heartwood_gifts_%d.json" % OS.get_process_id()
-	for id in HeartwoodGifts.POOL:
-		if not HeartwoodGifts.has_effect(id):
-			var gift_id: StringName = id
-			HeartwoodGifts.register(gift_id, func(_main: Node, placement: Dictionary) -> void: applied.append([gift_id, placement]))
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = 4242
 	root.add_child(main)
@@ -32,6 +28,11 @@ func _run() -> void:
 	var director: DriftDirector = main.get_node("%DriftDirector")
 	var run_state: RunState = main.get_node("%RunState")
 	var dreams: DreamState = main.get_node("%DreamState")
+	# Stand-ins for every effect, after the scene (its owners register the real ones in their _ready): this tests the
+	# draw, the screen and the placement, not the effects.
+	for id in HeartwoodGifts.POOL:
+		var gift_id: StringName = id
+		HeartwoodGifts.register(gift_id, func(_main: Node, placement: Dictionary) -> void: applied.append([gift_id, placement]))
 	var gifts := HeartwoodGifts.find(main)
 	var screen := main.get_node_or_null("HUD/GiftScreen") as GiftScreen
 	_check(gifts != null and screen != null, "the HUD makes the gifts and their screen")
@@ -59,6 +60,8 @@ func _run() -> void:
 	_check(screen.visible and director.pending_choice() == &"gift" and not director.can_start_next_drift(),
 		"after the Dream the gift screen opens and holds Start (%s)" % director.pending_choice())
 	_check(main.get_node("HUD/DriftPanel").PENDING_TEXT[&"gift"] == "Choose a gift", "the Start button names it")
+	var omens = main.get_node("%OmenDirector")
+	_check(not omens.is_offering(), "the Omen waits while the gift is up (Roguelite 13aaf91a)")
 	_check(not main.get_node("%RunSaver").can_save_now(), "no save while the gift waits")
 
 	# Placing a one-cell gift: the placer refuses the start, takes an empty cell.
@@ -86,6 +89,9 @@ func _run() -> void:
 		and not applied[0][1].restoring, "Plant: the owner's effect gets the cells")
 	_check(not gifts.waiting and not screen.visible and director.pending_choice() != &"gift",
 		"the gift is taken; the gift no longer holds Start (next: %s, the Omen's turn)" % director.pending_choice())
+	for frame in 5:
+		await process_frame
+	_check(omens.is_offering() or omens.get_mode() == "never", "then the Omen shows")
 	_check(gifts.has_taken(&"lightning_tree") and not gifts.draw(2).has(&"lightning_tree"), "never offered again this run")
 
 	# Let them pass (act 2).
