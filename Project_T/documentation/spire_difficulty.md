@@ -282,3 +282,8 @@ full game (`game/demo` false), and the demo reads main's exports.
   1.01 / 1.51, with erosion ~3.5× its base hit at 45 and 7–11× at 61. Game error: `tide_link` meta
   missing in `_relink` (Tower Code to fix). Decisions: **erosion capped at 4× the hit's base**; Jetreed
   base 20 → **30**; Nimbus 24 → **30** dmg/s; Maelstrom and Undercurrent re-probed after the fix.
+- 2026-10-02: **new branches probe** (9d5cb88f, 45, 3 seeds, × Driftspore): Inkcap 1.26 (high), Brood Cap
+  0.76, Lichenling 0.60 ✓; Thrum 0.26, Sparkler 0.18, Silver Bell 0.05, Jarlink ~0.04 (low); Prism Jar /
+  Hushbell boards 0.8× (fail). Decisions: **Inkcap 14**, **Thrum 50**, **Sparkler 36 per spark**,
+  **Jarlink crossing 40** (+ a "fence" tag and a firing check), **Prism Jar +15% crit chance / +25% crit
+  damage** (Rainbow +20 / +25). Silver Bell and Hushbell are re-judged as control on suitable boards.
