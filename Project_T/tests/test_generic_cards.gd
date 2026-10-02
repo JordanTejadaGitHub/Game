@@ -33,7 +33,6 @@ func _run() -> void:
 	dreams = main.get_node("%DreamState")
 	run_state = main.get_node("%RunState")
 	map_generator = main.get_node("%MapGenerator")
-	dreams.resonance_enabled = false  # Single-card numbers (test_dreams checks resonance)
 	_test_pool()
 	_test_economy()
 	_test_stat_rules()

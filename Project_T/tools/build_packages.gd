@@ -337,7 +337,6 @@ func _reset(run: int) -> void:
 		tower.free()
 	_planted.clear()
 	dreams.stacks.clear()
-	dreams._resonance.clear()
 	dreams.unlocked = {"sprout": true, "thornwall": true}
 	dreams.dreamlight = 0
 	dreams.grown_wardens.clear()

@@ -184,13 +184,6 @@ func _make_card(card: UpgradeData) -> Button:
 		_add_opens_clearing(box)
 	# The effect comes right after the name; it never shrinks.
 	_add_linked_line(box, card.description, UiStyle.INK, 16)
-	var res := dream_state.resonance_preview(card)
-	if res.bonus > 0.0:  # Resonance (text_style.md): "+20% from Soft Spores, Damp Rot", never the tag; hover lists them all
-		var res_line := _add_line(box, DreamState.resonance_text(res.bonus, res.cards), UiStyle.GOLD, 14)
-		res_line.name = "ResonanceLine"
-		res_line.tooltip_text = DreamState.resonance_tooltip(res.cards)
-		if res_line.tooltip_text != "":
-			res_line.mouse_filter = Control.MOUSE_FILTER_PASS  # Hover shows them; a click still takes the card
 	var live: String = dream_state.effects().preview_line(card)
 	# What it would do to your board now (dream_design.md "Feeling the cards"), computed once as the offer opens
 	var impact: Dictionary = dream_state.preview_card_impact(card)
