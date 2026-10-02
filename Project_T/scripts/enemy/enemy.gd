@@ -1811,6 +1811,11 @@ func _try_rise() -> bool:
 # Marked, then the blight coat takes its bite. At 0 health the enemy is cleansed.
 # `source` (the Warden) and `tag` (&"spored" tick, &"static" bolt, &"conducted" lightning through
 # Damp) feed the DamageLog; crit/weak/Marked/fog combos are worked out here.
+# Damp Rot (a Dream card) trades Soaked's water boost away (DreamState.soaked_boosts_water).
+func _soaked_boosts_water() -> bool:
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+	return dreams == null or dreams.soaked_boosts_water()
+
 func take_damage(amount: float, line: String = "", is_area: bool = false, is_crit: bool = false,
 		source: Node = null, tag: StringName = &"") -> void:
 	if is_cleansed or _untouchable:  # (Night Mare lingering at the Heartwood: nothing touches it)
@@ -1824,7 +1829,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		if world:
 			Fx.crit(global_position, world)  # The crit_flare glint (drawn by the effects player)
 	var family := enemy_data.get_soothe_multiplier(line, is_area)
-	if line == "water" and statuses.has(EnemyStatuses.DAMP):
+	if line == "water" and statuses.has(EnemyStatuses.DAMP) and _soaked_boosts_water():
 		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
 		family *= 1.0 + statuses.soaked_bonus(EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP)))  # × the applier's Potency, capped
 	var taken := statuses.get_damage_taken_multiplier()

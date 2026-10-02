@@ -7,6 +7,7 @@ script = ExtResource("1_card")
 id = "wildfire_spores"
 display_name = "Wildfire Spores"
 description = "{combo:ignite} spreads 2 {spored} stacks, within 1.5 cells."
+cost_description = "The burning nightmare loses its own {spored}."
 rarity = 1
 kind = 3
 tags = Array[String](["spore", "storm", "reaction"])

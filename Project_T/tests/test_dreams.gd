@@ -268,7 +268,7 @@ func _test_new_cards(main: Node) -> void:
 	_check(not cozy[0].active and "diagonals included" in cozy[0].reason, "…off-reason: %s" % cozy[0].reason)
 	dreams._bend_cells = bends
 
-	# Entwined: guaranteed in the next offer once the ingredients come together, then drawn normally
+	# Entwined: drawn at normal odds once the ingredients come together (no guaranteed slot)
 	_reset_dreams(main)
 	dreams.unlocked["firefly_jar"] = true
 	dreams.unlocked["dewdrop"] = true
@@ -276,12 +276,12 @@ func _test_new_cards(main: Node) -> void:
 	_check(not dreams.is_eligible(soil), "Conductive Soil needs Stormcap + Rain Lily")
 	dreams.take(_card(dreams, "dream_stormcap"))
 	dreams.take(_card(dreams, "dream_rain_lily"))
-	_check(dreams.make_offer(10).has(soil), "Entwined: Conductive Soil guaranteed once both are owned")
+	_check(dreams.is_eligible(soil), "Entwined: Conductive Soil offered at normal odds once both are owned (no guaranteed slot)")
 	var seen_again := 0
 	for i in 30:
 		if dreams.make_offer(10).has(soil):
 			seen_again += 1
-	_check(seen_again < 30, "Entwined: after one pass it's drawn normally (%d/30)" % seen_again)
+	_check(seen_again < 30, "Entwined: drawn normally, not every offer (%d/30)" % seen_again)
 
 	# Bittersweet: kept out until enabled, act 2+, at most one per offer, a real cost
 	_reset_dreams(main)
@@ -512,12 +512,16 @@ func _test_meta_hooks(main: Node) -> void:
 	dreams.unlocked.erase("mistveil")
 	_check(not dreams.is_eligible(bloom), "Chain Bloom needs Mistveil too")
 	dreams.unlocked["mistveil"] = true
-	_check(dreams.make_offer(10).has(bloom), "Chain Bloom is guaranteed once Puffball and Mistveil are owned")
+	# No guaranteed slot (dream_design.md "Combo cards are choices, not musts"): eligible, drawn at normal odds
+	var bloom_offers := 0
+	for i in 30:
+		if dreams.make_offer(10).has(bloom):
+			bloom_offers += 1
+	_check(dreams.is_eligible(bloom) and bloom_offers < 30, "Chain Bloom is offered at normal odds once Puffball and Mistveil are owned (%d of 30 offers)" % bloom_offers)
 	dreams.take(bloom)
 	_check(dreams.has_rule(&"chain_bloom"), "taking it switches on the chain_bloom rule")
 	dreams.stacks.erase("chain_bloom")
 	dreams.grove_cards.clear()
-	dreams._entwined_offered.clear()
 	dreams._offer_drift = 0
 	dreams._owed_families.clear()
 	dreams._declined_families.clear()
@@ -863,13 +867,17 @@ func _test_stray_dream(main: Node) -> void:
 		soft_picks += 1 if dreams._weighted_pick([soft, plain], true) == soft else 0
 	_check(build_picks > 300 and build_picks < 500, "Stray: build cards ×0.25 (%d / 2000)" % build_picks)
 	_check(soft_picks > 900 and soft_picks < 1100, "Stray: soft Needs ignored (%d / 2000)" % soft_picks)
-	# Entwined due: Entwined + Stray + one normal (Storm Grid's Conductive Soil keeps its slot)
+	# No Entwined slot any more (dream_design.md "Combo cards are choices, not musts"): an offer with Conductive Soil
+	# eligible is still Stray + normal cards, Soil not forced first
 	_reset_dreams(main)
 	dreams.unlocked = {"sprout": true, "thornwall": true, "stormcap": true, "rain_lily": true}
-	offer = dreams.make_offer(15)
 	var soil := _card(dreams, "conductive_soil")
-	_check(offer.size() == 3 and offer[0] == soil and dreams.current_stray == offer[1],
-		"Entwined due: Entwined + Stray + one normal")
+	var soil_first := 0
+	for i in 20:
+		offer = dreams.make_offer(15)
+		if offer[0] == soil:
+			soil_first += 1
+	_check(offer.size() == 3 and soil_first < 20, "Entwined isn't forced into the offer (%d of 20 led by it)" % soil_first)
 
 	# The measurement: Sporeling + Firefly Jar, 10 attackers, 400 offers per case.
 	var planted: Array[Tower] = []
@@ -1323,7 +1331,6 @@ func _reset_dreams(main: Node) -> void:
 	dreams._dreams_without_rare = 0
 	dreams._rare_dreams_left = 0
 	dreams._extra_cards_next = 0
-	dreams._entwined_offered.clear()
 	dreams._offer_drift = 0
 	dreams._owed_families.clear()
 	dreams._declined_families.clear()
@@ -1339,7 +1346,6 @@ func _reset_dreams_quiet(dreams: DreamState) -> void:
 	dreams._dreams_without_rare = 0
 	dreams._rare_dreams_left = 0
 	dreams._extra_cards_next = 0
-	dreams._entwined_offered.clear()
 	dreams._offer_drift = 0
 	dreams._owed_families.clear()
 	dreams._declined_families.clear()
