@@ -641,6 +641,20 @@ the bot never opened with Bellflower or Dewdrop. Kill profile: most nightmares d
 route in every block; the bot's Dew sits evenly over 0.1–0.9. Next: each starting family forced (10
 seeds) on the Chime Stone / linear act 2 build.
 
+## Human run 9 (2026-10-01, build 18d296 = e3cf8f41: **before** 3faea358, Chime Stone 35, old act 2)
+
+**Lost at drift 50 to the Huntsman's bite** (6, the last leaves), 15 min, 1 Grove node. Bellflower first,
+Firefly Jar at 25; Chime Stone 38% + Thunderhead 36% of damage; ranks 1,925 Dew. Act 1 closest
+0.12–0.28, Stag 31 s; act 2 leaks from 33 (2), 44, 47, 49; all 15 leaves in act 2. **On target**, same
+shape as run 8; no change beyond 3faea358.
+
+**First human route profile:** almost every kill is in the **first 0.3 of the route**, and the Dew sits
+at 0.0–0.3 (a second cluster at 0.5–0.7 from block 7), **nothing in 0.8–1.0, Heartwood share 0%**. The
+bot is the opposite (kills at 0.3–0.4 median, Dew even over 0.1–0.9, a Heartwood cover). The human
+plays a front-loaded kill zone with no second line, so once act 2's late drifts break the entrance
+nothing behind it catches them, and the act 2 boss bites. A playstyle read, not a number change; worth
+telling the user, and worth a bot style (`--style=front`) if bot and human should compare.
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
