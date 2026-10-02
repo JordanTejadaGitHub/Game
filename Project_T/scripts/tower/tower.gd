@@ -539,7 +539,8 @@ func _compute_damage() -> float:
 		* _dream_bonus(&"soothe") \
 		* (1.0 + (_kin.damage_bonus(self) if is_instance_valid(_kin) else 0.0)) \
 		* get_wall_multiplier() * (1.0 + _chorus) \
-		* (1.0 + (GroveRules.hummingheart(self, get_attacks_per_second()) if _dream_state and _has_rule(&"hummingheart") else 0.0))
+		* (1.0 + (GroveRules.hummingheart(self, get_attacks_per_second()) if _dream_state and _has_rule(&"hummingheart") else 0.0)) \
+		* (1.0 + _gift_bonus(&"damage"))  # Heartwood's Gift Spring: water Wardens beside it
 	# (Kindred / Whole Tree, Kinship cards; Bramble Oath; Lullaby Bell's Chorus; Hummingheart: bonus speed as damage)
 
 # Withering Oak: the Warden withers for `seconds` (grey, no attacks), then comes back unharmed.
@@ -572,7 +573,7 @@ func _compute_attacks_per_second() -> float:
 	var omen := _omens.get_warden_speed_multiplier() if _omens and _omens.has_method("get_warden_speed_multiplier") else 1.0  # Wilting
 	if _big_family:
 		speed += DreamState.BIG_FAMILY_SPEED * _rule_power(&"big_family")  # Big Family: a Sprout near a Kinship pair
-	var bonus := speed * dreams * (1.0 + _aura_speed) * omen
+	var bonus := speed * dreams * (1.0 + _aura_speed) * omen * (1.0 + _gift_bonus(&"speed"))  # Gift: Bell Stone
 	if _dream_state and _has_rule(&"whirlwind_heart"):
 		bonus = GroveRules.whirlwind(self, bonus)  # Whirlwind Heart: the bonus part counts double
 	return attack_data.attacks_per_second * bonus * dim_multiplier \
@@ -608,7 +609,7 @@ func _stats_fresh() -> bool:
 	var key := [attack_data, rank, focus, _aura_range, _aura_damage, _aura_speed, _damage_share, _aura_crit, dim_multiplier, _big_family,
 		_dream_state.board_version if _dream_state else 0, _dream_state.stacks.size() if _dream_state else 0,
 		_kin.version if is_instance_valid(_kin) else 0,  # Pairs / families changed (was a pairs lookup and a dictionary hash per call)
-		_chorus,
+		_chorus, _gift_version(),
 		_omens.active if _omens else null]
 	if key != _stats_key or _anim_time > _stats_until:
 		_stats_key = key
@@ -617,6 +618,24 @@ func _stats_fresh() -> bool:
 		return false
 	return true
 
+# Heartwood's Gifts (GiftGround): Spring (&"damage"), Bell Stone (&"speed"), Moonwell (&"range") for this Warden.
+func _gift_bonus(stat: StringName) -> float:
+	var gifts := GiftGround.active_for(self)
+	if gifts == null:
+		return 0.0
+	match stat:
+		&"damage":
+			return gifts.damage_bonus(self)
+		&"speed":
+			return gifts.speed_bonus(self)
+		&"range":
+			return gifts.range_bonus(self)
+	return 0.0
+
+func _gift_version() -> int:
+	var gifts := GiftGround.active_for(self)
+	return gifts.get_version() if gifts else 0
+
 func _compute_range_cells() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
 	var reach := RANK_RANGE * _plain_ranks() + FOCUS_REACH * choice_count(Focus.REACH)  # Nurture v3
@@ -624,7 +643,7 @@ func _compute_range_cells() -> float:
 		reach = 0.0  # Its ranks scale the aura instead
 	if _dream_state and _dream_state.has_method("get_tower_range_bonus"):
 		reach += _dream_bonus(&"range")  # Solitude
-	var total := get_range_for(attack_data, _dream_state) + _aura_range + reach
+	var total := get_range_for(attack_data, _dream_state) + _aura_range + reach + _gift_bonus(&"range")  # Gift: Moonwell
 	if tower_data.get_id() == "honeysuckle" and _rule_stacks(&"sweet_scent") > 0:
 		total = maxf(total, DreamState.SWEET_SCENT_TILES * _rule_power(&"sweet_scent"))  # Sweet Scent
 	if tower_data.line == "song" and attack_data.attack_kind == TowerData.AttackKind.PULSE:
@@ -1876,6 +1895,16 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		if duration <= 0.0:
 			duration = EnemyStatuses.DEFAULT_DURATION[status]
 		duration *= deep  # Its strength side is Potency (get_potency)
+	var gifts := GiftGround.active_for(self)  # Heartwood's Gifts: Spring (Soaked lasts longer near it), Mushroom Ring (Poisoned cap)
+	if gifts:
+		if status == EnemyStatuses.DAMP:
+			var extra := gifts.soak_extra(enemy.global_position)
+			if extra > 0.0:
+				duration = (duration if duration > 0.0 else EnemyStatuses.DEFAULT_DURATION[status]) + extra
+		elif status == EnemyStatuses.SPORED:
+			var more := gifts.spored_cap_bonus(self)
+			if more > 0:
+				max_stacks = (max_stacks if max_stacks > 0 else EnemyStatuses.DEFAULT_MAX_STACKS[status]) + more  # From the base: the stored cap would compound
 	var at: Vector2 = enemy.global_position
 	if status == EnemyStatuses.DROWSY and tower_data.line == "wall":
 		stacks = _wall_drowsy_room(enemy, stacks)  # Walls slow, but can't put a nightmare to sleep alone

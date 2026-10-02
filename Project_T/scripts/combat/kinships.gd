@@ -352,7 +352,21 @@ func refresh() -> void:
 				if not memory.is_empty() and not memory.standing.has(kin.get_instance_id()):
 					ages[pair.key] = maxi(ages[pair.key], memory.age)
 					_remembered.erase(tower.get_instance_id())
+			# Memory Seed (Heartwood's Gift): a replanted Warden bonds with an old partner at the old age.
+			for side in [[pair.a, pair.b], [pair.b, pair.a]]:
+				var seeded: Dictionary = _inherited.get(side[0].get_instance_id(), {})
+				if seeded.has(side[1].get_instance_id()):
+					ages[pair.key] = maxi(ages[pair.key], int(seeded[side[1].get_instance_id()]))
 			_on_formed(pair)
+	# Bonds that just ended, by Warden (Memory Seed reads them once the sold Warden has left the tree).
+	for old in pairs:
+		if not keys.has(old.key) and is_instance_valid(old.a) and is_instance_valid(old.b):
+			for side in [[old.a, old.b], [old.b, old.a]]:
+				var ended: Dictionary = _ended_bonds.get(side[0].get_instance_id(), {})
+				ended[side[1].get_instance_id()] = int(ages.get(old.key, 0))
+				_ended_bonds[side[0].get_instance_id()] = ended
+	if _ended_bonds.size() > ENDED_BONDS_KEPT:
+		_ended_bonds.erase(_ended_bonds.keys()[0])
 	for key in ages.keys():
 		if not keys.has(key):
 			ages.erase(key)
@@ -426,11 +440,54 @@ func get_stage_drifts() -> Array[int]:
 		result.append(maxi(STAGE_DRIFTS[i] - cut, 1))
 	return result
 
-# Old Friends: new bonds start at Blooming (II: Old Kin), counting on from there.
+# Old Friends: new bonds start at Blooming (II: Old Kin), counting on from there. Heartwood's Gift Old Kin
+# (GiftGround): one stage up on top, for its act.
 func _start_age() -> int:
-	if not _has(&"old_friends"):
-		return 0
-	return get_stage_drifts()[2 if _level(&"old_friends") > 0 else 1]
+	var stage := 0
+	if _has(&"old_friends"):
+		stage = 2 if _level(&"old_friends") > 0 else 1
+	var gifts := GiftGround.active_for(self)
+	if gifts:
+		stage += gifts.kin_start_stages()
+	var thresholds := get_stage_drifts()
+	return thresholds[mini(stage, thresholds.size() - 1)]
+
+# Old Kin (Heartwood's Gift): the Kinship `key` jumps a stage now (announced like any stage-up).
+func raise_stage(key: String) -> bool:
+	for pair in pairs:
+		if pair.key != key:
+			continue
+		var thresholds := get_stage_drifts()
+		var before := get_stage(pair)
+		if before >= thresholds.size() - 1:
+			return false  # Already at its last stage
+		ages[key] = maxi(int(ages.get(key, 0)), thresholds[before + 1])
+		version += 1
+		_queue(["grew", pair, before + 1])
+		return true
+	return false
+
+# Memory Seed (Heartwood's Gift): `tower`, replanted, bonds again with its old partners at their old ages
+# ({partner instance id: bond age}), used when those pairs form (refresh).
+var _inherited := {}  # Tower instance id -> {partner instance id: age}
+
+const ENDED_BONDS_KEPT := 64
+var _ended_bonds := {}  # Warden instance id -> {partner instance id: age} of bonds that ended
+
+# The bonds `tower` had when they last ended ({partner instance id: age}), or {}.
+func ended_bonds(tower: Tower) -> Dictionary:
+	return _ended_bonds.get(tower.get_instance_id(), {})
+
+func inherit_ages(tower: Tower, partners: Dictionary) -> void:
+	if not partners.is_empty():
+		_inherited[tower.get_instance_id()] = partners.duplicate()
+	refresh()
+	# A bond that already formed as it was planted takes the old age now.
+	for pair in pairs:
+		for side in [[pair.a, pair.b], [pair.b, pair.a]]:
+			if side[0] == tower and partners.has(side[1].get_instance_id()):
+				ages[pair.key] = maxi(int(ages.get(pair.key, 0)), int(partners[side[1].get_instance_id()]))
+				version += 1
 
 # Kinships on the map (card prerequisites at offer time).
 func count() -> int:
