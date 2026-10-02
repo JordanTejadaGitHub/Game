@@ -694,6 +694,15 @@ Heartwood and **14 leaked**; all 15 leaves went in drifts 17–18 (reward: 4 See
 unspent. **Second Path is offered from drift 26, not 15** (act 2+, like Tramplers / Burrowers): an act 1
 maze is a few walls deep and can't absorb losing its longest one (in 7ee4817a). Curve: no change.
 
+## Human run 11 (2026-10-01, build 3d47ff = b84f3e75+)
+
+**Lost at drift 30**, Sporeling → Dewdrop, 1 Grove node. Act 1 calm to 11 (≤ 0.24), leaks at 12 (5
+leaves) and 18–20 (3); Stag 42 s. Act 2 26–28 at 0.23–0.35, then **Leaf Fall** (taken at the drift 25
+rest with 8 leaves): 3 leaks at 29 cost all 8. Omens 4 faced, 0 Clear Skies. Front-loaded again: Dew and
+kills at 0.0–0.3, Heartwood share 0%. Driftspore 50%, Puffball 28%; Quickened Sap credited +15.6k.
+User on Omens with a hurt Heartwood: **keep as is** (Clear Skies is the choice; losing to an Omen is
+the gamble). No change.
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
