@@ -80,9 +80,10 @@ func _run() -> void:
 	hints.refresh()
 	_check(hints.spotlight == null, "once per profile")
 	# The Nurture pulse: the first time a rank is affordable on a selected Warden.
-	if lit != spore:
-		seller.set_selection([spore])
-		await process_frame
+	seller.set_selection([sprout])  # Whichever the spotlight was, the Sporeling is then selected fresh
+	await process_frame
+	seller.set_selection([spore])
+	await process_frame
 	_check(hints._seen.has("nurture"), "a selected Warden with an affordable rank: the Nurture pulse (once)")
 
 	# The setting.

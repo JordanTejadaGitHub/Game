@@ -8,12 +8,12 @@ class_name GrowHints
 #   with the whisper "That Sporeling could grow. Click it."; selecting it pulses the panel's Grow buttons once.
 # - The first time a rank is affordable on a selected Warden (once per profile), the Nurture button pulses once.
 # - Drift 15 with nothing grown or ranked this run: "Your Wardens can become much more than this." (a whisper).
-# World node made by the HUD; polls only at rests (POLL_EVERY), draws nothing during drifts.
+# World node made by the HUD; recounts only at rests and only when something changed (Dew: plant, sell, grow, rank;
+# a rest; unlocks; cards), draws nothing during drifts (test_perf_stress: polling every Warden 4×/s cost frames).
 
 const SETTING := "growth_hints"
 const PROFILE_KEY := "grow_hints_seen"  # ["spotlight", "nurture"]: once per profile
 const REMIND_DRIFT := 15
-const POLL_EVERY := 0.25
 const BASE := Vector2(0, 22)  # A Warden's base from its cell centre
 const MARK_OFFSET := 18.0
 
@@ -26,7 +26,7 @@ var whispers: Node
 var panel: Node
 var marks: Array = []  # [{tower, grow: bool, rank: bool}] at this rest
 var spotlight: Tower = null  # The Warden the first grow hint points at
-var _poll := 0.0
+var _dirty := true  # Something changed since the last count
 var _time := 0.0
 var _seen: Array = []
 
@@ -50,6 +50,12 @@ func _ready() -> void:
 		marks.clear()
 		queue_redraw())
 	drift_director.drift_started.connect(_on_drift_started)
+	drift_director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _perfect: bool) -> void: _mark_dirty())
+	run_state.dew_changed.connect(_mark_dirty.unbind(1))  # Plant, sell, grow and rank all move Dew
+	dream_state.unlocks_changed.connect(_mark_dirty)
+	dream_state.card_taken.connect(_mark_dirty.unbind(1))
+	if tower_container != null:
+		tower_container.child_exiting_tree.connect(_mark_dirty.unbind(1))
 	if tower_seller != null:
 		tower_seller.selection_changed.connect(_on_selection_changed)
 
@@ -59,6 +65,7 @@ static func enabled() -> bool:
 func _process(delta: float) -> void:
 	var resting := drift_director.is_resting() and run_state != null and not run_state.is_over
 	if not resting:
+		_dirty = true  # Recount when the next rest comes
 		if not marks.is_empty() or spotlight != null:
 			marks.clear()
 			spotlight = null
@@ -67,11 +74,12 @@ func _process(delta: float) -> void:
 	_time += delta
 	if spotlight != null:
 		queue_redraw()  # The shimmer
-	_poll -= delta
-	if _poll > 0.0:
-		return
-	_poll = POLL_EVERY
-	refresh()
+	if _dirty:
+		_dirty = false
+		refresh()
+
+func _mark_dirty() -> void:
+	_dirty = true
 
 # What every Warden can do with the Dew there is now; starts the spotlight the first time one can grow.
 func refresh() -> void:
