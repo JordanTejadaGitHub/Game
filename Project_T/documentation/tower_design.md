@@ -205,8 +205,8 @@ sleep, then make sleep dangerous. Owns **Drowsy**.
 | A+ | Lullaby Bell | bigger pulse that also applies Drowsy | Drowsy | Static, Held |
 | B | Dreamcatcher | hangs a dreamcatcher over the path: **sleeping or max-Drowsy nightmares in range are Caught**: **their statuses stop wearing off** while Caught (Spored keeps ticking, Static doesn't decay, Damp / Marked / Held timers pause). *Reworked 2026-09-29 (overlap review): it was +25–60% damage taken, which duplicated Marked, and measured at 1.5% of damage.* | — | Drowsy, sleep, any status |
 | B+ | Great Dreamcatcher | a bigger range, and Caught statuses also tick **+25%**; sleep in its range lasts 1 s longer; Caught nightmares that are dispelled drop **Dreamlight shards** | — | Drowsy, sleep |
-| Hidden | Echo Hollow | a hollow log that **echoes Reactions**: a Reaction nearby repeats 1 s later at 50% | — | Reactions |
-| Hidden+ | Whispering Hollow | 75%, bigger radius; **echoes count as chain links** | — | Reactions, chains |
+| Hidden | Echo Hollow | a hollow log that **echoes Reactions**: a Reaction nearby repeats 1 s later at **75%** (echo share, final per Balancing Discussion) **on the same nightmare**, wherever it has walked | — | Reactions |
+| Hidden+ | Whispering Hollow | echoes at **100%** (final per Balancing Discussion), bigger radius, a stronger pulse of its own; **echoes count as chain links** | — | Reactions, chains |
 
 **Acorn line**
 
@@ -280,6 +280,252 @@ take 1 cell and can't evolve.
 | The Moth Queen | **The Moon Moth** | reveals every Lurker on the map; Wardens within 3 cells +1 range; long-range shots that Mark |
 
 The Hollow Oak ends the run, so it has no Memory Warden (its memory is the true ending).
+
+## Branch expansion: 5 branches, 2 per run (APPROVED 2026-10-02, Spire branch first)
+
+> **APPROVED by the user (2026-10-02), all of it**, plus the Dreamlight call-back below. Built
+> **Phase 1 first, on `experiment/spire-difficulty`** (checkout `D:\Projects\Game_spire`), **not
+> main**; Main Merger merges main into that branch. **Phase 3** (the Nestling + Whirligig merge)
+> waits until Phase 1 plays well. Design hub task: stop players forcing the same build every run.
+> **Revised the same day** (user feedback): the offer is **2 of 5** (was 3), a stricter coverage
+> check, and a family audit: **Nestling and Whirligig merge into one sky family** (9 → 8 families).
+
+**The idea:** each family has **5 regular branches + 1 hidden** (today 2 + 1). Each run the
+Remember screen offers **2 of the 5** per family, plus the hidden one if the Grove has it. Builds
+stay possible, never guaranteed, like Slay the Spire card rewards or Hades boons.
+
+### Family audit: are the families distinct?
+
+Checked on role, owned status, attack shapes and their 5 branches.
+
+| Family | One-line role | Owns | Attack shapes | Verdict |
+|---|---|---|---|---|
+| **Sporeling** | damage over time | Poisoned | puffs, clouds, traps, trails, spawned sprites | distinct |
+| **Dewdrop** | water, the conductor | Soaked | splash, fog, ice, rain zone, whirlpool, jet | distinct |
+| **Firefly Jar** | light: lightning and marking | Charged, Exposed | chain, long-range marks, beam, fence, firework | distinct |
+| **Bellflower** | song and sleep | Drowsy | pulses, catch, echo, toll, silence, cone | distinct |
+| **Pebbling** | heavy hits (the payoff family) | — | single heavy hit, sniper, mortar, slam | distinct |
+| **Rootling** | control | Rooted | pull, hold, light, grounding, goal guard | distinct |
+| **Acorn** | support and economy | — | auras, catchers, copy, growing Sprouts, wards | distinct |
+| **Nestling** | birds: hunters that pick targets | — | swoops, multi-hit | **merge** with Whirligig |
+| **Whirligig** | wind: spreads statuses, shapes the maze | copies | spread, blades, boomerang | **merge** with Nestling |
+
+- **Rootling and Acorn stay separate.** They share a "tree" look but not a job: Rootling *controls
+  nightmares* (Rooted, pulls, grounding), Acorn *boosts Wardens and the economy* and barely
+  attacks. Merging them would break rule 1 (one role per family) and make a family that's half
+  control, half support.
+- **Nestling and Whirligig merge.** Both are air-flavoured, both are full-game families, and
+  Whirligig's new branches were a grab bag of "wind things" (a range aura, a kite, a scatter). The
+  six branches they already have between them fill a 5 + 1 family **with no new branch art**. The
+  merged family's job: **the sky carries the fight**, with birds that hunt and wind that spreads.
+
+### The merged sky family (Nestling + Whirligig → **Nestling**)
+
+| Slot | Branch → final (all already built) | Job | Was |
+|---|---|---|---|
+| A | **Wren's Nest → Starling Murmuration** | hunt the fastest (Phantoms, sprinting Hounds) | Nestling A |
+| B | **Magpie Perch → Magpie's Hoard** | thief: strip nightmare buffs | Nestling B |
+| C | **Gust → Zephyr** | spread statuses (the amplifier) | Whirligig A |
+| D | **Pinwheel → Windmill** | blades on corners and hairpin bends | Whirligig B |
+| E | **Samara → Autumn Gale** | boomerang down straight corridors | Whirligig hidden |
+| Hidden | **Hummingbird Bower → Jewelwing Court** | multi-hit on-hit engine | Nestling hidden |
+
+- **Base:** the **Nestling** (a nest the wind catches). The Whirligig base is **parked** (art and
+  data kept, like the Memory Wardens).
+- **Ascended:** **Dawnwing**, which also takes The Whirlwind's job: its patrol carries every status
+  it touches along its loop. The Whirlwind (id `tempest`) is parked.
+- **Line id:** `wing` (the `wind` id folds into it). Enemy design needs to fold the `wind`
+  resist/weak entries into `wing` and re-check the tally (Enemy Design / Enemy Code).
+- **Kinships:** the four built named pairs all stay, since they're now inside one family: Flock
+  Together (Wren + Magpie), Jewel Thieves (Hummingbird + Magpie), Dust Devil (Gust + Pinwheel),
+  Tailwind (Samara + Gust). All other pairs are generic Kin.
+- **Cards:** `wing` and `wind` cards share the family tag; Samara's cards (94–99) move from its
+  hidden node to the family node; Hummingbird's on-hit cards stay with the hidden node.
+- **Grove:** the two family nodes become one family node; the Whirligig hidden node goes (Samara is
+  now regular); the Ascension nodes become one. No refunds (pre-release).
+- **Codex:** one family page; the Whirligig base and The Whirlwind are hidden while parked.
+- **Roster: 9 → 8 families**, still 4 per run. Dropped from the earlier proposal (never built):
+  Owlet, Pelican, Woodpecker, Breeze Vane, Sky Kite, Scatterwind. Their counter jobs are covered
+  elsewhere (see the coverage check).
+
+### Rules for the new branches
+
+- **No two branches in a family overlap.** Each new branch has its own job: a different status use,
+  attack shape, support/economy role, or a counter for a nightmare type. It must also respect the
+  status jobs (only Drowsy slows, only Exposed raises damage taken, Held is Rootling's, pulling back
+  is Rootling's).
+- **Every new form passes the silhouette rule** (`art_direction.md`): a grey 32 px silhouette must
+  read apart from its previous form and from its family's other branches. Each one below has a
+  signature prop or stance for that.
+- **Each final is its branch bigger plus a signature twist**, as for the existing finals.
+- The existing branches keep their places (2 regular + hidden), so the 3 new ones per family are
+  branches **C, D, E**. Numbers come later, from Balancing Discussion.
+
+### The new branches (7 families; the sky family needs none)
+
+**Sporeling** (Poisoned)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Lichenling → Old Lichen** | anti-armour, anti-heal | projectile | Poisoned also **eats dread shell** each tick and blocks healing; at 8 stacks a Shellbound's shell cracks off at once | Shellbound, Weeper | a crust of flat lichen plates; a broad flat cap |
+| **Brood Cap → Hatchery** | a **spawner** | little spore-sprites walk **up** the path and burst on the first nightmare they touch (Poisoned + a small hit) | every 5th sprite is a big one that splits into 3 | **Lurkers** (sprites bump into hidden nightmares) | a cap with tiny sprites clinging to it |
+| **Inkcap → Deliquescent** | **trail** spreader for long mazes | projectile; a Poisoned nightmare leaves an ink trail that poisons walkers on it | a dispelled Poisoned nightmare melts into a 2-tile ink pool | long single-file drifts (Procession) | a tall, dripping, inky bell cap |
+
+**Dewdrop** (Soaked)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Cloudlet → Nimbus** | **anti-air** rain over a zone | a small cloud over a 3×3 area anywhere in range; rains on everything under it, flyers and Phantoms included | **Cloudburst:** every 10 s, refreshes Soaked on everything in range 4 | Phantoms, flyers, the Moth Queen | a cloud floating above the golem |
+| **Undercurrent → Maelstrom** | **gather** control | a whirlpool on a path tile: a nightmare reaching it **spins in the eddy for a moment** (a plain pause, not Held: **0.8 s**, Maelstrom **1.2 s**, set by Balancing Discussion; once per nightmare per whirlpool; bosses half), so the ones behind catch up and bunch. **Never moves anyone backward** (pulling back is Rootling's; changed 2026-10-02 after the first build pulled nightmares back toward the centre) | the whirlpool also Soaks everything in it | spread-out swarms; sets up area combos | a swirl of water around its feet |
+| **Jetreed → Torrent** | **piercing line** vs tanks | an instant jet through a line; more damage vs Soaked | **Flood:** the jet leaves a 3-tile wet trail | Husks, elites | a reed pipe held like a hose |
+
+**Firefly Jar** (Charged, Exposed)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Jarlink → Lightning Fence** | **maze geometry** | two Jarlinks within 4 cells join with an arc; nightmares crossing it take damage + Charged | the fence also hits Phantoms gliding through it | Phantoms, straight rushes | a jar on a tall pole with a wire coil |
+| **Prism Jar → Rainbow Prism** | **crit support** (the only crit aura) | aura: Wardens within 1.5 cells +10% crit chance | its own hits split into 3 coloured beams | tanks (via allies' crits) | a faceted crystal jar |
+| **Sparkler → Starburst** | **anti-swarm** burst | a firework bursting into 6 sparks over a crowd, each adding Charged | every 4th burst is a double | Whisper Swarm, Sobs, Creeps | a jar with a fizzing stick of sparks |
+
+**Bellflower** (Drowsy)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Silver Bell → Vesper Bell** | **long-range sleep** on one strong target | a single toll at range 6: fills Drowsy on the strongest nightmare (bosses to 3) | the toll echoes to the next-strongest | Husks, elites, bosses | a single tall bell on a bell frame |
+| **Hushbell → Silence** | **silence** | nightmares in range can't use abilities: the Watcher can't wake, Weepers can't mend, a silenced **Lantern Bearer's lantern goes dark so its Wraiths lose the way** (as when it's dispelled) while silenced. **Bosses:** their timed abilities run at **half speed** while silenced (a delay, never a stop; health-threshold abilities are unaffected; decided 2026-10-02) | its silence lingers 2 s after they leave | Watcher, Weeper, Procession, boss abilities | a bell muffled in moss, finger to lips |
+| **Thrum → Resonance** | a **cone** of sound | a sound wave in a cone in front; more damage vs Drowsy | the cone widens for each Drowsy nightmare in it | crowds in corridors | a horn-shaped flower facing forward |
+
+**Pebbling** (heavy hits)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Whetstone → Edgestone** | **tank killer** | damage grows +10% per hit on the same target (max +100%) | the bonus carries to the next target at half | Husks, bosses | a golem at a sharpening wheel |
+| **Quarry → Master Mason** | **builder** (maze economy) | at each rest, grows a free Thornwall on a cell you choose within 3 | **Keystone:** its walls can't be trampled or burrowed under | the Hollow Stag (trample), Gravecrawlers | a golem with a chisel and stacked blocks |
+| **Quaker → Earthshaker** | **interrupt** | slams the ground around itself every 3 s; nightmares hit lose their speed boosts (a sprinting Night Hound stops sprinting) | the slam cracks the path for 3 s (no new sprints there) | Night Hounds, charging bosses | a squat golem mid-stomp, fists down |
+
+**Rootling** (Rooted)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Groundroot → Earthbind** | **anti-air**: grounds flyers | roots drag flyers and Phantoms down onto the path; for 3 s they must walk the maze | grounded nightmares are Rooted 0.5 s when they land | Phantoms, flyers | roots reaching up like hands |
+| **Deeproot → Heartroot** | **goalkeeper** | any nightmare within 3 cells of the Heartwood is Rooted 1 s (once each) | the last-line hold also wakes the Heartwood: +1 leaf per 50 holds (max 2 per run) | leaks, fast finishers | a root coiled in a ring, close to the ground |
+| **Thorncoil → Crown of Thorns** | Rooted **payoff damage** | Rooted nightmares in range take thorn damage each second they're held | thorns spread to nightmares adjacent to a held one | anything held (pairs with Tangleroot) | a thorny crown on its head |
+
+**Acorn** (support, economy)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Seedbearer → Grove Keeper** | **grows Wardens** | every 3 drifts grows a free Sprout on an adjacent cell | its Sprouts arrive at rank II | — (maze growth) | a golem carrying a seed sack |
+| **Bark Shield → Ironbark** | **protection** | Wardens in range can't be withered, dimmed or trampled | protected Wardens also shrug off the first boss ability each drift | boss wither / dim / trample (Hollow Stag, Lamplighter) | thick bark armour plates |
+| **Dream Oak → Dreamroot** | **Dreamlight economy** | gains 1 Dreamlight shard per drift (10 shards = 1 Dreamlight; capped per run) | shards double on perfect blocks | — (more branches and finals per run) | a small oak with a glowing fruit |
+
+
+### Coverage with only 2 of 5 (the stricter check)
+
+With 4 families × 2 offered branches (+ hidden), a run sees about 8–12 branches, so no single
+family can promise an answer to everything. Two layers keep runs fair:
+
+1. **Every nightmare has a generic answer any build has** (enemy_design.md: never immune to
+   damage). Lurkers are revealed up close, so Wardens hugging the path see them; Phantoms are
+   stopped by any damage near the Heartwood; Shellbound shells break to big hits or many hits;
+   swarms fall to splash and pulses, which every family's base or branches have. A run with the
+   wrong offers is harder, never unwinnable.
+2. **Specialist answers are spread so a run usually has one,** and the draw makes sure of it:
+   - **A smart draw:** when a family is picked, its 2 branches are drawn at random **among the
+     pairs that add a counter tag the run's offers don't cover yet** (tags: *anti-air*, *detection*,
+     *anti-armour*, *anti-swarm*, *anti-tank*, *anti-support*, *boss abilities*). It's still random,
+     still seeded, and still never the same 2 as that family's last run; it just avoids a run with
+     no anti-air at all, for example. **Weighting** (2026-10-02, after the 50-seed probe): among the
+     eligible pairs it prefers the ones covering the **rarest tags still missing**, and **anti-tank
+     counts double** (every act boss is a tank check). Target: anti-tank in 80%+ of runs with the 4
+     starting families. Anti-armour may stay lower (Shellbound only arrive at drift 79).
+   - Every counter tag sits on **at least 3 branches across at least 2 families**:
+
+| Tag | Branches |
+|---|---|
+| anti-air (flyers, Phantoms) | Cloudlet (Dewdrop), Jarlink (Firefly), Groundroot (Rootling), Wren's Nest (Nestling), Standing Stone (Pebbling) |
+| detection (Lurkers) | Lanternmoth (Firefly), Brood Cap (Sporeling), Rootlight (Rootling, hidden) |
+| anti-armour (Shellbound) | Lichenling (Sporeling), Mossback / Whetstone (Pebbling), Magpie Perch (Nestling) |
+| anti-swarm | Sparkler (Firefly), Rain Lily (Dewdrop), Thrum (Bellflower), Pinwheel (Nestling), Chime Stone (Bellflower) |
+| anti-tank / boss | Whetstone (Pebbling), Jetreed (Dewdrop), Silver Bell (Bellflower), Prism Jar (Firefly; its crit aura is a tank answer), Standing Stone (Pebbling) |
+| anti-support (Watcher, Weeper) | Hushbell (Bellflower), Lichenling (Sporeling), Magpie Perch (Nestling) |
+| boss abilities | Bark Shield (Acorn), Hushbell (Bellflower), Quaker (Pebbling) |
+
+- **Remembered Path** (Rare card, +1 not-offered branch; named *Lucid Dream* in the proposal, renamed 2026-10-02 so it isn't confused with the Legendary *Lucid Dreaming*). **As built** (320b4969, Spire branch): taking it opens Remember with **one free call**, which skips both the price and the once-per-family limit; it's only offered while some family has a branch not in this dream. Design: with only 2 of 5 offered it's a real find,
+  since it raises a family's choices by half. It **shows you the 3 branches not offered** and you
+  pick one, so it can rescue a run that's missing a counter. A Grove perk could add one per run
+  (Meta Game Discussion's call). It's the **free, lucky** version of the call-back below.
+  **Rarity: Rare** (Balancing Discussion).
+- **The Dreamlight call-back** (approved 2026-10-02): on the Remember screen, a "not in this
+  dream" branch can be **called into the run for Dreamlight**: **3 Dreamlight** (set by Balancing
+  Discussion: a whole act's boss income, so steering costs), **once per family per run**. The called branch then works like an offered
+  one (unlocking it is part of the call; its final still costs 2). This makes a missing counter a
+  choice you can pay for, not just luck.
+
+### Kinships with 6 branches: a rule, not a 15-pair table
+
+- **Any two different branches of one family within 2 cells bond** with a **generic Kinship**
+  ("Kin"). Both Wardens get **+10% damage**, and the pair earns **Harmony strikes** as today. The
+  bond still grows (Sapling, Blooming, Old Kin) and shows the vine.
+- **Named Kinships stay special:** the 18 built ones keep their "teach each other" traits (the
+  merged sky family keeps all four of its pairs). Add **1 new named pair per family** among the new
+  branches (7 more), chosen where the two jobs tell a story. Everything else is generic Kin.
+- **Phase 1's four named pairs** (each Warden learns one trait from the other, at the usual stage
+  shares):
+
+  | Family | Pair | Kinship | A learns from B | B learns from A |
+  |---|---|---|---|---|
+  | Sporeling | Lichenling + Brood Cap | **Crusted Brood** | 1 in 4 of its shots also hatches a sprite on the target | its sprites also eat dread shell |
+  | Dewdrop | Cloudlet + Undercurrent | **Eye of the Storm** | nightmares in its rain zone get a short eddy pause (0.3 s at full stage; not a pull, as built 1fb636f3) | its whirlpool is rained on (Soaks everything in it) |
+  | Firefly Jar | Jarlink + Sparkler | **Fireworks Fence** | a crossing of its fence sets off a small spark burst | a burst landing on a fence re-bursts once |
+  | Bellflower | Silver Bell + Hushbell | **Vespers** | its toll also silences its target for 2 s | nightmares it silences gain 1 Drowsy |
+- **Whole Tree** becomes **"3 different branches of one family on the map"**. With 2 offered,
+  that needs the hidden branch or *Remembered Path*: a real milestone of a run, not a given.
+- Kindred (2 branches: +10%) is unchanged, and now the common case.
+
+### The per-run offer on the Remember screen
+
+- **Numbers (Phase 1):** all set by Balancing Discussion in `spire_difficulty.md` **Phase 6** (f9d04da8, on
+  the Spire branch): the 12 branches (120 Dew) and 12 finals (300 Dew) with damage, rate, status and
+  twist numbers; generic Kin +10% each; named Kinship traits at about +20% of the pair's effect at full
+  stage; the Dreamlight budget unchanged. That file is the source of truth for them.
+- **Where it's built (Phase 1):** Tower Code (the 12 Wardens, generic Kin, Whole Tree, the named
+  pairs), Roguelite Code (the 2-of-5 offer and smart draw, the Remember UI with "not in this dream"
+  and the call-back, Remembered Path, card gating), Tower Assets (12 branches + 12 finals), Balancing
+  Discussion (all numbers, the call-back price and the Dreamlight budget).
+- **2 of the 5 regular branches** per family, drawn by the smart draw above at the family pick,
+  from the map seed (a resume gets the same), **never the same 2 as that family's last run**
+  (profile `last_branch_offer`).
+- **The hidden branch doesn't count:** if the Grove has planted it, it's always offered as a 3rd
+  lane. It's earned meta progress.
+- **The 3 not offered** show as **"not in this dream"**: faint misty silhouettes with no cost,
+  lower in the tree; the side panel says *"Not in this dream. The Heartwood may remember it next
+  time."* Their finals aren't shown.
+- **Cards follow the offer:** a card that needs a branch (e.g. Stormcap cards, Entwined *Conductive
+  Soil*) is only offered if that branch is offered this run. Storm Grid becomes a run you *find*.
+- Families with fewer than 5 regular branches (during phasing) offer 2 of what they have.
+- **Dreamlight:** fewer branches on offer means Dreamlight goes further per family. Balancing
+  Discussion should re-check the budget (branch 1, final 2) against 2 offered.
+
+### The demo
+
+**Keep today's 2 branches per family, no 2-of-5** (and no hidden branches, as now). The demo is
+short, players should learn the core branches first, it needs no new art, and "different branches
+every run" becomes a clear full-game selling point. The demo's 4 starting families (Sporeling,
+Firefly Jar, Dewdrop, Bellflower) stay exactly as they are.
+
+### Phasing (art is the cost)
+
+With the merge, the sky family needs **no new branches**. That leaves **21 new branches + 21
+finals** (~42 sprites plus attack sheets and effects), down from 27 + 27.
+
+1. **Phase 1: the 4 starting families** (Sporeling, Dewdrop, Firefly Jar, Bellflower): 12 branches,
+   12 finals, the 2-of-5 offer with the smart draw, generic Kin, Remembered Path.
+2. **Phase 2:** Pebbling, Rootling, Acorn (9 + 9).
+3. **Phase 3:** the Nestling + Whirligig merge (no new branch art: a parked base and Ascended,
+   Dawnwing's carry twist, the resistance fold).
+
+Each phase is playable on its own: un-expanded families offer 2 of what they have.
 
 ## Evolution rules
 

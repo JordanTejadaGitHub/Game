@@ -43,6 +43,7 @@ var _paused_it := false
 var _panel := PanelContainer.new()
 var _content := VBoxContainer.new()
 var _next := Button.new()
+var peek: ChoicePeek  # Minimise to look at the map; the Return pill mid-screen
 var _met := {}  # Kinds met before or introduced this run (no name plate for them)
 
 # Opens the card for `kinds` (in order), e.g. from a Coming strip portrait.
@@ -94,7 +95,19 @@ func _ready() -> void:
 	_next.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	UiStyle.primary(_next)
 	_next.pressed.connect(advance)
-	outer.add_child(_next)
+	# Peek at the map (pausing cards, user: "just put the placement in the middle for paused things like that"): the
+	# card goes, a solid "Return to …" pill waits mid-screen; the game stays paused.
+	peek = ChoicePeek.new(self, [shade, centre], "Return")
+	peek.place_back_centre()
+	peek.changed.connect(func(on: bool) -> void:
+		if on:
+			peek.back_button().text = return_text())
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons.add_theme_constant_override("separation", 12)
+	buttons.add_child(peek.make_peek_button())
+	buttons.add_child(_next)
+	outer.add_child(buttons)
 	for kind in HeartwoodMemory.load_data().get("nightmares_seen", []):
 		_met[kind] = true
 	if drift_director != null:
@@ -269,7 +282,15 @@ func advance() -> void:
 	else:
 		_show_next()
 
+# The minimised card's pill: "Return to the Phantom" for one, "Return (2)" with more waiting behind it.
+func return_text() -> String:
+	if not queue.is_empty():
+		return "Return (%d)" % (queue.size() + 1)
+	return "Return to %s" % (IconInfo.the_name(shown.display_name) if shown != null else "the card")
+
 func _show_next() -> void:
+	if peek != null:
+		peek.set_peeking(false)
 	shown = queue.pop_front()
 	_remember(shown)
 	for child in _content.get_children():

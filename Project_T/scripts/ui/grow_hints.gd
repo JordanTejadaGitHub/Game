@@ -37,6 +37,7 @@ var spotlight: Tower = null  # The Warden the first grow hint points at
 var _dirty := true  # Something changed since the last count
 var _time := 0.0
 var _seen: Array = []
+var _marks_layer := Node2D.new()  # The quiet marks (redrawn on refresh only)
 
 func _init(director: DriftDirector = null) -> void:
 	drift_director = director
@@ -44,6 +45,9 @@ func _init(director: DriftDirector = null) -> void:
 func _ready() -> void:
 	name = "GrowHints"
 	z_index = 5
+	_marks_layer.name = "Marks"
+	_marks_layer.draw.connect(_draw_marks)
+	add_child(_marks_layer)
 	process_mode = Node.PROCESS_MODE_ALWAYS  # A paused rest still shows them
 	run_state = drift_director.get_node_or_null("%RunState")
 	dream_state = drift_director.get_node_or_null("%DreamState")
@@ -56,7 +60,7 @@ func _ready() -> void:
 	drift_director.rest_ended.connect(func(_block: int) -> void:
 		spotlight = null
 		marks.clear()
-		queue_redraw())
+		_redraw())
 	drift_director.drift_started.connect(_on_drift_started)
 	drift_director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _perfect: bool) -> void: _mark_dirty())
 	run_state.dew_changed.connect(_mark_dirty.unbind(1))  # Plant, sell, grow and rank all move Dew
@@ -106,7 +110,7 @@ func _process(delta: float) -> void:
 		if not marks.is_empty() or spotlight != null:
 			marks.clear()
 			spotlight = null
-			queue_redraw()
+			_redraw()
 		return
 	_time += delta
 	if spotlight != null:
@@ -114,6 +118,11 @@ func _process(delta: float) -> void:
 	if _dirty:
 		_dirty = false
 		refresh()
+
+# The marks layer and the spotlight (the marks changed).
+func _redraw() -> void:
+	queue_redraw()
+	_marks_layer.queue_redraw()
 
 func _mark_dirty() -> void:
 	_dirty = true
@@ -140,7 +149,7 @@ func refresh() -> void:
 		_note("spotlight")
 		if whispers != null and whispers.has_method("whisper"):
 			whispers.whisper(&"grow", [spotlight.tower_data.display_name])
-	queue_redraw()
+	_redraw()
 
 # An unlocked form it can afford now (ranked Wardens pay the rank difference: Tower.get_grow_cost).
 func can_grow_now(tower: Tower) -> bool:
@@ -163,7 +172,7 @@ func _on_selection_changed(towers: Array[Tower]) -> void:
 	var tower: Tower = towers[0]
 	if tower == spotlight:
 		spotlight = null  # Found it: the Grow buttons take over
-		queue_redraw()
+		_redraw()
 		_pulse.call_deferred(&"grow")  # After the panel's refresh built them
 	elif not _seen.has("nurture") and tower.can_nurture() and run_state.can_afford(tower.get_nurture_cost()):
 		_note("nurture")
@@ -200,30 +209,53 @@ func _note(id: String) -> void:
 	memory[PROFILE_KEY] = _seen
 	HeartwoodMemory.save_data(memory)
 
-func _draw() -> void:
+# The quiet marks, on their own layer: redrawn only when the count changes (refresh), never per frame (the shimmer
+# redrew every mark each frame: test_perf_stress p50 +2.7 ms with a board of Wardens).
+func _draw_marks() -> void:
 	var show_marks := enabled()
 	for mark in marks:
 		var tower: Tower = mark.tower
-		if not is_instance_valid(tower) or (not show_marks and tower != spotlight):
+		if not is_instance_valid(tower) or not show_marks:
 			continue
-		var base := to_local(tower.global_position) + BASE
+		var base := _marks_layer.to_local(tower.global_position) + BASE
 		if mark.grow and tower != spotlight:
-			_arrow(base + Vector2(-MARK_OFFSET, 0), 5.0, MARK_ALPHA)
+			_bud(_marks_layer, base + Vector2(-MARK_OFFSET, 0), 5.0, MARK_ALPHA)
 		if mark.rank:
-			draw_circle(base + Vector2(MARK_OFFSET, 0), 4.0, Color(Palette.DREAD, MARK_ALPHA))
-			draw_circle(base + Vector2(MARK_OFFSET, 0), 2.5, Color(UiStyle.GOLD, MARK_ALPHA))
+			_dewdrop(_marks_layer, base + Vector2(MARK_OFFSET, 0), 4.0, MARK_ALPHA)
+
+# Only the first-time spotlight, which shimmers (redrawn each frame while it's up).
+func _draw() -> void:
 	if spotlight != null and is_instance_valid(spotlight):
 		var base := to_local(spotlight.global_position) + BASE
 		var still := bool(Fx.setting("reduced_motion", false))
 		var beat := 0.5 if still else 0.5 + 0.5 * sin(_time * 4.0)
 		draw_arc(base - Vector2(0, 14), 30.0 + 4.0 * beat, 0.0, TAU, 40, Color(UiStyle.GOLD, 0.35 + 0.4 * beat), 2.0, true)
-		_arrow(base + Vector2(0, -2 - 4.0 * beat), 9.0)
+		_bud(self, base + Vector2(0, -2 - 4.0 * beat), 9.0)
 
-# A gold "↑" with a dark rim (readable on grass and path).
-func _arrow(at: Vector2, size: float, alpha: float = 1.0) -> void:
-	var head := PackedVector2Array([at + Vector2(0, -size * 1.6), at + Vector2(size, -size * 0.4), at + Vector2(-size, -size * 0.4)])
-	var rim := PackedVector2Array([at + Vector2(0, -size * 1.6 - 2), at + Vector2(size + 2, -size * 0.4 + 1), at + Vector2(-size - 2, -size * 0.4 + 1)])
-	draw_colored_polygon(rim, Color(Palette.DREAD, alpha))
-	draw_line(at + Vector2(0, -size * 0.4), at + Vector2(0, size * 0.6), Color(Palette.DREAD, alpha), size * 0.7 + 2)
-	draw_colored_polygon(head, Color(UiStyle.GOLD, alpha))
-	draw_line(at + Vector2(0, -size * 0.4), at + Vector2(0, size * 0.6), Color(UiStyle.GOLD, alpha), size * 0.7)
+# Until UI Asset's art (can_grow bud, can_rank dewdrop, first_time bud with motes; user: the ↑ didn't fit the theme):
+# a small bud drawn in code: a stem, two leaves and a gold bud, dark-rimmed so it reads on grass and path.
+func _bud(canvas: CanvasItem, at: Vector2, size: float, alpha: float = 1.0) -> void:
+	var top := at + Vector2(0, -size * 1.4)
+	var rim := Color(Palette.DREAD, alpha)
+	canvas.draw_line(at, top, rim, size * 0.45 + 2.0)
+	canvas.draw_line(at, top, Color(Palette.LEAF, alpha), size * 0.45)
+	for side in [-1.0, 1.0]:
+		var base := at + Vector2(0, -size * 0.55)
+		var leaf := PackedVector2Array([base, base + Vector2(side * size * 0.9, -size * 0.35), base + Vector2(side * size * 0.5, size * 0.15)])
+		canvas.draw_colored_polygon(leaf, Color(Palette.SPRIG, alpha))
+	canvas.draw_circle(top, size * 0.6 + 1.5, rim)
+	canvas.draw_circle(top, size * 0.6, Color(UiStyle.GOLD, alpha))
+	canvas.draw_circle(top + Vector2(-size * 0.18, -size * 0.18), size * 0.2, Color(Palette.HEARTLIGHT, alpha * 0.8))
+
+# The next rank is affordable: a small dewdrop.
+func _dewdrop(canvas: CanvasItem, at: Vector2, size: float, alpha: float = 1.0) -> void:
+	var drop := PackedVector2Array([at + Vector2(0, -size * 1.6)])
+	for i in 9:
+		var angle := PI * (i / 8.0)
+		drop.append(at + Vector2(cos(angle) * size, sin(angle) * size * 0.9 - size * 0.1))
+	var rim := PackedVector2Array()
+	for point in drop:
+		rim.append(at + (point - at) * 1.3)
+	canvas.draw_colored_polygon(rim, Color(Palette.DREAD, alpha))
+	canvas.draw_colored_polygon(drop, Color(Palette.DEWLIGHT, alpha))
+	canvas.draw_circle(at + Vector2(-size * 0.3, -size * 0.2), size * 0.22, Color(Palette.HEARTLIGHT, alpha))

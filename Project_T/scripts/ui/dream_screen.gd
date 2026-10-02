@@ -30,6 +30,7 @@ var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice scree
 var _diagram: CardDiagram = null  # The hovered placement card's map picture (dream_design.md "Placement cards show a diagram")
 var _scene: CardScene = null  # The living mini-scene (pooled: one view, reused card to card)
 var _held_for_diagram := false  # A long-press showed the diagram: that release doesn't take the card
+var arm: ChoiceArm  # Cards ignore input for a moment as the screen appears (clicks meant for the map)
 const LONG_PRESS := 0.45
 
 func _ready() -> void:
@@ -70,6 +71,7 @@ func _ready() -> void:
 	box.add_child(skip_row)
 	peek = ChoicePeek.new(self, [dim, center], "Back to the Dream")
 	box.add_child(peek.make_peek_button())
+	arm = ChoiceArm.attach(self, _cards)
 
 	visible = false
 	dream_state.offer_ready.connect(_show_offer)
@@ -112,6 +114,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 			column.add_child(let_go)
 		_cards.add_child(column)
 	visible = true
+	arm.arm()  # Every new set of cards, rerolls too: a second click can't take a card it never saw
 
 func _make_card(card: UpgradeData) -> Button:
 	var button := Button.new()

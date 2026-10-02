@@ -2446,10 +2446,19 @@ func _on_reaction_nearby(id: StringName, enemy: Node2D, chain: int, towers: Arra
 			applier = t
 			break
 	var as_link := tower_data.echo_is_chain_link
+	# The echo follows the nightmare (tower_design.md 369de303): [that nightmare, where it was last seen].
+	# Dispelled (or gone) before the echo: it fires where it died, so it's never lost.
+	var mark := [weakref(enemy), spot]
+	if enemy.has_signal(&"cleansed"):
+		enemy.cleansed.connect(func(e: Node2D) -> void: mark[1] = e.global_position, CONNECT_ONE_SHOT)
 	# Bound, not a lambda: a lambda capturing this Warden errors if it's gone before the timer fires.
-	get_tree().create_timer(1.0, false).timeout.connect(_echo_now.bind(id, spot, share, applier, chain, as_link, depth + 1))
+	get_tree().create_timer(1.0, false).timeout.connect(_echo_now.bind(id, mark, share, applier, chain, as_link, depth + 1))
 
-func _echo_now(id: StringName, spot: Vector2, share: float, applier, chain: int, as_link: bool, depth: int) -> void:
+func _echo_now(id: StringName, mark: Array, share: float, applier, chain: int, as_link: bool, depth: int) -> void:
+	var target: Node2D = mark[0].get_ref()
+	var spot: Vector2 = mark[1]
+	if is_instance_valid(target):
+		spot = target.global_position  # Where it is now (a dispelled one stopped where it died)
 	Reactions.echo(id, spot, share, self, applier if is_instance_valid(applier) else null, chain, as_link, depth)
 
 
@@ -3085,9 +3094,11 @@ func _light() -> void:
 	for enemy in get_enemies_in_range():
 		hit(enemy, 1.0, true)
 
-# Sunpetal: a beam on one target that ramps up the longer it holds (faster on Drowsy or Held).
+# Sunpetal: a beam on one target that ramps up the longer it holds (faster on Drowsy or Held). It holds that
+# target until it's dispelled or leaves range (Balancing: First targeting switching front-runners kept
+# resetting the ramp, 0.11× its peers); only then does it pick a new one.
 func _update_beam(delta: float) -> void:
-	var target := find_target()
+	var target := _beam_target if _beam_holds() else find_target()
 	if target != _beam_target:
 		if target == null:
 			_stop_beam()  # Back to the idle sheet (it knows a beam was on only before the target is cleared)
@@ -3546,6 +3557,10 @@ func _target_score(enemy: Node2D, mode: TowerData.TargetMode) -> float:
 	return -enemy.get_remaining_distance()
 
 # Blighted enemies within attack range (and outside a sniper's minimum range).
+# The beam's current target is still there to hold: alive and in range (min range and flyers as targeting).
+func _beam_holds() -> bool:
+	return is_instance_valid(_beam_target) and not _beam_target.is_cleansed and get_enemies_in_range().has(_beam_target)
+
 func get_enemies_in_range() -> Array[Node2D]:
 	var range_squared := get_range_pixels() ** 2
 	# Skyward Gaze (card, rule skyward_gaze): flying nightmares count from further away.

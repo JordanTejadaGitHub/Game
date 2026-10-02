@@ -42,6 +42,9 @@ static var _display_applied := false  # The window size is set once at startup, 
 
 const RISKY := ["fullscreen", WINDOW_SIZE_SETTING, "ui_scale", VSYNC_SETTING]  # Apply asks to keep these
 const KEEP_TEXT := "Keep these settings? Reverting in %d s"
+# Fullscreen is borderless at the screen's own resolution (Godot never switches the monitor's mode), so the window size
+# only applies windowed: greyed with this tip while fullscreen (story chat 2026-10-02: "no silent no-op").
+const SIZE_FULLSCREEN_TIP := "Fullscreen uses your screen's resolution; switch to Windowed to choose a size."
 
 var tabs := TabContainer.new()
 var revert_seconds := 10.0  # The keep prompt's countdown (tests shorten it)
@@ -61,6 +64,7 @@ var _tab_keys := {}  # tab name -> keys on it
 var _building_tab := ""
 var _content: Control
 var _keep_label: Label
+var window_size_pick: OptionButton  # Greyed while fullscreen (SIZE_FULLSCREEN_TIP)
 var _revert_to := {}  # The risky keys' values before the Apply the keep prompt asks about
 var _revert_at := 0  # Ticks (msec) when the keep prompt reverts; 0 = not counting
 var _close_after_keep := false
@@ -93,7 +97,7 @@ func _ready() -> void:
 
 	var display := _tab("Display")
 	_toggle(display, "Fullscreen", "fullscreen")
-	_choice(display, "Window size", WINDOW_SIZE_SETTING,
+	window_size_pick = _choice(display, "Window size", WINDOW_SIZE_SETTING,
 		WINDOW_SIZES.map(func(s: Vector2i) -> String: return "%d × %d" % [s.x, s.y]), 0)
 	_toggle(display, "V-sync", VSYNC_SETTING, true)
 	# UI size: a share of the largest scale that fits this window (UiStyle.apply_ui_scale). Largest = as
@@ -137,18 +141,16 @@ func _ready() -> void:
 		_toggle(box, "Unlock all families: normal runs, every family in the picks (no Seeds banked)", MetaRun.ALL_FAMILIES_SETTING,
 			false, "As if the Memory Grove's Warden root were fully grown, for this and later runs while on.\nYour real Grove unlocks are not changed.")
 		_toggle(box, "Dream of Everything rewards · starlit card backs, +1 Dream reroll", MetaRun.ALL_DREAMS_SETTING,  # meta_design.md "Dev options"
-			false, "For testing: nothing is recorded and no Seeds are banked.").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			false, "For testing: nothing is recorded and no Seeds are banked.")
 		_toggle(box, "Secret 6th loadout slot", MetaRun.SIXTH_SLOT_SETTING,  # meta_design.md: the secret 6th loadout slot, for testing
-			false, "For testing: no milestone is recorded and no Seeds are banked.").autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			false, "For testing: no milestone is recorded and no Seeds are banked.")
 		# Demo mode (demo_scope.md): overrides game/demo in this build (-1 project setting, 0 full, 1 demo); applying a
 		# change goes back to the title.
 		var demo_row := HBoxContainer.new()
 		_dots[ResultsScreen.DEMO_MODE_SETTING] = _dot(demo_row)
 		var demo := CheckButton.new()
-		demo.text = "Demo mode (off = FULL GAME: Memory Grove, Blight Levels, Seeds spent from your real profile)"
-		demo.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		demo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		demo.tooltip_text = "Overrides the project's game/demo setting in this debug build only.\nExported builds always use the project setting. Applying a switch returns to the title screen."
+		demo.text = "Demo mode (off: the full game on your real profile)"  # Short: the switch sits inline, as on every tab
+		demo.tooltip_text = "Off = the FULL GAME: the Memory Grove, Blight Levels, and Seeds spent from your real profile.\nOverrides the project's game/demo setting in this debug build only; exported builds always use the project setting.\nApplying a switch returns to the title screen."
 		demo.focus_mode = Control.FOCUS_NONE
 		demo.toggled.connect(func(on: bool) -> void: _set_value(ResultsScreen.DEMO_MODE_SETTING, 1 if on else 0))
 		demo_row.add_child(demo)
@@ -369,7 +371,7 @@ func _dot(parent: Control) -> Label:
 	parent.add_child(dot)
 	return dot
 
-func _choice(box: VBoxContainer, text: String, key: String, options: Array, default: int = 1) -> void:
+func _choice(box: VBoxContainer, text: String, key: String, options: Array, default: int = 1) -> OptionButton:
 	var row := _label_row(text, key)
 	var pick := OptionButton.new()
 	for option in options:
@@ -379,6 +381,7 @@ func _choice(box: VBoxContainer, text: String, key: String, options: Array, defa
 	row.add_child(pick)
 	box.add_child(row)
 	_register(key, default, func() -> void: pick.selected = int(_value(key)))
+	return pick
 
 func _slider(box: VBoxContainer, text: String, key: String, min_value: float = 0.0,
 		max_value: float = 1.0, step: float = 0.05) -> void:
@@ -406,7 +409,6 @@ func _toggle(box: VBoxContainer, text: String, key: String, default: bool = fals
 	box.add_child(row)
 	_register(key, default, func() -> void: check.set_pressed_no_signal(bool(_value(key))))
 	return check
-
 # A dropdown of [name, number] presets for a number setting; the saved value selects the nearest one
 # (older saves can hold any number, e.g. from the old slider).
 func _choice_nearest(box: VBoxContainer, text: String, key: String, presets: Array, default: float) -> void:
@@ -703,6 +705,9 @@ func _mark() -> void:
 		var tab_name := String(tabs.get_tab_control(i).name)
 		var dirty: bool = _tab_keys.get(tab_name, []).any(func(key: String) -> bool: return is_changed(key))
 		tabs.set_tab_title(i, tab_name + (" •" if dirty else ""))
+	var fullscreen := bool(_value("fullscreen"))
+	window_size_pick.disabled = fullscreen
+	window_size_pick.tooltip_text = SIZE_FULLSCREEN_TIP if fullscreen else ""
 	var changes := has_changes()
 	apply_button.disabled = not changes
 	cancel_button.disabled = false  # Cancel always closes

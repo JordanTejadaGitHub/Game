@@ -9,6 +9,20 @@ Each gallery shows every current asset (animated where it animates, 1× and 3× 
 name, file path, size and frame count, its status (final / placeholder / in progress), and a "What
 changed" log at the top (date, commit, what), newest first.
 
+## Gallery layout standard (2026-10-02, user: *"make sure all the artifact files are organized well when being updated"*)
+
+Every gallery follows the same structure, so any page reads the same way:
+
+1. **Header:** gallery name, owner chat, last updated (date + commit), a one-line summary of the latest change.
+2. **What changed:** newest first, at most the last 10 entries visible (older ones under a collapsed "Older changes").
+3. **Contents bar:** jump links to every section, plus a search / filter box (by name, status, family).
+4. **Sections in a fixed order:** grouped by game area (e.g. Wardens by family → base, branches, finals, Ascended; nightmares by act; environment by act → tiles, obstacles, features, dream layer). Within a section, alphabetical, or in game order where that is clearer (base → branch → final).
+5. **One card per asset:** preview (animated where it animates, 1× and 3×), name (player-facing name first, file id second), file path, size / frames, status badge (**Final · Placeholder · In progress · Experimental**), and the commit that last changed it.
+6. **Experimental work is kept apart:** art that exists only on a branch (e.g. `experiment/spire-difficulty`) sits in its own clearly labelled section ("Spire branch, not in the main game"), never mixed into the main sections.
+7. **Superseded art** moves to a collapsed **Archive** section at the bottom (with what replaced it), never deleted silently, never left beside the current version.
+8. **No duplicates:** one card per file; a renamed asset updates its card, not a second one.
+9. **Same URL every time:** republish over the existing artifact; never a new page for an update.
+
 | Chat | Owns | Gallery |
 |---|---|---|
 | Tower Assets | Warden idle/attack sheets, Ascended, projectiles, effects, rank art | https://claude.ai/artifact/N8Jax8F4EWtdkoznbUMf42 |

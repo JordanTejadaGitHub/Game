@@ -139,6 +139,9 @@ func _test_frost() -> void:
 	var tower := _plant(frost, Vector2(3, 3))
 	var dry := _spawn_at(tower.global_position + Vector2(CELL, 0))
 	var damp := _spawn_at(tower.global_position + Vector2(0, CELL))
+	for enemy in [dry, damp]:  # Frostfern's hits (72 since 2ef6d56f) would dispel a Shade before the freeze wears off
+		enemy.max_health = 100000
+		enemy.health = 100000
 	damp.apply_status(EnemyStatuses.DAMP)
 	await process_frame
 	tower.hit(dry)

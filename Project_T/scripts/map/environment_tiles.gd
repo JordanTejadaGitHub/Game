@@ -30,6 +30,8 @@ const ROPE_BRIDGE := 17  # Shared (dream/): column 0 = east-west, 1 = north-sout
 const PATH_RIM := 18  # path.png's art, transparent outside the path: for the start and goal, over the rim
 const POND := 19  # Column = neighbour mask of pond cells (N=1, E=2, S=4, W=8); its 4 frames run down the rows
 const POND_INNER := 20  # Inside-corner overlays for ponds that aren't rectangles: columns NE, SE, SW, NW (static)
+const FALLEN_LOG := 21  # The log feature: 6 static pieces, 0 W end, 1 E-W middle, 2 E end, 3 N end, 4 N-S middle, 5 S end
+const LOG_FURROW := 22  # Where a log was tended: the same 6 pieces, each on its log piece's cell (walkable mark)
 # (Ids 2 and 8-10 were the drystone wall and healthy trees; the island and the void replaced them.)
 
 const SHEETS := {
@@ -37,6 +39,7 @@ const SHEETS := {
 	TENDED_STUMP: "tended_stump", MOSSY_BOULDER: "mossy_boulder", MOVED_HOLLOW: "moved_hollow",
 	EDGE_MIST: "edge_mist", GROUND_DETAILS: "ground_details", WAYSTONE: "waystone",
 	DEW_POOL: "dew_pool", BLIGHT_PATCH: "blight_patch", ISLAND_EDGE: "island_edge", CLIFF: "cliff", PATH_RIM: "path_rim", POND: "pond", POND_INNER: "pond_inner",
+	FALLEN_LOG: "fallen_log", LOG_FURROW: "log_furrow",
 }
 # The dream's outer layer, the same in every act (assets/environment/dream/).
 const DREAM_FOLDER := "dream"
@@ -122,3 +125,12 @@ static func path_tile(mask: int) -> Vector2i:
 # A stable pseudo-random pick per cell, so redraws don't reshuffle variants.
 static func cell_variant(cell: Vector2i, count: int, salt: int = 0) -> int:
 	return posmod(hash(Vector3i(cell.x, cell.y, salt)), count)
+
+# fallen_log.png's piece for `cell` of a straight log over `cells` (2+ cells): its ends and middles,
+# E-W or N-S.
+static func log_piece(cell: Vector2, cells: Array) -> Vector2i:
+	var vertical: bool = cells.size() > 1 and cells[0].x == cells[1].x
+	var along: Array = cells.map(func(c: Vector2) -> float: return c.y if vertical else c.x)
+	var at := cell.y if vertical else cell.x
+	var piece := 0 if at == along.min() else (2 if at == along.max() else 1)
+	return Vector2i(piece + (3 if vertical else 0), 0)

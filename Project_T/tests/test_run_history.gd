@@ -104,6 +104,8 @@ func _run() -> void:
 			"per-drift rows use the bot's column names (%s)" % [drifts[0] if not drifts.is_empty() else {}])
 		var report := RunHistory.report_text(record)
 		_check(report.contains("Result: abandoned") and report.contains("drift,act,seconds,health_spawned"), "the copyable report")
+		_check(record.has("experiment") and String(record.experiment) == String(ProjectSettings.get_setting("game/experiment", "")),
+			"the record names its experiment branch (\"\" on main, \"spire\" on the Spire build)")
 		_check(int(record.get("early_calls", -1)) == 3 and int(record.get("dew_call_early", -1)) == 7
 			and report.contains("Called early: 3 drifts · 7 Dew") and report.contains(",closest,called_early"),
 			"the record counts drifts called early and their Dew; the CSV has a called_early column")

@@ -722,6 +722,112 @@ on target for a fresh profile (and act 1's "teaches" side holds). Decisions:
 "Never grew a Warden" is partly that; **her economy (plant-only) is not a fresh player's normal.** Since
 c8d1fc33 the always-on Growth hint marks are a separate setting from whispers.
 
+## Caveat: fresh-profile sims ran as the demo (found 2026-10-02)
+
+Until e3f3a211, every **fresh** sim ran as the demo (`game/demo` true under `--script`): act 1–2 bosses
+were the defaults whatever the seed, the demo's Kinship set applied, and the Grove was inert (no effect
+on fresh). Half / full sims and all human runs were the full game. Affected: the fresh act 1 baselines,
+the bite-10 checks, the per-family act 1 tables and the first-pick-1 baseline (all on the Hollow Stag);
+the Night Mare check forced its boss and stands. Fixed: all sims run as the full game, and
+`--boss-draw` gives the real per-seed draw. The overnight batch re-measures act 1 per family and per boss.
+
+## Overnight batch (2026-10-02, full game, real boss draw, build e3f3a211)
+
+**Morning summary.** In the game: Bellflower 17 (756676ac), the Sunpetal beam fix (d4efe268), the echo
+follows its nightmare (dd977146). Act 1 is on target for all four start families and all three bosses;
+the economy matches the design. **Committed in 2ef6d56f:** 16
+Warden files (Autumn Gale 85, Moonstone 490, Elf Circle 68, Snugroot 56, Fairy Ring 30; Starling
+Murmuration 57, Jewelwing Court 28, Midsummer 170, Sunpetal 81, Hummingbird Bower 27, Mossback 372,
+Wren's Nest 27, Frostfern 72, Whispering Hollow 50, Echo Hollow 22; Stormcap chains 4). Then a
+129-run re-probe of branches + finals and an 18-run Hollow re-check.
+
+**1. Act 1 per start family** (fresh, forced first family, 20 seeds; draw: Scarecrow 10, Stag 5, Night
+Mare 3): survived the boss, Balanced / skip: **Sporeling 85% / 45%**, Firefly Jar 70% / 20%, Dewdrop
+70% / 30%, **Bellflower 50% / 25%**. Bellflower leaks in block 1 (29 nightmares over 20 runs; the
+others 0–1) and in the boss block, but has the calmest blocks 2–4. Sporeling skip is the main miss on
+"skip loses". Decisions after item 2 (bosses forced).
+
+**2. Act 1 bosses forced** (fresh, 20 seeds each): survived with Dreams / skip: **Stag 80% / 30%,
+Night Mare 80% / 15%, Scarecrow 80% / 25%** ✓ all targets. The Stag is survived by its bite (55%
+dispelled); the Night Mare and Scarecrow are mostly dispelled (80%) at a median 5 leaves (laps,
+Crows). The boss pool is fine.
+
+Decisions: **Bellflower damage 14 → 17** (in 756676ac; the only family off target, 50%, and the only one leaking
+in drifts 1–5). **Sporeling unchanged:** its 45% skip in item 1 doesn't repeat in item 2, where most
+skip runs opened with Sporeling and survived 15–30%.
+
+**Bellflower re-check** (3608f4fc, damage 17, same seeds): Balanced survives the boss **75%** ✓ (was
+50%), skip 30% (was 25%); block 1 leaks 4 over 20 runs (was 29). **Closed.**
+
+**5. Economy** (40d26ed1, full profile to 40, 20 seeds, Clear Skies vs always face): Dew earned in
+drifts 1–25 **2,387 vs the pot table's 1,960** (+22%: rest bonuses, Rich Dew and call-early on top, as
+designed); the bot banks ~20–50 at each rest. **Dreamlight is spent the moment it arrives**: first pick
+→ one branch, then ~2.5 forms per run by 40 (per-run order inferred, not traced). Always facing Omens:
+Omen Dew −626 to +690 per run (negative runs: likely Dry Spell, the only pot cut; not checked), median drift reached 24
+vs 27. **No change:** income matches the design, and Omens are the gamble they should be.
+
+**Branch sweep** (40d26ed1, every branch ×4, rank IV, no Dreams, drifts 45–49, per Dew vs Driftspore):
+**Fairy Ring ~1.6× Driftspore** (1.5× Puffball, the only branch above a final) → **damage 44 → 30**.
+The damage branches spread 0.25–1.0×; support / economy branches sit near zero on their own damage
+(their board leak tells more: Bloomcap and Rain Lily boards leak less than higher-damage ones). Role
+check with Tower Discussion on the low ones (Hummingbird Bower, Sunpetal, Frostfern, Stormcap, Gust,
+Echo Hollow, Wren's Nest, Mossback).
+Roles and decisions: **Stormcap** (0.22×, yet even with Chime Stone at drift 15) and **Sunpetal**
+(0.11×, a ramping beam) are checked for bugs first (chain / bolt scaling; does the beam's ramp reset
+on retarget?). Buffs: **Hummingbird Bower ×3** (9 → 27), **Mossback ×1.5**, **Wren's Nest ×1.5** (a
+fast-nightmare specialist), **Frostfern ×2** (an enabler that shouldn't feel dead). Gust and Echo
+Hollow are support: board-lift probes.
+Bug checks: **Sunpetal was a bug** (the beam retargeted to each new front-runner and its ramp reset;
+fixed in d4efe268: beams hold their target while it's alive and in range). **Midsummer's ×2 reverted**
+(measured with the bug; re-probe first). **Stormcap: no bug** (chains and bolts use ranked damage);
+its data is the lever: **chain targets 3 → 4**.
+**Clean beam probe** (d4efe268): the fix adds only 10–20%: Midsummer ~0.31 / 0.35× Puffball, Sunpetal
+~0.12×. Buffs: **Midsummer 68 → 170 (×2.5)**, **Sunpetal 27 → 81 (×3)**; re-probe after.
+
+**Support check** (d4efe268; 4 of the support vs 4 of a reference on the same board, 3 seeds; pass =
+board damage ≥ and leak ≤): **Hoarfrost ✓** (board 0.96–1.24×, Shatter 41–55% of its credit, act 2 leak
+≤ 0.8%); **Grafted Elder ✓** (board 0.95–1.24×; per Warden 1.0–2.2× a Puffball, consistent with copying
+two neighbours at 85%); **Zephyr and Gust at par** (board 0.94–1.04×): accepted for supports.
+**Whispering Hollow ✗** (board 0.60–0.91×, echo only 1.6% of its credit) and **Echo Hollow ✗** (2 of 3
+maps): **bug check first** (do the echoes fire on Thunderclap; where is echo damage credited?), then a
+number.
+**Found:** echoes fire and are credited correctly, but land 1 s later on the **same spot** (1-cell
+reach), after the nightmare has walked on (a walking Shade took 0 echo hits). Recommended to Tower
+Discussion: the echo **follows the nightmare** the Reaction fired on. Re-probe both Hollows after.
+**After the fix** (dd977146): echoes land (Whispering Hollow's echo share 1% → 4–5%, Echo Hollow ~70%),
+but both boards still fail (WH 0.61–0.90× with far more leak; EH 0.86–1.05×): Reactions are too rare
+for echoes to carry a Warden. **Own pulse up: Whispering Hollow 18 → 50, Echo Hollow 10 → 22.** Echo
+shares final at 0.75 (Echo Hollow) / 1.0 (Whispering Hollow).
+**Full re-probe on 2ef6d56f** (eb0063cd, 3 seeds): finals in act 2 all in band except Midsummer 0.78
+(close); act 3 still high for Autumn Gale 2.07, Snugroot 2.18, Elf Circle 1.75, Moonstone 1.65 (they
+scale with the bigger act 3 field). Branches: Fairy Ring 1.19× Driftspore (was 1.6), Mossback 0.61 into
+band; still under 0.5: Wren's Nest 0.47, Sunpetal 0.37, Hummingbird Bower 0.31, Stormcap 0.28,
+Frostfern 0.26 (an enabler), plus the support / economy tail. **Last step, then the probe series
+closes:** Autumn Gale 85 → 72, Snugroot 56 → 48; Hummingbird Bower 27 → 40, Sunpetal 81 → 113, Stormcap
+damage 18 → 24; Whispering Hollow 50 → 62, Echo Hollow 22 → 28 (in 14546411). Everything else stays; human runs judge
+from here.
+**Re-check on 2ef6d56f:** Whispering Hollow board **0.95–1.03× at 45** (par) but 0.69–0.82× at 61, and
+still leakier; Echo Hollow board unchanged (0.85 / 0.85 / 1.07). Held for the full re-probe, then one
+more step on both, decided together with the branches.
+
+**4. Act 2 bosses at drift 50** (40d26ed1, fixed board of 12 finals, rank IV, no Dreams, 3 seeds): none
+dispelled; health left at the Heartwood Huntsman 44–88%, Lamplighter 10–34%, Mire Hag 45–53%. A
+no-Dream board is a floor, not a player's board. Bosses at **×1.75** (confirmed: Huntsman 6,500 × 1.75
+× 4.5 = 51,188). No change; the next human run on ×1.75 decides.
+
+**3. Finals sweep** (40d26ed1, every final ×4, rank IV, no Dreams, finals cast, 3 seeds, per Dew vs
+Puffball; band 0.8–1.5×). **High:** Autumn Gale 1.61 / 2.36, Moonstone 1.54 / 2.11, Elf Circle 1.42 /
+2.10, Snugroot 1.34 / 2.36 (act 2 / act 3); Lullaby Bell (72) 1.34 / 1.53 (accepted). **Low damage
+dealers:** Midsummer ~0.28, Starling Murmuration ~0.53. Supports / economy (Grove Heart, Beacon,
+Wellspring, Great Dreamcatcher, Magpie's Hoard) are low on direct damage by design; Thunderhead (0.37)
+is a Static enabler (Puffball's Ignite, Morning Fog's Thunderclap). **Decisions:** damage ×0.75 on
+Autumn Gale, Moonstone, Elf Circle, Snugroot; Midsummer ×2, Starling Murmuration ×1.5. Role check with
+Tower Discussion on Whispering Hollow, Zephyr, Grafted Elder, Jewelwing Court and Hoarfrost. Re-probe after.
+Roles (Tower Discussion): **Jewelwing Court** is a damage final → **damage 23 → 28**. Whispering Hollow
+and Zephyr are amplifiers, Hoarfrost a combo piece, Grafted Elder a copier (~0.85× its neighbours):
+judged by the **board with vs without them** (vs 4 Puffballs) on boards that suit them, not by their
+own damage per Dew. Support probes queued.
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*

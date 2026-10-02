@@ -56,6 +56,50 @@ func _run() -> void:
 	_check(whispers.enabled, "a fresh profile has hints on")
 	_check(_fired(whispers).has(&"start") and _fired(whispers).has(&"plant"), "run start: start, plant")
 
+	# Readable, in the Heartwood's place (user: "go back to how it was before, but more readable, and lasting a bit longer
+	# no matter the speed"): the italic whisper at 26 px with a dark outline and shadow over a faint feathered mist (no
+	# box), top centre; on screen in real time; hover / tap holds, a second tap dismisses; one at a time.
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS  # A real 1280×720 layout (as test_ui)
+	root.content_scale_size = UiStyle.LAYOUT_MIN
+	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+	root.size = Vector2i(1280, 720)
+	for frame in 2:
+		await process_frame
+	whispers._place()
+	for frame in 2:
+		await process_frame
+	var mist := whispers.get_theme_stylebox("normal") as MoonStyleBox
+	_check(whispers.get_theme_font_size("normal_font_size") == 26 and whispers.get_theme_font("normal_font") == UiStyle.whisper_font()
+		and whispers.get_theme_constant("outline_size") >= 6 and whispers.get_theme_color("default_color") == UiStyle.GOLD
+		and mist != null and mist.edge_alpha == 0.0 and is_equal_approx(mist.center_alpha, 0.7),
+		"26 px whisper italic, outlined, over a faint feathered mist (no box)")
+	var hint_rect: Rect2 = whispers.get_global_rect()
+	_check(hint_rect.position.y < 300.0 and absf(hint_rect.get_center().x - 640.0) < 2.0, "top centre, as before (%s)" % hint_rect)
+	_check(is_equal_approx(whispers.show_time("Short."), 7.0) and is_equal_approx(whispers.show_time("x".repeat(100)), 10.0),
+		"on screen 7 s at least, 3 s + 0.07 s a character for long lines")
+	# Real time: at 3× speed a 7 s hint is still up after 4 real seconds (12 game seconds).
+	for id in whispers._queue:  # (Queued ones did fire: kept for the audit below)
+		if not whispers._seen.has(String(id)):
+			whispers._seen.append(String(id))
+	whispers._queue.clear()
+	whispers._seen.erase("speed")
+	Engine.time_scale = 3.0
+	whispers.whisper(&"speed")
+	for frame in 60 * 4:
+		await process_frame
+	_check(whispers.modulate.a > 0.9, "3× speed doesn't shorten it (still showing after 4 real seconds)")
+	Engine.time_scale = 1.0
+	var showing := String(whispers._queue[0]) if not whispers._queue.is_empty() else ""
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	whispers.term = ""
+	whispers._gui_input(click)
+	_check(whispers.held, "a tap holds the hint")
+	whispers._gui_input(click)
+	_check(not whispers.held and (whispers._queue.is_empty() or String(whispers._queue[0]) != showing),
+		"a second tap dismisses it, and the next queued one follows (one at a time)")
+
 	# Drifts 1–6 for real (leaves can't fall: the block ends when the field is clear).
 	run_state.invulnerable = true
 	run_state.dew = 500
@@ -66,9 +110,13 @@ func _run() -> void:
 	Engine.time_scale = 8.0
 	director.start_next_drift()
 	var rested := [false]  # (A lambda captures a local by value: an array carries the change out)
+	var walls_checked := [false]
 	director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _p: bool) -> void: rested[0] = true, CONNECT_ONE_SHOT)
 	for frame in 60 * 400:
 		if director.awaiting_family_pick and not family.offer.is_empty():
+			if not walls_checked[0]:
+				walls_checked[0] = true
+				_check(not _fired(whispers).has(&"walls"), "\"Wardens are walls\" waits while the first pick is open")
 			family.choose(family.offer[0])
 			director.start_next_drift()  # After the pick the run waits for Start (test_run)
 		if rested[0]:
@@ -121,6 +169,7 @@ func _run() -> void:
 		if tower is Tower:
 			seller.tower_sold.emit(tower, 0)
 			break
+	run_state.dew = 2000  # (Drifts 1–6 spent some: the two branches always get planted)
 	placer.select_tower(load("res://resource/tower/driftspore.tres"))
 	placer._try_build(_free_cell(map, 10))
 	placer.select_tower(load("res://resource/tower/bloomcap.tres"))
@@ -129,6 +178,20 @@ func _run() -> void:
 	director.drifts_started = 20  # The rest before the boss block
 	director.rest_started.emit(4, false, 0, false)
 	director.family_pick_requested.emit(&"boss")
+	# The approved lines (2026-10-02): a rule-breaker warning (Phantoms come at drift 31), the first Omen offer, a boss at
+	# the Heartwood, the first rank (Dreamlight and Let it pass came with drifts 1–5 for real).
+	director.drifts_started = 30
+	director.resting = true
+	director.rest_started.emit(6, false, 0, false)
+	var no_omens: Array[OmenData] = []
+	main.get_node("%OmenDirector").offer_ready.emit(no_omens, 7)
+	var stag: Node2D = spawner.spawn_enemy(load("res://resource/enemy/old_stag.tres"), 1.0, {}, false)
+	await process_frame
+	spawner.enemy_reached_goal.emit(stag)
+	for tower in main.get_node("%TowerContainer").get_children():
+		if tower is Tower:
+			tower.nurtured.emit(tower)
+			break
 	for frame in 3:
 		await process_frame
 	fired = _fired(whispers)

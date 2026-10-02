@@ -116,6 +116,50 @@ func _run() -> void:
 	await create_timer(0.5).timeout
 	_check(not bool(_saved().vsync) and not panel.keep_prompt.visible, "Keep keeps it")
 
+	# The UI size survives display changes (story chat 2026-10-02, user: "it resets the UI size"): a chosen share stays
+	# saved and applied through window size, fullscreen and a revert of them; window size greys out while fullscreen.
+	panel._set_value("ui_scale", 0.6)
+	panel.apply()
+	panel.keep()
+	var share_kept := func(what: String) -> void:
+		_check(is_equal_approx(float(_saved().ui_scale), 0.6) and is_equal_approx(UiStyle._scale_share, 0.6)
+			and is_equal_approx(float(HeartwoodMemory.get_settings().ui_scale), 0.6), "the UI size stays 60%% after %s" % what)
+	panel._set_value(SettingsPanel.WINDOW_SIZE_SETTING, 3)
+	share_kept.call("a window size preview")
+	panel.apply()
+	panel.keep()
+	share_kept.call("a window size Apply")
+	_check(not panel.window_size_pick.disabled and panel.window_size_pick.tooltip_text == "", "windowed: the size can be picked")
+	panel._set_value("fullscreen", true)
+	_check(panel.window_size_pick.disabled and panel.window_size_pick.tooltip_text == SettingsPanel.SIZE_FULLSCREEN_TIP,
+		"fullscreen: the size greys out and says why (no silent no-op)")
+	panel.apply()
+	panel.keep()
+	share_kept.call("fullscreen")
+	panel._set_value("fullscreen", false)
+	panel._set_value(SettingsPanel.WINDOW_SIZE_SETTING, 1)
+	panel.apply()
+	start = Time.get_ticks_msec()
+	while panel.keep_prompt.visible and Time.get_ticks_msec() - start < 3000:
+		await process_frame
+	_check(bool(_saved().fullscreen) and int(_saved().window_size) == 3, "no answer reverts the display change")
+	share_kept.call("a display revert")
+	panel._set_value("ui_scale", 0.9)
+	panel._set_value("fullscreen", false)
+	panel.apply()
+	start = Time.get_ticks_msec()
+	while panel.keep_prompt.visible and Time.get_ticks_msec() - start < 3000:
+		await process_frame
+	share_kept.call("reverting a UI size change made with a display change (the old size comes back)")
+	panel._closing()
+	panel._open()
+	share_kept.call("closing and reopening")
+	panel._set_value("fullscreen", false)
+	panel._set_value(SettingsPanel.WINDOW_SIZE_SETTING, 0)
+	panel._set_value("ui_scale", 1.0)
+	panel.apply()
+	panel.keep()
+
 	# Keybind conflicts show before Apply.
 	var build_key := KEY_B
 	for event in InputMap.action_get_events("toggle_build_mode"):
@@ -160,6 +204,47 @@ func _run() -> void:
 	_check(not RouteLine.is_high_contrast(), "freed mid-preview (a scene change): the saved value again")
 	HeartwoodMemory.preview_settings = {}
 	InputMap.load_from_project_settings()
+
+	# The user's path (story chat 2026-10-02): title Settings → fullscreen (Apply), start a run, pause → Settings,
+	# pick a window size → the UI size must not jump to Largest. Their profile holds 0.65 (an old slider value, shown
+	# as the nearest preset): a value no preset matches must survive too.
+	var title_panel := SettingsPanel.new()
+	root.add_child(title_panel)
+	await process_frame
+	title_panel._set_value("ui_scale", 0.65)
+	title_panel._set_value("fullscreen", true)
+	title_panel.apply()
+	title_panel.keep()
+	title_panel.queue_free()
+	await process_frame
+	var main: Node = load("res://scenes/main.tscn").instantiate()
+	root.add_child(main)
+	for frame in 3:
+		await process_frame
+	var pause = main.find_child("PauseMenu", true, false)
+	pause.open()
+	pause._show_settings()
+	await process_frame
+	var run_panel: SettingsPanel = pause._settings
+	_check(is_equal_approx(float(run_panel._settings.ui_scale), 0.65) and bool(run_panel._settings.fullscreen),
+		"the pause menu's Settings open on the title's saved values")
+	_check(run_panel.window_size_pick.disabled, "fullscreen: its window size is greyed there too")
+	run_panel.window_size_pick.item_selected.emit(4)  # As a pick (before the grey-out a fullscreen pick was possible)
+	run_panel.apply()
+	run_panel.keep()
+	_check(is_equal_approx(float(_saved().ui_scale), 0.65) and is_equal_approx(UiStyle._scale_share, 0.65)
+		and int(_saved().window_size) == 4, "a window size picked from the pause menu keeps the UI size (0.65)")
+	run_panel._set_value(SettingsPanel.VSYNC_SETTING, true)
+	run_panel.apply()
+	run_panel.keep()
+	pause.close()
+	pause.open()
+	pause._show_settings()
+	await process_frame
+	_check(is_equal_approx(float(run_panel._settings.ui_scale), 0.65), "…and after another display Apply and reopening")
+	main.queue_free()
+	await process_frame
+	HeartwoodMemory.preview_settings = {}
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
 	print("PASS" if failures == 0 else "FAILURES: %d" % failures)
 	quit(failures)

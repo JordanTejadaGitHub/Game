@@ -141,6 +141,7 @@ func _start_record() -> void:
 	run = {
 		"date": Time.get_datetime_string_from_system(), "version": String(ProjectSettings.get_setting("application/config/version", "dev")),
 		"seed": 0, "demo": ResultsScreen.is_demo(), "dev": dev_tag(), "blight": MetaRun.blight_level,
+		"experiment": String(ProjectSettings.get_setting("game/experiment", "")),  # A branch build ("spire"), else ""
 		"grove": profile.get("unlocks", {}).duplicate(), "perks": HeartwoodMemory.get_loadout(profile),
 		"result": "", "survived": 0, "won": false, "first_leak": 0, "seconds": 0.0, "leaves_lost_by_act": {},
 		"close_calls": 0, "family_picks": [], "dreams_taken": [], "dreams_skipped": [], "omens": [], "clear_skies": 0,
@@ -537,8 +538,9 @@ static func load_runs() -> Array:
 # A plain-text report of one run, for sharing ("Copy run report").
 static func report_text(record: Dictionary) -> String:
 	var lines: Array[String] = []
-	lines.append("Heartwood TD run · %s · %s%s" % [record.get("date", ""), record.get("version", ""),
-		" · dev (%s)" % record.dev if String(record.get("dev", "")) != "" else ""])
+	lines.append("Heartwood TD run · %s · %s%s%s" % [record.get("date", ""), record.get("version", ""),
+		" · dev (%s)" % record.dev if String(record.get("dev", "")) != "" else "",
+		" · experiment: %s" % record.experiment if String(record.get("experiment", "")) != "" else ""])
 	var build: Dictionary = record.get("build", {})
 	if not build.is_empty():
 		var dirty: Dictionary = build.get("dirty", {})

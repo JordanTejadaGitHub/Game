@@ -148,8 +148,9 @@ func _run() -> void:
 			if child is ComingStrip:
 				strip_rect = (child as Control).get_global_rect()
 		_check(not back_rect.intersects(bar_rect) and not back_rect.intersects((main.get_node("HUD/DriftBanner") as Control).get_global_rect())
-			and not back_rect.intersects(strip_rect) and back_rect.end.y <= screen.y,
-			"the peek's Back button clears the bar, banner and Coming strip at %s (%s; bar %s, strip %s)" % [screen, back_rect, bar_rect, strip_rect])
+			and not back_rect.intersects(strip_rect) and back_rect.end.y <= screen.y
+			and absf(back_rect.get_center().x - screen.x / 2.0) < 2.0 and back_rect.get_center().y > screen.y / 2.0,
+			"the peek's Back pill sits mid-screen, a little below centre, clear of the bar, banner and Coming strip at %s (%s; bar %s, strip %s)" % [screen, back_rect, bar_rect, strip_rect])
 		peek_screen.queue_free()
 		# The top-right row (screens_ui.md "Top-right layout, as in the Moonlit Thread mock-up"): leaves ·
 		# Dew · Dreamlight · path, then Remember · Boosts · ? · Menu, on one fog patch clear of the

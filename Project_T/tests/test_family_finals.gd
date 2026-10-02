@@ -215,6 +215,29 @@ func _run() -> void:
 	sun.queue_free()
 	await _clean()
 
+	# --- Sunpetal: the beam holds its target until it's dispelled or leaves range (Balancing: switching to each
+	# new front-runner kept resetting the ramp) ---
+	var petal := _plant("sunpetal", Vector2(16, 14))
+	petal.target_chosen = true
+	petal.target_mode = TowerData.TargetMode.STRONGEST
+	var beamed := _spawn(petal.global_position + Vector2(CELL, 0))
+	petal._update_beam(0.1)
+	petal._beam_ramp = 2.5
+	var stronger := _spawn(petal.global_position + Vector2(0, CELL))
+	stronger.max_health = 5000000
+	stronger.health = 5000000
+	_check(petal.find_target() == stronger, "(setup) targeting alone would switch to the stronger one")
+	petal._update_beam(0.1)
+	_check(petal._beam_target == beamed and petal._beam_ramp > 2.5, "the beam keeps its target and its ramp (%.2f)" % petal._beam_ramp)
+	beamed.global_position = petal.global_position + Vector2(20, 0) * CELL  # Out of range
+	await process_frame  # (the in-range list is kept for the frame)
+	petal._update_beam(0.1)
+	_check(petal._beam_target == stronger and petal._beam_ramp < 1.5, "once it leaves range the beam takes a new one, ramp from scratch (%.2f)" % petal._beam_ramp)
+	beamed.queue_free()
+	stronger.queue_free()
+	petal.queue_free()
+	await _clean()
+
 	# --- Thunderclap arcs reach at most the 8 nearest Soaked nightmares ---
 	var clapper := _plant("thunderhead", Vector2(4, 14))
 	var centre := _spawn(clapper.global_position)

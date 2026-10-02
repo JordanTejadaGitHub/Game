@@ -71,6 +71,8 @@ var enemy_overrides := {}  # --enemy=id.field=value (repeatable): EnemyData fiel
 var _keep: Array = []  # The edited EnemyData, held so the cache keeps them
 var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.preset_bosses); "" = the default draw
 var aura_placement := true  # --no-aura: place and grow aura Wardens (Acorn, Elder Stump, Grove Heart, Moon Moth) by path only
+var empty_loadout := false
+var sidegrade := -1
 var kin_placement := true  # --no-kin: no Kinship placement, and growth takes the first open form in evolves_to (the old bot)
 var focus_mode := ""  # --focus=deep: Nurture picks Deep where it's offered and Potency cards score high (a committed Deep build)
 var kin_pairs := {}  # Drift -> Kinships on the map as it starts (kin_pairs_24 / kin_pairs_50 columns: as drifts 25 / 51 start)
@@ -141,6 +143,9 @@ func _run() -> void:
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
+			"--boss-draw": BossPool.force_draw = true  # The real per-seed boss draw (sims otherwise meet the defaults, like tests)
+			"--loadout": empty_loadout = value == "none"  # --loadout=none: the profile carries no perks (the Grove cap A/B)
+			"--sidegrade": sidegrade = int(value)  # MetaRun.force_sidegrade (Spire branch): 0 Power perks, 1 Sidegrades
 			"--no-aura": aura_placement = false
 			"--no-kin": kin_placement = false
 			"--focus": focus_mode = value
@@ -162,14 +167,23 @@ func _run() -> void:
 				data.set(field, int(setting.get_slice("=", 1)) if current is int else float(setting.get_slice("=", 1)))
 				enemy_overrides[target] = setting.get_slice("=", 1)
 				_keep.append(data)
+	ProjectSettings.set_setting("game/demo", false)  # Sims are the full game, fresh too (it was the demo before 2026-10-02: fixed act 1-2 bosses, demo Kinships)
 	if profile != "fresh":
 		var meta: Script = load("res://scripts/meta/meta_run.gd")
 		if not meta.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "load_preset"):
 			printerr("profile %s needs MetaRun.load_preset (Meta Game Code's presets)" % profile)
 			quit(1)
 			return
-		ProjectSettings.set_setting("game/demo", false)  # Meta applies only in the full game
+		var presets: Script = load("res://scripts/meta/grove_presets.gd")
+		if presets.get("file_path") != null:  # A profile per process: parallel sims with different loadouts must not share one file
+			presets.set("file_path", "user://sim_heartwood_%d.json" % OS.get_process_id())
 		meta.call("load_preset", StringName(profile))
+		if empty_loadout:  # Same Grove, nothing carried
+			var data: Dictionary = HeartwoodMemory.load_data()
+			data["loadout"] = []
+			HeartwoodMemory.save_data(data)
+	if sidegrade >= 0:
+		load("res://scripts/meta/meta_run.gd").set("force_sidegrade", sidegrade)  # Only on builds that have it (the Spire branch)
 	if all_families:
 		load("res://scripts/meta/meta_run.gd").set("force_all_families", true)
 	main = load("res://scenes/main.tscn").instantiate()
@@ -252,6 +266,10 @@ func _run() -> void:
 	_finish()
 	if profile != "fresh" and ResourceLoader.exists("res://scripts/meta/grove_presets.gd"):
 		load("res://scripts/meta/grove_presets.gd").call("unload")  # Back to the real profile path
+		var sim_profile := ProjectSettings.globalize_path("user://sim_heartwood_%d.json" % OS.get_process_id())
+		for path in [sim_profile, sim_profile + ".bak"]:  # save_data keeps a .bak of the last write
+			if FileAccess.file_exists(path):
+				DirAccess.remove_absolute(path)
 	quit(0)
 
 # The real rest and family pick open screens and offers; the bot answers them through the policy
@@ -668,7 +686,7 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "enemy": ";".join(enemy_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, enemy_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "omen_paid": _omen_stat("paid"), "omen_share": _omen_stat("share"), "omen_leaves_lost": _omen_stat("leaves_lost"), "omen_dew": (_omen_stat("dew") + roundi(omen_pot_dew)) if omens != null and _facing() else -1, "omen_pot_dew": roundi(omen_pot_dew), "omen_dreamlight": dreamlight_by_source.get(&"omen", 0) if omen_mode != "" else -1, "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "boss_draw": BossPool.force_draw, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "enemy": ";".join(enemy_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, enemy_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "omen_paid": _omen_stat("paid"), "omen_share": _omen_stat("share"), "omen_leaves_lost": _omen_stat("leaves_lost"), "omen_dew": (_omen_stat("dew") + roundi(omen_pot_dew)) if omens != null and _facing() else -1, "omen_pot_dew": roundi(omen_pot_dew), "omen_dreamlight": dreamlight_by_source.get(&"omen", 0) if omen_mode != "" else -1, "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
@@ -682,6 +700,11 @@ func _finish() -> void:
 	summary.heart_cover_24 = heart_cover_24
 	summary.status_potency = Tower.status_potency_on
 	summary.focus = focus_mode
+	summary.sidegrade = sidegrade
+	summary.empty_loadout = empty_loadout
+	summary.demo = ResultsScreen.is_demo()  # The demo build applies no Grove (MetaRun inert)
+	var meta_run = main.get_node_or_null("%MetaRun")
+	summary.meta_active = meta_run.get("active") if meta_run != null else null
 	summary.merge(_status_columns())
 	summary.forms = _form_column()
 	summary.merge(_route_columns())
