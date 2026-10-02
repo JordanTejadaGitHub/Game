@@ -78,6 +78,56 @@ matter, confirmed.
    number.
 4. ~~"Let it pass" pays less~~ **Rejected** (user: "keep skipping if we're making the cards more powerful"): Let it pass stays +15 Dew. Skipping is punished by the missing card, not by the reward.
 
+## Combo cards are choices, not musts (2026-10-02, PROPOSAL for the user's sign-off)
+
+User: *"I don't want the combo cards to feel like a must when you see them."* There are 32 combo or
+Entwined cards. Most say "+X to a combo you already run", so when one shows up beside an unrelated
+card, it's an automatic pick. The user's run history (15 real runs; it records takes, not offers)
+shows the pattern: Kin and Kindling taken 4 times, Quick Reactions 3, Charged Bloom 3, Dawnbreak and
+Sparking Spores 2 each. Balancing Code is measuring the bot's pick rates (before), and Main is adding
+offered cards to the run history.
+
+**Rules:**
+1. **No guaranteed slot.** Entwined cards are offered at **normal odds** once their ingredients are
+   owned (they used to take a guaranteed slot in the next offer, which read as "take this"). They
+   remain Rare, still need all their ingredients, and are still discovery-gated where they were.
+2. **Every combo card is a trade, a new shape, or a condition**, never just a bigger number for the
+   combo you already run. Taking it changes how you play the combo; turning it down is sensible.
+3. **Power stays within budget** (`dream_audit.md`): no combo card above its rarity's budget.
+4. **Target:** the Balanced bot's pick rate for combo cards is about the same as other cards of
+   their rarity (not ~100%), and with a strong combo running, a different card is a competitive pick.
+
+**The 32 cards** (✎ = changed; = = kept, already a shape or condition):
+
+| Card | Was | Now | Kind |
+|---|---|---|---|
+| ✎ Damp Rot (C) | Poisoned ticks on Soaked +50% | Poisoned ticks on Soaked +50%, **but Soaked no longer boosts water hits on them** | trade: poison vs water |
+| ✎ Rain on Glass (C) | light Wardens +35% vs Soaked | light Wardens +35% vs Soaked, **and their hits dry the nightmare (Soaked ends)** | trade: fights Thunderclap |
+| ✎ Sparking Spores (C) | Ignite +50% | Ignite +50%, **only on nightmares with 5+ Poisoned** | condition |
+| ✎ Rolling Thunder (U) | Thunderclap arcs reach 3.5 cells | arcs reach 3.5 cells **but strike at most 3 nightmares** | shape: long and few |
+| ✎ Wildfire Spores (U) | Ignite spreads 2 Poisoned within 1.5 cells | spreads 2 Poisoned within 1.5 cells, **and the burning nightmare loses its own Poisoned** | trade: spread vs depth |
+| ✎ Mushroom Rain (U) | Mushrooming cloud ×2 duration and the 8 tiles around | covers the 8 tiles around, **but lasts half as long** | shape: wide vs long |
+| ✎ Deep Water (U) | Drown 4 s, damage +50% faster | Drown 4 s, damage +50% faster, **only within 5 cells of the Heartwood** | condition: last stand |
+| ✎ Quick Reactions (R) | Reaction cooldowns 1.5 → 0.75 s | cooldowns 0.75 s, **but Reactions deal 25% less** | trade: often vs big |
+| ✎ Conductive Soil (R) | lightning jumps to every Soaked nightmare in range | jumps to every Soaked nightmare, **and each jump uses up that nightmare's Soaked** | trade: one burst vs steady |
+| ✎ Charged Bloom (R) | Stormcap chains add 1 Drowsy | chains add 1 Drowsy, **but jump 1 fewer time** | trade: sleep vs reach |
+| ✎ Starlit Aim (R) | Marked: +25% crit chance from every Warden | +25% crit chance on Marked, **and a crit uses up the Mark** | trade: burst vs sustain |
+| ✎ Kin and Kindling (R) | Harmony strikes also apply both statuses | Harmony strikes apply both statuses **instead of dealing damage** | trade: setup vs damage |
+| ✎ Carried on the Wind (R) | Gust copies full stacks | copies full stacks **to one nightmare** instead of all in range | trade: depth vs spread |
+| ✎ Charged Feathers / Pollen Beaks (R) | pecks apply 1 Charged / 1 Poisoned | same, but **taking one removes the other from the run** | exclusive pair: pick a lane |
+| ✎ Windborne Rain (R) | Samara seeds apply Soaked out and back | seeds apply Soaked, **but deal 25% less** | trade |
+| ✎ The 8 Woven cards (R) | each makes its Crowned Reaction bigger | each still makes it bigger, **and its cooldown doubles** (bigger but rarer) | trade: one rule for all 8 |
+| = Chain Bloom, Spore Cascade, Guiding Light, Ring Dance, Encore, Seeping | — | kept: each adds a new shape (spread, chain, echo) or scales with your setup | shape |
+| = Nursery (R) | — | kept (a Sprout economy card, not a combo payoff) | — |
+| = Dawnbreak (L) | — | kept (a Legendary defines a run) | — |
+
+- **Numbers** stay where they are; the trades and conditions are the change. Balancing Discussion
+  checks them with the pick-rate sim before and after.
+- **Text:** these go through the card text audit (same pass), with the trade on its own line like a
+  Bittersweet cost, so it's readable at a glance.
+- **Status:** waiting for the user's sign-off via the design hub; then Roguelite Code (data, offers,
+  the exclusive pair) and Tower Code (the reaction and hit rules).
+
 ## Feeling the cards (2026-10-01)
 
 User: *"is there a way to make cards feel more meaningful and noticeable?"* → "let's try that". The
