@@ -89,8 +89,16 @@ static func sidegrade_active() -> bool:
 	return int(HeartwoodMemory.get_settings().get(PERK_STYLE_SETTING, 1)) == 1
 
 # Clear Sight's sidegrade cost, read by the map generator before the run starts: one extra ridge (like
-# Blight 9's) while it's carried. The full game only.
+# Blight 9's) while it's carried. The full game only. A resumed run uses the count it was saved with
+# (RunSaver sets `resumed_extra_ridges`), so changing the loadout in the Grove never reshapes a saved map.
+static var resumed_extra_ridges := -1  # -1 = a new run: read the loadout
+static var run_extra_ridges := 0  # What this run's map was built with (saved with the run)
+
 static func perk_extra_ridges() -> int:
+	run_extra_ridges = resumed_extra_ridges if resumed_extra_ridges >= 0 else _loadout_extra_ridges()
+	return run_extra_ridges
+
+static func _loadout_extra_ridges() -> int:
 	if not sidegrade_active() or ResultsScreen.is_demo():
 		return 0
 	var memory := HeartwoodMemory.load_data()
