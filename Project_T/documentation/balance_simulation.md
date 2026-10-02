@@ -783,6 +783,9 @@ two neighbours at 85%); **Zephyr and Gust at par** (board 0.94–1.04×): accept
 **Whispering Hollow ✗** (board 0.60–0.91×, echo only 1.6% of its credit) and **Echo Hollow ✗** (2 of 3
 maps): **bug check first** (do the echoes fire on Thunderclap; where is echo damage credited?), then a
 number.
+**Found:** echoes fire and are credited correctly, but land 1 s later on the **same spot** (1-cell
+reach), after the nightmare has walked on (a walking Shade took 0 echo hits). Recommended to Tower
+Discussion: the echo **follows the nightmare** the Reaction fired on. Re-probe both Hollows after.
 
 **4. Act 2 bosses at drift 50** (40d26ed1, fixed board of 12 finals, rank IV, no Dreams, 3 seeds): none
 dispelled; health left at the Heartwood Huntsman 44–88%, Lamplighter 10–34%, Mire Hag 45–53%. A
