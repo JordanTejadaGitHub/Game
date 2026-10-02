@@ -798,6 +798,9 @@ Discussion: the echo **follows the nightmare** the Reaction fired on. Re-probe b
 but both boards still fail (WH 0.61–0.90× with far more leak; EH 0.86–1.05×): Reactions are too rare
 for echoes to carry a Warden. **Own pulse up: Whispering Hollow 18 → 50, Echo Hollow 10 → 22.** Echo
 shares final at 0.75 (Echo Hollow) / 1.0 (Whispering Hollow).
+**Re-check on 2ef6d56f:** Whispering Hollow board **0.95–1.03× at 45** (par) but 0.69–0.82× at 61, and
+still leakier; Echo Hollow board unchanged (0.85 / 0.85 / 1.07). Held for the full re-probe, then one
+more step on both, decided together with the branches.
 
 **4. Act 2 bosses at drift 50** (40d26ed1, fixed board of 12 finals, rank IV, no Dreams, 3 seeds): none
 dispelled; health left at the Heartwood Huntsman 44–88%, Lamplighter 10–34%, Mire Hag 45–53%. A
