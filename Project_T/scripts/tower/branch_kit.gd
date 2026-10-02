@@ -297,40 +297,71 @@ static func _jet(tower: Tower) -> void:
 
 # --- Jarlink / Lightning Fence: two Jarlinks within 4 cells make an arc ---------------------------------------
 
+# The arc (tower_design.md de57a7c6; Balancing's numbers): a damaging line. Every nightmare touching a cell of it
+# takes arc_dps a second (tagged "fence", the pair taking turns so both jars are credited) and 1 Charged a second; a
+# flyer crossing it takes 3 Charged at once. Only the Lightning Fence touches Phantoms gliding through.
+const FENCE_TICK := 0.25
+
 static func _update_fence(tower: Tower, delta: float) -> void:
 	var partner := _fence_partner(tower)
 	if partner == null or partner.get_instance_id() < tower.get_instance_id():
 		return  # One side of each pair does the work (the lower id)
 	FenceLayer.find(tower).note(tower, partner)
-	var a := tower.global_position
-	var b := partner.global_position
-	var seg := b - a
-	var now := Time.get_ticks_msec() / 1000.0
+	var left := float(tower.get_meta(&"fence_tick", 0.0)) - delta
+	if left > 0.0:
+		tower.set_meta(&"fence_tick", left)
+		return
+	tower.set_meta(&"fence_tick", left + FENCE_TICK)
+	var cells := _arc_cells(tower.cell, partner.cell)
 	var final := is_final(tower) or is_final(partner)
-	var cooldown := p(tower, "cross_cooldown", 0.5)
+	var id := tower.get_instance_id()
 	for e in targetable(tower):
-		if e.is_flying() and not final:
-			continue  # Only the Lightning Fence catches Phantoms gliding through
-		var t := clampf((e.global_position - a).dot(seg) / maxf(seg.length_squared(), 1.0), 0.0, 1.0)
-		if e.global_position.distance_to(a + seg * t) > CELL * 0.35:
+		var inside := "fence_in_%d" % id
+		if not cells.has(Tower.MAP_GRID.calculate_grid_coordinates(e.global_position)):
+			if e.has_meta(inside):
+				e.remove_meta(inside)  # Left the arc: a flyer can be charged again on its next crossing
 			continue
-		var key := "fence_%d" % tower.get_instance_id()
-		if now < float(e.get_meta(key, 0.0)):
+		var phantom: bool = e.is_flying() and e.enemy_data.flying_icon == &"through_walls"
+		if phantom and not final:
 			continue
-		e.set_meta(key, now + cooldown)
-		# The pair takes turns striking (each crossing alternates), so both jars carry their share in the DamageLog.
 		var turn := tower.get_meta(&"fence_turn", 0) as int
 		tower.set_meta(&"fence_turn", turn + 1)
 		var striker: Tower = tower if turn % 2 == 0 else partner
-		var crossing := p(striker, "cross_damage", 20.0)
-		striker.hit(e, crossing / maxf(float(striker.attack_data.damage), 1.0), true, Tower.ROLL_CRIT, &"fence")  # Tagged: DamageLog tells crossings from its shots
-		if is_instance_valid(e) and not e.is_cleansed:
+		var dps := p(striker, "arc_dps", 60.0)
+		striker.hit(e, dps * FENCE_TICK / maxf(float(striker.attack_data.damage), 1.0), true, Tower.ROLL_CRIT, &"fence")
+		if not is_instance_valid(e) or e.is_cleansed:
+			continue
+		if e.is_flying() and not e.has_meta(inside):
+			e.apply_status(EnemyStatuses.STATIC, int(p(striker, "flyer_charge", 3)), 0.0, striker.get_damage(), 0, "light", striker)
+		e.set_meta(inside, true)
+		var charge_key := "fence_charge_%d" % id
+		var charge := float(e.get_meta(charge_key, p(striker, "charge_every", 1.0))) + FENCE_TICK  # The first on contact
+		if charge >= p(striker, "charge_every", 1.0):
+			charge = 0.0
 			e.apply_status(EnemyStatuses.STATIC, 1, 0.0, striker.get_damage(), 0, "light", striker)
-		# Fireworks Fence (a): a crossing sets off a small spark burst.
-		for side in [tower, partner]:
-			var share: float = side.kin_share(FIREWORKS_FENCE, "a")
-			if share > 0.0 and is_instance_valid(e) and not e.is_cleansed:
-				_spark_burst_at(side, e.global_position, 2, crossing * 0.5 * share, false)
+		e.set_meta(charge_key, charge)
+		# Fireworks Fence (a): every 2 s a nightmare on the fence sets off a 2-spark burst at half spark damage.
+		var spark_key := "fence_spark_%d" % id
+		var spark := float(e.get_meta(spark_key, 0.0)) + FENCE_TICK
+		if spark >= 2.0:
+			spark = 0.0
+			for side in [tower, partner]:
+				var share: float = side.kin_share(FIREWORKS_FENCE, "a")
+				var sparkler: Tower = side._kin_partner()
+				if share > 0.0 and is_instance_valid(sparkler) and is_instance_valid(e) and not e.is_cleansed:
+					_spark_burst_at(side, e.global_position, 2, float(sparkler.attack_data.damage) * 0.5 * share, false)
+		if is_instance_valid(e):
+			e.set_meta(spark_key, spark)
+
+# The cells an arc from cell `a` to cell `b` passes over (the jars' own cells left out).
+static func _arc_cells(a: Vector2, b: Vector2) -> Dictionary:
+	var cells := {}
+	var steps := int(ceilf(a.distance_to(b) * 4.0))
+	for i in range(1, steps):
+		var c := a.lerp(b, float(i) / steps).round()
+		if c != a and c != b:
+			cells[c] = true
+	return cells
 
 static func _fence_partner(tower: Tower) -> Tower:
 	var best: Tower = null

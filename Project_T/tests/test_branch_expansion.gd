@@ -387,7 +387,14 @@ func _test_finals() -> void:
 	var b := _plant("lightning_fence", Vector2(8, 12))
 	var crow = _spawn(Vector2(6.5, 12), "res://resource/enemy/crow.tres")
 	BranchKit.process(a, 0.016)
-	_check(crow.health < crow.max_health, "Lightning Fence: a flyer crossing it is hit")
+	_check(crow.health < crow.max_health and crow.statuses.stacks(EnemyStatuses.STATIC) >= 3, "Lightning Fence: a gliding flyer on it is hit and takes 3 Charged at once")
+	await _clean()
+	# A plain Jarlink's arc doesn't touch a Phantom gliding through (only the Lightning Fence does).
+	var c := _plant("jarlink", Vector2(5, 12))
+	var d := _plant("jarlink", Vector2(8, 12))
+	var phantom = _spawn(Vector2(6.5, 12), "res://resource/enemy/dandelion_seed.tres")
+	BranchKit.process(c, 0.3)
+	_check(phantom.health == phantom.max_health, "a Jarlink's arc lets a Phantom glide through")
 	await _clean()
 
 	# Rainbow Prism: its shot splits into 3 beams at half.
