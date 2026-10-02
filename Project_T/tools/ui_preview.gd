@@ -131,6 +131,32 @@ func _sheet() -> Control:
 		UiStyle.card_button(card, UiStyle.rarity_color(rarity))
 		card.text = UpgradeData.rarity_name(rarity)
 		cards.add_child(card)
+	# Feeling the cards (dream_design.md): the impact lines, a credit line, the toast and a bloom.
+	var impact := Label.new()
+	impact.text = "On your board · +22% damage on 7 Wardens"
+	UiStyle.impact_line(impact)
+	box.add_child(impact)
+	var none := Label.new()
+	none.text = "None of your Wardens yet"
+	UiStyle.impact_line(none, false)
+	box.add_child(none)
+	var credit := RichTextLabel.new()
+	credit.bbcode_enabled = true
+	credit.fit_content = true
+	credit.custom_minimum_size = Vector2(700, 0)
+	credit.text = UiStyle.credit_bbcode("Dreams this block", [["Lingering Spores", "+1,840"], ["Cozy Corners", "+920"],
+		["Flurry", "+610"]])
+	box.add_child(credit)
+	var toast := Label.new()
+	toast.text = "Cozy Corners · 6 Wardens +30%"
+	UiStyle.impact_toast(toast)
+	box.add_child(toast)
+	var blooms := Control.new()
+	blooms.custom_minimum_size = Vector2(500, 90)
+	blooms.draw.connect(func() -> void:
+		for i in 4:
+			UiStyle.draw_bloom(blooms, Vector2(60 + i * 120, 80), [0.1, 0.35, 0.6, 0.85][i], i, &"spore"))
+	box.add_child(blooms)
 	return page
 
 func _save(name: String) -> void:

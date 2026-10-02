@@ -53,6 +53,10 @@ func _initialize() -> void:
 	for id in glyph_ids:
 		var region := UiStyle.dream_glyph_region(StringName(id))
 		_check(region.has_area() and Rect2(Vector2.ZERO, sheet.get_size()).encloses(region), "glyph %s has a cell in the sheet (%s)" % [id, region])
+	# Feeling the cards: the credit line keeps names Ink and numbers Gold, escaping brackets.
+	var credit := UiStyle.credit_bbcode("Dreams this block", [["Lingering Spores", "+1,840"], ["Odd [card]", "+9"]])
+	_check(credit.contains(UiStyle.GOLD.to_html(false)) and credit.contains("Odd [lb]card]") and credit.count(" · ") + credit.count("·[/color]") >= 1,
+		"credit_bbcode builds the Dreams-this-block line (%s)" % credit)
 	_scale_and_layout.call_deferred()
 
 # UI scale (UiStyle.apply_ui_scale): only the UI scales, never past its 1280×720 layout, and the

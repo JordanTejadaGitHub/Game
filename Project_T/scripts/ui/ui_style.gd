@@ -380,6 +380,59 @@ static func _margins(box: StyleBox, x: float, y: float) -> void:
 	box.content_margin_top = y
 	box.content_margin_bottom = y
 
+# --- Feeling the cards (dream_design.md, 2026-10-01) -------------------------------------------
+# The look for the impact preview, the bloom, the toast and the credit lines; Roguelite Code makes
+# the data, Main the behaviour. Calm and readable: one line, one pulse, gold for what the card does.
+
+const IMPACT_SIZE := BODY_SIZE  # 16: ui_style.md body minimum
+
+# The impact preview line on a Dream card ("On your board · +22% damage on 7 Wardens"): gold body
+# text; `has_effect` false = the dim-ink "None of your Wardens yet" (a card for later is still fair).
+static func impact_line(label: Control, has_effect: bool = true) -> void:
+	_font(label, body_medium_font() if has_effect else body_font(), IMPACT_SIZE, GOLD if has_effect else INK_DIM)
+	if label is Label:
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+# The bloom on a Warden the taken card affects, at progress `t` (0 → 1 over ~0.6 s; callers stagger
+# it): a soft ring in the rarity colour that grows and fades at the Warden's base, and the card's gem
+# (with its glyph) rising a little above the Warden and fading out. Reduced motion: hold t at 0.35
+# (one soft highlight, no movement).
+const BLOOM_RING := Vector2(18.0, 34.0)  # Ring radius from → to, px
+const BLOOM_RISE := 14.0
+static func draw_bloom(canvas: CanvasItem, base: Vector2, t: float, rarity: int, glyph: StringName = &"",
+		gem_height: float = 46.0) -> void:
+	var colour := rarity_color(rarity)
+	var fade := 1.0 - clampf(t, 0.0, 1.0)
+	var ease := 1.0 - pow(1.0 - clampf(t, 0.0, 1.0), 3.0)  # Out-cubic: quick, then gentle
+	var radius := lerpf(BLOOM_RING.x, BLOOM_RING.y, ease)
+	canvas.draw_circle(base, radius, Color(colour, 0.12 * fade))
+	canvas.draw_arc(base, radius, 0.0, TAU, 40, Color(colour, 0.85 * fade), 2.0, true)
+	var gem_at := base + Vector2(0, -gem_height - BLOOM_RISE * ease)
+	var gem_alpha := clampf(1.0 - (t - 0.6) / 0.4, 0.0, 1.0)  # Holds, then fades in the last 40%
+	if gem_alpha > 0.0:
+		canvas.draw_circle(gem_at, 15.0, Color(FOG, 0.6 * gem_alpha))  # A fog dot keeps it legible on bright map
+		draw_gem(canvas, gem_at, 12.0, rarity, glyph)
+
+# The toast after taking a card ("Cozy Corners · 6 Wardens +30%"): the display face, Ink, a Void outline.
+static func impact_toast(label: Label) -> void:
+	_font(label, display_font(), 22, INK)
+	label.add_theme_color_override("font_outline_color", FOG)
+	label.add_theme_constant_override("outline_size", 6)
+
+# A credit line for the rest report / results (RichTextLabel bbcode): a dim title, then each
+# entry's name in Ink and its number in Gold, joined by " · ". `entries` = [[name, value_text], …].
+# e.g. credit_bbcode("Dreams this block", [["Lingering Spores", "+1,840"], ["Cozy Corners", "+920"]]).
+static func credit_bbcode(title: String, entries: Array) -> String:
+	var parts: Array[String] = []
+	for entry in entries:
+		parts.append("[color=#%s]%s[/color] [color=#%s]%s[/color]" % [INK.to_html(false), _bb(String(entry[0])),
+			GOLD.to_html(false), _bb(String(entry[1]))])
+	var head := "[font_size=%d][color=#%s]%s[/color][/font_size]" % [LABEL_SIZE + 1, INK_DIM.to_html(false), _bb(title)]
+	return head + "  " + (" [color=#%s]·[/color] " % INK_DIM.to_html(false)).join(parts)
+
+static func _bb(text: String) -> String:
+	return text.replace("[", "[lb]")
+
 # --- Helpers for screens built in code ---------------------------------------------------------
 
 static func rarity_color(rarity: int) -> Color:
