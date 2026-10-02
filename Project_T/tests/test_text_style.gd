@@ -98,7 +98,7 @@ func _tres(dir: String) -> Array[String]:
 	return out
 
 const FIELDS := ["display_name", "description", "trait_text", "hint", "title", "cleanse_line", "whisper",
-	"cost_description", "grows_text", "clear_verb", "tips"]
+	"cost_description", "grows_text", "clear_verb", "tips", "sidegrade_description"]
 
 func _scan_resources() -> void:
 	for path in _tres("res://resource"):

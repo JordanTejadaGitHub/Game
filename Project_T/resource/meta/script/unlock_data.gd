@@ -12,6 +12,8 @@ enum Root { WARDENS, DREAMS, PERKS, FORESTS }  # Limbs: Families, Cards, Perks (
 @export var id: String = ""
 @export var display_name: String = "Unlock"
 @export_multiline var description: String = ""
+# Spire experiment "sidegrade perks" (MetaRun.sidegrade_active()): the perk's trade-off text, shown instead.
+@export_multiline var sidegrade_description: String = ""
 @export var root: Root = Root.WARDENS
 @export var costs: Array[int] = [50]  # Seeds per level (its size = the number of levels)
 # Prerequisites: every id in `requires_all` ("id" or "id:level"), and at least
@@ -51,6 +53,10 @@ enum Root { WARDENS, DREAMS, PERKS, FORESTS }  # Limbs: Families, Cards, Perks (
 @export var random_common_cards: int = 0  # Kindling: random Common Dreams taken at run start
 @export var sprout_charges: int = 0  # Sprout Bed: free Sprouts
 @export var free_nurtures: int = 0  # First Care: free Nurture ranks
+
+# The text the node card and loadout show: the sidegrade one while sidegrade perks are on.
+func get_description() -> String:
+	return sidegrade_description if sidegrade_description != "" and MetaRun.sidegrade_active() else description
 
 func get_levels() -> int:
 	return costs.size()

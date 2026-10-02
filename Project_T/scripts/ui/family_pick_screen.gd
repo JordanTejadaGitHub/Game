@@ -30,6 +30,7 @@ const TITLES := {
 ]
 @export var cards_per_pick: int = 3
 var offer_all_first := false  # Early Bloom (set by MetaRun)
+var first_boss_pick_fewer := 0  # Sidegrade Early Bloom (MetaRun, Spire experiment): the drift 25 pick shows this many fewer
 # Memory Warden (tower_design.md): set by MetaRun when a boss whose bloom the Grove has grown is dispelled;
 # the next boss pick offers it in one of the slots (free, one per run).
 var pending_memory_warden: TowerData
@@ -88,6 +89,8 @@ func show_pick(reason: StringName = &"first") -> void:
 	var available := get_available()
 	available.shuffle()
 	var count := available.size() if reason == &"first" and offer_all_first else cards_per_pick
+	if reason == &"boss" and first_boss_pick_fewer > 0 and drift_director.drifts_started <= drift_director.drifts_per_act:
+		count = maxi(count - first_boss_pick_fewer, 1)
 	# The first pick never repeats the previous run's offer exactly (when there's a choice), so runs
 	# start differently (dream_design.md "Where Warden families come from").
 	if reason == &"first" and available.size() > count:

@@ -521,8 +521,14 @@ func get_dew_pot(number: int) -> float:
 # (Bountiful Night, Blood Moon, Dry Spell), Rich Dew (Grove dew_gain) and a Blight Dew cut. Catchers, call-early
 # Dew and rest bonuses come on top instead.
 # `with_omen` false: everything but the active Omen's factor (Dry Spell pays back what the block would have held).
+# Sidegrade perks (MetaRun, Spire experiment): Morning Stores' cost, drifts 1–5 pay less of their pot.
+var early_pot_multiplier := 1.0
+const EARLY_POT_DRIFTS := 5
+
 func get_dew_pot_multiplier(number: int, called_early: bool = false, with_omen: bool = true) -> float:
 	var multiplier := 1.0
+	if number <= EARLY_POT_DRIFTS:
+		multiplier *= maxf(early_pot_multiplier, 0.0)
 	if run_state != null:  # Rich Dew (Grove dew_gain, +5% a level): the pot, not each nightmare (run_design.md, fixed)
 		multiplier *= 1.0 + run_state.dew_gain_bonus
 	multiplier *= blight_dew_multiplier

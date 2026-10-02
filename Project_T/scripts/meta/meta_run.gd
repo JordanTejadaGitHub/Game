@@ -75,6 +75,30 @@ static func sixth_slot_dev_active() -> bool:
 		return false
 	return bool(HeartwoodMemory.get_settings().get(SIXTH_SLOT_SETTING, false))
 
+# Spire experiment "sidegrade perks" (meta_design.md, experiment/spire-difficulty): Grove perks become
+# trade-offs, not raw power. Same costs, levels and prerequisites; each carried perk keeps its upside and
+# adds a downside (SIDEGRADE_*). Developer setting "Perk style" (0 Power / 1 Sidegrade); its default is
+# Sidegrade on the Spire experiment build (project setting game/experiment "spire"), Power elsewhere.
+const PERK_STYLE_SETTING := "perk_style"
+static var force_sidegrade := -1  # Tests: 0 Power, 1 Sidegrade, -1 = the setting
+
+static func sidegrade_active() -> bool:
+	if force_sidegrade >= 0:
+		return force_sidegrade == 1
+	var default := 1 if str(ProjectSettings.get_setting("game/experiment", "")) == "spire" else 0
+	return int(HeartwoodMemory.get_settings().get(PERK_STYLE_SETTING, default)) == 1
+
+# Clear Sight's sidegrade cost, read by the map generator before the run starts: one extra ridge (like
+# Blight 9's) while it's carried. The full game only.
+static func perk_extra_ridges() -> int:
+	if not sidegrade_active() or ResultsScreen.is_demo():
+		return 0
+	var memory := HeartwoodMemory.load_data()
+	var unlock := HeartwoodMemory.get_unlock("clear_sight")
+	if unlock == null or not HeartwoodMemory.get_loadout(memory).has("clear_sight") or HeartwoodMemory.node_level(memory, unlock) == 0:
+		return 0
+	return 1
+
 # PARKED (user decision 2026-09-29, tower_design.md / meta_design.md): Memory Wardens are switched off.
 # Their blooms are left out of the Grove (HeartwoodMemory.load_grove), so none grows or shows and the
 # boss pick never offers one. Code, art and resources stay; boss first-dispels are still recorded
@@ -228,7 +252,13 @@ func _apply_grove(memory: Dictionary) -> void:
 		nurtures += unlock.free_nurtures * level
 		if unlock.early_bloom:
 			family_screen.offer_all_first = true
-	run_state.add_dew(dew)
+		if sidegrade_active():
+			dew += _apply_sidegrade(unlock.id, level)
+	if dew >= 0:
+		run_state.add_dew(dew)
+	else:  # Sidegrade Sprout Bed: less starting Dew (add_dew ignores negatives)
+		run_state.dew = maxi(run_state.dew + dew, 0)
+		run_state.dew_changed.emit(run_state.dew)
 	run_state.max_leaves += leaves
 	run_state.leaves += leaves
 	run_state.leaves_changed.emit(run_state.leaves, run_state.max_leaves)
@@ -257,6 +287,40 @@ func _apply_grove(memory: Dictionary) -> void:
 			return c.rarity == UpgradeData.Rarity.COMMON and not c.is_bittersweet() and dream_state.is_eligible(c))
 		if not commons.is_empty():
 			dream_state.take(commons.pick_random())
+
+# Sidegrade perks: the downside (and Rested Roots' bigger upside) of carried perk `id` at `level`, on top of
+# its normal effect. Returns the starting Dew it changes. Seed Pouch, Second Thoughts, Let Go, Omen Reader
+# and the slots are unchanged.
+func _apply_sidegrade(id: String, level: int) -> int:
+	match id:
+		"morning_stores":  # Drifts 1–5 pay −15% of their Dew pot per level
+			if "early_pot_multiplier" in drift_director:
+				drift_director.early_pot_multiplier -= 0.15 * level
+		"rich_dew":  # Rest bonus −10% per level
+			drift_director.rest_bonus_perk_multiplier -= 0.1 * level
+		"rested_roots":  # Rest bonus +20% per level (not +10%), Dew pot −5% per level
+			drift_director.rest_bonus_perk_multiplier += 0.1 * level
+			run_state.dew_gain_bonus -= 0.05 * level
+		"deep_taproot":  # No leaf regrows at act breaks
+			drift_director.act_break_leaves = 0
+		"sprout_bed":  # −30 starting Dew
+			return -30
+		"first_care":  # After the free ranks, Nurture costs +15% this run
+			if "nurture_perk_multiplier" in dream_state:
+				dream_state.nurture_perk_multiplier *= 1.15
+		"early_bloom":  # The drift 25 family pick shows one fewer
+			if "first_boss_pick_fewer" in family_screen:
+				family_screen.first_boss_pick_fewer += 1
+		"early_light":  # The first family pick gives no Dreamlight
+			if "first_pick_dreamlight" in dream_state:
+				dream_state.first_pick_dreamlight = 0
+		"kindling":  # The first Dream offer has 2 cards
+			if "first_offer_cards" in dream_state:
+				dream_state.first_offer_cards = 2
+		"wider_dreams":  # Let it pass gives no Dew
+			dream_state.skip_dew = 0
+		# clear_sight: one extra ridge, in the map generator (perk_extra_ridges)
+	return 0
 
 func _card(id: String) -> UpgradeData:
 	for card in dream_state.pool:
