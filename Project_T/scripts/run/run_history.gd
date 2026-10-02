@@ -13,6 +13,15 @@ const DEFAULT_PATH := "user://run_history.json"
 const MAX_RUNS := 50
 const GROUP := &"run_history"
 const SAMPLE_EVERY := 0.25  # Seconds between closest-approach samples
+# Route profiles (Balancing Discussion, user: "look where I've invested the most in the maze; it shows where most
+# nightmares die"), per block in `route_blocks`: dispels and their max health by the nightmare's route progress (the
+# `closest` measure) in ROUTE_BINS bins, leaks apart; and at each rest the Dew in Wardens (Thornwalls aside) spread
+# evenly over the route cells in each one's range ("off_route" when it covers none). `heart_share` = the share of
+# that Dew within HEART_REACH cells of the Heartwood. A heat map PNG (MAP_DIR) is saved with the record.
+const ROUTE_BINS := 10
+const HEART_REACH := 3.0
+const MAP_DIR := "user://run_maps"
+const MAP_SCALE := 12  # Pixels per cell in the heat map
 
 static var file_path := DEFAULT_PATH
 static var record_in_tests := false  # Tests may record, and only into a temp file_path
@@ -42,6 +51,8 @@ var _last_dew := 0
 var _last_dreamlight := 0
 var _omen_offers := 0
 var _saved := false
+var _route_block := {}  # This block's dispels / leaks by route bin (_new_route_block)
+var _dispel_cells := {}  # Vector2i cell -> dispels there this run (the heat map's dots)
 
 func _init(director: DriftDirector = null) -> void:
 	drift_director = director
@@ -62,7 +73,8 @@ func _ready() -> void:
 		spawner.enemy_reached_goal.connect(func(enemy: Node2D) -> void:
 			var row := _row_for(enemy)
 			if not row.is_empty():
-				row["leaks"] = int(row.get("leaks", 0)) + 1)
+				row["leaks"] = int(row.get("leaks", 0)) + 1
+			_note_leak(enemy))
 	drift_director.drift_arrived.connect(func(number: int) -> void:
 		if _open.has(number) and not _arrived.has(number):
 			_arrived[number] = true
@@ -134,8 +146,9 @@ func _start_record() -> void:
 		"close_calls": 0, "family_picks": [], "dreams_taken": [], "dreams_skipped": [], "omens": [], "clear_skies": 0,
 		"bosses": [], "dew": {"earned": 0, "plant": 0, "grow": 0, "rank": 0, "clear": 0, "other": 0, "banked_at_rest": []},
 		"wardens": {}, "ranks": {}, "attackers": 0, "top": [], "combos": {}, "reactions": {},
-		"dreamlight": {"earned": 0, "spent": 0}, "drifts": [],
+		"dreamlight": {"earned": 0, "spent": 0}, "drifts": [], "route_blocks": [], "heart_share": 0.0,
 	}
+	_route_block = _new_route_block()
 	if map != null:
 		run.seed = int(map.map_seed)
 	BuildInfo.start()  # Hashes on a thread; noted at rests and the end (_note_build)
@@ -232,31 +245,155 @@ func _flush_rows() -> void:
 
 func _on_rest_started(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
 	_flush_rows()
+	_flush_route_block(block)
 	run.dew.banked_at_rest.append([block, run_state.dew if run_state else 0])
+
+# By instance id, never a captured node: a nightmare freed the same frame made the deferred lambda log
+# "Lambda capture … was freed" (the guard inside ran too late to stop it).
+func _tag_spawned(id: int) -> void:
+	var node := instance_from_id(id) as Node
+	if node == null or _open.is_empty():  # Freed, or the rows closed before this ran (Tower Code found it)
+		return
+	var number := drift_director.drift_of(node)
+	if number <= 0 or not _open.has(number):
+		number = int(_drift.get("drift", 0)) if not _drift.is_empty() else int(_open.keys().max())
+	_origin[id] = number
+	var row: Dictionary = _open[number]
+	row["health_spawned"] = int(row.get("health_spawned", 0)) + int(node.get("max_health") if node.get("max_health") != null else 0)
 
 func _on_spawned(node: Node) -> void:
 	var data = node.get("enemy_data")
 	if not data is EnemyData or _open.is_empty():
 		return
-	(func() -> void:  # Its health and drift are set once it's in (the director tags it after spawning)
-		if not is_instance_valid(node) or _open.is_empty():  # The rows may have closed before this ran (Tower Code found it)
-			return
-		var number := drift_director.drift_of(node)
-		if number <= 0 or not _open.has(number):
-			number = int(_drift.get("drift", 0)) if not _drift.is_empty() else int(_open.keys().max())
-		_origin[node.get_instance_id()] = number
-		var row: Dictionary = _open[number]
-		row["health_spawned"] = int(row.get("health_spawned", 0)) + int(node.get("max_health") if node.get("max_health") != null else 0)
-	).call_deferred()
+	_tag_spawned.call_deferred(node.get_instance_id())  # Its health and drift are set once it's in (the director tags it after spawning)
 	if data.is_boss:
 		_boss_seen[node.get_instance_id()] = [NightmareCodex.kind_of(data), _clock, drift_director.drifts_started]
 
 func _on_dispelled(enemy: Node2D) -> void:
 	var id := enemy.get_instance_id()
+	var bin := _route_bin(enemy)
+	_route_block.dispels[bin] += 1
+	_route_block.dispel_health[bin] += float(enemy.get("max_health") if enemy.get("max_health") != null else 0)
+	var map := drift_director.get_node_or_null("%MapGenerator") as Node2D
+	if map != null:
+		var cell := Vector2i(map.MAP_GRID.calculate_grid_coordinates(map.to_local(enemy.global_position)))
+		_dispel_cells[cell] = int(_dispel_cells.get(cell, 0)) + 1
 	if _boss_seen.has(id):
 		var seen: Array = _boss_seen[id]
 		run.bosses.append({"kind": seen[0], "drift": seen[2], "dispelled": true, "seconds": snappedf(_clock - seen[1], 0.1)})
 		_boss_seen.erase(id)
+
+static func _new_route_block() -> Dictionary:
+	var zeros: Array = []
+	zeros.resize(ROUTE_BINS)
+	zeros.fill(0)
+	return {"dispels": zeros.duplicate(), "dispel_health": zeros.duplicate(), "leaked": 0, "leaked_health": 0}
+
+# Route progress (as `closest`: the share of the longest route it had left that it walked) as a bin, 0..ROUTE_BINS-1.
+func _route_bin(enemy: Node) -> int:
+	var progress := 0.0
+	if enemy.has_method("get_remaining_distance"):
+		var left: float = enemy.get_remaining_distance()
+		var longest := maxf(float(_longest.get(enemy.get_instance_id(), 0.0)), left)
+		if longest > 0.0:
+			progress = 1.0 - left / longest
+	return clampi(int(progress * ROUTE_BINS), 0, ROUTE_BINS - 1)
+
+func _note_leak(enemy: Node) -> void:
+	_route_block.leaked += 1
+	if enemy != null and is_instance_valid(enemy) and enemy.get("max_health") != null:
+		_route_block.leaked_health += int(enemy.max_health)
+
+# The Dew in Wardens now (Thornwalls aside) over the route's bins: each Warden's spread evenly over the route cells in
+# its range; "off_route" for those covering none. "heart" = the Dew of Wardens within HEART_REACH cells of the Heartwood.
+func invested_by_progress() -> Dictionary:
+	var bins: Array = []
+	bins.resize(ROUTE_BINS)
+	bins.fill(0.0)
+	var out := {"invested": bins, "off_route": 0.0, "total": 0.0, "heart": 0.0}
+	var map := drift_director.get_node_or_null("%MapGenerator") as Node2D
+	var container := drift_director.get_node_or_null("%TowerContainer")
+	if map == null or container == null:
+		return out
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var points: Array[Vector2] = []
+	for cell in route:
+		points.append(map.to_global(map.MAP_GRID.calculate_map_position(cell)))
+	var heart: Vector2 = map.to_global(map.MAP_GRID.calculate_map_position(map.endPath))
+	var cell_px: float = map.MAP_GRID.cell_size.x
+	for tower in container.get_children():
+		if not tower is Tower or tower.tower_data == null or tower.tower_data.get_id().begins_with("thornwall"):
+			continue
+		var dew := float(tower.invested_dew)
+		if dew <= 0.0:
+			continue
+		out.total += dew
+		if tower.global_position.distance_to(heart) <= HEART_REACH * cell_px + 0.5:
+			out.heart += dew
+		var reach := Tower.range_to_pixels(tower.get_range_cells())
+		var covered: Array[int] = []
+		for i in points.size():
+			if tower.global_position.distance_to(points[i]) <= reach:
+				covered.append(i)
+		if covered.is_empty():
+			out.off_route += dew
+			continue
+		for i in covered:
+			var progress := float(i) / float(maxi(points.size() - 1, 1))
+			bins[clampi(int(progress * ROUTE_BINS), 0, ROUTE_BINS - 1)] += dew / covered.size()
+	return out
+
+# The block's route profile goes into the record (at its rest, or the run's end), then a fresh one starts.
+func _flush_route_block(block: int) -> void:
+	var invested := invested_by_progress()
+	var heart_share := snappedf(invested.heart / invested.total, 0.01) if invested.total > 0.0 else 0.0
+	run.route_blocks.append({"block": block, "dispels": _route_block.dispels,
+		"dispel_health": _route_block.dispel_health.map(func(h: float) -> int: return roundi(h)),
+		"leaked": _route_block.leaked, "leaked_health": _route_block.leaked_health,
+		"invested": invested.invested.map(func(d: float) -> int: return roundi(d)), "off_route": roundi(invested.off_route),
+		"heart_share": heart_share})
+	run.heart_share = heart_share
+	_route_block = _new_route_block()
+
+# A small picture of the run's maze (Balancing: so the user can look too): Wardens' cells tinted by their Dew (gold,
+# brighter = more), the route faint, a dot per cell where nightmares were dispelled (bigger = more). Saved next to
+# the history (MAP_DIR); the record keeps the path. Palette colours only.
+func save_heat_map(path: String) -> bool:
+	var map := drift_director.get_node_or_null("%MapGenerator") as Node2D
+	var container := drift_director.get_node_or_null("%TowerContainer")
+	if map == null or container == null:
+		return false
+	var size: Vector2i = Vector2i(map.MAP_GRID.size)
+	var image := Image.create(size.x * MAP_SCALE, size.y * MAP_SCALE, false, Image.FORMAT_RGBA8)
+	image.fill(Palette.NIGHT)
+	var fill := func(cell: Vector2i, colour: Color, inset: int) -> void:
+		image.fill_rect(Rect2i(cell * MAP_SCALE + Vector2i(inset, inset), Vector2i.ONE * (MAP_SCALE - 2 * inset)), colour)
+	for cell in map.obstacles:
+		fill.call(Vector2i(cell), Palette.SHADE, 1)
+	for cell in map.get_path_from(map.startPath):
+		fill.call(Vector2i(cell), Palette.DUSK, 0)
+	var most := 1.0
+	for tower in container.get_children():
+		if tower is Tower:
+			most = maxf(most, float(tower.invested_dew))
+	for tower in container.get_children():
+		if not tower is Tower:
+			continue
+		var share := float(tower.invested_dew) / most
+		var colour := Palette.STONE if tower.tower_data.get_id().begins_with("thornwall") else Palette.BARK.lerp(Palette.GLOW, share)
+		for cell in tower.get_cells():
+			fill.call(Vector2i(cell), colour, 1)
+	fill.call(Vector2i(map.startPath), Palette.WRAITHLIGHT, 2)
+	fill.call(Vector2i(map.endPath), Palette.LEAF, 2)
+	var top := 1
+	for cell in _dispel_cells:
+		top = maxi(top, _dispel_cells[cell])
+	for cell in _dispel_cells:
+		var r := 1 + roundi(float(_dispel_cells[cell]) / top * (MAP_SCALE / 2 - 2))
+		var centre: Vector2i = cell * MAP_SCALE + Vector2i.ONE * (MAP_SCALE / 2)
+		image.fill_rect(Rect2i(centre - Vector2i(r, r), Vector2i(r, r) * 2), Palette.MOONLIGHT)
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
+	return image.save_png(path) == OK
 
 func _on_damage(event: DamageLog.Event) -> void:
 	var row := _row_for(event.enemy)
@@ -298,6 +435,13 @@ func _sort_spends() -> void:
 
 func _on_run_ended(won: bool) -> void:
 	_flush_rows()
+	if _route_block.leaked > 0 or _route_block.dispels.any(func(n: int) -> bool: return n > 0):  # A block cut short
+		_flush_route_block(ceili(drift_director.drifts_started / float(drift_director.drifts_per_block)))
+	if _may_write() and not _saved:
+		var stamp := String(run.date).replace(":", "-").replace("T", "_")
+		var map_path := "%s/run_%s_%d.png" % [MAP_DIR if file_path == DEFAULT_PATH else file_path.get_basename() + "_maps", stamp, int(run.seed)]
+		if save_heat_map(map_path):
+			run["heat_map"] = map_path
 	_note_build()
 	run.won = won
 	run.result = "won" if won else ("abandoned" if run_state.abandoned else "lost")
@@ -345,6 +489,10 @@ func load_save(data: Dictionary) -> void:
 		return
 	run = saved.duplicate(true)
 	run["resumed"] = int(run.get("resumed", 0)) + 1
+	if not run.has("route_blocks"):  # Saved before the route profiles
+		run["route_blocks"] = []
+		run["heart_share"] = 0.0
+	_route_block = _new_route_block()  # (The heat map's dots start again after a relaunch)
 	_omen_offers = int(data.get("omen_offers", 0))
 	_drift = {}
 	_open.clear()
@@ -416,6 +564,14 @@ static func report_text(record: Dictionary) -> String:
 	lines.append("Grove: %d nodes · perks %s · Dreamlight +%d / −%d" % [record.get("grove", {}).size(),
 		", ".join(record.get("perks", [])), int(record.get("dreamlight", {}).get("earned", 0)), int(record.get("dreamlight", {}).get("spent", 0))])
 	lines.append("Called early: %d drifts · %d Dew" % [int(record.get("early_calls", 0)), int(record.get("dew_call_early", 0))])
+	var join := func(values: Array) -> String: return " ".join(values.map(func(v) -> String: return str(int(v))))
+	for block in record.get("route_blocks", []):  # Route bins: start → Heartwood, tenths of the route
+		lines.append("Block %d kills by route: %s · leaked %d" % [int(block.block), join.call(block.dispels), int(block.leaked)])
+		lines.append("Block %d Dew by route: %s · off-route %d · heart %d%%" % [int(block.block), join.call(block.invested),
+			int(block.off_route), roundi(float(block.heart_share) * 100.0)])
+	if record.has("route_blocks"):
+		lines.append("Heart share: %d%% of Warden Dew within %d cells of the Heartwood%s" % [roundi(float(record.get("heart_share", 0.0)) * 100.0),
+			int(HEART_REACH), " · heat map %s" % record.heat_map if record.has("heat_map") else ""])
 	lines.append("drift,act,seconds,health_spawned,damage,leaks,leaves_lost,leaves_left,banked,closest,called_early")
 	for row in record.get("drifts", []):
 		lines.append("%d,%d,%.1f,%d,%d,%d,%d,%d,%d,%.2f,%d" % [int(row.drift), int(row.act), float(row.seconds), int(row.health_spawned),

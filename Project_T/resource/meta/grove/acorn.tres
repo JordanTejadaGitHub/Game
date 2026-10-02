@@ -6,10 +6,11 @@
 script = ExtResource("1_unlock")
 id = "acorn"
 display_name = "Acorn family"
-description = "{family:acorn} joins your {family_picks}: support and Dew."
+description = "{family:acorn} joins your {family_picks}: support and Dew. Its Dream cards join the pool: Acorn Cache, Dew Trail."
 root = 0
 costs = Array[int]([70])
 order = 6
 icon = 6
 requires_any = Array[String](["pebbling", "rootling"])
 families = Array[String](["acorn"])
+dream_cards = Array[String](["acorn_cache", "dew_trail", "dew_trail_ii"])

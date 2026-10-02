@@ -380,8 +380,13 @@ static func _looping(stream: AudioStream) -> AudioStream:
 
 # Every button clicks.
 func _on_node_added(node: Node) -> void:
-	if node is BaseButton:
-		node.pressed.connect(ui.bind(&"ui_click", -4.0))
+	# Buttons re-enter the tree when panels are re-parented or screens reopen: connect once, so there's
+	# no "already connected" error and still exactly one click per press.
+	if node is BaseButton and not node.pressed.is_connected(_click):
+		node.pressed.connect(_click)
+
+func _click() -> void:
+	ui(&"ui_click", -4.0)
 
 # Softer nightmares (Settings; HeartwoodMemory.apply_settings calls this when it changes).
 func set_softer_nightmares(on: bool) -> void:

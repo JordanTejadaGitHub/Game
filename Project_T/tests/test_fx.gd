@@ -32,7 +32,8 @@ func _run() -> void:
 			one_shots.append(node)
 	await _wait(3.0)
 	_check(one_shots.all(func(n): return not is_instance_valid(n)), "one-shot effects free themselves")
-	_check(world.get_child_count() == 0, "timed loops free themselves too (%d left)" % world.get_child_count())
+	var left := world.get_children().filter(func(n: Node) -> bool: return not n is FxCache)  # The run-long sheet cache stays
+	_check(left.is_empty(), "timed loops free themselves too (%d left)" % left.size())
 
 	# --- Anchors: lightning_rod lands on its impact point ---
 	var rod := Fx.play(&"lightning_rod", Vector2(200, 300), world, 1.0, false)

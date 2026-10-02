@@ -33,6 +33,7 @@ var _scroll := ScrollContainer.new()  # Everything between the header and the fo
 var _content: VBoxContainer
 var _footer := HBoxContainer.new()  # Sell and Close: always visible
 var _buffs_open := false  # Buffs: folded to the Total line until "Details"
+const LOCKED_FORM_TIP := WardenHeaderView.LOCKED_FORM_TIP  # A locked form's Grow tooltip
 const MAX_SHARE := 0.55  # The panel never takes more of the screen's height than this
 const TOP_CLEAR := 150.0  # Keeps clear of the Dreams row and the top-right buttons
 const BOTTOM_MARGIN := 16.0  # The panel's offset from the bottom edge
@@ -163,6 +164,8 @@ func _refresh() -> void:
 	var kin := Kinships.find(_tower)
 	if kin != null:
 		var kin_line := kin.describe(_tower)  # "Kin: Bloomcap · Slumber Rot · Blooming (3 drifts to Old Kin)"
+		if kin_line == "":
+			kin_line = kin.unbonded_reason(_tower)  # A kin in reach but bonded elsewhere: say so
 		if kin_line != "":
 			lines.append(kin_line)  # Only with kin (screens_ui.md: no "No kin. A … would form …" line)
 		var family := kin.family_bonus(data.line)
@@ -201,12 +204,10 @@ func _refresh() -> void:
 		if option[1]:
 			var grow := _tower.get_grow_cost(next)  # Ranked Wardens also pay the rank difference
 			var cost: int = grow.total
-			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
+			# The form's name and key changes first ("Thunderhead: damage 30 → 48, chains 3 → 5, range 3.0 → 3.5").
+			button.tooltip_text = tower_placer.grow_changes(_tower, next) + "\n\n" + IconInfo.format(next.description)  # {spored}-style tokens as words
 			if grow.ranks > 0:
 				button.tooltip_text += "\n\n%d Dew + %d for its rank %s." % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
-			var changes := tower_placer.grow_changes(_tower, next)
-			if changes != "":
-				button.tooltip_text += "\n\n" + changes
 			var label := "Grow" if _confirm_grow == next else "Grow into %s" % next.display_name  # Touch: the second tap grows
 			var awake := tower_placer.ascended_blocker(next)
 			if awake != "":
@@ -235,6 +236,7 @@ func _refresh() -> void:
 				button.mouse_exited.connect(tower_placer.hide_catch_preview)
 		else:
 			_locked_form_button(button, "Grow into %s" % next.display_name, next, [_tower], index)
+			continue  # Locked: no ring, no ghost
 		_preview_on(button, [[_tower, next]])
 	if _tower.can_nurture():
 		var cost := _tower.get_nurture_cost()
@@ -258,6 +260,7 @@ func _refresh() -> void:
 				var price := 0 if _free_rank() else cost
 				_priced(nurture, "Nurture to rank %s" % Tower.rank_name(_tower.rank + 1), _price(price), price, &"dew", false)
 				nurture.pressed.connect(_toggle_choices)  # Short: refuses (_refuse_nurture)
+				_rank_preview_on(nurture, [_tower], _tower.default_choice() if not _tower.needs_focus() else Tower.Focus.NONE)
 			else:
 				var choices: Array = _tower.focus_options()
 				for index in choices.size():
@@ -268,6 +271,7 @@ func _refresh() -> void:
 					button.set_meta(&"cost", 0 if _free_rank() else cost)
 					_mark_choice(button, _free_rank() or run_state.can_afford(cost))  # Picking one plays the refusal (spend_dew)
 					button.pressed.connect(_nurture_with.bind(which))
+					_rank_preview_on(button, [_tower], which)
 	elif _tower.can_be_nurtured() and _tower.rank > 0:
 		var others_can: bool = dream_state.has_method("get_max_rank") and dream_state.get_max_rank() > _tower.rank
 		if others_can and not _is_eldest(_tower):
@@ -335,11 +339,10 @@ func _refresh_group() -> void:
 			var button := _add_button("")
 			UiStyle.primary(button)
 			_grow_key(button, index)
-			button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
 			if not option[1]:
 				_locked_form_button(button, "%s → %s" % [_plural(data, towers.size()), next.display_name], next, towers, index)
-				_preview_on(button, towers.map(func(t: Tower) -> Array: return [t, next]))
-				continue
+				continue  # Locked: no ring, no ghost
+			button.tooltip_text = tower_placer.grow_changes(towers[0], next) + "\n\n" + IconInfo.format(next.description)  # As the first of them
 			# Each pays Tower.get_grow_cost (ranked ones their rank difference too).
 			var plan: Array = tower_seller.plan_grow(towers, next)
 			var affordable: int = plan[0]
@@ -380,6 +383,7 @@ func _refresh_group() -> void:
 		var cheapest_rank: int = 0 if _free_rank() else nurturable.map(func(t: Tower) -> int: return t.get_nurture_price()).min()
 		_priced(open, "Nurture %d · choose a rank" % nurturable.size(), _price(cheapest_rank), cheapest_rank, &"dew", false)  # Short: R refuses
 		open.pressed.connect(_toggle_choices)
+		_rank_preview_on(open, nurturable, Tower.Focus.NONE)
 	for index in (rank_options.size() if _choosing else 0):
 		var which: Tower.Focus = rank_options[index]
 		var cost: Array = tower_seller.full_nurture_cost(selection, which)
@@ -395,6 +399,7 @@ func _refresh_group() -> void:
 		button.pressed.connect(func() -> void:
 			_choosing = false
 			tower_seller.nurture_group(tower_seller.selection, which))
+		_rank_preview_on(button, selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_nurture()), which)
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
 	var sell := _add_footer_button("Sell %d · +%s Dew (%s)" % [selection.size(), BossDossier.thousands(refund), tower_seller.sell_key_name()])
@@ -586,17 +591,21 @@ func _grow_key(button: Button, index: int) -> void:
 # Dreamlight it's the can't-afford style (the cost in POOR) and a press refuses; not open yet (Memory Grove,
 # its branch first, drift 51) it's dim with the reason, and a press refuses too.
 func _locked_form_button(button: Button, label: String, next: TowerData, towers: Array, index: int) -> void:
-	button.tooltip_text = IconInfo.format(next.description)  # {spored}-style tokens as words
+	# No preview of a locked form (story chat 2026-10-01): the tooltip only says where it's unlocked, and a
+	# Grove-locked one stays "???", name and all, as on the Remember screen.
+	button.tooltip_text = LOCKED_FORM_TIP
 	if not dream_state.has_method("get_unlock_cost"):
 		button.text = "%s · needs a Dream" % label  # Before Dreamlight
 		button.disabled = true
 		return
 	var cost: int = dream_state.get_unlock_cost(next)
 	var blocker: String = dream_state.get_unlock_blocker(next)
+	if blocker == "Memory Grove":
+		label = label.replace(next.display_name, RememberScreen.UNKNOWN_NAME)
+		button.tooltip_text = RememberScreen.UNKNOWN_NAME
 	if blocker != "":
 		button.set_meta(&"label", label)
 		button.set_meta(&"price", blocker)
-		button.tooltip_text = TowerSeller.blocker_message(blocker) + ".\n\n" + button.tooltip_text
 		_set_short(button, true, false)  # Not a price: just the dim look
 	else:
 		_priced(button, label, "%d Dreamlight" % cost, cost, &"dreamlight", true)
@@ -618,7 +627,7 @@ func _choice_preview(tower: Tower, which: Tower.Focus) -> String:
 		Tower.Focus.REACH:
 			return "%.1f → %.1f range" % [tower.get_range_cells(), tower.get_range_cells() + Tower.FOCUS_REACH]
 		Tower.Focus.DEEP:
-			return "Potency %d%% → %d%%" % [roundi(tower.get_potency() * 100.0), roundi((tower.get_potency() + Tower.FOCUS_DEEP) * 100.0)]
+			return "Potency %d%% → %d%%" % [roundi(tower.get_potency() * 100.0), roundi((tower.get_potency() + Tower.deep_share()) * 100.0)]
 	return tower.focus_text(which)
 
 # R, then 1–4: presses the rank choice at `index` (single Warden or the group's), if it's there and affordable.
@@ -973,3 +982,13 @@ func _on_grow_refused(index: int, text: String) -> void:
 		if button is Button and button.has_meta(&"grow_index") and (index < 0 or int(button.get_meta(&"grow_index")) == index):
 			_shake(button)
 var grow_refused := 0  # Refusals so far (tests)
+
+# Nurture range preview (user: "hovering Nurture range should show the range it would go into"): pointing at
+# (or focusing, touch / controller) a Nurture button or rank choice shows each Warden's range after that rank.
+func _rank_preview_on(button: Button, towers: Array, focus: Tower.Focus) -> void:
+	var show := func() -> void: tower_placer.show_rank_preview(towers, focus)
+	button.mouse_entered.connect(show)
+	button.focus_entered.connect(show)
+	button.mouse_exited.connect(tower_placer.hide_rank_preview)
+	button.focus_exited.connect(tower_placer.hide_rank_preview)
+	button.tree_exiting.connect(tower_placer.hide_rank_preview)  # The panel rebuilt under the pointer

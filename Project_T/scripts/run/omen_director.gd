@@ -116,7 +116,46 @@ func get_schedule_modifiers(drift_number: int) -> Dictionary:
 # The Dew pot (run_design.md "The Dew pot"): the active Omen multiplies drift `number`'s pot (Bountiful Night ×2,
 # Blood Moon ×1.75, Dry Spell ×0). Added nightmares (Crowded Paths, Elder Night…) share the pot, so they add nothing.
 func get_dew_pot_multiplier(number: int) -> float:
-	return active.creature_dew_multiplier if is_active_for(number) else 1.0
+	return pot_factor(active, number) if is_active_for(number) else 1.0
+
+# How much `omen` multiplies drift `number`'s pot. Bosses ignore Omens, so on a boss drift only the escorts' half of the
+# pot (DriftDirector.POT_BOSS_SHARE to the boss) is touched.
+func pot_factor(omen: OmenData, number: int) -> float:
+	var m := omen.creature_dew_multiplier
+	if drift_director.is_boss_drift(number):
+		return 1.0 + (m - 1.0) * (1.0 - DriftDirector.POT_BOSS_SHARE)
+	return m
+
+# The block's pot with the player's own multipliers (Rich Dew, Morning Dew, Blight; never the Omen) and with the Omen
+# on top: [without, with]. Drifts already started use what they really had (called early or not).
+func block_pots(omen: OmenData, block: int) -> Array:
+	var without := 0.0
+	var with := 0.0
+	var drifts := get_block_range(block)
+	for number in range(drifts.x, drifts.y + 1):
+		var base: float = _player_pot.get(number, drift_director.get_dew_pot(number) * drift_director.get_dew_pot_multiplier(number, false, false))
+		without += base
+		with += base * pot_factor(omen, number)
+	return [without, with]
+
+# Blood Moon / Bountiful Night: the extra Dew over the block (user: "should calculate how much Dew would come from the
+# Omen"), rounded to the nearest 5.
+func estimate_extra_dew(omen: OmenData, block: int) -> int:
+	if block <= 0:
+		return 0
+	var pots := block_pots(omen, block)
+	return roundi((pots[1] - pots[0]) / 5.0) * 5
+
+# The extra Dew the active Omen's block has paid so far: the pot dispelled this block, less what it'd be without it.
+func extra_dew_so_far() -> int:
+	if active == null or active_block <= 0:
+		return 0
+	var pots := block_pots(active, active_block)
+	if pots[1] <= 0.0:
+		return 0
+	return floori(run_state.pot_earned_block * (1.0 - pots[0] / pots[1]))
+
+var _player_pot := {}  # Drift number -> its pot with the player's own multipliers, recorded as it starts (saved)
 
 func all_omens() -> Array[OmenData]:
 	return pool
@@ -156,7 +195,7 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 	var scale := _act_scale(act)
 	var share := 1.0
 	var dreams := true
-	if lost >= 0 and omen.kind != OmenData.Kind.DOUBLE_EDGED:
+	if lost >= 0 and not is_dew_prize(omen):
 		share = clampf(1.0 - REWARD_CUT_PER_LEAF * lost, 0.0, 1.0)
 		dreams = lost <= DREAM_REWARD_MAX_LOST
 	var dew := floori((roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)) * share)
@@ -191,7 +230,7 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 	if tree_seeds > 0:
 		parts.append("Withered Trees you clear this run give %d Seeds (not 1)" % (1 + tree_seeds))
 	var text := " · ".join(parts)
-	if lost > 0 and omen.kind != OmenData.Kind.DOUBLE_EDGED:  # Why it's less (the rest report and toast show it)
+	if lost > 0 and not is_dew_prize(omen):  # Why it's less (the rest report and toast show it)
 		var why := "%d %s lost" % [lost, "leaf" if lost == 1 else "leaves"]
 		text = ("%s (%d%%: %s)" % [text, roundi(share * 100), why]) if text != "" else "nothing (%s)" % why
 	return text
@@ -203,9 +242,19 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 const REWARD_RULE := "Lose no leaf in the Omen's drifts and its reward is yours in full. Each leaf lost takes a quarter of its Dew and Seeds away (4 leaves: nothing). A Dream reward stays only if you lose at most 1 leaf."
 const DOUBLE_EDGED_LINE := "No other reward: the extra Dew is the prize."
 
+# An Omen whose only prize is the extra Dew from its nightmares (Blood Moon, Bountiful Night: creature Dew above ×1 and no
+# reward of its own). Their twist is the reward: no reward bullets, never cut by leaves. A double-edged Omen with its own
+# reward (Heavy Rain's +45 Dew) lists and cuts it like any other.
+static func is_dew_prize(omen: OmenData) -> bool:
+	if omen == null or omen.creature_dew_multiplier <= 1.0:
+		return false
+	return omen.reward_dew <= 0 and omen.reward_seeds <= 0 and omen.reward_tree_seeds <= 0 and omen.reward_rare_dreams <= 0 \
+		and omen.reward_extra_dream_cards <= 0 and not omen.reward_legendary and omen.reward_pot_multiplier <= 0.0 \
+		and omen.reward_rest_bonus_multiplier <= 1.0 and omen.reward_dreamlight <= 0 and omen.reward_max_leaves <= 0
+
 func reward_sentence(omen: OmenData, act: int, block: int = 0) -> String:
-	if omen.kind == OmenData.Kind.DOUBLE_EDGED:
-		return DOUBLE_EDGED_LINE
+	if is_dew_prize(omen):
+		return ("Reward: about +%d extra Dew over these drifts." % estimate_extra_dew(omen, block)) if block > 0 else DOUBLE_EDGED_LINE
 	var parts := _reward_parts(omen, act, block, 1.0, true)
 	var scaled: Array = parts[0]
 	var dream: Array = parts[1]
@@ -238,15 +287,16 @@ func per_leaf_text(omen: OmenData, act: int, block: int = 0) -> String:
 # leaf", "A Rare+ card in your next Dream, if you lose at most 1 leaf"; double-edged: "The extra Dew is the prize".
 func reward_bullets(omen: OmenData, act: int, block: int = 0) -> Array[String]:
 	var bullets: Array[String] = []
-	if omen.kind == OmenData.Kind.DOUBLE_EDGED:
-		bullets.append("The extra Dew is the prize")
+	if is_dew_prize(omen):  # The computed extra Dew (user: "should calculate how much Dew would come from the Omen")
+		bullets.append("About +%d extra Dew over these drifts" % estimate_extra_dew(omen, block) if block > 0 else "Extra Dew from every nightmare")
 		return bullets
 	var scale := _act_scale(act)
 	var keep := ", if you lose at most 1 leaf"
 	var dew := roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)
 	if dew > 0:
 		var cut := floori(dew * REWARD_CUT_PER_LEAF)
-		bullets.append("+%d Dew, %s for each leaf you lose" % [dew, "minus %d" % cut if cut > 0 else "less"])
+		bullets.append("+%d Dew%s, %s for each leaf you lose" % [dew, " at the rest" if omen.reward_pot_multiplier > 0.0 else "",
+			"minus %d" % cut if cut > 0 else "less"])
 	elif omen.reward_pot_multiplier > 0.0:
 		bullets.append("The block's Dew back, and a quarter more, less for each leaf you lose")
 	var seeds := roundi(omen.reward_seeds * scale)
@@ -266,8 +316,10 @@ func reward_bullets(omen: OmenData, act: int, block: int = 0) -> Array[String]:
 
 # The live amount for the compact tag ("+30 Dew"), "" when the reward has no amount (Dream rewards, double-edged).
 func live_reward_text() -> String:
-	if active == null or active.kind == OmenData.Kind.DOUBLE_EDGED:
+	if active == null:
 		return ""
+	if is_dew_prize(active):  # "+120 of ~310": the extra Dew earned so far, of the estimate
+		return "+%d of ~%d" % [extra_dew_so_far(), estimate_extra_dew(active, active_block)]
 	var parts := _reward_parts(active, drift_director.get_act(maxi(drift_director.drifts_started, 1)), active_block,
 		get_reward_share(), true)
 	var scaled: Array = parts[0]
@@ -276,8 +328,10 @@ func live_reward_text() -> String:
 # What a block with `lost` leaves lost paid, in the same words (the rest report and the toast): "Reward: +30 Dew
 # (1 leaf lost).", "No reward: 4 leaves lost.", "… The Dream reward is gone."
 func paid_sentence(omen: OmenData, act: int, rest_bonus: int, lost: int, block: int) -> String:
-	if omen.kind == OmenData.Kind.DOUBLE_EDGED:
-		return "No other reward: the extra Dew was the prize."
+	if is_dew_prize(omen):  # What the block really paid on top (the pot earned, less what it'd be without the Omen)
+		var pots := block_pots(omen, block)
+		var extra := floori(run_state.pot_earned_block * (1.0 - pots[0] / pots[1])) if pots[1] > 0.0 else 0
+		return "+%d extra Dew" % extra
 	var share := clampf(1.0 - REWARD_CUT_PER_LEAF * lost, 0.0, 1.0)
 	var parts := _reward_parts(omen, act, block, share, lost <= DREAM_REWARD_MAX_LOST, rest_bonus)
 	var got: Array = parts[0] + parts[1]
@@ -509,8 +563,11 @@ func _crumble_thornwall() -> void:
 # Second Path: its Thornwall crumbles at the start of its block (once).
 func _on_drift_started(number: int) -> void:
 	if is_active_for(number) and active.reward_pot_multiplier > 0.0:
+		# Only what Dry Spell held back (a boss's half of its pot is never touched)
 		_withheld[number] = drift_director.get_dew_pot(number) \
-			* drift_director.get_dew_pot_multiplier(number, drift_director.is_calling_early(), false)
+			* drift_director.get_dew_pot_multiplier(number, drift_director.is_calling_early(), false) * (1.0 - pot_factor(active, number))
+	if is_active_for(number):
+		_player_pot[number] = drift_director.get_dew_pot(number) * drift_director.get_dew_pot_multiplier(number, drift_director.is_calling_early(), false)
 	if is_active_for(number) and active.crumble_thornwall and _crumbled_block != active_block:
 		_crumbled_block = active_block
 		_crumble_thornwall()
@@ -549,6 +606,7 @@ func choose(omen: OmenData) -> void:
 		active_block = current_offer_block
 		_leaves_lost_at_start = run_state.leaves_lost
 		_withheld.clear()
+		_player_pot.clear()
 		var drifts := get_block_range(active_block)
 		omen_started.emit(omen, drifts.x, drifts.y)
 	current_offer = []
@@ -599,21 +657,21 @@ func leaves_lost_in_block() -> int:
 
 # The share of the active Omen's reward a rest now would pay: 1.0, 0.75, 0.5, 0.25, then 0.
 func get_reward_share(lost: int = -1) -> float:
-	if active != null and active.kind == OmenData.Kind.DOUBLE_EDGED:
+	if active != null and is_dew_prize(active):
 		return 1.0
 	if lost < 0:
 		lost = leaves_lost_in_block()
 	return clampf(1.0 - REWARD_CUT_PER_LEAF * lost, 0.0, 1.0)
 
 func keeps_dream_reward(lost: int = -1) -> bool:
-	if active != null and active.kind == OmenData.Kind.DOUBLE_EDGED:
+	if active != null and is_dew_prize(active):
 		return true
 	return (leaves_lost_in_block() if lost < 0 else lost) <= DREAM_REWARD_MAX_LOST
 
 # Where the active Omen's reward stands now, for the tag's tooltip ("" with no Omen or a double-edged one):
 # "You'd get it all right now." / "You'd get 75% right now: 1 leaf lost." (+ "The Dream reward is gone.")
 func get_reward_status() -> String:
-	if active == null or active.kind == OmenData.Kind.DOUBLE_EDGED:
+	if active == null or is_dew_prize(active):
 		return ""
 	var lost := leaves_lost_in_block()
 	if lost == 0:
@@ -648,7 +706,8 @@ func get_pot_reward(omen: OmenData, block: int) -> int:
 	for number in range(drifts.x, drifts.y + 1):
 		# Started: what it would really have paid (the player's own multipliers, called early or not); still to come:
 		# today's multipliers, not called early. Never Dry Spell's own ×0.
-		pot += _withheld.get(number, drift_director.get_dew_pot(number) * drift_director.get_dew_pot_multiplier(number, false, false))
+		pot += _withheld.get(number, drift_director.get_dew_pot(number) * drift_director.get_dew_pot_multiplier(number, false, false)
+			* (1.0 - pot_factor(omen, number)))  # What it holds back (a boss's half never)
 	return roundi(pot * omen.reward_pot_multiplier)
 
 # Dry Spell: each of its drifts' real pot without the Omen (Rich Dew, Morning Dew, Call of the Wild if called early,
@@ -740,6 +799,7 @@ func to_save() -> Dictionary:
 		"crumbled_block": _crumbled_block, "locked_cells": locked_cells.map(func(c: Vector2) -> Array: return [c.x, c.y]),
 		"leaves_lost_at_start": _leaves_lost_at_start, "trampled_drift": _trampled_drift,
 		"withheld": _withheld.keys().map(func(k: int) -> Array: return [k, _withheld[k]]),
+		"player_pot": _player_pot.keys().map(func(k: int) -> Array: return [k, _player_pot[k]]),
 		"offer": current_offer.map(func(o: OmenData) -> String: return o.id), "offer_block": current_offer_block,
 		"faced": faced,
 		"rng_state": str(_rng.state)}
@@ -757,6 +817,9 @@ func load_save(data: Dictionary) -> void:
 	_withheld.clear()
 	for pair in data.get("withheld", []):
 		_withheld[int(pair[0])] = float(pair[1])
+	_player_pot.clear()
+	for pair in data.get("player_pot", []):
+		_player_pot[int(pair[0])] = float(pair[1])
 	# An offer still open at a save comes back as the Omen screen
 	current_offer = []
 	showing = false

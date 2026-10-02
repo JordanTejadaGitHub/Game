@@ -79,8 +79,32 @@ roots, with **three sections**. Each node costs Seeds and needs its parent node(
   every 3 nodes planted; tapping it plays that Memory.
 - Tap or click a node for its card and a **Plant** button (no hover needed). Pan and zoom like the
   map. A Seeds counter top left; **Start run** opens the loadout (below) first.
-- **Carried into the run** (optional, cosmetic): the in-run Heartwood sprite shows a few of the
-  player's flowers and dream-fruit, so the tree on the map reflects their progress.
+- **Carried into the run: the Heartwood you defend is your Grove** (user idea via the design hub,
+  2026-10-01; cosmetic only, no gameplay). The in-run Heartwood matches the Grove screen's tree:
+  - **Canopy stage:** it follows the Grove's canopy stages by `HeartwoodMemory.grown_share()`
+    (about 4: young → fuller → broad → great old tree), with the same silhouette, palette and
+    blossoms as the Grove art, so it reads as the same tree.
+  - **Lit nodes** (user: *"the amount of nodes unlocked with colour should match the one in game"*):
+    every planted Grove node shows as a **tiny 1–2 px glint** on the in-run
+    Heartwood, in the **same relative place** as on the Grove tree (`grove_layout.json` positions
+    scaled onto the in-run canopy and roots), coloured by limb as on the Grove screen (Families
+    green, Cards violet, Perks gold). Unplanted nodes are absent. A full tree is fully lit, so a
+    glance at the tree you defend shows your Grove.
+  - **Dream-fruit = Memories** (user via Environment Discussion, 2026-10-01): one fruit hangs on the
+    in-run Heartwood per unlocked Memory (0–10, as on the Grove tree), and darkens with leaf loss.
+  - **Readability first:** leaf loss stays just as readable at every stage (leaves dim and fall
+    **over** the blossoms), and the lights stay subtle under the Heartwood's leaf-loss dimming and
+    the close-call glow. It stays 128 px (later stages get fuller, not bigger) and keeps its fade when something is
+    behind it.
+  - **Cost:** built once at run start (one baked texture or a handful of sprites), nothing per
+    frame.
+  - **Scope:** full game only; the demo keeps a fixed tree (stage 0, 3 fruit, no glints). Dev runs (Dev Grove, Test Grove,
+    "Unlock all families") show their preset's tree. A Grove change shows from the next run.
+  - **Who builds what:** the ~4 canopy stages (in-run size) are Environment Assets' art, checked
+    against `assets/meta/` by Meta Game Asset so both trees match; the stage pick and the node lights
+    are Environment Code's (`heartwood.gd`), reading `HeartwoodMemory` (`grown_share()`,
+    `node_level()`) and `grove_layout.json`; Meta Game Code adds a helper if one is needed
+    (e.g. planted nodes with their limb and layout position).
 
 ### Section 1: Perks (bring into the game)
 
@@ -153,7 +177,7 @@ Dew gain +15%, leaves +3, rerolls 2 (3 with the "Dream of everything" milestone)
 
 ### Section 2: Families and family upgrades
 
-The starting families (Sporeling, Firefly Jar, Dewdrop) sit at the base of this limb, already grown.
+The **4 starting families** (Sporeling, Firefly Jar, Dewdrop and, since 2026-10-01, **Bellflower**) sit at the base of this limb, already grown. **Bellflower became a starting family** (user via Balancing Discussion, 2026-10-01): with 3, a fresh account's picks at drifts 1 / 25 / 50 used them all and the drift 75 pick fell back to +2 Dreamlight. Bellflower combos with all three starters (Drowsy, Static) and is mid-strength, so the stronger families stay Grove goals. Its node is a `start` node (never bought, its 60 Seeds gone); the first pick offers 3 of the 4. The demo starts with the same 4.
 Each family has three nodes stacked above it: **the family** (joins the family picks, with its
 branches), **its final forms**, **its hidden branch**.
 
@@ -164,14 +188,14 @@ branches), **its final forms**, **its hidden branch**.
 | Dewdrop | *(start)* | 50 (Monsoon, Morning Fog) | 40 (Frostfern + Hoarfrost) |
 | Pebbling | 50 (branches: Mossback, **Standing Stone**) | 50 (Boulderback, Moonstone) | 50 (Cairn + Rockslide) |
 | Rootling | 50 | 50 | 40 (Rootlight + Starcave) |
-| Bellflower | 60 (needs Pebbling or Rootling) | 50 (Lullaby Bell, Great Dreamcatcher) | 60 (Echo Hollow + Whispering Hollow) |
+| Bellflower | *(start, since 2026-10-01)* | 50 (Lullaby Bell, Great Dreamcatcher) | 60 (Echo Hollow + Whispering Hollow) |
 | Acorn | 70 (needs Pebbling or Rootling) | 50 | 60 (Graftling + Grafted Elder) |
-| Nestling | 120 (needs 2 of Pebbling / Rootling / Bellflower / Acorn) | 60 | 80 (Hummingbird Bower + Jewelwing Court; brings the on-hit cards) |
-| Whirligig | 120 (needs 2 of Pebbling / Rootling / Bellflower / Acorn) | 60 | 80 (Samara + Autumn Gale; brings the boomerang cards) |
+| Nestling | 120 (needs 2 of Pebbling / Rootling / Acorn; Bellflower dropped from the list when it became a starter, so these stay late) | 60 | 80 (Hummingbird Bower + Jewelwing Court; brings the on-hit cards) |
+| Whirligig | 120 (needs 2 of Pebbling / Rootling / Acorn) | 60 | 80 (Samara + Autumn Gale; brings the boomerang cards) |
 
-**Unlock order, by design:** the 3 starting families are the easiest to read (spores, water,
-light). Pebbling and Rootling come next (plain roles: hit hard, control). Bellflower and Acorn need
-one of those first, because sleep payoffs and support are better once you know the basics.
+**Unlock order, by design:** the starting families are the easiest to read (spores, water,
+light, and Bellflower's sleep since 2026-10-01). Pebbling and Rootling come next (plain roles: hit hard, control). Acorn needs
+one of those first, because support is better once you know the basics.
 Nestling and Whirligig are the full-game families, and **every hidden branch is a late node**
 above its family's final forms, so veterans keep finding new playstyles. Reviewed 2026-09-27
 (`tower_design.md`, "Family design rules").
@@ -180,7 +204,7 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   **this run** (`run_design.md`). A final form not yet grown here shows as *"Memory Grove"* on the
   Remember screen.
 - A family's own Dream cards (`dream_design.md`, "Cards for the new Wardens") come with its family
-  or hidden-branch node automatically.
+  or hidden-branch node automatically: **every family gets at least 2–3 of its own cards** with its family node (or the start pool). Checked 2026-10-01: only Acorn fell short (just Warm Hearth), so **Acorn Cache and Dew Trail (+ II) moved to the Acorn family node** and the empty Catchers node was removed (−50 Seeds). Build-defining support cards (Grandfather Stump, Overflowing Well, Hedgerow Roots, Golden Harvest…) stay on The Quiet Ones / Seeds.
 - **Ascension nodes** (added 2026-09-27): each family gets one more node at the top of its stack,
   **Ascension (120 Seeds)**, after its hidden branch (or its final forms where a family has no
   hidden-branch node). It makes that family's **Ascended** endgame Warden exist in runs
@@ -198,7 +222,7 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   Dreamlight on, and the starting families' finals (Thunderhead, Beacon, Puffball, …) are there
   from the first run. So:
   - The **Final forms node** column above is gone (9 nodes, ~470 Seeds). **Hidden-branch nodes now
-    need only their family** (the family node, or nothing for the starting three).
+    need only their family** (the family node, or nothing for the starting four).
   - **Stormheart's Ascension** (the Firefly Jar exception) needs nothing but its Seeds.
   - The Seeds this frees should go to the other roots or lower the tree's total; the meta chat
     rebalances (`meta_design.md` Seeds totals, Grove node data).
@@ -246,7 +270,7 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 | **The Long Way** (path length) | *Dead Wood*: Burn Back the Dead Wood (40) | *Winding Roads*: Forest's Edge (50) | **The Long Walk** (100; needs Dead Wood) · **Crossroads** (80; needs Winding Roads) |
 | **Hedgerows** (walls, holding) *(new)* | *Bitter Hedges*: Bitter Hedges, **Thornheart** (40) | — | **Briar Crown** (80) · **Rooted Nightmares** (80) |
 | **Reclaiming** (clearing) *(new)* | *Reclaimed Earth*: Reclaimed Earth, Tended Stumps, Hollow Ground (50; the "where you clear" payoffs first) | *Thorn and Bramble*: Tended Forest, Thorn Snare, Bramble Oath (70) | **Wildwood Reclaimed** (80) |
-| **The Quiet Ones** (support Wardens) | *Catchers*: Dew Trail, Acorn Cache (50; Wide Bowl merged into Dew Trail, Still Waters cut in the power pass) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, **Scented Hedge**, Many Threads (70) | **The Quiet Ones** (120) |
+| **The Quiet Ones** (support Wardens) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, **Scented Hedge**, Many Threads (70) | — (*Catchers* removed 2026-10-01: Dew Trail and Acorn Cache moved to the Acorn family node) | **The Quiet Ones** (120; needs Old Wood) |
 | **Seeds** (support and economy bets) | *Planted Promises*: Dew Bowl, Harvest Moon, Kind Canopy, Patient Roots (50) | *Deep Promises*: Deep Well, Shared Light (70) | **Golden Harvest** (120) |
 | **Bittersweet** | *Bittersweet Dreams*: Deep Sleep, Restless Dreams (60; needs any 2 other nodes) | — | **Lucid Dreaming** (80; the "dreams" Legendary: 4 cards, take 2, no Commons) |
 
@@ -273,8 +297,8 @@ Dawnbreak, Grove of Kin (2026-09-30, no combo cards in the Grove).
   new player already has a full Dream pool; this limb adds depth and big payoffs.
 - Total ≈ 3,370 Seeds as of 2026-09-30 (lean starting pool). New cards join an existing branch's bundle or start a new branch; **combo cards never go here**.
 
-**Families before the Grove fills in:** a new player has only 3 families (Sporeling, Firefly Jar,
-Dewdrop), but a run offers family picks at drift 1 and at the 25/50/75 bosses. When there are
+**Families before the Grove fills in:** a new player has only 4 families (Sporeling, Firefly Jar,
+Dewdrop, Bellflower; was 3 until 2026-10-01), but a run offers family picks at drift 1 and at the 25/50/75 bosses. When there are
 fewer than 3 new families to offer, the empty slots become **Family Blessings**: a strong boon for
 a family you already own (e.g. *"Sporeling Blessing: Sporeling family +25% soothe, evolutions 25%
 cheaper"*). So early runs deepen few families; unlocking Pebbling, Rootling, Bellflower and Acorn widens later

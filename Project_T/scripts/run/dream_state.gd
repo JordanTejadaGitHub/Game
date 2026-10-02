@@ -167,7 +167,7 @@ const PATIENT_ROOTS_HELD := 0.5
 const GOLDEN_HARVEST_PER := 0.02  # Per 100 Dew harvested / earned as interest
 const GOLDEN_HARVEST_MAX := 0.30
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
-const FIRST_PICK_DREAMLIGHT := 2  # The default for first_pick_dreamlight (2026-09-30: a final form in act 1)
+const FIRST_PICK_DREAMLIGHT := 1  # The default for first_pick_dreamlight (user 2026-10-01: 1, was 2)
 # Dreamlight with the first family pick (Blight 2 sets it to 0 via MetaRun).
 var first_pick_dreamlight := FIRST_PICK_DREAMLIGHT
 # The power pass (dream_audit.md, 2026-09-30): old save ids -> the card that absorbed them ("" = cut).
@@ -184,10 +184,7 @@ const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_fr
 	"reckless_bloom": "", "overgrowth": "", "borrowed_memory": "", "remembered_care": "", "remembered_care_ii": "",
 	"seasoned_eye": "", "many_rings": "", "big_family": "", "sudden_bloom": "", "underdog": "", "underdog_ii": "",
 	"cliffside": "", "tangled": "", "patchwork": "", "hedgerow": "", "shelter_of_stones": "", "short_roots": ""}
-const BOSS_DREAMLIGHT := 4
-# "The Heartwood wakes" (run_design.md Dreamlight sources): every rest from drift 51 frees +1 more.
-const WAKE_DREAMLIGHT := 1
-const WAKE_FROM_DRIFT := 51
+const BOSS_DREAMLIGHT := 3  # Each boss rest (user 2026-10-01: "only 3 Dreamlight every 25 drifts"; was 4, plus +1 a rest from drift 51)
 const BRANCH_DREAMLIGHT := 1  # Branch (regular or hidden), wall growth: bought with Dreamlight in a run (clarified 2026-09-30)
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
 # Ascended forms (tower_design.md): tier 4, grown from any of the family's final forms.
@@ -210,7 +207,7 @@ signal dreamlight_changed(dreamlight: int)
 # flashes, like RunState.dew_short for Dew.
 signal dreamlight_short(cost: int)
 # Dreamlight gained (never spent), for Sound: `source` &"boss", &"shard", &"glimmer", &"sapling", &"first_pick",
-# &"wake", &"card", &"omen", &"grove" (Early Light), or &"other".
+# &"card", &"omen", &"grove" (Early Light), or &"other".
 signal dreamlight_earned(amount: int, source: StringName)
 # The Eldest changed (null = the title is free). Tower Code shows its crown and panel line.
 signal eldest_changed(tower: Tower)
@@ -313,7 +310,7 @@ func _ready() -> void:
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":
-			add_dreamlight(first_pick_dreamlight, &"first_pick"))  # Act 1 can take a final form
+			add_dreamlight(first_pick_dreamlight, &"first_pick"))  # One branch early (run_design.md "Dreamlight")
 	map_generator.path_changed.connect(_update_bends)
 	var damage_log := get_node_or_null("%DamageLog")
 	if damage_log != null and damage_log.has_signal("damage_dealt"):
@@ -1449,9 +1446,8 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 	_second_wind()
 	_early_calls = 0  # Restless Night counts per block
 	_rest_rules(_perfect)
-	add_dreamlight(rest_dreamlight(drift_director.drifts_started), &"wake")
 	if is_boss_rest:
-		# The freed light: +4 Dreamlight, and the Remember screen opens before the Dream.
+		# The freed light: +3 Dreamlight, and the Remember screen opens before the Dream.
 		add_dreamlight(BOSS_DREAMLIGHT, &"boss")
 		_remember_open = true
 		remember_requested.emit(null)
@@ -2487,15 +2483,40 @@ func _sample_drift(delta: float) -> void:
 	if not _events_this_run.has(String(EVENT_CHARGED_DROWSY)) and enemies.any(func(e: Node2D) -> bool:
 			return e.statuses.has(EnemyStatuses.STATIC) and e.statuses.has(EnemyStatuses.DROWSY)):
 		note_discovery(EVENT_CHARGED_DROWSY)  # Discovery: Charged + Drowsy on one nightmare (Charged Bloom)
-	var alone := enemies.filter(func(e: Node2D) -> bool: return _is_alone(e)).size()
+	var alone := alone_share(enemies)
 	var near := enemies.filter(func(e: Node2D) -> bool: return is_near_heartwood(e)).size()
 	_drift_sums.samples += 1
 	_drift_sums.in_range += in_range
-	_drift_sums.alone += float(alone) / enemies.size()
+	_drift_sums.alone += alone
 	_drift_sums.near += float(near) / enemies.size()
 
-const DRIFT_SAMPLE_WARDENS := 20  # Attacking Wardens counted per sample (rotating)
+const DRIFT_SAMPLE_WARDENS := 8  # Attacking Wardens counted per sample (rotating; each scans its range's buckets)
+
+# Lone Hunter's share of nightmares alone (live lines and the drift sample), exact over every nightmare.
+func alone_share(enemies: Array = []) -> float:
+	if enemies.is_empty():
+		enemies = spawner.get_enemies()
+	if enemies.is_empty():
+		return 0.0
+	var alone := 0
+	for enemy in enemies:  # Exact: every nightmare (a crowded cell answers at once, see _is_alone)
+		if _is_alone(enemy):
+			alone += 1
+	return float(alone) / enemies.size()
 var _sample_cursor := 0
+
+# The sample's Warden ranges (perf: get_range_cells reads every card's rows; ranges only change on plant / grow /
+# Dreams): re-read every RANGE_REFRESH samples. Crowded Path's own count (count_in_range) stays live.
+const RANGE_REFRESH := 10
+var _range_cache := {}  # Tower instance id -> [range cells, the _range_age it was read at]
+var _range_age := 0
+
+func _sample_range(tower: Tower) -> float:
+	var entry: Array = _range_cache.get(tower.get_instance_id(), [])
+	if entry.is_empty() or _range_age - int(entry[1]) >= RANGE_REFRESH:
+		entry = [tower.get_range_cells(), _range_age]
+		_range_cache[tower.get_instance_id()] = entry
+	return float(entry[0])
 
 # Nightmares in an attacking Warden's range, averaged over a rotating slice of the attackers.
 func average_in_range() -> float:
@@ -2504,8 +2525,10 @@ func average_in_range() -> float:
 		return 0.0
 	var slice := mini(attackers.size(), DRIFT_SAMPLE_WARDENS)
 	var total := 0.0
+	_range_age += 1
 	for i in slice:
-		total += count_in_range(attackers[(_sample_cursor + i) % attackers.size()])
+		var tower: Tower = attackers[(_sample_cursor + i) % attackers.size()]
+		total += _count_near(tower.global_position, _sample_range(tower) * map_generator.MAP_GRID.cell_size.x)
 	_sample_cursor = (_sample_cursor + slice) % attackers.size()
 	return total / slice
 
@@ -2559,7 +2582,12 @@ func count_in_range(tower: Tower) -> int:
 
 # Lone Hunter: no other nightmare within 2 cells of `enemy`.
 func _is_alone(enemy: Node2D) -> bool:
-	return _count_near(enemy.global_position, LONE_HUNTER_CELLS * map_generator.MAP_GRID.cell_size.x, enemy, 1) == 0
+	# Fast path: another nightmare in its own cell is always within 2 cells (a cell's diagonal is under 1.5 cells)
+	var size: float = map_generator.MAP_GRID.cell_size.x
+	for other in _enemy_buckets().get(Vector2i((enemy.global_position / size).floor()), []):
+		if other != enemy and is_instance_valid(other) and not other.is_cleansed:
+			return false
+	return _count_near(enemy.global_position, LONE_HUNTER_CELLS * size, enemy, 1) == 0
 
 # Glimmering Hunt: a dispelled elite has a 30% chance to drop a Dreamlight shard (10 = 1 Dreamlight),
 # up to 3 Dreamlight per run from this card, apart from the Great Dreamcatcher's shards and cap.
@@ -2685,12 +2713,11 @@ func sim_dreamlight_for(kind: StringName) -> int:
 	return first_pick_dreamlight if kind == &"first" else (BOSS_DREAMLIGHT if kind == &"boss" else 0)
 
 # The rest after drift `drift`: what _on_rest_started does (rest rules, Sunlit Rest, Seedling Gift,
-# the boss's +4 Dreamlight) and a real offer. `pick.call(offer: Array) -> UpgradeData` (null = let it
+# the boss's +3 Dreamlight) and a real offer. `pick.call(offer: Array) -> UpgradeData` (null = let it
 # pass); with Lucid Dreaming it's called again with what's left. Returns the cards taken.
 func sim_rest(drift: int, pick: Callable, perfect: bool = true) -> Array[UpgradeData]:
 	_early_calls = 0
 	_rest_rules(perfect)
-	add_dreamlight(rest_dreamlight(drift))
 	if drift_director.is_boss_drift(drift):
 		add_dreamlight(sim_dreamlight_for(&"boss"))
 	if has_rule(&"sunlit_rest"):
@@ -2753,9 +2780,6 @@ func sim_family_pick(kind: StringName, pick: Callable) -> StringName:
 # --- Developer: pick any card, unlock free (demo_scope.md "Pick any card") -------------------------
 
 # Dev tools are on in a dev run (Test Grove, Unlock all families, Dev Grove) of a debug build only.
-# Dreamlight every rest after `drift` frees on its own (the boss rest's BOSS_DREAMLIGHT comes on top).
-static func rest_dreamlight(drift: int) -> int:
-	return WAKE_DREAMLIGHT if drift >= WAKE_FROM_DRIFT else 0
 
 static func dev_tools_on() -> bool:
 	return OS.is_debug_build() and MetaRun.is_dev_run()
@@ -3539,11 +3563,10 @@ func in_hollow(cell: Vector2) -> bool:
 
 
 # --- Each run draws its own pool (dream_design.md "Each run draws its own pool" -> Exact rules, 2026-09-30) ---
-# At the first offer the run draws its Dream pool: the core (basics, the cards of every family held and their
-# Blessings, Heartwood's Reach on maps with 8+ obstacles) plus 60% per rarity of everything else available
+# At the first offer the run draws its Dream pool: the core (basics, Heartwood's Reach on maps with 8+ obstacles), a seeded
+# 60% of each held family's cards (and at each later family pick: _sample_family), plus 60% per rarity of everything else available
 # (start pool + Grove + discovered), seeded with the map, with floors 12 C / 12 U / 6 R / 3 L. Taking a card adds
-# nothing; family picks add their family cards; a card discovered mid-run joins at once; Entwined cards join
-# when due. Saved with the run. On in the real game; tests and tools switch it on with run_pool_forced.
+# nothing; a card discovered mid-run joins at once; an Entwined card only if it was drawn. Saved with the run. On in the real game; tests and tools switch it on with run_pool_forced.
 const RUN_POOL_BASICS: Array[String] = ["quickened_sap", "deeper_calm", "longer_roots", "deep_roots", "thick_bark",
 	"evergreen", "morning_dew"]
 const RUN_POOL_SHARE := 0.6
@@ -3564,8 +3587,8 @@ func in_run_pool(card: UpgradeData) -> bool:
 	if run_pool.is_empty():
 		build_run_pool()
 	_add_new_family_cards()
-	if run_pool.has(card.id) or card.entwined:
-		return true
+	if run_pool.has(card.id):
+		return true  # An Entwined card sampled out gets no guaranteed slot (dream_design.md "Exact rules", 2026-10-01)
 	return _run_pool_waiting.has(card.id) and discovery_met(card)
 
 # Family cards: the Needs name exactly one family (or its Wardens), or it's that family's Blessing.
@@ -3602,14 +3625,14 @@ func build_run_pool(seed_value: int = -1) -> void:
 				or (card.id == "heartwoods_reach" and count_obstacles() >= card.min_obstacles):
 			run_pool[card.id] = true
 		elif family != "":
-			if held.has(family):
-				run_pool[card.id] = true  # Family cards come with the family (and at each later family pick)
+			pass  # Family cards: a seeded 60% joins when the family is held (_sample_family), not the core
 		elif not discovery_met(card):
 			_run_pool_waiting[card.id] = true  # Joins the moment it's discovered
 		else:
 			by_rarity.get_or_add(card.rarity, []).append(card)
 	for family in held:
 		_run_pool_families[family] = true
+		_sample_family(family)
 	for rarity in by_rarity:
 		var cards: Array = by_rarity[rarity]
 		cards.sort_custom(func(a: UpgradeData, b: UpgradeData) -> bool: return a.id < b.id)  # Same seed, same pool
@@ -3622,15 +3645,47 @@ func build_run_pool(seed_value: int = -1) -> void:
 		for k in take:
 			run_pool[cards[k].id] = true
 
-# A family picked since the pool was drawn: its cards join the core.
+# A family picked since the pool was drawn: a seeded 60% of its cards joins.
 func _add_new_family_cards() -> void:
 	for family in _held_families():
 		if _run_pool_families.has(family):
 			continue
 		_run_pool_families[family] = true
-		for card in pool:
-			if _card_family(card) == family and (card.in_start_pool or grove_cards.has(card.id)):
-				run_pool[card.id] = true
+		_sample_family(family)
+
+# A held family's cards (Needs name it or its Wardens, and its Blessing) are not core (user 2026-10-01: "there
+# shouldn't always be a family card in the pool"): a seeded RUN_POOL_SHARE per rarity joins (seed: the map seed and
+# the family id, so a run and its save draw the same), no floors, and never every card of a family with 5 or more.
+# Undiscovered ones drawn wait for their discovery like the rest.
+func _sample_family(family: String) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(map_generator.map_seed) + hash(family)
+	var by_rarity := {}
+	var total := 0
+	for card in pool:
+		if _card_family(card) != family or not (card.in_start_pool or grove_cards.has(card.id)) or _banished.has(card.id):
+			continue
+		if card.kind == UpgradeData.Kind.UNLOCK_WARDEN or card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
+			continue
+		by_rarity.get_or_add(card.rarity, []).append(card)
+		total += 1
+	var drawn: Array = []
+	for rarity in by_rarity:
+		var cards: Array = by_rarity[rarity]
+		cards.sort_custom(func(a: UpgradeData, b: UpgradeData) -> bool: return a.id < b.id)
+		for i in range(cards.size() - 1, 0, -1):
+			var j := rng.randi_range(0, i)
+			var swap = cards[i]
+			cards[i] = cards[j]
+			cards[j] = swap
+		drawn.append_array(cards.slice(0, roundi(cards.size() * RUN_POOL_SHARE)))
+	if total >= 5 and drawn.size() >= total:
+		drawn.remove_at(rng.randi_range(0, drawn.size() - 1))  # Never the whole family
+	for card in drawn:
+		if discovery_met(card):
+			run_pool[card.id] = true
+		else:
+			_run_pool_waiting[card.id] = true
 
 
 # --- Drumbeat and Overlap (cards 248–249, 2026-09-30): one more card for each Grove build branch ------------------

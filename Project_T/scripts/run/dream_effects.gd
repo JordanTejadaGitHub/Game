@@ -801,8 +801,7 @@ func _drift_line(rule: StringName, power: float) -> String:
 			var level := ds.rule_level(&"lone_hunter") if ds.has_rule(&"lone_hunter") else 0
 			var share := float(stats.get("alone", 0.0))
 			if live:
-				var enemies: Array = ds.spawner.get_enemies()
-				share = float(enemies.filter(func(e: Node2D) -> bool: return ds._is_alone(e)).size()) / maxf(enemies.size(), 1.0)
+				share = ds.alone_share()  # A rotating slice (perf)
 			return "%s: %d%% of nightmares alone · %+d%% on those" % ["Now" if live else "Last drift", roundi(share * 100),
 				roundi(DreamState.LONE_HUNTER_BONUS[level] * power * 100)]
 		&"last_stand":

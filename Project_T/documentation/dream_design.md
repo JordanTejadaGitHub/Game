@@ -78,6 +78,55 @@ matter, confirmed.
    number.
 4. ~~"Let it pass" pays less~~ **Rejected** (user: "keep skipping if we're making the cards more powerful"): Let it pass stays +15 Dew. Skipping is punished by the missing card, not by the reward.
 
+## Feeling the cards (2026-10-01)
+
+User: *"is there a way to make cards feel more meaningful and noticeable?"* → "let's try that". The
+power pass made cards bigger; this makes them **visible**: you see what a card will do before you
+take it, where it lands when you do, and what it did at the rest. Three parts, built together:
+
+**1. Impact preview on the Dream card.** Under the effect, one line in gold showing what the card
+would do to **your board right now**:
+- **Stat cards** (damage, attack speed, range): *"On your board · +22% damage on 7 Wardens"*:
+  computed by adding the card to a copy of your taken cards and comparing each Warden's stats
+  (`DreamState.get_card_effects`, the same rows the build ghost uses). The % is the DPS-weighted
+  average over the Wardens it changes.
+- **Position and condition cards** (Cozy Corners, Tended Stumps, Drumbeat, Solitude…): *"4 of your
+  Wardens qualify"*, from the same per-Warden checks.
+- **Trigger cards** (First Light, Last Breath, Flurry…): *"Triggers on all 12 attackers"* or *"on
+  your 3 area Wardens"*.
+- **Economy cards:** the number at your board now (*"+14 Dew per rest at your 140-tile path"*).
+- **Nothing yet:** *"None of your Wardens yet"* in dim ink (a card for later is still a fair pick;
+  the line just says so).
+- Cheap: computed once when the offer opens, not live. Mobile: on the card face, no hover needed.
+
+**2. The bloom when you take it.** The chosen card shrinks into its slot in the Dreams row, and
+**every Warden it affects pulses once** in the card's rarity colour with the card's icon above it
+(staggered, ~1 s total), with a toast repeating the impact line (*"Cozy Corners · 6 Wardens +30%"*).
+A card that affects nothing yet just goes to the row. Reduced motion: no fly, one soft highlight.
+Never blocks input; the rest continues at once.
+
+**3. Credit at the rest and the end.**
+- **Damage per card:** `DamageLog` credits each card for the **extra** damage it adds (on a hit
+  boosted by several cards, the bonus part is split between them in proportion to their bonuses).
+  Trigger cards are credited with the damage they cause (Last Breath's burst, Flurry's second shot).
+- **Rest report:** one line *"Dreams this block · Lingering Spores +1,840 · Cozy Corners +920 ·
+  Flurry +610"* (top 3).
+- **Non-damage cards** get their own credit where it matters: *"Morning Dew · +60 Dew"*, *"Thick
+  Bark · saved 2 leaves"*, *"Heartwood's Reach · 3 half-price clears"*.
+- **Results screen:** *"Best Dream: Lingering Spores · 18% of your damage"*, and the run report lists
+  each taken card's total.
+- **Dreams row:** tapping a card's icon shows its total so far this run.
+
+**Later, if these land well:** trigger cards flash an icon spark when they fire (throttled);
+Legendaries leave a visible signature on the map (Briar Crown's thorns glow, Nightshade tints
+poisoned nightmares violet); offered cards say *"Works with Lingering Spores"* when they combo with
+one you hold.
+
+**Owners:** Roguelite Code (the impact preview data and the card credit model in DreamState /
+DamageLog), Main (the Dream screen line, the bloom, the rest report and results lines), UI Code (the
+look: gold line, pulse, toast), Tower Code (the Warden pulse hook, if `Tower` needs one beyond the
+existing badges).
+
 ## Where Warden families come from (not Dreams)
 
 - **After drift 1:** pick 1 of 3 base Wardens, drawn **at random from every family you've
@@ -103,8 +152,17 @@ matter, confirmed.
   - **Core** (always in the run's pool):
     - the **basics**: Quickened Sap, Deeper Calm, Longer Roots, Deep Roots, Thick Bark, Evergreen,
       Morning Dew (stacking, untagged cards that every build uses);
-    - **family cards of every family you hold** (cards whose Needs name that family or one of its
-      Wardens, and its Blessing), added at each family pick;
+    - ~~family cards of every family you hold~~ **Removed 2026-10-01** (user, after a drift-35 Dream
+      of 3 family cards out of 4: *"there shouldn't always be a family card in the pool"*). Held
+      families' cards (Needs name the family or one of its Wardens, and its Blessing) are now
+      **sampled at 60% like the rest**: a family pick adds a seeded 60% of that family's cards.
+      Why: with 3–4 families held, ~10 guaranteed cards each outnumbered the 60%-sampled general
+      cards, so offers filled with family cards. Not steering (tag weighting is off, and tag
+      resonance only changes a taken card's power, never the odds; checked in `_weighted_pick`).
+      If offers still lean family-heavy, the next step is an offer rule (at least 1 general card
+      per offer), not more weighting. **Measured (cdbcbe64, drift 35, 3 families, 100 seeds):** family
+      cards are 22% of the eligible pool on a fresh profile (12% with a full Grove), **0.72 / 0.38 per
+      3-card offer**: well under the 1.5 line, so no offer rule is needed;
     - **the clearing opener** (Heartwood's Reach) on maps with 8+ obstacles, so clearing is always
       reachable.
   - **The rest** (generic and direction cards, combo cards, Legendaries) is sampled at **60%**,
@@ -131,7 +189,7 @@ matter, confirmed.
   - **Shown:** nothing new on screen. The Codex lists every card; the "Dreams this run" panel could
     later show "dreams in reach this run" (optional).
   - **Tests:** two map seeds give different pools (same seed, same pool); the floors hold on a fresh
-    profile; taking a tagged card adds **nothing** to the pool; a family pick adds its family cards;
+    profile; taking a tagged card adds **nothing** to the pool; a family pick adds a seeded 60% of its family cards (never all of them);
     19 offers on a fresh profile never show fewer than 3 cards.
   - **Targets (design hub, 2026-09-30):** a **decent build** (3+ of a package by drift 50) in
     **~50%** of runs; the **full dream build** (5+ by drift 100) in **~5%** with a full Grove and

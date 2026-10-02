@@ -94,6 +94,16 @@ func _dreamshroom() -> void:
 	_check(not far.statuses.has(EnemyStatuses.SPORED), "not 1.6 cells away")
 	FinalTwists.update(shroom, 0.5)
 	_check(near.statuses.stacks(EnemyStatuses.SPORED) == 1, "…once a second, not every frame")
+	# Balancing's nerf: stacks at half Dreamshroom's soothe, and shared, so a second Dreamshroom doesn't double it.
+	_check(absf(near.statuses.potency(EnemyStatuses.SPORED) - shroom.get_damage() * FinalTwists.DREAM_SPORES_SOOTHE * Tower.SPORE_POTENCY)
+		< 0.01 * maxf(near.statuses.potency(EnemyStatuses.SPORED), 1.0), "Dream spores apply at half Dreamshroom's soothe (%.2f)" % near.statuses.potency(EnemyStatuses.SPORED))
+	var second := _plant("dreamshroom", Vector2(5, 6))
+	FinalTwists.update(second, FinalTwists.DREAM_SPORES_EVERY)
+	_check(near.statuses.stacks(EnemyStatuses.SPORED) == 1, "a second Dreamshroom on the same sleeper doesn't puff again (shared)")
+	sleeper.statuses.tick(FinalTwists.DREAM_SPORES_EVERY)
+	FinalTwists.update(second, FinalTwists.DREAM_SPORES_EVERY)
+	_check(near.statuses.stacks(EnemyStatuses.SPORED) == 2, "a second later the sleeper puffs again")
+	second.queue_free()
 	sleeper.statuses.sleep_time = 0.0
 	near.statuses.remove(EnemyStatuses.SPORED)
 	FinalTwists.update(shroom, FinalTwists.DREAM_SPORES_EVERY)

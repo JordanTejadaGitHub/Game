@@ -18,6 +18,7 @@ const TWISTS := {
 
 const DREAM_SPORES_EVERY := 1.0  # Dreamshroom: each sleeper breathes 1 Spored a second…
 const DREAM_SPORES_REACH := 1.0  # …onto nightmares within 1 cell
+const DREAM_SPORES_SOOTHE := 0.5  # …at half Dreamshroom's soothe (Balancing: it dealt ~2.1× Puffball per Warden, 88% of it this twist)
 const LANDSLIDE_EVERY := 4  # Boulderback: every 4th hit…
 const LANDSLIDE_TILES := 2  # …rolls a boulder 2 path tiles back toward the start…
 const LANDSLIDE_SHARE := 0.6  # …hitting everything on them for 60% of the hit
@@ -137,11 +138,12 @@ static func _ring(tower: Tower, at: Vector2, colour: Color, grow := 60.0, life :
 static func _dream_spores(tower: Tower) -> void:
 	var reach := DREAM_SPORES_REACH * Tower.MAP_GRID.cell_size.x
 	for sleeper in tower.get_enemies_in_range():
-		if not sleeper.statuses.is_asleep():
-			continue
+		if not sleeper.statuses.is_asleep() or sleeper.statuses.dream_spores_cooldown > 0.0:
+			continue  # Shared (Balancing): each sleeper puffs once per DREAM_SPORES_EVERY, however many Dreamshrooms
+		sleeper.statuses.dream_spores_cooldown = DREAM_SPORES_EVERY * 0.9  # (0.9: a lone Dreamshroom's 1 s tick never misses)
 		for other in Tower.nightmares_near(tower.get_tree(), sleeper.global_position, reach):
 			if other != sleeper and not other.is_cleansed and other.global_position.distance_to(sleeper.global_position) <= reach:
-				tower._apply_one_status(other, EnemyStatuses.SPORED, 1, tower.get_damage())
+				tower._apply_one_status(other, EnemyStatuses.SPORED, 1, tower.get_damage() * DREAM_SPORES_SOOTHE)  # Half: Puffball-level stacks
 		_fx(tower, &"dream_spore_puff", sleeper.global_position, Color(Palette.BLOSSOM, 0.5), DREAM_SPORES_EVERY)  # Pink on purpose
 
 # --- Boulderback: Landslide ---------------------------------------------------------------------------

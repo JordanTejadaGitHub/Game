@@ -26,6 +26,8 @@ var map_size_pixels: Vector2  # Map size in pixels, calculated from MAP_GRID
 
 func _ready() -> void:
 	add_to_group(&"game_camera")
+	get_tree().process_frame.connect(_on_frame_started)
+	_frame_scale = Engine.time_scale
 	# Calculate map size in pixels from the grid
 	map_size_pixels = MAP_GRID.size * MAP_GRID.cell_size
 
@@ -54,10 +56,21 @@ func glide(points: PackedVector2Array, duration: float = 5.0) -> void:
 	_glide_time = 0.0
 	_glide_duration = duration
 
+var _frame_scale := 1.0  # Engine.time_scale this frame's delta was scaled by
+
+# Read when the frame starts (after the engine scaled delta): hit-stop and slow motion change time_scale
+# mid-frame, and dividing by the new tiny scale flung the camera (user: "I jump around the screen while using
+# WASD when a wave is there").
+func _on_frame_started() -> void:
+	_frame_scale = Engine.time_scale
+
+const MAX_STEP := 0.1  # Seconds: a hitch never moves the camera more than this much panning
+
 func _process(delta: float) -> void:
 	# The camera runs in real time: game speed (2×/3×) shouldn't make panning faster.
-	if Engine.time_scale > 0.0:
-		delta /= Engine.time_scale
+	if _frame_scale > 0.0:
+		delta /= _frame_scale
+	delta = minf(delta, MAX_STEP)
 	if not _glide_points.is_empty():
 		_advance_glide(delta)
 	_handle_input(delta)  # Handle WASD movement and zoom input

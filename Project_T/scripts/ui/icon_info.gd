@@ -15,7 +15,7 @@ const STATUSES := {
 	&"drowsy": ["Drowsy", "8% slower per stack. At full stacks it's {asleep}."],
 	&"spored": ["Poisoned", "Poison eats at it over time, more with every stack."],
 	&"marked": ["Exposed", "Takes 25% more from every Warden."],
-	&"static": ["Charged", "Charges build up; at 5, a free lightning bolt strikes it."],
+	&"static": ["Charged", "At 5 stacks (8 on bosses) it releases a bolt: 3× its charge as damage. Some Wardens release it sooner."],
 	&"held": ["Rooted", "Can't move for a moment."],
 	&"asleep": ["Asleep", "Stopped for 3 s, long but fragile: a big hit (10%+ of its health) wakes it."],
 	&"caught": ["Caught", "{asleep} or fully {drowsy} near a Dreamcatcher: its statuses stop wearing off."],

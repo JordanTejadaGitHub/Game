@@ -6,8 +6,8 @@ class_name CodexPanel
 # - Glossary: every term (CodexData.glossary()), grouped and searchable, with "see also" links that
 #   jump (to another term, or to a combo); bosses and late nightmares appear once met
 #   (profile nightmares_seen).
-# - Combos: those the families you can get make (CodexData.scope: the starting three + Grove
-#   families; the demo its three; dev runs all), "N more wait in the Memory Grove." for the rest;
+# - Combos: those the families you can get make (CodexData.scope: the starting four + Grove
+#   families; the demo its four; dev runs all), "N more wait in the Memory Grove." for the rest;
 #   locked ones are just "???" (no icons: they would give it away); discovered ones (ComboFeedback,
 #   profile combos_seen) show what they do, which of your Wardens apply each ingredient, and how often
 #   you've set them off. Newly covered ones wear a "New from the Grove" leaf (profile codex_covered).
@@ -16,7 +16,7 @@ class_name CodexPanel
 
 const TOWER_DIR := "res://resource/tower/"
 const ENEMY_DIR := "res://resource/enemy/"
-const START_FAMILIES := ["sporeling", "firefly_jar", "dewdrop"]
+const START_FAMILIES := CodexData.DEMO_FAMILIES  # The starting four (one list: CodexData)
 const LOCKED_COLOR := UiStyle.OFF
 const TERM_COLOR := UiStyle.LIVE
 const HIGHLIGHT := Color(UiStyle.LIVE, 0.18)
@@ -32,6 +32,15 @@ var _glossary := VBoxContainer.new()
 var _glossary_scroll := ScrollContainer.new()
 var _group_list := VBoxContainer.new()  # The glossary's groups (left pane)
 var _group := ""  # The glossary group shown ("" = the first)
+# Glossary search (user: "lags a lot when typing"): each group's cards are built once per open, the first time
+# they're shown; typing only toggles `visible`, after a short pause (SEARCH_DELAY) over cached lowercase text.
+const SEARCH_DELAY := 0.12
+var glossary_cards_built := 0  # Cards made so far (tests: typing makes none)
+var _all_groups: Array = []  # [[group, entries]] for this open
+var _sections := {}  # Group -> {nodes: [header, divider, grid], cards: {term: card}}
+var _haystacks := {}  # "group/term" -> lowercase term, definition, example and see-also
+var _none_label: Label
+var _search_timer := Timer.new()
 const GROUP_LIST_WIDTH := 230.0
 const CARD_ICON := 32.0
 const WIDE_CODEX := 1100.0  # Viewport width from which the entry cards sit in two columns
@@ -79,8 +88,17 @@ func _ready() -> void:
 	glossary_page.add_child(left)
 	_search.placeholder_text = "Search terms…"
 	_search.custom_minimum_size = Vector2(0, 40)
-	_search.text_changed.connect(func(_t: String) -> void: _build_glossary())
+	_search.text_changed.connect(func(_t: String) -> void: _search_timer.start())
+	_search.text_submitted.connect(func(_t: String) -> void:
+		_search_timer.stop()
+		_filter_glossary())
 	left.add_child(_search)
+	_search_timer.one_shot = true
+	_search_timer.wait_time = SEARCH_DELAY
+	_search_timer.ignore_time_scale = true
+	_search_timer.process_mode = Node.PROCESS_MODE_ALWAYS  # The Codex opens while paused
+	_search_timer.timeout.connect(_filter_glossary)
+	add_child(_search_timer)
 	var groups_scroll := ScrollContainer.new()
 	groups_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	groups_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -163,11 +181,11 @@ func jump(name: String) -> void:
 		_focus.call_deferred(_combos_scroll, _entries.get(String(combo.id)))
 		return
 	var group := _group_of(name)
-	if not _entries.has(name) or (group != "" and group != _group and _search.text == ""):
-		if group != "":
-			_group = group
-		_search.text = ""
-		_build_glossary()
+	if group != "":
+		_group = group
+	_search.text = ""
+	_search_timer.stop()
+	_filter_glossary()  # Shows the term's group (making its cards the first time)
 	tabs.current_tab = 0
 	_focus.call_deferred(_glossary_scroll, _entries.get(name))
 
@@ -191,36 +209,64 @@ func _find_combo(name: String) -> Dictionary:
 # match under its group's header). Jumps pick the group holding the term.
 func _build_glossary() -> void:
 	for child in _glossary.get_children():
+		_glossary.remove_child(child)
 		child.queue_free()
+	_sections.clear()
+	_haystacks.clear()
 	for key in _entries.keys():
 		if _find_combo(key).is_empty():
 			_entries.erase(key)
-	var all_groups: Array = CodexData.glossary()
+	_all_groups = CodexData.glossary()
 	var met := get_met_nightmares()
 	if not met.is_empty():
-		all_groups = all_groups + [["Nightmares you've met", met]]
-	if _group == "" or not all_groups.any(func(g: Array) -> bool: return g[0] == _group):
-		_group = all_groups[0][0]
-	_build_group_list(all_groups)
-	var query := _search.text.strip_edges().to_lower()
-	if query == "":
-		for group in all_groups:
-			if group[0] == _group:
-				_add_group(group[0], group[1])
+		_all_groups = _all_groups + [["Nightmares you've met", met]]
+	if _group == "" or not _all_groups.any(func(g: Array) -> bool: return g[0] == _group):
+		_group = _all_groups[0][0]
+	for group in _all_groups:
+		for entry in group[1]:
+			var parts: Array = [entry[0], entry[1]]
+			if entry.size() > 3:
+				parts.append(entry[3])
+			if entry.size() > 2:
+				parts.append(" ".join(entry[2]))
+			_haystacks["%s/%s" % [group[0], entry[0]]] = " ".join(parts).to_lower()
+	_build_group_list(_all_groups)
+	_none_label = Label.new()
+	_none_label.visible = false
+	_glossary.add_child(_none_label)
+	_filter_glossary()
+
+# Shows the chosen group (no search) or every match under its group's header: only `visible` changes, and a
+# group's cards are made the first time it shows.
+func _filter_glossary() -> void:
+	if _none_label == null or not is_instance_valid(_none_label):
+		_build_glossary()  # Not built yet this open (it filters at its end)
 		return
-	var groups := {}
-	for found in CodexData.search(_search.text):
-		groups.get_or_add(found[0], []).append(found[1])
-	for group in CodexData.glossary():
-		if groups.has(group[0]):
-			_add_group(group[0], groups[group[0]])
-	met = met.filter(func(e: Array) -> bool: return e[0].to_lower().contains(query) or e[1].to_lower().contains(query))
-	if not met.is_empty():
-		_add_group("Nightmares you've met", met)
-	if _glossary.get_child_count() == 0:
-		var none := Label.new()
-		none.text = "Nothing matches \"%s\"." % _search.text
-		_glossary.add_child(none)
+	var query := _search.text.strip_edges().to_lower()
+	var any := false
+	for group in _all_groups:
+		var title: String = group[0]
+		var show_all := query == "" and title == _group
+		var matches := {}
+		if query != "":
+			for entry in group[1]:
+				if _haystacks.get("%s/%s" % [title, entry[0]], "").contains(query):
+					matches[entry[0]] = true
+		var shown := show_all or not matches.is_empty()
+		if shown and not _sections.has(title):
+			_add_group(title, group[1])
+		if _sections.has(title):
+			var section: Dictionary = _sections[title]
+			for node in section.nodes:
+				node.visible = shown
+			if shown:
+				for term in section.cards:
+					section.cards[term].visible = show_all or matches.has(term)
+		any = any or shown
+	_none_label.text = "Nothing matches \"%s\"." % _search.text.strip_edges()
+	_none_label.visible = not any
+	for button in _group_list.get_children():
+		(button as Button).set_pressed_no_signal(button.get_meta(&"group", "") == _group and query == "")
 
 # The group containing `term`, or "".
 func _group_of(term: String) -> String:
@@ -247,12 +293,12 @@ func _build_group_list(all_groups: Array) -> void:
 		button.theme_type_variation = &"HudButton"
 		button.custom_minimum_size = Vector2(0, 40)
 		var name: String = group[0]
+		button.set_meta(&"group", name)
 		button.pressed.connect(func() -> void:
 			_group = name
-			if _search.text != "":
-				_search.text = ""  # text_changed rebuilds with the group shown
-			else:
-				_build_glossary())
+			_search.text = ""  # (Setting text emits no text_changed)
+			_search_timer.stop()
+			_filter_glossary())
 		_group_list.add_child(button)
 
 # A group's header (the gold thread divider) and its cards in a grid: 2 columns on wide screens.
@@ -261,21 +307,32 @@ func _add_group(title: String, entries: Array) -> void:
 	header.text = title
 	UiStyle.caps(header, 18, UiStyle.GOLD)
 	_glossary.add_child(header)
-	_glossary.add_child(HSeparator.new())  # The theme draws it as the MoonDivider thread
+	var divider := HSeparator.new()  # The theme draws it as the MoonDivider thread
+	_glossary.add_child(divider)
 	var grid := GridContainer.new()
 	grid.columns = 2 if get_viewport_rect().size.x >= WIDE_CODEX else 1
 	grid.add_theme_constant_override("h_separation", 10)
 	grid.add_theme_constant_override("v_separation", 10)
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_glossary.add_child(grid)
+	var cards := {}
 	for entry in entries:
 		var card := _entry_card(title, entry)
 		grid.add_child(card)
 		_entries[entry[0]] = card
+		cards[entry[0]] = card
+	_sections[title] = {"nodes": [header, divider, grid], "cards": cards}
+	var at := 0  # Sections made later still sit in the groups' order
+	for group in _all_groups:
+		if _sections.has(group[0]):
+			for node in _sections[group[0]].nodes:
+				_glossary.move_child(node, at)
+				at += 1
 
 # One glossary entry as a card: a 32 px icon, the term in the display font, the definition, one muted
 # example line, "See also" as gold chips; statuses and damage types add their own lines.
 func _entry_card(group: String, entry: Array) -> Control:
+	glossary_cards_built += 1
 	var term: String = entry[0]
 	var status := _status_of(term) if group == "Statuses" else &""
 	var line := _damage_line_of(term) if group == "Damage types" else ""
@@ -854,7 +911,7 @@ static func get_player_wardens() -> Array[TowerData]:
 	return result
 
 # --- Families --------------------------------------------------------------------------------------
-# The families you have (CodexData.scope: the starting three + Grove families; every family in dev
+# The families you have (CodexData.scope: the starting four + Grove families; every family in dev
 # runs): the base Warden, then its branches, final forms and Ascended form. Forms a Grove node still
 # keeps are silhouettes ("Memory Grove"); the rest are unlocked in a run with Dreamlight. Below, its
 # combos: names once discovered, "???" before; each jumps to its entry.

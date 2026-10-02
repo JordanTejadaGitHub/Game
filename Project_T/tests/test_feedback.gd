@@ -241,7 +241,32 @@ func _run() -> void:
 	codex._search.text = "dreamlight"
 	codex._build_glossary()
 	await process_frame
-	_check(codex._entries.has("Dreamlight") and not codex._entries.has("Seeds"), "the glossary search filters terms")
+	var term_shown := func(term: String) -> bool: return codex._entries.has(term) and codex._entries[term].visible and codex._entries[term].get_parent().visible
+	_check(term_shown.call("Dreamlight") and not term_shown.call("Seeds"), "the glossary search filters terms")
+	# Typing only filters (user: "the glossary seems to lag a lot when typing"): no cards made, 120 ms debounce.
+	codex.tabs.current_tab = 0
+	codex._search.text = ""
+	codex._filter_glossary()
+	codex._search.text = "e"  # A wide search: most groups' cards made once
+	codex._filter_glossary()
+	var built: int = codex.glossary_cards_built
+	var typing_ms := 0.0
+	var query := "dreamlight"
+	for i in query.length():
+		codex._search.text = query.substr(0, i + 1)
+		codex._search.text_changed.emit(codex._search.text)
+		var t0 := Time.get_ticks_usec()
+		codex._filter_glossary()  # What the debounce runs, timed per keystroke
+		typing_ms = maxf(typing_ms, (Time.get_ticks_usec() - t0) / 1000.0)
+	_check(codex.glossary_cards_built == built, "typing 10 characters makes no cards (%d → %d)" % [built, codex.glossary_cards_built])
+	print("  glossary: %.2f ms per keystroke, %d cards" % [typing_ms, built])
+	_check(typing_ms < 2.0, "a keystroke filters in under 2 ms (%.2f ms)" % typing_ms)
+	_check(not codex._search_timer.is_stopped() and is_equal_approx(codex._search_timer.wait_time, CodexPanel.SEARCH_DELAY),
+		"typing waits for a %d ms pause" % int(CodexPanel.SEARCH_DELAY * 1000))
+	codex._search.text = ""
+	codex._search_timer.stop()
+	codex._filter_glossary()
+	_check(term_shown.call("Dreamlight") or term_shown.call("Dew"), "an empty search shows the chosen group again")
 	codex.jump("Thunderclap")
 	_check(codex.tabs.current_tab == 1, "a see-also to a combo jumps to the Combos tab")
 	_check(CodexData.find_term("Tend the forest, and it will remember you.") == "" and CodexData.find_term("Wardens are walls.") == "Warden",

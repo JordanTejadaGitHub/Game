@@ -5,12 +5,15 @@ class_name EnemyStatuses
 # Wardens apply statuses; other Wardens and Dreams pay them off by reading them here.
 # Strength scales with the applying Warden's soothe (`potency`), so statuses keep up with health.
 #
-#   damp    −10% speed, 4 s                           (no stacks)
+#   damp    (Soaked) conducts: water hits +20%, 4 s; no slow    (no stacks)
 #   drowsy  −8% speed per stack, 3 s, up to 5         (bosses: up to 3)
-#   spored  soothe/s per stack = potency, 5 s, up to 8 (Driftspore raises the cap)
-#   marked  +25% soothe taken from everything, 5 s    (no stacks)
-#   static  charges; at 5 (bosses 8) a free bolt of 3× potency, then reset; −1 stack per 2 s
-#   held    can't move (Frostfern's freeze), 1 s                  (no stacks)
+#   spored  (Poisoned) 25% of the applier's hit damage per stack per second, 5 s, up to 8 (Driftspore raises the cap)
+#   marked  (Exposed) +25% damage taken from everything, 5 s    (no stacks)
+#   static  (Charged) charges; at 5 (bosses 8) a free bolt of 3× the charge potency, then reset; −1 stack per 2 s
+#   held    (Rooted) can't move (Frostfern's freeze), 1 s       (no stacks)
+# All slows together stop at SLOW_FLOOR of a nightmare's speed (elites / bosses higher); sleep and Hold
+# have cooldowns. Potency (the applier's) multiplies only effect damage (Poisoned ticks, Charged bolts,
+# Reactions: Reactions.EFFECT_TAGS in Enemy.take_damage); Soaked, Drowsy, Exposed and Rooted deal none.
 
 const DAMP := &"damp"
 const DROWSY := &"drowsy"
@@ -46,6 +49,7 @@ var is_boss := false
 var is_elite := false  # Deeply Blighted (Enemy sets it with is_boss): its own slow floor
 var slow_capped := false  # All slows together hit the floor ("Slowed to the limit" in the status UI)
 var sleep_cooldown := 0.0  # After waking, seconds before it can fall Asleep again
+var dream_spores_cooldown := 0.0  # Dreamshroom's Dream Spores: this sleeper puffed; no Dreamshroom makes it puff again yet (shared)
 var hold_cooldown := 0.0  # After a Hold ends, seconds before it can be Held again
 var _hold_just_ended := false  # The frame a Hold ran out (Snare's release-pull Hold may follow)
 const SLOW_FLOOR := 0.5
@@ -101,6 +105,7 @@ var tempest_time := 0.0
 var gust_time := 0.0
 var prism_pending := false
 var smother_ended := false
+var every_hits := {}  # Warden instance id -> hits on this nightmare (TowerData.status_every counts per nightmare)
 var veil_time := 0.0  # Morning Fog's Veil (FinalTwists): while > 0 it can't be healed (Enemy.heal reads it)
 var marked_extra := 0.0  # Beacon: its Marked is stronger (+35% instead of +25%) until Marked ends
 var marked_bonus := 0.0  # Bright Marks (Dream): added to either (the nightmare sets it each frame)
@@ -153,6 +158,11 @@ func mark_chain(count: int, towers: Array, window: float = 1.0) -> void:
 		chain_towers = towers
 	chain_time = maxf(chain_time, window)
 
+# One more hit from the Warden `key` (its instance id); returns how many it has landed on this nightmare.
+func count_hit(key: int) -> int:
+	every_hits[key] = int(every_hits.get(key, 0)) + 1
+	return every_hits[key]
+
 func is_on_cooldown(reaction: StringName) -> bool:
 	return reaction_cooldowns.get(reaction, 0.0) > 0.0
 
@@ -185,6 +195,14 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		status["line"] = line  # The strongest applier's family sets the ticks' family
 		status["source"] = source  # …and gets the credit for them
 	status.potency = maxf(status.potency, potency)
+	# Status strength (tower_design.md "Potency: effect damage and status strength"): the strongest applier's
+	# Potency while the status lasts (never a sum). Rooted's length scales with it here, capped.
+	var strength := _applier_potency(source)
+	status["strength"] = maxf(status.get("strength", 0.0), strength)
+	if id == HELD and Tower.status_potency_on and strength > 1.0:
+		var held := minf(length * strength, maxf(HELD_POTENCY_CAP, length))
+		status.time = maxf(status.time, held)
+		status["full"] = maxf(status.get("full", 0.0), held)
 	# Driftspore's higher cap sticks once reached, even if a Sporeling hits next.
 	status["cap"] = maxi(status.get("cap", 0), cap)
 	_active[id] = status
@@ -197,6 +215,26 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 			return potency * STATIC_BOLT_MULTIPLIER * _static_tick_multiplier()  # Eternal Charge: the Warden that added the last charge
 		return status.potency * STATIC_BOLT_MULTIPLIER * _static_tick_multiplier()
 	return 0.0
+
+# Caps on what Potency can make of a status (Balancing Discussion, 2026-10-01). A cap never lowers a
+# status below its base (a card that already pushes it past the cap keeps its value).
+const SOAKED_CAP := 0.40  # Water hits on a Soaked nightmare: at most +40%
+const EXPOSED_CAP := 0.40  # Damage taken while Exposed: at most +40% (Beacon's bonus inside it)
+const HELD_POTENCY_CAP := 2.0  # Seconds: the longest Potency makes a Hold
+
+func _applier_potency(source: Node) -> float:
+	return source.get_potency() if source is Tower and is_instance_valid(source) else 1.0
+
+# The strength multiplier of status `id`: its strongest applier's Potency (1.0 with the switch off,
+# Tower.status_potency_on, or with no Warden behind it).
+func strength(id: StringName) -> float:
+	if not Tower.status_potency_on:
+		return 1.0
+	return float(_active.get(id, {}).get("strength", 1.0))
+
+# Soaked's water-hit bonus with its strength (Enemy.take_damage), from `base` (+20%, more with cards).
+func soaked_bonus(base: float) -> float:
+	return minf(base * strength(DAMP), maxf(SOAKED_CAP, base))
 
 func get_max_stacks(id: StringName, override: int = 0) -> int:
 	var cap: int = override if override > 0 else DEFAULT_MAX_STACKS[id]
@@ -295,7 +333,7 @@ func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 		return 1.0
 	# Slowing belongs to Drowsy (status jobs, 2026-09-29): Damp conducts instead (Enemy.take_damage).
 	var slow := extra_slow
-	slow += DROWSY_SLOW_PER_STACK * stacks(DROWSY)
+	slow += DROWSY_SLOW_PER_STACK * stacks(DROWSY) * strength(DROWSY)  # Potency; the floors below still hold
 	if is_in_stag_aura():
 		slow += STAG_SLOW
 	if slow_time > 0.0:
@@ -310,7 +348,8 @@ func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 func get_damage_taken_multiplier() -> float:
 	var multiplier := 1.0
 	if has(MARKED):
-		multiplier += maxf(MARKED_EXTRA, marked_extra) + marked_bonus  # Bright Marks on top (Beacon too)
+		var extra := maxf(MARKED_EXTRA, marked_extra) + marked_bonus  # Bright Marks on top (Beacon too)
+		multiplier += minf(extra * strength(MARKED), maxf(EXPOSED_CAP, extra))  # Potency, capped
 	if is_in_stag_aura():
 		multiplier += STAG_EXTRA
 	if cut_stacks > 0:
@@ -346,6 +385,8 @@ func tick(delta: float) -> float:
 		veil_time = maxf(veil_time - delta, 0.0)
 	if sleep_cooldown > 0.0:
 		sleep_cooldown = maxf(sleep_cooldown - delta, 0.0)
+	if dream_spores_cooldown > 0.0:
+		dream_spores_cooldown = maxf(dream_spores_cooldown - delta, 0.0)
 	_hold_just_ended = false
 	if hold_cooldown > 0.0:
 		hold_cooldown = maxf(hold_cooldown - delta, 0.0)

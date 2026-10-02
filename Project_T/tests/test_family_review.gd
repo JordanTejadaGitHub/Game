@@ -81,6 +81,16 @@ func _test_bellflower_pulses() -> void:
 	_check(not sleepy.statuses.has(EnemyStatuses.DROWSY) and _lost(sleepy) > 0, "Bellflower's 1st pulse: damage, no Drowsy")
 	bell._release()
 	_check(sleepy.statuses.stacks(EnemyStatuses.DROWSY) == 1, "its 2nd pulse adds Drowsy")
+	_check(_rings() == 1, "the Drowsy pulse draws its pink ring (%d)" % _rings())
+	_clear_rings()
+	# Counted per nightmare (story chat 2026-10-01): one walking in on an odd pulse still gets it on its 2nd hit.
+	var late := _spawn(bell.global_position + Vector2(0, CELL))
+	bell._release()  # Pulse 3: late's 1st hit
+	_check(not late.statuses.has(EnemyStatuses.DROWSY), "a nightmare's 1st hit (the Warden's 3rd pulse): no Drowsy")
+	_check(_rings() == 0, "a pulse that brings no Drowsy draws no Drowsy ring")
+	bell._release()  # Pulse 4: late's 2nd hit
+	_check(late.statuses.stacks(EnemyStatuses.DROWSY) == 1, "its 2nd hit makes it Drowsy, though the Warden is on an odd count")
+	_check(_rings() == 1, "the Drowsy pulse draws its pink ring (%d)" % _rings())
 	await _clean()
 
 	var chime := _plant("chime_stone", Vector2(5, 5))
@@ -277,6 +287,14 @@ func _check(condition: bool, label: String) -> void:
 
 func _wait(seconds: float) -> void:
 	await create_timer(seconds, true, true).timeout
+
+func _rings() -> int:
+	return root.find_children("*", "Node2D", true, false).filter(func(n: Node) -> bool: return n is DrowsyRing and not n.is_queued_for_deletion()).size()
+
+func _clear_rings() -> void:
+	for node in root.find_children("*", "Node2D", true, false):
+		if node is DrowsyRing:
+			node.queue_free()
 
 func _lost(enemy: Node2D) -> int:
 	return enemy.max_health - enemy.health if is_instance_valid(enemy) else 0

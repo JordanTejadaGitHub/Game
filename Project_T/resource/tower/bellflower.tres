@@ -10,7 +10,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Bellflower"
-description = "A soft ringing pulse; every second pulse makes the nightmares around it Drowsy."
+description = "A soft ringing pulse; every second pulse on a nightmare makes it Drowsy."
 cost = 25
 texture = ExtResource("2_tex")
 frame_count = 8

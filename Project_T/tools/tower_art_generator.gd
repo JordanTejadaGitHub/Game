@@ -264,6 +264,8 @@ func _init() -> void:
 		for warden: String in LINES[line]:
 			var idle := _make(warden, Callable(self, "_draw_" + warden))
 			rows.append([idle, _make_attack(warden) if ATTACKS.has(warden) else null])
+			if warden in CHANNEL_WARDENS:
+				_make_channel(warden)
 		_save_line_preview(rows, PREVIEWS + line + ".png")
 	_save_attack_info()
 	_make_ranks()
@@ -291,12 +293,15 @@ func _attack_state(a: int) -> Dictionary:
 
 func _make(tower_name: String, draw: Callable) -> Image:
 	_warden_name = tower_name
-	var sheet := Image.create_empty(S * FRAMES, S, false, Image.FORMAT_RGBA8)
+	var h := _frame_h(tower_name)
+	var sheet := Image.create_empty(S * FRAMES, h, false, Image.FORMAT_RGBA8)
 	for f in FRAMES:
 		var canvas := _layer()
-		draw.call(canvas, _idle_state(f))
-		sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, 0))
-	sheet = _warden_night(_detail_pass(sheet, Vector2i(S, S)))
+		var st := _idle_state(f)
+		draw.call(canvas, st)
+		_final_extra(tower_name, canvas, st)
+		sheet.blit_rect(_tall_frame(tower_name, canvas, st), Rect2i(0, 0, S, h), Vector2i(f * S, 0))
+	sheet = _warden_night(_detail_pass(sheet, Vector2i(S, h)))
 	if NIGHT_RIM.has(tower_name):
 		_night_rim(sheet, HeartwoodPalette_color(NIGHT_RIM[tower_name]))
 	sheet.save_png(OUT + tower_name + ".png")
@@ -363,15 +368,104 @@ func _detail_pass(sheet: Image, frame: Vector2i) -> Image:
 # <name>_attack.png: the Warden's body in attack poses plus its attack effect on top.
 func _make_attack(tower_name: String) -> Image:
 	_warden_name = tower_name
-	var sheet := Image.create_empty(S * ATTACK_FRAMES, S, false, Image.FORMAT_RGBA8)
+	var h := _frame_h(tower_name)
+	var sheet := Image.create_empty(S * ATTACK_FRAMES, h, false, Image.FORMAT_RGBA8)
 	for a in ATTACK_FRAMES:
 		var canvas := _layer()
 		var st := _attack_state(a)
 		call("_draw_" + tower_name, canvas, st)
+		_final_extra(tower_name, canvas, st)
 		call("_attack_" + tower_name, canvas, st)
-		sheet.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(a * S, 0))
-	sheet = _detail_pass(sheet, Vector2i(S, S))
+		sheet.blit_rect(_tall_frame(tower_name, canvas, st), Rect2i(0, 0, S, h), Vector2i(a * S, 0))
+	sheet = _detail_pass(sheet, Vector2i(S, h))
 	sheet.save_png(OUT + tower_name + "_attack.png")
+	return sheet
+
+# Tall Wardens (64x96 frames, the body's 64x64 frame in the bottom 64 rows; the 32 rows above hold
+# what rises over it). In game: TowerData.sprite_offset (0, -16) keeps the slab on its cell, and the
+# attacks.json point stays in body-frame pixels (it's measured from the body, not the tall frame).
+const TALL_WARDENS := ["beacon", "thunderhead", "wellspring", "elf_circle", "starcave", "snugroot", "grafted_elder", "midsummer", "puffball", "monsoon"]
+const TALL_H := 96
+
+func _frame_h(tower_name: String) -> int:
+	return TALL_H if tower_name in TALL_WARDENS else S
+
+# Puts a drawn 64x64 body frame into its tall frame with the Warden's tall parts (behind and in front).
+func _tall_frame(tower_name: String, body: Image, st: Dictionary) -> Image:
+	if not tower_name in TALL_WARDENS:
+		return body
+	var frame := Image.create_empty(S, TALL_H, false, Image.FORMAT_RGBA8)
+	var back := _layer()   # tall-frame rows 0..63
+	var front := _layer()
+	call("_tall_" + tower_name, back, front, st)
+	frame.blend_rect(back, Rect2i(0, 0, S, S), Vector2i.ZERO)
+	frame.blend_rect(body, Rect2i(0, 0, S, S), Vector2i(0, TALL_H - S))
+	frame.blend_rect(front, Rect2i(0, 0, S, S), Vector2i.ZERO)
+	if has_method("_tall_full_" + tower_name):
+		call("_tall_full_" + tower_name, frame, st)  # drawn over the whole 64x96 frame
+	return frame
+
+# A thick outlined stroke straight onto a tall frame (any size), for parts spanning body and tall rows.
+func _tall_stroke(frame: Image, pts: Array, r: float, color: Color, o: Color) -> void:
+	var w := frame.get_width()
+	var h := frame.get_height()
+	var layer := Image.create_empty(w, h, false, Image.FORMAT_RGBA8)
+	for i in pts.size() - 1:
+		var a: Vector2 = pts[i]
+		var b: Vector2 = pts[i + 1]
+		var steps := int(a.distance_to(b) * 2.0) + 1
+		for s in steps + 1:
+			var p := a.lerp(b, s / float(steps))
+			for y in range(floori(p.y - r), ceili(p.y + r) + 1):
+				for x in range(floori(p.x - r), ceili(p.x + r) + 1):
+					if x >= 0 and y >= 0 and x < w and y < h and Vector2(x + 0.5, y + 0.5).distance_to(p) <= r:
+						layer.set_pixel(x, y, color)
+	for y in h:
+		for x in w:
+			if layer.get_pixel(x, y).a == 0.0:
+				continue
+			var edge := false
+			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var q := Vector2i(x, y) + d
+				if q.x < 0 or q.y < 0 or q.x >= w or q.y >= h or layer.get_pixelv(q).a == 0.0:
+					edge = true
+			frame.set_pixel(x, y, o if edge else color)
+
+# <name>_channel.png for the BEAM Wardens (Sunpetal, Midsummer): 3 frames the game ping-pongs while
+# the beam is held (TowerData.beam_sustain_texture). The code draws the beam itself, toward the
+# target in any direction, so these frames draw no ray: the flower in its release pose, glowing and
+# pouring light from the attack point (attacks.json), sparks round it on every side.
+const CHANNEL_WARDENS := ["sunpetal", "midsummer"]
+const CHANNEL_FRAMES := 3
+
+func _make_channel(tower_name: String) -> Image:
+	_warden_name = tower_name
+	var h := _frame_h(tower_name)
+	var sheet := Image.create_empty(S * CHANNEL_FRAMES, h, false, Image.FORMAT_RGBA8)
+	var at := Vector2(ATTACKS[tower_name].point)
+	for c in CHANNEL_FRAMES:
+		var canvas := _layer()
+		var st := _attack_state(RELEASE_FRAME)
+		st.f = c
+		st.power = [0.85, 1.0, 0.9][c]
+		call("_draw_" + tower_name, canvas, st)
+		_final_extra(tower_name, canvas, st)
+		# The pouring light: a bright core on the flower's face, a ring that breathes, eight short
+		# sparks round it (no direction), all warm.
+		var r: float = [2.0, 2.6, 2.3][c]
+		var core := _layer()
+		_flat_ellipse(core, at + Vector2(0.5, 0.5), Vector2(r, r), Color("#fff4a0"))
+		_stamp(canvas, core)
+		_px(canvas, int(at.x), int(at.y), Color.WHITE)
+		for k in 8:
+			var d := Vector2.from_angle(k * TAU / 8.0 + c * TAU / 24.0)
+			var len := 2 + (k + c) % 2
+			for i in range(int(r) + 2, int(r) + 2 + len):
+				_px(canvas, roundi(at.x + d.x * i), roundi(at.y + d.y * i), Color("#ffd24a") if i > int(r) + 2 else Color("#fff4a0"))
+		_warm_glow(canvas, at, Vector2(8.0 + c, 7.0 + c), c)
+		sheet.blit_rect(_tall_frame(tower_name, canvas, st), Rect2i(0, 0, S, h), Vector2i(c * S, 0))
+	sheet = _detail_pass(sheet, Vector2i(S, h))
+	sheet.save_png(OUT + tower_name + "_channel.png")
 	return sheet
 
 func _save_attack_info() -> void:
@@ -2373,7 +2467,7 @@ func _draw_monsoon(canvas: Image, st: Dictionary) -> void:
 	var mask := _draw_template_figure(canvas, st.pose, fig)
 	_water_gloss(canvas, mask, st, fig)
 	_golem_face(canvas, st, fig)
-	_cloud(canvas, Vector2(30.5, 3 + dy), 24, _ramp(["#4a5a80", "#6a7aa0", "#9aaac8", "#c8d4e8"]), Color("#1e2a48"))
+	# Its rain cloud hovers above it in the tall rows (_tall_monsoon); the rain falls past its head.
 	_rain(canvas, st, 7)
 
 func _rain(canvas: Image, st: Dictionary, n: int, color: Color = Color("#9ad4ff")) -> void:
@@ -2485,6 +2579,357 @@ func _storm_body(canvas: Image, st: Dictionary, big: bool) -> void:
 	else:
 		_cloud(canvas, Vector2(30.5, 4 + dy), 19, _ramp(["#3a3a58", "#5a5a7a", "#8a8aa8", "#b8b8d0"]), Color("#16162a"))
 
+# Thunderhead's tall rows: its cap cloud towers up into a storm column with an anvil top (narrow, about
+# Beacon's width, so it hides little of the cell above), lightning flickering inside it.
+func _tall_thunderhead(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var ramp := _ramp(["#2a2a44", "#44446a", "#6a6a90", "#9a9ac0"])
+	var o := Color("#10101e")
+	var base_y := 32.0 + 3 + dy  # the cap cloud's centre, in tall-frame rows
+	# Puffs overlapping and stepping sideways as they climb, then a wide flat anvil, lit from the top.
+	_cloud(front, Vector2(27, base_y - 7), 20, ramp, o)
+	_cloud(front, Vector2(35, base_y - 12), 19, ramp, o)
+	_cloud(front, Vector2(29, base_y - 17), 18, ramp, o)
+	var anvil := _layer()
+	_ellipse(anvil, Vector2(31, base_y - 24), Vector2(14, 4.5), _ramp(["#44446a", "#6a6a90", "#9a9ac0", "#c0c0dc"]))
+	_ellipse(anvil, Vector2(24, base_y - 22), Vector2(6, 3.5), ramp)
+	_ellipse(anvil, Vector2(39, base_y - 22), Vector2(6, 3.5), ramp)
+	_stamp(front, anvil, o)
+	var zap := Color("#fff6a0")
+	if st.attack < 0:
+		var k: int = st.f % 4
+		if k == 0:
+			_bolt(front, Vector2(26, base_y - 22), Vector2(24, base_y - 12), zap, Color("#8a8af0"), 3)
+		elif k == 2:
+			_bolt(front, Vector2(36, base_y - 20), Vector2(38, base_y - 10), zap, Color("#8a8af0"), 3)
+	for p: Vector2i in [Vector2i(22, int(base_y) - 25), Vector2i(40, int(base_y) - 24)]:
+		if (p.x + st.f) % 3 == 0:
+			_px(front, p.x, p.y, Color("#c0f0ff"))
+
+# Wellspring's tall rows: the spring shoots up out of the well on its head as a tall jet, crowned with
+# a splash, its spray arcing down either side (narrow: little of the cell above is hidden).
+func _tall_wellspring(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var top_well := 32.0 + 5 + dy  # the well's water, in tall-frame rows
+	var crest: float = 9.0 + [0.0, 1.0, 2.0, 1.0][st.f % 4]
+	var jet := _layer()
+	for y in range(int(crest), int(top_well)):
+		var w := 2.0 + (y - crest) / (top_well - crest) * 1.6
+		_flat_ellipse(jet, Vector2(30.5, y + 0.5), Vector2(w, 0.6), Color("#4c8ca4"))
+	_stamp(front, jet, Color("#2c4c5c"))
+	for y in range(int(crest) + 1, int(top_well)):
+		_px(front, 30, y, Color("#dce8f4") if (y + st.f) % 3 != 0 else Color("#9cd4fc"))
+	# The splash crown on top.
+	var crown := _layer()
+	_flat_ellipse(crown, Vector2(30.5, crest), Vector2(7.5, 3.0), Color("#9cd4fc"))
+	_flat_ellipse(crown, Vector2(24.5, crest + 3.0), Vector2(2.5, 2.0), Color("#4c8ca4"))
+	_flat_ellipse(crown, Vector2(36.5, crest + 3.0), Vector2(2.5, 2.0), Color("#4c8ca4"))
+	_stamp(front, crown, Color("#2c4c5c"))
+	_px(front, 29, int(crest) - 1, Color("#dce8f4"))
+	_px(front, 32, int(crest) - 1, Color("#dce8f4"))
+	# Spray arcing down either side.
+	for k in 10:
+		var t := fposmod(float(st.f) / st.n + k / 10.0, 1.0)
+		var side := -1.0 if k % 2 == 0 else 1.0
+		var p := Vector2(30.5 + side * (5.0 + t * 11.0), crest + 2.0 + t * t * 24.0)
+		var bead := _layer()
+		_flat_ellipse(bead, p, Vector2(1.5, 1.5), Color("#9cd4fc"))
+		_stamp(front, bead, Color("#2c4c5c"))
+		_px(front, int(p.x), int(p.y) - 1, Color("#dce8f4"))
+
+# Elf Circle's tall rows: a tall pointed leaf hat rising off its head, its tip bending over with a
+# glowing teal light hanging from it (narrow: little of the cell above is hidden).
+func _tall_elf_circle(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var base := 32.0 + 6 + dy  # the hat brim, in tall-frame rows
+	var sway: float = [0.0, 0.5, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5][st.f % 8]
+	var tip := Vector2(41 + sway, 9)
+	var hat := _layer()
+	_flat_polygon(hat, PackedVector2Array([Vector2(22, base), Vector2(27, base - 14), Vector2(32 + sway * 0.5, base - 24),
+		tip, Vector2(37 + sway * 0.5, base - 20), Vector2(36, base - 10), Vector2(40, base)]), Color(LEAF[1]))
+	for y in S:
+		for x in S:
+			if hat.get_pixel(x, y).a > 0.0 and x > 31 + (base - y) * 0.15:
+				hat.set_pixel(x, y, Color(LEAF[0]))  # its shaded side
+	_stamp(front, hat, Color("#17174d"))
+	# The leaf's midrib and a band of mushrooms round the brim.
+	_line(front, [Vector2(31, base - 1), Vector2(32 + sway * 0.5, base - 22), tip + Vector2(-1, 1)], Color(LEAF[2]))
+	for k in 4:
+		var x := 24 + k * 5
+		_px(front, x, int(base) - 1, Color("#7ff0e0"))
+		_px(front, x + 1, int(base) - 1, Color("#7ff0e0"))
+		_px(front, x, int(base) - 2, Color("#d8fff8"))
+	# The light hanging off the tip, swinging.
+	var light := Vector2i((tip + Vector2(1, 4)).round())
+	_px(front, light.x, light.y - 1, Color("#17174d"))
+	_glow_dot(front, light + Vector2i(0, 1), Color("#d8fff8"), Color("#7ff0e0"))
+
+# Starcave's tall rows: a cluster of crystal spires grown up behind it (drawn behind the body so its
+# head and shoulders sit in front), stars twinkling round their tips.
+func _tall_starcave(back: Image, front: Image, st: Dictionary) -> void:
+	var gems := _ramp(["#8a60d0", "#c0a0ff", "#f0e8ff"])
+	var o := Color("#1e120a")
+	for c: Vector4 in [Vector4(24, 50, 22, -3), Vector4(41, 50, 18, 3), Vector4(32.5, 52, 38, 0)]:
+		_prism(back, Vector2(c.x, c.y), 3.2, c.z, c.w, gems, o)
+	for k in 4:
+		var p: Vector2i = [Vector2i(32, 11), Vector2i(19, 26), Vector2i(46, 30), Vector2i(38, 18)][k]
+		if (st.f + k) % 2 == 0:
+			_sparkle(front, p, Color("#f0e8ff"))
+		else:
+			_px(front, p.x, p.y, Color("#c0a0ff"))
+
+# Snugroot's tall frame: two roots rise from the slab's back corners and arch over its head into a
+# bower (thin, so the cell above shows through), hung with blossoms; the tall rows behind are empty.
+func _tall_snugroot(back: Image, front: Image, st: Dictionary) -> void:
+	pass
+
+func _tall_full_snugroot(frame: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var root := Color("#d8c08a")
+	var o := Color("#1e160e")
+	var apex := 12 + dy
+	_tall_stroke(frame, [Vector2(8, 76), Vector2(7, 52), Vector2(10, 30), Vector2(18, apex + 8), Vector2(31, apex), Vector2(44, apex + 8), Vector2(53, 30), Vector2(56, 52), Vector2(55, 76)], 1.4, root, o)
+	# Twigs off the arch and blossoms along it.
+	for b: Vector2 in [Vector2(12, 26), Vector2(22, apex + 4), Vector2(31, apex - 1), Vector2(40, apex + 4), Vector2(51, 26), Vector2(8, 44), Vector2(56, 44)]:
+		var p := Vector2i(b)
+		frame.set_pixel(p.x, p.y - 1, Color("#6ab04a"))
+		frame.set_pixel(p.x + 1, p.y - 2, Color("#9ad86a"))
+		for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			frame.set_pixelv(p + d + Vector2i(0, 1), Color("#f4a0c0"))
+		frame.set_pixelv(p + Vector2i(0, 1), Color("#ffd24a"))
+
+# Grafted Elder's tall rows: a small grafted tree grows up out of its stump-top, its trunk splitting
+# into three compact crowns, blossom, leaf and gold (one per graft), each swaying a little.
+func _tall_grafted_elder(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var o := Color("#22160e")
+	var foot := Vector2(31, 32 + 5 + dy)  # its stump-top, in tall-frame rows
+	var fork := Vector2(31, 26 + dy)
+	var trunk := _layer()
+	_stroke(trunk, [foot, fork], 1.6, Color("#7a5234"))
+	var crowns := [[Vector2(22, 14 + dy), _ramp(["#c05080", "#f090b8", "#ffd0e4"])],
+		[Vector2(31, 9 + dy), _ramp(LEAF)],
+		[Vector2(40, 14 + dy), _ramp(["#b87a20", "#e8b040", "#ffe080"])]]
+	for c: Array in crowns:
+		_stroke(trunk, [fork, (c[0] as Vector2) + Vector2(0, 4)], 1.0, Color("#7a5234"))
+	_stamp(front, trunk, o)
+	for i in crowns.size():
+		var c: Vector2 = crowns[i][0]
+		var sway: float = [0.0, 0.5, 0.0, -0.5][(st.f + i * 2) % 4]
+		var crown := _layer()
+		_ellipse(crown, c + Vector2(sway, 0), Vector2(5.2, 4.4), crowns[i][1])
+		_ellipse(crown, c + Vector2(sway - 3, 2), Vector2(3.0, 2.6), crowns[i][1])
+		_ellipse(crown, c + Vector2(sway + 3, 2), Vector2(3.0, 2.6), crowns[i][1])
+		_stamp(front, crown, o)
+	# Twine where the grafts are bound.
+	_px(front, int(fork.x) - 1, int(fork.y) + 1, Color("#e8d8b0"))
+	_px(front, int(fork.x) + 1, int(fork.y) + 1, Color("#e8d8b0"))
+
+# Midsummer's tall rows: two tall sunflowers grown up behind it, one either side, their heads turned
+# to the light, so the final towers over Sunpetal's single bloom.
+func _tall_midsummer(back: Image, front: Image, st: Dictionary) -> void:
+	var o := Color("#1e3a14")
+	for s: Vector3 in [Vector3(12, 20, -1), Vector3(51, 13, 1)]:
+		var head := Vector2(s.x, s.y + (1.0 if st.f % 4 == 2 else 0.0))
+		var stalk := _layer()
+		_stroke(stalk, [Vector2(s.x - s.z * 3, 63), Vector2(s.x - s.z, 40), head], 1.0, Color(LEAF[1]))
+		_stamp(back, stalk, o)
+		_leaf(back, Vector2(s.x - s.z * 2, 44), Vector2(s.x - s.z * 2 - s.z * 7, 38), 2.6, _ramp(LEAF), o)
+		_petals(back, head, 13, 4.0, 10.0, 2.8, _ramp(["#f0c030", "#ffe070", "#fff4c0"]), o, float(st.f) * TAU / 96.0 + s.x)
+		var disc := _layer()
+		_flat_ellipse(disc, head, Vector2(4.2, 3.8), Color("#6a4020"))
+		_stamp(back, disc, o)
+		_px(back, int(head.x) - 1, int(head.y) - 1, Color("#8a5a2a"))
+
+# Puffball's tall rows: a giant puffball grown up out of its cap with a smaller one on top, puffing a
+# little cloud of spores from its opening each loop.
+func _tall_puffball(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var puff := _ramp(["#c8b898", "#e4d8bc", "#f6eedc", "#ffffff"])
+	var o := Color(LAVENDER[0])
+	var big := Vector2(30.5, 27 + dy)
+	_puffball(front, big, 9.5, puff, o)
+	_puffball(front, Vector2(38, 20 + dy), 4.5, puff, o)
+	# The opening on top of the big one, and the spores puffing out of it.
+	_px(front, int(big.x) - 1, int(big.y) - 8, Color("#8a7a5a"))
+	_px(front, int(big.x), int(big.y) - 8, Color("#8a7a5a"))
+	var t := fposmod(float(st.f) / st.n, 1.0)
+	for k in 5:
+		var a := k * TAU / 5.0 + t * 2.0
+		var p := Vector2(big.x - 0.5, big.y - 9) + Vector2(cos(a) * (2.0 + t * 7.0), -t * 10.0 + sin(a) * 1.5)
+		_px(front, int(p.x), int(p.y), Color("#f0eaff", 1.0 - t * 0.7))
+		if k % 2 == 0:
+			_px(front, int(p.x) + 1, int(p.y), Color("#b4a0ee", 1.0 - t * 0.7))
+
+# Monsoon's tall rows: a broad, flat rain cloud hovering above it (not Thunderhead's tall column), heavy
+# rain falling from it in slanted sheets onto the Warden.
+func _tall_monsoon(back: Image, front: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var ramp := _ramp(["#4a5a80", "#6a7aa0", "#9aaac8", "#c8d4e8"])
+	var o := Color("#1e2a48")
+	var c := Vector2(31, 14 + dy)
+	var cloud := _layer()
+	_ellipse(cloud, c, Vector2(15, 5), ramp)
+	_ellipse(cloud, c + Vector2(-8, -3), Vector2(7, 5), ramp)
+	_ellipse(cloud, c + Vector2(6, -4), Vector2(8, 6), ramp)
+	_ellipse(cloud, c + Vector2(13, 0), Vector2(5, 4), ramp)
+	_stamp(front, cloud, o)
+	for x in range(int(c.x) - 13, int(c.x) + 14):
+		if front.get_pixel(x, int(c.y) + 4).a > 0.0 and front.get_pixel(x, int(c.y) + 4) != o:
+			front.set_pixel(x, int(c.y) + 4, ramp[0])  # its dark rainy underside
+	for k in 9:
+		var x := int(c.x) - 12 + k * 3
+		var y0: int = int(c.y) + 6 + ((st.f * 4 + k * 7) % 18)
+		for i in 3:
+			_px(back, x - i / 2 - (y0 + i) / 12, y0 + i, Color("#9ad4ff", 0.9 - i * 0.2))
+
+# --- Final forms: a stronger 64x64 silhouette than their branch (grey 32 px test) ----------------
+# Drawn over the finished body (idle and attack), framing the figure so its face stays clear: a
+# wider stance, a distinct crown or prop, a different outline mass. Ten finals went tall instead
+# (TALL_WARDENS); the rest stay 64x64 and get one of these.
+
+func _final_extra(tower_name: String, canvas: Image, st: Dictionary) -> void:
+	if has_method("_final_extra_" + tower_name):
+		call("_final_extra_" + tower_name, canvas, st)
+
+# Hoarfrost: great ice spikes jutting out of both shoulders and icicles off the arms (Frostfern has
+# a few small crystals).
+func _final_extra_hoarfrost(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var ice := _ramp(["#6aa8e0", "#b4e4ff", "#f4fcff"])
+	var o := Color("#16305e")
+	for s: Vector4 in [Vector4(16, 24, 17, -10), Vector4(46, 24, 17, 10), Vector4(13, 32, 11, -8), Vector4(49, 32, 11, 8)]:
+		_prism(canvas, Vector2(s.x, s.y + dy), 3.6, s.z, s.w, ice, o)
+	for x in [19, 22, 41, 44]:
+		var len: int = 2 + (x + st.f) % 2
+		for i in len:
+			_px(canvas, x, 34 + i, Color("#b4e4ff") if i < len - 1 else Color("#f4fcff"))
+
+# Lullaby Bell: two big bells hung from the ends of its frame's crossbar, swinging out past the frame
+# (Chime Stone has thin chimes there).
+func _final_extra_lullaby_bell(canvas: Image, st: Dictionary) -> void:
+	var swing: float = [0.0, 1.0, 0.0, -1.0][st.f % 4]
+	var bronze := _ramp(["#a86a1a", "#e8b040", "#ffe080"])
+	var o := Color("#3a2410")
+	for side: int in [-1, 1]:
+		var top := Vector2(31.5 + side * 25, 15)
+		var c := top + Vector2(swing * side, 7)
+		var bell := _layer()
+		_flat_polygon(bell, PackedVector2Array([c + Vector2(-2, -5), c + Vector2(2, -5), c + Vector2(3, -1), c + Vector2(5, 4), c + Vector2(-5, 4), c + Vector2(-3, -1)]), bronze[1])
+		_ellipse(bell, c + Vector2(0, -4), Vector2(2.6, 2.0), bronze)
+		_stamp(canvas, bell, o)
+		_line(canvas, [c + Vector2(-1, -3), c + Vector2(-2, 2)], bronze[2])
+		_px(canvas, int(c.x), int(c.y) + 5, o)  # the clapper
+		_line(canvas, [top, c + Vector2(0, -6)], o)
+
+# Long Way Home: a broad-brimmed traveller's hat and a bundle slung at its side (Rootcurl is bare-headed).
+func _final_extra_long_way_home(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var o := Color("#1e160e")
+	var hat := _layer()
+	_flat_ellipse(hat, Vector2(30.5, 5.5 + dy), Vector2(15, 2.6), Color("#5c3c24"))
+	_ellipse(hat, Vector2(30.5, 2.5 + dy), Vector2(7, 3.5), _ramp(["#3a2410", "#5c3c24", "#8c5c34"]), 5.0 + dy)
+	_stamp(canvas, hat, o)
+	_line(canvas, [Vector2(24, 4 + dy), Vector2(37, 4 + dy)], Color("#e9a83c"))  # a hat band
+	_leaf(canvas, Vector2(36, 3 + dy), Vector2(41, -1 + dy), 1.6, _ramp(LEAF), o)  # a leaf tucked in it
+	var bundle := _layer()
+	_ellipse(bundle, Vector2(11, 33), Vector2(6, 5), _ramp(["#8a6a44", "#b09070", "#d0b48c"]))
+	_stamp(canvas, bundle, o)
+	_line(canvas, [Vector2(8, 30), Vector2(14, 36)], Color("#5c3c24"))
+	_line(canvas, [Vector2(11, 28), Vector2(19, 22)], Color("#5c3c24"))  # its strap
+
+# Autumn Gale: a whirl of big autumn leaves orbiting it, widening its outline (Samara holds one seed).
+func _final_extra_autumn_gale(canvas: Image, st: Dictionary) -> void:
+	var o := Color(MAPLE[0])
+	for k in 8:
+		var a: float = k * TAU / 8.0 + float(st.f) * TAU / st.n * 0.5
+		var p := Vector2(31, 20) + Vector2(cos(a) * 26.0, sin(a) * 13.0)
+		if sin(a) < -0.85:
+			continue  # the ones behind are hidden by it
+		var d := Vector2.from_angle(a + PI / 2.0 + k)
+		_leaf(canvas, p - d * 4.5, p + d * 5.0, 3.6, _ramp(["#b8662c", "#e9a83c", "#fcd47c"]), o)
+
+# Zephyr: a long scarf streaming from its neck far out to one side in the wind (Gust has none).
+func _final_extra_zephyr(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var pts: Array = []
+	for i in 9:
+		var t := i / 8.0
+		pts.append(Vector2(38 + t * 24, 16 + dy - t * 6 + sin(t * 5.0 + st.f * 0.8) * 2.0))
+	var scarf := _layer()
+	_stroke(scarf, pts, 2.3, Color("#9cd4fc"))
+	_stroke(scarf, [Vector2(22, 17 + dy), Vector2(30, 19 + dy), Vector2(39, 16 + dy)], 2.0, Color("#9cd4fc"))
+	_stamp(canvas, scarf, Color("#1e2a48"))
+	for i in range(1, pts.size(), 2):
+		var p: Vector2 = pts[i]
+		_px(canvas, int(p.x), int(p.y), Color("#4c8ca4"))  # stripes
+	var end: Vector2 = pts[pts.size() - 1]
+	for i in 3:
+		_px(canvas, int(end.x) - i, int(end.y) + 2 + i, Color("#9cd4fc"))  # the fringe
+
+# Jewelwing Court: a jewelled crown and big trumpet blossoms at the top of its bower (the Bower is bare).
+func _final_extra_jewelwing_court(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var o := Color("#12101e")
+	var crown := _layer()
+	_flat_polygon(crown, PackedVector2Array([Vector2(24, 7 + dy), Vector2(24, 2 + dy), Vector2(27, 4 + dy), Vector2(30.5, 0 + dy),
+		Vector2(34, 4 + dy), Vector2(37, 2 + dy), Vector2(37, 7 + dy)]), Color("#e9a83c"))
+	_stamp(canvas, crown, o)
+	_px(canvas, 30, 3 + dy, Color("#3ac070"))
+	_px(canvas, 26, 5 + dy, Color("#ec9cf4"))
+	_px(canvas, 35, 5 + dy, Color("#9cd4fc"))
+	for c: Vector2 in [Vector2(9, 15), Vector2(54, 15)]:
+		for k in 3:
+			var d := Vector2.from_angle(PI / 2.0 + (k - 1) * 0.7)
+			var tr := _layer()
+			_stroke(tr, [c, c + d * 6.0], 1.0, Color("#ec9cf4"))
+			_flat_ellipse(tr, c + d * 6.5, Vector2(1.8, 1.8), Color("#ec9cf4"))
+			_stamp(canvas, tr, o)
+			_px(canvas, int(c.x + d.x * 6.5), int(c.y + d.y * 6.5), Color("#fcd47c"))
+
+# Magpie's Hoard: an open treasure chest spilling coins at its right foot, opposite the coin mound
+# (the Perch has neither).
+func _final_extra_magpies_hoard(canvas: Image, st: Dictionary) -> void:
+	var o := Color("#141420")
+	var chest := _layer()
+	_round_rect(chest, Rect2i(44, 37, 15, 8), 1, Color("#8c5c34"))
+	_round_rect(chest, Rect2i(44, 31, 15, 6), 1, Color("#5c3c24"))  # the open lid, tipped back
+	_stamp(canvas, chest, o)
+	_line(canvas, [Vector2(44, 40), Vector2(58, 40)], Color("#e9a83c"))
+	_line(canvas, [Vector2(51, 37), Vector2(51, 44)], Color("#e9a83c"))
+	for p: Vector2i in [Vector2i(46, 36), Vector2i(49, 35), Vector2i(53, 36), Vector2i(56, 35), Vector2i(43, 44), Vector2i(60, 44)]:
+		_px(canvas, p.x, p.y, Color("#fcd47c"))
+		_px(canvas, p.x + 1, p.y, Color("#e9a83c"))
+	if st.f % 4 < 2:
+		_sparkle(canvas, Vector2i(52, 33), Color("#fff4dc"))
+
+# Grove Heart: a broad leafy canopy spreading over its head like a small grove (Elder Stump is bare).
+func _final_extra_grove_heart(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var o := Color("#22160e")
+	var canopy := _layer()
+	for c: Vector3 in [Vector3(17, 4, 6), Vector3(26, 1, 6.5), Vector3(36, 1, 6.5), Vector3(45, 4, 6)]:
+		_ellipse(canopy, Vector2(c.x + (st.sway if c.x > 30 else 0), c.y + dy), Vector2(c.z, c.z * 0.65), _ramp(LEAF))
+	# Keep its face clear: nothing below the brow line.
+	for y in range(EYE_TOP - 4 + dy, S):
+		for x in S:
+			canopy.set_pixel(x, y, Color(0, 0, 0, 0))
+	_stamp(canvas, canopy, o)
+	for p: Vector2i in [Vector2i(20, 2), Vector2i(31, 0), Vector2i(41, 2)]:
+		_px(canvas, p.x, p.y + dy, Color("#fcd47c"))  # blossoms in it
+
+# Beacon's crook foot, drawn after the body so the pole stands in front of the slab rock it's planted
+# beside (the rock tucked behind its base), rising out of the top of the body frame into the tall rows.
+func _final_extra_beacon(canvas: Image, st: Dictionary) -> void:
+	var o := Color("#2a1a10")
+	var staff := _layer()
+	_stroke(staff, [Vector2(BEACON_STAFF_X - 1, 45), Vector2(BEACON_STAFF_X, 20), Vector2(BEACON_STAFF_X, -2)], 0.9, Color("#8a5c34"))
+	_stamp(canvas, staff, o)
+	# Clear the stamp's outline across the top edge so the staff runs on into the tall rows.
+	for x in range(BEACON_STAFF_X - 3, BEACON_STAFF_X + 4):
+		if canvas.get_pixel(x, 0) == o:
+			canvas.set_pixel(x, 0, Color("#8a5c34") if absi(x - BEACON_STAFF_X) <= 0 else Color(0, 0, 0, 0))
+
 # Lanternmoth: an amber lantern golem with soft moth wings, feathery antennae and a warm light
 # glowing in its chest.
 func _draw_lanternmoth(canvas: Image, st: Dictionary) -> void:
@@ -2501,24 +2946,23 @@ func _moth_body(canvas: Image, st: Dictionary, beacon: bool) -> void:
 	var span := 18.0 if beacon else 16.0
 	var flap: int = st.sway
 	_draw_waystone(canvas, st, "night", beacon)
-	if beacon:
-		for k in 12:
-			if (k + st.f) % 2 == 0:
-				var d := Vector2.from_angle(k * TAU / 12.0)
-				_line(canvas, [Vector2(30.5, 8 + dy) + d * 9.0, Vector2(30.5, 8 + dy) + d * 15.0], Color("#fff4c0"))
-	_leaf(canvas, Vector2(21, 21 + dy), Vector2(21 - span + flap, 5 + dy), 7.5, wing, fig.o)
-	_leaf(canvas, Vector2(40, 21 + dy), Vector2(40 + span - flap, 4 + dy), 7.5, wing, fig.o)
-	_leaf(canvas, Vector2(22, 29 + dy), Vector2(22 - span * 0.8, 38), 5.0, wing, fig.o)
-	_leaf(canvas, Vector2(39, 29 + dy), Vector2(39 + span * 0.8, 38), 5.0, wing, fig.o)
-	for s: Vector2 in [Vector2(21 - span * 0.55 + flap * 0.5, 12 + dy), Vector2(40 + span * 0.55 - flap * 0.5, 11 + dy)]:
-		var eye := _layer()
-		_flat_ellipse(eye, s, Vector2(2.2, 2.2), Color("#5a3a2a"))
-		_flat_ellipse(eye, s, Vector2(1.2, 1.2), Color("#ffffff") if beacon else Color("#f0a040"))
-		_stamp(canvas, eye)
+	if not beacon:
+		_leaf(canvas, Vector2(21, 21 + dy), Vector2(21 - span + flap, 5 + dy), 7.5, wing, fig.o)
+		_leaf(canvas, Vector2(40, 21 + dy), Vector2(40 + span - flap, 4 + dy), 7.5, wing, fig.o)
+		_leaf(canvas, Vector2(22, 29 + dy), Vector2(22 - span * 0.8, 38), 5.0, wing, fig.o)
+		_leaf(canvas, Vector2(39, 29 + dy), Vector2(39 + span * 0.8, 38), 5.0, wing, fig.o)
+		for s: Vector2 in [Vector2(21 - span * 0.55 + flap * 0.5, 12 + dy), Vector2(40 + span * 0.55 - flap * 0.5, 11 + dy)]:
+			var eye := _layer()
+			_flat_ellipse(eye, s, Vector2(2.2, 2.2), Color("#5a3a2a"))
+			_flat_ellipse(eye, s, Vector2(1.2, 1.2), Color("#f0a040"))
+			_stamp(canvas, eye)
+	else:
+		_beacon_wings_and_crook(canvas, st, fig, wing)
 	var mask := _draw_template_figure(canvas, st.pose, fig)
 	_glass(canvas, mask, st, fig, Color("#f8d8a0"))
 	# The light in its chest, pulsing.
-	var pulse: float = 1.0 + 0.2 * sin(TAU * float(st.f) / st.n) + st.power * 0.4
+	# Beacon's light is steady and brighter; Lanternmoth's flickers.
+	var pulse: float = (1.3 + st.power * 0.3) if beacon else (1.0 + 0.2 * sin(TAU * float(st.f) / st.n) + st.power * 0.4)
 	for y in S:
 		for x in S:
 			var q := ((Vector2(x + 0.5, y + 0.5) - Vector2(30, 29 + dy)) / (Vector2(5, 6) * pulse)).length()
@@ -2537,6 +2981,72 @@ func _moth_body(canvas: Image, st: Dictionary, beacon: bool) -> void:
 		_line(canvas, [base, base + Vector2(side * 3, -2), base + Vector2(side * 6, -3)], fig.o)
 		_px(canvas, int(base.x + side * 5), int(base.y - 4), fig.c)
 	_golem_face(canvas, st, fig, Color(0, 0, 0, 0), false)
+
+# Beacon: broad, flat-spread wings with eye-spots and bands (a resting moth, not Lanternmoth's raised
+# wings), and a shepherd's crook planted beside it that lifts a big lantern high above it: Beacon is
+# a TALL Warden (64x96, see TALL_WARDENS), its light the highest point of the sprite. The crook's
+# foot is drawn here in body space; its top, the lantern and the light cone in _tall_beacon.
+const BEACON_STAFF_X := 55
+
+func _beacon_wings_and_crook(canvas: Image, st: Dictionary, fig: Dictionary, wing: Array[Color]) -> void:
+	var dy: int = st.dy
+	var flap: int = st.sway
+	var layer := _layer()
+	_leaf(layer, Vector2(21, 21 + dy), Vector2(1 + flap, 10 + dy), 9.0, wing, fig.o)
+	_leaf(layer, Vector2(40, 21 + dy), Vector2(62 - flap, 10 + dy), 9.0, wing, fig.o)
+	_leaf(layer, Vector2(22, 29 + dy), Vector2(4, 37), 6.5, wing, fig.o)
+	_leaf(layer, Vector2(39, 29 + dy), Vector2(58, 37), 6.5, wing, fig.o)
+	# Bands across the upper wings and a big eye-spot on each.
+	for side: int in [-1, 1]:
+		for b in 2:
+			var bx := 30.5 + side * (14.0 + b * 6.0)
+			for y in range(4, 26):
+				var x := int(bx + (y - 14) * 0.3 * side)
+				var c := layer.get_pixel(x, y + dy)
+				if c.a > 0.0 and c != fig.o:
+					layer.set_pixel(x, y + dy, wing[0])
+		var spot := Vector2(30.5 + side * 20.0 - side * flap * 0.5, 13 + dy)
+		var eye := _layer()
+		_flat_ellipse(eye, spot, Vector2(3.2, 2.8), Color("#5a3a2a"))
+		_flat_ellipse(eye, spot, Vector2(2.0, 1.8), Color("#fcd47c"))
+		_flat_ellipse(eye, spot, Vector2(0.8, 0.8), Color.WHITE)
+		for y in S:
+			for x in S:
+				if eye.get_pixel(x, y).a > 0.0 and layer.get_pixel(x, y).a > 0.0 and layer.get_pixel(x, y) != fig.o:
+					layer.set_pixel(x, y, eye.get_pixel(x, y))
+	canvas.blend_rect(layer, Rect2i(0, 0, S, S), Vector2i.ZERO)
+
+# Beacon's tall rows (frame y 0..63 of the 64x96 frame; the body frame starts at y 32): the crook's top
+# hooking over, the big lantern hanging from it, and a soft cone of light falling towards the moth.
+const BEACON_LAMP := Vector2(46, 15)
+
+func _tall_beacon(back: Image, front: Image, st: Dictionary) -> void:
+	var o := Color("#2a1a10")
+	var bright: bool = st.f % 4 < 2 or st.power > 0.5
+	# The light cone (behind the moth), in alpha steps.
+	for y in range(int(BEACON_LAMP.y) + 5, 46):
+		var half := (y - BEACON_LAMP.y - 2) * 0.5
+		for x in range(int(BEACON_LAMP.x - half), int(BEACON_LAMP.x + half) + 1):
+			if x >= 0 and x < S:
+				back.set_pixel(x, y, Color("#fcd47c", snappedf(0.3 * (1.0 - (y - BEACON_LAMP.y) / 32.0), 0.04)))
+	var staff := _layer()
+	_stroke(staff, [Vector2(BEACON_STAFF_X, 64), Vector2(BEACON_STAFF_X, 8), Vector2(BEACON_STAFF_X - 1, 4),
+		Vector2(BEACON_STAFF_X - 4, 2), Vector2(BEACON_LAMP.x + 1, 3), Vector2(BEACON_LAMP.x, 6)], 0.9, Color("#8a5c34"))
+	_stamp(front, staff, o)
+	var lamp := _layer()
+	_round_rect(lamp, Rect2i(int(BEACON_LAMP.x) - 4, int(BEACON_LAMP.y) - 6, 9, 11), 2, Color("#e9a83c"))
+	_stamp(front, lamp, o)
+	# Glass panes, the steady flame, the cap and a little ring it hangs from.
+	_round_rect(front, Rect2i(int(BEACON_LAMP.x) - 2, int(BEACON_LAMP.y) - 4, 5, 7), 1, Color("#fff4dc"))
+	_round_rect(front, Rect2i(int(BEACON_LAMP.x) - 1, int(BEACON_LAMP.y) - 2, 3, 4), 0, Color.WHITE if bright else Color("#fcd47c"))
+	_line(front, [BEACON_LAMP + Vector2(-4, -7), BEACON_LAMP + Vector2(4, -7)], Color("#5c3c24"))
+	_line(front, [BEACON_LAMP + Vector2(-3, -8), BEACON_LAMP + Vector2(3, -8)], Color("#5c3c24"))
+	_px(front, int(BEACON_LAMP.x), int(BEACON_LAMP.y) - 9, o)
+	_warm_glow(front, BEACON_LAMP, Vector2(8, 8), st.f)
+	# Motes rising off the light.
+	for k in 3:
+		var t := fposmod(float(st.f) / st.n + k / 3.0, 1.0)
+		_px(front, int(BEACON_LAMP.x) - 4 + k * 4, int(BEACON_LAMP.y - 9 - t * 8), Color("#fff4dc", 1.0 - t))
 
 # Sunpetal (hidden branch): a sunflower golem, a slowly turning ring of petals round its seed-disc
 # face, leaves on its arms.
@@ -3145,7 +3655,17 @@ func _fairy_body(canvas: Image, st: Dictionary, elf: bool) -> void:
 		_px(canvas, x, y - 2, fig.o)
 		_px(canvas, x - 1, y - 1, cap.lightened(0.35))
 	if elf:
-		_leaf(canvas, Vector2(30.5, 6 + dy), Vector2(36 + st.sway, -2), 4.0, _ramp(LEAF), fig.o)
+		# Two tall glowing toadstools on the slab either side (its hat is in _tall_elf_circle).
+		for t: Vector3 in [Vector3(9, 45, 11), Vector3(55, 44, 9)]:
+			var foot := Vector2(t.x, t.y)
+			var stem := _layer()
+			_stroke(stem, [foot, foot + Vector2(0, -t.z)], 0.9, Color("#f0e4d8"))
+			_stamp(canvas, stem, fig.o)
+			var cap_l := _layer()
+			_ellipse(cap_l, foot + Vector2(0.5, -t.z - 0.5), Vector2(4.2, 2.6), _ramp(["#2a8878", "#5ad0c0", "#b8fff4"]), foot.y - t.z + 0.5)
+			_stamp(canvas, cap_l, fig.o)
+			_px(canvas, int(foot.x) - 1, int(foot.y - t.z) - 2, Color("#d8fff8"))
+			_px(canvas, int(foot.x) + 2, int(foot.y - t.z) - 1, Color("#d8fff8"))
 	for k in (6 if elf else 4):
 		var a: float = TAU * float(st.f) / st.n + k * TAU / (6 if elf else 4)
 		var p := Vector2i((Vector2(31, 22) + Vector2(cos(a) * 22.0, sin(a) * 9.0 - 6)).round())

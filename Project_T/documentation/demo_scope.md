@@ -26,10 +26,10 @@ replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 
 | Area | Included |
 |---|---|
-| Wardens | **Decided (user, 2026-09-28): Sporeling, Firefly Jar and Dewdrop are the only families in the demo**, with their branches and final forms (Dreamlight unlocks), plus Sprout and Thornwall (+ Bramble, Honeysuckle). The drift 1 pick offers all three; the drift 25 and 50 picks offer the ones you lack; from then on picks are Family Blessings. Bellflower, Pebbling, Rootling, Acorn, Nestling and Whirligig are full-game only (dev toggles "Test Grove" / "Unlock all families" can still show them in debug builds) |
-| Family picks | after drift 1 and after the bosses at 25, 50 and 75 (with only the demo's families, empty slots become Family Blessings) |
+| Wardens | **Decided (user, 2026-09-28; Bellflower added 2026-10-01, meta_design.md a3375108): Sporeling, Firefly Jar, Dewdrop and Bellflower are the demo's families** (the same four every new full-game account starts with), with their branches and final forms (Dreamlight unlocks), plus Sprout and Thornwall (+ Bramble, Honeysuckle). The four family picks (drift 1, 25, 50, 75) can each offer a family you lack, so the drift 75 pick is never empty. Pebbling, Rootling, Acorn, Nestling and Whirligig are full-game only (dev toggles "Test Grove" / "Unlock all families" can still show them in debug builds) |
+| Family picks | after drift 1 and after the bosses at 25, 50 and 75 (a pick with nothing left to offer gives +2 Dreamlight; Family Blessings are Rare Dream cards now, not pick fillers) |
 | Final forms | **shown but locked** ("in the full game") on Dream cards |
-| Kinships | **Slumber Rot, Rainfog, Storm Beacon** (the demo families' main Kinships) and **Kindred** (`tower_design.md` "Kinships"). Whole Tree and hidden Kinships need Grove unlocks, so full game only |
+| Kinships | **Slumber Rot, Rainfog, Storm Beacon, Night Chimes** (the demo families' main Kinships; Night Chimes added with Bellflower, 2026-10-01) and **Kindred** (`tower_design.md` "Kinships"). Whole Tree and hidden Kinships need Grove unlocks, so full game only |
 | Dreams | after drifts 5, 10, … 95 (**19 per run**; boss Dreams guaranteed Rare+), from the Start pool |
 | Nightmares | acts 1–2 as in `acts_1_2.md` (Shade, Husk, Mourner, Phantom, Night Hound, Procession, the Hollow Stag, the Mire Hag) and acts 3–4 as in `acts_3_4.md` (the whole roster, the Moth Queen, the Hollow Oak) |
 | Act 2 boss | **always the Mire Hag** in the demo; the full game draws from a pool of 3 per act (`enemy_design.md`, boss pools). Open question: should the demo's act 1 already draw from its pool (Hollow Stag / Night Mare / Scarecrow) to show off the feature, at the cost of two more bosses before launch? |

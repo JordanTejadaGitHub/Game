@@ -1,12 +1,14 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Texture2D" path="res://assets/towers/midsummer.png" id="2_tex"]
 [ext_resource type="Texture2D" path="res://assets/towers/midsummer_attack.png" id="4_atk"]
+[ext_resource type="Texture2D" path="res://assets/towers/midsummer_channel.png" id="5_chan"]
 [ext_resource type="Resource" path="res://resource/tower/stormheart.tres" id="asc_1"]
 
 [resource]
 script = ExtResource("1_tdata")
+sprite_offset = Vector2(0, -16)
 display_name = "Midsummer"
 description = "A brighter beam that ramps much higher and carries on to the nightmare right behind its target. Switching targets keeps half its ramp."
 cost = 0
@@ -27,6 +29,7 @@ beam_behind_share = 0.5
 beam_keep_share = 0.5
 beam_color = Color(0.9137255, 0.65882355, 0.23529412, 1)
 attack_texture = ExtResource("4_atk")
+beam_sustain_texture = ExtResource("5_chan")
 attack_frame_count = 6
 attack_release_frame = 2
 evolves_to = Array[Resource]([ExtResource("asc_1")])

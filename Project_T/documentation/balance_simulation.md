@@ -553,6 +553,151 @@ at drift 20, spent at that rest.
   A/B (4c8050a9 vs 722cf38b, Sporeling and Firefly first, 20 seeds): **no map effect**; inland is if
 anything a little easier (Firefly: leaves lost by 25 8.5 → 3, first leak 9 → 14; survived 90% both).
 Run 6's early pressure was that seed or the opening, not the inland change. Closed.
+
+## Human run 7 (2026-10-01, build 25755d = cbae70bc, before status Potency; 1 Grove node)
+
+**Abandoned at drift 80** (29 min, "started lagging": that was 8 parallel sims starting at the same
+time, not the game; sims are capped at 2 while the user may play). Firefly → Sporeling (25) → Dewdrop
+(50); 16 Dreams, none passed, Kinship-heavy (extended_family, grove_of_kin, spore_kin, kin_and_kindling,
+old_friends) plus both family Blessings; 15 Omens faced, 0 Clear Skies. Dew earned 11,861.
+- Closest: **act 1 median ~0.33**, no leaks; **act 2 median ~0.16** (0.05–0.44), no leaks, banked up
+  to 1,230 at 45; **drift 50: the act 2 boss bit for 10** (the run's biggest loss); **act 3 median
+  ~0.27**, 2 leaves; act 4 2 leaves by 80. Scarecrow 70 s, Barrow King 48 s.
+- **2 Dreamshrooms = 61% of all damage** (47% + 14%), under the old status rules.
+
+Reading: with a good build, act 2–3 normal drifts don't threaten a human, against the target "a fresh
+profile ends in act 2" (runs 5 and 6 ended at 35 and 24, but run 5's act 2 also read 0.22–0.29 before
+its flyer leak). Decisions:
+1. **Acts 2–4 health +25%:** act 2 **2.0** at 26 → **2.9** at 37 → **4.5** at 45 (was 1.6 / 2.3 / 3.6);
+   acts 3–4 **×6.0** (was 4.8). Act 1, boss multipliers, the bite and the Oak unchanged. In the game: d55618fd.
+2. **Dreamshroom:** measure before changing: per-final damage shares in the status-Potency A/B, and a
+   fixed-maze probe (Dreamshroom vs Morning Fog / Mistveil / Puffball, damage per Dew).
+
+## Potency scales statuses (user, 2026-10-01; tower_design.md 175bf263)
+
+Caps confirmed: **Soaked** water bonus 20% × Potency, cap +40%; **Exposed** 25% × Potency (Beacon
+included), cap +40%; **Drowsy** slow per stack × Potency, floors unchanged; **Rooted** duration ×
+Potency, cap 2 s. **Deep rank = +18% Potency only** (the separate duration bonus goes). Several
+appliers: the strongest current applier's Potency (as Poisoned). Exposed caps at Potency 1.6 (~3 Deep
+ranks on a base Warden). Built behind a toggle; A/B on the same seeds (maze DPS, Exposed share, how
+often the caps bind) once it lands.
+
+**A/B (c961b3ec, full, 20 seeds, Power-focus bot):** on vs off barely differs (drift reached 32.2 vs
+32.0 spore+dew, 28.7 vs 28.0 firefly+bell; maze DPS +4–14%), and **no cap ever binds**: applier
+Potency stays ~1.0–1.37 because the bot nurtures Power, never Deep. Harmless for Power players;
+untested for Deep builds: a `--focus=deep` check follows. Per Warden, **Bloomcap ~18% of all damage
+each** (mostly Spored ticks) vs Driftspore 7%, Sporeling 5%; Dreamshroom too rare for the bot (2/80);
+a fixed-maze finals probe measures it.
+
+**Deep-focus check** (8bed3b93, `--focus=deep`, 10 seeds): Deep builds are **weaker than Power**
+(drift reached spore+dew 28.4 vs 32.5, firefly+bell 21.8 vs 28.1; firefly+bell Deep lost 17 leaves by
+25). Status strength reaches ~1.2–2.2; Soaked sits at its cap 27% of the time, Exposed never (max 1.56).
+**Deep rank +18% → +25% Potency** (rank IV Deep = 2.0); re-check after Tower Code's commit.
+**Re-run** (a9951bd1, 27155a73 in, Power re-run on the same build and seeds): gap to Power **−2.2**
+drifts (spore+dew) and **−3.1** (firefly+bell), halved; Deep maze DPS at 24 now *above* Power (549 vs
+518, 644 vs 571); Exposed at its cap 5% of the time ✓. Deep still survives the act 1 boss less (7/10 vs
+9/10; firefly+bell Deep median 13 leaves by 25 ≈ the bite). The bot runs Deep on every Warden from
+drift 1, before a second family exists for its statuses to pay off; a player choosing Deep later
+wouldn't. **Accepted, closed:** within noise of the target at 10 seeds; Deep is the act 2+ choice.
+
+## A 4th starting family (user, 2026-10-01)
+
+User: *"We should have one more family unlocked for new accounts so wave 75 is there."* A fresh account
+owned 3 families, so the picks at 1 / 25 / 50 used them all and drift 75's pick fell back to +2
+Dreamlight. **Bellflower becomes a starting family** (user's pick from four options: it combos with all
+three starters through Drowsy and Static, and it's mid-strength in the act 1 batch, 90% survive). With
+Meta Game Discussion → Meta Game Code. The first pick now offers 3 of 4 (Sporeling not guaranteed).
+Also (user): **the first family pick gives 1 Dreamlight, not 2**, so act 1 gets one branch and no final
+before the boss (+4). Both make act 1 a little harder; act 1 re-baseline once they land.
+
+Also (user, run_design.md 20df1914): **steady Dreamlight 3 per act boss** (was 4), **no +1 per rest
+from drift 51**: 10 by drift 76 with the first pick's 1. Fewer finals and Ascended late: watch late-act
+power in the next human run (it may offset part of the +25% acts 2–4 health).
+
+## Human run 8 (2026-10-01, build a8e311 = a2353925+: run-7 curve, Bellflower a start family)
+
+**Lost at drift 50 to the Lamplighter's bite** (13 leaves with 3 left), 17 min, 1 Grove node. Bellflower
+first, Dewdrop at 25; 75 attackers (45 Sprouts, 13 Chime Stones, 12 Bellflowers, 4 Morning Fog). Four
+Chime Stones = 76% of damage, with Live Wire ×3 and Hush ×2. Dew earned 6,023 (grow 3,750, ranks only
+130). Banked up to 986 at 45.
+- **Act 1 closest 0.08–0.25**, no leaks; the Night Mare dispelled in 22 s.
+- **Act 2:** 0.08–0.68, spikes from ~38, **1.0 at 46, 47, 49, 50**; first leak at 49; all 15 leaves in act 2.
+- **On target:** a ~fresh profile ends in act 2, and act 2 gets hard from its second half. **No curve
+  change.** Act 1 reads calm with a Bellflower opener; watch against Firefly runs 5–6 (much harder).
+- Chime Stone: a branch probe (no Dreams, drifts 45–49) before judging, since run 8's share came with
+  Live Wire ×3 and 13 Chime Stones.
+
+User: *"Felt balanced; the Chimes in the beginning felt broken though, since I just upgraded them once
+and let them sweep past to drift 40. Maybe have a smoother difficulty curve."* Decisions:
+1. **Chime Stone damage 35 → 26** (area pulse 28 DPS + its own Static set off every 3 pulses: one
+   upgrade carried act 1). Static and set-off unchanged; branch probe (drifts 15–19 and 45–49) checks it.
+2. **Act 2 linear, no knee:** **×1.7 at 26 → ×4.5 at 45** in one line (`act2_steep_value` 3.3 at 37; was
+   2.0 → 2.9 → 4.5, gentle then steep where run 8 broke). Act 1, acts 3–4 unchanged. Both in 3faea358.
+
+**Act 1 baseline with the first pick at 1 Dreamlight** (781b1cbb, Bellflower a start node, fresh, 20
+seeds): Balanced survives the boss **70%** (target ~75% ✓; was 95% with 2 Dreamlight), skip **45%**
+(target ≤ 25%). By first family: **Sporeling 80%, Firefly Jar 40%** (5 runs), matching human runs 5–6;
+the bot never opened with Bellflower or Dewdrop. Kill profile: most nightmares die at 0.3–0.4 of the
+route in every block; the bot's Dew sits evenly over 0.1–0.9. Next: each starting family forced (10
+seeds) on the Chime Stone / linear act 2 build.
+
+## Human run 9 (2026-10-01, build 18d296 = e3cf8f41: **before** 3faea358, Chime Stone 35, old act 2)
+
+**Lost at drift 50 to the Huntsman's bite** (6, the last leaves), 15 min, 1 Grove node. Bellflower first,
+Firefly Jar at 25; Chime Stone 38% + Thunderhead 36% of damage; ranks 1,925 Dew. Act 1 closest
+0.12–0.28, Stag 31 s; act 2 leaks from 33 (2), 44, 47, 49; all 15 leaves in act 2. **On target**, same
+shape as run 8; no change beyond 3faea358.
+
+**First human route profile:** almost every kill is in the **first 0.3 of the route**, and the Dew sits
+at 0.0–0.3 (a second cluster at 0.5–0.7 from block 7), **nothing in 0.8–1.0, Heartwood share 0%**. The
+bot is the opposite (kills at 0.3–0.4 median, Dew even over 0.1–0.9, a Heartwood cover). The human
+plays a front-loaded kill zone with no second line, so once act 2's late drifts break the entrance
+nothing behind it catches them, and the act 2 boss bites. A playstyle read, not a number change; worth
+telling the user, and worth a bot style (`--style=front`) if bot and human should compare.
+
+**Forced first family, act 1** (1c9fb3bd = 3faea358 in; fresh, 10 seeds): survived the boss
+**Sporeling 70%, Firefly Jar 70%, Dewdrop 90%, Bellflower 90%** (Bellflower by taking the bite: 1/9
+dispels). **Every starting family is viable in act 1: closed.**
+**Branch probe** (no Dreams): drifts 15–19 rank II, Chime Stone (26) ≈ Rootcurl ≈ Stormcap at the top
+per Dew (the field is cleared, so this is who takes the kills); drifts 45–49 rank IV, Chime Stone is
+mid (behind Driftspore, ~2× Stormcap). **Chime Stone accepted.** Flag: **Lullaby Bell** (its final) is
+~3× Driftspore per Dew with a ~0% board leak (a probe finding; runs 8–9 had no Bell, their carrier was pre-nerf Chime Stone); 40–53% of the Chime
+line's damage is Static bolts, which they charge and set off themselves (Static + set-off at 3). Finals probe next (Bell vs
+Puffball / Dreamshroom / Morning Fog, with and without Thunderhead).
+
+**Act 2 boss too hard** (user: *"is the boss too hard? Didn't feel close to killing it"*): **0 of 3**
+human runs killed it: run 7 (×3.6 act 2) ~10% of drift 50's health left, run 8 Lamplighter ~21%, run 9
+Huntsman ~25% (health spawned vs damage at drift 50). The ×2.25 was set when act 2 ended at ×3.0; it
+rides the act multiplier, now ×4.5. **`mid_boss_health_multiplier` 2.25 → 1.75** (act 3's boss lands
+near its old effective health under ×6.0). Act 1 boss, the Oak and the bite unchanged. In: f1b10216.
+
+## Route profiles in the run history (user, 2026-10-01)
+
+User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
+Requested from Main Merger: `dispels_by_progress` (kills + health per 0.1 of route progress, plus
+leaked, per block), `invested_by_progress` (Wardens' Dew spread over the route cells they cover, at
+each rest) and `heart_share` (Dew within 3 cells of the Heartwood), with report lines and, if cheap, a
+heat-map PNG. **In from d8010456** (`route_blocks`, `heat_map` in user://run_maps/). The bot logs the same. Reads: front-loaded vs last-ditch builds, where leaks slip
+through, and whether a kill zone pays for its Dew.
+
+**Finals probe** (`tools/balance_finals.gd`, ≥ 144d371b, drifts 61–65, 4 copies in the same spots +
+8 fixed finals, rank IV Power, no Dreams, 3 map seeds): per Warden over 5 drifts, **Dreamshroom
+~319k vs Puffball ~154k, Morning Fog ~137k, Mistveil (branch) ~51k**; at the same 1,090 Dew,
+**Dreamshroom is ~2.1× Puffball**, and its board leaks 19% of spawned health vs ~50%. 73–88% of its
+damage is credited as status ticks (which ticks: being broken down). **Dreamshroom is a real outlier**:
+the nerf targets whatever makes the 2× (target ≈ 1.1–1.2× Puffball), once the breakdown is in.
+**Breakdown** (457a9807): ~88% is its **Dream Spores** twist (each sleeper in range puffs Spored onto
+neighbours every 1 s at `get_damage() × 0.25` = 2× Puffball's stack, which also lifts the whole stack
+to its potency and credit; every overlapping Dreamshroom puffs separately). Cloud 10%; the sleep is
+only the trigger. **Nerf:** Dream Spores at **half soothe**, and **one puff per sleeper per second
+across all Dreamshrooms**. Re-probe after Tower Code's commit.
+**Drifts 45–49** (f80fb34d): Dreamshroom ~240k vs Puffball ~197k per Warden (**~1.2×**), board leak 0%
+vs 15%: its edge grows with the field (2.1× at 61). Acceptance after the nerf: **1.0–1.3× Puffball in
+both windows**; if act 2 drops below 1.0×, Dream Spores soothe goes ×0.5 → ×0.65.
+**Re-probe** (a9951bd1, c7f3e56d in): **61–65: 1.22–1.25× on every seed ✓** (was 2.1×). 45–49:
+per-seed 0.77 / 1.11 / 0.77, ratio of medians 1.05 (one high Puffball seed); its board still leaks
+least (1.6–4.7% vs 12–20%). **Kept at ×0.5:** the board-level strength says it isn't weak in act 2,
+and ×0.65 would push act 3 to ~1.5×. Watch it in human runs. Closed.
 This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
 off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
 then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.

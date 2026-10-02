@@ -229,6 +229,10 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var beam_behind_share: float = 0.0  # Also hits the nightmare right behind at this share
 @export var beam_keep_share: float = 0.0  # Midsummer: switching target within BEAM_KEEP_TIME keeps this share of the ramp
 @export var beam_color: Color = Palette.GLOW
+# A channel loop shown while the beam is on (2–3 frames of 64×64: the flower glowing, no baked ray). Null =
+# the idle loop (the attack sheet's firing frames have a ray baked in one direction, which fought the real beam).
+@export var beam_sustain_texture: Texture2D = null
+@export var beam_sustain_frames: int = 3
 
 @export_group("Copy")
 @export var copy_share: float = 0.6  # Graftling: copies the strongest neighbour's attack at 60%

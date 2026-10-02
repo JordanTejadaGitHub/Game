@@ -142,6 +142,19 @@ func _initialize() -> void:
 	sound.play_dispel(Vector2.ZERO, false, 0.85)
 	_check(sound._duck_until == duck_until, "normal dispels don't duck the music (fourth listen)")
 	_check(HeartwoodMemory.defaults().settings.music_volume == 0.55, "music defaults to 55%")
+	# A button that leaves and re-enters the tree (a re-parented panel, a reopened screen) stays connected
+	# once: no "already connected" error, exactly one click per press.
+	var button := Button.new()
+	root.add_child(button)
+	root.remove_child(button)
+	root.add_child(button)
+	var clicks := button.pressed.get_connections().filter(func(c: Dictionary) -> bool:
+		return c.callable == Callable(sound, &"_click"))
+	_check(clicks.size() == 1, "a re-added button clicks once (%d connections)" % clicks.size())
+	sound._last_start.erase(&"ui_click")
+	button.pressed.emit()
+	_check(sound._last_start.has(&"ui_click"), "a press plays the click")
+	button.free()
 	# A freed voice (a finished player) must not break play() for the same id, and gets pruned
 	# (playtest bug: the typed filter lambda errored on freed players many times a second).
 	var gone := Node.new()

@@ -50,6 +50,37 @@ func _run() -> void:
 	_press(seller, KEY_E)
 	_check(focused[0] == options[1][0], "with the Dreamlight, E opens Remember on it (%s)" % focused[0])
 	_check(spore.tower_data.get_id() == "sporeling", "and doesn't grow it")
+	# Grow hover (story chat 2026-10-01): a locked form shows no ring and no ghost, only where it's unlocked;
+	# an unlocked one previews (current range faint, its range bright, its sprite) and names its changes.
+	var locked_form: TowerData = options[1][0]
+	var locked_button := _grow_button(panel, 1)
+	locked_button.mouse_entered.emit()
+	_check(not placer.is_previewing_growth(), "hovering a locked form's Grow button previews nothing")
+	placer.show_grow_preview([[spore, locked_form]])
+	_check(not placer.is_previewing_growth(), "nor does asking the map for it (the grow keys)")
+	var grove_locked := dreams.get_unlock_blocker(locked_form) == "Memory Grove"
+	_check(locked_button.tooltip_text.ends_with(RememberScreen.UNKNOWN_NAME if grove_locked else WardenHeaderView.LOCKED_FORM_TIP)
+		and not locked_button.tooltip_text.contains(IconInfo.format(locked_form.description)),
+		"its tooltip only says where it's unlocked (%s)" % locked_button.tooltip_text)
+	locked_button.mouse_exited.emit()
+	var open_form: TowerData = options[0][0]
+	dreams.unlocked[open_form.get_id()] = true
+	seller.select(null)
+	seller.select(spore)
+	await process_frame
+	var open_button := _grow_button(panel, 0)
+	open_button.mouse_entered.emit()
+	_check(placer.is_previewing_growth() and placer._grow_preview == [[spore, open_form]],
+		"hovering an unlocked form's Grow button shows its ring and ghost")
+	# Windowed playtest bug: the placer was hidden outside build mode, so the preview never drew.
+	_check(not placer.build_mode and placer.is_visible_in_tree() and is_equal_approx(spore.sprite.modulate.a, TowerPlacer.PREVIEW_FADE),
+		"outside build mode the preview is drawn (placer visible) and the Warden fades under the ghost")
+	_check(open_button.tooltip_text.contains(open_form.display_name + ":") and open_button.tooltip_text.contains("→"),
+		"its tooltip names the form and its changes (%s)" % open_button.tooltip_text.get_slice("\n", 0))
+	open_button.mouse_exited.emit()
+	_check(not placer.is_previewing_growth(), "pointer off: the preview goes")
+	_check(not placer.visible and is_equal_approx(spore.sprite.modulate.a, 1.0), "and the placer hides again, the Warden back to full")
+	dreams.unlocked.erase(open_form.get_id())
 
 	# Unlocked: holding E previews (held signal), letting go grows into the 2nd option.
 	dreams.unlock_everything = true
@@ -64,7 +95,7 @@ func _run() -> void:
 	seller.grow_option_held.connect(func(i: int, on: bool) -> void: held.append([i, on]))
 	var second: TowerData = Tower.grow_options(dreams, spore.tower_data)[1][0]
 	var changes := placer.grow_changes(spore, second)
-	_check(changes.contains("Damage") or changes.contains("Range") or changes.contains("adds"),
+	_check(changes.contains("damage") or changes.contains("range") or changes.contains("adds"),
 		"the Grow tooltip lists the stat changes (%s)" % changes)
 	_key(seller, KEY_E, true)
 	_check(placer.is_previewing_growth(), "holding E previews the new form on the map")
@@ -96,6 +127,13 @@ func _run() -> void:
 		var named: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool:
 			return b.text.begins_with("Grow into %s" % into.display_name) and b.text.ends_with("(%s)" % key_name))
 		_check(sprout_options.size() >= 2 and named.size() == 1, "the %s button names %s (%d options)" % [key_name, into.display_name, sprout_options.size()])
+		# A Sprout's family Wardens preview too (user: "it helps decide which Warden to grow into, if the range fits").
+		if named.size() == 1:
+			named[0].mouse_entered.emit()
+			_check(placer._grow_preview == [[sprout, into]] and placer.is_visible_in_tree()
+				and is_equal_approx(sprout.sprite.modulate.a, TowerPlacer.PREVIEW_FADE),
+				"hovering Grow into %s on a Sprout shows its range and ghost" % into.display_name)
+			named[0].mouse_exited.emit()
 		var price: int = sprout.get_grow_cost(into).total
 		var dew_before := run_state.dew
 		_press(seller, [KEY_Q, KEY_E][index])
@@ -188,6 +226,9 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 	quit(failures)
+
+func _grow_button(panel: Node, index: int) -> Button:
+	return panel._buttons.get_children().filter(func(b) -> bool: return b is Button and not b.is_queued_for_deletion() and b.get_meta(&"grow_index", -1) == index).front()
 
 # A real key press through the viewport (the panel's _input, then the HUD and TowerSeller).
 func _push(key: Key) -> void:

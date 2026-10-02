@@ -19,6 +19,9 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	# The player's own settings (reduce flashes, Kinship effects) must not change what the test sees.
+	HeartwoodMemory.file_path = "user://test_kinships_%d.json" % OS.get_process_id()
+	Fx.reset_run()
 	Kinships.force_full = true
 	main = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
@@ -110,7 +113,16 @@ func _run() -> void:
 	_check(knots != null and not knots.z_as_relative and knots.z_index > 0, "kin knots draw above the Wardens")
 	_check(kin.bow_offset({"a": drift, "b": bloom}) == Vector2.ZERO,
 		"a bond 2 cells across stays straight")
-	for tower in [top, below]:
+	# A kin in reach but bonded elsewhere: the panel says why (user: "these two aren't kin"); an unrelated
+	# family stays silent.
+	var late := _plant("driftspore", Vector2(3, 9))  # Beside the bonded Bloomcap
+	var stranger := _plant("standing_stone", Vector2(1, 9))
+	await process_frame
+	kin.refresh()
+	_check(kin.get_pairs(late).is_empty() and kin.unbonded_reason(late) == "No kin: the Bloomcap nearby is bonded to its Driftspore",
+		"a would-be kin that's taken is explained (%s)" % kin.unbonded_reason(late))
+	_check(kin.unbonded_reason(stranger) == "", "another family: nothing to explain")
+	for tower in [top, below, late, stranger]:
 		tower.queue_free()
 	await process_frame
 	kin.refresh()
@@ -374,8 +386,8 @@ func _run() -> void:
 	# --- The demo has only its three ---
 	Kinships.force_full = false
 	if ResultsScreen.is_demo():
-		_check(not Kinships.is_available(&"snare") and Kinships.is_available(&"slumber_rot"),
-			"the demo has Slumber Rot, Rainfog and Storm Beacon only")
+		_check(not Kinships.is_available(&"snare") and Kinships.is_available(&"slumber_rot") and Kinships.is_available(&"night_chimes"),
+			"the demo has Slumber Rot, Rainfog, Storm Beacon and Night Chimes only (Bellflower starts in the demo)")
 	Kinships.force_full = true
 
 	print("kinships test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))

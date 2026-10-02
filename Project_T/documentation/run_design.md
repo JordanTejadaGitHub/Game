@@ -188,6 +188,10 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
   - **Dreams steer a little less:** the build tag weight 1.6 → **1.3**, so a direction takes
     choices (a pass, a reroll) instead of arriving by itself. Card power stays.
   - Then read the run history after each playtest and adjust.
+  - **Current (2026-10-01, Balancing Discussion, after human runs 4–7; balance_simulation.md):**
+    act 1 ×1.0 → 1.15 (drifts 9–20); act 2 **×1.7** at 26 rising in a straight line to **×4.5** at 45, held to 50 (run 8);
+    acts 3–4 **×6.0**. Bosses: act 1 ×1.75, acts 2–3 ×1.75 (was 2.25), the Oak ×3.0. Bosses other than the Oak
+    take a flat **10 / 10 / 12 leaves** and leave.
 - **Act 3 probe** (Tower Code, `tools/balance_act3.gd`, 2026-09-28): drifts 61–70, 12 final forms at
   rank IV (Power), **no Dreams**: the maze dealt ~155–160k damage per drift against **~100–115k
   health spawned, 0 leaks**. Act 3 is too easy with a plain final-form maze, before Dreams or the
@@ -384,11 +388,13 @@ card luck**. Dispelling a great nightmare frees the light it stole from the drea
 
 | Source | Dreamlight |
 |---|---|
-| First family pick (after drift 1) | **2** (was 1; 2026-09-30: branches now come free, so this buys your first final form in act 1) |
-| Each boss (drifts 25, 50, 75) | **4** (was 3, 2026-09-29: runs earned only 3–6 Dreamlight, so no run ever reached an Ascended form) |
-| Dream cards (Sudden Insight, Borrowed Memory) | +1 / +2 |
+| First family pick (after drift 1) | **1** (2026-10-01, user; was 2) |
+| Each boss (drifts 25, 50, 75) | **3** (2026-10-01, user: *"should only be giving 3 Dreamlight every 25 drifts"*; was 4) |
+| Dream cards (Sudden Insight, Borrowed Memory, Glimmering Hunt), Great Dreamcatcher shards, the Heartwood Sapling | as before: these are build choices, on top of the steady 3 per act |
 | Grove perk *Early Light* | +1 at run start |
-| Every rest from drift 51 (2026-09-29) | **+1** (the Heartwood wakes: no run had ever reached an Ascended form) |
+| ~~Every rest from drift 51: +1~~ | **removed** (2026-10-01, same decision: the steady income is 3 per act, from its boss) |
+
+Steady Dreamlight per run: 1 + 3 + 3 + 3 = **10** by drift 76 (a branch is 1, a final 2, an Ascended 3), so an Ascended form costs real choices; more only comes from cards and Wardens you chose.
 
 **Spending (per run, like the old unlock cards):**
 
@@ -401,7 +407,7 @@ card luck**. Dispelling a great nightmare frees the light it stole from the drea
 
 - About **10 Dreamlight per run** against 4 families × (2 branches + 2 finals) = 24 possible: you
   can't have everything, so each run is a set of real choices. Unspent Dreamlight carries over.
-- **Clarified the same day: in the run, branches and finals both cost Dreamlight** (user: *"I meant from the meta game Grove; you still have to use Dreamlight to unlock both 1st and 2nd form"*). The "unlocked with the family" quote below was about the **Memory Grove**: planting a family there makes its branches and final forms **exist** in your runs (no separate final-forms node). **In a run**, each branch costs **1** Dreamlight and each final **2**, on the Remember screen. `grant_free_branches` goes. The first family pick keeps giving **2** Dreamlight (two branches, or save for a final).
+- **Clarified the same day: in the run, branches and finals both cost Dreamlight** (user: *"I meant from the meta game Grove; you still have to use Dreamlight to unlock both 1st and 2nd form"*). The "unlocked with the family" quote below was about the **Memory Grove**: planting a family there makes its branches and final forms **exist** in your runs (no separate final-forms node). **In a run**, each branch costs **1** Dreamlight and each final **2**, on the Remember screen. `grant_free_branches` goes. ~~The first family pick keeps giving **2** Dreamlight~~ → **1 Dreamlight** (2026-10-01, user: *"only one Dreamlight on the first choice"*): one branch to start, and a final form has to wait for the first boss's Dreamlight or a card.
 - ~~**A family comes with its base and both branches**~~ (superseded, see above; user, 2026-09-30: *"if you unlock a family,
   the first and 2nd forms are unlocked with it, or what else am I going to do with these Dreamlight
   if I just started"*). Picking a family unlocks its base Warden and its two regular branches at once

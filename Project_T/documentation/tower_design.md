@@ -458,7 +458,7 @@ Harvest), Grove Heart (grows per Warden). Numbers are starting points.
 | Final | Twist | Rule | Visible moment |
 |---|---|---|---|
 | **Snugroot** | **Logjam** | a nightmare it Holds **blocks the path cell** for the Hold: nightmares behind it stop and queue (they don't path around; the route is unchanged), bunching a crowd for area damage. Flyers and Phantoms ignore it; bosses aren't Held long enough to jam | the queue visibly bunches; a small root knot under the held one |
-| **Dreamshroom** | **Dream spores** | an **asleep** nightmare breathes out spores: **1 Spored per second** to nightmares within 1 cell (the sleeper's applier's Potency) | slow violet spore puffs rise from sleepers |
+| **Dreamshroom** | **Dream spores** | an **asleep** nightmare breathes out spores: **1 Spored per second** to nightmares within 1 cell (the sleeper's applier's Potency). **Tuned 2026-10-01** (Balancing Discussion: Dreamshroom measured ~2.1× Puffball per Warden at the same Dew): the spores carry **half** of Dreamshroom's soothe, and a sleeper puffs **at most once per second across all Dreamshrooms** (overlapping Dreamshrooms no longer each puff) | slow violet spore puffs rise from sleepers |
 | **Boulderback** | **Landslide** | every **4th hit** rolls a boulder **2 tiles along the path** from the target (toward the start), hitting everything it passes for 60% of the hit | a rolling boulder with a dust trail |
 | **Lullaby Bell** | **Chorus** | its pulse is **+10% per other Bellflower-family Warden within 3 cells** (max +40%) | its pulse ring shimmers with a note for each voice in the chorus |
 | **Morning Fog** | **Veil** | nothing inside its fog can **hide** (Lurkers are revealed) or be **healed** (a Weeper's mending does nothing there) | the fog glows faintly gold where it cancels something |
@@ -659,7 +659,7 @@ Crit synergies: **Held and sleeping nightmares** (Hoarfrost bonus, *Still Target
 (*Starlit Aim*), **Magpie's Hoard** (Dew from crits), **White Stag** aura, and the crit cards in
 `dream_design.md`.
 
-## Potency: effect damage
+## Potency: effect damage and status strength
 
 Added 2026-09-27 (user request). Crit scales **hits**; **Potency** scales **effects**, the damage
 that isn't a hit. Spored is the game's poison, and Potency is what makes poison builds grow. So
@@ -675,13 +675,46 @@ every Warden has two damage axes, and builds lean one way:
   statuses *that Warden* applied (the applier's Potency is stored with the status, like its damage).
 - **Reactions** use the Potency of the Warden that completed them (the "applier" in
   `dream_design.md`), so Potency is the main way to make Reactions hit harder late in a run.
-- **What it doesn't touch:** hits, status *duration* and stacks (those have their own cards and the
-  Deep focus), slows and control.
+- **Potency is the strength of everything a Warden's statuses do** (changed 2026-10-01, user: "feel
+  like Potency should change those"; before, it only scaled effect damage and Soaked, Drowsy,
+  Exposed and Rooted were fixed). Each status keeps the applier's Potency, as Poisoned already did:
+
+  | Status (code name) | What Potency scales | Cap (confirmed by Balancing Discussion, 2026-10-01) |
+  |---|---|---|
+  | **Poisoned** (Spored), **Charged** (Static) | their damage (unchanged) | — |
+  | **Soaked** (Damp) | the water-hit bonus: +20% × Potency | **+40%** |
+  | **Exposed** (Marked) | damage taken: +25% × Potency (Beacon's bonus scales too) | **+40%** |
+  | **Drowsy** | slow per stack × Potency | the slow floor stays (nightmares 50%, elites 60%, bosses 70% speed at most slowed); sleep rules and cooldowns unchanged |
+  | **Rooted** (Held) | duration × Potency | **2 s**; the hold cooldown (1.5 s, bosses 3 s) stays |
+  | Caught, Asleep, Frozen | unchanged (they're states set by other rules) | — |
+
+- **Reactions** still read the source's Potency for **damage only**; what a Reaction *does* (sleep
+  length, freeze length, arcs) doesn't scale with it.
+- **Still untouched:** hits, stack caps, and how long statuses last (except Rooted, above).
+- **The Deep focus** is simply **+25% Potency** per Deep rank (raised from +18% on 2026-10-01 by
+  Balancing Discussion: a committed Deep build reached 4–6 fewer drifts than Power, and Exposed
+  never hit its cap); the separate +duration is dropped. Rank IV Deep = Potency 2.0: Soaked at its
+  cap, and Exposed capped from rank III (it caps at Potency 1.6). Past the caps, Deep still grows
+  effect damage and the other statuses.
+- **Several Wardens on one status:** the status uses the **strongest current applier's** Potency
+  (as Poisoned already does), never a sum. With the caps, this stops one high-Potency Warden from
+  lifting everyone's statuses past the limits.
+- **Built behind one toggle** (`Tower.status_potency_on`, on by default) so Balancing Code can
+  A/B the same seeds with and without it; off restores the old rules exactly.
+- **As built (87fb47fb):** a cap **never lowers a status below its own base**: a card that already
+  sets it higher (e.g. *Soaked Through II*'s +30%) keeps that value, and Potency can't push it past
+  the cap. The panel shows the status line at this Warden's Potency ("Soaked: water hits +24%",
+  "Exposed: +30% damage taken", "Drowsy −9% speed a stack", "Rooted 1.3 s").
+  `tests/test_status_potency.gd`.
+- **Why it matters:** a status family (Dewdrop, Firefly Jar, Bellflower, Rootling) can now grow its
+  *control* through Potency, not only its damage. The caps keep a single Warden from making Exposed
+  or Soaked the whole build.
 - **Order:** `effect damage × Potency × family resist/weak × Marked` (no crit, no attack shape
   except the Whisper Swarm's area rule, as before).
 - **Sources:** a few Wardens start above 100% (`warden_stats.md`), the Nurture **Deep** focus
-  (+10% Potency and duration per rank III–V), and the Potency cards in `dream_design.md`.
-- **Shown** in the Warden tooltip next to crit (e.g. "Crit 5% · ×2 · Potency 130%"). Effect damage
+  (+25% Potency per Deep rank, see below), and the Potency cards in `dream_design.md`.
+- **Shown** in the Warden tooltip next to crit (e.g. "Crit 5% · ×2 · Potency 130%"), with what it
+  does for this Warden's status (e.g. *"Soaked: water hits +26%"*, *"Rooted 1.3 s"*). Effect damage
   numbers use the status's colour, so a poison build *looks* different from a crit build.
 - *Nightshade* (Legendary) bridges the two: effect ticks can crit.
 

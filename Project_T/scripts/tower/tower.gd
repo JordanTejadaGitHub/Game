@@ -174,7 +174,7 @@ enum Focus { NONE, POWER, SWIFT, REACH, DEEP, WIDE, STRONG, KINDRED }  # Append 
 const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "Reach", Focus.DEEP: "Deep",
 	Focus.WIDE: "Wide", Focus.STRONG: "Strong", Focus.KINDRED: "Kindred"}
 const FOCUS_TEXT := {Focus.POWER: "+18% damage", Focus.SWIFT: "+12% attack speed", Focus.REACH: "+0.3 range",
-	Focus.DEEP: "+18% Potency and status duration",
+	Focus.DEEP: "+25% Potency (stronger statuses and effects)",
 	Focus.WIDE: "+0.2 aura reach", Focus.STRONG: "+5% aura", Focus.KINDRED: "ignores the aura falloff"}
 const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
 	Focus.REACH: Palette.DEWLIGHT, Focus.DEEP: Palette.ORCHID,
@@ -183,7 +183,16 @@ const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
 const FOCUS_POWER := 0.18  # Damage
 const FOCUS_SWIFT := 0.12  # Attack speed
 const FOCUS_REACH := 0.3  # Range, cells
-const FOCUS_DEEP := 0.18  # Potency and status duration
+const FOCUS_DEEP := 0.25  # Potency per Deep rank (Balancing Discussion 2026-10-01; was 0.18)
+const FOCUS_DEEP_OLD := 0.18  # The old rule (Potency and status duration), only with status_potency_on off (the A/B)
+
+# Potency a Deep rank adds under the rules in force.
+static func deep_share() -> float:
+	return FOCUS_DEEP if status_potency_on else FOCUS_DEEP_OLD
+# Potency strengthens every status (tower_design.md "Potency: effect damage and status strength", 2026-10-01):
+# Soaked, Exposed, Drowsy and Rooted read their strongest applier's Potency (EnemyStatuses.strength). Off =
+# the old rules (Potency only for effect damage, Deep lengthens statuses), for Balancing's A/B.
+static var status_potency_on := true
 # Support Wardens (warden_stats.md "Support Wardens and Nurture", fdd7003): ranks multiply the aura (×1.1
 # each) instead of damage, speed and range; their rank III Focus is Wide / Strong / Kindred.
 const SUPPORT_AURA_WARDENS := ["elder_stump", "grove_heart"]  # Acorn keeps attacker ranks + Focus: its family's opener
@@ -325,6 +334,9 @@ var _aura_count := 0  # Other Wardens inside this Warden's aura (Grove Heart)
 var _kin: Kinships = null  # The run's Kinships (two branches of one family bond)
 var _root_links: Array[Vector2] = []  # Root Network: directions to touching Sprouts (glow on shared edges)
 var kin_branch := ""  # The branch an Ascended form grew from (Kinships); saved with the run
+var _branch_form: TowerData = null  # Kinships.branch_for cache: the form it was worked out for
+var _branch_cached := ""
+var _area_queue: AreaHitQueue = null  # Spreads dense area bursts over frames (AreaHitQueue)
 var footprint_size := 0  # 0 = the data's footprint; 1 keeps an old save's 1-cell Ascended form
 var _hits_landed := 0  # Eternal Charge / Rooted Nightmares count this Warden's hits
 var _hunted := {}  # Hunter's Moon: nightmares this Warden has hit (instance ids)
@@ -378,6 +390,7 @@ func _apply_data() -> void:
 	_flush_pull()  # Grown mid-lash: the pull still happens
 	_stop_beam()
 	sprite.offset = tower_data.sprite_offset
+	_set_up_tall_fade()
 	_show_idle()
 	_update_withered()
 	_refresh_neighbours()
@@ -418,6 +431,8 @@ func _process(delta: float) -> void:
 	if is_instance_valid(_leaf_mote):
 		_leaf_mote.position = LEAF_MOTE_AT + Vector2(0, -fmod(_anim_time * LEAF_MOTE_RISE, LEAF_MOTE_SPAN))
 	_tick_dream_cache(delta)
+	if _tall_fade != null:
+		_update_tall_fade(delta)
 	_neighbour_timer -= delta
 	if _neighbour_timer <= 0.0 and _refresh_slot():
 		_refresh_neighbours()
@@ -427,7 +442,8 @@ func _process(delta: float) -> void:
 		# Performance: frames change a few times a second; only set them when they do (each set redraws),
 		# and the rank art / Withered overlay are looked up by name only when this frame changed.
 		var idle_frame := int(_anim_time * tower_data.animation_fps)
-		if idle_frame != _last_idle_frame:
+		# Effects quality Reduced / long frames: an off-screen Warden doesn't animate (nobody sees it).
+		if idle_frame != _last_idle_frame and (not Fx.reduced() or Fx.on_screen(global_position, 96.0)):
 			_last_idle_frame = idle_frame
 			if _beam_target == null:
 				sprite.frame = idle_frame % tower_data.frame_count
@@ -666,12 +682,12 @@ func get_potency() -> float:
 	var total := attack_data.potency
 	if _dream_state and _dream_state.has_method("get_potency_bonus"):
 		total += _dream_state.get_potency_bonus(tower_data)
-	total += FOCUS_DEEP * choice_count(Focus.DEEP)  # Deep ranks
+	total += deep_share() * choice_count(Focus.DEEP)  # Deep ranks
 	return total
 
 # Deep Focus: status strength and duration multiplier.
 func get_status_focus_multiplier() -> float:
-	return 1.0 + FOCUS_DEEP * choice_count(Focus.DEEP)
+	return 1.0 + FOCUS_DEEP_OLD * choice_count(Focus.DEEP)  # Only read with status Potency off (the old rule)
 
 func get_max_rank() -> int:
 	var cap := RANK_MAX
@@ -1280,14 +1296,6 @@ func _show_idle() -> void:
 	sprite.hframes = tower_data.frame_count
 	sprite.frame = int(_anim_time * tower_data.animation_fps) % tower_data.frame_count
 
-# Holds the attack pose (the release frame) while beaming.
-func _show_attack_pose() -> void:
-	if tower_data.attack_texture == null or _legacy_active:
-		return
-	sprite.texture = tower_data.attack_texture
-	sprite.hframes = tower_data.attack_frame_count
-	sprite.frame = tower_data.attack_release_frame
-
 # The attack lands. A target that left range during the wind-up wastes a projectile/chain/cloud.
 func _release() -> void:
 	_attack_count += 1
@@ -1330,6 +1338,7 @@ func _any_rule(key: StringName, rules: Array[StringName]) -> bool:
 var _aim_idle := 0.0
 var _last_release := 0.0
 var _area_count := 0  # Nightmares the current area attack hits (Crowd Breaker)
+var _status_pulse_hits: Array[Vector2] = []  # Where this pulse's status_every status landed (DrowsyRing motes)
 var _shiny: Array[float] = []  # Shiny Things: _anim_time each stolen buff runs out
 
 func _card_hit_multiplier(enemy: Node2D, is_area: bool) -> float:
@@ -1459,6 +1468,7 @@ func _release_attack() -> void:
 		TowerData.AttackKind.PULSE:
 			var in_range := get_enemies_in_range()
 			_area_count = in_range.size()
+			_status_pulse_hits.clear()
 			var statics := 0
 			if attack_data.rain:
 				var world := Reactions._world(self)
@@ -1483,6 +1493,8 @@ func _release_attack() -> void:
 			if attack_data.pulse_hold_every > 0 and _attack_count % attack_data.pulse_hold_every == 0:
 				_pulse_hold(in_range)
 			_kin_chime_catch(in_range)
+			if not _status_pulse_hits.is_empty():
+				DrowsyRing.play(self, get_range_pixels(), _status_pulse_hits)  # Bellflower: this pulse brought Drowsy
 		TowerData.AttackKind.CHAIN:
 			var target := find_target()
 			if target != null:
@@ -1525,6 +1537,11 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		combo: StringName = &"") -> bool:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return false
+	if is_area and is_inside_tree():
+		if not is_instance_valid(_area_queue):
+			_area_queue = AreaHitQueue.find(self)
+		if _area_queue != null and _area_queue.defer(self, enemy, soothe_multiplier, crit, combo):
+			return false  # A dense burst: this hit lands next frame (same numbers), spreading the cost
 	var is_crit := roll_crit(enemy) if crit == ROLL_CRIT else crit == CRIT
 	if _has_rule(&"called_shot") and _dream_state.called_shot(self, enemy):
 		is_crit = true  # Called Shot: the first hit on a Marked nightmare (once per Warden per nightmare)
@@ -1772,9 +1789,14 @@ func _give_crit_dew(where: Vector2) -> void:
 	_dream_state.run_state.earn_dew_at(attack_data.crit_dew, where)
 
 func apply_status_to(enemy: Node2D, soothe: float) -> void:
-	# Bellflower: its Drowsy only comes with every Nth pulse.
-	if attack_data.status_every <= 1 or _attack_count % attack_data.status_every == 0:
+	# Bellflower: its Drowsy only comes with every Nth pulse on that nightmare (counted per nightmare, so one
+	# walking in on an odd pulse still gets it on its 2nd).
+	if attack_data.status_every <= 1:
 		_apply_one_status(enemy, attack_data.applies_status, attack_data.status_stacks, soothe)
+	elif enemy.statuses.count_hit(get_instance_id()) % attack_data.status_every == 0:
+		_apply_one_status(enemy, attack_data.applies_status, attack_data.status_stacks, soothe)
+		if _status_pulse_hits.size() < DrowsyRing.MAX_MOTES:
+			_status_pulse_hits.append(enemy.global_position)
 	if attack_data.extra_status != &"":
 		_apply_one_status(enemy, attack_data.extra_status, attack_data.extra_status_stacks, soothe)  # Lullaby Bell
 	if _kin_roll(kin_share(&"slumber_rot", "a")):
@@ -1847,7 +1869,9 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		potency *= cached[0]
 		duration = cached[1]
 		max_stacks = cached[2]
-	var deep := get_status_focus_multiplier()  # Deep Focus: stronger and longer
+	# Deep Focus: with status Potency on, Deep is only +18% Potency (which now strengthens every status);
+	# the old rule (statuses last 18% longer per Deep rank) only with the switch off, for Balancing's A/B.
+	var deep := 1.0 if status_potency_on else get_status_focus_multiplier()
 	if deep != 1.0:
 		if duration <= 0.0:
 			duration = EnemyStatuses.DEFAULT_DURATION[status]
@@ -2558,7 +2582,10 @@ func _bob_bowl() -> void:
 		return
 	var bob: Array = DewCatch.bowl_info(tower_data).get("dy_by_frame", [])
 	var dy: float = bob[sprite.frame % bob.size()] if not bob.is_empty() else 0.0
-	fill.offset = sprite.offset + Vector2(0, dy)
+	# A tall 64×96 Warden (body = the bottom 64 rows, sprite_offset (0, −16)) has its body on the node centre, like
+	# the 64×64 bowl fill: only Ascended art, laid out differently, moves the bowl by its offset.
+	var lift: Vector2 = sprite.offset if tower_data.tier >= DreamState.ASCENDED_TIER else Vector2.ZERO
+	fill.offset = lift + Vector2(0, dy)
 
 # --- Wall cards (Thornwall; dream_design.md "Support Warden cards") -------------------------------
 
@@ -3071,7 +3098,6 @@ func _update_beam(delta: float) -> void:
 		_beam_ramp = 1.0 + (old_ramp - 1.0) * attack_data.beam_keep_share
 		_beam_tick = 0.0
 		_beam_target = target
-		_show_attack_pose()
 	if _beam_target == null:
 		return
 	_animate_beam_pose()
@@ -3097,14 +3123,56 @@ func _update_beam(delta: float) -> void:
 		_stop_beam()  # The target is gone: back to the idle sheet (8 frames), not the 6-frame pose
 	queue_redraw()
 
+var _beam_layer: Node2D = null  # Made the first time this Warden beams (_beam_layer_ready)
+
+# The beam draws on its own layer above the sprite (Tower._draw is under it: the Warden's art hid the start
+# of its own beam, so it seemed to come from the slab). Only beaming Wardens get one.
+func _beam_layer_ready() -> Node2D:
+	if _beam_layer == null:
+		_beam_layer = Node2D.new()
+		_beam_layer.name = "BeamLayer"
+		_beam_layer.draw.connect(_draw_beam)
+		add_child(_beam_layer)
+	return _beam_layer
+
+# The beam, from the attack point (the flower's face) to its target, above the Warden's own art.
+func _draw_beam() -> void:
+	if not is_instance_valid(_beam_target):
+		return
+	var from := tower_data.get_attack_origin()
+	var width := 2.0 + 2.0 * _beam_ramp
+	for target in [_beam_target, _beam_behind]:
+		if not is_instance_valid(target):
+			continue
+		var to := to_local(target.global_position)
+		_beam_layer.draw_line(from, to, Color(_beam_data().beam_color, 0.35), width * 2.0)
+		_beam_layer.draw_line(from, to, Color(Palette.HEARTLIGHT, 0.9), maxf(width * 0.5, 1.5))
+		from = to  # Midsummer's beam carries on from the target to the one behind it
+	_beam_layer.draw_circle(tower_data.get_attack_origin(), 2.0 + _beam_ramp, Color(Palette.HEARTLIGHT, 0.8))  # The glow at its source
+
 # While the beam is on, the attack sheet loops from its release frame to its last (it used to hold the
 # release frame: user, "the Sunpetal animation gets stuck when attacking").
 func _animate_beam_pose() -> void:
-	if tower_data.attack_texture == null or _legacy_active or sprite.texture != tower_data.attack_texture:
+	_beam_layer_ready().queue_redraw()
+	if _legacy_active:
 		return
-	var first := tower_data.attack_release_frame
-	var span := maxi(tower_data.attack_frame_count - first, 1)
-	var frame := first + int(_anim_time * tower_data.animation_fps) % span
+	# Channelling: the data's channel loop (beam_sustain_texture, ping-ponged) or the idle loop. The attack
+	# sheet's firing frames have a ray baked in one direction, which fought the real beam (user: "the attack
+	# animation for Sunpetal doesn't look correct"), and looping them flashed the recovery pose.
+	var sheet: Texture2D = tower_data.beam_sustain_texture
+	var frame := 0
+	if sheet != null:
+		if sprite.texture != sheet:
+			sprite.texture = sheet
+			sprite.hframes = maxi(tower_data.beam_sustain_frames, 1)
+		var span := maxi(tower_data.beam_sustain_frames - 1, 0)
+		if span > 0:
+			var k := int(_anim_time * tower_data.animation_fps) % (2 * span)
+			frame = k if k <= span else 2 * span - k
+	else:
+		if sprite.texture != tower_data.texture:
+			_show_idle()
+		frame = int(_anim_time * tower_data.animation_fps) % tower_data.frame_count
 	if sprite.frame != frame:
 		sprite.frame = frame  # Only on change: each set redraws
 
@@ -3119,6 +3187,8 @@ func _stop_beam() -> void:
 	if was_beaming and is_node_ready() and not _legacy_active:
 		_show_idle()
 	queue_redraw()
+	if _beam_layer != null:
+		_beam_layer.queue_redraw()
 
 # The nightmare right behind `target` on the path (Midsummer's beam carries through to it).
 func _find_behind(target: Node2D) -> Node2D:
@@ -3163,16 +3233,6 @@ func _draw() -> void:
 		var centre := to_local(MAP_GRID.calculate_map_position(at))
 		var half := MAP_GRID.cell_size / 2.0 - Vector2(6, 6)
 		draw_rect(Rect2(centre - half, half * 2.0), Color(LIGHT_COLOR, 0.12))
-	if is_instance_valid(_beam_target):
-		var from := tower_data.get_attack_origin()
-		var width := 2.0 + 2.0 * _beam_ramp
-		for target in [_beam_target, _beam_behind]:
-			if not is_instance_valid(target):
-				continue
-			var to := to_local(target.global_position)
-			draw_line(from, to, Color(_beam_data().beam_color, 0.35), width * 2.0)
-			draw_line(from, to, Color(Palette.HEARTLIGHT, 0.9), maxf(width * 0.5, 1.5))
-			from = to  # Midsummer's beam carries on from the target to the one behind it
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
 		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(Palette.MOONLIGHT, 0.12), 3.0)
 	_draw_badges()
@@ -3729,3 +3789,56 @@ func has_enemy_in_range() -> bool:
 			if distance_squared <= (sky_squared if flying else range_squared) and distance_squared >= min_squared:
 				return true
 	return false
+
+# --- Tall Wardens: the top band fades over what's behind (story chat 2026-10-01) ---------------------------
+# A 64x96 Warden's top 32 px overhang the cell above. While a nightmare stands there, or that cell is hovered
+# or selected, the band fades to TALL_FADE_ALPHA so the path and the nightmare stay readable. Only tall forms
+# get the material; the check runs TALL_FADE_CHECK times a second against the nightmare buckets.
+const TALL_FADE_SHADER := preload("res://shaders/tall_fade.gdshader")
+const TALL_FADE_ALPHA := 0.5
+const TALL_FADE_CHECK := 0.1  # Seconds between checks
+const TALL_FADE_RATE := 10.0
+var _tall_fade: ShaderMaterial = null
+static var seller_ref: WeakRef = null  # Set by TowerSeller / TowerPlacer (weak: Nodes in statics must not outlive the run)
+static var placer_ref: WeakRef = null
+var _tall_alpha := 1.0
+var _tall_behind := false
+var _tall_check_left := 0.0
+
+func is_tall() -> bool:
+	return tower_data.texture != null and tower_data.get_frame_rect(0).size.y > MAP_GRID.cell_size.y and tower_data.tier < DreamState.ASCENDED_TIER
+
+func _set_up_tall_fade() -> void:
+	if is_tall():
+		if _tall_fade == null:
+			_tall_fade = ShaderMaterial.new()
+			_tall_fade.shader = TALL_FADE_SHADER
+		sprite.material = _tall_fade
+		_tall_fade.set_shader_parameter(&"top_share", (tower_data.get_frame_rect(0).size.y - MAP_GRID.cell_size.y) / tower_data.get_frame_rect(0).size.y)
+	elif _tall_fade != null:
+		sprite.material = null
+		_tall_fade = null
+		_tall_alpha = 1.0
+
+# Whether something the player should see is in the cell above (behind the overhang).
+func tall_behind() -> bool:
+	var above := cell + Vector2.UP
+	var centre := MAP_GRID.calculate_map_position(above)
+	for enemy in nightmares_near(get_tree(), centre, MAP_GRID.cell_size.x):
+		if is_instance_valid(enemy) and not enemy.is_cleansed and MAP_GRID.calculate_grid_coordinates(enemy.global_position) == above:
+			return true
+	var seller: TowerSeller = seller_ref.get_ref() if seller_ref != null else null
+	if seller != null and (seller._hover_cell == above or (is_instance_valid(seller.selected) and seller.selected.cell == above)):
+		return true
+	var placer: TowerPlacer = placer_ref.get_ref() if placer_ref != null else null
+	return placer != null and placer.build_mode and placer._hover_cell == above
+
+func _update_tall_fade(delta: float) -> void:
+	_tall_check_left -= delta
+	if _tall_check_left <= 0.0:
+		_tall_check_left = TALL_FADE_CHECK
+		_tall_behind = tall_behind()
+	var target := TALL_FADE_ALPHA if _tall_behind else 1.0
+	if absf(_tall_alpha - target) > 0.01:
+		_tall_alpha = lerpf(_tall_alpha, target, 1.0 - exp(-TALL_FADE_RATE * delta))
+		_tall_fade.set_shader_parameter(&"top_alpha", _tall_alpha)

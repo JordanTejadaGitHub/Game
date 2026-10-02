@@ -22,7 +22,9 @@ const KINDS := {
 	"heartwood": DetailPass.Kind.WARDEN,
 }
 # Palette snap only: soft alpha overlays and the seamless 256 px void (a per-64 pass would seam it).
-const SNAP_ONLY := ["edge_mist", "void_sky", "void_stars", "cloud_shadows", "mist_banks", "heartwood"]  # heartwood: drawn with its own rim and banded glow (matches the Memory Grove)
+const SNAP_ONLY := ["edge_mist", "void_sky", "void_stars", "cloud_shadows", "mist_banks", "heartwood",
+	"heartwood_stage_0", "heartwood_stage_1", "heartwood_stage_2", "heartwood_stage_3", "dream_fruit",
+	"route_mist", "route_mist_start", "route_mist_end", "route_wisp"]  # heartwood*: drawn with its own rim and banded glow (matches the Memory Grove)
 # Grain strength (the user's picks, 2026-09-28): no added grain on anything grassy, a light grain on
 # the other ground tiles, full detail on props.
 const NO_GRAIN := ["grass", "island_edge", "dew_pool", "pond", "pond_inner", "blight_patch"]
@@ -43,6 +45,10 @@ func _init() -> void:
 	for folder in DirAccess.get_directories_at(raw):
 		var means := {}
 		for file in DirAccess.get_files_at(raw + "/" + folder):
+			if file.ends_with(".json"):  # data for the game (heartwood_stages.json): copied as is
+				DirAccess.make_dir_recursive_absolute(out + "/" + folder)
+				DirAccess.copy_absolute(raw + "/" + folder + "/" + file, out + "/" + folder + "/" + file)
+				continue
 			if not file.ends_with(".png"):
 				continue
 			var sheet := file.get_basename()

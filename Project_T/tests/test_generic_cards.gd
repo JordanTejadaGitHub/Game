@@ -38,6 +38,7 @@ func _run() -> void:
 	_test_economy()
 	_test_stat_rules()
 	_test_hit_rules()
+	_test_crowd_counts()
 	_test_rest_rules()
 	_test_map_rules()
 	_test_sim_entry()
@@ -151,7 +152,7 @@ func _test_hit_rules() -> void:
 	dreams.take(_card("crowded_path"))
 	var near := _plant("sporeling", map_generator.startPath + Vector2(1, 1))
 	_check(dreams.count_in_range(near) == 2 and _row(near.tower_data, near.cell, "crowded_path", near).damage > 0.05,
-		"Crowded Path: +3% per nightmare in range (%d)" % dreams.count_in_range(near))
+		"Crowded Path: +3%% per nightmare in range (%d)" % dreams.count_in_range(near))
 	# Last Breath: the neighbour takes 10% of the dispelled one's max health, no chain
 	dreams.take(_card("last_breath"))
 	var before: float = b.health
@@ -213,18 +214,17 @@ func _test_sim_entry() -> void:
 	_check(passed.is_empty() and not dreams.is_offering(), "…null lets it pass")
 	light = dreams.dreamlight
 	dreams.sim_rest(25, func(offer: Array) -> UpgradeData: return offer[0])
-	_check(dreams.dreamlight == light + DreamState.BOSS_DREAMLIGHT, "…a boss rest gives +4 Dreamlight")
+	_check(dreams.dreamlight == light + DreamState.BOSS_DREAMLIGHT, "…a boss rest gives +3 Dreamlight")
 	light = dreams.dreamlight
 	dreams.sim_rest(50, func(offer: Array) -> UpgradeData: return offer[0])
-	_check(dreams.dreamlight >= light + DreamState.BOSS_DREAMLIGHT and DreamState.rest_dreamlight(50) == 0, "…the drift 50 boss rest: no wake bonus yet")
+	_check(dreams.dreamlight >= light + DreamState.BOSS_DREAMLIGHT and DreamState.BOSS_DREAMLIGHT == 3, "…the drift 50 boss rest: +3 too")
 	light = dreams.dreamlight
 	dreams.sim_rest(55, func(offer: Array) -> UpgradeData:
 		var plain := offer.filter(func(c: UpgradeData) -> bool: return c.dreamlight_now == 0)  # Not a card that gives Dreamlight
 		return plain[0] if not plain.is_empty() else null)
-	# Only the wake bonus is measured (other cards can add Dreamlight at a rest too)
-	_check(DreamState.rest_dreamlight(55) == DreamState.WAKE_DREAMLIGHT and dreams.dreamlight >= light + DreamState.WAKE_DREAMLIGHT,
-		"…every rest from drift 51: +1 Dreamlight (the Heartwood wakes)")
-	_check(dreams.sim_dreamlight_for(&"first") == 2 and dreams.sim_dreamlight_for(&"boss") == DreamState.BOSS_DREAMLIGHT, "sim_dreamlight_for")
+	# No Dreamlight from an ordinary rest any more, from drift 51 either (user: "only 3 Dreamlight every 25 drifts")
+	_check(dreams.dreamlight == light, "…an ordinary rest at drift 55 gives no Dreamlight (%d)" % (dreams.dreamlight - light))
+	_check(dreams.sim_dreamlight_for(&"first") == DreamState.FIRST_PICK_DREAMLIGHT and dreams.sim_dreamlight_for(&"boss") == DreamState.BOSS_DREAMLIGHT, "sim_dreamlight_for")
 	dreams.first_pick_dreamlight = 0
 	_check(dreams.sim_dreamlight_for(&"first") == 0, "…first_pick_dreamlight 0 (Blight 2): none")
 	dreams.first_pick_dreamlight = DreamState.FIRST_PICK_DREAMLIGHT
@@ -792,7 +792,7 @@ func _test_live_lines() -> void:
 	run_state.dew = dew
 	_plant("thornwall", Vector2(100, 100))
 	line = fx.preview_line(_card("hedge_maze"))
-	_check(line == "Now: 1 Thornwall · +0% (3 for the next +1%)", "Hedge Maze: \"+0%\", singular (%s)" % line)
+	_check(line == "Now: 1 Thornwall · +0% (3 for the next +1%)", "Hedge Maze: \"+0%%\", singular (%s)" % line)
 	line = fx.preview_line(_card("canopy"))
 	_check(line.begins_with("Now: 0 attacking Wardens planted · +0% (20 for the next +12%)"), "Canopy shows its next step (%s)" % line)
 	var director: DriftDirector = main.get_node("%DriftDirector")
@@ -949,3 +949,41 @@ func _check(condition: bool, label: String) -> void:
 	if not condition:
 		failures += 1
 		printerr("FAIL: " + label)
+
+# The drift sample's crowd counts (perf, 2026-10-01): the bucketed "alone" check with its crowded-cell fast path gives
+# exactly the brute-force answer (every pair) on a stacked field, and the in-range count matches a brute-force count.
+func _test_crowd_counts() -> void:
+	_reset()
+	_free_enemies()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var spawned: Array = []
+	var base: Vector2 = map_generator.startPath
+	for i in 60:  # Clusters and stragglers over a few cells
+		var cell := base + Vector2(rng.randi_range(0, 6), rng.randi_range(-2, 2))
+		spawned.append(_spawn(cell, Vector2(rng.randf_range(-30, 30), rng.randf_range(-30, 30))))
+	await_frame_hint()
+	var reach: float = DreamState.LONE_HUNTER_CELLS * map_generator.MAP_GRID.cell_size.x
+	var brute := 0
+	for a in spawned:
+		var lonely := true
+		for b in spawned:
+			if a != b and a.global_position.distance_to(b.global_position) <= reach:
+				lonely = false
+				break
+		brute += 1 if lonely else 0
+	var fast := 0
+	for a in spawned:
+		fast += 1 if dreams._is_alone(a) else 0
+	_check(fast == brute and is_equal_approx(dreams.alone_share(spawned), float(brute) / spawned.size()),
+		"Lone Hunter's alone count: the fast bucketed check equals every-pair brute force (%d vs %d of %d)" % [fast, brute, spawned.size()])
+	var tower := _plant("sporeling", base + Vector2(3, 3))
+	var range_px: float = tower.get_range_cells() * map_generator.MAP_GRID.cell_size.x
+	var in_brute := spawned.filter(func(e: Node2D) -> bool: return tower.global_position.distance_to(e.global_position) <= range_px).size()
+	_check(dreams.count_in_range(tower) == in_brute and is_equal_approx(dreams.average_in_range(), float(in_brute)),
+		"Crowded Path's in-range count equals brute force (%d)" % in_brute)
+	_clear()
+	_free_enemies()
+
+func await_frame_hint() -> void:
+	dreams._bucket_frame = -1  # Spawned this frame: rebuild the buckets

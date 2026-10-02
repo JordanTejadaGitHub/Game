@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Chime Stone"
-description = "A weak pulse that charges everything around it with Charged, and sets off a bolt on nightmares rooting 3 or more."
+description = "A soft pulse that makes nightmares around it {static}. Any nightmare with 3 or more {static} releases its bolt at once, instead of waiting for 5."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
@@ -18,7 +18,7 @@ buildable_directly = false
 evolve_cost = 120
 attack_kind = 1
 attack_range = 2.0
-damage = 35
+damage = 26
 attacks_per_second = 0.8
 applies_status = &"static"
 sets_off_static_at = 3

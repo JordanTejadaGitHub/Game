@@ -96,14 +96,21 @@ func _run() -> void:
 	_check(tower.rank == 5 and not tower.can_nurture() and not placer.nurture(tower), "rank V is the most")
 	_check(tower.choices_text() == "Power ×3, Swift, Reach", "the story of its ranks (%s)" % tower.choices_text())
 
-	# Deep: +18% Potency (effect damage) and status duration per rank.
+	# Deep: +18% Potency per rank, which strengthens its statuses (tower_design.md "Potency: effect damage and
+	# status strength"); no separate duration bonus any more (only with status Potency off, for the A/B).
 	var deep := _build(placer, map_generator, sporeling_data)
 	placer.nurture(deep, Tower.Focus.DEEP)
 	var soaked := _spawn(main, deep.global_position + Vector2(64, 0))
 	deep.hit(soaked, 1.0, false, Tower.NO_CRIT)
-	_check(is_equal_approx(deep.get_potency(), 1.0 + Tower.FOCUS_DEEP), "Deep: +18% Potency")
-	_check(is_equal_approx(soaked.statuses.time_left(EnemyStatuses.SPORED), EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.SPORED] * (1.0 + Tower.FOCUS_DEEP)),
-		"Deep: +18% status duration")
+	_check(is_equal_approx(deep.get_potency(), 1.0 + Tower.deep_share()), "Deep: +25% Potency")
+	_check(is_equal_approx(soaked.statuses.time_left(EnemyStatuses.SPORED), EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.SPORED]),
+		"Deep: no longer lengthens its statuses")
+	Tower.status_potency_on = false
+	var old_rule := _spawn(main, deep.global_position + Vector2(64, 0))
+	deep.hit(old_rule, 1.0, false, Tower.NO_CRIT)
+	_check(is_equal_approx(old_rule.statuses.time_left(EnemyStatuses.SPORED), EnemyStatuses.DEFAULT_DURATION[EnemyStatuses.SPORED] * (1.0 + Tower.FOCUS_DEEP_OLD)),
+		"status Potency off: Deep's old +18% duration")
+	Tower.status_potency_on = true
 
 	# Old saves: a rank and a Focus chosen at III migrate to Power for I–II and the Focus from III.
 	var old := _build(placer, map_generator, sporeling_data)
@@ -202,6 +209,20 @@ func _run() -> void:
 	var extra := drift.get_next_rank_growth_extra(next)
 	placer.nurture(drift)
 	_check(drift.get_grow_cost(next).total == before_grow + extra, "the note matches the new grow cost (%d -> %d)" % [before_grow, drift.get_grow_cost(next).total])
+	# Nurture range preview: pointing at Reach shows exactly the range the Warden has after that rank.
+	var reacher := _build(placer, map_generator, sporeling_data)
+	run_state.dew = 100000
+	placer.show_rank_preview([reacher], Tower.Focus.REACH)
+	var shown: Array = placer.rank_preview()
+	var before_range := reacher.get_range_cells()
+	_check(shown.size() == 1 and is_equal_approx(shown[0][1], before_range) and shown[0][2] > before_range,
+		"the preview shows the current ring and a bigger one for Reach (%s)" % [shown])
+	_check(is_equal_approx(reacher.get_range_cells(), before_range) and reacher.rank == 0, "previewing leaves the Warden as it was")
+	placer.nurture(reacher, Tower.Focus.REACH)
+	_check(shown.size() == 1 and is_equal_approx(reacher.get_range_cells(), shown[0][2]),
+		"the preview radius is the post-Nurture range (%.2f vs %.2f)" % [shown[0][2] if shown.size() == 1 else -1.0, reacher.get_range_cells()])
+	placer.hide_rank_preview()
+	_check(placer.rank_preview().is_empty(), "the rings go on hover end")
 	print("nurture test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

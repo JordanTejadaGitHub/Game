@@ -50,7 +50,7 @@ N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
 // Families: a short branch of three per family (family, hidden branch, Ascension),
 // alternating sides up the middle limb.
 [["sporeling", "Sporeling", true], ["firefly_jar", "Firefly Jar", true], ["dewdrop", "Dewdrop", true], ["pebbling", "Pebbling"],
- ["rootling", "Rootling"], ["bellflower", "Bellflower"], ["acorn", "Acorn"], ["nestling", "Nestling"], ["whirligig", "Whirligig"]]
+ ["rootling", "Rootling"], ["bellflower", "Bellflower", true], ["acorn", "Acorn"], ["nestling", "Nestling"], ["whirligig", "Whirligig"]]
   .forEach(([id, name, start], i) => {
     const side = i % 2 ? 1 : -1, ay = 604 - i * 50, ax = 640 + Math.sin((604 - ay) / 90) * 4;
     N(id, "families", name, ax + side * 38, ay - 20, [ax, ay], start ? { start: true } : {});
@@ -109,8 +109,7 @@ N("planted_promises", "cards", "Planted Promises", 1010, 470, [1000, 480]);
 N("deep_promises", "cards", "Deep Promises", 1030, 400, "planted_promises");
 N("golden_harvest", "cards", "Golden Harvest", 1050, 330, "deep_promises", { legendary: true });
 // The Quiet Ones (support Wardens).
-N("catchers", "cards", "Catchers", 900, 620, [900, 540]);
-N("old_wood", "cards", "Old Wood", 890, 690, "catchers");
+N("old_wood", "cards", "Old Wood", 900, 620, [900, 540]);  // Catchers removed: its cards come with the Acorn family
 N("the_quiet_ones", "cards", "The Quiet Ones", 880, 760, "old_wood", { legendary: true });
 const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
 NODES.forEach(n => { n.depth = n.parent ? byId[n.parent].depth + 1 : 1; });

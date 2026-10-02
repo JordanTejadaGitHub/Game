@@ -21,6 +21,19 @@ function emit(name, img) {
   pre.textContent = toCanvas(img).toDataURL("image/png").split(",")[1];
   document.body.appendChild(pre);
 }
+// A text file (JSON), passed through the same base64 blocks as the sheets.
+function emitText(name, text) {
+  const pre = document.createElement("pre");
+  pre.dataset.name = name;
+  pre.textContent = btoa(unescape(encodeURIComponent(text)));
+  document.body.appendChild(pre);
+}
+// heartwood_stages.json: per stage, the crown's box [x0, y0, x1, y1], the fruit anchors in fill order
+// (fruit centre, px in the 128 px frame) and the pixels where glints may twinkle. One line per stage.
+function heartStagesJson() {
+  const head = '{\n "frame": 128,\n "fruit_sheet": { "file": "dream_fruit.png", "cell": 12, "centre": [6, 6], "rows": ["lit, 4 glow frames", "dark (its leaves are lost), 4 equal frames"] },\n "stages": [\n';
+  return head + HEART_INFO.map((h, i) => '  ' + JSON.stringify({ stage: i, crown: h.crown, fruit: h.fruit, glints: h.glints })).join(",\n") + "\n ]\n}\n";
+}
 for (const A of ACTS) {
   ACT = A;
   const d = FOLDERS[A.id] + "/";
@@ -48,6 +61,10 @@ for (const A of ACTS) {
     emit("dream/rope_bridge.png", strip([getImg("bridge:0"), getImg("bridge:1")]));
     emit("dream/cloud_shadows.png", strip([0, 1, 2, 3, 4, 5].map(v => getImg("cloud:" + v))));
     emit("dream/mist_banks.png", getImg("mistbank"));
+    emit("dream/route_mist.png", getImg("route:0"));
+    emit("dream/route_mist_start.png", getImg("route:1"));
+    emit("dream/route_mist_end.png", getImg("route:2"));
+    emit("dream/route_wisp.png", frames("rwisp", 6));
   }
   emit(d + "moved_hollow.png", getImg("dent"));
   emit(d + "waystone.png", frames("waystone"));
@@ -57,5 +74,9 @@ for (const A of ACTS) {
   emit(d + "tree_flowering.png", getImg("tree:2"));
   emit(d + "ground_details.png", strip([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(v => getImg("decor:" + v))));
   emit(d + "heartwood.png", stack(Array.from({ length: 21 }, (_, lost) => frames("heart:" + lost))));
+  // The in-run Heartwood's Grove stages (row = leaves lost, 4 frames), the dream-fruit, and the crown facts.
+  for (let st = 0; st < 4; st++) emit(d + "heartwood_stage_" + st + ".png", stack(Array.from({ length: 21 }, (_, lost) => frames("hstage:" + (lost + 21 * st)))));
+  emit(d + "dream_fruit.png", stack([0, 1].map(v => frames("fruit:" + v))));
+  emitText(d + "heartwood_stages.json", heartStagesJson());
 }
 document.body.appendChild(Object.assign(document.createElement("p"), { id: "done", textContent: "done" }));

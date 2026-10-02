@@ -64,6 +64,31 @@ func _run() -> void:
 	_check(float(history._open[90].damage) == 50.0 and float(history._open[91].damage) == 0.0,
 		"damage counts for the drift that spawned the nightmare, even after the next was called early")
 	straggler.queue_free()
+	# Route profiles (Balancing: where the Dew sits on the route, where nightmares die).
+	var map: Node2D = main.get_node("%MapGenerator")
+	var placer: TowerPlacer = main.get_node("%TowerPlacer")
+	var container: Node = main.get_node("%TowerContainer")
+	run_state.dew = 1000
+	placer.select_tower(load("res://resource/tower/sprout.tres"))
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	for cell in route.slice(2, 8):
+		for side in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
+			if container.get_child_count() == 0 and map.is_buildable(cell + side):
+				placer._try_build(cell + side)
+	placer.set_build_mode(false)
+	var invested := history.invested_by_progress()
+	var spread: float = invested.off_route
+	for dew in invested.invested:
+		spread += dew
+	_check(container.get_child_count() > 0 and float(invested.total) > 0.0 and is_equal_approx(spread, float(invested.total))
+		and float(invested.off_route) == 0.0, "a Warden by the route spreads its Dew over the bins it covers (%s)" % [invested])
+	var spawner = main.get_node("%EnemyContainer")
+	var walker: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"), 1.0, {}, false)
+	await process_frame
+	history._on_dispelled(walker)
+	history._note_leak(walker)
+	_check(int(history._route_block.dispels[0]) == 1 and float(history._route_block.dispel_health[0]) > 0.0
+		and int(history._route_block.leaked) == 1, "a dispel counts in its route bin (just spawned: the first), a leak apart")
 	run_state.abandoned = true
 	run_state.end_run(false)
 	await process_frame
@@ -82,6 +107,16 @@ func _run() -> void:
 		_check(int(record.get("early_calls", -1)) == 3 and int(record.get("dew_call_early", -1)) == 7
 			and report.contains("Called early: 3 drifts · 7 Dew") and report.contains(",closest,called_early"),
 			"the record counts drifts called early and their Dew; the CSV has a called_early column")
+		var blocks: Array = record.get("route_blocks", [])
+		_check(not blocks.is_empty() and blocks[-1].dispels.size() == RunHistory.ROUTE_BINS and blocks[-1].invested.size() == RunHistory.ROUTE_BINS
+			and int(blocks[-1].leaked) >= 1 and record.has("heart_share"), "route profiles per block (%s)" % [blocks])
+		_check(report.contains("kills by route: ") and report.contains(" · leaked ") and report.contains("Dew by route: ")
+			and report.contains("Heart share: "), "the report's route lines")
+		var heat_map := String(record.get("heat_map", ""))
+		_check(heat_map != "" and FileAccess.file_exists(heat_map), "a heat map PNG next to the record (%s)" % heat_map)
+		if heat_map != "":
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(heat_map))
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(heat_map.get_base_dir()))
 		# The exact build (balance_simulation.md): content id + label, and the tuning snapshot.
 		_check(String(record.get("build", {}).get("id", "")).length() == 6 and report.contains("Build ")
 			and int(record.get("balance", {}).get("starting_dew", 0)) > 0 and record.balance.has("health_by_drift"),

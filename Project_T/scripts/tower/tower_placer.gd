@@ -87,6 +87,7 @@ var settling := {}  # cell -> game seconds left
 var _settling_marks: Node2D = null
 
 func _ready() -> void:
+	Tower.placer_ref = weakref(self)  # Tall Wardens fade when the build ghost is behind them
 	if tower_scene == null:
 		tower_scene = load(TOWER_SCENE_PATH)
 	# Parked Wardens (the Memory Wardens, cut for now) never join the roster: not in the bar, not buildable,
@@ -175,7 +176,7 @@ func set_build_mode(active: bool) -> void:
 		cancel_stroke()
 	build_mode = active
 	Tower.set_badges_visible(&"build", active)  # Card badges show in build mode
-	visible = active
+	_update_visible()
 	_hover_cell = NO_CELL
 	build_mode_changed.emit(active)
 
@@ -257,6 +258,7 @@ func _draw() -> void:
 		_draw_stroke()
 		return
 	_draw_grow_preview()
+	_draw_rank_preview()
 	_draw_kin_spots()
 	if not _catch_preview.is_empty():
 		_draw_catch_zone(_catch_preview.at, _catch_preview.radius)
@@ -364,50 +366,140 @@ var _grow_preview_time := 0.0
 # Shows each Warden as the form it would grow into: its sprite in place (translucent, idling), the new
 # range bright over the current faint one (a sniper's dead zone too), and a 2×2 form's squares.
 func show_grow_preview(pairs: Array) -> void:
-	_grow_preview = pairs.filter(func(p: Array) -> bool: return is_instance_valid(p[0]) and p[1] != null)
+	_grow_preview = pairs.filter(func(p: Array) -> bool: return is_instance_valid(p[0]) and is_form_open(p[1]))
 	_grow_preview_time = 0.0
-	queue_redraw()
+	_fade_previewed()
+	_update_visible()
 
 func hide_grow_preview() -> void:
 	if not _grow_preview.is_empty():
 		_grow_preview = []
-		queue_redraw()
+		_fade_previewed()
+		_update_visible()
+
+# While previewed, the Warden itself fades back so the new form's ghost over it reads (windowed check: at
+# full strength the two sprites blended into one).
+const PREVIEW_FADE := 0.3
+var _faded: Array = []
+
+func _fade_previewed() -> void:
+	for tower in _faded:
+		if is_instance_valid(tower) and tower.sprite:
+			tower.sprite.modulate.a = 1.0
+	_faded = []
+	for pair in _grow_preview:
+		var tower: Tower = pair[0]
+		if tower.sprite and pair[1].footprint <= tower.get_footprint():  # A 2×2 form shows squares, no ghost
+			tower.sprite.modulate.a = PREVIEW_FADE
+			_faded.append(tower)
 
 func is_previewing_growth() -> bool:
 	return not _grow_preview.is_empty()
 
+# Shown in build mode, while choosing a 2×2 form's square, and while a Warden panel preview is up (grow,
+# rank, catch: those come outside build mode; user "hovering Grow into doesn't preview"). The route line
+# is build mode's and the square choice's only.
+func _update_visible() -> void:
+	visible = build_mode or is_choosing_square() or not _grow_preview.is_empty() or not _rank_preview.is_empty() \
+		or not _catch_preview.is_empty()
+	_path_preview.visible = build_mode or is_choosing_square()
+	queue_redraw()
+
+# Nurture range preview (user: "hovering Nurture range should show the range it would go into"): while the
+# Nurture button or a rank choice is pointed at, each Warden that would rank shows its current range faint
+# and, if the rank widens it (Reach), the new range bright. [[Tower, range now, range after], …]
+var _rank_preview: Array = []
+
+func show_rank_preview(towers: Array, focus: Tower.Focus = Tower.Focus.NONE) -> void:
+	_rank_preview = []
+	for tower in towers:
+		if is_instance_valid(tower) and tower.can_nurture() and tower.tower_data.can_attack:
+			_rank_preview.append([tower, tower.get_range_cells(), range_after_rank(tower, focus)])
+	_update_visible()
+
+func hide_rank_preview() -> void:
+	if not _rank_preview.is_empty():
+		_rank_preview = []
+		_update_visible()
+
+func rank_preview() -> Array:
+	return _rank_preview
+
+# The real range `tower` would have after one more rank of `focus` (the same getters as combat: Dreams,
+# Kinships, rank and Focus bonuses): the rank is tried on the Warden and put back.
+func range_after_rank(tower: Tower, focus: Tower.Focus = Tower.Focus.NONE) -> float:
+	var rank_before: int = tower.rank
+	var choices_before: Array = tower.rank_choices.duplicate()
+	tower.rank += 1
+	if focus != Tower.Focus.NONE:
+		tower.rank_choices.append(focus)
+	tower.clear_dream_cache()
+	var after := tower.get_range_cells()
+	tower.rank = rank_before
+	tower.rank_choices.assign(choices_before)
+	tower.clear_dream_cache()
+	return after
+
+func _draw_rank_preview() -> void:
+	for entry in _rank_preview:
+		var tower: Tower = entry[0]
+		if not is_instance_valid(tower):
+			continue
+		draw_set_transform(to_local(tower.global_position))
+		var now_px := Tower.range_to_pixels(entry[1])
+		var after_px := Tower.range_to_pixels(entry[2])
+		if after_px - now_px >= 2.0:
+			draw_arc(Vector2.ZERO, now_px, 0.0, TAU, 64, Color(VALID_TINT, 0.25), 1.5)
+			draw_circle(Vector2.ZERO, after_px, Color(BONUS_ON, 0.08))
+			draw_arc(Vector2.ZERO, after_px, 0.0, TAU, 64, Color(BONUS_ON, 0.85), 2.5)
+		else:
+			draw_arc(Vector2.ZERO, now_px, 0.0, TAU, 64, Color(VALID_TINT, 0.5), 2.0)  # Same reach: the current ring
+	draw_set_transform(Vector2.ZERO)
+
 # The range `tower` would have as `into`: its own extras (ranks, Focus, cards) kept on the new base.
 func preview_range(tower: Tower, into: TowerData) -> float:
-	return tower.get_range_cells() - Tower.get_range_for(tower.tower_data, dream_state) + Tower.get_range_for(into, dream_state)
+	return range_as(tower, into, dream_state)
 
-# The stat changes for the Grow button's tooltip: "Damage 24 → 38 · Range 2.7 → 3.2 · adds Rooted".
+static func range_as(tower: Tower, into: TowerData, dreams: DreamState) -> float:
+	return tower.get_range_cells() - Tower.get_range_for(tower.tower_data, dreams) + Tower.get_range_for(into, dreams)
+
+# Only a form unlocked this run is previewed on the map (user: "only if you have it unlocked"); a locked one
+# (Dreamlight on Remember, or the Memory Grove) shows no ring and no ghost.
+func is_form_open(into: TowerData) -> bool:
+	return into != null and (dream_state == null or dream_state.is_unlocked(into.get_id()))
+
+# The Grow tooltip's headline (story chat 2026-10-01): "Thunderhead: damage 30 → 48, chains 3 → 5, range 3.0 → 3.5".
 func grow_changes(tower: Tower, into: TowerData) -> String:
+	return describe_growth(tower, into, dream_state)
+
+static func describe_growth(tower: Tower, into: TowerData, dreams: DreamState) -> String:
 	var from := tower.tower_data
 	var parts: Array[String] = []
 	if into.can_attack and from.can_attack and from.damage > 0:
 		var now := tower.get_damage()
 		var then := now * float(into.damage) / float(from.damage)
 		if roundi(then) != roundi(now):
-			parts.append("Damage %d → %d" % [roundi(now), roundi(then)])
+			parts.append("damage %d → %d" % [roundi(now), roundi(then)])
 		var speed := tower.get_attacks_per_second()
 		var faster := speed * into.attacks_per_second / maxf(from.attacks_per_second, 0.01)
 		if absf(faster - speed) >= 0.05:
-			parts.append("Speed %.1f → %.1f/s" % [speed, faster])
-		# The headline first (warden_stats.md "Branches: pricier and worth it"): damage per second, before
-		# the mechanic (chains, splash, statuses).
-		var ratio := (then * faster) / maxf(now * speed, 0.001)
-		if absf(ratio - 1.0) >= 0.05:
-			parts.push_front("%.1f× damage" % ratio)
+			parts.append("speed %.1f → %.1f/s" % [speed, faster])
+			# Damage and speed both move: their product (warden_stats.md "Branches: pricier and worth it").
+			var ratio := (then * faster) / maxf(now * speed, 0.001)
+			if absf(ratio - 1.0) >= 0.05:
+				parts.append("%.1f× damage per second" % ratio)
 	elif into.can_attack and not from.can_attack:
-		parts.append("Damage %d" % into.damage)
-	var reach := preview_range(tower, into)
+		parts.append("damage %d" % into.damage)
+	if into.chain_targets > 0 and into.chain_targets != from.chain_targets:
+		parts.append("chains %d → %d" % [from.chain_targets, into.chain_targets] if from.chain_targets > 0 else "chains to %d" % into.chain_targets)
+	var reach := range_as(tower, into, dreams)
 	if into.can_attack and absf(reach - tower.get_range_cells()) >= 0.05:
-		parts.append("Range %.1f → %.1f" % [tower.get_range_cells(), reach])
+		parts.append("range %.1f → %.1f" % [tower.get_range_cells(), reach])
 	if into.min_range > 0.0 and into.min_range != from.min_range:
 		parts.append("can't hit within %.1f" % into.min_range)
 	if into.applies_status != &"" and into.applies_status != from.applies_status:
 		parts.append("adds %s" % IconInfo.status_name(into.applies_status))
-	return " · ".join(parts)
+	return into.display_name + (": " + ", ".join(parts) if not parts.is_empty() else "")
 
 func _draw_grow_preview() -> void:
 	for pair in _grow_preview:
@@ -434,6 +526,9 @@ func _draw_grow_preview() -> void:
 				var dead := Tower.range_to_pixels(into.min_range)
 				draw_circle(Vector2.ZERO, dead, Color(INVALID_TINT, 0.12))
 				draw_arc(Vector2.ZERO, dead, 0.0, TAU, 48, Color(INVALID_TINT, 0.6), 1.5)
+		if into.aura_radius > 0.0:  # A form with an aura: the cells it would cover (open "grow aura previews" item)
+			var reach := Tower.range_to_pixels(into.aura_radius)
+			draw_arc(Vector2.ZERO, reach, 0.0, TAU, 48, Color(BuffSources.color(into.get_id()), 0.7), 2.0)
 		if into.texture == null:
 			Tower.draw_placeholder(self, Color(1, 1, 1, PREVIEW_ALPHA))
 		else:
@@ -451,12 +546,12 @@ var _catch_preview := {}  # {"at": world position, "radius": cells} while the Wa
 # pointed at; the build ghost shows it for a catcher.
 func show_catch_preview(at: Vector2, radius: float) -> void:
 	_catch_preview = {"at": at, "radius": radius}
-	queue_redraw()
+	_update_visible()
 
 func hide_catch_preview() -> void:
 	if not _catch_preview.is_empty():
 		_catch_preview = {}
-		queue_redraw()
+		_update_visible()
 
 func _draw_catch_zone(at: Vector2, radius: float) -> void:
 	var reach := radius * MAP_GRID.cell_size.x
@@ -584,10 +679,8 @@ func _refresh_hover() -> void:
 	_hover_path = PackedVector2Array()
 	if _footprint(_hover_cell).all(func(c: Vector2) -> bool: return map_generator.is_buildable(c)):
 		_hover_path = map_generator.get_path_if_blocked_cells(_footprint(_hover_cell))
-	_path_preview.clear_points()
-	RouteLine.apply(_path_preview, PREVIEW_COLOR)
-	for point in _hover_path:
-		_path_preview.add_point(MAP_GRID.calculate_map_position(point))
+	# Route mist (screens_ui.md): the new route, the old one faint where it differs, a glint when it gets longer.
+	RouteLine.draw_route(_path_preview, _hover_path, PREVIEW_COLOR, 6.0, map_generator.get_path_from(map_generator.startPath))
 	_hover_valid = _hover_cell_valid()
 	_heart_here = becomes_heart(_hover_cell, _hover_path)
 	_hover_affordable = run_state.can_afford(get_cost(null, _hover_cell))
@@ -841,7 +934,7 @@ func begin_grow_choice(tower: Tower, into: TowerData) -> bool:
 		return evolve(tower, into, squares[0])
 	set_build_mode(false)
 	_grow_choice = {"tower": tower, "into": into, "squares": squares, "hover": NO_CELL}
-	visible = true
+	_update_visible()
 	grow_choice_changed.emit(true)
 	queue_redraw()
 	return true
@@ -853,8 +946,8 @@ func cancel_grow_choice() -> void:
 	if _grow_choice.is_empty():
 		return
 	_grow_choice = {}
-	visible = build_mode
-	_path_preview.clear_points()
+	_update_visible()
+	RouteLine.clear(_path_preview)
 	grow_choice_changed.emit(false)
 	queue_redraw()
 
@@ -871,10 +964,11 @@ func _update_grow_choice() -> void:
 	if hover == _grow_choice.hover:
 		return
 	_grow_choice.hover = hover
-	_path_preview.clear_points()
 	if hover != NO_CELL:
-		for point in map_generator.get_path_if_blocked_cells(Tower.footprint_cells(hover, 2)):
-			_path_preview.add_point(MAP_GRID.calculate_map_position(point))
+		RouteLine.draw_route(_path_preview, map_generator.get_path_if_blocked_cells(Tower.footprint_cells(hover, 2)),
+			PREVIEW_COLOR, 6.0, map_generator.get_path_from(map_generator.startPath))
+	else:
+		RouteLine.clear(_path_preview)
 	queue_redraw()
 
 func _draw_grow_choice() -> void:
@@ -1113,10 +1207,7 @@ func _plan_stroke() -> void:
 	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	var new_route: PackedVector2Array = map_generator.get_path_if_blocked_cells(blocked) if not blocked.is_empty() else route
 	_stroke_growth = new_route.size() - route.size()
-	_path_preview.clear_points()
-	RouteLine.apply(_path_preview, PREVIEW_COLOR)
-	for point in new_route:
-		_path_preview.add_point(MAP_GRID.calculate_map_position(point))
+	RouteLine.draw_route(_path_preview, new_route, PREVIEW_COLOR, 6.0, route)
 	queue_redraw()
 
 func _draw_stroke() -> void:

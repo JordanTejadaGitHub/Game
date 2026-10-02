@@ -10,8 +10,25 @@ class_name HeartwoodMemory
 const PATH := "user://heartwood.json"
 const VERSION := 9  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3; 4: REFUNDED_V4; 5: REFUNDED_V5; 6: REFUNDED_V6; 7: REFUNDED_V7; 8–9: nothing (free lean-pool grants dropped: the game isn't out, no players to protect)
 
-# Where the profile lives (tests point this elsewhere so they never touch the player's Seeds).
-static var file_path := PATH
+# Where the profile lives. Under a --script run (tests, tools) it defaults to a fresh per-process temp profile,
+# so a test starts from defaults() and never reads or writes the player's real settings or Seeds. A tool that
+# wants the real profile passes "-- --real-profile". Tests may still point it elsewhere.
+static var file_path := _default_path()
+
+static func _default_path() -> String:
+	var args := OS.get_cmdline_args()
+	if not args.has("--script") or OS.get_cmdline_user_args().has("--real-profile"):
+		return PATH
+	var temp := "user://test_heartwood_%d.json" % OS.get_process_id()
+	for file in [temp, temp + ".bak", temp + ".unreadable"]:  # A crashed run with the same pid left one behind
+		if FileAccess.file_exists(file):
+			DirAccess.remove_absolute(file)
+	UiStyle.release_at_exit(func() -> void:  # Tidy up at quit: one temp profile per test process otherwise piles up
+		for file in [temp, temp + ".bak", temp + ".unreadable"]:
+			if FileAccess.file_exists(file):
+				DirAccess.remove_absolute(file))
+	return temp
+
 # Dev Grove (DevGrove): while set, the profile is a dev one but settings stay in this real file.
 static var real_settings_path := ""
 # Parsed files, so the many callers don't re-read and re-parse the JSON each time (Tower Code's perf
@@ -467,6 +484,17 @@ static func grown_share(data: Dictionary) -> float:
 			grown += 1
 	return float(grown) / maxf(total, 1.0)
 
+# The grown Grove nodes, for the in-run Heartwood that mirrors the Grove (meta_design.md "Carried into the
+# run"): [{id, limb ("perks" / "families" / "cards"), pos (Vector2, grove_layout.json tree space)}], in layout
+# order. Reads the current profile, so Dev Grove runs see their preset. Callers skip it in the demo.
+static func planted_nodes(data: Dictionary) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for node in GroveTreeView.load_layout().get("nodes", []):
+		var unlock := get_unlock(str(node.id))
+		if unlock != null and node_level(data, unlock) > 0:
+			result.append({"id": unlock.id, "limb": str(node.section), "pos": GroveTreeView.vec(node.pos)})
+	return result
+
 # --- Perk loadout ("Carry into the dream") ---
 
 const BASE_LOADOUT_SLOTS := 3  # Slots 1–3 are open from the start; 4 and 5 are Perks nodes
@@ -534,7 +562,13 @@ static func max_blight_level(data: Dictionary) -> int:
 		return 0
 	return mini(int(data.highest_blight_won) + 1, 10)
 
+# Settings' unapplied changes, previewed live (SettingsPanel "Apply and Cancel"): every reader sees them, nothing
+# saves them; empty = none. The panel clears it on Apply, Cancel and close.
+static var preview_settings := {}
+
 static func get_settings() -> Dictionary:  # Only the settings are copied (read often)
+	if not preview_settings.is_empty():
+		return preview_settings.duplicate(true)
 	return _shared(real_settings_path if real_settings_path != "" else file_path).settings.duplicate(true)
 
 static func save_settings(settings: Dictionary) -> void:

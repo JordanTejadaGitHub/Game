@@ -13,7 +13,6 @@ class_name ComingStrip
 const FACE := 48.0  # screens_ui.md "Readable on the night sky": 48 px at rests, 36 in drifts
 const FACE_SMALL := 36.0
 const FACE_BIG := 64.0  # A new rule-breaker at a rest (RuleBreakers)
-const TRAIT_WIDTH := 140.0  # Its trait in words, under it
 const PIP := 16.0
 const TOP := 72.0  # Just under the drift banner
 const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
@@ -213,7 +212,17 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 	item.add_theme_constant_override("separation", 1)
 	item.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var side := FACE_SMALL if compact else (FACE_BIG if breaks_rules else FACE)
+	# The disc and its badges as siblings in a holder: the disc clips its art, the badges must not be clipped
+	# (user screenshot: "New" showed as "EW", the counts as "×1?").
+	var holder := Control.new()
+	holder.name = "Disc"
+	holder.custom_minimum_size = Vector2(side, side)
+	holder.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	item.add_child(holder)
 	var face := Button.new()
+	face.name = "Face"
+	face.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	face.icon = NightmareCard.portrait(data)
 	face.expand_icon = true
 	face.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -230,41 +239,51 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 		face.pressed.connect(func() -> void: BossDossier.open_for(get_tree(), drift))
 	else:  # One centred card for every nightmare (its name, what it does)
 		face.pressed.connect(func() -> void: NightmareIntro.open_for(get_tree(), [data], drift))
-	item.add_child(face)
-	var badge := Label.new()  # How many come: a badge on the disc's lower-right corner
+	holder.add_child(face)
+	var badge := Label.new()  # How many come: on a dark pill inside the disc's lower-right corner
 	badge.name = "KindCount"
 	badge.text = "×%d" % count
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiStyle.number(badge, 13, UiStyle.GOLD)
-	badge.add_theme_color_override("font_outline_color", UiStyle.FOG)
-	badge.add_theme_constant_override("outline_size", 5)
-	badge.position = Vector2(side - 14, side - 16)
-	face.add_child(badge)
-	if breaks_rules or NightmareCard.is_new(data):  # "New": a gold badge on the upper-left corner (a new rule-breaker: always)
+	badge.add_theme_stylebox_override("normal", _pill())
+	badge.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	badge.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	holder.add_child(badge)
+	if breaks_rules or NightmareCard.is_new(data):  # "New": a gold tab over the disc's top edge (a new rule-breaker: always)
 		var tag := Label.new()
 		tag.name = "New"
 		tag.text = "New"
 		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		UiStyle.caps(tag, 11, UiStyle.GOLD)
-		tag.add_theme_color_override("font_outline_color", UiStyle.FOG)
-		tag.add_theme_constant_override("outline_size", 5)
-		tag.position = Vector2(-4, -6)
-		face.add_child(tag)
+		tag.add_theme_stylebox_override("normal", _pill())
+		tag.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+		tag.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		tag.offset_top = -6.0
+		holder.add_child(tag)
 	if not compact:
 		var icons := NightmareIcons.make_rows(data, 14.0, true)
 		icons.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		item.add_child(icons)
-	if breaks_rules and data.trait_text != "":  # Its trait in words ("Flies straight over the maze")
+	if breaks_rules:  # Just its verb ("Flies"): the DriftPanel's warning line has the sentence
 		var words := Label.new()
 		words.name = "TraitWords"
-		words.text = data.trait_text
-		words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.text = String(RuleBreakers.VERBS.get(data.trait_kind, "Breaks the rules")).capitalize()
 		words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		words.custom_minimum_size = Vector2(TRAIT_WIDTH, 0)
 		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		UiStyle.caps(words, 13, UiStyle.GOLD)
+		words.add_theme_font_size_override("font_size", 14)
+		words.add_theme_color_override("font_color", UiStyle.GOLD)
 		item.add_child(words)
 	return item
+
+# The dark pill behind a badge (like the status stack pills): readable over any portrait.
+func _pill() -> StyleBoxFlat:
+	var pill := StyleBoxFlat.new()
+	pill.bg_color = Color(Palette.VOID, 0.85)
+	pill.set_corner_radius_all(6)
+	pill.content_margin_left = 3.0
+	pill.content_margin_right = 3.0
+	return pill
 
 # "+N": the kinds that didn't fit; a tap opens their cards in turn.
 func _more_chip(rest: Array) -> Control:

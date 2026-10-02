@@ -12,6 +12,9 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	# The player's own settings (reduce flashes, Kinship effects) must not change what the test sees.
+	HeartwoodMemory.file_path = "user://test_charged_bolt_%d.json" % OS.get_process_id()
+	Fx.reset_run()
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = 42
 	root.add_child(main)
@@ -44,9 +47,10 @@ func _run() -> void:
 	bolts = world.get_children().filter(func(n: Node) -> bool: return n is ChargedBolt)
 	var drawn: int = bolts.filter(func(b) -> bool: return b._bolt).size()
 	_check(drawn == ChargedBolt.BUDGET and bolts.size() == 10, "past %d bolts in 0.25 s only the flash plays (%d bolts of %d)" % [ChargedBolt.BUDGET, drawn, bolts.size()])
-	for i in 20:
-		await process_frame
-	_check(world.get_children().filter(func(n: Node) -> bool: return n is ChargedBolt).is_empty(), "they fade out")
+	# Their own clock (a fresh profile opens the onboarding, which pauses the run: don't rely on frames).
+	for b in world.get_children().filter(func(n: Node) -> bool: return n is ChargedBolt):
+		b._process(ChargedBolt.FLASH_LIFE + 0.01)
+	_check(world.get_children().filter(func(n: Node) -> bool: return n is ChargedBolt and not n.is_queued_for_deletion()).is_empty(), "they fade out")
 	var ring := ChargedBolt.strike(Vector2(100, 100), world, 96.0)
 	_check(ring != null and ring._field == 96.0, "Static Field: a ring to its reach")
 

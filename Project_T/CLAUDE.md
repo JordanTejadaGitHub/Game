@@ -277,7 +277,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove): Glossary / Combos / Families / Dreams (`DreamCodex`) / Nightmares (`NightmareCodex`: ??? until met, lifetime dispels, act groups, milestone `all_nightmares`); account knowledge on the real profile (`HeartwoodMemory.ACCOUNT_KEYS`, also under Dev Grove); lists what `CodexData.scope()` covers (starting three + Grove-planted families and forms; demo its three; dev runs all), "N more wait in the Memory Grove.", "New from the Grove" leaf (profile `codex_covered`). `tests/test_codex_scope.gd`.
 
 ## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
-- Grove = tech tree on the Heartwood: 92 `UnlockData` nodes (the lean Cards limb holds most build cards; the start pool is lean) (`resource/meta/grove/<id>.tres`, ids =
+- Grove = tech tree on the Heartwood: 91 `UnlockData` nodes (the lean Cards limb holds most build cards; the start pool is lean) (`resource/meta/grove/<id>.tres`, ids =
   `assets/meta/grove/grove_layout.json` ids; limbs `root` WARDENS = Families, DREAMS = Cards, PERKS =
   Perks). `costs` per level, `requires_all` ("id" or "id:level") / `requires_any` (+count), `icon`,
   `start` (Sporeling / Firefly Jar / Dewdrop, never bought), `<family>_ascension` (Ascended Warden card), `milestone` (grows free, refunds a
@@ -388,7 +388,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `path.png` column = neighbour mask. The map is an island in a starry void: border cells are
   `island_edge` rim tiles (neighbour mask; no grass under them), cliffs under the bottom row, a rope
   bridge out from the start (shared sheets in `assets/environment/dream/`), and `DreamVoid`
-  (`dream_void.gd`: Parallax2D sky + stars behind the map, islets). Mist on the start, `Heartwood` (`heartwood.gd`, Sprite2D) on the end shows leaves lost (its warm light and additive
+  (`dream_void.gd`: Parallax2D sky + stars behind the map, islets). Mist on the start, `Heartwood` (`heartwood.gd`, Sprite2D) on the end shows leaves lost and mirrors the Grove (stage by `grown_share`, a glint per planted node, a dream-fruit per Memory; demo: stage 0, 3 fruit; `tests/test_heartwood_grove.gd`) (its warm light and additive
   glow dim with them). Lighting pass (art_direction.md), made by MapGenerator: `EnvironmentLighting`
   (MUL-blended radial multiply, cold at the edges, z 3; attacking Wardens glow via one additive canvas item,
   redrawn only on plant/sell/grow) and `EnvironmentAmbience` (`_draw`: edge fog + the act's particles, z 6). `tests/test_environment.gd`
@@ -478,7 +478,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   strike: `note_hit` from `Tower.hit`, tag "harmony" (an effect), never a Reaction. Kindred / Whole Tree:
   `family_bonus(line)` in `Tower.get_damage`. Signals for Sound: `kin_bonded`, `kin_stage_grew`,
   `harmony_struck`, `family_whole`; `kinship_formed` for discovery. Setting `kinship_effects` (0 Full /
-  1 Subtle / 2 Off). Saved via `to_save` / `load_save` in RunSaver. Demo: 3 Kinships, no Whole Tree
+  1 Subtle / 2 Off). Saved via `to_save` / `load_save` in RunSaver. Demo: 4 Kinships (Night Chimes with Bellflower, d90b9165), no Whole Tree
   (`force_full` for tests). Kinship cards by rule id (quick_bonds, family_ties, sweet_harmony, close_kin, old_friends, rooted_bond,
   extended_family, kin_and_kindling, grove_of_kin, blood_is_thicker; rooted_bond = a Warden sold during a rest
   leaves its partner remembering the bond, and a new kin planted that rest bonds at the old age): `get_reach`, `get_stage_drifts`,

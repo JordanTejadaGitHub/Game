@@ -20,12 +20,13 @@ const TITLES := {
 	&"boss": "It's gone, and something I'd forgotten came back.",
 }
 
-# Families that can be offered (demo: the first-playable three; the full game adds Pebbling,
-# Rootling and Acorn once the Memory Grove unlocks them).
+# Families that can be offered (the starting four, the demo's too: Bellflower joined 2026-10-01, meta_design.md
+# a3375108; the full game adds the Grove's families through MetaRun).
 @export var families: Array[TowerData] = [
 	preload("res://resource/tower/sporeling.tres"),
 	preload("res://resource/tower/firefly_jar.tres"),
 	preload("res://resource/tower/dewdrop.tres"),
+	preload("res://resource/tower/bellflower.tres"),
 ]
 @export var cards_per_pick: int = 3
 var offer_all_first := false  # Early Bloom (set by MetaRun)

@@ -27,37 +27,20 @@ func _run() -> void:
 	_check(arrows.is_showing() and arrows._cells.size() == route.size(), "shown from run start, along the whole route (%d of %d cells)" % [arrows._cells.size(), route.size()])
 	_check(arrows._cells[0] == map_generator.MAP_GRID.calculate_map_position(route[0])
 		and arrows._cells[-1] == map_generator.MAP_GRID.calculate_map_position(route[-1]), "…from the start to the Heartwood")
-	# Spread out (user: "spread them out more"): about one per 3 cells, evenly along the route's length, one on the start
-	# and one on the last cell before the Heartwood
-	var count := arrows.mark_count()
-	var expected := maxi(1, roundi(arrows._length_to(route.size() - 2) / (StartArrows.SPACING_CELLS * StartArrows.CELL))) + 1
-	_check(count == expected and count < route.size() / 2, "chevrons spread out: %d for %d route cells" % [count, route.size()])
-	_check(arrows.mark_position(0).is_equal_approx(arrows._cells[0]) and arrows.mark_position(count - 1).is_equal_approx(arrows._cells[-2]),
-		"…one on the start, one on the last cell before the Heartwood")
-	var gaps: Array[float] = []
-	for i in count - 1:
-		gaps.append(arrows.mark_position(i).distance_to(arrows.mark_position(i + 1)))
-	var even := true
-	var spacing: float = arrows._length_to(route.size() - 2) / maxf(count - 1, 1.0)
-	for i in count - 1:  # Along the route they're exactly `spacing` apart; straight-line gaps can only be shorter (corners)
-		even = even and gaps[i] <= spacing + 0.5
-	_check(even and spacing >= 2.0 * StartArrows.CELL and spacing <= 4.0 * StartArrows.CELL, "…evenly spaced along the route (%.0f px)" % spacing)
-	# Visible (user: "can't see the arrows"): half a cell, 0.85 opacity, a dark outline around a gold fill
-	_check(is_equal_approx(StartArrows.SIZE * 2.0, 0.5 * StartArrows.CELL) and StartArrows.ALPHA >= 0.8, "…half a cell, clearly visible")
-	var sprite := StartArrows.make_chevron()
-	var colours := {}
-	for y in sprite.get_height():
-		for x in sprite.get_width():
-			var c := sprite.get_pixel(x, y)
-			if c.a > 0.0:
-				colours[c.to_html(false)] = true
-	_check(colours.has(Palette.DREAD.to_html(false)) and colours.has(Palette.GOLD.to_html(false)) and colours.has(Palette.GLOW.to_html(false)),
-		"…a pixel chevron: dark outline, gold fill, a lighter top edge (%s)" % colours.keys())
-	var first: Vector2 = arrows._point_at(fposmod(arrows._age * StartArrows.MARCH_SPEED, arrows._spacing))
+	# The route mist (screens_ui.md "Route mist", user: the chevrons didn't "fit the theme"): a cold mist ribbon along
+	# the whole route, with 2–3 brighter wisps drifting toward the Heartwood
+	var mist: Line2D = arrows.get_node_or_null("RouteMist")
+	_check(mist != null and mist.visible and mist.points.size() == route.size() and mist.points[0] == arrows._cells[0],
+		"a mist ribbon along the whole route (%d points)" % (mist.points.size() if mist else -1))
+	_check(not arrows.has_method("make_chevron"), "…no more chevrons")
+	var wisps := arrows.wisp_count()
+	_check(wisps >= 2 and wisps <= 3, "…with 2–3 wisps drifting along it (%d)" % wisps)
+	var spacing: float = arrows._span / maxf(wisps, 1.0)
+	var first: float = fposmod(arrows._age * StartArrows.WISP_SPEED, spacing)
 	for i in 30:
 		await process_frame
-	var later: Vector2 = arrows._point_at(fposmod(arrows._age * StartArrows.MARCH_SPEED, arrows._spacing))
-	_check(arrows._still or not first.is_equal_approx(later), "…and they march along the route (%s → %s)" % [first, later])
+	var later: float = fposmod(arrows._age * StartArrows.WISP_SPEED, spacing)
+	_check(arrows._still or not is_equal_approx(first, later), "…and they drift along the route (%.0f → %.0f px)" % [first, later])
 	_check(arrows.z_index < 0, "…drawn under the build ghost's route preview")
 	# Planting changes the route: they follow it live
 	var blocked := Vector2(-1, -1)

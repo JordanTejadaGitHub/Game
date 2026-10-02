@@ -593,14 +593,14 @@ func _test_dreamlight(main: Node) -> void:
 		if card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION and dreams.is_eligible(card, 2):
 			_check(false, "%s is still a Dream card" % card.id)
 
-	# The first family pick (run_design.md "Dreamlight", clarified 2026-09-30): the family and +2 Dreamlight;
+	# The first family pick (run_design.md "Dreamlight", clarified 2026-09-30): the family and +1 Dreamlight (user 2026-10-01, was 2);
 	# branches cost 1 and finals 2 (no Grove node for either), bought on the Remember screen
 	dreams.dreamlight = 0
 	director.family_pick_requested.emit(&"first")
 	dreams.unlocked["firefly_jar"] = true  # What FamilyPickScreen.choose does
 	dreams.unlocks_changed.emit()
 	var sunpetal: TowerData = load("res://resource/tower/sunpetal.tres")
-	_check(dreams.dreamlight == 2, "+2 Dreamlight with the first family pick")
+	_check(dreams.dreamlight == DreamState.FIRST_PICK_DREAMLIGHT and DreamState.FIRST_PICK_DREAMLIGHT == 1, "+1 Dreamlight with the first family pick")
 	_check(not dreams.is_unlocked("stormcap") and not dreams.is_unlocked("lanternmoth"), "owning Firefly Jar doesn't unlock its branches")
 	_check(dreams.get_unlock_cost(stormcap) == 1 and dreams.can_unlock(stormcap) and dreams.get_unlock_blocker(thunderhead) == "needs Stormcap",
 		"a branch costs 1 Dreamlight (can unlock now); its final waits for it")
@@ -609,13 +609,13 @@ func _test_dreamlight(main: Node) -> void:
 	var old := dreams.to_save()
 	(old["unlocked"] as Array).append("lanternmoth")
 	dreams.load_save(old)
-	_check(dreams.is_unlocked("lanternmoth") and dreams.dreamlight == 2, "an old save keeps a branch it was given")
+	_check(dreams.is_unlocked("lanternmoth") and dreams.dreamlight == DreamState.FIRST_PICK_DREAMLIGHT, "an old save keeps a branch it was given")
 	dreams.dreamlight = 1
 	var remembers := []
 	dreams.remember_requested.connect(func(focus: TowerData) -> void: remembers.append(focus))
 	director.drifts_started = 25
 	director.rest_started.emit(5, true, 0, true)
-	_check(dreams.dreamlight == 1 + DreamState.BOSS_DREAMLIGHT and remembers.size() == 1, "+4 at a boss rest, and Remember opens")
+	_check(dreams.dreamlight == 1 + DreamState.BOSS_DREAMLIGHT and remembers.size() == 1, "+3 at a boss rest, and Remember opens")
 	dreams.dreamlight = 4  # The spending checks below start from 4
 	_check(not dreams.is_offering() and dreams.has_pending_offer(), "the Dream waits for Remember")
 	dreams.remember_closed()
@@ -1140,7 +1140,7 @@ func _test_resonance(main: Node) -> void:
 	dreams.take(_card(dreams, "chain_bloom"))
 	var preview := dreams.resonance_preview(lingering)
 	_check(is_equal_approx(preview.bonus, 0.2) and preview.tag == "spore" and preview.count == 2,
-		"2 spore cards: +20% (%s)" % preview)
+		"2 spore cards: +20%% (%s)" % preview)
 	var shown := DreamState.resonance_text(preview.bonus, preview.cards)
 	_check(shown == "+20% from Soft Spores, Chain Bloom" or shown == "+20% from Chain Bloom, Soft Spores", "…shown with the cards' names, never the tag (%s)" % shown)
 	_check(DreamState.resonance_text(0.3, ["A", "B", "C"]) == "+30% from A, B and 1 more" and DreamState.resonance_tooltip(["A", "B", "C"]) == "From: A, B, C",
@@ -1219,7 +1219,25 @@ func _test_run_pool(main: Node) -> void:
 	again.sort()
 	other.sort()
 	_check(first == again and first != other, "same map seed, same pool; another seed, another pool")
-	_check(first.has("quickened_sap") and first.has("morning_dew") and first.has("soft_spores"), "the core: basics and the held family's cards")
+	_check(first.has("quickened_sap") and first.has("morning_dew"), "the core: the basics")
+	# A held family's cards are not core (user: "there shouldn't always be a family card"): a seeded ~60%, never all
+	var spore_cards := _family_cards(dreams, "sporeling")
+	var spore_in := spore_cards.filter(func(c: UpgradeData) -> bool: return dreams.run_pool.has(c.id) or dreams._run_pool_waiting.has(c.id)).size()
+	_check(spore_cards.size() < 5 or (spore_in < spore_cards.size() and spore_in >= floori(spore_cards.size() * 0.4)),
+		"Sporeling's cards: about 60%% drawn, never all (%d of %d)" % [spore_in, spore_cards.size()])
+	var family_draws := {}
+	var seed_before: int = dreams.map_generator.map_seed
+	for s in [11, 12, 13, 14, 15]:
+		dreams.map_generator.map_seed = s
+		dreams.build_run_pool(s)
+		var drawn_ids: Array = []
+		for c in spore_cards:
+			if dreams.run_pool.has(c.id) or dreams._run_pool_waiting.has(c.id):
+				drawn_ids.append(c.id)
+		family_draws[",".join(drawn_ids)] = true
+	_check(family_draws.size() > 1, "…a different family sample on another map seed (%d different over 5 seeds)" % family_draws.size())
+	dreams.map_generator.map_seed = seed_before
+	dreams.build_run_pool(11)
 	var available := {}
 	for card in dreams.pool:
 		if card.in_start_pool and dreams._card_family(card) == "" and not DreamState.RUN_POOL_BASICS.has(card.id) and dreams.discovery_met(card) \
@@ -1237,7 +1255,10 @@ func _test_run_pool(main: Node) -> void:
 	_check(dreams.run_pool.size() == before, "taking a maze card adds nothing to the pool")
 	dreams.unlocked["dewdrop"] = true  # A family pick
 	dreams.in_run_pool(tagged)
-	_check(dreams.run_pool.has("soaked_through") and dreams.run_pool.size() > before, "a family pick adds its family cards")
+	var dew_cards := _family_cards(dreams, "dewdrop")
+	var dew_in := dew_cards.filter(func(c: UpgradeData) -> bool: return dreams.run_pool.has(c.id) or dreams._run_pool_waiting.has(c.id)).size()
+	_check(dew_in > 0 and (dew_cards.size() < 5 or dew_in < dew_cards.size()),  # Drawn (or waiting for discovery)
+		"a family pick adds a sample of its family cards, never all (%d of %d)" % [dew_in, dew_cards.size()])
 	var waiting: Array = dreams._run_pool_waiting.keys()
 	if not waiting.is_empty():
 		var card := _card(dreams, waiting[0])
@@ -1401,3 +1422,12 @@ func _check(condition: bool, label: String) -> void:
 	if not condition:
 		failures += 1
 		printerr("FAIL: " + label)
+
+# A family's cards in the start pool (the run pool samples ~60% of them when the family is held).
+func _family_cards(dreams: DreamState, family: String) -> Array:
+	var out: Array = []
+	for c in dreams.pool:
+		if dreams._card_family(c) == family and c.in_start_pool and c.kind != UpgradeData.Kind.UNLOCK_WARDEN \
+				and c.kind != UpgradeData.Kind.UNLOCK_EVOLUTION:
+			out.append(c)
+	return out

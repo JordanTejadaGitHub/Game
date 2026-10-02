@@ -175,6 +175,15 @@ lost 0–20). They're wired into the map (`EnvironmentTiles`), with the lighting
   fog are warm-lit, spores sunlit, pulse rings have a warm inner band. They read as *light pushing
   back the dark*.
 - **The Sporeling is the mascot** (capsule art, first run).
+- **Every form must read apart from the one before it** (rule from 2026-10-01, after the user
+  couldn't tell Lanternmoth and Beacon apart; Tower Assets fixed 25 branch → final pairs). The test:
+  a grey silhouette at 32 px, side by side with its previous form. They must separate.
+  - **First choice: a stronger 64×64 silhouette:** a new stance, crown or prop.
+  - **Tall 64×96 finals are allowed but kept few.** There are 10 now: Beacon, Thunderhead,
+    Wellspring, Elf Circle, Starcave, Snugroot, Grafted Elder, Midsummer, Puffball and Monsoon. The
+    rise is narrow, about Beacon's width, and the top fades to 50% when the cell above holds a
+    nightmare or the cursor, so the maze stays readable.
+  - **New forms follow the same test**, Ascended included.
 
 ## Nightmares
 

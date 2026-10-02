@@ -52,6 +52,7 @@ const CROWN_OFFSET := Vector2(0, -34)  # The Crowned crown mark over its callout
 const CALLOUT_LIFE := 0.9
 const CALLOUT_COOLDOWN := 0.5  # Per reaction, so a chain doesn't wall the screen with words
 const MAX_CALLOUTS := 3
+const CALLOUT_CLEAR := Vector2(110, 20)  # Two callouts closer than this stack (a line apart)
 const BADGE_OFFSET := Vector2(0, -60)
 const HITSTOP_SECONDS := 0.07
 const HITSTOP_SCALE := 0.05  # Speed during a hitstop
@@ -70,6 +71,54 @@ static var longest_chain := 0  # This run's longest chain (reset with reset_run(
 
 # --- Data ---------------------------------------------------------------------------------------
 
+# Effects quality (Settings → Display "effects_quality": 0 Full, 1 Reduced) plus the automatic step-down
+# when real frames run long (FxCache measures them). Reduced: Reaction sheets play their lite versions,
+# fewer full Reactions a second, Kinship root pulses off, off-screen Wardens skip their idle animation.
+static var auto_reduced := false
+static var view_rect := Rect2()  # The visible world rect (FxCache, each frame)
+const REDUCED_FULL_PER_SECOND := 2
+
+static func reduced() -> bool:
+	return auto_reduced or int(setting("effects_quality", 0)) == 1
+
+# Whether `at` (world) is on screen, with `margin` px around it (true when the rect isn't known yet).
+static func on_screen(at: Vector2, margin: float = 64.0) -> bool:
+	if view_rect.size.x < 256.0 or view_rect.size.y < 256.0:
+		return true  # Not known yet, or a headless / tiny viewport (64×64): never call the map off-screen
+	return view_rect.grow(margin).has_point(at)
+
+# Photosensitivity (user: "a flash in the middle of my screen"): at most MAX_BRIGHT_PER_SECOND bright
+# flashes (Dawnburst, chain surges) on screen a second; the rest are skipped. Every effect is at most
+# MAX_EFFECT_PX across (2.5 cells).
+const MAX_EFFECT_PX := 160.0
+const MAX_BRIGHT_PER_SECOND := 3
+static var _bright_times: Array[int] = []
+
+static func bright_flash_ok() -> bool:
+	var now := Time.get_ticks_msec()
+	while not _bright_times.is_empty() and now - _bright_times[0] > 1000:
+		_bright_times.pop_front()
+	if _bright_times.size() >= MAX_BRIGHT_PER_SECOND:
+		return false
+	_bright_times.append(now)
+	return true
+
+# The run's FxCache (weakly: a Node in a static is fine, a Resource isn't). Set up by play / segment.
+static var _cache_ref: WeakRef = null
+
+static func _cache() -> FxCache:
+	return _cache_ref.get_ref() as FxCache if _cache_ref != null else null
+
+static func _ensure_cache(near: Node) -> void:
+	if _cache() == null and near != null and is_instance_valid(near):
+		var cache := FxCache.find(near)
+		if cache != null:
+			_cache_ref = weakref(cache)
+
+static func effect_ids() -> Array:
+	info(&"")  # Loads the index
+	return _index.keys()
+
 static func info(effect: StringName) -> Dictionary:
 	if _index.is_empty() and FileAccess.file_exists(INDEX_PATH):
 		var parsed = JSON.parse_string(FileAccess.get_file_as_string(INDEX_PATH))
@@ -81,6 +130,9 @@ static func info(effect: StringName) -> Dictionary:
 # into the engine's teardown, which can crash on quit after the scene is gone. Effects playing hold their
 # own reference; an unused sheet is simply loaded again (ResourceLoader's cache makes that cheap).
 static func texture(effect: StringName) -> Texture2D:
+	var cache := _cache()
+	if cache != null:
+		return cache.get_texture(effect)  # The run's strong cache (FxCache): no reloads mid-fight
 	var held: WeakRef = _textures.get(effect)
 	var tex: Texture2D = held.get_ref() if held != null else null
 	if tex == null:
@@ -119,7 +171,8 @@ static func _pick(effect: StringName, lite_ok: bool) -> StringName:
 	var now := Time.get_ticks_msec()
 	while not _full_times.is_empty() and now - _full_times[0] > 1000:
 		_full_times.pop_front()
-	if lite_ok and _full_times.size() >= FULL_PER_SECOND:
+	var budget := REDUCED_FULL_PER_SECOND if reduced() else FULL_PER_SECOND  # Effects quality / long frames
+	if lite_ok and _full_times.size() >= budget:
 		return lite
 	_full_times.append(now)
 	return effect
@@ -132,13 +185,21 @@ static func play(effect: StringName, at: Vector2, parent: Node, scale: float = 1
 		seconds: float = 0.0) -> Node2D:
 	if parent == null or not is_instance_valid(parent):
 		return null
+	_ensure_cache(parent)
 	var shown := _pick(effect, lite_ok)
 	var entry := info(shown)
 	var tex := texture(shown)
 	if entry.is_empty() or tex == null:
 		push_warning("Fx: no effect '%s'" % shown)
 		return null
-	var node := FxSprite.new(entry, tex, scale * DEFAULT_SCALE.get(shown, 1.0), seconds)
+	var final_scale: float = scale * float(DEFAULT_SCALE.get(shown, 1.0))
+	# Size cap (user: "a flash in the middle of my screen": Dawnburst at ×2 was 512 px, a gold disc over
+	# most of the map): no effect is drawn wider than MAX_EFFECT_PX, so nightmares stay readable.
+	var frame_size: Array = entry.get("frame_size", [0, 0])
+	var widest: float = maxf(float(frame_size[0]), float(frame_size[1])) * final_scale
+	if widest > MAX_EFFECT_PX:
+		final_scale *= MAX_EFFECT_PX / widest
+	var node := FxSprite.new(entry, tex, final_scale, seconds)
 	node.effect = shown
 	node.name = "Fx_" + String(shown)
 	parent.add_child(node)
@@ -150,6 +211,7 @@ static func play(effect: StringName, at: Vector2, parent: Node, scale: float = 1
 static func segment(effect: StringName, from: Vector2, to: Vector2, parent: Node, seconds: float = 0.3) -> Node2D:
 	if parent == null or not is_instance_valid(parent) or from.is_equal_approx(to):
 		return null
+	_ensure_cache(parent)
 	var entry := info(effect)
 	var tex := texture(effect)
 	if entry.is_empty() or tex == null:
@@ -202,6 +264,13 @@ static func callout(text: String, colour: Color, at: Vector2, parent: Node, key:
 	if _callouts_alive.size() >= MAX_CALLOUTS or now < _callout_cooldown.get(key, 0):
 		return null
 	_callout_cooldown[key] = now + int(CALLOUT_COOLDOWN * 1000)
+	# Stacked, never drawn over each other (user: "Lightning Rod!" over "Thunderclap!"): a callout that would
+	# land on a live one moves up a line, up to MAX_CALLOUTS lines.
+	for i in MAX_CALLOUTS:
+		if not _callouts_alive.any(func(c) -> bool: return is_instance_valid(c) \
+				and absf(c.global_position.x - at.x) < CALLOUT_CLEAR.x and absf(c.global_position.y - at.y) < CALLOUT_CLEAR.y):
+			break
+		at.y -= CALLOUT_CLEAR.y
 	var node := FxCallout.new(text, colour)
 	parent.add_child(node)
 	node.global_position = at
@@ -237,10 +306,10 @@ static func chain(count: int, where: Vector2, parent: Node, towers: Array = []) 
 		_badge.global_position = where + BADGE_OFFSET
 	if count == 5 or count == 10:
 		_hitstop(parent)
-		if not reduce_flashes():
+		if not reduce_flashes() and bright_flash_ok():
 			_local_surge(where, parent)  # A local burst (playtest: the old full-screen gold wash)
-	if count == 10:
-		play(&"dawnburst", where, parent, DAWNBURST_SCALE, false)
+	if count == 10 and bright_flash_ok():
+		play(&"dawnburst", where, parent, DAWNBURST_SCALE, true)  # lite_ok: reduce flashes = its lite sheet; capped size
 		for tower in towers:
 			if tower is Node2D and is_instance_valid(tower):
 				play(&"crit_flare", tower.global_position + Vector2(0, -16), parent, 1.6)
@@ -282,7 +351,7 @@ static func final_bloom(tower: Node2D, title: String) -> void:
 
 # A chain of 5 or 10: a big gold ring swelling around where it happened, never a screen tint.
 static func _local_surge(where: Vector2, parent: Node) -> void:
-	var ring := FxRing.new(Palette.GLOW, 24.0, 110.0, 0.6)
+	var ring := FxRing.new(Palette.GLOW, 20.0, 60.0, 0.5)  # ~2.5 cells at its widest (was 4+)
 	ring.z_index = Z
 	parent.add_child(ring)
 	ring.global_position = where

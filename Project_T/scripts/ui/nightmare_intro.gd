@@ -27,6 +27,12 @@ static var session_seen := {}  # Kind -> true: shown this session (dev runs, tes
 # a test turns it on, like ComboFeedback.pause_in_tests.
 static var pause_in_tests := false
 
+# Cards open by themselves (a rest's new kinds, the opening rest, a mid-block newcomer) only in the game, or in a test
+# that turns pause_in_tests on: on a fresh test profile every kind is new, and the cards paused every timing test
+# (Tower Code, 2026-10-01, with the suite's isolated user://).
+static func auto_open_ok() -> bool:
+	return pause_in_tests or not OS.get_cmdline_args().has("--script")
+
 var drift_director: DriftDirector
 var queue: Array = []  # EnemyData still to show, in order
 var shown: EnemyData = null
@@ -191,7 +197,7 @@ func new_kinds_in_block(block: int) -> Array:
 	return out
 
 func _on_rest_started(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
-	if not enabled() or not drift_director.has_next_drift():
+	if not enabled() or not drift_director.has_next_drift() or not auto_open_ok():
 		return
 	var kinds := new_kinds_in_block(block + 1)
 	if not kinds.is_empty():
@@ -373,14 +379,14 @@ func _on_spawned(node: Node) -> void:
 	if _met.has(kind) or session_seen.has(kind):
 		return
 	_met[kind] = true
-	if OS.get_cmdline_args().has("--script") and not pause_in_tests:
+	if not auto_open_ok():
 		return
 	open.call_deferred([data], 0, node, false)  # Paused, centred: meet it now (queues behind a card)
 
 # The run's opening rest has no rest_started: introduce block 1's never-seen kinds there (not on a
 # resumed run, which starts mid-way).
 func _on_opening_rest() -> void:
-	if drift_director == null or drift_director.drifts_started != 0 or not drift_director.is_resting():
+	if drift_director == null or drift_director.drifts_started != 0 or not drift_director.is_resting() or not auto_open_ok():
 		return
 	var kinds := new_kinds_in_block(1)
 	if not kinds.is_empty():
