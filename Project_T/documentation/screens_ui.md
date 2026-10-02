@@ -973,10 +973,10 @@ until the boss is dispelled**: tap the "Boss in N" countdown in the drift banner
 | Part | Content |
 |---|---|
 | **Header** | the boss's animated portrait (full art, not a silhouette), name and title ("The Hollow Stag · the gaunt king of the old wood"), one line of whisper (*"Something old has found the dream."*), and "Arrives in drift 25" |
-| **Numbers** | health (the real number with this run's scaling and Blight), speed, leaves it takes if it reaches the Heartwood |
+| **Numbers** | ~~health, speed~~ removed (2026-10-02, user: *"a lot of information on the boss page, remove health and speed and what it brings"*). Only **the leaves it takes** if it reaches the Heartwood stays, in large type. Health is on the boss bar during the fight and in a tooltip on the portrait for the curious |
 | **Resists / Weak to / Immune** | the same icon rows as the nightmare info, larger |
-| **What it does** | one row per ability: an icon, a name, what it does in one plain sentence, and **when** ("from the start", "every 8 s", "**at 50% health**", "when it takes a hit from…"). The 50% line matches the marker on the boss bar |
-| **It brings** | escorts and summons (portraits, count, with their own resist icons), e.g. the Mire Hag's bog spawn |
+| **What it does** | one row per ability: an icon, a name, what it does in one plain sentence, and **when** ("from the start", "every 8 s", "**at 50% health**", "when it takes a hit from…"). The 50% line matches the marker on the boss bar. A summon ability names its summons here (that's where they matter) |
+| ~~**It brings**~~ | removed (same day); escorts show in the Coming strip, summons in their ability row |
 | **Your record** | after the first meeting: times dispelled, best time. First meeting: a "New" tag |
 
 - Spoilers: the Codex still hides boss names until met; the dossier doesn't, because the boss is
