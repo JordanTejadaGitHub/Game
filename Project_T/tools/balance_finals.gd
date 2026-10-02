@@ -18,6 +18,7 @@ const CAST_NOCHARGE := ["boulderback", "boulderback", "moonstone", "rockslide", 
 var cast: Array = CAST
 var next_to: Array = []  # --next-to=puffball,lullaby_bell: the cast is planted first and each candidate goes beside one of these
 var pairs := false  # --pairs: every second copy goes across the route from the one before it, within 4 cells (Jarlink arcs over the route)
+var director_overrides := {}  # --director=export=value (repeatable): DriftDirector exports, e.g. second_elite_from=1 (two elites a drift)
 
 var main: Node
 var form_id := "dreamshroom"
@@ -57,9 +58,18 @@ func _run() -> void:
 			"--cast": cast = {"act1": CAST_ACT1, "nocharge": CAST_NOCHARGE, "finals": CAST}.get(value, Array(value.split(",")))  # or a list: --cast=rain_lily,rain_lily,…
 			"--next-to": next_to = Array(value.split(","))
 			"--pairs": pairs = true
+			"--director": director_overrides[arg.get_slice("=", 1)] = arg.get_slice("=", 2)
 	ProjectSettings.set_setting("game/demo", false)  # The full game (as the user plays it)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
+	var dd: Node = main.get_node("%DriftDirector")
+	for key in director_overrides:
+		var current = dd.get(key)
+		if current == null:
+			printerr("--director: no export %s" % key)
+			quit(1)
+			return
+		dd.set(key, int(director_overrides[key]) if current is int else float(director_overrides[key]))
 	if boss2 != "":
 		main.get_node("%DriftDirector").preset_bosses = ["hollow_stag", boss2]  # Set before the deferred draw
 	root.add_child(main)
@@ -269,7 +279,7 @@ func _report(director: DriftDirector) -> void:
 		"share": snappedf(damage / maxf(total, 1.0), 0.001), "rank": candidates[0].rank,
 		"hit": snappedf(split.hit / t, 0.01), "cloud": snappedf(split.cloud / t, 0.01), "status": snappedf(split.status / t, 0.01),
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
-		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "pairs": pairs, "board_damage": roundi(total),
+		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "pairs": pairs, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "board_damage": roundi(total),
 		"bosses": ";".join(boss_fights.values().map(func(b) -> String: return "%s:%d:%s:%.0f:%d" % [b.kind, b.health, "1" if b.dispelled else "0", (b.end - b.spawn) if b.dispelled else -1.0, b.hp_arrive])),
 		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001), "hit_target_hp": roundi(hit_target_hp.x / maxf(hit_target_hp.y, 1.0)), "base_damage": snappedf(candidates[0].get_damage(), 0.1)}
 	print("FINALS %s" % JSON.stringify(row))
