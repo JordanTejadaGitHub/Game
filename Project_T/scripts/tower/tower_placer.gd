@@ -87,6 +87,7 @@ var settling := {}  # cell -> game seconds left
 var _settling_marks: Node2D = null
 
 func _ready() -> void:
+	GiftGround.register_effects()  # Heartwood's Gifts: the Warden-side effects (Spire)
 	Tower.placer_ref = weakref(self)  # Tall Wardens fade when the build ghost is behind them
 	if tower_scene == null:
 		tower_scene = load(TOWER_SCENE_PATH)

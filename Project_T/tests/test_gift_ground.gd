@@ -177,6 +177,20 @@ func _run() -> void:
 	else:
 		_check(false, "(setup) the run has its HeartwoodGifts")
 
+	# A taken Lightning Tree (Environment's obstacle) boosts bolts while it stands; tended away, its bonus goes too.
+	await _clean()
+	gifts.marks.erase(GiftGround.LIGHTNING_TREE)
+	var tree_cell := _open_cell()
+	if offerer:
+		var record := {"id": "lightning_tree", "act": 1, "placement": {"cells": [[tree_cell.x, tree_cell.y]]}}
+		offerer.taken.append(record)
+		offerer._apply(&"lightning_tree", record.placement, false)
+	var by_tree := _spawn(tree_cell + Vector2(1, 0))
+	_check(is_equal_approx(gifts.bolt_multiplier(by_tree.global_position), 1.0 + GiftGround.LIGHTNING_BOLT),
+		"a taken, standing Lightning Tree boosts bolts beside it")
+	map.clear_obstacle(tree_cell)
+	_check(is_equal_approx(gifts.bolt_multiplier(by_tree.global_position), 1.0), "tended away, its bolt bonus is gone")
+
 	print("gift ground test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
 	await process_frame

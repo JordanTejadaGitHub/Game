@@ -51,8 +51,9 @@ var _thorn_key := -1
 # Registered with Main's HeartwoodGifts when this script loads (Tower loads it with the run).
 # The terrain gifts' effects are Environment Code's (MapGifts places the pond, the stones…); their cells reach
 # `marks` from HeartwoodGifts.taken (_sync_taken). Only the gifts with no terrain register here. An id that already
-# has an effect keeps it (tests register stand-ins first).
-static func _static_init() -> void:
+# has an effect keeps it (tests register stand-ins first). Called by TowerPlacer._ready, not _static_init: a Callable
+# made during a static init and kept in HeartwoodGifts' static registry crashed the engine at exit.
+static func register_effects() -> void:
 	_register(&"bramble_verge", _bramble_effect)
 	_register(&"old_kin", _old_kin_effect)
 	_register(&"memory_seed", _memory_seed_effect)
@@ -183,6 +184,7 @@ func _sync_taken() -> void:
 	if count == _synced_taken:
 		return
 	_synced_taken = count
+	var terrain := _map_gifts()
 	for kind in _taken_marks:
 		for cell in _taken_marks[kind]:
 			if marks.has(kind):
@@ -191,10 +193,25 @@ func _sync_taken() -> void:
 	for t in (gifts.taken if gifts else []):
 		var id := StringName(t.id)
 		if MARK_GIFTS.has(id):
-			var cells := HeartwoodGifts.cells_of(t.get("placement", {}))
-			_taken_marks[id] = _taken_marks.get(id, []) + Array(cells)
+			var cells: Array = Array(HeartwoodGifts.cells_of(t.get("placement", {})))
+			if id == LIGHTNING_TREE and terrain != null:
+				var standing := terrain.lightning_trees()  # A tended Lightning Tree is gone, and its bonus with it
+				cells = cells.filter(func(c: Vector2) -> bool: return standing.has(c))
+			_taken_marks[id] = _taken_marks.get(id, []) + cells
 			add_mark(id, cells)
 	_changed()
+
+# Environment Code's terrain (map_generator.gifts), followed so a gift's terrain that changes (a Lightning Tree
+# tended away) is read again.
+func _map_gifts() -> MapGifts:
+	var map := get_parent().get_node_or_null("%MapGenerator") if get_parent() else null
+	var terrain: MapGifts = map.gifts if map != null and "gifts" in map else null
+	if terrain != null and not terrain.gifts_changed.is_connected(_on_terrain_changed):
+		terrain.gifts_changed.connect(_on_terrain_changed)
+	return terrain
+
+func _on_terrain_changed() -> void:
+	_synced_taken = -1  # Read the taken gifts and the standing terrain again on the next query
 
 # Whether any `kind` cell is within `reach` cells of one of `cells` (8 neighbours; `orthogonal`: only the 4).
 func near(kind: StringName, cells: Array, reach: int, orthogonal := false) -> bool:
