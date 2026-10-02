@@ -798,6 +798,14 @@ Discussion: the echo **follows the nightmare** the Reaction fired on. Re-probe b
 but both boards still fail (WH 0.61–0.90× with far more leak; EH 0.86–1.05×): Reactions are too rare
 for echoes to carry a Warden. **Own pulse up: Whispering Hollow 18 → 50, Echo Hollow 10 → 22.** Echo
 shares final at 0.75 (Echo Hollow) / 1.0 (Whispering Hollow).
+**Full re-probe on 2ef6d56f** (eb0063cd, 3 seeds): finals in act 2 all in band except Midsummer 0.78
+(close); act 3 still high for Autumn Gale 2.07, Snugroot 2.18, Elf Circle 1.75, Moonstone 1.65 (they
+scale with the bigger act 3 field). Branches: Fairy Ring 1.19× Driftspore (was 1.6), Mossback 0.61 into
+band; still under 0.5: Wren's Nest 0.47, Sunpetal 0.37, Hummingbird Bower 0.31, Stormcap 0.28,
+Frostfern 0.26 (an enabler), plus the support / economy tail. **Last step, then the probe series
+closes:** Autumn Gale 85 → 72, Snugroot 56 → 48; Hummingbird Bower 27 → 40, Sunpetal 81 → 113, Stormcap
+damage 18 → 24; Whispering Hollow 50 → 62, Echo Hollow 22 → 28. Everything else stays; human runs judge
+from here.
 **Re-check on 2ef6d56f:** Whispering Hollow board **0.95–1.03× at 45** (par) but 0.69–0.82× at 61, and
 still leakier; Echo Hollow board unchanged (0.85 / 0.85 / 1.07). Held for the full re-probe, then one
 more step on both, decided together with the branches.
