@@ -731,6 +731,14 @@ the bite-10 checks, the per-family act 1 tables and the first-pick-1 baseline (a
 the Night Mare check forced its boss and stands. Fixed: all sims run as the full game, and
 `--boss-draw` gives the real per-seed draw. The overnight batch re-measures act 1 per family and per boss.
 
+## Overnight batch (2026-10-02, full game, real boss draw, build e3f3a211)
+
+**1. Act 1 per start family** (fresh, forced first family, 20 seeds; draw: Scarecrow 10, Stag 5, Night
+Mare 3): survived the boss, Balanced / skip: **Sporeling 85% / 45%**, Firefly Jar 70% / 20%, Dewdrop
+70% / 30%, **Bellflower 50% / 25%**. Bellflower leaks in block 1 (29 nightmares over 20 runs; the
+others 0–1) and in the boss block, but has the calmest blocks 2–4. Sporeling skip is the main miss on
+"skip loses". Decisions after item 2 (bosses forced).
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
