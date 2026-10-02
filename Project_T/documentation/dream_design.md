@@ -126,7 +126,13 @@ offered cards to the run history.
 - **Text:** these go through the card text audit (same pass), with the trade on its own line like a
   Bittersweet cost, so it's readable at a glance.
 - **Status:** **approved by the user** (via the design hub, 2026-10-02); routed to Roguelite Code (data, offers,
-  the exclusive pair) and Tower Code (the reaction and hit rules).
+  the exclusive pair) and Tower Code (the reaction and hit rules). **Built:** e328fb55, c9fa2491, 51dbf8e3.
+- **Measured** (Balancing Code, Balanced bot, seeds 1–20, fresh + full, before 9b1a73ee vs after
+  d99ec0a6): the guaranteed slot was taken **4/4** before (now gone). Common combo cards went from
+  **.38 → .19** pick rate (other Commons .22) ✓; Uncommon .29 → .33 (others .33) ✓; Rare .21 → .25
+  (others .49) ✓. Combo cards taken overall 20/53 → 12/47; Sparking Spores 5/12 → 2/12. Target met:
+  combo cards are now picked about as often as other cards of their rarity. Thin samples (the bot
+  dies in act 2); the user's own runs now log every offer, so their next runs are the real check.
 
 ## Feeling the cards (2026-10-01)
 
