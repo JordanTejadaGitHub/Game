@@ -394,8 +394,8 @@ func _test_finals() -> void:
 	var j1 := _plant("jarlink", Vector2(5, 3))
 	var j2 := _plant("jarlink", Vector2(6, 3))
 	var j3 := _plant("jarlink", Vector2(9, 3))
-	_check(BranchKit._fence_partner(j1) == j3 and BranchKit._fence_partner(j2) == j3,
-		"a jar skips its side-by-side neighbour and links to the one that makes an arc")
+	_check(BranchKit._fence_partner(j1) == j3 and BranchKit._fence_partner(j2) == null,
+		"a jar skips its side-by-side neighbour and links to the one that makes an arc; the other can't take a linked jar")
 	# The build ghost previews the arc to the jar it would link with.
 	placer.tower_data = load("res://resource/tower/jarlink.tres")
 	placer.set_build_mode(true)
@@ -403,7 +403,12 @@ func _test_finals() -> void:
 	placer.queue_redraw()
 	await process_frame
 	await process_frame
-	_check(BranchKit.fence_partner_at(placer, Vector2(12, 3), 4.0) == j3, "the ghost on (12, 3) would link to the jar 3 cells away")
+	var j4 := _plant("jarlink", Vector2(15, 3))
+	_check(BranchKit.fence_partner_at(placer, Vector2(12, 3), 4.0) == j4, "the ghost on (12, 3) would link to the free jar, not the linked one")
+	# Sticky (Tower Discussion): a new jar planted nearer never steals a held arc.
+	var thief := _plant("jarlink", Vector2(7, 5))
+	_check(BranchKit._fence_partner(j1) == j3 and BranchKit._fence_partner(thief) != j1 and BranchKit._fence_partner(thief) != j3,
+		"a jar planted nearer doesn't steal an existing arc")
 	placer.set_build_mode(false)
 	await _clean()
 	# A plain Jarlink's arc doesn't touch a Phantom gliding through (only the Lightning Fence does).

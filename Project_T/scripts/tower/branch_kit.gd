@@ -363,18 +363,46 @@ static func _arc_cells(a: Vector2, b: Vector2) -> Dictionary:
 			cells[c] = true
 	return cells
 
-static func _fence_partner(tower: Tower) -> Tower:
-	return fence_partner_at(tower, tower.cell, p(tower, "link_range", 4.0), tower)
+# Bonds are sticky (Tower Discussion, as Kinships): a jar keeps its partner while both stand, stay in range and still
+# make an arc; only an unbonded jar looks for one, and it never takes a jar that's already linked to another.
+const FENCE_BOND := &"fence_bond"
 
-# The Jarlink a jar on `cell` links to: the nearest within `reach` whose arc would cover at least one cell (side by
-# side jars make no arc, so they're skipped: Balancing, a second pair planted beside the first cross-linked into
-# nothing). `skip`: the jar itself. Also the build ghost's preview (TowerPlacer).
+static func _fence_partner(tower: Tower) -> Tower:
+	var reach := p(tower, "link_range", 4.0)
+	var held = tower.get_meta(FENCE_BOND) if tower.has_meta(FENCE_BOND) else null
+	if _bond_holds(tower, held, reach):
+		return held
+	var partner := fence_partner_at(tower, tower.cell, reach, tower)
+	if partner != null:
+		tower.set_meta(FENCE_BOND, partner)
+		partner.set_meta(FENCE_BOND, tower)
+	elif tower.has_meta(FENCE_BOND):
+		tower.remove_meta(FENCE_BOND)
+	return partner
+
+static func _bond_holds(tower: Tower, other, reach: float) -> bool:
+	return is_instance_valid(other) and other is Tower and other.is_inside_tree() and not other.is_queued_for_deletion() \
+		and other.attack_data != null and other.attack_data.special == JARLINK \
+		and Kinships._cheb(tower.cell, other.cell) <= reach and not _arc_cells(tower.cell, other.cell).is_empty()
+
+# Whether `jar` is linked to a jar other than `except` (its bond still holding).
+static func _bonded_elsewhere(jar: Tower, except: Node) -> bool:
+	if not jar.has_meta(FENCE_BOND):
+		return false
+	var other = jar.get_meta(FENCE_BOND)
+	return other != except and _bond_holds(jar, other, p(jar, "link_range", 4.0))
+
+# The Jarlink a jar on `cell` would link to: the nearest unbonded one within `reach` whose arc would cover at least one
+# cell (side by side jars make no arc: Balancing, a second pair planted beside the first cross-linked into nothing).
+# `skip`: the jar itself. Also the build ghost's preview (TowerPlacer).
 static func fence_partner_at(near: Node, cell: Vector2, reach: float, skip: Node = null) -> Tower:
 	var best: Tower = null
 	var best_d := INF
 	for other in near.get_tree().get_nodes_in_group(Tower.GROUP):
 		if other == skip or not (other is Tower) or other.attack_data == null or other.attack_data.special != JARLINK:
 			continue
+		if _bonded_elsewhere(other, skip):
+			continue  # Sticky: never steals a jar from its arc
 		var d := Kinships._cheb(cell, other.cell)
 		if d <= reach and d < best_d and not _arc_cells(cell, other.cell).is_empty():
 			best_d = d
