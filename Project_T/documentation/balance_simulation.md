@@ -685,6 +685,15 @@ Huntsman ~25% (health spawned vs damage at drift 50). The ×2.25 was set when ac
 rides the act multiplier, now ×4.5. **`mid_boss_health_multiplier` 2.25 → 1.75** (act 3's boss lands
 near its old effective health under ×6.0). Act 1 boss, the Oak and the bite unchanged. In: f1b10216.
 
+## Human run 10 (2026-10-01, build 3de1d4 = 735ff30a+; first run with route lines)
+
+**Lost at drift 18**, Sporeling only, 1 Grove node; user: *"This run seems fine, the Omen is what got
+me."* Act 1 closest 0.44–0.72, no leaks to 15, kills at 0.4–0.5 of the route. Took **Second Path** at
+the drift 15 rest: the crumbled Thornwall shortened the route, block 4's kills spread toward the
+Heartwood and **14 leaked**; all 15 leaves went in drifts 17–18 (reward: 4 Seeds). Banked 282–445
+unspent. **Second Path is offered from drift 26, not 15** (act 2+, like Tramplers / Burrowers): an act 1
+maze is a few walls deep and can't absorb losing its longest one. Curve: no change.
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
