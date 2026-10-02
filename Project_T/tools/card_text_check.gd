@@ -195,6 +195,25 @@ static func is_stat_card(card: UpgradeData) -> bool:
 
 # --- The CSV ------------------------------------------------------------------------------------------------
 
+# Cards whose flagged numbers Roguelite Mechanic Discussion checked by hand against the code and found correct
+# (card_text_audit.md "Verified by hand and correct", 2026-10-02). "X / II" covers both. The CSV says "verified".
+const VERIFIED_ON := "2026-10-02"
+const VERIFIED := ["Bitter Hedges", "Briar Crown", "Canopy", "Chosen Few", "Cozy Corners / II", "Crossroads", "Crowd Breaker",
+	"Crowded Path / II", "Damp Rot", "Dawnbreak", "Deep Stillness", "Deep Water / II", "Deeper Rings", "Desperate Bloom",
+	"Endless Night", "Endless Rings", "Falling Stars", "Fever Pitch", "Few and Mighty", "Glimmering Hunt", "Grandfather Stump",
+	"Heavy Eyelids", "Hedge Maze / II", "Kindred Roots / II", "Last Stand", "Loose Stones", "Lucid Dreaming", "Overflowing Well",
+	"Quick Reactions", "Reclaimed Earth", "Restless Night", "Ricochet / II", "Rolling Thunder / II", "Scarred Bark / II",
+	"Second Wind", "Seed Storm", "Seeping / II", "Shattering Blow / II", "Solitude", "Sprout Chorus", "Static Field II",
+	"Straightaway / II", "Sweet Harmony", "The Long Walk", "Thinning the Herd", "Thousand Cuts", "Twin Puff II",
+	"Watchful Rest / II", "Whirlwind Heart", "Wildfire Spores", "Wildwood Reclaimed", "Bad Dreams II", "Bramble Oath"]
+
+static func is_verified(card: UpgradeData) -> bool:
+	for entry: String in VERIFIED:
+		var base := entry.trim_suffix(" / II")
+		if card.display_name == base or (entry.ends_with(" / II") and card.display_name == base + " II"):
+			return true
+	return false
+
 const COLUMNS: Array[String] = ["id", "display_name", "rarity", "max_stacks", "deepens", "min_act", "in_start_pool", "tags",
 	"needs", "rule_id", "description", "cost_description", "fields", "rule_constants", "number_check"]
 
@@ -215,8 +234,16 @@ static func csv_rows() -> Array[PackedStringArray]:
 		rows.append(PackedStringArray([card.id, card.display_name, UpgradeData.Rarity.keys()[card.rarity].to_lower(),
 			str(card.max_stacks), card.deepens, str(card.min_act), str(card.in_start_pool), ", ".join(card.tags),
 			needs_text(card), String(card.rule_id), card.description, card.cost_description, "; ".join(field_text),
-			"; ".join(const_text), ("unmatched: " + ", ".join(missing)) if not missing.is_empty() else "ok"]))
+			"; ".join(const_text), _check_text(card, missing)]))
 	return rows
+
+# The number_check cell: "ok", "verified 2026-10-02 (… by hand)" or "unmatched: …".
+static func _check_text(card: UpgradeData, missing: Array[String]) -> String:
+	if missing.is_empty():
+		return "ok"
+	if is_verified(card):
+		return "verified %s (by hand: %s)" % [VERIFIED_ON, ", ".join(missing)]
+	return "unmatched: " + ", ".join(missing)
 
 static func to_csv(rows: Array[PackedStringArray]) -> String:
 	var lines: Array[String] = []

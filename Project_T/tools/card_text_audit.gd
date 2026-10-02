@@ -18,6 +18,6 @@ func _initialize() -> void:
 		return
 	file.store_string(Check.to_csv(rows))
 	file.close()
-	var flagged := rows.slice(1).filter(func(row: PackedStringArray) -> bool: return row[row.size() - 1] != "ok").size()
+	var flagged := rows.slice(1).filter(func(row: PackedStringArray) -> bool: return row[row.size() - 1].begins_with("unmatched")).size()
 	print("card_text_audit: %d cards, %d with unmatched numbers -> %s" % [rows.size() - 1, flagged, ProjectSettings.globalize_path(OUT)])
 	quit(0)
