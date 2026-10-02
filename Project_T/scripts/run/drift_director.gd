@@ -60,6 +60,10 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 # (not a boss drift) gets this many guaranteed Deeply Blighted, by the drift they start from
 # ({start drift: count}; the highest start at or below the drift wins). Replaces the rule above there.
 @export var block_finale_elites := {10: 2, 30: 3, 60: 4}  # Was {10: 1, 30: 2, 60: 3}: drifts 10 / 15 cost the bot nothing
+# Elites alone didn't make a spike (Balancing: +2 elites cost the bot 0.35 leaves), so every non-boss nightmare on a
+# block finale from `block_finale_health_from` has this much more health, on top of everything else.
+@export var block_finale_health_multiplier: float = 1.4
+@export var block_finale_health_from: int = 10
 
 # The guaranteed elites for drift `number` if it's a block finale (0 before the first start), else -1.
 func get_block_finale_elites(number: int) -> int:
@@ -85,7 +89,7 @@ func get_block_finale_elites(number: int) -> int:
 # evenly to `act1_health_multiplier` at `act1_ramp_to` and holding to the act's end; act 2 holds that
 # for its first drifts (a breather while the first finals arrive) until `early_ramp_from`, then rises
 # evenly to `early_acts_health_multiplier` at `early_ramp_to`, held until acts 3–4 take over (no stacking).
-@export var act1_health_multiplier: float = 1.25  # Spire: pressure moved into the block finales (was 1.35; main 1.15)
+@export var act1_health_multiplier: float = 1.15  # Spire: main's peak again, paying for the finales' x1.4 (was 1.25, 1.35)
 @export var act1_ramp_from: int = 3  # Spire: the ramp starts at drift 3 (was 9)
 @export var act1_ramp_to: int = 20
 @export var early_acts_health_multiplier: float = 4.5  # Act 2 ends at this ("Human run 7"; was 3.6, 3.0, 2.5, 1.55)
@@ -426,6 +430,8 @@ func get_health_scale(data: EnemyData, number: int) -> float:
 			scale *= act4_health_multiplier  # Spire: act 4 harder still, bosses and the Oak included
 	elif not (data.is_boss and get_act(number) == 1):  # Act 1's boss keeps its own multiplier (its escort takes the ramp)
 		scale *= get_early_multiplier(number)
+	if not data.is_boss and number >= block_finale_health_from and get_block_finale_elites(number) >= 0:
+		scale *= block_finale_health_multiplier  # A block finale (spire_difficulty.md)
 	return scale * get_health_multiplier(data, number)
 
 # The per-drift health growth for drift `number`, compounding: ×1.045 per drift to 25, ×1.055 for

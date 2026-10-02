@@ -110,6 +110,15 @@ func _test_blocks_and_rests() -> void:
 		"acts 3–4 nightmares and bosses have ×%.1f health (the Hollow Oak at 100 its own)" % late)
 	_check(is_equal_approx(director.get_health_scale(shade_data, 76), director.get_growth(76) * late * director.act4_health_multiplier * director.get_health_multiplier(shade_data, 76)),
 		"act 4 adds act4_health_multiplier ×%.2f on top (Spire)" % director.act4_health_multiplier)
+	# Block finales (Spire): every non-boss nightmare on a block's last drift from drift 10 has ×1.4 health on top.
+	var base_10 := director.get_growth(10) * director.get_early_multiplier(10) * director.get_health_multiplier(shade_data, 10)
+	_check(is_equal_approx(director.get_health_scale(shade_data, 10), base_10 * director.block_finale_health_multiplier)
+		and is_equal_approx(director.get_health_scale(shade_data, 9), director.get_growth(9) * director.get_early_multiplier(9) * director.get_health_multiplier(shade_data, 9))
+		and is_equal_approx(director.get_health_scale(shade_data, 5), director.get_growth(5) * director.get_early_multiplier(5) * director.get_health_multiplier(shade_data, 5)),
+		"a block finale from drift 10 has ×%.1f health; drift 9 and the first block's finale (5) don't" % director.block_finale_health_multiplier)
+	var stag_25: EnemyData = load("res://resource/enemy/old_stag.tres")
+	_check(is_equal_approx(director.get_health_scale(stag_25, 25), director.act1_boss_health_multiplier * director.get_health_multiplier(stag_25, 25))
+		and director.get_block_finale_elites(25) == -1, "boss drifts are never finales: the boss keeps its own multiplier")
 	# Act 1: ×1.0 to act1_ramp_from, ramping to act1_health_multiplier at act1_ramp_to, held to 25. Act 2 ("Human run 2"): act2_start at 26, the old
 	# gentle ramp to act2_steep_value at 37, then most of the rise to act2_end at 45, held to 50.
 	var a1 := director.act1_health_multiplier
