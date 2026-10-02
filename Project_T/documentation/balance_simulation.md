@@ -692,7 +692,7 @@ me."* Act 1 closest 0.44–0.72, no leaks to 15, kills at 0.4–0.5 of the route
 the drift 15 rest: the crumbled Thornwall shortened the route, block 4's kills spread toward the
 Heartwood and **14 leaked**; all 15 leaves went in drifts 17–18 (reward: 4 Seeds). Banked 282–445
 unspent. **Second Path is offered from drift 26, not 15** (act 2+, like Tramplers / Burrowers): an act 1
-maze is a few walls deep and can't absorb losing its longest one. Curve: no change.
+maze is a few walls deep and can't absorb losing its longest one (in 7ee4817a). Curve: no change.
 
 ## Route profiles in the run history (user, 2026-10-01)
 
