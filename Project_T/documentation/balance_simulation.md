@@ -748,6 +748,11 @@ Decisions: **Bellflower damage 14 → 17** (in 756676ac; the only family off tar
 in drifts 1–5). **Sporeling unchanged:** its 45% skip in item 1 doesn't repeat in item 2, where most
 skip runs opened with Sporeling and survived 15–30%.
 
+**4. Act 2 bosses at drift 50** (40d26ed1, fixed board of 12 finals, rank IV, no Dreams, 3 seeds): none
+dispelled; health left at the Heartwood Huntsman 44–88%, Lamplighter 10–34%, Mire Hag 45–53%. A
+no-Dream board is a floor, not a player's board. Which boss multiplier applied (1.75 is on that build;
+the report said 2.25) is being confirmed. No change; the next human run on ×1.75 decides.
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
