@@ -634,6 +634,13 @@ and let them sweep past to drift 40. Maybe have a smoother difficulty curve."* D
 2. **Act 2 linear, no knee:** **×1.7 at 26 → ×4.5 at 45** in one line (`act2_steep_value` 3.3 at 37; was
    2.0 → 2.9 → 4.5, gentle then steep where run 8 broke). Act 1, acts 3–4 unchanged.
 
+**Act 1 baseline with the first pick at 1 Dreamlight** (781b1cbb, Bellflower a start node, fresh, 20
+seeds): Balanced survives the boss **70%** (target ~75% ✓; was 95% with 2 Dreamlight), skip **45%**
+(target ≤ 25%). By first family: **Sporeling 80%, Firefly Jar 40%** (5 runs), matching human runs 5–6;
+the bot never opened with Bellflower or Dewdrop. Kill profile: most nightmares die at 0.3–0.4 of the
+route in every block; the bot's Dew sits evenly over 0.1–0.9. Next: each starting family forced (10
+seeds) on the Chime Stone / linear act 2 build.
+
 ## Route profiles in the run history (user, 2026-10-01)
 
 User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
