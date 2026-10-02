@@ -185,3 +185,6 @@ full game (`game/demo` false), and the demo reads main's exports.
   `heartwood_gifts.md` 449c7437). Rest-choice step being removed (Main Merger). Gifts routed: screen /
   draw / placement / Thick Mist (Main Merger), terrain (Environment Code), Warden effects (Tower Code),
   Waking Root (Roguelite Code), art (Environment Assets).
+- 2026-10-02: rest choices removed in **a794bc9e**; **gift screen, draw, placement, save, Let them pass
+  (+30 Dew × act) and Thick Mist in d3d85731** (Main Merger). Only gifts with a registered effect are
+  drawn, so the pool grows as owners land theirs. Deeper Glade's +1 max leaf: Main Merger.
