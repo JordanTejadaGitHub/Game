@@ -58,17 +58,23 @@ enum Root { WARDENS, DREAMS, PERKS, FORESTS }  # Limbs: Families, Cards, Perks (
 func get_description() -> String:
 	return sidegrade_description if sidegrade_description != "" and MetaRun.sidegrade_active() else description
 
+# Hades-style sidegrade perks (Spire experiment): Deep Taproot stops at level II, so no level is a Seed
+# trap and "The Heartwood in full bloom" (every node at its max level) doesn't ask for it.
+const SIDEGRADE_MAX_LEVELS := {"deep_taproot": 2}
+
 func get_levels() -> int:
+	if SIDEGRADE_MAX_LEVELS.has(id) and MetaRun.sidegrade_active():
+		return mini(costs.size(), SIDEGRADE_MAX_LEVELS[id])
 	return costs.size()
 
 # Seeds for the next level after owning `level` (0 = the first), or -1 when maxed.
 func get_cost(level: int) -> int:
-	return costs[level] if level < costs.size() else -1
+	return costs[level] if level < get_levels() else -1
 
 # Seeds for every level up to `level`.
 func get_spent(level: int) -> int:
 	var total := 0
-	for i in mini(level, costs.size()):
+	for i in mini(level, get_levels()):
 		total += costs[i]
 	return total
 

@@ -302,6 +302,9 @@ func _run() -> void:
 	HeartwoodMemory.save_data(memory)
 	_check(MetaRun.perk_extra_ridges() == 1, "sidegrade Clear Sight: the map gets one more ridge")
 	_check(_unlock(grove, "clear_sight").get_description().contains("Costs:"), "the node card shows the sidegrade text")
+	var taproot := _unlock(grove, "deep_taproot")
+	_check(taproot.get_levels() == 2 and taproot.get_cost(2) == -1 and taproot.get_spent(3) == 25 + 50,
+		"Hades-style Deep Taproot stops at level II (no Seed trap, full bloom doesn't need level III)")
 	main = await _new_run()
 	run_state = main.get_node("%RunState")
 	director = main.get_node("%DriftDirector")
