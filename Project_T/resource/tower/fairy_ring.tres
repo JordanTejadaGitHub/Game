@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Fairy Ring"
-description = "Plants mushroom rings on the path; a nightmare stepping on one sets off a spore burst."
+description = "Plants mushroom rings on the path; a nightmare that steps on one makes it burst into spores."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

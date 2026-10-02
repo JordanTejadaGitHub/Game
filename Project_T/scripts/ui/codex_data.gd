@@ -114,7 +114,7 @@ const SYNERGIES := {
 	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps farther and more often between {damp} nightmares.", "Stormcap"],
 	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "Full {drowsy}: the nightmare falls {asleep} for 3 s; a big hit (10%+ of its health) wakes it.", "Dreamshroom"],
 	&"fog": ["Spore Fog", [&"spored", &"damp"], "{spored} ticks harder inside Mistveil fog.", "Mistveil"],
-	&"set_off": ["Set Off", [&"static", &"static"], "A pulse sets off a {static} bolt.", "Chime Stone, Lullaby Bell"],
+	&"set_off": ["Set Off", [&"static", &"static"], "A pulse makes a nightmare with 3 or more {static} release its bolt at once.", "Chime Stone, Lullaby Bell"],
 	&"marked_blow": ["Exposed Blow", [&"marked", &"marked"], "A heavy hit does double damage on {marked} nightmares.", "Mossback, Boulderback"],
 	&"caught": ["Caught", [&"drowsy", &"drowsy"], "{asleep} or full {drowsy} near a Dreamcatcher: the nightmare's statuses stop wearing off.", "Dreamcatcher"],
 }
