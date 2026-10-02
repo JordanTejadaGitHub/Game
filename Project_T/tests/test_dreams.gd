@@ -593,14 +593,14 @@ func _test_dreamlight(main: Node) -> void:
 		if card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION and dreams.is_eligible(card, 2):
 			_check(false, "%s is still a Dream card" % card.id)
 
-	# The first family pick (run_design.md "Dreamlight", clarified 2026-09-30): the family and +2 Dreamlight;
+	# The first family pick (run_design.md "Dreamlight", clarified 2026-09-30): the family and +1 Dreamlight (user 2026-10-01, was 2);
 	# branches cost 1 and finals 2 (no Grove node for either), bought on the Remember screen
 	dreams.dreamlight = 0
 	director.family_pick_requested.emit(&"first")
 	dreams.unlocked["firefly_jar"] = true  # What FamilyPickScreen.choose does
 	dreams.unlocks_changed.emit()
 	var sunpetal: TowerData = load("res://resource/tower/sunpetal.tres")
-	_check(dreams.dreamlight == 2, "+2 Dreamlight with the first family pick")
+	_check(dreams.dreamlight == DreamState.FIRST_PICK_DREAMLIGHT and DreamState.FIRST_PICK_DREAMLIGHT == 1, "+1 Dreamlight with the first family pick")
 	_check(not dreams.is_unlocked("stormcap") and not dreams.is_unlocked("lanternmoth"), "owning Firefly Jar doesn't unlock its branches")
 	_check(dreams.get_unlock_cost(stormcap) == 1 and dreams.can_unlock(stormcap) and dreams.get_unlock_blocker(thunderhead) == "needs Stormcap",
 		"a branch costs 1 Dreamlight (can unlock now); its final waits for it")
@@ -609,7 +609,7 @@ func _test_dreamlight(main: Node) -> void:
 	var old := dreams.to_save()
 	(old["unlocked"] as Array).append("lanternmoth")
 	dreams.load_save(old)
-	_check(dreams.is_unlocked("lanternmoth") and dreams.dreamlight == 2, "an old save keeps a branch it was given")
+	_check(dreams.is_unlocked("lanternmoth") and dreams.dreamlight == DreamState.FIRST_PICK_DREAMLIGHT, "an old save keeps a branch it was given")
 	dreams.dreamlight = 1
 	var remembers := []
 	dreams.remember_requested.connect(func(focus: TowerData) -> void: remembers.append(focus))

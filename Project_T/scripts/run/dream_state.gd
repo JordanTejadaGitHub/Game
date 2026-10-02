@@ -167,7 +167,7 @@ const PATIENT_ROOTS_HELD := 0.5
 const GOLDEN_HARVEST_PER := 0.02  # Per 100 Dew harvested / earned as interest
 const GOLDEN_HARVEST_MAX := 0.30
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
-const FIRST_PICK_DREAMLIGHT := 2  # The default for first_pick_dreamlight (2026-09-30: a final form in act 1)
+const FIRST_PICK_DREAMLIGHT := 1  # The default for first_pick_dreamlight (user 2026-10-01: 1, was 2)
 # Dreamlight with the first family pick (Blight 2 sets it to 0 via MetaRun).
 var first_pick_dreamlight := FIRST_PICK_DREAMLIGHT
 # The power pass (dream_audit.md, 2026-09-30): old save ids -> the card that absorbed them ("" = cut).
@@ -313,7 +313,7 @@ func _ready() -> void:
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":
-			add_dreamlight(first_pick_dreamlight, &"first_pick"))  # Act 1 can take a final form
+			add_dreamlight(first_pick_dreamlight, &"first_pick"))  # One branch early (run_design.md "Dreamlight")
 	map_generator.path_changed.connect(_update_bends)
 	var damage_log := get_node_or_null("%DamageLog")
 	if damage_log != null and damage_log.has_signal("damage_dealt"):
