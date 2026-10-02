@@ -774,6 +774,14 @@ fixed in d4efe268: beams hold their target while it's alive and in range). **Mid
 (measured with the bug; re-probe first). **Stormcap: no bug** (chains and bolts use ranked damage);
 its data is the lever: **chain targets 3 → 4**.
 
+**Support check** (d4efe268; 4 of the support vs 4 of a reference on the same board, 3 seeds; pass =
+board damage ≥ and leak ≤): **Hoarfrost ✓** (board 0.96–1.24×, Shatter 41–55% of its credit, act 2 leak
+≤ 0.8%); **Grafted Elder ✓** (board 0.95–1.24×; per Warden 1.0–2.2× a Puffball, consistent with copying
+two neighbours at 85%); **Zephyr and Gust at par** (board 0.94–1.04×): accepted for supports.
+**Whispering Hollow ✗** (board 0.60–0.91×, echo only 1.6% of its credit) and **Echo Hollow ✗** (2 of 3
+maps): **bug check first** (do the echoes fire on Thunderclap; where is echo damage credited?), then a
+number.
+
 **4. Act 2 bosses at drift 50** (40d26ed1, fixed board of 12 finals, rank IV, no Dreams, 3 seeds): none
 dispelled; health left at the Heartwood Huntsman 44–88%, Lamplighter 10–34%, Mire Hag 45–53%. A
 no-Dream board is a floor, not a player's board. Bosses at **×1.75** (confirmed: Huntsman 6,500 × 1.75
