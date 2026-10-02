@@ -46,6 +46,7 @@ const ART := {
 	"lightning_tree": [Vector2i(96, 128), 4], "moonwell": [Vector2i(64, 64), 4], "bell_stone": [Vector2i(64, 64), 4],
 	"mushroom_ring": [Vector2i(192, 192), 4], "heartwood_roots": [Vector2i(64, 64), 16],
 	"bog_path": [Vector2i(64, 64), 16], "ancient_stump": [Vector2i(64, 64), 3],
+	"fallen_log": [Vector2i(64, 64), 6],  # Static pieces: 0 W end, 1 E-W middle, 2 E end, 3 N end, 4 N-S middle, 5 S end
 }
 const ANIMATED: Array[String] = ["lightning_tree", "moonwell", "bell_stone", "mushroom_ring"]
 
@@ -360,7 +361,7 @@ func _rebuild_props() -> void:
 	_props.clear()
 	for l: Array in logs:
 		for cell in l:
-			_add_prop("log", cell, l)
+			_add_prop("fallen_log", cell, l)
 	for cell in moonwells:
 		_add_prop("moonwell", cell)
 	for cell in bell_stones:
@@ -373,24 +374,36 @@ func _add_prop(kind: String, cell: Vector2, line: Array = []) -> void:
 	prop.gifts = self
 	prop.kind = kind
 	prop.line = line
+	prop.piece = _log_piece(cell, line)
 	prop.position = MAP_GRID.calculate_map_position(cell)
 	map.add_child(prop)
 	_props.append(prop)
+
+# Which fallen_log.png piece a Fallen Giant cell takes: its ends and middles along the line.
+static func _log_piece(cell: Vector2, line: Array) -> int:
+	if line.size() < 2:
+		return -1
+	var vertical: bool = line[0].x == line[1].x
+	var along: Array = line.map(func(c: Vector2) -> float: return c.y if vertical else c.x)
+	var at := cell.y if vertical else cell.x
+	var first := 0 if at == along.min() else (2 if at == along.max() else 1)
+	return first + (3 if vertical else 0)
 
 class GiftProp extends Node2D:
 	var gifts: MapGifts
 	var kind: String
 	var line: Array = []
+	var piece := -1  # A Fallen Giant cell's piece of fallen_log.png; -1 = the animation frame
 
 	func _draw() -> void:
 		var sheet: Texture2D = gifts._sheets.get(kind)
 		if sheet != null:
 			var size := Vector2(MapGifts.ART[kind][0])
 			var at := Vector2(-size.x / 2.0, 32.0 - size.y)  # Tall sprites put their bottom 64 px on the cell
-			draw_texture_rect_region(sheet, Rect2(at, size), gifts.frame_region(kind, int(gifts._frame_time)))
+			draw_texture_rect_region(sheet, Rect2(at, size), gifts.frame_region(kind, piece if piece >= 0 else int(gifts._frame_time)))
 			return
 		match kind:  # Placeholders in palette colours
-			"log":
+			"fallen_log":
 				var along := Vector2.DOWN if line.size() > 1 and line[0].x == line[1].x else Vector2.RIGHT
 				var half := along * 32.0
 				draw_line(-half, half, Palette.ROOT, 30.0)

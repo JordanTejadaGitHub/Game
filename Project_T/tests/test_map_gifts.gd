@@ -74,6 +74,9 @@ func _init() -> void:
 	_give(gifts, run_state, MapGifts.LIGHTNING_TREE, lightning)
 	_check(map.get_obstacle(lightning[0]) != null and gifts.lightning_trees() == lightning, "a Lightning Tree")
 	_check(gifts._props.size() == log_cells.size() + 3, "props stand for the log, Moonwell, Bell Stone and tree")
+	var pieces: Array = gifts._props.filter(func(p: Node2D) -> bool: return p.kind == "fallen_log").map(func(p: Node2D) -> int: return p.piece)
+	pieces.sort()
+	_check(pieces == [3, 4, 5], "a 3-cell N-S log: N end, middle, S end (%s)" % [pieces])
 
 	# Mushroom Ring and Ancient Stumps stay open ground.
 	var ring := _find(map, _square3, false)
