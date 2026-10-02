@@ -281,6 +281,161 @@ take 1 cell and can't evolve.
 
 The Hollow Oak ends the run, so it has no Memory Warden (its memory is the true ending).
 
+## Branch expansion: 5 branches, 3 per run (PROPOSED, 2026-10-02)
+
+> **Proposal, not approved yet.** Design hub task from the user: stop players forcing the same build
+> every run. Nothing here goes to Tower Code or Tower Assets until the user approves the scope
+> (~27 new branches + ~27 finals of art).
+
+**The idea:** each family gets **5 regular branches + 1 hidden** (today 2 + 1). Each run the
+Remember screen offers **3 of the 5**, plus the hidden one if the Grove has it. Builds stay
+possible, never guaranteed, like Slay the Spire card rewards or Hades boons.
+
+### Rules for the new branches
+
+- **No two branches in a family overlap.** Each new branch has its own job: a different status use,
+  attack shape, support/economy role, or a counter for a nightmare type. It must also respect the
+  status jobs (only Drowsy slows, only Exposed raises damage taken, Held is Rootling's, pulling back
+  is Rootling's).
+- **Every new form passes the silhouette rule** (`art_direction.md`): a grey 32 px silhouette must
+  read apart from its previous form and from its family's other branches. Each one below has a
+  signature prop or stance for that.
+- **Each final is its branch bigger plus a signature twist**, as for the existing finals.
+- The existing branches keep their places (2 regular + hidden), so the 3 new ones per family are
+  branches **C, D, E**. Numbers come later, from Balancing Discussion.
+
+### The 27 new branches
+
+**Sporeling** (Poisoned)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Lichenling → Old Lichen** | anti-armour, anti-heal | projectile | Poisoned also **eats dread shell** each tick and blocks healing; at 8 stacks a Shellbound's shell cracks off at once | Shellbound, Weeper | a crust of flat lichen plates; a broad flat cap |
+| **Brood Cap → Hatchery** | a **spawner** | little spore-sprites walk **up** the path and burst on the first nightmare they touch (Poisoned + a small hit) | every 5th sprite is a big one that splits into 3 | **Lurkers** (sprites bump into hidden nightmares) | a cap with tiny sprites clinging to it |
+| **Inkcap → Deliquescent** | **trail** spreader for long mazes | projectile; a Poisoned nightmare leaves an ink trail that poisons walkers on it | a dispelled Poisoned nightmare melts into a 2-tile ink pool | long single-file drifts (Procession) | a tall, dripping, inky bell cap |
+
+**Dewdrop** (Soaked)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Cloudlet → Nimbus** | **anti-air** rain over a zone | a small cloud over a 3×3 area anywhere in range; rains on everything under it, flyers and Phantoms included | **Cloudburst:** every 10 s, refreshes Soaked on everything in range 4 | Phantoms, flyers, the Moth Queen | a cloud floating above the golem |
+| **Undercurrent → Maelstrom** | **gather** control | a whirlpool on a path tile draws nightmares toward its centre (bunches them; not a pull back) | the whirlpool also Soaks everything in it | spread-out swarms; sets up area combos | a swirl of water around its feet |
+| **Jetreed → Torrent** | **piercing line** vs tanks | an instant jet through a line; more damage vs Soaked | **Flood:** the jet leaves a 3-tile wet trail | Husks, elites | a reed pipe held like a hose |
+
+**Firefly Jar** (Charged, Exposed)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Jarlink → Lightning Fence** | **maze geometry** | two Jarlinks within 4 cells join with an arc; nightmares crossing it take damage + Charged | the fence also hits Phantoms gliding through it | Phantoms, straight rushes | a jar on a tall pole with a wire coil |
+| **Prism Jar → Rainbow Prism** | **crit support** (the only crit aura) | aura: Wardens within 1.5 cells +10% crit chance | its own hits split into 3 coloured beams | tanks (via allies' crits) | a faceted crystal jar |
+| **Sparkler → Starburst** | **anti-swarm** burst | a firework bursting into 6 sparks over a crowd, each adding Charged | every 4th burst is a double | Whisper Swarm, Sobs, Creeps | a jar with a fizzing stick of sparks |
+
+**Bellflower** (Drowsy)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Silver Bell → Vesper Bell** | **long-range sleep** on one strong target | a single toll at range 6: fills Drowsy on the strongest nightmare (bosses to 3) | the toll echoes to the next-strongest | Husks, elites, bosses | a single tall bell on a bell frame |
+| **Hushbell → Silence** | **silence** | nightmares in range can't use abilities: the Watcher can't wake, Weepers can't mend, the Lantern Bearer's lantern dims, boss abilities are delayed | its silence lingers 2 s after they leave | Watcher, Weeper, Procession, boss abilities | a bell muffled in moss, finger to lips |
+| **Thrum → Resonance** | a **cone** of sound | a sound wave in a cone in front; more damage vs Drowsy | the cone widens for each Drowsy nightmare in it | crowds in corridors | a horn-shaped flower facing forward |
+
+**Pebbling** (heavy hits)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Whetstone → Edgestone** | **tank killer** | damage grows +10% per hit on the same target (max +100%) | the bonus carries to the next target at half | Husks, bosses | a golem at a sharpening wheel |
+| **Quarry → Master Mason** | **builder** (maze economy) | at each rest, grows a free Thornwall on a cell you choose within 3 | **Keystone:** its walls can't be trampled or burrowed under | the Hollow Stag (trample), Gravecrawlers | a golem with a chisel and stacked blocks |
+| **Quaker → Earthshaker** | **interrupt** | slams the ground around itself every 3 s; nightmares hit lose their speed boosts (a sprinting Night Hound stops sprinting) | the slam cracks the path for 3 s (no new sprints there) | Night Hounds, charging bosses | a squat golem mid-stomp, fists down |
+
+**Rootling** (Rooted)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Groundroot → Earthbind** | **anti-air**: grounds flyers | roots drag flyers and Phantoms down onto the path; for 3 s they must walk the maze | grounded nightmares are Rooted 0.5 s when they land | Phantoms, flyers | roots reaching up like hands |
+| **Deeproot → Heartroot** | **goalkeeper** | any nightmare within 3 cells of the Heartwood is Rooted 1 s (once each) | the last-line hold also wakes the Heartwood: +1 leaf per 50 holds (max 2 per run) | leaks, fast finishers | a root coiled in a ring, close to the ground |
+| **Thorncoil → Crown of Thorns** | Rooted **payoff damage** | Rooted nightmares in range take thorn damage each second they're held | thorns spread to nightmares adjacent to a held one | anything held (pairs with Tangleroot) | a thorny crown on its head |
+
+**Acorn** (support, economy)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Seedbearer → Grove Keeper** | **grows Wardens** | every 3 drifts grows a free Sprout on an adjacent cell | its Sprouts arrive at rank II | — (maze growth) | a golem carrying a seed sack |
+| **Bark Shield → Ironbark** | **protection** | Wardens in range can't be withered, dimmed or trampled | protected Wardens also shrug off the first boss ability each drift | boss wither / dim / trample (Hollow Stag, Lamplighter) | thick bark armour plates |
+| **Dream Oak → Dreamroot** | **Dreamlight economy** | gains 1 Dreamlight shard per drift (10 shards = 1 Dreamlight; capped per run) | shards double on perfect blocks | — (more branches and finals per run) | a small oak with a glowing fruit |
+
+**Nestling** *(full game)*
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Owlet → Night Owl** | **hidden-prey hunter** | targets hidden and burrowing nightmares first, +50% vs them; can strike a burrowed Gravecrawler | **Silent strike:** its first hit on each nightmare can't be resisted | Lurkers, Gravecrawlers | a round owl with ear tufts |
+| **Pelican Perch → Great Pelican** | **execute small** | swallows a small nightmare below a health threshold (Sob, Creep, Wraith…) | swallowed ones drop double Dew | Mourner / Widow splits, Wraiths | a long beak and a throat pouch |
+| **Woodpecker Post → Drummer** | **shell drill + clearing** | pecks strip dread shell ×3; between drifts it chips Withered Trees nearby (clearing them is cheaper) | **Drum roll:** every 10th peck stuns the shell's regrowth | Shellbound | a woodpecker clinging to a post |
+
+**Whirligig** *(full game)*
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Breeze Vane → Weathervane** | **range and speed support** | aura: Wardens within 2 cells +1 range and their projectiles fly 50% faster | it turns to face the busiest lane, and that side gets +2 range | — (helps snipers and slow shots) | a tall weathervane arrow |
+| **Kite String → Sky Kite** | **anti-air** | a kite flies high, hitting flyers and Phantoms anywhere within range 6 | the kite tail sweeps everything it passes | Phantoms, flyers, the Moth Queen | a kite flying above the golem |
+| **Scatterwind → Squall** | **break formations** | gusts split groups that move together: followers lose their leader | broken-up nightmares are Soaked-style "scattered" (Dew +1 each) | the Procession, Huntsman packs | puffed cheeks blowing a gust |
+
+**Counter coverage check:** every nightmare type now has 2+ answers across families: flyers and
+Phantoms (Nimbus, Lightning Fence, Earthbind, Sky Kite, plus snipers and Wren's Nest), Lurkers
+(Lanternmoth, Rootlight, Brood Cap, Night Owl), Shellbound (Pebbling, Old Lichen, Drummer, Magpie),
+support nightmares (Silence, Magpie, Old Lichen), swarms (Starburst, Pelican, area Wardens), tanks
+and bosses (Edgestone, Torrent, Vesper Bell), boss abilities (Ironbark, Silence, Earthshaker).
+
+### Kinships with 6 branches: a rule, not a 15-pair table
+
+- **Any two different branches of one family within 2 cells bond** with a **generic Kinship**
+  ("Kin"). Both Wardens get **+10% damage**, and the pair earns **Harmony strikes** as today. The
+  bond still grows (Sapling, Blooming, Old Kin) and shows the vine.
+- **Named Kinships stay special:** the 18 built ones (each family's main pair + hidden pair) keep
+  their unique "teach each other" traits. Add **1 new named pair per family** among the new
+  branches (9 more), chosen where the two jobs tell a story (e.g. *Silence + Vesper Bell*,
+  *Groundroot + Thorncoil*). Everything else is generic Kin.
+- **Whole Tree** becomes **"3 different branches of one family on the map"** (any 3, hidden or
+  not), since a run can't count on any particular branch.
+- Kindred (2 branches: +10%) is unchanged.
+
+### The per-run offer on the Remember screen
+
+- **3 of the 5 regular branches** per family, drawn at run start from the map seed (a resume gets
+  the same), **never the same 3 as that family's last run** (profile `last_branch_offer`).
+- **The hidden branch doesn't count:** if the Grove has planted it, it's always offered as a 4th
+  lane. It's earned meta progress.
+- **The 2 not offered** show as **"not in this dream"**: a faint misty silhouette with no cost,
+  lower in the tree, and the side panel says *"Not in this dream. The Heartwood may remember it
+  next time."* Their finals aren't shown.
+- **A Dream card can reveal a 4th:** ***Lucid Dream*** (Rare): pick one family; one of its
+  not-offered branches joins this run. A Grove perk could add one per run (Meta Game Discussion's
+  call).
+- **Cards follow the offer:** a card that needs a branch (e.g. Stormcap cards, Entwined
+  *Conductive Soil*) is only offered if that branch is offered this run. Storm Grid becomes a run
+  you *find*, not one you force.
+- Families with fewer than 5 regular branches (during phasing) offer all they have.
+
+### The demo
+
+**Keep today's 2 branches per family, no 3-of-5** (and no hidden branches, as now). Reasons: the
+demo is short, players should learn the core branches first, it needs no new art, and "more
+branches every run" becomes a clear full-game selling point. The demo's 4 starting families
+(Sporeling, Firefly Jar, Dewdrop, Bellflower) stay exactly as they are.
+
+### Phasing (art is the cost)
+
+Each new branch + final = 2 sprites (plus attack sheets and effects): ~54 sprites in total.
+
+1. **Phase 1: the 4 starting families** (Sporeling, Dewdrop, Firefly Jar, Bellflower): 12
+   branches, 12 finals, the 3-of-5 offer, generic Kin, Lucid Dream. The full game gets the system
+   first where most runs live.
+2. **Phase 2:** Pebbling, Rootling, Acorn (9 + 9).
+3. **Phase 3:** Nestling, Whirligig (6 + 6), the full-game families.
+
+Each phase is playable on its own: un-expanded families just offer their 2.
+
+**To check with Balancing Discussion:** the Dreamlight budget with 3 offered (unchanged costs), and
+whether Kindred / Whole Tree need retuning when any 3 branches count.
+
 ## Evolution rules
 
 - **Dreamlight unlocks, Dew pays** (was "Dreams unlock"; changed 2026-09-27). Spending
