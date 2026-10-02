@@ -672,6 +672,9 @@ board leak ~0%. Dreamshroom (post-nerf) 0.89× / 1.21× ✓. Morning Fog 0.75× 
 without (87% of its damage is Thunderclap): a combo final, no change. Puffball loses ~half without
 Thunderhead (cause not traced). **Bell: damage 123 → 80 and set-off at 4 stacks (was 3)**, expected
 ~0.95× / ~1.5×; re-probe (band ~0.9–1.5×, area finals scale with crowds).
+**Bell re-probe** (be52dc39 = 90ad7f61 in, finals cast, 3 seeds): median **1.50× (45–49), 1.42×
+(61–65)**, one map at 2.28×; boards still leak least (1–3% vs 11–21% at 45). Top edge of the band, so
+**one more step: damage 80 → 72** (expected ~1.35× / 1.28×). Closed after that.
 Why Puffball halves without Thunderhead: **Ignite** (Spored 3+ and Static → Spored ticks ×3 for 3 s,
 re-fired while Static keeps coming): measured, 63% of Puffball's damage with Thunderhead (183k vs 76k per Warden without). A combo working as designed: no change. But its extra ticks were
 tagged only "spored", invisible to combo feedback and the sims: Tower Code tags them "ignite".
