@@ -296,3 +296,5 @@ full game (`game/demo` false), and the demo reads main's exports.
   spark**; Silence, Vesper Bell and Rainbow Prism get a board test (control / support); **Jarlink /
   Lightning Fence** can't reach the band through crossing damage (each nightmare crosses once or
   twice), so the arc design goes back to Tower Discussion (proposed: a damaging line laid along the route).
+- 2026-10-02: Old Lichen 40, Resonance 135, Starburst 78 in **49ab5779**; the new finals grow into
+  their family's Ascended form (e4217267).
