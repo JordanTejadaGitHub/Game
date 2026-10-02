@@ -174,6 +174,9 @@ func _run() -> void:
 			printerr("profile %s needs MetaRun.load_preset (Meta Game Code's presets)" % profile)
 			quit(1)
 			return
+		var presets: Script = load("res://scripts/meta/grove_presets.gd")
+		if presets.get("file_path") != null:  # A profile per process: parallel sims with different loadouts must not share one file
+			presets.set("file_path", "user://sim_heartwood_%d.json" % OS.get_process_id())
 		meta.call("load_preset", StringName(profile))
 		if empty_loadout:  # Same Grove, nothing carried
 			var data: Dictionary = HeartwoodMemory.load_data()
@@ -263,6 +266,10 @@ func _run() -> void:
 	_finish()
 	if profile != "fresh" and ResourceLoader.exists("res://scripts/meta/grove_presets.gd"):
 		load("res://scripts/meta/grove_presets.gd").call("unload")  # Back to the real profile path
+		var sim_profile := ProjectSettings.globalize_path("user://sim_heartwood_%d.json" % OS.get_process_id())
+		for path in [sim_profile, sim_profile + ".bak"]:  # save_data keeps a .bak of the last write
+			if FileAccess.file_exists(path):
+				DirAccess.remove_absolute(path)
 	quit(0)
 
 # The real rest and family pick open screens and offers; the bot answers them through the policy
