@@ -14,7 +14,7 @@ const KINDS := {
 	"island_edge": DetailPass.Kind.TILE,
 	"cliff": DetailPass.Kind.TILE, "dew_pool": DetailPass.Kind.TILE, "pond": DetailPass.Kind.TILE, "pond_inner": DetailPass.Kind.TILE, "blight_patch": DetailPass.Kind.TILE,
 	"border_wall": DetailPass.Kind.TILE, "rope_bridge": DetailPass.Kind.TILE,
-	"fallen_log": DetailPass.Kind.TILE,
+	"fallen_log": DetailPass.Kind.TILE, "log_furrow": DetailPass.Kind.TILE,
 	"withered_tree": DetailPass.Kind.OBSTACLE, "mossy_boulder": DetailPass.Kind.OBSTACLE,
 	"tended_stump": DetailPass.Kind.OBSTACLE, "moved_hollow": DetailPass.Kind.OBSTACLE,
 	"ground_details": DetailPass.Kind.OBSTACLE, "waystone": DetailPass.Kind.OBSTACLE,

@@ -912,6 +912,46 @@ function fallenLog(A, k) {
   for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) { const c = out.get(x + M, y); if (c[3]) crop.set(vertical ? y : x, vertical ? x : y, c); }
   return crop;
 }
+// Log furrow (log_furrow.png): the walkable mark a Tended fallen log leaves, in fallen_log.png's layout
+// (0 W end, 1 E–W middle, 2 E end, 3 N end, 4 N–S middle, 5 S end) so it lines up cell for cell. A
+// shallow rotted trench where the log lay: dark peat with a faint lit lip, bark chips in the log's own
+// colours, a few pale splinters and moss creeping back. Calm and low, like the tended stump. Drawn wide
+// and cropped like the log, so pieces join.
+function logFurrow(A, k) {
+  const vertical = k >= 3, part = k % 3, M = 16, W = T + M * 2, g = A.grass, s = SEED + 823;
+  const out = new Img(W, T), cy = 38;
+  const xs = x => ((x - M) % T + T) % T;
+  const half = x => {  // the trench's half width, rounding off at the ends
+    let h = 7 + pnoise(xs(x), 0, 16, s, 4) * 3;
+    if (part === 0) h *= Math.sqrt(clamp((x - (M + 10)) / 10, 0, 1));
+    if (part === 2) h *= Math.sqrt(clamp((M + T - 10 - x) / 10, 0, 1));
+    return h;
+  };
+  for (let x = 0; x < W; x++) {
+    const h = half(x); if (h < .5) continue;
+    for (let y = Math.floor(cy - h - 2); y <= cy + h + 1; y++) {
+      const a = (y + .5 - cy) / h, n = pnoise(xs(x), y, 8, s + 1, 8);
+      if (a < -1.25 || a > 1.1) continue;
+      if (a < -1) { if (bay(x, y) < .5) out.set(x, y, "#6c5c5c"); continue; }  // the lip catches a little light
+      if (a < -.7) { out.set(x, y, "#05050d"); continue; }  // shadow under the near lip
+      out.set(x, y, pick(["#140f26", "#241c14", "#241c14", "#241c14", "#5c3c24"], clamp(.42 + (n - .5) * .45 + a * .2, 0, 1), x, y, .4));
+    }
+  }
+  for (let i = 0; i < 14; i++) {  // bark chips and splinters left behind
+    const x = M + Math.floor(hash(i, part, s + 2) * T), y = Math.round(cy - 3 + hash(i, part, s + 3) * 8);
+    if (!out.alpha(x, y) || half(x) < 3) continue;
+    if (i % 3 === 0) { out.set(x, y, "#8c8cac"); out.set(x + 1, y - 1, "#5c5a78"); }
+    else { out.set(x, y, i % 2 ? DEAD[2] : DEAD[3]); out.set(x + 1, y, DEAD[2]); }
+  }
+  for (let i = 0; i < 6; i++) {  // moss creeping back in
+    const x = M + Math.floor(hash(i, part, s + 4) * T), y = Math.round(cy - 4 + hash(i, part, s + 5) * 9);
+    if (!out.alpha(x, y) || half(x) < 3) continue;
+    out.set(x, y, g[3]); out.set(x + 1, y, g[4]); out.set(x, y - 1, g[4]);
+  }
+  const crop = new Img();
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) { const c = out.get(x + M, y); if (c[3]) crop.set(vertical ? y : x, vertical ? x : y, c); }
+  return crop;
+}
 function blightPatch(A, f, seed) {
   const L = grass(A, 0), B = BLIGHT, s = seed + 60;
   for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
@@ -1689,6 +1729,7 @@ const BUILD = {
   pond: (A, v, f) => pondTile(A, v, f),
   pondin: (A, v) => pondInner(A, v),
   flog: (A, k) => fallenLog(A, k),  // 0 W end, 1 E-W middle, 2 E end, 3 N end, 4 N-S middle, 5 S end
+  lfurrow: (A, k) => logFurrow(A, k),  // the same 6 pieces
   blight: (A, v, f) => blightPatch(A, f, SEED + v * 5),
   mist: (A, v, f) => mist(A, f),
   heart: (A, v, f) => heartwood(A, f, v),
@@ -1709,7 +1750,7 @@ const BUILD = {
   rwisp: (A, v, f) => routeWisp(f),
 };
 const ANIM = new Set(["withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "dead"]);
-const TILES = new Set(["grass", "path", "wall", "pool", "pond", "pondin", "flog", "blight"]);
+const TILES = new Set(["grass", "path", "wall", "pool", "pond", "pondin", "flog", "lfurrow", "blight"]);
 const SOLID = 200;
 function copyPx(dst, x, y, c) { const i = (y * dst.w + x) * 4; dst.d[i] = c[0]; dst.d[i+1] = c[1]; dst.d[i+2] = c[2]; dst.d[i+3] = c[3]; }
 // Storybook: halve the resolution (most common solid colour per 2×2 block), outline sprites in a
