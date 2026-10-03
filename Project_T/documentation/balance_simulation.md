@@ -796,7 +796,7 @@ passes up a carry, the fix is the bot's policy, not the game.
 **It was the bot:** it alternated growth between its unlocked branches (Driftspore, Bloomcap, …). Fixed
 (Balancing Code 63da43c8: through drift 25 it grows and unlocks carries first). Same 30 seeds: **47%** with
 the fix vs 37% without. Driftspore is offered in ~1/3 of runs (vs every run with the expansion off), so
-the Lichenling / Brood Cap runs are what's left: **Lichenling 26, Brood Cap burst 28** (the top of the band).
+the Lichenling / Brood Cap runs are what's left: **Lichenling 26, Brood Cap burst 28** (the top of the band; in 84bbaf44).
 
 **4. Grove cap on main** (ed114826, before the branch raises; a bot gift-screen stall voided the first
 attempt): full loadout vs no perks, 20 seeds each, act 1 boss survival **40% vs 30% (+10 points)**, +2.5
