@@ -3772,15 +3772,21 @@ func _draw_rank_pips() -> void:
 			var step := 9.0 if rank <= 5 else 7.5
 			var left := -(rank - 1) * step / 2.0
 			for i in rank:
-				draw_focus_icon(pips, Vector2(left + i * step, 27.0), rank_choices[i] as Focus, 0.8))
+				# A pick its current form doesn't use is dimmed (Nurture rework: old picks stay, "no effect on <form>").
+				draw_focus_icon(pips, Vector2(left + i * step, 27.0), rank_choices[i] as Focus, 0.8,
+					not choice_applies(rank_choices[i] as Focus)))
 		add_child(pips)
 	pips.queue_redraw()
 
-# A tiny Focus glyph: Power an upward flame, Swift a double chevron, Reach a ring, Deep a drop.
-# Shared with the Warden panel.
-static func draw_focus_icon(canvas: CanvasItem, at: Vector2, which: Focus, size: float = 1.0) -> void:
+# A tiny Focus glyph: Power an upward flame, Swift a double chevron, Reach a ring, Deep a drop, Wide two arcs,
+# Strong a solid disc, Kindred two dots, Keen a four-point spark, Yield a seed with a sprout. Shared with the Warden
+# panel. `dim`: a pick its current form doesn't use (faded).
+static func draw_focus_icon(canvas: CanvasItem, at: Vector2, which: Focus, size: float = 1.0, dim: bool = false) -> void:
 	var color: Color = FOCUS_COLORS.get(which, Palette.HEARTLIGHT)
 	var dark := Color(Palette.ROOT, 0.9)
+	if dim:
+		color.a = 0.35
+		dark.a = 0.45
 	canvas.draw_circle(at, 4.6 * size, dark)
 	match which:
 		Focus.POWER:
@@ -3798,6 +3804,22 @@ static func draw_focus_icon(canvas: CanvasItem, at: Vector2, which: Focus, size:
 			canvas.draw_circle(at + Vector2(0, 1) * size, 2.3 * size, color)
 			canvas.draw_colored_polygon(PackedVector2Array([at + Vector2(0, -3.5) * size,
 				at + Vector2(2.1, 0.3) * size, at + Vector2(-2.1, 0.3) * size]), color)
+		Focus.WIDE:
+			canvas.draw_arc(at, 1.6 * size, PI * 0.15, PI * 0.85, 6, color, 1.1 * size)
+			canvas.draw_arc(at, 3.2 * size, PI * 0.15, PI * 0.85, 8, color, 1.1 * size)
+		Focus.STRONG:
+			canvas.draw_circle(at, 2.6 * size, color)
+		Focus.KINDRED:
+			canvas.draw_circle(at + Vector2(-1.5, 0) * size, 1.4 * size, color)
+			canvas.draw_circle(at + Vector2(1.5, 0) * size, 1.4 * size, color)
+		Focus.KEEN:
+			canvas.draw_colored_polygon(PackedVector2Array([at + Vector2(0, -3.6) * size, at + Vector2(0.9, -0.9) * size,
+				at + Vector2(3.6, 0) * size, at + Vector2(0.9, 0.9) * size, at + Vector2(0, 3.6) * size,
+				at + Vector2(-0.9, 0.9) * size, at + Vector2(-3.6, 0) * size, at + Vector2(-0.9, -0.9) * size]), color)
+		Focus.YIELD:
+			canvas.draw_circle(at + Vector2(0, 1.2) * size, 2.0 * size, color)
+			canvas.draw_line(at + Vector2(0, -0.6) * size, at + Vector2(0, -3.4) * size, color, 1.0 * size)
+			canvas.draw_line(at + Vector2(0, -2.6) * size, at + Vector2(1.6, -3.6) * size, color, 1.0 * size)
 
 # Attack reach in pixels.
 func get_range_pixels() -> float:
