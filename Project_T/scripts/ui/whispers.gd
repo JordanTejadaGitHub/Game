@@ -225,9 +225,27 @@ func _place() -> void:
 	set_anchors_preset(Control.PRESET_CENTER_TOP)
 	offset_left = -width / 2.0
 	offset_right = width / 2.0
-	offset_top = TOP
-	offset_bottom = TOP
+	var top := _clear_top()
+	offset_top = top
+	offset_bottom = top
 	custom_minimum_size = Vector2(width, 0)
+
+# Under the drift banner, the Coming strip and the boss reminder whatever their height this rest (user screenshot: a
+# hint across the Coming strip): TOP, or lower when one of them reaches past it.
+func _clear_top() -> float:
+	var hud := get_parent() as Control
+	if hud == null:
+		return TOP
+	var top := TOP
+	for node in hud.get_children():
+		if not (node is Control) or not node.visible or node == self:
+			continue
+		if node is ComingStrip or node.name == "DriftBanner":
+			top = maxf(top, node.get_global_rect().end.y - hud.global_position.y + 10.0)
+	var reminder := hud.find_child("BossReminder", true, false) as Control
+	if reminder != null and reminder.is_visible_in_tree():
+		top = maxf(top, reminder.get_global_rect().end.y - hud.global_position.y + 10.0)
+	return top
 
 # A choice screen (family pick, Dream, gift, Omen) is open: hints wait behind it (user screenshot: a hint across the
 # family cards), except the ones about that screen. One already showing pauses, hidden, and goes on after.
@@ -304,6 +322,11 @@ func _gui_input(event: InputEvent) -> void:
 # Conditions that are easiest to notice by looking.
 func _process(_delta: float) -> void:
 	var showing := not _queue.is_empty() and _seen.has(String(_queue[0]))
+	if showing and visible:
+		var top := _clear_top()  # The strip can grow while a hint shows (a rest's Coming strip, the boss reminder)
+		if not is_equal_approx(top, offset_top):
+			offset_top = top
+			offset_bottom = top
 	var choice := _choice_open() and not (showing and ON_CHOICE_SCREENS.has(_queue[0]))
 	if choice and showing and not _hidden_for_choice:
 		_hidden_for_choice = true  # Paused behind the choice screen

@@ -75,6 +75,13 @@ func _run() -> void:
 		"26 px whisper italic, outlined, over a faint feathered mist (no box)")
 	var hint_rect: Rect2 = whispers.get_global_rect()
 	_check(hint_rect.position.y < 300.0 and absf(hint_rect.get_center().x - 640.0) < 2.0, "top centre, as before (%s)" % hint_rect)
+	# Never across the Coming strip or the banner (user screenshot): it sits under whichever reaches lowest.
+	var covered := false
+	for node in main.get_node("HUD").get_children():
+		if node is Control and node.visible and node != whispers and (node is ComingStrip or node.name == "DriftBanner"):
+			if node.get_global_rect().intersects(hint_rect):
+				covered = true
+	_check(not covered, "the hint sits under the Coming strip and the banner, never across them")
 	_check(is_equal_approx(whispers.show_time("Short."), 7.0) and is_equal_approx(whispers.show_time("x".repeat(100)), 10.0),
 		"on screen 7 s at least, 3 s + 0.07 s a character for long lines")
 	# Real time: at 3× speed a 7 s hint is still up after 4 real seconds (12 game seconds).
