@@ -74,6 +74,19 @@ func _run() -> void:
 	card_ids.sort()
 	offer.sort()
 	_check(offer == card_ids, "the picked family's offer (what Remember shows) is the card's: %s == %s" % [offer, card_ids])
+	# The Codex Families page lists each family's branches from the data (meta_design.md 1f25e66e): Sporeling's 5
+	# regular ones + the Grove's hidden one, "2 offered each run".
+	var pause: Node = main.get_node("%PauseMenu")
+	pause.open_codex(&"families")
+	await process_frame
+	var codex: Node = pause.codex
+	codex._family = "sporeling"
+	codex._build_families()
+	var list: Node = codex.find_child("BranchList", true, false)
+	var rows: Array = list.get_children().map(func(l: Label) -> String: return l.text) if list != null else []
+	_check(rows.size() == 7 and String(rows[0]).contains("2 offered each run") and String(rows[-1]).contains("hidden branch"),
+		"the Codex lists Sporeling's 5 branches + the hidden one, 2 offered each run (%s)" % [rows])
+	pause.close()
 	main.queue_free()
 	await process_frame
 
