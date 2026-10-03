@@ -64,8 +64,10 @@ const ONCE := {"elder_stump": [K], "grove_heart": [K], "grandmother_oak": [K]}
 # Per-rank numbers (Balancing Discussion, 2026-10-03).
 const KEEN_CRIT := 0.10  # Crit chance per Keen rank (Balancing Discussion)
 const KEEN_CAP := 0.75  # Crit chance never goes above this with Keen
-const YIELD_PER := 2  # Yield ranks per extra sprite / Sprout (Balancing Discussion)
-const YIELD_SPRITES := 1  # Brood Cap / Hatchery: sprites alive per YIELD_PER Yield ranks
+const KEEN_CRIT_DAMAGE := 0.10  # Crit damage per Keen rank (Balancing Discussion, Keen / Yield probe)
+const YIELD_BROOD_INTERVAL := 0.25  # Brood Cap / Hatchery: seconds off the sprite interval per Yield rank
+const YIELD_BROOD_FLOOR := 0.5  # …never under this many seconds
+const YIELD_PER := 2  # Seedbearer: Yield ranks per extra Sprout alive (Balancing Discussion)
 const YIELD_SPROUTS := 1  # Seedbearer: Sprouts alive per YIELD_PER Yield ranks
 const YIELD_SHARDS := 0.5  # Dream Oak: shards per drift per Yield rank (fractions carry)
 const REACH_AREA := 0.3  # Cells per Reach rank on a Warden's main area (silence, link, jet, grab, cloud, burst…)

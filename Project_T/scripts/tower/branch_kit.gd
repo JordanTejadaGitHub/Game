@@ -104,7 +104,7 @@ static func process(tower: Tower, delta: float) -> bool:
 static func has_work(tower: Tower):
 	match tower.attack_data.special:
 		BROOD:
-			return BroodSprite.alive_for(tower) < int(p(tower, "max_alive", 4)) + yield_ranks(tower) * NurtureChoices.YIELD_SPRITES and not field(tower).is_empty()
+			return BroodSprite.alive_for(tower) < int(p(tower, "max_alive", 4)) and not field(tower).is_empty()
 		PRISM:
 			return null
 	return null

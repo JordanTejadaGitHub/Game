@@ -65,6 +65,10 @@ func _run() -> void:
 	swift._update_ability(1.0)
 	_check(10.0 - swift._ability_timer > plain + 0.1, "Swift: the hold timer runs faster (%.2f vs %.2f s)" % [10.0 - swift._ability_timer, plain])
 	_check(swift.focus_text(F.SWIFT).begins_with("holds every"), "Swift's line names the hold (%s)" % swift.focus_text(F.SWIFT))
+	var picks := swift.rank_choices.duplicate()
+	for which in [F.POWER, F.SWIFT, F.REACH, F.DEEP, F.KEEN]:
+		swift.focus_text(which)
+	_check(swift.rank_choices == picks and swift.rank == 3, "the choice lines never change the picks (%s)" % [swift.rank_choices])
 
 	# Reach grows Hushbell's silence.
 	var hush := _plant("hushbell")
@@ -79,12 +83,14 @@ func _run() -> void:
 	stone.clear_dream_cache()
 	_check(is_equal_approx(stone.get_raw_crit_chance() - before, NurtureChoices.KEEN_CRIT), "Keen: +%d%% crit (%.3f → %.3f)" % [roundi(NurtureChoices.KEEN_CRIT * 100), before, stone.get_raw_crit_chance()])
 
-	# Yield: one more sprite per 2 ranks.
-	var brood := _plant("brood_cap")
+	# Yield on a Brood Cap: a sprite 0.25 s sooner per rank (never under 0.5 s).
+	var brood := _plant("brood_cap", Vector2(16, 13))  # Away from the supports' auras
+	var every_before := 1.0 / brood._compute_attacks_per_second()
 	brood.nurture(0, F.YIELD)
-	_check(BranchKit.yield_ranks(brood) == 0, "one Yield rank: no extra sprite yet")
 	brood.nurture(0, F.YIELD)
-	_check(BranchKit.yield_ranks(brood) == 1, "two Yield ranks: one more sprite alive")
+	var every_after := 1.0 / brood._compute_attacks_per_second()
+	_check(every_after < every_before - 0.4, "two Yield ranks: sprites come sooner (%.2f → %.2f s)" % [every_before, every_after])
+	_check(stone.focus_text(F.KEEN).contains("crit damage"), "Keen's line names the crit damage (%s)" % stone.focus_text(F.KEEN))
 
 	# Group Nurture: Power skips the control Warden.
 	main.get_node("%RunState").add_dew(10000)

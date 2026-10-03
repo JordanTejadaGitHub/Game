@@ -315,7 +315,7 @@ func choice_count(which: Focus) -> int:
 
 # Old saves and ranks given by Dreams: Power (supports: their first option) for I–II, the old Focus from III.
 func _migrate_choices() -> void:
-	if rank_choices.size() == rank:
+	if rank_choices.size() == rank or _previewing_choice:
 		return
 	var fallback: int = focus_options()[0]
 	while rank_choices.size() < rank:
@@ -663,8 +663,14 @@ func _compute_attacks_per_second() -> float:
 	var bonus := speed * dreams * (1.0 + _aura_speed) * omen * (1.0 + _gift_bonus(&"speed"))  # Gift: Bell Stone
 	if _dream_state and _has_rule(&"whirlwind_heart"):
 		bonus = GroveRules.whirlwind(self, bonus)  # Whirlwind Heart: the bonus part counts double
-	return attack_data.attacks_per_second * bonus * dim_multiplier \
+	var aps := attack_data.attacks_per_second * bonus * dim_multiplier \
 		* (get_wall_multiplier() if attack_data.damage <= 0 else 1.0)  # Honeysuckle: Bramble Oath, The Quiet Ones
+	if attack_data.special == BranchKit.BROOD and choice_count(Focus.YIELD) > 0 and aps > 0.0:
+		# Yield on a Brood Cap / Hatchery: a sprite 0.25 s sooner per rank, never under 0.5 s (Balancing's probe).
+		var interval := 1.0 / aps
+		aps = 1.0 / maxf(interval - NurtureChoices.YIELD_BROOD_INTERVAL * choice_count(Focus.YIELD),
+			minf(interval, NurtureChoices.YIELD_BROOD_FLOOR))
+	return aps
 
 func get_range_cells() -> float:
 	if _stats_fresh() and _stats.has(&"range"):
@@ -905,10 +911,14 @@ func focus_text(which: Focus) -> String:
 		Focus.KEEN:
 			var crit := _with_choice(which, func() -> float:
 				return attack_data.crit_chance + NurtureChoices.KEEN_CRIT * choice_count(Focus.KEEN))
-			return "crit chance %d%% → %d%%" % [roundi(crit[0] * 100), roundi(minf(crit[1], maxf(NurtureChoices.KEEN_CAP, crit[0])) * 100)]
+			return "crit chance %d%% → %d%%, crit damage +%d%%" % [roundi(crit[0] * 100),
+				roundi(minf(crit[1], maxf(NurtureChoices.KEEN_CAP, crit[0])) * 100), roundi(NurtureChoices.KEEN_CRIT_DAMAGE * 100)]
 		Focus.YIELD:
 			if special == BranchKit.DREAM_OAK:
 				return "+%.1f shard every drift" % NurtureChoices.YIELD_SHARDS
+			if special == BranchKit.BROOD:
+				var every := _with_choice(which, func() -> float: return 1.0 / maxf(_compute_attacks_per_second(), 0.0001))
+				return "a sprite every %.2f → %.2f s" % [every[0], every[1]]
 			var thing := "Sprouts" if special == BranchKit.SEEDBEARER else "sprites"
 			var base := int(BranchKit.p(self, "seed_max" if special == BranchKit.SEEDBEARER else "max_alive", 3.0 if special == BranchKit.SEEDBEARER else 4.0))
 			var now := base + BranchKit.yield_ranks(self)
@@ -937,10 +947,13 @@ func focus_text(which: Focus) -> String:
 func _with_choice(which: Focus, measure: Callable) -> Array:
 	_migrate_choices()
 	var now: float = measure.call()
+	_previewing_choice = true  # _migrate_choices must not trim the trial entry (it would pop a real choice after)
 	rank_choices.append(which)
 	var after: float = measure.call()
 	rank_choices.pop_back()
+	_previewing_choice = false
 	return [now, after]
+var _previewing_choice := false
 
 # Swift's main timer for this form, [base seconds, what it does], or [0, ""] when it's the attack itself.
 func _main_timer() -> Array:
@@ -1822,6 +1835,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var crit_multiplier: float = reaction.crit_multiplier
 	if is_crit:
 		crit_multiplier += BranchKit.crit_damage_aura(self)  # Prism Jar's aura: harder crits around it
+		crit_multiplier += NurtureChoices.KEEN_CRIT_DAMAGE * choice_count(Focus.KEEN)  # Keen ranks: harder crits too
 	var hammer := kin_share(&"hammer_and_anvil", "a")
 	if hammer > 0.0:
 		crit_multiplier = maxf(crit_multiplier, 2.0 + 0.5 * hammer)  # Hammer and Anvil: the sniper's eye
