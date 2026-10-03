@@ -73,6 +73,7 @@ var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.pre
 var aura_placement := true  # --no-aura: place and grow aura Wardens (Acorn, Elder Stump, Grove Heart, Moon Moth) by path only
 var empty_loadout := false
 var sidegrade := -1
+var carry_pref := true  # --no-carry-pref: act 1 growth and Dreamlight don't prefer the carry branch (DreamState.is_carry), the bot before 2026-10-02
 var demo_run := false  # --demo: game/demo stays true (DEMO_RULES, demo bosses and Kinships), for the demo sanity check
 var kin_placement := true  # --no-kin: no Kinship placement, and growth takes the first open form in evolves_to (the old bot)
 var focus_mode := ""  # --focus=deep: Nurture picks Deep where it's offered and Potency cards score high (a committed Deep build)
@@ -144,6 +145,7 @@ func _run() -> void:
 			"--omens": omen_mode = value
 			"--all-families": all_families = true
 			"--demo": demo_run = true
+			"--no-carry-pref": carry_pref = false
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
@@ -217,6 +219,7 @@ func _run() -> void:
 	policy.on_offer = _note_offer
 	policy.on_pick = _log_pick
 	policy.branches_first = kin_placement
+	policy.carry_first = carry_pref
 	policy.deep = focus_mode == "deep"
 	policy.mode = dream_mode
 	policy.rng.seed = map_seed
@@ -526,6 +529,8 @@ func _grow() -> bool:
 				pick = form
 				break
 			var form_score := 100.0 * _kin_bonus(tower.cell, form, tower) - _count_on_map(form.get_id())
+			if carry_pref and director.drifts_started <= director.drifts_per_act and DreamState.is_carry(form):
+				form_score += 1000.0  # Act 1: the carry branch over its partner (Bloomcap beside Driftspore was "the one with fewer on the map")
 			if form_score > pick_score:
 				pick_score = form_score
 				pick = form
@@ -754,6 +759,8 @@ func _finish() -> void:
 	summary.dream_off_ids = "+".join(dream_off_ids.keys().map(func(id) -> String: return "%s:%d" % [id, dream_off_ids[id]]))
 	summary.dream_pool_mean = snappedf(float(dream_offers.pool) / maxf(dream_offers.offers, 1.0), 0.1)
 	summary.gifts = "+".join(gifts_log)
+	summary.branch_offers = ";".join(dreams.branch_offers.keys().map(func(id) -> String: return "%s:%s" % [id, "/".join(dreams.branch_offers[id].map(func(t) -> String: return t.get_id() if t is TowerData else str(t)))]))
+	summary.dreamlight_unlocks = "+".join(policy.choices.filter(func(c: String) -> bool: return c.begins_with("Dreamlight: ")).map(func(c: String) -> String: return c.substr(12)))
 	var runs_path := out_dir.path_join("runs.csv")
 	var keys := summary.keys()
 	var new_file := not FileAccess.file_exists(runs_path)
