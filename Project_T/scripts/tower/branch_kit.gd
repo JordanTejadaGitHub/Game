@@ -646,18 +646,19 @@ static func is_stone(wall: Node) -> bool:
 			return true
 	return false
 
-const STONE_WALL_PATH := "res://assets/towers/thornwall_stone.png"  # Same layout as thornwall.png (Tower Assets)
+const STONE_WALL_PATH := "res://assets/towers/%s_stone.png"  # <wall id>_stone.png: Thornwall, Bramble, Honeysuckle (Tower Assets 56c89f99); same layout as the normal sheet
 
-# Tower._show_idle, for a Thornwall gone to stone: the stone sheet.
+# Tower._show_idle, for a wall gone to stone: its stone sheet (if it has one).
 static func idle_texture(tower: Tower) -> Texture2D:
-	if tower.get_meta(&"stone", false) and ResourceLoader.exists(STONE_WALL_PATH):
-		return load(STONE_WALL_PATH)
+	var path := STONE_WALL_PATH % tower.tower_data.get_id()
+	if tower.get_meta(&"stone", false) and ResourceLoader.exists(path):
+		return load(path)
 	return tower.tower_data.texture
 
-# Tower._refresh_neighbours: a Thornwall turning to stone (a Rampart beside it) or back swaps its sheet, with the
+# Tower._refresh_neighbours: a wall turning to stone (a Rampart beside it) or back swaps its sheet, with the
 # stone veil rising as it hardens.
 static func refresh_stone(tower: Tower) -> void:
-	if tower.tower_data.get_id() != "thornwall":
+	if tower.tower_data.line != "wall":
 		return
 	var stone := is_stone(tower)
 	if stone == bool(tower.get_meta(&"stone", false)):
