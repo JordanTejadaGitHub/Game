@@ -188,6 +188,24 @@ func _run() -> void:
 		print("  (demo phase check skipped: TowerData.expansion_phase isn't on this branch yet)")
 	ResultsScreen.demo_override = 0
 
+	# Every offered pair holds a damage branch (doc 66e9927b), in every family that has one (Acorn is exempt)
+	var no_carry_offers := []
+	for family_id in ["sporeling", "dewdrop", "firefly_jar", "bellflower", "pebbling", "rootling"]:
+		var family: TowerData = load("res://resource/tower/%s.tres" % family_id)
+		if dreams.regular_branches(family).size() <= DreamState.BRANCH_OFFER_SIZE:
+			continue
+		for s in 15:
+			main.get_node("MapGenerator").map_seed = 3000 + s
+			dreams.branch_offers.erase(family_id)
+			dreams.unlocked[family_id] = true
+			var pair: Array = dreams.get_branch_offer(family)
+			if not pair.any(func(id: String) -> bool: return DreamState.CARRY_BRANCHES.has(id)):
+				no_carry_offers.append("%s %s" % [family_id, pair])
+			dreams.branch_offers.erase(family_id)
+		dreams.unlocked.erase(family_id)
+	main.get_node("MapGenerator").map_seed = 777
+	_check(no_carry_offers.is_empty(), "every offered pair holds a damage branch (%s)" % [no_carry_offers])
+
 	# Wider Roots (Grove perk, meta_design.md 1f25e66e): the first family picked offers 3 of its branches, and calling
 	# one of its others back costs 4; the first pick's cards preview the 3
 	var wide := _form("test_wide", 1)

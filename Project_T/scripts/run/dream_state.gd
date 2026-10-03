@@ -710,13 +710,23 @@ func _compute_branch_offer(base: TowerData) -> Array:
 	var size := branch_offer_size(base)
 	if not branch_expansion_on() or branches.size() <= size:
 		return ids
-	var pairs: Array = []  # Every set of `size` (2; Wider Roots: 3), except last run's for this family
+	# Every set of `size` (2; Wider Roots: 3) that holds a damage branch (doc 66e9927b: act 1 dead draws like Bloomcap
+	# + Prism Jar; CARRY_BRANCHES, when the family has any) and isn't last run's; if nothing is left, last run's
+	# set is allowed back first, then the damage rule.
 	var last: Array = _last_branch_offer().get(base.get_id(), [])
-	for combo: Array in _combinations(branches, size):
+	var carry_known := branches.any(func(f: TowerData) -> bool: return is_carry(f))
+	var all_sets: Array = _combinations(branches, size)
+	var with_carry: Array = all_sets.filter(func(combo: Array) -> bool:
+		return not carry_known or combo.any(func(f: TowerData) -> bool: return is_carry(f)))
+	var not_last := func(combo: Array) -> bool:
 		var combo_ids: Array = combo.map(func(f: TowerData) -> String: return f.get_id())
 		combo_ids.sort()
-		if combo_ids != last:
-			pairs.append(combo)
+		return combo_ids != last
+	var pairs: Array = with_carry.filter(not_last)
+	if pairs.is_empty():
+		pairs = with_carry
+	if pairs.is_empty():
+		pairs = all_sets.filter(not_last)
 	# The weighted smart draw (tower_design.md 5ba12e1e): each pair scores the rarest still-missing tags it adds
 	# (Σ 1 / how many regular branches carry the tag, anti_tank ×2); drawn in proportion to the score (pair_proportional,
 	# floor 10% of the best) or among the top band (pair_band), or among all pairs when none adds a missing tag
@@ -763,6 +773,18 @@ func _tag_frequency() -> Dictionary:
 				for tag in _counter_tags(form):
 					out[tag] = int(out.get(tag, 0)) + 1
 	return out
+
+# Damage ("carry") branches, Balancing Discussion's list (own damage ≈ 0.6× Driftspore or more, measured; they own it):
+# every offered set holds one. Families with none (Acorn) are exempt. The hidden branch never counts.
+const CARRY_BRANCHES := ["driftspore", "inkcap", "lichenling", "brood_cap",  # Sporeling
+	"rain_lily", "mistveil", "cloudlet", "undercurrent", "jetreed",  # Dewdrop
+	"jarlink", "sparkler",  # Firefly Jar
+	"chime_stone", "thrum",  # Bellflower
+	"cairn", "standing_stone", "whetstone", "rampart", "quaker",  # Pebbling
+	"rootcurl", "tangleroot", "rootlight"]  # Rootling
+
+static func is_carry(form: TowerData) -> bool:
+	return CARRY_BRANCHES.has(form.get_id())
 
 static func _counter_tags(form: TowerData) -> Array:
 	var tags = form.get("counter_tags")
