@@ -425,7 +425,8 @@ func _lane_line(text: String, size: int, colour: Color, node_name: String) -> La
 
 func _icon(form: TowerData, side: float, silhouette: bool) -> TextureRect:
 	var icon := TextureRect.new()
-	icon.texture = _frame(form)
+	var emblem := BranchEmblem.texture(form)  # The branch's emblem (UI Asset), else its Warden portrait
+	icon.texture = emblem if emblem != null else _frame(form)
 	icon.custom_minimum_size = Vector2(side, side)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
