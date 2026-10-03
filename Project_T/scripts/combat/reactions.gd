@@ -197,7 +197,7 @@ static func on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 # never with crit (except Nightshade). Shatter's own hit is a hit; its spreads are effects.
 const EFFECT_TAGS: Array[StringName] = [&"spored", &"static", &"thunderclap", &"ignite", &"lightning_rod",
 	&"popped", &"echo", &"carried_storm", &"avalanche", &"starfall", &"fever_dream", &"fog", &"cloud", &"harmony", &"last_breath", &"drown",
-	&"lingering_splash"]
+	&"lingering_splash", &"thorns"]  # thorns: Thorncoil (BranchKit)
 
 static func is_effect(tag: StringName) -> bool:
 	return tag in EFFECT_TAGS
