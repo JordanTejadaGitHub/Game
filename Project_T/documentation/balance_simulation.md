@@ -777,6 +777,12 @@ Driftspore, and the new damage branches are weaker.** Decision: the damage-branc
 22, Brood Cap burst 24, Thrum 70, Jetreed base 60, Undercurrent 60 dmg/s, Jarlink arc 210, Sparkler 40 (in 7567034e).
 Re-run arm (a) after.
 
+**Arm (a) re-run on 7567034e** (the branch raises): **40%** (was 30%; 60% with the expansion off); drift 20
+finale 1.33 leaves / 50% clean; 14/30 still die before 25. When Driftspore isn't offered, the bot now
+grows Bloomcap / Lanternmoth / Prism Jar (supports and enablers), so an act 1 pair of two supports leaves
+no carry. Proposed to Tower Discussion: **every offered pair includes at least one damage branch** (a
+draw rule); if not, act 1 eases instead.
+
 **4. Grove cap on main** (ed114826, before the branch raises; a bot gift-screen stall voided the first
 attempt): full loadout vs no perks, 20 seeds each, act 1 boss survival **40% vs 30% (+10 points)**, +2.5
 drifts: **within the ≤ +10–15 cap** ✓. Both arms suffer the branch-draw drop. **Combo share** (bot):
