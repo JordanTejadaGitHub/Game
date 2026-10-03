@@ -101,9 +101,6 @@ const RESONANT_ECHO_DELAY := 0.5  # …this long after
 const RESONANT_CHARGES := 3  # Resonant Hollow A: echoes set off Static at 3 charges, like a chime
 const JEWEL_THIEVES_EVERY := 6  # Jewel Thieves A: every 6th peck strips a buff (+1 Dew if there's none)
 const TAILWIND_REACH := 3.0  # Tailwind B: Gust's copies reach this far
-const AURA_RING_RADIUS := 28.0  # aura_ring_breath: its ring's radius in the 64 px sheet (1 cell)
-const AURA_RING_SOFT := 0.22
-const AURA_RING_BRIGHT := 0.55  # In build mode or with a selection
 const LEAF_MOTE_AT := Vector2(8, -20)  # Where a boosted Warden's leaf mote starts, from its centre
 const LEAF_MOTE_ALPHA := 0.35
 const LEAF_MOTE_RISE := 6.0  # Pixels a second…
@@ -2216,20 +2213,12 @@ func _strongest_neighbour_status() -> Array:
 # Aura Wardens: the aura_ring_breath ring, scaled to its reach, soft (brighter in build mode or with a
 # selection). Boosted Wardens: a faint leaf_mote drifting up, in the aura's colour.
 func _update_support_looks() -> void:
+	# No breathing aura ring any more (user, 2026-10-03: a chunky orange circle around an Acorn read as a third
+	# "aura" beside the boost square and the range circle). The boost area is AuraView's square, shown when
+	# placing or selecting; the range is the thin circle.
 	var ring := get_node_or_null("AuraRing") as Node2D
-	var is_aura := tower_data.aura_damage_bonus > 0.0 or tower_data.aura_speed_bonus > 0.0
-	if is_aura and ring == null and is_inside_tree():
-		ring = Fx.play(&"aura_ring_breath", global_position, self, get_aura_reach() * MAP_GRID.cell_size.x / AURA_RING_RADIUS)
-		if ring:
-			ring.name = "AuraRing"
-			ring.z_index = -1  # On the ground, under the Wardens
-			ring.modulate = Kinships.FAMILY_COLORS.get(tower_data.line, Palette.GOLD)
-	elif ring and not is_aura:
-		ring.queue_free()
-		ring = null
 	if ring:
-		ring.scale = Vector2.ONE * get_aura_reach() * MAP_GRID.cell_size.x / AURA_RING_RADIUS
-		ring.modulate.a = AURA_RING_BRIGHT if badges_visible() else AURA_RING_SOFT
+		ring.queue_free()
 	var mote := get_node_or_null("LeafMote") as Node2D
 	var aura: Tower = _aura_damage_from if is_instance_valid(_aura_damage_from) else \
 		(_aura_speed_from if is_instance_valid(_aura_speed_from) else null)

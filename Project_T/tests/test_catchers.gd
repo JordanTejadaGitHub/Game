@@ -163,7 +163,7 @@ func _run() -> void:
 	_check(slog.get_stats(acorn).aura_damage > 0.0, "SupportLog: the Acorn is credited with the extra damage (%.2f)" % slog.get_stats(acorn).aura_damage)
 	_check(slog.get_panel_line(acorn).begins_with("Added this run:"), "aura panel line (%s)" % slog.get_panel_line(acorn))
 	acorn._refresh_neighbours()
-	_check(acorn.get_node_or_null("AuraRing") != null, "the Acorn's aura ring breathes")
+	_check(acorn.get_node_or_null("AuraRing") == null, "no breathing aura ring (the boost area is AuraView's square, user 2026-10-03)")
 	_check(is_instance_valid(buddy._leaf_mote), "a boosted Warden carries a leaf mote")
 	# Show exactly who gets the aura (AuraView): a 3×3 square, only the boosted Wardens, a live chip.
 	var outside := _plant("sporeling", Vector2(7, 12))  # In the Acorn's attack range (2.5), outside its aura
