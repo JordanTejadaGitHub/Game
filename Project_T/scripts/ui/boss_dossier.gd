@@ -181,25 +181,13 @@ func _on_rest_started(block: int, boss_rest: bool, _bonus: int, _perfect: bool) 
 		_reminder_pending = boss  # The boss block: only a reminder now
 		_wait = OPEN_DELAY
 
+# Open, or about to open at this rest (new-nightmare intros wait for it: RestScreens' order).
+func is_waiting() -> bool:
+	return visible or _pending != 0 or _pending_first
+
 # The rest's other screens (family pick, Dream, Omen, pause menu, results) are all done.
 func screens_clear() -> bool:
-	for path in ["HUD/FamilyPickScreen", "HUD/DreamScreen", "HUD/GiftScreen", "HUD/OmenScreen", "HUD/RememberScreen", "HUD/PauseMenu", "HUD/ResultsScreen"]:
-		var screen := drift_director.owner.get_node_or_null(path) as CanvasItem if drift_director.owner != null else null
-		if screen != null and screen.visible:
-			return false
-	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	if dreams != null and (dreams.is_offering() or dreams.has_pending_offer()):
-		return false
-	var gifts := get_tree().get_first_node_in_group(&"heartwood_gifts")  # Heartwood's Gifts (Spire): the gift first
-	if gifts != null and gifts.is_offering():
-		return false
-	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
-	if omens != null and omens.is_offering():
-		return false
-	var intro := get_tree().get_first_node_in_group(NightmareIntro.GROUP) as NightmareIntro
-	if intro != null and intro.is_busy():
-		return false  # New nightmares are introduced before the boss dossier
-	return not drift_director.awaiting_family_pick
+	return RestScreens.clear_for(self, drift_director)  # One paused screen at a time, in the rest's order
 
 func _process(delta: float) -> void:
 	if visible:  # The vignette breathes (held still with reduced motion)

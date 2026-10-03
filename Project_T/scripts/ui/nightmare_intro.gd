@@ -70,7 +70,10 @@ func _ready() -> void:
 	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)  # Offsets too: exactly the screen
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(centre)
-	_panel.add_theme_stylebox_override("panel", UiStyle.panel(18.0, 14.0))
+	var solid := UiStyle.panel(18.0, 14.0)  # Solid: a paused card never shows another screen through it (user)
+	solid.center_alpha = UiStyle.TIP_ALPHA
+	solid.edge_alpha = UiStyle.TIP_ALPHA
+	_panel.add_theme_stylebox_override("panel", solid)
 	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	centre.add_child(_panel)
 	var outer := VBoxContainer.new()
@@ -220,18 +223,7 @@ func _on_rest_started(block: int, _boss: bool, _bonus: int, _perfect: bool) -> v
 
 # The rest's earlier screens (family pick, Dream, Omen, pause, results) are done.
 func screens_clear() -> bool:
-	var main := drift_director.owner
-	for path in ["HUD/FamilyPickScreen", "HUD/DreamScreen", "HUD/OmenScreen", "HUD/RememberScreen", "HUD/PauseMenu", "HUD/ResultsScreen"]:
-		var screen := main.get_node_or_null(path) as CanvasItem if main != null else null
-		if screen != null and screen.visible:
-			return false
-	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	if dreams != null and (dreams.is_offering() or dreams.has_pending_offer()):
-		return false
-	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
-	if omens != null and omens.is_offering():
-		return false
-	return not drift_director.awaiting_family_pick
+	return RestScreens.clear_for(self, drift_director)  # After the gift and the boss dossier (user: one screen at a time)
 
 # The boss dossier waits while a card is open or about to open.
 func is_busy() -> bool:

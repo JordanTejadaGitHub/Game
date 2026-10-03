@@ -159,8 +159,8 @@ func _ready() -> void:
 
 # Opens once the Dream (and the family pick) are done: DriftDirector.pending_choice() names the gift.
 func _process(_delta: float) -> void:
-	if gifts.waiting and not visible and drift_director.pending_choice() == &"gift":
-		open()
+	if gifts.waiting and not visible and drift_director.pending_choice() == &"gift" and not RestScreens.any_open(self, drift_director):
+		open()  # Its turn, and nothing else on screen (one paused screen at a time)
 	if placing != &"" and placer != null:
 		_plant.disabled = not placer.is_complete()
 		_place_label.text = "%s: %s" % [HeartwoodGifts.POOL[placing].name, placer.status()]
@@ -178,17 +178,74 @@ func open() -> void:
 	_show_cards(true)
 	arm.arm()
 
+# A gift card styled like the Dream cards (user: plain centred text looked unfinished): its emblem (UI Asset's gift
+# icon "gift_<id>" once drawn, else its category's glyph), the name in the display font, the category in small caps
+# in its colour, and the text in the body font with status words linked. Solid, like every paused card.
+const GROUP_STYLE := {
+	"Shape the land": [&"stone", Palette.MOONLIGHT],
+	"Living ground": [&"root", Palette.SPRIG],
+	"The nightmares' way": [&"path_length", Palette.DEWLIGHT],
+	"Heartwood and kin": [&"leaves", UiStyle.GOLD],
+}
+const CARD_SIZE := Vector2(250, 180)  # Grows with its text; short enough that the screen fits 720 under the banner
+
 func _card(id: StringName) -> Button:
 	var gift: Dictionary = HeartwoodGifts.POOL[id]
+	var style: Array = GROUP_STYLE.get(gift.group, [&"leaves", UiStyle.GOLD])
+	var colour: Color = style[1]
 	var button := Button.new()
 	button.name = String(id)
-	button.text = "%s\n%s\n\n%s" % [gift.name, gift.group, IconInfo.format(gift.text)]
-	button.custom_minimum_size = Vector2(240, 190)
-	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.custom_minimum_size = CARD_SIZE
 	button.focus_mode = Control.FOCUS_NONE
-	UiStyle.card_button(button, UiStyle.LIVE if gift.map else UiStyle.GOLD)
+	UiStyle.card_button(button, colour)
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		var box := button.get_theme_stylebox(state) as MoonStyleBox
+		if box != null:
+			box.center_alpha = UiStyle.TIP_ALPHA  # Solid: no screen shows through a paused card (user)
+			box.edge_alpha = UiStyle.TIP_ALPHA
 	button.pressed.connect(pick.bind(id))
 	button.mouse_entered.connect(show_scene.bind(id))
+	var box := VBoxContainer.new()
+	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	box.offset_left = 14
+	box.offset_top = 12
+	box.offset_right = -14
+	box.offset_bottom = -12
+	box.add_theme_constant_override("separation", 4)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(box)
+	var icon := TextureRect.new()
+	icon.name = "Emblem"
+	var texture := IconInfo.icon(StringName("gift_" + String(id)))
+	icon.texture = texture if texture != null else IconInfo.icon(style[0])
+	icon.custom_minimum_size = Vector2(32, 32)  # ×2 of the 16 px icons: crisp
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.modulate = colour  # multiplier: the category's colour on the glyph
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(icon)
+	var title := Label.new()
+	title.name = "Name"
+	title.text = gift.name
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UiStyle.display(title, 20)
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(title)
+	var group := Label.new()
+	group.name = "Category"
+	group.text = gift.group
+	group.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiStyle.caps(group, 13, colour)
+	group.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(group)
+	var text := StatusLinks.make_label(gift.text, 15, UiStyle.INK)  # {spored}, Kinship… become links
+	text.name = "Text"
+	text.mouse_filter = Control.MOUSE_FILTER_PASS  # Status words hover; a click still picks the card
+	box.add_child(text)
+	box.minimum_size_changed.connect(func() -> void:
+		button.custom_minimum_size = Vector2(CARD_SIZE.x, maxf(CARD_SIZE.y, box.get_combined_minimum_size().y + 24.0)))
 	return button
 
 # Plays gift `id`'s before → after mini-scene in the preview (a still after-diagram under reduced motion).
