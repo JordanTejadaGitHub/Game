@@ -14,11 +14,11 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Firefly Jar"
-cost = 30
+cost = 25
 texture = ExtResource("2_tex")
 frame_count = 8
 attack_range = 3
-damage = 12
+damage = 14
 attacks_per_second = 1.5
 projectile_speed = 650
 projectile_texture = ExtResource("3_proj")
