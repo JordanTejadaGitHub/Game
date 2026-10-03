@@ -758,7 +758,7 @@ func _compute_branch_offer(base: TowerData) -> Array:
 	var chosen: Array = pool_pairs[rng.rand_weighted(PackedFloat32Array(weights))] if not weights.is_empty() else pool_pairs[rng.randi_range(0, pool_pairs.size() - 1)]
 	return chosen.map(func(f: TowerData) -> String: return f.get_id())
 
-var tag_weights := {&"anti_tank": 2.0, &"detection": 2.0}  # Count double in the smart draw (Tower Discussion + Balancing: tanks; detection was 63% with Quaker's tag, 79% doubled); a var so probes can try others
+var tag_weights := {&"anti_tank": 2.0, &"detection": 3.0}  # Weights in the smart draw (Tower Discussion + Balancing: anti_tank ×2; detection ×3: 73% at ×2 once the carry rule came in, 78% at ×3); a var so probes can try others
 const TOP_PAIR_BAND := 0.8  # Pairs scoring within 80% of the best are drawn among
 var pair_band := TOP_PAIR_BAND  # (tunable for probes)
 var pair_proportional := true  # Pairs drawn in proportion to their score (floor 10% of the best): the top band alone
