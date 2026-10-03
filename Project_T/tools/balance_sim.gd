@@ -32,6 +32,7 @@ const LAST_STRETCH := 8  # Route tiles before the Heartwood a covering Warden sh
 const AURA_WEIGHT := 2.0  # Aura placement: path tiles a Warden in (or under) an aura is worth (balance_simulation.md: path coverage still dominates)
 const AURA_COUNT_MAX := 5  # …counting at most this many Wardens per cell (a bonus of up to 10 tiles; a cell covers ~8-20 path tiles)
 const KIN_WEIGHT := 2.0  # Kinship placement: path tiles per unbonded kin of the same family within Kinships reach (at most AURA_COUNT_MAX)
+const FENCE_WEIGHT := 3.0  # Jarlink growth: path tiles per route tile on the line to a partner jar 2-4 cells away (a Jarlink full, a Firefly Jar that can still become one half)
 var _saving_for_final := false  # The cheapest open growth is a final form (saves longer for it)
 const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, "sprout": 5, "grove": 3, "mixed": 6}  # DreamSimPolicy.Style; grove = the hand-written Grove player (Combo cards, --families); mixed = Style.MIXED
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
@@ -74,6 +75,7 @@ var aura_placement := true  # --no-aura: place and grow aura Wardens (Acorn, Eld
 var empty_loadout := false
 var sidegrade := -1
 var carry_pref := true  # --no-carry-pref: act 1 growth and Dreamlight don't prefer the carry branch (DreamState.is_carry), the bot before 2026-10-02
+var fence_pref := true  # --no-fence-pref: Jarlink growth ignores where its arc would fall (the bot before 2026-10-02)
 var demo_run := false  # --demo: game/demo stays true (DEMO_RULES, demo bosses and Kinships), for the demo sanity check
 var kin_placement := true  # --no-kin: no Kinship placement, and growth takes the first open form in evolves_to (the old bot)
 var focus_mode := ""  # --focus=deep: Nurture picks Deep where it's offered and Potency cards score high (a committed Deep build)
@@ -146,6 +148,7 @@ func _run() -> void:
 			"--all-families": all_families = true
 			"--demo": demo_run = true
 			"--no-carry-pref": carry_pref = false
+			"--no-fence-pref": fence_pref = false
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
@@ -537,6 +540,8 @@ func _grow() -> bool:
 		if pick != null:
 			# Growing into an aura Warden: the Wardens around it count; into a kin branch: its unbonded kin.
 			var cover := _coverage(tower) + _aura_bonus(tower.cell, pick, tower, false) + _kin_bonus(tower.cell, pick, tower)
+			if fence_pref and pick.special == &"jarlink":
+				cover += _fence_bonus(tower)  # The arc must cross the route (the probe's --pairs rule)
 			if best.is_empty() or cover > best[0]:
 				best = [cover, tower, pick]
 	return not best.is_empty() and placer.evolve(best[1], best[2])
@@ -1115,6 +1120,29 @@ func _covered_by_aura(target: Tower) -> bool:
 # Path-tile bonus for a Warden of `data` at `cell`: KIN_WEIGHT per unbonded Warden of the same family within
 # Kinships reach that it bonds with (a branch: its Kinship partner branch; a base Warden: any branch of its
 # family, which it can grow to meet). Bonded Wardens never count (bonds are sticky).
+# A Jarlink arcs to a Jarlink within 4 cells (BranchKit._fence_partner): the route tiles on the line from `tower` to the
+# best partner, a Jarlink counting full and a Firefly Jar (a Jarlink to be) half. 0 when no partner is 2-4 cells away.
+func _fence_bonus(tower: Tower) -> float:
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var best := 0.0
+	for other in _attackers():
+		if other == tower:
+			continue
+		var partner := 1.0 if other.tower_data.special == &"jarlink" else (0.5 if other.tower_data.get_id() == "firefly_jar" else 0.0)
+		if partner == 0.0:
+			continue
+		var d := maxf(absf(other.cell.x - tower.cell.x), absf(other.cell.y - tower.cell.y))
+		if d < 2.0 or d > 4.0:
+			continue
+		var on_route := {}
+		var steps := int(d) * 4
+		for s in range(1, steps):
+			var at: Vector2 = tower.cell.lerp(other.cell, float(s) / steps).round()
+			if at != tower.cell and at != other.cell and route.has(at):
+				on_route[at] = true
+		best = maxf(best, partner * on_route.size())
+	return FENCE_WEIGHT * best
+
 func _kin_bonus(cell: Vector2, data: TowerData, exclude: Tower = null) -> float:
 	if not kin_placement or data == null or not data.can_attack:
 		return 0.0
