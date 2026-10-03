@@ -90,6 +90,11 @@ func _scale_and_layout() -> void:
 	for i in 30:
 		await process_frame
 	var hud := main.get_node("HUD")
+	# Text draws linear, pixel art stays Nearest (strokes dropped at fractional scales, 2026-10-02).
+	UiStyle.install_text_filter(self)
+	_check((main.get_node("%DewLabel") as CanvasItem).texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR, "HUD text draws with a linear filter")
+	var slot := main.get_node("%TowerBar").get_child(0) as CanvasItem
+	_check(slot.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "a Warden slot (pixel sprite) keeps Nearest")
 	var avoid: Array[Control] = [main.get_node("%DriftBanner"), main.get_node("%DewLabel"), main.get_node("%LeavesLabel"),
 		main.get_node("%PathLabel"), hud.get_node("DreamlightLabel"), main.get_node("HUD/NightmareInfo")]
 	for child in hud.get_children():
