@@ -1042,13 +1042,17 @@ func _ic_leaves() -> void:
 	_dt(6, 6, Color("#f0ffd0"))
 
 func _ic_path_length() -> void:
-	# A footpath: eight stepping stones winding in an S from the bottom up, in the path tiles' sandy
-	# colours. Each stone is its own shape, so the generator outlines every one and it reads on fog.
-	var k := _rp(Palette.color("moonpath").to_html(false), Palette.color("path").to_html(false), Palette.color("loam").to_html(false))
-	for p: Vector2i in [Vector2i(2, 13), Vector2i(6, 13), Vector2i(10, 11), Vector2i(10, 7), Vector2i(6, 7),
-			Vector2i(2, 4), Vector2i(5, 1), Vector2i(10, 1)]:
-		_c_rect(Rect2i(p, Vector2i(3, 2)), k)
-
+	# The pale path winding across a round patch of moss to the Heartwood's warm glow, with a wisp of
+	# the cold route mist over it (matches the 12 px path_hud counter).
+	_c_disc(Vector2(8, 8.4), 7.2, _rp(Palette.color("moss").to_html(false), Palette.color("moss").to_html(false), Palette.color("deepmoss").to_html(false)))
+	var road := _rp(Palette.color("moonpath").to_html(false), Palette.color("path").to_html(false), Palette.color("loam").to_html(false))
+	_c_line([Vector2(8.6, 15.4), Vector2(6.4, 11.4), Vector2(9.6, 6.8), Vector2(8.2, 3.2)], 2.2, road)
+	_dt(8, 2, Palette.color("glow"))
+	_dt(8, 1, Palette.color("heartlight"))
+	for p: Vector2i in [Vector2i(3, 6), Vector2i(4, 6), Vector2i(11, 10), Vector2i(12, 10)]:
+		_dt(p.x, p.y, Palette.color("moonlight"))
+	for p: Vector2i in [Vector2i(5, 6), Vector2i(13, 10)]:
+		_dt(p.x, p.y, Palette.color("mist"))
 func _ic_seeds() -> void:
 	# An acorn-brown seed with a small green sprout (Seeds, the meta currency).
 	var k := _rp("#f0c890", "#b07a44", "#6a4222")
@@ -1404,7 +1408,7 @@ const HUD_INK := {
 	"D": "dewlight", "d": "dew", "P": "pool",
 	"W": "wraithlight", "U": "bruise",
 	"m": "moonpath", "p": "path", "l": "loam",
-	"M": "mist", "s": "stone",
+	"M": "mist", "s": "stone", "C": "moonlight", "Q": "moss", "q": "deepmoss",
 }
 
 const HUD_COUNTERS := {
@@ -1447,19 +1451,20 @@ const HUD_COUNTERS := {
 		"...oWWUUo...",
 		"....oUUo....",
 		".....oo....."],
+	# The pale path winding across a round patch of moss to the Heartwood's warm glow, a wisp of cold route mist over it.
 	"path_hud": [
-		".......ooo..",
-		"......ommpo.",
-		"......opplo.",
-		"..ooo..ooo..",
-		".ommpo......",
-		".opplo.ooo..",
-		"..ooo.ommpo.",
-		"......opplo.",
-		"..ooo..ooo..",
-		".ommpo......",
-		".opplo......",
-		"..ooo......."],
+		"..ooqqqqoo..",
+		".oqqQQGQqqo.",
+		"oqQQQmpQQQqo",
+		"oqQQQQmpQQqo",
+		"qQCMQQmpQQQq",
+		"qQQQQmpQQQQq",
+		"qQQQmpQQQQQq",
+		"qQQmpQQQMCQq",
+		"oqQmpQQQQQqo",
+		"oqQQmpQQQQqo",
+		".oqqQmpQqqo.",
+		"..ooqmpqoo.."],
 }
 
 const HUD_GLYPHS := {
