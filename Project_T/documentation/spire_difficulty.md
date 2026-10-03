@@ -364,3 +364,6 @@ full game (`game/demo` false), and the demo reads main's exports.
   Rooted source: accepted as a payoff). Whetstone 0.72 → **320**. Flyer board (drift 43, flyers only):
   Groundroot / Earthbind leak more than their references → **Groundroot 3 flyers every 3 s, pulse 35;
   Earthbind 5 every 2 s, pulse 90** (in d20a2ff7). **Thorncoil becomes a carry** (Rootling's 4th).
+- 2026-10-02: Thorncoil a carry in **887a750b**. Rootlight is Rootling's hidden branch (never counted), so
+  Rootling has 3 regular carries (Rootcurl, Tangleroot, Thorncoil): 9 of 10 pairs offered (only Groundroot +
+  Deeproot excluded), top pair 32%.
