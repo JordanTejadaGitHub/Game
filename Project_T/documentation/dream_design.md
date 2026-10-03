@@ -1727,9 +1727,11 @@ getting the family later. Two rules keep the bet fair:
 1. **Never dead:** every Seed card has a small effect **on its own** ("Now"), and a bigger one once
    you have the Wardens it names ("Grows with"). The one exception is *Golden Harvest*, the
    Legendary gamble.
-2. **It calls its family:** while you hold a Seed card, the **next family pick is guaranteed to
-   offer** the family it grows with (if that family is unlocked in the Grove and not owned yet). The
-   card shows a small sprout and *"Grows with: Dewcatcher, Wellspring · calls Acorn"*.
+2. ~~It calls its family~~ **Removed 2026-10-03** (user, from a Dream screenshot of Dew Bowl's
+   "Seed · calls Acorn to your next family pick": *"I don't think Seed should be a thing; make it
+   predictable."*). **No card adds or calls a family into a family pick**; family picks follow only
+   their own rules (the first pick: 3 random unlocked families; boss picks: families you lack). These
+   cards keep their "Now" and "Grows with" effects, and lose the "Seed ·" line and the sprout.
 
 Tag `seed` plus the family's tag; normal weight (1×) until you own the family, then the family
 weight (1.4×). Legendary and Bittersweet rules as usual.
@@ -1745,9 +1747,11 @@ weight (1.4×). Legendary and Bittersweet rules as usual.
 | 175 | **Patient Roots** | Uncommon | Held lasts **+0.25 s** from any source (Frostfern, Snugroot, World Root…) | **Rootling line:** pulls go 0.5 tiles further, holds another +0.25 s | Grove |
 | 176 | **Golden Harvest** | Legendary | nothing: the gamble | **catchers:** every **100 Dew** harvested or earned as interest this run gives **all Wardens +2% damage** (max +30%) | Grove |
 
-- **Calls:** Dew Bowl, Harvest Moon, Deep Well, Kind Canopy, Shared Light and Golden Harvest call
-  **Acorn**; Patient Roots calls **Rootling**; Bramble Oath calls nothing (walls are always yours).
-  If two held cards call different families, the next pick offers both.
+- ~~Calls~~ (removed 2026-10-03): Dew Bowl, Harvest Moon, Deep Well, Kind Canopy, Shared Light and
+  Golden Harvest used to call Acorn, and Patient Roots called Rootling.
+- **Golden Harvest needs a "Now"** without the call (a Legendary must work on its own): **every 500
+  Dew you earn this run gives all Wardens +2% damage (up to +30%); Dew from catchers and interest
+  counts double.** It still grows with Acorn's catchers, but it's never dead without them.
 - **In the demo:** only Bramble Oath (Acorn and Rootling are Grove families).
 - **Watch in playtests:** whether Seed cards get picked at all before the family (the call rule is
   the lever), and whether Golden Harvest turns economy into a must-have damage build.
