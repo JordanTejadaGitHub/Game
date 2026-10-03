@@ -13,6 +13,7 @@ description = "A hummingbird pecks one nightmare six times in a second; every pe
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+counter_tags = Array[StringName]([&"anti_tank"])
 line = "wing"
 tier = 2
 buildable_directly = false

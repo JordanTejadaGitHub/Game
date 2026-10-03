@@ -12,6 +12,7 @@ description = "Spreads the most-afflicted nightmare's statuses to up to 7 others
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+role_tag = &"setup"
 line = "wind"
 tier = 3
 buildable_directly = false

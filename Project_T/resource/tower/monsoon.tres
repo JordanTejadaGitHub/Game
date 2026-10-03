@@ -11,6 +11,7 @@ sprite_offset = Vector2(0, -16)
 display_name = "Monsoon"
 description = "Every 3 s, rain falls on every nightmare in range: it soothes them all and leaves them Soaked for 9 s."
 cost = 0
+counter_tags = Array[StringName]([&"anti_swarm"])
 line = "water"
 tier = 3
 buildable_directly = false

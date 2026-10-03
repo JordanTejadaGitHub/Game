@@ -9,6 +9,7 @@ script = ExtResource("1_tdata")
 display_name = "Dewcatcher"
 description = "Catches Dew: nightmares dispelled within 2.5 cells drop +60% Dew, poured out at the rest (the Harvest). Also +6 Dew each drift."
 cost = 0
+role_tag = &"economy"
 line = "acorn"
 tier = 2
 buildable_directly = false

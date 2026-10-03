@@ -13,6 +13,7 @@ description = "A bigger lit area; Held lasts three times as long on lit tiles, a
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+counter_tags = Array[StringName]([&"detection"])
 line = "root"
 tier = 3
 buildable_directly = false

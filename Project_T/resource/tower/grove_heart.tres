@@ -10,6 +10,7 @@ script = ExtResource("1_tdata")
 display_name = "Grove Heart"
 description = "Wardens within 2 cells deal 15% more damage and attack 15% faster, 3% more for each Warden around it (up to 45%)."
 cost = 0
+role_tag = &"support"
 line = "acorn"
 tier = 3
 buildable_directly = false

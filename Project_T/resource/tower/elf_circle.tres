@@ -14,6 +14,7 @@ description = "Many more rings (up to 9), and they wait until a nightmare steps 
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+counter_tags = Array[StringName]([&"anti_swarm"])
 line = "spore"
 tier = 3
 buildable_directly = false

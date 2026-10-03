@@ -10,6 +10,7 @@ script = ExtResource("1_tdata")
 display_name = "Elder Stump"
 description = "The 8 Wardens around it attack 30% faster."
 cost = 0
+role_tag = &"support"
 line = "acorn"
 tier = 2
 buildable_directly = false

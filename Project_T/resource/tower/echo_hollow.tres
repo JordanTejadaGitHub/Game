@@ -12,6 +12,7 @@ description = "A hollow log that echoes Reactions: one nearby repeats a second l
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+role_tag = &"setup"
 line = "song"
 tier = 2
 buildable_directly = false

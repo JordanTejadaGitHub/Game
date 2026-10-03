@@ -10,6 +10,7 @@ script = ExtResource("1_tdata")
 display_name = "Morning Fog"
 description = "A wide, lasting fog on the path (7 s): nightmares inside are Soaked (it lingers 3 s after they leave), and Poisoned ticks harder inside."
 cost = 0
+counter_tags = Array[StringName]([&"detection", &"anti_support"])
 line = "water"
 tier = 3
 buildable_directly = false
