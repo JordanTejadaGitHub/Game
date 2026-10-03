@@ -764,6 +764,11 @@ Dewdrop 20%, Firefly Jar 7%** (target 70–90%). Dewdrop leaks hardest at the fi
 at 10 / 15 / 20); Firefly dies mostly at 13–20. All four are low, matching item 2; the A/B decides the cause
 before any family change.
 
+**5. Demo sanity** (`--demo`, DEMO_RULES, the Hollow Stag, 20 seeds): Balanced **70%**, skip **40%**; finales
+cost nothing (no finale rules in the demo). **The demo gating works** and plays like before the Spire rules.
+So the full game's 30% comes from what differs: the act 1 ramp from drift 3, the finales (×1.4 + elites),
+and the branch expansion. The A/B splits the branch expansion off from the rest.
+
 ## Combo share of damage (user-approved, 2026-10-02)
 
 The user's Warden panels showed 52–76% of damage "from combos". **Target: in a good build, combos and
