@@ -83,6 +83,10 @@ func _ready() -> void:
 	visible = false
 
 	tower_seller.tower_selected.connect(_show)
+	# World labels (DPS tags, name tags) don't draw under the open panel: it's see-through, and they read through it.
+	item_rect_changed.connect(_update_cover)
+	visibility_changed.connect(_update_cover)
+	tree_exiting.connect(func() -> void: WorldLabel.set_cover(&"warden_panel", Rect2(), false))
 	if tower_placer.has_signal(&"seed_choice_changed"):  # A Seedbearer's Sprout planted or cancelled: its count changed
 		tower_placer.seed_choice_changed.connect(func(_active: bool) -> void:
 			if visible:
@@ -718,14 +722,22 @@ func _choice_row(index: int, choice_name: String, change: String, price: String)
 		label.horizontal_alignment = column[2]
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		label.clip_text = true
 		if column[1] > 0.0:
-			label.custom_minimum_size.x = column[1]
+			label.custom_minimum_size.x = column[1]  # A floor: a longer name widens its column rather than being cut
 		else:
 			label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # The change wraps to a second line, never cut
+			label.custom_minimum_size.x = 60
 		row.add_child(label)
 	var badge: Label = row.get_child(3)  # The key, as a badge like the Warden bar's numbers
 	UiStyle.number(badge, 13, UiStyle.INK_DIM)
+	# The button (its row is a child it doesn't size to) grows with a wrapped change line.
+	var fit := func() -> void:
+		if is_instance_valid(button) and is_instance_valid(row):
+			button.custom_minimum_size.y = maxf(30.0, row.get_combined_minimum_size().y + 6.0)
+	row.minimum_size_changed.connect(fit)
+	row.resized.connect(fit)
+	fit.call_deferred()
 	return button
 
 func _nurture_with(which: Tower.Focus) -> void:
@@ -756,6 +768,9 @@ func _not_in_dream_button(data: TowerData) -> void:
 	button.tooltip_text = "%s: not in this dream. Call one back on Remember." % ", ".join(hidden.map(
 		func(form: TowerData) -> String: return form.display_name))
 	button.pressed.connect(func() -> void: dream_state.open_remember(hidden[0]))
+
+func _update_cover() -> void:
+	WorldLabel.set_cover(&"warden_panel", get_global_rect(), is_visible_in_tree())
 
 # The map's buff chips (BuffOverlay, made after this panel): when some had no room, the panel says how many.
 func _hook_buff_overlay() -> void:
@@ -900,8 +915,7 @@ func _add_footer_button(text: String) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.focus_mode = Control.FOCUS_NONE
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.clip_text = true
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # Never clipped: "Sell · +113 Dew (X)" whole (user screenshot)
 	_footer.add_child(button)
 	return button
 
