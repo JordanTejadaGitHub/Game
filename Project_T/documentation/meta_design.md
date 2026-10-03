@@ -227,7 +227,7 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   - The Seeds this frees should go to the other roots or lower the tree's total; the meta chat
     rebalances (`meta_design.md` Seeds totals, Grove node data).
 
-### Branch expansion in the Grove (PROPOSED 2026-10-02, waiting for the user)
+### Branch expansion in the Grove (APPROVED by the user 2026-10-02)
 
 For `tower_design.md` "Branch expansion" (5 regular branches + 1 hidden per family, **2 of the 5
 offered per run** on the Remember screen, the Dreamlight call-back for 3, *Remembered Path*).
