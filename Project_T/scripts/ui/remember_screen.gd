@@ -236,6 +236,7 @@ const MISTY_TIP := "Each run the dream offers only some of a family's branches, 
 # branch of `root`'s family not in this run, a faint silhouette with its name and "Call in · 3 Dreamlight" (once per
 # family; free with Remembered Path; greyed after use). A tap on one shows it in the side panel too.
 const MISTY_PORTRAIT := 40.0
+const MISTY_EMBLEM := 32.0  # UI Asset's emblems are 32 px art (nearest)
 
 func _fill_misty(root: TowerData) -> void:
 	for child in _misty.get_children():
@@ -274,8 +275,8 @@ func _fill_misty(root: TowerData) -> void:
 			mark.texture = emblem
 			mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			mark.custom_minimum_size = Vector2(MISTY_PORTRAIT, MISTY_PORTRAIT)
-			mark.size = Vector2(MISTY_PORTRAIT, MISTY_PORTRAIT)
+			mark.size = Vector2(MISTY_EMBLEM, MISTY_EMBLEM)  # 32 px art at 1:1 (crisp; 40 would scale it unevenly)
+			mark.position = Vector2(MISTY_PORTRAIT - MISTY_EMBLEM, MISTY_PORTRAIT - MISTY_EMBLEM) / 2.0
 			mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			look.add_child(mark)
 		else:
@@ -794,7 +795,7 @@ class FormNode extends Button:
 			portrait.modulate = Color.WHITE.darkened(0.2)  # Grove-available, not unlocked this run: its real colours, ~80%
 		portrait.position = Vector2((NODE_SIZE.x - PORTRAIT) / 2.0, 4)
 		add_child(portrait)
-		var emblem := BranchEmblem.texture(data) if data.tier >= 2 and not screen.is_veiled(data) else null
+		var emblem := BranchEmblem.texture(data) if data.tier >= 2 and not screen.is_veiled(data) and state != State.GROVE else null  # Never on an unknown (???) form
 		if emblem != null:  # A small branch badge on the portrait's shoulder (the portrait stays: story chat)
 			var badge := TextureRect.new()
 			badge.name = "Emblem"
