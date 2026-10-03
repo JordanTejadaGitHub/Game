@@ -367,3 +367,6 @@ full game (`game/demo` false), and the demo reads main's exports.
 - 2026-10-02: Thorncoil a carry in **887a750b**. Rootlight is Rootling's hidden branch (never counted), so
   Rootling has 3 regular carries (Rootcurl, Tangleroot, Thorncoil): 9 of 10 pairs offered (only Groundroot +
   Deeproot excluded), top pair 32%.
+- 2026-10-02: **d20a2ff7 re-probe:** Whetstone **0.84×** ✓; Earthbind at par on the flyer board (leak 0.011
+  vs 0.011) ✓; Groundroot still a little leakier (0.032 vs 0.011, a noisy board with 1–4% leaks). Accepted:
+  Groundroot is control, not a carry. **The Phase 2 probe series is closed; human runs judge.**
