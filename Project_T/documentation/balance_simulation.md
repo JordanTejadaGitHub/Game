@@ -774,7 +774,7 @@ the Spire build before the expansion **60%**. With the expansion on, the bot gre
 instead of 21 and took Lichenling / Brood Cap instead. **Cause: the 2-of-5 draw often doesn't offer
 Driftspore, and the new damage branches are weaker.** Decision: the damage-branch band tightens to
 **0.8–1.0× Driftspore** (a drawn branch must be about as good as the one it replaces). Raises: Lichenling
-22, Brood Cap burst 24, Thrum 70, Jetreed base 60, Undercurrent 60 dmg/s, Jarlink arc 210, Sparkler 40.
+22, Brood Cap burst 24, Thrum 70, Jetreed base 60, Undercurrent 60 dmg/s, Jarlink arc 210, Sparkler 40 (in 7567034e).
 Re-run arm (a) after.
 
 ## Combo share of damage (user-approved, 2026-10-02)
