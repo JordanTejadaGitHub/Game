@@ -47,7 +47,7 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(_tower):
 		queue_free()
 		return
-	var step := SPEED * delta
+	var step := SPEED * delta * _tower.get_cycle_multiplier()  # Swift: the seed flies faster
 	var goal: Vector2 = _points[_leg + 1] if not _returning else _points[_leg]
 	var before := global_position
 	global_position = global_position.move_toward(goal, step)

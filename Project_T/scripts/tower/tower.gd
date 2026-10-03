@@ -230,15 +230,17 @@ const FOCUS_RANK := 3  # The rank that asks for a Focus; its bonus counts from h
 const FOCUS_TOP_RANK := 5  # The Focus bonus stops here (Endless Rings: ranks past it only add damage)
 const CHAIN_BLOOM_SPLASH := 2.0  # Chain Bloom: Puffball puffs landing in fog cover 2 tiles instead of 1
 const STAT_TOP_RANK := 7  # Attack speed and range from ranks stop at VII (Endless Rings: VIII+ is damage only)
-enum Focus { NONE, POWER, SWIFT, REACH, DEEP, WIDE, STRONG, KINDRED }  # Append only (saved as ints)
+enum Focus { NONE, POWER, SWIFT, REACH, DEEP, WIDE, STRONG, KINDRED, KEEN, YIELD }  # Append only (saved as ints)
 const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "Reach", Focus.DEEP: "Deep",
-	Focus.WIDE: "Wide", Focus.STRONG: "Strong", Focus.KINDRED: "Kindred"}
+	Focus.WIDE: "Wide", Focus.STRONG: "Strong", Focus.KINDRED: "Kindred", Focus.KEEN: "Keen", Focus.YIELD: "Yield"}
 const FOCUS_TEXT := {Focus.POWER: "deals 18% more damage", Focus.SWIFT: "attacks 12% faster", Focus.REACH: "+0.3 range",
 	Focus.DEEP: "+25% Potency (stronger statuses and effects)",
-	Focus.WIDE: "+0.2 aura reach", Focus.STRONG: "+5% aura", Focus.KINDRED: "full boost from every source"}
+	Focus.WIDE: "+0.2 aura reach", Focus.STRONG: "+5% aura", Focus.KINDRED: "full boost from every source",
+	Focus.KEEN: "+8% crit chance", Focus.YIELD: "makes more"}
 const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
 	Focus.REACH: Palette.DEWLIGHT, Focus.DEEP: Palette.ORCHID,
-	Focus.WIDE: Palette.SPRIG, Focus.STRONG: Palette.GLOW, Focus.KINDRED: Palette.BLOSSOM}
+	Focus.WIDE: Palette.SPRIG, Focus.STRONG: Palette.GLOW, Focus.KINDRED: Palette.BLOSSOM,
+	Focus.KEEN: Palette.MOONLIGHT, Focus.YIELD: Palette.GOLD}
 # Nurture v3 (warden_stats.md): every rank is a choice; each rank of a choice adds this.
 const FOCUS_POWER := 0.18  # Damage
 const FOCUS_SWIFT := 0.12  # Attack speed
@@ -255,7 +257,7 @@ static func deep_share() -> float:
 static var status_potency_on := true
 # Support Wardens (warden_stats.md "Support Wardens and Nurture", fdd7003): ranks multiply the aura (×1.1
 # each) instead of damage, speed and range; their rank III Focus is Wide / Strong / Kindred.
-const SUPPORT_AURA_WARDENS := ["elder_stump", "grove_heart"]  # Acorn keeps attacker ranks + Focus: its family's opener
+const SUPPORT_AURA_WARDENS := ["elder_stump", "grove_heart", "grandmother_oak"]  # Acorn keeps attacker ranks: its family's opener
 const ATTACKER_FOCUSES: Array[Focus] = [Focus.POWER, Focus.SWIFT, Focus.REACH, Focus.DEEP]
 const SUPPORT_FOCUSES: Array[Focus] = [Focus.WIDE, Focus.STRONG, Focus.KINDRED]
 const AURA_PER_RANK := 1.1  # The aura bonus ×1.1 per rank (Grove Heart: its base only)
@@ -324,7 +326,12 @@ func _migrate_choices() -> void:
 # The choice a rank takes when none is given (a free rank from a Dream): the latest, else the first option.
 func default_choice() -> Focus:
 	_migrate_choices()
-	return rank_choices[-1] as Focus if not rank_choices.is_empty() else focus_options()[0]
+	if not rank_choices.is_empty() and choice_available(rank_choices[-1] as Focus):
+		return rank_choices[-1] as Focus
+	for which in focus_options():
+		if choice_available(which):
+			return which
+	return focus_options()[0]
 # What the attack does: `tower_data` itself, or for a Graftling the neighbour it copies.
 var attack_data: TowerData
 # Who snipers shoot at (the player can change it in the Warden panel).
@@ -583,7 +590,8 @@ func _has_work() -> bool:
 			# Untyped lambda + assign(): a freed ring can't be passed to a typed parameter, and filter()
 			# returns an untyped Array (the old line errored every frame once a ring had gone).
 			_rings.assign(_rings.filter(func(r) -> bool: return is_instance_valid(r) and not r.is_spent()))
-			return _rings.size() < attack_data.trap_max and not _free_trap_cells().is_empty()
+			return _rings.size() < attack_data.trap_max + choice_count(Focus.SWIFT) / NurtureChoices.SWIFT_RINGS_PER \
+				and not _free_trap_cells().is_empty()  # Swift: +1 ring per 2 ranks
 		TowerData.AttackKind.SPIN:
 			return not _enemies_on_adjacent_tiles().is_empty()
 		TowerData.AttackKind.PECK, TowerData.AttackKind.BOOMERANG:
@@ -619,6 +627,16 @@ func wither(seconds: float) -> void:
 
 func is_withered() -> bool:
 	return withered_left > 0.0
+
+# Swift (Nurture rework): how much faster this Warden's main cycle runs than its base, the same share its attacks
+# speed up by (ranks, Swift, auras, Dreams). Timed abilities, BranchKit timers, birds, seeds and patrols read it.
+func get_cycle_multiplier() -> float:
+	var base := attack_data.attacks_per_second if attack_data != null else 0.0
+	return get_attacks_per_second() / base if base > 0.0 else 1.0
+
+# Reach (Nurture rework): a Warden's main area grows by `per` cells per Reach rank.
+func area_bonus(per: float = NurtureChoices.REACH_AREA) -> float:
+	return per * choice_count(Focus.REACH)
 
 func get_attacks_per_second() -> float:
 	var momentum := FinalTwists.momentum(self) if _twist == &"momentum" else 0.0  # Windmill: spins up
@@ -732,11 +750,11 @@ func get_effective_rank() -> int:
 		return _dream_state.get_effective_rank(self)
 	return rank
 
-# Ranks from III up (the ones that carry the Focus bonus).
+# Ranks from III up (the old Focus rule; Endless Rings still reads it).
 static func _focus_ranks(ranks: int) -> int:
 	return maxi(mini(ranks, FOCUS_TOP_RANK) - FOCUS_RANK + 1, 0)  # Focus stops at V
 
-# Damage multiplier from ranks: +10% each (+ Warm Hands), + Power's +8% from rank III.
+# Damage multiplier from ranks: the plain per-rank gains (+ Warm Hands) and +18% per Power rank (Nurture v3).
 func get_rank_damage_multiplier() -> float:
 	if is_catcher() or is_aura_support():
 		return 1.0  # Catchers' ranks add catch; aura supports' ranks scale the aura (get_aura_bonus)
@@ -765,7 +783,7 @@ func get_court_ranks() -> float:
 
 # Potency: the multiplier on this Warden's effect damage (Spored, Static bolts, clouds, pops, Reactions
 # it completes, echoes). The Warden's own (100% by default) + Dreams (Bitter Sap, Venom Bloom,
-# Nightshade) + the Deep Focus (+10% per rank III–V).
+# Nightshade) + 25% per Deep rank (Nurture v3).
 func get_potency() -> float:
 	var total := attack_data.potency
 	if _dream_state and _dream_state.has_method("get_potency_bonus"):
@@ -773,7 +791,7 @@ func get_potency() -> float:
 	total += deep_share() * choice_count(Focus.DEEP)  # Deep ranks
 	return total
 
-# Deep Focus: status strength and duration multiplier.
+# The old Deep rule: status strength and duration (only with status Potency off, Balancing's A/B).
 func get_status_focus_multiplier() -> float:
 	return 1.0 + FOCUS_DEEP_OLD * choice_count(Focus.DEEP)  # Only read with status Potency off (the old rule)
 
@@ -802,7 +820,7 @@ func can_be_nurtured() -> bool:
 	if tower_data.dew_per_rank > 0:
 		return true  # The Heartwood Sapling: ranks raise its yield
 	return tower_data.can_attack and tower_data.line != "wall" \
-		and tower_data.attack_kind != TowerData.AttackKind.AURA
+		and (tower_data.attack_kind != TowerData.AttackKind.AURA or NurtureChoices.CHOICES.has(tower_data.get_id()))  # Grandmother Oak: the support set
 
 func can_nurture() -> bool:
 	return can_be_nurtured() and rank < get_max_rank()
@@ -818,21 +836,157 @@ func is_support() -> bool:
 func is_aura_support() -> bool:
 	return _aura_support  # Cached in _apply_data (asked in hot paths)
 
-# The Focus choices at rank III: Wide / Strong / Kindred for support Wardens, else Power / Swift / Reach / Deep.
+# The choices this Warden offers (NurtureChoices: each means "more of its job"; warden_stats.md 02417f32).
 func focus_options() -> Array[Focus]:
-	return SUPPORT_FOCUSES if is_support() else ATTACKER_FOCUSES
+	var out: Array[Focus] = []
+	for which in NurtureChoices.options(tower_data):
+		out.append(which as Focus)
+	return out
 
-# What `which` does for this Warden (catchers read their catch versions).
+# Whether `which` can be taken now: offered here, and not a one-time choice already taken (Kindred on aura
+# supports: "Already taken: Kindred works once").
+func choice_available(which: Focus) -> bool:
+	return focus_options().has(which) and not (NurtureChoices.is_once(tower_data, which) and choice_count(which) > 0)
+
+# Why `which` can't be taken ("" = it can): for the panel's greyed choice.
+func choice_blocker(which: Focus) -> String:
+	if not focus_options().has(which):
+		return "no effect on %s" % tower_data.display_name
+	if NurtureChoices.is_once(tower_data, which) and choice_count(which) > 0:
+		return "Already taken: %s works once" % FOCUS_NAMES[which]
+	return ""
+
+# Whether a choice taken earlier still does something on this form (old picks are kept through growth; the pip
+# dims with "no effect on <form>" when not).
+func choice_applies(which: Focus) -> bool:
+	return focus_options().has(which)
+
+# What one more rank of `which` does for this Warden, with the real change where there's a number to show
+# ("holds every 3.0 → 2.7 s", "silence 2.0 → 2.3 cells"; Nurture rework). Catchers read their catch versions.
 func focus_text(which: Focus) -> String:
+	var blocker := choice_blocker(which)
+	if blocker.begins_with("Already"):
+		return blocker
 	if is_catcher():
 		match which:
 			Focus.WIDE:
-				return "+1 catch radius"
+				return "+%.1f catch radius" % FOCUS_WIDE
 			Focus.STRONG:
-				return "+10% catch per rank III–V"
+				return "+%d%% catch" % roundi(FOCUS_STRONG_CATCH * 100)
 			Focus.KINDRED:
-				return "+%d%% interest" % roundi(KINDRED_INTEREST * 100) if tower_data.rest_interest > 0.0 else "+%d Dew each drift" % KINDRED_DEW
+				return "+%.1f%% interest" % (KINDRED_INTEREST * 100) if tower_data.rest_interest > 0.0 else "+%.1f Dew each drift" % KINDRED_DEW
+	var id := tower_data.get_id()
+	var special := attack_data.special if attack_data else &""
+	match which:
+		Focus.POWER:
+			var d := _with_choice(which, func() -> float: return _compute_damage())
+			return "damage %d → %d" % [roundi(d[0]), roundi(d[1])]
+		Focus.SWIFT:
+			var cycle := _with_choice(which, func() -> float: return _compute_attacks_per_second())
+			var ratio: float = cycle[1] / maxf(cycle[0], 0.0001)
+			if special == BranchKit.SEEDBEARER:
+				var every := func(n: int) -> float: return maxf(BranchKit.p(self, "seed_every", 3.0) - NurtureChoices.SEED_SWIFT * n, NurtureChoices.SEED_MIN)
+				return "a seed every %.1f → %.1f drifts" % [every.call(choice_count(Focus.SWIFT)), every.call(choice_count(Focus.SWIFT) + 1)]
+			var timed := _main_timer()
+			if timed[0] > 0.0:
+				return "%s every %.1f → %.1f s" % [timed[1], timed[0] / get_cycle_multiplier(), timed[0] / (get_cycle_multiplier() * ratio)]
+			if id == "fairy_ring" or id == "elf_circle":
+				return "attacks %.2f → %.2f a second; +1 ring every 2 ranks" % [cycle[0], cycle[1]]
+			return "attacks %.2f → %.2f a second" % [cycle[0], cycle[1]]
+		Focus.REACH:
+			var area := _main_area()
+			if area[1] != "":
+				return "%s %.1f → %.1f cells" % [area[1], area[0], area[0] + area[2]]
+			var r := _with_choice(which, func() -> float: return _compute_range_cells())
+			return "range %.1f → %.1f cells" % [r[0], r[1]]
+		Focus.DEEP:
+			var potency := _with_choice(which, func() -> float: return get_potency())
+			return "Potency %d%% → %d%% (stronger statuses and effects)" % [roundi(potency[0] * 100), roundi(potency[1] * 100)]
+		Focus.KEEN:
+			var crit := _with_choice(which, func() -> float:
+				return attack_data.crit_chance + NurtureChoices.KEEN_CRIT * choice_count(Focus.KEEN))
+			return "crit chance %d%% → %d%%" % [roundi(crit[0] * 100), roundi(minf(crit[1], maxf(NurtureChoices.KEEN_CAP, crit[0])) * 100)]
+		Focus.YIELD:
+			if special == BranchKit.DREAM_OAK:
+				return "+%.1f shard every drift" % NurtureChoices.YIELD_SHARDS
+			var thing := "Sprouts" if special == BranchKit.SEEDBEARER else "sprites"
+			var base := int(BranchKit.p(self, "seed_max" if special == BranchKit.SEEDBEARER else "max_alive", 3.0 if special == BranchKit.SEEDBEARER else 4.0))
+			var now := base + BranchKit.yield_ranks(self)
+			var next := base + (choice_count(Focus.YIELD) + 1) / NurtureChoices.YIELD_PER
+			return "%s alive %d → %d" % [thing, now, next] if next > now else "%s alive %d (+1 at the next Yield rank)" % [thing, now]
+		Focus.STRONG:
+			if special == BranchKit.PRISM:
+				return "+%d%% crit chance in its aura" % roundi(NurtureChoices.STRONG_CRIT_AURA * 100)
+			if special == BranchKit.NURSE_LOG:
+				return "Nurture discount +%d%% (up to %d%%)" % [roundi(NurtureChoices.NURSE_STRONG * 100), roundi(NurtureChoices.NURSE_CAP * 100)]
+			if not is_aura_support():
+				return "its aura +%d%%" % roundi(NurtureChoices.STRONG_ACORN * 100)
+		Focus.WIDE:
+			if special == BranchKit.DREAM_OAK:
+				return "families counted from +%.1f cells further" % NurtureChoices.WIDE_STEP
+			if special == BranchKit.PRISM or special == BranchKit.NURSE_LOG:
+				return "+%.1f cells of reach" % NurtureChoices.WIDE_STEP
+		Focus.KINDRED:
+			if special == BranchKit.SEEDBEARER:
+				return "its Sprouts deal %d%% more damage" % roundi(NurtureChoices.SEED_KINDRED * 100)
+			if special == BranchKit.NURSE_LOG:
+				return "Wardens in its reach grow %d%% cheaper" % roundi(NurtureChoices.NURSE_KINDRED * 100)
 	return FOCUS_TEXT.get(which, "")
+
+# [value now, value with one more rank of `which`] for `measure` (rank_choices is put back after).
+func _with_choice(which: Focus, measure: Callable) -> Array:
+	_migrate_choices()
+	var now: float = measure.call()
+	rank_choices.append(which)
+	var after: float = measure.call()
+	rank_choices.pop_back()
+	return [now, after]
+
+# Swift's main timer for this form, [base seconds, what it does], or [0, ""] when it's the attack itself.
+func _main_timer() -> Array:
+	if attack_data.ability_every > 0.0:
+		var verb := "pulls" if attack_data.pull_tiles > 0.0 else ("holds" if attack_data.hold_targets > 0 else "acts")
+		return [attack_data.ability_every, verb]
+	if attack_data.copy_status_every > 0.0:
+		return [attack_data.copy_status_every, "copies"]
+	match attack_data.special:
+		BranchKit.GROUNDROOT:
+			return [BranchKit.p(self, "ground_every", 4.0), "grabs"]
+		BranchKit.THORNCOIL:
+			return [BranchKit.THORN_TICK, "thorns bite"]
+		BranchKit.JARLINK:
+			return [BranchKit.FENCE_TICK, "the arc ticks"]
+		BranchKit.RAMPART:
+			if BranchKit.is_final(self):
+				return [BranchKit.p(self, "rock_every", 6.0), "rocks fall"]
+	return [0.0, ""]
+
+# Reach's main area for this form, [cells now, what it is, cells per rank], or [0, "", 0] when it's the range.
+func _main_area() -> Array:
+	var per := NurtureChoices.REACH_AREA
+	var now := area_bonus()
+	match attack_data.special:
+		BranchKit.HUSH:
+			return [BranchKit.p(self, "radius", 2.0) + now, "silence", per]
+		BranchKit.JARLINK:
+			return [BranchKit.link_range(self), "link", per]
+		BranchKit.JET:
+			return [BranchKit.p(self, "length", 6.0) + now, "jet", per]
+		BranchKit.GROUNDROOT:
+			return [BranchKit.p(self, "ground_reach", 3.5) + now, "grab reach", per]
+		BranchKit.DEEPROOT:
+			return [BranchKit.p(self, "goal_reach", 3.0) + area_bonus(NurtureChoices.REACH_GUARD), "guard ring", NurtureChoices.REACH_GUARD]
+		BranchKit.CLOUD:
+			return [1.5 + now, "rain cloud", per]
+		BranchKit.WHIRLPOOL:
+			return [BranchKit.p(self, "radius", 1.5) + now, "whirlpool", per]
+		BranchKit.SPARKLER:
+			return [BranchKit.p(self, "burst_radius", 1.5) + now, "burst", per]
+	if attack_data.cloud_radius > 0.0:
+		return [attack_data.cloud_radius + now, "cloud", per]
+	if attack_data.chain_jump_range > 0.0:
+		return [attack_data.chain_jump_range + now, "chain jumps", per]
+	return [0.0, "", 0.0]
 
 # Cost multiplier from the Warden's tier right now: Sprout ×0.5, base ×1, branch ×2, final ×3,
 # Memory Warden ×2.
@@ -934,7 +1088,7 @@ func get_nurture_price() -> int:
 # Raises the rank by one; `cost` is added to invested Dew (TowerPlacer.nurture charges it).
 # `chosen` sets the Focus when this is the rank that asks for one.
 func nurture(cost: int, chosen: Focus = Focus.NONE) -> void:
-	if chosen == Focus.NONE or not focus_options().has(chosen):
+	if chosen == Focus.NONE or not choice_available(chosen):
 		chosen = default_choice()
 	_migrate_choices()
 	var before := rank
@@ -1021,6 +1175,8 @@ func get_raw_crit_chance(enemy: Node2D = null) -> float:
 		chance = cached[0]
 	else:
 		chance = attack_data.crit_chance + _aura_crit + BranchKit.crit_aura(self) + 0.1 * kin_share(&"hammer_and_anvil", "a")  # Hammer and Anvil: the sniper's eye
+		if choice_count(Focus.KEEN) > 0:  # Keen ranks (Nurture rework), up to KEEN_CAP
+			chance = maxf(chance, minf(chance + NurtureChoices.KEEN_CRIT * choice_count(Focus.KEEN), NurtureChoices.KEEN_CAP))
 		if _dream_state and _dream_state.has_method("get_rank_crit_bonus"):
 			chance += _dream_state.get_rank_crit_bonus() * get_effective_rank()  # The Old Ones
 		_stats[&"crit_base"] = [chance, attack_data.crit_chance]  # (the data's own chance too: tests change it in place)
@@ -1109,6 +1265,8 @@ func get_aura_bonus(speed: bool) -> float:
 		return 0.0
 	if not speed and tower_data.get_id() == "acorn" and _rule_stacks(&"acorn_cache") > 0:
 		base = 0.05 + (ACORN_CACHE_AURA - 0.05) * _rule_power(&"acorn_cache")  # (rule_power is 1.0 since tag resonance was removed, dream_audit.md a6628056)
+	if not is_aura_support() and choice_count(Focus.STRONG) > 0:
+		base += NurtureChoices.STRONG_ACORN * choice_count(Focus.STRONG)  # Acorn's Strong ranks: +1% aura each
 	if is_aura_support():
 		var ranks := get_effective_rank()
 		base *= pow(AURA_PER_RANK, ranks)  # Grove Heart: its base only, not the per-Warden extra
@@ -2142,7 +2300,7 @@ func _land_as(target, where: Vector2, data: TowerData, boost: float) -> void:
 # while a nightmare is in range. Rootcurl / Long Way Home pull the one furthest along back along its
 # route, Tangleroot / Snugroot Hold the ones furthest along, Beacon Marks everything in range.
 func _update_ability(delta: float) -> void:
-	_ability_timer -= delta
+	_ability_timer -= delta * get_cycle_multiplier()  # Swift: holds, pulls, Mark-all come sooner
 	if _ability_timer > 0.0:
 		return
 	var in_range := get_enemies_in_range()
@@ -2161,7 +2319,8 @@ func _update_ability(delta: float) -> void:
 		for enemy in in_range:
 			if attack_data.pull_once and enemy.has_meta(&"pulled_home"):
 				continue
-			var tiles: float = attack_data.pull_boss_tiles if enemy.enemy_data.is_boss else attack_data.pull_tiles
+			var tiles: float = (attack_data.pull_boss_tiles if enemy.enemy_data.is_boss else attack_data.pull_tiles) \
+				* clampf(get_potency(), 1.0, NurtureChoices.PULL_CAP)  # Deep: farther, up to 1.5×
 			_pull_on_release(func() -> void:
 				if not is_instance_valid(enemy) or enemy.is_cleansed:
 					return
@@ -2448,7 +2607,7 @@ func _nearest_jump(struck: Array[Node2D]) -> Node2D:
 		if struck.has(enemy):
 			continue
 		for from in struck:
-			var reach := attack_data.chain_jump_range
+			var reach := attack_data.chain_jump_range + area_bonus()  # Reach: longer jumps
 			if from.statuses.has(EnemyStatuses.DAMP) and enemy.statuses.has(EnemyStatuses.DAMP):
 				reach += CHAIN_DAMP_EXTRA_RANGE
 			var distance := from.global_position.distance_to(enemy.global_position)
@@ -2540,7 +2699,7 @@ func _update_catch(delta: float) -> void:
 		if not s.is_caught():
 			Reactions._effect(&"caught", enemy.global_position, self, 1.0, 0.8)  # The dreamcatcher glyph
 			ComboFeedback.report(&"caught", self)  # Codex: a nightmare is Caught
-		s.caught_time = AURA_TICK * 1.6
+		s.caught_time = maxf(s.caught_time, AURA_TICK * 1.6 + NurtureChoices.CAUGHT_LINGER * choice_count(Focus.DEEP))  # Deep: lingers after it leaves
 		s.caught_bonus = maxf(s.caught_bonus if s.is_caught() else 0.0, tower_data.caught_bonus)
 		if tower_data.caught_shards:
 			s.caught_shard = true
@@ -3103,7 +3262,7 @@ func _spread() -> void:
 	for i in copies:
 		others[i].statuses.gust_time = 0.5  # Storm Front: a Reaction these statuses complete reaches further
 		for status in copied:
-			others[i].apply_status(status.id, status.stacks if full_copy else maxi(ceili(status.stacks / 2.0), 1), status.time,
+			others[i].apply_status(status.id, status.stacks if full_copy else maxi(ceili(status.stacks * (0.5 + NurtureChoices.GUST_STACKS * choice_count(Focus.DEEP))), 1), status.time,
 				status.potency * ill_wind, 0, status.line, status.source)
 		var devil := kin_share(&"dust_devil", "a")
 		var blade := _kin_partner()
@@ -3437,7 +3596,7 @@ const COPYABLE: Array[StringName] = [EnemyStatuses.DAMP, EnemyStatuses.DROWSY, E
 var _copy_timer := 0.0
 
 func _update_status_copy(delta: float) -> void:
-	_copy_timer -= delta
+	_copy_timer -= delta * get_cycle_multiplier()  # Swift (Zephyr's gale too)
 	if _copy_timer > 0.0:
 		return
 	var from: Node2D = null
@@ -3496,7 +3655,7 @@ func _update_lit_holds(delta: float) -> void:
 		var id: int = enemy.get_instance_id()
 		if _lit_stretched.get(id, -1.0) >= _anim_time:
 			continue  # This Hold was already stretched
-		var longer := s.time_left(EnemyStatuses.HELD) * attack_data.lit_hold_multiplier
+		var longer := s.time_left(EnemyStatuses.HELD) * (1.0 + (attack_data.lit_hold_multiplier - 1.0) * get_potency())  # Deep stretches it more
 		SupportLog.credit(self, &"held_seconds", longer - s.time_left(EnemyStatuses.HELD))
 		s.apply(EnemyStatuses.HELD, 1, longer)
 		_lit_stretched[id] = _anim_time + longer

@@ -35,6 +35,7 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(_tower):
 		queue_free()
 		return
+	delta *= _tower.get_cycle_multiplier()  # Swift: faster flight and pecks (Nurture rework)
 	var target_alive: bool = is_instance_valid(_target) and not _target.is_cleansed
 	if _state < 2 and not target_alive:
 		_state = 2

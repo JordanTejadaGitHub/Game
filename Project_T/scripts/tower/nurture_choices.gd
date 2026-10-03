@@ -61,25 +61,31 @@ const CHOICES := {
 # One-time choices: a second rank of it does nothing (Kindred on the aura supports).
 const ONCE := {"elder_stump": [K], "grove_heart": [K], "grandmother_oak": [K]}
 
-# Per-rank numbers (Balancing Discussion sets the ones marked *; placeholders until then).
-const KEEN_CRIT := 0.08  # * Crit chance per Keen rank
-const YIELD_SPRITES := 1  # * Brood Cap / Hatchery: sprites alive per Yield rank
-const YIELD_SPROUTS := 1  # * Seedbearer: Sprouts alive per Yield rank
-const YIELD_SHARDS := 0.5  # * Dream Oak: shards per drift per Yield rank (fractions carry)
-const REACH_AREA := 0.3  # * Cells per Reach rank on a Warden's main area (silence, link, jet, grab, cloud, burst…)
-const REACH_GUARD := 0.2  # * Deeproot's guard ring, cells per Reach rank
-const SWIFT_RINGS_PER := 2  # * Fairy Ring: +1 ring cap per this many Swift ranks
-const LINK_SHARE_CAP := 0.5  # * Undercurrent: link share × Potency, up to this
-const BOSS_SILENCE_FLOOR := 0.35  # * Silenced bosses' timers: 0.5 × (1 / Potency), never below this
-const CAUGHT_LINGER := 0.5  # * Dreamcatcher: Caught statuses keep going this many seconds per Deep rank after leaving
-const GUST_STACKS := 0.10  # * Gust / Zephyr: copies carry half the stacks + this per Deep rank
-const STRONG_CRIT_AURA := 0.02  # * Prism Jar: crit aura per Strong rank
-const STRONG_ACORN := 0.01  # * Acorn: its aura per Strong rank
-const SEED_SWIFT := 0.3  # * Seedbearer: drifts sooner per Swift rank
-const SEED_KINDRED := 0.06  # * Seedbearer: its Sprouts' damage per Kindred rank
-const NURSE_STRONG := 0.03  # * Nurse Log: discount per Strong rank
-const NURSE_KINDRED := 0.02  # * Nurse Log: Wardens in range grow this much cheaper per Kindred rank
+# Per-rank numbers (Balancing Discussion, 2026-10-03).
+const KEEN_CRIT := 0.10  # Crit chance per Keen rank (Balancing Discussion)
+const KEEN_CAP := 0.75  # Crit chance never goes above this with Keen
+const YIELD_PER := 2  # Yield ranks per extra sprite / Sprout (Balancing Discussion)
+const YIELD_SPRITES := 1  # Brood Cap / Hatchery: sprites alive per YIELD_PER Yield ranks
+const YIELD_SPROUTS := 1  # Seedbearer: Sprouts alive per YIELD_PER Yield ranks
+const YIELD_SHARDS := 0.5  # Dream Oak: shards per drift per Yield rank (fractions carry)
+const REACH_AREA := 0.3  # Cells per Reach rank on a Warden's main area (silence, link, jet, grab, cloud, burst…)
+const REACH_GUARD := 0.2  # Deeproot's guard ring, cells per Reach rank
+const SWIFT_RINGS_PER := 2  # Fairy Ring: +1 ring cap per this many Swift ranks
+const LINK_SHARE_CAP := 0.5  # Undercurrent: link share × Potency, up to this
+const BOSS_SILENCE_FLOOR := 0.35  # Silenced bosses' timers: 0.5 × (1 / Potency), never below this
+const CAUGHT_LINGER := 0.5  # Dreamcatcher: Caught statuses keep going this many seconds per Deep rank after leaving
+const GUST_STACKS := 0.10  # Gust / Zephyr: copies carry half the stacks + this per Deep rank
+const STRONG_CRIT_AURA := 0.02  # Prism Jar: crit aura per Strong rank
+const STRONG_ACORN := 0.01  # Acorn: its aura per Strong rank
+const SEED_SWIFT := 0.3  # Seedbearer: drifts sooner per Swift rank
+const SEED_KINDRED := 0.06  # Seedbearer: its Sprouts' damage per Kindred rank
+const NURSE_STRONG := 0.03  # Nurse Log: discount per Strong rank
+const NURSE_KINDRED := 0.02  # Nurse Log: Wardens in range grow this much cheaper per Kindred rank
 const WIDE_STEP := 0.2  # Wide: aura / catch / count reach per rank (Tower.FOCUS_WIDE)
+const PULL_CAP := 1.5  # Rootcurl: pull distance × Potency, up to this × its base
+const GROUND_CAP := 5.0  # Groundroot: grounded seconds × Potency, up to this
+const NURSE_CAP := 0.40  # Nurse Log: the total Nurture discount, up to this
+const SEED_MIN := 1.0  # Seedbearer: Swift never brings a seed in under this many drifts
 
 static func options(data: TowerData) -> Array:
 	if data == null:

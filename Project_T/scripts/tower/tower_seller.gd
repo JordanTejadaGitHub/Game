@@ -320,7 +320,7 @@ func grow_group(towers: Array, into: TowerData) -> int:
 # they're left out).
 static func _nurturable(tower, focus: Tower.Focus) -> bool:
 	return is_instance_valid(tower) and tower.can_nurture() \
-		and (focus == Tower.Focus.NONE or tower.focus_options().has(focus))  # Only a choice it can take
+		and (focus == Tower.Focus.NONE or tower.choice_available(focus))  # Only a choice it can take now (its own list; Kindred once)
 
 # The Wardens in `towers` that group Nurture would raise one rank each with the Dew there is,
 # nearest the Heartwood first (like group grow), and what that costs: [Array[Tower], cost].
