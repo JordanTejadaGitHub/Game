@@ -747,8 +747,7 @@ class FormNode extends Button:
 		var state := screen.state_of(data)
 		var centre := Vector2(NODE_SIZE.x / 2.0, 4 + PORTRAIT / 2.0)
 		# (No waystone disc under the portrait: offset below it, it read as a doubled ghost ring: story chat screenshot)
-		if not RememberScreen.is_unlocked_state(state):  # The lit backdrop that makes the silhouette readable
-			UiStyle.draw_moon_disc(self, centre, PORTRAIT / 2.0 - 1)
+		UiStyle.draw_moon_disc(self, centre, PORTRAIT / 2.0 - 1)  # The lit backdrop on every node (unlocked ones lost it: story chat)
 		if screen.selected == data:
 			draw_arc(centre, PORTRAIT / 2.0 + 3, 0.0, TAU, 40, UiStyle.GOLD, 2.0, true)
 		if state == State.CAN_UNLOCK:
@@ -757,8 +756,11 @@ class FormNode extends Button:
 		var text := ""
 		var colour := UiStyle.INK
 		match state:
-			State.GROWN:
+			State.GROWN:  # Its name in gold (yours this run) above how many stand on the map
+				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.GOLD, NODE_SIZE.y - 19)
 				text = "×%d" % screen.count_on_map(data)
+			State.UNLOCKED:  # Its name in gold: unlocked this run, none planted yet
+				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.GOLD, NODE_SIZE.y - 6)
 			State.CAN_UNLOCK, State.NEEDS_LIGHT:
 				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.INK_DIM, NODE_SIZE.y - 19)  # Its name above the motes
 				var price: int = screen.dream_state.get_unlock_price(data)
