@@ -26,6 +26,7 @@ var _damage_type := _header.damage_type  # Under the title: the damage type name
 var _desc := _header.desc  # What it does, with its status words as links (StatusLinks)
 var _stats := _header.stats  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var _buffs := VBoxContainer.new()  # Buffs: every source of this Warden's power (BuffSources), then the total
+var _map_note := Label.new()  # "+N more not labelled on the map" (BuffOverlay's chips had no room for them)
 var _body := Label.new()
 var _groups := VBoxContainer.new()  # Several selected: one row per kind with its portrait
 var _buttons := VBoxContainer.new()
@@ -66,6 +67,11 @@ func _ready() -> void:
 	content.add_child(_header)
 	_buffs.add_theme_constant_override("separation", 1)
 	content.add_child(_buffs)
+	_map_note.name = "MapNote"
+	_map_note.visible = false
+	_map_note.add_theme_font_size_override("font_size", 14)
+	_map_note.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	content.add_child(_map_note)
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.custom_minimum_size = Vector2(280, 0)
 	content.add_child(_body)
@@ -105,6 +111,7 @@ func _show(tower: Tower) -> void:
 	_tower = tower
 
 func _refresh() -> void:
+	_hook_buff_overlay()
 	if is_inside_tree() and not get_tree().process_frame.is_connected(_fit_height):
 		get_tree().process_frame.connect(_fit_height, CONNECT_ONE_SHOT)  # Next frame: the new rows are in, the old ones gone
 	_group_refresh_queued = false  # This refresh already shows the current Dew
@@ -749,6 +756,19 @@ func _not_in_dream_button(data: TowerData) -> void:
 	button.tooltip_text = "%s: not in this dream. Call one back on Remember." % ", ".join(hidden.map(
 		func(form: TowerData) -> String: return form.display_name))
 	button.pressed.connect(func() -> void: dream_state.open_remember(hidden[0]))
+
+# The map's buff chips (BuffOverlay, made after this panel): when some had no room, the panel says how many.
+func _hook_buff_overlay() -> void:
+	if not is_inside_tree():
+		return
+	var overlay := get_tree().get_first_node_in_group(BuffOverlay.GROUP) as BuffOverlay
+	if overlay != null and not overlay.hidden_changed.is_connected(_on_chips_hidden):
+		overlay.hidden_changed.connect(_on_chips_hidden)
+		_on_chips_hidden(overlay.hidden_chips)
+
+func _on_chips_hidden(count: int) -> void:
+	_map_note.text = "+%d more not labelled on the map" % count
+	_map_note.visible = count > 0
 
 func _clear_not_in_dream() -> void:
 	var old := _content.get_node_or_null("NotInDream")

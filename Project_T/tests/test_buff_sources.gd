@@ -125,6 +125,9 @@ func _run() -> void:
 	var legend: Array = BuffOverlay.legend_kinds(main).map(func(row: Array) -> String: return row[2])
 	_check(legend.has("Elder Stump") and legend.has("Acorn"), "the legend lists the source kinds on the map (%s)" % [legend])
 
+	# Thread chips (user screenshot: labels piling up, "(…nd)"): short, never an ordinal, one per Warden.
+	_check(BuffOverlay.chip_text(0.15, 0.0, false) == "+15% dmg" and BuffOverlay.chip_text(0.0, 0.3, false) == "+30% speed"
+		and BuffOverlay.chip_text(0.15, 0.1, true) == "Kindred +15% dmg · +10% speed", "chips are short: \"+15% dmg\", \"+30% speed\"")
 	print("buff sources test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
 	await process_frame
