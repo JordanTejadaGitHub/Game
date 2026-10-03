@@ -781,7 +781,7 @@ const CARRY_BRANCHES := ["driftspore", "inkcap", "lichenling", "brood_cap",  # S
 	"jarlink", "sparkler",  # Firefly Jar
 	"chime_stone", "thrum",  # Bellflower
 	"cairn", "standing_stone", "whetstone", "rampart", "quaker",  # Pebbling
-	"rootcurl", "tangleroot", "rootlight"]  # Rootling
+	"rootcurl", "tangleroot", "rootlight", "thorncoil"]  # Rootling (Thorncoil: 0.82× Driftspore, Balancing)
 
 static func is_carry(form: TowerData) -> bool:
 	return CARRY_BRANCHES.has(form.get_id())
