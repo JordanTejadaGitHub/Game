@@ -343,3 +343,8 @@ full game (`game/demo` false), and the demo reads main's exports.
   Counter tags confirmed: Whetstone anti_tank; Rampart and Quaker boss_abilities; Groundroot anti_air;
   Deeproot, Thorncoil and the Acorn three none (role lines). Fold-in: Driftspore anti_tank, Bloomcap and
   Inkcap anti_swarm. New Kinships (Fault Line, Bramble Bed, Nursery) ~+20% of the pair's effect.
+- 2026-10-02: **Phase 2 built on main** (Tower Code aa9080d4, core 2fc86820; full game only). Placeholders
+  accepted: Crown of Thorns pulse 40; thorns and Bastion's rock scale with the Warden's damage (effect
+  damage); Fault Line / Bramble Bed / Nursery second traits at the stated shares × stage. Dream Oak's
+  4-Dreamlight cap needs a per-source shard count (Roguelite Code); until then the shared cap of 2 applies.
+  Probe queued after the act 1 A/B.
