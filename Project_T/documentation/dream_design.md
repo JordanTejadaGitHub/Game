@@ -361,6 +361,10 @@ alternative**: a strong card you can use now if you bend the plan.
      work now.
    - **Declined:** if a family pick offered the missing family and the player took another, that
      family's half-dreamed cards drop to **×0.3** until the next pick (they said no once).
+   - **Picks stay pure** (user, 2026-10-03, with the Seed removal): taking a half-dreamed card does
+     **not** put its missing family into the next family pick (the code did, as an "owed" family).
+     The card is a real gamble: it sleeps until a pick happens to offer that family and you take it,
+     which may never happen.
    - **Coverage:** every pair of starting families has at least one combo card in the start pool:
      Firefly Jar + Dewdrop (Rolling Thunder, Conductive Soil), Sporeling + Firefly Jar (Wildfire
      Spores), Sporeling + Dewdrop (Mushroom Rain, 134). New families should bring one per pair.
