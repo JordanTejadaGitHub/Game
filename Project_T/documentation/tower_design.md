@@ -401,7 +401,7 @@ Checked on role, owned status, attack shapes and their 5 branches.
 |---|---|---|---|---|---|
 | **Whetstone → Edgestone** | **the finisher** (Pebbling cashes in) | hits on a nightmare **below 30% health** deal **×2.5** (bosses ×1.5) (review 2026-10-02: the old +10%-per-hit ramp was Sunpetal's beam ramp in stone) | **Clean cut:** a nightmare it finishes spills its overkill onto the nearest nightmare | Husks, bosses (anything others wore down) | a golem at a sharpening wheel |
 | **Rampart → Bastion** (replaces Quarry, review 2026-10-02: a free-wall builder wasn't a heavy hit, and copied Seedbearer's free growth) | **stone among stone:** the maze is its weapon | heavy hits on adjacent path tiles; **+15% damage per Thornwall touching it** (max 4), and those Thornwalls turn to **stone**: they can't be trampled or burrowed under | **Rockfall:** every 6 s a stone wall touching it drops a rock on the path tile beside it (a heavy splash) | the Hollow Stag (trample), Gravecrawlers; maze-as-weapon builds | a golem built into a stone wall, one arm a wall block |
-| **Quaker → Earthshaker** | **interrupt** | slams the ground around itself every 3 s; nightmares hit lose their speed boosts (a sprinting Night Hound stops sprinting) | the slam cracks the path for 3 s (no new sprints there) | Night Hounds, charging bosses | a squat golem mid-stomp, fists down |
+| **Quaker → Earthshaker** | **interrupt** | slams the ground around itself every 3 s; nightmares hit lose their speed boosts (a sprinting Night Hound stops sprinting), and the tremor **shakes hidden nightmares loose**: Lurkers it hits are revealed for 3 s (added 2026-10-02: the 7-family probe had detection in only 53% of runs) | the slam cracks the path for 3 s (no new sprints there) | Night Hounds, charging bosses, Lurkers | a squat golem mid-stomp, fists down |
 
 **Rootling** (Rooted)
 
@@ -513,7 +513,7 @@ family can promise an answer to everything. Two layers keep runs fair:
 | Tag | Branches |
 |---|---|
 | anti-air (flyers, Phantoms) | Cloudlet (Dewdrop), Jarlink (Firefly), Groundroot (Rootling), Wren's Nest (Nestling), Standing Stone (Pebbling) |
-| detection (Lurkers) | Lanternmoth (Firefly), Brood Cap (Sporeling), Rootlight (Rootling, hidden) |
+| detection (Lurkers) | Lanternmoth (Firefly), Brood Cap (Sporeling), Quaker (Pebbling: the tremor), Rootlight (Rootling, hidden) |
 | anti-armour (Shellbound) | Lichenling (Sporeling), Mossback (Pebbling), Magpie Perch (Nestling) |
 | anti-swarm | Sparkler (Firefly), Rain Lily / Undercurrent (Dewdrop), Thrum (Bellflower), Pinwheel (Nestling), Chime Stone (Bellflower) |
 | anti-tank / boss | Whetstone (Pebbling), Jetreed (Dewdrop), Silver Bell (Bellflower), Prism Jar (Firefly; its crit aura is a tank answer), Standing Stone (Pebbling) |
@@ -597,7 +597,7 @@ finals** (~42 sprites plus attack sheets and effects), down from 27 + 27.
 
 1. **Phase 1: the 4 starting families** (Sporeling, Dewdrop, Firefly Jar, Bellflower): 12 branches,
    12 finals, the 2-of-5 offer with the smart draw, generic Kin, Remembered Path.
-2. **Phase 2:** Pebbling, Rootling, Acorn (9 + 9), with the branch review's changes. **Started 2026-10-02 on main** (user: "just do Phase 2", before the Phase 1 playtest; the Spire branch is merged). Full game only. Counter tags: Whetstone anti-tank; Rampart and Quaker boss abilities; Groundroot anti-air; Deeproot, Thorncoil and the Acorn three none. Fold-in fix: Driftspore anti-tank, Bloomcap and Inkcap anti-swarm (they had no tags, so no role line). **Built** on main (2fc86820, aa9080d4, 84ce5a38): Groundroot never grounds bosses; Deeproot guards the Heartwood wherever it stands (once per nightmare across all Deeproots); stone = a Thornwall on one of the Rampart's four sides (no diagonals); Seedbearer's seed is planted at the rest (seed badge, lit cells; unplanted seeds wait); roles: Deeproot and Thorncoil control, the Acorn three economy.
+2. **Phase 2:** Pebbling, Rootling, Acorn (9 + 9), with the branch review's changes. **Started 2026-10-02 on main** (user: "just do Phase 2", before the Phase 1 playtest; the Spire branch is merged). Full game only. Counter tags: Whetstone anti-tank; Rampart boss abilities; Quaker boss abilities + detection (its tremor reveals Lurkers; added after the 7-family probe: anti-tank 93%, detection 53%); Groundroot anti-air; Deeproot, Thorncoil and the Acorn three none. Fold-in fix: Driftspore anti-tank, Bloomcap and Inkcap anti-swarm (they had no tags, so no role line). **Built** on main (2fc86820, aa9080d4, 84ce5a38): Groundroot never grounds bosses; Deeproot guards the Heartwood wherever it stands (once per nightmare across all Deeproots); stone = a Thornwall on one of the Rampart's four sides (no diagonals); Seedbearer's seed is planted at the rest (seed badge, lit cells; unplanted seeds wait); roles: Deeproot and Thorncoil control, the Acorn three economy.
 3. **Phase 3:** the Nestling + Whirligig merge (no new branch art: a parked base and Ascended,
    Dawnwing's carry twist, the resistance fold).
 
