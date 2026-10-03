@@ -40,6 +40,9 @@ const WHISPER_PATIENCE := 8.0  # Most seconds it waits for onboarding whispers t
 var drift_director: DriftDirector
 var shown_drift := 0  # The boss drift on the card (0 = closed)
 var _auto_shown := {}  # Boss drift -> true once shown by itself
+var whats_coming: Array = []  # New nightmares of the act's first block, listed under the boss on "What's coming"
+var _close_button := Button.new()
+var _peek: ChoicePeek
 var _pending := 0  # Boss drift waiting to show itself once the rest's screens are done
 var _wait := 0.0
 var _paused_it := false
@@ -132,14 +135,20 @@ func _ready() -> void:
 	_content.custom_minimum_size = Vector2(WIDTH - 16, 0)
 	_content.add_theme_constant_override("separation", 10)
 	_scroll.add_child(_content)
-	var close := Button.new()
-	close.text = "Prepare"
-	close.tooltip_text = "Reopen it from the boss name at the top."
-	close.custom_minimum_size = Vector2(200, 44)
-	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	close.focus_mode = Control.FOCUS_NONE
-	close.pressed.connect(close_dossier)
-	outer.add_child(close)
+	_close_button.text = "Prepare"
+	_close_button.tooltip_text = "Reopen it from the boss name at the top."
+	_close_button.custom_minimum_size = Vector2(200, 44)
+	_close_button.focus_mode = Control.FOCUS_NONE
+	_close_button.pressed.connect(close_dossier)
+	# "What's coming" at an act's start (user, 2026-10-03): forced, with Peek at the map and Continue.
+	_peek = ChoicePeek.new(self, [shade, _vignette, centre], "Return to what's coming")
+	_peek.place_back_centre()
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons.add_theme_constant_override("separation", 12)
+	buttons.add_child(_peek.make_peek_button())
+	buttons.add_child(_close_button)
+	outer.add_child(buttons)
 	if drift_director != null:
 		drift_director.rest_started.connect(_on_rest_started)
 		_pending_first = true  # Act 1's boss at the first rest (if this is a new run: see _process)
@@ -324,6 +333,9 @@ func open(drift: int = 0) -> void:
 	for child in _content.get_children():
 		child.queue_free()
 	_build(data, drift)
+	if not whats_coming.is_empty():
+		_add_coming_rows()
+	_close_button.text = "Continue" if not whats_coming.is_empty() else "Prepare"
 	visible = true
 	_entrance(data)
 	_scroll.scroll_vertical = 0
@@ -354,8 +366,17 @@ func _entrance(data: EnemyData) -> void:
 		tween.parallel().tween_property(_name_label, "visible_ratio", 1.0, 0.7).set_delay(0.35)
 
 func close_dossier() -> void:
+	if _peek != null:
+		_peek.set_peeking(false)
 	visible = false
 	shown_drift = 0
+	if not whats_coming.is_empty():
+		var intro := get_tree().get_first_node_in_group(NightmareIntro.GROUP) as NightmareIntro
+		for data in whats_coming:  # Introduced here: no separate card for them
+			if intro != null:
+				intro._remember(data)
+		whats_coming = []
+	_close_button.text = "Prepare"
 	if _paused_it:
 		_paused_it = false
 		var speed := drift_director.get_node_or_null("%GameSpeed") as GameSpeed
@@ -364,6 +385,42 @@ func close_dossier() -> void:
 
 func is_open() -> bool:
 	return visible
+
+# "What's coming" (user, 2026-10-03: one page at an act's start, the boss as the hero): NightmareIntro hands over the
+# block's new kinds instead of opening its own page; they're listed under the boss, each a short row that expands.
+func add_whats_coming(kinds: Array) -> void:
+	for data in kinds:
+		if not whats_coming.has(data):
+			whats_coming.append(data)
+	if visible:
+		_add_coming_rows()
+		_close_button.text = "Continue"
+
+func _add_coming_rows() -> void:
+	var old := _content.get_node_or_null("WhatsComing")
+	if old != null:
+		_content.remove_child(old)
+		old.queue_free()
+	var tag := _content.get_node_or_null("ComingTag")
+	if tag == null:  # "What's coming" over the boss
+		tag = Label.new()
+		tag.name = "ComingTag"
+		tag.text = "What's coming"
+		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.caps(tag, 15, UiStyle.GOLD)
+		_content.add_child(tag)
+		_content.move_child(tag, 0)
+	var box := VBoxContainer.new()
+	box.name = "WhatsComing"
+	box.add_theme_constant_override("separation", 6)
+	box.add_child(HSeparator.new())
+	var head := Label.new()
+	head.text = "New this block"
+	UiStyle.caps(head, 14, NightmareIntro.NEW_COLOR)
+	box.add_child(head)
+	for data in whats_coming:
+		box.add_child(NightmareIntro.make_row(data))
+	_content.add_child(box)
 
 func boss_data(drift: int) -> EnemyData:
 	if drift < 1 or drift > drift_director.get_total_drifts():

@@ -43,36 +43,52 @@ func _run() -> void:
 	intro._pending = [load("res://resource/enemy/leaf_bug.tres")]
 	intro._drift = 26
 	intro._wait = 0.0
+	# An act's start (user, 2026-10-03): family pick → Dream → gift → "What's coming", one page with the boss as the
+	# hero and the block's new nightmares listed under it: no separate card for them.
 	var most := 0
 	var gift_frames := 0
-	var intro_after_gift := false
 	var gift_done := false
-	var dossier_seen := false
-	var intro_before_dossier := false
+	var coming_rows := 0
+	var intro_seen := false
 	var dossier := main.get_tree().get_first_node_in_group(BossDossier.GROUP) as BossDossier
+	var shade: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	for frame in 400:
 		await process_frame
 		var shown := _open_screens(hud)
 		most = maxi(most, shown.size())
+		intro_seen = intro_seen or shown.has("NightmareIntro")
 		if shown.has("GiftScreen"):
 			gift_frames += 1
 			if gift_frames == 30:
 				gifts.let_pass()  # The player lets the gifts pass
 				gift_done = true
-		if shown.has("BossDossier"):
-			dossier_seen = true
-			dossier.close_dossier()  # Read and closed: the intros may follow
-		if shown.has("NightmareIntro"):
-			intro_before_dossier = intro_before_dossier or (dossier.is_waiting() and not dossier_seen)
-			if gift_done:
-				intro_after_gift = true
-				break
+		if shown.has("BossDossier") and gift_done:
+			var list := dossier._content.get_node_or_null("WhatsComing")
+			coming_rows = list.find_children("New_*", "", false, false).size() if list != null else 0
+			_check(dossier._close_button.text == "Continue", "\"What's coming\" ends in Continue")
+			dossier.close_dossier()
+			break
 	_check(gift_frames > 0, "the gift screen opened first")
 	_check(most <= 1, "never two paused screens at once (at most %d)" % most)
-	_check(intro_after_gift, "the new nightmare's card opened once the gift was done")
-	_check(not intro_before_dossier, "the boss dossier (when due) comes before the new nightmare's card (user, 2026-10-03)")
+	_check(coming_rows >= 1, "\"What's coming\" lists the block's new nightmares under the boss (%d)" % coming_rows)
+	for i in 30:
+		await process_frame
+	_check(not intro_seen and not intro.visible, "no separate new-nightmare page at an act's start")
+	_check(NightmareIntro.session_seen.has(NightmareIntro.kind_of(shade)), "listed there counts as introduced")
+
+	# A normal rest: one "New this block" page for every new kind (not a card each); a row opens the full card in place.
+	var kinds := [load("res://resource/enemy/crow.tres"), load("res://resource/enemy/old_stag.tres")]
+	intro.open_list(kinds, 11)
+	await process_frame
+	var rows := intro._content.find_children("New_*", "", false, false)
+	_check(intro.visible and rows.size() == 2 and intro._next.text == "Continue", "one page lists both new kinds (%d rows)" % rows.size())
+	var head: Button = rows[0].get_node("Head")
+	var details: Control = rows[0].get_node("Details")
+	head.pressed.emit()
+	_check(details.visible, "tapping a row opens its full card in place")
 	var panel := intro._panel.get_theme_stylebox("panel") as MoonStyleBox
-	_check(panel != null and panel.center_alpha >= 0.9, "the intro card is solid")
+	_check(panel != null and panel.center_alpha >= 0.9, "the page is solid")
+	intro.close()
 	main.queue_free()
 	await process_frame
 	ResultsScreen.demo_override = -1
