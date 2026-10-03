@@ -3404,6 +3404,8 @@ func _draw() -> void:
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
 		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(Palette.MOONLIGHT, 0.12), 3.0)
 	_draw_badges()
+	if attack_data != null and attack_data.special == BranchKit.SEEDBEARER:
+		BranchKit.draw_seed_badge(self)  # A seed ready to plant at the rest
 	_draw_target_pip()
 	if _dream_state and _dream_state.has_method("is_eldest") and _dream_state.is_eldest(self):
 		# The Eldest: a small crown of three golden rings over the slab.

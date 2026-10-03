@@ -951,6 +951,17 @@ static func seeds_alive(tower: Tower) -> int:
 	var id := tower.get_instance_id()
 	return tower._other_towers().filter(func(t) -> bool: return int(t.get_meta(&"seeded_by", 0)) == id).size()
 
+# Tower._draw: a Seedbearer with seeds ready shows a golden seed (with the count past one) at its top right.
+static func draw_seed_badge(tower: Tower) -> void:
+	var ready := seeds_ready(tower)
+	if ready <= 0:
+		return
+	var at := Vector2(CELL / 2.0 - 10.0, -CELL / 2.0 + 4.0)
+	tower.draw_circle(at, 7.0, Color(Palette.ROOT, 0.8))
+	tower.draw_colored_polygon(PackedVector2Array([at + Vector2(0, -5), at + Vector2(4, 1), at + Vector2(0, 5), at + Vector2(-4, 1)]), Palette.GOLD)
+	if ready > 1:
+		tower.draw_string(ThemeDB.fallback_font, at + Vector2(6, 4), str(ready), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Palette.GLOW)
+
 static func seeds_ready(tower: Tower) -> int:
 	return int(tower.get_meta(&"seeds_ready", 0)) if tower.attack_data.special == SEEDBEARER else 0
 
