@@ -98,7 +98,8 @@ func show_pick(reason: StringName = &"first") -> void:
 			if _ids(available.slice(0, count)) != previous_first_offer:
 				break
 			available.shuffle()
-	_include_owed_family(available, count)
+	# Picks follow only their own rules: no card puts a family into them (user, "make it predictable"; dream_design.md
+	# half-dreamed "Picks stay pure"). A half-dreamed card sleeps until a pick happens to offer its family.
 	offer = []  # Untyped: families (TowerData) and Blessings (UpgradeData) share it
 	offer.append_array(available.slice(0, count))
 	if reason == &"boss" and pending_memory_warden != null and not dream_state.is_unlocked(pending_memory_warden.get_id()):
@@ -587,27 +588,3 @@ func _add_memory_border(button: Button) -> void:
 		border.region_rect = Rect2(Vector2(frame * MEMORY_BORDER_FRAME.x, 0), MEMORY_BORDER_FRAME))
 	border.add_child(pulse)
 
-# A half-dreamed Dream taken since the last pick owes this pick its missing family (one of them if
-# several): it's moved into the offered slots; the player still chooses (dream_design.md
-# "Adapt, don't get handed" 5).
-func _include_owed_family(available: Array[TowerData], count: int) -> void:
-	# A half-dreamed Dream owes one of its missing families. (Seed cards no longer call families: user, "make it
-	# predictable", dream_design.md 7d3c6672.)
-	var wanted: Array = []
-	for id in dream_state.take_owed_families():
-		if not wanted.has(id) and available.any(func(d: TowerData) -> bool: return d.get_id() == id):
-			wanted.append(id)
-			break
-	var slot := 0
-	for id in wanted:
-		if slot >= count:
-			break
-		for i in available.size():
-			if available[i].get_id() != id:
-				continue
-			if i >= slot:  # Move it into the next offered slot
-				var swapped := available[slot]
-				available[slot] = available[i]
-				available[i] = swapped
-				slot += 1
-			break
