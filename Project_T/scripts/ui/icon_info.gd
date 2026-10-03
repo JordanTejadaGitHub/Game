@@ -204,6 +204,13 @@ const TERMS := {
 	&"kinship": ["Kinship", "Kinships", "Kinship"],
 	&"harmony": ["Harmony strike", "Harmony strikes", "Harmony strike", "harmonies"],  # {harmonies}: the plural
 	&"potency": ["Potency", "Potency", "Potency"],  # Also linked as a plain word (StatusLinks.PLAIN_TERMS: card text says "Potency")
+	# Branch effects of the 12 new branches (Tower Code's BranchKit; glossary "Branch effects"): {current}, {erosion}, …
+	&"current": ["Current", "Currents", "Current"],
+	&"erosion": ["Erosion", "Erosion", "Erosion"],
+	&"arc": ["arc", "arcs", "Arc"],
+	&"ink": ["ink", "ink", "Ink", "inks"],
+	&"spore_sprite": ["spore-sprite", "spore-sprites", "Spore-sprite"],
+	&"whole_tree": ["Whole Tree", "Whole Tree", "Whole Tree"],
 }
 
 # Every term token form: [token text, term id, word shown]. Longest tokens first.
