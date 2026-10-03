@@ -508,6 +508,7 @@ family can promise an answer to everything. Two layers keep runs fair:
      anti-tank 90%, anti-air 75%, detection 79%, anti-armour 80%, swarm 89%, support 96%, boss
      82%; every family keeps 9–10 different pairs, none above 26% of runs. Target: anti-tank in
      80%+ of runs with the 4 starting families. Anti-armour may stay lower (Shellbound only arrive at drift 79).
+     **With all 7 families** (Phase 2, 7d17c35f): **detection also counts double** (`tag_weights` {anti_tank: 2, detection: 2}; Lurkers can only be hit up close without it). 100 runs of 4 random families: anti-tank 91%, anti-air 87%, anti-swarm 87%, detection 79%, boss abilities 74%, anti-support 64%, anti-armour 54% (accepted); 9+ pairs per family, none above 25%.
    - Every counter tag sits on **at least 3 branches across at least 2 families**:
 
 | Tag | Branches |
