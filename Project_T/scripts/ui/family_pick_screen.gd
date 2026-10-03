@@ -383,27 +383,20 @@ func _route_lane(branch: TowerData) -> Control:
 		arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		lane.add_child(arrow)
 		lane.add_child(_icon(final, ROUTE_ICON, false))
+	# Branch name, then "→ final" under it, then the role: full names, wrapped in the card, never cut with "…"
+	# (user screenshot: "Undercurrent → Maels…").
 	var words := VBoxContainer.new()
 	words.add_theme_constant_override("separation", -2)
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var name_label := Label.new()
-	name_label.text = branch.display_name + (" → " + final.display_name if final != null else "")
-	name_label.add_theme_font_size_override("font_size", 13)
-	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	name_label.custom_minimum_size.x = 120
-	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	words.add_child(name_label)
+	words.add_child(_lane_line(branch.display_name, 13, UiStyle.INK, "Name"))
+	if final != null:
+		words.add_child(_lane_line("→ " + final.display_name, 12, UiStyle.INK_DIM, "Final"))
 	var role := role_text(branch)
 	if dream_state.is_hidden_branch(branch):
-		role = ("Grove · " + role) if role != "" else "Grove"
+		role = "Grove · hidden branch" + (" · " + role if role != "" else "")
 	if role != "":
-		var role_label := Label.new()
-		role_label.name = "Role"
-		role_label.text = role
-		role_label.add_theme_font_size_override("font_size", 11)
-		role_label.add_theme_color_override("font_color", UiStyle.GOLD)
-		role_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		words.add_child(role_label)
+		words.add_child(_lane_line(role, 11, UiStyle.GOLD, "Role"))
 	lane.add_child(words)
 	var tip := branch.display_name + (" → " + final.display_name if final != null else "")
 	if role_text(branch) != "":
@@ -413,6 +406,17 @@ func _route_lane(branch: TowerData) -> Control:
 		tip += "\n" + counters_text(branch)
 	lane.tooltip_text = tip
 	return lane
+
+# One line of a lane's words: wraps within the card (a long name takes two lines), never trimmed.
+func _lane_line(text: String, size: int, colour: Color, node_name: String) -> Label:
+	var label := Label.new()
+	label.name = node_name
+	label.text = text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_size_override("font_size", size)
+	label.add_theme_color_override("font_color", colour)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
 
 func _icon(form: TowerData, side: float, silhouette: bool) -> TextureRect:
 	var icon := TextureRect.new()
