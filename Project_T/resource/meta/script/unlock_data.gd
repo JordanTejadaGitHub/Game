@@ -53,6 +53,7 @@ enum Root { WARDENS, DREAMS, PERKS, FORESTS }  # Limbs: Families, Cards, Perks (
 @export var random_common_cards: int = 0  # Kindling: random Common Dreams taken at run start
 @export var sprout_charges: int = 0  # Sprout Bed: free Sprouts
 @export var free_nurtures: int = 0  # First Care: free Nurture ranks
+@export var wider_roots: bool = false  # Wider Roots: the first-picked family offers 3 of its branches, call-back 4 Dreamlight
 
 # The text the node card and loadout show: the sidegrade one while sidegrade perks are on.
 func get_description() -> String:

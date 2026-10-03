@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "wider_roots"
+display_name = "Wider Roots"
+description = "The family you take at the first {family_pick} offers 3 of its branches this run, but calling one of its branches back costs 4 {dreamlight}."
+root = 2
+costs = Array[int]([120])
+order = 16
+icon = 15
+requires_all = Array[String](["omen_reader"])
+wider_roots = true
