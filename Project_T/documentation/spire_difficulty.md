@@ -359,3 +359,8 @@ full game (`game/demo` false), and the demo reads main's exports.
   Thorncoil 0.52; Edgestone 0.35, Earthshaker 0.66 / 0.54, Crown of Thorns 0.52 / 0.38. **Raises:**
   Whetstone 280, Quaker 200, Thorncoil 45/s + pulse 32, Edgestone 650, Earthshaker 360, Crown of Thorns
   120/s + pulse 70 (in 1fcc3b64). The flyer board was too easy (0 leaks); rerun on a harder one.
+- 2026-10-02: **Phase 2 re-probe** (1fcc3b64): in band Quaker 0.82, Thorncoil 0.82 (1.55 beside a Rooted
+  source), Earthshaker 1.03 / 0.89, Edgestone 0.98 / 0.87, Crown of Thorns 0.88 / 0.65 (0.94 beside a
+  Rooted source: accepted as a payoff). Whetstone 0.72 → **320**. Flyer board (drift 43, flyers only):
+  Groundroot / Earthbind leak more than their references → **Groundroot 3 flyers every 3 s, pulse 35;
+  Earthbind 5 every 2 s, pulse 90**. **Thorncoil becomes a carry** (Rootling's 4th).
