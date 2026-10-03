@@ -35,7 +35,6 @@ const TERRAIN_GIFTS: Array[StringName] = [SOW_RIDGE, FALLEN_GIANT, GLADE, SHIFT_
 	LIGHTNING_TREE, MOONWELL, BELL_STONE, ANCIENT_STUMP, HEARTWOOD_ROOTS, DEEPER_GLADE]
 
 # Numbers (spire_difficulty.md Phase 3 starting points; Balancing tunes).
-const GLADE_RADIUS := 2
 const MIRE_SLOW := 0.2  # Through EnemyStatuses' extra slow: the slow floors still hold
 const ROOTS_CELLS := 4
 const ROOTS_TAKEN := 0.15
@@ -104,10 +103,6 @@ func roots_cells() -> Array[Vector2]:
 func deeper_glade_cells() -> Array[Vector2]:
 	return _ring(map.endPath, glade_radius + 1)
 
-# The obstacles Glade would clear around `centre`.
-func glade_cells(centre: Vector2) -> Array:
-	return _obstacles_within(centre, GLADE_RADIUS)
-
 # Puts `gift` on `cells` (the caller checked them; Shift the Stones moves `from[i]` to `cells[i]`).
 # `restoring`: rebuilding a resumed run on the regenerated map. Obstacles a gift put down and the player
 # tended later stay gone: `tended` (RunState.tended_cells) from index `tended_before` (the count when the
@@ -124,8 +119,8 @@ func apply(gift: StringName, cells: Array[Vector2], from: Array[Vector2] = [], r
 		FALLEN_GIANT:
 			logs.append(cells.duplicate())
 			_block(cells)
-		GLADE:
-			for cell in _obstacles_within(cells[0], GLADE_RADIUS) if not cells.is_empty() else []:
+		GLADE:  # The obstacles the player picked (up to 5; user: "no control" with a radius)
+			for cell in cells:
 				_clear(cell, restoring)
 		SHIFT_STONES:
 			for i in mini(from.size(), cells.size()):

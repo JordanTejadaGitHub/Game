@@ -86,15 +86,14 @@ func _init() -> void:
 	_give(gifts, run_state, MapGifts.ANCIENT_STUMP, stump_cells)
 	_check(gifts.stumps.size() == 3 and map.is_buildable(stump_cells[0]), "3 stumps, still buildable")
 
-	# Glade: obstacles within 2 cleared free, each tended.
-	var glade_at := Vector2(-1, -1)
+	# Glade: up to 5 obstacles the player picks (user: a radius gave "no control"), each cleared free and tended.
+	var to_clear: Array = []
 	for cell: Vector2 in map.obstacles:
-		if gifts.glade_cells(cell).size() >= 3 and not map.get_glade_cells().has(cell) and not gifts.gift_obstacles.has(cell):
-			glade_at = cell
-			break
-	var to_clear: Array = gifts.glade_cells(glade_at)
+		if to_clear.size() < 5 and not gifts.gift_obstacles.has(cell) and map.get_obstacle_cells(cell).size() == 1:
+			to_clear.append(cell)
 	var tended := run_state.obstacles_tended
-	var glade_cells: Array[Vector2] = [glade_at]
+	var glade_cells: Array[Vector2] = []
+	glade_cells.assign(to_clear)
 	_give(gifts, run_state, MapGifts.GLADE, glade_cells)
 	_check(to_clear.all(func(c: Vector2) -> bool: return map.get_obstacle(c) == null)
 		and run_state.obstacles_tended == tended + to_clear.size(), "a glade: %d cleared and tended" % to_clear.size())

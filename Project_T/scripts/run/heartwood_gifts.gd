@@ -29,8 +29,8 @@ const POOL := {
 		"text": "Draw a ridge of 3–5 Withered Trees, cell by cell. Clearable later at the normal cost."},
 	&"fallen_giant": {"name": "Fallen Giant", "group": "Shape the land", "map": true, "place": &"line", "size": [2, 4],
 		"text": "Lay a Fallen Log 2–4 cells long, straight, where you choose. It can't be cleared this run."},
-	&"glade": {"name": "Glade", "group": "Shape the land", "map": true, "place": &"cell", "size": 1,
-		"text": "Clear every obstacle within 2 cells of a chosen cell, free. Each still counts as tended."},
+	&"glade": {"name": "Glade", "group": "Shape the land", "map": true, "place": &"obstacles", "size": 5,
+		"text": "Clear up to 5 obstacles of your choice, free. Each still counts as tended."},  # Picked one by one (user)
 	&"shift_stones": {"name": "Shift the Stones", "group": "Shape the land", "map": true, "place": &"move", "size": 3,
 		"text": "Move up to 3 obstacles to new empty cells."},
 	&"mire": {"name": "Mire", "group": "Shape the land", "map": true, "place": &"path", "size": 3,

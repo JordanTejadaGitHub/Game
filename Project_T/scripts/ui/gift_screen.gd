@@ -20,6 +20,7 @@ const HINTS := {
 	&"move": "Click an obstacle, then where it goes (up to %d).",
 	&"warden": "Click one of your Wardens.",
 	&"kinship": "Click a Warden in a Kinship.",
+	&"obstacles": "Click obstacles to clear (up to %d), again to unselect.",
 }
 
 # Each gift's living mini-scene (heartwood_gifts.md "an animated mini-scene like the placement Dream cards"): Roguelite
@@ -30,8 +31,8 @@ const SCENES := {
 		"A ridge across the way: they take the long road."],
 	&"fallen_giant": [".......\n.......\nSPPPPPH\n.......\n.......", ".......\n.PPPPP.\nSPLLLPH\n.......\n.......", {},
 		"A fallen giant they must walk around, for good."],
-	&"glade": [".OO....\n.OO....\nSPPPPPH\n.......\n.......", ".......\n.a.....\nSPPPPPH\n.......\n.......", {},
-		"Cleared for free, and every tree counts as tended."],
+	&"glade": [".OO....\n.OO.O..\nSPPPPPH\n....O..\n.......", ".OO....\n.......\nSPPPPPH\n.......\n.......", {},
+		"The obstacles you pick are cleared for free, and each counts as tended."],
 	&"shift_stones": ["OO.....\n.......\nSPPPPPH\n.......\n.O.....", ".......\n.PPPPP.\nSP.O.PH\n...O...\n...O...", {},
 		"The stones move where you need a wall."],
 	&"mire": [".......\n...a...\nSPPPPPH\n.......\n.......", ".......\n...a...\nSPBBBPH\n.......\n.......", {},
@@ -55,7 +56,7 @@ const SCENES := {
 	&"bramble_verge": [".......\n.T.T.T.\nSPPPPPH\n.......\n.......", ".......\n.X.X.X.\nSPPPPPH\n.......\n.......",
 		{"proc": "+1 Drowsy cap"}, "Thornwalls for half, and they make nightmares drowsy."],
 	&"old_kin": [".......\n..aa...\nSPPPPPH\n.......\n.......", ".......\n..WW...\nSPPPPPH\n.......\n.......",
-		{"text": "kin +1 stage", "damage": 1.1}, "A Kinship grows a stage at once."],
+		{"text": "kin +1 stage", "damage": 1.1, "kin": true}, "A Kinship grows a stage at once."],  # The bond drawn (CardScene 4e14a81c)
 	&"deeper_glade": [".....O.\n....OO.\nSPPPPPH\n....OO.\n.....O.", ".......\n.......\nSPPPPPH\n.......\n.......", {},
 		"The Heartwood's glade grows, and one more leaf."],
 	&"waking_root": [".......\n...a...\nSPPPPPH\n.......\n.......", ".......\n...W...\nSPPPPPH\n.......\n.......",
@@ -268,6 +269,7 @@ func pick(id: StringName) -> void:
 		preview.stop()  # Hidden while placing: nothing runs
 	placer = GiftPlacer.new(drift_director, id, BLOCKING.has(id))
 	drift_director.owner.add_child(placer)
+	_plant.text = "Clear them" if placer.kind == &"obstacles" else "Plant"
 
 func cancel_placing() -> void:
 	var was := placing
@@ -402,8 +404,35 @@ class GiftPlacer extends Node2D:
 			&"warden", &"kinship":
 				var picked := seller.get_tower_at(cell) if seller != null else null
 				tower = picked if picked != null and (kind == &"warden" or _in_kinship(picked)) else null
+			&"obstacles":  # Glade (user: "no control and no preview"): pick each obstacle, again to unselect
+				var at := _picked_obstacle(cell)
+				if at != Vector2(-1, -1):
+					cells.erase(at)
+				elif cells.size() < int(size) and map.obstacles.has(cell):
+					cells.append(cell)
 		_refresh_route()
 		queue_redraw()
+
+	# The picked obstacle `cell` belongs to (a log covers several cells), else (-1, -1).
+	func _picked_obstacle(cell: Vector2) -> Vector2:
+		for at in cells:
+			if at == cell or map.get_obstacle_cells(at).has(cell):
+				return at
+		return Vector2(-1, -1)
+
+	# The route with `picked` obstacles (and their whole logs) cleared, as MapGenerator.get_path_if_cleared for one.
+	func _path_if_cleared(picked: Array) -> PackedVector2Array:
+		var opened: Array[Vector2] = []
+		for at in picked:
+			for c in map.get_obstacle_cells(at):
+				if not opened.has(c):
+					opened.append(c)
+		for c in opened:
+			map.path_layer.set_cell_blocked(c, false)
+		var path: PackedVector2Array = map.path_layer.find_path_from(map.startPath)
+		for c in opened:
+			map.path_layer.set_cell_blocked(c, true)
+		return path
 
 	func is_complete() -> bool:
 		match kind:
@@ -421,6 +450,8 @@ class GiftPlacer extends Node2D:
 				return not cells.is_empty() and cells.size() == froms.size()
 			&"warden", &"kinship":
 				return tower != null
+			&"obstacles":
+				return not cells.is_empty()  # Up to `size`: any number from one
 		return true
 
 	func status() -> String:
@@ -432,6 +463,10 @@ class GiftPlacer extends Node2D:
 				hint = hint % int(size)
 			&"area":
 				hint = hint % [size.x, size.y]
+			&"obstacles":
+				var change := _path_if_cleared(cells).size() - _route_now if not cells.is_empty() else 0
+				return "%d of %d%s" % [cells.size(), int(size),
+					(" · %+d path" % change) if change != 0 else ""] + ("" if not cells.is_empty() else " · " + hint % int(size))
 		var added := _route_len() - _route_now
 		return hint + (" · +%d path" % added if blocking and added > 0 else "")
 
@@ -468,6 +503,17 @@ class GiftPlacer extends Node2D:
 		return map.get_path_if_blocked_cells(all).size()
 
 	func _refresh_route() -> void:
+		if kind == &"obstacles" and map != null:  # The route once the picked (and hovered) obstacles are gone, live
+			var preview: Array = cells.duplicate()
+			if map.obstacles.has(hover) and _picked_obstacle(hover) == Vector2(-1, -1) and cells.size() < int(size):
+				preview.append(hover)
+			var opened: PackedVector2Array = _path_if_cleared(preview) if not preview.is_empty() else PackedVector2Array()
+			var now: PackedVector2Array = map.get_path_from(map.startPath)
+			if opened.is_empty() or opened == now:
+				RouteLine.clear(route_line)
+			else:
+				RouteLine.draw_route(route_line, opened, Color(UiStyle.GOLD, 0.6), 6.0, now)
+			return
 		if not blocking or map == null:
 			RouteLine.clear(route_line)
 			return
@@ -508,6 +554,19 @@ class GiftPlacer extends Node2D:
 
 	func _draw() -> void:
 		var half: Vector2 = map.MAP_GRID.cell_size / 2.0
+		if kind == &"obstacles":  # Each picked obstacle: a gold outline and an "×"; the hovered one outlined
+			for at in cells:
+				for c in map.get_obstacle_cells(at):
+					var rect := Rect2(map.MAP_GRID.calculate_map_position(c) - half, half * 2.0).grow(-3)
+					draw_rect(rect, Color(UiStyle.GOLD, 0.95), false, 2.5)
+					draw_line(rect.position + Vector2(10, 10), rect.end - Vector2(10, 10), Color(UiStyle.GOLD, 0.9), 3.0)
+					draw_line(Vector2(rect.end.x - 10, rect.position.y + 10), Vector2(rect.position.x + 10, rect.end.y - 10), Color(UiStyle.GOLD, 0.9), 3.0)
+			if map.obstacles.has(hover):
+				var free := cells.size() < int(size) or _picked_obstacle(hover) != Vector2(-1, -1)
+				for c in map.get_obstacle_cells(hover):
+					draw_rect(Rect2(map.MAP_GRID.calculate_map_position(c) - half, half * 2.0).grow(-3),
+						Color(Palette.SPRIG if free else Palette.EMBER, 0.6), false, 2.0)
+			return
 		var draw_cells: Array = placement().cells.duplicate()
 		for c in froms:
 			draw_rect(Rect2(map.MAP_GRID.calculate_map_position(c) - half, half * 2.0), Color(Palette.EMBER, 0.35))
