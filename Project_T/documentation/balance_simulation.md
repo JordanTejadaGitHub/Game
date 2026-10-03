@@ -786,7 +786,7 @@ draw rule); if not, act 1 eases instead.
 (own damage ≈ 0.6× Driftspore or more; Balancing Discussion owns it): Sporeling driftspore, inkcap,
 lichenling, brood_cap; Dewdrop rain_lily, mistveil, cloudlet, undercurrent, jetreed; Firefly Jar jarlink,
 sparkler; Bellflower chime_stone, thrum; Pebbling cairn, standing_stone, whetstone, rampart, quaker;
-Rootling rootcurl, tangleroot, rootlight; **Acorn exempt** (no carry branch). Act 1 numbers unchanged
+Rootling rootcurl, tangleroot, rootlight; **Acorn exempt** (no carry branch). Built in a1b934d0 (`DreamState.CARRY_BRANCHES`); detection weight ×3 after coverage fell to 73%. Act 1 numbers unchanged
 until the re-run.
 
 **4. Grove cap on main** (ed114826, before the branch raises; a bot gift-screen stall voided the first
