@@ -277,6 +277,9 @@ const REACTION_ICONS := ["thunderclap", "ignite", "mushrooming", "drown", "shatt
 const CROWNED_ICONS := ["tempest", "still_pool", "fever_dream", "starfall", "avalanche", "prismstorm", "nightbloom", "fairy_circle"]
 # Legendary Dream marks for discovery cards and the Codex (Dawnbreak fires at a Chain 10).
 const LEGENDARY_ICONS := ["dawnbreak"]
+# Statuses added after the sheet was laid out: appended at the end so no column moves; listed under
+# "statuses" in icons.json with the rest.
+const LATE_STATUS_ICONS := ["silenced"]
 # Ids that share another icon's column.
 const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_cost", "dreamlight": "dreamlight_cost"}
 
@@ -287,7 +290,7 @@ var _n := ICON  # size of the icon being drawn (16; the Omen card emblems are 32
 
 func _make_icons() -> void:
 	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS + OMEN_ICONS \
-		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS
+		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS + LATE_STATUS_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
@@ -298,7 +301,7 @@ func _make_icons() -> void:
 	for alias: String in ICON_ALIASES:
 		index[alias] = index[ICON_ALIASES[alias]]
 	sheet.save_png(OUT + "icons.png")
-	var data := {frame_size = ICON, icons = index, statuses = STATUS_ICONS, stats = STAT_ICONS,
+	var data := {frame_size = ICON, icons = index, statuses = STATUS_ICONS + LATE_STATUS_ICONS, stats = STAT_ICONS,
 		nightmare = NIGHTMARE_ICONS + ["hidden", "always_damp", "burrows"], damage_type = DAMAGE_TYPE_ICONS,
 		resources = RESOURCE_ICONS + ["dew", "dreamlight"],
 		omen = OMEN_ICONS,
@@ -2070,3 +2073,14 @@ func _ic_grow_spotlight() -> void:
 			y += 16
 		_dt(m.x, y, Palette.color("glow"))
 		_dt(m.x, y + 1, Palette.color("gold"))
+# Late statuses ------------------------------------------------------------------------------------
+
+func _ic_silenced() -> void:
+	# Silenced (Hushbell): a pale bell muffled by a band of moss, crossed out by a gold line; the same
+	# read as the overhead silence_mark effect.
+	var bell := _rpn("moonlight", "mist", "stone")
+	_c_poly(PackedVector2Array([Vector2(8, 1.6), Vector2(11.2, 4.4), Vector2(12, 10.4), Vector2(13.6, 12.4),
+		Vector2(2.4, 12.4), Vector2(4, 10.4), Vector2(4.8, 4.4)]), bell)
+	_c_disc(Vector2(8, 14), 1.4, _rpn("mist", "stone", "slate"))
+	_c_rect(Rect2i(4, 6, 8, 2), _rpn("sprig", "leaf", "moss"))
+	_c_line([Vector2(1.4, 15), Vector2(14.6, 1.4)], 1.3, _rpn("heartlight", "glow", "gold"))
