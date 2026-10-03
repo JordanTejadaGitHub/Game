@@ -235,6 +235,9 @@ const ON_CHOICE_SCREENS: Array[StringName] = [&"let_pass", &"omen"]
 var _hidden_for_choice := false
 
 func _choice_open() -> bool:
+	var pause := get_node_or_null("%PauseMenu") as Control  # The pause menu and its Codex cover the screen too
+	if pause != null and pause.visible:
+		return true
 	return drift_director != null and (drift_director.pending_choice() != &"" or drift_director.awaiting_family_pick)
 
 func _show_next() -> void:
