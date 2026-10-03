@@ -169,6 +169,8 @@ static func role_text(form: TowerData) -> String:
 		var tag = form.get("role_tag")
 		if tag != null and ROLE_TAG_WORDS.has(StringName(tag)):
 			return ROLE_TAG_WORDS[StringName(tag)]
+		if tag != null and ROLE_WORDS.has(StringName(tag)):
+			return ROLE_WORDS[StringName(tag)]  # A counter job named as a role only (it doesn't weight the branch draw)
 	return ", ".join(words.slice(0, 2))
 
 # "Counters flyers, tanks", "" without tags.
