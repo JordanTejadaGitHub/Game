@@ -94,6 +94,8 @@ static func create_tile_set(act: int = 1) -> TileSet:
 				if id == WITHERED_TREE:
 					source.set_tile_animation_speed(coords, TREE_SPEEDS[row % TREE_SPEEDS.size()])
 				_anchor_bottom(source, coords, region)
+				if id == WITHERED_TREE:
+					_add_fade_alternatives(source, coords, region, grid.y)
 		else:
 			for row in grid.y:
 				for column in grid.x:
@@ -101,6 +103,24 @@ static func create_tile_set(act: int = 1) -> TileSet:
 					_anchor_bottom(source, Vector2i(column, row), region)
 		tile_set.add_source(source, id)
 	return tile_set
+
+# Withered Trees fade their overhang over what's behind them (TallObstacleFade): alternative tiles
+# 1..FADE_STEPS, each a step closer to FADE_ALPHA. They share the base tile's animation.
+const FADE_STEPS := 3
+const FADE_ALPHA := 0.45
+const FADE_SHADER := preload("res://shaders/obstacle_fade.gdshader")
+
+static func _add_fade_alternatives(source: TileSetAtlasSource, coords: Vector2i, region: Vector2i, rows: int) -> void:
+	for step in range(1, FADE_STEPS + 1):
+		var alternative := source.create_alternative_tile(coords, step)
+		var material := ShaderMaterial.new()  # Per tile set (no static Resources: they crash at exit)
+		material.shader = FADE_SHADER
+		material.set_shader_parameter(&"top_alpha", lerpf(1.0, FADE_ALPHA, float(step) / FADE_STEPS))
+		material.set_shader_parameter(&"rows", float(rows))
+		material.set_shader_parameter(&"top_share", float(region.y - SIZE.y) / region.y)
+		var data := source.get_tile_data(coords, alternative)
+		data.material = material
+		data.texture_origin = source.get_tile_data(coords, 0).texture_origin
 
 # A big tile (96×128) puts its bottom 64 px rows on its own cell, centred; the rest overhangs the cells around.
 static func _anchor_bottom(source: TileSetAtlasSource, coords: Vector2i, region: Vector2i) -> void:

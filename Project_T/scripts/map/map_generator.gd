@@ -40,6 +40,7 @@ var omen_mist: OmenMist  # Low gold-violet mist while an Omen twists the block
 var build_hatch: BuildHatch  # In build mode: a cold hatch on every unbuildable cell
 var lighting: EnvironmentLighting  # Cold edges, warm Warden lights
 var ambience: EnvironmentAmbience  # Edge fog and the act's particles
+var tree_fade: TallObstacleFade  # Withered Trees fade their overhang over what's behind them
 var gifts: MapGifts  # Heartwood's Gifts: terrain the act-break gifts leave (map_gifts.gd)
 
 
@@ -127,6 +128,11 @@ func _ready() -> void:
 	ambience = EnvironmentAmbience.new()
 	ambience.heartwood_position = heartwood.position
 	add_child(ambience)
+	tree_fade = TallObstacleFade.new()
+	tree_fade.map = self
+	tree_fade.tower_container = get_node_or_null("%TowerContainer")
+	tree_fade.enemy_container = get_node_or_null("%EnemyContainer")
+	add_child(tree_fade)
 	gifts = MapGifts.new()
 	gifts.name = "Gifts"
 	gifts.map = self
