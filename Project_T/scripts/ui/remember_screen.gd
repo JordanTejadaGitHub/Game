@@ -21,8 +21,10 @@ signal unlock_rejected(data: TowerData)  # Not enough Dreamlight, or still locke
 const MOTE := "✦"  # Dreamlight
 const UNKNOWN_NAME := "???"  # A form the Memory Grove hasn't planted: no name, on the tree or in the panel (user)
 const NODE_SIZE := Vector2(76, 92)  # 48 px+ for touch
+const NAME_SIZE := 14  # Form names under the portraits (body font)
+const NAME_MIN_SIZE := 11  # A long name shrinks to this, then ends in "…"
 const PORTRAIT := 56.0
-const TREE_SIZE := Vector2(560, 440)
+const TREE_SIZE := Vector2(560, 390)  # Shorter since the "Not in this dream" strip sits under it (fits 1280×800)
 const SIDE_WIDTH := 300.0
 const NARROW_WIDTH := 900.0  # Below this the side panel sits under the tree and slides up
 const FRAME_TIME := 0.16  # Idle animation
@@ -32,8 +34,6 @@ const BLOOM_COLOR := UiStyle.GOLD
 const PATH_GLOW := UiStyle.GOLD  # Lines to unlocked / grown forms
 const HEADER_COLOR := UiStyle.INK
 const STATUS_LINE_COLOR := Color("9cd4fc")  # Dewlight
-const WAYSTONE_COLOR := Color(UiStyle.CARD_BG, 0.95)  # Night
-const WAYSTONE_RIM := Color("3c3c5c")  # Dusk
 
 enum State { GROWN, UNLOCKED, CAN_UNLOCK, NEEDS_LIGHT, LOCKED, GROVE, NOT_IN_DREAM }  # NOT_IN_DREAM: branch expansion
 
@@ -52,6 +52,7 @@ var _body: BoxContainer
 var _canvas: TreeCanvas
 var _side := PanelContainer.new()
 var _side_box := VBoxContainer.new()
+var _misty := VBoxContainer.new()  # "Not in this dream": the family's branches not offered this run
 var _dev_free := CheckButton.new()  # "Dev: unlock free" (dev runs of debug builds)
 
 func _ready() -> void:
@@ -65,7 +66,10 @@ func _ready() -> void:
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
 	var frame := PanelContainer.new()
-	frame.add_theme_stylebox_override("panel", UiStyle.panel(18, 14))
+	var frame_style := UiStyle.panel(18, 14)
+	frame_style.edge_alpha = ChoiceCard.EDGE_ALPHA  # Solid like the other paused screens: the map's DPS tags showed through
+	frame_style.center_alpha = ChoiceCard.CENTER_ALPHA
+	frame.add_theme_stylebox_override("panel", frame_style)
 	center.add_child(frame)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
@@ -94,6 +98,9 @@ func _ready() -> void:
 	_side_box.add_theme_constant_override("separation", 6)
 	_side.add_child(_side_box)
 	_body.add_child(_side)
+	_misty.name = "NotInDream"  # Branch expansion: this family's branches not in this run, apart from the tree
+	_misty.add_theme_constant_override("separation", 4)
+	box.add_child(_misty)
 
 	var footer := HBoxContainer.new()
 	footer.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -204,6 +211,70 @@ func _rebuild() -> void:
 		selected = _first_to_unlock(shown)
 	_canvas.show_tree(shown)
 	_fill_side(selected)
+	_fill_misty(shown[0])
+
+# The strip under the tree (story chat: the not-offered branches beside the base read as its siblings): each
+# branch of `root`'s family not in this run, a faint silhouette with its name and "Call in · 3 Dreamlight" (once per
+# family; free with Remembered Path; greyed after use). A tap on one shows it in the side panel too.
+const MISTY_PORTRAIT := 40.0
+
+func _fill_misty(root: TowerData) -> void:
+	for child in _misty.get_children():
+		_misty.remove_child(child)
+		child.queue_free()
+	var forms: Array[TowerData] = dream_state.not_offered_branches(root) if root.tier == 1 else ([] as Array[TowerData])
+	_misty.visible = not forms.is_empty()
+	if forms.is_empty():
+		return
+	var head := Label.new()
+	head.text = "Not in this dream"
+	UiStyle.caps(head, 15)
+	head.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	_misty.add_child(head)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 18)
+	_misty.add_child(row)
+	for form in forms:
+		var item := HBoxContainer.new()
+		item.name = "Misty_" + form.get_id()
+		item.add_theme_constant_override("separation", 8)
+		row.add_child(item)
+		var look := Button.new()  # The silhouette: a tap shows it in the side panel
+		look.flat = true
+		look.focus_mode = Control.FOCUS_NONE
+		look.custom_minimum_size = Vector2(MISTY_PORTRAIT, MISTY_PORTRAIT)
+		look.tooltip_text = form.display_name + " · not in this dream"
+		look.draw.connect(func() -> void:  # The moonlit disc behind the silhouette (as on the tree), faint
+			UiStyle.draw_moon_disc(look, look.size / 2.0, MISTY_PORTRAIT / 2.0 - 1))
+		look.modulate = Color(1, 1, 1, 0.6)  # multiplier: the mist
+		var portrait := Portrait.new(form, MISTY_PORTRAIT, true)
+		portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		look.add_child(portrait)
+		look.pressed.connect(_select.bind(form))
+		item.add_child(look)
+		var words := VBoxContainer.new()
+		item.add_child(words)
+		var name_label := Label.new()
+		name_label.text = form.display_name
+		name_label.add_theme_font_override("font", UiStyle.body_font())
+		name_label.add_theme_font_size_override("font_size", 15)
+		name_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		words.add_child(name_label)
+		var call := Button.new()
+		call.name = "CallIn"
+		call.focus_mode = Control.FOCUS_NONE
+		var problem := dream_state.call_back_problem(form)
+		var free := dream_state.free_calls > 0
+		call.text = "Call in · free" if free else "Call in · %d Dreamlight" % DreamState.CALL_BACK_DREAMLIGHT
+		call.disabled = problem != ""
+		call.tooltip_text = (problem[0].to_upper() + problem.substr(1) + ".") if problem != "" \
+			else "Once per family each run. Its final still costs %d." % DreamState.FINAL_DREAMLIGHT
+		call.pressed.connect(func() -> void:
+			if dream_state.call_back(form):
+				selected = form
+				_rebuild()
+				_canvas.bloom(form))
+		words.add_child(call)
 
 # The form to show first: one that can be unlocked now, else the base.
 func _first_to_unlock(tree: Array) -> TowerData:
@@ -394,9 +465,14 @@ func _add_combos(data: TowerData) -> void:
 	if found.is_empty():
 		return
 	UiStyle.caps(_line("Combos", UiStyle.INK_DIM, 13), 15)  # A small-caps section label
-	# {combo:<id>} links (Main's StatusLinks, 43acd9f8): the name or ??? until found; hover or tap shows the combo
-	# tip, a second tap opens it in the Codex (user: "hovering over combos doesn't do anything").
-	var tokens: Array = found.slice(0, 6).map(func(combo: Dictionary) -> String: return "{combo:%s}" % combo.id)
+	# {combo:<id>} links (Main's StatusLinks, 43acd9f8) for the combos found so far; hover or tap shows the combo tip,
+	# a second tap opens it in the Codex (user: "hovering over combos doesn't do anything"). The undiscovered ones are
+	# a count, never a row of ??? (story chat: "Combos: ??? · ??? · ???" meant nothing).
+	var discovered: Array = found.filter(func(combo: Dictionary) -> bool: return CodexData.is_discovered(StringName(combo.id)))
+	var hidden := found.size() - discovered.size()
+	var tokens: Array = discovered.slice(0, 6).map(func(combo: Dictionary) -> String: return "{combo:%s}" % combo.id)
+	if hidden > 0:
+		tokens.append("%d to discover" % hidden)
 	var links := StatusLinks.make_label(" · ".join(tokens), 15, UiStyle.INK)
 	links.name = "Combos"
 	links.custom_minimum_size = Vector2(SIDE_WIDTH - 30, 0)
@@ -576,11 +652,7 @@ class TreeCanvas extends Control:
 					edges.append([finals[j], ascended])
 		if ascended != null:
 			_place(ascended, Vector2(TREE_SIZE.x / 2.0, _row_y(3, rows)))
-		var low_y := _row_y(0, rows)  # Down at the root's level, below every offered branch
-		for i in misty.size():  # Out to the sides, clear of the root: outer pair first, then the inner
-			var side := -1.0 if i % 2 == 0 else 1.0
-			var reach := 0.40 if i < 2 else 0.25
-			_place(misty[i], Vector2(TREE_SIZE.x * (0.5 + side * reach), low_y))
+		# The branches not in this dream (misty) aren't in the tree: the strip under it shows them (_fill_misty)
 		queue_redraw()
 
 	# Top of row `row` (0 = the root, at the bottom).
@@ -660,7 +732,7 @@ class FormNode extends Button:
 			portrait.modulate = Color.WHITE.darkened(0.2)  # Grove-available, not unlocked this run: its real colours, ~80%
 		portrait.position = Vector2((NODE_SIZE.x - PORTRAIT) / 2.0, 4)
 		add_child(portrait)
-		tooltip_text = UNKNOWN_NAME + " · Memory Grove" if state == State.GROVE else data.display_name  # Grove-locked: no name (user)
+		tooltip_text = UNKNOWN_NAME + " · Plant it in the Memory Grove" if state == State.GROVE else data.display_name  # Grove-locked: no name (user), the hint
 		if state == State.NOT_IN_DREAM:  # Branch expansion: a faint, misty silhouette
 			modulate = Color(1, 1, 1, 0.5)  # multiplier: the mist
 			tooltip_text = data.display_name + " · not in this dream"
@@ -674,10 +746,7 @@ class FormNode extends Button:
 	func _draw() -> void:
 		var state := screen.state_of(data)
 		var centre := Vector2(NODE_SIZE.x / 2.0, 4 + PORTRAIT / 2.0)
-		# The waystone under the portrait
-		var stone := centre + Vector2(0, PORTRAIT / 2.0 - 2)
-		draw_circle(stone, PORTRAIT / 2.0 - 6, WAYSTONE_COLOR)
-		draw_arc(stone, PORTRAIT / 2.0 - 6.5, 0.0, TAU, 40, WAYSTONE_RIM, 1.0, true)
+		# (No waystone disc under the portrait: offset below it, it read as a doubled ghost ring: story chat screenshot)
 		if not RememberScreen.is_unlocked_state(state):  # The lit backdrop that makes the silhouette readable
 			UiStyle.draw_moon_disc(self, centre, PORTRAIT / 2.0 - 1)
 		if screen.selected == data:
@@ -691,7 +760,7 @@ class FormNode extends Button:
 			State.GROWN:
 				text = "×%d" % screen.count_on_map(data)
 			State.CAN_UNLOCK, State.NEEDS_LIGHT:
-				_caption(data.display_name, UiStyle.caps_font(), 11, UiStyle.INK_DIM, NODE_SIZE.y - 19)  # Its name above the motes
+				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.INK_DIM, NODE_SIZE.y - 19)  # Its name above the motes
 				var price: int = screen.dream_state.get_unlock_price(data)
 				text = MOTE.repeat(price) if price > 0 else "free"
 				colour = UiStyle.GOLD if state == State.CAN_UNLOCK else UiStyle.INK_DIM
@@ -706,22 +775,25 @@ class FormNode extends Button:
 				colour = UiStyle.INK_DIM
 				_draw_leaf(centre + Vector2(PORTRAIT / 2.0 - 8, -PORTRAIT / 2.0 + 8))
 		if text != "":
-			# Counts and motes in the number face; "locked" / "Grove" as small-caps labels.
+			# Counts and motes in the number face; names in the body font, readable (story chat: small caps were tiny)
 			var words := state == State.LOCKED or state == State.GROVE or state == State.NOT_IN_DREAM
-			var font := UiStyle.caps_font() if words else UiStyle.number_font()
-			var font_size := 12 if words else 16
+			var font := UiStyle.body_font() if words else UiStyle.number_font()
+			var font_size := NAME_SIZE if words else 16
 			_caption(text, font, font_size, colour, NODE_SIZE.y - 6)
 
 	# The name this node shows: "???" for a form the Memory Grove hasn't planted (user), else its own.
 	func name_shown() -> String:
 		return UNKNOWN_NAME if screen.state_of(data) == State.GROVE else data.display_name
 
-	# One centred line under the portrait; a long name shrinks to 10 px, never past the node.
+	# One centred line under the portrait: a long name shrinks (down to NAME_MIN_SIZE), then ends in "…", never past
+	# the node ("Undercurrent" overflowed).
 	func _caption(text: String, font: Font, font_size: int, colour: Color, baseline: float) -> void:
+		var room := NODE_SIZE.x - 4
+		while font_size > NAME_MIN_SIZE and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > room:
+			font_size -= 1
+		while text.length() > 3 and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > room:
+			text = text.left(text.length() - 2) + "…"
 		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
-		if width > NODE_SIZE.x - 4 and font_size > 10:
-			font_size = 10
-			width = minf(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x, NODE_SIZE.x - 4)
 		draw_string(font, Vector2((NODE_SIZE.x - width) / 2.0, baseline), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
 
 

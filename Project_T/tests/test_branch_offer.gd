@@ -136,19 +136,23 @@ func _run() -> void:
 	dreams.load_save(saved)
 	_check(dreams.get_branch_offer(base) == offer_before and dreams.called_families.has(base.get_id()), "the offer and the call survive the save")
 
-	# The Remember screen: the last branch not in this dream is a misty silhouette at the root's level, its final
-	# hidden; the side panel says so and calls it back (once per family: here only Remembered Path's free call can)
+	# The Remember screen: the last branch not in this dream sits in the "Not in this dream" strip under the tree, not
+	# in it (story chat: beside the base it read as its sibling), a faint silhouette with its name and "Call in"; the
+	# tree shows only this run's branches and finals; the side panel says so and calls it back (once per family: here
+	# only Remembered Path's free call can)
 	var screen := main.get_node("%RememberScreen") as RememberScreen
 	var misty: TowerData = dreams.not_offered_branches(base)[0]
 	screen.open(base)
 	await process_frame
 	var nodes: Dictionary = screen._canvas.nodes
 	var shown_branch: TowerData = _form_by_id(branches, offer[0])
-	_check(nodes.has(misty) and screen.state_of(misty) == RememberScreen.State.NOT_IN_DREAM, "Remember shows it \"not in this dream\"")
-	_check(not nodes.has(misty.evolves_to[0]) and nodes.has(shown_branch.evolves_to[0]), "…without its final (offered branches keep theirs)")
-	_check(nodes.has(misty) and nodes.has(shown_branch) and nodes[misty].position.y > nodes[shown_branch].position.y,
-		"…lower in the tree than the offered branches")
-	_check(nodes.has(misty) and nodes[misty].modulate.a < 1.0, "…faint")
+	_check(screen.state_of(misty) == RememberScreen.State.NOT_IN_DREAM and not nodes.has(misty) and not nodes.has(misty.evolves_to[0]),
+		"Remember keeps it and its final out of the tree")
+	_check(nodes.has(shown_branch) and nodes.has(shown_branch.evolves_to[0]), "…the tree shows this run's branches and their finals")
+	var strip_item := screen._misty.find_child("Misty_" + misty.get_id(), true, false)
+	var call_in: Button = strip_item.find_child("CallIn", true, false) if strip_item else null
+	_check(screen._misty.visible and strip_item != null and call_in != null and call_in.disabled,
+		"…it's in the \"Not in this dream\" strip, its Call in greyed (this family already called one back)")
 	screen._select(misty)
 	var call: Button = screen._side_box.find_child("CallBackButton", true, false)
 	var side_text := " ".join(screen._side_box.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text))
