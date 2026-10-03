@@ -756,6 +756,14 @@ were at 0.1–0.4 of the route, nothing near the Heartwood.
 - Nestling isn't expanded yet (the sky merge is Phase 3), so both branches were offered and the user picked
   the support. Not a draw issue; watch whether Magpie Perch reads as a trap first pick.
 
+## Nurture rework (2026-10-03, tower_design / warden_stats 02417f32; in e2631f54, boss side 0a309566)
+
+Numbers: Keen +10% crit chance per rank (cap 75%); Yield +1 alive per 2 ranks (Brood Cap, Seedbearer), Dream
+Oak +0.5 shard / drift per rank; Reach +0.3 cells; Deep caps (pull 1.5×, grounding 5 s, link 50%, boss
+slow floor 0.35); supports Prism +2%, Acorn +1%, Nurse Log +3% (40% max). **Probe** (rank V, no Dreams):
+**Keen 0.61–0.82× Power** per Dew; **Brood Cap Yield 0.56×** (max-alive rarely binds). Changes: **Keen also
++10% crit damage per rank**; **Brood Cap Yield = sprite interval −0.25 s per rank** (floors 0.75 / 0.5 s).
+
 ## Human run 15 (2026-10-03, 83d9b3b0 → 5692de; before the finale-health fix, Dev Grove: Full)
 
 **Lost at drift 39**, 18 min. Pebbling → Rootling; 7 Mossbacks carried (from combos 26–34%); run combo share
