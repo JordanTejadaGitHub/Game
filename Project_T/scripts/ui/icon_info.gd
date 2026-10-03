@@ -47,7 +47,7 @@ const RESOURCES := {
 	&"dreamlight": ["Dreamlight", "Unlocks branches, final forms and Ascended forms on the Remember screen (at rests)."],
 	&"leaves": ["Leaves", "The Heartwood's life: a nightmare that reaches it takes leaves. Lose them all and the dream goes dark."],
 	&"seeds": ["Seeds", "Earned every run, win or lose; spent in the Memory Grove."],
-	&"path": ["Path length", "How many tiles nightmares walk to the Heartwood. Longer is better."],
+	&"path": ["Path length", "How many cells the nightmares walk. Longer is better."],
 }
 
 # Damage types (enemy_design.md "Damage types"): what nightmares resist or fear, shown everywhere as a
