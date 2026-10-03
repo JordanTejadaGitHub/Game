@@ -188,6 +188,37 @@ func _run() -> void:
 		print("  (demo phase check skipped: TowerData.expansion_phase isn't on this branch yet)")
 	ResultsScreen.demo_override = 0
 
+	# Wider Roots (Grove perk, meta_design.md 1f25e66e): the first family picked offers 3 of its branches, and calling
+	# one of its others back costs 4; the first pick's cards preview the 3
+	var wide := _form("test_wide", 1)
+	wide.buildable_directly = true
+	for i in 5:
+		var b := _form("test_w%d" % (i + 1), 2)
+		b.evolves_to.append(_form("test_wf%d" % (i + 1), 3))
+		wide.evolves_to.append(b)
+	placer.towers.append(wide)
+	dreams.wider_roots = true
+	dreams.wider_roots_family = ""
+	dreams.drift_director.family_pick_requested.emit(&"first")
+	var wide_preview: Array = dreams.preview_branch_offer(wide)
+	_check(wide_preview.size() == 3, "Wider Roots: the first pick's card previews 3 branches (%s)" % [wide_preview])
+	dreams.unlocked[wide.get_id()] = true
+	dreams.unlocks_changed.emit()
+	_check(dreams.get_branch_offer(wide) == wide_preview and dreams.wider_roots_family == wide.get_id(),
+		"…the family picked gets those 3 and is the Wider Roots family")
+	var wide_off: TowerData = dreams.not_offered_branches(wide)[0]
+	_check(dreams.call_back_cost(wide) == DreamState.WIDER_ROOTS_CALL_BACK and dreams.call_back_cost(base) == DreamState.CALL_BACK_DREAMLIGHT,
+		"…calling one of its branches back costs %d (others %d)" % [DreamState.WIDER_ROOTS_CALL_BACK, DreamState.CALL_BACK_DREAMLIGHT])
+	dreams.free_calls = 0
+	dreams.dreamlight = DreamState.WIDER_ROOTS_CALL_BACK - 1
+	_check(dreams.call_back_problem(wide_off) == "Not enough Dreamlight", "…3 Dreamlight isn't enough there")
+	var saved_wide := JSON.parse_string(JSON.stringify(dreams.to_save())) as Dictionary
+	dreams.wider_roots_family = ""
+	dreams.load_save(saved_wide)
+	_check(dreams.wider_roots_family == wide.get_id(), "…the family is saved with the run")
+	dreams.wider_roots = false
+	placer.towers.erase(wide)
+
 	placer.towers.erase(base)
 	main.queue_free()
 	await process_frame
