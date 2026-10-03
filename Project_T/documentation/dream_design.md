@@ -920,7 +920,7 @@ Evolving is still the better buy when a Dream allows it; Nurture cards make rank
 | 61 | **Warm Hands** | Common | each Nurture rank gives **+3% more damage** (10% → 13%; stacks) | nurture | *opener:* 30+ Dew spent on ranks | Start |
 | 62 | **Kindred Roots** | Uncommon | each Warden gets **+2% damage per rank of the Wardens touching it** (max +30%) | nurture, maze | any `nurture` card (soft) + **1** ranked Warden (was 2; trim round 2) | Start |
 | 63 | **Remembered Care** | Uncommon | selling a ranked Warden leaves a **memory seed** on the HUD; the next Warden you plant starts at that rank (one seed at a time, the highest one is kept) | nurture | any `nurture` card + a rank III+ Warden | Start |
-| 64 | **Sunlit Rest** | Uncommon | at every rest, your ranked Warden **nearest the Heartwood** that isn't at max rank gains a free rank; **with none ranked, your attacking Warden nearest the Heartwood gains rank I** (trim round 2) | nurture | — (an opener since trim round 2) | Grove |
+| 64 | **Sunlit Rest** | Uncommon | **At every rest, the attacking Warden nearest the Heartwood gains a free Nurture rank.** *(Simplified 2026-10-03, user: "confusing"; was a two-branch rule: ranked Warden first, else rank I)* | nurture | — (an opener) | Grove |
 | 65 | **Deeper Rings** | Rare | **one Warden, the Eldest,** can grow past V to rank **VII**: VI costs 130, VII costs 180 (same gains per rank) | nurture | any `nurture` card + a rank V Warden | Grove |
 | 66 | **Nursery** | Rare, **Entwined** | Seedling Gift's free Sprouts arrive at **rank II**, and Sprouts nurture for half price | nurture, sprout | Tender Care + Seedling Gift | Grove |
 | 67 | **The Old Ones** | Legendary | rank V+ Wardens make the Wardens touching them count **one rank higher** (doesn't stack with itself). *(2026-09-28: the "+2% crit chance per rank" half was removed: one archetype per Legendary)* | nurture | — | Grove |
@@ -972,8 +972,14 @@ above V belong to **one Warden per run**, the Eldest:
   rank V refunds ~170 Dew at a rest, then comes back for free). If the seed is later replaced by a
   higher one, that Dew is lost. The seed survives
   the run save. It's shown as a small glowing seed next to the Dew counter.
-- **Sunlit Rest** picks the Warden nearest the Heartwood by path distance (the same order as group
-  Nurture). If none is ranked, nothing happens (you need to nurture once first).
+- **Sunlit Rest** (simplified 2026-10-03): the **attacking Warden nearest the Heartwood** (path
+  distance, the same order as group Nurture) gains a free rank, ranked or not. If it's already at its
+  max rank (V, or VII for the Eldest with Deeper Rings), the **next-nearest** gets it. The **rank
+  choice** (Power / Swift / Reach / Deep, or a support Warden's Wide / Strong / Kindred) **repeats
+  that Warden's latest choice**, or **Power** (support: Strong) if it has none yet, so no pop-up at the
+  rest. The tooltip says so; the face doesn't. **Live line:** *"Next rest: your Sporeling by the
+  Heartwood"* (the Warden it will hit), and the rank shows with the bloom at the rest. The
+  impact preview counts **1 Warden**, not all attackers. Sunlit Rest II: the two nearest.
 - **The Old Ones' neighbour bonus** counts for stats only (not for Deeper Rings' cap, not for Chosen
   Few's rank V check), so it can't chain.
 - **Deepened:** **Kindred Roots II** +3% per rank (max +45%); **Remembered Care II** keeps two seeds;
