@@ -753,6 +753,12 @@ Rainbow Prism 0.72 / 0.64×, Prism Jar 0.38× → **last nudge** (19941de6): Fen
 **Bells** (Silver Bell, Vesper Bell, Hushbell) still below par on leak; left for human runs (their
 sleep / silence value needs real builds). The new-branch probe series is closed.
 
+**2. Act 1 baseline** (fresh, real boss draw, 30 seeds): Balanced survives the boss **30%** (target ~55–60%;
+14/30 die before 25), skip **0%** ✓. Finales: drift 10 0.62 leaves (86% clean), 15 0.92 (81%), **20: 2.53
+(29% clean)**. Below the Spire branch's own 50–55% on the same act 1 rules, so something since then made
+act 1 harder for the bot: A/B queued (branch expansion on / off, and the pre-expansion branch build)
+before choosing a lever (finale health, the drift 20 finale, or the ramp).
+
 ## Combo share of damage (user-approved, 2026-10-02)
 
 The user's Warden panels showed 52–76% of damage "from combos". **Target: in a good build, combos and
