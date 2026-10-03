@@ -350,3 +350,7 @@ full game (`game/demo` false), and the demo reads main's exports.
   Probe queued after the act 1 A/B.
 - 2026-10-02: Dream Oak's own cap in **7ee88bf2** (Roguelite Code: `add_source_shards`, 4 Dreamlight per run,
   separate from Great Dreamcatcher's shared cap of 2).
+- 2026-10-02: **detection coverage**: Quaker / Earthshaker's slam reveals Lurkers 3 s (Tower Discussion
+  219a7a9c); the tag alone gave 63%, so the draw weighs detection ×2 (Roguelite 7d17c35f). Now (100 runs, 4
+  random families): detection **79%**, anti_tank 91, anti_air 87, anti_swarm 87, boss_abilities 74,
+  anti_support 64, anti_armour 54; 9+ pairs per family, none above 25%. Accepted.
