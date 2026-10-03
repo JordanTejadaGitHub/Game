@@ -468,6 +468,20 @@ func add_dreamlight_shard() -> void:
 	if dreamlight_shards % SHARDS_PER_DREAMLIGHT == 0:
 		add_dreamlight(1, &"shard")
 
+# Shards from one source with its own cap (Tower Code: Dream Oak / Dreamroot, up to 4 Dreamlight a run, apart from
+# Great Dreamcatcher's 2): `shards` more for `source`, every SHARDS_PER_DREAMLIGHT one Dreamlight, stopping at
+# `max_dreamlight` × 10. Saved with the run (source_shards).
+var source_shards := {}  # Source -> shards gathered this run
+
+func add_source_shards(source: StringName, shards: int, max_dreamlight: int) -> void:
+	var cap := SHARDS_PER_DREAMLIGHT * max_dreamlight
+	var had: int = source_shards.get(source, 0)
+	var now := mini(had + maxi(shards, 0), cap)
+	source_shards[source] = now
+	var gained := now / SHARDS_PER_DREAMLIGHT - had / SHARDS_PER_DREAMLIGHT
+	if gained > 0:
+		add_dreamlight(gained, source)
+
 # Dreamlight to unlock `data` for the run: 1 for a branch, hidden branch or wall growth, 2 for a
 # final form. 0 = already unlocked.
 func get_unlock_cost(data: TowerData) -> int:
@@ -2408,7 +2422,7 @@ func to_save() -> Dictionary:
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
 		"run_pool": run_pool.keys(), "run_pool_waiting": _run_pool_waiting.keys(), "run_pool_families": _run_pool_families.keys(),
 		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
-		"dreamlight_shards": dreamlight_shards, "sprout_charges": run_state.sprout_charges,
+		"dreamlight_shards": dreamlight_shards, "source_shards": source_shards.duplicate(), "sprout_charges": run_state.sprout_charges,
 		"eldest_cell": [_eldest_cell.x, _eldest_cell.y], "court_pending": _court_pending,
 		"passed_count": _passed_count.duplicate(), "passed_at": _passed_at.duplicate(),
 		"owed_families": _owed_families.duplicate(), "declined_families": _declined_families.duplicate(),
@@ -2492,6 +2506,10 @@ func load_save(data: Dictionary) -> void:
 	dreamlight = int(data.get("dreamlight", 0))
 	dreamlight_changed.emit(dreamlight)
 	dreamlight_shards = int(data.get("dreamlight_shards", 0))
+	source_shards.clear()
+	var saved_sources: Dictionary = data.get("source_shards", {})
+	for source in saved_sources:
+		source_shards[StringName(source)] = int(saved_sources[source])  # JSON keys come back as strings
 	var eldest: Array = data.get("eldest_cell", [-1, -1])
 	_eldest_cell = Vector2(eldest[0], eldest[1])
 	_court_pending = bool(data.get("court_pending", false))

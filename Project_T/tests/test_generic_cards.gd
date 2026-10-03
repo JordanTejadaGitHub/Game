@@ -56,6 +56,7 @@ func _run() -> void:
 	_test_grove_branches()
 	_test_clearing_payoffs()
 	_test_combo_choices()
+	_test_source_shards()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -1080,3 +1081,22 @@ func _hold(id: String) -> void:
 	for need in card.requires:
 		dreams.unlocked[need] = true
 	dreams.stacks[id] = 1
+
+# Per-source shards (Tower Code: Dream Oak / Dreamroot up to 4 Dreamlight a run, apart from Great Dreamcatcher's 2)
+func _test_source_shards() -> void:
+	dreams.source_shards.clear()
+	var before := dreams.dreamlight
+	dreams.add_source_shards(&"dream_oak", 9, 4)
+	_check(dreams.dreamlight == before and dreams.source_shards[&"dream_oak"] == 9, "9 shards: no Dreamlight yet")
+	dreams.add_source_shards(&"dream_oak", 1, 4)
+	_check(dreams.dreamlight == before + 1, "the 10th shard gives 1 Dreamlight")
+	dreams.add_source_shards(&"dream_oak", 100, 4)
+	_check(dreams.dreamlight == before + 4 and dreams.source_shards[&"dream_oak"] == 40, "…capped at 4 Dreamlight (40 shards)")
+	dreams.add_source_shards(&"dream_oak", 10, 4)
+	_check(dreams.dreamlight == before + 4, "…and no more after the cap")
+	var saved := JSON.parse_string(JSON.stringify(dreams.to_save())) as Dictionary
+	dreams.source_shards.clear()
+	dreams.load_save(saved)
+	_check(int(dreams.source_shards.get(&"dream_oak", 0)) == 40, "per-source shards survive the run save")
+	dreams.source_shards.clear()
+	dreams.dreamlight = before
