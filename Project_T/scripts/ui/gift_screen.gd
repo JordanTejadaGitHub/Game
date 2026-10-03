@@ -188,6 +188,26 @@ const GROUP_STYLE := {
 	"The nightmares' way": [&"path_length", Palette.DEWLIGHT],
 	"Heartwood and kin": [&"leaves", UiStyle.GOLD],
 }
+# The gifts' emblem sheet (UI Asset): {id: [x, y, w, h]} in gifts.json. The texture lives on this instance (a Texture in
+# a static crashes the exit).
+const EMBLEM_SHEET := "res://assets/ui/gifts/gifts.png"
+const EMBLEM_MAP := "res://assets/ui/gifts/gifts.json"
+var _emblem_map := {}
+var _emblem_sheet: Texture2D = null
+
+func _gift_emblem(id: StringName) -> Texture2D:
+	if _emblem_map.is_empty() and FileAccess.file_exists(EMBLEM_MAP):
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string(EMBLEM_MAP))
+		_emblem_map = parsed if parsed is Dictionary else {}
+		_emblem_sheet = load(EMBLEM_SHEET) if ResourceLoader.exists(EMBLEM_SHEET) else null
+	var rect = _emblem_map.get(String(id))
+	if _emblem_sheet == null or not (rect is Array) or rect.size() < 4:
+		return null
+	var atlas := AtlasTexture.new()
+	atlas.atlas = _emblem_sheet
+	atlas.region = Rect2(rect[0], rect[1], rect[2], rect[3])
+	return atlas
+
 const CARD_SIZE := Vector2(250, 180)  # Grows with its text; short enough that the screen fits 720 under the banner
 
 func _card(id: StringName) -> Button:
@@ -217,13 +237,14 @@ func _card(id: StringName) -> Button:
 	button.add_child(box)
 	var icon := TextureRect.new()
 	icon.name = "Emblem"
-	var texture := IconInfo.icon(StringName("gift_" + String(id)))
-	icon.texture = texture if texture != null else IconInfo.icon(style[0])
-	icon.custom_minimum_size = Vector2(32, 32)  # ×2 of the 16 px icons: crisp
+	var emblem := _gift_emblem(id)  # UI Asset's gift emblem (7220e5fa), else the category's glyph tinted
+	icon.texture = emblem if emblem != null else IconInfo.icon(style[0])
+	icon.custom_minimum_size = Vector2(32, 32)  # Emblems are drawn at 32 (×1); the 16 px glyphs at ×2
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	icon.modulate = colour  # multiplier: the category's colour on the glyph
+	if emblem == null:
+		icon.modulate = colour  # multiplier: the category's colour on the glyph
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(icon)
 	var title := Label.new()
