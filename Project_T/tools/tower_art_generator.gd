@@ -2184,12 +2184,28 @@ func _attack_firefly_jar(canvas: Image, st: Dictionary) -> void:
 
 # Rootling: its tendrils fling up and a Drowsy pulse ripples out over the stone, sending up z's.
 func _attack_rootling(canvas: Image, st: Dictionary) -> void:
+	_root_burst(canvas, st, 1.0, false)
 	var a: int = st.attack
-	_pulse(canvas, st, Color("#c8b0f0"))
 	var zs: Array = [[], [], [Vector2i(45, 14)], [Vector2i(47, 10), Vector2i(15, 12)], [Vector2i(49, 6), Vector2i(13, 8)], [Vector2i(14, 4)]]
 	for z: Vector2i in zs[a]:
 		for d: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(1, 1), Vector2i(0, 2), Vector2i(1, 2), Vector2i(2, 2)]:
 			_px(canvas, z.x + d.x, z.y + d.y, Color("#ece0ff"))
+
+# The Rootling pulse: an earthen ring rolling out over the slab and a ring of root tips breaking the
+# ground all round its base (the front half and sides, so they don't cover its body).
+func _root_burst(canvas: Image, st: Dictionary, size: float, flowers: bool) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var c := Vector2(31.5, 45)
+	_ring(canvas, c, Vector2(22 + k * 6, 7.5 + k * 2) * size, Color("#dccdb2"), k == 2)
+	_ring(canvas, c, Vector2(20 + k * 6, 6.5 + k * 2) * size, Color("#8c5c34"), true)
+	var spots: Array = []
+	for i in 7:
+		var a: float = -0.25 + i * (PI + 0.5) / 6.0
+		spots.append(c + Vector2(cos(a) * 24.0 * size, sin(a) * 8.0 * size))
+	_root_spikes(canvas, st, spots, flowers)
+
 
 # Acorn (support): a warm pulse spreads over the stone to its neighbours, with sparkles.
 func _attack_acorn(canvas: Image, st: Dictionary) -> void:
@@ -3565,11 +3581,11 @@ func _root_lash(canvas: Image, st: Dictionary, fig: Dictionary, sparkly: bool) -
 	var tip: Vector2 = [reach, reach, Vector2(52, 27), Vector2(47, 24)][k]
 	var layer := _layer()
 	if k == 1:
-		_stroke(layer, [Vector2(42, 24), tip], 1.3, fig.a)  # taut
+		_stroke(layer, [Vector2(42, 24), tip], 2.0, fig.a)  # taut
 	else:
-		_stroke(layer, [Vector2(42, 24), Vector2(46 + k, 25 - k), tip], 1.3, fig.a)
+		_stroke(layer, [Vector2(42, 24), Vector2(46 + k, 25 - k), tip], 2.0, fig.a)
 	if k < 3:
-		_stroke(layer, [tip, tip + Vector2(1.5, 2), tip + Vector2(-0.5, 3.5), tip + Vector2(-2, 2.5)], 1.0, fig.a)
+		_stroke(layer, [tip, tip + Vector2(2, 3), tip + Vector2(-1, 5), tip + Vector2(-3, 3.5)], 1.5, fig.a)
 	else:
 		_stroke(layer, _spiral_pts(tip, tip + Vector2(0, -2), 2.2, 1.0, 0.0), 1.0, fig.a)
 	_stamp(canvas, layer, fig.o)
@@ -3581,7 +3597,9 @@ func _root_lash(canvas: Image, st: Dictionary, fig: Dictionary, sparkly: bool) -
 			for i in range(3 + row, 10 - row):
 				_px(canvas, int(tip.x) + i, int(tip.y) - 1 + row * 2 + i / 4, Color("#fff4c0", 1.0 - i * 0.08))
 	if k <= 2:
-		_warm_glow(canvas, tip, Vector2(6, 5))  # the hook glows as it catches
+		_warm_glow(canvas, tip, Vector2(7, 6))  # the hook glows as it catches
+	if k <= 1:
+		_ring(canvas, tip, Vector2(5 + k * 3, 4 + k * 2), Color("#fff4c0"), k == 1)  # the catch
 	if sparkly and k <= 1:
 		_sparkle(canvas, Vector2i(tip) + Vector2i(2, -3), Color("#fff4c0"))
 
@@ -3593,25 +3611,36 @@ func _attack_long_way_home(canvas: Image, st: Dictionary) -> void:
 
 # Roots spiking up out of the ground round the stump, then sinking back.
 func _root_spikes(canvas: Image, st: Dictionary, spots: Array, flowers: bool) -> void:
+	# Roots breaking the ground (release frames 2-4): thick tapering root tips punch up out of the soil
+	# at each spot, a puff of earth and flung soil at their feet, a warm glint at the tips.
 	var k: int = st.attack - RELEASE_FRAME
 	if k < 0 or k > 2:
 		return
-	var h: int = [4, 7, 3][k]
+	var h: float = [9.0, 13.0, 6.0][k]
 	var layer := _layer()
 	for p: Vector2 in spots:
-		_stroke(layer, [p, p + Vector2(1, -h)], 1.1, Color("#9a7a54"))
-	_stamp(canvas, layer, Color("#1e160e"))
+		var lean := (p.x - 31.5) * 0.08
+		_flat_polygon(layer, PackedVector2Array([p + Vector2(-2.6, 0), p + Vector2(lean, -h), p + Vector2(2.6, 0)]), Color("#dccdb2"))
+		_stroke(layer, [p + Vector2(-0.8, 0), p + Vector2(lean * 0.5 - 0.5, -h * 0.6)], 0.6, Color("#fff4dc"))
+	_stamp(canvas, layer, Color("#241c14"))
 	for p: Vector2 in spots:
-		_warm_glow(canvas, p + Vector2(1, -h), Vector2(4, 3), k)
+		var lean := (p.x - 31.5) * 0.08
+		_px(canvas, int(p.x + lean), int(p.y - h), Color("#fff4dc"))
+		if k < 2:
+			for s: int in [-1, 1]:
+				_px(canvas, int(p.x) + s * (3 + k), int(p.y) - 1 - k, Color("#8c5c34"))  # flung soil
+				_px(canvas, int(p.x) + s * (4 + k * 2), int(p.y) - 2 - k * 2, Color("#5c3c24"))
+		_warm_glow(canvas, p + Vector2(lean, -h), Vector2(4, 3), k)
 	if flowers and k == 1:
 		for p: Vector2 in spots:
-			_flower(canvas, Vector2i(p) + Vector2i(1, -h - 1), Color("#f4a0c0"), Color("#ffd24a"))
+			_flower(canvas, Vector2i(p) + Vector2i(1, -int(h) - 1), Color("#f4a0c0"), Color("#ffd24a"))
+
 
 func _attack_tangleroot(canvas: Image, st: Dictionary) -> void:
-	_root_spikes(canvas, st, [Vector2(6, 48), Vector2(58, 46), Vector2(20, 55), Vector2(44, 55)], false)
+	_root_burst(canvas, st, 1.05, false)
 
 func _attack_snugroot(canvas: Image, st: Dictionary) -> void:
-	_root_spikes(canvas, st, [Vector2(4, 46), Vector2(60, 45), Vector2(14, 53), Vector2(50, 53), Vector2(31, 58)], true)
+	_root_burst(canvas, st, 1.15, true)
 
 func _attack_elder_stump(canvas: Image, st: Dictionary) -> void:
 	_pulse(canvas, st, Color("#b8f080"))
@@ -4444,16 +4473,47 @@ func _attack_midsummer(canvas: Image, st: Dictionary) -> void:
 
 # Light running out along the roots, and a warm lit ring over the path.
 func _root_light(canvas: Image, st: Dictionary, big: bool) -> void:
+	# The light pulse: a flash of light sinks down through its body into its roots (release), runs out
+	# along the roots over the slab, and the tiles at their ends flare up as they're lit.
 	var k: int = st.attack - RELEASE_FRAME
 	if k < 0 or k > 2:
 		return
-	var c := Vector2(ATTACKS["rootlight"].point)
-	var reach := (8.0 + k * 7.0) * (1.3 if big else 1.0)
-	for i in 6:
-		var d := Vector2.from_angle(i * TAU / 6.0 + 0.3) * Vector2(1.0, 0.4)
-		_line(canvas, [c + d * 3.0, c + d * reach], Color("#ffe890") if k < 2 else GLOW_OUTER)
-	_ring(canvas, c, Vector2(reach, reach * 0.4), GLOW_INNER, k == 2)
-	_warm_glow(canvas, c + Vector2(0, -2), Vector2(reach * 0.6, 5), k)
+	var core := Color("#fff4dc")
+	var gold := Color("#fcd47c")
+	var dy: int = st.dy
+	if k == 0:
+		_warm_glow(canvas, Vector2(31, 26 + dy), Vector2(16, 14), k)
+		for y in range(16, 44, 3):
+			_px(canvas, 31, y + dy, core)  # light sinking down its middle
+	# Light running out along the roots, further each frame.
+	var roots: Array = [[Vector2(24, 40), Vector2(16, 44), Vector2(10, 46), Vector2(4, 44)], [Vector2(29, 43), Vector2(27, 47), Vector2(25, 54)],
+		[Vector2(36, 43), Vector2(40, 48), Vector2(46, 52), Vector2(54, 50)], [Vector2(44, 40), Vector2(52, 42), Vector2(57, 41), Vector2(62, 42)]]
+	var reach: float = [0.45, 0.85, 1.0][k]
+	for r: Array in roots:
+		var total := 0.0
+		for i in r.size() - 1:
+			total += (r[i] as Vector2).distance_to(r[i + 1])
+		var left := total * reach
+		for i in r.size() - 1:
+			var a: Vector2 = r[i]
+			var b: Vector2 = r[i + 1]
+			var seg := a.distance_to(b)
+			var t := minf(1.0, left / seg)
+			if t <= 0.0:
+				break
+			_line(canvas, [a, a.lerp(b, t)], gold if k < 2 else GLOW_OUTER)
+			_line(canvas, [a + Vector2(0, -1), a.lerp(b, t) + Vector2(0, -1)], core if k == 0 else gold)
+			left -= seg
+		# The lit tile flaring at the root's end.
+		if k >= 1:
+			var end: Vector2 = r[r.size() - 1]
+			var arm: int = 4 if k == 1 else 2
+			for i in range(-arm, arm + 1):
+				_px(canvas, int(end.x) + i, int(end.y), core if absi(i) < 2 else gold)
+				_px(canvas, int(end.x), int(end.y) + i / 2, core if absi(i) < 2 else gold)
+			_warm_glow(canvas, end, Vector2(6, 4) * (1.3 if big else 1.0), k)
+	_ring(canvas, Vector2(31.5, 45), Vector2(18 + k * 7, 6 + k * 2) * (1.2 if big else 1.0), GLOW_INNER, k == 2)
+
 
 func _attack_rootlight(canvas: Image, st: Dictionary) -> void:
 	_root_light(canvas, st, false)
