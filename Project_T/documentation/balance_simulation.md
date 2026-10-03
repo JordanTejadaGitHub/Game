@@ -804,7 +804,7 @@ places pairs on purpose) before any game change.
 **Answer:** the 9 runs died at drifts 8–23 with 8–12 base Firefly Jars and at most one branch Warden, and no
 Jarlink pair was ever made. Forced Firefly, 15 seeds: **27–33%** with or without a bot fence rule (fence
 damage 0: the bot rarely has two jars across the route). Jarlink pairing is human skill (the build ghost
-shows the arc); **the base board is the problem: Firefly Jar cost 30 → 25, damage 12 → 14** (shared with the
+shows the arc); **the base board is the problem: Firefly Jar cost 30 → 25, damage 12 → 14** (d69c53b4; shared with the
 demo, which is re-checked).
 
 **4. Grove cap on main** (ed114826, before the branch raises; a bot gift-screen stall voided the first
