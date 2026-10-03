@@ -81,6 +81,13 @@ func _run() -> void:
 		await process_frame
 	_check(not scene._showing_after, "at 3× game speed the before-phase still takes %.1f real seconds" % CardScene.BEFORE_TIME)
 	Engine.time_scale = 1.0
+	# {"kin": true} draws the Kinship bond between neighbouring Wardens (Old Kin's gift card); without it, none
+	scene.show_scene(".......\nSPPPPPH\n.......\n..aa...\n.......", ".......\nSPPPPPH\n.......\n..WW...\n.......", {"kin": true}, "")
+	await process_frame
+	_check(scene._world.get_node_or_null("KinBond") != null, "the kin key draws the Kinship bond")
+	scene.show_scene(BEFORE, AFTER, {}, "")
+	await process_frame
+	_check(scene._world.get_node_or_null("KinBond") == null, "…and only with that key")
 	# Reduced motion: the still after-diagram
 	var settings: Dictionary = Fx._settings.duplicate()
 	Fx._settings = {"reduced_motion": true}
