@@ -302,11 +302,6 @@ func _make_card(data: TowerData) -> Button:
 # in this dream as faint silhouettes that can be called in for Dreamlight. Hover / tap a lane: name, role, counters.
 const ROUTE_ICON := 28.0
 const NOT_IN_DREAM_ICON := 20.0
-const TAG_WORDS := {&"anti_air": "flyers", &"anti_tank": "tanks", &"anti_armour": "armour", &"anti_swarm": "swarms",
-	&"anti_support": "support nightmares", &"detection": "hidden nightmares", &"boss_abilities": "boss abilities"}
-const ROLE_WORDS := {&"anti_air": "hits flyers", &"anti_tank": "tank killer", &"anti_armour": "cracks armour",
-	&"anti_swarm": "thins swarms", &"anti_support": "quiets support", &"detection": "reveals the hidden",
-	&"boss_abilities": "answers bosses"}
 
 # {"offered": Array[TowerData] (this run's lanes, the hidden branch last), "not_offered": Array[TowerData]}.
 func get_routes(data: TowerData) -> Dictionary:
@@ -335,14 +330,10 @@ static func final_of(branch: TowerData) -> TowerData:
 	return null
 
 static func role_text(branch: TowerData) -> String:
-	var tags: Array = branch.get("counter_tags") if branch.get("counter_tags") is Array else []
-	var words: Array = tags.map(func(tag: StringName) -> String: return ROLE_WORDS.get(tag, "")).filter(func(w: String) -> bool: return w != "")
-	return ", ".join(words.slice(0, 2))
+	return IconInfo.role_text(branch)
 
 static func counters_text(branch: TowerData) -> String:
-	var tags: Array = branch.get("counter_tags") if branch.get("counter_tags") is Array else []
-	var words: Array = tags.map(func(tag: StringName) -> String: return TAG_WORDS.get(tag, "")).filter(func(w: String) -> bool: return w != "")
-	return "Counters " + ", ".join(words) if not words.is_empty() else ""
+	return IconInfo.counters_text(branch)
 
 func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 	var routes := get_routes(data)

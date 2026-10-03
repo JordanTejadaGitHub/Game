@@ -1132,6 +1132,14 @@ func _show_form_card(data: TowerData) -> void:
 	costs.text = form_costs(data) + ("" if shown else " · in the Memory Grove")
 	UiStyle.caps(costs, 14, UiStyle.GOLD if shown else GROVE_COLOR)
 	box.add_child(costs)
+	var role := IconInfo.role_text(data)  # Its job against the roster, from its counter tags (the family pick says the same)
+	if role != "":
+		var role_label := Label.new()
+		role_label.name = "Role"
+		role_label.text = "%s · %s" % [role.left(1).to_upper() + role.substr(1), IconInfo.counters_text(data)]
+		role_label.add_theme_font_size_override("font_size", 15)
+		role_label.add_theme_color_override("font_color", UiStyle.GOLD)
+		box.add_child(role_label)
 	if shown:
 		# The Warden panel's top half (Tower Code's shared WardenHeaderView): stats, statuses, Potency, Grows into.
 		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
@@ -1219,9 +1227,11 @@ class FamilyTree extends Control:
 
 	func _init(owner_codex: CodexPanel, root: TowerData) -> void:
 		codex = owner_codex
-		custom_minimum_size = Vector2(TREE_W, TREE_H)
 		mouse_filter = Control.MOUSE_FILTER_PASS
 		var branches: Array = root.evolves_to.filter(func(d) -> bool: return d is TowerData)
+		# Wide enough for every lane (the branch expansion's 5 + a hidden one: lanes were 91 px for 120 px nodes)
+		var width := maxf(TREE_W, branches.size() * (NODE_W + 8.0) + 16.0)
+		custom_minimum_size = Vector2(width, TREE_H)
 		var ascended: TowerData = null
 		for branch in branches:
 			for final_form in branch.evolves_to:
@@ -1229,9 +1239,9 @@ class FamilyTree extends Control:
 					if next is TowerData and next.tier >= DreamState.ASCENDED_TIER:
 						ascended = next
 		var rows := 4 if ascended != null else 3
-		_place(root, Vector2(TREE_W / 2.0, _row_y(0, rows)))
+		_place(root, Vector2(width / 2.0, _row_y(0, rows)))
 		for i in branches.size():
-			var lane_x := TREE_W * (i + 1) / float(branches.size() + 1)
+			var lane_x := width * (i + 1) / float(branches.size() + 1)
 			var branch: TowerData = branches[i]
 			_place(branch, Vector2(lane_x, _row_y(1, rows)))
 			edges.append([root, branch])
@@ -1243,7 +1253,7 @@ class FamilyTree extends Control:
 				if ascended != null and finals[j].evolves_to.has(ascended):
 					edges.append([finals[j], ascended])
 		if ascended != null:
-			_place(ascended, Vector2(TREE_W / 2.0, _row_y(3, rows)))
+			_place(ascended, Vector2(width / 2.0, _row_y(3, rows)))
 
 	func _row_y(row: int, rows: int) -> float:
 		var span := TREE_H - NODE_H
