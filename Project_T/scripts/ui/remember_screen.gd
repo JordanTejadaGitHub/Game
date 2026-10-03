@@ -24,6 +24,7 @@ const NODE_SIZE := Vector2(76, 92)  # 48 px+ for touch
 const NAME_SIZE := 14  # Form names under the portraits (body font)
 const NAME_MIN_SIZE := 11  # A long name shrinks to this, then wraps onto two lines
 const NAME_FLOOR_SIZE := 9  # …and a still-too-wide line shrinks down to this (never cut)
+const EMBLEM_BADGE := 20.0  # A branch emblem badge on a tree node (BranchEmblem, when UI Asset's art exists)
 const PORTRAIT := 56.0
 const TREE_SIZE := Vector2(560, 380)  # Shorter for the "Not in this dream" strip under it and the offer line above (fits 1280×800)
 const SIDE_WIDTH := 300.0
@@ -267,9 +268,20 @@ func _fill_misty(root: TowerData) -> void:
 		look.draw.connect(func() -> void:  # The moonlit disc behind the silhouette (as on the tree), faint
 			UiStyle.draw_moon_disc(look, look.size / 2.0, MISTY_PORTRAIT / 2.0 - 1))
 		look.modulate = Color(1, 1, 1, 0.6)  # multiplier: the mist
-		var portrait := Portrait.new(form, MISTY_PORTRAIT, true)
-		portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		look.add_child(portrait)
+		var emblem := BranchEmblem.texture(form)  # UI Asset's branch emblem when it exists, else the silhouette
+		if emblem != null:
+			var mark := TextureRect.new()
+			mark.texture = emblem
+			mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			mark.custom_minimum_size = Vector2(MISTY_PORTRAIT, MISTY_PORTRAIT)
+			mark.size = Vector2(MISTY_PORTRAIT, MISTY_PORTRAIT)
+			mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			look.add_child(mark)
+		else:
+			var portrait := Portrait.new(form, MISTY_PORTRAIT, true)
+			portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			look.add_child(portrait)
 		look.pressed.connect(_select.bind(form))
 		item.add_child(look)
 		var words := VBoxContainer.new()
@@ -782,6 +794,17 @@ class FormNode extends Button:
 			portrait.modulate = Color.WHITE.darkened(0.2)  # Grove-available, not unlocked this run: its real colours, ~80%
 		portrait.position = Vector2((NODE_SIZE.x - PORTRAIT) / 2.0, 4)
 		add_child(portrait)
+		var emblem := BranchEmblem.texture(data) if data.tier >= 2 and not screen.is_veiled(data) else null
+		if emblem != null:  # A small branch badge on the portrait's shoulder (the portrait stays: story chat)
+			var badge := TextureRect.new()
+			badge.name = "Emblem"
+			badge.texture = emblem
+			badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			badge.size = Vector2(EMBLEM_BADGE, EMBLEM_BADGE)
+			badge.position = Vector2((NODE_SIZE.x + PORTRAIT) / 2.0 - EMBLEM_BADGE + 2, 2)
+			badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(badge)
 		tooltip_text = UNKNOWN_NAME + " · Plant it in the Memory Grove" if state == State.GROVE else data.display_name  # Grove-locked: no name (user), the hint
 		if state == State.NOT_IN_DREAM:  # Branch expansion: a faint, misty silhouette
 			modulate = Color(1, 1, 1, 0.5)  # multiplier: the mist
