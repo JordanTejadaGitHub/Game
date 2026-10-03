@@ -168,7 +168,8 @@ const LINES := {
 		"jarlink", "lightning_fence", "prism_jar", "rainbow_prism", "sparkler", "starburst"],
 	"rootling": ["rootling", "rootcurl", "long_way_home", "tangleroot", "snugroot", "rootlight", "starcave",
 		"groundroot", "earthbind", "deeproot", "heartroot", "thorncoil", "crown_of_thorns"],
-	"acorn": ["acorn", "elder_stump", "grove_heart", "dewcatcher", "wellspring", "graftling", "grafted_elder"],
+	"acorn": ["acorn", "elder_stump", "grove_heart", "dewcatcher", "wellspring", "graftling", "grafted_elder",
+		"seedbearer", "grove_keeper", "nurse_log", "mother_log", "dream_oak", "dreamroot"],
 	"nestling": ["nestling", "wrens_nest", "starling_murmuration", "magpie_perch", "magpies_hoard", "hummingbird_bower", "jewelwing_court"],
 	"whirligig": ["whirligig", "gust", "zephyr", "pinwheel", "windmill", "samara", "autumn_gale"],
 	"memory": ["white_stag", "pond_keeper", "moon_moth"],
@@ -6320,6 +6321,9 @@ const EPIC := {
 	"earthbind": {glow = "#d4ec9c", core = "#fff4dc", tint = ["#5c3c24", "#bca48c", "#dccdb2"]},
 	"heartroot": {glow = "#fcd47c", core = "#fff4dc", tint = ["#5c3c24", "#8c5c34", "#b8662c"]},
 	"crown_of_thorns": {glow = "#ec9cf4", core = "#fff4dc", tint = ["#241c14", "#5c3c24", "#8c5c34"]},
+	"grove_keeper": {glow = "#d4ec9c", core = "#fff4dc", tint = ["#241c14", "#5c3c24", "#8c5c34", "#bca48c"], leaf = ["#1c3c2c", "#34643c", "#5c944c", "#9cc46c"]},
+	"mother_log": {glow = "#d4ec9c", core = "#fff4dc", tint = [], leaf = ["#1c3c2c", "#34643c", "#5c944c", "#9cc46c"]},
+	"dreamroot": {glow = "#ec9cf4", core = "#fff4dc", tint = ["#2c2444", "#4c3c74", "#9a84e8"]},
 }
 const EPIC_O := Color("#140f26")
 
@@ -7226,6 +7230,12 @@ const BODY_PAL := {
 	"heartroot": ["#241c14", "#e9a83c", "#b8662c", "#5c3c24"],
 	"thorncoil": ["#1c3c2c", "#5c944c", "#34643c", "#241c14"],
 	"crown_of_thorns": ["#1c3c2c", "#9cc46c", "#5c944c", "#34643c"],
+	"seedbearer": ["#241c14", "#b8662c", "#8c5c34", "#5c3c24"],
+	"grove_keeper": ["#241c14", "#e9a83c", "#b8662c", "#8c5c34"],
+	"nurse_log": ["#1c3c2c", "#9cc46c", "#5c944c", "#5c3c24"],
+	"mother_log": ["#1c3c2c", "#d4ec9c", "#9cc46c", "#5c944c"],
+	"dream_oak": ["#140f26", "#9a84e8", "#4c3c74", "#2c2444"],
+	"dreamroot": ["#140f26", "#ec9cf4", "#9a84e8", "#4c3c74"],
 }
 
 # The figure palette a Warden's body is drawn in: its own (BODY_PAL) or the one its helper passed.
@@ -7739,3 +7749,206 @@ func _epic_crown_of_thorns(canvas: Image, cfg: Dictionary, st: Dictionary, glow:
 		_flat_ellipse(rose, p, Vector2(2.2, 2.0), Color("#bc44dc"))
 		_stamp(canvas, rose, EPIC_O)
 		_px(canvas, int(p.x), int(p.y), Color("#ec9cf4"))
+
+# --- Phase 2, Acorn (tower_design.md 7816b7e0): Seedbearer -> Grove Keeper (a golem carrying a seed
+# sack), Nurse Log -> Mother Log (a mossy fallen log with a sapling growing from it), Dream Oak ->
+# Dreamroot (a small oak with a glowing fruit). Weak pulses without an attack sheet, like Dewcatcher.
+
+func _acorn_golem(canvas: Image, st: Dictionary, fig: Dictionary, lush: bool) -> Image:
+	_draw_waystone(canvas, st, "leaf_litter", lush)
+	var mask := _draw_template_figure(canvas, st.pose, fig)
+	for g: Array in [[Vector2(26, 24 + st.dy), Vector2(25, 30 + st.dy)], [Vector2(35, 26 + st.dy), Vector2(36, 31)]]:
+		_line(canvas, g, fig.c, mask)
+	return mask
+
+# A burlap seed sack slung over its shoulder on a cord, bulging, seeds trickling from a tear.
+func _seed_sack(canvas: Image, st: Dictionary, c: Vector2, size: float, o: Color) -> void:
+	var dy: int = st.dy
+	var sack := _layer()
+	_ellipse(sack, c + Vector2(0, dy), Vector2(7.5, 8.5) * size, _ramp(["#8c5c34", "#bca48c", "#dccdb2"]))
+	_ellipse(sack, c + Vector2(0, -8.0 * size + dy), Vector2(3.0, 2.2) * size, _ramp(["#8c5c34", "#bca48c", "#dccdb2"]))
+	_stamp(canvas, sack, o)
+	_line(canvas, [c + Vector2(-3, -6.5 * size + dy), c + Vector2(3, -6.5 * size + dy)], Color("#5c3c24"))  # its tie
+	_line(canvas, [c + Vector2(-2, -7 * size + dy), Vector2(26, 18 + dy)], Color("#5c3c24"))  # the cord over its shoulder
+	for i in 3:
+		_line(canvas, [c + Vector2(-5 + i * 4, -3 + dy), c + Vector2(-4 + i * 4, 5 + dy)], Color("#8c5c34"))  # weave
+	for k in 3:
+		var t: int = (st.f + k * 3) % 8
+		_px(canvas, int(c.x) + 4 - k, int(c.y + 7 * size) + dy + t, Color("#e9a83c") if k % 2 == 0 else Color("#9cc46c"))
+
+func _draw_seedbearer(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	_acorn_golem(canvas, st, fig, false)
+	_golem_face(canvas, st, fig)
+	_seed_sack(canvas, st, Vector2(49, 27), 1.0, fig.o)
+	# A straw hat.
+	var hat := _layer()
+	_ellipse(hat, Vector2(30.5, 8 + st.dy), Vector2(14, 3.5), _ramp(["#b8662c", "#e9a83c", "#fcd47c"]))
+	_ellipse(hat, Vector2(30.5, 5 + st.dy), Vector2(7, 4), _ramp(["#b8662c", "#e9a83c", "#fcd47c"]), 7.0 + st.dy)
+	_stamp(canvas, hat, fig.o)
+	_line(canvas, [Vector2(24, 6 + st.dy), Vector2(37, 6 + st.dy)], Color("#5c944c"))
+
+func _draw_grove_keeper(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	var dy: int = st.dy
+	_acorn_golem(canvas, st, fig, true)
+	_golem_face(canvas, st, fig)
+	_seed_sack(canvas, st, Vector2(50, 26), 1.25, fig.o)
+	# A crook staff on its other side, leafing at the hook, and sprouts at its feet.
+	var staff := _layer()
+	_stroke(staff, [Vector2(8, 46), Vector2(9, 12), Vector2(12, 6), Vector2(16, 7), Vector2(16, 11)], 1.1, Color("#8c5c34"))
+	_stamp(canvas, staff, fig.o)
+	_leaf(canvas, Vector2(12, 6), Vector2(8, 1), 2.2, _ramp(LEAF), fig.o)
+	_leaf(canvas, Vector2(9, 20), Vector2(4, 16), 1.8, _ramp(LEAF), fig.o)
+	for p: Vector2 in [Vector2(20, 46), Vector2(41, 47), Vector2(13, 44)]:
+		_leaf(canvas, p, p + Vector2(-3, -4), 1.6, _ramp(LEAF), fig.o)
+		_leaf(canvas, p, p + Vector2(3, -4), 1.6, _ramp(LEAF), fig.o)
+	var hat := _layer()
+	_ellipse(hat, Vector2(30.5, 8 + dy), Vector2(15, 3.8), _ramp(["#b8662c", "#e9a83c", "#fcd47c"]))
+	_ellipse(hat, Vector2(30.5, 4 + dy), Vector2(7.5, 5), _ramp(["#b8662c", "#e9a83c", "#fcd47c"]), 7.0 + dy)
+	_stamp(canvas, hat, fig.o)
+	for p: Vector2i in [Vector2i(25, 6), Vector2i(34, 5)]:
+		_flower(canvas, p + Vector2i(0, dy), Color("#fff4dc"), Color("#fcd47c"))
+
+# A mossy fallen log lying across the front of the slab, its end showing rings, a sapling (or
+# several) growing out of it.
+func _nurse_log(canvas: Image, st: Dictionary, big: bool, o: Color) -> void:
+	var log := _layer()
+	var y := 43.0
+	var x0 := 6.0
+	var x1 := 56.0 if big else 50.0
+	var r := 6.0 if big else 5.2
+	var bark := [Color("#5c3c24"), Color("#8c5c34"), Color("#bca48c")]
+	for x in range(int(x0), int(x1) + 1):
+		for yy in range(int(y - r), int(y + r) + 1):
+			var v := (yy - (y - r)) / (2.0 * r)
+			var grain: bool = (yy + int(x / 9)) % 3 == 0 and (x * 5) % 7 > 1
+			_px(log, x, yy, bark[0] if (v > 0.7 or grain) else (bark[2] if v < 0.3 else bark[1]))
+	_stamp(canvas, log, o)
+	# The cut end: rings.
+	var end := _layer()
+	_flat_ellipse(end, Vector2(x1, y), Vector2(3.2, 5.8 if big else 5.0), Color("#dccdb2"))
+	_stamp(canvas, end, o)
+	end = _layer()
+	_flat_ellipse(end, Vector2(x1, y), Vector2(1.8, 3.4 if big else 2.8), Color("#bca48c"))
+	_stamp(canvas, end, o)
+	_px(canvas, int(x1), int(y), Color("#8c5c34"))
+	_px(canvas, int(x1), int(y) - 2, Color("#bca48c"))
+	# Moss along its top.
+	for x in range(int(x0) + 1, int(x1) - 2):
+		if (x * 7) % 5 != 0:
+			_px(canvas, x, int(y - (6.0 if big else 5.2)), Color("#5c944c") if x % 3 else Color("#9cc46c"))
+			_px(canvas, x, int(y - (6.0 if big else 5.2)) + 1, Color("#34643c") if x % 2 else Color("#5c944c"))
+	# Saplings growing from it, swaying.
+	var saplings: Array = [Vector2(18, 37)] if not big else [Vector2(14, 36), Vector2(27, 36), Vector2(41, 36)]
+	for i in saplings.size():
+		var b: Vector2 = saplings[i]
+		var h: float = 13.0 if (not big or i == 1) else 9.0
+		var sw: float = [0.0, 0.5, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5][(st.f + i * 2) % 8]
+		var stem := _layer()
+		_stroke(stem, [b, b + Vector2(sw, -h)], 0.7, Color("#5c944c"))
+		_stamp(canvas, stem, o)
+		_leaf(canvas, b + Vector2(sw, -h), b + Vector2(sw - 6, -h - 4), 2.8, _ramp(LEAF), o)
+		_leaf(canvas, b + Vector2(sw, -h + 3), b + Vector2(sw + 6, -h), 2.4, _ramp(LEAF), o)
+		_leaf(canvas, b + Vector2(sw, -h), b + Vector2(sw + 1, -h - 6), 2.2, _ramp(LEAF), o)
+	if big:
+		for p: Vector2 in [Vector2(35, 40), Vector2(48, 41)]:
+			var cap := _layer()
+			_ellipse(cap, p, Vector2(2.2, 1.6), _ramp(["#b8662c", "#e9a83c", "#fcd47c"]), p.y + 0.5)
+			_stamp(canvas, cap, o)
+
+func _draw_nurse_log(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	_acorn_golem(canvas, st, fig, false)
+	_golem_face(canvas, st, fig)
+	_moss_cap(canvas, st.dy, fig.o)
+	_nurse_log(canvas, st, false, fig.o)
+
+func _draw_mother_log(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	_acorn_golem(canvas, st, fig, true)
+	_golem_face(canvas, st, fig)
+	_moss_cap(canvas, st.dy, fig.o)
+	_nurse_log(canvas, st, true, fig.o)
+
+# A small oak growing from its head: a short trunk, a round crown of leaves, a glowing dream-fruit
+# hanging from it (two for Dreamroot), the fruit's light pulsing.
+func _dream_oak_crown(canvas: Image, st: Dictionary, big: bool, o: Color) -> void:
+	var dy: int = st.dy
+	var trunk := _layer()
+	_stroke(trunk, [Vector2(30.5, 8 + dy), Vector2(30.5, 0 + dy)], 1.3, Color("#5c3c24"))
+	_stamp(canvas, trunk, o)
+	var crown := _layer()
+	var r: float = 12.0 if big else 9.5
+	for c: Vector3 in [Vector3(0, -6, 1.0), Vector3(-6, -3, 0.7), Vector3(6, -3, 0.7), Vector3(-3, -9, 0.6), Vector3(4, -9, 0.6)]:
+		_ellipse(crown, Vector2(30.5 + c.x * r / 9.5, dy + c.y * r / 9.5), Vector2(r, r * 0.75) * c.z, _ramp(["#1c3c2c", "#34643c", "#5c944c", "#9cc46c"]))
+	_stamp(canvas, crown, o)
+	var fruits: Array = [Vector2(36, 4)] if not big else [Vector2(37, 6), Vector2(23, 3)]
+	var bright: bool = st.f % 4 < 2 or st.power > 0.5
+	for p: Vector2 in fruits:
+		var q := p + Vector2(0, dy)
+		_line(canvas, [q + Vector2(0, -3), q + Vector2(0, -1)], Color("#5c3c24"))
+		var fruit := _layer()
+		_flat_ellipse(fruit, q + Vector2(0, 1), Vector2(2.2, 2.4), Color("#ec9cf4"))
+		_stamp(canvas, fruit, Color("#4c3c74"))
+		_px(canvas, int(q.x) - 1, int(q.y), Color("#fff4dc"))
+		if bright:
+			_warm_glow(canvas, q + Vector2(0, 1), Vector2(6, 5), st.f)
+
+func _draw_dream_oak(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	_acorn_golem(canvas, st, fig, false)
+	_golem_face(canvas, st, fig)
+	_dream_oak_crown(canvas, st, false, fig.o)
+	_motes(canvas, st, [16, 46], 26, 14, [Color("#ec9cf4"), Color("#9a84e8")])
+
+func _draw_dreamroot(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	var mask := _acorn_golem(canvas, st, fig, true)
+	_golem_face(canvas, st, fig, Color("#ec9cf4"))
+	# Dream-light running in its roots down to the slab.
+	for path: Array in [[Vector2(20, 40), Vector2(14, 45), Vector2(8, 46)], [Vector2(42, 41), Vector2(49, 46), Vector2(56, 45)]]:
+		_line(canvas, path, Color("#ec9cf4"))
+	_dream_oak_crown(canvas, st, true, fig.o)
+	_motes(canvas, st, [12, 50, 24, 40], 26, 18, [Color("#ec9cf4"), Color("#9a84e8")])
+
+# Epic finals, the family's antlers each their own way.
+# Grove Keeper: antlers of sprouting branches, buds and seed pods at the tips.
+func _epic_grove_keeper(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	_epic_antlers(canvas, cfg, st, glow, core)
+	for p: Vector2i in [Vector2i(9, -6), Vector2i(54, -6)]:
+		_flower(canvas, p + Vector2i(0, st.dy), Color("#fff4dc"), Color("#fcd47c"))
+
+# Mother Log: a young tree grown up behind it out of the log, its branches spread like antlers.
+func _epic_mother_log(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var tree := _layer()
+	_stroke(tree, [Vector2(48, 40), Vector2(50, 20), Vector2(48, 4)], 1.8, Color("#8c5c34"))
+	for b: Array in [[Vector2(49, 22), Vector2(58, 12)], [Vector2(49, 14), Vector2(40, 2)], [Vector2(48, 8), Vector2(54, -4)]]:
+		_stroke(tree, b, 1.0, Color("#bca48c"))
+	_outline_layer(tree)
+	_under(canvas, tree)
+	for p: Vector2 in [Vector2(58, 12), Vector2(40, 2), Vector2(54, -4), Vector2(48, 2)]:
+		_leaf(canvas, p, p + Vector2(-3, -4), 2.4, _ramp(cfg.leaf), EPIC_O)
+		_leaf(canvas, p, p + Vector2(3, -3), 2.0, _ramp(cfg.leaf), EPIC_O)
+	if st.f % 4 < 2:
+		_sparkle(canvas, Vector2i(44, -4), core)
+
+# Dreamroot: antlers of dreaming branches, a dream-fruit glowing at every tip.
+func _epic_dreamroot(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var dy: int = st.dy
+	var antlers := _layer()
+	var tips: Array = []
+	for s: int in [-1, 1]:
+		var root := Vector2(31.5 + s * 8, 2 + dy)
+		var tip := root + Vector2(s * 20, -10)
+		_stroke(antlers, [root, root + Vector2(s * 9, -6), tip], 1.4, Color(cfg.tint[1]))
+		for b: Array in [[0.4, Vector2(s * 2, -8)], [0.8, Vector2(s * 4, 4)]]:
+			var from := root.lerp(tip, b[0])
+			_stroke(antlers, [from, from + b[1]], 0.9, Color(cfg.tint[2]))
+			tips.append(from + b[1])
+		tips.append(tip)
+	_outline_layer(antlers)
+	_under(canvas, antlers)
+	for i in tips.size():
+		var t: Vector2 = tips[i]
+		_flat_ellipse(canvas, t, Vector2(1.6, 1.6), core if (st.f + i) % 4 < 2 else glow)
