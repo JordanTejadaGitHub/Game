@@ -801,6 +801,11 @@ the Lichenling / Brood Cap runs are what's left: **Lichenling 26, Brood Cap burs
 without 7/14. **Firefly Jar first: 0/9** (it was 70% before the Spire rules). Its carries are now Jarlink
 and Sparkler; checking whether the bot's normal placement ever makes a Jarlink arc over the route (the probe
 places pairs on purpose) before any game change.
+**Answer:** the 9 runs died at drifts 8–23 with 8–12 base Firefly Jars and at most one branch Warden, and no
+Jarlink pair was ever made. Forced Firefly, 15 seeds: **27–33%** with or without a bot fence rule (fence
+damage 0: the bot rarely has two jars across the route). Jarlink pairing is human skill (the build ghost
+shows the arc); **the base board is the problem: Firefly Jar cost 30 → 25, damage 12 → 14** (shared with the
+demo, which is re-checked).
 
 **4. Grove cap on main** (ed114826, before the branch raises; a bot gift-screen stall voided the first
 attempt): full loadout vs no perks, 20 seeds each, act 1 boss survival **40% vs 30% (+10 points)**, +2.5
