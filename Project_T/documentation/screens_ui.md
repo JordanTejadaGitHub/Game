@@ -918,7 +918,8 @@ more clear with icons of their resistances"):
   but smaller: animated portrait, name, the one-line trait, **what it does** (1–2 plain lines, e.g.
   *"Breaks into 3 Sobs when dispelled"*), resist / weak / immune icons, and one hint (*"Splash and
   pulses catch the Sobs"*). Several new types in one block: one card each, in order, with "Next".
-  - Shown after the Dream / Omen and before the boss dossier, like the other rest screens; dismissed
+  - Shown last at a rest, after the family pick, Dream, gift, Omen and boss dossier (one screen at a time, user
+    2026-10-03: RestScreens); dismissed
     by click, tap or Esc; reopen from its portrait in the Coming strip.
   - A type that first appears mid-block also gets a **2-second name plate** when the first one
     spawns (no pause), like the boss name plate.

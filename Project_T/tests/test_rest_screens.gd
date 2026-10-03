@@ -37,6 +37,7 @@ func _run() -> void:
 	var intro := main.get_tree().get_first_node_in_group(NightmareIntro.GROUP) as NightmareIntro
 	_check(gifts != null and intro != null, "the gifts and the intro card exist")
 	director.resting = true
+	main.get_node("%Whispers").set_enabled(false)  # The act 1 dossier waits for onboarding hints (up to 8 s): none here
 	# The act 1 boss rest: a gift is offered; a new nightmare waits for its introduction at the same time.
 	gifts._on_rest_started(5, true, 0, false)
 	intro._pending = [load("res://resource/enemy/leaf_bug.tres")]
@@ -46,7 +47,10 @@ func _run() -> void:
 	var gift_frames := 0
 	var intro_after_gift := false
 	var gift_done := false
-	for frame in 240:
+	var dossier_seen := false
+	var intro_before_dossier := false
+	var dossier := main.get_tree().get_first_node_in_group(BossDossier.GROUP) as BossDossier
+	for frame in 400:
 		await process_frame
 		var shown := _open_screens(hud)
 		most = maxi(most, shown.size())
@@ -55,12 +59,18 @@ func _run() -> void:
 			if gift_frames == 30:
 				gifts.let_pass()  # The player lets the gifts pass
 				gift_done = true
-		if shown.has("NightmareIntro") and gift_done:
-			intro_after_gift = true
-			break
+		if shown.has("BossDossier"):
+			dossier_seen = true
+			dossier.close_dossier()  # Read and closed: the intros may follow
+		if shown.has("NightmareIntro"):
+			intro_before_dossier = intro_before_dossier or (dossier.is_waiting() and not dossier_seen)
+			if gift_done:
+				intro_after_gift = true
+				break
 	_check(gift_frames > 0, "the gift screen opened first")
 	_check(most <= 1, "never two paused screens at once (at most %d)" % most)
 	_check(intro_after_gift, "the new nightmare's card opened once the gift was done")
+	_check(not intro_before_dossier, "the boss dossier (when due) comes before the new nightmare's card (user, 2026-10-03)")
 	var panel := intro._panel.get_theme_stylebox("panel") as MoonStyleBox
 	_check(panel != null and panel.center_alpha >= 0.9, "the intro card is solid")
 	main.queue_free()

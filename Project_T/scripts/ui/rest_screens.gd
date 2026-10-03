@@ -3,8 +3,8 @@ extends RefCounted
 
 # One paused screen at a time at a rest (user screenshot: a new-nightmare card opened on top of the Heartwood's Gifts,
 # both see-through, two sets of buttons drawn through each other). Every rest screen opens in this order, each only
-# once the ones before it are done and nothing else is on screen: family pick → Dream → gift → Omen → new-nightmare
-# intros → boss dossier. The choices open themselves when their system offers; the intros and the dossier
+# once the ones before it are done and nothing else is on screen: family pick → Dream → gift → Omen → boss dossier →
+# new-nightmare intros (user, 2026-10-03). The choices open themselves when their system offers; the dossier and the intros
 # wait here (BossDossier / NightmareIntro.screens_clear).
 
 # HUD screens that cover the map while open.
@@ -41,8 +41,8 @@ static func clear_for(caller: Node, director: DriftDirector) -> bool:
 	var omens := tree.get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	if omens != null and (omens.is_offering() or omens.has_pending_offer()):
 		return false
-	if caller is BossDossier:  # New nightmares are introduced before the boss dossier (test_nightmare_icons)
-		var intro := tree.get_first_node_in_group(NightmareIntro.GROUP) as NightmareIntro
-		if intro != null and intro.is_busy():
+	if caller is NightmareIntro:  # The boss dossier comes before the new-nightmare intros (user, 2026-10-03)
+		var dossier := tree.get_first_node_in_group(BossDossier.GROUP) as BossDossier
+		if dossier != null and dossier.is_waiting():
 			return false
 	return true
