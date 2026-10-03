@@ -229,10 +229,20 @@ func _place() -> void:
 	offset_bottom = TOP
 	custom_minimum_size = Vector2(width, 0)
 
+# A choice screen (family pick, Dream, gift, Omen) is open: hints wait behind it (user screenshot: a hint across the
+# family cards), except the ones about that screen. One already showing pauses, hidden, and goes on after.
+const ON_CHOICE_SCREENS: Array[StringName] = [&"let_pass", &"omen"]
+var _hidden_for_choice := false
+
+func _choice_open() -> bool:
+	return drift_director != null and (drift_director.pending_choice() != &"" or drift_director.awaiting_family_pick)
+
 func _show_next() -> void:
 	if _queue.is_empty():
 		return
 	var id: StringName = _queue[0]
+	if _choice_open() and not ON_CHOICE_SCREENS.has(id):
+		return  # _process shows it once the choice closes
 	_seen.append(String(id))
 	_remember()
 	var raw: String = TEXT.get(id, "")
@@ -290,6 +300,20 @@ func _gui_input(event: InputEvent) -> void:
 
 # Conditions that are easiest to notice by looking.
 func _process(_delta: float) -> void:
+	var showing := not _queue.is_empty() and _seen.has(String(_queue[0]))
+	var choice := _choice_open() and not (showing and ON_CHOICE_SCREENS.has(_queue[0]))
+	if choice and showing and not _hidden_for_choice:
+		_hidden_for_choice = true  # Paused behind the choice screen
+		visible = false
+		if _tween:
+			_tween.pause()
+	elif not choice and _hidden_for_choice:
+		_hidden_for_choice = false
+		visible = true
+		if _tween and not held:
+			_tween.play()
+	elif not choice and not showing and not _queue.is_empty():
+		_show_next()  # One waited for the choice to close
 	if tower_placer.hover_breaks_path():
 		whisper(&"cage")
 	# Obstacles can't be cleared until the run's first clearing Dream (run_design.md).

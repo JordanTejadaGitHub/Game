@@ -99,6 +99,23 @@ func _run() -> void:
 	whispers._gui_input(click)
 	_check(not whispers.held and (whispers._queue.is_empty() or String(whispers._queue[0]) != showing),
 		"a second tap dismisses it, and the next queued one follows (one at a time)")
+	# Behind a choice screen (user screenshot: a hint across the family cards): it waits, then shows once it closes.
+	for id in whispers._queue:
+		if not whispers._seen.has(String(id)):
+			whispers._seen.append(String(id))
+	whispers._queue.clear()
+	whispers._finish()
+	whispers._seen.erase("flow")
+	var choice_director: DriftDirector = main.get_node("%DriftDirector")
+	choice_director.awaiting_family_pick = true
+	whispers.whisper(&"flow")
+	for frame in 3:
+		await process_frame
+	_check(not whispers._seen.has("flow") and whispers.modulate.a < 0.1, "a hint waits while a choice screen is open")
+	choice_director.awaiting_family_pick = false
+	for frame in 3:
+		await process_frame
+	_check(whispers._seen.has("flow") and whispers.visible, "…and shows once it closes")
 
 	# Drifts 1–6 for real (leaves can't fall: the block ends when the field is clear).
 	run_state.invulnerable = true
