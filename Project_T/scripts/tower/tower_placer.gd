@@ -362,23 +362,27 @@ func _draw() -> void:
 			names[change[1]] = names.get(change[1], 0) + 1
 		for name in names:
 			tag += " · breaks %s on %d Warden%s" % [name, names[name], "" if names[name] == 1 else "s"]
-	WorldLabel.draw_tag(self, 0.0, MAP_GRID.cell_size.y / 2.0 + 18.0, tag,
+	# Tags at the ghost's real position: WorldLabel.draw_tag sets its own transform (screen-sized text), so a
+	# draw_set_transform here would be dropped (user: the tags sat at the map's top left).
+	draw_set_transform(Vector2.ZERO)
+	var ghost := ghost_tag_origin()
+	WorldLabel.draw_tag(self, ghost.x, ghost.y + MAP_GRID.cell_size.y / 2.0 + 18.0, tag,
 		WorldLabel.cost_color(_hover_affordable))
 	# Bonus chips above the ghost: each position card, on (green, what it gives) or off (grey, why).
-	var y := -MAP_GRID.cell_size.y / 2.0 - 10.0 + minf(tower_data.get_sprite_offset().y, 0.0)
+	var y := ghost.y - MAP_GRID.cell_size.y / 2.0 - 10.0 + minf(tower_data.get_sprite_offset().y, 0.0)
 	if received != "":
-		WorldLabel.draw_tag(self, 0.0, y, received, BuffSources.COLORS.acorn)
+		WorldLabel.draw_tag(self, ghost.x, y, received, BuffSources.COLORS.acorn)
 		y -= CHIP_STEP
 	for chip in get_ghost_chips():
-		WorldLabel.draw_tag(self, 0.0, y, chip[0], BONUS_ON if chip[1] else BONUS_OFF)
+		WorldLabel.draw_tag(self, ghost.x, y, chip[0], BONUS_ON if chip[1] else BONUS_OFF)
 		y -= CHIP_STEP
 	# Planted Wardens this placement would switch a card off (red) or on (green) for.
 	for change in get_neighbour_changes():
 		var tower: Tower = change[0]
 		if not is_instance_valid(tower):
 			continue
-		draw_set_transform(to_local(tower.global_position))
-		WorldLabel.draw_tag(self, 0.0, -MAP_GRID.cell_size.y / 2.0 - 6.0,
+		var at := to_local(tower.global_position)
+		WorldLabel.draw_tag(self, at.x, at.y - MAP_GRID.cell_size.y / 2.0 - 6.0,
 			("gains %s" if change[2] else "loses %s") % change[1], BONUS_ON if change[2] else BONUS_LOST)
 	draw_set_transform(Vector2.ZERO)
 
@@ -697,6 +701,10 @@ func _draw_card_areas() -> void:
 		var colour := Color(BONUS_ON if row.active else BONUS_OFF, 0.7)
 		for i in 4:
 			draw_dashed_line(corners[i], corners[(i + 1) % 4], colour, 2.0, 8.0)
+
+# Where the ghost's tags hang from (this node's space): the hovered footprint's centre. Tested: never the map origin.
+func ghost_tag_origin() -> Vector2:
+	return to_local(Tower.footprint_centre(_hover_cell, tower_data.footprint))
 
 # How many tiles longer creatures would walk if the ghost were built (0 if it can't be).
 func get_hover_path_growth() -> int:
@@ -1358,11 +1366,11 @@ func _draw_stroke() -> void:
 			draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.get_sprite_offset(), frame.size), frame, tint)
 	if _stroke.is_empty():
 		return
-	draw_set_transform(MAP_GRID.calculate_map_position(_stroke.back()))
+	draw_set_transform(Vector2.ZERO)
+	var last := to_local(MAP_GRID.calculate_map_position(_stroke.back()))  # draw_tag sets its own transform
 	var last_why: String = _stroke_plan.get(_stroke.back(), "")
 	var tag := get_stroke_tag() + (" · %s" % last_why if last_why != "" else "")
-	WorldLabel.draw_tag(self, 0.0, MAP_GRID.cell_size.y / 2.0 + 18.0, tag, WorldLabel.cost_color(true))
-	draw_set_transform(Vector2.ZERO)
+	WorldLabel.draw_tag(self, last.x, last.y + MAP_GRID.cell_size.y / 2.0 + 18.0, tag, WorldLabel.cost_color(true))
 
 # Heart of the Maze (card, screens_ui.md "Marks that are always on the map"): whether planting the
 # selected Warden on `cell` would make it the heart. Same rule as DreamState.get_heart_of_maze (the
