@@ -762,7 +762,7 @@ Numbers: Keen +10% crit chance per rank (cap 75%); Yield +1 alive per 2 ranks (B
 Oak +0.5 shard / drift per rank; Reach +0.3 cells; Deep caps (pull 1.5×, grounding 5 s, link 50%, boss
 slow floor 0.35); supports Prism +2%, Acorn +1%, Nurse Log +3% (40% max). **Probe** (rank V, no Dreams):
 **Keen 0.61–0.82× Power** per Dew; **Brood Cap Yield 0.56×** (max-alive rarely binds). Changes: **Keen also
-+10% crit damage per rank**; **Brood Cap Yield = sprite interval −0.25 s per rank** (floors 0.75 / 0.5 s; in b1e28266).
++10% crit damage per rank**; **Brood Cap Yield = sprite interval −0.25 s per rank** (floors 0.75 / 0.5 s; in b1e28266). **Re-run:** Keen 0.87–0.91× Power (Moonstone 0.64: already 25% crit, Power is its pick; accepted); Brood Yield 0.78× → **+8% sprite burst per rank** too. Nurture tuning closed after that.
 
 ## Human run 15 (2026-10-03, 83d9b3b0 → 5692de; before the finale-health fix, Dev Grove: Full)
 
