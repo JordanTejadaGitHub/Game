@@ -745,6 +745,17 @@ on target for a fresh profile (and act 1's "teaches" side holds). Decisions:
 "Never grew a Warden" is partly that; **her economy (plant-only) is not a fresh player's normal.** Since
 c8d1fc33 the always-on Growth hint marks are a separate setting from whispers.
 
+## Human run 13 (2026-10-03, build 6e7574 = 83d9b3b0, Dev Grove: Full; first run after the act 1 fixes)
+
+**Lost at drift 10**, 3 min. Nestling first, grew **3 Magpie Perch** (the thief; ~0.1× Driftspore on its
+own damage) + 10 Sprouts; Dew earned 515. Closest 0.84–0.88 at drifts 7 and 9, then **drift 10, the first
+block finale: 8,619 health (drift 9: 3,747, so ×2.3), 13 leaks, all 15 leaves in one drift.** Kills and Dew
+were at 0.1–0.4 of the route, nothing near the Heartwood.
+- **A first finale must not end a full-leaf run:** `block_finale_health_from` **10 → 15** (drift 10 keeps its
+  one elite as a small first spike). The demo is unaffected.
+- Nestling isn't expanded yet (the sky merge is Phase 3), so both branches were offered and the user picked
+  the support. Not a draw issue; watch whether Magpie Perch reads as a trap first pick.
+
 ## Nap batch on main (2026-10-02, 175058a0: Spire rules + round 3)
 
 **1. Round-3 re-probe of the new branches** (fixed board, 3 seeds): **in band:** Undercurrent 0.52×,
