@@ -756,6 +756,15 @@ were at 0.1–0.4 of the route, nothing near the Heartwood.
 - Nestling isn't expanded yet (the sky merge is Phase 3), so both branches were offered and the user picked
   the support. Not a draw issue; watch whether Magpie Perch reads as a trap first pick.
 
+## Human run 14 (2026-10-03, same build, Dev Grove: Full)
+
+**Lost at drift 20** (a finale), 8 min. **Acorn first**: 2 Acorns, 4 Elder Stumps, 13 Sprouts; Dew banked
+230–320 through drifts 5–11. Leaks from drift 6; the drift 10 finale spawned 9,281 health (×2.5 drift 9;
+the finale fix lowers it); 4 leaves at 15, the rest at 19–20. Kills moved deep (0.5–0.8 of the route) by
+block 3. Combos 1%.
+User on support openers (Magpie Perch, Acorn): **"Keep as is"**. Picking a support family first is a
+choice with a cost. No change beyond the pending drift 10 finale fix.
+
 ## Nap batch on main (2026-10-02, 175058a0: Spire rules + round 3)
 
 **1. Round-3 re-probe of the new branches** (fixed board, 3 seeds): **in band:** Undercurrent 0.52×,
