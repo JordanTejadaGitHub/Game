@@ -21,7 +21,7 @@ These replace the older targets below for the **full game**; the demo keeps the 
 | Bot, fresh, act 1 boss (full game, real boss draw) | Balanced **~55–60%** survive, skip **≤ 15%** |
 | Grove | a full carried loadout adds **≤ +10–15 points** of bot survival / reach over no perks (measured +15) |
 | Combos + Reactions | **~25–40%** of a good build's damage (`combo_share`) |
-| Damage branches | **0.5–1.0× Driftspore** per Dew on the fixed board (drift 45) |
+| Damage branches | **0.8–1.0× Driftspore** per Dew on the fixed board (drift 45); a drawn branch must match the one it replaces |
 | Final forms | **0.8–1.5× Puffball** per Dew (drifts 45 and 61) |
 | Supports / control | their board does **≥ par** with 4 of the reference |
 | Dream builds | a decent build (≥ 3 picks of one tag) in **~50%** of runs; skipping Dreams loses |
@@ -768,6 +768,14 @@ before any family change.
 cost nothing (no finale rules in the demo). **The demo gating works** and plays like before the Spire rules.
 So the full game's 30% comes from what differs: the act 1 ramp from drift 3, the finales (×1.4 + elites),
 and the branch expansion. The A/B splits the branch expansion off from the rest.
+
+**Act 1 A/B** (fresh, Balanced, 30 seeds): main as is **30%**; main with the branch expansion off **60%**;
+the Spire build before the expansion **60%**. With the expansion on, the bot grew Driftspore in 8 runs
+instead of 21 and took Lichenling / Brood Cap instead. **Cause: the 2-of-5 draw often doesn't offer
+Driftspore, and the new damage branches are weaker.** Decision: the damage-branch band tightens to
+**0.8–1.0× Driftspore** (a drawn branch must be about as good as the one it replaces). Raises: Lichenling
+22, Brood Cap burst 24, Thrum 70, Jetreed base 60, Undercurrent 60 dmg/s, Jarlink arc 210, Sparkler 40.
+Re-run arm (a) after.
 
 ## Combo share of damage (user-approved, 2026-10-02)
 
