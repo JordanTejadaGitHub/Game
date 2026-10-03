@@ -227,6 +227,34 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   - The Seeds this frees should go to the other roots or lower the tree's total; the meta chat
     rebalances (`meta_design.md` Seeds totals, Grove node data).
 
+### Branch expansion in the Grove (PROPOSED 2026-10-02, waiting for the user)
+
+For `tower_design.md` "Branch expansion" (5 regular branches + 1 hidden per family, **2 of the 5
+offered per run** on the Remember screen, the Dreamlight call-back for 3, *Remembered Path*).
+Full game only; the demo is unchanged.
+
+- **A family node brings all 5 regular branches into the run's draw.** Planting a family (or owning
+  a starting family) puts its 5 branches and their finals in the pool the run draws its 2 from.
+  No per-branch nodes: buying branches one by one would let a veteran strip the pool down to their
+  favourites, which is exactly what the expansion stops.
+- **The hidden branch stays its own node** (as now, 40–80 Seeds after the family): owned = offered
+  every run **on top of** the 2.
+- **The family node's card** lists its 5 branches with their one-line jobs and finals, and says
+  *"In your dreams: 2 a run."* The hidden-branch node's card is as now. Families not expanded yet
+  (Pebbling, Rootling, Acorn; the sky merge) list their current branches until their phase lands.
+- **Sky merge (Phase 3, later):** Nestling and Whirligig become one family node, the Whirligig
+  hidden node goes (Samara is regular), and the two Ascension nodes become one (`tower_design.md`).
+- **One new perk** (Choice path, after Omen Reader; an option, not raw power):
+  **Wider Roots** (120): at the first family pick you name one family; it offers **3 of its 5**
+  this run, but the Dreamlight call-back costs **4** instead of 3. It's a sidegrade in Hades mode
+  as well, so the Grove power cap holds.
+- **Rejected: a "pin" (always offer one chosen branch).** It brings back the same build every run,
+  the problem the expansion solves. Steering stays paid for in the run (call-back, Remembered Path).
+- **Codex Families page and the Grove directory** list each family's 5 branches + hidden with
+  their roles (Main Merger).
+- **Art:** the Grove draws families, not branches, so no new node art except the Wider Roots icon;
+  the node cards use the branches' tower portraits. Meta Game Asset updates the gallery.
+
 ### Section 3: Cards (Dream pool unlocks)
 
 Revised 2026-09-27. Cards come in **themed bundles** (one node = a set of Grove cards joining the

@@ -22,6 +22,9 @@ const STATUSES := {
 	&"frozen": ["Frozen", "Frost stops it for a moment."],
 	&"elite": ["Deeply Blighted", "An elite: 3× health, 2× Dew, and it takes 2 leaves."],
 	&"hidden": ["Hidden", "Can't be seen or targeted until something reveals it, or it comes close."],
+	# Hushbell's silence (BranchKit.silence; EnemyStatuses.silence_time): the numbers are checked against the data in
+	# test_text_style (Silence's linger, the Vespers toll, Enemy.BOSS_SILENCE_SPEED).
+	&"silenced": ["Silenced", "Its abilities stop while a Hushbell's song reaches it, and for 2 s after a Silence or a Vespers toll: the Watcher can't wake, Weepers can't mend, a Lantern Bearer goes dark and its Wraiths are lost. Bosses run their timed abilities at half speed."],
 }
 const STATS := {
 	&"damage": ["Damage", "How much each hit deals."],

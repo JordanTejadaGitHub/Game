@@ -416,7 +416,8 @@ func _route_lane(branch: TowerData) -> Control:
 	lane.add_child(words)
 	var tip := branch.display_name + (" → " + final.display_name if final != null else "")
 	if role_text(branch) != "":
-		tip += "\n" + role_text(branch).capitalize()
+		var role_words := role_text(branch)
+		tip += "\n" + role_words.left(1).to_upper() + role_words.substr(1)  # Sentence case: "Cracks armour, quiets support"
 	if counters_text(branch) != "":
 		tip += "\n" + counters_text(branch)
 	lane.tooltip_text = tip
