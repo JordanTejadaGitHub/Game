@@ -136,7 +136,11 @@ func _test_quaker() -> void:
 	_check(not e.rolling, "Quaker: a sprint stops")
 	await _clean()
 	var shaker := _plant("earthshaker", _open_cell_near(at))
+	var lurker = _spawn(at)
+	lurker._set_hidden(true)
+	_check(lurker.is_hidden(), "a hidden nightmare beside the slam")
 	BranchKit._quake(shaker)
+	_check(not lurker.is_hidden(), "the slam shakes it loose (revealed)")
 	var cracked := false
 	for cell in shaker._route():
 		cracked = cracked or BranchKit.is_cracked(main, cell)

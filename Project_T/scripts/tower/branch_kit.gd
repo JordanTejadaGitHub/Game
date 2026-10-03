@@ -687,6 +687,12 @@ static func _drop_rock(tower: Tower, cell: Vector2) -> void:
 # Fault Line (b) runs the slam along the stone walls touching its Rampart.
 static func _quake(tower: Tower) -> void:
 	_fx(&"ground_slam", tower.global_position, world(tower), tower.get_range_cells() / 1.5)
+	# The slam shakes hidden nightmares loose (Lurkers): revealed 3 s, as Lanternmoth / Rootlight do (doc 219a7a9c).
+	var shake := tower.get_range_pixels()
+	for e in field(tower):
+		if e.has_method("is_hidden") and e.is_hidden() and e.has_method("reveal_for") \
+				and e.global_position.distance_to(tower.global_position) <= shake:
+			e.reveal_for(p(tower, "reveal_time", 3.0))
 	if is_final(tower):
 		var reach := tower.get_range_pixels()
 		for cell in tower._route():
