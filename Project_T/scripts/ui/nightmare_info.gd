@@ -103,6 +103,9 @@ func _process(delta: float) -> void:
 		statuses.append(_target.statuses.describe(id))
 	if _target.has_method("get_status_notes"):  # Slow / sleep limits: "Slowed to the limit", "Awake: …"
 		statuses.append_array(_target.get_status_notes())
+	var silenced: float = _target.statuses.silence_time  # Hushbell (BranchKit): not a stacking status, its own timer
+	if silenced > 0.0 and not _target.get_status_order().has(&"silenced"):
+		statuses.append(silence_line(silenced))
 	if not statuses.is_empty():
 		lines.append("\n".join(statuses))
 	var body := StatusLinks.bbcode("\n".join(lines))
@@ -122,6 +125,10 @@ func _body_in_use() -> bool:
 
 # What the drift's Omen gives this nightmare beyond its kind (get_defences doesn't know them):
 # "Omen Sleepless: immune to Drowsy, Rooted · always Soaked". "" when nothing.
+# "Silenced · 1.4 s" (the status word links to its glossary entry through StatusLinks).
+static func silence_line(seconds: float) -> String:
+	return "%s · %.1f s" % [IconInfo.status_name(&"silenced"), seconds]
+
 static func omen_text(enemy: Node) -> String:
 	var parts: Array[String] = []
 	var data: EnemyData = enemy.enemy_data

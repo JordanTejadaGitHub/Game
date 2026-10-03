@@ -78,6 +78,7 @@ const GLOSSARY_SOURCE := [
 		["{asleep}", "{tip:asleep}", ["{drowsy}", "Caught"]],
 		["{caught}", "{tip:caught}", ["{drowsy}", "{asleep}"]],
 		["{frozen}", "{tip:frozen}", ["{damp}"]],
+		["{silenced}", "{tip:silenced}", []],
 	]],
 	["Combat", [
 		["Crit", "A critical hit: some Wardens sometimes hit much harder.", ["Pinned", "Potency"]],
