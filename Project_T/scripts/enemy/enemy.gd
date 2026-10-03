@@ -77,6 +77,7 @@ const GROUP := "enemies"
 const BLIGHT_SHADER := preload("res://shaders/blight.gdshader")
 const HEALTH_BAR_SIZE := Vector2(40, 5)
 const HEARTWOOD_DRAIN_EVERY := 2.0  # A boss at the Heartwood takes a leaf this often (s)
+const GROUND_DROP_TIME := 0.25  # Groundroot: a flyer's drop onto the route
 const BOSS_SILENCE_SPEED := 0.5  # A silenced boss's timed abilities run this fast (Hushbell; tower_design.md 279ebb63)
 const UNTOUCHABLE_TINT := Color(0.42, 0.38, 0.55)  # The Night Mare lingering: a dark, smoky shimmer (a self_modulate multiplier)
 const UNTOUCHABLE_ALPHA := 0.55
@@ -194,6 +195,7 @@ var _charge_left := 0.0
 var at_heartwood := false  # A boss that got through: it stays, draining leaves (see heartwood_drained)
 var _drain_left := 0.0  # Seconds to its next leaf (0 on arrival: the first goes at once)
 var _linger_left := 0.0  # Night Mare: seconds left of this visit before it gallops off again
+var _grounded_left := 0.0  # Groundroot: seconds left on the ground (a flyer walking the maze; see ground)
 var _untouchable := false  # Night Mare lingering: no hits, no statuses, not targeted (_set_untouchable)
 var straight_charging := false  # Hollow Stag: on a straight of straight_charge_tiles+ (see _update_straight_charge)
 var _bellowed := false
@@ -427,6 +429,10 @@ func _process(delta: float) -> void:
 		freeze_cooldown = maxf(freeze_cooldown - delta, 0.0)
 	if push_cooldown > 0.0:
 		push_cooldown = maxf(push_cooldown - delta, 0.0)
+	if _grounded_left > 0.0 and not _leaping:  # Groundroot: back up into the air when it runs out
+		_grounded_left -= delta
+		if _grounded_left <= 0.0:
+			_rise_from_ground()
 	# Smother's looping effect lasts while it's held with spores on it (Reactions): ended on the frame
 	# tick() reports it stopping, and checked on each presence tick as well (_update_presence).
 	if statuses.smother_ended:
@@ -525,6 +531,8 @@ func _process(delta: float) -> void:
 		if (enemy_data.is_boss and not is_echo and enemy_data.stays_at_heartwood) or enemy_data.laps():
 			at_heartwood = true  # The Hollow Oak stays (the timers keep running if it's re-routed and walks back in)
 			return
+		if BranchKit.before_goal(self):
+			return  # Heartroot's "Not yet": dragged back off the Heartwood (the drift's first leak)
 		reached_goal.emit(self)
 		queue_free()
 
@@ -1034,7 +1042,68 @@ func get_leaf_cost() -> int:
 	return maxi(enemy_data.leaf_cost, ELITE_LEAVES) if elite else enemy_data.leaf_cost
 
 func is_flying() -> bool:
-	return enemy_data.trait_kind == EnemyData.Trait.FLYING
+	return enemy_data.trait_kind == EnemyData.Trait.FLYING and _grounded_left <= 0.0  # (Groundroot: not while grounded)
+
+# --- Branch Phase 2 hooks (tower_design.md; Tower Code's BranchKit calls them) ---
+
+# Quaker's slam: ends any speed boost it's on now: a Night Hound's sprint, the Hollow Stag's straight
+# charge, a bolt / charge (_charge_left). Restless isn't a boost.
+func stop_speed_boosts() -> void:
+	rolling = false
+	_straight_steps = 0
+	straight_charging = false
+	_charge_left = 0.0
+	_speed_stale = true
+
+# Groundroot: a flyer is dragged down onto the nearest route cell and walks the maze for `seconds`
+# (is_flying() is false meanwhile: it re-routes, walls block it, walker-only effects reach it), then
+# rises and flies straight at the Heartwood from where it is. Never a boss (BranchKit doesn't pass one).
+func ground(seconds: float) -> void:
+	if is_cleansed or enemy_data.trait_kind != EnemyData.Trait.FLYING or enemy_data.is_boss:
+		return
+	var map_generator = _map_generator()
+	if map_generator == null:
+		return
+	if _grounded_left > 0.0:
+		_grounded_left = maxf(_grounded_left, seconds)  # Already down: just longer
+		return
+	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	if route.is_empty():
+		return
+	var nearest: Vector2 = route[0]
+	for cell in route:
+		if grid.calculate_map_position(cell).distance_squared_to(position) \
+				< grid.calculate_map_position(nearest).distance_squared_to(position):
+			nearest = cell
+	_grounded_left = seconds
+	_end_drag(false)
+	_leaping = true  # No walking during the drop
+	var tween := create_tween()
+	_leap_tween = tween
+	tween.tween_property(self, "position", grid.calculate_map_position(nearest), GROUND_DROP_TIME) \
+		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tween.parallel().tween_property(sprite, "scale", sprite.scale * Vector2(1.2, 0.8), GROUND_DROP_TIME)
+	tween.tween_property(sprite, "scale", sprite.scale, 0.1)
+	tween.tween_callback(func() -> void:
+		_leaping = false
+		set_path(map_generator.get_path_from(nearest))
+		_speed_stale = true)
+
+func is_grounded() -> bool:
+	return _grounded_left > 0.0
+
+# Its time on the ground ran out: it rises and flies straight at the Heartwood from here.
+func _rise_from_ground() -> void:
+	_grounded_left = 0.0
+	var map_generator = _map_generator()
+	if map_generator != null and not is_cleansed:
+		set_path(PackedVector2Array([get_current_cell(), map_generator.endPath]))
+		_speed_stale = true
+
+# Earthbind / Deeproot on what Held can't stop (Phantoms): a plain stop for `seconds`, no status, no Reactions.
+func pause(seconds: float) -> void:
+	if not is_cleansed:
+		hold_time = maxf(hold_time, seconds)
 
 # Pixels per second right now: base speed, sprinting / lost / charging, then slows.
 func get_move_speed() -> float:
@@ -1115,7 +1184,9 @@ func _update_rolling() -> void:
 	_last_step = step
 	# Keeps rolling only while the next step goes the same way; stops at the turn.
 	var next_same := _path_index < _path.size() and _path[_path_index] - _path[_path_index - 1] == step
-	rolling = _straight_steps >= enemy_data.roll_after_tiles and next_same
+	# A sprint can't start on a cracked cell (Earthshaker, Fault Line); one already running carries on
+	var may_start := rolling or not BranchKit.is_cracked(self, get_current_cell())
+	rolling = _straight_steps >= enemy_data.roll_after_tiles and next_same and may_start
 	_speed_stale = true
 
 # Hollow Stag: charges along any straight of straight_charge_tiles+ path tiles (the whole straight,
@@ -1135,7 +1206,9 @@ func _update_straight_charge() -> void:
 		while i >= 1 and _path[i] - _path[i - 1] == step:
 			tiles += 1
 			i -= 1
-		straight_charging = tiles >= enemy_data.straight_charge_tiles
+		# A charge can't start on a cracked cell (Earthshaker, Fault Line); one already running carries on
+		straight_charging = tiles >= enemy_data.straight_charge_tiles \
+			and (was or not BranchKit.is_cracked(self, _path[here]))
 	if straight_charging != was:
 		_speed_stale = true
 
@@ -1154,6 +1227,8 @@ func _leap() -> void:
 				creature.apply_status(EnemyStatuses.DAMP)
 		leaped.emit(self)
 		if _path_index >= _path.size():
+			if BranchKit.before_goal(self):
+				return  # Heartroot's "Not yet"
 			reached_goal.emit(self)
 			queue_free())
 
@@ -1413,7 +1488,8 @@ func _try_burrow() -> void:
 	var best_length := _path.size() - _path_index - enemy_data.burrow_min_saving  # Cells to beat
 	for direction in DIRECTIONS:
 		var beyond := here + direction * 2
-		if not walls.has(here + direction) or not _is_walkable(beyond, map_generator):
+		if not walls.has(here + direction) or not _is_walkable(beyond, map_generator) \
+				or BranchKit.is_stone_cell(self, here + direction):  # Rampart's stone walls can't be dug under
 			continue
 		var route: PackedVector2Array = map_generator.get_path_from(beyond)
 		if not route.is_empty() and route.size() + 1 <= best_length:  # +1: the tunnel under the wall

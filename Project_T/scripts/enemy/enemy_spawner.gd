@@ -294,7 +294,7 @@ func try_omen_trample(enemy: Node2D) -> void:
 	var here: Vector2 = enemy.get_current_cell()
 	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 		var tower = tower_cells.get(here + offset)
-		if tower == null or not is_instance_valid(tower) or tower.tower_data.line != "wall":
+		if tower == null or not is_instance_valid(tower) or tower.tower_data.line != "wall" or BranchKit.is_stone(tower):
 			continue
 		var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 		var director = get_node_or_null("%DriftDirector")
@@ -383,7 +383,7 @@ func _on_trample_requested(enemy: Node2D) -> void:
 	var here: Vector2 = enemy.get_current_cell()
 	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 		var tower := _tower_on(here + offset)
-		if tower != null and tower.tower_data.line == "wall":
+		if tower != null and tower.tower_data.line == "wall" and not BranchKit.is_stone(tower):  # (Rampart's stone walls hold)
 			_trample_tower(tower, here + offset, enemy)
 			enemy.trampled()
 			return
