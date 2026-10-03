@@ -320,6 +320,7 @@ func _init() -> void:
 			if warden in CHANNEL_WARDENS:
 				_make_channel(warden)
 		_save_line_preview(rows, PREVIEWS + line + ".png")
+	_make("thornwall_stone", Callable(self, "_draw_thornwall_stone"))
 	if not overflow.is_empty():
 		push_warning("Wardens cut off at the top of their frame (rows above the body): %s" % overflow)
 	_save_attack_info()
@@ -7952,3 +7953,22 @@ func _epic_dreamroot(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color
 	for i in tips.size():
 		var t: Vector2 = tips[i]
 		_flat_ellipse(canvas, t, Vector2(1.6, 1.6), core if (st.f + i) % 4 < 2 else glow)
+
+# thornwall_stone.png (Phase 2, Rampart / Bastion): a Thornwall touching Rampart turned to stone, the
+# same hedge and layout as thornwall.png (8 idle frames, 64x80) so the game swaps the texture 1:1. The
+# hedge is the Thornwall's own drawing recoloured by brightness into grey stone; the slab is untouched;
+# a little moss stays in its cracks.
+func _draw_thornwall_stone(canvas: Image, st: Dictionary) -> void:
+	var base := _layer()
+	_draw_waystone(base, st, "bramble", false)
+	_draw_thornwall(canvas, st)
+	var stone := [Color("#24243c"), Color("#3c3c5c"), Color("#5c5a78"), Color("#8c8cac"), Color("#b4b0c8"), Color("#dce8f4")]
+	for y in range(-OY, S):
+		for x in S:
+			var c := _gp(canvas, x, y)
+			if c.a == 0.0 or c == _gp(base, x, y):
+				continue
+			var lum := c.r * 0.3 + c.g * 0.59 + c.b * 0.11
+			var i: int = clampi(int(lum * 8.0), 0, stone.size() - 1)
+			var mossy: bool = i == 2 and (x * 7 + y * 3) % 11 == 0
+			_sp(canvas, x, y, Color("#5c944c") if mossy else Color(stone[i], c.a))

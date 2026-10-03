@@ -209,6 +209,38 @@
 			"loop": true,
 			"note": "Lullaby Bell: one per chorus voice, riding the pulse ring. Tint."
 		},
+		"clean_cut": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "clean_cut.png",
+			"fps": 18.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Whetstone / Edgestone: the finishing slash on the nightmare it finishes (centred on it), ~0.33 s."
+		},
+		"clean_spill": {
+			"anchor": [
+				0,
+				6
+			],
+			"file": "clean_spill.png",
+			"fps": 16.0,
+			"frame_size": [
+				32,
+				12
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": false,
+			"note": "Edgestone: the overkill jumping from the finished nightmare to the next one. Stretch along x (y = 6 on the line), killed -> next."
+		},
 		"cloud_puffs": {
 			"anchor": [
 				24,
@@ -750,6 +782,22 @@
 			"loop": false,
 			"note": "Sparkler / Starburst: a firework bursting over a crowd into 6 sparks (Starburst: play two, offset)."
 		},
+		"flyer_grab": {
+			"anchor": [
+				24,
+				20
+			],
+			"file": "flyer_grab.png",
+			"fps": 12.0,
+			"frame_size": [
+				48,
+				64
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Groundroot / Earthbind: roots shooting up from the ground and dragging the flyer down (anchor = the flyer), ~0.5 s."
+		},
 		"fog_wisps": {
 			"anchor": [
 				28,
@@ -782,6 +830,22 @@
 			"loop": true,
 			"note": "Zephyr: a gust streak along the path; tile/stretch along x, y = 6 on the line. Tint (or leave pale)."
 		},
+		"goal_hold": {
+			"anchor": [
+				24,
+				30
+			],
+			"file": "goal_hold.png",
+			"fps": 12.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Deeproot: a root coil snapping round the held nightmare's feet (anchor = its feet), ~0.5 s."
+		},
 		"grafted_harmony_a": {
 			"anchor": [
 				32,
@@ -813,6 +877,22 @@
 			"kind": "overlay_loop",
 			"loop": true,
 			"note": "Right half; tint with the second status colour."
+		},
+		"ground_slam": {
+			"anchor": [
+				104,
+				104
+			],
+			"file": "ground_slam.png",
+			"fps": 16.0,
+			"frame_size": [
+				208,
+				208
+			],
+			"frames": 7,
+			"kind": "ground",
+			"loop": false,
+			"note": "Quaker / Earthshaker: the slam ring centred on the Warden, drawn for a 1.5 cell radius (96 px); scale x1.33 for Earthshaker's 2."
 		},
 		"harmony_beam": {
 			"anchor": [
@@ -1427,6 +1507,22 @@
 			"loop": true,
 			"note": "One path tile (64x64), loops while the cloud lasts. Draw under nightmares."
 		},
+		"path_crack": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "path_crack.png",
+			"fps": 12.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": false,
+			"note": "Earthshaker: the crack left on a path tile. Forms up over 3 frames; hold the last frame (static) for the 3 s, z -1."
+		},
 		"path_furrow": {
 			"anchor": [
 				0,
@@ -1540,6 +1636,22 @@
 			"loop": true,
 			"note": "Cloudlet / Nimbus: rain over a 3x3 zone. Tile it 3x3 (it tiles seamlessly), above the nightmares at ~80% alpha."
 		},
+		"rockfall": {
+			"anchor": [
+				24,
+				64
+			],
+			"file": "rockfall.png",
+			"fps": 14.0,
+			"frame_size": [
+				48,
+				80
+			],
+			"frames": 8,
+			"kind": "signature",
+			"loop": false,
+			"note": "Bastion: a rock falling from a stone wall onto the path tile beside it. Anchor = the tile centre; impact on frame 3."
+		},
 		"root_grab": {
 			"anchor": [
 				24,
@@ -1579,6 +1691,22 @@
 			"kind": "ground",
 			"loop": true,
 			"note": "Rockslide: one path tile of slowing rubble. Draw under nightmares. Loops: Fx.play(&\"rubble\", tile, world, 1.0, true, 3.0) holds it 3 s and fades it out."
+		},
+		"shard_rise": {
+			"anchor": [
+				12,
+				44
+			],
+			"file": "shard_rise.png",
+			"fps": 12.0,
+			"frame_size": [
+				24,
+				48
+			],
+			"frames": 8,
+			"kind": "signature",
+			"loop": false,
+			"note": "Dream Oak / Dreamroot: a Dreamlight shard rising out of it at the end of a drift (anchor = its top)."
 		},
 		"shatter": {
 			"anchor": [
@@ -1695,6 +1823,22 @@
 			"loop": false,
 			"note": "Sparkler / Starburst's firework at the burst point (and Fireworks Fence's crossing burst): a smaller, quicker burst than firework_burst."
 		},
+		"sprout_puff": {
+			"anchor": [
+				24,
+				36
+			],
+			"file": "sprout_puff.png",
+			"fps": 12.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Seedbearer / Grove Keeper: the free Sprout popping up on its cell (anchor = the cell centre)."
+		},
 		"starlit_snare": {
 			"anchor": [
 				16,
@@ -1759,6 +1903,22 @@
 			"loop": true,
 			"note": "One path tile, loops for the pool's 5 s. Draw under nightmares."
 		},
+		"stone_up": {
+			"anchor": [
+				32,
+				48
+			],
+			"file": "stone_up.png",
+			"fps": 12.0,
+			"frame_size": [
+				64,
+				80
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Rampart / Bastion: a Thornwall touching it hardening to stone. Same frame layout as a Warden (64x80, body in the bottom 64, anchor = the cell centre); play over the wall, then swap its texture to thornwall_stone.png."
+		},
 		"storm_front": {
 			"anchor": [
 				48,
@@ -1790,6 +1950,38 @@
 			"kind": "overlay",
 			"loop": false,
 			"note": "x5 chain: stretch over the whole screen and fade alpha 0 -> 0.8 -> 0 over ~0.5 s. Smooth, not pixel art."
+		},
+		"thorn_spread": {
+			"anchor": [
+				0,
+				6
+			],
+			"file": "thorn_spread.png",
+			"fps": 14.0,
+			"frame_size": [
+				32,
+				12
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": false,
+			"note": "Crown of Thorns: a thorny vine growing from the held nightmare to its neighbour. Stretch along x (y = 6 on the line)."
+		},
+		"thorns": {
+			"anchor": [
+				16,
+				22
+			],
+			"file": "thorns.png",
+			"fps": 10.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": true,
+			"note": "Thorncoil: thorns pricking a held nightmare, round its feet (anchor = its feet). Loop while it's held."
 		},
 		"thunderclap": {
 			"anchor": [
