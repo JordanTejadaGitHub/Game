@@ -42,7 +42,7 @@ const VESPERS := &"vespers"  # Silver Bell + Hushbell
 # Named Kinships (Phase 2).
 const FAULT_LINE := &"fault_line"  # Rampart + Quaker
 const BRAMBLE_BED := &"bramble_bed"  # Groundroot + Thorncoil
-const NURSERY := &"nursery_bond"  # Seedbearer + Nurse Log (not &"nursery": that's a Dream card's rule)
+const NURSERY := &"nursery_bond"  # Seed Cradle: Seedbearer + Nurse Log (not &"nursery": that's a Dream card's rule)
 const KIN_TRAIT := 0.20  # Each trait is worth about +20% of the pair's effect at full stage (Balancing)
 
 const CELL := 64.0
