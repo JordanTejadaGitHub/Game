@@ -354,3 +354,8 @@ full game (`game/demo` false), and the demo reads main's exports.
   219a7a9c); the tag alone gave 63%, so the draw weighs detection ×2 (Roguelite 7d17c35f). Now (100 runs, 4
   random families): detection **79%**, anti_tank 91, anti_air 87, anti_swarm 87, boss_abilities 74,
   anti_support 64, anti_armour 54; 9+ pairs per family, none above 25%. Accepted.
+- 2026-10-02: **Phase 2 probe** (ed114826): Rampart 0.99× Driftspore, Bastion 1.30 / 1.14× Puffball (with
+  walls) ✓; Deeproot / Heartroot halve the leak when guarding the goal ✓; low: Whetstone 0.28, Quaker 0.37,
+  Thorncoil 0.52; Edgestone 0.35, Earthshaker 0.66 / 0.54, Crown of Thorns 0.52 / 0.38. **Raises:**
+  Whetstone 280, Quaker 200, Thorncoil 45/s + pulse 32, Edgestone 650, Earthshaker 360, Crown of Thorns
+  120/s + pulse 70. The flyer board was too easy (0 leaks); rerun on a harder one.
