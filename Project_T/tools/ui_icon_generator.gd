@@ -45,6 +45,7 @@ func _init() -> void:
 	_make_buff_pips()
 	_make_grow_hints()
 	_make_emblems()
+	_make_gift_emblems()
 	print("ui icons written")
 	quit()
 
@@ -2252,8 +2253,9 @@ func _frame_points(shape: String) -> Array:
 	return [pts, Vector2.ZERO]
 
 func _ic_emblem() -> void:
-	var fam: Dictionary = EMBLEM_FAMILIES[_em_family]
-	var fp: Array = _frame_points(fam.frame)
+	var is_gift := GIFT_GROUPS.has(_em_family)
+	var fam: Dictionary = GIFT_GROUPS[_em_family] if is_gift else EMBLEM_FAMILIES[_em_family]
+	var fp: Array = _gift_frame_points(fam.frame) if is_gift else _frame_points(fam.frame)
 	var outer: Array = fp[0]
 	_em_off = Vector2.ZERO
 	var border := _ramp_named(fam.ramp)
@@ -2709,3 +2711,224 @@ func _sym_samara(k: int, a: int) -> void:
 	_c_disc(V(10, 21), 3.0, _ramp_named(["moonpath", "deadwood", "oak"]))
 	_c_ell(V(17.5, 13.5), Vector2(8.5, 3.2), k, -0.75)
 	_dt_line(Vector2i(V(12, 19)), Vector2i(V(22, 9)), Palette.color("mist"))
+
+# --- Heartwood's Gifts emblems (heartwood_gifts.md; ids = HeartwoodGifts) --------------------------
+# Same build as the family emblems, but the frame shape + border colour is the gift's group (four
+# shapes the families don't use, so a gift never reads as a family), and the centre is the gift.
+# assets/ui/gifts/gifts.png + gifts.json {"<gift id>": [x, y, w, h]}; 32x32, readable at 24.
+
+const GIFT_GROUPS := {
+	"shape_the_land": {"frame": "tablet", "ramp": ["moonpath", "deadwood", "loam"],
+		"gifts": ["sow_ridge", "fallen_giant", "glade", "shift_stones", "mire"]},
+	"living_ground": {"frame": "leaf", "ramp": ["newleaf", "sprig", "leaf"],
+		"gifts": ["spring", "mushroom_ring", "lightning_tree", "moonwell", "bell_stone", "ancient_stump"]},
+	"nightmares_way": {"frame": "eye", "ramp": ["wraithlight", "bruise", "shade"],
+		"gifts": ["heartwood_roots", "thick_mist", "bramble_verge"]},
+	"heartwood_and_kin": {"frame": "heart", "ramp": ["heartlight", "glow", "gold"],
+		"gifts": ["old_kin", "deeper_glade", "waking_root", "memory_seed"]},
+}
+
+func _make_gift_emblems() -> void:
+	var ids: Array = []
+	for g: String in GIFT_GROUPS:
+		for id: String in GIFT_GROUPS[g].gifts:
+			ids.append([g, id])
+	var sheet := Image.create(32 * ids.size(), 32, false, Image.FORMAT_RGBA8)
+	var index := {}
+	for i in ids.size():
+		_em_family = ids[i][0]
+		_em_symbol = "g_" + ids[i][1]
+		var img := _icon("emblem", 32)
+		Palette.snap_image(img)
+		sheet.blit_rect(img, Rect2i(0, 0, 32, 32), Vector2i(i * 32, 0))
+		index[ids[i][1]] = [i * 32, 0, 32, 32]
+	_n = ICON
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT + "gifts/"))
+	sheet.save_png(OUT + "gifts/gifts.png")
+	var file := FileAccess.open(OUT + "gifts/gifts.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify(index, "\t") + "\n")
+
+func _gift_frame_points(shape: String) -> Array:
+	var pts: Array = []
+	match shape:
+		"tablet":
+			pts = [Vector2(4.5, 1.5), Vector2(27.5, 1.5), Vector2(30.5, 4.5), Vector2(30.5, 27.5), Vector2(27.5, 30.5),
+				Vector2(4.5, 30.5), Vector2(1.5, 27.5), Vector2(1.5, 4.5)]
+			return [pts, Vector2.ZERO]
+		"leaf":
+			for i in 13:
+				var t := i / 12.0
+				pts.append(Vector2(16 + sin(t * PI) * 13.5, 1 + t * 30))
+			for i in range(11, 0, -1):
+				var t := i / 12.0
+				pts.append(Vector2(16 - sin(t * PI) * 13.5, 1 + t * 30))
+			return [pts, Vector2.ZERO]
+		"eye":
+			for i in 13:
+				var t := i / 12.0
+				pts.append(Vector2(0.5 + t * 31, 16 - sin(t * PI) * 12.5))
+			for i in range(11, 0, -1):
+				var t := i / 12.0
+				pts.append(Vector2(0.5 + t * 31, 16 + sin(t * PI) * 12.5))
+			return [pts, Vector2.ZERO]
+		"heart":
+			pts = [Vector2(16, 30.8), Vector2(4, 19), Vector2(1.6, 12.5), Vector2(2.8, 6.5), Vector2(6.8, 2.6),
+				Vector2(11.6, 2.4), Vector2(14.6, 4.6), Vector2(16, 7), Vector2(17.4, 4.6), Vector2(20.4, 2.4),
+				Vector2(25.2, 2.6), Vector2(29.2, 6.5), Vector2(30.4, 12.5), Vector2(28, 19)]
+			return [pts, Vector2(0, 0.5)]
+	return [pts, Vector2.ZERO]
+
+# Shape the land -------------------------------------------------------------------------------
+
+func _dead_tree(x: float, base: float, h: float, k: int) -> void:
+	_c_line([V(x, base), V(x, base - h)], 2.2, k)
+	_c_line([V(x, base - h * 0.55), V(x - h * 0.35, base - h * 0.9)], 1.5, k)
+	_c_line([V(x, base - h * 0.7), V(x + h * 0.3, base - h * 1.05)], 1.5, k)
+
+func _sym_g_sow_ridge(k: int, a: int) -> void:
+	var bark := _ramp_named(["deadwood", "oak", "bark"])
+	_dead_tree(8, 27, 11, bark)
+	_dead_tree(16, 23, 12, bark)
+	_dead_tree(24, 19, 11, bark)
+	_c_line([V(6, 27), V(26, 17)], 1.2, _ramp_named(["sprig", "leaf", "moss"]))
+
+func _sym_g_fallen_giant(k: int, a: int) -> void:
+	var bark := _ramp_named(["deadwood", "oak", "bark"])
+	_c_poly(_rect_pts(5, 13, 19, 7), bark)
+	_c_ell(V(24.5, 16.5), Vector2(3, 3.8), _ramp_named(["moonpath", "deadwood", "oak"]))
+	_dt(int(V(24, 16).x), int(V(24, 16).y), Palette.color("oak"))
+	_c_line([V(10, 13), V(8, 9)], 1.1, bark)
+	_dt_line(Vector2i(V(6, 16)), Vector2i(V(21, 16)), Palette.color("bark"))
+
+func _sym_g_glade(k: int, a: int) -> void:
+	_c_disc(V(16, 16), 5.0, _ramp_named(["newleaf", "sprig", "leaf"]))
+	_c_disc(V(16, 16), 2.0, _ramp_named(["heartlight", "glow", "gold"]))
+	for i in 6:
+		var p := V(16, 16) + Vector2.from_angle(i * TAU / 6.0) * 10.0
+		_c_poly(PackedVector2Array([p + Vector2(0, -3), p + Vector2(2.2, 1.8), p + Vector2(-2.2, 1.8)]), _ramp_named(["sprig", "leaf", "moss"]))
+
+func _sym_g_shift_stones(k: int, a: int) -> void:
+	var st := _ramp_named(["moonlight", "mist", "stone"])
+	_c_ell(V(10, 21), Vector2(6, 4.4), st)
+	_c_ell(V(22.5, 11), Vector2(5, 3.8), st)
+	var pts: Array = []
+	for i in 9:
+		pts.append(V(16, 22) + Vector2.from_angle(PI + 0.25 + i * 0.16) * 9.0)
+	_c_line(pts, 1.2, k)
+	_c_poly(_pts([Vector2(22, 9), Vector2(25.6, 15.4), Vector2(19, 13.6)]), k)
+	_c_ell(V(22.5, 11), Vector2(5, 3.8), st)
+
+func _sym_g_mire(k: int, a: int) -> void:
+	_c_ell(V(16, 20), Vector2(11, 5), _ramp_named(["moss", "deepmoss", "deepmoss"]))
+	for p: Vector2 in [Vector2(11, 19), Vector2(19, 21), Vector2(15, 18)]:
+		_c_ring(V(p.x, p.y), 1.6, 0.6, _ramp_named(["sprig", "leaf", "moss"]))
+	for x: float in [21.0, 24.0]:
+		_c_line([V(x, 18), V(x + 0.5, 8)], 1.0, _ramp_named(["sprig", "leaf", "moss"]))
+	_c_ell(V(21.6, 8.5), Vector2(0.9, 2), _ramp_named(["deadwood", "oak", "bark"]))
+
+# Living ground -------------------------------------------------------------------------------
+
+func _sym_g_spring(k: int, a: int) -> void:
+	_c_ell(V(16, 20), Vector2(10, 5.5), _ramp_named(["sprig", "leaf", "moss"]))
+	_c_ell(V(16, 20), Vector2(8, 4), _ramp_named(["dewlight", "dew", "pool"]))
+	_dt_line(Vector2i(V(12, 19)), Vector2i(V(16, 19)), Palette.color("moonlight"))
+	_drop(V(16, 10.5), 2.8, _ramp_named(["dewlight", "dew", "pool"]))
+
+func _sym_g_mushroom_ring(k: int, a: int) -> void:
+	var cap := _ramp_named(["newleaf", "sprig", "leaf"])
+	for i in 6:
+		var p := V(16, 16.5) + Vector2.from_angle(i * TAU / 6.0 - PI / 2) * 8.6
+		_c_ell(p, Vector2(2.6, 1.7), cap)
+		_dt(int(p.x), int(p.y + 2), Palette.color("moonpath"))
+		_dt(int(p.x), int(p.y), Palette.color("heartlight"))
+
+func _sym_g_lightning_tree(k: int, a: int) -> void:
+	var bark := _ramp_named(["deadwood", "oak", "bark"])
+	_dead_tree(13, 27, 15, bark)
+	_c_poly(_pts([Vector2(22, 3), Vector2(16.5, 11), Vector2(19.5, 11), Vector2(16, 18), Vector2(23.5, 9.5), Vector2(20.5, 9.5), Vector2(24.5, 3)]), a)
+
+func _sym_g_moonwell(k: int, a: int) -> void:
+	_c_ring(V(16, 18), 9, 6, _ramp_named(["moonlight", "mist", "stone"]))
+	_c_disc(V(16, 18), 6, _ramp_named(["dusk", "night", "void"]))
+	_c_disc(V(16, 18), 3.4, _ramp_named(["heartlight", "moonlight", "dewlight"]))
+	for p: Vector2 in [Vector2(16, 6), Vector2(13, 8), Vector2(19, 8)]:
+		_dt(int(V(p.x, p.y).x), int(V(p.x, p.y).y), Palette.color("moonlight"))
+
+func _sym_g_bell_stone(k: int, a: int) -> void:
+	_c_poly(_pts([Vector2(11, 26), Vector2(10, 14), Vector2(13, 8), Vector2(19, 8), Vector2(22, 14), Vector2(21, 26)]),
+		_ramp_named(["moonlight", "mist", "stone"]))
+	_bell_shape(16, 12, 9, 7, _ramp_named(["heartlight", "blossom", "orchid"]))
+	for s: float in [-1.0, 1.0]:
+		_c_line([V(16 + s * 8, 9), V(16 + s * 11, 7)], 1.0, _ramp_named(["blossom", "orchid", "bruise"]))
+		_c_line([V(16 + s * 8.5, 13), V(16 + s * 12, 13)], 1.0, _ramp_named(["blossom", "orchid", "bruise"]))
+
+func _sym_g_ancient_stump(k: int, a: int) -> void:
+	var bark := _ramp_named(["deadwood", "oak", "bark"])
+	_c_poly(_rect_pts(8, 15, 16, 10), bark)
+	_c_ell(V(16, 15), Vector2(8, 3.2), _ramp_named(["moonpath", "deadwood", "oak"]))
+	_c_ring(V(16, 15), 4.6, 3.4, _ramp_named(["deadwood", "oak", "oak"]))
+	_c_poly(_rect_pts(15, 4, 2, 7), a)
+	_c_poly(_rect_pts(13, 4, 6, 1.6), a)
+	_c_poly(_rect_pts(13, 9.5, 6, 1.6), a)
+
+# The nightmares' way -------------------------------------------------------------------------
+
+func _sym_g_heartwood_roots(k: int, a: int) -> void:
+	_c_poly(_rect_pts(5, 13, 22, 6), _ramp_named(["moonpath", "path", "loam"]))
+	var root := _ramp_named(["sprig", "leaf", "moss"])
+	_c_line([V(7, 22), V(10, 12), V(13, 21)], 1.5, root)
+	_c_line([V(15, 22), V(18, 11), V(21, 21)], 1.5, root)
+	_c_line([V(22, 22), V(25, 12)], 1.5, root)
+	_c_disc(V(27, 16), 2.0, a)
+
+func _sym_g_thick_mist(k: int, a: int) -> void:
+	for y: float in [10.0, 15.5, 21.0]:
+		var pts: Array = []
+		for i in 8:
+			pts.append(V(4 + i * 3.4, y + (1.0 if i % 2 == 0 else -1.0)))
+		_c_line(pts, 2.2, _ramp_named(["moonlight", "mist", "stone"]))
+	_dt(int(V(13, 15).x), int(V(13, 15).y), Palette.color("wraithlight"))
+	_dt(int(V(18, 15).x), int(V(18, 15).y), Palette.color("wraithlight"))
+
+func _sym_g_bramble_verge(k: int, a: int) -> void:
+	var vine := _ramp_named(["sprig", "leaf", "moss"])
+	var pts: Array = []
+	for i in 9:
+		pts.append(V(4 + i * 3, 16 + sin(i * 1.1) * 4.5))
+	_c_line(pts, 1.6, vine)
+	for i in range(1, 8):
+		var p: Vector2 = pts[i]
+		var up := 1.0 if i % 2 == 0 else -1.0
+		_c_poly(PackedVector2Array([p + Vector2(-1, 0), p + Vector2(1, 0), p + Vector2(0, up * 3.2)]), vine)
+	_c_disc(V(21, 12), 1.5, _ramp_named(["moonlight", "wraithlight", "bruise"]))
+
+# Heartwood and kin ---------------------------------------------------------------------------
+
+func _sym_g_old_kin(k: int, a: int) -> void:
+	var vine := _ramp_named(["newleaf", "sprig", "leaf"])
+	_c_ring(V(12.5, 15), 5.2, 3.6, vine)
+	_c_ring(V(19.5, 15), 5.2, 3.6, vine)
+	_c_line([V(16, 20), V(16, 24)], 1.4, vine)
+	_c_ell(V(13.6, 25), Vector2(2.4, 1.3), vine, -0.4)
+	_c_ell(V(18.4, 25), Vector2(2.4, 1.3), vine, 0.4)
+
+func _sym_g_deeper_glade(k: int, a: int) -> void:
+	_c_ring(V(16, 15), 10.5, 9.3, _ramp_named(["sprig", "leaf", "moss"]))
+	_c_ring(V(16, 15), 7.2, 6.0, _ramp_named(["newleaf", "sprig", "leaf"]))
+	_c_poly(_rect_pts(15, 15, 2, 5), _ramp_named(["moonpath", "deadwood", "oak"]))
+	_c_disc(V(16, 13), 3.4, _ramp_named(["heartlight", "glow", "gold"]))
+
+func _sym_g_waking_root(k: int, a: int) -> void:
+	var root := _ramp_named(["deadwood", "oak", "bark"])
+	_c_line([V(16, 26), V(15, 19), V(17, 15)], 1.8, root)
+	_c_line([V(15, 22), V(10, 26)], 1.3, root)
+	_c_line([V(16, 23), V(22, 26)], 1.3, root)
+	_c_poly(_pts([Vector2(17, 4), Vector2(21, 9.5), Vector2(17, 15), Vector2(13, 9.5)]), _ramp_named(["heartlight", "blossom", "wraithlight"]))
+	_dt(int(V(16, 8).x), int(V(16, 8).y), Palette.color("heartlight"))
+
+func _sym_g_memory_seed(k: int, a: int) -> void:
+	_c_ring(V(16, 15), 9.5, 8.2, _ramp_named(["glow", "gold", "ember"]))
+	_c_ell(V(16, 16), Vector2(4, 5), _ramp_named(["moonpath", "deadwood", "oak"]))
+	_c_line([V(16, 11), V(16, 7.5)], 1.1, _ramp_named(["newleaf", "sprig", "leaf"]))
+	_c_ell(V(18, 7), Vector2(2, 1.1), _ramp_named(["newleaf", "sprig", "leaf"]), -0.4)
+	_dt(int(V(15, 15).x), int(V(15, 15).y), Palette.color("heartlight"))
