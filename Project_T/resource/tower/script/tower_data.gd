@@ -43,6 +43,9 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 # 2-of-5 smart draw (Roguelite's DreamState): &"anti_air", &"detection", &"anti_armour", &"anti_swarm",
 # &"anti_tank", &"anti_support", &"boss_abilities".
 @export var counter_tags: Array[StringName] = []
+# A branch with no counter job: its one-line role in the family pick / Codex (IconInfo.role_text falls back to it):
+# &"control", &"setup", &"support", &"economy". Display only (the smart draw reads counter_tags).
+@export var role_tag: StringName = &""
 # 1 = a Phase 1 expansion branch or its final (the demo keeps today's 2 branches per family); 0 = the original roster.
 @export var expansion_phase: int = 0
 
