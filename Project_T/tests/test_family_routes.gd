@@ -1,8 +1,8 @@
 extends SceneTree
 
 # The family pick's routes (user, 2026-10-02: "when picking a family, it should show the family routes it can dream
-# into"): in the full game each card shows this run's 2 branches (DreamState.preview_branch_offer) → their finals, the
-# rest as "not in this dream" silhouettes; after the pick, the picked family's offer (what Remember shows) is exactly
+# into"): in the full game each card shows this run's 2 branches (DreamState.preview_branch_offer), never their finals
+# ("don't show the final evolution in the card"), the rest as "not in this dream" silhouettes; after the pick, the picked family's offer (what Remember shows) is exactly
 # the card's. The demo shows its fixed branches, no silhouettes. Temp profile.
 
 var failures := 0
@@ -62,7 +62,10 @@ func _run() -> void:
 		for lane in card.find_children("Route_*", "", true, false):
 			var branch: TowerData = lane.get_meta(&"branch")
 			var final: TowerData = family.final_of(branch)
-			_check(final == null or lane.tooltip_text.contains(final.display_name), "%s's lane shows its final (%s)" % [branch.display_name, lane.tooltip_text.replace("\n", " / ")])
+			var texts: Array = lane.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
+			_check(final == null or (not lane.tooltip_text.contains(final.display_name) and not texts.any(func(t: String) -> bool: return t.contains(final.display_name))
+				and lane.find_children("*", "TextureRect", true, false).size() == 1),
+				"%s's lane hides its final (%s)" % [branch.display_name, texts])
 	var picked: TowerData = shown.keys()[0]
 	var card_ids: Array = shown[picked].duplicate()
 	family.choose(picked)

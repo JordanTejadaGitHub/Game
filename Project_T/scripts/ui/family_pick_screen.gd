@@ -367,38 +367,28 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 			", ".join(missing.map(func(f: TowerData) -> String: return f.display_name)), DreamState.CALL_BACK_DREAMLIGHT]
 		box.add_child(row)
 
-# One lane: branch → final, with the role under the names. Hover / tap: name, role and counters.
+# One lane: the branch (portrait, name, role). No final form (user, 2026-10-02: "don't show the final evolution in the
+# card"; finals stay hidden until their branch is unlocked). Hover / tap: name, role and counters.
 func _route_lane(branch: TowerData) -> Control:
 	var lane := HBoxContainer.new()
 	lane.name = "Route_" + branch.get_id()
 	lane.set_meta(&"branch", branch)
-	lane.add_theme_constant_override("separation", 4)
+	lane.add_theme_constant_override("separation", 6)
 	lane.mouse_filter = Control.MOUSE_FILTER_PASS  # Tips on hover; a click still picks the card
 	lane.add_child(_icon(branch, ROUTE_ICON, false))
-	var final := final_of(branch)
-	if final != null:
-		var arrow := Label.new()
-		arrow.text = "→"
-		arrow.add_theme_color_override("font_color", UiStyle.INK_DIM)
-		arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		lane.add_child(arrow)
-		lane.add_child(_icon(final, ROUTE_ICON, false))
-	# Branch name, then "→ final" under it, then the role: full names, wrapped in the card, never cut with "…"
-	# (user screenshot: "Undercurrent → Maels…").
+	# The name, then the role under it: full names, wrapped in the card, never cut with "…"
 	var words := VBoxContainer.new()
 	words.add_theme_constant_override("separation", -2)
 	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	words.add_child(_lane_line(branch.display_name, 13, UiStyle.INK, "Name"))
-	if final != null:
-		words.add_child(_lane_line("→ " + final.display_name, 12, UiStyle.INK_DIM, "Final"))
 	var role := role_text(branch)
 	if dream_state.is_hidden_branch(branch):
 		role = "Grove · hidden branch" + (" · " + role if role != "" else "")
 	if role != "":
 		words.add_child(_lane_line(role, 11, UiStyle.GOLD, "Role"))
 	lane.add_child(words)
-	var tip := branch.display_name + (" → " + final.display_name if final != null else "")
+	var tip := branch.display_name
 	if role_text(branch) != "":
 		var role_words := role_text(branch)
 		tip += "\n" + role_words.left(1).to_upper() + role_words.substr(1)  # Sentence case: "Cracks armour, quiets support"
