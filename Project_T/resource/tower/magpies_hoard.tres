@@ -8,6 +8,7 @@
 
 [resource]
 script = ExtResource("1_tdata")
+counter_tags = Array[StringName]([&"anti_armour", &"anti_support", &"boss_abilities"])
 display_name = "Magpie's Hoard"
 description = "Each hit strips a buff, and every crit it lands gives +1 Dew (up to 25 per drift)."
 cost = 0

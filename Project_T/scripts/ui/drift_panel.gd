@@ -16,6 +16,7 @@ extends VBoxContainer
 
 var _status_label := Label.new()
 var warning_label := Label.new()  # "Flyers in drift 31: they ignore your maze" (tests)
+var finale_label := Label.new()  # Spire: "Finale (drift 10): clear it clean for a Rare dream" (tests)
 var _warning_key := ""
 var _remember_button := Button.new()
 var _sapling_button := Button.new()
@@ -39,6 +40,15 @@ func _ready() -> void:
 	warning_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
 	warning_label.add_theme_constant_override("outline_size", 5)
 	add_child(warning_label)
+	# Block finales (spire_difficulty.md Phase 2): the block's last drift brings elites; cleared without a leaf lost, a
+	# Rare dream waits at the rest. Said before it comes (while resting before the block, and during it).
+	finale_label.name = "FinaleLine"
+	finale_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	finale_label.visible = false
+	UiStyle.caps(finale_label, 14, UiStyle.GOLD)
+	finale_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
+	finale_label.add_theme_constant_override("outline_size", 5)
+	add_child(finale_label)
 	_remember_button.text = "Remember"
 	_remember_button.tooltip_text = "Spend Dreamlight on branches and final forms of your families."
 	_remember_button.focus_mode = Control.FOCUS_NONE
@@ -134,6 +144,7 @@ func _unhandled_input(event: InputEvent) -> void:
 # The call-early bonus changes every frame as creatures walk, so refresh continuously.
 func _process(_delta: float) -> void:
 	_update_warning()
+	_update_finale()
 	var latest := drift_director.drifts_started
 	var next := latest + 1
 
@@ -180,8 +191,9 @@ func _process(_delta: float) -> void:
 const MIST_FULL := "The mist is full: it holds nightmares back until there's room on the path. Calling early waits until they're out."
 
 # Screens_ui.md "Choice screens": what the Start button says while a choice waits.
-const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Face an Omen or Clear Skies"}
-const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen", &"omen": "OmenScreen"}
+const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Face an Omen or Clear Skies",
+	&"gift": "Choose a gift"}  # Heartwood's Gifts (Spire)
+const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen", &"omen": "OmenScreen", &"gift": "GiftScreen"}
 
 func _on_start_pressed() -> void:
 	var pending := drift_director.pending_choice()
@@ -207,6 +219,22 @@ func _on_speed_changed(paused: bool, speed: float) -> void:
 	for i in _speed_buttons.size():
 		_speed_buttons[i].set_pressed_no_signal(not paused and game_speed.speeds[i] == speed)
 
+
+const FINALE_TEXT := "Finale (drift %d): clear it clean for a Rare dream"
+
+# The finale drift ahead in this block (resting: the next block's), or 0 when there's none / it has begun its rest.
+static func coming_finale(director: DriftDirector) -> int:
+	var at := director.drifts_started + (1 if director.is_resting() else 0)
+	var last := director.get_block(maxi(at, 1)) * director.drifts_per_block
+	if last < at or not director.has_method("get_block_finale_elites") or director.get_block_finale_elites(last) <= 0:
+		return 0
+	return last
+
+func _update_finale() -> void:
+	var finale := coming_finale(drift_director) if not run_state.is_over else 0
+	finale_label.visible = finale > 0
+	if finale > 0:
+		finale_label.text = FINALE_TEXT % finale
 
 # The rule-breaker warning (screens_ui.md "New rule-breaker warning"): rebuilt only when the drift count or
 # the rest changes (the scan reads the drift tables).

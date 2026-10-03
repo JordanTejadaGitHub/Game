@@ -8,6 +8,7 @@
 
 [resource]
 script = ExtResource("1_tdata")
+counter_tags = Array[StringName]([&"anti_swarm"])
 display_name = "Rain Lily"
 description = "A bigger splash that keeps nightmares Soaked for longer."
 cost = 0

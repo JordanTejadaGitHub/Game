@@ -168,6 +168,8 @@ func _ready() -> void:
 		dev_note.add_theme_font_size_override("font_size", 13)
 		dev_note.modulate = Color(1, 1, 1, 0.7)
 		box.add_child(dev_note)
+		# Grove perks as trade-offs (MetaRun.sidegrade_active): Sidegrade by default since the Spire merge, Power for testing.
+		_choice(box, "Perk style", MetaRun.PERK_STYLE_SETTING, ["Power", "Sidegrade"], 1)
 		box.add_child(HSeparator.new())
 		box.add_child(_profile_reset_box())
 

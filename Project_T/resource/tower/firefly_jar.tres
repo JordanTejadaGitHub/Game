@@ -7,6 +7,9 @@
 [ext_resource type="Resource" path="res://resource/tower/stormcap.tres" id="ev_1"]
 [ext_resource type="Resource" path="res://resource/tower/lanternmoth.tres" id="ev_2"]
 [ext_resource type="Resource" path="res://resource/tower/sunpetal.tres" id="ev_3"]
+[ext_resource type="Resource" path="res://resource/tower/jarlink.tres" id="ev_4"]
+[ext_resource type="Resource" path="res://resource/tower/prism_jar.tres" id="ev_5"]
+[ext_resource type="Resource" path="res://resource/tower/sparkler.tres" id="ev_6"]
 
 [resource]
 script = ExtResource("1_tdata")
@@ -28,5 +31,5 @@ description = "Sparks build Charged; at 5 charges a nightmare gets a free bolt."
 line = "light"
 tier = 1
 evolve_cost = 20
-evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2"), ExtResource("ev_3")])
+evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2"), ExtResource("ev_3"), ExtResource("ev_4"), ExtResource("ev_5"), ExtResource("ev_6")])
 applies_status = &"static"

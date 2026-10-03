@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "last_leaf"
 display_name = "Last Leaf"
-description = "All Wardens +6% damage for each leaf below your maximum (up to +60%)."
+description = "All Wardens deal 6% more damage for each leaf below your maximum (up to +60%)."
 rarity = 3
 kind = 3
 tags = Array[String](["leaves", "daring"])

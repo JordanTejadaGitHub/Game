@@ -7,6 +7,9 @@
 [ext_resource type="Resource" path="res://resource/tower/driftspore.tres" id="ev_1"]
 [ext_resource type="Resource" path="res://resource/tower/bloomcap.tres" id="ev_2"]
 [ext_resource type="Resource" path="res://resource/tower/fairy_ring.tres" id="ev_3"]
+[ext_resource type="Resource" path="res://resource/tower/lichenling.tres" id="ev_4"]
+[ext_resource type="Resource" path="res://resource/tower/brood_cap.tres" id="ev_5"]
+[ext_resource type="Resource" path="res://resource/tower/inkcap.tres" id="ev_6"]
 
 [resource]
 script = ExtResource("1_tdata")
@@ -28,5 +31,5 @@ description = "Lingering spore puffs: Poisoned nightmares take damage over time.
 line = "spore"
 tier = 1
 evolve_cost = 15
-evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2"), ExtResource("ev_3")])
+evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2"), ExtResource("ev_3"), ExtResource("ev_4"), ExtResource("ev_5"), ExtResource("ev_6")])
 applies_status = &"spored"

@@ -64,6 +64,12 @@ Levels, Seeds spending) and the demo (Grove teaser, Wishlist) can both be tested
 Debug builds only; exported builds always use the project setting. Switching returns to the title
 screen. Full-game runs made this way use the real profile, so it's clearly labelled.
 
+**The full game is the default** (user, 2026-10-02: "Make the full game default"): `game/demo` is
+`false` in project.godot, so a normal launch plays the full game with the Spire rules. **The demo
+build's export preset must set `game/demo = true`** (a feature-tag override or a demo-only
+project.godot); the demo then keeps the pre-Spire rules (`DriftDirector.DEMO_RULES`, no gifts, the
+old branch set). Tests that need the demo set `ResultsScreen.demo_override = 1` (`test_demo_rules`).
+
 **Unlock all families** (added 2026-09-27): a second developer toggle for testing the *core game*:
 normal runs (family picks, Dreams, Dew, difficulty all as usual) but with **every family in the
 pick pool** and their Grove Dream cards, as if the Memory Grove had unlocked everything. Doesn't

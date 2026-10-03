@@ -54,6 +54,11 @@
 		"top": -30,
 		"bottom": 13
 	},
+	"mother_duck_silenced": {
+		"frame": 64,
+		"top": -30,
+		"bottom": 13
+	},
 	"duckling": {
 		"frame": 64,
 		"top": -8,

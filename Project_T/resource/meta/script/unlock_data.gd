@@ -12,6 +12,8 @@ enum Root { WARDENS, DREAMS, PERKS, FORESTS }  # Limbs: Families, Cards, Perks (
 @export var id: String = ""
 @export var display_name: String = "Unlock"
 @export_multiline var description: String = ""
+# Spire experiment "sidegrade perks" (MetaRun.sidegrade_active()): the perk's trade-off text, shown instead.
+@export_multiline var sidegrade_description: String = ""
 @export var root: Root = Root.WARDENS
 @export var costs: Array[int] = [50]  # Seeds per level (its size = the number of levels)
 # Prerequisites: every id in `requires_all` ("id" or "id:level"), and at least
@@ -52,17 +54,27 @@ enum Root { WARDENS, DREAMS, PERKS, FORESTS }  # Limbs: Families, Cards, Perks (
 @export var sprout_charges: int = 0  # Sprout Bed: free Sprouts
 @export var free_nurtures: int = 0  # First Care: free Nurture ranks
 
+# The text the node card and loadout show: the sidegrade one while sidegrade perks are on.
+func get_description() -> String:
+	return sidegrade_description if sidegrade_description != "" and MetaRun.sidegrade_active() else description
+
+# Hades-style sidegrade perks (Spire experiment): Deep Taproot stops at level II, so no level is a Seed
+# trap and "The Heartwood in full bloom" (every node at its max level) doesn't ask for it.
+const SIDEGRADE_MAX_LEVELS := {"deep_taproot": 2}
+
 func get_levels() -> int:
+	if SIDEGRADE_MAX_LEVELS.has(id) and MetaRun.sidegrade_active():
+		return mini(costs.size(), SIDEGRADE_MAX_LEVELS[id])
 	return costs.size()
 
 # Seeds for the next level after owning `level` (0 = the first), or -1 when maxed.
 func get_cost(level: int) -> int:
-	return costs[level] if level < costs.size() else -1
+	return costs[level] if level < get_levels() else -1
 
 # Seeds for every level up to `level`.
 func get_spent(level: int) -> int:
 	var total := 0
-	for i in mini(level, costs.size()):
+	for i in mini(level, get_levels()):
 		total += costs[i]
 	return total
 

@@ -31,7 +31,9 @@ list at the end tracks the first sweep.
 kept slipping:
 - **Families and damage types are names:** "Any Nestling-family final form" (not "any wing final
   form"), "Spore cards", "Water damage". Internal line ids (wing, acorn, song…) never reach the player.
-- **Same-tag (resonance) lines name the cards, not the tag** (2026-10-01, user: *"what are wide cards?"*): *"+10% from Seedfall"*, *"+20% from Soft Spores, Damp Rot"* (more than 2: *"… and 2 more"*, hover lists all). Internal archetype words (wide, narrow, affliction, tempo…) never reach the player.
+- ~~Same-tag (resonance) lines~~ **Removed 2026-10-02** with tag Resonance itself (user: "remove the
+  resonance"): no "+X% from …" lines anywhere. What stays from that rule: **internal archetype words**
+  (wide, narrow, affliction, tempo…) **never reach the player.**
 - **Card tags on screen:** tags that are names are capitalised (Spore, Water, Kinship, Reaction,
   Sprout, Thornwall, Nurture); plain categories stay lowercase (economy, maze, tempo, crit, wide,
   narrow, status): *"+20% from 2 Spore cards"*, *"+10% from 1 economy card"*.
@@ -66,6 +68,15 @@ label ("Rank III needs a Nurture Dream"), lowercase in a sentence ("grow past ra
 - **Requirements by damage type:** "Needs Wind" (a linked word), not a family name.
 - **Scaling cards show the live value** on the card: "You have 7 · +40%".
 - Two lines at most on a button; tooltips at most ~42 characters wide (`screens_ui.md`).
+
+**Card wording, one way each** (card text audit, 2026-10-02: 335 cards used two forms for the same
+thing):
+- **Distance is in cells:** "within 2 cells", "reach 3 cells" (never "tiles" for a distance).
+  **Path squares are path tiles:** "5+ path tiles", "+1 Dew per 10 path tiles".
+- **Caps are "up to":** "(up to +45%)", never "(max +45%)".
+- **Warden bonuses read as verbs:** "deal 30% more damage", "attack 20% faster", "+0.5 range";
+  not "+30% damage" / "+20% attack speed". Nightmare side: "take 25% more damage".
+- **Stacking:** "(stacks, up to +X)" for stacking cards; nothing for one-copy cards.
 
 ## Text lint test
 

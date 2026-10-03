@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "root_network_ii"
 display_name = "Root Network II"
-description = "Sprouts touching (diagonals too) form a network: each Sprout gets +8% damage per Sprout in its network (up to +80%)."
+description = "Sprouts touching (diagonals too) form a network: each Sprout deals 8% more damage per Sprout in its network (up to +80%)."
 rarity = 2
 kind = 3
 tags = Array[String](["sprout", "wide", "overgrowth"])

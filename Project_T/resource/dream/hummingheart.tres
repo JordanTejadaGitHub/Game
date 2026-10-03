@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hummingheart"
 display_name = "Hummingheart"
-description = "Every +10% bonus attack speed a Warden has also gives it +3% damage (up to +60%)."
+description = "Every +10% bonus attack speed a Warden has also makes it deal 3% more damage (up to +60%)."
 rarity = 2
 kind = 3
 tags = Array[String](["swift"])

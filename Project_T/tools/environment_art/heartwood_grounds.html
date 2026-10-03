@@ -1025,12 +1025,16 @@ function heartPath(L, pts, w0, w1, fn) {
 // "Carried into the run"; heartwood_stage_0..3.png): the same 128 px frame, the crown fuller and
 // broader per stage like grove_canopy_0..3, never bigger than stage 3 (today's crown). Per stage: the
 // crown's ellipses (cx, cy, rx, ry), its three lit lobes, how far the limbs reach, and its blossoms.
+// Flatter and wider from stage 1 up (2026-10-02, Meta Game Asset's Grove-match review): the Grove's
+// crown is a wide spreading canopy (about 1.7:1) with a dark underside, not a tall dome.
 const HEART_STAGES = [
   { crown: [[64, 42, 38, 18], [36, 48, 15, 10], [92, 48, 15, 10], [64, 30, 20, 10]], lobes: [[38, 46, 14], [90, 46, 14], [64, 32, 22]], reach: .62, blossoms: 2, drapes: 5 },
-  { crown: [[64, 39, 45, 22], [31, 46, 19, 13], [97, 46, 19, 13], [64, 25, 30, 13], [44, 30, 14, 9], [84, 30, 14, 9]], lobes: [[34, 44, 17], [94, 44, 17], [64, 27, 25]], reach: .78, blossoms: 4, drapes: 7 },
-  { crown: [[64, 37, 49, 24], [29, 45, 22, 15], [99, 45, 22, 15], [64, 21, 35, 15], [41, 26, 18, 11], [87, 26, 18, 11]], lobes: [[33, 43, 19], [95, 43, 19], [64, 25, 27]], reach: .9, blossoms: 7, drapes: 8 },
-  { crown: [[64, 36, 52, 26], [28, 44, 24, 16], [100, 44, 24, 16], [64, 18, 38, 16], [40, 24, 20, 12], [88, 24, 20, 12]], lobes: [[32, 42, 20], [96, 42, 20], [64, 24, 28]], reach: 1, blossoms: 10, drapes: 9 },
+  { crown: [[64, 41, 47, 19], [30, 47, 20, 12], [98, 47, 20, 12], [64, 29, 32, 11], [43, 33, 15, 8], [85, 33, 15, 8]], lobes: [[33, 45, 17], [95, 45, 17], [64, 30, 25]], reach: .78, blossoms: 4, drapes: 7 },
+  { crown: [[64, 40, 53, 19], [26, 47, 23, 13], [102, 47, 23, 13], [64, 27, 38, 12], [39, 31, 19, 9], [89, 31, 19, 9]], lobes: [[31, 45, 19], [97, 45, 19], [64, 29, 28]], reach: .9, blossoms: 7, drapes: 8 },
+  { crown: [[64, 40, 58, 20], [22, 47, 19, 13], [106, 47, 19, 13], [64, 24, 42, 13], [36, 29, 22, 10], [92, 29, 22, 10]], lobes: [[28, 45, 20], [100, 45, 20], [64, 27, 30]], reach: 1, blossoms: 10, drapes: 10 },
 ];
+// The original single Heartwood (heartwood.png, archived) keeps its old crown.
+const HEART_LEGACY = { crown: [[64, 36, 52, 26], [28, 44, 24, 16], [100, 44, 24, 16], [64, 18, 38, 16], [40, 24, 20, 12], [88, 24, 20, 12]], lobes: [[32, 42, 20], [96, 42, 20], [64, 24, 28]] };
 // Crown facts per stage for the game (heartwood_stages.json): set by heartwood() the first time it
 // draws a stage (the crown doesn't depend on damage or frame).
 const HEART_INFO = [];
@@ -1070,7 +1074,8 @@ function heartwood(A, f, lost = 0, stage = -1) {
     if (!WOOD.alpha(x - 1, y) && !WOOD.alpha(x, y - 1)) out.set(x, y, dmg > .6 ? HWN.Ember : HWN.Gold);  // 1 px gold rim, upper-left edge only
     else if (!inHollow(x, y)) {  // moss patches, like the title's mossy giant
       const n = pnoise(x, y, 6, 95) * .7 + pnoise(x, y, 2, 96) * .3;
-      if (n > .62) out.set(x, y, n > .72 ? HWN.Moss : HWN.Deepmoss); else if (n > .59 && hash(x, y, 97) < .5) out.set(x, y, HWN.Leaf);
+      const mo = ST ? .1 : 0;  // the Grove stages wear much more moss, like the Grove's moss-wrapped trunk
+      if (n > .62 - mo) out.set(x, y, n > .72 - mo ? HWN.Moss : HWN.Deepmoss); else if (n > .59 - mo && hash(x, y, 97) < .5) out.set(x, y, HWN.Leaf);
     }
   }
   // The Hollow: a pointed doorway at the trunk's foot, banded gold light that dims with damage.
@@ -1086,7 +1091,7 @@ function heartwood(A, f, lost = 0, stage = -1) {
   // (no glow painted over the wood: it would blend into solid gold once snapped to the palette)
   // The crown: leaf clusters on three lit lobes; green-black shade, cool lit tops.
   const W = MH, L = new Img(W, W), TIER = new Int8Array(W * W).fill(-1);
-  const crownShape = ST ? ST.crown : HEART_STAGES[3].crown, lobes = ST ? ST.lobes : HEART_STAGES[3].lobes;
+  const crownShape = ST ? ST.crown : HEART_LEGACY.crown, lobes = ST ? ST.lobes : HEART_LEGACY.lobes;
   const inCrown = (x, y) => crownShape.some(([cx, cy, rx, ry]) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 < 1 + (pnoise(x, y, 10, 11) - .5) * .35);
   const lobe = (x, y) => { let t = -1; for (const [lx, ly, r] of lobes) { const dx = (x - lx) / r, dy = (y - ly) / r, q = dx * dx + dy * dy; if (q <= 1) t = Math.max(t, clamp((-dx * .5 - dy * .8 + Math.sqrt(1 - q) * .5 + .2) / 1.2, 0, 1)); } return t < 0 ? .25 : t; };
   const cl = [];
@@ -1108,7 +1113,7 @@ function heartwood(A, f, lost = 0, stage = -1) {
     const bx = ST && TIER[(y & ~1) * W + (x & ~1)] >= 0 ? x & ~1 : x, by = ST && TIER[(y & ~1) * W + (x & ~1)] >= 0 ? y & ~1 : y;
     let t = TIER[by * W + bx];
     let below = 0; for (let yy = by + 1; yy < W && TIER[yy * W + bx] >= 0; yy++) below++;
-    if (below < 3) t = Math.min(t, 2);  // a dark green belly
+    if (below < (ST ? 5 : 3)) t = Math.min(t, 2);  // a dark green belly (deeper on the Grove stages, like the Grove's underside)
     const rot = pnoise(bx, by, 10, 21) * .7 + pnoise(bx, by, 3, 22) * .3;
     if (dmg > 0 && rot > 1 - dmg * .62) { L.set(x, y, hash(bx, by, 23) < .05 ? HWN.Slate : rot > 1.08 - dmg * .62 ? HWN.Dread : HWN.Shade); continue; }
     L.set(x, y, t === 1 ? ((bx + by) % (ST ? 4 : 2) ? HWN.Void : HWN.Deepmoss) : t >= 4 && by < 22 && hash(bx, by, 24) < .15 ? HWN.Leaf : LEAF[t]);
@@ -1141,6 +1146,9 @@ function heartwood(A, f, lost = 0, stage = -1) {
   }
   const C2 = new Img(W, W); C2.stamp(L, HWN.Void);
   out.put(C2);
+  if (ST) {  // the great limbs reaching up into the crown's belly (the Grove shows its three limbs)
+    for (const limb of [[[62, 64], [52, 57], [40, 52]], [[66, 64], [76, 57], [88, 52]], [[64, 62], [65, 55], [63, 50]]]) heartPath(out, heartCatmull(limb.map(([x, y]) => [64 + (x - 64) * ST.reach, y]), 6), 7, 3, wood(41));
+  }
   for (let y = 1; y < MH; y++) for (let x = 1; x < MH; x++) if (C2.alpha(x, y) && !C2.alpha(x - 1, y - 1) && C2.alpha(x + 1, y + 1) && hash(x, y, 31) < .7 - dmg * .5) out.set(x, y, dmg > .6 ? HWN.Ember : HWN.Gold);
   // Moss drapes from the crown's belly.
   for (let k = 0; k < (ST ? ST.drapes : 9); k++) {
@@ -1660,6 +1668,164 @@ function routeWisp(f) {
   }
   return L;
 }
+// ---------- Heartwood's Gifts (heartwood_gifts.md, experiment/spire-difficulty) ----------
+// Map pieces the act-break gifts place. Same palette and pipeline as the rest of the act's sheets.
+
+// Lightning Tree (an obstacle): a split, scorched dead tree in the Withered Tree format (96×128), a
+// charred cleft down its middle and Wraithlight static in its bark that flickers; on frame 2 a spark
+// jumps between its two tops. Charged bolts near it hit harder, so it may crackle.
+function lightningTree(A, f) {
+  const out = new Img(TREE_W, TREE_H), L = new Img(TREE_W, TREE_H), seed = SEED + 777;
+  TT = TREE_TT; TX = TREE_TX;
+  deadBase(out, seed);
+  stroke(L, 30, 57, 25, 22, 10, 5, deadFn); stroke(L, 34, 57, 40, 20, 10, 5, deadFn); deadRoots(L, deadFn);
+  branch(L, 25, 24, -2.3, 10, 4, 1, seed, deadFn); branch(L, 40, 22, -.8, 10, 4, 1, seed + 3, deadFn);
+  out.stamp(L, DEAD[0]);
+  for (let y = 24; y <= 54; y++) tset(out, 32 + Math.round(Math.sin(y * .4)), y, "#05050d");  // the charred cleft
+  const vein = f % 2 ? "#dce8f4" : "#9a84e8";
+  for (const [x0, y0, len, k] of [[27, 50, 18, 1], [37, 48, 18, 2]]) {
+    let x = x0;
+    for (let i = 0; i < len; i++) { const y = y0 - i * 1.5; x += (hash(i, k, seed) < .5 ? -1 : 1) * .6; if (talpha(L, x, y)) { tset(out, x, y, vein); tset(out, x + 1, y, "#9a84e8"); } }
+  }
+  if (f === 2) for (let i = 0; i <= 8; i++) { const t = i / 8; tset(out, 25 + t * 15, 21 - Math.sin(t * Math.PI) * 4 + (i % 2), i % 3 ? "#9a84e8" : "#fff4dc"); }
+  mossFlecks(out, L, seed);
+  TT = null; TX = null;
+  return out;
+}
+
+// Moonwell (an unbuildable lit cell): a ring of waystone with still water holding the moon's
+// reflection, which wobbles; motes of moonlight rise from it.
+function moonwell(A, f) {
+  const out = new Img(), L = new Img(), s = SEED + 781, wob = [0, 1, 0, -1][f];
+  ellipse(out, 32, 48, 22, 7, SHADOW(.4));
+  blob(L, 32, 41, 21, 13, STONE_RAMP, { lump: .08, seed: s, tex: .12, rim: true });
+  out.stamp(L, ST.out);
+  ellipseRaw(out, 32, 39, 14, 7.5, (x, y, dx, dy) => dy < -.75 ? ST.d2 : pick(["#2c4c5c", "#2c4c5c", "#4c8ca4"], clamp(.25 - dy * .35 + (pnoise(x, y, 5, s) - .5) * .3, 0, 1), x, y, .4));
+  ellipseRaw(out, 34 + wob, 38.5, 3.4, 2.2, (x, y, dx, dy) => dx < 0 && dy < 0 ? "#fff4dc" : "#dce8f4");
+  for (let i = -5; i <= 5; i += 2) out.set(31 + i - wob, 43, "#9cd4fc");
+  for (let k = 0; k < 4; k++) {
+    const ph = (f + k) % 4, x = 23 + k * 6 + (k % 2), y = 33 - ph * 5;
+    out.set(x, y, ph === 3 ? "#9a84e8" : "#dce8f4"); if (ph < 2) out.set(x, y + 1, CA("#9a84e8", .6));
+  }
+  return out;
+}
+
+// Bell Stone (a singing stone): a standing stone with a small bronze bell in its hollow, a rune that
+// glows gold as it sings, and a ring of sound that spreads and fades over the frames.
+function bellStone(A, f) {
+  const out = new Img(), L = new Img(), s = SEED + 785, g = A.grass;
+  ellipse(out, 32, 54, 16, 5, SHADOW(.4));
+  blob(L, 32, 36, 12, 19, STONE_RAMP, { lump: .06, seed: s, tex: .12, rim: true });
+  ellipse(L, 32, 29, 3.2, 4.2, "#140f26");  // the hollow it sings through
+  mossPass(L, 32, 36, 12, 19, g, s + 2, .72);
+  out.stamp(L, ST.out);
+  out.set(32, 26, "#5c3c24");
+  ellipseRaw(out, 32, 29.5, 1.8, 2.2, (x, y, dx, dy) => dy > .5 ? "#5c3c24" : dx < 0 ? "#e9a83c" : "#b8662c");
+  const lit = f === 1 || f === 2;
+  for (const [x, y] of [[30, 39], [31, 40], [32, 41], [33, 40], [34, 39], [32, 43], [32, 44]]) out.set(x, y, lit ? "#fcd47c" : ST.d1);
+  const r = 9 + f * 4;
+  for (let a = 0; a < 72; a += 2) {
+    const t = a / 72 * Math.PI * 2;
+    if (Math.abs(Math.cos(t)) < .5) continue;  // only beside the stone, never across it
+    out.set(32 + Math.cos(t) * r * 1.15, 32 + Math.sin(t) * r * .75, CA("#b4b0c8", .65 - f * .14));
+  }
+  return out;
+}
+
+// Mushroom Ring (a 3×3 ground patch, drawn under Wardens): a fairy ring of lush moss with toadstools
+// round it whose caps breathe a soft glow, each a step out of time with the next.
+function mushroomRing(A, f) {
+  const W = 192, out = new Img(W, W), s = SEED + 790, g = A.grass;
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+    const r = Math.hypot((x + .5 - 96) / 76, (y + .5 - 98) / 70) + (pnoise(x, y, 8, s) - .5) * .06;
+    if (Math.abs(r - 1) < .055 && bay(x, y) < .6) out.set(x, y, Math.abs(r - 1) < .025 ? g[4] : g[3]);
+  }
+  const caps = [];
+  for (let k = 0; k < 15; k++) {
+    const a = k / 15 * Math.PI * 2 + (hash(k, 1, s) - .5) * .3, rr = 1 + (hash(k, 2, s) - .5) * .08;
+    caps.push([96 + Math.cos(a) * 76 * rr, 98 + Math.sin(a) * 70 * rr, .8 + hash(k, 3, s) * .55, k]);
+  }
+  caps.sort((p, q) => p[1] - q[1]).forEach(([cx, cy, z, k]) => {
+    const pulse = [0, .5, 1, .5][(f + k) % 4];
+    for (let y = Math.floor(cy - 10 * z); y <= cy + 4; y++) for (let x = Math.floor(cx - 9 * z); x <= cx + 9 * z; x++) {
+      const d = Math.hypot((x + .5 - cx) / (8 * z), (y + .5 - (cy - 4 * z)) / (6 * z));
+      if (d > .8 && d < 1.2 && bay(x, y) < pulse * .35) out.set(x, y, "#ec9cf4");
+    }
+    ellipseRaw(out, cx, cy + 1, 4.5 * z, 1.6 * z, SHADOW(.4));
+    for (let y = Math.round(cy - 4 * z); y <= cy; y++) { out.set(cx - .5, y, "#b4b0c8"); out.set(cx + .5, y, "#8c8cac"); }
+    ellipseRaw(out, cx, cy - 4.5 * z, 4.2 * z, 2.6 * z, (x, y, dx, dy) => dy > .45 ? "#4c3c74" : dx < -.1 && dy < -.1 ? "#ec9cf4" : "#bc44dc");
+    out.set(cx - 1.5 * z, cy - 5.5 * z, "#fff4dc"); if (z > 1) out.set(cx + 1.5 * z, cy - 4.8 * z, "#fff4dc");
+  });
+  return out;
+}
+
+// Heartwood Roots (an overlay on the last path cells before the Heartwood), by the path's neighbour
+// mask: gnarled warm roots running along the path, two strands per side, meeting in a knot. Each
+// strand reaches its tile edge at a fixed lane and its wiggle fades to 0 there, so cells join up.
+function heartwoodRoots(A, mask) {
+  const out = new Img(), L = new Img(), s = SEED + 795;
+  const rootFn = (x, y, nx) => nx < -.3 ? "#8c5c34" : nx > .5 ? "#241c14" : hash(x, y >> 1, s) < .2 ? "#241c14" : "#5c3c24";
+  const sides = [[1, 0, -1], [2, 1, 0], [4, 0, 1], [8, -1, 0]].filter(([b]) => mask & b);
+  for (const [b, dx, dy] of sides.length ? sides : [[0, 0, 0]]) for (const lane of [-9, 8]) {
+    const px = -dy, py = dx, n = 10;  // across the side's direction
+    let x0 = 32 + px * lane * .4, y0 = 32 + py * lane * .4;
+    for (let i = 1; i <= n; i++) {
+      const t = i / n, wig = Math.sin(t * Math.PI) * (hash(b, lane + i, s) - .5) * 5;
+      const x1 = 32 + dx * 32 * t + px * (lane * (.4 + .6 * t) + wig), y1 = 32 + dy * 32 * t + py * (lane * (.4 + .6 * t) + wig);
+      if (b) stroke(L, x0, y0, x1 + dx * (i === n ? 1 : 0), y1 + dy * (i === n ? 1 : 0), 4.2 - t * .8, 4.2 - t * .8, rootFn);
+      x0 = x1; y0 = y1;
+    }
+  }
+  blob(L, 32, 32, 6, 5, ["#241c14", "#5c3c24", "#5c3c24", "#8c5c34"], { lump: .15, seed: s, tex: .1 });  // the knot
+  out.stamp(L, "#140f26");
+  for (let k = 0; k < 6; k++) {  // a warm glint of sap here and there
+    const x = 4 + Math.floor(hash(k, mask, s + 1) * 56), y = 4 + Math.floor(hash(k, mask, s + 2) * 56);
+    if (L.alpha(x, y) && L.alpha(x + 1, y)) { out.set(x, y, "#e9a83c"); out.set(x + 1, y, "#fcd47c"); }
+  }
+  return out;
+}
+
+// Bog path (Mire): the path tile's shape by neighbour mask, its stone turned to dark peat with
+// still puddles, reed tufts and a wet dark edge. The noise wraps every 64 px, so cells join up.
+function bogTile(A, mask) {
+  const L = pathTile(A, mask), p = A.path.map(C), s = SEED + 799, g = A.grass;
+  const is = (x, y, c) => { const v = L.get(x, y); return v[3] && v[0] === c[0] && v[1] === c[1] && v[2] === c[2]; };
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    if (is(x, y, p[2]) || is(x, y, p[3]) || is(x, y, C(ST.hi)) || is(x, y, C(ST.l2)) || is(x, y, C(ST.m)) || is(x, y, C(ST.d1))) {
+      const n = pnoise(x, y, 16, s, 4) * .65 + pnoise(x, y, 8, s + 1, 8) * .35;
+      if (n > .66) L.set(x, y, n > .72 && hash(x, y, s + 2) < .05 ? "#9cd4fc" : pick(["#2c4c5c", "#4c8ca4"], clamp((n - .66) * 6, 0, 1), x, y, .3));
+      else L.set(x, y, pick(["#5c3c24", "#6c5c5c", "#6c5c5c", "#6c5c5c", "#8c5c34"], clamp(.5 + (pnoise(x, y, 8, s + 3, 8) - .5) * .5 + (n - .45) * .6, 0, 1), x, y, .3));
+    } else if (is(x, y, p[1]) || is(x, y, p[0])) L.set(x, y, "#241c14");
+  }
+  for (let k = 0; k < 6; k++) {  // reeds
+    const x = 8 + Math.floor(hash(k, mask, s + 4) * 48), y = 10 + Math.floor(hash(k, mask, s + 5) * 44);
+    if (!is(x, y + 1, C("#6c5c5c")) && !is(x, y + 1, C("#5c3c24"))) continue;
+    for (let i = 0; i < 4; i++) L.set(x + (i > 2 ? 1 : 0), y - i, i < 2 ? g[2] : g[3]);
+  }
+  return L;
+}
+
+// Ancient Stump (a Warden planted on one starts at rank I): a broad old cut stump seen from above,
+// its top ringed with years, roots spreading into the grass, moss on its rim. 3 variants.
+function ancientStump(A, v) {
+  const out = new Img(), L = new Img(), s = SEED + 803 + v * 17, g = A.grass;
+  ellipse(out, 32, 47, 25, 8, SHADOW(.4));
+  for (let k = 0; k < 5; k++) {  // roots
+    const a = Math.PI * (.05 + k * .22) + (hash(k, 1, s) - .5) * .3;
+    stroke(L, 32, 44, 32 + Math.cos(a) * 26, 44 + Math.sin(a) * 9, 5, 2, (x, y, nx) => nx < -.2 ? "#8c5c34" : "#5c3c24");
+  }
+  ellipse(L, 32, 42, 21, 9, (x, y, dx, dy) => dx < -.4 ? "#8c5c34" : "#5c3c24");  // the bark side
+  ellipse(L, 32, 37, 20, 8.5, (x, y, dx, dy) => {  // the cut top with its rings
+    const r = Math.hypot(dx, dy * 1.05) + (pnoise(x, y, 6, s) - .5) * .12;
+    if (r > .88) return "#5c3c24";
+    const band = Math.floor(r * (6 + v));
+    return v === 2 && r < .35 && dx > 0 ? "#241c14" : band % 2 ? "#8c5c34" : "#bca48c";
+  });
+  if (v === 1) for (let i = 0; i < 9; i++) L.set(30 + i, 33 + Math.round(i * .4), "#241c14");  // a crack
+  mossPass(L, 32, 40, 22, 10, g, s + 2, v === 0 ? .8 : .86);
+  out.stamp(L, "#241c14");
+  return out;
+}
 function cloudShadow(v) {
   const W = 256, H = 128, L = new Img(W, H), s = 1300 + v * 37;
   const rx = 78 + hash(v, 1, s) * 26, ry = 30 + hash(v, 2, s) * 12, cx = 124, cy = 64;
@@ -1747,10 +1913,17 @@ const BUILD = {
   cloud: (A, v) => cloudShadow(v),
   mistbank: () => mistBanks(),
   route: (A, v) => routeMist(v),  // 0 strip, 1 start cap, 2 end cap
+  ltree: (A, v, f) => lightningTree(A, f),
+  mwell: (A, v, f) => moonwell(A, f),
+  bstone: (A, v, f) => bellStone(A, f),
+  mring: (A, v, f) => mushroomRing(A, f),
+  hroots: (A, m) => heartwoodRoots(A, m),
+  bog: (A, m) => bogTile(A, m),
+  astump: (A, v) => ancientStump(A, v),
   rwisp: (A, v, f) => routeWisp(f),
 };
-const ANIM = new Set(["withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "dead"]);
-const TILES = new Set(["grass", "path", "wall", "pool", "pond", "pondin", "flog", "lfurrow", "blight"]);
+const ANIM = new Set(["withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "ltree", "mwell", "bstone", "mring", "dead"]);
+const TILES = new Set(["grass", "path", "wall", "pool", "pond", "pondin", "flog", "lfurrow", "hroots", "bog", "blight"]);
 const SOLID = 200;
 function copyPx(dst, x, y, c) { const i = (y * dst.w + x) * 4; dst.d[i] = c[0]; dst.d[i+1] = c[1]; dst.d[i+2] = c[2]; dst.d[i+3] = c[3]; }
 // Storybook: halve the resolution (most common solid colour per 2×2 block), outline sprites in a

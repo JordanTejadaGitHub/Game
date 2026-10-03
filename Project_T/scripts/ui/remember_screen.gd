@@ -35,7 +35,7 @@ const STATUS_LINE_COLOR := Color("9cd4fc")  # Dewlight
 const WAYSTONE_COLOR := Color(UiStyle.CARD_BG, 0.95)  # Night
 const WAYSTONE_RIM := Color("3c3c5c")  # Dusk
 
-enum State { GROWN, UNLOCKED, CAN_UNLOCK, NEEDS_LIGHT, LOCKED, GROVE }
+enum State { GROWN, UNLOCKED, CAN_UNLOCK, NEEDS_LIGHT, LOCKED, GROVE, NOT_IN_DREAM }  # NOT_IN_DREAM: branch expansion
 
 @onready var dream_state: DreamState = %DreamState
 @onready var game_speed: GameSpeed = %GameSpeed
@@ -253,11 +253,13 @@ func state_of(data: TowerData) -> State:
 	var blocker := dream_state.get_unlock_blocker(data)
 	if blocker == "Memory Grove":
 		return State.GROVE
+	if blocker == DreamState.NOT_IN_DREAM and cost > 0:
+		return State.NOT_IN_DREAM
 	if cost == 0:
 		return State.GROWN if count_on_map(data) > 0 else State.UNLOCKED
 	if blocker != "":
 		return State.LOCKED
-	return State.CAN_UNLOCK if cost <= dream_state.dreamlight else State.NEEDS_LIGHT
+	return State.CAN_UNLOCK if dream_state.get_unlock_price(data) <= dream_state.dreamlight else State.NEEDS_LIGHT  # Waking Root's discount
 
 func count_on_map(data: TowerData) -> int:
 	return dream_state.count_wardens(data.get_id())
@@ -272,6 +274,9 @@ func _fill_side(data: TowerData) -> void:
 		_line("No family to remember yet.", UiStyle.INK_DIM, 15)
 		return
 	var grove := state_of(data) == State.GROVE
+	if state_of(data) == State.NOT_IN_DREAM:
+		_fill_not_in_dream(data)
+		return
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 10)
 	_side_box.add_child(head)
@@ -397,6 +402,59 @@ func _add_combos(data: TowerData) -> void:
 	links.custom_minimum_size = Vector2(SIDE_WIDTH - 30, 0)
 	_side_box.add_child(links)
 
+# Branch expansion: a branch not in this run. Its silhouette and name, the line, what it does (to judge a call),
+# and the call-back: CALL_BACK_DREAMLIGHT once per family, or free with Remembered Path.
+const NOT_IN_DREAM_LINE := "Not in this dream. The Heartwood may remember it next time."
+
+func _fill_not_in_dream(data: TowerData) -> void:
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	_side_box.add_child(head)
+	var portrait := Portrait.new(data, 72.0, true)
+	portrait.modulate = Color(1, 1, 1, 0.6)  # multiplier: the mist
+	head.add_child(portrait)
+	var name_label := Label.new()
+	name_label.text = data.display_name
+	UiStyle.display(name_label, 22)
+	name_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	head.add_child(name_label)
+	_line(NOT_IN_DREAM_LINE, UiStyle.INK_DIM, 15)
+	if data.description != "":
+		_line(IconInfo.format(data.description), UiStyle.INK_DIM, 13)
+	_add_call_back(data)
+
+func _add_call_back(data: TowerData) -> void:
+	var button := Button.new()
+	button.name = "CallBackButton"
+	button.focus_mode = Control.FOCUS_NONE
+	button.custom_minimum_size = Vector2(0, 48)
+	var free := dream_state.free_calls > 0
+	var problem := dream_state.call_back_problem(data)
+	UiStyle.primary(button)
+	_side_box.add_child(button)
+	if problem == "Not enough Dreamlight":  # The cost in POOR, a press refuses (as Unlock)
+		CantAfford.apply(button, "Call into this dream", "%d Dreamlight" % DreamState.CALL_BACK_DREAMLIGHT, IconInfo.format(SHORT_TIP))
+		button.pressed.connect(_refuse_call_back.bind(button))
+		return
+	button.text = "Call into this dream · free (Remembered Path)" if free else "Call into this dream · %d Dreamlight" % DreamState.CALL_BACK_DREAMLIGHT
+	if problem != "":
+		button.disabled = true
+		_line(problem[0].to_upper() + problem.substr(1) + ".", UiStyle.INK_DIM, 13)
+		return
+	_line("Once per family each run. Its final still costs %d." % DreamState.FINAL_DREAMLIGHT, UiStyle.INK_DIM, 13)
+	button.pressed.connect(func() -> void:
+		if dream_state.call_back(data):
+			selected = data
+			_rebuild()
+			_canvas.bloom(data))
+
+func _refuse_call_back(button: Button) -> void:
+	CantAfford.shake(button)
+	var hud := get_parent()
+	if hud != null and hud.has_method("show_toast"):
+		hud.show_toast("Not enough Dreamlight")
+	dream_state.dreamlight_short.emit(DreamState.CALL_BACK_DREAMLIGHT)
+
 func _add_unlock(data: TowerData) -> void:
 	var cost := dream_state.get_unlock_cost(data)
 	if cost == 0:
@@ -420,13 +478,16 @@ func _add_unlock(data: TowerData) -> void:
 	button.name = "UnlockButton"
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(0, 48)
-	var label := "Unlock · %d Dreamlight" % cost
-	var short := cost - dream_state.dreamlight  # > 0: can't afford
+	var price := dream_state.get_unlock_price(data)  # Waking Root (Heartwood's Gifts): 1 less, once
+	var label := ("Unlock · %d Dreamlight" % price) if price > 0 else "Unlock · free"
+	if price < cost:
+		label += " (Waking Root)"
+	var short := price - dream_state.dreamlight  # > 0: can't afford
 	button.disabled = blocker != ""  # Locked for another reason: a plain disabled button (the line says why)
 	UiStyle.primary(button)
 	_side_box.add_child(button)
 	if blocker == "" and short > 0:  # Can't afford yet (CantAfford): the cost in POOR, no count (user); a press refuses
-		CantAfford.apply(button, "Unlock", "%d Dreamlight" % cost, IconInfo.format(SHORT_TIP))
+		CantAfford.apply(button, "Unlock", "%d Dreamlight" % price, IconInfo.format(SHORT_TIP))
 		button.pressed.connect(_refuse_unlock.bind(data, button))
 	else:
 		button.text = label
@@ -442,7 +503,7 @@ func _refuse_unlock(data: TowerData, button: Button) -> void:
 	var hud := get_parent()
 	if hud != null and hud.has_method("show_toast"):
 		hud.show_toast("Not enough Dreamlight")
-	dream_state.dreamlight_short.emit(dream_state.get_unlock_cost(data))  # The HUD flashes the Dreamlight counter
+	dream_state.dreamlight_short.emit(dream_state.get_unlock_price(data))  # The HUD flashes the Dreamlight counter
 
 func _select(data: TowerData) -> void:
 	selected = data
@@ -486,9 +547,13 @@ class TreeCanvas extends Control:
 		var root: TowerData = tree[0]
 		var shown: Array = []  # [branch, finals]; the Grove-hidden ones last (the third lane)
 		var hidden: Array = []
+		var misty: Array[TowerData] = []  # Branch expansion: not in this dream, lower down, no finals or lines
 		for branch in tree[1]:
-			if screen.dream_state.get_unlock_blocker(branch[0]) == "Memory Grove":
+			var blocker := screen.dream_state.get_unlock_blocker(branch[0])
+			if blocker == "Memory Grove":
 				hidden.append(branch)
+			elif blocker == DreamState.NOT_IN_DREAM:
+				misty.append(branch[0])
 			else:
 				shown.append(branch)
 		shown.append_array(hidden)
@@ -511,6 +576,11 @@ class TreeCanvas extends Control:
 					edges.append([finals[j], ascended])
 		if ascended != null:
 			_place(ascended, Vector2(TREE_SIZE.x / 2.0, _row_y(3, rows)))
+		var low_y := _row_y(0, rows)  # Down at the root's level, below every offered branch
+		for i in misty.size():  # Out to the sides, clear of the root: outer pair first, then the inner
+			var side := -1.0 if i % 2 == 0 else 1.0
+			var reach := 0.40 if i < 2 else 0.25
+			_place(misty[i], Vector2(TREE_SIZE.x * (0.5 + side * reach), low_y))
 		queue_redraw()
 
 	# Top of row `row` (0 = the root, at the bottom).
@@ -585,12 +655,15 @@ class FormNode extends Button:
 		focus_mode = Control.FOCUS_NONE
 		process_mode = Node.PROCESS_MODE_ALWAYS
 		var state := screen.state_of(data)
-		portrait = Portrait.new(data, PORTRAIT, state == State.GROVE)  # Only forms the Grove hasn't planted are silhouettes
+		portrait = Portrait.new(data, PORTRAIT, state == State.GROVE or state == State.NOT_IN_DREAM)  # Silhouettes: not planted, or not in this dream
 		if state != State.GROVE and not RememberScreen.is_unlocked_state(state):
 			portrait.modulate = Color.WHITE.darkened(0.2)  # Grove-available, not unlocked this run: its real colours, ~80%
 		portrait.position = Vector2((NODE_SIZE.x - PORTRAIT) / 2.0, 4)
 		add_child(portrait)
 		tooltip_text = UNKNOWN_NAME + " · Memory Grove" if state == State.GROVE else data.display_name  # Grove-locked: no name (user)
+		if state == State.NOT_IN_DREAM:  # Branch expansion: a faint, misty silhouette
+			modulate = Color(1, 1, 1, 0.5)  # multiplier: the mist
+			tooltip_text = data.display_name + " · not in this dream"
 		pressed.connect(func() -> void: screen._select(data))
 
 	func _process(delta: float) -> void:
@@ -619,10 +692,14 @@ class FormNode extends Button:
 				text = "×%d" % screen.count_on_map(data)
 			State.CAN_UNLOCK, State.NEEDS_LIGHT:
 				_caption(data.display_name, UiStyle.caps_font(), 11, UiStyle.INK_DIM, NODE_SIZE.y - 19)  # Its name above the motes
-				text = MOTE.repeat(screen.dream_state.get_unlock_cost(data))
+				var price: int = screen.dream_state.get_unlock_price(data)
+				text = MOTE.repeat(price) if price > 0 else "free"
 				colour = UiStyle.GOLD if state == State.CAN_UNLOCK else UiStyle.INK_DIM
 			State.LOCKED:
 				text = data.display_name  # The chain on its line says it's locked
+				colour = UiStyle.INK_DIM
+			State.NOT_IN_DREAM:
+				text = data.display_name  # No cost: it isn't unlocked, it's called back (side panel)
 				colour = UiStyle.INK_DIM
 			State.GROVE:
 				text = name_shown()  # "???" under it (user: no name until planted), and a Grove leaf badge on the stone
@@ -630,7 +707,7 @@ class FormNode extends Button:
 				_draw_leaf(centre + Vector2(PORTRAIT / 2.0 - 8, -PORTRAIT / 2.0 + 8))
 		if text != "":
 			# Counts and motes in the number face; "locked" / "Grove" as small-caps labels.
-			var words := state == State.LOCKED or state == State.GROVE
+			var words := state == State.LOCKED or state == State.GROVE or state == State.NOT_IN_DREAM
 			var font := UiStyle.caps_font() if words else UiStyle.number_font()
 			var font_size := 12 if words else 16
 			_caption(text, font, font_size, colour, NODE_SIZE.y - 6)

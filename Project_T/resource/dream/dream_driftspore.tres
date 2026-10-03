@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_driftspore"
 display_name = "Driftspore"
-description = "Sporelings can now grow into Driftspores (80 Dew): two {spored} stacks per puff, higher cap."
+description = "Sporelings can now grow into Driftspores ({grow_cost:driftspore} Dew): two {spored} stacks per puff, higher cap."
 rarity = 1
 kind = 1
 tags = Array[String](["spore"])

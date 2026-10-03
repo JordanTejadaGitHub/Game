@@ -62,7 +62,7 @@ const STARLIT_AIM_CRIT := 0.25
 const FULL_MOON_CRIT := 0.10
 const RECKLESS_CRIT := 0.30
 const RECKLESS_PENALTY := 0.15
-# The 10 card builds (dream_design.md "Pool trim", layer 2): the tags resonance, the Stray slot and build_packages
+# The 10 card builds (dream_design.md "Pool trim", layer 2): the tags the Stray slot and build_packages
 # read. Build-tag steering is off (2026-09-30, user: "change their build depending on the random cards they get,
 # not send them down a path"): tag_weight 1.0 and no Tall / Overgrowth opposition.
 const ARCHETYPE_TAGS: Array[String] = ["tall", "overgrowth", "daring", "precision", "affliction", "maze",
@@ -221,6 +221,8 @@ signal remember_requested(focus: TowerData)
 @export var unlock_everything: bool = false  # Debug/tests: every Warden and evolution available
 @export var cards_per_offer: int = 3
 @export var skip_dew: int = 15  # "Let it pass"
+var nurture_perk_multiplier := 1.0  # Sidegrade perks (MetaRun, Spire experiment): First Care's cost
+var first_offer_cards := 0  # Sidegrade Kindling: the first Dream offer (drifts 1–5) has this many cards; 0 = normal
 @export var tag_weight: float = 1.0  # Off (1.0 = no boost): offers are random within the run's pool (2026-09-30; was 1.6, then 1.3)
 @export var pity_after: int = 3  # Dreams in a row without Rare+ before one is guaranteed
 # Bittersweet cards stay out of the pool until leaves are tuned (dream_design.md). Act 2+ only,
@@ -252,12 +254,10 @@ var _dreams_without_rare := 0
 var _rare_dreams_left := 0  # Restless Dreams / Omens: the next N offers each include a Rare+
 var _extra_cards_next := 0  # Omens (Thick Blight): the next offer has this many more cards
 const MAX_OFFER_CARDS := 5  # Extra cards stop here (run_design.md "Omen audit fixes"); the Dream screen fits 5
-var _entwined_offered := {}  # Entwined card id -> true once its guaranteed offer happened
 var _banished := {}  # Card id -> true: Let Go took it out of this run's pool
 var _passed_count := {}  # Card id -> times offered and not taken this run
 var _passed_at := {}  # Card id -> the offer number (dreams_seen) it was last passed over in
 var _taken_this_offer: Array[String] = []
-var _guaranteed_id := ""  # The Entwined guaranteed card of the current offer (never fades)
 var current_stray: UpgradeData = null  # The Stray Dream card of the current offer (null = none)
 var _legendary_next := 0  # Lean Season: Dreams still owed a Legendary
 var _owed_families: Array[String] = []  # Half-dreamed cards taken: the next family pick includes one
@@ -300,12 +300,15 @@ var _effects: DreamEffects = null  # effects(): card rows per Warden
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	HeartwoodGifts.register(&"waking_root", DreamState._waking_root_gift)  # Heartwood's Gifts (Spire branch)
+	unlocks_changed.connect(_draw_branch_offers)  # Branch expansion: a family pick draws its 2 branches
 	_rng.randomize()
 	if pool.is_empty():
 		pool = load_pool()
 	for id in starting_unlocks:
 		unlocked[id] = true
 	drift_director.rest_started.connect(_credit_rest.unbind(4))  # Before the rest report reads the block
+	drift_director.rest_started.connect(_judge_finale.unbind(4))  # Before the offer is built (spire_difficulty.md)
 	drift_director.rest_started.connect(_on_rest_started)
 	drift_director.rest_started.connect(_save_discoveries.unbind(4))
 	drift_director.rest_ended.connect(func(_block: int) -> void: card_credit["block"] = {})  # A new block's credit
@@ -327,6 +330,7 @@ func _ready() -> void:
 	if seller:
 		seller.tower_sold.connect(_on_tower_sold)
 	drift_director.drift_started.connect(_on_drift_started)
+	drift_director.drift_started.connect(_finale_on_drift)
 	# The board version (DreamEffects' shared board and cached rows): any Warden, card, route, rest,
 	# drift, leaf or Eldest change bumps it.
 	tower_container.child_entered_tree.connect(_on_tower_added)
@@ -471,6 +475,29 @@ func get_unlock_cost(data: TowerData) -> int:
 		return ASCENDED_DREAMLIGHT
 	return FINAL_DREAMLIGHT if data.tier >= 3 else BRANCH_DREAMLIGHT
 
+# What unlocking `data` costs now: get_unlock_cost less Waking Root's discount (it can reach 0; get_unlock_cost stays
+# the "0 = owned" answer for every other caller).
+func get_unlock_price(data: TowerData) -> int:
+	var cost := get_unlock_cost(data)
+	return maxi(cost - 1, 0) if cost > 0 and unlock_discounts > 0 else cost
+
+# Heartwood's Gifts (heartwood_gifts.md, Spire branch): Waking Root = the next `count` forms unlocked (Remember screen,
+# Warden panel: every price reads get_unlock_price) each cost 1 less Dreamlight (never below 0). Used by
+# unlock_with_dreamlight; saved with the run.
+var unlock_discounts := 0
+
+func add_unlock_discount(count: int = 1) -> void:
+	unlock_discounts += count
+	unlocks_changed.emit()  # The Remember screen's prices
+
+# The gift's effect (HeartwoodGifts calls it): on a resumed run the discount comes back with this run's save instead.
+static func _waking_root_gift(main: Node, placement: Dictionary) -> void:
+	if placement.get("restoring", false):
+		return
+	var dreams := main.get_node_or_null("%DreamState") as DreamState
+	if dreams != null:
+		dreams.add_unlock_discount(1)
+
 # Why `data` can't be unlocked yet ("" = it can, given enough Dreamlight): its parent form isn't
 # unlocked, or it's a hidden branch the Memory Grove hasn't opened. Ascended forms: from drift 51,
 # once the family has any final form, and with the Grove's Ascension node.
@@ -482,6 +509,10 @@ func get_unlock_blocker(data: TowerData) -> String:
 			return "from drift %d" % ASCENDED_FROM_DRIFT
 		if not _has_unlocked_final(data):
 			return "needs a final form"
+	if not in_this_edition(data):
+		return "not in the demo"
+	if (data.tier == 2 or data.tier == 3) and not is_branch_offered(data):
+		return NOT_IN_DREAM  # Branch expansion: not one of this run's 2 (its final follows it)
 	var parent := get_parent_form(data) if data.tier < ASCENDED_TIER else null
 	if parent != null and not is_unlocked(parent.get_id()):
 		return "needs %s" % parent.display_name
@@ -490,20 +521,298 @@ func get_unlock_blocker(data: TowerData) -> String:
 		return "Memory Grove"
 	return ""
 
+# --- Branch expansion (tower_design.md "Branch expansion: 5 branches, 2 per run", Spire branch) --------------
+# At each family pick, 2 of the family's regular branches are offered for the run (the hidden branch, once the
+# Grove has planted it, is always a 3rd lane). Drawn from the map seed and the family, never the same 2 as that
+# family's last run (profile last_branch_offer), and by the smart draw: among the pairs adding a counter tag the
+# run's offers don't cover yet (TowerData.counter_tags, Tower Code), when any pair does. A branch not offered is
+# "not in this dream": the Remember screen shows it misty, and it can be called back once per family for
+# CALL_BACK_DREAMLIGHT (the unlock included; its final still costs FINAL_DREAMLIGHT). Remembered Path gives a free call.
+# Families with 2 or fewer regular branches offer them all; the demo keeps today's branches (no draw).
+
+const NOT_IN_DREAM := "not in this dream"
+const BRANCH_OFFER_SIZE := 2
+const CALL_BACK_DREAMLIGHT := 3  # Balancing Discussion (spire_difficulty.md Phase 6)
+
+signal branch_called(form: TowerData, free: bool)
+
+var branch_offers := {}  # Base id -> Array of branch ids this run (the drawn 2, the planted hidden one, called back)
+var called_families := {}  # Base id -> the branch id called back with Dreamlight (once per family per run)
+var free_calls := 0  # Remembered Path: calls back without Dreamlight or the once-per-family limit
+var _last_branch_offer_written := {}  # What this run wrote to the profile (tests read it)
+
+static func branch_expansion_on() -> bool:
+	return not ResultsScreen.is_demo()
+
+# The demo keeps today's branches: forms of the expansion (TowerData.expansion_phase > 0, Tower Code) aren't in it.
+static func in_this_edition(form: TowerData) -> bool:
+	var phase = form.get("expansion_phase")
+	return branch_expansion_on() or phase == null or int(phase) <= 0
+
+# A base family's regular branches: tier-2 forms whose unlock card is in the start pool (hidden ones are Grove-only).
+func regular_branches(base: TowerData) -> Array[TowerData]:
+	var out: Array[TowerData] = []
+	for form in base.evolves_to:
+		if form is TowerData and form.tier == 2 and not form.parked and not is_hidden_branch(form) and in_this_edition(form):
+			out.append(form)
+	return out
+
+func is_hidden_branch(form: TowerData) -> bool:
+	var card := _unlock_card_for(form)
+	return card != null and not card.in_start_pool
+
+# Whether `form` (a branch, or a final through its branch) is in this run. True outside the expansion, for hidden
+# branches (the Grove gates those), and for families not picked yet.
+func is_branch_offered(form: TowerData) -> bool:
+	if not branch_expansion_on() or form == null or unlock_everything:
+		return true
+	if unlocked.has(form.get_id()):
+		return true  # Owned (called back, unlocked by a card or a dev tool): in this run
+	var branch := form
+	if form.tier == 3:
+		branch = _parent_in_tree(form)
+		if branch == null or branch.tier != 2:
+			return true  # A wall growth or a final straight from a base
+	if branch.tier != 2 or is_hidden_branch(branch):
+		return true
+	if unlocked.has(branch.get_id()):
+		return true
+	var base := _parent_in_tree(branch)
+	if base == null or not is_unlocked(base.get_id()):
+		return true
+	return get_branch_offer(base).has(branch.get_id())
+
+# The form `form` grows from, searched through every family tree (get_parent_form looks one level deep).
+func _parent_in_tree(form: TowerData) -> TowerData:
+	var parent := get_parent_form(form)
+	if parent != null:
+		return parent
+	for base in _roster():
+		if base is TowerData:
+			for branch in base.evolves_to:
+				if branch is TowerData and branch.evolves_to.has(form):
+					return branch
+	return null
+
+# The branch ids on offer for `base` this run (drawn on first ask once the family is yours).
+func get_branch_offer(base: TowerData) -> Array:
+	var id := base.get_id()
+	if not branch_offers.has(id):
+		branch_offers[id] = _draw_branch_offer(base)
+	var offer: Array = branch_offers[id]
+	for form in base.evolves_to:  # The hidden branch joins once the Grove has planted it
+		if form is TowerData and form.tier == 2 and is_hidden_branch(form) and grove_cards.has(_unlock_card_for(form).id) \
+				and not offer.has(form.get_id()):
+			offer.append(form.get_id())
+	return offer
+
+# The forms of `base`'s family that are not in this run ("not in this dream"): its regular branches not offered.
+func not_offered_branches(base: TowerData) -> Array[TowerData]:
+	var out: Array[TowerData] = []
+	if not branch_expansion_on():
+		return out
+	var offer := get_branch_offer(base)
+	for form in regular_branches(base):
+		if not offer.has(form.get_id()):
+			out.append(form)
+	return out
+
+func _draw_branch_offer(base: TowerData) -> Array:
+	var branches := regular_branches(base)
+	var ids: Array = branches.map(func(f: TowerData) -> String: return f.get_id())
+	if not branch_expansion_on() or branches.size() <= BRANCH_OFFER_SIZE:
+		return ids
+	var pairs: Array = []  # Every 2 of them, except last run's pair for this family
+	var last: Array = _last_branch_offer().get(base.get_id(), [])
+	for i in branches.size():
+		for j in range(i + 1, branches.size()):
+			var pair := [branches[i], branches[j]]
+			var pair_ids: Array = [branches[i].get_id(), branches[j].get_id()]
+			pair_ids.sort()
+			if pair_ids != last:
+				pairs.append(pair)
+	# The weighted smart draw (tower_design.md 5ba12e1e): each pair scores the rarest still-missing tags it adds
+	# (Σ 1 / how many regular branches carry the tag, anti_tank ×2); drawn in proportion to the score (pair_proportional,
+	# floor 10% of the best) or among the top band (pair_band), or among all pairs when none adds a missing tag
+	var covered := _covered_tags()
+	var frequency := _tag_frequency()
+	var best := 0.0
+	var scores: Array[float] = []
+	for pair: Array in pairs:
+		var adds := {}
+		for form: TowerData in pair:
+			for tag in _counter_tags(form):
+				if not covered.has(tag):
+					adds[tag] = true
+		var score := 0.0
+		for tag in adds:
+			score += (TAG_WEIGHTS.get(tag, 1.0)) / float(maxi(int(frequency.get(tag, 1)), 1))
+		scores.append(score)
+		best = maxf(best, score)
+	var pool_pairs: Array = pairs
+	var weights: Array[float] = []
+	if best > 0.0:
+		pool_pairs = []
+		for i in pairs.size():
+			if pair_proportional or scores[i] >= best * pair_band:
+				pool_pairs.append(pairs[i])
+				weights.append(maxf(scores[i], best * 0.1) if pair_proportional else 1.0)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(map_generator.map_seed) + hash("branches:" + base.get_id()) if map_generator != null else hash(base.get_id())
+	var chosen: Array = pool_pairs[rng.rand_weighted(PackedFloat32Array(weights))] if not weights.is_empty() else pool_pairs[rng.randi_range(0, pool_pairs.size() - 1)]
+	var offer: Array = chosen.map(func(f: TowerData) -> String: return f.get_id())
+	_remember_branch_offer(base.get_id(), offer)
+	return offer
+
+const TAG_WEIGHTS := {&"anti_tank": 2.0}  # Counts double in the smart draw (Tower Discussion + Balancing: tanks matter)
+const TOP_PAIR_BAND := 0.8  # Pairs scoring within 80% of the best are drawn among
+var pair_band := TOP_PAIR_BAND  # (tunable for probes)
+var pair_proportional := true  # Pairs drawn in proportion to their score (floor 10% of the best): the top band alone
+# (pair_band, 0.8) locked Sporeling to one pair in every run; proportional keeps 9–10 pairs per family and anti_tank at 90%
+
+# How many regular branches (of every family in the roster, this edition) carry each counter tag.
+func _tag_frequency() -> Dictionary:
+	var out := {}
+	for base in _roster():
+		if base is TowerData and base.tier == 1 and base.buildable_directly:
+			for form in regular_branches(base):
+				for tag in _counter_tags(form):
+					out[tag] = int(out.get(tag, 0)) + 1
+	return out
+
+static func _counter_tags(form: TowerData) -> Array:
+	var tags = form.get("counter_tags")
+	return tags if tags is Array else []
+
+# The counter tags every family's offered branches cover so far this run.
+func _covered_tags() -> Dictionary:
+	var covered := {}
+	for base_id in branch_offers:
+		for branch_id in branch_offers[base_id]:
+			var form := _form_by_id(branch_id)
+			if form != null:
+				for tag in _counter_tags(form):
+					covered[tag] = true
+	return covered
+
+func _form_by_id(id: String) -> TowerData:
+	var stack: Array = _roster().duplicate()
+	var seen := {}
+	while not stack.is_empty():
+		var form = stack.pop_back()
+		if not (form is TowerData) or seen.has(form):
+			continue
+		seen[form] = true
+		if form.get_id() == id:
+			return form
+		stack.append_array(form.evolves_to)
+	return null
+
+func _last_branch_offer() -> Dictionary:
+	var saved = HeartwoodMemory.load_data().get("last_branch_offer", {})
+	return saved if saved is Dictionary else {}
+
+# Kept in the profile so the family's next run draws another pair; real game only (never tests or dev runs).
+func _remember_branch_offer(base_id: String, offer: Array) -> void:
+	var sorted := offer.duplicate()
+	sorted.sort()
+	_last_branch_offer_written[base_id] = sorted
+	if not is_inside_tree() or get_tree().current_scene != owner or MetaRun.is_dev_run():
+		return
+	var memory := HeartwoodMemory.load_data()
+	var last: Dictionary = memory.get("last_branch_offer", {})
+	last[base_id] = sorted
+	memory["last_branch_offer"] = last
+	HeartwoodMemory.save_data(memory)
+
+# Why `form` can't be called back now ("" = it can): only a not-offered regular branch of a family you have, once per
+# family (a free call from Remembered Path skips the once and the price).
+func call_back_problem(form: TowerData) -> String:
+	if form == null or form.tier != 2 or is_hidden_branch(form) or is_branch_offered(form):
+		return "not a branch to call back"
+	var base := _parent_in_tree(form)
+	if free_calls > 0:
+		return ""
+	if base != null and called_families.has(base.get_id()):
+		return "already called one back for %s" % base.display_name
+	if dreamlight < CALL_BACK_DREAMLIGHT:
+		return "Not enough Dreamlight"
+	return ""
+
+# Calls `form` into this run: it joins the offer and is unlocked (the call includes the unlock).
+func call_back(form: TowerData) -> bool:
+	if call_back_problem(form) != "":
+		return false
+	var base := _parent_in_tree(form)
+	var free := free_calls > 0
+	if free:
+		free_calls -= 1
+	else:
+		add_dreamlight(-CALL_BACK_DREAMLIGHT)
+		called_families[base.get_id()] = form.get_id()
+	get_branch_offer(base).append(form.get_id())
+	unlocked[form.get_id()] = true
+	branch_called.emit(form, free)
+	unlocks_changed.emit()
+	return true
+
+# Any family of yours has a branch not in this dream (Remembered Path is only offered then).
+func has_branch_to_call() -> bool:
+	for base in _roster():
+		if base is TowerData and base.tier == 1 and is_unlocked(base.get_id()) and not not_offered_branches(base).is_empty():
+			return true
+	return false
+
+# Draws the offer of every family you have (on each unlock: a family pick).
+func _draw_branch_offers() -> void:
+	if not branch_expansion_on():
+		return
+	for base in _roster():
+		if base is TowerData and base.tier == 1 and base.buildable_directly and is_unlocked(base.get_id()) \
+				and not branch_offers.has(base.get_id()):
+			get_branch_offer(base)
+
+# Card gating: a card naming a branch (or its final) is only offered while that branch is in this run; a card it
+# requires (an Entwined ingredient) is checked the same way. `requires_any` needs one of its forms in the run.
+func branch_cards_open(card: UpgradeData, depth: int = 0) -> bool:
+	if not branch_expansion_on():
+		return true
+	for id in card.requires:
+		var form := _form_by_id(id)
+		if form != null and not is_branch_offered(form):
+			return false
+		if form == null and depth < 2:
+			var needed := _card_by_id(id)
+			if needed != null and not branch_cards_open(needed, depth + 1):
+				return false
+	var any_forms: Array = card.requires_any.map(func(id: String) -> TowerData: return _form_by_id(id)).filter(func(f) -> bool: return f != null)
+	if not any_forms.is_empty() and any_forms.size() == card.requires_any.size() \
+			and not any_forms.any(func(f: TowerData) -> bool: return is_branch_offered(f)):
+		return false
+	return true
+
+func _card_by_id(id: String) -> UpgradeData:
+	for card in pool:
+		if card.id == id:
+			return card
+	return null
+
 # run_design.md "Dreamlight" (2026-09-30): a final form of a family (not a wall growth) needs no Grove node,
 # only its branch and 2 Dreamlight.
 func _is_regular_final(data: TowerData) -> bool:
 	return data.tier == 3 and data.line != "wall"
 
 func can_unlock(data: TowerData) -> bool:
-	var cost := get_unlock_cost(data)
-	return cost > 0 and cost <= dreamlight and get_unlock_blocker(data) == ""
+	return get_unlock_cost(data) > 0 and get_unlock_price(data) <= dreamlight and get_unlock_blocker(data) == ""
 
 # Spends Dreamlight to make `data` available for the run (evolving each Warden still costs Dew).
 func unlock_with_dreamlight(data: TowerData) -> bool:
 	if not can_unlock(data):
 		return false
-	add_dreamlight(-get_unlock_cost(data))
+	var price := get_unlock_price(data)
+	if price > 0:
+		add_dreamlight(-price)
+	unlock_discounts = maxi(unlock_discounts - 1, 0)  # Waking Root: one use
 	unlocked[data.get_id()] = true
 	unlocks_changed.emit()
 	return true
@@ -989,6 +1298,7 @@ func get_nurture_cost_multiplier(tower: Tower = null) -> float:
 	for card in _taken_cards():
 		discount += card.nurture_discount * stacks[card.id]
 	var multiplier := 1.0 - minf(discount, NURTURE_DISCOUNT_MAX)
+	multiplier *= nurture_perk_multiplier  # Sidegrade First Care: +15% once its free ranks are spent
 	if has_rule(&"nursery") and tower != null and tower.tower_data.get_id() == "sprout":
 		multiplier *= 0.5
 	return multiplier
@@ -1081,7 +1391,7 @@ func get_status_strength_multiplier(status: StringName) -> float:
 	var bonus := 0.0
 	for card in _taken_cards():
 		if card.status_id == status:
-			bonus += card.status_strength_bonus * stacks[card.id] * resonance(card)
+			bonus += card.status_strength_bonus * stacks[card.id]
 	if SLOW_STATUSES.has(status) and has_rule(&"heavy_air"):
 		bonus += HEAVY_AIR_BONUS * rule_power(&"heavy_air")  # Heavy Air: every slow 20% stronger
 	return 1.0 + bonus
@@ -1093,7 +1403,7 @@ func get_status_duration(data: TowerData, status: StringName) -> float:
 	for card in _taken_cards():
 		if card.status_id != status or not _applies_to(card, data):
 			continue
-		duration += card.status_duration_add * stacks[card.id] * resonance(card)
+		duration += card.status_duration_add * stacks[card.id]
 		multiplier *= pow(card.status_duration_multiplier, stacks[card.id])
 	duration += LASTING_DREAMS_PER * rule_stacks(&"lasting_dreams")  # Lasting Dreams: every status +1 s
 	return duration * multiplier
@@ -1161,7 +1471,7 @@ func get_rest_bonus_add() -> int:
 	for card in _taken_cards():
 		add += card.rest_bonus_add * stacks[card.id]
 	if has_rule(&"winding_path"):
-		add += roundi(path_length / WINDING_PATH_TILES * rule_power(&"winding_path"))  # Winding Path: +1 Dew per 5 path tiles (resonance scales it)
+		add += roundi(path_length / WINDING_PATH_TILES * rule_power(&"winding_path"))  # Winding Path: +1 Dew per 5 path tiles
 	return add
 
 # Dew to clear `data` (Cleared Ground: −40% per stack, never below 1 Dew).
@@ -1280,23 +1590,22 @@ func is_beside_bend(cell: Vector2, reach: int = 1) -> bool:
 func get_stat_bonus(data: TowerData, stat: String) -> float:
 	return _sum_stat(data, stat)
 
-# Cached per card set (Wardens ask on every stat rebuild; 3x perf bar): cleared when _taken_cards() rebuilds
-# or a resonance is locked.
+# Cached per card set (Wardens ask on every stat rebuild; 3x perf bar): cleared when _taken_cards() rebuilds.
 var _stat_sums := {}  # stat -> {TowerData: total}
-var _stat_sums_of: Array = [null, -1]  # [the _taken_cards() array, _resonance.size()]
+var _stat_sums_of: Array = [null]  # [the _taken_cards() array]
 
 func _sum_stat(data: TowerData, stat: String) -> float:
 	var taken := _taken_cards()
-	if not is_same(_stat_sums_of[0], taken) or _stat_sums_of[1] != _resonance.size():
+	if not is_same(_stat_sums_of[0], taken):
 		_stat_sums.clear()
-		_stat_sums_of = [taken, _resonance.size()]
+		_stat_sums_of = [taken]
 	var by_data: Dictionary = _stat_sums.get_or_add(stat, {})
 	if by_data.has(data):
 		return by_data[data]
 	var total := 0.0
 	for card in taken:
 		if _applies_to(card, data):
-			total += float(card.get(stat)) * stacks[card.id] * resonance(card)
+			total += float(card.get(stat)) * stacks[card.id]
 	by_data[data] = total
 	return total
 
@@ -1351,12 +1660,20 @@ func _update_bends() -> void:
 	_heart_cache.clear()
 
 
+# An exclusive pair (dream_design.md "Combo cards are choices, not musts"): a card a taken card excludes, or one that
+# excludes a taken card, is out of the run.
+func is_excluded(card: UpgradeData) -> bool:
+	for other in _taken_cards(true):
+		if other != card and (other.excludes.has(card.id) or card.excludes.has(other.id)):
+			return true
+	return false
+
 # --- Taking cards -------------------------------------------------------------------------------------
 
 func take(card: UpgradeData) -> void:
-	if card_stacks(card.id) == 0:  # The first copy this run locks it
-		var preview := resonance_preview(card)
-		_resonance[card.id] = {"power": 1.0 + preview.bonus, "tag": preview.tag, "count": preview.count, "cards": preview.cards}  # Locked when taken
+	for other in current_offer.duplicate():  # An exclusive pair: the partner leaves this offer too (Lucid Dreaming's 2nd pick)
+		if other != card and (card.excludes.has(other.id) or other.excludes.has(card.id)):
+			current_offer.erase(other)
 	if unlocks_clearing(card) and not can_clear():
 		clearing_opened_by = card.id  # "Unlocked clearing" in Dreams this run and the Codex
 	for family in half_dreamed_missing(card):  # The next family pick will include one of them
@@ -1383,6 +1700,9 @@ func take(card: UpgradeData) -> void:
 	if card.leaves_now != 0 or card.max_leaves_add != 0:
 		run_state.regrow_leaves(maxi(card.leaves_now, 0))  # Also clamps to a lower maximum
 	add_rare_dreams(card.rare_dreams_add)
+	if card.rule_id == &"lucid_dream":  # Branch expansion: call one not-offered branch into the run, free
+		free_calls += 1
+		open_remember.call_deferred(null)
 	if card.dreamlight_now > 0:
 		add_dreamlight(card.dreamlight_now, &"card")
 	if card.free_first_clears_add > 0:
@@ -1405,6 +1725,60 @@ func add_rare_dreams(count: int) -> void:
 # Omen reward (Thick Blight): the next Dream offers `count` more cards.
 func add_extra_cards(count: int) -> void:
 	_extra_cards_next += count
+
+# --- Block finales (spire_difficulty.md Phase 2) ---------------------------------------------------------------
+# A block finale (DriftDirector.get_block_finale_elites(n) >= 0, from block_finale_health_from) cleared clean (no
+# leaf lost from its start to the rest after it: the run history's per-drift leaves_lost) earns one Rare+ slot in
+# the next Dream. Saved with the run. (The Phase 3 rest choices were replaced by heartwood_gifts.md.)
+
+signal finale_judged(drift: int, clean: bool)
+
+var finale_results := {}  # Finale drift -> leaves lost on it (0 = cleared clean)
+var _finale_drift := 0  # The finale being played (0: none)
+var _finale_lost_at := 0  # RunState.leaves_lost as it started
+var _finale_rare_next := 0  # Earned Rare+ slots for the next Dream
+
+func _finale_on_drift(number: int) -> void:
+	if number >= drift_director.block_finale_health_from and drift_director.get_block_finale_elites(number) >= 0:
+		_finale_drift = number
+		_finale_lost_at = run_state.leaves_lost
+
+# Judges the finale once its rest begins (from the rest, or first from a getter: Main's rest report may read first).
+func _judge_finale() -> void:
+	if _finale_drift == 0 or finale_results.has(_finale_drift) or not drift_director.is_build_phase() \
+			or drift_director.drifts_started != _finale_drift or run_state.is_over:
+		return
+	var lost := maxi(run_state.leaves_lost - _finale_lost_at, 0)
+	finale_results[_finale_drift] = lost
+	if lost == 0:
+		_finale_rare_next += 1
+	var drift := _finale_drift
+	_finale_drift = 0
+	finale_judged.emit(drift, lost == 0)
+
+# Whether finale `drift` was cleared clean (while it's still on the field: no leaf lost so far).
+func finale_cleared_clean(drift: int) -> bool:
+	_judge_finale()
+	if finale_results.has(drift):
+		return int(finale_results[drift]) == 0
+	return drift == _finale_drift and run_state.leaves_lost == _finale_lost_at
+
+# The finale of block `block` (Main's banner / rest report): {"finale": its drift or 0, "clean", "leaves_lost"}.
+func finale_result(block: int) -> Dictionary:
+	_judge_finale()
+	var drift: int = block * drift_director.drifts_per_block
+	if not finale_results.has(drift):
+		return {"finale": 0, "clean": false, "leaves_lost": 0}
+	var lost := int(finale_results[drift])
+	return {"finale": drift, "clean": lost == 0, "leaves_lost": lost}
+
+# A clean finale's Rare+ slot is waiting for the next Dream.
+func has_rare_slot_pending() -> bool:
+	_judge_finale()
+	return _finale_rare_next > 0
+
+func finale_reward_pending() -> bool:  # Balancing's name for the same
+	return has_rare_slot_pending()
 
 # Omen reward (Lean Season): the next Dream (from act 2) includes a Legendary.
 func add_legendary_dreams(count: int) -> void:
@@ -1561,10 +1935,9 @@ func supply_line() -> String:
 	return " · ".join(bits)
 
 # Passed-over cards fade: every card of `offer` not taken counts as passed over in offer `offer_number`.
-# The Entwined guaranteed card is unaffected.
 func _note_passed(offer: Array[UpgradeData], offer_number: int) -> void:
 	for card in offer:
-		if _taken_this_offer.has(card.id) or card.id == _guaranteed_id:
+		if _taken_this_offer.has(card.id):
 			continue
 		_passed_count[card.id] = int(_passed_count.get(card.id, 0)) + 1
 		_passed_at[card.id] = offer_number
@@ -1588,8 +1961,8 @@ func times_passed(card_id: String) -> int:
 
 func _offer_counters() -> Dictionary:
 	return {"dreams_seen": dreams_seen, "without_rare": _dreams_without_rare,
-		"rare_left": _rare_dreams_left, "extra": _extra_cards_next, "entwined": _entwined_offered.duplicate(),
-		"legendary": _legendary_next}
+		"rare_left": _rare_dreams_left, "extra": _extra_cards_next,
+		"legendary": _legendary_next, "finale_rare": _finale_rare_next}
 
 func _restore_offer_counters(counters: Dictionary) -> void:
 	if counters.is_empty():
@@ -1599,7 +1972,7 @@ func _restore_offer_counters(counters: Dictionary) -> void:
 	_rare_dreams_left = counters.rare_left
 	_extra_cards_next = counters.extra
 	_legendary_next = counters.get("legendary", 0)
-	_entwined_offered = counters.entwined.duplicate()
+	_finale_rare_next = counters.get("finale_rare", 0)  # A reroll keeps the clean finale's Rare+ slot
 
 # Builds a Dream offer for after drift `drift_number` (see dream_design.md, "How offers work").
 func make_offer(drift_number: int) -> Array[UpgradeData]:
@@ -1607,6 +1980,8 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	_offer_drift = drift_number
 	var size := cards_per_offer
 	picks_left = 1
+	if first_offer_cards > 0 and drift_number <= 5:
+		size = first_offer_cards
 	if has_rule(&"lucid_dreaming"):  # 4 cards, take 2, no Commons
 		size += LUCID_EXTRA_CARDS
 		picks_left = LUCID_PICKS
@@ -1615,16 +1990,9 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	_extra_cards_next = 0
 	var offer: Array[UpgradeData] = []
 	var act := drift_director.get_act(drift_number)
-	_guaranteed_id = ""
 	_taken_this_offer.clear()
-	# Entwined: a combo whose ingredients just came together gets one guaranteed slot.
-	if offer.size() < size:
-		for card in pool:
-			if card.entwined and not _entwined_offered.has(card.id) and is_eligible(card, act):
-				_entwined_offered[card.id] = true
-				_guaranteed_id = card.id
-				offer.append(card)
-				break
+	# Entwined cards have no guaranteed slot (dream_design.md "Combo cards are choices, not musts", 2026-10-02): once
+	# their ingredients are owned they're drawn at their rarity's normal odds like any card.
 	# The Stray Dream: from drift 10's rest (never a boss rest), one slot leans away from the build.
 	# Lean Season's reward: one Legendary slot (act 2+), before the Stray and the normal slots.
 	if _legendary_next > 0 and act >= 2 and offer.size() < size:
@@ -1638,6 +2006,12 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 		current_stray = _draw_card(act, offer, false, true)
 		if current_stray != null:
 			offer.append(current_stray)
+	# A clean block finale's reward (spire_difficulty.md): one slot drawn as a Rare+
+	if _finale_rare_next > 0 and offer.size() < size:
+		_finale_rare_next -= 1
+		var finale_rare := _draw_card(act, offer, true)
+		if finale_rare != null:
+			offer.append(finale_rare)
 	var force_rare := drift_director.is_boss_drift(drift_number) or _dreams_without_rare >= pity_after \
 		or _rare_dreams_left > 0
 	_rare_dreams_left = maxi(_rare_dreams_left - 1, 0)
@@ -1667,6 +2041,8 @@ func is_eligible(card: UpgradeData, act: int = 1) -> bool:
 func can_offer(card: UpgradeData, act: int = 1) -> bool:
 	if not (card.in_start_pool or grove_cards.has(card.id)) or _banished.has(card.id):
 		return false
+	if is_excluded(card):
+		return false  # An exclusive pair: its partner was taken (Charged Feathers / Pollen Beaks)
 	if not in_run_pool(card):
 		return false  # Not in this run's drawn pool
 	if act < card.min_act or card.kind == UpgradeData.Kind.UNLOCK_WARDEN:
@@ -1701,6 +2077,10 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false  # A half-dreamed combo card may be offered before its families are all yours
 	if not is_half_dreamed(card) and not grown_needs_met(card):
 		return false  # Round 5: a Warden it names must have been built or grown this run
+	if not branch_cards_open(card):
+		return false  # Branch expansion: its branch isn't in this run
+	if card.rule_id == &"lucid_dream" and not has_branch_to_call():
+		return false
 	return true
 
 # The hard run-state and card Needs (dream_design.md "Card requirements"). Only gates new offers:
@@ -1954,7 +2334,7 @@ func to_save() -> Dictionary:
 	return {
 		"unlocked": unlocked.keys(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
-		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "entwined_offered": _entwined_offered.keys(),
+		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "unlock_discounts": unlock_discounts, "branch_offers": branch_offers.duplicate(true), "called_families": called_families.duplicate(), "free_calls": free_calls, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next},
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
 		"run_pool": run_pool.keys(), "run_pool_waiting": _run_pool_waiting.keys(), "run_pool_families": _run_pool_families.keys(),
 		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
@@ -1967,12 +2347,12 @@ func to_save() -> Dictionary:
 		"clearing_opened_by": clearing_opened_by,
 		"free_first_clears": free_first_clears,
 		"cleared_kinds": cleared_kinds.keys().map(func(cell: Vector2) -> Array: return [cell.x, cell.y, cleared_kinds[cell]]),
-		"resonance": _resonance.duplicate(),
 		"grown_wardens": grown_wardens.keys(),
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
 func load_save(data: Dictionary) -> void:
+	branch_offers = data.get("branch_offers", {}).duplicate(true)  # First: an unlock signal below must not draw anew
 	unlocked.clear()
 	for id in data.get("unlocked", []):
 		unlocked[id] = true
@@ -1991,11 +2371,18 @@ func load_save(data: Dictionary) -> void:
 	_dreams_without_rare = int(data.get("dreams_without_rare", 0))
 	_rare_dreams_left = int(data.get("rare_dreams_left", 0))
 	_extra_cards_next = int(data.get("extra_cards_next", 0))
+	unlock_discounts = int(data.get("unlock_discounts", 0))
+	called_families = data.get("called_families", {}).duplicate()
+	free_calls = int(data.get("free_calls", 0))
+	var finale: Dictionary = data.get("finale", {})
+	finale_results.clear()
+	for drift in finale.get("results", {}):
+		finale_results[int(drift)] = int(finale.results[drift])  # JSON keys come back as strings
+	_finale_drift = int(finale.get("drift", 0))
+	_finale_lost_at = int(finale.get("lost_at", 0))
+	_finale_rare_next = int(finale.get("rare_next", 0))
 	var credit: Dictionary = data.get("card_credit", {})
 	card_credit = {"block": credit.get("block", {}).duplicate(true), "run": credit.get("run", {}).duplicate(true)}
-	_entwined_offered.clear()
-	for id in data.get("entwined_offered", []):
-		_entwined_offered[id] = true
 	if data.has("rerolls_left"):  # Else keep what MetaRun set at run start
 		rerolls_left = int(data.rerolls_left)
 		banishes_left = int(data.banishes_left)
@@ -2028,7 +2415,7 @@ func load_save(data: Dictionary) -> void:
 	cleared_kinds.clear()
 	for entry in data.get("cleared_kinds", []):
 		cleared_kinds[Vector2(entry[0], entry[1])] = String(entry[2])
-	_resonance = data.get("resonance", {}).duplicate()
+	# An old save's "resonance" key is ignored (tag resonance was removed)
 	_legendary_next = int(data.get("legendary_next", 0))
 	_refill_bark()  # Saved at a rest, where Thick Bark is full again
 	dreamlight = int(data.get("dreamlight", 0))
@@ -2735,9 +3122,25 @@ func get_spored_tick_multiplier(enemy: Node2D) -> float:
 		return 1.0
 	return 1.0 + DAMP_ROT_PER * n
 
-# Sparking Spores: Ignite detonation multiplier (Reactions._ignite asks; 1.0 without it).
-func get_ignite_multiplier() -> float:
+# Sparking Spores: Ignite detonation multiplier (Reactions._ignite asks; 1.0 without it), only on a nightmare carrying
+# SPARKING_SPORES_MIN_POISONED+ Poisoned (dream_design.md "Combo cards are choices": a condition). Without `enemy`
+# (old callers) the condition can't be checked and the bonus applies.
+const SPARKING_SPORES_MIN_POISONED := 5
+
+func get_ignite_multiplier(enemy: Node2D = null) -> float:
+	if enemy != null and is_instance_valid(enemy) and enemy.statuses.stacks(EnemyStatuses.SPORED) < SPARKING_SPORES_MIN_POISONED:
+		return 1.0
 	return 1.0 + SPARKING_SPORES_PER * rule_stacks(&"sparking_spores")
+
+# Damp Rot's trade: with it, Soaked no longer boosts water hits on a nightmare (Enemy.take_damage asks).
+func soaked_boosts_water() -> bool:
+	return not has_rule(&"damp_rot")
+
+# Quick Reactions' trade: Reactions twice as often, each dealing this share (Reactions asks for its damage).
+const QUICK_REACTIONS_DAMAGE := 0.65  # Balancing Discussion: 35% less (×0.75 still left +50% output)
+
+func get_reaction_damage_multiplier() -> float:
+	return QUICK_REACTIONS_DAMAGE if has_rule(&"quick_reactions") else 1.0
 
 
 # --- Headless simulation entry points (tools/balance_run.gd, tests) -------------------------------
@@ -3320,79 +3723,11 @@ func get_swoop_return_multiplier() -> float:
 	return HOMING_SPEED[rule_level(&"homing_instinct")] if has_rule(&"homing_instinct") else 1.0
 
 
-# --- Tag resonance (dream_audit.md "Builds pay off", 2026-09-30) ------------------------------------
-# Each card you own with a tag makes later cards of that tag +RESONANCE_PER stronger (their numbers,
-# not their rules), up to +RESONANCE_MAX: counted on the card's best-represented tag and locked when the
-# card is taken. Untagged (generic) cards neither resonate nor count. Applied to stat and status
-# numbers (_sum_stat, statuses), DreamEffects rows (damage / speed / range) and the per-hit rules
-# here; other scripts scale their rule numbers with rule_power(rule_id).
-const RESONANCE_PER := 0.10
-const RESONANCE_MAX := 0.50
-const NOT_RESONANT: Array[String] = ["bittersweet", "opener"]  # Structural tags, not builds
-
-var _resonance := {}  # Card id -> {power, tag, count} locked when it was taken (saved)
-var resonance_enabled := true  # Tests of single-card numbers turn it off; test_dreams checks the rule
-
-# The resonance a card would get if taken now: {bonus, tag, count} (bonus 0 = none).
-func resonance_preview(card: UpgradeData) -> Dictionary:
-	var best := {"bonus": 0.0, "tag": "", "count": 0, "cards": []}
-	if card == null or not resonance_enabled:
-		return best
-	var owned := _taken_cards(true)
-	for tag in card.tags:
-		if NOT_RESONANT.has(tag):
-			continue
-		var sharing := owned.filter(func(c: UpgradeData) -> bool:
-			return c.id != card.id and c.id != card.deepens and c.deepens != card.id and c.tags.has(tag))  # Never its own base
-		if sharing.size() > best.count:
-			best = {"bonus": minf(RESONANCE_PER * sharing.size(), RESONANCE_MAX), "tag": tag, "count": sharing.size(),
-				"cards": sharing.map(func(c: UpgradeData) -> String: return c.display_name)}  # The player sees these, never the tag
-	return best
-
-# The multiplier a taken card's numbers get (1.0 = none).
-func resonance(card: UpgradeData) -> float:
-	if card == null or not _resonance.has(card.id):
-		return 1.0
-	return float(_resonance[card.id].get("power", 1.0))
-
-# "+20% from Soft Spores, Damp Rot" for a taken card ("" = none): Dreams this run.
-func resonance_line(card: UpgradeData) -> String:
-	var r: Dictionary = _resonance.get(card.id, {}) if card != null else {}
-	return resonance_text(float(r.get("power", 1.0)) - 1.0, Array(r.get("cards", [])), int(r.get("count", 0)))
-
-# Every card a taken card's resonance came from ("" = none), for the line's hover.
-func resonance_cards(card: UpgradeData) -> Array:
-	var r: Dictionary = _resonance.get(card.id, {}) if card != null else {}
-	return Array(r.get("cards", []))
-
-# The strongest resonance among the taken cards with `rule` (for rule code in other scripts).
-func rule_power(rule: StringName) -> float:
-	var power := 1.0
-	for card in _taken_cards():
-		if card.rule_id == rule or card.extra_rules.has(rule):
-			power = maxf(power, resonance(card))
-	return power
-
-# "+10% from Seedfall", "+20% from Soft Spores, Damp Rot", past 2 "+30% from Soft Spores, Damp Rot and 1 more"
-# (the card face, Dreams this run; the hover lists them all). "" = none. text_style.md "Same-tag (resonance) lines
-# name the cards": the internal tag (wide, affliction, tempo…) never reaches the player. `count` is only for an
-# old save's entry without card names ("+20% from 2 of your cards").
-const RESONANCE_NAMED := 2
-
-static func resonance_text(bonus: float, cards: Array, count: int = -1) -> String:
-	if bonus <= 0.0:
-		return ""
-	if cards.is_empty():
-		var n := maxi(count, 1)
-		return "+%d%% from %d of your cards" % [roundi(bonus * 100), n] if n > 1 else "+%d%% from one of your cards" % roundi(bonus * 100)
-	var shown := ", ".join(cards.slice(0, RESONANCE_NAMED))
-	if cards.size() > RESONANCE_NAMED:
-		shown += " and %d more" % (cards.size() - RESONANCE_NAMED)
-	return "+%d%% from %s" % [roundi(bonus * 100), shown]
-
-# The hover on a resonance line: every card it comes from.
-static func resonance_tooltip(cards: Array) -> String:
-	return "From: " + ", ".join(cards) if cards.size() > RESONANCE_NAMED else ""
+# A rule card's number multiplier for code in other scripts (Tower, Kinships, FairyRing…): always 1.0 now. Tag
+# resonance was removed (user, dream_audit.md rule 1 struck, a6628056): a card's numbers are its base value × its rule
+# level (rule_level), nothing more. Kept so the callers needn't change.
+func rule_power(_rule: StringName) -> float:
+	return 1.0
 
 
 # --- Catalogue cards 204–226 (dream_design.md "New cards for the catalogue") ----------------------
@@ -3755,7 +4090,7 @@ func overlap_multiplier(tower: Node, enemy: Node2D) -> float:
 signal card_chosen(card: UpgradeData, towers: Array, impact: String)
 
 # {text, towers: [Tower], kind: &"stat" | &"position" | &"trigger" | &"economy" | &"none"}, computed by taking the card
-# for a moment (its stacks and its resonance, then undone) and comparing every Warden's Dream stat parts.
+# for a moment (its stacks, then undone) and comparing every Warden's Dream stat parts.
 func preview_card_impact(card: UpgradeData) -> Dictionary:
 	var result := {"text": "None of your Wardens yet", "towers": [], "kind": &"none"}
 	if card == null:
@@ -3765,9 +4100,6 @@ func preview_card_impact(card: UpgradeData) -> Dictionary:
 	for tower in towers:
 		before[tower] = _dream_stat_factors(tower)
 	var had: int = stacks.get(card.id, 0)
-	var had_resonance = _resonance.get(card.id)
-	if had == 0:
-		_resonance[card.id] = {"power": 1.0 + resonance_preview(card).bonus}
 	stacks[card.id] = had + 1
 	bump_board()
 	var changed: Array = []
@@ -3791,10 +4123,6 @@ func preview_card_impact(card: UpgradeData) -> Dictionary:
 	stacks[card.id] = had
 	if had == 0:
 		stacks.erase(card.id)
-		if had_resonance == null:
-			_resonance.erase(card.id)
-		else:
-			_resonance[card.id] = had_resonance
 	bump_board()
 	if not changed.is_empty():
 		var what := ""

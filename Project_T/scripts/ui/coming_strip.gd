@@ -263,7 +263,9 @@ func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool 
 		holder.add_child(tag)
 	if not compact:
 		var icons := NightmareIcons.make_rows(data, 14.0, true)
-		icons.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		# The item's full width (the flow centres them): shrunk to one icon, a flow wrapped every icon onto its own line
+		# (a Phantom resisting one family and weak to another stood 113 px tall, Spire 2026-10-02).
+		icons.size_flags_horizontal = Control.SIZE_FILL
 		item.add_child(icons)
 	if breaks_rules:  # Just its verb ("Flies"): the DriftPanel's warning line has the sentence
 		var words := Label.new()

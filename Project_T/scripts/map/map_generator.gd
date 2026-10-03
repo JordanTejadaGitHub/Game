@@ -40,6 +40,7 @@ var omen_mist: OmenMist  # Low gold-violet mist while an Omen twists the block
 var build_hatch: BuildHatch  # In build mode: a cold hatch on every unbuildable cell
 var lighting: EnvironmentLighting  # Cold edges, warm Warden lights
 var ambience: EnvironmentAmbience  # Edge fog and the act's particles
+var gifts: MapGifts  # Heartwood's Gifts: terrain the act-break gifts leave (map_gifts.gd)
 
 
 # Called when the node enters the scene tree for the first time.
@@ -126,6 +127,11 @@ func _ready() -> void:
 	ambience = EnvironmentAmbience.new()
 	ambience.heartwood_position = heartwood.position
 	add_child(ambience)
+	gifts = MapGifts.new()
+	gifts.name = "Gifts"
+	gifts.map = self
+	add_child(gifts)
+	move_child(gifts, path_layer.get_index() + 1)  # Ground overlays just over the path
 
 # A pond that isn't a rectangle gets pond_inner.png's inside corners over its tiles: one small sprite
 # per corner, sorted with the pond cell and drawn just after it (a cell can need two).
@@ -157,6 +163,7 @@ func set_act(act: int) -> void:
 	for corner: Sprite2D in _pond_corners:  # The inside corners follow the season's pond sheet
 		corner.texture = (tile_set.get_source(EnvironmentTiles.POND_INNER) as TileSetAtlasSource).texture
 	heartwood.set_act(act)
+	gifts.set_act(act)
 	ambience.act = act
 
 # If obstacles cut the start off from the end, clears the fewest-obstacle route between them.

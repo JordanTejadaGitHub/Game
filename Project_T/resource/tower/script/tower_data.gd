@@ -39,6 +39,21 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 # TowerData resources this can grow into. Typed as Resource because a script whose export is an
 # array of its own class never gets freed (leaks at exit).
 @export var evolves_to: Array[Resource] = []
+# Branch expansion (tower_design.md "Branch expansion"): the nightmare types this branch answers, for the
+# 2-of-5 smart draw (Roguelite's DreamState): &"anti_air", &"detection", &"anti_armour", &"anti_swarm",
+# &"anti_tank", &"anti_support", &"boss_abilities".
+@export var counter_tags: Array[StringName] = []
+# 1 = a Phase 1 expansion branch or its final (the demo keeps today's 2 branches per family); 0 = the original roster.
+@export var expansion_phase: int = 0
+
+@export_group("Special")
+# The expansion branches' own mechanics (BranchKit): &"lichen", &"brood", &"inkcap", &"cloud", &"whirlpool",
+# &"jet", &"jarlink", &"prism", &"sparkler", &"silver_bell", &"hush", &"thrum"; "" = none.
+@export var special: StringName = &""
+# Its numbers (Balancing Discussion's), by name: each special's keys are listed in BranchKit.
+@export var special_params: Dictionary = {}
+# A final form: its branch's special plus the final's twist (BranchKit reads it).
+@export var special_final: bool = false
 
 @export_group("Attack")
 @export var can_attack: bool = true
@@ -299,6 +314,14 @@ func get_attack_origin() -> Vector2:
 	return _origin_from_json if _origin_from_json is Vector2 else attack_origin
 
 # Region of `texture` holding idle frame `frame`.
+# Where the sprite sits so its slab is on the cell: sprite_offset when a .tres sets it (the Sapling), else from the
+# frame height (Tower Assets 2026-10-02: regular art is 64×80, tall 64×96, Ascended 128): the body is the bottom 64
+# rows, so a frame h tall moves up (h − 64) / 2.
+func get_sprite_offset() -> Vector2:
+	if sprite_offset != Vector2.ZERO or texture == null:
+		return sprite_offset
+	return Vector2(0, -(texture.get_height() - 64) / 2.0)
+
 func get_frame_rect(frame: int) -> Rect2:
 	var size := Vector2(texture.get_width() / float(frame_count), texture.get_height())
 	return Rect2(Vector2(size.x * frame, 0), size)

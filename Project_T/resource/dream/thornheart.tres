@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "thornheart"
 display_name = "Thornheart"
-description = "Brambles' thorns deal 5% more for each Bramble you own (max +100%)."
+description = "Brambles' thorns deal 5% more for each Bramble you own (up to +100%)."
 rarity = 2
 kind = 3
 tags = Array[String](["wall", "maze"])

@@ -93,7 +93,7 @@ func _run() -> void:
 	var speed_tip: String = stat_tips.filter(func(t: String) -> bool: return t.begins_with("Attack speed:")).front() if stat_tips.any(func(t: String) -> bool: return t.begins_with("Attack speed:")) else ""
 	_check(stat_tips.any(func(t: String) -> bool: return t.begins_with("Damage: ") and t.contains("per hit"))
 		and speed_tip.contains("attacks a second") and speed_tip.contains("Elder Stump +")
-		and stat_tips.any(func(t: String) -> bool: return t.begins_with("Range: ") and t.contains("tiles")),
+		and stat_tips.any(func(t: String) -> bool: return t.begins_with("Range: ") and t.contains("cells")),
 		"each stat's tip says its value and what changed it (%s)" % [stat_tips])
 	var speed_targets: Array = panel._stats.find_children("*", "TapTip", true, false).filter(func(t: TapTip) -> bool: return t._label.text.begins_with("Attack speed:"))
 	_check(speed_targets.size() == 1 and speed_targets[0].get_parent().get_child_count() == 3,
@@ -105,7 +105,13 @@ func _run() -> void:
 	panel._fit_height()
 	await process_frame
 	var screen: float = panel.get_viewport().get_visible_rect().size.y
-	_check(panel.size.y <= screen * panel.MAX_SHARE + 1.0, "the panel stays within %d%% of the screen (%.0f of %.0f px)" % [roundi(panel.MAX_SHARE * 100), panel.size.y, screen])
+	# The info part gives way (it scrolls, down to MIN_INFO); the actions never do (test_panel_fits: every action on
+	# screen), so a Warden with many forms (a base growing into 6 on Spire's branch expansion) may need more.
+	var floor_height: float = panel._buttons.get_combined_minimum_size().y + panel._footer.get_combined_minimum_size().y + 40.0 + panel.MIN_INFO
+	var limit := maxf(screen * panel.MAX_SHARE, floor_height)
+	_check(panel.size.y <= limit + 1.0, "the panel stays within %d%% of the screen, or just its actions + the least info (%.0f of %.0f px)" % [
+		roundi(panel.MAX_SHARE * 100), panel.size.y, limit])
+	_check(panel._scroll.size.y <= panel.MIN_INFO + 1.0 or panel.size.y <= screen * panel.MAX_SHARE + 1.0, "…the long info part is the one that gave way")
 	_check(panel._footer.get_children().any(func(c: Node) -> bool: return c is Button and c.text.begins_with("Sell"))
 		and panel._footer.get_children().any(func(c: Node) -> bool: return c is Button and c.text == "Close"), "Sell and Close stay in the footer")
 

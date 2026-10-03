@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_thunderhead"
 display_name = "Thunderhead"
-description = "Stormcaps can now grow into Thunderheads (200 Dew): every 5th strike hits every {damp} nightmare in range."
+description = "Stormcaps can now grow into Thunderheads ({grow_cost:thunderhead} Dew): every 5th strike hits every {damp} nightmare in range."
 rarity = 2
 kind = 1
 tags = Array[String](["light", "storm"])

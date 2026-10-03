@@ -37,7 +37,9 @@ var spotlight: Tower = null  # The Warden the first grow hint points at
 var _dirty := true  # Something changed since the last count
 var _time := 0.0
 var _seen: Array = []
-var _marks_layer := Node2D.new()  # The quiet marks (redrawn on refresh only)
+var _marks_layer := Node2D.new()  # The quiet marks (redrawn on refresh and when their frame turns)
+var _bud_frame := 0
+var _dew_frame := 0
 
 func _init(director: DriftDirector = null) -> void:
 	drift_director = director
@@ -48,6 +50,8 @@ func _ready() -> void:
 	_marks_layer.name = "Marks"
 	_marks_layer.draw.connect(_draw_marks)
 	add_child(_marks_layer)
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # Pixel art (the layer inherits it)
+	_load_art()
 	process_mode = Node.PROCESS_MODE_ALWAYS  # A paused rest still shows them
 	run_state = drift_director.get_node_or_null("%RunState")
 	dream_state = drift_director.get_node_or_null("%DreamState")
@@ -115,6 +119,14 @@ func _process(delta: float) -> void:
 	_time += delta
 	if spotlight != null:
 		queue_redraw()  # The shimmer
+	if not marks.is_empty():
+		var still := bool(Fx.setting("reduced_motion", false))
+		var bud := frame_at(BUD_ORDER, _time, MARK_FPS, still)
+		var dew := frame_at(DEW_ORDER, _time, MARK_FPS * 0.5, still)
+		if bud != _bud_frame or dew != _dew_frame:
+			_bud_frame = bud
+			_dew_frame = dew
+			_marks_layer.queue_redraw()  # A few times a second, at rests only
 	if _dirty:
 		_dirty = false
 		refresh()
@@ -219,9 +231,9 @@ func _draw_marks() -> void:
 			continue
 		var base := _marks_layer.to_local(tower.global_position) + BASE
 		if mark.grow and tower != spotlight:
-			_bud(_marks_layer, base + Vector2(-MARK_OFFSET, 0), 5.0, MARK_ALPHA)
+			_draw_art(_marks_layer, "grow_bud", _bud_frame, base + Vector2(-MARK_OFFSET, 0), MARK_ALPHA)
 		if mark.rank:
-			_dewdrop(_marks_layer, base + Vector2(MARK_OFFSET, 0), 4.0, MARK_ALPHA)
+			_draw_art(_marks_layer, "rank_dew", _dew_frame, base + Vector2(MARK_OFFSET, 0), MARK_ALPHA)
 
 # Only the first-time spotlight, which shimmers (redrawn each frame while it's up).
 func _draw() -> void:
@@ -230,32 +242,39 @@ func _draw() -> void:
 		var still := bool(Fx.setting("reduced_motion", false))
 		var beat := 0.5 if still else 0.5 + 0.5 * sin(_time * 4.0)
 		draw_arc(base - Vector2(0, 14), 30.0 + 4.0 * beat, 0.0, TAU, 40, Color(UiStyle.GOLD, 0.35 + 0.4 * beat), 2.0, true)
-		_bud(self, base + Vector2(0, -2 - 4.0 * beat), 9.0)
+		var frame := 3 if still else frame_at([0, 1, 2, 3], _time, SPOTLIGHT_FPS, false)  # Still: the bud open
+		_draw_art(self, "grow_spotlight", frame, base + Vector2(0, -2))
 
-# Until UI Asset's art (can_grow bud, can_rank dewdrop, first_time bud with motes; user: the ↑ didn't fit the theme):
-# a small bud drawn in code: a stem, two leaves and a gold bud, dark-rimmed so it reads on grass and path.
-func _bud(canvas: CanvasItem, at: Vector2, size: float, alpha: float = 1.0) -> void:
-	var top := at + Vector2(0, -size * 1.4)
-	var rim := Color(Palette.DREAD, alpha)
-	canvas.draw_line(at, top, rim, size * 0.45 + 2.0)
-	canvas.draw_line(at, top, Color(Palette.LEAF, alpha), size * 0.45)
-	for side in [-1.0, 1.0]:
-		var base := at + Vector2(0, -size * 0.55)
-		var leaf := PackedVector2Array([base, base + Vector2(side * size * 0.9, -size * 0.35), base + Vector2(side * size * 0.5, size * 0.15)])
-		canvas.draw_colored_polygon(leaf, Color(Palette.SPRIG, alpha))
-	canvas.draw_circle(top, size * 0.6 + 1.5, rim)
-	canvas.draw_circle(top, size * 0.6, Color(UiStyle.GOLD, alpha))
-	canvas.draw_circle(top + Vector2(-size * 0.18, -size * 0.18), size * 0.2, Color(Palette.HEARTLIGHT, alpha * 0.8))
+# UI Asset's art (assets/ui/grow_hints.json, 8ae32bef): grow_bud = can grow, rank_dew = can rank, grow_spotlight =
+# the first-time spotlight. Frames run left to right; drawn at 1× (the world's pixel grid, as the 64 px Wardens),
+# nearest, bottom-centred on `at`. Kept on the instance (a static Texture crashes the exit: exit 139).
+const ART_INDEX := "res://assets/ui/grow_hints.json"
+const BUD_ORDER := [0, 1, 2, 1]
+const DEW_ORDER := [0, 1]
+const MARK_FPS := 3.0  # The quiet marks sway slowly (and redraw only when a frame turns)
+const SPOTLIGHT_FPS := 6.0
+var _art := {}  # id -> {texture, size, frames}
 
-# The next rank is affordable: a small dewdrop.
-func _dewdrop(canvas: CanvasItem, at: Vector2, size: float, alpha: float = 1.0) -> void:
-	var drop := PackedVector2Array([at + Vector2(0, -size * 1.6)])
-	for i in 9:
-		var angle := PI * (i / 8.0)
-		drop.append(at + Vector2(cos(angle) * size, sin(angle) * size * 0.9 - size * 0.1))
-	var rim := PackedVector2Array()
-	for point in drop:
-		rim.append(at + (point - at) * 1.3)
-	canvas.draw_colored_polygon(rim, Color(Palette.DREAD, alpha))
-	canvas.draw_colored_polygon(drop, Color(Palette.DEWLIGHT, alpha))
-	canvas.draw_circle(at + Vector2(-size * 0.3, -size * 0.2), size * 0.22, Color(Palette.HEARTLIGHT, alpha))
+func _load_art() -> void:
+	var file := FileAccess.get_file_as_string(ART_INDEX)
+	var index = JSON.parse_string(file) if file != "" else null
+	if typeof(index) != TYPE_DICTIONARY:
+		return
+	for id in index.get("hints", {}):
+		var entry: Dictionary = index.hints[id]
+		var texture := load(ART_INDEX.get_base_dir().path_join(entry.image)) as Texture2D
+		if texture != null:
+			_art[id] = {"texture": texture, "size": int(entry.frame_size), "frames": int(entry.frames)}
+
+# The frame of `order` (frame indexes) at `time`; still = its first.
+static func frame_at(order: Array, time: float, fps: float, still: bool) -> int:
+	return 0 if still else int(order[int(time * fps) % order.size()])
+
+func _draw_art(canvas: CanvasItem, id: String, frame: int, at: Vector2, alpha: float = 1.0) -> void:
+	if not _art.has(id):
+		return
+	var art: Dictionary = _art[id]
+	var size := float(art.size)
+	var region := Rect2(clampi(frame, 0, art.frames - 1) * size, 0, size, size)
+	var corner := (at - Vector2(size / 2.0, size)).round()  # Whole pixels
+	canvas.draw_texture_rect_region(art.texture, Rect2(corner, Vector2(size, size)), region, Color(1, 1, 1, alpha))  # multiplier

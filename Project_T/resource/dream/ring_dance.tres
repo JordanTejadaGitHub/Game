@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "ring_dance"
 display_name = "Ring Dance"
-description = "A Fairy Ring bursting sets off every ring within 2 tiles."
+description = "A Fairy Ring bursting sets off every ring within 2 cells."
 rarity = 2
 kind = 3
 tags = Array[String](["spore", "trap"])

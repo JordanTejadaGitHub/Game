@@ -17,7 +17,9 @@ const CAST_ACT1 := ["sporeling", "firefly_jar", "dewdrop", "bellflower", "pebbli
 const CAST_NOCHARGE := ["boulderback", "boulderback", "moonstone", "rockslide", "starcave", "midsummer", "magpies_hoard", "great_dreamcatcher"]  # --cast=nocharge: the finals cast without its only Charged source (Thunderhead -> a 2nd Boulderback)
 var cast: Array = CAST
 var next_to: Array = []  # --next-to=puffball,lullaby_bell: the cast is planted first and each candidate goes beside one of these
-var pairs := false  # --pairs: every second copy goes beside the one before it (Jarlink works in linked pairs)
+var pairs := false  # --pairs: every second copy goes 3-4 cells from the one before it, the line between them over the most route tiles (Jarlink fences)
+var keep_away: Array = []  # Cells a new pair must stay over 4 cells from (other pairs' jars), so each jar links to its own partner
+var director_overrides := {}  # --director=export=value (repeatable): DriftDirector exports, e.g. second_elite_from=1 (two elites a drift)
 
 var main: Node
 var form_id := "dreamshroom"
@@ -32,6 +34,7 @@ var by_tag := {}  # "kind/tag" -> the candidates' damage (tags column)
 var spore_appliers := {}  # For Spored ticks credited to the candidates: applier form id -> damage share (by stacks added)
 var spore_combos := {}  # …and their combo tags -> damage
 var spored_burning := 0.0  # The candidates' Spored damage dealt while the nightmare burns (Ignite: ticks 3x as fast)
+var hit_target_hp := Vector2.ZERO  # Plain hits by the candidates: (sum of the target's max health, count): erosion per hit = share × mean max health
 var total := 0.0
 var spawned_health := 0.0
 var leaked_health := 0.0
@@ -56,9 +59,18 @@ func _run() -> void:
 			"--cast": cast = {"act1": CAST_ACT1, "nocharge": CAST_NOCHARGE, "finals": CAST}.get(value, Array(value.split(",")))  # or a list: --cast=rain_lily,rain_lily,…
 			"--next-to": next_to = Array(value.split(","))
 			"--pairs": pairs = true
+			"--director": director_overrides[arg.get_slice("=", 1)] = arg.get_slice("=", 2)
 	ProjectSettings.set_setting("game/demo", false)  # The full game (as the user plays it)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
+	var dd: Node = main.get_node("%DriftDirector")
+	for key in director_overrides:
+		var current = dd.get(key)
+		if current == null:
+			printerr("--director: no export %s" % key)
+			quit(1)
+			return
+		dd.set(key, int(director_overrides[key]) if current is int else float(director_overrides[key]))
 	if boss2 != "":
 		main.get_node("%DriftDirector").preset_bosses = ["hollow_stag", boss2]  # Set before the deferred draw
 	root.add_child(main)
@@ -74,8 +86,12 @@ func _run() -> void:
 	var rest: Array = cast.duplicate()
 	for i in COPIES:
 		var tower: Tower = null
-		if pairs and i % 2 == 1:
-			tower = _plant(placer, form_id, [form_id], candidates[i - 1])  # Beside its partner
+		if pairs and i % 2 == 0:
+			keep_away = candidates.map(func(t) -> Vector2: return t.cell)  # A new pair: away from the jars already planted
+			tower = _plant(placer, form_id)
+			keep_away = []
+		elif pairs and i % 2 == 1:
+			tower = _plant(placer, form_id, [form_id], candidates[i - 1], true)  # Across the route from its partner
 		elif next_to.is_empty():
 			tower = _plant(placer, form_id)
 		else:  # Pair by pair: a target from the cast, then a candidate in a free cell touching it; a target
@@ -150,7 +166,7 @@ func _run() -> void:
 # Builds the base form on the best open cell next to the path, grows it to `id` and ranks it to `rank`,
 # all paid with Dew. Returns the Warden, or null.
 # `next_to`: only cells touching (8 around) a planted Warden whose id is in the list (Grafted Elder copies a neighbour).
-func _plant(placer: TowerPlacer, id: String, next_to: Array = [], beside: Tower = null) -> Tower:
+func _plant(placer: TowerPlacer, id: String, next_to: Array = [], beside: Tower = null, across := false) -> Tower:
 	var chain := _chain_to(id)
 	if chain.is_empty():
 		return null
@@ -164,6 +180,24 @@ func _plant(placer: TowerPlacer, id: String, next_to: Array = [], beside: Tower 
 		for i in range(4, path.size() - 2):
 			for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 				spots.append(path[i] + offset)
+	elif across and beside != null:  # --pairs: 3-4 cells from its partner, where the line between them crosses the most route tiles
+		var scored: Array = []  # [route tiles on the line, cell]
+		for dx in range(-4, 5):
+			for dy in range(-4, 5):
+				var d := maxi(absi(dx), absi(dy))
+				if d < 3:
+					continue
+				var cell: Vector2 = beside.cell + Vector2(dx, dy)
+				var on_route := {}
+				for step in range(1, d * 4):  # The cells the line passes, jar cells excluded
+					var at: Vector2 = beside.cell.lerp(cell, float(step) / (d * 4)).round()
+					if at != beside.cell and at != cell and path.has(at):
+						on_route[at] = true
+				if not on_route.is_empty():
+					scored.append([on_route.size(), cell])
+		scored.sort_custom(func(a, b) -> bool: return a[0] > b[0])
+		for s in scored:
+			spots.append(s[1])
 	else:  # Any free cell touching a target Warden (the 8 around), targets in planting order
 		for t in container.get_children():
 			if t is Tower and (t == beside if beside != null else next_to.has(t.tower_data.get_id())):
@@ -173,6 +207,8 @@ func _plant(placer: TowerPlacer, id: String, next_to: Array = [], beside: Tower 
 	for cell in spots:
 		if tower == null:
 			if path.has(cell) or not map.can_block(cell):
+				continue
+			if keep_away.any(func(c: Vector2) -> bool: return maxf(absf(c.x - cell.x), absf(c.y - cell.y)) <= 4.0):
 				continue
 			var before := container.get_child_count()
 			if placer._try_build(cell):
@@ -223,6 +259,8 @@ func _on_damage(event) -> void:
 		return
 	var combo := clampf(event.combo_amount, 0.0, event.amount)
 	split.combo += combo
+	if event.kind == &"hit" and event.tag == &"" and is_instance_valid(event.enemy):
+		hit_target_hp += Vector2(float(event.enemy.max_health), 1.0)
 	var tag_key := "%s/%s" % [event.kind, event.tag if event.tag != &"" else &"-"]
 	by_tag[tag_key] = float(by_tag.get(tag_key, 0.0)) + event.amount
 	if event.tag == &"spored" and is_instance_valid(event.enemy):
@@ -257,9 +295,9 @@ func _report(director: DriftDirector) -> void:
 		"share": snappedf(damage / maxf(total, 1.0), 0.001), "rank": candidates[0].rank,
 		"hit": snappedf(split.hit / t, 0.01), "cloud": snappedf(split.cloud / t, 0.01), "status": snappedf(split.status / t, 0.01),
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
-		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "pairs": pairs, "board_damage": roundi(total),
+		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "pairs": pairs, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "board_damage": roundi(total),
 		"bosses": ";".join(boss_fights.values().map(func(b) -> String: return "%s:%d:%s:%.0f:%d" % [b.kind, b.health, "1" if b.dispelled else "0", (b.end - b.spawn) if b.dispelled else -1.0, b.hp_arrive])),
-		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001)}
+		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001), "hit_target_hp": roundi(hit_target_hp.x / maxf(hit_target_hp.y, 1.0)), "base_damage": snappedf(candidates[0].get_damage(), 0.1)}
 	print("FINALS %s" % JSON.stringify(row))
 	if out_path != "":
 		var exists := FileAccess.file_exists(out_path)

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "shiny_things"
 display_name = "Shiny Things"
-description = "Each buff a Magpie steals gives it 15% more damage for 10 s (stacks 3)."
+description = "Each buff a Magpie steals makes it deal 15% more damage for 10 s (up to 3 at once: +45%)."
 rarity = 1
 kind = 3
 tags = Array[String](["wing"])

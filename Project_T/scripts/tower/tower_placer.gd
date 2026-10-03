@@ -87,6 +87,7 @@ var settling := {}  # cell -> game seconds left
 var _settling_marks: Node2D = null
 
 func _ready() -> void:
+	GiftGround.register_effects()  # Heartwood's Gifts: the Warden-side effects (Spire)
 	Tower.placer_ref = weakref(self)  # Tall Wardens fade when the build ghost is behind them
 	if tower_scene == null:
 		tower_scene = load(TOWER_SCENE_PATH)
@@ -298,11 +299,13 @@ func _draw() -> void:
 		else:
 			draw_arc(Vector2.ZERO, range_pixels, 0.0, TAU, 64, Color(tint, 0.5), 2.0)
 	_draw_card_areas()
+	if tower_data.special == BranchKit.JARLINK:
+		_draw_fence_preview()  # The arc this jar would make (Balancing: players couldn't tell which jar links to which)
 	if tower_data.texture == null:
 		Tower.draw_placeholder(self, tint)
 	else:
 		var frame := tower_data.get_frame_rect(0)
-		draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.sprite_offset, frame.size), frame, tint)
+		draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.get_sprite_offset(), frame.size), frame, tint)
 	var tag := "%s · %d Dew" % [tower_data.display_name, get_cost(null, _hover_cell)]
 	if tower_data.can_attack:
 		tag = "%s · %s · %d Dew" % [tower_data.display_name, IconInfo.damage_type_name(tower_data.line), get_cost(null, _hover_cell)]
@@ -340,7 +343,7 @@ func _draw() -> void:
 	WorldLabel.draw_tag(self, 0.0, MAP_GRID.cell_size.y / 2.0 + 18.0, tag,
 		WorldLabel.cost_color(_hover_affordable))
 	# Bonus chips above the ghost: each position card, on (green, what it gives) or off (grey, why).
-	var y := -MAP_GRID.cell_size.y / 2.0 - 10.0 + minf(tower_data.sprite_offset.y, 0.0)
+	var y := -MAP_GRID.cell_size.y / 2.0 - 10.0 + minf(tower_data.get_sprite_offset().y, 0.0)
 	if received != "":
 		WorldLabel.draw_tag(self, 0.0, y, received, BuffSources.COLORS.acorn)
 		y -= CHIP_STEP
@@ -533,7 +536,7 @@ func _draw_grow_preview() -> void:
 			Tower.draw_placeholder(self, Color(1, 1, 1, PREVIEW_ALPHA))
 		else:
 			var frame := into.get_frame_rect(int(_grow_preview_time * into.animation_fps) % maxi(into.frame_count, 1))
-			draw_texture_rect_region(into.texture, Rect2(-frame.size / 2.0 + into.sprite_offset, frame.size), frame,
+			draw_texture_rect_region(into.texture, Rect2(-frame.size / 2.0 + into.get_sprite_offset(), frame.size), frame,
 				Color(1, 1, 1, PREVIEW_ALPHA))
 	draw_set_transform(Vector2.ZERO)
 
@@ -646,6 +649,20 @@ func _draw_kin_spots() -> void:
 
 # A dashed outline of each owned position card's area around the ghost (Solitude's 2 cells), so
 # "within 2 cells" is something the player can see. Cells count as a square (Chebyshev).
+# Jarlink's build ghost: the arc to the jar it would link with (BranchKit.fence_partner_at) and the cells it covers.
+func _draw_fence_preview() -> void:
+	var reach := float(tower_data.special_params.get("link_range", 4.0))
+	var partner := BranchKit.fence_partner_at(self, _hover_cell, reach)
+	draw_set_transform(Vector2.ZERO)
+	if partner != null:
+		var from := to_local(MAP_GRID.calculate_map_position(_hover_cell))
+		var to := to_local(partner.global_position)
+		for cell in BranchKit._arc_cells(_hover_cell, partner.cell):
+			var rect := Rect2(to_local(MAP_GRID.calculate_map_position(cell)) - MAP_GRID.cell_size / 2.0, MAP_GRID.cell_size)
+			draw_rect(rect.grow(-4), Color(Palette.GLOW, 0.12))
+		draw_line(from, to, Color(Palette.GLOW, 0.8), 2.0)
+	draw_set_transform(Tower.footprint_centre(_hover_cell, tower_data.footprint))
+
 func _draw_card_areas() -> void:
 	var done := {}
 	for row in _ghost_rows:
@@ -751,6 +768,9 @@ func _try_build(cell: Vector2) -> bool:
 func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: int = 0) -> int:
 	var warden := data if data != null else tower_data
 	var cost: int = dream_state.get_build_cost(warden) if cell == NO_CELL else dream_state.get_build_cost_at(warden, cell)
+	var gifts := GiftGround.active_for(self)
+	if gifts:
+		cost = roundi(cost * gifts.cost_multiplier(warden))  # Heartwood's Gift Bramble Verge: Thornwalls half price
 	# Sprouts get pricier as you plant (warden_stats.md "Sprouts cost more, walls do the maze"): every
 	# sprout_per_step() Sprouts on the map add sprout_step_dew() to the next one (12, 16, 20, …); Seedling
 	# Gift Sprouts don't count and a free one stays free. Seedfall (the card sets the start): +2 per 5 instead
@@ -982,7 +1002,7 @@ func _draw_grow_choice() -> void:
 		if hovered and into.texture != null:
 			var frame := into.get_frame_rect(0)
 			var centre := Tower.footprint_centre(origin, 2)
-			draw_texture_rect_region(into.texture, Rect2(centre - frame.size / 2.0 + into.sprite_offset, frame.size), frame,
+			draw_texture_rect_region(into.texture, Rect2(centre - frame.size / 2.0 + into.get_sprite_offset(), frame.size), frame,
 				Color(1, 1, 1, 0.6))  # A texture modulate (fade), not a colour
 	var tower: Tower = _grow_choice.tower
 	if is_instance_valid(tower):
@@ -1219,7 +1239,7 @@ func _draw_stroke() -> void:
 			Tower.draw_placeholder(self, tint)
 		else:
 			var frame := tower_data.get_frame_rect(0)
-			draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.sprite_offset, frame.size), frame, tint)
+			draw_texture_rect_region(tower_data.texture, Rect2(-frame.size / 2.0 + tower_data.get_sprite_offset(), frame.size), frame, tint)
 	if _stroke.is_empty():
 		return
 	draw_set_transform(MAP_GRID.calculate_map_position(_stroke.back()))

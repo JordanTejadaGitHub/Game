@@ -33,7 +33,6 @@ func _run() -> void:
 	dreams = main.get_node("%DreamState")
 	run_state = main.get_node("%RunState")
 	map_generator = main.get_node("%MapGenerator")
-	dreams.resonance_enabled = false  # Single-card numbers (test_dreams checks resonance)
 	_test_pool()
 	_test_economy()
 	_test_stat_rules()
@@ -56,6 +55,7 @@ func _run() -> void:
 	_test_reaction_links()
 	_test_grove_branches()
 	_test_clearing_payoffs()
+	_test_combo_choices()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -1029,3 +1029,54 @@ func _test_card_feel() -> void:
 	_check(absf(dreams.get_card_credit("deeper_calm", &"run").damage - 15.0) < 0.01, "…kept in the run save")
 	dreams.card_credit = {"block": {}, "run": {}}
 	_clear()
+
+# Combo cards are choices, not musts (dream_design.md 83c40cd7): the exclusive pair, every changed card's trade on
+# its own line, and the trades read in DreamState (Damp Rot, Sparking Spores' condition, Quick Reactions).
+func _test_combo_choices() -> void:
+	dreams.stacks.clear()
+	var feathers := _card("charged_feathers")
+	var beaks := _card("pollen_beaks")
+	_check(feathers.excludes.has("pollen_beaks") and beaks.excludes.has("charged_feathers"), "Charged Feathers and Pollen Beaks exclude each other")
+	dreams.current_offer.assign([feathers, beaks])
+	dreams.take(feathers)
+	_check(dreams.is_excluded(beaks) and not dreams.can_offer(beaks, 3) and not dreams.current_offer.has(beaks),
+		"taking Charged Feathers removes Pollen Beaks from the run and this offer")
+	dreams.stacks.clear()
+	dreams.current_offer.clear()
+	_check(not dreams.is_excluded(beaks), "…until then both can be offered")
+	for id in ["damp_rot", "rain_on_glass", "sparking_spores", "rolling_thunder", "wildfire_spores", "mushroom_rain", "deep_water",
+			"quick_reactions", "conductive_soil", "static_bloom", "starlit_aim", "kin_and_kindling", "carried_on_the_wind",
+			"charged_feathers", "pollen_beaks", "windborne_rain", "deep_stillness", "endless_night", "eye_of_the_tempest",
+			"falling_stars", "fever_pitch", "mountains_fall", "prism_heart", "ring_of_rings"]:
+		_check(_card(id).cost_description != "", "%s shows its trade on its own line" % id)
+	# Damp Rot: Soaked stops boosting water hits
+	_check(dreams.soaked_boosts_water(), "Soaked boosts water hits")
+	_hold("damp_rot")
+	_check(not dreams.soaked_boosts_water(), "…not with Damp Rot")
+	dreams.stacks.clear()
+	# Quick Reactions: 35% less
+	_check(is_equal_approx(dreams.get_reaction_damage_multiplier(), 1.0), "Reactions deal full damage")
+	_hold("quick_reactions")
+	_check(is_equal_approx(dreams.get_reaction_damage_multiplier(), 0.65), "…35% less with Quick Reactions")
+	dreams.stacks.clear()
+	# Sparking Spores: only on nightmares with 5+ Poisoned
+	_hold("sparking_spores")
+	var enemy = _enemy_with_spored(4)
+	if enemy != null:
+		_check(is_equal_approx(dreams.get_ignite_multiplier(enemy), 1.0), "Sparking Spores: not below 5 Poisoned")
+		enemy.statuses.apply(EnemyStatuses.SPORED, 1, 5.0, 1.0, 10)
+		_check(dreams.get_ignite_multiplier(enemy) > 1.0, "…but at 5+ (%d stacks)" % enemy.statuses.stacks(EnemyStatuses.SPORED))
+		enemy.queue_free()
+	dreams.stacks.clear()
+
+func _enemy_with_spored(n: int) -> Node2D:
+	var enemy := _spawn(Vector2(3, 3))
+	enemy.statuses.apply(EnemyStatuses.SPORED, n, 5.0, 1.0, 10)
+	return enemy
+
+# Holds card `id` with the Wardens it needs (a card whose families aren't owned is half-dreamed: no rule).
+func _hold(id: String) -> void:
+	var card := _card(id)
+	for need in card.requires:
+		dreams.unlocked[need] = true
+	dreams.stacks[id] = 1

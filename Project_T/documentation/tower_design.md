@@ -375,15 +375,15 @@ Checked on role, owned status, attack shapes and their 5 branches.
 
 | Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
 |---|---|---|---|---|---|
-| **Cloudlet → Nimbus** | **anti-air** rain over a zone | a small cloud over a 3×3 area anywhere in range; rains on everything under it, flyers and Phantoms included | **Cloudburst:** every 10 s, refreshes Soaked on everything in range 4 | Phantoms, flyers, the Moth Queen | a cloud floating above the golem |
-| **Undercurrent → Maelstrom** | **gather** control | a whirlpool on a path tile: a nightmare reaching it **spins in the eddy for a moment** (a plain pause, not Held: **0.8 s**, Maelstrom **1.2 s**, set by Balancing Discussion; once per nightmare per whirlpool; bosses half), so the ones behind catch up and bunch. **Never moves anyone backward** (pulling back is Rootling's; changed 2026-10-02 after the first build pulled nightmares back toward the centre) | the whirlpool also Soaks everything in it | spread-out swarms; sets up area combos | a swirl of water around its feet |
-| **Jetreed → Torrent** | **piercing line** vs tanks | an instant jet through a line; more damage vs Soaked | **Flood:** the jet leaves a 3-tile wet trail | Husks, elites | a reed pipe held like a hose |
+| **Cloudlet → Nimbus** | **anti-air** rain over a zone | a small cloud over a 3×3 area anywhere in range; rains on everything under it, flyers and Phantoms included | **Drifting storm** (review 2026-10-02; was a range-wide Soak refresh, which is Monsoon's job): every 4 s the cloud **drifts to the densest 3×3 in range**, and its **Cloudburst** sweep rains on everything along the way | Phantoms, flyers, the Moth Queen | a cloud floating above the golem |
+| **Undercurrent → Maelstrom** | **the current: links nightmares** (Dewdrop's conductor job) | a whirlpool over 3 path tiles: every nightmare in it is **linked**, and **25%** of any hit on one is **shared with each other linked nightmare** (shared damage is effect damage: no crit, no on-hit, never shared again). No pause, no pull (review 2026-10-02: the eddy pause was a stop, which is Rooted's job, and its bunching copied Snugroot's Logjam) | **Undertow of light:** the whirlpool also Soaks, and **Charged travels the current**: a Static bolt on a linked nightmare also strikes every other one at half | packed crowds, Wraith packs, escorts (followers share their leader's hits) | a swirl of water around its feet |
+| **Jetreed → Torrent** | **erosion: the tank breaker** | a high-pressure jet at one target dealing **a share of its max health** per hit (start 2%, bosses 0.5%, on top of a small base hit); the jet carries on through the line for the small hit only (review 2026-10-02: "piercing line vs tanks" was two jobs, and the line overlapped Samara and Midsummer) | **Flood:** the jet leaves a 3-tile wet trail (Soaked) | Husks, elites, bosses | a reed pipe held like a hose |
 
 **Firefly Jar** (Charged, Exposed)
 
 | Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
 |---|---|---|---|---|---|
-| **Jarlink → Lightning Fence** | **maze geometry** | two Jarlinks within 4 cells join with an arc; nightmares crossing it take damage + Charged | the fence also hits Phantoms gliding through it | Phantoms, straight rushes | a jar on a tall pole with a wire coil |
+| **Jarlink → Lightning Fence** | **maze geometry** | two Jarlinks within 4 cells join with an arc, a **damaging line**: nightmares touching it take damage per second and **1 Charged per second**. Lay it **along** a corridor and it works like a wall of lightning (revised 2026-10-02: a damage-per-crossing fence measured ~0.04× Driftspore, since a nightmare crosses an arc only once or twice). **Flyers** crossing it (the arc hangs in the air) take **3 Charged** at once, so it still answers them across their straight line | the fence also hits Phantoms gliding through it | Phantoms, flyers, long straight corridors | a jar on a tall pole with a wire coil |
 | **Prism Jar → Rainbow Prism** | **crit support** (the only crit aura) | aura: Wardens within 1.5 cells +10% crit chance | its own hits split into 3 coloured beams | tanks (via allies' crits) | a faceted crystal jar |
 | **Sparkler → Starburst** | **anti-swarm** burst | a firework bursting into 6 sparks over a crowd, each adding Charged | every 4th burst is a double | Whisper Swarm, Sobs, Creeps | a jar with a fizzing stick of sparks |
 
@@ -399,8 +399,8 @@ Checked on role, owned status, attack shapes and their 5 branches.
 
 | Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
 |---|---|---|---|---|---|
-| **Whetstone → Edgestone** | **tank killer** | damage grows +10% per hit on the same target (max +100%) | the bonus carries to the next target at half | Husks, bosses | a golem at a sharpening wheel |
-| **Quarry → Master Mason** | **builder** (maze economy) | at each rest, grows a free Thornwall on a cell you choose within 3 | **Keystone:** its walls can't be trampled or burrowed under | the Hollow Stag (trample), Gravecrawlers | a golem with a chisel and stacked blocks |
+| **Whetstone → Edgestone** | **the finisher** (Pebbling cashes in) | hits on a nightmare **below 30% health** deal **×2.5** (bosses ×1.5) (review 2026-10-02: the old +10%-per-hit ramp was Sunpetal's beam ramp in stone) | **Clean cut:** a nightmare it finishes spills its overkill onto the nearest nightmare | Husks, bosses (anything others wore down) | a golem at a sharpening wheel |
+| **Rampart → Bastion** (replaces Quarry, review 2026-10-02: a free-wall builder wasn't a heavy hit, and copied Seedbearer's free growth) | **stone among stone:** the maze is its weapon | heavy hits on adjacent path tiles; **+15% damage per Thornwall touching it** (max 4), and those Thornwalls turn to **stone**: they can't be trampled or burrowed under | **Rockfall:** every 6 s a stone wall touching it drops a rock on the path tile beside it (a heavy splash) | the Hollow Stag (trample), Gravecrawlers; maze-as-weapon builds | a golem built into a stone wall, one arm a wall block |
 | **Quaker → Earthshaker** | **interrupt** | slams the ground around itself every 3 s; nightmares hit lose their speed boosts (a sprinting Night Hound stops sprinting) | the slam cracks the path for 3 s (no new sprints there) | Night Hounds, charging bosses | a squat golem mid-stomp, fists down |
 
 **Rootling** (Rooted)
@@ -408,7 +408,7 @@ Checked on role, owned status, attack shapes and their 5 branches.
 | Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
 |---|---|---|---|---|---|
 | **Groundroot → Earthbind** | **anti-air**: grounds flyers | roots drag flyers and Phantoms down onto the path; for 3 s they must walk the maze | grounded nightmares are Rooted 0.5 s when they land | Phantoms, flyers | roots reaching up like hands |
-| **Deeproot → Heartroot** | **goalkeeper** | any nightmare within 3 cells of the Heartwood is Rooted 1 s (once each) | the last-line hold also wakes the Heartwood: +1 leaf per 50 holds (max 2 per run) | leaks, fast finishers | a root coiled in a ring, close to the ground |
+| **Deeproot → Heartroot** | **goalkeeper** | any nightmare within 3 cells of the Heartwood is Rooted 1 s (once each) | **Not yet:** once per drift, the first nightmare (not a boss) that would reach the Heartwood is **dragged back 4 tiles** instead (a Rootling pull, with the visible drag). Review 2026-10-02: was +1 leaf per 50 holds, a second leaf heal beside Great Dreamcatcher's | leaks, fast finishers | a root coiled in a ring, close to the ground |
 | **Thorncoil → Crown of Thorns** | Rooted **payoff damage** | Rooted nightmares in range take thorn damage each second they're held | thorns spread to nightmares adjacent to a held one | anything held (pairs with Tangleroot) | a thorny crown on its head |
 
 **Acorn** (support, economy)
@@ -416,9 +416,74 @@ Checked on role, owned status, attack shapes and their 5 branches.
 | Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
 |---|---|---|---|---|---|
 | **Seedbearer → Grove Keeper** | **grows Wardens** | every 3 drifts grows a free Sprout on an adjacent cell | its Sprouts arrive at rank II | — (maze growth) | a golem carrying a seed sack |
-| **Bark Shield → Ironbark** | **protection** | Wardens in range can't be withered, dimmed or trampled | protected Wardens also shrug off the first boss ability each drift | boss wither / dim / trample (Hollow Stag, Lamplighter) | thick bark armour plates |
-| **Dream Oak → Dreamroot** | **Dreamlight economy** | gains 1 Dreamlight shard per drift (10 shards = 1 Dreamlight; capped per run) | shards double on perfect blocks | — (more branches and finals per run) | a small oak with a glowing fruit |
+| **Nurse Log → Mother Log** (replaces Bark Shield, review 2026-10-02: Bark Shield only mattered against 2–3 boss abilities, so it sat idle most runs) | **nurture economy** | Wardens within 1.5 cells **Nurture 25% cheaper**: the spot where you grow your carries | **Remembered rings:** a Warden in range that's sold leaves its rank in the log; the next Warden planted on that cell starts at that rank (once per cell per rest) | — (deep, ranked builds; re-mazing) | a mossy fallen log with a sapling growing from it |
+| **Dream Oak → Dreamroot** | **Dreamlight economy** | gains 1 Dreamlight shard per drift, **+1 per different family among Wardens within 2 cells** (10 shards = 1 Dreamlight; capped per run), so it wants a mixed cluster (review 2026-10-02: adds a placement decision); feeds the branch call-back | shards double on perfect blocks | — (more branches and finals per run) | a small oak with a glowing fruit |
 
+### Branch review: does each one earn its slot? (2026-10-02)
+
+User: *"make sure all the new branches make sense in each family, move them around if needed, and
+combos make sense as well; unique, fit the playstyle and add depth, not just fill the roster."*
+Each new branch was checked on four questions: **(1)** does it do its family's one job, **(2)** does
+it overlap another Warden anywhere in the roster, **(3)** does it respect the status jobs, **(4)**
+does it change *where or how you build* (depth), or is it only a number or a narrow counter.
+
+**Kept as designed (14):** Lichenling (poison that eats armour and blocks healing), Brood Cap (the
+only spawner), Inkcap (spread by the walkers themselves), Cloudlet (rain placed anywhere, hits
+flyers), Jarlink (fences: Wardens placed in pairs across a lane), Prism Jar (the only crit aura;
+it's what makes Pebbling and Hummingbird crits a build), Sparkler (Firefly's area burst that
+doesn't need Soaked, where Stormcap does), Silver Bell, Hushbell, Thrum, Quaker (the only
+anti-sprint), Groundroot, Thorncoil (Rootling finally has a damage payoff for its holds),
+Seedbearer, and Deeproot (its twist changes, below).
+
+**Changed (Phase 1, already built: rework needed):**
+
+| Branch | Problem | Now |
+|---|---|---|
+| **Nimbus** (twist) | Cloudburst refreshed Soaked over the whole range: Monsoon's job | the cloud **drifts** to the densest spot every 4 s, raining as it goes. Cloudlet stays the "aim it anywhere" Warden; Nimbus aims itself |
+| **Undercurrent / Maelstrom** | the eddy pause was a stop (Rooted's job) and bunched crowds like Snugroot's Logjam; the first build even pulled nightmares back | the whirlpool **links** nightmares: 25% of a hit on one is shared by the others. This is Dewdrop's real job (Soaked *conducts*), it rewards packing crowds onto the whirlpool, and Maelstrom carries Static bolts down the current (a Thunderclap-style combo without being Thunderclap) |
+| **Jetreed** | "piercing line vs tanks" was two jobs; the line copied Samara and Midsummer | a jet dealing a **share of max health**: the only %-health damage in the game, so a clean tank answer that doesn't need anything else |
+| **Eye of the Storm** (Kinship) | built on the eddy pause | the cloud links nightmares under it at 10% |
+
+**Changed (Phase 2, not built yet: no rework):**
+
+| Branch | Problem | Now |
+|---|---|---|
+| **Whetstone** | its per-hit ramp was Sunpetal's beam ramp in stone, and "tank killer" doubled Mossback | **the finisher**: ×2.5 below 30% health. Pebbling's role is cashing in, and this cashes in everyone else's chip damage (poison, chains, pulses) |
+| **Quarry → Rampart** | building free walls isn't a heavy hit, copied Seedbearer's free growth, and its anti-trample twist copied Bark Shield | **Rampart**: a heavy hitter that grows with the Thornwalls touching it and turns them to stone (can't be trampled or burrowed). The maze becomes the weapon, inside Pebbling's role |
+| **Heartroot** (twist) | +1 leaf per 50 holds: a second leaf heal next to Great Dreamcatcher's ("the only leaf healing") | **Not yet:** once per drift the first would-be leak is dragged back 4 tiles. Pulling back is Rootling's job |
+| **Bark Shield → Nurse Log** | it only mattered against 2–3 boss abilities, so it sat idle most runs; the trample part moves to Rampart | **Nurse Log**: Nurture 25% cheaper in range, and a sold Warden's rank stays in the log for the next one. Gives Acorn a third economy (Dew: Dewcatcher; Dreamlight: Dream Oak; ranks: Nurse Log) and a reason to re-maze |
+| **Dream Oak** | passive: no placement decision | +1 shard per different family within 2 cells, so it wants a mixed cluster |
+
+**Nothing moves between families.** Two candidates were checked: Prism Jar (a support aura, which
+is Acorn's style) stays in Firefly because it's light, and a crit aura is part of the "exposed,
+weak spot" side of Firefly's Marked. Silver Bell (single-target, which is Pebbling's style) stays in
+Bellflower because it applies Drowsy, not damage.
+
+**What each family looks like now** (one line per branch: every one is a different decision):
+- **Sporeling:** stack it (Driftspore), sleepy clouds (Bloomcap), crack armour (Lichenling), send
+  walkers (Brood Cap), let the walkers spread it (Inkcap); hidden: traps (Fairy Ring).
+- **Dewdrop:** big splash (Rain Lily), fog (Mistveil), rain anywhere and on flyers (Cloudlet), link
+  a crowd (Undercurrent), erode a tank (Jetreed); hidden: freeze (Frostfern).
+- **Firefly Jar:** chain (Stormcap), mark (Lanternmoth), fence a lane (Jarlink), crit aura (Prism
+  Jar), burst a swarm (Sparkler); hidden: ramping beam (Sunpetal).
+- **Bellflower:** charged pulses (Chime Stone), catch (Dreamcatcher), toll the strongest (Silver
+  Bell), silence (Hushbell), cone damage on the drowsy (Thrum); hidden: echo (Echo Hollow).
+- **Pebbling:** close (Mossback), far (Standing Stone), finish (Whetstone), wall (Rampart), stop
+  sprints (Quaker); hidden: lob (Cairn).
+- **Rootling:** pull (Rootcurl), hold (Tangleroot), ground flyers (Groundroot), guard the goal
+  (Deeproot), punish the held (Thorncoil); hidden: light (Rootlight).
+- **Acorn:** speed aura (Elder Stump), Dew (Dewcatcher), Sprouts (Seedbearer), ranks (Nurse Log),
+  Dreamlight (Dream Oak); hidden: copy (Graftling).
+
+**New combos the review opens** (all through statuses or placement, never by naming Wardens):
+- **Undercurrent + any area Warden:** a packed whirlpool turns one splash into many; + Stormcap or
+  Firefly = Static bolts travelling the current (Maelstrom).
+- **Jetreed's Flood + Stormcap:** the wet trail it leaves sets up Thunderclap behind the tank.
+- **Whetstone + Sporeling / Thorncoil / Undercurrent:** the chip damage gets nightmares under 30%,
+  and Whetstone finishes them.
+- **Rampart + Bramble / Honeysuckle walls:** the walls that boost Rampart are already doing a job.
+- **Nurse Log + Prism Jar / Elder Stump:** an aura cluster where your ranked carries live.
+- **Dream Oak + Graftling:** both want mixed-family neighbours.
 
 ### Coverage with only 2 of 5 (the stricter check)
 
@@ -437,19 +502,23 @@ family can promise an answer to everything. Two layers keep runs fair:
      still seeded, and still never the same 2 as that family's last run; it just avoids a run with
      no anti-air at all, for example. **Weighting** (2026-10-02, after the 50-seed probe): among the
      eligible pairs it prefers the ones covering the **rarest tags still missing**, and **anti-tank
-     counts double** (every act boss is a tank check). Target: anti-tank in 80%+ of runs with the 4
-     starting families. Anti-armour may stay lower (Shellbound only arrive at drift 79).
+     counts double** (every act boss is a tank check). Each pair's chance is **proportional to its
+     score** (floor: 10% of the best, so no pair is impossible); picking only among the top pairs
+     gave Sporeling the same pair in 100 of 100 runs. As built (c8bb187e, 100-seed probe):
+     anti-tank 90%, anti-air 75%, detection 79%, anti-armour 80%, swarm 89%, support 96%, boss
+     82%; every family keeps 9–10 different pairs, none above 26% of runs. Target: anti-tank in
+     80%+ of runs with the 4 starting families. Anti-armour may stay lower (Shellbound only arrive at drift 79).
    - Every counter tag sits on **at least 3 branches across at least 2 families**:
 
 | Tag | Branches |
 |---|---|
 | anti-air (flyers, Phantoms) | Cloudlet (Dewdrop), Jarlink (Firefly), Groundroot (Rootling), Wren's Nest (Nestling), Standing Stone (Pebbling) |
 | detection (Lurkers) | Lanternmoth (Firefly), Brood Cap (Sporeling), Rootlight (Rootling, hidden) |
-| anti-armour (Shellbound) | Lichenling (Sporeling), Mossback / Whetstone (Pebbling), Magpie Perch (Nestling) |
-| anti-swarm | Sparkler (Firefly), Rain Lily (Dewdrop), Thrum (Bellflower), Pinwheel (Nestling), Chime Stone (Bellflower) |
+| anti-armour (Shellbound) | Lichenling (Sporeling), Mossback (Pebbling), Magpie Perch (Nestling) |
+| anti-swarm | Sparkler (Firefly), Rain Lily / Undercurrent (Dewdrop), Thrum (Bellflower), Pinwheel (Nestling), Chime Stone (Bellflower) |
 | anti-tank / boss | Whetstone (Pebbling), Jetreed (Dewdrop), Silver Bell (Bellflower), Prism Jar (Firefly; its crit aura is a tank answer), Standing Stone (Pebbling) |
 | anti-support (Watcher, Weeper) | Hushbell (Bellflower), Lichenling (Sporeling), Magpie Perch (Nestling) |
-| boss abilities | Bark Shield (Acorn), Hushbell (Bellflower), Quaker (Pebbling) |
+| boss abilities | Hushbell (Bellflower), Quaker / Rampart (Pebbling: charges, trample), Magpie Perch (Nestling: strips a boss's mending and shields) |
 
 - **Remembered Path** (Rare card, +1 not-offered branch; named *Lucid Dream* in the proposal, renamed 2026-10-02 so it isn't confused with the Legendary *Lucid Dreaming*). **As built** (320b4969, Spire branch): taking it opens Remember with **one free call**, which skips both the price and the once-per-family limit; it's only offered while some family has a branch not in this dream. Design: with only 2 of 5 offered it's a real find,
   since it raises a family's choices by half. It **shows you the 3 branches not offered** and you
@@ -476,9 +545,16 @@ family can promise an answer to everything. Two layers keep runs fair:
   | Family | Pair | Kinship | A learns from B | B learns from A |
   |---|---|---|---|---|
   | Sporeling | Lichenling + Brood Cap | **Crusted Brood** | 1 in 4 of its shots also hatches a sprite on the target | its sprites also eat dread shell |
-  | Dewdrop | Cloudlet + Undercurrent | **Eye of the Storm** | nightmares in its rain zone get a short eddy pause (0.3 s at full stage; not a pull, as built 1fb636f3) | its whirlpool is rained on (Soaks everything in it) |
-  | Firefly Jar | Jarlink + Sparkler | **Fireworks Fence** | a crossing of its fence sets off a small spark burst | a burst landing on a fence re-bursts once |
+  | Dewdrop | Cloudlet + Undercurrent | **Eye of the Storm** | nightmares under its cloud are **linked** like the whirlpool's (10% shared; review 2026-10-02, was a 0.3 s eddy pause) | its whirlpool is rained on (Soaks everything in it) |
+  | Firefly Jar | Jarlink + Sparkler | **Fireworks Fence** | every 2 s, a nightmare on its fence sets off a small spark burst (was "a crossing", revised with the damaging line) | a burst landing on a fence re-bursts once |
   | Bellflower | Silver Bell + Hushbell | **Vespers** | its toll also silences its target for 2 s | nightmares it silences gain 1 Drowsy |
+- **Phase 2's three named pairs** (review 2026-10-02; each tells a story with the two jobs):
+
+  | Family | Pair | Kinship | A learns from B | B learns from A |
+  |---|---|---|---|---|
+  | Pebbling | Rampart + Quaker | **Fault Line** | its Rockfall cracks the path (no sprints there for 3 s) | its slam runs along stone walls touching the Rampart, hitting the path beside each |
+  | Rootling | Groundroot + Thorncoil | **Bramble Bed** | grounded flyers land in thorns (one thorn tick on landing) | its thorns reach flyers passing over its range |
+  | Acorn | Seedbearer + Nurse Log | **Nursery** | its Sprouts arrive at rank I when grown beside the log | Wardens beside it also grow (evolve) 10% cheaper |
 - **Whole Tree** becomes **"3 different branches of one family on the map"**. With 2 offered,
   that needs the hidden branch or *Remembered Path*: a real milestone of a run, not a given.
 - Kindred (2 branches: +10%) is unchanged, and now the common case.

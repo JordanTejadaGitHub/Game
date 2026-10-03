@@ -6,6 +6,29 @@ targets in `run_design.md` ("Difficulty curve targets"), so balance changes are 
 not by feel alone. It grows out of Tower Code's probes (`tools/balance_act3.gd`,
 `tools/balance_run.gd`) and Roguelite Code's `sim_rest` / `sim_family_pick`.
 
+## Current targets (from 2026-10-02: the Spire rules are in main, bebfb22c)
+
+These replace the older targets below for the **full game**; the demo keeps the old curve
+(`DriftDirector.DEMO_RULES`) and the old act 1 targets. Detail and history: `spire_difficulty.md`.
+
+| What | Target |
+|---|---|
+| Average player | **first win after ~10–15 runs** |
+| Skilled player, Blight 0 | **wins ~30–50%** |
+| Fresh profile | usually dies in **act 2–3** |
+| Act 4 | a real test |
+| Every block | can kill you; the **block finale** (last drift, ×1.4 health + elites) costs an average maze ~1 leaf; a clean finale earns a Rare+ Dream slot |
+| Bot, fresh, act 1 boss (full game, real boss draw) | Balanced **~55–60%** survive, skip **≤ 15%** |
+| Grove | a full carried loadout adds **≤ +10–15 points** of bot survival / reach over no perks (measured +15) |
+| Combos + Reactions | **~25–40%** of a good build's damage (`combo_share`) |
+| Damage branches | **0.5–1.0× Driftspore** per Dew on the fixed board (drift 45) |
+| Final forms | **0.8–1.5× Puffball** per Dew (drifts 45 and 61) |
+| Supports / control | their board does **≥ par** with 4 of the reference |
+| Dream builds | a decent build (≥ 3 picks of one tag) in **~50%** of runs; skipping Dreams loses |
+| Every family | viable from act 1 (each start family survives the act 1 boss 70–90% for the bot) |
+
+Human runs set acts 2–4 (the bot dies in act 2); the bot sets act 1, bosses, per-form probes and A/B.
+
 ## What it answers
 
 1. Does a **fresh profile** start leaking around drift 12–18 and usually end in act 2?
@@ -721,6 +744,48 @@ on target for a fresh profile (and act 1's "teaches" side holds). Decisions:
 **Correction:** whispers / hints were **switched off** for this run, so she got no onboarding at all.
 "Never grew a Warden" is partly that; **her economy (plant-only) is not a fresh player's normal.** Since
 c8d1fc33 the always-on Growth hint marks are a separate setting from whispers.
+
+## Nap batch on main (2026-10-02, 175058a0: Spire rules + round 3)
+
+**1. Round-3 re-probe of the new branches** (fixed board, 3 seeds): **in band:** Undercurrent 0.52×,
+Jarlink 0.52× (fence 96%) Driftspore; Silence 0.82× Puffball. **Just under:** Lightning Fence 0.68 / 0.78×,
+Rainbow Prism 0.72 / 0.64×, Prism Jar 0.38× → **last nudge** (19941de6): Fence arc 650, Rainbow 240, Prism Jar 105.
+**Bells** (Silver Bell, Vesper Bell, Hushbell) still below par on leak; left for human runs (their
+sleep / silence value needs real builds). The new-branch probe series is closed.
+
+**2. Act 1 baseline** (fresh, real boss draw, 30 seeds): Balanced survives the boss **30%** (target ~55–60%;
+14/30 die before 25), skip **0%** ✓. Finales: drift 10 0.62 leaves (86% clean), 15 0.92 (81%), **20: 2.53
+(29% clean)**. Below the Spire branch's own 50–55% on the same act 1 rules, so something since then made
+act 1 harder for the bot: A/B queued (branch expansion on / off, and the pre-expansion branch build)
+before choosing a lever (finale health, the drift 20 finale, or the ramp).
+
+## Combo share of damage (user-approved, 2026-10-02)
+
+The user's Warden panels showed 52–76% of damage "from combos". **Target: in a good build, combos and
+Reactions make ~25–40% of all damage**: a real boost, not the majority. Measured as (combo bonus
+amounts + Reaction damage) ÷ total damage, by block, for the bot (Balancing Code, on the Dreams-vs-skip
+batch) and in the run history (Main Merger adds `combo_damage` / `reaction_damage` / `status_damage` /
+`combo_share`, in 731537b5; the record only had counts). Levers if far above: lower Reaction base damage, raise
+Wardens' direct damage, or both. Main first, the Spire branch after.
+**Bot measurement** (9b1a73ee, Resonance removed, real boss draw, 20 seeds per mode): combo share
+(DamageLog combo_amount ÷ damage) rises **0.06 → 0.39** fresh by drifts 36–40 (full profile 0.12 → 0.31);
+Reactions stay small (≤ 0.10). Top Wardens' "from combos": Stormcap 0.43–0.49, Firefly Jar 0.30–0.35,
+Driftspore 0.23–0.28, Sporeling 0.15. **Within the 25–40% target for the bot**; the user's 52–76% comes
+from human builds deeper into combos (and a Static bolt counts whole as combo). Decision waits for the
+first human runs carrying the new `combo_share` fields. No lever change yet.
+**Resonance removal check** (same batch): fresh with Dreams passes the act 1 boss **15/20 (75%)** ✓, skip
+**5/20 (25%)** ✓; runs with ≥ 3 Dream picks of one tag (a decent-build proxy) **55% fresh / 60% full** ✓
+(target ~50%). **No card re-basing needed.**
+**Combo cards as choices** (dream_design.md 784680b2): power signed off, with **Quick Reactions'**
+trade set at **−35%** Reaction damage (not −25%: double frequency × 0.75 was still +50%). Pick rates vs
+same-rarity cards are checked once offers are logged.
+
+## Tag Resonance removed (user, 2026-10-02; dream_audit.md a6628056)
+
+Resonance (+10% per same-tag card, max +50%) was a bonus on top of rarity-budgeted cards, so **no
+re-basing** (agreed with Roguelite Mechanic Discussion; fits "runs too strong / cards handed to me").
+Removal in 854a537e. Check: Dreams vs skip on main (act 1 targets: Balanced ~75%, skip clearly
+lower); specific cards are raised only if builds fall short.
 
 ## Caveat: fresh-profile sims ran as the demo (found 2026-10-02)
 

@@ -77,6 +77,7 @@ const GROUP := "enemies"
 const BLIGHT_SHADER := preload("res://shaders/blight.gdshader")
 const HEALTH_BAR_SIZE := Vector2(40, 5)
 const HEARTWOOD_DRAIN_EVERY := 2.0  # A boss at the Heartwood takes a leaf this often (s)
+const BOSS_SILENCE_SPEED := 0.5  # A silenced boss's timed abilities run this fast (Hushbell; tower_design.md 279ebb63)
 const UNTOUCHABLE_TINT := Color(0.42, 0.38, 0.55)  # The Night Mare lingering: a dark, smoky shimmer (a self_modulate multiplier)
 const UNTOUCHABLE_ALPHA := 0.55
 const AWAKE_RING_COLOR := Color(Palette.MOONLIGHT, 0.35)  # Just woke: can't fall asleep again yet
@@ -394,6 +395,7 @@ func _process(delta: float) -> void:
 		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 		if dreams != null:
 			spore_soothe *= dreams.get_spored_tick_multiplier(self)  # Damp Rot: harder on Soaked nightmares
+		BranchKit.on_spore_tick(self)  # Lichenling: its spores strip the dread shell and stop mending
 		take_damage(spore_soothe, statuses.spore_line(), true, false, statuses.source(EnemyStatuses.SPORED),
 			&"spored")
 		if is_cleansed:
@@ -1556,7 +1558,14 @@ func _update_presence(delta: float) -> void:
 	if _settings_elapsed >= SETTINGS_TICK:  # The settings panel's changes show within half a second
 		_settings_elapsed = 0.0
 		_refresh_display_settings()
-	if enemy_data.wake_radius > 0.0:  # Watcher
+	var silenced := statuses.silence_time > 0.0  # Hushbell (BranchKit): no abilities while silenced
+	# Timed abilities' clock: a silenced boss runs them at BOSS_SILENCE_SPEED (a delay, never a stop;
+	# tower_design.md 279ebb63), anything else silenced doesn't run them at all. Health-threshold
+	# abilities (grief, bursts, echoes, bellow, laps) don't use this clock.
+	var ability_elapsed := elapsed
+	if silenced:
+		ability_elapsed = elapsed * BOSS_SILENCE_SPEED if enemy_data.is_boss else 0.0
+	if enemy_data.wake_radius > 0.0 and not silenced:  # Watcher
 		for other in _others_within(enemy_data.wake_radius):
 			if other.statuses.has(EnemyStatuses.DROWSY):
 				other.statuses.remove(EnemyStatuses.DROWSY)
@@ -1564,7 +1573,7 @@ func _update_presence(delta: float) -> void:
 			if other.statuses.sleep_time > 0.0 and other.statuses.sleep_locked_time <= 0.0:
 				other.statuses.sleep_time = 0.0  # Wakes sleepers too (not under Nightbloom's lock)
 	_mend_stopped = maxf(_mend_stopped - elapsed, 0.0)
-	if enemy_data.mend_radius > 0.0 and _mend_stopped <= 0.0:  # Weeper (a magpie can stop it)
+	if enemy_data.mend_radius > 0.0 and _mend_stopped <= 0.0 and not silenced:  # Weeper (a magpie or a Hushbell can stop it)
 		for other in _others_within(enemy_data.mend_radius):
 			other.heal(other.max_health * enemy_data.mend_rate * elapsed)
 	if not _ash_cells.is_empty():  # Ash Crawler
@@ -1573,16 +1582,16 @@ func _update_presence(delta: float) -> void:
 				other.statuses.remove(EnemyStatuses.SPORED)
 				other.queue_redraw()
 	if enemy_data.brood != null:  # Moth Queen (and the Huntsman's horn)
-		_brood_timer += elapsed
+		_brood_timer += ability_elapsed
 		if _brood_timer >= enemy_data.brood_interval:
 			_brood_timer = 0.0
 			brood_requested.emit(self)
 	if enemy_data.sapling != null:  # Hollow Oak
-		_sapling_timer += elapsed * _sapling_speed
+		_sapling_timer += ability_elapsed * _sapling_speed
 		if _sapling_timer >= enemy_data.sapling_interval:
 			_sapling_timer = 0.0
 			sapling_requested.emit(self)
-	_update_boss_pool_abilities(elapsed)
+	_update_boss_pool_abilities(ability_elapsed)
 
 # The new bosses' timed abilities (enemy_design.md "Boss pools"), on the presence tick.
 func _update_boss_pool_abilities(elapsed: float) -> void:
@@ -1811,6 +1820,11 @@ func _try_rise() -> bool:
 # Marked, then the blight coat takes its bite. At 0 health the enemy is cleansed.
 # `source` (the Warden) and `tag` (&"spored" tick, &"static" bolt, &"conducted" lightning through
 # Damp) feed the DamageLog; crit/weak/Marked/fog combos are worked out here.
+# Damp Rot (a Dream card) trades Soaked's water boost away (DreamState.soaked_boosts_water).
+func _soaked_boosts_water() -> bool:
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+	return dreams == null or dreams.soaked_boosts_water()
+
 func take_damage(amount: float, line: String = "", is_area: bool = false, is_crit: bool = false,
 		source: Node = null, tag: StringName = &"") -> void:
 	if is_cleansed or _untouchable:  # (Night Mare lingering at the Heartwood: nothing touches it)
@@ -1824,7 +1838,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 		if world:
 			Fx.crit(global_position, world)  # The crit_flare glint (drawn by the effects player)
 	var family := enemy_data.get_soothe_multiplier(line, is_area)
-	if line == "water" and statuses.has(EnemyStatuses.DAMP):
+	if line == "water" and statuses.has(EnemyStatuses.DAMP) and _soaked_boosts_water():
 		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
 		family *= 1.0 + statuses.soaked_bonus(EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP)))  # × the applier's Potency, capped
 	var taken := statuses.get_damage_taken_multiplier()

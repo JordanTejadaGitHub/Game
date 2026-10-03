@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/nimbus.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_nimbus"
+display_name = "Nimbus"
+description = "Cloudlets can now grow into Nimbuses ({grow_cost:nimbus} Dew): heavier rain clouds that drift to the busiest spot every 4 s."
+rarity = 2
+kind = 1
+tags = Array[String](["water"])
+requires = Array[String](["cloudlet"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")
+in_start_pool = false

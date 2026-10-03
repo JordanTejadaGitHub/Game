@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/jarlink.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_jarlink"
+display_name = "Jarlink"
+description = "Firefly Jars can now grow into Jarlinks ({grow_cost:jarlink} Dew): two within 4 cells join with an arc, a lightning wall for the nightmares touching it."
+rarity = 1
+kind = 1
+tags = Array[String](["light"])
+requires = Array[String](["firefly_jar"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")

@@ -15,7 +15,6 @@ func _run() -> void:
 	main.get_node("MapGenerator").map_seed = 424242  # Same map every run, so failures reproduce
 	root.add_child(main)
 	await process_frame
-	main.get_node("%DreamState").resonance_enabled = false  # Single-card numbers; _test_resonance turns it on
 	await _test_attacks(main)
 	await _test_evolution(main)
 	await _test_dream_flow(main)
@@ -32,7 +31,6 @@ func _run() -> void:
 	_test_grown_needs(main)
 	_test_blessing_dream(main)
 	_test_run_pool(main)
-	_test_resonance(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -270,7 +268,7 @@ func _test_new_cards(main: Node) -> void:
 	_check(not cozy[0].active and "diagonals included" in cozy[0].reason, "…off-reason: %s" % cozy[0].reason)
 	dreams._bend_cells = bends
 
-	# Entwined: guaranteed in the next offer once the ingredients come together, then drawn normally
+	# Entwined: drawn at normal odds once the ingredients come together (no guaranteed slot)
 	_reset_dreams(main)
 	dreams.unlocked["firefly_jar"] = true
 	dreams.unlocked["dewdrop"] = true
@@ -278,12 +276,12 @@ func _test_new_cards(main: Node) -> void:
 	_check(not dreams.is_eligible(soil), "Conductive Soil needs Stormcap + Rain Lily")
 	dreams.take(_card(dreams, "dream_stormcap"))
 	dreams.take(_card(dreams, "dream_rain_lily"))
-	_check(dreams.make_offer(10).has(soil), "Entwined: Conductive Soil guaranteed once both are owned")
+	_check(dreams.is_eligible(soil), "Entwined: Conductive Soil offered at normal odds once both are owned (no guaranteed slot)")
 	var seen_again := 0
 	for i in 30:
 		if dreams.make_offer(10).has(soil):
 			seen_again += 1
-	_check(seen_again < 30, "Entwined: after one pass it's drawn normally (%d/30)" % seen_again)
+	_check(seen_again < 30, "Entwined: drawn normally, not every offer (%d/30)" % seen_again)
 
 	# Bittersweet: kept out until enabled, act 2+, at most one per offer, a real cost
 	_reset_dreams(main)
@@ -514,12 +512,16 @@ func _test_meta_hooks(main: Node) -> void:
 	dreams.unlocked.erase("mistveil")
 	_check(not dreams.is_eligible(bloom), "Chain Bloom needs Mistveil too")
 	dreams.unlocked["mistveil"] = true
-	_check(dreams.make_offer(10).has(bloom), "Chain Bloom is guaranteed once Puffball and Mistveil are owned")
+	# No guaranteed slot (dream_design.md "Combo cards are choices, not musts"): eligible, drawn at normal odds
+	var bloom_offers := 0
+	for i in 30:
+		if dreams.make_offer(10).has(bloom):
+			bloom_offers += 1
+	_check(dreams.is_eligible(bloom) and bloom_offers < 30, "Chain Bloom is offered at normal odds once Puffball and Mistveil are owned (%d of 30 offers)" % bloom_offers)
 	dreams.take(bloom)
 	_check(dreams.has_rule(&"chain_bloom"), "taking it switches on the chain_bloom rule")
 	dreams.stacks.erase("chain_bloom")
 	dreams.grove_cards.clear()
-	dreams._entwined_offered.clear()
 	dreams._offer_drift = 0
 	dreams._owed_families.clear()
 	dreams._declined_families.clear()
@@ -865,13 +867,17 @@ func _test_stray_dream(main: Node) -> void:
 		soft_picks += 1 if dreams._weighted_pick([soft, plain], true) == soft else 0
 	_check(build_picks > 300 and build_picks < 500, "Stray: build cards ×0.25 (%d / 2000)" % build_picks)
 	_check(soft_picks > 900 and soft_picks < 1100, "Stray: soft Needs ignored (%d / 2000)" % soft_picks)
-	# Entwined due: Entwined + Stray + one normal (Storm Grid's Conductive Soil keeps its slot)
+	# No Entwined slot any more (dream_design.md "Combo cards are choices, not musts"): an offer with Conductive Soil
+	# eligible is still Stray + normal cards, Soil not forced first
 	_reset_dreams(main)
 	dreams.unlocked = {"sprout": true, "thornwall": true, "stormcap": true, "rain_lily": true}
-	offer = dreams.make_offer(15)
 	var soil := _card(dreams, "conductive_soil")
-	_check(offer.size() == 3 and offer[0] == soil and dreams.current_stray == offer[1],
-		"Entwined due: Entwined + Stray + one normal")
+	var soil_first := 0
+	for i in 20:
+		offer = dreams.make_offer(15)
+		if offer[0] == soil:
+			soil_first += 1
+	_check(offer.size() == 3 and soil_first < 20, "Entwined isn't forced into the offer (%d of 20 led by it)" % soil_first)
 
 	# The measurement: Sporeling + Firefly Jar, 10 attackers, 400 offers per case.
 	var planted: Array[Tower] = []
@@ -1124,43 +1130,6 @@ func _test_discovery(main: Node) -> void:
 		tracker.longest_chain = chain
 	_check(dreams.discovery_met(thunder), "tests without a profile have everything discovered")
 
-# Tag resonance (dream_audit.md "Builds pay off"): each owned card with a tag makes later cards of that
-# tag +10% stronger (numbers, not rules), up to +50%, locked when taken; untagged cards never resonate.
-func _test_resonance(main: Node) -> void:
-	var dreams: DreamState = main.get_node("%DreamState")
-	_reset_dreams(main)
-	dreams.resonance_enabled = true
-	dreams._resonance.clear()
-	dreams.unlocked["sporeling"] = true
-	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
-	var base := dreams.get_status_duration(sporeling, EnemyStatuses.SPORED)
-	var lingering := _card(dreams, "lingering_spores")
-	_check(dreams.resonance_preview(lingering).bonus == 0.0, "resonance: nothing with no spore cards")
-	dreams.take(_card(dreams, "soft_spores"))
-	dreams.take(_card(dreams, "chain_bloom"))
-	var preview := dreams.resonance_preview(lingering)
-	_check(is_equal_approx(preview.bonus, 0.2) and preview.tag == "spore" and preview.count == 2,
-		"2 spore cards: +20%% (%s)" % preview)
-	var shown := DreamState.resonance_text(preview.bonus, preview.cards)
-	_check(shown == "+20% from Soft Spores, Chain Bloom" or shown == "+20% from Chain Bloom, Soft Spores", "…shown with the cards' names, never the tag (%s)" % shown)
-	_check(DreamState.resonance_text(0.3, ["A", "B", "C"]) == "+30% from A, B and 1 more" and DreamState.resonance_tooltip(["A", "B", "C"]) == "From: A, B, C",
-		"…past 2: \"and 1 more\", the hover lists them all")
-	_check(DreamState.resonance_text(0.1, ["Seedfall"]) == "+10% from Seedfall" and DreamState.resonance_tooltip(["Seedfall"]) == "", "…one card: just its name")
-	dreams.take(lingering)
-	_check(is_equal_approx(dreams.get_status_duration(sporeling, EnemyStatuses.SPORED), base + 3.0 * 1.2), "Lingering Spores: +3 s × 1.2")
-	_check(dreams.resonance_line(lingering) == shown, "…Dreams this run shows the locked bonus (%s)" % dreams.resonance_line(lingering))
-	dreams.take(_card(dreams, "bitter_sap"))  # Another tag: doesn't change the locked one
-	_check(is_equal_approx(dreams.resonance(lingering), 1.2), "…locked when taken")
-	_check(dreams.resonance_preview(_card(dreams, "deeper_calm")).bonus == 0.0, "untagged cards never resonate")
-	var saved := dreams.to_save()
-	dreams._resonance.clear()
-	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
-	_check(is_equal_approx(dreams.resonance(lingering), 1.2) and dreams.resonance_line(lingering) == shown, "…kept in the run save, names too")
-	_check(is_equal_approx(dreams.resonance_preview(_card(dreams, "lingering_spores_ii")).bonus, 0.2), "a Deepened card never resonates off its own base")
-	dreams.resonance_enabled = false
-	dreams._resonance.clear()
-	_reset_dreams(main)
-
 func _card(dreams: DreamState, id: String) -> UpgradeData:
 	for card in dreams.pool:
 		if card.id == id:
@@ -1362,7 +1331,6 @@ func _reset_dreams(main: Node) -> void:
 	dreams._dreams_without_rare = 0
 	dreams._rare_dreams_left = 0
 	dreams._extra_cards_next = 0
-	dreams._entwined_offered.clear()
 	dreams._offer_drift = 0
 	dreams._owed_families.clear()
 	dreams._declined_families.clear()
@@ -1378,7 +1346,6 @@ func _reset_dreams_quiet(dreams: DreamState) -> void:
 	dreams._dreams_without_rare = 0
 	dreams._rare_dreams_left = 0
 	dreams._extra_cards_next = 0
-	dreams._entwined_offered.clear()
 	dreams._offer_drift = 0
 	dreams._owed_families.clear()
 	dreams._declined_families.clear()

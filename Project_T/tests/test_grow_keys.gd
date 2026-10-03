@@ -42,13 +42,22 @@ func _run() -> void:
 	var dark := []
 	dreams.dreamlight_short.connect(func(cost: int) -> void: dark.append(cost))
 	var refusals: int = panel.grow_refused
+	# The form a Dreamlight unlock opens (E, unless the 2nd is Grove-locked: the branch expansion lists the Grove's
+	# hidden branch among this run's, then its key is the next free one).
+	var keys := [KEY_Q, KEY_E, KEY_Z]
+	var pick := 1
+	for i in [1, 2, 0]:
+		if i < options.size() and not options[i][1] and dreams.get_unlock_blocker(options[i][0]) == "":
+			pick = i
+			break
+	var key: Key = keys[pick]
 	dreams.dreamlight = 0
-	_press(seller, KEY_E)
-	_check(focused[0] == null and dark == [dreams.get_unlock_cost(options[1][0])] and panel.grow_refused == refusals + 1,
-		"E on a locked form short of Dreamlight opens nothing and refuses (%s)" % [dark])
-	dreams.dreamlight = dreams.get_unlock_cost(options[1][0])
-	_press(seller, KEY_E)
-	_check(focused[0] == options[1][0], "with the Dreamlight, E opens Remember on it (%s)" % focused[0])
+	_press(seller, key)
+	_check(focused[0] == null and dark == [dreams.get_unlock_cost(options[pick][0])] and panel.grow_refused == refusals + 1,
+		"%s on a locked form short of Dreamlight opens nothing and refuses (%s)" % [OS.get_keycode_string(key), dark])
+	dreams.dreamlight = dreams.get_unlock_cost(options[pick][0])
+	_press(seller, key)
+	_check(focused[0] == options[pick][0], "with the Dreamlight, %s opens Remember on it (%s)" % [OS.get_keycode_string(key), focused[0]])
 	_check(spore.tower_data.get_id() == "sporeling", "and doesn't grow it")
 	# Grow hover (story chat 2026-10-01): a locked form shows no ring and no ghost, only where it's unlocked;
 	# an unlocked one previews (current range faint, its range bright, its sprite) and names its changes.

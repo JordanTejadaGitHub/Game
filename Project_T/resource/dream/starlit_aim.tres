@@ -7,6 +7,7 @@ script = ExtResource("1_card")
 id = "starlit_aim"
 display_name = "Starlit Aim"
 description = "{marked} nightmares take +25% crit chance from every Warden."
+cost_description = "A crit uses up the {marked}."
 rarity = 2
 kind = 3
 tags = Array[String](["crit", "mark"])

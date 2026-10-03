@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "quick_step"
 display_name = "Quick Step"
-description = "Calling a {drift} early makes all Wardens attack 15% faster for 10 s (stacks)."
+description = "Calling a {drift} early makes all Wardens attack 15% faster for 10 s (stacks, up to +45%)."
 rarity = 0
 kind = 3
 tags = Array[String](["tempo", "daring", "swift"])

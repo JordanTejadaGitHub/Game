@@ -37,7 +37,7 @@ const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, 
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
 	"dew_rest", "dew_other", "spent_plant", "spent_walls", "spent_grow", "spent_nurture", "banked",
 	"attackers", "walls", "tier1", "tier2", "tier3", "tier4", "avg_rank", "route", "families", "cards",
-	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain"]
+	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain", "combo_amount_share", "status_share", "hit_share", "combo_damage", "reaction_damage", "status_damage", "combo_share"]
 
 # Per style: [attacker room at drift 0, + per drift, cap], walls per attacker, nurture weight.
 const STYLE_PLAN := {
@@ -73,6 +73,7 @@ var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.pre
 var aura_placement := true  # --no-aura: place and grow aura Wardens (Acorn, Elder Stump, Grove Heart, Moon Moth) by path only
 var empty_loadout := false
 var sidegrade := -1
+var demo_run := false  # --demo: game/demo stays true (DEMO_RULES, demo bosses and Kinships), for the demo sanity check
 var kin_placement := true  # --no-kin: no Kinship placement, and growth takes the first open form in evolves_to (the old bot)
 var focus_mode := ""  # --focus=deep: Nurture picks Deep where it's offered and Potency cards score high (a committed Deep build)
 var kin_pairs := {}  # Drift -> Kinships on the map as it starts (kin_pairs_24 / kin_pairs_50 columns: as drifts 25 / 51 start)
@@ -97,6 +98,7 @@ var auras_24 := -1  # Attackers under at least one aura Warden as drift 25 start
 var heart_cover_24 := -1  # Attackers with the Heartwood cell in range as drift 25 starts (heart_cover_24 column)
 var damage_by_tag := {}  # Damage tag (or kind for plain hits) -> soothe dealt over the run (dmg_tags column)
 var damage_by_form := {}  # Warden form id -> {total, hit, cloud, status, combo, asleep} over the run (forms column)
+var run_parts := {"damage_total": 0.0, "combo_damage": 0.0, "reaction_damage": 0.0, "status_damage": 0.0}  # RunHistory's run totals
 var status_samples := {}  # Status id -> {"n", "cap", "strengths": []}: every active status on every nightmare, 4x per game second (status_* columns)
 
 var main: Node
@@ -140,6 +142,7 @@ func _run() -> void:
 			"--save": save_mode = value
 			"--omens": omen_mode = value
 			"--all-families": all_families = true
+			"--demo": demo_run = true
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
@@ -167,7 +170,7 @@ func _run() -> void:
 				data.set(field, int(setting.get_slice("=", 1)) if current is int else float(setting.get_slice("=", 1)))
 				enemy_overrides[target] = setting.get_slice("=", 1)
 				_keep.append(data)
-	ProjectSettings.set_setting("game/demo", false)  # Sims are the full game, fresh too (it was the demo before 2026-10-02: fixed act 1-2 bosses, demo Kinships)
+	ProjectSettings.set_setting("game/demo", demo_run)  # Sims are the full game unless --demo, fresh too (it was the demo before 2026-10-02: fixed act 1-2 bosses, demo Kinships)
 	if profile != "fresh":
 		var meta: Script = load("res://scripts/meta/meta_run.gd")
 		if not meta.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "load_preset"):
@@ -211,6 +214,7 @@ func _run() -> void:
 	policy = FavorPolicy.new(dreams, STYLES.get(style, 0))
 	policy.favored = favored
 	policy.on_offer = _note_offer
+	policy.on_pick = _log_pick
 	policy.branches_first = kin_placement
 	policy.deep = focus_mode == "deep"
 	policy.mode = dream_mode
@@ -255,7 +259,7 @@ func _run() -> void:
 		for mark in [25, 51]:
 			if director.drifts_started >= mark and not kin_pairs.has(mark):
 				kin_pairs[mark] = Kinships.count_on_map(main)
-		if director.drifts_started in [20, 25, 50, 75] and not dream_share.has(director.drifts_started):
+		if director.drifts_started in [20, 25, 35, 50, 75] and not dream_share.has(director.drifts_started):
 			dream_share[director.drifts_started] = _dream_share()
 			if director.drifts_started == 20:
 				dreams_20 = "+".join(dreams._taken_cards().map(func(c: UpgradeData) -> String: return c.id))
@@ -566,7 +570,7 @@ func _new_window() -> void:
 	d = {"start": game_time, "health_spawned": 0.0, "damage": 0.0, "chain_deep": 0.0, "leaks": 0, "leaves_left": run_state.leaves,
 		"leaves_before": run_state.leaves, "dew_rest": 0, "dew_other": 0, "spent_plant": 0, "spent_walls": 0,
 		"spent_grow": 0, "spent_nurture": 0, "by_tower": {}, "asleep": 0.0, "reaction": 0.0, "crit": 0.0,
-		"restless": 0, "trampled": 0, "approach": 0.0}
+		"restless": 0, "trampled": 0, "approach": 0.0, "combo": 0.0, "status": 0.0, "hit": 0.0, "combo_damage": 0.0, "reaction_damage": 0.0, "status_damage": 0.0}
 
 func _on_damage(event) -> void:
 	d.damage += event.amount
@@ -578,6 +582,24 @@ func _on_damage(event) -> void:
 	# Per Warden (instance), not per kind: twenty Sporelings are twenty Wardens for the "one Warden" check.
 	var key: String = "%s#%d" % [event.source_name, event.source.get_instance_id()] if is_instance_valid(event.source) else event.source_name
 	d.by_tower[key] = d.by_tower.get(key, 0.0) + event.amount
+	d.combo += clampf(event.combo_amount, 0.0, event.amount)  # Overlaps the three below (a combo rides on a hit, tick or Reaction)
+	# RunHistory's split (731537b5), the same formula so bot and human compare: combo = combo_amount; reaction = a Reaction
+	# tag's damage less its combo part; status = non-hit damage with no combo and no Reaction.
+	var rh_reaction: float = maxf(event.amount - event.combo_amount, 0.0) if reaction_tags.has(event.tag) else 0.0
+	var rh_status: float = event.amount if event.kind != &"hit" and event.combos.is_empty() and rh_reaction == 0.0 else 0.0
+	d.combo_damage += event.combo_amount
+	d.reaction_damage += rh_reaction
+	d.status_damage += rh_status
+	run_parts.damage_total += event.amount
+	run_parts.combo_damage += event.combo_amount
+	run_parts.reaction_damage += rh_reaction
+	run_parts.status_damage += rh_status
+	if reaction_tags.has(event.tag):
+		pass  # Counted below as reaction
+	elif event.kind == &"status" or event.kind == &"bolt":
+		d.status += event.amount
+	else:
+		d.hit += event.amount
 	if reaction_tags.has(event.tag):
 		d.reaction += event.amount
 		var hit_enemy = event.enemy
@@ -616,7 +638,7 @@ func _close_window(n: int) -> void:
 		"avg_rank": snappedf(float(ranks) / maxf(_attackers().size(), 1), 0.1),
 		"route": map.get_path_from(map.startPath).size(), "families": lines.size(), "cards": dreams.stacks.size(),
 		"dreamlight": dreams.dreamlight, "top_warden": top, "top_share": snappedf(top_amount / damage, 0.001),
-		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "longest_chain": _longest_chain(),
+		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "combo_amount_share": snappedf(d.combo / damage, 0.001), "status_share": snappedf(d.status / damage, 0.001), "hit_share": snappedf(d.hit / damage, 0.001), "combo_damage": roundi(d.combo_damage), "reaction_damage": roundi(d.reaction_damage), "status_damage": roundi(d.status_damage), "combo_share": snappedf((d.combo_damage + d.reaction_damage) / damage, 0.001), "longest_chain": _longest_chain(),
 		"crit_share": snappedf(d.crit / damage, 0.001), "restless": d.restless, "trampled": d.trampled,
 		"approach": snappedf(d.approach, 0.01)}
 	rows.append(row)
@@ -686,7 +708,7 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "boss_draw": BossPool.force_draw, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "enemy": ";".join(enemy_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, enemy_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "omen_paid": _omen_stat("paid"), "omen_share": _omen_stat("share"), "omen_leaves_lost": _omen_stat("leaves_lost"), "omen_dew": (_omen_stat("dew") + roundi(omen_pot_dew)) if omens != null and _facing() else -1, "omen_pot_dew": roundi(omen_pot_dew), "omen_dreamlight": dreamlight_by_source.get(&"omen", 0) if omen_mode != "" else -1, "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "boss_draw": BossPool.force_draw, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "enemy": ";".join(enemy_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, enemy_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_35": dream_share.get(35, -1.0), "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "omen_paid": _omen_stat("paid"), "omen_share": _omen_stat("share"), "omen_leaves_lost": _omen_stat("leaves_lost"), "omen_dew": (_omen_stat("dew") + roundi(omen_pot_dew)) if omens != null and _facing() else -1, "omen_pot_dew": roundi(omen_pot_dew), "omen_dreamlight": dreamlight_by_source.get(&"omen", 0) if omen_mode != "" else -1, "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
@@ -707,6 +729,9 @@ func _finish() -> void:
 	summary.meta_active = meta_run.get("active") if meta_run != null else null
 	summary.merge(_status_columns())
 	summary.forms = _form_column()
+	for key in run_parts:
+		summary[key] = roundi(run_parts[key])
+	summary.combo_share = snappedf((run_parts.combo_damage + run_parts.reaction_damage) / maxf(run_parts.damage_total, 1.0), 0.001)
 	summary.merge(_route_columns())
 	summary.kin_pairs_24 = kin_pairs.get(25, -1)
 	summary.kin_pairs_50 = kin_pairs.get(51, -1)
@@ -841,15 +866,22 @@ class FavorPolicy extends DreamSimPolicy:
 				value -= 500.0  # Economy last
 		return value
 
+	var on_pick: Callable  # The runner logs each offer with the card taken (offers.csv)
+
 	func pick_dream(offer: Array) -> UpgradeData:
 		if on_offer.is_valid():
 			on_offer.call(offer)
+		var pick: UpgradeData = null
 		match mode:
 			"skip":
-				return null  # Let it pass (DreamState.sim_rest skips)
+				pick = null  # Let it pass (DreamState.sim_rest skips)
 			"random":
-				return offer[rng.randi_range(0, offer.size() - 1)] if not offer.is_empty() else null
-		return super.pick_dream(offer)
+				pick = offer[rng.randi_range(0, offer.size() - 1)] if not offer.is_empty() else null
+			_:
+				pick = super.pick_dream(offer)
+		if on_pick.is_valid():
+			on_pick.call(offer, pick)
+		return pick
 
 # The run's longest Reaction chain so far (ReactionTracker; 0 before the first Reaction).
 func _longest_chain() -> int:
@@ -1176,3 +1208,20 @@ func _route_columns() -> Dictionary:
 		"route_health": ";".join(blocks.map(func(b) -> String: return "%d:%s:%d" % [b.block, join.call(b.dispel_health), b.leaked_health])),
 		"route_invested": ";".join(blocks.map(func(b) -> String: return "%d:%s:%d:%.2f" % [b.block, join.call(b.invested), b.off_route, b.heart_share])),
 	}
+
+# One line per Dream offer in <out>/offers.csv: run, drift, each card offered as id:rarity, the card taken
+# ("-" = let it pass) and the Entwined guaranteed card of the offer ("" = none; always "" since e328fb55 removed the slot, kept so before/after files line up). For pick-rate-when-offered.
+func _log_pick(offer: Array, pick) -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
+	var path := out_dir.path_join("offers.csv")
+	var new_file := not FileAccess.file_exists(path)
+	var file := FileAccess.open(path, FileAccess.READ_WRITE if not new_file else FileAccess.WRITE)
+	if file == null:
+		return
+	if new_file:
+		file.store_line("profile,style,dreams,seed,drift,offered,taken,guaranteed")
+	file.seek_end()
+	var cards := "+".join(offer.map(func(c: UpgradeData) -> String: return "%s:%d" % [c.id, c.rarity]))
+	file.store_line("%s,%s,%s,%d,%d,%s,%s,%s" % [profile, style, dream_mode, map_seed, director.drifts_started, cards,
+		pick.id if pick != null else "-", str(dreams.get("_guaranteed_id")) if dreams.get("_guaranteed_id") != null else ""])
+	file.close()
