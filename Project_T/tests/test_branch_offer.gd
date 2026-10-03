@@ -153,6 +153,13 @@ func _run() -> void:
 		"a line above the tree says the branches are random (\"%s\")" % screen._offer_line.text)
 	var strip_item := screen._misty.find_child("Misty_" + misty.get_id(), true, false)
 	var call_in: Button = strip_item.find_child("CallIn", true, false) if strip_item else null
+	# One tip per element, never repeated (user: "hovering emblems gives me repeated explanations of the branch"): an
+	# emblem says its branch; the strip's header holds the general explanation, once
+	var look: Button = strip_item.get_child(0) if strip_item else null
+	var tips: Array = screen._misty.find_children("*", "Control", true, false).map(func(c: Control) -> String: return c.tooltip_text) \
+		.filter(func(t: String) -> bool: return t.contains(RememberScreen.MISTY_TIP))
+	_check(look != null and look.tooltip_text.begins_with(misty.display_name) and not look.tooltip_text.contains(RememberScreen.MISTY_TIP)
+		and tips.size() == 1, "an emblem's tip is about its branch; the strip explains itself once (%d tips with the explanation)" % tips.size())
 	_check(screen._misty.visible and strip_item != null and call_in != null and call_in.disabled,
 		"…it's in the \"Not in this dream\" strip, its Call in greyed (this family already called one back)")
 	screen._select(misty)

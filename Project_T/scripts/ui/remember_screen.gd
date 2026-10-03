@@ -232,6 +232,12 @@ func offer_line(root: TowerData) -> String:
 
 const MISTY_TIP := "Each run the dream offers only some of a family's branches, at random. These weren't drawn this time: call one in for Dreamlight (once per family), or find the Remembered Path card. The Heartwood may offer them next run."
 
+# A strip emblem's tip (user: "hovering emblems gives me repeated explanations of the branch"): this branch's name and
+# what it does, never the strip's general explanation (that's on the header, once).
+func branch_tip(form: TowerData) -> String:
+	var does := IconInfo.format(form.description) if form.description != "" else ""
+	return form.display_name + ("\n" + does if does != "" else "")
+
 # The strip under the tree (story chat: the not-offered branches beside the base read as its siblings): each
 # branch of `root`'s family not in this run, a faint silhouette with its name and "Call in · 3 Dreamlight" (once per
 # family; free with Remembered Path; greyed after use). A tap on one shows it in the side panel too.
@@ -265,7 +271,7 @@ func _fill_misty(root: TowerData) -> void:
 		look.flat = true
 		look.focus_mode = Control.FOCUS_NONE
 		look.custom_minimum_size = Vector2(MISTY_PORTRAIT, MISTY_PORTRAIT)
-		look.tooltip_text = form.display_name + " · not in this dream\n\n" + MISTY_TIP
+		look.tooltip_text = branch_tip(form)  # About this branch only: the strip's header explains "not in this dream" once
 		look.draw.connect(func() -> void:  # The moonlit disc behind the silhouette (as on the tree), faint
 			UiStyle.draw_moon_disc(look, look.size / 2.0, MISTY_PORTRAIT / 2.0 - 1))
 		look.modulate = Color(1, 1, 1, 0.6)  # multiplier: the mist
