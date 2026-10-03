@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Grove Heart"
-description = "Wardens within 2 cells deal 15% more damage and attack 15% faster, 3% more for each Warden around it (up to 45%)."
+description = "Pulses the nightmares in range. Wardens within 2 cells deal {pct:grove_heart.aura_damage_bonus} more damage and attack {pct:grove_heart.aura_speed_bonus} faster, 3% more for each Warden in that area (up to 45%)."
 cost = 0
 role_tag = &"support"
 line = "acorn"

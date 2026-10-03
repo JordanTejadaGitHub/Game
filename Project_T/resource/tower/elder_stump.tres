@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Elder Stump"
-description = "The 8 Wardens around it attack 30% faster."
+description = "Pulses the nightmares in range. Wardens in the 8 cells around it attack {pct:elder_stump.aura_speed_bonus} faster; a second Elder Stump's boost on the same Warden counts half."
 cost = 0
 role_tag = &"support"
 line = "acorn"
