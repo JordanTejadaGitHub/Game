@@ -41,8 +41,14 @@ func _run() -> void:
 		branches.append(branch)
 		base.evolves_to.append(branch)
 	placer.towers.append(base)
+	# The family pick card previews the pair first: no side effects, and the pick then gets exactly that pair
+	var previewed: Array = dreams.preview_branch_offer(base)
+	_check(previewed.size() == 2 and not dreams.branch_offers.has(base.get_id()) and not dreams._last_branch_offer_written.has(base.get_id()),
+		"a preview draws 2 (%s) without caching or writing the profile" % [previewed])
+	_check(dreams.preview_branch_offer(base) == previewed, "…and previews the same pair again")
 	dreams.unlocked[base.get_id()] = true
 	dreams.unlocks_changed.emit()  # A family pick
+	_check(dreams.get_branch_offer(base) == previewed, "the picked family gets exactly the previewed pair")
 	var offer: Array = dreams.get_branch_offer(base)
 	_check(offer.size() == 2 and dreams.branch_offers.has(base.get_id()), "a family pick draws 2 of its 5 branches (%s)" % [offer])
 	_check(dreams.not_offered_branches(base).size() == 3, "…the other 3 are not in this dream")
