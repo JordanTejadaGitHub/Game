@@ -756,6 +756,13 @@ were at 0.1–0.4 of the route, nothing near the Heartwood.
 - Nestling isn't expanded yet (the sky merge is Phase 3), so both branches were offered and the user picked
   the support. Not a draw issue; watch whether Magpie Perch reads as a trap first pick.
 
+## Human run 15 (2026-10-03, 83d9b3b0 → 5692de; before the finale-health fix, Dev Grove: Full)
+
+**Lost at drift 39**, 18 min. Pebbling → Rootling; 7 Mossbacks carried (from combos 26–34%); run combo share
+**23%** (near the 25–40% target). Act 1 calm (closest ~0.3–0.5) except the finales (10: −3, 15: −2); the
+Hollow Stag in 23 s; act 2 calm to 29, then **the drift 30 finale −6**, and 38–39 the rest. Kills at 0.2–0.4 of
+the route. User: **"Feels fine, keep it for now. Needs a bit more testing."** No change.
+
 ## Human run 14 (2026-10-03, same build, Dev Grove: Full)
 
 **Lost at drift 20** (a finale), 8 min. **Acorn first**: 2 Acorns, 4 Elder Stumps, 13 Sprouts; Dew banked
