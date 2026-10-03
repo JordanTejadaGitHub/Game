@@ -16,4 +16,3 @@ rule_id = &"dew_bowl"
 in_start_pool = false
 grows_with = Array[String](["dewcatcher", "wellspring"])
 grows_text = "Dewcatcher and Wellspring catch 15% more Dew (per stack)."
-calls_family = "acorn"

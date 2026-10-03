@@ -96,7 +96,11 @@ func rest(drift: int, perfect: bool = true) -> Array[UpgradeData]:
 # --- Family picks -----------------------------------------------------------------------------------
 
 func pick_family(offered: Array) -> StringName:
-	var owed: Array[String] = dreams._owed_families
+	var owed: Array[String] = []  # The families the bot's half-dreamed cards still miss (picks no longer include them)
+	for card in dreams._taken_cards(true):
+		for family in dreams.half_dreamed_missing(card):
+			if not owed.has(family):
+				owed.append(family)
 	if style == Style.COMBO:
 		var best := ""
 		var best_count := -1

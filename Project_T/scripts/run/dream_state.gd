@@ -164,7 +164,8 @@ const BRAMBLE_OATH_PER := 0.03  # Per BRAMBLE_OATH_TILES path tiles the walls ad
 const BRAMBLE_OATH_TILES := 5
 const BRAMBLE_OATH_MAX := 0.30
 const PATIENT_ROOTS_HELD := 0.5
-const GOLDEN_HARVEST_PER := 0.02  # Per 100 Dew harvested / earned as interest
+const GOLDEN_HARVEST_PER := 0.02  # Per GOLDEN_HARVEST_STEP Dew earned this run (catchers and interest count double)
+const GOLDEN_HARVEST_STEP := 500
 const GOLDEN_HARVEST_MAX := 0.30
 # Dreamlight (run_design.md "Dreamlight"): sources and unlock costs.
 const FIRST_PICK_DREAMLIGHT := 1  # The default for first_pick_dreamlight (user 2026-10-01: 1, was 2)
@@ -260,7 +261,6 @@ var _passed_at := {}  # Card id -> the offer number (dreams_seen) it was last pa
 var _taken_this_offer: Array[String] = []
 var current_stray: UpgradeData = null  # The Stray Dream card of the current offer (null = none)
 var _legendary_next := 0  # Lean Season: Dreams still owed a Legendary
-var _owed_families: Array[String] = []  # Half-dreamed cards taken: the next family pick includes one
 var _declined_families: Array[String] = []  # Offered at the last family pick, not taken (half-dreamed ×0.3)
 var _taken_cache := {}  # include_dormant -> [state key, taken cards] (_taken_cards)
 var board_version := 0  # Bumped on every change the Dream rows read (bump_board)
@@ -302,6 +302,8 @@ func _ready() -> void:
 	add_to_group(GROUP)
 	HeartwoodGifts.register(&"waking_root", DreamState._waking_root_gift)  # Heartwood's Gifts (Spire branch)
 	unlocks_changed.connect(_draw_branch_offers)  # Branch expansion: a family pick draws its 2 branches
+	run_state.dew_changed.connect(_on_dew_changed)  # Golden Harvest: Dew earned this run
+	_dew_seen = run_state.dew  # The starting Dew isn't earned
 	_rng.randomize()
 	if pool.is_empty():
 		pool = load_pool()
@@ -1782,9 +1784,6 @@ func take(card: UpgradeData) -> void:
 			current_offer.erase(other)
 	if unlocks_clearing(card) and not can_clear():
 		clearing_opened_by = card.id  # "Unlocked clearing" in Dreams this run and the Codex
-	for family in half_dreamed_missing(card):  # The next family pick will include one of them
-		if not _owed_families.has(family):
-			_owed_families.append(family)
 	stacks[card.id] = stacks.get(card.id, 0) + 1
 	bump_board()
 	_passed_count.erase(card.id)  # Taking a card resets its fade
@@ -2444,10 +2443,10 @@ func to_save() -> Dictionary:
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
 		"run_pool": run_pool.keys(), "run_pool_waiting": _run_pool_waiting.keys(), "run_pool_families": _run_pool_families.keys(),
 		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
-		"dreamlight_shards": dreamlight_shards, "source_shards": source_shards.duplicate(), "sprout_charges": run_state.sprout_charges,
+		"dew_earned_run": dew_earned_run, "dreamlight_shards": dreamlight_shards, "source_shards": source_shards.duplicate(), "sprout_charges": run_state.sprout_charges,
 		"eldest_cell": [_eldest_cell.x, _eldest_cell.y], "court_pending": _court_pending,
 		"passed_count": _passed_count.duplicate(), "passed_at": _passed_at.duplicate(),
-		"owed_families": _owed_families.duplicate(), "declined_families": _declined_families.duplicate(),
+		"declined_families": _declined_families.duplicate(),
 		"walls_planted": _walls_planted, "glimmer_shards": glimmer_shards,
 		"legendary_next": _legendary_next,
 		"clearing_opened_by": clearing_opened_by,
@@ -2505,7 +2504,6 @@ func load_save(data: Dictionary) -> void:
 	_banished.clear()
 	for id in data.get("banished", []):
 		_banished[id] = true
-	_owed_families.assign(data.get("owed_families", []))
 	_declined_families.assign(data.get("declined_families", []))
 	_passed_count.clear()
 	_passed_at.clear()
@@ -2528,6 +2526,8 @@ func load_save(data: Dictionary) -> void:
 	dreamlight = int(data.get("dreamlight", 0))
 	dreamlight_changed.emit(dreamlight)
 	dreamlight_shards = int(data.get("dreamlight_shards", 0))
+	dew_earned_run = int(data.get("dew_earned_run", 0))
+	_dew_seen = run_state.dew
 	source_shards.clear()
 	var saved_sources: Dictionary = data.get("source_shards", {})
 	for source in saved_sources:
@@ -2770,12 +2770,6 @@ func _boss_name(drift: int) -> String:
 			if entry.enemy != null and entry.enemy.is_boss:
 				return entry.enemy.display_name
 	return ""
-
-# The families taken half-dreamed cards owe the next family pick; clears them (FamilyPickScreen).
-func take_owed_families() -> Array[String]:
-	var owed := _owed_families.duplicate()
-	_owed_families.clear()
-	return owed
 
 # A cross-family combo card without all its Wardens (cheap checks first: _taken_cards runs per hit).
 func _is_asleep(card: UpgradeData) -> bool:
@@ -3388,25 +3382,21 @@ func needs_note(card: UpgradeData, act: int = -1) -> String:
 
 
 # --- Seed cards (dream_design.md "Seed cards: plant now, grow later") --------------------------------
+# A Seed card works now and grows once a Warden it names is on the map. It no longer calls its family into a family
+# pick (user: "I don't think Seed should be a thing; make it predictable", dream_design.md 7d3c6672).
 
-# The families held Seed cards call: the next family pick is guaranteed to offer each one that the
-# profile can pick and the run doesn't own yet (FamilyPickScreen).
-# The family `card` would call to the next pick, or "" when it can't (already yours, or never pickable):
-# then its Seed line hides too (screens_ui.md "Playtest fixes").
-func calls_family_now(card: UpgradeData) -> String:
-	var family := card.calls_family
-	if family == "" or is_unlocked(family):
-		return ""
-	return family if _family_roots().any(func(d: TowerData) -> bool: return d.get_id() == family) else ""
+# Dew earned this run (every rise of the Dew total; spending doesn't count), for Golden Harvest. Saved with the run.
+var dew_earned_run := 0
+var _dew_seen := -1
 
-func get_called_families() -> Array[String]:
-	var pickable: Array = _family_roots().map(func(d: TowerData) -> String: return d.get_id())
-	var called: Array[String] = []
-	for card in _taken_cards(true):
-		var family := card.calls_family
-		if family != "" and not called.has(family) and pickable.has(family) and not is_unlocked(family):
-			called.append(family)
-	return called
+func _on_dew_changed(now: int) -> void:
+	if _dew_seen >= 0 and now > _dew_seen and drift_director.drifts_started > 0:  # Starting Dew and perks aren't earned
+		dew_earned_run += now - _dew_seen
+	_dew_seen = now
+
+# Golden Harvest counts the Dew earned this run, catchers' and interest Dew twice (it's in both counts).
+func golden_harvest_dew() -> int:
+	return dew_earned_run + dew_harvested()
 
 # Whether a Seed card has grown: a Warden it names is on the map.
 func seed_grown(card: UpgradeData) -> bool:
@@ -4219,9 +4209,16 @@ func preview_card_impact(card: UpgradeData) -> Dictionary:
 	var range_gain := 0.0
 	var weight := 0.0
 	var qualifying := 0
+	var has_rows := false  # The card has effect rows (DreamEffects): its condition decides who qualifies
+	var active_on: Array = []  # The Wardens its rows are active on, while it's taken
 	for tower in towers:
 		var after := _dream_stat_factors(tower)
 		var was: Dictionary = before[tower]
+		for row in get_card_effects(tower.tower_data, tower.cell, tower):
+			if row.card == card or String(row.get("card_id", "")) == card.id:
+				has_rows = true
+				if row.active and not active_on.has(tower):
+					active_on.append(tower)
 		if card.diagram != "" and _card_active_on(card, tower):
 			qualifying += 1
 		if absf(after.damage - was.damage) > 0.0001 or absf(after.speed - was.speed) > 0.0001 or absf(after.range - was.range) > 0.0001:
@@ -4261,6 +4258,19 @@ func preview_card_impact(card: UpgradeData) -> Dictionary:
 		result.text = ("%d of your Wardens qualify" % qualifying) if qualifying > 0 else "None of your Wardens qualify yet"
 		return result
 	if card.kind == UpgradeData.Kind.RULE:
+		# A card with effect rows has its own condition (Family Ties: Wardens in a Kinship): count only the Wardens it's
+		# active on (user screenshot: "Triggers on all 8 attackers" with no Kinship on the map)
+		if card.tags.has("kinship") and not has_rows:  # Kinship cards (Family Ties…): the Wardens in a Kinship
+			var kin := Kinships.find(self)
+			active_on = towers.filter(func(t: Tower) -> bool: return kin != null and not kin.get_pairs(t).is_empty())
+			has_rows = true
+		if has_rows:
+			if active_on.is_empty():
+				return result  # "None of your Wardens yet"
+			result.kind = &"trigger"
+			result.towers = active_on
+			result.text = ("Reaches %d of your Wardens" % active_on.size()) if active_on.size() > 1 else "Reaches one of your Wardens"
+			return result
 		# Only the Wardens the rule reaches pulse (Tower.is_reached_by_rule, Tower Code 37031714: its Warden / line, the
 		# status it's about, its ingredients' lines): Heavy Eyelids pulsed every Sprout (user screenshot)
 		var reached: Array = towers.filter(func(t: Tower) -> bool: return t.is_reached_by_rule(card))
@@ -4270,9 +4280,9 @@ func preview_card_impact(card: UpgradeData) -> Dictionary:
 			result.text = ("Reaches %d of your Wardens" % reached.size()) if reached.size() > 1 else "Reaches one of your Wardens"
 			return result
 		var attackers: Array = towers.filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
-		if not attackers.is_empty():  # A global or nightmare-side rule: the line, but no Warden pulses
+		if not attackers.is_empty():  # A global rule (Glinting Dew: every Warden's crit): the line, but no Warden pulses
 			result.kind = &"trigger"
-			result.text = ("Triggers on all %d attackers" % attackers.size()) if attackers.size() > 1 else "Triggers on your attacker"
+			result.text = ("Reaches all %d attackers" % attackers.size()) if attackers.size() > 1 else "Reaches your attacker"
 	return result
 
 func _card_active_on(card: UpgradeData, tower: Tower) -> bool:

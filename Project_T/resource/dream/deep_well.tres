@@ -15,4 +15,3 @@ rule_id = &"deep_well"
 in_start_pool = false
 grows_with = Array[String](["wellspring"])
 grows_text = "Wellspring's interest cap is 30 higher (90)."
-calls_family = "acorn"

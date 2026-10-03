@@ -523,7 +523,6 @@ func _test_meta_hooks(main: Node) -> void:
 	dreams.stacks.erase("chain_bloom")
 	dreams.grove_cards.clear()
 	dreams._offer_drift = 0
-	dreams._owed_families.clear()
 	dreams._declined_families.clear()
 	dreams._passed_count.clear()
 	dreams._passed_at.clear()
@@ -986,14 +985,10 @@ func _test_half_dreamed(main: Node) -> void:
 		"…Dreams this run says why on hover (%s)" % dreams.not_active_reason(thunder))
 	var saved := dreams.to_save()
 	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
-	# The next family pick includes the missing family (one slot here, so it must be that one)
-	var per_pick: int = screen.cards_per_pick
-	screen.cards_per_pick = 1
-	screen.show_pick(&"boss")
-	_check(screen.offer.size() == 1 and screen.offer[0].get_id() == "dewdrop", "…the next family pick offers Dewdrop (after a save)")
-	screen.cards_per_pick = per_pick
-	screen.visible = false
-	main.get_node("%GameSpeed").set_paused(false)
+	# Picks stay pure (user, dream_design.md "Picks stay pure"): the card sleeps through a save, and no family pick is
+	# made to include its missing family
+	_check(dreams.is_dormant(thunder), "…still asleep after a save")
+	_check(not dreams.has_method("take_owed_families"), "…and no family is owed to the next pick")
 	dreams.unlocked["dewdrop"] = true
 	_check(dreams.is_dormant(thunder), "…still asleep without Stormcap itself")
 	dreams.unlocked["stormcap"] = true
@@ -1016,12 +1011,11 @@ func _test_half_dreamed(main: Node) -> void:
 			_reset_dreams_quiet(dreams)
 			dreams._passed_count.clear()
 			dreams._passed_at.clear()
-			dreams._owed_families.clear()
 			dreams._declined_families.clear()
 			dreams.unlocked[start] = true
 			for drift in range(5, 75, 5):
 				if drift % 25 == 0:  # The boss's family pick comes before its rest
-					var owed := dreams._owed_families.duplicate()
+					var owed: Array = []  # Picks no longer include a half-dreamed card's family
 					screen.show_pick(&"boss")
 					var families: Array = screen.offer.filter(func(d) -> bool: return d is TowerData)
 					if not families.is_empty():
@@ -1332,7 +1326,6 @@ func _reset_dreams(main: Node) -> void:
 	dreams._rare_dreams_left = 0
 	dreams._extra_cards_next = 0
 	dreams._offer_drift = 0
-	dreams._owed_families.clear()
 	dreams._declined_families.clear()
 	dreams._passed_count.clear()
 	dreams._passed_at.clear()
@@ -1347,7 +1340,6 @@ func _reset_dreams_quiet(dreams: DreamState) -> void:
 	dreams._rare_dreams_left = 0
 	dreams._extra_cards_next = 0
 	dreams._offer_drift = 0
-	dreams._owed_families.clear()
 	dreams._declined_families.clear()
 	dreams._passed_count.clear()
 	dreams._passed_at.clear()

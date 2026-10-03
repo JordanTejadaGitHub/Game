@@ -57,6 +57,7 @@ func _run() -> void:
 	_test_clearing_payoffs()
 	_test_combo_choices()
 	_test_source_shards()
+	_test_impact_conditions()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -265,10 +266,6 @@ func _test_sim_policy() -> void:
 			if tree.size() > 2 and tree[2] != null and not tree[1][0][1].is_empty():
 				_check(forms.find(tree[2]) == 2, "Ascended right after the first final form, before the other branch (%s)"
 					% ", ".join(forms.map(func(f: TowerData) -> String: return f.get_id())))
-	dreams._owed_families.assign(["dewdrop"])
-	var sleep := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.SLEEP)
-	_check(sleep.pick_family(["pebbling", "dewdrop"]) == &"dewdrop", "family order before the owed family")
-	dreams._owed_families.clear()
 	dreams.unlocked["firefly_jar"] = true
 	var combo := DreamSimPolicy.new(dreams, DreamSimPolicy.Style.COMBO)
 	_check(combo.pick_family(["pebbling", "dewdrop"]) == &"dewdrop", "Combo: the family with the most combo cards (Dewdrop with Firefly Jar)")
@@ -569,7 +566,7 @@ func _test_rows_cache() -> void:
 # Seed cards (dream_design.md "Seed cards: plant now, grow later").
 func _test_seed_cards() -> void:
 	_reset()
-	var ids := ["dew_bowl", "harvest_moon", "deep_well", "kind_canopy", "shared_light", "bramble_oath", "patient_roots", "golden_harvest"]
+	var ids := ["dew_bowl", "harvest_moon", "deep_well", "kind_canopy", "shared_light", "bramble_oath", "patient_roots"]
 	for id in ids:
 		var card := _card(id)
 		if card:
@@ -578,28 +575,18 @@ func _test_seed_cards() -> void:
 	# Offered without their Wardens
 	dreams.grove_cards.assign(ids)
 	_check(dreams.can_offer(_card("dew_bowl")) and dreams.can_offer(_card("patient_roots")), "offered without their Wardens")
-	# Calls its family: the next family pick offers it
-	var screen = main.get_node("%FamilyPickScreen")
-	var acorn: TowerData = load("res://resource/tower/acorn.tres")
-	var families_before: Array[TowerData] = screen.families.duplicate()
-	if not screen.families.has(acorn):
-		screen.families.append(acorn)  # As if the Grove had unlocked Acorn
-	dreams.family_of("")  # Refresh the family maps
-	dreams.take(_card("dew_bowl"))
-	_check(Array(dreams.get_called_families()) == ["acorn"], "Dew Bowl calls Acorn")
-	_check(dreams.calls_family_now(_card("dew_bowl")) == "acorn", "…its Seed line shows")
-	dreams.unlocked["acorn"] = true
-	_check(dreams.calls_family_now(_card("dew_bowl")) == "" and dreams.get_called_families().is_empty(),
-		"a family you already own: no Seed line, no call (playtest fix)")
-	dreams.unlocked.erase("acorn")
-	var per_pick: int = screen.cards_per_pick
-	screen.cards_per_pick = 1
-	screen.show_pick(&"boss")
-	_check(screen.offer.size() == 1 and screen.offer[0] == acorn, "…the next family pick offers Acorn")
-	screen.cards_per_pick = per_pick
-	screen.visible = false
-	main.get_node("%GameSpeed").set_paused(false)
-	screen.families = families_before
+	# No card calls a family into a pick (user: "I don't think Seed should be a thing; make it predictable")
+	_check(not ("calls_family" in UpgradeData.new()), "no card calls its family into a family pick")
+	# Golden Harvest (no longer a Seed card): every 500 Dew earned this run, catchers' and interest Dew twice, +2%%
+	dreams.take(_card("golden_harvest"))
+	dreams.dew_earned_run = 900
+	run_state.dew_harvested = 200
+	var any_warden := _plant("sporeling", Vector2(90, 90))
+	var harvest := _row(any_warden.tower_data, any_warden.cell, "golden_harvest", any_warden)
+	_check(harvest.active and is_equal_approx(harvest.damage, 0.04), "Golden Harvest: 900 earned + 200 harvested (twice) = 1100: +4%%, no catcher needed (%.2f)" % harvest.damage)
+	dreams.dew_earned_run = 0
+	run_state.dew_harvested = 0
+	_clear()
 	# Deep Well: 5% interest at the rest, up to 40
 	dreams.take(_card("deep_well"))
 	run_state.dew = 300
@@ -1100,3 +1087,16 @@ func _test_source_shards() -> void:
 	_check(int(dreams.source_shards.get(&"dream_oak", 0)) == 40, "per-source shards survive the run save")
 	dreams.source_shards.clear()
 	dreams.dreamlight = before
+
+# The card's impact line counts only Wardens its condition reaches (user screenshot: Family Ties said "Triggers on all
+# 8 attackers" with no Kinship on the map)
+func _test_impact_conditions() -> void:
+	_reset()
+	for c in [Vector2(80, 80), Vector2(84, 80), Vector2(88, 80)]:  # Three attackers, far apart: no Kinship
+		_plant("sporeling", c)
+	var ties := dreams.preview_card_impact(_card("family_ties"))
+	_check(ties.kind == &"none" and ties.text == "None of your Wardens yet" and ties.towers.is_empty(),
+		"Family Ties with no Kinship: \"None of your Wardens yet\" (%s)" % ties.text)
+	var glint := dreams.preview_card_impact(_card("glinting_dew"))
+	_check(glint.text == "Reaches all 3 attackers" and glint.towers.is_empty(), "a global card: \"%s\", nothing pulses" % glint.text)
+	_clear()

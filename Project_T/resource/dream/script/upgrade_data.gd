@@ -99,11 +99,10 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var requires_any_status: Array[StringName] = []  # Own a Warden applying any of these (Heavy Air: a slow)
 @export var max_range_owned: float = 0.0  # Own an attacking Warden with range at most this (Short Roots: 2); 0 = no check
 # Seed cards (dream_design.md "Seed cards"): offered without their Wardens. `description` is the "Now"
-# effect; `grows_text` the bigger one once you have a Warden in `grows_with` (ids); `calls_family`
-# (a base id) is guaranteed in the next family pick while the card is held.
+# effect; `grows_text` the bigger one once you have a Warden in `grows_with` (ids). (They no longer call a family
+# into a family pick: user, "make it predictable", 7d3c6672.)
 @export var grows_with: Array[String] = []
 @export var grows_text: String = ""
-@export var calls_family: String = ""
 @export var min_non_attackers: int = 0  # Non-attacking Wardens (walls, catchers, auras…) on the map; hard Need
 # The statuses a combo card works with, shown as its Needs line (dream_design.md "How Needs are shown
 # on a card"): the card never names a Warden you don't have.
