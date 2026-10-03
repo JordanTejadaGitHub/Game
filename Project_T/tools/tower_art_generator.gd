@@ -158,7 +158,8 @@ const LINES := {
 	"starters": ["sprout", "thornwall", "bramble", "honeysuckle"],
 	"sporeling": ["sporeling", "driftspore", "puffball", "bloomcap", "dreamshroom", "fairy_ring", "elf_circle",
 		"lichenling", "old_lichen", "brood_cap", "hatchery", "inkcap", "deliquescent"],
-	"pebbling": ["pebbling", "mossback", "boulderback", "standing_stone", "moonstone", "cairn", "rockslide"],
+	"pebbling": ["pebbling", "mossback", "boulderback", "standing_stone", "moonstone", "cairn", "rockslide",
+		"whetstone", "edgestone", "rampart", "bastion", "quaker", "earthshaker"],
 	"bellflower": ["bellflower", "chime_stone", "lullaby_bell", "dreamcatcher", "great_dreamcatcher", "echo_hollow", "whispering_hollow",
 		"silver_bell", "vesper_bell", "hushbell", "silence", "thrum", "resonance"],
 	"dewdrop": ["dewdrop", "rain_lily", "monsoon", "mistveil", "morning_fog", "frostfern", "hoarfrost",
@@ -193,6 +194,13 @@ const ATTACKS := {
 	"pebbling": {kind = "projectile", projectile = "pebble", point = Vector2i(46, 14)},
 	"mossback": {kind = "projectile", projectile = "boulder", point = Vector2i(51, 8)},
 	"boulderback": {kind = "projectile", projectile = "boulder", point = Vector2i(51, 8)},
+	# Phase 2 (2026-10-02): Whetstone, Rampart, Quaker.
+	"whetstone": {kind = "projectile", projectile = "whetstone_slash", point = Vector2i(52, 22)},
+	"edgestone": {kind = "projectile", projectile = "whetstone_slash", point = Vector2i(52, 20)},
+	"rampart": {kind = "pulse", point = Vector2i(31, 44)},
+	"bastion": {kind = "pulse", point = Vector2i(31, 44)},
+	"quaker": {kind = "pulse", point = Vector2i(31, 44)},
+	"earthshaker": {kind = "pulse", point = Vector2i(31, 44)},
 	"chime_stone": {kind = "pulse", point = Vector2i(31, 46)},
 	"lullaby_bell": {kind = "pulse", point = Vector2i(31, 46)},
 	"dewdrop": {kind = "projectile", projectile = "dew_drop", point = Vector2i(30, 2)},
@@ -311,7 +319,7 @@ func _init() -> void:
 	for p: String in ["spore", "pebble", "boulder", "dew_drop", "spark", "light_orb", "sling_stone", "moon_shard",
 			"frost_shard", "sparrow", "wren", "magpie", "starling", "moon_mote", "fairy_ring", "elf_circle",
 			"dream_mote", "lob_stone", "hummingbird", "maple_seed", "autumn_seed", "starling_bird",
-			"lichen_flake", "ink_drop", "spore_sprite"]:
+			"lichen_flake", "ink_drop", "spore_sprite", "whetstone_slash"]:
 		_make_projectile(p)
 	_save_projectile_preview()
 	quit()
@@ -6298,6 +6306,7 @@ const EPIC := {
 	"lightning_fence": {glow = "#9a84e8", core = "#fff4dc", tint = []},
 	"rainbow_prism": {glow = "#ec9cf4", core = "#ffffff", tint = []},
 	"starburst": {glow = "#fcd47c", core = "#fff4dc", tint = []},
+	"edgestone": {glow = "#dce8f4", core = "#ffffff", tint = []},	"bastion": {glow = "#fcd47c", core = "#fff4dc", tint = ["#5c5a78", "#8c8cac", "#b4b0c8", "#dce8f4"]},	"earthshaker": {glow = "#e9a83c", core = "#fcd47c", tint = ["#241c14", "#5c3c24", "#8c5c34", "#bca48c"]},
 }
 const EPIC_O := Color("#140f26")
 
@@ -7192,6 +7201,7 @@ const BODY_PAL := {
 	"silence": ["#140f26", "#5c944c", "#34643c", "#1c3c2c"],
 	"thrum": ["#140f26", "#ec9cf4", "#bc44dc", "#4c3c74"],
 	"resonance": ["#140f26", "#fff4dc", "#ec9cf4", "#bc44dc"],
+	"whetstone": ["#241c14", "#dccdb2", "#b4a494", "#6c5c5c"],	"edgestone": ["#241c14", "#fff4dc", "#dccdb2", "#b4a494"],	"rampart": ["#24243c", "#b4b0c8", "#8c8cac", "#5c5a78"],	"bastion": ["#140f26", "#8c8cac", "#5c5a78", "#3c3c5c"],	"quaker": ["#241c14", "#bca48c", "#8c5c34", "#5c3c24"],	"earthshaker": ["#140f26", "#8c5c34", "#5c3c24", "#241c14"],
 }
 
 # The figure palette a Warden's body is drawn in: its own (BODY_PAL) or the one its helper passed.
@@ -7213,3 +7223,268 @@ func _bracket(canvas: Image, c: Vector2, w: float, o: Color) -> void:
 				continue
 			_px(layer, x, y, Color("#5c3c24") if y + 0.5 > c.y else bands[clampi(int((1.0 - d) * 4.0), 0, 3)])
 	_stamp(canvas, layer, o)
+
+# --- Phase 2, Pebbling (tower_design.md 7816b7e0): Whetstone -> Edgestone (the finisher, a golem at a
+# sharpening wheel), Rampart -> Bastion (a golem built into a stone wall, one arm a wall block),
+# Quaker -> Earthshaker (a squat golem mid-stomp, fists down). Bodies from BODY_PAL. ------------------
+
+func _p2_fig() -> Dictionary:
+	return _body_pal(_pal("#000000", "#000000", "#000000", "#000000"))
+
+# A grindstone on a wooden frame, seen three-quarter, turning (a notch runs round its rim), a crank
+# and sparks flying off the top while it grinds.
+func _grind_wheel(canvas: Image, st: Dictionary, c: Vector2, r: float, o: Color, sparks: int) -> void:
+	var wood := _layer()
+	_stroke(wood, [Vector2(c.x - 6, 46), c + Vector2(0, 2)], 1.2, Color("#8c5c34"))
+	_stroke(wood, [Vector2(c.x + 6, 46), c + Vector2(0, 2)], 1.2, Color("#8c5c34"))
+	_stamp(canvas, wood, o)
+	var wheel := _layer()
+	_ellipse(wheel, c, Vector2(r * 0.55, r), _ramp(["#5c5a78", "#8c8cac", "#b4b0c8", "#dce8f4"]))
+	_stamp(canvas, wheel, o)
+	_flat_ellipse(canvas, c, Vector2(1.4, 1.6), Color("#3c3c5c"))
+	var a: float = st.f * TAU / 8.0
+	_px(canvas, roundi(c.x + cos(a) * r * 0.45), roundi(c.y + sin(a) * r * 0.85), Color("#3c3c5c"))
+	var crank := _layer()
+	_stroke(crank, [c, c + Vector2(r * 0.55 + 3, -1), c + Vector2(r * 0.55 + 3, 3)], 0.7, Color("#8c5c34"))
+	_stamp(canvas, crank, o)
+	for k in sparks:
+		if (st.f + k) % 3 == 0:
+			continue
+		var t := float((st.f + k * 2) % 4) / 4.0
+		var p := c + Vector2(-2 - k * 2 - t * 4, -r - 1 - t * 3)
+		_px(canvas, roundi(p.x), roundi(p.y), Color("#fcd47c") if k % 2 == 0 else Color("#fff4dc"))
+
+func _draw_whetstone(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	var dy: int = st.dy
+	_pebble_golem(canvas, st, fig, false)
+	_golem_face(canvas, st, fig)
+	# A leather apron and the stone it's sharpening in its hand.
+	var apron := _layer()
+	_flat_polygon(apron, PackedVector2Array([Vector2(25, 26 + dy), Vector2(36, 26 + dy), Vector2(37, 35), Vector2(24, 35)]), Color("#b8662c"))
+	_stamp(canvas, apron, fig.o)
+	_line(canvas, [Vector2(24, 24 + dy), Vector2(30, 18 + dy), Vector2(37, 24 + dy)], Color("#5c3c24"))
+	_grind_wheel(canvas, st, Vector2(52, 30), 9.0, fig.o, 3)
+
+func _draw_edgestone(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	var dy: int = st.dy
+	# A great stone blade strapped across its back (behind it), honed to a pale edge.
+	_pebble_golem(canvas, st, fig, true, func(c: Image, s: Dictionary, _f: Dictionary) -> void:
+		var blade := _layer()
+		_flat_polygon(blade, PackedVector2Array([Vector2(8, 40), Vector2(12, 42), Vector2(46, 2 + s.dy), Vector2(44, -2 + s.dy)]), Color("#b4b0c8"))
+		_line(blade, [Vector2(9, 39), Vector2(44, -1 + s.dy)], Color("#ffffff"))
+		_stamp(c, blade, Color("#140f26")))
+	_golem_face(canvas, st, fig)
+	var strap := _layer()
+	_stroke(strap, [Vector2(19, 22 + dy), Vector2(40, 34)], 1.0, Color("#5c3c24"))
+	_stamp(canvas, strap)
+	_grind_wheel(canvas, st, Vector2(52, 29), 11.0, fig.o, 5)
+
+func _attack_whetstone(canvas: Image, st: Dictionary) -> void:
+	_clean_cut(canvas, st, 1.0)
+
+func _attack_edgestone(canvas: Image, st: Dictionary) -> void:
+	_clean_cut(canvas, st, 1.3)
+
+# The clean cut: a bright crescent slash sweeping across in front of it, a trailing edge, a glint.
+func _clean_cut(canvas: Image, st: Dictionary, size: float) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var c := Vector2(36, 26)
+	var r := 18.0 * size
+	var a0: float = -2.2 + k * 0.5
+	for i in 30:
+		var t := i / 29.0
+		var a := a0 + t * 1.9
+		var w: float = sin(t * PI) * (3.0 if k == 0 else 2.0)
+		for j in range(0, int(w) + 1):
+			var p := c + Vector2(cos(a), sin(a)) * (r - j)
+			_px(canvas, roundi(p.x), roundi(p.y), Color("#ffffff") if j == 0 else (Color("#dce8f4") if j == 1 else Color("#9cd4fc")))
+	if k == 0:
+		var tip := c + Vector2(cos(a0 + 1.9), sin(a0 + 1.9)) * r
+		_sparkle(canvas, Vector2i(tip.round()), Color("#ffffff"))
+		_warm_glow(canvas, tip, Vector2(6, 5))
+
+# A stretch of castle wall behind it: coursed stone, crenellated along the top.
+func _castle_wall(canvas: Image, top: int, x0: int, x1: int, o: Color, pale: bool = false) -> void:
+	var wall := _layer()
+	var stone := [Color("#b4a494"), Color("#dccdb2"), Color("#6c5c5c")] if pale else [Color("#8c8cac"), Color("#b4b0c8"), Color("#5c5a78")]
+	for y in range(top, 42):
+		for x in range(x0, x1 + 1):
+			var merlon: bool = y >= top + 4 or (x - x0) % 8 < 5
+			if not merlon:
+				continue
+			var row: int = (y - top) / 4
+			var mortar: bool = (y - top) % 4 == 3 or (x + (row % 2) * 4) % 8 == 0
+			_px(wall, x, y, stone[2] if mortar else (stone[1] if (x + row) % 5 == 0 else stone[0]))
+	_stamp(canvas, wall, o)
+
+# A wall block for an arm: a squared stone with its mortar lines.
+func _wall_block(canvas: Image, r: Rect2i, o: Color) -> void:
+	var blk := _layer()
+	_round_rect(blk, r, 1, Color("#8c8cac"))
+	_stamp(canvas, blk, o)
+	_line(canvas, [Vector2(r.position.x + 1, r.position.y + r.size.y / 2), Vector2(r.end.x - 2, r.position.y + r.size.y / 2)], Color("#5c5a78"))
+	_line(canvas, [Vector2(r.position.x + r.size.x / 2, r.position.y + 1), Vector2(r.position.x + r.size.x / 2, r.position.y + r.size.y / 2)], Color("#5c5a78"))
+	_px(canvas, r.position.x + 1, r.position.y + 1, Color("#dce8f4"))
+
+func _draw_rampart(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	var dy: int = st.dy
+	_pebble_golem(canvas, st, fig, false, func(c: Image, _s: Dictionary, f: Dictionary) -> void:
+		_castle_wall(c, 18, 4, 59, f.o, true))
+	_golem_face(canvas, st, fig)
+	# Its left arm is a block of the wall.
+	_wall_block(canvas, Rect2i(8, 27 + dy, 10, 12), fig.o)
+
+func _draw_bastion(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	var dy: int = st.dy
+	_pebble_golem(canvas, st, fig, true, func(c: Image, _s: Dictionary, f: Dictionary) -> void:
+		_castle_wall(c, 12, 2, 61, f.o)
+		# A round tower rising at the back right, a pennant on top.
+		var tower := _layer()
+		_round_rect(tower, Rect2i(44, -2, 14, 22), 2, Color("#8c8cac"))
+		_stamp(c, tower, f.o)
+		for y in range(0, 20, 4):
+			_line(c, [Vector2(45, y), Vector2(56, y)], Color("#5c5a78"))
+		_line(c, [Vector2(51, -2), Vector2(51, -9)], Color("#5c3c24"))
+		var flag := _layer()
+		_flat_polygon(flag, PackedVector2Array([Vector2(52, -9), Vector2(58, -7), Vector2(52, -5)]), Color("#e9a83c"))
+		_stamp(c, flag, f.o))
+	_golem_face(canvas, st, fig)
+	_wall_block(canvas, Rect2i(6, 26 + dy, 12, 14), fig.o)
+	_wall_block(canvas, Rect2i(42, 18 + dy, 9, 7), fig.o)  # a block for a pauldron
+
+func _attack_rampart(canvas: Image, st: Dictionary) -> void:
+	_wall_slam(canvas, st, 1.0)
+
+func _attack_bastion(canvas: Image, st: Dictionary) -> void:
+	_wall_slam(canvas, st, 1.25)
+
+# Heavy hits on the tiles beside it: its block arm slams down, stone chips burst off the slab's
+# edges, a jolt ring round its base.
+func _wall_slam(canvas: Image, st: Dictionary, size: float) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	_ring(canvas, Vector2(31.5, 44), Vector2(22 + k * 6, 7 + k * 2) * size, Color("#dce8f4"), k == 2)
+	_ring(canvas, Vector2(31.5, 44), Vector2(19 + k * 6, 6 + k * 2) * size, Color("#8c8cac"), true)
+	for i in 8:
+		var a: float = PI + i * PI / 7.0
+		var p := Vector2(31.5, 44) + Vector2(cos(a) * (24 + k * 5) * size, sin(a) * (9 + k * 3) - k * 2)
+		var chip := _layer()
+		_flat_ellipse(chip, p, Vector2(1.3, 1.1), Color("#b4b0c8"))
+		_stamp(canvas, chip, Color("#24243c"))
+	if k == 0:
+		_fog(canvas, Vector2(13, 42), Vector2(8, 4), Color("#dce8f4"), st.f)
+
+# Two great stone fists planted on the slab, lifting and slamming in a slow stomp; cracks spread from
+# where they land.
+func _quake_fists(canvas: Image, st: Dictionary, fig: Dictionary, size: float, glow: Color) -> void:
+	var dy: int = st.dy
+	var lift: float = [0.0, -1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 0.0][st.f % 8] if st.attack < 0 else [-2.0, -4.0, 1.0, 0.0, 0.0, 0.0][st.attack]
+	for s: int in [-1, 1]:
+		var fist := Vector2(31.5 + s * 21.0, 40 + lift)
+		var arm := _layer()
+		_stroke(arm, [Vector2(31.5 + s * 13, 24 + dy), fist], 2.2 * size, Color("#8c8cac"))
+		_stamp(canvas, arm, fig.o)
+		var pts := PackedVector2Array()
+		for i in 6:
+			var a := i * TAU / 6.0 + 0.4
+			pts.append(fist + Vector2(cos(a) * 7.0, sin(a) * 6.0) * size)
+		var stone: Array[Color] = _ramp(["#3c3c5c", "#5c5a78", "#8c8cac"])
+		_rock(canvas, pts, stone, fig.o)
+	# Cracks in the slab.
+	for s: int in [-1, 1]:
+		var from := Vector2(31.5 + s * 21.0, 46)
+		_line(canvas, [from, from + Vector2(s * -6, 2), from + Vector2(s * -9, 1)], glow)
+
+func _draw_quaker(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	_pebble_golem(canvas, st, fig, false)
+	_golem_face(canvas, st, fig)
+	_quake_fists(canvas, st, fig, 1.0, Color("#5c3c24"))
+
+func _draw_earthshaker(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	var dy: int = st.dy
+	var mask := _pebble_golem(canvas, st, fig, true)
+	# Molten fissures down its body, glowing.
+	for path: Array in [[Vector2(28, 18 + dy), Vector2(26, 26 + dy), Vector2(29, 33)], [Vector2(35, 20 + dy), Vector2(37, 28 + dy), Vector2(34, 36)]]:
+		_line(canvas, path, Color("#e9a83c"), mask)
+	_golem_face(canvas, st, fig, Color("#fcd47c"))
+	_quake_fists(canvas, st, fig, 1.25, Color("#e9a83c"))
+
+func _attack_quaker(canvas: Image, st: Dictionary) -> void:
+	_ground_slam(canvas, st, 1.0)
+
+func _attack_earthshaker(canvas: Image, st: Dictionary) -> void:
+	_ground_slam(canvas, st, 1.3)
+
+# The slam: a thick shock ring rolling out over the ground, dust bursting up at both fists.
+func _ground_slam(canvas: Image, st: Dictionary, size: float) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var c := Vector2(31.5, 44)
+	for w in 3:
+		_ring(canvas, c, Vector2(14 + k * 8 - w, 5 + k * 3 - w * 0.4) * size, Color("#fcd47c") if w == 0 else Color("#bca48c"), k == 2 and w > 0)
+	for s: int in [-1, 1]:
+		_fog(canvas, Vector2(31.5 + s * 21.0, 40 - k * 2), Vector2(7 + k * 2, 4 + k), Color("#dccdb2"), st.f + k)
+	if k == 0:
+		_warm_glow(canvas, c, Vector2(16, 6))
+
+# Epic finals, the family's floating stones each its own way.
+# Edgestone: three honed stone blades floating round it, edges glinting.
+func _epic_edgestone(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	for k in 3:
+		var bob: float = [0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 0.0][(st.f + k * 3) % 8]
+		var c: Vector2 = [Vector2(6, 16), Vector2(31.5, -12), Vector2(58, 6)][k] + Vector2(0, bob)
+		var d := Vector2.from_angle([-1.0, -1.57, -2.1][k])
+		var blade := _layer()
+		_flat_polygon(blade, PackedVector2Array([c - d * 7.0, c + d.orthogonal() * 2.2, c + d * 7.0, c - d.orthogonal() * 2.2]), Color("#b4b0c8"))
+		_line(blade, [c - d * 6.0, c + d * 6.0], Color("#ffffff"))
+		_stamp(canvas, blade, EPIC_O)
+		if (st.f + k) % 4 == 0:
+			_sparkle(canvas, Vector2i((c + d * 6.0).round()), core)
+
+# Bastion: rocks hanging over its wall, ready to fall, dust trickling from them.
+func _epic_bastion(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	for k in 3:
+		var bob: float = [0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 0.0][(st.f + k * 2) % 8]
+		var c: Vector2 = [Vector2(10, -2), Vector2(26, -12), Vector2(38, -6)][k] + Vector2(0, bob)
+		var pts := PackedVector2Array()
+		for i in 6:
+			var a := i * TAU / 6.0 + k
+			pts.append(c + Vector2(cos(a) * 5.5, sin(a) * 4.8))
+		_rock(canvas, pts, _ramp(cfg.tint), EPIC_O)
+		for i in 3:
+			_px(canvas, int(c.x) - 1 + i, int(c.y) + 6 + (st.f + i * 2) % 5, Color(glow, 0.8))
+
+# Earthshaker: rubble lifted off the ground by its stomps, hanging in the air round it, glowing below.
+func _epic_earthshaker(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	for k in 6:
+		var t := float((st.f + k * 3) % 8) / 8.0
+		var c := Vector2([6, 14, 22, 41, 49, 57][k], 34 - t * 18.0 - (k % 3) * 4)
+		var s: float = [2.6, 3.4, 2.2, 2.4, 3.2, 2.6][k]
+		var pts := PackedVector2Array()
+		for i in 5:
+			var a: float = i * TAU / 5.0 + k + t * 2.0
+			pts.append(c + Vector2(cos(a), sin(a)) * s)
+		_rock(canvas, pts, _ramp(cfg.tint), EPIC_O)
+		_px(canvas, int(c.x), int(c.y + s) + 1, glow)
+
+# Whetstone's shot: a bright crescent of a cut flying edge-first (pointing right), a pale trail.
+func _proj_whetstone_slash(canvas: Image, f: int) -> void:
+	var c := Vector2(30, 32)
+	for i in 24:
+		var a: float = -1.2 + i * 2.4 / 23.0
+		var w: float = sin(i / 23.0 * PI) * 2.2
+		for j in range(0, int(w) + 1):
+			var p := c + Vector2(cos(a), sin(a)) * (7.0 - j)
+			_px(canvas, roundi(p.x), roundi(p.y), Color("#ffffff") if j == 0 else Color("#9cd4fc"))
+	for k in 6:
+		_px(canvas, 23 - k - f % 2, 32 + (k % 2), Color("#dce8f4", 0.8 - k * 0.12))

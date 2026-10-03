@@ -60,6 +60,13 @@
 			],
 			"projectile": "autumn_seed"
 		},
+		"bastion": {
+			"kind": "pulse",
+			"point": [
+				31,
+				44
+			]
+		},
 		"beacon": {
 			"kind": "pulse",
 			"point": [
@@ -165,12 +172,27 @@
 			],
 			"projectile": "spore"
 		},
+		"earthshaker": {
+			"kind": "pulse",
+			"point": [
+				31,
+				44
+			]
+		},
 		"echo_hollow": {
 			"kind": "echo",
 			"point": [
 				34,
 				29
 			]
+		},
+		"edgestone": {
+			"kind": "projectile",
+			"point": [
+				52,
+				20
+			],
+			"projectile": "whetstone_slash"
 		},
 		"elder_stump": {
 			"kind": "pulse",
@@ -487,6 +509,13 @@
 			],
 			"projectile": "spore"
 		},
+		"quaker": {
+			"kind": "pulse",
+			"point": [
+				31,
+				44
+			]
+		},
 		"rain_lily": {
 			"kind": "projectile",
 			"point": [
@@ -500,6 +529,13 @@
 			"point": [
 				30,
 				9
+			]
+		},
+		"rampart": {
+			"kind": "pulse",
+			"point": [
+				31,
+				44
 			]
 		},
 		"resonance": {
@@ -675,6 +711,14 @@
 				48,
 				16
 			]
+		},
+		"whetstone": {
+			"kind": "projectile",
+			"point": [
+				52,
+				22
+			],
+			"projectile": "whetstone_slash"
 		},
 		"whirligig": {
 			"kind": "gust",
