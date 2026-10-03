@@ -1097,6 +1097,9 @@ func _test_impact_conditions() -> void:
 	var ties := dreams.preview_card_impact(_card("family_ties"))
 	_check(ties.kind == &"none" and ties.text == "None of your Wardens yet" and ties.towers.is_empty(),
 		"Family Ties with no Kinship: \"None of your Wardens yet\" (%s)" % ties.text)
+	var sunlit := dreams.preview_card_impact(_card("sunlit_rest"))
+	_check(sunlit.towers.size() == 1 and sunlit.text == "Reaches one of your Wardens",
+		"Sunlit Rest counts the one Warden the next rest raises, not all attackers (%s)" % sunlit.text)
 	var glint := dreams.preview_card_impact(_card("glinting_dew"))
 	_check(glint.text == "Reaches all 3 attackers" and glint.towers.is_empty(), "a global card: \"%s\", nothing pulses" % glint.text)
 	_clear()

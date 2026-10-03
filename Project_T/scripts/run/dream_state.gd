@@ -1465,6 +1465,8 @@ func get_live_bonus_text(card: UpgradeData) -> String:
 			return "+%d%%" % roundi(100 * minf(0.01 * (count_attackers() / MANY_HANDS_PER), MANY_HANDS_MAX))
 		&"canopy":
 			return "+%d%%" % roundi(100 * CANOPY_BONUS * canopy_steps_reached())
+		&"sunlit_rest":  # Short under the icon: the Warden the next rest raises (the card's live line says the sentence)
+			return " and ".join(sunlit_targets().map(func(t: Tower) -> String: return t.tower_data.display_name))
 	return ""
 
 func get_attack_speed_multiplier(data: TowerData) -> float:
@@ -2559,22 +2561,41 @@ func _clear_all(kind: ObstacleData) -> void:
 # Sunlit Rest: the ranked Warden(s) nearest the Heartwood that can still gain a rank get one free
 # (II: two). Nurture v3: a free rank takes the Warden's default choice (Tower.nurture(0), never asks).
 # With none, unranked attacking Wardens get rank I instead.
+# Sunlit Rest (dream_design.md 06143ab9, user: the old ranked-first / rank-I rule was "confusing"): at every rest the
+# nurturable Warden nearest the Heartwood (path distance, group-Nurture order) gains a free rank, ranked or not; one at
+# its top rank (V; VII for the Eldest with Deeper Rings) passes it to the next-nearest. II: the two nearest. The rank
+# repeats the Warden's last choice, or Power (support Wardens: Strong) when it has none; no pop-up at the rest.
 func sunlit_rest() -> Array[Tower]:
 	var raised: Array[Tower] = []
-	var seller := get_node_or_null("%TowerSeller")
-	var ranked: Array = _towers().filter(func(t: Tower) -> bool:
-		return t.rank > 0 and t.rank < mini(FREE_RANK_MAX, get_max_rank_for(t)) and t.can_nurture())  # Free ranks stop at VII (V unless the Eldest)
-	if ranked.is_empty():  # An opener (Pool trim round 2): rank I to the attacking Warden nearest the Heartwood
-		ranked = _towers().filter(func(t: Tower) -> bool:
-			return t.rank == 0 and t.tower_data.can_attack and t.can_nurture())
-	if seller and seller.has_method("sort_by_heartwood"):
-		ranked = seller.sort_by_heartwood(ranked)  # Same order as group Nurture
-	for tower in ranked:
-		if raised.size() >= SUNLIT_WARDENS[rule_level(&"sunlit_rest")]:
-			break
-		tower.nurture(0)  # A free rank (adds no Dew to what it's worth)
+	for tower in sunlit_targets():
+		tower.nurture(0, sunlit_choice(tower))  # A free rank (adds no Dew to what it's worth)
 		raised.append(tower)
 	return raised
+
+# The Warden(s) the next rest's free rank goes to, nearest the Heartwood first.
+func sunlit_targets(count: int = -1) -> Array[Tower]:
+	var seller := get_node_or_null("%TowerSeller")
+	var open: Array = _towers().filter(func(t: Tower) -> bool:
+		return t.can_nurture() and t.rank < mini(FREE_RANK_MAX, get_max_rank_for(t)))  # Free ranks stop at V (VII: the Eldest)
+	if seller and seller.has_method("sort_by_heartwood"):
+		open = seller.sort_by_heartwood(open)  # Same order as group Nurture
+	var out: Array[Tower] = []
+	for tower in open.slice(0, count if count >= 0 else SUNLIT_WARDENS[rule_level(&"sunlit_rest")]):
+		out.append(tower)
+	return out
+
+func sunlit_choice(tower: Tower) -> Tower.Focus:
+	if not tower.rank_choices.is_empty():
+		return tower.rank_choices[-1] as Tower.Focus
+	return Tower.Focus.STRONG if tower.is_support() else Tower.Focus.POWER
+
+# "Next rest: your Monsoon by the Heartwood" (the Dreams row and the card's live line).
+func sunlit_line() -> String:
+	var targets := sunlit_targets()
+	if targets.is_empty():
+		return "Next rest: no Warden to raise"
+	var names: Array = targets.map(func(t: Tower) -> String: return t.tower_data.display_name)
+	return "Next rest: your %s by the Heartwood" % " and ".join(names)
 
 # Remembered Care: selling a ranked Warden leaves a memory seed (II: keeps two, highest first).
 func _on_tower_sold(tower: Tower, _refund: int) -> void:
@@ -4262,6 +4283,9 @@ func preview_card_impact(card: UpgradeData) -> Dictionary:
 		result.text = ("%d of your Wardens qualify" % qualifying) if qualifying > 0 else "None of your Wardens qualify yet"
 		return result
 	if card.kind == UpgradeData.Kind.RULE:
+		if card.rule_id == &"sunlit_rest":  # The Warden(s) nearest the Heartwood that the next rest raises
+			active_on = sunlit_targets(SUNLIT_WARDENS[1 if card.is_deepened() else 0])  # II: the two nearest
+			has_rows = true
 		# A card with effect rows has its own condition (Family Ties: Wardens in a Kinship): count only the Wardens it's
 		# active on (user screenshot: "Triggers on all 8 attackers" with no Kinship on the map)
 		if card.tags.has("kinship") and not has_rows:  # Kinship cards (Family Ties…): the Wardens in a Kinship

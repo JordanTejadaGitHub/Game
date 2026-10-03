@@ -730,10 +730,12 @@ static func count_text(n: int, word: String, plural: String = "") -> String:
 
 # Cards whose live line comes from the run rather than a Warden's row.
 const STATE_LINES: Array[StringName] = [&"winding_path", &"deep_well", &"canopy", &"old_growth", &"bitter_hedges",
-	&"hedge_maze", &"crowded_path", &"lone_hunter", &"last_stand", &"quick_step"]
+	&"hedge_maze", &"crowded_path", &"lone_hunter", &"last_stand", &"quick_step", &"sunlit_rest"]
 
 func _state_line(rule: StringName, power: float) -> String:
 	match rule:
+		&"sunlit_rest":
+			return ds.sunlit_line()
 		&"winding_path":
 			var tiles: int = ds.path_length
 			return "Now: %s · +%d Dew per rest" % [count_text(tiles, "path tile"),

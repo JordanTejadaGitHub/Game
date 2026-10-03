@@ -29,6 +29,7 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var woven: bool = false
 # Bittersweet cards (tag "bittersweet"): the lasting cost, shown on its own line in plum.
 @export_multiline var cost_description: String = ""
+@export_multiline var tip: String = ""  # Hover / tap detail behind the face text (Sunlit Rest: which rank, who gets it)
 
 @export_group("Unlock")
 @export var unlocks: TowerData  # UNLOCK_WARDEN / UNLOCK_EVOLUTION
