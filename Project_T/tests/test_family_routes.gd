@@ -59,6 +59,10 @@ func _run() -> void:
 		var missing: Node = card.find_child("NotInDream", true, false) if card != null else null
 		_check(regular <= dreams.branch_offer_size(data) or (missing != null and missing.get_child_count() == regular - lanes.size() + 1),
 			"%s: the other %d as 'not in this dream' silhouettes" % [data.display_name, regular - lanes.size()])
+		var offer_line: Label = card.find_child("OfferLine", true, false)
+		var size: int = dreams.branch_offer_size(data)
+		_check(regular <= size or (offer_line != null and offer_line.text == "This dream offers %d of %d branches, different each run." % [size, regular]
+			and offer_line.tooltip_text.contains("Dreamlight")), "%s: says the branches are drawn per run (%s)" % [data.display_name, offer_line.text if offer_line else "none"])
 		for lane in card.find_children("Route_*", "", true, false):
 			var branch: TowerData = lane.get_meta(&"branch")
 			var final: TowerData = family.final_of(branch)
@@ -95,7 +99,8 @@ func _run() -> void:
 	family = main.get_node("%FamilyPickScreen")
 	family.show_pick(&"first")
 	await process_frame
-	_check(family._cards.find_children("NotInDream", "", true, false).is_empty(), "demo: no 'not in this dream' row")
+	_check(family._cards.find_children("NotInDream", "", true, false).is_empty() and family._cards.find_children("OfferLine", "", true, false).is_empty(),
+		"demo: no 'not in this dream' row, no per-run line")
 	for data: TowerData in _card_routes(family):
 		_check(_card_routes(family)[data].size() == main.get_node("%DreamState").regular_branches(data).size(), "demo: %s shows its fixed branches" % data.display_name)
 	main.queue_free()

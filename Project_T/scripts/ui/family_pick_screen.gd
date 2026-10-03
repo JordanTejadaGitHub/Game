@@ -346,6 +346,11 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 	UiStyle.caps(head, 13, UiStyle.WHISPER)
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(head)
+	# Say plainly that the branches are drawn per run (user via story chat; Remember shows the same line).
+	var regular: int = dream_state.regular_branches(data).size() if DreamState.branch_expansion_on() else 0
+	var size: int = dream_state.branch_offer_size(data)
+	if regular > size:
+		box.add_child(_offer_line(data, size, regular))
 	for branch: TowerData in offered:
 		box.add_child(_route_lane(branch))
 	var missing: Array = routes.not_offered
@@ -396,6 +401,16 @@ func _route_lane(branch: TowerData) -> Control:
 		tip += "\n" + counters_text(branch)
 	lane.tooltip_text = tip
 	return lane
+
+# "This dream offers 2 of 5 branches, different each run." Hover / tap: the call-in rule.
+const OFFER_LINE := "This dream offers %d of %d branches, different each run."
+const OFFER_TIP := "The others aren't in this dream. Call one in on Remember for %d Dreamlight, once per family."
+
+func _offer_line(data: TowerData, size: int, regular: int) -> Label:
+	var line := _lane_line(OFFER_LINE % [size, regular], 12, UiStyle.INK_DIM, "OfferLine")
+	line.mouse_filter = Control.MOUSE_FILTER_PASS
+	line.tooltip_text = OFFER_TIP % dream_state.call_back_cost(data)
+	return line
 
 # One line of a lane's words: wraps within the card (a long name takes two lines), never trimmed.
 func _lane_line(text: String, size: int, colour: Color, node_name: String) -> Label:
