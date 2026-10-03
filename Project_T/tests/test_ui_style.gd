@@ -47,6 +47,15 @@ func _initialize() -> void:
 		var font: FontFile = load(UiStyle.FONT_DIR + file)
 		_check(font != null and font.subpixel_positioning == TextServer.SUBPIXEL_POSITIONING_DISABLED,
 			"%s imports with subpixel positioning off" % file)
+	# Word gaps stay visible at fractional UI scales (2026-10-02: "Asmall splash"): every UI face adds
+	# SPACE_EXTRA to the space advance.
+	for face: Font in [UiStyle.body_font(), UiStyle.body_medium_font(), UiStyle.display_font(), UiStyle.number_font(),
+			UiStyle.caps_font(), UiStyle.whisper_font()]:
+		_check(face is FontVariation and (face as FontVariation).spacing_space >= UiStyle.SPACE_EXTRA,
+			"%s adds space width" % face)
+	var saved_default: Theme = load(UiStyle.THEME_PATH)
+	_check(saved_default.default_font is FontVariation and (saved_default.default_font as FontVariation).spacing_space >= 1,
+		"the saved theme's default font has the extra space (re-run the generator?)")
 	# Every glyph id has a non-empty cell inside the sheet (a blank region drew a white square).
 	var sheet: Texture2D = load(UiStyle.DREAM_GLYPHS + ".png")
 	var glyph_ids: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(UiStyle.DREAM_GLYPHS + ".json")).icons
