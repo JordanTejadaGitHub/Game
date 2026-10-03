@@ -170,6 +170,51 @@ static func badges_visible() -> bool:
 func get_badge_cards() -> Array:
 	return _badge_cards
 
+# Whether a rule card (one that changes no stat) reaches this Warden, for the pick's bloom (DreamState's
+# preview_card_impact): its named Warden or line; else the status it's about (Wardens that apply it); else the
+# lines of the Wardens it requires (a Reaction card's ingredients); else its Warden-line tags; else none (a global or
+# nightmare-side card pulses no Warden). Deepened cards use their base's filter.
+func is_reached_by_rule(card: UpgradeData) -> bool:
+	if card == null:
+		return false
+	var base := card
+	if card.deepens != "" and ResourceLoader.exists("res://resource/dream/%s.tres" % card.deepens):
+		var deepened = load("res://resource/dream/%s.tres" % card.deepens)
+		if deepened is UpgradeData:
+			base = deepened
+	if base.stat_warden != "" or base.stat_line != "" or base.count_line != "":
+		return (base.stat_warden == "" or base.stat_warden == tower_data.get_id()) \
+			and (base.stat_line == "" or base.stat_line == tower_data.line) \
+			and (base.count_line == "" or base.count_line == tower_data.line)
+	var statuses: Array[StringName] = base.requires_any_status.duplicate()
+	for status in [base.requires_status, base.status_id]:
+		if status != &"":
+			statuses.append(status)
+	if not statuses.is_empty():
+		var applied := get_applied_statuses(tower_data)
+		return statuses.any(func(s: StringName) -> bool: return applied.has(s))
+	var lines: Array[String] = []  # Required Wardens (a Reaction card's ingredients): their lines
+	for id in base.requires:
+		var path := "res://resource/tower/%s.tres" % id
+		if ResourceLoader.exists(path):
+			var required = load(path)
+			if required is TowerData and not lines.has(required.line):
+				lines.append(required.line)
+	if not lines.is_empty():
+		return lines.has(tower_data.line)
+	return base.tags.has(tower_data.line)
+
+# The statuses a Warden form applies (as DreamState.owned_statuses counts them).
+static func get_applied_statuses(data: TowerData) -> Array[StringName]:
+	var out: Array[StringName] = []
+	if data.applies_status != &"":
+		out.append(data.applies_status)
+	if data.extra_status != &"":
+		out.append(data.extra_status)
+	if data.freeze_duration > 0.0 or DreamState.HELD_SOURCES.has(data.get_id()):
+		out.append(EnemyStatuses.HELD)
+	return out
+
 func _refresh_badge() -> void:
 	if is_inside_tree():
 		_refresh_dream_rows()  # The badges come from the same pass as the Dream bonuses
