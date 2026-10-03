@@ -241,11 +241,20 @@ func _clear_top() -> float:
 		if not (node is Control) or not node.visible or node == self:
 			continue
 		if node is ComingStrip or node.name == "DriftBanner":
-			top = maxf(top, node.get_global_rect().end.y - hud.global_position.y + 10.0)
+			top = maxf(top, _lowest(node) - hud.global_position.y + 8.0)
 	var reminder := hud.find_child("BossReminder", true, false) as Control
 	if reminder != null and reminder.is_visible_in_tree():
-		top = maxf(top, reminder.get_global_rect().end.y - hud.global_position.y + 10.0)
+		top = maxf(top, _lowest(reminder) - hud.global_position.y + 8.0)
 	return top
+
+# The real bottom of `node`'s visible contents: the Coming strip's lead entry and its trait label hang below the strip's
+# own rect (user screenshot: a hint over "Flies").
+static func _lowest(node: Control) -> float:
+	var bottom := node.get_global_rect().end.y
+	for child in node.find_children("*", "Control", true, false):
+		if child.is_visible_in_tree() and child.size.y > 0.0:
+			bottom = maxf(bottom, child.get_global_rect().end.y)
+	return bottom
 
 # A choice screen (family pick, Dream, gift, Omen) is open: hints wait behind it (user screenshot: a hint across the
 # family cards), except the ones about that screen. One already showing pauses, hidden, and goes on after.

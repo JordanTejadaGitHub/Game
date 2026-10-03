@@ -15,9 +15,14 @@ class_name RuleBreakers
 
 const PLATE_TIME := 4.0  # Seconds a first-appearance name plate stays
 const PLATE_LIFT := 52.0  # Pixels above the nightmare
-const LINE_WIDTH_SHARE := 0.5  # Of the route mist's width
-const LINE_ALPHA := 0.5  # At a rest before them
-const LINE_ALPHA_FIELD := 0.25  # While they're on the field
+const LINE_WIDTH := 19.0  # User: "a bit more visible" (it was half the route mist's width, 12)
+const LINE_ALPHA := 0.7  # At a rest before them
+const LINE_ALPHA_FIELD := 0.35  # While they're on the field
+const CORE_WIDTH := 4.0  # A brighter Wraithlight thread down its middle
+const CORE_ALPHA := 0.45  # × the line's alpha
+const WISPS := 3  # Small wisps drifting along it toward the Heartwood, like the run-start route mist
+const WISP_SPEED := 0.12  # Of the line's length per second
+const WISP_RADIUS := 5.0
 const REFRESH := 0.25  # Seconds between checks (real time)
 
 const VERBS := {EnemyData.Trait.FLYING: "flies", EnemyData.Trait.ROLLING: "sprints", EnemyData.Trait.TRAMPLE: "tramples",
@@ -33,6 +38,10 @@ var map: Node
 var spawner: Node
 var line_shown := false  # The flyer mist line is up (tests)
 var line := Line2D.new()  # Start → Heartwood, in RouteLine's mist style
+var _core := Line2D.new()  # Its brighter thread
+var _wisps := Node2D.new()  # The drifting wisps (drawn while the line shows)
+var _wisp_clock := 0.0
+var _line_alpha := 0.0
 var _plates: Array = []  # [enemy, seconds left]
 var _plated := {}  # Kind -> true: its first-appearance plate was shown this run
 var _clock := 0.0
@@ -47,6 +56,14 @@ func _ready() -> void:
 	line.name = "FlyerLine"
 	line.visible = false
 	add_child(line)
+	_core.name = "Core"
+	_core.width = CORE_WIDTH
+	_core.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_core.end_cap_mode = Line2D.LINE_CAP_ROUND
+	line.add_child(_core)  # Shown and hidden with the line
+	_wisps.name = "Wisps"
+	_wisps.draw.connect(_draw_wisps)
+	line.add_child(_wisps)
 	_plate_layer.z_index = 9  # -1 + 9: over the nightmares, like MistCount
 	_plate_layer.draw.connect(_draw_plates)
 	add_child(_plate_layer)
@@ -115,6 +132,9 @@ static func wall_flyers_coming(drift_director: DriftDirector) -> bool:
 
 func _process(delta: float) -> void:
 	var real_delta := delta / maxf(Engine.time_scale, 0.001)
+	if line.visible and not bool(Fx.setting("reduced_motion", false)):
+		_wisp_clock += real_delta
+		_wisps.queue_redraw()  # Only while the line shows
 	if not _plates.is_empty():
 		for plate in _plates:
 			plate[1] -= real_delta
@@ -150,8 +170,27 @@ func _show_line(alpha: float) -> void:
 		line.points = PackedVector2Array([map.MAP_GRID.calculate_map_position(map.startPath),
 			map.MAP_GRID.calculate_map_position(map.endPath)])
 		RouteLine.style_mist(line, alpha)
-		line.width *= LINE_WIDTH_SHARE
+		line.width = LINE_WIDTH
+		_core.points = line.points
 	line.default_color = Color(1, 1, 1, alpha)  # multiplier: the art carries the colour
+	_core.default_color = Color(Palette.WRAITHLIGHT, CORE_ALPHA * alpha)  # A child: the line's colour doesn't reach it
+	_line_alpha = alpha
+	_wisps.queue_redraw()
+
+# Wisps drifting from the start toward the Heartwood along the line: soft cold dots, evenly spaced, fading in and out
+# at the ends. Still (evenly placed) under reduced motion.
+func _draw_wisps() -> void:
+	if line.points.size() < 2:
+		return
+	var a: Vector2 = line.points[0]
+	var b: Vector2 = line.points[1]
+	for i in WISPS:
+		var t := fposmod(_wisp_clock * WISP_SPEED + float(i) / WISPS, 1.0)
+		var fade := minf(t, 1.0 - t) * 4.0 * _line_alpha / LINE_ALPHA  # In at the start, out at the Heartwood; fainter on the field
+		var at := a.lerp(b, t)
+		var colour := Palette.WRAITHLIGHT
+		_wisps.draw_circle(at, WISP_RADIUS * 1.8, Color(colour, 0.12 * clampf(fade, 0.0, 1.0)))
+		_wisps.draw_circle(at, WISP_RADIUS, Color(colour, 0.35 * clampf(fade, 0.0, 1.0)))
 
 func _on_spawned(node: Node) -> void:
 	var data = node.get("enemy_data")

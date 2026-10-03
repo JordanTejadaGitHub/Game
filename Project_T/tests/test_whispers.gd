@@ -79,7 +79,7 @@ func _run() -> void:
 	var covered := false
 	for node in main.get_node("HUD").get_children():
 		if node is Control and node.visible and node != whispers and (node is ComingStrip or node.name == "DriftBanner"):
-			if node.get_global_rect().intersects(hint_rect):
+			if Rect2(node.get_global_rect().position, Vector2(node.get_global_rect().size.x, whispers._lowest(node) - node.get_global_rect().position.y)).intersects(hint_rect):
 				covered = true
 	_check(not covered, "the hint sits under the Coming strip and the banner, never across them")
 	_check(is_equal_approx(whispers.show_time("Short."), 7.0) and is_equal_approx(whispers.show_time("x".repeat(100)), 10.0),
