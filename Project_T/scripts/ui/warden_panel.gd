@@ -26,6 +26,7 @@ var _damage_type := _header.damage_type  # Under the title: the damage type name
 var _desc := _header.desc  # What it does, with its status words as links (StatusLinks)
 var _stats := _header.stats  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var _buffs := VBoxContainer.new()  # Buffs: every source of this Warden's power (BuffSources), then the total
+var _ranks_row := HFlowContainer.new()  # Its rank picks ("Power ×2 · Reach"), an old one dimmed when its form ignores it
 var _map_note := Label.new()  # "+N more not labelled on the map" (BuffOverlay's chips had no room for them)
 var _body := Label.new()
 var _groups := VBoxContainer.new()  # Several selected: one row per kind with its portrait
@@ -65,6 +66,9 @@ func _ready() -> void:
 	_scroll.add_child(content)
 	_content = content
 	content.add_child(_header)
+	_ranks_row.name = "RankPicks"
+	_ranks_row.add_theme_constant_override("h_separation", 8)
+	content.add_child(_ranks_row)
 	_buffs.add_theme_constant_override("separation", 1)
 	content.add_child(_buffs)
 	_map_note.name = "MapNote"
@@ -148,8 +152,7 @@ func _refresh() -> void:
 		_title.text += " · Rank %s" % Tower.rank_name(_tower.rank)
 		if _is_eldest(_tower):
 			_title.text += " · Eldest"
-		if _tower.choices_text() != "":
-			_title.text += " · %s" % _tower.choices_text()  # "Power ×2, Reach"
+	_fill_rank_picks()
 	_title.tooltip_text = ""
 	if _tower.rank > 0:
 		_title.tooltip_text = IconInfo.stat_tooltip(&"rank") + "\n" + IconInfo.stat_tooltip(&"focus")
@@ -287,6 +290,10 @@ func _refresh() -> void:
 					button.tooltip_text = "Rank %s: %s. Kept when it grows; can't be changed." % [
 						Tower.rank_name(_tower.rank + 1), _tower.focus_text(which)] + _growth_note()
 					button.set_meta(&"cost", 0 if _free_rank() else cost)
+					if _tower.has_method("choice_available") and not _tower.choice_available(which):
+						button.disabled = true  # A one-time choice already taken ("Already taken: Kindred works once")
+						button.tooltip_text = _tower.choice_blocker(which)
+						continue
 					_mark_choice(button, _free_rank() or run_state.can_afford(cost))  # Picking one plays the refusal (spend_dew)
 					button.pressed.connect(_nurture_with.bind(which))
 					_rank_preview_on(button, [_tower], which)
@@ -323,6 +330,7 @@ func _is_eldest(tower: Tower) -> bool:
 # [text, status id, true] for a status (&"" = plain text).
 # Several Wardens selected: grouped by kind, with totals, group grow buttons and Sell all.
 func _refresh_group() -> void:
+	_ranks_row.visible = false  # One Warden's picks only
 	var selection := tower_seller.selection
 	var groups := tower_seller.get_selection_groups()
 	_title.text = "%d Wardens selected" % selection.size()
@@ -413,8 +421,10 @@ func _refresh_group() -> void:
 		else:
 			button = _choice_row(index, Tower.FOCUS_NAMES[which], "%d of %d" % [plan_focus[0].size(), cost[0]], _price(plan_focus[1]))
 			_mark_choice(button, not plan_focus[0].is_empty())  # None affordable: the press plays the refusal
+		# The selected Warden's real change when it offers this choice ("holds every 3.0 → 2.7 s"), else the general text.
+		var lead: Tower = _tower if is_instance_valid(_tower) and _tower.focus_options().has(which) else null
 		button.tooltip_text = "Each gains a rank of %s: %s. Kept when it grows; can't be changed." % [
-			Tower.FOCUS_NAMES[which], Tower.FOCUS_TEXT[which]]
+			Tower.FOCUS_NAMES[which], lead.focus_text(which) if lead != null else Tower.FOCUS_TEXT[which]]
 		button.pressed.connect(func() -> void:
 			_choosing = false
 			tower_seller.nurture_group(tower_seller.selection, which))
@@ -768,6 +778,35 @@ func _not_in_dream_button(data: TowerData) -> void:
 	button.tooltip_text = "%s: not in this dream. Call one back on Remember." % ", ".join(hidden.map(
 		func(form: TowerData) -> String: return form.display_name))
 	button.pressed.connect(func() -> void: dream_state.open_remember(hidden[0]))
+
+# Every rank pick, in its colour, counted ("Swift ×2"); one its current form doesn't use is dimmed with "no effect on
+# <form>" (Nurture rework, Tower Code e2631f54: Tower.choice_applies). Empty for an unranked Warden.
+func _fill_rank_picks() -> void:
+	for child in _ranks_row.get_children():
+		_ranks_row.remove_child(child)
+		child.queue_free()
+	_ranks_row.visible = _tower != null and _tower.rank > 0 and not _tower.rank_choices.is_empty()
+	if not _ranks_row.visible:
+		return
+	var order: Array = []
+	for which in _tower.rank_choices:
+		if not order.has(which):
+			order.append(which)
+	for which in order:
+		var n: int = _tower.rank_choices.count(which)
+		var pick := Label.new()
+		pick.name = "Pick_%d" % int(which)
+		pick.text = Tower.FOCUS_NAMES.get(which, "?") + (" ×%d" % n if n > 1 else "")
+		pick.add_theme_font_size_override("font_size", 14)
+		pick.add_theme_color_override("font_color", Tower.FOCUS_COLORS.get(which, UiStyle.INK))
+		pick.mouse_filter = Control.MOUSE_FILTER_PASS
+		var applies: bool = _tower.choice_applies(which) if _tower.has_method("choice_applies") else true
+		if applies:
+			pick.tooltip_text = _tower.focus_text(which)
+		else:
+			pick.modulate.a = 0.4  # multiplier: dimmed, it does nothing here
+			pick.tooltip_text = "No effect on %s" % _tower.tower_data.display_name
+		_ranks_row.add_child(pick)
 
 func _update_cover() -> void:
 	WorldLabel.set_cover(&"warden_panel", get_global_rect(), is_visible_in_tree())
