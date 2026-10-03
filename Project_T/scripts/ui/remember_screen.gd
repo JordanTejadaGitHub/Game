@@ -25,7 +25,7 @@ const NAME_SIZE := 14  # Form names under the portraits (body font)
 const NAME_MIN_SIZE := 11  # A long name shrinks to this, then wraps onto two lines
 const NAME_FLOOR_SIZE := 9  # …and a still-too-wide line shrinks down to this (never cut)
 const PORTRAIT := 56.0
-const TREE_SIZE := Vector2(560, 390)  # Shorter since the "Not in this dream" strip sits under it (fits 1280×800)
+const TREE_SIZE := Vector2(560, 380)  # Shorter for the "Not in this dream" strip under it and the offer line above (fits 1280×800)
 const SIDE_WIDTH := 300.0
 const NARROW_WIDTH := 900.0  # Below this the side panel sits under the tree and slides up
 const FRAME_TIME := 0.16  # Idle animation
@@ -54,6 +54,7 @@ var _canvas: TreeCanvas
 var _side := PanelContainer.new()
 var _side_box := VBoxContainer.new()
 var _misty := VBoxContainer.new()  # "Not in this dream": the family's branches not offered this run
+var _offer_line := Label.new()  # "This dream offers 2 of 5 branches, different each run. …"
 var _dev_free := CheckButton.new()  # "Dev: unlock free" (dev runs of debug builds)
 
 func _ready() -> void:
@@ -86,6 +87,9 @@ func _ready() -> void:
 	hint.text = "Dreamlight unlocks, Dew grows."
 	hint.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	box.add_child(hint)
+	_offer_line.name = "OfferLine"  # Branch expansion: the branches are random each run (story chat, user)
+	_offer_line.add_theme_color_override("font_color", UiStyle.INK)
+	box.add_child(_offer_line)
 
 	_tabs.add_theme_constant_override("separation", 6)
 	box.add_child(_tabs)
@@ -213,6 +217,19 @@ func _rebuild() -> void:
 	_canvas.show_tree(shown)
 	_fill_side(selected)
 	_fill_misty(shown[0])
+	_offer_line.text = offer_line(shown[0])
+	_offer_line.visible = _offer_line.text != ""
+
+# The line above the tree (user: players should be told the branches are random): "This dream offers 2 of 5
+# branches, different each run. Call others in with Dreamlight." ("" outside the branch expansion, or for a family
+# offering all it has). "Branches", not "paths": a path is the maze's route (text_style.md).
+func offer_line(root: TowerData) -> String:
+	if root == null or root.tier != 1 or dream_state.not_offered_branches(root).is_empty():
+		return ""
+	return "This dream offers %d of %d branches, different each run. Call others in with Dreamlight." % [  # As the family pick
+		dream_state.branch_offer_size(root), dream_state.regular_branches(root).size()]
+
+const MISTY_TIP := "Each run the dream offers only some of a family's branches, at random. These weren't drawn this time: call one in for Dreamlight (once per family), or find the Remembered Path card. The Heartwood may offer them next run."
 
 # The strip under the tree (story chat: the not-offered branches beside the base read as its siblings): each
 # branch of `root`'s family not in this run, a faint silhouette with its name and "Call in · 3 Dreamlight" (once per
@@ -231,6 +248,8 @@ func _fill_misty(root: TowerData) -> void:
 	head.text = "Not in this dream"
 	UiStyle.caps(head, 15)
 	head.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	head.tooltip_text = MISTY_TIP  # Hover or tap: why these aren't in the tree
+	head.mouse_filter = Control.MOUSE_FILTER_PASS
 	_misty.add_child(head)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 18)
@@ -244,7 +263,7 @@ func _fill_misty(root: TowerData) -> void:
 		look.flat = true
 		look.focus_mode = Control.FOCUS_NONE
 		look.custom_minimum_size = Vector2(MISTY_PORTRAIT, MISTY_PORTRAIT)
-		look.tooltip_text = form.display_name + " · not in this dream"
+		look.tooltip_text = form.display_name + " · not in this dream\n\n" + MISTY_TIP
 		look.draw.connect(func() -> void:  # The moonlit disc behind the silhouette (as on the tree), faint
 			UiStyle.draw_moon_disc(look, look.size / 2.0, MISTY_PORTRAIT / 2.0 - 1))
 		look.modulate = Color(1, 1, 1, 0.6)  # multiplier: the mist

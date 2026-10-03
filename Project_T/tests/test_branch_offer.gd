@@ -149,6 +149,8 @@ func _run() -> void:
 	_check(screen.state_of(misty) == RememberScreen.State.NOT_IN_DREAM and not nodes.has(misty) and not nodes.has(misty.evolves_to[0]),
 		"Remember keeps it and its final out of the tree")
 	_check(nodes.has(shown_branch) and nodes.has(shown_branch.evolves_to[0]), "…the tree shows this run's branches and their finals")
+	_check(screen._offer_line.visible and screen._offer_line.text.begins_with("This dream offers 2 of 5 branches, different each run."),
+		"a line above the tree says the branches are random (\"%s\")" % screen._offer_line.text)
 	var strip_item := screen._misty.find_child("Misty_" + misty.get_id(), true, false)
 	var call_in: Button = strip_item.find_child("CallIn", true, false) if strip_item else null
 	_check(screen._misty.visible and strip_item != null and call_in != null and call_in.disabled,
