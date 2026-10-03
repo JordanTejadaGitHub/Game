@@ -245,7 +245,7 @@ Full game only; the demo is unchanged.
 - **Sky merge (Phase 3, later):** Nestling and Whirligig become one family node, the Whirligig
   hidden node goes (Samara is regular), and the two Ascension nodes become one (`tower_design.md`).
 - **One new perk** (Choice path, after Omen Reader; an option, not raw power):
-  **Wider Roots** (120): at the first family pick you name one family; it offers **3 of its 5**
+  **Wider Roots** (120): the family you take at the first family pick (its card previews 3 branches) offers **3 of its 5**
   this run, but the Dreamlight call-back costs **4** instead of 3. It's a sidegrade in Hades mode
   as well, so the Grove power cap holds.
 - **Rejected: a "pin" (always offer one chosen branch).** It brings back the same build every run,
