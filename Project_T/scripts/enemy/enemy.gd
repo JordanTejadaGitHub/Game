@@ -79,6 +79,7 @@ const HEALTH_BAR_SIZE := Vector2(40, 5)
 const HEARTWOOD_DRAIN_EVERY := 2.0  # A boss at the Heartwood takes a leaf this often (s)
 const GROUND_DROP_TIME := 0.25  # Groundroot: a flyer's drop onto the route
 const BOSS_SILENCE_SPEED := 0.5  # A silenced boss's timed abilities run this fast (Hushbell; tower_design.md 279ebb63)
+const BOSS_SILENCE_FLOOR := 0.35  # …and never slower than this, however deep the Hushbell (Nurture rework e2631f54)
 const UNTOUCHABLE_TINT := Color(0.42, 0.38, 0.55)  # The Night Mare lingering: a dark, smoky shimmer (a self_modulate multiplier)
 const UNTOUCHABLE_ALPHA := 0.55
 const AWAKE_RING_COLOR := Color(Palette.MOONLIGHT, 0.35)  # Just woke: can't fall asleep again yet
@@ -1645,7 +1646,11 @@ func _update_presence(delta: float) -> void:
 	# abilities (grief, bursts, echoes, bellow, laps) don't use this clock.
 	var ability_elapsed := elapsed
 	if silenced:
-		ability_elapsed = elapsed * BOSS_SILENCE_SPEED if enemy_data.is_boss else 0.0
+		# A Hushbell's Deep ranks slow it further (BranchKit sets the meta: 0.5 ÷ its Potency), never below the floor
+		var boss_speed: float = maxf(float(get_meta(&"silence_boss_speed", BOSS_SILENCE_SPEED)), BOSS_SILENCE_FLOOR)
+		ability_elapsed = elapsed * boss_speed if enemy_data.is_boss else 0.0
+	elif has_meta(&"silence_boss_speed"):
+		remove_meta(&"silence_boss_speed")  # The silence ended: the next one starts from half speed again
 	if enemy_data.wake_radius > 0.0 and not silenced:  # Watcher
 		for other in _others_within(enemy_data.wake_radius):
 			if other.statuses.has(EnemyStatuses.DROWSY):

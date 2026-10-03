@@ -284,6 +284,19 @@ func _run() -> void:
 	queen.statuses.silence_time = 0.0
 	queen._update_presence(0.2)
 	_check(is_equal_approx(queen._brood_timer, 0.3), "full speed again once the silence ends (%.2f)" % queen._brood_timer)
+	# A deep Hushbell (Nurture rework e2631f54) slows it further, down to the 0.35 floor
+	queen.statuses.silence_time = 100.0
+	queen.set_meta(&"silence_boss_speed", 0.4)
+	queen._brood_timer = 0.0
+	queen._update_presence(0.2)
+	_check(is_equal_approx(queen._brood_timer, 0.08), "a deeper silence: its speed from the Hushbell (%.3f)" % queen._brood_timer)
+	queen.set_meta(&"silence_boss_speed", 0.1)
+	queen._brood_timer = 0.0
+	queen._update_presence(0.2)
+	_check(is_equal_approx(queen._brood_timer, 0.07), "never below the 0.35 floor (%.3f)" % queen._brood_timer)
+	queen.statuses.silence_time = 0.0
+	queen._update_presence(0.2)
+	_check(not queen.has_meta(&"silence_boss_speed"), "the silence's speed is forgotten when it ends")
 	_clear_enemies()
 
 	# --- Barrow King: Iron Will and the Shrug ---
