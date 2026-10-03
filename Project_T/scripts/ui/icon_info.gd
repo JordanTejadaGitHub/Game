@@ -158,9 +158,19 @@ static func _counter_tags(form: TowerData) -> Array:
 	var tags = form.get("counter_tags") if form != null else null
 	return tags if tags is Array else []
 
-# "tank killer, hits flyers" (the first two), "" without tags.
+# A Warden's job when it counters nothing (TowerData.role_tag, Tower Code / Tower Discussion): the fallback role.
+const ROLE_TAG_WORDS := {&"control": "holds the line", &"setup": "sets up combos", &"support": "strengthens Wardens",
+	&"economy": "earns Dew"}
+
+# "tank killer, hits flyers" (the first two counter tags), else its role tag's words, else "".
 static func role_text(form: TowerData) -> String:
 	var words: Array = _counter_tags(form).map(func(tag: StringName) -> String: return ROLE_WORDS.get(tag, "")).filter(func(w: String) -> bool: return w != "")
+	if words.is_empty() and form != null:
+		var tag = form.get("role_tag")
+		if tag != null and ROLE_TAG_WORDS.has(StringName(tag)):
+			return ROLE_TAG_WORDS[StringName(tag)]
+		if tag != null and ROLE_WORDS.has(StringName(tag)):
+			return ROLE_WORDS[StringName(tag)]  # A counter job named as a role only (it doesn't weight the branch draw)
 	return ", ".join(words.slice(0, 2))
 
 # "Counters flyers, tanks", "" without tags.

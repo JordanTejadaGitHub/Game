@@ -1006,8 +1006,60 @@ func _family_page(root: TowerData) -> Control:
 		_family_card.get_parent().remove_child(_family_card)
 	page.add_child(_family_card)
 	_show_form_card(root)
+	if DreamState.branch_expansion_on():  # Full game (the demo keeps its current page)
+		page.add_child(_branch_list(root))
 	page.add_child(_family_links(root))
 	return page
+
+# The family's branches as a list (meta_design.md 1f25e66e, Meta Game Discussion): each regular branch → its final
+# with its one-line job, then the Grove's hidden one, and "2 offered each run" when it has more. From the data, so a
+# family expanded later fills in by itself. Forms not in your scope read "???" as on the tree.
+func _branch_list(root: TowerData) -> Control:
+	var box := VBoxContainer.new()
+	box.name = "BranchList"
+	box.add_theme_constant_override("separation", 2)
+	var regular: Array[TowerData] = []
+	var hidden: Array[TowerData] = []
+	for form in root.evolves_to:
+		if form is TowerData and form.tier == 2 and not form.parked and DreamState.in_this_edition(form):
+			(hidden if is_hidden_branch(form) else regular).append(form)
+	var head := Label.new()
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+	var offered: int = dreams.branch_offer_size(root) if dreams != null else DreamState.BRANCH_OFFER_SIZE  # Wider Roots: 3 in a run
+	head.text = "Branches" + (" · %d offered each run" % offered if regular.size() > offered else "")
+	UiStyle.caps(head, 14, UiStyle.WHISPER)
+	box.add_child(head)
+	for branch in regular + hidden:
+		var final := _final_of(branch)
+		var known := _form_in_scope(branch)
+		var line := Label.new()
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var parts: Array[String] = [branch.display_name if known else "???"]
+		if final != null:
+			parts[0] += " → " + (final.display_name if _form_in_scope(final) else "???")
+		var role := IconInfo.role_text(branch)
+		if known and role != "":
+			parts.append(role)
+		if hidden.has(branch):
+			parts.append("the Grove's hidden branch")
+		line.text = " · ".join(parts)
+		line.add_theme_font_size_override("font_size", 15)
+		line.add_theme_color_override("font_color", UiStyle.INK if known else GROVE_COLOR)
+		box.add_child(line)
+	return box
+
+static func _final_of(branch: TowerData) -> TowerData:
+	for form in branch.evolves_to:
+		if form is TowerData and form.tier == 3:
+			return form
+	return null
+
+# A branch the Memory Grove plants (its unlock card isn't in the start pool), read from the card so it works
+# outside a run (the Grove's Codex) as well.
+static func is_hidden_branch(form: TowerData) -> bool:
+	var path := "res://resource/dream/dream_%s.tres" % form.get_id()
+	var card := load(path) as UpgradeData if ResourceLoader.exists(path) else null
+	return card != null and not card.in_start_pool
 
 func _family_header(root: TowerData) -> Control:
 	var head := HBoxContainer.new()

@@ -265,7 +265,7 @@ func _fill_misty(root: TowerData) -> void:
 		call.focus_mode = Control.FOCUS_NONE
 		var problem := dream_state.call_back_problem(form)
 		var free := dream_state.free_calls > 0
-		call.text = "Call in · free" if free else "Call in · %d Dreamlight" % DreamState.CALL_BACK_DREAMLIGHT
+		call.text = "Call in · free" if free else "Call in · %d Dreamlight" % dream_state.call_back_cost(root)
 		call.disabled = problem != ""
 		call.tooltip_text = (problem[0].to_upper() + problem.substr(1) + ".") if problem != "" \
 			else "Once per family each run. Its final still costs %d." % DreamState.FINAL_DREAMLIGHT
@@ -534,13 +534,14 @@ func _add_call_back(data: TowerData) -> void:
 	button.custom_minimum_size = Vector2(0, 48)
 	var free := dream_state.free_calls > 0
 	var problem := dream_state.call_back_problem(data)
+	var cost := dream_state.call_back_cost(dream_state._parent_in_tree(data))  # 3; Wider Roots' family 4
 	UiStyle.primary(button)
 	_side_box.add_child(button)
 	if problem == "Not enough Dreamlight":  # The cost in POOR, a press refuses (as Unlock)
-		CantAfford.apply(button, "Call into this dream", "%d Dreamlight" % DreamState.CALL_BACK_DREAMLIGHT, IconInfo.format(SHORT_TIP))
-		button.pressed.connect(_refuse_call_back.bind(button))
+		CantAfford.apply(button, "Call into this dream", "%d Dreamlight" % cost, IconInfo.format(SHORT_TIP))
+		button.pressed.connect(_refuse_call_back.bind(button, cost))
 		return
-	button.text = "Call into this dream · free (Remembered Path)" if free else "Call into this dream · %d Dreamlight" % DreamState.CALL_BACK_DREAMLIGHT
+	button.text = "Call into this dream · free (Remembered Path)" if free else "Call into this dream · %d Dreamlight" % cost
 	if problem != "":
 		button.disabled = true
 		_line(problem[0].to_upper() + problem.substr(1) + ".", UiStyle.INK_DIM, 13)
@@ -552,12 +553,12 @@ func _add_call_back(data: TowerData) -> void:
 			_rebuild()
 			_canvas.bloom(data))
 
-func _refuse_call_back(button: Button) -> void:
+func _refuse_call_back(button: Button, cost: int) -> void:
 	CantAfford.shake(button)
 	var hud := get_parent()
 	if hud != null and hud.has_method("show_toast"):
 		hud.show_toast("Not enough Dreamlight")
-	dream_state.dreamlight_short.emit(DreamState.CALL_BACK_DREAMLIGHT)
+	dream_state.dreamlight_short.emit(cost)
 
 func _add_unlock(data: TowerData) -> void:
 	var cost := dream_state.get_unlock_cost(data)

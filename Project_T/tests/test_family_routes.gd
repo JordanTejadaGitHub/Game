@@ -51,13 +51,13 @@ func _run() -> void:
 	for data: TowerData in shown:
 		var regular := dreams.regular_branches(data).size()
 		var lanes: Array = shown[data]
-		_check(lanes.size() == mini(regular, DreamState.BRANCH_OFFER_SIZE), "%s: this run's %d branches, not all %d (%s)" % [data.display_name, lanes.size(), regular, lanes])
+		_check(lanes.size() == mini(regular, dreams.branch_offer_size(data)), "%s: this run's %d branches, not all %d (%s)" % [data.display_name, lanes.size(), regular, lanes])
 		var card: Node = null
 		for c in family._cards.get_children():
 			if not c.find_children("Route_" + String(lanes[0]), "", true, false).is_empty():
 				card = c
 		var missing: Node = card.find_child("NotInDream", true, false) if card != null else null
-		_check(regular <= DreamState.BRANCH_OFFER_SIZE or (missing != null and missing.get_child_count() == regular - lanes.size() + 1),
+		_check(regular <= dreams.branch_offer_size(data) or (missing != null and missing.get_child_count() == regular - lanes.size() + 1),
 			"%s: the other %d as 'not in this dream' silhouettes" % [data.display_name, regular - lanes.size()])
 		for lane in card.find_children("Route_*", "", true, false):
 			var branch: TowerData = lane.get_meta(&"branch")
@@ -74,6 +74,19 @@ func _run() -> void:
 	card_ids.sort()
 	offer.sort()
 	_check(offer == card_ids, "the picked family's offer (what Remember shows) is the card's: %s == %s" % [offer, card_ids])
+	# The Codex Families page lists each family's branches from the data (meta_design.md 1f25e66e): Sporeling's 5
+	# regular ones + the Grove's hidden one, "2 offered each run".
+	var pause: Node = main.get_node("%PauseMenu")
+	pause.open_codex(&"families")
+	await process_frame
+	var codex: Node = pause.codex
+	codex._family = "sporeling"
+	codex._build_families()
+	var list: Node = codex.find_child("BranchList", true, false)
+	var rows: Array = list.get_children().map(func(l: Label) -> String: return l.text) if list != null else []
+	_check(rows.size() == 7 and String(rows[0]).contains("2 offered each run") and String(rows[-1]).contains("hidden branch"),
+		"the Codex lists Sporeling's 5 branches + the hidden one, 2 offered each run (%s)" % [rows])
+	pause.close()
 	main.queue_free()
 	await process_frame
 

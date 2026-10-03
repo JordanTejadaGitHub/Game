@@ -315,6 +315,8 @@ func _ready() -> void:
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
 		if reason == &"first":
+			_first_pick_open = true  # Wider Roots: this pick's family offers one more branch
+		if reason == &"first":
 			add_dreamlight(first_pick_dreamlight, &"first_pick"))  # One branch early (run_design.md "Dreamlight")
 	map_generator.path_changed.connect(_update_bends)
 	var damage_log := get_node_or_null("%DamageLog")
@@ -653,26 +655,54 @@ func _draw_branch_offer(base: TowerData) -> Array:
 	var id := base.get_id()
 	var shown := _previewed_pair(id)
 	var offer: Array = shown.duplicate() if not shown.is_empty() else _compute_branch_offer(base)
+	if wider_roots and wider_roots_family == "" and _first_pick_open:  # Wider Roots: the first family picked
+		wider_roots_family = id
+		_first_pick_open = false
 	_previewed.clear()  # The real offers change now: every other preview is stale
 	if branch_expansion_on() and regular_branches(base).size() > BRANCH_OFFER_SIZE:
 		_remember_branch_offer(id, offer)
 	return offer
 
 # The draw itself, with no side effects.
+# Every `k` of `items`, in order.
+static func _combinations(items: Array, k: int) -> Array:
+	if k == 0:
+		return [[]]
+	var out: Array = []
+	for i in items.size() - k + 1:
+		for rest: Array in _combinations(items.slice(i + 1), k - 1):
+			out.append([items[i]] + rest)
+	return out
+
+# --- Wider Roots (Grove perk, meta_design.md 1f25e66e): the family taken at the first family pick offers one more
+# branch this run (BRANCH_OFFER_SIZE + 1), and calling one of its branches back costs WIDER_ROOTS_CALL_BACK. MetaRun
+# sets wider_roots when the perk is carried; wider_roots_family is set by the first pick and saved with the run.
+const WIDER_ROOTS_CALL_BACK := 4
+var wider_roots := false
+var wider_roots_family := ""
+var _first_pick_open := false  # The run's first family pick is showing (its cards preview the wider offer)
+
+func branch_offer_size(base: TowerData) -> int:
+	if wider_roots and base != null and (base.get_id() == wider_roots_family or (wider_roots_family == "" and _first_pick_open)):
+		return BRANCH_OFFER_SIZE + 1
+	return BRANCH_OFFER_SIZE
+
+func call_back_cost(base: TowerData) -> int:
+	return WIDER_ROOTS_CALL_BACK if wider_roots and base != null and base.get_id() == wider_roots_family else CALL_BACK_DREAMLIGHT
+
 func _compute_branch_offer(base: TowerData) -> Array:
 	var branches := regular_branches(base)
 	var ids: Array = branches.map(func(f: TowerData) -> String: return f.get_id())
-	if not branch_expansion_on() or branches.size() <= BRANCH_OFFER_SIZE:
+	var size := branch_offer_size(base)
+	if not branch_expansion_on() or branches.size() <= size:
 		return ids
-	var pairs: Array = []  # Every 2 of them, except last run's pair for this family
+	var pairs: Array = []  # Every set of `size` (2; Wider Roots: 3), except last run's for this family
 	var last: Array = _last_branch_offer().get(base.get_id(), [])
-	for i in branches.size():
-		for j in range(i + 1, branches.size()):
-			var pair := [branches[i], branches[j]]
-			var pair_ids: Array = [branches[i].get_id(), branches[j].get_id()]
-			pair_ids.sort()
-			if pair_ids != last:
-				pairs.append(pair)
+	for combo: Array in _combinations(branches, size):
+		var combo_ids: Array = combo.map(func(f: TowerData) -> String: return f.get_id())
+		combo_ids.sort()
+		if combo_ids != last:
+			pairs.append(combo)
 	# The weighted smart draw (tower_design.md 5ba12e1e): each pair scores the rarest still-missing tags it adds
 	# (Σ 1 / how many regular branches carry the tag, anti_tank ×2); drawn in proportion to the score (pair_proportional,
 	# floor 10% of the best) or among the top band (pair_band), or among all pairs when none adds a missing tag
@@ -775,7 +805,7 @@ func call_back_problem(form: TowerData) -> String:
 		return ""
 	if base != null and called_families.has(base.get_id()):
 		return "already called one back for %s" % base.display_name
-	if dreamlight < CALL_BACK_DREAMLIGHT:
+	if dreamlight < call_back_cost(base):
 		return "Not enough Dreamlight"
 	return ""
 
@@ -788,7 +818,7 @@ func call_back(form: TowerData) -> bool:
 	if free:
 		free_calls -= 1
 	else:
-		add_dreamlight(-CALL_BACK_DREAMLIGHT)
+		add_dreamlight(-call_back_cost(base))
 		called_families[base.get_id()] = form.get_id()
 	get_branch_offer(base).append(form.get_id())
 	unlocked[form.get_id()] = true
@@ -2374,7 +2404,7 @@ func to_save() -> Dictionary:
 	return {
 		"unlocked": unlocked.keys(), "stacks": stacks.duplicate(), "dreams_seen": dreams_seen,
 		"dreams_without_rare": _dreams_without_rare, "rare_dreams_left": _rare_dreams_left,
-		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "unlock_discounts": unlock_discounts, "branch_offers": branch_offers.duplicate(true), "called_families": called_families.duplicate(), "free_calls": free_calls, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next},
+		"card_credit": card_credit.duplicate(true), "extra_cards_next": _extra_cards_next, "unlock_discounts": unlock_discounts, "branch_offers": branch_offers.duplicate(true), "wider_roots_family": wider_roots_family, "called_families": called_families.duplicate(), "free_calls": free_calls, "finale": {"results": finale_results.duplicate(), "drift": _finale_drift, "lost_at": _finale_lost_at, "rare_next": _finale_rare_next},
 		"rerolls_left": rerolls_left, "banishes_left": banishes_left, "banished": _banished.keys(),
 		"run_pool": run_pool.keys(), "run_pool_waiting": _run_pool_waiting.keys(), "run_pool_families": _run_pool_families.keys(),
 		"attackers_planted": _attackers_planted, "dreamlight": dreamlight,
@@ -2393,6 +2423,7 @@ func to_save() -> Dictionary:
 
 func load_save(data: Dictionary) -> void:
 	branch_offers = data.get("branch_offers", {}).duplicate(true)  # First: an unlock signal below must not draw anew
+	wider_roots_family = String(data.get("wider_roots_family", ""))
 	unlocked.clear()
 	for id in data.get("unlocked", []):
 		unlocked[id] = true

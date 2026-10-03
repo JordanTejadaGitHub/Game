@@ -364,7 +364,7 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(words)
 		row.tooltip_text = "%s: not in this dream. Call one in on Remember for %d Dreamlight." % [
-			", ".join(missing.map(func(f: TowerData) -> String: return f.display_name)), DreamState.CALL_BACK_DREAMLIGHT]
+			", ".join(missing.map(func(f: TowerData) -> String: return f.display_name)), dream_state.call_back_cost(data)]
 		box.add_child(row)
 
 # One lane: the branch (portrait, name, role). No final form (user, 2026-10-02: "don't show the final evolution in the

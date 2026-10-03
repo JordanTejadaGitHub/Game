@@ -87,10 +87,33 @@ static func apply_ui_scale(root: Window, share: float) -> void:
 	_scale_share = share
 	if root == null:
 		return
+	install_text_filter(root.get_tree() if root.is_inside_tree() else Engine.get_main_loop() as SceneTree)
 	if DisplayServer.get_name() == "headless":
 		root.content_scale_factor = 1.0
 		return
 	_set_factor(root)  # Godot re-fits on every resize by itself
+
+# Text draws with a linear filter, pixel art keeps the project's Nearest. At a fractional UI scale the
+# glyphs (rasterized at the oversampled size) never match the screen exactly, and Nearest dropped thin
+# strokes ("Poisc ned", "over t me", 2026-10-02). Every text control added to the tree gets
+# TEXTURE_FILTER_LINEAR unless it chose a filter itself; Buttons only when they have no icon (an icon
+# may be pixel art: set its filter where you set the icon). Existing controls are swept once.
+static var _text_filter_tree: SceneTree = null
+static func install_text_filter(tree: SceneTree) -> void:
+	if tree == null or _text_filter_tree == tree:
+		return
+	_text_filter_tree = tree
+	tree.node_added.connect(_linear_text)
+	if tree.root != null:
+		for node in tree.root.find_children("*", "Control", true, false):
+			_linear_text(node)
+
+static func _linear_text(node: Node) -> void:
+	if not (node is Control) or (node as CanvasItem).texture_filter != CanvasItem.TEXTURE_FILTER_PARENT_NODE:
+		return
+	var is_text := node is Label or node is RichTextLabel or node is LineEdit or node is TextEdit
+	if is_text or (node is Button and (node as Button).icon == null):
+		(node as CanvasItem).texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 
 # Godot's own canvas_items stretch does the fitting: base size LAYOUT_MIN with aspect "expand" scales
 # by min(window / LAYOUT_MIN) (= ui_scale_factor's fit) and content_scale_factor = the share. Unlike a

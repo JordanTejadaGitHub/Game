@@ -597,7 +597,7 @@ finals** (~42 sprites plus attack sheets and effects), down from 27 + 27.
 
 1. **Phase 1: the 4 starting families** (Sporeling, Dewdrop, Firefly Jar, Bellflower): 12 branches,
    12 finals, the 2-of-5 offer with the smart draw, generic Kin, Remembered Path.
-2. **Phase 2:** Pebbling, Rootling, Acorn (9 + 9).
+2. **Phase 2:** Pebbling, Rootling, Acorn (9 + 9), with the branch review's changes. **Started 2026-10-02 on main** (user: "just do Phase 2", before the Phase 1 playtest; the Spire branch is merged). Full game only. Counter tags: Whetstone anti-tank; Rampart and Quaker boss abilities; Groundroot anti-air; Deeproot, Thorncoil and the Acorn three none. Fold-in fix: Driftspore anti-tank, Bloomcap and Inkcap anti-swarm (they had no tags, so no role line).
 3. **Phase 3:** the Nestling + Whirligig merge (no new branch art: a parked base and Ascended,
    Dawnwing's carry twist, the resistance fold).
 
