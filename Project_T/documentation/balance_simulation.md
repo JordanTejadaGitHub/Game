@@ -777,6 +777,12 @@ Driftspore, and the new damage branches are weaker.** Decision: the damage-branc
 22, Brood Cap burst 24, Thrum 70, Jetreed base 60, Undercurrent 60 dmg/s, Jarlink arc 210, Sparkler 40 (in 7567034e).
 Re-run arm (a) after.
 
+**4. Grove cap on main** (ed114826, before the branch raises; a bot gift-screen stall voided the first
+attempt): full loadout vs no perks, 20 seeds each, act 1 boss survival **40% vs 30% (+10 points)**, +2.5
+drifts: **within the ≤ +10–15 cap** ✓. Both arms suffer the branch-draw drop. **Combo share** (bot):
+run-level 0.11–0.14, Reactions 0; it only reaches 0.2–0.45 in late blocks with few runs left. The bot
+under-builds combos; the 25–40% target is judged on human runs (`combo_share` in the run history).
+
 ## Combo share of damage (user-approved, 2026-10-02)
 
 The user's Warden panels showed 52–76% of damage "from combos". **Target: in a good build, combos and
