@@ -806,6 +806,9 @@ Jarlink pair was ever made. Forced Firefly, 15 seeds: **27–33%** with or witho
 damage 0: the bot rarely has two jars across the route). Jarlink pairing is human skill (the build ghost
 shows the arc); **the base board is the problem: Firefly Jar cost 30 → 25, damage 12 → 14** (d69c53b4; shared with the
 demo, which is re-checked).
+**After d69c53b4** (15 seeds): full game Firefly-first **33% → 47%**, no run dies before drift 18 (was 10–17);
+the demo 87% → 100% (two runs; within noise, and the demo is the gentle intro). **Accepted; act 1 tuning
+closed** at ~50–55% overall for the bot (the user plays better than it). Human runs judge from here.
 
 **4. Grove cap on main** (ed114826, before the branch raises; a bot gift-screen stall voided the first
 attempt): full loadout vs no perks, 20 seeds each, act 1 boss survival **40% vs 30% (+10 points)**, +2.5
