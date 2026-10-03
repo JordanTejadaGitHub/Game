@@ -759,6 +759,11 @@ sleep / silence value needs real builds). The new-branch probe series is closed.
 act 1 harder for the bot: A/B queued (branch expansion on / off, and the pre-expansion branch build)
 before choosing a lever (finale health, the drift 20 finale, or the ramp).
 
+**3. Each start family** (fresh, forced, 15 seeds): survived the boss **Bellflower 53%, Sporeling 40%,
+Dewdrop 20%, Firefly Jar 7%** (target 70–90%). Dewdrop leaks hardest at the finales (2.8 / 3.8 / 2.8 leaves
+at 10 / 15 / 20); Firefly dies mostly at 13–20. All four are low, matching item 2; the A/B decides the cause
+before any family change.
+
 ## Combo share of damage (user-approved, 2026-10-02)
 
 The user's Warden panels showed 52–76% of damage "from combos". **Target: in a good build, combos and
