@@ -1,10 +1,16 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Resource" path="res://resource/tower/earthbind.tres" id="ev_1"]
 
+[ext_resource type="Texture2D" path="res://assets/towers/groundroot.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/groundroot_attack.png" id="4_atk"]
 [resource]
 script = ExtResource("1_tdata")
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
 display_name = "Groundroot"
 description = "Drags flyers down to the maze: every 4 s, up to 2 flyers within 3.5 cells are pulled onto the path and must walk the maze for 3 s."
 cost = 0

@@ -1,10 +1,13 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Resource" path="res://resource/tower/grove_keeper.tres" id="ev_1"]
 
+[ext_resource type="Texture2D" path="res://assets/towers/seedbearer.png" id="2_tex"]
 [resource]
 script = ExtResource("1_tdata")
+texture = ExtResource("2_tex")
+frame_count = 8
 display_name = "Seedbearer"
 description = "Plants free Sprouts: every 3 drifts a seed ripens, and at the rest you plant it as a free Sprout on a cell beside it (up to 3 of its Sprouts at once)."
 cost = 0

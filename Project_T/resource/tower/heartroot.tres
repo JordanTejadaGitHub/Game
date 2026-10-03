@@ -1,10 +1,16 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Resource" path="res://resource/tower/world_root.tres" id="asc_1"]
 
+[ext_resource type="Texture2D" path="res://assets/towers/heartroot.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/heartroot_attack.png" id="4_atk"]
 [resource]
 script = ExtResource("1_tdata")
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
 display_name = "Heartroot"
 description = "Not yet: once per drift, the first nightmare (not a boss) that would reach the Heartwood is dragged back 4 path tiles instead."
 cost = 0

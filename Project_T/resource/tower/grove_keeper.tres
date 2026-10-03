@@ -1,10 +1,13 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Resource" path="res://resource/tower/grandmother_oak.tres" id="asc_1"]
 
+[ext_resource type="Texture2D" path="res://assets/towers/grove_keeper.png" id="2_tex"]
 [resource]
 script = ExtResource("1_tdata")
+texture = ExtResource("2_tex")
+frame_count = 8
 display_name = "Grove Keeper"
 description = "A seed every 2 drifts, and its Sprouts arrive at rank II."
 cost = 0
