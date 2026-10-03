@@ -22,7 +22,8 @@ const MOTE := "✦"  # Dreamlight
 const UNKNOWN_NAME := "???"  # A form the Memory Grove hasn't planted: no name, on the tree or in the panel (user)
 const NODE_SIZE := Vector2(76, 92)  # 48 px+ for touch
 const NAME_SIZE := 14  # Form names under the portraits (body font)
-const NAME_MIN_SIZE := 11  # A long name shrinks to this, then ends in "…"
+const NAME_MIN_SIZE := 11  # A long name shrinks to this, then wraps onto two lines
+const NAME_FLOOR_SIZE := 9  # …and a still-too-wide line shrinks down to this (never cut)
 const PORTRAIT := 56.0
 const TREE_SIZE := Vector2(560, 390)  # Shorter since the "Not in this dream" strip sits under it (fits 1280×800)
 const SIDE_WIDTH := 300.0
@@ -756,7 +757,8 @@ class FormNode extends Button:
 		focus_mode = Control.FOCUS_NONE
 		process_mode = Node.PROCESS_MODE_ALWAYS
 		var state := screen.state_of(data)
-		portrait = Portrait.new(data, PORTRAIT, state == State.GROVE or state == State.NOT_IN_DREAM)  # Silhouettes: not planted, or not in this dream
+		var veiled := screen.is_veiled(data)
+		portrait = Portrait.new(data, PORTRAIT, state == State.GROVE or state == State.NOT_IN_DREAM or veiled)  # Silhouettes: not planted, not in this dream, or not revealed yet
 		if state != State.GROVE and not RememberScreen.is_unlocked_state(state):
 			portrait.modulate = Color.WHITE.darkened(0.2)  # Grove-available, not unlocked this run: its real colours, ~80%
 		portrait.position = Vector2((NODE_SIZE.x - PORTRAIT) / 2.0, 4)
@@ -765,9 +767,8 @@ class FormNode extends Button:
 		if state == State.NOT_IN_DREAM:  # Branch expansion: a faint, misty silhouette
 			modulate = Color(1, 1, 1, 0.5)  # multiplier: the mist
 			tooltip_text = data.display_name + " · not in this dream"
-		if screen.is_veiled(data):  # A final not revealed yet: no portrait, a dim "?"
-			portrait.visible = false
-			modulate = Color(1, 1, 1, 0.6)  # multiplier: dim
+		if veiled:  # A final not revealed yet: its dark silhouette only (user: "show the silhouette still"), a dim "?"
+			modulate = Color(1, 1, 1, 0.8)  # multiplier: dim
 			tooltip_text = "? · " + screen.veil_hint(data)
 		pressed.connect(func() -> void: screen._select(data))
 
@@ -783,8 +784,8 @@ class FormNode extends Button:
 		UiStyle.draw_moon_disc(self, centre, PORTRAIT / 2.0 - 1)  # The lit backdrop on every node (unlocked ones lost it: story chat)
 		if screen.selected == data:
 			draw_arc(centre, PORTRAIT / 2.0 + 3, 0.0, TAU, 40, UiStyle.GOLD, 2.0, true)
-		if screen.is_veiled(data):  # Not revealed yet: an empty disc labelled "?", no name, cost or glow
-			_caption("?", UiStyle.body_font(), NAME_SIZE, UiStyle.INK_DIM, NODE_SIZE.y - 6)
+		if screen.is_veiled(data):  # Not revealed yet: its silhouette labelled "?", no name, cost or glow
+			_caption("?", UiStyle.body_font(), NAME_SIZE + 4, UiStyle.INK, NODE_SIZE.y - 6)
 			return
 		if state == State.CAN_UNLOCK:
 			var glow := 0.35 + 0.25 * sin(_pulse * 3.0)
@@ -793,12 +794,12 @@ class FormNode extends Button:
 		var colour := UiStyle.INK
 		match state:
 			State.GROWN:  # Its name in gold (yours this run) above how many stand on the map
-				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.GOLD, NODE_SIZE.y - 19)
+				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.GOLD, NODE_SIZE.y - 19, 1)  # One line: the count sits under it
 				text = "×%d" % screen.count_on_map(data)
 			State.UNLOCKED:  # Its name in gold: unlocked this run, none planted yet
 				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.GOLD, NODE_SIZE.y - 6)
 			State.CAN_UNLOCK, State.NEEDS_LIGHT:
-				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.INK_DIM, NODE_SIZE.y - 19)  # Its name above the motes
+				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.INK_DIM, NODE_SIZE.y - 19, 1)  # Its name above the motes, one line
 				var price: int = screen.dream_state.get_unlock_price(data)
 				text = MOTE.repeat(price) if price > 0 else "free"
 				colour = UiStyle.GOLD if state == State.CAN_UNLOCK else UiStyle.INK_DIM
@@ -823,16 +824,27 @@ class FormNode extends Button:
 	func name_shown() -> String:
 		return UNKNOWN_NAME if screen.state_of(data) == State.GROVE else data.display_name
 
-	# One centred line under the portrait: a long name shrinks (down to NAME_MIN_SIZE), then ends in "…", never past
-	# the node ("Undercurrent" overflowed).
-	func _caption(text: String, font: Font, font_size: int, colour: Color, baseline: float) -> void:
+	# A name under the portrait, centred and inside the node, never cut (story chat: "Hummingbird …" was): it shrinks to
+	# NAME_MIN_SIZE, then wraps onto two lines at the space nearest its middle (the first line above `baseline`), then
+	# shrinks further (to NAME_FLOOR_SIZE) if a line is still too wide.
+	func _caption(text: String, font: Font, font_size: int, colour: Color, baseline: float, max_lines: int = 2) -> void:
 		var room := NODE_SIZE.x - 4
-		while font_size > NAME_MIN_SIZE and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > room:
+		var fits := func(line: String, size_px: int) -> bool: return font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px).x <= room
+		while font_size > NAME_MIN_SIZE and not fits.call(text, font_size):
 			font_size -= 1
-		while text.length() > 3 and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > room:
-			text = text.left(text.length() - 2) + "…"
-		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
-		draw_string(font, Vector2((NODE_SIZE.x - width) / 2.0, baseline), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
+		var lines: Array[String] = [text]
+		if max_lines > 1 and not fits.call(text, font_size) and text.contains(" "):
+			var best := -1
+			for i in text.length():  # The space nearest the middle
+				if text[i] == " " and (best < 0 or absi(i - text.length() / 2) < absi(best - text.length() / 2)):
+					best = i
+			lines = [text.left(best), text.substr(best + 1)]
+		while font_size > NAME_FLOOR_SIZE and not lines.all(func(line: String) -> bool: return fits.call(line, font_size)):
+			font_size -= 1
+		for i in lines.size():
+			var width := font.get_string_size(lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+			var y := baseline - (lines.size() - 1 - i) * (font_size + 1)
+			draw_string(font, Vector2((NODE_SIZE.x - width) / 2.0, y), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
 
 
 	# The Memory Grove's leaf: a small two-arc leaf on the portrait's shoulder.
