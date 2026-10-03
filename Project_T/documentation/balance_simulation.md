@@ -751,7 +751,7 @@ c8d1fc33 the always-on Growth hint marks are a separate setting from whispers.
 own damage) + 10 Sprouts; Dew earned 515. Closest 0.84–0.88 at drifts 7 and 9, then **drift 10, the first
 block finale: 8,619 health (drift 9: 3,747, so ×2.3), 13 leaks, all 15 leaves in one drift.** Kills and Dew
 were at 0.1–0.4 of the route, nothing near the Heartwood.
-- **A first finale must not end a full-leaf run:** `block_finale_health_from` **10 → 15** (drift 10 keeps its
+- **A first finale must not end a full-leaf run:** `block_finale_health_from` **10 → 15** (in d75b7d9f after Roguelite 72a2879b; drift 10 keeps its
   one elite as a small first spike). The demo is unaffected.
 - Nestling isn't expanded yet (the sky merge is Phase 3), so both branches were offered and the user picked
   the support. Not a draw issue; watch whether Magpie Perch reads as a trap first pick.
