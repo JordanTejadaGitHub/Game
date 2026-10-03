@@ -337,12 +337,40 @@ func count_on_map(data: TowerData) -> int:
 
 # --- Side panel -----------------------------------------------------------------------------------------
 
+# A form whose look stays hidden (user: "hide the final evolution until you unlock the first one"): a final form until
+# its branch is unlocked this run (bought or called in), an Ascended form until a final of its family is. Shown as a dim
+# "?" with no portrait, stats or cost. Dev "unlock free" shows everything.
+func is_veiled(data: TowerData) -> bool:
+	if data == null or _dev_free.button_pressed or dream_state.unlock_everything or dream_state.is_unlocked(data.get_id()):
+		return false
+	if data.tier >= DreamState.ASCENDED_TIER:
+		return not dream_state._has_unlocked_final(data)
+	if data.tier == 3:
+		var branch := dream_state._parent_in_tree(data)
+		return branch != null and branch.tier == 2 and not dream_state.is_unlocked(branch.get_id())
+	return false
+
+# The step that unveils `data`: "Unlock Stormcap to see what it becomes".
+func veil_hint(data: TowerData) -> String:
+	if data.tier >= DreamState.ASCENDED_TIER:
+		return "Unlock a final form of this family to see what it becomes"
+	var branch := dream_state._parent_in_tree(data)
+	return "Unlock %s to see what it becomes" % (branch.display_name if branch != null else "its branch")
+
 func _fill_side(data: TowerData) -> void:
 	for child in _side_box.get_children():
 		_side_box.remove_child(child)
 		child.queue_free()
 	if data == null:
 		_line("No family to remember yet.", UiStyle.INK_DIM, 15)
+		return
+	if is_veiled(data):  # Only the "?" and how to reveal it
+		var mark := Label.new()
+		mark.text = "?"
+		UiStyle.display(mark, 22)
+		mark.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		_side_box.add_child(mark)
+		_line(veil_hint(data), UiStyle.INK_DIM, 15)
 		return
 	var grove := state_of(data) == State.GROVE
 	if state_of(data) == State.NOT_IN_DREAM:
@@ -736,6 +764,10 @@ class FormNode extends Button:
 		if state == State.NOT_IN_DREAM:  # Branch expansion: a faint, misty silhouette
 			modulate = Color(1, 1, 1, 0.5)  # multiplier: the mist
 			tooltip_text = data.display_name + " · not in this dream"
+		if screen.is_veiled(data):  # A final not revealed yet: no portrait, a dim "?"
+			portrait.visible = false
+			modulate = Color(1, 1, 1, 0.6)  # multiplier: dim
+			tooltip_text = "? · " + screen.veil_hint(data)
 		pressed.connect(func() -> void: screen._select(data))
 
 	func _process(delta: float) -> void:
@@ -750,6 +782,9 @@ class FormNode extends Button:
 		UiStyle.draw_moon_disc(self, centre, PORTRAIT / 2.0 - 1)  # The lit backdrop on every node (unlocked ones lost it: story chat)
 		if screen.selected == data:
 			draw_arc(centre, PORTRAIT / 2.0 + 3, 0.0, TAU, 40, UiStyle.GOLD, 2.0, true)
+		if screen.is_veiled(data):  # Not revealed yet: an empty disc labelled "?", no name, cost or glow
+			_caption("?", UiStyle.body_font(), NAME_SIZE, UiStyle.INK_DIM, NODE_SIZE.y - 6)
+			return
 		if state == State.CAN_UNLOCK:
 			var glow := 0.35 + 0.25 * sin(_pulse * 3.0)
 			draw_arc(centre, PORTRAIT / 2.0 + 1, 0.0, TAU, 40, Color(UiStyle.GOLD, glow), 3.0, true)
