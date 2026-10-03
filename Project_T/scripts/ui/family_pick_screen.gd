@@ -402,12 +402,13 @@ func _route_lane(branch: TowerData) -> Control:
 	if role != "":
 		words.add_child(_lane_line(role, 11, UiStyle.GOLD, "Role"))
 	lane.add_child(words)
+	# One tip for the lane (its emblem and words ignore the mouse, so nothing stacks), saying each thing once: its name
+	# and what it counters. The role is on the lane itself (user: "repeated explanations of the branch").
 	var tip := branch.display_name
-	if role_text(branch) != "":
-		var role_words := role_text(branch)
-		tip += "\n" + role_words.left(1).to_upper() + role_words.substr(1)  # Sentence case: "Cracks armour, quiets support"
 	if counters_text(branch) != "":
 		tip += "\n" + counters_text(branch)
+	elif role_text(branch) != "":
+		tip += "\n" + role_text(branch).left(1).to_upper() + role_text(branch).substr(1)  # No counters: its job instead
 	lane.tooltip_text = tip
 	return lane
 
@@ -587,4 +588,3 @@ func _add_memory_border(button: Button) -> void:
 		var frame := (int(border.region_rect.position.x / MEMORY_BORDER_FRAME.x) + 1) % 4
 		border.region_rect = Rect2(Vector2(frame * MEMORY_BORDER_FRAME.x, 0), MEMORY_BORDER_FRAME))
 	border.add_child(pulse)
-

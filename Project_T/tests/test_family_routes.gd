@@ -64,6 +64,15 @@ func _run() -> void:
 		_check(regular <= size or (offer_line != null and offer_line.text == "This dream offers %d of %d branches, different each run." % [size, regular]
 			and offer_line.tooltip_text.contains("Dreamlight")), "%s: says the branches are drawn per run (%s)" % [data.display_name, offer_line.text if offer_line else "none"])
 		for lane in card.find_children("Route_*", "", true, false):
+			# Hovering an emblem (user: "repeated explanations of the branch"): one tip, the lane's, each line once.
+			var tipped: Array = lane.find_children("*", "Control", true, false).filter(func(c: Control) -> bool:
+				return c.tooltip_text != "" or c.mouse_filter != Control.MOUSE_FILTER_IGNORE)
+			var tip_lines: Array = (lane.tooltip_text as String).split("\n")
+			var unique := {}
+			for tip_line in tip_lines:
+				unique[tip_line.to_lower().replace("counters ", "")] = true
+			_check(tipped.is_empty() and unique.size() == tip_lines.size() and not lane.tooltip_text.to_lower().contains(IconInfo.role_text(lane.get_meta(&"branch")).to_lower() + "\n"),
+				"%s: hovering its emblem shows one tip, nothing said twice (%s)" % [lane.get_meta(&"branch").display_name, lane.tooltip_text.replace("\n", " / ")])
 			var branch: TowerData = lane.get_meta(&"branch")
 			var final: TowerData = family.final_of(branch)
 			var texts: Array = lane.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
