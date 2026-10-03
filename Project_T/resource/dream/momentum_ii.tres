@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "momentum_ii"
 display_name = "Momentum II"
-description = "A Warden attacking the same nightmare again gets +8% attack speed per hit (up to +60%); a new target resets it."
+description = "A Warden attacking the same nightmare again attacks 8% faster per hit (up to +60%); a new target resets it."
 rarity = 1
 kind = 3
 tags = Array[String](["swift"])

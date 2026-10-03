@@ -38,6 +38,7 @@ func _init() -> void:
 	_support()
 	_pull_drag()
 	_final_signatures()
+	_branch_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -2441,6 +2442,144 @@ func _fairy_dance(img: Image, f: int) -> void:
 			var q := c + Vector2(cos(a - (i + 1) * 0.16) * 15.0, sin(a - (i + 1) * 0.16) * 6.0 - 2.0)
 			_px(img, floori(q.x), floori(q.y), Color("#9cd4fc", alpha * (0.6 - i * 0.18)))
 
+# --- Branch expansion effects (tower_design.md "Branch expansion", 2026-10-02) -----------------
+# What the new branches' mechanics need. Segments tile / stretch along x; loops loop.
+
+func _branch_effects() -> void:
+	_sheet("ink_trail", Vector2i(32, 12), 1, 1, Vector2i(0, 6), false, "ground", _ink_trail,
+		{note = "Inkcap / Deliquescent: the ink a Poisoned nightmare leaves on the path. Tile along x behind it (y = 6 on the line), under the nightmares; fade over its life. Deliquescent's 2-tile pool: two segments side by side, or scale it."})
+	_sheet("rain_zone", Vector2i(64, 64), 4, 10, Vector2i(32, 32), true, "ground", _rain_zone,
+		{note = "Cloudlet / Nimbus: rain over a 3x3 zone. Tile it 3x3 (it tiles seamlessly), above the nightmares at ~80% alpha."})
+	_sheet("whirlpool", Vector2i(64, 64), 8, 8, Vector2i(32, 32), true, "ground", _whirlpool,
+		{note = "Undercurrent / Maelstrom: a whirlpool on one path tile, under the nightmares. Loop."})
+	_sheet("water_jet", Vector2i(32, 10), 4, 14, Vector2i(0, 5), true, "segment", _water_jet,
+		{note = "Jetreed / Torrent: the jet, stretched or tiled along x from the reed to the end of its line (y = 5). ~0.3 s. Torrent's wet trail: ink_trail-style decal not needed, reuse dew_pool art or tint ink_trail blue."})
+	_sheet("arc_fence", Vector2i(32, 16), 4, 14, Vector2i(0, 8), true, "segment", _arc_fence,
+		{note = "Jarlink / Lightning Fence: the arc between two Jarlinks' jars, stretched along x (y = 8 on the line). Loop."})
+	_sheet("prism_beam", Vector2i(32, 6), 4, 16, Vector2i(0, 3), true, "segment", _prism_beam,
+		{note = "Rainbow Prism: a split beam, white so it tints (pink #ec9cf4, gold #fcd47c, blue #9cd4fc for the three). Stretch along x, y = 3."})
+	_sheet("firework_burst", Vector2i(48, 48), 7, 16, Vector2i(24, 24), false, "signature", _firework_burst_fx,
+		{note = "Sparkler / Starburst: a firework bursting over a crowd into 6 sparks (Starburst: play two, offset)."})
+	_sheet("toll_ring", Vector2i(64, 32), 6, 12, Vector2i(32, 20), false, "signature", _toll_ring,
+		{note = "Silver Bell / Vesper Bell: the toll landing on its far target: a silver ring spreading on the ground under it (anchor = its feet)."})
+	_sheet("silence_mark", Vector2i(24, 24), 8, 6, Vector2i(12, 20), true, "status", _silence_mark,
+		{note = "Hushbell / Silence: over a silenced nightmare's head (anchor = the top of its head), loop while silenced. A muffled bell, its sound crossed out."})
+	_sheet("sound_cone", Vector2i(48, 32), 6, 14, Vector2i(2, 16), false, "signature", _sound_cone_fx,
+		{note = "Thrum / Resonance: arcs of sound rolling out in a cone, drawn pointing right from the anchor (rotate to aim; scale y to widen the cone for Resonance)."})
+	_sheet("spark_burst", Vector2i(32, 32), 6, 16, Vector2i(16, 16), false, "signature", _spark_burst,
+		{note = "Sparkler / Starburst's firework at the burst point (and Fireworks Fence's crossing burst): a smaller, quicker burst than firework_burst."})
+	_sheet("rain_sweep", Vector2i(96, 64), 8, 12, Vector2i(48, 40), false, "signature", _rain_sweep,
+		{note = "Nimbus's Cloudburst, played on the Warden (anchor = its base): its cloud bursts and a ring of rain sweeps out from it (it reads as range ~1.5 cells; scale up for range 4)."})
+
+func _ink_trail(img: Image, _f: int) -> void:
+	var ink := [Color("#24243c"), Color("#3c3c5c"), Color("#5c5a78")]
+	for k in 7:
+		var c := Vector2(2 + k * 4.6, 6 + sin(k * 1.9) * 1.6)
+		var r := 2.0 + (k % 3) * 0.7
+		_ellipse(img, c, Vector2(r * 1.4, r * 0.8), Color(ink[1], 0.7))
+		_px(img, int(c.x) - 1, int(c.y) - 1, Color(ink[2], 0.6))
+	for x in range(0, 32, 5):
+		_px(img, x, 6 + (x % 2), Color(ink[0], 0.55))
+
+func _rain_zone(img: Image, f: int) -> void:
+	# Slanted rain streaks that wrap at the edges (so a 3x3 grid tiles), splashes at the bottom of each.
+	for k in 14:
+		var x0 := (k * 23 + 7) % 64
+		var y0 := ((k * 37) % 64 + f * 16) % 64
+		for i in 4:
+			var x := (x0 - i / 2 + 64) % 64
+			var y := (y0 + i) % 64
+			img.set_pixel(x, y, Color("#9cd4fc", 0.85 - i * 0.15))
+		if k % 3 == f % 3:
+			var sx := (x0 + 2) % 64
+			var sy := (y0 + 8) % 64
+			for d: Vector2i in [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1)]:
+				img.set_pixel((sx + d.x + 64) % 64, (sy + d.y + 64) % 64, Color("#dce8f4", 0.6))
+
+func _whirlpool(img: Image, f: int) -> void:
+	var c := Vector2(32, 32)
+	_ellipse(img, c, Vector2(27, 15), Color("#2c4c5c", 0.75))
+	_ellipse(img, c, Vector2(16, 9), Color("#4c8ca4", 0.8))
+	_ellipse(img, c, Vector2(5, 3), Color("#24243c", 0.9))
+	for arm in 3:
+		for s in 30:
+			var t := s / 29.0
+			var a := arm * TAU / 3.0 + t * PI * 1.6 + f * TAU / 8.0
+			var p := c + Vector2(cos(a) * 26.0 * (1.0 - t * 0.85), sin(a) * 14.0 * (1.0 - t * 0.85))
+			_px(img, int(p.x), int(p.y), Color("#dce8f4", 0.9) if s % 4 != 0 else Color("#9cd4fc", 0.9))
+
+func _water_jet(img: Image, f: int) -> void:
+	for x in 32:
+		var w := 2 if (x + f * 3) % 8 < 6 else 3
+		for y in range(5 - w, 5 + w + 1):
+			var edge := absi(y - 5) == w
+			_px(img, x, y, Color("#4c8ca4", 0.8) if edge else (Color("#dce8f4") if y == 5 else Color("#9cd4fc")))
+	for k in 3:
+		_px(img, (k * 11 + f * 4) % 32, 1 + k % 2, Color("#dce8f4", 0.7))
+		_px(img, (k * 13 + f * 5 + 6) % 32, 8 - k % 2, Color("#9cd4fc", 0.7))
+
+func _arc_fence(img: Image, f: int) -> void:
+	_bolt(img, Vector2(0, 8), Vector2(31, 8), 40 + f * 7, CORE, GOLD, 5, 4.0, 1)
+	if f % 2 == 0:
+		_bolt(img, Vector2(0, 8), Vector2(31, 8), 90 + f * 5, Color(WARM, 0.7), Color(0, 0, 0, 0), 4, 5.0, 1)
+
+func _prism_beam(img: Image, f: int) -> void:
+	for x in 32:
+		_px(img, x, 3, K_WHITE)
+		_px(img, x, 2, Color(K_LIGHT, 0.75))
+		_px(img, x, 4, Color(K_LIGHT, 0.75))
+		if (x + f * 4) % 8 == 0:
+			_px(img, x, 1, Color(K_WHITE, 0.6))
+			_px(img, x, 5, Color(K_WHITE, 0.6))
+
+func _firework_burst_fx(img: Image, f: int) -> void:
+	var c := Vector2(24, 24)
+	var t := f / 6.0
+	if f == 0:
+		_disc(img, c, 3.0, CORE)
+		return
+	if f < 3:
+		_disc(img, c, 3.0 - f, WARM)
+	for k in 6:
+		var d := Vector2.from_angle(k * TAU / 6.0 + 0.3)
+		var p := c + d * (4.0 + t * 16.0) + Vector2(0, t * t * 6.0)
+		_disc(img, p, 1.6 - t * 0.8, Color(CORE if k % 2 == 0 else GOLD, 1.0 - t * 0.6))
+		for i in 3:
+			var q := p - d * (i + 1) * 2.0
+			_px(img, int(q.x), int(q.y), Color(GOLD, 0.7 - i * 0.2 - t * 0.3))
+
+func _toll_ring(img: Image, f: int) -> void:
+	var c := Vector2(32, 20)
+	var t := f / 5.0
+	_ring(img, c, Vector2(6.0 + t * 24.0, 3.0 + t * 10.0), 1.4, Color("#dce8f4", 1.0 - t * 0.8))
+	if f >= 1:
+		_ring(img, c, Vector2(3.0 + t * 16.0, 1.5 + t * 6.0), 1.0, Color("#b4b0c8", 0.9 - t * 0.7))
+	if f < 2:
+		_disc(img, c + Vector2(0, -4), 2.5 - f, Color("#ffffff"))
+
+func _silence_mark(img: Image, f: int) -> void:
+	# A little bell wrapped in moss, a muted sound line crossed through, bobbing.
+	var bob: int = [0, 0, -1, -1, 0, 0, 1, 1][f]
+	var c := Vector2(12, 11 + bob)
+	_ellipse(img, c, Vector2(4.5, 4.0), Color("#b4b0c8"))
+	_ellipse(img, c + Vector2(0, -2), Vector2(5.0, 2.2), Color("#5c944c"))  # the moss muffle
+	_line(img, c + Vector2(-5, 3), c + Vector2(5, 3), Color("#3c3c5c"))
+	for d in [-1, 1]:
+		_line(img, c + Vector2(d * 6, -2), c + Vector2(d * 9, -4), Color("#dce8f4", 0.8))
+	_line(img, c + Vector2(-8, 6), c + Vector2(8, -6), Color("#fcd47c", 0.9))  # crossed out
+
+func _sound_cone_fx(img: Image, f: int) -> void:
+	var c := Vector2(2, 16)
+	var t := f / 5.0
+	for ring in 3:
+		var r := 6.0 + t * 30.0 - ring * 9.0
+		if r <= 2.0:
+			continue
+		for s in 13:
+			var a := (s - 6) / 6.0 * 0.55
+			var p := c + Vector2.from_angle(a) * r
+			_px(img, int(p.x), int(p.y), Color("#e0c8ff", (1.0 - t * 0.7) * (1.0 - ring * 0.25)))
+
 # --- Support and economy feedback (screens_ui.md "Support and economy feedback") -------------------
 # Kind "support". Gold is caught / harvested Dew (the ordinary Dew pop stays blue).
 #   dew_catch_droplet: a gold dew bead, drawn flying right (rotate to travel), shimmering; the code
@@ -2712,3 +2851,35 @@ func _save_preview() -> void:
 		y += sheet.get_height() + pad
 	out.resize(out.get_width() * 2, out.get_height() * 2, Image.INTERPOLATE_NEAREST)
 	out.save_png(PREVIEW)
+
+func _spark_burst(img: Image, f: int) -> void:
+	var c := Vector2(16, 16)
+	var t := f / 5.0
+	if f < 2:
+		_disc(img, c, 3.0 - f * 1.2, CORE)
+	for k in 8:
+		var d := Vector2.from_angle(k * TAU / 8.0 + 0.2)
+		var p := c + d * (2.0 + t * 12.0)
+		_px(img, int(p.x), int(p.y), Color(CORE if k % 2 == 0 else GOLD, 1.0 - t * 0.6))
+		var q := p - d * 2.0
+		_px(img, int(q.x), int(q.y), Color(WARM, 0.8 - t * 0.6))
+
+func _rain_sweep(img: Image, f: int) -> void:
+	var c := Vector2(48, 40)
+	var t := f / 7.0
+	# The cloud bursting over the Warden (first frames), then a ring of rain sweeping out on the ground.
+	if f < 3:
+		for k in 3:
+			_ellipse(img, c + Vector2((k - 1) * 7, -26 - f), Vector2(7 + f, 4 + f * 0.5), Color("#9aaac8", 0.9 - f * 0.25))
+	var r := Vector2(8.0 + t * 38.0, 4.0 + t * 18.0)
+	for s in 40:
+		var a := s * TAU / 40.0
+		var p := c + Vector2(cos(a) * r.x, sin(a) * r.y)
+		for i in 3:
+			_px(img, int(p.x) - i / 2, int(p.y) - 4 + i * 2, Color("#9cd4fc", (1.0 - t * 0.7) * (1.0 - i * 0.25)))
+	if f >= 2:
+		var r2 := r * 0.7
+		for s in 30:
+			var a := s * TAU / 30.0 + 0.1
+			if s % 2 == 0:
+				_px(img, int(c.x + cos(a) * r2.x), int(c.y + sin(a) * r2.y), Color("#dce8f4", 0.8 - t * 0.6))

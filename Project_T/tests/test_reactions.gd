@@ -89,9 +89,28 @@ func _run() -> void:
 	var burning: float = c.statuses.tick(1.0)
 	var calm_tick: float = calm.statuses.tick(1.0)
 	_check(absf(burning - calm_tick * Reactions.BURN_SPORE_RATE) < calm_tick * 0.4, "burning Spored ticks 3x as fast (%.1f vs %.1f)" % [burning, calm_tick])
+	# The burn's extra share of a Spored tick is the "ignite" combo (Balancing: the sims couldn't see it),
+	# credited to the Spored applier; a calm nightmare's tick has none.
+	c.take_damage(30.0, "spore", true, false, sporeling, &"spored")
+	var burnt: DamageLog.Event = c.recent_hits.back()
+	var share: float = 1.0 - 1.0 / c.statuses.burn_rate
+	_check(burnt.combos.has(&"ignite") and burnt.source == sporeling and (burnt.combos.size() > 1 or absf(burnt.combo_amount - burnt.amount * share) < 0.01),
+		"a burning Spored tick: its extra share is the ignite combo (%s, %.2f of %.2f)" % [burnt.combos, burnt.combo_amount, burnt.amount])
+	calm.take_damage(30.0, "spore", true, false, sporeling, &"spored")
+	_check(not calm.recent_hits.back().combos.has(&"ignite"), "a calm Spored tick carries no ignite")
 	calm.queue_free()
 	await _wait(1.1)
 	_check(beside.statuses.stacks(EnemyStatuses.SPORED) >= 1, "after a second, a Spored stack spreads to the neighbour")
+	await _clean()
+
+	# --- A Charged bolt is credited to the Warden whose charge it was (story chat: Live Wire seemed to buff
+	# spores): a weaker applier adding the last stack doesn't take the bolt (or Live Wire's share of it) ---
+	var charged := _spawn(origin)
+	charged.apply_status(EnemyStatuses.STATIC, 4, 0.0, base, 0, "light", jar)
+	charged.apply_status(EnemyStatuses.STATIC, 1, 0.0, base * 0.25, 0, "light", sporeling)
+	var bolts: Array = charged.recent_hits.filter(func(e: DamageLog.Event) -> bool: return e.tag == &"static") if is_instance_valid(charged) else []
+	_check(not bolts.is_empty() and bolts.all(func(e: DamageLog.Event) -> bool: return e.source == jar),
+		"the 5th Charged from a spore Warden sets off the bolt, credited to the Stormcap that charged it (%s)" % [bolts.map(func(e) -> String: return e.source.name if e.source else "none")])
 	await _clean()
 
 	# --- Mushrooming: 3+ Spored + Damp. Spored ticks +50%, a spore cloud on the tile; uses up Damp ---

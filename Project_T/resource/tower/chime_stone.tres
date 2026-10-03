@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("1_tdata")
+counter_tags = Array[StringName]([&"anti_swarm"])
 display_name = "Chime Stone"
 description = "A soft pulse that makes nightmares around it {static}. Any nightmare with 3 or more {static} releases its bolt at once, instead of waiting for 5."
 cost = 0

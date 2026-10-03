@@ -186,10 +186,14 @@ func _run() -> void:
 	_check(dossier.visible and dossier.shown_drift == 25, "act 1: the dossier opens by itself at the first rest (drift %d)" % dossier.shown_drift)
 	var text := _text(dossier._content)
 	var health := NightmareCard.health_at(stag, 25, director)
-	_check(health == maxi(roundi(stag.health * director.get_health_scale(stag, 25)), 1) and text.contains(BossDossier.thousands(health)),
-		"the real boss health (%d)" % health)
+	var on_page: bool = dossier._content.find_children("*", "Label", true, false).any(func(l: Label) -> bool: return l.is_visible_in_tree() and l.text.contains(BossDossier.thousands(health)))
+	_check(health == maxi(roundi(stag.health * director.get_health_scale(stag, 25)), 1) and not on_page
+		and dossier._stage.tooltip_text.contains(BossDossier.thousands(health)),
+		"the real boss health (%d) is in the portrait's tip, not on the page" % health)
 	_check(text.contains(stag.title) and text.contains("drift 25 · the last drift of the act") and text.contains("the boss of act 1") and text.contains("Arrives in"), "header: eyebrow, title, drift and arrival")
-	_check(text.contains("leaves") and text.contains("about "), "the leaves it takes, and its health in Husks (%s)" % text.left(300))
+	_check(text.contains("Takes 10 leaves if it reaches the Heartwood") and not text.contains("tiles/s") and not text.contains("It brings"),
+		"only the leaf toll, large; no speed, no \"It brings\" (user: \"a lot of information on the boss page\") (%s)" % text.left(300))
+	_check(BossDossier.toll_text(stag, 1) == "Takes 10 leaves if it reaches the Heartwood", "the toll without a run (the Codex on the title screen)")
 	var revealed := []
 	dossier.boss_revealed.connect(func(d: EnemyData) -> void: revealed.append(d))
 	dossier.open(25)
@@ -276,6 +280,20 @@ func _run() -> void:
 		var card_centre: Vector2 = intro._panel.get_global_rect().get_center()
 		var screen_centre: Vector2 = intro.get_viewport_rect().size / 2.0
 		_check(card_centre.distance_to(screen_centre) < 2.0, "the card is centred on screen (%s vs %s)" % [card_centre, screen_centre])
+		# Peek: the card goes, a solid "Return to …" pill waits mid-screen, a little below centre; still paused.
+		intro.peek.set_peeking(true)
+		await process_frame
+		var pill := intro.peek.back_button()
+		var pill_rect := pill.get_global_rect()
+		_check(not intro._panel.is_visible_in_tree() and pill.visible and pill.text.begins_with("Return to") and speed_node.paused
+			and pill_rect.get_center().y > screen_centre.y and pill_rect.get_center().y < screen_centre.y + 150.0
+			and absf(pill_rect.get_center().x - screen_centre.x) < 2.0,
+			"peeking leaves a \"%s\" pill mid-screen (%s), still paused" % [pill.text, pill_rect])
+		intro.queue.append(load("res://resource/enemy/leaf_bug.tres"))
+		_check(intro.return_text() == "Return (2)", "several waiting: Return (2)")
+		intro.queue.clear()
+		pill.pressed.emit()
+		_check(not intro.peek.peeking and intro._panel.is_visible_in_tree(), "the pill brings the card back")
 		root.size = old_size
 		intro.close()
 		_check(not speed_node.paused, "closing it resumes")
@@ -325,6 +343,10 @@ func _settle(dossier: BossDossier, dreams: DreamState, omens: OmenDirector, intr
 		if dreams.is_offering() or dreams.has_pending_offer():
 			_check(not dossier.visible, "the dossier waits for the Dream")
 			dreams.skip()
+		var gifts := HeartwoodGifts.find(dossier)  # Spire: the act-break gift, before the Omen and the dossier
+		if gifts != null and gifts.is_offering():
+			_check(not dossier.visible, "the dossier waits for the gift")
+			gifts.let_pass()
 		if omens != null and omens.is_offering():
 			_check(not dossier.visible, "the dossier waits for the Omen")
 			omens.choose(null)

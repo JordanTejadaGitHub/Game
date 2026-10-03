@@ -29,11 +29,11 @@ const STATS := {
 	&"range": ["Range", "How far it reaches, in tiles."],
 	&"crit_chance": ["Crit chance", "The chance a hit is a critical hit."],
 	&"crit_damage": ["Crit damage", "How much harder a critical hit lands."],
-	&"potency": ["Potency", "Effect damage: scales status and poison damage and Reactions."],
+	&"potency": ["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and Reactions, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}."],
 	&"rank": ["Rank", "How nurtured it is (I–V): each rank adds damage, speed and range."],
 	&"focus": ["Focus", "Chosen at rank III: Power, Swift, Reach or Deep."],
-	&"focus_power": ["Power focus", "+8% damage."],
-	&"focus_swift": ["Swift focus", "+6% attack speed."],
+	&"focus_power": ["Power focus", "Deals 8% more damage."],
+	&"focus_swift": ["Swift focus", "Attacks 6% faster."],
 	&"focus_reach": ["Reach focus", "+0.2 range."],
 	&"focus_deep": ["Deep focus", "+10% status strength and duration."],
 	&"dew_cost": ["Dew cost", "Dew to plant, grow or nurture it."],
@@ -178,6 +178,7 @@ const TERMS := {
 	&"dread_shell": ["dread shell", "dread shells", "Dread shell"],
 	&"kinship": ["Kinship", "Kinships", "Kinship"],
 	&"harmony": ["Harmony strike", "Harmony strikes", "Harmony strike", "harmonies"],  # {harmonies}: the plural
+	&"potency": ["Potency", "Potency", "Potency"],  # Also linked as a plain word (StatusLinks.PLAIN_TERMS: card text says "Potency")
 }
 
 # Every term token form: [token text, term id, word shown]. Longest tokens first.
@@ -226,7 +227,63 @@ static func format(text: String) -> String:
 			var id := StringName(found.get_string(1))
 			var combo := CodexData.get_any(id)
 			text = text.replace(found.get_string(), combo.get("name", "???") if not combo.is_empty() and CodexData.is_discovered(id) else "???")
+	if text.contains("{echo:"):  # An echo Warden's echo_share, so a retune updates its texts: "75%", or "full"
+		for found in _echo_pattern().search_all(text):
+			text = text.replace(found.get_string(), echo_text(found.get_string(1)))
+	if text.contains("{grow_cost:") or text.contains("{plant_cost:"):  # A Warden's Dew price from its TowerData (card text audit:
+		for found in _cost_pattern().search_all(text):  # hand-written prices went stale)
+			text = text.replace(found.get_string(), cost_text(found.get_string(1), found.get_string(2)))
+	if text.contains("{pct:"):  # A Warden's share field as a percent: "{pct:beacon.marked_bonus}" -> "50%" (texts follow the data)
+		for found in _pct_pattern().search_all(text):
+			text = text.replace(found.get_string(), pct_text(found.get_string(1), found.get_string(2)))
 	return text
+
+# "{pct:beacon.marked_bonus}" -> "50%": TowerData field `field` of Warden `warden_id`, × 100 ("full strength" at 1.0).
+static func pct_text(warden_id: String, field: String) -> String:
+	var path := "res://resource/tower/%s.tres" % warden_id
+	var data := load(path) as TowerData if ResourceLoader.exists(path) else null
+	if data == null or not (field in data):
+		return "%s.%s" % [warden_id, field]
+	var value := float(data.get(field))
+	return "full strength" if is_equal_approx(value, 1.0) else "%d%%" % roundi(value * 100.0)  # Like {echo:}: 1.0 reads "full"
+
+static var _pct_regex: RegEx = null
+static func _pct_pattern() -> RegEx:
+	if _pct_regex == null:
+		UiStyle.release_at_exit(func() -> void: _pct_regex = null)
+		_pct_regex = RegEx.create_from_string("\\{pct:([a-z_0-9]+)\\.([a-z_0-9]+)\\}")
+	return _pct_regex
+
+# "{echo:echo_hollow}" -> "75%" ("full" at 1.0), read from that Warden's echo_share (Tower Discussion: the
+# texts follow Balancing's numbers).
+static func echo_text(warden_id: String) -> String:
+	var path := "res://resource/tower/%s.tres" % warden_id
+	var data := load(path) as TowerData if ResourceLoader.exists(path) else null
+	if data == null:
+		return warden_id
+	return "full" if is_equal_approx(data.echo_share, 1.0) else "%d%%" % roundi(data.echo_share * 100.0)
+
+# "{grow_cost:beacon}" -> its evolve_cost, "{plant_cost:acorn}" -> its cost (as a number: the text says "Dew").
+static func cost_text(kind: String, warden_id: String) -> String:
+	var path := "res://resource/tower/%s.tres" % warden_id
+	var data := load(path) as TowerData if ResourceLoader.exists(path) else null
+	if data == null:
+		return warden_id
+	return str(data.evolve_cost if kind == "grow_cost" else data.cost)
+
+static var _cost_regex: RegEx = null
+static func _cost_pattern() -> RegEx:
+	if _cost_regex == null:
+		UiStyle.release_at_exit(func() -> void: _cost_regex = null)
+		_cost_regex = RegEx.create_from_string("\\{(grow_cost|plant_cost):([a-z_0-9]+)\\}")
+	return _cost_regex
+
+static var _echo_regex: RegEx = null
+static func _echo_pattern() -> RegEx:
+	if _echo_regex == null:
+		UiStyle.release_at_exit(func() -> void: _echo_regex = null)
+		_echo_regex = RegEx.create_from_string("\\{echo:([a-z_]+)\\}")
+	return _echo_regex
 
 static var _combo_regex: RegEx = null
 static func _combo_pattern() -> RegEx:

@@ -210,7 +210,7 @@ func _run() -> void:
 	middle._refresh_neighbours()
 	var one := stumps[0].get_aura_bonus(true)
 	_check(is_equal_approx(middle._aura_speed, one * 1.75), "three Elder Stumps: 100%% + 50%% + 25%% (%.3f, one is %.3f)" % [middle._aura_speed, one])
-	_check(middle.get_aura_lines() == ["Elder Stump ×3: +%d%% attack speed" % roundi(middle._aura_speed * 100.0)], "panel line: %s" % [middle.get_aura_lines()])
+	_check(middle.get_aura_lines() == ["Elder Stump ×3: attacks %d%% faster" % roundi(middle._aura_speed * 100.0)], "panel line: %s" % [middle.get_aura_lines()])
 	stumps[2].rank = 1
 	stumps[2].rank_choices = [Tower.Focus.KINDRED]  # Nurture v3: a Kindred rank
 	middle._refresh_neighbours()

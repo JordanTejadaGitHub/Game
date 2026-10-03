@@ -40,6 +40,7 @@ var omen_mist: OmenMist  # Low gold-violet mist while an Omen twists the block
 var build_hatch: BuildHatch  # In build mode: a cold hatch on every unbuildable cell
 var lighting: EnvironmentLighting  # Cold edges, warm Warden lights
 var ambience: EnvironmentAmbience  # Edge fog and the act's particles
+var gifts: MapGifts  # Heartwood's Gifts: terrain the act-break gifts leave (map_gifts.gd)
 
 
 # Called when the node enters the scene tree for the first time.
@@ -126,6 +127,11 @@ func _ready() -> void:
 	ambience = EnvironmentAmbience.new()
 	ambience.heartwood_position = heartwood.position
 	add_child(ambience)
+	gifts = MapGifts.new()
+	gifts.name = "Gifts"
+	gifts.map = self
+	add_child(gifts)
+	move_child(gifts, path_layer.get_index() + 1)  # Ground overlays just over the path
 
 # A pond that isn't a rectangle gets pond_inner.png's inside corners over its tiles: one small sprite
 # per corner, sorted with the pond cell and drawn just after it (a cell can need two).
@@ -157,6 +163,7 @@ func set_act(act: int) -> void:
 	for corner: Sprite2D in _pond_corners:  # The inside corners follow the season's pond sheet
 		corner.texture = (tile_set.get_source(EnvironmentTiles.POND_INNER) as TileSetAtlasSource).texture
 	heartwood.set_act(act)
+	gifts.set_act(act)
 	ambience.act = act
 
 # If obstacles cut the start off from the end, clears the fewest-obstacle route between them.
@@ -318,15 +325,30 @@ func _find_carve_route(level: int) -> PackedVector2Array:
 			astar.set_point_weight_scale(Vector2i(cell), CARVE_OBSTACLE_WEIGHT)
 	return astar.get_point_path(Vector2i(startPath), Vector2i(endPath))
 
-# Removes the obstacle on `cell`; `mark` leaves its clearing mark (tended stump, moved hollow).
+# Removes the obstacle on `cell` (the whole log if it's one of the log's cells); `mark` leaves its
+# clearing mark (tended stump, moved hollow) on each cell.
 func _remove_obstacle(cell: Vector2, mark: bool = true) -> void:
-	var data: ObstacleData = obstacles.get(cell)
-	obstacles.erase(cell)
-	if mark and data != null:
-		environment_object_layer.mark_cleared(cell, data)
-	else:
-		environment_object_layer.erase_cell(Vector2i(cell))
-	path_layer.set_cell_blocked(cell, false)
+	for at in get_obstacle_cells(cell):
+		var data: ObstacleData = obstacles.get(at)
+		obstacles.erase(at)
+		if mark and data != null:
+			environment_object_layer.mark_cleared(at, data)
+		else:
+			environment_object_layer.erase_cell(Vector2i(at))
+		path_layer.set_cell_blocked(at, false)
+	if environment_object_layer.log_cells.has(cell):
+		environment_object_layer.log_cells.clear()  # Gone as a unit
+
+# The cells of the obstacle on `cell`: all of the log's for a log cell, else just `cell`.
+func get_obstacle_cells(cell: Vector2) -> Array[Vector2]:
+	var cells: Array[Vector2] = []
+	if environment_object_layer.log_cells.has(cell):
+		for at in environment_object_layer.log_cells:
+			if obstacles.has(at):
+				cells.append(at)
+		return cells
+	cells.append(cell)
+	return cells
 
 func get_array_board() -> PackedVector2Array:
 	var _map_array: PackedVector2Array
@@ -428,9 +450,12 @@ func get_obstacle(cell: Vector2) -> ObstacleData:
 # The start-to-end path that would exist if the obstacle on `cell` were cleared, without changing
 # anything. Clearing only ever opens routes, so this is never empty when a path exists now.
 func get_path_if_cleared(cell: Vector2) -> PackedVector2Array:
-	path_layer.set_cell_blocked(cell, false)
+	var cells := get_obstacle_cells(cell)  # A log opens all its cells at once
+	for at in cells:
+		path_layer.set_cell_blocked(at, false)
 	var path := path_layer.find_path_from(startPath)
-	path_layer.set_cell_blocked(cell, true)
+	for at in cells:
+		path_layer.set_cell_blocked(at, true)
 	return path
 
 # Removes the obstacle on `cell` (no-op if there isn't one), redraws the path and notifies enemies.

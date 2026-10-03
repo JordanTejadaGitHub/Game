@@ -184,6 +184,7 @@ func _refresh() -> void:
 
 	for child in _buttons.get_children() + _footer.get_children():
 		child.queue_free()
+	_clear_not_in_dream()
 	if _tower.can_choose_target():
 		_add_target_switch([_tower])
 	if data.has_bird_toggle:
@@ -235,9 +236,10 @@ func _refresh() -> void:
 				button.mouse_entered.connect(func() -> void: tower_placer.show_catch_preview(_tower.global_position, radius))
 				button.mouse_exited.connect(tower_placer.hide_catch_preview)
 		else:
-			_locked_form_button(button, "Grow into %s" % next.display_name, next, [_tower], index)
+			_locked_form_button(button, "Unlock %s" % next.display_name, next, [_tower], index)
 			continue  # Locked: no ring, no ghost
 		_preview_on(button, [[_tower, next]])
+	_not_in_dream_button(data)
 	if _tower.can_nurture():
 		var cost := _tower.get_nurture_cost()
 		# The Eldest (a Legendary): rank VI crowns the one Warden that can grow past V, so ask first.
@@ -326,6 +328,7 @@ func _refresh_group() -> void:
 
 	for child in _buttons.get_children() + _footer.get_children():
 		child.queue_free()
+	_clear_not_in_dream()
 	var aimed := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_choose_target())
 	if not aimed.is_empty():
 		_add_target_switch(aimed)
@@ -340,7 +343,7 @@ func _refresh_group() -> void:
 			UiStyle.primary(button)
 			_grow_key(button, index)
 			if not option[1]:
-				_locked_form_button(button, "%s → %s" % [_plural(data, towers.size()), next.display_name], next, towers, index)
+				_locked_form_button(button, "Unlock %s" % next.display_name, next, towers, index)
 				continue  # Locked: no ring, no ghost
 			button.tooltip_text = tower_placer.grow_changes(towers[0], next) + "\n\n" + IconInfo.format(next.description)  # As the first of them
 			# Each pays Tower.get_grow_cost (ranked ones their rank difference too).
@@ -591,24 +594,25 @@ func _grow_key(button: Button, index: int) -> void:
 # Dreamlight it's the can't-afford style (the cost in POOR) and a press refuses; not open yet (Memory Grove,
 # its branch first, drift 51) it's dim with the reason, and a press refuses too.
 func _locked_form_button(button: Button, label: String, next: TowerData, towers: Array, index: int) -> void:
-	# No preview of a locked form (story chat 2026-10-01): the tooltip only says where it's unlocked, and a
-	# Grove-locked one stays "???", name and all, as on the Remember screen.
+	# Not unlocked yet (user: "rename Grow to Unlock if they haven't unlocked it yet"): "Unlock Beacon · 2
+	# Dreamlight (Q)"; once unlocked the same slot reads "Grow into Beacon · 300 Dew (Q)". No preview of a locked
+	# form; a Grove-locked one stays "???" with no Unlock wording ("??? · in the Memory Grove"), as on Remember.
 	button.tooltip_text = LOCKED_FORM_TIP
 	if not dream_state.has_method("get_unlock_cost"):
 		button.text = "%s · needs a Dream" % label  # Before Dreamlight
 		button.disabled = true
 		return
-	var cost: int = dream_state.get_unlock_cost(next)
+	var cost: int = dream_state.get_unlock_price(next)  # Waking Root's discount included (it can reach 0)
 	var blocker: String = dream_state.get_unlock_blocker(next)
 	if blocker == "Memory Grove":
-		label = label.replace(next.display_name, RememberScreen.UNKNOWN_NAME)
+		label = RememberScreen.UNKNOWN_NAME
 		button.tooltip_text = RememberScreen.UNKNOWN_NAME
 	if blocker != "":
 		button.set_meta(&"label", label)
-		button.set_meta(&"price", blocker)
+		button.set_meta(&"price", WardenHeaderView.blocker_text(blocker))
 		_set_short(button, true, false)  # Not a price: just the dim look
 	else:
-		_priced(button, label, "%d Dreamlight" % cost, cost, &"dreamlight", true)
+		_priced(button, label, ("%d Dreamlight" % cost) if cost > 0 else "free", cost, &"dreamlight", true)
 	button.pressed.connect(func() -> void:
 		_confirm_unlock = null
 		if tower_seller.refuse_if_short(towers, next, false, index):
@@ -721,6 +725,32 @@ func _nurture_with(which: Tower.Focus) -> void:
 static func _price(dew: int) -> String:
 	return "free" if dew <= 0 else "%d Dew" % dew
 
+# Branch expansion: the branches this run didn't draw aren't Grow buttons (Tower.grow_options); one quiet line
+# points at Remember, where a misty branch can be called back into the dream for Dreamlight. It sits in the info part
+# (which scrolls), not among the actions, so the panel keeps within MAX_SHARE.
+func _not_in_dream_button(data: TowerData) -> void:
+	_clear_not_in_dream()
+	var hidden := Tower.not_in_dream(dream_state, data)
+	if hidden.is_empty():
+		return
+	var button := Button.new()
+	button.name = "NotInDream"
+	button.text = "%d more not in this dream · Remember" % hidden.size()
+	button.focus_mode = Control.FOCUS_NONE
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_content.add_child(button)
+	button.flat = true
+	button.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	button.tooltip_text = "%s: not in this dream. Call one back on Remember." % ", ".join(hidden.map(
+		func(form: TowerData) -> String: return form.display_name))
+	button.pressed.connect(func() -> void: dream_state.open_remember(hidden[0]))
+
+func _clear_not_in_dream() -> void:
+	var old := _content.get_node_or_null("NotInDream")
+	if old != null:
+		_content.remove_child(old)
+		old.queue_free()
+
 func _add_button(text: String) -> Button:
 	var button := Button.new()
 	button.text = text
@@ -813,8 +843,8 @@ func _kindred_row(line: String, bonus: float) -> HBoxContainer:
 	row.add_theme_constant_override("separation", 4)
 	var whole := bonus > Kinships.KINDRED_BONUS
 	var name := "Whole Tree" if whole else "Kindred"
-	var tip := ("All three branches of the %s family are planted: its Wardens deal +%d%% damage." if whole \
-		else "Two branches of the %s family are planted: its Wardens deal +%d%% damage.") \
+	var tip := ("All three branches of the %s family are planted: its Wardens deal %d%% more damage." if whole \
+		else "Two branches of the %s family are planted: its Wardens deal %d%% more damage.") \
 		% [NightmareIcons.family_name(line), roundi(bonus * 100)]
 	TapTip.attach(row, tip)  # Hover or tap (screens_ui.md "Every icon can be hovered or tapped")
 	var icon := TextureRect.new()
@@ -992,3 +1022,21 @@ func _rank_preview_on(button: Button, towers: Array, focus: Tower.Focus) -> void
 	button.mouse_exited.connect(tower_placer.hide_rank_preview)
 	button.focus_exited.connect(tower_placer.hide_rank_preview)
 	button.tree_exiting.connect(tower_placer.hide_rank_preview)  # The panel rebuilt under the pointer
+
+# One soft pulse on the Grow buttons (`kind` &"grow") or the Nurture button (&"nurture"): the grow onboarding
+# (onboarding.md, Main's GrowHints) points at them once. "Unlock …" slots (grow_index too) never pulse: only
+# a form you can grow now. Returns how many buttons pulsed.
+func pulse(kind: StringName) -> int:
+	var count := 0
+	for button in _buttons.get_children():
+		if not button is Button or button.is_queued_for_deletion():
+			continue
+		var text := String(button.text)
+		var match_kind: bool = (kind == &"grow" and button.has_meta(&"grow_index") and text.begins_with("Grow")) \
+			or (kind == &"nurture" and text.begins_with("Nurture"))
+		if match_kind:
+			count += 1
+			var tween := button.create_tween()
+			tween.tween_property(button, "modulate", Color(1.5, 1.35, 1.0), 0.25)  # A multiplier (glow), not a colour
+			tween.tween_property(button, "modulate", Color.WHITE, 0.6)
+	return count

@@ -6,18 +6,18 @@ class_name RuleBreakers
 # maze (any trait_kind but NONE) that this run hasn't faced yet, coming in the next block:
 # - the Coming strip shows it first, larger, with a gold "New" tab and its trait in words (ComingStrip);
 # - a warning line under the DriftPanel status ("Flyers in drift 31: they ignore your maze");
-# - for flyers that cross walls, a faint dashed line from the start straight to the Heartwood for the rest;
+# - for flyers that cross walls, a thin cold-mist line from the start straight to the Heartwood (RouteLine's mist at
+#   half width): at every rest before a block that brings them, and faintly while they're on the field. Information,
+#   not a tutorial (user: "there's no more arrows for flying units?"): every run, never retired;
 # - the first time one walks onto the field, a short name plate over it ("Phantom · flies").
-# Once per run per kind; the dashed line stays off once the profile was warned about a kind on 3 runs.
+# The "New" tab, the DriftPanel line and the plate are once per run per kind; the mist line follows the schedule.
 # Made by the HUD, in the world like StartArrows. The static helpers serve ComingStrip and DriftPanel.
 
-const PROFILE_KEY := "rule_breakers_warned"  # {kind: runs it was warned about}
-const QUIET_AFTER := 3  # Runs warned, then no dashed line
 const PLATE_TIME := 4.0  # Seconds a first-appearance name plate stays
 const PLATE_LIFT := 52.0  # Pixels above the nightmare
-const DASH := 18.0
-const DASH_GAP := 14.0
-const LINE_ALPHA := 0.4
+const LINE_WIDTH_SHARE := 0.5  # Of the route mist's width
+const LINE_ALPHA := 0.5  # At a rest before them
+const LINE_ALPHA_FIELD := 0.25  # While they're on the field
 const REFRESH := 0.25  # Seconds between checks (real time)
 
 const VERBS := {EnemyData.Trait.FLYING: "flies", EnemyData.Trait.ROLLING: "sprints", EnemyData.Trait.TRAMPLE: "tramples",
@@ -31,10 +31,10 @@ const WARNINGS := {EnemyData.Trait.FLYING: "they ignore your maze", EnemyData.Tr
 var director: DriftDirector
 var map: Node
 var spawner: Node
-var line_shown := false  # The dashed flyer line is up (tests)
+var line_shown := false  # The flyer mist line is up (tests)
+var line := Line2D.new()  # Start → Heartwood, in RouteLine's mist style
 var _plates: Array = []  # [enemy, seconds left]
 var _plated := {}  # Kind -> true: its first-appearance plate was shown this run
-var _warned_run := {}  # Kind -> the runs it had been warned about before this one (counted once per run)
 var _clock := 0.0
 
 var _plate_layer := Node2D.new()  # Plates draw over the nightmares; the line stays on the ground
@@ -43,7 +43,10 @@ func _init(drift_director: DriftDirector = null) -> void:
 	director = drift_director
 
 func _ready() -> void:
-	z_index = -1  # The dashed line: the route arrows' layer (over the path tiles, under Wardens and nightmares)
+	z_index = -1  # The mist line: the route arrows' layer (over the path tiles, under Wardens and nightmares)
+	line.name = "FlyerLine"
+	line.visible = false
+	add_child(line)
 	_plate_layer.z_index = 9  # -1 + 9: over the nightmares, like MistCount
 	_plate_layer.draw.connect(_draw_plates)
 	add_child(_plate_layer)
@@ -97,9 +100,16 @@ static func plate_text(data: EnemyData) -> String:
 static func kind_of(data: EnemyData) -> String:
 	return data.resource_path.get_file().get_basename()
 
-# Runs the profile was warned about `data` on (the dashed line goes quiet at QUIET_AFTER).
-static func runs_warned(data: EnemyData) -> int:
-	return int(HeartwoodMemory.load_data().get(PROFILE_KEY, {}).get(kind_of(data), 0))
+# Whether the next block brings flyers that cross walls (any kind, faced or not: the mist line is information).
+static func wall_flyers_coming(drift_director: DriftDirector) -> bool:
+	if drift_director == null or not drift_director.is_resting() or not drift_director.has_next_drift():
+		return false
+	var per := drift_director.drifts_per_block
+	var block := drift_director.get_block(drift_director.drifts_started + 1)
+	for kind in ComingStrip.kinds_in_range(drift_director, (block - 1) * per + 1, mini(block * per, drift_director.get_total_drifts())):
+		if breaks_rules(kind[0]) and kind[0].is_through_walls():
+			return true
+	return false
 
 # --- The world overlay ---------------------------------------------------------------------------------
 
@@ -114,34 +124,34 @@ func _process(delta: float) -> void:
 	if _clock > 0.0:
 		return
 	_clock = REFRESH
-	var coming_now := coming(director)
-	var show_line := false
-	for item in coming_now:
-		_note_warned(item[0])
-		# The dashed line: flyers that cross walls, until the profile was warned about them on QUIET_AFTER earlier runs
-		if item[0].is_through_walls() and int(_warned_run[kind_of(item[0])]) < QUIET_AFTER:
-			show_line = true
-	if show_line != line_shown:
-		line_shown = show_line
-		queue_redraw()
+	var alpha := 0.0
+	if wall_flyers_coming(director):
+		alpha = LINE_ALPHA
+	elif _wall_flyers_on_field():
+		alpha = LINE_ALPHA_FIELD
+	line_shown = alpha > 0.0
+	_show_line(alpha)
 
-# Counts this run once per kind in the profile (the real game only; tests never write). `_warned_run` keeps
-# the count from before this run.
-func _note_warned(data: EnemyData) -> void:
-	var kind := kind_of(data)
-	if _warned_run.has(kind):
-		return
-	_warned_run[kind] = runs_warned(data)
-	if not _may_write():
-		return
-	var profile := HeartwoodMemory.load_data()
-	var warned: Dictionary = profile.get(PROFILE_KEY, {})
-	warned[kind] = int(warned.get(kind, 0)) + 1
-	profile[PROFILE_KEY] = warned
-	HeartwoodMemory.save_data(profile)
+func _wall_flyers_on_field() -> bool:
+	if spawner == null or not spawner.has_method("get_enemies"):
+		return false
+	for enemy in spawner.get_enemies():
+		var data = enemy.get("enemy_data")
+		if data is EnemyData and breaks_rules(data) and data.is_through_walls() and not enemy.get("is_cleansed"):
+			return true
+	return false
 
-func _may_write() -> bool:
-	return is_inside_tree() and director != null and get_tree().current_scene == director.owner and not MetaRun.is_dev_run()
+# The mist line from the start straight to the Heartwood at `alpha` (0 = hidden); RouteLine's mist at half width.
+func _show_line(alpha: float) -> void:
+	line.visible = alpha > 0.0 and map != null and RouteLine.has_mist()
+	if not line.visible:
+		return
+	if line.points.is_empty():
+		line.points = PackedVector2Array([map.MAP_GRID.calculate_map_position(map.startPath),
+			map.MAP_GRID.calculate_map_position(map.endPath)])
+		RouteLine.style_mist(line, alpha)
+		line.width *= LINE_WIDTH_SHARE
+	line.default_color = Color(1, 1, 1, alpha)  # multiplier: the art carries the colour
 
 func _on_spawned(node: Node) -> void:
 	var data = node.get("enemy_data")
@@ -160,19 +170,6 @@ func _plate_spawned(id: int) -> void:
 	_plated[kind_of(real)] = true
 	_plates.append([node, PLATE_TIME])
 	_plate_layer.queue_redraw()
-
-func _draw() -> void:
-	if line_shown and map != null:
-		var from: Vector2 = map.MAP_GRID.calculate_map_position(map.startPath)
-		var to: Vector2 = map.MAP_GRID.calculate_map_position(map.endPath)
-		var dir := (to - from).normalized()
-		var length := from.distance_to(to)
-		var at := 0.0
-		var colour := Color(Palette.WRAITHLIGHT, LINE_ALPHA)
-		while at < length:
-			var end := minf(at + DASH, length)
-			draw_line(from + dir * at, from + dir * end, colour, 3.0, true)
-			at = end + DASH_GAP
 
 func _draw_plates() -> void:
 	for plate in _plates:

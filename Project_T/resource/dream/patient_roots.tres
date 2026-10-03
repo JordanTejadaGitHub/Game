@@ -14,5 +14,5 @@ max_stacks = 1
 rule_id = &"patient_roots"
 in_start_pool = false
 grows_with = Array[String](["rootling", "rootcurl", "tangleroot", "snugroot", "long_way_home", "world_root"])
-grows_text = "The Rootling line pulls 0.5 tiles further and holds another 0.25 s."
+grows_text = "The Rootling line pulls 0.5 path tiles further and holds another 0.25 s."
 calls_family = "rootling"

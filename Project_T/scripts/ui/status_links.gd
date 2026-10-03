@@ -52,10 +52,28 @@ static func bbcode(text: String) -> String:
 		for found in _combo_pattern().search_all(text):  # {combo:thunderclap}: its name, or ??? until found
 			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
 			terms.append(combo_link(StringName(found.get_string(1))))
+	# Terms written as plain words (user: "Potency in cards doesn't have the underline"): whole word, as written.
+	for id in PLAIN_TERMS:
+		var word := _plain_pattern(id)
+		if word.search(text) != null:
+			text = word.sub(text, "\u0001%d\u0001" % terms.size(), true)
+			terms.append(_link(TERM_PREFIX + String(id), IconInfo.TERMS[id][0]))
 	text = _statuses(IconInfo.format(text).replace("[", "[lb]"))
 	for i in terms.size():
 		text = text.replace("\u0001%d\u0001" % i, terms[i])
 	return text
+
+const PLAIN_TERMS: Array[StringName] = [&"potency"]  # IconInfo.TERMS ids linked wherever their word appears
+static var _plain_regex := {}  # Term id -> RegEx for its word
+
+static func _plain_pattern(id: StringName) -> RegEx:
+	if not _plain_regex.has(id):
+		if _plain_regex.is_empty():
+			UiStyle.release_at_exit(func() -> void: _plain_regex.clear())
+		var regex := RegEx.new()
+		regex.compile("\\b" + _escape(IconInfo.TERMS[id][0]) + "\\b")
+		_plain_regex[id] = regex
+	return _plain_regex[id]
 
 static var _combo_regex: RegEx = null
 static func _combo_pattern() -> RegEx:

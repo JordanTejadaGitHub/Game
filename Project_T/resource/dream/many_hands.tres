@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "many_hands"
 display_name = "Many Hands"
-description = "All Wardens +1% damage for every 2 attacking Wardens you have (up to +40%)."
+description = "All Wardens deal 1% more damage for every 2 attacking Wardens you have (up to +40%)."
 rarity = 1
 kind = 3
 tags = Array[String](["wide", "overgrowth"])

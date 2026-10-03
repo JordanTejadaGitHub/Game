@@ -44,6 +44,8 @@ two trees pulse in step.
 | `path_rim.png` | 1024×64 | 16 tiles, **column = neighbour mask** like `path.png` | the path on the start and goal cells, which sit in the rim ring: the same path, transparent outside it (no grass border). Draw it over the matching `island_edge` tile so the rim's earth runs up to the path |
 | `border_wall.png` | 128×64 | 2 variants, seamless | the map's stone border |
 | `withered_tree.png` | 384×1152 | **96×128 cells** (bigger since 2026-09-30): the bottom 64 px rows, centred, are the cell (trunk base and shadow); the rest overhangs the cell above (64 px) and the sides (16 px each). Drawn from the 64 px designs with heights × 1.7 and widths × 1.3. 9 dead trees (rows) × 4 frames: 0–2 gnarled Withered Tree, 3 split trunk, 4 broken hollow snag (eyes glint), 5 weeping dead willow (strands sway), 6 dead pine, 7 dead birch, 8 thorn tree | obstacle, "Tend"; all 9 are in `tree.tres` |
+| `fallen_log.png` | 384×64 | 6 pieces of 64×64: **W end, E–W middle, E end, N end, N–S middle, S end** | a dead tree lying along a straight line of cells (the map's log feature, the Fallen Giant gift): the dead trees' cool bark, moss on its back, a broken branch stub on each middle piece, pale splintered ends. Pieces join seamlessly (outline never on a cell edge, grain wraps every 64 px); the N–S pieces are the E–W ones turned |
+| `log_furrow.png` | 384×64 | the same 6 pieces as `fallen_log.png` (W end, E–W middle, E end, N end, N–S middle, S end) | the walkable mark a Tended fallen log leaves (the log is Tended as one unit): a shallow rotted trench of dark peat with a faint lit lip, bark chips in the log's colours, pale splinters and moss creeping back; lines up with the log cell for cell |
 | `tended_stump.png` | 64×64 | 1 | walkable mark left after Tend |
 | `mossy_boulder.png` | 576×64 | 9 rocks, each about 68% of their first size (low in the cell with a shadow, clearly smaller than the trees): 0–1 Mossy Boulder, 2 slab stone, 3 cairn, 4 rock cluster, 5 split boulder, 6 lichen boulder, 7 carved boulder, 8 dream-crystal boulder | obstacle, "Move"; all 9 are in `rock.tres` |
 | `moved_hollow.png` | 64×64 | 1 | walkable mark left after Move |
@@ -104,7 +106,8 @@ same way. Now each map rolls a layout, ridges that follow it, and one feature.
    edge between the start and the Heartwood (the U), plus 0–1 more. Blight 9's extra ridge applies.
 3. **One feature per map**: a pond (2×2–3×3 water: unwalkable, unbuildable, never cleared; the route
    bends round it), a ruin (a ring of stones with a gap, cleared with Move), a dense grove, or a
-   fallen-log line (a short line of tree obstacles until it has its own art). At least 2 cells from the
+   fallen log (`fallen_log.png`, one obstacle over 3–4 cells, Tended as a unit; it first tries to lie across the
+   opening route, `LOG_ACROSS_TRIES`, so Tending it is a shortcut). At least 2 cells from the
    start and end; counted in the obstacle budget.
 4. **Guards**: the route is always guaranteed; the starting route length and buildable-cell count stay
    within ±25% of the old medians for every layout; the first-run camera glide follows the actual route;
@@ -133,8 +136,11 @@ same way. Now each map rolls a layout, ridges that follow it, and one feature.
 - **Features** (`_place_feature`, after the ridges): `feature_cells`; ponds are also `pond_cells`,
   which are blocked in pathing but aren't obstacles (no Tend / Move, no build: the build hatch shows
   them) and are only placed if the route survives with every ridge standing. A ruin uses the standing
-  stone, cairn and ruined waystone rocks; a grove is a tight tree cluster; a log is a 3–4 cell line of
-  trees. Feature cells keep `feature_clearance` (3, chessboard) from the start and end. Ponds draw
+  stone, cairn and ruined waystone rocks; a grove is a tight tree cluster; a log is one obstacle over a
+  3–4 cell line (`fallen_log.tres`, `EnvironmentTiles.FALLEN_LOG` pieces by `log_piece`; `MapGenerator.get_obstacle_cells`
+  gives its cells: one Tend clears all of them for a tree's cost per cell (`ObstacleClearer.get_clear_cost_at`), counts as
+  one clear, previews the route with all cells open, leaves `log_furrow.png` piece for piece; carving breaks it whole;
+  `tests/test_fallen_log.gd`). Feature cells keep `feature_clearance` (3, chessboard) from the start and end. Ponds draw
   `pond.png` by neighbour mask (animated down its column).
 - **Follow-ups** (2026-10-01, after the first sheet): the opening route is the **straightest of the
   shortest** (`MapGenerator._straightest_route`: per cell and heading, the fewest turns along shortest
@@ -247,6 +253,20 @@ inland. This replaces the Heartwood half of the layouts above.
   enough, glade clear; every route bends. Ponds near the route on 7 of 8 seeds, ruins 6 of 8.
   RunSaver VERSION 9.
 
+
+### Heartwood's Gifts (experiment/spire-difficulty, heartwood_gifts.md)
+
+Map pieces the act-break gifts place, one set per act folder like the rest.
+
+| File | Size | Layout | Use |
+|---|---|---|---|
+| `lightning_tree.png` | 384×128 | 4 frames of 96×128, the Withered Tree format (bottom 64 px rows centred on the cell) | Lightning Tree (an obstacle): a split, scorched dead tree with a charred cleft and Wraithlight static in its bark that flickers; a spark jumps between its tops on frame 2 |
+| `moonwell.png` | 256×64 | 4 frames of 64×64 | Moonwell (an unbuildable lit cell): a waystone ring with still water holding the moon's wobbling reflection, moonlight motes rising |
+| `bell_stone.png` | 256×64 | 4 frames of 64×64 | Bell Stone: a standing stone with a bronze bell in its hollow, a rune that glows gold as it sings, a ring of sound spreading beside it |
+| `mushroom_ring.png` | 768×192 | 4 frames of 192×192 (one 3×3 patch), transparent but the ring | Mushroom Ring (a ground patch under Wardens): a fairy ring of lush moss with 15 toadstools whose caps breathe a glow out of step |
+| `heartwood_roots.png` | 1024×64 | 16 columns = the path's neighbour mask, transparent overlay | Heartwood Roots: two gnarled warm root strands per path side meeting in a knot, glints of gold sap; drawn over the path tile, joins across cells |
+| `bog_path.png` | 1024×64 | 16 columns = neighbour mask, replaces `path.png` on its cells | Mire: the path's shape turned to dark peat with still puddles, reeds and a wet dark edge |
+| `ancient_stump.png` | 192×64 | 3 variants of 64×64 | Ancient Stump: a broad cut stump with its year rings, roots and a little moss, flat enough to plant a Warden on |
 ## Notes
 
 - Colours (2026-09-30, to fit the title and Memory Grove screens): the ground is night-indigo with a moss grain (act 1–2 moss/teal, act 3 violet with rust, act 4 frost), the dead trees are cool night bark with a teal lit side and moss flecks (the Grove trunks), rocks stay lavender stone. Warmth is only the path, the Heartwood and the Wardens.

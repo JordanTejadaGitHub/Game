@@ -42,13 +42,22 @@ func _run() -> void:
 	var dark := []
 	dreams.dreamlight_short.connect(func(cost: int) -> void: dark.append(cost))
 	var refusals: int = panel.grow_refused
+	# The form a Dreamlight unlock opens (E, unless the 2nd is Grove-locked: the branch expansion lists the Grove's
+	# hidden branch among this run's, then its key is the next free one).
+	var keys := [KEY_Q, KEY_E, KEY_Z]
+	var pick := 1
+	for i in [1, 2, 0]:
+		if i < options.size() and not options[i][1] and dreams.get_unlock_blocker(options[i][0]) == "":
+			pick = i
+			break
+	var key: Key = keys[pick]
 	dreams.dreamlight = 0
-	_press(seller, KEY_E)
-	_check(focused[0] == null and dark == [dreams.get_unlock_cost(options[1][0])] and panel.grow_refused == refusals + 1,
-		"E on a locked form short of Dreamlight opens nothing and refuses (%s)" % [dark])
-	dreams.dreamlight = dreams.get_unlock_cost(options[1][0])
-	_press(seller, KEY_E)
-	_check(focused[0] == options[1][0], "with the Dreamlight, E opens Remember on it (%s)" % focused[0])
+	_press(seller, key)
+	_check(focused[0] == null and dark == [dreams.get_unlock_cost(options[pick][0])] and panel.grow_refused == refusals + 1,
+		"%s on a locked form short of Dreamlight opens nothing and refuses (%s)" % [OS.get_keycode_string(key), dark])
+	dreams.dreamlight = dreams.get_unlock_cost(options[pick][0])
+	_press(seller, key)
+	_check(focused[0] == options[pick][0], "with the Dreamlight, %s opens Remember on it (%s)" % [OS.get_keycode_string(key), focused[0]])
 	_check(spore.tower_data.get_id() == "sporeling", "and doesn't grow it")
 	# Grow hover (story chat 2026-10-01): a locked form shows no ring and no ghost, only where it's unlocked;
 	# an unlocked one previews (current range faint, its range bright, its sprite) and names its changes.
@@ -80,6 +89,13 @@ func _run() -> void:
 	open_button.mouse_exited.emit()
 	_check(not placer.is_previewing_growth(), "pointer off: the preview goes")
 	_check(not placer.visible and is_equal_approx(spore.sprite.modulate.a, 1.0), "and the placer hides again, the Warden back to full")
+	# Renamed (user: "rename Grow to Unlock if they haven't unlocked it yet"): locked slots read "Unlock X",
+	# the unlocked one "Grow into X"; the onboarding pulse (Main's GrowHints) only touches the Grow ones.
+	var slots: Array = panel._buttons.get_children().filter(func(b) -> bool: return b is Button and not b.is_queued_for_deletion() and b.has_meta(&"grow_index"))
+	_check(slots.filter(func(b: Button) -> bool: return b.text.begins_with("Grow into")).size() == 1
+		and slots.filter(func(b: Button) -> bool: return b.text.begins_with("Unlock ") or b.text.begins_with(RememberScreen.UNKNOWN_NAME)).size() == slots.size() - 1,
+		"one Grow into, the locked ones Unlock / ??? (%s)" % [slots.map(func(b: Button) -> String: return b.text)])
+	_check(panel.pulse(&"grow") == 1, "pulse(&\"grow\") pulses only the Grow button")
 	dreams.unlocked.erase(open_form.get_id())
 
 	# Unlocked: holding E previews (held signal), letting go grows into the 2nd option.

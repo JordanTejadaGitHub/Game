@@ -43,6 +43,7 @@ func _init() -> void:
 	_make_hud_icons()
 	_make_dream_glyphs()
 	_make_buff_pips()
+	_make_grow_hints()
 	print("ui icons written")
 	quit()
 
@@ -1985,3 +1986,87 @@ func _make_buff_pips() -> void:
 	}
 	var file := FileAccess.open(OUT + "buff_pips.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
+
+# --- Grow hints (Main's GrowHints, at a Warden's base during rests) --------------------------------
+# Replace the gold arrow with themed world glyphs, warm side of Heartwood 32, outlined for grass and
+# the pale path (GrowHints draws them at ~60%):
+#   grow_bud:        "can grow"   16x16, 3 frames (a bud swaying and opening)
+#   rank_dew:        "can rank"   12x12, 2 frames (a dewdrop shimmering)
+#   grow_spotlight:  first time   24x24, 4 frames (a bigger bud opening, pollen motes rising)
+
+const GROW_HINTS := [["grow_bud", 16, 3], ["rank_dew", 12, 2], ["grow_spotlight", 24, 4]]
+
+var _frame := 0
+
+func _make_grow_hints() -> void:
+	var index := {}
+	for spec: Array in GROW_HINTS:
+		var id: String = spec[0]
+		var size: int = spec[1]
+		var frames: int = spec[2]
+		var sheet := Image.create(size * frames, size, false, Image.FORMAT_RGBA8)
+		for f in frames:
+			_frame = f
+			var img := _icon(id, size)
+			Palette.snap_image(img)
+			sheet.blit_rect(img, Rect2i(0, 0, size, size), Vector2i(f * size, 0))
+		sheet.save_png(OUT + id + ".png")
+		index[id] = {image = id + ".png", frame_size = size, frames = frames}
+	_frame = 0
+	_n = ICON
+	var file := FileAccess.open(OUT + "grow_hints.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify({hints = index,
+		note = "Grow hints at a Warden's base (screens_ui.md). Whole-number scale, nearest; ~60% opacity. grow_bud = can grow, rank_dew = can rank, grow_spotlight = the one-time first-grow spotlight. Frames left to right; loop grow_bud 0-1-2-1, rank_dew 0-1, grow_spotlight 0-3."}, "\t") + "\n")
+
+func _sprout(base: Vector2, top: Vector2, leaf_y: float, leaf_r: Vector2, stem_w: float) -> void:
+	_c_line([base, Vector2(base.x, leaf_y), top], stem_w, _rpn("sprig", "leaf", "moss"))
+	var leaf := _rpn("newleaf", "sprig", "leaf")
+	_c_ell(Vector2(base.x - leaf_r.x * 0.9, leaf_y), leaf_r, leaf, -0.45)
+	_c_ell(Vector2(base.x + leaf_r.x * 0.9, leaf_y), leaf_r, leaf, 0.45)
+
+func _bud(c: Vector2, r: Vector2, opening: float) -> void:
+	# A gold bud; opening 0 = closed, 1 = petals parted round a glowing heart.
+	var gold := _rpn("heartlight", "glow", "gold")
+	if opening <= 0.0:
+		_c_ell(c, r, gold)
+		return
+	var spread := r.x * 0.55 * opening
+	_c_ell(c + Vector2(-spread, 0.3), Vector2(r.x * 0.7, r.y), gold, -0.35 * opening)
+	_c_ell(c + Vector2(spread, 0.3), Vector2(r.x * 0.7, r.y), gold, 0.35 * opening)
+	_c_disc(c + Vector2(0, -r.y * 0.15), r.x * 0.45, _rpn("heartlight", "heartlight", "glow"))
+
+func _ic_grow_bud() -> void:
+	var sway: float = [0.0, 0.8, 0.0][_frame]
+	var opening: float = [0.0, 0.0, 1.0][_frame]
+	_sprout(Vector2(8, 15.4), Vector2(8 + sway, 7), 11.6, Vector2(2.6, 1.3), 1.5)
+	_bud(Vector2(8 + sway, 5.2), Vector2(2.3, 2.8), opening)
+
+func _ic_rank_dew() -> void:
+	# The hand-drawn 12 px Dew drop from the HUD counters; frame 1 shimmers (the highlight moves, a glint).
+	var rows: Array = HUD_COUNTERS["dew_hud"]
+	for y in rows.size():
+		for x in rows[y].length():
+			var ch: String = rows[y][x]
+			if HUD_INK.has(ch):
+				_dt(x, y, Palette.color(HUD_INK[ch]))
+	if _frame == 1:
+		_dt(4, 5, Palette.color("dewlight"))
+		_dt(3, 7, Palette.color("heartlight"))
+		_dt(10, 1, Palette.color("glow"))
+		_dt(9, 2, Palette.color("gold"))
+		_dt(11, 2, Palette.color("gold"))
+		_dt(10, 3, Palette.color("gold"))
+		_dt(10, 2, Palette.color("heartlight"))
+
+func _ic_grow_spotlight() -> void:
+	var opening: float = [0.0, 0.45, 0.8, 1.0][_frame]
+	var sway: float = [0.0, 0.6, 0.0, -0.6][_frame]
+	_sprout(Vector2(12, 23.4), Vector2(12 + sway, 11), 18.0, Vector2(4.0, 1.9), 2.0)
+	_bud(Vector2(12 + sway, 8.2), Vector2(3.4, 4.0), opening)
+	# Pollen motes drifting up, a step higher each frame.
+	for m: Vector2i in [Vector2i(5, 14), Vector2i(19, 12), Vector2i(8, 6), Vector2i(17, 4)]:
+		var y := m.y - _frame * 2
+		if y < 0:
+			y += 16
+		_dt(m.x, y, Palette.color("glow"))
+		_dt(m.x, y + 1, Palette.color("gold"))

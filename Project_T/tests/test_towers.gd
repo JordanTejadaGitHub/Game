@@ -34,7 +34,8 @@ func _run() -> void:
 
 	for data in placer.towers:
 		_check(data.texture != null, "%s has a sprite" % data.display_name)
-		_check(data.get_frame_rect(0).size == Vector2(64, 64), "%s frames are 64x64" % data.display_name)
+		var frame := data.get_frame_rect(0).size
+		_check(frame.x == 64.0 and frame.y in [64.0, 80.0, 96.0], "%s frames are 64 wide, 64/80/96 tall (%s)" % [data.display_name, frame])
 		if data.can_attack and data.projectile_texture != null:
 			var side: int = data.projectile_texture.get_width() / data.projectile_frames
 			_check(side == data.projectile_texture.get_height() and side >= 16, "%s projectile frames are square (%dpx)" % [data.display_name, side])

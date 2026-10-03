@@ -7,6 +7,7 @@ script = ExtResource("1_card")
 id = "fever_pitch"
 display_name = "Fever Pitch"
 description = "{combo:fever_dream} spreads to nightmares within 1.5 cells, not just next to it."
+cost_description = "{combo:fever_dream} can fire half as often."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])

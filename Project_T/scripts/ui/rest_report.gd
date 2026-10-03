@@ -17,8 +17,13 @@ const REACTION_TAGS: Array[StringName] = [&"echo", &"lightning_rod", &"dawnbreak
 @onready var drift_director: DriftDirector = %DriftDirector
 
 var _label := StatusLinks.make_label("", 15)  # Status names are links
+# "Dreams this block · …" in UI Code's credit look (UiStyle.credit_bbcode), under the report; built from the card
+# credits, hidden when no card earned anything this block. The plain report text (meter tab, run report) keeps the line.
+var dreams_label := RichTextLabel.new()
 var unbound_block := 0  # Nightmares that turned Unbound this block ("Unbound: N")
 var _omen_line := ""  # The Omen reward paid at this rest, and why it was cut ("Omens with teeth")
+var _finale_drift := 0  # Spire block finale: the finale drift this block (0 = none)
+var _finale_lost_before := 0  # RunState.leaves_lost when it started
 # The last block's summary (the damage meter's "Last block" tab reads it; "" before the first rest).
 signal block_report_ready(block: int)
 var last_block_text := ""
@@ -28,10 +33,25 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	UiStyle.tip_body(_label)  # Tip sizes (screens_ui.md playtest fixes 2026-09-30)
 	_label.mouse_filter = Control.MOUSE_FILTER_PASS  # Clicks reach the card (dismiss) too
-	add_child(_label)
+	var box := VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_PASS
+	add_child(box)
+	box.add_child(_label)
+	dreams_label.name = "DreamsCredit"
+	dreams_label.bbcode_enabled = true
+	dreams_label.fit_content = true
+	dreams_label.scroll_active = false
+	dreams_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	dreams_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	dreams_label.visible = false
+	box.add_child(dreams_label)
 	visible = false
 	# Deferred: the Harvest pours on rest_started too, so its totals are in by then.
 	drift_director.rest_started.connect(func(block: int, _boss: bool, _bonus: int, _perfect: bool) -> void: show_report.call_deferred(block))
+	drift_director.drift_started.connect(func(number: int) -> void:
+		if drift_director.has_method("get_block_finale_elites") and drift_director.get_block_finale_elites(number) > 0:
+			_finale_drift = number
+			_finale_lost_before = get_node("%RunState").leaves_lost)
 	drift_director.rest_ended.connect(func(_block: int) -> void:
 		visible = false
 		unbound_block = 0)
@@ -76,6 +96,11 @@ func show_report(block: int) -> void:
 		text += kinship_text(0 if not combos.kin_names_block.is_empty() else combos.kin_formed_block,
 			combos.harmony_block, combos.whole_block)
 	text += _kin_hint()
+	# Read at rest_started: the block that just ended. Its own label in the card; in the plain text at the end.
+	var dreams_plain := dreams_text(self, &"block", "Dreams this block")
+	var entries := credit_entries(self, &"block")
+	dreams_label.text = UiStyle.credit_bbcode("Dreams this block", entries) if not entries.is_empty() else ""
+	dreams_label.visible = not entries.is_empty()
 	text += support_text(self, "block")
 	text += templates_text(drift_director, block)
 	var close_calls := CloseCalls.find(self)
@@ -85,10 +110,11 @@ func show_report(block: int) -> void:
 		text += "\nUnbound: %d" % unbound_block
 	if drift_director.block_pot > 0.0:  # The Dew pot: what this block paid of what it held (leaks lose their share)
 		text += "\nDew this block: %d of %d" % [roundi(get_node("%RunState").pot_earned_block), roundi(drift_director.block_pot)]
+	text += finale_line(block)
 	if _omen_line != "":
 		text += "\n" + _omen_line
 		_omen_line = ""
-	last_block_text = text
+	last_block_text = text + dreams_plain  # The meter tab / run report: plain, with the Dreams line
 	last_block = block
 	block_report_ready.emit(block)
 	_label.text = StatusLinks.bbcode(text)
@@ -136,12 +162,110 @@ static func support_text(near: Node, period: String) -> String:
 		if held >= 1.0:
 			parts.append("Held for %d s" % roundi(held))
 		if pulled > 0:
-			parts.append("pulled back %d tiles" % pulled)
+			parts.append("pulled back %d cells" % pulled)
 		lines.append(" · ".join(parts))
 	return "" if lines.is_empty() else "\n" + "\n".join(lines)
 
 # Kinships (screens_ui.md "Kinship feedback"): "Kinships formed: 2 · Harmony strikes: 84" and "The
 # Sporeling line is whole." ("" when there's nothing). Shared with the results screen (the run).
+# --- Feeling the cards (dream_design.md 2026-10-01): each Dream's credit, from DreamState (Roguelite Code) ---
+
+# The run's taken cards with credit, best first: [{id, name, kind, amount, damage, text}] (`limit` 0 = all).
+static func card_credits(near: Node, period: StringName, limit: int = 0) -> Array:
+	var dreams := near.get_tree().get_first_node_in_group(DreamState.GROUP) if near.is_inside_tree() else null
+	if dreams == null or not dreams.has_method("get_top_cards"):
+		return []
+	var rows: Array = []
+	for id in dreams.get_top_cards(period, limit if limit > 0 else 1000):
+		var credit: Dictionary = dreams.get_card_credit(id, period)
+		if String(credit.get("text", "")) == "":
+			continue
+		rows.append({"id": String(id), "kind": StringName(credit.get("kind", &"damage")), "amount": float(credit.get("amount", 0.0)),
+			"damage": float(credit.get("damage", 0.0)), "text": String(credit.text),
+			"name": dreams.get_display_name(id) if dreams.has_method("get_display_name") else String(credit.text).get_slice(" · ", 0)})
+	return rows
+
+# The value of a credit row, from its numbers: "+1,840", "+60 Dew", "saved 2 leaves", "3 half-price clears".
+static func credit_value(row: Dictionary) -> String:
+	var n := roundi(float(row.amount))
+	match row.kind:
+		&"dew":
+			return "+%d Dew" % n
+		&"leaves":
+			return "saved %d %s" % [n, "leaf" if n == 1 else "leaves"]
+		&"clears":
+			return "%d half-price %s" % [n, "clear" if n == 1 else "clears"]
+	return "+" + BossDossier.thousands(n)
+
+# [[name, value], …] for UiStyle.credit_bbcode: the top `top` damage cards, then the non-damage ones.
+static func credit_entries(near: Node, period: StringName, top: int = 3) -> Array:
+	var damage: Array = []
+	var other: Array = []
+	for row in card_credits(near, period):
+		if row.kind == &"damage":
+			if top <= 0 or damage.size() < top:
+				damage.append([row.name, credit_value(row)])
+		else:
+			other.append([row.name, credit_value(row)])
+	return damage + other
+
+# "Dreams this block · Lingering Spores +1,840 · Cozy Corners +920 · Flurry +610" (the top 3 by damage), then a line
+# per card credited with something else ("Morning Dew · +60 Dew", "Thick Bark · saved 2 leaves").
+static func dreams_text(near: Node, period: StringName, heading: String, top: int = 3) -> String:
+	var damage: Array[String] = []
+	var other: Array[String] = []
+	for row in card_credits(near, period):
+		if row.kind == &"damage":
+			if top <= 0 or damage.size() < top:
+				damage.append(row.text.replace(" · ", " "))
+		else:
+			other.append(row.text)
+	var text := ""
+	if not damage.is_empty():
+		text += "\n%s · %s" % [heading, " · ".join(damage)]
+	for line in other:
+		text += "\n" + line
+	return text
+
+# "Best Dream: Lingering Spores · 18% of your damage" (results, run report), "" with no damage credited.
+static func best_dream_line(near: Node) -> String:
+	var best := best_dream(near)
+	return "" if best.is_empty() else "Best Dream: %s · %s" % best
+
+# [card name, "18% of your damage"] for the run's best damage Dream, [] if none (the results' credit_bbcode).
+static func best_dream(near: Node) -> Array:
+	var log := DamageLog.instance
+	if log == null:
+		return []
+	var total := 0.0
+	for row in log.get_top_towers("run", 1000):
+		total += float(row.amount)
+	for row in card_credits(near, &"run"):
+		if row.kind == &"damage" and row.damage > 0.0 and total > 0.0:
+			return [row.text.get_slice(" · ", 0), "%d%% of your damage" % roundi(row.damage / total * 100.0)]
+	return []
+
+# Spire block finales (spire_difficulty.md Phase 2): "Finale cleared clean: a Rare dream waits" / "Finale cost 2 leaves",
+# "" for a block without one. Roguelite Code's DreamState.finale_result(block) when it's there (it judges the finale), else counted here.
+func finale_line(block: int) -> String:
+	var clean := false
+	var lost := 0
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
+	if dreams != null and dreams.has_method("finale_result"):
+		var result: Dictionary = dreams.finale_result(block)
+		if int(result.get("finale", 0)) <= 0:
+			return ""
+		clean = bool(result.get("clean", false))
+		lost = int(result.get("leaves_lost", 0))
+	else:
+		if _finale_drift <= 0 or drift_director.get_block(_finale_drift) != block:
+			return ""
+		lost = int(get_node("%RunState").leaves_lost) - _finale_lost_before
+		clean = lost <= 0
+	if clean:
+		return "\nFinale cleared clean: a Rare dream waits"
+	return "\nFinale cost %d %s" % [lost, "leaf" if lost == 1 else "leaves"]
+
 static func kinship_text(formed: int, harmony: int, whole: Array) -> String:
 	var text := ""
 	var parts: Array[String] = []

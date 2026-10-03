@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "scarred_bark"
 display_name = "Scarred Bark"
-description = "+3% damage for every leaf lost this run (max +45%; regrowing doesn't lower it)."
+description = "Wardens deal 3% more damage for every leaf lost this run (up to +45%; regrowing doesn't lower it)."
 rarity = 1
 kind = 3
 tags = Array[String](["leaves", "daring"])

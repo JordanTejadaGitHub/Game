@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Rootcurl"
-description = "Every 4 s, pulls the nightmare furthest along back 1 tile."
+description = "Every 4 s, pulls the nightmare furthest along back 1 cell."
 cost = 0
 line = "root"
 tier = 2

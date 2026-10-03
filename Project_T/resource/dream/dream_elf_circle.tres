@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_elf_circle"
 display_name = "Elf Circle"
-description = "Fairy Rings can now grow into Elf Circles (200 Dew): more rings, and they wait until a nightmare steps on them."
+description = "Fairy Rings can now grow into Elf Circles ({grow_cost:elf_circle} Dew): more rings, and they wait until a nightmare steps on them."
 rarity = 2
 kind = 1
 tags = Array[String](["spore"])

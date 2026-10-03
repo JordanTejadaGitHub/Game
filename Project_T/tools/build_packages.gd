@@ -337,7 +337,6 @@ func _reset(run: int) -> void:
 		tower.free()
 	_planted.clear()
 	dreams.stacks.clear()
-	dreams._resonance.clear()
 	dreams.unlocked = {"sprout": true, "thornwall": true}
 	dreams.dreamlight = 0
 	dreams.grown_wardens.clear()
@@ -345,7 +344,6 @@ func _reset(run: int) -> void:
 	dreams._dreams_without_rare = 0
 	dreams._rare_dreams_left = 0
 	dreams._extra_cards_next = 0
-	dreams._entwined_offered.clear()
 	dreams._offer_drift = 0
 	dreams._owed_families.clear()
 	dreams._declined_families.clear()

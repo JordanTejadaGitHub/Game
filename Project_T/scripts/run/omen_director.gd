@@ -636,6 +636,13 @@ func _on_rest_started(block: int, _is_boss_rest: bool, bonus: int, _perfect: boo
 func _try_show() -> void:
 	if not _offer_waiting or dream_state.is_offering() or dream_state.has_pending_offer():
 		return
+	# Heartwood's Gifts (Spire branch, Main's HeartwoodGifts, made by the HUD): at an act break the gift comes before
+	# the Omen; wait for it to close, then try again
+	var gifts := get_tree().get_first_node_in_group(&"heartwood_gifts") if is_inside_tree() else null
+	if gifts != null and gifts.is_offering():
+		if not gifts.offer_closed.is_connected(_try_show_later):
+			gifts.offer_closed.connect(_try_show_later, CONNECT_ONE_SHOT)
+		return
 	_offer_waiting = false
 	if force_omen:  # A Blight Level: the cards at once, and one must be taken
 		forced = true
@@ -644,6 +651,9 @@ func _try_show() -> void:
 		current_offer = []  # Always Clear Skies, no screen
 	else:
 		_show_cards()  # Face an Omen (face-down) or Clear Skies
+
+func _try_show_later(_a = null, _b = null) -> void:  # Whatever offer_closed carries
+	_try_show.call_deferred()
 
 # Omens with teeth (run_design.md): the reward depends on the block. A clean block (no leaf lost in the Omen's
 # drifts) pays it all, each leaf lost cuts it by 25%, 4+ pays nothing; Dream rewards (Rare+, extra cards,

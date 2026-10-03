@@ -81,6 +81,15 @@ func _build(won: bool) -> void:
 
 	box.add_child(HSeparator.new())
 	_label(box, get_stats_text(), 15, UiStyle.MOONLIGHT, true)
+	var best := RestReport.best_dream(self)  # Feeling the cards (dream_design.md), in UI Code's credit look
+	if not best.is_empty():
+		var best_label := RichTextLabel.new()
+		best_label.name = "BestDream"
+		best_label.bbcode_enabled = true
+		best_label.fit_content = true
+		best_label.scroll_active = false
+		best_label.text = UiStyle.credit_bbcode("Best Dream", [best])
+		box.add_child(best_label)
 	# The run report (screens_ui.md "Combat feedback"): top Wardens and the most-used combos.
 	var tracker := get_tree().get_first_node_in_group(ReactionTracker.GROUP) as ReactionTracker
 	if DamageLog.instance != null and not DamageLog.instance.get_top_towers("run", 1).is_empty():
@@ -89,7 +98,8 @@ func _build(won: bool) -> void:
 		var kin := RestReport.kinship_text(combos.kin_formed_run, combos.harmony_run, combos.whole_run) if combos else ""
 		box.add_child(StatusLinks.make_label(RestReport.get_report_text(DamageLog.instance, "run",
 			DamageLog.instance.combo_counts_run, "Wardens this run", tracker.counts if tracker else {},
-			tracker.longest_chain if tracker else 0) + kin + support_lines(), 14, UiStyle.MOONLIGHT))
+			tracker.longest_chain if tracker else 0) + kin + RestReport.dreams_text(self, &"run", "Dreams this run", 0)
+			+ support_lines(), 14, UiStyle.MOONLIGHT))
 	box.add_child(HSeparator.new())
 	for line in breakdown:
 		var row := HBoxContainer.new()

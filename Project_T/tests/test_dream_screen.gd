@@ -223,6 +223,20 @@ func _run() -> void:
 			var shows: bool = tester._wardens.any(func(w: Dictionary) -> bool: return w.boosted) or not tester._walls.is_empty()
 			_check(CardScene.can_show(card) and CardScene.EFFECTS.has(card.id) and tester._path.size() >= 5 and shows,
 				"%s: a living scene (path %d cells, %d Wardens, %d marked walls)" % [card.id, tester._path.size(), tester._wardens.size(), tester._walls.size()])
+		# Real time (user: "make sure the video previews aren't sped up"): at 3× game speed the scene walks the same
+		# distance in the same frames as at 1×, and its sprites' frames don't run faster
+		var walked := {}
+		for speed in [1.0, 3.0]:
+			Engine.time_scale = speed
+			tester.show_card(bloom if CardScene.can_show(bloom) else dreams.pool.filter(func(c: UpgradeData) -> bool: return CardScene.can_show(c))[0])
+			for i in 30:
+				await process_frame
+			walked[speed] = tester._walkers[0].distance if not tester._walkers.is_empty() else -1.0
+			var sprite: AnimatedSprite2D = tester._walkers[0].sprite if not tester._walkers.is_empty() else null
+			_check(sprite != null and is_equal_approx(sprite.speed_scale * speed, 1.0), "at %d×: the walkers' frames play at real speed" % int(speed))
+		Engine.time_scale = 1.0
+		_check(walked[1.0] > 0.0 and absf(walked[3.0] - walked[1.0]) < 0.05 * walked[1.0],
+			"the scene runs in real time at 3× (%.0f px vs %.0f px at 1×)" % [walked[3.0], walked[1.0]])
 		tester.stop()
 		tester.queue_free()
 		# The dev card grid previews it too, so it can be reviewed without waiting for a Dream to offer it
@@ -236,8 +250,97 @@ func _run() -> void:
 			await process_frame
 		_check(picker._scene != null and picker._scene.visible, "the dev card grid plays Heart of the Maze's scene on hover")
 		picker.queue_free()
+	# Rerolls and let-gos are a run-long supply (user thought "Dream again" was once per Dream): "N left this run",
+	# a tooltip saying they don't refill; the last one used leaves the button disabled for the rest of that Dream,
+	# then it's gone on later Dreams; a run that never had any never shows it. The Dreams panel lists what's left.
+	var offer: Array[UpgradeData] = [longest[0], longest[1], longest[2]]
+	dreams.rerolls_left = 1
+	dreams.banishes_left = 0
+	dreams.current_offer = offer
+	dreams.current_offer_drift = 35
+	screen._show_offer(offer, 35)
+	_check(screen._reroll.visible and not screen._reroll.disabled and screen._reroll.text == "Dream again · 1 left this run",
+		"the reroll says it's for the run (\"%s\")" % screen._reroll.text)
+	_check(screen._reroll.tooltip_text.contains("don't refill") and screen._reroll.tooltip_text.contains("Second Thoughts")
+		and screen._reroll.tooltip_text.contains("Wandering Mind"), "…and its tooltip says rerolls don't refill and where more come from")
+	var dreams_row = main.get_node("HUD/DreamsRow")
+	_check(dreams_row.get_list_text().contains("Rerolls left: 1"), "the Dreams this run panel shows the rerolls left")
+	screen._reroll.pressed.emit()
+	await process_frame
+	_check(dreams.rerolls_left == 0 and screen._reroll.visible and screen._reroll.disabled
+		and screen._reroll.text == "No rerolls left this run", "after the last one: disabled, \"%s\", for the rest of that Dream" % screen._reroll.text)
+	_check(not dreams_row.get_list_text().contains("Rerolls left"), "…and the panel no longer lists rerolls")
+	dreams.current_offer_drift = 40
+	screen._show_offer(dreams.current_offer, 40)
+	_check(not screen._reroll.visible, "…hidden on later Dreams")
+	screen._rerolled_in = -1
+	screen._show_offer(dreams.current_offer, 45)
+	_check(not screen._reroll.visible, "a run without rerolls never shows the button")
+	dreams.banishes_left = 2
+	screen._show_offer(dreams.current_offer, 45)
+	var let_go := screen._cards.get_child(0).get_child(1) as Button if screen._cards.get_child(0).get_child_count() > 1 else null
+	_check(let_go != null and let_go.text == "Let go · 2 left this run" and let_go.tooltip_text.contains("don't refill"),
+		"let-gos say the same (\"%s\")" % (let_go.text if let_go else "none"))
+	dreams.banishes_left = 0
+	await _test_arm_delay(dreams, screen, main)
+	dreams.current_offer = []
 	print("dream screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
+
+# The arm delay (user: "sometimes I click on cards when waves end because I'm trying to place towers"): for
+# ChoiceArm.ARM_TIME after the screen appears no click picks a card, nor does a press from then released later; a
+# press and release after it picks. The Omen screen's Esc / right-click (Clear Skies) waits the same.
+func _test_arm_delay(dreams: DreamState, screen, main: Node) -> void:
+	var offer: Array[UpgradeData] = []
+	for card in dreams.pool:
+		if offer.size() < 3 and card.kind == UpgradeData.Kind.STAT and not dreams.stacks.has(card.id):
+			offer.append(card)
+	dreams.current_offer = offer
+	dreams.current_offer_drift = 50
+	dreams.picks_left = 1
+	screen._show_offer(offer, 50)
+	await process_frame
+	await process_frame
+	var button := screen._cards.get_child(0).get_child(0) as Button
+	var at: Vector2 = button.get_global_rect().get_center()
+	_check(not screen.arm.is_armed() and screen._cards.modulate.a < 1.0, "the cards fade in, not armed yet")
+	_click(at, true)
+	for i in 12:  # 0.2 s
+		await process_frame
+	_click(at, false)
+	await process_frame
+	_check(not dreams.stacks.has(offer[0].id), "a press and release in the first 0.2 s picks nothing")
+	for i in 12:  # Pressed at 0.4 s, released after arming
+		await process_frame
+	_click(at, true)
+	for i in 18:
+		await process_frame
+	_check(screen.arm.is_armed(), "armed after %.1f s" % ChoiceArm.ARM_TIME)
+	_click(at, false)
+	await process_frame
+	_check(not dreams.stacks.has(offer[0].id), "…nor a press from before arming released after it")
+	for i in 20:
+		await process_frame
+	_check(is_equal_approx(screen._cards.modulate.a, 1.0), "the cards are fully in")
+	_click(at, true)
+	await process_frame
+	_click(at, false)
+	await process_frame
+	_check(dreams.stacks.has(offer[0].id), "a press and release after arming picks the card")
+	# Omens: right-click (Clear Skies) waits too: a right-click cancelling build mode as the rest begins isn't a pick
+	var omen_screen = main.get_node("HUD/OmenScreen")
+	var omens = main.get_node("%OmenDirector")
+	if omen_screen != null and omens != null:
+		omen_screen.arm.arm()
+		_check(not omen_screen.arm.is_armed(), "the Omen screen arms too")
+
+func _click(at: Vector2, pressed: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = pressed
+	event.position = at
+	event.global_position = at
+	root.push_input(event)
 
 static func _text_length(card: UpgradeData) -> int:
 	return card.description.length() + card.cost_description.length() + 30 * card.requires.size()

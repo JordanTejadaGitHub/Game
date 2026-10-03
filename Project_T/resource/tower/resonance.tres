@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Resource" path="res://resource/tower/great_bell.tres" id="asc_1"]
+[ext_resource type="Texture2D" path="res://assets/towers/resonance.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/resonance_attack.png" id="4_atk"]
+
+[resource]
+script = ExtResource("1_tdata")
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+display_name = "Resonance"
+description = "A stronger cone that widens for each {drowsy} nightmare in it."
+cost = 0
+placeholder_color = Color(0.925490, 0.611765, 0.956863, 1)
+line = "song"
+tier = 3
+buildable_directly = false
+evolve_cost = 300
+counter_tags = Array[StringName]([&"anti_swarm"])
+expansion_phase = 1
+special = &"thrum"
+special_params = {"cone": 90.0, "vs_drowsy": 0.3, "widen": 15.0, "cone_max": 180.0}
+special_final = true
+attack_range = 3
+damage = 165
+attacks_per_second = 1.0
+attack_kind = 0
+evolves_to = Array[Resource]([ExtResource("asc_1")])

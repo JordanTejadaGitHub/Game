@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Long Way Home"
-description = "Every 5 s, drags the nightmare furthest along back 4 tiles (each nightmare only once; bosses 1 tile)."
+description = "Every 5 s, drags the nightmare furthest along back 4 cells (each nightmare only once; bosses 1 cell)."
 cost = 0
 line = "root"
 tier = 3

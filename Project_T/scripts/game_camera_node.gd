@@ -55,6 +55,32 @@ func glide(points: PackedVector2Array, duration: float = 5.0) -> void:
 	_glide_points = points
 	_glide_time = 0.0
 	_glide_duration = duration
+	_glide_lengths = PackedFloat32Array([0.0])  # Distance along the points: a steady pace whatever their spacing
+	for i in range(1, points.size()):
+		_glide_lengths.append(_glide_lengths[-1] + points[i - 1].distance_to(points[i]))
+
+const ROUTE_GLIDE_SPEED := 260.0  # Pixels a second along the route
+const ROUTE_GLIDE_MIN := 4.0
+const ROUTE_GLIDE_MAX := 9.0
+var _glide_lengths := PackedFloat32Array()
+
+# The first-run glide along the route (onboarding.md): at a steady pace (by distance, eased in and out), 4–9 s by the
+# route's length, ending on the Heartwood. When the whole route already fits on screen it doesn't glide (the opening
+# framing shows it all; a clamped camera only bobbed up and down, user: "it moves the camera wrong"). True if it glides.
+func glide_route(points: PackedVector2Array) -> bool:
+	if points.size() < 2:
+		return false
+	var box := Rect2(points[0], Vector2.ZERO)
+	for point in points:
+		box = box.expand(point)
+	var view := camera_2d.get_viewport_rect().size / camera_2d.zoom
+	if box.grow(MAP_GRID.cell_size.x).size.x <= view.x and box.grow(MAP_GRID.cell_size.y).size.y <= view.y:
+		return false
+	var length := 0.0
+	for i in range(1, points.size()):
+		length += points[i - 1].distance_to(points[i])
+	glide(points, clampf(length / ROUTE_GLIDE_SPEED, ROUTE_GLIDE_MIN, ROUTE_GLIDE_MAX))
+	return true
 
 var _frame_scale := 1.0  # Engine.time_scale this frame's delta was scaled by
 
@@ -85,9 +111,13 @@ func _advance_glide(delta: float) -> void:
 			return
 	_glide_time += delta
 	var t := clampf(_glide_time / _glide_duration, 0.0, 1.0)
-	var index := t * (_glide_points.size() - 1)
-	var i := mini(int(index), _glide_points.size() - 2)
-	target_position = _glide_points[i].lerp(_glide_points[i + 1], index - i)
+	var eased := t * t * (3.0 - 2.0 * t)  # Smoothstep: no snap at the start, no jolt at the end
+	var along := eased * _glide_lengths[-1]
+	var i := 0
+	while i < _glide_points.size() - 2 and _glide_lengths[i + 1] < along:
+		i += 1
+	var span := _glide_lengths[i + 1] - _glide_lengths[i]
+	target_position = _glide_points[i].lerp(_glide_points[i + 1], (along - _glide_lengths[i]) / span if span > 0.0 else 1.0)
 	if t >= 1.0:
 		_glide_points = PackedVector2Array()
 

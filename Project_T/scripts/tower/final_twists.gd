@@ -500,7 +500,7 @@ static func _update_momentum_art(tower: Tower, momentum: float) -> void:
 		art.hframes = int(entry.frames)
 		art.centered = false
 		art.offset = -Vector2(entry.anchor[0], entry.anchor[1])
-		art.position = Vector2(9, 19) - Vector2(32, 32) + tower.tower_data.sprite_offset  # The sail hub
+		art.position = Vector2(9, 19) - Vector2(32, 32) + tower.tower_data.get_sprite_offset()  # The sail hub
 		art.modulate = Color(Palette.MOONLIGHT, 0.85)
 		tower.add_child(art)
 	art.visible = true

@@ -148,8 +148,9 @@ func _run() -> void:
 			if child is ComingStrip:
 				strip_rect = (child as Control).get_global_rect()
 		_check(not back_rect.intersects(bar_rect) and not back_rect.intersects((main.get_node("HUD/DriftBanner") as Control).get_global_rect())
-			and not back_rect.intersects(strip_rect) and back_rect.end.y <= screen.y,
-			"the peek's Back button clears the bar, banner and Coming strip at %s (%s; bar %s, strip %s)" % [screen, back_rect, bar_rect, strip_rect])
+			and not back_rect.intersects(strip_rect) and back_rect.end.y <= screen.y
+			and absf(back_rect.get_center().x - screen.x / 2.0) < 2.0 and back_rect.get_center().y > screen.y / 2.0,
+			"the peek's Back pill sits mid-screen, a little below centre, clear of the bar, banner and Coming strip at %s (%s; bar %s, strip %s)" % [screen, back_rect, bar_rect, strip_rect])
 		peek_screen.queue_free()
 		# The top-right row (screens_ui.md "Top-right layout, as in the Moonlit Thread mock-up"): leaves ·
 		# Dew · Dreamlight · path, then Remember · Boosts · ? · Menu, on one fog patch clear of the
@@ -456,6 +457,11 @@ func _run() -> void:
 	_check(IconInfo.format("each {block}, {Rests}, {dreamlight}") == "each block, Rests, Dreamlight", "plain text gets the words")
 	for id in IconInfo.TERMS:
 		_check(CodexData.definition(StatusLinks.term_name(id)) != "", "the glossary defines %s" % StatusLinks.term_name(id))
+	# "Potency" in card text is a link as written (user: "Potency in cards doesn't have the underline").
+	var potency_text := StatusLinks.bbcode("All Wardens +20% Potency (stacks). {spored} grows with Potency.")
+	_check(potency_text.count("[url=term:potency]") == 2 and potency_text.contains("[url=status:spored]")
+		and not StatusLinks.bbcode("Impotency").contains("term:potency"), "the plain word Potency is a glossary link (%s)" % potency_text)
+	_check(CodexData.definition("Potency").contains("statuses and effects"), "the glossary's Potency line says what it does")
 	# Family names as links ({family:dewdrop}): the popup shows its emblem, damage type and identity.
 	var family_text := StatusLinks.bbcode("Needs {family:dewdrop}.")
 	_check(family_text.contains("[url=family:dewdrop]") and family_text.contains("Dewdrop[/color]")
@@ -526,6 +532,8 @@ func _run() -> void:
 	var tool: ClearToolButton = main.get_node("HUD/ClearTool")
 	tool._update_icon()
 	_check(tool._frame == ClearToolButton.FRAME_AVAILABLE, "the icon shows the tool available once clearing opens")
+	_check(not tool.shows_locked and tool.tooltip_text == ClearToolButton.TOOL_TIP
+		and not tool.has_theme_stylebox_override("normal"), "open: the normal look and the tool's tooltip")
 	tool.toggle_tool()
 	tool._update_icon()
 	_check(clearer.is_tool_active() and tool.button_pressed and tool._frame == ClearToolButton.FRAME_ACTIVE,
@@ -536,6 +544,10 @@ func _run() -> void:
 	tool.toggle_tool()
 	_check(not clearer.is_tool_active() and (main.get_node("%ToastLabel") as Label).text == ClearToolButton.LOCKED_TEXT,
 		"while locked it explains why instead")
+	tool._update_icon()
+	_check(tool.shows_locked and tool.tooltip_text == ClearToolButton.LOCKED_TEXT
+		and tool.get_theme_stylebox("normal") == tool.get_theme_stylebox("disabled") and not tool.disabled,
+		"locked: greyed out (the disabled look), \"Clearing needs a Dream\" tooltip, still pressable to say why")
 	_check(InputMap.has_action("clear_tool"), "0 / C pick the Clear tool")
 	clearer._hover_obstacle = null
 	clearer.set_process(true)

@@ -3,8 +3,9 @@ extends SceneTree
 # New rule-breaker warning (screens_ui.md "In the world"; human run 5: lost at drift 35 to Phantoms, the first
 # flyers, at drift 31): at the rest before the block that brings them, the Coming strip leads with the Phantom
 # (larger, "New", its trait in words), the DriftPanel warns "Flyers in drift 31: they ignore your maze", the map
-# shows a dashed line from the start straight to the Heartwood; the first Phantom on the field gets a name plate.
-# Once faced this run, none of it again. Tests never write the profile.
+# shows a thin mist line from the start straight to the Heartwood (every run: information, never retired), faint while they
+# fly; the first Phantom on the field gets a name plate.
+# Once faced this run the New tab, DriftPanel line and plate don't come again; the mist line follows the schedule.
 
 var failures := 0
 
@@ -19,7 +20,10 @@ func _run() -> void:
 	await process_frame
 	var director: DriftDirector = main.get_node("%DriftDirector")
 	var phantom: EnemyData = load("res://resource/enemy/dandelion_seed.tres")
-	var profile_before: Dictionary = HeartwoodMemory.load_data().get(RuleBreakers.PROFILE_KEY, {}).duplicate()
+	# A 4th run: the profile was warned about Phantoms on 3 runs (the old rule retired the line then).
+	var memory := HeartwoodMemory.load_data()
+	memory["rule_breakers_warned"] = {"dandelion_seed": 3}
+	HeartwoodMemory.save_data(memory)
 
 	# The rest before drift 31's block.
 	director.drifts_started = 30
@@ -104,7 +108,9 @@ func _run() -> void:
 	if world != null:
 		world._clock = 0.0
 		world._process(0.0)
-		_check(world.line_shown, "a dashed line shows the Phantom's straight path for the rest")
+		_check(world.line_shown and world.line.visible and is_equal_approx(world.line.default_color.a, RuleBreakers.LINE_ALPHA)
+			and world.line.texture != null and world.line.width < 24.0 and world.line.points.size() == 2,
+			"a thin mist line shows the Phantom's straight path for the rest, in a 4th run too (width %.0f)" % world.line.width)
 
 	# The first Phantom on the field gets a name plate, once.
 	var spawner = main.get_node("%EnemyContainer")
@@ -126,16 +132,32 @@ func _run() -> void:
 	panel._process(0.0)
 	_check(not panel.warning_label.text.contains("Flyers in drift 31"), "…and the DriftPanel line is gone")
 	if world != null:
+		for enemy in main.get_node("%EnemyContainer").get_children():
+			enemy.queue_free()  # The plate test's Phantoms: none on the field now
+		await process_frame
 		world._clock = 0.0
 		world._process(0.0)
-		_check(not world.line_shown, "…and so is the dashed line")
-	# During a drift: no warning line.
+		_check(world.line_shown == RuleBreakers.wall_flyers_coming(director),
+			"…but the mist line follows the schedule (Phantoms next block: %s)" % RuleBreakers.wall_flyers_coming(director))
+	# During a drift: no warning line; the mist line faint while Phantoms fly.
 	director.resting = false
 	panel._warning_key = ""
 	panel._process(0.0)
 	_check(not panel.warning_label.visible, "no warning while a drift walks")
+	if world != null:
+		world._clock = 0.0
+		world._process(0.0)
+		_check(not world.line_shown, "a drift with no flyers on the field: no line")
+		main.get_node("%EnemyContainer").spawn_enemy(phantom)
+		await process_frame
+		world._clock = 0.0
+		world._process(0.0)
+		_check(world.line_shown and is_equal_approx(world.line.default_color.a, RuleBreakers.LINE_ALPHA_FIELD),
+			"a Phantom on the field: the line, faint")
 
-	_check(HeartwoodMemory.load_data().get(RuleBreakers.PROFILE_KEY, {}) == profile_before, "tests never write the profile")
+	memory = HeartwoodMemory.load_data()
+	memory.erase("rule_breakers_warned")
+	HeartwoodMemory.save_data(memory)
 	print("rule breakers test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

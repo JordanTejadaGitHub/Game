@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_rockslide"
 display_name = "Rockslide"
-description = "Cairns can now grow into Rockslides (200 Dew): a bigger splash, and the path where its stones land is left with rubble that slows for 3 s."
+description = "Cairns can now grow into Rockslides ({grow_cost:rockslide} Dew): a bigger splash, and the path where its stones land is left with rubble that slows for 3 s."
 rarity = 2
 kind = 1
 tags = Array[String](["stone"])

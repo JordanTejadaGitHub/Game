@@ -1653,8 +1653,10 @@ func _nightmare_entry(data: EnemyData, met: Array, viewed: Array, dispels: Dicti
 	box.add_child(NightmareIcons.make_rows(data, 22.0))
 	var facts := Label.new()
 	facts.name = "Facts"
-	facts.text = "At drift 1: health %d · speed %.1f tiles/s · leaves %d · Act %d" % [data.health, data.speed / 64.0,
+	facts.text = "At drift 1: health %d · speed %.1f cells/s · leaves %d · Act %d" % [data.health, data.speed / 64.0,
 		data.leaf_cost, NightmareCodex.act_of(data)]
+	if data.is_boss:  # As its dossier (user: "remove health and speed"): the toll, no numbers
+		facts.text = "%s · Act %d" % [BossDossier.toll_text(data, NightmareCodex.act_of(data)), NightmareCodex.act_of(data)]
 	UiStyle.number(facts, 15, UiStyle.INK_DIM)
 	box.add_child(facts)
 	if data.is_boss:  # Its dossier's abilities (no "What helps": the ability and resist rows say enough)

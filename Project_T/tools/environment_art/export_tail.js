@@ -40,9 +40,19 @@ for (const A of ACTS) {
   emit(d + "grass.png", strip([0, 1, 2, 3, 4, 5, 6, 7].map(v => getImg("grass:" + v))));
   emit(d + "path.png", strip(Array.from({ length: 16 }, (_, m) => getImg("path:" + m))));
   emit(d + "path_rim.png", strip(Array.from({ length: 16 }, (_, m) => getImg("pathrim:" + m))));
+  emit(d + "fallen_log.png", strip([0, 1, 2, 3, 4, 5].map(k => getImg("flog:" + k))));  // W end, E-W middle, E end, N end, N-S middle, S end
+  emit(d + "log_furrow.png", strip([0, 1, 2, 3, 4, 5].map(k => getImg("lfurrow:" + k))));  // where a Tended log lay, same layout
   // pond.png: column = neighbour mask, row = animation frame.
   emit(d + "pond.png", stack([0, 1, 2, 3].map(fr => strip(Array.from({ length: 16 }, (_, m) => getImg("pond:" + m, fr))))));
   emit(d + "pond_inner.png", strip([0, 1, 2, 3].map(k => getImg("pondin:" + k))));  // NE, SE, SW, NW
+  // Heartwood's Gifts (heartwood_gifts.md): map pieces the act-break gifts place.
+  emit(d + "lightning_tree.png", frames("ltree"));
+  emit(d + "moonwell.png", frames("mwell"));
+  emit(d + "bell_stone.png", frames("bstone"));
+  emit(d + "mushroom_ring.png", frames("mring"));
+  emit(d + "heartwood_roots.png", strip(Array.from({ length: 16 }, (_, m) => getImg("hroots:" + m))));
+  emit(d + "bog_path.png", strip(Array.from({ length: 16 }, (_, m) => getImg("bog:" + m))));
+  emit(d + "ancient_stump.png", strip([0, 1, 2].map(v => getImg("astump:" + v))));
   emit(d + "border_wall.png", strip([getImg("wall:0"), getImg("wall:1")]));
   emit(d + "dew_pool.png", frames("pool:0"));
   emit(d + "blight_patch.png", frames("blight:0"));

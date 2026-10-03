@@ -200,7 +200,7 @@ func _run() -> void:
 	_check(scarecrow.sprite.animation == &"burst", "and its coat flies open (the burst pose)")
 	scarecrow.take_damage(scarecrow.max_health * 0.4)
 	_check(_count(crow_data) == 12, "4 more at 60%% and 40%% (%d)" % _count(crow_data))
-	_check(crow_data.leaf_cost == 2, "each Crow that gets through takes 2 leaves")
+	_check(crow_data.leaf_cost == 1, "each Crow that gets through takes 1 leaf (human run 12)")
 	var crows := spawner.get_children().filter(func(e) -> bool: return e.enemy_data == crow_data)
 	var airborne := true
 	for crow in crows:
@@ -273,6 +273,17 @@ func _run() -> void:
 		warden.free()
 		if far:
 			far.free()
+	_clear_enemies()
+
+	# --- Silence (Hushbell, tower_design.md 279ebb63): a boss's timed abilities run at half speed ---
+	var queen := _still("moth_queen", route[10])
+	queen.statuses.silence_time = 100.0
+	queen._brood_timer = 0.0
+	queen._update_presence(0.2)
+	_check(is_equal_approx(queen._brood_timer, 0.1), "a silenced boss's timers run at half speed (%.2f of 0.2 s)" % queen._brood_timer)
+	queen.statuses.silence_time = 0.0
+	queen._update_presence(0.2)
+	_check(is_equal_approx(queen._brood_timer, 0.3), "full speed again once the silence ends (%.2f)" % queen._brood_timer)
 	_clear_enemies()
 
 	# --- Barrow King: Iron Will and the Shrug ---

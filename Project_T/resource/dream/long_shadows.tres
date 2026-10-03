@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "long_shadows"
 display_name = "Long Shadows"
-description = "Wardens with range 5 or more reach 2 tiles further."
+description = "Wardens with range 5 or more reach 2 cells further."
 rarity = 1
 kind = 3
 tags = Array[String](["range"])

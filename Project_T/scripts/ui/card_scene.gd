@@ -10,6 +10,12 @@ class_name CardScene
 # are marked; stumps (U) and hollows (Q) use their real tiles. Puppets only: no Tower / Enemy AI, no DamageLog,
 # nothing in the run. One instance is pooled by the Dream screen (`show_card`, `stop`); reduced motion keeps the
 # still CardDiagram.
+# Heartwood's Gifts (Spire branch, heartwood_gifts.md): `show_scene(before, after, effect, caption)` loops a
+# before → after pair of diagrams (the changed cells fade in and glow gold; walkers re-route along the new path).
+# Gift terrain letters, drawn with MapGifts' art (act 1 sheets; palette shapes without them): L fallen log, ~ spring
+# pond, m moonwell, b bell stone, z lightning tree, u ancient stump (all off the path), k mushroom ring (its art
+# covers 3×3 from the k cells' top-left), B bog path (walked at BOG_SPEED), r root-covered path (hits there show the
+# effect's text in gold). Under reduced motion the scene is the still after-diagram.
 
 const CELL := 64.0
 const COLS := 7
@@ -76,6 +82,27 @@ var _spawn_left := 0.0
 var _spawned := 0
 var _walls: Array[Vector2] = []  # Marked Thornwalls (X): a nightmare passing one shows the card's `proc`
 var _effect := {}  # EFFECTS[card.id]
+var _rows := PackedStringArray()  # The diagram being shown (with its added path)
+
+# Gift scenes (show_scene)
+const BEFORE_TIME := 2.2  # Seconds on the before-diagram, then the after one
+const AFTER_TIME := 4.5
+const SWAP_FADE := 0.4  # The new diagram fades in over this
+const PULSE_TIME := 1.2  # The changed cells glow gold for this long after the swap
+const BOG_SPEED := 0.8
+const PROP_FPS := 4.0
+var _in_scene := false
+var _before := ""
+var _after := ""
+var _showing_after := false
+var _phase_left := 0.0
+var _fade_left := 0.0
+var _pulse_left := 0.0
+var _changed: Array[Vector2i] = []
+var _overlay: Node2D = null  # The gold pulse on changed cells, and the Before / After tag
+var _props: Array[Node2D] = []
+var _anim := 0.0
+var _sheets := {}  # MapGifts sheet name -> Texture2D (act 1), loaded on first use (never static: exit crash)
 
 # Reduced motion keeps the still diagram (CardDiagram) instead.
 static func wants_motion() -> bool:
@@ -120,8 +147,9 @@ func _ready() -> void:
 # Builds and plays `for_card`'s scene (the pooled view is reused from card to card).
 func show_card(for_card: UpgradeData) -> void:
 	card = for_card
+	_in_scene = false
 	_effect = EFFECTS.get(card.id, {})
-	_build()
+	_build(card.diagram)
 	_caption.text = IconInfo.format(card.diagram_caption)
 	var has_favoured := card.diagram.contains("W") or card.diagram.contains("Q")
 	_legend.text = "Gold numbers: the Warden the card favours · White: the others" if has_favoured \
@@ -130,11 +158,40 @@ func show_card(for_card: UpgradeData) -> void:
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	set_process(true)
 
+# Whether a gift scene moves (reduced motion: show_scene shows the still after-diagram instead).
+static func can_show_scene() -> bool:
+	return wants_motion()
+
+# A Heartwood's Gift card's scene: `before` for BEFORE_TIME, then `after` (the changed cells fade in and glow gold,
+# the nightmares re-route along its path) for AFTER_TIME, looping. Diagrams are 7×5 rows as UpgradeData.diagram plus
+# the gift letters above; `effect` takes EFFECTS' keys (text / damage / speed / range / proc).
+func show_scene(before: String, after: String, effect: Dictionary, caption: String) -> void:
+	card = null
+	_in_scene = true
+	_effect = effect
+	_before = before
+	_after = after
+	_caption.text = IconInfo.format(caption)
+	_legend.text = "Before, then after: what the gift changes glows gold"
+	visible = true
+	_showing_after = not can_show_scene()
+	_build(_after if _showing_after else _before)
+	_phase_left = BEFORE_TIME
+	if can_show_scene():
+		_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		set_process(true)
+	else:  # Reduced motion: one still frame of the after-diagram
+		set_process(false)
+		_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+
 # Hover ended: nothing runs or draws until the next card.
 func stop() -> void:
 	visible = false
 	set_process(false)
 	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	_clear_world()
+
+func _clear_world() -> void:
 	if _world != null:
 		_world.queue_free()
 		_world = null
@@ -142,6 +199,8 @@ func stop() -> void:
 	_walkers.clear()
 	_effects.clear()
 	_walls.clear()
+	_props.clear()
+	_overlay = null
 
 func _cell_at(rows: PackedStringArray, x: int, y: int) -> String:
 	return rows[y][x] if y < rows.size() and x < rows[y].length() else "."
@@ -150,10 +209,15 @@ func _centre(cell: Vector2i) -> Vector2:
 	return Vector2(cell) * CELL + Vector2(CELL, CELL) / 2.0
 
 static func _is_path(c: String) -> bool:
-	return c == "P" or c == "+" or c == "S" or c == "H" or c.is_valid_int()
+	return c == "P" or c == "+" or c == "S" or c == "H" or c == "B" or c == "r" or c.is_valid_int()
 
-func _build() -> void:
-	stop()
+# The diagram letter under world position `at`.
+func _letter_at(at: Vector2) -> String:
+	var cell := Vector2i((at / CELL).floor())
+	return _cell_at(_rows, cell.x, cell.y) if cell.x >= 0 and cell.y >= 0 else "."
+
+func _build(diagram: String) -> void:
+	_clear_world()
 	_world = Node2D.new()
 	_world.y_sort_enabled = true
 	_viewport.add_child(_world)
@@ -161,7 +225,8 @@ func _build() -> void:
 	camera.position = Vector2(COLS, ROWS) * CELL / 2.0
 	camera.zoom = Vector2(VIEW_SCALE, VIEW_SCALE)
 	_world.add_child(camera)
-	var rows := _with_path(card.diagram.strip_edges().split("\n"))
+	var rows := _with_path(diagram.strip_edges().split("\n"))
+	_rows = rows
 	var tiles := EnvironmentTiles.create_tile_set(1)
 	var ground := TileMapLayer.new()
 	ground.tile_set = tiles
@@ -197,13 +262,199 @@ func _build() -> void:
 				ground.set_cell(cell, EnvironmentTiles.MOVED_HOLLOW, Vector2i.ZERO)
 			if QUALIFYING.contains(c) or OTHERS.contains(c) or WALLS.contains(c):
 				_add_warden(cell, c)
+			elif c == "~":  # Spring: pond tiles by neighbour mask
+				objects.set_cell(cell, EnvironmentTiles.POND, Vector2i(MapGifts._mask(Vector2(cell), _letter_is.bind("~")), 0))
+			elif c == "L":
+				_add_prop("fallen_log", cell, _log_line(cell))
+			elif c == "m":
+				_add_prop("moonwell", cell)
+			elif c == "b":
+				_add_prop("bell_stone", cell)
+			elif c == "z":
+				_add_prop("lightning_tree", cell)
+	var gift_ground := Node2D.new()  # Bog, roots, ancient stumps and the mushroom ring, over the path tiles
+	gift_ground.z_index = -1
+	gift_ground.draw.connect(_draw_gift_ground.bind(gift_ground))
+	_world.add_child(gift_ground)
 	var marks := Node2D.new()  # Range cells (*) and outlined route steps (+, 1–9), drawn over the ground
 	marks.z_index = -1
 	marks.draw.connect(_draw_marks.bind(marks, rows))
 	_world.add_child(marks)
+	if _in_scene:
+		_overlay = Node2D.new()  # The swap's gold pulse and the Before / After tag, over everything
+		_overlay.z_index = 6
+		_overlay.draw.connect(_draw_overlay.bind(_overlay))
+		_world.add_child(_overlay)
 	_path = _walk_order(rows, start if start.x >= 0 else _open_end(rows))
 	_spawn_left = 0.0
 	_spawned = 0
+
+# --- Gift terrain (MapGifts' art) ---------------------------------------------------------------------------
+
+func _letter_is(cell: Vector2, letter: String) -> bool:
+	return cell.x >= 0 and cell.y >= 0 and _cell_at(_rows, int(cell.x), int(cell.y)) == letter
+
+func _sheet(sheet: String) -> Texture2D:
+	if not _sheets.has(sheet):
+		var path := EnvironmentTiles.sheet_path(sheet, 1)
+		_sheets[sheet] = load(path) if ResourceLoader.exists(path) else null
+	return _sheets[sheet]
+
+static func _frame_rect(sheet: String, column: int) -> Rect2:
+	var size: Vector2i = MapGifts.ART[sheet][0]
+	return Rect2(Vector2(column * size.x, 0), Vector2(size))
+
+# The run of L cells `cell` belongs to (along the row if it has an L beside it, else down the column).
+func _log_line(cell: Vector2i) -> Array:
+	var step := Vector2i.RIGHT if _letter_is(Vector2(cell + Vector2i.LEFT), "L") or _letter_is(Vector2(cell + Vector2i.RIGHT), "L") \
+		else Vector2i.DOWN
+	var first := cell
+	while _letter_is(Vector2(first - step), "L"):
+		first -= step
+	var line: Array = []
+	var at := first
+	while _letter_is(Vector2(at), "L"):
+		line.append(Vector2(at))
+		at += step
+	return line
+
+# A standing gift prop (y-sorted with the Wardens): log pieces, moonwell, bell stone, lightning tree.
+func _add_prop(kind: String, cell: Vector2i, line: Array = []) -> void:
+	var prop := Node2D.new()
+	prop.position = _centre(cell)
+	var piece := MapGifts._log_piece(Vector2(cell), line) if kind == "fallen_log" else -1
+	prop.draw.connect(_draw_prop.bind(prop, kind, piece, line))
+	_world.add_child(prop)
+	_props.append(prop)
+
+func _draw_prop(canvas: Node2D, kind: String, piece: int, line: Array) -> void:
+	var sheet := _sheet(kind)
+	if sheet != null:
+		var size := Vector2(MapGifts.ART[kind][0])
+		var frames: int = MapGifts.ART[kind][1]
+		var column := piece if piece >= 0 else int(_anim * PROP_FPS) % frames
+		canvas.draw_texture_rect_region(sheet, Rect2(Vector2(-size.x / 2.0, 32.0 - size.y), size), _frame_rect(kind, column))
+		return
+	match kind:  # Placeholders in palette colours (as MapGifts')
+		"fallen_log":
+			var along := Vector2.DOWN if line.size() > 1 and line[0].x == line[1].x else Vector2.RIGHT
+			canvas.draw_line(-along * 32.0, along * 32.0, Palette.ROOT, 30.0)
+			canvas.draw_line(-along * 32.0, along * 32.0, Palette.BARK, 24.0)
+		"moonwell":
+			canvas.draw_circle(Vector2.ZERO, 24.0, Palette.STONE)
+			canvas.draw_circle(Vector2.ZERO, 16.0, Palette.POOL)
+			canvas.draw_circle(Vector2(-4, -4), 7.0, Palette.MOONLIGHT)
+		"bell_stone":
+			canvas.draw_rect(Rect2(-12, -40, 24, 64), Palette.SLATE)
+			canvas.draw_circle(Vector2(0, -18), 6.0, Palette.GOLD)
+		"lightning_tree":
+			canvas.draw_line(Vector2(0, 24), Vector2(0, -60), Palette.DEADWOOD, 10.0)
+
+# Bog (B) and roots (r) by neighbour mask over the path, ancient stumps (u), and one mushroom ring over the 3×3 from
+# the k cells' top-left.
+func _draw_gift_ground(canvas: Node2D) -> void:
+	var cell_size := Vector2(CELL, CELL)
+	var ring_top := Vector2i(COLS, ROWS)
+	for y in ROWS:
+		for x in COLS:
+			var c := _cell_at(_rows, x, y)
+			var cell := Vector2(x, y)
+			var rect := Rect2(cell * CELL, cell_size)
+			match c:
+				"B":
+					var bog := _sheet("bog_path")
+					if bog != null:
+						var mask := MapGifts._mask(cell, func(n: Vector2) -> bool: return n.x >= 0 and n.y >= 0 and _is_path(_cell_at(_rows, int(n.x), int(n.y))))
+						canvas.draw_texture_rect_region(bog, rect, _frame_rect("bog_path", mask))
+					else:
+						canvas.draw_rect(rect.grow(-6), Color(Palette.ROOT, 0.7))
+						canvas.draw_circle(rect.position + Vector2(22, 26), 7.0, Palette.POOL)
+				"r":
+					var roots := _sheet("heartwood_roots")
+					if roots != null:
+						var mask := MapGifts._mask(cell, func(n: Vector2) -> bool: return n.x >= 0 and n.y >= 0 and _is_path(_cell_at(_rows, int(n.x), int(n.y))))
+						canvas.draw_texture_rect_region(roots, rect, _frame_rect("heartwood_roots", mask))
+					else:
+						var c2 := rect.get_center()
+						canvas.draw_line(c2 + Vector2(-26, -10), c2 + Vector2(24, 12), Palette.OAK, 4.0)
+						canvas.draw_line(c2 + Vector2(-20, 16), c2 + Vector2(26, -14), Palette.BARK, 3.0)
+				"u":
+					var stump := _sheet("ancient_stump")
+					if stump != null:
+						canvas.draw_texture_rect_region(stump, rect, _frame_rect("ancient_stump", EnvironmentTiles.cell_variant(Vector2i(x, y), 3)))
+					else:
+						canvas.draw_circle(rect.get_center(), 20.0, Palette.BARK)
+						canvas.draw_arc(rect.get_center(), 14.0, 0, TAU, 20, Palette.OAK, 2.0)
+				"k":
+					ring_top = Vector2i(mini(ring_top.x, x), mini(ring_top.y, y))
+	if ring_top.x < COLS:
+		var at := Vector2(ring_top) * CELL
+		var ring := _sheet("mushroom_ring")
+		if ring != null:
+			canvas.draw_texture_rect_region(ring, Rect2(at, cell_size * 3), _frame_rect("mushroom_ring", int(_anim * PROP_FPS) % 4))
+		else:
+			for i in 12:
+				canvas.draw_circle(at + cell_size * 1.5 + Vector2.from_angle(TAU * i / 12.0) * CELL * 1.25, 6.0, Palette.EMBER)
+
+# The swap's gold pulse on the changed cells, and the Before / After tag in the corner.
+func _draw_overlay(canvas: Node2D) -> void:
+	if _pulse_left > 0.0:
+		var a := _pulse_left / PULSE_TIME
+		for cell in _changed:
+			var rect := Rect2(Vector2(cell) * CELL, Vector2(CELL, CELL)).grow(-3.0)
+			canvas.draw_rect(rect, Color(Palette.GOLD, 0.28 * a))
+			canvas.draw_rect(rect, Color(Palette.GOLD, 0.9 * a), false, 3.0)
+	var font := UiStyle.caps_font()
+	var tag := "After" if _showing_after else "Before"
+	canvas.draw_string_outline(font, Vector2(10, 30), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, 6, Palette.DREAD)
+	canvas.draw_string(font, Vector2(10, 30), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, UiStyle.GOLD if _showing_after else UiStyle.INK)
+
+# The cells that differ between the before and after diagrams.
+static func diff_cells(before: String, after: String) -> Array[Vector2i]:
+	var a := before.strip_edges().split("\n")
+	var b := after.strip_edges().split("\n")
+	var out: Array[Vector2i] = []
+	for y in ROWS:
+		for x in COLS:
+			var ca: String = a[y][x] if y < a.size() and x < a[y].length() else "."
+			var cb: String = b[y][x] if y < b.size() and x < b[y].length() else "."
+			if ca != cb:
+				out.append(Vector2i(x, y))
+	return out
+
+# Before ↔ after: the other diagram, faded in; the walkers keep their places, moved onto the new path.
+func _swap() -> void:
+	var places: Array[Vector2] = []
+	for walker in _walkers:
+		if walker.fade < 0.0 and is_instance_valid(walker.sprite):
+			places.append(walker.sprite.position)
+	_showing_after = not _showing_after
+	_build(_after if _showing_after else _before)
+	_changed = diff_cells(_before, _after)
+	_pulse_left = PULSE_TIME if _showing_after else 0.0
+	_fade_left = SWAP_FADE
+	_world.modulate.a = 0.35  # multiplier: the fade in
+	_phase_left = AFTER_TIME if _showing_after else BEFORE_TIME
+	if _path.size() >= 2:
+		for place in places:
+			_spawn_walker(_closest_distance(place))
+		_spawn_left = SPAWN_EVERY
+
+# How far along the path the point nearest `at` is.
+func _closest_distance(at: Vector2) -> float:
+	var best := 0.0
+	var best_gap := INF
+	var walked := 0.0
+	for i in _path.size() - 1:
+		var a := _path[i]
+		var b := _path[i + 1]
+		var point := Geometry2D.get_closest_point_to_segment(at, a, b)
+		var gap := point.distance_to(at)
+		if gap < best_gap:
+			best_gap = gap
+			best = walked + a.distance_to(point)
+		walked += a.distance_to(b)
+	return best
 
 func _draw_marks(canvas: Node2D, rows: PackedStringArray) -> void:
 	for y in ROWS:
@@ -294,13 +545,13 @@ func _walk_order(rows: PackedStringArray, start: Vector2i) -> Array[Vector2]:
 
 func _add_warden(cell: Vector2i, c: String) -> void:
 	var wall := WALLS.contains(c)
-	var data: TowerData = THORNWALL if wall else (SPROUT if SPROUT_CARDS.has(card.id) else WARDEN)
+	var data: TowerData = THORNWALL if wall else (SPROUT if card != null and SPROUT_CARDS.has(card.id) else WARDEN)
 	if c == "X":
 		_walls.append(_centre(cell))
 	var sprite := Sprite2D.new()
 	sprite.texture = data.texture
 	sprite.hframes = maxi(data.frame_count, 1)
-	sprite.offset = Vector2(0, -16) + data.sprite_offset  # 64×96: the bottom 64 px on the cell
+	sprite.offset = Vector2(0, -16) + data.get_sprite_offset()  # 64×96: the bottom 64 px on the cell
 	sprite.position = _centre(cell)
 	sprite.z_index = 1  # Over the Heartwood's canopy (the favoured Warden often stands beside it)
 	if c == "w":
@@ -316,6 +567,13 @@ func _add_warden(cell: Vector2i, c: String) -> void:
 func _process(delta: float) -> void:
 	if _world == null or _path.size() < 2:
 		return
+	delta = real_delta(delta)  # Real time (user: "make sure the video previews aren't sped up"): 1×, 2×, 3× or paused alike
+	var sprite_speed := 1.0 / maxf(Engine.time_scale, 0.001)  # AnimatedSprite2D frames run on scaled time
+	for walker in _walkers:
+		if is_instance_valid(walker.sprite):
+			walker.sprite.speed_scale = sprite_speed
+	if _in_scene and _tick_scene(delta):
+		return  # Swapped: the new diagram starts next frame
 	_spawn_left -= delta
 	if _spawn_left <= 0.0 and _walkers.size() < NIGHTMARES:
 		_spawn_left = SPAWN_EVERY
@@ -325,14 +583,37 @@ func _process(delta: float) -> void:
 		_animate_warden(warden, delta)
 	_tick_effects(delta)
 
-func _spawn_walker() -> void:
+# Gift scenes: the phase clock, the swap's fade and pulse, the props' frames. True when it just swapped.
+func _tick_scene(delta: float) -> bool:
+	_anim += delta
+	for prop in _props:
+		prop.queue_redraw()
+	if _fade_left > 0.0:
+		_fade_left = maxf(_fade_left - delta, 0.0)
+		_world.modulate.a = 1.0 - 0.65 * _fade_left / SWAP_FADE  # multiplier: the fade in
+	if _pulse_left > 0.0:
+		_pulse_left = maxf(_pulse_left - delta, 0.0)
+	if _overlay != null:
+		_overlay.queue_redraw()
+	_phase_left -= delta
+	if _phase_left <= 0.0:
+		_swap()
+		return true
+	return false
+
+# A frame's delta in real seconds, whatever the game speed (capped, so a hitch doesn't jump the scene). Previews use it.
+static func real_delta(delta: float) -> float:
+	return minf(delta / maxf(Engine.time_scale, 0.001), 0.1)
+
+func _spawn_walker(distance: float = 0.0) -> void:
 	var sprite := AnimatedSprite2D.new()
 	sprite.sprite_frames = NIGHTMARE.sprite_frames
+	sprite.speed_scale = 1.0 / maxf(Engine.time_scale, 0.001)  # Real time
 	sprite.scale = Vector2.ONE * NIGHTMARE.sprite_scale
 	sprite.play(&"walk_side")
-	sprite.position = _path[0]
+	sprite.position = _along(distance)[0]
 	_world.add_child(sprite)
-	_walkers.append({"sprite": sprite, "distance": 0.0, "hits": 0.0, "fade": -1.0, "procs": {}})
+	_walkers.append({"sprite": sprite, "distance": distance, "hits": 0.0, "fade": -1.0, "procs": {}})
 	_spawned += 1
 
 # Position `distance` px along the path, and the direction there.
@@ -354,7 +635,7 @@ func _move_walkers(delta: float) -> void:
 				sprite.queue_free()
 				_walkers.erase(walker)
 			continue
-		walker.distance += WALK_SPEED * delta
+		walker.distance += WALK_SPEED * delta * (BOG_SPEED if _letter_at(sprite.position) == "B" else 1.0)  # Bog (gift scenes)
 		var at: Array = _along(walker.distance)
 		sprite.position = at[0]
 		var dir: Vector2 = at[1]
@@ -451,6 +732,7 @@ func _tick_effects(delta: float) -> void:
 # A hit: the number floats up (gold with the card's bonus for the favoured Warden, "+30% · 13"; white "10" for the
 # rest), the nightmare flinches, and enough hits dispel it.
 func _hit(walker: Dictionary, boosted: bool) -> void:
+	boosted = boosted or _letter_at(walker.sprite.position) == "r"  # Root-covered path (gift scenes): the effect shows on hits there
 	var damage: float = float(_effect.get("damage", 1.0)) if boosted else 1.0
 	walker.hits += damage
 	_float_text(hit_text(boosted), walker.sprite.position, boosted)

@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Texture2D" path="res://assets/towers/jetreed.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/jetreed_attack.png" id="4_atk"]
+[ext_resource type="Resource" path="res://resource/tower/torrent.tres" id="ev_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+display_name = "Jetreed"
+description = "An erosion jet: its target loses 2% of its max health (bosses 0.5%, at most 4× the hit) with each hit; the jet carries on down the line."
+cost = 0
+placeholder_color = Color(0.611765, 0.831373, 0.988235, 1)
+line = "water"
+tier = 2
+buildable_directly = false
+evolve_cost = 120
+counter_tags = Array[StringName]([&"anti_tank"])
+expansion_phase = 1
+special = &"jet"
+special_params = {"length": 6.0, "erosion": 0.02, "erosion_boss": 0.005, "erosion_cap": 4.0}
+attack_range = 2.5
+damage = 40
+attacks_per_second = 0.8
+attack_kind = 0
+evolves_to = Array[Resource]([ExtResource("ev_1")])

@@ -198,11 +198,10 @@ func _ready() -> void:
 	holder.add_child(_card)
 	peek = ChoicePeek.new(holder, [_card, _dim], "Combo discovered")
 	peek.catch_mouse = false  # The holder stays click-through: the world under it pans, zooms and hovers
-	peek.place_back_at_top()
+	peek.place_back_centre()  # The "Return" pill mid-screen (pausing cards, ChoicePeek)
 	peek.changed.connect(func(on: bool) -> void:
 		if on:
-			var title := _card_title.text
-			peek.back_button().text = title.get_slice(":", 0) if title.contains(":") else "Discovery")
+			peek.back_button().text = return_text())
 	_buttons.add_child(peek.make_peek_button())
 	drift_director.rest_ended.connect(func(_block: int) -> void:
 		block_counts.clear()
@@ -325,7 +324,7 @@ func _note_seen(key: String) -> void:
 
 # Dawnbreak (the Legendary that fires at a Chain 10) gets its own one-time card the first time it goes off.
 const DAWNBREAK_ID := &"dawnbreak"
-const DAWNBREAK_TEXT := "Dawnbreak discovered\nA Chain 10 broke into dawn: 10% of max health to every nightmare within 4 tiles (bosses 2%).\nAdded to the Codex."
+const DAWNBREAK_TEXT := "Dawnbreak discovered\nA Chain 10 broke into dawn: 10% of max health to every nightmare within 4 cells (bosses 2%).\nAdded to the Codex."
 func _discover_dawnbreak(enemy: Node2D) -> void:
 	_note_seen(String(DAWNBREAK_ID))
 	_queue.append(DAWNBREAK_ID)
@@ -455,6 +454,14 @@ func _blocked() -> bool:
 		return true
 	var omens := get_tree().get_first_node_in_group(&"omens")
 	return omens != null and omens.has_method("is_offering") and omens.is_offering()
+
+# The minimised card's pill: "Return to the combo" for one, "Return (2)" with more waiting behind it.
+func return_text() -> String:
+	if not _queue.is_empty():
+		return "Return (%d)" % (_queue.size() + 1)
+	var title := _card_title.text  # "Combo discovered: Thunderclap" -> "Thunderclap"
+	var name := title.get_slice(":", 1).strip_edges() if title.contains(":") else title
+	return "Return to %s" % (name if name != "" else "the discovery")
 
 # A card is up: shown, or minimised while peeking at the map.
 func showing() -> bool:

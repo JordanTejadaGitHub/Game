@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hairpin_winds"
 display_name = "Hairpin Winds"
-description = "Pinwheels and Windmills count 1 more path tile beside them (up to +120%)."
+description = "Pinwheel and Windmill blades can gain one more path tile's bonus (Pinwheel up to +120%, Windmill +135%)."
 rarity = 1
 kind = 3
 tags = Array[String](["wind", "maze"])

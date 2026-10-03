@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "lucid_dream"
+display_name = "Remembered Path"
+description = "Choose a family and see the branches not in this dream. Call one into the run, free."
+rarity = 2
+kind = 3
+tags = Array[String](["dreams"])
+max_stacks = 1
+rule_id = &"lucid_dream"
+in_start_pool = true

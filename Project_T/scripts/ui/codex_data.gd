@@ -47,7 +47,7 @@ const GLOSSARY_SOURCE := [
 		["Thornwall", "A cheap wall that doesn't attack; grows into Bramble or Honeysuckle.", ["Warden"]],
 		["Clear tool", "Tend Withered Trees and move Mossy Boulders to reshape the maze. Opens with a clearing Dream.", ["Dew"]],
 		["Ascended", "A family's endgame Warden, from drift 51: unlocked with Dreamlight, grown from a final form for Dew. One per family per run.", ["Final form", "Ascension"]],
-		["Kinship", "Two branches of the same family within 2 tiles of each other bond and grow stronger the longer they stand together.", ["Harmony strike", "Boosts"], "Blooming at 5 drifts, Old Kin at 10."],
+		["Kinship", "Two branches of the same family within 2 cells of each other bond and grow stronger the longer they stand together.", ["Harmony strike", "Boosts"], "Blooming at 5 drifts, Old Kin at 10."],
 		["Harmony strike", "When two Wardens in a Kinship hit the same nightmare within 1 s, petals burst on it for extra damage (at most every 2 s per pair).", ["Kinship"]],
 		["Boosts", "Wardens that strengthen others near them: auras, Kinship bonds, and Kindred / Whole Tree. The Boosts button shows who's boosted, and by what.", ["Kinship"]],
 	]],
@@ -81,7 +81,7 @@ const GLOSSARY_SOURCE := [
 	]],
 	["Combat", [
 		["Crit", "A critical hit: some Wardens sometimes hit much harder.", ["Pinned", "Potency"]],
-		["Potency", "Effect damage: scales status and poison damage and Reactions the way crit scales hits.", ["Crit", "{spored}"]],
+		["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and Reactions, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}.", ["Crit", "{spored}"]],
 		["Reaction", "Two statuses meeting on one nightmare set off a named effect, like Thunderclap ({damp} + {static}).", ["Chain", "Crowned Reaction"]],
 		["Crowned Reaction", "A Reaction going off on a nightmare that already carries a third status: a bigger, named version.", ["Reaction", "Woven"]],
 		["Dawnburst", "A Chain 10: a flash of dawn over the whole fight. With the Dawnbreak Legendary it also takes a tenth of the health of every nightmare within 4 cells (bosses: 2%).", ["Chain", "Dawnbreak"]],
@@ -114,7 +114,7 @@ const SYNERGIES := {
 	&"conducted": ["Conducted", [&"damp", &"static"], "Lightning jumps farther and more often between {damp} nightmares.", "Stormcap"],
 	&"asleep": ["Asleep", [&"drowsy", &"drowsy"], "Full {drowsy}: the nightmare falls {asleep} for 3 s; a big hit (10%+ of its health) wakes it.", "Dreamshroom"],
 	&"fog": ["Spore Fog", [&"spored", &"damp"], "{spored} ticks harder inside Mistveil fog.", "Mistveil"],
-	&"set_off": ["Set Off", [&"static", &"static"], "A pulse makes a nightmare with 3 or more {static} release its bolt at once.", "Chime Stone, Lullaby Bell"],
+	&"set_off": ["Set Off", [&"static", &"static"], "A pulse makes a nightmare with 3 or more {static} (4 for Lullaby Bell) release its bolt at once.", "Chime Stone, Lullaby Bell"],
 	&"marked_blow": ["Exposed Blow", [&"marked", &"marked"], "A heavy hit does double damage on {marked} nightmares.", "Mossback, Boulderback"],
 	&"caught": ["Caught", [&"drowsy", &"drowsy"], "{asleep} or full {drowsy} near a Dreamcatcher: the nightmare's statuses stop wearing off.", "Dreamcatcher"],
 }
@@ -195,7 +195,7 @@ const KINSHIP_TEXT := {
 	&"hammer_and_anvil": "Mossback gains the sniper's eye (+10% crit chance at ×2.5); Standing Stone deals ×2 to {marked} nightmares.",
 	&"snare": "Rootcurl's pulls end in a 0.5 s hold; Tangleroot's holds drag the nightmare back half a tile.",
 	&"night_chimes": "Chime Stone's pulses Catch nightmares at full {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 3 stacks.",
-	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbors +10% attack speed.",
+	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbors attack 10% faster.",
 	&"flock_together": "Wren's Nest hits strip a buff (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops +1 Dew; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
 	# The 9 hidden Kinships (a hidden branch first; full game only, Tower Code 6ba79b8).
 	&"spore_nursery": "Fairy Ring's rings apply double {spored}; Driftspore's puffs plant a mushroom ring where they land (one at a time).",

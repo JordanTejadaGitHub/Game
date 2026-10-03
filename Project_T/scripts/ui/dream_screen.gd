@@ -23,11 +23,14 @@ var _cards := HBoxContainer.new()
 var _card_width := CARD_SIZE.x  # Narrower when 5 cards (Thick Blight + Wider Dreams) would pass the screen
 var _skip := Button.new()
 var _reroll := Button.new()  # Second Thoughts (Memory Grove)
+var _rerolled_in := -1  # The Dream (its drift) a reroll was used in: its last one stays shown, disabled, until it closes
+var _let_go_in := -1  # Same for Let Go
 var _dev_any := Button.new()  # "Dev: any card…" (dev runs of debug builds; demo_scope.md "Pick any card")
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
 var _diagram: CardDiagram = null  # The hovered placement card's map picture (dream_design.md "Placement cards show a diagram")
 var _scene: CardScene = null  # The living mini-scene (pooled: one view, reused card to card)
 var _held_for_diagram := false  # A long-press showed the diagram: that release doesn't take the card
+var arm: ChoiceArm  # Cards ignore input for a moment as the screen appears (clicks meant for the map)
 const LONG_PRESS := 0.45
 
 func _ready() -> void:
@@ -53,7 +56,9 @@ func _ready() -> void:
 	_skip.focus_mode = Control.FOCUS_NONE
 	_skip.pressed.connect(dream_state.skip)
 	_reroll.focus_mode = Control.FOCUS_NONE
-	_reroll.pressed.connect(dream_state.reroll)
+	_reroll.pressed.connect(func() -> void:
+		_rerolled_in = dream_state.current_offer_drift  # Before: the reroll shows the new offer at once
+		dream_state.reroll())
 	var skip_row := HBoxContainer.new()
 	skip_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	skip_row.add_theme_constant_override("separation", 16)
@@ -66,6 +71,7 @@ func _ready() -> void:
 	box.add_child(skip_row)
 	peek = ChoicePeek.new(self, [dim, center], "Back to the Dream")
 	box.add_child(peek.make_peek_button())
+	arm = ChoiceArm.attach(self, _cards)
 
 	visible = false
 	dream_state.offer_ready.connect(_show_offer)
@@ -81,8 +87,12 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	_skip.text = "Let it pass · +%d Dew" % dream_state.skip_dew if dream_state.skip_dew > 0 else "Let it pass"
 	_skip.visible = dream_state.can_skip()  # Restless Dreams
 	_dev_any.visible = DreamState.dev_tools_on()
-	_reroll.text = "Dream again · %d left" % dream_state.rerolls_left
-	_reroll.visible = dream_state.rerolls_left > 0
+	# A run-long supply: "1 left this run"; the last one used leaves the button disabled for the rest of that Dream
+	_reroll.text = dream_state.reroll_label()
+	_reroll.tooltip_text = dream_state.reroll_tip()
+	_reroll.disabled = dream_state.rerolls_left <= 0
+	_reroll.visible = dream_state.rerolls_left > 0 or _rerolled_in == drift_number
+	var show_let_go: bool = dream_state.banishes_left > 0 or _let_go_in == drift_number
 	var gap := float(_cards.get_theme_constant("separation"))
 	var room := get_viewport_rect().size.x - 2.0 * SIDE_MARGIN - gap * (cards.size() - 1)
 	_card_width = minf(CARD_SIZE.x, floorf(room / maxf(cards.size(), 1.0)))
@@ -92,15 +102,19 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	for card in cards:
 		var column := VBoxContainer.new()
 		column.add_child(_make_card(card))
-		if dream_state.banishes_left > 0:  # Let Go (Memory Grove)
+		if show_let_go:  # Let Go (Memory Grove)
 			var let_go := Button.new()
-			let_go.text = "Let go · %d left" % dream_state.banishes_left
-			let_go.tooltip_text = "This card won't come back this run; another takes its place."
+			let_go.text = dream_state.banish_label()
+			let_go.tooltip_text = dream_state.banish_tip()
+			let_go.disabled = dream_state.banishes_left <= 0
 			let_go.focus_mode = Control.FOCUS_NONE
-			let_go.pressed.connect(dream_state.banish.bind(card))
+			let_go.pressed.connect(func() -> void:
+				_let_go_in = dream_state.current_offer_drift
+				dream_state.banish(card))
 			column.add_child(let_go)
 		_cards.add_child(column)
 	visible = true
+	arm.arm()  # Every new set of cards, rerolls too: a second click can't take a card it never saw
 
 func _make_card(card: UpgradeData) -> Button:
 	var button := Button.new()
@@ -170,15 +184,12 @@ func _make_card(card: UpgradeData) -> Button:
 		_add_opens_clearing(box)
 	# The effect comes right after the name; it never shrinks.
 	_add_linked_line(box, card.description, UiStyle.INK, 16)
-	var res := dream_state.resonance_preview(card)
-	if res.bonus > 0.0:  # Resonance (text_style.md): "+20% from Soft Spores, Damp Rot", never the tag; hover lists them all
-		var res_line := _add_line(box, DreamState.resonance_text(res.bonus, res.cards), UiStyle.GOLD, 14)
-		res_line.name = "ResonanceLine"
-		res_line.tooltip_text = DreamState.resonance_tooltip(res.cards)
-		if res_line.tooltip_text != "":
-			res_line.mouse_filter = Control.MOUSE_FILTER_PASS  # Hover shows them; a click still takes the card
 	var live: String = dream_state.effects().preview_line(card)
-	if live != "":  # Scaling cards: where you stand now (dream_design.md #75)
+	# What it would do to your board now (dream_design.md "Feeling the cards"), computed once as the offer opens
+	var impact: Dictionary = dream_state.preview_card_impact(card)
+	var impact_line := _add_line(box, impact.text, UiStyle.GOLD if impact.kind != &"none" else UiStyle.INK_DIM, 14)
+	impact_line.name = "ImpactLine"
+	if live != "" and impact.kind != &"economy":  # Scaling cards: where you stand now (dream_design.md #75)
 		_add_line(box, live, UiStyle.GOLD, 14).name = "LiveLine"
 	if card.cost_description != "":
 		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, 15)

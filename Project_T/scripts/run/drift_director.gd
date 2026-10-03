@@ -56,27 +56,50 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var endgame_growth_from: int = 51
 @export var guaranteed_elite_from: int = 31  # run_design.md f2eb4f8: was 26 (the drift 28–29 death cluster)
 @export var second_elite_from: int = 76  # Two Deeply Blighted per drift from here
+# Block finales (spire_difficulty.md, Slay the Spire's elite fights): the last drift of every block
+# (not a boss drift) gets this many guaranteed Deeply Blighted, by the drift they start from
+# ({start drift: count}; the highest start at or below the drift wins). Replaces the rule above there.
+@export var block_finale_elites := {10: 1, 15: 2, 30: 3, 60: 4}  # Drift 10 eased (it was the run's hardest point at 2)
+# Elites alone didn't make a spike (Balancing: +2 elites cost the bot 0.35 leaves), so every non-boss nightmare on a
+# block finale from `block_finale_health_from` has this much more health, on top of everything else.
+@export var block_finale_health_multiplier: float = 1.4
+@export var block_finale_health_from: int = 10
+
+# The guaranteed elites for drift `number` if it's a block finale (0 before the first start), else -1.
+func get_block_finale_elites(number: int) -> int:
+	if block_finale_elites.is_empty():
+		return -1  # No block finales (the demo: DEMO_RULES)
+	if number % drifts_per_block != 0 or number % drifts_per_act == 0:
+		return -1  # Not a block's last drift, or a boss drift
+	var count := 0
+	var best := -1
+	for start in block_finale_elites:
+		if int(start) <= number and int(start) > best:
+			best = int(start)
+			count = int(block_finale_elites[start])
+	return count
 @export var boss_health_multiplier: float = 1.5  # On the bosses' base health
 @export var mid_boss_health_multiplier: float = 1.75  # Acts 2-3 bosses instead ("Human runs 7-9": 0 of 3 killed the act 2 boss once act 2 ended at x4.5; was 2.25, from "Human run 3": the Lamplighter died in 29 s); act 1 and the Oak keep theirs
 @export var act1_boss_health_multiplier: float = 1.75  # Act 1's boss (drift 25) instead (boss stays and drains: ×1.75 = Dreams 11/15, skip 5/15 vs the Stag)
 # Acts 3–4 (run_design.md "Act 3 probe", interim): a flat health multiplier for every nightmare from
 # `late_acts_from_act`, bosses included, on top of the growth / boss multiplier.
 @export var late_acts_health_multiplier: float = 6.0  # Acts 3–4, bosses included ("Human run 7"; was 4.8, 4.0, 3.5, 1.6)
+@export var act4_health_multiplier: float = 1.2  # Spire: act 4 on top of the late multiplier, bosses and the Oak too
 @export var final_boss_late_multiplier: float = 3.0  # …except the Hollow Oak at drift 100 ("Human run 2": it died in 17 s at 1.6)
 @export var late_acts_from_act: int = 3
 # Acts 1–2 (run_design.md 72860af, balance batches): act 1 is x1.0 through `act1_ramp_from`, rising
 # evenly to `act1_health_multiplier` at `act1_ramp_to` and holding to the act's end; act 2 holds that
 # for its first drifts (a breather while the first finals arrive) until `early_ramp_from`, then rises
 # evenly to `early_acts_health_multiplier` at `early_ramp_to`, held until acts 3–4 take over (no stacking).
-@export var act1_health_multiplier: float = 1.15
-@export var act1_ramp_from: int = 9
+@export var act1_health_multiplier: float = 1.15  # Spire: main's peak again, paying for the finales' x1.4 (was 1.25, 1.35)
+@export var act1_ramp_from: int = 3  # Spire: the ramp starts at drift 3 (was 9)
 @export var act1_ramp_to: int = 20
 @export var early_acts_health_multiplier: float = 4.5  # Act 2 ends at this ("Human run 7"; was 3.6, 3.0, 2.5, 1.55)
-@export var act2_start_health_multiplier: float = 1.7  # …starting from this at act 2's first drift ("Human run 8": one straight line to 4.5 @45; was 2.0, 1.6, 1.3)
+@export var act2_start_health_multiplier: float = 2.0  # …starting from this at act 2's first drift (Spire: one straight line to 4.5 @45; was 1.7, 2.0, 1.6, 1.3)
 @export var early_ramp_from: int = 26
 @export var early_ramp_to: int = 45
 @export var act2_steep_from: int = 37  # "Human run 2": drifts 26-37 keep the old ramp (to act2_steep_value), the rest of the rise comes after
-@export var act2_steep_value: float = 3.3  # Drift 37: on the straight line 1.7 @26 → 4.5 @45, so no knee ("Human run 8", Balancing Discussion; was 2.9, 2.3, 1.995)
+@export var act2_steep_value: float = 3.45  # Drift 37: on the straight line 2.0 @26 → 4.5 @45, so no knee (Spire, Balancing Discussion; was 3.3, 2.9, 2.3, 1.995)
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
 @export var extra_nightmares_from: int = 10  # The intro drifts before it are unchanged
 # Rest bonus = base + per_block × block number (economy pass v2, run_design.md: was 20 + 10 × block,
@@ -93,8 +116,8 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 # nightmares it spawns by weight (EnemyData.dew_reward, Deeply Blighted ×3; a boss drift's boss takes half).
 # Added nightmares (Omens, extra_nightmares, splits, followers) share it; a leak loses its share. Per act:
 # the first → last non-boss drift (linear), then its boss drift.
-@export var dew_pot_acts: Array[Vector2] = [Vector2(30, 115), Vector2(115, 135), Vector2(135, 145), Vector2(140, 145)]
-@export var dew_pot_bosses: Array[float] = [220.0, 270.0, 320.0, 0.0]  # Drift 100 pays nothing: it's the win
+@export var dew_pot_acts: Array[Vector2] = [Vector2(30, 115), Vector2(103.5, 121.5), Vector2(121.5, 130.5), Vector2(126, 130.5)]  # Spire: acts 2-4 x0.9
+@export var dew_pot_bosses: Array[float] = [220.0, 243.0, 288.0, 0.0]  # Drift 100 pays nothing: it's the win (Spire: acts 2-3 x0.9)
 const POT_ELITE_WEIGHT := 3.0
 const POT_BOSS_SHARE := 0.5
 
@@ -130,7 +153,28 @@ var bosses: Array[BossData] = []
 var preset_bosses: Array = []  # Boss ids a resumed run drew (RunSaver sets them before the draw)
 var _own_drifts := false  # The drifts came from DEMO_DRIFTS_DIR (boss pools may replace boss drifts)
 
+# The demo keeps the rules from before the Spire merge (2026-10-02, Balancing Discussion): the old health curve, the
+# full Dew pots and no block finales (so no finale line or Rare reward either). The full game uses the exports above.
+const DEMO_RULES := {
+	"act1_ramp_from": 9, "act2_start_health_multiplier": 1.7, "act2_steep_value": 3.3, "act4_health_multiplier": 1.0,
+	"dew_pot_acts": [Vector2(30, 115), Vector2(115, 135), Vector2(135, 145), Vector2(140, 145)],
+	"dew_pot_bosses": [220.0, 270.0, 320.0, 0.0],
+	"block_finale_elites": {}, "block_finale_health_multiplier": 1.0,
+}
+
+func apply_demo_rules() -> void:
+	for key in DEMO_RULES:
+		var value = DEMO_RULES[key]
+		if key == "dew_pot_acts":
+			dew_pot_acts.assign(value)
+		elif key == "dew_pot_bosses":
+			dew_pot_bosses.assign(value)
+		else:
+			set(key, value.duplicate() if value is Dictionary else value)
+
 func _ready() -> void:
+	if ResultsScreen.is_demo():
+		apply_demo_rules()
 	if drifts.is_empty():
 		drifts = load_demo_drifts()
 		_own_drifts = true
@@ -287,6 +331,9 @@ func pending_choice() -> StringName:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) if is_inside_tree() else null
 	if dreams != null and (dreams.is_offering() or dreams.has_pending_offer()):
 		return &"dream"
+	var gifts := get_tree().get_first_node_in_group(&"heartwood_gifts") if is_inside_tree() else null
+	if gifts != null and gifts.is_offering():
+		return &"gift"  # Heartwood's Gifts (Spire): after the Dream and the family pick, before the Omen
 	var omens := get_tree().get_first_node_in_group(&"omens") if is_inside_tree() else null
 	if omens != null and (omens.is_offering() or omens.has_pending_offer()):
 		return &"omen"
@@ -405,8 +452,12 @@ func get_health_scale(data: EnemyData, number: int) -> float:
 	if get_act(number) >= late_acts_from_act:
 		var final_boss := data.is_boss and number >= drifts_per_act * 4
 		scale *= final_boss_late_multiplier if final_boss else late_acts_health_multiplier
+		if act >= 4:
+			scale *= act4_health_multiplier  # Spire: act 4 harder still, bosses and the Oak included
 	elif not (data.is_boss and get_act(number) == 1):  # Act 1's boss keeps its own multiplier (its escort takes the ramp)
 		scale *= get_early_multiplier(number)
+	if not data.is_boss and number >= block_finale_health_from and get_block_finale_elites(number) >= 0:
+		scale *= block_finale_health_multiplier  # A block finale (spire_difficulty.md)
 	return scale * get_health_multiplier(data, number)
 
 # The per-drift health growth for drift `number`, compounding: ×1.045 per drift to 25, ×1.055 for
@@ -433,7 +484,11 @@ func get_health_multiplier(data: EnemyData, number: int) -> float:
 # Omens: {"count", "flyers", "spacing"} multipliers for drift `number`'s schedule.
 func get_schedule_modifiers(number: int) -> Dictionary:
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
-	return omens.get_schedule_modifiers(number) if omens else {}
+	var mods: Dictionary = omens.get_schedule_modifiers(number).duplicate() if omens else {}
+	var gifts := get_tree().get_first_node_in_group(&"heartwood_gifts")  # Thick Mist (Heartwood's Gifts): arrivals further apart
+	if gifts != null and gifts.get_spacing_multiplier(number) != 1.0:
+		mods["spacing"] = float(mods.get("spacing", 1.0)) * gifts.get_spacing_multiplier(number)
+	return mods
 
 # Per-creature modifiers (see Enemy.modifiers) for drift `number`: the Omen's (bosses ignore
 # Omens), times Dreams that change every nightmare (Burn Back the Dead Wood: speed).
@@ -453,9 +508,14 @@ func get_spawn_modifiers(data: EnemyData, number: int) -> Dictionary:
 # From drift 31, a drift that lists no elites gets one (two from drift 76): each time a random
 # non-boss kind in it (boss drifts: from the escort), and one of that kind becomes Deeply Blighted.
 func add_guaranteed_elite(schedule: Array, number: int) -> void:
-	if number < guaranteed_elite_from or schedule.any(func(a: Array) -> bool: return a.size() > 2 and a[2]):
-		return
-	for n in (2 if number >= second_elite_from else 1):
+	var listed := schedule.filter(func(a: Array) -> bool: return a.size() > 2 and a[2]).size()
+	var wanted := 0
+	var finale := get_block_finale_elites(number)
+	if finale >= 0:  # A block's last drift (spire_difficulty.md "block finales"): its own count
+		wanted = finale - listed
+	elif number >= guaranteed_elite_from and listed == 0:
+		wanted = 2 if number >= second_elite_from else 1
+	for n in wanted:
 		var by_kind := {}  # EnemyData -> [schedule index, …] not elite yet
 		for i in schedule.size():
 			# Never a kind on its intro drift: that drift teaches it (human run 5: an elite Phantom on drift 31)
@@ -521,8 +581,14 @@ func get_dew_pot(number: int) -> float:
 # (Bountiful Night, Blood Moon, Dry Spell), Rich Dew (Grove dew_gain) and a Blight Dew cut. Catchers, call-early
 # Dew and rest bonuses come on top instead.
 # `with_omen` false: everything but the active Omen's factor (Dry Spell pays back what the block would have held).
+# Sidegrade perks (MetaRun, Spire experiment): Morning Stores' cost, drifts 1–5 pay less of their pot.
+var early_pot_multiplier := 1.0
+const EARLY_POT_DRIFTS := 5
+
 func get_dew_pot_multiplier(number: int, called_early: bool = false, with_omen: bool = true) -> float:
 	var multiplier := 1.0
+	if number <= EARLY_POT_DRIFTS:
+		multiplier *= maxf(early_pot_multiplier, 0.0)
 	if run_state != null:  # Rich Dew (Grove dew_gain, +5% a level): the pot, not each nightmare (run_design.md, fixed)
 		multiplier *= 1.0 + run_state.dew_gain_bonus
 	multiplier *= blight_dew_multiplier

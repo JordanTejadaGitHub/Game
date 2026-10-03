@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Echo Hollow"
-description = "A hollow log that echoes Reactions: one nearby repeats a second later at 75% strength."
+description = "A hollow log that echoes Reactions: one nearby repeats a second later on the same nightmare, at {echo:echo_hollow} strength."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
@@ -18,7 +18,7 @@ buildable_directly = false
 evolve_cost = 120
 attack_kind = 1
 attack_range = 2.5
-damage = 10
+damage = 28
 attacks_per_second = 1.0
 echo_share = 0.75
 crit_chance = 0.05

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/brood_cap.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_brood_cap"
+display_name = "Brood Cap"
+description = "Sporelings can now grow into Brood Caps ({grow_cost:brood_cap} Dew): spore-sprites walk up the path and burst on nightmares, hidden ones too."
+rarity = 1
+kind = 1
+tags = Array[String](["spore"])
+requires = Array[String](["sporeling"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")

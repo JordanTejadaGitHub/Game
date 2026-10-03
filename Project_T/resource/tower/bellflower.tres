@@ -6,6 +6,9 @@
 [ext_resource type="Resource" path="res://resource/tower/chime_stone.tres" id="ev_1"]
 [ext_resource type="Resource" path="res://resource/tower/dreamcatcher.tres" id="ev_2"]
 [ext_resource type="Resource" path="res://resource/tower/echo_hollow.tres" id="ev_3"]
+[ext_resource type="Resource" path="res://resource/tower/silver_bell.tres" id="ev_4"]
+[ext_resource type="Resource" path="res://resource/tower/hushbell.tres" id="ev_5"]
+[ext_resource type="Resource" path="res://resource/tower/thrum.tres" id="ev_6"]
 
 [resource]
 script = ExtResource("1_tdata")
@@ -19,7 +22,7 @@ tier = 1
 evolve_cost = 15
 attack_kind = 1
 attack_range = 2.0
-damage = 14
+damage = 17
 attacks_per_second = 1.0
 applies_status = &"drowsy"
 status_every = 2
@@ -28,4 +31,4 @@ projectile_color = Color(0.9254902, 0.6117647, 0.95686275, 1)
 attack_texture = ExtResource("4_atk")
 attack_frame_count = 6
 attack_release_frame = 2
-evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2"), ExtResource("ev_3")])
+evolves_to = Array[Resource]([ExtResource("ev_1"), ExtResource("ev_2"), ExtResource("ev_3"), ExtResource("ev_4"), ExtResource("ev_5"), ExtResource("ev_6")])

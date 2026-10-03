@@ -17,12 +17,11 @@ const WISP_TEXTURE := "res://assets/environment/dream/route_wisp.png"
 const START_CAP := "res://assets/environment/dream/route_mist_start.png"  # 32×24: fades in, its right edge meets the strip
 const END_CAP := "res://assets/environment/dream/route_mist_end.png"  # 32×24: curls forward, its left edge meets the strip
 const WISP_FRAMES := 6
-const WISP_ANCHOR := Vector2(10, 8)  # The wisp's head in its 16×16 frame (the tail trails to the left)
+const WISP_ANCHOR := Vector2(15, 12)  # The wisp's head in its 24×24 frame (the tail trails to the left)
 const TURN_SAMPLE := 0.45 * CELL  # Wisps face the route's heading this far either side: a smooth turn at corners
 const WISP_FPS := 8.0
 const MIST_COLOR := Color(Palette.WRAITHLIGHT, 0.32)  # The fallback ribbon: faint cold light
 const MIST_WIDTH := 22.0
-const MIST_FLOW := 0.5  # Cells per second the strip's texture flows toward the Heartwood
 const ROUTE_WISPS := 3
 const WISP_SPEED := 1.0 * CELL  # px per second along the route
 const EDGE_FADE := 0.8 * CELL  # Wisps fade in after the start and out before the Heartwood
@@ -40,7 +39,6 @@ var _mist := Line2D.new()
 var _wisp: Texture2D = null
 var _start_cap: Texture2D = null
 var _end_cap: Texture2D = null
-var _mist_material: ShaderMaterial = null
 
 func _ready() -> void:
 	z_index = -1
@@ -51,15 +49,10 @@ func _ready() -> void:
 	_mist.end_cap_mode = Line2D.LINE_CAP_ROUND
 	_mist.show_behind_parent = true  # The wisps (drawn by this node) over the ribbon
 	RouteLine.apply(_mist, MIST_COLOR, MIST_WIDTH)
-	if ResourceLoader.exists(MIST_TEXTURE):
-		_mist.texture = load(MIST_TEXTURE)
-		_mist.texture_mode = Line2D.LINE_TEXTURE_TILE
-		_mist.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED  # The tiled UVs run past 1
-		_mist.default_color = Color.WHITE  # multiplier: the art carries the colour
-		_mist.width = float(_mist.texture.get_height())
-		_mist_material = ShaderMaterial.new()
-		_mist_material.shader = _flow_shader()
-		_mist.material = _mist_material
+	if ResourceLoader.exists(MIST_TEXTURE) and not RouteLine.is_high_contrast():
+		# The shared mist look (RouteLine): flows in 2-texel steps on TIME (a sub-texel scroll flickered, and 1-texel
+		# steps flipped the strip's checker-dither edges), texture repeat, sharp joints
+		RouteLine.style_mist(_mist)
 	add_child(_mist)
 	if ResourceLoader.exists(WISP_TEXTURE):
 		_wisp = load(WISP_TEXTURE)
@@ -79,12 +72,6 @@ func _ready() -> void:
 		_map.path_changed.connect(_read_route)
 	_still = bool(Fx.setting("reduced_motion", false))
 	_read_route.call_deferred()  # After the map is built
-
-# The strip flows toward the Heartwood (UV scroll); `flow` 0 holds it (reduced motion).
-func _flow_shader() -> Shader:
-	var shader := Shader.new()
-	shader.code = "shader_type canvas_item;\nuniform float flow = 0.0;\nvoid fragment() {\n\tCOLOR = texture(TEXTURE, vec2(UV.x - flow, UV.y)) * COLOR;\n}\n"
-	return shader
 
 # Shown while the run hasn't started its first drift (a resumed run before drift 1 counts).
 func is_showing() -> bool:
@@ -136,8 +123,6 @@ func _process(delta: float) -> void:
 			_mist.points = PackedVector2Array()
 	_mist.visible = is_showing()
 	_mist.modulate.a = alpha  # multiplier: the fade
-	if _mist_material != null and not _still:
-		_mist_material.set_shader_parameter("flow", _age * MIST_FLOW)
 	if not _still or _fade >= 0.0:
 		queue_redraw()
 

@@ -75,6 +75,38 @@ static func sixth_slot_dev_active() -> bool:
 		return false
 	return bool(HeartwoodMemory.get_settings().get(SIXTH_SLOT_SETTING, false))
 
+# Spire experiment "sidegrade perks" (meta_design.md, experiment/spire-difficulty): Grove perks become
+# trade-offs, not raw power. Same costs, levels and prerequisites; each carried perk keeps its upside and
+# adds a downside (SIDEGRADE_*). Developer setting "Perk style" (0 Power / 1 Sidegrade); since the Spire merge
+# (2026-10-02, Balancing Discussion) the full game defaults to Sidegrade, Power stays as the developer switch.
+const PERK_STYLE_SETTING := "perk_style"
+const SIDEGRADE_LEAF_CAP := 2  # Deep Taproot's leaves in sidegrade mode (its level III adds nothing more)
+static var force_sidegrade := -1  # Tests: 0 Power, 1 Sidegrade, -1 = the setting
+
+static func sidegrade_active() -> bool:
+	if force_sidegrade >= 0:
+		return force_sidegrade == 1
+	return int(HeartwoodMemory.get_settings().get(PERK_STYLE_SETTING, 1)) == 1
+
+# Clear Sight's sidegrade cost, read by the map generator before the run starts: one extra ridge (like
+# Blight 9's) while it's carried. The full game only. A resumed run uses the count it was saved with
+# (RunSaver sets `resumed_extra_ridges`), so changing the loadout in the Grove never reshapes a saved map.
+static var resumed_extra_ridges := -1  # -1 = a new run: read the loadout
+static var run_extra_ridges := 0  # What this run's map was built with (saved with the run)
+
+static func perk_extra_ridges() -> int:
+	run_extra_ridges = resumed_extra_ridges if resumed_extra_ridges >= 0 else _loadout_extra_ridges()
+	return run_extra_ridges
+
+static func _loadout_extra_ridges() -> int:
+	if not sidegrade_active() or ResultsScreen.is_demo():
+		return 0
+	var memory := HeartwoodMemory.load_data()
+	var unlock := HeartwoodMemory.get_unlock("clear_sight")
+	if unlock == null or not HeartwoodMemory.get_loadout(memory).has("clear_sight") or HeartwoodMemory.node_level(memory, unlock) == 0:
+		return 0
+	return 1
+
 # PARKED (user decision 2026-09-29, tower_design.md / meta_design.md): Memory Wardens are switched off.
 # Their blooms are left out of the Grove (HeartwoodMemory.load_grove), so none grows or shows and the
 # boss pick never offers one. Code, art and resources stay; boss first-dispels are still recorded
@@ -215,7 +247,7 @@ func _apply_grove(memory: Dictionary) -> void:
 		dew += unlock.starting_dew * level
 		run_state.dew_gain_bonus += unlock.dew_gain * level
 		drift_director.rest_bonus_perk_multiplier += unlock.rest_bonus * level
-		leaves += unlock.max_leaves * level
+		leaves += unlock.max_leaves * (mini(level, SIDEGRADE_LEAF_CAP) if sidegrade_active() else level)  # Hades-style: Deep Taproot tops out at +2
 		rerolls += unlock.dream_rerolls * level
 		banishes += unlock.dream_banishes * level
 		extra_cards += unlock.extra_dream_cards * level
@@ -228,7 +260,13 @@ func _apply_grove(memory: Dictionary) -> void:
 		nurtures += unlock.free_nurtures * level
 		if unlock.early_bloom:
 			family_screen.offer_all_first = true
-	run_state.add_dew(dew)
+		if sidegrade_active():
+			dew += _apply_sidegrade(unlock.id, level)
+	if dew >= 0:
+		run_state.add_dew(dew)
+	else:  # Sidegrade Sprout Bed: less starting Dew (add_dew ignores negatives)
+		run_state.dew = maxi(run_state.dew + dew, 0)
+		run_state.dew_changed.emit(run_state.dew)
 	run_state.max_leaves += leaves
 	run_state.leaves += leaves
 	run_state.leaves_changed.emit(run_state.leaves, run_state.max_leaves)
@@ -257,6 +295,34 @@ func _apply_grove(memory: Dictionary) -> void:
 			return c.rarity == UpgradeData.Rarity.COMMON and not c.is_bittersweet() and dream_state.is_eligible(c))
 		if not commons.is_empty():
 			dream_state.take(commons.pick_random())
+
+# Sidegrade perks: the downside of carried perk `id` at `level`, on top of
+# its normal effect. Returns the starting Dew it changes. Seed Pouch, Second Thoughts, Let Go, Omen Reader
+# and the slots are unchanged.
+# Hades-style (user, 2026-10-02): Morning Stores, Rested Roots and Deep Taproot stay honest power (Deep Taproot
+# capped at +2 leaves, SIDEGRADE_LEAF_CAP), so struggling new players get a little help.
+func _apply_sidegrade(id: String, level: int) -> int:
+	match id:
+		"rich_dew":  # Rest bonus −10% per level
+			drift_director.rest_bonus_perk_multiplier -= 0.1 * level
+		"sprout_bed":  # −30 starting Dew
+			return -30
+		"first_care":  # After the free ranks, Nurture costs +15% this run
+			if "nurture_perk_multiplier" in dream_state:
+				dream_state.nurture_perk_multiplier *= 1.15
+		"early_bloom":  # The drift 25 family pick shows one fewer
+			if "first_boss_pick_fewer" in family_screen:
+				family_screen.first_boss_pick_fewer += 1
+		"early_light":  # The first family pick gives no Dreamlight
+			if "first_pick_dreamlight" in dream_state:
+				dream_state.first_pick_dreamlight = 0
+		"kindling":  # The first Dream offer has 2 cards
+			if "first_offer_cards" in dream_state:
+				dream_state.first_offer_cards = 2
+		"wider_dreams":  # Let it pass gives no Dew
+			dream_state.skip_dew = 0
+		# clear_sight: one extra ridge, in the map generator (perk_extra_ridges)
+	return 0
 
 func _card(id: String) -> UpgradeData:
 	for card in dream_state.pool:

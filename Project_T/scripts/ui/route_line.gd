@@ -6,7 +6,7 @@ class_name RouteLine
 # The setting is cached (previews restyle often); SettingsPanel calls reload() when it changes.
 # Route mist (screens_ui.md "Route mist", 2026-10-01): normally the preview is a ribbon of cold mist (MIST_TEXTURE
 # tiled along the line, start / end caps) flowing toward the Heartwood (still under reduced motion); draw_route also
-# shows the old route as a faint wisp where it differs, and glints once along a stretch that lengthens the route.
+# shows the old route as a faint wisp where it differs.
 
 const SETTING := "high_contrast_route"
 const CONTRAST_COLOR := Color(1.0, 0.92, 0.2)  # Accessibility (high-contrast route): may stay off-palette
@@ -18,7 +18,6 @@ const MIST_END := "res://assets/environment/dream/route_mist_end.png"
 const FLOW_CELLS := 0.5  # Cells a second the mist drifts toward the Heartwood
 const OLD_WIDTH := 14.0  # The old route's wisp
 const OLD_ALPHA := 0.35
-const GLINT_TIME := 0.7  # Seconds the added stretch glints
 
 static var _high := -1  # -1 = not read yet, 0 / 1
 
@@ -41,8 +40,8 @@ static func has_mist() -> bool:
 	return ResourceLoader.exists(MIST_TEXTURE)
 
 # Shows `cells` (the route, start to Heartwood) on `line`: mist normally, the high-contrast line with that setting,
-# else `normal_color`. `old_cells` (the route now) adds the faint old wisp where it differs, and a glint once along the
-# new stretch when the route gets longer. Children of `line`, so they show and hide with it.
+# else `normal_color`. `old_cells` (the route now) adds the faint old wisp where it differs. Children of `line`, so they
+# show and hide with it.
 static func draw_route(line: Line2D, cells: PackedVector2Array, normal_color: Color, normal_width: float = 6.0,
 		old_cells: PackedVector2Array = PackedVector2Array()) -> void:
 	line.clear_points()
@@ -57,7 +56,7 @@ static func draw_route(line: Line2D, cells: PackedVector2Array, normal_color: Co
 		line.begin_cap_mode = Line2D.LINE_CAP_ROUND
 		line.end_cap_mode = Line2D.LINE_CAP_ROUND
 		return
-	_mist_style(line, 1.0)
+	style_mist(line, 1.0)
 	line.begin_cap_mode = Line2D.LINE_CAP_NONE  # The cap sprites end it
 	line.end_cap_mode = Line2D.LINE_CAP_NONE
 	var extras := _extras(line)
@@ -72,40 +71,14 @@ static func draw_route(line: Line2D, cells: PackedVector2Array, normal_color: Co
 	var on_new := {}
 	for cell in cells:
 		on_new[cell] = true
-	var on_old := {}
-	for cell in old_cells:
-		on_old[cell] = true
 	for run in _runs(old_cells, on_new):
 		var wisp := Line2D.new()
 		for cell in run:
 			wisp.add_point(MAP_GRID.calculate_map_position(cell))
-		_mist_style(wisp, OLD_ALPHA)
+		style_mist(wisp, OLD_ALPHA)
 		wisp.width = OLD_WIDTH
 		old_box.add_child(wisp)
-	# A longer route: the new stretch glints once (once per route shown).
-	var glint_box := extras.get_node("Glint")
-	var key := hash(cells)
-	if old_cells.is_empty() or cells.size() <= old_cells.size() or int(glint_box.get_meta(&"key", 0)) == key:
-		if int(glint_box.get_meta(&"key", 0)) != key:
-			for child in glint_box.get_children():
-				child.queue_free()
-		return
-	glint_box.set_meta(&"key", key)
-	for child in glint_box.get_children():
-		child.queue_free()
-	for run in _runs(cells, on_old):
-		var glint := Line2D.new()
-		for cell in run:
-			glint.add_point(MAP_GRID.calculate_map_position(cell))
-		_mist_style(glint, 1.0)
-		var shine := CanvasItemMaterial.new()
-		shine.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-		glint.material = shine
-		glint.modulate = Color(Palette.MOONLIGHT, 0.0)
-		glint_box.add_child(glint)
-		var tween := glint.create_tween()
-		tween.tween_property(glint, "modulate:a", 0.9, GLINT_TIME * 0.35)
-		tween.tween_property(glint, "modulate:a", 0.0, GLINT_TIME * 0.65)
+	# No glint on a longer route (user: "don't highlight when you increase the tiles"; the "+N path" tag says it).
 
 # No route shown (the caps and wisps go too).
 static func clear(line: Line2D) -> void:
@@ -132,25 +105,32 @@ static func _runs(cells: PackedVector2Array, skip: Dictionary) -> Array:
 		runs.append(current)
 	return runs.filter(func(run: Array) -> bool: return run.size() >= 2)
 
-static func _mist_style(line: Line2D, alpha: float) -> void:
+# The mist look on any Line2D (the previews here, and the run-start route: StartArrows): one shader, flowing in whole
+# texels on the shared TIME clock, so two ribbons never shimmer against each other; sharp joints (grid corners are
+# 90°: round joints overlapped and doubled the alpha there).
+static func style_mist(line: Line2D, alpha: float = 1.0) -> void:
 	var texture: Texture2D = load(MIST_TEXTURE)
 	line.texture = texture
 	line.texture_mode = Line2D.LINE_TEXTURE_TILE
 	line.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	line.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED  # TILE runs the UVs past 1: without it the strip clamps to a thin line
 	line.width = float(texture.get_height())
 	line.default_color = Color(1, 1, 1, alpha)  # multiplier: the art carries the colour
-	line.joint_mode = Line2D.LINE_JOINT_ROUND
+	line.joint_mode = Line2D.LINE_JOINT_SHARP
+	line.sharp_limit = 4.0
 	var material := line.material as ShaderMaterial
 	if material == null or not material.has_meta(&"route_mist"):  # Made once per line (never a static: exit crash)
 		material = ShaderMaterial.new()
-		material.shader = _flow_shader()
+		material.shader = flow_shader()
 		material.set_meta(&"route_mist", true)
 	var still := bool(Fx.setting("reduced_motion", false))
 	# Tile = the strip's width at this line width: FLOW_CELLS cells a second in tiles.
 	material.set_shader_parameter(&"speed", 0.0 if still else FLOW_CELLS * MAP_GRID.cell_size.x / float(texture.get_width()))
+	# Steps of 2 texels: the strip's edges are a checker dither, and a 1-texel step flipped it every step (still a flicker).
+	material.set_shader_parameter(&"texels", float(texture.get_width()) / 2.0)
 	line.material = material
 
-# The cap sprites and the old / glint lines, made once under `line`.
+# The cap sprites and the old route lines, made once under `line`.
 static func _extras(line: Line2D) -> Node2D:
 	var extras := line.get_node_or_null("MistExtras") as Node2D
 	if extras != null:
@@ -169,10 +149,6 @@ static func _extras(line: Line2D) -> Node2D:
 		if ResourceLoader.exists(cap[1]):
 			sprite.texture = load(cap[1])
 		extras.add_child(sprite)
-	var glint_box := Node2D.new()
-	glint_box.name = "Glint"
-	glint_box.z_index = 1
-	extras.add_child(glint_box)
 	return extras
 
 # A cap beside the line's end at `at` (the next point inward is `inner`): the start cap's right edge and the end cap's
@@ -186,7 +162,9 @@ static func _place_cap(sprite: Sprite2D, at: Vector2, inner: Vector2) -> void:
 	sprite.position = at + outward * sprite.texture.get_width() * 0.5
 	sprite.modulate = Color.WHITE  # multiplier
 
-static func _flow_shader() -> Shader:
+static func flow_shader() -> Shader:
 	var shader := Shader.new()
-	shader.code = "shader_type canvas_item;\nuniform float speed = 0.0;\nvoid fragment() {\n\tCOLOR = texture(TEXTURE, vec2(UV.x - TIME * speed, UV.y)) * COLOR;\n}\n"
+	# `speed` in tiles a second; the offset moves in whole texels (`texels` = the strip's width) and wraps every tile:
+	# a sub-texel scroll on the nearest-filtered art flickered (user, run start).
+	shader.code = "shader_type canvas_item;\nuniform float speed = 0.0;\nuniform float texels = 64.0;\nvoid fragment() {\n\tfloat shift = floor(mod(TIME * speed * texels, texels)) / texels;\n\tCOLOR = texture(TEXTURE, vec2(UV.x-shift, UV.y)) * COLOR;\n}\n"
 	return shader

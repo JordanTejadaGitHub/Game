@@ -147,6 +147,19 @@ func _ready() -> void:
 	TapTip.attach(leaves_label, IconInfo.resource_tooltip(&"leaves"))
 	TapTip.attach(%PathLabel, IconInfo.resource_tooltip(&"path"))
 	dream_state.card_taken.connect(func(card: UpgradeData) -> void: show_toast("Dreamed: %s" % card.display_name))
+	# Feeling the cards (dream_design.md): a pick from an offer blooms on the Wardens it affects, and the toast says
+	# what it does on the board ("Cozy Corners · 6 Wardens +30%"), right after the "Dreamed" one.
+	owner.add_child.call_deferred(CardBloom.new())
+	# Grow onboarding (onboarding.md): ↑ / dot marks at rests, the first-grow spotlight, the drift 15 reminder (world).
+	owner.add_child.call_deferred(GrowHints.new(drift_director))
+	# Heartwood's Gifts (heartwood_gifts.md, Spire): the act-break gift and its screen.
+	var gifts := HeartwoodGifts.new(drift_director)
+	add_child(gifts)
+	add_child(GiftScreen.new(drift_director, gifts))
+	if dream_state.has_signal("card_chosen"):
+		dream_state.connect("card_chosen", func(_card: UpgradeData, _towers: Array, impact: String) -> void:
+			if impact.contains(" · "):  # A card with no effect yet sends just its name: "Dreamed: X" stays
+				show_impact_toast(impact))
 	drift_director.rest_started.connect(_on_rest_started)
 	# Path length ("Wardens are walls: make their walk longer").
 	var map_generator = %MapGenerator
@@ -552,9 +565,34 @@ func _style_resources() -> void:
 	toast_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
 
 # Shows a message at the top of the screen for a few seconds.
+var impact_label: Label  # The card toast's own label (UiStyle.impact_toast), in the toast's place
+var _impact_tween: Tween
+
+# "Cozy Corners · 6 Wardens +30%" after a Dream is taken (dream_design.md "Feeling the cards"), in UI Code's
+# impact face, replacing the plain "Dreamed" toast.
+func show_impact_toast(text: String) -> void:
+	if impact_label == null:
+		impact_label = toast_label.duplicate() as Label
+		impact_label.name = "ImpactToast"
+		UiStyle.impact_toast(impact_label)
+		toast_label.add_sibling(impact_label)
+	if _toast_tween:
+		_toast_tween.kill()
+	toast_label.modulate.a = 0.0
+	if _impact_tween:
+		_impact_tween.kill()
+	impact_label.text = text
+	impact_label.modulate.a = 1.0
+	_impact_tween = create_tween()
+	_impact_tween.tween_interval(TOAST_TIME)
+	_impact_tween.tween_property(impact_label, "modulate:a", 0.0, 0.6)
+
 func show_toast(text: String) -> void:
 	if _toast_tween:
 		_toast_tween.kill()
+	if impact_label != null and _impact_tween:  # A newer message takes the place
+		_impact_tween.kill()
+		impact_label.modulate.a = 0.0
 	toast_label.text = text
 	toast_label.modulate.a = 1.0
 	_toast_tween = create_tween()

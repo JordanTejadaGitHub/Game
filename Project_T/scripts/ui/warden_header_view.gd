@@ -20,7 +20,11 @@ var desc: RichTextLabel  # What it does, with its status words as links (StatusL
 var stats := VBoxContainer.new()  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var growth := VBoxContainer.new()  # "Grows into" (the hover card and Codex; the panel has its Grow buttons)
 
-const LOCKED_FORM_TIP := "Unlock it on the Remember screen."  # A form not unlocked this run (no stats, no preview)
+const LOCKED_FORM_TIP := "Unlock it with Dreamlight, then grow it with Dew."  # A form not unlocked this run (no stats, no preview)
+
+# A form's unlock blocker as the line shows it: "in the Memory Grove", "needs Stormcap", "from drift 51".
+static func blocker_text(blocker: String) -> String:
+	return "in the Memory Grove" if blocker == "Memory Grove" else blocker
 
 var _tower: Tower = null  # The planted Warden shown, or a probe carrying this run's bonuses (never in the tree)
 var _probe: Tower = null
@@ -154,17 +158,25 @@ func _fill_growth(data: TowerData, dreams: DreamState) -> void:
 				tip = TowerPlacer.describe_growth(_tower, next, dreams) + "\n\n" + tip
 		elif dreams.has_method("get_unlock_cost"):
 			var blocker: String = dreams.get_unlock_blocker(next) if dreams.has_method("get_unlock_blocker") else ""
-			var shown := RememberScreen.UNKNOWN_NAME if blocker == "Memory Grove" else next.display_name
-			line.text = "%s · %s" % [shown, blocker if blocker != "" else "unlock with %d Dreamlight" % dreams.get_unlock_cost(next)]
-			line.add_theme_color_override("font_color", UiStyle.INK_DIM)
-			if blocker == "Memory Grove":
+			if blocker == "Memory Grove":  # Can't be unlocked in a run: no name, no Unlock wording
+				line.text = "%s · %s" % [RememberScreen.UNKNOWN_NAME, blocker_text(blocker)]
 				tip = RememberScreen.UNKNOWN_NAME
+			else:
+				line.text = "Unlock %s · %s" % [next.display_name, blocker_text(blocker) if blocker != "" else ("%d Dreamlight" % dreams.get_unlock_price(next)) if dreams.get_unlock_price(next) > 0 else "free"]
+			line.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		else:
 			line.text = "%s · needs a Dream" % next.display_name
 			line.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		TapTip.attach(line, tip)  # Hover or tap
 		_grow_preview_on(line, next, option[1])
 		growth.add_child(line)
+	var hidden := Tower.not_in_dream(dreams, data)  # Branch expansion: called back on Remember, not listed
+	if not hidden.is_empty():
+		var more := Label.new()
+		more.text = "%d more not in this dream" % hidden.size()
+		more.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		TapTip.attach(more, "%s: call one back on Remember." % ", ".join(hidden.map(func(form: TowerData) -> String: return form.display_name)))
+		growth.add_child(more)
 
 # A planted Warden's "Grows into" line, pointed at: the map preview (ring + ghost) of an unlocked form, as the
 # panel's Grow buttons do. The hover card for the bar's unplanted Wardens has no Warden to preview on.
@@ -285,8 +297,8 @@ func stat_tip(stat: StringName) -> String:
 		&"attack_speed":
 			meaning = "Attack speed: %.2f attacks a second" % _tower.get_attacks_per_second()
 		&"range":
-			meaning = ("Range: %.1f–%.1f tiles" % [attack.min_range, _tower.get_range_cells()]) if attack.min_range > 0.0 \
-				else "Range: %.1f tiles" % _tower.get_range_cells()
+			meaning = ("Range: %.1f–%.1f cells" % [attack.min_range, _tower.get_range_cells()]) if attack.min_range > 0.0 \
+				else "Range: %.1f cells" % _tower.get_range_cells()
 		&"crit_chance":
 			meaning = "Crit chance: %d%% of its hits are critical" % roundi(_tower.get_crit_chance() * 100)
 		&"crit_damage":

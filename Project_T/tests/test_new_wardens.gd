@@ -72,8 +72,8 @@ func _test_data(dream_state: DreamState) -> void:
 		if data == null:
 			continue
 		var frame: Vector2 = data.get_frame_rect(0).size if data.texture != null else Vector2.ZERO
-		_check(frame == Vector2(64, 64) or (frame == Vector2(64, 96) and data.sprite_offset == Vector2(0, -16)),
-			"%s has a 64x64 idle sheet, or a tall 64x96 one lifted onto its cell (%s)" % [id, frame])
+		_check(frame.x == 64.0 and frame.y in [64.0, 80.0, 96.0] and data.get_sprite_offset() == Vector2(0, -(frame.y - 64.0) / 2.0),
+			"%s has a 64 wide idle sheet (64/80/96 tall) lifted onto its cell (%s, %s)" % [id, frame, data.get_sprite_offset()])
 		_check(data.attack_kind == TowerData.AttackKind.AURA or data.attack_texture != null, "%s has an attack sheet" % id)
 		_check(reachable.has(id) != data.parked, "%s can be reached (planted or grown into), unless parked (Memory Wardens, cut for now)" % id)
 		if not data.is_unique:
@@ -139,6 +139,9 @@ func _test_frost() -> void:
 	var tower := _plant(frost, Vector2(3, 3))
 	var dry := _spawn_at(tower.global_position + Vector2(CELL, 0))
 	var damp := _spawn_at(tower.global_position + Vector2(0, CELL))
+	for enemy in [dry, damp]:  # Frostfern's hits (72 since 2ef6d56f) would dispel a Shade before the freeze wears off
+		enemy.max_health = 100000
+		enemy.health = 100000
 	damp.apply_status(EnemyStatuses.DAMP)
 	await process_frame
 	tower.hit(dry)

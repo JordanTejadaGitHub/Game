@@ -1,7 +1,8 @@
 extends SceneTree
 
 # Route mist (screens_ui.md "Route mist"): the route previews draw the mist strip with caps, the old route faint where
-# it differs, a glint once when the route gets longer; the high-contrast setting keeps its line; clear() hides it all.
+# it differs, no glint on a longer route (user); sharp joints and a whole-texel flow (no flicker); the
+# high-contrast setting keeps its line; clear() hides it all.
 
 var failures := 0
 
@@ -41,16 +42,16 @@ func _run() -> void:
 	_check(extras.get_node("Old").get_child_count() == 1, "the old route shows where it differs (one stretch)")
 	var old_wisp: Line2D = extras.get_node("Old").get_child(0)
 	_check(old_wisp.points.size() == 3 and old_wisp.default_color.a < 0.5, "faint, joined to the shared cells (%d points)" % old_wisp.points.size())
-	_check(extras.get_node("Glint").get_child_count() == 1, "a longer route glints along its new stretch")
+	_check(extras.get_node_or_null("Glint") == null and line.joint_mode == Line2D.LINE_JOINT_SHARP, "no glint on a longer route (user); sharp joints on the grid corners")
 	var material := line.material as ShaderMaterial
 	_check(material != null and float(material.get_shader_parameter(&"speed")) > 0.0, "the mist flows toward the Heartwood")
 	RouteLine.draw_route(line, longer, Color.WHITE, 6.0, old)
 	await process_frame
-	_check(extras.get_node("Glint").get_child_count() == 1 and line.material == material, "…once (the same route again doesn't re-glint; the material is kept)")
+	_check(line.material == material and is_equal_approx(float(material.get_shader_parameter(&"texels")), line.texture.get_width() / 2.0) and line.texture_repeat == CanvasItem.TEXTURE_REPEAT_ENABLED, "the material is kept; the flow steps 2 texels at a time; the strip repeats")
 	RouteLine.draw_route(line, old, Color.WHITE, 6.0, old)
 	await process_frame
-	_check(extras.get_node("Old").get_child_count() == 0 and extras.get_node("Glint").get_child_count() == 0,
-		"an unchanged route: no old wisp, no glint")
+	_check(extras.get_node("Old").get_child_count() == 0,
+		"an unchanged route: no old wisp")
 
 	RouteLine.clear(line)
 	_check(line.points.is_empty() and not extras.visible, "clear() hides the caps and wisps too")

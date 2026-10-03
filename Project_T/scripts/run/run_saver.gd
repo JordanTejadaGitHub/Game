@@ -10,7 +10,7 @@ class_name RunSaver
 # counters, drift progress, Dreams and Omens (their own to_save()/load_save()).
 
 const PATH := "user://run.json"
-const VERSION := 9  # 2: map 23x18; 3: ridges taper; 4: fewer obstacles; 5: one bend; 6: layouts; 7: features near the route; 8: organic ponds; 9: inland Heartwood (same seed, different map)
+const VERSION := 11  # 2: map 23x18; 3: ridges taper; 4: fewer obstacles; 5: one bend; 6: layouts; 7: features near the route; 8: organic ponds; 9: inland Heartwood (same seed, different map); 10: the log is one obstacle; 11: the Spire merge (gifts, branch offers, finales in the save)
 
 # Where the save lives (tests point this elsewhere so they never touch the player's run).
 static var file_path := PATH
@@ -65,6 +65,7 @@ func _ready() -> void:
 	get_tree().auto_accept_quit = false
 	# Never in tests, and never in Test Grove (a dev playtest would overwrite the real saved run).
 	autosave = get_tree().current_scene == owner and not TestGrove.is_active()
+	MetaRun.resumed_extra_ridges = -1  # A new run reads Clear Sight from the loadout; a resumed one from its save
 	# Runs before MapGenerator (earlier sibling), so the map is rebuilt from the saved seed.
 	if resume_next:
 		resume_next = false
@@ -72,6 +73,7 @@ func _ready() -> void:
 		if not _saved_data.is_empty():
 			map_generator.map_seed = int(_saved_data.map_seed)
 			MetaRun.blight_level = int(_saved_data.get("blight_level", 0))  # Before MetaRun applies it
+			MetaRun.resumed_extra_ridges = int(_saved_data.get("extra_ridges", -1))  # Sidegrade Clear Sight: the same map
 			drift_director.preset_bosses = _saved_data.get("bosses", [])  # Before the (deferred) boss draw
 	drift_director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _perfect: bool) -> void: _dirty = true)
 	drift_director.family_pick_requested.connect(func(_reason: StringName) -> void: _dirty = true)
@@ -95,6 +97,9 @@ func can_save_now() -> bool:
 	if family_screen.visible or dream_state.is_offering() or dream_state.has_pending_offer():
 		return false
 	var omens := get_tree().get_first_node_in_group(&"omens")
+	var gifts := HeartwoodGifts.find(self)
+	if gifts != null and gifts.is_offering():
+		return false  # The gift first (Spire)
 	if omens != null and (omens.is_offering() or omens.get("_offer_waiting")):
 		return false
 	return true
@@ -117,6 +122,7 @@ func save_now() -> bool:
 		"version": VERSION,
 		"map_seed": map_generator.map_seed,
 		"blight_level": MetaRun.blight_level,
+		"extra_ridges": MetaRun.run_extra_ridges,  # Sidegrade Clear Sight's ridge, so a resume rebuilds the same map
 		"tended": run_state.tended_cells.map(func(c: Vector2) -> Array: return [c.x, c.y]),
 		"towers": towers,
 		"dew": run_state.dew,
@@ -127,6 +133,7 @@ func save_now() -> bool:
 		"free_clears": run_state.free_clears,
 		"sprout_charges": run_state.sprout_charges,  # Seedling Gift, Sprout Bed
 		"free_nurtures": run_state.free_nurtures,  # First Care
+		"gifts": HeartwoodGifts.find(self).to_save() if HeartwoodGifts.find(self) != null else {},  # Heartwood's Gifts (Spire)
 		"dew_harvested": run_state.dew_harvested,  # The Harvest + interest (Golden Harvest)
 		"fertile_cells": run_state.fertile_cells.keys().map(func(c: Vector2) -> Array: return [c.x, c.y]),
 		"creatures_cleansed": run_state.creatures_cleansed,
@@ -177,6 +184,12 @@ func _restore(data: Dictionary) -> void:
 	# The forest as it was: tended obstacles gone, Wardens back in place.
 	for cell in data.tended:
 		map_generator._remove_obstacle(Vector2(cell[0], cell[1]))
+	var gifts := HeartwoodGifts.find(self)  # Heartwood's Gifts (Spire): their terrain back before the Wardens
+	if gifts != null and data.has("gifts"):
+		# The tended cells first: restoring terrain gifts skip what the player tended after them (Environment Code;
+		# set again below, after anything a restoring effect appended).
+		run_state.tended_cells.assign(data.tended.map(func(c: Array) -> Vector2: return Vector2(c[0], c[1])))
+		gifts.load_save(data.gifts)
 	for saved in data.towers:
 		var tower: Tower = tower_placer.tower_scene.instantiate()
 		tower.tower_data = load(saved.data)

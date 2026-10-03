@@ -8,6 +8,7 @@
 
 [resource]
 script = ExtResource("1_tdata")
+counter_tags = Array[StringName]([&"anti_armour"])
 display_name = "Mossback"
 description = "One huge, slow hit at short range; double damage against Exposed nightmares."
 cost = 0
@@ -18,7 +19,7 @@ tier = 2
 buildable_directly = false
 evolve_cost = 120
 attack_range = 1.75
-damage = 248
+damage = 372
 attacks_per_second = 0.4
 projectile_speed = 350
 projectile_texture = ExtResource("3_proj")
