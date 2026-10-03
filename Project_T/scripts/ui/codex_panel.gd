@@ -1024,7 +1024,9 @@ func _branch_list(root: TowerData) -> Control:
 		if form is TowerData and form.tier == 2 and not form.parked and DreamState.in_this_edition(form):
 			(hidden if is_hidden_branch(form) else regular).append(form)
 	var head := Label.new()
-	head.text = "Branches" + (" · %d offered each run" % DreamState.BRANCH_OFFER_SIZE if regular.size() > DreamState.BRANCH_OFFER_SIZE else "")
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+	var offered: int = dreams.branch_offer_size(root) if dreams != null else DreamState.BRANCH_OFFER_SIZE  # Wider Roots: 3 in a run
+	head.text = "Branches" + (" · %d offered each run" % offered if regular.size() > offered else "")
 	UiStyle.caps(head, 14, UiStyle.WHISPER)
 	box.add_child(head)
 	for branch in regular + hidden:

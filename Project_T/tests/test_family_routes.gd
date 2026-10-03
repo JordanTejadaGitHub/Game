@@ -51,13 +51,13 @@ func _run() -> void:
 	for data: TowerData in shown:
 		var regular := dreams.regular_branches(data).size()
 		var lanes: Array = shown[data]
-		_check(lanes.size() == mini(regular, DreamState.BRANCH_OFFER_SIZE), "%s: this run's %d branches, not all %d (%s)" % [data.display_name, lanes.size(), regular, lanes])
+		_check(lanes.size() == mini(regular, dreams.branch_offer_size(data)), "%s: this run's %d branches, not all %d (%s)" % [data.display_name, lanes.size(), regular, lanes])
 		var card: Node = null
 		for c in family._cards.get_children():
 			if not c.find_children("Route_" + String(lanes[0]), "", true, false).is_empty():
 				card = c
 		var missing: Node = card.find_child("NotInDream", true, false) if card != null else null
-		_check(regular <= DreamState.BRANCH_OFFER_SIZE or (missing != null and missing.get_child_count() == regular - lanes.size() + 1),
+		_check(regular <= dreams.branch_offer_size(data) or (missing != null and missing.get_child_count() == regular - lanes.size() + 1),
 			"%s: the other %d as 'not in this dream' silhouettes" % [data.display_name, regular - lanes.size()])
 		for lane in card.find_children("Route_*", "", true, false):
 			var branch: TowerData = lane.get_meta(&"branch")
