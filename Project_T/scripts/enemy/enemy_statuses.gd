@@ -113,6 +113,11 @@ var bolt_source: Node = null
 var every_hits := {}  # Warden instance id -> hits on this nightmare (TowerData.status_every counts per nightmare)
 var veil_time := 0.0  # Morning Fog's Veil (FinalTwists): while > 0 it can't be healed (Enemy.heal reads it)
 var silence_time := 0.0  # Hushbell (BranchKit.silence): while > 0 it uses no abilities (Enemy._update_presence reads it)
+# Silence as a status badge (Main 2421cbd6): SILENCED is its id (not in _active); silence_full is the
+# longest it was set to this silence (for the time bar), and starting or ending it bumps `changes`.
+const SILENCED := &"silenced"
+var silence_full := 0.0
+var _silence_last := 0.0
 var marked_extra := 0.0  # Beacon: its Marked is stronger (+35% instead of +25%) until Marked ends
 var marked_bonus := 0.0  # Bright Marks (Dream): added to either (the nightmare sets it each frame)
 # Hunter's Moon / Eternal Charge (Legendary rules): Marked / Static on this nightmare never run out.
@@ -245,6 +250,8 @@ func soaked_bonus(base: float) -> float:
 	return minf(base * strength(DAMP), maxf(SOAKED_CAP, base))
 
 func get_max_stacks(id: StringName, override: int = 0) -> int:
+	if not DEFAULT_MAX_STACKS.has(id) and override <= 0:
+		return 1  # Silenced (and any other timer shown as a badge): no stacks
 	var cap: int = override if override > 0 else DEFAULT_MAX_STACKS[id]
 	if is_boss and BOSS_MAX_STACKS.has(id):
 		cap = BOSS_MAX_STACKS[id] if id == DROWSY else maxi(cap, BOSS_MAX_STACKS[id])
@@ -271,10 +278,14 @@ func potency(id: StringName) -> float:
 	return _active[id].potency if _active.has(id) else 0.0
 
 func time_left(id: StringName) -> float:
+	if id == SILENCED:
+		return silence_time
 	return _active[id].time if _active.has(id) else 0.0
 
 # Share of its timer left, 1 → 0 (the status badge's draining rim arc).
 func time_share(id: StringName) -> float:
+	if id == SILENCED:
+		return clampf(silence_time / maxf(silence_full, 0.001), 0.0, 1.0)
 	if not _active.has(id):
 		return 0.0
 	var status: Dictionary = _active[id]
@@ -393,8 +404,15 @@ func tick(delta: float) -> float:
 		sleep_locked_time = maxf(sleep_locked_time - delta, 0.0)
 	if slow_time > 0.0:
 		slow_time = maxf(slow_time - delta, 0.0)
+	if silence_time > _silence_last + 0.0001:  # Silenced (again): BranchKit sets silence_time directly
+		silence_full = silence_time
+		if _silence_last <= 0.0:
+			changes += 1  # A badge appears
 	if silence_time > 0.0:
 		silence_time = maxf(silence_time - delta, 0.0)
+		if silence_time <= 0.0:
+			changes += 1  # Its badge goes
+	_silence_last = silence_time
 	if veil_time > 0.0:
 		veil_time = maxf(veil_time - delta, 0.0)
 	if sleep_cooldown > 0.0:
