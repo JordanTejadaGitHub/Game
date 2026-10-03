@@ -363,4 +363,4 @@ full game (`game/demo` false), and the demo reads main's exports.
   source), Earthshaker 1.03 / 0.89, Edgestone 0.98 / 0.87, Crown of Thorns 0.88 / 0.65 (0.94 beside a
   Rooted source: accepted as a payoff). Whetstone 0.72 → **320**. Flyer board (drift 43, flyers only):
   Groundroot / Earthbind leak more than their references → **Groundroot 3 flyers every 3 s, pulse 35;
-  Earthbind 5 every 2 s, pulse 90**. **Thorncoil becomes a carry** (Rootling's 4th).
+  Earthbind 5 every 2 s, pulse 90** (in d20a2ff7). **Thorncoil becomes a carry** (Rootling's 4th).
