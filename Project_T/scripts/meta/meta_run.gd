@@ -260,6 +260,8 @@ func _apply_grove(memory: Dictionary) -> void:
 		nurtures += unlock.free_nurtures * level
 		if unlock.early_bloom:
 			family_screen.offer_all_first = true
+		if unlock.wider_roots and "wider_roots" in dream_state:  # The first-picked family offers 3 (DreamState's draw)
+			dream_state.wider_roots = true
 		if sidegrade_active():
 			dew += _apply_sidegrade(unlock.id, level)
 	if dew >= 0:
