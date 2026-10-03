@@ -573,6 +573,7 @@ family can promise an answer to everything. Two layers keep runs fair:
 - **2 of the 5 regular branches** per family, drawn by the smart draw above at the family pick,
   from the map seed (a resume gets the same), **never the same 2 as that family's last run**
   (profile `last_branch_offer`).
+- **Every offered pair has a carry** (added 2026-10-02, Balancing Discussion: fresh act 1 boss survival was 40% vs 60% without the expansion, because a pair of two enablers such as Bloomcap + Prism Jar left a one-family act 1 with nothing that deals damage). At least one of the 2 is a **damage branch** (a hard rule, not a weight; the hidden branch doesn't count toward it). Balancing Discussion keeps the list of damage branches (own damage about 0.6× Driftspore or more); supports, enablers, control and economy branches pair with one. A rule about the offer, not a difficulty change.
 - **The hidden branch doesn't count:** if the Grove has planted it, it's always offered as a 3rd
   lane. It's earned meta progress.
 - **The 3 not offered** show as **"not in this dream"**: faint misty silhouettes with no cost,
