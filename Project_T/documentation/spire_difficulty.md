@@ -348,3 +348,5 @@ full game (`game/demo` false), and the demo reads main's exports.
   damage); Fault Line / Bramble Bed / Nursery second traits at the stated shares × stage. Dream Oak's
   4-Dreamlight cap needs a per-source shard count (Roguelite Code); until then the shared cap of 2 applies.
   Probe queued after the act 1 A/B.
+- 2026-10-02: Dream Oak's own cap in **7ee88bf2** (Roguelite Code: `add_source_shards`, 4 Dreamlight per run,
+  separate from Great Dreamcatcher's shared cap of 2).
