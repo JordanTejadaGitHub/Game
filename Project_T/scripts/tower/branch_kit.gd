@@ -580,9 +580,19 @@ static func _thrum(tower: Tower) -> void:
 const SIDES: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
 
 # Phase 2's effects play once Tower Assets' art is in effects.json (until then, silently nothing).
-static func _fx(effect: StringName, at: Vector2, parent: Node, scale: float = 1.0) -> void:
+static func _fx(effect: StringName, at: Vector2, parent: Node, scale: float = 1.0, seconds: float = 0.0) -> void:
 	if parent != null and not Fx.info(effect).is_empty():
-		Fx.play(effect, at, parent, scale)
+		Fx.play(effect, at, parent, scale, true, seconds)
+
+# A segment effect from `from` to `to` (Edgestone's spill, Crown's thorns), or a plain flash before its art.
+static func _fx_segment(effect: StringName, from: Vector2, to: Vector2, parent: Node, colour: Color) -> void:
+	if parent == null:
+		return
+	if not Fx.info(effect).is_empty():
+		Fx.segment(effect, from, to, parent, 0.3)
+	else:
+		parent.add_child(LineFlash.new(from, to, colour, 0.25))
+
 const CRACK_TIME := 3.0  # Earthshaker's cracked path, and Fault Line's (× its share)
 
 # Tower.hit: Whetstone's hits on a worn-down nightmare land harder.
@@ -607,7 +617,7 @@ static func on_finish(tower: Tower, enemy: Node2D, overkill: float) -> void:
 			best_distance = distance
 	if best == null:
 		return
-	world(tower).add_child(LineFlash.new(enemy.global_position, best.global_position, Palette.MOONLIGHT, 0.25))
+	_fx_segment(&"clean_spill", enemy.global_position, best.global_position, world(tower), Palette.MOONLIGHT)
 	_fx(&"clean_cut", best.global_position, world(tower))
 	best.take_damage(overkill * p(tower, "spill", 1.0), tower.tower_data.line, false, false, tower, &"clean_cut")
 
@@ -635,6 +645,27 @@ static func is_stone(wall: Node) -> bool:
 		if other.attack_data != null and other.attack_data.special == RAMPART and SIDES.has(other.cell - wall.cell):
 			return true
 	return false
+
+const STONE_WALL_PATH := "res://assets/towers/thornwall_stone.png"  # Same layout as thornwall.png (Tower Assets)
+
+# Tower._show_idle, for a Thornwall gone to stone: the stone sheet.
+static func idle_texture(tower: Tower) -> Texture2D:
+	if tower.get_meta(&"stone", false) and ResourceLoader.exists(STONE_WALL_PATH):
+		return load(STONE_WALL_PATH)
+	return tower.tower_data.texture
+
+# Tower._refresh_neighbours: a Thornwall turning to stone (a Rampart beside it) or back swaps its sheet, with the
+# stone veil rising as it hardens.
+static func refresh_stone(tower: Tower) -> void:
+	if tower.tower_data.get_id() != "thornwall":
+		return
+	var stone := is_stone(tower)
+	if stone == bool(tower.get_meta(&"stone", false)):
+		return
+	tower.set_meta(&"stone", stone)
+	if stone and tower.is_inside_tree():
+		_fx(&"stone_up", tower.global_position, world(tower))
+	tower._show_idle()
 
 static func is_stone_cell(near: Node, cell: Vector2) -> bool:
 	for t in near.get_tree().get_nodes_in_group(Tower.GROUP):
@@ -748,7 +779,7 @@ static func ground(tower: Tower, e: Node2D) -> void:
 	if not e.has_method("ground"):
 		return  # Enemy's side not in yet
 	e.ground(p(tower, "ground_time", 3.0))
-	_fx(&"root_grab", e.global_position, world(tower))
+	_fx(&"flyer_grab", e.global_position, world(tower))
 	if is_final(tower):
 		_land_hold(tower, e, p(tower, "land_hold", 0.5))  # Earthbind: Rooted when it lands
 	var thorns := tower.kin_share(BRAMBLE_BED, "a")
@@ -833,6 +864,8 @@ static func _update_thorns(tower: Tower, delta: float) -> void:
 		if e.statuses.is_held():
 			held.append(e)
 			_thorn(tower, e, amount)
+			if _fx_due(e, &"thorn_fx_at", 1.0):
+				_fx(&"thorns", e.global_position, e, 1.0, 1.0)  # A loop on its feet while the thorns bite
 		elif flyers > 0.0 and e.is_flying():
 			_thorn(tower, e, amount * 0.5 * flyers)
 	if not is_final(tower) or held.is_empty():
@@ -844,7 +877,17 @@ static func _update_thorns(tower: Tower, delta: float) -> void:
 		for h in held:
 			if is_instance_valid(h) and e.global_position.distance_to(h.global_position) <= CELL * 1.2:
 				_thorn(tower, e, spread)
+				if _fx_due(e, &"thorn_spread_at", 0.75):
+					_fx_segment(&"thorn_spread", h.global_position, e.global_position, world(tower), Palette.BLOSSOM)
 				break
+
+# Throttle for a looping / repeated effect on one nightmare: true once per `every` seconds (meta `key`).
+static func _fx_due(e: Node, key: StringName, every: float) -> bool:
+	var now := Time.get_ticks_msec() / 1000.0
+	if e.has_meta(key) and now < float(e.get_meta(key)):
+		return false
+	e.set_meta(key, now + every)
+	return true
 
 # --- Phase 2: Acorn's three economies -------------------------------------------------------------------------------
 
@@ -1011,11 +1054,14 @@ class CrackField extends Node2D:
 			scene.add_child(found)
 		return found
 
+	var ages := {}  # Cell -> seconds since it cracked (the sheet forms up, then holds its last frame)
+	var _sheet: Texture2D  # path_crack (Tower Assets a4ef4015); on the instance, never static (exit crash)
+
 	func crack(cell: Vector2, seconds: float) -> void:
 		if seconds <= 0.0:
 			return
 		if not cells.has(cell):
-			BranchKit._fx(&"path_crack", Tower.MAP_GRID.calculate_map_position(cell), self)
+			ages[cell] = 0.0
 		cells[cell] = maxf(float(cells.get(cell, 0.0)), seconds)
 		queue_redraw()
 
@@ -1024,14 +1070,28 @@ class CrackField extends Node2D:
 			return
 		for cell in cells.keys():
 			cells[cell] -= delta
+			ages[cell] = float(ages.get(cell, 0.0)) + delta
 			if cells[cell] <= 0.0:
 				cells.erase(cell)
-				queue_redraw()
+				ages.erase(cell)
+		queue_redraw()  # Forming up and fading out
 
 	func _draw() -> void:
-		for cell in cells:  # Placeholder until path_crack: a few dark cracks across the tile
+		if _sheet == null:
+			_sheet = Fx.texture(&"path_crack")
+		var info := Fx.info(&"path_crack")
+		var frames := int(info.get("frames", 4))
+		var fps := float(info.get("fps", 12.0))
+		for cell in cells:
 			var at := Tower.MAP_GRID.calculate_map_position(cell)
-			var colour := Color(Palette.ROOT, 0.7)
+			var fade := clampf(float(cells[cell]) / 0.3, 0.0, 1.0)  # Fades over its last 0.3 s
+			if _sheet != null:
+				var frame := mini(int(float(ages.get(cell, 0.0)) * fps), frames - 1)
+				var size := Vector2(_sheet.get_width() / float(frames), _sheet.get_height())
+				draw_texture_rect_region(_sheet, Rect2(at - size / 2.0, size), Rect2(Vector2(size.x * frame, 0), size),
+					Color(1, 1, 1, fade))  # A fade (modulate), not a colour
+				continue
+			var colour := Color(Palette.ROOT, 0.7 * fade)  # No art: a few dark cracks across the tile
 			draw_polyline(PackedVector2Array([at + Vector2(-24, -6), at + Vector2(-6, 2), at + Vector2(4, -8), at + Vector2(22, 4)]), colour, 2.0)
 			draw_polyline(PackedVector2Array([at + Vector2(-6, 2), at + Vector2(-2, 18)]), colour, 2.0)
 

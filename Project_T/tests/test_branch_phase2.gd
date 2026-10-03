@@ -110,6 +110,9 @@ func _test_rampart() -> void:
 	var wall := _plant("thornwall", spot.wall)
 	_check(is_equal_approx(BranchKit.damage_multiplier(rampart), 1.15), "Rampart: +15%% for one wall (%.2f)" % BranchKit.damage_multiplier(rampart))
 	_check(BranchKit.is_stone(wall) and BranchKit.is_stone_cell(main, spot.wall), "the wall touching it is stone")
+	wall._refresh_neighbours()
+	_check(wall.sprite.texture != null and wall.sprite.texture.resource_path.ends_with("thornwall_stone.png"),
+		"a stone Thornwall shows the stone sheet")
 	var stag = _spawn(spot.path, "res://resource/enemy/old_stag.tres")
 	if stag != null:
 		spawner._on_trample_requested(stag)

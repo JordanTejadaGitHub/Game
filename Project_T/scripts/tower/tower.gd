@@ -1250,6 +1250,8 @@ func _refresh_neighbours() -> void:
 	_neighbour_timer = NEIGHBOUR_REFRESH * randf_range(0.75, 1.25)  # Staggered: ~200 Wardens never all look at once
 	if _is_underdog() != _underdog_drawn:
 		queue_redraw()  # DreamState picks the Underdogs at each rest
+	if tower_data.line == "wall":
+		BranchKit.refresh_stone(self)  # Rampart: a Thornwall touching it turns to stone
 	_aura_crit = 0.0
 	_aura_range = 0.0
 	_aura_damage = 0.0
@@ -1385,7 +1387,7 @@ func _advance_attack(delta: float) -> void:
 	sprite.frame = frame
 
 func _show_idle() -> void:
-	sprite.texture = tower_data.texture
+	sprite.texture = BranchKit.idle_texture(self) if has_meta(&"stone") else tower_data.texture  # A stone Thornwall
 	sprite.hframes = tower_data.frame_count
 	sprite.frame = int(_anim_time * tower_data.animation_fps) % tower_data.frame_count
 
