@@ -789,6 +789,11 @@ sparkler; Bellflower chime_stone, thrum; Pebbling cairn, standing_stone, whetsto
 Rootling rootcurl, tangleroot, rootlight; **Acorn exempt** (no carry branch). Built in a1b934d0 (`DreamState.CARRY_BRANCHES`); detection weight ×3 after coverage fell to 73% (agreed with Tower Discussion: 78%, Rootling top pair 34 → 36%); Thorncoil joins the carries if its re-probe lands in band. Act 1 numbers unchanged
 until the re-run.
 
+**Arm (a) with the carry rule** (a1b934d0): still **40%** (drift 20 finale 65% clean; 16/30 die before
+25). Bloomcap is still grown in 5 runs although every pair now has a carry, so the open question is the
+bot's choice between the two offered branches. An offered-branches column is being added; if the bot
+passes up a carry, the fix is the bot's policy, not the game.
+
 **4. Grove cap on main** (ed114826, before the branch raises; a bot gift-screen stall voided the first
 attempt): full loadout vs no perks, 20 seeds each, act 1 boss survival **40% vs 30% (+10 points)**, +2.5
 drifts: **within the ≤ +10–15 cap** ✓. Both arms suffer the branch-draw drop. **Combo share** (bot):
