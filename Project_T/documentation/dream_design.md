@@ -188,6 +188,11 @@ existing badges).
 - **After drift 1:** pick 1 of 3 base Wardens, drawn **at random from every family you've
   unlocked** (the starting 3 plus any unlocked in the Memory Grove: Pebbling, Rootling, Acorn,
   Nestling, Whirligig). Not always the same 3: a Grove unlock can turn up from drift 1.
+  **Except Acorn** (2026-10-02, Tower Discussion's proposal, decided here): Acorn has no damage
+  branch by design (support / economy), so as the only family in act 1 it leaves a run with no
+  carry (fresh act 1 boss survival had fallen to ~40% vs a 55–60% target). **Acorn is never in the
+  first pick**; it can come at the boss picks (25 / 50 / 75), where it boosts families you already
+  have. Cost: no "economy from drift 1" opening; Dewcatcher openings start in act 2.
 - **Bosses at drifts 25, 50, 75:** pick 1 of 3 from the unlocked families you don't have yet (Family
   Blessings fill empty slots, `meta_design.md`).
 - Draws avoid repeating the previous run's first-pick offer exactly, so runs start differently.
