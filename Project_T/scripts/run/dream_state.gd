@@ -1832,11 +1832,15 @@ func add_extra_cards(count: int) -> void:
 	_extra_cards_next += count
 
 # --- Block finales (spire_difficulty.md Phase 2) ---------------------------------------------------------------
-# A block finale (DriftDirector.get_block_finale_elites(n) >= 0, from block_finale_health_from) cleared clean (no
+# A block finale (DriftDirector.get_block_finale_elites(n) >= 0, from FINALE_REWARD_FROM) cleared clean (no
 # leaf lost from its start to the rest after it: the run history's per-drift leaves_lost) earns one Rare+ slot in
 # the next Dream. Saved with the run. (The Phase 3 rest choices were replaced by heartwood_gifts.md.)
 
 signal finale_judged(drift: int, clean: bool)
+
+# Finales earn the clean-clear Rare+ slot from this drift, whatever drift their ×1.4 health starts at
+# (Balancing: drift 10 stays a reward finale while block_finale_health_from moves to 15).
+const FINALE_REWARD_FROM := 10
 
 var finale_results := {}  # Finale drift -> leaves lost on it (0 = cleared clean)
 var _finale_drift := 0  # The finale being played (0: none)
@@ -1844,7 +1848,7 @@ var _finale_lost_at := 0  # RunState.leaves_lost as it started
 var _finale_rare_next := 0  # Earned Rare+ slots for the next Dream
 
 func _finale_on_drift(number: int) -> void:
-	if number >= drift_director.block_finale_health_from and drift_director.get_block_finale_elites(number) >= 0:
+	if number >= FINALE_REWARD_FROM and drift_director.get_block_finale_elites(number) >= 0:
 		_finale_drift = number
 		_finale_lost_at = run_state.leaves_lost
 
