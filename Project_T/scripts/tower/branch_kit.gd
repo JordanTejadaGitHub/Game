@@ -1195,7 +1195,7 @@ class BroodSprite extends Node2D:
 		if enemy.has_method("is_hidden") and enemy.is_hidden():
 			enemy.reveal_for(2.0)  # Bumped into a Lurker: it shows itself
 		var stacks := int(BranchKit.p(tower, "spored", 2))
-		tower.hit(enemy, 1.0, true)
+		tower.hit(enemy, 1.0 + NurtureChoices.YIELD_BROOD_DAMAGE * tower.choice_count(Tower.Focus.YIELD), true)  # Yield: harder bursts
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
 			enemy.apply_status(EnemyStatuses.SPORED, stacks, 0.0, tower.get_damage() * Tower.SPORE_POTENCY, 0, "spore", tower)
 			# Crusted Brood (b): its sprites also eat dread shell.

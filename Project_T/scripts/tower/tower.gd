@@ -918,7 +918,7 @@ func focus_text(which: Focus) -> String:
 				return "+%.1f shard every drift" % NurtureChoices.YIELD_SHARDS
 			if special == BranchKit.BROOD:
 				var every := _with_choice(which, func() -> float: return 1.0 / maxf(_compute_attacks_per_second(), 0.0001))
-				return "a sprite every %.2f → %.2f s" % [every[0], every[1]]
+				return "a sprite every %.2f → %.2f s, bursts +%d%%" % [every[0], every[1], roundi(NurtureChoices.YIELD_BROOD_DAMAGE * 100)]
 			var thing := "Sprouts" if special == BranchKit.SEEDBEARER else "sprites"
 			var base := int(BranchKit.p(self, "seed_max" if special == BranchKit.SEEDBEARER else "max_alive", 3.0 if special == BranchKit.SEEDBEARER else 4.0))
 			var now := base + BranchKit.yield_ranks(self)
