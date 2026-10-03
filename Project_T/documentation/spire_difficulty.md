@@ -358,4 +358,4 @@ full game (`game/demo` false), and the demo reads main's exports.
   walls) ✓; Deeproot / Heartroot halve the leak when guarding the goal ✓; low: Whetstone 0.28, Quaker 0.37,
   Thorncoil 0.52; Edgestone 0.35, Earthshaker 0.66 / 0.54, Crown of Thorns 0.52 / 0.38. **Raises:**
   Whetstone 280, Quaker 200, Thorncoil 45/s + pulse 32, Edgestone 650, Earthshaker 360, Crown of Thorns
-  120/s + pulse 70. The flyer board was too easy (0 leaks); rerun on a harder one.
+  120/s + pulse 70 (in 1fcc3b64). The flyer board was too easy (0 leaks); rerun on a harder one.
