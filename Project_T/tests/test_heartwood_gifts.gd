@@ -97,10 +97,11 @@ func _run() -> void:
 	_check(applied.size() == 1 and applied[0][0] == &"lightning_tree" and HeartwoodGifts.cells_of(applied[0][1]) == [free]
 		and not applied[0][1].restoring, "Plant: the owner's effect gets the cells")
 	_check(not gifts.waiting and not screen.visible and director.pending_choice() != &"gift",
-		"the gift is taken; the gift no longer holds Start (next: %s, the Omen's turn)" % director.pending_choice())
+		"the gift is taken; the gift no longer holds Start (next: %s)" % director.pending_choice())
 	for frame in 5:
 		await process_frame
-	_check(omens.is_offering() or omens.get_mode() == "never", "then the Omen shows")
+	# No Omen at an act break (user, 2026-10-03; OmenDirector c115eac4): the act's start is "What's coming" instead.
+	_check(not omens.is_offering(), "no Omen follows at an act break")
 	_check(gifts.has_taken(&"lightning_tree") and not gifts.draw(2).has(&"lightning_tree"), "never offered again this run")
 	_check(int(gifts.taken[0].placement.get("tended_before", -1)) == run_state.tended_cells.size(), "the record keeps how many cells were tended before it (Environment: resumes)")
 
