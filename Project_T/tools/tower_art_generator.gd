@@ -320,7 +320,8 @@ func _init() -> void:
 			if warden in CHANNEL_WARDENS:
 				_make_channel(warden)
 		_save_line_preview(rows, PREVIEWS + line + ".png")
-	_make("thornwall_stone", Callable(self, "_draw_thornwall_stone"))
+	for wall: String in ["thornwall", "bramble", "honeysuckle"]:
+		_make(wall + "_stone", Callable(self, "_draw_" + wall + "_stone"))
 	if not overflow.is_empty():
 		push_warning("Wardens cut off at the top of their frame (rows above the body): %s" % overflow)
 	_save_attack_info()
@@ -7954,21 +7955,65 @@ func _epic_dreamroot(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color
 		var t: Vector2 = tips[i]
 		_flat_ellipse(canvas, t, Vector2(1.6, 1.6), core if (st.f + i) % 4 < 2 else glow)
 
-# thornwall_stone.png (Phase 2, Rampart / Bastion): a Thornwall touching Rampart turned to stone, the
-# same hedge and layout as thornwall.png (8 idle frames, 64x80) so the game swaps the texture 1:1. The
-# hedge is the Thornwall's own drawing recoloured by brightness into grey stone; the slab is untouched;
-# a little moss stays in its cracks.
-func _draw_thornwall_stone(canvas: Image, st: Dictionary) -> void:
+
+# Stone walls (Phase 2, Rampart / Bastion): a wall touching Rampart turned to stone, the same layout as
+# its normal sheet (8 idle frames, 64x80) so the game swaps the texture 1:1. The wall's own drawing is
+# recoloured by brightness into grey stone (the slab untouched, a little moss in the cracks), except its
+# tell, which a player must still read at a glance (Tower Discussion): `tell` returns the colour a
+# pixel keeps, or a clear colour to turn it to stone.
+func _stone_over(canvas: Image, st: Dictionary, theme: String, lush: bool, draw: Callable, tell: Callable = Callable()) -> void:
 	var base := _layer()
-	_draw_waystone(base, st, "bramble", false)
-	_draw_thornwall(canvas, st)
+	_draw_waystone(base, st, theme, lush)
+	draw.call(canvas, st)
 	var stone := [Color("#24243c"), Color("#3c3c5c"), Color("#5c5a78"), Color("#8c8cac"), Color("#b4b0c8"), Color("#dce8f4")]
 	for y in range(-OY, S):
 		for x in S:
 			var c := _gp(canvas, x, y)
 			if c.a == 0.0 or c == _gp(base, x, y):
 				continue
+			if tell.is_valid():
+				var keep: Color = tell.call(c)
+				if keep.a > 0.0:
+					_sp(canvas, x, y, keep)
+					continue
 			var lum := c.r * 0.3 + c.g * 0.59 + c.b * 0.11
 			var i: int = clampi(int(lum * 8.0), 0, stone.size() - 1)
 			var mossy: bool = i == 2 and (x * 7 + y * 3) % 11 == 0
 			_sp(canvas, x, y, Color("#5c944c") if mossy else Color(stone[i], c.a))
+
+func _draw_thornwall_stone(canvas: Image, st: Dictionary) -> void:
+	_stone_over(canvas, st, "bramble", false, Callable(self, "_draw_thornwall"))
+
+# Stone Bramble: its thorns stay sharp and dark on the stone, its canes dark.
+func _draw_bramble_stone(canvas: Image, st: Dictionary) -> void:
+	_stone_over(canvas, st, "bramble", true, Callable(self, "_draw_bramble"), func(c: Color) -> Color:
+		if c.is_equal_approx(Color("#e8d4a0")):
+			return Color("#140f26")
+		if c.is_equal_approx(Color("#6a4030")):
+			return Color("#5c3c24")
+		return Color(0, 0, 0, 0))
+	_stone_thorns(canvas, st, "bramble", true)
+
+# Stone Honeysuckle: its trumpet flowers (and the bee) still bloom in colour on the stone.
+func _draw_honeysuckle_stone(canvas: Image, st: Dictionary) -> void:
+	_stone_over(canvas, st, "bramble", true, Callable(self, "_draw_honeysuckle"), func(c: Color) -> Color:
+		var warm: bool = c.h < 0.17 or c.h > 0.9
+		return c if warm and c.s > 0.12 and c.v > 0.25 else Color(0, 0, 0, 0))
+
+# Dark thorns jutting out of a stone wall's outline (stone Bramble's tell): every few pixels along the
+# top and sides of the wall, a three-pixel spike pointing out into the open (its tip a shade lighter).
+func _stone_thorns(canvas: Image, st: Dictionary, theme: String, lush: bool) -> void:
+	var base := _layer()
+	_draw_waystone(base, st, theme, lush)
+	var src := canvas.duplicate() as Image
+	for y in range(-OY + 2, 42):
+		for x in range(2, S - 2):
+			var c := _gp(src, x, y)
+			if c.a == 0.0 or c == _gp(base, x, y) or (x * 3 + y * 5) % 7 != 0:
+				continue
+			for d: Vector2i in [Vector2i.UP, Vector2i.LEFT, Vector2i.RIGHT]:
+				if _gp(src, x + d.x, y + d.y).a == 0.0:
+					_px(canvas, x + d.x, y + d.y, Color("#140f26"))
+					_px(canvas, x + d.x * 2, y + d.y * 2, Color("#140f26"))
+					_px(canvas, x + d.x * 3, y + d.y * 3, Color("#3c3c5c"))
+					break
