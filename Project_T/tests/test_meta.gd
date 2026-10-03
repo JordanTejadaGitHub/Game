@@ -421,6 +421,17 @@ func _run() -> void:
 	var roots_perk := _unlock(HeartwoodMemory.load_grove(), "wider_roots")
 	_check(roots_perk != null and roots_perk.is_perk() and roots_perk.costs == [120] and roots_perk.requires_all == ["omen_reader"] and roots_perk.wider_roots,
 		"Wider Roots: a 120-Seed perk after Omen Reader")
+	var roots_memory := HeartwoodMemory.load_data()
+	roots_memory.unlocks.wider_roots = 1
+	roots_memory.loadout = ["wider_roots"]
+	HeartwoodMemory.save_data(roots_memory)
+	var roots_run := await _new_run()
+	_check(roots_run.get_node("%DreamState").wider_roots, "carrying Wider Roots switches on the wider family draw")
+	roots_run.queue_free()
+	await process_frame
+	roots_memory.unlocks.erase("wider_roots")
+	roots_memory.loadout = []
+	HeartwoodMemory.save_data(roots_memory)
 	_check(_unlock(HeartwoodMemory.load_grove(), "acorn").dream_cards.has("acorn_cache") and HeartwoodMemory.get_unlock("catchers") == null
 		and _unlock(HeartwoodMemory.load_grove(), "old_wood").requires_all.is_empty(), "the Acorn family brings its own cards; Old Wood starts its branch")
 
