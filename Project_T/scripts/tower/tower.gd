@@ -550,8 +550,9 @@ func _process(delta: float) -> void:
 			if not is_instance_valid(_patrol):
 				_patrol = PatrolFlight.new(self)  # Dawnwing's bird / The Whirlwind's cyclone
 				add_child(_patrol)
-			if attack_data.patrol_idle_texture != null:
-				# Dawnwing: the perch is empty while the bird is out.
+			_update_patrol_pose(delta)
+			if attack_data.patrol_idle_texture != null and _attack_time < 0.0:
+				# Dawnwing: the perch is empty while the bird is out (the cast pose has no bird either).
 				sprite.texture = attack_data.patrol_idle_texture if _patrol.is_out() else tower_data.texture
 			return
 		TowerData.AttackKind.BEAM:
@@ -2333,6 +2334,21 @@ func _pull_on_release(action: Callable) -> void:
 	_pending_pull = action
 	if _attack_time >= 0.0:
 		return  # An attack is winding up: the pull goes with its release
+	_pull_only = true
+	_attack_fps = maxf(tower_data.attack_animation_fps, 1.0)
+	_attack_time = 0.0
+	_released = false
+	sprite.texture = tower_data.attack_texture
+	sprite.hframes = tower_data.attack_frame_count
+	sprite.frame = 0
+
+# PATROL (Dawnwing, The Whirlwind): the bird / cyclone does the hitting, so the Warden's attack sheet is a cast pose,
+# played every AURA_PULSE_EVERY seconds while nightmares are in range (no shot at its release frame).
+func _update_patrol_pose(delta: float) -> void:
+	_cooldown = maxf(_cooldown - delta, 0.0)
+	if tower_data.attack_texture == null or _legacy_active or _attack_time >= 0.0 or _cooldown > 0.0 or not has_enemy_in_range():
+		return
+	_cooldown = AURA_PULSE_EVERY
 	_pull_only = true
 	_attack_fps = maxf(tower_data.attack_animation_fps, 1.0)
 	_attack_time = 0.0
