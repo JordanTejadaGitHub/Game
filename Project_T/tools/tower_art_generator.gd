@@ -166,7 +166,8 @@ const LINES := {
 		"cloudlet", "nimbus", "undercurrent", "maelstrom", "jetreed", "torrent"],
 	"firefly_jar": ["firefly_jar", "stormcap", "thunderhead", "lanternmoth", "beacon", "sunpetal", "midsummer",
 		"jarlink", "lightning_fence", "prism_jar", "rainbow_prism", "sparkler", "starburst"],
-	"rootling": ["rootling", "rootcurl", "long_way_home", "tangleroot", "snugroot", "rootlight", "starcave"],
+	"rootling": ["rootling", "rootcurl", "long_way_home", "tangleroot", "snugroot", "rootlight", "starcave",
+		"groundroot", "earthbind", "deeproot", "heartroot", "thorncoil", "crown_of_thorns"],
 	"acorn": ["acorn", "elder_stump", "grove_heart", "dewcatcher", "wellspring", "graftling", "grafted_elder"],
 	"nestling": ["nestling", "wrens_nest", "starling_murmuration", "magpie_perch", "magpies_hoard", "hummingbird_bower", "jewelwing_court"],
 	"whirligig": ["whirligig", "gust", "zephyr", "pinwheel", "windmill", "samara", "autumn_gale"],
@@ -234,6 +235,13 @@ const ATTACKS := {
 	"rootcurl": {kind = "pull", point = Vector2i(60, 31)},
 	"long_way_home": {kind = "pull", point = Vector2i(60, 31)},
 	"tangleroot": {kind = "hold", point = Vector2i(31, 46)},
+	# Phase 2 (2026-10-02): Groundroot, Deeproot, Thorncoil (pulses like Tangleroot, a root lash on the release).
+	"groundroot": {kind = "pulse", point = Vector2i(31, 46)},
+	"earthbind": {kind = "pulse", point = Vector2i(31, 46)},
+	"deeproot": {kind = "pulse", point = Vector2i(31, 46)},
+	"heartroot": {kind = "pulse", point = Vector2i(31, 46)},
+	"thorncoil": {kind = "pulse", point = Vector2i(31, 46)},
+	"crown_of_thorns": {kind = "pulse", point = Vector2i(31, 46)},
 	"snugroot": {kind = "hold", point = Vector2i(31, 46)},
 	"acorn": {kind = "pulse", point = Vector2i(31, 46)},
 	"elder_stump": {kind = "pulse", point = Vector2i(31, 46)},
@@ -6306,7 +6314,12 @@ const EPIC := {
 	"lightning_fence": {glow = "#9a84e8", core = "#fff4dc", tint = []},
 	"rainbow_prism": {glow = "#ec9cf4", core = "#ffffff", tint = []},
 	"starburst": {glow = "#fcd47c", core = "#fff4dc", tint = []},
-	"edgestone": {glow = "#dce8f4", core = "#ffffff", tint = []},	"bastion": {glow = "#fcd47c", core = "#fff4dc", tint = ["#5c5a78", "#8c8cac", "#b4b0c8", "#dce8f4"]},	"earthshaker": {glow = "#e9a83c", core = "#fcd47c", tint = ["#241c14", "#5c3c24", "#8c5c34", "#bca48c"]},
+	"edgestone": {glow = "#dce8f4", core = "#ffffff", tint = []},
+	"bastion": {glow = "#fcd47c", core = "#fff4dc", tint = ["#5c5a78", "#8c8cac", "#b4b0c8", "#dce8f4"]},
+	"earthshaker": {glow = "#e9a83c", core = "#fcd47c", tint = ["#241c14", "#5c3c24", "#8c5c34", "#bca48c"]},
+	"earthbind": {glow = "#d4ec9c", core = "#fff4dc", tint = ["#5c3c24", "#bca48c", "#dccdb2"]},
+	"heartroot": {glow = "#fcd47c", core = "#fff4dc", tint = ["#5c3c24", "#8c5c34", "#b8662c"]},
+	"crown_of_thorns": {glow = "#ec9cf4", core = "#fff4dc", tint = ["#241c14", "#5c3c24", "#8c5c34"]},
 }
 const EPIC_O := Color("#140f26")
 
@@ -7201,7 +7214,18 @@ const BODY_PAL := {
 	"silence": ["#140f26", "#5c944c", "#34643c", "#1c3c2c"],
 	"thrum": ["#140f26", "#ec9cf4", "#bc44dc", "#4c3c74"],
 	"resonance": ["#140f26", "#fff4dc", "#ec9cf4", "#bc44dc"],
-	"whetstone": ["#241c14", "#dccdb2", "#b4a494", "#6c5c5c"],	"edgestone": ["#241c14", "#fff4dc", "#dccdb2", "#b4a494"],	"rampart": ["#24243c", "#b4b0c8", "#8c8cac", "#5c5a78"],	"bastion": ["#140f26", "#8c8cac", "#5c5a78", "#3c3c5c"],	"quaker": ["#241c14", "#bca48c", "#8c5c34", "#5c3c24"],	"earthshaker": ["#140f26", "#8c5c34", "#5c3c24", "#241c14"],
+	"whetstone": ["#241c14", "#dccdb2", "#b4a494", "#6c5c5c"],
+	"edgestone": ["#241c14", "#fff4dc", "#dccdb2", "#b4a494"],
+	"rampart": ["#24243c", "#b4b0c8", "#8c8cac", "#5c5a78"],
+	"bastion": ["#140f26", "#8c8cac", "#5c5a78", "#3c3c5c"],
+	"quaker": ["#241c14", "#bca48c", "#8c5c34", "#5c3c24"],
+	"earthshaker": ["#140f26", "#8c5c34", "#5c3c24", "#241c14"],
+	"groundroot": ["#24160e", "#dccdb2", "#bca48c", "#8c5c34"],
+	"earthbind": ["#24160e", "#fff4dc", "#dccdb2", "#bca48c"],
+	"deeproot": ["#241c14", "#b8662c", "#8c5c34", "#5c3c24"],
+	"heartroot": ["#241c14", "#e9a83c", "#b8662c", "#5c3c24"],
+	"thorncoil": ["#1c3c2c", "#5c944c", "#34643c", "#241c14"],
+	"crown_of_thorns": ["#1c3c2c", "#9cc46c", "#5c944c", "#34643c"],
 }
 
 # The figure palette a Warden's body is drawn in: its own (BODY_PAL) or the one its helper passed.
@@ -7488,3 +7512,230 @@ func _proj_whetstone_slash(canvas: Image, f: int) -> void:
 			_px(canvas, roundi(p.x), roundi(p.y), Color("#ffffff") if j == 0 else Color("#9cd4fc"))
 	for k in 6:
 		_px(canvas, 23 - k - f % 2, 32 + (k % 2), Color("#dce8f4", 0.8 - k * 0.12))
+
+# --- Phase 2, Rootling (tower_design.md 7816b7e0): Groundroot -> Earthbind (roots reaching up like
+# hands), Deeproot -> Heartroot (a root coiled in a ring, low), Thorncoil -> Crown of Thorns (a thorny
+# crown on its head). Bodies from BODY_PAL. --------------------------------------------------------
+
+# A root hand rising out of the slab: a thick root arm, a palm and splayed fingers reaching up,
+# flexing over the loop (`grab` 0..1 closes the fingers).
+func _root_hand(canvas: Image, base: Vector2, top: Vector2, size: float, grab: float, wood: Array[Color], o: Color) -> void:
+	var layer := _layer()
+	var mid := base.lerp(top, 0.5) + Vector2((top.x - base.x) * 0.2, 0)
+	_stroke(layer, [base, mid, top], 1.6 * size, wood[1])
+	_flat_ellipse(layer, top, Vector2(3.4, 2.8) * size, wood[1])
+	for i in 4:
+		var a: float = -PI / 2.0 + (i - 1.5) * (0.5 - grab * 0.3)
+		var tip := top + Vector2(cos(a), sin(a)) * (6.5 - grab * 2.5) * size
+		_stroke(layer, [top, tip + Vector2(0, grab * 2.0)], 0.95 * size, wood[2])
+	_stroke(layer, [top + Vector2(-2.5, 1) * size, top + Vector2(-6, -1) * size], 0.95 * size, wood[2])  # the thumb
+	_stamp(canvas, layer, o)
+
+func _draw_groundroot(canvas: Image, st: Dictionary) -> void:
+	_root_hands_body(canvas, st, false)
+
+func _draw_earthbind(canvas: Image, st: Dictionary) -> void:
+	_root_hands_body(canvas, st, true)
+
+func _root_hands_body(canvas: Image, st: Dictionary, great: bool) -> void:
+	var fig := _p2_fig()
+	var wood := _ramp(["#5c3c24", "#bca48c", "#dccdb2"])
+	var flex: float = [0.0, 0.1, 0.3, 0.4, 0.3, 0.1, 0.0, 0.0][st.f % 8] if st.attack < 0 else [0.0, 0.0, 1.0, 0.8, 0.3, 0.0][st.attack]
+	var hands: Array = [[Vector2(9, 44), Vector2(6, 14)], [Vector2(55, 43), Vector2(58, 12)]]
+	if great:
+		hands.append_array([[Vector2(16, 46), Vector2(13, 4)], [Vector2(48, 46), Vector2(51, 2)]])
+	# The hands behind it, reaching up past its shoulders.
+	_root_golem(canvas, st, fig, great)
+	_golem_face(canvas, st, fig)
+	for i in hands.size():
+		var h: Array = hands[i]
+		_root_hand(canvas, h[0], h[1], 1.25 if i < 2 else 1.0, flex if i % 2 == 0 else flex * 0.7, wood, fig.o)
+
+func _attack_groundroot(canvas: Image, st: Dictionary) -> void:
+	_grab_lash(canvas, st, [Vector2(6, 12), Vector2(58, 10)])
+
+func _attack_earthbind(canvas: Image, st: Dictionary) -> void:
+	_grab_lash(canvas, st, [Vector2(6, 12), Vector2(58, 10), Vector2(13, 2), Vector2(51, 0)])
+
+# The grab: the hands snap shut on something in the air: a burst of motes at each fist, a streak of
+# light pulled down from the sky into it.
+func _grab_lash(canvas: Image, st: Dictionary, fists: Array) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	for p: Vector2 in fists:
+		for i in 6:
+			var a: float = i * TAU / 6.0 + k
+			_px(canvas, roundi(p.x + cos(a) * (3 + k * 2)), roundi(p.y + sin(a) * (3 + k * 2)), Color("#d4ec9c"))
+		_line(canvas, [p + Vector2(0, -12 + k * 4), p + Vector2(0, -3)], Color("#fff4dc"))
+		_warm_glow(canvas, p, Vector2(5, 5), k)
+
+# A root coiled round its base in a low ring, the end curling up beside it like a tail.
+func _root_coil(canvas: Image, st: Dictionary, rings: int, wood: Array[Color], o: Color, glow: Color) -> void:
+	for r in rings:
+		var back := _layer()
+		var front := _layer()
+		var rx := 24.0 - r * 4.0
+		var cy := 42.0 - r * 3.0
+		for i in 64:
+			var a: float = i * TAU / 64.0
+			var p := Vector2(31.5 + cos(a) * rx, cy + sin(a) * rx * 0.33)
+			_flat_ellipse(front if sin(a) > 0.0 else back, p, Vector2(2.8, 2.5), wood[1])
+		_stamp(canvas, front, o)
+		_under(canvas, back)
+		for i in 8:
+			var a: float = i * TAU / 8.0 + st.f * TAU / 32.0
+			if sin(a) > 0.0:
+				_px(canvas, roundi(31.5 + cos(a) * rx), roundi(cy + sin(a) * rx * 0.33) - 1, wood[2])
+	var tail := _layer()
+	_stroke(tail, [Vector2(55, 42), Vector2(59, 34), Vector2(57, 28), Vector2(54, 29)], 1.6, wood[1])
+	_stamp(canvas, tail, o)
+	if glow.a > 0.0:
+		_px(canvas, 54, 29, glow)
+
+func _draw_deeproot(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	_root_golem(canvas, st, fig, false)
+	_golem_face(canvas, st, fig)
+	_root_coil(canvas, st, 1, _ramp(["#8c5c34", "#dccdb2", "#fff4dc"]), fig.o, Color(0, 0, 0, 0))
+
+func _draw_heartroot(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	var dy: int = st.dy
+	_root_golem(canvas, st, fig, true)
+	_golem_face(canvas, st, fig, Color("#fcd47c"))
+	_root_coil(canvas, st, 2, _ramp(["#8c5c34", "#dccdb2", "#fff4dc"]), fig.o, Color("#fcd47c"))
+	# A heart of glowing heartwood in its chest, beating.
+	var beat: bool = st.f % 4 < 2 or st.power > 0.5
+	var heart := _layer()
+	for p: Vector2 in [Vector2(29.5, 25 + dy), Vector2(32.5, 25 + dy)]:
+		_flat_ellipse(heart, p, Vector2(2.0, 2.0), Color("#e9a83c"))
+	_flat_polygon(heart, PackedVector2Array([Vector2(27.5, 26 + dy), Vector2(34.5, 26 + dy), Vector2(31, 30 + dy)]), Color("#e9a83c"))
+	_stamp(canvas, heart, Color("#5c3c24"))
+	_px(canvas, 29, 24 + dy, Color("#fff4dc"))
+	if beat:
+		_warm_glow(canvas, Vector2(31, 26 + dy), Vector2(6, 5), st.f)
+
+func _attack_deeproot(canvas: Image, st: Dictionary) -> void:
+	_coil_lash(canvas, st, 1.0)
+
+func _attack_heartroot(canvas: Image, st: Dictionary) -> void:
+	_coil_lash(canvas, st, 1.25)
+
+# The hold: the coil snaps tight and roots lash up out of the ground all round it.
+func _coil_lash(canvas: Image, st: Dictionary, size: float) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	_ring(canvas, Vector2(31.5, 43), Vector2(26 - k * 3, 9 - k) * size, Color("#fcd47c"), k == 2)
+	_root_spikes(canvas, st, [Vector2(4, 46), Vector2(60, 45), Vector2(14, 53), Vector2(50, 53), Vector2(31, 57)], false)
+
+# A crown of thorns: a twisted band round its head with thorns jutting up and out (bigger for Crown
+# of Thorns, with rose hips), thorny vines wound round its arms.
+func _thorn_crown(canvas: Image, st: Dictionary, great: bool, o: Color) -> void:
+	var dy: int = st.dy
+	var band := _layer()
+	var c := Vector2(30.5, 7 + dy)
+	var w: float = 11.0 if great else 9.5
+	for i in 40:
+		var a: float = PI + i * PI / 39.0
+		_flat_ellipse(band, c + Vector2(cos(a) * w, sin(a) * 2.5 + 2.0), Vector2(1.4, 1.4), Color("#5c3c24"))
+	var n := 9 if great else 7
+	for i in n:
+		var t := float(i) / (n - 1)
+		var base := c + Vector2(-w + t * w * 2.0, 1.0 - sin(t * PI) * 1.5)
+		var len: float = (9.0 if great else 7.0) * (0.7 + 0.3 * sin(t * PI))
+		var tip := base + Vector2((t - 0.5) * 4.0, -len)
+		_flat_polygon(band, PackedVector2Array([base + Vector2(-1.8, 0), tip, base + Vector2(1.8, 0)]), Color("#dccdb2"))
+	_stamp(canvas, band, o)
+	if great:
+		for p: Vector2 in [Vector2(22, 7 + dy), Vector2(30, 5 + dy), Vector2(39, 7 + dy)]:
+			_flat_ellipse(canvas, p, Vector2(1.4, 1.4), Color("#bc44dc"))
+			_px(canvas, int(p.x), int(p.y) - 1, Color("#ec9cf4"))
+	# Thorny vines wound round its arms.
+	for s: int in [-1, 1]:
+		for i in 6:
+			var p := Vector2(31.5 + s * (13 + i * 0.6), 24 + i * 3 + (dy if i < 2 else 0))
+			_px(canvas, int(p.x), int(p.y), Color("#34643c"))
+			_px(canvas, int(p.x) + s, int(p.y) - 1, Color("#8c5c34"))
+
+func _draw_thorncoil(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	_root_golem(canvas, st, fig, false)
+	_golem_face(canvas, st, fig)
+	_thorn_crown(canvas, st, false, fig.o)
+
+func _draw_crown_of_thorns(canvas: Image, st: Dictionary) -> void:
+	var fig := _p2_fig()
+	_root_golem(canvas, st, fig, true)
+	_golem_face(canvas, st, fig, Color("#ec9cf4"))
+	_thorn_crown(canvas, st, true, fig.o)
+
+func _attack_thorncoil(canvas: Image, st: Dictionary) -> void:
+	_thorn_burst(canvas, st, 1.0)
+
+func _attack_crown_of_thorns(canvas: Image, st: Dictionary) -> void:
+	_thorn_burst(canvas, st, 1.3)
+
+# Thorns: a ring of thorn spikes driven up out of the ground round it, red sparks where they bite.
+func _thorn_burst(canvas: Image, st: Dictionary, size: float) -> void:
+	var k: int = st.attack - RELEASE_FRAME
+	if k < 0 or k > 2:
+		return
+	var h: float = [5.0, 8.0, 4.0][k] * size
+	var layer := _layer()
+	for i in 10:
+		var a: float = i * TAU / 10.0
+		var base := Vector2(31.5 + cos(a) * 25.0 * size, 44 + sin(a) * 8.5 * size)
+		_flat_polygon(layer, PackedVector2Array([base + Vector2(-2.0, 0), base + Vector2(cos(a) * 1.5, -h), base + Vector2(2.0, 0)]), Color("#dccdb2"))
+	_stamp(canvas, layer, Color("#241c14"))
+	_ring(canvas, Vector2(31.5, 44), Vector2(25, 8.5) * size, Color("#ec9cf4"), k == 2)
+	if k < 2:
+		for i in 10:
+			var a: float = i * TAU / 10.0
+			_sparkle(canvas, Vector2i(roundi(31.5 + cos(a) * 25.0 * size + cos(a) * 1.5), roundi(44 + sin(a) * 8.5 * size - h - 2)), Color("#ec9cf4"))
+
+# Epic finals, the family's roots each their own way.
+# Earthbind: two more great root hands rise behind it, reaching for the sky, light caught in them.
+func _epic_earthbind(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var back := _layer()
+	var flex: float = [0.0, 0.2, 0.4, 0.5, 0.4, 0.2, 0.0, 0.0][st.f % 8]
+	_root_hand(back, Vector2(22, 30), Vector2(17, -10), 1.3, flex, _ramp(cfg.tint), EPIC_O)
+	_root_hand(back, Vector2(41, 30), Vector2(46, -12), 1.3, flex * 0.7, _ramp(cfg.tint), EPIC_O)
+	_under(canvas, back)
+	for p: Vector2i in [Vector2i(17, -16), Vector2i(46, -18)]:
+		if st.f % 4 < 2:
+			_sparkle(canvas, p, core)
+
+# Heartroot: rings of light pulsing out from its heart through the coils, like a heartbeat.
+func _epic_heartroot(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var t := float(st.f % 4) / 4.0
+	_ring(canvas, Vector2(31.5, 40), Vector2(16 + t * 14, 5 + t * 4), glow, t > 0.5)
+	var back := _layer()
+	for s: int in [-1, 1]:
+		_stroke(back, [Vector2(31.5 + s * 18, 40), Vector2(31.5 + s * 24, 20), Vector2(31.5 + s * 20, 4), Vector2(31.5 + s * 12, -2)], 1.8, Color(cfg.tint[2]))
+	_outline_layer(back)
+	_under(canvas, back)
+	for p: Vector2i in [Vector2i(10, 20), Vector2i(53, 20), Vector2i(19, -1), Vector2i(44, -1)]:
+		_px(canvas, p.x, p.y, core if st.f % 4 < 2 else glow)
+
+# Crown of Thorns: a great briar arching behind it, thorned and hung with roses.
+func _epic_crown_of_thorns(canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
+	var briar := _layer()
+	var c := Vector2(31.5, 26 + st.dy)
+	for i in 80:
+		var a: float = PI + i * PI / 79.0
+		var p := c + Vector2(cos(a) * 26.0, sin(a) * 28.0)
+		_flat_ellipse(briar, p, Vector2(1.3, 1.3), Color(cfg.tint[1]))
+		if i % 8 == 4:
+			var d := Vector2(cos(a), sin(a))
+			_flat_polygon(briar, PackedVector2Array([p - d.orthogonal() * 1.4, p + d * 4.0, p + d.orthogonal() * 1.4]), Color(cfg.tint[2]))
+	_outline_layer(briar)
+	_under(canvas, briar)
+	for k in 5:
+		var a: float = PI + 0.3 + k * (PI - 0.6) / 4.0
+		var p := c + Vector2(cos(a) * 26.0, sin(a) * 28.0)
+		var rose := _layer()
+		_flat_ellipse(rose, p, Vector2(2.2, 2.0), Color("#bc44dc"))
+		_stamp(canvas, rose, EPIC_O)
+		_px(canvas, int(p.x), int(p.y), Color("#ec9cf4"))
