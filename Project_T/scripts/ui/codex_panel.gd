@@ -1259,7 +1259,7 @@ func _family_dream_count(root: TowerData) -> int:
 		for field in ["stat_line", "count_line"]:
 			if String(card.get(field)) == root.line:
 				hit = true
-		for field in ["calls_family", "count_warden", "stat_warden", "set_cost_warden"]:
+		for field in ["count_warden", "stat_warden", "set_cost_warden"]:
 			if forms.has(String(card.get(field))):
 				hit = true
 		var needs = card.get("requires")

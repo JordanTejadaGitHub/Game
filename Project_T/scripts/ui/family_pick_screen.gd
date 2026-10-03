@@ -591,8 +591,9 @@ func _add_memory_border(button: Button) -> void:
 # several): it's moved into the offered slots; the player still chooses (dream_design.md
 # "Adapt, don't get handed" 5).
 func _include_owed_family(available: Array[TowerData], count: int) -> void:
-	# Seed cards held call their families (every one); a half-dreamed Dream owes one of its missing ones.
-	var wanted: Array = dream_state.get_called_families()
+	# A half-dreamed Dream owes one of its missing families. (Seed cards no longer call families: user, "make it
+	# predictable", dream_design.md 7d3c6672.)
+	var wanted: Array = []
 	for id in dream_state.take_owed_families():
 		if not wanted.has(id) and available.any(func(d: TowerData) -> bool: return d.get_id() == id):
 			wanted.append(id)
