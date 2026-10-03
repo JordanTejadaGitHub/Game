@@ -275,12 +275,14 @@ func _make_card(data: TowerData) -> Button:
 		icon.name = "FamilyEmblem" if emblem != null else "FamilyPortrait"
 		if emblem != null:
 			icon.texture = emblem
+			icon.custom_minimum_size = Vector2(64, 64)  # ×2 of the 32 px emblem: crisp
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		else:
 			var atlas := AtlasTexture.new()
 			atlas.atlas = data.texture
 			atlas.region = data.get_frame_rect(0)
 			icon.texture = atlas
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED if emblem != null else TextureRect.STRETCH_KEEP_CENTERED
 		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(icon)
@@ -306,7 +308,7 @@ func _make_card(data: TowerData) -> Button:
 # Under the base Warden: this run's branches (the same draw Remember shows: DreamState.preview_branch_offer), each
 # → its final with a one-line role from its counter tags; the Grove's hidden branch as its own lane; the branches not
 # in this dream as faint silhouettes that can be called in for Dreamlight. Hover / tap a lane: name, role, counters.
-const ROUTE_ICON := 28.0
+const ROUTE_ICON := 32.0  # Emblems are drawn for 32 px (UI Asset): crisp at ×1
 const NOT_IN_DREAM_ICON := 20.0
 
 # {"offered": Array[TowerData] (this run's lanes, the hidden branch last), "not_offered": Array[TowerData]}.
