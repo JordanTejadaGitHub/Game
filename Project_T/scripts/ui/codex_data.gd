@@ -208,6 +208,14 @@ const KINSHIP_TEXT := {
 	&"night_chimes": "Chime Stone's pulses Catch nightmares at full {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 3 stacks.",
 	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbors attack 10% faster.",
 	&"flock_together": "Wren's Nest hits strip a buff (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops +1 Dew; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
+	# Branch expansion's named pairs (Phase 1 and 2; full game only), checked against BranchKit.
+	&"crusted_brood": "1 in 4 of Lichenling's shots also hatches a {spore_sprite} on its target (half a burst); Brood Cap's {spore_sprites} also chip 5% of a {dread_shell}.",
+	&"eye_of_the_storm": "Nightmares under Cloudlet's cloud are linked by a {current} at 10% (up to 6); Undercurrent's whirlpool is rained on and leaves nightmares {damp}.",
+	&"fireworks_fence": "Every 2 s a nightmare on the Jarlinks' {arc} sets off a 2-spark burst at half spark damage; a Sparkler burst landing on an {arc} bursts once more, at half.",
+	&"vespers": "Silver Bell's toll also leaves its target {silenced} for 2 s; a nightmare a Hushbell leaves {silenced} gains 1 {drowsy}.",
+	&"fault_line": "Rampart's blows and Bastion's rocks crack the path (no sprints there for 3 s); Quaker's slam runs along the stone walls touching the Rampart, hitting the path beside each.",
+	&"bramble_bed": "Flyers Groundroot drags down land in thorns (one thorn tick); Thorncoil's thorns reach flyers passing over its range.",
+	&"nursery_bond": "A Sprout from the Seedbearer planted beside the Nurse Log arrives at rank I; Wardens beside the Nurse Log also grow 10% cheaper.",
 	# The 9 hidden Kinships (a hidden branch first; full game only, Tower Code 6ba79b8).
 	&"spore_nursery": "Fairy Ring's rings apply double {spored}; Driftspore's puffs plant a mushroom ring where they land (one at a time).",
 	&"hoar_fog": "Frostfern's shots leave a fog puff; Mistveil's fog freezes nightmares that stay in it 2 s.",

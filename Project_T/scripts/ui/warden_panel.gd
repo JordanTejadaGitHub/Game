@@ -77,6 +77,10 @@ func _ready() -> void:
 	visible = false
 
 	tower_seller.tower_selected.connect(_show)
+	if tower_placer.has_signal(&"seed_choice_changed"):  # A Seedbearer's Sprout planted or cancelled: its count changed
+		tower_placer.seed_choice_changed.connect(func(_active: bool) -> void:
+			if visible:
+				_refresh())
 	tower_seller.selection_changed.connect(func(_towers: Array[Tower]) -> void:
 		_confirm_sell = false
 		_confirm_unlock = null
@@ -240,6 +244,7 @@ func _refresh() -> void:
 			continue  # Locked: no ring, no ghost
 		_preview_on(button, [[_tower, next]])
 	_not_in_dream_button(data)
+	_seed_button()
 	if _tower.can_nurture():
 		var cost := _tower.get_nurture_cost()
 		# The Eldest (a Legendary): rank VI crowns the one Warden that can grow past V, so ask first.
@@ -998,6 +1003,26 @@ func _update_prices() -> void:
 
 func _shake(button: Control) -> void:
 	CantAfford.shake(button)  # The Remember screen's shake (none under reduced motion)
+
+# Seedbearer / Grove Keeper with a ripe seed (Tower Code's BranchKit.seeds_ready, the golden seed badge): "Plant Sprout
+# (N)" lights the open cells beside it (TowerPlacer.begin_seed_choice) and a click there plants a free Sprout. At a
+# rest only; the button is the way in on touch.
+func _seed_button() -> void:
+	var seeds := BranchKit.seeds_ready(_tower)
+	if seeds <= 0:
+		return
+	var button := _add_button("Plant Sprout (%d)" % seeds)
+	button.name = "PlantSprout"
+	button.tooltip_text = "A free Sprout in an open cell beside it. Pick the cell on the map (Esc cancels)."
+	if not Tower.resting:
+		button.text = "Plant Sprout (%d) · at the next rest" % seeds
+		button.disabled = true
+		return
+	var tower := _tower
+	button.pressed.connect(func() -> void:
+		if not tower_placer.begin_seed_choice(tower):
+			_shake(button)
+			_toast("No open cell beside it"))
 
 func _toast(text: String) -> void:
 	var hud := get_parent()
