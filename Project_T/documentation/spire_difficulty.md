@@ -326,3 +326,20 @@ full game (`game/demo` false), and the demo reads main's exports.
   Rainbow Prism 0.43 / 0.39, Silver Bell 0.13, Vesper Bell 0.22. **Round 3 (last):** Undercurrent 40, Jarlink arc
   140, Lightning Fence arc 560, Hushbell 35, Silence 75, Prism Jar 80, Rainbow 200, Silver Bell 150, Vesper
   350 (in 6ad580f3). **The new-branch probe series is closed; human runs judge.**
+- 2026-10-02: **branch expansion Phase 2 numbers** (go on main, full game only; user "just do Phase 2").
+  All branches 120 Dew, finals 300. **Supersedes** the earlier Whetstone / Rampart values (too low next to
+  Pebbling's own branches, ~55–75 dps).
+  | Branch → final | Branch | Final |
+  |---|---|---|
+  | Whetstone → Edgestone | **110** dmg, 0.6/s, range 3; ×2.5 below 30% (bosses ×1.5) | **260**, 0.6/s; overkill spills 100% within 2 |
+  | Quarry → Rampart / Bastion | Rampart **120** on adjacent path tiles, 0.5/s, +15% per touching Thornwall (max 4); touching walls turn to stone | Bastion **280**; a rock every 6 s (**150**, 1-tile splash) |
+  | Quaker → Earthshaker | slam radius **1.5** every **3 s**, **90**; strips speed boosts | radius **2**, **220**; the path cracks for **3 s** (no new sprints) |
+  | Groundroot → Earthbind | every **4 s** grounds up to **2** flyers within **3.5** for **3 s**; pulse 20, 1.0/s, r 2 | every **3 s**, up to **4**; landing hold **0.5 s**; pulse 45 |
+  | Deeproot → Heartroot | pulse **24**, 1.0/s, r 2; nightmares within **3 cells** of the Heartwood are Rooted **1 s** (once each) | pulse **50**; the first non-boss leak per drift is dragged back **4 tiles** |
+  | Thorncoil → Crown of Thorns | thorns **30/s** to Rooted nightmares in range 2.5; pulse 20 | thorns **70/s**; spread to adjacent at **50%** |
+  | Seedbearer → Grove Keeper | a free Sprout on an adjacent cell every **3 drifts** (max 3 alive from it); hit 15, 1.0/s | every **2 drifts**, at rank II; hit 30 |
+  | Nurse Log → Mother Log | Nurture **25%** cheaper within 1.5; hit 12 | **35%**, + rank memory on the cell; hit 25 |
+  | Dream Oak → Dreamroot | **1 shard / drift** + 1 per different family within 2 (max +3); 10 shards = 1 Dreamlight; **max 4 Dreamlight per run** from shards; hit 12 | shards ×2 on perfect blocks; hit 25 |
+  Counter tags confirmed: Whetstone anti_tank; Rampart and Quaker boss_abilities; Groundroot anti_air;
+  Deeproot, Thorncoil and the Acorn three none (role lines). Fold-in: Driftspore anti_tank, Bloomcap and
+  Inkcap anti_swarm. New Kinships (Fault Line, Bramble Bed, Nursery) ~+20% of the pair's effect.
