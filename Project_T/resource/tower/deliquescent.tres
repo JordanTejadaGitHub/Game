@@ -18,6 +18,7 @@ display_name = "Deliquescent"
 description = "Trails of {ink}, and a {spored} nightmare it dispels melts into a pool of {ink}."
 cost = 0
 placeholder_color = Color(0.737255, 0.266667, 0.862745, 1)
+counter_tags = Array[StringName]([&"anti_swarm"])
 line = "spore"
 tier = 3
 buildable_directly = false

@@ -13,6 +13,7 @@ description = "Leaves a sleepy cloud on the path that makes nightmares Drowsy."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+counter_tags = Array[StringName]([&"anti_swarm"])
 line = "spore"
 tier = 2
 buildable_directly = false

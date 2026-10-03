@@ -13,6 +13,7 @@ description = "A mortar: lobs its top stone over the maze onto a tile up to 6 ce
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+counter_tags = Array[StringName]([&"anti_swarm"])
 line = "stone"
 tier = 2
 buildable_directly = false

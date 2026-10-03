@@ -13,6 +13,7 @@ description = "Five starlings each hunt one of the five fastest nightmares in ra
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+counter_tags = Array[StringName]([&"anti_air"])
 line = "wing"
 tier = 3
 buildable_directly = false

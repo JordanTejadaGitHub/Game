@@ -13,6 +13,7 @@ description = "A beam that grows stronger the longer it roots one nightmare; twi
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+counter_tags = Array[StringName]([&"anti_tank"])
 line = "light"
 tier = 2
 buildable_directly = false

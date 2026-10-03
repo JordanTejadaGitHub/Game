@@ -13,6 +13,7 @@ description = "A crushing hit that splashes three quarters of its damage around;
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+counter_tags = Array[StringName]([&"anti_swarm", &"anti_armour"])
 line = "stone"
 tier = 3
 buildable_directly = false

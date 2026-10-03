@@ -13,6 +13,7 @@ description = "Splashing frost shards that Soak (up to 2); a nightmare Soaked tw
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+role_tag = &"control"
 line = "water"
 tier = 3
 buildable_directly = false

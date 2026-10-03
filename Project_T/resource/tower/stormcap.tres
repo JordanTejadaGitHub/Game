@@ -12,6 +12,7 @@ description = "Lightning that chains to 4 nightmares; jumps further and more oft
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+counter_tags = Array[StringName]([&"anti_swarm"])
 line = "light"
 tier = 2
 buildable_directly = false
