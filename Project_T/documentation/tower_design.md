@@ -552,9 +552,9 @@ family can promise an answer to everything. Two layers keep runs fair:
 
   | Family | Pair | Kinship | A learns from B | B learns from A |
   |---|---|---|---|---|
-  | Pebbling | Rampart + Quaker | **Fault Line** | its Rockfall cracks the path (no sprints there for 3 s) | its slam runs along stone walls touching the Rampart, hitting the path beside each |
+  | Pebbling | Rampart + Quaker | **Fault Line** | its blows (and Bastion's rocks) crack the struck tile: no sprints there for 3 s × the bond share (as built aa9080d4; a plain Rampart has no Rockfall) | its slam runs along stone walls touching the Rampart, hitting the path beside each |
   | Rootling | Groundroot + Thorncoil | **Bramble Bed** | grounded flyers land in thorns (one thorn tick on landing) | its thorns reach flyers passing over its range |
-  | Acorn | Seedbearer + Nurse Log | **Nursery** | its Sprouts arrive at rank I when grown beside the log | Wardens beside it also grow (evolve) 10% cheaper |
+  | Acorn | Seedbearer + Nurse Log | **Seed Cradle** (id `nursery_bond`; renamed 2026-10-02, "Nursery" is a Dream card) | its Sprouts arrive at rank I when grown beside the log | Wardens beside it also grow (evolve) 10% cheaper |
 - **Whole Tree** becomes **"3 different branches of one family on the map"**. With 2 offered,
   that needs the hidden branch or *Remembered Path*: a real milestone of a run, not a given.
 - Kindred (2 branches: +10%) is unchanged, and now the common case.
@@ -597,7 +597,7 @@ finals** (~42 sprites plus attack sheets and effects), down from 27 + 27.
 
 1. **Phase 1: the 4 starting families** (Sporeling, Dewdrop, Firefly Jar, Bellflower): 12 branches,
    12 finals, the 2-of-5 offer with the smart draw, generic Kin, Remembered Path.
-2. **Phase 2:** Pebbling, Rootling, Acorn (9 + 9), with the branch review's changes. **Started 2026-10-02 on main** (user: "just do Phase 2", before the Phase 1 playtest; the Spire branch is merged). Full game only. Counter tags: Whetstone anti-tank; Rampart and Quaker boss abilities; Groundroot anti-air; Deeproot, Thorncoil and the Acorn three none. Fold-in fix: Driftspore anti-tank, Bloomcap and Inkcap anti-swarm (they had no tags, so no role line).
+2. **Phase 2:** Pebbling, Rootling, Acorn (9 + 9), with the branch review's changes. **Started 2026-10-02 on main** (user: "just do Phase 2", before the Phase 1 playtest; the Spire branch is merged). Full game only. Counter tags: Whetstone anti-tank; Rampart and Quaker boss abilities; Groundroot anti-air; Deeproot, Thorncoil and the Acorn three none. Fold-in fix: Driftspore anti-tank, Bloomcap and Inkcap anti-swarm (they had no tags, so no role line). **Built** on main (2fc86820, aa9080d4, 84ce5a38): Groundroot never grounds bosses; Deeproot guards the Heartwood wherever it stands (once per nightmare across all Deeproots); stone = a Thornwall on one of the Rampart's four sides (no diagonals); Seedbearer's seed is planted at the rest (seed badge, lit cells; unplanted seeds wait); roles: Deeproot and Thorncoil control, the Acorn three economy.
 3. **Phase 3:** the Nestling + Whirligig merge (no new branch art: a parked base and Ascended,
    Dawnwing's carry twist, the resistance fold).
 
