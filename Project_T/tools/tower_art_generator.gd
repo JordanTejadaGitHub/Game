@@ -265,7 +265,7 @@ const ATTACKS := {
 	"bellflower": {kind = "pulse", point = Vector2i(31, 46)},
 	# Branch expansion (2026-10-02): Bellflower C, D, E. The toll ring, silence and sound cone are
 	# drawn by the code (effects toll_ring, silence_mark, sound_cone).
-	"silver_bell": {kind = "toll", point = Vector2i(48, 15)},
+	"silver_bell": {kind = "toll", point = Vector2i(45, 14)},
 	"vesper_bell": {kind = "toll", point = Vector2i(48, 16)},
 	"hushbell": {kind = "aura", point = Vector2i(31, 40)},
 	"silence": {kind = "aura", point = Vector2i(31, 40)},
@@ -4779,7 +4779,21 @@ func _ink_body(canvas: Image, st: Dictionary, melt: bool) -> void:
 			_px(canvas, int(d.x), int(d.y) + j, Color(INK[1]) if j < len - 1 else Color(INK[0]))
 
 func _attack_inkcap(canvas: Image, st: Dictionary) -> void:
-	_burst(canvas, Vector2(ATTACKS["inkcap"].point), st.attack, Color("#dce8f4"), Color(INK[1]), Color(INK[0]))
+	# It flings ink from its cap: a dark splash at the cap's tip, drops arcing out and falling.
+	var k: int = st.attack - RELEASE_FRAME
+	var c := Vector2(ATTACKS["inkcap"].point)
+	_burst(canvas, c, st.attack, Color("#5c5a78"), Color(INK[0]), Color(INK[0]))
+	if k < 0 or k > 2:
+		return
+	for i in 7:
+		var a: float = -PI * 0.85 + i * 0.28
+		var d := Vector2.from_angle(a)
+		var p := c + d * (6.0 + k * 5.0) + Vector2(0, k * k * 1.5)
+		var drop := _layer()
+		_flat_ellipse(drop, p, Vector2(1.9, 1.9), Color(INK[1]))
+		_stamp(canvas, drop, Color(INK[0]))
+		_px(canvas, roundi(p.x), roundi(p.y) - 1, Color("#dce8f4"))
+
 
 func _attack_deliquescent(canvas: Image, st: Dictionary) -> void:
 	_burst(canvas, Vector2(ATTACKS["deliquescent"].point), st.attack, Color("#dce8f4"), Color(INK[1]), Color(INK[0]))
@@ -4881,16 +4895,26 @@ func _attack_nimbus(canvas: Image, st: Dictionary) -> void:
 
 # The cloud darkens and lets go a burst of rain on release.
 func _cloud_rain_attack(canvas: Image, st: Dictionary, key: String) -> void:
+	# The cloud darkens and lets go: a flash of lightning on release, then a heavy curtain of rain
+	# falling out of it, splashing on the slab.
 	var k: int = st.attack - RELEASE_FRAME
 	var c := Vector2(ATTACKS[key].point)
 	if k < 0 or k > 2:
 		return
-	for i in 7:
-		var x := int(c.x) - 6 + i * 2
-		for j in 3:
-			_px(canvas, x - j / 2, int(c.y) + 4 + k * 3 + j * 2 + i % 2, Color("#9ad4ff") if j == 0 else Color("#5aa8ec"))
+	_fog(canvas, c + Vector2(0, -1), Vector2(10, 4), Color("#5c5a78", 0.6), st.f)
+	for i in 9:
+		var x := int(c.x) - 8 + i * 2
+		for j in 4:
+			var y := int(c.y) + 5 + k * 4 + j * 3 + i % 2
+			_px(canvas, x - j / 2, y, Color("#e8faff") if j == 0 else Color("#9ad4ff"))
+			_px(canvas, x - j / 2, y + 1, Color("#5aa8ec"))
 	if k == 0:
-		_bolt(canvas, c + Vector2(-2, 2), c + Vector2(-4, 10), Color("#e8faff"), Color("#5aa8ec"), 2)
+		_bolt(canvas, c + Vector2(-1, 3), c + Vector2(-5, 16), Color("#fff4dc"), Color("#9ad4ff"), 3)
+		_warm_glow(canvas, c, Vector2(10, 6))
+	if k == 2:
+		for i in 4:
+			_px(canvas, int(c.x) - 7 + i * 5, int(c.y) + 28, Color("#e8faff"))
+
 
 # A swirl of water round its feet (a ring of foam turning); Maelstrom's fills the slab, spray rising.
 func _swirl(canvas: Image, st: Dictionary, r: Vector2, arms: int, spray: bool) -> void:
@@ -4966,18 +4990,26 @@ func _attack_maelstrom(canvas: Image, st: Dictionary) -> void:
 
 # Rings of water drawn in towards the middle on release (it gathers, it doesn't push).
 func _whirl_pulse(canvas: Image, st: Dictionary, size: float) -> void:
+	# The pull: a thick white ring of water drawn in towards it, spray leaping up off the whirlpool.
 	var k: int = st.attack - RELEASE_FRAME
 	if k < 0 or k > 2:
 		return
 	var c := Vector2(31, 44)
-	var r := Vector2(28, 8) * size * (1.0 - k * 0.3)
-	for s in 32:
-		var ang := s * TAU / 32.0
+	var r := Vector2(29, 9) * size * (1.0 - k * 0.28)
+	for s in 48:
+		var ang := s * TAU / 48.0
 		var p := c + Vector2(cos(ang) * r.x, sin(ang) * r.y)
-		if (s + k) % 2 == 0:
-			_px(canvas, int(p.x), int(p.y), Color("#e8faff"))
-			var inward := (c - p).normalized()
-			_px(canvas, int(p.x + inward.x * 2), int(p.y + inward.y * 2), Color("#9ad4ff"))
+		var inward := (c - p).normalized()
+		_px(canvas, roundi(p.x), roundi(p.y), Color("#e8faff"))
+		_px(canvas, roundi(p.x + inward.x * 1.5), roundi(p.y + inward.y * 1.5), Color("#9ad4ff"))
+		if s % 6 == k:
+			_px(canvas, roundi(p.x + inward.x * 4), roundi(p.y + inward.y * 4), Color("#e8faff"))
+	for i in 6:
+		var a := i * TAU / 6.0 + k
+		var p := c + Vector2(cos(a) * 20.0 * size, sin(a) * 6.0) + Vector2(0, -3 - k * 3 - (i % 2) * 2)
+		_px(canvas, roundi(p.x), roundi(p.y), Color("#e8faff"))
+		_px(canvas, roundi(p.x), roundi(p.y) + 1, Color("#9ad4ff"))
+
 
 # A green reed pipe, banded, held out like a hose (from the hand, pointing ahead and up).
 func _reed(canvas: Image, a: Vector2, b: Vector2, o: Color) -> void:
@@ -5028,17 +5060,31 @@ func _attack_torrent(canvas: Image, st: Dictionary) -> void:
 
 # A straight jet of water out of the reed's tip on release (the line pierces).
 func _jet_attack(canvas: Image, st: Dictionary, key: String, width: int) -> void:
+	# A thick jet of water blasting out of the reed / cannon (it pierces a line), a spray burst at the
+	# mouth, the jet thinning to spray as it ends.
 	var k: int = st.attack - RELEASE_FRAME
 	if k < 0 or k > 2:
 		return
 	var from := Vector2(ATTACKS[key].point)
 	var dir := Vector2(1, -0.55).normalized()
-	for i in 20:
+	var n := dir.orthogonal()
+	var w: float = (width + 1.5) * (1.0 - k * 0.3)
+	for i in 26:
 		var p := from + dir * i
-		for w in range(-width / 2, width / 2 + 1):
-			var q := p + dir.orthogonal() * w
-			_px(canvas, int(q.x), int(q.y), Color("#e8faff") if w == 0 else Color("#5aa8ec"))
-	_warm_glow(canvas, from, Vector2(5, 4), k)
+		for j in range(-int(w), int(w) + 1):
+			if k == 2 and (i + j) % 2 == 0:
+				continue
+			var q := p + n * j
+			_px(canvas, roundi(q.x), roundi(q.y), Color("#e8faff") if absi(j) < 1 else (Color("#9ad4ff") if absi(j) < w - 0.5 else Color("#3a78c8")))
+	# The splash where the jet leaves (the jet runs off past the frame, so the mouth carries the beat).
+	var splash := _layer()
+	for i in 7:
+		var a: float = PI * 0.55 + i * PI * 0.22 + k * 0.3
+		_flat_ellipse(splash, from + Vector2(cos(a), sin(a)) * (4.0 + k * 3.0), Vector2(1.6, 1.6) * (1.0 - k * 0.25), Color("#9ad4ff"))
+	_flat_ellipse(splash, from, Vector2(3.5, 3.5) * (1.0 - k * 0.3), Color("#e8faff"))
+	_stamp(canvas, splash, Color("#16305e"))
+	_warm_glow(canvas, from, Vector2(6, 5), k)
+
 
 
 # --- Branch expansion, Firefly Jar -------------------------------------------------------------
@@ -5137,18 +5183,28 @@ func _attack_rainbow_prism(canvas: Image, st: Dictionary) -> void:
 
 # The crystal flares and splits its light into beams (one, or three coloured ones).
 func _prism_flash(canvas: Image, st: Dictionary, key: String, beams: int) -> void:
+	# The crystal flares and splits its light: a bright star on the crystal, beams fanning out of it
+	# (white for Prism Jar, three colours for Rainbow Prism), two pixels thick.
 	var k: int = st.attack - RELEASE_FRAME
 	if k < 0 or k > 2:
 		return
 	var c := Vector2(ATTACKS[key].point)
 	var cols := [Color("#ec9cf4"), Color("#fcd47c"), Color("#9cd4fc")]
-	for b in beams:
-		var a: float = -0.3 + (b - (beams - 1) / 2.0) * 0.4
-		for i in range(3, 24):
-			var p := c + Vector2.from_angle(a) * i
-			_px(canvas, int(p.x), int(p.y), Color.WHITE if beams == 1 else cols[b])
-	_sparkle(canvas, Vector2i(c), Color.WHITE)
-	_warm_glow(canvas, c, Vector2(7, 6), k)
+	var n: int = maxi(beams, 3)
+	for b in n:
+		var a: float = -0.55 + b * 0.55 - PI * 0.12
+		var d := Vector2.from_angle(a)
+		var col: Color = Color.WHITE if beams == 1 else cols[b % 3]
+		for i in range(4, 28 - k * 4):
+			var p := c + d * i
+			_px(canvas, roundi(p.x), roundi(p.y), col)
+			if k < 2:
+				_px(canvas, roundi(p.x + d.orthogonal().x), roundi(p.y + d.orthogonal().y), Color("#dce8f4") if beams == 1 else col)
+	for i in range(-5, 6):
+		_px(canvas, int(c.x) + i, int(c.y), Color.WHITE)
+		_px(canvas, int(c.x), int(c.y) + i, Color.WHITE)
+	_warm_glow(canvas, c, Vector2(9, 8), k)
+
 
 # A sparkler: a thin stick held up, a fizzing star of sparks at its tip, a few falling.
 func _sparkler(canvas: Image, hand: Vector2, tip: Vector2, f: int, o: Color) -> void:
@@ -5257,18 +5313,26 @@ func _attack_vesper_bell(canvas: Image, st: Dictionary) -> void:
 
 # One toll: rings going out from the bell, long and thin (it reaches far); Vesper's echoes.
 func _toll(canvas: Image, st: Dictionary, key: String, echoes: int) -> void:
+	# One toll: the bell flashes and thick silver rings spread from it (Vesper's echo after them), a
+	# note leaping off.
 	var k: int = st.attack - RELEASE_FRAME
 	if k < 0 or k > 2:
 		return
 	var c := Vector2(ATTACKS[key].point)
-	for e in echoes:
-		var r := 4.0 + k * 4.0 + e * 5.0
-		for s in 20:
-			var a := s * TAU / 20.0
-			if (s + k + e) % 2 == 0:
-				_px(canvas, int(c.x + cos(a) * r), int(c.y + sin(a) * r * 0.7), Color(SILVER[2]) if e == 0 else Color(SILVER[1]))
+	for e in echoes + 1:
+		var r := 5.0 + k * 5.0 + e * 5.0
+		for s in 40:
+			var a := s * TAU / 40.0
+			if (s + k) % 5 == 4:
+				continue
+			var p := c + Vector2(cos(a) * r, sin(a) * r * 0.75)
+			_px(canvas, roundi(p.x), roundi(p.y), Color(SILVER[3]) if e == 0 else Color(SILVER[1]))
+			if e == 0 and k < 2:
+				_px(canvas, roundi(p.x), roundi(p.y) + 1, Color(SILVER[1]))
+	_glyph(canvas, Vector2i(int(c.x) - 10 - k * 2, int(c.y) - 10 - k * 3), NOTE_GLYPH, Color(SILVER[3]))
 	if k == 0:
-		_warm_glow(canvas, c, Vector2(7, 6))
+		_warm_glow(canvas, c, Vector2(9, 8))
+
 
 func _draw_hushbell(canvas: Image, st: Dictionary) -> void:
 	_hush_body(canvas, st, false)
@@ -5319,15 +5383,27 @@ func _attack_silence(canvas: Image, st: Dictionary) -> void:
 
 # A soft muffling ring spreading out low (no sound: a dim, quiet wave).
 func _hush_wave(canvas: Image, st: Dictionary, size: float) -> void:
+	# The hush: its muffled bell glows dim violet, a thick ring of muted sound rolls out over the slab
+	# (dark, with a pale inner edge, so it reads as quiet, not as light) and "shh" waves leave its finger.
 	var k: int = st.attack - RELEASE_FRAME
 	if k < 0 or k > 2:
 		return
-	var c := Vector2(31, 40)
-	var r := Vector2(10 + k * 7, 3 + k * 2) * size
-	for s in 28:
-		var a := s * TAU / 28.0
-		if (s + k) % 3 != 0:
-			_px(canvas, int(c.x + cos(a) * r.x), int(c.y + sin(a) * r.y), Color(MOSS[2]))
+	var dy: int = st.dy
+	_fog(canvas, Vector2(30.5, 6 + dy), Vector2(16, 7) * (1.0 + k * 0.15), Color("#9a84e8", 0.55), st.f)
+	var c := Vector2(31, 42)
+	var r := Vector2(12 + k * 8, 4 + k * 2.5) * size
+	for s in 64:
+		var a := s * TAU / 64.0
+		if (s + k * 2) % 8 == 7:
+			continue
+		var p := c + Vector2(cos(a) * r.x, sin(a) * r.y)
+		_px(canvas, roundi(p.x), roundi(p.y), Color("#4c3c74"))
+		_px(canvas, roundi(p.x), roundi(p.y) - 1, Color("#9a84e8") if k < 2 else Color("#4c3c74"))
+	for w in 2:
+		var o := Vector2(37 + k * 3 + w * 3, 13 + dy - k * 2 - w * 2)
+		for d: Vector2i in [Vector2i(0, 1), Vector2i(1, 0), Vector2i(2, 1), Vector2i(3, 0)]:
+			_px(canvas, int(o.x) + d.x, int(o.y) + d.y, Color("#dce8f4"))
+
 
 # A trumpet flower: a stem, a long flaring horn facing `dir`, a pale throat.
 func _horn_flower(canvas: Image, base: Vector2, dir: Vector2, length: float, flare: float, o: Color) -> void:
@@ -5382,17 +5458,21 @@ func _attack_resonance(canvas: Image, st: Dictionary) -> void:
 
 # Arcs of sound rolling out of the horn in a cone ahead of it.
 func _sound_cone(canvas: Image, st: Dictionary, key: String, spread: float) -> void:
+	# Arcs of sound rolling out of the horn: three thick arcs, the nearest brightest, widening as they go.
 	var k: int = st.attack - RELEASE_FRAME
 	if k < 0 or k > 2:
 		return
 	var c := Vector2(ATTACKS[key].point)
-	for ring in 2:
-		var r := 4.0 + k * 4.0 + ring * 4.0
-		for s in 9:
-			var a := (s - 4) / 4.0 * spread
+	for ring in 3:
+		var r := 3.0 + k * 2.5 + ring * 3.0
+		var col := Color("#fff4dc") if ring == 0 else (Color("#ec9cf4") if ring == 1 else Color("#9a84e8"))
+		for s in 15:
+			var a := (s - 7) / 7.0 * (spread + 0.5 + ring * 0.15)
 			var p := c + Vector2.from_angle(a) * r
-			_px(canvas, int(p.x), int(p.y), Color("#e0c8ff") if ring == 0 else Color("#c0a8ec"))
-	_warm_glow(canvas, c, Vector2(5, 5), k)
+			_px(canvas, roundi(p.x), roundi(p.y), col)
+			_px(canvas, roundi(p.x) + 1, roundi(p.y), col)
+	_warm_glow(canvas, c, Vector2(7, 6), k)
+
 
 # --- Nurture ranks (warden_stats.md "Ranks: Nurture") -----------------------------------------
 # Every Warden stands on the same waystone slab (the mock's), so rank art is drawn once and layered

@@ -146,6 +146,28 @@ static func make_icon(id: StringName, scale: int = 1) -> TextureRect:
 		TapTip.attach(rect, tip)
 	return rect
 
+# A Warden form's role and counters from its counter tags (TowerData.counter_tags, Tower Code): one place for the family
+# pick's routes, the Codex Families page and the hover cards.
+const COUNTER_WORDS := {&"anti_air": "flyers", &"anti_tank": "tanks", &"anti_armour": "armour", &"anti_swarm": "swarms",
+	&"anti_support": "support nightmares", &"detection": "hidden nightmares", &"boss_abilities": "boss abilities"}
+const ROLE_WORDS := {&"anti_air": "hits flyers", &"anti_tank": "tank killer", &"anti_armour": "cracks armour",
+	&"anti_swarm": "thins swarms", &"anti_support": "quiets support", &"detection": "reveals the hidden",
+	&"boss_abilities": "answers bosses"}
+
+static func _counter_tags(form: TowerData) -> Array:
+	var tags = form.get("counter_tags") if form != null else null
+	return tags if tags is Array else []
+
+# "tank killer, hits flyers" (the first two), "" without tags.
+static func role_text(form: TowerData) -> String:
+	var words: Array = _counter_tags(form).map(func(tag: StringName) -> String: return ROLE_WORDS.get(tag, "")).filter(func(w: String) -> bool: return w != "")
+	return ", ".join(words.slice(0, 2))
+
+# "Counters flyers, tanks", "" without tags.
+static func counters_text(form: TowerData) -> String:
+	var words: Array = _counter_tags(form).map(func(tag: StringName) -> String: return COUNTER_WORDS.get(tag, "")).filter(func(w: String) -> bool: return w != "")
+	return "Counters " + ", ".join(words) if not words.is_empty() else ""
+
 static func status_name(id: StringName) -> String:
 	return STATUSES[id][0] if STATUSES.has(id) else String(id).capitalize()
 
@@ -182,6 +204,13 @@ const TERMS := {
 	&"kinship": ["Kinship", "Kinships", "Kinship"],
 	&"harmony": ["Harmony strike", "Harmony strikes", "Harmony strike", "harmonies"],  # {harmonies}: the plural
 	&"potency": ["Potency", "Potency", "Potency"],  # Also linked as a plain word (StatusLinks.PLAIN_TERMS: card text says "Potency")
+	# Branch effects of the 12 new branches (Tower Code's BranchKit; glossary "Branch effects"): {current}, {erosion}, …
+	&"current": ["Current", "Currents", "Current"],
+	&"erosion": ["Erosion", "Erosion", "Erosion"],
+	&"arc": ["arc", "arcs", "Arc"],
+	&"ink": ["ink", "ink", "Ink", "inks"],
+	&"spore_sprite": ["spore-sprite", "spore-sprites", "Spore-sprite"],
+	&"whole_tree": ["Whole Tree", "Whole Tree", "Whole Tree"],
 }
 
 # Every term token form: [token text, term id, word shown]. Longest tokens first.

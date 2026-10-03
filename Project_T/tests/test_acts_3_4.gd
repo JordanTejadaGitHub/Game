@@ -720,6 +720,22 @@ func _run() -> void:
 	_check(badged.get_badge_ids() == [&"static", &"held", &"marked"],
 		"3 icons, the most important first (%s)" % [badged.get_badge_ids()])
 	_check(badged.get_status_order().size() == 6, "the info panel still lists all 6")
+	# Silence (Hushbell; Main 2421cbd6) shows like a status: a badge with its time bar
+	badged.statuses.silence_time = 4.0  # (No tick here: the checks below need its other statuses as they are)
+	_check(badged.get_status_order().has(EnemyStatuses.SILENCED) and badged.get_badge_ids()[2] == EnemyStatuses.SILENCED,
+		"Silenced gets a badge, ranked after Held (%s)" % [badged.get_badge_ids()])
+	badged.statuses.silence_time = 0.0
+	_check(not badged.get_status_order().has(EnemyStatuses.SILENCED), "and none without silence")
+	var hush := EnemyStatuses.new()
+	hush.silence_time = 4.0
+	var hush_changes := hush.changes
+	hush.tick(1.0)
+	_check(hush.changes > hush_changes and is_equal_approx(hush.time_share(EnemyStatuses.SILENCED), 0.75)
+		and hush.describe(EnemyStatuses.SILENCED) == "Silenced · 3.0 s",
+		"its time bar drains (%.2f) and the info line reads %s" % [hush.time_share(EnemyStatuses.SILENCED), hush.describe(EnemyStatuses.SILENCED)])
+	hush_changes = hush.changes
+	hush.tick(5.0)
+	_check(hush.changes > hush_changes and hush.silence_time == 0.0, "its end bumps changes (the badge goes)")
 	_check(badged.statuses.describe(&"static") == "Charged 4/5 · 2.0 s", "info line: %s" % badged.statuses.describe(&"static"))
 	_check(badged.statuses.describe(&"damp") == "Soaked · 4.0 s", "no stack count for a status that can't stack (%s)" % badged.statuses.describe(&"damp"))
 	badged.statuses.tick(1.0)

@@ -24,6 +24,13 @@ func _director(demo: int) -> DriftDirector:
 	await process_frame
 	return main.get_node("%DriftDirector")
 
+func _glossary_terms() -> Array:
+	var out: Array = []
+	for group in CodexData.glossary():
+		for entry in group[1]:
+			out.append(entry[0])
+	return out
+
 func _run() -> void:
 	HeartwoodMemory.file_path = "user://test_demo_rules_%d.json" % OS.get_process_id()
 	var demo := await _director(1)
@@ -38,6 +45,7 @@ func _run() -> void:
 	if gifts != null:
 		gifts._on_rest_started(5, true, 0, false)  # The act 1 boss rest
 		_check(not gifts.is_offering(), "demo: no Heartwood's Gifts at the act break")
+	_check(not _glossary_terms().has("Whole Tree") and not _glossary_terms().has("Current"), "demo: no branch-expansion terms in the glossary")
 	demo.owner.queue_free()
 	await process_frame
 
@@ -46,6 +54,8 @@ func _run() -> void:
 		"full game: the Spire curve and pots")
 	_check(full.get_block_finale_elites(10) >= 0, "full game: block finales")
 	_check(DreamState.branch_expansion_on(), "full game: branch expansion")
+	var terms := _glossary_terms()
+	_check(CodexData.EXPANSION_TERMS.all(func(t: String) -> bool: return terms.has(t)), "full game: the branch-expansion terms are in the glossary")
 	full.owner.queue_free()
 	await process_frame
 	ResultsScreen.demo_override = -1

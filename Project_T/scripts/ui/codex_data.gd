@@ -50,6 +50,16 @@ const GLOSSARY_SOURCE := [
 		["Kinship", "Two branches of the same family within 2 cells of each other bond and grow stronger the longer they stand together.", ["Harmony strike", "Boosts"], "Blooming at 5 drifts, Old Kin at 10."],
 		["Harmony strike", "When two Wardens in a Kinship hit the same nightmare within 1 s, petals burst on it for extra damage (at most every 2 s per pair).", ["Kinship"]],
 		["Boosts", "Wardens that strengthen others near them: auras, Kinship bonds, and Kindred / Whole Tree. The Boosts button shows who's boosted, and by what.", ["Kinship"]],
+		["Kindred", "Two different branches of one family on the map: that family's Wardens deal 10% more damage.", ["Whole Tree", "Kinship"]],
+		["Whole Tree", "Three different branches of one family on the map at once (a branch or its final form each): that family's Wardens deal 20% more damage, in place of Kindred's 10%. Announced at the next rest.", ["Kindred"]],
+		["Not in this dream", "A family has five branches and each run offers two of them (plus the Grove's hidden one). The others are not in this dream: misty on the Remember screen, where you can call one in for 3 Dreamlight, once per family.", ["Branch", "Remember screen"]],
+	]],
+	["Branch effects", [
+		["Current", "Undercurrent opens a whirlpool on the path for 3 s that links up to 6 nightmares in it: 25% of any hit on one reaches each of the others. Maelstrom's is wider and links up to 8 at 45%, and its current also carries {static} bolts to the others at half.", ["Erosion"], "Shared damage is an effect: no crits, never shared twice, never part of a Reaction."],
+		["Erosion", "Jetreed's jet wears its target down: each hit also takes 2% of the nightmare's max health (bosses 0.5%), never more than 4× the hit itself. Torrent's takes 3% (bosses 0.75%).", ["Current"]],
+		["Arc", "Two Jarlinks within 4 cells join with an arc: nightmares touching it take damage every moment and gain 1 {static} each second, and a flyer crossing it takes 3 {static} at once. A Lightning Fence's arc hits much harder and catches Phantoms gliding through.", ["{static}"]],
+		["Ink", "An Inkcap shot on a {spored} nightmare inks every path tile it walks for 2 s; a nightmare standing in ink gains 1 {spored} each second. A nightmare Deliquescent inked melts, when dispelled, into a pool over 2 path tiles for 4 s that adds {spored} twice a second.", ["{spored}"]],
+		["Spore-sprite", "Brood Cap hatches little sprites (up to 4 at once) that walk up the path and burst on the first nightmare they touch: a full hit and 2 {spored} (Hatchery 3), and a {hidden} nightmare they bump shows itself. Every 5th Hatchery sprite is a big one that splits into 3.", ["{spored}", "{hidden}"]],
 	]],
 	["Damage types", [
 		["Damage type", "Every Warden deals one type of damage: Spore, Stone, Water, Light, Root, Song, Talon, Wind, or Plain. The Warden panel and the Warden bar say which (\"Light damage\").", ["Resists and Weak to", "Plain damage"]],
@@ -373,19 +383,25 @@ static var _glossary: Array = []
 static var _glossary_sapling := false  # TowerPlacer.sapling_enabled when it was built
 # Terms only while the Heartwood Sapling is in runs (TowerPlacer.sapling_enabled; run_design.md).
 const SAPLING_TERMS := ["Heartwood Sapling", "Permanent"]
+# The full game's branch expansion (the demo has its old branches and no Whole Tree): left out of the demo's glossary.
+const EXPANSION_TERMS := ["Whole Tree", "Not in this dream", "Current", "Erosion", "Arc", "Ink", "Spore-sprite"]
+static var _glossary_expansion := true
 
 # The glossary with today's status names and IconInfo's definitions filled in (built once, again
 # if the Sapling is switched on or off).
 static func glossary() -> Array:
-	if _glossary_sapling != TowerPlacer.sapling_enabled:
+	if _glossary_sapling != TowerPlacer.sapling_enabled or _glossary_expansion != DreamState.branch_expansion_on():
 		_glossary = []
 		_glossary_sapling = TowerPlacer.sapling_enabled
+		_glossary_expansion = DreamState.branch_expansion_on()
 	if _glossary.is_empty():
 		for group in GLOSSARY_SOURCE:
 			var entries: Array = []
 			for entry in group[1]:
 				if not TowerPlacer.sapling_enabled and SAPLING_TERMS.has(entry[0]):
 					continue
+				if not _glossary_expansion and EXPANSION_TERMS.has(entry[0]):
+					continue  # The demo keeps today's branches: no branch-expansion terms
 				var text: String = entry[1]
 				if text.begins_with("{tip:"):
 					text = IconInfo.STATUSES.get(StringName(text.trim_prefix("{tip:").trim_suffix("}")), ["", ""])[1]
@@ -394,7 +410,8 @@ static func glossary() -> Array:
 					IconInfo.format(entry[3]) if entry.size() > 3 else ""])  # [3]: one muted example line
 			if group[0] == "Damage types":
 				entries.append_array(damage_type_entries(entries))
-			_glossary.append([group[0], entries])
+			if not entries.is_empty():  # The demo's "Branch effects" is empty
+				_glossary.append([group[0], entries])
 	var callouts := callout_entries()
 	if callouts.is_empty():
 		return _glossary

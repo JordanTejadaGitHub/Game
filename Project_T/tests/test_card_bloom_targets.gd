@@ -36,6 +36,14 @@ func _run() -> void:
 	var nightbloom: UpgradeData = load("res://resource/dream/endless_night.tres")  # Requires Bloomcap, Rain Lily, Bellflower
 	_check(bell.is_reached_by_rule(nightbloom) and spore.is_reached_by_rule(nightbloom) and not sprout.is_reached_by_rule(nightbloom),
 		"a Reaction card reaches its ingredients' lines")
+	# The real bloom list (Roguelite c25576eb): the Wardens CardBloom pulses when Heavy Eyelids is picked.
+	var dreams: DreamState = main.get_node("%DreamState")
+	var impact := dreams.preview_card_impact(eyelids)
+	_check(not impact.towers.has(sprout) and not impact.towers.has(spore) and impact.towers.has(bell),
+		"picking Heavy Eyelids pulses the Bellflower only (%s)" % [impact.towers.map(func(t) -> String: return t.tower_data.get_id())])
+	var global_impact := dreams.preview_card_impact(old_growth)
+	_check(global_impact.kind == &"stat" or (not global_impact.towers.has(sprout) and not global_impact.towers.has(bell)),
+		"a card with no Warden filter pulses no Warden by rule (%s)" % global_impact.kind)
 	print("card bloom targets test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

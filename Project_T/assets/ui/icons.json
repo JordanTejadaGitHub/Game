@@ -83,6 +83,7 @@
 		"sapling": 34,
 		"seeds": 59,
 		"shatter": 66,
+		"silenced": 79,
 		"sink": 30,
 		"smother": 68,
 		"song": 53,
@@ -186,6 +187,7 @@
 		"caught",
 		"frozen",
 		"deeply_blighted",
-		"hidden"
+		"hidden",
+		"silenced"
 	]
 }

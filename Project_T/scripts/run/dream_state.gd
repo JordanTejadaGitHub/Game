@@ -600,11 +600,42 @@ func get_branch_offer(base: TowerData) -> Array:
 	if not branch_offers.has(id):
 		branch_offers[id] = _draw_branch_offer(base)
 	var offer: Array = branch_offers[id]
-	for form in base.evolves_to:  # The hidden branch joins once the Grove has planted it
+	_add_planted_hidden(base, offer)
+	return offer
+
+# What get_branch_offer(base) would give if the family were picked now, with no side effects (the family pick cards
+# show it; Main Merger): nothing cached in branch_offers, no profile write, covered tags from the real offers only.
+# The result is kept in _previewed, stamped with the real offers it was drawn against; while they're unchanged (from the
+# pick cards to the pick) the real draw uses it, so the family picked gets exactly what its card showed. Once another
+# family's offer is drawn the stamp no longer matches and the next preview or draw starts fresh.
+var _previewed := {}  # Base id -> [stamp, the previewed pair]
+
+func preview_branch_offer(base: TowerData) -> Array:
+	var id := base.get_id()
+	if branch_offers.has(id):
+		return get_branch_offer(base).duplicate()
+	var offer: Array = _previewed_pair(id)
+	if offer.is_empty():
+		offer = _compute_branch_offer(base)
+		_previewed[id] = [_offers_stamp(), offer]
+	offer = offer.duplicate()
+	_add_planted_hidden(base, offer)
+	return offer
+
+# A preview of `id` still valid against the real offers ([] = none).
+func _previewed_pair(id: String) -> Array:
+	var entry: Array = _previewed.get(id, [])
+	return entry[1] if not entry.is_empty() and entry[0] == _offers_stamp() else []
+
+func _offers_stamp() -> int:
+	return hash(branch_offers)
+
+# The hidden branch joins once the Grove has planted it.
+func _add_planted_hidden(base: TowerData, offer: Array) -> void:
+	for form in base.evolves_to:
 		if form is TowerData and form.tier == 2 and is_hidden_branch(form) and grove_cards.has(_unlock_card_for(form).id) \
 				and not offer.has(form.get_id()):
 			offer.append(form.get_id())
-	return offer
 
 # The forms of `base`'s family that are not in this run ("not in this dream"): its regular branches not offered.
 func not_offered_branches(base: TowerData) -> Array[TowerData]:
@@ -617,7 +648,18 @@ func not_offered_branches(base: TowerData) -> Array[TowerData]:
 			out.append(form)
 	return out
 
+# The real draw: a preview's pair if there is one (the card showed it), else a fresh draw; then the profile note.
 func _draw_branch_offer(base: TowerData) -> Array:
+	var id := base.get_id()
+	var shown := _previewed_pair(id)
+	var offer: Array = shown.duplicate() if not shown.is_empty() else _compute_branch_offer(base)
+	_previewed.clear()  # The real offers change now: every other preview is stale
+	if branch_expansion_on() and regular_branches(base).size() > BRANCH_OFFER_SIZE:
+		_remember_branch_offer(id, offer)
+	return offer
+
+# The draw itself, with no side effects.
+func _compute_branch_offer(base: TowerData) -> Array:
 	var branches := regular_branches(base)
 	var ids: Array = branches.map(func(f: TowerData) -> String: return f.get_id())
 	if not branch_expansion_on() or branches.size() <= BRANCH_OFFER_SIZE:
@@ -660,9 +702,7 @@ func _draw_branch_offer(base: TowerData) -> Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(map_generator.map_seed) + hash("branches:" + base.get_id()) if map_generator != null else hash(base.get_id())
 	var chosen: Array = pool_pairs[rng.rand_weighted(PackedFloat32Array(weights))] if not weights.is_empty() else pool_pairs[rng.randi_range(0, pool_pairs.size() - 1)]
-	var offer: Array = chosen.map(func(f: TowerData) -> String: return f.get_id())
-	_remember_branch_offer(base.get_id(), offer)
-	return offer
+	return chosen.map(func(f: TowerData) -> String: return f.get_id())
 
 const TAG_WEIGHTS := {&"anti_tank": 2.0}  # Counts double in the smart draw (Tower Discussion + Balancing: tanks matter)
 const TOP_PAIR_BAND := 0.8  # Pairs scoring within 80% of the best are drawn among
@@ -4150,10 +4190,17 @@ func preview_card_impact(card: UpgradeData) -> Dictionary:
 		result.text = ("%d of your Wardens qualify" % qualifying) if qualifying > 0 else "None of your Wardens qualify yet"
 		return result
 	if card.kind == UpgradeData.Kind.RULE:
-		var attackers: Array = towers.filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
-		if not attackers.is_empty():
+		# Only the Wardens the rule reaches pulse (Tower.is_reached_by_rule, Tower Code 37031714: its Warden / line, the
+		# status it's about, its ingredients' lines): Heavy Eyelids pulsed every Sprout (user screenshot)
+		var reached: Array = towers.filter(func(t: Tower) -> bool: return t.is_reached_by_rule(card))
+		if not reached.is_empty():
 			result.kind = &"trigger"
-			result.towers = attackers
+			result.towers = reached
+			result.text = ("Reaches %d of your Wardens" % reached.size()) if reached.size() > 1 else "Reaches one of your Wardens"
+			return result
+		var attackers: Array = towers.filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
+		if not attackers.is_empty():  # A global or nightmare-side rule: the line, but no Warden pulses
+			result.kind = &"trigger"
 			result.text = ("Triggers on all %d attackers" % attackers.size()) if attackers.size() > 1 else "Triggers on your attacker"
 	return result
 

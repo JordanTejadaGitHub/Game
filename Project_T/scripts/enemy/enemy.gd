@@ -118,7 +118,7 @@ const STATUS_BADGE := 28.0
 const STATUS_BADGE_BIG := 32.0
 const STATUS_BADGE_GAP := 3.0
 const STATUS_BADGES_MAX := 3  # More → the most important ones (BADGE_ORDER) and "+N" (4 at 28 px overhang both neighbours)
-const BADGE_ORDER: Array[StringName] = [&"static", &"held", &"marked", &"spored", &"drowsy", &"damp"]
+const BADGE_ORDER: Array[StringName] = [&"static", &"held", &"silenced", &"marked", &"spored", &"drowsy", &"damp"]
 const VIEW_MARGIN := 96.0  # px past the screen edge where nightmares still draw (their badges overhang)
 const HUD_TIME_FRAMES := 4  # The time bars under the icons are looked at every this many frames (_update_hud)
 const TIME_BAR_GAP := 6.0  # Room under each icon for its time bar (px, above the health bar)
@@ -253,6 +253,7 @@ var hud_builds := 0  # Items rebuilt (tests: only when something changed)
 # The badge row, cached until statuses.changes moves (_update_hud_layout)
 var _hud_changes := -1
 var _hud_ids: Array = []
+var _hud_total := 0  # Badge-worthy statuses in all (silence included): "+N" = this − the shown ones
 var _hud_stacks: Array[int] = []
 var _hud_full: Array[bool] = []
 var _hud_colors: Array[Color] = []
@@ -731,7 +732,9 @@ func _update_hud_layout() -> void:
 	var before := {}  # Stacks last time: an icon whose stacks went up pops
 	for i in _hud_ids.size():
 		before[_hud_ids[i]] = _hud_stacks[i]
-	_hud_ids = get_badge_ids()
+	var order := get_status_order()
+	_hud_total = order.size()
+	_hud_ids = order.slice(0, STATUS_BADGES_MAX)
 	for id in _hud_ids:
 		if statuses.stacks(id) > int(before.get(id, 0)):
 			_hud_pops[id] = STACK_POP_TIME
@@ -752,7 +755,7 @@ func _update_hud_layout() -> void:
 func _badge_centre(i: int) -> Vector2:
 	var r := get_badge_size() / 2.0
 	var step := r * 2.0 + STATUS_BADGE_GAP
-	var extra := statuses.count() - _hud_ids.size()
+	var extra := _hud_total - _hud_ids.size()
 	var width := _hud_ids.size() * step - STATUS_BADGE_GAP + (step * 0.6 if extra > 0 else 0.0)
 	return Vector2(-width / 2.0 + r + i * step, -r - TIME_BAR_GAP)
 
@@ -864,7 +867,7 @@ func _build_hud_text(item: RID) -> void:
 			var width := _stack_font_face().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE).x
 			var baseline := Vector2(box.get_center().x - width / 2.0, box.get_center().y + STACK_FONT_SIZE * 0.35)
 			_add_stack_text(item, baseline, text, Palette.GOLD if _hud_full[i] else Palette.MOONLIGHT)
-	var extra := statuses.count() - _hud_ids.size()
+	var extra := _hud_total - _hud_ids.size()
 	if extra > 0:
 		var after := _badge_centre(_hud_ids.size() - 1) + Vector2(r + STATUS_BADGE_GAP, STACK_FONT_SIZE * 0.35)
 		_add_stack_text(item, after, "+%d" % extra, Palette.MOONLIGHT)
@@ -929,6 +932,8 @@ func get_status_notes() -> Array[String]:
 # Every status it carries, most important first (the info panel lists them in this order).
 func get_status_order() -> Array:
 	var ids := statuses.active_ids()
+	if statuses.silence_time > 0.0:
+		ids.append(EnemyStatuses.SILENCED)  # Hushbell's silence (not one of _active's): a badge all the same
 	ids.sort_custom(func(a: StringName, b: StringName) -> bool: return _badge_rank(a) < _badge_rank(b))
 	return ids
 
