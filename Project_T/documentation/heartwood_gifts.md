@@ -25,7 +25,7 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
 |---|---|
 | **Sow a Ridge** | Draw a ridge of 3–5 Withered Trees, cell by cell (adjacent cells). Clearable later at the normal cost. |
 | **Fallen Giant** | Lay a fallen log 2–4 cells long, straight, where you choose. It can't be cleared this run. |
-| **Glade** | Clear every obstacle within 2 cells of a chosen cell, free; each one still counts as tended (+1 Seed). |
+| **Glade** | Clear **up to 5 obstacles of your choice**, free; each still counts as tended (+1 Seed). Pick them one by one on the gift screen (gold outline + ×, click again to unselect; counter "3 of 5 · −6 path"; the route mist previews live); "Clear them" confirms. (Revised 2026-10-03, user: the radius version "didn't feel right and was unintuitive"; as built 3ab8abee.) |
 | **Shift the Stones** | Move up to 3 obstacles to new empty cells. |
 | **Mire** | Pick 3 connected path cells: the ground turns to bog, and nightmares move 20% slower there. |
 
