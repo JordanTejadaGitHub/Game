@@ -114,12 +114,26 @@ static func ui_factor(root: Window) -> float:
 
 # --- Fonts -------------------------------------------------------------------------------------
 
-# Alegreya Sans: card text, tooltips, panels.
+# Alegreya Sans: card text, tooltips, panels. Every UI face is a FontVariation with SPACE_EXTRA: with
+# subpixel positioning off (even letters at fractional UI scales), a space's advance rounds down to
+# 0–1 px at some scales and words ran together ("Asmall splash", 2026-10-02); one extra pixel keeps
+# every word gap visible.
+const SPACE_EXTRA := 1
 static func body_font() -> Font:
-	return _file("AlegreyaSans-Regular.ttf")
+	return _spaced("body", "AlegreyaSans-Regular.ttf")
 
 static func body_medium_font() -> Font:
-	return _file("AlegreyaSans-Medium.ttf")
+	return _spaced("body_medium", "AlegreyaSans-Medium.ttf")
+
+static func _spaced(key: String, file: String) -> Font:
+	if not _fonts.has(key):
+		if _fonts.is_empty():
+			release_at_exit(func() -> void: _fonts.clear())
+		var font := FontVariation.new()
+		font.base_font = _file(file)
+		font.spacing_space = SPACE_EXTRA
+		_fonts[key] = font
+	return _fonts[key]
 
 # Cormorant Garamond SemiBold: titles, card names, buttons. Every Cormorant face uses lining figures
 # (its default old-style ones read small in "Drift 8" or "1×").
@@ -136,6 +150,7 @@ static func caps_font() -> Font:
 		var font := FontVariation.new()
 		font.base_font = _file("CormorantSC-Medium.ttf")
 		font.spacing_glyph = 1
+		font.spacing_space = SPACE_EXTRA
 		font.opentype_features = {TextServerManager.get_primary_interface().name_to_tag("lnum"): 1}
 		font.fallbacks = [body_font()]
 		_fonts["caps"] = font
@@ -170,6 +185,7 @@ static func _variation(key: String, file: String, weight: int, tabular: bool) ->
 		if tabular:
 			features[ts.name_to_tag("tnum")] = 1
 		font.opentype_features = features
+		font.spacing_space = SPACE_EXTRA
 		font.fallbacks = [body_font()]  # Symbols Cormorant lacks (✧, ⏎…)
 		_fonts[key] = font
 	return _fonts[key]
