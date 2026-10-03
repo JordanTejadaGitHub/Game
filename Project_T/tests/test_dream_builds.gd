@@ -508,6 +508,7 @@ func _test_new_forms() -> void:
 	_own("pebbling")
 	_own("sporeling")
 	_own("bloomcap")
+	dreams.branch_offers["pebbling"] = ["mossback", "standing_stone"]  # Phase 2: Pebbling draws 2 of 5; this test is about Mossback
 	_check(dreams.get_unlock_cost(mossback) == 1 and dreams.get_unlock_blocker(mossback) == "", "Mossback: a branch for 1 Dreamlight")
 	_check(dreams.get_unlock_cost(boulderback) == 2 and dreams.get_unlock_cost(dreamshroom) == 2, "Boulderback and Dreamshroom: final forms for 2")
 	_check(dreams.get_unlock_blocker(dreamshroom) == "", "Dreamshroom needs no Grove node (finals come with the family, 2026-09-30)")

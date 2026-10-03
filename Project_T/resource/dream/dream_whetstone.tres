@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/whetstone.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_whetstone"
+display_name = "Whetstone"
+description = "Pebblings can now grow into Whetstones ({grow_cost:whetstone} Dew): the finisher, its hits on worn-down nightmares land far harder."
+rarity = 1
+kind = 1
+tags = Array[String](["stone"])
+requires = Array[String](["pebbling"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Resource" path="res://resource/tower/earthbind.tres" id="ev_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Groundroot"
+description = "Drags flyers down to the maze: every 4 s, up to 2 flyers within 3.5 cells are pulled onto the path and must walk the maze for 3 s."
+cost = 0
+placeholder_color = Color(0.360784, 0.235294, 0.141176, 1)
+line = "root"
+tier = 2
+buildable_directly = false
+evolve_cost = 120
+counter_tags = Array[StringName]([&"anti_air"])
+expansion_phase = 2
+special = &"groundroot"
+special_params = {"ground_every": 4.0, "ground_max": 2, "ground_reach": 3.5, "ground_time": 3.0}
+attack_range = 2.0
+damage = 20
+attacks_per_second = 1.0
+attack_kind = 1
+evolves_to = Array[Resource]([ExtResource("ev_1")])

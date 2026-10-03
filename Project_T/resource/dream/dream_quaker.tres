@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/quaker.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_quaker"
+display_name = "Quaker"
+description = "Pebblings can now grow into Quakers ({grow_cost:quaker} Dew): a slam that stops sprints."
+rarity = 1
+kind = 1
+tags = Array[String](["stone"])
+requires = Array[String](["pebbling"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")

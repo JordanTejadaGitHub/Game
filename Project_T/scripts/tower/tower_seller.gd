@@ -151,6 +151,7 @@ func sell(cell: Vector2) -> bool:
 	if tower == null or not can_sell() or tower.tower_data.rooted:
 		return false  # The Heartwood Sapling is rooted: never sold or moved
 	var refund := get_refund(tower)
+	BranchKit.remember_rank(tower)  # Mother Log: its rank stays in the log for the next Warden on this cell
 	tower_container.remove_child(tower)
 	tower.queue_free()
 	for c in tower.get_cells():

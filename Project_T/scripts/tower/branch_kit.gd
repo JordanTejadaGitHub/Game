@@ -578,6 +578,11 @@ static func _thrum(tower: Tower) -> void:
 # --- Phase 2: Whetstone / Edgestone, the finisher --------------------------------------------------------------------
 
 const SIDES: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
+
+# Phase 2's effects play once Tower Assets' art is in effects.json (until then, silently nothing).
+static func _fx(effect: StringName, at: Vector2, parent: Node, scale: float = 1.0) -> void:
+	if parent != null and not Fx.info(effect).is_empty():
+		Fx.play(effect, at, parent, scale)
 const CRACK_TIME := 3.0  # Earthshaker's cracked path, and Fault Line's (× its share)
 
 # Tower.hit: Whetstone's hits on a worn-down nightmare land harder.
@@ -603,7 +608,7 @@ static func on_finish(tower: Tower, enemy: Node2D, overkill: float) -> void:
 	if best == null:
 		return
 	world(tower).add_child(LineFlash.new(enemy.global_position, best.global_position, Palette.MOONLIGHT, 0.25))
-	Fx.play(&"clean_cut", best.global_position, world(tower))
+	_fx(&"clean_cut", best.global_position, world(tower))
 	best.take_damage(overkill * p(tower, "spill", 1.0), tower.tower_data.line, false, false, tower, &"clean_cut")
 
 # --- Phase 2: Rampart / Bastion, stone among stone ---------------------------------------------------------------
@@ -666,7 +671,7 @@ static func _count_near(tower: Tower, at: Vector2, reach: float) -> int:
 
 static func _drop_rock(tower: Tower, cell: Vector2) -> void:
 	var at := Tower.MAP_GRID.calculate_map_position(cell)
-	Fx.play(&"rockfall", at, world(tower))
+	_fx(&"rockfall", at, world(tower))
 	var share := p(tower, "rock", 150.0) / maxf(float(tower.attack_data.damage), 1.0)  # Scales with ranks and Dreams
 	var reach := p(tower, "rock_radius", 1.0) * CELL
 	for e in targetable(tower):
@@ -681,7 +686,7 @@ static func _drop_rock(tower: Tower, cell: Vector2) -> void:
 # The slam (its pulse lands the hits; on_hit stops the sprints): Earthshaker cracks the path in reach for 3 s;
 # Fault Line (b) runs the slam along the stone walls touching its Rampart.
 static func _quake(tower: Tower) -> void:
-	Fx.play(&"ground_slam", tower.global_position, world(tower), tower.get_range_cells() / 1.5)
+	_fx(&"ground_slam", tower.global_position, world(tower), tower.get_range_cells() / 1.5)
 	if is_final(tower):
 		var reach := tower.get_range_pixels()
 		for cell in tower._route():
@@ -737,7 +742,7 @@ static func ground(tower: Tower, e: Node2D) -> void:
 	if not e.has_method("ground"):
 		return  # Enemy's side not in yet
 	e.ground(p(tower, "ground_time", 3.0))
-	Fx.play(&"root_grab", e.global_position, world(tower))
+	_fx(&"root_grab", e.global_position, world(tower))
 	if is_final(tower):
 		_land_hold(tower, e, p(tower, "land_hold", 0.5))  # Earthbind: Rooted when it lands
 	var thorns := tower.kin_share(BRAMBLE_BED, "a")
@@ -768,7 +773,7 @@ static func _update_goal_guard(tower: Tower, delta: float) -> void:
 		if not e.has_meta(&"deeproot_held") and e.global_position.distance_to(heart) <= reach:
 			e.set_meta(&"deeproot_held", true)  # Once each, whichever Deeproot got there first
 			_land_hold(tower, e, p(tower, "goal_hold", 1.0))
-			Fx.play(&"goal_hold", e.global_position, world(tower))
+			_fx(&"goal_hold", e.global_position, world(tower))
 
 static func _heartwood_at(near: Node) -> Vector2:
 	var map = world(near).get_node_or_null("%MapGenerator") if world(near) else null
@@ -934,7 +939,7 @@ static func _add_shards(tower: Tower, shards: int) -> void:
 	var dreams = tower._dream_state
 	if dreams == null or shards <= 0:
 		return
-	Fx.play(&"shard_rise", tower.global_position + Vector2(0, -40), world(tower))
+	_fx(&"shard_rise", tower.global_position + Vector2(0, -40), world(tower))
 	if dreams.has_method("add_source_shards"):
 		dreams.add_source_shards(&"dream_oak", shards, int(p(tower, "dreamlight_max", 4.0)))
 	else:
@@ -971,7 +976,7 @@ static func seed_planted(seedbearer: Tower, sprout: Tower) -> void:
 		ranks = maxi(ranks, 1)
 		seedbearer._kin_fired(NURSERY)
 	_grant_ranks(sprout, ranks)
-	Fx.play(&"sprout_puff", sprout.global_position, world(seedbearer))
+	_fx(&"sprout_puff", sprout.global_position, world(seedbearer))
 	seedbearer.queue_redraw()
 
 class CrackField extends Node2D:
@@ -993,7 +998,7 @@ class CrackField extends Node2D:
 		if seconds <= 0.0:
 			return
 		if not cells.has(cell):
-			Fx.play(&"path_crack", Tower.MAP_GRID.calculate_map_position(cell), self)
+			BranchKit._fx(&"path_crack", Tower.MAP_GRID.calculate_map_position(cell), self)
 		cells[cell] = maxf(float(cells.get(cell, 0.0)), seconds)
 		queue_redraw()
 

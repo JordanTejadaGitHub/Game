@@ -68,6 +68,10 @@ const KINSHIPS := {
 	&"eye_of_the_storm": ["Eye of the Storm", "water", "cloudlet", "undercurrent", false],
 	&"fireworks_fence": ["Fireworks Fence", "light", "jarlink", "sparkler", false],
 	&"vespers": ["Vespers", "song", "silver_bell", "hushbell", false],
+	# Phase 2 (Pebbling, Rootling, Acorn). Nursery's id isn't &"nursery": that's a Dream card's rule.
+	&"fault_line": ["Fault Line", "stone", "rampart", "quaker", false],
+	&"bramble_bed": ["Bramble Bed", "root", "groundroot", "thorncoil", false],
+	&"nursery_bond": ["Nursery", "acorn", "seedbearer", "nurse_log", false],
 }
 # The colours of each family, for vines and Harmony sparks.
 const FAMILY_COLORS := {"spore": Palette.NEWLEAF, "water": Palette.DEWLIGHT,  # One palette colour each

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Resource" path="res://resource/tower/mother_log.tres" id="ev_1"]
+
+[resource]
+script = ExtResource("1_tdata")
+display_name = "Nurse Log"
+description = "Wardens beside it grow ranks cheaper: Wardens within 1.5 cells pay 25% less to Nurture."
+cost = 0
+placeholder_color = Color(0.54902, 0.360784, 0.203922, 1)
+line = "acorn"
+tier = 2
+buildable_directly = false
+evolve_cost = 120
+role_tag = &"economy"
+expansion_phase = 2
+special = &"nurse_log"
+special_params = {"nurse_radius": 1.5, "nurture_discount": 0.25}
+attack_range = 2.0
+damage = 12
+attacks_per_second = 1.0
+attack_kind = 1
+evolves_to = Array[Resource]([ExtResource("ev_1")])

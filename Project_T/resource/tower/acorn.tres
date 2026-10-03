@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=7 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Texture2D" path="res://assets/towers/acorn.png" id="2_tex"]
@@ -7,6 +7,9 @@
 [ext_resource type="Resource" path="res://resource/tower/elder_stump.tres" id="ev_es"]
 [ext_resource type="Resource" path="res://resource/tower/dewcatcher.tres" id="ev_dc"]
 
+[ext_resource type="Resource" path="res://resource/tower/seedbearer.tres" id="p2_1"]
+[ext_resource type="Resource" path="res://resource/tower/nurse_log.tres" id="p2_2"]
+[ext_resource type="Resource" path="res://resource/tower/dream_oak.tres" id="p2_3"]
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Acorn"
@@ -29,6 +32,6 @@ description = "A little oak that throws acorns that bounce onto the nightmares b
 line = "acorn"
 tier = 1
 evolve_cost = 15
-evolves_to = Array[Resource]([ExtResource("ev_es"), ExtResource("ev_dc"), ExtResource("ev_1")])
+evolves_to = Array[Resource]([ExtResource("ev_es"), ExtResource("ev_dc"), ExtResource("ev_1"), ExtResource("p2_1"), ExtResource("p2_2"), ExtResource("p2_3")])
 aura_damage_bonus = 0.05
 aura_radius = 1.5

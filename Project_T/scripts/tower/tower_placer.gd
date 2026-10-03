@@ -192,6 +192,19 @@ func _input(event: InputEvent) -> void:
 	if stroking:
 		_stroke_input(event)
 		return
+	if is_choosing_seed():
+		if event.is_action_pressed("cancel_build"):
+			cancel_seed_choice()
+			get_viewport().set_input_as_handled()
+		elif event.is_action_pressed("place_tower"):
+			var seedbearer: Tower = _seed_choice.tower
+			var cell := MAP_GRID.calculate_grid_coordinates(get_global_mouse_position())
+			if _seed_choice.cells.has(cell) and plant_seed(seedbearer, cell) != null:
+				cancel_seed_choice()
+				if is_instance_valid(seedbearer) and BranchKit.seeds_ready(seedbearer) > 0:
+					begin_seed_choice(seedbearer)  # Another seed waiting: pick again
+			get_viewport().set_input_as_handled()
+		return
 	if not is_choosing_square():
 		return
 	if event.is_action_pressed("cancel_build"):
@@ -234,6 +247,12 @@ func _process(delta: float) -> void:
 		else:
 			_update_grow_choice()
 		return
+	if is_choosing_seed():
+		if not is_instance_valid(_seed_choice.tower) or not Tower.resting:
+			cancel_seed_choice()  # Sold, or the drift started
+		else:
+			_update_seed_choice()
+		return
 	if not build_mode:
 		return
 	var cell: Vector2 = MAP_GRID.calculate_grid_coordinates(get_global_mouse_position())
@@ -254,6 +273,9 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if is_choosing_square():
 		_draw_grow_choice()
+		return
+	if is_choosing_seed():
+		_draw_seed_choice()
 		return
 	if stroking:
 		_draw_stroke()
@@ -403,9 +425,9 @@ func is_previewing_growth() -> bool:
 # rank, catch: those come outside build mode; user "hovering Grow into doesn't preview"). The route line
 # is build mode's and the square choice's only.
 func _update_visible() -> void:
-	visible = build_mode or is_choosing_square() or not _grow_preview.is_empty() or not _rank_preview.is_empty() \
-		or not _catch_preview.is_empty()
-	_path_preview.visible = build_mode or is_choosing_square()
+	visible = build_mode or is_choosing_square() or is_choosing_seed() or not _grow_preview.is_empty() \
+		or not _rank_preview.is_empty() or not _catch_preview.is_empty()
+	_path_preview.visible = build_mode or is_choosing_square() or is_choosing_seed()
 	queue_redraw()
 
 # Nurture range preview (user: "hovering Nurture range should show the range it would go into"): while the
@@ -757,6 +779,7 @@ func _try_build(cell: Vector2) -> bool:
 	tower.position = Tower.footprint_centre(cell, tower_data.footprint)
 	tower_container.add_child(tower)
 	map_generator.block_cells(_footprint(cell))  # Emits path_changed -> enemies re-route, preview refreshes
+	BranchKit.on_planted(tower)  # Mother Log: a remembered rank for this cell
 	tower_built.emit(tower)
 	if tower_data == sapling:
 		sapling_planted.emit(tower)
@@ -1008,6 +1031,99 @@ func _draw_grow_choice() -> void:
 	if is_instance_valid(tower):
 		WorldLabel.draw_tag(self, tower.global_position.x, tower.global_position.y - MAP_GRID.cell_size.y,
 			"Grow into %s: pick a square (Esc to cancel)" % into.display_name, WorldLabel.cost_color(true))
+
+# --- Seedbearer's Sprout (branch expansion Phase 2): the player picks a cell beside it, at a rest ---
+
+signal seed_choice_changed(active: bool)
+var _seed_choice := {}  # {tower, cells, hover} while the player picks the cell
+var _sprout_data: TowerData = preload("res://resource/tower/sprout.tres")
+
+# Starts picking where a Seedbearer's ready Sprout grows: the open cells beside it (the path rule holds) show;
+# clicking one plants a free Sprout, Esc / right-click cancels. Only at a rest, with a seed ready.
+func begin_seed_choice(seedbearer: Tower) -> bool:
+	if not Tower.resting or BranchKit.seeds_ready(seedbearer) <= 0:
+		return false
+	var cells := seed_cells_open(seedbearer)
+	if cells.is_empty():
+		return false
+	cancel_grow_choice()
+	set_build_mode(false)
+	_seed_choice = {"tower": seedbearer, "cells": cells, "hover": NO_CELL}
+	_update_visible()
+	seed_choice_changed.emit(true)
+	queue_redraw()
+	return true
+
+func is_choosing_seed() -> bool:
+	return not _seed_choice.is_empty()
+
+func cancel_seed_choice() -> void:
+	if _seed_choice.is_empty():
+		return
+	_seed_choice = {}
+	_update_visible()
+	RouteLine.clear(_path_preview)
+	seed_choice_changed.emit(false)
+	queue_redraw()
+
+# The cells beside `seedbearer` a Sprout can take now: free, buildable, not settling or Omen-locked, no nightmare
+# on it, and the path rule holds.
+func seed_cells_open(seedbearer: Tower) -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	if frozen_ground():
+		return out
+	var enemy_cells := PackedVector2Array()
+	for enemy_cell in _walker_cells():
+		enemy_cells.append(enemy_cell)
+	for cell in BranchKit.seed_cells(seedbearer):
+		var cells: Array[Vector2] = [cell]
+		if not MAP_GRID.is_within_bounds(cell) or _cells_occupied(cells) or settling_left(cells) > 0.0 or omen_locked(cells):
+			continue
+		if map_generator.can_block_cells(cells, enemy_cells):
+			out.append(cell)
+	return out
+
+# Plants `seedbearer`'s Sprout on `cell` (free; never raises the Sprout price). Returns the Sprout, or null.
+func plant_seed(seedbearer: Tower, cell: Vector2) -> Tower:
+	if BranchKit.seeds_ready(seedbearer) <= 0 or not seed_cells_open(seedbearer).has(cell):
+		build_rejected.emit(cell)
+		return null
+	var tower: Tower = tower_scene.instantiate()
+	tower.tower_data = _sprout_data
+	tower.cell = cell
+	tower.invested_dew = 0
+	tower.set_meta(&"gift_sprout", true)
+	tower.position = Tower.footprint_centre(cell, 1)
+	tower_container.add_child(tower)
+	map_generator.block_cells([cell])
+	BranchKit.seed_planted(seedbearer, tower)
+	tower_built.emit(tower)
+	return tower
+
+func _update_seed_choice() -> void:
+	var cell := MAP_GRID.calculate_grid_coordinates(get_global_mouse_position())
+	var hover: Vector2 = cell if _seed_choice.cells.has(cell) else NO_CELL
+	if hover == _seed_choice.hover:
+		return
+	_seed_choice.hover = hover
+	if hover != NO_CELL:
+		RouteLine.draw_route(_path_preview, map_generator.get_path_if_blocked_cells([hover]),
+			PREVIEW_COLOR, 6.0, map_generator.get_path_from(map_generator.startPath))
+	else:
+		RouteLine.clear(_path_preview)
+	queue_redraw()
+
+func _draw_seed_choice() -> void:
+	draw_set_transform(Vector2.ZERO)
+	for cell in _seed_choice.cells:
+		var rect := Rect2(MAP_GRID.calculate_map_position(cell) - MAP_GRID.cell_size / 2.0, MAP_GRID.cell_size)
+		var hovered: bool = cell == _seed_choice.hover
+		draw_rect(rect.grow(-3), Color(VALID_TINT, 0.18 if hovered else 0.08))
+		draw_rect(rect.grow(-3), Color(VALID_TINT, 0.9 if hovered else 0.5), false, 2.0)
+	var tower: Tower = _seed_choice.tower
+	if is_instance_valid(tower):
+		WorldLabel.draw_tag(self, tower.global_position.x, tower.global_position.y - MAP_GRID.cell_size.y,
+			"Plant a Sprout: pick a cell beside it (Esc to cancel)", WorldLabel.cost_color(true))
 
 # Ascended forms are one per family (tower_design.md): while one is on the map, nothing else can grow
 # into it (selling it frees the slot). The reason to show on the Grow button, or "".
