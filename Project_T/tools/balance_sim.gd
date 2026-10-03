@@ -542,6 +542,8 @@ func _grow() -> bool:
 			var cover := _coverage(tower) + _aura_bonus(tower.cell, pick, tower, false) + _kin_bonus(tower.cell, pick, tower)
 			if fence_pref and pick.special == &"jarlink":
 				cover += _fence_bonus(tower)  # The arc must cross the route (the probe's --pairs rule)
+				if cover < 0.0:
+					continue  # Its arc would cover no route tile: not here
 			if best.is_empty() or cover > best[0]:
 				best = [cover, tower, pick]
 	return not best.is_empty() and placer.evolve(best[1], best[2])
@@ -764,6 +766,7 @@ func _finish() -> void:
 	summary.dream_off_ids = "+".join(dream_off_ids.keys().map(func(id) -> String: return "%s:%d" % [id, dream_off_ids[id]]))
 	summary.dream_pool_mean = snappedf(float(dream_offers.pool) / maxf(dream_offers.offers, 1.0), 0.1)
 	summary.gifts = "+".join(gifts_log)
+	summary.jarlinks = _jarlink_text()
 	summary.branch_offers = ";".join(dreams.branch_offers.keys().map(func(id) -> String: return "%s:%s" % [id, "/".join(dreams.branch_offers[id].map(func(t) -> String: return t.get_id() if t is TowerData else str(t)))]))
 	summary.dreamlight_unlocks = "+".join(policy.choices.filter(func(c: String) -> bool: return c.begins_with("Dreamlight: ")).map(func(c: String) -> String: return c.substr(12)))
 	var runs_path := out_dir.path_join("runs.csv")
@@ -1120,27 +1123,48 @@ func _covered_by_aura(target: Tower) -> bool:
 # Path-tile bonus for a Warden of `data` at `cell`: KIN_WEIGHT per unbonded Warden of the same family within
 # Kinships reach that it bonds with (a branch: its Kinship partner branch; a base Warden: any branch of its
 # family, which it can grow to meet). Bonded Wardens never count (bonds are sticky).
-# A Jarlink arcs to a Jarlink within 4 cells (BranchKit._fence_partner): the route tiles on the line from `tower` to the
-# best partner, a Jarlink counting full and a Firefly Jar (a Jarlink to be) half. 0 when no partner is 2-4 cells away.
+# jarlinks column: each Jarlink at the end as cell>partner cell:route tiles under the arc (partner "-" = none), so a
+# fence share of 0 can be told apart: no pair, or an arc off the route.
+func _jarlink_text() -> String:
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var out: Array[String] = []
+	for t in _attackers():
+		if t.tower_data.special != &"jarlink":
+			continue
+		var partner = BranchKit._fence_partner(t)
+		var on_route := 0
+		if partner != null:
+			for c in BranchKit._arc_cells(t.cell, partner.cell):
+				if route.has(c):
+					on_route += 1
+		out.append("%d/%d>%s:%d" % [t.cell.x, t.cell.y, "-" if partner == null else "%d/%d" % [partner.cell.x, partner.cell.y], on_route])
+	return " ".join(out)
+# A Jarlink bonds with the nearest unbonded Jarlink within 4 cells, and the bond sticks (BranchKit.fence_partner_at).
+# Growing `tower` into one: the partner the game would give it and the route tiles under that arc (FENCE_WEIGHT each);
+# an arc over no route tile (side by side or off the path) costs FENCE_DEAD, so the bot grows elsewhere. With no
+# partner yet: half the route tiles toward the best Firefly Jar 2-4 cells away (a Jarlink to be).
+const FENCE_DEAD := -1000.0
+
 func _fence_bonus(tower: Tower) -> float:
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var partner: Tower = BranchKit.fence_partner_at(tower, tower.cell, 4.0, tower)
+	if partner != null:
+		var tiles := 0
+		for c in BranchKit._arc_cells(tower.cell, partner.cell):
+			if route.has(c):
+				tiles += 1
+		return FENCE_WEIGHT * tiles if tiles > 0 else FENCE_DEAD
 	var best := 0.0
 	for other in _attackers():
-		if other == tower:
+		if other == tower or other.tower_data.get_id() != "firefly_jar":
 			continue
-		var partner := 1.0 if other.tower_data.special == &"jarlink" else (0.5 if other.tower_data.get_id() == "firefly_jar" else 0.0)
-		if partner == 0.0:
+		if Kinships._cheb(tower.cell, other.cell) > 4.0:
 			continue
-		var d := maxf(absf(other.cell.x - tower.cell.x), absf(other.cell.y - tower.cell.y))
-		if d < 2.0 or d > 4.0:
-			continue
-		var on_route := {}
-		var steps := int(d) * 4
-		for s in range(1, steps):
-			var at: Vector2 = tower.cell.lerp(other.cell, float(s) / steps).round()
-			if at != tower.cell and at != other.cell and route.has(at):
-				on_route[at] = true
-		best = maxf(best, partner * on_route.size())
+		var tiles := 0
+		for c in BranchKit._arc_cells(tower.cell, other.cell):
+			if route.has(c):
+				tiles += 1
+		best = maxf(best, 0.5 * tiles)
 	return FENCE_WEIGHT * best
 
 func _kin_bonus(cell: Vector2, data: TowerData, exclude: Tower = null) -> float:
