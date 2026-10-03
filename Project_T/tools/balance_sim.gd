@@ -81,6 +81,7 @@ var dream_share := {}  # Drift -> the share of the maze's damage per second that
 var dreams_20 := ""  # The Dreams taken by drift 20 ("a+b")
 var omens: OmenDirector
 var omens_faced: Array[String] = []
+var gifts_log: Array[String] = []  # Heartwood's Gifts at each act break: "<drift>:<id>" or "<drift>:pass" (gifts column)
 var dreamlight_by_source := {}  # DreamState.dreamlight_earned totals per source (omen_dreamlight column)
 var omen_pot_dew := 0.0  # Dew the active Omen's pot multiplier added (or took) vs the unmodified pot, assuming the whole pot is dispelled
 var omen_by_act := {}  # Act -> {dew, pot, share, lost, paid}: Omen rewards by the act their rest falls in (the rest after drift 25 is act 1)
@@ -302,10 +303,25 @@ func _on_family_pick(kind: StringName) -> void:
 	director.family_picked()
 	_busy = false
 
+# Heartwood's Gifts (act breaks, main since bebfb22c): the bot takes the first gift that needs no placing on the map,
+# else lets them pass for the Dew. Without an answer the next drift never starts (pending_choice() == &"gift").
+func _answer_gifts(n: int) -> void:
+	var gifts := main.get_tree().get_first_node_in_group(&"heartwood_gifts")
+	if gifts == null or not gifts.is_offering():
+		return
+	for id in gifts.current_offer:
+		if not gifts.needs_placing(id):
+			gifts.choose(id)
+			gifts_log.append("%d:%s" % [n, id])
+			return
+	gifts.let_pass()
+	gifts_log.append("%d:pass" % n)
+
 func _on_rest(perfect: bool) -> void:
 	_busy = true
 	var n := director.drifts_started
 	policy.rest(n, perfect)
+	_answer_gifts(n)
 	if _facing() and omens and not omens.current_offer.is_empty():
 		omens._offer_waiting = false  # The bot answers instead of the screen
 		var omen: OmenData = policy.pick_omen(omens.current_offer)
@@ -737,6 +753,7 @@ func _finish() -> void:
 	summary.kin_pairs_50 = kin_pairs.get(51, -1)
 	summary.dream_off_ids = "+".join(dream_off_ids.keys().map(func(id) -> String: return "%s:%d" % [id, dream_off_ids[id]]))
 	summary.dream_pool_mean = snappedf(float(dream_offers.pool) / maxf(dream_offers.offers, 1.0), 0.1)
+	summary.gifts = "+".join(gifts_log)
 	var runs_path := out_dir.path_join("runs.csv")
 	var keys := summary.keys()
 	var new_file := not FileAccess.file_exists(runs_path)
