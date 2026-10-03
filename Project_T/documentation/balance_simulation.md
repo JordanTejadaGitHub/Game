@@ -782,6 +782,12 @@ finale 1.33 leaves / 50% clean; 14/30 still die before 25. When Driftspore isn't
 grows Bloomcap / Lanternmoth / Prism Jar (supports and enablers), so an act 1 pair of two supports leaves
 no carry. Proposed to Tower Discussion: **every offered pair includes at least one damage branch** (a
 draw rule); if not, act 1 eases instead.
+**Agreed as a hard rule** (Tower Discussion 66e9927b): every offered pair has ≥ 1 **carry**. Carry list
+(own damage ≈ 0.6× Driftspore or more; Balancing Discussion owns it): Sporeling driftspore, inkcap,
+lichenling, brood_cap; Dewdrop rain_lily, mistveil, cloudlet, undercurrent, jetreed; Firefly Jar jarlink,
+sparkler; Bellflower chime_stone, thrum; Pebbling cairn, standing_stone, whetstone, rampart, quaker;
+Rootling rootcurl, tangleroot, rootlight; **Acorn exempt** (no carry branch). Act 1 numbers unchanged
+until the re-run.
 
 **4. Grove cap on main** (ed114826, before the branch raises; a bot gift-screen stall voided the first
 attempt): full loadout vs no perks, 20 seeds each, act 1 boss survival **40% vs 30% (+10 points)**, +2.5
