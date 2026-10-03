@@ -401,7 +401,7 @@ Checked on role, owned status, attack shapes and their 5 branches.
 |---|---|---|---|---|---|
 | **Whetstone → Edgestone** | **the finisher** (Pebbling cashes in) | hits on a nightmare **below 30% health** deal **×2.5** (bosses ×1.5) (review 2026-10-02: the old +10%-per-hit ramp was Sunpetal's beam ramp in stone) | **Clean cut:** a nightmare it finishes spills its overkill onto the nearest nightmare | Husks, bosses (anything others wore down) | a golem at a sharpening wheel |
 | **Rampart → Bastion** (replaces Quarry, review 2026-10-02: a free-wall builder wasn't a heavy hit, and copied Seedbearer's free growth) | **stone among stone:** the maze is its weapon | heavy hits on adjacent path tiles; **+15% damage per Thornwall touching it** (max 4), and those Thornwalls turn to **stone**: they can't be trampled or burrowed under | **Rockfall:** every 6 s a stone wall touching it drops a rock on the path tile beside it (a heavy splash) | the Hollow Stag (trample), Gravecrawlers; maze-as-weapon builds | a golem built into a stone wall, one arm a wall block |
-| **Quaker → Earthshaker** | **interrupt** | slams the ground around itself every 3 s; nightmares hit lose their speed boosts (a sprinting Night Hound stops sprinting) | the slam cracks the path for 3 s (no new sprints there) | Night Hounds, charging bosses | a squat golem mid-stomp, fists down |
+| **Quaker → Earthshaker** | **interrupt** | slams the ground around itself every 3 s; nightmares hit lose their speed boosts (a sprinting Night Hound stops sprinting), and the tremor **shakes hidden nightmares loose**: Lurkers it hits are revealed for 3 s (added 2026-10-02: the 7-family probe had detection in only 53% of runs) | the slam cracks the path for 3 s (no new sprints there) | Night Hounds, charging bosses, Lurkers | a squat golem mid-stomp, fists down |
 
 **Rootling** (Rooted)
 
@@ -508,12 +508,13 @@ family can promise an answer to everything. Two layers keep runs fair:
      anti-tank 90%, anti-air 75%, detection 79%, anti-armour 80%, swarm 89%, support 96%, boss
      82%; every family keeps 9–10 different pairs, none above 26% of runs. Target: anti-tank in
      80%+ of runs with the 4 starting families. Anti-armour may stay lower (Shellbound only arrive at drift 79).
+     **With all 7 families** (Phase 2, 7d17c35f): **detection also counts double** (`tag_weights` {anti_tank: 2, detection: 2}; Lurkers can only be hit up close without it). 100 runs of 4 random families: anti-tank 91%, anti-air 87%, anti-swarm 87%, detection 79%, boss abilities 74%, anti-support 64%, anti-armour 54% (accepted); 9+ pairs per family, none above 25%.
    - Every counter tag sits on **at least 3 branches across at least 2 families**:
 
 | Tag | Branches |
 |---|---|
 | anti-air (flyers, Phantoms) | Cloudlet (Dewdrop), Jarlink (Firefly), Groundroot (Rootling), Wren's Nest (Nestling), Standing Stone (Pebbling) |
-| detection (Lurkers) | Lanternmoth (Firefly), Brood Cap (Sporeling), Rootlight (Rootling, hidden) |
+| detection (Lurkers) | Lanternmoth (Firefly), Brood Cap (Sporeling), Quaker (Pebbling: the tremor), Rootlight (Rootling, hidden) |
 | anti-armour (Shellbound) | Lichenling (Sporeling), Mossback (Pebbling), Magpie Perch (Nestling) |
 | anti-swarm | Sparkler (Firefly), Rain Lily / Undercurrent (Dewdrop), Thrum (Bellflower), Pinwheel (Nestling), Chime Stone (Bellflower) |
 | anti-tank / boss | Whetstone (Pebbling), Jetreed (Dewdrop), Silver Bell (Bellflower), Prism Jar (Firefly; its crit aura is a tank answer), Standing Stone (Pebbling) |
@@ -552,9 +553,9 @@ family can promise an answer to everything. Two layers keep runs fair:
 
   | Family | Pair | Kinship | A learns from B | B learns from A |
   |---|---|---|---|---|
-  | Pebbling | Rampart + Quaker | **Fault Line** | its Rockfall cracks the path (no sprints there for 3 s) | its slam runs along stone walls touching the Rampart, hitting the path beside each |
+  | Pebbling | Rampart + Quaker | **Fault Line** | its blows (and Bastion's rocks) crack the struck tile: no sprints there for 3 s × the bond share (as built aa9080d4; a plain Rampart has no Rockfall) | its slam runs along stone walls touching the Rampart, hitting the path beside each |
   | Rootling | Groundroot + Thorncoil | **Bramble Bed** | grounded flyers land in thorns (one thorn tick on landing) | its thorns reach flyers passing over its range |
-  | Acorn | Seedbearer + Nurse Log | **Nursery** | its Sprouts arrive at rank I when grown beside the log | Wardens beside it also grow (evolve) 10% cheaper |
+  | Acorn | Seedbearer + Nurse Log | **Seed Cradle** (id `nursery_bond`; renamed 2026-10-02, "Nursery" is a Dream card) | its Sprouts arrive at rank I when grown beside the log | Wardens beside it also grow (evolve) 10% cheaper |
 - **Whole Tree** becomes **"3 different branches of one family on the map"**. With 2 offered,
   that needs the hidden branch or *Remembered Path*: a real milestone of a run, not a given.
 - Kindred (2 branches: +10%) is unchanged, and now the common case.
@@ -572,6 +573,7 @@ family can promise an answer to everything. Two layers keep runs fair:
 - **2 of the 5 regular branches** per family, drawn by the smart draw above at the family pick,
   from the map seed (a resume gets the same), **never the same 2 as that family's last run**
   (profile `last_branch_offer`).
+- **Every offered pair has a carry** (added 2026-10-02, Balancing Discussion: fresh act 1 boss survival was 40% vs 60% without the expansion, because a pair of two enablers such as Bloomcap + Prism Jar left a one-family act 1 with nothing that deals damage). At least one of the 2 is a **damage branch** (a hard rule, not a weight; the hidden branch doesn't count toward it). Balancing Discussion keeps the list of damage branches (own damage about 0.6× Driftspore or more); supports, enablers, control and economy branches pair with one. A rule about the offer, not a difficulty change. Carries (balance_simulation.md): Sporeling 4, Dewdrop 5, Pebbling 5, Rootling 3, Firefly Jar 2 (Jarlink, Sparkler), Bellflower 2 (Chime Stone, Thrum), so those two still have 7 of 10 pairs. **Acorn is exempt** (no carries by design) and **stays in the first family pick**: Balancing's act 1 check had Acorn-first runs beat the act 1 boss every time (the base Acorn carries act 1 with its auras on Sprouts). Stormcap is an enabler, not a carry (0.22–0.28× Driftspore on its own; its value shows on Static partners). As built (a1b934d0, 100 runs): 9–10 pairs for Sporeling, Dewdrop, Acorn and Pebbling, 7 for the 2-carry families (top pair 29–34%); anti-tank 85%, anti-swarm 94%, anti-air 83%, detection 73%, boss 73%, support 63%, armour 57%. **Detection weighs ×3** (agreed with Balancing): it lifts detection 73% → 78% and only moves Rootling's top pair 34% → 36%; nothing else changes.
 - **The hidden branch doesn't count:** if the Grove has planted it, it's always offered as a 3rd
   lane. It's earned meta progress.
 - **The 3 not offered** show as **"not in this dream"**: faint misty silhouettes with no cost,
@@ -597,7 +599,7 @@ finals** (~42 sprites plus attack sheets and effects), down from 27 + 27.
 
 1. **Phase 1: the 4 starting families** (Sporeling, Dewdrop, Firefly Jar, Bellflower): 12 branches,
    12 finals, the 2-of-5 offer with the smart draw, generic Kin, Remembered Path.
-2. **Phase 2:** Pebbling, Rootling, Acorn (9 + 9).
+2. **Phase 2:** Pebbling, Rootling, Acorn (9 + 9), with the branch review's changes. **Started 2026-10-02 on main** (user: "just do Phase 2", before the Phase 1 playtest; the Spire branch is merged). Full game only. Counter tags: Whetstone anti-tank; Rampart boss abilities; Quaker boss abilities + detection (its tremor reveals Lurkers; added after the 7-family probe: anti-tank 93%, detection 53%); Groundroot anti-air; Deeproot, Thorncoil and the Acorn three none. Fold-in fix: Driftspore anti-tank, Bloomcap and Inkcap anti-swarm (they had no tags, so no role line). **Built** on main (2fc86820, aa9080d4, 84ce5a38): Groundroot never grounds bosses; Deeproot guards the Heartwood wherever it stands (once per nightmare across all Deeproots); stone = a Thornwall on one of the Rampart's four sides (no diagonals); Seedbearer's seed is planted at the rest (seed badge, lit cells; unplanted seeds wait); roles: Deeproot and Thorncoil control, the Acorn three economy.
 3. **Phase 3:** the Nestling + Whirligig merge (no new branch art: a parked base and Ascended,
    Dawnwing's carry twist, the resistance fold).
 

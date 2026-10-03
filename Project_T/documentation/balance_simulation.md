@@ -21,7 +21,7 @@ These replace the older targets below for the **full game**; the demo keeps the 
 | Bot, fresh, act 1 boss (full game, real boss draw) | Balanced **~55–60%** survive, skip **≤ 15%** |
 | Grove | a full carried loadout adds **≤ +10–15 points** of bot survival / reach over no perks (measured +15) |
 | Combos + Reactions | **~25–40%** of a good build's damage (`combo_share`) |
-| Damage branches | **0.5–1.0× Driftspore** per Dew on the fixed board (drift 45) |
+| Damage branches | **0.8–1.0× Driftspore** per Dew on the fixed board (drift 45); a drawn branch must match the one it replaces |
 | Final forms | **0.8–1.5× Puffball** per Dew (drifts 45 and 61) |
 | Supports / control | their board does **≥ par** with 4 of the reference |
 | Dream builds | a decent build (≥ 3 picks of one tag) in **~50%** of runs; skipping Dreams loses |
@@ -745,6 +745,26 @@ on target for a fresh profile (and act 1's "teaches" side holds). Decisions:
 "Never grew a Warden" is partly that; **her economy (plant-only) is not a fresh player's normal.** Since
 c8d1fc33 the always-on Growth hint marks are a separate setting from whispers.
 
+## Human run 13 (2026-10-03, build 6e7574 = 83d9b3b0, Dev Grove: Full; first run after the act 1 fixes)
+
+**Lost at drift 10**, 3 min. Nestling first, grew **3 Magpie Perch** (the thief; ~0.1× Driftspore on its
+own damage) + 10 Sprouts; Dew earned 515. Closest 0.84–0.88 at drifts 7 and 9, then **drift 10, the first
+block finale: 8,619 health (drift 9: 3,747, so ×2.3), 13 leaks, all 15 leaves in one drift.** Kills and Dew
+were at 0.1–0.4 of the route, nothing near the Heartwood.
+- **A first finale must not end a full-leaf run:** `block_finale_health_from` **10 → 15** (in d75b7d9f after Roguelite 72a2879b; drift 10 keeps its
+  one elite as a small first spike). The demo is unaffected.
+- Nestling isn't expanded yet (the sky merge is Phase 3), so both branches were offered and the user picked
+  the support. Not a draw issue; watch whether Magpie Perch reads as a trap first pick.
+
+## Human run 14 (2026-10-03, same build, Dev Grove: Full)
+
+**Lost at drift 20** (a finale), 8 min. **Acorn first**: 2 Acorns, 4 Elder Stumps, 13 Sprouts; Dew banked
+230–320 through drifts 5–11. Leaks from drift 6; the drift 10 finale spawned 9,281 health (×2.5 drift 9;
+the finale fix lowers it); 4 leaves at 15, the rest at 19–20. Kills moved deep (0.5–0.8 of the route) by
+block 3. Combos 1%.
+User on support openers (Magpie Perch, Acorn): **"Keep as is"**. Picking a support family first is a
+choice with a cost. No change beyond the pending drift 10 finale fix.
+
 ## Nap batch on main (2026-10-02, 175058a0: Spire rules + round 3)
 
 **1. Round-3 re-probe of the new branches** (fixed board, 3 seeds): **in band:** Undercurrent 0.52×,
@@ -758,6 +778,63 @@ sleep / silence value needs real builds). The new-branch probe series is closed.
 (29% clean)**. Below the Spire branch's own 50–55% on the same act 1 rules, so something since then made
 act 1 harder for the bot: A/B queued (branch expansion on / off, and the pre-expansion branch build)
 before choosing a lever (finale health, the drift 20 finale, or the ramp).
+
+**3. Each start family** (fresh, forced, 15 seeds): survived the boss **Bellflower 53%, Sporeling 40%,
+Dewdrop 20%, Firefly Jar 7%** (target 70–90%). Dewdrop leaks hardest at the finales (2.8 / 3.8 / 2.8 leaves
+at 10 / 15 / 20); Firefly dies mostly at 13–20. All four are low, matching item 2; the A/B decides the cause
+before any family change.
+
+**5. Demo sanity** (`--demo`, DEMO_RULES, the Hollow Stag, 20 seeds): Balanced **70%**, skip **40%**; finales
+cost nothing (no finale rules in the demo). **The demo gating works** and plays like before the Spire rules.
+So the full game's 30% comes from what differs: the act 1 ramp from drift 3, the finales (×1.4 + elites),
+and the branch expansion. The A/B splits the branch expansion off from the rest.
+
+**Act 1 A/B** (fresh, Balanced, 30 seeds): main as is **30%**; main with the branch expansion off **60%**;
+the Spire build before the expansion **60%**. With the expansion on, the bot grew Driftspore in 8 runs
+instead of 21 and took Lichenling / Brood Cap instead. **Cause: the 2-of-5 draw often doesn't offer
+Driftspore, and the new damage branches are weaker.** Decision: the damage-branch band tightens to
+**0.8–1.0× Driftspore** (a drawn branch must be about as good as the one it replaces). Raises: Lichenling
+22, Brood Cap burst 24, Thrum 70, Jetreed base 60, Undercurrent 60 dmg/s, Jarlink arc 210, Sparkler 40 (in 7567034e).
+Re-run arm (a) after.
+
+**Arm (a) re-run on 7567034e** (the branch raises): **40%** (was 30%; 60% with the expansion off); drift 20
+finale 1.33 leaves / 50% clean; 14/30 still die before 25. When Driftspore isn't offered, the bot now
+grows Bloomcap / Lanternmoth / Prism Jar (supports and enablers), so an act 1 pair of two supports leaves
+no carry. Proposed to Tower Discussion: **every offered pair includes at least one damage branch** (a
+draw rule); if not, act 1 eases instead.
+**Agreed as a hard rule** (Tower Discussion 66e9927b): every offered pair has ≥ 1 **carry**. Carry list
+(own damage ≈ 0.6× Driftspore or more; Balancing Discussion owns it): Sporeling driftspore, inkcap,
+lichenling, brood_cap; Dewdrop rain_lily, mistveil, cloudlet, undercurrent, jetreed; Firefly Jar jarlink,
+sparkler; Bellflower chime_stone, thrum; Pebbling cairn, standing_stone, whetstone, rampart, quaker;
+Rootling rootcurl, tangleroot, rootlight; **Acorn exempt** (no carry branch). Built in a1b934d0 (`DreamState.CARRY_BRANCHES`); detection weight ×3 after coverage fell to 73% (agreed with Tower Discussion: 78%, Rootling top pair 34 → 36%); Thorncoil joins the carries if its re-probe lands in band. Act 1 numbers unchanged
+until the re-run.
+
+**Arm (a) with the carry rule** (a1b934d0): still **40%** (drift 20 finale 65% clean; 16/30 die before
+25). Bloomcap is still grown in 5 runs although every pair now has a carry, so the open question is the
+bot's choice between the two offered branches. An offered-branches column is being added; if the bot
+passes up a carry, the fix is the bot's policy, not the game.
+**It was the bot:** it alternated growth between its unlocked branches (Driftspore, Bloomcap, …). Fixed
+(Balancing Code 63da43c8: through drift 25 it grows and unlocks carries first). Same 30 seeds: **47%** with
+the fix vs 37% without. Driftspore is offered in ~1/3 of runs (vs every run with the expansion off), so
+the Lichenling / Brood Cap runs are what's left: **Lichenling 26, Brood Cap burst 28** (the top of the band; in 84bbaf44).
+**Re-run on 84bbaf44:** **53%** (close to target; no more Sporeling changes). With Driftspore offered 9/12,
+without 7/14. **Firefly Jar first: 0/9** (it was 70% before the Spire rules). Its carries are now Jarlink
+and Sparkler; checking whether the bot's normal placement ever makes a Jarlink arc over the route (the probe
+places pairs on purpose) before any game change.
+**Answer:** the 9 runs died at drifts 8–23 with 8–12 base Firefly Jars and at most one branch Warden, and no
+Jarlink pair was ever made. Forced Firefly, 15 seeds: **27–33%** with or without a bot fence rule (fence
+damage 0: the bot rarely has two jars across the route). Jarlink pairing is human skill (the build ghost
+shows the arc); **the base board is the problem: Firefly Jar cost 30 → 25, damage 12 → 14** (d69c53b4; shared with the
+demo, which is re-checked).
+**After d69c53b4** (15 seeds): full game Firefly-first **33% → 47%**, no run dies before drift 18 (was 10–17);
+the demo 87% → 100% (two runs; within noise, and the demo is the gentle intro). **Accepted; act 1 tuning
+closed** at ~50–55% overall for the bot (the user plays better than it). Human runs judge from here.
+
+**4. Grove cap on main** (ed114826, before the branch raises; a bot gift-screen stall voided the first
+attempt): full loadout vs no perks, 20 seeds each, act 1 boss survival **40% vs 30% (+10 points)**, +2.5
+drifts: **within the ≤ +10–15 cap** ✓. Both arms suffer the branch-draw drop. **Combo share** (bot):
+run-level 0.11–0.14, Reactions 0; it only reaches 0.2–0.45 in late blocks with few runs left. The bot
+under-builds combos; the 25–40% target is judged on human runs (`combo_share` in the run history).
 
 ## Combo share of damage (user-approved, 2026-10-02)
 

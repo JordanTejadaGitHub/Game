@@ -23,6 +23,18 @@ const LENS_FILL := 0.1
 static var lens := false
 
 signal lens_changed(on: bool)
+# Chips the collision pass had no room for (the Warden panel says "+N more"); emitted when the count changes.
+signal hidden_changed(count: int)
+
+# Thread chips (user screenshot: labels piling on each other and on the name tag): one short chip per Warden
+# ("+30% speed", "+15% dmg"), just above that Warden's base, placed strongest first so none overlaps another or the
+# hovered Warden's name tag; a chip with no room is skipped and counted in hidden_chips.
+const CHIP_Y := 14.0  # Baseline below the cell centre: just above the Warden's base
+const CHIP_FONT := 11  # Small: a dense cluster of Wardens still shows between the chips
+const CHIP_PILL := Color(Palette.VOID, 0.9)  # Stronger than WorldLabel's: reads on bright tiles
+const CHIP_TRIES := [0.0, -1.0, 1.0, -2.0]  # Steps up / down from its spot before it's skipped
+var hidden_chips := 0
+var _chips: Array = []  # [{anchor: Vector2, text, colour, weight}] for this draw
 
 var seller: TowerSeller
 var placer: TowerPlacer
@@ -130,10 +142,13 @@ func _draw_ground() -> void:
 # layer redraws on every focus change.
 func _draw() -> void:
 	var focus := _focus()
+	_chips.clear()
 	for tower in focus:
-		_draw_threads_in(tower)
-		if AuraView.is_aura(tower.tower_data):
+		var support := AuraView.is_aura(tower.tower_data)
+		_draw_threads_in(tower, not support)  # A support's chips say what it gives, not what it gets (one direction)
+		if support:
 			_draw_threads_out(tower)
+	_draw_chips()
 	if not _show_all():
 		for tower in focus:
 			_draw_pips(tower)
@@ -232,7 +247,7 @@ static func draw_stacks(canvas: CanvasItem, at: Vector2, count: int, colour: Col
 # --- Threads -----------------------------------------------------------------------------------------
 
 # Every Warden buffing `tower`, joined to it and labelled with its share.
-func _draw_threads_in(tower: Tower) -> void:
+func _draw_threads_in(tower: Tower, with_chips: bool = true) -> void:
 	var seen := {}
 	for entry in BuffSources.for_tower(tower):
 		var source = entry.source
@@ -241,25 +256,106 @@ func _draw_threads_in(tower: Tower) -> void:
 		if entry.kind == "kinship":
 			continue  # Kinships draws the bond itself (the root); a straight thread on top read as "string"
 		var key := "%d|%s" % [source.get_instance_id(), entry.kind]
-		if seen.has(key):
-			seen[key].amount += entry.amount  # Damage and attack speed from one giver: one thread
-			continue
-		seen[key] = entry.duplicate()
+		if not seen.has(key):
+			seen[key] = entry.duplicate()
+			seen[key]["damage"] = 0.0
+			seen[key]["speed"] = 0.0
+		seen[key]["damage" if entry.stat == "damage" else "speed"] += entry.amount  # One thread per giver
+	var per_source := {}  # One chip per giving Warden (its kinds summed)
 	for key in seen:
 		var entry: Dictionary = seen[key]
-		_thread(entry.source, tower, BuffSources.color(entry.kind, entry.source), BuffSources.thread_label(entry),
-			entry.relayed, 1.0)
+		var colour := BuffSources.color(entry.kind, entry.source)
+		_thread(entry.source, tower, colour, entry.relayed, 1.0)
+		var id: int = entry.source.get_instance_id()
+		if not per_source.has(id):
+			per_source[id] = {"tower": entry.source, "damage": 0.0, "speed": 0.0, "kindred": false, "colour": colour}
+		per_source[id].damage += entry.damage
+		per_source[id].speed += entry.speed
+		per_source[id].kindred = per_source[id].kindred or entry.get("kindred", false)
+	if not with_chips:
+		return
+	for id in per_source:
+		var chip: Dictionary = per_source[id]
+		_add_chip(chip.tower, chip.damage, chip.speed, chip.kindred, chip.colour)
 
-# A selected support Warden: threads out to everyone it covers ("—" where it adds nothing).
+# A selected support Warden: threads out to everyone it covers (faint where it adds nothing), and one chip on each.
 func _draw_threads_out(support: Tower) -> void:
+	var colour := BuffSources.color(support.tower_data.get_id())
 	for given in BuffSources.given_by(support):
-		var amount: float = maxf(given.damage, given.speed)
-		var label := "—" if amount <= 0.0 else BuffSources.thread_label({"amount": amount, "position": given.position,
-			"kindred": given.kindred})
-		_thread(support, given.target, BuffSources.color(support.tower_data.get_id()), label, given.relayed,
-			1.0 if amount > 0.0 else 0.35)
+		var adds: bool = maxf(given.damage, given.speed) > 0.0
+		_thread(support, given.target, colour, given.relayed, 1.0 if adds else 0.35)
+		if adds:
+			_add_chip(given.target, given.damage, given.speed, given.kindred, colour)
 
-func _thread(from: Tower, to: Tower, colour: Color, label: String, relayed: bool, alpha: float) -> void:
+# "+30% speed", "+15% dmg", "+15% dmg · +10% speed", "Kindred +10% dmg": short, never cut; details in the panel.
+static func chip_text(damage: float, speed: float, kindred: bool) -> String:
+	var parts: Array[String] = []
+	if damage > 0.0005:
+		parts.append("+%d%% dmg" % roundi(damage * 100.0))
+	if speed > 0.0005:
+		parts.append("+%d%% speed" % roundi(speed * 100.0))
+	return ("Kindred " if kindred else "") + " · ".join(parts)
+
+func _add_chip(on: Tower, damage: float, speed: float, kindred: bool, colour: Color) -> void:
+	var text := chip_text(damage, speed, kindred)
+	if text == "" or text == "Kindred ":
+		return
+	for chip in _chips:
+		if chip.tower == on:  # One chip per Warden: a second giver (two Wardens selected) adds to it
+			chip.damage += damage
+			chip.speed += speed
+			chip.text = chip_text(chip.damage, chip.speed, kindred)
+			chip.weight = chip.damage + chip.speed
+			return
+	_chips.append({"tower": on, "anchor": to_local(on.global_position) + Vector2(0, CHIP_Y), "text": text,
+		"colour": colour, "damage": damage, "speed": speed, "weight": damage + speed})
+
+# Places the chips strongest first: each tries its spot, then a step up or down; one that still overlaps a placed
+# chip or the hovered Warden's name tag is skipped (hidden_chips; the panel lists them all).
+func _draw_chips() -> void:
+	var font := ThemeDB.fallback_font
+	var s := WorldLabel.text_scale(self)
+	var taken: Array[Rect2] = []
+	var hovered: Tower = seller._hover_tower if seller != null and is_instance_valid(seller._hover_tower) else null
+	if hovered != null:  # TowerSeller's name tag, over the hovered Warden's cell
+		var at := to_local(hovered.global_position) + Vector2(0, -38.0)
+		taken.append(_pill_rect(font, hovered.tower_data.display_name, WorldLabel.FONT_SIZE, at, s))
+	_chips.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.weight > b.weight)
+	var hidden := 0
+	for chip in _chips:
+		var placed := false
+		var base := _pill_rect(font, chip.text, CHIP_FONT, chip.anchor, s)
+		for step in CHIP_TRIES:
+			var rect := base
+			rect.position.y += step * (base.size.y + 2.0 * s)
+			if taken.any(func(r: Rect2) -> bool: return r.intersects(rect)):
+				continue
+			taken.append(rect)
+			_draw_chip(font, chip.text, chip.colour, Vector2(chip.anchor.x, chip.anchor.y + step * (base.size.y + 2.0 * s)))
+			placed = true
+			break
+		if not placed:
+			hidden += 1
+	if hidden != hidden_chips:
+		hidden_chips = hidden
+		hidden_changed.emit(hidden)
+
+# A chip's pill in this node's space at screen size `s` (WorldLabel draws tags at a fixed screen size).
+static func _pill_rect(font: Font, text: String, font_size: int, baseline: Vector2, s: float) -> Rect2:
+	var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+	return Rect2(baseline + Vector2(-size.x / 2.0 - 6.0, -size.y) * s, Vector2(size.x + 12.0, size.y + 6.0) * s)
+
+func _draw_chip(font: Font, text: String, colour: Color, baseline: Vector2) -> void:
+	var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, CHIP_FONT)
+	var origin := Vector2(baseline.x - size.x / 2.0, baseline.y)
+	WorldLabel.begin_screen_size(self, baseline)
+	var pill := Rect2(origin + Vector2(-6, -size.y), size + Vector2(12, 6))
+	draw_rect(pill, CHIP_PILL)
+	draw_rect(pill, Color(colour, 0.7), false, 1.0)  # A thin border in the thread's colour
+	draw_string(font, origin, text, HORIZONTAL_ALIGNMENT_LEFT, -1, CHIP_FONT, colour)
+	WorldLabel.end_screen_size(self)
+
+func _thread(from: Tower, to: Tower, colour: Color, relayed: bool, alpha: float) -> void:
 	var a := to_local(from.global_position)
 	var b := to_local(to.global_position)
 	var points := PackedVector2Array([a])
@@ -274,8 +370,6 @@ func _thread(from: Tower, to: Tower, colour: Color, label: String, relayed: bool
 		draw_line(points[i], points[i + 1], glow, THREAD_WIDTH + 3.0)
 		draw_line(points[i], points[i + 1], line, THREAD_WIDTH)
 	draw_circle(a, 3.0, line)
-	var mid := (points[points.size() - 2] + b) / 2.0
-	WorldLabel.draw_tag(self, mid.x, mid.y - 4.0, label, Color(colour, maxf(alpha, 0.5)))
 
 # The Thornwall beside `to` that `from`'s aura reaches (the relay it goes through).
 func _relay_wall(from: Tower, to: Tower) -> Tower:

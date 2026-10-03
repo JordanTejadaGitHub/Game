@@ -323,8 +323,9 @@ class DreamIcon extends Control:
 			return
 		live = text
 		_tip_credit = credit
-		tooltip_text = "%s (%s%s)\n%s%s%s" % [card.display_name, UpgradeData.rarity_name(card.rarity),
+		tooltip_text = "%s (%s%s)\n%s%s%s%s" % [card.display_name, UpgradeData.rarity_name(card.rarity),
 			" ×%d" % stacks if stacks > 1 else "", IconInfo.format(card.description),
+			("\n" + IconInfo.format(card.tip)) if card.tip != "" else "",  # The card's detail (Sunlit Rest: which rank, who)
 			"\n" + sleeping_text if dormant else ("\nNow: " + live if live != "" else ""),
 			"\n" + credit if credit != "" else ""]
 		queue_redraw()

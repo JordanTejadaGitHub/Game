@@ -12,6 +12,7 @@ description = "Copies the statuses of the most-afflicted nightmare in range onto
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+role_tag = &"setup"
 line = "wind"
 tier = 2
 buildable_directly = false

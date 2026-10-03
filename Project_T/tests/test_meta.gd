@@ -413,6 +413,25 @@ func _run() -> void:
 	for card: String in ["hunters_patience", "sharpened_light", "crowd_breaker", "thornheart", "scented_hedge", "tended_stumps", "hollow_ground", "momentum", "great_ripple", "lucid_dreaming", "drumbeat", "overlap"]:
 		_check(every_card.has(card) and ResourceLoader.exists("res://resource/dream/%s.tres" % card), "a Grove node grants %s" % card)
 	_check(_unlock(HeartwoodMemory.load_grove(), "the_old_ones").requires_all == ["elders"], "The Old Ones needs Elders")
+	# Branch expansion in the Grove (meta_design.md 1f25e66e): family cards list their branches; Wider Roots.
+	var grove_script: GDScript = load("res://scripts/meta/grove_screen.gd")
+	var spore_text: String = grove_script.family_branches_text(_unlock(HeartwoodMemory.load_grove(), "sporeling"))
+	_check(spore_text.contains("Branches:") and not spore_text.contains("Fairy Ring"), "a family card lists its regular branches, not the hidden one (%s)" % spore_text)
+	_check(grove_script.family_branches_text(_unlock(HeartwoodMemory.load_grove(), "seedbed")) == "", "only family nodes list branches")
+	var roots_perk := _unlock(HeartwoodMemory.load_grove(), "wider_roots")
+	_check(roots_perk != null and roots_perk.is_perk() and roots_perk.costs == [120] and roots_perk.requires_all == ["omen_reader"] and roots_perk.wider_roots,
+		"Wider Roots: a 120-Seed perk after Omen Reader")
+	var roots_memory := HeartwoodMemory.load_data()
+	roots_memory.unlocks.wider_roots = 1
+	roots_memory.loadout = ["wider_roots"]
+	HeartwoodMemory.save_data(roots_memory)
+	var roots_run := await _new_run()
+	_check(roots_run.get_node("%DreamState").wider_roots, "carrying Wider Roots switches on the wider family draw")
+	roots_run.queue_free()
+	await process_frame
+	roots_memory.unlocks.erase("wider_roots")
+	roots_memory.loadout = []
+	HeartwoodMemory.save_data(roots_memory)
 	_check(_unlock(HeartwoodMemory.load_grove(), "acorn").dream_cards.has("acorn_cache") and HeartwoodMemory.get_unlock("catchers") == null
 		and _unlock(HeartwoodMemory.load_grove(), "old_wood").requires_all.is_empty(), "the Acorn family brings its own cards; Old Wood starts its branch")
 
@@ -708,7 +727,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 91 and grove.size() == 91 - parked, "91 Grove spots, %d nodes on the tree (layout %d, data %d)" % [91 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 92 and grove.size() == 92 - parked, "92 Grove spots, %d nodes on the tree (layout %d, data %d)" % [92 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:

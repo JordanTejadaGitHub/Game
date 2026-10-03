@@ -679,6 +679,25 @@ func _run() -> void:
 		_check(not straight._leaping or route[bend + 1] - route[bend] != route[bend + 2] - route[bend + 1], "not on a straight")
 	_clear_enemies()
 
+	# --- Branch Phase 2 hooks: Groundroot grounds a flyer, Quaker's slam stops a sprint ---
+	_clear_enemies()
+	var grounded_flyer := _still("dandelion_seed", route[6] + Vector2(0, 1))
+	grounded_flyer.set_process(true)
+	grounded_flyer.ground(2.0)
+	for f in 30:
+		await process_frame
+	_check(grounded_flyer.is_grounded() and not grounded_flyer.is_flying() and spawner.get_maze_walkers().has(grounded_flyer)
+		and grounded_flyer._path.size() > 2, "Groundroot: a grounded Phantom walks the maze (it re-routes with the walkers)")
+	for f in 120:
+		await process_frame
+	_check(grounded_flyer.is_flying() and grounded_flyer._path.size() == 2, "then rises and flies straight at the Heartwood")
+	var slammed_hound := _still("hedgehog", route[6])
+	slammed_hound.rolling = true
+	slammed_hound._charge_left = 2.0
+	slammed_hound.stop_speed_boosts()
+	_check(not slammed_hound.rolling and slammed_hound._charge_left == 0.0, "Quaker's slam: the sprint and the bolt stop")
+	_clear_enemies()
+
 	# --- Field cap (platforms.md "Calling drifts early stacks them"): arrivals wait in the start mist ---
 	_clear_enemies()
 	await process_frame

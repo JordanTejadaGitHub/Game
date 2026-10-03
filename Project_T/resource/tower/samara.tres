@@ -13,6 +13,7 @@ description = "Throws a spinning maple seed down a straight line and back throug
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+counter_tags = Array[StringName]([&"anti_swarm"])
 line = "wind"
 tier = 2
 buildable_directly = false

@@ -637,12 +637,13 @@ func _bramble_oath(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dict
 	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "walls add %d path tiles" % tiles,
 		"reason": "" if bonus > 0.0 else "your walls add fewer than 10 path tiles"}
 
-func _golden_harvest(_spot: Dictionary, _board: Board, card: UpgradeData) -> Dictionary:
-	var dew := ds.dew_harvested()
-	var bonus := minf(DreamState.GOLDEN_HARVEST_PER * (dew / 100), DreamState.GOLDEN_HARVEST_MAX)
-	var grown := ds.seed_grown(card)
-	return {"run_wide": true, "active": grown and bonus > 0.0, "damage": bonus, "note": "%d Dew harvested" % dew,
-		"reason": "" if grown and bonus > 0.0 else ("no catcher yet" if not grown else "harvest 100 Dew")}
+# Golden Harvest: every GOLDEN_HARVEST_STEP Dew earned this run (catchers' and interest Dew counting double) gives all
+# Wardens 2% more damage, up to 30%; no catcher needed (it was a Seed card waiting for one: never dead now).
+func _golden_harvest(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	var dew := ds.golden_harvest_dew()
+	var bonus := minf(DreamState.GOLDEN_HARVEST_PER * (dew / DreamState.GOLDEN_HARVEST_STEP), DreamState.GOLDEN_HARVEST_MAX)
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d Dew counted" % dew,
+		"reason": "" if bonus > 0.0 else "earn %d Dew" % DreamState.GOLDEN_HARVEST_STEP}
 
 # Drumbeat (card 248, Swift): touching 2+ other attacking Wardens (the 8 cells) = +30% attack speed. Live.
 func _drumbeat(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
@@ -729,10 +730,12 @@ static func count_text(n: int, word: String, plural: String = "") -> String:
 
 # Cards whose live line comes from the run rather than a Warden's row.
 const STATE_LINES: Array[StringName] = [&"winding_path", &"deep_well", &"canopy", &"old_growth", &"bitter_hedges",
-	&"hedge_maze", &"crowded_path", &"lone_hunter", &"last_stand", &"quick_step"]
+	&"hedge_maze", &"crowded_path", &"lone_hunter", &"last_stand", &"quick_step", &"sunlit_rest"]
 
 func _state_line(rule: StringName, power: float) -> String:
 	match rule:
+		&"sunlit_rest":
+			return ds.sunlit_line()
 		&"winding_path":
 			var tiles: int = ds.path_length
 			return "Now: %s · +%d Dew per rest" % [count_text(tiles, "path tile"),

@@ -149,8 +149,17 @@ func _run() -> void:
 	_check(screen.state_of(misty) == RememberScreen.State.NOT_IN_DREAM and not nodes.has(misty) and not nodes.has(misty.evolves_to[0]),
 		"Remember keeps it and its final out of the tree")
 	_check(nodes.has(shown_branch) and nodes.has(shown_branch.evolves_to[0]), "…the tree shows this run's branches and their finals")
+	_check(screen._offer_line.visible and screen._offer_line.text.begins_with("This dream offers 2 of 5 branches, different each run."),
+		"a line above the tree says the branches are random (\"%s\")" % screen._offer_line.text)
 	var strip_item := screen._misty.find_child("Misty_" + misty.get_id(), true, false)
 	var call_in: Button = strip_item.find_child("CallIn", true, false) if strip_item else null
+	# One tip per element, never repeated (user: "hovering emblems gives me repeated explanations of the branch"): an
+	# emblem says its branch; the strip's header holds the general explanation, once
+	var look: Button = strip_item.get_child(0) if strip_item else null
+	var tips: Array = screen._misty.find_children("*", "Control", true, false).map(func(c: Control) -> String: return c.tooltip_text) \
+		.filter(func(t: String) -> bool: return t.contains(RememberScreen.MISTY_TIP))
+	_check(look != null and look.tooltip_text.begins_with(misty.display_name) and not look.tooltip_text.contains(RememberScreen.MISTY_TIP)
+		and tips.size() == 1, "an emblem's tip is about its branch; the strip explains itself once (%d tips with the explanation)" % tips.size())
 	_check(screen._misty.visible and strip_item != null and call_in != null and call_in.disabled,
 		"…it's in the \"Not in this dream\" strip, its Call in greyed (this family already called one back)")
 	screen._select(misty)
@@ -187,6 +196,55 @@ func _run() -> void:
 	else:
 		print("  (demo phase check skipped: TowerData.expansion_phase isn't on this branch yet)")
 	ResultsScreen.demo_override = 0
+
+	# Every offered pair holds a damage branch (doc 66e9927b), in every family that has one (Acorn is exempt)
+	var no_carry_offers := []
+	for family_id in ["sporeling", "dewdrop", "firefly_jar", "bellflower", "pebbling", "rootling"]:
+		var family: TowerData = load("res://resource/tower/%s.tres" % family_id)
+		if dreams.regular_branches(family).size() <= DreamState.BRANCH_OFFER_SIZE:
+			continue
+		for s in 15:
+			main.get_node("MapGenerator").map_seed = 3000 + s
+			dreams.branch_offers.erase(family_id)
+			dreams.unlocked[family_id] = true
+			var pair: Array = dreams.get_branch_offer(family)
+			if not pair.any(func(id: String) -> bool: return DreamState.CARRY_BRANCHES.has(id)):
+				no_carry_offers.append("%s %s" % [family_id, pair])
+			dreams.branch_offers.erase(family_id)
+		dreams.unlocked.erase(family_id)
+	main.get_node("MapGenerator").map_seed = 777
+	_check(no_carry_offers.is_empty(), "every offered pair holds a damage branch (%s)" % [no_carry_offers])
+
+	# Wider Roots (Grove perk, meta_design.md 1f25e66e): the first family picked offers 3 of its branches, and calling
+	# one of its others back costs 4; the first pick's cards preview the 3
+	var wide := _form("test_wide", 1)
+	wide.buildable_directly = true
+	for i in 5:
+		var b := _form("test_w%d" % (i + 1), 2)
+		b.evolves_to.append(_form("test_wf%d" % (i + 1), 3))
+		wide.evolves_to.append(b)
+	placer.towers.append(wide)
+	dreams.wider_roots = true
+	dreams.wider_roots_family = ""
+	dreams.drift_director.family_pick_requested.emit(&"first")
+	var wide_preview: Array = dreams.preview_branch_offer(wide)
+	_check(wide_preview.size() == 3, "Wider Roots: the first pick's card previews 3 branches (%s)" % [wide_preview])
+	dreams.unlocked[wide.get_id()] = true
+	dreams.unlocks_changed.emit()
+	_check(dreams.get_branch_offer(wide) == wide_preview and dreams.wider_roots_family == wide.get_id(),
+		"…the family picked gets those 3 and is the Wider Roots family")
+	var wide_off: TowerData = dreams.not_offered_branches(wide)[0]
+	_check(dreams.call_back_cost(wide) == DreamState.WIDER_ROOTS_CALL_BACK and dreams.call_back_cost(base) == DreamState.CALL_BACK_DREAMLIGHT,
+		"…calling one of its branches back costs %d (others %d)" % [DreamState.WIDER_ROOTS_CALL_BACK, DreamState.CALL_BACK_DREAMLIGHT])
+	dreams.free_calls = 0
+	dreams.dreamlight = DreamState.WIDER_ROOTS_CALL_BACK - 1
+	_check(dreams.call_back_problem(wide_off) == "Not enough Dreamlight", "…3 Dreamlight isn't enough there")
+	var saved_wide := JSON.parse_string(JSON.stringify(dreams.to_save())) as Dictionary
+	dreams.wider_roots_family = ""
+	dreams.load_save(saved_wide)
+	_check(dreams.wider_roots_family == wide.get_id(), "…the family is saved with the run")
+	dreams.wider_roots = false
+	placer.towers.erase(wide)
 
 	placer.towers.erase(base)
 	main.queue_free()

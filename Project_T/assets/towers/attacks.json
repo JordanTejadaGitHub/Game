@@ -60,6 +60,13 @@
 			],
 			"projectile": "autumn_seed"
 		},
+		"bastion": {
+			"kind": "pulse",
+			"point": [
+				31,
+				44
+			]
+		},
 		"beacon": {
 			"kind": "pulse",
 			"point": [
@@ -126,6 +133,20 @@
 				12
 			]
 		},
+		"crown_of_thorns": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"deeproot": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
 		"deliquescent": {
 			"kind": "projectile",
 			"point": [
@@ -165,12 +186,34 @@
 			],
 			"projectile": "spore"
 		},
+		"earthbind": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"earthshaker": {
+			"kind": "pulse",
+			"point": [
+				31,
+				44
+			]
+		},
 		"echo_hollow": {
 			"kind": "echo",
 			"point": [
 				34,
 				29
 			]
+		},
+		"edgestone": {
+			"kind": "projectile",
+			"point": [
+				52,
+				20
+			],
+			"projectile": "whetstone_slash"
 		},
 		"elder_stump": {
 			"kind": "pulse",
@@ -233,6 +276,13 @@
 			],
 			"projectile": "dream_mote"
 		},
+		"groundroot": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
 		"grove_heart": {
 			"kind": "pulse",
 			"point": [
@@ -254,6 +304,13 @@
 				14
 			],
 			"projectile": "spore_sprite"
+		},
+		"heartroot": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
 		},
 		"hoarfrost": {
 			"kind": "projectile",
@@ -487,6 +544,13 @@
 			],
 			"projectile": "spore"
 		},
+		"quaker": {
+			"kind": "pulse",
+			"point": [
+				31,
+				44
+			]
+		},
 		"rain_lily": {
 			"kind": "projectile",
 			"point": [
@@ -500,6 +564,13 @@
 			"point": [
 				30,
 				9
+			]
+		},
+		"rampart": {
+			"kind": "pulse",
+			"point": [
+				31,
+				44
 			]
 		},
 		"resonance": {
@@ -641,6 +712,13 @@
 				46
 			]
 		},
+		"thorncoil": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
 		"thrum": {
 			"kind": "cone",
 			"point": [
@@ -675,6 +753,14 @@
 				48,
 				16
 			]
+		},
+		"whetstone": {
+			"kind": "projectile",
+			"point": [
+				52,
+				22
+			],
+			"projectile": "whetstone_slash"
 		},
 		"whirligig": {
 			"kind": "gust",

@@ -63,7 +63,7 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 # Elites alone didn't make a spike (Balancing: +2 elites cost the bot 0.35 leaves), so every non-boss nightmare on a
 # block finale from `block_finale_health_from` has this much more health, on top of everything else.
 @export var block_finale_health_multiplier: float = 1.4
-@export var block_finale_health_from: int = 10
+@export var block_finale_health_from: int = 15  # Drift 10 keeps only its elite (Balancing: ×1.4 there ended a full-leaf run)
 
 # The guaranteed elites for drift `number` if it's a block finale (0 before the first start), else -1.
 func get_block_finale_elites(number: int) -> int:

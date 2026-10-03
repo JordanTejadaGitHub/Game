@@ -140,6 +140,8 @@ func _make_card(card: UpgradeData) -> Button:
 	# Moonlit Thread card (ui_style.md): solid fog, the top thread in the rarity colour (Entwined: the
 	# vine green; Woven: glowing).
 	UiStyle.card_button(button, ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity))
+	if card.tip != "":  # The card's detail on hover (Sunlit Rest: which rank, who gets it)
+		button.tooltip_text = IconInfo.format(card.tip)
 	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot); a Starlit back thins it again below
 	if card.woven:
 		for state in ["normal", "hover", "pressed", "hover_pressed"]:
@@ -194,7 +196,7 @@ func _make_card(card: UpgradeData) -> Button:
 	if card.cost_description != "":
 		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, 15)
 	if card.grows_text != "":  # Seed cards: the bigger effect once its Wardens are yours
-		_add_linked_line(box, "🌱 Grows with %s: %s" % [_grows_with_names(card), card.grows_text], SEED_COLOR, 14)
+		_add_linked_line(box, "Grows with %s: %s" % [_grows_with_names(card), card.grows_text], SEED_COLOR, 14)
 	# Secondary lines below, smaller and muted; they shrink first when a card runs out of room.
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -210,8 +212,6 @@ func _make_card(card: UpgradeData) -> Button:
 		secondary.append(_add_line(box, "Bittersweet", BITTERSWEET_COLOR, SECONDARY_SIZE))
 	# No "Needs …" line (dream_design.md 2026-10-01, user: "can remove the Needs Water"): the card text names what it
 	# uses; Dreams this run dims a card that isn't active yet and says why on hover (DreamState.not_active_reason).
-	if dream_state.calls_family_now(card) != "":  # A Seed card calls its family to the next pick (not one you own)
-		secondary.append(_add_line(box, "Seed · calls %s to your next family pick" % dream_state.get_display_name(card.calls_family), SEED_COLOR, SECONDARY_SIZE))
 	for label in secondary:
 		label.modulate.a = 0.85  # Muted
 	for label in [rarity, name_label]:
@@ -375,5 +375,5 @@ static func _roman(n: int) -> String:
 # "Dewcatcher, Wellspring", or "the Rootling line" when a Seed names a whole line.
 # "the Acorn line": a Seed card always names the family, never a Warden you may not have.
 func _grows_with_names(card: UpgradeData) -> String:
-	var id := card.calls_family if card.calls_family != "" else (card.grows_with[0] if not card.grows_with.is_empty() else "")
+	var id := card.grows_with[0] if not card.grows_with.is_empty() else ""
 	return "the %s line" % dream_state.family_name_for(id)

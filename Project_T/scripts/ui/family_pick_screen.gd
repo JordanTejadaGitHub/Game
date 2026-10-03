@@ -98,7 +98,8 @@ func show_pick(reason: StringName = &"first") -> void:
 			if _ids(available.slice(0, count)) != previous_first_offer:
 				break
 			available.shuffle()
-	_include_owed_family(available, count)
+	# Picks follow only their own rules: no card puts a family into them (user, "make it predictable"; dream_design.md
+	# half-dreamed "Picks stay pure"). A half-dreamed card sleeps until a pick happens to offer its family.
 	offer = []  # Untyped: families (TowerData) and Blessings (UpgradeData) share it
 	offer.append_array(available.slice(0, count))
 	if reason == &"boss" and pending_memory_warden != null and not dream_state.is_unlocked(pending_memory_warden.get_id()):
@@ -269,13 +270,21 @@ func _make_card(data: TowerData) -> Button:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
 	_fit_card(button, box)
-	if data.texture != null:
+	var emblem := BranchEmblem.family(data)  # The family's emblem (UI Asset), else the base Warden's portrait
+	if emblem != null or data.texture != null:
 		var icon := TextureRect.new()
-		var atlas := AtlasTexture.new()
-		atlas.atlas = data.texture
-		atlas.region = data.get_frame_rect(0)
-		icon.texture = atlas
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		icon.name = "FamilyEmblem" if emblem != null else "FamilyPortrait"
+		if emblem != null:
+			icon.texture = emblem
+			icon.custom_minimum_size = Vector2(64, 64)  # ×2 of the 32 px emblem: crisp
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		else:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = data.texture
+			atlas.region = data.get_frame_rect(0)
+			icon.texture = atlas
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED if emblem != null else TextureRect.STRETCH_KEEP_CENTERED
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(icon)
 	var sprout_cost := dream_state.get_evolve_cost(data)
@@ -300,7 +309,7 @@ func _make_card(data: TowerData) -> Button:
 # Under the base Warden: this run's branches (the same draw Remember shows: DreamState.preview_branch_offer), each
 # → its final with a one-line role from its counter tags; the Grove's hidden branch as its own lane; the branches not
 # in this dream as faint silhouettes that can be called in for Dreamlight. Hover / tap a lane: name, role, counters.
-const ROUTE_ICON := 28.0
+const ROUTE_ICON := 32.0  # Emblems are drawn for 32 px (UI Asset): crisp at ×1
 const NOT_IN_DREAM_ICON := 20.0
 
 # {"offered": Array[TowerData] (this run's lanes, the hidden branch last), "not_offered": Array[TowerData]}.
@@ -346,6 +355,11 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 	UiStyle.caps(head, 13, UiStyle.WHISPER)
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(head)
+	# Say plainly that the branches are drawn per run (user via story chat; Remember shows the same line).
+	var regular: int = dream_state.regular_branches(data).size() if DreamState.branch_expansion_on() else 0
+	var size: int = dream_state.branch_offer_size(data)
+	if regular > size:
+		box.add_child(_offer_line(data, size, regular))
 	for branch: TowerData in offered:
 		box.add_child(_route_lane(branch))
 	var missing: Array = routes.not_offered
@@ -364,48 +378,49 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(words)
 		row.tooltip_text = "%s: not in this dream. Call one in on Remember for %d Dreamlight." % [
-			", ".join(missing.map(func(f: TowerData) -> String: return f.display_name)), DreamState.CALL_BACK_DREAMLIGHT]
+			", ".join(missing.map(func(f: TowerData) -> String: return f.display_name)), dream_state.call_back_cost(data)]
 		box.add_child(row)
 
-# One lane: branch → final, with the role under the names. Hover / tap: name, role and counters.
+# One lane: the branch (portrait, name, role). No final form (user, 2026-10-02: "don't show the final evolution in the
+# card"; finals stay hidden until their branch is unlocked). Hover / tap: name, role and counters.
 func _route_lane(branch: TowerData) -> Control:
 	var lane := HBoxContainer.new()
 	lane.name = "Route_" + branch.get_id()
 	lane.set_meta(&"branch", branch)
-	lane.add_theme_constant_override("separation", 4)
+	lane.add_theme_constant_override("separation", 6)
 	lane.mouse_filter = Control.MOUSE_FILTER_PASS  # Tips on hover; a click still picks the card
 	lane.add_child(_icon(branch, ROUTE_ICON, false))
-	var final := final_of(branch)
-	if final != null:
-		var arrow := Label.new()
-		arrow.text = "→"
-		arrow.add_theme_color_override("font_color", UiStyle.INK_DIM)
-		arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		lane.add_child(arrow)
-		lane.add_child(_icon(final, ROUTE_ICON, false))
-	# Branch name, then "→ final" under it, then the role: full names, wrapped in the card, never cut with "…"
-	# (user screenshot: "Undercurrent → Maels…").
+	# The name, then the role under it: full names, wrapped in the card, never cut with "…"
 	var words := VBoxContainer.new()
 	words.add_theme_constant_override("separation", -2)
 	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	words.add_child(_lane_line(branch.display_name, 13, UiStyle.INK, "Name"))
-	if final != null:
-		words.add_child(_lane_line("→ " + final.display_name, 12, UiStyle.INK_DIM, "Final"))
 	var role := role_text(branch)
 	if dream_state.is_hidden_branch(branch):
 		role = "Grove · hidden branch" + (" · " + role if role != "" else "")
 	if role != "":
 		words.add_child(_lane_line(role, 11, UiStyle.GOLD, "Role"))
 	lane.add_child(words)
-	var tip := branch.display_name + (" → " + final.display_name if final != null else "")
-	if role_text(branch) != "":
-		var role_words := role_text(branch)
-		tip += "\n" + role_words.left(1).to_upper() + role_words.substr(1)  # Sentence case: "Cracks armour, quiets support"
+	# One tip for the lane (its emblem and words ignore the mouse, so nothing stacks), saying each thing once: its name
+	# and what it counters. The role is on the lane itself (user: "repeated explanations of the branch").
+	var tip := branch.display_name
 	if counters_text(branch) != "":
 		tip += "\n" + counters_text(branch)
+	elif role_text(branch) != "":
+		tip += "\n" + role_text(branch).left(1).to_upper() + role_text(branch).substr(1)  # No counters: its job instead
 	lane.tooltip_text = tip
 	return lane
+
+# "This dream offers 2 of 5 branches, different each run." Hover / tap: the call-in rule.
+const OFFER_LINE := "This dream offers %d of %d branches, different each run."
+const OFFER_TIP := "The others aren't in this dream. Call one in on Remember for %d Dreamlight, once per family."
+
+func _offer_line(data: TowerData, size: int, regular: int) -> Label:
+	var line := _lane_line(OFFER_LINE % [size, regular], 12, UiStyle.INK_DIM, "OfferLine")
+	line.mouse_filter = Control.MOUSE_FILTER_PASS
+	line.tooltip_text = OFFER_TIP % dream_state.call_back_cost(data)
+	return line
 
 # One line of a lane's words: wraps within the card (a long name takes two lines), never trimmed.
 func _lane_line(text: String, size: int, colour: Color, node_name: String) -> Label:
@@ -420,7 +435,8 @@ func _lane_line(text: String, size: int, colour: Color, node_name: String) -> La
 
 func _icon(form: TowerData, side: float, silhouette: bool) -> TextureRect:
 	var icon := TextureRect.new()
-	icon.texture = _frame(form)
+	var emblem := BranchEmblem.texture(form)  # The branch's emblem (UI Asset), else its Warden portrait
+	icon.texture = emblem if emblem != null else _frame(form)
 	icon.custom_minimum_size = Vector2(side, side)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -572,27 +588,3 @@ func _add_memory_border(button: Button) -> void:
 		var frame := (int(border.region_rect.position.x / MEMORY_BORDER_FRAME.x) + 1) % 4
 		border.region_rect = Rect2(Vector2(frame * MEMORY_BORDER_FRAME.x, 0), MEMORY_BORDER_FRAME))
 	border.add_child(pulse)
-
-# A half-dreamed Dream taken since the last pick owes this pick its missing family (one of them if
-# several): it's moved into the offered slots; the player still chooses (dream_design.md
-# "Adapt, don't get handed" 5).
-func _include_owed_family(available: Array[TowerData], count: int) -> void:
-	# Seed cards held call their families (every one); a half-dreamed Dream owes one of its missing ones.
-	var wanted: Array = dream_state.get_called_families()
-	for id in dream_state.take_owed_families():
-		if not wanted.has(id) and available.any(func(d: TowerData) -> bool: return d.get_id() == id):
-			wanted.append(id)
-			break
-	var slot := 0
-	for id in wanted:
-		if slot >= count:
-			break
-		for i in available.size():
-			if available[i].get_id() != id:
-				continue
-			if i >= slot:  # Move it into the next offered slot
-				var swapped := available[slot]
-				available[slot] = available[i]
-				available[i] = swapped
-				slot += 1
-			break

@@ -12,6 +12,7 @@ description = "Copies the attack of its strongest neighboring Warden at 80%, sta
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+role_tag = &"support"
 line = "acorn"
 tier = 2
 buildable_directly = false

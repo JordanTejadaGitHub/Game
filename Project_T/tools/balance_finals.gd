@@ -18,6 +18,10 @@ const CAST_NOCHARGE := ["boulderback", "boulderback", "moonstone", "rockslide", 
 var cast: Array = CAST
 var next_to: Array = []  # --next-to=puffball,lullaby_bell: the cast is planted first and each candidate goes beside one of these
 var pairs := false  # --pairs: every second copy goes 3-4 cells from the one before it, the line between them over the most route tiles (Jarlink fences)
+var walls := 0  # --walls=N: after each copy, Thornwalls on up to N of its four free sides (Rampart / Bastion count walls touching), bought with real Dew
+var near_goal := false  # --near-goal: the copies take the spots nearest the Heartwood first (Deeproot / Heartroot guard the goal)
+var walls_built := 0
+var wall_dew := 0
 var keep_away: Array = []  # Cells a new pair must stay over 4 cells from (other pairs' jars), so each jar links to its own partner
 var director_overrides := {}  # --director=export=value (repeatable): DriftDirector exports, e.g. second_elite_from=1 (two elites a drift)
 
@@ -59,6 +63,8 @@ func _run() -> void:
 			"--cast": cast = {"act1": CAST_ACT1, "nocharge": CAST_NOCHARGE, "finals": CAST}.get(value, Array(value.split(",")))  # or a list: --cast=rain_lily,rain_lily,…
 			"--next-to": next_to = Array(value.split(","))
 			"--pairs": pairs = true
+			"--walls": walls = int(value)
+			"--near-goal": near_goal = true
 			"--director": director_overrides[arg.get_slice("=", 1)] = arg.get_slice("=", 2)
 	ProjectSettings.set_setting("game/demo", false)  # The full game (as the user plays it)
 	main = load("res://scenes/main.tscn").instantiate()
@@ -108,6 +114,8 @@ func _run() -> void:
 			quit(1)
 			return
 		candidates.append(tower)
+		if walls > 0:
+			_add_walls(placer, tower)
 	for id in rest:
 		_plant(placer, id)
 	if DamageLog.instance:
@@ -166,6 +174,28 @@ func _run() -> void:
 # Builds the base form on the best open cell next to the path, grows it to `id` and ranks it to `rank`,
 # all paid with Dew. Returns the Warden, or null.
 # `next_to`: only cells touching (8 around) a planted Warden whose id is in the list (Grafted Elder copies a neighbour).
+# --walls: Thornwalls on the free sides of `tower` (the four around it, off the route, never closing it), up to `walls`.
+func _add_walls(placer: TowerPlacer, tower: Tower) -> void:
+	var chain := _chain_to("thornwall")
+	if chain.is_empty():
+		return
+	var map = main.get_node("%MapGenerator")
+	var container: Node = main.get_node("%TowerContainer")
+	var path: PackedVector2Array = map.get_path_from(map.startPath)
+	var built := 0
+	for side in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+		if built >= walls:
+			break
+		var cell: Vector2 = tower.cell + side
+		if path.has(cell) or not map.can_block(cell):
+			continue
+		placer.tower_data = chain[0]
+		var before := container.get_child_count()
+		if placer._try_build(cell):
+			built += 1
+			wall_dew += container.get_child(before).invested_dew
+	walls_built += built
+
 func _plant(placer: TowerPlacer, id: String, next_to: Array = [], beside: Tower = null, across := false) -> Tower:
 	var chain := _chain_to(id)
 	if chain.is_empty():
@@ -177,7 +207,7 @@ func _plant(placer: TowerPlacer, id: String, next_to: Array = [], beside: Tower 
 	var tower: Tower = null
 	var spots: Array = []  # [[path index, cell], …] in the order to try
 	if next_to.is_empty():
-		for i in range(4, path.size() - 2):
+		for i in (range(path.size() - 3, 3, -1) if near_goal else range(4, path.size() - 2)):
 			for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 				spots.append(path[i] + offset)
 	elif across and beside != null:  # --pairs: 3-4 cells from its partner, where the line between them crosses the most route tiles
@@ -297,7 +327,7 @@ func _report(director: DriftDirector) -> void:
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
 		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "pairs": pairs, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "board_damage": roundi(total),
 		"bosses": ";".join(boss_fights.values().map(func(b) -> String: return "%s:%d:%s:%.0f:%d" % [b.kind, b.health, "1" if b.dispelled else "0", (b.end - b.spawn) if b.dispelled else -1.0, b.hp_arrive])),
-		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001), "hit_target_hp": roundi(hit_target_hp.x / maxf(hit_target_hp.y, 1.0)), "base_damage": snappedf(candidates[0].get_damage(), 0.1)}
+		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001), "hit_target_hp": roundi(hit_target_hp.x / maxf(hit_target_hp.y, 1.0)), "base_damage": snappedf(candidates[0].get_damage(), 0.1), "walls": snappedf(float(walls_built) / COPIES, 0.01), "wall_dew": wall_dew, "near_goal": near_goal}
 	print("FINALS %s" % JSON.stringify(row))
 	if out_path != "":
 		var exists := FileAccess.file_exists(out_path)

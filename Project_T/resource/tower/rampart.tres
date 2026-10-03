@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Resource" path="res://resource/tower/bastion.tres" id="ev_1"]
+
+[ext_resource type="Texture2D" path="res://assets/towers/rampart.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/rampart_attack.png" id="4_atk"]
+[resource]
+script = ExtResource("1_tdata")
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+display_name = "Rampart"
+description = "Grows stronger with stone walls around it: heavy blows on the path tiles around it, and it deals 15% more damage for each Thornwall touching it (up to 4). Those Thornwalls turn to stone: they can't be trampled or burrowed under."
+cost = 0
+placeholder_color = Color(0.54902, 0.54902, 0.67451, 1)
+line = "stone"
+tier = 2
+buildable_directly = false
+evolve_cost = 120
+counter_tags = Array[StringName]([&"boss_abilities"])
+expansion_phase = 2
+special = &"rampart"
+special_params = {"per_wall": 0.15, "max_walls": 4}
+attack_range = 1.5
+damage = 120
+attacks_per_second = 0.5
+attack_kind = 10
+spin_bonus = 0.0
+evolves_to = Array[Resource]([ExtResource("ev_1")])

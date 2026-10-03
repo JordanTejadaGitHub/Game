@@ -22,9 +22,11 @@ const MOTE := "✦"  # Dreamlight
 const UNKNOWN_NAME := "???"  # A form the Memory Grove hasn't planted: no name, on the tree or in the panel (user)
 const NODE_SIZE := Vector2(76, 92)  # 48 px+ for touch
 const NAME_SIZE := 14  # Form names under the portraits (body font)
-const NAME_MIN_SIZE := 11  # A long name shrinks to this, then ends in "…"
+const NAME_MIN_SIZE := 11  # A long name shrinks to this, then wraps onto two lines
+const NAME_FLOOR_SIZE := 9  # …and a still-too-wide line shrinks down to this (never cut)
+const EMBLEM_BADGE := 20.0  # A branch emblem badge on a tree node (BranchEmblem, when UI Asset's art exists)
 const PORTRAIT := 56.0
-const TREE_SIZE := Vector2(560, 390)  # Shorter since the "Not in this dream" strip sits under it (fits 1280×800)
+const TREE_SIZE := Vector2(560, 380)  # Shorter for the "Not in this dream" strip under it and the offer line above (fits 1280×800)
 const SIDE_WIDTH := 300.0
 const NARROW_WIDTH := 900.0  # Below this the side panel sits under the tree and slides up
 const FRAME_TIME := 0.16  # Idle animation
@@ -53,6 +55,7 @@ var _canvas: TreeCanvas
 var _side := PanelContainer.new()
 var _side_box := VBoxContainer.new()
 var _misty := VBoxContainer.new()  # "Not in this dream": the family's branches not offered this run
+var _offer_line := Label.new()  # "This dream offers 2 of 5 branches, different each run. …"
 var _dev_free := CheckButton.new()  # "Dev: unlock free" (dev runs of debug builds)
 
 func _ready() -> void:
@@ -85,6 +88,9 @@ func _ready() -> void:
 	hint.text = "Dreamlight unlocks, Dew grows."
 	hint.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	box.add_child(hint)
+	_offer_line.name = "OfferLine"  # Branch expansion: the branches are random each run (story chat, user)
+	_offer_line.add_theme_color_override("font_color", UiStyle.INK)
+	box.add_child(_offer_line)
 
 	_tabs.add_theme_constant_override("separation", 6)
 	box.add_child(_tabs)
@@ -212,11 +218,31 @@ func _rebuild() -> void:
 	_canvas.show_tree(shown)
 	_fill_side(selected)
 	_fill_misty(shown[0])
+	_offer_line.text = offer_line(shown[0])
+	_offer_line.visible = _offer_line.text != ""
+
+# The line above the tree (user: players should be told the branches are random): "This dream offers 2 of 5
+# branches, different each run. Call others in with Dreamlight." ("" outside the branch expansion, or for a family
+# offering all it has). "Branches", not "paths": a path is the maze's route (text_style.md).
+func offer_line(root: TowerData) -> String:
+	if root == null or root.tier != 1 or dream_state.not_offered_branches(root).is_empty():
+		return ""
+	return "This dream offers %d of %d branches, different each run. Call others in with Dreamlight." % [  # As the family pick
+		dream_state.branch_offer_size(root), dream_state.regular_branches(root).size()]
+
+const MISTY_TIP := "Each run the dream offers only some of a family's branches, at random. These weren't drawn this time: call one in for Dreamlight (once per family), or find the Remembered Path card. The Heartwood may offer them next run."
+
+# A strip emblem's tip (user: "hovering emblems gives me repeated explanations of the branch"): this branch's name and
+# what it does, never the strip's general explanation (that's on the header, once).
+func branch_tip(form: TowerData) -> String:
+	var does := IconInfo.format(form.description) if form.description != "" else ""
+	return form.display_name + ("\n" + does if does != "" else "")
 
 # The strip under the tree (story chat: the not-offered branches beside the base read as its siblings): each
 # branch of `root`'s family not in this run, a faint silhouette with its name and "Call in · 3 Dreamlight" (once per
 # family; free with Remembered Path; greyed after use). A tap on one shows it in the side panel too.
 const MISTY_PORTRAIT := 40.0
+const MISTY_EMBLEM := 32.0  # UI Asset's emblems are 32 px art (nearest)
 
 func _fill_misty(root: TowerData) -> void:
 	for child in _misty.get_children():
@@ -230,6 +256,8 @@ func _fill_misty(root: TowerData) -> void:
 	head.text = "Not in this dream"
 	UiStyle.caps(head, 15)
 	head.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	head.tooltip_text = MISTY_TIP  # Hover or tap: why these aren't in the tree
+	head.mouse_filter = Control.MOUSE_FILTER_PASS
 	_misty.add_child(head)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 18)
@@ -243,13 +271,24 @@ func _fill_misty(root: TowerData) -> void:
 		look.flat = true
 		look.focus_mode = Control.FOCUS_NONE
 		look.custom_minimum_size = Vector2(MISTY_PORTRAIT, MISTY_PORTRAIT)
-		look.tooltip_text = form.display_name + " · not in this dream"
+		look.tooltip_text = branch_tip(form)  # About this branch only: the strip's header explains "not in this dream" once
 		look.draw.connect(func() -> void:  # The moonlit disc behind the silhouette (as on the tree), faint
 			UiStyle.draw_moon_disc(look, look.size / 2.0, MISTY_PORTRAIT / 2.0 - 1))
 		look.modulate = Color(1, 1, 1, 0.6)  # multiplier: the mist
-		var portrait := Portrait.new(form, MISTY_PORTRAIT, true)
-		portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		look.add_child(portrait)
+		var emblem := BranchEmblem.texture(form)  # UI Asset's branch emblem when it exists, else the silhouette
+		if emblem != null:
+			var mark := TextureRect.new()
+			mark.texture = emblem
+			mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			mark.size = Vector2(MISTY_EMBLEM, MISTY_EMBLEM)  # 32 px art at 1:1 (crisp; 40 would scale it unevenly)
+			mark.position = Vector2(MISTY_PORTRAIT - MISTY_EMBLEM, MISTY_PORTRAIT - MISTY_EMBLEM) / 2.0
+			mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			look.add_child(mark)
+		else:
+			var portrait := Portrait.new(form, MISTY_PORTRAIT, true)
+			portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			look.add_child(portrait)
 		look.pressed.connect(_select.bind(form))
 		item.add_child(look)
 		var words := VBoxContainer.new()
@@ -265,7 +304,7 @@ func _fill_misty(root: TowerData) -> void:
 		call.focus_mode = Control.FOCUS_NONE
 		var problem := dream_state.call_back_problem(form)
 		var free := dream_state.free_calls > 0
-		call.text = "Call in · free" if free else "Call in · %d Dreamlight" % DreamState.CALL_BACK_DREAMLIGHT
+		call.text = "Call in · free" if free else "Call in · %d Dreamlight" % dream_state.call_back_cost(root)
 		call.disabled = problem != ""
 		call.tooltip_text = (problem[0].to_upper() + problem.substr(1) + ".") if problem != "" \
 			else "Once per family each run. Its final still costs %d." % DreamState.FINAL_DREAMLIGHT
@@ -337,12 +376,40 @@ func count_on_map(data: TowerData) -> int:
 
 # --- Side panel -----------------------------------------------------------------------------------------
 
+# A form whose look stays hidden (user: "hide the final evolution until you unlock the first one"): a final form until
+# its branch is unlocked this run (bought or called in), an Ascended form until a final of its family is. Shown as a dim
+# "?" with no portrait, stats or cost. Dev "unlock free" shows everything.
+func is_veiled(data: TowerData) -> bool:
+	if data == null or _dev_free.button_pressed or dream_state.unlock_everything or dream_state.is_unlocked(data.get_id()):
+		return false
+	if data.tier >= DreamState.ASCENDED_TIER:
+		return not dream_state._has_unlocked_final(data)
+	if data.tier == 3:
+		var branch := dream_state._parent_in_tree(data)
+		return branch != null and branch.tier == 2 and not dream_state.is_unlocked(branch.get_id())
+	return false
+
+# The step that unveils `data`: "Unlock Stormcap to see what it becomes".
+func veil_hint(data: TowerData) -> String:
+	if data.tier >= DreamState.ASCENDED_TIER:
+		return "Unlock a final form of this family to see what it becomes"
+	var branch := dream_state._parent_in_tree(data)
+	return "Unlock %s to see what it becomes" % (branch.display_name if branch != null else "its branch")
+
 func _fill_side(data: TowerData) -> void:
 	for child in _side_box.get_children():
 		_side_box.remove_child(child)
 		child.queue_free()
 	if data == null:
 		_line("No family to remember yet.", UiStyle.INK_DIM, 15)
+		return
+	if is_veiled(data):  # Only the "?" and how to reveal it
+		var mark := Label.new()
+		mark.text = "?"
+		UiStyle.display(mark, 22)
+		mark.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		_side_box.add_child(mark)
+		_line(veil_hint(data), UiStyle.INK_DIM, 15)
 		return
 	var grove := state_of(data) == State.GROVE
 	if state_of(data) == State.NOT_IN_DREAM:
@@ -506,13 +573,14 @@ func _add_call_back(data: TowerData) -> void:
 	button.custom_minimum_size = Vector2(0, 48)
 	var free := dream_state.free_calls > 0
 	var problem := dream_state.call_back_problem(data)
+	var cost := dream_state.call_back_cost(dream_state._parent_in_tree(data))  # 3; Wider Roots' family 4
 	UiStyle.primary(button)
 	_side_box.add_child(button)
 	if problem == "Not enough Dreamlight":  # The cost in POOR, a press refuses (as Unlock)
-		CantAfford.apply(button, "Call into this dream", "%d Dreamlight" % DreamState.CALL_BACK_DREAMLIGHT, IconInfo.format(SHORT_TIP))
-		button.pressed.connect(_refuse_call_back.bind(button))
+		CantAfford.apply(button, "Call into this dream", "%d Dreamlight" % cost, IconInfo.format(SHORT_TIP))
+		button.pressed.connect(_refuse_call_back.bind(button, cost))
 		return
-	button.text = "Call into this dream · free (Remembered Path)" if free else "Call into this dream · %d Dreamlight" % DreamState.CALL_BACK_DREAMLIGHT
+	button.text = "Call into this dream · free (Remembered Path)" if free else "Call into this dream · %d Dreamlight" % cost
 	if problem != "":
 		button.disabled = true
 		_line(problem[0].to_upper() + problem.substr(1) + ".", UiStyle.INK_DIM, 13)
@@ -524,12 +592,12 @@ func _add_call_back(data: TowerData) -> void:
 			_rebuild()
 			_canvas.bloom(data))
 
-func _refuse_call_back(button: Button) -> void:
+func _refuse_call_back(button: Button, cost: int) -> void:
 	CantAfford.shake(button)
 	var hud := get_parent()
 	if hud != null and hud.has_method("show_toast"):
 		hud.show_toast("Not enough Dreamlight")
-	dream_state.dreamlight_short.emit(DreamState.CALL_BACK_DREAMLIGHT)
+	dream_state.dreamlight_short.emit(cost)
 
 func _add_unlock(data: TowerData) -> void:
 	var cost := dream_state.get_unlock_cost(data)
@@ -727,15 +795,30 @@ class FormNode extends Button:
 		focus_mode = Control.FOCUS_NONE
 		process_mode = Node.PROCESS_MODE_ALWAYS
 		var state := screen.state_of(data)
-		portrait = Portrait.new(data, PORTRAIT, state == State.GROVE or state == State.NOT_IN_DREAM)  # Silhouettes: not planted, or not in this dream
+		var veiled := screen.is_veiled(data)
+		portrait = Portrait.new(data, PORTRAIT, state == State.GROVE or state == State.NOT_IN_DREAM or veiled)  # Silhouettes: not planted, not in this dream, or not revealed yet
 		if state != State.GROVE and not RememberScreen.is_unlocked_state(state):
 			portrait.modulate = Color.WHITE.darkened(0.2)  # Grove-available, not unlocked this run: its real colours, ~80%
 		portrait.position = Vector2((NODE_SIZE.x - PORTRAIT) / 2.0, 4)
 		add_child(portrait)
+		var emblem := BranchEmblem.texture(data) if data.tier >= 2 and not screen.is_veiled(data) and state != State.GROVE else null  # Never on an unknown (???) form
+		if emblem != null:  # A small branch badge on the portrait's shoulder (the portrait stays: story chat)
+			var badge := TextureRect.new()
+			badge.name = "Emblem"
+			badge.texture = emblem
+			badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			badge.size = Vector2(EMBLEM_BADGE, EMBLEM_BADGE)
+			badge.position = Vector2((NODE_SIZE.x + PORTRAIT) / 2.0 - EMBLEM_BADGE + 2, 2)
+			badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(badge)
 		tooltip_text = UNKNOWN_NAME + " · Plant it in the Memory Grove" if state == State.GROVE else data.display_name  # Grove-locked: no name (user), the hint
 		if state == State.NOT_IN_DREAM:  # Branch expansion: a faint, misty silhouette
 			modulate = Color(1, 1, 1, 0.5)  # multiplier: the mist
 			tooltip_text = data.display_name + " · not in this dream"
+		if veiled:  # A final not revealed yet: its dark silhouette only (user: "show the silhouette still"), a dim "?"
+			modulate = Color(1, 1, 1, 0.8)  # multiplier: dim
+			tooltip_text = "? · " + screen.veil_hint(data)
 		pressed.connect(func() -> void: screen._select(data))
 
 	func _process(delta: float) -> void:
@@ -750,6 +833,9 @@ class FormNode extends Button:
 		UiStyle.draw_moon_disc(self, centre, PORTRAIT / 2.0 - 1)  # The lit backdrop on every node (unlocked ones lost it: story chat)
 		if screen.selected == data:
 			draw_arc(centre, PORTRAIT / 2.0 + 3, 0.0, TAU, 40, UiStyle.GOLD, 2.0, true)
+		if screen.is_veiled(data):  # Not revealed yet: its silhouette labelled "?", no name, cost or glow
+			_caption("?", UiStyle.body_font(), NAME_SIZE + 4, UiStyle.INK, NODE_SIZE.y - 6)
+			return
 		if state == State.CAN_UNLOCK:
 			var glow := 0.35 + 0.25 * sin(_pulse * 3.0)
 			draw_arc(centre, PORTRAIT / 2.0 + 1, 0.0, TAU, 40, Color(UiStyle.GOLD, glow), 3.0, true)
@@ -757,12 +843,12 @@ class FormNode extends Button:
 		var colour := UiStyle.INK
 		match state:
 			State.GROWN:  # Its name in gold (yours this run) above how many stand on the map
-				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.GOLD, NODE_SIZE.y - 19)
+				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.GOLD, NODE_SIZE.y - 19, 1)  # One line: the count sits under it
 				text = "×%d" % screen.count_on_map(data)
 			State.UNLOCKED:  # Its name in gold: unlocked this run, none planted yet
 				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.GOLD, NODE_SIZE.y - 6)
 			State.CAN_UNLOCK, State.NEEDS_LIGHT:
-				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.INK_DIM, NODE_SIZE.y - 19)  # Its name above the motes
+				_caption(data.display_name, UiStyle.body_font(), NAME_SIZE, UiStyle.INK_DIM, NODE_SIZE.y - 19, 1)  # Its name above the motes, one line
 				var price: int = screen.dream_state.get_unlock_price(data)
 				text = MOTE.repeat(price) if price > 0 else "free"
 				colour = UiStyle.GOLD if state == State.CAN_UNLOCK else UiStyle.INK_DIM
@@ -787,16 +873,27 @@ class FormNode extends Button:
 	func name_shown() -> String:
 		return UNKNOWN_NAME if screen.state_of(data) == State.GROVE else data.display_name
 
-	# One centred line under the portrait: a long name shrinks (down to NAME_MIN_SIZE), then ends in "…", never past
-	# the node ("Undercurrent" overflowed).
-	func _caption(text: String, font: Font, font_size: int, colour: Color, baseline: float) -> void:
+	# A name under the portrait, centred and inside the node, never cut (story chat: "Hummingbird …" was): it shrinks to
+	# NAME_MIN_SIZE, then wraps onto two lines at the space nearest its middle (the first line above `baseline`), then
+	# shrinks further (to NAME_FLOOR_SIZE) if a line is still too wide.
+	func _caption(text: String, font: Font, font_size: int, colour: Color, baseline: float, max_lines: int = 2) -> void:
 		var room := NODE_SIZE.x - 4
-		while font_size > NAME_MIN_SIZE and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > room:
+		var fits := func(line: String, size_px: int) -> bool: return font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px).x <= room
+		while font_size > NAME_MIN_SIZE and not fits.call(text, font_size):
 			font_size -= 1
-		while text.length() > 3 and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > room:
-			text = text.left(text.length() - 2) + "…"
-		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
-		draw_string(font, Vector2((NODE_SIZE.x - width) / 2.0, baseline), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
+		var lines: Array[String] = [text]
+		if max_lines > 1 and not fits.call(text, font_size) and text.contains(" "):
+			var best := -1
+			for i in text.length():  # The space nearest the middle
+				if text[i] == " " and (best < 0 or absi(i - text.length() / 2) < absi(best - text.length() / 2)):
+					best = i
+			lines = [text.left(best), text.substr(best + 1)]
+		while font_size > NAME_FLOOR_SIZE and not lines.all(func(line: String) -> bool: return fits.call(line, font_size)):
+			font_size -= 1
+		for i in lines.size():
+			var width := font.get_string_size(lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+			var y := baseline - (lines.size() - 1 - i) * (font_size + 1)
+			draw_string(font, Vector2((NODE_SIZE.x - width) / 2.0, y), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
 
 
 	# The Memory Grove's leaf: a small two-arc leaf on the portrait's shoulder.

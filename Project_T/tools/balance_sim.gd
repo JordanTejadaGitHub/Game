@@ -32,6 +32,7 @@ const LAST_STRETCH := 8  # Route tiles before the Heartwood a covering Warden sh
 const AURA_WEIGHT := 2.0  # Aura placement: path tiles a Warden in (or under) an aura is worth (balance_simulation.md: path coverage still dominates)
 const AURA_COUNT_MAX := 5  # …counting at most this many Wardens per cell (a bonus of up to 10 tiles; a cell covers ~8-20 path tiles)
 const KIN_WEIGHT := 2.0  # Kinship placement: path tiles per unbonded kin of the same family within Kinships reach (at most AURA_COUNT_MAX)
+const FENCE_WEIGHT := 3.0  # Jarlink growth: path tiles per route tile on the line to a partner jar 2-4 cells away (a Jarlink full, a Firefly Jar that can still become one half)
 var _saving_for_final := false  # The cheapest open growth is a final form (saves longer for it)
 const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, "sprout": 5, "grove": 3, "mixed": 6}  # DreamSimPolicy.Style; grove = the hand-written Grove player (Combo cards, --families); mixed = Style.MIXED
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
@@ -73,6 +74,8 @@ var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.pre
 var aura_placement := true  # --no-aura: place and grow aura Wardens (Acorn, Elder Stump, Grove Heart, Moon Moth) by path only
 var empty_loadout := false
 var sidegrade := -1
+var carry_pref := true  # --no-carry-pref: act 1 growth and Dreamlight don't prefer the carry branch (DreamState.is_carry), the bot before 2026-10-02
+var fence_pref := true  # --no-fence-pref: Jarlink growth ignores where its arc would fall (the bot before 2026-10-02)
 var demo_run := false  # --demo: game/demo stays true (DEMO_RULES, demo bosses and Kinships), for the demo sanity check
 var kin_placement := true  # --no-kin: no Kinship placement, and growth takes the first open form in evolves_to (the old bot)
 var focus_mode := ""  # --focus=deep: Nurture picks Deep where it's offered and Potency cards score high (a committed Deep build)
@@ -81,6 +84,7 @@ var dream_share := {}  # Drift -> the share of the maze's damage per second that
 var dreams_20 := ""  # The Dreams taken by drift 20 ("a+b")
 var omens: OmenDirector
 var omens_faced: Array[String] = []
+var gifts_log: Array[String] = []  # Heartwood's Gifts at each act break: "<drift>:<id>" or "<drift>:pass" (gifts column)
 var dreamlight_by_source := {}  # DreamState.dreamlight_earned totals per source (omen_dreamlight column)
 var omen_pot_dew := 0.0  # Dew the active Omen's pot multiplier added (or took) vs the unmodified pot, assuming the whole pot is dispelled
 var omen_by_act := {}  # Act -> {dew, pot, share, lost, paid}: Omen rewards by the act their rest falls in (the rest after drift 25 is act 1)
@@ -143,6 +147,8 @@ func _run() -> void:
 			"--omens": omen_mode = value
 			"--all-families": all_families = true
 			"--demo": demo_run = true
+			"--no-carry-pref": carry_pref = false
+			"--no-fence-pref": fence_pref = false
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
@@ -216,6 +222,7 @@ func _run() -> void:
 	policy.on_offer = _note_offer
 	policy.on_pick = _log_pick
 	policy.branches_first = kin_placement
+	policy.carry_first = carry_pref
 	policy.deep = focus_mode == "deep"
 	policy.mode = dream_mode
 	policy.rng.seed = map_seed
@@ -302,10 +309,25 @@ func _on_family_pick(kind: StringName) -> void:
 	director.family_picked()
 	_busy = false
 
+# Heartwood's Gifts (act breaks, main since bebfb22c): the bot takes the first gift that needs no placing on the map,
+# else lets them pass for the Dew. Without an answer the next drift never starts (pending_choice() == &"gift").
+func _answer_gifts(n: int) -> void:
+	var gifts := main.get_tree().get_first_node_in_group(&"heartwood_gifts")
+	if gifts == null or not gifts.is_offering():
+		return
+	for id in gifts.current_offer:
+		if not gifts.needs_placing(id):
+			gifts.choose(id)
+			gifts_log.append("%d:%s" % [n, id])
+			return
+	gifts.let_pass()
+	gifts_log.append("%d:pass" % n)
+
 func _on_rest(perfect: bool) -> void:
 	_busy = true
 	var n := director.drifts_started
 	policy.rest(n, perfect)
+	_answer_gifts(n)
 	if _facing() and omens and not omens.current_offer.is_empty():
 		omens._offer_waiting = false  # The bot answers instead of the screen
 		var omen: OmenData = policy.pick_omen(omens.current_offer)
@@ -510,12 +532,18 @@ func _grow() -> bool:
 				pick = form
 				break
 			var form_score := 100.0 * _kin_bonus(tower.cell, form, tower) - _count_on_map(form.get_id())
+			if carry_pref and director.drifts_started <= director.drifts_per_act and DreamState.is_carry(form):
+				form_score += 1000.0  # Act 1: the carry branch over its partner (Bloomcap beside Driftspore was "the one with fewer on the map")
 			if form_score > pick_score:
 				pick_score = form_score
 				pick = form
 		if pick != null:
 			# Growing into an aura Warden: the Wardens around it count; into a kin branch: its unbonded kin.
 			var cover := _coverage(tower) + _aura_bonus(tower.cell, pick, tower, false) + _kin_bonus(tower.cell, pick, tower)
+			if fence_pref and pick.special == &"jarlink":
+				cover += _fence_bonus(tower)  # The arc must cross the route (the probe's --pairs rule)
+				if cover < 0.0:
+					continue  # Its arc would cover no route tile: not here
 			if best.is_empty() or cover > best[0]:
 				best = [cover, tower, pick]
 	return not best.is_empty() and placer.evolve(best[1], best[2])
@@ -737,6 +765,10 @@ func _finish() -> void:
 	summary.kin_pairs_50 = kin_pairs.get(51, -1)
 	summary.dream_off_ids = "+".join(dream_off_ids.keys().map(func(id) -> String: return "%s:%d" % [id, dream_off_ids[id]]))
 	summary.dream_pool_mean = snappedf(float(dream_offers.pool) / maxf(dream_offers.offers, 1.0), 0.1)
+	summary.gifts = "+".join(gifts_log)
+	summary.jarlinks = _jarlink_text()
+	summary.branch_offers = ";".join(dreams.branch_offers.keys().map(func(id) -> String: return "%s:%s" % [id, "/".join(dreams.branch_offers[id].map(func(t) -> String: return t.get_id() if t is TowerData else str(t)))]))
+	summary.dreamlight_unlocks = "+".join(policy.choices.filter(func(c: String) -> bool: return c.begins_with("Dreamlight: ")).map(func(c: String) -> String: return c.substr(12)))
 	var runs_path := out_dir.path_join("runs.csv")
 	var keys := summary.keys()
 	var new_file := not FileAccess.file_exists(runs_path)
@@ -1091,6 +1123,50 @@ func _covered_by_aura(target: Tower) -> bool:
 # Path-tile bonus for a Warden of `data` at `cell`: KIN_WEIGHT per unbonded Warden of the same family within
 # Kinships reach that it bonds with (a branch: its Kinship partner branch; a base Warden: any branch of its
 # family, which it can grow to meet). Bonded Wardens never count (bonds are sticky).
+# jarlinks column: each Jarlink at the end as cell>partner cell:route tiles under the arc (partner "-" = none), so a
+# fence share of 0 can be told apart: no pair, or an arc off the route.
+func _jarlink_text() -> String:
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var out: Array[String] = []
+	for t in _attackers():
+		if t.tower_data.special != &"jarlink":
+			continue
+		var partner = BranchKit._fence_partner(t)
+		var on_route := 0
+		if partner != null:
+			for c in BranchKit._arc_cells(t.cell, partner.cell):
+				if route.has(c):
+					on_route += 1
+		out.append("%d/%d>%s:%d" % [t.cell.x, t.cell.y, "-" if partner == null else "%d/%d" % [partner.cell.x, partner.cell.y], on_route])
+	return " ".join(out)
+# A Jarlink bonds with the nearest unbonded Jarlink within 4 cells, and the bond sticks (BranchKit.fence_partner_at).
+# Growing `tower` into one: the partner the game would give it and the route tiles under that arc (FENCE_WEIGHT each);
+# an arc over no route tile (side by side or off the path) costs FENCE_DEAD, so the bot grows elsewhere. With no
+# partner yet: half the route tiles toward the best Firefly Jar 2-4 cells away (a Jarlink to be).
+const FENCE_DEAD := -1000.0
+
+func _fence_bonus(tower: Tower) -> float:
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var partner: Tower = BranchKit.fence_partner_at(tower, tower.cell, 4.0, tower)
+	if partner != null:
+		var tiles := 0
+		for c in BranchKit._arc_cells(tower.cell, partner.cell):
+			if route.has(c):
+				tiles += 1
+		return FENCE_WEIGHT * tiles if tiles > 0 else FENCE_DEAD
+	var best := 0.0
+	for other in _attackers():
+		if other == tower or other.tower_data.get_id() != "firefly_jar":
+			continue
+		if Kinships._cheb(tower.cell, other.cell) > 4.0:
+			continue
+		var tiles := 0
+		for c in BranchKit._arc_cells(tower.cell, other.cell):
+			if route.has(c):
+				tiles += 1
+		best = maxf(best, 0.5 * tiles)
+	return FENCE_WEIGHT * best
+
 func _kin_bonus(cell: Vector2, data: TowerData, exclude: Tower = null) -> float:
 	if not kin_placement or data == null or not data.can_attack:
 		return 0.0

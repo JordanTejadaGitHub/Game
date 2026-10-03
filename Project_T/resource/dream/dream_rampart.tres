@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/rampart.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_rampart"
+display_name = "Rampart"
+description = "Pebblings can now grow into Ramparts ({grow_cost:rampart} Dew): heavy blows that grow with the Thornwalls touching it, and turn them to stone."
+rarity = 1
+kind = 1
+tags = Array[String](["stone"])
+requires = Array[String](["pebbling"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")

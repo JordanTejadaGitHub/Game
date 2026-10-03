@@ -39,6 +39,7 @@ func _init() -> void:
 	_pull_drag()
 	_final_signatures()
 	_branch_effects()
+	_phase2_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -2883,3 +2884,217 @@ func _rain_sweep(img: Image, f: int) -> void:
 			var a := s * TAU / 30.0 + 0.1
 			if s % 2 == 0:
 				_px(img, int(c.x + cos(a) * r2.x), int(c.y + sin(a) * r2.y), Color("#dce8f4", 0.8 - t * 0.6))
+
+# --- Phase 2 effects (tower_design.md 7816b7e0, played by Tower Code's Fx) -------------------------
+
+func _phase2_effects() -> void:
+	_sheet("clean_cut", Vector2i(48, 48), 6, 18, Vector2i(24, 24), false, "signature", _clean_cut,
+		{note = "Whetstone / Edgestone: the finishing slash on the nightmare it finishes (centred on it), ~0.33 s."})
+	_sheet("clean_spill", Vector2i(32, 12), 4, 16, Vector2i(0, 6), false, "segment", _clean_spill,
+		{note = "Edgestone: the overkill jumping from the finished nightmare to the next one. Stretch along x (y = 6 on the line), killed -> next."})
+	_sheet("stone_up", Vector2i(64, 80), 6, 12, Vector2i(32, 48), false, "signature", _stone_up,
+		{note = "Rampart / Bastion: a Thornwall touching it hardening to stone. Same frame layout as a Warden (64x80, body in the bottom 64, anchor = the cell centre); play over the wall, then swap its texture to thornwall_stone.png."})
+	_sheet("rockfall", Vector2i(48, 80), 8, 14, Vector2i(24, 64), false, "signature", _rockfall,
+		{note = "Bastion: a rock falling from a stone wall onto the path tile beside it. Anchor = the tile centre; impact on frame 3."})
+	_sheet("ground_slam", Vector2i(208, 208), 7, 16, Vector2i(104, 104), false, "ground", _ground_slam,
+		{note = "Quaker / Earthshaker: the slam ring centred on the Warden, drawn for a 1.5 cell radius (96 px); scale x1.33 for Earthshaker's 2."})
+	_sheet("path_crack", Vector2i(64, 64), 4, 12, Vector2i(32, 32), false, "ground", _path_crack,
+		{note = "Earthshaker: the crack left on a path tile. Forms up over 3 frames; hold the last frame (static) for the 3 s, z -1."})
+	_sheet("flyer_grab", Vector2i(48, 64), 6, 12, Vector2i(24, 20), false, "signature", _flyer_grab,
+		{note = "Groundroot / Earthbind: roots shooting up from the ground and dragging the flyer down (anchor = the flyer), ~0.5 s."})
+	_sheet("goal_hold", Vector2i(48, 48), 6, 12, Vector2i(24, 30), false, "signature", _goal_hold,
+		{note = "Deeproot: a root coil snapping round the held nightmare's feet (anchor = its feet), ~0.5 s."})
+	_sheet("thorns", Vector2i(32, 32), 6, 10, Vector2i(16, 22), true, "status", _thorns,
+		{note = "Thorncoil: thorns pricking a held nightmare, round its feet (anchor = its feet). Loop while it's held."})
+	_sheet("thorn_spread", Vector2i(32, 12), 4, 14, Vector2i(0, 6), false, "segment", _thorn_spread,
+		{note = "Crown of Thorns: a thorny vine growing from the held nightmare to its neighbour. Stretch along x (y = 6 on the line)."})
+	_sheet("sprout_puff", Vector2i(48, 48), 6, 12, Vector2i(24, 36), false, "signature", _sprout_puff,
+		{note = "Seedbearer / Grove Keeper: the free Sprout popping up on its cell (anchor = the cell centre)."})
+	_sheet("shard_rise", Vector2i(24, 48), 8, 12, Vector2i(12, 44), false, "signature", _shard_rise,
+		{note = "Dream Oak / Dreamroot: a Dreamlight shard rising out of it at the end of a drift (anchor = its top)."})
+
+func _clean_cut(img: Image, f: int) -> void:
+	# A bright diagonal cut across the nightmare, a split line, then sparks and the cut fading.
+	var c := Vector2(24, 24)
+	var d := Vector2(1, -0.8).normalized()
+	var n := d.orthogonal()
+	var reach: float = [8.0, 18.0, 20.0, 20.0, 20.0, 20.0][f]
+	var w: float = [1.0, 2.5, 2.0, 1.2, 0.6, 0.0][f]
+	for i in range(-int(reach), int(reach) + 1):
+		var taper := 1.0 - absf(i) / (reach + 1.0)
+		for j in range(-int(w * taper + 0.5), int(w * taper + 0.5) + 1):
+			var p := c + d * i + n * j
+			_px(img, roundi(p.x), roundi(p.y), Color("#ffffff") if j == 0 else Color("#9cd4fc", 0.9))
+	if f >= 1 and f <= 4:
+		_sparks(img, c, 6, 6.0 + f * 3.0, 2.0, Color("#dce8f4", 1.0 - f * 0.2), 0.3, 1.0)
+	if f == 1:
+		_glow(img, c, Vector2(10, 10))
+
+func _clean_spill(img: Image, f: int) -> void:
+	# A thin streak of the cut's light running along the line, sparks flicking off it.
+	for x in 32:
+		if (x + f * 3) % 8 < 6:
+			_px(img, x, 6, Color("#ffffff"))
+			_px(img, x, 5, Color("#9cd4fc", 0.8))
+			_px(img, x, 7, Color("#9cd4fc", 0.8))
+	for k in 3:
+		_px(img, (k * 11 + f * 5) % 32, 3 + k % 2 * 6, Color("#dce8f4", 0.8))
+
+func _stone_up(img: Image, f: int) -> void:
+	# Stone creeping up over the hedge from the ground: inside the wall's rounded outline everything below a
+	# rising line turns to pale stone (a light veil the game lays over the old texture before the swap),
+	# a bright seam along the line, dust puffing at the foot, a glint when it's done.
+	var c := Vector2(32, 42)
+	var r := Vector2(24, 23)
+	var line: float = 66.0 - [6.0, 16.0, 28.0, 38.0, 46.0, 46.0][f]
+	for y in range(int(line), 66):
+		for x in range(6, 58):
+			if ((Vector2(x + 0.5, y + 0.5) - c) / r).length() > 1.0:
+				continue
+			if y == int(line):
+				_px(img, x, y, Color("#dce8f4", 0.95))
+			elif (x + y) % 2 == 0:
+				_px(img, x, y, Color("#b4b0c8", 0.55) if (x / 5 + y / 4) % 2 == 0 else Color("#8c8cac", 0.55))
+	if f < 4:
+		for s: int in [-1, 1]:
+			_ellipse(img, Vector2(32 + s * 20, 66), Vector2(5 + f, 3), Color("#dccdb2", 0.6 - f * 0.12), true, f)
+	if f == 4:
+		_star(img, Vector2(44, line + 6), 3, Color("#ffffff"), Color("#dce8f4"))
+
+func _rockfall(img: Image, f: int) -> void:
+	# A rock dropping onto the tile, a jolt of dust and chips on impact (frame 3), settling.
+	var ground := Vector2(24, 64)
+	if f < 3:
+		var y: float = [6.0, 24.0, 46.0][f]
+		var rock := Vector2(24, y)
+		for k in 3:
+			_px(img, 24, int(y) - 6 - k * 4, Color("#dce8f4", 0.5 - k * 0.15))  # its fall streak
+		_ellipse(img, rock, Vector2(7, 6), Color("#5c5a78"))
+		_ellipse(img, rock + Vector2(-1, -1), Vector2(5.5, 4.5), Color("#8c8cac"))
+		_px(img, int(rock.x) - 3, int(rock.y) - 3, Color("#b4b0c8"))
+		_ellipse(img, ground, Vector2(4 + f * 2, 2), Color("#24243c", 0.4))
+		return
+	var t := f - 3
+	_ellipse(img, ground + Vector2(0, -3), Vector2(7, 5), Color("#5c5a78"))
+	_ellipse(img, ground + Vector2(-1, -4), Vector2(5.5, 3.5), Color("#8c8cac"))
+	if t < 4:
+		_ring(img, ground, Vector2(10 + t * 5, 4 + t * 2), 1.5, Color("#dccdb2", 0.9 - t * 0.2), t > 1, t)
+		for k in 6:
+			var a := PI + k * PI / 5.0
+			var p := ground + Vector2(cos(a) * (8 + t * 4), sin(a) * (4 + t * 2) - 6 + t * t)
+			_disc(img, p, 1.2, Color("#b4b0c8", 1.0 - t * 0.2))
+	if t == 0:
+		_glow(img, ground, Vector2(14, 6), 0, Color("#fcd47c"), Color("#e9a83c"))
+
+func _ground_slam(img: Image, f: int) -> void:
+	# A thick shock ring rolling out to 96 px, a pale leading edge, dust behind it, cracks at the centre.
+	var c := Vector2(104, 104)
+	var t := f / 6.0
+	var r := 18.0 + t * 78.0
+	_ring(img, c, Vector2(r, r), 4.0 - t * 2.0, Color("#bca48c", 0.9 - t * 0.6), t > 0.6, f)
+	_ring(img, c, Vector2(r + 2.0, r + 2.0), 1.5, Color("#fcd47c", 1.0 - t * 0.8))
+	if f < 5:
+		_ring(img, c, Vector2(r * 0.7, r * 0.7), 3.0, Color("#dccdb2", 0.5 - t * 0.5), true, f)
+	for k in 6:
+		var a: float = k * TAU / 6.0 + 0.4
+		var len: float = minf(r * 0.6, 34.0)
+		_line(img, c, c + Vector2.from_angle(a) * len, Color("#5c3c24", 0.9 - t * 0.5), 2)
+
+func _path_crack(img: Image, f: int) -> void:
+	# Cracks spreading out of the centre of the tile, a glow of light deep in them; the last frame holds.
+	var c := Vector2(32, 32)
+	var grow: float = [0.35, 0.65, 0.9, 1.0][f]
+	for k in 5:
+		var a: float = k * TAU / 5.0 + 0.3
+		var pts: Array = [c]
+		var p := c
+		for s in 4:
+			p += Vector2.from_angle(a + sin(k * 3.0 + s * 1.7) * 0.5) * 6.0 * grow
+			pts.append(p)
+		_poly_line(img, pts, Color("#241c14"), 2)
+		_poly_line(img, pts, Color("#e9a83c", 0.7), 1)
+	_disc(img, c, 3.0 * grow, Color("#241c14"))
+	_disc(img, c, 1.5 * grow, Color("#e9a83c", 0.8))
+
+func _flyer_grab(img: Image, f: int) -> void:
+	# Roots shooting up from below and wrapping the flyer, then dragging it down out of the frame's top.
+	var target := Vector2(24, 20 + [0, 0, 2, 8, 16, 24][f])
+	var reach: float = [0.4, 0.8, 1.0, 1.0, 1.0, 1.0][f]
+	for s: int in [-1, 1]:
+		var base := Vector2(24 + s * 12, 64)
+		var tip := base.lerp(target + Vector2(s * 3, 2), reach)
+		var mid := base.lerp(tip, 0.5) + Vector2(s * 4, 0)
+		_poly_line(img, [base, mid, tip], Color("#8c5c34"), 3)
+		_poly_line(img, [base, mid, tip], Color("#bca48c"), 1)
+		if f >= 2:
+			_ring(img, target, Vector2(5, 3), 1.2, Color("#8c5c34"))
+	if f == 2:
+		_sparks(img, target, 6, 5.0, 2.0, Color("#d4ec9c"), 0.2)
+
+func _goal_hold(img: Image, f: int) -> void:
+	# A root coil snapping shut round the nightmare's feet in a gold flash.
+	var c := Vector2(24, 30)
+	var r: float = [14.0, 9.0, 7.0, 7.0, 7.0, 7.0][f]
+	_ring(img, c, Vector2(r, r * 0.45), 2.0, Color("#bca48c", 1.0 if f < 5 else 0.5))
+	_ring(img, c, Vector2(r + 1.5, r * 0.45 + 1.0), 1.0, Color("#5c3c24"))
+	if f >= 1 and f <= 3:
+		_ring(img, c, Vector2(r + 4 + f * 2, (r + 4 + f * 2) * 0.45), 1.0, Color("#fcd47c", 1.0 - f * 0.25))
+	if f == 1:
+		_glow(img, c, Vector2(10, 5))
+
+func _thorns(img: Image, f: int) -> void:
+	# A ring of thorns round its feet, pricking in turn, a pink spark where one bites.
+	var c := Vector2(16, 22)
+	_ring(img, c, Vector2(11, 4.5), 1.2, Color("#34643c"))
+	for k in 8:
+		var a: float = k * TAU / 8.0
+		var base := c + Vector2(cos(a) * 11.0, sin(a) * 4.5)
+		var up: float = 4.0 if (k + f) % 3 == 0 else 2.0
+		_line(img, base, base + Vector2(0, -up), Color("#dccdb2"))
+		if (k + f) % 3 == 0:
+			_px(img, int(base.x), int(base.y - up) - 1, Color("#ec9cf4"))
+
+func _thorn_spread(img: Image, f: int) -> void:
+	# A thorny vine growing along the line, thorns off it both ways, a pink spark at its growing tip.
+	var len: int = [10, 20, 32, 32][f]
+	for x in len:
+		var y := 6 + int(sin(x * 0.6) * 1.5)
+		_px(img, x, y, Color("#5c944c"))
+		_px(img, x, y + 1, Color("#34643c"))
+		if x % 5 == 2:
+			_px(img, x, y - 2, Color("#dccdb2"))
+			_px(img, x + 1, y + 3, Color("#dccdb2"))
+	if f < 3:
+		_px(img, len - 1, 5, Color("#ec9cf4"))
+
+func _sprout_puff(img: Image, f: int) -> void:
+	# A puff of soil and leaves, then a little Sprout popping up out of it.
+	var c := Vector2(24, 36)
+	if f < 4:
+		_ellipse(img, c + Vector2(0, -2 - f * 2), Vector2(8 + f * 3, 4 + f), Color("#bca48c", 0.7 - f * 0.15), true, f)
+		for k in 5:
+			var a := PI + k * PI / 4.0
+			var p := c + Vector2(cos(a) * (6 + f * 4), sin(a) * (4 + f * 3) - f)
+			_px(img, int(p.x), int(p.y), Color("#9cc46c"))
+	var h: float = [0.0, 2.0, 5.0, 8.0, 9.0, 9.0][f]
+	if h > 0.0:
+		_line(img, c, c + Vector2(0, -h), Color("#5c944c"))
+		_ellipse(img, c + Vector2(-3, -h), Vector2(3, 1.6), Color("#9cc46c"))
+		_ellipse(img, c + Vector2(3, -h - 1), Vector2(3, 1.6), Color("#9cc46c"))
+	if f == 4:
+		_star(img, c + Vector2(6, -h - 4), 2, Color("#fff4dc"), Color("#d4ec9c"))
+
+func _shard_rise(img: Image, f: int) -> void:
+	# A violet Dreamlight shard rising and twinkling, a trail of motes under it.
+	var y: float = 40.0 - f * 4.5
+	var c := Vector2(12, y)
+	var pts := PackedVector2Array([c + Vector2(0, -6), c + Vector2(3, 0), c + Vector2(0, 6), c + Vector2(-3, 0)])
+	for yy in range(int(y) - 6, int(y) + 7):
+		for xx in range(9, 16):
+			if Geometry2D.is_point_in_polygon(Vector2(xx + 0.5, yy + 0.5), pts):
+				_px(img, xx, yy, Color("#ec9cf4") if xx < 12 else Color("#9a84e8"))
+	_line(img, c + Vector2(0, -5), c + Vector2(0, 5), Color("#fff4dc"))
+	for k in 3:
+		_px(img, 12 + (k % 2) * 2 - 1, int(y) + 9 + k * 4, Color("#ec9cf4", 0.8 - k * 0.25))
+	if f % 3 == 1:
+		_star(img, c + Vector2(0, -8), 2, Color("#ffffff"), Color("#ec9cf4"))

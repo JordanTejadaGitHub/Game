@@ -15,6 +15,5 @@ rule_id = &"kind_canopy"
 in_start_pool = false
 grows_with = Array[String](["acorn", "elder_stump", "grove_heart"])
 grows_text = "Acorn, Elder Stump and Grove Heart auras reach 1 cell further."
-calls_family = "acorn"
 diagram = ".......\n...a...\n..aWa..\n.......\n....wa."
 diagram_caption = "Touching 3 or more other Wardens: +20% damage. ✗ touches only one."

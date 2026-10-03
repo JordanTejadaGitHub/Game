@@ -10,6 +10,7 @@ script = ExtResource("1_tdata")
 display_name = "Long Way Home"
 description = "Every 5 s, drags the nightmare furthest along back 4 cells (each nightmare only once; bosses 1 cell)."
 cost = 0
+role_tag = &"control"
 line = "root"
 tier = 3
 buildable_directly = false

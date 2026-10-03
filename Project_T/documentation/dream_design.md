@@ -188,6 +188,9 @@ existing badges).
 - **After drift 1:** pick 1 of 3 base Wardens, drawn **at random from every family you've
   unlocked** (the starting 3 plus any unlocked in the Memory Grove: Pebbling, Rootling, Acorn,
   Nestling, Whirligig). Not always the same 3: a Grove unlock can turn up from drift 1.
+  (Acorn stays in the first pick: a 2026-10-02 proposal to exclude it, since it has no damage branch,
+  was withdrawn when Balancing found Acorn-first runs beat the act 1 boss every time, carried by its
+  auras on Sprouts. If a re-check disagrees, Balancing tunes the base Acorn instead.)
 - **Bosses at drifts 25, 50, 75:** pick 1 of 3 from the unlocked families you don't have yet (Family
   Blessings fill empty slots, `meta_design.md`).
 - Draws avoid repeating the previous run's first-pick offer exactly, so runs start differently.
@@ -358,6 +361,10 @@ alternative**: a strong card you can use now if you bend the plan.
      work now.
    - **Declined:** if a family pick offered the missing family and the player took another, that
      family's half-dreamed cards drop to **×0.3** until the next pick (they said no once).
+   - **Picks stay pure** (user, 2026-10-03, with the Seed removal): taking a half-dreamed card does
+     **not** put its missing family into the next family pick (the code did, as an "owed" family).
+     The card is a real gamble: it sleeps until a pick happens to offer that family and you take it,
+     which may never happen.
    - **Coverage:** every pair of starting families has at least one combo card in the start pool:
      Firefly Jar + Dewdrop (Rolling Thunder, Conductive Soil), Sporeling + Firefly Jar (Wildfire
      Spores), Sporeling + Dewdrop (Mushroom Rain, 134). New families should bring one per pair.
@@ -913,7 +920,7 @@ Evolving is still the better buy when a Dream allows it; Nurture cards make rank
 | 61 | **Warm Hands** | Common | each Nurture rank gives **+3% more damage** (10% → 13%; stacks) | nurture | *opener:* 30+ Dew spent on ranks | Start |
 | 62 | **Kindred Roots** | Uncommon | each Warden gets **+2% damage per rank of the Wardens touching it** (max +30%) | nurture, maze | any `nurture` card (soft) + **1** ranked Warden (was 2; trim round 2) | Start |
 | 63 | **Remembered Care** | Uncommon | selling a ranked Warden leaves a **memory seed** on the HUD; the next Warden you plant starts at that rank (one seed at a time, the highest one is kept) | nurture | any `nurture` card + a rank III+ Warden | Start |
-| 64 | **Sunlit Rest** | Uncommon | at every rest, your ranked Warden **nearest the Heartwood** that isn't at max rank gains a free rank; **with none ranked, your attacking Warden nearest the Heartwood gains rank I** (trim round 2) | nurture | — (an opener since trim round 2) | Grove |
+| 64 | **Sunlit Rest** | Uncommon | **At every rest, the attacking Warden nearest the Heartwood gains a free Nurture rank.** *(Simplified 2026-10-03, user: "confusing"; was a two-branch rule: ranked Warden first, else rank I)* | nurture | — (an opener) | Grove |
 | 65 | **Deeper Rings** | Rare | **one Warden, the Eldest,** can grow past V to rank **VII**: VI costs 130, VII costs 180 (same gains per rank) | nurture | any `nurture` card + a rank V Warden | Grove |
 | 66 | **Nursery** | Rare, **Entwined** | Seedling Gift's free Sprouts arrive at **rank II**, and Sprouts nurture for half price | nurture, sprout | Tender Care + Seedling Gift | Grove |
 | 67 | **The Old Ones** | Legendary | rank V+ Wardens make the Wardens touching them count **one rank higher** (doesn't stack with itself). *(2026-09-28: the "+2% crit chance per rank" half was removed: one archetype per Legendary)* | nurture | — | Grove |
@@ -965,8 +972,14 @@ above V belong to **one Warden per run**, the Eldest:
   rank V refunds ~170 Dew at a rest, then comes back for free). If the seed is later replaced by a
   higher one, that Dew is lost. The seed survives
   the run save. It's shown as a small glowing seed next to the Dew counter.
-- **Sunlit Rest** picks the Warden nearest the Heartwood by path distance (the same order as group
-  Nurture). If none is ranked, nothing happens (you need to nurture once first).
+- **Sunlit Rest** (simplified 2026-10-03): the **attacking Warden nearest the Heartwood** (path
+  distance, the same order as group Nurture) gains a free rank, ranked or not. If it's already at its
+  max rank (V, or VII for the Eldest with Deeper Rings), the **next-nearest** gets it. The **rank
+  choice** (Power / Swift / Reach / Deep, or a support Warden's Wide / Strong / Kindred) **repeats
+  that Warden's latest choice**, or **Power** (support: Strong) if it has none yet, so no pop-up at the
+  rest. The tooltip says so; the face doesn't. **Live line:** *"Next rest: your Sporeling by the
+  Heartwood"* (the Warden it will hit), and the rank shows with the bloom at the rest. The
+  impact preview counts **1 Warden**, not all attackers. Sunlit Rest II: the two nearest.
 - **The Old Ones' neighbour bonus** counts for stats only (not for Deeper Rings' cap, not for Chosen
   Few's rank V check), so it can't chain.
 - **Deepened:** **Kindred Roots II** +3% per rank (max +45%); **Remembered Care II** keeps two seeds;
@@ -1724,9 +1737,11 @@ getting the family later. Two rules keep the bet fair:
 1. **Never dead:** every Seed card has a small effect **on its own** ("Now"), and a bigger one once
    you have the Wardens it names ("Grows with"). The one exception is *Golden Harvest*, the
    Legendary gamble.
-2. **It calls its family:** while you hold a Seed card, the **next family pick is guaranteed to
-   offer** the family it grows with (if that family is unlocked in the Grove and not owned yet). The
-   card shows a small sprout and *"Grows with: Dewcatcher, Wellspring · calls Acorn"*.
+2. ~~It calls its family~~ **Removed 2026-10-03** (user, from a Dream screenshot of Dew Bowl's
+   "Seed · calls Acorn to your next family pick": *"I don't think Seed should be a thing; make it
+   predictable."*). **No card adds or calls a family into a family pick**; family picks follow only
+   their own rules (the first pick: 3 random unlocked families; boss picks: families you lack). These
+   cards keep their "Now" and "Grows with" effects, and lose the "Seed ·" line and the sprout.
 
 Tag `seed` plus the family's tag; normal weight (1×) until you own the family, then the family
 weight (1.4×). Legendary and Bittersweet rules as usual.
@@ -1742,9 +1757,11 @@ weight (1.4×). Legendary and Bittersweet rules as usual.
 | 175 | **Patient Roots** | Uncommon | Held lasts **+0.25 s** from any source (Frostfern, Snugroot, World Root…) | **Rootling line:** pulls go 0.5 tiles further, holds another +0.25 s | Grove |
 | 176 | **Golden Harvest** | Legendary | nothing: the gamble | **catchers:** every **100 Dew** harvested or earned as interest this run gives **all Wardens +2% damage** (max +30%) | Grove |
 
-- **Calls:** Dew Bowl, Harvest Moon, Deep Well, Kind Canopy, Shared Light and Golden Harvest call
-  **Acorn**; Patient Roots calls **Rootling**; Bramble Oath calls nothing (walls are always yours).
-  If two held cards call different families, the next pick offers both.
+- ~~Calls~~ (removed 2026-10-03): Dew Bowl, Harvest Moon, Deep Well, Kind Canopy, Shared Light and
+  Golden Harvest used to call Acorn, and Patient Roots called Rootling.
+- **Golden Harvest needs a "Now"** without the call (a Legendary must work on its own): **every 500
+  Dew you earn this run gives all Wardens +2% damage (up to +30%); Dew from catchers and interest
+  counts double.** It still grows with Acorn's catchers, but it's never dead without them.
 - **In the demo:** only Bramble Oath (Acorn and Rootling are Grove families).
 - **Watch in playtests:** whether Seed cards get picked at all before the family (the call rule is
   the lever), and whether Golden Harvest turns economy into a must-have damage build.

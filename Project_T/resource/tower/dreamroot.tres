@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Resource" path="res://resource/tower/grandmother_oak.tres" id="asc_1"]
+
+[ext_resource type="Texture2D" path="res://assets/towers/dreamroot.png" id="2_tex"]
+[resource]
+script = ExtResource("1_tdata")
+texture = ExtResource("2_tex")
+frame_count = 8
+display_name = "Dreamroot"
+description = "Its shards double on a perfect block."
+cost = 0
+placeholder_color = Color(0.54902, 0.360784, 0.203922, 1)
+line = "acorn"
+tier = 3
+buildable_directly = false
+evolve_cost = 300
+role_tag = &"economy"
+expansion_phase = 2
+special = &"dream_oak"
+special_params = {"family_reach": 2.0, "family_max": 3, "dreamlight_max": 4}
+special_final = true
+attack_range = 2.0
+damage = 25
+attacks_per_second = 1.0
+attack_kind = 1
+evolves_to = Array[Resource]([ExtResource("asc_1")])

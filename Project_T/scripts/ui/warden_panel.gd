@@ -26,6 +26,7 @@ var _damage_type := _header.damage_type  # Under the title: the damage type name
 var _desc := _header.desc  # What it does, with its status words as links (StatusLinks)
 var _stats := _header.stats  # Stat rows: each stat explains itself on hover and tap (IconInfo)
 var _buffs := VBoxContainer.new()  # Buffs: every source of this Warden's power (BuffSources), then the total
+var _map_note := Label.new()  # "+N more not labelled on the map" (BuffOverlay's chips had no room for them)
 var _body := Label.new()
 var _groups := VBoxContainer.new()  # Several selected: one row per kind with its portrait
 var _buttons := VBoxContainer.new()
@@ -66,6 +67,11 @@ func _ready() -> void:
 	content.add_child(_header)
 	_buffs.add_theme_constant_override("separation", 1)
 	content.add_child(_buffs)
+	_map_note.name = "MapNote"
+	_map_note.visible = false
+	_map_note.add_theme_font_size_override("font_size", 14)
+	_map_note.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	content.add_child(_map_note)
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.custom_minimum_size = Vector2(280, 0)
 	content.add_child(_body)
@@ -77,6 +83,14 @@ func _ready() -> void:
 	visible = false
 
 	tower_seller.tower_selected.connect(_show)
+	# World labels (DPS tags, name tags) don't draw under the open panel: it's see-through, and they read through it.
+	item_rect_changed.connect(_update_cover)
+	visibility_changed.connect(_update_cover)
+	tree_exiting.connect(func() -> void: WorldLabel.set_cover(&"warden_panel", Rect2(), false))
+	if tower_placer.has_signal(&"seed_choice_changed"):  # A Seedbearer's Sprout planted or cancelled: its count changed
+		tower_placer.seed_choice_changed.connect(func(_active: bool) -> void:
+			if visible:
+				_refresh())
 	tower_seller.selection_changed.connect(func(_towers: Array[Tower]) -> void:
 		_confirm_sell = false
 		_confirm_unlock = null
@@ -101,6 +115,7 @@ func _show(tower: Tower) -> void:
 	_tower = tower
 
 func _refresh() -> void:
+	_hook_buff_overlay()
 	if is_inside_tree() and not get_tree().process_frame.is_connected(_fit_height):
 		get_tree().process_frame.connect(_fit_height, CONNECT_ONE_SHOT)  # Next frame: the new rows are in, the old ones gone
 	_group_refresh_queued = false  # This refresh already shows the current Dew
@@ -240,6 +255,7 @@ func _refresh() -> void:
 			continue  # Locked: no ring, no ghost
 		_preview_on(button, [[_tower, next]])
 	_not_in_dream_button(data)
+	_seed_button()
 	if _tower.can_nurture():
 		var cost := _tower.get_nurture_cost()
 		# The Eldest (a Legendary): rank VI crowns the one Warden that can grow past V, so ask first.
@@ -706,14 +722,22 @@ func _choice_row(index: int, choice_name: String, change: String, price: String)
 		label.horizontal_alignment = column[2]
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		label.clip_text = true
 		if column[1] > 0.0:
-			label.custom_minimum_size.x = column[1]
+			label.custom_minimum_size.x = column[1]  # A floor: a longer name widens its column rather than being cut
 		else:
 			label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # The change wraps to a second line, never cut
+			label.custom_minimum_size.x = 60
 		row.add_child(label)
 	var badge: Label = row.get_child(3)  # The key, as a badge like the Warden bar's numbers
 	UiStyle.number(badge, 13, UiStyle.INK_DIM)
+	# The button (its row is a child it doesn't size to) grows with a wrapped change line.
+	var fit := func() -> void:
+		if is_instance_valid(button) and is_instance_valid(row):
+			button.custom_minimum_size.y = maxf(30.0, row.get_combined_minimum_size().y + 6.0)
+	row.minimum_size_changed.connect(fit)
+	row.resized.connect(fit)
+	fit.call_deferred()
 	return button
 
 func _nurture_with(which: Tower.Focus) -> void:
@@ -744,6 +768,22 @@ func _not_in_dream_button(data: TowerData) -> void:
 	button.tooltip_text = "%s: not in this dream. Call one back on Remember." % ", ".join(hidden.map(
 		func(form: TowerData) -> String: return form.display_name))
 	button.pressed.connect(func() -> void: dream_state.open_remember(hidden[0]))
+
+func _update_cover() -> void:
+	WorldLabel.set_cover(&"warden_panel", get_global_rect(), is_visible_in_tree())
+
+# The map's buff chips (BuffOverlay, made after this panel): when some had no room, the panel says how many.
+func _hook_buff_overlay() -> void:
+	if not is_inside_tree():
+		return
+	var overlay := get_tree().get_first_node_in_group(BuffOverlay.GROUP) as BuffOverlay
+	if overlay != null and not overlay.hidden_changed.is_connected(_on_chips_hidden):
+		overlay.hidden_changed.connect(_on_chips_hidden)
+		_on_chips_hidden(overlay.hidden_chips)
+
+func _on_chips_hidden(count: int) -> void:
+	_map_note.text = "+%d more not labelled on the map" % count
+	_map_note.visible = count > 0
 
 func _clear_not_in_dream() -> void:
 	var old := _content.get_node_or_null("NotInDream")
@@ -875,8 +915,7 @@ func _add_footer_button(text: String) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.focus_mode = Control.FOCUS_NONE
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.clip_text = true
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # Never clipped: "Sell · +113 Dew (X)" whole (user screenshot)
 	_footer.add_child(button)
 	return button
 
@@ -998,6 +1037,26 @@ func _update_prices() -> void:
 
 func _shake(button: Control) -> void:
 	CantAfford.shake(button)  # The Remember screen's shake (none under reduced motion)
+
+# Seedbearer / Grove Keeper with a ripe seed (Tower Code's BranchKit.seeds_ready, the golden seed badge): "Plant Sprout
+# (N)" lights the open cells beside it (TowerPlacer.begin_seed_choice) and a click there plants a free Sprout. At a
+# rest only; the button is the way in on touch.
+func _seed_button() -> void:
+	var seeds := BranchKit.seeds_ready(_tower)
+	if seeds <= 0:
+		return
+	var button := _add_button("Plant Sprout (%d)" % seeds)
+	button.name = "PlantSprout"
+	button.tooltip_text = "A free Sprout in an open cell beside it. Pick the cell on the map (Esc cancels)."
+	if not Tower.resting:
+		button.text = "Plant Sprout (%d) · at the next rest" % seeds
+		button.disabled = true
+		return
+	var tower := _tower
+	button.pressed.connect(func() -> void:
+		if not tower_placer.begin_seed_choice(tower):
+			_shake(button)
+			_toast("No open cell beside it"))
 
 func _toast(text: String) -> void:
 	var hud := get_parent()

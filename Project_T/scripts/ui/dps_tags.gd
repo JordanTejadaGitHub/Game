@@ -121,6 +121,8 @@ func _draw() -> void:
 		var world_rect := Rect2(anchor + Vector2(-width / 2.0 - 4.0, -FONT_SIZE) * s, Vector2(width + 8.0, FONT_SIZE + 5.0) * s)
 		if drawn.any(func(d: Array) -> bool: return (d[1] as Rect2).intersects(world_rect)):
 			continue  # Would overlap a neighbour's tag
+		if WorldLabel.covered(self, Rect2(to_local(world_rect.position), world_rect.size)):
+			continue  # Under the open Warden panel (it's see-through: the tag read through its text)
 		drawn.append([tower, world_rect])
 		var at: Vector2 = anchor + Vector2(-width / 2.0, 0)
 		WorldLabel.begin_screen_size(self, anchor)  # Keeps its screen size when zoomed in

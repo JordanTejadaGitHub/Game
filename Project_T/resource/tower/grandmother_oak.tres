@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Grandmother Oak"
-description = "Wardens in her range deal 60% more and attack 20% faster; she gives 15 Dew after every drift."
+description = "Wardens within her range (3 cells) deal {pct:grandmother_oak.aura_damage_bonus} more damage and attack {pct:grandmother_oak.aura_speed_bonus} faster. She gives 15 Dew after every drift."
 cost = 0
 line = "acorn"
 tier = 4

@@ -101,9 +101,6 @@ const RESONANT_ECHO_DELAY := 0.5  # …this long after
 const RESONANT_CHARGES := 3  # Resonant Hollow A: echoes set off Static at 3 charges, like a chime
 const JEWEL_THIEVES_EVERY := 6  # Jewel Thieves A: every 6th peck strips a buff (+1 Dew if there's none)
 const TAILWIND_REACH := 3.0  # Tailwind B: Gust's copies reach this far
-const AURA_RING_RADIUS := 28.0  # aura_ring_breath: its ring's radius in the 64 px sheet (1 cell)
-const AURA_RING_SOFT := 0.22
-const AURA_RING_BRIGHT := 0.55  # In build mode or with a selection
 const LEAF_MOTE_AT := Vector2(8, -20)  # Where a boosted Warden's leaf mote starts, from its centre
 const LEAF_MOTE_ALPHA := 0.35
 const LEAF_MOTE_RISE := 6.0  # Pixels a second…
@@ -238,7 +235,7 @@ const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "
 	Focus.WIDE: "Wide", Focus.STRONG: "Strong", Focus.KINDRED: "Kindred"}
 const FOCUS_TEXT := {Focus.POWER: "deals 18% more damage", Focus.SWIFT: "attacks 12% faster", Focus.REACH: "+0.3 range",
 	Focus.DEEP: "+25% Potency (stronger statuses and effects)",
-	Focus.WIDE: "+0.2 aura reach", Focus.STRONG: "+5% aura", Focus.KINDRED: "ignores the aura falloff"}
+	Focus.WIDE: "+0.2 aura reach", Focus.STRONG: "+5% aura", Focus.KINDRED: "full boost from every source"}
 const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
 	Focus.REACH: Palette.DEWLIGHT, Focus.DEEP: Palette.ORCHID,
 	Focus.WIDE: Palette.SPRIG, Focus.STRONG: Palette.GLOW, Focus.KINDRED: Palette.BLOSSOM}
@@ -446,6 +443,7 @@ func _apply_data() -> void:
 	_twist = FinalTwists.twist_of(tower_data)
 	_twist_state = {}
 	attack_data = tower_data
+	BranchKit.join_groups(self)  # Nurse Logs
 	_damage_share = 1.0
 	if not target_chosen:
 		target_mode = tower_data.target_mode  # A mode the player chose is kept through growing
@@ -610,7 +608,8 @@ func _compute_damage() -> float:
 		* (1.0 + (_kin.damage_bonus(self) if is_instance_valid(_kin) else 0.0)) \
 		* get_wall_multiplier() * (1.0 + _chorus) \
 		* (1.0 + (GroveRules.hummingheart(self, get_attacks_per_second()) if _dream_state and _has_rule(&"hummingheart") else 0.0)) \
-		* (1.0 + _gift_bonus(&"damage"))  # Heartwood's Gift Spring: water Wardens beside it
+		* (1.0 + _gift_bonus(&"damage")) \
+		* BranchKit.damage_multiplier(self)  # Gift Spring: water Wardens beside it; Rampart: its walls
 	# (Kindred / Whole Tree, Kinship cards; Bramble Oath; Lullaby Bell's Chorus; Hummingheart: bonus speed as damage)
 
 # Withering Oak: the Warden withers for `seconds` (grey, no attacks), then comes back unharmed.
@@ -880,6 +879,7 @@ func _rank_price_for(which: int, data: TowerData, self_price: bool) -> int:
 # and TowerPlacer.evolve use this, so they all agree.
 func get_grow_cost(into: TowerData) -> Dictionary:
 	var base: int = _dream_state.get_evolve_cost(into) if _dream_state else into.evolve_cost
+	base = roundi(base * BranchKit.grow_multiplier(self))  # Nursery (b): 10% cheaper beside the Nurse Log
 	var ranks := 0
 	for which in range(1, rank + 1):
 		ranks += maxi(_rank_price_for(which, into, false) - _rank_price_for(which, tower_data, true), 0)
@@ -923,6 +923,7 @@ func get_nurture_price() -> int:
 	var multiplier := get_tier_cost_multiplier()
 	if _dream_state and _dream_state.has_method("get_nurture_cost_multiplier"):
 		multiplier *= _dream_state.get_nurture_cost_multiplier(self)  # Nursery: Sprouts at half price
+	multiplier *= BranchKit.nurture_multiplier(self)  # Nurse Log: 25% cheaper beside it
 	if _dream_state and _dream_state.has_method("rank_cost_factor"):
 		var factor: float = _dream_state.rank_cost_factor(next)  # Tender Care: rank I free, II: ranks II–V 20% off
 		if factor <= 0.0:
@@ -1246,6 +1247,8 @@ func _refresh_neighbours() -> void:
 	_neighbour_timer = NEIGHBOUR_REFRESH * randf_range(0.75, 1.25)  # Staggered: ~200 Wardens never all look at once
 	if _is_underdog() != _underdog_drawn:
 		queue_redraw()  # DreamState picks the Underdogs at each rest
+	if tower_data.line == "wall":
+		BranchKit.refresh_stone(self)  # Rampart: a Thornwall touching it turns to stone
 	_aura_crit = 0.0
 	_aura_range = 0.0
 	_aura_damage = 0.0
@@ -1381,7 +1384,7 @@ func _advance_attack(delta: float) -> void:
 	sprite.frame = frame
 
 func _show_idle() -> void:
-	sprite.texture = tower_data.texture
+	sprite.texture = BranchKit.idle_texture(self) if has_meta(&"stone") else tower_data.texture  # A stone Thornwall
 	sprite.hframes = tower_data.frame_count
 	sprite.frame = int(_anim_time * tower_data.animation_fps) % tower_data.frame_count
 
@@ -1643,6 +1646,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 			_shiny_stole()
 	var soothe := get_damage() * soothe_multiplier * _damage_against(enemy) * _hit_boost
 	soothe *= _card_hit_multiplier(enemy, is_area)  # Patient Aim, Crush, Crowd Breaker, Shiny Things
+	if attack_data.special != &"":
+		soothe *= BranchKit.hit_multiplier(self, enemy)  # Whetstone: worn-down nightmares
 	if kin_share(&"sunspot", "b") > 0.0:  # Sunspot: hits in a row on one nightmare ramp up
 		_ramp_hits = _ramp_hits + 1 if enemy == _ramp_target else 0
 		_ramp_target = enemy
@@ -1680,6 +1685,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var damage_line := "light" if _resonance() else tower_data.line  # Resonance: Chime Stone pulses count as lightning
 	var health_before: int = enemy.health
 	enemy.take_damage(dealt, damage_line, is_area, is_crit, self, combo)
+	if attack_data.special != &"" and enemy.is_cleansed:
+		BranchKit.on_finish(self, enemy, dealt - health_before)  # Edgestone's Clean cut: the overkill spills on
 	if enemy.has_meta(BranchKit.LINK_META):
 		BranchKit.share_hit(enemy, dealt, self)  # Undercurrent's current: a share reaches the other linked nightmares
 	if _dream_state and is_instance_valid(enemy) and not enemy.is_cleansed:
@@ -2206,20 +2213,12 @@ func _strongest_neighbour_status() -> Array:
 # Aura Wardens: the aura_ring_breath ring, scaled to its reach, soft (brighter in build mode or with a
 # selection). Boosted Wardens: a faint leaf_mote drifting up, in the aura's colour.
 func _update_support_looks() -> void:
+	# No breathing aura ring any more (user, 2026-10-03: a chunky orange circle around an Acorn read as a third
+	# "aura" beside the boost square and the range circle). The boost area is AuraView's square, shown when
+	# placing or selecting; the range is the thin circle.
 	var ring := get_node_or_null("AuraRing") as Node2D
-	var is_aura := tower_data.aura_damage_bonus > 0.0 or tower_data.aura_speed_bonus > 0.0
-	if is_aura and ring == null and is_inside_tree():
-		ring = Fx.play(&"aura_ring_breath", global_position, self, get_aura_reach() * MAP_GRID.cell_size.x / AURA_RING_RADIUS)
-		if ring:
-			ring.name = "AuraRing"
-			ring.z_index = -1  # On the ground, under the Wardens
-			ring.modulate = Kinships.FAMILY_COLORS.get(tower_data.line, Palette.GOLD)
-	elif ring and not is_aura:
-		ring.queue_free()
-		ring = null
 	if ring:
-		ring.scale = Vector2.ONE * get_aura_reach() * MAP_GRID.cell_size.x / AURA_RING_RADIUS
-		ring.modulate.a = AURA_RING_BRIGHT if badges_visible() else AURA_RING_SOFT
+		ring.queue_free()
 	var mote := get_node_or_null("LeafMote") as Node2D
 	var aura: Tower = _aura_damage_from if is_instance_valid(_aura_damage_from) else \
 		(_aura_speed_from if is_instance_valid(_aura_speed_from) else null)
@@ -2614,6 +2613,10 @@ func _connect_yield() -> void:
 	DewCatch.hook(director, _dream_state.run_state)  # The Harvest and interest at every rest (once a run)
 	if tower_data.get_id() == "thornwall" and not director.drift_cleared.is_connected(_on_wall_drift_cleared):
 		director.drift_cleared.connect(_on_wall_drift_cleared)  # Living Walls
+	if tower_data.special in [BranchKit.SEEDBEARER, BranchKit.DREAM_OAK, BranchKit.NURSE_LOG] \
+			and not director.drift_cleared.is_connected(_on_branch_drift):
+		director.drift_cleared.connect(_on_branch_drift)
+		director.rest_started.connect(_on_branch_rest)
 	if tower_data.dew_per_drift <= 0:
 		return
 	if not director.drift_cleared.is_connected(_on_drift_cleared):
@@ -2622,6 +2625,15 @@ func _connect_yield() -> void:
 		var run_state: RunState = _dream_state.run_state
 		_last_leaves = run_state.leaves
 		run_state.leaves_changed.connect(_on_leaves_changed)
+
+# Branch expansion: Seedbearer and Dream Oak count drifts, Dream Oak and Nurse Log the rests (BranchKit).
+func _on_branch_drift(_number: int, _bonus: int, _perfect: bool) -> void:
+	if is_inside_tree() and not is_queued_for_deletion() and attack_data.special != &"":
+		BranchKit.on_drift_cleared(self)
+
+func _on_branch_rest(_block: int, _boss: bool, _bonus: int, perfect: bool) -> void:
+	if is_inside_tree() and not is_queued_for_deletion() and attack_data.special != &"":
+		BranchKit.on_rest(self, perfect)
 
 # The rest: the Sapling's withering from leaks is forgiven.
 func _on_yield_rest(_block: int, _boss: bool, _bonus: int, _perfect: bool) -> void:
@@ -3383,6 +3395,8 @@ func _draw() -> void:
 	if attack_data != null and attack_data.attack_kind == TowerData.AttackKind.AURA:
 		draw_arc(Vector2.ZERO, get_range_pixels(), 0.0, TAU, 64, Color(Palette.MOONLIGHT, 0.12), 3.0)
 	_draw_badges()
+	if attack_data != null and attack_data.special == BranchKit.SEEDBEARER:
+		BranchKit.draw_seed_badge(self)  # A seed ready to plant at the rest
 	_draw_target_pip()
 	if _dream_state and _dream_state.has_method("is_eldest") and _dream_state.is_eldest(self):
 		# The Eldest: a small crown of three golden rings over the slab.

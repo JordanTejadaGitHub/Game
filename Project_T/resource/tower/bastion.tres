@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Resource" path="res://resource/tower/old_mountain.tres" id="asc_1"]
+
+[ext_resource type="Texture2D" path="res://assets/towers/bastion.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/bastion_attack.png" id="4_atk"]
+[resource]
+script = ExtResource("1_tdata")
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+display_name = "Bastion"
+description = "Heavier blows. Rockfall: every 6 s each stone wall touching it drops a rock on the path beside it."
+cost = 0
+placeholder_color = Color(0.54902, 0.54902, 0.67451, 1)
+line = "stone"
+tier = 3
+buildable_directly = false
+evolve_cost = 300
+counter_tags = Array[StringName]([&"boss_abilities"])
+expansion_phase = 2
+special = &"rampart"
+special_params = {"per_wall": 0.15, "max_walls": 4, "rock": 150.0, "rock_every": 6.0, "rock_radius": 1.0}
+special_final = true
+attack_range = 1.5
+damage = 280
+attacks_per_second = 0.5
+attack_kind = 10
+spin_bonus = 0.0
+evolves_to = Array[Resource]([ExtResource("asc_1")])

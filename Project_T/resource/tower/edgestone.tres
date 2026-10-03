@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
+[ext_resource type="Resource" path="res://resource/tower/old_mountain.tres" id="asc_1"]
+
+[ext_resource type="Texture2D" path="res://assets/towers/edgestone.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/towers/edgestone_attack.png" id="4_atk"]
+[ext_resource type="Texture2D" path="res://assets/towers/projectiles/whetstone_slash.png" id="3_proj"]
+[resource]
+script = ExtResource("1_tdata")
+texture = ExtResource("2_tex")
+frame_count = 8
+attack_texture = ExtResource("4_atk")
+attack_frame_count = 6
+display_name = "Edgestone"
+description = "A keener edge. Clean cut: a nightmare it finishes spills the overkill onto the nearest nightmare within 2 cells."
+cost = 0
+placeholder_color = Color(0.54902, 0.54902, 0.67451, 1)
+line = "stone"
+tier = 3
+buildable_directly = false
+evolve_cost = 300
+counter_tags = Array[StringName]([&"anti_tank"])
+expansion_phase = 2
+special = &"whetstone"
+special_params = {"finish_below": 0.3, "finish": 2.5, "finish_boss": 1.5, "spill": 1.0, "spill_reach": 2.0}
+special_final = true
+attack_range = 3.0
+damage = 650
+attacks_per_second = 0.6
+attack_kind = 0
+projectile_texture = ExtResource("3_proj")
+evolves_to = Array[Resource]([ExtResource("asc_1")])

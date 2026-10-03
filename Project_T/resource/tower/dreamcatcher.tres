@@ -13,6 +13,7 @@ description = "Asleep nightmares in its range are Caught: their statuses stop we
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+role_tag = &"setup"
 line = "song"
 tier = 2
 buildable_directly = false

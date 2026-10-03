@@ -96,7 +96,11 @@ func rest(drift: int, perfect: bool = true) -> Array[UpgradeData]:
 # --- Family picks -----------------------------------------------------------------------------------
 
 func pick_family(offered: Array) -> StringName:
-	var owed: Array[String] = dreams._owed_families
+	var owed: Array[String] = []  # The families the bot's half-dreamed cards still miss (picks no longer include them)
+	for card in dreams._taken_cards(true):
+		for family in dreams.half_dreamed_missing(card):
+			if not owed.has(family):
+				owed.append(family)
 	if style == Style.COMBO:
 		var best := ""
 		var best_count := -1
@@ -174,6 +178,9 @@ func _forms_in_order(tree: Array) -> Array[TowerData]:
 			break
 	# Ascended right after the first final form (design 0d0642d): while it's still closed (Grove, drift
 	# 51) spend_dreamlight skips it and goes on; once open, the family saves up for it first.
+	if carry_first:  # The carry branch first (a stable sort: the rest keep their order)
+		var carry := branches.filter(func(b: Array) -> bool: return DreamState.is_carry(b[0]))
+		branches = carry + branches.filter(func(b: Array) -> bool: return not DreamState.is_carry(b[0]))
 	var ascended: TowerData = tree[2] if tree.size() > 2 else null
 	if branches_first:  # Kinship placement: two branches before any final form (a Kinship needs two)
 		for branch in branches.slice(0, 2):
@@ -191,6 +198,7 @@ func _forms_in_order(tree: Array) -> Array[TowerData]:
 
 const AREA_FIRST := {"pebbling": "cairn", "nestling": "wrens_nest"}  # Cairn's lob splash, Wren's second strike
 var branches_first := false  # The runner sets it with Kinship placement on (balance_sim.gd --no-kin keeps the old order)
+var carry_first := false  # The runner sets it (--no-carry-pref clears it): the carry branch (DreamState.is_carry) is unlocked first
 
 # --- Omens ------------------------------------------------------------------------------------------
 
