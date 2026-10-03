@@ -269,13 +269,19 @@ func _make_card(data: TowerData) -> Button:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
 	_fit_card(button, box)
-	if data.texture != null:
+	var emblem := BranchEmblem.family(data)  # The family's emblem (UI Asset), else the base Warden's portrait
+	if emblem != null or data.texture != null:
 		var icon := TextureRect.new()
-		var atlas := AtlasTexture.new()
-		atlas.atlas = data.texture
-		atlas.region = data.get_frame_rect(0)
-		icon.texture = atlas
+		icon.name = "FamilyEmblem" if emblem != null else "FamilyPortrait"
+		if emblem != null:
+			icon.texture = emblem
+		else:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = data.texture
+			atlas.region = data.get_frame_rect(0)
+			icon.texture = atlas
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(icon)
 	var sprout_cost := dream_state.get_evolve_cost(data)
