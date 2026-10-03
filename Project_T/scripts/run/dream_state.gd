@@ -4190,10 +4190,17 @@ func preview_card_impact(card: UpgradeData) -> Dictionary:
 		result.text = ("%d of your Wardens qualify" % qualifying) if qualifying > 0 else "None of your Wardens qualify yet"
 		return result
 	if card.kind == UpgradeData.Kind.RULE:
-		var attackers: Array = towers.filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
-		if not attackers.is_empty():
+		# Only the Wardens the rule reaches pulse (Tower.is_reached_by_rule, Tower Code 37031714: its Warden / line, the
+		# status it's about, its ingredients' lines): Heavy Eyelids pulsed every Sprout (user screenshot)
+		var reached: Array = towers.filter(func(t: Tower) -> bool: return t.is_reached_by_rule(card))
+		if not reached.is_empty():
 			result.kind = &"trigger"
-			result.towers = attackers
+			result.towers = reached
+			result.text = ("Reaches %d of your Wardens" % reached.size()) if reached.size() > 1 else "Reaches one of your Wardens"
+			return result
+		var attackers: Array = towers.filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
+		if not attackers.is_empty():  # A global or nightmare-side rule: the line, but no Warden pulses
+			result.kind = &"trigger"
 			result.text = ("Triggers on all %d attackers" % attackers.size()) if attackers.size() > 1 else "Triggers on your attacker"
 	return result
 
