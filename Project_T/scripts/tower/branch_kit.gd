@@ -1247,6 +1247,7 @@ class BroodSprite extends Node2D:
 		queue_redraw()
 
 	func _burst(enemy: Node2D) -> void:
+		BranchKit._fx(&"spore_sprite_burst", global_position, get_parent(), 1.5 if big else 1.0)  # Tower Assets 4553d7a0
 		if enemy.has_method("is_hidden") and enemy.is_hidden():
 			enemy.reveal_for(2.0)  # Bumped into a Lurker: it shows itself
 		var stacks := int(BranchKit.p(tower, "spored", 2))
