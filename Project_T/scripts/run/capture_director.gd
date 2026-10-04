@@ -53,6 +53,9 @@ var _tags: Array = []  # [world position, text, age]
 var _tag_layer: Node2D
 var _towers := {}  # id -> TowerData
 var _started := false
+var _tracker: Node = null  # ReactionTracker, hooked once it exists (chain slow motion)
+var _slow_left := 0.0  # Real seconds of chain slow motion left
+var _speed_before := 1.0
 
 # --- Launch ------------------------------------------------------------------------------------------
 
@@ -71,7 +74,7 @@ static func hud_mode() -> int:
 	if not is_available():
 		return Hud.FULL
 	if not scene.is_empty():
-		return {"full": Hud.FULL, "clean": Hud.CLEAN, "none": Hud.NONE}.get(String(scene.get("hud", "none")), Hud.NONE)
+		return {"full": Hud.FULL, "clean": Hud.CLEAN, "none": Hud.NONE}.get(String(scene.get("hud", "none")), Hud.NONE)  # A {"hud": …} action changes it
 	return clampi(int(HeartwoodMemory.get_settings().get(SETTING, 0)), 0, 2)
 
 static func load_scene(path: String) -> Dictionary:
@@ -107,6 +110,14 @@ static func begin(tree: SceneTree) -> bool:
 	settings[SETTING] = 0
 	HeartwoodMemory.save_settings(settings)
 	HeartwoodMemory.apply_settings()
+	# The frame is the project's viewport size (capture.ps1 writes it to override.cfg with stretch mode "viewport", so
+	# Movie Maker renders it whole even on a smaller screen): world zoom 1 = one art pixel per video pixel.
+	if DisplayServer.get_name() != "headless":
+		tree.root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
+		tree.root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
+		tree.root.content_scale_size = Vector2i(int(ProjectSettings.get_setting("display/window/size/viewport_width", 1920)),
+			int(ProjectSettings.get_setting("display/window/size/viewport_height", 1080)))
+		tree.root.content_scale_factor = 1.0
 	ResultsScreen.demo_override = 0  # The full game
 	TestGrove.force_on = true  # Every Warden plantable; a dev run (no Seeds, no records)
 	quiet = true
@@ -138,6 +149,7 @@ func _ready() -> void:
 	_setup.call_deferred()
 
 func _setup() -> void:
+	seed(int(scene.get("seed", 4242)))  # The same clip every render (auto spots break ties at random)
 	var director: DriftDirector = _main.get_node("%DriftDirector")
 	var run_state: RunState = _main.get_node("%RunState")
 	run_state.invulnerable = bool(scene.get("invulnerable", true))
@@ -171,6 +183,14 @@ func _setup() -> void:
 		var music := AudioServer.get_bus_index("Music")
 		if music >= 0:
 			AudioServer.set_bus_mute(music, true)
+	# For tuning a board on a headless dry run: where bosses and elites were dispelled, and any leak.
+	var spawner = _main.get_node("%EnemyContainer")
+	spawner.enemy_cleansed.connect(func(enemy: Node2D) -> void:
+		if enemy.enemy_data != null and (enemy.enemy_data.is_boss or enemy.elite):
+			print("Capture: %s dispelled at %.1f s, %.1f cells from the Heartwood" % [enemy.enemy_data.resource_path.get_file().get_basename(),
+				clip_time, enemy.get_remaining_distance() / 64.0]))
+	spawner.enemy_reached_goal.connect(func(enemy: Node2D) -> void:
+		print("Capture: %s reached the Heartwood at %.1f s" % [enemy.enemy_data.resource_path.get_file().get_basename() if enemy.enemy_data else "?", clip_time]))
 	_started = true
 	print("Capture: playing %s (%.0f s)" % [scene.get("title", ""), float(scene.get("length", 20.0))])
 
@@ -186,6 +206,8 @@ func _process(delta: float) -> void:
 		_next += 1
 	_update_camera(delta / maxf(_scale, 0.0001))
 	_age_tags(delta / maxf(_scale, 0.0001))
+	_update_slow_motion(delta / maxf(_scale, 0.0001))
+	_update_filter()
 	if clip_time >= float(scene.get("length", 20.0)):
 		set_process(false)
 		var map = _main.get_node("%MapGenerator")
@@ -278,6 +300,14 @@ func _run(event: Dictionary) -> void:
 			var dossier := get_tree().get_first_node_in_group(&"boss_dossier")
 			if dossier != null:
 				dossier.close_dossier()
+	if event.has("hud"):
+		scene.hud = String(event.hud)
+	if event.has("quiet"):
+		quiet = bool(event.quiet)
+	if event.has("pick_dream"):  # Takes the offer's Nth card (screens shown with "quiet": false)
+		var dreams: DreamState = _main.get_node("%DreamState")
+		if dreams.is_offering() and int(event.pick_dream) < dreams.current_offer.size():
+			dreams.choose(dreams.current_offer[int(event.pick_dream)])
 	if event.has("camera"):
 		_cam = event.duplicate()
 		_cam.started = clip_time
@@ -455,6 +485,42 @@ func _pick(target: String) -> Node2D:
 			best_left = left
 			best = enemy
 	return best
+
+# --- Chain slow motion, filtering ------------------------------------------------------------------------
+
+# "slow_chain": {"at": 8, "speed": 0.3, "hold": 2.0}: when a Reaction chain reaches `at`, the game slows for `hold`
+# real seconds (and the camera looks there unless it follows a nightmare).
+func _update_slow_motion(real_delta: float) -> void:
+	if not scene.has("slow_chain"):
+		return
+	if _tracker == null:
+		_tracker = get_tree().get_first_node_in_group(&"reaction_tracker")
+		if _tracker != null:
+			_tracker.chain_reached.connect(_on_chain)
+	if _slow_left > 0.0:
+		_slow_left -= real_delta
+		if _slow_left <= 0.0:
+			_main.get_node("%GameSpeed").set_speed(_speed_before)
+
+func _on_chain(count: int, where: Vector2, _towers_in: Array) -> void:
+	var slow: Dictionary = scene.slow_chain
+	print("Capture: chain ×%d at %.1f s" % [count, clip_time])
+	if count < int(slow.get("at", 8)) or _slow_left > 0.0:
+		return
+	_speed_before = _main.get_node("%GameSpeed").speed
+	_main.get_node("%GameSpeed").set_speed(float(slow.get("speed", 0.3)))
+	_slow_left = float(slow.get("hold", 2.0))
+	if _camera != null and String(_cam.get("camera", "")) != "follow":
+		_camera.target_position = where
+
+# Art drawn at a whole-number zoom keeps its hard pixels; at any other zoom it's filtered, so it doesn't shimmer.
+func _update_filter() -> void:
+	if _camera == null:
+		return
+	var zoom: float = _camera.camera_2d.zoom.x
+	var whole := zoom >= 0.99 and absf(zoom - roundf(zoom)) < 0.02
+	get_viewport().canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST if whole \
+		else Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_LINEAR
 
 # --- "+N path" tags --------------------------------------------------------------------------------------
 
