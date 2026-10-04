@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "heartwoods_crown"
+display_name = "The Heartwood's Crown"
+description = "Every other node has grown. A sixth waystone rises: carry 6 perks into the dream."
+root = 2
+costs = Array[int]([250])
+order = 30
+icon = 20
+crown = true

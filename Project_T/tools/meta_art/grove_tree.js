@@ -38,11 +38,12 @@ N("sprout_bed", "perks", "Sprout Bed", 546, 450, "morning_stores");
 N("deep_taproot", "perks", "Deep Taproot", 344, 358, [362, 424], { lv: 3 });
 N("first_care", "perks", "First Care", 334, 288, "deep_taproot");
 N("clear_sight", "perks", "Clear Sight", 324, 218, "first_care");
-N("second_thoughts", "perks", "Second Thoughts", 206, 246, [224, 306], { lv: 2 });
+N("second_thoughts", "perks", "Second Thoughts", 206, 246, [224, 306], { lv: 3 });
 N("let_go", "perks", "Let Go", 196, 180, "second_thoughts");
 N("omen_reader", "perks", "Omen Reader", 188, 118, "let_go");
 N("wider_dreams", "perks", "Wider Dreams", 244, 90, "omen_reader");
 N("wider_roots", "perks", "Wider Roots", 140, 80, "omen_reader");  // Branch expansion: a wider family this run
+N("heartwoods_crown", "perks", "The Heartwood's Crown", 520, 330, [480, 500]);  // The secret 6th slot: hidden until every other node is grown
 N("early_bloom", "perks", "Early Bloom", 250, 372, "second_thoughts");
 N("early_light", "perks", "Early Light", 232, 436, "early_bloom");
 N("kindling", "perks", "Kindling", 214, 500, "early_light");
@@ -50,7 +51,7 @@ N("slot_4", "perks", "Loadout slot 4", 400, 520, [410, 466]);  // Slots 1–3 ar
 N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
 // Keepsakes twig (meta_design.md b8fd690c): cosmetics at the foot of the Perks limb, no gameplay effect.
 // Off until their UnlockData exist (test_meta checks layout = data); Meta Game Code flips it with the .tres files.
-const KEEPSAKES = false;
+const KEEPSAKES = true;
 if (KEEPSAKES) {
 N("golden_leaf", "perks", "Golden Leaf", 534, 540, [533, 568], { twig: true });
 N("blossoms", "perks", "Blossoms", 548, 492, "golden_leaf", { twig: true });

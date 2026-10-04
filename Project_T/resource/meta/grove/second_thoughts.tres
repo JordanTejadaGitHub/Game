@@ -6,9 +6,9 @@
 script = ExtResource("1_unlock")
 id = "second_thoughts"
 display_name = "Second Thoughts"
-description = "+1 Dream reroll per run per level, up to 2. Wandering Mind joins the Dream pool, carried or not."
+description = "+1 Dream reroll per run per level, up to 3. Wandering Mind joins the Dream pool, carried or not."
 root = 2
-costs = Array[int]([50, 100])
+costs = Array[int]([50, 100, 150])
 order = 12
 icon = 11
 dream_rerolls = 1

@@ -7,17 +7,33 @@ class_name MetaRun
 #   Nurture, Seed bonus, Early Bloom), every owned node's families (family picks) and Dream cards
 #   (pool), Family Blessings are made available, and the chosen Blight Level's modifiers.
 # - Run end (the real full game only, never tests / Test Grove / the demo): lifetime counters,
-#   milestones (and what they unlock), the highest Blight Level won.
+#   milestones (each pays a one-time Seed bonus, RunState's Seed breakdown), the highest Blight Level won.
 # The demo has no meta (demo_scope.md): nothing is applied or recorded there.
 
 const TOWER_DIR := "res://resource/tower/"
 const BLESSING_DIR := "res://resource/meta/blessing/"
 const SHADE_KIND := "leaf_bug"
-# Milestones (meta_design.md "Milestones"): id -> the cosmetic it grows. Grove nodes with a
-# `milestone` grow by themselves (HeartwoodMemory.node_level; Sunpetal, One Line, The Long Walk).
-const MILESTONE_COSMETICS := {
-	"flawless_win": "golden_leaf", "blight_10_win": "blossoms", "all_combos": "gilded_pages", "all_dreams": "starlit_backs",
+# Milestones only give bonus Seeds (meta_design.md "Milestones", user 2026-10-04): a one-time bonus at the run end
+# it's reached, its own line in the Seed breakdown. Never a node, refund, cosmetic or Memory. Ids stay (Steam
+# achievements). Balancing Discussion tunes the bonuses and thresholds here: id -> [Seeds, the results line].
+const MILESTONE_SEEDS := {
+	"first_boss": [20, "Dispel your first boss"],
+	"first_win": [60, "Win a run"],
+	"shades_500": [25, "Dispel 3,000 Shades"],
+	"path_300": [30, "Build a 130-tile path"],
+	"tend_100": [25, "Tend 120 obstacles"],
+	"flawless_win": [100, "Win without losing a leaf"],
+	"one_line_win": [80, "Win with only one Warden family"],
+	"blight_5": [50, "Reach Blight Level 5"],
+	"blight_10_win": [150, "Win at Blight Level 10"],
+	"all_combos": [60, "Discover every combo"],
+	"all_dreams": [60, "See every Dream card"],
+	"all_nightmares": [40, "Meet every nightmare"],
 }
+const SHADES_MILESTONE := 3000  # Shades dispelled in total (id shades_500 kept)
+const PATH_MILESTONE := 130  # Tiles in one run's longest path (id path_300 kept)
+const TENDS_MILESTONE := 120  # Obstacles tended in total (id tend_100 kept)
+const GROUP := &"meta_run"
 
 # Chosen on the title screen before a run (0 = none); saved with the run.
 static var blight_level := 0
@@ -38,28 +54,33 @@ static func all_families_active() -> bool:
 		return false
 	return bool(HeartwoodMemory.get_settings().get(ALL_FAMILIES_SETTING, false))
 
-# "Dream of everything" (meta_design.md, milestone `all_dreams`, every Dream card seen): starlit card
-# backs on Dream offers + 1 Dream reroll per run on top of Second Thoughts (full game). The developer
-# toggle (settings, debug builds only) grants both for testing without recording or writing anything.
-const ALL_DREAMS := "all_dreams"
-const ALL_DREAMS_SETTING := "all_dreams_rewards"
-const ALL_DREAMS_REROLLS := 1
-static var force_all_dreams := false  # Tests
+# Keepsakes (meta_design.md Section 1, user 2026-10-04): 4 Grove nodes on the Perks limb's twig, bought with Seeds,
+# no gameplay. Once owned each can be switched off (its node card, or Settings → Display → Keepsakes): the setting
+# lists the hidden ones. Readers ask keepsake_on(id): golden_leaf (the in-run Heartwood's leaves), blossoms (every
+# Warden), gilded_pages (the Codex), starlit_backs (Dream cards, DreamScreen). The full game only.
+const KEEPSAKES: Array[String] = ["golden_leaf", "blossoms", "gilded_pages", "starlit_backs"]
+const KEEPSAKES_HIDDEN_SETTING := "keepsakes_hidden"
 
-static func all_dreams_dev_active() -> bool:
-	if not TestGrove.is_available():
-		return false
-	if force_all_dreams:
-		return true
-	if OS.get_cmdline_args().has("--script"):
-		return false
-	return bool(HeartwoodMemory.get_settings().get(ALL_DREAMS_SETTING, false))
+static func keepsake_owned(id: String) -> bool:
+	var unlock := HeartwoodMemory.get_unlock(id)
+	return unlock != null and unlock.keepsake != "" and not ResultsScreen.is_demo() \
+		and HeartwoodMemory.node_level(HeartwoodMemory.load_data(), unlock) > 0
 
-# Dream offer cards get the night-sky frame (DreamScreen).
+static func keepsake_on(id: String) -> bool:
+	return keepsake_owned(id) and not (HeartwoodMemory.get_settings().get(KEEPSAKES_HIDDEN_SETTING, []) as Array).has(id)
+
+static func set_keepsake_shown(id: String, shown: bool) -> void:
+	var settings := HeartwoodMemory.get_settings()
+	var hidden: Array = (settings.get(KEEPSAKES_HIDDEN_SETTING, []) as Array).duplicate()
+	hidden.erase(id)
+	if not shown:
+		hidden.append(id)
+	settings[KEEPSAKES_HIDDEN_SETTING] = hidden
+	HeartwoodMemory.save_settings(settings)
+
+# Dream offer cards get the night-sky frame (DreamScreen): the Starlit Card Backs keepsake.
 static func starlit_backs() -> bool:
-	if all_dreams_dev_active():
-		return true
-	return not ResultsScreen.is_demo() and HeartwoodMemory.load_data().milestones.has(ALL_DREAMS)
+	return keepsake_on("starlit_backs")
 
 # Developer toggle (settings, debug builds only): the secret 6th loadout slot for testing, without
 # recording "The Heartwood in full bloom" or writing the profile.
@@ -131,7 +152,7 @@ static func load_preset(preset: StringName) -> String:
 # A developer run (Test Grove, Unlock all families, Dev Grove or the Dream of everything toggle):
 # nothing is banked or recorded.
 static func is_dev_run() -> bool:
-	return TestGrove.is_active() or all_families_active() or DevGrove.is_active() or all_dreams_dev_active() \
+	return TestGrove.is_active() or all_families_active() or DevGrove.is_active() \
 		or sixth_slot_dev_active()
 
 @onready var run_state: RunState = %RunState
@@ -146,6 +167,8 @@ var records := false  # Run end writes to the profile (real full game)
 var seed_bonus := 0.0
 var _shades_this_run := 0
 var _bosses_this_run: Array[String] = []  # Boss kinds dispelled this run (Memory Warden milestones)
+var _milestones_at_start := {}  # The profile's milestones when the run began: only new ones pay
+var _counters_at_start := {}
 var memory_wardens := {}  # Boss kind -> its Memory Warden (TowerData), for blooms the Grove has grown
 
 func _ready() -> void:
@@ -158,14 +181,15 @@ func _ready() -> void:
 	for blessing in load_blessings():
 		if not dream_state.pool.has(blessing):
 			dream_state.pool.append(blessing)
-	if all_dreams_dev_active():  # Also in the demo build's debug runs
-		dream_state.rerolls_left += ALL_DREAMS_REROLLS
 	var all_families := all_families_active() and not TestGrove.is_active()
 	if not active:
 		if all_families:  # Also in the demo build's debug runs
 			_apply_all_families()
 		return
+	add_to_group(GROUP)
 	var memory := HeartwoodMemory.load_data()
+	_milestones_at_start = memory.milestones.duplicate()
+	_counters_at_start = memory.counters.duplicate()
 	_apply_grove(memory)
 	if all_families:
 		_apply_all_families()
@@ -281,8 +305,6 @@ func _apply_grove(memory: Dictionary) -> void:
 	dream_state.cards_per_offer += extra_cards
 	if dreamlight > 0:  # Early Light
 		dream_state.add_dreamlight(dreamlight)
-	if memory.milestones.has(ALL_DREAMS) and not all_dreams_dev_active():
-		rerolls += ALL_DREAMS_REROLLS  # Dream of everything: on top of Second Thoughts
 	if "rerolls_left" in dream_state:
 		dream_state.rerolls_left += rerolls
 	if "banishes_left" in dream_state:
@@ -368,38 +390,53 @@ func _on_run_ended(won: bool) -> void:
 	var counters: Dictionary = memory.counters
 	counters.shades_dispelled = int(counters.get("shades_dispelled", 0)) + _shades_this_run
 	counters.tended_total = int(counters.get("tended_total", 0)) + run_state.obstacles_tended
-	var reached := []
-	if drift_director.bosses_cleansed > 0:
-		reached.append("first_boss")
+	for id in milestones_reached(won):  # Each one's Seeds are already in the breakdown (milestone_seed_lines)
+		memory.milestones[id] = true
+	for kind in _bosses_this_run:  # A first dispel records that boss (its Memory Warden bloom, parked)
+		memory.milestones[MEMORY_BOSS_PREFIX + kind] = true
 	if won:
-		reached.append("first_win")
 		memory.highest_blight_won = maxi(int(memory.highest_blight_won), blight_level)
-		if run_state.leaves_lost == 0:
-			reached.append("flawless_win")
-		if _one_family_only():
-			reached.append("one_line_win")
-		if blight_level >= 10:
-			reached.append("blight_10_win")
-	if counters.shades_dispelled >= 500:
-		reached.append("shades_500")
-	if run_state.longest_path >= 300:
-		reached.append("path_300")
-	if counters.tended_total >= 100:
-		reached.append("tend_100")
-	if blight_level >= 5:
-		reached.append("blight_5")
-	for kind in _bosses_this_run:  # A first dispel grows that boss's Memory Warden bloom
-		reached.append(MEMORY_BOSS_PREFIX + kind)
-	for id in reached:
-		if not memory.milestones.has(id):
-			memory.milestones[id] = true
-			HeartwoodMemory.grow_milestone_nodes(memory, id)  # Refunds a node it grows, if bought
-	HeartwoodMemory.check_full_bloom(memory)  # Milestone blooms can complete the tree
-	# Every milestone's cosmetic, including ones set elsewhere mid-run (Discover every combo: the Codex).
-	for id in memory.milestones:
-		if MILESTONE_COSMETICS.has(id) and not memory.cosmetics.has(MILESTONE_COSMETICS[id]):
-			memory.cosmetics.append(MILESTONE_COSMETICS[id])
 	HeartwoodMemory.save_data(memory)
+
+# The milestones this run reaches for the first time, in MILESTONE_SEEDS order: the ones judged at run end (from
+# the counters as they stood at run start plus this run) and the ones the Codex records mid-run (every combo,
+# Dream card, nightmare). None outside real full-game runs. Pure: the Seed breakdown and the run end both ask.
+func milestones_reached(won: bool) -> Array[String]:
+	var result: Array[String] = []
+	if not records:
+		return result
+	var now := {}
+	if drift_director.bosses_cleansed > 0:
+		now["first_boss"] = true
+	if won:
+		now["first_win"] = true
+		if run_state.leaves_lost == 0:
+			now["flawless_win"] = true
+		if _one_family_only():
+			now["one_line_win"] = true
+		if blight_level >= 10:
+			now["blight_10_win"] = true
+	if int(_counters_at_start.get("shades_dispelled", 0)) + _shades_this_run >= SHADES_MILESTONE:
+		now["shades_500"] = true
+	if run_state.longest_path >= PATH_MILESTONE:
+		now["path_300"] = true
+	if int(_counters_at_start.get("tended_total", 0)) + run_state.obstacles_tended >= TENDS_MILESTONE:
+		now["tend_100"] = true
+	if blight_level >= 5:
+		now["blight_5"] = true
+	for id in HeartwoodMemory.load_data().milestones:  # Recorded mid-run by the Codex
+		now[id] = true
+	for id in MILESTONE_SEEDS:
+		if now.has(id) and not _milestones_at_start.has(id):
+			result.append(id)
+	return result
+
+# The Seed breakdown's milestone lines: [["Milestone · <name>", Seeds], …] (RunState.get_seed_breakdown).
+func milestone_seed_lines(won: bool) -> Array:
+	var lines: Array = []
+	for id in milestones_reached(won):
+		lines.append(["Milestone · %s" % MILESTONE_SEEDS[id][1], int(MILESTONE_SEEDS[id][0])])
+	return lines
 
 # Won with every attacking Warden from one family line (Sprouts and walls don't count).
 func _one_family_only() -> bool:

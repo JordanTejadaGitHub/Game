@@ -11,5 +11,4 @@ root = 1
 costs = Array[int]([80])
 order = 15
 icon = 5
-milestone = "one_line_win"
 dream_cards = Array[String](["monoculture"])
