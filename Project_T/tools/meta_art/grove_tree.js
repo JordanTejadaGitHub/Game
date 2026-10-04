@@ -48,6 +48,15 @@ N("early_light", "perks", "Early Light", 232, 436, "early_bloom");
 N("kindling", "perks", "Kindling", 214, 500, "early_light");
 N("slot_4", "perks", "Loadout slot 4", 400, 520, [410, 466]);  // Slots 1–3 are open from the start
 N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
+// Keepsakes twig (meta_design.md b8fd690c): cosmetics at the foot of the Perks limb, no gameplay effect.
+// Off until their UnlockData exist (test_meta checks layout = data); Meta Game Code flips it with the .tres files.
+const KEEPSAKES = false;
+if (KEEPSAKES) {
+N("golden_leaf", "perks", "Golden Leaf", 534, 540, [533, 568], { twig: true });
+N("blossoms", "perks", "Blossoms", 548, 492, "golden_leaf", { twig: true });
+N("gilded_pages", "perks", "Gilded Pages", 500, 520, "golden_leaf", { twig: true });
+N("starlit_backs", "perks", "Starlit Card Backs", 536, 446, "blossoms", { twig: true });
+}
 // Families: a short branch of three per family (family, hidden branch, Ascension),
 // alternating sides up the middle limb.
 [["sporeling", "Sporeling", true], ["firefly_jar", "Firefly Jar", true], ["dewdrop", "Dewdrop", true], ["pebbling", "Pebbling"],
@@ -655,6 +664,7 @@ function limbsInCrown(img) {
     }
   }
 }
+const TWIG_MAX_X = 556;  // the Keepsakes twig stays on the Perks side of the trunk
 function spreadNodes(mask) {
   CROWN_MASK = mask;
   const list = NODES;
@@ -685,7 +695,8 @@ function spreadNodes(mask) {
     list.forEach((n, i) => {
       if (!sc[i]) return;
       let mx = (sx[i] / sc[i] - n.x) * .6, my = (sy[i] / sc[i] - n.y) * .6;
-      const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * (n.parent ? (n.section === "cards" ? 2.4 : 1.6) : (n.section === "cards" ? 1.1 : .75))) { mx *= .2; my *= .2; }
+      const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * (n.twig ? .9 : n.parent ? (n.section === "cards" ? 2.4 : 1.6) : (n.section === "cards" ? 1.1 : .75))) { mx *= .2; my *= .2; }
+      if (n.twig && n.x + mx > TWIG_MAX_X) mx = Math.min(mx, 0);
       mx = clamp(mx, -8, 8); my = clamp(my, -8, 8);
       if (inMask(n.x + mx, n.y + my, 26)) { n.x += mx; n.y += my; }
     });
@@ -700,11 +711,11 @@ function spreadNodes(mask) {
     }
     list.forEach((n, i) => {
       const p = anchor(n), dx = p.x - n.x, dy = p.y - n.y, d = Math.hypot(dx, dy);
-      const lim = R * (n.parent ? 1.3 : .6);  // a line's first node stays close to its limb
+      const lim = R * (n.twig ? .8 : n.parent ? 1.3 : .6);  // a line's first node stays close to its limb
       if (d > lim) { mv[i][0] += dx / d * (d - lim) * .25; mv[i][1] += dy / d * (d - lim) * .25; }
     });
     list.forEach((n, i) => {
-      const mx = clamp(mv[i][0], -4, 4), my = clamp(mv[i][1], -4, 4);
+      const mx = clamp(mv[i][0], -4, n.twig && n.x > TWIG_MAX_X - 4 ? 0 : 4), my = clamp(mv[i][1], -4, 4);
       if (inMask(n.x + mx, n.y + my, 26)) { n.x += mx; n.y += my; } else if (inMask(n.x + mx, n.y, 26)) n.x += mx; else if (inMask(n.x, n.y + my, 26)) n.y += my;
     });
   }
@@ -743,7 +754,7 @@ function spreadNodes(mask) {
     let improved = false;
     for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
       const a = list[i], b = list[j];
-      if (a.section !== b.section) continue;
+      if (a.section !== b.section || !!a.twig !== !!b.twig) continue;
       const touched = [...new Set([i, j, ...kids[i], ...kids[j]])], score = () => touched.reduce((s, k) => s + branchCost(k), 0);
       const before = score();
       [a.x, b.x] = [b.x, a.x]; [a.y, b.y] = [b.y, a.y]; touched.forEach(refresh);

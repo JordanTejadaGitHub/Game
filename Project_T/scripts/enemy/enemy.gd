@@ -78,6 +78,7 @@ const BLIGHT_SHADER := preload("res://shaders/blight.gdshader")
 const HEALTH_BAR_SIZE := Vector2(40, 5)
 const HEARTWOOD_DRAIN_EVERY := 2.0  # A boss at the Heartwood takes a leaf this often (s)
 const GROUND_DROP_TIME := 0.25  # Groundroot: a flyer's drop onto the route
+const CORNER_ROUNDING := 0.3  # Cells before and after a turn's centre where the drawn path curves (the route stays square)
 const BOSS_SILENCE_SPEED := 0.5  # A silenced boss's timed abilities run this fast (Hushbell; tower_design.md 279ebb63)
 const BOSS_SILENCE_FLOOR := 0.35  # …and never slower than this, however deep the Hushbell (Nurture rework e2631f54)
 const UNTOUCHABLE_TINT := Color(0.42, 0.38, 0.55)  # The Night Mare lingering: a dark, smoky shimmer (a self_modulate multiplier)
@@ -197,6 +198,7 @@ var at_heartwood := false  # A boss that got through: it stays, draining leaves 
 var _drain_left := 0.0  # Seconds to its next leaf (0 on arrival: the first goes at once)
 var _linger_left := 0.0  # Night Mare: seconds left of this visit before it gallops off again
 var _grounded_left := 0.0  # Groundroot: seconds left on the ground (a flyer walking the maze; see ground)
+var _corner_offset := Vector2.ZERO  # Drawn minus logical position on a rounded corner (_round_corners)
 var _untouchable := false  # Night Mare lingering: no hits, no statuses, not targeted (_set_untouchable)
 var straight_charging := false  # Hollow Stag: on a straight of straight_charge_tiles+ (see _update_straight_charge)
 var _bellowed := false
@@ -520,6 +522,7 @@ func _process(delta: float) -> void:
 
 	# Update animation based on movement direction
 	update_animation(position - previous_position)
+	_round_corners()
 
 	if _path_index >= _path.size():
 		if loops_route:
@@ -704,6 +707,7 @@ func _update_hud(delta: float) -> void:
 func _make_hud() -> void:
 	_hud_root = RenderingServer.canvas_item_create()
 	RenderingServer.canvas_item_set_parent(_hud_root, get_canvas_item())  # Moves with the nightmare, no script
+	RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, _corner_offset))  # (Mid-corner already)
 	_hud_items.clear()
 	for kind in HUD_PASSES:
 		var item := RenderingServer.canvas_item_create()
@@ -1044,6 +1048,51 @@ func get_leaf_cost() -> int:
 
 func is_flying() -> bool:
 	return enemy_data.trait_kind == EnemyData.Trait.FLYING and _grounded_left <= 0.0  # (Groundroot: not while grounded)
+
+# Rounded corners (user-approved, 2026-10-04): the route stays square and the logical position walks
+# it exactly (speed, ETA, progress unchanged); only the drawn sprite and HUD ease through a turn, on a
+# quadratic curve from CORNER_ROUNDING cells before the corner's centre to as far after it, with the
+# centre as its control point. That curve stays inside the corner cell. Not for flyers, or while
+# sinking, rising or being dragged.
+func _round_corners() -> void:
+	var offset := Vector2.ZERO
+	if not is_flying() and not _leaping and not _dragging and _path_index >= 1 and _path_index < _path.size():
+		var here := position
+		var next_c := grid.calculate_map_position(_path[_path_index])
+		var prev_c := grid.calculate_map_position(_path[_path_index - 1])
+		# Approaching a turn at the next centre, or just leaving one at the previous centre
+		if _path_index + 1 < _path.size():
+			offset = _corner_curve(prev_c, next_c, grid.calculate_map_position(_path[_path_index + 1]), here, true)
+		if offset == Vector2.ZERO and _path_index >= 2:
+			offset = _corner_curve(grid.calculate_map_position(_path[_path_index - 2]), prev_c, next_c, here, false)
+	if offset == _corner_offset:
+		return
+	_corner_offset = offset
+	sprite.offset = offset / sprite.scale
+	if _hud_root.is_valid():
+		RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, offset))
+
+# The drawn offset at `here` for a turn at `corner` (from `before`, towards `after`); zero if the route
+# doesn't turn there or `here` is farther than the rounding from it. `approaching`: before the corner.
+func _corner_curve(before: Vector2, corner: Vector2, after: Vector2, here: Vector2, approaching: bool) -> Vector2:
+	var into := (corner - before)
+	var out := (after - corner)
+	if into.is_zero_approx() or out.is_zero_approx():
+		return Vector2.ZERO
+	var d_in := into.normalized()
+	var d_out := out.normalized()
+	if d_in.is_equal_approx(d_out):
+		return Vector2.ZERO  # Straight on
+	var r := minf(CORNER_ROUNDING * grid.cell_size.x, 0.5 * minf(into.length(), out.length()))  # (Half-steps too)
+	var dist := here.distance_to(corner)
+	if dist > r:
+		return Vector2.ZERO
+	var s := r - dist if approaching else r + dist  # Distance along the two legs from the curve's start
+	var t := s / (2.0 * r)
+	var a := corner - d_in * r
+	var b := corner + d_out * r
+	var drawn := a * (1.0 - t) * (1.0 - t) + corner * 2.0 * (1.0 - t) * t + b * t * t
+	return drawn - here
 
 # --- Branch Phase 2 hooks (tower_design.md; Tower Code's BranchKit calls them) ---
 
