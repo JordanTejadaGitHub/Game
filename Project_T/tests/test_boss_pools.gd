@@ -204,7 +204,7 @@ func _run() -> void:
 	var crows := spawner.get_children().filter(func(e) -> bool: return e.enemy_data == crow_data)
 	var airborne := true
 	for crow in crows:
-		airborne = airborne and crow.is_flying() and crow._path.size() > 2 and crow._path[-1] == map_generator.endPath \
+		airborne = airborne and crow.is_flying() and crow._path.size() > 2 and (crow._path[-1] + Vector2(0.5, 0.5)).floor() == map_generator.endPath \
 			and crow._path[0].distance_to(route[8]) <= 1.0 and crow._path == map_generator.get_path_from(crow._path[0])
 	_check(airborne, "the Crows take to the air: they fly the route from where they burst (Wardens along it reach them)")
 	_check(not spawner.get_maze_walkers().any(func(e) -> bool: return e.enemy_data == crow_data), "flyers: not maze walkers")

@@ -109,9 +109,15 @@ func _run() -> void:
 	quit(failures)
 
 # A buildable neighbour of `cell` that keeps the path open.
-func _free_neighbour(map_generator, cell: Vector2, route: PackedVector2Array = PackedVector2Array()) -> Vector2:
+# A whole cell beside route point `point` (x.25 / x.75 on half-cell routes) that no route point is in and
+# a Warden may block.
+func _free_neighbour(map_generator, point: Vector2, route: PackedVector2Array = PackedVector2Array()) -> Vector2:
+	var cell := (point + Vector2(0.5, 0.5)).floor()  # The whole cell a route point is in
+	var on_route := {}
+	for p in route:
+		on_route[(p + Vector2(0.5, 0.5)).floor()] = true
 	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-		if not route.has(cell + offset) and map_generator.can_block(cell + offset):
+		if not on_route.has(cell + offset) and map_generator.can_block(cell + offset):
 			return cell + offset
 	return Vector2(-1, -1)
 

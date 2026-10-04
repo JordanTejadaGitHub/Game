@@ -290,19 +290,15 @@ func try_omen_trample(enemy: Node2D) -> void:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams != null and dreams.has_rule(WEATHERED_WALLS_RULE):
 		return  # Weathered Walls: Thornwalls stand like any other wall
-	refresh_reveal_lookup()  # (tower_cells: Wardens by cell)
-	var here: Vector2 = enemy.get_current_cell()
-	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-		var tower = tower_cells.get(here + offset)
-		if tower == null or not is_instance_valid(tower) or tower.tower_data.line != "wall" or BranchKit.is_stone(tower):
-			continue
-		var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
-		var director = get_node_or_null("%DriftDirector")
-		if omens == null or director == null or not omens.claim_trample(director.drift_of(enemy)):
-			return
-		_trample_tower(tower, here + offset, enemy)
-		_towers_dirty = true
+	var tower := _wall_beside(enemy)
+	if tower == null:
 		return
+	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
+	var director = get_node_or_null("%DriftDirector")
+	if omens == null or director == null or not omens.claim_trample(director.drift_of(enemy)):
+		return
+	_trample_tower(tower, tower.cell, enemy)
+	_towers_dirty = true
 
 # A route from `from` to the Heartwood that avoids every rooted cell (except `from` itself), without
 # changing the map. Empty if the Held nightmares close every way (then the walker waits).
@@ -419,20 +415,45 @@ func _on_trample_requested(enemy: Node2D) -> void:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams != null and dreams.has_rule(WEATHERED_WALLS_RULE):
 		return  # Weathered Walls: Thornwalls stand like any other wall
-	var here: Vector2 = enemy.get_current_cell()
-	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-		var tower := _tower_on(here + offset)
-		if tower != null and tower.tower_data.line == "wall" and not BranchKit.is_stone(tower):  # (Rampart's stone walls hold)
-			_trample_tower(tower, here + offset, enemy)
-			enemy.trampled()
-			return
+	var tower := _wall_beside(enemy)
+	if tower != null:
+		_trample_tower(tower, tower.cell, enemy)
+		enemy.trampled()
 
 # An Unbound nightmare walks into a Warden on its route: any Warden, trampled (Weathered Walls
 # doesn't save it; nothing blocks an Unbound nightmare).
 func _on_trample_cell_requested(enemy: Node2D, cell: Vector2) -> void:
-	var tower := _tower_on(cell)
+	var tower := tower_at_point(cell)
 	if tower != null:
-		_trample_tower(tower, cell, enemy)
+		_trample_tower(tower, tower.cell, enemy)
+
+# The wall Warden (Thornwall line) beside a walker: one whose footprint takes a half cell up to a cell
+# from the walker's own half, left, right, up or down, nearest first (half cells: walls may sit at half
+# offsets and bodies walk one half). Rampart's stone walls hold. null if none.
+func _wall_beside(enemy: Node2D) -> Tower:
+	var half_px: float = enemy.grid.cell_size.x / FindPath.HALF
+	var here: Vector2 = (enemy.position / half_px).floor()
+	var by_half := {}
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.tower_data.line == "wall" \
+				and not BranchKit.is_stone(tower):
+			for half in tower.get_halves():
+				by_half[half] = tower
+	for reach in [1, 2]:
+		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+			var tower = by_half.get(here + offset * reach)
+			if tower != null:
+				return tower
+	return null
+
+# The Warden whose footprint takes route point `point`'s half cell (half cells: Wardens may sit at
+# half offsets), or null.
+func tower_at_point(point: Vector2) -> Tower:
+	var half := Vector2(FindPath.point_to_node(point))
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.get_halves().has(half):
+			return tower
+	return null
 
 func _tower_on(cell: Vector2) -> Tower:
 	for tower in tower_container.get_children():

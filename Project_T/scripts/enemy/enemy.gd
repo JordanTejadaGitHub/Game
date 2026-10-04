@@ -1517,7 +1517,7 @@ func _trample_ahead() -> void:
 	if _path_index >= _path.size():
 		return
 	var next := _path[_path_index]
-	if _tower_cells().has(next):
+	if _spawner != null and _spawner.tower_at_point(next) != null:  # (Half cells: by the point's half cell)
 		trample_cell_requested.emit(self, next)
 
 # Red-hot embers left behind while it walks (world space, so they trail).
@@ -1660,10 +1660,16 @@ func _try_wander() -> void:
 	var pocket := _find_dead_end(here, map_generator)
 	if pocket.is_empty():
 		return
-	var detour := pocket.duplicate()
+	# Half cells: it walks the pocket's cells in its own lane (the same offset from each cell's centre as
+	# the route point it stands on: x.25 / x.75), out and back to that point.
+	var stand := _path[_path_index - 1] if _path_index >= 1 else get_route_point()
+	var lane := stand - here
+	var detour := PackedVector2Array()
+	for cell in pocket:
+		detour.append(cell + lane)
 	for i in range(pocket.size() - 2, -1, -1):
-		detour.append(pocket[i])
-	detour.append(here)
+		detour.append(pocket[i] + lane)
+	detour.append(stand)
 	detour.append_array(_path.slice(_path_index))
 	set_path(detour)
 	_wander_cooldown = enemy_data.wander_cooldown_cells
@@ -1671,9 +1677,9 @@ func _try_wander() -> void:
 # Cells of a dead-end pocket starting next to `here` (off the route, one way in, at most
 # `wander_depth` deep), from the entrance to the end. Empty if there's none.
 func _find_dead_end(here: Vector2, map_generator: Node) -> PackedVector2Array:
-	var on_route := {}
-	for cell in _path:
-		on_route[cell] = true
+	var on_route := {}  # Whole cells the route runs through (half-cell routes: x.25 / x.75 points)
+	for point in _path:
+		on_route[(point + Vector2(0.5, 0.5)).floor()] = true
 	var starts := DIRECTIONS.duplicate()
 	starts.shuffle()
 	for direction: Vector2 in starts:
