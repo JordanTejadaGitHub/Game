@@ -134,7 +134,7 @@ own full finale.
   rounded; no snare, no cymbals), **bass** (bowed bass ostinato on the Hollow form of the motif),
   **theme** (the act's boss melody in its cold colour), **warm** (the counter-melody: the motif's
   Warm form in the act's warm lead, entering **below 50% boss health**: the player is winning).
-- **Signature layer per boss** (`mus_boss_<id>_sig`), on top of its act's theme while it lives:
+- **Signature layer per boss** (`mus_boss_act<N>_sig_<enemy id>`, e.g. `sig_old_stag`, Night Mare laps `sig_night_mare_2` / `_3`; part of the act's boss set, so they loop in sync), on top of its act's theme while it lives:
 
 | Act | Boss | Signature layer |
 |---|---|---|
