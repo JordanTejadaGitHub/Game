@@ -813,6 +813,8 @@ class FormNode extends Button:
 			badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			add_child(badge)
 		tooltip_text = UNKNOWN_NAME + " · Plant it in the Memory Grove" if state == State.GROVE else data.display_name  # Grove-locked: no name (user), the hint
+		if state != State.GROVE and data.tier == 2 and screen.dream_state.is_hidden_branch(data):
+			tooltip_text = data.display_name + " · from your Memory Grove: in every dream, beside the branches drawn"
 		if state == State.NOT_IN_DREAM:  # Branch expansion: a faint, misty silhouette
 			modulate = Color(1, 1, 1, 0.5)  # multiplier: the mist
 			tooltip_text = data.display_name + " · not in this dream"
@@ -862,6 +864,9 @@ class FormNode extends Button:
 				text = name_shown()  # "???" under it (user: no name until planted), and a Grove leaf badge on the stone
 				colour = UiStyle.INK_DIM
 				_draw_leaf(centre + Vector2(PORTRAIT / 2.0 - 8, -PORTRAIT / 2.0 + 8))
+		if state != State.GROVE and data.tier == 2 and screen.dream_state.is_hidden_branch(data):
+			# A planted hidden branch: the Grove's own lane, outside the 2 drawn (user: it read as one of the chosen)
+			_draw_leaf(centre + Vector2(-PORTRAIT / 2.0 + 8, -PORTRAIT / 2.0 + 8))
 		if text != "":
 			# Counts and motes in the number face; names in the body font, readable (story chat: small caps were tiny)
 			var words := state == State.LOCKED or state == State.GROVE or state == State.NOT_IN_DREAM
