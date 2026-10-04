@@ -781,6 +781,9 @@ the drift 20 finale); humans (runs 15–16) still end in act 2 and found it fair
 **Item 2, skip:** **43%** (target ≤ 15%; it was 0% on 175058a0); finales 10 / 15 cost 0.03 / 0.07 leaves.
 **Act 1 tightens: `act1_health_multiplier` 1.15 → 1.30** (full game only; the demo keeps 1.15 via
 DEMO_RULES; in 4e8162d2). Expected: Balanced ~60%, skip ~20%; re-run both after.
+**Corridor rule changed** (user, half_cells.md 04c10c33): nightmares fit through one-half gaps, so mazes can be
+denser and longer. The ×1.30 checks (Balanced, skip, bosses) are held for that build; the current results
+read the old one-cell corridor rule.
 
 ## Milestone thresholds (2026-10-04; milestones give bonus Seeds only, meta_design.md 269b14b0)
 
