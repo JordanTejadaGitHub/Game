@@ -756,6 +756,17 @@ were at 0.1–0.4 of the route, nothing near the Heartwood.
 - Nestling isn't expanded yet (the sky merge is Phase 3), so both branches were offered and the user picked
   the support. Not a draw issue; watch whether Magpie Perch reads as a trap first pick.
 
+## Human run 16 (2026-10-03, build 0848cb = 27c658f7, the real profile with 0 Grove nodes)
+
+**Lost at drift 42**, 13 min. Firefly Jar → Dewdrop; **2 Starbursts = 53% of damage**, 7 Sparklers, 3
+Cloudlets. **Combos 41%** of damage (the top of the 25–40% target). **15/15 leaves through drift 39**, no leak
+before 40; the Hollow Stag in 22 s; act 2 closest mostly 0.2–0.4. Then **the drift 40 finale: 9 leaks, 13
+leaves in one drift** (its 3 elites at ×3 × 1.4 = ×4.2 health), and 41–42 finished it. Kills sat at 0.0–0.3 of
+the route, Heartwood share 0%.
+- On target: a fresh profile ending in act 2 ✓.
+- A full-leaf run losing almost everything to one finale is a cliff: **the finale's ×1.4 no longer stacks on
+  its elites** (elites keep ×3).
+
 ## Nurture rework (2026-10-03, tower_design / warden_stats 02417f32; in e2631f54, boss side 0a309566)
 
 Numbers: Keen +10% crit chance per rank (cap 75%); Yield +1 alive per 2 ranks (Brood Cap, Seedbearer), Dream
