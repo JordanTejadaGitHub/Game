@@ -8,6 +8,67 @@ column on https://claude.ai/artifact/L3HVzecXZZLdogJKHtkuvy is the baseline thes
 
 Files are in `assets/style_reference/`. A `.gdignore` keeps the folder out of the game build.
 
+## Update 2026-10-04: the game as it is now, and avoiding the "AI look"
+
+The user worries that players dislike games that look AI-made. This update is specified in
+`art_direction.md` "Style references (updated 2026-10-04)". The sheets now show the game as it is,
+and seven do / don't sheets name the usual tells. Wherever a "don't" side could come from a real
+sprite, it does. All sheets are built from the committed art, at whole-number scales.
+
+### Current state
+
+| Sheet | What it shows |
+|---|---|
+| `current_warden_night.png` | Six base Wardens as they are in game: idle sheets one shade down (Warden Night), with the attack (frame 3) keeping its full warm light. |
+| `silhouette_rule.png` | Lanternmoth → Beacon, the pair that started the rule: in colour, then as grey 32 px shapes. Beacon is one of the 10 tall 64×96 finals; the last panel shows its rise fading to 50% over a Shade. |
+| `branch_pair_phase2.png` | Rootling and its two Phase 2 branches, Groundroot and Deeproot: same family colours, a new stance and crown each. In colour and as 32 px grey shapes. |
+| `emblems_sheet.png` | Emblems at 3×: family and other (`assets/ui/emblems`), branch, and Heartwood's Gift (`assets/ui/gifts`). The first 8 of each, A–Z. |
+| `route_mist_sheet.png` | The route mist on the pale path and on dark ground, plus the two mist textures at 4×. |
+| `heartwood_stages.png` | The inland Heartwood's four Grove stages in the same 128 px frame (frame 0, no leaves lost), at 2×. |
+| `act_palettes.png` | The current act ground and path, acts 1–4: night-indigo ground with moss (acts 1–2), violet with rust (act 3), frost (act 4). |
+| `sporeling_night_ref.png` | **Refreshed:** the hand-tuned Sporeling reference through the Warden Night map. It replaces `sporeling.png` as the Warden reference. |
+
+**What is now superseded.** The 2026-09-28 `grass.png`, `path_ns.png` and their sheets show the old
+green ground; the act tiles have moved on to night-indigo, violet and frost (`act_palettes.png`).
+They are kept for their technique: tufts with a shadow pixel, the worn path centre, banks that
+wobble but meet the tile edge. Don't copy their colours. `sporeling.png` is replaced by
+`sporeling_night_ref.png`. The Shade and Mossy Boulder references still match the game.
+
+### Avoiding the AI look: one sheet per row of the table
+
+| Sheet | Don't (where it comes from) | Do |
+|---|---|---|
+| `dodont_grain.png` | Speckle spread evenly over the Sporeling's flat body: **the current sprite**. | The same frame after removing lone specks on flat areas with a 3×3 majority pass (for illustration; a hand pass is better). Texture stays where materials change. |
+| `dodont_glow.png` | A soft halo round the idle Acorn "for mood": **the current sprite** (Gold at 20–59% alpha all round). | No idle halo; the glow comes with the attack (attack frame 3). |
+| `dodont_poses.png` | Sporeling, Bloomcap, Elf Circle and Fairy Ring as 32 px grey shapes: **current sprites**, one body template with a different hat. | Rootling, Groundroot and Deeproot: a new stance and crown per form. |
+| `dodont_quirks.png` | The Warden Night Sporeling reference: clean, symmetric, nothing out of place. | The same sprite with hand-placed quirks: a crooked smile, one bent sprout on the crown, a moss patch on one shoulder only, a chipped plinth corner. |
+| `dodont_light.png` | **The Sporeling before 2026-09-28**, lit from the right. | Light from the upper left, a Night outline, the rim on at most half the edge. |
+| `dodont_sheen.png` | **The Dreamshroom before Warden Night**: a violet body with gold sparkles, the purple-gold "magic" sheen. | The current Dreamshroom in Nightbloom: bluer and darker, so no Warden reads as a nightmare. |
+| `dodont_pixels.png` | An illustration (no current sprite does this): 1.5× scale, a 7° rotation and smoothing, giving mixed pixel sizes and blur. | A whole-number scale (3×), hard edges, no rotation. |
+
+**Tells spotted while building these sheets.** Each is a job for the owning chat:
+- The path tiles in every act carry dense, evenly spread grain (`act_palettes.png`), the same tell as row 1.
+- Several Wardens have an idle halo: Acorn and Rootling.
+- The Firefly Jar plinth uses a regular gold checker.
+- The Heartwood's canopy shows a regular Bayer checker and evenly spaced gold fruit along its edge.
+
+## Hand-polish list (art_direction.md), and what each sprite most needs
+
+These are the most-seen sprites, where a human touch-up matters most. Keep the size, palette and
+silhouette; add the quirks and fix anything that reads as generated.
+
+| # | Sprite | What it most needs |
+|---|---|---|
+| 1 | **Sporeling** (the mascot) | Calm the speckle on the body and plinth top (row 1). Add one or two quirks (`dodont_quirks.png`). Give it a face of its own; it shares its eyes and mouth with most base Wardens. |
+| 1 | **Firefly Jar** | Replace the regular gold checker on the plinth with a hand-placed glow. Keep the sparkles inside the jar only, a few and uneven, not spread over the body. |
+| 1 | **Dewdrop** | Calm the body grain. Give it a different expression from the Sporeling, and one asymmetric detail (a drip running down one side). |
+| 1 | **Their branches** | They pass the silhouette rule. Polish faces and props so each looks drawn, not stamped from the base template. |
+| 1 | **Sprout and Thornwall** (on the map every run) | Thornwall: irregular, hand-placed thorns instead of evenly spaced spikes, and no halo dots. Sprout: break the regular stripes on its soil plinth. |
+| 2 | **The Hollow Stag** (act 1 boss) | Hand-draw the antlers: asymmetric, one chipped tine. A clean boss silhouette at full size, with the dark cold body and pinprick eyes. |
+| 2 | **The Shade** (most common nightmare) | Keep it dark. Vary the ragged smoky edge from frame to frame (the Shade reference) so the walk doesn't look looped from one frame. |
+| 3 | **The Heartwood** (4 Grove stages + damage rows) | Break the Bayer checker in the canopy into hand-made leaf clumps. Space the dream-fruit unevenly. Make the rot patches in the damage rows ragged and different from row to row. |
+| 4 | **The title Warden** (`c5468b4d`) | The cracks repeat like an even cobble pattern; hand-place fewer, larger cracks. Gather the moss into clumps that follow the form. |
+
 | Example | Reference (64×64) | Sheet | Source |
 |---|---|---|---|
 | Warden: Sporeling (the mascot) | `sporeling.png` | `sporeling_sheet.png` | `towers/sporeling.png`, idle frame 0 |
