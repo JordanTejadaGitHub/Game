@@ -358,16 +358,16 @@ A Memory fragment appears **every 3 nodes planted** (plus the milestone ones bel
 **Milestones only give bonus Seeds** (user, 2026-10-04; replaces the free unlocks). A milestone
 never grows a Grove node, refunds a purchase, unlocks a cosmetic or a Memory: **every node is bought
 with Seeds**. Each milestone pays a **one-time Seed bonus** at the run end it's reached, as its own
-results line (*"Milestone · Dispel 2,000 Shades · +25 Seeds"*), scaled by how hard it is. Steam
+results line (*"Milestone · Dispel 3,000 Shades · +25 Seeds"*), scaled by how hard it is. Steam
 achievements still map to the milestone ids. Dev runs record none (as before).
 
 | Milestone (id) | Bonus | Was |
 |---|---|---|
 | Dispel your first boss (`first_boss`) | +20 | Memory fragment |
 | Win a run (`first_win`) | +60 | Memory fragment (Blight Levels still open with the first win: a rule, not a reward) |
-| Dispel **2,000** Shades, total (`shades_500`, id kept) | +25 | Sunpetal; 500 now happens in one run |
-| Build a **300-tile** path (`path_300`) | +30 | The Long Walk card |
-| Tend **300** obstacles, total (`tend_100`, id kept) | +25 | Memory fragment; was 100 |
+| Dispel **3,000** Shades, total (`shades_500`, id kept) | +25 | Sunpetal; 500 now happens in one run (a good run dispels ~700) |
+| Build a **130-tile** path (`path_300`, id kept) | +30 | The Long Walk card; 300 can't fit on a 23×18 map |
+| Tend **120** obstacles, total (`tend_100`, id kept) | +25 | Memory fragment; was 100 |
 | Win without losing a leaf (`flawless_win`) | +100 | Golden Leaf cosmetic |
 | Win with only one Warden family (`one_line_win`) | +80 | Monoculture card |
 | Reach Blight Level 5 (`blight_5`) | +50 | Memory fragment |
@@ -376,8 +376,8 @@ achievements still map to the milestone ids. Dev runs record none (as before).
 | See every Dream card (`all_dreams`) | +60 | starlit card backs + 1 reroll |
 | Meet every nightmare (`all_nightmares`) | +40 | — |
 
-- **Thresholds** (2,000 Shades, 300 tiles, 300 tends) are first guesses for the harder rules;
-  **Balancing Discussion** checks them against real runs and sets them, and may tune the bonuses.
+- **Thresholds** set by Balancing Discussion 2026-10-04 from the user's records (3,000 Shades ≈ 4–5 good runs; 130 tiles = a genuinely long maze; 120 tends);
+  they may retune them, e.g. once `longest_path` is in the run history.
 - **Memories** now come only from the first run and Grove growth (one per 3 levels planted); 10
   arrive well before the tree is complete.
 - **Cosmetics** (Golden Leaf, Blossoms, gilded pages, starlit backs) are no longer rewards; the art
