@@ -40,6 +40,7 @@ var omen_mist: OmenMist  # Low gold-violet mist while an Omen twists the block
 var build_hatch: BuildHatch  # In build mode: a cold hatch on every unbuildable cell
 var lighting: EnvironmentLighting  # Cold edges, warm Warden lights
 var ambience: EnvironmentAmbience  # Edge fog and the act's particles
+var ground_patches: GroundPatches  # Ground variation (environment_assets.md "Ground variation")
 var tree_fade: TallObstacleFade  # Withered Trees fade their overhang over what's behind them
 var gifts: MapGifts  # Heartwood's Gifts: terrain the act-break gifts leave (map_gifts.gd)
 
@@ -95,9 +96,12 @@ func _ready() -> void:
 	path_layer.prefer_route(_straightest_route())  # Fewest turns among the shortest routes
 
 	path_layer.draw()
+	ground_patches = GroundPatches.new()  # Ground variation: big soft patches over the grass, under the path
+	ground_patches.build(self)
+	ground_layer.add_child(ground_patches)
 	var no_details := unwalkable_cells + path_layer.current_path + PackedVector2Array(obstacles.keys())
 	no_details.append_array(PackedVector2Array(environment_object_layer.pond_cells))
-	environment_object_layer.generate_details(rng, no_details)
+	environment_object_layer.generate_details(rng, no_details, ground_patches.kind_at)
 	_draw_pond_corners()
 
 	heartwood = Heartwood.new()
@@ -171,6 +175,7 @@ func set_act(act: int) -> void:
 		corner.texture = (tile_set.get_source(EnvironmentTiles.POND_INNER) as TileSetAtlasSource).texture
 	heartwood.set_act(act)
 	path_layer.set_act(act)  # The dual-grid path sheet
+	ground_patches.set_act(act)
 	gifts.set_act(act)
 	ambience.act = act
 

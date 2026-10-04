@@ -302,18 +302,36 @@ func wear_away(cell: Vector2i) -> void:
 const DETAIL_SHARE := 0.3
 
 # Sprinkles grass details (decoration only) on cells not in `skip_cells`. Call after generate_obstacles().
-func generate_details(rng: RandomNumberGenerator, skip_cells: PackedVector2Array) -> void:
+# Details follow the ground patches (`patch_kinds`: cell -> GroundPatches kind): ferns in fern beds (and a few
+# more of them), pebbles on worn earth, fewer on deep moss. The rng draws are the same either way, so the
+# rest of the map is untouched. ground_details.png: column % 4 = mushrooms, ferns, pebbles, leaf litter.
+func generate_details(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, patch_kinds: Dictionary = {}) -> void:
 	var noise: FastNoiseLite = noise_texture.noise
+	var details := tile_set.get_source(EnvironmentTiles.GROUND_DETAILS) as TileSetAtlasSource
+	var columns := details.get_atlas_grid_size().x
 	for x in MAP_GRID.size.x:
 		for y in MAP_GRID.size.y:
 			var cell := Vector2(x, y)
 			if skip_cells.has(cell):
 				continue
 			var value := noise.get_noise_2d(x, y)
+			var kind: int = patch_kinds.get(cell, -1)
+			var column := -1
 			if value > _tree_level and value <= _detail_level and rng.randf() < DETAIL_SHARE:
-				var details := tile_set.get_source(EnvironmentTiles.GROUND_DETAILS) as TileSetAtlasSource
-				set_cell(Vector2i(cell), EnvironmentTiles.GROUND_DETAILS,
-					Vector2i(rng.randi_range(0, details.get_atlas_grid_size().x - 1), 0))
+				column = rng.randi_range(0, columns - 1)
+			if kind == GroundPatches.FERN_BED and column < 0 and EnvironmentTiles.cell_variant(Vector2i(cell), 5, 3) < 2:
+				column = EnvironmentTiles.cell_variant(Vector2i(cell), columns, 5)  # Fern beds: a few more
+			if column < 0:
+				continue
+			match kind:
+				GroundPatches.FERN_BED:
+					column = column / 4 * 4 + 1  # Ferns
+				GroundPatches.WORN_EARTH:
+					column = column / 4 * 4 + 2  # Pebbles
+				GroundPatches.DEEP_MOSS, GroundPatches.GLADE_RING:
+					if EnvironmentTiles.cell_variant(Vector2i(cell), 3, 9) != 0:
+						continue  # Velvety: fewer details
+			set_cell(Vector2i(cell), EnvironmentTiles.GROUND_DETAILS, Vector2i(column, 0))
 
 func _compute_noise_levels(noise: FastNoiseLite, tree_density: float) -> void:
 	var lowest := INF

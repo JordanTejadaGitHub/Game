@@ -166,6 +166,9 @@ func _init() -> void:
 
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--preview="):
+			for act_arg in OS.get_cmdline_user_args():  # `-- --act=N`: the act's sheets (season close-ups)
+				if act_arg.begins_with("--act="):
+					map.set_act(int(act_arg.trim_prefix("--act=")))
 			if OS.get_cmdline_user_args().has("--stagger"):  # Half-offset Warden walls along the route
 				_stagger(main)
 			_render(main, [ground, path, env], arg.trim_prefix("--preview="))
@@ -227,6 +230,8 @@ func _render(main: Node, layers: Array, file: String) -> void:
 			var coords := layer.get_cell_atlas_coords(cell)
 			var origin := source.get_tile_data(coords, 0).texture_origin
 			image.blend_rect(sheets[source], Rect2i(coords * region, region), at + (tile - region) / 2 - origin)
+		if layer == map.ground_layer and map.ground_patches != null:
+			_blend_patches(image, map, offset)
 		if layer == map.path_layer:
 			_blend_half_path(image, map, offset)
 	_blend_pond_corners(image, map, offset)
@@ -363,6 +368,8 @@ func _flat_map(main: Node) -> Image:
 			var coords := layer.get_cell_atlas_coords(cell)
 			var origin := source.get_tile_data(coords, 0).texture_origin
 			image.blend_rect(sheets[source], Rect2i(coords * region, region), cell * tile + (tile - region) / 2 - origin)
+		if layer == map.ground_layer and map.ground_patches != null:
+			_blend_patches(image, map, Vector2i.ZERO)
 		if layer == map.path_layer:
 			_blend_half_path(image, map, Vector2i.ZERO)
 	_blend_pond_corners(image, map, Vector2i.ZERO)
@@ -456,3 +463,12 @@ func _stagger(main: Node) -> void:
 			placed += 1
 			break
 	print("staggered %d Wardens" % placed)
+
+# Ground variation: GroundPatches' 64 px dual tiles (32 px up-left), over the grass and under the path.
+func _blend_patches(image: Image, map: Node, offset: Vector2i) -> void:
+	var patches: GroundPatches = map.ground_patches
+	var sheet: Image = (patches.tile_set.get_source(0) as TileSetAtlasSource).texture.get_image()
+	sheet.convert(Image.FORMAT_RGBA8)
+	var tile := Vector2i(patches.tile_set.tile_size)
+	for at in patches.get_used_cells():
+		image.blend_rect(sheet, Rect2i(patches.get_cell_atlas_coords(at) * tile, tile), at * tile + Vector2i(patches.position) + offset)
