@@ -9,9 +9,15 @@ mazes"* → *"Wardens can be placed at half cell offsets."* Built on an experime
 - The **pathing grid becomes 32 px** (half cells): the 23×18 map is 46×36 half cells.
 - A **Warden still takes a 64 px footprint** (2×2 half cells) and can be placed at **any half-cell position**, so walls can
   be staggered by half a cell. Obstacles, the start, the Heartwood and its glade keep their full-cell positions.
-- **Nightmares need a corridor at least 2 half cells (one full cell) wide.** A placement that would leave a 1-half-cell gap
-  anywhere on the route is refused like a blocking one ("too narrow for them to pass"). Nightmares walk the half-cell grid
-  (smoother diagonal-ish zig-zags around staggered walls).
+- **Nightmares fit through a gap one half cell wide** (user, 2026-10-04: *"maybe make the path half a cell now"*, the
+  half-cell-gaps option). Their pathing body is 1 half cell, so a placement is only refused when it closes the route,
+  never for being "too narrow". Tighter, denser mazes; nightmares walk the half-cell grid. (Replaces the old rule: a
+  corridor at least one full cell wide and the &"narrow" refusal.)
+- **The look in a narrow gap:** nightmares keep their art and y-sort with the Wardens either side. In a one-half gap they
+  squeeze, drawn about 80% wide and eased in and out over a few frames, so they read as slipping through, not clipping
+  into stone. Bosses and big nightmares too: one route rule for every walker.
+- The drawn path follows the walkable halves, so a one-half gap draws a ribbon 32 px wide. The dual-grid path art must
+  read at that width.
 - Flyers unchanged (straight line).
 
 ## What stays the same for the prototype
@@ -39,6 +45,14 @@ mazes"* → *"Wardens can be placed at half cell offsets."* Built on an experime
   - the ghost's 2×2 footprint outlined in gold, refused halves in the cold "can't" colour
   - none on obstacles, the void or the HUD. A setting "Placement grid: On / Near cursor / Off" (default On). Reduced
     motion: no fade.
+
+### Half-cell gaps: who does what
+- Environment Code: body 1 half (`body_halves`, `can_block_halves`, the corridor check and &"narrow" go), route search, tests.
+- Tower Code: the placer's refusal reasons and the ghost text (no "too narrow").
+- Enemy Code: the squeeze in one-half gaps; check rounded corners and trample/charge on one-half routes.
+- Environment Discussion / Assets: the dual-grid path tiles must work for a one-half-wide path.
+- Balancing: re-check route lengths (they get longer) and the act 1 targets.
+- Design hub: hints / Codex lines that mention "too narrow".
 
 ## Going to main: the work and who owns it
 | Work | Owner |
