@@ -56,7 +56,7 @@ captioned one. Record the voice, drop it on the timeline, done. Speak like you'r
 **Short 1: "Your towers ARE the maze." (~25 s)**
 - 0–2 s: *"In my game, your towers are the walls."*
 - 2–10 s: *"Every Warden you plant changes the path the nightmares have to walk. Longer path, more time to hit them."*
-- 10–18 s: *"Twelve Wardens in, and the path's about three times as long as when I started."* (swap in the real count from the clip)
+- 10–18 s: *"Twenty-four Wardens in, and the path's about twice as long as when I started."* (the clip's real count)
 - 18–25 s: *"Then I hit start, and they have to walk every bend of it."* · end card: *"It's called Heartwood TD. Wishlist it on Steam."*
 
 **Short 2: "Watch this chain." (~22 s)**
@@ -96,26 +96,28 @@ the Night Mare's laps, the Memory Grove growing, Rank V Nurture choices, the Spi
 
 ## 5. Trailer script (≈75 s)
 
-Owner: Trailer chat (2026-10-04). Opens with pitch.md's "first 10 seconds" (no logo intro). Rules: every clip at real
+Owner: Trailer chat (2026-10-04). No logo intro: the first frame is the maze being built, because capsule A (the watchful
+Warden) doesn't show the maze, so the trailer has to deliver "your towers are the maze" before any mood shot; pitch.md's
+dispel hook comes second. Rules: every clip at real
 speed (1×, never sped up or slowed: cut instead); every maze shows staggered half-cell walls (half_cells.md); cards say
 one concrete thing each, in the developer's voice (text_pass.md), and read in under 3 s.
 
 | Time | Shot | On screen | Music |
 |---|---|---|---|
-| 0–3 s | Dark forest edge; a Shade's eyes open and it skitters in. A spore puff hits it; it shrieks and cracks into motes. | | base stem, quiet |
-| 3–8 s | Pull back to a staggered maze. A Warden drops onto the route; the route mist snaps into a longer detour ("+N path"). | "Your Wardens are the walls." | |
-| 8–16 s | A drift streams in and walks every bend; the first dispels along the maze. | "Now they take the long way." | + dread1 |
+| 0–5 s | Frame one: a staggered half-cell maze. Wardens snap down one after another; with each, the route mist bends live into a longer detour ("+N path"). | "Your Wardens are the walls." | base stem |
+| 5–9 s | Close on the forest edge: a Shade's eyes open and it skitters in. A spore puff hits it; it shrieks and cracks into motes. | | quiet beat |
+| 9–16 s | Pull back: the drift streams in and walks every bend of the maze; dispels along it. | "Now they take the long way." | + dread1 |
 | 16–28 s | A Soaked crowd, Charged: Thunderclap callouts; Poisoned fog on the next bend. | "Soaked + Charged = Thunderclap." | + dread2 |
 | 28–38 s | A rest: the Dream pick (3 cards, one taken); a Warden grows into its branch; Kinship roots join two kin. | "Three Dreams at every rest. Take one." | rest swell |
 | 38–46 s | A Heartwood's Gift (Sow a Ridge): the ridge rises, the route bends around it live. | "That ridge wasn't there a minute ago." | |
 | 46–60 s | The Hollow Stag charges a straight corridor, then stalls on a bend; cut to the Night Mare's laps; the Hollow Oak rising. | "The Stag charges down straight lines. So don't build any." (over the Stag only) | + heartbeat, boss stem from the Oak |
 | 60–70 s | A late storm board: one chain to ×10, Dawnburst; the Heartwood glowing gold. | | full |
-| 70–75 s | Logo, the tagline *"Grow a living maze. Hold back the nightmares."*, "Wishlist on Steam", platforms. | (name open: Marketing Discussion) | resolve |
+| 70–75 s | Logo, the tagline *"Grow a living maze. Hold back the nightmares."*, "Wishlist on Steam", platforms. | "Heartwood TD" (pitch.md "Title"; trademark check pending) | resolve |
 
 Dropped from the draft: the Omen screen (a second menu in 10 s; save it for a short).
 
-**Capture scenes needed (Main Merger, capture_director.gd):** (1) forest-edge Shade close-up; (2) a mid-run staggered maze
-+ one placement; (3) drift ~20 walking the maze; (4) a storm board on a Soaked crowd, drift ~40; (5) a rest with Dream
+**Capture scenes needed (Main Merger, capture_director.gd):** (1) a staggered maze built Warden by Warden, route mist
+bending each time (the opening shot; Short Form Video's short_01 idea at 16:9); (2) forest-edge Shade close-up; (3) drift ~20 walking the maze; (4) a storm board on a Soaked crowd, drift ~40; (5) a rest with Dream
 pick, grow and a Kinship; (6) an act break with Sow a Ridge; (7) drift 25 Stag on a board with one straight corridor;
 (8) the Night Mare; (9) the Hollow Oak's arrival; (10) a late storm board to Dawnburst, drift ~60, the Heartwood at a
 high Grove stage.
