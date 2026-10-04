@@ -60,7 +60,7 @@ func _run() -> void:
 	var start := _free_origin(map, false, 3)
 	if start != Vector2(-1, -1):
 		placer.set_build_mode(true)
-		placer.begin_stroke(start)
+		placer.begin_stroke_half(start)
 		placer.extend_stroke(start + Vector2(4, 0))  # +4 halves = 3 Wardens, a Warden's width apart
 		var origins: Array = placer.get_stroke_cells()
 		_check(origins == [start, start + Vector2(2, 0), start + Vector2(4, 0)], "the stroke steps a Warden's width (%s)" % [origins])

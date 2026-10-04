@@ -1335,11 +1335,23 @@ var _stroke_axis := -1  # -1 not locked yet, 0 = a row (y fixed), 1 = a column (
 var _stroke_cost := 0
 var _stroke_growth := 0
 
+# Starts a stroke on whole cell `cell` (clicks, touch, tests). With half cells, the hovered cell starts at the
+# ghost's half offset; any other whole cell at its own corner's half origin (cell × 2).
 func begin_stroke(cell: Vector2) -> void:
-	if half_placement() and cell == _hover_cell and _hover_half != NO_CELL:
-		cell = _hover_half  # Half-cell strokes hold half origins
-	if cell == NO_CELL or not (half_placement() or MAP_GRID.is_within_bounds(cell)):
+	if cell == NO_CELL or not MAP_GRID.is_within_bounds(cell):
 		return
+	if half_placement():
+		begin_stroke_half(_hover_half if cell == _hover_cell and _hover_half != NO_CELL else cell * 2.0)
+		return
+	_start_stroke(cell)
+
+# Starts a stroke at half origin `origin` (half cells: the stroke holds half origins).
+func begin_stroke_half(origin: Vector2) -> void:
+	if origin == NO_CELL:
+		return
+	_start_stroke(origin)
+
+func _start_stroke(cell: Vector2) -> void:
 	stroking = true
 	_stroke.assign([cell])
 	_stroke_axis = -1
