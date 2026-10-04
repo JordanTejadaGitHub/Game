@@ -1,6 +1,6 @@
 # Renders a capture scene (res://capture/<name>.json, marketing.md §3) with Godot's Movie Maker.
 #   powershell -File tools\marketing\capture.ps1 short_01
-#   powershell -File tools\marketing\capture.ps1 short_01 -Project D:\Projects\wt_movie\Project_T -Out D:\Projects\Game\marketing\raw
+#   powershell -File tools\marketing\capture.ps1 short_01 -Project D:\Projects\worktrees\wt_movie\Project_T -Out D:\Projects\Game\marketing\raw
 # The frame size is the scene's "size" (default 1080x1920). It goes into an override.cfg in the project for the run
 # (stretch mode "viewport", so it renders whole on a smaller screen) and is removed afterwards. Other sessions
 # running Godot from the same folder see it meanwhile, so render from a separate worktree when others are working.
