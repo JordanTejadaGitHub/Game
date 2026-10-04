@@ -235,9 +235,9 @@ func _update_rooted_cells(dreams: DreamState = null) -> void:
 			continue
 		if enemy.statuses.is_held():
 			if rooted_rule or enemy.has_meta(FinalTwists.LOGJAM_META):
-				rooted_cells[enemy.get_current_cell()] = enemy
+				rooted_cells[enemy.get_route_point()] = enemy
 		elif enemy.waiting:
-			waiting_cells[enemy.get_current_cell()] = enemy
+			waiting_cells[enemy.get_route_point()] = enemy
 
 # The reveal lookups (see tower_cells) go stale every TOWER_LOOKUP_REFRESH s (evolving changes what a
 # Warden applies); coming and going marks them stale at once (signals in _ready).
@@ -307,15 +307,42 @@ func try_omen_trample(enemy: Node2D) -> void:
 # A route from `from` to the Heartwood that avoids every rooted cell (except `from` itself), without
 # changing the map. Empty if the Held nightmares close every way (then the walker waits).
 func route_around(from: Vector2) -> PackedVector2Array:
-	var closed: Array[Vector2] = []
-	for cell: Vector2 in rooted_cells:
-		if cell != from and not map_generator.path_layer.is_cell_blocked(cell):
-			map_generator.path_layer.set_cell_blocked(cell, true)
-			closed.append(cell)
+	var closed: Array[Vector2] = []  # Half cells blocked here (and only those: restored after)
+	for point: Vector2 in rooted_cells:
+		if _bodies_overlap(point, from):
+			continue
+		for h in FindPath.halves_of_cell(point):
+			if not map_generator.path_layer.is_half_blocked(h):
+				map_generator.path_layer.set_half_blocked(h, true)
+				closed.append(h)
 	var route: PackedVector2Array = map_generator.get_path_from(from)
-	for cell in closed:
-		map_generator.path_layer.set_cell_blocked(cell, false)
+	for h in closed:
+		map_generator.path_layer.set_half_blocked(h, false)
 	return route
+
+# The nightmare in `cells` (rooted_cells / waiting_cells, by route point) whose body would overlap one at
+# `point` (half cells: bodies a cell wide overlap within a cell on both axes), other than `me`; or null.
+func blocker_at(point: Vector2, me: Node, cells: Dictionary) -> Node:
+	for at: Vector2 in cells:
+		var who = cells[at]
+		if who != me and is_instance_valid(who) and _bodies_overlap(at, point):
+			return who
+	return null
+
+static func _bodies_overlap(a: Vector2, b: Vector2) -> bool:
+	return absf(a.x - b.x) < 0.99 and absf(a.y - b.y) < 0.99
+
+# The full cells a body at each route point covers (x.5 → both neighbours): for things placed beside
+# the route on whole cells (saplings, lanterns).
+static func _body_cells(points: PackedVector2Array) -> Array[Vector2]:
+	var cells: Array[Vector2] = []
+	for p in points:
+		for x in [floorf(p.x), ceilf(p.x)]:
+			for y in [floorf(p.y), ceilf(p.y)]:
+				var cell := Vector2(x, y)
+				if not cells.has(cell):
+					cells.append(cell)
+	return cells
 
 func _on_enemy_cleansed(enemy: Node2D) -> void:
 	_wither_saplings(enemy)
@@ -407,7 +434,7 @@ func _trample_tower(tower: Tower, cell: Vector2, by: Node2D) -> void:
 	tower_container.remove_child(tower)
 	tower.queue_free()
 	if map_generator.has_method("unblock_halves"):
-		map_generator.unblock_halves(tower.get_halves())  # Half-cell experiment (Tower Code): a Warden at a half offset
+		map_generator.unblock_halves(tower.get_halves())  # Half cells: a Warden may sit at a half-cell offset
 	else:
 		for c in tower.get_cells():
 			map_generator.unblock_cell(c)
@@ -501,13 +528,15 @@ func _on_sapling_requested(oak: Node2D) -> void:
 	var taken := {}
 	var also_from := PackedVector2Array()
 	for walker in walkers:
-		taken[walker.get_current_cell()] = true
-		taken[walker.get_target_cell()] = true
+		# (Half cells: route points to the whole cells the bodies cover)
+		for cell in _body_cells(PackedVector2Array([walker.get_route_point(), walker.get_target_cell()])):
+			taken[cell] = true
 		also_from.append(walker.get_target_cell())
 		if walker.is_unbound():  # It won't re-route: keep its whole route clear
-			for cell in walker.get_cells_ahead(1000):
+			for cell in _body_cells(walker.get_cells_ahead(1000)):
 				taken[cell] = true
-	var ahead: PackedVector2Array = oak.get_cells_ahead(SAPLING_REACH)
+	# SAPLING_REACH cells ahead (in route steps: two a cell on half cells), as whole cells
+	var ahead: Array[Vector2] = _body_cells(oak.get_cells_ahead(SAPLING_REACH * FindPath.HALF))
 	var on_route := {}
 	for cell in ahead:
 		on_route[cell] = true
@@ -611,10 +640,12 @@ func _on_lantern_requested(lamplighter: Node2D) -> void:
 	var taken := {}
 	for lantern in _lanterns:
 		taken[lantern.cell] = true
-	var near: PackedVector2Array = lamplighter.get_cells_ahead(3)
-	near.append_array(lamplighter.get_cells_behind().slice(-2))
+	# Near it: 3 cells ahead and 2 behind (in route steps: two a cell on half cells), as whole cells
+	var near_points: PackedVector2Array = lamplighter.get_cells_ahead(3 * FindPath.HALF)
+	near_points.append_array(lamplighter.get_cells_behind().slice(-2 * FindPath.HALF))
+	var near: Array[Vector2] = _body_cells(near_points)
 	var on_route := {}  # The whole route (a maze doubles back past itself), never lit on
-	for cell in lamplighter.get_cells_behind() + lamplighter.get_cells_ahead(1000):
+	for cell in _body_cells(lamplighter.get_cells_behind() + lamplighter.get_cells_ahead(1000)):
 		on_route[cell] = true
 	var candidates: Array[Vector2] = []
 	for cell in near:

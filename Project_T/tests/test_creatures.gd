@@ -95,13 +95,14 @@ func _run() -> void:
 	# --- Great Toad leaps 3 tiles and makes creatures near the landing Damp ---
 	var toad: Node2D = spawner.spawn_enemy(load("res://resource/enemy/great_toad.tres"))
 	var index_before: int = toad._path_index
-	var landing: Vector2 = toad._path[index_before + 2]
+	var leap_steps: int = 3 * maxi(roundi(1.0 / toad._step_cells(index_before + 1)), 1)  # 3 cells (2 steps a cell on half cells)
+	var landing: Vector2 = toad._path[index_before + leap_steps - 1]
 	var neighbour: Node2D = spawner.spawn_enemy(bug_data)
 	neighbour.set_process(false)
 	neighbour.position = toad.grid.calculate_map_position(landing)
 	toad._leap()
 	await create_timer(0.8, true, false, true).timeout
-	_check(toad._path_index == index_before + 3, "Toad leaps 3 tiles ahead (%d → %d)" % [index_before, toad._path_index])
+	_check(toad._path_index == index_before + leap_steps,"Toad leaps 3 tiles ahead (%d → %d)" % [index_before, toad._path_index])
 	_check(neighbour.statuses.has(EnemyStatuses.DAMP), "creatures by the landing get Damp")
 
 	print("creatures test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))

@@ -1236,7 +1236,8 @@ func _update_rolling() -> void:
 	var next_same := _path_index < _path.size() and _path[_path_index] - _path[_path_index - 1] == step
 	# A sprint can't start on a cracked cell (Earthshaker, Fault Line); one already running carries on
 	var may_start := rolling or not BranchKit.is_cracked(self, get_current_cell())
-	rolling = _straight_steps >= enemy_data.roll_after_tiles and next_same and may_start
+	var straight_cells := _straight_steps * _step_cells(_path_index - 1)  # (Half cells: steps are half a cell)
+	rolling = straight_cells >= enemy_data.roll_after_tiles - 0.01 and next_same and may_start
 	_speed_stale = true
 
 # Hollow Stag: charges along any straight of straight_charge_tiles+ path tiles (the whole straight,
@@ -1257,8 +1258,9 @@ func _update_straight_charge() -> void:
 			tiles += 1
 			i -= 1
 		# A charge can't start on a cracked cell (Earthshaker, Fault Line); one already running carries on
-		straight_charging = tiles >= enemy_data.straight_charge_tiles \
-			and (was or not BranchKit.is_cracked(self, _path[here]))
+		var straight_cells := (tiles - 1) * _step_cells(here + 1) + 1.0  # Points → cells (half-cell routes too)
+		straight_charging = straight_cells >= enemy_data.straight_charge_tiles - 0.01 \
+			and (was or not BranchKit.is_cracked(self, get_current_cell()))
 	if straight_charging != was:
 		_speed_stale = true
 
@@ -1267,7 +1269,8 @@ func _update_straight_charge() -> void:
 func _leap() -> void:
 	if _path_index >= _path.size():
 		return
-	var landing_index := mini(_path_index + enemy_data.leap_tiles - 1, _path.size() - 1)
+	var leap_steps := maxi(roundi(enemy_data.leap_tiles / _step_cells(_path_index)), 1)  # leap_tiles cells ahead
+	var landing_index := mini(_path_index + leap_steps - 1, _path.size() - 1)
 	var landing := grid.calculate_map_position(_path[landing_index])
 	_sink_and_rise(landing, func() -> void:
 		_path_index = landing_index + 1
@@ -1494,7 +1497,7 @@ func _is_blocked_ahead(delta: float) -> bool:
 		waiting = false
 		return false
 	var next := _path[_path_index]
-	var holder = spawner.rooted_cells.get(next)
+	var holder = spawner.blocker_at(next, self, spawner.rooted_cells)  # (Half cells: bodies overlapping, not one cell)
 	if holder != null and holder != self and holder.has_meta(FinalTwists.LOGJAM_META):
 		waiting = true  # Logjam: the ones behind a Snugroot hold queue, they don't path around it
 		return true
@@ -1502,7 +1505,7 @@ func _is_blocked_ahead(delta: float) -> bool:
 		_reroute_wait -= delta
 		if _reroute_wait <= 0.0:
 			_reroute_wait = REROUTE_RETRY
-			var around: PackedVector2Array = spawner.route_around(get_current_cell())
+			var around: PackedVector2Array = spawner.route_around(get_route_point())
 			if not around.is_empty():
 				set_path(around)  # Heads for this cell first (already here), then round the blocker
 				_path_index = 1
@@ -1510,8 +1513,8 @@ func _is_blocked_ahead(delta: float) -> bool:
 				return false
 		waiting = true
 		return true
-	var queued = spawner.waiting_cells.get(next)
-	waiting = queued != null and queued != self
+	var queued = spawner.blocker_at(next, self, spawner.waiting_cells)
+	waiting = queued != null
 	return waiting
 
 # Lantern Roots (Kinship): a Gravecrawler held by a bonded Tangleroot can't burrow again this trip.
@@ -1535,16 +1538,18 @@ func _try_burrow() -> void:
 	if _spawner != null and _spawner.is_lit(here):
 		return  # Rootlight's light holds it above ground
 	var best_route := PackedVector2Array()
-	var best_length := _path.size() - _path_index - enemy_data.burrow_min_saving  # Cells to beat
+	# In cells, so half-cell routes (2 steps a cell) compare fairly with whole-cell ones
+	var best_length := (_path.size() - _path_index) * _step_cells(_path_index) - enemy_data.burrow_min_saving
 	for direction in DIRECTIONS:
 		var beyond := here + direction * 2
 		if not walls.has(here + direction) or not _is_walkable(beyond, map_generator) \
 				or BranchKit.is_stone_cell(self, here + direction):  # Rampart's stone walls can't be dug under
 			continue
 		var route: PackedVector2Array = map_generator.get_path_from(beyond)
-		if not route.is_empty() and route.size() + 1 <= best_length:  # +1: the tunnel under the wall
+		var length := _route_cells(route) + 1.0  # + the tunnel under the wall (a cell)
+		if not route.is_empty() and length <= best_length + 0.01:
 			best_route = route
-			best_length = route.size() + 1
+			best_length = length
 	if best_route.is_empty():
 		return
 	_burrows += 1
@@ -1562,7 +1567,8 @@ func _try_omen_burrow(tiles: int, seconds: float) -> void:
 		return  # Not a bend
 	if _spawner != null and _spawner.is_lit(here):
 		return
-	var landing_index := mini(_path_index + tiles - 1, _path.size() - 2)
+	var steps := maxi(roundi(tiles / _step_cells(_path_index)), 1)  # `tiles` cells ahead (half-cell routes too)
+	var landing_index := mini(_path_index + steps - 1, _path.size() - 2)
 	if landing_index < _path_index:
 		return
 	_end_drag(false)
@@ -1635,7 +1641,7 @@ func _find_dead_end(here: Vector2, map_generator: Node) -> PackedVector2Array:
 	return PackedVector2Array()
 
 func _is_walkable(cell: Vector2, map_generator: Node) -> bool:
-	return grid.is_within_bounds(cell) and not map_generator.path_layer.is_cell_blocked(cell)
+	return grid.is_within_bounds(cell) and map_generator.path_layer.get_finder().is_walkable(cell)  # (A body fits there)
 
 # The map (through the EnemyContainer), or null outside the main scene.
 func _map_generator() -> Node:
@@ -2377,6 +2383,30 @@ func get_target_cell() -> Vector2:
 	if _path_index < _path.size():
 		return _path[_path_index]
 	return grid.calculate_grid_coordinates(position)
+
+# The route point the body stands on now (half cells, documentation/half_cells.md: full-cell units,
+# x.0 or x.5), for rooted / waiting cells and routing around them.
+func get_route_point() -> Vector2:
+	var p: Vector2 = (position - grid.cell_size / 2.0) / grid.cell_size.x
+	return Vector2(roundf(p.x * 2.0) / 2.0, roundf(p.y * 2.0) / 2.0)
+
+# The length in cells of the route step that ends at path index `i` (half cells: 0.5; 1 on a full-cell
+# route; 1 when there's no step to measure). Rules counted in cells (sprints, charges, leaps) use it.
+func _step_cells(i: int) -> float:
+	if i < 1 or i >= _path.size():
+		i = 1
+	if _path.size() < 2:
+		return 1.0
+	var length := _path[i].distance_to(_path[i - 1])
+	return length if length > 0.01 else 1.0
+
+# A route's length in cells (its first real step's size per step: 0.5 on half cells).
+static func _route_cells(route: PackedVector2Array) -> float:
+	for i in range(1, route.size()):
+		var step := route[i].distance_to(route[i - 1])
+		if step > 0.01:
+			return (route.size() - 1) * step
+	return float(maxi(route.size() - 1, 0))
 
 # The cell the enemy is standing in right now.
 func get_current_cell() -> Vector2:
