@@ -187,6 +187,23 @@ func _setup() -> void:
 			if omen.resource_path.get_file().get_basename() == String(scene.omen):
 				omens.active = omen
 				omens.active_block = director.get_block(drift)
+	if scene.has("obstacles"):  # "none": an open island; "edge" or a number: keep only those near the rim (cells)
+		var keep := -1
+		if String(scene.obstacles) == "edge":
+			keep = 2
+		elif scene.obstacles is float or scene.obstacles is int:
+			keep = int(scene.obstacles)
+		var map = _main.get_node("%MapGenerator")
+		var size: Vector2 = Vector2(map.MAP_GRID.size)
+		var cleared := 0
+		for cell in map.obstacles.keys():
+			var rim: float = minf(minf(cell.x, cell.y), minf(size.x - 1 - cell.x, size.y - 1 - cell.y))
+			if map.obstacles.has(cell) and rim > keep:
+				map._remove_obstacle(cell, false)  # No stump: as if it never grew
+				cleared += 1
+		map.path_layer.draw()
+		map.path_changed.emit()
+		print("Capture: cleared %d obstacles, %d left" % [cleared, map.obstacles.size()])
 	if scene.has("families"):  # A real-looking Warden bar: Sprout, Thornwall and these families, not all of them
 		dreams.unlock_everything = false
 		dreams.unlocked = {"sprout": true, "thornwall": true}
@@ -473,7 +490,10 @@ func best_spot(data: TowerData, how: String) -> Vector2:
 				var new_length: int = map.route_length(path)
 				var score := 0.0
 				if how == "maze":
-					score = new_length - length + randf() * 0.01
+					# Ties go to a half-cell offset (an odd origin): on an open island many spots gain the same, and
+					# whole-cell walls hide the stagger that half cells allow ("stagger": 0 turns it off)
+					var staggered := int(origin.x) % 2 != 0 or int(origin.y) % 2 != 0
+					score = new_length - length + randf() * 0.01 + (float(scene.get("stagger", 0.5)) if staggered else 0.0)
 				else:
 					if new_length < length:
 						continue
