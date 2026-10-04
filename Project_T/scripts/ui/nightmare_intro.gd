@@ -31,7 +31,7 @@ static var pause_in_tests := false
 # that turns pause_in_tests on: on a fresh test profile every kind is new, and the cards paused every timing test
 # (Tower Code, 2026-10-01, with the suite's isolated user://).
 static func auto_open_ok() -> bool:
-	return pause_in_tests or not OS.get_cmdline_args().has("--script")
+	return (pause_in_tests or not OS.get_cmdline_args().has("--script")) and not CaptureDirector.quiet  # Captures: never
 
 var drift_director: DriftDirector
 var queue: Array = []  # EnemyData still to show, in order

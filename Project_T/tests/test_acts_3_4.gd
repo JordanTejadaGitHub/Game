@@ -262,13 +262,21 @@ func _run() -> void:
 	# --- Rooted Nightmares (Dream 122): a Held nightmare blocks its cell for other walkers ---
 	_clear_enemies()
 	route = map_generator.get_path_from(map_generator.startPath)
+	var per_cell := maxi(roundi(1.0 / route[1].distance_to(route[0])), 1)  # Route steps per cell (2 on half cells)
+	var w := 9 - per_cell  # The walker a body behind the Held one, the follower a body behind that
+	var fw := 9 - 2 * per_cell
 	var holder := _still("leaf_bug", route[9])
 	holder.apply_status(EnemyStatuses.HELD, 1, 30.0)
-	var walker := _still("leaf_bug", route[8])
-	walker.set_path(route.slice(8))
+	var walker := _still("leaf_bug", route[w])
+	walker.set_path(route.slice(w))
 	walker._path_index = 1
+	var cells_to_go := 0.0
+	for i in range(w + 1, route.size()):
+		cells_to_go += route[i].distance_to(route[i - 1])
+	_check(absf(walker.get_remaining_distance() - cells_to_go * walker.grid.cell_size.x) < 1.0,
+		"remaining distance is the route's real length (half cells: half a cell a step; %.0f px)" % walker.get_remaining_distance())
 	spawner._update_rooted_cells()
-	_check(not walker._is_blocked_ahead(1.0) and walker._path[1] == route[9], "without the card, Held nightmares don't block")
+	_check(not walker._is_blocked_ahead(1.0) and walker._path[1] == route[w + 1], "without the card, Held nightmares don't block")
 	var dreams: DreamState = main.get_node("%DreamState")
 	for card in dreams.pool:
 		if card.id == "rooted_nightmares":
@@ -277,17 +285,17 @@ func _run() -> void:
 	spawner._update_rooted_cells()
 	_check(spawner.rooted_cells.get(route[9]) == holder, "with it, the Held nightmare's cell is rooted")
 	var blocked: bool = walker._is_blocked_ahead(1.0)
-	_check((blocked and walker.waiting) or (not blocked and walker._path[1] != route[9]),
+	_check((blocked and walker.waiting) or (not blocked and walker._path[1] != route[w + 1]),
 		"the walker behind goes round it or waits (%s)" % ("waits" if blocked else "goes round"))
-	_check(walker.position == walker.grid.calculate_map_position(route[8]), "it never steps into the Held one's cell")
-	walker.waiting = true  # Waiting at route[8]: the next walker queues behind, not in the same cell
-	var follower := _still("leaf_bug", route[7])
-	follower.set_path(route.slice(7))
+	_check(walker.position == walker.grid.calculate_map_position(route[w]), "it never steps into the Held one's cell")
+	walker.waiting = true  # Waiting at route[w]: the next walker queues behind, not in the same cell
+	var follower := _still("leaf_bug", route[fw])
+	follower.set_path(route.slice(fw))
 	follower._path_index = 1
 	spawner._update_rooted_cells()
 	_check(follower._is_blocked_ahead(1.0), "a walker behind a waiting one queues")
-	var phantom := _still("dandelion_seed", route[8])
-	phantom.set_path(PackedVector2Array([route[8], route[9]]))
+	var phantom := _still("dandelion_seed", route[w])
+	phantom.set_path(PackedVector2Array([route[w], route[9]]))
 	phantom._path_index = 1
 	_check(not phantom._is_blocked_ahead(1.0), "flyers ignore rooted cells")
 	holder.statuses.remove(EnemyStatuses.HELD)
@@ -363,7 +371,7 @@ func _run() -> void:
 	wall_tower.free()
 	_clear_enemies()
 
-	# --- Damp Rot (Dream 169): Poisoned ticks +20% per stack on Soaked nightmares ---
+	# --- Soaked Rot (Dream 169): Poisoned ticks +20% per stack on Soaked nightmares ---
 	_clear_enemies()
 	var rot_dry := _still("leaf_bug", route[5])
 	var rot_wet := _still("leaf_bug", route[5])
@@ -372,7 +380,7 @@ func _run() -> void:
 		rotting.max_health = 100000
 		rotting.health = 100000
 		rotting.apply_status(EnemyStatuses.SPORED, 1, 10.0, 100.0)
-	dreams.unlocked["sporeling"] = true  # Damp Rot needs both families, or it lies dormant
+	dreams.unlocked["sporeling"] = true  # Soaked Rot needs both families, or it lies dormant
 	dreams.unlocked["dewdrop"] = true
 	_take_card(dreams, "damp_rot")
 	for rotting in [rot_dry, rot_wet]:
@@ -380,7 +388,7 @@ func _run() -> void:
 	var dry_loss: int = 100000 - rot_dry.health
 	var wet_loss: int = 100000 - rot_wet.health
 	_check(dry_loss > 0 and is_equal_approx(float(wet_loss) / dry_loss, 1.0 + DreamState.DAMP_ROT_PER),
-		"Damp Rot: a Soaked nightmare's Poisoned tick is +50%% (%d vs %d)" % [wet_loss, dry_loss])
+		"Soaked Rot: a Soaked nightmare's Poisoned tick is +50%% (%d vs %d)" % [wet_loss, dry_loss])
 	dreams.stacks.erase("damp_rot")  # It trades Soaked's water boost away (e328fb55): the checks below need it gone
 	_clear_enemies()
 
@@ -669,7 +677,7 @@ func _run() -> void:
 		_check(burrower._leaping and not burrower.is_in_group(burrower.GROUP), "Burrowers: at a bend it burrows, untargetable")
 		for f in 45:
 			await process_frame
-		_check(not burrower._leaping and burrower.is_in_group(burrower.GROUP) and burrower._path_index == bend + 3,
+		_check(not burrower._leaping and burrower.is_in_group(burrower.GROUP) and burrower._path_index == bend + 1 + 2 * per_cell,
 			"and surfaces 2 tiles ahead (index %d, bend %d)" % [burrower._path_index, bend])
 		var straight := _still("leaf_bug", route[bend + 1])
 		straight.modifiers = {"burrow_tiles": 2}

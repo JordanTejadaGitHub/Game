@@ -101,7 +101,7 @@ offered cards to the run history.
 
 | Card | Was | Now | Kind |
 |---|---|---|---|
-| ✎ Damp Rot (C) | Poisoned ticks on Soaked +50% | Poisoned ticks on Soaked +50%, **but Soaked no longer boosts water hits on them** | trade: poison vs water |
+| ✎ Soaked Rot (C) | Poisoned ticks on Soaked +50% | Poisoned ticks on Soaked +50%, **but Soaked no longer boosts water hits on them** | trade: poison vs water |
 | ✎ Rain on Glass (C) | light Wardens +35% vs Soaked | light Wardens +35% vs Soaked, **and their hits dry the nightmare (Soaked ends)** | trade: fights Thunderclap |
 | ✎ Sparking Spores (C) | Ignite +50% | Ignite +50%, **only on nightmares with 5+ Poisoned** | condition |
 | ✎ Rolling Thunder (U) | Thunderclap arcs reach 3.5 cells | arcs reach 3.5 cells **but strike at most 3 nightmares** | shape: long and few |
@@ -375,7 +375,7 @@ alternative**: a strong card you can use now if you bend the plan.
 
      | # | Card | Rarity | Effect | Tags | Needs |
      |---|---|---|---|---|---|
-     | 189 | **Damp Rot** | Common, stacks (max 3) | Poisoned ticks on **Soaked** nightmares deal **+20%** | spore, water, reaction | Sporeling + Dewdrop |
+     | 189 | **Soaked Rot** | Common, stacks (max 3) | Poisoned ticks on **Soaked** nightmares deal **+20%** | spore, water, reaction | Sporeling + Dewdrop |
      | 190 | **Sparking Spores** | Common, stacks (max 3) | **Ignite** detonations deal **+20%** | spore, storm, reaction | Sporeling + Firefly Jar |
      | 191 | **Rain on Glass** | Common, stacks (max 3) | light Wardens deal **+12%** to **Soaked** nightmares | water, storm, reaction | Dewdrop + Firefly Jar |
 
@@ -435,7 +435,7 @@ you don't have. The Needs line says *what the card works with*, not which Warden
 - **Combo cards** (Reaction cards, half-dreamed cards, Entwined / Woven cards built on statuses) show
   the **statuses** the combo needs, as status icons + names: *"Needs: Soaked + Charged"*
   (Thunderclap: Rolling Thunder, Rain on Glass, Conductive Soil), *"Poisoned + Charged"* (Ignite:
-  Wildfire Spores, Sparking Spores), *"Poisoned + Soaked"* (Mushrooming: Mushroom Rain, Damp Rot),
+  Wildfire Spores, Sparking Spores), *"Poisoned + Soaked"* (Mushrooming: Mushroom Rain, Soaked Rot),
   *"Soaked + Drowsy"* (Drown: Deep Water). A status you can already apply is lit; a missing one is
   dim. Woven cards show their Crowned Reaction's three statuses.
 - **Warden cards** (cards whose Needs name a Warden: Soft Spores, Shiny Things, Heavy Stones, branch
@@ -476,7 +476,7 @@ the profile like the Codex). The forest dreams of what it has seen.
 
 | Discovery | When it counts | Cards it unlocks |
 |---|---|---|
-| **A Reaction** | the first time that Reaction fires, ever (profile `reactions_seen`) | cards that name that Reaction: Thunderclap → Rolling Thunder, Rain on Glass, Conductive Soil; Ignite → Wildfire Spores, Sparking Spores; Mushrooming → Mushroom Rain, Damp Rot; Drown → Deep Water. **Any 2 Reactions** → Quick Reactions |
+| **A Reaction** | the first time that Reaction fires, ever (profile `reactions_seen`) | cards that name that Reaction: Thunderclap → Rolling Thunder, Rain on Glass, Conductive Soil; Ignite → Wildfire Spores, Sparking Spores; Mushrooming → Mushroom Rain, Soaked Rot; Drown → Deep Water. **Any 2 Reactions** → Quick Reactions |
 | **A Crowned Reaction** | the first time it fires | its Woven card (Tempest → Eye of the Tempest, Still Pool → Deep Stillness, …) |
 | **A ×10 chain** | the first ×10 Reaction chain, ever (profile `best_chain`) | **Dawnbreak** (Legendary; moved out of the Grove 2026-09-30) |
 | **A first Kinship** | the first time any Kinship forms (same as the row below) | also **Grove of Kin** (Legendary; moved out of the Grove 2026-09-30) |
@@ -1126,7 +1126,7 @@ build has a **package** of enhancer cards (Legendaries aren't in packages: they 
 | Build | Families | Package (ids) |
 |---|---|---|
 | **Storm Grid** | Firefly Jar + Dewdrop | Rolling Thunder, Rain on Glass, Soaked Through, Heavy Dew, Brighter Jars, Charged Field (`static_field`), Conductive Soil |
-| **Spore Bomb** | Sporeling (+ Dewdrop for Mistveil) | Soft Spores, Lingering Spores, Spore Cascade, Chain Bloom, Damp Rot (was Sparking Spores, which needs Firefly Jar: a package mistake), Twin Puff |
+| **Spore Bomb** | Sporeling (+ Dewdrop for Mistveil) | Soft Spores, Lingering Spores, Spore Cascade, Chain Bloom, Soaked Rot (was Sparking Spores, which needs Firefly Jar: a package mistake), Twin Puff |
 | **Eldest (tall)** | any | Tender Care, Warm Hands, Kindred Roots, Deeper Rings, Sunlit Rest, Chosen Few |
 | **Wide Sprouts** | any | Seedfall, Sprout Surge, Sprout Chorus, Root Network, Seedling Gift, Many Hands |
 | **Kinship** | one family, both branches | Quick Bonds, Family Ties, Sweet Harmony, Close Kin, Old Friends, Rooted Bond, Extended Family |
@@ -1195,7 +1195,7 @@ can take early) and its **key card must exist**.
 |---|---|---|---|---|---|
 | B1 | Storm Grid | Rain Lily + Stormcap | — | Rolling Thunder, Rain on Glass, Soaked Through, Heavy Dew, Brighter Jars, Charged Field, Conductive Soil | ✓ 7 |
 | B2 | The Long Walk | Thornwalls + long maze | The Long Walk, Crossroads | Cozy Corners, Hedge Maze, Straightaway, Winding Path, Bitter Hedges, Echoing Steps, Heart of the Maze | ✓ 7 |
-| B3 | Spore Bomb | Puffball + Mistveil | — | Soft Spores, Lingering Spores, Spore Cascade, Chain Bloom, Damp Rot, Twin Puff, Mushroom Rain | ✓ 7 |
+| B3 | Spore Bomb | Puffball + Mistveil | — | Soft Spores, Lingering Spores, Spore Cascade, Chain Bloom, Soaked Rot, Twin Puff, Mushroom Rain | ✓ 7 |
 | B4 | Sniper's Rest | Beacon + Moonstone | — | Long Shadows, Patient Aim, Starlit Aim, Called Shot, Sharpened Light, Solitude, Watchful Rest, Hunter's Patience | ✓ 8 |
 | B5 | Full Moon | Moonstone + Hoarfrost + Magpie's Hoard | Full Moon | Glinting Dew, Sharpened Light, Still Target, Shattering Blow, Deep Frost, Shiny Things, Reckless Bloom | ✓ 7 |
 | B6 | Gale | Gust / Zephyr + a status family | — | Carried on the Wind, Lasting Dreams | ❌ 2 → new: **Ill Wind**, **Eddy** |
@@ -1206,7 +1206,7 @@ can take early) and its **key card must exist**.
 | B11 | Thousand Cuts | Jewelwing Court + Firefly / Rain Lily + Beacon | — | Charged Feathers, Thousand Cuts, Sharp Beaks, Needle Point, Called Shot, Bright Marks | ✓ 6 |
 | B12 | Encore | Whispering Hollow + Reactions | Dawnbreak | Encore, Quick Reactions, Seeping, Kin and Kindling + the Reaction cards | ✓ |
 | B13 | Rockfall | Rockslide + Snugroot + Bloomcap | — | Loose Stones, Shattering Blow, Heavy Stones, Crowded Path | ⚠ 4 → new: **Falling Weight** |
-| B14 | Deep Poison | Puffball + Mistveil + Echo Hollow | Nightshade | Seeping, Bitter Sap, Venom Bloom, Soft Spores, Lingering Spores, Damp Rot, Lasting Dreams | ✓ 7 |
+| B14 | Deep Poison | Puffball + Mistveil + Echo Hollow | Nightshade | Seeping, Bitter Sap, Venom Bloom, Soft Spores, Lingering Spores, Soaked Rot, Lasting Dreams | ✓ 7 |
 | B15 | Thunder Chimes | Stormcap + Chime Stone | — | Clear Tones, Charged Field, Brighter Jars, Chorus | ❌ key card *Resonance* missing → new: **Resonance** |
 | B16 | Bramble Maze | Thornwalls / Brambles + Snugroot | Briar Crown | Hedge Maze, Bitter Hedges, Weathered Walls, Living Walls, Thorn Snare, Bramble Oath, Cheap Hedges | ⚠ key card *Thornheart* missing → new: **Thornheart** |
 | B17 | The Grove | Grove Heart + a tight cluster | Rootbound | Grandfather Stump, Kind Canopy, Shared Light, Hedgerow Roots | ⚠ 4 → new: **Warm Hearth** |
@@ -1486,7 +1486,7 @@ Why: a new account's first run can be offered most of the pool (123 base cards i
 
 | Rarity | Cards |
 |---|---|
-| **Common (25)** | *Basics:* Quickened Sap, Deeper Calm, Longer Roots, Deep Roots, Thick Bark · *Starting families:* Soft Spores, Brighter Jars, Heavy Dew, Bright Marks, Live Wire · *Combo (discovery):* Damp Rot, Rain on Glass, Sparking Spores · *Economy:* Morning Dew, Call of the Wild · *Tasters, one per direction:* Tender Care (Tall), Seedfall (Overgrowth), Quick Step (Daring), Glinting Dew (Precision), Bitter Sap (Affliction), Winding Path (Maze), Cleared Ground + Heartwood's Reach (Tending / clearing), Family Ties (Kinship) · Lasting Dreams |
+| **Common (25)** | *Basics:* Quickened Sap, Deeper Calm, Longer Roots, Deep Roots, Thick Bark · *Starting families:* Soft Spores, Brighter Jars, Heavy Dew, Bright Marks, Live Wire · *Combo (discovery):* Soaked Rot, Rain on Glass, Sparking Spores · *Economy:* Morning Dew, Call of the Wild · *Tasters, one per direction:* Tender Care (Tall), Seedfall (Overgrowth), Quick Step (Daring), Glinting Dew (Precision), Bitter Sap (Affliction), Winding Path (Maze), Cleared Ground + Heartwood's Reach (Tending / clearing), Family Ties (Kinship) · Lasting Dreams |
 | **Uncommon (30)** | *Starting families:* Lingering Spores, Soaked Through, Lingering Mark, Twin Puff · *Bridges with them:* Mycelium, Fireflies in the Grass, Spore Kin · *Combo (discovery):* Rolling Thunder, Wildfire Spores, Mushroom Rain, Deep Water · *Maze basics:* Cozy Corners, Straightaway, Hedge Maze, Weathered Walls · *General:* Evergreen, Sudden Insight, Glimmering Hunt, Heavy Air · *Second tasters:* Crowded Path, Last Breath (Affliction), Lone Hunter, Watchful Rest (Precision), Sprout Chorus, Many Hands (Overgrowth), Kindred Roots (Tall), Sweet Harmony, Old Friends (Kinship), Fresh Growth, Head Start (Daring) |
 | **Rare (10)** | *Starting families:* Charged Field, Guiding Light, Called Shot · *Combo:* Conductive Soil, Spore Cascade (Entwined) · *General:* Heart of the Maze, First Light, Root Network, Thinning the Herd, Steadfast |
 | **Legendary (0)** | all Legendaries are Grove tips (or discovery, for Dawnbreak and Grove of Kin) |

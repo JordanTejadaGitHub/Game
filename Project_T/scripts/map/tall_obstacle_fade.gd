@@ -5,7 +5,8 @@ extends Node
 # inland Heartwood's canopy, a tree's overhang fades to EnvironmentTiles.FADE_ALPHA while a Warden, a
 # nightmare, the build ghost or the hovered / selected cell is in the cell above it, and comes back once
 # clear. The fade is a tile alternative (EnvironmentTiles._add_fade_alternatives), stepped one level every
-# STEP_TIME. Made by MapGenerator. Warden cells are cached (refreshed when one is planted or sold);
+# STEP_TIME. Made by MapGenerator. Warden cells (every whole cell any of its half cells touches) are cached
+# (refreshed when one is planted or sold);
 # nightmares, hover and selection are checked CHECK_EVERY seconds, only against the cells below them.
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
@@ -34,7 +35,7 @@ func _refresh_wardens() -> void:
 		return
 	for tower in tower_container.get_children():
 		if tower is Tower and not tower.is_queued_for_deletion():
-			for cell in tower.get_cells():
+			for cell in whole_cells_of(tower):
 				_warden_cells[cell] = true
 	_check = 0.0
 
@@ -72,10 +73,25 @@ func _find_behind() -> void:
 	if seller != null:
 		_mark(seller._hover_cell)
 		if is_instance_valid(seller.selected):
-			_mark(seller.selected.cell)
+			for cell in whole_cells_of(seller.selected):
+				_mark(cell)
 	var placer: TowerPlacer = Tower.placer_ref.get_ref() if Tower.placer_ref != null else null
 	if placer != null and placer.build_mode:
-		_mark(placer._hover_cell)
+		if placer.half_placement() and placer._hover_half != TowerPlacer.NO_CELL:  # The ghost at a half offset
+			for h in FindPath.halves_of(placer._hover_half):
+				_mark((h / 2.0).floor())
+		else:
+			_mark(placer._hover_cell)
+
+# The whole cells a Warden touches: every whole cell under any of its half cells (a half-offset Warden
+# straddles up to 4).
+static func whole_cells_of(tower: Tower) -> Array[Vector2]:
+	var cells: Array[Vector2] = []
+	for h in tower.get_halves():
+		var cell := (h / 2.0).floor()
+		if not cells.has(cell):
+			cells.append(cell)
+	return cells
 
 # `cell` holds something to see: the tree below it (if any) fades.
 func _mark(cell: Vector2) -> void:

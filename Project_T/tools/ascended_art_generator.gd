@@ -81,7 +81,7 @@ func _gsheet(file: String, n: int, w: int, h: int, draw: Callable, warden_art: b
 		draw.call(cv, i)
 		sheet.blit_rect(cv, Rect2i(0, 0, w, h), Vector2i(i * w, 0))
 	if warden_art:
-		sheet = _detail_pass(sheet, Vector2i(w, h))  # the palette pass, like every Warden sheet
+		sheet = _detail_pass(sheet, Vector2i(w, h), night)  # the palette pass, like every Warden sheet (calm; idle sheets without glow)
 	if night:
 		sheet = _warden_night(sheet)  # idle sheets only (Warden Night)
 	if not warden_art:

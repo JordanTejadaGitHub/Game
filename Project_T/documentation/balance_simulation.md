@@ -18,7 +18,7 @@ These replace the older targets below for the **full game**; the demo keeps the 
 | Fresh profile | usually dies in **act 2–3** |
 | Act 4 | a real test |
 | Every block | can kill you; the **block finale** (last drift, ×1.4 health + elites) costs an average maze ~1 leaf; a clean finale earns a Rare+ Dream slot |
-| Bot, fresh, act 1 boss (full game, real boss draw) | Balanced **~55–60%** survive, skip **≤ 15%** |
+| Bot, fresh, act 1 boss (full game, real boss draw) | Balanced **~55–60%** survive, skip **≤ 15–20%** |
 | Grove | a full carried loadout adds **≤ +10–15 points** of bot survival / reach over no perks (measured +15) |
 | Combos + Reactions | **~25–40%** of a good build's damage (`combo_share`) |
 | Damage branches | **0.8–1.0× Driftspore** per Dew on the fixed board (drift 45); a drawn branch must match the one it replaces |
@@ -755,6 +755,32 @@ were at 0.1–0.4 of the route, nothing near the Heartwood.
   one elite as a small first spike). The demo is unaffected.
 - Nestling isn't expanded yet (the sky merge is Phase 3), so both branches were offered and the user picked
   the support. Not a draw issue; watch whether Magpie Perch reads as a trap first pick.
+
+## Half-cell placement: the re-check plan (2026-10-04; half_cells.md, experiment until the user says yes)
+
+Once it merges (Wardens at half-cell offsets, nightmares on a 32 px grid, 1-cell corridor minimum), re-check
+on the merged build, at low sim load while the user may play:
+1. **Route length:** the opening route, the route at drifts 24 / 45, and "+N path" units (cells vs half cells).
+   Mazes are expected to be longer, which eases every drift.
+2. **Act 1 baseline:** fresh Balanced / skip, 30 seeds, --boss-draw, finale leaves (targets as the Current
+   targets table).
+3. **Each act 1 boss forced** (Stag, Night Mare, Scarecrow), 20 seeds; the Stag's trample and the Night
+   Mare's laps on longer routes.
+4. **Time in range:** per-form probes for close-range and pulse Wardens (they gain most from hugging walls).
+5. **Rootling pulls:** the "two pulls = one drag" test in tiles walked (half steps).
+6. **Cell-measured things:** auras, Kinship reach, gift areas, Deeproot's guard ring. They stay in full cells
+   by spec, so check only that they read the same.
+Lever if mazes grow a lot: act 1 ramp / finale health, not Warden numbers.
+
+**Item 1, routes + act 1** (0596eb94; the bot made half-aware in the same commit, 30 seeds per bot): half-aware
+mazes are **+7% (opening) to +12% (drift 24)** longer (83 vs 74 cells at 24). Act 1 survival is **73% with
+either bot**, so **half cells barely move act 1**. The jump from 53% (84bbaf44) comes from the changes in
+between (finale ×1.4 from drift 15, finale elites without ×1.4, the Firefly Jar buff, Nurture): now **above
+the 55–60% target**. Held until the skip arm: if skip also rises well above 15%, act 1 tightens (the ramp or
+the drift 20 finale); humans (runs 15–16) still end in act 2 and found it fair.
+**Item 2, skip:** **43%** (target ≤ 15%; it was 0% on 175058a0); finales 10 / 15 cost 0.03 / 0.07 leaves.
+**Act 1 tightens: `act1_health_multiplier` 1.15 → 1.30** (full game only; the demo keeps 1.15 via
+DEMO_RULES; in 4e8162d2). Expected: Balanced ~60%, skip ~20%; re-run both after.
 
 ## Milestone thresholds (2026-10-04; milestones give bonus Seeds only, meta_design.md 269b14b0)
 

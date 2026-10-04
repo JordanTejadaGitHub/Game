@@ -363,7 +363,7 @@ class GiftPlacer extends Node2D:
 		map = director.get_node_or_null("%MapGenerator")
 		seller = director.get_node_or_null("%TowerSeller")
 		add_child(route_line)
-		_route_now = map.get_path_from(map.startPath).size() if map != null else 0
+		_route_now = map.route_length(map.get_path_from(map.startPath)) if map != null else 0  # Full cells
 
 	func _process(_delta: float) -> void:
 		var cell: Vector2 = map.MAP_GRID.calculate_grid_coordinates(map.get_local_mouse_position())
@@ -405,7 +405,10 @@ class GiftPlacer extends Node2D:
 				elif cells.size() < int(size) and _cell_ok(cell):
 					cells.append(cell)
 			&"path":
-				var route: PackedVector2Array = map.get_path_from(map.startPath)
+				var route := {}  # The full cells the route covers (half-cell points: x.5 covers two)
+				for point in map.get_path_from(map.startPath):
+					for c in DreamState.route_cells(point):
+						route[c] = true
 				if cells.has(cell):
 					cells.erase(cell)
 				elif cells.size() < int(size) and route.has(cell) and cell != map.startPath and cell != map.endPath \
@@ -485,7 +488,7 @@ class GiftPlacer extends Node2D:
 			&"area":
 				hint = hint % [size.x, size.y]
 			&"obstacles":
-				var change := _path_if_cleared(cells).size() - _route_now if not cells.is_empty() else 0
+				var change: int = map.route_length(_path_if_cleared(cells)) - _route_now if not cells.is_empty() else 0
 				return "%d of %d%s" % [cells.size(), int(size),
 					(" · %+d path" % change) if change != 0 else ""] + ("" if not cells.is_empty() else " · " + hint % int(size))
 		var added := _route_len() - _route_now
@@ -521,7 +524,7 @@ class GiftPlacer extends Node2D:
 		var all: Array = placement().cells.duplicate()
 		if all.is_empty() or not blocking:
 			return _route_now
-		return map.get_path_if_blocked_cells(all).size()
+		return map.route_length(map.get_path_if_blocked_cells(all))
 
 	func _refresh_route() -> void:
 		if kind == &"obstacles" and map != null:  # The route once the picked (and hovered) obstacles are gone, live

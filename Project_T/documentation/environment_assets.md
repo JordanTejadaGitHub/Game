@@ -39,8 +39,9 @@ two trees pulse in step.
 
 | File | Size | Layout | Use |
 |---|---|---|---|
-| `grass.png` | 512×64 | 8 variants: 0 plain, 1/4/6 tufts, 2 flowers, 3 clover, 5 pebbles, 7 fallen twig | ground; any variant tiles with any other. Each has its own grain (the sheet goes through the detail pass as one image with no added grain: texture 0, the user's pick), so the ground doesn't repeat. Shares: `GroundGenerator.GRASS_WEIGHTS` |
-| `path.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8) | the creature path; e.g. column 5 = N+S straight, 15 = crossroads |
+| `grass.png` | 512×64 | 8 variants: 0 plain, 1/4/6 tufts, 2 flowers, 3 clover, 5 pebbles, 7 fallen twig | ground; any variant tiles with any other. Flat ground with a few hand-placed tufts and low moss clumps, no speckle (the AI-look audit, 2026-10-04: a random grain read as generated), through the calm detail pass. Shares: `GroundGenerator.GRASS_WEIGHTS` |
+| `path.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8) | the creature path; e.g. column 5 = N+S straight, 15 = crossroads. Flat Path earth, a crisp wobbly Loam bank, a few pebbles and dark specks, the odd tuft over the bank (`paintPath`, shared with `path_rim` and `path_dual`; the AI-look audit replaced the speckle and the dithered edge) |
+| `path_dual.png` | 608×32 | **19 tiles of 32×32 in one row: 0–15 = corner mask** (the half cells at the tile's corners that are path: TL=1, TR=2, BR=4, BL=8), **16–18 = 3 more full tiles** (mask 15) to vary long stretches | the half-cell path (environment_assets.md "Half-cell grid"): a dual-grid autotile drawn on a layer offset 16 px from the half-cell grid. The path edge lies on each tile's midlines, outer and inner corners round off, a half-step jog bends softly; tiles join without seams. The same look as `path.png`, transparent outside the path |
 | `path_rim.png` | 1024×64 | 16 tiles, **column = neighbour mask** like `path.png` | the path on the start and goal cells, which sit in the rim ring: the same path, transparent outside it (no grass border). Draw it over the matching `island_edge` tile so the rim's earth runs up to the path |
 | `border_wall.png` | 128×64 | 2 variants, seamless | the map's stone border |
 | `withered_tree.png` | 384×1152 | **96×128 cells** (bigger since 2026-09-30): the bottom 64 px rows, centred, are the cell (trunk base and shadow); the rest overhangs the cell above (64 px) and the sides (16 px each). Drawn from the 64 px designs with heights × 1.7 and widths × 1.3. 9 dead trees (rows) × 4 frames: 0–2 gnarled Withered Tree, 3 split trunk, 4 broken hollow snag (eyes glint), 5 weeping dead willow (strands sway), 6 dead pine, 7 dead birch, 8 thorn tree | obstacle, "Tend"; all 9 are in `tree.tres` |
@@ -267,6 +268,61 @@ Map pieces the act-break gifts place, one set per act folder like the rest.
 | `heartwood_roots.png` | 1024×64 | 16 columns = the path's neighbour mask, transparent overlay | Heartwood Roots: two gnarled warm root strands per path side meeting in a knot, glints of gold sap; drawn over the path tile, joins across cells |
 | `bog_path.png` | 1024×64 | 16 columns = neighbour mask, replaces `path.png` on its cells | Mire: the path's shape turned to dark peat with still puddles, reeds and a wet dark edge |
 | `ancient_stump.png` | 192×64 | 3 variants of 64×64 | Ancient Stump: a broad cut stump with its year rings, roots and a little moss, flat enough to plant a Warden on |
+
+## Half-cell grid: environment plan (Environment Discussion, 2026-10-04)
+
+For half-cell placement (`half_cells.md`; experiment/half-cells → main once the user confirms). The pathing grid
+becomes 32 px (46×36). Wardens take a 2×2 half-cell footprint at any half offset. Nightmares need a corridor of at
+least 2 half cells. **Rule of thumb: only the player's Wardens (and so the route) live on the half grid. Everything
+the world places stays on whole 64 px cells.**
+
+### 1. Path art: a dual-grid autotile at 32 px
+The prototype's soft ribbon is a stand-in. The final path is drawn with the **dual-grid** method, because a
+neighbour-mask tile per cell can't draw half-step corners and staggered edges:
+- **Data:** every 32 px half cell is *path* or *not*. The path half cells are the route's corridor: the 2×2 half cells
+  a nightmare occupies at each route point. Wear-away (`wear_away`) still erases decorations on every whole cell the
+  corridor touches.
+- **Display:** a second layer offset by 16 px (half a half cell). Each display tile looks at its 4 corner half cells
+  (path or not) and picks 1 of **16 tiles** (marching squares). Corners round off, half steps get a soft jog, and
+  staggered edges join with no seams. The path stays the palest thing on the map.
+- **Art (Environment Assets): `path_dual.png`**, 16 tiles of 32×32 in mask order (TL=1, TR=2, BR=4, BL=8), plus 3 extra
+  variants of the full tile (mask 15) so long stretches don't repeat. The same moonlit earth, worn grass edge and
+  pebbles as `path.png`, for all 4 act folders. `bog_path` (Mire) and `heartwood_roots` (overlay) get dual versions
+  too: `bog_path_dual.png` and `heartwood_roots_dual.png`. `path.png` stays for the rope-bridge join at the start.
+- **Code (Environment Code):** `PathGenerator.draw()` fills a 46×36 path mask and draws the dual layer (one
+  TileMapLayer at 32 px with a 16 px offset, z −1 as now). The route mist, route arrows and previews keep following
+  the route's points. The ghost's "+N path" and route previews draw the same way.
+
+### 2. Map generation: whole cells
+Obstacles, ridges, features (pond, ruin, grove, log), the start, the Heartwood and its glade stay on 64 px cells.
+- **Why:** variety now comes from the player's staggered walls. Half-offset obstacles would leave 1-half-cell gaps
+  ("too narrow") all over the map, which would make the guaranteed-route, bend and trim rules fiddly. The 64 px
+  obstacle art and clearing marks also fit whole cells.
+- **Checks:** generation measures the route in whole cells (as `test_map_density` already does on the branch). Full-cell
+  obstacles always leave corridors at least 2 half cells wide.
+
+### 3. Gift terrain: whole cells
+Sow a Ridge, Fallen Giant, Glade / Deeper Glade, Shift Stones, Mire, Spring, Mushroom Ring, Lightning Tree, Moonwell,
+Bell Stone, Ancient Stump and Heartwood Roots all place on whole cells, with their art unchanged.
+- **The ghost snaps to whole cells,** unlike a Warden's half snap, which also tells the player "this is land, not a
+  Warden".
+- **Overlaps:** a gift cell is blocked if any Warden half cell overlaps it. A Warden at a half offset may stand
+  half-on a lit or rooted cell (Moonwell, Mushroom Ring, Ancient Stump); it counts as on it if its **centre's whole
+  cell** is that cell (the same rule as ranges and auras, `Tower.cell`).
+
+### 4. Tall sprites, fades and the glade
+- **Y-sort:** a Warden sorts by its footprint centre, which can sit on a half row. Trees and the Heartwood sort by their
+  cell centre. That works as it is.
+- **Fades:** `TallObstacleFade`, the Heartwood's canopy fade and tall Wardens count "something behind" when **any of a
+  Warden's 4 half cells** (`Tower.get_halves`), a nightmare's position, the ghost or the hover falls in the overhang
+  cells. A Warden half under a canopy fades it.
+- **Glade:** still the 8 whole cells around the Heartwood, kept free of obstacles and gift terrain. Wardens may stand in
+  it at any half offset, so the player can wall it in more tightly.
+- **Kept:** the 50% fade, touch selection by the cell or half cell tapped, and the Heartwood never takes input.
+
+### Order
+Art can start now (it doesn't depend on the merge). The code starts after half cells reach main. Then re-render
+`map_layouts.png` and a half-cell preview with staggered walls.
 ## Notes
 
 - Colours (2026-09-30, to fit the title and Memory Grove screens): the ground is night-indigo with a moss grain (act 1–2 moss/teal, act 3 violet with rust, act 4 frost), the dead trees are cool night bark with a teal lit side and moss flecks (the Grove trunks), rocks stay lavender stone. Warmth is only the path, the Heartwood and the Wardens.
@@ -276,8 +332,8 @@ Map pieces the act-break gifts place, one set per act folder like the rest.
   from the project folder, then Godot `--import`. It runs the generator (`heartwood_grounds.html`,
   fixed seed 1207, with `export_tail.js`) in headless Chrome, then `process_environment.gd` puts every
   sheet through Theme Code's `DetailPass` and `HeartwoodPalette` (`tools/art/`) into
-  `assets/environment/`: no added grain on grass / island rim / dew pool / blight patch, 0.3 on the
-  other ground tiles, full detail on obstacles, 96×128 tree cells, palette snap only for mist, void,
+  `assets/environment/`: ground tiles in the pass's calm mode with no added grain (the AI-look audit,
+  2026-10-04; it was 0.3 on most ground tiles), full detail on obstacles, 96×128 tree cells, palette snap only for mist, void,
   cloud shadows and the Heartwood (drawn with its own rim and banded glow; redrawn 2026-09-30 to
   match the Memory Grove's Heartwood). It prints the value order per act and fails if it breaks. A run
   on unchanged sources reproduces the committed sheets byte for byte. Only PNGs are written (UIDs stay).

@@ -1,0 +1,24 @@
+{
+	"title": "Your towers ARE the maze.",
+	"seed": 4242,
+	"size": [1080, 1920],
+	"drift": 20,
+	"dew": 340,
+	"hud": "none",
+	"length": 28.0,
+	"music": ["base", "dread1"],
+	"captions": [
+		[0.0, 2.5, "Your towers ARE the maze."],
+		[2.5, 8.0, "Every Warden bends the path the nightmares walk."],
+		[8.0, 12.5, "Twenty-four Wardens in: twice the path."],
+		[12.5, 28.0, "Then I hit start. They walk every bend of it."]
+	],
+	"timeline": [
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.73},
+		{"t": 2.0, "plant_each": 0.3, "count": 18, "plant": "thornwall", "auto": "maze"},
+		{"t": 7.6, "plant_each": 0.6, "count": 6, "plant": "sporeling", "auto": "cover"},
+		{"t": 12.0, "start": true},
+		{"t": 14.0, "camera": "push", "at": "start", "zoom": 2.0, "duration": 2.5},
+		{"t": 16.5, "camera": "follow", "target": "furthest", "zoom": 2.0}
+	]
+}

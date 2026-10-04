@@ -197,6 +197,113 @@ Full brief per nightmare in `enemy_design.md` ("Art direction" and the "Looks li
   use the old names, e.g. `leaf_bug` = Shade) are drawn dark. The shader must **not recolour or
   darken** them (that flattens their shading to black); it only adds partial translucency, a subtle
   shimmer, and the dispel effect.
+- **They must read on the pale path at small sizes** (2026-10-04, from Marketing's capture at
+  1920×1080 with the whole island in view, drift 20). Act 1 Shades read as pale grey lumps on the
+  beige path, close to rubble and the drifting cloud shadows, and they vanish at Steam's 600 px
+  thumbnail. The cause is **value, not colour**: translucency lets the pale path show through the
+  dark body. The rule:
+  - **The body's dark core stays near-opaque over the path** (translucency only at the ragged lower
+    edge and the smoke). A nightmare is the darkest thing on the path.
+  - **The eyes always read:** a pale pinprick with a hard cold glow step, kept visible at whole-map
+    zoom.
+  - **Nothing else on the path is a dark blob of the same size:** cloud shadows and rubble stay
+    clearly lighter than a nightmare, or stay off the path.
+  - **The test:** a whole-island capture scaled to 600 px wide. Every nightmare on the path must
+    still be visible as a dark shape with eyes.
+
+## Style references (updated 2026-10-04)
+
+The hand-tuned references live in `assets/style_reference/` (notes in `style_reference.md`, made by
+Theme Asset). Update requested by the user on 2026-10-04: players dislike games that look AI-made, so
+the references show the game **as it is now** and steer every generator away from the usual tells.
+
+### What the reference sheets must show (current state)
+
+- **Warden Night:** Wardens one shade down their ramp; attacks and glows keep full warm light.
+- **The silhouette rule:** a branch and its final side by side at 32 px in grey, including one of the
+  10 tall 64×96 finals and its rise fading over a nightmare.
+- **The new branch forms** (Phase 1 + 2): one pair per family as an example of "same family, new
+  shape".
+- **Emblems:** the family, branch and gift emblems (32 px art, shown at whole-number scales).
+- **The route mist:** a pale Mist core inside Slate, a broken cold edge, soft strands. It reads on the
+  pale path and on dark ground.
+- **The inland Heartwood** with its four Grove stages (young → great old tree) in the same 128 px
+  frame.
+- **The act palettes:** night-indigo ground with moss (acts 1–2), violet with rust (act 3), frost
+  (act 4); warmth only on the path, the Heartwood and the Wardens.
+
+### Avoiding the "AI look"
+
+| Do | Don't |
+|---|---|
+| **Readability first:** calm large flat areas and let shapes read; put texture where a material changes. | Grain or speckle spread evenly over everything. Calm the detail-pass grain on big flat areas (plinth tops, bodies, ground). |
+| **Glow only as a signal:** an attack, a dispel, the Heartwood, a nightmare's eyes, something you can use now. | A soft glow on everything, or a halo round every sprite "for mood". |
+| **Each form its own shape and pose:** stance, crown, prop, held differently (the silhouette rule). | One body template with a recolour and a hat; mirrored, perfectly symmetric poses. |
+| **A few hand-made quirks on hero sprites:** a crooked smile, one ear bent, an asymmetric prop, a patch, a chipped plinth corner. | Flawless, evenly finished sprites where nothing is out of place. |
+| **One light, one outline rule everywhere:** light from the upper left, a Night/Void outline, the rim at most half the edge, the same in every generator. | Light from different sides on different sheets; outlines that change weight or colour between chats. |
+| **Colour from the palette with a purpose:** warm = dream, cold = nightmare, every material in its own ramp. | A generic purple-to-gold "magic" sheen, rainbow gradients, or violet on Wardens. |
+| **Pixel-art discipline:** whole-number scales, no blur, no sub-pixel rotation, hard alpha steps. | Smooth gradients, mixed pixel sizes, anti-aliased edges on pixel sprites. |
+
+### Hand-polish list
+
+The most-seen sprites, where a human touch-up (commissioned or edited by the user) matters most.
+Keep the size, palette and silhouette; add the quirks and fix anything that reads as generated.
+
+1. **The starting Wardens:** Sporeling (the mascot), Firefly Jar and Dewdrop with their branches, plus
+   Sprout and Thornwall (on the map every run).
+2. **The act 1 boss**, the Hollow Stag, and the Shade, the most common nightmare.
+3. **The Heartwood**, all four Grove stages and the damage rows.
+4. **The title Warden** (the relit stone Warden, `c5468b4d`).
+
+### AI-look audit (2026-10-04)
+
+Checked against the do / don't table above. Every asset area was measured: share of noisy isolated
+pixels ("grain"), partial-alpha levels, light direction, mirror symmetry, and the palette. The
+most-seen sprites were then checked by eye. **What passed everywhere:** the palette (0 files off),
+light from the upper left (lit the wrong way only in a few effects and Grove icons), no symmetric
+"generated" poses on sprites, and no blur or smoothing inside sprites. **The main tell is uniform
+grain and checker dither from the detail pass**, plus one design-level item.
+
+Ranked by how often players see it:
+
+| # | Where | What fails | Owner |
+|---|---|---|---|
+| 1 | **Ground tiles** (grass, path), every act | Grain soup: random speckle over the whole grass tile; the path is speckled too, and its edge is a soft dithered blob instead of a crisp, wobbly bank. | Environment Assets |
+| 2 | **Wardens, idle and attack** | Checker dither across large flat body areas and plinth tops (screen-door look); stray colour patches (e.g. a blue patch on the Sporeling's right side); attack sheets are the grainiest of all (grain 0.19). Beacon and Thunderhead have big glow halos all the time; glow should mark the attack. | Tower Assets |
+| 3 | **Design-level: the shared golem body** | The base Wardens and early branches are the same seated body, recoloured, with a hat. That's the strongest "template" tell. **Decided: keep the classic seated golem for every family** (user, 2026-10-04). Per-family poses were tried twice: warped poses (84f1c385) were too subtle, and real stances (27c560f1: hooded Sporeling, jar-overhead Firefly Jar, leaning Dewdrop) read clearly. The user then chose to **revert to the old design**. Variety stays where it is: body materials, props, silhouette-rule branches and epic finals. Don't reopen poses unless the user asks. The calm-mode grain fixes stay. | Tower Assets (revert the poses only) |
+| 4 | **The in-run Heartwood** | Checker dither over the whole canopy and a dithered ground skirt. | Environment Assets |
+| 5 | **The title Warden** (seen on every launch) | Screen-door dither on the dark body, camouflage-like moss blotches, scattered white dots, a dithered fuzzy base. | Title Screen |
+| 6 | **The Memory Grove canopy** | Halftone dither over large areas; the same leaf clump stamped over and over; evenly spaced, identical hanging roots and vines. | Meta Game Asset |
+| 7 | **Nightmares** (mostly good) | The Weeper's violet motes are too dense and read as blotches. The Lurker and Whisper Swarm are noisy by design (a swarm); keep that. | Enemy Assets |
+| 8 | **Effects** (mostly good) | A few have many soft alpha levels (surge, carried storm, route mist end), closer to a blur than to hard steps. A few are lit from the lower right. Burst symmetry is fine for effects. | Tower Assets, Environment Assets (route mist) |
+| — | **UI and emblems, obstacles, the Hollow Stag** | Pass: clean shapes, consistent light. | — |
+
+**Root cause and first fix:** the detail pass (`tools/art/detail_pass.gd`, Theme Code) adds grain
+and checker seams evenly. It gets a calmer mode first: grain only where materials change, no
+checker seams across large flat areas, and fewer, harder alpha steps. Then each owner regenerates
+and hand-fixes its items above, re-checks with the audit, and republishes its gallery.
+
+### Brief for a human artist: Steam capsule and logo
+
+Showcase art, exempt from the palette, but it must feel like the game.
+
+**For now it's made in-house** (user, 2026-10-04: "Leave it AI for now, then I'll decide later").
+Theme Asset makes the final capsule A in all 7 sizes and the logo to this brief and the "AI look"
+rules. The brief stays here in case the user hires an artist later.
+
+- **Concept: draft A, "the watchful Warden"** (the user's pick, 2026-10-04, over B and the A+B
+  hybrid). The relit stone Warden from the title art, large, menacing rather than cute, lit warm
+  against the cold dark, with the logo on the dark side. Nightmares (dark shapes, pinprick eyes) can
+  press in from the cold edges. The maze hook is left to the screenshots and trailer.
+- **One idea, big shapes:** it must read at 231×87 (small capsule). Warm centre, cold edges.
+- **The logo:** hand-lettered or hand-drawn, not a stock fantasy font. It sits in the dark part of
+  the image, and also works alone on a transparent background (library logo, at most 1280×720).
+- **Deliverables:** every Steam size (header, small, main, vertical, library hero without text,
+  library logo), plus a layered source file.
+- **Avoid** all the "AI look" items above, and in particular a purple-gold glow over everything, a
+  symmetrical hero pose, and over-rendered texture.
+- **References:** Theme Asset's drafts on its gallery (https://claude.ai/artifact/1Mq111zHWpf3EbgsWwF6d8,
+  "Steam capsule drafts"), `pitch.md` "Capsule art concept", and the title screen art.
 
 ## Still to do
 

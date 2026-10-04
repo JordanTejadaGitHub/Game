@@ -1,8 +1,9 @@
-# Half-cell placement (EXPERIMENT, branch `experiment/half-cells`)
+# Half-cell placement (on main since b8305630, full game + demo)
 
 Owner: design hub (story chat). User, 2026-10-04: *"update the grid placing to be half placing cells. Make more unique
-mazes"* → *"Wardens can be placed at half cell offsets."* Built on an experiment branch first; nothing reaches main until
-the user has played it and says yes.
+mazes"* → *"Wardens can be placed at half cell offsets."* Built on an experiment branch first. **Approved, 2026-10-04:**
+*"I wanted the placed cells in the maze and update all the assets and marketing with it."* Merged into main
+2026-10-04 as b8305630 (user, in Main Merger: "Merge, full game + demo"). The work list below is the to-do list.
 
 ## The rule
 - The **pathing grid becomes 32 px** (half cells): the 23×18 map is 46×36 half cells.
@@ -24,6 +25,13 @@ the user has played it and says yes.
 - Is placement clear (ghost snapping, the "+N path" tag) with the mouse? (Touch is checked later.)
 - Performance at late drifts (4× the path nodes).
 
-## If it's a yes, later work
-Path tile art for the half grid, every cell-based number checked, touch placement (bigger snap or a hold-to-nudge),
-gifts and map features on the half grid, Kinship reach, the Codex's wording.
+## Going to main: the work and who owns it
+| Work | Owner |
+|---|---|
+| Merge into main, drop the experiment plumbing, full suite (fix test_family_finals "two pulls = one drag" first) | Main Merger, Environment Code |
+| Final path art for the half grid (replaces the soft fill), route mist aligned to it, in every act's sheets | Environment Discussion → Environment Assets / Code |
+| Map features and gifts that place terrain (Sow a Ridge, Fallen Giant, Spring…): full or half cells | Environment Discussion |
+| Every cell-based number re-checked: route lengths, "+N path", auras, Kinship reach, gift sizes, boss targets | Balancing Discussion / Balancing Code |
+| Touch placement: a bigger snap or hold-to-nudge (mobile port) | Main Merger (later) |
+| Codex, hints and card text: "cells" still means full cells; explain staggered walls in one hint | design hub |
+| Capsule map and marketing captures show staggered mazes | Theme Asset, Main Merger (marketing.md) |

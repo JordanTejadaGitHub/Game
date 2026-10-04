@@ -181,7 +181,7 @@ func get_panel_line(tower: Tower) -> String:
 				return "Drowsy applied: %d" % roundi(s.drowsy)
 			return ""
 		&"control":
-			return "Held %d s · pulled back %d cells this run" % [roundi(s.held_seconds), roundi(s.tiles_pulled)]
+			return "Rooted %d s · pulled back %d cells this run" % [roundi(s.held_seconds), roundi(s.tiles_pulled)]
 	return ""
 
 # Every Warden with support credit in `period`: [{tower, name, kind, value, text}], best first.
@@ -209,7 +209,7 @@ func get_support_rows(period: String = "block") -> Array:
 				text = "%s applied %d Drowsy" % [row.name, roundi(s.drowsy)]
 			&"control":
 				value = s.held_seconds + s.tiles_pulled
-				text = "%s held %d s, pulled back %d cells" % [row.name, roundi(s.held_seconds), roundi(s.tiles_pulled)]
+				text = "%s: Rooted %d s, pulled back %d cells" % [row.name, roundi(s.held_seconds), roundi(s.tiles_pulled)]
 		if value > 0.0:
 			rows.append({"tower": tower, "name": row.name, "kind": kind, "value": value, "text": text})
 	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.value > b.value)
@@ -253,10 +253,19 @@ func get_path_tiles(wall: Tower) -> int:
 	if not cached.is_empty() and cached[0] == dreams.board_version and cached[2] == wall.cell:
 		return cached[1]
 	var layer = map.path_layer
-	var with_it: int = layer.find_path_from(map.startPath).size()
-	layer.set_cell_blocked(wall.cell, false)
-	var without: int = layer.find_path_from(map.startPath).size()
-	layer.set_cell_blocked(wall.cell, true)
+	var halved: bool = layer.has_method("set_half_blocked")  # Half cells: the wall's halves, route in cells
+	var with_it: int = map.route_length(layer.find_path_from(map.startPath)) if halved else layer.find_path_from(map.startPath).size()
+	if halved:
+		for h in wall.get_halves():
+			layer.set_half_blocked(h, false)
+	else:
+		layer.set_cell_blocked(wall.cell, false)
+	var without: int = map.route_length(layer.find_path_from(map.startPath)) if halved else layer.find_path_from(map.startPath).size()
+	if halved:
+		for h in wall.get_halves():
+			layer.set_half_blocked(h, true)
+	else:
+		layer.set_cell_blocked(wall.cell, true)
 	var tiles := maxi(with_it - without, 0) if without > 0 else 0
 	_path_tiles[key] = [dreams.board_version, tiles, wall.cell]
 	return tiles

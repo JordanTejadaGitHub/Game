@@ -380,8 +380,9 @@ func save_heat_map(path: String) -> bool:
 		image.fill_rect(Rect2i(cell * MAP_SCALE + Vector2i(inset, inset), Vector2i.ONE * (MAP_SCALE - 2 * inset)), colour)
 	for cell in map.obstacles:
 		fill.call(Vector2i(cell), Palette.SHADE, 1)
-	for cell in map.get_path_from(map.startPath):
-		fill.call(Vector2i(cell), Palette.DUSK, 0)
+	for point in map.get_path_from(map.startPath):  # Half-step points: x.5 covers two cells
+		for cell in DreamState.route_cells(point):
+			fill.call(Vector2i(cell), Palette.DUSK, 0)
 	var most := 1.0
 	for tower in container.get_children():
 		if tower is Tower:

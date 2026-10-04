@@ -44,7 +44,7 @@ const STATS := {
 }
 const RESOURCES := {
 	&"dew": ["Dew", "Spent on Wardens, growth, Nurture and clearing. Earned by dispelling nightmares and at rests."],
-	&"dreamlight": ["Dreamlight", "Unlocks branches, final forms and Ascended forms on the Remember screen (at rests)."],
+	&"dreamlight": ["Dreamlight", "Unlocks branches, final forms and Ascended forms on the Remember screen (open it any time; a drift pauses)."],
 	&"leaves": ["Leaves", "The Heartwood's life: a nightmare that reaches it takes leaves. Lose them all and the dream goes dark."],
 	&"seeds": ["Seeds", "Earned every run, win or lose; spent in the Memory Grove."],
 	&"path": ["Path length", "How many cells the nightmares walk. Longer is better."],

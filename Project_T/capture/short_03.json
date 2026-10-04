@@ -1,0 +1,26 @@
+{
+	"title": "The first boss.",
+	"note": "Tuning: the Stag walks 0.7 cells/s and charges x2.5 after 4 straight tiles, so the board is short: the open route lets it charge first, then a few Thornwalls near the Heartwood bend it. Spawned directly (no drift wait).",
+	"seed": 4242,
+	"size": [1080, 1920],
+	"drift": 25,
+	"dew": 1400,
+	"hud": "none",
+	"length": 32.0,
+	"music": ["base", "dread1", "boss_stag"],
+	"captions": [
+		[0.0, 2.5, "The first boss: the Hollow Stag."],
+		[2.5, 11.0, "On a straight line, it charges."],
+		[11.0, 23.0, "So bend the maze. Every corner breaks the charge."],
+		[23.0, 32.0, "2% left at the door. Too close."]
+	],
+	"timeline": [
+		{"t": 0.0, "plant_each": 0.05, "count": 6, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 5, "plant": "sporeling", "auto": "cover", "rank": 2, "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 2, "plant": "dewdrop", "auto": "cover", "rank": 2, "tag": false},
+		{"t": 0.2, "dossier": true, "drift": 25},
+		{"t": 2.3, "dossier": false},
+		{"t": 2.5, "spawn": "old_stag"},
+		{"t": 2.5, "camera": "follow", "target": "boss", "zoom": 1.0}
+	]
+}

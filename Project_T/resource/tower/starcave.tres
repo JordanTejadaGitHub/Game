@@ -9,7 +9,7 @@
 script = ExtResource("1_tdata")
 sprite_offset = Vector2(0, -16)
 display_name = "Starcave"
-description = "A bigger lit area; Held lasts three times as long on lit tiles, and hidden nightmares show in the light."
+description = "A bigger lit area; {held} lasts three times as long on lit tiles, and hidden nightmares show in the light."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

@@ -2427,7 +2427,7 @@ func _kin_on_landing(_target: Node2D, where: Vector2) -> void:
 		return
 	var partner := _kin_partner()
 	var at := MAP_GRID.calculate_grid_coordinates(where)
-	if partner == null or not _route().has(at):
+	if partner == null or not route_cells(_route()).has(at):  # Whole cells (half-step routes)
 		return
 	_nursery_ring = FairyRing.new(self, at, partner.attack_data, nursery)
 	add_child(_nursery_ring)
@@ -2648,7 +2648,24 @@ func _route() -> PackedVector2Array:
 	if _dream_state == null or _dream_state.map_generator == null:
 		return PackedVector2Array()
 	var map = _dream_state.map_generator
-	return map.get_path_from(map.startPath)
+	return map.get_path_from(map.startPath)  # Raw route points (half cells: 0.5 steps; route_cells() for whole cells)
+
+# The whole cells a route passes over, in order (half cells: route points are body centres in 0.5 steps;
+# a body on x.5 covers both cells beside it). Integer routes come back unchanged. Path tiles, rings, cracks, spins
+# and Kinship bows read these.
+static func route_cells(route: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var seen := {}
+	for p in route:
+		var xs: Array = [p.x] if is_equal_approx(p.x, roundf(p.x)) else [floorf(p.x), ceilf(p.x)]
+		var ys: Array = [p.y] if is_equal_approx(p.y, roundf(p.y)) else [floorf(p.y), ceilf(p.y)]
+		for y in ys:
+			for x in xs:
+				var c := Vector2(roundf(x), roundf(y))
+				if not seen.has(c):
+					seen[c] = true
+					out.append(c)
+	return out
 
 func _is_cell_in_range(at: Vector2) -> bool:
 	var distance := global_position.distance_to(MAP_GRID.calculate_map_position(at))
@@ -3045,6 +3062,44 @@ func _play_ripen() -> void:
 # The cells this Warden stands on (the Sapling covers 2×2 from `cell`).
 func get_cells() -> Array[Vector2]:
 	return footprint_cells(cell, get_footprint())
+
+# Half-cell placement (documentation/half_cells.md): the top-left half cell of a 1-cell Warden's 2×2 half-cell
+# footprint, or (-1, -1) for a Warden on whole cells. `cell` stays the full cell under its centre (ranges, auras,
+# Kinships keep full cells).
+var half_cell := Vector2(-1, -1)
+
+# The half cells this Warden blocks: its 2×2 at half_cell, else the halves of its whole cells.
+func get_halves() -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	if half_cell.x >= 0 and get_footprint() <= 1:  # Grown into a 2×2 form: it's on whole cells now
+		for dy in 2:
+			for dx in 2:
+				out.append(half_cell + Vector2(dx, dy))
+		return out
+	for c in get_cells():
+		for dy in 2:
+			for dx in 2:
+				out.append(c * 2.0 + Vector2(dx, dy))
+	return out
+
+# The full cells any of this Warden's halves touch (settling ground, Omen locks: they're on full cells).
+func get_touched_cells() -> Array[Vector2]:
+	return Tower.cells_of_halves(get_halves())
+
+static func cells_of_halves(halves: Array) -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	for h in halves:
+		var c: Vector2 = (h / 2.0).floor()
+		if not out.has(c):
+			out.append(c)
+	return out
+
+# The centre (pixels) of a 2×2 half-cell footprint whose top-left half is `origin`, and the full cell under it.
+static func half_centre(origin: Vector2) -> Vector2:
+	return (origin + Vector2.ONE) * MAP_GRID.cell_size / 2.0
+
+static func half_home_cell(origin: Vector2) -> Vector2:
+	return ((origin + Vector2.ONE) / 2.0).floor()
 
 # Cells per side this Warden covers: its data's (Ascended forms and the Sapling: 2), or 1 for an
 # Ascended form from a save made before they grew to 2×2.
@@ -4185,16 +4240,39 @@ func _set_up_tall_fade() -> void:
 
 # Whether something the player should see is in the cell above (behind the overhang).
 func tall_behind() -> bool:
-	var above := cell + Vector2.UP
-	var centre := MAP_GRID.calculate_map_position(above)
-	for enemy in nightmares_near(get_tree(), centre, MAP_GRID.cell_size.x):
-		if is_instance_valid(enemy) and not enemy.is_cleansed and MAP_GRID.calculate_grid_coordinates(enemy.global_position) == above:
+	# The overhang: the strip above its footprint the tall sprite covers (half cells: a Warden may sit between cells,
+	# so it's a pixel area, not "the cell above").
+	var area := _overhang_rect()
+	for enemy in nightmares_near(get_tree(), area.get_center(), MAP_GRID.cell_size.x):
+		if is_instance_valid(enemy) and not enemy.is_cleansed and area.has_point(enemy.global_position):
+			return true
+	# Another Warden with any of its half cells in the overhang (environment_assets.md "Half-cell grid" §4).
+	for other in _towers_near():
+		if other != self and is_instance_valid(other) and _halves_in(other.get_halves(), area):
 			return true
 	var seller: TowerSeller = seller_ref.get_ref() if seller_ref != null else null
-	if seller != null and (seller._hover_cell == above or (is_instance_valid(seller.selected) and seller.selected.cell == above)):
-		return true
+	if seller != null:
+		for picked in [seller._hover_tower, seller.selected]:
+			if is_instance_valid(picked) and picked != self and _halves_in(picked.get_halves(), area):
+				return true
 	var placer: TowerPlacer = placer_ref.get_ref() if placer_ref != null else null
-	return placer != null and placer.build_mode and placer._hover_cell == above
+	return placer != null and placer.build_mode and placer._hover_cell != TowerPlacer.NO_CELL \
+		and _halves_in(placer._ghost_halves(), area)
+
+# The overhang strip above this Warden's footprint (world pixels): its width, from its footprint's top up by the
+# sprite's extra height (at least one half cell).
+func _overhang_rect() -> Rect2:
+	var cell_size := MAP_GRID.cell_size
+	var extra := maxf(tower_data.get_frame_rect(0).size.y - cell_size.y, cell_size.y / 2.0) if tower_data.texture else cell_size.y
+	var top := global_position.y - cell_size.y / 2.0
+	return Rect2(global_position.x - cell_size.x / 2.0, top - extra, cell_size.x, extra)
+
+# Whether any of `halves` (32 px half cells) has its centre inside `area`.
+static func _halves_in(halves: Array, area: Rect2) -> bool:
+	for h in halves:
+		if area.has_point(h * MAP_GRID.cell_size / 2.0 + MAP_GRID.cell_size / 4.0):
+			return true
+	return false
 
 func _update_tall_fade(delta: float) -> void:
 	_tall_check_left -= delta

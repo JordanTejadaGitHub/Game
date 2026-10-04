@@ -60,7 +60,7 @@ func _init() -> void:
 	_check(path.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.PATH_RIM
 		and ground.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.ISLAND_EDGE,
 		"the start draws rim-edge path over the rim, no grass")
-	_check(path.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.PATH
+	_check(map.path_layer.current_path.has(map.endPath)  # Half cells: the route is a soft fill, not tiles
 		and ground.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.GRASS, "the Heartwood stands inland, on grass")
 	var out_bit: int = {Vector2i.UP: 1, Vector2i.RIGHT: 2, Vector2i.DOWN: 4, Vector2i.LEFT: 8}[out]
 	_check(start_mask & out_bit, "the start's path tile runs off its edge (mask %d)" % start_mask)
@@ -161,6 +161,8 @@ func _init() -> void:
 
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--preview="):
+			if OS.get_cmdline_user_args().has("--stagger"):  # Half-offset Warden walls along the route
+				_stagger(main)
 			_render(main, [ground, path, env], arg.trim_prefix("--preview="))
 		if arg.begins_with("--layouts="):
 			await _layout_sheet(arg.trim_prefix("--layouts="))
@@ -220,6 +222,8 @@ func _render(main: Node, layers: Array, file: String) -> void:
 			var coords := layer.get_cell_atlas_coords(cell)
 			var origin := source.get_tile_data(coords, 0).texture_origin
 			image.blend_rect(sheets[source], Rect2i(coords * region, region), at + (tile - region) / 2 - origin)
+		if layer == map.path_layer:
+			_blend_half_path(image, map, offset)
 	_blend_pond_corners(image, map, offset)
 	var heartwood: Heartwood = map.heartwood
 	var tree: Image = heartwood.texture.get_image()
@@ -353,6 +357,8 @@ func _flat_map(main: Node) -> Image:
 			var coords := layer.get_cell_atlas_coords(cell)
 			var origin := source.get_tile_data(coords, 0).texture_origin
 			image.blend_rect(sheets[source], Rect2i(coords * region, region), cell * tile + (tile - region) / 2 - origin)
+		if layer == map.path_layer:
+			_blend_half_path(image, map, Vector2i.ZERO)
 	_blend_pond_corners(image, map, Vector2i.ZERO)
 	var heartwood: Heartwood = map.heartwood
 	var tree: Image = heartwood.texture.get_image()
@@ -363,8 +369,8 @@ func _flat_map(main: Node) -> Image:
 
 func _draw_route(image: Image, route: PackedVector2Array, cell: int) -> void:
 	for i in route.size():
-		var a := Vector2i(route[i]) * cell + Vector2i.ONE * (cell / 2)
-		var b := Vector2i(route[mini(i + 1, route.size() - 1)]) * cell + Vector2i.ONE * (cell / 2)
+		var a := Vector2i((route[i] * cell + Vector2.ONE * (cell / 2.0)).round())  # Half cells: points step by x.5
+		var b := Vector2i((route[mini(i + 1, route.size() - 1)] * cell + Vector2.ONE * (cell / 2.0)).round())
 		var r := Rect2i(Vector2i(mini(a.x, b.x), mini(a.y, b.y)) - Vector2i.ONE, (a - b).abs() + Vector2i(3, 3))
 		image.fill_rect(r.intersection(Rect2i(Vector2i.ZERO, image.get_size())), ROUTE_COLOR)
 	if not route.is_empty():  # Start: a square; the Heartwood: a ring round its cell
@@ -394,3 +400,53 @@ func _blend_pond_corners(image: Image, map: Node, offset: Vector2i) -> void:
 			art.convert(Image.FORMAT_RGBA8)
 			var region := Rect2i(child.region_rect)
 			image.blend_rect(art, region, Vector2i(child.position) - region.size / 2 + offset)
+
+# Half cells (documentation/half_cells.md): the route is the dual-grid layer (32 px, offset 16 px), drawn here the same way.
+func _blend_half_path(image: Image, map: Node, offset: Vector2i) -> void:
+	var dual: TileMapLayer = map.path_layer.dual_layer
+	if dual == null:
+		return
+	var sheet: Image = (dual.tile_set.get_source(0) as TileSetAtlasSource).texture.get_image()
+	sheet.convert(Image.FORMAT_RGBA8)
+	var tile := Vector2i(dual.tile_set.tile_size)
+	for at in dual.get_used_cells():
+		image.blend_rect(sheet, Rect2i(dual.get_cell_atlas_coords(at) * tile, tile), at * tile + Vector2i(dual.position) + offset)
+	# The start's rim tile (path.png, the bridge join) draws over the dual path, as in the game.
+	var start := Vector2i(map.startPath)
+	var layer: TileMapLayer = map.path_layer
+	var source := layer.tile_set.get_source(layer.get_cell_source_id(start)) as TileSetAtlasSource
+	if source != null:
+		var art: Image = source.texture.get_image()
+		art.convert(Image.FORMAT_RGBA8)
+		var size := source.texture_region_size
+		image.blend_rect(art, Rect2i(layer.get_cell_atlas_coords(start) * size, size), start * size + offset)
+
+# `-- --stagger` (with --preview): Sprouts and Thornwalls half on the route, alternating sides,
+# so the preview shows staggered walls and the route jogging round them by half cells.
+func _stagger(main: Node) -> void:
+	var map = main.get_node("%MapGenerator")
+	var placed := 0
+	for step in range(6, 60, 5):  # Half on the route, alternating sides: it has to jog round each
+		if placed >= 8:
+			break
+		var route: PackedVector2Array = map.get_path_from(map.startPath)
+		if step >= route.size() - 6:
+			break
+		var p: Vector2 = route[step] * 2.0
+		var side := Vector2(1, 0) if route[step + 1].x == route[step].x else Vector2(0, 1)  # Across the route
+		var first := side if placed % 2 == 0 else -side
+		for origin in [p + first, p - first]:
+			var halves: Array[Vector2] = map.halves_of(origin)
+			if not map.can_block_halves(halves):
+				continue
+			var warden: Tower = main.get_node("%TowerPlacer").tower_scene.instantiate()
+			warden.tower_data = load("res://resource/tower/sprout.tres" if placed % 3 != 2 else "res://resource/tower/thornwall.tres")
+			warden.half_cell = origin
+			var centre: Vector2 = (origin + Vector2.ONE) * map.MAP_GRID.cell_size / 2.0
+			warden.cell = map.MAP_GRID.calculate_grid_coordinates(centre)
+			warden.position = centre
+			main.get_node("%TowerContainer").add_child(warden)
+			map.block_halves(halves)
+			placed += 1
+			break
+	print("staggered %d Wardens" % placed)

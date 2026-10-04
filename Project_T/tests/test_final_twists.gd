@@ -16,6 +16,7 @@ var container: Node
 var run_state: RunState
 var dreams: DreamState
 var route: PackedVector2Array
+var per := 1  # Route points per whole cell (half-step routes: 2)
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -34,6 +35,7 @@ func _run() -> void:
 	await _clean()
 	var map = main.get_node("%MapGenerator")
 	route = map.get_path_from(map.startPath)
+	per = FinalTwists._per_cell(route)
 
 	for id in FinalTwists.TWISTS:
 		var data: TowerData = load("res://resource/tower/%s.tres" % id)
@@ -71,12 +73,12 @@ func _snugroot() -> void:
 	_check(walker.statuses.is_held() and walker.get_meta(FinalTwists.LOGJAM_META, false), "Logjam: a walker Snugroot Holds jams its cell")
 	_check(not flyer.get_meta(FinalTwists.LOGJAM_META, false), "flyers never jam")
 	# The queue (Enemy Code's spawner + _is_blocked_ahead): the walker behind waits, it doesn't path around.
-	var behind := _walker(7)
+	var behind := _walker(8 - per)  # A body behind (one whole cell)
 	var route_before: PackedVector2Array = behind._path.duplicate()
 	behind.set_process(true)
 	for i in 30:
 		await process_frame
-	_check(behind.get_current_cell() == route[7] and behind.waiting, "the nightmare behind a jammed cell waits there (%s)" % behind.get_current_cell())
+	_check(behind.get_current_cell() == route[8 - per] and behind.waiting, "the nightmare behind a jammed cell waits there (%s)" % behind.get_current_cell())
 	_check(behind._path == route_before, "and doesn't path around (the route is unchanged)")
 	behind.set_process(false)
 	snug.queue_free()
@@ -119,8 +121,8 @@ func _boulderback() -> void:
 	boulder.tower_data.id = "boulderback"  # A duplicate has no path to take its id from
 	boulder._apply_data()
 	var target := _walker(12)
-	var behind := _walker(10)
-	var ahead := _walker(14)
+	var behind := _walker(12 - 2 * per)  # 2 path tiles back
+	var ahead := _walker(12 + 2 * per)
 	for i in 3:
 		boulder.projectile_landed(target, target.global_position)
 	_check(_lost(behind) == 0, "no boulder for the first 3 hits")

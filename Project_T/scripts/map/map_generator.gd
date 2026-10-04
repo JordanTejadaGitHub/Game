@@ -169,6 +169,7 @@ func set_act(act: int) -> void:
 	for corner: Sprite2D in _pond_corners:  # The inside corners follow the season's pond sheet
 		corner.texture = (tile_set.get_source(EnvironmentTiles.POND_INNER) as TileSetAtlasSource).texture
 	heartwood.set_act(act)
+	path_layer.set_act(act)  # The dual-grid path sheet
 	gifts.set_act(act)
 	ambience.act = act
 
@@ -248,14 +249,16 @@ func _extend_route_if_short() -> void:
 	var glade := get_glade_cells()
 	for attempt in 12:
 		var route := path_layer.find_path_from(startPath)
-		if route.size() >= min_route_length:
+		if route_length(route) >= min_route_length:
 			return
 		var best := Vector2(-1, -1)
-		var best_length := route.size()
+		var best_length := route_length(route)
 		for cell in route:
+			if cell != cell.floor():
+				continue  # Half-cell route points: obstacles go on full cells
 			if cell == startPath or cell == endPath or glade.has(cell):
 				continue
-			var longer := get_path_if_blocked(cell).size()
+			var longer := route_length(get_path_if_blocked(cell))
 			if longer > best_length and longer <= max_route_length:
 				best_length = longer
 				best = cell
@@ -272,7 +275,7 @@ func _extend_route_if_short() -> void:
 # or failing that the one that shortens it most, so the zig-zag survives. Never the feature.
 func _trim_route_if_long() -> void:
 	for attempt in 8:
-		var length := path_layer.find_path_from(startPath).size()
+		var length := route_length(path_layer.find_path_from(startPath))
 		if length <= max_route_length:
 			return
 		var cell := _best_trim(length, false)
@@ -291,7 +294,7 @@ func _best_trim(length: int, ridges: bool) -> Vector2:
 	for cell in obstacles:
 		if environment_object_layer.feature_cells.has(cell) or environment_object_layer.ridge_cells.has(cell) != ridges:
 			continue
-		var new_length := get_path_if_cleared(cell).size()
+		var new_length := route_length(get_path_if_cleared(cell))
 		if new_length <= 0 or new_length >= length:
 			continue
 		if new_length <= max_route_length and new_length > under_length:
@@ -446,6 +449,89 @@ func unblock_cell(cell: Vector2) -> void:
 	path_layer.draw()
 	path_changed.emit()
 
+
+# --- Half cells (documentation/half_cells.md) ----------------------------------------------------------------
+# Pathing runs on 32 px half cells (FindPath): a Warden is a 2×2 footprint at any half offset; nightmares are
+# 2×2 bodies, so a gap one half cell wide never carries the route. Half cells are integer Vector2 on the
+# (MAP_GRID.size × 2) grid; route points are body centres in full-cell units (x.0 / x.5). The full-cell
+# API above still works: a full cell c is the halves {2c, 2c+1}².
+
+var _refusal := &""  # Why the last can_block_halves() said no: &"occupied", &"closes" or &"narrow"
+
+# A route's length in full cells (route points step by half a cell).
+static func route_length(route: PackedVector2Array) -> int:
+	return 0 if route.is_empty() else ceili((route.size() - 1) / 2.0) + 1
+
+# The 4 half cells of a footprint whose top-left half cell is `origin`.
+func halves_of(origin: Vector2) -> Array[Vector2]:
+	return FindPath.halves_of(origin)
+
+# The 4 half cells under a nightmare at route point `point`.
+func body_halves(point: Vector2) -> Array[Vector2]:
+	return FindPath.halves_of_cell(point)
+
+# A half cell's centre in pixels, and the half cell under a pixel.
+func half_to_pixels(h: Vector2) -> Vector2:
+	return h * MAP_GRID.cell_size / 2.0 + MAP_GRID.cell_size / 4.0
+
+func pixels_to_half(p: Vector2) -> Vector2:
+	return (p / (MAP_GRID.cell_size / 2.0)).floor()
+
+# Nothing on half cell `h`: inside the map, not border, obstacle, pond or Warden, not the start's or the
+# Heartwood's halves (the glade stays buildable).
+func is_buildable_half(h: Vector2) -> bool:
+	var cell := (h / 2.0).floor()
+	return (MAP_GRID.is_within_bounds(cell) and cell != startPath and cell != endPath
+		and not path_layer.is_half_blocked(h))
+
+# True if every half is buildable and blocking them all keeps the Heartwood reachable for a nightmare's
+# body from the start and from each route point in `also_from`. Otherwise block_refusal() says why.
+func can_block_halves(halves: Array, also_from: PackedVector2Array = PackedVector2Array()) -> bool:
+	_refusal = &""
+	for h in halves:
+		if not is_buildable_half(h):
+			_refusal = &"occupied"
+			return false
+	for h in halves:
+		path_layer.set_half_blocked(h, true)
+	var ok := not path_layer.find_path_from(startPath).is_empty()
+	for from_point in also_from:
+		if not ok:
+			break
+		ok = not path_layer.find_path_from(from_point).is_empty()
+	if not ok:  # Closed outright, or only too narrow for a body?
+		_refusal = &"narrow" if path_layer.get_finder().connects_thin(startPath, endPath) else &"closes"
+	for h in halves:
+		path_layer.set_half_blocked(h, false)
+	return ok
+
+func block_refusal() -> StringName:
+	return _refusal
+
+# The start's route if `halves` were blocked (empty = no way through). Changes nothing.
+func get_path_if_blocked_halves(halves: Array) -> PackedVector2Array:
+	var changed: Array = halves.filter(func(h: Vector2) -> bool: return not path_layer.is_half_blocked(h))
+	for h in changed:
+		path_layer.set_half_blocked(h, true)
+	var path := path_layer.find_path_from(startPath)
+	for h in changed:
+		path_layer.set_half_blocked(h, false)
+	return path
+
+# Blocks `halves` (call can_block_halves() first), redraws the route and notifies nightmares.
+func block_halves(halves: Array) -> void:
+	for h in halves:
+		path_layer.set_half_blocked(h, true)
+		environment_object_layer.erase_cell(Vector2i((h / 2.0).floor()))  # No grass detail under the Warden
+	path_layer.draw()
+	path_changed.emit()
+
+# Opens `halves` again (a Warden sold). Opening never cuts a route.
+func unblock_halves(halves: Array) -> void:
+	for h in halves:
+		path_layer.set_half_blocked(h, false)
+	path_layer.draw()
+	path_changed.emit()
 
 # --- Obstacles ------------------------------------------------------------------------------------
 

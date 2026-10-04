@@ -55,7 +55,7 @@ func _run() -> void:
 
 func _plays_attack(data: TowerData) -> bool:
 	var map = main.get_node("%MapGenerator")
-	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var route: PackedVector2Array = Tower.route_cells(map.get_path_from(map.startPath))  # Whole cells (half-step routes)
 	var at := route[mini(6, route.size() - 1)]
 	var tower: Tower = placer.tower_scene.instantiate()
 	tower.tower_data = data

@@ -10,5 +10,5 @@ description = "Every other node has grown. A sixth waystone rises: carry 6 perks
 root = 2
 costs = Array[int]([250])
 order = 30
-icon = -1
+icon = 20
 crown = true

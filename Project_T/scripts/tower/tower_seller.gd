@@ -145,6 +145,17 @@ func get_tower_at(cell: Vector2) -> Tower:
 			return tower
 	return null
 
+# The Warden under a point on the map (pixels): by the half cell under it (half cells: a Warden at a
+# half offset covers parts of 4 whole cells).
+func get_tower_at_point(world: Vector2) -> Tower:
+	if not map_generator.has_method("pixels_to_half"):
+		return get_tower_at(MAP_GRID.calculate_grid_coordinates(world))
+	var half: Vector2 = map_generator.pixels_to_half(world)
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.get_halves().has(half):
+			return tower
+	return null
+
 # Sells the Warden on `cell`. Returns false if there's none.
 func sell(cell: Vector2) -> bool:
 	var tower := get_tower_at(cell)
@@ -154,9 +165,12 @@ func sell(cell: Vector2) -> bool:
 	BranchKit.remember_rank(tower)  # Mother Log: its rank stays in the log for the next Warden on this cell
 	tower_container.remove_child(tower)
 	tower.queue_free()
-	for c in tower.get_cells():
-		map_generator.unblock_cell(c)  # Emits path_changed -> creatures re-route
-	tower_placer.settle(tower.get_cells())  # Settling ground: not plantable again for a moment (drifts only)
+	if map_generator.has_method("unblock_halves"):
+		map_generator.unblock_halves(tower.get_halves())  # Its half cells; emits path_changed
+	else:
+		for c in tower.get_cells():
+			map_generator.unblock_cell(c)  # Emits path_changed -> creatures re-route
+	tower_placer.settle(tower.get_touched_cells())  # Settling ground: not plantable again for a moment (drifts only)
 	run_state.earn_dew_at(refund, tower.position)
 	tower_sold.emit(tower, refund)
 	if selection.has(tower):
@@ -635,7 +649,7 @@ func _input(event: InputEvent) -> void:
 		queue_redraw()
 		return
 	# A plain click: one Warden, or empty ground clears.
-	var tower := get_tower_at(MAP_GRID.calculate_grid_coordinates(_press_world))
+	var tower := get_tower_at_point(_press_world)
 	if _press_shift:
 		if tower != null:
 			_add_or_remove([tower])
@@ -656,10 +670,13 @@ func _process(delta: float) -> void:
 	if _dragging:
 		queue_redraw()
 	var cell: Vector2 = MAP_GRID.calculate_grid_coordinates(get_global_mouse_position())
-	if cell != _hover_cell:
+	var half: Vector2 = map_generator.pixels_to_half(get_global_mouse_position()) if map_generator.has_method("pixels_to_half") else cell
+	if cell != _hover_cell or half != _hover_half:
 		_hover_cell = cell
-		_hover_tower = get_tower_at(cell)
+		_hover_half = half  # Half cells: a Warden at a half offset changes within a whole cell
+		_hover_tower = get_tower_at_point(get_global_mouse_position())
 		queue_redraw()
+var _hover_half := Vector2(-1, -1)
 
 
 # --- Drawing --------------------------------------------------------------------------------------------
@@ -701,7 +718,7 @@ func _draw() -> void:
 		draw_rect(box, Color(SELECTED_COLOR, 0.8), false, 1.5)
 	if _hover_tower == null or _dragging:
 		return
-	var center: Vector2 = MAP_GRID.calculate_map_position(_hover_cell)
+	var center: Vector2 = _hover_tower.position  # The Warden itself (it may sit between cells)
 	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
 	var label := _hover_tower.tower_data.display_name  # Just the name (text_style.md: no hints on hover)

@@ -1,6 +1,7 @@
 # Marketing plan: Heartwood TD
 
-Owner: design hub (story chat) until a Marketing chat exists. Goal: **Steam wishlists.** Every video, post and
+Owners (2026-10-04): **Marketing Discussion** (pitch, Steam page, copy, disclosure, posting) · **Short Form Video**
+(§3–4: capture tools, shorts) · **Trailer** (§5) · Main Merger builds the capture code. Goal: **Steam wishlists.** Every video, post and
 page points to the Steam page.
 
 ## 1. The pitch
@@ -18,8 +19,7 @@ page points to the Steam page.
 ## 2. Order of work
 
 1. **Steam page** (before any push for views; wishlists only count once it exists): capsule art (Theme Asset, open
-   item), the short description, 5–8 screenshots, the trailer, tags (Tower Defense, Roguelite, Strategy, Deckbuilding-lite,
-   Pixel Graphics, Dark Fantasy, Singleplayer).
+   item), the short description, 5–8 screenshots, the trailer, tags. Status and the tag list: §6 "Steam page checklist".
 2. **Shorts and TikToks**: 3–4 a week, from the shot list below.
 3. **Trailer** (60–90 s): once the capture tools exist.
 4. **Demo + Steam Next Fest**: the biggest wishlist spike; plan it for when the demo is polished.
@@ -33,6 +33,10 @@ page points to the Steam page.
 - **Auto camera**: glide along the route, slow push-in, follow a nightmare, or hold on an area.
 - **Export pipeline** (ffmpeg scripts): a 9:16 vertical crop or re-frame, burned-in captions, music, a "Wishlist on Steam"
   end card, and one file per platform (YouTube Shorts, TikTok, X / Bluesky 16:9).
+
+**Half-cell mazes (2026-10-04, half_cells.md):** Wardens can sit at half-cell offsets, so walls stagger and mazes get
+shapes a square grid can't make. Every capture scene uses staggered placements, and the maze shots show them off.
+Capture after the half-cell merge (and after the final half-grid path art, when that lands, re-render).
 
 ## 4. The first five shorts (9:16, 15–35 s, captions on, music from the game's stems)
 
@@ -52,8 +56,8 @@ captioned one. Record the voice, drop it on the timeline, done. Speak like you'r
 **Short 1: "Your towers ARE the maze." (~25 s)**
 - 0–2 s: *"In my game, your towers are the walls."*
 - 2–10 s: *"Every Warden you plant changes the path the nightmares have to walk. Longer path, more time to hit them."*
-- 10–18 s: *"So you're not just placing towers. You're building a maze, one Warden at a time."*
-- 18–25 s: *"And then they come. All of them. Through every twist you built."* · end card: *"It's called Heartwood TD. Wishlist it on Steam."*
+- 10–18 s: *"Twenty-four Wardens in, and the path's about twice as long as when I started."* (the clip's real count)
+- 18–25 s: *"Then I hit start, and they have to walk every bend of it."* · end card: *"It's called Heartwood TD. Wishlist it on Steam."*
 
 **Short 2: "Watch this chain." (~22 s)**
 - 0–2 s: *"Watch this chain."*
@@ -92,24 +96,80 @@ the Night Mare's laps, the Memory Grove growing, Rank V Nurture choices, the Spi
 
 ## 5. Trailer script (≈75 s)
 
-| Time | Shot | On screen |
-|---|---|---|
-| 0–5 s | Straight into building: Wardens snap down and the route mist bends. | "Your Wardens are the walls." |
-| 5–15 s | A drift arrives; nightmares follow the maze; the first dispels crack into light. | "The nightmares must take the long way." |
-| 15–30 s | Statuses meet: Soaked, Charged, Thunderclap; Poisoned fog; the first Reaction callouts. | "Combine them." |
-| 30–42 s | Dreams (a card pick), a branch grows (Remember screen → Grow), Kinship roots form. | "Grow your Wardens. Shape every run." |
-| 42–52 s | A Heartwood's Gift reshapes the island; an Omen screen. | "Every dream is different." |
-| 52–65 s | Bosses: the Stag's charge, the Night Mare, the Hollow Oak rising. Music builds (the boss stem). | "Something old has found the dream." |
-| 65–72 s | The biggest late-game chain to a Dawnburst; the Heartwood glowing. | |
-| 72–75 s | The logo, "Wishlist on Steam", platforms. | |
+Owner: Trailer chat (2026-10-04). No logo intro: the first frame is the maze being built, because capsule A (the watchful
+Warden) doesn't show the maze, so the trailer has to deliver "your towers are the maze" before any mood shot; pitch.md's
+dispel hook comes second. Rules: every clip at real
+speed (1×, never sped up or slowed: cut instead); every maze shows staggered half-cell walls (half_cells.md); cards say
+one concrete thing each, in the developer's voice (text_pass.md), and read in under 3 s.
+
+| Time | Shot | On screen | Music |
+|---|---|---|---|
+| 0–5 s | Frame one: a staggered half-cell maze. Wardens snap down one after another; with each, the route mist bends live into a longer detour ("+N path"). | "Your Wardens are the walls." | base stem |
+| 5–9 s | Close on the forest edge: a Shade's eyes open and it skitters in. A spore puff hits it; it shrieks and cracks into motes. | | quiet beat |
+| 9–16 s | Pull back: the drift streams in and walks every bend of the maze; dispels along it. | "Now they take the long way." | + dread1 |
+| 16–28 s | A Soaked crowd, Charged: Thunderclap callouts; Poisoned fog on the next bend. | "Soaked + Charged = Thunderclap." | + dread2 |
+| 28–38 s | A rest: the Dream pick (3 cards, one taken); a Warden grows into its branch; Kinship roots join two kin. | "Three Dreams at every rest. Take one." | rest swell |
+| 38–46 s | A Heartwood's Gift (Sow a Ridge): the ridge rises, the route bends around it live. | "That ridge wasn't there a minute ago." | |
+| 46–60 s | The Hollow Stag charges a straight corridor, then stalls on a bend; cut to the Night Mare's laps; the Hollow Oak rising. | "The Stag charges down straight lines. So don't build any." (over the Stag only) | + heartbeat, boss stem from the Oak |
+| 60–70 s | A late storm board: one chain to ×10, Dawnburst; the Heartwood glowing gold. | | full |
+| 70–75 s | Logo, the tagline *"Grow a living maze. Hold back the nightmares."*, "Wishlist on Steam", platforms. | "Heartwood TD" (pitch.md "Title"; trademark check pending) | resolve |
+
+Dropped from the draft: the Omen screen (a second menu in 10 s; save it for a short).
+
+**Capture scenes needed (Main Merger, capture_director.gd):** (1) a staggered maze built Warden by Warden, route mist
+bending each time (the opening shot; Short Form Video's short_01 idea at 16:9); (2) forest-edge Shade close-up; (3) drift ~20 walking the maze; (4) a storm board on a Soaked crowd, drift ~40; (5) a rest with Dream
+pick, grow and a Kinship; (6) an act break with Sow a Ridge; (7) drift 25 Stag on a board with one straight corridor;
+(8) the Night Mare; (9) the Hollow Oak's arrival; (10) a late storm board to Dawnburst, drift ~60, the Heartwood at a
+high Grove stage.
+
+**Timing:** final capture only after the grain clean-up (calm detail pass, Wardens and ground; Wardens keep the classic
+golem, the per-family poses were dropped), the nightmare readability fix and the final half-grid path art (art_direction.md "AI-look audit", half_cells.md). A rough cut from today's art is fine
+for timing. Steam wants the trailer first on the page: lock the date with Marketing Discussion.
 
 ## 6. Steam page text (draft)
 
-- **Short description (≤ 300 characters):** *Nightmares are hunting the Heartwood's dream. Plant Warden spirits that are also
-  the walls of your maze, combine their powers into chain Reactions, and grow a new forest every run in this dark-fairytale
-  tower defence roguelite.*
+**The capsule is concept A (the watchful Warden, 2026-10-04; brief in art_direction.md).** It doesn't show the maze, so
+the hook "your towers are the maze" has to land in **screenshot 1**, the **first seconds of the trailer** and the **first
+words of the short description**. Nothing on the page opens with lore or the look before the maze.
+
+- **Short description (≤ 300 characters; 2026-10-04 rewrite, ~230):** *A maze tower defense roguelite where your towers
+  are the walls. Every Warden you plant bends the path the nightmares take to the Heartwood. Soak them, then charge them,
+  and the lightning jumps through the whole crowd. New island every run.*
+  Leads with the maze (the capsule can't). Store copy spells "defense" (US) to match the Steam tag and search; in-game
+  text stays UK. Replaces pitch.md's earlier draft (pitch.md points here). (Was: "Nightmares are hunting the Heartwood's
+  dream…": flagged as generic in text_pass.md.)
 - **About (outline):** the hook (Wardens are the maze) · combos and Reactions · runs that are never the same (branches,
-  Dreams, Omens, Gifts) · bosses · the Memory Grove (meta progression) · the look and sound.
+  Dreams, Omens, Gifts) · bosses · the Memory Grove (meta progression) · the look and sound. Write each block as one
+  concrete scene from play (a GIF + two sentences), not a feature list. The first GIF is a maze being built.
+- **Tags** (pitch.md's order; the first 5 matter most): Tower Defense, Roguelite, Strategy, Dark Fantasy, Cute, then Pixel
+  Graphics, Atmospheric, Procedural Generation, Replay Value, Singleplayer, Steam Deck (once verified). No
+  "Deckbuilding-lite": not a Steam tag, and Dream picks aren't a deck.
+- **Screenshots, in order** (capture once the nightmare readability fix is in; Wardens keep the classic seated golem,
+  the per-family poses were reverted 2026-10-04, art_direction.md 7049be26):
+  1. **The maze:** a staggered half-cell maze (half_cells.md) at full scale with the **route shown** (route mist / line
+     winding through it) and a drift walking it. Must read as "they built this path" as a 600 px thumbnail.
+     Checks (first candidates, 2026-10-04): the bends are walled by **Wardens, not dead trees** (clear the obstacles
+     in the maze area); combat is visible (puffs in the air, a dispel cracking); nightmares spread along the route and
+     readable against the path; no dev labels; the banner names the default boss.
+  2. Building: the ghost Warden, "+N path", the route preview bending into the new detour.
+  3. A Reaction: Thunderclap lightning jumping through Soaked nightmares, callouts on.
+  4. A dispel close-up: a nightmare cracking into light.
+  5. The Dream screen: 3 cards, one Rare.
+  6. A boss in the maze (the Hollow Stag on a bent corridor).
+  7–8 (optional): the Memory Grove; a Heartwood's Gift reshaping the island.
+
+### Steam page checklist (status 2026-10-04)
+| Item | Status | Waiting on |
+|---|---|---|
+| Name | **"Heartwood TD"** (decided 2026-09-28, pitch.md "Title") | free check: Steam, itch.io, trademark search for "Heartwood" |
+| Capsule art | **A, chosen** (the watchful Warden, 2026-10-04); **AI-made for now** (Theme Asset) | artist: **deferred** (the user, 2026-10-04: "Leave it AI for now, then I'll decide later"; brief stays in art_direction.md) |
+| Logo | not started; **AI-made for now** (Theme Asset) | artist: deferred, same as the capsule |
+| Short description | drafted above, maze first | — |
+| About | outline above | GIFs (capture tools) |
+| Tags | drafted above | — |
+| 5–8 screenshots | **on hold**; order above, #1 = half-cell maze + route | nightmare readability (art_direction.md 395fed8a: Enemy Assets done f07637d1; Enemy Code shader, Environment Assets path shadows to land); Warden poses no longer block (reverted 7049be26); capture scene: inland clear + Warden-walled maze (Main Merger) |
+| Trailer | §5; its first seconds = the maze | Trailer chat, capture tools; date locked by Marketing Discussion |
+| AI disclosure | drafted in §7 | Valve's wording at submission |
 
 ## 7. AI disclosure (Steam requires it)
 
@@ -118,6 +178,10 @@ AI assistance (art and audio by generator scripts written with AI). Disclose it 
 the help of AI tools: its pixel art, sound effects and music were produced by generator scripts written with AI assistance,
 and AI was used for code and writing. All content was directed, curated and edited by the developer."* Check Valve's current
 wording at submission.
+
+Valve's survey covers store-page assets too. While the capsule and logo are AI-made (artist deferred, 2026-10-04), the
+disclosure must say so: add *"The store art and logo were also made with AI assistance."* Remove that line only if a
+human artist replaces both.
 
 ## 8. Posting and measuring
 

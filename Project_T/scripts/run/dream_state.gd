@@ -1749,25 +1749,40 @@ func _taken_cards(include_dormant: bool = false) -> Array[UpgradeData]:
 
 func _update_bends() -> void:
 	_bend_cells.clear()
+	# Half cells: route points step half a cell (x.0 / x.5), so lengths go through MapGenerator.route_length and
+	# every point marks the full cells its body covers (route_cells); steps count in full cells (point i = step ⌈i/2⌉).
 	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
-	path_length = path.size()
+	path_length = map_generator.route_length(path)
 	_path_index.clear()
 	for i in path.size():
-		_path_index[path[i]] = i  # Crossroads, Briar Crown
+		for cell in route_cells(path[i]):
+			if not _path_index.has(cell):
+				_path_index[cell] = ceili(i / 2.0)  # Crossroads, Briar Crown
 	for i in range(1, path.size() - 1):
 		if path[i] - path[i - 1] != path[i + 1] - path[i]:
-			_bend_cells[path[i]] = true
+			for cell in route_cells(path[i]):
+				_bend_cells[cell] = true
 	# Straightaway: tiles of straight stretches of STRAIGHT_TILES+ (a run of equal steps a..b covers
-	# tiles a..b+1)
+	# points a..b)
 	_straight_cells.clear()
 	var run_start := 0
 	for step in range(1, path.size()):
 		if step == path.size() - 1 or path[step + 1] - path[step] != path[step] - path[step - 1]:
-			if step - run_start + 1 >= STRAIGHT_TILES:
+			if map_generator.route_length(path.slice(run_start, step + 1)) >= STRAIGHT_TILES:
 				for i in range(run_start, step + 1):
-					_straight_cells[path[i]] = true
+					for cell in route_cells(path[i]):
+						_straight_cells[cell] = true
 			run_start = step
 	_heart_cache.clear()
+
+# The full cells a route point's body covers: 1, or 2 / 4 at a half offset (x.5).
+static func route_cells(point: Vector2) -> Array[Vector2]:
+	var cells: Array[Vector2] = []
+	for x in [floorf(point.x), ceilf(point.x)]:
+		for y in [floorf(point.y), ceilf(point.y)]:
+			if not cells.has(Vector2(x, y)):
+				cells.append(Vector2(x, y))
+	return cells
 
 
 # An exclusive pair (dream_design.md "Combo cards are choices, not musts"): a card a taken card excludes, or one that
@@ -3245,7 +3260,7 @@ func owns_range_at_most(reach: float) -> bool:
 			return true
 	return false
 
-# Damp Rot: Poisoned (Spored) tick multiplier on `enemy` (enemy.gd's tick asks; 1.0 without it).
+# Soaked Rot: Poisoned (Spored) tick multiplier on `enemy` (enemy.gd's tick asks; 1.0 without it).
 func get_spored_tick_multiplier(enemy: Node2D) -> float:
 	var n := rule_stacks(&"damp_rot")
 	if n == 0 or enemy == null or not enemy.statuses.has(EnemyStatuses.DAMP):
@@ -3262,7 +3277,7 @@ func get_ignite_multiplier(enemy: Node2D = null) -> float:
 		return 1.0
 	return 1.0 + SPARKING_SPORES_PER * rule_stacks(&"sparking_spores")
 
-# Damp Rot's trade: with it, Soaked no longer boosts water hits on a nightmare (Enemy.take_damage asks).
+# Soaked Rot's trade: with it, Soaked no longer boosts water hits on a nightmare (Enemy.take_damage asks).
 func soaked_boosts_water() -> bool:
 	return not has_rule(&"damp_rot")
 
@@ -3437,19 +3452,28 @@ var _walls_tiles_cache := [-1, 0]  # [board_version, tiles]
 func walls_added_tiles() -> int:
 	if _walls_tiles_cache[0] == board_version:
 		return _walls_tiles_cache[1]
-	var cells: Array[Vector2] = []
-	for tower in _towers():
-		if tower.tower_data.line == "wall":
-			cells.append(tower.cell)
+	var walls: Array = _towers().filter(func(t) -> bool: return t.tower_data.line == "wall")
 	var tiles := 0
-	if not cells.is_empty():
+	if not walls.is_empty():
 		var layer = map_generator.path_layer
-		for cell in cells:
-			layer.set_cell_blocked(cell, false)
-		var without: int = layer.find_path_from(map_generator.startPath).size()
-		for cell in cells:
-			layer.set_cell_blocked(cell, true)
-		tiles = maxi(path_length - without, 0)
+		if layer.has_method("set_half_blocked"):
+			# Half cells (Tower Code): unblock each wall's halves; lengths in full cells.
+			var now: int = map_generator.route_length(layer.find_path_from(map_generator.startPath))
+			for wall in walls:
+				for h in wall.get_halves():
+					layer.set_half_blocked(h, false)
+			var without_halves: int = map_generator.route_length(layer.find_path_from(map_generator.startPath))
+			for wall in walls:
+				for h in wall.get_halves():
+					layer.set_half_blocked(h, true)
+			tiles = maxi(now - without_halves, 0)
+		else:
+			for wall in walls:
+				layer.set_cell_blocked(wall.cell, false)
+			var without: int = layer.find_path_from(map_generator.startPath).size()
+			for wall in walls:
+				layer.set_cell_blocked(wall.cell, true)
+			tiles = maxi(path_length - without, 0)
 	_walls_tiles_cache = [board_version, tiles]
 	return tiles
 

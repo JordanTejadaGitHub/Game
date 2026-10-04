@@ -217,7 +217,7 @@ func _process(delta: float) -> void:
 			_pending = first
 	if _pending == 0 and _reminder_pending == 0:
 		return
-	if not drift_director.is_resting():
+	if not drift_director.is_resting() or CaptureDirector.quiet:  # A capture opens it only when its scene says
 		_pending = 0  # The block started without it (Start pressed in the meantime)
 		_reminder_pending = 0
 		return

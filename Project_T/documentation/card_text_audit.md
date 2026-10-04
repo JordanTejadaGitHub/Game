@@ -33,7 +33,7 @@ Code). Tower Code's rule list is `tower_rule_hooks.md`. This file is the verdict
 | **Mushroom Rain** | "lasts twice as long and covers the 8 tiles" | `MUSHROOM_RAIN_TIME` 2.0, radius 1.5 | ✓ now; ⏳ changes with the rework ("covers the 8 tiles around, lasts half as long") | — |
 
 Verified by hand and **correct**: Bitter Hedges, Briar Crown, Canopy, Chosen Few, Cozy Corners /
-II, Crossroads, Crowd Breaker, Crowded Path / II, Damp Rot, Dawnbreak, Deep Stillness, Deep Water /
+II, Crossroads, Crowd Breaker, Crowded Path / II, Soaked Rot, Dawnbreak, Deep Stillness, Deep Water /
 II, Deeper Rings, Desperate Bloom, Endless Night, Endless Rings, Falling Stars, Fever Pitch, Few and
 Mighty, Glimmering Hunt, Grandfather Stump, Heavy Eyelids, Hedge Maze / II, Kindred Roots / II, Last
 Stand (incl. the merged Heartwood's Fury), Loose Stones, Lucid Dreaming, Overflowing Well, Quick

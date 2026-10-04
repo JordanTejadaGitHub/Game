@@ -45,17 +45,17 @@ func draw():
 	current_path = _pathGenerator.calculate_point_path(cell_start_path, cell_end_path)
 	# Later re-routes (towers, cleared obstacles, enemies mid-walk) stick to this route when they can.
 	_pathGenerator.set_preferred_cells(current_path)
-	# And we draw a tile for every cell in the path: the sheet has one per neighbour mask, and the
-	# start runs off the island's edge onto the rope bridge.
+	# Half cells (documentation/half_cells.md): route points step by half a cell, so the path is drawn on the
+	# dual grid (path_dual.png, _draw_dual), not one tile per cell. The start still runs off the rim onto the bridge.
 	for cell in current_path:
-		var mask := _get_tile_score(cell)
-		if cell == cell_start_path:
-			mask |= _edge_mask(cell)
-		var on_rim := cell == cell_start_path  # Over the rim: no grass around the path (the Heartwood is inland)
-		set_cell(cell, EnvironmentTiles.PATH_RIM if on_rim else EnvironmentTiles.PATH, EnvironmentTiles.path_tile(mask))
 		if board != null:
-			board.environment_object_layer.wear_away(Vector2i(cell))  # The path wore the debris away
+			for x in [floorf(cell.x), ceilf(cell.x)]:  # The full cells this body overlaps
+				for y in [floorf(cell.y), ceilf(cell.y)]:
+					board.environment_object_layer.wear_away(Vector2i(x, y))  # The path wore the debris away
 		current_path_curve.add_point(grid.calculate_map_position(cell))
+	if not current_path.is_empty():
+		set_cell(cell_start_path, EnvironmentTiles.PATH_RIM, EnvironmentTiles.path_tile(_edge_mask(cell_start_path)))
+	_draw_dual()
 
 # The neighbour bit pointing off the map from an edge cell (N=1, E=2, S=4, W=8), else 0.
 func _edge_mask(cell: Vector2) -> int:
@@ -134,3 +134,80 @@ func _exit_tree() -> void:
 func stop() -> void:
 	_pathGenerator = null
 	clear()
+
+# --- Half cells (documentation/half_cells.md) ---------------------------------------------------------
+
+# The path on the dual grid (environment_assets.md "Half-cell grid: environment plan"): the path mask is every
+# half cell a nightmare's body covers along the route. A second layer of 32 px tiles sits 16 px up and left,
+# so each display tile's corners are 4 half cells' centres; it picks path_dual.png's column by which corners
+# are path (TL 1, TR 2, BR 4, BL 8), and a full tile (15) one of 4 variants by position. Drawn behind this
+# layer, so the start's path.png rim tile (the rope-bridge join) stays on top.
+const DUAL_SHEET := "path_dual"
+const DUAL_SIZE := Vector2i(32, 32)
+const DUAL_FULL_VARIANTS: Array[int] = [15, 16, 17, 18]
+var dual_layer: TileMapLayer
+var _act := 1
+
+func _dual() -> TileMapLayer:
+	if dual_layer == null:
+		dual_layer = TileMapLayer.new()
+		dual_layer.name = "PathDual"
+		dual_layer.show_behind_parent = true
+		dual_layer.position = -Vector2(DUAL_SIZE) / 2.0
+		dual_layer.tile_set = _dual_tile_set()
+		add_child(dual_layer)
+	return dual_layer
+
+func _dual_tile_set() -> TileSet:
+	var tiles := TileSet.new()
+	tiles.tile_size = DUAL_SIZE
+	var source := TileSetAtlasSource.new()
+	source.texture = load(EnvironmentTiles.sheet_path(DUAL_SHEET, _act))
+	source.texture_region_size = DUAL_SIZE
+	for column in source.get_atlas_grid_size().x:
+		source.create_tile(Vector2i(column, 0))
+	tiles.add_source(source, 0)
+	return tiles
+
+# The act's path_dual.png (MapGenerator.set_act).
+func set_act(act: int) -> void:
+	_act = act
+	if dual_layer != null:
+		(dual_layer.tile_set.get_source(0) as TileSetAtlasSource).texture = load(EnvironmentTiles.sheet_path(DUAL_SHEET, act))
+
+# Every half cell under a nightmare's body along the route: {Vector2i: true}.
+func path_halves() -> Dictionary:
+	var halves := {}
+	for point in current_path:
+		for h in FindPath.halves_of_cell(point):
+			halves[Vector2i(h)] = true
+	return halves
+
+# path_dual.png's column for the display tile `at`: its corners are half cells at-1 .. at.
+static func dual_mask(halves: Dictionary, at: Vector2i) -> int:
+	return ((1 if halves.has(at + Vector2i(-1, -1)) else 0) | (2 if halves.has(at + Vector2i(0, -1)) else 0)
+		| (4 if halves.has(at) else 0) | (8 if halves.has(at + Vector2i(-1, 0)) else 0))
+
+func _draw_dual() -> void:
+	var layer := _dual()
+	layer.clear()
+	var halves := path_halves()
+	var touched := {}
+	for h: Vector2i in halves:  # Each path half cell is a corner of 4 display tiles
+		for dy in 2:
+			for dx in 2:
+				touched[h + Vector2i(dx, dy)] = true
+	for at: Vector2i in touched:
+		var mask := dual_mask(halves, at)
+		if mask == 15:
+			mask = DUAL_FULL_VARIANTS[EnvironmentTiles.cell_variant(at, DUAL_FULL_VARIANTS.size(), 7)]
+		layer.set_cell(at, 0, Vector2i(mask, 0))
+
+func get_finder() -> FindPath:
+	return _pathGenerator
+
+func is_half_blocked(h: Vector2) -> bool:
+	return _pathGenerator.is_half_blocked(h)
+
+func set_half_blocked(h: Vector2, blocked: bool) -> void:
+	_pathGenerator.set_half_blocked(h, blocked)

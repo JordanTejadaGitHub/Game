@@ -1,0 +1,30 @@
+{
+	"title": "Watch this chain.",
+	"note": "DRAFT, tune on a headless dry run: storm board, drift 60, slow motion when a chain reaches 8.",
+	"seed": 4242,
+	"size": [1080, 1920],
+	"drift": 60,
+	"dew": 9999,
+	"hud": "none",
+	"length": 24.0,
+	"music": ["base", "dread1", "dread2"],
+	"slow_chain": {"at": 7, "speed": 0.3, "hold": 2.5},
+	"captions": [
+		[0.0, 2.0, "Watch this chain."],
+		[2.0, 8.0, "Soaked, then Charged: a Thunderclap."],
+		[8.0, 16.0, "It jumps. Five, eight, ten..."],
+		[16.0, 22.0, "Ten in a row is a Dawnburst."]
+	],
+	"timeline": [
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.8},
+		{"t": 0.0, "plant_each": 0.05, "count": 16, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 3, "plant": "monsoon", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 2, "plant": "rain_lily", "auto": "cover", "tag": false},
+		{"t": 0.5, "plant_each": 0.1, "count": 3, "plant": "thunderhead", "auto": "cover", "tag": false},
+		{"t": 0.5, "plant_each": 0.1, "count": 2, "plant": "lanternmoth", "auto": "cover", "tag": false},
+		{"t": 0.5, "start": true},
+		{"t": 1.0, "spawn": "bark_beetle", "count": 12},
+		{"t": 4.0, "camera": "push", "at": "centre", "zoom": 1.3, "duration": 4.0},
+		{"t": 8.0, "camera": "follow", "target": "furthest", "zoom": 1.3}
+	]
+}

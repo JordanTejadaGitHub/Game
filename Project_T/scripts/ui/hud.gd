@@ -165,7 +165,7 @@ func _ready() -> void:
 	var map_generator = %MapGenerator
 	var path_label: Label = %PathLabel
 	var update_path := func() -> void:
-		path_label.text = str(map_generator.get_path_from(map_generator.startPath).size())
+		path_label.text = str(map_generator.route_length(map_generator.get_path_from(map_generator.startPath)))  # Cells (route points step by half a cell)
 		_place_counter_icon(path_label)
 	map_generator.path_changed.connect(update_path)
 	update_path.call()

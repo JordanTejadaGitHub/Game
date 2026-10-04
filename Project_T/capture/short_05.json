@@ -1,0 +1,27 @@
+{
+	"title": "One leaf left.",
+	"note": "DRAFT: 1 leaf, invulnerable off. Tune the board so one nightmare is dispelled 1-2 cells from the Heartwood; the dry run prints the distance.",
+	"seed": 4242,
+	"size": [1080, 1920],
+	"drift": 40,
+	"dew": 1200,
+	"leaves": 1,
+	"invulnerable": false,
+	"hud": "clean",
+	"length": 20.0,
+	"music": ["base", "dread1", "heartbeat"],
+	"captions": [
+		[0.0, 2.0, "One leaf left."],
+		[2.0, 9.0, "One more nightmare at the tree and the run's over."],
+		[9.0, 16.0, "Come on..."],
+		[16.0, 20.0, "Dispelled. On the doorstep."]
+	],
+	"timeline": [
+		{"t": 0.0, "plant_each": 0.05, "count": 14, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 5, "plant": "sporeling", "auto": "cover", "rank": 1, "tag": false},
+		{"t": 0.0, "camera": "hold", "at": "heartwood", "zoom": 1.2},
+		{"t": 0.5, "start": true},
+		{"t": 9.0, "camera": "follow", "target": "furthest", "zoom": 1.5},
+		{"t": 15.0, "camera": "hold", "at": "heartwood", "zoom": 1.6}
+	]
+}

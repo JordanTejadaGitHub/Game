@@ -113,7 +113,7 @@ func _ready() -> void:
 	# Hints (user, 2026-10-01: "update it to hints"; were "Heartwood whispers"): the Heartwood's lines the first time
 	# something happens, and under them the Growth marks (GrowHints), so hints live in one place.
 	_toggle(gameplay, "Hints", "whispers", true, "The Heartwood's short hints, the first time something happens.")
-	var growth_marks := _toggle(gameplay, "Growth marks", GrowHints.SETTING, true, "At rests, a gold ↑ on Wardens that can grow now and a dot when a rank is affordable.")
+	var growth_marks := _toggle(gameplay, "Growth marks", GrowHints.SETTING, true, "At rests, a bud on Wardens that can grow now and a dewdrop when a rank is affordable.")
 	growth_marks.get_parent().get_child(0).custom_minimum_size.x = 36  # Indented under Hints (its dot holds the space)
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"], 0)
@@ -168,6 +168,8 @@ func _ready() -> void:
 		box.add_child(dev_note)
 		# Grove perks as trade-offs (MetaRun.sidegrade_active): Sidegrade by default since the Spire merge, Power for testing.
 		_choice(box, "Perk style", MetaRun.PERK_STYLE_SETTING, ["Power", "Sidegrade"], 1)
+		# Capture mode (marketing.md §3): clean frames for recording; scripted scenes use -- --capture=<file>.
+		_choice(box, "Capture mode (hides dev tools, DPS tags, damage meter)", CaptureDirector.SETTING, ["Off", "Clean HUD", "No HUD"], 0)
 		box.add_child(HSeparator.new())
 		box.add_child(_profile_reset_box())
 
