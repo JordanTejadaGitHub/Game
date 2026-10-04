@@ -9,8 +9,6 @@ extends Node
 const SFX_DIR := "res://assets/audio/sfx/"
 const MUSIC_DIR := "res://assets/audio/music/"
 const BUSES := [&"Music", &"SFX", &"Ambience", &"UI"]
-const LAYERS := [&"base", &"dread1", &"dread2", &"heartbeat", &"boss", &"boss_stag", &"boss_stag_warm", &"boss_hag",
-	&"boss_hag_warm", &"boss_moth", &"boss_moth_warm", &"boss_oak", &"boss_oak_warm"]
 const TITLE_SCENE := "res://scenes/title.tscn"
 
 const MAX_VOICES := 4  # Per sound id at once; a 40-Warden maze doesn't become noise
@@ -26,9 +24,15 @@ const MUFFLED_HZ := 900.0  # Music lowpass on choice screens ("time has stopped"
 const MUSIC_DB := -6.0
 const DRIFT_MUSIC_DB := -3.0  # During drifts, relative to rests: combat owns the space
 const AMBIENCE_DB := -16.0
-const LAYER_GAIN := {&"base": 1.0, &"dread1": 0.55, &"dread2": 0.45, &"heartbeat": 0.6, &"boss": 0.7,
-	&"boss_stag": 0.7, &"boss_hag": 0.7, &"boss_moth": 0.65, &"boss_oak": 0.7, &"boss_stag_warm": 0.6, &"boss_hag_warm": 0.6,
-	&"boss_moth_warm": 0.6, &"boss_oak_warm": 0.6}
+# Layer gains: dread layers under the warm base; the boss theme's stems; a boss's signature layers
+# (sig_<boss id>, sig_<boss id>_2 …) under the theme.
+const LAYER_GAIN := {&"base": 1.0, &"dread1": 0.55, &"dread2": 0.45, &"heartbeat": 0.6,
+	&"drums": 0.8, &"bass": 0.7, &"theme": 0.8, &"warm": 0.6}
+const SIG_GAIN := 0.5
+const REST_BAR := 3.0  # Rest pieces: 60 bpm, 3/4
+const DRIFT_BAR := 2.5  # Drift (72 bpm, 3/4) and boss (96 bpm, 6/8 feel)
+const ONCE_DB := -2.0  # One-shot music (the resolving tail, the Hope form)
+const ONCE_OVERLAP := 1.0  # The next set starts this long before a one-shot ends (it rings on)
 # Softer nightmares (accessibility setting): nightmare shrieks and whispers play this much quieter,
 # muffled, and the whispering dread layer is halved.
 const SOFTER_DB := -8.0
@@ -58,6 +62,15 @@ var _music := {}  # layer -> AudioStreamPlayer
 var _music_level := {}  # layer -> current linear volume
 var _music_target := {}  # layer -> target linear volume
 var _music_set := &""
+var _music_bar := DRIFT_BAR
+var _music_clock := 0.0  # Real seconds since the current set started (its bar lines)
+var _pending_layers := {}  # layer -> on, applied on the next bar line
+var _queued_set := {}  # {set, layers, then}: starts when _queue_wait runs out
+var _queue_wait := 0.0
+var _then_once := {}  # {path, set, layers}: a one-shot waiting for its bar line, then a set
+var _once_wait := 0.0
+var _outgoing: Array = []  # [{player, level, rate}] a previous set fading out
+var _set_cache := {}  # set -> {layer: path}
 var _phase_db := 0.0  # Music offset for the phase (0 at rests, DRIFT_MUSIC_DB in drifts), eased
 var _phase_target := 0.0
 var _ambience: AudioStreamPlayer
@@ -97,7 +110,7 @@ func _process(delta: float) -> void:
 	if scene != _scene:
 		_scene = scene
 		if scene != null and scene.scene_file_path == TITLE_SCENE:
-			play_music(&"act1", [&"base"])  # The title: the warm theme alone
+			play_music(&"rest_act1", [&"base"])  # The title: the Heartwood theme
 			stop_ambience()
 	delta /= maxf(Engine.time_scale, 0.01)  # Mixing runs in real time, whatever the game speed
 	var smooth := 1.0 - exp(-LEVEL_SMOOTHING * delta)
@@ -106,6 +119,7 @@ func _process(delta: float) -> void:
 	var duck_target := _duck_depth if Time.get_ticks_msec() < _duck_until else 0.0
 	_duck_db = move_toward(_duck_db, duck_target, delta * (DUCK_ATTACK if duck_target > _duck_db else DUCK_RELEASE))
 
+	_update_music_clock(delta)
 	var energy := 0.0
 	for layer in _music:
 		var level: float = move_toward(_music_level[layer], _music_target[layer], delta / LAYER_FADE)
@@ -201,42 +215,164 @@ func play_dispel(at: Vector2, boss := false, _size_pitch := 1.0, elite := false)
 
 # --- Music and ambience ---------------------------------------------------------------------------
 
-# Starts the stems of music set `set_name` (mus_<set>_<layer>.wav) together; `layers` start audible.
-# Calling it again with the same set only changes which layers are audible.
-func play_music(set_name: StringName, layers: Array = [&"base"]) -> void:
-	if set_name != _music_set:
-		stop_music()
-		_music_set = set_name
-		for layer in LAYERS:
-			var path := "%smus_%s_%s.wav" % [MUSIC_DIR, set_name, layer]
-			if not ResourceLoader.exists(path):
-				continue
-			var player := AudioStreamPlayer.new()
-			player.stream = _looping(load(path))
-			player.bus = &"Music"
-			player.process_mode = Node.PROCESS_MODE_ALWAYS
-			player.volume_db = -80.0
-			add_child(player)
-			_music[layer] = player
-			_music_level[layer] = 0.0
-			_music_target[layer] = 0.0
-		for player in _music.values():
-			if not _silent:
-				player.play()  # Same frame: the stems stay in sync
-	for layer in _music:
-		_music_target[layer] = 1.0 if layers.has(layer) else 0.0
+# The score (audio_direction.md "The score"): a music set is every mus_<set>_<layer>.wav, synced stems
+# of one loop (rest_act<N>: 60 bpm, 3 s bars; act<N> drift and boss_act<N>: 2.5 s bars). Everything
+# lands on bar lines: layer changes wait for the next bar line, and a new set starts on the outgoing
+# set's next bar line while the old one fades over one of its bars.
+# `then_layers` join on the new set's first bar line (the boss drums first, then the full theme).
+func play_music(set_name: StringName, layers: Array = [&"base"], then_layers: Array = []) -> void:
+	if set_name == _music_set and _queued_set.is_empty():
+		for layer in _music:
+			_pending_layers[layer] = layers.has(layer) or then_layers.has(layer)
+		return
+	if not has_music_set(set_name):
+		return
+	if not _then_once.is_empty():  # A one-shot is waiting for its bar line: it hands over to this set
+		_then_once.set = set_name
+		_then_once.layers = layers
+		return
+	if not _queued_set.is_empty():  # A change is already on its way (e.g. after a one-shot): retarget it
+		_queued_set = {"set": set_name, "layers": layers, "then": then_layers}
+		return
+	_queued_set = {"set": set_name, "layers": layers, "then": then_layers}
+	_queue_wait = _time_to_bar() if not _music.is_empty() else 0.0
 
+# A layer turns on or off on the current set's next bar line.
 func set_layer(layer: StringName, on: bool) -> void:
-	if _music_target.has(layer):
-		_music_target[layer] = 1.0 if on else 0.0
+	if _music_target.has(layer) and (_music_target[layer] > 0.0) != on:
+		_pending_layers[layer] = on
+	elif _pending_layers.has(layer):
+		_pending_layers.erase(layer)
 
 func stop_music() -> void:
+	_fade_out_current(0.15)
+	_queued_set = {}
+	_then_once = {}
+
+# Whether music set `set_name` has any stems.
+func has_music_set(set_name: StringName) -> bool:
+	return not _set_files(set_name).is_empty()
+
+func get_music_set() -> StringName:
+	return _music_set
+
+# Plays one-shot music `once_id` (mus_once_<id>.wav: the drift's resolving tail, the Hope form), then
+# starts `next_set`. `hard`: the current music stops now (a boss dispelled); otherwise it waits for the
+# next bar line and fades over a bar (the drift resolving into the rest).
+func music_then(once_id: StringName, next_set: StringName, next_layers: Array = [&"base"], hard := false) -> void:
+	var path := "%smus_once_%s.wav" % [MUSIC_DIR, once_id]
+	if not ResourceLoader.exists(path):
+		play_music(next_set, next_layers)
+		return
+	_queued_set = {}
+	_then_once = {"path": path, "set": next_set, "layers": next_layers}
+	if hard or _music.is_empty():
+		_fade_out_current(0.15 if hard else _music_bar)
+		_start_once()
+	else:
+		_once_wait = _time_to_bar()
+
+func _set_files(set_name: StringName) -> Dictionary:
+	if _set_cache.has(set_name):
+		return _set_cache[set_name]
+	var files := {}  # layer -> path
+	var prefix := "mus_%s_" % set_name
+	if DirAccess.dir_exists_absolute(MUSIC_DIR):
+		for file in ResourceLoader.list_directory(MUSIC_DIR):
+			if file.begins_with(prefix) and file.ends_with(".wav"):
+				files[StringName(file.trim_prefix(prefix).get_basename())] = MUSIC_DIR + file
+	_set_cache[set_name] = files
+	return files
+
+static func bar_of(set_name: StringName) -> float:
+	return REST_BAR if String(set_name).begins_with("rest_") else DRIFT_BAR
+
+func _time_to_bar() -> float:
+	return _music_bar - fposmod(_music_clock, _music_bar)
+
+func _start_set(set_name: StringName, layers: Array, then_layers: Array) -> void:
+	_fade_out_current(_music_bar)
+	_music_set = set_name
+	_music_bar = bar_of(set_name)
+	_music_clock = 0.0
+	_pending_layers = {}
+	var files := _set_files(set_name)
+	for layer in files:
+		var player := AudioStreamPlayer.new()
+		player.stream = _looping(load(files[layer]))
+		player.bus = &"Music"
+		player.process_mode = Node.PROCESS_MODE_ALWAYS
+		player.volume_db = -80.0
+		add_child(player)
+		_music[layer] = player
+		_music_level[layer] = 0.0
+		_music_target[layer] = 1.0 if layers.has(layer) else 0.0
+	for layer in then_layers:
+		if _music.has(layer):
+			_pending_layers[layer] = true
 	for player in _music.values():
-		player.queue_free()
+		if not _silent:
+			player.play()  # Same frame: the stems stay in sync
+
+# The current set fades out over `seconds` (one of its bars), then frees itself.
+func _fade_out_current(seconds: float) -> void:
+	for layer in _music:
+		_outgoing.append({"player": _music[layer], "level": _music_level[layer] * _layer_gain(layer),
+			"rate": 1.0 / maxf(seconds, 0.05)})
 	_music.clear()
 	_music_level.clear()
 	_music_target.clear()
+	_pending_layers.clear()
 	_music_set = &""
+
+func _start_once() -> void:
+	var once := _then_once
+	var stream: AudioStream = load(once.path)
+	var player := AudioStreamPlayer.new()
+	player.stream = stream
+	player.bus = &"Music"
+	player.process_mode = Node.PROCESS_MODE_ALWAYS
+	player.volume_db = MUSIC_DB + ONCE_DB
+	player.finished.connect(player.queue_free)
+	add_child(player)
+	if _silent:
+		player.queue_free()
+	else:
+		player.play()
+	_queued_set = {"set": once.set, "layers": once.layers, "then": []}
+	_queue_wait = maxf(stream.get_length() - ONCE_OVERLAP, 0.0)
+	_then_once = {}
+
+# Bar lines, queued sets and one-shots, and the outgoing set's fade. Real time (delta already unscaled).
+func _update_music_clock(delta: float) -> void:
+	if not _music.is_empty():
+		var before := _music_clock
+		_music_clock += delta
+		if floori(_music_clock / _music_bar) > floori(before / _music_bar):  # A bar line
+			for layer in _pending_layers:
+				if _music_target.has(layer):
+					_music_target[layer] = 1.0 if _pending_layers[layer] else 0.0
+			_pending_layers.clear()
+	if not _then_once.is_empty():
+		_once_wait -= delta
+		if _once_wait <= 0.0:
+			_fade_out_current(_music_bar)
+			_start_once()
+	if not _queued_set.is_empty():
+		_queue_wait -= delta
+		if _queue_wait <= 0.0:
+			var queued := _queued_set
+			_queued_set = {}
+			_start_set(queued.set, queued.layers, queued.then)
+	for fading in _outgoing.duplicate():
+		fading.level = maxf(fading.level - fading.rate * delta, 0.0)
+		var player: AudioStreamPlayer = fading.player
+		if fading.level <= 0.0 or not is_instance_valid(player):
+			_outgoing.erase(fading)
+			if is_instance_valid(player):
+				player.queue_free()
+		else:
+			player.volume_db = linear_to_db(maxf(fading.level, 0.0001)) + MUSIC_DB + _phase_db - _duck_db
 
 # Lowpasses the music (choice screens, pause).
 func set_muffled(on: bool) -> void:
@@ -393,5 +529,5 @@ func set_softer_nightmares(on: bool) -> void:
 	_softer = on
 
 func _layer_gain(layer: StringName) -> float:
-	var gain: float = LAYER_GAIN.get(layer, 1.0)
+	var gain: float = SIG_GAIN if String(layer).begins_with("sig_") else LAYER_GAIN.get(layer, 1.0)
 	return gain * SOFTER_DREAD2 if _softer and layer == &"dread2" else gain

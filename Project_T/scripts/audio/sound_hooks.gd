@@ -19,7 +19,15 @@ const SIGNATURE_INTERVAL_MS := 2500  # One signature per nightmare type this oft
 const DREAD2_COUNT := 12
 # One music theme per boss (audio_direction.md): EnemyData file name -> its stems (mus_act1_boss_<key>,
 # + _warm below half health).
-const BOSS_THEMES := {"old_stag": "stag", "great_toad": "hag", "moth_queen": "moth", "hollow_oak": "oak"}
+# The score (audio_direction.md "The score"): per act a rest piece (rest_act<N>), a drift
+# (act<N>: base / dread1 / dread2 / heartbeat) and a boss theme (boss_act<N>: drums / bass / theme /
+# warm + sig_<boss enemy id> layers), plus one-shots act<N>_tail (drift resolving to rest) and
+# act<N>_hope (a boss dispelled). Acts without their own set yet use act 1's.
+const MUSIC_REST := &"rest"
+const MUSIC_DRIFT := &"drift"
+const MUSIC_BOSS := &"boss"
+const MUSIC_AFTER := &"after"  # A boss's Hope form playing out into the rest
+const BOSS_DRUM_CUT := 2.5  # A boss biting the Heartwood: the drums drop out for a bar
 const LOW_LEAVES := 5
 const QUIET_LINES := ["wall"]  # Wardens that never attack
 # Attacks (audio_direction.md "Wardens"): a quiet launch when the Warden fires, the impact on the hit.
@@ -145,6 +153,11 @@ var _presence := {}  # Tower instance id -> a Warden with a presence loop
 var _dew_catch_at := -100000
 var _close_call_at := -100000
 var _bolt_at := -100000  # msec of the last bolt sound
+var _act := 1  # The act the music belongs to
+var _music_mode := MUSIC_REST
+var _boss_cold := false  # The boss has bitten the Heartwood: its warm layer stays off
+var _drums_back_at := 0  # msec: the boss drums return after a bite
+var _sig_layers: Array[StringName] = []  # Signature layers on now
 var _drags := {}  # Nightmare instance id -> its soil-drag player (cut when the pull ends)
 var _final_blooming := {}  # Tower instance id -> a Final Bloom is playing its hit (skip the first breath)
 var _harvest_at := -100000  # msec of this rest's harvest sound (later pours add droplets)
@@ -162,10 +175,14 @@ func _ready() -> void:
 	enemy_container.child_entered_tree.connect(_on_enemy_added)
 	enemy_container.enemy_cleansed.connect(func(enemy: Node2D) -> void:
 		# Bigger nightmares: a lower, slower sigh (the same weight as their hits).
-		sound.play_dispel(enemy.global_position, enemy.enemy_data.is_boss, _weight_pitch(enemy), enemy.elite))
-	enemy_container.enemy_reached_goal.connect(func(_enemy: Node2D) -> void:
+		sound.play_dispel(enemy.global_position, enemy.enemy_data.is_boss, _weight_pitch(enemy), enemy.elite)
+		if enemy.enemy_data.is_boss and not enemy.is_echo:
+			_on_boss_dispelled())
+	enemy_container.enemy_reached_goal.connect(func(enemy: Node2D) -> void:
 		sound.duck(8.0, 1.0)
-		sound.play(&"leaf_lost", null, 0.0, 1.0, 0.03))
+		sound.play(&"leaf_lost", null, 0.0, 1.0, 0.03)
+		if enemy.enemy_data.is_boss and not enemy.is_echo:
+			_on_boss_bit())
 	# A boss at the Heartwood drains a leaf every 2 s until dispelled (Enemy Code cfd21fe5): the leaf-lost
 	# sound, lower and heavier, with a lighter duck so the music doesn't pump every 2 s.
 	if enemy_container.has_signal("boss_drained"):
@@ -198,9 +215,12 @@ func _ready() -> void:
 	# No Dew sound per kill (third listen: kills sounded like coins); only lump sums make one.
 	run_state.run_ended.connect(_on_run_ended)
 
-	drift_director.drift_started.connect(func(_number: int) -> void: sound.play(&"drift_start", null, -4.0, 1.0, 0.0))
+	drift_director.drift_started.connect(func(number: int) -> void:
+		sound.play(&"drift_start", null, -4.0, 1.0, 0.0)
+		_on_drift_music(number))
 	drift_director.rest_started.connect(func(_block: int, _boss: bool, bonus: int, _perfect: bool) -> void:
 		sound.play(&"rest", null, -2.0, 1.0, 0.0)
+		_on_rest_music()
 		for t in _withered.values():  # The Sapling recovers at a rest: a warm exhale
 			if is_instance_valid(t):
 				_event("recover_", t, t.global_position)
@@ -209,7 +229,11 @@ func _ready() -> void:
 			sound.play(&"dew", null, DEW_DB, 1.0, 0.0))
 	omen_director.omen_rewarded.connect(func(_omen: OmenData, _summary: String) -> void:
 		sound.play(&"dew", null, DEW_DB, 1.0, 0.0))
-	drift_director.act_started.connect(func(_act: int, _regrown: int) -> void: sound.play(&"act_swell", null, 0.0, 1.0, 0.0))
+	drift_director.act_started.connect(func(act: int, _regrown: int) -> void:
+		sound.play(&"act_swell", null, 0.0, 1.0, 0.0)
+		_act = act  # The swell, then the next act's rest piece (after a boss's Hope form, if it's playing)
+		_music_mode = MUSIC_REST if _music_mode != MUSIC_AFTER else MUSIC_AFTER
+		sound.play_music(_set_for(MUSIC_REST), [&"base"]))
 	drift_director.family_pick_requested.connect(func(_reason: StringName) -> void:
 		sound.play(&"family_bell", null, 0.0, 1.0, 0.0, &"UI"))
 	dream_state.offer_ready.connect(func(_cards: Array[UpgradeData], _drift: int) -> void:
@@ -251,7 +275,8 @@ func _ready() -> void:
 		_hook_economy(node)
 		_hook_remember(node)
 
-	sound.play_music(&"act1", [&"base"])
+	_act = drift_director.get_act(maxi(drift_director.drifts_started, 1))
+	sound.play_music(_set_for(MUSIC_REST), [&"base"])  # A run (or a resumed one) starts resting
 	sound.play_ambience(&"act1")
 	_on_path_changed()
 
@@ -274,32 +299,93 @@ func _process(delta: float) -> void:
 	sound.set_drifting(not _resting)
 	_apply_loops()
 
+# --- The score: rest, drift and boss music (audio_direction.md "Transitions") ----------------------
+
+# The act's set of `kind`, or act 1's while that act's isn't built yet.
+func _set_for(kind: StringName) -> StringName:
+	var pattern: String = {MUSIC_REST: "rest_act%d", MUSIC_DRIFT: "act%d", MUSIC_BOSS: "boss_act%d"}[kind]
+	var own := StringName(pattern % _act)
+	return own if sound.has_music_set(own) else StringName(pattern % 1)
+
+func _once_for(kind: String) -> StringName:
+	var own := StringName("act%d_%s" % [_act, kind])
+	return own if ResourceLoader.exists("%smus_once_%s.wav" % [Sound.MUSIC_DIR, own]) else StringName("act1_" + kind)
+
+# A drift starts: from the rest, the drift base enters on the next bar line; a boss drift brings the
+# boss drums in on the next bar line, then the full theme a bar later.
+func _on_drift_music(number: int) -> void:
+	_act = drift_director.get_act(number)
+	if drift_director.is_boss_drift(number):
+		_music_mode = MUSIC_BOSS
+		_boss_cold = false
+		_drums_back_at = 0
+		_sig_layers = []
+		sound.play_music(_set_for(MUSIC_BOSS), [&"drums"], [&"bass", &"theme"])
+	elif _music_mode != MUSIC_DRIFT:
+		_music_mode = MUSIC_DRIFT
+		sound.play_music(_set_for(MUSIC_DRIFT), [&"base"])
+
+# The block's last dispel (rest_started): the dread falls away, the base resolves in a short tail,
+# then the rest piece. After a boss's Hope form, the rest is already on its way.
+func _on_rest_music() -> void:
+	if _music_mode == MUSIC_AFTER:
+		_music_mode = MUSIC_REST
+		return
+	if _music_mode != MUSIC_REST:
+		_music_mode = MUSIC_REST
+		sound.music_then(_once_for("tail"), _set_for(MUSIC_REST), [&"base"])
+
+# A boss dispelled: a hard stop, its dispel, then the Hope form into the rest.
+func _on_boss_dispelled() -> void:
+	_music_mode = MUSIC_AFTER
+	sound.music_then(_once_for("hope"), _set_for(MUSIC_REST), [&"base"], true)
+
+# A boss biting the Heartwood: the drums drop out for a bar, and the theme returns colder (no warm).
+func _on_boss_bit() -> void:
+	if _music_mode != MUSIC_BOSS:
+		return
+	_boss_cold = true
+	sound.set_layer(&"drums", false)
+	sound.set_layer(&"warm", false)
+	_drums_back_at = Time.get_ticks_msec() + int(BOSS_DRUM_CUT * 2000.0)  # Back on the bar line after next
+
 func _scan_field() -> void:
 	var enemies: Array = enemy_container.get_enemies()  # Once per scan: it builds a new list each call
 	var near := false
 	var boss := false
 	var smothered := false
-	var theme := ""  # The walking boss's own theme (BOSS_THEMES), if it has one
-	var winning := false  # That boss is below half health: its warm counter-melody enters
+	var boss_id := ""  # The walking boss (its signature layer)
+	var boss_laps := 0  # The Night Mare: one more signature layer per lap
+	var winning := false  # The boss is below half health: the warm counter-melody enters
 	var near_distance := _path_pixels / 3.0
 	for enemy in enemies:
-		if enemy.enemy_data.is_boss:
-			boss = true
-			var key: String = BOSS_THEMES.get(enemy.enemy_data.resource_path.get_file().get_basename(), "")
-			if key != "" and theme == "":
-				theme = key
-				winning = enemy.health * 2 <= enemy.max_health
+		if enemy.enemy_data.is_boss and not enemy.is_echo and boss_id == "":
+			boss_id = enemy.enemy_data.resource_path.get_file().get_basename()
+			boss_laps = enemy.laps
+			winning = enemy.health * 2 <= enemy.max_health
 		if not near and enemy.get_remaining_distance() < near_distance:
 			near = true
 		if not smothered and enemy.has_meta(&"smother_fx"):
 			smothered = true
-	sound.set_layer(&"dread1", not enemies.is_empty())
-	sound.set_layer(&"dread2", enemies.size() >= DREAD2_COUNT or near)
-	sound.set_layer(&"heartbeat", run_state.leaves <= LOW_LEAVES and not run_state.is_over)
-	sound.set_layer(&"boss", boss and theme == "")  # A boss without a theme of its own: the shared drums
-	for key in BOSS_THEMES.values():
-		sound.set_layer(StringName("boss_" + key), theme == key)
-		sound.set_layer(StringName("boss_%s_warm" % key), theme == key and winning)
+	if _music_mode == MUSIC_DRIFT:
+		sound.set_layer(&"dread1", not enemies.is_empty())
+		sound.set_layer(&"dread2", enemies.size() >= DREAD2_COUNT or near)
+		sound.set_layer(&"heartbeat", run_state.leaves <= LOW_LEAVES and not run_state.is_over)
+	elif _music_mode == MUSIC_BOSS:
+		sound.set_layer(&"warm", winning and not _boss_cold)
+		if Time.get_ticks_msec() >= _drums_back_at:
+			sound.set_layer(&"drums", true)
+		var sigs: Array[StringName] = []
+		if boss_id != "":
+			sigs.append(StringName("sig_" + boss_id))
+			for lap in range(2, mini(boss_laps, 2) + 2):  # sig_night_mare_2 after lap 1, _3 after lap 2
+				sigs.append(StringName("sig_%s_%d" % [boss_id, lap]))
+		for sig in _sig_layers:
+			if not sigs.has(sig):
+				sound.set_layer(sig, false)
+		for sig in sigs:
+			sound.set_layer(sig, true)
+		_sig_layers = sigs
 	_resting = drift_director.is_build_phase()
 	if _resting:
 		sound.set_ambience_trim(AMBIENCE_REST_DB)
