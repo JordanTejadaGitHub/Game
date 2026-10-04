@@ -148,18 +148,19 @@ func _init() -> void:
 	var hatch: BuildHatch = map.build_hatch
 	_check(not hatch.visible, "no hatch outside build mode")
 	main.get_node("%TowerPlacer").build_mode_changed.emit(true)
-	var hatched := hatch.get_hatched_cells()
+	var hatched := hatch.get_hatched_halves()  # Half cells (half_cells.md)
 	var an_obstacle: Vector2 = map.obstacles.keys()[0]
-	_check(hatch.visible and hatched.has(Vector2(rim_cell)) and hatched.has(map.startPath) and hatched.has(map.endPath)
-		and hatched.has(an_obstacle), "build mode hatches the rim, the start, the end and obstacles")
+	var all_halves := func(cell: Vector2) -> bool: return map.halves_of(cell * 2).all(func(h: Vector2) -> bool: return hatched.has(h))
+	_check(hatch.visible and all_halves.call(Vector2(rim_cell)) and all_halves.call(map.startPath) and all_halves.call(map.endPath)
+		and all_halves.call(an_obstacle), "build mode hatches the rim, the start, the end and obstacles (all their halves)")
 	var open_cell := Vector2(-1, -1)
-	_check(hatched.all(func(cell: Vector2) -> bool: return not map.is_buildable(cell)), "only unbuildable cells are hatched")
+	_check(hatched.all(func(h: Vector2) -> bool: return not map.is_buildable_half(h)), "only unbuildable halves are hatched")
 	for x in range(1, 22):
 		if map.is_buildable(Vector2(x, 9)):
 			open_cell = Vector2(x, 9)
 			break
-	_check(not hatched.has(open_cell) and not hatched.has(Vector2(12, 10)),
-		"buildable cells and a Warden's own cell stay clear")
+	_check(not hatched.has(open_cell * 2) and not map.halves_of(Vector2(24, 20)).any(func(h: Vector2) -> bool: return hatched.has(h)),
+		"buildable halves and a Warden's own halves stay clear")
 	main.get_node("%TowerPlacer").build_mode_changed.emit(false)
 	_check(not hatch.visible, "leaving build mode hides the hatch")
 
@@ -253,15 +254,16 @@ func _light_pass(image: Image, map: Node, margin: Vector2i, scale: float) -> voi
 	var reach := edge.fill_to.x - 0.5
 	var falloff := (EnvironmentLighting.light_texture() as GradientTexture2D).gradient
 	var lights := []
-	var glow := map.heartwood.get_child(1) as Sprite2D  # Additive, over the multiply
+	var glow: Sprite2D = map.ground_layer.get_node("HeartwoodGlow")  # Additive pool on the ground (a squashed disc)
 	var glow_radius := glow.scale.x * 128.0
+	var squash := glow.scale.y / glow.scale.x
 	var heart_light := map.heartwood.get_child(0) as PointLight2D
 	lights.append([heart_light.global_position, heart_light.color * heart_light.energy, heart_light.texture_scale * 128.0 * heart_light.scale.x])
-	var glows := [[glow.global_position, glow.modulate * glow.modulate.a, glow_radius]]
+	var glows := [[glow.global_position, glow.modulate * glow.modulate.a, glow_radius, squash]]
 	for tower: Tower in lighting._wardens:
 		if lighting._wardens[tower]:
 			glows.append([tower.global_position + Vector2(0, -2),
-				Color(lighting.warden_glow_color, 1.0) * lighting.warden_glow_alpha, lighting.warden_glow_radius])
+				Color(lighting.warden_glow_color, 1.0) * lighting.warden_glow_alpha, lighting.warden_glow_radius, 1.0])
 	for y in image.get_height():
 		for x in image.get_width():
 			var world := Vector2(x, y) * scale - Vector2(margin)
@@ -274,7 +276,7 @@ func _light_pass(image: Image, map: Node, margin: Vector2i, scale: float) -> voi
 			var lift := Color(1, 1, 1) + warm
 			var c := image.get_pixel(x, y) * lift * cold * lift
 			for added: Array in glows:
-				var g: float = world.distance_to(added[0]) / added[2]
+				var g: float = ((world - added[0]) * Vector2(1.0, 1.0 / added[3])).length() / added[2]
 				if g < 1.0:
 					c += added[1] * falloff.sample(g).a
 			c.a = 1.0
