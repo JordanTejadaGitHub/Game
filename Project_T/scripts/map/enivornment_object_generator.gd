@@ -360,6 +360,26 @@ func _generate_bridge(startPath: Vector2i) -> void:
 		set_cell(startPath + out * i, EnvironmentTiles.ROPE_BRIDGE, tile)
 	bridge_end = startPath + out * (BRIDGE_CELLS + 1)
 
+# Shifting Mist (heartwood_gifts.md 0c552b28): the start moves to `new` on the rim. The old start turns back
+# into rim (its bridge goes, the cliffs come back under the bottom row); the new one gets the mist and a bridge.
+func move_start(old: Vector2i, new: Vector2i) -> void:
+	var size := Vector2i(MAP_GRID.size)
+	var out := _outward(old)
+	for i in range(1, BRIDGE_CELLS + 1):
+		var cell := old + out * i
+		erase_cell(cell)
+		if cell.y == size.y and cell.x >= 0 and cell.x < size.x:  # Under the bottom row: its cliff face again
+			set_cell(cell, EnvironmentTiles.CLIFF, Vector2i((1 if cell.x > 0 else 0) | (2 if cell.x < size.x - 1 else 0), EnvironmentTiles.cell_variant(cell, 4)))
+	var variants := (tile_set.get_source(EnvironmentTiles.ISLAND_EDGE) as TileSetAtlasSource).get_atlas_grid_size().y
+	set_cell(old, EnvironmentTiles.ISLAND_EDGE, Vector2i(EnvironmentTiles.rim_mask(old, size), absi(hash(old)) % maxi(variants, 1)))
+	unwalkable_cells.append(Vector2(old))
+	var at := unwalkable_cells.find(Vector2(new))
+	if at >= 0:
+		unwalkable_cells.remove_at(at)
+	_start = new
+	_generate_bridge(new)
+	set_cell(new, EnvironmentTiles.EDGE_MIST, Vector2i.ZERO)
+
 # The direction off the island from an edge cell.
 func _outward(cell: Vector2i) -> Vector2i:
 	var last := Vector2i(MAP_GRID.size) - Vector2i.ONE

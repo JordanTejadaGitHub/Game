@@ -119,11 +119,22 @@ func _init() -> void:
 	_check(map.get_obstacle(from) == null and map.get_obstacle(to[0]) == moved and run_state.obstacles_tended == tended,
 		"a stone moves, not tended")
 
-	# Deeper Glade: the next ring out cleared.
-	var ring_cells := gifts.deeper_glade_cells()
-	_give(gifts, run_state, MapGifts.DEEPER_GLADE, [])
-	_check(ring_cells.all(func(c: Vector2) -> bool: return map.get_obstacle(c) == null) and gifts.glade_radius == 2,
-		"the glade grows a ring")
+	# Shifting Mist (replaced Deeper Glade): 3 rim spots with a route each; picking one moves the start.
+	_check(not MapGifts.TERRAIN_GIFTS.has(&"deeper_glade"), "Deeper Glade is gone")
+	var options := gifts.start_options(3)
+	_check(options.size() == 3 and options.all(func(c: Vector2) -> bool: return _rim_spot_ok(map, c)), "3 rim spots, each with a route (%s)" % [options])
+	_check(options == gifts.start_options(3), "the same spots when asked again")
+	var old_start: Vector2 = map.startPath
+	var preview := gifts.route_from_start(options[0])
+	var shift: Array[Vector2] = [options[0]]
+	_give(gifts, run_state, MapGifts.SHIFTING_MIST, shift)
+	_check(map.startPath == options[0] and map.get_path_from(map.startPath) == preview, "the start moves; the route is the preview")
+	_check(env.get_cell_source_id(Vector2i(options[0])) == EnvironmentTiles.EDGE_MIST
+		and env.get_cell_source_id(Vector2i(old_start)) == EnvironmentTiles.ISLAND_EDGE
+		and map.path_layer.is_cell_blocked(old_start) and not map.path_layer.is_cell_blocked(options[0]),
+		"the mist and the way in move; the old start is rim again")
+	var out: Vector2i = env._outward(Vector2i(options[0]))
+	_check(env.get_cell_source_id(Vector2i(options[0]) + out) == EnvironmentTiles.ROPE_BRIDGE, "a rope bridge out from the new start")
 
 	# The player tends a gift tree and the moved stone afterwards: they stay gone on resume.
 	map.clear_obstacle(ridge[1])
@@ -192,7 +203,7 @@ func _in_rings(gifts: MapGifts, cell: Vector2) -> bool:
 
 func _state(gifts: MapGifts) -> String:
 	return var_to_str([gifts.gift_obstacles, gifts.logs, gifts.spring_cells, gifts.moonwells, gifts.bell_stones,
-		gifts.bog_cells, gifts.root_cells, gifts.rings, gifts.stumps, gifts.glade_radius])
+		gifts.bog_cells, gifts.root_cells, gifts.rings, gifts.stumps, gifts.map.startPath])
 
 func _blocked(map: Node) -> Array:
 	var cells: Array = []
@@ -213,3 +224,8 @@ func _open(map: Node, c: Vector2) -> bool:
 	var gifts: MapGifts = map.gifts
 	return (map.is_buildable(c) and not map.get_glade_cells().has(c) and not gifts.is_bog(c) and not gifts.is_rooted(c)
 		and not gifts.stumps.has(c) and not _in_rings(gifts, c) and not map.path_layer.current_path.has(c))
+
+func _rim_spot_ok(map: Node, c: Vector2) -> bool:
+	var size := Vector2i(map.MAP_GRID.size)
+	var on_rim := c.x == 0 or c.y == 0 or c.x == size.x - 1 or c.y == size.y - 1
+	return on_rim and c != map.startPath and not map.gifts.route_from_start(c).is_empty()

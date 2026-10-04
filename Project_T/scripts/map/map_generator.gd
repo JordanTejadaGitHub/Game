@@ -548,6 +548,29 @@ func unblock_halves(halves: Array) -> void:
 	path_layer.draw()
 	path_changed.emit()
 
+# Shifting Mist (heartwood_gifts.md 0c552b28): nightmares come from `new_start`, a rim cell, from now on. The
+# rim, mist and bridge move (EnvironmentObjectGenerator.move_start), the halves swap, the route is redrawn and
+# path_changed re-routes everything walking. Spawns read startPath, so they follow.
+func move_start(new_start: Vector2) -> void:
+	var old := startPath
+	if new_start == old:
+		return
+	environment_object_layer.move_start(Vector2i(old), Vector2i(new_start))
+	unwalkable_cells = environment_object_layer.unwalkable_cells
+	ground_layer.erase_cell(Vector2i(old))  # Rim cells have no ground under them; the start's rim sits on the ground layer
+	ground_layer.set_cell(Vector2i(new_start), EnvironmentTiles.ISLAND_EDGE,
+		Vector2i(EnvironmentTiles.rim_mask(Vector2i(new_start), Vector2i(MAP_GRID.size)), 0))
+	path_layer.set_cell_blocked(old, true)
+	path_layer.set_cell_blocked(new_start, false)
+	startPath = new_start
+	path_layer.cell_start_path = new_start
+	if layout != null:
+		layout.start = Vector2i(new_start)
+	if dream_void != null:
+		dream_void.move_bridge(environment_object_layer.bridge_end)
+	path_layer.draw()
+	path_changed.emit()
+
 # --- Obstacles ------------------------------------------------------------------------------------
 
 # The tree/rock on `cell`, or null.

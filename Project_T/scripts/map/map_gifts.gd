@@ -30,9 +30,9 @@ const MOONWELL := &"moonwell"
 const BELL_STONE := &"bell_stone"
 const ANCIENT_STUMP := &"ancient_stump"
 const HEARTWOOD_ROOTS := &"heartwood_roots"
-const DEEPER_GLADE := &"deeper_glade"
+const SHIFTING_MIST := &"shifting_mist"  # Replaced Deeper Glade (heartwood_gifts.md 0c552b28)
 const TERRAIN_GIFTS: Array[StringName] = [SOW_RIDGE, FALLEN_GIANT, GLADE, SHIFT_STONES, MIRE, SPRING, MUSHROOM_RING,
-	LIGHTNING_TREE, MOONWELL, BELL_STONE, ANCIENT_STUMP, HEARTWOOD_ROOTS, DEEPER_GLADE]
+	LIGHTNING_TREE, MOONWELL, BELL_STONE, ANCIENT_STUMP, HEARTWOOD_ROOTS, SHIFTING_MIST]
 
 # Numbers (spire_difficulty.md Phase 3 starting points; Balancing tunes).
 const MIRE_SLOW := 0.2  # Through EnemyStatuses' extra slow: the slow floors still hold
@@ -60,7 +60,6 @@ var bog_cells: Array[Vector2] = []
 var root_cells: Array[Vector2] = []
 var rings: Array[Vector2] = []  # Top-left cells of 3×3 Mushroom Rings
 var stumps: Array[Vector2] = []
-var glade_radius := 1  # The Heartwood's clear glade (MapGenerator.get_glade_cells); Deeper Glade: 2
 var _props: Array[Node2D] = []
 var _sheets := {}
 var _tick := 0.0
@@ -105,9 +104,60 @@ func roots_cells() -> Array[Vector2]:
 			break
 	return cells
 
-# The ring Deeper Glade clears: one more ring of cells around the Heartwood.
-func deeper_glade_cells() -> Array[Vector2]:
-	return _ring(map.endPath, glade_radius + 1)
+# Shifting Mist: up to `count` rim cells the start could move to (MapLayout's rules: on the rim, not by a
+# corner, far enough from the Heartwood, a route from it with today's Wardens: they never rule a spot out on their own), spread
+# apart and away from today's start. The same for the same map and start (seeded).
+func start_options(count: int) -> Array[Vector2]:
+	var size := Vector2i(MAP_GRID.size)
+	var last := size - Vector2i.ONE
+	var reach := Vector2(size).length() * MapLayout.MIN_DISTANCE_SHARE
+	var candidates: Array[Vector2] = []
+	var far_enough: Array[Vector2] = []
+	for x in size.x:
+		for y in size.y:
+			var cell := Vector2i(x, y)
+			var on_rim := x == 0 or y == 0 or x == last.x or y == last.y
+			var by_corner := (x <= 1 or x >= last.x - 1) and (y <= 1 or y >= last.y - 1)
+			if not on_rim or by_corner or Vector2(cell) == map.startPath:
+				continue
+			candidates.append(Vector2(cell))
+			if Vector2(cell).distance_to(map.endPath) >= reach:
+				far_enough.append(Vector2(cell))
+	var pool := far_enough if far_enough.size() >= count else candidates
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([map.map_seed, map.startPath])
+	for i in range(pool.size() - 1, 0, -1):  # Seeded shuffle
+		var j := rng.randi_range(0, i)
+		var swap := pool[i]
+		pool[i] = pool[j]
+		pool[j] = swap
+	var picked: Array[Vector2] = []
+	for spread in [6.0, 3.0, 0.0]:  # Apart from each other and the start; relax if the rim is short of room
+		for cell in pool:
+			if picked.size() >= count:
+				return picked
+			if picked.has(cell) or cell.distance_to(map.startPath) < spread:
+				continue
+			if picked.any(func(p: Vector2) -> bool: return p.distance_to(cell) < spread):
+				continue
+			if route_from_start(cell).is_empty():
+				continue
+			picked.append(cell)
+	return picked
+
+# The route nightmares would take from rim cell `spot` (the gift screen's preview). Changes nothing.
+func route_from_start(spot: Vector2) -> PackedVector2Array:
+	if spot == map.startPath:
+		return map.get_path_from(map.startPath)
+	var opened: Array[Vector2] = []
+	for h in FindPath.halves_of_cell(spot):
+		if map.path_layer.is_half_blocked(h):
+			opened.append(h)
+			map.path_layer.set_half_blocked(h, false)
+	var route: PackedVector2Array = map.path_layer.find_path_from(spot)
+	for h in opened:
+		map.path_layer.set_half_blocked(h, true)
+	return route
 
 # Puts `gift` on `cells` (the caller checked them; Shift the Stones moves `from[i]` to `cells[i]`).
 # `restoring`: rebuilding a resumed run on the regenerated map. Obstacles a gift put down and the player
@@ -153,11 +203,9 @@ func apply(gift: StringName, cells: Array[Vector2], from: Array[Vector2] = [], r
 			stumps.append_array(cells)
 		HEARTWOOD_ROOTS:
 			root_cells.append_array(cells if not cells.is_empty() else roots_cells())
-		DEEPER_GLADE:
-			for cell in deeper_glade_cells():
-				if map.get_obstacle(cell) != null:
-					_clear(cell, restoring)
-			glade_radius += 1
+		SHIFTING_MIST:  # Replayed on a resume: the regenerated map starts at the old start again
+			if not cells.is_empty():
+				map.move_start(cells[0])
 	_rebuild_props()
 	map.path_layer.draw()
 	map.path_changed.emit()
@@ -272,15 +320,6 @@ func _obstacles_within(centre: Vector2, radius: int) -> Array:
 	for cell: Vector2 in map.obstacles:
 		if absf(cell.x - centre.x) <= radius and absf(cell.y - centre.y) <= radius:
 			cells.append(cell)
-	return cells
-
-func _ring(centre: Vector2, radius: int) -> Array[Vector2]:
-	var cells: Array[Vector2] = []
-	for dx in range(-radius, radius + 1):
-		for dy in range(-radius, radius + 1):
-			var cell := centre + Vector2(dx, dy)
-			if maxi(absi(dx), absi(dy)) == radius and MAP_GRID.is_within_bounds(cell) and not map.unwalkable_cells.has(cell):
-				cells.append(cell)
 	return cells
 
 static func _min_x(cells: Array) -> float:
