@@ -36,7 +36,7 @@ var _drawn_frame := -1
 
 func _init(target: Node2D, data: TowerData, on_land: Callable) -> void:
 	_target = target
-	_target_position = target.global_position
+	_target_position = Tower.aim_at(target)
 	_on_land = on_land
 	speed = data.projectile_speed
 	color = data.projectile_color
@@ -71,10 +71,10 @@ func _process(delta: float) -> void:
 
 	var target_alive: bool = is_instance_valid(_target) and not _target.is_cleansed
 	if target_alive and not _lob:
-		_target_position = _target.global_position
+		_target_position = Tower.aim_at(_target)  # Fly at the drawn body (feet on the route point)
 
 	if global_position.distance_to(_target_position) <= step:
-		_on_land.call(_target if target_alive else null, _target_position)
+		_on_land.call(_target if target_alive else null, _target.global_position if target_alive and not _lob else _target_position)  # Lands at the logical spot (splash)
 		if _returns:
 			_returning = true
 			return

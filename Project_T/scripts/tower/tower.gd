@@ -1940,7 +1940,7 @@ func _kin_chime_catch(in_range: Array) -> void:
 		if not s.is_catchable():
 			continue
 		if not s.is_caught():
-			Reactions._effect(&"caught", enemy.global_position, self, 1.0, 0.8)
+			Reactions._effect(&"caught", aim_at(enemy), self, 1.0, 0.8)
 		s.caught_time = maxf(s.caught_time, hold)
 
 # Night Chimes (Dreamcatcher line): its hits set off Static at 3 charges, like a chime.
@@ -2012,7 +2012,7 @@ func roll_crit(enemy: Node2D) -> bool:
 	var first := not _hit_before.has(id)
 	_hit_before[id] = true
 	if attack_data.first_hit_crits and first:
-		Reactions._effect(&"moonstone_beam", enemy.global_position, self)  # Signature: a moonbeam from above
+		Reactions._effect(&"moonstone_beam", aim_at(enemy), self)  # Signature: a moonbeam from above
 		return true
 	if attack_data.crits_vs_drowsy and enemy.statuses.has(EnemyStatuses.DROWSY):
 		return true  # Boulderback: a guaranteed crit on Drowsy, no roll
@@ -2598,7 +2598,7 @@ func _chain_strike(first: Node2D) -> void:
 		bloom = 2 if _rule_level(&"static_bloom") > 0 else 1
 	for i in hits.size():
 		var enemy := hits[i]
-		points.append(enemy.global_position)
+		points.append(aim_at(enemy))  # The bolt strikes the body
 		var falloff := maxf(1.0 - attack_data.chain_falloff * i, 0.1)  # Stormheart: −15% per jump
 		hit(enemy, falloff, false, ROLL_CRIT, &"conducted" if i >= attack_data.chain_targets and not attack_data.chain_all_in_range else &"")
 		var beacon := kin_share(&"storm_beacon", "a")
@@ -2727,7 +2727,7 @@ func _update_catch(delta: float) -> void:
 		if not s.is_catchable() and not (many_threads and s.stacks(EnemyStatuses.DROWSY) >= MANY_THREADS_DROWSY):
 			continue
 		if not s.is_caught():
-			Reactions._effect(&"caught", enemy.global_position, self, 1.0, 0.8)  # The dreamcatcher glyph
+			Reactions._effect(&"caught", aim_at(enemy), self, 1.0, 0.8)  # The dreamcatcher glyph
 			ComboFeedback.report(&"caught", self)  # Codex: a nightmare is Caught
 		s.caught_time = maxf(s.caught_time, AURA_TICK * 1.6 + NurtureChoices.CAUGHT_LINGER * choice_count(Focus.DEEP))  # Deep: lingers after it leaves
 		s.caught_bonus = maxf(s.caught_bonus if s.is_caught() else 0.0, tower_data.caught_bonus)
@@ -3168,7 +3168,7 @@ func peck(enemy: Node2D) -> void:
 		crit = CRIT
 	if _dream_state and _has_rule(&"needle_point"):
 		enemy.pierce_coat_once = true
-	Reactions._effect(&"peck_spark", enemy.global_position + Vector2(randf_range(-6, 6), -14), self)
+	Reactions._effect(&"peck_spark", aim_at(enemy) + Vector2(randf_range(-6, 6), 0), self)
 	hit(enemy, 1.0, false, crit)
 	if kin_share(&"jewel_thieves", "a") > 0.0 and is_instance_valid(enemy) and not enemy.is_cleansed:
 		_jewel_pecks += 1
@@ -3337,8 +3337,8 @@ func _spread() -> void:
 		if devil > 0.0 and blade and is_instance_valid(others[i]):
 			blade.hit(others[i], devil, true)  # Dust Devil: each copy also deals one blade hit
 			_kin_fired(&"dust_devil")
-		points.append(source.global_position)
-		points.append(others[i].global_position)
+		points.append(aim_at(source))
+		points.append(aim_at(others[i]))
 	for i in range(0, points.size(), 2):
 		add_child(ChainBolt.new(PackedVector2Array([points[i], points[i + 1]]), WIND_COLOR, 3.0))
 
@@ -3427,7 +3427,7 @@ func _enemies_on_adjacent_tiles() -> Array[Node2D]:
 # path tile nearest the pond (bosses only go back a couple of tiles).
 func _grab(target: Node2D) -> void:
 	var from := global_position + tower_data.get_attack_origin()
-	add_child(ChainBolt.new(PackedVector2Array([from, target.global_position]), TONGUE_COLOR, 0.0))
+	add_child(ChainBolt.new(PackedVector2Array([from, aim_at(target)]), TONGUE_COLOR, 0.0))
 	hit(target)
 	if not is_instance_valid(target) or target.is_cleansed:
 		return
@@ -3522,6 +3522,12 @@ func _beam_layer_ready() -> Node2D:
 	return _beam_layer
 
 # The beam, from the attack point (the flower's face) to its target, above the Warden's own art.
+# Where a visual aims at a nightmare (Enemy Code 4ea858af: bodies are drawn raised, their feet on the route point):
+# its drawn body. Game logic (ranges, splash, landing spots) keeps global_position.
+static func aim_at(enemy: Node2D) -> Vector2:
+	return enemy.get_body_position() if is_instance_valid(enemy) and enemy.has_method("get_body_position") \
+		else (enemy.global_position if is_instance_valid(enemy) else Vector2.ZERO)
+
 func _draw_beam() -> void:
 	if not is_instance_valid(_beam_target):
 		return
@@ -3530,7 +3536,7 @@ func _draw_beam() -> void:
 	for target in [_beam_target, _beam_behind]:
 		if not is_instance_valid(target):
 			continue
-		var to := to_local(target.global_position)
+		var to := to_local(aim_at(target))  # The body (drawn raised)
 		_beam_layer.draw_line(from, to, Color(_beam_data().beam_color, 0.35), width * 2.0)
 		_beam_layer.draw_line(from, to, Color(Palette.HEARTLIGHT, 0.9), maxf(width * 0.5, 1.5))
 		from = to  # Midsummer's beam carries on from the target to the one behind it
