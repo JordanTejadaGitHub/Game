@@ -591,7 +591,7 @@ function pathDual(A, k) {
 // wobbled by noise that wraps every tile. Opaque inside, drawn over the plain grass. Calm, like grass.png: one flat
 // base a palette step from the Night ground, a few hand-placed features per tile, no grain.
 // Rows (kind): 0 deep moss, 1 worn earth, 2 fern / flower bed, 3 the act's accent, 4 the glade ring (deep moss, warmer).
-const PATCH = 64, PATCH_INSET = 4, PATCH_ROUND = 24, PATCH_D = new Map();
+const PATCH = 64, PATCH_INSET = 4, PATCH_ROUND = 24, PATCH_RIM_IN = 10, PATCH_RIM_OUT = 6, PATCH_D = new Map();
 function patchD(mask) {
   if (!PATCH_D.has(mask)) {
     const H = PATCH / 2, E = H, G = PATCH + E * 2, INF = 1e9, on = b => (mask & b) !== 0;
@@ -618,11 +618,23 @@ const HP = { Dread: "#140f26", Night: "#24243c", Shade: "#2c2444", Deepmoss: "#1
   Dewlight: "#9cd4fc", Slate: "#5c5a78", Stone: "#8c8cac", Mist: "#b4b0c8", Moonlight: "#dce8f4" };
 function groundPatch(A, kind, k) {
   const L = new Img(PATCH, PATCH), D = patchD(k > 15 ? 15 : k), s = SEED + 900 + kind * 97 + (k > 15 ? (k - 15) * 37 : k);
-  const act = A.n, base = [HP.Deepmoss, HP.Dusk, HP.Night, [HP.Deepmoss, HP.Deepmoss, HP.Root, HP.Dusk][act - 1], HP.Deepmoss][kind];
+  const act = A.n, base = [HP.Deepmoss, HP.Shade, HP.Night, [HP.Deepmoss, HP.Deepmoss, HP.Root, HP.Dusk][act - 1], HP.Deepmoss][kind];
+  // Soft pass (2026-10-04, Environment Discussion: the flat fills read as pasted-on blocks): the patch is
+  // clumps of 4-8 px from a calm noise (the grass shows between them, pulling it toward the ground's value),
+  // with a ragged rim PATCH_RIM px wide where only the strongest clumps survive: moss fingers and scattered
+  // clumps, no grid corners. The noise wraps per tile; a variant part fades to 0 at the tile's edges so mask-15
+  // tiles differ inside without seams. Worn earth is solid inside (Shade, a step under the old Dusk).
+  const w = (x, y) => Math.sin(Math.PI * (x + .5) / PATCH) * Math.sin(Math.PI * (y + .5) / PATCH);
+  const n = (x, y) => .6 * pnoise(x, y, 16, SEED + 940, 4) + .4 * pnoise(x, y, 8, SEED + 941, 8) + w(x, y) * (pnoise(x, y, 16, s + 942, 4) - .5) * .6;
+  const inner = [.46, -1, 2, act === 3 ? .5 : .46, .44][kind];  // the clump threshold deep inside (fern beds: no fill)
+  const inPatch = (x, y) => { const t = clamp((D(x, y) + PATCH_RIM_IN) / (PATCH_RIM_IN + PATCH_RIM_OUT), 0, 1); return n(x, y) > inner + (1.08 - inner) * t; };
   for (let y = 0; y < PATCH; y++) for (let x = 0; x < PATCH; x++) {
-    const d = D(x, y);
-    if (d < 0) L.set(x, y, base);  // a clean edge: the softness is in the slow wobble, not a dithered fringe
+    if (!inPatch(x, y)) continue;
+    const top = y > 0 && !inPatch(x, y - 1);  // a clump's lit upper edge (moss kinds only)
+    L.set(x, y, top && (kind === 0 || kind === 4 || (kind === 3 && act < 3)) && hash(x, y, s + 5) < .45 ? (kind === 4 ? HP.Bark : HP.Moss) : base);
   }
+  if (kind === 1) for (let y = 0; y < PATCH; y++) for (let x = 0; x < PATCH; x++)  // a few trodden Dusk clumps inside
+    if (L.alpha(x, y) && D(x, y) < -8 && n(x, y) > .7) L.set(x, y, HP.Dusk);
   // Features: hand-placed spots, only well inside (a tile at a patch's edge gets fewer).
   const spots = (n, inset, salt) => {
     const out = [];
@@ -682,7 +694,7 @@ function groundPatch(A, kind, k) {
     for (const [x, y] of spots(2, 6, 3)) L.set(x, y, HP.Mist);
   }
   // Clip anything a feature drew past the patch edge.
-  for (let y = 0; y < PATCH; y++) for (let x = 0; x < PATCH; x++) if (D(x, y) >= 0) L.d[(y * PATCH + x) * 4 + 3] = 0;
+  for (let y = 0; y < PATCH; y++) for (let x = 0; x < PATCH; x++) if (D(x, y) >= PATCH_RIM_OUT) L.d[(y * PATCH + x) * 4 + 3] = 0;
   return L;
 }
 // Drystone wall: wrapping Voronoi stones, moss from the season's grass.
