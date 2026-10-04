@@ -329,9 +329,53 @@ Bell Stone, Ancient Stump and Heartwood Roots all place on whole cells, with the
   it at any half offset, so the player can wall it in more tightly.
 - **Kept:** the 50% fade, touch selection by the cell or half cell tapped, and the Heartwood never takes input.
 
-### Order
+### Order (half-cell work)
 Art can start now (it doesn't depend on the merge). The code starts after half cells reach main. Then re-render
 `map_layouts.png` and a half-cell preview with staggered walls.
+## Ground variation (spec, Environment Discussion, 2026-10-04)
+
+The user approved it ("ground variation is nice"; via Theme Discussion), and it lands **before the marketing renders**.
+Open maps read as one flat colour. The fix is **a few deliberate large patches** under everything, not more grain.
+
+### The look
+- **3–5 patches per map**, each a soft blob of about **6–20 whole cells**, covering about **15–25%** of the
+  ground. Big, simple shapes with soft rounded edges, the way a painter blocks in a forest floor. No speckle, no
+  grain soup.
+- **Kinds** (each act draws its own; colours stay inside Heartwood 32):
+
+  | Kind | Look | Where it goes |
+  |---|---|---|
+  | Deep moss | a shade darker and greener than the ground, velvety | hugging ridges, rock clusters and the ruin |
+  | Worn earth | a shade lighter, bare and trodden, a few pebbles | open ground, away from obstacles |
+  | Fern / flower bed | the ground with a few clustered fronds or pale blossoms | beside groves and the pond |
+  | Act accent | act 1 spring clover, act 2 night-bloom moss, act 3 rust leaf litter, act 4 frost crust | anywhere, at most 1 per map |
+
+- **The Heartwood's glade** always gets a soft moss ring under the 8 glade cells (deep moss, slightly warmer). It frames
+  the tree without adding light.
+- **Value order holds:** every patch stays within **one palette step** of the act's ground, so dark ground < pale
+  obstacles < the palest path still reads. Worn earth must stay clearly darker than the path, so it never reads as a
+  path. Nightmares (dark, cold) must still read against every patch where they cross it; they walk on the path, but
+  check the flyers.
+
+### Art (Environment Assets)
+- `ground_patch.png` per act folder: a **dual-grid autotile at 64 px**, the same method as `path_dual`.
+  - **Rows:** one per kind (deep moss, worn earth, fern/flower, act accent).
+  - **Columns:** 16 tiles by corner mask (TL=1, TR=2, BR=4, BL=8) + 3 extra full-tile (mask 15) variants.
+  - **Edges:** soft and irregular (a distance field like path_dual), opaque, drawn over the plain grass.
+- The calm detail pass (as `grass.png`): a few hand-placed features per tile at most, no random grain.
+- A test sheet: each kind as a large blob, next to the path, a rock, a dead tree and a nightmare, to check values.
+
+### Placement (Environment Code)
+- After the obstacles and the feature, from the map rng (saves rebuild it). The patch layer is a 64 px TileMapLayer offset
+  by 32 px, **under the path** (the path draws over patches; patches never wear away), above the grass.
+- Shapes come from low-frequency noise thresholded per patch (or grown blobs), seeded near their anchor (ridges,
+  rocks, groves, open ground) per the table. Patches don't touch each other. They avoid the start's mist cell. The
+  glade ring is always placed.
+- Ground details follow the patch: ferns and flowers inside fern beds, pebbles on worn earth, fewer details on deep moss.
+- Built once. No per-frame cost.
+- Tests: patch count 3–5 (+ the glade ring), coverage 15–25%, every cell's mask matches its corners, the save rebuilds
+  the same patches. Re-render `map_layouts.png` and one close-up preview per act.
+- When it lands, report to **Theme Discussion** (it's on the stable-before-marketing list).
 ## Notes
 
 - Colours (2026-09-30, to fit the title and Memory Grove screens): the ground is night-indigo with a moss grain (act 1–2 moss/teal, act 3 violet with rust, act 4 frost), the dead trees are cool night bark with a teal lit side and moss flecks (the Grove trunks), rocks stay lavender stone. Warmth is only the path, the Heartwood and the Wardens.
