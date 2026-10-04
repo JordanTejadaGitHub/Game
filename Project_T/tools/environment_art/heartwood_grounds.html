@@ -1917,7 +1917,9 @@ function cloudShadow(v) {
     f += (pnoise(x, y, 26, s) - .5) * .42 + (pnoise(x, y, 10, s + 1) - .5) * .16;
     if (ex > .45) f -= (pnoise(x * .5, y * 2, 8, s + 2) - .35) * .5 * (ex - .45);  // wisps trailing downwind
     const d = (bay(x, y) - .5) * .07;
-    const a = f + d > .46 ? .34 : f + d > .24 ? .22 : f + d > .07 ? .11 : 0;
+    // Light and large, no dense core (art_direction.md Nightmares, 395fed8a: nothing on the path is a
+    // dark blob the size of a nightmare; the old .34 core read as one in whole-island shots).
+    const a = f + d > .24 ? .12 : f + d > .07 ? .06 : 0;
     if (a) L.set(x, y, CA("#140f26", a));
   }
   return L;
