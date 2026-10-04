@@ -122,8 +122,8 @@ pick, grow and a Kinship; (6) an act break with Sow a Ridge; (7) drift 25 Stag o
 (8) the Night Mare; (9) the Hollow Oak's arrival; (10) a late storm board to Dawnburst, drift ~60, the Heartwood at a
 high Grove stage.
 
-**Timing:** final capture only after the art refresh (calm detail pass, one golem pose per family, the ground grain fix)
-and the final half-grid path art (art_direction.md "AI-look audit", half_cells.md). A rough cut from today's art is fine
+**Timing:** final capture only after the grain clean-up (calm detail pass, Wardens and ground; Wardens keep the classic
+golem, the per-family poses were dropped), the nightmare readability fix and the final half-grid path art (art_direction.md "AI-look audit", half_cells.md). A rough cut from today's art is fine
 for timing. Steam wants the trailer first on the page: lock the date with Marketing Discussion.
 
 ## 6. Steam page text (draft)
@@ -144,7 +144,8 @@ words of the short description**. Nothing on the page opens with lore or the loo
 - **Tags** (pitch.md's order; the first 5 matter most): Tower Defense, Roguelite, Strategy, Dark Fantasy, Cute, then Pixel
   Graphics, Atmospheric, Procedural Generation, Replay Value, Singleplayer, Steam Deck (once verified). No
   "Deckbuilding-lite": not a Steam tag, and Dream picks aren't a deck.
-- **Screenshots, in order** (capture once the starting three Wardens are redone):
+- **Screenshots, in order** (capture once the nightmare readability fix is in; Wardens keep the classic seated golem,
+  the per-family poses were reverted 2026-10-04, art_direction.md 7049be26):
   1. **The maze:** a staggered half-cell maze (half_cells.md) at full scale with the **route shown** (route mist / line
      winding through it) and a drift walking it. Must read as "they built this path" as a 600 px thumbnail.
      Checks (first candidates, 2026-10-04): the bends are walled by **Wardens, not dead trees** (clear the obstacles
@@ -166,7 +167,7 @@ words of the short description**. Nothing on the page opens with lore or the loo
 | Short description | drafted above, maze first | — |
 | About | outline above | GIFs (capture tools) |
 | Tags | drafted above | — |
-| 5–8 screenshots | **on hold**; order above, #1 = half-cell maze + route | art refresh (grain clean-up, one golem pose per family; the starting three first) + capture mode |
+| 5–8 screenshots | **on hold**; order above, #1 = half-cell maze + route | nightmare readability (art_direction.md 395fed8a: Enemy Assets done f07637d1; Enemy Code shader, Environment Assets path shadows to land); Warden poses no longer block (reverted 7049be26); capture scene: inland clear + Warden-walled maze (Main Merger) |
 | Trailer | §5; its first seconds = the maze | Trailer chat, capture tools; date locked by Marketing Discussion |
 | AI disclosure | drafted in §7 | Valve's wording at submission |
 
