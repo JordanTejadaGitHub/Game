@@ -151,7 +151,7 @@ visibly separate paths look too neat, not like a real tree).
 
 | # | Perk | Levels | Cost per level | Effect (at max) | Needs |
 |---|---|---|---|---|---|
-| 1 | Second Thoughts | 2 | 50 / 100 | 2 Dream rerolls per run | — (trunk) |
+| 1 | Second Thoughts | 3 | 50 / 100 / 150 | 3 Dream rerolls per run (level III added 2026-10-04: the reroll the "Dream of everything" milestone used to give) | — (trunk) |
 | 2 | Let Go | 1 | 60 | banish 1 card per run | Second Thoughts |
 | 3 | Omen Reader | 1 | 80 | after choosing **Face an Omen**, pick from **3** Omens instead of 2 (2026-09-30, see `run_design.md` Omens) | Let Go |
 | 4 | Wider Dreams | 1 | 150 | 4 cards per Dream instead of 3 | Omen Reader + Second Thoughts II |
@@ -165,15 +165,29 @@ visibly separate paths look too neat, not like a real tree).
 |---|---|---|
 | Loadout slot 4 | 140 | the **2nd node of any path** (Rich Dew, First Care or Let Go) |
 | Loadout slot 5 | 220 | slot 4 + the **3rd node of two paths** (2 of Rested Roots, Clear Sight, Omen Reader) |
-| *(secret)* Loadout slot 6 | free | every other Grove node owned at max level |
+| *(secret)* The Heartwood's Crown (slot 6) | 250 | every other Grove node owned at max level (a bought node since 2026-10-04) |
 
 Slot nodes 2 and 3 are gone (2026-09-29), so the tree is 120 Seeds cheaper. Seed Pouch now sits at
 the end of the Economy path, so it can't be rushed first for faster Seeds.
 
+
+**Keepsakes (cosmetics)** (user 2026-10-04: "yes on cosmetics"): a small **Keepsakes twig** at the
+foot of the Perks limb. Cheap, optional, **no loadout slot, no gameplay effect**; once bought, each
+has an on/off toggle (on its node card and in Settings → Display → Keepsakes). They count toward
+the tree for the Heartwood's Crown.
+
+| Keepsake | Cost | What it does |
+|---|---|---|
+| Golden Leaf | 30 | the in-run Heartwood's leaves turn gold |
+| Blossoms | 40 | every Warden wears a small blossom |
+| Gilded Pages | 20 | the Codex pages get gilded edges |
+| Starlit Card Backs | 30 | Dream offer cards get the night-sky frame |
+
+(The art exists from when they were milestone rewards.) +120 Seeds to the tree.
 **Power budget:** 15 perks, carry 3 at the start, up to 5 (6 once the whole tree is grown). A full economy loadout (Morning Stores III, Rich Dew
 III, Rested Roots II, Sprout Bed, Clear Sight) makes the early game noticeably smoother, which is
 why **Blight Levels** exist: each level takes back some of that power. Caps: starting Dew +30,
-Dew gain +15%, leaves +3, rerolls 2.
+Dew gain +15%, leaves +3, rerolls 3 (options, not power).
 
 ### Section 2: Families and family upgrades
 
@@ -380,8 +394,8 @@ achievements still map to the milestone ids. Dev runs record none (as before).
   they may retune them, e.g. once `longest_path` is in the run history.
 - **Memories** now come only from the first run and Grove growth (one per 3 levels planted); 10
   arrive well before the tree is complete.
-- **Cosmetics** (Golden Leaf, Blossoms, gilded pages, starlit backs) are no longer rewards; the art
-  is kept for later (e.g. Seed-bought cosmetics), parked.
+- **Cosmetics** (Golden Leaf, Blossoms, gilded pages, starlit backs) are no longer milestone rewards: they
+  are cheap Keepsake nodes (Section 1), and the extra reroll is Second Thoughts III.
 - **Sunpetal** (Firefly Jar's hidden branch) is a normal node: **60 Seeds, needs Firefly Jar**, like
   the other hidden branches. **Stormheart's Ascension** now needs Sunpetal, like every other
   Ascension needs its hidden branch.
