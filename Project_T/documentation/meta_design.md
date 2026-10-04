@@ -115,8 +115,8 @@ Perks are **unlocked** in the tree, then **equipped** in a small **loadout** bef
   at the start): slots 1–3 are open from the first run. Slots **4 (140)** and **5 (220)** are
   Perks nodes. Growing this limb = **more perks to choose from and more room to carry them**.
 - **The secret 6th slot:** not shown anywhere (no waystone, no node, no Codex hint) until the
-  player owns **every Grove node at its max level**, then the node **The Heartwood's Crown** (250 Seeds) appears (since 2026-10-04 a bought node, not a milestone; Memory
-  Warden blooms too, if they return from being parked). Planting it raises a sixth waystone at the roots (a Steam achievement; was the milestone *"The Heartwood in full
+  player owns **every Grove node at its max level**, then the node **The Heartwood's Crown** (250 Seeds) appears (a bought node since 2026-10-04).
+  Planting it raises a sixth waystone at the roots (a Steam achievement; was the milestone *"The Heartwood in full
   bloom"*). It's a trophy for completing the tree, so its power doesn't matter
   for balance: by then everything else is owned.
 - A perk with levels (e.g. Morning Stores I–III) takes one slot at its highest owned level.
