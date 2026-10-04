@@ -351,7 +351,7 @@ func _run() -> void:
 		"Hoar Fog: the Frostfern's shot leaves a fog puff")
 	var puffer: Tower = made[&"spore_nursery"][1]
 	var map = main.get_node("%MapGenerator")
-	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var route: PackedVector2Array = Tower.route_cells(map.get_path_from(map.startPath))  # Whole cells (half-step routes)
 	puffer._kin_on_landing(null, Tower.MAP_GRID.calculate_map_position(route[5]))
 	_check(is_instance_valid(puffer._nursery_ring) and puffer._nursery_ring.cell == route[5],
 		"Spore Nursery: the Driftspore's puff plants a mushroom ring on the path")
