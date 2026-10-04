@@ -43,6 +43,7 @@ game build.
   - Colour: gold bands (Heartlight → Glow → Gold → Ember) with a Night and Void outline.
 - **Whole-number scales only** (2×, 3×, 6×), hard edges, no smoothing.
 
-**Not done yet:** no small map Wardens appear. The brief says to add them only in the new per-family
-poses, once Tower Assets' redo of the starting three is approved. A layered source file (for a human
-artist) isn't made; the title generator's layers in `assets/ui/title/` are the closest thing.
+**Not done yet:** no small map Wardens appear. The per-family poses were reverted (2026-10-04), so the
+classic seated golem stays. If small Wardens are ever added, use the current (calm-mode) sheets. A
+layered source file (for a human artist) isn't made; the title generator's layers in
+`assets/ui/title/` are the closest thing.
