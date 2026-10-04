@@ -679,6 +679,30 @@ func _run() -> void:
 		_check(not straight._leaping or route[bend + 1] - route[bend] != route[bend + 2] - route[bend + 1], "not on a straight")
 	_clear_enemies()
 
+	# --- Rounded corners: the drawn path curves, the route and the timing stay square ---
+	_clear_enemies()
+	var l_walker := _still("leaf_bug", Vector2(2, 2))
+	var l_route := PackedVector2Array([Vector2(2, 2), Vector2(3, 2), Vector2(4, 2), Vector2(4, 3), Vector2(4, 4), Vector2(4, 5), Vector2(4, 6)])
+	l_walker.position = l_walker.grid.calculate_map_position(l_route[0])
+	l_walker.set_path(l_route)
+	var corridor := {}
+	for cell in l_route:
+		corridor[cell] = true
+	var walk_frames := 0
+	var stayed_inside := true
+	var curved := false
+	while l_walker._path_index < 5 and walk_frames < 2000:  # Until it reaches (4, 4): 4 cells, one turn
+		l_walker._process(1.0 / 60.0)
+		walk_frames += 1
+		var drawn: Vector2 = l_walker.position + l_walker._corner_offset
+		stayed_inside = stayed_inside and corridor.has(l_walker.grid.calculate_grid_coordinates(drawn))
+		curved = curved or l_walker._corner_offset.length() > 1.0
+	var expected_frames: float = 4.0 * l_walker.grid.cell_size.x / l_walker.get_move_speed() * 60.0
+	_check(absf(walk_frames - expected_frames) <= expected_frames * 0.01 + 1.0,
+		"rounded corners: travel time along an L is unchanged (%d frames vs %.1f)" % [walk_frames, expected_frames])
+	_check(curved and stayed_inside, "the drawn path curves at the turn and never leaves the corridor cells")
+	_clear_enemies()
+
 	# --- Branch Phase 2 hooks: Groundroot grounds a flyer, Quaker's slam stops a sprint ---
 	_clear_enemies()
 	var grounded_flyer := _still("dandelion_seed", route[6] + Vector2(0, 1))
