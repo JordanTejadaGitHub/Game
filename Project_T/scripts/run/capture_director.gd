@@ -21,6 +21,7 @@ class_name CaptureDirector
 #                                       "cover" the spot that covers most of the route ("+N path" tags float up)
 #   {"plant_each": 0.5, "count": 20, "plant": "thornwall", "auto": "maze"}   one every 0.5 s (also with "spots": [[hx, hy], …])
 #   {"grow": [hx, hy], "into": "<form>"}  grows the Warden planted there in place (through any forms between)
+#   {"dream_offer": true, "rare": false}  a Dream offer now, as at a rest (with "quiet": false; pick it with pick_dream)
 #   {"start": true}                      starts the next drift (the scene's "drift" first)
 #   {"speed": 0.25}                      game speed (slow motion < 1)
 #   {"spawn": "<enemy id>", "count": 1, "elite": false}
@@ -411,9 +412,18 @@ func _run(event: Dictionary) -> void:
 	if event.has("grow"):  # Grows the Warden planted at half-cell origin "grow" [hx, hy] into "into" (a form id), in place
 		var grew := grow_at(Vector2(float(event.grow[0]), float(event.grow[1])), String(event.get("into", "")))
 		print("Capture: grew %s into %s at %.1f s: %s" % [event.grow, event.get("into", ""), clip_time, "ok" if grew else "FAILED"])
+	if event.has("dream_offer"):  # A Dream offer now, as at a rest ("rare": true = a boss rest's, Rare and up); set
+		# "quiet": false first or it's passed over at once
+		var dreams: DreamState = _main.get_node("%DreamState")
+		var director: DriftDirector = _main.get_node("%DriftDirector")
+		var act_boss: int = director.get_act(maxi(director.drifts_started, 1)) * director.drifts_per_act
+		dreams._pending_drifts.append(act_boss if bool(event.get("rare", false)) else director.drifts_started)
+		dreams._show_next_offer()
+		print("Capture: Dream offer at %.1f s: %s" % [clip_time, dreams.current_offer.map(func(c: UpgradeData) -> String: return String(c.id))])
 	if event.has("pick_dream"):  # Takes the offer's Nth card (screens shown with "quiet": false)
 		var dreams: DreamState = _main.get_node("%DreamState")
 		if dreams.is_offering() and int(event.pick_dream) < dreams.current_offer.size():
+			print("Capture: picked %s at %.1f s" % [dreams.current_offer[int(event.pick_dream)].id, clip_time])
 			dreams.choose(dreams.current_offer[int(event.pick_dream)])
 	if event.has("camera"):
 		_cam = event.duplicate()
