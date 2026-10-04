@@ -64,6 +64,38 @@
 			"loop": false,
 			"note": "Map-wide light pulse: scale it over the whole map (it's a soft warm radial wash in palette alpha steps), fade in ~0.2 s and out ~1 s, additive or ~40% alpha."
 		},
+		"brood_end": {
+			"anchor": [
+				12,
+				9
+			],
+			"file": "brood_end.png",
+			"fps": 1.0,
+			"frame_size": [
+				24,
+				16
+			],
+			"frames": 1,
+			"kind": "ground",
+			"loop": false,
+			"note": "Brood Cap / Hatchery: static marker where a sprite's walk gives up (a dotted ring round a little cap). Draw at texture size, centred on the anchor, z -1."
+		},
+		"brood_hatch": {
+			"anchor": [
+				24,
+				32
+			],
+			"file": "brood_hatch.png",
+			"fps": 14.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Brood Cap / Hatchery: where a spore-sprite drops onto the path (anchor = the drop spot), at the attack's release frame. Spores fall in, a pink puff blooms, a ring marks the spot. ~0.43 s."
+		},
 		"carried_storm": {
 			"anchor": [
 				0,
@@ -1822,6 +1854,38 @@
 			"kind": "signature",
 			"loop": false,
 			"note": "Sparkler / Starburst's firework at the burst point (and Fireworks Fence's crossing burst): a smaller, quicker burst than firework_burst."
+		},
+		"spore_arc": {
+			"anchor": [
+				0,
+				6
+			],
+			"file": "spore_arc.png",
+			"fps": 12.0,
+			"frame_size": [
+				32,
+				12
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": false,
+			"note": "Brood Cap / Hatchery: spores streaming from the attack origin to the drop spot. Stretch along x (y = 6 on the line), Warden -> spot, ~0.35 s."
+		},
+		"spore_sprite_burst": {
+			"anchor": [
+				24,
+				28
+			],
+			"file": "spore_sprite_burst.png",
+			"fps": 16.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Brood Cap / Hatchery: a spore-sprite bursting on the nightmare it bumped (anchor = the sprite). Sized for the 1.5x sprite; scale x1.5 for Hatchery's big one."
 		},
 		"sprout_puff": {
 			"anchor": [

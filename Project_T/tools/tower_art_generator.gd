@@ -968,7 +968,7 @@ const P_FRAMES := 4
 const P_AT := 20  # the frame's top-left on the work canvas
 # Shots that light themselves in their own colour, and traps (they lie on the path, unlit).
 const P_OWN_GLOW := ["dew_drop", "spark", "light_orb", "moon_shard", "frost_shard", "moon_mote", "dream_mote",
-	"fairy_ring", "elf_circle"]
+	"fairy_ring", "elf_circle", "spore_sprite"]  # spore_sprite: its own warm rim
 var projectile_sheets: Array[Image] = []
 
 func _make_projectile(proj_name: String) -> void:
@@ -4760,6 +4760,46 @@ func _spore_sprite(canvas: Image, p: Vector2, o: Color, f: int, big: bool = fals
 	_px(canvas, int(p.x) + 1 + leg, int(p.y + 3.2 * z), o)
 
 
+# Brood Cap's walking spore-sprite, drawn natively at `z` (1.0 = the 24x24 projectile sheet's size: a
+# baby mushroom about 16 px wide): a wide spotted cap that reads from every side, a little cream body
+# looking right, two stepping feet, and a warm rim round the whole shape so it shows on light and dark
+# paths alike.
+func _spore_walker(canvas: Image, p: Vector2, o: Color, f: int, z: float = 1.0, rim: bool = true) -> void:
+	var target := canvas
+	canvas = _layer()  # drawn on its own, so the rim goes round the sprite only
+	var step: float = [1.0, 0.0, -1.0, 0.0][f % 4]
+	var layer := _layer()
+	for s: float in [-1.0, 1.0]:
+		_ellipse(layer, p + Vector2(s * 2.6 + step * s * 0.8, 6.6) * z, Vector2(1.8, 1.2) * z, _ramp(["#bca48c", "#dccdb2", "#dccdb2"]))
+	_ellipse(layer, p + Vector2(0.5, 2.6) * z, Vector2(4.6, 3.8) * z, _ramp(["#bca48c", "#dccdb2", "#fff4dc"]))
+	_ellipse(layer, p + Vector2(0, -3.0) * z, Vector2(7.6, 4.4) * z, _ramp(["#bc44dc", "#ec9cf4", "#ec9cf4", "#fff4dc"]), p.y - 0.4 * z)
+	_stamp(canvas, layer, o)
+	for e: float in [-0.6, 2.4]:  # eyes, looking right
+		_px(canvas, roundi(p.x + e * z), roundi(p.y + 1.6 * z), o)
+		_px(canvas, roundi(p.x + e * z), roundi(p.y + 2.6 * z), o)
+	for s: Vector2 in [Vector2(-4, -5), Vector2(-3, -5), Vector2(2, -6), Vector2(3, -6), Vector2(5, -3)]:  # spots
+		_px(canvas, roundi(p.x + s.x * z), roundi(p.y + s.y * z), Color("#fff4dc"))
+	if rim:
+		_warm_rim(canvas, Color("#fcd47c", 0.75))
+	for y in range(-OY, S):
+		for x in S:
+			var c := _gp(canvas, x, y)
+			if c.a > 0.0:
+				_sp(target, x, y, _gp(target, x, y).blend(c))
+
+# A 1 px rim of `col` round everything drawn on the canvas (the empty pixels touching it).
+func _warm_rim(canvas: Image, col: Color) -> void:
+	var src := canvas.duplicate()
+	for y in range(-OY, S):
+		for x in S:
+			if _gp(src, x, y).a > 0.0:
+				continue
+			for n: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var q := Vector2i(x, y) + n
+				if q.x >= 0 and q.y >= -OY and q.x < S and q.y < S and _gpv(src, q).a > 0.9:
+					_sp(canvas, x, y, col)
+					break
+
 func _draw_brood_cap(canvas: Image, st: Dictionary) -> void:
 	_brood_body(canvas, st, false)
 
@@ -4802,15 +4842,31 @@ func _attack_brood_cap(canvas: Image, st: Dictionary) -> void:
 func _attack_hatchery(canvas: Image, st: Dictionary) -> void:
 	_brood_release(canvas, st, "hatchery")
 
-# A sprite drops off the cap and scurries out towards the path.
+# The throw: a sprite gathers on the cap rim in a warm glow (wind-up), then the cap puffs it out in a
+# high arc off the slab's front corner, towards the path, a trail of spores behind it; it lands with a
+# little ring. Hatchery's sprite is bigger.
+const BROOD_ARC := [Vector2(0, 0), Vector2(1, -3), Vector2(6, -8), Vector2(11, -4), Vector2(13, 12), Vector2(12, 31)]
+
 func _brood_release(canvas: Image, st: Dictionary, key: String) -> void:
-	var k: int = st.attack - RELEASE_FRAME
-	if k < 0:
-		return
-	var p := Vector2(ATTACKS[key].point) + Vector2(k * 4.0, k * 5.0)
-	_spore_sprite(canvas, p, Color("#17174d"), st.attack, key == "hatchery" and k == 0)
-	if k <= 1:
-		_warm_glow(canvas, p, Vector2(6, 5), k)
+	var a: int = st.attack
+	var start := Vector2(ATTACKS[key].point) + Vector2(0, st.dy)
+	var z := 0.95 if key == "hatchery" else 0.8
+	var o := Color("#17174d")
+	var p: Vector2 = start + BROOD_ARC[a]
+	if a < RELEASE_FRAME:
+		_warm_glow(canvas, p, Vector2(7, 6), 1 - a)  # gathering on the rim
+	elif a == RELEASE_FRAME:
+		for c: Vector3 in [Vector3(-3, 1, 3.2), Vector3(1, 3, 2.6), Vector3(-1, -2, 2.4)]:  # the cap's puff
+			var puff := _layer()
+			_flat_ellipse(puff, start + Vector2(c.x, c.y), Vector2(c.z, c.z * 0.8), Color("#f7c8fa"))
+			_stamp(canvas, puff, Color("#ba41d9"))
+	for k in range(RELEASE_FRAME, a):  # spores trailing behind along the arc
+		var q: Vector2 = start + (BROOD_ARC[k] as Vector2).lerp(BROOD_ARC[k + 1], 0.35)
+		_px(canvas, roundi(q.x), roundi(q.y), Color("#ec9cf4"))
+		_px(canvas, roundi(q.x) + 1, roundi(q.y) - 1, Color("#fff4dc") if k == a - 1 else Color("#bc44dc"))
+	if a == ATTACK_FRAMES - 1:  # landed: a little ring on the ground
+		_ring(canvas, p + Vector2(0, 6 * z), Vector2(9, 3), Color("#ec9cf4"), true)
+	_spore_walker(canvas, p, o, a, z, a >= RELEASE_FRAME)
 
 func _draw_inkcap(canvas: Image, st: Dictionary) -> void:
 	_ink_body(canvas, st, false)
@@ -4915,8 +4971,7 @@ func _proj_ink_drop(canvas: Image, f: int) -> void:
 
 func _proj_spore_sprite(canvas: Image, f: int) -> void:
 	var bob: float = [0.0, -1.0, 0.0, -1.0][f]
-	_spore_sprite(canvas, Vector2(32, 32 + bob) , Color("#17174d"), f, true)
-	_px(canvas, 36, 31 + int(bob), Color("#f7c8fa"))
+	_spore_walker(canvas, Vector2(32, 32 + bob), Color("#17174d"), f)
 
 
 # --- Branch expansion, Dewdrop -----------------------------------------------------------------

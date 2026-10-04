@@ -40,6 +40,7 @@ func _init() -> void:
 	_final_signatures()
 	_branch_effects()
 	_phase2_effects()
+	_brood_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -3159,3 +3160,92 @@ func _relight(img: Image) -> void:
 				img.set_pixel(x, y, c.darkened(0.3))
 			elif ul and not dr:
 				img.set_pixel(x, y, c.lightened(0.2))
+
+# --- Brood Cap (story chat request, 2026-10-04) ---------------------------------------------------
+const SPORE_PINK := Color("#ec9cf4")
+const SPORE_DEEP := Color("#bc44dc")
+const SPORE_PALE := Color("#f7c8fa")
+const SPORE_CREAM := Color("#fff4dc")
+const SPORE_RIM := Color("#fcd47c")
+
+func _brood_effects() -> void:
+	_sheet("brood_hatch", Vector2i(48, 48), 6, 14, Vector2i(24, 32), false, "signature", _brood_hatch,
+		{note = "Brood Cap / Hatchery: where a spore-sprite drops onto the path (anchor = the drop spot), at the attack's release frame. Spores fall in, a pink puff blooms, a ring marks the spot. ~0.43 s."})
+	_sheet("spore_arc", Vector2i(32, 12), 4, 12, Vector2i(0, 6), false, "segment", _spore_arc,
+		{note = "Brood Cap / Hatchery: spores streaming from the attack origin to the drop spot. Stretch along x (y = 6 on the line), Warden -> spot, ~0.35 s."})
+	_sheet("brood_end", Vector2i(24, 16), 1, 1, Vector2i(12, 9), false, "ground", _brood_end,
+		{note = "Brood Cap / Hatchery: static marker where a sprite's walk gives up (a dotted ring round a little cap). Draw at texture size, centred on the anchor, z -1."})
+	_sheet("spore_sprite_burst", Vector2i(48, 48), 6, 16, Vector2i(24, 28), false, "signature", _spore_sprite_burst,
+		{note = "Brood Cap / Hatchery: a spore-sprite bursting on the nightmare it bumped (anchor = the sprite). Sized for the 1.5x sprite; scale x1.5 for Hatchery's big one."})
+
+func _brood_hatch(img: Image, f: int) -> void:
+	var c := Vector2(24, 32)
+	if f < 2:  # spores falling in onto the spot
+		for k in 4:
+			var p := c + Vector2(-6 + k * 4, -18 + f * 8 + (k % 2) * 3)
+			_px(img, int(p.x), int(p.y), SPORE_PINK)
+			_px(img, int(p.x), int(p.y) - 1, SPORE_CREAM)
+	var ring: float = [4.0, 7.0, 11.0, 15.0, 18.0, 20.0][f]
+	_ring(img, c, Vector2(ring, ring * 0.4), 1.2, Color(SPORE_RIM, 1.0 if f < 3 else (0.75 if f < 5 else 0.4)))
+	_ring(img, c, Vector2(ring - 2, (ring - 2) * 0.4), 1.0, Color(SPORE_PINK, 1.0 if f < 4 else 0.4))
+	if f >= 1 and f <= 4:  # the puff
+		var r: float = [0.0, 5.0, 8.0, 10.0, 11.0][f]
+		_spore_puff(img, c + Vector2(0, -2 - f), r, 1.0 if f < 3 else 0.4)
+	if f == 2:
+		_star(img, c + Vector2(6, -10), 2, SPORE_CREAM, SPORE_RIM)
+	if f >= 3:  # motes drifting up
+		for k in 3:
+			_px(img, 14 + k * 9, 22 - (f - 3) * 3 - k % 2 * 2, Color(SPORE_PALE, 1.0 if f < 5 else 0.4))
+
+func _spore_arc(img: Image, f: int) -> void:
+	# Spores streaming along the line, the lead ones brightest; each frame they move on 8 px.
+	for k in 4:
+		var x := (k * 8 + f * 8) % 32
+		var y: int = 6 + [0, -1, 0, 1][(x / 4) % 4]
+		var lead := k == (3 - f) % 4
+		_px(img, x, y, SPORE_CREAM if lead else SPORE_PINK)
+		_px(img, x + 1, y, SPORE_PINK)
+		_px(img, x - 1, y, Color(SPORE_RIM, 0.75))
+		_px(img, x, y - 1, Color(SPORE_DEEP, 0.75))
+
+func _brood_end(img: Image, _f: int) -> void:
+	var c := Vector2(12, 9)
+	for k in 16:  # a dotted ring on the ground
+		if k % 2 == 0:
+			var a := k * TAU / 16.0
+			_px(img, roundi(c.x - 0.5 + cos(a) * 10.5), roundi(c.y + 1.5 + sin(a) * 5.0), SPORE_RIM if k % 4 == 0 else SPORE_PINK)
+	_ellipse(img, c + Vector2(0, 2), Vector2(2.2, 2.6), OUTLINE)  # a little cap on a stalk
+	_ellipse(img, c + Vector2(0, 2), Vector2(1.2, 1.8), SPORE_CREAM)
+	_ellipse(img, c + Vector2(0, -1.5), Vector2(5.5, 3.4), OUTLINE)
+	_ellipse(img, c + Vector2(0, -1.5), Vector2(4.5, 2.4), SPORE_PINK)
+	_ellipse(img, c + Vector2(-1.5, -2.5), Vector2(1.6, 0.9), SPORE_CREAM)
+
+func _spore_sprite_burst(img: Image, f: int) -> void:
+	# The sprite pops: a cream flash, a pink spore puff, bits of cap and a ring of spores flying out.
+	var c := Vector2(24, 28)
+	if f == 0:
+		_ellipse(img, c, Vector2(8, 6), SPORE_PINK)
+		_ellipse(img, c + Vector2(-1, -1), Vector2(5, 3.5), SPORE_CREAM)
+		_star(img, c, 4, SPORE_CREAM, SPORE_RIM)
+		return
+	var r: float = [0.0, 9.0, 13.0, 15.0, 16.0, 16.0][f]
+	var a := 1.0 if f < 3 else (0.75 if f < 4 else 0.4)
+	if f < 5:
+		_spore_puff(img, c, r, a)
+	for k in 6:  # cap bits
+		var d := Vector2.from_angle(k * TAU / 6.0 + 0.4)
+		var p := c + Vector2(d.x, d.y * 0.7) * (r + 3 + f * 1.5)
+		if p.x >= 1 and p.x < 46 and p.y >= 1 and p.y < 46:
+			_px(img, int(p.x), int(p.y), Color(SPORE_PINK, 1.0 if f < 4 else 0.4))
+			_px(img, int(p.x) + 1, int(p.y), Color(SPORE_DEEP, 1.0 if f < 4 else 0.4))
+			_px(img, int(p.x), int(p.y) - 1, Color(SPORE_CREAM, 1.0 if f < 4 else 0.4))
+
+# A spore puff: three round lobes, deep underneath, pink lit from the upper left, a cream glint.
+func _spore_puff(img: Image, c: Vector2, r: float, a: float) -> void:
+	var lobes := [Vector3(-0.45, 0.15, 0.6), Vector3(0.45, 0.2, 0.55), Vector3(0.0, -0.3, 0.68)]
+	for l: Vector3 in lobes:
+		_ellipse(img, c + Vector2(l.x, l.y) * r, Vector2(l.z, l.z * 0.8) * r, Color(SPORE_DEEP, a))
+	for l: Vector3 in lobes:
+		_ellipse(img, c + Vector2(l.x, l.y) * r + Vector2(-0.8, -0.8), Vector2(l.z, l.z * 0.8) * r - Vector2(1.2, 1.2), Color(SPORE_PINK, a))
+	if a >= 1.0:
+		_ellipse(img, c + Vector2(-0.3, -0.55) * r, Vector2(maxf(1.0, r * 0.18), maxf(0.8, r * 0.12)), SPORE_CREAM)
