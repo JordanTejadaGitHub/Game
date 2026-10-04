@@ -147,6 +147,9 @@ words of the short description**. Nothing on the page opens with lore or the loo
 - **Screenshots, in order** (capture once the starting three Wardens are redone):
   1. **The maze:** a staggered half-cell maze (half_cells.md) at full scale with the **route shown** (route mist / line
      winding through it) and a drift walking it. Must read as "they built this path" as a 600 px thumbnail.
+     Checks (first candidates, 2026-10-04): the bends are walled by **Wardens, not dead trees** (clear the obstacles
+     in the maze area); combat is visible (puffs in the air, a dispel cracking); nightmares spread along the route and
+     readable against the path; no dev labels; the banner names the default boss.
   2. Building: the ghost Warden, "+N path", the route preview bending into the new detour.
   3. A Reaction: Thunderclap lightning jumping through Soaked nightmares, callouts on.
   4. A dispel close-up: a nightmare cracking into light.
