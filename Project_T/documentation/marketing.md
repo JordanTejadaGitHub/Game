@@ -1,6 +1,7 @@
 # Marketing plan: Heartwood TD
 
-Owner: design hub (story chat) until a Marketing chat exists. Goal: **Steam wishlists.** Every video, post and
+Owners (2026-10-04): **Marketing Discussion** (pitch, Steam page, copy, disclosure, posting) and **Short Form Video**
+(sections 3–5: capture tools, shorts, trailer; Main Merger builds the capture code). Goal: **Steam wishlists.** Every video, post and
 page points to the Steam page.
 
 ## 1. The pitch
