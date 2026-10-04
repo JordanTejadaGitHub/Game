@@ -184,6 +184,23 @@ lost 0–20). They're wired into the map (`EnvironmentTiles`), with the lighting
     rise is narrow, about Beacon's width, and the top fades to 50% when the cell above holds a
     nightmare or the cursor, so the maze stays readable.
   - **New forms follow the same test**, Ascended included.
+- **Bigger Wardens** (user, 2026-10-04: *"increase the size of the warden, they should feel more
+  huge, their size can splurge onto other cells above but still only consume a cell"*). **Proof
+  first:** the user approves a preview before the whole roster changes.
+  - **The footprint stays one cell** (2×2 half cells); only the art grows. Gameplay, pathing and
+    the half-cell grid don't change.
+  - **Redraw natively at the same pixel density** (still "detailed 64": one art pixel = one pixel at
+    64 px per cell). Never scale existing art by a non-integer factor: 1.5× nearest breaks the
+    pixel grid, an AI-look tell.
+  - **Grow up more than out.** Wardens stand side by side as maze walls, so the body may lean a
+    little over the cells beside it (canvas about 80 px wide at most), but most of the extra size
+    goes up over the cell above (canvas about 128 px tall). The body is about 1.4× today's. The
+    plinth stays on its own cell, so the footprint is still readable.
+  - **Readability over size:** a nightmare, the build ghost, the cursor or a selected Warden behind
+    a Warden's overhang fades that overhang (the tall-Warden fade). The route mist and the path
+    must stay readable between two rows of Wardens.
+  - **The tall finals keep standing out:** with every Warden taller, the 10 tall finals above stay
+    taller than their family's branches, and the silhouette rule still applies at the new size.
 
 ## Nightmares
 
