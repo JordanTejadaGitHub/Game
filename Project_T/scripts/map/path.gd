@@ -45,6 +45,10 @@ func draw():
 	current_path = _pathGenerator.calculate_point_path(cell_start_path, cell_end_path)
 	# Later re-routes (towers, cleared obstacles, enemies mid-walk) stick to this route when they can.
 	_pathGenerator.set_preferred_cells(current_path)
+	_route_version = _pathGenerator.version
+	_route_index.clear()
+	for i in current_path.size():
+		_route_index[current_path[i]] = i
 	# Half cells (documentation/half_cells.md): route points step by half a cell, so the path is drawn on the
 	# dual grid (path_dual.png, _draw_dual), not one tile per cell. The start still runs off the rim onto the bridge.
 	for cell in current_path:
@@ -146,6 +150,7 @@ const DUAL_SHEET := "path_dual"
 const DUAL_SIZE := Vector2i(32, 32)
 const DUAL_FULL_VARIANTS: Array[int] = [15, 16, 17, 18]
 var dual_layer: TileMapLayer
+var _dual_tiles := {}  # What the dual layer shows: tile -> column
 var _act := 1
 
 func _dual() -> TileMapLayer:
@@ -190,18 +195,26 @@ static func dual_mask(halves: Dictionary, at: Vector2i) -> int:
 
 func _draw_dual() -> void:
 	var layer := _dual()
-	layer.clear()
 	var halves := path_halves()
-	var touched := {}
+	var tiles := {}  # Display tile -> column
 	for h: Vector2i in halves:  # Each path half cell is a corner of 4 display tiles
 		for dy in 2:
 			for dx in 2:
-				touched[h + Vector2i(dx, dy)] = true
-	for at: Vector2i in touched:
-		var mask := dual_mask(halves, at)
-		if mask == 15:
-			mask = DUAL_FULL_VARIANTS[EnvironmentTiles.cell_variant(at, DUAL_FULL_VARIANTS.size(), 7)]
-		layer.set_cell(at, 0, Vector2i(mask, 0))
+				var at := h + Vector2i(dx, dy)
+				if tiles.has(at):
+					continue
+				var mask := dual_mask(halves, at)
+				if mask == 15:
+					mask = DUAL_FULL_VARIANTS[EnvironmentTiles.cell_variant(at, DUAL_FULL_VARIANTS.size(), 7)]
+				tiles[at] = mask
+	# Only the tiles that changed (a placement moves a short stretch of the route).
+	for at: Vector2i in _dual_tiles:
+		if not tiles.has(at):
+			layer.erase_cell(at)
+	for at: Vector2i in tiles:
+		if _dual_tiles.get(at, -1) != tiles[at]:
+			layer.set_cell(at, 0, Vector2i(tiles[at], 0))
+	_dual_tiles = tiles
 
 func get_finder() -> FindPath:
 	return _pathGenerator
@@ -211,3 +224,16 @@ func is_half_blocked(h: Vector2) -> bool:
 
 func set_half_blocked(h: Vector2, blocked: bool) -> void:
 	_pathGenerator.set_half_blocked(h, blocked)
+
+# --- Fast re-routes (half_cells.md "Placement feel") --------------------------------------------------
+
+var _route_version := -1
+var _route_index := {}  # Route point -> its index in current_path (built by draw())
+
+# The route from `point` to the Heartwood when `point` is on the current route and nothing has been
+# blocked or opened since it was drawn: the route's own tail (a shortest route's tail is a shortest
+# route, and the one sticky re-routes keep). Empty otherwise (search instead).
+func route_tail(point: Vector2) -> PackedVector2Array:
+	if _pathGenerator == null or _route_version != _pathGenerator.version or not _route_index.has(point):
+		return PackedVector2Array()
+	return current_path.slice(_route_index[point])

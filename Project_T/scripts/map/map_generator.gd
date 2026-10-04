@@ -494,11 +494,19 @@ func can_block_halves(halves: Array, also_from: PackedVector2Array = PackedVecto
 			return false
 	for h in halves:
 		path_layer.set_half_blocked(h, true)
-	var ok := not path_layer.find_path_from(startPath).is_empty()
-	for from_point in also_from:
-		if not ok:
-			break
-		ok = not path_layer.find_path_from(from_point).is_empty()
+	var route := path_layer.find_path_from(startPath)
+	var ok := not route.is_empty()
+	if ok and not also_from.is_empty():  # Nightmares on the new route get there; search only for the others, once each
+		var on_route := {}
+		for point in route:
+			on_route[point] = true
+		for from_point in also_from:
+			if on_route.has(from_point):
+				continue
+			on_route[from_point] = true  # Searched (and fine if we go on)
+			if path_layer.find_path_from(from_point).is_empty():
+				ok = false
+				break
 	if not ok:  # Closed outright, or only too narrow for a body?
 		_refusal = &"narrow" if path_layer.get_finder().connects_thin(startPath, endPath) else &"closes"
 	for h in halves:
@@ -584,4 +592,5 @@ func remove_obstacle(cell: Vector2) -> void:
 
 # Path from `cell` to the end, in cell coordinates. Used by enemies to re-route.
 func get_path_from(cell: Vector2) -> PackedVector2Array:
-	return path_layer.find_path_from(cell)
+	var tail := path_layer.route_tail(cell)  # On the current route: its tail, no search (every walker re-routes)
+	return tail if not tail.is_empty() else path_layer.find_path_from(cell)

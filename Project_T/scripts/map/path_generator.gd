@@ -20,6 +20,7 @@ var _astar := AStarGrid2D.new()  # Body nodes (top-left half cell), (_size - 1) 
 # possible route stays under 1 step), so paths are still always shortest; it only breaks ties between
 # equally short routes in favour of the one that reuses the most of the old route.
 var _off_route_weight: float
+var version := 0  # Bumped on every blocking change (PathGenerator.route_tail checks its route is current)
 var _preferred_nodes: Array[Vector2i] = []
 
 
@@ -81,6 +82,7 @@ func set_half_blocked(h: Vector2, blocked: bool) -> void:
 	if _blocked[i.y * _size.x + i.x] == value:
 		return
 	_blocked[i.y * _size.x + i.x] = value
+	version += 1
 	for dy in range(-1, 1):  # The 4 body nodes that cover this half cell
 		for dx in range(-1, 1):
 			var node := i + Vector2i(dx, dy)
