@@ -40,6 +40,8 @@ for (const A of ACTS) {
   emit(d + "grass.png", strip([0, 1, 2, 3, 4, 5, 6, 7].map(v => getImg("grass:" + v))));
   emit(d + "path.png", strip(Array.from({ length: 16 }, (_, m) => getImg("path:" + m))));
   emit(d + "path_rim.png", strip(Array.from({ length: 16 }, (_, m) => getImg("pathrim:" + m))));
+  // path_dual.png: the half-cell path, 19 tiles of 32×32 in one row: 0–15 = corner mask, 16–18 = more full tiles.
+  emit(d + "path_dual.png", strip(Array.from({ length: 19 }, (_, k) => getImg("pdual:" + k))));
   emit(d + "fallen_log.png", strip([0, 1, 2, 3, 4, 5].map(k => getImg("flog:" + k))));  // W end, E-W middle, E end, N end, N-S middle, S end
   emit(d + "log_furrow.png", strip([0, 1, 2, 3, 4, 5].map(k => getImg("lfurrow:" + k))));  // where a Tended log lay, same layout
   // pond.png: column = neighbour mask, row = animation frame.

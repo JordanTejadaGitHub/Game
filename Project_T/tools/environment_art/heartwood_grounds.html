@@ -455,20 +455,16 @@ function clover(L, x, y, g) {
 // All variants share one wrapping noise base, so they tile with each other; variants only add details.
 function grass(A, v) {
   const L = new Img(), g = A.grass, s = SEED;
-  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
-    const n = .62 * pnoise(x, y, 16, s, 4) + .38 * pnoise(x, y, 8, s + 9, 8);
-    // Quiet ground: a base tone with a fine grain of the next tone whose density drifts with the
-    // noise. Solid patches (or a third tone on peaks) formed shapes that repeated every tile.
-    // Per-variant grain seed: fine per-pixel grain needs no match across edges, so variants can differ.
-    let i = hash(x, y, s + 11 + v * 101) < clamp((n - .25) * .8, .04, .42) ? 2 : 1;
-    if (!STYLE.dither) i = n > .55 ? 2 : 1;
-    const h = hash(x, y, s + 3 + v);
-    if (STYLE.dither && h < .012) i = Math.min(i + 1, 3);
-    L.set(x, y, g[i]);
-  }
+  // Flat ground with a few hand-placed tufts and clumps (2026-10-04, the AI-look audit: a random speckle
+  // over the whole tile read as generated "grain soup"; see style_reference/grass.png).
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) L.set(x, y, g[1]);
   const sv = s + v * 31;
   const soft = [g[0], g[1], g[2], g[2], g[3]];
-  for (let k = 0, n = [3,5,2,2,4,1,3,2][v]; k < n; k++) tuft(L, 4 + Math.floor(hash(k,1,sv) * 56), 5 + Math.floor(hash(k,2,sv) * 54), soft);
+  for (let k = 0, n = [4,6,3,3,5,2,4,3][v]; k < n; k++) tuft(L, 4 + Math.floor(hash(k,1,sv) * 56), 5 + Math.floor(hash(k,2,sv) * 54), soft);
+  for (let k = 0, n = [2,1,1,2,1,2,1,1][v]; k < n; k++) {  // a low clump of darker moss
+    const x = 6 + Math.floor(hash(k, 11, sv) * 50), y = 6 + Math.floor(hash(k, 12, sv) * 50);
+    for (const [dx, dy] of [[0, 0], [1, 0], [2, 0], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1]]) L.set(x + dx, y + dy, dy ? g[2] : g[3]);
+  }
   if (v === 2) for (let k = 0; k < 2; k++) flower(L, 8 + Math.floor(hash(k,3,sv) * 48), 8 + Math.floor(hash(k,4,sv) * 46), A.dots[k % 2], A.dots[2], g);
   if (v === 3) for (let k = 0; k < 2; k++) clover(L, 6 + Math.floor(hash(k,5,sv) * 50), 6 + Math.floor(hash(k,6,sv) * 50), soft);
   // Variants 4-7 (added 2026-09-28 so the ground doesn't repeat): 4 and 6 are other tuft layouts, 5 a few pebbles, 7 a fallen twig (keep rare).
@@ -493,27 +489,63 @@ function pathTile(A, mask, bare = false) {
   if (mask & 4) boxes.push([m, 32, T - m, T + 20]);
   if (mask & 8) boxes.push([-20, m, 32, T - m]);
   const D = (x, y) => { let d = 1e9; for (const b of boxes) d = Math.min(d, sdBox(x + .5, y + .5, b, 10)); return d + (pnoise(x, y, 8, s, 8) - .5) * 3.2; };
-  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
-    const d = D(x, y);
-    if (d < -2.2) {
-      // A plain pale ribbon with a light grain: mottled patches made the path busy when zoomed out.
-      const h = hash(x, y, s + 40);
-      let col = h < .09 ? p[3] : h > .94 ? p[1] : p[2];
-      if (!bare && d > -3.6 && hash(x, y, s + 5) < .12) col = g[2];
-      L.set(x, y, col);
-    } else if (d < -1) L.set(x, y, p[1]);
-    else if (d < 0) L.set(x, y, p[0]);
-    else if (!bare && d < 1.3 && hash(x, y, s + 4) < .6) L.set(x, y, g[1]);
-  }
-  for (let j = 0; j < 8; j++) for (let i = 0; i < 8; i++) {
-    if (hash(i, j, s + 50) >= .08) continue;
-    const x = i * 8 + 2 + Math.floor(hash(i, j, s + 51) * 4), y = j * 8 + 2 + Math.floor(hash(i, j, s + 52) * 4);
-    if (D(x, y) > -5 || D(x + 1, y + 1) > -5) continue;
-    L.set(x, y, ST.hi); L.set(x + 1, y, ST.l2); L.set(x, y + 1, ST.m); L.set(x + 1, y + 1, ST.d1);
-  }
+  paintPath(L, D, T, A, s, bare);
   return L;
 }
+// The path's look, shared by path.png, path_rim.png and path_dual.png (2026-10-04, the AI-look audit:
+// a speckled path with a soft dithered edge read as generated; see style_reference/path_ns.png).
+// Flat Path earth, a paler Moonpath band down its middle, a crisp wobbly Loam bank, a few pebbles and
+// dark specks, and the odd tuft of grass poking over the bank. D(x, y) < 0 inside, in px from the edge.
+function paintPath(L, D, size, A, s, bare = false, bandAt = -99) {  // bandAt: a paler middle band from that depth (off: the dual tiles can't measure that deep)
+  const p = A.path, g = A.grass;
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const d = D(x, y);
+    if (d < -1.6) {
+      const band = d < bandAt + (pnoise(x, y, 8, SEED + 460, size / 8) - .5) * 3;  // one seed for every tile, so the band joins
+      L.set(x, y, band ? p[3] : hash(x, y, s + 41) < .006 ? "#5c3c24" : p[2]);
+    } else if (d < 0) L.set(x, y, p[0]);  // the bank
+  }
+  const step = 8;  // one pebble chance per 8 px square, whatever the tile size
+  for (let j = 0; j < size / step; j++) for (let i = 0; i < size / step; i++) {  // pebbles
+    if (hash(i, j, s + 50) >= .08) continue;
+    const x = Math.round(i * step + 2 + hash(i, j, s + 51) * (step - 4)), y = Math.round(j * step + 2 + hash(i, j, s + 52) * (step - 4));
+    if (D(x, y) > -4 || D(x + 1, y + 1) > -4) continue;
+    L.set(x, y, ST.l2); L.set(x + 1, y, ST.m); L.set(x, y + 1, ST.d1);
+  }
+  if (bare) return;
+  for (let k = 0; k < Math.round(size / 16); k++) {  // a tuft poking over the bank
+    const x = 2 + Math.floor(hash(k, 1, s + 70) * (size - 4)), y = 2 + Math.floor(hash(k, 2, s + 70) * (size - 4));
+    const d = D(x, y);
+    if (d < -.5 || d > 1.5) continue;
+    L.set(x, y, g[3]); L.set(x - 1, y - 1, g[4]); L.set(x + 1, y - 1, g[4]); L.set(x, y + 1, g[2]);
+  }
+}
 
+// Dual-grid path at 32 px for half-cell placement (environment_assets.md "Half-cell grid"; path_dual.png).
+// The display layer sits 16 px off the half-cell grid, so a tile's 4 corners are 4 half cells' centres;
+// k = mask of the corners that are path (TL 1, TR 2, BR 4, BL 8), k 16..18 = 3 more full tiles (mask 15).
+// Each corner's state is blended with a smooth weight R px either side of the tile's midlines: the edge
+// lies on the midlines, outer and inner corners round off, and a half-step jog bends softly. At a tile's
+// edge only that side's corners count and the noise wraps every 32 px, so tiles join without seams.
+// Transparent outside the path (the ground layer is under it); the look is path.png's.
+const DUAL = 32, DUAL_R = 12;
+function dualField(mask) {
+  const w = v => 1 - (v < 16 - DUAL_R ? 0 : v > 16 + DUAL_R ? 1 : (t => t * t * (3 - 2 * t))((v - 16 + DUAL_R) / (2 * DUAL_R)));  // 1 at the near side, 0 past the midline
+  const on = b => (mask & b) ? 1 : 0;
+  return (x, y) => {
+    const l = w(x + .5), t = w(y + .5);
+    return on(1) * l * t + on(2) * (1 - l) * t + on(4) * (1 - l) * (1 - t) + on(8) * l * (1 - t);
+  };
+}
+function pathDual(A, k) {
+  const L = new Img(DUAL, DUAL), mask = k > 15 ? 15 : k, s = SEED + 830 + (k > 15 ? (k - 15) * 37 : 0);
+  const F = dualField(mask);
+  // d < 0 inside, in px from the edge (the blend is about 1/16 per px at the edge). One gentle bump per
+  // tile: a stronger, finer wobble repeated every 32 px like a row of beads.
+  const D = (x, y) => -(F(x, y) - .5) * 16 + (pnoise(x, y, 16, SEED + 830, 2) - .5) * 2.4;
+  paintPath(L, D, DUAL, A, s);
+  return L;
+}
 // Drystone wall: wrapping Voronoi stones, moss from the season's grass.
 function wall(A, v) {
   const L = new Img(), g = A.grass, s = SEED * 3 + v * 101, pts = [];
@@ -977,12 +1009,22 @@ function blightPatch(A, f, seed) {
 
 // Violet-black fog where drifts arrive; on some frames a pair of pale eyes opens in it.
 function mist(A, f, eyes = true) {
-  const L = new Img();
+  // Each pixel takes its strongest puff (never a blend of two) in 3 hard alpha steps: blended puffs
+  // made ~25 soft levels, which the AI-look audit (2026-10-04) reads as a blur.
+  const L = new Img(), dense = new Float32Array(T * T), lit = new Uint8Array(T * T);
   for (let k = 0; k < 9; k++) {
-    const ph = ((f / 4) + k / 9) % 1, x = 2 + ((k * 23) % 44) + ph * 14, y = 16 + ((k * 13) % 34) - ph * 5, r = 7 + (k % 3) * 2;
+    const ph = ((f / 4) + k / 9) % 1, cx = 2 + ((k * 23) % 44) + ph * 14, cy = 16 + ((k * 13) % 34) - ph * 5, r = 7 + (k % 3) * 2;
     const a = .42 * Math.sin(ph * Math.PI) + .2;
-    ellipse(L, x, y, r, r * .7, CA("#120c1e", a));
-    ellipse(L, x - r * .25, y - r * .25, r * .5, r * .3, CA("#3a2e58", a * .7));
+    for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+      const i = y * T + x;
+      if (((x + .5 - cx) / r) ** 2 + ((y + .5 - cy) / (r * .7)) ** 2 <= 1) dense[i] = Math.max(dense[i], a);
+      if (((x + .5 - cx + r * .25) / (r * .5)) ** 2 + ((y + .5 - cy + r * .25) / (r * .3)) ** 2 <= 1 && a > .45) lit[i] = 1;
+    }
+  }
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const i = y * T + x, a = dense[i];
+    if (a < .14) continue;
+    copyPx(L, x, y, CA(lit[i] ? "#3a2e58" : "#120c1e", a >= .5 ? .65 : a >= .32 ? .45 : .25));
   }
   if (eyes && (f === 1 || f === 2)) {
     const a = f === 1 ? .6 : 1;
@@ -1045,7 +1087,7 @@ const HEART_INFO = [];
 function heartwood(A, f, lost = 0, stage = -1) {
   const MH = 128, out = new Img(MH, MH), WOOD = new Img(MH, MH), dmg = lost / 20, E = ellipseRaw, ST = HEART_STAGES[stage];
   // Ground: a low mossy mound the roots sink into (lit on its upper left).
-  E(out, 64, 113, 40, 11, (x, y, dx, dy) => pick([HWN.Void, HWN.Deepmoss, HWN.Deepmoss, HWN.Moss], clamp(.45 - dy * .35 - dx * .2 + (pnoise(x, y, 4, 7) - .5) * .4, 0, 1), x, y, .6));
+  E(out, 64, 113, 40, 11, (x, y, dx, dy) => pick([HWN.Void, HWN.Deepmoss, HWN.Deepmoss, HWN.Moss], clamp(.45 - dy * .35 - dx * .2 + (pnoise(x, y, 4, 7) - .5) * .4, 0, 1), x, y, ST ? 0 : .6));  // the Grove stages: hard bands, no dither (AI-look audit)
   // Wood: cylinder light from the upper left, cool grey-brown (the warmth is saved for the Hollow and rim).
   const wood = seed => (x, y, nx) => {
     if (Math.abs(nx) > .8) return HWN.Root;
@@ -1075,7 +1117,7 @@ function heartwood(A, f, lost = 0, stage = -1) {
     else if (!inHollow(x, y)) {  // moss patches, like the title's mossy giant
       const n = pnoise(x, y, 6, 95) * .7 + pnoise(x, y, 2, 96) * .3;
       const mo = ST ? .1 : 0;  // the Grove stages wear much more moss, like the Grove's moss-wrapped trunk
-      if (n > .62 - mo) out.set(x, y, n > .72 - mo ? HWN.Moss : HWN.Deepmoss); else if (n > .59 - mo && hash(x, y, 97) < .5) out.set(x, y, HWN.Leaf);
+      if (n > .62 - mo) out.set(x, y, n > .72 - mo ? HWN.Moss : HWN.Deepmoss); else if (!ST && n > .59 && hash(x, y, 97) < .5) out.set(x, y, HWN.Leaf);  // (a random leaf speckle only on the original)
     }
   }
   // The Hollow: a pointed doorway at the trunk's foot, banded gold light that dims with damage.
@@ -1095,9 +1137,10 @@ function heartwood(A, f, lost = 0, stage = -1) {
   const inCrown = (x, y) => crownShape.some(([cx, cy, rx, ry]) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 < 1 + (pnoise(x, y, 10, 11) - .5) * .35);
   const lobe = (x, y) => { let t = -1; for (const [lx, ly, r] of lobes) { const dx = (x - lx) / r, dy = (y - ly) / r, q = dx * dx + dy * dy; if (q <= 1) t = Math.max(t, clamp((-dx * .5 - dy * .8 + Math.sqrt(1 - q) * .5 + .2) / 1.2, 0, 1)); } return t < 0 ? .25 : t; };
   const cl = [];
-  for (let gy = 2; gy < 66; gy += 4) for (let gx = 0; gx < W; gx += 5) {
+  // The Grove stages: bigger, fewer clumps of leaves (the AI-look audit: tiny clusters read as busy texture).
+  for (let gy = 2; gy < 66; gy += ST ? 6 : 4) for (let gx = 0; gx < W; gx += ST ? 7 : 5) {
     const x = gx + (hash(gx, gy, 12) - .5) * 3 + (gy / 4 % 2) * 2.5, y = gy + (hash(gx, gy, 13) - .5) * 2;
-    if (inCrown(x, y)) cl.push([x, y, 3 + hash(gx, gy, 14) * 1.6]);
+    if (inCrown(x, y)) cl.push([x, y, ST ? 4.5 + hash(gx, gy, 14) * 2.5 : 3 + hash(gx, gy, 14) * 1.6]);
   }
   cl.sort((a, b) => b[1] - a[1]).forEach(([cx, cy, r]) => {
     const base = clamp(1 + Math.floor((lobe(cx, cy) * .9 + .2 - (cy - 16) / 60 * .45) * 4), 1, 4);
@@ -1115,8 +1158,8 @@ function heartwood(A, f, lost = 0, stage = -1) {
     let below = 0; for (let yy = by + 1; yy < W && TIER[yy * W + bx] >= 0; yy++) below++;
     if (below < (ST ? 5 : 3)) t = Math.min(t, 2);  // a dark green belly (deeper on the Grove stages, like the Grove's underside)
     const rot = pnoise(bx, by, 10, 21) * .7 + pnoise(bx, by, 3, 22) * .3;
-    if (dmg > 0 && rot > 1 - dmg * .62) { L.set(x, y, hash(bx, by, 23) < .05 ? HWN.Slate : rot > 1.08 - dmg * .62 ? HWN.Dread : HWN.Shade); continue; }
-    L.set(x, y, t === 1 ? ((bx + by) % (ST ? 4 : 2) ? HWN.Void : HWN.Deepmoss) : t >= 4 && by < 22 && hash(bx, by, 24) < .15 ? HWN.Leaf : LEAF[t]);
+    if (dmg > 0 && rot > 1 - dmg * .62) { L.set(x, y, !ST && hash(bx, by, 23) < .05 ? HWN.Slate : rot > 1.08 - dmg * .62 ? HWN.Dread : HWN.Shade); continue; }
+    L.set(x, y, t === 1 ? (ST ? HWN.Void : (bx + by) % 2 ? HWN.Void : HWN.Deepmoss) : !ST && t >= 4 && by < 22 && hash(bx, by, 24) < .15 ? HWN.Leaf : LEAF[t]);
   }
   if (ST && !HEART_INFO[stage]) {
     // For the game: the crown's box, the lit tops where glints may twinkle (every lit 2 px block's
@@ -1196,7 +1239,8 @@ function heartwood(A, f, lost = 0, stage = -1) {
     if (x > 54 && x < 70 && y > 86 && y < 107) continue;
     const band = clamp(1 - Math.abs(y - 114) / 12, 0, 1) * (1 - Math.abs(x - 64) / 58);
     const d = band * clamp((pnoise(x + f * 2, y, 9, 34) - .3) * 2.4, 0, 1);
-    if (d > 0 && bay(x, y) < d * .8) out.set(x, y, d > .6 ? HWN.Shade : HWN.Dusk);
+    if (ST) { if (d > .35) out.set(x, y, d > .62 ? HWN.Shade : HWN.Dusk); }  // the Grove stages: solid wisps, no dither
+    else if (d > 0 && bay(x, y) < d * .8) out.set(x, y, d > .6 ? HWN.Shade : HWN.Dusk);
   }
   return out;
 }
@@ -1488,9 +1532,9 @@ function islandEdge(A, mask, v = 0) {
     // Seamless noise only (a per-tile light gradient repeated as a checker along the rim).
     const lit = .42 + (pnoise(x, y, 8, s + 2, 8) - .5) * .35 + (pnoise(x, y, 16, s + 3, 4) - .5) * .35
       + (pnoise(x, y, 10, s + 40 + v * 13) - .5) * .35 * win(x) * win(y);
-    let c = pick(RIM_EARTH.slice(1), clamp(lit, 0, 1), x, y, .6);
-    if (d > -5 && hash(x >> 2, y >> 2, s + 12) < .3) c = pick(RIM_EARTH.slice(2), clamp(lit + .2, 0, 1), x, y, .4);  // bits of the broken lip catch a little light (a continuous band read as a rope)
-    if (hash(x, y, s + 3) < .025) c = hash(x, y, s + 4) < .5 ? "#3c3c5c" : "#5c5a78";  // loose stones
+    let c = pick(RIM_EARTH.slice(1), clamp(lit, 0, 1), x, y, .12);  // little dither (the AI-look audit: grain)
+    if (d > -5 && hash(x >> 2, y >> 2, s + 12) < .3) c = pick(RIM_EARTH.slice(2), clamp(lit + .2, 0, 1), x, y, 0);  // bits of the broken lip catch a little light (a continuous band read as a rope)
+    if (hash(x >> 1, y >> 1, s + 3) < .008) c = hash(x >> 1, y >> 1, s + 4) < .5 ? "#3c3c5c" : "#5c5a78";  // loose stones (2 px, few)
     const cv = creep(x, y);
     if (cv > 0) c = cv < 1.2 && hash(x, y, s + 5) < .5 ? g[3] : hash(x, y, s + 6) < .3 ? g[2] : g[1];  // grass, its lip catching light
     else if (cv > -3) c = RIM_EARTH[0];  // shadow under the grass edge
@@ -1612,6 +1656,10 @@ function mistBanks() {
 // out at the top and bottom edges, with thin Wraithlight and Moonlight wisps. `fade(x)` (0..1) thins
 // it toward a cap's open end; `curl` adds the end cap's forward curl.
 const ROUTE_W = 64, ROUTE_H = 24;
+// Route mist alphas in 3 hard steps (the AI-look audit: a soft fade of ~28 alpha levels read as a blur).
+const CAq =(col, a) => a >= .62 ? CA(col, .75) : a >= .38 ? CA(col, .5) : a >= .14 ? CA(col, .25) : null;
+// Overwrite, never blend: two partial alphas blended over each other made new in-between levels.
+const putq = (L, x, y, c) => { x = Math.floor(x); y = Math.floor(y); if (c && x >= 0 && y >= 0 && x < L.w && y < L.h) copyPx(L, x, y, c); };
 function routeMistPx(L, x, xs, fade, s) {
   // xs = position in the strip's 64 px period; the noise wraps there, so every piece lines up.
   // v2 (2026-10-01, it vanished on the pale path at play zoom): a denser body, a pale Mist core (reads on
@@ -1621,14 +1669,14 @@ function routeMistPx(L, x, xs, fade, s) {
     const d = Math.abs(y + .5 - mid) / Math.max(thick, .01) + (pnoise(xs, y, 8, s + 2, 8) - .5) * .6;
     if (y < 1 || y > ROUTE_H - 2 || d >= 1.15) continue;
     if (d >= .78 && bay(x, y) > .65) continue;  // a broken, dithered cold edge (an even band read as a pipe)
-    L.set(x, y, d < .4 ? CA("#b4b0c8", .75 * fade) : d < .78 ? CA("#5c5a78", .65 * fade) : CA("#2c2444", .7 * fade));
+    putq(L, x, y, d < .4 ? CAq("#b4b0c8", .75 * fade) : d < .78 ? CAq("#5c5a78", .65 * fade) : CAq("#2c2444", .7 * fade));
   }
   // Soft broken strands of pale mist drifting through the core (a continuous sharp violet line read as
   // lightning, i.e. the Charged status): 2 px tall, gently wavy, in short pieces.
   for (const [k, col, ph] of [[1, "#dce8f4", 0], [2, "#9a84e8", 2.4]]) {
     const y = Math.round(mid - 1 + Math.sin((xs / ROUTE_W) * Math.PI * 2 + ph) * 1.6 * fade) + (k === 2 ? 2 : 0);
     if (pnoise(xs, k * 9, 16, s + 3 + k, 4) < .5 || fade < .3) continue;
-    L.set(x, y, CA(col, .7 * fade)); L.set(x, y + 1, CA(col, .45 * fade));
+    putq(L, x, y, CAq(col, .7 * fade)); putq(L, x, y + 1, CAq(col, .45 * fade));
   }
 }
 function routeMist(part) {
@@ -1643,7 +1691,7 @@ function routeMist(part) {
     for (let i = 0; i <= 24; i++) {
       const t = i / 24, a = -Math.PI / 2 + t * Math.PI * 1.6, r = 5.5 - t * 3;
       const x = Math.round(18 + t * 6 + Math.cos(a) * r), y = Math.round(12 + Math.sin(a) * r);
-      L.set(x, y, CA(t < .7 ? "#9a84e8" : "#dce8f4", .85 - t * .35));
+      putq(L, x, y, CAq(t < .7 ? "#9a84e8" : "#dce8f4", .85 - t * .35));
     }
   }
   return L;
@@ -1894,6 +1942,7 @@ const BUILD = {
   pool: (A, v, f) => pool(A, f),
   pond: (A, v, f) => pondTile(A, v, f),
   pondin: (A, v) => pondInner(A, v),
+  pdual: (A, k) => pathDual(A, k),  // k = corner mask 0..15, 16..18 = more full tiles
   flog: (A, k) => fallenLog(A, k),  // 0 W end, 1 E-W middle, 2 E end, 3 N end, 4 N-S middle, 5 S end
   lfurrow: (A, k) => logFurrow(A, k),  // the same 6 pieces
   blight: (A, v, f) => blightPatch(A, f, SEED + v * 5),

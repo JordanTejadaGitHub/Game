@@ -39,8 +39,9 @@ two trees pulse in step.
 
 | File | Size | Layout | Use |
 |---|---|---|---|
-| `grass.png` | 512×64 | 8 variants: 0 plain, 1/4/6 tufts, 2 flowers, 3 clover, 5 pebbles, 7 fallen twig | ground; any variant tiles with any other. Each has its own grain (the sheet goes through the detail pass as one image with no added grain: texture 0, the user's pick), so the ground doesn't repeat. Shares: `GroundGenerator.GRASS_WEIGHTS` |
-| `path.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8) | the creature path; e.g. column 5 = N+S straight, 15 = crossroads |
+| `grass.png` | 512×64 | 8 variants: 0 plain, 1/4/6 tufts, 2 flowers, 3 clover, 5 pebbles, 7 fallen twig | ground; any variant tiles with any other. Flat ground with a few hand-placed tufts and low moss clumps, no speckle (the AI-look audit, 2026-10-04: a random grain read as generated), through the calm detail pass. Shares: `GroundGenerator.GRASS_WEIGHTS` |
+| `path.png` | 1024×64 | 16 tiles, **column = neighbour mask** (N=1, E=2, S=4, W=8) | the creature path; e.g. column 5 = N+S straight, 15 = crossroads. Flat Path earth, a crisp wobbly Loam bank, a few pebbles and dark specks, the odd tuft over the bank (`paintPath`, shared with `path_rim` and `path_dual`; the AI-look audit replaced the speckle and the dithered edge) |
+| `path_dual.png` | 608×32 | **19 tiles of 32×32 in one row: 0–15 = corner mask** (the half cells at the tile's corners that are path: TL=1, TR=2, BR=4, BL=8), **16–18 = 3 more full tiles** (mask 15) to vary long stretches | the half-cell path (environment_assets.md "Half-cell grid"): a dual-grid autotile drawn on a layer offset 16 px from the half-cell grid. The path edge lies on each tile's midlines, outer and inner corners round off, a half-step jog bends softly; tiles join without seams. The same look as `path.png`, transparent outside the path |
 | `path_rim.png` | 1024×64 | 16 tiles, **column = neighbour mask** like `path.png` | the path on the start and goal cells, which sit in the rim ring: the same path, transparent outside it (no grass border). Draw it over the matching `island_edge` tile so the rim's earth runs up to the path |
 | `border_wall.png` | 128×64 | 2 variants, seamless | the map's stone border |
 | `withered_tree.png` | 384×1152 | **96×128 cells** (bigger since 2026-09-30): the bottom 64 px rows, centred, are the cell (trunk base and shadow); the rest overhangs the cell above (64 px) and the sides (16 px each). Drawn from the 64 px designs with heights × 1.7 and widths × 1.3. 9 dead trees (rows) × 4 frames: 0–2 gnarled Withered Tree, 3 split trunk, 4 broken hollow snag (eyes glint), 5 weeping dead willow (strands sway), 6 dead pine, 7 dead birch, 8 thorn tree | obstacle, "Tend"; all 9 are in `tree.tres` |
@@ -276,8 +277,8 @@ Map pieces the act-break gifts place, one set per act folder like the rest.
   from the project folder, then Godot `--import`. It runs the generator (`heartwood_grounds.html`,
   fixed seed 1207, with `export_tail.js`) in headless Chrome, then `process_environment.gd` puts every
   sheet through Theme Code's `DetailPass` and `HeartwoodPalette` (`tools/art/`) into
-  `assets/environment/`: no added grain on grass / island rim / dew pool / blight patch, 0.3 on the
-  other ground tiles, full detail on obstacles, 96×128 tree cells, palette snap only for mist, void,
+  `assets/environment/`: ground tiles in the pass's calm mode with no added grain (the AI-look audit,
+  2026-10-04; it was 0.3 on most ground tiles), full detail on obstacles, 96×128 tree cells, palette snap only for mist, void,
   cloud shadows and the Heartwood (drawn with its own rim and banded glow; redrawn 2026-09-30 to
   match the Memory Grove's Heartwood). It prints the value order per act and fails if it breaks. A run
   on unchanged sources reproduces the committed sheets byte for byte. Only PNGs are written (UIDs stay).
