@@ -57,8 +57,8 @@ captioned one. Record the voice, drop it on the timeline, done. Speak like you'r
 **Short 1: "Your towers ARE the maze." (~25 s)**
 - 0–2 s: *"In my game, your towers are the walls."*
 - 2–10 s: *"Every Warden you plant changes the path the nightmares have to walk. Longer path, more time to hit them."*
-- 10–18 s: *"So you're not just placing towers. You're building a maze, one Warden at a time."*
-- 18–25 s: *"And then they come. All of them. Through every twist you built."* · end card: *"It's called Heartwood TD. Wishlist it on Steam."*
+- 10–18 s: *"Twelve Wardens in, and the path's about three times as long as when I started."* (swap in the real count from the clip)
+- 18–25 s: *"Then I hit start, and they have to walk every bend of it."* · end card: *"It's called Heartwood TD. Wishlist it on Steam."*
 
 **Short 2: "Watch this chain." (~22 s)**
 - 0–2 s: *"Watch this chain."*
@@ -110,11 +110,28 @@ the Night Mare's laps, the Memory Grove growing, Rank V Nurture choices, the Spi
 
 ## 6. Steam page text (draft)
 
-- **Short description (≤ 300 characters):** *Nightmares are hunting the Heartwood's dream. Plant Warden spirits that are also
-  the walls of your maze, combine their powers into chain Reactions, and grow a new forest every run in this dark-fairytale
-  tower defence roguelite.*
+- **Short description (≤ 300 characters; 2026-10-04 rewrite, ~230):** *A maze tower defence roguelite where your towers
+  are the walls. Every Warden you plant bends the path the nightmares take to the Heartwood. Soak them, then charge them,
+  and the lightning jumps through the whole crowd. New island every run.*
+  (Was: "Nightmares are hunting the Heartwood's dream… grow a new forest every run…": flagged as generic in text_pass.md.)
 - **About (outline):** the hook (Wardens are the maze) · combos and Reactions · runs that are never the same (branches,
-  Dreams, Omens, Gifts) · bosses · the Memory Grove (meta progression) · the look and sound.
+  Dreams, Omens, Gifts) · bosses · the Memory Grove (meta progression) · the look and sound. Write each block as one
+  concrete scene from play (a GIF + two sentences), not a feature list.
+- **Tags (draft):** Tower Defense, Roguelite, Strategy, Pixel Graphics, Dark Fantasy, Singleplayer, Maze, Fantasy. Drop
+  "Deckbuilding-lite": not a Steam tag, and Dream picks aren't a deck.
+
+### Steam page checklist (status 2026-10-04)
+| Item | Status | Waiting on |
+|---|---|---|
+| Name | open ("Heartwood TD"?) | the user |
+| Capsule art | drafts A / B / hybrid (A's Warden in front of B's path) | the user's pick; hire a human artist? (brief in art_direction.md) |
+| Logo | not started | same decision as the capsule |
+| Short description | drafted above | the name |
+| About | outline above | the name, then GIFs |
+| Tags | drafted above | — |
+| 5–8 screenshots | **on hold** | art refresh (grain clean-up, one golem pose per family; the starting three first) + capture mode |
+| Trailer | script in §5 | Short Form Video, capture tools |
+| AI disclosure | drafted in §7 | Valve's wording at submission |
 
 ## 7. AI disclosure (Steam requires it)
 
