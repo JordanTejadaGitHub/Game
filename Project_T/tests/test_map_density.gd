@@ -81,7 +81,7 @@ func _layout_case(kind: int, short: int) -> void:
 		var main := await _make(seed_value, kind, short)
 		var map = main.get_node("%MapGenerator")
 		name = map.layout.get_kind_name()
-		var length: int = map.get_path_from(map.startPath).size()
+		var length: int = map.route_length(map.get_path_from(map.startPath))  # Half cells: full-cell length
 		var cells := 0
 		for x in int(map.MAP_GRID.size.x):
 			for y in int(map.MAP_GRID.size.y):
@@ -178,7 +178,7 @@ func _check_heartwood(map: Node, env: Node, what: String) -> void:
 # Longer than the straightest possible route: the maze makes the route turn back at least once.
 func _bends(map: Node) -> bool:
 	var straight := int(absf(map.endPath.x - map.startPath.x) + absf(map.endPath.y - map.startPath.y)) + 1
-	return map.get_path_from(map.startPath).size() > straight
+	return map.route_length(map.get_path_from(map.startPath)) > straight
 
 func _in_band(value: int, median: int) -> bool:
 	return value >= median * (1.0 - BAND) and value <= median * (1.0 + BAND)
