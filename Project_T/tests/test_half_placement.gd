@@ -1,6 +1,6 @@
 extends SceneTree
 
-# Headless test for half-cell placement (experiment, documentation/half_cells.md; Tower Code's side): the ghost snaps to
+# Headless test for half-cell placement (documentation/half_cells.md; Tower Code's side): the ghost snaps to
 # the nearest half-cell offset; a Warden planted at a half offset blocks its 2×2 halves, sits between whole cells and
 # keeps a full `cell` under its centre; clicking any part of it picks it; selling opens its halves; a drag stroke plants
 # Wardens a Warden's width apart; the run save keeps the half origin. Run from the project folder:

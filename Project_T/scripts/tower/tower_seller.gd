@@ -145,7 +145,7 @@ func get_tower_at(cell: Vector2) -> Tower:
 			return tower
 	return null
 
-# The Warden under a point on the map (pixels): by the half cell under it (half-cell experiment: a Warden at a
+# The Warden under a point on the map (pixels): by the half cell under it (half cells: a Warden at a
 # half offset covers parts of 4 whole cells).
 func get_tower_at_point(world: Vector2) -> Tower:
 	if not map_generator.has_method("pixels_to_half"):
@@ -166,7 +166,7 @@ func sell(cell: Vector2) -> bool:
 	tower_container.remove_child(tower)
 	tower.queue_free()
 	if map_generator.has_method("unblock_halves"):
-		map_generator.unblock_halves(tower.get_halves())  # Half-cell experiment; emits path_changed
+		map_generator.unblock_halves(tower.get_halves())  # Its half cells; emits path_changed
 	else:
 		for c in tower.get_cells():
 			map_generator.unblock_cell(c)  # Emits path_changed -> creatures re-route
@@ -673,7 +673,7 @@ func _process(delta: float) -> void:
 	var half: Vector2 = map_generator.pixels_to_half(get_global_mouse_position()) if map_generator.has_method("pixels_to_half") else cell
 	if cell != _hover_cell or half != _hover_half:
 		_hover_cell = cell
-		_hover_half = half  # Half-cell experiment: a Warden at a half offset changes within a whole cell
+		_hover_half = half  # Half cells: a Warden at a half offset changes within a whole cell
 		_hover_tower = get_tower_at_point(get_global_mouse_position())
 		queue_redraw()
 var _hover_half := Vector2(-1, -1)
@@ -718,7 +718,7 @@ func _draw() -> void:
 		draw_rect(box, Color(SELECTED_COLOR, 0.8), false, 1.5)
 	if _hover_tower == null or _dragging:
 		return
-	var center: Vector2 = _hover_tower.position  # The Warden itself (half-cell experiment: it may sit between cells)
+	var center: Vector2 = _hover_tower.position  # The Warden itself (it may sit between cells)
 	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
 	var label := _hover_tower.tower_data.display_name  # Just the name (text_style.md: no hints on hover)

@@ -894,7 +894,7 @@ static func _route_cells(near: Node2D) -> Array:
 	if dreams == null or dreams.map_generator == null:
 		return []
 	var map = dreams.map_generator
-	return Array(Tower.route_cells(map.get_path_from(map.startPath)))  # Half-cell experiment: whole cells
+	return Array(Tower.route_cells(map.get_path_from(map.startPath)))  # Whole cells (half-step routes)
 
 # Carried Storm: a Samara / Autumn Gale seed passing through the spot of Reaction `id` repeats it at
 # 50% on a nightmare it hits after (damage Reactions as a burst, Drown as a short sleep, Pinned as a

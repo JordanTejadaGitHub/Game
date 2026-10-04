@@ -259,7 +259,7 @@ func _process(delta: float) -> void:
 	if stroking:
 		return  # The stroke has its own ghosts and route (_stroke_input)
 	if half_placement():
-		# Half-cell experiment: the ghost snaps to the nearest half-cell offset.
+		# Half cells: the ghost snaps to the nearest half-cell offset.
 		var origin := half_origin_at(get_global_mouse_position())
 		if origin != _hover_half:
 			_hover_half = origin
@@ -714,7 +714,7 @@ func _draw_card_areas() -> void:
 func ghost_tag_origin() -> Vector2:
 	return to_local(_ghost_centre())
 
-# --- Half-cell placement (experiment, documentation/half_cells.md) ---
+# --- Half-cell placement (documentation/half_cells.md) ---
 # A 1-cell Warden snaps to the half grid: its 2×2 half-cell footprint's top-left half is _hover_half, and
 # _hover_cell is the full cell under its centre (ranges, cards, Kinship spots keep full cells). Bigger Wardens
 # (the Sapling) stay on whole cells.
@@ -1060,7 +1060,7 @@ func _take_square(tower: Tower, into: TowerData, origin: Vector2) -> void:
 		else:
 			free.append(c)
 	if tower.half_cell.x >= 0 and map_generator.has_method("unblock_halves"):
-		# Half-cell experiment: a Warden at a half offset grows onto whole cells; its old halves open first, and its
+		# Half cells: a Warden at a half offset grows onto whole cells; its old halves open first, and its
 		# own cell in the square is blocked whole with the rest.
 		map_generator.unblock_halves(tower.get_halves())
 		tower.half_cell = Vector2(-1, -1)

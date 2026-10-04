@@ -217,12 +217,12 @@ func _restore(data: Dictionary) -> void:
 		var size := int(saved.get("size", 1 if tower.tower_data.tier >= DreamState.ASCENDED_TIER else 0))
 		if size > 0 and size != tower.tower_data.footprint:
 			tower.footprint_size = size
-		var half: Array = saved.get("half", [-1, -1])  # Half-cell experiment: its half-cell origin, if it has one
+		var half: Array = saved.get("half", [-1, -1])  # Its half-cell origin, if it has one
 		tower.half_cell = Vector2(half[0], half[1])
 		tower.position = Tower.half_centre(tower.half_cell) if tower.half_cell.x >= 0 else Tower.footprint_centre(tower.cell, tower.get_footprint())
 		tower_container.add_child(tower)
 		if map_generator.path_layer.has_method("set_half_blocked"):
-			for h in tower.get_halves():  # Half-cell experiment: its 2×2 halves (the Sapling: its cells' halves)
+			for h in tower.get_halves():  # Its 2×2 halves (the Sapling: its cells' halves)
 				map_generator.path_layer.set_half_blocked(h, true)
 		else:
 			for c in tower.get_cells():  # The Sapling covers 2×2

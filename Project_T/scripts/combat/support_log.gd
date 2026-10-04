@@ -253,7 +253,7 @@ func get_path_tiles(wall: Tower) -> int:
 	if not cached.is_empty() and cached[0] == dreams.board_version and cached[2] == wall.cell:
 		return cached[1]
 	var layer = map.path_layer
-	var halved: bool = layer.has_method("set_half_blocked")  # Half-cell experiment: the wall's halves, route in cells
+	var halved: bool = layer.has_method("set_half_blocked")  # Half cells: the wall's halves, route in cells
 	var with_it: int = map.route_length(layer.find_path_from(map.startPath)) if halved else layer.find_path_from(map.startPath).size()
 	if halved:
 		for h in wall.get_halves():

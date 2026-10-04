@@ -2648,9 +2648,9 @@ func _route() -> PackedVector2Array:
 	if _dream_state == null or _dream_state.map_generator == null:
 		return PackedVector2Array()
 	var map = _dream_state.map_generator
-	return map.get_path_from(map.startPath)  # Raw route points (half-cell experiment: 0.5 steps; route_cells() for cells)
+	return map.get_path_from(map.startPath)  # Raw route points (half cells: 0.5 steps; route_cells() for whole cells)
 
-# The whole cells a route passes over, in order (half-cell experiment: route points are body centres in 0.5 steps;
+# The whole cells a route passes over, in order (half cells: route points are body centres in 0.5 steps;
 # a body on x.5 covers both cells beside it). Integer routes come back unchanged. Path tiles, rings, cracks, spins
 # and Kinship bows read these.
 static func route_cells(route: PackedVector2Array) -> PackedVector2Array:
@@ -3063,7 +3063,7 @@ func _play_ripen() -> void:
 func get_cells() -> Array[Vector2]:
 	return footprint_cells(cell, get_footprint())
 
-# Half-cell experiment (documentation/half_cells.md): the top-left half cell of a 1-cell Warden's 2×2 half-cell
+# Half-cell placement (documentation/half_cells.md): the top-left half cell of a 1-cell Warden's 2×2 half-cell
 # footprint, or (-1, -1) for a Warden on whole cells. `cell` stays the full cell under its centre (ranges, auras,
 # Kinships keep full cells).
 var half_cell := Vector2(-1, -1)
