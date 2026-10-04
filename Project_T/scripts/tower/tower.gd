@@ -1448,16 +1448,18 @@ func _refresh_neighbours() -> void:
 			_touch_lines[data.line] = true  # Mycelium, Fireflies in the Grass
 		if data.aura_crit_bonus > 0.0 and distance <= data.attack_range:
 			_aura_crit = maxf(_aura_crit, data.aura_crit_bonus)  # Auras don't stack with themselves
-		if (data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0) \
+		# A Warden that doesn't attack (Thornwall) can't use damage or speed boosts: it takes no aura at all, so no
+		# chips, threads or Buffs rows (user: a selected Thornwall showed "+30% speed"). Falloff is per receiver.
+		if tower_data.can_attack and (data.aura_damage_bonus > 0.0 or data.aura_speed_bonus > 0.0) \
 				and (distance <= other.get_aura_reach() or other.reaches_past(hedge_walls)):
 			# Acorn, Elder Stump, Grove Heart, Grandmother Oak: gathered per kind, stacked with falloff below.
 			var kind: String = data.get_id()
 			if not auras.has(kind):
 				auras[kind] = []
 			auras[kind].append([other, other.get_aura_bonus(false), other.get_aura_bonus(true), distance > other.get_aura_reach()])
-		if my_aura and distance <= my_reach:
-			aura_count += 1
-		var growth: float = other.kin_share(&"old_growth", "b") if distance <= 1.5 else 0.0
+		if my_aura and distance <= my_reach and data.can_attack:
+			aura_count += 1  # Grove Heart's "for each Warden around it": only ones its aura boosts
+		var growth: float = other.kin_share(&"old_growth", "b") if distance <= 1.5 and tower_data.can_attack else 0.0
 		if growth > 0.0:  # Old Growth: the Dewcatcher kin's small aura (its own kind)
 			if not auras.has("old_growth"):
 				auras["old_growth"] = []
