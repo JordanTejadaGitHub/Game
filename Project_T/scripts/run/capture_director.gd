@@ -60,6 +60,8 @@ var _started := false
 var _tracker: Node = null  # ReactionTracker, hooked once it exists (chain slow motion)
 var _slow_left := 0.0  # Real seconds of chain slow motion left
 var _speed_before := 1.0
+var _rng := RandomNumberGenerator.new()  # Auto spots break ties with this (seeded per scene), never the global RNG
+var _frame := 0
 
 # --- Launch ------------------------------------------------------------------------------------------
 
@@ -139,6 +141,7 @@ static func wanted() -> bool:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	process_priority = -1000  # Before every other node each frame (the per-frame RNG seed)
 	_main = get_parent()
 	_camera = get_tree().get_first_node_in_group(&"game_camera")
 	get_tree().process_frame.connect(func() -> void: _scale = Engine.time_scale)
@@ -158,7 +161,14 @@ func _ready() -> void:
 	_setup.call_deferred()
 
 func _setup() -> void:
-	seed(int(scene.get("seed", 4242)))  # The same clip every render (auto spots break ties at random)
+	# The same clip on every run, dry or rendered: our own tie-break RNG, the Dream and Omen RNGs, and the global RNG
+	# reseeded at the start of every frame (_process runs first: process_priority), so effects that a wall-clock
+	# throttle shows or skips can't shift later frames' draws.
+	_rng.seed = int(scene.get("seed", 4242))
+	for node in [_main.get_node("%DreamState"), _main.get_node("%OmenDirector")]:
+		if node.get("_rng") is RandomNumberGenerator:
+			node._rng.seed = int(scene.get("seed", 4242)) + 1
+	seed(int(scene.get("seed", 4242)))
 	var director: DriftDirector = _main.get_node("%DriftDirector")
 	var run_state: RunState = _main.get_node("%RunState")
 	run_state.invulnerable = bool(scene.get("invulnerable", true))
@@ -232,6 +242,8 @@ func _process(delta: float) -> void:
 	_apply_hud()
 	if scene.is_empty() or not _started:
 		return
+	_frame += 1
+	seed(hash([int(scene.get("seed", 4242)), _frame]))
 	clip_time += delta / maxf(_scale, 0.0001)
 	if quiet:
 		_shut_screens()
@@ -506,7 +518,7 @@ func best_spot(data: TowerData, how: String) -> Vector2:
 					# Ties go to a half-cell offset (an odd origin): on an open island many spots gain the same, and
 					# whole-cell walls hide the stagger that half cells allow ("stagger": 0 turns it off)
 					var staggered := int(origin.x) % 2 != 0 or int(origin.y) % 2 != 0
-					score = new_length - length + randf() * 0.01 + (float(scene.get("stagger", 0.5)) if staggered else 0.0)
+					score = new_length - length + _rng.randf() * 0.01 + (float(scene.get("stagger", 0.5)) if staggered else 0.0)
 					# …and toward spots touching a wall already there, so Wardens join into walls rather than dots
 					# ("join": the bonus per touching half cell, default 0 (off: it costs route length), up to 4)
 					var touching := 0
@@ -564,7 +576,7 @@ func detour_cells(id: StringName) -> Array:
 					var path: PackedVector2Array = map.get_path_if_blocked_cells(run)
 					if path.is_empty():
 						continue
-					var gain: float = map.route_length(path) - length + randf() * 0.01
+					var gain: float = map.route_length(path) - length + _rng.randf() * 0.01
 					if gain > best_gain:
 						best_gain = gain
 						best = run
