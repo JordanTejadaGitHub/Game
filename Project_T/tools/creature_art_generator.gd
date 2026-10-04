@@ -76,9 +76,11 @@ const CREATURES := {
 	"thorn_sapling": {fps = 4.0, obstacle = true, anims = ["idle", "grow", "wither"], extra_fps = 8.0, once = ["grow", "wither"]},
 }
 # Defaults of shaders/blight.gdshader, for the in-game frame at the end of each preview row.
-const SHADER_TRANSLUCENCY := 0.85
-const SHADER_GLOW_START := 0.6
+const SHADER_BODY_ALPHA := 0.95  # solid pixels (alpha >= 0.9)
+const SHADER_TRANSLUCENCY := 0.85  # partial pixels: ragged edges, smoke
+const SHADER_GLOW_START := 0.6  # a hard step: at least this bright = glowing
 const SHADER_GLOW_STRENGTH := 0.5
+const SHADER_SMALL_OUTLINE := Color(0.078, 0.059, 0.149, 0.85)  # Dread, at whole-map zoom
 
 # Shadow-stuff, lit from the upper left like the Wardens: [deep, dark, mid, rim].
 const NIGHT := ["Void", "Dread", "Shade", "Bruise"]
@@ -222,21 +224,36 @@ func _save_preview() -> void:
 func _frame_size(sheet: Image) -> int:
 	return sheet.get_width() / FRAMES
 
-# The sheet as the blight shader shows it in game at blight = 1 (without its shimmer): see-through
-# body, the brightest pixels solid and brightened.
+# The sheet as the blight shader shows it in game at blight = 1 and whole-map zoom (without its
+# shimmer): solid pixels at body alpha, partial ones at translucency, glowing pixels solid and
+# brightened (a hard step), and the 1 px Dread outline round the solid body.
 func _in_game(sheet: Image) -> Image:
 	var out: Image = sheet.duplicate()
 	for y in out.get_height():
 		for x in out.get_width():
-			var c := out.get_pixel(x, y)
+			var c := sheet.get_pixel(x, y)
+			if c.a < 0.5:
+				if c.a < 0.1 and _solid_neighbours(sheet, x, y) > 0.9:
+					out.set_pixel(x, y, SHADER_SMALL_OUTLINE)
+					continue
 			if c.a == 0.0:
 				continue
 			var lum := c.r * 0.299 + c.g * 0.587 + c.b * 0.114
-			var glow := smoothstep(SHADER_GLOW_START, 1.0, lum)
+			var glow := 1.0 if lum >= SHADER_GLOW_START else 0.0
 			var col := c * (1.0 + glow * SHADER_GLOW_STRENGTH)
-			col.a = c.a * lerpf(SHADER_TRANSLUCENCY, 1.0, glow)
+			var base := SHADER_BODY_ALPHA if c.a >= 0.9 else SHADER_TRANSLUCENCY
+			col.a = c.a * lerpf(base, 1.0, glow)
 			out.set_pixel(x, y, col.clamp())
 	return out
+
+# Sum of the four neighbours' alpha, as the shader samples it (frame edges count as empty).
+func _solid_neighbours(img: Image, x: int, y: int) -> float:
+	var sum := 0.0
+	for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		var p := Vector2i(x, y) + d
+		if p.x >= 0 and p.y >= 0 and p.x < img.get_width() and p.y < img.get_height():
+			sum += img.get_pixelv(p).a
+	return sum
 
 # --- Primitives -------------------------------------------------------------------------------
 
@@ -474,7 +491,7 @@ func _ragged(canvas: Image, pts: Array, dy: int) -> void:
 # head; smoke curls off its back.
 
 func _draw_leaf_bug(canvas: Image, st: Dictionary) -> void:
-	var body := _ramp(NIGHT)
+	var body := _ramp(["Void", "Dread", "Dread", "Shade"])  # Dread mass, Shade only where lit (upper left); the pass adds the rim
 	var f: int = st.f
 	var ph: float = st.ph
 	var bob: int = [0, 0, -1, 0, 0, -1][f]
@@ -714,7 +731,7 @@ func _face_hole(canvas: Image, x: int, y: int, w: int, h: int) -> void:
 
 func _draw_puffcap(canvas: Image, st: Dictionary) -> void:
 	var k: float = st.k
-	var veil := _ramp(["Dread", "Night", "Dusk", "Slate"])  # no pale band: it must read on the pale path
+	var veil := _ramp(["Void", "Dread", "Night", "Dusk"])  # dark mass, Dusk only where lit: it must read on the pale path
 	var o := _c("Dread")
 	var tear := _c("Dewlight")
 	var f: int = st.f
@@ -2051,7 +2068,7 @@ func _draw_dream_thief(canvas: Image, st: Dictionary) -> void:
 # hanging to the ground, pale slit eyes streaming black tears that drip and pool.
 
 func _draw_weeper(canvas: Image, st: Dictionary) -> void:
-	var shroud := _ramp(["Dread", "Night", "Dusk", "Slate"])  # no pale band: it must read on the pale path
+	var shroud := _ramp(["Void", "Dread", "Night", "Dusk"])  # dark mass, Dusk only where lit: it must read on the pale path
 	var skin := _ramp(["Slate", "Stone", "Mist"])
 	var tear := _c("Void")
 	var o := NIGHT_O
