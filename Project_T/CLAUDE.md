@@ -328,8 +328,9 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   cold = nightmares; `wardens = true` adds the Warden Night 3 for Warden idle sheets only, and
   `warden_night(img)` shifts an idle sheet one shade darker by `WARDEN_NIGHT_MAP`, warden_night.md) and
   `DetailPass.apply(img, Kind.WARDEN/OBSTACLE/NIGHTMARE/TILE)` /
-  `apply_sheet(sheet, Vector2i(64, 64), kind, glow_radius := 0, texture := 1.0)` (rim, dither seams,
-  texture, banded glow, smoke, then snap; `texture` 0..1 thins the grain for calm tiles / pre-shaded art).
+  `apply_sheet(sheet, Vector2i(64, 64), kind, glow_radius := 0, texture := 1.0, calm := false)` (rim, dither seams,
+  texture, banded glow, smoke, then snap; `texture` 0..1 thins the grain; `calm = true` is the AI-look
+  audit fix: no grain or speckle, in-ramp shading, 2 glow steps; `glow_radius = -1` = no glow).
   Every art generator runs its frames through it. `tools/art/palette_export.gd` writes
   `assets/palette/heartwood32.{gpl,hex,json,png}` for non-Godot tools. `tests/test_palette.gd`.
   **Game code draws only palette colours:** `Palette` (`scripts/palette.gd`) has the 32 as constants
