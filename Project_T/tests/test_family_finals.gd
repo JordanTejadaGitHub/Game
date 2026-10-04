@@ -90,7 +90,8 @@ func _run() -> void:
 		w3._update_drag(1.0 / 60.0)
 	w3.push_back(cell_px)
 	await _wait_drag(w3)
-	_check(starts[0] == 1 and w3.global_position.is_equal_approx(Tower.MAP_GRID.calculate_map_position(route[12])),
+	var per_tile := roundi(cell_px / Tower.MAP_GRID.calculate_map_position(route[0]).distance_to(Tower.MAP_GRID.calculate_map_position(route[1])))  # Half cells: 2 route points a tile
+	_check(starts[0] == 1 and w3.global_position.is_equal_approx(Tower.MAP_GRID.calculate_map_position(route[14 - 2 * per_tile])),
 		"two pulls = one drag, 2 tiles back (%d drags, at %s)" % [starts[0], w3.global_position])
 	w3.push_back(cell_px)
 	w3.set_path(route)
