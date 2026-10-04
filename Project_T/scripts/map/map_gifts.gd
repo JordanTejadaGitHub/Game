@@ -145,6 +145,21 @@ func start_options(count: int) -> Array[Vector2]:
 			picked.append(cell)
 	return picked
 
+# Shifting Mist's ghost on the gift screen: the start mist on rim cell `cell` and its rope bridge out into the
+# void, drawn on `canvas` (any CanvasItem in the map's space) at `alpha`. Uses the act's own tiles (frame 0).
+func draw_start_ghost(canvas: CanvasItem, cell: Vector2, alpha: float = 0.6) -> void:
+	var size := Vector2(MAP_GRID.cell_size)
+	var tint := Color(1, 1, 1, alpha)  # A multiplier on the tile art, not a colour
+	var out: Vector2i = map.environment_object_layer._outward(Vector2i(cell))
+	var bridge := map.tile_set.get_source(EnvironmentTiles.ROPE_BRIDGE) as TileSetAtlasSource
+	var planks := Vector2i(1, 0) if out.x == 0 else Vector2i(0, 0)  # North-south or east-west
+	for i in range(1, map.environment_object_layer.BRIDGE_CELLS + 1):
+		var at := MAP_GRID.calculate_map_position(cell + Vector2(out * i)) - size / 2.0
+		canvas.draw_texture_rect_region(bridge.texture, Rect2(at, size), bridge.get_tile_texture_region(planks), tint)
+	var mist := map.tile_set.get_source(EnvironmentTiles.EDGE_MIST) as TileSetAtlasSource
+	canvas.draw_texture_rect_region(mist.texture, Rect2(MAP_GRID.calculate_map_position(cell) - size / 2.0, size),
+		mist.get_tile_texture_region(Vector2i.ZERO), tint)
+
 # The route nightmares would take from rim cell `spot` (the gift screen's preview). Changes nothing.
 func route_from_start(spot: Vector2) -> PackedVector2Array:
 	if spot == map.startPath:

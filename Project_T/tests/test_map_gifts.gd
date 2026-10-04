@@ -124,6 +124,18 @@ func _init() -> void:
 	var options := gifts.start_options(3)
 	_check(options.size() == 3 and options.all(func(c: Vector2) -> bool: return _rim_spot_ok(map, c)), "3 rim spots, each with a route (%s)" % [options])
 	_check(options == gifts.start_options(3), "the same spots when asked again")
+	var ghost := Node2D.new()  # The gift screen's ghost at each spot (Main's placer calls it)
+	var drawn := [0]
+	ghost.draw.connect(func() -> void:
+		for spot in options:
+			gifts.draw_start_ghost(ghost, spot, 0.5)
+			drawn[0] += 1)
+	map.add_child(ghost)
+	ghost.queue_redraw()
+	await process_frame
+	await process_frame
+	_check(drawn[0] == options.size(), "the mist-and-bridge ghost draws at each spot")
+	ghost.free()
 	var old_start: Vector2 = map.startPath
 	var preview := gifts.route_from_start(options[0])
 	var shift: Array[Vector2] = [options[0]]
