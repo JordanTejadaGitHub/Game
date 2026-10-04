@@ -15,20 +15,20 @@ const TEXT := {
 	&"speed": "Pause if you need to think. They'll wait.",
 	&"rest": "Rest here. Rearrange the forest while they're gone.",  # (Rests refund 75%, not everything: onboarding.md)
 	&"save": "The forest will wait for you.",
-	&"cage": "A dream can bend, but never close.",
+	&"cage": "Leave them a way through. They'll find one anyway, if you don't.",
 	&"grow": "That %s could grow. Click it.",  # The Warden's name (GrowHints, the first rest one can grow)
 	&"grow_more": "Your Wardens can become much more than this.",  # Drift 15, nothing grown or ranked yet (GrowHints)
 	&"kin": "Two of one family, planted close, learn from each other.",
 	&"unbound": "Turn them too often, and they stop listening.",
 	&"dead_wood": "Dead wood. I can't move it… yet.",
-	&"tend": "Tend the forest, and it will remember you.",
+	&"tend": "Clear it if you like. I keep count.",
 	&"chain": "One reaction set off another: a chain. Reach 10 for a Dawnburst.",
 	&"leaf": "It fed. A leaf blackens and falls.",
 	&"flyer": "Some of them don't walk. Guard the ground near the Heartwood.",
 	&"sell": "Selling gives back most of it during a {rest}, and half while nightmares walk.",  # 75% / 50% (TowerSeller)
 	&"boss": "Something old has found the dream.",
 	&"after_boss": "It's gone, and something I'd forgotten came back.",
-	&"again": "The Heartwood dreams again.",
+	&"again": "I'm dreaming again. Good.",
 	&"damp": "{damp}: water hits it harder, and lightning loves it.",  # Soaked no longer slows (IconInfo)
 	&"drowsy": "{drowsy}: heavy-eyed and slow.",
 	&"spored": "{spored}: the poison keeps eating at it.",
@@ -37,11 +37,11 @@ const TEXT := {
 	&"held": "{held}: it can't move. Now's the time.",
 	# Approved 2026-10-02 (story chat, user: "Players will get used to it."):
 	&"omen": "Face it, or let the sky stay clear.",  # The first Omen offer
-	&"dreamlight": "Dreamlight remembers what your Wardens could become.",  # The first Dreamlight earned
+	&"dreamlight": "Dreamlight. Spend it, and your Wardens get ideas.",  # The first Dreamlight earned
 	&"boss_toll": "It took its toll, and went back into the dark.",  # The first boss to reach the Heartwood
 	&"rule_breaker": "This one doesn't keep to the path. Watch for it.",  # The first rule-breaker warning (RuleBreakers)
-	&"nurture": "Tend it, and it grows deeper roots.",  # The first rank
-	&"let_pass": "Not every dream is yours to keep. You can let one pass.",  # The first Dream offer that can be let pass
+	&"nurture": "Feed it Dew. It'll toughen up.",  # The first rank
+	&"let_pass": "None of these? Let them go. Something else will come.",  # The first Dream offer that can be let pass
 }
 
 @onready var run_state: RunState = %RunState

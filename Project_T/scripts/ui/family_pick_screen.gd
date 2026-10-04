@@ -16,7 +16,7 @@ const CARD_SIZE := Vector2(250, 300)
 const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
 const SAPLING_DRIFT := 50  # The act 2 boss: the Heartwood Sapling is offered after its family pick
 const TITLES := {
-	&"first": "The Heartwood stirs, and remembers an old friend…",
+	&"first": "Oh. I know you.",
 	&"boss": "It's gone, and something I'd forgotten came back.",
 }
 
@@ -220,7 +220,8 @@ func _show_sapling() -> void:
 		card.add_child(icon)
 	for line in [["The Heartwood Sapling", 22, UiStyle.INK],
 			["Free to plant, 2×2, a wall like any Warden. Permanent: once planted it can't be sold or moved.", 15, UiStyle.INK],
-			["It doesn't attack. After every drift it yields +20 Dew, and every 10 drifts +1 Dreamlight. Nurture it for more; leaks wither it a little.", 15, UiStyle.MOONLIGHT],
+			["It doesn't attack. After every drift it yields %d Dew, +%d per rank, and every %d drifts +1 Dreamlight. Nurture it for more; leaks wither it a little."
+				% ([data.dew_per_drift, data.dew_per_rank, data.dreamlight_every] if data != null else [8, 4, 10]), 15, UiStyle.MOONLIGHT],  # From the data
 			["Not now? You can plant it later from the rest panel.", 13, UiStyle.WHISPER]]:
 		var label := Label.new()
 		label.text = line[0]

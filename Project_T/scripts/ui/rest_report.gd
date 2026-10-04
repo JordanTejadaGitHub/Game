@@ -160,7 +160,7 @@ static func support_text(near: Node, period: String) -> String:
 	if held >= 1.0 or pulled > 0:
 		var parts: Array[String] = []
 		if held >= 1.0:
-			parts.append("Held for %d s" % roundi(held))
+			parts.append("Rooted for %d s" % roundi(held))
 		if pulled > 0:
 			parts.append("pulled back %d cells" % pulled)
 		lines.append(" · ".join(parts))

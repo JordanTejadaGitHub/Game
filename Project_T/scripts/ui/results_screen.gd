@@ -75,7 +75,7 @@ func _build(won: bool) -> void:
 	var title := "The Hollow Oak is dispelled" if won else "The dream goes dark"
 	_label(box, title, 28, UiStyle.INK)
 	if not won:
-		_label(box, "The Heartwood sinks into dreamless sleep. A seed falls, and remembers.", 16, UiStyle.WHISPER, true)
+		_label(box, "I'm so tired. Here, take a seed. Try again.", 16, UiStyle.WHISPER, true)
 	if demo_end:
 		_label(box, "“%s”" % MEMORY_1, 16, Palette.DEWLIGHT, true)
 
