@@ -28,8 +28,8 @@ page points to the Steam page.
    **Hold on all video renders** (the user, 2026-10-04): the path and other environment art are still changing, so no
    final renders of shorts, the trailer or screenshots until Theme Discussion calls the look stable. Open: **bigger
    Wardens** (being rolled out across the whole roster; the locked maze may need re-checking for footprint),
-   **ground variation** (moss / clearing / flower patches; Environment Discussion → Assets + Code), nightmare footing,
-   bigger dead-fruit husks on the Heartwood. Done: grain clean-up, nightmare readability, the Heartwood glow fix
+   **ground variation** (moss / clearing / flower patches; Environment Discussion → Assets + Code), nightmare footing.
+   Done: grain clean-up, nightmare readability, bigger Heartwood husks (3712245a), the Heartwood glow fix
    (61db39aa; a 600 px test capture confirms it). Environment Assets' other art is final. Scripts, voiceover, capture scenes and test renders can go on.
 3. **Trailer** (60–90 s): once the capture tools exist.
 4. **Demo + Steam Next Fest**: the biggest wishlist spike; plan it for when the demo is polished.
