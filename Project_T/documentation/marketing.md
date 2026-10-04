@@ -99,11 +99,11 @@ several captures (export `cuts`, see `capture/video0.json`); every clip at real 
 - 10–17 s: *"Watch the route. It bends right around it. They have to take the long way now."*
 - 17–22 s: *"Every run, the map is different, and you get to change it."* · end card line.
 
-**Short 5: "One leaf left." (~20 s)**
+**Short 5: "One leaf left." (~25 s)**
 - 0–2 s: *"One leaf left."*
 - 2–9 s: *"If one more nightmare reaches the tree, the run is over."*
-- 9–16 s: *"Come on, come on…"* (let the action breathe)
-- 16–20 s: *"Dispelled. On the doorstep."* (exhale) *"That's the game."* · end card line.
+- 9–22 s: *"Come on, come on…"* (let the action breathe)
+- 22–25 s: *"Dispelled. On the doorstep."* (exhale) *"That's the game."* · end card line.
 
 **End card line (every short):** *"Heartwood TD. Wishlist it on Steam, link below."* (swap the name if it changes)
 
