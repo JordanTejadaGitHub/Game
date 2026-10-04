@@ -270,6 +270,11 @@ func _run() -> void:
 	var walker := _still("leaf_bug", route[w])
 	walker.set_path(route.slice(w))
 	walker._path_index = 1
+	var cells_to_go := 0.0
+	for i in range(w + 1, route.size()):
+		cells_to_go += route[i].distance_to(route[i - 1])
+	_check(absf(walker.get_remaining_distance() - cells_to_go * walker.grid.cell_size.x) < 1.0,
+		"remaining distance is the route's real length (half cells: half a cell a step; %.0f px)" % walker.get_remaining_distance())
 	spawner._update_rooted_cells()
 	_check(not walker._is_blocked_ahead(1.0) and walker._path[1] == route[w + 1], "without the card, Held nightmares don't block")
 	var dreams: DreamState = main.get_node("%DreamState")

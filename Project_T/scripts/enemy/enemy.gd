@@ -316,6 +316,7 @@ var _regrouped := false  # Huntsman's pack came back at half health; no more hor
 
 # Cells to walk through, in grid coordinates. `_path_index` is the cell we're currently walking toward.
 var _path: PackedVector2Array
+var _cells_left: PackedFloat32Array  # Per route point: the route's length in cells from it to the end (made on demand)
 var _path_index: int = 0
 
 func _notification(what: int) -> void:
@@ -2250,6 +2251,7 @@ func _set_crack(amount: float) -> void:
 func set_path(points: PackedVector2Array) -> void:
 	_end_drag()  # A re-route mid-drag: it walks the new route from here
 	_path = points
+	_cells_left = PackedFloat32Array()
 	_path_index = 0
 	if straight_charging:
 		straight_charging = false  # Until it next reaches a cell on the new route
@@ -2417,5 +2419,12 @@ func get_remaining_distance() -> float:
 	if _path_index >= _path.size():
 		return 0.0
 	var to_next := position.distance_to(grid.calculate_map_position(_path[_path_index]))
-	# Paths step one cell at a time, so every remaining step is one cell long.
-	return to_next + (_path.size() - 1 - _path_index) * grid.cell_size.x
+	# The steps' real lengths (half cells: half a cell each; a flyer's straight line: its whole length)
+	if _cells_left.size() != _path.size():
+		_cells_left.resize(_path.size())
+		var total := 0.0
+		for i in range(_path.size() - 1, -1, -1):
+			if i < _path.size() - 1:
+				total += _path[i].distance_to(_path[i + 1])
+			_cells_left[i] = total
+	return to_next + _cells_left[_path_index] * grid.cell_size.x
