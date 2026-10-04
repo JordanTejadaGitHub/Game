@@ -44,6 +44,46 @@ page points to the Steam page.
 | 4 | "The forest moves." | A Heartwood's Gift (Sow a Ridge): a ridge rises, the route mist re-routes live, nightmares take the long way. Before / after split screen. | An act break, the gift screen, then the same drift before and after. |
 | 5 | "One leaf left." | A close call: the last leaf, a nightmare at the Heartwood, the tree trembling, dispelled on its doorstep. | Drift ~40, 1 leaf left (Test Grove invulnerable off), the camera on the Heartwood. |
 
+### Voiceover scripts (the developer voices them; ~150 words a minute, so each line fits its beat)
+
+Delivered per short: a **no-caption, music-only version** (music at about −18 dB, so the voice sits on top) plus the
+captioned one. Record the voice, drop it on the timeline, done. Speak like you're showing a friend; first person is fine.
+
+**Short 1: "Your towers ARE the maze." (~25 s)**
+- 0–2 s: *"In my game, your towers are the walls."*
+- 2–10 s: *"Every Warden you plant changes the path the nightmares have to walk. Longer path, more time to hit them."*
+- 10–18 s: *"So you're not just placing towers. You're building a maze, one Warden at a time."*
+- 18–25 s: *"And then they come. All of them. Through every twist you built."* · end card: *"It's called Heartwood TD. Wishlist it on Steam."*
+
+**Short 2: "Watch this chain." (~22 s)**
+- 0–2 s: *"Watch this chain."*
+- 2–8 s: *"Water soaks them. Lightning charges them. Soaked and charged together? That's a Thunderclap."*
+- 8–16 s: *"And it jumps. Nightmare to nightmare. Five, eight, ten…"*
+- 16–22 s: *"Ten in a row is a Dawnburst."* (beat) *"I could watch that all day."* · end card line.
+
+**Short 3: "The first boss." (~30 s)**
+- 0–2 s: *"This is the first boss. The Hollow Stag."*
+- 2–10 s: *"On long straight corridors, it charges, so the trick is: never give it a straight line."*
+- 10–22 s: *"Bend the maze. Make it turn. Every corner kills its charge."*
+- 22–30 s: *"Two percent health left at the door. Close."* (beat) *"Too close."* · end card line.
+
+**Short 4: "The forest moves." (~22 s)**
+- 0–2 s: *"After every boss, the Heartwood gives you a gift."*
+- 2–10 s: *"This one raises a ridge of dead trees wherever I want."*
+- 10–17 s: *"Watch the route. It bends right around it. They have to take the long way now."*
+- 17–22 s: *"Every run, the map is different, and you get to change it."* · end card line.
+
+**Short 5: "One leaf left." (~20 s)**
+- 0–2 s: *"One leaf left."*
+- 2–9 s: *"If one more nightmare reaches the tree, the run is over."*
+- 9–16 s: *"Come on, come on…"* (let the action breathe)
+- 16–20 s: *"Dispelled. On the doorstep."* (exhale) *"That's the game."* · end card line.
+
+**End card line (every short):** *"Heartwood TD. Wishlist it on Steam, link below."* (swap the name if it changes)
+
+**Recording tips:** a quiet room, phone mic close and slightly off to the side, read each line two or three ways, and
+keep the best take. Leave half a second of silence at the start and end. Lines can be trimmed to fit the cut.
+
 Later ideas: "Can 60 Sprouts beat act 1?", "a 300-tile maze", "every Warden in one family", "this one card changed my run",
 the Night Mare's laps, the Memory Grove growing, Rank V Nurture choices, the Spire-hard act 4.
 
