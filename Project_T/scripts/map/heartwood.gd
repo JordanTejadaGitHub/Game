@@ -54,6 +54,7 @@ var enemy_container: Node
 var stage := 0  # Canopy stage 0-3
 var planted: Array[Dictionary] = []  # HeartwoodMemory.planted_nodes(): {id, limb, pos}
 var memories := 0  # Dream-fruit, 0-MAX_FRUIT
+var golden := false  # The Golden Leaf keepsake (MetaRun.keepsake_on, read once at run start)
 var _configured := false  # setup() ran before _ready: don't read the profile
 var _act := 1
 var _leaf_state := 0
@@ -73,6 +74,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # For the canopy fade; _process skips the rest while paused
 	if not _configured:
 		_load_profile()
+		golden = MetaRun.keepsake_on("golden_leaf")
 	if tower_container != null:  # Recheck the Wardens only when one joins or leaves
 		tower_container.child_entered_tree.connect(func(_n: Node) -> void: _refresh_wardens_behind.call_deferred())
 		tower_container.child_exiting_tree.connect(func(_n: Node) -> void: _refresh_wardens_behind.call_deferred())
@@ -176,6 +178,7 @@ func _build() -> void:
 	_build_glints(info)
 	_build_fruit(info)
 	_glints.queue_redraw()
+	_apply_golden(info)
 
 # One stage's entry from heartwood_stages.json ({crown, fruit, glints} in 128 px frame pixels).
 func _stage_info(which: int) -> Dictionary:
@@ -194,6 +197,31 @@ func _frame_to_local(pixel: Vector2) -> Vector2:
 
 # Each planted node at its spot on the Grove tree, mapped onto this stage's crown and snapped to the
 # nearest lit crown pixel still free.
+# The Golden Leaf keepsake (meta_design.md "Keepsakes", the meta chat): the canopy's greens swap to the
+# gold family (shaders/golden_leaf.gdshader), the crown rows only; a cosmetic the player can switch off.
+const GOLDEN_SHADER := preload("res://shaders/golden_leaf.gdshader")
+const GOLDEN_FROM: Array[Color] = [Palette.DEEPMOSS, Palette.POOL, Palette.MOSS, Palette.LEAF, Palette.SPRIG, Palette.NEWLEAF]  # The crown: moss greens, a pool-blue shade
+const GOLDEN_TO: Array[Color] = [Palette.BARK, Palette.EMBER, Palette.GOLD, Palette.GLOW, Palette.GLOW, Palette.HEARTLIGHT]  # Same value order, gold-lit
+const GOLDEN_CROWN_MARGIN := 8.0  # px below the crown box still swapped (leaves hanging under it)
+
+func set_golden(on: bool) -> void:
+	golden = on
+	if is_inside_tree() and _glints != null:
+		_apply_golden(_stage_info(stage))
+
+func _apply_golden(info: Dictionary) -> void:
+	if not golden:
+		material = null
+		return
+	var shader := ShaderMaterial.new()
+	shader.shader = GOLDEN_SHADER
+	var crown: Array = info.get("crown", [0, 0, 0, EnvironmentTiles.HEARTWOOD_SIZE * 0.6])
+	shader.set_shader_parameter(&"from_colours", PackedVector3Array(GOLDEN_FROM.map(func(c: Color) -> Vector3: return Vector3(c.r, c.g, c.b))))
+	shader.set_shader_parameter(&"to_colours", PackedVector3Array(GOLDEN_TO.map(func(c: Color) -> Vector3: return Vector3(c.r, c.g, c.b))))
+	shader.set_shader_parameter(&"frames", Vector2(hframes, vframes))
+	shader.set_shader_parameter(&"crown_bottom", (float(crown[3]) + GOLDEN_CROWN_MARGIN) / EnvironmentTiles.HEARTWOOD_SIZE)
+	material = shader
+
 func _build_glints(info: Dictionary) -> void:
 	_glint_points.clear()
 	var crown: Array = info.get("crown", [0, 0, 0, 0])
