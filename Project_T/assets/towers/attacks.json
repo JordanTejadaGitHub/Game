@@ -85,7 +85,7 @@
 			"kind": "cloud",
 			"point": [
 				49,
-				20
+				14
 			]
 		},
 		"boulderback": {
@@ -107,7 +107,7 @@
 			"kind": "spawn",
 			"point": [
 				44,
-				20
+				14
 			],
 			"projectile": "spore_sprite"
 		},
@@ -130,7 +130,7 @@
 			"kind": "zone",
 			"point": [
 				11,
-				20
+				12
 			]
 		},
 		"crown_of_thorns": {
@@ -159,7 +159,7 @@
 			"kind": "projectile",
 			"point": [
 				30,
-				10
+				2
 			],
 			"projectile": "dew_drop"
 		},
@@ -182,7 +182,7 @@
 			"kind": "projectile",
 			"point": [
 				46,
-				15
+				9
 			],
 			"projectile": "spore"
 		},
@@ -242,7 +242,7 @@
 			"kind": "projectile",
 			"point": [
 				31,
-				-5
+				6
 			],
 			"projectile": "spark"
 		},
@@ -250,7 +250,7 @@
 			"kind": "projectile",
 			"point": [
 				45,
-				12
+				4
 			],
 			"projectile": "frost_shard"
 		},
@@ -346,7 +346,7 @@
 			"kind": "projectile",
 			"point": [
 				40,
-				18
+				12
 			],
 			"projectile": "ink_drop"
 		},
@@ -361,7 +361,7 @@
 			"kind": "jet",
 			"point": [
 				60,
-				28
+				20
 			]
 		},
 		"jewelwing_court": {
@@ -384,7 +384,7 @@
 			"kind": "projectile",
 			"point": [
 				46,
-				12
+				6
 			],
 			"projectile": "lichen_flake"
 		},
@@ -555,7 +555,7 @@
 			"kind": "projectile",
 			"point": [
 				30,
-				10
+				2
 			],
 			"projectile": "dew_drop"
 		},
@@ -649,7 +649,7 @@
 			"kind": "projectile",
 			"point": [
 				46,
-				15
+				9
 			],
 			"projectile": "spore"
 		},
