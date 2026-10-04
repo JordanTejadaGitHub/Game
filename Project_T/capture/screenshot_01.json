@@ -1,16 +1,20 @@
 {
 	"title": "Screenshot 1: the maze",
-	"note": "Steam screenshot 1 (marketing.md §6): short_01's board (same seed, same 18 Thornwalls + 6 Sporelings, same plant order, so the same maze) at 16:9; grab a frame from the drift walking it.",
+	"note": "Steam screenshot 1 (marketing.md §6): short_01's exact timeline (so the same maze) at 16:9 with the clean HUD, plus Husks and Shades spread along the bends at 16 s so the drift fills the maze inside Warden range. Grab frames 17-24 s.",
 	"seed": 4242,
 	"size": [1920, 1080],
 	"drift": 20,
 	"dew": 340,
+	"obstacles": "edge",
+	"families": ["sporeling"],
 	"hud": "clean",
-	"length": 16.0,
+	"length": 25.0,
 	"timeline": [
 		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 1.0},
-		{"t": 0.0, "plant_each": 0.05, "count": 18, "plant": "thornwall", "auto": "maze", "tag": false},
-		{"t": 1.0, "plant_each": 0.05, "count": 6, "plant": "sporeling", "auto": "cover", "tag": false},
-		{"t": 2.0, "start": true}
+		{"t": 2.0, "plant_each": 0.25, "count": 32, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 9.0, "plant_each": 0.4, "count": 8, "plant": "sporeling", "auto": "cover", "tag": false},
+		{"t": 12.0, "start": true},
+		{"t": 16.0, "spawn": "bark_beetle", "count": 6, "progress": 0.75, "spread": 4},
+		{"t": 16.0, "spawn": "leaf_bug", "count": 6, "progress": 0.45, "spread": 3}
 	]
 }
