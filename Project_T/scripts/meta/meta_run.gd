@@ -139,9 +139,9 @@ const MEMORY_WARDENS_ENABLED := false
 const MEMORY_BOSS_PREFIX := "boss_"
 # The Memory Warden card's flavour line (screens_ui.md "Memory Warden card"), by Warden id.
 const MEMORY_FLAVOUR := {
-	"white_stag": "The Hollow Stag's light remembers you.",
-	"pond_keeper": "The Mire Hag's still water remembers you.",
-	"moon_moth": "The Moth Queen's moonlight remembers you.",
+	"white_stag": "The Stag's antlers are still warm.",  # One line per boss (text_pass.md), not a template
+	"pond_keeper": "Quiet out there. Too quiet, then fine.",
+	"moon_moth": "That one's cold went with it.",
 }
 
 # Balance simulation: play the next run with a Grove profile preset (&"fresh" / &"early" / &"half" /

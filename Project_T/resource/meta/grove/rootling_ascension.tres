@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "rootling_ascension"
 display_name = "Ascension: World Root"
-description = "World Root, {family:rootling}'s Ascended form, can grow in your runs: from {drift} 51, 3 {dreamlight}, then 400 Dew on a final form. Every nightmare in range is {held}; {held} ones take more damage."
+description = "World Root, {family:rootling}'s Ascended form, can grow in your runs: from {drift} 51, 3 {dreamlight}, then 600 Dew on a final form. Every nightmare in range is {held}; {held} ones take more damage."
 root = 0
 costs = Array[int]([120])
 order = 34
