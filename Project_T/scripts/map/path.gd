@@ -45,7 +45,7 @@ func draw():
 	current_path = _pathGenerator.calculate_point_path(cell_start_path, cell_end_path)
 	# Later re-routes (towers, cleared obstacles, enemies mid-walk) stick to this route when they can.
 	_pathGenerator.set_preferred_cells(current_path)
-	# Half cells (experiment/half-cells): route points step by half a cell, so the path is a soft fill drawn
+	# Half cells (documentation/half_cells.md): route points step by half a cell, so the path is a soft fill drawn
 	# under every body position (HalfPathFill), not tiles. The start still runs off the rim onto the bridge.
 	for cell in current_path:
 		if board != null:
@@ -135,7 +135,7 @@ func stop() -> void:
 	_pathGenerator = null
 	clear()
 
-# --- Half cells (experiment/half-cells) -------------------------------------------------------------
+# --- Half cells (documentation/half_cells.md) ---------------------------------------------------------
 
 # The soft path fill: a 64 px rounded square under every body position on the route (they overlap by
 # half), an edge in a darker shade first. A look good enough to judge play, not final art.
