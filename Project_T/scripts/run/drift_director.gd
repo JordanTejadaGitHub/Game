@@ -445,7 +445,7 @@ func get_early_multiplier(number: int) -> float:
 
 # Health multiplier for `data` in drift `number`: get_growth (bosses: ×1.5 their base), × the act 2
 # ramp, or ×1.6 in acts 3–4. Dreams / Omens multiply on top (hook: see get_health_multiplier).
-func get_health_scale(data: EnemyData, number: int) -> float:
+func get_health_scale(data: EnemyData, number: int, elite: bool = false) -> float:
 	var act := get_act(number)
 	var boss := act1_boss_health_multiplier if act == 1 else (mid_boss_health_multiplier if act == 2 or act == 3 else boss_health_multiplier)
 	var scale := boss if data.is_boss else get_growth(number)
@@ -456,8 +456,8 @@ func get_health_scale(data: EnemyData, number: int) -> float:
 			scale *= act4_health_multiplier  # Spire: act 4 harder still, bosses and the Oak included
 	elif not (data.is_boss and get_act(number) == 1):  # Act 1's boss keeps its own multiplier (its escort takes the ramp)
 		scale *= get_early_multiplier(number)
-	if not data.is_boss and number >= block_finale_health_from and get_block_finale_elites(number) >= 0:
-		scale *= block_finale_health_multiplier  # A block finale (spire_difficulty.md)
+	if not data.is_boss and not elite and number >= block_finale_health_from and get_block_finale_elites(number) >= 0:
+		scale *= block_finale_health_multiplier  # A block finale (spire_difficulty.md); its elites keep their own ×3 (Balancing, run 16)
 	return scale * get_health_multiplier(data, number)
 
 # The per-drift health growth for drift `number`, compounding: ×1.045 per drift to 25, ×1.055 for
@@ -546,7 +546,7 @@ func _add_blight_elites(schedule: Array) -> void:
 			schedule[i].append(true)
 
 func _spawn(data: EnemyData, number: int, elite: bool = false, share: float = -1.0) -> void:
-	var enemy: Node2D = spawner.spawn_enemy(data, get_health_scale(data, number),
+	var enemy: Node2D = spawner.spawn_enemy(data, get_health_scale(data, number, elite),
 		get_spawn_modifiers(data, number), elite)
 	if enemy == null:
 		return  # No route (shouldn't happen: building never fully blocks the path)

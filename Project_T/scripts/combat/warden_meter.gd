@@ -186,7 +186,7 @@ func get_needed_dps(number: int) -> float:
 	for entry in schedule:
 		var data: EnemyData = entry[1]
 		var elite: bool = entry[2] if entry.size() > 2 else false
-		health += data.health * _director.get_health_scale(data, number) * (ELITE_HEALTH if elite else 1.0)
+		health += data.health * _director.get_health_scale(data, number, elite) * (ELITE_HEALTH if elite else 1.0)
 		speed += data.speed
 		span = maxf(span, entry[0])
 	speed /= schedule.size()
