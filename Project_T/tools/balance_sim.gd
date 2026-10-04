@@ -77,11 +77,15 @@ var sidegrade := -1
 var carry_pref := true  # --no-carry-pref: act 1 growth and Dreamlight don't prefer the carry branch (DreamState.is_carry), the bot before 2026-10-02
 var fence_pref := true  # --no-fence-pref: Jarlink growth ignores where its arc would fall (the bot before 2026-10-02)
 var half_pref := true  # --no-half-pref: full cells only on the half grid (the bot before 2026-10-04)
+var pair_search := true  # --no-pair-search: the half-grid wall search weighs single walls only (greedy, the bot of 0596eb94)
+const PAIR_FIRSTS := 40  # Pair lookahead: the best single walls tried as a pair's first
+const PAIR_REACH := 2  # …and its second wall within this many halves of the first's footprint
 const NUDGE_TOP := 3  # Half cells: the best full cells whose 8 half-offset nudges _build tries
 var _top: Array = []  # [[score, cell], …] best first, from the last _best_cell
 var _last_args: Array = []  # That call's reach, growth weight, cover_heart, data, route, walker cells
-var half_spots := [0, 0, 0, 0]  # Attackers weighed with half nudges, built at a half offset, refused there; walls planted by the half search
+var half_spots := [0, 0, 0, 0, 0]  # Attackers weighed with half nudges, built at a half offset, refused there; walls planted by the half search, of them built as the first of a better pair
 var route_open := -1  # Route length in full cells after the opening spend, and as drifts 24 / 45 start
+var route_base := -1  # The empty map's route in full cells, before the opening spend (the corridor rule alone)
 var route_at := {}
 var narrow_at := {}  # Route halves in a one-half corridor (both opposite neighbours blocked), as drifts 24 / 45 start
 var demo_run := false  # --demo: game/demo stays true (DEMO_RULES, demo bosses and Kinships), for the demo sanity check
@@ -158,6 +162,7 @@ func _run() -> void:
 			"--no-carry-pref": carry_pref = false
 			"--no-fence-pref": fence_pref = false
 			"--no-half-pref": half_pref = false
+			"--no-pair-search": pair_search = false
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
@@ -249,6 +254,7 @@ func _run() -> void:
 	_hook_stats()
 	_new_window()
 	_last_dew = run_state.dew
+	route_base = _route_cells(map.get_path_from(map.startPath))
 	_spend()  # The opening
 	route_open = _route_cells(map.get_path_from(map.startPath))
 	Engine.time_scale = speed
@@ -484,6 +490,14 @@ func _plant_wall() -> bool:
 	var cell := _best_cell(0.0, 1.0)
 	return cell != NO_CELL and _build(wall, cell)
 
+# A half origin a Thornwall could stand on now: every half buildable, not settling / Omen-locked / under a nightmare.
+func _half_wall_open(origin: Vector2) -> bool:
+	var halves: Array[Vector2] = map.halves_of(origin)
+	if not halves.all(func(h: Vector2) -> bool: return map.is_buildable_half(h)):
+		return false
+	var touched := Tower.cells_of_halves(halves)
+	return not (placer.settling_left(touched) > 0.0 or placer.omen_locked(touched) or placer._halves_occupied(halves))
+
 # Half cells: a Thornwall on the half origin beside the route that adds the most path (staggered walls). Every origin
 # whose footprint touches the halves within one of a route point's body is weighed: the cheap way to cover the half
 # grid, since a wall off the route never lengthens it.
@@ -498,19 +512,48 @@ func _plant_half_wall() -> bool:
 	var walkers := placer._walker_points()
 	var best := Vector2(-1, -1)
 	var best_growth := 0
+	var singles: Array = []  # [growth, origin] of every wall that may stand alone (pair search seeds)
 	for origin in origins:
+		if not _half_wall_open(origin):
+			continue
 		var halves: Array[Vector2] = map.halves_of(origin)
-		if not halves.all(func(h: Vector2) -> bool: return map.is_buildable_half(h)):
-			continue
-		var touched := Tower.cells_of_halves(halves)
-		if placer.settling_left(touched) > 0.0 or placer.omen_locked(touched) or placer._halves_occupied(halves):
-			continue
 		var new_route: PackedVector2Array = map.get_path_if_blocked_halves(halves)
+		if new_route.is_empty():
+			continue
 		var growth := new_route.size() - route.size()
-		if new_route.is_empty() or growth <= best_growth or not map.can_block_halves(halves, walkers):
+		if pair_search:
+			singles.append([growth, origin])
+		if growth <= best_growth or not map.can_block_halves(halves, walkers):
 			continue
 		best_growth = growth
 		best = origin
+	# Pair lookahead (one-half gaps, half_cells.md 04c10c33): a lone wall that leaves a one-half gap diverts no one,
+	# so the best PAIR_FIRSTS single walls each try every second wall within PAIR_REACH halves. When a pair adds more
+	# than the best single wall, its first wall is built now (the second scores as a single next time).
+	if pair_search and not singles.is_empty():
+		singles.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
+		var pair_best := best_growth
+		var pair_first := Vector2(-1, -1)
+		for entry in singles.slice(0, PAIR_FIRSTS):
+			var first: Vector2 = entry[1]
+			var first_halves: Array[Vector2] = map.halves_of(first)
+			for dy in range(-PAIR_REACH - 1, PAIR_REACH + 2):
+				for dx in range(-PAIR_REACH - 1, PAIR_REACH + 2):
+					var second: Vector2 = first + Vector2(dx, dy)
+					if absi(dx) < 2 and absi(dy) < 2:
+						continue  # Overlaps the first wall's footprint
+					if not _half_wall_open(second):
+						continue
+					var both: Array = first_halves + map.halves_of(second)
+					var new_route: PackedVector2Array = map.get_path_if_blocked_halves(both)
+					var growth := new_route.size() - route.size()
+					if new_route.is_empty() or growth <= pair_best or not map.can_block_halves(both, walkers):
+						continue
+					pair_best = growth
+					pair_first = first
+		if pair_first != Vector2(-1, -1) and map.can_block_halves(map.halves_of(pair_first), walkers):
+			best = pair_first
+			half_spots[4] += 1
 	if best == Vector2(-1, -1):
 		return false
 	half_spots[3] += 1
@@ -904,6 +947,8 @@ func _finish() -> void:
 	summary.gifts = "+".join(gifts_log)
 	summary.half_spots = "%d/%d/%d" % [half_spots[1] - half_spots[2], half_spots[0], half_spots[2]]  # Attackers: at a half offset / weighed / refused there
 	summary.half_walls = half_spots[3]
+	summary.pair_walls = half_spots[4]  # Of them, built as the first wall of a better pair
+	summary.route_base = route_base
 	summary.route_open = route_open
 	summary.route_24 = route_at.get(24, -1)
 	summary.route_45 = route_at.get(45, -1)
