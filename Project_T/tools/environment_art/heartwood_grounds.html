@@ -540,9 +540,12 @@ function dualField(mask) {
 // The dual tiles' edge, as a real distance (2026-10-04: the user found the half-cell path too wide;
 // the blend left its bank at the corridor's very edge, ~60 px of earth against path.png's ~46).
 // The path halves (quarter planes, extended past the tile; anything past a tile's own corners is at
-// least 16 px from its pixels) are eroded by DUAL_INSET px, then opened by DUAL_ROUND px to round the
-// outer corners; inner corners round off by the erosion itself. D < 0 inside, -DUAL_ROUND deep inside.
-const DUAL_INSET = 9, DUAL_ROUND = 6, DUAL_D = new Map();
+// least 16 px from its pixels) are opened by DUAL_ROUND px (outer corners round off), then grown DUAL_OUT px
+// over the grass: the pale earth fills the whole path half and the Loam bank sits outside it (2026-10-04,
+// environment_assets.md 4cfecb00: since the mask is the route's own halves, the old 9 px inset left a ~14 px
+// hairline and nightmares walked on grass). The diagonal masks 5 / 10 round further so their two corners stay
+// apart (with a narrower bank); the inner corners of a turn are closed by DUAL_FILLET. D < 0 inside.
+const DUAL_OUT = 5, DUAL_ROUND = 12, DUAL_ROUND_DIAG = 15, DUAL_OUT_DIAG = 3, DUAL_FILLET = 6, DUAL_D = new Map();
 function chamfer(dist, G) {
   const relax = (i, j, c) => { if (dist[j] + c < dist[i]) dist[i] = dist[j] + c; };
   for (let y = 1; y < G; y++) for (let x = 1; x < G - 1; x++) { const i = y * G + x; relax(i, i - 1, 1); relax(i, i - G, 1); relax(i, i - G - 1, 1.414); relax(i, i - G + 1, 1.414); }
@@ -556,11 +559,18 @@ function dualD(mask) {
     const toOut = new Float32Array(G * G);  // distance to the nearest half that isn't path
     for (let y = 0; y < G; y++) for (let x = 0; x < G; x++) toOut[y * G + x] = isPath(x - E + .5, y - E + .5) ? INF : 0;
     chamfer(toOut, G);
-    const toCore = new Float32Array(G * G);  // distance to the eroded core (the opening rounds outer corners)
-    for (let i = 0; i < G * G; i++) toCore[i] = toOut[i] > DUAL_INSET + DUAL_ROUND ? 0 : INF;
+    const diag = mask === 5 || mask === 10, R = diag ? DUAL_ROUND_DIAG : DUAL_ROUND, out = diag ? DUAL_OUT_DIAG : DUAL_OUT;
+    const toCore = new Float32Array(G * G);  // distance to the core (opened by R: outer corners round off)
+    for (let i = 0; i < G * G; i++) toCore[i] = toOut[i] > R ? 0 : INF;
     chamfer(toCore, G);
+    let full = toCore.map(v => Math.min(v, 99) - R - out);
+    if ([7, 11, 13, 14].includes(mask)) {  // an inner corner: close it by DUAL_FILLET so the turn bends softly
+      const toIn = chamfer(full.map(v => v < 0 ? 0 : INF), G);
+      const toGrass = chamfer(toIn.map(v => v > DUAL_FILLET ? 0 : INF), G);
+      full = toGrass.map(v => DUAL_FILLET - Math.min(v, 99));
+    }
     const d = new Float32Array(DUAL * DUAL);
-    for (let y = 0; y < DUAL; y++) for (let x = 0; x < DUAL; x++) d[y * DUAL + x] = Math.min(toCore[(y + E) * G + x + E], 99) - DUAL_ROUND;
+    for (let y = 0; y < DUAL; y++) for (let x = 0; x < DUAL; x++) d[y * DUAL + x] = full[(y + E) * G + x + E];
     DUAL_D.set(mask, d);
   }
   const d = DUAL_D.get(mask);
@@ -1997,13 +2007,13 @@ function bogDual(A, k) {
   }
   for (let i = 0; i < 2; i++) {  // still puddles
     const cx = 9 + hash(i, 1, s) * 14, cy = 9 + hash(i, 2, s) * 14, rx = 3 + hash(i, 3, s) * 3, ry = rx * .55;
-    if (D(cx - rx, cy) > -2 || D(cx + rx, cy) > -2 || D(cx, cy - ry) > -2 || D(cx, cy + ry) > -2) continue;
+    if (D(cx - rx, cy) > -4 || D(cx + rx, cy) > -4 || D(cx, cy - ry) > -4 || D(cx, cy + ry) > -4) continue;
     ellipseRaw(L, cx, cy, rx, ry, (x, y, dx, dy) => dy < -.5 ? "#241c14" : dx < -.2 && dy < 0 ? "#4c8ca4" : "#2c4c5c");
     L.set(cx - rx * .3, cy - ry * .2, "#9cd4fc");
   }
   for (let r = 0; r < 2; r++) {  // reeds
     const x = 6 + Math.floor(hash(r, k, s + 4) * 20), y = 9 + Math.floor(hash(r, k, s + 5) * 18);
-    if (D(x, y + 1) > -2) continue;
+    if (D(x, y + 1) > -3) continue;
     for (let i = 0; i < 4; i++) L.set(x + (i > 2 ? 1 : 0), y - i, i < 2 ? g[2] : g[3]);
   }
   return L;
