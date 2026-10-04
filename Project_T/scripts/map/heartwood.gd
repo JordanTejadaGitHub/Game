@@ -283,8 +283,9 @@ func _refresh_wardens_behind() -> void:
 	var cell := MAP_GRID.calculate_grid_coordinates(position)
 	var behind: Array[Vector2] = [cell + Vector2(-1, -1), cell + Vector2(0, -1), cell + Vector2(1, -1)]
 	for tower in tower_container.get_children():
+		# Any of its half cells under the canopy (a half-offset Warden straddles up to 4 whole cells)
 		if tower is Tower and not tower.is_queued_for_deletion() \
-				and (behind.has(tower.cell) or tower.get_cells().any(func(c: Vector2) -> bool: return behind.has(c))):
+				and TallObstacleFade.whole_cells_of(tower).any(func(c: Vector2) -> bool: return behind.has(c)):
 			_warden_behind = true
 			return
 

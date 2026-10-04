@@ -449,7 +449,7 @@ func unblock_cell(cell: Vector2) -> void:
 	path_changed.emit()
 
 
-# --- Half cells (experiment/half-cells, documentation/half_cells.md) ------------------------------------
+# --- Half cells (documentation/half_cells.md) ----------------------------------------------------------------
 # Pathing runs on 32 px half cells (FindPath): a Warden is a 2×2 footprint at any half offset; nightmares are
 # 2×2 bodies, so a gap one half cell wide never carries the route. Half cells are integer Vector2 on the
 # (MAP_GRID.size × 2) grid; route points are body centres in full-cell units (x.0 / x.5). The full-cell

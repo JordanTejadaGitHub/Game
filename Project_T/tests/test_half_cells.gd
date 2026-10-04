@@ -1,5 +1,5 @@
 extends SceneTree
-# Half-cell pathing (experiment/half-cells, documentation/half_cells.md): 32 px half cells, nightmares as
+# Half-cell pathing (documentation/half_cells.md): 32 px half cells, nightmares as
 # 2×2-half bodies (the corridor rule: a 1-half gap never carries the route), footprints at half offsets,
 # the full-cell API still working, a nightmare walking a half-step route, and the pathfinding cost.
 # Run:  Godot --headless --path . --script res://tests/test_half_cells.gd --fixed-fps 60
@@ -50,6 +50,8 @@ func _run() -> void:
 			map.block_halves(halves)
 			var after: PackedVector2Array = map.get_path_from(map.startPath)
 			_check(after == preview, "the preview is the route after blocking")
+			_check(halves.all(func(h: Vector2) -> bool: return not map.is_buildable((h / 2.0).floor())),
+				"whole-cell gift terrain can't go on any cell a Warden half touches (GiftPlacer uses is_buildable)")
 			var crosses := false
 			for q in after:
 				for h in map.body_halves(q):
