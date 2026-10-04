@@ -5,19 +5,20 @@
 	"drift": 20,
 	"dew": 340,
 	"hud": "none",
-	"length": 25.0,
+	"length": 28.0,
 	"music": ["base", "dread1"],
 	"captions": [
-		[0.0, 2.0, "Your towers ARE the maze."],
-		[2.0, 10.0, "Every Warden you plant bends the nightmares' path."],
-		[10.0, 18.0, "Longer path, more time to dispel them."],
-		[18.0, 25.0, "Then they come. Through every bend."]
+		[0.0, 2.5, "Your towers ARE the maze."],
+		[2.5, 10.0, "Every Warden bends the path the nightmares walk."],
+		[10.0, 17.0, "Twenty-four Wardens in: the path's twice as long."],
+		[17.0, 28.0, "Then I hit start. They walk every bend of it."]
 	],
 	"timeline": [
 		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.73},
-		{"t": 2.0, "plant_each": 0.45, "count": 18, "plant": "thornwall", "auto": "maze"},
-		{"t": 10.5, "plant_each": 0.5, "count": 6, "plant": "sporeling", "auto": "cover"},
-		{"t": 17.5, "start": true},
-		{"t": 21.0, "camera": "follow", "target": "furthest", "zoom": 1.0}
+		{"t": 2.0, "plant_each": 0.4, "count": 18, "plant": "thornwall", "auto": "maze"},
+		{"t": 9.5, "plant_each": 0.5, "count": 6, "plant": "sporeling", "auto": "cover"},
+		{"t": 14.0, "start": true},
+		{"t": 19.0, "camera": "push", "at": "centre", "zoom": 1.0, "duration": 4.0},
+		{"t": 23.0, "camera": "follow", "target": "furthest", "zoom": 1.0}
 	]
 }
