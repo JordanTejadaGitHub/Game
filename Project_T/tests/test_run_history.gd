@@ -57,6 +57,8 @@ func _run() -> void:
 	_check(not history._open[90].called_early and history._open[91].called_early, "a drift row says whether it was called early")
 	director.early_calls = 3
 	director.call_early_dew = 7
+	run_state.longest_path = 131
+	run_state.obstacles_tended = 12
 	var hit := DamageLog.Event.new()
 	hit.enemy = straggler
 	hit.amount = 50.0
@@ -142,6 +144,8 @@ func _run() -> void:
 		_check(int(record.get("early_calls", -1)) == 3 and int(record.get("dew_call_early", -1)) == 7
 			and report.contains("Called early: 3 drifts · 7 Dew") and report.contains(",closest,called_early"),
 			"the record counts drifts called early and their Dew; the CSV has a called_early column")
+		_check(int(record.get("longest_path", -1)) == 131 and int(record.get("tended", -1)) == 12
+			and report.contains("Longest path: 131 cells · obstacles cleared: 12"), "the record keeps the longest path and the clears (milestone checks)")
 		var blocks: Array = record.get("route_blocks", [])
 		_check(not blocks.is_empty() and blocks[-1].dispels.size() == RunHistory.ROUTE_BINS and blocks[-1].invested.size() == RunHistory.ROUTE_BINS
 			and int(blocks[-1].leaked) >= 1 and record.has("heart_share"), "route profiles per block (%s)" % [blocks])

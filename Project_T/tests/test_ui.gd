@@ -590,7 +590,7 @@ func _run() -> void:
 	var family = main.get_node("%FamilyPickScreen")
 	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
 	_check(family.get_status_text(sporeling) == "Applies Poisoned", "the family card names its status (%s)" % family.get_status_text(sporeling))
-	_check(family.get_branches(sporeling).size() == 2, "the family card previews two branches")
+	_check(family.get_routes(sporeling).offered.size() == 2, "the family card previews two branches")
 	family.show_pick(&"first")
 	await _frames(3)
 	# Each card holds all of its content (the "Grows into" rows used to spill out of the bottom).

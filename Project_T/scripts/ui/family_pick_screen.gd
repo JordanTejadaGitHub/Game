@@ -316,10 +316,7 @@ const NOT_IN_DREAM_ICON := 20.0
 func get_routes(data: TowerData) -> Dictionary:
 	var offered: Array[TowerData] = []
 	var not_offered: Array[TowerData] = []
-	if not dream_state.has_method("preview_branch_offer"):
-		offered.assign(get_branches(data))  # Before the preview exists: the first two, as before
-		return {"offered": offered, "not_offered": not_offered}
-	var ids: Array = dream_state.preview_branch_offer(data)
+	var ids: Array = dream_state.preview_branch_offer(data)  # 2, or 3 with Wider Roots / a planted hidden branch: as Remember
 	for form in data.evolves_to:
 		var branch := form as TowerData
 		if branch == null or branch.tier != 2:
@@ -454,16 +451,6 @@ static func get_status_text(data: TowerData) -> String:
 		if status != &"" and not names.has(IconInfo.status_name(status)):
 			names.append(IconInfo.status_name(status))
 	return "Applies " + " and ".join(names) if not names.is_empty() else ""
-
-# The branches this family grows into in this run (up to 2), without hidden ones the Memory Grove
-# hasn't opened.
-func get_branches(data: TowerData) -> Array[TowerData]:
-	var result: Array[TowerData] = []
-	for next in data.evolves_to:
-		var branch := next as TowerData
-		if branch != null and dream_state.get_unlock_blocker(branch) != "Memory Grove" and result.size() < 2:
-			result.append(branch)
-	return result
 
 func _frame(data: TowerData) -> Texture2D:
 	return WardenIcon.make(data)
