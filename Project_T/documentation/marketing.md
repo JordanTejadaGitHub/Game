@@ -1,7 +1,7 @@
 # Marketing plan: Heartwood TD
 
-Owners (2026-10-04): **Marketing Discussion** (pitch, Steam page, copy, disclosure, posting) and **Short Form Video**
-(sections 3–5: capture tools, shorts, trailer; Main Merger builds the capture code). Goal: **Steam wishlists.** Every video, post and
+Owners (2026-10-04): **Marketing Discussion** (pitch, Steam page, copy, disclosure, posting) · **Short Form Video**
+(§3–4: capture tools, shorts) · **Trailer** (§5) · Main Merger builds the capture code. Goal: **Steam wishlists.** Every video, post and
 page points to the Steam page.
 
 ## 1. The pitch
