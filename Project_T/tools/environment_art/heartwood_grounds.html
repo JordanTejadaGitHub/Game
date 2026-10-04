@@ -1289,9 +1289,9 @@ function dreamFruit(v, f) {
     // cold violet-grey with a dent, a 1 px Dread outline and a faint cold rim, so it reads against the
     // Deepmoss / Pool crown and the night ground.
     const H = new Img(12, 12);
-    H.set(6, 2, HWN.Dusk); H.set(6, 3, HWN.Dusk);  // a withered stem
-    ellipseRaw(H, 6, 6.5, 2.2, 2.6, (x, y, dx, dy) => dx < -.1 && dy < -.1 ? "#8c8cac" /* Stone */ : dy > .35 || dx > .55 ? HWN.Dusk : HWN.Slate);
-    H.set(7, 6, HWN.Dusk); H.set(6, 7, HWN.Dusk);  // the shrivelled dent
+    H.set(6, 1, HWN.Dusk); H.set(6, 2, HWN.Dusk);  // a withered stem
+    ellipseRaw(H, 6, 6.5, 3.1, 3.4,  /* about a lit fruit's body (2026-10-04: smaller read as specks) */ (x, y, dx, dy) => dx < -.1 && dy < -.1 ? "#8c8cac" /* Stone */ : dy > .35 || dx > .55 ? HWN.Dusk : HWN.Slate);
+    H.set(7, 6, HWN.Dusk); H.set(6, 7, HWN.Dusk); H.set(8, 5, HWN.Dusk); H.set(5, 8, HWN.Dusk);  // the shrivelled dent and wrinkles
     out.stamp(H, HWN.Dread);
     for (let y = 1; y < 11; y++) for (let x = 1; x < 11; x++)  // cold rim on the upper-left edge
       if (H.alpha(x, y) && !H.alpha(x - 1, y) && !H.alpha(x, y - 1) && y > 3) out.set(x, y, HWN.Wraithlight);
