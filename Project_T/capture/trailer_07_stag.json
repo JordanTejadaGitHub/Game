@@ -1,8 +1,8 @@
 {
-	"title": "The first boss.",
-	"note": "Tuning: inland cleared so the open route has straights (the Stag charges x2.5 after 4 straight tiles); 14 Thornwalls bend it; it walks the whole route from 2.5 s and is dispelled 3-4 cells from the Heartwood at 26-27 s (dry run, 002d04c6).",
+	"title": "Trailer 46-60 s: the Hollow Stag.",
+	"note": "Trailer chat (marketing.md section 5, scene 7). Board copied exactly from short_03.json at 4a045652 (Short Form Video tuned it; the board is chaotic: never change a plant line, count or order). Only size, camera and captions differ. The trailer card goes on in the edit over the charge, so no captions here. Cut: a charge on a straight, then a stall on a bend.",
 	"seed": 4242,
-	"size": [1080, 1920],
+	"size": [1920, 1080],
 	"drift": 25,
 	"dew": 99999,
 	"obstacles": "edge",
@@ -10,12 +10,7 @@
 	"hud": "none",
 	"length": 30.0,
 	"music": ["base", "dread1", "boss_stag"],
-	"captions": [
-		[0.0, 2.5, "The first boss: the Hollow Stag."],
-		[2.5, 11.0, "On a straight line, it charges."],
-		[11.0, 23.0, "So bend the maze. Every corner breaks the charge."],
-		[23.0, 30.0, "A few tiles from the tree. It never got its run-up."]
-	],
+	"captions": [],
 	"timeline": [
 		{"t": 0.0, "plant_each": 0.05, "count": 14, "plant": "thornwall", "auto": "maze", "tag": false},
 		{"t": 0.0, "plant_each": 0.1, "count": 16, "plant": "sporeling", "auto": "cover", "rank": 5, "tag": false},

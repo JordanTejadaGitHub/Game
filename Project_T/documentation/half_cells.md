@@ -25,6 +25,21 @@ mazes"* → *"Wardens can be placed at half cell offsets."* Built on an experime
 - Is placement clear (ghost snapping, the "+N path" tag) with the mouse? (Touch is checked later.)
 - Performance at late drifts (4× the path nodes).
 
+## Placement feel (user, 2026-10-04: "doesn't feel as snappy anymore. Also add grids when placing")
+- **Snappy again:** the ghost moves the same frame the mouse crosses a half-cell line; the route preview and "+N path"
+  may follow a frame later, but never hold the ghost back. Profile hover and placement on a late, busy field. Re-check
+  only when the hovered half changes, cache the last result, and run the route search for the ghost off the input frame
+  if it's over ~2 ms. A placement click lands instantly: the Warden appears that frame.
+- **No jitter:** a small dead zone (about 4 px) before the ghost leaves its half, so a resting hand doesn't flicker
+  between two offsets.
+- **Grid while placing** (build mode only, fades in over 0.15 s, off outside it):
+  - faint whole-cell lines over the buildable ground, in the moonlit ink at about 12%
+  - half-cell lines only in a soft circle about 3 cells around the cursor, fainter still, so the offsets show where
+    you're aiming without covering the map in a fine mesh
+  - the ghost's 2×2 footprint outlined in gold, refused halves in the cold "can't" colour
+  - none on obstacles, the void or the HUD. A setting "Placement grid: On / Near cursor / Off" (default On). Reduced
+    motion: no fade.
+
 ## Going to main: the work and who owns it
 | Work | Owner |
 |---|---|
