@@ -633,11 +633,114 @@ class GiftPlacer extends Node2D:
 		var draw_cells: Array = placement().cells.duplicate()
 		for c in froms:
 			draw_rect(Rect2(map.MAP_GRID.calculate_map_position(c) - half, half * 2.0), Color(Palette.EMBER, 0.35))
-		for c in draw_cells:
-			draw_rect(Rect2(map.MAP_GRID.calculate_map_position(c) - half, half * 2.0), Color(Palette.SPRIG, 0.4))
+		var preview: Array = draw_cells if is_complete() else _ghost_preview(draw_cells)
+		if not _draw_ghost(preview):  # No art for this gift: the plain marks
+			for c in draw_cells:
+				draw_rect(Rect2(map.MAP_GRID.calculate_map_position(c) - half, half * 2.0), Color(Palette.SPRIG, 0.4))
 		if not is_complete():
 			var ok: bool = _cell_ok(hover) or (kind == &"move" and map.obstacles.has(hover)) or kind == &"warden" or kind == &"kinship"
 			var hover_cells: Array = _area(hover) if kind == &"area" else [hover]
 			for c in hover_cells:
 				draw_rect(Rect2(map.MAP_GRID.calculate_map_position(c) - half, half * 2.0),
 					Color(Palette.SPRIG if ok else Palette.EMBER, 0.25), false, 2.0)
+
+	# --- The ghost (user: "you don't see the moonwell you're placing") ---------------------------------------
+	# The real art MapGifts will put down (its own sheets and tiles, so the preview always matches), see-through on the
+	# picked cells plus the hovered next step, a thin footprint outline, and the effect's reach as a dashed square.
+	const GHOST_ALPHA := 0.6
+	const REACH := {&"moonwell": 1, &"bell_stone": 1, &"lightning_tree": 2, &"spring": 2}  # Cells around the footprint
+
+	# The picked cells plus what the next click would add.
+	func _ghost_preview(picked: Array) -> Array:
+		var out: Array = picked.duplicate()
+		match kind:
+			&"line":
+				if cells.size() == 1:
+					var line := _line(cells[0], hover)
+					if line.size() >= 1:
+						out.assign(line)
+			&"area":
+				out.assign(_area(hover))
+			&"cell":
+				out = [hover]
+			&"chain", &"cells", &"path":
+				if not out.has(hover):
+					out.append(hover)
+		return out
+
+	# Draws the ghost of `ghost` cells; false when this gift has no art to show (the caller draws plain marks).
+	func _draw_ghost(ghost: Array) -> bool:
+		var gifts = map.get("gifts")
+		if gifts == null or ghost.is_empty() or not gifts.get("_sheets") is Dictionary:
+			return false
+		var tint := Color(1, 1, 1, GHOST_ALPHA)  # multiplier
+		var cell_size := Vector2(map.MAP_GRID.cell_size)
+		var sheets: Dictionary = gifts._sheets
+		var drew := true
+		match id:
+			&"sow_ridge":
+				var tree: ObstacleData = MapGifts.TREE_DATA
+				var source := map.environment_object_layer.tile_set.get_source(tree.source_id) as TileSetAtlasSource
+				drew = source != null and not tree.tiles.is_empty()
+				if drew:
+					for c in ghost:
+						var tile: Vector2i = tree.tiles[EnvironmentTiles.cell_variant(Vector2i(c), tree.tiles.size())]
+						_tall(source.texture, Rect2(source.get_tile_texture_region(tile)), c, tint)
+			&"fallen_giant":
+				drew = sheets.has("fallen_log")
+				for c in ghost if drew else []:
+					var piece := MapGifts._log_piece(c, ghost)
+					_tall(sheets.fallen_log, gifts.frame_region("fallen_log", piece if piece >= 0 else 1), c, tint)
+			&"spring":
+				var pond := map.environment_object_layer.tile_set.get_source(EnvironmentTiles.POND) as TileSetAtlasSource
+				drew = pond != null
+				for c in ghost if drew else []:
+					var mask := MapGifts._mask(c, func(o: Vector2) -> bool: return ghost.has(o))
+					draw_texture_rect_region(pond.texture, Rect2(map.MAP_GRID.calculate_map_position(c) - cell_size / 2.0, cell_size),
+						Rect2(pond.get_tile_texture_region(Vector2i(mask, 0))), tint)
+			&"mushroom_ring":
+				drew = sheets.has("mushroom_ring")
+				if drew:
+					var top := Vector2(MapGifts._min_x(ghost), MapGifts._min_y(ghost))
+					draw_texture_rect_region(sheets.mushroom_ring, Rect2(map.MAP_GRID.calculate_map_position(top) - cell_size / 2.0,
+						cell_size * 3), gifts.frame_region("mushroom_ring", 0), tint)
+			&"lightning_tree", &"moonwell", &"bell_stone":
+				drew = sheets.has(String(id))
+				for c in ghost if drew else []:
+					_tall(sheets[String(id)], gifts.frame_region(String(id), 0), c, tint)
+			&"ancient_stump":
+				drew = sheets.has("ancient_stump")
+				for c in ghost if drew else []:
+					draw_texture_rect_region(sheets.ancient_stump, Rect2(map.MAP_GRID.calculate_map_position(c) - cell_size / 2.0, cell_size),
+						gifts.frame_region("ancient_stump", EnvironmentTiles.cell_variant(Vector2i(c), 3)), tint)
+			&"mire":
+				drew = sheets.has("bog_path")
+				var path_cells: PackedVector2Array = map.path_layer.current_path
+				for c in ghost if drew else []:
+					var mask := MapGifts._mask(c, func(o: Vector2) -> bool: return path_cells.has(o) or ghost.has(o))
+					draw_texture_rect_region(sheets.bog_path, Rect2(map.MAP_GRID.calculate_map_position(c) - cell_size / 2.0, cell_size),
+						gifts.frame_region("bog_path", mask), tint)
+			_:
+				drew = false
+		if not drew:
+			return false
+		var ok: bool = ghost.all(func(c: Vector2) -> bool: return cells.has(c) or _cell_ok(c) or kind == &"path")
+		for c in ghost:  # The footprint: a thin outline, the cold tint when it can't go there
+			draw_rect(Rect2(map.MAP_GRID.calculate_map_position(c) - cell_size / 2.0, cell_size).grow(-2),
+				Color(Palette.SPRIG if ok else Palette.EMBER, 0.7), false, 1.5)
+		if REACH.has(id):
+			var box := Rect2(map.MAP_GRID.calculate_map_position(ghost[0]) - cell_size / 2.0, cell_size)
+			for c in ghost:
+				box = box.merge(Rect2(map.MAP_GRID.calculate_map_position(c) - cell_size / 2.0, cell_size))
+			_dashed_rect(box.grow(cell_size.x * REACH[id]), Color(Palette.SPRIG, 0.55))
+		return true
+
+	# A sprite whose bottom 64 px sit on `cell` (tall art overhangs the cells above), as MapGifts' props and trees.
+	func _tall(texture: Texture2D, region: Rect2, cell: Vector2, tint: Color) -> void:
+		var at: Vector2 = map.MAP_GRID.calculate_map_position(cell) + Vector2(-region.size.x / 2.0, 32.0 - region.size.y)
+		draw_texture_rect_region(texture, Rect2(at, region.size), region, tint)
+
+	func _dashed_rect(rect: Rect2, colour: Color) -> void:
+		var corners := [rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]
+		for i in 4:
+			draw_dashed_line(corners[i], corners[(i + 1) % 4], colour, 1.5, 6.0)
