@@ -274,10 +274,10 @@ and hand-fixes its items above, re-checks with the audit, and republishes its ga
 
 Showcase art, exempt from the palette, but it must feel like the game.
 
-- **Concept (recommended hybrid of Theme Asset's drafts A and B):** A's watchful stone Warden large
-  in the foreground, menacing rather than cute, lit warm from below and in front. Behind it is B's
-  winding, glowing path seen from above, lined with small Wardens. Nightmares (dark shapes, pinprick
-  eyes) press in from the cold edges. The Heartwood glows gold at the far end of the path.
+- **Concept: draft A, "the watchful Warden"** (the user's pick, 2026-10-04, over B and the A+B
+  hybrid). The relit stone Warden from the title art, large, menacing rather than cute, lit warm
+  against the cold dark, with the logo on the dark side. Nightmares (dark shapes, pinprick eyes) can
+  press in from the cold edges. The maze hook is left to the screenshots and trailer.
 - **One idea, big shapes:** it must read at 231×87 (small capsule). Warm centre, cold edges.
 - **The logo:** hand-lettered or hand-drawn, not a stock fantasy font. It sits in the dark part of
   the image, and also works alone on a transparent background (library logo, at most 1280×720).
