@@ -80,13 +80,28 @@ New-Item -ItemType Directory $work | Out-Null
 Copy-Item (Join-Path $Project "assets\ui\fonts\AlegreyaSans-Medium.ttf") (Join-Path $work "body.ttf")
 Copy-Item (Join-Path $Project "assets\ui\fonts\CormorantSC-Medium.ttf") (Join-Path $work "title.ttf")
 Copy-Item (Join-Path $Project "assets\ui\title\title_background.png") (Join-Path $work "backdrop.png")
-$stems = @("base", "dread1"); if ($null -ne $scene.music) { $stems = @($scene.music) }
-$stemFiles = @()
-foreach ($stem in $stems) {
-	$file = "stem_$stem.wav"
-	Copy-Item (Join-Path $Project "assets\audio\music\mus_act1_$stem.wav") (Join-Path $work $file)
-	$stemFiles += $file
+# Music: a finished bed from Sound ("bed": a .wav, with "bed_voice" for the voiceover cut and "bed_offset" seconds:
+# positive skips into the bed, negative starts it later), else the game's stems ("music": names, looped). Either way
+# "end_button" (a .wav) plays under the end card. Paths are relative to the project or absolute.
+function Source([string]$path) {
+	if ([IO.Path]::IsPathRooted($path)) { return $path }
+	return Join-Path $Project ($path -replace "^res://", "")
 }
+$stemFiles = @()
+$bedFile = ""; $bedVoiceFile = ""; $buttonFile = ""
+if ($null -ne $scene.bed) {
+	Copy-Item (Source $scene.bed) (Join-Path $work "bed.wav"); $bedFile = "bed.wav"
+	if ($null -ne $scene.bed_voice) { Copy-Item (Source $scene.bed_voice) (Join-Path $work "bed_voice.wav"); $bedVoiceFile = "bed_voice.wav" }
+} else {
+	$stems = @("base", "dread1"); if ($null -ne $scene.music) { $stems = @($scene.music) }
+	foreach ($stem in $stems) {
+		$file = "stem_$stem.wav"
+		Copy-Item (Join-Path $Project "assets\audio\music\mus_act1_$stem.wav") (Join-Path $work $file)
+		$stemFiles += $file
+	}
+}
+if ($null -ne $scene.end_button) { Copy-Item (Source $scene.end_button) (Join-Path $work "button.wav"); $buttonFile = "button.wav" }
+$bedOffset = 0.0; if ($null -ne $scene.bed_offset) { $bedOffset = [double]$scene.bed_offset }
 function Wrap([string]$text, [int]$width = 24) {
 	$lines = @(); $line = ""
 	foreach ($word in $text -split " ") {
@@ -125,11 +140,37 @@ $card = "[1:v]scale=iw*6:ih*6:flags=neighbor,crop=1080:1920,eq=brightness=-0.18:
 	"drawtext=fontfile=body.ttf:textfile=card_link.txt:fontsize=42:fontcolor=0xfff4dc@0.75:x=(w-text_w)/2:y=h*0.36+270," +
 	"fps=60,trim=duration=$(F $endCard),setpts=PTS-STARTPTS,format=yuv420p,fade=t=in:st=0:d=0.25[card]"
 
+# The music inputs (after the movie and the backdrop): the bed (the voice mix for the voiceover cut) or the stems,
+# then the end-card button.
+function MusicInputs([bool]$voice) {
+	$list = @()
+	if ($bedFile -ne "") {
+		$list += @("-i", $(if ($voice -and $bedVoiceFile -ne "") { $bedVoiceFile } else { $bedFile }))
+	} else {
+		foreach ($f in $stemFiles) { $list += @("-stream_loop", "-1", "-i", $f) }
+	}
+	if ($buttonFile -ne "") { $list += @("-i", $buttonFile) }
+	return $list
+}
+
 function Music([double]$db, [string]$label) {
-	$n = $stemFiles.Count
-	$ins = ""; for ($k = 0; $k -lt $n; $k++) { $ins += "[$($k + 2):a]" }
-	return "${ins}amix=inputs=${n}:normalize=0,atrim=0:$(F $total),asetpts=PTS-STARTPTS,aresample=48000,pan=stereo|c0=c0|c1=c0," +
-		"volume=${db}dB,afade=t=in:st=0:d=0.6,afade=t=out:st=$(F ($total - 1.2)):d=1.2[$label]"
+	$fadeOut = "afade=t=out:st=$(F ($total - 1.2)):d=1.2"
+	if ($bedFile -ne "") {
+		$shift = if ($bedOffset -ge 0) { "atrim=start=$(F $bedOffset)," } else { "adelay=$([int](-$bedOffset * 1000)):all=1," }
+		# A bed is cut and faded at the clip's end; its own ending is the button's job
+		$graph = "[2:a]${shift}asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,apad,atrim=0:$(F $total)," +
+			"volume=${db}dB,$fadeOut[bedx]"
+		$next = 3
+	} else {
+		$n = $stemFiles.Count
+		$ins = ""; for ($k = 0; $k -lt $n; $k++) { $ins += "[$($k + 2):a]" }
+		$graph = "${ins}amix=inputs=${n}:normalize=0,atrim=0:$(F $total),asetpts=PTS-STARTPTS,aresample=48000,pan=stereo|c0=c0|c1=c0," +
+			"volume=${db}dB,afade=t=in:st=0:d=0.6,$fadeOut[bedx]"
+		$next = 2 + $n
+	}
+	if ($buttonFile -eq "") { return $graph -replace "\[bedx\]$", "[$label]" }
+	return "$graph;[${next}:a]aresample=48000,aformat=channel_layouts=stereo,adelay=$([int]($clip * 1000)):all=1,apad,atrim=0:$(F $total)[btn];" +
+		"[bedx][btn]amix=inputs=2:normalize=0[$label]"
 }
 
 function Render([string]$out, [string]$captionStyle, [double]$musicDb, [double]$gameDb, [bool]$wide) {
@@ -148,7 +189,7 @@ function Render([string]$out, [string]$captionStyle, [double]$musicDb, [double]$
 	$graphFile = "graph_" + [IO.Path]::GetFileNameWithoutExtension($out) + ".txt"
 	Text $graphFile $graph
 	$args = @("-v", "error", "-y", "-i", $movie, "-loop", "1", "-framerate", "60", "-i", "backdrop.png")
-	foreach ($f in $stemFiles) { $args += @("-stream_loop", "-1", "-i", $f) }
+	$args += MusicInputs ($captionStyle -eq "")
 	$args += @("-/filter_complex", $graphFile, "-map", "[v]", "-map", "[a]", "-t", (F $total),
 		"-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
 		"-movflags", "+faststart", $out)
@@ -163,12 +204,13 @@ $musicDb = -9.0; if ($null -ne $scene.music_db) { $musicDb = [double]$scene.musi
 Render (Join-Path $dest "${Name}_youtube.mp4") "title" $musicDb 0.0 $false
 Render (Join-Path $dest "${Name}_tiktok.mp4") "lower" $musicDb 0.0 $false
 Render (Join-Path $dest "${Name}_x.mp4") "title" $musicDb 0.0 $true
-Render (Join-Path $dest "${Name}_voiceover.mp4") "" -18.0 -8.0 $false
-# The music bed alone (0 dB trim of the stems, faded like the videos).
+# The voiceover cut: Sound's voice mix as is when there is one, else the full music ducked to -18 dB.
+Render (Join-Path $dest "${Name}_voiceover.mp4") "" $(if ($bedVoiceFile -ne "") { 0.0 } else { -18.0 }) -8.0 $false
+# The music bed alone (0 dB, faded like the videos, with the end button).
 $graph = (Music 0.0 "mus")
 Text "graph_music.txt" $graph
 $margs = @("-v", "error", "-y", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo")
-foreach ($f in $stemFiles) { $margs += @("-stream_loop", "-1", "-i", $f) }
+$margs += MusicInputs $false
 $margs += @("-/filter_complex", "graph_music.txt", "-map", "[mus]", "-t", (F $total), "-c:a", "pcm_s16le", (Join-Path $dest "${Name}_music.wav"))
 Push-Location $work
 try { & $Ffmpeg @margs; if ($LASTEXITCODE -ne 0) { throw "ffmpeg failed on the music bed" } } finally { Pop-Location }
