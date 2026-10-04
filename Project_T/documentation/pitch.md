@@ -64,15 +64,10 @@ words (`marketing.md` §6).
 
 ## Trailer: the first 10 seconds
 
-Most viewers decide in the first 5 seconds. Show both hooks immediately; no logo intro.
-
-1. **0–3 s:** darkness, a whisper; a Shade's eyes open at the forest edge and it skitters forward.
-   A spore puff hits it; it shrieks and bursts into light. (Hook 2)
-2. **3–7 s:** pull back to a winding maze of Wardens with nightmares streaming through it. A new
-   Warden drops onto the path, and the route line snaps into a longer detour live. (Hook 1)
-3. **7–10 s:** tagline *"Grow a living maze. Hold back the nightmares."*, then a quick montage
-   (lightning chaining through drenched nightmares, a Night Hound pack sprinting, the Hollow Stag
-   trampling a wall, a Phantom gliding through a wall).
+Most viewers decide in the first 5 seconds; no logo intro. **The maze comes first** (2026-10-04): the
+capsule (concept A) doesn't show it, so frame one is Wardens snapping into a staggered half-cell maze
+with the route mist bending live (Hook 1); the Shade dispel close-up follows (Hook 2). The full script
+is `marketing.md` §5 (Trailer chat).
 
 ## Screenshots
 
