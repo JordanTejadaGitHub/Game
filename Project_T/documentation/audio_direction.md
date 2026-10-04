@@ -61,12 +61,192 @@ Each drift track is written as **synced stems** that fade in and out on bar line
 | Moment | Music |
 |---|---|
 | **Title** | the Heartwood theme: slow, warm, a single cold note under it |
-| **Rest** | the act's warm base alone, calmer tempo; the exhale |
+| **Rest** | **its own piece** (2026-10-04): the Heartwood theme, slow; see "The score" below |
 | **Drift** | base + dread layers by intensity |
-| **Boss** | **one theme per boss** (decided 2026-09-28) (Hollow Stag: heavy drums and bowed bass; Mire Hag: bubbling low reeds and a crooked waltz; Moth Queen: tremolo shimmer over soft wingbeats; Hollow Oak: deep wooden drums and a hummed drone; placeholders built in f30db75). Below half health a **warm counter-melody** enters: the player is winning |
+| **Boss** | **an act boss theme** + **a signature layer per boss** (12 in the pools), and the Hollow Oak's own full finale (2026-10-04; replaces "one full theme per boss", 2026-09-28); below half health a **warm counter-melody** enters. See "The score" below |
 | **Choice screens** (family pick, Dream, Omen) | music drops to a soft pad; time has stopped |
 | **Memory Grove** | the Heartwood theme, gentle, with music box |
 | **Win / loss** | short stingers: a warm resolving chord / a slow fall into a single cold note |
+
+## The score (2026-10-04): rest, drift, boss, and the Heartwood motif
+
+Three distinct music states, all built from **one motif**, so the whole game (and every trailer
+and short) sounds like one world. Still "rounded, never sharp": soft onsets, a dark top end, felt
+mallets, bowed (not plucked) bass, no hard snares or cymbals.
+
+### The Heartwood motif (the thread through everything)
+
+**D – A – F** (up a fifth, down a third), in the warm lead of the act. Three notes, recognisable on
+any instrument.
+- **Warm form:** D – A – F, then home to D. Rest pieces, the drift base, the warm boss counter-melody.
+- **Hollow form** (the nightmares' corruption of it): D – **A♭** – F. The flattened fifth (a tritone)
+  in bowed bass or reversed piano. It's the cold layers' and bosses' motif: the same three notes,
+  bent wrong. Players feel the threat without knowing why.
+- **Hope form:** D – A – **F♯**, landing on a D **major** chord. Reserved for big wins: a boss
+  dispelled, the run won, the Dawnburst, and every marketing end card.
+
+### 1. Resting: its own piece, the exhale
+
+- **The Heartwood theme:** a full melody built on the motif, slow (**60 bpm, 3/4**, bar 3 s), warm,
+  sparse, lots of air. Not the drift base thinned: different tempo, different melody, no pulse
+  underneath, no dread at all.
+- **One per act, same melody in the act's warm lead:** act 1 music box + harp, act 2 marimba +
+  kalimba, act 3 wooden flute + harp, act 4 soft bells + hummed choir (a hum on one vowel, no
+  changing vowels: it must never sound like speech).
+- **Long, clean loop:** rests can last minutes, so **60 s** (20 bars of 3 s at 60 bpm, 3/4), with an
+  A section and a B section (10 bars each) so it doesn't wear thin. Notes
+  ring across the loop point (the generator's tail fold).
+- **Choice screens** muffle it as now. The rest bonus, Dream and Omen sounds sit on top of it.
+
+### 2. Drifting: the layered adaptive track, per act
+
+Keeps **72 bpm, 3/4** (bar 2.5 s), synced stems that fade on bar lines, but **16 bars (40 s)** per
+loop with an A and a B half (the 20 s loop repeated too often over a block). Same stem names per act:
+`mus_act<N>_base`, `_dread1`, `_dread2`, `_heartbeat`.
+
+| Layer | Plays when | Content |
+|---|---|---|
+| **base** | always in a drift | the act's warm lead playing the motif and a drift melody over a gentle pulse (harp / marimba / flute / bells); the pulse is what makes it a drift and not a rest |
+| **dread1** | nightmares in the dream | low drone + slow pulse, and the **Hollow form** of the motif in bowed bass every 4 bars |
+| **dread2** | many nightmares, or any in the last third of the path | the act's cold colour (whispers, tremolo strings, croaks, bowed saw, ice) + a faster soft-mallet low tom pattern; tension |
+| **heartbeat** | 5 leaves or fewer | low lub-dub on the beat; the music slightly muffled |
+
+| Act | Warm lead (base) | Cold colour (dread2) | Character |
+|---|---|---|---|
+| 1. Forest's Edge | music box, harp | faint whispers, low drone | sparse, a lullaby with something under it |
+| 2. Deep Wood | marimba, kalimba | low tremolo strings, frog-like croaks (soft, low) | warmer and busier, a summer night that isn't safe |
+| 3. Misty Hollow | wooden flute, harp | bowed saw, wind through reeds | the motif blurred by fog: longer notes, more reverb |
+| 4. Heartwood Glade | soft bells, hummed choir | deep drones, slow ice groans (no crackle) | the fullest base; the dread layers are heaviest here |
+
+Acts get **slightly denser** as the run goes on (more of the motif, more counter-lines), never louder
+overall: adding layers must never make the music louder (the stems are trimmed together, as now).
+**Act 1 first** (full pass), then acts 2–4.
+
+### 3. Boss: an act theme + a signature layer per boss
+
+A **full boss track per act** with real drive, plus a **short signature layer for each of the 12
+pool bosses** that sits on top (synced, 8 bars), instead of 12 full tracks. The Hollow Oak gets its
+own full finale.
+
+- **Tempo:** **96 bpm in 6/8** feel (two dotted beats per bar, bar 2.5 s: the same bar length as the
+  drift, so the drift → boss crossfade lands on a bar line). Driving, rolling, never frantic.
+- **Act boss theme stems** (`mus_boss_act<N>_*`): **drums** (deep felt toms and a frame drum,
+  rounded; no snare, no cymbals), **bass** (bowed bass ostinato on the Hollow form of the motif),
+  **theme** (the act's boss melody in its cold colour), **warm** (the counter-melody: the motif's
+  Warm form in the act's warm lead, entering **below 50% boss health**: the player is winning).
+- **Signature layer per boss** (`mus_boss_<id>_sig`), on top of its act's theme while it lives:
+
+| Act | Boss | Signature layer |
+|---|---|---|
+| 1 | The Hollow Stag | a low, slow **horn-like bowed call** + soft wooden antler knocks on the off-beats |
+| 1 | The Night Mare | a **galloping hoof rhythm** on felt drums (the 6/8 fits it); **each lap adds one more layer of it** (a second rhythm, then a low drone), so its laps sound like it's speeding up without the tempo changing |
+| 1 | The Scarecrow | a **crooked waltz** on a slightly detuned music box + a soft fluttering wingbeat figure (no caw) |
+| 2 | The Mire Hag | bubbling **low reeds** and a lurching, off-balance figure |
+| 2 | The Huntsman | a deep **bone-horn call** every 4 bars (low, soft, brass-like) + a running pack rhythm on low toms |
+| 2 | The Lamplighter | a slow, cold **organ-like pad** with a soft flicker tremolo; each lantern lit adds one soft held note, snuffed = it drops |
+| 3 | The Moth Queen | **tremolo shimmer** (soft bowed, low) over slow wingbeats |
+| 3 | The Barrow King | a heavy **processional**: a slow, dragging low drum on the downbeat only, bowed bass dragging behind the beat; muffled iron (lowpassed, rounded), no clank |
+| 3 | The Mourning Mother | a **weeping descending line** on bowed saw + a low hummed lament (one vowel, never speech-like); while she mends, the line hangs on one note |
+| 4 | Hollow Oak: Thorned | a tightening figure of soft wooden taps that gets denser as saplings spread |
+| 4 | Hollow Oak: Withering | a layer that **removes**: the finale's warm notes drop out one by one while it withers Wardens, returning after |
+| 4 | Hollow Oak: Remembering | at 75 / 50 / 25 %, the **signature layer of the echoed boss** returns for that echo's life (a fragment, quieter, filtered "from inside the bark") |
+
+- **The Hollow Oak finale** (`mus_boss_oak_*`, its own full track): deep wooden drums and a hummed
+  drone, the act 4 bells, the Hollow form of the motif at its heaviest. Below 50 % the warm
+  counter-melody enters **in full choir**. When it falls: hard stop, the boss dispel bloom, then the
+  **Hope form** of the motif played whole, the only time the game plays it at full length, into the
+  win.
+
+### Transitions
+
+- **Crossfades land on bar lines** (rest, drift and boss all use 2.5 s or 3 s bars; crossfade over one
+  bar of the outgoing piece).
+- **Drift → rest:** on the **last dispel of the block**, the dread layers fall away within a bar, the
+  base plays a **1–2 bar resolving tail** (to a held D chord), then the rest piece fades in.
+- **Rest → drift:** on Start, the rest finishes its bar, then the drift base enters on the next bar.
+- **Drift → boss:** when the boss drift starts, the boss drums enter on the next bar line under the
+  last drift layers, then the full theme.
+- **Boss dispelled:** a hard stop, the boss dispel sound, then the **Hope form** of the motif (2–4
+  bars) in the act's warm lead, then the rest. A boss that **reaches the Heartwood** (act bosses take
+  their bite and leave) cuts the drums for a bar on the bite, then the theme returns, colder (warm layer off).
+- **Act break:** the act_started swell, then the next act's rest piece.
+- **Loss:** the loss stinger; **win:** the Oak finale's Hope form, then the win stinger.
+
+### Build order (Sound Code)
+
+1. **Act 1 set:** the act 1 rest piece, the act 1 drift (16 bars, 4 stems), the act 1 boss theme
+   (4 stems) + the three act 1 signature layers (Stag, Night Mare, Scarecrow). Render, then send to
+   the story chat for the user to hear.
+2. Acts 2–3 rest + drift + boss themes and their signatures.
+3. Act 4 rest + drift, the Hollow Oak finale with its 3 signature layers.
+
+## Marketing music (2026-10-04; brief in marketing.md §9)
+
+Same world as the game: D minor, the game's instruments, the **Heartwood motif**, rounded and never
+sharp. Every cue ends **on** the end card with the motif's **Hope form**. Each cue is delivered as WAV
+**stems (low / mid / top / percussion), a full mix, and a voice mix** (the full mix with 300 Hz–3 kHz
+thinned by ~6 dB, for voiceovers). Made in-house: no copyright claims.
+
+### Tempo (answer to Marketing and Trailer)
+
+**Keep 72 bpm, 3/4 (bar 2.5 s).** It's the game's own pulse, and every trailer hit (7.5, 20, 52.5,
+65 s) and section edge already lands on a downbeat. Energy rises without changing tempo: **density
+and subdivision** (the pulse moves from dotted halves to quarters to eighth-note figures), **register**
+(the bass drops an octave at the boss section), and **percussion** entering in layers.
+
+### The end-card button (~1.5 s, on every short and the trailer)
+
+The motif's **Hope form**: **D – A – F♯** on harp and music box together (quarter-note-ish, ~0.4 s
+apart), landing on a soft, warm **D major chord** that rings ~0.7 s. Same notes every time, so the
+series has a sound. It's the in-game motif turned hopeful, so players hear it again in the game when a
+boss falls.
+
+### 1. Trailer cue (~75 s = 30 bars at 72 bpm)
+
+| Bars (time) | Picture | Music |
+|---|---|---|
+| 1–2 (0–5 s) | maze built, Warden snaps | the motif alone on music box, soft and warm; a felt pulse on each beat (the snaps sit on it) |
+| 3–4 (5–10 s) | Shade close-up | **near-silence**: one cold low note (the Hollow form's A♭ in bowed bass); **hit at 7.5 s** (bar 4 downbeat) = the dispel bloom, then silence |
+| 5–6 (10–15 s) | drift walks the maze | the pulse returns (quarters), dread1's drone underneath |
+| 7–11 (15–27.5 s) | Soaked + Charged, Thunderclaps | building: percussion enters in layers (low toms, then frame drum); **hit at 20 s** (bar 9) = a warm boom + far thunder roll, the Thunderclap |
+| 12–15 (27.5–37.5 s) | rest: Dream pick, grow, Kinship | **a breath**: half the density, the rest piece's harp and the motif's warm form, no percussion |
+| 16–18 (37.5–45 s) | Sow a Ridge | rising again: a slow swell, the pulse back in eighths, the bass climbing |
+| 19–24 (45–60 s) | bosses | the **act 1 boss theme** (drums, bowed bass an octave lower, the Hollow form) with the Stag's horn call; **hard stop at 52.5 s** (bar 22 downbeat) on the Stag stalling, a bar of only a low drone, then the Night Mare's gallop and the Oak's drums build back |
+| 25–28 (60–70 s) | storm chain to Dawnburst | everything: the boss drive + the warm counter-melody in full + the Hope form building; **hit at 65 s** (bar 27) = the Dawnburst, the biggest moment |
+| 29–30 (70–75 s) | logo, Wishlist | the **end-card button** (Hope form) resolving into **one held warm D major chord** from 70 s to the end |
+
+### 2. Short beds (9:16, ~15–35 s)
+
+Each starts at **full presence from frame 1** (no fade in) and ends on its end card with the button.
+The cut lists' hits don't fall on bars, so each bed is **rendered per short** to its own timeline:
+- the bar grid is **offset** so the bed's **main hit lands on a downbeat** (start offset = main hit
+  time mod 2.5 s; the bed starts mid-bar if needed, at full presence);
+- the other hits are **accent stingers** placed at their exact times, on a separate **hits stem**,
+  so the editor can nudge them if a cut moves;
+- the rise into the main hit spans the bars before it; after it, the bed settles and lands the button
+  on the end card.
+
+| Bed | Mood | Used by (hit times from Short Form Video, 2026-10-04) |
+|---|---|---|
+| **Build** | warm, steady pulse, rising as the maze grows | short 1 (28 s): snaps from 2.0 as a soft pulse, Sporelings 9.0, **main hit 12.0** (drift starts), push-in 14.0, follow 16.5. Short 4 (22 s): drift 1.0, **main hit 6.0** (the ridge rises), follow 12.0 |
+| **Storm** | tension into a hit on the chain | short 2 (24 s): drift 0.5, crowd 8.5, **main hit ~10.7** (×22 + Dawnburst). If the ~2.5 s slow motion stays, hold a suspended swell from 10.5 to 13.0 and land the hit as it ends |
+| **Boss** | the act 1 boss theme + the Stag's signature | short 3 (30 s): dossier 0.2–2.3 (a held low drone under it), the Stag 2.5 (drums in), **main hit ~27.0** (dispelled; ±0.6 s, so render after the final dry run) = the boss dispel bloom + Hope form |
+| **Close call** | the heartbeat thinning to near-silence, one release | short 5 (~19 s): "one leaf left" 0.0 (the heartbeat alone), Husk 1.0 (dread1 under it), jump cut 9.0 (a hard cut in the bed too: a bar of near-silence), **main hit ~16.3** = the release (the dispel bloom, then the button) |
+
+### 3. Video 0 ("why I made this", 34 s, voice mix only)
+
+Gentle and warm: the **act 1 rest piece** (harp, music box), thinned for the voice. First snap 0.5 s on
+a soft pulse; the Dream screen 9.0–11.5 (the pulse drops away); the Puffball grow 13.5 (a soft swell);
+**the lift at 20.0 on "So I made one."**: the drift base enters under the pull-back, the motif's warm
+form in full; another island 23.0; the chain peak ~28.1 as a gentle warm swell (not a hit, it's a
+voiceover); the **end card 29.0–34.0**: the button, then the held D major chord to 34.0.
+
+### Delivery (Sound Code)
+
+Per cue: `marketing/<cue>_full.wav`, `_voice.wav`, `_low.wav`, `_mid.wav`, `_top.wav`, `_perc.wav`
+(+ `_hits.wav` for the shorts), 44.1 kHz stereo is fine here (it's not positional). Cues: `trailer`,
+`build_short1`, `build_short4`, `storm_short2`, `boss_short3`, `closecall_short5`, `video0`, and
+`endcard_button`. Re-render a short when its hit times change (they're parameters, not hand-placed).
 
 ## Sound effects
 
