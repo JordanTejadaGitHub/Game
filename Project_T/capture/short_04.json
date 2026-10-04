@@ -1,0 +1,26 @@
+{
+	"title": "The forest moves.",
+	"note": "DRAFT: the sow_ridge cells are placeholders; pick 3-5 adjacent cells across the route after a dry run of seed 4242. Act break = drift 26.",
+	"seed": 4242,
+	"size": [1080, 1920],
+	"drift": 26,
+	"dew": 900,
+	"hud": "none",
+	"length": 22.0,
+	"music": ["base", "dread1"],
+	"captions": [
+		[0.0, 2.0, "After every boss, the Heartwood gives you a gift."],
+		[2.0, 10.0, "This one raises a ridge of dead trees."],
+		[10.0, 17.0, "The route bends around it. The long way now."],
+		[17.0, 22.0, "A new map every run, and you get to change it."]
+	],
+	"timeline": [
+		{"t": 0.0, "plant_each": 0.05, "count": 12, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 5, "plant": "sporeling", "auto": "cover", "tag": false},
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.8},
+		{"t": 1.0, "start": true},
+		{"t": 6.0, "gift": "sow_ridge", "cells": [[10, 8], [10, 9], [10, 10], [10, 11]]},
+		{"t": 6.0, "camera": "push", "at": [10, 9], "zoom": 1.2, "duration": 3.0},
+		{"t": 12.0, "camera": "follow", "target": "furthest", "zoom": 1.1}
+	]
+}

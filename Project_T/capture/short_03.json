@@ -1,0 +1,26 @@
+{
+	"title": "The first boss.",
+	"note": "DRAFT: the Hollow Stag (old_stag) at drift 25, a maze with no long straights; tune so it's dispelled near the Heartwood.",
+	"seed": 4242,
+	"size": [1080, 1920],
+	"drift": 25,
+	"dew": 1400,
+	"hud": "none",
+	"length": 30.0,
+	"music": ["base", "dread1", "boss_stag"],
+	"captions": [
+		[0.0, 2.0, "The first boss: the Hollow Stag."],
+		[2.0, 10.0, "On a straight line, it charges."],
+		[10.0, 22.0, "So bend the maze. Every corner breaks the charge."],
+		[22.0, 30.0, "2% left at the door. Too close."]
+	],
+	"timeline": [
+		{"t": 0.0, "plant_each": 0.05, "count": 20, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 6, "plant": "sporeling", "auto": "cover", "rank": 2, "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 3, "plant": "dewdrop", "auto": "cover", "rank": 2, "tag": false},
+		{"t": 0.2, "dossier": true, "drift": 25},
+		{"t": 3.5, "dossier": false},
+		{"t": 4.0, "start": true},
+		{"t": 4.0, "camera": "follow", "target": "boss", "zoom": 1.4}
+	]
+}
