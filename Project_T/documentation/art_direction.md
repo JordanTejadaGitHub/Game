@@ -196,8 +196,15 @@ lost 0–20). They're wired into the map (`EnvironmentTiles`), with the lighting
     nightmare or the cursor, so the maze stays readable.
   - **New forms follow the same test**, Ascended included.
 - **Bigger Wardens** (user, 2026-10-04: *"increase the size of the warden, they should feel more
-  huge, their size can splurge onto other cells above but still only consume a cell"*). **Proof
-  first:** the user approves a preview before the whole roster changes.
+  huge, their size can splurge onto other cells above but still only consume a cell"*). **Approved
+  2026-10-04** after Tower Assets' preview (1.4× body on the unchanged 64 px waystone, frame 80×90,
+  every outline redrawn 1 px): *"this is the feel I wanted."* Conditions from the user:
+  - **The art must be complete:** no chopped bases or faces at the frame edges (the preview clipped
+    some plinths and Dewdrop's head).
+  - **Sprout keeps today's size.** It's the seed every family grows from, so the size jump is part
+    of growing.
+  - **Nightmares must look like they walk on the path**, not float over it or beside it, next to
+    the bigger Wardens.
   - **The footprint stays one cell** (2×2 half cells); only the art grows. Gameplay, pathing and
     the half-cell grid don't change.
   - **Redraw natively at the same pixel density** (still "detailed 64": one art pixel = one pixel at
