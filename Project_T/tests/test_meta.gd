@@ -517,9 +517,10 @@ func _run() -> void:
 	HeartwoodMemory.save_data(real)
 	var real_text := FileAccess.get_file_as_string(PROFILE_PATH)
 	ProjectSettings.set_setting("game/demo", true)
+	DevGrove.file_path = "user://test_meta_dev_%d.json" % OS.get_process_id()
 	DevGrove.force = &"full"
 	DevGrove.apply()
-	_check(DevGrove.is_active() and HeartwoodMemory.file_path == GrovePresets.file_path and not ResultsScreen.is_demo() and MetaRun.is_dev_run(),
+	_check(DevGrove.is_active() and HeartwoodMemory.file_path == DevGrove.file_path and DevGrove.file_path != GrovePresets.file_path and not ResultsScreen.is_demo() and MetaRun.is_dev_run(),
 		"Dev Grove Full: the dev profile, the full game, a dev run")
 	_check(is_equal_approx(float(HeartwoodMemory.get_settings().ui_scale), 1.3), "settings still come from the real profile")
 	_check(DevGrove.tag() == "Dev Grove: Full", "the tag names the level")
@@ -552,8 +553,22 @@ func _run() -> void:
 	_check(not DevGrove.is_active() and HeartwoodMemory.file_path == PROFILE_PATH and ResultsScreen.demo_override == -1 and RunSaver.file_path == RunSaver.PATH,
 		"Dev Grove off: back to the real profile and run save")
 	_check(FileAccess.get_file_as_string(PROFILE_PATH) == real_text, "the real profile was never written")
+	# …and everything reads the real profile again: a run (in the full game) and the Grove screen.
+	ProjectSettings.set_setting("game/demo", false)
+	main = await _new_run()
+	_check(not MetaRun.is_dev_run() and (main.get_node("%FamilyPickScreen").families as Array).size() == 4,
+		"after Dev Grove, a run has only the real profile's families (%d)" % (main.get_node("%FamilyPickScreen").families as Array).size())
+	main.queue_free()
+	await process_frame
+	grove_screen = load("res://scenes/grove.tscn").instantiate()
+	root.add_child(grove_screen)
+	await process_frame
+	_check(grove_screen.tree_view.state_of(_unlock(grove, "pebbling")) != GroveTreeView.State.OWNED and int(HeartwoodMemory.load_data().seeds) == 7,
+		"after Dev Grove, the Grove shows the real profile")
+	grove_screen.queue_free()
+	await process_frame
 	DevGrove.force = &""
-	_delete(GrovePresets.file_path)
+	_delete(DevGrove.file_path)
 	ProjectSettings.set_setting("game/demo", false)
 
 	# --- v3 profiles: the removed slot_2 / slot_3 nodes refund their Seeds (slots 1–3 are free now) ---
