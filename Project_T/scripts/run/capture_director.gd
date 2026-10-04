@@ -343,8 +343,21 @@ func _run(event: Dictionary) -> void:
 	if event.has("spawn"):
 		var data := load("res://resource/enemy/%s.tres" % event.spawn) as EnemyData
 		var director: DriftDirector = _main.get_node("%DriftDirector")
+		var map = _main.get_node("%MapGenerator")
+		var route: PackedVector2Array = map.get_path_from(map.startPath)
 		for i in int(event.get("count", 1)):
-			_main.get_node("%EnemyContainer").spawn_enemy(data, director.get_health_multiplier(data, maxi(director.drifts_started, 1)), {}, bool(event.get("elite", false)))
+			var enemy: Node2D = _main.get_node("%EnemyContainer").spawn_enemy(data, director.get_health_multiplier(data, maxi(director.drifts_started, 1)),
+				{}, bool(event.get("elite", false)))
+			# Mid-route ("progress" 0..1 along the live route, or "cells_left" from the Heartwood), as if it walked
+			# in; several stand "spread" cells apart (default 1), the first furthest along.
+			if enemy == null or route.size() < 2 or not (event.has("progress") or event.has("cells_left")):
+				continue
+			var at := int(float(event.get("progress", 0.0)) * (route.size() - 1))
+			if event.has("cells_left"):
+				at = route.size() - 1 - int(float(event.cells_left) * 2.0)  # Route points step half a cell
+			at = clampi(at - int(float(event.get("spread", 1.0)) * 2.0 * i), 0, route.size() - 2)
+			enemy.position = map.MAP_GRID.calculate_map_position(route[at])
+			enemy.set_path(route.slice(at))
 	if event.has("leaves"):
 		run_state.leaves = int(event.leaves)
 		run_state.leaves_changed.emit(run_state.leaves, run_state.max_leaves)
@@ -494,6 +507,14 @@ func best_spot(data: TowerData, how: String) -> Vector2:
 					# whole-cell walls hide the stagger that half cells allow ("stagger": 0 turns it off)
 					var staggered := int(origin.x) % 2 != 0 or int(origin.y) % 2 != 0
 					score = new_length - length + randf() * 0.01 + (float(scene.get("stagger", 0.5)) if staggered else 0.0)
+					# …and toward spots touching a wall already there, so Wardens join into walls rather than dots
+					# ("join": the bonus per touching half cell, default 0 (off: it costs route length), up to 4)
+					var touching := 0
+					for rx in range(-1, 3):
+						for ry in range(-1, 3):
+							if (rx < 0 or rx > 1 or ry < 0 or ry > 1) and map.path_layer.is_half_blocked(origin + Vector2(rx, ry)):
+								touching += 1
+					score += float(scene.get("join", 0.0)) * mini(touching, 4)
 				else:
 					if new_length < length:
 						continue
