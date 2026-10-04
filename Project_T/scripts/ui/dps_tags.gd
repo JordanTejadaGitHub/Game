@@ -9,7 +9,7 @@ class_name DpsTags
 
 const SETTING := "dps_tags"
 const REFRESH := 0.5
-const OFFSET := Vector2(0, 40)  # Under the Warden
+const FOOT_GAP := 2.0  # Screen px between the footprint and the tag
 const FONT_SIZE := 15
 
 var drift_director: DriftDirector
@@ -116,7 +116,10 @@ func _draw() -> void:
 		var r: Dictionary = _rows[tower.get_instance_id()]
 		var text := tag_text(r, full_all or focus.has(tower))
 		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
-		var anchor: Vector2 = tower.global_position + OFFSET
+		# The tag's top sits just under the footprint's bottom edge (user: "4 DPS" over a Sprout's plinth): the baseline
+		# is a text height lower, at screen size. Bigger footprints (2×2) reach further down.
+		var bottom: float = tower.global_position.y + 32.0 * maxi(int(tower.tower_data.footprint), 1)
+		var anchor := Vector2(tower.global_position.x, bottom + (FOOT_GAP + FONT_SIZE) * s)
 		# Its rect in world units (drawn at screen size: the text scale shrinks it as the camera zooms in)
 		var world_rect := Rect2(anchor + Vector2(-width / 2.0 - 4.0, -FONT_SIZE) * s, Vector2(width + 8.0, FONT_SIZE + 5.0) * s)
 		if drawn.any(func(d: Array) -> bool: return (d[1] as Rect2).intersects(world_rect)):

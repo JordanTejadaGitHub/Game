@@ -108,6 +108,9 @@ func _ready() -> void:
 	# accessibility toggles): Reduced thins particles, bursts, damage numbers, callouts, Kinship pulses and off-screen idle
 	# animation. Fx can also step down by itself when frames run long (Tower Code).
 	_choice(display, "Effects quality", EFFECTS_SETTING, ["Full", "Reduced"], 0)
+	# Placement grid in build mode (Tower Code 0bc2b870, half_cells.md "Placement feel"): whole-cell lines over buildable
+	# ground, half lines near the ghost.
+	_choice(display, "Placement grid", "placement_grid", ["On", "Near cursor", "Off"], 0)
 	_keepsake_toggles(display)
 
 	var gameplay := _tab("Gameplay")
