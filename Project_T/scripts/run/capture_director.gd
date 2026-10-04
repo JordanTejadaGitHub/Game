@@ -32,6 +32,7 @@ class_name CaptureDirector
 #   {"camera": "glide", "duration": 8.0, "zoom": 1.4}          along the route, start → Heartwood
 #   {"camera": "push", "at": …, "zoom": 2.0, "duration": 4.0}  a slow push-in (or out) onto a spot
 #   {"camera": "follow", "target": "boss" | "furthest" | "<enemy id>", "zoom": 1.6}
+# Dry runs: `--map` after the scene flag (or "map": true) prints the board in half cells after setup and at the end.
 
 enum Hud { FULL, CLEAN, NONE }
 
@@ -235,6 +236,8 @@ func _setup() -> void:
 				clip_time, enemy.get_remaining_distance() / 64.0]))
 	spawner.enemy_reached_goal.connect(func(enemy: Node2D) -> void:
 		print("Capture: %s reached the Heartwood at %.1f s" % [enemy.enemy_data.resource_path.get_file().get_basename() if enemy.enemy_data else "?", clip_time]))
+	if _wants_map():
+		print_map("after setup")
 	_started = true
 	print("Capture: playing %s (%.0f s), bosses %s" % [scene.get("title", ""), float(scene.get("length", 20.0)), BossPool.ids(director.bosses)])
 
@@ -260,6 +263,8 @@ func _process(delta: float) -> void:
 	if clip_time >= float(scene.get("length", 20.0)):
 		set_process(false)
 		var map = _main.get_node("%MapGenerator")
+		if _wants_map():
+			print_map("at the end")
 		print("Capture: done, %d Wardens, route %d cells" % [_main.get_node("%TowerContainer").get_child_count(),
 			map.route_length(map.get_path_from(map.startPath))])
 		get_tree().quit()
@@ -648,9 +653,7 @@ func _pick(target: String) -> Node2D:
 # "slow_chain": {"at": 8, "speed": 0.3, "hold": 2.0}: when a Reaction chain reaches `at`, the game slows for `hold`
 # real seconds (and the camera looks there unless it follows a nightmare).
 func _update_slow_motion(real_delta: float) -> void:
-	if not scene.has("slow_chain"):
-		return
-	if _tracker == null:
+	if _tracker == null:  # Hooked in every scene: dry runs log chains even without slow motion
 		_tracker = get_tree().get_first_node_in_group(&"reaction_tracker")
 		if _tracker != null:
 			_tracker.chain_reached.connect(_on_chain)
@@ -660,8 +663,10 @@ func _update_slow_motion(real_delta: float) -> void:
 			_main.get_node("%GameSpeed").set_speed(_speed_before)
 
 func _on_chain(count: int, where: Vector2, _towers_in: Array) -> void:
-	var slow: Dictionary = scene.slow_chain
 	print("Capture: chain ×%d at %.1f s" % [count, clip_time])
+	if not scene.has("slow_chain"):
+		return
+	var slow: Dictionary = scene.slow_chain
 	if count < int(slow.get("at", 8)) or _slow_left > 0.0:
 		return
 	_speed_before = _main.get_node("%GameSpeed").speed
@@ -705,3 +710,50 @@ func _draw_tags() -> void:
 		var pad := 8.0 / zoom
 		_tag_layer.draw_rect(Rect2(pos + Vector2(-pad, -size * 0.85 - pad * 0.5), Vector2(width + pad * 2.0, size + pad)), Color(Palette.VOID, 0.7 * fade))
 		_tag_layer.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(Palette.GOLD, fade))
+
+# --- Map dump (dry runs: -- --capture=… --map, or "map": true in the scene) -----------------------------
+
+func _wants_map() -> bool:
+	return bool(scene.get("map", false)) or OS.get_cmdline_user_args().has("--map")
+
+# The board in half cells (what "spots" take: a Warden's 2×2 footprint has its top-left half there):
+# # rim, T obstacle, S start, H Heartwood, g glade (unbuildable), W Warden, * the route (its centre line), . free.
+func print_map(when: String) -> void:
+	var map = _main.get_node("%MapGenerator")
+	var halves: Vector2i = Vector2i(map.MAP_GRID.size) * 2
+	var route := {}
+	for point in map.get_path_from(map.startPath):
+		for h in map.body_halves(point):
+			route[h] = true
+	var glade: Array = Array(map.get_glade_cells()) if map.has_method("get_glade_cells") else []
+	var lines: Array[String] = ["Capture: map %s (half cells %d×%d; x across, y down)" % [when, halves.x, halves.y]]
+	var tens := "    "
+	var ones := "    "
+	for x in halves.x:
+		tens += str(x / 10) if x % 10 == 0 else " "
+		ones += str(x % 10)
+	lines.append(tens)
+	lines.append(ones)
+	for y in halves.y:
+		var row := "%3d " % y
+		for x in halves.x:
+			var h := Vector2(x, y)
+			var cell := (h / 2.0).floor()
+			var mark := "."
+			if cell == map.startPath:
+				mark = "S"
+			elif cell == map.endPath:
+				mark = "H"
+			elif map.obstacles.has(cell):
+				mark = "T"
+			elif cell.x <= 0 or cell.y <= 0 or cell.x >= map.MAP_GRID.size.x - 1 or cell.y >= map.MAP_GRID.size.y - 1:
+				mark = "#"
+			elif map.path_layer.is_half_blocked(h):
+				mark = "W"
+			elif route.has(h):
+				mark = "*"
+			elif glade.has(cell):
+				mark = "g"
+			row += mark
+		lines.append(row)
+	print("\n".join(lines))
