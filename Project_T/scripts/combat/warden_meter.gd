@@ -191,7 +191,7 @@ func get_needed_dps(number: int) -> float:
 		span = maxf(span, entry[0])
 	speed /= schedule.size()
 	var map = get_parent().get_node_or_null("%MapGenerator")
-	var tiles: int = map.get_path_from(map.startPath).size() if map else 30
+	var tiles: int = map.route_length(map.get_path_from(map.startPath)) if map else 30  # In cells (half-step routes)
 	var walk := tiles * Tower.MAP_GRID.cell_size.x / maxf(speed, 1.0)
 	return health / maxf(span + walk, 1.0)
 

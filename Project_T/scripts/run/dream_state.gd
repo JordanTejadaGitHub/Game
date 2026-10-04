@@ -3437,19 +3437,28 @@ var _walls_tiles_cache := [-1, 0]  # [board_version, tiles]
 func walls_added_tiles() -> int:
 	if _walls_tiles_cache[0] == board_version:
 		return _walls_tiles_cache[1]
-	var cells: Array[Vector2] = []
-	for tower in _towers():
-		if tower.tower_data.line == "wall":
-			cells.append(tower.cell)
+	var walls: Array = _towers().filter(func(t) -> bool: return t.tower_data.line == "wall")
 	var tiles := 0
-	if not cells.is_empty():
+	if not walls.is_empty():
 		var layer = map_generator.path_layer
-		for cell in cells:
-			layer.set_cell_blocked(cell, false)
-		var without: int = layer.find_path_from(map_generator.startPath).size()
-		for cell in cells:
-			layer.set_cell_blocked(cell, true)
-		tiles = maxi(path_length - without, 0)
+		if layer.has_method("set_half_blocked"):
+			# Half-cell experiment (Tower Code): unblock each wall's halves; lengths in full cells.
+			var now: int = map_generator.route_length(layer.find_path_from(map_generator.startPath))
+			for wall in walls:
+				for h in wall.get_halves():
+					layer.set_half_blocked(h, false)
+			var without_halves: int = map_generator.route_length(layer.find_path_from(map_generator.startPath))
+			for wall in walls:
+				for h in wall.get_halves():
+					layer.set_half_blocked(h, true)
+			tiles = maxi(now - without_halves, 0)
+		else:
+			for wall in walls:
+				layer.set_cell_blocked(wall.cell, false)
+			var without: int = layer.find_path_from(map_generator.startPath).size()
+			for wall in walls:
+				layer.set_cell_blocked(wall.cell, true)
+			tiles = maxi(path_length - without, 0)
 	_walls_tiles_cache = [board_version, tiles]
 	return tiles
 

@@ -406,8 +406,11 @@ func _tower_on(cell: Vector2) -> Tower:
 func _trample_tower(tower: Tower, cell: Vector2, by: Node2D) -> void:
 	tower_container.remove_child(tower)
 	tower.queue_free()
-	for c in tower.get_cells():
-		map_generator.unblock_cell(c)
+	if map_generator.has_method("unblock_halves"):
+		map_generator.unblock_halves(tower.get_halves())  # Half-cell experiment (Tower Code): a Warden at a half offset
+	else:
+		for c in tower.get_cells():
+			map_generator.unblock_cell(c)
 	wall_trampled.emit(cell, by)
 
 # The maze changed: every enemy re-routes from the cell it's currently walking toward. One whose next

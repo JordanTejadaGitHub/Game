@@ -111,7 +111,7 @@ func save_now() -> bool:
 	var towers: Array = []
 	for tower in tower_container.get_children():
 		if tower is Tower and not tower.is_queued_for_deletion():
-			towers.append({"cell": [tower.cell.x, tower.cell.y], "data": tower.tower_data.resource_path,
+			towers.append({"cell": [tower.cell.x, tower.cell.y], "half": [tower.half_cell.x, tower.half_cell.y], "data": tower.tower_data.resource_path,
 				"invested": tower.invested_dew, "rest_dew": tower.rest_dew, "rank": tower.rank, "focus": tower.focus, "rank_choices": Array(tower.rank_choices),
 				"target_mode": tower.target_mode, "target_chosen": tower.target_chosen, "kin_branch": tower.kin_branch, "size": tower.get_footprint(),
 				"legacy": tower.legacy_data.resource_path if tower.legacy_data else "",  # An Ascended form's final
@@ -217,10 +217,16 @@ func _restore(data: Dictionary) -> void:
 		var size := int(saved.get("size", 1 if tower.tower_data.tier >= DreamState.ASCENDED_TIER else 0))
 		if size > 0 and size != tower.tower_data.footprint:
 			tower.footprint_size = size
-		tower.position = Tower.footprint_centre(tower.cell, tower.get_footprint())
+		var half: Array = saved.get("half", [-1, -1])  # Half-cell experiment: its half-cell origin, if it has one
+		tower.half_cell = Vector2(half[0], half[1])
+		tower.position = Tower.half_centre(tower.half_cell) if tower.half_cell.x >= 0 else Tower.footprint_centre(tower.cell, tower.get_footprint())
 		tower_container.add_child(tower)
-		for c in tower.get_cells():  # The Sapling covers 2×2
-			map_generator.path_layer.set_cell_blocked(c, true)
+		if map_generator.path_layer.has_method("set_half_blocked"):
+			for h in tower.get_halves():  # Half-cell experiment: its 2×2 halves (the Sapling: its cells' halves)
+				map_generator.path_layer.set_half_blocked(h, true)
+		else:
+			for c in tower.get_cells():  # The Sapling covers 2×2
+				map_generator.path_layer.set_cell_blocked(c, true)
 		if tower.tower_data.get_id() == TowerPlacer.SAPLING_ID:
 			tower_placer.sapling_taken = true
 	map_generator.path_layer.draw()
