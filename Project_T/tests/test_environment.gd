@@ -60,7 +60,7 @@ func _init() -> void:
 	_check(path.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.PATH_RIM
 		and ground.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.ISLAND_EDGE,
 		"the start draws rim-edge path over the rim, no grass")
-	_check(map.path_layer.current_path.has(map.endPath)  # Half cells: the route is a soft fill, not tiles
+	_check(map.halves_of(map.endPath * 2).has(Vector2(FindPath.point_to_node(map.path_layer.current_path[-1])))  # Ends on a Heartwood half
 		and ground.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.GRASS, "the Heartwood stands inland, on grass")
 	var out_bit: int = {Vector2i.UP: 1, Vector2i.RIGHT: 2, Vector2i.DOWN: 4, Vector2i.LEFT: 8}[out]
 	_check(start_mask & out_bit, "the start's path tile runs off its edge (mask %d)" % start_mask)
@@ -73,7 +73,7 @@ func _init() -> void:
 	# Clearing leaves the obstacle's mark (on a cell the route doesn't then take).
 	for cell in map.obstacles.keys():
 		var data: ObstacleData = map.obstacles[cell]
-		if map.get_path_if_cleared(cell).has(cell):
+		if Array(map.get_path_if_cleared(cell)).any(func(p: Vector2) -> bool: return Vector2(FindPath.point_to_node(p) / 2) == cell):
 			continue
 		if map.clear_obstacle(cell):
 			_check(env.get_cell_source_id(Vector2i(cell)) == data.cleared_source_id,
@@ -82,7 +82,7 @@ func _init() -> void:
 
 	# The path wears away decorations it's drawn over, and the cell stays bare if it moves away.
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
-	var worn := Vector2i(route[route.size() / 2])
+	var worn := FindPath.point_to_node(route[route.size() / 2]) / 2  # Half cells: the point's whole cell
 	env.set_cell(worn, EnvironmentTiles.GROUND_DETAILS, Vector2i.ZERO)
 	path.call("draw")  # PathGenerator.draw(), not CanvasItem's draw signal
 	_check(env.get_cell_source_id(worn) == -1, "the path wears away a ground detail under it")

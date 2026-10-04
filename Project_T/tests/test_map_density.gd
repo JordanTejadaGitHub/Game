@@ -143,7 +143,8 @@ func _feature_case(feature: int) -> void:
 			var close := false
 			for cell in cells:
 				for r in route:
-					if maxf(absf(cell.x - r.x), absf(cell.y - r.y)) <= 2:
+					var rc := Vector2(FindPath.point_to_node(r) / 2)  # The route point's whole cell
+					if maxf(absf(cell.x - rc.x), absf(cell.y - rc.y)) <= 2:
 						close = true
 			if close:
 				near_route += 1

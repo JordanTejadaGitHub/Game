@@ -52,10 +52,8 @@ func draw():
 	# Half cells (documentation/half_cells.md): route points step by half a cell, so the path is drawn on the
 	# dual grid (path_dual.png, _draw_dual), not one tile per cell. The start still runs off the rim onto the bridge.
 	for cell in current_path:
-		if board != null:
-			for x in [floorf(cell.x), ceilf(cell.x)]:  # The full cells this body overlaps
-				for y in [floorf(cell.y), ceilf(cell.y)]:
-					board.environment_object_layer.wear_away(Vector2i(x, y))  # The path wore the debris away
+		if board != null:  # The path wore the debris away on the whole cell of this point's half
+			board.environment_object_layer.wear_away(FindPath.point_to_node(cell) / 2)
 		current_path_curve.add_point(grid.calculate_map_position(cell))
 	if not current_path.is_empty():
 		set_cell(cell_start_path, EnvironmentTiles.PATH_RIM, EnvironmentTiles.path_tile(_edge_mask(cell_start_path)))
@@ -96,7 +94,10 @@ func draw_unit_path(node: Node2D) -> bool:
 func hide_path():
 	path_drawn.visible = false
 	
+# A whole cell is blocked if any of its 4 half cells is; a route point (x.25 / x.75) if its half is.
 func is_cell_blocked(cell: Vector2) -> bool:
+	if FindPath.is_whole_cell(cell):
+		return FindPath.halves_of_cell(cell).any(func(h: Vector2) -> bool: return _pathGenerator.is_half_blocked(h))
 	return not _pathGenerator.is_walkable(cell)
 
 func set_cell_blocked(cell: Vector2, blocked: bool) -> void:
@@ -141,8 +142,8 @@ func stop() -> void:
 
 # --- Half cells (documentation/half_cells.md) ---------------------------------------------------------
 
-# The path on the dual grid (environment_assets.md "Half-cell grid: environment plan"): the path mask is every
-# half cell a nightmare's body covers along the route. A second layer of 32 px tiles sits 16 px up and left,
+# The path on the dual grid (environment_assets.md "Half-cell grid: environment plan"): the path mask is the
+# half cells the route runs through (a ribbon one half wide). A second layer of 32 px tiles sits 16 px up and left,
 # so each display tile's corners are 4 half cells' centres; it picks path_dual.png's column by which corners
 # are path (TL 1, TR 2, BR 4, BL 8), and a full tile (15) one of 4 variants by position. Drawn behind this
 # layer, so the start's path.png rim tile (the rope-bridge join) stays on top.
@@ -180,12 +181,11 @@ func set_act(act: int) -> void:
 	if dual_layer != null:
 		(dual_layer.tile_set.get_source(0) as TileSetAtlasSource).texture = load(EnvironmentTiles.sheet_path(DUAL_SHEET, act))
 
-# Every half cell under a nightmare's body along the route: {Vector2i: true}.
+# Every half cell the route runs through (one per point): {Vector2i: true}.
 func path_halves() -> Dictionary:
 	var halves := {}
 	for point in current_path:
-		for h in FindPath.halves_of_cell(point):
-			halves[Vector2i(h)] = true
+		halves[FindPath.point_to_node(point)] = true
 	return halves
 
 # path_dual.png's column for the display tile `at`: its corners are half cells at-1 .. at.
@@ -234,6 +234,10 @@ var _route_index := {}  # Route point -> its index in current_path (built by dra
 # blocked or opened since it was drawn: the route's own tail (a shortest route's tail is a shortest
 # route, and the one sticky re-routes keep). Empty otherwise (search instead).
 func route_tail(point: Vector2) -> PackedVector2Array:
-	if _pathGenerator == null or _route_version != _pathGenerator.version or not _route_index.has(point):
+	if _pathGenerator == null or _route_version != _pathGenerator.version:
+		return PackedVector2Array()
+	if point == cell_start_path:  # The start as a whole cell: the whole route
+		return current_path.duplicate()
+	if not _route_index.has(point):
 		return PackedVector2Array()
 	return current_path.slice(_route_index[point])

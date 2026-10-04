@@ -1,6 +1,6 @@
 extends SceneTree
 # Half-cell pathing (documentation/half_cells.md): 32 px half cells, nightmares as
-# 2×2-half bodies (the corridor rule: a 1-half gap never carries the route), footprints at half offsets,
+# fitting through one half cell (half_cells.md 04c10c33), footprints at half offsets,
 # the full-cell API still working, a nightmare walking a half-step route, and the pathfinding cost.
 # Run:  Godot --headless --path . --script res://tests/test_half_cells.gd --fixed-fps 60
 
@@ -26,7 +26,10 @@ func _run() -> void:
 
 	# The route: from the start to the Heartwood in half steps, within the usual length band.
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
-	_check(not route.is_empty() and route[0] == map.startPath and route[-1] == map.endPath, "a route from the start to the Heartwood")
+	_check(not route.is_empty() and map.halves_of(map.startPath * 2).has(Vector2(FindPath.point_to_node(route[0])))
+		and map.halves_of(map.endPath * 2).has(Vector2(FindPath.point_to_node(route[-1]))), "a route from a start half to a Heartwood half")
+	_check(Array(route).all(func(p: Vector2) -> bool: return not FindPath.is_whole_cell(p) and fposmod(p.x * 4.0, 2.0) == 1.0),
+		"route points are half centres (x.25 / x.75)")
 	var steps_ok := true
 	for i in range(1, route.size()):
 		if absf(route[i].x - route[i - 1].x) + absf(route[i].y - route[i - 1].y) != 0.5:
@@ -109,7 +112,7 @@ func _run() -> void:
 	print("test_half_cells: %d failure(s)" % failures)
 	quit(failures)
 
-# On a bare 6×4 grid: a wall of half cells with a 1-half gap stops a body; a 2-half gap lets it pass.
+# On a bare 6×4 grid: a wall of half cells with a 1-half gap lets a nightmare through; a full wall doesn't.
 func _corridor_rule() -> void:
 	var grid := Grid.new()
 	grid.size = Vector2(6, 4)
@@ -125,14 +128,15 @@ func _corridor_rule() -> void:
 	for y in 8:  # A wall down half column 5, a gap at half row 3 only
 		if y != 3:
 			finder.set_half_blocked(Vector2(5, y), true)
-	_check(finder.calculate_point_path(start, end).is_empty() and finder.connects_thin(start, end),
-		"a 1-half gap: too narrow for a body (but open for a single half)")
-	finder.set_half_blocked(Vector2(5, 4), false)  # Widen the gap to 2 halves
 	var path := finder.calculate_point_path(start, end)
-	_check(not path.is_empty(), "a 2-half gap: the body passes")
-	_check(path.has(Vector2(2.5, 1.5)), "through the gap at half row 3-4 (%s)" % [path])
+	_check(not path.is_empty(), "a 1-half gap: nightmares fit through")
+	_check(path.has(FindPath.node_to_point(Vector2i(5, 3))), "through the gap at half (5, 3) (%s)" % [path])
+	finder.set_half_blocked(Vector2(5, 3), true)  # Close it
+	_check(finder.calculate_point_path(start, end).is_empty(), "a full wall: no way through")
+	_check(is_equal_approx(Tower.MAP_GRID.calculate_map_position(FindPath.node_to_point(Vector2i(7, 0))).x, 7 * 32 + 16),
+		"a route point's pixel is its half's centre")
 
-# The dual grid's corner masks (TL 1, TR 2, BR 4, BL 8) for a few route shapes, by body positions.
+# The dual grid's corner masks (TL 1, TR 2, BR 4, BL 8) on a few sets of path halves (2 wide here).
 func _dual_masks() -> void:
 	var halves_of := func(points: Array) -> Dictionary:
 		var halves := {}
