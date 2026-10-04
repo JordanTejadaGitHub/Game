@@ -108,6 +108,7 @@ func _ready() -> void:
 	# accessibility toggles): Reduced thins particles, bursts, damage numbers, callouts, Kinship pulses and off-screen idle
 	# animation. Fx can also step down by itself when frames run long (Tower Code).
 	_choice(display, "Effects quality", EFFECTS_SETTING, ["Full", "Reduced"], 0)
+	_keepsake_toggles(display)
 
 	var gameplay := _tab("Gameplay")
 	# Hints (user, 2026-10-01: "update it to hints"; were "Heartwood whispers"): the Heartwood's lines the first time
@@ -398,6 +399,41 @@ func _slider(box: VBoxContainer, text: String, key: String, min_value: float = 0
 	row.add_child(slider)
 	box.add_child(row)
 	_register(key, max_value, func() -> void: slider.set_value_no_signal(float(_value(key))))
+
+# Keepsakes (meta_design.md, MetaRun.KEEPSAKES): one switch per OWNED keepsake; the setting lists the hidden ones.
+# Nothing shows until one is planted in the Memory Grove.
+func _keepsake_toggles(box: VBoxContainer) -> void:
+	var owned: Array = Array(MetaRun.KEEPSAKES).filter(func(id: String) -> bool: return MetaRun.keepsake_owned(id))
+	if owned.is_empty():
+		return
+	var key := MetaRun.KEEPSAKES_HIDDEN_SETTING
+	var heading_row := HBoxContainer.new()
+	_dots[key] = _dot(heading_row)
+	var heading := Label.new()
+	heading.text = "Keepsakes"
+	UiStyle.caps(heading, 15)
+	heading_row.add_child(heading)
+	box.add_child(heading_row)
+	var checks := {}
+	for id in owned:
+		var row := HBoxContainer.new()
+		var check := CheckButton.new()
+		var unlock := HeartwoodMemory.get_unlock(id)
+		check.text = unlock.display_name if unlock != null else String(id).capitalize()
+		check.tooltip_text = unlock.description if unlock != null else ""
+		check.focus_mode = Control.FOCUS_NONE
+		check.toggled.connect(func(on: bool) -> void:
+			var hidden: Array = (_value(key) as Array).duplicate()
+			hidden.erase(id)
+			if not on:
+				hidden.append(id)
+			_set_value(key, hidden))
+		row.add_child(check)
+		box.add_child(row)
+		checks[id] = check
+	_register(key, [], func() -> void:
+		for id in checks:
+			checks[id].set_pressed_no_signal(not (_value(key) as Array).has(id)))
 
 func _toggle(box: VBoxContainer, text: String, key: String, default: bool = false, tip: String = "") -> CheckButton:
 	var row := HBoxContainer.new()
