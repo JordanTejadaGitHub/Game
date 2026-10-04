@@ -242,6 +242,34 @@ Keep the size, palette and silhouette; add the quirks and fix anything that read
 3. **The Heartwood**, all four Grove stages and the damage rows.
 4. **The title Warden** (the relit stone Warden, `c5468b4d`).
 
+### AI-look audit (2026-10-04)
+
+Checked against the do / don't table above. Every asset area was measured: share of noisy isolated
+pixels ("grain"), partial-alpha levels, light direction, mirror symmetry, and the palette. The
+most-seen sprites were then checked by eye. **What passed everywhere:** the palette (0 files off),
+light from the upper left (lit the wrong way only in a few effects and Grove icons), no symmetric
+"generated" poses on sprites, and no blur or smoothing inside sprites. **The main tell is uniform
+grain and checker dither from the detail pass**, plus one design-level item.
+
+Ranked by how often players see it:
+
+| # | Where | What fails | Owner |
+|---|---|---|---|
+| 1 | **Ground tiles** (grass, path), every act | Grain soup: random speckle over the whole grass tile; the path is speckled too, and its edge is a soft dithered blob instead of a crisp, wobbly bank. | Environment Assets |
+| 2 | **Wardens, idle and attack** | Checker dither across large flat body areas and plinth tops (screen-door look); stray colour patches (e.g. a blue patch on the Sporeling's right side); attack sheets are the grainiest of all (grain 0.19). Beacon and Thunderhead have big glow halos all the time; glow should mark the attack. | Tower Assets |
+| 3 | **Design-level: the shared golem body** | The base Wardens and early branches are the same seated body, recoloured, with a hat. That's the strongest "template" tell. Some of it is the identity from the user's mock, so it needs **the user's decision** (more poses and body types per family, or keep it). | the user, then Tower Assets |
+| 4 | **The in-run Heartwood** | Checker dither over the whole canopy and a dithered ground skirt. | Environment Assets |
+| 5 | **The title Warden** (seen on every launch) | Screen-door dither on the dark body, camouflage-like moss blotches, scattered white dots, a dithered fuzzy base. | Title Screen |
+| 6 | **The Memory Grove canopy** | Halftone dither over large areas; the same leaf clump stamped over and over; evenly spaced, identical hanging roots and vines. | Meta Game Asset |
+| 7 | **Nightmares** (mostly good) | The Weeper's violet motes are too dense and read as blotches. The Lurker and Whisper Swarm are noisy by design (a swarm); keep that. | Enemy Assets |
+| 8 | **Effects** (mostly good) | A few have many soft alpha levels (surge, carried storm, route mist end), closer to a blur than to hard steps. A few are lit from the lower right. Burst symmetry is fine for effects. | Tower Assets, Environment Assets (route mist) |
+| — | **UI and emblems, obstacles, the Hollow Stag** | Pass: clean shapes, consistent light. | — |
+
+**Root cause and first fix:** the detail pass (`tools/art/detail_pass.gd`, Theme Code) adds grain
+and checker seams evenly. It gets a calmer mode first: grain only where materials change, no
+checker seams across large flat areas, and fewer, harder alpha steps. Then each owner regenerates
+and hand-fixes its items above, re-checks with the audit, and republishes its gallery.
+
 ### Brief for a human artist: Steam capsule and logo
 
 Showcase art, exempt from the palette, but it must feel like the game.
