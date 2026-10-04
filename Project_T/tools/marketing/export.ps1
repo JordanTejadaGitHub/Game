@@ -23,13 +23,54 @@ $marketing = Join-Path (Resolve-Path (Join-Path $here "..\..\..")).Path "marketi
 if ($Raw -eq "") { $Raw = Join-Path $marketing "raw" }
 if ($Final -eq "") { $Final = Join-Path $marketing "shorts" }
 $scene = Get-Content (Join-Path $Project "capture\$Name.json") -Raw | ConvertFrom-Json
+$inv = [Globalization.CultureInfo]::InvariantCulture
+
 $movie = Join-Path $Raw "$Name.avi"
+# A cut list ("cuts": [{"clip": "<capture name>", "from": s, "to": s}, …], optional "crossfade_frames"): the clips'
+# raw captures (same size) are trimmed and joined into one timeline first; captions, music and the end card then run
+# over the whole of it (caption times are on the joined timeline).
+if ($null -ne $scene.cuts) {
+	$parts = @($scene.cuts)
+	$fade = 0.0; if ($null -ne $scene.crossfade_frames) { $fade = [double]$scene.crossfade_frames / 60.0 }
+	$cutArgs = @("-v", "error", "-y")
+	$graph = ""; $lengths = @()
+	for ($i = 0; $i -lt $parts.Count; $i++) {
+		$src = Join-Path $Raw "$($parts[$i].clip).avi"
+		if (-not (Test-Path $src)) { throw "No capture $src for cut $i (run capture.ps1 $($parts[$i].clip) first)" }
+		$cutArgs += @("-i", $src)
+		$from = [double]$parts[$i].from; $to = [double]$parts[$i].to
+		$lengths += ($to - $from)
+		$graph += "[${i}:v]trim=start=$($from.ToString($inv)):end=$($to.ToString($inv)),setpts=PTS-STARTPTS,fps=60,format=yuv420p[v$i];" +
+			"[${i}:a]atrim=start=$($from.ToString($inv)):end=$($to.ToString($inv)),asetpts=PTS-STARTPTS,aresample=48000[a$i];"
+	}
+	if ($fade -le 0.0 -or $parts.Count -lt 2) {
+		for ($i = 0; $i -lt $parts.Count; $i++) { $graph += "[v$i][a$i]" }
+		$graph += "concat=n=$($parts.Count):v=1:a=1[v][a]"
+	} else {
+		$vPrev = "v0"; $aPrev = "a0"; $offset = 0.0
+		for ($i = 1; $i -lt $parts.Count; $i++) {
+			$offset += $lengths[$i - 1] - $fade
+			$vOut = if ($i -eq $parts.Count - 1) { "v" } else { "vx$i" }
+			$aOut = if ($i -eq $parts.Count - 1) { "a" } else { "ax$i" }
+			$graph += "[$vPrev][v$i]xfade=transition=fade:duration=$($fade.ToString($inv)):offset=$($offset.ToString($inv))[$vOut];" +
+				"[$aPrev][a$i]acrossfade=d=$($fade.ToString($inv))[$aOut];"
+			$vPrev = $vOut; $aPrev = $aOut
+		}
+		$graph = $graph.TrimEnd(";")
+	}
+	$movie = Join-Path $Raw "${Name}_cut.mkv"
+	$cutArgs += @("-filter_complex", $graph, "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-preset", "fast", "-crf", "12",
+		"-c:a", "pcm_s16le", $movie)
+	& $Ffmpeg @cutArgs
+	if ($LASTEXITCODE -ne 0) { throw "ffmpeg failed joining the cuts" }
+	Write-Host "Joined $($parts.Count) cuts into $movie"
+}
 if (-not (Test-Path $movie)) { throw "No capture $movie (run capture.ps1 first)" }
 $probe = & ($Ffmpeg -replace "ffmpeg.exe$", "ffprobe.exe") -v error -show_entries format=duration -of csv=p=0 $movie
 $clip = [double]::Parse($probe.Trim(), [Globalization.CultureInfo]::InvariantCulture)
 $endCard = 1.5; if ($null -ne $scene.end_card) { $endCard = [double]$scene.end_card }
 $total = $clip + $endCard
-$inv = [Globalization.CultureInfo]::InvariantCulture
+
 function F([double]$x) { return $x.ToString("0.###", $inv) }
 
 # Work in a temp folder with plain relative file names: no drive colons to escape inside filtergraphs.

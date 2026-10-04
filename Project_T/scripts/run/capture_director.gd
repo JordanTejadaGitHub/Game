@@ -20,6 +20,7 @@ class_name CaptureDirector
 #    "rank": 0, "tag": true}            a form is grown from its root; "maze" picks the spot that lengthens the route most,
 #                                       "cover" the spot that covers most of the route ("+N path" tags float up)
 #   {"plant_each": 0.5, "count": 20, "plant": "thornwall", "auto": "maze"}   one every 0.5 s (also with "spots": [[hx, hy], …])
+#   {"grow": [hx, hy], "into": "<form>"}  grows the Warden planted there in place (through any forms between)
 #   {"start": true}                      starts the next drift (the scene's "drift" first)
 #   {"speed": 0.25}                      game speed (slow motion < 1)
 #   {"spawn": "<enemy id>", "count": 1, "elite": false}
@@ -407,6 +408,9 @@ func _run(event: Dictionary) -> void:
 		scene.hud = String(event.hud)
 	if event.has("quiet"):
 		quiet = bool(event.quiet)
+	if event.has("grow"):  # Grows the Warden planted at half-cell origin "grow" [hx, hy] into "into" (a form id), in place
+		var grew := grow_at(Vector2(float(event.grow[0]), float(event.grow[1])), String(event.get("into", "")))
+		print("Capture: grew %s into %s at %.1f s: %s" % [event.grow, event.get("into", ""), clip_time, "ok" if grew else "FAILED"])
 	if event.has("pick_dream"):  # Takes the offer's Nth card (screens shown with "quiet": false)
 		var dreams: DreamState = _main.get_node("%DreamState")
 		if dreams.is_offering() and int(event.pick_dream) < dreams.current_offer.size():
@@ -421,6 +425,36 @@ func _run(event: Dictionary) -> void:
 			_camera.glide(_route_pixels(), float(event.get("duration", 6.0)))
 
 # --- Planting ----------------------------------------------------------------------------------------
+
+# Grows the Warden whose footprint starts at half-cell `origin` into `into` (its next form, or a later one through the
+# forms between), paid from a loan like planting. True if it grew.
+func grow_at(origin: Vector2, into: String) -> bool:
+	var target := _tower(into)
+	var placer = _main.get_node("%TowerPlacer")
+	var tower: Tower = null
+	for child in placer.tower_container.get_children():
+		if child is Tower and child.half_cell == origin:
+			tower = child
+	if tower == null or target == null:
+		push_error("Capture: nothing to grow at %s into %s" % [origin, into])
+		return false
+	var chain := _chain(target)
+	var start := chain.find(tower.tower_data)
+	if start < 0:
+		push_error("Capture: %s doesn't grow into %s" % [tower.tower_data.get_id(), into])
+		return false
+	var run_state: RunState = _main.get_node("%RunState")
+	var dreams: DreamState = _main.get_node("%DreamState")
+	var shown := run_state.dew
+	var limited := not dreams.unlock_everything
+	dreams.unlock_everything = true
+	run_state.dew = 1000000
+	for form in chain.slice(start + 1):
+		placer.evolve(tower, form)
+	run_state.dew = shown
+	run_state.dew_changed.emit(run_state.dew)
+	dreams.unlock_everything = not limited
+	return tower.tower_data == target
 
 func _tower(id: String) -> TowerData:
 	if _towers.is_empty():
