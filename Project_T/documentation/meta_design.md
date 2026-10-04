@@ -115,9 +115,9 @@ Perks are **unlocked** in the tree, then **equipped** in a small **loadout** bef
   at the start): slots 1–3 are open from the first run. Slots **4 (140)** and **5 (220)** are
   Perks nodes. Growing this limb = **more perks to choose from and more room to carry them**.
 - **The secret 6th slot:** not shown anywhere (no waystone, no node, no Codex hint) until the
-  player owns **every Grove node at its max level**, including the free milestone blooms (Memory
-  Warden blooms too, if they return from being parked). Then a sixth waystone rises at the roots (milestone *"The Heartwood in full
-  bloom"*, a Steam achievement). It's a trophy for completing the tree, so its power doesn't matter
+  player owns **every Grove node at its max level**, then the node **The Heartwood's Crown** (250 Seeds) appears (since 2026-10-04 a bought node, not a milestone; Memory
+  Warden blooms too, if they return from being parked). Planting it raises a sixth waystone at the roots (a Steam achievement; was the milestone *"The Heartwood in full
+  bloom"*). It's a trophy for completing the tree, so its power doesn't matter
   for balance: by then everything else is owned.
 - A perk with levels (e.g. Morning Stores I–III) takes one slot at its highest owned level.
 - Loadout is kept between runs; change it any time before starting.
@@ -173,7 +173,7 @@ the end of the Economy path, so it can't be rushed first for faster Seeds.
 **Power budget:** 15 perks, carry 3 at the start, up to 5 (6 once the whole tree is grown). A full economy loadout (Morning Stores III, Rich Dew
 III, Rested Roots II, Sprout Bed, Clear Sight) makes the early game noticeably smoother, which is
 why **Blight Levels** exist: each level takes back some of that power. Caps: starting Dew +30,
-Dew gain +15%, leaves +3, rerolls 2 (3 with the "Dream of everything" milestone).
+Dew gain +15%, leaves +3, rerolls 2.
 
 ### Section 2: Families and family upgrades
 
@@ -184,7 +184,7 @@ branches), **its final forms**, **its hidden branch**.
 | Family | Family node | Final forms node | Hidden branch node |
 |---|---|---|---|
 | Sporeling | *(start)* | 50 (Puffball, Dreamshroom) | 40 (Fairy Ring + Elf Circle) |
-| Firefly Jar | *(start)* | 50 (Thunderhead, Beacon) | *milestone:* Sunpetal |
+| Firefly Jar | *(start)* | 50 (Thunderhead, Beacon) | 60 (Sunpetal; was a milestone until 2026-10-04) |
 | Dewdrop | *(start)* | 50 (Monsoon, Morning Fog) | 40 (Frostfern + Hoarfrost) |
 | Pebbling | 50 (branches: Mossback, **Standing Stone**) | 50 (Boulderback, Moonstone) | 50 (Cairn + Rockslide) |
 | Rootling | 50 | 50 | 40 (Rootlight + Starcave) |
@@ -209,8 +209,8 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   **Ascension (120 Seeds)**, after its hidden branch (or its final forms where a family has no
   hidden-branch node). It makes that family's **Ascended** endgame Warden exist in runs
   (`tower_design.md`); in-run it still needs 3 Dreamlight and 400 Dew. 9 nodes, ≈ 1,080 Seeds.
-  **Firefly Jar exception:** its hidden branch (Sunpetal) comes from a milestone, so **Stormheart's
-  Ascension needs the Firefly Jar final-forms node** instead, never a milestone.
+  **Firefly Jar:** since 2026-10-04 Sunpetal is a normal node (60 Seeds), so **Stormheart's
+  Ascension needs Sunpetal**, like the others.
 - **Memory Wardens: parked 2026-09-29** (cut for now, `tower_design.md`). While parked, dispelling a
   boss grows no Memory bloom on this limb and the family pick offers no Memory Warden card.
   (Was: a free bloom on the first dispel, then offered after that boss in later runs.)
@@ -223,7 +223,7 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   from the first run. So:
   - The **Final forms node** column above is gone (9 nodes, ~470 Seeds). **Hidden-branch nodes now
     need only their family** (the family node, or nothing for the starting four).
-  - **Stormheart's Ascension** (the Firefly Jar exception) needs nothing but its Seeds.
+  - **Stormheart's Ascension** (the Firefly Jar exception) needs Sunpetal (2026-10-04; was Seeds only).
   - The Seeds this frees should go to the other roots or lower the tree's total; the meta chat
     rebalances (`meta_design.md` Seeds totals, Grove node data).
 
@@ -353,28 +353,46 @@ of the Perks limb once they're designed (`design_plan.md` topic 9); not in the f
 A Memory fragment appears **every 3 nodes planted** (plus the milestone ones below), as a
 **dream-fruit** hanging from the Heartwood's branches. About 55 nodes, so all 10 Memories arrive well before the tree is complete.
 
-## Milestones (free unlocks; double as Steam achievements)
+## Milestones (bonus Seeds; double as Steam achievements)
 
-| Milestone | Reward |
-|---|---|
-| Dispel your first boss | Memory fragment |
-| Win a run | Memory fragment + Blight Levels open |
-| Dispel 500 Shades | Sunpetal (hidden Firefly Jar branch) |
-| Build a 300-tile path | The Long Walk card, free |
-| Win without losing a leaf | Golden Leaf (cosmetic Heartwood) |
-| Tend 100 obstacles (total) | Memory fragment |
-| Win with only one Warden line | Monoculture card, free |
-| Reach Blight Level 5 | Memory fragment |
-| Win at Blight Level 10 | Blossom cosmetic for all Wardens |
-| Discover every combo (Codex, `screens_ui.md`) | Memory fragment + a Codex cosmetic (gilded pages) |
-| **The Heartwood in full bloom**: own every Grove node at max level (id `full_bloom`) | The secret **6th loadout slot** (a sixth waystone rises at the roots) |
-| **Dream of everything**: see every Dream card (Codex, normal runs only; id `all_dreams`) | **Starlit card backs** (cosmetic: Dream offer cards get a night-sky frame) + **+1 Dream reroll per run**, on top of Second Thoughts (user decision 2026-09-29) |
+**Milestones only give bonus Seeds** (user, 2026-10-04; replaces the free unlocks). A milestone
+never grows a Grove node, refunds a purchase, unlocks a cosmetic or a Memory: **every node is bought
+with Seeds**. Each milestone pays a **one-time Seed bonus** at the run end it's reached, as its own
+results line (*"Milestone · Dispel 2,000 Shades · +25 Seeds"*), scaled by how hard it is. Steam
+achievements still map to the milestone ids. Dev runs record none (as before).
 
-Free unlocks that duplicate a Grove purchase refund its Seeds if already bought.
+| Milestone (id) | Bonus | Was |
+|---|---|---|
+| Dispel your first boss (`first_boss`) | +20 | Memory fragment |
+| Win a run (`first_win`) | +60 | Memory fragment (Blight Levels still open with the first win: a rule, not a reward) |
+| Dispel **2,000** Shades, total (`shades_500`, id kept) | +25 | Sunpetal; 500 now happens in one run |
+| Build a **300-tile** path (`path_300`) | +30 | The Long Walk card |
+| Tend **300** obstacles, total (`tend_100`, id kept) | +25 | Memory fragment; was 100 |
+| Win without losing a leaf (`flawless_win`) | +100 | Golden Leaf cosmetic |
+| Win with only one Warden family (`one_line_win`) | +80 | Monoculture card |
+| Reach Blight Level 5 (`blight_5`) | +50 | Memory fragment |
+| Win at Blight Level 10 (`blight_10_win`) | +150 | Blossom cosmetic |
+| Discover every combo (`all_combos`) | +60 | Memory fragment + gilded pages |
+| See every Dream card (`all_dreams`) | +60 | starlit card backs + 1 reroll |
+| Meet every nightmare (`all_nightmares`) | +40 | — |
 
-**Dev options** (settings "Developer", debug builds only; user 2026-09-29): a toggle that grants the
-"Dream of everything" rewards (starlit card backs + the extra reroll) for testing, without
-recording the milestone or touching the profile.
+- **Thresholds** (2,000 Shades, 300 tiles, 300 tends) are first guesses for the harder rules;
+  **Balancing Discussion** checks them against real runs and sets them, and may tune the bonuses.
+- **Memories** now come only from the first run and Grove growth (one per 3 levels planted); 10
+  arrive well before the tree is complete.
+- **Cosmetics** (Golden Leaf, Blossoms, gilded pages, starlit backs) are no longer rewards; the art
+  is kept for later (e.g. Seed-bought cosmetics), parked.
+- **Sunpetal** (Firefly Jar's hidden branch) is a normal node: **60 Seeds, needs Firefly Jar**, like
+  the other hidden branches. **Stormheart's Ascension** now needs Sunpetal, like every other
+  Ascension needs its hidden branch.
+- **The secret 6th slot becomes a node:** **The Heartwood's Crown** (Perks limb, **250 Seeds**,
+  needs every other node at max level). It stays hidden (no node, no waystone) until its
+  requirement is met, then the sixth waystone rises and the node can be planted. Its Steam
+  achievement fires on planting it. (Was the `full_bloom` milestone.)
+- **Pre-release:** no migration. A node a milestone already grew on a profile (Sunpetal) is
+  **reset**: buy it again. Milestones already recorded don't pay retroactively.
+
+
 
 ## Blight Levels (unlocked by the first win)
 
@@ -398,7 +416,7 @@ The highest level won is shown on the title screen, as a small blossom per level
 ## The Hollow's story: 10 Memories
 
 Memories appear as short illustrated fragments in the Grove (one screen each, a few lines). Most
-come from Grove progress (**one every 3 unlocks**); the rest from milestones (above). Read in
+come from Grove progress (**one every 3 unlocks**, plus one after the first run; milestones no longer give Memories since 2026-10-04). Read in
 order, they tell where the nightmares come from (revised 2026-09-27 for the nightmare theme):
 
 1. *Before the Heartwood, there were two trees, and both of them dreamed.* (after your first run,
