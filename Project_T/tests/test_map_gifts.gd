@@ -38,12 +38,18 @@ func _init() -> void:
 
 	# Mire: nightmares on the bog are slowed (through the slow floors).
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
-	var bog: Array[Vector2] = [route[2], route[3], route[4]]
+	var route_cells: Array[Vector2] = []  # Half cells: the whole cells the route runs through, in order
+	for p in route:
+		var c := Vector2(FindPath.point_to_node(p) / 2)
+		if not route_cells.has(c):
+			route_cells.append(c)
+	var bog: Array[Vector2] = [route_cells[2], route_cells[3], route_cells[4]]
 	_give(gifts, run_state, MapGifts.MIRE, bog)
+	_check(not gifts.has_dual("bog") or gifts._dual_layers["bog"].get_used_cells().size() > 0, "the bog is drawn on the path's dual grid")
 	var shade: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
 	shade.set_physics_process(false)
 	shade.set_process(false)
-	shade.position = map.MAP_GRID.calculate_map_position(route[3])
+	shade.position = map.MAP_GRID.calculate_map_position(route_cells[3])
 	gifts._tick = 0.0
 	await process_frame
 	_check(is_equal_approx(shade.statuses.get_speed_multiplier(), 1.0 - MapGifts.MIRE_SLOW),
@@ -51,8 +57,9 @@ func _init() -> void:
 
 	# Heartwood Roots: the last 4 route cells before the Heartwood; +15% taken there.
 	var roots := gifts.roots_cells()
-	_check(roots.size() == 4 and not roots.has(map.endPath) and route.has(roots[0]), "roots: the last 4 path cells")
+	_check(roots.size() == 4 and not roots.has(map.endPath) and route_cells.has(roots[0]), "roots: the last 4 path cells")
 	_give(gifts, run_state, MapGifts.HEARTWOOD_ROOTS, roots)
+	_check(not gifts.has_dual("roots") or gifts._dual_layers["roots"].get_used_cells().size() > 0, "the roots are drawn on the path's dual grid")
 	shade.position = map.MAP_GRID.calculate_map_position(roots[0])
 	gifts._tick = 0.0
 	await process_frame

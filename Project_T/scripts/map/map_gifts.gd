@@ -88,6 +88,7 @@ func _ready() -> void:
 	register_effects()
 	map.obstacle_cleared.connect(_on_obstacle_cleared)
 	map.path_changed.connect(queue_redraw)
+	map.path_changed.connect(_draw_duals)
 	_load_sheets()
 
 # The cells Heartwood Roots grows over now: the last ROOTS_CELLS of the route before the Heartwood (for the
@@ -95,8 +96,13 @@ func _ready() -> void:
 func roots_cells() -> Array[Vector2]:
 	var cells: Array[Vector2] = []
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
-	for i in range(route.size() - 2, maxi(route.size() - 2 - ROOTS_CELLS, 0), -1):  # Not the start either
-		cells.append(route[i])
+	for i in range(route.size() - 1, 0, -1):  # Back from the Heartwood: the whole cells the route runs through
+		var cell := Vector2(FindPath.point_to_node(route[i]) / 2)
+		if cell == map.endPath or cell == map.startPath or cells.has(cell):
+			continue
+		cells.append(cell)
+		if cells.size() >= ROOTS_CELLS:
+			break
 	return cells
 
 # The ring Deeper Glade clears: one more ring of cells around the Heartwood.
@@ -302,6 +308,7 @@ func _load_sheets() -> void:
 		var path := EnvironmentTiles.sheet_path(sheet, act)
 		if ResourceLoader.exists(path):
 			_sheets[sheet] = load(path)
+	_load_dual_sheets()
 
 func frame_region(sheet: String, column: int) -> Rect2:
 	var size: Vector2i = ART[sheet][0]
@@ -310,7 +317,7 @@ func frame_region(sheet: String, column: int) -> Rect2:
 func _draw() -> void:
 	var cell_size := Vector2(MAP_GRID.cell_size)
 	var path_cells: PackedVector2Array = map.path_layer.current_path
-	for cell in bog_cells:
+	for cell in bog_cells if not has_dual("bog") else []:
 		var at := MAP_GRID.calculate_map_position(cell) - cell_size / 2.0
 		if _sheets.has("bog_path"):
 			var mask := _mask(cell, func(c: Vector2) -> bool: return path_cells.has(c) or bog_cells.has(c))
@@ -319,7 +326,7 @@ func _draw() -> void:
 			draw_rect(Rect2(at + Vector2(6, 6), cell_size - Vector2(12, 12)), Color(Palette.ROOT, 0.7))
 			draw_circle(at + Vector2(22, 26), 7.0, Palette.POOL)
 			draw_circle(at + Vector2(42, 40), 5.0, Palette.POOL)
-	for cell in root_cells:
+	for cell in root_cells if not has_dual("roots") else []:
 		var at := MAP_GRID.calculate_map_position(cell) - cell_size / 2.0
 		if _sheets.has("heartwood_roots"):
 			var mask := _mask(cell, func(c: Vector2) -> bool: return path_cells.has(c) or root_cells.has(c) or c == map.endPath)
@@ -416,3 +423,69 @@ class GiftProp extends Node2D:
 				draw_line(Vector2(0, -30), Vector2(-20, -56), Palette.DEADWOOD, 5.0)
 				draw_line(Vector2(0, -40), Vector2(18, -66), Palette.DEADWOOD, 5.0)
 				draw_line(Vector2(-6, -64), Vector2(6, -48), Palette.WRAITHLIGHT, 2.0)
+
+# --- Mire and Roots on the half-cell path (dual grid) -------------------------------------------------
+# The path is drawn on PathGenerator's dual grid (32 px tiles, 16 px off the half grid). Where the route runs
+# through a Mire cell, bog_path_dual.png replaces path_dual.png's tile; over a rooted cell,
+# heartwood_roots_dual.png is laid on top. Same corner masks as the path (PathGenerator.dual_mask), on layers
+# drawn over the path's own, so the bog and the roots follow the ribbon. Without those sheets: the old
+# whole-cell drawing in _draw().
+const DUAL_SHEETS := {"bog": "bog_path_dual", "roots": "heartwood_roots_dual"}
+var _dual_layers := {}  # "bog" / "roots" -> TileMapLayer
+
+func _load_dual_sheets() -> void:
+	for kind: String in DUAL_SHEETS:
+		var path := EnvironmentTiles.sheet_path(DUAL_SHEETS[kind], act)
+		if not ResourceLoader.exists(path):
+			continue
+		var layer: TileMapLayer = _dual_layers.get(kind)
+		if layer == null:
+			layer = TileMapLayer.new()
+			layer.name = "Gift" + kind.capitalize() + "Dual"
+			layer.position = -Vector2(PathGenerator.DUAL_SIZE) / 2.0
+			var tiles := TileSet.new()
+			tiles.tile_size = PathGenerator.DUAL_SIZE
+			var source := TileSetAtlasSource.new()
+			source.texture_region_size = PathGenerator.DUAL_SIZE
+			source.texture = load(path)
+			for column in source.get_atlas_grid_size().x:
+				source.create_tile(Vector2i(column, 0))
+			tiles.add_source(source, 0)
+			layer.tile_set = tiles
+			map.path_layer.add_child(layer)  # Over the path's dual layer and the start's tile
+			_dual_layers[kind] = layer
+		else:
+			(layer.tile_set.get_source(0) as TileSetAtlasSource).texture = load(path)
+	_draw_duals()
+
+func has_dual(kind: String) -> bool:
+	return _dual_layers.has(kind)
+
+# Bog and roots tiles: every path display tile with a corner on a Mire / rooted cell's halves.
+func _draw_duals() -> void:
+	if _dual_layers.is_empty() or map == null or map.path_layer == null:
+		return
+	var halves: Dictionary = map.path_layer.path_halves()
+	for kind: String in _dual_layers:
+		var layer: TileMapLayer = _dual_layers[kind]
+		layer.clear()
+		var cells: Array[Vector2] = bog_cells if kind == "bog" else root_cells
+		if cells.is_empty():
+			continue
+		var marked := {}
+		for cell in cells:
+			for h in FindPath.halves_of_cell(cell):
+				if halves.has(Vector2i(h)):
+					marked[Vector2i(h)] = true
+		var done := {}
+		for h: Vector2i in marked:  # Each marked path half is a corner of 4 display tiles
+			for dy in 2:
+				for dx in 2:
+					var at := h + Vector2i(dx, dy)
+					if done.has(at):
+						continue
+					done[at] = true
+					var mask := PathGenerator.dual_mask(halves, at)
+					if mask == 15:
+						mask = PathGenerator.DUAL_FULL_VARIANTS[EnvironmentTiles.cell_variant(at, PathGenerator.DUAL_FULL_VARIANTS.size(), 7)]
+					layer.set_cell(at, 0, Vector2i(mask, 0))
