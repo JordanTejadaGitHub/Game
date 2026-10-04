@@ -34,6 +34,10 @@ page points to the Steam page.
 - **Export pipeline** (ffmpeg scripts): a 9:16 vertical crop or re-frame, burned-in captions, music, a "Wishlist on Steam"
   end card, and one file per platform (YouTube Shorts, TikTok, X / Bluesky 16:9).
 
+**Half-cell mazes (2026-10-04, half_cells.md):** Wardens can sit at half-cell offsets, so walls stagger and mazes get
+shapes a square grid can't make. Every capture scene uses staggered placements, and the maze shots show them off.
+Capture after the half-cell merge (and after the final half-grid path art, when that lands, re-render).
+
 ## 4. The first five shorts (9:16, 15–35 s, captions on, music from the game's stems)
 
 | # | Title / hook (first 2 s) | What happens | Capture setup |
