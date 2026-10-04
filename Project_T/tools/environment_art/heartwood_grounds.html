@@ -537,13 +537,41 @@ function dualField(mask) {
     return on(1) * l * t + on(2) * (1 - l) * t + on(4) * (1 - l) * (1 - t) + on(8) * l * (1 - t);
   };
 }
+// The dual tiles' edge, as a real distance (2026-10-04: the user found the half-cell path too wide;
+// the blend left its bank at the corridor's very edge, ~60 px of earth against path.png's ~46).
+// The path halves (quarter planes, extended past the tile; anything past a tile's own corners is at
+// least 16 px from its pixels) are eroded by DUAL_INSET px, then opened by DUAL_ROUND px to round the
+// outer corners; inner corners round off by the erosion itself. D < 0 inside, -DUAL_ROUND deep inside.
+const DUAL_INSET = 9, DUAL_ROUND = 6, DUAL_D = new Map();
+function chamfer(dist, G) {
+  const relax = (i, j, c) => { if (dist[j] + c < dist[i]) dist[i] = dist[j] + c; };
+  for (let y = 1; y < G; y++) for (let x = 1; x < G - 1; x++) { const i = y * G + x; relax(i, i - 1, 1); relax(i, i - G, 1); relax(i, i - G - 1, 1.414); relax(i, i - G + 1, 1.414); }
+  for (let y = G - 2; y >= 0; y--) for (let x = G - 2; x >= 1; x--) { const i = y * G + x; relax(i, i + 1, 1); relax(i, i + G, 1); relax(i, i + G + 1, 1.414); relax(i, i + G - 1, 1.414); }
+  return dist;
+}
+function dualD(mask) {
+  if (!DUAL_D.has(mask)) {
+    const E = 16, G = DUAL + E * 2, INF = 1e9, on = b => (mask & b) !== 0;
+    const isPath = (x, y) => x < 16 ? (y < 16 ? on(1) : on(8)) : (y < 16 ? on(2) : on(4));
+    const toOut = new Float32Array(G * G);  // distance to the nearest half that isn't path
+    for (let y = 0; y < G; y++) for (let x = 0; x < G; x++) toOut[y * G + x] = isPath(x - E + .5, y - E + .5) ? INF : 0;
+    chamfer(toOut, G);
+    const toCore = new Float32Array(G * G);  // distance to the eroded core (the opening rounds outer corners)
+    for (let i = 0; i < G * G; i++) toCore[i] = toOut[i] > DUAL_INSET + DUAL_ROUND ? 0 : INF;
+    chamfer(toCore, G);
+    const d = new Float32Array(DUAL * DUAL);
+    for (let y = 0; y < DUAL; y++) for (let x = 0; x < DUAL; x++) d[y * DUAL + x] = Math.min(toCore[(y + E) * G + x + E], 99) - DUAL_ROUND;
+    DUAL_D.set(mask, d);
+  }
+  const d = DUAL_D.get(mask);
+  return (x, y) => {
+    const xi = clamp(Math.floor(x), 0, DUAL - 1), yi = clamp(Math.floor(y), 0, DUAL - 1);
+    return d[yi * DUAL + xi] + (pnoise(x, y, 16, SEED + 830, 2) - .5) * 2.4;
+  };
+}
 function pathDual(A, k) {
-  const L = new Img(DUAL, DUAL), mask = k > 15 ? 15 : k, s = SEED + 830 + (k > 15 ? (k - 15) * 37 : 0);
-  const F = dualField(mask);
-  // d < 0 inside, in px from the edge (the blend is about 1/16 per px at the edge). One gentle bump per
-  // tile: a stronger, finer wobble repeated every 32 px like a row of beads.
-  const D = (x, y) => -(F(x, y) - .5) * 16 + (pnoise(x, y, 16, SEED + 830, 2) - .5) * 2.4;
-  paintPath(L, D, DUAL, A, s);
+  const L = new Img(DUAL, DUAL), s = SEED + 830 + (k > 15 ? (k - 15) * 37 : 0);
+  paintPath(L, dualD(k > 15 ? 15 : k), DUAL, A, s);
   return L;
 }
 // Drystone wall: wrapping Voronoi stones, moss from the season's grass.
