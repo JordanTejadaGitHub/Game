@@ -66,6 +66,7 @@ func _ready() -> void:
 	for sorted: Node2D in [environment_object_layer, get_node("%TowerContainer"), get_node("%EnemyContainer")]:
 		sorted.y_sort_enabled = true
 	ground_layer.z_index = -1
+	ground_layer.light_mask |= Heartwood.GROUND_LIGHT_MASK  # The Heartwood's light lifts the grass only, never the path
 	path_layer.z_index = -1
 	ground_layer.initialize()
 	# The start sits in the rim ring: the rim goes under its path (path_rim.png is transparent outside the

@@ -113,7 +113,11 @@ func _init() -> void:
 	var vignette := lighting.get_child(0) as Sprite2D
 	_check(vignette != null and (vignette.material as CanvasItemMaterial).blend_mode == CanvasItemMaterial.BLEND_MODE_MUL,
 		"the edges get a cold multiply")
-	_check(heartwood.get_child(0) is PointLight2D and heartwood.get_child(1) is Sprite2D, "the Heartwood glows")
+	var pool: Sprite2D = map.ground_layer.get_node_or_null("HeartwoodGlow")
+	_check(heartwood.get_child(0) is PointLight2D and pool != null, "the Heartwood glows: a light and a pool on the ground")
+	_check((heartwood.get_child(0) as PointLight2D).range_item_cull_mask == Heartwood.GROUND_LIGHT_MASK
+		and map.ground_layer.light_mask & Heartwood.GROUND_LIGHT_MASK and not map.path_layer.light_mask & Heartwood.GROUND_LIGHT_MASK
+		and not heartwood.light_mask & Heartwood.GROUND_LIGHT_MASK, "its light lifts the grass, not the path or the tree (a solid tree, not a beam)")
 	var glowing_before := lighting.get_glowing_warden_count()
 	var nodes_before := lighting.get_child_count()
 	var sprout := _add_warden(main, "res://resource/tower/sprout.tres", Vector2(20, 18))

@@ -22,6 +22,9 @@ const LIGHT_RADIUS := 230.0  # px
 const GLOW_ALPHA := 0.42
 const GLOW_RADIUS := 230.0  # px
 const LIGHT_OFFSET := Vector2(0, -16)
+const POOL_OFFSET := Vector2(0, 20)  # The glow pool's centre: on the ground round the tree's foot
+const POOL_SQUASH := 0.55  # The pool is flatter than wide (ground seen from above at an angle)
+const GROUND_LIGHT_MASK := 2  # The Heartwood's light lifts only canvas items with this light-mask bit (the grass)
 
 # The Grove mirror (heartwood_stages.json: per stage a crown rect, 10 fruit anchors, the lit glint pixels).
 const STAGE_SHEET := "heartwood_stage_%d"
@@ -78,19 +81,30 @@ func _ready() -> void:
 	vframes = EnvironmentTiles.HEARTWOOD_STATES
 	var half_cell := EnvironmentTiles.SIZE.y / 2.0
 	offset = Vector2(0, half_cell + BASE_BELOW_CELL - EnvironmentTiles.HEARTWOOD_SIZE / 2.0)
+	# A solid tree in a pool of its own light, not a beam (art_direction.md "The Heartwood reads as a solid tree", a568c1e5):
+	# the light only lifts the grass (GROUND_LIGHT_MASK; the path and the tree keep their own values) and the
+	# additive glow is a flattened pool drawn between the grass and the path, under the tree.
 	_light = EnvironmentLighting.make_light(LIGHT_COLOR, LIGHT_ENERGY, LIGHT_RADIUS)
 	_light.position = LIGHT_OFFSET
+	_light.range_item_cull_mask = GROUND_LIGHT_MASK
 	add_child(_light)
 	_glow = Sprite2D.new()
+	_glow.name = "HeartwoodGlow"
 	_glow.texture = EnvironmentLighting.light_texture()
-	_glow.position = LIGHT_OFFSET
-	_glow.scale = Vector2.ONE * GLOW_RADIUS / (_glow.texture.get_width() / 2.0)
 	_glow.modulate = Color(LIGHT_COLOR, GLOW_ALPHA)
-	_glow.z_index = EnvironmentLighting.GLOW_Z
+	_glow.scale = Vector2(1.0, POOL_SQUASH) * GLOW_RADIUS / (_glow.texture.get_width() / 2.0)
 	var additive := CanvasItemMaterial.new()
 	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	_glow.material = additive
-	add_child(_glow)
+	var ground: Node2D = get_parent().get("ground_layer") if get_parent() != null else null
+	if ground != null:  # Over the grass, under the path layer (its next sibling) and everything standing
+		_glow.position = position + POOL_OFFSET
+		ground.add_child(_glow)
+		tree_exiting.connect(_glow.queue_free)
+	else:
+		_glow.position = POOL_OFFSET
+		_glow.show_behind_parent = true
+		add_child(_glow)
 	_glints = Node2D.new()
 	_glints.name = "Glints"
 	_glints.draw.connect(_draw_glints)
@@ -140,7 +154,7 @@ func _process(delta: float) -> void:
 	_light_time += delta
 	var flicker := 1.0 + sin(_light_time * 2.3) * 0.04
 	_light.scale = Vector2.ONE * flicker
-	_glow.scale = Vector2.ONE * flicker * GLOW_RADIUS / (_glow.texture.get_width() / 2.0)
+	_glow.scale = Vector2(1.0, POOL_SQUASH) * flicker * GLOW_RADIUS / (_glow.texture.get_width() / 2.0)
 	if not _glint_points.is_empty() and not _reduced_motion():
 		_glints.queue_redraw()  # The twinkle: the only per-frame work
 
