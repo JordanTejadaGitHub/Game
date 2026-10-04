@@ -23,7 +23,8 @@ const THICK_MIST_SPACING := 1.25
 # id -> {name, group, text, map: changes the map, place: how it's placed (GiftPlacer), size}.
 # place: &"none"; &"chain" (adjacent cells, size [min, max]); &"line" (straight, [min, max]); &"cell" (one);
 # &"cells" (size n, anywhere); &"path" (size n connected route cells); &"area" (size Vector2i); &"move" (n obstacles);
-# &"warden" (pick a Warden); &"kinship" (pick a bonded Warden).
+# &"warden" (pick a Warden); &"kinship" (pick a bonded Warden); &"rim" (pick 1 of `size` new start spots: Environment's
+# MapGifts.start_options / route_from_start).
 const POOL := {
 	&"sow_ridge": {"name": "Sow a Ridge", "group": "Shape the land", "map": true, "place": &"chain", "size": [3, 5],
 		"text": "Draw a ridge of 3–5 Withered Trees, cell by cell. Clearable later at the normal cost."},
@@ -55,8 +56,8 @@ const POOL := {
 		"text": "Thornwalls cost half this run; nightmares touching one gain +1 {drowsy} cap."},
 	&"old_kin": {"name": "Old Kin", "group": "Heartwood and kin", "map": false, "place": &"kinship", "size": 1,
 		"text": "One Kinship jumps a stage; new bonds start one stage up for the next act."},
-	&"deeper_glade": {"name": "Deeper Glade", "group": "Heartwood and kin", "map": true, "place": &"none", "size": 0,
-		"text": "The Heartwood's glade grows by one ring of clear cells, and +1 max leaf."},
+	&"shifting_mist": {"name": "Shifting Mist", "group": "Heartwood and kin", "map": true, "place": &"rim", "size": 3,
+		"text": "The start mist moves: pick one of 3 spots on the rim (or keep it). Nightmares come from there for the rest of the run."},
 	&"waking_root": {"name": "Waking Root", "group": "Heartwood and kin", "map": false, "place": &"none", "size": 0,
 		"text": "The next form you unlock costs 1 less Dreamlight."},
 	&"memory_seed": {"name": "Memory Seed", "group": "Heartwood and kin", "map": false, "place": &"warden", "size": 1,
@@ -198,14 +199,9 @@ func _close() -> void:
 	current_offer = []
 	offer_closed.emit()
 
-const DEEPER_GLADE_LEAVES := 1
-
 func _apply(id: StringName, placement: Dictionary, restoring: bool) -> void:
 	if BUILT_IN.has(id):
 		return  # Read where they act (get_spacing_multiplier)
-	if id == &"deeper_glade" and not restoring:  # Its leaf is ours (RunState; saved with the run), the ring Environment's
-		run_state.max_leaves += DEEPER_GLADE_LEAVES
-		run_state.regrow_leaves(DEEPER_GLADE_LEAVES)
 	if _effects.has(id):
 		var data := placement.duplicate(true)
 		data["restoring"] = restoring

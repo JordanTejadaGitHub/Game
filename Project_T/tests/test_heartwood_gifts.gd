@@ -118,16 +118,23 @@ func _run() -> void:
 		and is_equal_approx(float(director.get_schedule_modifiers(30).get("spacing", 1.0)), 1.25 * float(main.get_node("%OmenDirector").get_schedule_modifiers(30).get("spacing", 1.0))),
 		"Thick Mist taken in act 1: act 2 spaced ×1.25, act 3 not")
 
-	# Deeper Glade: the leaf is ours (the ring Environment's stand-in here).
-	var max_before := run_state.max_leaves
-	var leaves_before := run_state.leaves
+	# Shifting Mist (replaced Deeper Glade): the placer offers rim spots (Environment's start_options) and takes the
+	# old start as "keep"; the effect gets the picked spot.
 	director.drifts_started = 75
 	director.rest_started.emit(15, true, 0, false)
-	gifts.current_offer = [&"deeper_glade"]
+	gifts.current_offer = [&"shifting_mist"]
 	gifts.waiting = true
-	gifts.choose(&"deeper_glade")
-	_check(run_state.max_leaves == max_before + 1 and run_state.leaves == mini(leaves_before + 1, run_state.max_leaves),
-		"Deeper Glade: +1 max leaf, and the leaf (%d -> %d)" % [max_before, run_state.max_leaves])
+	_check(not HeartwoodGifts.POOL.has(&"deeper_glade") and HeartwoodGifts.POOL[&"shifting_mist"].place == &"rim", "Shifting Mist replaces Deeper Glade")
+	var mist := GiftScreen.GiftPlacer.new(director, &"shifting_mist", false)
+	main.add_child(mist)
+	mist.click(map.startPath)
+	_check(mist.is_complete() and mist.placement().cells == [map.startPath] and mist.status().begins_with("Keep the start"),
+		"Shifting Mist: clicking the old start keeps it (%s)" % mist.status())
+	applied.clear()
+	gifts.choose(&"shifting_mist", mist.placement())
+	_check(applied.size() == 1 and applied[0][0] == &"shifting_mist" and HeartwoodGifts.cells_of(applied[0][1]) == [map.startPath],
+		"Shifting Mist: the effect gets the picked spot")
+	mist.queue_free()
 
 	# Saved and rebuilt.
 	var max_now := run_state.max_leaves
@@ -135,7 +142,7 @@ func _run() -> void:
 	applied.clear()
 	gifts.load_save(saved)
 	_check(gifts.taken.size() == 3 and applied.size() == 2 and applied.all(func(a: Array) -> bool: return a[1].restoring) and run_state.max_leaves == max_now,
-		"a resumed run rebuilds the gifts (restoring), and Deeper Glade's leaf isn't added twice")
+		"a resumed run rebuilds the gifts (restoring) and the max leaves stay")
 
 	main.queue_free()
 	await process_frame

@@ -21,6 +21,7 @@ const HINTS := {
 	&"warden": "Click one of your Wardens.",
 	&"kinship": "Click a Warden in a Kinship.",
 	&"obstacles": "Click obstacles to clear (up to %d), again to unselect.",
+	&"rim": "Click a new start on the rim, or the old one to keep it.",
 }
 
 # Each gift's living mini-scene (heartwood_gifts.md "an animated mini-scene like the placement Dream cards"): Roguelite
@@ -57,8 +58,8 @@ const SCENES := {
 		{"proc": "+1 Drowsy cap"}, "Thornwalls for half, and they make nightmares drowsy."],
 	&"old_kin": [".......\n..aa...\nSPPPPPH\n.......\n.......", ".......\n..WW...\nSPPPPPH\n.......\n.......",
 		{"text": "kin +1 stage", "damage": 1.1, "kin": true}, "A Kinship grows a stage at once."],  # The bond drawn (CardScene 4e14a81c)
-	&"deeper_glade": [".....O.\n....OO.\nSPPPPPH\n....OO.\n.....O.", ".......\n.......\nSPPPPPH\n.......\n.......", {},
-		"The Heartwood's glade grows, and one more leaf."],
+	&"shifting_mist": [".......\n.......\nSPPPPPH\n.......\n.......", "...S...\n...P...\n...PPPH\n.......\n.......", {},
+		"The start mist moves; they come a new way."],
 	&"waking_root": [".......\n...a...\nSPPPPPH\n.......\n.......", ".......\n...W...\nSPPPPPH\n.......\n.......",
 		{"text": "-1 Dreamlight"}, "The next form you unlock costs less."],
 	&"memory_seed": [".......\n.a.....\nSPPPPPH\n.......\n.......", ".......\n.....W.\nSPPPPPH\n.......\n.......",
@@ -348,6 +349,7 @@ class GiftPlacer extends Node2D:
 	var hover := Vector2(-1, -1)
 	var route_line := Line2D.new()
 	var _route_now := 0
+	var options: Array[Vector2] = []  # Rim: the new start spots on offer (the current start = keep)
 
 	func _init(drift_director: DriftDirector, gift_id: StringName, blocks: bool) -> void:
 		director = drift_director
@@ -364,6 +366,8 @@ class GiftPlacer extends Node2D:
 		seller = director.get_node_or_null("%TowerSeller")
 		add_child(route_line)
 		_route_now = map.route_length(map.get_path_from(map.startPath)) if map != null else 0  # Full cells
+		if kind == &"rim" and map != null and map.get("gifts") != null and map.gifts.has_method("start_options"):
+			options.assign(map.gifts.start_options(int(size)))
 
 	func _process(_delta: float) -> void:
 		var cell: Vector2 = map.MAP_GRID.calculate_grid_coordinates(map.get_local_mouse_position())
@@ -428,6 +432,9 @@ class GiftPlacer extends Node2D:
 			&"warden", &"kinship":
 				var picked := seller.get_tower_at(cell) if seller != null else null
 				tower = picked if picked != null and (kind == &"warden" or _in_kinship(picked)) else null
+			&"rim":  # Shifting Mist: one of the offered spots, or the old start (keep)
+				if options.has(cell) or cell == map.startPath:
+					cells.assign([cell])
 			&"obstacles":  # Glade (user: "no control and no preview"): pick each obstacle, again to unselect
 				var at := _picked_obstacle(cell)
 				if at != Vector2(-1, -1):
@@ -476,6 +483,8 @@ class GiftPlacer extends Node2D:
 				return tower != null
 			&"obstacles":
 				return not cells.is_empty()  # Up to `size`: any number from one
+			&"rim":
+				return cells.size() == 1
 		return true
 
 	func status() -> String:
@@ -491,6 +500,13 @@ class GiftPlacer extends Node2D:
 				var change: int = map.route_length(_path_if_cleared(cells)) - _route_now if not cells.is_empty() else 0
 				return "%d of %d%s" % [cells.size(), int(size),
 					(" · %+d path" % change) if change != 0 else ""] + ("" if not cells.is_empty() else " · " + hint % int(size))
+		if kind == &"rim":
+			var spot: Vector2 = cells[0] if not cells.is_empty() else hover
+			if spot == map.startPath:
+				return "Keep the start where it is · route %d cells" % _route_now
+			if options.has(spot):
+				return "New start · route %d cells (now %d)" % [map.route_length(_rim_route(spot)), _route_now]
+			return hint
 		var added := _route_len() - _route_now
 		return hint + (" · +%d path" % added if blocking and added > 0 else "")
 
@@ -526,7 +542,21 @@ class GiftPlacer extends Node2D:
 			return _route_now
 		return map.route_length(map.get_path_if_blocked_cells(all))
 
+	# The route from a new start (Environment's preview), empty if the map can't say.
+	func _rim_route(spot: Vector2) -> PackedVector2Array:
+		if map.get("gifts") != null and map.gifts.has_method("route_from_start"):
+			return map.gifts.route_from_start(spot)
+		return PackedVector2Array()
+
 	func _refresh_route() -> void:
+		if kind == &"rim" and map != null:  # The picked (or hovered) spot's route, against today's
+			var spot: Vector2 = cells[0] if not cells.is_empty() else hover
+			var route: PackedVector2Array = _rim_route(spot) if options.has(spot) else PackedVector2Array()
+			if route.is_empty():
+				RouteLine.clear(route_line)
+			else:
+				RouteLine.draw_route(route_line, route, Color(UiStyle.GOLD, 0.6), 6.0, map.get_path_from(map.startPath))
+			return
 		if kind == &"obstacles" and map != null:  # The route once the picked (and hovered) obstacles are gone, live
 			var preview: Array = cells.duplicate()
 			if map.obstacles.has(hover) and _picked_obstacle(hover) == Vector2(-1, -1) and cells.size() < int(size):
@@ -578,6 +608,15 @@ class GiftPlacer extends Node2D:
 
 	func _draw() -> void:
 		var half: Vector2 = map.MAP_GRID.cell_size / 2.0
+		if kind == &"rim":  # Each offered spot a ring (gold when picked), the old start a dim ring
+			for spot in options + [map.startPath]:
+				var picked: bool = cells.has(spot)
+				var at: Vector2 = map.MAP_GRID.calculate_map_position(spot)
+				var colour := Color(UiStyle.GOLD, 0.95) if picked else (Color(Palette.SPRIG, 0.8) if spot == hover else Color(UiStyle.FOG, 0.7))
+				if spot == map.startPath and not picked:
+					colour.a = 0.4
+				draw_arc(at, half.x - 4.0, 0.0, TAU, 32, colour, 3.0 if picked else 2.0)
+			return
 		if kind == &"obstacles":  # Each picked obstacle: a gold outline and an "×"; the hovered one outlined
 			for at in cells:
 				for c in map.get_obstacle_cells(at):
