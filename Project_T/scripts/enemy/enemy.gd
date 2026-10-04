@@ -206,6 +206,9 @@ var _linger_left := 0.0  # Night Mare: seconds left of this visit before it gall
 var _grounded_left := 0.0  # Groundroot: seconds left on the ground (a flyer walking the maze; see ground)
 var _corner_offset := Vector2.ZERO  # Drawn minus logical position on a rounded corner (_round_corners)
 var _squeeze := 1.0  # The width factor sprite.scale.x carries now (_update_squeeze)
+# Pixels the drawn body (sprite, its HUD, its glows) is raised so its feet and contact shadow sit on the
+# route point, the path ribbon's centreline (art_direction.md "Bigger Wardens"); 0 for flyers.
+var _foot_lift := 0.0
 var _untouchable := false  # Night Mare lingering: no hits, no statuses, not targeted (_set_untouchable)
 var straight_charging := false  # Hollow Stag: on a straight of straight_charge_tiles+ (see _update_straight_charge)
 var _bellowed := false
@@ -363,6 +366,8 @@ func _ready() -> void:
 	sprite.sprite_frames = enemy_data.sprite_frames
 	sprite.scale = Vector2.ONE * enemy_data.sprite_scale * (ELITE_SCALE if elite else 1.0)
 	_measure_bar_offset()
+	_measure_foot_lift()
+	sprite.offset = _body_offset() / sprite.scale
 	sprite.modulate = enemy_data.tint
 	if is_echo:
 		sprite.modulate.a *= ECHO_ALPHA  # A pale face from the Oak's bark
@@ -618,6 +623,14 @@ func _draw() -> void:
 			draw_circle(at + Vector2(-10 + 10 * i, 6 - 5 * (i % 2)), 2.0 + 1.5 * t, Color(ASH_COLOR, ASH_COLOR.a * t))
 	if _hidden:
 		return  # Only the faint sprite shows: no bars, no status icons
+	# Ground rings stay on the route point; everything round the body is raised with it (foot lift)
+	if _shrug_flash > 0.0:  # Barrow King: a ring of grave-dust out to the shrug's reach
+		var t := _shrug_flash / SHRUG_FLASH_TIME
+		draw_arc(Vector2.ZERO, enemy_data.shrug_radius * grid.cell_size.x * (1.0 - t * 0.6), 0.0, TAU, 48,
+			Color(SHRUG_COLOR, 0.6 * t), 4.0)
+	if statuses.is_in_stag_aura():
+		draw_arc(Vector2(0, 6), 18.0, 0.0, TAU, 24, Color(Palette.MOONLIGHT, 0.35), 2.0)
+	draw_set_transform(Vector2(0, -_foot_lift))
 	if unbound:  # Cold ghost-fire glow behind the sprite, pulsing (no warm colour on nightmares)
 		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 150.0)
 		draw_circle(Vector2(0, -8), 24.0 * sprite.scale.x, Color(UNBOUND_GLOW, 0.18 + 0.12 * pulse))
@@ -627,16 +640,11 @@ func _draw() -> void:
 	if _bolt_flash > 0.0:
 		var t := _bolt_flash / BOLT_FLASH_TIME
 		draw_circle(Vector2.ZERO, 26.0 * (1.5 - t), Color(Palette.GLOW, 0.5 * t))  # The Warden's bolt: warm light
-	if _shrug_flash > 0.0:  # Barrow King: a ring of grave-dust out to the shrug's reach
-		var t := _shrug_flash / SHRUG_FLASH_TIME
-		draw_arc(Vector2.ZERO, enemy_data.shrug_radius * grid.cell_size.x * (1.0 - t * 0.6), 0.0, TAU, 48,
-			Color(SHRUG_COLOR, 0.6 * t), 4.0)
 	if enemy_data.pack_shield < 1.0 and get_pack_multiplier() < 1.0:  # Huntsman: the faint ring while the pack shields him
 		draw_arc(Vector2(0, -8), 30.0 * sprite.scale.x, 0.0, TAU, 32, Color(Palette.DEWLIGHT, 0.35), 2.0)
 	if _hit_mark_time > 0.0:
 		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
-	if statuses.is_in_stag_aura():
-		draw_arc(Vector2(0, 6), 18.0, 0.0, TAU, 24, Color(Palette.MOONLIGHT, 0.35), 2.0)
+	draw_set_transform(Vector2.ZERO)
 	# The health bar, coat, Restless arrows and status badges are in the HUD's own canvas items (update_hud).
 
 # The HUD over this nightmare (health bar, blight coat, Restless arrows, status badges), in canvas
@@ -716,7 +724,7 @@ func _update_hud(delta: float) -> void:
 func _make_hud() -> void:
 	_hud_root = RenderingServer.canvas_item_create()
 	RenderingServer.canvas_item_set_parent(_hud_root, get_canvas_item())  # Moves with the nightmare, no script
-	RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, _corner_offset))  # (Mid-corner already)
+	RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, _body_offset()))  # (Mid-corner already)
 	_hud_items.clear()
 	for kind in HUD_PASSES:
 		var item := RenderingServer.canvas_item_create()
@@ -1078,7 +1086,7 @@ func _update_squeeze(delta: float) -> void:
 		return
 	sprite.scale.x = sprite.scale.x / _squeeze * next
 	_squeeze = next
-	sprite.offset = _corner_offset / sprite.scale  # The rounded-corner offset stays in world pixels
+	sprite.offset = _body_offset() / sprite.scale  # The rounded-corner offset and foot lift stay in world pixels
 
 # Whether the walker is in (or about to enter) a one-half gap: its half cell open, both halves beside it
 # across its walking direction blocked.
@@ -1123,9 +1131,9 @@ func _round_corners() -> void:
 	if offset == _corner_offset:
 		return
 	_corner_offset = offset
-	sprite.offset = offset / sprite.scale
+	sprite.offset = _body_offset() / sprite.scale
 	if _hud_root.is_valid():
-		RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, offset))
+		RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, _body_offset()))
 
 # The drawn offset at `here` for a turn at `corner` (from `before`, towards `after`); zero if the route
 # doesn't turn there or `here` is farther than the rounding from it. `approaching`: before the corner.
@@ -1405,6 +1413,31 @@ func _measure_bar_offset() -> void:
 	if bounds.has("top"):
 		var top: float = float(bounds.top) * sprite.scale.y + sprite.position.y
 		_bar_offset.y = minf(HEALTH_BAR_OFFSET.y, top - BAR_ABOVE_HEAD)
+
+# Feet on the path: the art draws its feet `bottom` px below the frame's centre (bounds.json, the
+# lowest solid pixel: the contact shadow's line), so the body is raised that far, at its scale. Flyers
+# hover, so they keep their place.
+func _measure_foot_lift() -> void:
+	_foot_lift = 0.0
+	if enemy_data.trait_kind == EnemyData.Trait.FLYING:
+		return
+	var frames := sprite.sprite_frames
+	if frames == null or not frames.has_animation(&"walk_side") or frames.get_frame_count(&"walk_side") == 0:
+		return
+	var texture := frames.get_frame_texture(&"walk_side", 0)
+	var sheet: String = texture.atlas.resource_path if texture is AtlasTexture else texture.resource_path
+	var bounds: Dictionary = _art_bounds().get(sheet.get_file().get_basename(), {})
+	if bounds.has("bottom"):
+		_foot_lift = maxf(float(bounds.bottom) - 1.0, 0.0) * sprite.scale.y
+
+# Where the body is drawn (global: its frame's centre). Visuals aim here (projectiles, hit effects);
+# game logic (ranges, splash, y-sort) keeps global_position, the route point under its feet.
+func get_body_position() -> Vector2:
+	return global_position + _body_offset()
+
+# The drawn body's offset from the logical position: the rounded corner plus the foot lift.
+func _body_offset() -> Vector2:
+	return _corner_offset + Vector2(0, -_foot_lift)
 
 # bounds.json, read once (plain numbers: safe to keep in a static).
 static func _art_bounds() -> Dictionary:
