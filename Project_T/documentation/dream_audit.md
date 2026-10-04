@@ -42,7 +42,7 @@ for the same rarity.
 | Clear Tones | Bellflower line +15% speed | **+35%** |
 | Cleared Ground | clears −25% (stacks to −50%) | **−30%** (floor unchanged) |
 | Cliffside | edge Wardens +1 range | +1 range **and +20% damage** |
-| Damp Rot | Spored on Soaked +20% | **+50%** |
+| Soaked Rot | Spored on Soaked +20% | **+50%** |
 | Deep Grip | Rootling line +15% vs Rooted | **+50%** |
 | Deep Roots | +2 max leaves, regrow 2 | **+3**, regrow 3 |
 | Deeper Calm | all +10% damage | **+15%** |
