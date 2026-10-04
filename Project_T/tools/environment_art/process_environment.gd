@@ -17,7 +17,7 @@ const KINDS := {
 	"lightning_tree": DetailPass.Kind.OBSTACLE, "moonwell": DetailPass.Kind.OBSTACLE, "bell_stone": DetailPass.Kind.OBSTACLE, "ancient_stump": DetailPass.Kind.OBSTACLE, "blight_patch": DetailPass.Kind.TILE,
 	"border_wall": DetailPass.Kind.TILE, "rope_bridge": DetailPass.Kind.TILE,
 	"fallen_log": DetailPass.Kind.TILE, "log_furrow": DetailPass.Kind.TILE,
-	"path_dual": DetailPass.Kind.TILE, "bog_path_dual": DetailPass.Kind.TILE, "heartwood_roots_dual": DetailPass.Kind.TILE,
+	"path_dual": DetailPass.Kind.TILE, "ground_patch": DetailPass.Kind.TILE, "bog_path_dual": DetailPass.Kind.TILE, "heartwood_roots_dual": DetailPass.Kind.TILE,
 	"withered_tree": DetailPass.Kind.OBSTACLE, "mossy_boulder": DetailPass.Kind.OBSTACLE,
 	"tended_stump": DetailPass.Kind.OBSTACLE, "moved_hollow": DetailPass.Kind.OBSTACLE,
 	"ground_details": DetailPass.Kind.OBSTACLE, "waystone": DetailPass.Kind.OBSTACLE,
@@ -31,7 +31,7 @@ const SNAP_ONLY := ["edge_mist", "void_sky", "void_stars", "cloud_shadows", "mis
 	"route_mist", "route_mist_start", "route_mist_end", "route_wisp", "mushroom_ring"]  # heartwood*: drawn with its own rim and banded glow (matches the Memory Grove)
 # Grain strength (the user's picks, 2026-09-28): no added grain on anything grassy, a light grain on
 # the other ground tiles, full detail on props.
-const NO_GRAIN := ["grass", "island_edge", "dew_pool", "pond", "pond_inner", "heartwood_roots", "blight_patch"]
+const NO_GRAIN := ["grass", "island_edge", "dew_pool", "pond", "pond_inner", "heartwood_roots", "blight_patch", "ground_patch"]
 const TILE_GRAIN := 0.0  # was 0.3; the AI-look audit (2026-10-04): grain on ground tiles read as generated
 
 func _init() -> void:
