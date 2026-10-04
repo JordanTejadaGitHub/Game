@@ -178,6 +178,8 @@ func _setup() -> void:
 			if omen.resource_path.get_file().get_basename() == String(scene.omen):
 				omens.active = omen
 				omens.active_block = director.get_block(drift)
+	for layer in _main.find_children("*", "Parallax2D", true, false):  # The void's sky reaches a tall, zoomed-out frame
+		layer.repeat_times = maxi(layer.repeat_times, 32)
 	_main.get_node("%GameSpeed").set_speed(float(scene.get("speed", 1.0)))
 	if not bool(scene.get("game_music", false)):
 		var music := AudioServer.get_bus_index("Music")
@@ -532,8 +534,19 @@ func _age_tags(real_delta: float) -> void:
 	_tags = _tags.filter(func(tag: Array) -> bool: return tag[2] < TAG_LIFE)
 	_tag_layer.queue_redraw()
 
+# Drawn TAG_SIZE video pixels tall whatever the zoom (a phone screen), gold on a dark pill.
+const TAG_SIZE := 34.0
+
 func _draw_tags() -> void:
+	var zoom: float = _camera.camera_2d.zoom.x if _camera != null else 1.0
+	var font := UiStyle.body_font()
+	var size := int(TAG_SIZE / maxf(zoom, 0.1))
 	for tag in _tags:
 		var share: float = tag[2] / TAG_LIFE
-		var pos: Vector2 = tag[0] - Vector2(0, 28.0 + TAG_RISE * share)
-		WorldLabel.draw_tag(_tag_layer, pos.x, pos.y, tag[1], Color(Palette.GOLD, 1.0 - share * share))
+		var fade := 1.0 - share * share
+		var text: String = tag[1]
+		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+		var pos: Vector2 = tag[0] - Vector2(width / 2.0, (40.0 + TAG_RISE * share) / zoom)
+		var pad := 8.0 / zoom
+		_tag_layer.draw_rect(Rect2(pos + Vector2(-pad, -size * 0.85 - pad * 0.5), Vector2(width + pad * 2.0, size + pad)), Color(Palette.VOID, 0.7 * fade))
+		_tag_layer.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(Palette.GOLD, fade))

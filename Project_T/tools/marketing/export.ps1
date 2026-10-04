@@ -11,12 +11,17 @@
 #   <name>_music.wav      the music bed alone, full length, for mixing in an editor
 param(
 	[Parameter(Mandatory = $true)][string]$Name,
-	[string]$Project = (Resolve-Path "$PSScriptRoot\..\..").Path,
-	[string]$Raw = (Join-Path (Resolve-Path "$PSScriptRoot\..\..\..").Path "marketing\raw"),
-	[string]$Final = (Join-Path (Resolve-Path "$PSScriptRoot\..\..\..").Path "marketing\shorts"),
+	[string]$Project = "",
+	[string]$Raw = "",
+	[string]$Final = "",
 	[string]$Ffmpeg = "D:\Projects\ffmpeg\ffmpeg-9.0.2-essentials_build\bin\ffmpeg.exe"
 )
 $ErrorActionPreference = "Stop"
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path  # tools\marketing ($PSScriptRoot is empty in param defaults on 5.1)
+if ($Project -eq "") { $Project = (Resolve-Path (Join-Path $here "..\..")).Path }
+$marketing = Join-Path (Resolve-Path (Join-Path $here "..\..\..")).Path "marketing"
+if ($Raw -eq "") { $Raw = Join-Path $marketing "raw" }
+if ($Final -eq "") { $Final = Join-Path $marketing "shorts" }
 $scene = Get-Content (Join-Path $Project "capture\$Name.json") -Raw | ConvertFrom-Json
 $movie = Join-Path $Raw "$Name.avi"
 if (-not (Test-Path $movie)) { throw "No capture $movie (run capture.ps1 first)" }
@@ -64,7 +69,7 @@ function Captions([string]$style) {
 		$text = [string]$cap[2]
 		if ($style -eq "lower") { $text = $text.ToLower() }
 		Text "cap_${style}_$i.txt" (Wrap $text)
-		$filters += "drawtext=fontfile=body.ttf:textfile=cap_${style}_$i.txt:fontsize=64:fontcolor=0xfff4dc:line_spacing=12:" +
+		$filters += "drawtext=fontfile=body.ttf:textfile=cap_${style}_$i.txt:fontsize=64:fontcolor=0xfff4dc:line_spacing=12:text_align=C:" +
 			"box=1:boxcolor=0x05050d@0.6:boxborderw=28:x=(w-text_w)/2:y=h*0.11:enable='between(t,$(F $cap[0]),$(F $cap[1]))'"
 		$i++
 	}
@@ -88,9 +93,11 @@ function Music([double]$db, [string]$label) {
 
 function Render([string]$out, [string]$captionStyle, [double]$musicDb, [double]$gameDb, [bool]$wide) {
 	$caps = if ($captionStyle -eq "") { "null" } else { Captions $captionStyle }
+	# Platform cuts are levelled to -14 LUFS (Shorts / TikTok); the voiceover cut keeps its quiet bed for the voice.
+	$loud = if ($captionStyle -eq "") { "" } else { ",loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000" }
 	$graph = "[0:v]fps=60,format=yuv420p,$caps[body];$card;[body][card]concat=n=2:v=1:a=0[tall];" +
 		"[0:a]aresample=48000,volume=${gameDb}dB,apad=whole_dur=$(F $total)[game];" + (Music $musicDb "mus") + ";" +
-		"[game][mus]amix=inputs=2:normalize=0,atrim=0:$(F $total)[a]"
+		"[game][mus]amix=inputs=2:normalize=0,atrim=0:$(F $total)$loud[a]"
 	if ($wide) {
 		$graph += ";[tall]split[t1][t2];[t1]scale=1920:-2,crop=1920:1080,boxblur=24:2,eq=brightness=-0.25[bg];" +
 			"[t2]scale=-2:1080:flags=lanczos[fg];[bg][fg]overlay=(W-w)/2:0[v]"

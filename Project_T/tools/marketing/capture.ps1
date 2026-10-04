@@ -7,11 +7,14 @@
 # Debug builds only (run from the editor binary). Writes only the capture profile (user://capture_*.json).
 param(
 	[Parameter(Mandatory = $true)][string]$Name,
-	[string]$Project = (Resolve-Path "$PSScriptRoot\..\..").Path,
-	[string]$Out = (Join-Path (Resolve-Path "$PSScriptRoot\..\..\..").Path "marketing\raw"),
+	[string]$Project = "",
+	[string]$Out = "",
 	[string]$Godot = "D:\Program Files\Godot\Godot_v4.7.2-stable_win64.exe"
 )
 $ErrorActionPreference = "Stop"
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path  # tools\marketing ($PSScriptRoot is empty in param defaults on 5.1)
+if ($Project -eq "") { $Project = (Resolve-Path (Join-Path $here "..\..")).Path }
+if ($Out -eq "") { $Out = Join-Path (Resolve-Path (Join-Path $here "..\..\..")).Path "marketing\raw" }
 $scenePath = Join-Path $Project "capture\$Name.json"
 if (-not (Test-Path $scenePath)) { throw "No capture scene $scenePath" }
 $scene = Get-Content $scenePath -Raw | ConvertFrom-Json
