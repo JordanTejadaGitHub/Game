@@ -772,6 +772,13 @@ on the merged build, at low sim load while the user may play:
    by spec, so check only that they read the same.
 Lever if mazes grow a lot: act 1 ramp / finale health, not Warden numbers.
 
+**Item 1, routes + act 1** (0596eb94; the bot made half-aware in the same commit, 30 seeds per bot): half-aware
+mazes are **+7% (opening) to +12% (drift 24)** longer (83 vs 74 cells at 24). Act 1 survival is **73% with
+either bot**, so **half cells barely move act 1**. The jump from 53% (84bbaf44) comes from the changes in
+between (finale ×1.4 from drift 15, finale elites without ×1.4, the Firefly Jar buff, Nurture): now **above
+the 55–60% target**. Held until the skip arm: if skip also rises well above 15%, act 1 tightens (the ramp or
+the drift 20 finale); humans (runs 15–16) still end in act 2 and found it fair.
+
 ## Milestone thresholds (2026-10-04; milestones give bonus Seeds only, meta_design.md 269b14b0)
 
 Checked against the user's profile and run history: shades_dispelled 577 after a few real runs; a drift-42
