@@ -213,7 +213,7 @@ lost 0–20). They're wired into the map (`EnvironmentTiles`), with the lighting
     some plinths and Dewdrop's head).
   - **Sprout and Thornwall keep today's size.** Sprout is the seed every family grows from, so the
     size jump is part of growing; Thornwall is a plain wall (the user: "keep the Thornwall the same
-    size as well").
+    size as well"). Their grown forms (Bramble, Honeysuckle and the stone forms) grow like every other branch, which shows the growth.
   - **Nightmares must look like they walk on the path**, not float over it or beside it, next to
     the bigger Wardens.
   - **The footprint stays one cell** (2×2 half cells); only the art grows. Gameplay, pathing and
