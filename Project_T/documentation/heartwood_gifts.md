@@ -50,7 +50,7 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
 | Gift | What it does |
 |---|---|
 | **Old Kin** | One Kinship you choose jumps a stage, and new bonds start one stage up for the next act. |
-| **Deeper Glade** | The Heartwood's glade grows by one ring of clear cells (more room to wall it in), and +1 max leaf. |
+| **Shifting Mist** | The start mist moves. 3 spots on the island's rim are offered (the MapLayout rules: on the rim, far enough from the Heartwood), each previewed with its route mist and path length; pick one, or keep the old start. Nightmares arrive from there for the rest of the run, so your maze faces a new way. Bridge and mist move with it. (Replaces Deeper Glade, 2026-10-04, user: "seems useless".) |
 | **Waking Root** | The next form you unlock on the Remember screen costs 1 less Dreamlight. |
 | **Memory Seed** | Choose a Warden: this act, selling and replanting it keeps its ranks and Kinship age (move it freely at rests). |
 
