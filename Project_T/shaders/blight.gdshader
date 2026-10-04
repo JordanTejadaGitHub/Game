@@ -1,17 +1,26 @@
 shader_type canvas_item;
 
-// Nightmare presence on top of the (already dark, cold) nightmare art: partly translucent with a
-// slow shimmer running through it, the brightest pixels (eyes, cores) glowing a little harder.
-// No recolour: the darkness lives in the sprites. `crack` splits it with lines of light (dispel).
+// Nightmare presence on top of the (already dark, cold) nightmare art: a slow shimmer running through
+// it, the brightest pixels (eyes, cores) glowing harder. No recolour: the darkness lives in the sprites.
+// `crack` splits it with lines of light (dispel).
+// They must read on the pale path at small sizes (art_direction.md "Nightmares"): the solid body stays
+// near-opaque (see-through only where the art itself draws partial alpha: ragged edges, smoke), the
+// glow is a hard step, and when a texel is under ~1.2 screen pixels a 1 px Dread outline rings the body.
 
 // 1 = full nightmare presence, 0 = the plain sprite.
 uniform float blight : hint_range(0.0, 1.0) = 1.0;
-// Body alpha; glowing pixels stay solid. The shimmer is a slow wave of extra see-through.
+// Alpha of the art's solid pixels (alpha >= 0.9) and of its partial ones (edges, smoke); glowing pixels
+// stay solid. The shimmer is a slow wave of extra see-through on top.
+uniform float body_alpha : hint_range(0.8, 1.0) = 0.95;
 uniform float translucency : hint_range(0.3, 1.0) = 0.85;
-uniform float shimmer : hint_range(0.0, 0.3) = 0.08;
-// Pixels brighter than glow_start (eyes, cores) are brightened by up to glow_strength.
+uniform float shimmer : hint_range(0.0, 0.3) = 0.04;
+// Pixels at least glow_start bright (eyes, cores) are brightened by glow_strength: a hard step.
 uniform float glow_start : hint_range(0.0, 1.0) = 0.6;
 uniform float glow_strength : hint_range(0.0, 2.0) = 0.5;
+// The small-size outline (Heartwood 32 "Dread" #140f26): on while a texel covers fewer screen pixels
+// than small_outline_below (whole-map zoom). Alpha 0 = off.
+uniform vec4 small_outline_color : source_color = vec4(0.078, 0.059, 0.149, 0.85);
+uniform float small_outline_below = 1.2;
 
 // Colour-blind-friendly blight cue (setting "blight_outline"): a 1 px outline round Deeply Blighted
 // nightmares. Alpha 0 = off.
@@ -52,18 +61,24 @@ void fragment() {
 	// In Godot 4, COLOR already holds texture * vertex colour * modulate here.
 	vec4 color = COLOR;
 	float luminance = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-	float glow = smoothstep(glow_start, 1.0, luminance);
+	float glow = step(glow_start, luminance);
 	float wave = sin(TIME * 2.3 + UV.y * 90.0 + UV.x * 40.0) * 0.5 + 0.5;
-	float alpha = mix(translucency - shimmer * wave, 1.0, glow);
+	float base_alpha = mix(translucency, body_alpha, step(0.9, color.a));
+	float alpha = mix(base_alpha - shimmer * wave, 1.0, glow);
 	vec3 lit = color.rgb * (1.0 + glow * glow_strength);
 	COLOR = vec4(mix(color.rgb, lit, blight), color.a * mix(1.0, alpha, blight));
 
-	if (outline_color.a > 0.0 && color.a < 0.5) {
+	if (color.a < 0.5) {
 		vec2 px = TEXTURE_PIXEL_SIZE;
 		float near = texture(TEXTURE, UV + vec2(px.x, 0.0)).a + texture(TEXTURE, UV - vec2(px.x, 0.0)).a
 			+ texture(TEXTURE, UV + vec2(0.0, px.y)).a + texture(TEXTURE, UV - vec2(0.0, px.y)).a;
-		if (near > 0.5) {
+		// Screen pixels per texel (whole-map zoom ≈ 1)
+		float on_screen = TEXTURE_PIXEL_SIZE.x / max(fwidth(UV.x), 1e-6);
+		if (outline_color.a > 0.0 && near > 0.5) {
 			COLOR = outline_color;
+		} else if (small_outline_color.a > 0.0 && blight > 0.5 && color.a < 0.1 && near > 0.9
+				&& on_screen < small_outline_below) {
+			COLOR = small_outline_color;  // Only next to the body's solid pixels, never over the art's own smoke
 		}
 	}
 
