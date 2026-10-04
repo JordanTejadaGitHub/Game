@@ -151,7 +151,8 @@ lost 0–20). They're wired into the map (`EnvironmentTiles`), with the lighting
   < the ground. The path is pale, moonlit earth and must always be the most readable thing on the
   map. Checked in every act after the colour pass.
 - **Path width: at least half a cell** (user, 2026-10-04, on "make the path half a cell"). The pale
-  path is never thinner than one half cell (32 px), and it's broader on open ground. A hairline path
+  path is **one half cell (32 px) of pale earth everywhere**: never thinner, and not broader (the
+  user found the old broad path "too big"). A hairline path
   (a capture showed a ~¼-cell line) loses the route at thumbnail size and drops nightmares onto dark
   grass, where they vanish. Nightmares' feet sit on the path's centreline, so their bodies stand on
   pale earth.
