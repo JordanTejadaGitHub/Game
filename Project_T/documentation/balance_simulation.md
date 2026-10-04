@@ -756,6 +756,14 @@ were at 0.1–0.4 of the route, nothing near the Heartwood.
 - Nestling isn't expanded yet (the sky merge is Phase 3), so both branches were offered and the user picked
   the support. Not a draw issue; watch whether Magpie Perch reads as a trap first pick.
 
+## Milestone thresholds (2026-10-04; milestones give bonus Seeds only, meta_design.md 269b14b0)
+
+Checked against the user's profile and run history: shades_dispelled 577 after a few real runs; a drift-42
+run dispels ~1,200 nightmares (~700 Shades). **Shades 3,000** total (was 2,000: the third good run); **path 130
+tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–57, bot mazes ~80 at drift 24);
+**tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
+`longest_path` / `tended` requested in the run history to re-check.
+
 ## Human run 16 (2026-10-03, build 0848cb = 27c658f7, the real profile with 0 Grove nodes)
 
 **Lost at drift 42**, 13 min. Firefly Jar → Dewdrop; **2 Starbursts = 53% of damage**, 7 Sparklers, 3
