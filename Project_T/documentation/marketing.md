@@ -193,7 +193,7 @@ words of the short description**. Nothing on the page opens with lore or the loo
 | About | outline above | GIFs (capture tools) |
 | Tags | drafted above | — |
 | 5–8 screenshots | **released** (look stable 2026-10-04); order above, #1 = half-cell maze + route | nightmare readability (art_direction.md 395fed8a: Enemy Assets done f07637d1; Enemy Code shader, Environment Assets path shadows to land); Warden poses no longer block (reverted 7049be26); capture scene: inland clear + Warden-walled maze (Main Merger) |
-| Trailer | §5; its first seconds = the maze | Trailer chat, capture tools; date locked by Marketing Discussion |
+| Trailer | §5; its first seconds = the maze. **Target: user-approved by 2026-10-07** (~3 days after stable) | Main Merger's true 16:9 trailer export (cut list at 1920×1080, the cue's full mix, timed text cards, logo end card); Sound's cue stems; then the user's review + one revision |
 | AI disclosure | drafted in §7 | Valve's wording at submission |
 
 ## 7. AI disclosure (Steam requires it)
