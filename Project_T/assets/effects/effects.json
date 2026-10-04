@@ -46,23 +46,7 @@
 			"frames": 8,
 			"kind": "signature",
 			"loop": false,
-			"note": "Beacon: a flare shooting up from the Beacon (anchor = its top) and bursting; then fade beacon_pulse over the map."
-		},
-		"beacon_pulse": {
-			"anchor": [
-				32,
-				32
-			],
-			"file": "beacon_pulse.png",
-			"fps": 1.0,
-			"frame_size": [
-				64,
-				64
-			],
-			"frames": 1,
-			"kind": "overlay",
-			"loop": false,
-			"note": "Map-wide light pulse: scale it over the whole map (it's a soft warm radial wash in palette alpha steps), fade in ~0.2 s and out ~1 s, additive or ~40% alpha."
+			"note": "Beacon: a flare shooting up from the Beacon (anchor = its top) and bursting; the ring of light that follows is drawn in code (BeaconRing)."
 		},
 		"brood_end": {
 			"anchor": [
