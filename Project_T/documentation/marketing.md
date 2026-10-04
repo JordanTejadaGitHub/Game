@@ -126,15 +126,18 @@ one concrete thing each, in the developer's voice (text_pass.md), and read in un
 
 | Time | Shot | On screen | Music |
 |---|---|---|---|
-| 0–5 s | Frame one: a staggered half-cell maze. Wardens snap down one after another; with each, the route mist bends live into a longer detour ("+N path"). | "Your Wardens are the walls." | base stem |
-| 5–9 s | Close on the forest edge: a Shade's eyes open and it skitters in. A spore puff hits it; it shrieks and cracks into motes. | | quiet beat |
-| 9–16 s | Pull back: the drift streams in and walks every bend of the maze; dispels along it. | "Now they take the long way." | + dread1 |
-| 16–28 s | A Soaked crowd, Charged: Thunderclap callouts; Poisoned fog on the next bend. | "Soaked + Charged = Thunderclap." | + dread2 |
-| 28–38 s | A rest: the Dream pick (3 cards, one taken); a Warden grows into its branch; Kinship roots join two kin. | "Three Dreams at every rest. Take one." | rest swell |
-| 38–46 s | A Heartwood's Gift (Sow a Ridge): the ridge rises, the route bends around it live. | "That ridge wasn't there a minute ago." | |
-| 46–60 s | The Hollow Stag charges a straight corridor, then stalls on a bend; cut to the Night Mare's laps; the Hollow Oak rising. | "The Stag charges down straight lines. So don't build any." (over the Stag only) | + heartbeat, boss stem from the Oak |
-| 60–70 s | A late storm board: one chain to ×10, Dawnburst; the Heartwood glowing gold. | | full |
-| 70–75 s | Logo, the tagline *"Grow a living maze. Hold back the nightmares."*, "Wishlist on Steam", platforms. | "Heartwood TD" (pitch.md "Title"; trademark check pending) | resolve |
+| 0–5 s | Frame one: a staggered half-cell maze. Wardens snap down one after another; with each, the route mist bends live into a longer detour ("+N path"). | "Your Wardens are the walls." | motif, Warden snaps on the pulse |
+| 5–10 s | Close on the forest edge: a Shade's eyes open and it skitters in. A spore puff hits it; it shrieks and cracks into motes. | | near-silence; **hit 7.5 s**: the dispel |
+| 10–15 s | Pull back: the drift streams in and walks every bend of the maze; dispels along it. | "Now they take the long way." | pulse returns |
+| 15–27.5 s | A Soaked crowd, Charged: Thunderclap callouts; Poisoned fog on the next bend. | "Soaked + Charged = Thunderclap." | build; **hit 20 s**: the Thunderclap |
+| 27.5–37.5 s | A rest: the Dream pick (3 cards, one taken); a Warden grows into its branch; Kinship roots join two kin. | "Three Dreams at every rest. Take one." | breath |
+| 37.5–45 s | A Heartwood's Gift (Sow a Ridge): the ridge rises, the route bends around it live. | "That ridge wasn't there a minute ago." | |
+| 45–60 s | The Hollow Stag charges a straight corridor, then stalls on a bend; cut to the Night Mare's laps; the Hollow Oak rising. | "The Stag charges down straight lines. So don't build any." (over the Stag only) | boss; **hit 52.5 s**: the Stag stalls |
+| 60–70 s | A late storm board: one chain to ×10, Dawnburst; the Heartwood glowing gold. | | full; **hit 65 s**: the Dawnburst |
+| 70–75 s | Logo, the tagline *"Grow a living maze. Hold back the nightmares."*, "Wishlist on Steam", platforms. | "Heartwood TD" (pitch.md "Title"; trademark check pending) | held chord from 70 s |
+
+**Music:** the dedicated trailer cue (§9), not the loop stems. Cuts sit on 2.5 s bars (72 bpm 3/4) and the four hits
+fall on downbeats; if Sound Discussion picks another tempo, the cuts move to its bars. Cut changes go to Sound Discussion.
 
 Dropped from the draft: the Omen screen (a second menu in 10 s; save it for a short).
 
