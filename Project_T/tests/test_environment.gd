@@ -60,7 +60,7 @@ func _init() -> void:
 	_check(path.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.PATH_RIM
 		and ground.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.ISLAND_EDGE,
 		"the start draws rim-edge path over the rim, no grass")
-	_check(path.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.PATH
+	_check(map.path_layer.current_path.has(map.endPath)  # Half cells: the route is a soft fill, not tiles
 		and ground.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.GRASS, "the Heartwood stands inland, on grass")
 	var out_bit: int = {Vector2i.UP: 1, Vector2i.RIGHT: 2, Vector2i.DOWN: 4, Vector2i.LEFT: 8}[out]
 	_check(start_mask & out_bit, "the start's path tile runs off its edge (mask %d)" % start_mask)
@@ -220,6 +220,8 @@ func _render(main: Node, layers: Array, file: String) -> void:
 			var coords := layer.get_cell_atlas_coords(cell)
 			var origin := source.get_tile_data(coords, 0).texture_origin
 			image.blend_rect(sheets[source], Rect2i(coords * region, region), at + (tile - region) / 2 - origin)
+		if layer == map.path_layer:
+			_blend_half_path(image, map, offset)
 	_blend_pond_corners(image, map, offset)
 	var heartwood: Heartwood = map.heartwood
 	var tree: Image = heartwood.texture.get_image()
@@ -353,6 +355,8 @@ func _flat_map(main: Node) -> Image:
 			var coords := layer.get_cell_atlas_coords(cell)
 			var origin := source.get_tile_data(coords, 0).texture_origin
 			image.blend_rect(sheets[source], Rect2i(coords * region, region), cell * tile + (tile - region) / 2 - origin)
+		if layer == map.path_layer:
+			_blend_half_path(image, map, Vector2i.ZERO)
 	_blend_pond_corners(image, map, Vector2i.ZERO)
 	var heartwood: Heartwood = map.heartwood
 	var tree: Image = heartwood.texture.get_image()
@@ -394,3 +398,14 @@ func _blend_pond_corners(image: Image, map: Node, offset: Vector2i) -> void:
 			art.convert(Image.FORMAT_RGBA8)
 			var region := Rect2i(child.region_rect)
 			image.blend_rect(art, region, Vector2i(child.position) - region.size / 2 + offset)
+
+# Half cells (experiment/half-cells): the route is PathGenerator's soft fill, not tiles. Drawn the same way.
+func _blend_half_path(image: Image, map: Node, offset: Vector2i) -> void:
+	var size := Vector2(map.MAP_GRID.cell_size)
+	for pass_index in 2:
+		var grow := 3.0 if pass_index == 0 else -1.0
+		var colour := Palette.LOAM if pass_index == 0 else Palette.PATH
+		for point in map.path_layer.current_path:
+			var rect := Rect2(map.MAP_GRID.calculate_map_position(point) - size / 2.0, size).grow(grow)
+			image.fill_rect(Rect2i(Vector2i(rect.position) + offset, Vector2i(rect.size)).intersection(
+				Rect2i(Vector2i.ZERO, image.get_size())), colour)
