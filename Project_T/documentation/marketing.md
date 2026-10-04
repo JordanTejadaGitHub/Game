@@ -27,8 +27,9 @@ page points to the Steam page.
    the call is "wishlist it on Steam", and the page must be up before it posts.
    **Hold on all video renders** (the user, 2026-10-04): the path and other environment art are still changing, so no
    final renders of shorts, the trailer or screenshots until Theme Discussion calls the look stable. Open: the Heartwood
-   glow fix (Environment Code), the half-grid path art (being confirmed), **bigger Wardens** (if the user approves the
-   preview, the whole roster changes first). Done: grain clean-up, nightmare readability. Scripts, voiceover, capture scenes and test renders can go on.
+   glow fix and path ribbon (Environment Code), **ground variation** (moss / clearing / flower patches; Environment
+   Discussion → Assets + Code), bigger dead-fruit husks on the Heartwood, **bigger Wardens** (if the user approves the
+   preview, the whole roster changes first). Environment Assets' other art is final. Done: grain clean-up, nightmare readability. Scripts, voiceover, capture scenes and test renders can go on.
 3. **Trailer** (60–90 s): once the capture tools exist.
 4. **Demo + Steam Next Fest**: the biggest wishlist spike; plan it for when the demo is polished.
 
