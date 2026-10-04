@@ -446,12 +446,12 @@ func _on_loadout_closed(start: bool) -> void:
 	if start:
 		_pick_blight()
 
-# First visit with Seeds already waiting (e.g. from the demo): "The forest remembered you."
+# First visit with Seeds already waiting (e.g. from the demo): "Back again. Good." (text_pass.md)
 func _welcome() -> void:
 	if _memory.grove_welcome_shown:
 		return
 	if _memory.seeds > 0:
-		_message.text = "The forest remembered you. Your %d Seeds were waiting." % int(_memory.seeds)
+		_message.text = "Back again. Good. Your %d Seeds were waiting." % int(_memory.seeds)
 	_memory.grove_welcome_shown = true
 	HeartwoodMemory.save_data(_memory)
 
