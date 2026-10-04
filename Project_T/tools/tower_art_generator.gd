@@ -360,7 +360,7 @@ func _make(tower_name: String, draw: Callable) -> Image:
 		draw.call(canvas, st)
 		_final_extra(tower_name, canvas, st)
 		sheet.blit_rect(_tall_frame(tower_name, canvas, st), Rect2i(0, 0, S, h), Vector2i(f * S, 0))
-	sheet = _warden_night(_detail_pass(sheet, Vector2i(S, h)))
+	sheet = _warden_night(_detail_pass(sheet, Vector2i(S, h), true))
 	if NIGHT_RIM.has(tower_name):
 		_night_rim(sheet, HeartwoodPalette_color(NIGHT_RIM[tower_name]))
 	sheet.save_png(OUT + tower_name + ".png")
@@ -418,12 +418,14 @@ func _snap32(img: Image) -> Image:
 # path so the generator still runs where the tools aren't present (then the art is left as drawn).
 const DETAIL_PASS := "res://tools/art/detail_pass.gd"
 
-func _detail_pass(sheet: Image, frame: Vector2i) -> Image:
+func _detail_pass(sheet: Image, frame: Vector2i, idle: bool = false) -> Image:
 	if not ResourceLoader.exists(DETAIL_PASS):
 		push_warning("tools/art/detail_pass.gd not found: saving Warden art without the palette pass")
 		return sheet
 	var pass_script: Script = load(DETAIL_PASS)
-	return pass_script.apply_sheet(sheet, frame, pass_script.Kind.WARDEN)
+	# Calm mode (AI-look audit, 4bb3b376): no grain, in-ramp shading; idle sheets get no glow at all
+	# (glow marks the attack), attack sheets keep it in two hard steps.
+	return pass_script.apply_sheet(sheet, frame, pass_script.Kind.WARDEN, -1 if idle else 0, 1.0, true)
 
 # <name>_attack.png: the Warden's body in attack poses plus its attack effect on top.
 func _make_attack(tower_name: String) -> Image:
@@ -1477,8 +1479,8 @@ func _patches(canvas: Image, top: Image, blobs: Array, ramp: Array[Color]) -> vo
 					continue
 				var d := (Vector2(x + 0.5, y + 0.5) - blob.position) / blob.size
 				var q := d.length()
-				if q > 1.0 or (q > 0.8 and (x + y) % 2 == 0):
-					continue
+				if q > 1.0:
+					continue  # crisp edges, no checker (AI-look audit)
 				_sp(canvas, x, y, ramp[2] if (q < 0.5 and d.y < 0.0) else (ramp[0] if q > 0.8 else ramp[1]))
 
 const MOSS_BLOBS := [Rect2(11, 40, 9, 3.5), Rect2(51, 41, 8, 3), Rect2(30, 51, 10, 3), Rect2(42, 30, 6, 2.5), Rect2(21, 31, 5, 2)]
@@ -1927,8 +1929,8 @@ func _draw_firefly_jar(canvas: Image, st: Dictionary) -> void:
 	for y in range(-OY, S):
 		for x in S:
 			var q := ((Vector2(x + 0.5, y + 0.5) - Vector2(31, 45)) / Vector2(24, 8)).length()
-			if bright and _gp(top, x, y).a > 0.0 and q < 1.0 and q > 0.7 and (x + y) % 2 == 0:
-				_sp(canvas, x, y, Color("#d8d890"))
+			if bright and _gp(top, x, y).a > 0.0 and q < 1.0 and q > 0.78:
+				_sp(canvas, x, y, _gp(canvas, x, y).lerp(Color("#d8d890"), 0.55))  # a solid band of light, no checker
 	var mask := _draw_template_figure(canvas, st.pose, fig)
 	# Glass highlights down the left side and on the head.
 	for y in range(24, 40):
@@ -2049,10 +2051,11 @@ func _warm_glow(canvas: Image, c: Vector2, r: Vector2, phase: int = 0) -> void:
 			if _gp(canvas, x, y).a > 0.0:
 				continue
 			var q := ((Vector2(x + 0.5, y + 0.5) - c) / r).length()
-			if q < 0.6 and (x + y + phase) % 2 == 0:
-				_sp(canvas, x, y, GLOW_INNER)
-			elif q < 1.0 and (x + 2 * y + phase) % 4 == 0:
-				_sp(canvas, x, y, GLOW_OUTER)
+			# Two hard alpha bands, no checker (AI-look audit).
+			if q < 0.55:
+				_sp(canvas, x, y, Color(GLOW_INNER, 0.75))
+			elif q < 1.0:
+				_sp(canvas, x, y, Color(GLOW_OUTER, 0.4))
 
 # A puff that bursts on release, then scatters into dots and fades.
 func _burst(canvas: Image, c: Vector2, a: int, light_col: Color, dark_col: Color, o: Color) -> void:
@@ -2086,8 +2089,8 @@ func _ring(canvas: Image, c: Vector2, r: Vector2, color: Color, fading: bool) ->
 	for y in range(-OY, S):
 		for x in S:
 			var q := ((Vector2(x + 0.5, y + 0.5) - c) / r).length()
-			if absf(q - 1.0) * minf(r.x, r.y) < 0.55 and not (fading and (x + y) % 2 == 0):
-				_sp(canvas, x, y, color)
+			if absf(q - 1.0) * minf(r.x, r.y) < 0.55:
+				_sp(canvas, x, y, Color(color, color.a * 0.4) if fading else color)
 
 func _pulse(canvas: Image, st: Dictionary, color: Color) -> void:
 	var c := Vector2(ATTACKS["rootling"].point)
@@ -2239,8 +2242,7 @@ func _fog(canvas: Image, c: Vector2, r: Vector2, color: Color, phase: int) -> vo
 			var q := ((Vector2(x + 0.5, y + 0.5) - c) / r).length()
 			if q > 1.0:
 				continue
-			if (q < 0.55 and (x + y + phase) % 2 == 0) or (q >= 0.55 and (x + 2 * y + phase) % 4 == 0):
-				_sp(canvas, x, y, color)
+			_sp(canvas, x, y, Color(color, color.a * (0.75 if q < 0.55 else 0.4)))  # two hard alpha bands, no checker
 
 # Zigzag lightning from a to b with a glow beside it.
 func _bolt(canvas: Image, a: Vector2, b: Vector2, core: Color, glow: Color, kinks: int = 4) -> void:
@@ -3091,7 +3093,7 @@ func _moth_body(canvas: Image, st: Dictionary, beacon: bool) -> void:
 			if q < 1.0 and _gp(mask, x, y).a > 0.0 and _gp(canvas, x, y) != fig.o:
 				if q < 0.5:
 					_sp(canvas, x, y, Color.WHITE if beacon else Color("#fff0b0"))
-				elif (x + y) % 2 == 0:
+				elif q < 0.8:
 					_sp(canvas, x, y, Color("#f8d890"))
 	var lid := _layer()
 	_round_rect(lid, Rect2i(25, 3 + dy, 12, 3), 1, Color("#5a5a6a"))
@@ -3164,7 +3166,8 @@ func _tall_beacon(back: Image, front: Image, st: Dictionary) -> void:
 	_line(front, [BEACON_LAMP + Vector2(-4, -7), BEACON_LAMP + Vector2(4, -7)], Color("#5c3c24"))
 	_line(front, [BEACON_LAMP + Vector2(-3, -8), BEACON_LAMP + Vector2(3, -8)], Color("#5c3c24"))
 	_px(front, int(BEACON_LAMP.x), int(BEACON_LAMP.y) - 9, o)
-	_warm_glow(front, BEACON_LAMP, Vector2(8, 8), st.f)
+	if st.attack >= 0:
+		_warm_glow(front, BEACON_LAMP, Vector2(8, 8), st.f)  # the lamp glows when it fires (AI-look audit: glow marks the attack)
 	# Motes rising off the light.
 	for k in 3:
 		var t := fposmod(float(st.f) / st.n + k / 3.0, 1.0)
@@ -3183,7 +3186,7 @@ func _draw_sunpetal(canvas: Image, st: Dictionary) -> void:
 	for y in range(-OY, S):
 		for x in S:
 			if ((Vector2(x + 0.5, y + 0.5) - face_c) / Vector2(8.5, 6.5)).length() < 1.0 and _gp(mask, x, y).a > 0.0 and _gp(canvas, x, y) != fig.o:
-				_sp(canvas, x, y, Color("#8a5a2a") if (x + y) % 2 == 0 else Color("#6a4020"))
+				_sp(canvas, x, y, Color("#6a4020") if ((Vector2(x + 0.5, y + 0.5) - face_c) / Vector2(8.5, 6.5)).length() < 0.55 else Color("#8a5a2a"))
 	_leaf(canvas, Vector2(43, 30), Vector2(52, 24), 3.0, _ramp(LEAF), fig.o)
 	_golem_face(canvas, st, fig, Color("#ffe070"), false)
 
@@ -3708,7 +3711,7 @@ func _decor_memory(canvas: Image, top: Image, _side: Image, st: Dictionary, _lus
 			if not _on(top, x, y):
 				continue
 			var q := ((Vector2(x + 0.5, y + 0.5) - Vector2(31.5, 45)) / Vector2(26, 9.5)).length()
-			if absf(q - 1.0) < 0.05 or (absf(q - 0.82) < 0.04 and (x + y) % 2 == 0):
+			if absf(q - 1.0) < 0.05 or (absf(q - 0.82) < 0.04 and int((Vector2(x + 0.5, y + 0.5) - Vector2(31.5, 45)).angle() * 8.0) % 2 == 0):
 				_sp(canvas, x, y, MEMORY_GOLD if bright else Color("#c8a048"))
 	for k in 6:
 		var p := Vector2i((Vector2(31.5, 45) + Vector2.from_angle(k * TAU / 6.0 + 0.5) * Vector2(26, 9.5)).round())
@@ -3905,7 +3908,7 @@ func _draw_midsummer(canvas: Image, st: Dictionary) -> void:
 	for y in range(-OY, S):
 		for x in S:
 			if ((Vector2(x + 0.5, y + 0.5) - face_c) / Vector2(8.5, 6.5)).length() < 1.0 and _gp(mask, x, y).a > 0.0 and _gp(canvas, x, y) != fig.o:
-				_sp(canvas, x, y, Color("#8a5a2a") if (x + y) % 2 == 0 else Color("#6a4020"))
+				_sp(canvas, x, y, Color("#6a4020") if ((Vector2(x + 0.5, y + 0.5) - face_c) / Vector2(8.5, 6.5)).length() < 0.55 else Color("#8a5a2a"))
 	_leaf(canvas, Vector2(43, 30), Vector2(53, 23), 3.2, _ramp(LEAF), fig.o)
 	_golem_face(canvas, st, fig, Color("#ffe070"), false)
 	for k in 3:
@@ -6349,7 +6352,7 @@ const EPIC := {
 	"monsoon": {glow = "#9cd4fc", core = "#dce8f4", tint = ["#2c4c5c", "#4c8ca4", "#9cd4fc", "#dce8f4"]},
 	"morning_fog": {glow = "#dce8f4", core = "#ffffff", tint = ["#8c8cac", "#b4b0c8", "#dce8f4", "#ffffff"]},
 	"hoarfrost": {glow = "#9cd4fc", core = "#ffffff", tint = ["#4c8ca4", "#9cd4fc", "#dce8f4", "#ffffff"]},
-	"thunderhead": {glow = "#fcd47c", core = "#fff4dc", tint = []},
+	"thunderhead": {glow = "#9cd4fc", core = "#dce8f4", tint = []},  # cold, so its idle ring carries no warm halo (AI-look audit)
 	"beacon": {glow = "#fcd47c", core = "#fff4dc", tint = []},
 	"midsummer": {glow = "#e9a83c", core = "#fff4dc", tint = []},
 	"long_way_home": {glow = "#e9a83c", core = "#fcd47c", tint = ["#241c14", "#5c3c24", "#8c5c34", "#bca48c"]},
@@ -6579,8 +6582,9 @@ func _epic_swarm(canvas: Image, st: Dictionary, glow: Color, core: Color) -> voi
 		for i in range(1, 3):
 			var b := Vector2(31.5 + cos(a - i * 0.12) * 28.0, 22 + sin(a - i * 0.12) * 11.0 + h)
 			_px(target, roundi(b.x), roundi(b.y), Color(glow, 0.7 - i * 0.2))
-		for d: Vector2i in [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1), Vector2i(-2, 0), Vector2i(2, 0), Vector2i(0, -2), Vector2i(0, 2)]:
-			_px(target, q.x + d.x, q.y + d.y, Color(glow, 0.55))
+		if st.attack >= 0:  # halos only when it fires (AI-look audit: glow marks the attack)
+			for d: Vector2i in [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1), Vector2i(-2, 0), Vector2i(2, 0), Vector2i(0, -2), Vector2i(0, 2)]:
+				_px(target, q.x + d.x, q.y + d.y, Color(glow, 0.55))
 		for d: Vector2i in [Vector2i.ZERO, Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
 			_px(target, q.x + d.x, q.y + d.y, core if d == Vector2i.ZERO or (k + st.f) % 3 == 0 else glow)
 	_under(canvas, back)
