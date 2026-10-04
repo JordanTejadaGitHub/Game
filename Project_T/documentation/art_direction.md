@@ -197,6 +197,19 @@ Full brief per nightmare in `enemy_design.md` ("Art direction" and the "Looks li
   use the old names, e.g. `leaf_bug` = Shade) are drawn dark. The shader must **not recolour or
   darken** them (that flattens their shading to black); it only adds partial translucency, a subtle
   shimmer, and the dispel effect.
+- **They must read on the pale path at small sizes** (2026-10-04, from Marketing's capture at
+  1920×1080 with the whole island in view, drift 20). Act 1 Shades read as pale grey lumps on the
+  beige path, close to rubble and the drifting cloud shadows, and they vanish at Steam's 600 px
+  thumbnail. The cause is **value, not colour**: translucency lets the pale path show through the
+  dark body. The rule:
+  - **The body's dark core stays near-opaque over the path** (translucency only at the ragged lower
+    edge and the smoke). A nightmare is the darkest thing on the path.
+  - **The eyes always read:** a pale pinprick with a hard cold glow step, kept visible at whole-map
+    zoom.
+  - **Nothing else on the path is a dark blob of the same size:** cloud shadows and rubble stay
+    clearly lighter than a nightmare, or stay off the path.
+  - **The test:** a whole-island capture scaled to 600 px wide. Every nightmare on the path must
+    still be visible as a dark shape with eyes.
 
 ## Style references (updated 2026-10-04)
 
