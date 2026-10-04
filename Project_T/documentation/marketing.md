@@ -47,7 +47,7 @@ page points to the Steam page.
 shapes a square grid can't make. Every capture scene uses staggered placements, and the maze shots show them off.
 Capture after the half-cell merge (and after the final half-grid path art, when that lands, re-render).
 
-## 4. The first five shorts (9:16, 15–35 s, captions on, music from the game's stems)
+## 4. Video 0 and the first five shorts (9:16, 15–35 s, captions on, music from the game's stems)
 
 | # | Title / hook (first 2 s) | What happens | Capture setup |
 |---|---|---|---|
@@ -62,11 +62,24 @@ Capture after the half-cell merge (and after the final half-grid path art, when 
 Delivered per short: a **no-caption, music-only version** (music at about −18 dB, so the voice sits on top) plus the
 captioned one. Record the voice, drop it on the timeline, done. Speak like you're showing a friend; first person is fine.
 
-**Short 1: "Your towers ARE the maze." (~25 s)**
-- 0–2 s: *"In my game, your towers are the walls."*
-- 2–10 s: *"Every Warden you plant changes the path the nightmares have to walk. Longer path, more time to hit them."*
-- 10–18 s: *"Forty Wardens in, and the path's about three times as long as when I started."* (the clip's real count)
-- 18–25 s: *"Then I hit start, and they have to walk every bend of it."* · end card: *"It's called Heartwood TD. Wishlist it on Steam."*
+**Video 0: "Why I made this" (~34 s; posts first, once the Steam page is up; script: Marketing Discussion, the user's words)**
+Name the Warcraft 3 maps only: no footage, logos or art from them. Wishlist call until the demo is live. Cut together from
+several captures (export `cuts`, see `capture/video0.json`); every clip at real speed.
+
+| Time | Line | Shot (clip) |
+|---|---|---|
+| 0–3 s | *"Remember the Warcraft 3 maze tower defense maps?"* | Empty island, the first Wardens snapping down (`video0_maze`, short 1's hand-built maze) |
+| 3–9 s | *"Maze TD, Jungle TD. You built the maze yourself, and every tower was a wall."* | The maze growing, the route stretching ("+N path") (`video0_maze`) |
+| 9–17 s | *"I love tower defense. I love roguelites like Slay the Spire and Risk of Rain 2."* | A Dream card pick at a rest, then a Sporeling growing into a Puffball (`video0_dream`) |
+| 17–23 s | *"I couldn't find a game that mixed the two."* (beat) *"So I made one."* | Close on the drift in the maze, pulling back to the whole maze on "So I made one" (`video0_maze`) |
+| 23–29 s | *"Single-player, at your own pace, and every run plays out differently."* | A different island, a Reaction chain across a crowd (`video0_storm`) |
+| 29–34 s | *"It's called Heartwood TD. If that sounds like your thing, wishlist it on Steam."* | End card (held longer than the shorts' 1.5 s) |
+
+**Short 1: "Your towers ARE the maze." (~28 s)**
+- 0–2.5 s: *"In my game, your towers are the walls."*
+- 2.5–8 s: *"Every Warden you plant changes the path the nightmares have to walk. Longer path, more time to hit them."*
+- 8–12.5 s: *"Fifty Wardens in, and the path's about four times as long as when I started."* (the hand-built maze: 50 Wardens, route ~18 → 70 cells)
+- 12.5–28 s: *"Then I hit start, and they have to walk every bend of it."* · end card: *"It's called Heartwood TD. Wishlist it on Steam."*
 
 **Short 2: "Watch this chain." (~22 s)**
 - 0–2 s: *"Watch this chain."*
