@@ -198,6 +198,68 @@ Full brief per nightmare in `enemy_design.md` ("Art direction" and the "Looks li
   darken** them (that flattens their shading to black); it only adds partial translucency, a subtle
   shimmer, and the dispel effect.
 
+## Style references (updated 2026-10-04)
+
+The hand-tuned references live in `assets/style_reference/` (notes in `style_reference.md`, made by
+Theme Asset). Update requested by the user on 2026-10-04: players dislike games that look AI-made, so
+the references show the game **as it is now** and steer every generator away from the usual tells.
+
+### What the reference sheets must show (current state)
+
+- **Warden Night:** Wardens one shade down their ramp; attacks and glows keep full warm light.
+- **The silhouette rule:** a branch and its final side by side at 32 px in grey, including one of the
+  10 tall 64×96 finals and its rise fading over a nightmare.
+- **The new branch forms** (Phase 1 + 2): one pair per family as an example of "same family, new
+  shape".
+- **Emblems:** the family, branch and gift emblems (32 px art, shown at whole-number scales).
+- **The route mist:** a pale Mist core inside Slate, a broken cold edge, soft strands. It reads on the
+  pale path and on dark ground.
+- **The inland Heartwood** with its four Grove stages (young → great old tree) in the same 128 px
+  frame.
+- **The act palettes:** night-indigo ground with moss (acts 1–2), violet with rust (act 3), frost
+  (act 4); warmth only on the path, the Heartwood and the Wardens.
+
+### Avoiding the "AI look"
+
+| Do | Don't |
+|---|---|
+| **Readability first:** calm large flat areas and let shapes read; put texture where a material changes. | Grain or speckle spread evenly over everything. Calm the detail-pass grain on big flat areas (plinth tops, bodies, ground). |
+| **Glow only as a signal:** an attack, a dispel, the Heartwood, a nightmare's eyes, something you can use now. | A soft glow on everything, or a halo round every sprite "for mood". |
+| **Each form its own shape and pose:** stance, crown, prop, held differently (the silhouette rule). | One body template with a recolour and a hat; mirrored, perfectly symmetric poses. |
+| **A few hand-made quirks on hero sprites:** a crooked smile, one ear bent, an asymmetric prop, a patch, a chipped plinth corner. | Flawless, evenly finished sprites where nothing is out of place. |
+| **One light, one outline rule everywhere:** light from the upper left, a Night/Void outline, the rim at most half the edge, the same in every generator. | Light from different sides on different sheets; outlines that change weight or colour between chats. |
+| **Colour from the palette with a purpose:** warm = dream, cold = nightmare, every material in its own ramp. | A generic purple-to-gold "magic" sheen, rainbow gradients, or violet on Wardens. |
+| **Pixel-art discipline:** whole-number scales, no blur, no sub-pixel rotation, hard alpha steps. | Smooth gradients, mixed pixel sizes, anti-aliased edges on pixel sprites. |
+
+### Hand-polish list
+
+The most-seen sprites, where a human touch-up (commissioned or edited by the user) matters most.
+Keep the size, palette and silhouette; add the quirks and fix anything that reads as generated.
+
+1. **The starting Wardens:** Sporeling (the mascot), Firefly Jar and Dewdrop with their branches, plus
+   Sprout and Thornwall (on the map every run).
+2. **The act 1 boss**, the Hollow Stag, and the Shade, the most common nightmare.
+3. **The Heartwood**, all four Grove stages and the damage rows.
+4. **The title Warden** (the relit stone Warden, `c5468b4d`).
+
+### Brief for a human artist: Steam capsule and logo
+
+Showcase art, exempt from the palette, but it must feel like the game.
+
+- **Concept (recommended hybrid of Theme Asset's drafts A and B):** A's watchful stone Warden large
+  in the foreground, menacing rather than cute, lit warm from below and in front. Behind it is B's
+  winding, glowing path seen from above, lined with small Wardens. Nightmares (dark shapes, pinprick
+  eyes) press in from the cold edges. The Heartwood glows gold at the far end of the path.
+- **One idea, big shapes:** it must read at 231×87 (small capsule). Warm centre, cold edges.
+- **The logo:** hand-lettered or hand-drawn, not a stock fantasy font. It sits in the dark part of
+  the image, and also works alone on a transparent background (library logo, at most 1280×720).
+- **Deliverables:** every Steam size (header, small, main, vertical, library hero without text,
+  library logo), plus a layered source file.
+- **Avoid** all the "AI look" items above, and in particular a purple-gold glow over everything, a
+  symmetrical hero pose, and over-rendered texture.
+- **References:** Theme Asset's drafts on its gallery (https://claude.ai/artifact/1Mq111zHWpf3EbgsWwF6d8,
+  "Steam capsule drafts"), `pitch.md` "Capsule art concept", and the title screen art.
+
 ## Still to do
 
 - ~~Audio direction~~: done in `audio_direction.md`.
