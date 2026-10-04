@@ -756,6 +756,22 @@ were at 0.1–0.4 of the route, nothing near the Heartwood.
 - Nestling isn't expanded yet (the sky merge is Phase 3), so both branches were offered and the user picked
   the support. Not a draw issue; watch whether Magpie Perch reads as a trap first pick.
 
+## Half-cell placement: the re-check plan (2026-10-04; half_cells.md, experiment until the user says yes)
+
+Once it merges (Wardens at half-cell offsets, nightmares on a 32 px grid, 1-cell corridor minimum), re-check
+on the merged build, at low sim load while the user may play:
+1. **Route length:** the opening route, the route at drifts 24 / 45, and "+N path" units (cells vs half cells).
+   Mazes are expected to be longer, which eases every drift.
+2. **Act 1 baseline:** fresh Balanced / skip, 30 seeds, --boss-draw, finale leaves (targets as the Current
+   targets table).
+3. **Each act 1 boss forced** (Stag, Night Mare, Scarecrow), 20 seeds; the Stag's trample and the Night
+   Mare's laps on longer routes.
+4. **Time in range:** per-form probes for close-range and pulse Wardens (they gain most from hugging walls).
+5. **Rootling pulls:** the "two pulls = one drag" test in tiles walked (half steps).
+6. **Cell-measured things:** auras, Kinship reach, gift areas, Deeproot's guard ring. They stay in full cells
+   by spec, so check only that they read the same.
+Lever if mazes grow a lot: act 1 ramp / finale health, not Warden numbers.
+
 ## Milestone thresholds (2026-10-04; milestones give bonus Seeds only, meta_design.md 269b14b0)
 
 Checked against the user's profile and run history: shades_dispelled 577 after a few real runs; a drift-42
