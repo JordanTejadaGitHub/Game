@@ -1949,7 +1949,7 @@
 			"frames": 1,
 			"kind": "overlay",
 			"loop": false,
-			"note": "x5 chain: stretch over the whole screen and fade alpha 0 -> 0.8 -> 0 over ~0.5 s. Smooth, not pixel art."
+			"note": "x5 chain: stretch over the whole screen and fade alpha 0 -> 0.8 -> 0 over ~0.5 s. Two hard bands of warm light (AI-look audit: no soft gradients)."
 		},
 		"thorn_spread": {
 			"anchor": [

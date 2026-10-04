@@ -54,6 +54,9 @@ func _sheet(name: String, size: Vector2i, frames: int, fps: float, anchor: Vecto
 	for f in frames:
 		var img := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
 		draw.call(img, f)
+		_hard_alpha(img)
+		if name.begins_with("crowned_") or name == "shatter":
+			_relight(img)
 		sheet.blit_rect(img, Rect2i(Vector2i.ZERO, size), Vector2i(f * size.x, 0))
 	_snap32(sheet)
 	sheet.save_png(OUT + name + ".png")
@@ -321,14 +324,15 @@ func _shatter(img: Image, f: int) -> void:
 		for y in range(16, 48):
 			for x in range(16, 48):
 				if Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), pts):
-					img.set_pixel(x, y, ice if x < 32 else ice_mid)
+					img.set_pixel(x, y, ice if (x - 32) + (y - 32) < 0 else ice_mid)  # lit from the upper left
 		for k in 5:
 			_line(img, pts[k], pts[(k + 1) % 5], OUTLINE)
-		var cracks := [[c, c + Vector2(-7, -6)], [c, c + Vector2(6, 8)]]
+		var cracks := [[c, c + Vector2(-7, -6)]]
 		if f == 1:
 			cracks += [[c, c + Vector2(8, -3)], [c, c + Vector2(-5, 9)], [c + Vector2(-7, -6), c + Vector2(-3, -11)]]
 		for cr: Array in cracks:
 			_line(img, cr[0], cr[1], Color.WHITE)
+		_line(img, c, c + Vector2(6, 8), ice_mid.darkened(0.3))  # the crack on the shadow side
 		return
 	var k := f - 2
 	if k <= 1:
@@ -339,8 +343,9 @@ func _shatter(img: Image, f: int) -> void:
 		var p := c + d * (6 + k * 6) + Vector2(0, k * k * 0.8)
 		var tip := p + d * (4 - k * 0.5)
 		var side := d.orthogonal() * 2.0
-		_line(img, p - side, tip, ice)
-		_line(img, p + side, tip, ice_mid)
+		var lit_side := -side if side.x + side.y > 0.0 else side  # the face towards the upper left
+		_line(img, p + lit_side, tip, ice)
+		_line(img, p - lit_side, tip, ice_mid)
 		_line(img, p - side, p + side, OUTLINE)
 	if k >= 3:
 		for i in 6:
@@ -470,7 +475,7 @@ func _chain_ui() -> void:
 		{lite = "dawnburst_lite", note = "x10 chain. Screen-level: draw centred on the reaction, above the map."})
 	_sheet("dawnburst_lite", Vector2i(256, 256), 8, 16, Vector2i(128, 128), false, "screen", _dawnburst.bind(true))
 	_sheet("surge", Vector2i(128, 128), 1, 0, Vector2i(64, 64), false, "overlay", _surge,
-		{note = "x5 chain: stretch over the whole screen and fade alpha 0 -> 0.8 -> 0 over ~0.5 s. Smooth, not pixel art."})
+		{note = "x5 chain: stretch over the whole screen and fade alpha 0 -> 0.8 -> 0 over ~0.5 s. Two hard bands of warm light (AI-look audit: no soft gradients)."})
 	_sheet("light_thread", Vector2i(32, 8), 4, 16, Vector2i(0, 4), true, "segment", _light_thread,
 		{note = "Stretch or tile along x from a Warden to the reaction; starts and ends at y = 4."})
 	_sheet("crit_flare", Vector2i(48, 48), 5, 20, Vector2i(24, 24), false, "hit", _crit_flare)
@@ -544,8 +549,12 @@ func _surge(img: Image, _f: int) -> void:
 	var c := Vector2(64, 64)
 	for y in 128:
 		for x in 128:
-			var q := clampf((Vector2(x + 0.5, y + 0.5).distance_to(c) / 90.0), 0.0, 1.0)
-			var a := smoothstep(0.35, 1.0, q) * 0.85
+			# Two hard bands (AI-look audit: no soft gradients), their inner edges wavy so the steps read
+			# as a drawn frame of light, not banding.
+			var p := Vector2(x + 0.5, y + 0.5) - c
+			var wob := sin(p.angle() * 7.0) * 0.025 + sin(p.angle() * 3.0 + 1.0) * 0.02
+			var q := p.length() / 90.0 + wob
+			var a := 0.75 if q > 0.86 else (0.4 if q > 0.68 else 0.0)
 			img.set_pixel(x, y, Color(1.0, 0.82, 0.45, a))
 
 func _light_thread(img: Image, f: int) -> void:
@@ -836,7 +845,7 @@ func _dreamlight_shard(img: Image, f: int) -> void:
 			var p := Vector2(x + 0.5, y + 0.5)
 			if Geometry2D.is_point_in_polygon(p, pts):
 				img.set_pixel(x, y, CORE if p.x < c.x else (WARM if p.y < c.y else LILAC))
-	for i in 4:
+	for i in [1, 2]:  # outline only the shadow (lower right) edges; the lit ones stay bright
 		_line(img, pts[i], pts[(i + 1) % 4], Color("#6a4a9a"))
 	if f % 4 == 0:
 		_star(img, c + Vector2(4, -4), 1, Color.WHITE, WARM)
@@ -1370,6 +1379,7 @@ func _crowned_crown(img: Image, f: int) -> void:
 					_px(img, x, y + 2, Color("#ff8aa0"))
 				"w":
 					_px(img, x, y + 2, CORE)
+	_light_upper_left(img, CROWN_DEEP, CROWN_GOLD)
 	# A glint running along the band.
 	var gx: int = [3, 6, 9, 12][f]
 	_px(img, gx, 7, Color.WHITE)
@@ -2166,9 +2176,11 @@ func _logjam_knot(img: Image, f: int) -> void:
 				if front != (pass_i == 1):
 					continue
 				var p := rc + Vector2(cos(a) * 5.5, sin(a) * 2.8 + sin(f * TAU / 6.0 + k) * 0.3)
-				_disc(layer, p, 0.75, ROOT_MID if front else ROOT_DARK)
-				if front and sin(a) > 0.6:
-					layer.set_pixel(floori(p.x), floori(p.y), ROOT_LIGHT)
+				_disc(layer, p, 0.75, ROOT_MID if (front or sin(a) < -0.5) else ROOT_DARK)
+				if not front and sin(a) < -0.6 and cos(a) < 0.3:
+					layer.set_pixel(floori(p.x), floori(p.y), ROOT_LIGHT)  # lit on the upper left
+				elif front and sin(a) > 0.7:
+					layer.set_pixel(floori(p.x), floori(p.y), ROOT_DARK)
 	_outlined(img, layer, ROOT_EDGE)
 	for k in 3:
 		var a := f * TAU / 6.0 + k * TAU / 3.0
@@ -2562,8 +2574,11 @@ func _silence_mark(img: Image, f: int) -> void:
 	# A little bell wrapped in moss, a muted sound line crossed through, bobbing.
 	var bob: int = [0, 0, -1, -1, 0, 0, 1, 1][f]
 	var c := Vector2(12, 11 + bob)
-	_ellipse(img, c, Vector2(4.5, 4.0), Color("#b4b0c8"))
+	_ellipse(img, c, Vector2(4.5, 4.0), Color("#8c8cac"))
+	_ellipse(img, c + Vector2(-0.8, -0.8), Vector2(3.4, 3.0), Color("#b4b0c8"))  # lit from the upper left
 	_ellipse(img, c + Vector2(0, -2), Vector2(5.0, 2.2), Color("#5c944c"))  # the moss muffle
+	_ellipse(img, c + Vector2(-1, -3), Vector2(3.0, 1.0), Color("#9cc46c"))
+	_px(img, int(c.x) - 2, int(c.y) - 1, Color("#dce8f4"))
 	_line(img, c + Vector2(-5, 3), c + Vector2(5, 3), Color("#3c3c5c"))
 	for d in [-1, 1]:
 		_line(img, c + Vector2(d * 6, -2), c + Vector2(d * 9, -4), Color("#dce8f4", 0.8))
@@ -3093,8 +3108,54 @@ func _shard_rise(img: Image, f: int) -> void:
 		for xx in range(9, 16):
 			if Geometry2D.is_point_in_polygon(Vector2(xx + 0.5, yy + 0.5), pts):
 				_px(img, xx, yy, Color("#ec9cf4") if xx < 12 else Color("#9a84e8"))
-	_line(img, c + Vector2(0, -5), c + Vector2(0, 5), Color("#fff4dc"))
+	_line(img, c + Vector2(0, -5), c + Vector2(0, 1), Color("#fff4dc"))
+	_px(img, int(c.x) - 1, int(c.y) - 3, Color("#ffffff"))
 	for k in 3:
-		_px(img, 12 + (k % 2) * 2 - 1, int(y) + 9 + k * 4, Color("#ec9cf4", 0.8 - k * 0.25))
+		_px(img, 12 + (k % 2) * 2 - 1, int(y) + 9 + k * 4, Color("#9a84e8", 0.8 - k * 0.25))
 	if f % 3 == 1:
 		_star(img, c + Vector2(0, -8), 2, Color("#ffffff"), Color("#ec9cf4"))
+
+# Hard alpha steps (AI-look audit #8): every partly transparent pixel snaps to one of two steps (or
+# out, or solid), so glows read as stepped pixel art, not a blur.
+func _hard_alpha(img: Image) -> void:
+	for y in img.get_height():
+		for x in img.get_width():
+			var c := img.get_pixel(x, y)
+			if c.a <= 0.0 or c.a >= 1.0:
+				continue
+			c.a = 0.0 if c.a < 0.15 else (0.4 if c.a < 0.55 else (0.75 if c.a < 0.88 else 1.0))
+			img.set_pixel(x, y, c)
+
+# Lights a shape's upper / left outline: outline pixels with open space above or to the left turn
+# `lit` (the crown's gold band catching the light from the upper left).
+func _light_upper_left(img: Image, dark: Color, lit: Color) -> void:
+	var src := img.duplicate() as Image
+	for y in img.get_height():
+		for x in img.get_width():
+			if not src.get_pixel(x, y).is_equal_approx(dark):
+				continue
+			var up := y == 0 or src.get_pixel(x, y - 1).a == 0.0
+			var left := x == 0 or src.get_pixel(x - 1, y).a == 0.0
+			if up or left:
+				img.set_pixel(x, y, lit)
+
+# Relights a sheet from the upper left (AI-look audit #8): solid pixels just inside a lower / right
+# edge darken a step, those just inside an upper / left edge lighten a step (the palette snap puts
+# both back on the ramp). For effects whose shapes had no consistent light side.
+func _relight(img: Image) -> void:
+	var src := img.duplicate() as Image
+	var w := img.get_width()
+	var h := img.get_height()
+	var solid := func(x: int, y: int) -> bool:
+		return x >= 0 and y >= 0 and x < w and y < h and src.get_pixel(x, y).a > 0.5
+	for y in h:
+		for x in w:
+			var c := src.get_pixel(x, y)
+			if c.a < 0.97:
+				continue
+			var ul: bool = not solid.call(x, y - 2) or not solid.call(x - 2, y)
+			var dr: bool = not solid.call(x, y + 2) or not solid.call(x + 2, y)
+			if dr and not ul:
+				img.set_pixel(x, y, c.darkened(0.3))
+			elif ul and not dr:
+				img.set_pixel(x, y, c.lightened(0.2))
