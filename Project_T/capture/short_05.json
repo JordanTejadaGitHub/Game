@@ -20,7 +20,7 @@
 	],
 	"timeline": [
 		{"t": 0.0, "plant_each": 0.05, "count": 16, "plant": "thornwall", "auto": "maze", "tag": false},
-		{"t": 0.0, "plant_each": 0.1, "count": 6, "plant": "sporeling", "auto": "cover", "rank": 2, "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 8, "plant": "sporeling", "auto": "cover", "rank": 5, "tag": false},
 		{"t": 0.0, "camera": "hold", "at": "heartwood", "zoom": 1.0},
 		{"t": 0.5, "start": true},
 		{"t": 2.0, "spawn": "bark_beetle", "elite": true, "cells_left": 16},
