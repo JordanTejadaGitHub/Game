@@ -609,6 +609,10 @@ class GiftPlacer extends Node2D:
 	func _draw() -> void:
 		var half: Vector2 = map.MAP_GRID.cell_size / 2.0
 		if kind == &"rim":  # Each offered spot a ring (gold when picked), the old start a dim ring
+			var gifts = map.get("gifts")
+			if gifts != null and gifts.has_method("draw_start_ghost"):  # Environment's mist + bridge at each new spot
+				for spot in options:
+					gifts.draw_start_ghost(self, spot, 0.85 if cells.has(spot) or spot == hover else 0.5)
 			for spot in options + [map.startPath]:
 				var picked: bool = cells.has(spot)
 				var at: Vector2 = map.MAP_GRID.calculate_map_position(spot)
