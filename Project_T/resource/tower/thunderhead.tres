@@ -7,7 +7,6 @@
 
 [resource]
 script = ExtResource("1_tdata")
-sprite_offset = Vector2(0, -16)
 display_name = "Thunderhead"
 description = "Chains to 4; every 3rd strike hits every Soaked nightmare in range."
 cost = 0

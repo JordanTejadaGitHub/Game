@@ -339,11 +339,12 @@ static func _read_attack_point(key: String):
 	var point = json.wardens[key].get("point")
 	if not (point is Array and point.size() == 2):
 		return false
-	# A bigger canvas (art_direction.md "Bigger Wardens", up to 80×128): the entry's own "frame" [w, h]; its body is the
-	# bottom 64 rows, centred on the cell, so the cell centre sits at (w / 2, h − 32) in the canvas.
+	# A bigger canvas (art_direction.md "Bigger Wardens", up to 80×128): the entry's own "frame" [w, h]. Tower Assets
+	# (2c398d71) gives x in the w-wide frame and y from the top of the bottom 64 rows (the cell), so the cell centre is
+	# at (w / 2, 32) in those units; a point above the cell has a negative y.
 	var frame = json.wardens[key].get("frame")
 	if frame is Array and frame.size() == 2:
-		return Vector2(point[0] - frame[0] / 2.0, point[1] - (frame[1] - 32.0))
+		return Vector2(point[0] - frame[0] / 2.0, point[1] - 32.0)
 	var half: float = json.get("frame_size", 64) / 2.0
 	return Vector2(point[0] - half, point[1] - half)
 
