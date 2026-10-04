@@ -2277,7 +2277,7 @@ func _lob_landed(where: Vector2, splash: float) -> void:
 			hit_spots.append(spot)
 	if attack_data.rubble_slow <= 0.0:
 		return
-	var route := _route()
+	var route := route_cells(_route())  # Whole cells: rubble lies on path tiles
 	var cells: Array[Vector2] = []
 	for spot in hit_spots:
 		for at in route:
@@ -2648,23 +2648,20 @@ func _route() -> PackedVector2Array:
 	if _dream_state == null or _dream_state.map_generator == null:
 		return PackedVector2Array()
 	var map = _dream_state.map_generator
-	return map.get_path_from(map.startPath)  # Raw route points (half cells: 0.5 steps; route_cells() for whole cells)
+	return map.get_path_from(map.startPath)  # Raw route points (half-cell centres; route_cells() for whole cells)
 
-# The whole cells a route passes over, in order (half cells: route points are body centres in 0.5 steps;
-# a body on x.5 covers both cells beside it). Integer routes come back unchanged. Path tiles, rings, cracks, spins
-# and Kinship bows read these.
+# The whole cells a route passes over, in order. Half cells (Environment a0ac78b8): a nightmare is one half cell and
+# route points are half-cell centres (x.25 / x.75), each inside one whole cell (the one under its pixel). Integer routes come back
+# unchanged. Path tiles, rings, cracks, spins and Kinship bows read these.
 static func route_cells(route: PackedVector2Array) -> PackedVector2Array:
 	var out := PackedVector2Array()
 	var seen := {}
 	for p in route:
-		var xs: Array = [p.x] if is_equal_approx(p.x, roundf(p.x)) else [floorf(p.x), ceilf(p.x)]
-		var ys: Array = [p.y] if is_equal_approx(p.y, roundf(p.y)) else [floorf(p.y), ceilf(p.y)]
-		for y in ys:
-			for x in xs:
-				var c := Vector2(roundf(x), roundf(y))
-				if not seen.has(c):
-					seen[c] = true
-					out.append(c)
+		# The cell a nightmare standing on `p` reports (Enemy.get_current_cell: the grid cell under its pixel position).
+		var c := MAP_GRID.calculate_grid_coordinates(MAP_GRID.calculate_map_position(p))
+		if not seen.has(c):
+			seen[c] = true
+			out.append(c)
 	return out
 
 func _is_cell_in_range(at: Vector2) -> bool:
@@ -2678,7 +2675,7 @@ func _free_trap_cells() -> Array[Vector2]:
 		if is_instance_valid(ring):
 			taken[ring.cell] = true
 	var free: Array[Vector2] = []
-	for at in _route():
+	for at in route_cells(_route()):  # Whole cells: rings trigger on a nightmare's whole cell
 		if not taken.has(at) and _is_cell_in_range(at):
 			free.append(at)
 	return free
@@ -3370,7 +3367,7 @@ func _resonance() -> bool:
 
 # Eddy: `targets` plus the nightmares on the route tiles next to each (2 along where the path bends).
 func _eddy_targets(targets: Array, source: Node2D) -> Array:
-	var route := _route()
+	var route := route_cells(_route())  # Whole cells (targets' get_current_cell)
 	var result := targets.duplicate()
 	var extra_cells := {}
 	for target in targets:
@@ -3394,7 +3391,7 @@ static func _is_bend(route: PackedVector2Array, at: int) -> bool:
 # Pinwheel: blades hit every nightmare on the 8 tiles around it, harder the more of those tiles are path.
 func _spin() -> void:
 	var path_tiles := 0
-	var route := _route()
+	var route := route_cells(_route())  # Whole cells: the 8 tiles around it
 	for dx in [-1, 0, 1]:
 		for dy in [-1, 0, 1]:
 			if (dx != 0 or dy != 0) and route.has(cell + Vector2(dx, dy)):
@@ -3454,7 +3451,7 @@ func _grab(target: Node2D) -> void:
 func _light() -> void:
 	var before := _lit_cells.duplicate()
 	_lit_cells.clear()
-	for at in _route():
+	for at in route_cells(_route()):  # Whole cells (nightmares' get_current_cell)
 		if _is_cell_in_range(at):
 			_lit_cells.append(at)
 	# Long Light (Dream): tiles the light moved on from stay lit a while (still holding once per nightmare).
@@ -3627,7 +3624,35 @@ func _draw() -> void:
 	_draw_badges()
 	if attack_data != null and attack_data.special == BranchKit.SEEDBEARER:
 		BranchKit.draw_seed_badge(self)  # A seed ready to plant at the rest
+	if blossoms_on(self):
+		_draw_blossom()
+	if attack_data != null and attack_data.special == BranchKit.BROOD and BranchKit.BroodSprite.alive_for(self) > 0:
+		# Brood Cap with sprites out: where they give up, subtly (TowerSeller shows the whole stretch when selected).
+		var walk := BranchKit.brood_walk(_route(), global_position, BranchKit.p(self, "sprite_speed", 3.0))
+		for i in walk.size():
+			walk[i] = to_local(walk[i])
+		BranchKit.draw_brood_walk(self, walk, false, 0.45)
 	_draw_target_pip()
+
+# Keepsake "blossoms" (meta_design.md b8fd690c, a cosmetic the player can hide): every Warden wears a small blossom
+# on its plinth. Read once per run (MetaRun.keepsake_on loads the profile): cached per run scene.
+static var _blossom_scene := -1
+static var _blossom := false
+
+static func blossoms_on(near: Node) -> bool:
+	var scene := Reactions._world(near)
+	var key := scene.get_instance_id() if scene else -1
+	if key != _blossom_scene:
+		_blossom_scene = key
+		_blossom = MetaRun.keepsake_on("blossoms")
+	return _blossom
+
+# A tiny drawn blossom (five petals, a gold heart) on the plinth's front-left, until an asset chat draws one.
+func _draw_blossom() -> void:
+	var at := Vector2(-17.0, 17.0)
+	for i in 5:
+		draw_circle(at + Vector2.from_angle(TAU * i / 5.0 - PI / 2.0) * 2.4, 1.8, Palette.BLOSSOM)
+	draw_circle(at, 1.3, Palette.GLOW)
 	if _dream_state and _dream_state.has_method("is_eldest") and _dream_state.is_eldest(self):
 		# The Eldest: a small crown of three golden rings over the slab.
 		var top := Vector2(0, -MAP_GRID.cell_size.y * 0.5 - 4.0) + tower_data.get_sprite_offset()

@@ -170,7 +170,7 @@ func _test_traps() -> void:
 	tower._plant_ring()
 	_check(tower._rings.size() == 1, "Fairy Ring plants a ring")
 	var ring: FairyRing = tower._rings[0]
-	_check(route.has(ring.cell) and tower._is_cell_in_range(ring.cell), "the ring is on a path tile in range")
+	_check(Tower.route_cells(route).has(ring.cell) and tower._is_cell_in_range(ring.cell), "the ring is on a path tile in range")
 	var walker := _spawn_at(map_generator.MAP_GRID.calculate_map_position(ring.cell))
 	await process_frame
 	await process_frame

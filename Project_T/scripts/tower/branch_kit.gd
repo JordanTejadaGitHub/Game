@@ -703,7 +703,7 @@ static func _update_rockfall(tower: Tower, delta: float) -> void:
 	if left > 0.0:
 		tower.set_meta(&"rock_left", left)
 		return
-	var route := tower._route()
+	var route := Tower.route_cells(tower._route())  # Whole cells (beside the walls)
 	var dropped := false
 	for wall in walls_touching(tower):
 		var best := Vector2(-1, -1)
@@ -750,14 +750,14 @@ static func _quake(tower: Tower) -> void:
 			e.reveal_for(p(tower, "reveal_time", 3.0) * tower.get_potency())
 	if is_final(tower):
 		var reach := tower.get_range_pixels()
-		for cell in tower._route():
+		for cell in Tower.route_cells(tower._route()):  # Whole cells: a crack is a path tile
 			if Tower.MAP_GRID.calculate_map_position(cell).distance_to(tower.global_position) <= reach:
 				crack(tower, cell, p(tower, "crack_time", CRACK_TIME) * tower.get_potency())
 	var fault := tower.kin_share(FAULT_LINE, "b")
 	var rampart := tower._kin_partner()
 	if fault <= 0.0 or not is_instance_valid(rampart):
 		return
-	var route := tower._route()
+	var route := Tower.route_cells(tower._route())  # Whole cells (beside the walls)
 	var struck := {}
 	for wall in walls_touching(rampart):
 		for side in SIDES:
@@ -1130,6 +1130,61 @@ class CrackField extends Node2D:
 			draw_polyline(PackedVector2Array([at + Vector2(-24, -6), at + Vector2(-6, 2), at + Vector2(4, -8), at + Vector2(22, 4)]), colour, 2.0)
 			draw_polyline(PackedVector2Array([at + Vector2(-6, 2), at + Vector2(-2, 18)]), colour, 2.0)
 
+# --- Brood Cap's reach (user: "show where it places its sprites… and where it ends") ---------------------------------
+# A sprite hatches on the route point nearest the Warden and walks back toward the start at sprite_speed cells/s for
+# SPRITE_LIFE s, so it gives up after speed × life cells (3 × 8 = 24) or at the route's start, whichever is first.
+const SPRITE_LIFE := 8.0
+const BROOD_PATH := Color(Palette.NEWLEAF, 0.22)
+const BROOD_END := Color(Palette.SPRIG, 0.75)
+
+static func brood_spawn_index(route: PackedVector2Array, at: Vector2) -> int:
+	var best := 0
+	var best_d := INF
+	for i in route.size():
+		var d := Tower.MAP_GRID.calculate_map_position(route[i]).distance_to(at)
+		if d < best_d:
+			best_d = d
+			best = i
+	return best
+
+# The walk in world points, from the hatch spot to where it gives up (cut mid-step at the exact distance).
+static func brood_walk(route: PackedVector2Array, at: Vector2, speed_cells: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	if route.is_empty():
+		return out
+	var i := brood_spawn_index(route, at)
+	var left := speed_cells * SPRITE_LIFE * CELL
+	var here := Tower.MAP_GRID.calculate_map_position(route[i])
+	out.append(here)
+	while i > 0 and left > 0.0:
+		var next := Tower.MAP_GRID.calculate_map_position(route[i - 1])
+		var step := here.distance_to(next)
+		if step >= left:
+			out.append(here.move_toward(next, left))
+			break
+		left -= step
+		here = next
+		out.append(here)
+		i -= 1
+	return out
+
+# Draws the walk on `canvas` (`walk` already in its local space): the stretch faint when `stretch`, and the end mark
+# (Tower Assets' brood_end when it exists, else a ring with a small cap). `alpha` scales it (subtle while sprites walk).
+static func draw_brood_walk(canvas: CanvasItem, walk: PackedVector2Array, stretch: bool, alpha: float = 1.0) -> void:
+	if walk.size() < 2:
+		return
+	if stretch:
+		canvas.draw_polyline(walk, Color(BROOD_PATH, BROOD_PATH.a * alpha), 6.0)
+	var end: Vector2 = walk[-1]
+	var tex := Fx.texture(&"brood_end") if not Fx.info(&"brood_end").is_empty() else null
+	if tex != null:
+		var size := Vector2(tex.get_width(), tex.get_height())
+		canvas.draw_texture_rect(tex, Rect2(end - size / 2.0, size), false, Color(1, 1, 1, alpha))  # A fade (modulate), not a colour
+		return
+	var colour := Color(BROOD_END, BROOD_END.a * alpha)
+	canvas.draw_arc(end, 9.0, 0.0, TAU, 20, colour, 1.5)
+	canvas.draw_colored_polygon(PackedVector2Array([end + Vector2(-5, 1), end + Vector2(0, -5), end + Vector2(5, 1)]), colour)
+
 class BroodSprite extends Node2D:
 	var tower: Tower
 	var route: PackedVector2Array
@@ -1148,14 +1203,14 @@ class BroodSprite extends Node2D:
 		var path := t._route()
 		if path.is_empty():
 			return
-		# Start on the route cell nearest the Warden.
-		var best := 0
-		var best_d := INF
-		for i in path.size():
-			var d := Tower.MAP_GRID.calculate_map_position(path[i]).distance_to(t.global_position)
-			if d < best_d:
-				best_d = d
-				best = i
+		var best := BranchKit.brood_spawn_index(path, t.global_position)  # The route point nearest the Warden
+		var spot := Tower.MAP_GRID.calculate_map_position(path[best])
+		# Where it drops (on the attack's release frame): Tower Assets' hatch puff, and the spore arc from the attack
+		# origin when its art exists (Fx keeps budget / lite / reduced motion).
+		BranchKit._fx(&"brood_hatch", spot, BranchKit.world(t))
+		if not Fx.info(&"spore_arc").is_empty():
+			Fx.segment(&"spore_arc", t.global_position + t.tower_data.get_attack_origin(), spot, BranchKit.world(t), 0.35)
+		t.queue_redraw()  # Its end marker shows while sprites are out
 		var sprite := BroodSprite.new()
 		sprite.tower = t
 		sprite.route = path
@@ -1215,7 +1270,11 @@ class BroodSprite extends Node2D:
 				small.global_position = global_position + Vector2(randf_range(-10, 10), randf_range(-10, 10))
 		queue_free()
 
-	const SHEET := "res://assets/towers/projectiles/spore_sprite.png"  # 24×24, 4 walk frames drawn walking right
+	func _exit_tree() -> void:
+		if is_instance_valid(tower):
+			tower.queue_redraw()  # The last sprite gone: its end marker goes
+
+	const SHEET := "res://assets/towers/projectiles/spore_sprite.png"  # 4 walk frames drawn walking right (any size)
 	var _tex: Texture2D = load(SHEET) if ResourceLoader.exists(SHEET) else null  # Per sprite (cached): never a static
 	var _age := 0.0
 	var _left_facing := false
@@ -1226,9 +1285,10 @@ class BroodSprite extends Node2D:
 			draw_circle(Vector2.ZERO, r, Color(Palette.NEWLEAF, 0.9))
 			draw_circle(Vector2(0, -r * 0.4), r * 0.45, Color(Palette.SPRIG, 0.9))
 			return
-		var size := Vector2(24, 24) * (1.5 if big else 1.0)  # Hatchery's big one, scaled up
+		var frame_size := Vector2(_tex.get_width() / 4.0, _tex.get_height())  # 4 walk frames, whatever their size
+		var size := frame_size * (1.5 if big else 1.0)  # Hatchery's big one, scaled up
 		var frame := int(_age * 8.0) % 4
-		var region := Rect2(frame * 24, 0, 24, 24)
+		var region := Rect2(frame * frame_size.x, 0, frame_size.x, frame_size.y)
 		var rect := Rect2(-size / 2.0 - Vector2(0, size.y * 0.3), size)
 		if _left_facing:
 			rect = Rect2(rect.position + Vector2(rect.size.x, 0), Vector2(-rect.size.x, rect.size.y))

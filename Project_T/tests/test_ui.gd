@@ -957,7 +957,7 @@ func _check_omen_cards(screen, what: String) -> void:
 				% [card.name, label.text.left(24), rect, inner, what])
 
 func _free_cell(map_generator) -> Vector2:
-	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var path: PackedVector2Array = Tower.route_cells(map_generator.get_path_from(map_generator.startPath))  # Whole cells (half-cell routes)
 	for i in range(3, path.size()):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 			var cell: Vector2 = path[i] + offset

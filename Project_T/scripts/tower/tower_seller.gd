@@ -154,7 +154,17 @@ func get_tower_at_point(world: Vector2) -> Tower:
 	for tower in tower_container.get_children():
 		if tower is Tower and not tower.is_queued_for_deletion() and tower.get_halves().has(half):
 			return tower
-	return null
+	# Bigger Wardens (art_direction.md "Bigger Wardens"): a click on a Warden's art above its footprint picks it, unless a
+	# nightmare is under the cursor (it wins). Overlapping art: the front-most (lowest on screen, drawn on top).
+	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+		if is_instance_valid(enemy) and enemy.global_position.distance_to(world) <= MAP_GRID.cell_size.x * 0.4:
+			return null
+	var best: Tower = null
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.is_tall() and tower._overhang_rect().has_point(world) \
+				and (best == null or tower.global_position.y > best.global_position.y):
+			best = tower
+	return best
 
 # Sells the Warden on `cell`. Returns false if there's none.
 func sell(cell: Vector2) -> bool:
@@ -686,6 +696,12 @@ func _draw() -> void:
 		# Aura Wardens: exactly who gets the aura (AuraView); a boosted Warden: lines back to its boosters.
 		if AuraView.is_aura(selected.tower_data):
 			AuraView.draw_selected(self, selected, false)  # Its area and who it boosts (BuffOverlay labels the threads)
+		if selected.attack_data != null and selected.attack_data.special == BranchKit.BROOD:
+			# Brood Cap: the stretch its sprites walk, from the hatch spot to where they give up.
+			var walk := BranchKit.brood_walk(selected._route(), selected.global_position, BranchKit.p(selected, "sprite_speed", 3.0))
+			for i in walk.size():
+				walk[i] = to_local(walk[i])
+			BranchKit.draw_brood_walk(self, walk, true)
 		# The attack range: a thin, unfilled circle (a warm fill read as "everything in here is boosted").
 		if selected.tower_data.can_attack:
 			draw_arc(selected.position, selected.get_range_pixels(), 0.0, TAU, 64, Color(SELECTED_COLOR, 0.45), 1.5)

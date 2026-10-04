@@ -154,13 +154,13 @@ static func landslide(tower: Tower, target: Node2D) -> void:
 	state[&"hits"] = int(state.get(&"hits", 0)) + 1
 	if state[&"hits"] % LANDSLIDE_EVERY != 0 or not is_instance_valid(target):
 		return
-	var route: PackedVector2Array = tower._route()
+	var route: PackedVector2Array = Tower.route_cells(tower._route())  # Whole cells (get_current_cell)
 	var at: Vector2 = target.get_current_cell()
 	var index := route.find(at)
 	if index < 0:
 		return
 	var tiles: Array[Vector2] = []
-	for step in range(1, LANDSLIDE_TILES * _per_cell(route) + 1):  # 2 path tiles in whole cells (half-step routes)
+	for step in range(1, LANDSLIDE_TILES + 1):  # 2 whole path tiles
 		if index - step >= 0:
 			tiles.append(route[index - step])  # Toward the start
 	for enemy in tower.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
@@ -356,11 +356,11 @@ static func gale(tower: Tower) -> void:
 		return
 	# The 3 path tiles in range nearest the Heartwood (route order).
 	var tiles: Array[Vector2] = []
-	var route: PackedVector2Array = tower._route()
+	var route: PackedVector2Array = Tower.route_cells(tower._route())  # Whole cells (get_current_cell)
 	for i in range(route.size() - 1, -1, -1):
 		if tower._is_cell_in_range(route[i]):
 			tiles.append(route[i])
-			if tiles.size() >= GALE_TILES * _per_cell(route):  # 3 path tiles in whole cells (half-step routes)
+			if tiles.size() >= GALE_TILES:
 				break
 	var copied: Array = source.statuses.snapshot()
 	for enemy in tower.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
