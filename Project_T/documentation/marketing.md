@@ -19,8 +19,7 @@ page points to the Steam page.
 ## 2. Order of work
 
 1. **Steam page** (before any push for views; wishlists only count once it exists): capsule art (Theme Asset, open
-   item), the short description, 5–8 screenshots, the trailer, tags (Tower Defense, Roguelite, Strategy, Deckbuilding-lite,
-   Pixel Graphics, Dark Fantasy, Singleplayer).
+   item), the short description, 5–8 screenshots, the trailer, tags. Status and the tag list: §6 "Steam page checklist".
 2. **Shorts and TikToks**: 3–4 a week, from the shot list below.
 3. **Trailer** (60–90 s): once the capture tools exist.
 4. **Demo + Steam Next Fest**: the biggest wishlist spike; plan it for when the demo is polished.
