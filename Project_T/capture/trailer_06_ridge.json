@@ -1,0 +1,22 @@
+{
+	"title": "Trailer 38-46 s: Sow a Ridge.",
+	"note": "Trailer chat (marketing.md section 5, scene 6). Board copied exactly from short_04.json at fcde10c4 (Short Form Video tuned it; chaotic: never change a plant line, count or order). The ridge lands at (10,3)-(10,7), route 28 -> 38. Only size and captions differ; the card goes on in the edit.",
+	"seed": 4242,
+	"size": [1920, 1080],
+	"drift": 26,
+	"dew": 900,
+	"obstacles": "edge",
+	"hud": "none",
+	"length": 22.0,
+	"music": ["base", "dread1"],
+	"captions": [],
+	"timeline": [
+		{"t": 0.0, "plant_each": 0.05, "count": 12, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 5, "plant": "sporeling", "auto": "cover", "tag": false},
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.8},
+		{"t": 1.0, "start": true},
+		{"t": 6.0, "gift": "sow_ridge", "auto": "detour"},
+		{"t": 5.0, "camera": "push", "at": [10, 5], "zoom": 1.0, "duration": 3.0},
+		{"t": 12.0, "camera": "follow", "target": "furthest", "zoom": 1.1}
+	]
+}
