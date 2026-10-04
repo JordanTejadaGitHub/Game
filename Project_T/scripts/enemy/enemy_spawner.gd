@@ -311,7 +311,7 @@ func route_around(from: Vector2) -> PackedVector2Array:
 	for point: Vector2 in rooted_cells:
 		if _bodies_overlap(point, from):
 			continue
-		for h in FindPath.halves_of_cell(point):
+		for h in _halves_under(point):
 			if not map_generator.path_layer.is_half_blocked(h):
 				map_generator.path_layer.set_half_blocked(h, true)
 				closed.append(h)
@@ -328,6 +328,18 @@ func blocker_at(point: Vector2, me: Node, cells: Dictionary) -> Node:
 		if who != me and is_instance_valid(who) and _bodies_overlap(at, point):
 			return who
 	return null
+
+# The half cells a rooted body at route point `point` closes: those whose centres lie within half a cell
+# of the body's centre on both axes. A 2-half body (x.0 / x.5 points) closes its 2×2; a 1-half body
+# (x.25 / x.75, half_cells.md one-half gaps) just its own half.
+static func _halves_under(point: Vector2) -> Array[Vector2]:
+	var halves: Array[Vector2] = []
+	var centre := point * FindPath.HALF + Vector2.ONE  # In half cells (pixel / 32): the body centre; half h's centre is h + 0.5
+	for y in range(floori(centre.y - 1.0), floori(centre.y + 1.0) + 1):
+		for x in range(floori(centre.x - 1.0), floori(centre.x + 1.0) + 1):
+			if absf(x + 0.5 - centre.x) < 0.99 and absf(y + 0.5 - centre.y) < 0.99:
+				halves.append(Vector2(x, y))
+	return halves
 
 static func _bodies_overlap(a: Vector2, b: Vector2) -> bool:
 	return absf(a.x - b.x) < 0.99 and absf(a.y - b.y) < 0.99

@@ -284,6 +284,9 @@ func _run() -> void:
 	_check(dreams.has_rule(&"rooted_nightmares"), "took Rooted Nightmares")
 	spawner._update_rooted_cells()
 	_check(spawner.rooted_cells.get(route[9]) == holder, "with it, the Held nightmare's cell is rooted")
+	_check(spawner._halves_under(Vector2(3, 2)) == FindPath.halves_of_cell(Vector2(3, 2)) and spawner._halves_under(Vector2(3.5, 2)).size() == 4,
+		"a rooted 2-half body (x.0 / x.5 points) closes its 2×2 half cells")
+	_check(spawner._halves_under(Vector2(3.25, 2.75)).size() == 1 and spawner._halves_under(Vector2(3.25, 2.75))[0] == Vector2(7, 6), "a 1-half body (x.25 / x.75) closes just its own half")
 	var blocked: bool = walker._is_blocked_ahead(1.0)
 	_check((blocked and walker.waiting) or (not blocked and walker._path[1] != route[w + 1]),
 		"the walker behind goes round it or waits (%s)" % ("waits" if blocked else "goes round"))

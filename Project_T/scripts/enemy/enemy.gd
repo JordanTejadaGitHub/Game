@@ -2445,7 +2445,13 @@ func get_target_cell() -> Vector2:
 # x.0 or x.5), for rooted / waiting cells and routing around them.
 func get_route_point() -> Vector2:
 	var p: Vector2 = (position - grid.cell_size / 2.0) / grid.cell_size.x
-	return Vector2(roundf(p.x * 2.0) / 2.0, roundf(p.y * 2.0) / 2.0)
+	# The nearer of the route points it walks between (whatever their encoding: x.0 / x.5 for a 2-half
+	# body, x.25 / x.75 for a 1-half one); off a route, the nearest quarter (both encodings sit on it).
+	if _path_index >= 1 and _path_index < _path.size():
+		var from := _path[_path_index - 1]
+		var to := _path[_path_index]
+		return from if p.distance_squared_to(from) <= p.distance_squared_to(to) else to
+	return Vector2(roundf(p.x * 4.0) / 4.0, roundf(p.y * 4.0) / 4.0)
 
 # The length in cells of the route step that ends at path index `i` (half cells: 0.5; 1 on a full-cell
 # route; 1 when there's no step to measure). Rules counted in cells (sprints, charges, leaps) use it.
