@@ -218,7 +218,7 @@ const ATTACKS := {
 	"monsoon": {kind = "pulse", point = Vector2i(31, 46)},
 	"mistveil": {kind = "cloud", point = Vector2i(31, 46)},
 	"morning_fog": {kind = "cloud", point = Vector2i(31, 46)},
-	"firefly_jar": {kind = "projectile", projectile = "spark", point = Vector2i(31, 6)},
+	"firefly_jar": {kind = "projectile", projectile = "spark", point = Vector2i(31, -5)},  # the jar it lifts overhead (family pose)
 	# Branch expansion (2026-10-02): Firefly Jar C, D, E. The fence arc, crystal-split beams and
 	# fireworks are drawn by the code (effects arc_fence, prism_beam, firework_burst).
 	"jarlink": {kind = "fence", point = Vector2i(8, 9)},
@@ -8091,21 +8091,20 @@ func _stone_thorns(canvas: Image, st: Dictionary, theme: String, lush: bool) -> 
 					_px(canvas, x + d.x * 3, y + d.y * 3, Color("#3c3c5c"))
 					break
 
-# --- Family poses (user decision, art_direction.md 573929a4: "one new golem pose per family") -------
+# --- Family poses (user decision, art_direction.md 573929a4; "push them further") ---------------------
 # The base and branch Wardens of a family share a pose that says the family's job; finals keep the
-# classic seat (their epic layer sets them apart), and Sprout stays the plain seated golem. A pose is
-# a warp of the template figure (not of the slab or its rocks): the head moves by `head` px (and the
-# frame's dy with it, so hats, faces and head props follow), the torso between neck and seat
-# stretches to meet it and widens by `sx`, and the feet move by `foot` px.
+# classic seat (their epic layer sets them apart), and Sprout stays the plain seated golem. A posed
+# figure is built from shaded parts in the Warden's own palette instead of the template (the slab and
+# its rocks stay the template's): the head keeps its x (hats and faces line up as before) and moves by
+# `head` px (the frame's dy moves with it, so head props follow).
 const FAMILY_POSE := {
-	"sporeling": {head = 7, sx = 1.3, foot = 0.0},   # round and hunched, its cap over its shoulders
-	"firefly_jar": {head = -8, sx = 0.86, foot = 0.0},  # tall, holding its light up
-	"dewdrop": {head = 4, sx = 1.0, foot = -7.0},      # leaning forward
+	"sporeling": {kind = "hunched", head = 6},   # round and low, hunched forward, its cap draped over its shoulders
+	"firefly_jar": {kind = "lifting", head = 0},  # standing tall, lifting its jar of light overhead with both arms
+	"dewdrop": {kind = "leaning", head = 8},      # mid-lean, head well forward, one arm trailing like flowing water
 }
-const POSE_NECK := 18
-const POSE_SEAT := 46
 
-var _pose_warp := {}  # the warp for the Warden being drawn ({} = the classic seat)
+var _pose_warp := {}  # the pose for the Warden being drawn ({} = the classic seat)
+var _pose_dy := 0     # its head offset this frame
 
 func _family_pose(tower_name: String) -> Dictionary:
 	for line: String in LINES:
@@ -8118,70 +8117,174 @@ func _family_pose(tower_name: String) -> Dictionary:
 		return {}
 	return {}
 
-# Sets the warp for a frame and moves its head offset with it.
+# Sets the pose for a frame and moves its head offset with it.
 func _apply_pose(tower_name: String, st: Dictionary) -> void:
 	_pose_warp = _family_pose(tower_name)
 	if not _pose_warp.is_empty():
 		st.dy = int(st.dy) + int(_pose_warp.head)
+	_pose_dy = int(st.dy)
 
-# Where a target pixel of the posed figure comes from in the classic figure.
-func _pose_source(x: int, y: int) -> Vector2:
-	var head: float = _pose_warp.head
-	var neck_t := POSE_NECK + head
-	if y < neck_t:
-		return Vector2(x, y - head)
-	var foot: float = _pose_warp.foot
-	var sx: float = _pose_warp.sx
-	if y > POSE_SEAT:
-		return Vector2(31.5 + (x - foot - 31.5) / sx, y)
-	var t := (y - neck_t) / (POSE_SEAT - neck_t)
-	var widen := lerpf(1.0, sx, smoothstep(0.0, 0.35, t))
-	var xc := 31.5 + foot * t
-	return Vector2(31.5 + (x - xc) / widen, POSE_NECK + t * (POSE_SEAT - POSE_NECK))
-
-func _warp_pose(src: Image) -> Image:
-	var dst := _layer()
+# One shaded, outlined part of a posed body (lit from the upper left, the Warden's own ramp).
+func _part(canvas: Image, mask: Image, c: Vector2, r: Vector2, pal: Dictionary, max_y: float = INF) -> void:
+	var layer := _layer()
+	_ellipse(layer, c, r, _pal_ramp(pal), max_y)
+	_stamp(canvas, layer, pal.o)
 	for y in range(-OY, S):
 		for x in S:
-			var p := _pose_source(x, y)
-			var sx := roundi(p.x - 0.5)
-			var sy := roundi(p.y - 0.5)
-			if sx >= 0 and sx < S and sy >= -OY and sy < S:
-				var c := _gp(src, sx, sy)
-				if c.a > 0.0:
-					_sp(dst, x, y, c)
-	return dst
+			if _gp(layer, x, y).a > 0.0:
+				_sp(mask, x, y, Color.WHITE)
 
-# The template figure in the family's pose: rocks first, the warped figure over them (its own outline
-# warped with it; any gap the warp opens is outlined again),
-# then the front rock again so the figure still stands behind it.
+# A thick limb from a to b (through `mid`), shaded and outlined, ending in a round hand.
+func _limb(canvas: Image, mask: Image, pts: Array, r: float, pal: Dictionary) -> void:
+	var layer := _layer()
+	_stroke(layer, pts, r, pal.b)
+	var lit := _layer()
+	var shifted: Array = []
+	for p: Vector2 in pts:
+		shifted.append(p + Vector2(-r * 0.35, -r * 0.35))
+	_stroke(lit, shifted, r * 0.45, pal.a)
+	for y in range(-OY, S):
+		for x in S:
+			if _gp(lit, x, y).a > 0.0 and _gp(layer, x, y).a > 0.0:
+				_sp(layer, x, y, pal.a)
+	var hand: Vector2 = pts[pts.size() - 1]
+	_ellipse(layer, hand, Vector2(r + 0.9, r + 0.9), _pal_ramp(pal))
+	_stamp(canvas, layer, pal.o)
+	for y in range(-OY, S):
+		for x in S:
+			if _gp(layer, x, y).a > 0.0:
+				_sp(mask, x, y, Color.WHITE)
+
+# The posed figure: the template's rocks, the posed body over them, the front rock again in front.
 func _draw_posed_figure(canvas: Image, pose: Dictionary, pal: Dictionary) -> Image:
-	var body := _layer()
-	var mask := _layer()
 	var front: Array = []
+	var rock_px := {}
 	for i in S * S:
 		var ch: String = pose.grid[i]
 		if ch == "." or pose.outside[i] != 0:
 			continue
 		var x := i % S
 		var y := i / S
-		if _is_rock(pose, x, y):
-			if _rock_group(x, y) in _hidden_rocks():
-				continue
+		if _is_rock(pose, x, y) and not _rock_group(x, y) in _hidden_rocks():
 			_sp(canvas, x, y, ROCK_PAL[ch])
+			rock_px[Vector2i(x, y)] = true
 			if _rock_group(x, y) == "front":
 				front.append(i)
-		else:
-			_sp(body, x, y, pal[ch])  # its own outline and inner lines too
-			_sp(mask, x, y, Color.WHITE)
-	var posed := _warp_pose(body)
-	_stamp(canvas, posed, pal.o)
+	var mask := _layer()
+	var dy: int = _pose_dy
+	match _pose_warp.kind:
+		"hunched":
+			_pose_hunched(canvas, mask, pal, dy)
+		"lifting":
+			_pose_lifting(canvas, mask, pal, dy)
+		"leaning":
+			_pose_leaning(canvas, mask, pal, dy)
 	for i: int in front:
 		_sp(canvas, i % S, i / S, ROCK_PAL[pose.grid[i]])
-	var rock_px := {}
-	for i in S * S:
-		if pose.grid[i] != "." and pose.outside[i] == 0 and _is_rock(pose, i % S, i / S) \
-				and not _rock_group(i % S, i / S) in _hidden_rocks():
-			rock_px[Vector2i(i % S, i / S)] = true
 	_touch_rocks(canvas, rock_px, _rock_touch_for(_warden_name))
-	return _warp_pose(mask)
+	return mask
+
+# The head: the classic head's place and size (eyes at EYES / EYE_TOP + dy), a rounded block.
+func _pose_head(canvas: Image, mask: Image, pal: Dictionary, dy: int) -> void:
+	_part(canvas, mask, Vector2(30.5, 12 + dy), Vector2(9.5, 7.5), pal)
+
+# Sporeling: hunched forward, round and low: a wide low dome of a body, little arms tucked in front,
+# the head sunk low on it under a cap that drapes down over both shoulders.
+func _pose_hunched(canvas: Image, mask: Image, pal: Dictionary, dy: int) -> void:
+	_part(canvas, mask, Vector2(31.5, 35), Vector2(19.0, 11.0), pal, 45.5)
+	for s: int in [-1, 1]:
+		_part(canvas, mask, Vector2(31.5 + s * 9, 44), Vector2(4.5, 2.4), pal)  # its feet
+	_pose_head(canvas, mask, pal, dy)
+	for s: int in [-1, 1]:
+		_part(canvas, mask, Vector2(31.5 + s * 11, 38), Vector2(4.0, 4.6), pal)  # arms tucked in front
+	# The drape: the cap's dome over its crown and its edges hanging down over both shoulders.
+	var cap := _layer()
+	var shade: Array[Color] = [pal.o.lerp(pal.c, 0.6), pal.c, pal.b]
+	# One hood: a dome over its crown flaring down to its shoulders, a window cut for its face.
+	for y in range(-OY, S):
+		for x in S:
+			var p := Vector2(x + 0.5, y + 0.5)
+			var top := (p.y - (6 + dy)) / 15.0  # 0 at the crown, 1 at the shoulders
+			if top < -0.3 or top > 1.0:
+				continue
+			var half := 9.5 + maxf(top, 0.0) * 9.0 if top >= 0.0 else 9.5 * sqrt(maxf(0.0, 1.0 - pow(top / 0.3, 2.0)))
+			if absf(p.x - 30.5) > half:
+				continue
+			if ((p - Vector2(30.5, 15 + dy)) / Vector2(7.5, 6.0)).length() < 1.0:
+				continue  # its face
+			var u := (p.x - 30.5) / maxf(half, 1.0)
+			_sp(cap, x, y, shade[2] if u < -0.35 else (shade[0] if u > 0.45 else shade[1]))
+	_stamp(canvas, cap, pal.o)
+	for p: Vector2i in [Vector2i(-8, 3), Vector2i(-2, 1), Vector2i(5, 2), Vector2i(-14, 14), Vector2i(13, 13), Vector2i(-11, 9), Vector2i(10, 8)]:
+		_px(canvas, 30 + p.x, p.y + dy, Color("#fff4dc"))  # spots on the cap
+	for y in range(-OY, S):
+		for x in S:
+			if _gp(cap, x, y).a > 0.0:
+				_sp(mask, x, y, Color.WHITE)
+
+# Firefly Jar: standing tall, both arms raised, lifting its jar of light overhead.
+func _pose_lifting(canvas: Image, mask: Image, pal: Dictionary, dy: int) -> void:
+	for s: int in [-1, 1]:
+		_part(canvas, mask, Vector2(31.5 + s * 6, 42), Vector2(4.2, 4.0), pal)  # legs, standing
+	_part(canvas, mask, Vector2(31.5, 30), Vector2(10.0, 12.5), pal)  # a tall body
+	_pose_head(canvas, mask, pal, dy)
+	var jar_c := Vector2(31.5, -5 + dy)
+	for s: int in [-1, 1]:
+		_limb(canvas, mask, [Vector2(31.5 + s * 9, 22 + dy * 0.5), Vector2(31.5 + s * 15, 10 + dy), Vector2(31.5 + s * 7, jar_c.y + 3)], 3.0, pal)
+	# The jar, held up between its hands: glass, a cork, fireflies glowing inside.
+	var jar := _layer()
+	_round_rect(jar, Rect2i(int(jar_c.x) - 6, int(jar_c.y) - 6, 13, 13), 3, Color("#4c8ca4"))
+	_round_rect(jar, Rect2i(int(jar_c.x) - 5, int(jar_c.y) - 5, 5, 11), 2, Color("#9cd4fc"))
+	_stamp(canvas, jar, Color("#140f26"))
+	var cork := _layer()
+	_round_rect(cork, Rect2i(int(jar_c.x) - 3, int(jar_c.y) - 9, 7, 4), 1, Color("#8c5c34"))
+	_stamp(canvas, cork, Color("#241c14"))
+	for p: Vector2i in [Vector2i(-2, -2), Vector2i(2, 1), Vector2i(-1, 3), Vector2i(3, -3)]:
+		_px(canvas, int(jar_c.x) + p.x, int(jar_c.y) + p.y, Color("#fcd47c"))
+	_px(canvas, int(jar_c.x), int(jar_c.y), Color("#fff4dc"))
+
+# Dewdrop: mid-lean, its head dipped far forward over the plinth's edge, its body tipped after it, one
+# arm reaching forward and the other trailing back and up like water pouring off it.
+func _pose_leaning(canvas: Image, mask: Image, pal: Dictionary, dy: int) -> void:
+	_part(canvas, mask, Vector2(24, 43), Vector2(4.5, 3.0), pal)  # the back foot
+	_part(canvas, mask, Vector2(41, 46), Vector2(4.5, 3.0), pal)  # the front foot, stepping out
+	# The body tipped forward: a bean from the hips (back, upper left) to the shoulders (front, lower right).
+	var body := _layer()
+	for i in 12:
+		var t := i / 11.0
+		var c := Vector2(25, 32).lerp(Vector2(34, 26 + dy * 0.6), t)
+		_ellipse(body, c, Vector2(10.0 - t * 1.5, 9.0 - t * 1.0), _pal_ramp(pal))
+	_stamp(canvas, body, pal.o)
+	for y in range(-OY, S):
+		for x in S:
+			if _gp(body, x, y).a > 0.0:
+				_sp(mask, x, y, Color.WHITE)
+	_limb(canvas, mask, [Vector2(38, 28 + dy * 0.5), Vector2(44, 36), Vector2(47, 41)], 2.0, pal)  # reaching forward
+	_pose_head(canvas, mask, pal, dy)
+	# The trailing arm: a stream of water flowing back off its shoulder, thinning into drops.
+	var stream := _layer()
+	var wave: float = [0.0, 0.5, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5][posmod(_pose_dy * 3, 8)]
+	var pts: Array = []
+	for i in 14:
+		var t := i / 13.0
+		pts.append(Vector2(20 - t * 15.0, 27 + dy * 0.4 - t * 12.0 + sin(t * 9.0) * (1.5 + wave * 0.5)))
+	for i in pts.size() - 1:
+		_stroke(stream, [pts[i], pts[i + 1]], 3.2 - i * 0.2, Color("#5aa8ec"))
+	_stamp(canvas, stream, pal.o)
+	for i in range(0, pts.size() - 2, 1):
+		var p: Vector2 = pts[i]
+		_px(canvas, roundi(p.x), roundi(p.y) - 1, Color("#9ad4ff"))
+		if i % 3 == 0:
+			_px(canvas, roundi(p.x) - 1, roundi(p.y) - 1, Color("#e8faff"))
+	for d: Vector3 in [Vector3(3, 12, 1.3), Vector3(5, 7, 1.0), Vector3(2, 5, 0.8)]:
+		var drop := _layer()
+		_flat_ellipse(drop, Vector2(d.x, d.y), Vector2(d.z, d.z * 1.2), Color("#9ad4ff"))
+		_stamp(canvas, drop, pal.o)
+	for y in range(-OY, S):
+		for x in S:
+			if _gp(stream, x, y).a > 0.0:
+				_sp(mask, x, y, Color.WHITE)
+
+func _pal_ramp(pal: Dictionary) -> Array[Color]:
+	var r: Array[Color] = [pal.c, pal.b, pal.a]
+	return r
