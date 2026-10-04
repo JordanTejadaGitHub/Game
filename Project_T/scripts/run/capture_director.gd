@@ -11,6 +11,8 @@ class_name CaptureDirector
 # Scene file (JSON): {
 #   "seed": 4242, "drift": 20, "dew": 999, "leaves": 15, "invulnerable": true, "omen": "<omen id>",
 #   "dreams": ["<card id>", …], "hud": "none" | "clean" | "full", "length": 25.0, "speed": 1.0,
+#   "bosses": ["<boss id>", …] (default: each act's default boss), "families": ["sporeling", …] (the Warden bar shows
+#   only these, Sprout and Thornwall; planting still takes any Warden),
 #   "game_music": false (the game's Music bus is muted: the export adds the music bed),
 #   "timeline": [ {"t": 0.0, <one action>}, … ] }
 # Actions (t = seconds of the clip, unaffected by slow motion):
@@ -149,6 +151,10 @@ func _ready() -> void:
 	get_viewport().gui_disable_input = true  # The mouse over the render window changes nothing
 	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 	_events = _expand(scene.get("timeline", []))
+	# Bosses: each act's default (the Hollow Stag first) unless the scene names them ("bosses": [boss ids]); set now,
+	# before DriftDirector's deferred draw (a dev run would draw at random).
+	var director: DriftDirector = _main.get_node("%DriftDirector")
+	director.preset_bosses = scene.get("bosses", BossPool.ids(BossPool.draw(int(scene.get("seed", 4242)), true)))
 	_setup.call_deferred()
 
 func _setup() -> void:
@@ -181,6 +187,12 @@ func _setup() -> void:
 			if omen.resource_path.get_file().get_basename() == String(scene.omen):
 				omens.active = omen
 				omens.active_block = director.get_block(drift)
+	if scene.has("families"):  # A real-looking Warden bar: Sprout, Thornwall and these families, not all of them
+		dreams.unlock_everything = false
+		dreams.unlocked = {"sprout": true, "thornwall": true}
+		for id in scene.families:
+			dreams.unlocked[String(id)] = true
+		dreams.unlocks_changed.emit()
 	for layer in _main.find_children("*", "Parallax2D", true, false):  # The void's sky reaches a tall, zoomed-out frame
 		layer.repeat_times = maxi(layer.repeat_times, 32)
 	_main.get_node("%GameSpeed").set_speed(float(scene.get("speed", 1.0)))
@@ -197,7 +209,7 @@ func _setup() -> void:
 	spawner.enemy_reached_goal.connect(func(enemy: Node2D) -> void:
 		print("Capture: %s reached the Heartwood at %.1f s" % [enemy.enemy_data.resource_path.get_file().get_basename() if enemy.enemy_data else "?", clip_time]))
 	_started = true
-	print("Capture: playing %s (%.0f s)" % [scene.get("title", ""), float(scene.get("length", 20.0))])
+	print("Capture: playing %s (%.0f s), bosses %s" % [scene.get("title", ""), float(scene.get("length", 20.0)), BossPool.ids(director.bosses)])
 
 func _process(delta: float) -> void:
 	_apply_hud()
@@ -258,6 +270,9 @@ func _apply_hud() -> void:
 	var hud := _main.get_node_or_null("HUD")
 	if hud == null:
 		return
+	for node in hud.get_children():
+		if node is DriftMeter:  # The damage meter (its dev line says "needs ~N")
+			node.visible = false
 	var dev_tag := hud.get_node_or_null("DevGroveTag")
 	if dev_tag != null:
 		dev_tag.visible = false
@@ -405,6 +420,9 @@ func plant(id: String, at, auto: String = "", rank: int = 0, tag: bool = true) -
 		return false
 	var before: int = map.route_length(map.get_path_from(map.startPath))
 	var shown := run_state.dew  # The scene's Dew stays what it shows: planting and growing are paid from a loan
+	var dreams: DreamState = _main.get_node("%DreamState")
+	var limited := not dreams.unlock_everything  # "families": the bar shows the run's families; planting may use any
+	dreams.unlock_everything = true
 	run_state.dew = 1000000
 	placer.select_tower(chain[0])
 	var planted: bool = placer._try_build_half(origin)
@@ -419,6 +437,7 @@ func plant(id: String, at, auto: String = "", rank: int = 0, tag: bool = true) -
 		for i in rank:
 			placer.nurture(tower, Tower.Focus.POWER)
 	run_state.dew = shown
+	dreams.unlock_everything = not limited
 	run_state.dew_changed.emit(run_state.dew)
 	if tower == null:
 		return false
