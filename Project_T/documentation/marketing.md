@@ -26,11 +26,11 @@ page points to the Steam page.
    no Warcraft footage, logos or art (Blizzard's trademarks). "Try the demo now" only once the demo is live; until then
    the call is "wishlist it on Steam", and the page must be up before it posts.
    **Hold on all video renders** (the user, 2026-10-04): the path and other environment art are still changing, so no
-   final renders of shorts, the trailer or screenshots until Theme Discussion calls the look stable. Open: **bigger
-   Wardens** (being rolled out across the whole roster; the locked maze may need re-checking for footprint),
-   **ground variation** (moss / clearing / flower patches; Environment Discussion → Assets + Code), nightmare footing, **path width** (renders as a ~¼-cell hairline; the
-   design is broad on open ground and at least ½ cell where Wardens pinch it; Environment Discussion). Done: grain clean-up, nightmare readability, bigger Heartwood husks (3712245a), the Heartwood glow fix
-   (61db39aa; a 600 px test capture confirms it). Environment Assets' other art is final. Scripts, voiceover, capture scenes and test renders can go on.
+   final renders of shorts, the trailer or screenshots until Theme Discussion calls the look stable. Open: the **bigger
+   Wardens** roster art (Tower Assets; code in; Sprout and Thornwall keep today's size), one last ground-patch softening
+   (Environment). Then one test capture, then Theme calls stable. Done: grain clean-up, nightmare readability, the
+   Heartwood glow (61db39aa) and husks (3712245a), path ≥ ½ cell of pale earth (56da16ae), nightmare footing (4ea858af),
+   ground variation (f583c5d6, 115df0d7), Mire/Roots duals (6ddbc824), rubble (0bc2b870). Scripts, voiceover, capture scenes and test renders can go on.
 3. **Trailer** (60–90 s): once the capture tools exist.
 4. **Demo + Steam Next Fest**: the biggest wishlist spike; plan it for when the demo is polished.
 
