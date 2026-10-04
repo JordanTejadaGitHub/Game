@@ -1,0 +1,23 @@
+{
+	"title": "Trailer 46-60 s: the Hollow Stag.",
+	"note": "Trailer chat (marketing.md section 5, scene 7). Board copied exactly from short_03.json at 4a045652 (Short Form Video tuned it; the board is chaotic: never change a plant line, count or order). Only size, camera and captions differ. The trailer card goes on in the edit over the charge, so no captions here. Cut: a charge on a straight, then a stall on a bend.",
+	"seed": 4242,
+	"size": [1920, 1080],
+	"drift": 25,
+	"dew": 99999,
+	"obstacles": "edge",
+	"families": ["sporeling", "dewdrop"],
+	"hud": "none",
+	"length": 30.0,
+	"music": ["base", "dread1", "boss_stag"],
+	"captions": [],
+	"timeline": [
+		{"t": 0.0, "plant_each": 0.05, "count": 14, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 16, "plant": "sporeling", "auto": "cover", "rank": 5, "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 5, "plant": "dewdrop", "auto": "cover", "rank": 5, "tag": false},
+		{"t": 0.2, "dossier": true, "drift": 25},
+		{"t": 2.3, "dossier": false},
+		{"t": 2.5, "spawn": "old_stag"},
+		{"t": 2.5, "camera": "follow", "target": "boss", "zoom": 1.0}
+	]
+}
