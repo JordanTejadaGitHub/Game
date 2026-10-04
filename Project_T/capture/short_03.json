@@ -14,7 +14,7 @@
 		[0.0, 2.5, "The first boss: the Hollow Stag."],
 		[2.5, 11.0, "On a straight line, it charges."],
 		[11.0, 23.0, "So bend the maze. Every corner breaks the charge."],
-		[23.0, 30.0, "Dispelled on the doorstep. Too close."]
+		[23.0, 30.0, "A few tiles from the tree. It never got its run-up."]
 	],
 	"timeline": [
 		{"t": 0.0, "plant_each": 0.05, "count": 14, "plant": "thornwall", "auto": "maze", "tag": false},

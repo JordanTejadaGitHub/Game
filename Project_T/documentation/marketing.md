@@ -56,7 +56,7 @@ captioned one. Record the voice, drop it on the timeline, done. Speak like you'r
 **Short 1: "Your towers ARE the maze." (~25 s)**
 - 0–2 s: *"In my game, your towers are the walls."*
 - 2–10 s: *"Every Warden you plant changes the path the nightmares have to walk. Longer path, more time to hit them."*
-- 10–18 s: *"Twenty-four Wardens in, and the path's about twice as long as when I started."* (the clip's real count)
+- 10–18 s: *"Forty Wardens in, and the path's about three times as long as when I started."* (the clip's real count)
 - 18–25 s: *"Then I hit start, and they have to walk every bend of it."* · end card: *"It's called Heartwood TD. Wishlist it on Steam."*
 
 **Short 2: "Watch this chain." (~22 s)**
@@ -69,7 +69,7 @@ captioned one. Record the voice, drop it on the timeline, done. Speak like you'r
 - 0–2 s: *"This is the first boss. The Hollow Stag."*
 - 2–10 s: *"On long straight corridors, it charges, so the trick is: never give it a straight line."*
 - 10–22 s: *"Bend the maze. Make it turn. Every corner kills its charge."*
-- 22–30 s: *"Two percent health left at the door. Close."* (beat) *"Too close."* · end card line.
+- 22–30 s: *"A few tiles from the tree."* (beat) *"It never got its run-up."* · end card line.
 
 **Short 4: "The forest moves." (~22 s)**
 - 0–2 s: *"After every boss, the Heartwood gives you a gift."*
