@@ -53,4 +53,5 @@ Discussion (art_direction.md "Style references"); this file covers player-facing
 
 ### Marketing copy (Marketing chat)
 marketing.md:59 ("not just placing towers"), :60, :104-105 trailer cards and :112 Steam description: rewrite in the
-developer's own words, one concrete thing per line.
+developer's own words, one concrete thing per line. **Done:** :59-60 VO (Short Form Video d3aec1ea), :112 Steam
+description (Marketing Discussion d3aec1ea / 9af99f70), :104-105 trailer cards (Trailer 302f7d7e).
