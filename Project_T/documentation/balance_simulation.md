@@ -765,7 +765,7 @@ leaves in one drift** (its 3 elites at ×3 × 1.4 = ×4.2 health), and 41–42 f
 the route, Heartwood share 0%.
 - On target: a fresh profile ending in act 2 ✓.
 - A full-leaf run losing almost everything to one finale is a cliff: **the finale's ×1.4 no longer stacks on
-  its elites** (elites keep ×3).
+  its elites** (elites keep ×3; in 577f62b0).
 
 ## Nurture rework (2026-10-03, tower_design / warden_stats 02417f32; in e2631f54, boss side 0a309566)
 
