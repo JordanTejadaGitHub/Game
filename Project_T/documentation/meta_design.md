@@ -184,6 +184,7 @@ the tree for the Heartwood's Crown.
 | Starlit Card Backs | 30 | Dream offer cards get the night-sky frame |
 
 (The art exists from when they were milestone rewards.) +120 Seeds to the tree.
+
 **Power budget:** 15 perks, carry 3 at the start, up to 5 (6 once the whole tree is grown). A full economy loadout (Morning Stores III, Rich Dew
 III, Rested Roots II, Sprout Bed, Clear Sight) makes the early game noticeably smoother, which is
 why **Blight Levels** exist: each level takes back some of that power. Caps: starting Dew +30,
