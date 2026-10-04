@@ -1,6 +1,6 @@
 {
 	"title": "Screenshot 1: the maze",
-	"note": "Steam screenshot 1 (marketing.md §6): short_01's exact timeline (so the same maze) at 16:9 with the clean HUD, plus Husks and Shades spread along the bends at 16 s so the drift fills the maze inside Warden range. Grab frames 17-24 s.",
+	"note": "Steam screenshot 1 (marketing.md §6): short_01's hand-built maze (same spots, same order) at 16:9 with the clean HUD; the drift starts as soon as it stands and Husks + Shades are spread along the bends so the front is inside Warden range. Grab frames 9-16 s; pick one with no callout clipped at the frame edge.",
 	"seed": 4242,
 	"size": [1920, 1080],
 	"drift": 20,
@@ -8,13 +8,13 @@
 	"obstacles": "edge",
 	"families": ["sporeling"],
 	"hud": "clean",
-	"length": 25.0,
+	"length": 17.0,
 	"timeline": [
 		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 1.0},
-		{"t": 2.0, "plant_each": 0.25, "count": 32, "plant": "thornwall", "auto": "maze", "tag": false},
-		{"t": 9.0, "plant_each": 0.4, "count": 8, "plant": "sporeling", "auto": "cover", "tag": false},
-		{"t": 12.0, "start": true},
-		{"t": 16.0, "spawn": "bark_beetle", "count": 6, "progress": 0.75, "spread": 4},
-		{"t": 16.0, "spawn": "leaf_bug", "count": 6, "progress": 0.45, "spread": 3}
+		{"t": 0.0, "plant_each": 0.02, "plant": "thornwall", "spots": [[7, 14], [7, 16], [7, 18], [7, 20], [6, 22], [6, 24], [6, 26], [6, 28], [6, 30], [14, 6], [14, 8], [14, 10], [14, 12], [15, 14], [15, 16], [15, 18], [15, 20], [23, 14], [23, 16], [23, 18], [23, 20], [24, 22], [24, 24], [24, 26], [24, 28], [24, 30], [24, 32], [25, 14], [27, 14], [29, 14], [31, 14], [33, 14], [35, 14], [35, 16], [35, 18], [35, 20], [35, 22], [35, 24], [35, 26], [26, 24], [28, 24], [30, 24]], "tag": false},
+		{"t": 1.0, "plant_each": 0.02, "plant": "sporeling", "spots": [[7, 12], [15, 22], [23, 12], [35, 28], [37, 20], [33, 26], [9, 2], [20, 2], [40, 8]], "tag": false},
+		{"t": 1.5, "start": true},
+		{"t": 6.0, "spawn": "bark_beetle", "count": 6, "progress": 0.7, "spread": 4},
+		{"t": 6.0, "spawn": "leaf_bug", "count": 6, "progress": 0.4, "spread": 3}
 	]
 }
