@@ -96,16 +96,33 @@ the Night Mare's laps, the Memory Grove growing, Rank V Nurture choices, the Spi
 
 ## 5. Trailer script (≈75 s)
 
-| Time | Shot | On screen |
-|---|---|---|
-| 0–5 s | Straight into building: Wardens snap down and the route mist bends. | "Your Wardens are the walls." |
-| 5–15 s | A drift arrives; nightmares follow the maze; the first dispels crack into light. | "The nightmares must take the long way." |
-| 15–30 s | Statuses meet: Soaked, Charged, Thunderclap; Poisoned fog; the first Reaction callouts. | "Combine them." |
-| 30–42 s | Dreams (a card pick), a branch grows (Remember screen → Grow), Kinship roots form. | "Grow your Wardens. Shape every run." |
-| 42–52 s | A Heartwood's Gift reshapes the island; an Omen screen. | "Every dream is different." |
-| 52–65 s | Bosses: the Stag's charge, the Night Mare, the Hollow Oak rising. Music builds (the boss stem). | "Something old has found the dream." |
-| 65–72 s | The biggest late-game chain to a Dawnburst; the Heartwood glowing. | |
-| 72–75 s | The logo, "Wishlist on Steam", platforms. | |
+Owner: Trailer chat (2026-10-04). Opens with pitch.md's "first 10 seconds" (no logo intro). Rules: every clip at real
+speed (1×, never sped up or slowed: cut instead); every maze shows staggered half-cell walls (half_cells.md); cards say
+one concrete thing each, in the developer's voice (text_pass.md), and read in under 3 s.
+
+| Time | Shot | On screen | Music |
+|---|---|---|---|
+| 0–3 s | Dark forest edge; a Shade's eyes open and it skitters in. A spore puff hits it; it shrieks and cracks into motes. | | base stem, quiet |
+| 3–8 s | Pull back to a staggered maze. A Warden drops onto the route; the route mist snaps into a longer detour ("+N path"). | "Your Wardens are the walls." | |
+| 8–16 s | A drift streams in and walks every bend; the first dispels along the maze. | "Now they take the long way." | + dread1 |
+| 16–28 s | A Soaked crowd, Charged: Thunderclap callouts; Poisoned fog on the next bend. | "Soaked + Charged = Thunderclap." | + dread2 |
+| 28–38 s | A rest: the Dream pick (3 cards, one taken); a Warden grows into its branch; Kinship roots join two kin. | "Three Dreams at every rest. Take one." | rest swell |
+| 38–46 s | A Heartwood's Gift (Sow a Ridge): the ridge rises, the route bends around it live. | "That ridge wasn't there a minute ago." | |
+| 46–60 s | The Hollow Stag charges a straight corridor, then stalls on a bend; cut to the Night Mare's laps; the Hollow Oak rising. | "The Stag charges down straight lines. So don't build any." (over the Stag only) | + heartbeat, boss stem from the Oak |
+| 60–70 s | A late storm board: one chain to ×10, Dawnburst; the Heartwood glowing gold. | | full |
+| 70–75 s | Logo, the tagline *"Grow a living maze. Hold back the nightmares."*, "Wishlist on Steam", platforms. | (name open: Marketing Discussion) | resolve |
+
+Dropped from the draft: the Omen screen (a second menu in 10 s; save it for a short).
+
+**Capture scenes needed (Main Merger, capture_director.gd):** (1) forest-edge Shade close-up; (2) a mid-run staggered maze
++ one placement; (3) drift ~20 walking the maze; (4) a storm board on a Soaked crowd, drift ~40; (5) a rest with Dream
+pick, grow and a Kinship; (6) an act break with Sow a Ridge; (7) drift 25 Stag on a board with one straight corridor;
+(8) the Night Mare; (9) the Hollow Oak's arrival; (10) a late storm board to Dawnburst, drift ~60, the Heartwood at a
+high Grove stage.
+
+**Timing:** final capture only after the art refresh (calm detail pass, one golem pose per family, the ground grain fix)
+and the final half-grid path art (art_direction.md "AI-look audit", half_cells.md). A rough cut from today's art is fine
+for timing. Steam wants the trailer first on the page: lock the date with Marketing Discussion.
 
 ## 6. Steam page text (draft)
 
