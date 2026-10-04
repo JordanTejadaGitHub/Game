@@ -784,6 +784,10 @@ DEMO_RULES; in 4e8162d2). Expected: Balanced ~60%, skip ~20%; re-run both after.
 **Corridor rule changed** (user, half_cells.md 04c10c33): nightmares fit through one-half gaps, so mazes can be
 denser and longer. The ×1.30 checks (Balanced, skip, bosses) are held for that build; the current results
 read the old one-cell corridor rule.
+**Item 3, demo** (0596eb94, old corridor rule, 20 seeds): Balanced **100%**, skip **50%** (pre-merge 70% / 40%;
+band 75–85% / 25–45%), route at 24 ~86 cells. Half cells plus the Firefly / Nurture changes eased the demo
+too. Held with the full game for the new corridor rule (which lengthens mazes further); then the demo's
+own DEMO_RULES act 1 value gets a step if it stays above band.
 
 ## Milestone thresholds (2026-10-04; milestones give bonus Seeds only, meta_design.md 269b14b0)
 
