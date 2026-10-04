@@ -272,16 +272,24 @@ Map pieces the act-break gifts place, one set per act folder like the rest.
 ## Half-cell grid: environment plan (Environment Discussion, 2026-10-04)
 
 For half-cell placement (`half_cells.md`; experiment/half-cells → main once the user confirms). The pathing grid
-becomes 32 px (46×36). Wardens take a 2×2 half-cell footprint at any half offset. Nightmares need a corridor of at
-least 2 half cells. **Rule of thumb: only the player's Wardens (and so the route) live on the half grid. Everything
+becomes 32 px (46×36). Wardens take a 2×2 half-cell footprint at any half offset. Nightmares fit through a corridor of
+one half cell (since 04c10c33). **Rule of thumb: only the player's Wardens (and so the route) live on the half grid. Everything
 the world places stays on whole 64 px cells.**
 
 ### 1. Path art: a dual-grid autotile at 32 px
 The prototype's soft ribbon is a stand-in. The final path is drawn with the **dual-grid** method, because a
 neighbour-mask tile per cell can't draw half-step corners and staggered edges:
-- **Data:** every 32 px half cell is *path* or *not*. The path half cells are the route's corridor: the 2×2 half cells
-  a nightmare occupies at each route point. Wear-away (`wear_away`) still erases decorations on every whole cell the
-  corridor touches.
+- **Data:** every 32 px half cell is *path* or *not*. ~~The 2×2 body at each route point~~ **Update 2026-10-04
+  (half_cells.md 04c10c33): nightmares fit through one-half (32 px) gaps.** The drawn path is the route's **body
+  where there's room, narrowing to a one-half ribbon only where the walls squeeze it**. For each route point, the
+  2×2 body block is path if all 4 of its half cells are walkable; otherwise only the route's own half cells are. So
+  open ground shows the usual broad path, and a pinch between staggered Wardens visibly narrows: the art tells the
+  player "they squeeze through here". Wear-away (`wear_away`) erases decorations on every whole cell a path half
+  touches.
+- **The art must work at both widths:** a broad path, a **one-half-wide ribbon** (masks 3/6/12/9 on both sides of a
+  32 px strip, which need edge art thin enough to leave visible earth in the middle), single-half jogs, a single
+  isolated half (the 4 single-corner tiles 1/2/4/8 together form a small round patch), and the diagonal masks 5 and
+  10 drawn as **two separate corners**, never a bridge (nightmares don't move diagonally).
 - **Display:** a second layer offset by 16 px (half a half cell). Each display tile looks at its 4 corner half cells
   (path or not) and picks 1 of **16 tiles** (marching squares). Corners round off, half steps get a soft jog, and
   staggered edges join with no seams. The path stays the palest thing on the map.
