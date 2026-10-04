@@ -38,6 +38,8 @@ const MENU_LEFT := 72.0  # The menu sits in the art's calm left side
 const MENU_WIDTH := 340.0
 
 func _ready() -> void:
+	if CaptureDirector.begin(get_tree()):
+		return  # A marketing capture (-- --capture=…): its own profile, straight into the run
 	UiStyle.install_tooltip_wrap(get_tree())  # Long tooltips wrap at the tip width
 	migrate_old_saves()
 	DevGrove.apply()  # Dev Grove (debug builds): the dev profile, before anything reads the profile

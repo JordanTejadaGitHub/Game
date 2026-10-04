@@ -170,6 +170,8 @@ func _ready() -> void:
 		box.add_child(dev_note)
 		# Grove perks as trade-offs (MetaRun.sidegrade_active): Sidegrade by default since the Spire merge, Power for testing.
 		_choice(box, "Perk style", MetaRun.PERK_STYLE_SETTING, ["Power", "Sidegrade"], 1)
+		# Capture mode (marketing.md §3): clean frames for recording; scripted scenes use -- --capture=<file>.
+		_choice(box, "Capture mode (hides dev tools, DPS tags, damage meter)", CaptureDirector.SETTING, ["Off", "Clean HUD", "No HUD"], 0)
 		box.add_child(HSeparator.new())
 		box.add_child(_profile_reset_box())
 
