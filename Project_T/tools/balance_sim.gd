@@ -83,6 +83,7 @@ var _last_args: Array = []  # That call's reach, growth weight, cover_heart, dat
 var half_spots := [0, 0, 0, 0]  # Attackers weighed with half nudges, built at a half offset, refused there; walls planted by the half search
 var route_open := -1  # Route length in full cells after the opening spend, and as drifts 24 / 45 start
 var route_at := {}
+var narrow_at := {}  # Route halves in a one-half corridor (both opposite neighbours blocked), as drifts 24 / 45 start
 var demo_run := false  # --demo: game/demo stays true (DEMO_RULES, demo bosses and Kinships), for the demo sanity check
 var kin_placement := true  # --no-kin: no Kinship placement, and growth takes the first open form in evolves_to (the old bot)
 var focus_mode := ""  # --focus=deep: Nurture picks Deep where it's offered and Potency cards score high (a committed Deep build)
@@ -275,6 +276,7 @@ func _run() -> void:
 		for mark in [24, 45]:
 			if director.drifts_started >= mark and not route_at.has(mark):
 				route_at[mark] = _route_cells(map.get_path_from(map.startPath))
+				narrow_at[mark] = _narrow_halves()
 		for mark in [25, 51]:
 			if director.drifts_started >= mark and not kin_pairs.has(mark):
 				kin_pairs[mark] = Kinships.count_on_map(main)
@@ -573,6 +575,23 @@ func _route_step() -> int:
 # A route's length in full cells (MapGenerator.route_length on the half grid).
 func _route_cells(route: PackedVector2Array) -> int:
 	return map.route_length(route) if map.has_method("route_length") else route.size()
+
+# Route halves squeezed into a one-half corridor (half_cells.md 04c10c33: a nightmare fits through one half): both
+# left and right, or both above and below, are blocked. -1 before the one-half rule (FindPath.point_to_node).
+func _narrow_halves() -> int:
+	var finder: Script = FindPath
+	if not finder.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "point_to_node") \
+			or not map.path_layer.has_method("is_half_blocked"):
+		return -1
+	var count := 0
+	for p in map.get_path_from(map.startPath):
+		if finder.call("is_whole_cell", p):  # Called by name: older builds lack these
+			continue
+		var h := Vector2(finder.call("point_to_node", p))
+		var blocked := func(at: Vector2) -> bool: return map.path_layer.is_half_blocked(at)
+		if (blocked.call(h + Vector2.LEFT) and blocked.call(h + Vector2.RIGHT)) or (blocked.call(h + Vector2.UP) and blocked.call(h + Vector2.DOWN)):
+			count += 1
+	return count
 
 # A spot's score: route points within `reach` of `centre` (the last LAST_STRETCH cells double with `cover_heart`) +
 # `growth_weight` × the points it adds + aura / Kinship bonuses at `anchor` (the full cell they measure from).
@@ -888,6 +907,9 @@ func _finish() -> void:
 	summary.route_open = route_open
 	summary.route_24 = route_at.get(24, -1)
 	summary.route_45 = route_at.get(45, -1)
+	summary.narrow_24 = narrow_at.get(24, -1)
+	summary.narrow_45 = narrow_at.get(45, -1)
+	summary.narrow_end = _narrow_halves()
 	summary.jarlinks = _jarlink_text()
 	summary.branch_offers = ";".join(dreams.branch_offers.keys().map(func(id) -> String: return "%s:%s" % [id, "/".join(dreams.branch_offers[id].map(func(t) -> String: return t.get_id() if t is TowerData else str(t)))]))
 	summary.dreamlight_unlocks = "+".join(policy.choices.filter(func(c: String) -> bool: return c.begins_with("Dreamlight: ")).map(func(c: String) -> String: return c.substr(12)))
