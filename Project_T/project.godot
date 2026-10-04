@@ -14,7 +14,9 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="Heartwood TD"
+config/name="Heartwood TD (Half-cell experiment)"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="HeartwoodTD_HalfCells"
 run/main_scene="res://scenes/title.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
@@ -37,6 +39,7 @@ folder_colors={
 
 demo=false
 wishlist_url=""
+experiment="half_cells"
 
 [gui]
 
