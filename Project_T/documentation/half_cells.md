@@ -1,9 +1,9 @@
-# Half-cell placement (approved for main; built on `experiment/half-cells`)
+# Half-cell placement (on main since b8305630, full game + demo)
 
 Owner: design hub (story chat). User, 2026-10-04: *"update the grid placing to be half placing cells. Make more unique
 mazes"* → *"Wardens can be placed at half cell offsets."* Built on an experiment branch first. **Approved, 2026-10-04:**
-*"I wanted the placed cells in the maze and update all the assets and marketing with it."* It goes to main once the
-user confirms the merge in Main Merger's session. The "later work" below is now the to-do list.
+*"I wanted the placed cells in the maze and update all the assets and marketing with it."* Merged into main
+2026-10-04 as b8305630 (user, in Main Merger: "Merge, full game + demo"). The work list below is the to-do list.
 
 ## The rule
 - The **pathing grid becomes 32 px** (half cells): the 23×18 map is 46×36 half cells.
