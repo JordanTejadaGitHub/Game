@@ -91,7 +91,7 @@ func get_block_finale_elites(number: int) -> int:
 # evenly to `act1_health_multiplier` at `act1_ramp_to` and holding to the act's end; act 2 holds that
 # for its first drifts (a breather while the first finals arrive) until `early_ramp_from`, then rises
 # evenly to `early_acts_health_multiplier` at `early_ramp_to`, held until acts 3–4 take over (no stacking).
-@export var act1_health_multiplier: float = 1.15  # Spire: main's peak again, paying for the finales' x1.4 (was 1.25, 1.35)
+@export var act1_health_multiplier: float = 1.30  # Balancing (half cells eased act 1: 73% survive, skip 43%); was 1.15, 1.25, 1.35. The demo keeps 1.15 (DEMO_RULES)
 @export var act1_ramp_from: int = 3  # Spire: the ramp starts at drift 3 (was 9)
 @export var act1_ramp_to: int = 20
 @export var early_acts_health_multiplier: float = 4.5  # Act 2 ends at this ("Human run 7"; was 3.6, 3.0, 2.5, 1.55)
@@ -160,6 +160,7 @@ const DEMO_RULES := {
 	"dew_pot_acts": [Vector2(30, 115), Vector2(115, 135), Vector2(135, 145), Vector2(140, 145)],
 	"dew_pot_bosses": [220.0, 270.0, 320.0, 0.0],
 	"block_finale_elites": {}, "block_finale_health_multiplier": 1.0,
+	"act1_health_multiplier": 1.15,  # The full game went to 1.30 after half cells; the demo keeps its tuning
 }
 
 func apply_demo_rules() -> void:
