@@ -1881,6 +1881,60 @@ function bogTile(A, mask) {
   return L;
 }
 
+// Half-cell (dual-grid) versions of the Mire bog and the Heartwood Roots, in path_dual.png's layout
+// (k 0–15 = corner mask TL 1, TR 2, BR 4, BL 8; 16–18 = more full tiles). No tile-wide noise texture:
+// noise that repeats every 32 px turns into stripes repeating in every tile. Puddles and roots are
+// placed per tile, inside the path and clear of the tile's edges (like the pebbles).
+function bogDual(A, k) {
+  const L = pathDual(A, k), p = A.path.map(C), s = SEED + 799 + k * 13, g = A.grass, F = dualField(k > 15 ? 15 : k);
+  const D = dualD(k > 15 ? 15 : k);  // pathDual's edge
+  const is = (x, y, c) => { const v = L.get(x, y); return v[3] && v[0] === c[0] && v[1] === c[1] && v[2] === c[2]; };
+  const earth = [p[2], p[3], C("#5c3c24"), C(ST.l2), C(ST.m), C(ST.d1)];
+  for (let y = 0; y < DUAL; y++) for (let x = 0; x < DUAL; x++) {
+    if (earth.some(c => is(x, y, c))) L.set(x, y, hash(x, y, s) < .03 ? "#5c3c24" : "#6c5c5c");  // peat
+    else if (is(x, y, p[0])) L.set(x, y, "#241c14");  // its wet dark edge
+  }
+  for (let i = 0; i < 2; i++) {  // still puddles
+    const cx = 9 + hash(i, 1, s) * 14, cy = 9 + hash(i, 2, s) * 14, rx = 3 + hash(i, 3, s) * 3, ry = rx * .55;
+    if (D(cx - rx, cy) > -2 || D(cx + rx, cy) > -2 || D(cx, cy - ry) > -2 || D(cx, cy + ry) > -2) continue;
+    ellipseRaw(L, cx, cy, rx, ry, (x, y, dx, dy) => dy < -.5 ? "#241c14" : dx < -.2 && dy < 0 ? "#4c8ca4" : "#2c4c5c");
+    L.set(cx - rx * .3, cy - ry * .2, "#9cd4fc");
+  }
+  for (let r = 0; r < 2; r++) {  // reeds
+    const x = 6 + Math.floor(hash(r, k, s + 4) * 20), y = 9 + Math.floor(hash(r, k, s + 5) * 18);
+    if (D(x, y + 1) > -2) continue;
+    for (let i = 0; i < 4; i++) L.set(x + (i > 2 ? 1 : 0), y - i, i < 2 ? g[2] : g[3]);
+  }
+  return L;
+}
+// Roots breaking through the path: one long sinuous root per tile (tapered ends, a small rootlet), kept
+// inside the tile and the path, in ~70% of tiles. (Lanes running from tile to tile made a woven grid,
+// since a dual tile can't know which way its corridor runs; short pieces read as dropped twigs.)
+function rootsDual(A, k) {
+  const out = new Img(DUAL, DUAL), L = new Img(DUAL, DUAL), s = SEED + 795 + k * 17, F = dualField(k > 15 ? 15 : k);
+  const D = dualD(k > 15 ? 15 : k);  // pathDual's edge
+  const rootFn = (x, y, nx) => nx < -.3 ? "#bca48c" : nx > .5 ? "#5c3c24" : "#8c5c34";  // light wood, low on the path (dark roots read as crawling nightmares)
+  if (hash(k, 9, s) < .45) return out;
+  for (let tries = 0; tries < 6; tries++) {
+    const a = hash(tries, 1, s) * Math.PI, len = 22 + hash(tries, 2, s) * 6, cx = 14 + hash(tries, 3, s) * 4, cy = 14 + hash(tries, 4, s) * 4;
+    const pts = Array.from({ length: 7 }, (_, i) => {
+      const t = i / 6 - .5, wob = Math.sin(t * Math.PI * 2 + hash(tries, 5, s) * 6) * 3;
+      return [cx + Math.cos(a) * t * len - Math.sin(a) * wob, cy + Math.sin(a) * t * len + Math.cos(a) * wob];
+    });
+    if (pts.some(([x, y]) => x < 3 || y < 3 || x > 28 || y > 28 || D(x, y) > -3)) continue;
+    for (let i = 1; i < pts.length; i++) {
+      const w = (t => 1 + Math.sin(t * Math.PI) * 1.5)((i - .5) / (pts.length - 1));  // thicker in the middle, tapered ends
+      stroke(L, pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], w, w, rootFn);
+    }
+    const [bx, by] = pts[3], ra = a + (hash(tries, 6, s) < .5 ? 1 : -1) * 1.1;  // a small rootlet off the middle
+    if (D(bx + Math.cos(ra) * 7, by + Math.sin(ra) * 7) < -3) stroke(L, bx, by, bx + Math.cos(ra) * 7, by + Math.sin(ra) * 7, 1.8, 1, rootFn);
+    break;
+  }
+  out.stamp(L, "#5c3c24");  // a Bark outline, never near-black
+  for (let y = 0; y < DUAL; y++) for (let x = 0; x < DUAL - 1; x++)  // a warm glint of sap
+    if (L.alpha(x, y) && L.alpha(x + 1, y) && hash(x, y, s + 6) < .025) { out.set(x, y, "#e9a83c"); out.set(x + 1, y, "#fcd47c"); y = DUAL; break; }
+  return out;
+}
 // Ancient Stump (a Warden planted on one starts at rank I): a broad old cut stump seen from above,
 // its top ringed with years, roots spreading into the grass, moss on its rim. 3 variants.
 function ancientStump(A, v) {
@@ -1998,11 +2052,13 @@ const BUILD = {
   mring: (A, v, f) => mushroomRing(A, f),
   hroots: (A, m) => heartwoodRoots(A, m),
   bog: (A, m) => bogTile(A, m),
+  bogd: (A, k) => bogDual(A, k),
+  rootsd: (A, k) => rootsDual(A, k),
   astump: (A, v) => ancientStump(A, v),
   rwisp: (A, v, f) => routeWisp(f),
 };
 const ANIM = new Set(["withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "ltree", "mwell", "bstone", "mring", "dead"]);
-const TILES = new Set(["grass", "path", "wall", "pool", "pond", "pondin", "flog", "lfurrow", "hroots", "bog", "blight"]);
+const TILES = new Set(["grass", "path", "wall", "pool", "pond", "pondin", "flog", "lfurrow", "pdual", "hroots", "bog", "bogd", "rootsd", "blight"]);
 const SOLID = 200;
 function copyPx(dst, x, y, c) { const i = (y * dst.w + x) * 4; dst.d[i] = c[0]; dst.d[i+1] = c[1]; dst.d[i+2] = c[2]; dst.d[i+3] = c[3]; }
 // Storybook: halve the resolution (most common solid colour per 2×2 block), outline sprites in a

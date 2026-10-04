@@ -17,7 +17,7 @@ const KINDS := {
 	"lightning_tree": DetailPass.Kind.OBSTACLE, "moonwell": DetailPass.Kind.OBSTACLE, "bell_stone": DetailPass.Kind.OBSTACLE, "ancient_stump": DetailPass.Kind.OBSTACLE, "blight_patch": DetailPass.Kind.TILE,
 	"border_wall": DetailPass.Kind.TILE, "rope_bridge": DetailPass.Kind.TILE,
 	"fallen_log": DetailPass.Kind.TILE, "log_furrow": DetailPass.Kind.TILE,
-	"path_dual": DetailPass.Kind.TILE,
+	"path_dual": DetailPass.Kind.TILE, "bog_path_dual": DetailPass.Kind.TILE, "heartwood_roots_dual": DetailPass.Kind.TILE,
 	"withered_tree": DetailPass.Kind.OBSTACLE, "mossy_boulder": DetailPass.Kind.OBSTACLE,
 	"tended_stump": DetailPass.Kind.OBSTACLE, "moved_hollow": DetailPass.Kind.OBSTACLE,
 	"ground_details": DetailPass.Kind.OBSTACLE, "waystone": DetailPass.Kind.OBSTACLE,

@@ -267,6 +267,7 @@ Map pieces the act-break gifts place, one set per act folder like the rest.
 | `mushroom_ring.png` | 768×192 | 4 frames of 192×192 (one 3×3 patch), transparent but the ring | Mushroom Ring (a ground patch under Wardens): a fairy ring of lush moss with 15 toadstools whose caps breathe a glow out of step |
 | `heartwood_roots.png` | 1024×64 | 16 columns = the path's neighbour mask, transparent overlay | Heartwood Roots: two gnarled warm root strands per path side meeting in a knot, glints of gold sap; drawn over the path tile, joins across cells |
 | `bog_path.png` | 1024×64 | 16 columns = neighbour mask, replaces `path.png` on its cells | Mire: the path's shape turned to dark peat with still puddles, reeds and a wet dark edge |
+| `bog_path_dual.png`, `heartwood_roots_dual.png` | 608×32 each | `path_dual.png`'s layout: 19 tiles of 32×32, 0–15 = corner mask (TL 1, TR 2, BR 4, BL 8), 16–18 = more full tiles | the half-cell versions: the Mire (peat, small still puddles and reeds placed per tile, a wet dark edge) and the Roots (a transparent overlay: one long light-wood root breaking through the path in most tiles, tapered, never a dark blob). The same inset edge as `path_dual` (`dualD`) |
 | `ancient_stump.png` | 192×64 | 3 variants of 64×64 | Ancient Stump: a broad cut stump with its year rings, roots and a little moss, flat enough to plant a Warden on |
 
 ## Half-cell grid: environment plan (Environment Discussion, 2026-10-04)
