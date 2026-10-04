@@ -17,6 +17,7 @@ func _initialize() -> void:
 func _run() -> void:
 	HeartwoodMemory.file_path = "user://test_half_cells_%d.json" % OS.get_process_id()
 	_corridor_rule()
+	_dual_masks()
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	main.get_node("MapGenerator").map_seed = 1207
 	root.add_child(main)
@@ -58,6 +59,16 @@ func _run() -> void:
 					if halves.has(h):
 						crosses = true
 			_check(not crosses, "no nightmare body crosses the footprint at %s" % origin)
+			var dual: TileMapLayer = map.path_layer.dual_layer
+			var path_halves: Dictionary = map.path_layer.path_halves()
+			var masks_ok := dual.get_used_cells().size() > 0
+			for at in dual.get_used_cells():
+				var want := PathGenerator.dual_mask(path_halves, at)
+				var got := dual.get_cell_atlas_coords(at).x
+				if got != want and not (want == 15 and got >= 15):
+					masks_ok = false
+			_check(masks_ok and halves.all(func(h: Vector2) -> bool: return not path_halves.has(Vector2i(h))),
+				"the dual path: every tile by its corners, none on the Warden's halves")
 			_check(not map.can_block_halves(halves) and map.block_refusal() == &"occupied", "the same halves can't be taken twice")
 			map.unblock_halves(halves)
 			_check(map.get_path_from(map.startPath) == before, "unblocked: the old route back")
@@ -120,3 +131,27 @@ func _corridor_rule() -> void:
 	var path := finder.calculate_point_path(start, end)
 	_check(not path.is_empty(), "a 2-half gap: the body passes")
 	_check(path.has(Vector2(2.5, 1.5)), "through the gap at half row 3-4 (%s)" % [path])
+
+# The dual grid's corner masks (TL 1, TR 2, BR 4, BL 8) for a few route shapes, by body positions.
+func _dual_masks() -> void:
+	var halves_of := func(points: Array) -> Dictionary:
+		var halves := {}
+		for p in points:
+			for h in FindPath.halves_of_cell(p):
+				halves[Vector2i(h)] = true
+		return halves
+	# A straight run east: bodies at x 0..3 (half steps), row 0.
+	var straight: Dictionary = halves_of.call([Vector2(0, 0), Vector2(0.5, 0), Vector2(1, 0), Vector2(1.5, 0)])
+	_check(PathGenerator.dual_mask(straight, Vector2i(2, 1)) == 15, "straight: inside is a full tile")
+	_check(PathGenerator.dual_mask(straight, Vector2i(2, 0)) == 4 | 8, "straight: the top bank (BR + BL)")
+	_check(PathGenerator.dual_mask(straight, Vector2i(2, 2)) == 1 | 2, "straight: the bottom bank (TL + TR)")
+	_check(PathGenerator.dual_mask(straight, Vector2i(0, 0)) == 4, "straight: the west end's outer corner")
+	# A corner: east along row 0, then south down column 1.5.
+	var corner: Dictionary = halves_of.call([Vector2(0, 0), Vector2(0.5, 0), Vector2(1, 0), Vector2(1.5, 0), Vector2(1.5, 0.5), Vector2(1.5, 1)])
+	_check(PathGenerator.dual_mask(corner, Vector2i(5, 1)) == 1 | 8, "corner: the outer bank turns (TL + BL)")
+	_check(PathGenerator.dual_mask(corner, Vector2i(3, 2)) == 15 - 8, "corner: the inner corner (all but BL)")
+	# A half-step jog: east, then shifted half a cell south, then east again.
+	var jog: Dictionary = halves_of.call([Vector2(0, 0), Vector2(0.5, 0), Vector2(0.5, 0.5), Vector2(1, 0.5), Vector2(1.5, 0.5)])
+	# Path halves: row 0 x 0-2, row 1 x 0-4, row 2 x 1-4.
+	_check(PathGenerator.dual_mask(jog, Vector2i(3, 1)) == 1 | 4 | 8, "jog: the top bank steps down (all but TR)")
+	_check(PathGenerator.dual_mask(jog, Vector2i(1, 2)) == 1 | 2 | 4, "jog: the bottom bank steps in (all but BL)")

@@ -169,6 +169,7 @@ func set_act(act: int) -> void:
 	for corner: Sprite2D in _pond_corners:  # The inside corners follow the season's pond sheet
 		corner.texture = (tile_set.get_source(EnvironmentTiles.POND_INNER) as TileSetAtlasSource).texture
 	heartwood.set_act(act)
+	path_layer.set_act(act)  # The dual-grid path sheet
 	gifts.set_act(act)
 	ambience.act = act
 
