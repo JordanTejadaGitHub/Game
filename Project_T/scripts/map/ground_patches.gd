@@ -24,6 +24,9 @@ const PATCH_MIN := 6
 const PATCH_MAX := 20
 const COVERAGE := Vector2(0.15, 0.25)  # Share of the island's ground (rim excluded), the glade ring not counted
 const SEED_SALT := 7919
+const NOISE_FREQUENCY := 0.35  # Per cell: a few lumps across a patch
+const NOISE_WEIGHT := 0.6  # Against the radial falloff (1 at the anchor, 0 at the radius)
+const MAX_STRAIGHT := 3  # No patch edge runs straight for more cells than this
 
 var patches: Array = []  # [{kind: int, cells: Array[Vector2]}], the glade ring last
 var kind_at := {}  # Whole cell -> kind
@@ -105,7 +108,10 @@ func _free(cell: Vector2, own: Dictionary) -> bool:
 				return false
 	return true
 
-# A soft blob of about `size` cells from an anchor that suits `kind`, grown so it stays round.
+# A soft, irregular blob of about `size` cells from an anchor that suits `kind` (Environment Discussion: not
+# boxy): it grows to the free neighbour with the best score, a radial falloff from the anchor (a little
+# stretched one way) plus low-frequency noise, so it's a thresholded noise blob kept connected. Then
+# 1-cell notches are filled and no edge runs straight for more than MAX_STRAIGHT cells (_soften).
 func _grow(rng: RandomNumberGenerator, kind: int, size: int) -> Array[Vector2]:
 	var anchors := _anchors(kind)
 	var cells: Array[Vector2] = []
@@ -113,30 +119,91 @@ func _grow(rng: RandomNumberGenerator, kind: int, size: int) -> Array[Vector2]:
 		if anchors.is_empty():
 			return cells
 		var start: Vector2 = anchors[rng.randi_range(0, anchors.size() - 1)]
+		var noise := FastNoiseLite.new()
+		noise.seed = rng.randi()
+		noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+		noise.frequency = NOISE_FREQUENCY
+		var radius := sqrt(size / PI) + 1.0
+		var stretch := Vector2(rng.randf_range(0.7, 1.3), 1.0)
 		var own := {start: true}
 		cells = [start]
 		while cells.size() < size:
-			var frontier: Array[Vector2] = []
-			var weights: Array[float] = []
+			var best := Vector2(-1, -1)
+			var best_score := -INF
 			for cell in cells:
 				for step: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
 					var next := cell + step
-					if own.has(next) or frontier.has(next) or not _free(next, own):
+					if own.has(next) or not _free(next, own):
 						continue
-					var touching := 0
-					for s2: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
-						if own.has(next + s2):
-							touching += 1
-					frontier.append(next)
-					weights.append(float(touching * touching))  # Favour filling in: round blobs, no tendrils
-			if frontier.is_empty():
+					var score := 1.0 - ((next - start) * stretch).length() / radius + NOISE_WEIGHT * noise.get_noise_2dv(next)
+					if score > best_score:
+						best_score = score
+						best = next
+			if best == Vector2(-1, -1):
 				break
-			var pick := rng.rand_weighted(PackedFloat32Array(weights))
-			own[frontier[pick]] = true
-			cells.append(frontier[pick])
-		if cells.size() >= PATCH_MIN:
-			return cells
-	return cells
+			own[best] = true
+			cells.append(best)
+		_soften(cells, own)
+		var boxy := false
+		for out: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+			boxy = boxy or not straight_runs(own, out).is_empty()
+		if cells.size() >= PATCH_MIN and not boxy:
+			return cells  # Else a cramped strip (against the rim or a neighbour): try another anchor
+	var none: Array[Vector2] = []
+	return none
+
+# Fills 1-cell notches (a free cell with 3 or 4 sides in the patch), then breaks every edge that runs straight
+# for more than MAX_STRAIGHT cells: a bump out of it, or failing that a bite into it.
+func _soften(cells: Array[Vector2], own: Dictionary) -> void:
+	var steps: Array[Vector2] = [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]
+	var bitten := {}  # Cells bitten out to break a straight edge: never filled back in
+	for pass_index in 8:
+		var filled := true
+		while filled:
+			filled = false
+			for cell: Vector2 in cells.duplicate():
+				for step in steps:
+					var gap: Vector2 = cell + step
+					if own.has(gap) or bitten.has(gap) or not _free(gap, own):
+						continue
+					if steps.filter(func(s: Vector2) -> bool: return own.has(gap + s)).size() >= 3:
+						own[gap] = true
+						cells.append(gap)
+						filled = true
+		var broke := false
+		for out in steps:
+			for run in straight_runs(own, out):
+				for i in range(MAX_STRAIGHT - 1, run.size() - 1, MAX_STRAIGHT):
+					var bump: Vector2 = run[i] + out
+					if _free(bump, own) and not own.has(bump):
+						own[bump] = true
+						cells.append(bump)
+					elif cells.size() > PATCH_MIN:
+						own.erase(run[i])
+						cells.erase(run[i])
+						bitten[run[i]] = true
+					broke = true
+		if not broke:
+			return
+
+# The patch's edges facing `out` (cells whose `out` neighbour isn't in it), as runs of cells in a straight line
+# longer than MAX_STRAIGHT, in order.
+static func straight_runs(own: Dictionary, out: Vector2) -> Array:
+	var along := Vector2(absf(out.y), absf(out.x))  # Perpendicular to `out`
+	var edge := {}
+	for cell: Vector2 in own:
+		if not own.has(cell + out):
+			edge[cell] = true
+	var runs: Array = []
+	for cell: Vector2 in edge:
+		if edge.has(cell - along):
+			continue  # Not the start of a run
+		var run: Array[Vector2] = [cell]
+		while edge.has(run[-1] + along):
+			run.append(run[-1] + along)
+		if run.size() > MAX_STRAIGHT:
+			runs.append(run)
+	return runs
 
 # Free cells that suit `kind` (environment_assets.md's table), else any free cell.
 func _anchors(kind: int) -> Array[Vector2]:

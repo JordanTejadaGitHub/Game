@@ -171,6 +171,8 @@ func _init() -> void:
 					map.set_act(int(act_arg.trim_prefix("--act=")))
 			if OS.get_cmdline_user_args().has("--stagger"):  # Half-offset Warden walls along the route
 				_stagger(main)
+			if OS.get_cmdline_user_args().has("--nightmares"):  # Shades along the route
+				await _nightmares(main)
 			_render(main, [ground, path, env], arg.trim_prefix("--preview="))
 		if arg.begins_with("--layouts="):
 			await _layout_sheet(arg.trim_prefix("--layouts="))
@@ -245,6 +247,14 @@ func _render(main: Node, layers: Array, file: String) -> void:
 		var sprite: Image = tower.tower_data.texture.get_image()
 		sprite.convert(Image.FORMAT_RGBA8)
 		image.blend_rect(sprite, Rect2i(Vector2i.ZERO, tile), Vector2i(tower.position) - tile / 2 + offset)
+	for enemy in main.get_node("%EnemyContainer").get_enemies():  # `-- --nightmares`: their first frame, as drawn
+		var body: AnimatedSprite2D = enemy.sprite
+		var art: Image = body.sprite_frames.get_frame_texture(body.animation, 0).get_image()
+		art.convert(Image.FORMAT_RGBA8)
+		if body.scale != Vector2.ONE:
+			art.resize(roundi(art.get_width() * absf(body.scale.x)), roundi(art.get_height() * absf(body.scale.y)), Image.INTERPOLATE_NEAREST)
+		var at := Vector2i(enemy.position + body.position + body.offset * body.scale) - art.get_size() / 2 + offset
+		image.blend_rect(art, Rect2i(Vector2i.ZERO, art.get_size()), at)
 	image.resize(image.get_width() / 2, image.get_height() / 2, Image.INTERPOLATE_NEAREST)
 	_light_pass(image, map, offset, 2.0)
 	image.save_png(file)
@@ -472,3 +482,15 @@ func _blend_patches(image: Image, map: Node, offset: Vector2i) -> void:
 	var tile := Vector2i(patches.tile_set.tile_size)
 	for at in patches.get_used_cells():
 		image.blend_rect(sheet, Rect2i(patches.get_cell_atlas_coords(at) * tile, tile), at * tile + Vector2i(patches.position) + offset)
+
+# `-- --nightmares` (with --preview): Shades standing on every 6th route point, held still, to check that
+# their bodies sit on the path's pale earth.
+func _nightmares(main: Node) -> void:
+	var map = main.get_node("%MapGenerator")
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	for i in range(3, route.size() - 3, 6):
+		var shade: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+		shade.set_physics_process(false)
+		shade.set_process(false)
+		shade.position = map.MAP_GRID.calculate_map_position(route[i])
+	await process_frame

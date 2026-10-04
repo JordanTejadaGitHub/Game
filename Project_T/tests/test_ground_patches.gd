@@ -40,6 +40,14 @@ func _run() -> void:
 							!= ground.patches.filter(func(p: Dictionary) -> bool: return p.cells.has(cell))[0]:
 						apart = false
 		_check(apart, "%s: patches never touch" % label)
+		var boxy := 0
+		for patch: Dictionary in ground.patches:
+			var own := {}
+			for c: Vector2 in patch.cells:
+				own[c] = true
+			for out: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+				boxy += GroundPatches.straight_runs(own, out).size()
+		_check(boxy == 0, "%s: no patch edge runs straight for more than %d cells (%d do)" % [label, GroundPatches.MAX_STRAIGHT, boxy])
 		var masks_ok := true
 		for at in ground.get_used_cells():
 			var coords := ground.get_cell_atlas_coords(at)
