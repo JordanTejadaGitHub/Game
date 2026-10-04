@@ -7,14 +7,14 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Honeysuckle"
-description = "Its sweet scent makes nightmares walking past it slowly Drowsy."
+description = "Its sweet scent makes nightmares walking past it slowly Drowsy (walls alone stop at 3)."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
 line = "wall"
 tier = 1
 buildable_directly = false
-evolve_cost = 10
+evolve_cost = 30
 attack_kind = 1
 attack_range = 1.25
 damage = 0

@@ -9,21 +9,22 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Boulderback"
-description = "A crushing hit that splashes half its damage around; double damage on Exposed, and it always crits on Drowsy nightmares."
+description = "A crushing hit that splashes three quarters of its damage around; double damage on Exposed, and it always crits on Drowsy nightmares."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+counter_tags = Array[StringName]([&"anti_swarm", &"anti_armour"])
 line = "stone"
 tier = 3
 buildable_directly = false
-evolve_cost = 200
+evolve_cost = 300
 attack_range = 1.75
-damage = 330
+damage = 472
 attacks_per_second = 0.35
 projectile_speed = 350
 projectile_texture = ExtResource("3_proj")
 splash_radius = 1.0
-splash_share = 0.5
+splash_share = 0.75
 marked_multiplier = 2.0
 crits_vs_drowsy = true
 crit_chance = 0.12

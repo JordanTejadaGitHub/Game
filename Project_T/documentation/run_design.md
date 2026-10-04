@@ -176,6 +176,22 @@ turn leaks into a hold. Targets for the balance simulation and playtests (averag
   past 10 drifts"). **Revised the same day** (later playtests: "too hard from early drifts, especially 15 with the swarm"): nightmare health **×1.0 for drifts 1–9, ramping to ×1.15 by drift 20 and holding to 25** (2026-09-29: saving was almost free for the starting three families; the drift 25 Hollow Stag itself is exempt and keeps ×1.5, its escort doesn't), then **act 2 at ×1.15 for drifts 26–30 (a breather while the first finals arrive), ramping to ×1.55 by drift 45** (was: ramp from drift 26, which left 2–4 of 10 Grove-player runs dead at 28–30), ×1.55
   to 50** (acts 3–4 go from ×1.4 to **×1.6**, 2026-09-29), and **Dew per dispel ×0.85 in act 2 only** (act 1 back to ×1.0). Drift 15's Swarm is lighter (`acts_1_2.md`). Interim
   numbers, as exports, until the balance simulation's quick batch replaces them.
+- **Human playtest after the Dream power pass** (2026-09-30, user's first run on a fresh profile,
+  starting families only, no Grove: **drift 60 with 15/15 leaves, 1,746 Dew banked, maze ~10,000
+  DPS**; *"feels too strong … felt like cards were handed to me"*). The target for a fresh profile is
+  a run that **ends in act 2**. The cards were made stronger on purpose; the matching health rise
+  for acts 2–4 was waiting on human data, and this is it. **Interim health (until the run history
+  has more runs):**
+  - **Act 2:** ×1.3 at drift 26, ramping to **×2.5 by drift 45**, held to 50 (was ×1.15 → ×1.55; first set to ×2.0, raised after human run 1, balance_simulation.md).
+  - **Acts 3–4:** **×3.5** (was ×1.6; first set to ×2.4), bosses included **except the Hollow Oak at drift 100**, which keeps today's health.
+  - Act 1 unchanged (the first boss is being tuned on its own).
+  - **Dreams steer a little less:** the build tag weight 1.6 → **1.3**, so a direction takes
+    choices (a pass, a reroll) instead of arriving by itself. Card power stays.
+  - Then read the run history after each playtest and adjust.
+  - **Current (2026-10-01, Balancing Discussion, after human runs 4–7; balance_simulation.md):**
+    act 1 ×1.0 → 1.15 (drifts 9–20); act 2 **×1.7** at 26 rising in a straight line to **×4.5** at 45, held to 50 (run 8);
+    acts 3–4 **×6.0**. Bosses: act 1 ×1.75, acts 2–3 ×1.75 (was 2.25), the Oak ×3.0. Bosses other than the Oak
+    take a flat **10 / 10 / 12 leaves** and leave.
 - **Act 3 probe** (Tower Code, `tools/balance_act3.gd`, 2026-09-28): drifts 61–70, 12 final forms at
   rank IV (Power), **no Dreams**: the maze dealt ~155–160k damage per drift against **~100–115k
   health spawned, 0 leaks**. Act 3 is too easy with a plain final-form maze, before Dreams or the
@@ -301,8 +317,69 @@ That's **4 Warden families per run** (out of 7, or 9 in the full game), so every
 different way. The run starts
 with only Sprout + Thornwall. **Act 1 is about one family**: you deepen it through its branches
 before a second family arrives at drift 25. When fewer than 3 new families are available (early
-in the meta, before the Grove unlocks Pebbling, Rootling and Acorn), empty slots become **Family
-Blessings** for a family you own (`meta_design.md`).
+in the meta, before the Grove unlocks Pebbling, Rootling and Acorn), the pick shows **fewer cards**, and with none left the boss gives +2 Dreamlight (was: empty slots became **Family
+Blessings**; replaced 2026-09-30, `meta_design.md`).
+
+### The Dew pot: Dew per drift, not per nightmare (2026-10-01)
+
+User: *"should we have a set Dew you can get from each drift, but it can be modified?"* → yes. Per-nightmare Dew made income follow how many nightmares spawned (9,000 unspent in run 1, Omens paying twice, the act cut as a patch).
+- **Each drift has a Dew pot** from one table (`DriftDirector` / a `dew_pot` curve per drift, bosses and act breaks included). Roguelite Mechanic Discussion sets the table from the run-history Dew curves: a good run should be able to afford its next growth most rests, never bank thousands.
+- **The pot is split across the drift's nightmares** by weight (elites and big nightmares a bigger share; split children and followers share their parent's): each dispel still pops its share. **A leaked nightmare's share is lost.**
+- **Modifiers multiply the pot:** Dew cards (Gathered Dew…), Omens whose reward is Dew (Bountiful Night, Blood Moon) or that cut it (Dry Spell), Grove perks (`dew_gain`), Blight. Catchers (Dewcatcher, Wellspring), Magpie Dew, call-early Dew and rest bonuses stay on top, unchanged.
+- **Added nightmares never add Dew** (Crowded Paths, Elder Night, Moth Night, `extra_nightmares`, splits): they share the same pot. This replaces the Omen double-benefit fix and the per-act Dew multipliers (folded into the table).
+- UI: the DriftPanel can show "Drift 31 · 180 Dew" before it starts; the rest report shows "Dew this block: 840 of 900" (leaks).
+- **The numbers (Roguelite design chat, 2026-10-01), from the run history** (`user://run_history.json`):
+  - *Run 1* (old curve) earned **18,953** and banked up to **9,277**: far too much. *Run 2* (the
+    win) earned **15,274**, banked 100–1,600 most of the run, **2,693** at the end: close to right,
+    slightly high late. *Run 3* (fresh, 0 Grove) earned **6,995 by drift 50** and banked **1,671 at
+    drift 25**: act 1 too rich. Target: about run 2's income, ~10% lower and flatter late.
+  - **Pot per drift** (linear inside each act; drift *d*, act boss drifts separate):
+
+    | Act | Drifts | Pot per drift | Boss drift pot | Act total |
+    |---|---|---|---|---|
+    | 1 | 1–24 | **30 → 115** | 25: **220** | ~1,960 |
+    | 2 | 26–49 | **115 → 135** | 50: **270** | ~3,270 |
+    | 3 | 51–74 | **135 → 145** | 75: **320** | ~3,680 |
+    | 4 | 76–99 | **140 → 145** | 100: **0** (the win) | ~3,420 |
+
+    **Base total ≈ 12,300** from nightmares. With rest bonuses (~1,440), the start (60) and a typical
+    run's modifiers (+10–20%: Morning Dew, a Dew Omen or two, Grove `dew_gain`), a good run earns
+    **~14–15.5k**, a little under run 2. **Spending check:** run 2 spent 12.5k (grow 6.9k, ranks
+    2.5k, clears 1.7k, plant 1.5k). Late Dew has sinks (ranks ×tier on finals: 690 to rank V,
+    Ascended 400), so a run that keeps growing banks **~0.5–1.5k**. The balance sim's "banked < 2 rest
+    bonuses after act 1" check and the next human run confirm or nudge the four rows.
+  - **Share weights:** a nightmare's share = pot × its weight ÷ the sum of weights of every
+    nightmare the drift spawns (including added ones):
+    - **weight = its `EnemyData.dew_reward`** (the data already ranks them: Leaf Bug 3, Bark Beetle
+      8, big ones 15, bosses 40–100), so no new numbers per nightmare;
+    - **elite ×3** (as today, but now a bigger slice, not extra Dew);
+    - **a boss drift:** the boss takes **50% of the pot**, its escorts share the rest;
+    - **splits:** the parent keeps **40%** of its share when it splits, the children share the other
+      60%; **followers** (Ducklings) take **50%** of their leader's share between them;
+    - fractions carry over (`RunState` keeps the fractional Dew; popups show whole numbers).
+    - **summons pay 0** (Crows, the bellow's Husks, the Moth Queen's brood, anything spawned
+      mid-fight by another nightmare): their summoner's share already pays for the fight, and a
+      summoner can keep spawning, so any Dew on summons could be farmed. (Ruling 2026-10-01.)
+  - **Modifiers multiply the pot** (stacking additively within a source type, then multiplied):
+    - **Grove `dew_gain` (Rich Dew) and Blight Level Dew cuts multiply the pot** (Rich Dew +5% per
+      level, as `meta_design.md` says). Only the old **`act_dew_multipliers` are removed** (folded
+      into the table). *(Corrected 2026-10-01: this line first said dew_gain was removed too, a
+      writing slip; Main built it that way and Rich Dew did nothing.)*
+    - **Cards:** *Morning Dew* "nightmares +10% Dew" → **pot +10%**. *Call of the Wild* (absorbed
+      Hurried Harvest's "+1 Dew per nightmare of a drift called early") → **a drift you call early
+      has its pot +10%**; its "call-early Dew ×2" stays on top. *Glimmering Hunt* (Dreamlight shards),
+      *Reclaimed Earth* (clear refunds), catchers (Dewcatcher, Wellspring), Magpie Dew, call-early Dew
+      and rest bonuses: **unchanged, on top of the pot**.
+    - **Omens** (numbers revised by Balancing Discussion, balance_simulation.md 95762f14):
+      *Bountiful Night* → **pot ×1.5**; *Blood Moon* → **pot ×1.4**; *Dry Spell* → **no Dew during
+      the block**; at the rest it pays **the block's pot ×1.25**, cut by leaves lost (−25% per leaf,
+      like other Omen rewards). *Crowded Paths*, *Elder Night*, *Moth Night*,
+      *Hollow Wind*: their added nightmares **share** the pot (no extra Dew: that was the double
+      benefit). Omen Dew rewards (e.g. Frozen Ground's) are paid on top as rewards.
+  - **Leaks:** a leaked nightmare's share is lost (the rest report shows "840 of 900").
+  - **Tests:** a drift's dispels sum to its pot (± rounding); a leak loses exactly its share; an elite
+    gets 3× a normal share; splits and followers sum to the parent's share; Crowded Paths doesn't
+    change a drift's total; Bountiful Night makes it ×1.5.
 
 ### Dreamlight: choosing your build paths
 
@@ -311,24 +388,27 @@ card luck**. Dispelling a great nightmare frees the light it stole from the drea
 
 | Source | Dreamlight |
 |---|---|
-| First family pick (after drift 1) | **2** (was 1; 2026-09-30: branches now come free, so this buys your first final form in act 1) |
-| Each boss (drifts 25, 50, 75) | **4** (was 3, 2026-09-29: runs earned only 3–6 Dreamlight, so no run ever reached an Ascended form) |
-| Dream cards (Sudden Insight, Borrowed Memory) | +1 / +2 |
+| First family pick (after drift 1) | **1** (2026-10-01, user; was 2) |
+| Each boss (drifts 25, 50, 75) | **3** (2026-10-01, user: *"should only be giving 3 Dreamlight every 25 drifts"*; was 4) |
+| Dream cards (Sudden Insight, Borrowed Memory, Glimmering Hunt), Great Dreamcatcher shards, the Heartwood Sapling | as before: these are build choices, on top of the steady 3 per act |
 | Grove perk *Early Light* | +1 at run start |
-| Every rest from drift 51 (2026-09-29) | **+1** (the Heartwood wakes: no run had ever reached an Ascended form) |
+| ~~Every rest from drift 51: +1~~ | **removed** (2026-10-01, same decision: the steady income is 3 per act, from its boss) |
+
+Steady Dreamlight per run: 1 + 3 + 3 + 3 = **10** by drift 76 (a branch is 1, a final 2, an Ascended 3), so an Ascended form costs real choices; more only comes from cards and Wardens you chose.
 
 **Spending (per run, like the old unlock cards):**
 
 | Unlock | Cost |
 |---|---|
-| A **branch** of a family you own (Stormcap, Rain Lily, Driftspore, …) | **free**: comes with the family (2026-09-30) |
+| A **branch** of a family you own (Stormcap, Rain Lily, Driftspore, …) | **1** (free for a few hours on 2026-09-30, then back to 1: see below) |
 | A **final form** of a family you own | **2** |
 | A **hidden branch** (only if the Grove has unlocked it) | **1** |
 | A **wall growth** (Bramble, Honeysuckle) | **1** |
 
 - About **10 Dreamlight per run** against 4 families × (2 branches + 2 finals) = 24 possible: you
   can't have everything, so each run is a set of real choices. Unspent Dreamlight carries over.
-- **A family comes with its base and both branches** (user, 2026-09-30: *"if you unlock a family,
+- **Clarified the same day: in the run, branches and finals both cost Dreamlight** (user: *"I meant from the meta game Grove; you still have to use Dreamlight to unlock both 1st and 2nd form"*). The "unlocked with the family" quote below was about the **Memory Grove**: planting a family there makes its branches and final forms **exist** in your runs (no separate final-forms node). **In a run**, each branch costs **1** Dreamlight and each final **2**, on the Remember screen. `grant_free_branches` goes. ~~The first family pick keeps giving **2** Dreamlight~~ → **1 Dreamlight** (2026-10-01, user: *"only one Dreamlight on the first choice"*): one branch to start, and a final form has to wait for the first boss's Dreamlight or a card.
+- ~~**A family comes with its base and both branches**~~ (superseded, see above; user, 2026-09-30: *"if you unlock a family,
   the first and 2nd forms are unlocked with it, or what else am I going to do with these Dreamlight
   if I just started"*). Picking a family unlocks its base Warden and its two regular branches at once
   (growing each Warden still costs Dew). **Dreamlight is for what comes after:** final forms (2),
@@ -371,6 +451,29 @@ right; the family tree should include the portraits"):
   - **A lane the Grove hasn't planted shows only its branch**, as the Grove silhouette. Its final
     form and the line up to it are **hidden** (no Midsummer above an unplanted Sunpetal). The side
     panel for that silhouette says only "Plant it in the Memory Grove".
+  - **Grove forms readable too** (same day, user: *"locked Grove is still too dark"*: a pure black
+    silhouette): a Memory Grove form shows its portrait **desaturated at ~45% brightness with a cold
+    moonlight tint and a pale rim**, a small Grove leaf badge, and **its name** under it; the side
+    panel shows the same portrait, the name, one line on what it does, and "Plant it in the Memory
+    Grove". Readable, but clearly not yours yet (the dimmest node state; locked nodes stay at 75%).
+  - **Not unlocked = a silhouette on a lit backdrop** (later the same day, user: *"the locked path
+    should be silhouette but at least noticeable with a back background if they aren't unlocked"*;
+    replaces the 75% portrait and the tinted Grove portrait above): every form **not unlocked this
+    run** (locked, can-unlock, Grove) is drawn as a **dark silhouette on a pale moonlit disc** (the
+    Moonlight ramp, like nightmare portraits on dark UI), so the shape reads clearly but it's plainly
+    not yours. Can-unlock adds its Dreamlight motes and a soft pulse; Grove adds the leaf badge;
+    locked keeps the chain to its parent. Unlocked and grown forms are full colour. The side panel
+    shows the full portrait and name for every state.
+  - **Refined: only Grove-locked forms are silhouettes** (same day, user: *"if you've unlocked it
+    in the Grove, you should see what it upgrades to"*). A form your Memory Grove has made available
+    but you haven't unlocked **this run** (can-unlock, or locked behind its branch) shows its **real
+    portrait in colour**, a little dimmed (~80%), on the lit disc, with its name under it and its cost
+    motes / chain. Only forms the Grove hasn't planted stay **silhouettes** with the leaf badge.
+    Unlocked and grown forms are full brightness.
+  - **A Grove-locked form's side panel stays locked too** (user, Frostfern: *"I don't have it
+    unlocked, it should say locked and not have the picture when I click it"*): the panel shows the
+    **silhouette** (not the portrait), **"???" instead of the name** (user, same day: "remove the name and add ??? when locked"; also under the silhouette on the tree), the caption **"Locked"** and "Plant it in the Memory
+    Grove". No description, stats or combos until the Grove plants it.
   - **The Ascended crown is hidden** until it can be unlocked this run: its Grove node planted **and**
     drift 51 reached. Before that there is no node and no line to it. From drift 51 it appears
     (the "can unlock" state once a final form of the family is grown).
@@ -389,6 +492,67 @@ drift 10 on**, after the Dream, the wind brings **2 Omens**. Pick one to change 
 (5 drifts) for a reward, or keep **Clear Skies** (the default: nothing changes). This is optional
 risk: players set their own difficulty block by block.
 
+- **Omen voice** (user, 2026-09-30: *"the text for omen doesn't match the vibe"*). Omen cards were
+  pure rules text. Per `text_style.md` ("whispers and flavour lines are the only places for mood"),
+  every Omen card now has **a flavour line**: one short sentence in the Heartwood's dark-fairytale
+  voice, in the whisper face, between the name and the rules line. The rules line stays plain.
+  - **Front cards:** Face an Omen · *"Something stirs out in the dark."* then "A twist for the next
+    block. Face it for a reward." Clear Skies · *"The night stays still."* then "Nothing changes. No
+    reward."
+  - **Each Omen** (`OmenData.flavor`):
+
+    | Omen | Flavour line |
+    |---|---|
+    | Moth Night | *"Moths crowd the lanterns. Something follows them in."* |
+    | Thick Blight | *"The blight runs deep tonight."* |
+    | Crowded Paths | *"The path fills with footsteps."* |
+    | Hard Bark | *"Their shells have grown thick with rot."* |
+    | Swift Stream | *"They're hungry, and they're hurrying."* |
+    | Dry Spell | *"Not a drop of Dew falls tonight."* |
+    | Stubborn Blight | *"They shake off every charm."* |
+    | Restless Wind | *"They come in waves, one on the heels of the last."* |
+    | Fog Bank | *"A fog rolls in. Your Wardens squint into it."* |
+    | Wilting | *"The Wardens droop, heavy with sleep."* |
+    | Frozen Ground | *"The ground freezes hard. Nothing takes root."* |
+    | Leaf Fall | *"The Heartwood's leaves hang by a thread."* |
+    | Lean Season | *"A thin season, with a strange gift at its end."* |
+    | Heavy Rain | *"Rain soaks everything. They drink it in."* |
+    | Blood Moon | *"A red moon. They run fast, and fat with Dew."* |
+    | Bountiful Night | *"A heavy harvest walks the path tonight."* |
+    | Elder Night | *"The old nightmares wake."* |
+    | Hollow Wind | *"The wind is full of wings."* |
+    | Sleepless | *"Nothing will sleep tonight."* |
+    | Shifting Ground | *"Dead trees push up through the dream."* |
+
+  - Curly quotes aren't shown on the card (the whisper face marks it as flavour); the rules line and
+    reward follow `text_style.md` ("Reward · +75 Dew").
+- **How an Omen looks** (user, 2026-09-30):
+  - **Icon: a moth before the moon.** A dark moth silhouette crossing a pale full moon (moths are old
+    folk omens; it reads at small size). It replaces the placeholder wind swirl on the Face an Omen
+    card and is the Omen icon everywhere (active-Omen tag, run history, Codex). **Clear Skies** gets
+    the matching calm icon: **the moon alone, with a few stars**, so the two cards balance. Both are
+    16×16 pixel art appended to the end of the UI icon sheet (`assets/ui/icons.png` via `tools/ui_icon_generator.gd`, ids `omen` and `clear_skies`, Heartwood 32 palette: Moonlight moon, Gold / Glow rim light),
+    shown at whole-number scales (×2 in tags, ×3 on the cards, nearest).
+  - **Revised 2026-10-01** (user: *"don't have to show the icon on every single card, just the
+    beginning; the icon seems too big and unrecognizable"*):
+    - The icon appears **only on the two front cards** (Face an Omen, Clear Skies), not on the
+      revealed Omens (they have name, flavour, rules and reward; that's enough).
+    - Blown up ×3, the 16 px moth read as a face or a skull. The cards get their own **card emblems**:
+      **32×32** (`omen_card`, `clear_skies_card`) drawn for that size, shown **×2 (64 px)**, smaller
+      than before (the ×3 16 px icon was 48 px of mush; the emblem has real detail at 64). Design so
+      it reads at a glance: a **moth with wide, spread, clearly patterned wings** (eye-spots on the
+      wings help it read as a moth), the body a thin dark line, **in front of** a pale moon that's
+      only partly visible behind the wings; no face-like symmetry of dark blobs on white. Clear
+      Skies: a crescent moon and three stars, no moth. The 16 px icons stay for tags and lists.
+  - **Card text is bigger:** the body lines on both front cards use the card body size (as on Dream
+    cards, ~18 px, not 15), same face and spot on both.
+  - **Omen mist:** facing an Omen brings **mist onto the map** for that block. It rolls in when the
+    Omen is picked (over ~3 s), stays for the block's 5 drifts, and **lifts at the next rest** (when
+    the reward is paid). Low, drifting mist, heaviest at the map's edges and the forest's edge
+    (start), thin over the path; a faint cool tint (Omen gold-violet, not grey). **Readability first:**
+    it sits under Wardens, nightmares, health bars and the build ghost, never hides the path, and is
+    lighter with *reduced motion* (static, no drift). Clear Skies: no mist; the sky above the island
+    stays clear. The same mist marks an active Omen in a resumed save.
 - **Commit blind, then the Omen is revealed** (2026-09-30, user: "we should be asking if we want Clear
   Skies or an Omen, so the player locks in the Omen before seeing what it is; make the Omens a bit
   more punishing; I feel like I can Omen every rest"). Replaces the "pick 1 of 2 Omens or Clear
@@ -438,14 +602,14 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
 | Omen | Kind | The next block | Reward |
 |---|---|---|---|
 | **Fog Bank** | your side | every Warden **−1 range** (min 1) | +4 Seeds |
-| **Wilting** | your side | every Warden **−15% attack speed** | +1 Dreamlight |
+| **Wilting** | your side | every Warden **−15% attack speed** | ~~+1 Dreamlight~~ next Dream offers 4 cards (no Omen gives Dreamlight) |
 | **Frozen Ground** | your side | **no planting or growing during drifts** (rests only) | +50 Dew |
-| **Leaf Fall** | your side | every leak costs **double leaves** | +2 max leaves |
+| **Leaf Fall** | your side | every leak costs **double leaves**; **never offered for a block with a boss drift** (a doubled 8 / 10 / 12 boss leak would end the run) | ~~+2 max leaves~~ next Dream: 4 cards, one Rare+ (no Omen gives leaves) |
 | **Lean Season** | your side | **rest bonus halved** at the end of the block | next Dream **includes a Legendary** (act 2+) |
 | **Heavy Rain** | double-edged | every nightmare is **always Soaked**, but has **+35% health** | +30 Dew |
 | **Blood Moon** | double-edged | nightmares **+25% speed**, and give **+50% Dew** | (the Dew is the reward) |
 | **Bountiful Night** | double-edged | nightmares **+25% health**, and give **×2 Dew** | (the Dew is the reward) |
-| **Elder Night** | nightmares | **+1 elite** in every drift (act 2+) | +1 Dreamlight |
+| **Elder Night** | nightmares | **+1 elite** in every drift (act 2+) | ~~+1 Dreamlight~~ next Dream includes a Rare+ card |
 | **Hollow Wind** | nightmares | the block's **first 2 drifts are all flyers** (act 2+, flyers exist) | next Dream: one card is Rare+ |
 | **Sleepless** | nightmares | nightmares are **immune to Drowsy and Held** | +40 Dew |
 | **Shifting Ground** | the map | **3 Withered Trees sprout** on empty cells at the block's start (never blocking the route or on a Warden) | each tree you clear this run gives **+2 Seeds** instead of 1 |
@@ -454,20 +618,72 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
   what you've built (Heavy Rain feeds Thunderclap and Conductive Soil; Sleepless hurts sleep builds).
   That's the point: an Omen that's free for *your* build is a reason to take it.
 - **Frozen Ground** still allows selling (at the usual 50%) and clearing; it's only about planting.
-- **Leaf Fall** doubles a boss's leaf cost too, but bosses ignore Omens only for their *own* stats,
-  so a boss leak costs 10. Shown clearly on the Omen card.
+- **Leaf Fall** doubles every leak, so it is **never offered for a block that contains a boss drift** (a boss leak would cost 16 / 20 / 24 and end the run; Balancing Discussion, enemy_design.md 8bc4be6a). Outside boss blocks it doubles normal leaks;
+  (That includes the Hollow Oak's block, so its drain is never doubled.)
 - **Lean Season's Legendary** follows the Legendary rules (any Legendary you could be offered);
   before act 2 it isn't offered.
-- **Shifting Ground:** clearing is still locked until a clearing card (the trees stay as terrain if
-  you never unlock it); its trees can be cleared at normal cost. Not offered on maps with fewer than
-  3 free cells that don't touch the route.
+- **Shifting Ground:** **only offered once clearing is unlocked** this run (any clearing card;
+  2026-10-01, user: *"Shifting Ground is useless because I can't clear yet"*: before that, its reward
+  for clearing trees can't be earned). Its trees can be cleared at normal cost. Not offered on maps
+  with fewer than 5 free cells that don't touch the route.
 - **Offer rules:** each offer's 2 Omens are of **two different kinds**; an Omen never repeats from
   the previous rest; the reward scaling by act (×1 / ×1.5 / ×2 / ×2.5) applies to Dew and Seeds only.
 - **New `OmenData` fields:** Warden range add / attack-speed multiplier, `no_build_during_drift`,
   leak multiplier, rest-bonus multiplier below 1, status immunities, always-applied status, extra
   elites per drift, all-flyer drift count, obstacles to sprout, per-tree Seed bonus; rewards
   `dreamlight`, `dream_legendary`. Blood Moon and Bountiful Night have no separate reward (their Dew is it); **Heavy Rain keeps +30 Dew**, because its +35% health hurts every build while the Soaked only helps some.
+- **Current values (2026-09-30, the data in `resource/omen/` is authoritative; the tables above show the pre-×1.5 numbers):** Thick Blight +30% health · Crowded Paths +45% nightmares · Hard Bark coats +75% · Heavy Rain always Soaked, +50% health · Blood Moon +35% speed, +75% Dew · Bountiful Night +35% health, **+100% Dew** · Elder Night +2 elites per drift · Hollow Wind first 3 drifts flyers · Moth Night +60% flyers · Restless Wind 45% closer · Swift Stream +25% speed · Wilting 22% slower attacks · Fog Bank −1 range · Shifting Ground 5 trees · Lean Season rest bonus to a quarter · Leaf Fall double leaves.
+- **Omen audit fixes (Meta Game Discussion, decided by the design chat):**
+  0. **No double benefit from extra nightmares** (2026-10-01, user: *"some Omens give double benefit, since 45% more nightmares give more Dew"*): nightmares an Omen **adds** don't add Dew. Crowded Paths: Dew per nightmare × 1 / 1.45 for the block (same total as without the Omen); Elder Night: the added elites give normal Dew, not ×3; Moth Night: the added flyers give no Dew. The Omen's reward is its only payoff. (Bountiful Night and Blood Moon, whose reward *is* Dew, are unchanged.)
+  1. **Hard Bark** is only offered when the next block has a nightmare with a blight coat (Shellbound, any `coat_total` > 0); "blight coat" becomes a glossary link.
+  2. **Lean Season** is only offered when a Legendary can be offered this run (none unlocked = not in the draw).
+  3. **Bountiful Night** reward ×1.6 → **×2 Dew** (100% more): health hurts more than Blood Moon's speed, so it must pay at least as well.
+  4. **Shifting Ground** needs 5 free cells (it sprouts 5).
+  5. **Thick Blight's** extra cards: the next Dream shows at most **5 cards** (with Wider Dreams too); the Dream screen must fit 5.
+  6. Text: **"N% more Dew"** everywhere (Bountiful "100% more Dew"); **"move"** for speed (Swift Stream "Nightmares move 25% faster"); Stubborn Blight **"Statuses last a third as long."**; Leaf Fall **"Every leak costs double leaves."** (the doubling covers the act 1–3 bosses' flat 8 / 10 / 12 and the Hollow Oak's drain; balance_simulation.md 538b85b7).
 
+- **Omens with teeth (2026-09-30, user: "do you think the Omens are dangerous enough" → "write the
+  changes").** The user's run reached drift 60 at full leaves: for a strong maze most Omens were
+  free. Three reasons: their only danger was leaking, and an overbuilt maze doesn't leak; the reward
+  was paid even after a bad block; and several Omens cost nothing. Four changes:
+  1. **The reward depends on the block.** A **clean block** (no leaf lost during the Omen's 5
+     drifts) pays the **full reward**; **each leaf lost cuts it by 25%**; **4+ leaves lost pays
+     nothing**. Dew and Seeds scale (rounded down); no Omen gives Dreamlight (line 820). (No Omen gives leaves or max leaves
+     any more: "Omen rewards: no leaf regrowth", Balancing Discussion 0891119a.) **Dream rewards** (a Rare+ card, 4 cards, a Legendary) are kept with **≤ 1
+     leaf lost**, gone otherwise. A boss leak counts as its leaves. **Double-edged** Omens (Blood
+     Moon, Bountiful Night) are unchanged: their reward is the twist. The active-Omen tag shows it
+     live (*"Reward · 75% · 1 leaf lost"*); the rest report says what was paid and why.
+  2. **No more free Omens:**
+     - **Frozen Ground:** no planting, growing, **selling or Nurture** during drifts (rests only).
+     - **Leaf Fall:** leaks cost double **and nightmares move 20% faster**, so a leak is likely.
+     - **Lean Season:** **no rest bonus** at the block's end (was a quarter).
+     - **Dry Spell:** (superseded under the Dew pot) no Dew during the block; the rest pays the block's pot ×1.25, cut by leaves lost (Balancing Discussion 95762f14).
+     - **Shifting Ground:** its trees may sprout **beside the path** (still never blocking the
+       route or on a Warden), so they can cut a Warden off from its stretch.
+     - **Sleepless:** immune to Drowsy and Held **and +15% health**, so it bites builds that don't
+       sleep too.
+  3. **A new kind: Omens that test the maze, not the numbers** (kind "the maze"; the offer rule of
+     two different kinds includes it):
+
+     | Omen | The next block | Reward | Flavour |
+     |---|---|---|---|
+     | **Tramplers** (act 2+) | each drift, the **first nightmare to walk past a Thornwall tramples it** (gone, no refund; the route re-forms) | ~~+1 Dreamlight~~ +50 Dew | *"Something heavy is coming through the hedges."* |
+     | **Second Path** (from drift 26; was 15, changed by Balancing Discussion after human run 10 lost all 15 leaves to it in act 1) | at the block's start, the **Thornwall whose removal shortens the route most crumbles** (full refund); it can't be replanted until the next rest | +4 Seeds | *"An old way opens in the dark."* |
+     | **Burrowers** (act 2+) | at every bend, nightmares **burrow ahead 2 path tiles** (untargetable for ~0.5 s) | next Dream: one card is Rare+ | *"They dig beneath the roots."* |
+
+     A tall, narrow maze can't ignore these: it has to adapt during the block. Burrowers is stopped
+     where Rootlight's lit tiles are (as for Gravecrawlers).
+  4. **Measure the old target** ("facing an Omen every rest should lose clearly more leaves"): the
+     balance sim (`balance_simulation.md`, `DreamSimPolicy` Omens are Clear Skies today) runs a
+     Balanced bot three ways: **always Clear Skies**, **always Face an Omen** (picks the first),
+     **picks its moments** (faces only after a clean block). Targets: *always* loses **≥ 3 more
+     leaves** per run than *Clear Skies* and has a clearly higher dormancy rate (≥ +10 points);
+     *picks its moments* earns more reward per leaf lost than *always*.
+     **Measured (a3610b99, before the Dew pot):** fresh (15 seeds, to 40): *always* +1.7 leaves, +6
+     points dormancy (both saturated by bot deaths at ~30–38). Half profile (25 seeds, to 50): every
+     bot died before 50, but **always facing reached 7 drifts less** (24.9 vs 31.9); *picks its
+     moments* only 2.5 less and paid **0.77 reward shares per leaf vs 0.60** ✓. So the Omens bite now.
+     The leaf target is re-measured after the Dew pot lands (full profile, to 40).
 - **Blight Levels** can make Omens harsher or remove Clear Skies ("an Omen is always chosen").
 - **Grove perks** later: a third Omen option, or Omen rewards +25% (`meta_design.md`).
 - **Data:** `OmenData` resource: `display_name`, `description`, `min_drift`, `requires` (e.g.
@@ -606,3 +822,13 @@ Named to fit the fiction: **Withered Tree** ("Tend") and **Mossy Boulder** ("Mov
 - Leaves: are 15 (+1 per act break) right over 100 drifts?
 - Dew curve vs the target table; health scaling (×1.035) vs player power.
 - Do overlapping drifts feel good, or do players prefer Auto-drift off?
+
+**Omen rewards: no leaf regrowth (2026-10-01, user: "don't offer regrow leaves if I haven't lost any, and regrowing leaves doesn't feel like a good reward").** Stubborn Blight's "regrow 3 leaves" becomes **+1 Dreamlight** (scaled by act like other rewards: +1 / +1 / +2 / +2). Max-leaf rewards (Leaf Fall +3 max leaves, Restless Wind +2) stay, since they're always useful, but are never offered when you're already at the absolute leaf cap. No Omen reward heals leaves.
+**Revised the same day (user: "don't think we should be offering leaves back for omens as well since they can feel easy sometimes"; human run 4 climbed to 20 leaves on them): no Omen gives leaves of any kind, max leaves included.** Leaf Fall's +3 max leaves becomes **+2 Dreamlight** (by act, as Elder Night); Restless Wind's +2 max leaves becomes **the next Dream includes a Rare+ card, +25 Dew** (as Hard Bark / Moth Night). `reward_max_leaves` stays unused.
+**Revised again (2026-10-01, user: "Omens also shouldn't give Dreamlight, leave it in cards"): no Omen gives Dreamlight.** Dreamlight comes only from family picks, bosses and Dream cards (Glimmering Hunt, Wardens that ripen it). Omen rewards are Dew, Seeds and Dream rewards (a Rare+ card, 4 cards, a Legendary). Replacements (Dew scales by act as before; Balancing Discussion tunes the amounts):
+- **Wilting** (+1 Dreamlight) → **the next Dream offers 4 cards**.
+- **Elder Night** (+1 Dreamlight) → **the next Dream includes a Rare+ card**.
+- **Tramplers** (+1 Dreamlight) → **+50 Dew** (pays back the trampled Thornwalls).
+- **Stubborn Blight** (+1 Dreamlight) → **+40 Dew**.
+- **Leaf Fall** (+2 Dreamlight) → **the next Dream offers 4 cards, one of them Rare+** (the hardest Omen on your side gets the best Dream reward short of Lean Season's Legendary).
+The block rule stays the same: Dew is cut 25% per leaf lost, and a Dream reward is kept with ≤ 1 leaf lost. `reward_dreamlight` on `OmenData` stays unused.

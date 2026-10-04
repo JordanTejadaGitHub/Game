@@ -7,20 +7,22 @@
 
 [resource]
 script = ExtResource("1_tdata")
+sprite_offset = Vector2(0, -16)
 display_name = "Snugroot"
-description = "Every 3 s, Roots up to 3 of the nightmares furthest along for 1 s."
+description = "Every 3 s, Roots up to 5 of the nightmares furthest along for 1 s."
 cost = 0
+role_tag = &"control"
 line = "root"
 tier = 3
 buildable_directly = false
-evolve_cost = 200
+evolve_cost = 300
 attack_kind = 1
 attack_range = 2.5
-damage = 30
+damage = 48
 attacks_per_second = 1.0
 crit_chance = 0.05
 ability_every = 3.0
-hold_targets = 3
+hold_targets = 5
 hold_time = 1.0
 texture = ExtResource("2_tex")
 frame_count = 8

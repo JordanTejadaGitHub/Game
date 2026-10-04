@@ -13,3 +13,6 @@ tags = Array[String](["clearing", "tending"])
 max_stacks = 1
 min_act = 2
 rule_id = &"wildwood_reclaimed"
+diagram = ".......\n.O.O...\n..Q..w.\n.O.....\n......."
+diagram_caption = "On a cell you cleared: +30%, +2% per obstacle cleared this run (up to +60%). ✗ not on a cleared cell."
+in_start_pool = false

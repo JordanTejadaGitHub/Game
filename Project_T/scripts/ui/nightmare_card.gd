@@ -54,7 +54,7 @@ static func build(data: EnemyData, drift: int, director: DriftDirector) -> VBoxC
 	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	head.add_child(UiStyle.on_moon_disc(face))  # Readable on the night sky (screens_ui.md)
 	var name := Label.new()
-	name.text = data.display_name + ("   · New" if is_new(data) else "")
+	name.text = data.display_name + (" · New" if is_new(data) else "")
 	name.add_theme_font_size_override("font_size", 18)
 	name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	head.add_child(name)
@@ -70,7 +70,7 @@ static func build(data: EnemyData, drift: int, director: DriftDirector) -> VBoxC
 # "Health 240 · Speed 1.2 tiles/s · Leaves 1" as it would arrive in drift `drift` (this run's growth,
 # Blight, Dreams and the Omen on that block).
 static func numbers_text(data: EnemyData, drift: int, director: DriftDirector) -> String:
-	return "Health %d   Speed %.1f tiles/s   Leaves %d" % [health_at(data, drift, director), data.speed / 64.0,
+	return "Health %d   Speed %.1f cells/s   Leaves %d" % [health_at(data, drift, director), data.speed / 64.0,
 		data.leaf_cost]
 
 static func health_at(data: EnemyData, drift: int, director: DriftDirector) -> int:
@@ -85,6 +85,8 @@ static var _portraits := {}  # EnemyData path -> its cropped portrait
 static func portrait(data: EnemyData) -> Texture2D:
 	if _portraits.has(data.resource_path):
 		return _portraits[data.resource_path]
+	if _portraits.is_empty():
+		UiStyle.release_at_exit(func() -> void: _portraits.clear())
 	var frame := _first_frame(data)
 	var cropped := _crop(frame) if frame != null else null
 	_portraits[data.resource_path] = cropped

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "thinning_the_herd"
 display_name = "Thinning the Herd"
-description = "Each nightmare dispelled in a Warden's range gives that Warden +2% damage for the rest of the {drift} (up to +50%)."
+description = "Each nightmare dispelled in a Warden's range makes that Warden deal 2% more damage for the rest of the {drift} (up to +50%)."
 rarity = 2
 kind = 3
 tags = Array[String](["affliction"])

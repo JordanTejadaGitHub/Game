@@ -17,7 +17,7 @@ class_name TowerData
 enum AttackKind { PROJECTILE, PULSE, CHAIN, CLOUD, TRAP, BEAM, COPY, SWOOP, SWEEP, SPREAD, SPIN, PULL, LIGHT, AURA,
 	PECK, BOOMERANG, PATROL }
 # Who a Warden shoots at. FIRST = furthest along the path. Snipers let the player choose.
-enum TargetMode { FIRST, STRONGEST, BOSSES, FASTEST, CLOSEST }  # Append only (saved as ints)
+enum TargetMode { FIRST, STRONGEST, BOSSES, FASTEST, CLOSEST, LAST }  # Append only (saved as ints)
 
 const ATTACKS_JSON := "res://assets/towers/attacks.json"
 const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 Ascended art: anchor + points
@@ -39,6 +39,24 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 # TowerData resources this can grow into. Typed as Resource because a script whose export is an
 # array of its own class never gets freed (leaks at exit).
 @export var evolves_to: Array[Resource] = []
+# Branch expansion (tower_design.md "Branch expansion"): the nightmare types this branch answers, for the
+# 2-of-5 smart draw (Roguelite's DreamState): &"anti_air", &"detection", &"anti_armour", &"anti_swarm",
+# &"anti_tank", &"anti_support", &"boss_abilities".
+@export var counter_tags: Array[StringName] = []
+# A branch with no counter job: its one-line role in the family pick / Codex (IconInfo.role_text falls back to it):
+# &"control", &"setup", &"support", &"economy". Display only (the smart draw reads counter_tags).
+@export var role_tag: StringName = &""
+# 1 = a Phase 1 expansion branch or its final (the demo keeps today's 2 branches per family); 0 = the original roster.
+@export var expansion_phase: int = 0
+
+@export_group("Special")
+# The expansion branches' own mechanics (BranchKit): &"lichen", &"brood", &"inkcap", &"cloud", &"whirlpool",
+# &"jet", &"jarlink", &"prism", &"sparkler", &"silver_bell", &"hush", &"thrum"; "" = none.
+@export var special: StringName = &""
+# Its numbers (Balancing Discussion's), by name: each special's keys are listed in BranchKit.
+@export var special_params: Dictionary = {}
+# A final form: its branch's special plus the final's twist (BranchKit reads it).
+@export var special_final: bool = false
 
 @export_group("Attack")
 @export var can_attack: bool = true
@@ -99,7 +117,7 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var caught_bonus: float = 0.0
 @export var sleep_extend: float = 0.0  # Great Dreamcatcher: sleep in range lasts this much longer (once each)
 @export var caught_shards: bool = false  # Great Dreamcatcher: Caught nightmares dispelled drop Dreamlight shards
-# Echo Hollow: a Reaction within range repeats 1 s later at this share on the same spot (0 = no echo).
+# Echo Hollow: a Reaction within range repeats 1 s later at this share on the same nightmare, wherever it is now (where it died if dispelled; 0 = no echo).
 @export var echo_share: float = 0.0
 @export var echo_is_chain_link: bool = false  # Whispering Hollow: echoes count as chain links
 
@@ -198,13 +216,6 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var cloud_drowsy_per_second: float = 0.0  # …and gain Drowsy at this rate
 
 @export_group("Pop")
-# Puffball: when a hit leaves a nightmare with pop_at_stacks+ Spored, it pops: pop_damage_per_stack
-# × stacks to it and every nightmare within pop_radius cells (area, never crits), its stacks are used
-# up, and half of them drift on to up to pop_spread_targets nearby nightmares. 0 = never pops.
-@export var pop_at_stacks: int = 0
-@export var pop_damage_per_stack: float = 6.0
-@export var pop_radius: float = 1.0
-@export var pop_spread_targets: int = 3
 
 @export_group("Freeze")
 # Hits on nightmares with `freeze_needs` (empty = any) Hold them for freeze_duration s, at most
@@ -236,6 +247,10 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 @export var beam_behind_share: float = 0.0  # Also hits the nightmare right behind at this share
 @export var beam_keep_share: float = 0.0  # Midsummer: switching target within BEAM_KEEP_TIME keeps this share of the ramp
 @export var beam_color: Color = Palette.GLOW
+# A channel loop shown while the beam is on (2–3 frames of 64×64: the flower glowing, no baked ray). Null =
+# the idle loop (the attack sheet's firing frames have a ray baked in one direction, which fought the real beam).
+@export var beam_sustain_texture: Texture2D = null
+@export var beam_sustain_frames: int = 3
 
 @export_group("Copy")
 @export var copy_share: float = 0.6  # Graftling: copies the strongest neighbour's attack at 60%
@@ -302,6 +317,14 @@ func get_attack_origin() -> Vector2:
 	return _origin_from_json if _origin_from_json is Vector2 else attack_origin
 
 # Region of `texture` holding idle frame `frame`.
+# Where the sprite sits so its slab is on the cell: sprite_offset when a .tres sets it (the Sapling), else from the
+# frame height (Tower Assets 2026-10-02: regular art is 64×80, tall 64×96, Ascended 128): the body is the bottom 64
+# rows, so a frame h tall moves up (h − 64) / 2.
+func get_sprite_offset() -> Vector2:
+	if sprite_offset != Vector2.ZERO or texture == null:
+		return sprite_offset
+	return Vector2(0, -(texture.get_height() - 64) / 2.0)
+
 func get_frame_rect(frame: int) -> Rect2:
 	var size := Vector2(texture.get_width() / float(frame_count), texture.get_height())
 	return Rect2(Vector2(size.x * frame, 0), size)

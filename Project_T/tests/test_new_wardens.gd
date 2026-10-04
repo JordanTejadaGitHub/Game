@@ -71,7 +71,9 @@ func _test_data(dream_state: DreamState) -> void:
 		_check(data != null, "%s loads" % id)
 		if data == null:
 			continue
-		_check(data.texture != null and data.get_frame_rect(0).size == Vector2(64, 64), "%s has a 64x64 idle sheet" % id)
+		var frame: Vector2 = data.get_frame_rect(0).size if data.texture != null else Vector2.ZERO
+		_check(frame.x == 64.0 and frame.y in [64.0, 80.0, 96.0] and data.get_sprite_offset() == Vector2(0, -(frame.y - 64.0) / 2.0),
+			"%s has a 64 wide idle sheet (64/80/96 tall) lifted onto its cell (%s, %s)" % [id, frame, data.get_sprite_offset()])
 		_check(data.attack_kind == TowerData.AttackKind.AURA or data.attack_texture != null, "%s has an attack sheet" % id)
 		_check(reachable.has(id) != data.parked, "%s can be reached (planted or grown into), unless parked (Memory Wardens, cut for now)" % id)
 		if not data.is_unique:
@@ -137,6 +139,9 @@ func _test_frost() -> void:
 	var tower := _plant(frost, Vector2(3, 3))
 	var dry := _spawn_at(tower.global_position + Vector2(CELL, 0))
 	var damp := _spawn_at(tower.global_position + Vector2(0, CELL))
+	for enemy in [dry, damp]:  # Frostfern's hits (72 since 2ef6d56f) would dispel a Shade before the freeze wears off
+		enemy.max_health = 100000
+		enemy.health = 100000
 	damp.apply_status(EnemyStatuses.DAMP)
 	await process_frame
 	tower.hit(dry)
@@ -194,6 +199,18 @@ func _test_beam() -> void:
 	var ramp: float = tower._beam_ramp
 	await _wait(1.0)
 	_check(tower._beam_ramp - ramp > sun.beam_ramp_per_second * 1.5, "the beam ramps twice as fast on Drowsy")
+	# The pose animates while the beam is on (user: "the Sunpetal animation gets stuck when attacking").
+	var frames := {}
+	for i in 60:
+		await process_frame
+		frames[tower.sprite.frame] = true
+	_check(tower._beam_target == target and tower.sprite.texture == sun.beam_sustain_texture and sun.beam_sustain_texture != null and frames.size() == 3
+		and tower.get_node_or_null("BeamLayer") != null,
+		"a sustained beam loops its 3-frame channel sheet (no baked ray), drawn on a layer above the art (%s)" % [frames.keys()])
+	target.dispel() if target.has_method("dispel") else target.take_damage(target.health * 10.0)
+	for i in 3:
+		await process_frame
+	_check(tower._beam_target == null and tower.sprite.texture == sun.texture, "the beam stops: back to the idle sheet")
 	await _clean()
 
 
@@ -211,7 +228,7 @@ func _test_copy() -> void:
 	await process_frame
 	graft._refresh_neighbours()
 	_check(graft.get_copied() == pebbling_data, "Graftling copies its strongest neighbour (not the Memory Warden)")
-	_check(is_equal_approx(graft.get_damage(), neighbour.get_damage() * 0.6), "at 60% damage")
+	_check(is_equal_approx(graft.get_damage(), neighbour.get_damage() * graft.tower_data.copy_share), "at its copy share (%d%%)" % roundi(graft.tower_data.copy_share * 100))
 	_check(graft.get_range_cells() == neighbour.get_range_cells(), "with the copied range")
 	await _clean()
 
@@ -280,7 +297,7 @@ func _test_birds() -> void:
 	_check(targets.size() == 3 and not targets.has(runners[0]), "the starlings go after the 3 fastest, not the slowest")
 	flock._release()
 	var birds := flock.get_children().filter(func(n: Node) -> bool: return n is Projectile)
-	_check(birds.size() == 3, "one starling each (%d)" % birds.size())
+	_check(birds.size() == mini(runners.size(), flock.tower_data.multi_targets), "one starling each (%d)" % birds.size())
 	await _clean()
 
 
@@ -314,7 +331,7 @@ func _test_wind() -> void:
 	await process_frame
 	gust_tower._release()
 	var spread := others.filter(func(e: Node2D) -> bool: return e.statuses.has(EnemyStatuses.SPORED))
-	_check(spread.size() == 2, "Gust spreads to 2 nightmares (%d)" % spread.size())
+	_check(spread.size() == load("res://resource/tower/gust.tres").spread_targets, "Gust spreads to its spread_targets nightmares (%d)" % spread.size())
 	_check(spread.all(func(e: Node2D) -> bool:
 		return e.statuses.stacks(EnemyStatuses.SPORED) == 2 and e.statuses.has(EnemyStatuses.DROWSY)),
 		"with half the stacks, and every status")

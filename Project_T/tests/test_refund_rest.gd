@@ -47,7 +47,7 @@ func _run() -> void:
 	var rank_cost := old.invested_dew - before
 	_check(old.rest_dew == rank_cost, "only the rank counts as this rest's")
 	_check(seller.get_refund(old) == rank_cost + int(before * seller.build_phase_refund),
-		"refund = the rank in full + 75% of the rest (%d)" % seller.get_refund(old))
+		"refund = the rank in full + 75%% of the rest (%d)" % seller.get_refund(old))
 
 	print("refund rest test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

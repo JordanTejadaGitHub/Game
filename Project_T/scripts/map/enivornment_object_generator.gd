@@ -7,10 +7,11 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 @export var noise_texture: NoiseTexture2D
 @export var tree_obstacle: ObstacleData = preload("res://resource/obstacle/tree.tres")
 @export var rock_obstacle: ObstacleData = preload("res://resource/obstacle/rock.tres")
+@export var log_obstacle: ObstacleData = preload("res://resource/obstacle/fallen_log.tres")  # The log feature (one unit)
 @export_group("Trees")
 # Share of the noise range that becomes trees; each map rolls a value in this range.
-@export_range(0.0, 0.6) var tree_density_min: float = 0.13
-@export_range(0.0, 0.6) var tree_density_max: float = 0.24
+@export_range(0.0, 0.6) var tree_density_min: float = 0.08
+@export_range(0.0, 0.6) var tree_density_max: float = 0.16
 # Each map scales the noise frequency by a random factor in this range: low = big groves, high = small copses.
 @export var tree_cluster_scale_min: float = 1.1
 @export var tree_cluster_scale_max: float = 1.8
@@ -23,8 +24,8 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 @export_group("Ridges")
 # Ridges are wobbly lines of rocks and trees running in from the left or right wall. They make the
 # starting route snake back and forth; clearing one of their cells opens a shortcut.
-@export var ridge_count_min: int = 2
-@export var ridge_count_max: int = 2  # The Wardens should build most of the maze, not the map
+@export var ridge_count_min: int = 3
+@export var ridge_count_max: int = 3  # As many as fit between the start and the inland Heartwood
 @export_range(0.1, 1.0) var ridge_length_min: float = 0.5  # Fraction of the map's width
 @export_range(0.1, 1.0) var ridge_length_max: float = 0.7
 @export var ridge_min_spacing: int = 4  # Rows between ridge centres (and walls); ridges span ±1, so keep >= 4
@@ -42,6 +43,22 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 @export var ridge_stray_max: int = 3
 @export var ridge_stray_gap_min: int = 1  # Open columns before each stray
 @export var ridge_stray_gap_max: int = 2
+@export_group("Layouts")
+# SIDE layouts start mid-edge, so their ridges reach further across (more overlap = a longer zig-zag).
+@export_range(0.1, 1.0) var side_ridge_length_min: float = 0.65
+@export_range(0.1, 1.0) var side_ridge_length_max: float = 0.8
+@export var feature_clearance: int = 3  # Feature cells stay at least this far (chessboard) from start and end
+const RUIN_STONES: Array[int] = [2, 3, 7]  # mossy_boulder.png: standing stone, cairn, ruined waystone
+# A gap in the first ridge sits at least this far inside the second ridge's reach, so going through it
+# still means doubling back that far. SIDE layouts (which start mid-edge) keep both ridges gap-free.
+const BEND_DEPTH := 4
+const RIDGE_END_GAP := 3  # Ridge rows keep this far from the start's row and the Heartwood's (its glade is ±1)
+# Pond blob sizes (half the ponds; the rest are 3×3 with corners dropped or an L, with pond_inner.png
+# drawing their inside corners).
+const POND_SIZES: Array[Vector2i] = [Vector2i(2, 3), Vector2i(3, 2), Vector2i(2, 3), Vector2i(3, 2), Vector2i(3, 3), Vector2i(2, 2)]
+const NEAR_ROUTE := 2  # A pond or ruin first tries to come this close (chessboard) to the opening route
+const NEAR_ROUTE_TRIES := 120
+const LOG_ACROSS_TRIES := 80  # A log first tries to lie across the opening route (it gets longer round it), so Tending it is a shortcut
 @onready var path_tile_map_layer: PathGenerator = %PathTileMapLayer
 
 var unwalkable_cells: PackedVector2Array
@@ -56,10 +73,20 @@ var ridge_count := 0  # Ridges the last generate_obstacles() placed
 var _tree_level: float
 var _detail_level: float
 var _base_noise_frequency := -1.0  # The scene's noise frequency, before per-map scaling
-var _start_on_left := true
+var layout: MapLayout  # Set by MapGenerator before generate_obstacles()
+var _start: Vector2i
+var _end: Vector2i
+var _axis_u := 0  # The ridge frame: ridges run along x (0) or y (1)
+# The map's one feature (MapLayout.feature): pond cells block the route but aren't obstacles (never
+# cleared); a ruin, grove or log are obstacles like any other.
+var pond_cells: Array[Vector2] = []
+var pond_corners: Array = []  # [cell (Vector2), pond_inner column (0 NE, 1 SE, 2 SW, 3 NW)] per inside corner
+var feature_cells: Array[Vector2] = []
+var log_cells: Array[Vector2] = []  # The log feature's cells: one obstacle, cleared as a unit (MapGenerator.get_obstacle_cells)
 
 func initialize(startPath: Vector2i, endPath: Vector2i) -> PackedVector2Array:
-	_start_on_left = startPath.x < MAP_GRID.size.x / 2
+	_start = startPath
+	_end = endPath
 	_generate_border(startPath, endPath)
 	_generate_cliffs()
 	_generate_bridge(startPath)
@@ -76,21 +103,25 @@ func generate_obstacles(rng: RandomNumberGenerator, skip_cells: PackedVector2Arr
 		_base_noise_frequency = noise.frequency
 	noise.seed = rng.randi()
 	noise.frequency = _base_noise_frequency * rng.randf_range(tree_cluster_scale_min, tree_cluster_scale_max)
-	_compute_noise_levels(noise, rng.randf_range(tree_density_min, tree_density_max))
+	var density := rng.randf_range(tree_density_min, tree_density_max)
+	_compute_noise_levels(noise, density)
 
 	var obstacles := {}
 	_generate_ridges(rng, skip_cells, obstacles)
-	_generate_rock_clusters(rng, skip_cells, obstacles)
+	var skip := skip_cells  # A copy: pond cells join it so nothing else lands on them
+	_place_feature(rng, skip, obstacles)
+	skip.append_array(PackedVector2Array(pond_cells))
+	_generate_rock_clusters(rng, skip, obstacles)
 	for x in MAP_GRID.size.x:
 		for y in MAP_GRID.size.y:
 			var cell := Vector2(x, y)
-			if skip_cells.has(cell) or obstacles.has(cell):
+			if skip.has(cell) or obstacles.has(cell):
 				continue
 			if noise.get_noise_2d(x, y) <= _tree_level:
 				_place_obstacle(rng, cell, tree_obstacle, obstacles)
 			elif rng.randf() < rock_chance:
 				_place_obstacle(rng, cell, rock_obstacle, obstacles)
-	_fill_to_minimum(rng, skip_cells, obstacles)
+	_fill_to_minimum(rng, skip, obstacles)
 	return obstacles
 
 # Tops a sparse map up to `min_obstacles` with lone trees and rocks on random free cells (route carving
@@ -103,70 +134,104 @@ func _fill_to_minimum(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 		if not skip_cells.has(cell) and not obstacles.has(cell):
 			_place_obstacle(rng, cell, tree_obstacle if rng.randf() < 0.5 else rock_obstacle, obstacles)
 
-# Wobbly ridges on well-spaced rows, each attached to the left or right wall (alternating, so the
-# route has to zig-zag between their open ends). Each ridge has its own rock/tree mix. Diagonal
-# wobbles still block: creatures only move up/down/left/right.
-# The first ridge sits on the start's side: the route is pushed across, and the next ridge forces
-# it back. Starting on the far side would let the route slip past both without doubling back.
-# One bend is guaranteed (game_design.md "The forest (map)"): the second ridge has no gaps, the first
-# only has gaps where the second lies below it, and the two always overlap. Any way down past the first
-# then lands above the second's solid part and has to double back. Later ridges (Blight 9) gap freely.
+# Ridges are wobbly tapering lines of rocks and trees running in from a wall, laid out by the map's
+# layout (MapLayout, environment_assets.md "Map layouts" / "Inland Heartwood"). They're generated in a
+# frame where u runs along the ridge and v across it (`_cell(u, v)`): ridges run across the
+# start → Heartwood direction. Each ridge has its own rock/tree mix. Diagonal wobbles still block:
+# creatures only move up/down/left/right.
+# 2 ridges (+1 at Blight 9, as many as fit) on rows between the start and the Heartwood, from
+# alternating walls, the first nearest the start. One bend is guaranteed (game_design.md "The forest
+# (map)"): the second ridge has no gaps, the first only has gaps well inside where the second lies past
+# it (BEND_DEPTH; none at all for a SIDE start), and the two always overlap, so any way past the first
+# lands against the second's solid part and has to double back. Later ridges gap freely. Rows stay
+# RIDGE_END_GAP from the start's and the Heartwood's rows, so no ridge reaches the glade.
 func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
-	var inner_width := int(MAP_GRID.size.x) - 2  # Columns between the side walls
+	_axis_u = layout.ridge_axis if layout != null else 0
+	var u_inner := _u_size() - 2  # Cells between the walls the ridges hang from
 	var count := rng.randi_range(ridge_count_min, ridge_count_max)
 	if MetaRun.blight_level >= 9:
 		count += blight_extra_ridges  # Blight Level 9: one extra ridge
-	var rows := _pick_ridge_rows(rng, count)
+	count += MetaRun.perk_extra_ridges()  # Sidegrade Clear Sight (Spire experiment): one extra ridge
+	var a := _v_of(_start)
+	var b := _v_of(_end)
+	var rows := _pick_ridge_rows(rng, count, mini(a, b) + RIDGE_END_GAP, maxi(a, b) - RIDGE_END_GAP)
+	if a > b:
+		rows.reverse()  # The first ridge is the one nearest the start
 	ridge_count = rows.size()
+	var side_start := layout != null and layout.kind == MapLayout.Kind.SIDE
 	var lengths: Array[int] = []
 	for ridge in rows.size():
-		lengths.append(int(inner_width * rng.randf_range(ridge_length_min, ridge_length_max)))
+		var span := Vector2(side_ridge_length_min, side_ridge_length_max) if side_start \
+			else Vector2(ridge_length_min, ridge_length_max)
+		lengths.append(int(u_inner * rng.randf_range(span.x, span.y)))
 	if rows.size() >= 2:
-		lengths[0] = mini(maxi(lengths[0], inner_width + 1 - lengths[1]), inner_width - 1)  # Overlap
-	var from_left := _start_on_left
+		lengths[0] = mini(maxi(lengths[0], u_inner + 1 - lengths[1]), u_inner - 1)  # Overlap
+	var from_low := _u_of(_start) < _u_size() / 2
 	for ridge in rows.size():
-		var base_row := rows[ridge]
-		var length := lengths[ridge]
-		var rock_share := rng.randf()
-		# Columns (counted from this ridge's wall) where a gap may open: see the bend rule above.
-		var gaps_from := length
-		if ridge == 0 and rows.size() >= 2:
-			gaps_from = inner_width - lengths[1]  # Where the second ridge lies below
+		# Cells (counted from this ridge's wall) where a gap may open: see the bend rule above.
+		var gaps_from := lengths[ridge]
+		if ridge == 0 and rows.size() >= 2 and not side_start:
+			gaps_from = u_inner - lengths[1] + BEND_DEPTH  # Well inside where the second ridge lies past it
 		elif ridge >= 2:
 			gaps_from = 0
-		var root_end := roundi(length * ridge_root_fraction)
-		var tip_start := length - roundi(length * ridge_tip_fraction)
-		var row := base_row
-		for i in length:
-			if rng.randf() < ridge_wander_chance:
-				row = clampi(row + (1 if rng.randf() < 0.5 else -1), base_row - 1, base_row + 1)
-			if i >= maxi(root_end, gaps_from) and rng.randf() < ridge_gap_chance:
-				continue  # A gap: this column of the ridge is left open
-			var x := 1 + i if from_left else inner_width - i
-			_place_ridge_cell(rng, Vector2(x, row), rock_share, skip_cells, obstacles)
-			if i < root_end:
-				# Root: a thicket or outcrop across the whole band, not a solid block.
-				for other in range(base_row - 1, base_row + 2):
-					if other != row and rng.randf() < ridge_root_fill_chance:
-						_place_ridge_cell(rng, Vector2(x, other), rock_share, skip_cells, obstacles)
-			elif i < tip_start and rng.randf() < ridge_middle_fill_chance:
-				# Middle: one neighbouring row, kept inside the band.
-				var side := 1 if rng.randf() < 0.5 else -1
-				if absi(row + side - base_row) > 1:
-					side = -side
-				_place_ridge_cell(rng, Vector2(x, row + side), rock_share, skip_cells, obstacles)
-		# Past the tip the ridge breaks up: strays with open columns between them. They aren't ridge cells:
-		# every column before the first stray is open, so the route already passes the solid part (the
-		# zig-zag holds), and carving may clear a stray rather than break a ridge.
-		var i := length - 1
-		for stray in rng.randi_range(ridge_stray_min, ridge_stray_max):
-			i += rng.randi_range(ridge_stray_gap_min, ridge_stray_gap_max) + 1
-			var x := 1 + i if from_left else inner_width - i
-			var cell := Vector2(x, base_row + rng.randi_range(-1, 1))
-			if x < 1 or x > inner_width or skip_cells.has(cell) or obstacles.has(cell):
-				continue
-			_place_obstacle(rng, cell, rock_obstacle if rng.randf() < rock_share else tree_obstacle, obstacles)
-		from_left = not from_left
+		_ridge(rng, rows[ridge], from_low, lengths[ridge], gaps_from, skip_cells, obstacles)
+		from_low = not from_low
+
+# One tapering ridge: from the low-u wall (or the high one) `length` cells along u, wandering inside
+# its band (v_base ±1): a thicket/outcrop root, a two-row middle, a one-row tip, then a few strays.
+# Gaps may open from `gaps_from` cells on (past the root); gaps_from >= length = gap-free.
+func _ridge(rng: RandomNumberGenerator, v_base: int, from_low: bool, length: int, gaps_from: int,
+		skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
+	var u_inner := _u_size() - 2
+	var rock_share := rng.randf()
+	var root_end := roundi(length * ridge_root_fraction)
+	var tip_start := length - roundi(length * ridge_tip_fraction)
+	var v := v_base
+	for i in length:
+		if rng.randf() < ridge_wander_chance:
+			v = clampi(v + (1 if rng.randf() < 0.5 else -1), v_base - 1, v_base + 1)
+		if i >= maxi(root_end, gaps_from) and rng.randf() < ridge_gap_chance:
+			continue  # A gap: this cell of the ridge is left open
+		var u := 1 + i if from_low else u_inner - i
+		_place_ridge_cell(rng, _cell(u, v), rock_share, skip_cells, obstacles)
+		if i < root_end:
+			# Root: a thicket or outcrop across the whole band, not a solid block.
+			for other in range(v_base - 1, v_base + 2):
+				if other != v and rng.randf() < ridge_root_fill_chance:
+					_place_ridge_cell(rng, _cell(u, other), rock_share, skip_cells, obstacles)
+		elif i < tip_start and rng.randf() < ridge_middle_fill_chance:
+			# Middle: one neighbouring row, kept inside the band.
+			var side := 1 if rng.randf() < 0.5 else -1
+			if absi(v + side - v_base) > 1:
+				side = -side
+			_place_ridge_cell(rng, _cell(u, v + side), rock_share, skip_cells, obstacles)
+	# Past the tip the ridge breaks up: strays with open cells between them. They aren't ridge cells:
+	# everything just past the tip is open, so the route already passes the solid part, and carving may
+	# clear a stray rather than break a ridge.
+	var i := length - 1
+	for stray in rng.randi_range(ridge_stray_min, ridge_stray_max):
+		i += rng.randi_range(ridge_stray_gap_min, ridge_stray_gap_max) + 1
+		var u := 1 + i if from_low else u_inner - i
+		var cell := _cell(u, v_base + rng.randi_range(-1, 1))
+		if u < 1 or u > u_inner or skip_cells.has(cell) or obstacles.has(cell):
+			continue
+		_place_obstacle(rng, cell, rock_obstacle if rng.randf() < rock_share else tree_obstacle, obstacles)
+
+# The ridge frame: u along the ridges, v across them.
+func _cell(u: int, v: int) -> Vector2:
+	return Vector2(u, v) if _axis_u == 0 else Vector2(v, u)
+
+func _u_of(cell: Vector2i) -> int:
+	return cell.x if _axis_u == 0 else cell.y
+
+func _v_of(cell: Vector2i) -> int:
+	return cell.y if _axis_u == 0 else cell.x
+
+func _u_size() -> int:
+	return int(MAP_GRID.size.x if _axis_u == 0 else MAP_GRID.size.y)
+
+func _v_size() -> int:
+	return int(MAP_GRID.size.y if _axis_u == 0 else MAP_GRID.size.x)
 
 func _place_ridge_cell(rng: RandomNumberGenerator, cell: Vector2, rock_share: float,
 		skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
@@ -191,10 +256,8 @@ func _generate_rock_clusters(rng: RandomNumberGenerator, skip_cells: PackedVecto
 				if rng.randf() < 1.0 - distance / (radius + 1.0):
 					_place_obstacle(rng, cell, rock_obstacle, obstacles)
 
-# Up to `count` rows, sorted, each at least `ridge_min_spacing` from the others and the walls.
-func _pick_ridge_rows(rng: RandomNumberGenerator, count: int) -> Array[int]:
-	var first := ridge_min_spacing
-	var last := int(MAP_GRID.size.y) - 1 - ridge_min_spacing
+# Up to `count` rows between `first` and `last`, sorted, each at least `ridge_min_spacing` apart.
+func _pick_ridge_rows(rng: RandomNumberGenerator, count: int, first: int, last: int) -> Array[int]:
 	var rows: Array[int] = []
 	if last < first:
 		return rows
@@ -216,7 +279,9 @@ func _place_obstacle(rng: RandomNumberGenerator, cell: Vector2, data: ObstacleDa
 
 # Leaves the walkable mark of a cleared obstacle (tended stump, moved hollow) on `cell`.
 func mark_cleared(cell: Vector2, data: ObstacleData) -> void:
-	if data.cleared_source_id >= 0:
+	if data.cleared_source_id == EnvironmentTiles.LOG_FURROW:  # The furrow piece matching the log piece there
+		set_cell(Vector2i(cell), data.cleared_source_id, get_cell_atlas_coords(Vector2i(cell)))
+	elif data.cleared_source_id >= 0:
 		set_cell(Vector2i(cell), data.cleared_source_id, data.cleared_tile)
 	else:
 		erase_cell(Vector2i(cell))
@@ -224,13 +289,17 @@ func mark_cleared(cell: Vector2, data: ObstacleData) -> void:
 # Decorations the path wears away when it's drawn over them (ground details, clearing marks). Obstacles,
 # the start's mist and the island's rim are never worn: obstacles are blocked, so no path lies on them.
 const WORN_BY_PATH: Array[int] = [EnvironmentTiles.GROUND_DETAILS, EnvironmentTiles.TENDED_STUMP,
-	EnvironmentTiles.MOVED_HOLLOW]
+	EnvironmentTiles.MOVED_HOLLOW, EnvironmentTiles.LOG_FURROW]
 
 # The path now runs over `cell`: erase any decoration there. It stays bare if the path moves away.
 func wear_away(cell: Vector2i) -> void:
 	if get_cell_source_id(cell) in WORN_BY_PATH:
 		erase_cell(cell)
 
+
+# Share of the cells in the noise's detail band that get a detail: one on every such cell lined the
+# ground up into a dotted grid.
+const DETAIL_SHARE := 0.3
 
 # Sprinkles grass details (decoration only) on cells not in `skip_cells`. Call after generate_obstacles().
 func generate_details(rng: RandomNumberGenerator, skip_cells: PackedVector2Array) -> void:
@@ -241,7 +310,7 @@ func generate_details(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 			if skip_cells.has(cell):
 				continue
 			var value := noise.get_noise_2d(x, y)
-			if value > _tree_level and value <= _detail_level:
+			if value > _tree_level and value <= _detail_level and rng.randf() < DETAIL_SHARE:
 				var details := tile_set.get_source(EnvironmentTiles.GROUND_DETAILS) as TileSetAtlasSource
 				set_cell(Vector2i(cell), EnvironmentTiles.GROUND_DETAILS,
 					Vector2i(rng.randi_range(0, details.get_atlas_grid_size().x - 1), 0))
@@ -263,12 +332,16 @@ func _compute_noise_levels(noise: FastNoiseLite, tree_density: float) -> void:
 # The rim stays unwalkable; the start and end are open (the path draws them).
 func _generate_border(startPath: Vector2i, endPath: Vector2i) -> void:
 	var last := Vector2i(MAP_GRID.size) - Vector2i.ONE
+	# island_edge.png has a variant per row (they all meet at the tile ends): a mix of them keeps the
+	# rim from repeating one scallop round the island. Picked by a hash of the cell, so the rng is untouched.
+	var variants := (tile_set.get_source(EnvironmentTiles.ISLAND_EDGE) as TileSetAtlasSource).get_atlas_grid_size().y
 	for x in range(0, last.x + 1):
 		for y in range(0, last.y + 1):
 			var cell := Vector2i(x, y)
 			if (x != 0 and y != 0 and x != last.x and y != last.y) or cell == startPath or cell == endPath:
 				continue
-			set_cell(cell, EnvironmentTiles.ISLAND_EDGE, Vector2i(EnvironmentTiles.rim_mask(cell, last + Vector2i.ONE), 0))
+			var variant := absi(hash(cell)) % maxi(variants, 1)
+			set_cell(cell, EnvironmentTiles.ISLAND_EDGE, Vector2i(EnvironmentTiles.rim_mask(cell, last + Vector2i.ONE), variant))
 			unwalkable_cells.append(Vector2(cell))
 
 # Cliff faces hanging under the island's bottom row.
@@ -295,3 +368,217 @@ func _outward(cell: Vector2i) -> Vector2i:
 	if cell.y >= last.y:
 		return Vector2i.DOWN
 	return Vector2i.LEFT if cell.x <= 0 else Vector2i.RIGHT
+# --- The map's one feature (environment_assets.md "Map layouts") --------------------------------------
+
+# Places MapLayout.feature somewhere free, at least `feature_clearance` cells from the start and end.
+# Mostly scenery, with a small maze impact. Gives up quietly if nothing fits.
+func _place_feature(rng: RandomNumberGenerator, skip: PackedVector2Array, obstacles: Dictionary) -> void:
+	pond_cells.clear()
+	feature_cells.clear()
+	log_cells.clear()
+	pond_corners.clear()
+	if layout == null:
+		return
+	# A pond, ruin or log should shape the opening: the first tries must come within NEAR_ROUTE cells of the
+	# route as the ridges leave it (a log: first across it, so the route bends round the log); then anywhere.
+	var shapes_route := layout.feature in [MapLayout.Feature.POND, MapLayout.Feature.RUIN, MapLayout.Feature.LOG]
+	var route := _provisional_route() if shapes_route else {}
+	var base_length := _route_length([]) if layout.feature == MapLayout.Feature.LOG else 0
+	for attempt in 160:
+		var cells := _feature_shape(rng, layout.feature)
+		if cells.is_empty() or not cells.all(func(c: Vector2) -> bool: return _feature_cell_ok(c, skip, obstacles)):
+			continue
+		if layout.feature == MapLayout.Feature.LOG and attempt < LOG_ACROSS_TRIES and _route_length(cells) <= base_length:
+			continue
+		if shapes_route and attempt < NEAR_ROUTE_TRIES and not _near(cells, route):
+			continue
+		if not _route_survives(cells):  # Never across the only way through (ponds can't be cleared at all)
+			continue
+		match layout.feature:
+			MapLayout.Feature.POND:
+				for cell in cells:  # One body of water: each cell's banks face the non-pond side
+					var mask := ((1 if cells.has(cell + Vector2.UP) else 0) | (2 if cells.has(cell + Vector2.RIGHT) else 0)
+						| (4 if cells.has(cell + Vector2.DOWN) else 0) | (8 if cells.has(cell + Vector2.LEFT) else 0))
+					set_cell(Vector2i(cell), EnvironmentTiles.POND, Vector2i(mask, 0))
+				pond_cells.assign(cells)
+				_find_pond_corners(cells)
+			MapLayout.Feature.RUIN:
+				for cell in cells:  # Standing stones, cairns and ruined waystones
+					_place_obstacle_tile(cell, rock_obstacle, Vector2i(RUIN_STONES[rng.randi_range(0, RUIN_STONES.size() - 1)], 0), obstacles)
+			MapLayout.Feature.LOG:  # One obstacle over its cells: end and middle pieces, cleared as a unit
+				for cell in cells:
+					rng.randi_range(0, tree_obstacle.tiles.size() - 1)  # The draw the trees it replaced took: same maps
+					_place_obstacle_tile(cell, log_obstacle, EnvironmentTiles.log_piece(cell, cells), obstacles)
+				log_cells.assign(cells)
+			_:
+				for cell in cells:
+					_place_obstacle(rng, cell, tree_obstacle, obstacles)
+		feature_cells.assign(cells)
+		return
+
+# The feature's cells around a random spot (before checking they're free).
+func _feature_shape(rng: RandomNumberGenerator, feature: MapLayout.Feature) -> Array[Vector2]:
+	var at := Vector2(rng.randi_range(2, int(MAP_GRID.size.x) - 3), rng.randi_range(2, int(MAP_GRID.size.y) - 3))
+	var cells: Array[Vector2] = []
+	match feature:
+		MapLayout.Feature.POND:  # Organic: a blob, a 3×3 with 1-2 corners dropped, or an occasional L
+			var shape := rng.randf()
+			var size: Vector2i = POND_SIZES[rng.randi_range(0, POND_SIZES.size() - 1)] if shape < 0.5 else Vector2i(3, 3)
+			var dropped := {}
+			var corners: Array[Vector2i] = [Vector2i(0, 0), Vector2i(2, 0), Vector2i(0, 2), Vector2i(2, 2)]
+			var first := corners[rng.randi_range(0, 3)]
+			var second := corners[rng.randi_range(0, 3)]
+			if shape >= 0.5 and shape < 0.9:
+				dropped[first] = true
+				if shape >= 0.75:
+					dropped[second] = true  # Sometimes the same corner: then just one
+			elif shape >= 0.9:  # An L: a 2×2 bite out of one corner
+				var bite := Vector2i(mini(first.x, 1), mini(first.y, 1))
+				for dx in 2:
+					for dy in 2:
+						dropped[bite + Vector2i(dx, dy)] = true
+			for dx in size.x:
+				for dy in size.y:
+					if not dropped.has(Vector2i(dx, dy)):
+						cells.append(at + Vector2(dx, dy))
+		MapLayout.Feature.RUIN:  # A ring of stones 3 or 4 across, open on one side
+			var side := rng.randi_range(3, 4)
+			var gap_side := rng.randi_range(0, 3)
+			var gap_at := rng.randi_range(1, side - 2)
+			for dx in side:
+				for dy in side:
+					if dx != 0 and dy != 0 and dx != side - 1 and dy != side - 1:
+						continue
+					var gap: bool = [dy == 0 and dx == gap_at, dx == side - 1 and dy == gap_at,
+						dy == side - 1 and dx == gap_at, dx == 0 and dy == gap_at][gap_side]
+					if not gap:
+						cells.append(at + Vector2(dx, dy))
+		MapLayout.Feature.GROVE:  # A tight cluster of trees
+			for dx in range(-2, 3):
+				for dy in range(-2, 3):
+					if Vector2(dx, dy).length() <= 1.6 and rng.randf() < 0.85:
+						cells.append(at + Vector2(dx, dy))
+		MapLayout.Feature.LOG:  # A fallen log, 3-4 cells in a straight line
+			var along := Vector2(1, 0) if rng.randf() < 0.5 else Vector2(0, 1)
+			for i in rng.randi_range(3, 4):
+				cells.append(at + along * i)
+	return cells
+
+func _feature_cell_ok(cell: Vector2, skip: PackedVector2Array, obstacles: Dictionary) -> bool:
+	var far := maxi(absi(int(cell.x) - _start.x), absi(int(cell.y) - _start.y)) >= feature_clearance \
+		and maxi(absi(int(cell.x) - _end.x), absi(int(cell.y) - _end.y)) >= feature_clearance
+	return far and cell.x >= 1 and cell.y >= 1 and cell.x <= MAP_GRID.size.x - 2 and cell.y <= MAP_GRID.size.y - 2 \
+		and not skip.has(cell) and not obstacles.has(cell)
+
+# A feature must never cut the start from the end, even with every ridge standing: a pond can't be
+# cleared at all, and carving through a ruin or grove would break it.
+func _route_survives(pond: Array[Vector2]) -> bool:
+	var blocked := {}
+	for cell in unwalkable_cells:
+		blocked[Vector2i(cell)] = true
+	for cell in ridge_cells:
+		blocked[Vector2i(cell)] = true
+	for cell in pond:
+		blocked[Vector2i(cell)] = true
+	var seen := {_start: true}
+	var queue: Array[Vector2i] = [_start]
+	var size := Vector2i(MAP_GRID.size)
+	while not queue.is_empty():
+		var at: Vector2i = queue.pop_back()
+		if at == _end:
+			return true
+		for step: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			var next := at + step
+			if next.x < 0 or next.y < 0 or next.x >= size.x or next.y >= size.y or seen.has(next):
+				continue
+			if blocked.has(next) and next != _end:
+				continue
+			seen[next] = true
+			queue.append(next)
+	return false
+
+# Steps from the start to the end past the rim, the ridges and `extra` (-1 = no way through).
+func _route_length(extra: Array) -> int:
+	var blocked := {}
+	for cell in unwalkable_cells:
+		blocked[Vector2i(cell)] = true
+	for cell in ridge_cells:
+		blocked[Vector2i(cell)] = true
+	for cell in extra:
+		blocked[Vector2i(cell)] = true
+	var distance := {_start: 0}
+	var queue: Array[Vector2i] = [_start]
+	var size := Vector2i(MAP_GRID.size)
+	var head := 0
+	while head < queue.size():
+		var at := queue[head]
+		head += 1
+		if at == _end:
+			return distance[at]
+		for step: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			var next := at + step
+			if next.x < 0 or next.y < 0 or next.x >= size.x or next.y >= size.y or distance.has(next):
+				continue
+			if blocked.has(next) and next != _end:
+				continue
+			distance[next] = distance[at] + 1
+			queue.append(next)
+	return -1
+
+func _place_obstacle_tile(cell: Vector2, data: ObstacleData, tile: Vector2i, obstacles: Dictionary) -> void:
+	set_cell(Vector2i(cell), data.source_id, tile)
+	obstacles[cell] = data
+
+# The opening route as the ridges leave it (before trees and rocks): a shortest walk from the start to
+# the end past the rim and the ridges. {cell (Vector2i): true}; empty if there's none yet.
+func _provisional_route() -> Dictionary:
+	var blocked := {}
+	for cell in unwalkable_cells:
+		blocked[Vector2i(cell)] = true
+	for cell in ridge_cells:
+		blocked[Vector2i(cell)] = true
+	var came_from := {_start: _start}
+	var queue: Array[Vector2i] = [_start]
+	var size := Vector2i(MAP_GRID.size)
+	var head := 0
+	while head < queue.size():
+		var at := queue[head]
+		head += 1
+		if at == _end:
+			break
+		for step: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			var next := at + step
+			if next.x < 0 or next.y < 0 or next.x >= size.x or next.y >= size.y or came_from.has(next):
+				continue
+			if blocked.has(next) and next != _end:
+				continue
+			came_from[next] = at
+			queue.append(next)
+	var route := {}
+	if not came_from.has(_end):
+		return route
+	var cell := _end
+	while cell != _start:
+		route[cell] = true
+		cell = came_from[cell]
+	route[_start] = true
+	return route
+
+# True if any of `cells` is within NEAR_ROUTE (chessboard) of the route.
+func _near(cells: Array[Vector2], route: Dictionary) -> bool:
+	for cell in cells:
+		for dx in range(-NEAR_ROUTE, NEAR_ROUTE + 1):
+			for dy in range(-NEAR_ROUTE, NEAR_ROUTE + 1):
+				if route.has(Vector2i(cell) + Vector2i(dx, dy)):
+					return true
+	return false
+
+# Inside corners of a pond that isn't a rectangle: a cell whose two neighbours on a corner's sides are
+# pond but whose diagonal isn't gets that corner's pond_inner overlay (MapGenerator draws them).
+func _find_pond_corners(cells: Array[Vector2]) -> void:
+	var diagonals: Array[Vector2] = [Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1), Vector2(-1, -1)]  # NE, SE, SW, NW
+	for cell in cells:
+		for column in diagonals.size():
+			var d := diagonals[column]
+			if cells.has(cell + Vector2(d.x, 0)) and cells.has(cell + Vector2(0, d.y)) and not cells.has(cell + d):
+				pond_corners.append([cell, column])

@@ -13,3 +13,5 @@ tags = Array[String](["maze"])
 max_stacks = 1
 deepens = "cozy_corners"
 rule_id = &"cozy_corners"
+diagram = ".P.W...\n.P.....\n.+PPPP.\n.......\n.....w."
+diagram_caption = "Within 2 cells of a bend in the path: +50%. ✗ too far from it."

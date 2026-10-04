@@ -28,6 +28,9 @@ func _run() -> void:
 	await process_frame
 
 	var puffball := _plant("puffball", Vector2(2, 2))
+	puffball.tower_data = puffball.tower_data.duplicate()  # The mechanism at Potency 130% (Puffball itself is 100% since "Human run 3")
+	puffball.tower_data.potency = 1.3
+	puffball._apply_data()
 	var sprout := _plant("sprout", Vector2(2, 4))
 	_check(is_equal_approx(puffball.get_potency(), 1.3), "Puffball: Potency 130%% (%.2f)" % puffball.get_potency())
 	_check(is_equal_approx(sprout.get_potency(), 1.0), "the default is 100%")
@@ -43,14 +46,12 @@ func _run() -> void:
 	c.take_damage(100.0, "", true, false, puffball, &"thunderclap")
 	_check(_lost(c) == 130, "Reactions use the applier's Potency (%d)" % _lost(c))
 
-	# The Deep Focus: +10% Potency per rank III–V (and it stops at V).
-	sprout.focus = Tower.Focus.DEEP
+	# Deep ranks (Nurture v3): +18% Potency each rank chosen.
 	sprout.rank = 3
-	_check(is_equal_approx(sprout.get_potency(), 1.1), "Deep at rank III: 110%% (%.2f)" % sprout.get_potency())
-	sprout.rank = 5
-	_check(is_equal_approx(sprout.get_potency(), 1.3), "Deep at rank V: 130%%")
-	sprout.rank = 9
-	_check(is_equal_approx(sprout.get_potency(), 1.3), "the Focus stops at V (Endless Rings)")
+	sprout.rank_choices = [Tower.Focus.DEEP, Tower.Focus.POWER, Tower.Focus.DEEP]
+	_check(is_equal_approx(sprout.get_potency(), 1.0 + 2 * Tower.deep_share()), "two Deep ranks: +50%% Potency (%.2f)" % sprout.get_potency())
+	sprout.rank = 0
+	sprout.rank_choices = []
 
 	# Endless Rings: ranks past VII add only damage.
 	sprout.focus = Tower.Focus.NONE

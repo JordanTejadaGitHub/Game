@@ -1,5 +1,21 @@
 {
 	"effects": {
+		"arc_fence": {
+			"anchor": [
+				0,
+				8
+			],
+			"file": "arc_fence.png",
+			"fps": 14.0,
+			"frame_size": [
+				32,
+				16
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "Jarlink / Lightning Fence: the arc between two Jarlinks' jars, stretched along x (y = 8 on the line). Loop."
+		},
 		"aura_ring_breath": {
 			"anchor": [
 				32,
@@ -15,6 +31,38 @@
 			"kind": "support",
 			"loop": true,
 			"note": "White, tint it and scale it to the aura's range (64 px = 1 cell radius 28). Brighter (higher alpha) in build mode."
+		},
+		"beacon_flare": {
+			"anchor": [
+				8,
+				60
+			],
+			"file": "beacon_flare.png",
+			"fps": 12.0,
+			"frame_size": [
+				16,
+				64
+			],
+			"frames": 8,
+			"kind": "signature",
+			"loop": false,
+			"note": "Beacon: a flare shooting up from the Beacon (anchor = its top) and bursting; then fade beacon_pulse over the map."
+		},
+		"beacon_pulse": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "beacon_pulse.png",
+			"fps": 1.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 1,
+			"kind": "overlay",
+			"loop": false,
+			"note": "Map-wide light pulse: scale it over the whole map (it's a soft warm radial wash in palette alpha steps), fade in ~0.2 s and out ~1 s, additive or ~40% alpha."
 		},
 		"carried_storm": {
 			"anchor": [
@@ -144,6 +192,54 @@
 			"frames": 4,
 			"kind": "ui",
 			"loop": true
+		},
+		"chorus_note": {
+			"anchor": [
+				6,
+				6
+			],
+			"file": "chorus_note.png",
+			"fps": 8.0,
+			"frame_size": [
+				12,
+				12
+			],
+			"frames": 4,
+			"kind": "signature",
+			"loop": true,
+			"note": "Lullaby Bell: one per chorus voice, riding the pulse ring. Tint."
+		},
+		"clean_cut": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "clean_cut.png",
+			"fps": 18.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Whetstone / Edgestone: the finishing slash on the nightmare it finishes (centred on it), ~0.33 s."
+		},
+		"clean_spill": {
+			"anchor": [
+				0,
+				6
+			],
+			"file": "clean_spill.png",
+			"fps": 16.0,
+			"frame_size": [
+				32,
+				12
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": false,
+			"note": "Edgestone: the overkill jumping from the finished nightmare to the next one. Stretch along x (y = 6 on the line), killed -> next."
 		},
 		"cloud_puffs": {
 			"anchor": [
@@ -445,6 +541,22 @@
 			"kind": "crowned",
 			"loop": false
 		},
+		"dark_swirl": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "dark_swirl.png",
+			"fps": 8.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 16,
+			"kind": "signature",
+			"loop": true,
+			"note": "Starling Murmuration: a one-cell swirl of starlings, 2 s loop (16 frames at 8 fps)."
+		},
 		"dawnburst": {
 			"anchor": [
 				128,
@@ -509,6 +621,38 @@
 			"loop": false,
 			"note": "Behind the \"+N Dew\" of caught Dew; draw that text in gold (#ffd870) instead of blue."
 		},
+		"double_graft_glow_a": {
+			"anchor": [
+				16,
+				16
+			],
+			"file": "double_graft_glow_a.png",
+			"fps": 8.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 8,
+			"kind": "signature",
+			"loop": true,
+			"note": "Grafted Elder: the left half of the graft glow; tint with the first copied Warden's colour. Play with _b: they swap brightness."
+		},
+		"double_graft_glow_b": {
+			"anchor": [
+				16,
+				16
+			],
+			"file": "double_graft_glow_b.png",
+			"fps": 8.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 8,
+			"kind": "signature",
+			"loop": true,
+			"note": "The right half; tint with the second copied Warden's colour."
+		},
 		"drag_dust": {
 			"anchor": [
 				8,
@@ -524,6 +668,22 @@
 			"kind": "support",
 			"loop": false,
 			"note": "Soil kicked up behind a dragged nightmare; spawn one every ~0.1 s along the drag. Anchor = ground."
+		},
+		"dream_spore_puff": {
+			"anchor": [
+				12,
+				28
+			],
+			"file": "dream_spore_puff.png",
+			"fps": 6.0,
+			"frame_size": [
+				24,
+				32
+			],
+			"frames": 8,
+			"kind": "signature",
+			"loop": true,
+			"note": "Dreamshroom: slow spore puffs rising off a sleeper; loop while it sleeps (anchor = its feet)."
 		},
 		"dreamlight_shard": {
 			"anchor": [
@@ -590,6 +750,54 @@
 			"loop": true,
 			"note": "One ring tile (the 8 around the held nightmare, path tiles only), loops for 6 s. Draw under nightmares."
 		},
+		"fairy_dance": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "fairy_dance.png",
+			"fps": 10.0,
+			"frame_size": [
+				48,
+				32
+			],
+			"frames": 8,
+			"kind": "signature",
+			"loop": true,
+			"note": "Elf Circle: a ring of lights spinning round a nightmare's feet (anchor = the ground under it), loop."
+		},
+		"firework_burst": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "firework_burst.png",
+			"fps": 16.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 7,
+			"kind": "signature",
+			"loop": false,
+			"note": "Sparkler / Starburst: a firework bursting over a crowd into 6 sparks (Starburst: play two, offset)."
+		},
+		"flyer_grab": {
+			"anchor": [
+				24,
+				20
+			],
+			"file": "flyer_grab.png",
+			"fps": 12.0,
+			"frame_size": [
+				48,
+				64
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Groundroot / Earthbind: roots shooting up from the ground and dragging the flyer down (anchor = the flyer), ~0.5 s."
+		},
 		"fog_wisps": {
 			"anchor": [
 				28,
@@ -605,6 +813,38 @@
 			"kind": "ground",
 			"loop": false,
 			"note": "Variants: fog strands PathCloud drifts across fog clouds (cloud_fog)."
+		},
+		"gale_lane": {
+			"anchor": [
+				0,
+				6
+			],
+			"file": "gale_lane.png",
+			"fps": 12.0,
+			"frame_size": [
+				32,
+				12
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "Zephyr: a gust streak along the path; tile/stretch along x, y = 6 on the line. Tint (or leave pale)."
+		},
+		"goal_hold": {
+			"anchor": [
+				24,
+				30
+			],
+			"file": "goal_hold.png",
+			"fps": 12.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Deeproot: a root coil snapping round the held nightmare's feet (anchor = its feet), ~0.5 s."
 		},
 		"grafted_harmony_a": {
 			"anchor": [
@@ -637,6 +877,22 @@
 			"kind": "overlay_loop",
 			"loop": true,
 			"note": "Right half; tint with the second status colour."
+		},
+		"ground_slam": {
+			"anchor": [
+				104,
+				104
+			],
+			"file": "ground_slam.png",
+			"fps": 16.0,
+			"frame_size": [
+				208,
+				208
+			],
+			"frames": 7,
+			"kind": "ground",
+			"loop": false,
+			"note": "Quaker / Earthshaker: the slam ring centred on the Warden, drawn for a 1.5 cell radius (96 px); scale x1.33 for Earthshaker's 2."
 		},
 		"harmony_beam": {
 			"anchor": [
@@ -814,6 +1070,22 @@
 			"frames": 6,
 			"kind": "reaction",
 			"loop": false
+		},
+		"ink_trail": {
+			"anchor": [
+				0,
+				6
+			],
+			"file": "ink_trail.png",
+			"fps": 1.0,
+			"frame_size": [
+				32,
+				12
+			],
+			"frames": 1,
+			"kind": "ground",
+			"loop": false,
+			"note": "Inkcap / Deliquescent: the ink a Poisoned nightmare leaves on the path. Tile along x behind it (y = 6 on the line), under the nightmares; fade over its life. Deliquescent's 2-tile pool: two segments side by side, or scale it."
 		},
 		"kin_bond_burst": {
 			"anchor": [
@@ -1007,6 +1279,38 @@
 			"loop": false,
 			"note": "Cairn / Rockslide: where the lobbed stone lands. Anchor = impact point."
 		},
+		"landslide_boulder": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "landslide_boulder.png",
+			"fps": 14.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 8,
+			"kind": "signature",
+			"loop": true,
+			"note": "Boulderback: a rolling boulder, turning a notch per frame; move it along the path, play landslide_dust behind it."
+		},
+		"landslide_dust": {
+			"anchor": [
+				0,
+				8
+			],
+			"file": "landslide_dust.png",
+			"fps": 10.0,
+			"frame_size": [
+				32,
+				12
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "The boulder's dust trail: tile/stretch along x behind it (y = 8 on the ground line), fade the far end."
+		},
 		"leaf_mote": {
 			"anchor": [
 				5,
@@ -1073,6 +1377,22 @@
 			"loop": true,
 			"note": "Under a lobbed stone, on the ground below it; scale it down as the stone rises."
 		},
+		"logjam_knot": {
+			"anchor": [
+				16,
+				12
+			],
+			"file": "logjam_knot.png",
+			"fps": 8.0,
+			"frame_size": [
+				32,
+				16
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": true,
+			"note": "Snugroot: under a held nightmare (anchor = ground under its feet), loops while it's held."
+		},
 		"long_way_home_drag": {
 			"anchor": [
 				0,
@@ -1088,6 +1408,22 @@
 			"kind": "segment",
 			"loop": false,
 			"note": "Roots dragging a nightmare back: stretch along x from where it was to where it lands (x = 0 end)."
+		},
+		"mended_leaf": {
+			"anchor": [
+				6,
+				6
+			],
+			"file": "mended_leaf.png",
+			"fps": 8.0,
+			"frame_size": [
+				12,
+				12
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": true,
+			"note": "Great Dreamcatcher: a mended leaf the code flies to the Heartwood; loops its tumble."
 		},
 		"monsoon_sweep": {
 			"anchor": [
@@ -1171,6 +1507,22 @@
 			"loop": true,
 			"note": "One path tile (64x64), loops while the cloud lasts. Draw under nightmares."
 		},
+		"path_crack": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "path_crack.png",
+			"fps": 12.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": false,
+			"note": "Earthshaker: the crack left on a path tile. Forms up over 3 frames; hold the last frame (static) for the 3 s, z -1."
+		},
 		"path_furrow": {
 			"anchor": [
 				0,
@@ -1220,6 +1572,22 @@
 			"loop": false,
 			"reaction": "Marked + Held or asleep"
 		},
+		"prism_beam": {
+			"anchor": [
+				0,
+				3
+			],
+			"file": "prism_beam.png",
+			"fps": 16.0,
+			"frame_size": [
+				32,
+				6
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "Rainbow Prism: a split beam, white so it tints (pink #ec9cf4, gold #fcd47c, blue #9cd4fc for the three). Stretch along x, y = 3."
+		},
 		"puffball_bloom": {
 			"anchor": [
 				64,
@@ -1235,6 +1603,54 @@
 			"kind": "signature",
 			"loop": false,
 			"note": "Puffball's pop at 10+ Spored stacks."
+		},
+		"rain_sweep": {
+			"anchor": [
+				48,
+				40
+			],
+			"file": "rain_sweep.png",
+			"fps": 12.0,
+			"frame_size": [
+				96,
+				64
+			],
+			"frames": 8,
+			"kind": "signature",
+			"loop": false,
+			"note": "Nimbus's Cloudburst, played on the Warden (anchor = its base): its cloud bursts and a ring of rain sweeps out from it (it reads as range ~1.5 cells; scale up for range 4)."
+		},
+		"rain_zone": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "rain_zone.png",
+			"fps": 10.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Cloudlet / Nimbus: rain over a 3x3 zone. Tile it 3x3 (it tiles seamlessly), above the nightmares at ~80% alpha."
+		},
+		"rockfall": {
+			"anchor": [
+				24,
+				64
+			],
+			"file": "rockfall.png",
+			"fps": 14.0,
+			"frame_size": [
+				48,
+				80
+			],
+			"frames": 8,
+			"kind": "signature",
+			"loop": false,
+			"note": "Bastion: a rock falling from a stone wall onto the path tile beside it. Anchor = the tile centre; impact on frame 3."
 		},
 		"root_grab": {
 			"anchor": [
@@ -1276,6 +1692,22 @@
 			"loop": true,
 			"note": "Rockslide: one path tile of slowing rubble. Draw under nightmares. Loops: Fx.play(&\"rubble\", tile, world, 1.0, true, 3.0) holds it 3 s and fades it out."
 		},
+		"shard_rise": {
+			"anchor": [
+				12,
+				44
+			],
+			"file": "shard_rise.png",
+			"fps": 12.0,
+			"frame_size": [
+				24,
+				48
+			],
+			"frames": 8,
+			"kind": "signature",
+			"loop": false,
+			"note": "Dream Oak / Dreamroot: a Dreamlight shard rising out of it at the end of a drift (anchor = its top)."
+		},
 		"shatter": {
 			"anchor": [
 				32,
@@ -1292,6 +1724,38 @@
 			"kind": "reaction",
 			"loop": false,
 			"reaction": "frozen + heavy hit or crit"
+		},
+		"shatter_chain_burst": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "shatter_chain_burst.png",
+			"fps": 16.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 7,
+			"kind": "signature",
+			"loop": false,
+			"note": "Hoarfrost: an ice burst with shards flying out (smaller than crowned_prismstorm)."
+		},
+		"silence_mark": {
+			"anchor": [
+				12,
+				20
+			],
+			"file": "silence_mark.png",
+			"fps": 6.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 8,
+			"kind": "status",
+			"loop": true,
+			"note": "Hushbell / Silence: over a silenced nightmare's head (anchor = the top of its head), loop while silenced. A muffled bell, its sound crossed out."
 		},
 		"smother": {
 			"anchor": [
@@ -1310,6 +1774,86 @@
 			"loop": true,
 			"note": "Loops while the hold lasts.",
 			"reaction": "Held + Spored"
+		},
+		"solstice_fork": {
+			"anchor": [
+				16,
+				16
+			],
+			"file": "solstice_fork.png",
+			"fps": 16.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Midsummer: a bright flash where the beam forks (anchor = the fork point; rays drawn pointing right, rotate to the beam)."
+		},
+		"sound_cone": {
+			"anchor": [
+				2,
+				16
+			],
+			"file": "sound_cone.png",
+			"fps": 14.0,
+			"frame_size": [
+				48,
+				32
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Thrum / Resonance: arcs of sound rolling out in a cone, drawn pointing right from the anchor (rotate to aim; scale y to widen the cone for Resonance)."
+		},
+		"spark_burst": {
+			"anchor": [
+				16,
+				16
+			],
+			"file": "spark_burst.png",
+			"fps": 16.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Sparkler / Starburst's firework at the burst point (and Fireworks Fence's crossing burst): a smaller, quicker burst than firework_burst."
+		},
+		"sprout_puff": {
+			"anchor": [
+				24,
+				36
+			],
+			"file": "sprout_puff.png",
+			"fps": 12.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Seedbearer / Grove Keeper: the free Sprout popping up on its cell (anchor = the cell centre)."
+		},
+		"starlit_snare": {
+			"anchor": [
+				16,
+				20
+			],
+			"file": "starlit_snare.png",
+			"fps": 12.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Starcave: a star glint popping on a path tile (anchor = tile centre, on the ground)."
 		},
 		"status_flash": {
 			"anchor": [
@@ -1359,6 +1903,22 @@
 			"loop": true,
 			"note": "One path tile, loops for the pool's 5 s. Draw under nightmares."
 		},
+		"stone_up": {
+			"anchor": [
+				32,
+				48
+			],
+			"file": "stone_up.png",
+			"fps": 12.0,
+			"frame_size": [
+				64,
+				80
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Rampart / Bastion: a Thornwall touching it hardening to stone. Same frame layout as a Warden (64x80, body in the bottom 64, anchor = the cell centre); play over the wall, then swap its texture to thornwall_stone.png."
+		},
 		"storm_front": {
 			"anchor": [
 				48,
@@ -1390,6 +1950,38 @@
 			"kind": "overlay",
 			"loop": false,
 			"note": "x5 chain: stretch over the whole screen and fade alpha 0 -> 0.8 -> 0 over ~0.5 s. Smooth, not pixel art."
+		},
+		"thorn_spread": {
+			"anchor": [
+				0,
+				6
+			],
+			"file": "thorn_spread.png",
+			"fps": 14.0,
+			"frame_size": [
+				32,
+				12
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": false,
+			"note": "Crown of Thorns: a thorny vine growing from the held nightmare to its neighbour. Stretch along x (y = 6 on the line)."
+		},
+		"thorns": {
+			"anchor": [
+				16,
+				22
+			],
+			"file": "thorns.png",
+			"fps": 10.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 6,
+			"kind": "status",
+			"loop": true,
+			"note": "Thorncoil: thorns pricking a held nightmare, round its feet (anchor = its feet). Loop while it's held."
 		},
 		"thunderclap": {
 			"anchor": [
@@ -1456,6 +2048,70 @@
 			"loop": false,
 			"note": "Thunderhead's every 5th strike. Anchor = ground impact; the bolt comes from the sky above."
 		},
+		"toll_ring": {
+			"anchor": [
+				32,
+				20
+			],
+			"file": "toll_ring.png",
+			"fps": 12.0,
+			"frame_size": [
+				64,
+				32
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Silver Bell / Vesper Bell: the toll landing on its far target: a silver ring spreading on the ground under it (anchor = its feet)."
+		},
+		"veil_glint": {
+			"anchor": [
+				8,
+				8
+			],
+			"file": "veil_glint.png",
+			"fps": 12.0,
+			"frame_size": [
+				16,
+				16
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Morning Fog: a faint gold glint where the fog cancels hiding or healing. Play at ~70% alpha."
+		},
+		"water_jet": {
+			"anchor": [
+				0,
+				5
+			],
+			"file": "water_jet.png",
+			"fps": 14.0,
+			"frame_size": [
+				32,
+				10
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": true,
+			"note": "Jetreed / Torrent: the jet, stretched or tiled along x from the reed to the end of its line (y = 5). ~0.3 s. Torrent's wet trail: ink_trail-style decal not needed, reuse dew_pool art or tint ink_trail blue."
+		},
+		"whirlpool": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "whirlpool.png",
+			"fps": 8.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 8,
+			"kind": "ground",
+			"loop": true,
+			"note": "Undercurrent / Maelstrom: a whirlpool on one path tile, under the nightmares. Loop."
+		},
 		"whole_tree_badge": {
 			"anchor": [
 				8,
@@ -1487,6 +2143,22 @@
 			"kind": "kinship",
 			"loop": false,
 			"note": "Plays ON the Heartwood: same 128x128 frame as its sprite, anchor (64, 88) = the Heartwood's position, so Fx.play at heartwood.global_position lines it up. Draw above the Heartwood (~1.2 s, settles at the end). Tint with the family colour."
+		},
+		"windmill_momentum": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "windmill_momentum.png",
+			"fps": 12.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 12,
+			"kind": "signature",
+			"loop": true,
+			"note": "Windmill spin-up: 3 intensity levels x 4 looping frames (frames 0-3 = level 1, 4-7 = level 2, 8-11 = level 3). Anchor = the sail hub (Windmill idle art: (9, 19) in its 64x64 frame)."
 		}
 	}
 }

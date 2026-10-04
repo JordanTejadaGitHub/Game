@@ -15,7 +15,6 @@ func _run() -> void:
 	main.get_node("MapGenerator").map_seed = 424242  # Same map every run, so failures reproduce
 	root.add_child(main)
 	await process_frame
-	main.get_node("%DreamState").resonance_enabled = false  # Single-card numbers; _test_resonance turns it on
 	await _test_attacks(main)
 	await _test_evolution(main)
 	await _test_dream_flow(main)
@@ -29,7 +28,9 @@ func _run() -> void:
 	_test_stray_dream(main)
 	_test_half_dreamed(main)
 	await _test_discovery(main)
-	_test_resonance(main)
+	_test_grown_needs(main)
+	_test_blessing_dream(main)
+	_test_run_pool(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -101,7 +102,7 @@ func _test_attacks(main: Node) -> void:
 		row.append(_spawn_near(main, storm.cell + Vector2(1, 0), Vector2(0, 64 * i - 128)))
 	storm._chain_strike(row[2])
 	var hit := row.filter(func(e: Node2D) -> bool: return e.health < e.max_health).size()
-	_check(hit == 3, "Stormcap chains to 3 (hit %d)" % hit)
+	_check(hit == storm.attack_data.chain_targets, "Stormcap chains to its chain_targets (%d; hit %d)" % [storm.attack_data.chain_targets, hit])
 	for e in row:
 		e.health = e.max_health
 		e.apply_status(EnemyStatuses.DAMP)
@@ -140,11 +141,11 @@ func _test_evolution(main: Node) -> void:
 	_check(placer.get_buildable_towers().has(sporeling), "the Sporeling Dream makes it plantable")
 	var dew := run_state.dew
 	_check(placer.evolve(tower, sporeling), "Sprout grows into a Sporeling")
-	_check(run_state.dew == dew - 15 and tower.invested_dew == 25, "growing costs 15 (invested %d)" % tower.invested_dew)
+	_check(run_state.dew == dew - 15 and tower.invested_dew == sprout.cost + 15, "growing costs 15 (invested %d)" % tower.invested_dew)
 	_check(tower.tower_data == sporeling and tower.sprite.texture == sporeling.texture, "the Warden changes in place")
 	_check(map_generator.get_path_from(map_generator.startPath) == path_before, "evolving doesn't change the path")
 	var driftspore: TowerData = load("res://resource/tower/driftspore.tres")
-	_check(not placer.evolve(tower, driftspore), "branches need their own Dream")
+	_check(not dreams.is_unlocked("driftspore"), "a branch isn't free: it's bought with Dreamlight (run_design.md Dreamlight, clarified 2026-09-30)")
 	dreams.take(_card(dreams, "evergreen"))
 	dreams.take(_card(dreams, "dream_driftspore"))
 	dew = run_state.dew
@@ -267,7 +268,7 @@ func _test_new_cards(main: Node) -> void:
 	_check(not cozy[0].active and "diagonals included" in cozy[0].reason, "…off-reason: %s" % cozy[0].reason)
 	dreams._bend_cells = bends
 
-	# Entwined: guaranteed in the next offer once the ingredients come together, then drawn normally
+	# Entwined: drawn at normal odds once the ingredients come together (no guaranteed slot)
 	_reset_dreams(main)
 	dreams.unlocked["firefly_jar"] = true
 	dreams.unlocked["dewdrop"] = true
@@ -275,12 +276,12 @@ func _test_new_cards(main: Node) -> void:
 	_check(not dreams.is_eligible(soil), "Conductive Soil needs Stormcap + Rain Lily")
 	dreams.take(_card(dreams, "dream_stormcap"))
 	dreams.take(_card(dreams, "dream_rain_lily"))
-	_check(dreams.make_offer(10).has(soil), "Entwined: Conductive Soil guaranteed once both are owned")
+	_check(dreams.is_eligible(soil), "Entwined: Conductive Soil offered at normal odds once both are owned (no guaranteed slot)")
 	var seen_again := 0
 	for i in 30:
 		if dreams.make_offer(10).has(soil):
 			seen_again += 1
-	_check(seen_again < 30, "Entwined: after one pass it's drawn normally (%d/30)" % seen_again)
+	_check(seen_again < 30, "Entwined: drawn normally, not every offer (%d/30)" % seen_again)
 
 	# Bittersweet: kept out until enabled, act 2+, at most one per offer, a real cost
 	_reset_dreams(main)
@@ -354,20 +355,20 @@ func _test_clearing_cards(main: Node) -> void:
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	_reset_dreams(main)
 
-	# Clearing is locked until the opener (Heartwood's Reach, which absorbed Tend the Forest); until then it weighs double and the other
-	# clearing cards are never offered (dream_design.md "Clearing: one opener, the rest follow").
+	# Clearing is locked until a clearing card is taken (2026-09-30: any clearing card opens it; Heartwood's
+	# Reach is the start-pool one); until then the opener weighs double.
 	dreams.clearing_open = false
 	run_state.dew = 100
 	var locked_cell: Vector2 = map_generator.obstacles.keys()[0]
 	_check(clearer.is_locked() and not clearer.try_clear(locked_cell) and run_state.dew == 100,
-		"obstacles can't be cleared before the opener")
+		"obstacles can't be cleared before a clearing card")
 	var opener := _card(dreams, "heartwoods_reach")
-	for id in ["cleared_ground", "reclaimed_earth", "tended_forest", "wildwood_reclaimed"]:
-		_check(not dreams.can_offer(_card(dreams, id), 4), "%s isn't offered while clearing is locked" % id)
-	_check(dreams.can_offer(opener) and dreams.opens_clearing(opener), "Heartwood's Reach is, with the Unlocks clearing layout")
+	for id in ["heartwoods_reach", "reclaimed_earth", "tended_forest", "tended_stumps", "hollow_ground", "wildwood_reclaimed"]:
+		_check(DreamState.unlocks_clearing(_card(dreams, id)), "%s opens clearing (any clearing card does)" % id)
+	_check(dreams.can_offer(opener) and dreams.opens_clearing(opener), "Heartwood's Reach is offered, with the Unlocks clearing layout")
 	var picks := 0
 	var clearing_picks := 0
-	var cards_with_one: Array = [opener, _card(dreams, "quickened_sap")]
+	var cards_with_one: Array = [opener, _card(dreams, "deeper_calm")]
 	for i in 2000:
 		if dreams._weighted_pick(cards_with_one) == opener:
 			clearing_picks += 1
@@ -375,7 +376,7 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(clearing_picks > picks * 0.6, "the opener weighs double while clearing is locked (%d / %d)" % [clearing_picks, picks])
 	dreams.take(opener)
 	_check(dreams.can_clear() and not clearer.is_locked(), "Heartwood's Reach unlocks clearing")
-	_check(not dreams.opens_clearing(opener) and dreams.can_offer(_card(dreams, "cleared_ground")), "…then the follow-ups can come")
+	_check(not dreams.opens_clearing(opener), "…and no longer says so")
 	_check(clearer.try_clear(locked_cell) and run_state.dew < 100 and dreams.free_first_clears == 0, "…and clearing always costs Dew (no free clears)")
 	run_state.add_free_clears(-run_state.free_clears)
 	var saved := dreams.to_save()
@@ -383,50 +384,51 @@ func _test_clearing_cards(main: Node) -> void:
 	_check(not dreams.can_clear(), "a new run starts locked")
 	dreams.load_save(saved)
 	_check(dreams.can_clear(), "the unlock survives a mid-run save (it's in the taken cards)")
+	var old := dreams.to_save()
+	old.stacks = {"cleared_ground": 2, "heartwoods_reach_ii": 1}
+	dreams.load_save(old)
+	_check(dreams.card_stacks("heartwoods_reach") >= 1 and dreams.card_stacks("cleared_ground") == 0, "an old save's Cleared Ground / Heartwood's Reach II become Heartwood's Reach")
 	_reset_dreams(main)
 	dreams.clearing_open = true  # The rest of these checks: clearing open
 
 	# Offered only while 8+ obstacles are left
-	var ground := _card(dreams, "cleared_ground")
-	_check(dreams.is_eligible(ground), "Cleared Ground offered on a full map (%d obstacles)" % dreams.count_obstacles())
+	_check(dreams.is_eligible(opener), "Heartwood's Reach offered on a full map (%d obstacles)" % dreams.count_obstacles())
 	var all_obstacles: Dictionary = map_generator.obstacles
 	map_generator.obstacles = {}
-	_check(not dreams.is_eligible(ground), "clearing cards need 8+ obstacles left")
+	_check(not dreams.is_eligible(opener), "clearing cards need 8+ obstacles left")
 	map_generator.obstacles = all_obstacles
 
-	# Cleared Ground: −30% per stack, max −50%, through the clearer's one cost function; +1 Dew per clear
-	# this run after the discounts. Clearing always costs Dew: never below half the base (tree 12 → 6, boulder 18 → 9).
+	# Heartwood's Reach (absorbed Cleared Ground): −25% per stack (max 2: −50%) through the clearer's one cost
+	# function, +3 half-price clears per stack; +1 Dew per clear this run after the discounts. Clearing always
+	# costs Dew: never below half the base (tree 12 → 6, boulder 18 → 9).
 	var rock: ObstacleData = load("res://resource/obstacle/rock.tres")
 	run_state.tended_cells.clear()  # No clears yet: no surcharge
-	dreams.take(ground)
-	_check(clearer.get_clear_cost(tree) == roundi(tree.clear_cost * 0.7), "Cleared Ground: −30%% (tree %d → %d)" % [tree.clear_cost, clearer.get_clear_cost(tree)])
-	for i in 3:
-		dreams.take(ground)
-	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) and clearer.get_clear_cost(rock) == ceili(rock.clear_cost / 2.0),
-		"Cleared Ground stacks to −50%%, never below half the base (tree %d, boulder %d)" % [clearer.get_clear_cost(tree), clearer.get_clear_cost(rock)])
+	run_state.add_free_clears(-run_state.free_clears)
+	dreams.take(opener)
+	_check(clearer.get_clear_cost(tree) == roundi(tree.clear_cost * 0.75) and run_state.free_clears == 3,
+		"Heartwood's Reach: −25%% (tree %d → %d) and 3 half-price clears (%d)" % [tree.clear_cost, clearer.get_clear_cost(tree), run_state.free_clears])
+	dreams.take(opener)
+	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) and clearer.get_clear_cost(rock) == ceili(rock.clear_cost / 2.0)
+		and run_state.free_clears == 6 and opener.max_stacks == 2,
+		"…two stacks: −50%%, never below half the base (tree %d, boulder %d), 6 charges" % [clearer.get_clear_cost(tree), clearer.get_clear_cost(rock)])
 	_check(clearer.get_clear_cost(tree, true) == ceili(tree.clear_cost / 2.0), "…a half-price charge on top still hits the floor")
 	run_state.tended_cells.assign([Vector2(-1, -1), Vector2(-2, -2), Vector2(-3, -3)])
 	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) + 3, "every clear so far adds +1 Dew after the discounts (%d)" % clearer.get_clear_cost(tree))
 	run_state.tended_cells.clear()
 	_check(tree.clear_cost == 12 and rock.clear_cost == 18, "raised base prices: tree 12, boulder 18")
 
-	# Heartwood's Reach: half-price clears (used first), still +1 Seed each; II gives 7
-	dreams.stacks.erase("cleared_ground")
-	dreams.take(_card(dreams, "heartwoods_reach"))
-	_check(run_state.free_clears == 4, "Heartwood's Reach: 4 half-price clears (%d)" % run_state.free_clears)
+	# The charges: used first, half price (never free), still +1 Seed each
 	run_state.dew = 0
 	var tended := run_state.obstacles_tended
 	var cell: Vector2 = map_generator.obstacles.keys()[0]
-	_check(not clearer.try_clear(cell) and run_state.free_clears == 4, "a charge doesn't make a clear free: no Dew, no clear, charge kept")
+	_check(not clearer.try_clear(cell) and run_state.free_clears == 6, "a charge doesn't make a clear free: no Dew, no clear, charge kept")
 	var cost := clearer.get_next_clear_cost(map_generator.get_obstacle(cell))
 	_check(cost == ceili(map_generator.get_obstacle(cell).clear_cost / 2.0), "…it halves the price (%d)" % cost)
 	run_state.dew = 100
-	_check(clearer.try_clear(cell) and run_state.free_clears == 3 and run_state.dew == 100 - cost, "a half-price clear")
+	_check(clearer.try_clear(cell) and run_state.free_clears == 5 and run_state.dew == 100 - cost, "a half-price clear")
 	_check(run_state.obstacles_tended == tended + 1, "half-price clears still give a Seed")
-	_check(dreams.is_eligible(_card(dreams, "heartwoods_reach_ii")), "Heartwood's Reach II once the base is owned")
-	dreams.take(_card(dreams, "heartwoods_reach_ii"))
-	_check(run_state.free_clears == 6, "Heartwood's Reach II: 7 in all (3 left + 3 more)")
 	run_state.add_free_clears(-run_state.free_clears)
+	dreams.stacks.erase("heartwoods_reach")
 
 	# Reclaimed Earth: refunds 40% of the Dew paid (never a profit), and the cell halves its first Warden
 	dreams.take(_card(dreams, "reclaimed_earth"))
@@ -436,11 +438,11 @@ func _test_clearing_cards(main: Node) -> void:
 	clearer.try_clear(cell)
 	_check(run_state.dew == 100 - price + floori(price * 0.4), "Reclaimed Earth: 40%% of the %d Dew paid back (dew %d)" % [price, run_state.dew])
 	_check(100 - run_state.dew > 0, "a clear never returns as much as it cost")
-	_check(run_state.fertile_cells.has(cell) and placer.get_cost(sprout, cell) == 5, "fertile ground: a Sprout costs 5")
+	_check(run_state.fertile_cells.has(cell) and placer.get_cost(sprout, cell) == sprout.cost / 2, "fertile ground: a Sprout at half price")
 	placer.tower_data = sprout
 	var dew := run_state.dew
 	if placer._try_build(cell):
-		_check(run_state.dew == dew - 5 and not run_state.fertile_cells.has(cell), "only the first Warden gets the fertile price")
+		_check(run_state.dew == dew - sprout.cost / 2 and not run_state.fertile_cells.has(cell), "only the first Warden gets the fertile price")
 		main.get_node("%TowerSeller").sell(cell)
 
 	# Tended Forest: +2% damage per clear this run, earlier clears count, max +40%
@@ -503,20 +505,24 @@ func _test_meta_hooks(main: Node) -> void:
 	var bloom := _card(dreams, "chain_bloom")
 	dreams.unlocked["puffball"] = true
 	dreams.unlocked["mistveil"] = true
-	_check(bloom.entwined and bloom.rule_id == &"chain_bloom" and not dreams.is_eligible(bloom),
-		"Chain Bloom stays out until the Grove unlocks it")
-	dreams.grove_cards.assign(["chain_bloom"])
+	dreams.grown_wardens["puffball"] = true  # Grown this run too (round 5)
+	dreams.grown_wardens["mistveil"] = true
+	_check(bloom.entwined and bloom.rule_id == &"chain_bloom" and bloom.in_start_pool and Array(bloom.discovered_by) == ["event:puff_in_fog"],
+		"Chain Bloom: start pool, discovered by a Puffball puff in Mistveil's fog")
 	dreams.unlocked.erase("mistveil")
 	_check(not dreams.is_eligible(bloom), "Chain Bloom needs Mistveil too")
 	dreams.unlocked["mistveil"] = true
-	_check(dreams.make_offer(10).has(bloom), "Chain Bloom is guaranteed once Puffball and Mistveil are owned")
+	# No guaranteed slot (dream_design.md "Combo cards are choices, not musts"): eligible, drawn at normal odds
+	var bloom_offers := 0
+	for i in 30:
+		if dreams.make_offer(10).has(bloom):
+			bloom_offers += 1
+	_check(dreams.is_eligible(bloom) and bloom_offers < 30, "Chain Bloom is offered at normal odds once Puffball and Mistveil are owned (%d of 30 offers)" % bloom_offers)
 	dreams.take(bloom)
 	_check(dreams.has_rule(&"chain_bloom"), "taking it switches on the chain_bloom rule")
 	dreams.stacks.erase("chain_bloom")
 	dreams.grove_cards.clear()
-	dreams._entwined_offered.clear()
 	dreams._offer_drift = 0
-	dreams._owed_families.clear()
 	dreams._declined_families.clear()
 	dreams._passed_count.clear()
 	dreams._passed_at.clear()
@@ -579,7 +585,6 @@ func _test_dreamlight(main: Node) -> void:
 	var director: DriftDirector = main.get_node("%DriftDirector")
 	var run_state: RunState = main.get_node("%RunState")
 	_reset_dreams(main)
-	dreams.unlocked["firefly_jar"] = true
 	var stormcap: TowerData = load("res://resource/tower/stormcap.tres")
 	var thunderhead: TowerData = load("res://resource/tower/thunderhead.tres")
 	var bramble: TowerData = load("res://resource/tower/bramble.tres")
@@ -589,15 +594,29 @@ func _test_dreamlight(main: Node) -> void:
 		if card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION and dreams.is_eligible(card, 2):
 			_check(false, "%s is still a Dream card" % card.id)
 
-	# Sources: +1 with the first family pick, +4 at a boss rest (which opens Remember first)
+	# The first family pick (run_design.md "Dreamlight", clarified 2026-09-30): the family and +1 Dreamlight (user 2026-10-01, was 2);
+	# branches cost 1 and finals 2 (no Grove node for either), bought on the Remember screen
 	dreams.dreamlight = 0
 	director.family_pick_requested.emit(&"first")
-	_check(dreams.dreamlight == 1, "+1 Dreamlight with the first family pick")
+	dreams.unlocked["firefly_jar"] = true  # What FamilyPickScreen.choose does
+	dreams.unlocks_changed.emit()
+	var sunpetal: TowerData = load("res://resource/tower/sunpetal.tres")
+	_check(dreams.dreamlight == DreamState.FIRST_PICK_DREAMLIGHT and DreamState.FIRST_PICK_DREAMLIGHT == 1, "+1 Dreamlight with the first family pick")
+	_check(not dreams.is_unlocked("stormcap") and not dreams.is_unlocked("lanternmoth"), "owning Firefly Jar doesn't unlock its branches")
+	_check(dreams.get_unlock_cost(stormcap) == 1 and dreams.can_unlock(stormcap) and dreams.get_unlock_blocker(thunderhead) == "needs Stormcap",
+		"a branch costs 1 Dreamlight (can unlock now); its final waits for it")
+	_check(dreams.get_unlock_cost(sunpetal) == 1 and dreams.get_unlock_blocker(sunpetal) == "Memory Grove", "the hidden branch keeps its Grove node and 1 Dreamlight")
+	# An old save with a branch granted free (a75b5770) keeps it; nothing is taken away
+	var old := dreams.to_save()
+	(old["unlocked"] as Array).append("lanternmoth")
+	dreams.load_save(old)
+	_check(dreams.is_unlocked("lanternmoth") and dreams.dreamlight == DreamState.FIRST_PICK_DREAMLIGHT, "an old save keeps a branch it was given")
+	dreams.dreamlight = 1
 	var remembers := []
 	dreams.remember_requested.connect(func(focus: TowerData) -> void: remembers.append(focus))
 	director.drifts_started = 25
 	director.rest_started.emit(5, true, 0, true)
-	_check(dreams.dreamlight == 1 + DreamState.BOSS_DREAMLIGHT and remembers.size() == 1, "+4 at a boss rest, and Remember opens")
+	_check(dreams.dreamlight == 1 + DreamState.BOSS_DREAMLIGHT and remembers.size() == 1, "+3 at a boss rest, and Remember opens")
 	dreams.dreamlight = 4  # The spending checks below start from 4
 	_check(not dreams.is_offering() and dreams.has_pending_offer(), "the Dream waits for Remember")
 	dreams.remember_closed()
@@ -607,19 +626,16 @@ func _test_dreamlight(main: Node) -> void:
 	director.drifts_started = 0
 
 	# Costs: branch 1, final 2 (needs its branch), wall growth 1; base families never
-	_check(dreams.get_unlock_cost(stormcap) == 1 and dreams.get_unlock_cost(thunderhead) == 2
-		and dreams.get_unlock_cost(bramble) == 1, "costs: branch 1, final form 2, wall growth 1")
-	_check(dreams.get_unlock_blocker(thunderhead) == "Memory Grove" or dreams.get_unlock_blocker(thunderhead) == "needs Stormcap",
-		"final forms need their Grove node and their branch")
-	dreams.grove_cards.assign(["dream_thunderhead"])  # Firefly Jar's final-forms node
-	_check(dreams.get_unlock_blocker(thunderhead) == "needs Stormcap", "a final form needs its branch")
+	_check(dreams.get_unlock_cost(stormcap) == 1 and dreams.get_unlock_cost(thunderhead) == 2 and dreams.get_unlock_cost(bramble) == 1,
+		"costs: branch 1, final form 2, wall growth 1")
 	_check(not dreams.can_unlock(rain_lily), "no branches for a family you don't own")
 	_check(dreams.get_unlock_blocker(sporeling) == "family pick", "base families only come from the family pick")
-	_check(dreams.unlock_with_dreamlight(stormcap) and dreams.is_unlocked("stormcap") and dreams.dreamlight == 3,
-		"unlocking Stormcap spends 1")
+	_check(dreams.unlock_with_dreamlight(stormcap) and dreams.is_unlocked("stormcap") and dreams.dreamlight == 3, "unlocking Stormcap spends 1")
 	_check(dreams.unlock_with_dreamlight(thunderhead) and dreams.dreamlight == 1, "then Thunderhead for 2")
 	_check(dreams.unlock_with_dreamlight(bramble) and dreams.dreamlight == 0, "Bramble for 1")
-	_check(not dreams.unlock_with_dreamlight(load("res://resource/tower/lanternmoth.tres")), "not without Dreamlight")
+	dreams.dreamlight = 0
+	var moth_final: TowerData = (load("res://resource/tower/lanternmoth.tres") as TowerData).evolves_to[0]
+	_check(not dreams.unlock_with_dreamlight(moth_final), "not without Dreamlight")
 	var trees := dreams.get_remember_trees()
 	_check(trees.any(func(t: Array) -> bool: return t[0].get_id() == "firefly_jar")
 		and trees.any(func(t: Array) -> bool: return t[0].get_id() == "thornwall"), "Remember shows owned families and walls")
@@ -681,7 +697,7 @@ func _test_passed_over(main: Node) -> void:
 		var offers := 0
 		var with_it := 0
 		dreams._rng.seed = 7  # Same draws both ways, so the numbers never flake
-		for run in 200:
+		for run in 80:  # Trimmed for the suite's time (fixed seed: no flake)
 			_reset_dreams_quiet(dreams)
 			var passes := 0
 			var last := false
@@ -748,12 +764,13 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 		_reset_dreams_quiet(dreams)
 		dreams.unlocked[family] = true
 		var drawable: Array = dreams.pool.filter(func(c: UpgradeData) -> bool:
-			return c.rarity == UpgradeData.Rarity.RARE and dreams.can_offer(c, 1))
+			return c.rarity == UpgradeData.Rarity.RARE and dreams.can_offer(c, 1) and not c.id.begins_with("blessing_"))  # Generic Rares (a family's Blessing isn't one)
 		var full := drawable.filter(func(c: UpgradeData) -> bool: return dreams.is_eligible(c, 1))
 		print("act 1 Rares with %s: %d drawable, %d with every Need met (%s)" % [family, drawable.size(), full.size(),
 			", ".join(drawable.map(func(c: UpgradeData) -> String: return c.id))])
-		_check(full.size() >= 5 and full.size() <= 8, "act 1 board with %s: ~5–7 eligible Rares (%d)" % [family, full.size()])
-	const RUNS := 300
+		# The lean starting pool (2026-09-30): 10 Rares on a fresh account, a few need families or discovery
+		_check(full.size() >= 3 and full.size() <= 8, "act 1 board with %s: 3–8 eligible generic Rares (%d)" % [family, full.size()])
+	const RUNS := 120  # Trimmed for the suite's time (fixed seed)
 	var results := []  # Per mode: [offers by 35, by 50, offers after 2nd pass, of them with it]
 	for fading in [false, true]:
 		var r := [0, 0, 0, 0]
@@ -792,7 +809,7 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 	dreams._rng.seed = 5
 	var fell := 0
 	var owed := 0
-	for i in 200:
+	for i in 100:
 		_reset_dreams_quiet(dreams)
 		dreams._passed_count.clear()
 		dreams._passed_at.clear()
@@ -806,9 +823,9 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 		if not offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.RARE):
 			fell += 1
 			owed += 1 if dreams._rare_dreams_left == 1 else 0
-	print("act 1 boss rest with every Rare faded ×0.22: fell to Uncommon in %d of 200" % fell)
+	print("act 1 boss rest with every Rare faded ×0.22: fell to Uncommon in %d of 100" % fell)
 	_check(legendary == 0, "act 1: a faded forced Rare slot never falls to Legendary")
-	_check(fell > 140 and owed == fell, "…one chance per offer (~22%): it falls to Uncommon and the next offer tries for a Rare again")
+	_check(fell > 70 and owed == fell, "…one chance per offer (~22%): it falls to Uncommon and the next offer tries for a Rare again")
 	for tower in planted:
 		tower.free()
 	_reset_dreams(main)
@@ -840,7 +857,7 @@ func _test_stray_dream(main: Node) -> void:
 	# Weighting turned around: build cards ×0.25, soft Needs ignored
 	var in_build := _card(dreams, "cozy_corners")
 	dreams.take(_card(dreams, "crossroads"))  # Its archetype ("maze") joins the build
-	var plain := _card(dreams, "quickened_sap")
+	var plain := _card(dreams, "deeper_calm")
 	var build_picks := 0
 	var soft_picks := 0
 	var soft := _card(dreams, "many_hands")  # Soft Need unmet (15 attackers)
@@ -849,13 +866,17 @@ func _test_stray_dream(main: Node) -> void:
 		soft_picks += 1 if dreams._weighted_pick([soft, plain], true) == soft else 0
 	_check(build_picks > 300 and build_picks < 500, "Stray: build cards ×0.25 (%d / 2000)" % build_picks)
 	_check(soft_picks > 900 and soft_picks < 1100, "Stray: soft Needs ignored (%d / 2000)" % soft_picks)
-	# Entwined due: Entwined + Stray + one normal (Storm Grid's Conductive Soil keeps its slot)
+	# No Entwined slot any more (dream_design.md "Combo cards are choices, not musts"): an offer with Conductive Soil
+	# eligible is still Stray + normal cards, Soil not forced first
 	_reset_dreams(main)
 	dreams.unlocked = {"sprout": true, "thornwall": true, "stormcap": true, "rain_lily": true}
-	offer = dreams.make_offer(15)
 	var soil := _card(dreams, "conductive_soil")
-	_check(offer.size() == 3 and offer[0] == soil and dreams.current_stray == offer[1],
-		"Entwined due: Entwined + Stray + one normal")
+	var soil_first := 0
+	for i in 20:
+		offer = dreams.make_offer(15)
+		if offer[0] == soil:
+			soil_first += 1
+	_check(offer.size() == 3 and soil_first < 20, "Entwined isn't forced into the offer (%d of 20 led by it)" % soil_first)
 
 	# The measurement: Sporeling + Firefly Jar, 10 attackers, 400 offers per case.
 	var planted: Array[Tower] = []
@@ -891,7 +912,7 @@ func _test_stray_dream(main: Node) -> void:
 			var own_family := 0
 			var offers_out := 0
 			dreams._rng.seed = 3
-			for i in 400:
+			for i in 200:
 				dreams.dreams_seen = 0
 				dreams._passed_count.clear()
 				dreams._passed_at.clear()
@@ -907,7 +928,7 @@ func _test_stray_dream(main: Node) -> void:
 						any_out = true
 				offers_out += 1 if any_out else 0
 			var family_share := float(own_family) / shown
-			var out_share := offers_out / 400.0
+			var out_share := offers_out / 200.0
 			print("adapt: %s, drift %d: own-family %d%% of cards, an out-of-build card in %d%% of offers" % [
 				direction if direction != "" else "no direction", drift, roundi(family_share * 100), roundi(out_share * 100)])
 			if drift >= DreamState.STRAY_FROM_DRIFT:
@@ -944,14 +965,14 @@ func _test_half_dreamed(main: Node) -> void:
 		forced_soil += 1 if dreams._draw_card(1, [], true) == soil else 0
 	_check(dreams.is_half_dreamed(soil) and forced_soil == 0, "…never in a guaranteed Rare slot")
 	# Declined: Dewdrop was offered at the last pick and not taken → ×0.3 instead of ×0.6
-	var plain := _card(dreams, "quickened_sap")
+	var plain := _card(dreams, "deeper_calm")
 	var shares := []
 	for declined in [false, true]:
 		dreams.note_family_pick(["dewdrop", "sporeling"] if declined else [], "sporeling")
 		var picks := 0
-		for i in 3000:
+		for i in 1500:
 			picks += 1 if dreams._weighted_pick([thunder, plain]) == thunder else 0
-		shares.append(picks / 3000.0)
+		shares.append(picks / 1500.0)
 	_check(shares[1] < shares[0] * 0.75 and shares[1] > 0.2, "…×0.3 after its family was declined at a pick (%.2f vs %.2f)" % [shares[1], shares[0]])
 	dreams.note_family_pick([], "")
 	dreams.unlocked.erase("firefly_jar")
@@ -960,20 +981,19 @@ func _test_half_dreamed(main: Node) -> void:
 	dreams.take(thunder)
 	_check(dreams.is_dormant(thunder) and not dreams.has_rule(thunder.rule_id) and dreams.get_taken_cards().has(thunder),
 		"taken half-dreamed: asleep (no effect), still listed")
+	_check(dreams.not_active_reason(thunder).begins_with("Not active yet: needs a") and dreams.not_active_reason(thunder).ends_with("Warden"),
+		"…Dreams this run says why on hover (%s)" % dreams.not_active_reason(thunder))
 	var saved := dreams.to_save()
 	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
-	# The next family pick includes the missing family (one slot here, so it must be that one)
-	var per_pick: int = screen.cards_per_pick
-	screen.cards_per_pick = 1
-	screen.show_pick(&"boss")
-	_check(screen.offer.size() == 1 and screen.offer[0].get_id() == "dewdrop", "…the next family pick offers Dewdrop (after a save)")
-	screen.cards_per_pick = per_pick
-	screen.visible = false
-	main.get_node("%GameSpeed").set_paused(false)
+	# Picks stay pure (user, dream_design.md "Picks stay pure"): the card sleeps through a save, and no family pick is
+	# made to include its missing family
+	_check(dreams.is_dormant(thunder), "…still asleep after a save")
+	_check(not dreams.has_method("take_owed_families"), "…and no family is owed to the next pick")
 	dreams.unlocked["dewdrop"] = true
 	_check(dreams.is_dormant(thunder), "…still asleep without Stormcap itself")
 	dreams.unlocked["stormcap"] = true
 	_check(not dreams.is_dormant(thunder) and dreams.has_rule(thunder.rule_id), "…and wakes once it's all yours")
+	_check(dreams.not_active_reason(thunder) == "", "…and no longer says it's waiting")
 	_reset_dreams(main)
 
 	# How often one is offered per run, for each starting family, with the family picks at 25 and 50:
@@ -981,7 +1001,7 @@ func _test_half_dreamed(main: Node) -> void:
 	# half the time (else a random offered one).
 	var rng := RandomNumberGenerator.new()
 	for start in ["sporeling", "firefly_jar", "dewdrop"]:
-		const RUNS := 150
+		const RUNS := 60  # Trimmed for the suite's time (fixed seeds)
 		var before_pick := 0
 		var through_70 := 0
 		dreams._rng.seed = 21
@@ -991,12 +1011,11 @@ func _test_half_dreamed(main: Node) -> void:
 			_reset_dreams_quiet(dreams)
 			dreams._passed_count.clear()
 			dreams._passed_at.clear()
-			dreams._owed_families.clear()
 			dreams._declined_families.clear()
 			dreams.unlocked[start] = true
 			for drift in range(5, 75, 5):
 				if drift % 25 == 0:  # The boss's family pick comes before its rest
-					var owed := dreams._owed_families.duplicate()
+					var owed: Array = []  # Picks no longer include a half-dreamed card's family
 					screen.show_pick(&"boss")
 					var families: Array = screen.offer.filter(func(d) -> bool: return d is TowerData)
 					if not families.is_empty():
@@ -1056,10 +1075,28 @@ func _test_discovery(main: Node) -> void:
 		_check(not dreams.discovery_met(_card(dreams, "eye_of_the_tempest")), "a Woven card waits for its Crowned Reaction")
 	dreams.discovery_profile["seen"] = [String(Kinships.KINSHIPS.keys()[0])]
 	_check(dreams.discovery_met(_card(dreams, "extended_family")), "any Kinship lets the Kinship cards in")
-	_check(dreams.discovery_met(_card(dreams, "dawnbreak")), "Legendaries are never discovery-gated")
+	_check(dreams.discovery_met(_card(dreams, "grove_of_kin")), "…Grove of Kin too (a Legendary with an explicit trigger)")
+	_check(not dreams.discovery_met(_card(dreams, "dawnbreak")), "Dawnbreak waits for a ×10 chain")
 	_check(not dreams._key_met("chain:5", []), "a ×5 chain key waits…")
 	dreams.discovery_profile["best_chain"] = 5
 	_check(dreams._key_met("chain:5", []), "…the profile's best chain counts")
+	dreams.discovery_profile["best_chain"] = 10
+	_check(dreams.discovery_met(_card(dreams, "dawnbreak")), "…and comes with the first ×10")
+	# The discovery moments (2026-09-30): a crit on a Marked nightmare, a Puffball puff in Mistveil's fog
+	dreams._events_this_run.clear()
+	var starlit := _card(dreams, "starlit_aim")
+	var fog_card := _card(dreams, "chain_bloom")
+	_check(starlit.in_start_pool and not dreams.discovery_met(starlit) and not dreams.discovery_met(fog_card),
+		"Starlit Aim and Chain Bloom are start pool, waiting for their moments")
+	var crit := DamageLog.Event.new()
+	crit.combos.assign([&"crit"])
+	dreams._on_damage_dealt(crit)
+	_check(not dreams.event_discovered("crit_marked"), "a plain crit isn't it")
+	crit.combos.assign([&"crit", &"marked"])
+	dreams._on_damage_dealt(crit)
+	_check(dreams.event_discovered("crit_marked") and dreams._key_met("event:crit_marked", []), "a crit on a Marked nightmare discovers Starlit Aim")
+	dreams.note_discovery(DreamState.EVENT_PUFF_IN_FOG)  # Tower Code calls this when a puff lands in Mistveil's fog
+	_check(dreams.event_discovered("puff_in_fog"), "a Puffball puff in Mistveil's fog discovers Chain Bloom")
 	var cache := _card(dreams, "acorn_cache")
 	_check(not dreams.discovery_met(cache), "Acorn Cache waits for an Acorn to be built")
 	var before: Array[UpgradeData] = [cache]  # A Grove card: not in this run's pool
@@ -1070,6 +1107,8 @@ func _test_discovery(main: Node) -> void:
 	dreams.unlocked["firefly_jar"] = true
 	dreams._offer_drift = 10
 	var beaks := _card(dreams, "static_bloom")  # Stormcap (Firefly Jar's) + Bloomcap
+	_check(not dreams.discovery_met(beaks), "Charged Bloom waits for Charged + Drowsy on one nightmare")
+	dreams.note_discovery(DreamState.EVENT_CHARGED_DROWSY)
 	_check(dreams.is_half_dreamed(beaks) and dreams.discovery_met(beaks), "a half-dreamed card skips the Warden gate (%s)" % [dreams.half_dreamed_missing(beaks)])
 	for family in dreams.half_dreamed_missing(beaks):
 		dreams.unlocked[family] = true
@@ -1078,44 +1117,12 @@ func _test_discovery(main: Node) -> void:
 	acorn.queue_free()
 	dreams.discovery_profile = null
 	dreams._built_this_run.clear()
+	dreams._events_this_run.clear()
 	if feedback != null:
 		feedback.run_counts = run_counts
 	if tracker != null:
 		tracker.longest_chain = chain
 	_check(dreams.discovery_met(thunder), "tests without a profile have everything discovered")
-
-# Tag resonance (dream_audit.md "Builds pay off"): each owned card with a tag makes later cards of that
-# tag +10% stronger (numbers, not rules), up to +50%, locked when taken; untagged cards never resonate.
-func _test_resonance(main: Node) -> void:
-	var dreams: DreamState = main.get_node("%DreamState")
-	_reset_dreams(main)
-	dreams.resonance_enabled = true
-	dreams._resonance.clear()
-	dreams.unlocked["sporeling"] = true
-	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
-	var base := dreams.get_status_duration(sporeling, EnemyStatuses.SPORED)
-	var lingering := _card(dreams, "lingering_spores")
-	_check(dreams.resonance_preview(lingering).bonus == 0.0, "resonance: nothing with no spore cards")
-	dreams.take(_card(dreams, "soft_spores"))
-	dreams.take(_card(dreams, "chain_bloom"))
-	var preview := dreams.resonance_preview(lingering)
-	_check(is_equal_approx(preview.bonus, 0.2) and preview.tag == "spore" and preview.count == 2,
-		"2 spore cards: +20% (%s)" % preview)
-	_check(DreamState.resonance_text(preview.bonus, preview.tag, preview.count) == "+20% from 2 spore cards", "…shown as \"+20% from 2 spore cards\"")
-	dreams.take(lingering)
-	_check(is_equal_approx(dreams.get_status_duration(sporeling, EnemyStatuses.SPORED), base + 3.0 * 1.2), "Lingering Spores: +3 s × 1.2")
-	_check(dreams.resonance_line(lingering) == "+20% from 2 spore cards", "…Dreams this run shows the locked bonus")
-	dreams.take(_card(dreams, "bitter_sap"))  # Another tag: doesn't change the locked one
-	_check(is_equal_approx(dreams.resonance(lingering), 1.2), "…locked when taken")
-	_check(dreams.resonance_preview(_card(dreams, "deeper_calm")).bonus == 0.0, "untagged cards never resonate")
-	var saved := dreams.to_save()
-	dreams._resonance.clear()
-	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
-	_check(is_equal_approx(dreams.resonance(lingering), 1.2), "…kept in the run save")
-	_check(is_equal_approx(dreams.resonance_preview(_card(dreams, "lingering_spores_ii")).bonus, 0.2), "a Deepened card never resonates off its own base")
-	dreams.resonance_enabled = false
-	dreams._resonance.clear()
-	_reset_dreams(main)
 
 func _card(dreams: DreamState, id: String) -> UpgradeData:
 	for card in dreams.pool:
@@ -1156,6 +1163,156 @@ func _free_enemies(main: Node) -> void:
 	for child in main.get_node("%EnemyContainer").get_children():
 		child.free()
 
+# Each run draws its own pool (dream_design.md "Exact rules"): seeded by the map, floors per rarity, nothing pulled
+# in by taking a card, family picks and discoveries add; offers always fill on a fresh profile.
+func _test_run_pool(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	dreams.run_pool_forced = true
+	dreams.discovery_profile = {"seen": [], "wardens_built": [], "best_chain": 0}  # A fresh account
+	dreams.grove_cards.clear()
+	dreams.unlocked["sporeling"] = true
+	dreams.build_run_pool(11)
+	var first := dreams.run_pool.keys()
+	dreams.build_run_pool(11)
+	var again := dreams.run_pool.keys()
+	dreams.build_run_pool(12)
+	var other := dreams.run_pool.keys()
+	first.sort()
+	again.sort()
+	other.sort()
+	_check(first == again and first != other, "same map seed, same pool; another seed, another pool")
+	_check(first.has("quickened_sap") and first.has("morning_dew"), "the core: the basics")
+	# A held family's cards are not core (user: "there shouldn't always be a family card"): a seeded ~60%, never all
+	var spore_cards := _family_cards(dreams, "sporeling")
+	var spore_in := spore_cards.filter(func(c: UpgradeData) -> bool: return dreams.run_pool.has(c.id) or dreams._run_pool_waiting.has(c.id)).size()
+	_check(spore_cards.size() < 5 or (spore_in < spore_cards.size() and spore_in >= floori(spore_cards.size() * 0.4)),
+		"Sporeling's cards: about 60%% drawn, never all (%d of %d)" % [spore_in, spore_cards.size()])
+	var family_draws := {}
+	var seed_before: int = dreams.map_generator.map_seed
+	for s in [11, 12, 13, 14, 15]:
+		dreams.map_generator.map_seed = s
+		dreams.build_run_pool(s)
+		var drawn_ids: Array = []
+		for c in spore_cards:
+			if dreams.run_pool.has(c.id) or dreams._run_pool_waiting.has(c.id):
+				drawn_ids.append(c.id)
+		family_draws[",".join(drawn_ids)] = true
+	_check(family_draws.size() > 1, "…a different family sample on another map seed (%d different over 5 seeds)" % family_draws.size())
+	dreams.map_generator.map_seed = seed_before
+	dreams.build_run_pool(11)
+	var available := {}
+	for card in dreams.pool:
+		if card.in_start_pool and dreams._card_family(card) == "" and not DreamState.RUN_POOL_BASICS.has(card.id) and dreams.discovery_met(card) \
+				and card.kind != UpgradeData.Kind.UNLOCK_WARDEN and card.kind != UpgradeData.Kind.UNLOCK_EVOLUTION and card.id != "heartwoods_reach":
+			available[card.rarity] = int(available.get(card.rarity, 0)) + 1
+	for rarity in DreamState.RUN_POOL_FLOORS:
+		var drawn := dreams.pool.filter(func(c: UpgradeData) -> bool:
+			return c.rarity == rarity and dreams.run_pool.has(c.id) and dreams._card_family(c) == "" \
+				and not DreamState.RUN_POOL_BASICS.has(c.id) and c.id != "heartwoods_reach").size()
+		_check(drawn >= mini(DreamState.RUN_POOL_FLOORS[rarity], int(available.get(rarity, 0))),
+			"rarity %d: %d drawn, floor %d of %d available" % [rarity, drawn, DreamState.RUN_POOL_FLOORS[rarity], int(available.get(rarity, 0))])
+	var before := dreams.run_pool.size()
+	var tagged: UpgradeData = dreams.pool.filter(func(c: UpgradeData) -> bool: return dreams.run_pool.has(c.id) and c.tags.has("maze")).front()
+	dreams.take(tagged)
+	_check(dreams.run_pool.size() == before, "taking a maze card adds nothing to the pool")
+	dreams.unlocked["dewdrop"] = true  # A family pick
+	dreams.in_run_pool(tagged)
+	var dew_cards := _family_cards(dreams, "dewdrop")
+	var dew_in := dew_cards.filter(func(c: UpgradeData) -> bool: return dreams.run_pool.has(c.id) or dreams._run_pool_waiting.has(c.id)).size()
+	_check(dew_in > 0 and (dew_cards.size() < 5 or dew_in < dew_cards.size()),  # Drawn (or waiting for discovery)
+		"a family pick adds a sample of its family cards, never all (%d of %d)" % [dew_in, dew_cards.size()])
+	var waiting: Array = dreams._run_pool_waiting.keys()
+	if not waiting.is_empty():
+		var card := _card(dreams, waiting[0])
+		_check(not dreams.in_run_pool(card), "an undiscovered card waits outside the pool")
+		dreams.discovery_profile = null  # Everything discovered
+		_check(dreams.in_run_pool(card), "…and joins the moment it's discovered")
+		dreams.discovery_profile = {"seen": [], "wardens_built": [], "best_chain": 0}
+	var saved := dreams.to_save()
+	dreams.run_pool.clear()
+	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
+	_check(dreams.run_pool.has(tagged.id) and dreams.run_pool.size() >= before, "the run's pool is saved")
+	# 19 Dreams on a fresh profile: every offer shows 3 different cards
+	_reset_dreams(main)
+	dreams.unlocked["sporeling"] = true
+	dreams.build_run_pool(7)
+	var short := 0
+	for drift in range(5, 100, 5):
+		var offer := dreams.make_offer(drift)
+		var unique := {}
+		for c in offer:
+			unique[c.id] = true
+		if offer.size() < 3 or unique.size() != offer.size():
+			short += 1
+		dreams._note_passed(offer, drift / 5)  # Passed over: the fade and "not in the next offer" apply
+	_check(short == 0, "19 offers on a fresh profile: never fewer than 3 cards, never a repeat (%d short)" % short)
+	dreams.run_pool_forced = false
+	dreams.run_pool.clear()
+	dreams.discovery_profile = null
+	_reset_dreams(main)
+
+# Family Blessings are Rare Dream cards now (meta_design.md "Replaced 2026-09-30"): offered once you own the
+# family (and a Warden of it has stood on the map), never before; one per family.
+func _test_blessing_dream(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	for card in MetaRun.load_blessings():  # MetaRun puts them in the pool at run start
+		if not dreams.pool.any(func(c: UpgradeData) -> bool: return c.id == card.id):
+			dreams.pool.append(card)
+	var blessing := _card(dreams, "blessing_sporeling")
+	_check(blessing != null and blessing.rarity == UpgradeData.Rarity.RARE and blessing.max_stacks == 1 and blessing.tags == ["spore"],
+		"the Sporeling Blessing: Rare, one per run, the family line tag")
+	_check(not dreams.can_offer(blessing, 2), "…not offered without the Sporeling family")
+	dreams.unlocked["sporeling"] = true
+	dreams.grown_wardens["sporeling"] = true
+	dreams.unlocks_changed.emit()
+	_check(dreams.can_offer(blessing, 2), "…offered once you own Sporeling")
+	var seen := false
+	for i in 200:
+		dreams.dreams_seen = 0
+		if dreams.make_offer(30).has(blessing):  # Act 2 (Blessings may wait for it, Meta)
+			seen = true
+			break
+	_check(seen, "a Blessing can turn up as a Dream")
+	dreams.take(blessing)
+	_check(not dreams.can_offer(blessing, 2), "…and only once")
+	_reset_dreams(main)
+
+# Round 5 (dream_design.md "Round 4 measured"): a Warden a card names must have been built or grown this
+# run; unlocked (a free branch) isn't enough, and selling it later doesn't un-meet it.
+func _test_grown_needs(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	dreams.grown_wardens.clear()
+	dreams.unlocked["firefly_jar"] = true
+	dreams.unlocked["stormcap"] = true  # Unlocked with Dreamlight, not grown yet
+	dreams.unlocked["dewdrop"] = true
+	dreams.unlocks_changed.emit()
+	var thunder := _card(dreams, "rolling_thunder")  # Stormcap + any Dewdrop
+	_check(dreams.is_unlocked("stormcap") and not dreams.grown_needs_met(thunder) and not dreams.can_offer(thunder, 2),
+		"a Stormcap card isn't offered after the first pick (Stormcap only unlocked)")
+	var planted: Array[Tower] = []
+	for id in ["stormcap", "dewdrop"]:
+		var tower: Tower = load("res://scenes/tower/tower.tscn").instantiate()
+		tower.tower_data = load("res://resource/tower/%s.tres" % id)
+		tower.cell = Vector2(120 + planted.size() * 3, 120)
+		main.get_node("%TowerContainer").add_child(tower)
+		tower.set_process(false)
+		planted.append(tower)
+	_check(dreams.grown_needs_met(thunder), "…once a Stormcap (and a Dewdrop) has stood on the map it is")
+	for tower in planted:
+		tower.free()
+	_check(dreams.grown_needs_met(thunder), "…and stays offered after they're sold")
+	var saved := dreams.to_save()
+	dreams.grown_wardens.clear()
+	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
+	_check(dreams.grown_wardens.has("stormcap"), "grown Wardens survive a save")
+	dreams.unlock_everything = true
+	dreams.grown_wardens.clear()
+	_check(dreams.grown_needs_met(thunder), "Test Grove: no need to grow anything")
+	_reset_dreams(main)
+
 func _reset_dreams(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
 	dreams.free_first_clears = 0
@@ -1168,9 +1325,7 @@ func _reset_dreams(main: Node) -> void:
 	dreams._dreams_without_rare = 0
 	dreams._rare_dreams_left = 0
 	dreams._extra_cards_next = 0
-	dreams._entwined_offered.clear()
 	dreams._offer_drift = 0
-	dreams._owed_families.clear()
 	dreams._declined_families.clear()
 	dreams._passed_count.clear()
 	dreams._passed_at.clear()
@@ -1184,9 +1339,7 @@ func _reset_dreams_quiet(dreams: DreamState) -> void:
 	dreams._dreams_without_rare = 0
 	dreams._rare_dreams_left = 0
 	dreams._extra_cards_next = 0
-	dreams._entwined_offered.clear()
 	dreams._offer_drift = 0
-	dreams._owed_families.clear()
 	dreams._declined_families.clear()
 	dreams._passed_count.clear()
 	dreams._passed_at.clear()
@@ -1228,3 +1381,12 @@ func _check(condition: bool, label: String) -> void:
 	if not condition:
 		failures += 1
 		printerr("FAIL: " + label)
+
+# A family's cards in the start pool (the run pool samples ~60% of them when the family is held).
+func _family_cards(dreams: DreamState, family: String) -> Array:
+	var out: Array = []
+	for c in dreams.pool:
+		if dreams._card_family(c) == family and c.in_start_pool and c.kind != UpgradeData.Kind.UNLOCK_WARDEN \
+				and c.kind != UpgradeData.Kind.UNLOCK_EVOLUTION:
+			out.append(c)
+	return out

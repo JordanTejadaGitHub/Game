@@ -8,18 +8,19 @@
 
 [resource]
 script = ExtResource("1_tdata")
+counter_tags = Array[StringName]([&"anti_armour", &"anti_support", &"boss_abilities"])
 display_name = "Magpie Perch"
-description = "A thief: each hit strips a buff (chips a shell twice as fast, stops a Weeper's mending for 3 s, takes an Omen's boosts), and a nightmare it robbed drops +1 Dew when dispelled."
+description = "A thief: each hit strips a buff, and a nightmare it robbed drops +1 Dew when dispelled."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
 line = "wing"
 tier = 2
 buildable_directly = false
-evolve_cost = 80
+evolve_cost = 120
 attack_kind = 7
 attack_range = 3.0
-damage = 15
+damage = 27
 attacks_per_second = 1.0
 projectile_speed = 420
 projectile_returns = true

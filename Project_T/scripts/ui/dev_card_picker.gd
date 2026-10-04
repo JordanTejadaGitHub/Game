@@ -167,10 +167,48 @@ func _make_card(card: UpgradeData) -> Button:
 	var text := _label(box, IconInfo.format(card.description) + (("\n" + IconInfo.format(card.cost_description)) if card.cost_description != "" else ""),
 		UiStyle.INK_DIM, 12)
 	text.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if CardDiagram.has_diagram(card):  # Hover: the card's living mini-scene (or its still diagram), to review it without a Dream
+		button.mouse_entered.connect(_show_preview.bind(card, button))
+		button.mouse_exited.connect(_hide_preview)
 	var note := dream_state.needs_note(card)
 	if note != "":
 		_label(box, note, UiStyle.POOR, 11)
 	return button
+
+# The placement preview beside a hovered card: CardScene where it has one (CardScene.LIVE_CARDS), else CardDiagram.
+var _scene: CardScene = null
+var _diagram: CardDiagram = null
+
+func _show_preview(card: UpgradeData, button: Control) -> void:
+	_hide_preview()
+	var panel: Control
+	if CardScene.can_show(card):
+		if _scene == null:
+			_scene = CardScene.new()
+			_scene.z_index = 20
+			add_child(_scene)
+		_scene.show_card(card)
+		panel = _scene
+	else:
+		_diagram = CardDiagram.make(card)
+		_diagram.z_index = 20
+		add_child(_diagram)
+		panel = _diagram
+	await get_tree().process_frame
+	if not is_instance_valid(panel) or not panel.visible or not is_instance_valid(button):
+		return
+	var rect := button.get_global_rect()
+	var view := get_viewport_rect().size
+	var size := panel.get_combined_minimum_size()
+	var x := rect.end.x + 8.0 if rect.end.x + 8.0 + size.x <= view.x - 8.0 else rect.position.x - size.x - 8.0
+	panel.global_position = Vector2(maxf(x, 8.0), clampf(rect.position.y, 8.0, view.y - size.y - 8.0))
+
+func _hide_preview() -> void:
+	if _diagram != null and is_instance_valid(_diagram):
+		_diagram.queue_free()
+	_diagram = null
+	if _scene != null:
+		_scene.stop()
 
 func _label(box: VBoxContainer, text: String, colour: Color, font_size: int) -> Label:
 	var label := Label.new()

@@ -19,8 +19,9 @@ data-driven enemies, **tower building** (build mode, placement validation, enemi
 **combat** (towers target the enemy closest to the goal and fire homing spore puffs; nightmares are
 *dispelled*: they crack with light and burst into motes. Code identifiers still say
 `cleansed` / `is_cleansed` / `cleanse_line` from the old cozy theme; player-facing text says dispel),
-**clearable obstacles** (random map each run: 2 short, gappy ridges of rocks/trees from alternating walls
-(3 at Blight 9), small tree groves and rock clusters, ~60 obstacles (min 10; `tests/test_map_density.gd`) so
+**clearable obstacles** (random map each run: a layout (`MapLayout`: the start on an edge, corner or side, and an
+inland Heartwood with a clear glade; environment_assets.md "Map layouts" / "Inland Heartwood"), 2–3 tapering ridges across the route,
+one feature (pond, ruin, grove, log), +1 ridge at Blight 9, small tree groves and rock clusters, ~60 obstacles (min 10; `tests/test_map_density.gd`) so
 the Wardens build most of the maze; outside build mode, hover shows
 cost + the route that would open, left-click clears. Obstacles are "Withered Tree" (Tend) and
 "Mossy Boulder" (Move); `RunState.obstacles_tended` counts clears for +1 Seed each at run end).
@@ -112,7 +113,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `resource/omen/*.tres`. At rests from drift `first_rest_drift` (10), after the Dream: 2 Omens or
   Clear Skies (`choose(null)`); the pick twists the next block (`get_multiplier`,
   `get_schedule_modifiers`, `get_spawn_modifiers` → `Enemy.modifiers`; bosses ignore them). The reward is
-  paid at the rest after that block, or on a win (Dew/Seeds × act scale; `RunState.omen_seeds`).
+  paid at the rest after that block, or on a win (Dew/Seeds × act scale; `RunState.omen_seeds`); no Omen gives
+  leaves or Dreamlight. Dew Omens multiply the drift's Dew pot (`OmenDirector.get_dew_pot_multiplier`).
   `OmenScreen` shows the offer and an active-Omen tag. `tests/test_omens.gd`.
 - UI: `WardenPanel` (click a Warden: stats, grow buttons, Sell), `DreamScreen` (pauses; 3 cards +
   "Let it pass"; Entwined vine border, Deepened / bittersweet lines). Tower bar shows only unlocked Wardens.
@@ -138,8 +140,15 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   (+1 leaf, `act_started`). `family_pick_requested(&"first"|&"boss")` fires after drift 1 and
   before a boss rest; `FamilyPickScreen` calls `family_picked()` (first pick: 3 random of every
   unlocked family, never the last run's offer again, profile `last_first_pick`). `is_build_phase()`
-  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5; acts 3–4 × 1.4 on top, bosses too (`late_acts_health_multiplier`). From drift 31 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
-  `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`. Acts 1–2 health (`get_early_multiplier`, `act1_*` / `early_*` exports): ×1.0 to drift 9 → ×1.15 at 20, held through 30 → ×1.55 at 45, held to 50 (act 1's boss exempt: stays ×1.5); acts 3–4 ×1.4; act 2 dispel Dew ×0.85 (`RunState.act_dew_multipliers` [1.0, 0.68, 0.65, 0.5]).
+  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5 (act 1's boss × 1.75, `act1_boss_health_multiplier`; acts 2–3 × 2.25, `mid_boss_health_multiplier`); acts 3–4 × 4.8 on top, bosses too (`late_acts_health_multiplier`; the Hollow Oak × 3.0, `final_boss_late_multiplier`). From drift 31 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
+  `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`. Acts 1–2 health (`get_early_multiplier`, `act1_*` / `early_*` exports): ×1.0 to drift 9 → ×1.15 at 20, held to 25 (act 1's boss exempt: its own ×1.75); act 2 ×1.6 at 26 → ×2.3 at 37 → ×3.6 at 45, held to 50 (`act2_*`); acts 3–4 ×4.8.
+- **The Dew pot** (run_design.md): each drift pays a fixed pot from `DriftDirector.dew_pot_acts` / `dew_pot_bosses`
+  (act 1 30 → 115 … bosses 220 / 270 / 320, the win 0), split at its start across its nightmares by `dew_reward`
+  (Deeply Blighted ×3, a boss drift's boss half; `pot_shares`, `Enemy.set_dew_share`, followers share their
+  leader's); added nightmares share it, a leak loses its share. `get_dew_pot_multiplier`: Dream cards (Morning Dew,
+  Call of the Wild when called early), the Omen, Rich Dew (`RunState.dew_gain_bonus`), `blight_dew_multiplier`.
+  RunState pays shares with a fraction carry; DriftPanel shows the next drift's pot, the rest report "Dew this
+  block: X of Y". It replaced the per-act `act_dew_multipliers`. `tests/test_dew_pot.gd`.
 - Drift data: `DriftData.groups: Array[DriftGroup]`; `DriftGroup.entries: Array[DriftEntry]`
   (enemy + count + `elite`; several entries mix evenly), `spacing`, `delay`. `get_schedule()` →
   `[[time, EnemyData, elite], …]`. Drifts 1–50 mirror the acts_1_2.md table (hand-edited files; mixed
@@ -168,6 +177,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `Tower.dim_multiplier` set each frame by the spawner), shrug + `min_speed_share` (Barrow King),
   `regen_*` (Mourning Mother), wither (`Tower.wither()` / `withered_left`), echoes (`Enemy.is_echo`:
   never counted as a boss). New bosses use tinted placeholder art. `tests/test_boss_pools.gd`.
+  At the Heartwood: act 1–3 bosses take a flat 8 / 10 / 12 leaves and leave; only the Hollow Oak stays and
+  drains (bfc33e75).
 - Selling: `TowerSeller` (`%TowerSeller`): outside build mode, hover a Warden, Delete (or the panel's Sell) sells for
   `Tower.invested_dew` × 100% (resting) or 50% (walking); `MapGenerator.unblock_cell`.
   It also owns selection (`selection`, `selected` = first; `selection_changed`): click, drag box
@@ -195,7 +206,10 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `scenes/main.tscn`. Project settings `game/demo` (true) and `game/wishlist_url`. The title's
   backdrop is `TitleBackdrop` (`assets/ui/title/title_background.png`, 640×360 from
   `tools/title_art_generator.gd`; whole-number scale where it fits, motes, a wash of night on the
-  left behind the menu column).
+  left behind the menu column). It animates from the generator's layers (`title_layers.json`: back,
+  Warden, nightmares, front, mist strips; they stack to exactly the flat art): the Warden and the
+  nightmares breathe in whole art pixels, the mist drifts, all still under reduced motion. Re-run the
+  generator after any art change; it rewrites every layer.
 - `HeartwoodMemory` (`scripts/meta/heartwood_memory.gd`, static, `user://heartwood.json`): banked
   Seeds, run counts, `whispers_seen`, settings (volumes, fullscreen, whispers, keybinds);
   `apply_settings()`. `SettingsPanel` edits it (title + pause menu).
@@ -208,6 +222,9 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   that frame's plant / grow / rank / clear), Wardens, top 5, combos / Reactions, Dreamlight, and per-drift rows with the
   bot's column names (drift, act, seconds, health_spawned, damage, leaks, leaves_lost, leaves_left, banked) + closest.
   `report_text` = "Copy run report" (results screen, Codex "Past runs"). Tests only via `record_in_tests` + a temp `file_path`.
+  Each record carries `build` (`BuildInfo`, `scripts/run/build_info.gd`: content hash of the game files on disk + git
+  commit + dirty files, label "Sep 30 21:14 · 3f9a2c" on the title in debug; new ids go to `user://builds.json`) and
+  `balance` (the tuning exports + base health by drift). `tests/test_build_info.gd`.
 - `RunSaver` (`%RunSaver`, `user://run.json`): autosaves each rest once no choice screen is open;
   `resume_next` (set by Continue) rebuilds the run from the save (map seed, tended cells, Wardens,
   counters, `DreamState`/`OmenDirector` `to_save`/`load_save`). `PauseMenu` (Esc): Resume,
@@ -260,7 +277,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   saves profile `reactions_seen` (real game only). `CodexPanel` (pause menu + Grove): Glossary / Combos / Families / Dreams (`DreamCodex`) / Nightmares (`NightmareCodex`: ??? until met, lifetime dispels, act groups, milestone `all_nightmares`); account knowledge on the real profile (`HeartwoodMemory.ACCOUNT_KEYS`, also under Dev Grove); lists what `CodexData.scope()` covers (starting three + Grove-planted families and forms; demo its three; dev runs all), "N more wait in the Memory Grove.", "New from the Grove" leaf (profile `codex_covered`). `tests/test_codex_scope.gd`.
 
 ## Meta (meta_design.md; full game only — `game/demo` true = nothing applied or recorded)
-- Grove = tech tree on the Heartwood: 82 `UnlockData` nodes (`resource/meta/grove/<id>.tres`, ids =
+- Grove = tech tree on the Heartwood: 91 `UnlockData` nodes (the lean Cards limb holds most build cards; the start pool is lean) (`resource/meta/grove/<id>.tres`, ids =
   `assets/meta/grove/grove_layout.json` ids; limbs `root` WARDENS = Families, DREAMS = Cards, PERKS =
   Perks). `costs` per level, `requires_all` ("id" or "id:level") / `requires_any` (+count), `icon`,
   `start` (Sporeling / Firefly Jar / Dewdrop, never bought), `<family>_ascension` (Ascended Warden card), `milestone` (grows free, refunds a
@@ -272,7 +289,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `starting_cards` (Clear Sight), `random_common_cards` (Kindling), `sprout_charges`, `free_nurtures`
   (`RunState.free_nurtures`, spent by Tower Code's nurture hook); `allows_bittersweet` (Bittersweet
   Dreams node sets `DreamState.allow_bittersweet`).
-- `HeartwoodMemory` (VERSION 5; `MIGRATED_IDS` renames v1 Grove ids, `REFUNDED_V3` / `V4` / `V5` refund removed nodes): `unlocks {id: level}`,
+- `HeartwoodMemory` (VERSION 9; `MIGRATED_IDS` renames v1 Grove ids, `REFUNDED_V3`..`V7` refund removed nodes (v7: the five combo-card nodes); no free grants: the game is pre-release): `unlocks {id: level}`,
   `node_level()` (counts start / milestone growth; use it, not `unlock_level()`, for "owned"),
   `buy()` / `buy_problem()` / `requirements_met()`, `get_unlock(id)`, `grow_milestone_nodes()`,
   `grown_share()`, loadout (`loadout`, `loadout_slots()`: 3 open + slot_4/5 + the secret 6th via `has_sixth_slot()` = milestone `full_bloom` (`check_full_bloom`, `tree_complete`) or `MetaRun.sixth_slot_dev_active()`; `get_loadout()`, `save_loadout()`),
@@ -286,8 +303,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `act_break_leaves`, `DreamState.skip_dew` / `lean_common`, `MetaRun.clear_cost_multiplier()`.
   `RunState.seed_bonus` adds a Seeds line. `RunSaver` saves `sprout_charges` / `free_nurtures`.
 - Family Blessings: `resource/meta/blessing/blessing_<family>.tres` (UpgradeData, +25% damage and
-  25% cheaper growth for that family), put in the Dream pool by MetaRun (never offered); the family
-  pick fills empty slots with them.
+  25% cheaper growth for that family): Rare Dream cards in the start pool (requires the family,
+  max_stacks 1, min_act 2, so offered from act 2). The family pick no longer fills slots with them.
 - `scenes/grove.tscn` (`grove_screen.gd`): `GroveTreeView` (the art from `assets/meta/`, layered
   sky → tree → canopy stage (by `grown_share`, crossfades) → branches → dream-fruit → waystones →
   nodes; pan / wheel / pinch zoom, tap only), node card + Plant (planting grows the branch 1→4, then
@@ -347,8 +364,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 ## Layout
 - `scenes/main.tscn` — root scene: MapGenerator (Ground / Path / EnvironmentObject TileMapLayers,
   TowerContainer, EnemyContainer (spawner)), HUD, GameCameraNode. **MapGenerator is the one y-sort root**:
-  the object layer, TowerContainer and EnemyContainer are y-sorted by cell centre (64×96 sprites put
-  their bottom 64 px on their cell and overhang the one above); Ground/Path are z −1. Ground effects
+  the object layer, TowerContainer and EnemyContainer are y-sorted by cell centre (tall sprites, Wardens 64×96 and
+  Withered Trees 96×128, put their bottom on their cell and overhang the cells above and beside); Ground/Path are z −1. Ground effects
   (vines, rubble, rings, clouds) go in Main at z −1; effects above everything keep a positive z.
 - `scripts/map/` — `map_generator.gd` orchestrates generation. Note the confusing names:
   `path.gd` defines `class_name PathGenerator` (draws path tiles), `path_generator.gd` defines
@@ -359,7 +376,11 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `get_path_if_blocked`, `block_cell`, `get_path_from`, and the `path_changed` signal.
   Obstacles: `obstacles` ({cell: `ObstacleData`}), `get_obstacle`, `get_path_if_cleared`,
   `clear_obstacle`, `obstacle_cleared` signal. `map_seed` export: 0 = random map, else reproducible.
-  Generation guarantees a route (`_carve_route_if_blocked` clears the fewest obstacles, avoiding ridges).
+  Generation guarantees a route (`_carve_route_if_blocked` clears the fewest obstacles, sparing ridges and
+  the feature) and caps it (`_trim_route_if_long`, `max_route_length`). `startPath` / `endPath` come from
+  `layout` (`MapLayout`, rolled first from the map rng): the start is on the rim, the Heartwood inland
+  (`get_glade_cells()` kept clear); never assume either is at an edge or corner. Route band held by
+  `_trim_route_if_long` / `_extend_route_if_short`. `force_layout` etc. for tests.
   `obstacle_clearer.gd` (`ObstacleClearer`) is the hover/click tool; input action `clear_obstacle` (LMB).
   Obstacle types are `resource/obstacle/*.tres` (`ObstacleData`: name, verb, cost, `source_id` +
   `tiles`, and the `cleared_source_id` mark left when the player clears one: tended stump, moved hollow).
@@ -368,7 +389,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `path.png` column = neighbour mask. The map is an island in a starry void: border cells are
   `island_edge` rim tiles (neighbour mask; no grass under them), cliffs under the bottom row, a rope
   bridge out from the start (shared sheets in `assets/environment/dream/`), and `DreamVoid`
-  (`dream_void.gd`: Parallax2D sky + stars behind the map, islets). Mist on the start, `Heartwood` (`heartwood.gd`, Sprite2D) on the end shows leaves lost (its warm light and additive
+  (`dream_void.gd`: Parallax2D sky + stars behind the map, islets). Mist on the start, `Heartwood` (`heartwood.gd`, Sprite2D) on the end shows leaves lost and mirrors the Grove (stage by `grown_share`, a glint per planted node, a dream-fruit per Memory; demo: stage 0, 3 fruit; `tests/test_heartwood_grove.gd`) (its warm light and additive
   glow dim with them). Lighting pass (art_direction.md), made by MapGenerator: `EnvironmentLighting`
   (MUL-blended radial multiply, cold at the edges, z 3; attacking Wardens glow via one additive canvas item,
   redrawn only on plant/sell/grow) and `EnvironmentAmbience` (`_draw`: edge fog + the act's particles, z 6). `tests/test_environment.gd`
@@ -382,9 +403,10 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   unlocked with Dreamlight),
   art in `assets/towers/` (generated by `tools/tower_art_generator.gd`). The HUD's `%TowerBar` has
   a button per Warden (hotkeys 1-9). Thornwall has `can_attack = false`.
-  Ranks (Nurture v2): `Tower.rank` 0-5 (VII with Deeper Rings), cost `RANK_COSTS` 25/40/60/90/135 ×
-  tier multiplier × Dreams; +10% dmg, +4% speed, +0.1 range each; `Tower.focus` (Power/Swift/Reach/
-  Deep) chosen at rank III (`needs_focus()`, `TowerPlacer.nurture(tower, focus)`). Growing a ranked Warden
+  Ranks (Nurture v3): `Tower.rank` 0-5 (VII with Deeper Rings), cost `RANK_COSTS` 25/40/60/90/135 ×
+  tier multiplier × Dreams; +10% dmg, +4% speed, +0.1 range each; every rank is a choice
+  (`Tower.rank_choices`, `focus` = the latest; Power/Swift/Reach/Deep, support Wardens Wide/Strong/
+  Kindred; `needs_focus()`, `TowerPlacer.nurture(tower, focus)`). Growing a ranked Warden
   pays the rank difference: `Tower.get_grow_cost(into)` {total, base, ranks}, used by every grow path
   (`TowerSeller.plan_grow` for groups); rank art children
   RankUnder/RankOver. `TowerSeller.plan_nurture` / `nurture_group`, R = `nurture_warden`; kept
@@ -406,8 +428,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   movement. Memory Wardens (`is_unique`): one on the map at a time. Branches and final forms are
   unlocked with Dreamlight (`DreamState.get_unlock_cost` / `unlock_with_dreamlight`; the Warden panel
   offers it); `DreamState.unlock_everything` shows all.
-- Late game: branches grow for 80 Dew, finals for 200 (damage ×1.25 / ×1.5 over v1); Nurture base
-  `RANK_COSTS` 25/40/60/90/135. **Ascended** forms (tier 4, 400 Dew, Nurture ×4, 3 Dreamlight from
+- Late game: branches grow for 120 Dew, finals for 300 (damage ×1.25 / ×1.5 over v1); Nurture base
+  `RANK_COSTS` 25/40/60/90/135. **Ascended** forms (tier 4, 600 Dew, Nurture ×4, 3 Dreamlight from
   drift 51): `resource/tower/<id>.tres` + `dream_<id>.tres`, listed in `evolves_to` of every final form
   of the family (Sporemother, Tidecaller, Stormheart, Old Mountain, World Root, Great Bell,
   Grandmother Oak, Dawnwing, The Whirlwind = id `tempest`). `AttackKind.PATROL` = `PatrolFlight` (Dawnwing / Whirlwind).
@@ -443,7 +465,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   (`EnemyStatuses.gust_time`, set by Gust), Carried Storm (`ReactionTracker.note_spot` / `spot_near`,
   `SeedBoomerang._carry_storm`, `Reactions.carry`). Woven rules 100–107 by rule id. `tests/test_crowned.gd`.
 - **Potency** (effect damage): `TowerData.potency` (1.0; Puffball 1.3, …), `Tower.get_potency()` (+ Dream
-  `get_potency_bonus`, + Deep Focus 10% per rank III–V; Deep no longer boosts status strength).
+  `get_potency_bonus`, + 18% per Deep rank choice, which also lengthens statuses).
   `Enemy.take_damage` multiplies damage whose tag is in `Reactions.EFFECT_TAGS` by the source's
   Potency × Seeping (`DreamState.get_effect_bonus`); Nightshade (`Reactions.nightshade_bonus`): effect damage
   +20% per status the nightmare carries, adding with Seeping. `PathCloud` damage is tagged "cloud" (an effect). Venom Bloom =
@@ -457,7 +479,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   strike: `note_hit` from `Tower.hit`, tag "harmony" (an effect), never a Reaction. Kindred / Whole Tree:
   `family_bonus(line)` in `Tower.get_damage`. Signals for Sound: `kin_bonded`, `kin_stage_grew`,
   `harmony_struck`, `family_whole`; `kinship_formed` for discovery. Setting `kinship_effects` (0 Full /
-  1 Subtle / 2 Off). Saved via `to_save` / `load_save` in RunSaver. Demo: 3 Kinships, no Whole Tree
+  1 Subtle / 2 Off). Saved via `to_save` / `load_save` in RunSaver. Demo: 4 Kinships (Night Chimes with Bellflower, d90b9165), no Whole Tree
   (`force_full` for tests). Kinship cards by rule id (quick_bonds, family_ties, sweet_harmony, close_kin, old_friends, rooted_bond,
   extended_family, kin_and_kindling, grove_of_kin, blood_is_thicker; rooted_bond = a Warden sold during a rest
   leaves its partner remembering the bond, and a new kin planted that rest bonds at the old age): `get_reach`, `get_stage_drifts`,
@@ -495,17 +517,18 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `tools/ui_theme_generator.gd` saves it to `assets/ui/ui_theme.tres` = project `gui/theme/custom`:
   **re-run it after changing UiStyle**. `MoonStyleBox` (fog + gold thread + diamond; `TopLine` NONE /
   GOLD / FULL, `underline`) is every PanelContainer / tooltip / popup panel; `MoonDivider` = HSeparator.
-  Type variations: `PrimaryButton` (also what toggled buttons look like), `WardenSlot`, `TitleLabel`,
+  Type variations: `PrimaryButton`, `HudButton` / `HudPrimary` (every HUD control: `UiStyle.HUD_BUTTON_H` 48 tall, small caps at `HUD_TEXT_SIZE`; one HUD scale), `WardenSlot` (the same frame, `HUD_SLOT`; the bar wraps into rows below 48 px wide), `TitleLabel`,
   `NumberLabel`, `CapsLabel`, `WhisperLabel`, `FogPatch`. In code: `UiStyle.primary(button)`,
   `title` / `display` / `number` / `caps` / `whisper(label, size)`, `card_button(button, colour)`,
   `panel_in(colour)`, `fog_patch()`, `draw_gem(canvas, centre, r, rarity)`; don't hand-build
   StyleBoxFlats for panels or cards. `tools/ui_preview.gd` (needs a window, not --headless) renders
   the HUD, Dream choice and a component sheet to PNGs.
   **UI scale** (`UiStyle.apply_ui_scale`, from `HeartwoodMemory.apply_settings`): setting `ui_scale` is a
-  share (50–100%) of the largest root `content_scale_factor` that still leaves the HUD 1280×720
-  (`UiStyle.LAYOUT_MIN`; 1.5 at 1920×1080), re-fit on window resize, 1 under headless. Only the UI
-  scales: `GameCameraNode` keeps `target_zoom` in view units and sets `camera_2d.zoom = view /
-  ui_factor()`. Top-right buttons are one row under the resources (`hud.gd` `*_SLOT`, y 150).
+  share (50–100%) of the largest scale that still leaves the HUD 1280×720: the root uses Godot's
+  `canvas_items` stretch, base size `UiStyle.LAYOUT_MIN`, aspect expand (1.5 at 1920×1080), and
+  `content_scale_factor` = the share; that mode oversamples fonts (a bare factor drew them jagged through
+  the Nearest filter). Disabled under headless. Only the UI scales: `GameCameraNode` keeps `target_zoom`
+  in view units and sets `camera_2d.zoom = view / UiStyle.ui_factor(root)`. Top-right buttons are one row under the resources (`hud.gd` `*_SLOT`, y 150).
 - `scripts/ui/hud.gd` — HUD (Warden bar + 1-8 hotkeys, Dew counter).
   `world_label.gd` (`WorldLabel.draw_tag` for world-space text tags, `cost_color`),
   `dew_popup.gd` (`DewPopup`).

@@ -6,6 +6,29 @@ targets in `run_design.md` ("Difficulty curve targets"), so balance changes are 
 not by feel alone. It grows out of Tower Code's probes (`tools/balance_act3.gd`,
 `tools/balance_run.gd`) and Roguelite Code's `sim_rest` / `sim_family_pick`.
 
+## Current targets (from 2026-10-02: the Spire rules are in main, bebfb22c)
+
+These replace the older targets below for the **full game**; the demo keeps the old curve
+(`DriftDirector.DEMO_RULES`) and the old act 1 targets. Detail and history: `spire_difficulty.md`.
+
+| What | Target |
+|---|---|
+| Average player | **first win after ~10–15 runs** |
+| Skilled player, Blight 0 | **wins ~30–50%** |
+| Fresh profile | usually dies in **act 2–3** |
+| Act 4 | a real test |
+| Every block | can kill you; the **block finale** (last drift, ×1.4 health + elites) costs an average maze ~1 leaf; a clean finale earns a Rare+ Dream slot |
+| Bot, fresh, act 1 boss (full game, real boss draw) | Balanced **~55–60%** survive, skip **≤ 15%** |
+| Grove | a full carried loadout adds **≤ +10–15 points** of bot survival / reach over no perks (measured +15) |
+| Combos + Reactions | **~25–40%** of a good build's damage (`combo_share`) |
+| Damage branches | **0.8–1.0× Driftspore** per Dew on the fixed board (drift 45); a drawn branch must match the one it replaces |
+| Final forms | **0.8–1.5× Puffball** per Dew (drifts 45 and 61) |
+| Supports / control | their board does **≥ par** with 4 of the reference |
+| Dream builds | a decent build (≥ 3 picks of one tag) in **~50%** of runs; skipping Dreams loses |
+| Every family | viable from act 1 (each start family survives the act 1 boss 70–90% for the bot) |
+
+Human runs set acts 2–4 (the bot dies in act 2); the bot sets act 1, bosses, per-form probes and A/B.
+
 ## What it answers
 
 1. Does a **fresh profile** start leaking around drift 12–18 and usually end in act 2?
@@ -260,6 +283,800 @@ can't set act 2–4 health. Decision:
 - **Acts 2–4 from people:** the run history of real runs decides the rise (target: a sensible run
   ends in act 3–4, a build that comes together wins). Until then act 2–4 health stays.
 
+## Human run 1 (2026-09-30, the run history's first record)
+
+Fresh profile (7 Grove nodes, perk Morning Stores), Blight 0, the old health (before the interim
+rise), 3× speed, 29 min. **Lost at drift 100 to the Hollow Oak: Remembering**; drifts 1–99 without a
+single leak.
+
+| What | Number | Reading |
+|---|---|---|
+| Leaks, drifts 1–99 | **0** (46 close calls, all in act 1–2 boss drifts) | acts 1–4 far too easy |
+| Closest approach, drifts 51–99 | **0.00–0.3 of the route** (most 0.02–0.14) | nightmares die in the first tenth of the maze: a several-fold surplus, not 30% |
+| Bosses | Hollow Stag 32 s, Mire Hag 20 s, Barrow King 18 s | no threat |
+| Drift 100 | 12.6M health spawned vs 5.9M dealt, 15 leaves in one drift | one wall at the very end |
+| Dew | earned 18,953; spent 9,650 (plant 1,095 · grow 4,681 · ranks 3,874); **9,277 banked** at the end | nothing left to buy |
+| Omens | 18 faced, 0 Clear Skies, 4× Bountiful Night (×2.5 Dew) | Omens cost nothing to a strong maze and paid a lot |
+| Dreams | 25 taken (Lucid Dreaming from 70), 0 passed | |
+| Build | 59 Sprouts + 29 branches (88 attackers); Driftspore 31%, Bloomcap 14% | the Sprout swarm |
+
+Decisions (design chat; the interim rise in run_design.md was too small for this):
+1. **Health, replacing the interim:** act 2 ×1.3 at 26 → **×2.5 by 45**; acts 3–4 **×3.5**; **the Hollow
+   Oak (drift 100) keeps today's health** so the curve builds up to it instead of ending on a wall.
+   Act 1 as is (the first boss is tuned separately). Next human run checks it.
+2. **Bountiful Night:** ×2.5 Dew → **×1.6**.
+   **Late Dew cut** (user: "earn less late"): Dew per dispel by act **[1.0, 0.68, 0.45, 0.35]** (was [1.0, 0.68, 0.65, 0.5]; `RunState.act_dew_multipliers`).
+3. **Dew had nothing to buy** once the map was full and ranks stopped at II. User's answer: earn less
+   late (the cut above) **and** ranks III–V for Dew, with a choice at every rank: **Nurture v3**
+   (`warden_stats.md`).
+4. **Per-drift rows are unreliable when drifts are called early:** most drifts show 0.1–0.6 s and
+   the block's health lands on its 5th drift. Record health, damage and leaks **by the drift that
+   spawned the nightmare**, not by the drift that was current when it happened.
+
+## Human run 2 (2026-09-30, build a596ea, after the Dream power pass and the health rise)
+
+Fresh profile (7 Grove nodes), Blight 0. **Won at drift 100, 2 leaves lost (both at the drift 25
+Scarecrow)**, 35 min. Build: **92 Thornwalls, 35 Honeysuckles**, 9 Morning Fog, 7 Puffball, 4 Dewdrop,
+3 Sporeling (a poison-in-fog maze, path 188 tiles). Top Wardens: **one Puffball 76% of all damage**,
+Morning Fog 20%.
+
+| Stretch | Closest approach | Reading |
+|---|---|---|
+| Act 1 (drifts 6–25) | **0.54–0.86** (one 1.00 at 23) | right: tense, readable, the target |
+| Early act 2 (26–40) | 0.28–0.72 | still has teeth |
+| **Drift 41 → 100** | **0.08–0.22**, no leaks | the maze kills in the first ~15% of the route: too easy, matches the user's *"good until mid act 2"* |
+
+- **Bosses:** Scarecrow 183 s (a real fight, cost the 2 leaves), Mire Hag 35 s, Moth Queen 92 s,
+  **Hollow Oak 17 s** (the drift 100 boss is trivial now that it was exempted from the ×3.5).
+- **Dew:** earned 15,274; spent on growing 6,915, ranks 2,450, clears 1,663; the bank rose to ~1–2.7k late
+  (better than run 1's 9k; the late cut works).
+- **Dreams:** 28 taken (Lucid Dreaming at 50), a poison build (Lingering Spores I+II, Spore Cascade
+  I+II, Mushroom Rain, Monoculture late).
+
+Decisions (design chat):
+1. **Puffball is the outlier** (one Warden, 76%): its area puff gives **1 Poisoned** (was 2) and **keeps its 16-stack cap** (revised: the cap is its identity, "the deepest poison"; user asked whether it stays unique). Not:
+   hit cap 16 → 12. Check the "Top" attribution too: Spore Cascade spreads
+   and fog-boosted ticks may all be credited to the first applier (fine if true, but verify).
+2. **Hollow Oak at drift 100:** ×1.6 → **×3.0** (17 s is no final boss; run 1's wall was before the
+   boss-stays rule and the old curve).
+3. **Steepen from mid act 2** (both runs agree): act 2 ends at **×3.0** (was 2.5) with the ramp's
+   steeper half from drift 38; acts 3–4 **×4.0** (was 3.5). Act 1 and drifts 26–37 unchanged.
+4. **Chain falloff** (already queued) lands with these. Next human run checks all four.
+
+## Human run 3 (2026-10-01, build ebc899, fresh profile with 0 Grove nodes)
+
+Abandoned at drift 50 by the user (*"I know I can beat 100 already"*), 6 leaves lost (4 at drift 9–10,
+2 at 31–32). Spore + water build: **2 Puffballs = 76% of all damage** (57% + 19%), 6 Bloomcap, 4
+Driftspore, 5 Rain Lily, 20 Sprouts. Bosses: **Hollow Stag 38 s, Lamplighter 29 s**. Dew earned 6,995,
+banked up to 1,671 at drift 25. Closest: act 1 mostly ~0.30 (one leak spike at 9); act 2 0.17–0.68,
+drifts 44–49 ~0.20.
+
+Decisions (design chat):
+1. **Puffball is still the outlier** after the stack nerf. The cause: Poisoned stacks tick at the
+   **strongest applier's Potency** (Puffball 1.3), so one Puffball lifts every Sporeling's and
+   Driftspore's poison. Puffball **Potency 1.3 → 1.0**; its deep cap (16) and area stay.
+2. **Act 2–3 bosses are trivial** (Mire Hag 35 s in run 2, Lamplighter 29 s here):
+   `boss_health_multiplier` **1.5 → 2.25** for acts 2–3 (act 1 keeps its tuned ×1.75, the Oak its ×3.0).
+3. Act 1's first half reads a little calm (~0.30) after the lean pool; watch, no change yet.
+4. A fresh profile reaching drift 50 comfortably and "knowing it can beat 100" says late acts are
+   still soft: the next run after these two fixes decides whether acts 3–4 go from ×4.0 to ×5.0.
+
+## Human run 4 (2026-10-01, build 82373f, 1 Grove node)
+
+*"Still lost, but felt easy."* Lost at **drift 50 to the Huntsman: 20 leaves in that one drift** (the
+first leak of the run). Drifts 1–49: **closest 0.07–0.48, mostly 0.10–0.25** (act 2 ~0.09–0.27), no
+leaks; leaves rose to 20 from Omen rewards. Night Mare 23 s. Two families only (spore + water);
+Puffballs 25% + 25%, Bloomcap 14% (Potency 1.0 is fairer). Dew earned 5,814 by 50.
+
+Reading: **easy drifts, then a wall.** Normal drifts never threaten, so the player has no warning,
+and the Huntsman (pack shield, hounds respawning every 12 s, now ×2.25 and staying to drain) becomes
+unkillable once he reaches the Heartwood.
+
+Decisions:
+1. **Normal drifts harder from act 2:** act 2 starts at **×1.6** (was 1.3) and ends at **×3.6** (was 3.0);
+   acts 3–4 **×4.8** (was 4.0). Act 1 unchanged. Target: closest ~0.4–0.7 most drifts, the odd leak.
+   The gentle half of the ramp keeps its shape: **×2.3 at drift 37** (`act2_steep_value`, was 1.995),
+   so act 2 goes 1.6 → 2.3 (26–37) → 3.6 (45). **In the game from 474e76c6** (local main; the next
+   human run should be on that build or later).
+2. **Huntsman at the Heartwood:** his horn stops (no new hounds while he drains), and his pack shield
+   only counts hounds within 3 tiles of him, so clearing the hounds around the tree lets the maze
+   finish him.
+3. Next run checks both; the act 2–3 boss ×2.25 stays.
+
+**Note: run 4 called most drifts early** (user, 2026-10-01). Early calls stack drifts on the field, so
+"closest 0.10–0.25" was measured under *harder* conditions than normal play: the act 2 "too easy"
+reading is stronger, and a player who never calls early will find the new curve gentler still.
+- **Per-drift rows are fine for runs 2–4:** RunHistory counts each nightmare under the drift that
+  spawned it since ae47049e (2026-09-30 10:36); only run 1 is blurred per drift (per block is fine).
+  Early calls are recorded **from 9a31505a**: run-level `early_calls` and `dew_call_early`, per-drift
+  `called_early` (last CSV column), report line "Called early: N drifts · X Dew". Runs 1–4 lack them.
+- **Call-early Dew stays outside the pot, unchanged** (+1 per 2 s skipped, cap 10 per drift, ~500 by
+  drift 50 = ~9% of run 4's income). It pays for a real risk (stacked drifts), which the harder act 2
+  makes bite. Revisit if a run with `early_calls` data shows calling early as both safe and the
+  bigger Dew source.
+- **Omen rewards** (user, 2026-10-01): no leaves (0891119a), then **no Dreamlight either** ("leave it in
+  cards", f2f2a428). Tramplers +50 Dew and Stubborn Blight +40 Dew are starting numbers; the
+  three-mode Omen sim on the new rewards sets them.
+
+## Omen three-mode sim (2026-10-01, build f214066a, full profile, 20 seeds per mode, to 40)
+
+Balancing Code, `tools/balance_omens.gd`. **Saturated by the act 1 boss:** 9–10 of 20 bots per mode
+die exactly at drift 25 (the Hollow Stag drains 14–18 leaves from untouched bots), so run-level leaf
+and dormancy targets read 18 vs 18 and 100% vs 100%. **Measured before the wall (by 20), Omens bite:**
+always +5 leaves (median), +25 points dormancy, clean 0.87 reward shares per Omen-block leaf vs 0.38;
+drift reached always −5.0, clean −4.2 (mean).
+
+Decisions:
+1. **Measure without the boss:** re-run with `--last=24` on the build with the no-Dreamlight rewards
+   (f2f2a428); a half-profile batch to 50 later for acts 2–3 rewards.
+2. **The Stag wall is the bot, not the game** for now: humans passed him in runs 2–4 (38 s in run 3).
+   Watch the next fresh human run (target: beats him ~75%).
+3. **Pot-multiplier Omens are out of scale** (Bountiful Night ×2 = +580–800 Dew a block in act 2,
+   5–8× the biggest fixed reward): **Bountiful Night ×2.0 → ×1.5**, **Blood Moon ×1.75 → ×1.4**;
+   their twists (+35% health / +35% speed) stay.
+4. **Dry Spell is a pure loss under the pot** (−556 to −769 Dew in act 2 for +27–35 rest bonus).
+   New: **no Dew from nightmares during the block; at the rest the Heartwood releases the block's
+   pot ×1.25**, cut by leaves lost like any reward (25% per leaf). The twist becomes "build without
+   income, get paid late"; the ×1.5 rest bonus goes.
+5. Fixed Dew rewards are in scale (≤ one drift's pot); Tramplers +50 and Stubborn Blight +40 stay.
+6. The sim's `omen_dew` should count the pot multipliers' extra (or loss) too (321811ef).
+   In the game: e5de9471 (rewards, Bountiful / Blood Moon, Dry Spell) and bd507e42 (Dry Spell pays the
+   pot the block would really have paid, with the player's own multipliers, × 1.25).
+
+**Batch (a), act 1 without the boss** (e5de9471, full profile, `--last=24`, 20 seeds × 3 modes):
+**all three targets met.** Always vs Clear Skies: **+9.5 leaves** (median, by 24; target ≥ 3), dormancy
+**30% vs 5%** (+25 points; target ≥ +10); picking moments **0.52 vs 0.38** reward shares per Omen-block
+leaf ✓ (per run leaf a tie, 0.15 vs 0.16). Mean drift reached 23.9 / 21.8 / 23.3. Omen reward Dew
+~50 median per run: in scale. No change. Batch (c) (half profile to 50, on 4993001b) checks acts 2–3
+and the Dry Spell +25%.
+
+**Batch (c)** (4993001b, half profile to 50): **the Omen Dew is right**: clean Dry Spell nets exactly
+**+25%**, Bountiful Night +50%, Blood Moon +40%, fixed rewards at their table values. The acts 2–3
+check failed to run: **12/20 Clear Skies bots die at the Stag** again; only 3–8 runs per mode start act
+2. Next: Balancing Code finds out **why untouched bots lose all 18 leaves to the Stag** (maze DPS vs
+his health and route time, Dew banked at 24, drain speed). That's the "easy, then a wall" shape
+from human run 4, so it may be a game change, not just a bot fix. Then an Omen batch with the act 1
+boss at ×1.0 (test-only) for acts 2–3.
+
+## The Stag wall and the boss drain (2026-10-01)
+
+**Diagnosis** (Balancing Code, full profile, 20 seeds): the drain, not DPS or banking. 13/18 Stags
+reached the Heartwood, 12 of them with **no Warden in range there**, so health left didn't matter: 38
+health (0.7%) left cost all 18 leaves, the same as 3,400. The bot now covers the Heartwood from drift 18
+(23736625): Stag dispelled **28% → 79%**, median 0 leaves drained in wins. But one covering Warden
+(~45–100 DPS) only saves it below ~1,000–1,800 health left, so the game-side cliff stays.
+
+**Decision (user, 2026-10-01: "most bosses just lose a lot of leaves and have 1 boss that sticks"):**
+- **Only the Hollow Oak (drift 100, every form) stays and drains** until dispelled: the last stand.
+- **Every other act boss takes a flat bite and leaves:** **8 leaves in act 1, 10 in act 2, 12 in act 3**
+  (user chose flat over health-scaled). Elite/escort leaks unchanged.
+- **The Night Mare keeps its own laps** (untouchable lingers that drain, then another lap).
+- This replaces enemy_design.md's "A boss that reaches the Heartwood stays" for every boss but the Oak.
+  Act 1's target "always-skip loses to the boss" now has to come from leaks before 25 plus the 8.
+- **Leaf Fall is never offered for a block with a boss drift** (its ×2 would make the bite 16–24
+  leaves: a boss must never one-shot the run).
+- In the game: **bfc33e75** (boss bite, `EnemyContainer.boss_bite_leaves` [8, 10, 12],
+  `EnemyData.stays_at_heartwood` on the Oak; the Huntsman's silent horn dropped) and **b708815a**
+  (Leaf Fall, `OmenData.never_before_boss`).
+
+**Act 1 boss check with the bite** (0b4861b6, cover rule, Hollow Stag 5,250, 20 seeds): survived the
+boss: **fresh Balanced 90%**, fresh skip 45%, full Balanced 80%, full skip 65%. The cliff is gone
+(fresh Balanced bots that nearly kill him pay 8 and carry on). Too kind against the targets (~75% /
+skip loses), and humans play better than the bot: **act 1 bite 8 → 10** (`boss_bite_leaves` [10, 10,
+12]); re-check fresh only. The full profile doing worse than fresh (29% vs 67% dispelled) is on the
+bot's side (same boss health). **Cause (measured):** the first family. Fresh always draws Sporeling
+(every start offer has it; Balanced picks it): 20/20, Stag dispelled 67%. Full offers 3 of 9 families:
+Sporeling 7/20 (dispelled 50%), **other families 2/11 (18%)**; Pebbling is resisted by
+the Stag (stone; Acorn is neutral, never resisted), Firefly lost 3/3. Same attackers, tiers and card counts in both: no thinning.
+So **non-Sporeling families look weak in act 1** (n = 1–5 each). Next: a per-family act 1 batch
+(10 seeds per forced family), then a same-family Grove control (fresh / half / full, Sporeling + one).
+
+**Omen batch, full profile to 50** (0b4861b6): always facing reaches **~10 drifts less** (19.9 vs 29.6)
+and loses **+10 leaves by 25** ✓; clean reaches 5.7 more drifts than always but pays the same per leaf
+(0.27 vs 0.28). Every Omen's Dew is as designed. **Act 2 kills every bot profile**, so acts 2–3 Omens
+are read from human runs, not the sim. **The Omen check is closed** for the sim: targets met in act 1.
+
+**Bite-10 re-check** (e19b9230, fresh, 20 seeds): Balanced survives the boss **90%** (Stag dispelled
+89%), skip **45%** (6 of skip's 11 deaths come before the boss; skip runs that fight him often survive
+the 10 on 5 leaves). The bite alone can't push skip to ≤ 25%. **Held** until the per-family batch:
+fresh runs here are all Sporeling, so act 1 boss health is set once the family spread is known.
+
+**The Night Mare** (user: "feels useless now, since its mechanic is to do it multiple times"): at
+2,286 base (×1.75 ≈ 4,000, under the Stag's 5,250) it dies on its first pass (23 s in run 4), so its
+laps never show, and one visit (5 leaves) is half the other bosses' bite. **Health ×1.5 (3,430 base)**
+so a typical maze needs two passes; visits stay 5 / 7 / 9 leaves (one lap is kinder than a bite, two are
+worse). Check: Night Mare forced, fresh Balanced / skip; target Balanced laps once+ in ~60% of fights.
+**Result** (cde782f3, 6,003 health, 20 seeds): Balanced **laps 88%**, dies on lap 2 in 12 of 15
+dispels, **survives 75%**, median 5 leaves drained ✓ all three. Skip survives **35%** (12 leaves): the
+act 1 boss that best separates Dreams from skipping. **Kept.**
+
+**Per-family act 1** (e19b9230, **full profile** so every family has its branches; first family
+forced, 10 seeds; the fresh run was confounded: unowned families had no branches):
+
+| family | survived boss | Stag dispelled | leaves lost before the boss |
+|---|---|---|---|
+| Rootling | 100% | 9/10 | 0 |
+| Nestling | 100% | 8/10 | 0 |
+| Dewdrop | 90% | 6/10 | 0 |
+| Firefly Jar | 70% | 2/8 | 1 |
+| Sporeling | 80% | 2/9 | 1.5 |
+| Bellflower | 90% | 2/10 | 0 |
+| Pebbling | 100% | 1/10 | 0 (highest maze DPS, 673, but stone is resisted) |
+| Whirligig | 100% | 0/10 | 4 |
+| **Acorn** | **50%** | **0/10** | **6** (2 runs dead before 25) |
+
+Decisions: **"beats the first boss" = survives it**: 8 of 9 families at 70–100%, so **the Stag stays**.
+**Acorn +15% attack damage** across its forms (auras unchanged; Tower Code): the only family that
+leaks in normal act 1 drifts. Whirligig holds normal drifts, no change. Sporeling dispels 2/9 on full
+vs 6/9 on fresh: possibly a big Grove Dream pool diluting the cards; the same-family Grove control
+(Sporeling + Firefly Jar, fresh / half / full) measures it. The "skip loses by 25" target is still
+unmet (Sporeling skip on full survives 70%); act 1 health is held for the next fresh human run.
+**Caveat (user: "are we testing that we have Wardens around it?"):** no. The bot places by path in
+range only, so Acorn's auras (the 8 around; Grove Heart radius 2, +3% per Warden) land by chance and
+the support family is undersold. Balancing Code adds aura-aware placement; the Acorn re-check runs
+with and without it on the same seeds.
+
+**Acorn re-check** (e0627b99: Acorn +15% from 67e4e9f6, aura-aware bot with AURA_WEIGHT 2 tiles per
+Warden, cap 5; full, 10 seeds): Balanced survives the boss **100%** (was 50%) and loses **0 leaves
+before him** (was 6): the +15% fixed the normal drifts. The auras add **+15% maze DPS** (537 vs 466;
+skip +10%, and 100% vs 70% survival). Acorn still almost never dispels the Stag (1/40). Not a
+resistance (Acorn is neutral, line `acorn`; he resists stone and root only): its damage on him (~2,100–
+3,000 of 5,250) is low. The bite keeps it survivable; watch Acorn's boss damage, no change yet. **Closed:** no first-pick change (Tower Discussion's fallback not
+needed). The bots never grew Dewcatcher / Wellspring / Grove Heart (first-form blind spot), so the
+economy branches are unmeasured.
+
+**Bot upgrades for the Grove control** (bfa430cd): Kinship placement (+2 tiles per unbonded kin in
+reach, cap 5, sticky bonds respected), the grow step picks the branch that bonds / the rarer one, and
+Dreamlight unlocks a family's two branches before its finals (finals arrive a little later). Still
+blind: the 9 hidden Kinships (third branches).
+
+## Grove control (2026-10-01, bfa430cd, Sporeling + Firefly Jar forced, auras + kin, 20 seeds, to 50)
+
+**The Grove shows no measurable gain; fresh ≥ half ≥ full.** Mean drift reached 34.0 / 33.1 / 31.9;
+reached 35: 8 / 8 / 6 of 20; Stag dispelled 14/19, 15/20, 12/19. Perks add +7% maze DPS at 24 (583 vs
+543), which doesn't turn into survival; every run dies in act 2.
+**Dream pool dilution, measured:** the drawable pool goes **49 → ~91** cards (half already owns nearly
+every card node), and ~6 cards are taken by 50 in every profile. *(The first "fits the build" shares, 36% → 24%, were
+**invalid**: the classifier counted style-only cards like "maze" or "economy" as off-build.)*
+**Re-run** (e4e54ba2, family-line classifier, same seeds): matched 24% → 17%, generic ~75% in all,
+off-build **1% → 8%**, and of those 69 offers only **10 are dead** (~0.8% of offers on Grove
+profiles: patient_roots with no status gate; rolling_thunder, rain_on_glass gated on unlocked, not
+planted, Wardens; heavy_eyelids is usable, since Bloomcap applies Drowsy). **No dilution problem.** Survival: 32.7 / 31.8 / 32.9 mean drift
+reached, so the first run's "fresh ≥ half ≥ full" was noise: **the bot shows no Grove effect either
+way** (every profile dies in act 2). The Grove's value has to come from human runs on Dev Grove
+presets. The "dead" offers turned out to be **by design** (Roguelite Code, 35efae49): patient_roots
+is a Seed card that calls the Rootling family to the next pick; rolling_thunder / rain_on_glass are
+half-dreamed "Adapt" offers. **No change.**
+
+## Map change: inland Heartwood (722cf38b, 2026-10-01)
+
+Environment Code: the Heartwood sits on an inland cell (its 8 neighbours always open, reachable from
+several sides), the start stays on the rim; opening routes are a little shorter (median 39 corner / 44
+side vs 46; band 35–57); 240–294 buildable cells; ~69 obstacles. **Every sim and human run above is
+"edge Heartwood"**; human run 5 (ee3d82d0) predates it. Re-baseline: act 1 fresh Balanced / skip on
+722cf38b+, plus a check that the bot's maze and cover rule handle the open glade.
+
+## Human run 6 (2026-10-01, build 88ef33 = b2d8b3e6: **first run on the inland Heartwood**, intro-elite fix)
+
+**Lost at drift 24, before the boss**, 1 Grove node, Firefly Jar again, no early calls. 13 attackers,
+5 Thornwalls, 7 Sprouts (run 5: 17 Thornwalls, 15 Sprouts). Dew earned 1,896 by 24; banked up to 875
+at drift 20, spent at that rest.
+- **Act 1 closest 0.41–0.70 from drift 1** (run 5, same family and Grove on the edge map: 0.25–0.55
+  outside block 3). Leaks at drift 8 (5 nightmares, 5 leaves) and **drift 22 (9 nightmares, 10
+  leaves)**; 17 close calls.
+- Same curve as run 5, so the differences are the **map** (shorter routes, open glade) and the maze
+  (fewer walls). Two Firefly-first runs lost 9 and 15 leaves in act 1 against a fresh target of 0–3.
+- User: *"I like the Heartwood inland; making it shorter doesn't matter because you don't have
+  enough towers to make a difference. It feels fair. I haven't unlocked perks yet so this is fine so
+  far. Needs a bit more testing."* **No change.**
+- **Sim re-baseline** (980f0b41, fresh, Sporeling via the bot's pick, 20 seeds): the map change is
+  within noise (same old bot, edge → inland: Balanced survives the boss 90 → 85%, skip 45 → 50%; the
+  opening route is ~4 tiles *longer* at drift 1). The newer bot (Kinship placement + branches first)
+  lifts Balanced to 95% and skip to 70%. **New baseline = inland, current bot.** An exact edge/inland
+  A/B (4c8050a9 vs 722cf38b, Sporeling and Firefly first, 20 seeds): **no map effect**; inland is if
+anything a little easier (Firefly: leaves lost by 25 8.5 → 3, first leak 9 → 14; survived 90% both).
+Run 6's early pressure was that seed or the opening, not the inland change. Closed.
+
+## Human run 7 (2026-10-01, build 25755d = cbae70bc, before status Potency; 1 Grove node)
+
+**Abandoned at drift 80** (29 min, "started lagging": that was 8 parallel sims starting at the same
+time, not the game; sims are capped at 2 while the user may play). Firefly → Sporeling (25) → Dewdrop
+(50); 16 Dreams, none passed, Kinship-heavy (extended_family, grove_of_kin, spore_kin, kin_and_kindling,
+old_friends) plus both family Blessings; 15 Omens faced, 0 Clear Skies. Dew earned 11,861.
+- Closest: **act 1 median ~0.33**, no leaks; **act 2 median ~0.16** (0.05–0.44), no leaks, banked up
+  to 1,230 at 45; **drift 50: the act 2 boss bit for 10** (the run's biggest loss); **act 3 median
+  ~0.27**, 2 leaves; act 4 2 leaves by 80. Scarecrow 70 s, Barrow King 48 s.
+- **2 Dreamshrooms = 61% of all damage** (47% + 14%), under the old status rules.
+
+Reading: with a good build, act 2–3 normal drifts don't threaten a human, against the target "a fresh
+profile ends in act 2" (runs 5 and 6 ended at 35 and 24, but run 5's act 2 also read 0.22–0.29 before
+its flyer leak). Decisions:
+1. **Acts 2–4 health +25%:** act 2 **2.0** at 26 → **2.9** at 37 → **4.5** at 45 (was 1.6 / 2.3 / 3.6);
+   acts 3–4 **×6.0** (was 4.8). Act 1, boss multipliers, the bite and the Oak unchanged. In the game: d55618fd.
+2. **Dreamshroom:** measure before changing: per-final damage shares in the status-Potency A/B, and a
+   fixed-maze probe (Dreamshroom vs Morning Fog / Mistveil / Puffball, damage per Dew).
+
+## Potency scales statuses (user, 2026-10-01; tower_design.md 175bf263)
+
+Caps confirmed: **Soaked** water bonus 20% × Potency, cap +40%; **Exposed** 25% × Potency (Beacon
+included), cap +40%; **Drowsy** slow per stack × Potency, floors unchanged; **Rooted** duration ×
+Potency, cap 2 s. **Deep rank = +18% Potency only** (the separate duration bonus goes). Several
+appliers: the strongest current applier's Potency (as Poisoned). Exposed caps at Potency 1.6 (~3 Deep
+ranks on a base Warden). Built behind a toggle; A/B on the same seeds (maze DPS, Exposed share, how
+often the caps bind) once it lands.
+
+**A/B (c961b3ec, full, 20 seeds, Power-focus bot):** on vs off barely differs (drift reached 32.2 vs
+32.0 spore+dew, 28.7 vs 28.0 firefly+bell; maze DPS +4–14%), and **no cap ever binds**: applier
+Potency stays ~1.0–1.37 because the bot nurtures Power, never Deep. Harmless for Power players;
+untested for Deep builds: a `--focus=deep` check follows. Per Warden, **Bloomcap ~18% of all damage
+each** (mostly Spored ticks) vs Driftspore 7%, Sporeling 5%; Dreamshroom too rare for the bot (2/80);
+a fixed-maze finals probe measures it.
+
+**Deep-focus check** (8bed3b93, `--focus=deep`, 10 seeds): Deep builds are **weaker than Power**
+(drift reached spore+dew 28.4 vs 32.5, firefly+bell 21.8 vs 28.1; firefly+bell Deep lost 17 leaves by
+25). Status strength reaches ~1.2–2.2; Soaked sits at its cap 27% of the time, Exposed never (max 1.56).
+**Deep rank +18% → +25% Potency** (rank IV Deep = 2.0); re-check after Tower Code's commit.
+**Re-run** (a9951bd1, 27155a73 in, Power re-run on the same build and seeds): gap to Power **−2.2**
+drifts (spore+dew) and **−3.1** (firefly+bell), halved; Deep maze DPS at 24 now *above* Power (549 vs
+518, 644 vs 571); Exposed at its cap 5% of the time ✓. Deep still survives the act 1 boss less (7/10 vs
+9/10; firefly+bell Deep median 13 leaves by 25 ≈ the bite). The bot runs Deep on every Warden from
+drift 1, before a second family exists for its statuses to pay off; a player choosing Deep later
+wouldn't. **Accepted, closed:** within noise of the target at 10 seeds; Deep is the act 2+ choice.
+
+## A 4th starting family (user, 2026-10-01)
+
+User: *"We should have one more family unlocked for new accounts so wave 75 is there."* A fresh account
+owned 3 families, so the picks at 1 / 25 / 50 used them all and drift 75's pick fell back to +2
+Dreamlight. **Bellflower becomes a starting family** (user's pick from four options: it combos with all
+three starters through Drowsy and Static, and it's mid-strength in the act 1 batch, 90% survive). With
+Meta Game Discussion → Meta Game Code. The first pick now offers 3 of 4 (Sporeling not guaranteed).
+Also (user): **the first family pick gives 1 Dreamlight, not 2**, so act 1 gets one branch and no final
+before the boss (+4). Both make act 1 a little harder; act 1 re-baseline once they land.
+
+Also (user, run_design.md 20df1914): **steady Dreamlight 3 per act boss** (was 4), **no +1 per rest
+from drift 51**: 10 by drift 76 with the first pick's 1. Fewer finals and Ascended late: watch late-act
+power in the next human run (it may offset part of the +25% acts 2–4 health).
+
+## Human run 8 (2026-10-01, build a8e311 = a2353925+: run-7 curve, Bellflower a start family)
+
+**Lost at drift 50 to the Lamplighter's bite** (13 leaves with 3 left), 17 min, 1 Grove node. Bellflower
+first, Dewdrop at 25; 75 attackers (45 Sprouts, 13 Chime Stones, 12 Bellflowers, 4 Morning Fog). Four
+Chime Stones = 76% of damage, with Live Wire ×3 and Hush ×2. Dew earned 6,023 (grow 3,750, ranks only
+130). Banked up to 986 at 45.
+- **Act 1 closest 0.08–0.25**, no leaks; the Night Mare dispelled in 22 s.
+- **Act 2:** 0.08–0.68, spikes from ~38, **1.0 at 46, 47, 49, 50**; first leak at 49; all 15 leaves in act 2.
+- **On target:** a ~fresh profile ends in act 2, and act 2 gets hard from its second half. **No curve
+  change.** Act 1 reads calm with a Bellflower opener; watch against Firefly runs 5–6 (much harder).
+- Chime Stone: a branch probe (no Dreams, drifts 45–49) before judging, since run 8's share came with
+  Live Wire ×3 and 13 Chime Stones.
+
+User: *"Felt balanced; the Chimes in the beginning felt broken though, since I just upgraded them once
+and let them sweep past to drift 40. Maybe have a smoother difficulty curve."* Decisions:
+1. **Chime Stone damage 35 → 26** (area pulse 28 DPS + its own Static set off every 3 pulses: one
+   upgrade carried act 1). Static and set-off unchanged; branch probe (drifts 15–19 and 45–49) checks it.
+2. **Act 2 linear, no knee:** **×1.7 at 26 → ×4.5 at 45** in one line (`act2_steep_value` 3.3 at 37; was
+   2.0 → 2.9 → 4.5, gentle then steep where run 8 broke). Act 1, acts 3–4 unchanged. Both in 3faea358.
+
+**Act 1 baseline with the first pick at 1 Dreamlight** (781b1cbb, Bellflower a start node, fresh, 20
+seeds): Balanced survives the boss **70%** (target ~75% ✓; was 95% with 2 Dreamlight), skip **45%**
+(target ≤ 25%). By first family: **Sporeling 80%, Firefly Jar 40%** (5 runs), matching human runs 5–6;
+the bot never opened with Bellflower or Dewdrop. Kill profile: most nightmares die at 0.3–0.4 of the
+route in every block; the bot's Dew sits evenly over 0.1–0.9. Next: each starting family forced (10
+seeds) on the Chime Stone / linear act 2 build.
+
+## Human run 9 (2026-10-01, build 18d296 = e3cf8f41: **before** 3faea358, Chime Stone 35, old act 2)
+
+**Lost at drift 50 to the Huntsman's bite** (6, the last leaves), 15 min, 1 Grove node. Bellflower first,
+Firefly Jar at 25; Chime Stone 38% + Thunderhead 36% of damage; ranks 1,925 Dew. Act 1 closest
+0.12–0.28, Stag 31 s; act 2 leaks from 33 (2), 44, 47, 49; all 15 leaves in act 2. **On target**, same
+shape as run 8; no change beyond 3faea358.
+
+**First human route profile:** almost every kill is in the **first 0.3 of the route**, and the Dew sits
+at 0.0–0.3 (a second cluster at 0.5–0.7 from block 7), **nothing in 0.8–1.0, Heartwood share 0%**. The
+bot is the opposite (kills at 0.3–0.4 median, Dew even over 0.1–0.9, a Heartwood cover). The human
+plays a front-loaded kill zone with no second line, so once act 2's late drifts break the entrance
+nothing behind it catches them, and the act 2 boss bites. A playstyle read, not a number change; worth
+telling the user, and worth a bot style (`--style=front`) if bot and human should compare.
+
+**Forced first family, act 1** (1c9fb3bd = 3faea358 in; fresh, 10 seeds): survived the boss
+**Sporeling 70%, Firefly Jar 70%, Dewdrop 90%, Bellflower 90%** (Bellflower by taking the bite: 1/9
+dispels). **Every starting family is viable in act 1: closed.**
+**Branch probe** (no Dreams): drifts 15–19 rank II, Chime Stone (26) ≈ Rootcurl ≈ Stormcap at the top
+per Dew (the field is cleared, so this is who takes the kills); drifts 45–49 rank IV, Chime Stone is
+mid (behind Driftspore, ~2× Stormcap). **Chime Stone accepted.** Flag: **Lullaby Bell** (its final) is
+~3× Driftspore per Dew with a ~0% board leak (a probe finding; runs 8–9 had no Bell, their carrier was pre-nerf Chime Stone); 40–53% of the Chime
+line's damage is Static bolts, which they charge and set off themselves (Static + set-off at 3). Finals probe next (Bell vs
+Puffball / Dreamshroom / Morning Fog, with and without Thunderhead).
+
+**Lullaby Bell finals probe** (3d7c5d9f, 4 copies, rank IV, no Dreams, 3 seeds; "finals" cast with
+Thunderhead, "nocharge" without): per Dew vs Puffball, **Bell 1.65× (45–49) / 2.62× (61–65)**, 3.2× /
+5.4× without a Static partner (it charges and sets off its own Static; half pulse, half bolts); act 2
+board leak ~0%. Dreamshroom (post-nerf) 0.89× / 1.21× ✓. Morning Fog 0.75× with Thunderhead, 0.25×
+without (87% of its damage is Thunderclap): a combo final, no change. Puffball loses ~half without
+Thunderhead (cause not traced). **Bell: damage 123 → 80 and set-off at 4 stacks (was 3)**, expected
+~0.95× / ~1.5×; re-probe (band ~0.9–1.5×, area finals scale with crowds).
+**Bell re-probe** (be52dc39 = 90ad7f61 in, finals cast, 3 seeds): median **1.50× (45–49), 1.42×
+(61–65)**, one map at 2.28×; boards still leak least (1–3% vs 11–21% at 45). Top edge of the band, so
+**one more step: damage 80 → 72** (expected ~1.35× / 1.28×), in b1374ae8. Closed.
+Why Puffball halves without Thunderhead: **Ignite** (Spored 3+ and Static → Spored ticks ×3 for 3 s,
+re-fired while Static keeps coming): measured, 63% of Puffball's damage with Thunderhead (183k vs 76k per Warden without). A combo working as designed: no change. But its extra ticks were
+tagged only "spored", invisible to combo feedback and the sims: Tower Code tags them "ignite".
+
+**Act 2 boss too hard** (user: *"is the boss too hard? Didn't feel close to killing it"*): **0 of 3**
+human runs killed it: run 7 (×3.6 act 2) ~10% of drift 50's health left, run 8 Lamplighter ~21%, run 9
+Huntsman ~25% (health spawned vs damage at drift 50). The ×2.25 was set when act 2 ended at ×3.0; it
+rides the act multiplier, now ×4.5. **`mid_boss_health_multiplier` 2.25 → 1.75** (act 3's boss lands
+near its old effective health under ×6.0). Act 1 boss, the Oak and the bite unchanged. In: f1b10216.
+
+## Human run 10 (2026-10-01, build 3de1d4 = 735ff30a+; first run with route lines)
+
+**Lost at drift 18**, Sporeling only, 1 Grove node; user: *"This run seems fine, the Omen is what got
+me."* Act 1 closest 0.44–0.72, no leaks to 15, kills at 0.4–0.5 of the route. Took **Second Path** at
+the drift 15 rest: the crumbled Thornwall shortened the route, block 4's kills spread toward the
+Heartwood and **14 leaked**; all 15 leaves went in drifts 17–18 (reward: 4 Seeds). Banked 282–445
+unspent. **Second Path is offered from drift 26, not 15** (act 2+, like Tramplers / Burrowers): an act 1
+maze is a few walls deep and can't absorb losing its longest one (in 7ee4817a). Curve: no change.
+
+## Human run 11 (2026-10-01, build 3d47ff = b84f3e75+)
+
+**Lost at drift 30**, Sporeling → Dewdrop, 1 Grove node. Act 1 calm to 11 (≤ 0.24), leaks at 12 (5
+leaves) and 18–20 (3); Stag 42 s. Act 2 26–28 at 0.23–0.35, then **Leaf Fall** (taken at the drift 25
+rest with 8 leaves): 3 leaks at 29 cost all 8. Omens 4 faced, 0 Clear Skies. Front-loaded again: Dew and
+kills at 0.0–0.3, Heartwood share 0%. Driftspore 50%, Puffball 28%; Quickened Sap credited +15.6k.
+User on Omens with a hurt Heartwood: **keep as is** (Clear Skies is the choice; losing to an Omen is
+the gamble). No change.
+
+## Human run 12 (2026-10-01, build 238191 = 483e43ec; **a first-time player who doesn't play games**)
+
+**Lost at drift 30**, Sporeling → Firefly Jar, 2 Grove nodes. **Planted only: 60 Sporelings + 10 Firefly
+Jars, grow 0, ranks 0** (all 2,058 Dew spent on planting). Act 1 closest 0.70–0.94 to drift 10, then
+0.29–0.48, **no leaks until the boss**. Dew spread evenly along the route, Heartwood share 5–13% (unlike
+the user's front-loaded mazes). **The Scarecrow was dispelled (36 s), yet 6 Crows leaked: 12 leaves**,
+more than the 10-leaf bite for *failing* a boss. Act 2 with 4 leaves: 3 leaks at 29, dead at 30. Omens
+4 faced (Leaf Fall, Dry Spell ×2, Wilting).
+
+Reading: a total newcomer with a pure "plant base Wardens" plan holds act 1 and reaches act 2, which is
+on target for a fresh profile (and act 1's "teaches" side holds). Decisions:
+1. **Crow `leaf_cost` 2 → 1**: a won boss fight must not cost more than a lost one (in 5c716b8d).
+2. Never growing or ranking is an onboarding point, not a number: passed to the hub (a whisper when
+   Dew sits on a growable Warden?).
+
+**Correction:** whispers / hints were **switched off** for this run, so she got no onboarding at all.
+"Never grew a Warden" is partly that; **her economy (plant-only) is not a fresh player's normal.** Since
+c8d1fc33 the always-on Growth hint marks are a separate setting from whispers.
+
+## Human run 13 (2026-10-03, build 6e7574 = 83d9b3b0, Dev Grove: Full; first run after the act 1 fixes)
+
+**Lost at drift 10**, 3 min. Nestling first, grew **3 Magpie Perch** (the thief; ~0.1× Driftspore on its
+own damage) + 10 Sprouts; Dew earned 515. Closest 0.84–0.88 at drifts 7 and 9, then **drift 10, the first
+block finale: 8,619 health (drift 9: 3,747, so ×2.3), 13 leaks, all 15 leaves in one drift.** Kills and Dew
+were at 0.1–0.4 of the route, nothing near the Heartwood.
+- **A first finale must not end a full-leaf run:** `block_finale_health_from` **10 → 15** (in d75b7d9f after Roguelite 72a2879b; drift 10 keeps its
+  one elite as a small first spike). The demo is unaffected.
+- Nestling isn't expanded yet (the sky merge is Phase 3), so both branches were offered and the user picked
+  the support. Not a draw issue; watch whether Magpie Perch reads as a trap first pick.
+
+## Half-cell placement: the re-check plan (2026-10-04; half_cells.md, experiment until the user says yes)
+
+Once it merges (Wardens at half-cell offsets, nightmares on a 32 px grid, 1-cell corridor minimum), re-check
+on the merged build, at low sim load while the user may play:
+1. **Route length:** the opening route, the route at drifts 24 / 45, and "+N path" units (cells vs half cells).
+   Mazes are expected to be longer, which eases every drift.
+2. **Act 1 baseline:** fresh Balanced / skip, 30 seeds, --boss-draw, finale leaves (targets as the Current
+   targets table).
+3. **Each act 1 boss forced** (Stag, Night Mare, Scarecrow), 20 seeds; the Stag's trample and the Night
+   Mare's laps on longer routes.
+4. **Time in range:** per-form probes for close-range and pulse Wardens (they gain most from hugging walls).
+5. **Rootling pulls:** the "two pulls = one drag" test in tiles walked (half steps).
+6. **Cell-measured things:** auras, Kinship reach, gift areas, Deeproot's guard ring. They stay in full cells
+   by spec, so check only that they read the same.
+Lever if mazes grow a lot: act 1 ramp / finale health, not Warden numbers.
+
+## Milestone thresholds (2026-10-04; milestones give bonus Seeds only, meta_design.md 269b14b0)
+
+Checked against the user's profile and run history: shades_dispelled 577 after a few real runs; a drift-42
+run dispels ~1,200 nightmares (~700 Shades). **Shades 3,000** total (was 2,000: the third good run); **path 130
+tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–57, bot mazes ~80 at drift 24);
+**tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
+`longest_path` / `tended` requested in the run history to re-check.
+
+## Human run 16 (2026-10-03, build 0848cb = 27c658f7, the real profile with 0 Grove nodes)
+
+**Lost at drift 42**, 13 min. Firefly Jar → Dewdrop; **2 Starbursts = 53% of damage**, 7 Sparklers, 3
+Cloudlets. **Combos 41%** of damage (the top of the 25–40% target). **15/15 leaves through drift 39**, no leak
+before 40; the Hollow Stag in 22 s; act 2 closest mostly 0.2–0.4. Then **the drift 40 finale: 9 leaks, 13
+leaves in one drift** (its 3 elites at ×3 × 1.4 = ×4.2 health), and 41–42 finished it. Kills sat at 0.0–0.3 of
+the route, Heartwood share 0%.
+- On target: a fresh profile ending in act 2 ✓.
+- A full-leaf run losing almost everything to one finale is a cliff: **the finale's ×1.4 no longer stacks on
+  its elites** (elites keep ×3; in 577f62b0).
+
+## Nurture rework (2026-10-03, tower_design / warden_stats 02417f32; in e2631f54, boss side 0a309566)
+
+Numbers: Keen +10% crit chance per rank (cap 75%); Yield +1 alive per 2 ranks (Brood Cap, Seedbearer), Dream
+Oak +0.5 shard / drift per rank; Reach +0.3 cells; Deep caps (pull 1.5×, grounding 5 s, link 50%, boss
+slow floor 0.35); supports Prism +2%, Acorn +1%, Nurse Log +3% (40% max). **Probe** (rank V, no Dreams):
+**Keen 0.61–0.82× Power** per Dew; **Brood Cap Yield 0.56×** (max-alive rarely binds). Changes: **Keen also
++10% crit damage per rank**; **Brood Cap Yield = sprite interval −0.25 s per rank** (floors 0.75 / 0.5 s; in b1e28266). **Re-run:** Keen 0.87–0.91× Power (Moonstone 0.64: already 25% crit, Power is its pick; accepted); Brood Yield 0.78× → **+8% sprite burst per rank** too (dc26dea0): Brood Yield now **1.09× Power** (leak 0.228 vs 0.211) ✓. Nurture tuning closed.
+
+## Human run 15 (2026-10-03, 83d9b3b0 → 5692de; before the finale-health fix, Dev Grove: Full)
+
+**Lost at drift 39**, 18 min. Pebbling → Rootling; 7 Mossbacks carried (from combos 26–34%); run combo share
+**23%** (near the 25–40% target). Act 1 calm (closest ~0.3–0.5) except the finales (10: −3, 15: −2); the
+Hollow Stag in 23 s; act 2 calm to 29, then **the drift 30 finale −6**, and 38–39 the rest. Kills at 0.2–0.4 of
+the route. User: **"Feels fine, keep it for now. Needs a bit more testing."** No change.
+
+## Human run 14 (2026-10-03, same build, Dev Grove: Full)
+
+**Lost at drift 20** (a finale), 8 min. **Acorn first**: 2 Acorns, 4 Elder Stumps, 13 Sprouts; Dew banked
+230–320 through drifts 5–11. Leaks from drift 6; the drift 10 finale spawned 9,281 health (×2.5 drift 9;
+the finale fix lowers it); 4 leaves at 15, the rest at 19–20. Kills moved deep (0.5–0.8 of the route) by
+block 3. Combos 1%.
+User on support openers (Magpie Perch, Acorn): **"Keep as is"**. Picking a support family first is a
+choice with a cost. No change beyond the pending drift 10 finale fix.
+
+## Nap batch on main (2026-10-02, 175058a0: Spire rules + round 3)
+
+**1. Round-3 re-probe of the new branches** (fixed board, 3 seeds): **in band:** Undercurrent 0.52×,
+Jarlink 0.52× (fence 96%) Driftspore; Silence 0.82× Puffball. **Just under:** Lightning Fence 0.68 / 0.78×,
+Rainbow Prism 0.72 / 0.64×, Prism Jar 0.38× → **last nudge** (19941de6): Fence arc 650, Rainbow 240, Prism Jar 105.
+**Bells** (Silver Bell, Vesper Bell, Hushbell) still below par on leak; left for human runs (their
+sleep / silence value needs real builds). The new-branch probe series is closed.
+
+**2. Act 1 baseline** (fresh, real boss draw, 30 seeds): Balanced survives the boss **30%** (target ~55–60%;
+14/30 die before 25), skip **0%** ✓. Finales: drift 10 0.62 leaves (86% clean), 15 0.92 (81%), **20: 2.53
+(29% clean)**. Below the Spire branch's own 50–55% on the same act 1 rules, so something since then made
+act 1 harder for the bot: A/B queued (branch expansion on / off, and the pre-expansion branch build)
+before choosing a lever (finale health, the drift 20 finale, or the ramp).
+
+**3. Each start family** (fresh, forced, 15 seeds): survived the boss **Bellflower 53%, Sporeling 40%,
+Dewdrop 20%, Firefly Jar 7%** (target 70–90%). Dewdrop leaks hardest at the finales (2.8 / 3.8 / 2.8 leaves
+at 10 / 15 / 20); Firefly dies mostly at 13–20. All four are low, matching item 2; the A/B decides the cause
+before any family change.
+
+**5. Demo sanity** (`--demo`, DEMO_RULES, the Hollow Stag, 20 seeds): Balanced **70%**, skip **40%**; finales
+cost nothing (no finale rules in the demo). **The demo gating works** and plays like before the Spire rules.
+So the full game's 30% comes from what differs: the act 1 ramp from drift 3, the finales (×1.4 + elites),
+and the branch expansion. The A/B splits the branch expansion off from the rest.
+
+**Act 1 A/B** (fresh, Balanced, 30 seeds): main as is **30%**; main with the branch expansion off **60%**;
+the Spire build before the expansion **60%**. With the expansion on, the bot grew Driftspore in 8 runs
+instead of 21 and took Lichenling / Brood Cap instead. **Cause: the 2-of-5 draw often doesn't offer
+Driftspore, and the new damage branches are weaker.** Decision: the damage-branch band tightens to
+**0.8–1.0× Driftspore** (a drawn branch must be about as good as the one it replaces). Raises: Lichenling
+22, Brood Cap burst 24, Thrum 70, Jetreed base 60, Undercurrent 60 dmg/s, Jarlink arc 210, Sparkler 40 (in 7567034e).
+Re-run arm (a) after.
+
+**Arm (a) re-run on 7567034e** (the branch raises): **40%** (was 30%; 60% with the expansion off); drift 20
+finale 1.33 leaves / 50% clean; 14/30 still die before 25. When Driftspore isn't offered, the bot now
+grows Bloomcap / Lanternmoth / Prism Jar (supports and enablers), so an act 1 pair of two supports leaves
+no carry. Proposed to Tower Discussion: **every offered pair includes at least one damage branch** (a
+draw rule); if not, act 1 eases instead.
+**Agreed as a hard rule** (Tower Discussion 66e9927b): every offered pair has ≥ 1 **carry**. Carry list
+(own damage ≈ 0.6× Driftspore or more; Balancing Discussion owns it): Sporeling driftspore, inkcap,
+lichenling, brood_cap; Dewdrop rain_lily, mistveil, cloudlet, undercurrent, jetreed; Firefly Jar jarlink,
+sparkler; Bellflower chime_stone, thrum; Pebbling cairn, standing_stone, whetstone, rampart, quaker;
+Rootling rootcurl, tangleroot, rootlight; **Acorn exempt** (no carry branch). Built in a1b934d0 (`DreamState.CARRY_BRANCHES`); detection weight ×3 after coverage fell to 73% (agreed with Tower Discussion: 78%, Rootling top pair 34 → 36%); Thorncoil joins the carries if its re-probe lands in band. Act 1 numbers unchanged
+until the re-run.
+
+**Arm (a) with the carry rule** (a1b934d0): still **40%** (drift 20 finale 65% clean; 16/30 die before
+25). Bloomcap is still grown in 5 runs although every pair now has a carry, so the open question is the
+bot's choice between the two offered branches. An offered-branches column is being added; if the bot
+passes up a carry, the fix is the bot's policy, not the game.
+**It was the bot:** it alternated growth between its unlocked branches (Driftspore, Bloomcap, …). Fixed
+(Balancing Code 63da43c8: through drift 25 it grows and unlocks carries first). Same 30 seeds: **47%** with
+the fix vs 37% without. Driftspore is offered in ~1/3 of runs (vs every run with the expansion off), so
+the Lichenling / Brood Cap runs are what's left: **Lichenling 26, Brood Cap burst 28** (the top of the band; in 84bbaf44).
+**Re-run on 84bbaf44:** **53%** (close to target; no more Sporeling changes). With Driftspore offered 9/12,
+without 7/14. **Firefly Jar first: 0/9** (it was 70% before the Spire rules). Its carries are now Jarlink
+and Sparkler; checking whether the bot's normal placement ever makes a Jarlink arc over the route (the probe
+places pairs on purpose) before any game change.
+**Answer:** the 9 runs died at drifts 8–23 with 8–12 base Firefly Jars and at most one branch Warden, and no
+Jarlink pair was ever made. Forced Firefly, 15 seeds: **27–33%** with or without a bot fence rule (fence
+damage 0: the bot rarely has two jars across the route). Jarlink pairing is human skill (the build ghost
+shows the arc); **the base board is the problem: Firefly Jar cost 30 → 25, damage 12 → 14** (d69c53b4; shared with the
+demo, which is re-checked).
+**After d69c53b4** (15 seeds): full game Firefly-first **33% → 47%**, no run dies before drift 18 (was 10–17);
+the demo 87% → 100% (two runs; within noise, and the demo is the gentle intro). **Accepted; act 1 tuning
+closed** at ~50–55% overall for the bot (the user plays better than it). Human runs judge from here.
+
+**4. Grove cap on main** (ed114826, before the branch raises; a bot gift-screen stall voided the first
+attempt): full loadout vs no perks, 20 seeds each, act 1 boss survival **40% vs 30% (+10 points)**, +2.5
+drifts: **within the ≤ +10–15 cap** ✓. Both arms suffer the branch-draw drop. **Combo share** (bot):
+run-level 0.11–0.14, Reactions 0; it only reaches 0.2–0.45 in late blocks with few runs left. The bot
+under-builds combos; the 25–40% target is judged on human runs (`combo_share` in the run history).
+
+## Combo share of damage (user-approved, 2026-10-02)
+
+The user's Warden panels showed 52–76% of damage "from combos". **Target: in a good build, combos and
+Reactions make ~25–40% of all damage**: a real boost, not the majority. Measured as (combo bonus
+amounts + Reaction damage) ÷ total damage, by block, for the bot (Balancing Code, on the Dreams-vs-skip
+batch) and in the run history (Main Merger adds `combo_damage` / `reaction_damage` / `status_damage` /
+`combo_share`, in 731537b5; the record only had counts). Levers if far above: lower Reaction base damage, raise
+Wardens' direct damage, or both. Main first, the Spire branch after.
+**Bot measurement** (9b1a73ee, Resonance removed, real boss draw, 20 seeds per mode): combo share
+(DamageLog combo_amount ÷ damage) rises **0.06 → 0.39** fresh by drifts 36–40 (full profile 0.12 → 0.31);
+Reactions stay small (≤ 0.10). Top Wardens' "from combos": Stormcap 0.43–0.49, Firefly Jar 0.30–0.35,
+Driftspore 0.23–0.28, Sporeling 0.15. **Within the 25–40% target for the bot**; the user's 52–76% comes
+from human builds deeper into combos (and a Static bolt counts whole as combo). Decision waits for the
+first human runs carrying the new `combo_share` fields. No lever change yet.
+**Resonance removal check** (same batch): fresh with Dreams passes the act 1 boss **15/20 (75%)** ✓, skip
+**5/20 (25%)** ✓; runs with ≥ 3 Dream picks of one tag (a decent-build proxy) **55% fresh / 60% full** ✓
+(target ~50%). **No card re-basing needed.**
+**Combo cards as choices** (dream_design.md 784680b2): power signed off, with **Quick Reactions'**
+trade set at **−35%** Reaction damage (not −25%: double frequency × 0.75 was still +50%). Pick rates vs
+same-rarity cards are checked once offers are logged.
+
+## Tag Resonance removed (user, 2026-10-02; dream_audit.md a6628056)
+
+Resonance (+10% per same-tag card, max +50%) was a bonus on top of rarity-budgeted cards, so **no
+re-basing** (agreed with Roguelite Mechanic Discussion; fits "runs too strong / cards handed to me").
+Removal in 854a537e. Check: Dreams vs skip on main (act 1 targets: Balanced ~75%, skip clearly
+lower); specific cards are raised only if builds fall short.
+
+## Caveat: fresh-profile sims ran as the demo (found 2026-10-02)
+
+Until e3f3a211, every **fresh** sim ran as the demo (`game/demo` true under `--script`): act 1–2 bosses
+were the defaults whatever the seed, the demo's Kinship set applied, and the Grove was inert (no effect
+on fresh). Half / full sims and all human runs were the full game. Affected: the fresh act 1 baselines,
+the bite-10 checks, the per-family act 1 tables and the first-pick-1 baseline (all on the Hollow Stag);
+the Night Mare check forced its boss and stands. Fixed: all sims run as the full game, and
+`--boss-draw` gives the real per-seed draw. The overnight batch re-measures act 1 per family and per boss.
+
+## Overnight batch (2026-10-02, full game, real boss draw, build e3f3a211)
+
+**Morning summary.** In the game: Bellflower 17 (756676ac), the Sunpetal beam fix (d4efe268), the echo
+follows its nightmare (dd977146). Act 1 is on target for all four start families and all three bosses;
+the economy matches the design. **Committed in 2ef6d56f:** 16
+Warden files (Autumn Gale 85, Moonstone 490, Elf Circle 68, Snugroot 56, Fairy Ring 30; Starling
+Murmuration 57, Jewelwing Court 28, Midsummer 170, Sunpetal 81, Hummingbird Bower 27, Mossback 372,
+Wren's Nest 27, Frostfern 72, Whispering Hollow 50, Echo Hollow 22; Stormcap chains 4). Then a
+129-run re-probe of branches + finals and an 18-run Hollow re-check.
+
+**1. Act 1 per start family** (fresh, forced first family, 20 seeds; draw: Scarecrow 10, Stag 5, Night
+Mare 3): survived the boss, Balanced / skip: **Sporeling 85% / 45%**, Firefly Jar 70% / 20%, Dewdrop
+70% / 30%, **Bellflower 50% / 25%**. Bellflower leaks in block 1 (29 nightmares over 20 runs; the
+others 0–1) and in the boss block, but has the calmest blocks 2–4. Sporeling skip is the main miss on
+"skip loses". Decisions after item 2 (bosses forced).
+
+**2. Act 1 bosses forced** (fresh, 20 seeds each): survived with Dreams / skip: **Stag 80% / 30%,
+Night Mare 80% / 15%, Scarecrow 80% / 25%** ✓ all targets. The Stag is survived by its bite (55%
+dispelled); the Night Mare and Scarecrow are mostly dispelled (80%) at a median 5 leaves (laps,
+Crows). The boss pool is fine.
+
+Decisions: **Bellflower damage 14 → 17** (in 756676ac; the only family off target, 50%, and the only one leaking
+in drifts 1–5). **Sporeling unchanged:** its 45% skip in item 1 doesn't repeat in item 2, where most
+skip runs opened with Sporeling and survived 15–30%.
+
+**Bellflower re-check** (3608f4fc, damage 17, same seeds): Balanced survives the boss **75%** ✓ (was
+50%), skip 30% (was 25%); block 1 leaks 4 over 20 runs (was 29). **Closed.**
+
+**5. Economy** (40d26ed1, full profile to 40, 20 seeds, Clear Skies vs always face): Dew earned in
+drifts 1–25 **2,387 vs the pot table's 1,960** (+22%: rest bonuses, Rich Dew and call-early on top, as
+designed); the bot banks ~20–50 at each rest. **Dreamlight is spent the moment it arrives**: first pick
+→ one branch, then ~2.5 forms per run by 40 (per-run order inferred, not traced). Always facing Omens:
+Omen Dew −626 to +690 per run (negative runs: likely Dry Spell, the only pot cut; not checked), median drift reached 24
+vs 27. **No change:** income matches the design, and Omens are the gamble they should be.
+
+**Branch sweep** (40d26ed1, every branch ×4, rank IV, no Dreams, drifts 45–49, per Dew vs Driftspore):
+**Fairy Ring ~1.6× Driftspore** (1.5× Puffball, the only branch above a final) → **damage 44 → 30**.
+The damage branches spread 0.25–1.0×; support / economy branches sit near zero on their own damage
+(their board leak tells more: Bloomcap and Rain Lily boards leak less than higher-damage ones). Role
+check with Tower Discussion on the low ones (Hummingbird Bower, Sunpetal, Frostfern, Stormcap, Gust,
+Echo Hollow, Wren's Nest, Mossback).
+Roles and decisions: **Stormcap** (0.22×, yet even with Chime Stone at drift 15) and **Sunpetal**
+(0.11×, a ramping beam) are checked for bugs first (chain / bolt scaling; does the beam's ramp reset
+on retarget?). Buffs: **Hummingbird Bower ×3** (9 → 27), **Mossback ×1.5**, **Wren's Nest ×1.5** (a
+fast-nightmare specialist), **Frostfern ×2** (an enabler that shouldn't feel dead). Gust and Echo
+Hollow are support: board-lift probes.
+Bug checks: **Sunpetal was a bug** (the beam retargeted to each new front-runner and its ramp reset;
+fixed in d4efe268: beams hold their target while it's alive and in range). **Midsummer's ×2 reverted**
+(measured with the bug; re-probe first). **Stormcap: no bug** (chains and bolts use ranked damage);
+its data is the lever: **chain targets 3 → 4**.
+**Clean beam probe** (d4efe268): the fix adds only 10–20%: Midsummer ~0.31 / 0.35× Puffball, Sunpetal
+~0.12×. Buffs: **Midsummer 68 → 170 (×2.5)**, **Sunpetal 27 → 81 (×3)**; re-probe after.
+
+**Support check** (d4efe268; 4 of the support vs 4 of a reference on the same board, 3 seeds; pass =
+board damage ≥ and leak ≤): **Hoarfrost ✓** (board 0.96–1.24×, Shatter 41–55% of its credit, act 2 leak
+≤ 0.8%); **Grafted Elder ✓** (board 0.95–1.24×; per Warden 1.0–2.2× a Puffball, consistent with copying
+two neighbours at 85%); **Zephyr and Gust at par** (board 0.94–1.04×): accepted for supports.
+**Whispering Hollow ✗** (board 0.60–0.91×, echo only 1.6% of its credit) and **Echo Hollow ✗** (2 of 3
+maps): **bug check first** (do the echoes fire on Thunderclap; where is echo damage credited?), then a
+number.
+**Found:** echoes fire and are credited correctly, but land 1 s later on the **same spot** (1-cell
+reach), after the nightmare has walked on (a walking Shade took 0 echo hits). Recommended to Tower
+Discussion: the echo **follows the nightmare** the Reaction fired on. Re-probe both Hollows after.
+**After the fix** (dd977146): echoes land (Whispering Hollow's echo share 1% → 4–5%, Echo Hollow ~70%),
+but both boards still fail (WH 0.61–0.90× with far more leak; EH 0.86–1.05×): Reactions are too rare
+for echoes to carry a Warden. **Own pulse up: Whispering Hollow 18 → 50, Echo Hollow 10 → 22.** Echo
+shares final at 0.75 (Echo Hollow) / 1.0 (Whispering Hollow).
+**Full re-probe on 2ef6d56f** (eb0063cd, 3 seeds): finals in act 2 all in band except Midsummer 0.78
+(close); act 3 still high for Autumn Gale 2.07, Snugroot 2.18, Elf Circle 1.75, Moonstone 1.65 (they
+scale with the bigger act 3 field). Branches: Fairy Ring 1.19× Driftspore (was 1.6), Mossback 0.61 into
+band; still under 0.5: Wren's Nest 0.47, Sunpetal 0.37, Hummingbird Bower 0.31, Stormcap 0.28,
+Frostfern 0.26 (an enabler), plus the support / economy tail. **Last step, then the probe series
+closes:** Autumn Gale 85 → 72, Snugroot 56 → 48; Hummingbird Bower 27 → 40, Sunpetal 81 → 113, Stormcap
+damage 18 → 24; Whispering Hollow 50 → 62, Echo Hollow 22 → 28 (in 14546411). Everything else stays; human runs judge
+from here.
+**Re-check on 2ef6d56f:** Whispering Hollow board **0.95–1.03× at 45** (par) but 0.69–0.82× at 61, and
+still leakier; Echo Hollow board unchanged (0.85 / 0.85 / 1.07). Held for the full re-probe, then one
+more step on both, decided together with the branches.
+
+**4. Act 2 bosses at drift 50** (40d26ed1, fixed board of 12 finals, rank IV, no Dreams, 3 seeds): none
+dispelled; health left at the Heartwood Huntsman 44–88%, Lamplighter 10–34%, Mire Hag 45–53%. A
+no-Dream board is a floor, not a player's board. Bosses at **×1.75** (confirmed: Huntsman 6,500 × 1.75
+× 4.5 = 51,188). No change; the next human run on ×1.75 decides.
+
+**3. Finals sweep** (40d26ed1, every final ×4, rank IV, no Dreams, finals cast, 3 seeds, per Dew vs
+Puffball; band 0.8–1.5×). **High:** Autumn Gale 1.61 / 2.36, Moonstone 1.54 / 2.11, Elf Circle 1.42 /
+2.10, Snugroot 1.34 / 2.36 (act 2 / act 3); Lullaby Bell (72) 1.34 / 1.53 (accepted). **Low damage
+dealers:** Midsummer ~0.28, Starling Murmuration ~0.53. Supports / economy (Grove Heart, Beacon,
+Wellspring, Great Dreamcatcher, Magpie's Hoard) are low on direct damage by design; Thunderhead (0.37)
+is a Static enabler (Puffball's Ignite, Morning Fog's Thunderclap). **Decisions:** damage ×0.75 on
+Autumn Gale, Moonstone, Elf Circle, Snugroot; Midsummer ×2, Starling Murmuration ×1.5. Role check with
+Tower Discussion on Whispering Hollow, Zephyr, Grafted Elder, Jewelwing Court and Hoarfrost. Re-probe after.
+Roles (Tower Discussion): **Jewelwing Court** is a damage final → **damage 23 → 28**. Whispering Hollow
+and Zephyr are amplifiers, Hoarfrost a combo piece, Grafted Elder a copier (~0.85× its neighbours):
+judged by the **board with vs without them** (vs 4 Puffballs) on boards that suit them, not by their
+own damage per Dew. Support probes queued.
+
+## Route profiles in the run history (user, 2026-10-01)
+
+User: *"Look where I've invested the most in the maze; it shows where most of the nightmares die."*
+Requested from Main Merger: `dispels_by_progress` (kills + health per 0.1 of route progress, plus
+leaked, per block), `invested_by_progress` (Wardens' Dew spread over the route cells they cover, at
+each rest) and `heart_share` (Dew within 3 cells of the Heartwood), with report lines and, if cheap, a
+heat-map PNG. **In from d8010456** (`route_blocks`, `heat_map` in user://run_maps/). The bot logs the same. Reads: front-loaded vs last-ditch builds, where leaks slip
+through, and whether a kill zone pays for its Dew.
+
+**Finals probe** (`tools/balance_finals.gd`, ≥ 144d371b, drifts 61–65, 4 copies in the same spots +
+8 fixed finals, rank IV Power, no Dreams, 3 map seeds): per Warden over 5 drifts, **Dreamshroom
+~319k vs Puffball ~154k, Morning Fog ~137k, Mistveil (branch) ~51k**; at the same 1,090 Dew,
+**Dreamshroom is ~2.1× Puffball**, and its board leaks 19% of spawned health vs ~50%. 73–88% of its
+damage is credited as status ticks (which ticks: being broken down). **Dreamshroom is a real outlier**:
+the nerf targets whatever makes the 2× (target ≈ 1.1–1.2× Puffball), once the breakdown is in.
+**Breakdown** (457a9807): ~88% is its **Dream Spores** twist (each sleeper in range puffs Spored onto
+neighbours every 1 s at `get_damage() × 0.25` = 2× Puffball's stack, which also lifts the whole stack
+to its potency and credit; every overlapping Dreamshroom puffs separately). Cloud 10%; the sleep is
+only the trigger. **Nerf:** Dream Spores at **half soothe**, and **one puff per sleeper per second
+across all Dreamshrooms**. Re-probe after Tower Code's commit.
+**Drifts 45–49** (f80fb34d): Dreamshroom ~240k vs Puffball ~197k per Warden (**~1.2×**), board leak 0%
+vs 15%: its edge grows with the field (2.1× at 61). Acceptance after the nerf: **1.0–1.3× Puffball in
+both windows**; if act 2 drops below 1.0×, Dream Spores soothe goes ×0.5 → ×0.65.
+**Re-probe** (a9951bd1, c7f3e56d in): **61–65: 1.22–1.25× on every seed ✓** (was 2.1×). 45–49:
+per-seed 0.77 / 1.11 / 0.77, ratio of medians 1.05 (one high Puffball seed); its board still leaks
+least (1.6–4.7% vs 12–20%). **Kept at ×0.5:** the board-level strength says it isn't weak in act 2,
+and ×0.65 would push act 3 to ~1.5×. Watch it in human runs. Closed.
+This conflicts with the targets (Half Grove reaches act 4, Full wins). Next: find out whether the
+off-build cards are dead for the build (a `can_offer` rule fixes it) or usable (a pool-size question),
+then bring the fix to the user. Caveat: one family pair, one bot style, which picks by tag + rarity.
+
+## Human run 5 (2026-10-01, build b6d458 = ee3d82d0: run-4 curve, Dew pot, boss bite 10, Night Mare ×1.5, Acorn +15%)
+
+Lost at **drift 35**, 1 Grove node (Morning Stores), no early calls. Firefly Jar first, Sporeling at
+25. Top damage: 2 Stormcaps 51%, 2 Lanternmoths 23%. Dew earned 3,729 (ranks 2,140), banked ≤ 571.
+Dreams 6 taken, 0 passed; Omens 4 faced, 1 Clear Skies.
+
+- **Act 1 block 3 spiked:** closest 0.80–1.00 at drifts 11–15, **9 leaves lost** (first leak 13; the
+  Swarm at 15 took 5). Blocks 4–5 settled at 0.25–0.55. Target for a fresh profile is 0–3 by 25.
+  One run, and Firefly Jar (single target) against the Swarm is a readable matchup: **watch**.
+- **The Stag: dispelled in 46 s**, no leaves.
+- **Act 2 drifts 26–30: closest 0.22–0.29** (the breather), then **drift 31 cost 6 leaves**: it's the
+  Phantom's intro drift (4 Phantoms, flying, fixed), and the guaranteed elite from drift 31 made one an
+  elite Phantom; all 5 flew past (802 of 3,193 damage). Down to 1 leaf, then drift 34 (77k health,
+  closest 1.0) ended the run at 35.
+- Against the targets: **a fresh profile ending in act 2 ✓**. But the deciding leak was an intro
+  drift doubled by a rule, which isn't readable.
+
+Decisions:
+1. **No guaranteed elite on a nightmare's intro drift:** `add_guaranteed_elite` never picks a kind
+   whose `intro_drift` is this drift (skipped if nothing else is there). In the game: ade9a9ef.
+2. Act 1 block 3 and act 2's start: no change from one run.
+
+User: *"The run felt fair so far, lost because of flyers that I didn't notice would be coming from
+the wave, but that is my fault."* So **the curve reads fair**; the loss was not seeing the first
+flyers coming (a readability point for the Coming strip / new-nightmare warning, passed to the hub).
+
 ## Later
 
 A **human baseline**: the same CSV written from real playtests (debug builds only), so the bot's
@@ -281,6 +1098,23 @@ underestimate player power; the history is the check.
   rewards; bosses met and dispelled (time to dispel); Dew earned / spent on planting, growth, ranks,
   clears, and banked at each rest; Wardens at the end (count by form and rank, number of attackers);
   top 5 Wardens by damage and their share; combo and Reaction counts; Dreamlight earned / spent.
+- **The exact build it was played on** (2026-09-30, user: *"make sure you know what version I am
+  playing on; versions are not commits but every change"*). Many chats edit the folder at once and
+  the user plays whatever is on disk, often with uncommitted edits, so a commit hash isn't enough.
+  Each record carries:
+  - **`build_id`**: a short hash of the **contents** of every script and data file the game loads
+    (`.gd`, `.tres`, `.tscn`, `project.godot`, `.json` data), computed once at launch (debug builds)
+    or baked at export. Any change, committed or not, gives a new id; the same files give the same id.
+  - **`commit`** (HEAD) and **`dirty`**: the uncommitted files at launch, each with its own content
+    hash, so a build can be matched to "commit X plus these edits".
+  - **`build_time`** (when the id was computed) and a readable **`build_label`**: "Sep 30 21:14 ·
+    3f9a2c" shown on the title screen (debug) and in the run report.
+  - **`balance`**: a snapshot of the tuning numbers that matter for comparing runs (DriftDirector
+    health multipliers per act, boss multiplier, starting Dew and leaves, rest bonus, Dew per act),
+    so two runs on different builds can be compared number by number.
+  - A local **`builds.json`** log next to the history: every new `build_id` the first time it's
+    launched, with its commit, dirty files and time, so the design chat can see which changes
+    landed between two runs.
 - **Per drift, compact:** drift, leaves lost, Dew banked, nightmare health spawned vs damage dealt,
   closest approach (share of the route). Same column names as the bot's `runs.csv` / drift log, so
   `tools/balance_summary.gd` can read human and bot runs side by side.

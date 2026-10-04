@@ -1,0 +1,250 @@
+extends SceneTree
+
+# Settings "Apply and Cancel" (screens_ui.md "Settings", 2026-10-01): changes preview live but save only on Apply;
+# Cancel restores, Defaults resets the tab, closing with changes asks, risky display changes revert unless kept,
+# keybind conflicts show before Apply. Temp profile.
+
+var failures := 0
+
+func _check(ok: bool, what: String) -> void:
+	if ok:
+		print("  ok: ", what)
+	else:
+		failures += 1
+		push_error("FAIL: " + what)
+
+func _initialize() -> void:
+	_run.call_deferred()
+
+func _saved() -> Dictionary:
+	HeartwoodMemory.preview_settings = {}
+	var settings := HeartwoodMemory.get_settings()
+	return settings
+
+func _run() -> void:
+	HeartwoodMemory.file_path = "user://test_settings_apply_%d.json" % OS.get_process_id()
+	HeartwoodMemory.forget()
+	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
+	var panel := SettingsPanel.new()
+	root.add_child(panel)
+	await process_frame
+	_check(not panel.has_changes() and panel.apply_button.disabled and not panel.cancel_button.disabled,
+		"opens with nothing changed: Apply greyed (Cancel always closes)")
+
+	# A change previews (readers see it) but isn't saved.
+	panel._set_value("reduce_flashes", true)
+	_check(bool(HeartwoodMemory.get_settings().reduce_flashes), "the change previews live (get_settings sees it)")
+	_check(not bool(_saved().reduce_flashes), "…but isn't saved")
+	panel._preview()
+	_check(panel.is_changed("reduce_flashes") and panel._dots["reduce_flashes"].modulate.a > 0.5, "a gold dot marks it")
+	var access := panel.tabs.get_node("Accessibility")
+	_check(panel.tabs.get_tab_title(access.get_index()).ends_with("•"), "and its tab")
+	_check(not panel.apply_button.disabled, "Apply is live")
+
+	# Cancel restores and closes, without asking (user, 2026-10-01).
+	var cancel_closes := [0]
+	var count_close := func() -> void: cancel_closes[0] += 1
+	panel.closed.connect(count_close)
+	panel.cancel()
+	panel.closed.disconnect(count_close)
+	_check(not panel.has_changes() and not bool(HeartwoodMemory.get_settings().reduce_flashes), "Cancel puts the saved value back")
+	_check(HeartwoodMemory.preview_settings.is_empty(), "…and ends the preview")
+	_check(cancel_closes[0] == 1 and not panel.close_prompt.visible, "…and closes, no question asked")
+
+	# Developer switches wait for Apply too (user, 2026-10-01).
+	if TestGrove.is_available():
+		panel._set_value(TestGrove.SETTING, true)
+		var dev := panel.tabs.get_node("Developer")
+		_check(panel.is_changed(TestGrove.SETTING) and not bool(_saved().get(TestGrove.SETTING, false))
+			and panel.tabs.get_tab_title(dev.get_index()).ends_with("•"), "a Developer switch waits for Apply, with its dot")
+		panel._set_value(DevGrove.SETTING, "half")
+		_check(str(_saved().get(DevGrove.SETTING, "off")) == "off", "…Dev Grove too")
+		panel.apply()
+		_check(bool(_saved().get(TestGrove.SETTING, false)) and str(_saved().get(DevGrove.SETTING, "")) == "half",
+			"Apply saves them")
+		panel._set_value(TestGrove.SETTING, false)
+		panel._set_value(DevGrove.SETTING, "off")
+		panel.apply()
+
+	# Apply saves.
+	panel._set_value("music_volume", 0.2)
+	panel.apply()
+	_check(is_equal_approx(float(_saved().music_volume), 0.2) and not panel.has_changes(), "Apply saves")
+	_check(not panel.keep_prompt.visible, "a volume change doesn't ask to be kept")
+
+	# Defaults: the current tab only, still needs Apply.
+	panel.tabs.current_tab = panel.tabs.get_node("Audio").get_index()
+	panel._set_value("reduce_flashes", true)
+	panel.reset_tab()
+	_check(is_equal_approx(float(panel._settings.music_volume), 0.55), "Defaults resets the tab's settings")
+	_check(bool(panel._settings.reduce_flashes), "…not other tabs'")
+	_check(is_equal_approx(float(_saved().music_volume), 0.2), "…and needs Apply")
+	panel._discard()
+
+	# Closing with changes asks: Keep editing, Discard, Apply.
+	var closes := [0]
+	panel.closed.connect(func() -> void: closes[0] += 1)
+	panel.request_close()
+	_check(closes[0] == 1, "nothing changed: Back closes at once")
+	panel._set_value("hitstop", false)
+	panel.request_close()
+	_check(panel.close_prompt.visible and closes[0] == 1, "unapplied changes: Back asks first")
+	panel._hide_prompts()
+	_check(panel.has_changes() and closes[0] == 1, "Keep editing keeps the change and the panel")
+	panel.request_close()
+	panel._close_discard()
+	_check(closes[0] == 2 and not panel.has_changes() and bool(_saved().hitstop), "Discard drops it and closes")
+	panel._set_value("hitstop", false)
+	panel.request_close()
+	panel._close_apply()
+	_check(closes[0] == 3 and not bool(_saved().hitstop), "Apply in the question saves and closes")
+
+	# Risky display changes: "Keep these settings?", no answer reverts (the rest of that Apply stays).
+	panel.revert_seconds = 0.3
+	panel._set_value("ui_scale", 0.75)
+	panel._set_value("whispers", false)
+	panel.apply()
+	_check(panel.keep_prompt.visible and is_equal_approx(float(_saved().ui_scale), 0.75), "a UI scale change asks to be kept")
+	var start := Time.get_ticks_msec()
+	while panel.keep_prompt.visible and Time.get_ticks_msec() - start < 3000:
+		await process_frame
+	_check(not panel.keep_prompt.visible and is_equal_approx(float(_saved().ui_scale), 1.0), "no answer reverts it")
+	_check(not bool(_saved().whispers), "…and keeps the rest of the Apply")
+	panel._set_value(SettingsPanel.VSYNC_SETTING, false)
+	panel.apply()
+	panel.keep()
+	await create_timer(0.5).timeout
+	_check(not bool(_saved().vsync) and not panel.keep_prompt.visible, "Keep keeps it")
+
+	# The UI size survives display changes (story chat 2026-10-02, user: "it resets the UI size"): a chosen share stays
+	# saved and applied through window size, fullscreen and a revert of them; window size greys out while fullscreen.
+	panel._set_value("ui_scale", 0.6)
+	panel.apply()
+	panel.keep()
+	var share_kept := func(what: String) -> void:
+		_check(is_equal_approx(float(_saved().ui_scale), 0.6) and is_equal_approx(UiStyle._scale_share, 0.6)
+			and is_equal_approx(float(HeartwoodMemory.get_settings().ui_scale), 0.6), "the UI size stays 60%% after %s" % what)
+	panel._set_value(SettingsPanel.WINDOW_SIZE_SETTING, 3)
+	share_kept.call("a window size preview")
+	panel.apply()
+	panel.keep()
+	share_kept.call("a window size Apply")
+	_check(not panel.window_size_pick.disabled and panel.window_size_pick.tooltip_text == "", "windowed: the size can be picked")
+	panel._set_value("fullscreen", true)
+	_check(panel.window_size_pick.disabled and panel.window_size_pick.tooltip_text == SettingsPanel.SIZE_FULLSCREEN_TIP,
+		"fullscreen: the size greys out and says why (no silent no-op)")
+	panel.apply()
+	panel.keep()
+	share_kept.call("fullscreen")
+	panel._set_value("fullscreen", false)
+	panel._set_value(SettingsPanel.WINDOW_SIZE_SETTING, 1)
+	panel.apply()
+	start = Time.get_ticks_msec()
+	while panel.keep_prompt.visible and Time.get_ticks_msec() - start < 3000:
+		await process_frame
+	_check(bool(_saved().fullscreen) and int(_saved().window_size) == 3, "no answer reverts the display change")
+	share_kept.call("a display revert")
+	panel._set_value("ui_scale", 0.9)
+	panel._set_value("fullscreen", false)
+	panel.apply()
+	start = Time.get_ticks_msec()
+	while panel.keep_prompt.visible and Time.get_ticks_msec() - start < 3000:
+		await process_frame
+	share_kept.call("reverting a UI size change made with a display change (the old size comes back)")
+	panel._closing()
+	panel._open()
+	share_kept.call("closing and reopening")
+	panel._set_value("fullscreen", false)
+	panel._set_value(SettingsPanel.WINDOW_SIZE_SETTING, 0)
+	panel._set_value("ui_scale", 1.0)
+	panel.apply()
+	panel.keep()
+
+	# Keybind conflicts show before Apply.
+	var build_key := KEY_B
+	for event in InputMap.action_get_events("toggle_build_mode"):
+		if event is InputEventKey:
+			build_key = SettingsPanel._keycode(event)
+	panel._set_value("keybinds", {"pause_game": [build_key]})
+	_check(not panel.get_conflict_lines().is_empty() and panel.conflict_label.visible,
+		"a rebind onto Build mode's key shows the conflict (%s)" % [panel.get_conflict_lines()])
+	_check(panel._key_dots["pause_game"].modulate.a > 0.5, "the rebound key has its dot")
+	panel._discard()
+	_check(panel.get_conflict_lines().is_empty() and not panel.conflict_label.visible, "Cancel clears it")
+
+	# Hidden mid-change (the pause menu closing): the change is dropped.
+	panel._set_value("reduced_motion", true)
+	panel.visible = false
+	_check(not bool(HeartwoodMemory.get_settings().reduced_motion) and HeartwoodMemory.preview_settings.is_empty(),
+		"hiding the panel drops unapplied changes")
+
+	# The route line follows the preview and always ends on the saved value (user screenshot: a stuck high-contrast line).
+	panel.visible = true
+	panel._set_value(RouteLine.SETTING, true)
+	_check(RouteLine.is_high_contrast(), "previewing the high-contrast route line shows it")
+	panel.cancel()
+	_check(not RouteLine.is_high_contrast(), "Cancel turns it back off")
+	panel._set_value(RouteLine.SETTING, true)
+	panel.request_close()
+	panel._close_discard()
+	_check(not RouteLine.is_high_contrast(), "…as does Discard")
+	panel._set_value(RouteLine.SETTING, true)
+	panel.visible = false
+	_check(not RouteLine.is_high_contrast(), "…and hiding the panel")
+	panel.visible = true
+	panel._set_value(RouteLine.SETTING, true)
+	panel.apply()
+	_check(RouteLine.is_high_contrast() and bool(_saved()[RouteLine.SETTING]), "Apply keeps it")
+	panel._set_value(RouteLine.SETTING, false)
+	panel.apply()
+	_check(not RouteLine.is_high_contrast(), "and turning it off applies")
+	panel._set_value(RouteLine.SETTING, true)
+	panel.queue_free()
+	await process_frame
+	_check(not RouteLine.is_high_contrast(), "freed mid-preview (a scene change): the saved value again")
+	HeartwoodMemory.preview_settings = {}
+	InputMap.load_from_project_settings()
+
+	# The user's path (story chat 2026-10-02): title Settings → fullscreen (Apply), start a run, pause → Settings,
+	# pick a window size → the UI size must not jump to Largest. Their profile holds 0.65 (an old slider value, shown
+	# as the nearest preset): a value no preset matches must survive too.
+	var title_panel := SettingsPanel.new()
+	root.add_child(title_panel)
+	await process_frame
+	title_panel._set_value("ui_scale", 0.65)
+	title_panel._set_value("fullscreen", true)
+	title_panel.apply()
+	title_panel.keep()
+	title_panel.queue_free()
+	await process_frame
+	var main: Node = load("res://scenes/main.tscn").instantiate()
+	root.add_child(main)
+	for frame in 3:
+		await process_frame
+	var pause = main.find_child("PauseMenu", true, false)
+	pause.open()
+	pause._show_settings()
+	await process_frame
+	var run_panel: SettingsPanel = pause._settings
+	_check(is_equal_approx(float(run_panel._settings.ui_scale), 0.65) and bool(run_panel._settings.fullscreen),
+		"the pause menu's Settings open on the title's saved values")
+	_check(run_panel.window_size_pick.disabled, "fullscreen: its window size is greyed there too")
+	run_panel.window_size_pick.item_selected.emit(4)  # As a pick (before the grey-out a fullscreen pick was possible)
+	run_panel.apply()
+	run_panel.keep()
+	_check(is_equal_approx(float(_saved().ui_scale), 0.65) and is_equal_approx(UiStyle._scale_share, 0.65)
+		and int(_saved().window_size) == 4, "a window size picked from the pause menu keeps the UI size (0.65)")
+	run_panel._set_value(SettingsPanel.VSYNC_SETTING, true)
+	run_panel.apply()
+	run_panel.keep()
+	pause.close()
+	pause.open()
+	pause._show_settings()
+	await process_frame
+	_check(is_equal_approx(float(run_panel._settings.ui_scale), 0.65), "…and after another display Apply and reopening")
+	main.queue_free()
+	await process_frame
+	HeartwoodMemory.preview_settings = {}
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
+	print("PASS" if failures == 0 else "FAILURES: %d" % failures)
+	quit(failures)

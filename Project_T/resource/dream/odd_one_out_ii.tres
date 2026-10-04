@@ -14,3 +14,4 @@ requires = Array[String]([])
 max_stacks = 1
 deepens = "odd_one_out"
 rule_id = &"odd_one_out"
+in_start_pool = false

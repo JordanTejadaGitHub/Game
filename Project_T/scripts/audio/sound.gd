@@ -183,9 +183,11 @@ func has_sound(id: StringName) -> bool:
 
 # The dispel: sigh and dissolve, then the release (a warm exhale / low hum in D). Several close
 # together blend into one softer swell: each is a little quieter, never higher.
-# `size_pitch` < 1 for bigger nightmares: a lower, slower sigh (never added low end). Normal dispels
-# don't duck the music any more (fourth listen); the boss's still does.
-func play_dispel(at: Vector2, boss := false, size_pitch := 1.0) -> void:
+# A soft burst of light, releasing a soul (audio_direction.md ac4fdf75): tuned air on D, F#, A; no voice.
+# Played at its own pitch so it stays in D (`_size_pitch` is ignored now: a pitch shift would detune it).
+# Deeply Blighted (`elite`): its own slower, fuller, lower variant. Close together they blend into one
+# wider glow, each quieter (never stepping). Normal dispels don't duck; the boss's does.
+func play_dispel(at: Vector2, boss := false, _size_pitch := 1.0, elite := false) -> void:
 	if boss:
 		duck(8.0, 1.0)
 		play(&"dispel_boss", at, 2.0, 1.0, 0.0)
@@ -194,8 +196,7 @@ func play_dispel(at: Vector2, boss := false, size_pitch := 1.0) -> void:
 	_dispel_cluster = _dispel_cluster + 1 if now - _dispel_time < DISPEL_CLUSTER_MS else 0
 	_dispel_time = now
 	var cluster_db := maxf(DISPEL_CLUSTER_DB * _dispel_cluster, DISPEL_CLUSTER_MAX_DB)
-	play(&"dispel", at, -3.0 + cluster_db, size_pitch)
-	play(&"dispel_release", at, -6.0 + cluster_db, 1.0, 0.03)
+	play(&"dispel_elite" if elite else &"dispel", at, -3.0 + cluster_db, 1.0, 0.0)
 
 
 # --- Music and ambience ---------------------------------------------------------------------------
@@ -379,8 +380,13 @@ static func _looping(stream: AudioStream) -> AudioStream:
 
 # Every button clicks.
 func _on_node_added(node: Node) -> void:
-	if node is BaseButton:
-		node.pressed.connect(ui.bind(&"ui_click", -4.0))
+	# Buttons re-enter the tree when panels are re-parented or screens reopen: connect once, so there's
+	# no "already connected" error and still exactly one click per press.
+	if node is BaseButton and not node.pressed.is_connected(_click):
+		node.pressed.connect(_click)
+
+func _click() -> void:
+	ui(&"ui_click", -4.0)
 
 # Softer nightmares (Settings; HeartwoodMemory.apply_settings calls this when it changes).
 func set_softer_nightmares(on: bool) -> void:

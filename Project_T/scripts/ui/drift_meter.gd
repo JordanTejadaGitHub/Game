@@ -125,7 +125,7 @@ func _ready() -> void:
 	_header.custom_minimum_size = Vector2(0, 36)
 	UiStyle.caps(_header, 16, UiStyle.INK)
 	_header.tooltip_text = "Drift meter"
-	_header.pressed.connect(func() -> void: set_open(not _body.visible))
+	_header.pressed.connect(func() -> void: set_open(not _user_open))
 	box.add_child(_header)
 	_last.name = "LastDrift"
 	UiStyle.number(_last, 15, UiStyle.INK_DIM)
@@ -178,7 +178,8 @@ func _ready() -> void:
 	_scroll.add_child(_summary)
 	_scroll.visible = false
 	_body.add_child(_scroll)
-	_body.visible = bool(HeartwoodMemory.get_settings().get(OPEN_SETTING, false))
+	_user_open = bool(HeartwoodMemory.get_settings().get(OPEN_SETTING, false))
+	_body.visible = _user_open
 	visible = false
 	# The wheel over the panel scrolls its rows, never the map: scroll events a child passes up
 	# (Buttons do by default) stop here instead of reaching the camera's zoom.
@@ -192,7 +193,8 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()  # Never reaches the map
 
 func set_open(open: bool) -> void:
-	_body.visible = open
+	_user_open = open
+	_body.visible = open and not collapsed
 	var settings := HeartwoodMemory.get_settings()
 	settings[OPEN_SETTING] = open
 	if get_tree().current_scene == drift_director.owner:  # The real game only (tests never write)
@@ -218,10 +220,24 @@ func _process(delta: float) -> void:
 # info when that's showing, and its rows scroll instead of reaching the DriftPanel.
 const GAP := 8.0
 const BASE_TOP := 40.0  # Offset from the vertical centre, as anchored
+const TOP_LIMIT := 200.0  # Highest it may move up to (clear of the resources and the top-right buttons)
+var _max_rows := TOP_ROWS  # Fewer when the screen is short (_fit)
+var _user_open := false  # The player's open / closed choice (the header toggles it)
+var collapsed := false  # Header only while the nightmare info shows (tests)
 func _fit() -> void:
 	var hud := get_parent()
 	if hud == null:
 		return
+	# While the nightmare info shows, only the header line (user: "Maze 3,173 DPS · ↓54%"), never over the DriftPanel;
+	# it opens again when the info closes.
+	var info_now := hud.get_node_or_null("NightmareInfo") as Control
+	var collapse := info_now != null and info_now.visible
+	if collapse != collapsed:
+		collapsed = collapse
+		_body.visible = _user_open and not collapsed
+		if collapsed:
+			_last.visible = false
+		refresh.call_deferred()
 	var screen_mid := get_viewport_rect().size.y / 2.0
 	var top := screen_mid + BASE_TOP
 	var info := hud.get_node_or_null("NightmareInfo") as Control
@@ -234,6 +250,29 @@ func _fit() -> void:
 	var room := maxf(bottom - top - used, 72.0)  # At least two rows
 	var wanted := _summary.get_combined_minimum_size().y if block_summary else 0.0
 	_scroll.custom_minimum_size = Vector2(0, minf(wanted, room))
+	# Never over the DriftPanel (user: "maze dps shouldn't go over the call drift"): the whole card
+	# (header, tabs, rows, "and N more") moves up into the room above, down to TOP_LIMIT; if it still
+	# doesn't fit, it lists fewer Warden rows (the rest go into "and N more").
+	var height := get_combined_minimum_size().y
+	if get_viewport_rect().size.y < UiStyle.LAYOUT_MIN.y * 0.5:
+		return  # No real screen (headless stand-in window): nothing to fit into
+	if top + height > bottom:
+		var highest := TOP_LIMIT
+		if info != null and info.visible:
+			highest = maxf(highest, info.get_global_rect().end.y + GAP)
+		top = maxf(bottom - height, highest)
+		offset_top = top - screen_mid
+		if collapsed and top + height > bottom:  # A tall info box: the header line still stays above the DriftPanel
+			top = bottom - height
+			offset_top = top - screen_mid
+	var row_count := _rows.get_child_count()
+	if not block_summary and row_count > 0:
+		var row_h := _rows.size.y / row_count
+		var spare := bottom - (top + height)
+		if spare < 0.0:
+			_max_rows = maxi(_max_rows - ceili(-spare / maxf(row_h, 1.0)), 1)
+		elif _max_rows < TOP_ROWS and spare > row_h + 4.0:
+			_max_rows += 1
 	# No refresh here: rebuilding the rows every frame swallowed row clicks (the press and the release
 	# landed on different buttons). The rows refresh on the clock, in place.
 
@@ -255,7 +294,7 @@ func refresh() -> void:
 	# The drift just played: at a rest WardenMeter still holds it as "drift" ("last_drift" rolls when
 	# the next one starts); during a drift it's "last_drift".
 	var last := m.get_maze_dps("drift" if drift_director.is_resting() else "last_drift")
-	_last.visible = last > 0.0
+	_last.visible = last > 0.0 and not collapsed
 	_last.text = "Last drift %s DPS" % fmt(last)
 	if not _body.visible:
 		return
@@ -271,8 +310,8 @@ func refresh() -> void:
 		rows.sort_custom(func(a: Dictionary, c: Dictionary) -> bool: return a.share > c.share)
 	else:
 		rows = by_dps
-	var more := maxi(rows.size() - TOP_ROWS, 0)
-	rows = rows.slice(0, TOP_ROWS)
+	var more := maxi(rows.size() - _max_rows, 0)
+	rows = rows.slice(0, _max_rows)
 	_more.visible = more > 0
 	_more.text = "and %d more" % more
 	# Same Wardens in the same order: update the rows in place (a click mid-refresh still lands).
@@ -371,7 +410,7 @@ func _fill_row(button: Button, r: Dictionary) -> void:
 	# read "Sprout" beside its Frostfern icon).
 	var tower = r.tower
 	var name: String = tower.tower_data.display_name if is_instance_valid(tower) else String(r.name)
-	if is_instance_valid(tower) and button.get_meta(&"form", null) != tower.tower_data:
+	if is_instance_valid(tower) and (not button.has_meta(&"form") or button.get_meta(&"form") != tower.tower_data):  # A null default still warns
 		button.set_meta(&"form", tower.tower_data)
 		button.icon = WardenIcon.make(tower.tower_data)
 	button.text = "%s  %s DPS · %d%%%s" % [name, fmt(r.dps), roundi(float(r.share) * 100.0), star]

@@ -106,8 +106,8 @@ Queen an act 3 boss.
 |---|---|---|---|---|---|---|
 | 1 | **The Hollow Stag** | a gaunt stag of bark and bone, ghost-fire in its antlers | huge health; tramples Thornwalls as it passes (never blocks the path); charges at half health (`acts_1_2.md`) | maze redundancy | stone, root | water |
 | 1 | **The Night Mare** *(new)* | a black horse of smoke, hooves that never touch the ground, eyes like cold coals | fast, less health; **it doesn't stop at the Heartwood**: each time it reaches it, it takes 3 leaves and gallops back to the start to run the maze again, 20% faster | maze length and sustained damage (every lap is another pass through the whole maze) | root | light |
-| 1 | **The Scarecrow** *(new)* | a sack-headed scarecrow on a crooked pole, stitched grin, crows under its coat | walks slowly; **every 20% health lost, a flock of 5 Crows bursts out** and runs ahead along the path (fast, 1 leaf each) | area damage near the boss, and Wardens further down the maze to catch the crows | stone, talon | spore |
-| 1 | ↳ **Sharpened (2026-09-30)** | user: *"the first boss should be a threat still"*; the sim's maze dispelled every act 1 boss cleanly 19–20/20 whatever its health | **Hollow Stag:** charges at **×2.5 speed on every straight of 4+ path tiles** from the start (not just at half health); at half health it bellows and **6 Husks** run from the start. **Night Mare:** each lap **+30%** speed (was 20%), and each new lap drops **4 Shades** behind it. **Scarecrow:** its Crows **take to the air** (flyers, straight at the Heartwood from where they burst) | a win should still **cost leaves**: see the note below the table | | |
+| 1 | **The Scarecrow** *(new)* | a sack-headed scarecrow on a crooked pole, stitched grin, crows under its coat | walks slowly; **every 20% health lost, a flock of 5 Crows bursts out** and runs ahead along the path (fast, 1 leaf each) | area damage near the boss, and Wardens further down the maze to catch the crows | stone, wing | spore |
+| 1 | ↳ **Sharpened (2026-09-30)** | user: *"the first boss should be a threat still"*; the sim's maze dispelled every act 1 boss cleanly 19–20/20 whatever its health | **Hollow Stag:** charges at **×2.5 speed on every straight of 4+ path tiles** from the start (not just at half health); at half health it bellows and **6 Husks** run from the start. **Night Mare:** each lap **+30%** speed (was 20%), and each new lap drops **4 Shades** behind it. **Scarecrow:** its Crows **take to the air and fly the route above the path** (like the Moth Queen: walls don't stop them, but the maze's Wardens can reach them all the way; changed the same day from "straight at the Heartwood", which the maze could never touch); 3 per burst and 3 when it falls | a win should still **cost leaves**: see the note below the table | | |
 | 2 | **The Mire Hag** | a bent bog witch wrapped in reeds | every few seconds **sinks into the mire and rises 3 tiles ahead** along its path; each surfacing soaks nightmares nearby (Damp) | damage spread along the whole maze | water | root |
 | 2 | **The Huntsman** *(new)* | a tall antlered rider without a face, a bone horn at his hip | leads **4 Night Hounds**; **while any hound lives he takes half damage** (the pack shields him); every 12 s he blows his horn and a new hound joins (up to 4) | target priority and area damage; the hounds sprint on straights, so corners matter | spore | stone |
 | 2 | **The Lamplighter** *(new)* | a thin, stooped ghost with a pole of cold blue flame | every 8 s it **lights a cold lantern** on an empty tile beside the path; **Wardens within 1.5 tiles of a lantern attack 40% slower** until it burns out (16 s) or the player clicks it to snuff it | **don't put everything in one kill zone**: the first boss that fights your Wardens, not your maze | light, song | water |
@@ -120,6 +120,24 @@ Queen an act 3 boss.
 
 **Act 1 bosses must be a threat** (2026-09-30, user): health alone didn't do it (×1.5–×2.0 all dispelled cleanly 19–20/20). Targets, Fresh, sensible picks: beat it **~75%**; always-skip **loses** to it; and **a win still costs leaves**: the boss (or what it brings) reaches **85%+ of the route in most wins, ~1–3 leaves lost** on average. The sharpened abilities above come first; the health sweep (×2.5–×3.5) then tunes to the targets.
 
+**A boss that reaches the Heartwood: only the Hollow Oak stays** (2026-10-01, user: *"most bosses just lose a lot of leaves and have 1 boss that sticks"*; balance_simulation.md 538b85b7). The lingering rule below made a cliff: a Hollow Stag with 38 health (0.7%) left cost all 18 leaves when nothing covered the Heartwood. Now:
+- **The Hollow Oak (drift 100, every form: Thorned, Withering, Remembering) stays and drains** until dispelled, 1 leaf every 2 s, still hittable: the run's last stand.
+- **Every other act boss takes a flat bite and leaves:** **8 leaves in act 1, 10 in act 2, 12 in act 3** (Hollow Stag, Scarecrow; Mire Hag, Huntsman, Lamplighter; Moth Queen, Barrow King, Mourning Mother). This replaces their `leaf_cost` 5.
+- **The Night Mare keeps its own laps** as decided below (untouchable lingers that drain, then another, faster lap).
+- Echoes (Remembering Oak) and escorts leak normally.
+
+*Replaced 2026-10-01 for every boss but the Oak:* **A boss that reaches the Heartwood stays** (2026-09-30, user, after Tower Code found a boss leak cost only its 5 leaves and never decided a run, so health barely mattered): an act boss that gets through **doesn't leave. It stays at the Heartwood and takes 1 leaf every 2 s until it's dispelled**; Wardens in range of the Heartwood can still hit it (Last Stand shines here). Damage decides the outcome, so a maze without Dreams loses the run and a good one saves it late. **The Night Mare keeps its own rule** (user: *"isn't there a boss that reruns once it hits the end"*): it laps, taking 3 leaves and running the maze again, faster; that is its version of this. Applies to every act boss including the Hollow Oak; echoes and escorts leak normally. The boss bar shows "At the Heartwood" and pulses; the Heartwood trembles each leaf.
+
+**Sweep with the new rule** (Tower Code, 270 runs, fresh, drift 25): **Hollow Stag at ×1.75 health: taking Dreams 73%, skipping 33%** (it drains 10–15 leaves once through, usually the run): **chosen**. **Night Mare** never stays (laps), barely separates (Dreams 14–15/15, skip 11–14) → try a **costlier lap (4 / 5 / 6 leaves)** at ×2.0. **Scarecrow** with route-flying Crows is too easy (15/15 vs 13–14) → try **Crows 4 / 5 per burst × health ×1.75 / 2.25**. Skip surviving 1 in 3 against the Stag is by killing it outright: fixed later by early Dreams, not the drain.
+
+**Second lever sweep (255 runs):** early Dreams **do** decide the Stag fight when picked for damage (damage-first 14/15, Balanced 10/15, skip 7/15; Dream share at drift 20 median 0.13 vs ~0.02): no card change; Balanced's position cards need placement the bot doesn't do. Night Mare lap cost 4–6 at ×2.0 and Scarecrow Crows 4–5 at ×1.75–2.25 **don't separate** (Dreams 14–15/15, skip 13–14): next, Night Mare ×2.5 / 3.0 with lap 5, Scarecrow ×3.0 / 3.5 with 4 Crows; if still flat, a lap that drains as it passes and Crows that cost more.
+
+**Higher health didn't separate either** (120 runs: Night Mare ×2.5–3.0 at lap 5, Scarecrow ×3.0–3.5 with 4 Crows; health only made both modes harder). **Fallback, chosen:**
+- **Night Mare: each lap costs more** than the last: **3, then 5, then 7, then 9 leaves** (+2 per lap), and it keeps speeding up. A strong maze kills it on the first or second pass; a weak one is lapped to death by the third or fourth. Health back to the act 1 boss value (×1.75).
+- **Scarecrow: Crows cost 2 leaves each** (were 1), **4 per burst** and 4 when it falls. Health ×1.75. *Pre-run: barely matters (15/15 vs 14/15): the maze shoots almost every Crow down. Next: **tougher Crows**. **Chosen after the sweep: Crow health 120, speed 190, 2 leaves** (Dreams 80% vs skip 40%; 160/190 was lethal for skip and dropped Dreams to 53%).*
+Then the same sweep (Dreams vs skip, 15 seeds).
+**Results:** Night Mare with laps 3/5/7/9 at ×2.0–2.5 barely separates (it dies on its second pass; one lap costs 3) → next: **laps start at 5** (5/7/9) at ×2.0 / 2.25; fallback the first lap drains like the Stag. **Scarecrow** at Crows 120 HP / 190 speed / 2 leaves: two runs gave 12/15 vs 6/15 and 10/15 vs 9/15 → about **Dreams 73% / skip 50%: accepted**, human runs refine it. **2026-10-01: Crows cost 1 leaf again** (Balancing Discussion, human run 12: the Scarecrow was dispelled but 6 leaked Crows still cost 12 leaves, more than the 10-leaf bite for failing a boss). Crows stay 120 HP / 190 speed.
+
 **Weakness spread:** act 1 water / light / spore (the three starting families); act 2 root / stone /
 water; act 3 light / root / song; act 4 spore / water / light. Bosses are tallied **separately** from the regular
 nightmares' family tally below (they're one fight each, not a drift's worth of health).
@@ -129,19 +147,19 @@ nightmares' family tally below (they're one fight each, not a drift's worth of h
 - **The Night Mare** (act 1). *Laps:* reaching the Heartwood costs 3 leaves (not 5), then it
   reappears at the start at +20% speed (stacking). It keeps its damage taken, so every lap is
   progress. *Bolt* (at half health): 3 s of +50% speed, once. Escort: 10 Shades ahead, 4 Husks
-  behind. Dispelled: *"The Night Mare is gone. The hoofbeats fade, and the dream is still."*
+  behind. Dispelled: *"The last hoofbeat lands, and doesn't echo."*
   Memory: **The Carousel Horse**, a painted wooden horse from a child's dream; nightmares passing it
   slow down as if caught on the carousel.
 - **The Scarecrow** (act 1). *Crows:* 5 at 80/60/40/20% health (and 5 more when dispelled): 40
   health each (× drift growth), speed 150, walk the maze from where the Scarecrow is. *Stitched:*
   below 40% it walks 25% faster. Escort: 8 Shades, then the Scarecrow, then 3 Mourners. Dispelled:
-  *"The Scarecrow falls. The crows scatter, and they don't come back."* Memory: **The Harvest Doll**,
+  *"The pole tips over in the grass. One crow stays behind to pick at the straw."* Memory: **The Harvest Doll**,
   a little corn doll that birds love; Talon damage from the crows nesting in it.
 - **The Huntsman** (act 2). *Pack:* 4 Night Hounds walk around him (they count as normal Night Hounds
   and sprint on straights). The half-damage shield shows as a faint ring linking him to each hound.
   *The Kill* (at half health): he blows three times and all missing hounds return at once, then no
-  more horns. Escort: 6 Night Hounds ahead, 2 Processions behind. Dispelled: *"The horn falls
-  silent. The hunt is over."* Memory: **The Old Hound**, a faithful grey dog spirit that runs down
+  more horns. Escort: 6 Night Hounds ahead, 2 Processions behind. Dispelled: *"The horn drops into the
+  bracken. Somewhere, a hound lies down to sleep."* Memory: **The Old Hound**, a faithful grey dog spirit that runs down
   the nightmare closest to the Heartwood.
 - **The Lamplighter** (act 2). *Lanterns* (as built 2026-09-29): up to 4 at once, on empty cells
   beside its route, never on the route or a Warden (they don't block at all, they're a light). Each
@@ -167,8 +185,8 @@ nightmares' family tally below (they're one fight each, not a drift's worth of h
 
 The Hollow's heart takes the shape of its grief: **Thorned** keeps everyone out, **Withering** lets
 everything die, **Remembering** can't let go. All three are the Hollow Oak: same silhouette (a
-walking oak on its roots), same slow walk (35), same finale (*"The Hollow Oak is still. Somewhere
-beyond the dream, the Hollow remembers."*), no Memory Warden. Drawn at run start like the other
+walking oak on its roots), same slow walk (35), same finale (*"It's still. Far off, something
+sighs."*; text pass 2026-10-04), no Memory Warden. Drawn at run start like the other
 bosses and shown from drift 76; **a player's first act 4 is always Thorned** (the story's version,
 described in `acts_3_4.md`). **Blight Level 10** ("The Hollow Oak remembers") works for every
 variation: it rises once more at half health with its trait twice as fast.
@@ -195,6 +213,30 @@ you drafted first always has a variation it's good against.
 
 Dispelling a boss is a big moment: it shatters with light, extra Dew, and a line of text; the
 Heartwood recovers a lost memory (a new Warden family).
+
+### Boss text (text pass 2026-10-04, `text_pass.md` "Bosses")
+
+The source for every boss's `title`, `cleanse_line` (the defeat line) and `tips` (Enemy Code copies
+them into the `.tres`; whispers and abilities unchanged). Rules from the audit: **tip counts vary
+(2–4); a closing proverb on two bosses only** (the Hollow Stag and the Barrow King); **defeat lines
+are concrete and each different**, never "X is gone. Y."; **"the X that Y" titles on two bosses
+only** (Night Mare, Moth Queen). A weakness no longer needs a tip: the dossier shows it as an icon.
+The three Hollow Oak forms share one defeat line on purpose: it's the same Oak and the same ending.
+
+| Boss (file) | Title | Defeat line | Tips |
+|---|---|---|---|
+| Hollow Stag (`old_stag`) | the gaunt king of the old wood | The ghost-fire gutters out and the antlers crumble to ash. In the Heartwood, an old memory stirs. | 1. It tramples walls in its path: don't let the whole maze hang on one wall. 2. Break up long straights with turns: it charges down every straight of 4 cells or more. 3. Rain douses the ghost-fire in its antlers. |
+| Night Mare (`night_mare`) | the hoofbeats that never stop | The last hoofbeat lands, and doesn't echo. | 1. It can only be hurt on the path, never at the Heartwood: every lap is another pass through your whole maze, so make it long. 2. It keeps the damage it's taken, so each lap brings it closer to the end. |
+| Scarecrow (`scarecrow`) | the stitched thing in the far field | The pole tips over in the grass. One crow stays behind to pick at the straw. | 1. Hit it where many things can be hit at once: the Crows come in flocks. 2. The Crows fly the path over your walls: Wardens all along the maze can reach them. |
+| Mire Hag (`great_toad`) | the drowned witch of the deep fen | The fen goes still. The frogs, cautiously, start up again. | 1. She skips ahead: Wardens gathered in one spot will miss her. 2. Spread Wardens along the whole route, so wherever she surfaces something is in reach. 3. Where she surfaces, nightmares come up {damp}, and lightning loves the {damp}. 4. Her skips get quicker once she's badly hurt. |
+| Huntsman (`huntsman`) | the rider without a face | The horn drops into the bracken. Somewhere, a hound lies down to sleep. | 1. Break the pack first, then the rider: with no hound near him, he takes full damage. 2. The Night Hounds sprint down straight corridors: give them corners. 3. At half health the whole pack comes back at once: save something for it. |
+| Lamplighter (`lamplighter`) | the keeper of the cold flame | The cold lanterns go out, one by one. | 1. Don't put everything in one place: its lanterns dim whole clusters. 2. Snuff the lanterns that fall among your strongest Wardens. 3. A lantern burns out on its own; snuffing one by hand pays a little Dew. |
+| Moth Queen (`moth_queen`) | the wings that close the sky | Her wings burn white and come apart into a thousand small moths, flying off every way at once. | 1. She follows your maze from above: the longer it winds, the longer your Wardens have her. 2. Something that reveals the hidden keeps the field in sight through the Eclipse. |
+| Barrow King (`barrow_king`) | the king under the hill | The Barrow King lies down again, and this time he sleeps. | 1. Statuses won't last on him: hit hard between his shrugs. 2. Burst him down before the dead rise. 3. Roots pull him back into his barrow. |
+| Mourning Mother (`mourning_mother`) | the mother of every Weeper | She stops weeping. For the first time, the Hollow is quiet. | 1. Leave no quiet stretch in your maze: every gap lets her heal. 2. Her children mend too: don't let them walk beside her. |
+| Hollow Oak: Thorned (`hollow_oak`) | the Hollow's grieving heart | It's still. Far off, something sighs. | 1. Its Thorn-Saplings reshape the path: leave yourself room to adapt. 2. When it grieves, a crowd rises at once: be ready to hit many. |
+| Hollow Oak: Withering (`hollow_oak_withering`) | the Hollow's heart in drought | It's still. Far off, something sighs. | 1. Cover every stretch twice: a maze that leans on one great Warden stalls. 2. It picks the strongest Warden near it, never the same one twice running. 3. Withered Wardens come back on their own after a few seconds. 4. Badly hurt, it withers three at once. |
+| Hollow Oak: Remembering (`hollow_oak_remembering`) | the Hollow's heart, wearing faces | It's still. Far off, something sighs. | 1. Its echoes are the great nightmares you dispelled this run, with all their tricks. 2. Every echo walks your whole maze again. 3. Remember how you beat them the first time. |
 
 ## Resistances
 
@@ -345,19 +387,19 @@ are marked ✓; the rest are proposals to tune.
 | Whisper Swarm (Bee Swarm) | 180 | 105 | 5 | 1 | — | wind | single-target ×0.5 (its shape resistance is its trait) |
 | Dream Thief (Squirrel) | 90 | 120 | 3 (×2) | 1 | light | wing | steals 5 Dew if it reaches the Heartwood |
 | Weeper (Mossling) | 160 | 70 | 5 | 1 | water | light | mends nightmares within 1.5 cells for 2% of their max health/s |
-| **The Hollow Stag** (Old Stag) ✓ | 3,000 | 51 | 40 | 5 | stone, root | water | tramples Thornwalls |
-| **The Mire Hag** (Great Toad) | 8,000 | 55 (+ rises ahead) | 60 | 5 | water | root | surfaces 3 tiles ahead every 6 s |
-| **The Moth Queen** (Mother Moth) | 16,000 | 65 | 80 | 5 | spore, wing | light | flies; drops a Lurker every 4 s |
-| **The Hollow Oak: Thorned** | 30,000 | 35 | 100 | 5 | light, song | spore | plants a thorn-sapling every 8 s |
-| **The Hollow Oak: Withering** | 30,000 | 35 | 100 | 5 | root, stone | water | withers a Warden every 10 s |
-| **The Hollow Oak: Remembering** | 26,000 | 35 | 100 | 5 | spore, water | light | echoes of this run's bosses at 75/50/25% |
-| **The Night Mare** *(act 1)* | 2,000 | 110 (+20% per lap) | 40 | 3 per lap | root | light | laps the maze until dispelled |
-| **The Scarecrow** *(act 1)* | 2,600 | 45 | 40 | 5 | stone, talon | spore | Crows at every 20% |
-| Crow (Scarecrow) | 40 | 150 | 1 | 1 | — | — | |
-| **The Huntsman** *(act 2)* | 6,500 | 65 | 60 | 5 | spore | stone | half damage while a hound lives |
-| **The Lamplighter** *(act 2)* | 7,000 | 55 | 60 | 5 | light, song | water | cold lanterns slow Wardens |
-| **The Barrow King** *(act 3)* | 16,000 | 40 | 80 | 5 | song, water | root | shrugs off statuses every 10 s |
-| **The Mourning Mother** *(act 3)* | 14,000 | 45 | 80 | 5 | stone, light | song | heals when unhit for 1.5 s |
+| **The Hollow Stag** (Old Stag) ✓ | 3,000 | 51 | 40 | 8 | stone, root | water | tramples Thornwalls |
+| **The Mire Hag** (Great Toad) | 8,000 | 55 (+ rises ahead) | 60 | 10 | water | root | surfaces 3 tiles ahead every 6 s |
+| **The Moth Queen** (Mother Moth) | 16,000 | 65 | 80 | 12 | spore, wing | light | flies; drops a Lurker every 4 s |
+| **The Hollow Oak: Thorned** | 30,000 | 35 | 100 | stays: 1 per 2 s | light, song | spore | plants a thorn-sapling every 8 s |
+| **The Hollow Oak: Withering** | 30,000 | 35 | 100 | stays: 1 per 2 s | root, stone | water | withers a Warden every 10 s |
+| **The Hollow Oak: Remembering** | 26,000 | 35 | 100 | stays: 1 per 2 s | spore, water | light | echoes of this run's bosses at 75/50/25% |
+| **The Night Mare** *(act 1)* | 2,000 | 110 (+20% per lap) | 40 | drains while it lingers (untouchable), then laps | root | light | laps the maze until dispelled |
+| **The Scarecrow** *(act 1)* | 2,600 | 45 | 40 | 8 | stone, wing | spore | Crows at every 20% |
+| Crow (Scarecrow) | 120 | 190 | 1 | 1 (was 2 until 2026-10-01) | — | — | flies the route above the path |
+| **The Huntsman** *(act 2)* | 6,500 | 65 | 60 | 10 | spore | stone | half damage while a hound lives |
+| **The Lamplighter** *(act 2)* | 7,000 | 55 | 60 | 10 | light, song | water | cold lanterns slow Wardens |
+| **The Barrow King** *(act 3)* | 16,000 | 40 | 80 | 12 | song, water | root | shrugs off statuses every 10 s |
+| **The Mourning Mother** *(act 3)* | 14,000 | 45 | 80 | 12 | stone, light | song | heals when unhit for 1.5 s |
 
 New boss health is set against its act's base (3,000 / 8,000 / 16,000) for how much the trait
 multiplies it: the Night Mare's laps and the Huntsman's shield make their real health much higher,
@@ -427,3 +469,8 @@ echoes (Remembering Oak: spawns this run's dispelled bosses from the draw at a h
 6. Boss pools: the draw and boss slot first (Stag, Hag and Queen already give acts 1–3 one
    each), then the new bosses act by act: Night Mare and Scarecrow, then Huntsman and
    Lamplighter, then Barrow King and Mourning Mother.
+
+**Night Mare, final fallback (2026-09-30):** laps starting at 5 (5/7/9) at ×2.0–2.25 still didn't separate (Dreams 14/15, skip 12/15; it dies on its second pass). Now it **stays and drains at the Heartwood like the other bosses (1 leaf every 2 s, hittable), then gallops back for another lap (+30% speed); each visit lingers longer: 6 s, 10 s, 14 s (≈3, 5, 7 leaves)**. Damage at the Heartwood decides it. Swept Dreams vs skip at ×1.75 / 2.0 after Enemy Code's commit.
+**Night Mare, visits 10 / 14 / 18 s (≈5 / 7 / 9 leaves):** separates on leaves (drift 25 median: Dreams 1, skip 6) but not survival (15/15 vs 13/15; 15 leaves absorb one visit). Next: its own health ×2.25 / 2.5 so it lives to a second visit. **Chain falloff bench:** on a Reaction-heavy board it cuts Reaction damage ~62% (total ~17%), chain counts unchanged: kept.
+**Night Mare, decided (2026-09-30):** more health (×2.25–2.5) only made it reach the Heartwood more often; the Wardens there always finished it during the first visit, so it never came back and skip runs lost ~5 leaves at most. Now **it can't be hit while it lingers at the Heartwood** (a dark shimmer, "Untouchable" on the boss bar): it drains (10 / 14 / 18 s) and gallops back for another, faster lap where it can be hit again. Its health only counts on the path: the boss that tests **sustained damage lap after lap**. Swept at ×1.75 / 2.0.
+**Night Mare, final:** untouchable while lingering, its own health **×2.0**: Dreams 15/15 vs skip 12/15; reaches the Heartwood 4/15 vs 11/15; leaves median 0–2 vs 5. The "leaves" boss; the Stag is act 1's survival check. Human runs refine it.

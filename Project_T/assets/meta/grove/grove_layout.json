@@ -9,25 +9,25 @@
    "section": "perks",
    "name": "Morning Stores",
    "pos": [
-    432,
-    483
+    455,
+    486
    ],
    "parent": null,
    "from": [
-    428,
-    487
+    438,
+    501
    ],
    "levels": 3,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     386,
-     441
+     396,
+     444
     ],
     "frame_size": [
-     96,
-     103
+     101,
+     99
     ],
     "frames": 5
    }
@@ -37,8 +37,8 @@
    "section": "perks",
    "name": "Rich Dew",
    "pos": [
-    399,
-    417
+    435,
+    413
    ],
    "parent": "morning_stores",
    "from": null,
@@ -47,12 +47,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     362,
-     381
+     369,
+     379
     ],
     "frame_size": [
-     107,
-     139
+     121,
+     142
     ],
     "frames": 5
    }
@@ -62,8 +62,8 @@
    "section": "perks",
    "name": "Rested Roots",
    "pos": [
-    380,
-    338
+    395,
+    344
    ],
    "parent": "rich_dew",
    "from": null,
@@ -72,12 +72,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     346,
-     304
+     359,
+     309
     ],
     "frame_size": [
-     89,
-     148
+     112,
+     140
     ],
     "frames": 5
    }
@@ -87,8 +87,8 @@
    "section": "perks",
    "name": "Seed Pouch",
    "pos": [
-    420,
-    260
+    442,
+    257
    ],
    "parent": "rested_roots",
    "from": null,
@@ -97,12 +97,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     345,
-     226
+     352,
+     223
     ],
     "frame_size": [
-     110,
-     147
+     124,
+     156
     ],
     "frames": 5
    }
@@ -112,8 +112,8 @@
    "section": "perks",
    "name": "Sprout Bed",
    "pos": [
-    494,
-    429
+    524,
+    451
    ],
    "parent": "morning_stores",
    "from": null,
@@ -122,12 +122,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     395,
-     363
+     419,
+     416
     ],
     "frame_size": [
-     135,
-     157
+     140,
+     106
     ],
     "frames": 5
    }
@@ -137,25 +137,25 @@
    "section": "perks",
    "name": "Deep Taproot",
    "pos": [
-    320,
-    402
+    255,
+    363
    ],
    "parent": null,
    "from": [
-    333,
-    388
+    248,
+    355
    ],
    "levels": 3,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     277,
-     345
+     206,
+     313
     ],
     "frame_size": [
-     99,
-     100
+     91,
+     92
     ],
     "frames": 5
    }
@@ -165,8 +165,8 @@
    "section": "perks",
    "name": "First Care",
    "pos": [
-    291,
-    317
+    325,
+    324
    ],
    "parent": "deep_taproot",
    "from": null,
@@ -175,12 +175,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     255,
-     281
+     218,
+     287
     ],
     "frame_size": [
-     102,
-     158
+     143,
+     113
     ],
     "frames": 5
    }
@@ -190,8 +190,8 @@
    "section": "perks",
    "name": "Clear Sight",
    "pos": [
-    347,
-    265
+    375,
+    266
    ],
    "parent": "first_care",
    "from": null,
@@ -200,12 +200,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     256,
-     230
+     290,
+     232
     ],
     "frame_size": [
-     125,
-     122
+     120,
+     127
     ],
     "frames": 5
    }
@@ -215,25 +215,25 @@
    "section": "perks",
    "name": "Second Thoughts",
    "pos": [
-    205,
-    294
+    178,
+    329
    ],
    "parent": null,
    "from": [
-    204,
-    293
+    211,
+    320
    ],
    "levels": 2,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     162,
-     251
+     136,
+     278
     ],
     "frame_size": [
-     110,
-     85
+     117,
+     93
     ],
     "frames": 5
    }
@@ -243,8 +243,8 @@
    "section": "perks",
    "name": "Let Go",
    "pos": [
-    262,
-    225
+    283,
+    224
    ],
    "parent": "second_thoughts",
    "from": null,
@@ -253,12 +253,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     169,
-     190
+     141,
+     189
     ],
     "frame_size": [
-     129,
-     140
+     178,
+     177
     ],
     "frames": 5
    }
@@ -268,8 +268,8 @@
    "section": "perks",
    "name": "Omen Reader",
    "pos": [
-    346,
-    191
+    311,
+    252
    ],
    "parent": "let_go",
    "from": null,
@@ -278,12 +278,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     227,
-     156
+     247,
+     188
     ],
     "frame_size": [
-     153,
-     104
+     100,
+     100
     ],
     "frames": 5
    }
@@ -293,8 +293,8 @@
    "section": "perks",
    "name": "Wider Dreams",
    "pos": [
-    419,
-    176
+    380,
+    203
    ],
    "parent": "omen_reader",
    "from": null,
@@ -303,12 +303,37 @@
    "legendary": false,
    "branch": {
     "offset": [
-     311,
-     136
+     277,
+     169
     ],
     "frame_size": [
-     142,
-     90
+     136,
+     117
+    ],
+    "frames": 5
+   }
+  },
+  {
+   "id": "wider_roots",
+   "section": "perks",
+   "name": "Wider Roots",
+   "pos": [
+    230,
+    279
+   ],
+   "parent": "omen_reader",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     197,
+     218
+    ],
+    "frame_size": [
+     148,
+     121
     ],
     "frames": 5
    }
@@ -318,8 +343,8 @@
    "section": "perks",
    "name": "Early Bloom",
    "pos": [
-    246,
-    372
+    183,
+    414
    ],
    "parent": "second_thoughts",
    "from": null,
@@ -328,12 +353,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     169,
-     258
+     141,
+     292
     ],
     "frame_size": [
-     128,
-     149
+     85,
+     158
     ],
     "frames": 5
    }
@@ -343,8 +368,8 @@
    "section": "perks",
    "name": "Early Light",
    "pos": [
-    219,
-    461
+    237,
+    472
    ],
    "parent": "early_bloom",
    "from": null,
@@ -353,12 +378,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     185,
-     338
+     147,
+     378
     ],
     "frame_size": [
-     95,
-     156
+     126,
+     129
     ],
     "frames": 5
    }
@@ -368,8 +393,8 @@
    "section": "perks",
    "name": "Kindling",
    "pos": [
-    170,
-    387
+    303,
+    504
    ],
    "parent": "early_light",
    "from": null,
@@ -378,12 +403,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     136,
-     353
+     203,
+     417
     ],
     "frame_size": [
-     118,
-     143
+     133,
+     121
     ],
     "frames": 5
    }
@@ -393,7 +418,7 @@
    "section": "perks",
    "name": "Loadout slot 4",
    "pos": [
-    385,
+    387,
     491
    ],
    "parent": null,
@@ -406,12 +431,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     320,
-     410
+     344,
+     432
     ],
     "frame_size": [
-     145,
-     123
+     122,
+     122
     ],
     "frames": 5
    }
@@ -421,8 +446,8 @@
    "section": "perks",
    "name": "Loadout slot 5",
    "pos": [
-    296,
-    500
+    339,
+    407
    ],
    "parent": "slot_4",
    "from": null,
@@ -431,12 +456,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     260,
-     440
+     302,
+     349
     ],
     "frame_size": [
-     162,
-     97
+     122,
+     179
     ],
     "frames": 5
    }
@@ -446,36 +471,37 @@
    "section": "families",
    "name": "Sporeling",
    "pos": [
-    603,
-    496
+    619,
+    492
    ],
    "parent": null,
    "from": [
-    644,
-    505
+    646,
+    495
    ],
    "levels": 1,
    "start": true,
    "legendary": false,
    "branch": {
     "offset": [
-     561,
-     452
+     576,
+     448
     ],
     "frame_size": [
-     125,
-     95
+     113,
+     90
     ],
     "frames": 5
-   }
+   },
+   "display_level": 1
   },
   {
-   "id": "sporeling_final",
+   "id": "sporeling_hidden",
    "section": "families",
-   "name": "Sporeling: final forms",
+   "name": "Sporeling: hidden branch",
    "pos": [
-    546,
-    482
+    603,
+    455
    ],
    "parent": "sporeling",
    "from": null,
@@ -484,48 +510,24 @@
    "legendary": false,
    "branch": {
     "offset": [
-     508,
-     421
+     566,
+     418
     ],
     "frame_size": [
-     132,
-     112
+     92,
+     111
     ],
     "frames": 5
-   }
-  },
-  {
-   "id": "sporeling_hidden",
-   "section": "families",
-   "name": "Sporeling: hidden branch",
-   "pos": [
-    498,
-    484
-   ],
-   "parent": "sporeling_final",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     462,
-     442
-    ],
-    "frame_size": [
-     120,
-     78
-    ],
-    "frames": 5
-   }
+   },
+   "display_level": 2
   },
   {
    "id": "sporeling_ascension",
    "section": "families",
    "name": "Sporeling: Ascension",
    "pos": [
-    483,
-    532
+    625,
+    423
    ],
    "parent": "sporeling_hidden",
    "from": null,
@@ -534,51 +536,54 @@
    "legendary": false,
    "branch": {
     "offset": [
-     449,
-     450
+     568,
+     388
     ],
     "frame_size": [
-     83,
-     115
+     92,
+     102
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 0,
+   "display_level": 3
   },
   {
    "id": "firefly_jar",
    "section": "families",
    "name": "Firefly Jar",
    "pos": [
-    680,
-    463
+    686,
+    485
    ],
    "parent": null,
    "from": [
-    645,
-    465
+    647,
+    485
    ],
    "levels": 1,
    "start": true,
    "legendary": false,
    "branch": {
     "offset": [
-     603,
-     420
+     604,
+     439
     ],
     "frame_size": [
-     119,
-     91
+     125,
+     89
     ],
     "frames": 5
-   }
+   },
+   "display_level": 1
   },
   {
-   "id": "firefly_jar_final",
+   "id": "firefly_jar_hidden",
    "section": "families",
-   "name": "Firefly Jar: final forms",
+   "name": "Firefly Jar: hidden branch",
    "pos": [
-    701,
-    434
+    733,
+    415
    ],
    "parent": "firefly_jar",
    "from": null,
@@ -587,48 +592,24 @@
    "legendary": false,
    "branch": {
     "offset": [
-     644,
-     398
+     649,
+     363
     ],
     "frame_size": [
-     93,
-     101
+     120,
+     159
     ],
     "frames": 5
-   }
-  },
-  {
-   "id": "firefly_jar_hidden",
-   "section": "families",
-   "name": "Firefly Jar: hidden branch",
-   "pos": [
-    741,
-    406
-   ],
-   "parent": "firefly_jar_final",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     666,
-     321
-    ],
-    "frame_size": [
-     109,
-     148
-    ],
-    "frames": 5
-   }
+   },
+   "display_level": 2
   },
   {
    "id": "firefly_jar_ascension",
    "section": "families",
    "name": "Firefly Jar: Ascension",
    "pos": [
-    791,
-    381
+    777,
+    355
    ],
    "parent": "firefly_jar_hidden",
    "from": null,
@@ -637,51 +618,54 @@
    "legendary": false,
    "branch": {
     "offset": [
-     707,
-     347
+     697,
+     320
     ],
     "frame_size": [
-     118,
-     93
+     116,
+     131
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 1,
+   "display_level": 3
   },
   {
    "id": "dewdrop",
    "section": "families",
    "name": "Dewdrop",
    "pos": [
-    598,
-    445
+    579,
+    509
    ],
    "parent": null,
    "from": [
-    637,
-    430
+    644,
+    515
    ],
    "levels": 1,
    "start": true,
    "legendary": false,
    "branch": {
     "offset": [
-     555,
-     387
+     537,
+     466
     ],
     "frame_size": [
-     125,
-     101
+     150,
+     92
     ],
     "frames": 5
-   }
+   },
+   "display_level": 1
   },
   {
-   "id": "dewdrop_final",
+   "id": "dewdrop_hidden",
    "section": "families",
-   "name": "Dewdrop: final forms",
+   "name": "Dewdrop: hidden branch",
    "pos": [
-    550,
-    429
+    568,
+    406
    ],
    "parent": "dewdrop",
    "from": null,
@@ -690,48 +674,24 @@
    "legendary": false,
    "branch": {
     "offset": [
-     515,
-     393
+     526,
+     373
     ],
     "frame_size": [
-     119,
-     88
+     88,
+     171
     ],
     "frames": 5
-   }
-  },
-  {
-   "id": "dewdrop_hidden",
-   "section": "families",
-   "name": "Dewdrop: hidden branch",
-   "pos": [
-    548,
-    382
-   ],
-   "parent": "dewdrop_final",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     514,
-     341
-    ],
-    "frame_size": [
-     113,
-     122
-    ],
-    "frames": 5
-   }
+   },
+   "display_level": 2
   },
   {
    "id": "dewdrop_ascension",
    "section": "families",
    "name": "Dewdrop: Ascension",
    "pos": [
-    464,
-    367
+    526,
+    379
    ],
    "parent": "dewdrop_hidden",
    "from": null,
@@ -740,51 +700,54 @@
    "legendary": false,
    "branch": {
     "offset": [
-     431,
-     332
+     491,
+     343
     ],
     "frame_size": [
-     151,
-     106
+     113,
+     99
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 2,
+   "display_level": 3
   },
   {
    "id": "pebbling",
    "section": "families",
    "name": "Pebbling",
    "pos": [
-    663,
-    389
+    659,
+    387
    ],
    "parent": null,
    "from": [
-    627,
-    411
+    624,
+    406
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     585,
-     347
+     581,
+     344
     ],
     "frame_size": [
-     120,
-     106
+     121,
+     105
     ],
     "frames": 5
-   }
+   },
+   "display_level": 1
   },
   {
-   "id": "pebbling_final",
+   "id": "pebbling_hidden",
    "section": "families",
-   "name": "Pebbling: final forms",
+   "name": "Pebbling: hidden branch",
    "pos": [
-    740,
-    347
+    723,
+    346
    ],
    "parent": "pebbling",
    "from": null,
@@ -793,48 +756,24 @@
    "legendary": false,
    "branch": {
     "offset": [
-     627,
-     292
+     622,
+     309
     ],
     "frame_size": [
-     148,
-     133
+     137,
+     115
     ],
     "frames": 5
-   }
-  },
-  {
-   "id": "pebbling_hidden",
-   "section": "families",
-   "name": "Pebbling: hidden branch",
-   "pos": [
-    798,
-    309
-   ],
-   "parent": "pebbling_final",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     704,
-     273
-    ],
-    "frame_size": [
-     129,
-     110
-    ],
-    "frames": 5
-   }
+   },
+   "display_level": 2
   },
   {
    "id": "pebbling_ascension",
    "section": "families",
    "name": "Pebbling: Ascension",
    "pos": [
-    864,
-    280
+    771,
+    290
    ],
    "parent": "pebbling_hidden",
    "from": null,
@@ -843,50 +782,53 @@
    "legendary": false,
    "branch": {
     "offset": [
-     764,
-     246
+     688,
+     215
     ],
     "frame_size": [
-     133,
-     97
+     118,
+     166
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 3,
+   "display_level": 3
   },
   {
    "id": "rootling",
    "section": "families",
    "name": "Rootling",
    "pos": [
-    610,
-    399
+    592,
+    343
    ],
    "parent": null,
    "from": [
-    619,
-    395
+    617,
+    353
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     555,
-     341
+     542,
+     301
     ],
     "frame_size": [
-     106,
-     100
+     117,
+     99
     ],
     "frames": 5
-   }
+   },
+   "display_level": 1
   },
   {
-   "id": "rootling_final",
+   "id": "rootling_hidden",
    "section": "families",
-   "name": "Rootling: final forms",
+   "name": "Rootling: hidden branch",
    "pos": [
-    576,
+    546,
     312
    ],
    "parent": "rootling",
@@ -896,48 +838,24 @@
    "legendary": false,
    "branch": {
     "offset": [
-     541,
-     278
+     510,
+     275
     ],
     "frame_size": [
-     104,
-     156
+     119,
+     105
     ],
     "frames": 5
-   }
-  },
-  {
-   "id": "rootling_hidden",
-   "section": "families",
-   "name": "Rootling: hidden branch",
-   "pos": [
-    520,
-    309
-   ],
-   "parent": "rootling_final",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     486,
-     249
-    ],
-    "frame_size": [
-     125,
-     99
-    ],
-    "frames": 5
-   }
+   },
+   "display_level": 2
   },
   {
    "id": "rootling_ascension",
    "section": "families",
    "name": "Rootling: Ascension",
    "pos": [
-    462,
-    298
+    473,
+    324
    ],
    "parent": "rootling_hidden",
    "from": null,
@@ -946,50 +864,53 @@
    "legendary": false,
    "branch": {
     "offset": [
-     428,
-     264
+     439,
+     272
     ],
     "frame_size": [
-     126,
-     83
+     142,
+     102
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 4,
+   "display_level": 3
   },
   {
    "id": "bellflower",
    "section": "families",
    "name": "Bellflower",
    "pos": [
-    682,
-    323
+    660,
+    328
    ],
    "parent": null,
    "from": [
-    654,
-    306
+    647,
+    315
    ],
    "levels": 1,
-   "start": false,
+   "start": true,
    "legendary": false,
    "branch": {
     "offset": [
-     612,
-     264
+     605,
+     273
     ],
     "frame_size": [
-     112,
-     101
+     97,
+     97
     ],
     "frames": 5
-   }
+   },
+   "display_level": 1
   },
   {
-   "id": "bellflower_final",
+   "id": "bellflower_hidden",
    "section": "families",
-   "name": "Bellflower: final forms",
+   "name": "Bellflower: hidden branch",
    "pos": [
-    732,
+    705,
     277
    ],
    "parent": "bellflower",
@@ -999,48 +920,24 @@
    "legendary": false,
    "branch": {
     "offset": [
-     645,
-     241
+     625,
+     242
     ],
     "frame_size": [
-     124,
-     119
+     114,
+     121
     ],
     "frames": 5
-   }
-  },
-  {
-   "id": "bellflower_hidden",
-   "section": "families",
-   "name": "Bellflower: hidden branch",
-   "pos": [
-    799,
-    245
-   ],
-   "parent": "bellflower_final",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     696,
-     210
-    ],
-    "frame_size": [
-     138,
-     103
-    ],
-    "frames": 5
-   }
+   },
+   "display_level": 2
   },
   {
    "id": "bellflower_ascension",
    "section": "families",
    "name": "Bellflower: Ascension",
    "pos": [
-    879,
-    205
+    759,
+    220
    ],
    "parent": "bellflower_hidden",
    "from": null,
@@ -1049,50 +946,53 @@
    "legendary": false,
    "branch": {
     "offset": [
-     764,
-     161
+     669,
+     185
     ],
     "frame_size": [
-     148,
-     119
+     126,
+     128
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 5,
+   "display_level": 3
   },
   {
    "id": "acorn",
    "section": "families",
    "name": "Acorn",
    "pos": [
-    572,
-    171
+    528,
+    159
    ],
    "parent": null,
    "from": [
-    618,
-    143
+    614,
+    134
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     531,
-     101
+     486,
+     75
     ],
     "frame_size": [
-     129,
-     113
+     171,
+     126
     ],
     "frames": 5
-   }
+   },
+   "display_level": 1
   },
   {
-   "id": "acorn_final",
+   "id": "acorn_hidden",
    "section": "families",
-   "name": "Acorn: final forms",
+   "name": "Acorn: hidden branch",
    "pos": [
-    596,
+    548,
     243
    ],
    "parent": "acorn",
@@ -1102,48 +1002,24 @@
    "legendary": false,
    "branch": {
     "offset": [
-     535,
-     134
+     491,
+     122
     ],
     "frame_size": [
-     98,
-     145
+     128,
+     157
     ],
     "frames": 5
-   }
-  },
-  {
-   "id": "acorn_hidden",
-   "section": "families",
-   "name": "Acorn: hidden branch",
-   "pos": [
-    533,
-    239
-   ],
-   "parent": "acorn_final",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     499,
-     204
-    ],
-    "frame_size": [
-     132,
-     74
-    ],
-    "frames": 5
-   }
+   },
+   "display_level": 2
   },
   {
    "id": "acorn_ascension",
    "section": "families",
    "name": "Acorn: Ascension",
    "pos": [
-    475,
-    216
+    489,
+    222
    ],
    "parent": "acorn_hidden",
    "from": null,
@@ -1152,51 +1028,54 @@
    "legendary": false,
    "branch": {
     "offset": [
-     442,
-     182
+     454,
+     187
     ],
     "frame_size": [
-     125,
-     91
+     130,
+     98
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 6,
+   "display_level": 3
   },
   {
    "id": "nestling",
    "section": "families",
    "name": "Nestling",
    "pos": [
-    685,
-    234
+    672,
+    226
    ],
    "parent": null,
    "from": [
-    658,
-    240
+    657,
+    229
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     616,
-     171
+     615,
+     184
     ],
     "frame_size": [
-     111,
-     111
+     99,
+     103
     ],
     "frames": 5
-   }
+   },
+   "display_level": 1
   },
   {
-   "id": "nestling_final",
+   "id": "nestling_hidden",
    "section": "families",
-   "name": "Nestling: final forms",
+   "name": "Nestling: hidden branch",
    "pos": [
-    704,
-    150
+    684,
+    154
    ],
    "parent": "nestling",
    "from": null,
@@ -1205,48 +1084,24 @@
    "legendary": false,
    "branch": {
     "offset": [
-     646,
-     116
+     631,
+     119
     ],
     "frame_size": [
-     93,
-     153
+     89,
+     143
     ],
     "frames": 5
-   }
-  },
-  {
-   "id": "nestling_hidden",
-   "section": "families",
-   "name": "Nestling: hidden branch",
-   "pos": [
-    748,
-    198
-   ],
-   "parent": "nestling_final",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     669,
-     115
-    ],
-    "frame_size": [
-     119,
-     118
-    ],
-    "frames": 5
-   }
+   },
+   "display_level": 2
   },
   {
    "id": "nestling_ascension",
    "section": "families",
    "name": "Nestling: Ascension",
    "pos": [
-    792,
-    162
+    765,
+    156
    ],
    "parent": "nestling_hidden",
    "from": null,
@@ -1255,51 +1110,54 @@
    "legendary": false,
    "branch": {
     "offset": [
-     714,
-     115
+     649,
+     113
     ],
     "frame_size": [
-     111,
-     117
+     181,
+     84
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 7,
+   "display_level": 3
   },
   {
    "id": "whirligig",
    "section": "families",
    "name": "Whirligig",
    "pos": [
-    641,
-    285
+    609,
+    143
    ],
    "parent": null,
    "from": [
-    660,
-    291
+    616,
+    138
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     599,
-     243
+     567,
+     96
     ],
     "frame_size": [
-     103,
-     90
+     91,
+     89
     ],
     "frames": 5
-   }
+   },
+   "display_level": 1
   },
   {
-   "id": "whirligig_final",
+   "id": "whirligig_hidden",
    "section": "families",
-   "name": "Whirligig: final forms",
+   "name": "Whirligig: hidden branch",
    "pos": [
-    639,
-    189
+    611,
+    202
    ],
    "parent": "whirligig",
    "from": null,
@@ -1308,48 +1166,24 @@
    "legendary": false,
    "branch": {
     "offset": [
-     600,
-     154
+     567,
+     107
     ],
     "frame_size": [
-     77,
-     167
+     80,
+     130
     ],
     "frames": 5
-   }
-  },
-  {
-   "id": "whirligig_hidden",
-   "section": "families",
-   "name": "Whirligig: hidden branch",
-   "pos": [
-    625,
-    136
-   ],
-   "parent": "whirligig_final",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     590,
-     102
-    ],
-    "frame_size": [
-     84,
-     122
-    ],
-    "frames": 5
-   }
+   },
+   "display_level": 2
   },
   {
    "id": "whirligig_ascension",
    "section": "families",
    "name": "Whirligig: Ascension",
    "pos": [
-    536,
-    146
+    618,
+    289
    ],
    "parent": "whirligig_hidden",
    "from": null,
@@ -1358,28 +1192,30 @@
    "legendary": false,
    "branch": {
     "offset": [
-     502,
-     98
+     575,
+     167
     ],
     "frame_size": [
-     158,
-     84
+     84,
+     156
     ],
     "frames": 5
-   }
+   },
+   "ascended_bloom": 8,
+   "display_level": 3
   },
   {
    "id": "memory_white_stag",
    "section": "families",
    "name": "Memory Warden: The White Stag",
    "pos": [
-    621,
-    351
+    618,
+    380
    ],
    "parent": null,
    "from": [
-    620,
-    348
+    613,
+    379
    ],
    "levels": 1,
    "start": false,
@@ -1387,12 +1223,12 @@
    "memory_row": 0,
    "branch": {
     "offset": [
-     578,
-     306
+     571,
+     300
     ],
     "frame_size": [
-     85,
-     87
+     96,
+     122
     ],
     "frames": 5
    }
@@ -1402,13 +1238,13 @@
    "section": "families",
    "name": "Memory Warden: The Pond Keeper",
    "pos": [
-    652,
-    433
+    651,
+    461
    ],
    "parent": null,
    "from": [
-    639,
-    435
+    644,
+    460
    ],
    "levels": 1,
    "start": false,
@@ -1416,12 +1252,12 @@
    "memory_row": 1,
    "branch": {
     "offset": [
-     596,
-     390
+     602,
+     418
     ],
     "frame_size": [
-     99,
-     88
+     91,
+     85
     ],
     "frames": 5
    }
@@ -1431,13 +1267,13 @@
    "section": "families",
    "name": "Memory Warden: The Moon Moth",
    "pos": [
-    641,
-    479
+    496,
+    525
    ],
    "parent": null,
    "from": [
-    646,
-    480
+    644,
+    515
    ],
    "levels": 1,
    "start": false,
@@ -1445,23 +1281,373 @@
    "memory_row": 2,
    "branch": {
     "offset": [
-     598,
-     436
+     457,
+     470
     ],
     "frame_size": [
-     91,
-     87
+     229,
+     121
     ],
     "frames": 5
    }
   },
   {
-   "id": "storm_lore",
+   "id": "sharpened",
    "section": "cards",
-   "name": "Storm Lore",
+   "name": "Sharpened",
    "pos": [
-    834,
-    428
+    927,
+    386
+   ],
+   "parent": null,
+   "from": [
+    958,
+    409
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     884,
+     343
+    ],
+    "frame_size": [
+     117,
+     109
+    ],
+    "frames": 5
+   },
+   "display_level": 1
+  },
+  {
+   "id": "full_moon",
+   "section": "cards",
+   "name": "Full Moon",
+   "pos": [
+    948,
+    223
+   ],
+   "parent": "sharpened",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     892,
+     189
+    ],
+    "frame_size": [
+     121,
+     232
+    ],
+    "frames": 5
+   },
+   "display_level": 3
+  },
+  {
+   "id": "hunters_moon",
+   "section": "cards",
+   "name": "Hunter's Moon",
+   "pos": [
+    916,
+    302
+   ],
+   "parent": "sharpened",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     873,
+     266
+    ],
+    "frame_size": [
+     91,
+     157
+    ],
+    "frames": 5
+   },
+   "display_level": 3
+  },
+  {
+   "id": "tending_hands",
+   "section": "cards",
+   "name": "Tending Hands",
+   "pos": [
+    1048,
+    275
+   ],
+   "parent": null,
+   "from": [
+    1051,
+    278
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     1005,
+     232
+    ],
+    "frame_size": [
+     89,
+     89
+    ],
+    "frames": 5
+   },
+   "display_level": 1
+  },
+  {
+   "id": "nursery",
+   "section": "cards",
+   "name": "Nursery",
+   "pos": [
+    1024,
+    236
+   ],
+   "parent": "tending_hands",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     989,
+     201
+    ],
+    "frame_size": [
+     94,
+     109
+    ],
+    "frames": 5
+   },
+   "display_level": 2
+  },
+  {
+   "id": "elders",
+   "section": "cards",
+   "name": "Elders",
+   "pos": [
+    1014,
+    320
+   ],
+   "parent": "nursery",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     973,
+     201
+    ],
+    "frame_size": [
+     88,
+     153
+    ],
+    "frames": 5
+   },
+   "display_level": 2
+  },
+  {
+   "id": "the_old_ones",
+   "section": "cards",
+   "name": "The Old Ones",
+   "pos": [
+    1069,
+    336
+   ],
+   "parent": "elders",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     980,
+     286
+    ],
+    "frame_size": [
+     122,
+     84
+    ],
+    "frames": 5
+   },
+   "display_level": 3
+  },
+  {
+   "id": "seedbed",
+   "section": "cards",
+   "name": "Seedbed",
+   "pos": [
+    1077,
+    241
+   ],
+   "parent": null,
+   "from": [
+    1081,
+    265
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     1035,
+     199
+    ],
+    "frame_size": [
+     89,
+     108
+    ],
+    "frames": 5
+   },
+   "display_level": 1
+  },
+  {
+   "id": "rootbound",
+   "section": "cards",
+   "name": "Rootbound",
+   "pos": [
+    1116,
+    464
+   ],
+   "parent": "seedbed",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     1034,
+     205
+    ],
+    "frame_size": [
+     123,
+     290
+    ],
+    "frames": 5
+   },
+   "display_level": 3
+  },
+  {
+   "id": "mixed_company",
+   "section": "cards",
+   "name": "Mixed Company",
+   "pos": [
+    1101,
+    272
+   ],
+   "parent": "seedbed",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     1040,
+     204
+    ],
+    "frame_size": [
+     98,
+     105
+    ],
+    "frames": 5
+   },
+   "display_level": 2
+  },
+  {
+   "id": "menagerie",
+   "section": "cards",
+   "name": "Menagerie",
+   "pos": [
+    1106,
+    301
+   ],
+   "parent": "mixed_company",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     1066,
+     237
+    ],
+    "frame_size": [
+     76,
+     99
+    ],
+    "frames": 5
+   },
+   "display_level": 3
+  },
+  {
+   "id": "one_line",
+   "section": "cards",
+   "name": "One Line",
+   "pos": [
+    820,
+    541
+   ],
+   "parent": null,
+   "from": [
+    800,
+    521
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     757,
+     478
+    ],
+    "frame_size": [
+     106,
+     106
+    ],
+    "frames": 5
+   },
+   "display_level": 1
+  },
+  {
+   "id": "the_last_light",
+   "section": "cards",
+   "name": "The Last Light",
+   "pos": [
+    840,
+    538
+   ],
+   "parent": "one_line",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     783,
+     501
+    ],
+    "frame_size": [
+     94,
+     77
+    ],
+    "frames": 5
+   },
+   "display_level": 3
+  },
+  {
+   "id": "dead_wood",
+   "section": "cards",
+   "name": "Dead Wood",
+   "pos": [
+    855,
+    462
    ],
    "parent": null,
    "from": [
@@ -1473,366 +1659,24 @@
    "legendary": false,
    "branch": {
     "offset": [
-     792,
-     386
-    ],
-    "frame_size": [
-     106,
-     119
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "guiding_lights",
-   "section": "cards",
-   "name": "Guiding Lights",
-   "pos": [
-    838,
-    380
-   ],
-   "parent": "storm_lore",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     789,
-     343
+     812,
+     419
     ],
     "frame_size": [
      86,
-     122
+     87
     ],
     "frames": 5
-   }
-  },
-  {
-   "id": "spore_lore",
-   "section": "cards",
-   "name": "Spore Lore",
-   "pos": [
-    946,
-    446
-   ],
-   "parent": null,
-   "from": [
-    935,
-    436
-   ],
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     893,
-     394
-    ],
-    "frame_size": [
-     95,
-     94
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "dawnbreak",
-   "section": "cards",
-   "name": "Dawnbreak",
-   "pos": [
-    979,
-    514
-   ],
-   "parent": "spore_lore",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": true,
-   "branch": {
-    "offset": [
-     901,
-     409
-    ],
-    "frame_size": [
-     115,
-     141
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "sharpened",
-   "section": "cards",
-   "name": "Sharpened",
-   "pos": [
-    979,
-    380
-   ],
-   "parent": null,
-   "from": [
-    981,
-    384
-   ],
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     923,
-     313
-    ],
-    "frame_size": [
-     100,
-     113
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "full_moon",
-   "section": "cards",
-   "name": "Full Moon",
-   "pos": [
-    927,
-    382
-   ],
-   "parent": "sharpened",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": true,
-   "branch": {
-    "offset": [
-     891,
-     335
-    ],
-    "frame_size": [
-     125,
-     86
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "tending_hands",
-   "section": "cards",
-   "name": "Tending Hands",
-   "pos": [
-    1035,
-    341
-   ],
-   "parent": null,
-   "from": [
-    1015,
-    336
-   ],
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     972,
-     293
-    ],
-    "frame_size": [
-     106,
-     91
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "nursery",
-   "section": "cards",
-   "name": "Nursery",
-   "pos": [
-    1062,
-    300
-   ],
-   "parent": "tending_hands",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     999,
-     249
-    ],
-    "frame_size": [
-     99,
-     128
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "the_old_ones",
-   "section": "cards",
-   "name": "The Old Ones",
-   "pos": [
-    1102,
-    306
-   ],
-   "parent": "nursery",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": true,
-   "branch": {
-    "offset": [
-     1027,
-     265
-    ],
-    "frame_size": [
-     110,
-     76
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "seedbed",
-   "section": "cards",
-   "name": "Seedbed",
-   "pos": [
-    1088,
-    241
-   ],
-   "parent": null,
-   "from": [
-    1094,
-    261
-   ],
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     1046,
-     199
-    ],
-    "frame_size": [
-     90,
-     104
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "rootbound",
-   "section": "cards",
-   "name": "Rootbound",
-   "pos": [
-    1066,
-    236
-   ],
-   "parent": "seedbed",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": true,
-   "branch": {
-    "offset": [
-     1030,
-     199
-    ],
-    "frame_size": [
-     94,
-     78
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "one_line",
-   "section": "cards",
-   "name": "One Line",
-   "pos": [
-    769,
-    507
-   ],
-   "parent": null,
-   "from": [
-    788,
-    533
-   ],
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     727,
-     465
-    ],
-    "frame_size": [
-     103,
-     110
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "the_last_light",
-   "section": "cards",
-   "name": "The Last Light",
-   "pos": [
-    736,
-    475
-   ],
-   "parent": "one_line",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": true,
-   "branch": {
-    "offset": [
-     701,
-     441
-    ],
-    "frame_size": [
-     103,
-     101
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "dead_wood",
-   "section": "cards",
-   "name": "Dead Wood",
-   "pos": [
-    903,
-    473
-   ],
-   "parent": null,
-   "from": [
-    898,
-    453
-   ],
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     856,
-     411
-    ],
-    "frame_size": [
-     90,
-     104
-    ],
-    "frames": 5
-   }
+   },
+   "display_level": 1
   },
   {
    "id": "the_long_walk",
    "section": "cards",
    "name": "The Long Walk",
    "pos": [
-    904,
-    520
+    870,
+    422
    ],
    "parent": "dead_wood",
    "from": null,
@@ -1841,23 +1685,76 @@
    "legendary": true,
    "branch": {
     "offset": [
-     866,
-     437
+     819,
+     350
     ],
     "frame_size": [
-     77,
-     119
+     111,
+     148
     ],
     "frames": 5
-   }
+   },
+   "display_level": 3
+  },
+  {
+   "id": "winding_roads",
+   "section": "cards",
+   "name": "Winding Roads",
+   "pos": [
+    908,
+    476
+   ],
+   "parent": "dead_wood",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     819,
+     388
+    ],
+    "frame_size": [
+     138,
+     127
+    ],
+    "frames": 5
+   },
+   "display_level": 2
+  },
+  {
+   "id": "crossroads",
+   "section": "cards",
+   "name": "Crossroads",
+   "pos": [
+    941,
+    480
+   ],
+   "parent": "winding_roads",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     872,
+     440
+    ],
+    "frame_size": [
+     105,
+     79
+    ],
+    "frames": 5
+   },
+   "display_level": 3
   },
   {
    "id": "bittersweet_dreams",
    "section": "cards",
    "name": "Bittersweet Dreams",
    "pos": [
-    1049,
-    388
+    1046,
+    390
    ],
    "parent": null,
    "from": [
@@ -1869,51 +1766,79 @@
    "legendary": false,
    "branch": {
     "offset": [
-     960,
-     314
+     961,
+     315
     ],
     "frame_size": [
-     132,
+     127,
      117
     ],
     "frames": 5
-   }
+   },
+   "display_level": 1
+  },
+  {
+   "id": "lucid_dreaming",
+   "section": "cards",
+   "name": "Lucid Dreaming",
+   "pos": [
+    1050,
+    470
+   ],
+   "parent": "bittersweet_dreams",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     1010,
+     355
+    ],
+    "frame_size": [
+     76,
+     149
+    ],
+    "frames": 5
+   },
+   "display_level": 3
   },
   {
    "id": "seeping",
    "section": "cards",
    "name": "Seeping",
    "pos": [
-    990,
-    441
+    949,
+    439
    ],
    "parent": null,
    "from": [
-    954,
-    414
+    939,
+    432
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     911,
-     371
+     896,
+     389
     ],
     "frame_size": [
-     122,
-     113
+     96,
+     93
     ],
     "frames": 5
-   }
+   },
+   "display_level": 1
   },
   {
    "id": "venom",
    "section": "cards",
    "name": "Venom",
    "pos": [
-    985,
-    414
+    974,
+    478
    ],
    "parent": "seeping",
    "from": null,
@@ -1922,23 +1847,24 @@
    "legendary": false,
    "branch": {
     "offset": [
-     949,
-     378
+     912,
+     402
     ],
     "frame_size": [
-     79,
-     99
+     99,
+     113
     ],
     "frames": 5
-   }
+   },
+   "display_level": 2
   },
   {
    "id": "nightshade",
    "section": "cards",
    "name": "Nightshade",
    "pos": [
-    1020,
-    401
+    1009,
+    501
    ],
    "parent": "venom",
    "from": null,
@@ -1947,126 +1873,50 @@
    "legendary": true,
    "branch": {
     "offset": [
-     950,
-     330
+     939,
+     443
     ],
     "frame_size": [
      105,
-     119
+     93
     ],
     "frames": 5
-   }
+   },
+   "display_level": 3
   },
   {
-   "id": "grove_of_kin",
+   "id": "eternal_static",
    "section": "cards",
-   "name": "Grove of Kin",
+   "name": "Eternal Charge",
    "pos": [
-    694,
-    492
+    988,
+    439
    ],
-   "parent": "storm_lore",
+   "parent": "venom",
    "from": null,
    "levels": 1,
    "start": false,
    "legendary": true,
    "branch": {
     "offset": [
-     662,
-     382
+     939,
+     404
     ],
     "frame_size": [
-     208,
-     146
+     84,
+     109
     ],
     "frames": 5
-   }
+   },
+   "display_level": 3
   },
   {
-   "id": "planted_promises",
+   "id": "quickening",
    "section": "cards",
-   "name": "Planted Promises",
+   "name": "Quickening",
    "pos": [
-    887,
-    425
-   ],
-   "parent": null,
-   "from": [
-    891,
-    454
-   ],
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     844,
-     382
-    ],
-    "frame_size": [
-     107,
-     115
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "deep_promises",
-   "section": "cards",
-   "name": "Deep Promises",
-   "pos": [
-    896,
-    320
-   ],
-   "parent": "planted_promises",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": false,
-   "branch": {
-    "offset": [
-     828,
-     285
-    ],
-    "frame_size": [
-     114,
-     177
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "golden_harvest",
-   "section": "cards",
-   "name": "Golden Harvest",
-   "pos": [
-    978,
-    310
-   ],
-   "parent": "deep_promises",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": true,
-   "branch": {
-    "offset": [
-     861,
-     269
-    ],
-    "frame_size": [
-     151,
-     87
-    ],
-    "frames": 5
-   }
-  },
-  {
-   "id": "catchers",
-   "section": "cards",
-   "name": "Catchers",
-   "pos": [
-    798,
-    458
+    797,
+    463
    ],
    "parent": null,
    "from": [
@@ -2078,48 +1928,536 @@
    "legendary": false,
    "branch": {
     "offset": [
-     755,
-     415
+     754,
+     420
     ],
     "frame_size": [
-     117,
-     113
+     118,
+     108
     ],
     "frames": 5
-   }
+   },
+   "display_level": 1
   },
   {
-   "id": "old_wood",
+   "id": "light_feet",
    "section": "cards",
-   "name": "Old Wood",
+   "name": "Light Feet",
    "pos": [
-    813,
-    498
+    835,
+    362
    ],
-   "parent": "catchers",
+   "parent": "quickening",
    "from": null,
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     762,
-     422
+     739,
+     328
+    ],
+    "frame_size": [
+     132,
+     171
+    ],
+    "frames": 5
+   },
+   "display_level": 2
+  },
+  {
+   "id": "whirlwind_heart",
+   "section": "cards",
+   "name": "Whirlwind Heart",
+   "pos": [
+    832,
+    278
+   ],
+   "parent": "light_feet",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     795,
+     244
+    ],
+    "frame_size": [
+     82,
+     153
+    ],
+    "frames": 5
+   },
+   "display_level": 3
+  },
+  {
+   "id": "broad_strokes",
+   "section": "cards",
+   "name": "Broad Strokes",
+   "pos": [
+    825,
+    434
+   ],
+   "parent": null,
+   "from": [
+    850,
+    466
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     782,
+     391
+    ],
+    "frame_size": [
+     111,
+     118
+    ],
+    "frames": 5
+   },
+   "display_level": 1
+  },
+  {
+   "id": "far_reach",
+   "section": "cards",
+   "name": "Far Reach",
+   "pos": [
+    881,
+    339
+   ],
+   "parent": "broad_strokes",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     788,
+     303
+    ],
+    "frame_size": [
+     129,
+     168
+    ],
+    "frames": 5
+   },
+   "display_level": 2
+  },
+  {
+   "id": "great_ripple",
+   "section": "cards",
+   "name": "Great Ripple",
+   "pos": [
+    876,
+    255
+   ],
+   "parent": "far_reach",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     841,
+     222
+    ],
+    "frame_size": [
+     89,
+     152
+    ],
+    "frames": 5
+   },
+   "display_level": 3
+  },
+  {
+   "id": "scarred_bark",
+   "section": "cards",
+   "name": "Scarred Bark",
+   "pos": [
+    732,
+    523
+   ],
+   "parent": null,
+   "from": [
+    772,
+    547
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     691,
+     480
+    ],
+    "frame_size": [
+     123,
+     109
+    ],
+    "frames": 5
+   },
+   "display_level": 1
+  },
+  {
+   "id": "last_stand",
+   "section": "cards",
+   "name": "Last Stand",
+   "pos": [
+    656,
+    512
+   ],
+   "parent": "scarred_bark",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     620,
+     475
+    ],
+    "frame_size": [
+     149,
+     85
+    ],
+    "frames": 5
+   },
+   "display_level": 2
+  },
+  {
+   "id": "last_leaf",
+   "section": "cards",
+   "name": "Last Leaf",
+   "pos": [
+    792,
+    517
+   ],
+   "parent": "last_stand",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     621,
+     459
+    ],
+    "frame_size": [
+     204,
+     99
+    ],
+    "frames": 5
+   },
+   "display_level": 3
+  },
+  {
+   "id": "restless_night",
+   "section": "cards",
+   "name": "Restless Night",
+   "pos": [
+    676,
+    426
+   ],
+   "parent": "last_stand",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     620,
+     391
+    ],
+    "frame_size": [
+     92,
+     157
+    ],
+    "frames": 5
+   },
+   "display_level": 3
+  },
+  {
+   "id": "bitter_hedges",
+   "section": "cards",
+   "name": "Bitter Hedges",
+   "pos": [
+    837,
+    498
+   ],
+   "parent": null,
+   "from": [
+    825,
+    490
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     782,
+     447
+    ],
+    "frame_size": [
+     98,
+     94
+    ],
+    "frames": 5
+   },
+   "display_level": 1
+  },
+  {
+   "id": "briar_crown",
+   "section": "cards",
+   "name": "Briar Crown",
+   "pos": [
+    878,
+    523
+   ],
+   "parent": "bitter_hedges",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     802,
+     463
+    ],
+    "frame_size": [
+     111,
+     95
+    ],
+    "frames": 5
+   },
+   "display_level": 3
+  },
+  {
+   "id": "rooted_nightmares",
+   "section": "cards",
+   "name": "Rooted Nightmares",
+   "pos": [
+    902,
+    495
+   ],
+   "parent": "bitter_hedges",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     800,
+     453
+    ],
+    "frame_size": [
+     138,
+     82
+    ],
+    "frames": 5
+   },
+   "display_level": 3
+  },
+  {
+   "id": "reclaimed_earth",
+   "section": "cards",
+   "name": "Reclaimed Earth",
+   "pos": [
+    1102,
+    389
+   ],
+   "parent": null,
+   "from": [
+    1012,
+    341
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     969,
+     298
+    ],
+    "frame_size": [
+     176,
+     132
+    ],
+    "frames": 5
+   },
+   "display_level": 1
+  },
+  {
+   "id": "thorn_and_bramble",
+   "section": "cards",
+   "name": "Thorn and Bramble",
+   "pos": [
+    1071,
+    434
+   ],
+   "parent": "reclaimed_earth",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     1034,
+     352
+    ],
+    "frame_size": [
+     105,
+     119
+    ],
+    "frames": 5
+   },
+   "display_level": 2
+  },
+  {
+   "id": "wildwood_reclaimed",
+   "section": "cards",
+   "name": "Wildwood Reclaimed",
+   "pos": [
+    1112,
+    489
+   ],
+   "parent": "thorn_and_bramble",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     1035,
+     398
+    ],
+    "frame_size": [
+     112,
+     127
+    ],
+    "frames": 5
+   },
+   "display_level": 3
+  },
+  {
+   "id": "planted_promises",
+   "section": "cards",
+   "name": "Planted Promises",
+   "pos": [
+    993,
+    411
+   ],
+   "parent": null,
+   "from": [
+    973,
+    392
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     931,
+     350
+    ],
+    "frame_size": [
+     104,
+     103
+    ],
+    "frames": 5
+   },
+   "display_level": 1
+  },
+  {
+   "id": "deep_promises",
+   "section": "cards",
+   "name": "Deep Promises",
+   "pos": [
+    976,
+    380
+   ],
+   "parent": "planted_promises",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     916,
+     344
+    ],
+    "frame_size": [
+     113,
+     103
+    ],
+    "frames": 5
+   },
+   "display_level": 2
+  },
+  {
+   "id": "golden_harvest",
+   "section": "cards",
+   "name": "Golden Harvest",
+   "pos": [
+    961,
+    297
+   ],
+   "parent": "deep_promises",
+   "from": null,
+   "levels": 1,
+   "start": false,
+   "legendary": true,
+   "branch": {
+    "offset": [
+     925,
+     262
     ],
     "frame_size": [
      87,
-     112
+     154
     ],
     "frames": 5
-   }
+   },
+   "display_level": 3
+  },
+  {
+   "id": "old_wood",
+   "section": "cards",
+   "name": "Old Wood",
+   "pos": [
+    771,
+    491
+   ],
+   "parent": null,
+   "from": [
+    800,
+    521
+   ],
+   "levels": 1,
+   "start": false,
+   "legendary": false,
+   "branch": {
+    "offset": [
+     728,
+     448
+    ],
+    "frame_size": [
+     115,
+     116
+    ],
+    "frames": 5
+   },
+   "display_level": 1
   },
   {
    "id": "the_quiet_ones",
    "section": "cards",
    "name": "The Quiet Ones",
    "pos": [
-    857,
-    489
+    711,
+    450
    ],
    "parent": "old_wood",
    "from": null,
@@ -2128,15 +2466,16 @@
    "legendary": true,
    "branch": {
     "offset": [
-     778,
-     420
+     675,
+     413
     ],
     "frame_size": [
-     113,
-     113
+     133,
+     115
     ],
     "frames": 5
-   }
+   },
+   "display_level": 3
   }
  ],
  "fruit_spots": [
@@ -2154,7 +2493,7 @@
   ],
   [
    900,
-   565
+   621
   ],
   [
    280,
@@ -2162,15 +2501,15 @@
   ],
   [
    1050,
-   539
+   574
   ],
   [
    480,
-   581
+   610
   ],
   [
    800,
-   541
+   616
   ],
   [
    640,
@@ -2207,11 +2546,93 @@
    893
   ]
  ],
+ "loadout_stone_sets": {
+  "3": [
+   [
+    559,
+    927
+   ],
+   [
+    640,
+    934
+   ],
+   [
+    721,
+    927
+   ]
+  ],
+  "4": [
+   [
+    519,
+    918
+   ],
+   [
+    600,
+    932
+   ],
+   [
+    681,
+    932
+   ],
+   [
+    762,
+    918
+   ]
+  ],
+  "5": [
+   [
+    478,
+    906
+   ],
+   [
+    559,
+    927
+   ],
+   [
+    640,
+    934
+   ],
+   [
+    721,
+    927
+   ],
+   [
+    802,
+    906
+   ]
+  ]
+ },
+ "waystone_anchor": [
+  24,
+  18
+ ],
  "moon": [
   1062,
   118
  ],
+ "hollow": [
+  608,
+  792
+ ],
+ "mists": [
+  {
+   "file": "grove_mist_0.png",
+   "y": 610,
+   "speed": 4
+  },
+  {
+   "file": "grove_mist_1.png",
+   "y": 715,
+   "speed": -6
+  },
+  {
+   "file": "grove_mist_2.png",
+   "y": 820,
+   "speed": 8
+  }
+ ],
  "node_cell": 32,
  "legendary_cell": 48,
- "fruit_cell": 48
+ "fruit_cell": 48,
+ "ascended_cell": 48
 }

@@ -43,6 +43,13 @@ const NUMBER_SIZE := 24
 const CARD_NAME_SIZE := 24
 const CHOICE_TITLE_SIZE := 32
 const BUTTON_SIZE := 18
+# One HUD scale (user, 2026-09-30: "the UI looks bigger than the tower bar"): every HUD control is
+# HUD_BUTTON_H tall with HUD_TEXT_SIZE small caps (HudButton / HudPrimary), and the Warden bar slots
+# are the same frame, HUD_SLOT big. The UI scale setting scales them all together.
+const HUD_BUTTON_H := 48.0
+const HUD_TEXT_SIZE := 16
+const HUD_SLOT := Vector2(64, 78)  # A Warden bar slot: 48 px sprite + the cost
+const HUD_SPRITE := 48
 # Tooltips, hover panels and tap popups (screens_ui.md playtest fixes 2026-09-30: "too small"): body
 # ≥16 px, names 18 px, ~1.35 line height, at most ~42 characters wide; scaled by the UI scale like
 # everything else. Small caps only for labels, never sentences.
@@ -62,9 +69,10 @@ static var _fonts := {}
 const LAYOUT_MIN := Vector2(1280.0, 720.0)
 const UI_SHARE_MIN := 0.5  # The settings slider: 50% … 100% of the fitting scale
 const UI_SHARE_MAX := 1.0
+# The settings dropdown's choices (user, 2026-10-01: a dropdown, not a slider): [name, share].
+const UI_SIZES := [["Small", 0.6], ["Medium", 0.75], ["Large", 0.9], ["Largest (fits the screen)", 1.0]]
 
 static var _scale_share := 1.0
-static var _watching_window := false
 
 # The root's content scale for a window of `window_size` pixels: the largest scale that still leaves
 # LAYOUT_MIN (1.5 at 1920×1080, 1 at 1280×800, 2 at 4K), times the player's `share` of it.
@@ -79,23 +87,76 @@ static func apply_ui_scale(root: Window, share: float) -> void:
 	_scale_share = share
 	if root == null:
 		return
+	install_text_filter(root.get_tree() if root.is_inside_tree() else Engine.get_main_loop() as SceneTree)
 	if DisplayServer.get_name() == "headless":
 		root.content_scale_factor = 1.0
 		return
-	root.content_scale_factor = ui_scale_factor(Vector2(root.size), _scale_share)
-	if not _watching_window:
-		_watching_window = true
-		root.size_changed.connect(func() -> void:
-			root.content_scale_factor = ui_scale_factor(Vector2(root.size), _scale_share))
+	_set_factor(root)  # Godot re-fits on every resize by itself
+
+# Text draws with a linear filter, pixel art keeps the project's Nearest. At a fractional UI scale the
+# glyphs (rasterized at the oversampled size) never match the screen exactly, and Nearest dropped thin
+# strokes ("Poisc ned", "over t me", 2026-10-02). Every text control added to the tree gets
+# TEXTURE_FILTER_LINEAR unless it chose a filter itself; Buttons only when they have no icon (an icon
+# may be pixel art: set its filter where you set the icon). Existing controls are swept once.
+static var _text_filter_tree: SceneTree = null
+static func install_text_filter(tree: SceneTree) -> void:
+	if tree == null or _text_filter_tree == tree:
+		return
+	_text_filter_tree = tree
+	tree.node_added.connect(_linear_text)
+	if tree.root != null:
+		for node in tree.root.find_children("*", "Control", true, false):
+			_linear_text(node)
+
+static func _linear_text(node: Node) -> void:
+	if not (node is Control) or (node as CanvasItem).texture_filter != CanvasItem.TEXTURE_FILTER_PARENT_NODE:
+		return
+	var is_text := node is Label or node is RichTextLabel or node is LineEdit or node is TextEdit
+	if is_text or (node is Button and (node as Button).icon == null):
+		(node as CanvasItem).texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+
+# Godot's own canvas_items stretch does the fitting: base size LAYOUT_MIN with aspect "expand" scales
+# by min(window / LAYOUT_MIN) (= ui_scale_factor's fit) and content_scale_factor = the share. Unlike a
+# bare content_scale_factor (stretch "disabled"), this mode oversamples fonts: glyphs rasterize at
+# their on-screen size instead of being scaled through the project's Nearest filter (jagged, strokes
+# lost: "Seeds" read "Seecs", 2026-09-30).
+static func _set_factor(root: Window) -> void:
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+	root.content_scale_size = Vector2i(LAYOUT_MIN)
+	root.content_scale_factor = clampf(_scale_share, UI_SHARE_MIN, UI_SHARE_MAX)
+
+# The total scale everything is drawn at (the stretch times the share), for the camera.
+static func ui_factor(root: Window) -> float:
+	if root == null:
+		return 1.0
+	if root.content_scale_mode == Window.CONTENT_SCALE_MODE_CANVAS_ITEMS and root.content_scale_size.x > 0:
+		var fit := minf(float(root.size.x) / root.content_scale_size.x, float(root.size.y) / root.content_scale_size.y)
+		return fit * root.content_scale_factor
+	return root.content_scale_factor if root.content_scale_factor > 0.0 else 1.0
 
 # --- Fonts -------------------------------------------------------------------------------------
 
-# Alegreya Sans: card text, tooltips, panels.
+# Alegreya Sans: card text, tooltips, panels. Every UI face is a FontVariation with SPACE_EXTRA: with
+# subpixel positioning off (even letters at fractional UI scales), a space's advance rounds down to
+# 0–1 px at some scales and words ran together ("Asmall splash", 2026-10-02); one extra pixel keeps
+# every word gap visible.
+const SPACE_EXTRA := 1
 static func body_font() -> Font:
-	return _file("AlegreyaSans-Regular.ttf")
+	return _spaced("body", "AlegreyaSans-Regular.ttf")
 
 static func body_medium_font() -> Font:
-	return _file("AlegreyaSans-Medium.ttf")
+	return _spaced("body_medium", "AlegreyaSans-Medium.ttf")
+
+static func _spaced(key: String, file: String) -> Font:
+	if not _fonts.has(key):
+		if _fonts.is_empty():
+			release_at_exit(func() -> void: _fonts.clear())
+		var font := FontVariation.new()
+		font.base_font = _file(file)
+		font.spacing_space = SPACE_EXTRA
+		_fonts[key] = font
+	return _fonts[key]
 
 # Cormorant Garamond SemiBold: titles, card names, buttons. Every Cormorant face uses lining figures
 # (its default old-style ones read small in "Drift 8" or "1×").
@@ -112,6 +173,7 @@ static func caps_font() -> Font:
 		var font := FontVariation.new()
 		font.base_font = _file("CormorantSC-Medium.ttf")
 		font.spacing_glyph = 1
+		font.spacing_space = SPACE_EXTRA
 		font.opentype_features = {TextServerManager.get_primary_interface().name_to_tag("lnum"): 1}
 		font.fallbacks = [body_font()]
 		_fonts["caps"] = font
@@ -121,7 +183,17 @@ static func caps_font() -> Font:
 static func whisper_font() -> Font:
 	return _variation("whisper", "CormorantGaramond-Italic-Variable.ttf", 500, false)
 
+# A static cache that holds engine objects (fonts, textures, resources with textures) must let go of them
+# before the servers shut down at quit, or Godot can crash on exit (headless tests: PASS, then exit 139).
+# Call this when the cache is first filled: `clear` runs once, when the root leaves the tree.
+static func release_at_exit(clear: Callable) -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree != null and tree.root != null:
+		tree.root.tree_exiting.connect(clear, CONNECT_ONE_SHOT)
+
 static func _file(file: String) -> Font:
+	if _fonts.is_empty():
+		release_at_exit(func() -> void: _fonts.clear())
 	if not _fonts.has(file):
 		_fonts[file] = load(FONT_DIR + file)
 	return _fonts[file]
@@ -136,6 +208,7 @@ static func _variation(key: String, file: String, weight: int, tabular: bool) ->
 		if tabular:
 			features[ts.name_to_tag("tnum")] = 1
 		font.opentype_features = features
+		font.spacing_space = SPACE_EXTRA
 		font.fallbacks = [body_font()]  # Symbols Cormorant lacks (✧, ⏎…)
 		_fonts[key] = font
 	return _fonts[key]
@@ -147,6 +220,64 @@ static func panel(margin_x: float = 16.0, margin_y: float = 12.0) -> MoonStyleBo
 	var box := MoonStyleBox.new()
 	_margins(box, margin_x, margin_y)
 	return box
+
+# Tips (native tooltips, TapTip, status / term popups): solid fog, the gold thread, a soft shadow, so
+# the text never fights what's under it (user: "I can barely read them once they're hovering over text").
+const TIP_ALPHA := 0.95
+static func tip_panel() -> MoonStyleBox:
+	var box := panel(12.0, 8.0)
+	box.center_alpha = TIP_ALPHA
+	box.edge_alpha = TIP_ALPHA
+	box.shadow_size = 10
+	return box
+
+# One CanvasLayer above every panel, screen and HUD layer for tips (created once per tree).
+const TIP_LAYER := 120
+static func tip_layer(tree: SceneTree) -> CanvasLayer:
+	var layer := tree.root.get_node_or_null("TipLayer") as CanvasLayer
+	if layer == null:
+		layer = CanvasLayer.new()
+		layer.name = "TipLayer"
+		layer.layer = TIP_LAYER
+		layer.process_mode = Node.PROCESS_MODE_ALWAYS
+		tree.root.add_child(layer)  # At input time (a tip shown); install_tooltip_wrap makes it early, deferred
+	return layer
+
+# Lifts `tip` (a top-level Control) onto the tip layer while it shows; it's freed with `host`.
+static func lift_tip(tip: Control, host: Node) -> void:
+	if not tip.is_inside_tree() or host == null or not host.is_inside_tree():
+		return
+	var layer := tip_layer(tip.get_tree())
+	if not layer.is_inside_tree() or tip.get_parent() == layer:
+		return
+	tip.reparent(layer, false)
+	if not host.tree_exiting.is_connected(tip.queue_free):
+		host.tree_exiting.connect(tip.queue_free)
+
+# Where a tip goes: above-right of the pointer, flipped left / below at the screen edges, so it never
+# covers the text under the pointer.
+# A tip anchored to its control (story chat, user 2026-10-01: "the text is not placed over the hovered
+# icon"): centred above `anchor` (a rect in viewport coordinates, see canvas_rect), flipped below when
+# there's no room above, clamped on screen.
+const TIP_GAP := 8.0
+static func tip_beside(anchor: Rect2, tip_size: Vector2, screen: Vector2) -> Vector2:
+	var at := Vector2(anchor.get_center().x - tip_size.x / 2.0, anchor.position.y - tip_size.y - TIP_GAP)
+	if at.y < 4.0:
+		at.y = anchor.end.y + TIP_GAP
+	return Vector2(clampf(at.x, 4.0, maxf(screen.x - tip_size.x - 4.0, 4.0)), clampf(at.y, 4.0, maxf(screen.y - tip_size.y - 4.0, 4.0)))
+
+# `control`'s rect in its viewport's coordinates (through CanvasLayers and the camera for world UI).
+static func canvas_rect(control: Control) -> Rect2:
+	var transform := control.get_global_transform_with_canvas()
+	return Rect2(transform.origin, control.size * transform.get_scale())
+
+static func tip_position(pointer: Vector2, tip_size: Vector2, screen: Vector2) -> Vector2:
+	var at := pointer + Vector2(16.0, -tip_size.y - 12.0)
+	if at.x + tip_size.x > screen.x - 4.0:
+		at.x = pointer.x - tip_size.x - 16.0
+	if at.y < 4.0:
+		at.y = pointer.y + 24.0
+	return Vector2(clampf(at.x, 4.0, maxf(screen.x - tip_size.x - 4.0, 4.0)), clampf(at.y, 4.0, maxf(screen.y - tip_size.y - 4.0, 4.0)))
 
 # A panel whose thread and diamond take `colour` (a boss, a Kinship, a Crowned Reaction).
 static func panel_in(colour: Color, margin_x: float = 10.0, margin_y: float = 10.0) -> MoonStyleBox:
@@ -276,11 +407,70 @@ static func focus_box() -> StyleBoxFlat:
 	box.set_expand_margin_all(2)
 	return box
 
+# A HUD button's box: the same look, tighter padding.
+static func _compact(box: StyleBox) -> StyleBox:
+	var copy := box.duplicate() as StyleBox
+	_margins(copy, 10.0, 4.0)
+	return copy
+
 static func _margins(box: StyleBox, x: float, y: float) -> void:
 	box.content_margin_left = x
 	box.content_margin_right = x
 	box.content_margin_top = y
 	box.content_margin_bottom = y
+
+# --- Feeling the cards (dream_design.md, 2026-10-01) -------------------------------------------
+# The look for the impact preview, the bloom, the toast and the credit lines; Roguelite Code makes
+# the data, Main the behaviour. Calm and readable: one line, one pulse, gold for what the card does.
+
+const IMPACT_SIZE := BODY_SIZE  # 16: ui_style.md body minimum
+
+# The impact preview line on a Dream card ("On your board · +22% damage on 7 Wardens"): gold body
+# text; `has_effect` false = the dim-ink "None of your Wardens yet" (a card for later is still fair).
+static func impact_line(label: Control, has_effect: bool = true) -> void:
+	_font(label, body_medium_font() if has_effect else body_font(), IMPACT_SIZE, GOLD if has_effect else INK_DIM)
+	if label is Label:
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+# The bloom on a Warden the taken card affects, at progress `t` (0 → 1 over ~0.6 s; callers stagger
+# it): a soft ring in the rarity colour that grows and fades at the Warden's base, and the card's gem
+# (with its glyph) rising a little above the Warden and fading out. Reduced motion: hold t at 0.35
+# (one soft highlight, no movement).
+const BLOOM_RING := Vector2(18.0, 34.0)  # Ring radius from → to, px
+const BLOOM_RISE := 14.0
+static func draw_bloom(canvas: CanvasItem, base: Vector2, t: float, rarity: int, glyph: StringName = &"",
+		gem_height: float = 46.0) -> void:
+	var colour := rarity_color(rarity)
+	var fade := 1.0 - clampf(t, 0.0, 1.0)
+	var ease := 1.0 - pow(1.0 - clampf(t, 0.0, 1.0), 3.0)  # Out-cubic: quick, then gentle
+	var radius := lerpf(BLOOM_RING.x, BLOOM_RING.y, ease)
+	canvas.draw_circle(base, radius, Color(colour, 0.12 * fade))
+	canvas.draw_arc(base, radius, 0.0, TAU, 40, Color(colour, 0.85 * fade), 2.0, true)
+	var gem_at := base + Vector2(0, -gem_height - BLOOM_RISE * ease)
+	var gem_alpha := clampf(1.0 - (t - 0.6) / 0.4, 0.0, 1.0)  # Holds, then fades in the last 40%
+	if gem_alpha > 0.0:
+		canvas.draw_circle(gem_at, 15.0, Color(FOG, 0.6 * gem_alpha))  # A fog dot keeps it legible on bright map
+		draw_gem(canvas, gem_at, 12.0, rarity, glyph)
+
+# The toast after taking a card ("Cozy Corners · 6 Wardens +30%"): the display face, Ink, a Void outline.
+static func impact_toast(label: Label) -> void:
+	_font(label, display_font(), 22, INK)
+	label.add_theme_color_override("font_outline_color", FOG)
+	label.add_theme_constant_override("outline_size", 6)
+
+# A credit line for the rest report / results (RichTextLabel bbcode): a dim title, then each
+# entry's name in Ink and its number in Gold, joined by " · ". `entries` = [[name, value_text], …].
+# e.g. credit_bbcode("Dreams this block", [["Lingering Spores", "+1,840"], ["Cozy Corners", "+920"]]).
+static func credit_bbcode(title: String, entries: Array) -> String:
+	var parts: Array[String] = []
+	for entry in entries:
+		parts.append("[color=#%s]%s[/color] [color=#%s]%s[/color]" % [INK.to_html(false), _bb(String(entry[0])),
+			GOLD.to_html(false), _bb(String(entry[1]))])
+	var head := "[font_size=%d][color=#%s]%s[/color][/font_size]" % [LABEL_SIZE + 1, INK_DIM.to_html(false), _bb(title)]
+	return head + "  " + (" [color=#%s]·[/color] " % INK_DIM.to_html(false)).join(parts)
+
+static func _bb(text: String) -> String:
+	return text.replace("[", "[lb]")
 
 # --- Helpers for screens built in code ---------------------------------------------------------
 
@@ -289,21 +479,88 @@ static func rarity_color(rarity: int) -> Color:
 
 # The rarity gem (screens_ui.md: shape AND colour): Common circle, Uncommon diamond, Rare hexagon,
 # Legendary star, `r` px from the centre.
-static func draw_gem(canvas: CanvasItem, centre: Vector2, r: float, rarity: int) -> void:
+# With `glyph` (a dream_glyph id, UI Asset's assets/ui/dream_glyphs.png): the gem is dark (Night) with
+# the rarity colour on its rim and shape, and the light glyph sits inside at ×2 (16 px; needs r ≥ 11).
+static func draw_gem(canvas: CanvasItem, centre: Vector2, r: float, rarity: int, glyph: StringName = &"") -> void:
 	var colour := rarity_color(rarity)
 	var dark := Color(FOG, 0.9)
+	var with_glyph := glyph != &""
+	var fill := CARD_BG if with_glyph else colour
+	var rim := colour if with_glyph else dark
 	if rarity == 0:
-		canvas.draw_circle(centre, r, dark)
-		canvas.draw_circle(centre, r - 2.0, colour)
-		return
-	var corners: int = {1: 4, 2: 6}.get(rarity, 10)
-	var points := PackedVector2Array()
-	for i in corners:
-		var radius := r if corners < 10 or i % 2 == 0 else r * 0.5  # Legendary: a star
-		points.append(centre + Vector2.from_angle(TAU * i / corners - PI / 2.0) * radius)
-	canvas.draw_colored_polygon(points, colour)
-	points.append(points[0])
-	canvas.draw_polyline(points, dark, 2.0, true)
+		canvas.draw_circle(centre, r, rim if with_glyph else dark)
+		canvas.draw_circle(centre, r - 2.0, fill)
+	else:
+		var corners: int = {1: 4, 2: 6}.get(rarity, 10)
+		var points := PackedVector2Array()
+		for i in corners:
+			var radius := r if corners < 10 or i % 2 == 0 else r * 0.5  # Legendary: a star
+			points.append(centre + Vector2.from_angle(TAU * i / corners - PI / 2.0) * radius)
+		canvas.draw_colored_polygon(points, fill)
+		points.append(points[0])
+		canvas.draw_polyline(points, rim, 2.0, true)
+	if with_glyph:
+		# Straight from the sheet (held by _glyph_sheet): a temporary AtlasTexture made here was freed
+		# before the frame rendered and drew as a white square (2026-10-01).
+		var sheet := _glyph_sheet_texture()
+		var region := dream_glyph_region(glyph)
+		if sheet != null and region.has_area():
+			var side := Vector2(16, 16) if r >= 11.0 else Vector2(8, 8)  # Whole-number scale only
+			canvas.draw_texture_rect_region(sheet, Rect2((centre - side / 2.0).round(), side), region)
+
+# Dream card glyphs (UI Asset, assets/ui/dream_glyphs.json): the first `priority` id any of the card's
+# tags maps to, else `fallback`. Every gem caller uses this, so a card shows the same glyph everywhere.
+const DREAM_GLYPHS := "res://assets/ui/dream_glyphs"
+static var _glyph_data := {}  # The parsed JSON
+static var _glyph_sheet: Texture2D = null  # Kept alive for draw calls; released at exit (release_at_exit)
+
+static func dream_glyph(card: UpgradeData) -> StringName:
+	var data := _glyphs()
+	if data.is_empty() or card == null:
+		return &""
+	var tags: Dictionary = data.get("tags", {})
+	var mapped := {}
+	for tag in card.tags:
+		if tags.has(tag):
+			mapped[tags[tag]] = true
+	for id in data.get("priority", []):
+		if mapped.has(id):
+			return StringName(id)
+	return StringName(data.get("fallback", "generic"))
+
+# The glyph's cell in assets/ui/dream_glyphs.png (an empty Rect2 for an unknown id).
+static func dream_glyph_region(id: StringName) -> Rect2:
+	var data := _glyphs()
+	var icons: Dictionary = data.get("icons", {})
+	if not icons.has(String(id)):
+		return Rect2()
+	var frame := int(data.get("frame_size", 8))
+	return Rect2(int(icons[String(id)]) * frame, 0, frame, frame)
+
+static func _glyph_sheet_texture() -> Texture2D:
+	if _glyph_sheet == null and ResourceLoader.exists(DREAM_GLYPHS + ".png"):
+		_glyph_sheet = load(DREAM_GLYPHS + ".png")
+		release_at_exit(func() -> void: _glyph_sheet = null)
+	return _glyph_sheet
+
+# The glyph's 8×8 cell of the sheet (a new AtlasTexture: cache it on the caller's instance if drawn often).
+static func dream_glyph_texture(id: StringName) -> Texture2D:
+	var data := _glyphs()
+	var icons: Dictionary = data.get("icons", {})
+	if not icons.has(String(id)) or not ResourceLoader.exists(DREAM_GLYPHS + ".png"):
+		return null
+	var frame := int(data.get("frame_size", 8))
+	var atlas := AtlasTexture.new()
+	atlas.atlas = load(DREAM_GLYPHS + ".png")
+	atlas.region = Rect2(int(icons[String(id)]) * frame, 0, frame, frame)
+	return atlas
+
+static func _glyphs() -> Dictionary:
+	if _glyph_data.is_empty() and FileAccess.file_exists(DREAM_GLYPHS + ".json"):
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string(DREAM_GLYPHS + ".json"))
+		if parsed is Dictionary:
+			_glyph_data = parsed
+	return _glyph_data
 
 # The display face at `font_size`, keeping the control's colour.
 static func display(control: Control, font_size: int = TITLE_SIZE) -> void:
@@ -342,6 +599,12 @@ static func install_tooltip_wrap(tree: SceneTree) -> void:
 	if tree == null or _tooltip_tree == tree:
 		return
 	_tooltip_tree = tree
+	if tree.root.get_node_or_null("TipLayer") == null:  # The tip layer, ready before any tip shows
+		var layer := CanvasLayer.new()
+		layer.name = "TipLayer"
+		layer.layer = TIP_LAYER
+		layer.process_mode = Node.PROCESS_MODE_ALWAYS
+		tree.root.add_child.call_deferred(layer)
 	tree.node_added.connect(func(node: Node) -> void:
 		if node is Label and node.theme_type_variation == &"TooltipLabel":
 			_wrap_tooltip.call_deferred(node))
@@ -354,17 +617,25 @@ static func _wrap_tooltip(label: Label) -> void:
 	var widest := 0.0
 	for line in label.text.split("\n"):
 		widest = maxf(widest, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
-	if widest <= TIP_WIDTH:
-		return  # Short tips keep their natural width
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.custom_minimum_size.x = TIP_WIDTH
+	if widest > TIP_WIDTH:  # Short tips keep their natural width
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.custom_minimum_size.x = TIP_WIDTH
 	var panel := label.get_parent() as Window
 	if panel == null:
 		return
 	panel.size = Vector2i(panel.get_contents_minimum_size())
-	var screen := panel.get_parent().get_viewport().get_visible_rect().size if panel.get_parent() != null else Vector2(panel.size)
-	panel.position = Vector2i(clampi(panel.position.x, 0, maxi(int(screen.x) - panel.size.x, 0)),
-		clampi(panel.position.y, 0, maxi(int(screen.y) - panel.size.y, 0)))
+	# Anchored to the hovered control: above it, flipped below, clamped (tip_beside); else by the pointer.
+	# The tip is an embedded popup, so it lives in the root viewport's units, which the UI scale
+	# (canvas_items stretch) makes different from window pixels: everything here is in viewport units.
+	var window := panel.get_tree().root if panel.is_inside_tree() else null
+	if window == null:
+		return
+	var screen := window.get_visible_rect().size
+	var hovered := window.gui_get_hovered_control()
+	if hovered != null:
+		panel.position = Vector2i(tip_beside(canvas_rect(hovered), Vector2(panel.size), screen))
+	else:
+		panel.position = Vector2i(tip_position(window.get_mouse_position(), Vector2(panel.size), screen))
 
 static func caps(label: Control, font_size: int = LABEL_SIZE, colour: Color = INK_DIM) -> void:
 	_font(label, caps_font(), font_size, colour)
@@ -410,7 +681,7 @@ static func make_theme() -> Theme:
 
 	# Panels and tooltips carry the thread.
 	for type in ["PanelContainer", "Panel", "PopupPanel", "TooltipPanel", "PopupMenu", "AcceptDialog"]:
-		theme.set_stylebox("panel", type, panel(12.0 if type == "TooltipPanel" else 16.0, 8.0 if type == "TooltipPanel" else 12.0))
+		theme.set_stylebox("panel", type, tip_panel() if type == "TooltipPanel" else panel(16.0, 12.0))  # Tips: solid
 	theme.set_font_size("font_size", "TooltipLabel", TIP_SIZE)
 	theme.set_constant("line_spacing", "TooltipLabel", TIP_LINE_SPACING)
 	theme.set_stylebox("separator", "HSeparator", MoonDivider.new())
@@ -437,18 +708,34 @@ static func make_theme() -> Theme:
 			theme.set_stylebox(state, type, empty)
 		_font_colours(theme, type)
 
-	# Warden bar slot: a fog patch; selected = the glowing underline.
+	# Warden bar slot: the same frame as every HUD button (the bar is the hero, not a lesser row);
+	# selected = the gold border, like any selected control.
 	theme.set_type_variation("WardenSlot", "Button")
-	for state in ["normal", "disabled"]:
-		theme.set_stylebox(state, "WardenSlot", slot(false))
-	theme.set_stylebox("hover", "WardenSlot", slot(false, true))
-	for state in ["pressed", "hover_pressed"]:
-		theme.set_stylebox(state, "WardenSlot", slot(true))
+	var slot_boxes := [button_box(), hover_box(), selected_box(), hover_box(true), disabled_box()]
+	for box: StyleBoxFlat in slot_boxes:
+		_margins(box, 4.0, 4.0)
+		box.bg_color.a = maxf(box.bg_color.a, TIP_ALPHA)  # Solid: the map never shows through a slot (user)
+	for i in 5:
+		theme.set_stylebox(["normal", "hover", "pressed", "hover_pressed", "disabled"][i], "WardenSlot", slot_boxes[i])
 	theme.set_stylebox("focus", "WardenSlot", StyleBoxEmpty.new())
 	theme.set_font("font", "WardenSlot", number_font())
 	theme.set_font_size("font_size", "WardenSlot", 16)
 	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
 		theme.set_color(state, "WardenSlot", GOLD)
+
+	# HUD buttons (top-right row, drift controls): compact, HUD_BUTTON_H tall, small caps at
+	# HUD_TEXT_SIZE, the thin frame. HudPrimary is the same size in the call-to-action look (Start).
+	theme.set_type_variation("HudButton", "Button")
+	_button_styles(theme, "HudButton", _compact(button_box()), _compact(hover_box()), _compact(selected_box()),
+		_compact(hover_box(true)))
+	theme.set_type_variation("HudPrimary", "Button")
+	_button_styles(theme, "HudPrimary", _compact(primary_box()), _compact(primary_hover), _compact(primary_press),
+		_compact(primary_hover))
+	for state in ["font_color", "font_hover_color", "font_focus_color"]:
+		theme.set_color(state, "HudPrimary", GOLD_TEXT)
+	for type in ["HudButton", "HudPrimary"]:
+		theme.set_font("font", type, caps_font())
+		theme.set_font_size("font_size", type, HUD_TEXT_SIZE)
 
 	# Tabs (the settings panel).
 	var tab_selected := StyleBoxFlat.new()

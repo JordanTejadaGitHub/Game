@@ -32,10 +32,49 @@ func _ready() -> void:
 		if node.get("enemy_data") != null and node.enemy_data.is_boss:
 			_boss = node)
 
-func _process(_delta: float) -> void:
-	queue_redraw()  # Cheap; the numbers change every frame during a boss drift
+# Redrawn when what it shows changes (3× perf pass: it was every frame), and at least every
+# SAFETY_REDRAW s for anything the key misses (pip states).
+const SAFETY_REDRAW := 0.5
+var _shown_key := ""
+var _since_redraw := 0.0
+
+func _process(delta: float) -> void:
+	_since_redraw += delta / maxf(Engine.time_scale, 0.001)
+	var boss_health := int(_boss.health) if is_instance_valid(_boss) and not _boss.is_cleansed else -1
+	var pulse_step := int(Time.get_ticks_msec() / 50) if _boss_at_heartwood() else 0  # The drain pulse redraws ~20×/s
+	var key := "%s|%d|%s|%d|%s|%d" % [get_drift_text(), drift_director.drifts_started, drift_director.is_resting(), boss_health, size, pulse_step]
+	if key == _shown_key and _since_redraw < SAFETY_REDRAW:
+		return
+	_shown_key = key
+	_since_redraw = 0.0
+	queue_redraw()
+
+# The width its drawing takes (centred in its rect): the widest of the top line and the pips + next
+# boss line, or its boss bar. The HUD keeps the top-right row clear of it.
+func drawn_width() -> float:
+	var font := UiStyle.display_font()
+	var latest := drift_director.drifts_started
+	var total := drift_director.get_total_drifts()
+	var shown := mini(latest + 1 if drift_director.is_resting() else maxi(latest, 1), total)
+	var act := drift_director.get_act(shown)
+	var top := "Act %d · %s      %s" % [act, drift_director.get_act_name(act), get_drift_text()]
+	var width := font.get_string_size(top, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
+	var pips := (drift_director.drifts_per_block - 1) * PIP_RADIUS * 3.0 + PIP_RADIUS * 2.0
+	var boss_text := _next_boss_text(latest)
+	if boss_text != "":
+		pips += BOSS_GAP + DISC_RADIUS * 2.0 + 8.0 + font.get_string_size(boss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, BOSS_FONT_SIZE).x
+	return maxf(maxf(width, pips) + 12.0, _drawn_half * 2.0)  # What it last drew, if wider (+ outlines)
+
+# Its drawn area in global coordinates (centred in the rect).
+func drawn_rect() -> Rect2:
+	var rect := get_global_rect()
+	var width := drawn_width()  # Never clamped to the rect: its text may overflow it
+	return Rect2(rect.get_center().x - width / 2.0, rect.position.y, width, rect.size.y)
+
+var _drawn_half := 0.0  # Half the widest thing the last _draw drew, from the centre (+ outline)
 
 func _draw() -> void:
+	_drawn_half = 0.0
 	var font := UiStyle.display_font()  # Moonlit Thread (ui_style.md)
 	var center_x := size.x / 2.0
 	var latest := drift_director.drifts_started
@@ -86,9 +125,11 @@ func _draw() -> void:
 	# Underlined: it (and the portrait) opens the dossier.
 	draw_line(Vector2(text_x, base + 4), Vector2(text_x + text_width, base + 4), Color(UiStyle.GOLD, 0.5), 1.0)
 	_countdown_rect = Rect2(left - 4.0, row_y - DISC_RADIUS - 4.0, text_x + text_width - left + 8.0, DISC_RADIUS * 2.0 + 8.0)
+	_drawn_half = maxf(_drawn_half, maxf(center_x - (left - 4.0), text_x + text_width + 6.0 - center_x))
 
 func _draw_boss_bar(font: Font, center_x: float) -> void:
 	var bar := Rect2(center_x - WIDTH / 2.0, 34, WIDTH, 10)
+	_drawn_half = maxf(_drawn_half, WIDTH / 2.0 + 4.0)
 	var fraction := float(_boss.health) / maxf(_boss.max_health, 1.0)
 	draw_rect(bar.grow(2), Color(Palette.DREAD, 0.85))
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * fraction, bar.size.y)), BOSS_COLOR)
@@ -102,7 +143,22 @@ func _draw_boss_bar(font: Font, center_x: float) -> void:
 		_markers.append([Rect2(x - 14, bar.position.y - 14, 28, 32), lines[share]])
 	# The rest of the bar (and the name) opens the dossier too.
 	_countdown_rect = Rect2(bar.position.x, bar.position.y - 4, bar.size.x, bar.size.y + 26)
-	_draw_centered(font, _boss.enemy_data.display_name, Vector2(center_x, bar.end.y + 16), SMALL_FONT_SIZE, BOSS_COLOR.lightened(0.3))
+	if _boss_at_heartwood():  # It got through and stays, draining leaves: say so, and pulse
+		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * TAU * 0.8)
+		draw_rect(bar.grow(4), Color(UiStyle.POOR, 0.35 + 0.45 * pulse), false, 2.0)
+		var at_text := "%s · at the Heartwood" % _boss.enemy_data.display_name
+		if _boss.has_method("linger_left") and _boss.linger_left() > 0.0:  # The Night Mare lingers, then laps on
+			at_text = "%s · At the Heartwood: %d s" % [_boss.enemy_data.display_name, ceili(_boss.linger_left())]
+		if _boss.has_method("is_untouchable") and _boss.is_untouchable():  # Can't be hit while it lingers
+			at_text += " · Untouchable"
+		_draw_centered(font, at_text, Vector2(center_x, bar.end.y + 16),
+			SMALL_FONT_SIZE, UiStyle.POOR)
+		return
+	var name: String = _boss.enemy_data.display_name
+	_draw_centered(font, name, Vector2(center_x, bar.end.y + 16), SMALL_FONT_SIZE, BOSS_COLOR.lightened(0.3))
+
+func _boss_at_heartwood() -> bool:
+	return is_instance_valid(_boss) and bool(_boss.get("at_heartwood"))
 
 func _has_point(point: Vector2) -> bool:
 	return _marker_at(point) != "" or _countdown_rect.has_point(point)
@@ -117,7 +173,10 @@ func _get_tooltip(at: Vector2) -> String:
 	var line := _marker_at(at)
 	if line != "":
 		return line
-	return "Open the boss dossier" if _countdown_rect.has_point(at) else ""
+	var data := _next_boss_data(drift_director.drifts_started)
+	if data == null or not _countdown_rect.has_point(at):
+		return ""
+	return "About %s" % IconInfo.name_in_sentence(data.display_name)
 
 func _gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
@@ -202,3 +261,4 @@ func _draw_centered(font: Font, text: String, at: Vector2, font_size: int, colou
 	var origin := Vector2(at.x - width / 2.0, at.y)
 	draw_string_outline(font, origin, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 6, Palette.DREAD)
 	draw_string(font, origin, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
+	_drawn_half = maxf(_drawn_half, width / 2.0 + 6.0)  # + the outline

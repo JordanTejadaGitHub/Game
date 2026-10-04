@@ -15,11 +15,20 @@ func _run() -> void:
 	root.add_child(main)
 	await process_frame
 	var omens: OmenDirector = main.get_node("%OmenDirector")
-	_check(omens.pool.size() == 20, "20 Omens in the pool (%d)" % omens.pool.size())
+	_check(omens.pool.size() == 23, "23 Omens in the pool (%d)" % omens.pool.size())
 	await _test_flow(main)
 	_test_twists(main)
 	_test_rewards(main)
 	_test_new_omens(main)
+	_test_offer_conditions(main)
+	_test_teeth(main)
+	await _test_screenshot_fixes(main)
+	_test_leaf_rewards(main)
+	await _test_active_tag(main)
+	_test_reward_words(main)
+	_test_bullets_match_data(main)
+	_test_extra_dew_estimate(main)
+	_test_no_omen_at_act_break(main)
 	print("omens test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -60,6 +69,9 @@ func _test_flow(main: Node) -> void:
 	var esc := InputEventAction.new()
 	esc.action = &"ui_cancel"
 	esc.pressed = true
+	screen._unhandled_input(esc)
+	_check(omens.is_offering(), "Esc as the screen appears does nothing (the arm delay: a cancel meant for build mode)")
+	await _frames(int(ChoiceArm.ARM_TIME * 60.0) + 2)
 	screen._unhandled_input(esc)
 	_check(omens.active == null and not omens.is_offering() and not paused, "Esc = Clear Skies: nothing changes")
 	# Face an Omen: the drawn Omens are revealed, one must be picked (no going back)
@@ -157,9 +169,10 @@ func _test_twists(main: Node) -> void:
 	_check(closer[-1][0] < drift.get_schedule()[-1][0] * 0.71, "Restless Wind: arrivals 30% closer together")
 
 	_activate(omens, "dry_spell", 3)
-	var dry: Node2D = spawner.spawn_enemy(bug, 1.0, director.get_spawn_modifiers(bug, 12))
-	_check(dry.get_dew_reward() == 0, "Dry Spell: creatures give no Dew")
-	dry.free()
+	_check(director.get_effective_pot(12) == 0.0 and omens.get_dew_pot_multiplier(12) == 0.0, "Dry Spell: the block's Dew pot is empty")
+	_activate(omens, "bountiful_night", 3)
+	_check(is_equal_approx(omens.get_dew_pot_multiplier(12), 1.5) and not director.get_spawn_modifiers(bug, 12).has("dew"),
+		"Bountiful Night: the pot ×1.5, never a per-nightmare Dew modifier (the pot carries it)")
 	_activate(omens, "swift_stream", 3)
 	var swift: Node2D = spawner.spawn_enemy(bug, 1.0, director.get_spawn_modifiers(bug, 12))
 	_check(is_equal_approx(swift.speed, bug.speed * 1.25), "Swift Stream: +25% speed")
@@ -187,10 +200,40 @@ func _test_rewards(main: Node) -> void:
 	omens.current_offer = []
 	omens._offer_waiting = false
 
+	# Dry Spell: no Dew during the block; at its rest, the block's base pot ×1.25 (cut by leaves lost like any reward)
+	var base_pot := 0.0  # What the block would really have paid: the player's own multipliers, not Dry Spell's ×0
+	for n in range(11, 16):
+		base_pot += director.get_dew_pot(n) * director.get_dew_pot_multiplier(n, false, false)
 	_activate(omens, "dry_spell", 3)
 	dew = run_state.dew
 	omens._on_rest_started(3, false, 50, true)
-	_check(run_state.dew == dew + 75, "Dry Spell: rest bonus ×2.5 (+75 on a 50 bonus)")
+	_check(run_state.dew == dew + roundi(base_pot * 1.25), "Dry Spell, clean block: the block's base pot ×1.25 (+%d of %.0f)" % [run_state.dew - dew, base_pot])
+	omens.current_offer = []
+	omens._offer_waiting = false
+	_activate(omens, "dry_spell", 3)
+	run_state.leaves_lost += 1
+	dew = run_state.dew
+	omens._on_rest_started(3, false, 50, true)
+	_check(run_state.dew == dew + floori(roundi(base_pot * 1.25) * 0.75), "…one leaf lost: 75%% of it (+%d)" % (run_state.dew - dew))
+	omens.current_offer = []
+	omens._offer_waiting = false
+	# With Morning Dew (+10% pot), the payback is the pot the block would really have paid: base × 1.1 × 1.25,
+	# recorded as each drift starts (never Dry Spell's own ×0)
+	var plain_pot := 0.0
+	for n in range(11, 16):
+		plain_pot += director.get_dew_pot(n)
+	for card in dreams.pool:
+		if card.id == "morning_dew":
+			dreams.take(card)
+	_activate(omens, "dry_spell", 3)
+	for n in range(11, 16):
+		omens._on_drift_started(n)
+	_check(is_equal_approx(director.get_effective_pot(12), 0.0), "…the block itself pays nothing")
+	dew = run_state.dew
+	omens._on_rest_started(3, false, 50, true)
+	_check(abs(run_state.dew - dew - plain_pot * 1.1 * 1.25) <= 1.0,
+		"Dry Spell with Morning Dew: the real pot ×1.25 (+%d, expected ~%.0f)" % [run_state.dew - dew, plain_pot * 1.1 * 1.25])
+	dreams.stacks.erase("morning_dew")
 	omens.current_offer = []
 	omens._offer_waiting = false
 
@@ -201,11 +244,17 @@ func _test_rewards(main: Node) -> void:
 	dreams.unlocked["firefly_jar"] = true
 	_check(dreams.make_offer(15).size() == 5, "Thick Blight: the next Dream offers 5 cards")
 	_check(dreams.make_offer(20).size() == 3, "…only the next one")
+	dreams.cards_per_offer = 4  # Wider Dreams
+	dreams.add_extra_cards(2)
+	_check(dreams.make_offer(25).size() == 5, "…at most 5 cards, Wider Dreams included")
+	dreams.cards_per_offer = 3
 
 	_activate(omens, "restless_wind", 3)
 	var max_leaves := run_state.max_leaves
+	var rare_before := dreams._rare_dreams_left
 	omens._on_rest_started(3, false, 50, true)
-	_check(run_state.max_leaves == max_leaves + 2, "Restless Wind: +2 max leaves")
+	_check(run_state.max_leaves == max_leaves and dreams._rare_dreams_left == rare_before + 1, "Restless Wind: a Rare+ card and Dew, no leaves (Omens never give leaves)")
+	dreams._rare_dreams_left = rare_before
 	omens.current_offer = []
 	omens._offer_waiting = false
 
@@ -224,6 +273,8 @@ func _activate(omens: OmenDirector, id: String, block: int) -> void:
 		if omen.id == id:
 			omens.active = omen
 			omens.active_block = block
+			omens._leaves_lost_at_start = omens.run_state.leaves_lost  # A clean block so far
+			omens._withheld.clear()
 			return
 	_check(false, "Omen %s exists" % id)
 
@@ -279,16 +330,51 @@ func _test_new_omens(main: Node) -> void:
 	omens.active = by_id["frozen_ground"]
 	director.resting = false
 	_check(omens.blocks_building(), "Frozen Ground: no building during a drift")
+	var seller: TowerSeller = main.get_node("%TowerSeller")
+	_check(not seller.can_sell() and seller.sell_block_reason().begins_with("Frozen Ground"),
+		"…and no selling either (the Warden panel and sell key say why)")
 	director.resting = true
-	_check(not omens.blocks_building(), "…fine at a rest")
+	_check(not omens.blocks_building() and seller.can_sell(), "…both fine at a rest")
 	omens.active = by_id["leaf_fall"]
 	_check(omens.get_leak_multiplier() == 2.0, "Leaf Fall: leaks ×2")
+	# A boss's flat leak doubles too (balance_simulation.md 538b85b7: act 1–3 bosses take a flat cost and leave)
+	var stag: EnemyData = load("res://resource/enemy/old_stag.tres")
+	var boss: Node2D = main.get_node("%EnemyContainer").spawn_enemy(stag)
+	if boss != null:
+		var leaves_before := run_state.leaves
+		var over_before := run_state.is_over
+		var won_before := run_state.won
+		var lost_before := run_state.leaves_lost
+		run_state.is_over = false  # An earlier check won the run; a leak needs a live one
+		run_state.leaves = 100  # Plenty, so the leak never ends the run
+		var full := run_state.leaves
+		run_state._on_enemy_reached_goal(boss)
+		_check(full - run_state.leaves == boss.get_leaf_cost() * 2,
+			"…a boss's leak costs double its leaves too (%d → %d)" % [boss.get_leaf_cost(), full - run_state.leaves])
+		run_state.leaves = leaves_before
+		run_state.is_over = over_before
+		run_state.won = won_before
+		run_state.leaves_lost = lost_before  # Later checks measure their own blocks' losses
+		boss.free()
+	_check(not by_id["leaf_fall"].description.contains("drains"), "Leaf Fall's text: just \"Every leak costs double leaves.\"")
+	# Never for a block with a boss drift (a doubled flat boss leak would end the run): blocks 5 / 10 / 15 / 20
+	omens.active = null
+	var leaf_fall_offered := func(block: int) -> bool:
+		for i in 80:
+			omens._last_offer_ids.clear()
+			if omens.make_offer(block).any(func(o: OmenData) -> bool: return o.id == "leaf_fall"):
+				return true
+		return false
+	_check(not leaf_fall_offered.call(5) and not leaf_fall_offered.call(10) and not leaf_fall_offered.call(20),
+		"Leaf Fall is never offered at the rest before a boss block")
+	_check(leaf_fall_offered.call(9), "…but is before an ordinary one")
+	omens._last_offer_ids.clear()
 
-	# Lean Season: the rest bonus is halved, the next Dream (act 2+) includes a Legendary
+	# Lean Season: no rest bonus, the next Dream (act 2+) includes a Legendary
 	omens.active = by_id["lean_season"]
 	run_state.dew = 200
 	omens._pay_reward(100)
-	_check(run_state.dew == 125, "Lean Season: three quarters of the 100 rest bonus are lost (%d)" % run_state.dew)
+	_check(run_state.dew == 100, "Lean Season: the whole 100 rest bonus is lost (%d)" % run_state.dew)
 	var offer := dreams.make_offer(51)
 	_check(offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY), "…the next Dream includes a Legendary")
 
@@ -320,6 +406,7 @@ func _test_new_omens(main: Node) -> void:
 
 	# Shifting Ground: 5 trees on free cells away from the route, once; then +1 Seed per tree cleared
 	omens.active = by_id["shifting_ground"]
+	omens._leaves_lost_at_start = run_state.leaves_lost  # A clean block (earlier checks lost leaves)
 	omens._sprouted_block = 0
 	var route_before: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	var obstacles_before: int = map_generator.obstacles.size()
@@ -338,6 +425,359 @@ func _test_new_omens(main: Node) -> void:
 	omens.active = null
 	director.drifts_started = 0
 
+# Omen audit fixes (run_design.md): Hard Bark only before a block with a coated nightmare; Lean Season only
+# while a Legendary can still be offered this run.
+func _test_offer_conditions(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var dreams: DreamState = main.get_node("%DreamState")
+	var coated := -1
+	var bare := -1
+	for block in range(2, 20):
+		if omens._block_has_coat(omens.get_block_range(block)):
+			coated = block if coated < 0 else coated
+		elif bare < 0:
+			bare = block
+	_check(coated > 0 and bare > 0, "blocks with and without a coated nightmare (%d, %d)" % [coated, bare])
+	var offered := func(block: int, id: String) -> bool:
+		for i in 80:
+			omens._last_offer_ids.clear()
+			if omens.make_offer(block).any(func(o: OmenData) -> bool: return o.id == id):
+				return true
+		return false
+	_check(not offered.call(bare, "hard_bark"), "Hard Bark: never offered before a block with no coated nightmare (block %d)" % bare)
+	_check(offered.call(coated, "hard_bark"), "…offered before one with a coat (block %d)" % coated)
+	# Lean Season (act 2+): needs a Legendary left to give
+	var legendaries: Array = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY)
+	var grove_before := dreams.grove_cards.duplicate()
+	for card in legendaries:
+		if not card.in_start_pool and not dreams.grove_cards.has(card.id):
+			dreams.grove_cards.append(card.id)
+	_check(dreams.has_legendary_left(), "a Legendary is left to offer")
+	_check(offered.call(11, "lean_season"), "Lean Season: offered while a Legendary can be offered")
+	for card in legendaries:
+		dreams._banished[card.id] = true
+	_check(not dreams.has_legendary_left() and not offered.call(11, "lean_season"), "…never once no Legendary is left")
+	for card in legendaries:
+		dreams._banished.erase(card.id)
+	dreams.grove_cards.assign(grove_before)
+	omens._last_offer_ids.clear()
+
+# Omens with teeth (run_design.md): the block decides the reward; the maze Omens; the data fixes.
+func _test_teeth(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var dreams: DreamState = main.get_node("%DreamState")
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var run_state: RunState = main.get_node("%RunState")
+	var map_generator = main.get_node("%MapGenerator")
+	director.drifts_started = 15  # Act 1: rewards ×1
+	omens.current_offer = []
+	omens._offer_waiting = false
+	var paid := []
+	omens.omen_rewarded.connect(func(_o: OmenData, summary: String) -> void: paid.append(summary))
+	# Crowded Paths (60 Dew): clean = all, 1 leaf lost = 75% (rounded down), 4+ = nothing
+	_activate(omens, "crowded_paths", 3)
+	_check(omens.get_reward_status() == "You'd get it all right now." and omens.get_reward_line() == "Reward: +60 Dew, minus 15 for each leaf you lose in these drifts.", "a clean block so far: the full reward (%s)" % omens.get_reward_status())
+	run_state.leaves_lost += 1
+	_check(omens.get_reward_status() == "You'd get 75% right now: 1 leaf lost.", "…the tag follows the losses (%s)" % omens.get_reward_status())
+	var dew := run_state.dew
+	omens._pay_reward(0)
+	_check(run_state.dew == dew + 45, "1 leaf lost: 75%% of 60 Dew (%d)" % (run_state.dew - dew))
+	_check(not paid.is_empty() and paid[-1] == "Reward: +45 Dew (1 leaf lost).", "…and the rest says why (%s)" % [paid[-1] if not paid.is_empty() else ""])
+	_activate(omens, "crowded_paths", 3)
+	run_state.leaves_lost += 4
+	dew = run_state.dew
+	omens._pay_reward(0)
+	_check(run_state.dew == dew and paid[-1] == "No reward: 4 leaves lost.", "4 leaves lost: nothing (%s)" % paid[-1])
+	# Leaf Fall (next Dream: 4 cards, one Rare+): 1 leaf lost keeps it; no leaves, no Dreamlight
+	_activate(omens, "leaf_fall", 3)
+	run_state.leaves_lost += 1
+	var max_leaves := run_state.max_leaves
+	var light := dreams.dreamlight
+	var rare_left := dreams._rare_dreams_left
+	var extra := dreams._extra_cards_next
+	omens._pay_reward(0)
+	_check(dreams._rare_dreams_left == rare_left + 1 and dreams._extra_cards_next == extra + 1 and dreams.dreamlight == light
+		and run_state.max_leaves == max_leaves, "Leaf Fall with 1 leaf lost: the next Dream has 4 cards, one Rare+ (no leaves, no Dreamlight)")
+	dreams._rare_dreams_left = rare_left
+	dreams._extra_cards_next = extra
+	# Dream rewards: kept with ≤ 1 leaf lost, gone with 2
+	_activate(omens, "hard_bark", 3)
+	run_state.leaves_lost += 1
+	var rare := dreams._rare_dreams_left
+	omens._pay_reward(0)
+	_check(dreams._rare_dreams_left == rare + 1, "Hard Bark: 1 leaf lost keeps the Rare+ card")
+	_activate(omens, "hard_bark", 3)
+	run_state.leaves_lost += 2
+	_check(omens.get_reward_status().ends_with("The Dream reward is gone."), "…the tag says when it's gone (%s)" % omens.get_reward_status())
+	rare = dreams._rare_dreams_left
+	omens._pay_reward(0)
+	_check(dreams._rare_dreams_left == rare, "…2 leaves lost: no Rare+ card")
+	dreams._rare_dreams_left = 0
+	# Double-edged Omens are their own reward: no tag line, never cut
+	_activate(omens, "bountiful_night", 3)
+	run_state.leaves_lost += 3
+	_check(omens.get_reward_share() == 1.0 and omens.get_reward_status() == "", "double-edged Omens are unchanged")
+	omens.active = null
+	# The block's losses survive a save
+	_activate(omens, "crowded_paths", 3)
+	run_state.leaves_lost += 2
+	var saved := omens.to_save()
+	omens._leaves_lost_at_start = 0
+	omens.load_save(JSON.parse_string(JSON.stringify(saved)))
+	_check(omens.leaves_lost_in_block() == 2, "the leaves lost in the block come back after a save (%d)" % omens.leaves_lost_in_block())
+	omens.active = null
+	omens.current_offer = []
+	omens._offer_waiting = false
+	# Data fixes
+	var by_id := {}
+	for omen in omens.pool:
+		by_id[omen.id] = omen
+	_check(is_equal_approx(by_id["leaf_fall"].speed_multiplier, 1.2) and is_equal_approx(by_id["sleepless"].health_multiplier, 1.15)
+		and by_id["lean_season"].rest_bonus_multiplier == 0.0 and by_id["dry_spell"].reward_rest_bonus_multiplier == 1.0 and is_equal_approx(by_id["dry_spell"].reward_pot_multiplier, 1.25),
+		"Leaf Fall +20% speed, Sleepless +15% health, Lean Season no rest bonus, Dry Spell pays the pot back ×1.25")
+	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var beside := omens.get_free_cells(true)
+	var away := omens.get_free_cells()
+	_check(beside.size() > away.size() and not beside.any(func(c: Vector2) -> bool: return route.has(c)),
+		"Shifting Ground: trees may sprout beside the route, never on it (%d vs %d cells)" % [beside.size(), away.size()])
+	for id in ["tramplers", "second_path", "burrowers"]:
+		_check(by_id.has(id) and by_id[id].kind == OmenData.Kind.MAZE and by_id[id].flavor != "", "%s: a maze Omen with its flavour" % id)
+	# Tramplers: one trample per drift
+	_activate(omens, "tramplers", director.get_block(51))
+	director.drifts_started = 51
+	_check(omens.get_spawn_modifiers(51).get("tramples_thornwall", false), "Tramplers: nightmares get tramples_thornwall")
+	_check(omens.claim_trample(51) and not omens.claim_trample(51) and omens.claim_trample(52), "…only the first trample each drift")
+	_activate(omens, "burrowers", director.get_block(51))
+	_check(omens.get_spawn_modifiers(51).get("burrow_tiles", 0) == 2, "Burrowers: nightmares get burrow_tiles 2")
+	# Second Path: a Thornwall on the route lengthens it; at the block's start it crumbles (full refund) and locks
+	var wall_cell := Vector2(-1, -1)
+	for i in range(3, route.size() - 3):
+		if map_generator.is_buildable(route[i]) and map_generator.can_block(route[i]) \
+				and map_generator.get_path_if_blocked(route[i]).size() > route.size():
+			wall_cell = route[i]
+			break
+	_check(wall_cell.x >= 0, "a route cell a Thornwall can lengthen the route from")
+	if wall_cell.x >= 0:
+		var wall: Tower = load("res://scenes/tower/tower.tscn").instantiate()
+		wall.tower_data = load("res://resource/tower/thornwall.tres")
+		wall.cell = wall_cell
+		wall.position = wall.MAP_GRID.calculate_map_position(wall_cell)
+		main.get_node("%TowerContainer").add_child(wall)
+		wall.set_process(false)
+		map_generator.block_cell(wall_cell)
+		wall.invested_dew = 20
+		_check(omens.second_path_target() == wall, "Second Path: the Thornwall that lengthens the route most")
+		_activate(omens, "second_path", 4)
+		omens._crumbled_block = 0
+		dew = run_state.dew
+		omens._on_drift_started(16)
+		_check(not is_instance_valid(wall) or wall.is_queued_for_deletion() or wall.get_parent() == null, "…crumbles at the block's start")
+		_check(run_state.dew == dew + 20 and omens.is_cell_locked(wall_cell), "…full refund (%d), its cell locked" % (run_state.dew - dew))
+		_check(map_generator.get_path_from(map_generator.startPath).size() == route.size(), "…the route re-forms")
+		omens._on_rest_started(4, false, 0, true)
+		_check(not omens.is_cell_locked(wall_cell), "…the rest unlocks it")
+		omens.current_offer = []
+		omens._offer_waiting = false
+	omens.active = null
+	director.drifts_started = 0
+	# The balance bot's three Omen modes
+	var policy := DreamSimPolicy.new(dreams)
+	var two: Array = [by_id["hard_bark"], by_id["dry_spell"]]
+	policy.omen_mode = "clear"
+	var clear_pick := policy.pick_omen(two)
+	policy.omen_mode = "always"
+	var always_pick := policy.pick_omen(two)
+	policy.omen_mode = "clean"
+	policy._last_block_clean = false
+	var after_leak := policy.pick_omen(two)
+	policy._last_block_clean = true
+	_check(clear_pick == null and always_pick == two[0] and after_leak == null and policy.pick_omen(two) == two[0],
+		"sim Omen modes: clear / always the first / clean only after a clean block")
+
+# User screenshot fixes (run_design.md): Shifting Ground waits for clearing; the emblem only on the two front cards.
+func _test_screenshot_fixes(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var dreams: DreamState = main.get_node("%DreamState")
+	var open_before: bool = dreams.clearing_open
+	var offered := func() -> bool:
+		for i in 80:
+			omens._last_offer_ids.clear()
+			if omens.make_offer(11).any(func(o: OmenData) -> bool: return o.id == "shifting_ground"):
+				return true
+		return false
+	dreams.clearing_open = false
+	_check(not dreams.can_clear() and not offered.call(), "Shifting Ground: never offered while clearing is locked")
+	dreams.clearing_open = true
+	_check(offered.call(), "…offered once clearing is open")
+	dreams.clearing_open = open_before
+	omens._last_offer_ids.clear()
+	var screen = main.get_node("HUD/OmenScreen")
+	screen._show_offer([] as Array[OmenData], 2)
+	await _frames(2)
+	var fronts: Array = screen._cards.get_children()
+	_check(fronts.size() == 2 and fronts.all(func(c: Node) -> bool: return c.find_child("Emblem", true, false) != null),
+		"the two front cards keep their emblem")
+	var emblem: Control = fronts[0].find_child("Emblem", true, false) if not fronts.is_empty() else null
+	_check(emblem != null and emblem.custom_minimum_size.x == 64.0, "…UI Asset's 32 px card emblem at ×2 (%s)" % [emblem.custom_minimum_size if emblem else "none"])
+	screen._clear_cards()
+	screen._reveal(omens.pool.slice(0, 2), null)
+	await _frames(2)
+	_check(not screen._cards.get_children().any(func(c: Node) -> bool: return c.find_child("Emblem", true, false) != null),
+		"revealed Omen cards have no emblem")
+	screen._clear_cards()
+	screen._on_closed()
+
+# run_design.md "Omen rewards: no leaf regrowth" + "Revised again": Stubborn Blight pays Dew by act, no Omen heals leaves,
+# and max-leaf Omens aren't offered at the leaf cap.
+func _test_leaf_rewards(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var dreams: DreamState = main.get_node("%DreamState")
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var run_state: RunState = main.get_node("%RunState")
+	omens.current_offer = []
+	omens._offer_waiting = false
+	_check(not omens.pool.any(func(o: OmenData) -> bool: return o.reward_leaves > 0 or o.reward_max_leaves > 0),
+		"no Omen gives leaves of any kind (regrown or max: run_design.md)")
+	_check(not omens.pool.any(func(o: OmenData) -> bool: return o.reward_dreamlight > 0), "no Omen gives Dreamlight (it stays in cards)")
+	for case in [[15, 40], [60, 80]]:  # +40 Dew, by act: act 1 ×1, act 3 ×2
+		director.drifts_started = case[0]
+		_activate(omens, "stubborn_blight", director.get_block(case[0]))
+		var light := dreams.dreamlight
+		var leaves := run_state.leaves
+		var dew := run_state.dew
+		omens._pay_reward(0)
+		_check(run_state.dew == dew + case[1] and dreams.dreamlight == light and run_state.leaves == leaves,
+			"Stubborn Blight at drift %d: +%d Dew, no Dreamlight, no leaves healed (%d)" % [case[0], case[1], run_state.dew - dew])
+	omens._last_offer_ids.clear()
+	omens.active = null
+	director.drifts_started = 0
+
+# The active-Omen tag: the icon inline before "Omen: …", a plain reward line, where it stands only in the tooltip.
+func _test_active_tag(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var screen = main.get_node("HUD/OmenScreen")
+	await _frames(2)
+	director.drifts_started = 15
+	_activate(omens, "stubborn_blight", 4)
+	screen._on_omen_started(omens.active, 16, 20)
+	await _frames(3)
+	var tag: Label = main.get_node("HUD/ActiveOmen")
+	# One compact line (user): [icon] "Stubborn Blight · 16–20 · +40 Dew"; the twist and the reward rule in the tooltip
+	_check(tag.text.strip_edges() == "Stubborn Blight · 16–20 · +40 Dew" and not tag.text.contains("\n"),
+		"the tag: one compact line with the live reward (%s)" % tag.text.strip_edges())
+	_check(tag.tooltip_text.begins_with("Statuses last a third as long.") and tag.tooltip_text.contains("Reward: +40 Dew, minus 10")
+		and tag.tooltip_text.ends_with("You'd get it all right now."), "…the twist, the reward and where it stands in its tooltip (%s)" % tag.tooltip_text.replace("\n", " / "))
+	var rich: RichTextLabel = tag.get_node_or_null("TagText")
+	_check(rich != null and not rich.text.contains(UiStyle.POOR.to_html(false)) and tag.get_theme_stylebox("normal") is MoonStyleBox,
+		"…drawn in the Omen colour on a fog backing")
+	main.get_node("%RunState").leaves_lost += 1
+	screen._refresh_tag()
+	_check(tag.text.strip_edges().ends_with("+30 Dew") and rich.text.contains(UiStyle.POOR.to_html(false)), "…a leaf lost: +30 Dew, in POOR (%s)" % tag.text.strip_edges())
+	var icon: TextureRect = tag.get_node_or_null("OmenIcon")
+	await _frames(2)
+	_check(icon != null and icon.visible and icon.position.x >= 0.0 and icon.position.x + icon.size.x <= tag.size.x / 2.0,
+		"…the icon sits inline before the text, inside the tag (%s in %s)" % [icon.position if icon else "none", tag.size])
+	_activate(omens, "thick_blight", 4)
+	screen._on_omen_started(omens.active, 16, 20)
+	_check(tag.text.strip_edges().ends_with("· Reward kept"), "a Dream reward: \"Reward kept\" (%s)" % tag.text.strip_edges())
+	_activate(omens, "blood_moon", 4)
+	screen._on_omen_started(omens.active, 16, 20)
+	_check(tag.text.strip_edges().begins_with("Blood Moon · 16–20 · +0 of ~"), "Blood Moon: the extra Dew earned so far of the estimate (%s)" % tag.text.strip_edges())
+	screen._on_omen_rewarded(omens.active, "")
+	omens.active = null
+	director.drifts_started = 0
+
+# The reward in plain numbers (user: "what does 25% less per leaf lost mean", then "the concrete number"): Dew is cut by a
+# fixed amount per leaf; a Dream reward is kept with at most 1 leaf lost; the Omen card shows one bullet per reward.
+func _test_reward_words(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var by_id := {}
+	for omen in omens.pool:
+		by_id[omen.id] = omen
+	_check(omens.reward_sentence(by_id["stubborn_blight"], 1) == "Reward: +40 Dew, minus 10 for each leaf you lose in these drifts.",
+		"Dew: the concrete cut per leaf (%s)" % omens.reward_sentence(by_id["stubborn_blight"], 1))
+	_check(omens.reward_sentence(by_id["thick_blight"], 1) == "Reward: your next Dream offers 5 cards, if you lose at most 1 leaf in these drifts.",
+		"a Dream reward: kept with at most 1 leaf lost, not cut (%s)" % omens.reward_sentence(by_id["thick_blight"], 1))
+	var mixed := omens.reward_sentence(by_id["hard_bark"], 1)
+	_check(mixed == "Reward: +25 Dew, minus 6 for each leaf you lose, and a Rare+ card in your next Dream if you lose at most 1 leaf.",
+		"Dew and a Dream reward: both, in words (%s)" % mixed)
+	_check(omens.reward_sentence(by_id["blood_moon"], 1) == OmenDirector.DOUBLE_EDGED_LINE and not mixed.contains("%"),
+		"double-edged: \"No other reward: the extra Dew is the prize.\"; no percentages")
+	_check(omens.paid_sentence(by_id["hard_bark"], 1, 0, 2, 0) == "Reward: +12 Dew (2 leaves lost). The Dream reward is gone.",
+		"paid with 2 leaves lost (%s)" % omens.paid_sentence(by_id["hard_bark"], 1, 0, 2, 0))
+	# The card's bullets: one per reward, each with its own condition
+	_check(omens.reward_bullets(by_id["hard_bark"], 1) == ["+25 Dew, minus 6 for each leaf you lose", "A Rare+ card in your next Dream, if you lose at most 1 leaf"],
+		"Hard Bark's bullets (%s)" % [omens.reward_bullets(by_id["hard_bark"], 1)])
+	_check(omens.reward_bullets(by_id["wilting"], 1) == ["+30 Dew, minus 7 for each leaf you lose", "Next Dream offers 4 cards, if you lose at most 1 leaf"],
+		"Wilting's bullets (%s)" % [omens.reward_bullets(by_id["wilting"], 1)])
+	_check(omens.reward_bullets(by_id["blood_moon"], 1, 4).size() == 1 and omens.reward_bullets(by_id["blood_moon"], 1, 4)[0].begins_with("About +"), "Blood Moon: one bullet, the computed extra Dew")
+
+# Every Omen's reward bullets match its data (user screenshot: Heavy Rain said "The extra Dew is the prize" but pays its
+# own +45 Dew). Only an Omen whose prize is its nightmares' extra Dew (is_dew_prize) gets that line.
+func _test_bullets_match_data(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var dreams: DreamState = main.get_node("%DreamState")
+	dreams.cards_per_offer = 3
+	for omen in omens.pool:
+		var bullets: Array = omens.reward_bullets(omen, 1)
+		var expected := 0
+		if OmenDirector.is_dew_prize(omen):
+			_check(bullets == ["Extra Dew from every nightmare"] and omens.reward_bullets(omen, 1, 4)[0].begins_with("About +"), "%s: its prize is the computed extra Dew (%s)" % [omen.id, omens.reward_bullets(omen, 1, 4)])
+			continue
+		if omen.reward_dew > 0 or omen.reward_pot_multiplier > 0.0:
+			expected += 1
+			if omen.reward_dew > 0:
+				_check(bullets[0] == "+%d Dew, minus %d for each leaf you lose" % [omen.reward_dew, floori(omen.reward_dew * 0.25)],
+					"%s: +%d Dew with its cut per leaf (%s)" % [omen.id, omen.reward_dew, bullets[0]])
+		if omen.reward_seeds > 0:
+			expected += 1
+		if omen.reward_tree_seeds > 0:
+			expected += 1
+		if omen.reward_extra_dream_cards > 0 or omen.reward_rare_dreams > 0:
+			expected += 1
+		if omen.reward_legendary:
+			expected += 1
+		_check(bullets.size() == expected and expected > 0 and not bullets.has("The extra Dew is the prize"),
+			"%s: a bullet per reward field (%d of %d: %s)" % [omen.id, bullets.size(), expected, bullets])
+	var heavy: OmenData = null
+	for omen in omens.pool:
+		if omen.id == "heavy_rain":
+			heavy = omen
+	_check(not OmenDirector.is_dew_prize(heavy) and omens.reward_bullets(heavy, 1) == ["+45 Dew, minus 11 for each leaf you lose"],
+		"Heavy Rain lists its own +45 Dew")
+	_check(omens.paid_sentence(heavy, 1, 0, 1, 0) == "Reward: +33 Dew (1 leaf lost).", "…and its rest report is cut like any reward (%s)" % omens.paid_sentence(heavy, 1, 0, 1, 0))
+	_activate(omens, "heavy_rain", 3)
+	main.get_node("%DriftDirector").drifts_started = 11
+	_check(omens.live_reward_text() == "+45 Dew", "…and the compact tag shows its Dew (%s)" % omens.live_reward_text())
+	omens.active = null
+	main.get_node("%DriftDirector").drifts_started = 0
+
+# The extra Dew estimate (user: "should calculate how much Dew would come from the Omen") matches what the pot actually
+# pays on top for a clean block, within 5%, including a boss block (bosses ignore Omens: only the escorts' half).
+func _test_extra_dew_estimate(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var run_state: RunState = main.get_node("%RunState")
+	for case in [["bountiful_night", 5], ["blood_moon", 3]]:
+		_activate(omens, case[0], case[1])
+		var drifts := omens.get_block_range(case[1])
+		var with_omen := 0.0
+		var without := 0.0
+		for n in range(drifts.x, drifts.y + 1):
+			with_omen += director.get_effective_pot(n)
+			omens.active = null
+			without += director.get_effective_pot(n)
+			_activate(omens, case[0], case[1])
+		var actual := with_omen - without
+		var estimate := omens.estimate_extra_dew(omens.active, case[1])
+		_check(absf(estimate - actual) <= maxf(actual * 0.05, 5.0), "%s: about +%d extra Dew, the pot pays +%.0f" % [case[0], estimate, actual])
+		run_state.pot_earned_block = with_omen  # A clean block: every share dispelled
+		var paid := omens.paid_sentence(omens.active, 1, 0, 0, case[1])
+		_check(paid == "+%d extra Dew" % floori(actual + 0.001) or paid == "+%d extra Dew" % roundi(actual), "…the rest report: %s" % paid)
+		run_state.pot_earned_block = 0.0
+	omens.active = null
+
 func _frames(n: int) -> void:
 	for i in n:
 		await process_frame
@@ -346,3 +786,40 @@ func _check(condition: bool, label: String) -> void:
 	if not condition:
 		failures += 1
 		printerr("FAIL: " + label)
+
+# No Omen at an act-break rest (user: fewer screens after a boss): the boss rest pays the Omen taken for its block
+# (drift 20's rest → paid at drift 25's), then offers nothing, not even Clear Skies; the next rest offers as usual.
+func _test_no_omen_at_act_break(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var dreams: DreamState = main.get_node("%DreamState")
+	omens.mode_override = "ask"
+	omens.current_offer.clear()
+	omens._offer_waiting = false
+	var omen: OmenData = load("res://resource/omen/thick_blight.tres") if ResourceLoader.exists("res://resource/omen/thick_blight.tres") else null
+	if omen == null:
+		for file in DirAccess.get_files_at("res://resource/omen/"):
+			if omen == null and file.trim_suffix(".remap").ends_with(".tres"):
+				omen = load("res://resource/omen/" + file.trim_suffix(".remap"))
+	omens.active = omen
+	omens.active_block = 5
+	var run_state: RunState = main.get_node("%RunState")
+	var was_over := run_state.is_over
+	run_state.is_over = false  # An earlier test may have ended the run
+	var paid_before: int = omens.stats.paid
+	director.drifts_started = 25
+	omens._on_rest_started(5, true, 0, true)
+	_check(omens.stats.paid == paid_before + 1 and omens.active == null, "the boss rest pays the Omen taken for its block")
+	_check(omens.current_offer.is_empty() and not omens._offer_waiting, "…and offers no Omen, not even Clear Skies")
+	omens.force_omen = true  # A Blight Level's forced Omen skips it too
+	omens._on_rest_started(5, true, 0, true)
+	_check(omens.current_offer.is_empty() and not omens._offer_waiting, "…a forced Omen waits for the next rest as well")
+	omens.force_omen = false
+	director.drifts_started = 30
+	omens._on_rest_started(6, false, 0, true)
+	_check(not omens.current_offer.is_empty() and omens._offer_waiting, "the next normal rest offers as usual")
+	omens.current_offer.clear()
+	omens._offer_waiting = false
+	if dreams.is_offering():
+		dreams.skip()
+	run_state.is_over = was_over

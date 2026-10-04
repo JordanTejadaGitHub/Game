@@ -7,15 +7,15 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "The Great Bell"
-description = "Every 8 s it tolls across a huge range: every nightmare falls Asleep and all Charges go off at half strength."
+description = "Every 8 s it tolls across a huge range: every nightmare falls Asleep, and every {static} nightmare releases its bolt at half strength."
 cost = 0
 line = "song"
 tier = 4
 buildable_directly = false
-evolve_cost = 400
+evolve_cost = 600
 attack_kind = 1
 attack_range = 5.0
-damage = 130
+damage = 440
 attacks_per_second = 0.125
 applies_status = &"drowsy"
 status_stacks = 99

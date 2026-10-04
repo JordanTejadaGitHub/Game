@@ -67,7 +67,7 @@ func _run() -> void:
 	spawner.spawn_enemy(leaf_bug)
 	var enemy = spawner.get_child(spawner.get_child_count() - 1)
 	enemy.take_damage(enemy.max_health)
-	var act_1_pay := floori(leaf_bug.dew_reward * run_state.act_dew_multipliers[0])  # Act 1 pays ×0.85 (fractions carry)
+	var act_1_pay: int = leaf_bug.dew_reward  # Outside a drift (no pot share): its plain dew_reward
 	_check(run_state.dew == act_1_pay, "cleansing a Leaf Bug earns %d Dew (got %d)" % [act_1_pay, run_state.dew])
 	var popups := main.get_children().filter(func(n: Node) -> bool: return n is DewPopup)
 	_check(popups.size() == 1, "a +Dew popup appears")

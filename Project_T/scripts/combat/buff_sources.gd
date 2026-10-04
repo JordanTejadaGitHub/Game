@@ -25,8 +25,9 @@ const COLORS := {
 	"grandmother_oak": Palette.DEADWOOD, "old_growth": Palette.NEWLEAF, "kinship": Palette.NEWLEAF,
 	"kindred": Palette.MOONPATH, "whole_tree": Palette.SPRIG, "kin_cards": Palette.NEWLEAF,
 	"rank": Palette.MOONPATH, "focus": Palette.MOONPATH, "dream": Palette.MIST,
-	"omen": Palette.STONE, "penalty": Palette.EMBER,  # Ember: the palette's "bad" colour (no red)
+	"omen": Palette.STONE, "penalty": Palette.BRUISE,  # Bruise (plum): never read as a fire or Ember effect (screens_ui.md)
 }
+const PENALTY_TEXT := Palette.WRAITHLIGHT  # Penalty rows in panels: the lighter plum (Bruise is too dark to read as text)
 const STAT_WORDS := {"damage": "damage", "attack_speed": "attack speed", "range": "range", "aura": "aura", "catch": "catch"}
 const ORDINALS := ["", "", "2nd", "3rd", "4th", "5th", "6th"]
 
@@ -61,7 +62,7 @@ static func for_tower(tower: Tower) -> Array[Dictionary]:
 		for pair in kin.get_pairs(tower):
 			var partner: Tower = pair.b if pair.a == tower else pair.a
 			var entry := _entry("kinship", partner, "", 0.0)
-			entry.label = "Kinship %s (%s, %d%%)" % [Kinships.KINSHIPS[pair.id][0], Kinships.STAGE_NAMES[kin.get_stage(pair)],
+			entry.label = "{Kinship} %s (%s, %d%%)" % [Kinships.name_of(pair.id), Kinships.STAGE_NAMES[kin.get_stage(pair)],
 				roundi(Kinships.STAGE_SHARE[kin.get_stage(pair)] * 100.0)]
 			result.append(entry)
 		var family := kin.family_bonus(tower.tower_data.line)
@@ -73,7 +74,7 @@ static func for_tower(tower: Tower) -> Array[Dictionary]:
 		var cards := kin.damage_bonus(tower) - family
 		if absf(cards) > 0.0001:
 			var entry := _entry("kin_cards" if cards > 0.0 else "penalty", null, "damage", cards)
-			entry.label = "Kinship Dreams %s damage" % _signed(cards)
+			entry.label = "{Kinship} Dreams %s damage" % _signed(cards)
 			entry.negative = cards < 0.0
 			result.append(entry)
 	# Nurture and Focus.
@@ -88,8 +89,7 @@ static func for_tower(tower: Tower) -> Array[Dictionary]:
 		else:
 			entry.stat = "damage"
 			entry.amount = tower.get_rank_damage_multiplier() - 1.0
-		entry.label = "Rank %s%s" % [Tower.rank_name(tower.rank),
-			" (%s)" % Tower.FOCUS_NAMES[tower.focus] if tower.focus != Tower.Focus.NONE else ""]
+		entry.label = "Rank %s (%s)" % [Tower.rank_name(tower.rank), tower.choices_text()]
 		result.append(entry)
 	# Dreams on this Warden (DreamState rows: position and run-wide cards).
 	var dreams := tower._dream_state
@@ -216,7 +216,7 @@ static func would_receive(data: TowerData, centre: Vector2, towers: Array) -> Ar
 		var position := 0
 		for item in list:
 			var giver: Tower = item[0]
-			var kindred := giver.focus == Tower.Focus.KINDRED and giver.is_aura_support()
+			var kindred := giver.is_aura_support() and giver.choice_count(Tower.Focus.KINDRED) > 0
 			var share := 1.0 if kindred else weight
 			if not kindred:
 				weight *= Tower.AURA_FALLOFF

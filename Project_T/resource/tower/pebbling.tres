@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=8 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Texture2D" path="res://assets/towers/pebbling.png" id="2_tex"]
@@ -8,6 +8,9 @@
 [ext_resource type="Resource" path="res://resource/tower/cairn.tres" id="ev_2"]
 [ext_resource type="Resource" path="res://resource/tower/mossback.tres" id="ev_3"]
 
+[ext_resource type="Resource" path="res://resource/tower/whetstone.tres" id="p2_1"]
+[ext_resource type="Resource" path="res://resource/tower/rampart.tres" id="p2_2"]
+[ext_resource type="Resource" path="res://resource/tower/quaker.tres" id="p2_3"]
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Pebbling"
@@ -28,8 +31,8 @@ attack_texture = ExtResource("4_atk")
 attack_frame_count = 6
 attack_release_frame = 2
 attack_origin = Vector2(14, -18)
-description = "A heavy pebble: 40% splashes onto nightmares right beside its target, then it skips on to one within 1 tile for three-quarters damage."
+description = "A heavy pebble: 40% splashes onto nightmares right beside its target, then it skips on to one within 1 cell for three-quarters damage."
 line = "stone"
 tier = 1
 evolve_cost = 20
-evolves_to = Array[Resource]([ExtResource("ev_3"), ExtResource("ev_1"), ExtResource("ev_2")])
+evolves_to = Array[Resource]([ExtResource("ev_3"), ExtResource("ev_1"), ExtResource("ev_2"), ExtResource("p2_1"), ExtResource("p2_2"), ExtResource("p2_3")])

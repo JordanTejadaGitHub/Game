@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "tended_forest"
 display_name = "Tended Forest"
-description = "+2% damage for every obstacle cleared this run (up to +40%), counting earlier clears."
+description = "Wardens deal 2% more damage for every obstacle cleared this run (up to +40%), counting earlier clears."
 rarity = 0
 kind = 3
 tags = Array[String](["clearing", "maze", "tending"])
 max_stacks = 1
 min_obstacles = 8
 rule_id = &"tended_forest"
+in_start_pool = false

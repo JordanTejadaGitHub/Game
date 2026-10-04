@@ -7,23 +7,19 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Sporemother"
-description = "Every second she breathes spores over everything in range (4 Poisoned each); nightmares at 10 stacks burst and spread them."
+description = "Every second she breathes spores over everything in range (2 Poisoned each). Poisoned never wears off while a nightmare is in her range."
 cost = 0
 line = "spore"
 tier = 4
 buildable_directly = false
-evolve_cost = 400
+evolve_cost = 600
 attack_kind = 1
 attack_range = 3.0
-damage = 45
+damage = 78
 attacks_per_second = 1.0
 applies_status = &"spored"
-status_stacks = 4
+status_stacks = 2
 status_max_stacks = 20
-pop_at_stacks = 10
-pop_damage_per_stack = 18
-pop_radius = 1.25
-pop_spread_targets = 5
 crit_chance = 0.05
 texture = ExtResource("art_idle")
 frame_count = 8

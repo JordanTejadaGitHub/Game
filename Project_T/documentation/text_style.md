@@ -27,6 +27,22 @@ list at the end tracks the first sweep.
 | **Screen titles and panel headers** | Sentence case; short captions may use the UI style's small caps | A Dream, after drift 10 · The wind carries Omens · Coming this block |
 | **Tooltip first line** | the name in Title Case, then sentence case | Standing Stone · Stone damage |
 
+**Second pass (2026-09-30, user: "capitalisation seems all over the place"):** rules for the cases that
+kept slipping:
+- **Families and damage types are names:** "Any Nestling-family final form" (not "any wing final
+  form"), "Spore cards", "Water damage". Internal line ids (wing, acorn, song…) never reach the player.
+- ~~Same-tag (resonance) lines~~ **Removed 2026-10-02** with tag Resonance itself (user: "remove the
+  resonance"): no "+X% from …" lines anywhere. What stays from that rule: **internal archetype words**
+  (wide, narrow, affliction, tempo…) **never reach the player.**
+- **Card tags on screen:** tags that are names are capitalised (Spore, Water, Kinship, Reaction,
+  Sprout, Thornwall, Nurture); plain categories stay lowercase (economy, maze, tempo, crit, wide,
+  narrow, status): *"+20% from 2 Spore cards"*, *"+10% from 1 economy card"*.
+- **Obstacles, stages and places are names:** Withered Tree, Mossy Boulder, Thorn-Sapling; Kinship
+  stages Sapling / Blooming / Old Kin; Whole Tree; the Codex, the Memory Grove.
+- **One separator style:** " · " with single spaces, never double spaces around it.
+- **"The" in boss names is lowercase mid-sentence:** "About the Mire Hag", "the Hollow Stag arrives"; capital only at the start of a line or as a title ("The Mire Hag" on the name plate).
+- **Checked automatically:** a text lint test (below) so it can't drift again.
+
 "Deeply Blighted" and "Ascended" are names (capitalised). "Rank III" capitalises Rank when it's a
 label ("Rank III needs a Nurture Dream"), lowercase in a sentence ("grow past rank V").
 
@@ -52,6 +68,29 @@ label ("Rank III needs a Nurture Dream"), lowercase in a sentence ("grow past ra
 - **Requirements by damage type:** "Needs Wind" (a linked word), not a family name.
 - **Scaling cards show the live value** on the card: "You have 7 · +40%".
 - Two lines at most on a button; tooltips at most ~42 characters wide (`screens_ui.md`).
+
+**Card wording, one way each** (card text audit, 2026-10-02: 335 cards used two forms for the same
+thing):
+- **Distance is in cells:** "within 2 cells", "reach 3 cells" (never "tiles" for a distance).
+  **Path squares are path tiles:** "5+ path tiles", "+1 Dew per 10 path tiles".
+- **Caps are "up to":** "(up to +45%)", never "(max +45%)".
+- **Warden bonuses read as verbs:** "deal 30% more damage", "attack 20% faster", "+0.5 range";
+  not "+30% damage" / "+20% attack speed". Nightmare side: "take 25% more damage".
+- **Stacking:** "(stacks, up to +X)" for stacking cards; nothing for one-copy cards.
+
+## Text lint test
+
+`tests/test_text_style.gd` (Main Merger) scans every player-facing string it can reach: every
+`display_name` / `description` / trait / hint / title / cost / reward field in `resource/**.tres`,
+glossary and Codex text, whispers, and the UI strings the scripts build (a list the owners keep in
+one place). It builds the **name list from the data** (Warden, nightmare, boss, Dream, Omen,
+Reaction, family, damage type, status, obstacle names plus Dew, Dreamlight, Seeds, Heartwood,
+Memory Grove, Kinship stages) and fails on:
+- a name written in lowercase outside a `{token}` (e.g. "withered trees", "old kin", "acorn final form");
+- a raw internal id (a `line` value like "wing", a snake_case id);
+- " - ", " | ", or double spaces around " · ";
+- a leftover "{token}" after formatting.
+Allowed exceptions sit in one list in the test (e.g. the seed a Samara throws, "fall asleep" as a verb).
 
 ## First sweep (2026-09-30): owners
 

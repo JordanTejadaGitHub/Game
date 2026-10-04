@@ -27,6 +27,8 @@ var _rows := {}
 var _maze := {}  # period -> {damage, seconds}
 var _last_health := {}  # Nightmare instance id -> health after its last logged hit (for overkill)
 var _sample := 0.0
+var _sample_carry := 0.0  # Wardens owed a sample (fractional, carried frame to frame)
+var _sample_index := -1  # The last Warden sampled (round robin)
 var _block_open := true  # The next drift starts a new block (the run starts resting)
 var _director: DriftDirector
 
@@ -141,15 +143,21 @@ func _process(delta: float) -> void:
 		return
 	for period in ["drift", "block"]:
 		_maze[period].seconds += delta
-	_sample -= delta
-	if _sample > 0.0:
+	# Every Warden is sampled once per SAMPLE seconds, a slice of them each frame (perf: all ~230 at once
+	# was an 8 ms spike every 0.5 s in the stacked-drift case), with the early-exit range check.
+	var towers := get_tree().get_nodes_in_group(Tower.GROUP)
+	if towers.is_empty():
 		return
-	_sample = SAMPLE
-	for tower in get_tree().get_nodes_in_group(Tower.GROUP):
+	_sample_carry += towers.size() * delta / SAMPLE
+	var count := mini(int(_sample_carry), towers.size())
+	_sample_carry -= count
+	for i in count:
+		_sample_index = (_sample_index + 1) % towers.size()
+		var tower = towers[_sample_index]
 		if not tower is Tower or tower.is_queued_for_deletion() or not tower.tower_data.can_attack:
 			continue
 		var row := _row(tower)
-		var busy := 0.0 if tower.get_enemies_in_range().is_empty() else SAMPLE
+		var busy := SAMPLE if tower.has_enemy_in_range() else 0.0
 		for period in ["drift", "block"]:
 			row[period].alive += SAMPLE
 			row[period].in_range += busy
@@ -178,12 +186,12 @@ func get_needed_dps(number: int) -> float:
 	for entry in schedule:
 		var data: EnemyData = entry[1]
 		var elite: bool = entry[2] if entry.size() > 2 else false
-		health += data.health * _director.get_health_scale(data, number) * (ELITE_HEALTH if elite else 1.0)
+		health += data.health * _director.get_health_scale(data, number, elite) * (ELITE_HEALTH if elite else 1.0)
 		speed += data.speed
 		span = maxf(span, entry[0])
 	speed /= schedule.size()
 	var map = get_parent().get_node_or_null("%MapGenerator")
-	var tiles: int = map.get_path_from(map.startPath).size() if map else 30
+	var tiles: int = map.route_length(map.get_path_from(map.startPath)) if map else 30  # In cells (half-step routes)
 	var walk := tiles * Tower.MAP_GRID.cell_size.x / maxf(speed, 1.0)
 	return health / maxf(span + walk, 1.0)
 

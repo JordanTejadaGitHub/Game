@@ -1,0 +1,304 @@
+extends SceneTree
+
+# Headless test for the branch expansion's run offer (tower_design.md "Branch expansion: 5 branches, 2 per run",
+# Spire branch; DreamState): 2 of a family's 5 regular branches per run, seeded, never last run's pair, the smart
+# draw adding an uncovered counter tag, the rest "not in this dream" (their finals too), the Dreamlight call-back
+# once per family, Remembered Path's free call, card gating (Entwined ingredients too), the run save, small families
+# offering all, and the demo keeping today's branches. Never touches the player's saves.
+#   godot --headless --path . --script res://tests/test_branch_offer.gd --fixed-fps 60
+
+var failures := 0
+var dreams: DreamState
+
+func _initialize() -> void:
+	_run.call_deferred()
+
+func _run() -> void:
+	var real_profile := HeartwoodMemory.file_path
+	HeartwoodMemory.file_path = "user://test_branch_offer_%d.json" % OS.get_process_id()  # Per process
+	ResultsScreen.demo_override = 0  # The full game (tests read the project's demo setting otherwise)
+	var main: Node = load("res://scenes/main.tscn").instantiate()
+	main.get_node("MapGenerator").map_seed = 777
+	root.add_child(main)
+	for i in 3:
+		await process_frame
+	dreams = main.get_node("%DreamState")
+	var placer: TowerPlacer = main.get_node("%TowerPlacer")
+	var has_tags := "counter_tags" in TowerData.new()
+	var has_phase := "expansion_phase" in TowerData.new()
+
+	# A family of 5 regular branches (each with a final); b3 alone counters flyers
+	var base := _form("test_base", 1)
+	base.buildable_directly = true
+	var branches: Array[TowerData] = []
+	for i in 5:
+		var branch := _form("test_b%d" % (i + 1), 2)
+		branch.evolves_to.append(_form("test_f%d" % (i + 1), 3))
+		if has_tags and i == 2:
+			branch.set("counter_tags", [&"anti_air"] as Array[StringName])
+		if has_tags and i == 4:
+			branch.set("counter_tags", [&"anti_tank"] as Array[StringName])  # Rarer, and counting double
+		branches.append(branch)
+		base.evolves_to.append(branch)
+	placer.towers.append(base)
+	# The family pick card previews the pair first: no side effects, and the pick then gets exactly that pair
+	var previewed: Array = dreams.preview_branch_offer(base)
+	_check(previewed.size() == 2 and not dreams.branch_offers.has(base.get_id()) and not dreams._last_branch_offer_written.has(base.get_id()),
+		"a preview draws 2 (%s) without caching or writing the profile" % [previewed])
+	_check(dreams.preview_branch_offer(base) == previewed, "…and previews the same pair again")
+	dreams.unlocked[base.get_id()] = true
+	dreams.unlocks_changed.emit()  # A family pick
+	_check(dreams.get_branch_offer(base) == previewed, "the picked family gets exactly the previewed pair")
+	var offer: Array = dreams.get_branch_offer(base)
+	_check(offer.size() == 2 and dreams.branch_offers.has(base.get_id()), "a family pick draws 2 of its 5 branches (%s)" % [offer])
+	_check(dreams.not_offered_branches(base).size() == 3, "…the other 3 are not in this dream")
+	if has_tags:
+		_check(offer.has("test_b5") or offer.has("test_b3"), "the smart draw adds an uncovered counter tag (%s)" % [offer])
+		var with_tank := 0
+		for s in 40:
+			main.get_node("MapGenerator").map_seed = 900 + s
+			dreams.branch_offers.erase(base.get_id())
+			if dreams.get_branch_offer(base).has("test_b5"):
+				with_tank += 1
+		main.get_node("MapGenerator").map_seed = 777
+		dreams.branch_offers.erase(base.get_id())
+		offer = dreams.get_branch_offer(base)
+		_check(with_tank >= 22, "the weighted draw favours the missing anti_tank (%d of 40 runs; a plain draw: 16)" % with_tank)
+	else:
+		print("  (smart draw check skipped: TowerData.counter_tags isn't on this branch yet)")
+	# Seeded: the same map and family draw the same pair
+	dreams.branch_offers.clear()
+	_check(dreams.get_branch_offer(base) == offer, "a resume (the same seed) draws the same pair")
+	# Never last run's pair for this family
+	var memory := HeartwoodMemory.load_data()
+	var sorted := offer.duplicate()
+	sorted.sort()
+	memory["last_branch_offer"] = {base.get_id(): sorted}
+	HeartwoodMemory.save_data(memory)
+	dreams.branch_offers.clear()
+	var again := dreams.get_branch_offer(base).duplicate()
+	again.sort()
+	_check(again != sorted, "never the same 2 as that family's last run (%s, last %s)" % [again, sorted])
+	_check(HeartwoodMemory.load_data().get("last_branch_offer", {}).get(base.get_id(), []) == sorted,
+		"…and a test never writes the profile's last offer")
+	offer = dreams.get_branch_offer(base)
+
+	# Not in this dream: the branch and its final can't be unlocked; the offered ones can
+	var off: TowerData = dreams.not_offered_branches(base)[0]
+	var on: TowerData = _form_by_id(branches, offer[0])
+	_check(dreams.get_unlock_blocker(off) == DreamState.NOT_IN_DREAM and dreams.get_unlock_blocker(off.evolves_to[0]) == DreamState.NOT_IN_DREAM,
+		"a branch not offered and its final are \"%s\"" % DreamState.NOT_IN_DREAM)
+	_check(dreams.get_unlock_blocker(on) == "", "an offered branch unlocks as before")
+
+	# The Dreamlight call-back: 3, once per family; the unlock comes with it
+	dreams.dreamlight = DreamState.CALL_BACK_DREAMLIGHT - 1
+	_check(dreams.call_back_problem(off) == "Not enough Dreamlight", "the call-back costs %d Dreamlight" % DreamState.CALL_BACK_DREAMLIGHT)
+	dreams.dreamlight = DreamState.CALL_BACK_DREAMLIGHT + 4
+	_check(dreams.call_back(off) and dreams.is_unlocked(off.get_id()) and dreams.is_branch_offered(off)
+		and dreams.dreamlight == 4, "calling it back pays %d and unlocks it" % DreamState.CALL_BACK_DREAMLIGHT)
+	_check(dreams.get_unlock_blocker(off.evolves_to[0]) == "" and dreams.get_unlock_cost(off.evolves_to[0]) == DreamState.FINAL_DREAMLIGHT,
+		"…its final then unlocks for %d as usual" % DreamState.FINAL_DREAMLIGHT)
+	var second: TowerData = dreams.not_offered_branches(base)[0]
+	_check(dreams.call_back_problem(second).begins_with("already called"), "…once per family per run")
+	# Remembered Path: a free call, past the once
+	var lucid: UpgradeData = load("res://resource/dream/lucid_dream.tres")
+	_check(lucid.rarity == UpgradeData.Rarity.RARE and dreams.can_offer(lucid, 2) == dreams.in_run_pool(lucid), "Remembered Path is a Rare card, offered while a branch is missing")
+	dreams.take(lucid)
+	_check(dreams.free_calls == 1 and dreams.call_back(second) and dreams.dreamlight == 4 and dreams.free_calls == 0,
+		"Remembered Path calls one more back, free")
+	_check(not dreams.can_offer(lucid, 2) or dreams.has_branch_to_call(), "…and it isn't offered with nothing left to call")
+
+	# Card gating: a card naming a branch not in this run waits; an Entwined card needing it too
+	var last_off: TowerData = dreams.not_offered_branches(base)[0]
+	var branch_card := UpgradeData.new()
+	branch_card.id = "test_branch_card"
+	branch_card.requires = [last_off.get_id()] as Array[String]
+	var entwined := UpgradeData.new()
+	entwined.id = "test_entwined"
+	entwined.requires = ["test_branch_card"] as Array[String]
+	dreams.pool.append(branch_card)
+	_check(not dreams.branch_cards_open(branch_card), "a card needing a branch not in this run isn't offered")
+	_check(not dreams.branch_cards_open(entwined), "…nor an Entwined card with it as an ingredient")
+	var final_card := UpgradeData.new()
+	final_card.id = "test_final_card"
+	final_card.requires = [last_off.evolves_to[0].get_id()] as Array[String]
+	_check(not dreams.branch_cards_open(final_card), "…nor one needing its final")
+	var open_card := UpgradeData.new()
+	open_card.requires = [offer[0]] as Array[String]
+	_check(dreams.branch_cards_open(open_card), "a card needing an offered branch is open")
+	dreams.pool.erase(branch_card)
+
+	# The run save keeps the offer and the calls
+	var saved := JSON.parse_string(JSON.stringify(dreams.to_save())) as Dictionary
+	var offer_before: Array = dreams.get_branch_offer(base).duplicate()
+	dreams.branch_offers.clear()
+	dreams.called_families.clear()
+	dreams.load_save(saved)
+	_check(dreams.get_branch_offer(base) == offer_before and dreams.called_families.has(base.get_id()), "the offer and the call survive the save")
+
+	# The Remember screen: the last branch not in this dream sits in the "Not in this dream" strip under the tree, not
+	# in it (story chat: beside the base it read as its sibling), a faint silhouette with its name and "Call in"; the
+	# tree shows only this run's branches and finals; the side panel says so and calls it back (once per family: here
+	# only Remembered Path's free call can)
+	var screen := main.get_node("%RememberScreen") as RememberScreen
+	var misty: TowerData = dreams.not_offered_branches(base)[0]
+	screen.open(base)
+	await process_frame
+	var nodes: Dictionary = screen._canvas.nodes
+	var shown_branch: TowerData = _form_by_id(branches, offer[0])
+	_check(screen.state_of(misty) == RememberScreen.State.NOT_IN_DREAM and not nodes.has(misty) and not nodes.has(misty.evolves_to[0]),
+		"Remember keeps it and its final out of the tree")
+	_check(nodes.has(shown_branch) and nodes.has(shown_branch.evolves_to[0]), "…the tree shows this run's branches and their finals")
+	_check(screen._offer_line.visible and screen._offer_line.text.begins_with("This dream offers 2 of 5 branches, different each run."),
+		"a line above the tree says the branches are random (\"%s\")" % screen._offer_line.text)
+	var strip_item := screen._misty.find_child("Misty_" + misty.get_id(), true, false)
+	var call_in: Button = strip_item.find_child("CallIn", true, false) if strip_item else null
+	# One tip per element, never repeated (user: "hovering emblems gives me repeated explanations of the branch"): an
+	# emblem says its branch; the strip's header holds the general explanation, once
+	var look: Button = strip_item.get_child(0) if strip_item else null
+	var tips: Array = screen._misty.find_children("*", "Control", true, false).map(func(c: Control) -> String: return c.tooltip_text) \
+		.filter(func(t: String) -> bool: return t.contains(RememberScreen.MISTY_TIP))
+	_check(look != null and look.tooltip_text.begins_with(misty.display_name) and not look.tooltip_text.contains(RememberScreen.MISTY_TIP)
+		and tips.size() == 1, "an emblem's tip is about its branch; the strip explains itself once (%d tips with the explanation)" % tips.size())
+	_check(screen._misty.visible and strip_item != null and call_in != null and call_in.disabled,
+		"…it's in the \"Not in this dream\" strip, its Call in greyed (this family already called one back)")
+	screen._select(misty)
+	var call: Button = screen._side_box.find_child("CallBackButton", true, false)
+	var side_text := " ".join(screen._side_box.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text))
+	_check(side_text.contains(RememberScreen.NOT_IN_DREAM_LINE), "the side panel: \"%s\"" % RememberScreen.NOT_IN_DREAM_LINE)
+	_check(call != null and call.disabled and side_text.contains("Already called"), "…the call-back is spent for this family")
+	dreams.free_calls = 1
+	screen._select(misty)
+	call = screen._side_box.find_child("CallBackButton", true, false)
+	_check(call != null and not call.disabled and call.text.contains("free"), "…a Remembered Path call is free (\"%s\")" % (call.text if call else ""))
+	if call != null:
+		call.pressed.emit()
+	_check(dreams.is_unlocked(misty.get_id()) and screen.state_of(misty) == RememberScreen.State.UNLOCKED, "…and calling it unlocks it there")
+	screen.close()
+
+	# A family with 2 regular branches offers both
+	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
+	var regular := dreams.regular_branches(sporeling)
+	if regular.size() <= 2:
+		dreams.unlocked[sporeling.get_id()] = true
+		_check(dreams.get_branch_offer(sporeling).size() == regular.size(), "a family with %d regular branches offers them all" % regular.size())
+
+	# The demo keeps today's branches: no draw, the expansion's forms not in it
+	ResultsScreen.demo_override = 1
+	_check(dreams.is_branch_offered(dreams.not_offered_branches(base)[0] if not dreams.not_offered_branches(base).is_empty() else off),
+		"the demo: every branch as today")
+	if has_phase:
+		var new_branch := _form("test_new", 2)
+		new_branch.set("expansion_phase", 1)
+		base.evolves_to.append(new_branch)
+		_check(dreams.get_unlock_blocker(new_branch) == "not in the demo" and not dreams.regular_branches(base).has(new_branch),
+			"…and the expansion's new branches aren't in it")
+	else:
+		print("  (demo phase check skipped: TowerData.expansion_phase isn't on this branch yet)")
+	ResultsScreen.demo_override = 0
+
+	# Every offered pair holds a damage branch (doc 66e9927b), in every family that has one (Acorn is exempt)
+	var no_carry_offers := []
+	for family_id in ["sporeling", "dewdrop", "firefly_jar", "bellflower", "pebbling", "rootling"]:
+		var family: TowerData = load("res://resource/tower/%s.tres" % family_id)
+		if dreams.regular_branches(family).size() <= DreamState.BRANCH_OFFER_SIZE:
+			continue
+		for s in 15:
+			main.get_node("MapGenerator").map_seed = 3000 + s
+			dreams.branch_offers.erase(family_id)
+			dreams.unlocked[family_id] = true
+			var pair: Array = dreams.get_branch_offer(family)
+			if not pair.any(func(id: String) -> bool: return DreamState.CARRY_BRANCHES.has(id)):
+				no_carry_offers.append("%s %s" % [family_id, pair])
+			dreams.branch_offers.erase(family_id)
+		dreams.unlocked.erase(family_id)
+	main.get_node("MapGenerator").map_seed = 777
+	_check(no_carry_offers.is_empty(), "every offered pair holds a damage branch (%s)" % [no_carry_offers])
+
+	# The hidden branch is never one of the drawn 2 (user: "the hidden branch shouldn't be one of the chosen branches"):
+	# Firefly Jar's Sunpetal, once planted, is a 3rd lane on top; never in the "Not in this dream" strip
+	var firefly: TowerData = load("res://resource/tower/firefly_jar.tres")
+	var sunpetal: TowerData = load("res://resource/tower/sunpetal.tres")
+	var sunpetal_card := dreams._unlock_card_for(sunpetal)
+	var hidden_drawn := 0
+	var lane_missing := 0
+	dreams.unlocked["firefly_jar"] = true
+	if sunpetal_card != null:
+		dreams.grove_cards.append(sunpetal_card.id)
+	for s in 30:
+		main.get_node("MapGenerator").map_seed = 4000 + s
+		dreams.branch_offers.erase("firefly_jar")
+		var drawn: Array = dreams._compute_branch_offer(firefly)
+		hidden_drawn += 1 if drawn.has("sunpetal") else 0
+		var firefly_offer: Array = dreams.get_branch_offer(firefly)
+		if not firefly_offer.has("sunpetal") or firefly_offer.size() != 3:
+			lane_missing += 1
+		if dreams.not_offered_branches(firefly).has(sunpetal):
+			lane_missing += 1
+	_check(dreams.is_hidden_branch(sunpetal) and not dreams.regular_branches(firefly).has(sunpetal), "Sunpetal is Firefly Jar's hidden branch, outside the draw")
+	_check(hidden_drawn == 0 and lane_missing == 0, "the 2 drawn are never the hidden one, and planted it's always the 3rd lane (%d drawn, %d missing)" % [hidden_drawn, lane_missing])
+	if sunpetal_card != null:
+		dreams.grove_cards.erase(sunpetal_card.id)
+	dreams.branch_offers.erase("firefly_jar")
+	main.get_node("MapGenerator").map_seed = 777
+	dreams.unlocked.erase("firefly_jar")
+
+	# Wider Roots (Grove perk, meta_design.md 1f25e66e): the first family picked offers 3 of its branches, and calling
+	# one of its others back costs 4; the first pick's cards preview the 3
+	var wide := _form("test_wide", 1)
+	wide.buildable_directly = true
+	for i in 5:
+		var b := _form("test_w%d" % (i + 1), 2)
+		b.evolves_to.append(_form("test_wf%d" % (i + 1), 3))
+		wide.evolves_to.append(b)
+	placer.towers.append(wide)
+	dreams.wider_roots = true
+	dreams.wider_roots_family = ""
+	dreams.drift_director.family_pick_requested.emit(&"first")
+	var wide_preview: Array = dreams.preview_branch_offer(wide)
+	_check(wide_preview.size() == 3, "Wider Roots: the first pick's card previews 3 branches (%s)" % [wide_preview])
+	dreams.unlocked[wide.get_id()] = true
+	dreams.unlocks_changed.emit()
+	_check(dreams.get_branch_offer(wide) == wide_preview and dreams.wider_roots_family == wide.get_id(),
+		"…the family picked gets those 3 and is the Wider Roots family")
+	var wide_off: TowerData = dreams.not_offered_branches(wide)[0]
+	_check(dreams.call_back_cost(wide) == DreamState.WIDER_ROOTS_CALL_BACK and dreams.call_back_cost(base) == DreamState.CALL_BACK_DREAMLIGHT,
+		"…calling one of its branches back costs %d (others %d)" % [DreamState.WIDER_ROOTS_CALL_BACK, DreamState.CALL_BACK_DREAMLIGHT])
+	dreams.free_calls = 0
+	dreams.dreamlight = DreamState.WIDER_ROOTS_CALL_BACK - 1
+	_check(dreams.call_back_problem(wide_off) == "Not enough Dreamlight", "…3 Dreamlight isn't enough there")
+	var saved_wide := JSON.parse_string(JSON.stringify(dreams.to_save())) as Dictionary
+	dreams.wider_roots_family = ""
+	dreams.load_save(saved_wide)
+	_check(dreams.wider_roots_family == wide.get_id(), "…the family is saved with the run")
+	dreams.wider_roots = false
+	placer.towers.erase(wide)
+
+	placer.towers.erase(base)
+	main.queue_free()
+	await process_frame
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
+	HeartwoodMemory.file_path = real_profile
+	ResultsScreen.demo_override = -1
+	print("branch offer test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
+	quit(failures)
+
+func _form(id: String, tier: int) -> TowerData:
+	var data := TowerData.new()
+	data.id = id
+	data.display_name = id
+	data.tier = tier
+	data.buildable_directly = tier == 1  # Branches and finals are grown, not planted
+	data.line = "spore"
+	return data
+
+func _form_by_id(forms: Array[TowerData], id: String) -> TowerData:
+	for form in forms:
+		if form.get_id() == id:
+			return form
+	return null
+
+func _check(condition: bool, label: String) -> void:
+	if not condition:
+		failures += 1
+		printerr("FAIL: " + label)

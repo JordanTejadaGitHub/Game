@@ -1,8 +1,8 @@
 extends SceneTree
 
-# Headless test for the Puffball's pop (warden_stats.md): at 10+ Spored stacks a hit pops them for
-# 6 × stacks to the nightmare and everything within 1 cell, the stacks are used up, and half of them
-# drift on to the 3 nearest nightmares, still credited to their applier. Logged as a "popped" combo.
+# Headless test for the Puffball (tower_design.md "Spores don't pop"): its puff bursts on landing over 1
+# tile, 2 Poisoned to every nightmare there, nightmares it hits hold up to 16 Poisoned, and nothing pops.
+# Sporemother breathes 2 Poisoned a second over everything in range.
 # Run from the project folder:
 #   godot --headless --path . --script res://tests/test_puffball.gd --fixed-fps 60
 
@@ -36,6 +36,7 @@ func _run() -> void:
 
 	var data: TowerData = puffball.duplicate()
 	data.crit_chance = 0.0
+	data.id = "puffball"  # A duplicate has no path to take its id from
 	var tower: Tower = placer.tower_scene.instantiate()
 	tower.tower_data = data
 	tower.cell = Vector2(5, 5)
@@ -57,36 +58,68 @@ func _run() -> void:
 	var far := _spawn(spawner, at + Vector2(6, 0) * CELL)
 	await process_frame
 
-	# Below the threshold nothing pops.
-	target.apply_status(EnemyStatuses.SPORED, 7, 5.0, 1.0, 12, "spore", sporeling)
-	tower.hit(target)
-	_check(target.statuses.stacks(EnemyStatuses.SPORED) == 9, "9 stacks: no pop yet")
-
-	var pops := []
-	tower.popped.connect(func(_t: Tower, e: Node2D, stacks: int) -> void: pops.append([e, stacks]))
+	# Spores don't pop (tower_design.md): the puff bursts on landing over 1 tile, Poisoning everything there.
+	target.apply_status(EnemyStatuses.SPORED, 9, 5.0, 1.0, 12, "spore", sporeling)
 	var health: int = target.health
-	tower.hit(target)  # +2 -> 11 stacks -> pop
-	var burst := int(data.pop_damage_per_stack * 11 * data.potency)  # Pops are effects: × Potency
-	_check(pops.size() == 1 and pops[0][1] == 11, "11 stacks pop (popped signal)")
-	_check(target.health == health - data.damage - burst, "the pop deals pop_damage_per_stack × stacks to the nightmare (%d)" % (health - target.health))
-	_check(target.statuses.stacks(EnemyStatuses.SPORED) == 0, "its stacks are used up")
-	_check(close.max_health - close.health == burst, "and bursts on nightmares within 1 cell")
-	_check(b.health == b.max_health and far.health == far.max_health, "but not further away")
-	var spread := [close, b, c].filter(func(e: Node2D) -> bool: return e.statuses.stacks(EnemyStatuses.SPORED) == 5)
-	_check(spread.size() == 3, "half the stacks (5) drift on to the 3 nearest nightmares")
-	_check(not d.statuses.has(EnemyStatuses.SPORED), "and no further than 3")
-	# The Puffball's own (stronger) spores took over the stack's credit before the pop.
-	_check(close.statuses.source(EnemyStatuses.SPORED) == tower, "still credited to their applier")
+	tower.projectile_landed(target, target.global_position)
+	_check(target.statuses.stacks(EnemyStatuses.SPORED) == 9 + data.status_stacks, "no pop: its stacks keep building (%d)" % target.statuses.stacks(EnemyStatuses.SPORED))
+	_check(target.health < health, "the puff soothes its target")
+	_check(close.statuses.stacks(EnemyStatuses.SPORED) == data.status_stacks and close.health < close.max_health,
+		"the burst Poisons (2) and soothes a nightmare within 1 tile")
+	_check(not b.statuses.has(EnemyStatuses.SPORED) and not c.statuses.has(EnemyStatuses.SPORED) and not d.statuses.has(EnemyStatuses.SPORED) \
+		and not far.statuses.has(EnemyStatuses.SPORED), "and nothing further away")
+	for i in 6:
+		tower.projectile_landed(target, target.global_position)
+	_check(target.statuses.stacks(EnemyStatuses.SPORED) == data.status_max_stacks, "nightmares it hits hold up to %d Poisoned (%d)" % [
+		data.status_max_stacks, target.statuses.stacks(EnemyStatuses.SPORED)])
+	_check(not "pop_at_stacks" in data, "the pop is gone from the data")
 
-	var log := DamageLog.instance
-	if log != null:
-		var stats: Dictionary = log.get_tower_stats(tower)
-		var popped: float = stats.get("combos", {}).get(&"popped", 0.0)
-		_check(absf(popped - data.pop_damage_per_stack * 11 * data.potency * 2.0) < 1.0, "the DamageLog credits the pop to the Puffball as \"popped\" (%.0f)" % popped)
-		var events: Array = target.recent_hits.filter(func(e: DamageLog.Event) -> bool: return e.combos.has(&"popped"))
-		_check(events.size() == 1 and events[0].kind == &"pop", "logged as a pop event")
-	else:
-		_check(false, "the main scene has a DamageLog")
+	# Chain Bloom: a puff landing inside Mistveil's fog covers 2 tiles instead of 1.
+	var outer := _spawn(spawner, target.global_position + Vector2(0, 1.6) * CELL)
+	tower.projectile_landed(target, target.global_position)
+	_check(not outer.statuses.has(EnemyStatuses.SPORED), "without Chain Bloom, 1.6 tiles away is outside the puff")
+	dreams.grove_cards.assign(["chain_bloom"])  # A Grove card, Entwined: Puffball + Mistveil owned this run
+	for id in ["puffball", "mistveil"]:
+		dreams.unlocked[id] = true
+		dreams.grown_wardens[id] = true
+	for bloom in dreams.pool:
+		if bloom.id == "chain_bloom":
+			dreams.take(bloom)
+	_check(dreams.has_rule(&"chain_bloom"), "Chain Bloom taken")
+	tower.clear_dream_cache()
+	tower.projectile_landed(target, target.global_position)
+	_check(not outer.statuses.has(EnemyStatuses.SPORED), "Chain Bloom outside a fog: still 1 tile")
+	var veil: Tower = placer.tower_scene.instantiate()
+	veil.tower_data = load("res://resource/tower/mistveil.tres")
+	veil.cell = Vector2(2, 2)
+	container.add_child(veil)
+	veil.set_process(false)
+	var fog := PathCloud.new(veil, target.global_position)
+	main.add_child(fog)
+	await process_frame
+	tower.projectile_landed(target, target.global_position)
+	_check(outer.statuses.has(EnemyStatuses.SPORED), "Chain Bloom in Mistveil's fog: the puff covers 2 tiles")
+	fog.queue_free()
+	await process_frame
+	# Only Mistveil's own fog (the card and its Entwined ingredients), not Morning Fog's.
+	outer.statuses.remove(EnemyStatuses.SPORED)
+	var morning: Tower = placer.tower_scene.instantiate()
+	morning.tower_data = load("res://resource/tower/morning_fog.tres")
+	morning.cell = Vector2(3, 2)
+	container.add_child(morning)
+	morning.set_process(false)
+	var morning_fog := PathCloud.new(morning, target.global_position)
+	main.add_child(morning_fog)
+	await process_frame
+	tower.projectile_landed(target, target.global_position)
+	_check(not outer.statuses.has(EnemyStatuses.SPORED), "Morning Fog's fog doesn't count for Chain Bloom")
+	morning_fog.queue_free()
+
+	# Sporemother: 2 Poisoned a second to everything in range, refreshed every breath so it never wears off there.
+	var mother_data: TowerData = load("res://resource/tower/sporemother.tres")
+	_check(mother_data.status_stacks == 2 and mother_data.attacks_per_second >= 1.0
+		and (mother_data.status_duration <= 0.0 or mother_data.status_duration > 1.0 / mother_data.attacks_per_second),
+		"Sporemother: 2 Poisoned a second, and her breath comes before it wears off")
 
 	print("puffball test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

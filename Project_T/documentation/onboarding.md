@@ -14,7 +14,7 @@ has to nail (`pitch.md`).
   guaranteed, so even a quick loss moves the player forward.
 - **Hide what isn't needed yet.** Systems appear when the player can use them (see the table
   below).
-- **Skippable.** A "Heartwood whispers" setting (on / off) for experienced players; restarting the
+- **Skippable.** A **"Hints"** setting (on / off; was "Heartwood whispers", renamed 2026-10-01; the lines stay in the Heartwood's voice) for experienced players; restarting the
   first-run tips is also possible from settings.
 
 ## Run 1: the core loop (and the first taste of meta)
@@ -34,13 +34,23 @@ trigger at these moments:
 | First rest (after drift 5) | Dreams and rests | The first Dream. *"The Heartwood stirs, and dreams of…"* Then: *"Rest here. Rearrange the forest while they're gone."* (75% refunds during rests) |
 | First rest | Saving | *"The forest will wait for you."* Save & Quit is highlighted once. |
 | First blocked placement | The dream's rule | The ghost turns red. *"A dream can bend, but never close."* |
-| First affordable evolution | Growing | The Sprout under the cursor shimmers. *"This Sprout could grow."* |
+| ~~First affordable evolution~~ | ~~Growing~~ | ~~The Sprout under the cursor shimmers.~~ Replaced below: it only fired if the player happened to hover a Sprout. |
+| **First rest where Dew can grow a planted Warden** (revised 2026-10-01: human run 12, a non-gamer, reached drift 30 with 60 Sporelings + 10 Firefly Jars and never grew or ranked one) | Growing | The nearest growable Warden to the camera centre **shimmers and gets a gold "↑" at its base**, and the whisper names it: *"That Sporeling could grow. Click it."* Clicking it opens the Warden panel with the Grow buttons pulsing once. |
+| **"Can grow" marks** | Growing, always visible | At **rests**, every Warden that can grow **and** that you can afford right now shows a **small glowing bud** at its base (the ↑ arrow was replaced: user, "doesn't fit the theme") (one per Warden, quiet, no pulse). Same for Nurture: a **small glowing dewdrop** when its next rank is affordable. Setting *Gameplay → Hints → Growth marks* (On by default; Off hides the marks, never the whispers). Hidden during drifts so the fight stays clean. **They retire themselves** (2026-10-01, user: "is that too obvious?"): shown until the profile has grown **10 Wardens in total** or finished **3 runs**, whichever comes first; then the setting quietly flips to Off (the player can turn it back on). The marks are small and dim (about 60% opacity, no glow); only the first-time shimmer is loud. |
+| **Drift 15 with nothing grown** (once per profile) | Growing reminder | If no Warden has grown or ranked yet and Dew ≥ the cheapest grow: *"Your Wardens can become much more than this."* The marks pulse once. |
+| **First rank affordable on a selected Warden** | Nurture | The Nurture button pulses once; tooltip *"Nurture it: each rank makes it stronger, your choice how."* |
 | First hover on an obstacle | Obstacles | Before clearing is unlocked: *"Dead wood. I can't move it… yet."* (the hover tag says a clearing Dream is needed). After the first clearing card: *"Tend the forest, and it will remember you."* (+1 Seed at run end) |
 | First leaf lost | Stakes | The leaf counter shakes. *"It fed. A leaf blackens and falls."* |
 | First leaf lost to a Phantom | Flyers ignore the maze | *"Some of them don't walk. Guard the ground near the Heartwood."* (added 2026-09-29) |
 | Drift 2 starts | Speed and pause | The speed buttons glow once. *"Pause if you need to think. They'll wait."* |
 | First sell | Refunds | A tooltip on the sell button: 75% during a rest, half while nightmares walk. |
 | Rest before drift 25 | Bosses | The Hollow Stag's silhouette appears at the forest edge, antlers burning. *"Something old has found the dream."* |
+| First Omen offer (drift 10 rest) | Omens | *"Face it, or let the sky stay clear."* (added 2026-10-02) |
+| First Dreamlight earned / Remember lit | Dreamlight | *"Dreamlight remembers what your Wardens could become."* |
+| First boss reaching the Heartwood | Boss toll | *"It took its toll, and went back into the dark."* |
+| First rule-breaker warning (flyers, sprinters, …) | Rule-breakers | *"This one doesn't keep to the path. Watch for it."* (kept on purpose, user: players get used to the warnings, so they notice when one comes) |
+| First Nurture | Ranks | *"Tend it, and it grows deeper roots."* |
+| First "Let it pass" available | Skipping a Dream | *"Not every dream is yours to keep. You can let one pass."* |
 | After the Hollow Stag | New family | The second family pick. *"It's gone, and something I'd forgotten came back."* |
 
 **Run end (win or lose):**

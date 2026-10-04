@@ -19,6 +19,7 @@ const LAYOUT_PATH := ART + "grove/grove_layout.json"
 const TREE_SIZE := Vector2(1280, 960)
 const NODE_FRAME := 32
 const LEGENDARY_FRAME := 48
+const ASCENDED_FPS := 3.0  # A grown Ascension's 4 frames (grove_ascended_blooms.png)
 const FRUIT_FRAME := 48
 const ICON := 32
 const MAX_ZOOM := 3.0
@@ -26,6 +27,17 @@ const TAP_RADIUS := 22.0  # Tree px around a node, fruit or stone that counts as
 const DRAG_THRESHOLD := 8.0  # Screen px before a press becomes a pan
 const GROW_STEP := 0.1  # Seconds per branch / bud frame while planting
 const CANOPY_FADE := 1.2
+const BACKDROP := "grove/grove_backdrop.png"  # 2560×960: grove_sky.png plus 640 px of scene each side
+const BACKDROP_MARGIN := 640.0
+# Ambient life (like the title screen): calm, stepped, in whole art pixels; all still under reduced motion.
+const CANOPY_BASE_Y := 620  # The crown stretches upward from this tree-space row (where it meets the limbs)
+const ART_PX := 2  # Tree px per art pixel (the Grove art is drawn in 2 px pixels): motion moves in whole art px
+const CANOPY_BREATH := 1  # Art px at the top of a breath (kept subtle: "a bit too much going on")
+const CANOPY_BREATH_PERIOD := 9.0  # Seconds per breath
+const FRUIT_BOB_PERIODS: Array[float] = [5.2, 6.1, 6.8, 5.6]  # Each dream-fruit lifts 1 art px now and then, at its own pace
+const FRUIT_BOB_SHARE := 0.7  # Lifted only while its wave is above this: about a quarter of the time, staggered
+const MOTES := 14
+const HOLLOW_PULSE_PERIOD := 7.0  # The warm light in the hollow (layout "hollow", optional)
 const SECTION_ROW := {"perks": 0, "families": 1, "cards": 2}
 const SECTION_COLOR := {"perks": Palette.GLOW, "families": Palette.NEWLEAF, "cards": Palette.BLOSSOM}
 
@@ -44,8 +56,9 @@ var _fruit_opening := {}  # index -> time it began opening
 var _time := 0.0
 var _world := Control.new()
 var _layer := Control.new()
-var _canopy_back := TextureRect.new()
-var _canopy_front := TextureRect.new()
+var _canopy_back := BreathLayer.new()
+var _canopy_front := BreathLayer.new()
+var _breath := -1  # Canopy stretch in art px now (0..CANOPY_BREATH), -1 = not drawn yet
 var _canopy_stage := -1
 var _press_pos := Vector2.ZERO
 var _pressing := false
@@ -59,9 +72,12 @@ var _branch_textures := {}
 var _nodes_texture: Texture2D = load(ART + "grove/grove_nodes.png")
 var _legendary_texture: Texture2D = load(ART + "grove/grove_legendary.png")
 var _memory_nodes_texture: Texture2D = load(ART + "grove/grove_memory_nodes.png")  # Same 11 columns
+var _ascended_texture: Texture2D = load(ART + "grove/grove_ascended_blooms.png")  # Grown Ascensions ("ascended_bloom" row), 4 frames
+var _level_texture: Texture2D = load(ART + "grove/grove_level_blooms.png")  # Grown perks with levels: 2 frames per level, a row per limb
 var _fruit_texture: Texture2D = load(ART + "grove/dream_fruit.png")
 var _sixth_rise: Texture2D = load(ART + "grove/waystone_6_rise.png")
 var _sixth_idle: Texture2D = load(ART + "grove/waystone_6_idle.png")
+var _waystone_texture: Texture2D = load(ART + "grove/waystone.png")  # A root waystone (layout "waystone_anchor")
 var _sixth_rise_started := -1.0
 const SIXTH_STONE := 5  # loadout_stones index of the secret 6th waystone
 const SIXTH_STONE_ANCHOR := Vector2(48, 60)
@@ -106,13 +122,19 @@ func _ready() -> void:
 	_world.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_world.size = TREE_SIZE
 	add_child(_world)
-	for path in ["grove/grove_sky.png", "grove/grove_tree.png"]:
-		_world.add_child(_art(load(ART + path)))
+	# The backdrop: the sky scene 640 px wider on each side (its middle 1280 px are grove_sky.png), inside
+	# the world so it pans and zooms with the tree and a wide screen shows no seam beside the art.
+	var backdrop := _art(load(ART + BACKDROP))
+	backdrop.position = Vector2(-BACKDROP_MARGIN, 0)
+	backdrop.size = TREE_SIZE + Vector2(BACKDROP_MARGIN * 2, 0)
+	_world.add_child(backdrop)
+	_world.add_child(_art(load(ART + "grove/grove_tree.png")))
 	_world.add_child(_canopy_back)
 	_world.add_child(_canopy_front)
 	for rect in [_canopy_back, _canopy_front]:
 		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		rect.size = TREE_SIZE
+		rect.base_y = CANOPY_BASE_Y
 	_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_layer.size = TREE_SIZE
 	_layer.draw.connect(_draw_layer)
@@ -123,7 +145,7 @@ func _ready() -> void:
 		_unlocks[unlock.id] = unlock
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
-	for i in 28:
+	for i in MOTES:
 		_motes.append(Vector3(rng.randf_range(80, 1200), rng.randf_range(120, 820), rng.randf() * TAU))
 	resized.connect(fit)
 	fit.call_deferred()
@@ -168,8 +190,8 @@ func _set_canopy(stage: int, instant: bool) -> void:
 	if stage == _canopy_stage:
 		return
 	var texture: Texture2D = load(ART + "grove/grove_canopy_%d.png" % stage)
-	_canopy_back.texture = _canopy_front.texture if _canopy_front.texture else texture
-	_canopy_front.texture = texture
+	_canopy_back.set_texture(_canopy_front.texture if _canopy_front.texture else texture)
+	_canopy_front.set_texture(texture)
 	_canopy_stage = stage
 	if instant or _reduced_motion:
 		_canopy_front.modulate.a = 1.0
@@ -302,8 +324,10 @@ func tap(point: Vector2) -> void:
 	var best_id := ""
 	var best := TAP_RADIUS
 	for node in _nodes:
+		if not _unlocks.has(node.id):
+			continue
 		var distance := point.distance_to(vec(node.pos))
-		if distance < best and _unlocks.has(node.id):
+		if distance < best:
 			best = distance
 			best_id = node.id
 	if best_id != "":
@@ -316,11 +340,8 @@ func tap(point: Vector2) -> void:
 		if point.distance_to(vec(spots[i]) + Vector2(0, FRUIT_FRAME * 0.6)) < TAP_RADIUS * 1.2:
 			fruit_pressed.emit(i)
 			return
-	var stones: Array = load_layout().get("loadout_stones", [])
-	for i in stones.size():
-		if i == SIXTH_STONE and not HeartwoodMemory.has_sixth_slot(_memory):
-			continue  # The secret stone gives no hint until it has risen
-		if point.distance_to(vec(stones[i])) < TAP_RADIUS * 1.5:
+	for centre in stone_points():  # Only unlocked slots (the secret stone gives no hint until it has risen)
+		if point.distance_to(centre) < TAP_RADIUS * 1.5:
 			stones_pressed.emit()
 			return
 	selected_id = ""
@@ -339,6 +360,15 @@ func node_screen_position(id: String) -> Vector2:
 
 func _process(delta: float) -> void:
 	_time += delta
+	# The canopy breathes: a slow stepped stretch upward from where it meets the limbs (0 → 1 → 0 art px),
+	# redrawn only when the step changes. Still under reduced motion.
+	var breath := 0 if _reduced_motion else roundi((1.0 - cos(TAU * _time / CANOPY_BREATH_PERIOD)) * 0.5 * CANOPY_BREATH)
+	if breath != _breath:
+		_breath = breath
+		for rect in [_canopy_back, _canopy_front]:
+			rect.unit = ART_PX
+			rect.grow = breath * ART_PX  # Whole art pixels, so the crown's 2 px checkers never split into stripes
+			rect.queue_redraw()
 	_layer.queue_redraw()
 
 # --- Drawing (tree space) ---
@@ -346,6 +376,8 @@ func _process(delta: float) -> void:
 func _draw_layer() -> void:
 	if _memory.is_empty():
 		return
+	_draw_hollow_light()
+	_draw_mists()
 	for node in _nodes:
 		_draw_branch(node)
 	_draw_fruit()
@@ -400,6 +432,9 @@ func _draw_node(node: Dictionary, font: Font) -> void:
 		texture = _memory_nodes_texture
 		row = int(node.memory_row)
 	var state := state_of(unlock)
+	if state == State.OWNED and _plant_step(node.id) < 0 and _draw_bloom(node):
+		_draw_node_extras(node, unlock, state, _bloom_size(node), font)
+		return
 	var column := 0
 	var step := _plant_step(node.id)
 	if step >= 0:
@@ -410,10 +445,40 @@ func _draw_node(node: Dictionary, font: Font) -> void:
 				column = 1 + int(_time * 6.0) % 4
 			State.OWNED:
 				column = 9 + int(_time * 2.0) % 2
+				# Each level its own look (grove_level_blooms.png): plain flower, + petal ring, + gold ring with pips. Perks show
+				# their bought level; Families and Cards how deep they sit on their branch (layout "display_level",
+				# meta_design.md c2d98792). Legendary tips and Ascensions keep their own bigger blooms.
+				var levels := int(node.get("levels", 1))
+				var level := HeartwoodMemory.node_level(_memory, unlock) if levels > 1 else int(node.get("display_level", 0))
+				if level > 0 and _level_texture != null and not legendary and node.get("memory_row") == null:
+					texture = _level_texture
+					level = clampi(level, 1, 3)
+					column = (level - 1) * 2 + (0 if _reduced_motion else int(_time * 2.0) % 2)
 	var pos := vec(node.pos)
 	var rect := Rect2(pos - Vector2.ONE * frame_px / 2.0, Vector2.ONE * frame_px)
 	var tint := Color(1, 1, 1, 0.55) if state == State.LOCKED else Color.WHITE
 	_layer.draw_texture_rect_region(texture, rect, Rect2(column * frame_px, row * frame_px, frame_px, frame_px), tint)
+	_draw_node_extras(node, unlock, state, frame_px, font)
+
+# A grown Ascension: the Legendary tip's double flower in Families green with a gold crown (grove_ascended_blooms.png,
+# Legendary-sized). Every other grown node keeps the uniform flowers (user: "should just be uniform"), so the
+# layout's "bloom" rows go unused. Returns false when there's no Ascension bloom (then the bud sheet is used).
+func _draw_bloom(node: Dictionary) -> bool:
+	var row = node.get("ascended_bloom")
+	if row == null or _ascended_texture == null:
+		return false
+	var size := _bloom_size(node)
+	var frame := 0 if _reduced_motion else int(_time * ASCENDED_FPS) % 4
+	_layer.draw_texture_rect_region(_ascended_texture, Rect2(vec(node.pos) - Vector2.ONE * size / 2.0, Vector2.ONE * size),
+		Rect2(frame * size, int(row) * size, size, size))
+	return true
+
+func _bloom_size(_node: Dictionary) -> int:
+	return int(load_layout().get("ascended_cell", LEGENDARY_FRAME))
+
+# The selection ring, level pips and next cost under a node drawn `frame_px` wide.
+func _draw_node_extras(node: Dictionary, unlock: UnlockData, state: State, frame_px: int, font: Font) -> void:
+	var pos := vec(node.pos)
 	if node.id == selected_id:
 		var colour: Color = SECTION_COLOR.get(node.section, Palette.HEARTLIGHT)
 		_layer.draw_arc(pos, frame_px * 0.55, 0.0, TAU, 32, colour, 1.5)
@@ -444,30 +509,44 @@ func _draw_fruit() -> void:
 			var step := floori((_time - _fruit_opening[i]) / GROW_STEP)
 			frame = 4 + step if step < 4 else 8
 		var top := vec(spots[i])
+		if not _reduced_motion and sin(TAU * _time / FRUIT_BOB_PERIODS[i % FRUIT_BOB_PERIODS.size()] + i * 1.7) > FRUIT_BOB_SHARE:
+			top.y -= ART_PX  # Lifts 1 art px on its stem now and then; most fruit rest at any moment
 		_layer.draw_texture_rect_region(_fruit_texture, Rect2(top - Vector2(FRUIT_FRAME / 2.0, 0), Vector2.ONE * FRUIT_FRAME),
 			Rect2(frame * FRUIT_FRAME, 0, FRUIT_FRAME, FRUIT_FRAME))
 
-# The waystones at the roots: unlocked slots glow, filled ones hold their perk's icon.
-# The waystones at the roots: stones 0–4 are slots 1–5 (painted in the tree; unlocked ones glow),
-# stone 5 is the secret 6th (drawn here: it rises once, then idles). Filled ones hold their perk's icon.
-func _draw_stones() -> void:
-	var stones: Array = load_layout().get("loadout_stones", [])
+# The waystones at the roots, one per unlocked loadout slot, in loadout order: the root row (3–5 stones, centred
+# under the trunk, layout "loadout_stone_sets"; waystone.png) and then the secret 6th at loadout_stones[5] once it
+# has risen (drawn with its own rise / idle sheets). Falls back to loadout_stones if the sets are missing.
+func stone_points() -> Array[Vector2]:
+	var layout := load_layout()
 	var sixth := HeartwoodMemory.has_sixth_slot(_memory)
-	var normal := HeartwoodMemory.loadout_slots(_memory) - (1 if sixth else 0)
-	var carried := HeartwoodMemory.get_loadout(_memory)
-	var lit: Array[int] = []  # Stone index per slot, in loadout order
-	for i in mini(normal, SIXTH_STONE):
-		lit.append(i)
+	var row := mini(HeartwoodMemory.loadout_slots(_memory) - (1 if sixth else 0), SIXTH_STONE)
+	var stones: Array = layout.get("loadout_stones", [])
+	var points: Array = layout.get("loadout_stone_sets", {}).get(str(row), stones.slice(0, row))
+	var result: Array[Vector2] = []
+	for i in mini(row, points.size()):
+		result.append(vec(points[i]))
 	if sixth and stones.size() > SIXTH_STONE:
-		lit.append(SIXTH_STONE)
-		_draw_sixth_stone(vec(stones[SIXTH_STONE]))
-	for k in lit.size():
-		var i: int = lit[k]
-		var centre := vec(stones[i])
-		var pulse := 0.5 + 0.5 * sin(_time * 2.0 + i)
-		_layer.draw_circle(centre, 16.0, Color(Palette.GLOW, 0.10 + 0.06 * pulse))
-		_layer.draw_circle(centre, 9.0, Color(Palette.GLOW, 0.12 + 0.08 * pulse))
-		if k < carried.size() and not (i == SIXTH_STONE and is_sixth_rising()):
+		result.append(vec(stones[SIXTH_STONE]))
+	return result
+
+# Unlocked slots glow on their stones; filled ones hold their perk's icon.
+func _draw_stones() -> void:
+	var points := stone_points()
+	var sixth := HeartwoodMemory.has_sixth_slot(_memory)
+	var carried := HeartwoodMemory.get_loadout(_memory)
+	var anchor := vec(load_layout().get("waystone_anchor", [24, 18]))
+	for k in points.size():
+		var centre := points[k]
+		var secret := sixth and k == points.size() - 1
+		if secret:
+			_draw_sixth_stone(centre)
+		elif _waystone_texture:
+			_layer.draw_texture(_waystone_texture, centre - anchor)
+		var pulse := 0.5 if _reduced_motion else 0.5 + 0.5 * sin(_time * 0.8 + k)  # A slow, faint glow
+		_layer.draw_circle(centre, 16.0, Color(Palette.GLOW, 0.11 + 0.03 * pulse))
+		_layer.draw_circle(centre, 9.0, Color(Palette.GLOW, 0.14 + 0.04 * pulse))
+		if k < carried.size() and not (secret and is_sixth_rising()):
 			var icon := get_icon(_unlocks[carried[k]])
 			if icon:
 				_layer.draw_texture_rect(icon, Rect2(centre - Vector2(12, 26), Vector2(24, 24)), false)
@@ -491,6 +570,68 @@ func is_sixth_rising() -> bool:
 
 func _draw_motes() -> void:
 	for mote in _motes:
-		var drift := Vector2(sin(_time * 0.3 + mote.z) * 14.0, cos(_time * 0.22 + mote.z * 1.3) * 10.0)
-		var alpha := 0.25 + 0.25 * sin(_time * 1.3 + mote.z * 2.0)
+		var drift := Vector2(sin(_time * 0.15 + mote.z) * 14.0, cos(_time * 0.11 + mote.z * 1.3) * 10.0)
+		var alpha := 0.15 + 0.15 * _stepped(sin(_time * 0.3 + mote.z * 2.0))  # 3 calm levels, no flicker
 		_layer.draw_circle(Vector2(mote.x, mote.y) + drift, 1.2, Color(Palette.GLOW, alpha))
+
+# The warm light in the Heartwood's hollow, pulsing softly (layout "hollow": its centre; skipped if absent).
+func _draw_hollow_light() -> void:
+	var hollow = load_layout().get("hollow")
+	if hollow == null:
+		return
+	var pulse := 0.5 if _reduced_motion else (1.0 if sin(TAU * _time / HOLLOW_PULSE_PERIOD) > 0.0 else 0.0)  # 2 soft levels
+	var centre := vec(hollow)
+	_layer.draw_circle(centre, 22.0, Color(Palette.EMBER, 0.07 + 0.03 * pulse))
+	_layer.draw_circle(centre, 12.0, Color(Palette.GLOW, 0.10 + 0.04 * pulse))
+
+# Mist strips drifting through the roots (layout "mists": [{file, y, speed}], art px per second, wrapping).
+var _mist_textures := {}
+
+func _draw_mists() -> void:
+	for mist in load_layout().get("mists", []):
+		var path := ART + "grove/" + str(mist.file)
+		if not _mist_textures.has(path):
+			_mist_textures[path] = load(path) if ResourceLoader.exists(path) else null
+		var tex: Texture2D = _mist_textures[path]
+		if tex == null:
+			continue
+		var width := float(tex.get_width())
+		var shift := 0.0 if _reduced_motion else floorf(fposmod(_time * float(mist.speed), width) / ART_PX) * ART_PX
+		var x := shift - width * ceilf(BACKDROP_MARGIN / width + 1.0)  # Across the wide backdrop too
+		while x < TREE_SIZE.x + BACKDROP_MARGIN:
+			_layer.draw_texture(tex, Vector2(x, float(mist.y)))
+			x += width
+
+# A wave (-1..1) as 3 calm levels (0, 0.5, 1): glows step softly instead of shimmering.
+static func _stepped(wave: float) -> float:
+	return roundf((wave + 1.0)) * 0.5
+
+# A texture layer that stretches upward from `base_y` by `grow` pixels, in whole `unit`-pixel rows (the
+# art's pixel size): each drawn art row samples one source art row (inverse mapping, like the title
+# backdrop), so chunky pixel art and its checker dithers stay crisp and never tear into stripes.
+class BreathLayer extends Control:
+	var texture: Texture2D
+	var base_y := 0  # A multiple of `unit`
+	var grow := 0  # A multiple of `unit`
+	var unit := 1
+
+	func set_texture(value: Texture2D) -> void:
+		texture = value
+		queue_redraw()
+
+	func _draw() -> void:
+		if texture == null:
+			return
+		var w := float(texture.get_width())
+		var h := float(texture.get_height())
+		if grow <= 0:
+			draw_texture(texture, Vector2.ZERO)
+			return
+		draw_texture_rect_region(texture, Rect2(0, base_y, w, h - base_y), Rect2(0, base_y, w, h - base_y))
+		var rows := base_y / unit  # Art rows above the base
+		var extra := grow / unit
+		for r in range(-extra, rows):
+			var s := rows - int(ceil(float(rows - r) * rows / float(rows + extra)))
+			if s < 0:
+				continue
+			draw_texture_rect_region(texture, Rect2(0, r * unit, w, unit), Rect2(0, s * unit, w, unit))

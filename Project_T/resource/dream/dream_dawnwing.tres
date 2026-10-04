@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_dawnwing"
 display_name = "Dawnwing"
-description = "Any wing final form can ascend into Dawnwing (400 Dew, one per run): a great bird patrols the path in its range, striking every nightmare it passes; it flies faster the more nightmares there are."
+description = "Any {family:nestling}-family final form can ascend into Dawnwing ({grow_cost:dawnwing} Dew, one per run): a great bird patrols the path in its range, striking every nightmare it passes; it flies faster the more nightmares there are."
 rarity = 3
 kind = 1
 tags = Array[String](["wing"])

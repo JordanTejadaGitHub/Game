@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "second_path"
+display_name = "Second Path"
+description = "At the {block}'s start, the Thornwall that lengthens the route most crumbles (full refund). Nothing can be planted there until the {rest}."
+flavor = "An old way opens in the dark."
+min_drift = 26
+kind = 4
+crumble_thornwall = true
+reward_seeds = 4

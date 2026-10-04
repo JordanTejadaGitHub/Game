@@ -13,3 +13,4 @@ tags = Array[String](["crit", "precision"])
 requires = Array[String]([])
 max_stacks = 1
 rule_id = &"sharpened_light"
+in_start_pool = false

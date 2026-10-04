@@ -100,8 +100,15 @@ drag-select and works on touch (`platforms.md`).
 | **Obstacle hover** | name only (e.g. "Withered Tree"); clearing happens through the **Clear tool** (below). With the tool active: outline + "Tend Withered Tree · 5 Dew" + route preview if clearing changes it |
 | **Health bars** | only once a nightmare is hit (setting: always) |
 | **Status icons** | up to 3 small icons above a nightmare, most important first; each status has its own **shape** (Damp droplet, Drowsy "z", Spored dots, Marked ring, Static bolt, Held vine) and a stack number where relevant |
+| **Status icons, clearer** (2026-09-30, user: *"their stack of statuses should be more clear"*; the drift 28 screenshot showed tiny bolts with 6 px digits) | Each status is a **14 px badge** (its shape on a dark disc with a status-coloured rim) in one row centred above the health bar; the **stack count is a bold 10 px number in the badge's lower-right corner** with a dark outline, shown from 2 stacks; **at max stacks the rim fills solid** and the number turns gold (e.g. Charged 5/5 about to bolt). A thin rim arc **drains with the time left**. Up to 4 badges; more → the 4 most important + "+1". Bosses and elites: 18 px. Scales with the UI scale setting; zoomed in, the badges keep their screen size (`WorldLabel.text_scale`). Hover / tap a nightmare: the info panel lists each status "Charged 4/5 · 2.1 s". |
+| **Status icons, revised** (same day, user: *"the statuses on enemies are too small, I like the old icons from before"*) | Back to the **old status icons** (the bare shapes: bolt, droplet, "z", ring, vine, spore dots; no dark disc), **drawn larger: 20 px** (bosses and elites 24 px), in one row centred above the health bar. Kept from the badge version: the **stack number** (now **12 px**, bold, dark outline, lower-right, from 2 stacks), **gold number + a glow at max stacks**, the "+N" overflow, screen-size under zoom and the batched overlay drawing. The time-left arc becomes a **thin bar under the icon** that shortens. |
+| **Status icons, third pass** (same day, user: *"have the status icons bigger"*, then *"keep [the duration bars] as is but make the status stacking more noticeable"*) | Icons **28 px** (bosses and elites 32), **at most 3 then "+N"** (4 would span two cells; built in 9ecf1cb1); the duration bar under each stays as is (3 px). **Stacks stand out:** a bold **16 px** count on a small dark pill at the lower right (from 2 stacks), **one small pip per stack** along the top of the icon (filled up to the current count, to the status's max), and a **quick pop** of the icon each time a stack lands. Max stacks: gold count and gold glow. |
 | **Elites** | Deeply Blighted nightmares: black haze + a small swirl icon, larger sprite |
 | **Bosses** | a name plate on arrival ("The Hollow Stag"), the screen edges darken; the top-centre boss bar with health and a marker at 50% (where its behaviour changes) |
+| **Route arrows at the start of a run** (2026-10-01, user: *"the arrows are for the beginning of every run so we know where to place towers. You can actually put them for the whole path but only display at the start of a run."*; replaces the per-drift chevrons of b4017ae8) | When a run starts (the opening rest, before drift 1), **chevrons march along the whole route, start to Heartwood**, so the player sees where the nightmares will walk and where to build. They **follow re-routes live** as Wardens are planted or obstacles cleared. They **fade out when the first drift starts** and **don't come back on later drifts** (not every drift, not at rests). A resumed run that's still before drift 1 shows them again. Steady (no march) under reduced motion. Below the build ghost's route preview, so the preview stays readable. |
+| **Charged bolt** (2026-10-01, user: *"should there be a visual when the charged pops"*; until now a 5-stack bolt only dealt damage) | When Charged hits its max and goes off: a **short jagged bolt drops onto the nightmare from about 1.5 cells above** (warm light-family gold-white core, 2–3 px, 0.15 s), a **small white-gold flash and spark burst** at the strike (about half a cell), and the Charged icon's pips **empty with a pop**. The damage number for the bolt is a little larger, with a bolt glyph. No callout word (bolts are frequent; words stay for Reactions and combos). Static Field adds a **faint ring** to its reach at the strike. Lightning Rod keeps its own Reaction effect (the bolt bends to the rod). Budget: max ~6 bolt effects per 0.25 s; past that only the flash. `reduce_flashes`: no flash, bolt drawn at half brightness. Sound: a soft, rounded zap (never a sharp crackle, per the second-listen rules), on a new `Tower`/`Reactions` signal for SoundHooks. |
+| **New rule-breaker warning** (2026-10-01, human run 5: lost at drift 35 to Phantoms, the first flyers, at drift 31: *"I didn't notice they would be coming"*) | At the **rest before a block that brings a nightmare whose trait breaks the maze** (flying, trample, leap, rolling; any `trait_kind` ≠ NONE), and that the player hasn't faced **this run**: the Coming strip shows that nightmare **first, larger, with a gold "New" tab and its trait in words** ("Flies straight over the maze"), and a one-line warning under the DriftPanel status ("Flyers in drift 31: they ignore your maze"). For flyers, a **faint dashed line from the start straight to the Heartwood** shows their path for the whole rest (same layer as the route arrows). The first time one appears on the field, a short name plate over it ("Phantom · flies"). Once per run per kind; quieter (no dashed line) on later runs once the profile has seen it 3+ times. |
+| **Route mist** (2026-10-01, user: *"create a new asset for the path line, like a root or fog, whatever fits"*) | The route preview (build ghost, Clear tool) and the run-start route become a **ribbon of cold mist** along the path: the way the nightmares will drift. Not roots, since roots already mean Kinship bonds. Art: a **seamless 64×24 mist strip** (WRAITHLIGHT / MOONLIGHT wisps over a soft fog body, pixel-art, Heartwood 32 cold side, transparent edges) plus a **start cap** (thin, fading in) and an **end cap** (a curl that reaches toward the Heartwood), drawn with Line2D texture tiling. It **flows slowly toward the Heartwood** (~0.5 cell/s, **in whole-texel steps**, never a sub-pixel scroll, which made the pixel art shimmer; sharp joints at grid corners; still under reduced motion). One shared style (`RouteLine.style_mist`) for the build preview and the run-start ribbon. Preview states: the **new route** in full mist; the **old route** a faint, thinner wisp where it differs. No highlight on the added stretch (user, same day: *"don't highlight when you increase the tiles"*; the "+N path" tag says it). Run start: the same mist marks the whole route, with **2–3 brighter wisps drifting along it** (replacing the gold chevrons), fading out at drift 1. High-contrast route stays the accessibility option (bright, thick). |
 | **Leak** | when a nightmare reaches the Heartwood: it lunges into the tree, a leaf blackens and falls, a dark pulse at the goal, the leaves counter shakes |
 | **Selected Warden** | range circle + a soft outline; its status field (clouds, fog) highlighted |
 
@@ -318,6 +325,17 @@ details show when the player asks (selecting, hovering, placing, pausing, rests)
 | **Warden panel** | a **Buffs** section listing every source with its amount and a total, e.g. *"Elder Stump (rank IV, Kindred) +26.6% attack speed · Elder Stump +10% (falloff) · Kinship Slumber Rot (Blooming, 75%) · Kindred +10% damage · Rank III (Power) · Dreams: Deeper Calm ×3 +30% damage"*. Tapping a Warden source selects it and glides the camera there. Negative effects (e.g. *Blood Is Thicker*'s −15%, an Omen's penalty) are listed in a muted plum, the Bittersweet colour. |
 | **Buff lens** (a HUD toggle, hotkey **V**) | a map overlay: every aura area tinted by kind, every Warden's buff pips shown, and Wardens coloured by how boosted they are. Toggle on/off (it isn't hold-only, for touch and the mobile port). |
 
+- **The lens button, revised** (2026-09-30, user: *"buff toggle makes no sense for players who just
+  started"*; in their screenshot every Warden glowed gold with the lens on):
+  - **Hidden until it means something:** the top-right button appears only once the map has a
+    **local** buff source (the first aura Warden or Kinship). The V hotkey works from then on too.
+  - **Named for what it shows:** "Boosts" (not "Buffs"), and its tooltip says *"Show which Wardens
+    are boosted, and by what."*
+  - **Only boosted Wardens light up**, by local sources (auras, Kinships, Kindred / Whole Tree).
+    Dreams and Nurture that apply to every Warden don't light anyone up (they're in the Warden panel);
+    otherwise the whole map glows and says nothing.
+  - **A small legend** under the button while it's on: the source kinds on the map with their colour
+    and shape (*"Acorn aura · Elder Stump · Kinship"*).
 - **One colour per buff source kind**, used everywhere (pips, threads, aura rings, panel rows): the
   Acorn family's gold for auras, the family colour for Kinships, green-gold for Whole Tree. Icons
   also differ by **shape**, not just colour (accessibility).
@@ -325,7 +343,7 @@ details show when the player asks (selecting, hovering, placing, pausing, rests)
   unless the player selects or hovers (Reactions own the screen).
 - The numbers come from one place (Tower Code exposes each Warden's list of buff sources with
   amounts), so the panel, threads, preview and lens always agree.
-- **Icons needed (for the UI Asset chat, not made yet):** buff pips for Elder Stump (attack speed),
+- **Icons: done** (UI Asset c2a2a600: `assets/ui/buff_pips.png` + `buff_pips.json`, `buff_stacks.png`, `boosts_off` / `boosts_on` in `hud_glyphs.png`; penalty pip tinted in code, **Bruise** so it never reads as a fire/Ember effect). Originally requested: buff pips for Elder Stump (attack speed),
   Acorn (damage), Grove Heart, Grandmother Oak, Kinship (leaf), Whole Tree (badge) and Kindred (a
   Focus mark), a tiny stack count (×2, ×3), a **penalty** pip, and a **buff lens** toggle button
   (on/off). Notes from the old UI Asset chat: icons come from `tools/ui_icon_generator.gd` (16 px,
@@ -390,6 +408,50 @@ one-line definition, a small icon, and "see also" links. Terms in tooltips, card
 
 Boss names and late nightmares only show once met, to avoid spoilers (the rest is always visible).
 
+**Glossary and Families, revised (2026-09-30, user: *"make the glossary Codex more visually appealing
+and update the families"*).**
+
+*Terms updated* (the table above is out of date; the Codex follows this list):
+- **Statuses:** Soaked, Drowsy, Asleep, Poisoned, Exposed, Charged, Rooted, Caught, Frozen (the old
+  Damp / Spored / Marked / Static / Held names are gone).
+- **Damage types:** Spore, Water, Light, Stone, Root, Song, Wind, Talon, Plain, with who deals each.
+- **Wardens:** Nurture's **per-rank choice** (Power / Swift / Reach / Deep) replaces Focus;
+  **Kinship**, **Harmony strike**, **Boosts** (auras, Kinship, Kindred / Whole Tree) added;
+  Heartwood Sapling and Memory Warden removed (cut / parked).
+- **The run:** Close call, Chain added; **Dreams:** Entwined and Half-dreamed stay internal (not
+  entries); Woven, Deepened, Bittersweet stay.
+
+*Glossary look:*
+- **Two panes:** the groups down the left as a list with an icon each (Resources, The run, Combat,
+  Wardens, Nightmares, Statuses, Damage types, Dreams, The Memory Grove); the right pane shows that
+  group's entries. Search box at the top of the left pane; a result jumps to its entry and flashes it.
+- **Every entry is a small card**, not a line of text: a **32 px icon** on the left (the status icon,
+  the resource icon, the damage type's Warden face, a Warden portrait for Warden terms), the **term
+  in the display font**, the one-line definition in body text, one muted **example** line (*"Stormcap's
+  chain jumps farther through Soaked nightmares."*), and "See also" as **gold link chips**.
+- **Statuses page:** each card has its **status colour** as the rim, and adds its numbers (max stacks,
+  duration, what a stack does) and **who applies it** (small Warden portraits of your families); the
+  combos it's part of show as chips, ??? until discovered.
+- **Damage types page:** each type's card lists the nightmares weak to it and resisting it (icons,
+  ??? until met).
+- Cards sit in a 2-column grid on wide screens, 1 column on narrow; group headers use the gold thread
+  divider. Moonlit Thread throughout (fog panels, no hand-built boxes).
+
+*Families page, updated:*
+- One page per family, tabs along the top with the base Warden's portrait (like Remember).
+- **Header:** the base Warden large (animated), family name, damage type, its **role in one line**
+  (*"Damage over time: stack Poisoned and keep it."*), its statuses, and **your record** (picked N times,
+  won N runs with it).
+- **The tree** drawn like the Remember screen (portraits on waystones): base → two branches → two
+  finals → hidden branch → Ascended, each node with its **tier, Dew to grow (120 / 300 / 600) and
+  Dreamlight to unlock (1 / 2 / 3)**, and its Grove state (planted, or a silhouette "in the Memory
+  Grove"). Tapping a node shows its full card (the Warden panel's top half).
+- Under the tree: its **Kinships** (the two branches, the bond's name and stages), its **combos**
+  (chips, ??? until found), and the family's Dream cards (a count and a link to the Dreams tab).
+- Numbers come from the data (TowerData / DreamState), never typed into the Codex, so balance changes
+  (branch 120, final 300, Ascended 600, Puffball no longer popping, Nurture choices) show up by
+  themselves.
+
 ### Combos (discovered in play)
 
 Every combo starts **locked** and is **discovered the first time it actually fires** in a run.
@@ -413,8 +475,23 @@ Every combo starts **locked** and is **discovered the first time it actually fir
     closes (and pauses then).
   - Setting (Gameplay): **"Pause on new combos"**, on by default; off = the old 5 s slide-in card.
   - The rest report lists *"New combos: Thunderclap"*.
+  - **The discovery card stands out in combat** (2026-09-30, user: *"the discovery window should be more visible during combat and have the icons"*; it was a see-through panel with small text over a busy fight): a **solid panel** (the opaque tip fog, ~95%) with the gold thread, the world behind **dimmed to ~40%** except the nightmare it fired on (lit), a **title in the display font, 28 px gold** (*"Combo discovered: Thunderclap"*, *"Chain discovered: Chain 5"*), **icons at 48 px**: a combo shows its two status icons "+" its Reaction icon; a chain shows each Reaction's icon in order with arrows (repeats collapsed as "Nightbloom ×2"); body text 18 px; then Continue / Open in Codex. A soft rise-in and the discovery chime.
+  - **The discovery card can be minimised** (2026-10-01, user: *"when a combo unlocks, I should be able to minimise the window"*): a **"Peek at the map"** button (same as the choice screens, `ChoicePeek`) hides the card and lifts the dim, **the game stays paused**, and the world can be panned, zoomed and hovered (nightmare and Warden info work). A small "Combo discovered" tab at the top reopens it; Continue on the card (or Space / Enter while peeking) resumes.
+  - **Chains: one discovery, then Dawnbreak** (2026-10-01, user: *"for chains, just show the chain information once and that's it, then Dawnbreak comes in with a discovery once as well"*; replaces the three tiers below): the **first chain ever** (Chain 3+) shows **one** discovery card that explains chains (*"A Reaction can spread its statuses and set off another. Past the fifth link each one hits a little softer, but the chain keeps counting."*). No more cards at 5 or 10. **Dawnbreak** (the Legendary that fires at a Chain 10) gets its **own one-time discovery** the first time it actually goes off. The Codex Chains section keeps your longest chain.
+  - **Chains are discovered too** (2026-09-30, user: *"discover chain too as well should be like
+    discovering a combo"*). A Reaction chain (Reactions setting each other off, the tracker's chain
+    length) gets the **same pause + discovery card** the first time ever it reaches **Chain 3, Chain 5 and Chain 10**
+    (×10 is the Dawnbreak line): *"Chain discovered: Chain 3"* (chains read as a count, never ×N, which looks like a damage multiplier), the Reactions in it in order ("Thunderclap
+    → Lightning Rod → Mushrooming"), one line (*"Reactions can set each other off."*), and *"Added to
+    the Codex."* Codex Combos page gets a **Chains** section: the three tiers (??? until reached) and
+    your **longest chain ever**, with the Reactions it used. Same setting, queue and once-ever rules
+    (profile key, account knowledge); the rest report lists *"New chain: Chain 5"*.
 - **Unlocked entry:** name, ingredients, what it does, which Wardens apply each ingredient (from your
   families seen so far), and how many times you've set it off.
+- **Counter shows the real total** (2026-09-30, user saw "7 / 7" with only the starting families and
+  read it as "all found"): the tab and header count **every** combo in the game, *"7 / 22 combos"* and
+  *"Crowned Reactions · 1 / 8"*; the ones your families can't make yet are listed as ??? under "15
+  more wait in the Memory Grove". Same for Kinships and chains.
 - **Counter:** *"12 / 15 combos discovered"* on the tab; discovering every one is a **milestone**
   (a Steam achievement; `meta_design.md`).
 
@@ -584,6 +661,7 @@ From a user playtest with screenshots; each line is the rule going forward.
     when I'm not hovering", the Warden panel's "Grow into Acorn"). Primary / affordable / keyboard-
     focused buttons don't get a resting fill either: at most the gold border. Keyboard focus shows
     as the border too (it must not look like hover).
+- **The Warden panel never fills the screen** (2026-09-30, user, a late-run Honeysuckle with ~14 Dreams listed: *"this fills the whole screen"*; it also ran up over the Dreams row): the panel is capped at **~55% of the screen height**, starts **below the Dreams row**, and scrolls inside if needed. "Dreams on this Warden" becomes **one compact row of card gems** (rarity shape + a small count), **only the cards that are active on it**, each gem hovering / tapping to its line ("Crossroads +48% damage"); inactive cards collapse to one muted line *"4 more don't apply here"* (hover lists why). The Buffs list is folded to its **Total** line with a "Details" toggle. Stats, Sell and Close always stay visible.
 - **Warden panel header shows the Warden's portrait** (its animated idle art), not the family
   emblem (user, 2026-09-30: "go back to the Warden portrait instead of the icon").
 - **Less hand-holding on buttons** (2026-09-30, user: "a bit too much hand holding"):
@@ -610,6 +688,10 @@ From a user playtest with screenshots; each line is the rule going forward.
     Remember tabs go back to their earlier look, and a Dream card's requirement reads **"Needs
     Wind"** (the damage type as a linked word, no emblem). The nightmare resist / weak icons (the
     base Warden face with a shield or spark, `NightmareIcons`) predate the emblems and stay.
+- **Warden bar hover = the Warden panel's info** (2026-09-30, user: *"when you hover a tower in the tower bar, it should give you more detail, like when you select a tower"*). Hovering (or long-pressing on touch) a Warden bar button shows a card with **the same top half as the Warden panel**: portrait, name, damage type, description with status links, stats with this run's Dream bonuses (↑), statuses it applies, Potency, **"Grows into"** (its branches with their Dew and Dreamlight state), and the price line (Sprout: the rising price rule). No buttons. One shared view with the panel so the two never disagree.
+- **Top-right layout, as in the Moonlit Thread mock-up** (2026-09-30; user first asked "above or beside?", then: *"look at the UI asset for Moonlit, it should be like that in terms of the top right"*; mock: https://claude.ai/artifact/4Cs1PP2CrqTjth2dHiZFow). **One horizontal row** in the top-right corner on one soft fog patch (no thread, no boxes): **leaves "15/15" · Dew · Dreamlight · path length**, each a pixel icon plus a **big Cormorant number (~28 px)**, then the buttons as **compact 40 px icon buttons at the end of the same row**: Remember (✦, glows when Dreamlight can buy something), Boosts (only once a boost source exists), ? (Codex) and ☰ (Menu). Their names move to tooltips. Nothing stacks vertically; the half-price clears counter sits just under the row. Replaces the earlier "buttons under the resources" layout. Check it fits beside the drift banner at 1280×800.
+- **The Clear tool slot matches the Warden slots** (2026-09-30, user: *"it shouldn't be different in size from the rest"*; an earlier reading, a round separate button, was wrong): the **same size and shape** as a Warden slot, lined up with them on the same baseline; key badge in the same corner. No change otherwise.
+- **Every icon can be hovered or tapped, and tips are opaque** (2026-09-30, user: *"I can't click and hover over icons; also I can barely read them once they are hovering over text, like on the Warden detail panel bottom left"*): **every icon in a panel** (stat icons, status icons, damage type, resource icons, rarity gems, buff pips) shows its tip on hover and on tap (TapTip), with the term's glossary line. **Tooltips and tap tips are opaque**: a solid Void fog panel (`UiStyle.FOG` at ~95%, not the see-through fog of HUD patches) with the gold thread, a soft drop shadow, drawn **above every panel** (their own top layer), placed so they never cover the text the pointer is on (prefer above-right of the pointer, flip at screen edges).
 - **Readable tooltips and hover text** (user: "hovering things, in general, the text is too small
   and hard to read"): every tooltip, hover panel and tap popup uses **at least 16 px body text at
   1080p** (18 px for the first line / name), **1.35 line height**, a maximum width of about **42
@@ -649,11 +731,15 @@ From a user playtest with screenshots; each line is the rule going forward.
     Dreamlight"), since those are goals within reach.
   - Developer modes that unlock everything (Test Grove) show every family.
 - **Sell:** "+62 Dew" (full during a rest, half while nightmares walk; the button says which).
-- **Targeting** (**decided 2026-09-28**, user): three modes for attacking Wardens that pick a target:
+- **Targeting** (**decided 2026-09-28**, user; **Last added 2026-09-30**): four modes for attacking
+  Wardens that pick a target:
   - **First** (default): the nightmare closest to the Heartwood (today's rule).
+  - **Last**: the nightmare **furthest from the Heartwood** in range, the newest arrival. Good for
+    status Wardens (tag a nightmare so it walks the whole maze Spored, Marked or Static), for
+    Wardens near the start, and for mopping up stragglers.
   - **Strongest**: the most current health (bosses, elites, Husks).
   - **Closest**: the nearest to the Warden (good for short-range and splash Wardens).
-  - Set per Warden with a 3-way switch in its panel (icons + words); with several selected, the
+  - Set per Warden with a 4-way switch in its panel (icons + words); with several selected, the
     group panel sets all of them. **T** cycles the selected Wardens' mode. Kept through growing
     and in the run save. The Warden shows a tiny mode pip only while selected.
   - Hidden for Wardens that don't pick a target (pulses, auras, traps, rings, Thornwalls). Snipers'
@@ -832,7 +918,8 @@ more clear with icons of their resistances"):
   but smaller: animated portrait, name, the one-line trait, **what it does** (1–2 plain lines, e.g.
   *"Breaks into 3 Sobs when dispelled"*), resist / weak / immune icons, and one hint (*"Splash and
   pulses catch the Sobs"*). Several new types in one block: one card each, in order, with "Next".
-  - Shown after the Dream / Omen and before the boss dossier, like the other rest screens; dismissed
+  - Shown last at a rest, after the family pick, Dream, gift, Omen and boss dossier (one screen at a time, user
+    2026-10-03: RestScreens); dismissed
     by click, tap or Esc; reopen from its portrait in the Coming strip.
   - A type that first appears mid-block also gets a **2-second name plate** when the first one
     spawns (no pause), like the boss name plate.
@@ -862,18 +949,35 @@ it is **when the act begins** and has the whole act to build for it:
 - **Acts 2–4:** it opens at the act-break rest (the boss rest after drifts 25 / 50 / 75), last in
   the rest order, for the **next** act's boss.
 - **The rest opening the boss block** (after drifts 20, 45, 70, 95) no longer opens the full card,
-  only a short reminder (*"The Hollow Stag arrives in 5 drifts"*, the portrait, an "Open dossier"
-  button): a nudge, not a repeat. It can be closed and **reopened any time
+  only a short reminder (*"The Hollow Stag arrives in 5 drifts"*, the portrait, an **"About the
+  Hollow Stag"** button): a nudge, not a repeat.
+- **It must feel like THE boss** (2026-09-30, user on the Night Mare card: *"these boss screens should
+  give more of that feel and info that this is THE BOSS"*). The card read like a nightmare info panel.
+  Changes (the content stays):
+  - **Eyebrow over the name:** *"The boss of act 1"* in small caps, in **Wraithlight** (the boss
+    colour, `UiStyle.BOSS`), and a subline *"Drift 25 · the last drift of the act"*.
+  - **The portrait is the hero:** the boss's full animated art **~3× larger** (about 240 px tall),
+    on the left, rising out of a cold violet mist, not in the small disc. Right column: name, title,
+    whisper, numbers.
+  - **Boss frame:** the panel's thread and diamond in Wraithlight instead of gold; the screen behind
+    dims further (the map almost black) with a slow cold vignette pulse.
+  - **Scale that reads:** the numbers get context: *"Health 4,000 · about 13 Husks"*, and the leaves it
+    takes in large type (*"3 leaves each lap"*), the one number that ends runs.
+  - **An entrance:** the portrait fades up from the mist, the name writes in, a low boss sting
+    and one heartbeat (Sound: `boss_reveal`); reduced motion = a plain fade.
+  - The button stays "Prepare"; the reminder card and the Codex entry use the same eyebrow and colour. **The word "dossier" never reaches the player**
+  (2026-09-30, user: *"Open dossier???"*): buttons and tooltips name the boss ("About the Mire
+  Hag"); "dossier" stays an internal name. It can be closed and **reopened any time
 until the boss is dispelled**: tap the "Boss in N" countdown in the drift banner, or its portrait in
 *Coming this block*.
 
 | Part | Content |
 |---|---|
 | **Header** | the boss's animated portrait (full art, not a silhouette), name and title ("The Hollow Stag · the gaunt king of the old wood"), one line of whisper (*"Something old has found the dream."*), and "Arrives in drift 25" |
-| **Numbers** | health (the real number with this run's scaling and Blight), speed, leaves it takes if it reaches the Heartwood |
+| **Numbers** | ~~health, speed~~ removed (2026-10-02, user: *"a lot of information on the boss page, remove health and speed and what it brings"*). Only **the leaves it takes** if it reaches the Heartwood stays, in large type. Health is on the boss bar during the fight and in a tooltip on the portrait for the curious |
 | **Resists / Weak to / Immune** | the same icon rows as the nightmare info, larger |
-| **What it does** | one row per ability: an icon, a name, what it does in one plain sentence, and **when** ("from the start", "every 8 s", "**at 50% health**", "when it takes a hit from…"). The 50% line matches the marker on the boss bar |
-| **It brings** | escorts and summons (portraits, count, with their own resist icons), e.g. the Mire Hag's bog spawn |
+| **What it does** | one row per ability: an icon, a name, what it does in one plain sentence, and **when** ("from the start", "every 8 s", "**at 50% health**", "when it takes a hit from…"). The 50% line matches the marker on the boss bar. A summon ability names its summons here (that's where they matter) |
+| ~~**It brings**~~ | removed (same day); escorts show in the Coming strip, summons in their ability row |
 | **Your record** | after the first meeting: times dispelled, best time. First meeting: a "New" tag |
 
 - Spoilers: the Codex still hides boss names until met; the dossier doesn't, because the boss is
@@ -891,9 +995,10 @@ resist / immune rows.
 
 ## Choice screens (time stops)
 
-**Rest order:** rest bonus toast → **family pick** (boss rests) → **Dream** → **Omen** (from drift 10)
-→ **boss dossier** (the act's start: run start and act-break rests; a short reminder at the rest
-opening a boss block) → free building → Start. Each choice screen can be **minimised** to look at the map first (a
+**Rest order (revised 2026-10-03, user: "a lot of pages players have to go through", and "we want the player to know for sure which act boss is coming and the new enemies"):** one screen at a time (`RestScreens`).
+- **Normal rest:** rest bonus toast → **Dream** → **Omen** (from drift 10) → **New this block** (only if the next block brings a nightmare this profile has never met: one compact page listing all of them, portrait, name, trait in words, the tip; tap a row for its full card) → free building → Start.
+- **Act break** (the rest after a boss, and the run's first rest for act 1): **family pick** → **Dream** → **Heartwood's gift** → **What's coming** → free building → Start. **No Omen at act breaks.** *What's coming* replaces the auto-opened boss dossier and the per-nightmare intro cards: the act's boss is the hero (portrait, name and title, leaf toll in large type, resists, abilities with "when"), with the next block's new nightmares as rows below. Forced, so players always see it; Peek and Continue. The full dossier stays reachable from the banner's "Boss in N" and the Coming strip.
+- Earlier order (superseded): family pick → Dream → Omen → boss dossier → separate new-nightmare cards. Each choice screen can be **minimised** to look at the map first (a
 "peek" button), then reopened.
 - **A minimised choice still blocks the next drift** (bug, 2026-09-30, user: "I can hide the Dream
   choice and start the wave"). While any choice (family pick, Dream, Omen) is open or minimised, Start
@@ -967,6 +1072,14 @@ Side: a run summary (Dreams, families, active Omen, time played).
 | Controls | rebind every action, controller layout (see controller topic) |
 | Accessibility | colour-blind-friendly blight cue (outline/haze), text size, reduced motion, high-contrast route line, **reduce flashes** (photosensitivity: lite effects everywhere, no `surge`/Dawnburst flash), **hitstop and slow-motion** on/off |
 | Language | once translations exist |
+
+**Apply and Cancel** (2026-10-01, user: *"can you have a confirm or apply on the settings"*). Changes no longer save the moment you touch them:
+- Every change **previews live** (you hear the volume, see the UI scale, the effects), but is only **saved with Apply**. The panel's footer: **Apply** (primary; greyed out with no changes) · **Cancel** (puts everything back as it was when the panel opened) · **Defaults** (this tab only, still needs Apply).
+- A changed setting shows a small gold dot beside its label until applied. The tab names get the dot too.
+- Closing the panel (Esc, ✕, Back on a controller) with unapplied changes asks: *"Apply your changes?"* **Apply** · **Discard** · **Keep editing**.
+- **Risky display changes** (resolution, fullscreen / windowed, UI scale, V-sync): after Apply, a **"Keep these settings? Reverting in 10 s"** prompt with **Keep** / **Revert**. No answer reverts, so a bad resolution or a huge UI scale can never lock the player out.
+- **Keybinds:** the same rule; a rebind conflict is shown before Apply, not after.
+- Same panel and rules on the title screen and the pause menu. Touch and controller: Apply / Cancel are always on screen (no hover-only).
 
 ## Controls (keyboard and mouse)
 

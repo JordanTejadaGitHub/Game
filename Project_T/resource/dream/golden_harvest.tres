@@ -6,14 +6,11 @@
 script = ExtResource("1_card")
 id = "golden_harvest"
 display_name = "Golden Harvest"
-description = "Nothing yet: the gamble."
+description = "Every 500 Dew you earn this run makes all Wardens deal 2% more damage (up to +30%); Dew from catchers and interest counts double."
 rarity = 3
 kind = 3
-tags = Array[String](["seed", "acorn", "economy", "support"])
+tags = Array[String](["acorn", "economy", "support"])
 max_stacks = 1
 min_act = 2
 rule_id = &"golden_harvest"
 in_start_pool = false
-grows_with = Array[String](["dewcatcher", "wellspring"])
-grows_text = "Every 100 Dew your catchers harvest or earn as interest this run gives all Wardens +2% damage (up to +30%)."
-calls_family = "acorn"

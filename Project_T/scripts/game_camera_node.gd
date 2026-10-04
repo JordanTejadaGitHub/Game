@@ -26,6 +26,8 @@ var map_size_pixels: Vector2  # Map size in pixels, calculated from MAP_GRID
 
 func _ready() -> void:
 	add_to_group(&"game_camera")
+	get_tree().process_frame.connect(_on_frame_started)
+	_frame_scale = Engine.time_scale
 	# Calculate map size in pixels from the grid
 	map_size_pixels = MAP_GRID.size * MAP_GRID.cell_size
 
@@ -34,6 +36,12 @@ func _ready() -> void:
 	target_zoom = camera_2d.zoom
 	_view_zoom = camera_2d.zoom
 	camera_2d.zoom = _view_zoom / ui_factor()
+	# Open framed on the run: halfway between the start and the Heartwood (which now sits inland).
+	var map_generator = get_node_or_null("%MapGenerator")
+	if map_generator != null and map_generator.get("layout") != null:
+		target_position = (MAP_GRID.calculate_map_position(map_generator.startPath)
+			+ MAP_GRID.calculate_map_position(map_generator.endPath)) / 2.0
+		camera_2d.position = target_position
 
 var _glide_points := PackedVector2Array()  # Onboarding glide along the path (pixels)
 var _glide_time := 0.0
@@ -47,11 +55,48 @@ func glide(points: PackedVector2Array, duration: float = 5.0) -> void:
 	_glide_points = points
 	_glide_time = 0.0
 	_glide_duration = duration
+	_glide_lengths = PackedFloat32Array([0.0])  # Distance along the points: a steady pace whatever their spacing
+	for i in range(1, points.size()):
+		_glide_lengths.append(_glide_lengths[-1] + points[i - 1].distance_to(points[i]))
+
+const ROUTE_GLIDE_SPEED := 260.0  # Pixels a second along the route
+const ROUTE_GLIDE_MIN := 4.0
+const ROUTE_GLIDE_MAX := 9.0
+var _glide_lengths := PackedFloat32Array()
+
+# The first-run glide along the route (onboarding.md): at a steady pace (by distance, eased in and out), 4–9 s by the
+# route's length, ending on the Heartwood. When the whole route already fits on screen it doesn't glide (the opening
+# framing shows it all; a clamped camera only bobbed up and down, user: "it moves the camera wrong"). True if it glides.
+func glide_route(points: PackedVector2Array) -> bool:
+	if points.size() < 2:
+		return false
+	var box := Rect2(points[0], Vector2.ZERO)
+	for point in points:
+		box = box.expand(point)
+	var view := camera_2d.get_viewport_rect().size / camera_2d.zoom
+	if box.grow(MAP_GRID.cell_size.x).size.x <= view.x and box.grow(MAP_GRID.cell_size.y).size.y <= view.y:
+		return false
+	var length := 0.0
+	for i in range(1, points.size()):
+		length += points[i - 1].distance_to(points[i])
+	glide(points, clampf(length / ROUTE_GLIDE_SPEED, ROUTE_GLIDE_MIN, ROUTE_GLIDE_MAX))
+	return true
+
+var _frame_scale := 1.0  # Engine.time_scale this frame's delta was scaled by
+
+# Read when the frame starts (after the engine scaled delta): hit-stop and slow motion change time_scale
+# mid-frame, and dividing by the new tiny scale flung the camera (user: "I jump around the screen while using
+# WASD when a wave is there").
+func _on_frame_started() -> void:
+	_frame_scale = Engine.time_scale
+
+const MAX_STEP := 0.1  # Seconds: a hitch never moves the camera more than this much panning
 
 func _process(delta: float) -> void:
 	# The camera runs in real time: game speed (2×/3×) shouldn't make panning faster.
-	if Engine.time_scale > 0.0:
-		delta /= Engine.time_scale
+	if _frame_scale > 0.0:
+		delta /= _frame_scale
+	delta = minf(delta, MAX_STEP)
 	if not _glide_points.is_empty():
 		_advance_glide(delta)
 	_handle_input(delta)  # Handle WASD movement and zoom input
@@ -66,9 +111,13 @@ func _advance_glide(delta: float) -> void:
 			return
 	_glide_time += delta
 	var t := clampf(_glide_time / _glide_duration, 0.0, 1.0)
-	var index := t * (_glide_points.size() - 1)
-	var i := mini(int(index), _glide_points.size() - 2)
-	target_position = _glide_points[i].lerp(_glide_points[i + 1], index - i)
+	var eased := t * t * (3.0 - 2.0 * t)  # Smoothstep: no snap at the start, no jolt at the end
+	var along := eased * _glide_lengths[-1]
+	var i := 0
+	while i < _glide_points.size() - 2 and _glide_lengths[i + 1] < along:
+		i += 1
+	var span := _glide_lengths[i + 1] - _glide_lengths[i]
+	target_position = _glide_points[i].lerp(_glide_points[i + 1], (along - _glide_lengths[i]) / span if span > 0.0 else 1.0)
 	if t >= 1.0:
 		_glide_points = PackedVector2Array()
 
@@ -161,8 +210,7 @@ func _smooth_zoom(delta: float) -> void:
 
 # The UI scale factor now (1 when nothing scales the window).
 func ui_factor() -> float:
-	var window := get_tree().root if is_inside_tree() else null
-	return window.content_scale_factor if window != null and window.content_scale_factor > 0.0 else 1.0
+	return UiStyle.ui_factor(get_tree().root if is_inside_tree() else null)
 
 # Clamp the camera's target to the map boundaries
 func _clamp_camera_to_map() -> void:

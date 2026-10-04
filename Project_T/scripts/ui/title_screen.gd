@@ -49,6 +49,8 @@ func _ready() -> void:
 	var center := CenterContainer.new()  # Settings and the Codex open in the middle
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
+	if OS.is_debug_build():  # The exact build on disk ("Sep 30 21:14 · 3f9a2c"; balance_simulation.md)
+		_add_build_label()
 
 	# The left column, in the art's calm side: the title over a Moon panel with the menu.
 	var column := MarginContainer.new()
@@ -204,3 +206,27 @@ func _godot_components() -> String:
 	for info in Engine.get_copyright_info():
 		lines.append("• %s" % info.name)
 	return "\n".join(lines)
+
+# Bottom right, small: the build id, filled in once BuildInfo's thread is done.
+func _add_build_label() -> void:
+	BuildInfo.start()
+	var label := Label.new()
+	label.name = "BuildLabel"
+	label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	label.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	label.offset_right = -12
+	label.offset_bottom = -8
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	add_child(label)
+	var timer := Timer.new()
+	timer.wait_time = 0.25
+	timer.autostart = true
+	add_child(timer)
+	timer.timeout.connect(func() -> void:
+		var text := BuildInfo.label_if_ready()
+		if text != "":
+			label.text = "Build " + text
+			timer.queue_free())

@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "pebbling_ascension"
 display_name = "Ascension: Old Mountain"
-description = "The Ascended Old Mountain can grow in your runs: from {drift} 51, 3 {dreamlight}, then 400 Dew on a final form. Boulders crush and stun; sure crits on {held} or {drowsy} nightmares."
+description = "Old Mountain, {family:pebbling}'s Ascended form, can grow in your runs: from {drift} 51, 3 {dreamlight}, then 400 Dew on a final form. Boulders crush and stun; sure crits on {held} or {drowsy} nightmares."
 root = 0
 costs = Array[int]([120])
 order = 33

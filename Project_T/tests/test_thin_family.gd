@@ -28,7 +28,6 @@ func _run() -> void:
 	await process_frame
 	dreams = main.get_node("%DreamState")
 	dreams.unlock_everything = false
-	dreams.resonance_enabled = false  # Single-card numbers (test_dreams checks resonance)
 	_test_data()
 	_test_hits()
 	_test_queries()

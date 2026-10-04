@@ -13,3 +13,5 @@ tags = Array[String](["maze"])
 max_stacks = 1
 min_attackers = 4
 rule_id = &"heart_of_the_maze"
+diagram = "SPPPPP.\n.a...P.\n..a..P.\n.....PW\n.....PH"
+diagram_caption = "The attacking Warden furthest along the path from the others: ×2 damage."

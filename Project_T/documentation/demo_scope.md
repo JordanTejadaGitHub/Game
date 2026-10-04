@@ -26,10 +26,10 @@ replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 
 | Area | Included |
 |---|---|
-| Wardens | **Decided (user, 2026-09-28): Sporeling, Firefly Jar and Dewdrop are the only families in the demo**, with their branches and final forms (Dreamlight unlocks), plus Sprout and Thornwall (+ Bramble, Honeysuckle). The drift 1 pick offers all three; the drift 25 and 50 picks offer the ones you lack; from then on picks are Family Blessings. Bellflower, Pebbling, Rootling, Acorn, Nestling and Whirligig are full-game only (dev toggles "Test Grove" / "Unlock all families" can still show them in debug builds) |
-| Family picks | after drift 1 and after the bosses at 25, 50 and 75 (with only the demo's families, empty slots become Family Blessings) |
+| Wardens | **Decided (user, 2026-09-28; Bellflower added 2026-10-01, meta_design.md a3375108): Sporeling, Firefly Jar, Dewdrop and Bellflower are the demo's families** (the same four every new full-game account starts with), with their branches and final forms (Dreamlight unlocks), plus Sprout and Thornwall (+ Bramble, Honeysuckle). The four family picks (drift 1, 25, 50, 75) can each offer a family you lack, so the drift 75 pick is never empty. Pebbling, Rootling, Acorn, Nestling and Whirligig are full-game only (dev toggles "Test Grove" / "Unlock all families" can still show them in debug builds) |
+| Family picks | after drift 1 and after the bosses at 25, 50 and 75 (a pick with nothing left to offer gives +2 Dreamlight; Family Blessings are Rare Dream cards now, not pick fillers) |
 | Final forms | **shown but locked** ("in the full game") on Dream cards |
-| Kinships | **Slumber Rot, Rainfog, Storm Beacon** (the demo families' main Kinships) and **Kindred** (`tower_design.md` "Kinships"). Whole Tree and hidden Kinships need Grove unlocks, so full game only |
+| Kinships | **Slumber Rot, Rainfog, Storm Beacon, Night Chimes** (the demo families' main Kinships; Night Chimes added with Bellflower, 2026-10-01) and **Kindred** (`tower_design.md` "Kinships"). Whole Tree and hidden Kinships need Grove unlocks, so full game only |
 | Dreams | after drifts 5, 10, … 95 (**19 per run**; boss Dreams guaranteed Rare+), from the Start pool |
 | Nightmares | acts 1–2 as in `acts_1_2.md` (Shade, Husk, Mourner, Phantom, Night Hound, Procession, the Hollow Stag, the Mire Hag) and acts 3–4 as in `acts_3_4.md` (the whole roster, the Moth Queen, the Hollow Oak) |
 | Act 2 boss | **always the Mire Hag** in the demo; the full game draws from a pool of 3 per act (`enemy_design.md`, boss pools). Open question: should the demo's act 1 already draw from its pool (Hollow Stag / Night Mare / Scarecrow) to show off the feature, at the cost of two more bosses before launch? |
@@ -64,6 +64,12 @@ Levels, Seeds spending) and the demo (Grove teaser, Wishlist) can both be tested
 Debug builds only; exported builds always use the project setting. Switching returns to the title
 screen. Full-game runs made this way use the real profile, so it's clearly labelled.
 
+**The full game is the default** (user, 2026-10-02: "Make the full game default"): `game/demo` is
+`false` in project.godot, so a normal launch plays the full game with the Spire rules. **The demo
+build's export preset must set `game/demo = true`** (a feature-tag override or a demo-only
+project.godot); the demo then keeps the pre-Spire rules (`DriftDirector.DEMO_RULES`, no gifts, the
+old branch set). Tests that need the demo set `ResultsScreen.demo_override = 1` (`test_demo_rules`).
+
 **Unlock all families** (added 2026-09-27): a second developer toggle for testing the *core game*:
 normal runs (family picks, Dreams, Dew, difficulty all as usual) but with **every family in the
 pick pool** and their Grove Dream cards, as if the Memory Grove had unlocked everything. Doesn't
@@ -81,6 +87,18 @@ bundles, Ascension nodes, Blight Levels and loadouts all work, so any Grove cont
   whispers written. The HUD and Grove show a small "Dev Grove: Full" tag.
 - Turns **Demo mode** off while on (the Grove only applies in the full game). Debug builds only.
   Can combine with Test Grove and Unlock all families.
+
+**Reset to a new profile** (added 2026-09-30, user request: "add an option for devs to reset to a
+new profile"): Settings → Developer → **Start over as a new profile**, debug builds only.
+- Two-step confirm in the panel itself ("This resets your Memory Grove, Seeds, records,
+  discoveries and Codex. Your settings and run history stay." → **Reset** / Cancel).
+- **Backs up first:** copies `user://heartwood.json` to `user://heartwood.backup-<date-time>.json`
+  (keeps the last 5), so nothing is lost by accident. A "Restore last backup" button sits next to it.
+- Resets everything the profile holds (Grove nodes, Seeds, run counts, milestones, Blight, account
+  knowledge: combos / nightmares / Dreams / chains seen, whispers, intros, last first pick, boss
+  records), **keeps settings** (volumes, keybinds, the Developer toggles), deletes the saved run
+  (`run.json`), and **keeps `run_history.json` and `builds.json`** (balance data).
+- Returns to the title screen as a first launch (first-run whisper, first-run Seed bonus).
 
 **Pick any card** (added 2026-09-28, user request: "for the dev run, allow picking cards from all
 the card selection"): in **any dev run** (Test Grove, Unlock all families or Dev Grove), the Dream

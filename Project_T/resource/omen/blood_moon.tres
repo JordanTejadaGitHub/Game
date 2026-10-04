@@ -6,7 +6,8 @@
 script = ExtResource("1_omen")
 id = "blood_moon"
 display_name = "Blood Moon"
-description = "Nightmares move 35% faster, and give 75% more Dew."
+description = "Nightmares move 35% faster, and give 40% more Dew."
+flavor = "A red moon. They run fast, and fat with Dew."
 kind = 2
 speed_multiplier = 1.35
-creature_dew_multiplier = 1.75
+creature_dew_multiplier = 1.4

@@ -1,4 +1,9 @@
 
+// The icon sheets' orders (used by the per-node blooms before the icon sheets are written).
+const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", "clear_sight", "sprout_bed", "kindling", "early_bloom", "early_light", "first_care", "deep_taproot", "second_thoughts", "let_go", "omen_reader", "wider_dreams", "wider_roots", "golden_leaf", "blossoms", "gilded_pages", "starlit_backs"];
+const FAMILY_ORDER = ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"];
+const CARD_ORDER = ["storm", "spores_and_reactions", "keen_edges", "tending", "overgrowth", "lone_lantern", "the_long_way", "bittersweet", "woven", "deep_poison", "kinship", "seeds", "quiet_ones", "swift", "wide_reach", "daring", "hedgerows", "reclaiming"];  // Storm, Spores and Kinship icons stay for stable indices (their nodes are gone)
+
 // ---------- export (assets/meta/...) ----------
 function strip(imgs) { const w = imgs.reduce((s, i) => s + i.w, 0), h = Math.max(...imgs.map(i => i.h)), S = new Img(w, h); let x = 0; for (const i of imgs) { S.put(i, x, 0); x += i.w; } return S; }
 function stack(rows) { const w = Math.max(...rows.map(r => r.w)), h = rows.reduce((s, r) => s + r.h, 0), S = new Img(w, h); let y = 0; for (const r of rows) { S.put(r, 0, y); y += r.h; } return S; }
@@ -61,10 +66,12 @@ canopies.forEach(limbsInCrown);  // the limbs show through every stage's leaves
 canopies.forEach((c, i) => emitImg("grove/grove_canopy_" + i + ".png", c));
 const tree = groveTree(), sky = grovesky();
 emitImg("grove/grove_sky.png", sky);
+emitImg("grove/grove_backdrop.png", grovesky(640));  // 2560 wide: the sky continued 640 px past each side, for wide screens
 emitImg("grove/grove_tree.png", tree);
+emitImg("grove/waystone.png", waystoneSprite());
 spreadNodes(canopies[0]);
 FRUIT_SPOTS.forEach(s => { s[1] = maskBottom(s[0]) - 8; });
-const layout = { size: [GW, GH], nodes: [], fruit_spots: FRUIT_SPOTS, loadout_stones: [...LOADOUT_STONES, SECRET_STONE], moon: MOON, node_cell: 32, legendary_cell: 48, fruit_cell: 48 };
+const layout = { size: [GW, GH], nodes: [], fruit_spots: FRUIT_SPOTS, loadout_stones: [...LOADOUT_STONES, SECRET_STONE], loadout_stone_sets: LOADOUT_STONE_SETS, waystone_anchor: WAYSTONE_ANCHOR, moon: MOON, hollow: HOLLOW_LIGHT, mists: GROVE_MISTS.map(({ file, y, speed }) => ({ file, y, speed })), node_cell: 32, legendary_cell: 48, fruit_cell: 48 };
 const segs = {};
 for (const n of NODES) {
   const s = segment(n); segs[n.id] = s;
@@ -72,8 +79,25 @@ for (const n of NODES) {
   layout.nodes.push({ id: n.id, section: n.section, name: n.name, pos: [n.x, n.y], parent: n.parent || null, from: n.from || null,
     levels: n.lv || 1, start: !!n.start, legendary: !!n.legendary, ...(MEMORY_WARDENS.includes(n.id) ? { memory_row: MEMORY_WARDENS.indexOf(n.id) } : {}), branch: { offset: [s.box[0], s.box[1]], frame_size: [s.W, s.H], frames: 5 } });
 }
+// Ascension blooms (fully grown): grove_ascended_blooms.png, a row per Ascension node; other grown nodes use the uniform flowers.
+const bloomNodes = NODES.filter(n => NODE_ICON[n.id] && !n.id.endsWith("_ascension") && !n.id.startsWith("memory_"));
+const ascNodes = NODES.filter(n => n.id.endsWith("_ascension") && ASCENDED_ART[n.id.replace(/_ascension$/, "")]);
+layout.nodes.forEach(e => {
+  const b = bloomNodes.findIndex(n => n.id === e.id), a = ascNodes.findIndex(n => n.id === e.id);
+  if (a >= 0) e.ascended_bloom = a;
+  // How deep a node sits on its branch (meta_design.md c2d98792, visual only): which grove_level_blooms
+  // column set a grown Families / Cards node shows. Perks keep their real purchase levels (no field).
+  // Families: family 1, hidden branch 2, Ascension 3. Cards: a branch's first bundle 1, later bundles 2,
+  // Legendary tips 3. Legendary tips and Ascensions keep their own bigger blooms as their level 3.
+  if (e.section === "families" && !e.id.startsWith("memory_")) e.display_level = e.id.endsWith("_ascension") ? 3 : e.id.endsWith("_hidden") ? 2 : 1;
+  if (e.section === "cards") e.display_level = e.legendary ? 3 : e.parent && byId[e.parent] && byId[e.parent].section === "cards" ? 2 : 1;
+});
+layout.ascended_cell = 48;
+emitImg("grove/grove_ascended_blooms.png", stack(ascNodes.map(() => strip([0, 1, 2, 3].map(ascendedBloomPlain)))));
+GROVE_MISTS.forEach(m => emitImg("grove/" + m.file, groveMistStrip(m)));
 emitText("grove/grove_layout.json", JSON.stringify(layout, null, 1));
 emitImg("grove/grove_nodes.png", stack(["perks", "families", "cards"].map(s => nodeRow(s, false))));
+emitImg("grove/grove_level_blooms.png", stack(["perks", "families", "cards"].map(s => strip([1, 2, 3].flatMap(lv => [0, 1].map(f => levelBloom(s, lv, f)))))));
 emitImg("grove/grove_legendary.png", nodeRow("cards", true));
 emitImg("grove/dream_fruit.png", strip([0, 1, 2, 3, 4, 5, 6, 7, 8].map(fruitSprite)));
 emitImg("ui/loadout_slots.png", strip([0, 1, 2, 3].map(slotSprite)));
@@ -97,7 +121,7 @@ emitImg("grove/grove_memory_nodes.png", stack(MEMORY_WARDENS.map(memoryNodeRow))
 const memoryBorders = [...Array(MEMORY_CARD_FRAMES).keys()].map(memoryCardBorder);
 emitImg("ui/memory_card_border.png", strip(memoryBorders));
 {
-  // Preview: the three blooms (bloomed, 4×) and the border over a mock card, standard and tall.
+  // Preview: the three blooms (bloomed, 4Ã—) and the border over a mock card, standard and tall.
   const P = new Img(640, 400); for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) P.set(x, y, HW.Void);
   MEMORY_WARDENS.forEach((id, k) => { const s = memoryNodeSprite(id, "bloom", 0); for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (s.alpha(x, y)) for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) P.set(8 + k * 100 + x * 3 + a, 8 + y * 3 + b, s.get(x, y)); });
   [[330, 0, 300], [20, 100, 290]].slice(0, 1).forEach(() => {});
@@ -108,7 +132,7 @@ emitImg("ui/memory_card_border.png", strip(memoryBorders));
   T.put(mock(370), 25, 25); T.put(nineTile(memoryBorders[2], 250 + 2 * MEMORY_BLEED, 370 + 2 * MEMORY_BLEED, MEMORY_MARGIN), 25 - MEMORY_BLEED, 25 - MEMORY_BLEED);
   emitImg("_preview/memory_card_tall_preview.png", T);
 }
-// Starlit card backs: 4 twinkle frames of 250×220 side by side.
+// Starlit card backs: 4 twinkle frames of 250Ã—220 side by side.
 const starlit = [0, 1, 2, 3].map(starlitCard);
 emitImg("ui/starlit_card.png", strip(starlit));
 // Preview: a standard card and a tall one (tiled edges) under a mock of the card's own style
@@ -127,16 +151,13 @@ emitImg("ui/starlit_card.png", strip(starlit));
   });
   emitImg("_preview/starlit_preview.png", P);
 }
-const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", "clear_sight", "sprout_bed", "kindling", "early_bloom", "early_light", "first_care", "deep_taproot", "second_thoughts", "let_go", "omen_reader", "wider_dreams"];
 emitImg("icons/perk_icons.png", strip(PERK_ORDER.map(k => PERK_ICONS[k]())));
-const FAMILY_ORDER = ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"];
 emitImg("icons/family_icons.png", strip(FAMILY_ORDER.map(k => FAMILY_ICONS[k]())));
-const CARD_ORDER = ["storm", "spores_and_reactions", "keen_edges", "tending", "overgrowth", "lone_lantern", "the_long_way", "bittersweet", "woven", "deep_poison", "kinship", "seeds", "quiet_ones"];
 emitImg("icons/card_bundle_icons.png", strip(CARD_ORDER.map(cardIcon)));
 for (let i = 0; i < 10; i++) emitImg("memories/memory_" + String(i + 1).padStart(2, "0") + ".png", memory(i));
 
 // Preview: the tree part-grown, with every node state on show.
-const prev = new Img(GW, GH); prev.put(sky); prev.put(tree); prev.put(canopies[2]);
+const prev = new Img(GW, GH); prev.put(sky); prev.put(tree); prev.put(canopies[2]); GROVE_MISTS.forEach(m => prev.put(snapToPalette(groveMistStrip(m)), 0, m.y));
 const owned = new Set(); NODES.forEach((n, i) => { if (n.start || (i % 3 !== 2 && n.depth < 3)) owned.add(n.id); });
 const sheetCell = (sec, big, col) => nodeSprite(sec, col === 0 ? "locked" : col < 5 ? "afford" : col < 9 ? "open" : "bloom", col === 0 ? 0 : col < 5 ? col - 1 : col < 9 ? col - 5 : col - 9, big);
 for (const n of NODES) { const s = segs[n.id]; prev.put(s.frames[owned.has(n.id) ? 4 : 0], s.box[0], s.box[1]); }

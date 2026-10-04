@@ -16,6 +16,7 @@ placeholders).
 | `acts_1_2.md` | creature and boss stats, special drifts, the drift-by-drift plan for drifts 1–50 |
 | `dream_design.md` | in-run upgrade pool, offer rules, status numbers |
 | `dream_audit.md` | card power pass (2026-09-30): budget per rarity, every card raised / kept / merged / cut, tag resonance |
+| `asset_galleries.md` | index of every asset chat's living gallery artifact (URLs) |
 | `meta_design.md` | Seeds, Memory Grove, milestones, Blight Levels, Memories, true ending |
 | `art_direction.md` | warm vs cold, environment, Warden and nightmare look; **art style decided 2026-09-28: Waystone pixel, "detailed 64"** (64 px cells with a detail pass: upper-left light and 1 px rim, dithered bands, sparse texture, banded glow; the Heartwood 128 px; marketing art may go higher) and the **Heartwood 32 palette** (32 colours, 9 ramps; nightmares on cold ramps only; seasons from lighting; UI colours too). UI style: **Moonlit Thread** (`ui_style.md`). Owned by the Theme chats |
 | `ui_style.md` | the Moonlit Thread UI style: panels, the gold thread, fonts, icon scaling, colours from Heartwood 32. Owned by UI Asset / UI Code |
@@ -101,6 +102,19 @@ perks can modify them.
 
 - **A new random forest every run**: wobbly **ridges** of rocks and trees from alternating walls
   make the starting route zig-zag; tree groves and rock clusters vary per map.
+- **Layouts per seed** (2026-10-01, user: *"the map generates the same layout most of the time"*;
+  as built 453a65a9, `environment_assets.md` "Map layouts"): the start and Heartwood are no longer
+  fixed corners. Each map rolls **corner → opposite corner** (~39%, any mirror), **side → opposite
+  side** (~35%) or an **inlet** (~26%, both on one edge, a U around a spine ridge); ends jitter along
+  their edge; ridges run across the route; **one feature** per map (pond, stone ruin, dense grove,
+  fallen-log line). Route length and buildable space stay within ±25% of before.
+- **Inland Heartwood** (2026-10-01, user: *"move the Heartwood out of the outer edges, put it in the
+  outer half from where the start is, in a random position"*; spec 929c8cdb, `environment_assets.md`
+  "Map layouts" → "Inland Heartwood"): the start stays on the edge (corner or side, ~50/50; inlets
+  dropped), and the Heartwood stands **inland at a random cell in the half farthest from the start**:
+  ≥ 2 cells from any edge and ≥ 50% of the diagonal from the start, in a small clear glade. Nightmares
+  can reach it from several sides, so walling around the tree itself is part of the maze. Its canopy
+  fades when something is behind it.
 - **Fewer obstacles** (2026-09-28, user: "the maze aspect is getting lost… maybe less rocks and
   trees would help"): about **40% fewer** obstacles than now: at most **2 ridges** (shorter, with
   gaps), smaller and rarer tree groves and rock clusters, and most scattered single rocks gone. The

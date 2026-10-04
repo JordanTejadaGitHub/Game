@@ -1,0 +1,710 @@
+{
+	"branch_autumn_gale": [
+		1824,
+		0,
+		32,
+		32
+	],
+	"branch_bastion": [
+		1184,
+		0,
+		32,
+		32
+	],
+	"branch_beacon": [
+		736,
+		0,
+		32,
+		32
+	],
+	"branch_bloomcap": [
+		352,
+		0,
+		32,
+		32
+	],
+	"branch_boulderback": [
+		1088,
+		0,
+		32,
+		32
+	],
+	"branch_brood_cap": [
+		416,
+		0,
+		32,
+		32
+	],
+	"branch_cairn": [
+		1248,
+		0,
+		32,
+		32
+	],
+	"branch_chime_stone": [
+		896,
+		0,
+		32,
+		32
+	],
+	"branch_cloudlet": [
+		576,
+		0,
+		32,
+		32
+	],
+	"branch_crown_of_thorns": [
+		1408,
+		0,
+		32,
+		32
+	],
+	"branch_deeproot": [
+		1376,
+		0,
+		32,
+		32
+	],
+	"branch_deliquescent": [
+		448,
+		0,
+		32,
+		32
+	],
+	"branch_dewcatcher": [
+		1504,
+		0,
+		32,
+		32
+	],
+	"branch_dream_oak": [
+		1600,
+		0,
+		32,
+		32
+	],
+	"branch_dreamcatcher": [
+		928,
+		0,
+		32,
+		32
+	],
+	"branch_dreamroot": [
+		1600,
+		0,
+		32,
+		32
+	],
+	"branch_dreamshroom": [
+		352,
+		0,
+		32,
+		32
+	],
+	"branch_driftspore": [
+		320,
+		0,
+		32,
+		32
+	],
+	"branch_earthbind": [
+		1344,
+		0,
+		32,
+		32
+	],
+	"branch_earthshaker": [
+		1216,
+		0,
+		32,
+		32
+	],
+	"branch_echo_hollow": [
+		1056,
+		0,
+		32,
+		32
+	],
+	"branch_edgestone": [
+		1152,
+		0,
+		32,
+		32
+	],
+	"branch_elder_stump": [
+		1472,
+		0,
+		32,
+		32
+	],
+	"branch_elf_circle": [
+		480,
+		0,
+		32,
+		32
+	],
+	"branch_fairy_ring": [
+		480,
+		0,
+		32,
+		32
+	],
+	"branch_frostfern": [
+		672,
+		0,
+		32,
+		32
+	],
+	"branch_grafted_elder": [
+		1632,
+		0,
+		32,
+		32
+	],
+	"branch_graftling": [
+		1632,
+		0,
+		32,
+		32
+	],
+	"branch_great_dreamcatcher": [
+		928,
+		0,
+		32,
+		32
+	],
+	"branch_groundroot": [
+		1344,
+		0,
+		32,
+		32
+	],
+	"branch_grove_heart": [
+		1472,
+		0,
+		32,
+		32
+	],
+	"branch_grove_keeper": [
+		1536,
+		0,
+		32,
+		32
+	],
+	"branch_gust": [
+		1760,
+		0,
+		32,
+		32
+	],
+	"branch_hatchery": [
+		416,
+		0,
+		32,
+		32
+	],
+	"branch_heartroot": [
+		1376,
+		0,
+		32,
+		32
+	],
+	"branch_hoarfrost": [
+		672,
+		0,
+		32,
+		32
+	],
+	"branch_hummingbird_bower": [
+		1728,
+		0,
+		32,
+		32
+	],
+	"branch_hushbell": [
+		992,
+		0,
+		32,
+		32
+	],
+	"branch_inkcap": [
+		448,
+		0,
+		32,
+		32
+	],
+	"branch_jarlink": [
+		768,
+		0,
+		32,
+		32
+	],
+	"branch_jetreed": [
+		640,
+		0,
+		32,
+		32
+	],
+	"branch_jewelwing_court": [
+		1728,
+		0,
+		32,
+		32
+	],
+	"branch_lanternmoth": [
+		736,
+		0,
+		32,
+		32
+	],
+	"branch_lichenling": [
+		384,
+		0,
+		32,
+		32
+	],
+	"branch_lightning_fence": [
+		768,
+		0,
+		32,
+		32
+	],
+	"branch_long_way_home": [
+		1280,
+		0,
+		32,
+		32
+	],
+	"branch_lullaby_bell": [
+		896,
+		0,
+		32,
+		32
+	],
+	"branch_maelstrom": [
+		608,
+		0,
+		32,
+		32
+	],
+	"branch_magpie_perch": [
+		1696,
+		0,
+		32,
+		32
+	],
+	"branch_magpies_hoard": [
+		1696,
+		0,
+		32,
+		32
+	],
+	"branch_midsummer": [
+		864,
+		0,
+		32,
+		32
+	],
+	"branch_mistveil": [
+		544,
+		0,
+		32,
+		32
+	],
+	"branch_monsoon": [
+		512,
+		0,
+		32,
+		32
+	],
+	"branch_moonstone": [
+		1120,
+		0,
+		32,
+		32
+	],
+	"branch_morning_fog": [
+		544,
+		0,
+		32,
+		32
+	],
+	"branch_mossback": [
+		1088,
+		0,
+		32,
+		32
+	],
+	"branch_mother_log": [
+		1568,
+		0,
+		32,
+		32
+	],
+	"branch_nimbus": [
+		576,
+		0,
+		32,
+		32
+	],
+	"branch_nurse_log": [
+		1568,
+		0,
+		32,
+		32
+	],
+	"branch_old_lichen": [
+		384,
+		0,
+		32,
+		32
+	],
+	"branch_pinwheel": [
+		1792,
+		0,
+		32,
+		32
+	],
+	"branch_prism_jar": [
+		800,
+		0,
+		32,
+		32
+	],
+	"branch_puffball": [
+		320,
+		0,
+		32,
+		32
+	],
+	"branch_quaker": [
+		1216,
+		0,
+		32,
+		32
+	],
+	"branch_rain_lily": [
+		512,
+		0,
+		32,
+		32
+	],
+	"branch_rainbow_prism": [
+		800,
+		0,
+		32,
+		32
+	],
+	"branch_rampart": [
+		1184,
+		0,
+		32,
+		32
+	],
+	"branch_resonance": [
+		1024,
+		0,
+		32,
+		32
+	],
+	"branch_rockslide": [
+		1248,
+		0,
+		32,
+		32
+	],
+	"branch_rootcurl": [
+		1280,
+		0,
+		32,
+		32
+	],
+	"branch_rootlight": [
+		1440,
+		0,
+		32,
+		32
+	],
+	"branch_samara": [
+		1824,
+		0,
+		32,
+		32
+	],
+	"branch_seedbearer": [
+		1536,
+		0,
+		32,
+		32
+	],
+	"branch_silence": [
+		992,
+		0,
+		32,
+		32
+	],
+	"branch_silver_bell": [
+		960,
+		0,
+		32,
+		32
+	],
+	"branch_snugroot": [
+		1312,
+		0,
+		32,
+		32
+	],
+	"branch_sparkler": [
+		832,
+		0,
+		32,
+		32
+	],
+	"branch_standing_stone": [
+		1120,
+		0,
+		32,
+		32
+	],
+	"branch_starburst": [
+		832,
+		0,
+		32,
+		32
+	],
+	"branch_starcave": [
+		1440,
+		0,
+		32,
+		32
+	],
+	"branch_starling_murmuration": [
+		1664,
+		0,
+		32,
+		32
+	],
+	"branch_stormcap": [
+		704,
+		0,
+		32,
+		32
+	],
+	"branch_sunpetal": [
+		864,
+		0,
+		32,
+		32
+	],
+	"branch_tangleroot": [
+		1312,
+		0,
+		32,
+		32
+	],
+	"branch_thorncoil": [
+		1408,
+		0,
+		32,
+		32
+	],
+	"branch_thrum": [
+		1024,
+		0,
+		32,
+		32
+	],
+	"branch_thunderhead": [
+		704,
+		0,
+		32,
+		32
+	],
+	"branch_torrent": [
+		640,
+		0,
+		32,
+		32
+	],
+	"branch_undercurrent": [
+		608,
+		0,
+		32,
+		32
+	],
+	"branch_vesper_bell": [
+		960,
+		0,
+		32,
+		32
+	],
+	"branch_wellspring": [
+		1504,
+		0,
+		32,
+		32
+	],
+	"branch_whetstone": [
+		1152,
+		0,
+		32,
+		32
+	],
+	"branch_whispering_hollow": [
+		1056,
+		0,
+		32,
+		32
+	],
+	"branch_windmill": [
+		1792,
+		0,
+		32,
+		32
+	],
+	"branch_wrens_nest": [
+		1664,
+		0,
+		32,
+		32
+	],
+	"branch_zephyr": [
+		1760,
+		0,
+		32,
+		32
+	],
+	"family_acorn": [
+		192,
+		0,
+		32,
+		32
+	],
+	"family_bellflower": [
+		96,
+		0,
+		32,
+		32
+	],
+	"family_dewdrop": [
+		32,
+		0,
+		32,
+		32
+	],
+	"family_firefly_jar": [
+		64,
+		0,
+		32,
+		32
+	],
+	"family_nestling": [
+		224,
+		0,
+		32,
+		32
+	],
+	"family_pebbling": [
+		128,
+		0,
+		32,
+		32
+	],
+	"family_rootling": [
+		160,
+		0,
+		32,
+		32
+	],
+	"family_sky": [
+		288,
+		0,
+		32,
+		32
+	],
+	"family_sporeling": [
+		0,
+		0,
+		32,
+		32
+	],
+	"family_whirligig": [
+		256,
+		0,
+		32,
+		32
+	],
+	"sky_branch_autumn_gale": [
+		1984,
+		0,
+		32,
+		32
+	],
+	"sky_branch_gust": [
+		1920,
+		0,
+		32,
+		32
+	],
+	"sky_branch_hummingbird_bower": [
+		2016,
+		0,
+		32,
+		32
+	],
+	"sky_branch_jewelwing_court": [
+		2016,
+		0,
+		32,
+		32
+	],
+	"sky_branch_magpie_perch": [
+		1888,
+		0,
+		32,
+		32
+	],
+	"sky_branch_magpies_hoard": [
+		1888,
+		0,
+		32,
+		32
+	],
+	"sky_branch_pinwheel": [
+		1952,
+		0,
+		32,
+		32
+	],
+	"sky_branch_samara": [
+		1984,
+		0,
+		32,
+		32
+	],
+	"sky_branch_starling_murmuration": [
+		1856,
+		0,
+		32,
+		32
+	],
+	"sky_branch_windmill": [
+		1952,
+		0,
+		32,
+		32
+	],
+	"sky_branch_wrens_nest": [
+		1856,
+		0,
+		32,
+		32
+	],
+	"sky_branch_zephyr": [
+		1920,
+		0,
+		32,
+		32
+	]
+}

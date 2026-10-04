@@ -9,6 +9,7 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	HeartwoodMemory.file_path = "user://test_towers_%d.json" % OS.get_process_id()  # Like the suite: a fresh profile, not the player's
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
@@ -33,7 +34,8 @@ func _run() -> void:
 
 	for data in placer.towers:
 		_check(data.texture != null, "%s has a sprite" % data.display_name)
-		_check(data.get_frame_rect(0).size == Vector2(64, 64), "%s frames are 64x64" % data.display_name)
+		var frame := data.get_frame_rect(0).size
+		_check(frame.x == 64.0 and frame.y in [64.0, 80.0, 96.0], "%s frames are 64 wide, 64/80/96 tall (%s)" % [data.display_name, frame])
 		if data.can_attack and data.projectile_texture != null:
 			var side: int = data.projectile_texture.get_width() / data.projectile_frames
 			_check(side == data.projectile_texture.get_height() and side >= 16, "%s projectile frames are square (%dpx)" % [data.display_name, side])
@@ -71,6 +73,7 @@ func _run() -> void:
 	for child in spawner.get_children():
 		child.queue_free()
 	await process_frame
+	await _clear_onboarding(main)  # A fresh profile (the suite's isolated user://) opens first-run cards that pause the run
 
 	# Projectile: winds up on the attack sheet, fires on the release frame, then idles again.
 	var sprout: Tower = tower_container.get_child(0)
@@ -120,7 +123,7 @@ func _run() -> void:
 	await process_frame
 	var beamed = _spawn_still(spawner, leaf_bug, midsummer.global_position + Vector2(40, 0))
 	midsummer._update_beam(0.1)
-	_check(midsummer.sprite.hframes == midsummer.tower_data.attack_frame_count, "Midsummer holds its attack pose while beaming")
+	_check(midsummer.sprite.texture == midsummer.tower_data.beam_sustain_texture and midsummer.sprite.hframes == midsummer.tower_data.beam_sustain_frames, "Midsummer channels on its channel sheet while beaming")
 	beamed.dispel()
 	await process_frame
 	midsummer._update_beam(0.1)
@@ -154,6 +157,9 @@ func _run() -> void:
 	_check(TowerPlacer.is_edge_cell(Vector2(0, 5)) and TowerPlacer.is_edge_cell(Vector2(5, Tower.MAP_GRID.size.y - 1))
 		and not TowerPlacer.is_edge_cell(Vector2(5, 5)), "the island's rim is \"the dream's edge\"")
 	print("towers test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
+	main.queue_free()  # Free the run before quitting (a live scene at exit segfaulted now and then)
+	await process_frame
+	await process_frame
 	quit(failures)
 
 func _check(condition: bool, label: String) -> void:
@@ -180,3 +186,17 @@ func _cell_next_to_path(map_generator, path: PackedVector2Array) -> Vector2:
 			if not path.has(cell) and map_generator.can_block(cell):
 				return cell
 	return Vector2(-1, -1)
+
+# First-run onboarding (a nightmare card, a whisper, the boss dossier) pauses the run on a fresh profile:
+# close what's open and unpause, so the timed checks see the Wardens move.
+func _clear_onboarding(main: Node) -> void:
+	for name in ["NightmareIntro", "BossDossier"]:
+		var screen := main.find_child(name, true, false)
+		if screen != null and screen.visible and screen.has_method("close"):
+			screen.close()
+	await process_frame
+	var speed := main.get_node_or_null("%GameSpeed") as GameSpeed
+	if speed != null:
+		speed.set_paused(false)
+	paused = false
+	await process_frame

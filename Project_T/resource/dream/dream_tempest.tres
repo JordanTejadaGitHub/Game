@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_tempest"
 display_name = "The Whirlwind"
-description = "Any wind final form can ascend into The Whirlwind (400 Dew, one per run): a cyclone roams the path in its range, hitting everything it passes; statuses it touches travel with it and settle on the rest."
+description = "Any {family:whirligig}-family final form can ascend into the Whirlwind ({grow_cost:tempest} Dew, one per run): a cyclone roams the path in its range, hitting everything it passes; statuses it touches travel with it and settle on the rest."
 rarity = 3
 kind = 1
 tags = Array[String](["wind"])

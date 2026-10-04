@@ -16,4 +16,3 @@ rule_id = &"harvest_moon"
 in_start_pool = false
 grows_with = Array[String](["dewcatcher", "wellspring"])
 grows_text = "The Harvest (your catchers' Dew at each {rest}) pays 50% more."
-calls_family = "acorn"

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "far_reach_ii"
+display_name = "Far Reach II"
+description = "Wardens with an area attack get +1.25 range."
+rarity = 1
+kind = 3
+tags = Array[String](["reach"])
+max_stacks = 1
+in_start_pool = false
+rule_id = &"far_reach"
+deepens = "far_reach"

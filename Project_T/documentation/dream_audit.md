@@ -173,9 +173,14 @@ for the same rarity.
 
 ## New rules that come with it
 
-1. **Builds pay off (tag resonance):** each card you own with a tag makes the **next** cards of that
-   tag **+10% stronger** (their numbers, not their rules), up to +50%. Shown on the card: *"+20% from
-   2 spore cards"*. Committing beats grabbing the biggest number. Generic cards (no tag) don't resonate.
+1. ~~**Builds pay off (tag resonance):** each card you own with a tag makes the next cards of that
+   tag +10% stronger, up to +50%.~~ **Removed 2026-10-02** (user: *"keep the card amount for now,
+   remove the resonance, check every card's text"*). Every card does exactly what its text says,
+   always: no shared-tag scaling, no "+X% from …" lines. **No numbers are re-based:** every card was
+   sized to its rarity budget (above) without Resonance, which was a bonus on top, so cards simply
+   return to budget (Balancing Discussion signed off; the user's playtests found runs too strong).
+   **Checked after the removal (854a537e):** fresh with Dreams survives the act 1 boss 75%, skipping
+   25%; 3+ Dreams of one tag in 55% fresh / 60% full runs (target ~50%). No re-basing needed.
 2. ~~The first Dream is a keystone~~ **Rejected** (user: "too forgiving and too narrow of a path"):
    the drift-5 offer stays a normal offer. Finding a direction is the player's job.
 3. **Nightmares rise with the cards:** once the pass is in, Tower Code raises nightmare health until
@@ -245,3 +250,12 @@ User-approved shrink of the pool (the full rationale and the 10 card builds are 
   Seedfall), Close Kin (→ Extended Family), Skyward Gaze (→ Hunter's Patience), Crush (→ Crowd
   Breaker), Hurried Harvest (→ Call of the Wild).
 - Their Deepened versions go with them (a merged card's II follows the absorbing card's II).
+
+## Tender Care rework (2026-09-30)
+
+User: "Tender Care doesn't seem like it fits anymore." The trim merged Warm Hands into it (−15% nurture
+cost and +3% damage per rank, stacking) and it kept its `economy` tag, so it showed an economy
+tag-resonance bonus. **Now:** every Warden's first Nurture rank is free (rank I ≈ +14% DPS on every
+attacking Warden, the Common all-Wardens budget); **II:** rank I free and ranks II–V cost 20% less.
+Tags: `nurture` + archetype `tall` only (no `economy`, no stacking). As a Tall opener it also meets the
+"a ranked Warden" Needs of the Tall follow-ups.

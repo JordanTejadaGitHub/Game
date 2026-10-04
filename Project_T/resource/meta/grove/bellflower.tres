@@ -6,11 +6,11 @@
 script = ExtResource("1_unlock")
 id = "bellflower"
 display_name = "Bellflower family"
-description = "{family:bellflower} joins your {family_picks}: sleep and its payoffs. Its Dream cards join the pool."
+description = "In your {family_picks} from the start: sleep and its payoffs. Its Dream cards join the pool."
 root = 0
-costs = Array[int]([60])
+costs = Array[int]([])
 order = 5
 icon = 5
-requires_any = Array[String](["pebbling", "rootling"])
+start = true
 families = Array[String](["bellflower"])
 dream_cards = Array[String](["hush", "heavy_eyelids", "heavy_eyelids_ii", "bad_dreams", "bad_dreams_ii", "sweet_scent"])

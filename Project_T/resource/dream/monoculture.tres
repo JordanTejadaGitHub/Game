@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "monoculture"
 display_name = "Monoculture"
-description = "If all your attacking Wardens are one line: +100% damage."
+description = "If all your attacking Wardens are one line, they deal 100% more damage."
 rarity = 3
 kind = 3
 tags = Array[String](["narrow", "tall"])

@@ -6,7 +6,8 @@
 script = ExtResource("1_card")
 id = "endless_night"
 display_name = "Endless Night"
-description = "Nightbloom clouds last 7 s and spread 1.5 times as wide."
+description = "{combo:nightbloom} clouds last 7 s and spread 1.5 times as wide."
+cost_description = "{combo:nightbloom} can fire half as often."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])

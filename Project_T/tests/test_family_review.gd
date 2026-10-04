@@ -81,6 +81,16 @@ func _test_bellflower_pulses() -> void:
 	_check(not sleepy.statuses.has(EnemyStatuses.DROWSY) and _lost(sleepy) > 0, "Bellflower's 1st pulse: damage, no Drowsy")
 	bell._release()
 	_check(sleepy.statuses.stacks(EnemyStatuses.DROWSY) == 1, "its 2nd pulse adds Drowsy")
+	_check(_rings() == 1, "the Drowsy pulse draws its pink ring (%d)" % _rings())
+	_clear_rings()
+	# Counted per nightmare (story chat 2026-10-01): one walking in on an odd pulse still gets it on its 2nd hit.
+	var late := _spawn(bell.global_position + Vector2(0, CELL))
+	bell._release()  # Pulse 3: late's 1st hit
+	_check(not late.statuses.has(EnemyStatuses.DROWSY), "a nightmare's 1st hit (the Warden's 3rd pulse): no Drowsy")
+	_check(_rings() == 0, "a pulse that brings no Drowsy draws no Drowsy ring")
+	bell._release()  # Pulse 4: late's 2nd hit
+	_check(late.statuses.stacks(EnemyStatuses.DROWSY) == 1, "its 2nd hit makes it Drowsy, though the Warden is on an odd count")
+	_check(_rings() == 1, "the Drowsy pulse draws its pink ring (%d)" % _rings())
 	await _clean()
 
 	var chime := _plant("chime_stone", Vector2(5, 5))
@@ -116,7 +126,7 @@ func _test_dreamcatcher() -> void:
 	var sleeper := _spawn(great.global_position + Vector2(CELL, 0))
 	sleeper.statuses.sleep_time = 2.0
 	great._update_catch(1.0)
-	_check(sleeper.statuses.is_caught() and is_equal_approx(sleeper.statuses.caught_bonus, 0.6), "Great: asleep is Caught at +60%")
+	_check(sleeper.statuses.is_caught() and is_equal_approx(sleeper.statuses.caught_bonus, great.tower_data.caught_bonus), "Great: asleep is Caught at its caught_bonus")
 	_check(is_equal_approx(sleeper.statuses.sleep_time, 3.0), "sleep in its range lasts 1 s longer")
 	great._catch_tick = 0.0
 	great._update_catch(1.0)
@@ -141,8 +151,8 @@ func _test_echo() -> void:
 	_check(after_clap > 0, "a Thunderclap goes off next to the Hollow")
 	await _wait(1.2)
 	var echo := _lost(wet) - after_clap
-	var expected := int(Reactions.ECHO_DAMAGE[&"thunderclap"] * jar.get_damage() * 0.5 * hollow.get_potency())  # Echoes are effects: × Potency
-	_check(absi(echo - expected) <= 1, "1 s later it echoes at 50% (%d, expected %d)" % [echo, expected])
+	var expected := int(Reactions.ECHO_DAMAGE[&"thunderclap"] * jar.get_damage() * hollow.tower_data.echo_share * hollow.get_potency())  # Echoes are effects: × Potency
+	_check(absi(echo - expected) <= 1, "1 s later it echoes at its echo_share (%d, expected %d)" % [echo, expected])
 	var tracker := main.get_tree().get_first_node_in_group(ReactionTracker.GROUP) as ReactionTracker
 	var claps: int = tracker.counts.get(&"thunderclap", 0)
 	await _wait(1.2)
@@ -160,6 +170,45 @@ func _test_echo() -> void:
 	_check(tracker.longest_chain >= maxi(longest, 2), "Whispering Hollow's echo counts as a chain link")
 	await _clean()
 
+	# The texts follow the data (Tower Discussion: the echo shares are Balancing's): each echo text shows its
+	# Warden's echo_share, read through {echo:<id>}.
+	for path in ["res://resource/tower/echo_hollow.tres", "res://resource/dream/dream_echo_hollow.tres",
+			"res://resource/tower/whispering_hollow.tres", "res://resource/dream/dream_whispering_hollow.tres"]:
+		var shown := IconInfo.format(load(path).description)
+		var id := "whispering_hollow" if path.contains("whispering") else "echo_hollow"
+		var share: float = load("res://resource/tower/%s.tres" % id).echo_share
+		var wanted := "full strength" if is_equal_approx(share, 1.0) else "%d%% strength" % roundi(share * 100.0)
+		_check(shown.contains(wanted) and not shown.contains("{"), "%s states its echo as the data does (%s): %s" % [path.get_file(), wanted, shown])
+
+	# The echo follows the nightmare (tower_design.md 369de303; Balancing: echoes on the old spot missed every
+	# walking nightmare): a walking Shade is hit 1 s later though it moved more than a cell; one dispelled in
+	# the meantime echoes where it died.
+	var walker: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+	walker.max_health = 100000
+	walker.health = 100000
+	await _wait(2.0)  # Onto the map, walking
+	var listener := _plant("whispering_hollow", Tower.MAP_GRID.calculate_grid_coordinates(walker.global_position) + Vector2(0, 1))
+	listener.position = walker.global_position + Vector2(0, CELL)
+	var charger := _plant("firefly_jar", Vector2(1, 1))
+	await process_frame
+	walker.apply_status(EnemyStatuses.DAMP)
+	walker.apply_status(EnemyStatuses.STATIC, 3, 0.0, charger.get_damage(), 0, "light", charger)  # Thunderclap
+	var clap_at := walker.global_position
+	await _wait(1.25)
+	var echoed: Array = walker.recent_hits.filter(func(e) -> bool: return e.tag == &"echo" and e.source == listener)
+	_check(walker.global_position.distance_to(clap_at) > CELL and echoed.size() == 1,
+		"a walking Shade (moved %.0f px) still takes the echo 1 s later (%d echo hits)" % [walker.global_position.distance_to(clap_at), echoed.size()])
+	var doomed := _spawn(listener.global_position + Vector2(CELL, 0))
+	doomed.apply_status(EnemyStatuses.DAMP)
+	doomed.apply_status(EnemyStatuses.STATIC, 3, 0.0, charger.get_damage(), 0, "light", charger)
+	var died_at := doomed.global_position + Vector2(0, CELL * 2.0)  # Walked 2 cells on before it was dispelled
+	doomed.global_position = died_at
+	doomed.dispel()
+	var mourner := _spawn(died_at)
+	await _wait(1.25)
+	_check(mourner.recent_hits.any(func(e) -> bool: return e.tag == &"echo"), "one dispelled before its echo echoes where it died")
+	await _clean()
+
 
 # --- Cairn / Rockslide ---------------------------------------------------------------------------------
 
@@ -168,7 +217,8 @@ func _test_lob() -> void:
 	var close := _spawn(cairn.global_position + Vector2(CELL, 0))
 	var far := _spawn(cairn.global_position + Vector2(5 * CELL, 0))
 	var beside := _spawn(far.global_position + Vector2(0, 0.8 * CELL))
-	_check(cairn.find_target() == far, "Cairn can't lob at nightmares within 2 cells")
+	var lob_target := cairn.find_target()
+	_check(lob_target != close and (lob_target == far or lob_target == beside), "Cairn can't lob at nightmares within 2 cells (it picks one further out)")
 	cairn.fire_at(far)
 	await _wait(2.0)
 	_check(_lost(far) > 0 and _lost(beside) > 0, "the stone splashes everything within 1 cell of where it lands")
@@ -185,8 +235,8 @@ func _test_lob() -> void:
 	var patches := main.get_children().filter(func(n: Node) -> bool: return n is RubblePatch)
 	_check(patches.size() == 1, "Rockslide leaves rubble on the path")
 	await _wait(0.4)
-	_check(on_path.statuses.slow_time > 0.0 and is_equal_approx(on_path.statuses.slow_amount, 0.25),
-		"nightmares on the rubble are slowed 25%")
+	_check(on_path.statuses.slow_time > 0.0 and is_equal_approx(on_path.statuses.slow_amount, slide.tower_data.rubble_slow),
+		"nightmares on the rubble are slowed by its rubble_slow")
 	await _clean()
 
 
@@ -217,9 +267,10 @@ func _test_pecks() -> void:
 	var crits := [0]
 	court.crit_landed.connect(func(_t, _e) -> void: crits[0] += 1)
 	court._release()
-	await _wait(2.5)
+	await _wait(3.5)
 	_check(_lost(a) > 0 and _lost(b) > 0, "Jewelwing's birds spread over several nightmares")
-	_check(crits[0] == 24 / 6, "Flurry: every 6th of the 24 pecks crits (%d)" % crits[0])
+	var pecks: int = court.tower_data.peck_birds * court.tower_data.pecks
+	_check(crits[0] == pecks / court.tower_data.flurry_every, "Flurry: every 6th of the %d pecks crits (%d)" % [pecks, crits[0]])
 	court.focus_strongest = true
 	a.health = a.max_health * 2  # The strongest now
 	var b_before := _lost(b)
@@ -239,6 +290,7 @@ func _test_seeds() -> void:
 	var first := _spawn(samara.global_position + Vector2(1.5 * CELL, 0))
 	var second := _spawn(samara.global_position + Vector2(3 * CELL, 0))
 	var aside := _spawn(samara.global_position + Vector2(2 * CELL, 2 * CELL))
+	samara.set_target_mode(TowerData.TargetMode.CLOSEST)  # Fresh nightmares tie on progress: aim down the line on purpose
 	first.apply_status(EnemyStatuses.SPORED, 4, 10.0, 1.0)
 	samara._release()
 	await _wait(0.6)
@@ -256,7 +308,7 @@ func _test_seeds() -> void:
 		_spawn(gale.global_position + offset * CELL)
 	gale._release()
 	var seeds := main.get_children().filter(func(n: Node) -> bool: return n is SeedBoomerang)
-	_check(seeds.size() == 2, "Autumn Gale throws 2 seeds (%d)" % seeds.size())
+	_check(seeds.size() == gale.tower_data.boomerang_seeds, "Autumn Gale throws its boomerang_seeds (%d)" % seeds.size())
 	await _wait(3.0)
 	_check(is_equal_approx(gale._catch_streak, 0.1), "a caught throw that hit makes the next throw +10%")
 	gale._seeds_thrown = 1
@@ -274,6 +326,14 @@ func _check(condition: bool, label: String) -> void:
 
 func _wait(seconds: float) -> void:
 	await create_timer(seconds, true, true).timeout
+
+func _rings() -> int:
+	return root.find_children("*", "Node2D", true, false).filter(func(n: Node) -> bool: return n is DrowsyRing and not n.is_queued_for_deletion()).size()
+
+func _clear_rings() -> void:
+	for node in root.find_children("*", "Node2D", true, false):
+		if node is DrowsyRing:
+			node.queue_free()
 
 func _lost(enemy: Node2D) -> int:
 	return enemy.max_health - enemy.health if is_instance_valid(enemy) else 0

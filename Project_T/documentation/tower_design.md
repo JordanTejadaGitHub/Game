@@ -205,8 +205,8 @@ sleep, then make sleep dangerous. Owns **Drowsy**.
 | A+ | Lullaby Bell | bigger pulse that also applies Drowsy | Drowsy | Static, Held |
 | B | Dreamcatcher | hangs a dreamcatcher over the path: **sleeping or max-Drowsy nightmares in range are Caught**: **their statuses stop wearing off** while Caught (Spored keeps ticking, Static doesn't decay, Damp / Marked / Held timers pause). *Reworked 2026-09-29 (overlap review): it was +25–60% damage taken, which duplicated Marked, and measured at 1.5% of damage.* | — | Drowsy, sleep, any status |
 | B+ | Great Dreamcatcher | a bigger range, and Caught statuses also tick **+25%**; sleep in its range lasts 1 s longer; Caught nightmares that are dispelled drop **Dreamlight shards** | — | Drowsy, sleep |
-| Hidden | Echo Hollow | a hollow log that **echoes Reactions**: a Reaction nearby repeats 1 s later at 50% | — | Reactions |
-| Hidden+ | Whispering Hollow | 75%, bigger radius; **echoes count as chain links** | — | Reactions, chains |
+| Hidden | Echo Hollow | a hollow log that **echoes Reactions**: a Reaction nearby repeats 1 s later at **75%** (echo share, final per Balancing Discussion) **on the same nightmare**, wherever it has walked | — | Reactions |
+| Hidden+ | Whispering Hollow | echoes at **100%** (final per Balancing Discussion), bigger radius, a stronger pulse of its own; **echoes count as chain links** | — | Reactions, chains |
 
 **Acorn line**
 
@@ -281,6 +281,330 @@ take 1 cell and can't evolve.
 
 The Hollow Oak ends the run, so it has no Memory Warden (its memory is the true ending).
 
+## Branch expansion: 5 branches, 2 per run (APPROVED 2026-10-02, Spire branch first)
+
+> **APPROVED by the user (2026-10-02), all of it**, plus the Dreamlight call-back below. Built
+> **Phase 1 first, on `experiment/spire-difficulty`** (checkout `D:\Projects\Game_spire`), **not
+> main**; Main Merger merges main into that branch. **Phase 3** (the Nestling + Whirligig merge)
+> waits until Phase 1 plays well. Design hub task: stop players forcing the same build every run.
+> **Revised the same day** (user feedback): the offer is **2 of 5** (was 3), a stricter coverage
+> check, and a family audit: **Nestling and Whirligig merge into one sky family** (9 → 8 families).
+
+**The idea:** each family has **5 regular branches + 1 hidden** (today 2 + 1). Each run the
+Remember screen offers **2 of the 5** per family, plus the hidden one if the Grove has it. Builds
+stay possible, never guaranteed, like Slay the Spire card rewards or Hades boons.
+
+### Family audit: are the families distinct?
+
+Checked on role, owned status, attack shapes and their 5 branches.
+
+| Family | One-line role | Owns | Attack shapes | Verdict |
+|---|---|---|---|---|
+| **Sporeling** | damage over time | Poisoned | puffs, clouds, traps, trails, spawned sprites | distinct |
+| **Dewdrop** | water, the conductor | Soaked | splash, fog, ice, rain zone, whirlpool, jet | distinct |
+| **Firefly Jar** | light: lightning and marking | Charged, Exposed | chain, long-range marks, beam, fence, firework | distinct |
+| **Bellflower** | song and sleep | Drowsy | pulses, catch, echo, toll, silence, cone | distinct |
+| **Pebbling** | heavy hits (the payoff family) | — | single heavy hit, sniper, mortar, slam | distinct |
+| **Rootling** | control | Rooted | pull, hold, light, grounding, goal guard | distinct |
+| **Acorn** | support and economy | — | auras, catchers, copy, growing Sprouts, wards | distinct |
+| **Nestling** | birds: hunters that pick targets | — | swoops, multi-hit | **merge** with Whirligig |
+| **Whirligig** | wind: spreads statuses, shapes the maze | copies | spread, blades, boomerang | **merge** with Nestling |
+
+- **Rootling and Acorn stay separate.** They share a "tree" look but not a job: Rootling *controls
+  nightmares* (Rooted, pulls, grounding), Acorn *boosts Wardens and the economy* and barely
+  attacks. Merging them would break rule 1 (one role per family) and make a family that's half
+  control, half support.
+- **Nestling and Whirligig merge.** Both are air-flavoured, both are full-game families, and
+  Whirligig's new branches were a grab bag of "wind things" (a range aura, a kite, a scatter). The
+  six branches they already have between them fill a 5 + 1 family **with no new branch art**. The
+  merged family's job: **the sky carries the fight**, with birds that hunt and wind that spreads.
+
+### The merged sky family (Nestling + Whirligig → **Nestling**)
+
+| Slot | Branch → final (all already built) | Job | Was |
+|---|---|---|---|
+| A | **Wren's Nest → Starling Murmuration** | hunt the fastest (Phantoms, sprinting Hounds) | Nestling A |
+| B | **Magpie Perch → Magpie's Hoard** | thief: strip nightmare buffs | Nestling B |
+| C | **Gust → Zephyr** | spread statuses (the amplifier) | Whirligig A |
+| D | **Pinwheel → Windmill** | blades on corners and hairpin bends | Whirligig B |
+| E | **Samara → Autumn Gale** | boomerang down straight corridors | Whirligig hidden |
+| Hidden | **Hummingbird Bower → Jewelwing Court** | multi-hit on-hit engine | Nestling hidden |
+
+- **Base:** the **Nestling** (a nest the wind catches). The Whirligig base is **parked** (art and
+  data kept, like the Memory Wardens).
+- **Ascended:** **Dawnwing**, which also takes The Whirlwind's job: its patrol carries every status
+  it touches along its loop. The Whirlwind (id `tempest`) is parked.
+- **Line id:** `wing` (the `wind` id folds into it). Enemy design needs to fold the `wind`
+  resist/weak entries into `wing` and re-check the tally (Enemy Design / Enemy Code).
+- **Kinships:** the four built named pairs all stay, since they're now inside one family: Flock
+  Together (Wren + Magpie), Jewel Thieves (Hummingbird + Magpie), Dust Devil (Gust + Pinwheel),
+  Tailwind (Samara + Gust). All other pairs are generic Kin.
+- **Cards:** `wing` and `wind` cards share the family tag; Samara's cards (94–99) move from its
+  hidden node to the family node; Hummingbird's on-hit cards stay with the hidden node.
+- **Grove:** the two family nodes become one family node; the Whirligig hidden node goes (Samara is
+  now regular); the Ascension nodes become one. No refunds (pre-release).
+- **Codex:** one family page; the Whirligig base and The Whirlwind are hidden while parked.
+- **Roster: 9 → 8 families**, still 4 per run. Dropped from the earlier proposal (never built):
+  Owlet, Pelican, Woodpecker, Breeze Vane, Sky Kite, Scatterwind. Their counter jobs are covered
+  elsewhere (see the coverage check).
+
+### Rules for the new branches
+
+- **No two branches in a family overlap.** Each new branch has its own job: a different status use,
+  attack shape, support/economy role, or a counter for a nightmare type. It must also respect the
+  status jobs (only Drowsy slows, only Exposed raises damage taken, Held is Rootling's, pulling back
+  is Rootling's).
+- **Every new form passes the silhouette rule** (`art_direction.md`): a grey 32 px silhouette must
+  read apart from its previous form and from its family's other branches. Each one below has a
+  signature prop or stance for that.
+- **Each final is its branch bigger plus a signature twist**, as for the existing finals.
+- The existing branches keep their places (2 regular + hidden), so the 3 new ones per family are
+  branches **C, D, E**. Numbers come later, from Balancing Discussion.
+
+### The new branches (7 families; the sky family needs none)
+
+**Sporeling** (Poisoned)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Lichenling → Old Lichen** | anti-armour, anti-heal | projectile | Poisoned also **eats dread shell** each tick and blocks healing; at 8 stacks a Shellbound's shell cracks off at once | Shellbound, Weeper | a crust of flat lichen plates; a broad flat cap |
+| **Brood Cap → Hatchery** | a **spawner** | little spore-sprites walk **up** the path and burst on the first nightmare they touch (Poisoned + a small hit) | every 5th sprite is a big one that splits into 3 | **Lurkers** (sprites bump into hidden nightmares) | a cap with tiny sprites clinging to it |
+| **Inkcap → Deliquescent** | **trail** spreader for long mazes | projectile; a Poisoned nightmare leaves an ink trail that poisons walkers on it | a dispelled Poisoned nightmare melts into a 2-tile ink pool | long single-file drifts (Procession) | a tall, dripping, inky bell cap |
+
+**Dewdrop** (Soaked)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Cloudlet → Nimbus** | **anti-air** rain over a zone | a small cloud over a 3×3 area anywhere in range; rains on everything under it, flyers and Phantoms included | **Drifting storm** (review 2026-10-02; was a range-wide Soak refresh, which is Monsoon's job): every 4 s the cloud **drifts to the densest 3×3 in range**, and its **Cloudburst** sweep rains on everything along the way | Phantoms, flyers, the Moth Queen | a cloud floating above the golem |
+| **Undercurrent → Maelstrom** | **the current: links nightmares** (Dewdrop's conductor job) | a whirlpool over 3 path tiles: every nightmare in it is **linked**, and **25%** of any hit on one is **shared with each other linked nightmare** (shared damage is effect damage: no crit, no on-hit, never shared again). No pause, no pull (review 2026-10-02: the eddy pause was a stop, which is Rooted's job, and its bunching copied Snugroot's Logjam) | **Undertow of light:** the whirlpool also Soaks, and **Charged travels the current**: a Static bolt on a linked nightmare also strikes every other one at half | packed crowds, Wraith packs, escorts (followers share their leader's hits) | a swirl of water around its feet |
+| **Jetreed → Torrent** | **erosion: the tank breaker** | a high-pressure jet at one target dealing **a share of its max health** per hit (start 2%, bosses 0.5%, on top of a small base hit); the jet carries on through the line for the small hit only (review 2026-10-02: "piercing line vs tanks" was two jobs, and the line overlapped Samara and Midsummer) | **Flood:** the jet leaves a 3-tile wet trail (Soaked) | Husks, elites, bosses | a reed pipe held like a hose |
+
+**Firefly Jar** (Charged, Exposed)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Jarlink → Lightning Fence** | **maze geometry** | two Jarlinks within 4 cells join with an arc, a **damaging line**: nightmares touching it take damage per second and **1 Charged per second**. Lay it **along** a corridor and it works like a wall of lightning (revised 2026-10-02: a damage-per-crossing fence measured ~0.04× Driftspore, since a nightmare crosses an arc only once or twice). **Flyers** crossing it (the arc hangs in the air) take **3 Charged** at once, so it still answers them across their straight line | the fence also hits Phantoms gliding through it | Phantoms, flyers, long straight corridors | a jar on a tall pole with a wire coil |
+| **Prism Jar → Rainbow Prism** | **crit support** (the only crit aura) | aura: Wardens within 1.5 cells +10% crit chance | its own hits split into 3 coloured beams | tanks (via allies' crits) | a faceted crystal jar |
+| **Sparkler → Starburst** | **anti-swarm** burst | a firework bursting into 6 sparks over a crowd, each adding Charged | every 4th burst is a double | Whisper Swarm, Sobs, Creeps | a jar with a fizzing stick of sparks |
+
+**Bellflower** (Drowsy)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Silver Bell → Vesper Bell** | **long-range sleep** on one strong target | a single toll at range 6: fills Drowsy on the strongest nightmare (bosses to 3) | the toll echoes to the next-strongest | Husks, elites, bosses | a single tall bell on a bell frame |
+| **Hushbell → Silence** | **silence** | nightmares in range can't use abilities: the Watcher can't wake, Weepers can't mend, a silenced **Lantern Bearer's lantern goes dark so its Wraiths lose the way** (as when it's dispelled) while silenced. **Bosses:** their timed abilities run at **half speed** while silenced (a delay, never a stop; health-threshold abilities are unaffected; decided 2026-10-02) | its silence lingers 2 s after they leave | Watcher, Weeper, Procession, boss abilities | a bell muffled in moss, finger to lips |
+| **Thrum → Resonance** | a **cone** of sound | a sound wave in a cone in front; more damage vs Drowsy | the cone widens for each Drowsy nightmare in it | crowds in corridors | a horn-shaped flower facing forward |
+
+**Pebbling** (heavy hits)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Whetstone → Edgestone** | **the finisher** (Pebbling cashes in) | hits on a nightmare **below 30% health** deal **×2.5** (bosses ×1.5) (review 2026-10-02: the old +10%-per-hit ramp was Sunpetal's beam ramp in stone) | **Clean cut:** a nightmare it finishes spills its overkill onto the nearest nightmare | Husks, bosses (anything others wore down) | a golem at a sharpening wheel |
+| **Rampart → Bastion** (replaces Quarry, review 2026-10-02: a free-wall builder wasn't a heavy hit, and copied Seedbearer's free growth) | **stone among stone:** the maze is its weapon | heavy hits on adjacent path tiles; **+15% damage per Thornwall touching it** (max 4), and those Thornwalls turn to **stone**: they can't be trampled or burrowed under | **Rockfall:** every 6 s a stone wall touching it drops a rock on the path tile beside it (a heavy splash) | the Hollow Stag (trample), Gravecrawlers; maze-as-weapon builds | a golem built into a stone wall, one arm a wall block |
+| **Quaker → Earthshaker** | **interrupt** | slams the ground around itself every 3 s; nightmares hit lose their speed boosts (a sprinting Night Hound stops sprinting), and the tremor **shakes hidden nightmares loose**: Lurkers it hits are revealed for 3 s (added 2026-10-02: the 7-family probe had detection in only 53% of runs) | the slam cracks the path for 3 s (no new sprints there) | Night Hounds, charging bosses, Lurkers | a squat golem mid-stomp, fists down |
+
+**Rootling** (Rooted)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Groundroot → Earthbind** | **anti-air**: grounds flyers | roots drag flyers and Phantoms down onto the path; for 3 s they must walk the maze | grounded nightmares are Rooted 0.5 s when they land | Phantoms, flyers | roots reaching up like hands |
+| **Deeproot → Heartroot** | **goalkeeper** | any nightmare within 3 cells of the Heartwood is Rooted 1 s (once each) | **Not yet:** once per drift, the first nightmare (not a boss) that would reach the Heartwood is **dragged back 4 tiles** instead (a Rootling pull, with the visible drag). Review 2026-10-02: was +1 leaf per 50 holds, a second leaf heal beside Great Dreamcatcher's | leaks, fast finishers | a root coiled in a ring, close to the ground |
+| **Thorncoil → Crown of Thorns** | Rooted **payoff damage** | Rooted nightmares in range take thorn damage each second they're held | thorns spread to nightmares adjacent to a held one | anything held (pairs with Tangleroot) | a thorny crown on its head |
+
+**Acorn** (support, economy)
+
+| Branch → final | Job | Shape | Final's twist | Counters | Silhouette |
+|---|---|---|---|---|---|
+| **Seedbearer → Grove Keeper** | **grows Wardens** | every 3 drifts grows a free Sprout on an adjacent cell | its Sprouts arrive at rank II | — (maze growth) | a golem carrying a seed sack |
+| **Nurse Log → Mother Log** (replaces Bark Shield, review 2026-10-02: Bark Shield only mattered against 2–3 boss abilities, so it sat idle most runs) | **nurture economy** | Wardens within 1.5 cells **Nurture 25% cheaper**: the spot where you grow your carries | **Remembered rings:** a Warden in range that's sold leaves its rank in the log; the next Warden planted on that cell starts at that rank (once per cell per rest) | — (deep, ranked builds; re-mazing) | a mossy fallen log with a sapling growing from it |
+| **Dream Oak → Dreamroot** | **Dreamlight economy** | gains 1 Dreamlight shard per drift, **+1 per different family among Wardens within 2 cells** (10 shards = 1 Dreamlight; capped per run), so it wants a mixed cluster (review 2026-10-02: adds a placement decision); feeds the branch call-back | shards double on perfect blocks | — (more branches and finals per run) | a small oak with a glowing fruit |
+
+### Branch review: does each one earn its slot? (2026-10-02)
+
+User: *"make sure all the new branches make sense in each family, move them around if needed, and
+combos make sense as well; unique, fit the playstyle and add depth, not just fill the roster."*
+Each new branch was checked on four questions: **(1)** does it do its family's one job, **(2)** does
+it overlap another Warden anywhere in the roster, **(3)** does it respect the status jobs, **(4)**
+does it change *where or how you build* (depth), or is it only a number or a narrow counter.
+
+**Kept as designed (14):** Lichenling (poison that eats armour and blocks healing), Brood Cap (the
+only spawner), Inkcap (spread by the walkers themselves), Cloudlet (rain placed anywhere, hits
+flyers), Jarlink (fences: Wardens placed in pairs across a lane), Prism Jar (the only crit aura;
+it's what makes Pebbling and Hummingbird crits a build), Sparkler (Firefly's area burst that
+doesn't need Soaked, where Stormcap does), Silver Bell, Hushbell, Thrum, Quaker (the only
+anti-sprint), Groundroot, Thorncoil (Rootling finally has a damage payoff for its holds),
+Seedbearer, and Deeproot (its twist changes, below).
+
+**Changed (Phase 1, already built: rework needed):**
+
+| Branch | Problem | Now |
+|---|---|---|
+| **Nimbus** (twist) | Cloudburst refreshed Soaked over the whole range: Monsoon's job | the cloud **drifts** to the densest spot every 4 s, raining as it goes. Cloudlet stays the "aim it anywhere" Warden; Nimbus aims itself |
+| **Undercurrent / Maelstrom** | the eddy pause was a stop (Rooted's job) and bunched crowds like Snugroot's Logjam; the first build even pulled nightmares back | the whirlpool **links** nightmares: 25% of a hit on one is shared by the others. This is Dewdrop's real job (Soaked *conducts*), it rewards packing crowds onto the whirlpool, and Maelstrom carries Static bolts down the current (a Thunderclap-style combo without being Thunderclap) |
+| **Jetreed** | "piercing line vs tanks" was two jobs; the line copied Samara and Midsummer | a jet dealing a **share of max health**: the only %-health damage in the game, so a clean tank answer that doesn't need anything else |
+| **Eye of the Storm** (Kinship) | built on the eddy pause | the cloud links nightmares under it at 10% |
+
+**Changed (Phase 2, not built yet: no rework):**
+
+| Branch | Problem | Now |
+|---|---|---|
+| **Whetstone** | its per-hit ramp was Sunpetal's beam ramp in stone, and "tank killer" doubled Mossback | **the finisher**: ×2.5 below 30% health. Pebbling's role is cashing in, and this cashes in everyone else's chip damage (poison, chains, pulses) |
+| **Quarry → Rampart** | building free walls isn't a heavy hit, copied Seedbearer's free growth, and its anti-trample twist copied Bark Shield | **Rampart**: a heavy hitter that grows with the Thornwalls touching it and turns them to stone (can't be trampled or burrowed). The maze becomes the weapon, inside Pebbling's role |
+| **Heartroot** (twist) | +1 leaf per 50 holds: a second leaf heal next to Great Dreamcatcher's ("the only leaf healing") | **Not yet:** once per drift the first would-be leak is dragged back 4 tiles. Pulling back is Rootling's job |
+| **Bark Shield → Nurse Log** | it only mattered against 2–3 boss abilities, so it sat idle most runs; the trample part moves to Rampart | **Nurse Log**: Nurture 25% cheaper in range, and a sold Warden's rank stays in the log for the next one. Gives Acorn a third economy (Dew: Dewcatcher; Dreamlight: Dream Oak; ranks: Nurse Log) and a reason to re-maze |
+| **Dream Oak** | passive: no placement decision | +1 shard per different family within 2 cells, so it wants a mixed cluster |
+
+**Nothing moves between families.** Two candidates were checked: Prism Jar (a support aura, which
+is Acorn's style) stays in Firefly because it's light, and a crit aura is part of the "exposed,
+weak spot" side of Firefly's Marked. Silver Bell (single-target, which is Pebbling's style) stays in
+Bellflower because it applies Drowsy, not damage.
+
+**What each family looks like now** (one line per branch: every one is a different decision):
+- **Sporeling:** stack it (Driftspore), sleepy clouds (Bloomcap), crack armour (Lichenling), send
+  walkers (Brood Cap), let the walkers spread it (Inkcap); hidden: traps (Fairy Ring).
+- **Dewdrop:** big splash (Rain Lily), fog (Mistveil), rain anywhere and on flyers (Cloudlet), link
+  a crowd (Undercurrent), erode a tank (Jetreed); hidden: freeze (Frostfern).
+- **Firefly Jar:** chain (Stormcap), mark (Lanternmoth), fence a lane (Jarlink), crit aura (Prism
+  Jar), burst a swarm (Sparkler); hidden: ramping beam (Sunpetal).
+- **Bellflower:** charged pulses (Chime Stone), catch (Dreamcatcher), toll the strongest (Silver
+  Bell), silence (Hushbell), cone damage on the drowsy (Thrum); hidden: echo (Echo Hollow).
+- **Pebbling:** close (Mossback), far (Standing Stone), finish (Whetstone), wall (Rampart), stop
+  sprints (Quaker); hidden: lob (Cairn).
+- **Rootling:** pull (Rootcurl), hold (Tangleroot), ground flyers (Groundroot), guard the goal
+  (Deeproot), punish the held (Thorncoil); hidden: light (Rootlight).
+- **Acorn:** speed aura (Elder Stump), Dew (Dewcatcher), Sprouts (Seedbearer), ranks (Nurse Log),
+  Dreamlight (Dream Oak); hidden: copy (Graftling).
+
+**New combos the review opens** (all through statuses or placement, never by naming Wardens):
+- **Undercurrent + any area Warden:** a packed whirlpool turns one splash into many; + Stormcap or
+  Firefly = Static bolts travelling the current (Maelstrom).
+- **Jetreed's Flood + Stormcap:** the wet trail it leaves sets up Thunderclap behind the tank.
+- **Whetstone + Sporeling / Thorncoil / Undercurrent:** the chip damage gets nightmares under 30%,
+  and Whetstone finishes them.
+- **Rampart + Bramble / Honeysuckle walls:** the walls that boost Rampart are already doing a job.
+- **Nurse Log + Prism Jar / Elder Stump:** an aura cluster where your ranked carries live.
+- **Dream Oak + Graftling:** both want mixed-family neighbours.
+
+### Coverage with only 2 of 5 (the stricter check)
+
+With 4 families × 2 offered branches (+ hidden), a run sees about 8–12 branches, so no single
+family can promise an answer to everything. Two layers keep runs fair:
+
+1. **Every nightmare has a generic answer any build has** (enemy_design.md: never immune to
+   damage). Lurkers are revealed up close, so Wardens hugging the path see them; Phantoms are
+   stopped by any damage near the Heartwood; Shellbound shells break to big hits or many hits;
+   swarms fall to splash and pulses, which every family's base or branches have. A run with the
+   wrong offers is harder, never unwinnable.
+2. **Specialist answers are spread so a run usually has one,** and the draw makes sure of it:
+   - **A smart draw:** when a family is picked, its 2 branches are drawn at random **among the
+     pairs that add a counter tag the run's offers don't cover yet** (tags: *anti-air*, *detection*,
+     *anti-armour*, *anti-swarm*, *anti-tank*, *anti-support*, *boss abilities*). It's still random,
+     still seeded, and still never the same 2 as that family's last run; it just avoids a run with
+     no anti-air at all, for example. **Weighting** (2026-10-02, after the 50-seed probe): among the
+     eligible pairs it prefers the ones covering the **rarest tags still missing**, and **anti-tank
+     counts double** (every act boss is a tank check). Each pair's chance is **proportional to its
+     score** (floor: 10% of the best, so no pair is impossible); picking only among the top pairs
+     gave Sporeling the same pair in 100 of 100 runs. As built (c8bb187e, 100-seed probe):
+     anti-tank 90%, anti-air 75%, detection 79%, anti-armour 80%, swarm 89%, support 96%, boss
+     82%; every family keeps 9–10 different pairs, none above 26% of runs. Target: anti-tank in
+     80%+ of runs with the 4 starting families. Anti-armour may stay lower (Shellbound only arrive at drift 79).
+     **With all 7 families** (Phase 2, 7d17c35f): **detection also counts double** (`tag_weights` {anti_tank: 2, detection: 2}; Lurkers can only be hit up close without it). 100 runs of 4 random families: anti-tank 91%, anti-air 87%, anti-swarm 87%, detection 79%, boss abilities 74%, anti-support 64%, anti-armour 54% (accepted); 9+ pairs per family, none above 25%.
+   - Every counter tag sits on **at least 3 branches across at least 2 families**:
+
+| Tag | Branches |
+|---|---|
+| anti-air (flyers, Phantoms) | Cloudlet (Dewdrop), Jarlink (Firefly), Groundroot (Rootling), Wren's Nest (Nestling), Standing Stone (Pebbling) |
+| detection (Lurkers) | Lanternmoth (Firefly), Brood Cap (Sporeling), Quaker (Pebbling: the tremor), Rootlight (Rootling, hidden) |
+| anti-armour (Shellbound) | Lichenling (Sporeling), Mossback (Pebbling), Magpie Perch (Nestling) |
+| anti-swarm | Sparkler (Firefly), Rain Lily / Undercurrent (Dewdrop), Thrum (Bellflower), Pinwheel (Nestling), Chime Stone (Bellflower) |
+| anti-tank / boss | Whetstone (Pebbling), Jetreed (Dewdrop), Silver Bell (Bellflower), Prism Jar (Firefly; its crit aura is a tank answer), Standing Stone (Pebbling) |
+| anti-support (Watcher, Weeper) | Hushbell (Bellflower), Lichenling (Sporeling), Magpie Perch (Nestling) |
+| boss abilities | Hushbell (Bellflower), Quaker / Rampart (Pebbling: charges, trample), Magpie Perch (Nestling: strips a boss's mending and shields) |
+
+- **Remembered Path** (Rare card, +1 not-offered branch; named *Lucid Dream* in the proposal, renamed 2026-10-02 so it isn't confused with the Legendary *Lucid Dreaming*). **As built** (320b4969, Spire branch): taking it opens Remember with **one free call**, which skips both the price and the once-per-family limit; it's only offered while some family has a branch not in this dream. Design: with only 2 of 5 offered it's a real find,
+  since it raises a family's choices by half. It **shows you the 3 branches not offered** and you
+  pick one, so it can rescue a run that's missing a counter. A Grove perk could add one per run
+  (Meta Game Discussion's call). It's the **free, lucky** version of the call-back below.
+  **Rarity: Rare** (Balancing Discussion).
+- **The Dreamlight call-back** (approved 2026-10-02): on the Remember screen, a "not in this
+  dream" branch can be **called into the run for Dreamlight**: **3 Dreamlight** (set by Balancing
+  Discussion: a whole act's boss income, so steering costs), **once per family per run**. The called branch then works like an offered
+  one (unlocking it is part of the call; its final still costs 2). This makes a missing counter a
+  choice you can pay for, not just luck.
+
+### Kinships with 6 branches: a rule, not a 15-pair table
+
+- **Any two different branches of one family within 2 cells bond** with a **generic Kinship**
+  ("Kin"). Both Wardens get **+10% damage**, and the pair earns **Harmony strikes** as today. The
+  bond still grows (Sapling, Blooming, Old Kin) and shows the vine.
+- **Named Kinships stay special:** the 18 built ones keep their "teach each other" traits (the
+  merged sky family keeps all four of its pairs). Add **1 new named pair per family** among the new
+  branches (7 more), chosen where the two jobs tell a story. Everything else is generic Kin.
+- **Phase 1's four named pairs** (each Warden learns one trait from the other, at the usual stage
+  shares):
+
+  | Family | Pair | Kinship | A learns from B | B learns from A |
+  |---|---|---|---|---|
+  | Sporeling | Lichenling + Brood Cap | **Crusted Brood** | 1 in 4 of its shots also hatches a sprite on the target | its sprites also eat dread shell |
+  | Dewdrop | Cloudlet + Undercurrent | **Eye of the Storm** | nightmares under its cloud are **linked** like the whirlpool's (10% shared; review 2026-10-02, was a 0.3 s eddy pause) | its whirlpool is rained on (Soaks everything in it) |
+  | Firefly Jar | Jarlink + Sparkler | **Fireworks Fence** | every 2 s, a nightmare on its fence sets off a small spark burst (was "a crossing", revised with the damaging line) | a burst landing on a fence re-bursts once |
+  | Bellflower | Silver Bell + Hushbell | **Vespers** | its toll also silences its target for 2 s | nightmares it silences gain 1 Drowsy |
+- **Phase 2's three named pairs** (review 2026-10-02; each tells a story with the two jobs):
+
+  | Family | Pair | Kinship | A learns from B | B learns from A |
+  |---|---|---|---|---|
+  | Pebbling | Rampart + Quaker | **Fault Line** | its blows (and Bastion's rocks) crack the struck tile: no sprints there for 3 s × the bond share (as built aa9080d4; a plain Rampart has no Rockfall) | its slam runs along stone walls touching the Rampart, hitting the path beside each |
+  | Rootling | Groundroot + Thorncoil | **Bramble Bed** | grounded flyers land in thorns (one thorn tick on landing) | its thorns reach flyers passing over its range |
+  | Acorn | Seedbearer + Nurse Log | **Seed Cradle** (id `nursery_bond`; renamed 2026-10-02, "Nursery" is a Dream card) | its Sprouts arrive at rank I when grown beside the log | Wardens beside it also grow (evolve) 10% cheaper |
+- **Whole Tree** becomes **"3 different branches of one family on the map"**. With 2 offered,
+  that needs the hidden branch or *Remembered Path*: a real milestone of a run, not a given.
+- Kindred (2 branches: +10%) is unchanged, and now the common case.
+
+### The per-run offer on the Remember screen
+
+- **Numbers (Phase 1):** all set by Balancing Discussion in `spire_difficulty.md` **Phase 6** (f9d04da8, on
+  the Spire branch): the 12 branches (120 Dew) and 12 finals (300 Dew) with damage, rate, status and
+  twist numbers; generic Kin +10% each; named Kinship traits at about +20% of the pair's effect at full
+  stage; the Dreamlight budget unchanged. That file is the source of truth for them.
+- **Where it's built (Phase 1):** Tower Code (the 12 Wardens, generic Kin, Whole Tree, the named
+  pairs), Roguelite Code (the 2-of-5 offer and smart draw, the Remember UI with "not in this dream"
+  and the call-back, Remembered Path, card gating), Tower Assets (12 branches + 12 finals), Balancing
+  Discussion (all numbers, the call-back price and the Dreamlight budget).
+- **2 of the 5 regular branches** per family, drawn by the smart draw above at the family pick,
+  from the map seed (a resume gets the same), **never the same 2 as that family's last run**
+  (profile `last_branch_offer`).
+- **Every offered pair has a carry** (added 2026-10-02, Balancing Discussion: fresh act 1 boss survival was 40% vs 60% without the expansion, because a pair of two enablers such as Bloomcap + Prism Jar left a one-family act 1 with nothing that deals damage). At least one of the 2 is a **damage branch** (a hard rule, not a weight; the hidden branch doesn't count toward it). Balancing Discussion keeps the list of damage branches (own damage about 0.6× Driftspore or more); supports, enablers, control and economy branches pair with one. A rule about the offer, not a difficulty change. Carries (balance_simulation.md): Sporeling 4, Dewdrop 5, Pebbling 5, Rootling 3, Firefly Jar 2 (Jarlink, Sparkler), Bellflower 2 (Chime Stone, Thrum), so those two still have 7 of 10 pairs. **Acorn is exempt** (no carries by design) and **stays in the first family pick**: Balancing's act 1 check had Acorn-first runs beat the act 1 boss every time (the base Acorn carries act 1 with its auras on Sprouts). Stormcap is an enabler, not a carry (0.22–0.28× Driftspore on its own; its value shows on Static partners). As built (a1b934d0, 100 runs): 9–10 pairs for Sporeling, Dewdrop, Acorn and Pebbling, 7 for the 2-carry families (top pair 29–34%); anti-tank 85%, anti-swarm 94%, anti-air 83%, detection 73%, boss 73%, support 63%, armour 57%. **Detection weighs ×3** (agreed with Balancing): it lifts detection 73% → 78% and only moves Rootling's top pair 34% → 36%; nothing else changes.
+- **The hidden branch doesn't count:** if the Grove has planted it, it's always offered as a 3rd
+  lane. It's earned meta progress.
+- **The 3 not offered** show as **"not in this dream"**: faint misty silhouettes with no cost,
+  lower in the tree; the side panel says *"Not in this dream. The Heartwood may remember it next
+  time."* Their finals aren't shown.
+- **Cards follow the offer:** a card that needs a branch (e.g. Stormcap cards, Entwined *Conductive
+  Soil*) is only offered if that branch is offered this run. Storm Grid becomes a run you *find*.
+- Families with fewer than 5 regular branches (during phasing) offer 2 of what they have.
+- **Dreamlight:** fewer branches on offer means Dreamlight goes further per family. Balancing
+  Discussion should re-check the budget (branch 1, final 2) against 2 offered.
+
+### The demo
+
+**Keep today's 2 branches per family, no 2-of-5** (and no hidden branches, as now). The demo is
+short, players should learn the core branches first, it needs no new art, and "different branches
+every run" becomes a clear full-game selling point. The demo's 4 starting families (Sporeling,
+Firefly Jar, Dewdrop, Bellflower) stay exactly as they are.
+
+### Phasing (art is the cost)
+
+With the merge, the sky family needs **no new branches**. That leaves **21 new branches + 21
+finals** (~42 sprites plus attack sheets and effects), down from 27 + 27.
+
+1. **Phase 1: the 4 starting families** (Sporeling, Dewdrop, Firefly Jar, Bellflower): 12 branches,
+   12 finals, the 2-of-5 offer with the smart draw, generic Kin, Remembered Path.
+2. **Phase 2:** Pebbling, Rootling, Acorn (9 + 9), with the branch review's changes. **Started 2026-10-02 on main** (user: "just do Phase 2", before the Phase 1 playtest; the Spire branch is merged). Full game only. Counter tags: Whetstone anti-tank; Rampart boss abilities; Quaker boss abilities + detection (its tremor reveals Lurkers; added after the 7-family probe: anti-tank 93%, detection 53%); Groundroot anti-air; Deeproot, Thorncoil and the Acorn three none. Fold-in fix: Driftspore anti-tank, Bloomcap and Inkcap anti-swarm (they had no tags, so no role line). **Built** on main (2fc86820, aa9080d4, 84ce5a38): Groundroot never grounds bosses; Deeproot guards the Heartwood wherever it stands (once per nightmare across all Deeproots); stone = a Thornwall on one of the Rampart's four sides (no diagonals); Seedbearer's seed is planted at the rest (seed badge, lit cells; unplanted seeds wait); roles: Deeproot and Thorncoil control, the Acorn three economy.
+3. **Phase 3:** the Nestling + Whirligig merge (no new branch art: a parked base and Ascended,
+   Dawnwing's carry twist, the resistance fold).
+
+Each phase is playable on its own: un-expanded families offer 2 of what they have.
+
 ## Evolution rules
 
 - **Dreamlight unlocks, Dew pays** (was "Dreams unlock"; changed 2026-09-27). Spending
@@ -309,6 +633,29 @@ set small. (Nightmares that resist or exploit these: see `enemy_design.md`.)
 | **Held** | **stopped**: can't move, short and firm (nothing breaks it) | Tangleroot, Snugroot, Frostfern (freeze) | Bloomcap, Mistveil, Chime Stone, Bramble, Sunpetal, Hoarfrost, Standing Stone, Cairn | held nightmares sit inside area effects and are easy targets |
 
 Towers also interact **through placement** and **through Dreams** (rule changes that link lines).
+
+### Spores don't pop (2026-09-30)
+
+User: *"spores shouldn't pop, they should just stack poison; [popping and poison] fill similar
+roles."* Poisoned (the old Spored) is the Sporeling family's one job: **stack it, keep it, spread
+it**. No burst at a stack count anywhere:
+- **Puffball** (final): its puff **bursts on landing over 1 tile**, giving **2 Poisoned to every
+  nightmare there**, and nightmares it hits can hold **16 Poisoned** (the usual cap is 8, Driftspore
+  12). The area poisoner, next to Driftspore's single-target stacking. No pop.
+- **Sporemother** (Ascended): her storm gives 2 Poisoned per second to everything in range, and
+  **Poisoned never wears off while a nightmare is in her range**. No pop.
+- **Chain Bloom** (Entwined Puffball + Mistveil) is reworked: *"Puffball's puffs cover 2 tiles
+  inside Mistveil's fog."* (Roguelite rewrites the card.)
+- "Popped!" callouts and the pop effect go; Fever Dream and Ignite stay as they are (sleep and burn,
+  not pops). The Spore Bomb build becomes stack-and-fog (Tower Discussion renames it).
+
+### Slow and sleep have limits (2026-10-01)
+
+User, a fresh-profile run at drift 28: *"builds feel super strong already with a new profile, slowing them by a lot as well"* (Bloomcap clouds, Drowsy stacks, Honeysuckles: nightmares crawled or slept through the maze). Rules:
+- **Combined slow floor:** however many slows stack (Drowsy, Soaked + Frostfern, Heavy Air, rubble, fog, Omens), a nightmare never moves slower than **50% of its speed** (bosses **70%**, elites **60%**). Held / Rooted (a full stop) and Asleep are separate.
+- **Sleep has a cooldown:** after a nightmare wakes up it can't fall **Asleep** again for **4 s** (bosses 8 s); Drowsy stacks still build meanwhile. Shown as a faint "awake" ring.
+- **Hold has a cooldown too:** after a hold ends, 1.5 s before it can be Held again (bosses 3 s).
+- The status badges and the nightmare info show the floor ("Slowed to the limit").
 
 ### Status jobs (overlap review, 2026-09-29)
 
@@ -351,6 +698,14 @@ rate.
 
 ## Reactions: combos you can see
 
+**Reactions need a grown Warden** (2026-09-30, user: the starting three discovered all 7 of their
+combos and a Crowned Reaction in the first run with base Wardens; *"shouldn't be able to unlock that
+many"*). A Reaction fires only when **at least one of its two statuses was applied by a branch or
+final form** (tier 2+). Base Wardens still apply their statuses (Soaked still slows, Charged still
+bolts), they just don't react on their own. So a fresh run discovers combos as it grows Wardens, over
+several runs. Crowned Reactions follow their base Reaction (so also need a grown Warden). Kinships
+already need two branches. Codex hints stay "???".
+
 Added 2026-09-27. The bonuses above are quiet: they make numbers bigger. **Reactions** are the
 loud layer: when two specific statuses meet on one nightmare, a named event goes off with its own
 effect, sound and callout. Every Reaction is **warm light breaking cold shadow**, the game's core
@@ -386,6 +741,7 @@ Hummingbird's pecks apply on-hit statuses six times per attack, so both families
 
 ### Chains
 
+**Chain falloff** (2026-09-30, user: *"everything was good until mid act 2 in terms of difficulty"*; their drift 68 screenshot showed **Chain 120** and nightmares dying at the very start of a long maze): from the **6th link** of a chain, each Reaction in it deals **15% less** than the one before (links 1–5 full; 6th ×0.85, 7th ×0.70 …), **never below 25%**. Short chains keep their full punch; a hundred-link chain stops wiping a drift on its own. Chain *counts*, discoveries and Dawnbreak still count every link. If acts 2–4 are still easy after this, the health curve steepens from drift 38 (act 2 to ×3.0, acts 3–4 to ×4.5), never before.
 Reactions can set off Reactions: Thunderclap arcs add Static to wet nightmares (more
 Thunderclaps), Ignite spreads spores onto charged ones (more Ignites), Mushrooming clouds spread
 Spored into Damp crowds. When a Reaction is caused by another within **1 s**, or a different
@@ -414,6 +770,39 @@ Final forms get one unmistakable moment each, so reaching one feels like a rewar
 | Moonstone | its first shot on each nightmare is a **moonbeam from above** | `moonstone_beam` |
 | Puffball | each pop is a **big bloom of light** | `puffball_bloom` |
 | Long Way Home | you see the **roots drag** the nightmare back along the path | `long_way_home_drag` |
+
+**Signature twists for the other finals** (added 2026-09-30, user: "do all the Wardens feel fleshed
+out and unique?"). Only 5 of 27 finals had a signature; the rest were "more of the same" (more
+targets, more rings, a higher %), which doesn't feel worth ~310 Dew and 2 Dreamlight. Each flat
+final now gets a **small new rule plus a visible moment**, inside its family's job. Finals that
+already had a twist keep it: Rockslide (rubble), Jewelwing Court (Flurry), Autumn Gale (catch
+rhythm), Magpie's Hoard (crit Dew), Whispering Hollow (echoes as chain links), Wellspring (the
+Harvest), Grove Heart (grows per Warden). Numbers are starting points.
+
+| Final | Twist | Rule | Visible moment |
+|---|---|---|---|
+| **Snugroot** | **Logjam** | a nightmare it Holds **blocks the path cell** for the Hold: nightmares behind it stop and queue (they don't path around; the route is unchanged), bunching a crowd for area damage. Flyers and Phantoms ignore it; bosses aren't Held long enough to jam | the queue visibly bunches; a small root knot under the held one |
+| **Dreamshroom** | **Dream spores** | an **asleep** nightmare breathes out spores: **1 Spored per second** to nightmares within 1 cell (the sleeper's applier's Potency). **Tuned 2026-10-01** (Balancing Discussion: Dreamshroom measured ~2.1× Puffball per Warden at the same Dew): the spores carry **half** of Dreamshroom's soothe, and a sleeper puffs **at most once per second across all Dreamshrooms** (overlapping Dreamshrooms no longer each puff) | slow violet spore puffs rise from sleepers |
+| **Boulderback** | **Landslide** | every **4th hit** rolls a boulder **2 tiles along the path** from the target (toward the start), hitting everything it passes for 60% of the hit | a rolling boulder with a dust trail |
+| **Lullaby Bell** | **Chorus** | its pulse is **+10% per other Bellflower-family Warden within 3 cells** (max +40%) | its pulse ring shimmers with a note for each voice in the chorus |
+| **Morning Fog** | **Veil** | nothing inside its fog can **hide** (Lurkers are revealed) or be **healed** (a Weeper's mending does nothing there) | the fog glows faintly gold where it cancels something |
+| **Hoarfrost** | **Shatter chain** | a **frozen** nightmare that's dispelled bursts into shards that **freeze** nightmares within 1 cell for **0.5 s** (shard-frozen nightmares don't chain again) | an ice burst with shards flying out |
+| **Beacon** | **Flare** | every **8 s** a flare reveals the **whole map** for 2 s and **Marks the 5 nightmares furthest along**, anywhere | a flare arcs up from the Beacon and lights the map |
+| **Midsummer** | **Solstice** | at **full ramp** the beam **splits onto a second target** for 2 s (it keeps its ramp) | the beam forks with a bright flash |
+| **Starcave** | **Starlit snare** | each lit tile **Holds the first nightmare to step on it each drift** for 0.5 s | a star-glint pops on the tile |
+| **Great Dreamcatcher** | **Mended leaves** | every **25** Caught nightmares dispelled **restores 1 leaf** (max **3 per run**; the only leaf healing outside act breaks). If that's too strong: shards count double instead | a leaf drifts from the dreamcatcher to the Heartwood |
+| **Grafted Elder** | **Double graft** | copies its **two** strongest neighbours and **alternates** between their attacks | its graft glows in the two borrowed colours, swapping |
+| **Starling Murmuration** | **Dark swirl** | every **6 s** the flock forms a swirl (1 cell) over the busiest path tile for 2 s; **Phantoms gliding through it are swept up: a 0.5 s pause** (once each; a non-status pause, since Phantoms are immune to Held and "immune" should stay trustworthy) | a spinning swirl of starlings |
+| **Zephyr** | **Gale lane** | every **10 s** a gust sweeps **3 path tiles** in range, copying statuses (half stacks) onto everything on them | a gust streak along the path |
+| **Windmill** | **Momentum** | attack speed ramps **+5% per second** while nightmares are in reach (max **+50%**), and drops back after 2 s idle | the blades visibly spin up |
+| **Elf Circle** | **Fairy dance** | a nightmare that steps on **3 rings in one walk** is caught dancing: **Held 1 s** (once per nightmare) | a little ring of lights spins around it |
+
+- These follow the status jobs: Holds are Held (Rootling-style), Marked is Firefly's, nobody else
+  slows or adds "+damage taken".
+- Bosses: Logjam, Fairy dance, Starlit snare and Dark swirl use the boss Held rule (halved); Mended
+  leaves counts boss dispels as 5.
+- **Watch in playtests:** Logjam (it changes crowd flow), Mended leaves (the lose condition) and
+  Momentum (Windmill could outscale).
 
 ### Crowned Reactions: three families at once
 
@@ -461,6 +850,8 @@ three families are reachable with 4 per run.
 + Marked: dragged back, every hit crits), Flare (Ignite + Marked: the burst Marks and reveals).
 
 ## Kinships: two branches of one family
+**Bonds are sticky** (2026-10-01, user: *"it seems like building new Wardens restarts the Kinship"*): a bond, once formed, is **kept until one of its two Wardens is sold or moved**. A newly planted or grown Warden **never takes over an existing bond**, even if it's nearer; it only bonds with kin that are still unbonded. Pairing nearest-first applies only among unbonded Wardens. Growing either partner keeps the bond and its age.
+
 
 Added 2026-09-28 (user decision). Reactions reward going **wide** (2–3 families); Kinships reward
 going **deep** in one. The two are kept visibly different:
@@ -592,7 +983,7 @@ Crit synergies: **Held and sleeping nightmares** (Hoarfrost bonus, *Still Target
 (*Starlit Aim*), **Magpie's Hoard** (Dew from crits), **White Stag** aura, and the crit cards in
 `dream_design.md`.
 
-## Potency: effect damage
+## Potency: effect damage and status strength
 
 Added 2026-09-27 (user request). Crit scales **hits**; **Potency** scales **effects**, the damage
 that isn't a hit. Spored is the game's poison, and Potency is what makes poison builds grow. So
@@ -608,22 +999,57 @@ every Warden has two damage axes, and builds lean one way:
   statuses *that Warden* applied (the applier's Potency is stored with the status, like its damage).
 - **Reactions** use the Potency of the Warden that completed them (the "applier" in
   `dream_design.md`), so Potency is the main way to make Reactions hit harder late in a run.
-- **What it doesn't touch:** hits, status *duration* and stacks (those have their own cards and the
-  Deep focus), slows and control.
+- **Potency is the strength of everything a Warden's statuses do** (changed 2026-10-01, user: "feel
+  like Potency should change those"; before, it only scaled effect damage and Soaked, Drowsy,
+  Exposed and Rooted were fixed). Each status keeps the applier's Potency, as Poisoned already did:
+
+  | Status (code name) | What Potency scales | Cap (confirmed by Balancing Discussion, 2026-10-01) |
+  |---|---|---|
+  | **Poisoned** (Spored), **Charged** (Static) | their damage (unchanged) | — |
+  | **Soaked** (Damp) | the water-hit bonus: +20% × Potency | **+40%** |
+  | **Exposed** (Marked) | damage taken: +25% × Potency (Beacon's bonus scales too) | **+40%** |
+  | **Drowsy** | slow per stack × Potency | the slow floor stays (nightmares 50%, elites 60%, bosses 70% speed at most slowed); sleep rules and cooldowns unchanged |
+  | **Rooted** (Held) | duration × Potency | **2 s**; the hold cooldown (1.5 s, bosses 3 s) stays |
+  | Caught, Asleep, Frozen | unchanged (they're states set by other rules) | — |
+
+- **Reactions** still read the source's Potency for **damage only**; what a Reaction *does* (sleep
+  length, freeze length, arcs) doesn't scale with it.
+- **Still untouched:** hits, stack caps, and how long statuses last (except Rooted, above).
+- **The Deep focus** is simply **+25% Potency** per Deep rank (raised from +18% on 2026-10-01 by
+  Balancing Discussion: a committed Deep build reached 4–6 fewer drifts than Power, and Exposed
+  never hit its cap); the separate +duration is dropped. Rank IV Deep = Potency 2.0: Soaked at its
+  cap, and Exposed capped from rank III (it caps at Potency 1.6). Past the caps, Deep still grows
+  effect damage and the other statuses.
+- **Several Wardens on one status:** the status uses the **strongest current applier's** Potency
+  (as Poisoned already does), never a sum. With the caps, this stops one high-Potency Warden from
+  lifting everyone's statuses past the limits.
+- **Built behind one toggle** (`Tower.status_potency_on`, on by default) so Balancing Code can
+  A/B the same seeds with and without it; off restores the old rules exactly.
+- **As built (87fb47fb):** a cap **never lowers a status below its own base**: a card that already
+  sets it higher (e.g. *Soaked Through II*'s +30%) keeps that value, and Potency can't push it past
+  the cap. The panel shows the status line at this Warden's Potency ("Soaked: water hits +24%",
+  "Exposed: +30% damage taken", "Drowsy −9% speed a stack", "Rooted 1.3 s").
+  `tests/test_status_potency.gd`.
+- **Why it matters:** a status family (Dewdrop, Firefly Jar, Bellflower, Rootling) can now grow its
+  *control* through Potency, not only its damage. The caps keep a single Warden from making Exposed
+  or Soaked the whole build.
 - **Order:** `effect damage × Potency × family resist/weak × Marked` (no crit, no attack shape
   except the Whisper Swarm's area rule, as before).
 - **Sources:** a few Wardens start above 100% (`warden_stats.md`), the Nurture **Deep** focus
-  (+10% Potency and duration per rank III–V), and the Potency cards in `dream_design.md`.
-- **Shown** in the Warden tooltip next to crit (e.g. "Crit 5% · ×2 · Potency 130%"). Effect damage
+  (+25% Potency per Deep rank, see below), and the Potency cards in `dream_design.md`.
+- **Shown** in the Warden tooltip next to crit (e.g. "Crit 5% · ×2 · Potency 130%"), with what it
+  does for this Warden's status (e.g. *"Soaked: water hits +26%"*, *"Rooted 1.3 s"*). Effect damage
   numbers use the status's colour, so a poison build *looks* different from a crit build.
 - *Nightshade* (Legendary) bridges the two: effect ticks can crit.
 
 ## Target priority
 
-Most Wardens target the nightmare **furthest along** the path. **Standing Stone and Moonstone** let
-the player choose (click the Warden): *Furthest along* (default), *Strongest*, or *Bosses first*.
-Only snipers get this, since that's where the choice matters most and it keeps everything else
-simple.
+Most Wardens target the nightmare **furthest along** the path by default. Since 2026-09-28 every
+attacking Warden that picks a target has a switch (`screens_ui.md` "Targeting"): **First**
+(default), **Last** (furthest back, the newest arrival; added 2026-09-30), **Strongest** and
+**Closest**; snipers keep *Bosses first* as well. **Last** pairs with status Wardens near the start
+(Driftspore, Lanternmoth, Firefly Jar tagging nightmares so they carry the status through the whole
+maze).
 
 ## Maze and placement synergies
 

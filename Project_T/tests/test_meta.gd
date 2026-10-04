@@ -22,6 +22,9 @@ func get_dew_reward() -> int:
 	_run.call_deferred()
 
 func _run() -> void:
+	MetaRun.force_sidegrade = 0  # The Power perks below; the sidegrade section switches it on
+	_check(HeartwoodMemory.file_path != HeartwoodMemory.PATH and HeartwoodMemory.file_path.contains(str(OS.get_process_id())),
+		"a --script run never uses the real profile by default (%s)" % HeartwoodMemory.file_path)
 	HeartwoodMemory.file_path = PROFILE_PATH
 	_delete(PROFILE_PATH)
 	GrovePresets.file_path = SIM_PATH
@@ -41,15 +44,19 @@ func _run() -> void:
 	for unlock in grove:
 		if unlock.root == UnlockData.Root.WARDENS and not unlock.costs.is_empty():
 			limb += unlock.costs[0]
-	_check(limb == 1390 + 1080, "the Families limb costs 2,470 Seeds (%d)" % limb)
-	_check(_unlock(grove, "bellflower").requires_any == ["pebbling", "rootling"], "Bellflower needs Pebbling or Rootling")
+	_check(limb == 1390 + 1080 - 470 - 60, "the Families limb costs 1,940 Seeds (final-forms nodes removed, Bellflower starts) (%d)" % limb)
+	for family: String in ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"]:
+		_check(HeartwoodMemory.get_unlock(family + "_final") == null, "no final-forms node for %s (finals come with the family)" % family)
+	_check(_unlock(grove, "bellflower").start and _unlock(grove, "bellflower").costs.is_empty() and _unlock(grove, "bellflower").requires_any.is_empty(),
+		"Bellflower is a starting family (meta_design.md a3375108)")
 	for family: String in ["sporeling", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"]:
 		var hidden := family + "_hidden"
 		var node := _unlock(grove, hidden)
-		_check(node != null and node.requires_all.size() == 1 and node.requires_all[0] == family + "_final",
-			"hidden branch %s needs its family's final forms" % hidden)
-	_check(_unlock(grove, "nestling").requires_any.has("bellflower") and _unlock(grove, "nestling").requires_any_count == 2,
-		"Nestling needs 2 of Pebbling / Rootling / Bellflower / Acorn")
+		var start := family in ["sporeling", "dewdrop"]
+		_check(node != null and node.requires_all == ([] if start else [family]),
+			"hidden branch %s needs only its family" % hidden)
+	_check(_unlock(grove, "nestling").requires_any == ["pebbling", "rootling", "acorn"] and _unlock(grove, "nestling").requires_any_count == 2
+		and _unlock(grove, "whirligig").requires_any == ["pebbling", "rootling", "acorn"], "Nestling and Whirligig need 2 of Pebbling / Rootling / Acorn")
 	var acorn := _unlock(grove, "acorn")
 	_check(HeartwoodMemory.buy_problem(HeartwoodMemory.load_data(), acorn) != "", "Acorn needs Pebbling or Rootling first")
 	_check(HeartwoodMemory.buy(_unlock(grove, "pebbling")), "buy the Pebbling line")
@@ -90,7 +97,7 @@ func _run() -> void:
 		"family nodes bring their branches, not their final forms")
 	for line: String in ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"]:
 		var ascension := _unlock(grove, line + "_ascension")
-		_check(ascension != null and ascension.costs == [120] and ascension.requires_all == [line + ("_final" if line == "firefly_jar" else "_hidden")] and ascension.dream_cards.size() == 1,
+		_check(ascension != null and ascension.costs == [120] and ascension.requires_all == ([] if line == "firefly_jar" else [line + "_hidden"]) and ascension.dream_cards.size() == 1,
 			"%s Ascension: 120 Seeds, needs the hidden branch (Firefly Jar: final forms, Sunpetal is milestone-only), opens the Ascended Warden" % line)
 	_check(_unlock(grove, "pebbling_hidden").dream_cards.has("dream_cairn") and _unlock(grove, "whirligig_hidden").dream_cards.has("dream_autumn_gale"),
 		"hidden nodes open their hidden Wardens")
@@ -125,11 +132,17 @@ func _run() -> void:
 	_check(family.offer.size() == family.families.size(), "Early Bloom: the first pick offers every family (%d)" % family.offer.size())
 	for data in family.families:
 		dreams.unlocked[data.get_id()] = true
-	family.show_pick(&"boss")
-	_check(family.offer.size() == 3 and family.offer.all(func(o) -> bool: return o is UpgradeData), "no new families left: 3 Blessings")
-	var blessing: UpgradeData = family.offer[0]
-	family.choose(blessing)
+	# Family Blessings are Rare Dream cards now (meta_design.md "Replaced 2026-09-30"): one per family,
+	# offered like any card once you own that family, from act 2 (their old boss-pick timing; design 2026-09-30).
+	var blessing: UpgradeData = dreams.pool.filter(func(c: UpgradeData) -> bool: return c.id == "blessing_sporeling").front()
+	_check(blessing != null and blessing.in_start_pool and blessing.requires == ["sporeling"] and blessing.rarity == UpgradeData.Rarity.RARE
+		and blessing.max_stacks == 1 and blessing.min_act == 2, "a Family Blessing is a Rare Dream card that needs its family, from act 2")
+	dreams.take(blessing)
 	_check(dreams.card_stacks(blessing.id) == 1, "a Blessing is taken like a card")
+	var blessed := MetaRun.load_blessings().map(func(b: UpgradeData) -> String: return b.requires[0] if not b.requires.is_empty() else "")
+	blessed.sort()
+	_check(blessed == ["acorn", "bellflower", "dewdrop", "firefly_jar", "nestling", "pebbling", "rootling", "sporeling", "whirligig"],
+		"one Blessing per family, all 9 (%s)" % [blessed])
 	var seeds := run_state.get_seed_breakdown(10, 0, false)
 	_check(seeds.any(func(l: Array) -> bool: return l[0].begins_with("Seed bonus")), "the Seed bonus shows in the breakdown")
 
@@ -228,8 +241,8 @@ func _run() -> void:
 	_check(dreams_first_pick(main) == DreamState.FIRST_PICK_DREAMLIGHT, "no Blight: the first family pick gives its Dreamlight")
 	_check(is_equal_approx(director.rest_bonus_perk_multiplier, 1.2), "Rested Roots II: rest bonus ×1.2")
 	_check(run_state.sprout_charges == 2, "Sprout Bed: 2 free Sprouts (%d)" % run_state.sprout_charges)
-	_check(dreams.card_stacks("cleared_ground") >= 1 and dreams.can_clear(), "Clear Sight: clearing opened and Cleared Ground from the start")
-	var starting := 0  # Clear Sight's cards (the opener Tend the Forest, once it exists, and Cleared Ground)
+	_check(dreams.card_stacks("heartwoods_reach") >= 1 and dreams.can_clear(), "Clear Sight: clearing opened from the start (Heartwood's Reach)")
+	var starting := 0  # Clear Sight's cards (Heartwood's Reach)
 	for id in _unlock(grove, "clear_sight").starting_cards:
 		if dreams.pool.any(func(c: UpgradeData) -> bool: return c.id == id):
 			starting += 1
@@ -240,8 +253,8 @@ func _run() -> void:
 	_check(run_state.free_nurtures == 0 and dreams.rerolls_left == 0, "perks not carried do nothing")
 	_check(not dreams.allow_bittersweet, "no Bittersweet Dreams node: no bittersweet cards")
 	var dew_before := run_state.dew
-	# Act 1 × its multiplier, Rich Dew +15%, and Gathered Dew if Kindling happened to draw it; fractions kept.
-	var expected_dew := floori(20 * run_state.act_dew_multipliers[0] * (1.0 + run_state.dew_gain_bonus + dreams.get_dew_gain_bonus()) + 0.0001)
+	# The Dew pot (run_design.md) folds Rich Dew / dew_gain into the table: a dispel pays its plain Dew.
+	var expected_dew := 20
 	for i in 20:  # 20 dispels of 1 Dew: the fractions carry over into whole Dew
 		var enemy := Node2D.new()
 		enemy.set_script(_FakeEnemy)
@@ -280,6 +293,92 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 
+	# --- Sidegrade perks (Spire experiment, MetaRun.sidegrade_active): each carried perk adds a cost ---
+	MetaRun.force_sidegrade = 1
+	memory = HeartwoodMemory.load_data()
+	for id in ["morning_stores", "early_bloom", "early_light"]:
+		memory.unlocks[id] = _unlock(grove, id).get_levels()
+	memory.loadout = ["rich_dew", "rested_roots", "sprout_bed", "clear_sight"]  # Kindling has its own run: its random Common may give Dew
+	HeartwoodMemory.save_data(memory)
+	_check(MetaRun.perk_extra_ridges() == 1, "sidegrade Clear Sight: the map gets one more ridge")
+	MetaRun.resumed_extra_ridges = 0  # A run saved before Clear Sight was carried
+	_check(MetaRun.perk_extra_ridges() == 0 and MetaRun.run_extra_ridges == 0, "a resumed run keeps the ridges it was saved with")
+	MetaRun.resumed_extra_ridges = -1
+	_check(_unlock(grove, "clear_sight").get_description().contains("Costs:"), "the node card shows the sidegrade text")
+	var taproot := _unlock(grove, "deep_taproot")
+	_check(taproot.get_levels() == 2 and taproot.get_cost(2) == -1 and taproot.get_spent(3) == 25 + 50,
+		"Hades-style Deep Taproot stops at level II (no Seed trap, full bloom doesn't need level III)")
+	main = await _new_run()
+	run_state = main.get_node("%RunState")
+	director = main.get_node("%DriftDirector")
+	dreams = main.get_node("%DreamState")
+	_check(is_equal_approx(run_state.dew_gain_bonus, 0.15), "Rich Dew III +15%% pot; Rested Roots is plain power (Hades-style) (%s)" % run_state.dew_gain_bonus)
+	_check(is_equal_approx(director.rest_bonus_perk_multiplier, 1.0 + 0.2 - 0.3), "Rested Roots II +20%% (plain), Rich Dew III −30%% rest bonus (%s)" % director.rest_bonus_perk_multiplier)
+	_check(run_state.dew == run_state.starting_dew - 30 and run_state.sprout_charges == 2, "sidegrade Sprout Bed: 2 Sprouts, 30 less starting Dew (%d)" % run_state.dew)
+	main.queue_free()
+	await process_frame
+	memory = HeartwoodMemory.load_data()
+	memory.loadout = ["morning_stores", "first_care", "deep_taproot", "early_bloom", "early_light"]
+	HeartwoodMemory.save_data(memory)
+	main = await _new_run()
+	run_state = main.get_node("%RunState")
+	director = main.get_node("%DriftDirector")
+	dreams = main.get_node("%DreamState")
+	_check(is_equal_approx(director.get_dew_pot_multiplier(3, false, false), director.get_dew_pot_multiplier(6, false, false))
+		and run_state.dew == run_state.starting_dew + 30, "Hades-style Morning Stores III: plain +30 starting Dew, no pot cost (%d)" % run_state.dew)
+	_check(is_equal_approx(dreams.nurture_perk_multiplier, 1.15) and run_state.free_nurtures == 3, "sidegrade First Care: 3 free ranks, then +15%%")
+	_check(director.act_break_leaves == 1 and run_state.max_leaves == run_state.starting_leaves + 2, "Hades-style Deep Taproot III: +2 leaves (capped), act-break regrow kept")
+	_check(main.get_node("%FamilyPickScreen").first_boss_pick_fewer == 1, "sidegrade Early Bloom: the drift 25 pick shows one fewer")
+	_check(dreams.first_pick_dreamlight == 0, "sidegrade Early Light: the first family pick gives no Dreamlight")
+	main.queue_free()
+	await process_frame
+	memory = HeartwoodMemory.load_data()
+	memory.loadout = ["wider_dreams", "kindling"]
+	HeartwoodMemory.save_data(memory)
+	main = await _new_run()
+	dreams = main.get_node("%DreamState")
+	_check(dreams.cards_per_offer == 4 and dreams.skip_dew == 0, "sidegrade Wider Dreams: 4 cards, Let it pass gives no Dew")
+	_check(dreams.first_offer_cards == 2, "sidegrade Kindling: the first Dream offer has 2 cards")
+	main.queue_free()
+	await process_frame
+	MetaRun.force_sidegrade = 0
+	_check(not _unlock(grove, "clear_sight").get_description().contains("Costs:") and MetaRun.perk_extra_ridges() == 0, "Power perks: the plain text, no extra ridge")
+
+	# --- Saves are atomic, and an unreadable profile never turns into a fresh one ---
+	var kept := HeartwoodMemory.load_data()
+	kept.seeds = 77
+	HeartwoodMemory.save_data(kept)
+	HeartwoodMemory.save_data(kept)  # Replaces an existing file, keeping the last as .bak
+	_check(int(HeartwoodMemory.load_data().seeds) == 77 and FileAccess.file_exists(PROFILE_PATH + ".bak")
+		and not FileAccess.file_exists("%s.%d.tmp" % [PROFILE_PATH, OS.get_process_id()]), "a save replaces the profile through a temp file and keeps a backup")
+	var torn := FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
+	torn.store_string("{\"version\": 6, \"seeds\": 7")  # Half-written
+	torn.close()
+	_check(int(HeartwoodMemory.load_data().seeds) == 77, "a half-written profile reads as the last good copy")
+	HeartwoodMemory.forget()
+	_check(int(HeartwoodMemory.load_data().seeds) == 77 and FileAccess.file_exists(PROFILE_PATH + ".unreadable"),
+		"with nothing cached, an unreadable profile reads from its backup and is kept aside")
+
+	# --- Reset to a new profile (demo_scope.md, Settings → Developer): backed up first, settings kept ---
+	var full_profile := HeartwoodMemory.load_data()
+	full_profile.seeds = 50
+	full_profile.unlocks = {"pebbling": 1}
+	full_profile.whispers_seen = ["first_build"]
+	full_profile.settings.master_volume = 0.3
+	HeartwoodMemory.save_data(full_profile)
+	HeartwoodMemory.reset_profile()
+	var reset := HeartwoodMemory.load_data()
+	_check(int(reset.seeds) == 0 and reset.unlocks.is_empty() and reset.whispers_seen.is_empty() and is_equal_approx(float(reset.settings.master_volume), 0.3),
+		"a reset profile is brand new but keeps its settings (%s)" % [reset.seeds])
+	var backup := HeartwoodMemory.latest_backup()
+	_check(backup != "" and backup.get_file().begins_with(PROFILE_PATH.get_file().get_basename() + ".backup-"), "the reset backed the old profile up beside it (%s)" % backup)
+	_check(HeartwoodMemory.restore_backup(backup) and int(HeartwoodMemory.load_data().seeds) == 50, "restoring the backup brings the old profile back")
+	for i in 7:
+		HeartwoodMemory.backup_profile()
+	_check(HeartwoodMemory._backups().size() == HeartwoodMemory.BACKUPS_KEPT, "only the newest 5 backups are kept (%d)" % HeartwoodMemory._backups().size())
+	for file in HeartwoodMemory._backups():
+		DirAccess.remove_absolute(file)
+
 	# --- Old profiles: version 1 Grove ids move to the layout ids ---
 	var old := FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
 	old.store_string(JSON.stringify({"version": 1, "seeds": 5, "unlocks": {"pebbling_line": 1, "cairn": 1, "sporeling_finals": 1, "morning_stores": 2}}))
@@ -289,16 +388,52 @@ func _run() -> void:
 	var migrated := {}
 	for id in memory.unlocks:
 		migrated[id] = int(memory.unlocks[id])
-	_check(migrated == {"pebbling": 1, "pebbling_hidden": 1, "sporeling_final": 1, "morning_stores": 2}, "v1 ids migrate (%s)" % [migrated])
-	_check(memory.loadout == [] and int(memory.seeds) == 5, "a migrated profile keeps its Seeds, empty loadout")
+	_check(migrated == {"pebbling": 1, "pebbling_hidden": 1, "morning_stores": 2}, "v1 ids migrate, the old final-forms node refunded (%s)" % [migrated])
+	_check(memory.loadout == [] and int(memory.seeds) == 5 + 50, "a migrated profile keeps its Seeds and gets the final-forms 50 back (%d)" % int(memory.seeds))
 	old = FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
-	old.store_string(JSON.stringify({"version": 2, "seeds": 10, "unlocks": {"reactions": 1, "kin_lore": 1, "bittersweet_dreams": 1, "spore_lore": 1}}))
+	old.store_string(JSON.stringify({"version": 2, "seeds": 10, "unlocks": {"reactions": 1, "kin_lore": 1, "bittersweet_dreams": 1, "sharpened": 1}}))
 	old.close()
 	HeartwoodMemory.forget()  # Written behind save_data: never read a cached copy
 	memory = HeartwoodMemory.load_data()
 	_check(int(memory.seeds) == 10 + 70 + 50 + 8 and not memory.unlocks.has("reactions") and not memory.unlocks.has("kin_lore")
-		and memory.unlocks.has("bittersweet_dreams") and memory.unlocks.has("spore_lore"),
+		and memory.unlocks.has("bittersweet_dreams") and memory.unlocks.has("sharpened"),
 		"v2 profiles: removed discovery nodes refund their Seeds, Bittersweet 8 back (%d, %s)" % [int(memory.seeds), memory.unlocks.keys()])
+	old = FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
+	old.store_string(JSON.stringify({"version": 6, "seeds": 3, "unlocks": {"storm_lore": 1, "guiding_lights": 1, "spore_lore": 1, "dawnbreak": 1, "grove_of_kin": 1, "sharpened": 1}}))
+	old.close()
+	HeartwoodMemory.forget()
+	memory = HeartwoodMemory.load_data()
+	_check(int(memory.seeds) == 3 + 40 + 60 + 40 + 120 + 120 and memory.unlocks.has("sharpened") and not memory.unlocks.has("storm_lore") and not memory.unlocks.has("dawnbreak"),
+		"v6 profiles: the combo-card nodes are gone and refunded (%d, %s)" % [int(memory.seeds), memory.unlocks.keys()])
+	_check(not HeartwoodMemory.defaults().unlocks.has("elders"), "fresh profiles start lean")
+	var every_card := {}
+	for unlock in HeartwoodMemory.load_grove():
+		for card in unlock.dream_cards:
+			every_card[card] = unlock.id
+	for card: String in ["hunters_patience", "sharpened_light", "crowd_breaker", "thornheart", "scented_hedge", "tended_stumps", "hollow_ground", "momentum", "great_ripple", "lucid_dreaming", "drumbeat", "overlap"]:
+		_check(every_card.has(card) and ResourceLoader.exists("res://resource/dream/%s.tres" % card), "a Grove node grants %s" % card)
+	_check(_unlock(HeartwoodMemory.load_grove(), "the_old_ones").requires_all == ["elders"], "The Old Ones needs Elders")
+	# Branch expansion in the Grove (meta_design.md 1f25e66e): family cards list their branches; Wider Roots.
+	var grove_script: GDScript = load("res://scripts/meta/grove_screen.gd")
+	var spore_text: String = grove_script.family_branches_text(_unlock(HeartwoodMemory.load_grove(), "sporeling"))
+	_check(spore_text.contains("Branches:") and not spore_text.contains("Fairy Ring"), "a family card lists its regular branches, not the hidden one (%s)" % spore_text)
+	_check(grove_script.family_branches_text(_unlock(HeartwoodMemory.load_grove(), "seedbed")) == "", "only family nodes list branches")
+	var roots_perk := _unlock(HeartwoodMemory.load_grove(), "wider_roots")
+	_check(roots_perk != null and roots_perk.is_perk() and roots_perk.costs == [120] and roots_perk.requires_all == ["omen_reader"] and roots_perk.wider_roots,
+		"Wider Roots: a 120-Seed perk after Omen Reader")
+	var roots_memory := HeartwoodMemory.load_data()
+	roots_memory.unlocks.wider_roots = 1
+	roots_memory.loadout = ["wider_roots"]
+	HeartwoodMemory.save_data(roots_memory)
+	var roots_run := await _new_run()
+	_check(roots_run.get_node("%DreamState").wider_roots, "carrying Wider Roots switches on the wider family draw")
+	roots_run.queue_free()
+	await process_frame
+	roots_memory.unlocks.erase("wider_roots")
+	roots_memory.loadout = []
+	HeartwoodMemory.save_data(roots_memory)
+	_check(_unlock(HeartwoodMemory.load_grove(), "acorn").dream_cards.has("acorn_cache") and HeartwoodMemory.get_unlock("catchers") == null
+		and _unlock(HeartwoodMemory.load_grove(), "old_wood").requires_all.is_empty(), "the Acorn family brings its own cards; Old Wood starts its branch")
 
 	# --- The Grove screen: the tree, tapping a bud, planting, the canopy ---
 	memory = HeartwoodMemory.defaults()
@@ -311,6 +446,17 @@ func _run() -> void:
 	await process_frame
 	var view: GroveTreeView = grove_screen.tree_view
 	_check(view.get_canopy_stage() == 0, "a new Grove shows the first canopy stage")
+	var planted := HeartwoodMemory.planted_nodes(HeartwoodMemory.load_data())
+	_check(planted.size() == 4 and planted.all(func(p: Dictionary) -> bool: return p.limb == "families" and p.pos is Vector2),
+		"a new Grove has only its 4 starting families planted, for the in-run Heartwood (%s)" % [planted])
+	var stone_sets: Dictionary = GroveTreeView.load_layout().get("loadout_stone_sets", {})
+	_check(view.stone_points().size() == 3 and view.stone_points()[0] == GroveTreeView.vec(stone_sets["3"][0]),
+		"a new Grove shows only its 3 open waystones, centred under the trunk")
+	var opened_stones := [false]
+	view.stones_pressed.connect(func() -> void: opened_stones[0] = true, CONNECT_ONE_SHOT)
+	view.tap(view.stone_points()[2])
+	_check(opened_stones[0], "tapping a waystone opens the loadout")
+	grove_screen.loadout.close(false)
 	var stores_node := _layout_node("morning_stores")
 	view.tap(GroveTreeView.vec(stores_node.pos))
 	_check(grove_screen.selected != null and grove_screen.selected.id == "morning_stores", "tapping a bud selects its node")
@@ -371,9 +517,10 @@ func _run() -> void:
 	HeartwoodMemory.save_data(real)
 	var real_text := FileAccess.get_file_as_string(PROFILE_PATH)
 	ProjectSettings.set_setting("game/demo", true)
+	DevGrove.file_path = "user://test_meta_dev_%d.json" % OS.get_process_id()
 	DevGrove.force = &"full"
 	DevGrove.apply()
-	_check(DevGrove.is_active() and HeartwoodMemory.file_path == GrovePresets.file_path and not ResultsScreen.is_demo() and MetaRun.is_dev_run(),
+	_check(DevGrove.is_active() and HeartwoodMemory.file_path == DevGrove.file_path and DevGrove.file_path != GrovePresets.file_path and not ResultsScreen.is_demo() and MetaRun.is_dev_run(),
 		"Dev Grove Full: the dev profile, the full game, a dev run")
 	_check(is_equal_approx(float(HeartwoodMemory.get_settings().ui_scale), 1.3), "settings still come from the real profile")
 	_check(DevGrove.tag() == "Dev Grove: Full", "the tag names the level")
@@ -406,8 +553,22 @@ func _run() -> void:
 	_check(not DevGrove.is_active() and HeartwoodMemory.file_path == PROFILE_PATH and ResultsScreen.demo_override == -1 and RunSaver.file_path == RunSaver.PATH,
 		"Dev Grove off: back to the real profile and run save")
 	_check(FileAccess.get_file_as_string(PROFILE_PATH) == real_text, "the real profile was never written")
+	# …and everything reads the real profile again: a run (in the full game) and the Grove screen.
+	ProjectSettings.set_setting("game/demo", false)
+	main = await _new_run()
+	_check(not MetaRun.is_dev_run() and (main.get_node("%FamilyPickScreen").families as Array).size() == 4,
+		"after Dev Grove, a run has only the real profile's families (%d)" % (main.get_node("%FamilyPickScreen").families as Array).size())
+	main.queue_free()
+	await process_frame
+	grove_screen = load("res://scenes/grove.tscn").instantiate()
+	root.add_child(grove_screen)
+	await process_frame
+	_check(grove_screen.tree_view.state_of(_unlock(grove, "pebbling")) != GroveTreeView.State.OWNED and int(HeartwoodMemory.load_data().seeds) == 7,
+		"after Dev Grove, the Grove shows the real profile")
+	grove_screen.queue_free()
+	await process_frame
 	DevGrove.force = &""
-	_delete(GrovePresets.file_path)
+	_delete(DevGrove.file_path)
 	ProjectSettings.set_setting("game/demo", false)
 
 	# --- v3 profiles: the removed slot_2 / slot_3 nodes refund their Seeds (slots 1–3 are free now) ---
@@ -560,8 +721,9 @@ func _unlock(grove: Array[UnlockData], id: String) -> UnlockData:
 	return null
 
 func _delete(path: String) -> void:
-	if FileAccess.file_exists(path):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	for file in [path, path + ".bak", path + ".unreadable"]:  # With save_data's backup
+		if FileAccess.file_exists(file):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(file))
 
 func _check(condition: bool, label: String) -> void:
 	if not condition:
@@ -580,7 +742,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 82 and grove.size() == 82 - parked, "82 Grove spots, %d nodes on the tree (layout %d, data %d)" % [82 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 92 and grove.size() == 92 - parked, "92 Grove spots, %d nodes on the tree (layout %d, data %d)" % [92 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:
@@ -590,10 +752,25 @@ func _check_layout(grove: Array[UnlockData]) -> void:
 			continue
 		_check(unlock.get_section() == node.section, "%s is on the %s limb" % [node.id, node.section])
 		_check(maxi(unlock.get_levels(), 1) == int(node.levels), "%s has %d levels" % [node.id, int(node.levels)])
+		if node.section != "perks" and node.get("memory_row") == null:  # How deep it sits: drives its grown look
+			var depth := int(node.get("display_level", 0))
+			_check(depth >= 1 and depth <= 3 and (depth == 3) == (unlock.legendary or node.id.ends_with("_ascension")),
+				"%s shows display level %d" % [node.id, depth])
+		if int(node.levels) > 1:  # Grown perks with levels: a look per level (grove_level_blooms.png, 2 frames each)
+			var level_sheet: Texture2D = load("res://assets/meta/grove/grove_level_blooms.png")
+			_check(int(node.levels) <= 3 and level_sheet.get_width() >= int(node.levels) * 2 * GroveTreeView.NODE_FRAME
+				and level_sheet.get_height() >= 3 * GroveTreeView.NODE_FRAME, "%s has a look for each of its %d levels" % [node.id, int(node.levels)])
+		# Grown Ascensions have their own Legendary-sized bloom; every other node keeps the uniform flowers.
+		if node.id.ends_with("_ascension"):
+			var sheet: Texture2D = load("res://assets/meta/grove/grove_ascended_blooms.png")
+			var cell := int(GroveTreeView.load_layout().get("ascended_cell", 0))
+			_check(node.get("ascended_bloom") != null and cell == GroveTreeView.LEGENDARY_FRAME and (int(node.ascended_bloom) + 1) * cell <= sheet.get_height(),
+				"%s has its Ascension bloom" % node.id)
 		_check(unlock.legendary == bool(node.legendary) and unlock.start == bool(node.start), "%s: Legendary / start match" % node.id)
 		_check(ResourceLoader.exists("res://assets/meta/grove/branches/%s.png" % node.id), "%s has branch art" % node.id)
 		if node.parent != null and node.id != "firefly_jar_ascension":  # Drawn from Sunpetal, needs final forms
-			_check(unlock.requires_all.any(func(r: String) -> bool: return r.split(":")[0] == node.parent) or unlock.milestone != "" and unlock.is_free(),
+			_check(unlock.requires_all.any(func(r: String) -> bool: return r.split(":")[0] == node.parent) or unlock.milestone != "" and unlock.is_free()
+				or (unlock.requires_all.is_empty() and unlock.requires_any.is_empty()),  # Drawn off a node it doesn't need (a start family, Stormheart)
 				"%s needs its parent %s" % [node.id, node.parent])
 	for unlock in grove:
 		_check(nodes.any(func(n) -> bool: return n.id == unlock.id), "%s is on the tree" % unlock.id)

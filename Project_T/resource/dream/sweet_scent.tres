@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "sweet_scent"
 display_name = "Sweet Scent"
-description = "Honeysuckle's {drowsy} also reaches nightmares 2 tiles away."
+description = "Honeysuckle's {drowsy} also reaches nightmares 2 cells away."
 rarity = 1
 kind = 3
 tags = Array[String](["wall", "sleep"])

@@ -94,7 +94,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		set_tool_active(false)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("clear_obstacle") and _hover_obstacle != null:
-		if confirm_clears and pending_cell != _hover_cell:
+		if confirm_clears and not _same_obstacle(pending_cell, _hover_cell):
 			_set_pending(_hover_cell)  # Touch: wait for the ✓ (or a second tap)
 		else:
 			_set_pending(NO_CELL)
@@ -106,6 +106,10 @@ func confirm_pending() -> bool:
 	var cell := pending_cell
 	_set_pending(NO_CELL)
 	return cell != NO_CELL and try_clear(cell)
+
+# Two cells of one obstacle (the log's): a second tap anywhere on it confirms.
+func _same_obstacle(a: Vector2, b: Vector2) -> bool:
+	return a != NO_CELL and map_generator.get_obstacle_cells(b).has(a)
 
 func _set_pending(cell: Vector2) -> void:
 	if cell != pending_cell:
@@ -134,11 +138,15 @@ func _draw() -> void:
 		return
 	var center: Vector2 = MAP_GRID.calculate_map_position(_hover_cell)
 	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
+	var cells: Array[Vector2] = map_generator.get_obstacle_cells(_hover_cell)  # The whole log lights up
+	if cells.size() > 1:
+		rect = _cells_rect(cells)
+		center = rect.get_center()
 	if not tool_active:
 		WorldLabel.draw_tag(self, center.x, rect.position.y - 8, _hover_obstacle.display_name, NAME_COLOR)
 		return
 	var half := run_state.free_clears > 0
-	var cost := get_next_clear_cost(_hover_obstacle)
+	var cost := get_next_clear_cost_at(_hover_cell)
 	var affordable := run_state.can_afford(cost)
 	var highlight := HIGHLIGHT_COLOR if affordable else WorldLabel.UNAFFORDABLE_COLOR
 	draw_rect(rect, Color(highlight, 0.15))
@@ -149,8 +157,8 @@ func _draw() -> void:
 	if dreams != null and dreams.free_first_clears > 0:
 		price = "free (%d left)" % dreams.free_first_clears  # Tend the Forest
 	var label := "%s %s · %s" % [_hover_obstacle.clear_verb, _hover_obstacle.display_name, price]
-	if pending_cell == _hover_cell:
-		label += "  ·  tap ✓ to clear"
+	if _same_obstacle(pending_cell, _hover_cell):
+		label += " · tap ✓ to clear"
 	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label, WorldLabel.cost_color(affordable))
 
 # True until the run's first clearing Dream (then clearing works for the rest of the run).
@@ -165,6 +173,21 @@ func get_clear_cost(data: ObstacleData, half_price: bool = false) -> int:
 	var cost: int = dreams.get_clear_cost(data, half_price) if dreams else data.clear_cost
 	return roundi(cost * MetaRun.clear_cost_multiplier())  # Blight Level 9: twice as much
 
+# Dew to clear the obstacle on `cell`: a log is one clear priced as a tree per cell it covers (Dreams,
+# Heartwood's Reach and Blight apply to the whole).
+func get_clear_cost_at(cell: Vector2, half_price: bool = false) -> int:
+	var data: ObstacleData = map_generator.get_obstacle(cell)
+	if data == null:
+		return 0
+	var cells: int = map_generator.get_obstacle_cells(cell).size()
+	if cells > 1:
+		data = data.duplicate()
+		data.clear_cost *= cells
+	return get_clear_cost(data, half_price)
+
+func get_next_clear_cost_at(cell: Vector2) -> int:
+	return get_clear_cost_at(cell, run_state.free_clears > 0)
+
 # The price of the next clear of `data`: half-price while Heartwood's Reach charges last.
 func get_next_clear_cost(data: ObstacleData) -> int:
 	return get_clear_cost(data, run_state.free_clears > 0)
@@ -176,7 +199,7 @@ func try_clear(cell: Vector2) -> bool:
 	var data: ObstacleData = map_generator.get_obstacle(cell)
 	if data == null or is_locked():
 		return false
-	var cost := get_next_clear_cost(data)
+	var cost := get_next_clear_cost_at(cell)
 	if not run_state.spend_dew(cost):
 		return false
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
@@ -197,12 +220,18 @@ func _refresh_hover() -> void:
 		obstacle_hovered.emit(_hover_obstacle, is_locked())
 	if pending_cell != NO_CELL and map_generator.get_obstacle(pending_cell) == null:
 		_set_pending(NO_CELL)
-	_path_preview.clear_points()
-	RouteLine.apply(_path_preview, Color(HIGHLIGHT_COLOR, 0.6))
+	RouteLine.clear(_path_preview)
 	if _hover_obstacle != null and tool_active:
-		# Only preview when clearing actually changes the route creatures take.
+		# Only preview when clearing actually changes the route creatures take (route mist, screens_ui.md).
 		var new_path: PackedVector2Array = map_generator.get_path_if_cleared(_hover_cell)
-		if new_path != map_generator.get_path_from(map_generator.startPath):
-			for point in new_path:
-				_path_preview.add_point(MAP_GRID.calculate_map_position(point))
+		var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+		if new_path != route:
+			RouteLine.draw_route(_path_preview, new_path, Color(HIGHLIGHT_COLOR, 0.6), 6.0, route)
 	queue_redraw()
+
+# The rectangle around `cells` (a log), inset like a single cell's.
+func _cells_rect(cells: Array[Vector2]) -> Rect2:
+	var rect := Rect2(MAP_GRID.calculate_map_position(cells[0]) - MAP_GRID.cell_size / 2, MAP_GRID.cell_size)
+	for cell in cells:
+		rect = rect.merge(Rect2(MAP_GRID.calculate_map_position(cell) - MAP_GRID.cell_size / 2, MAP_GRID.cell_size))
+	return rect.grow(-2)

@@ -19,10 +19,10 @@ signal dew_spent(cost: int)  # Every spend (RunHistory sorts them into planting,
 @export var starting_dew: int = 60  # run_design.md "Opening rule": enough Sprouts for drift 1
 @export var starting_leaves: int = 15  # Difficulty pass v1: was 20
 @export var max_leaves: int = 15
-# Dispel Dew by act (economy pass v2, run_design.md): acts 1–4. Act 2 × 0.85 (interim, "Difficulty
-# curve targets": was 0.8; act 1 stays whole so a fresh profile reaches drift 25).
-@export var act_dew_multipliers: Array[float] = [1.0, 0.68, 0.65, 0.5]
+# Dispel Dew is each nightmare's share of its drift's Dew pot (DriftDirector, run_design.md "The Dew pot");
+# the fraction carries to the next dispel. (The per-act multipliers and Grove dew_gain are folded into the table.)
 var _dispel_dew_carry := 0.0
+var pot_earned_block := 0.0  # Pot shares dispelled this block (the rest report: "840 of 900")
 
 var dew: int
 var leaves: int
@@ -50,7 +50,7 @@ func add_sprout_charges(amount: int) -> void:
 var creatures_cleansed := 0
 var leaves_lost := 0
 var seed_bonus := 0.0  # +share of Seeds at run end (Seed Pouch, Blight Levels); set by MetaRun
-var dew_gain_bonus := 0.0  # +share of Dew from dispelled nightmares (Rich Dew); set by MetaRun
+var dew_gain_bonus := 0.0  # Rich Dew (Grove dew_gain), set by MetaRun: multiplies every drift's Dew pot (DriftDirector)
 var free_nurtures := 0  # Nurture ranks left that cost no Dew (First Care); set by MetaRun
 var longest_path := 0  # Longest route the maze reached this run, in tiles
 var play_time := 0.0  # Seconds of unpaused play this run
@@ -181,25 +181,30 @@ func end_run(did_win: bool) -> void:
 
 func _on_enemy_cleansed(enemy: Node2D) -> void:
 	creatures_cleansed += 1
-	var reward: int = enemy.get_dew_reward()
+	# Its share of its drift's pot (already multiplied by the pot's Dreams / Omens); a nightmare from outside
+	# a drift (Test Grove spawns) pays its plain dew_reward.
+	var share: float = enemy.get_dew_share() if enemy.has_method("get_dew_share") else float(enemy.get_dew_reward())
+	var pot_share = enemy.get("dew_share")
+	if pot_share != null and float(pot_share) >= 0.0:
+		pot_earned_block += share
 	# A catcher nearby (Dewcatcher, Wellspring) catches a share more into its bowl, for the Harvest.
-	var caught := DewCatch.catch(enemy, reward * get_dispel_multiplier())
-	earn_dew_at(_scaled_dispel_dew(reward), enemy.global_position, DewCatch.GOLD if caught else DewPopup.COLOR)
+	var caught := DewCatch.catch(enemy, share)
+	earn_dew_at(_carried_dew(share), enemy.global_position, DewCatch.GOLD if caught else DewPopup.COLOR)
 
-# Economy pass v2 (run_design.md): dispel Dew × act_dew_multipliers for the current act (× Rich Dew),
-# with the fraction carried to the next dispel so small rewards aren't rounded away.
-func _scaled_dispel_dew(dew: int) -> int:
-	_dispel_dew_carry += dew * get_dispel_multiplier()
+# Pays whole Dew and carries the fraction to the next dispel (small shares aren't rounded away).
+func _carried_dew(amount: float) -> int:
+	_dispel_dew_carry += amount
 	var paid := floori(_dispel_dew_carry + 0.0001)
 	_dispel_dew_carry -= paid
 	return paid
 
+# The old name (tools/balance_run.gd): plain Dew with the fraction carry.
+func _scaled_dispel_dew(dew: float) -> int:
+	return _carried_dew(dew)
+
+# Kept for callers (catchers, tests): the pot already holds every Dew multiplier, so dispels add none.
 func get_dispel_multiplier() -> float:
-	var director := get_node_or_null("%DriftDirector") as DriftDirector
-	var act := director.get_act(maxi(director.drifts_started, 1)) if director else 1
-	var multiplier: float = act_dew_multipliers[clampi(act - 1, 0, act_dew_multipliers.size() - 1)]
-	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	return multiplier * (1.0 + dew_gain_bonus + (dreams.get_dew_gain_bonus() if dreams else 0.0))  # Rich Dew (Grove perk), Gathered Dew
+	return 1.0
 
 func _on_enemy_reached_goal(enemy: Node2D) -> void:
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector

@@ -12,6 +12,7 @@ class_name ComingStrip
 
 const FACE := 48.0  # screens_ui.md "Readable on the night sky": 48 px at rests, 36 in drifts
 const FACE_SMALL := 36.0
+const FACE_BIG := 64.0  # A new rule-breaker at a rest (RuleBreakers)
 const PIP := 16.0
 const TOP := 72.0  # Just under the drift banner
 const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
@@ -32,7 +33,7 @@ func _ready() -> void:
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 	offset_top = TOP
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_theme_constant_override("separation", 2)
+	add_theme_constant_override("separation", CAPTION_GAP)  # Caption → discs: the "New" badge sits 6 px above a disc
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UiStyle.caps(_caption, UiStyle.BODY_SIZE)  # At body size
 	add_child(_caption)
@@ -57,7 +58,10 @@ func _process(delta: float) -> void:
 	_clock = REFRESH
 	_stack()
 	var span := shown_span()
-	visible = span.y >= span.x
+	var pause := get_parent().get_node_or_null("PauseMenu") as Control if get_parent() != null else null  # A sibling (made in code: no % owner)
+	# Hidden under the pause menu: its panels (Settings, Codex) are tall enough to reach the strip at 1280×720
+	# virtual (user screenshot at the largest UI size).
+	visible = span.y >= span.x and not (pause != null and pause.visible)
 	if not visible:
 		_built_for = ""
 		return
@@ -142,6 +146,7 @@ static func kinds_in_block(director: DriftDirector, block: int) -> Array:
 # deep): one centred row of equal round discs, a second row only past PER_ROW kinds, and past two rows
 # a "+N" chip that opens the rest on tap. About 90 px tall at rests.
 const PER_ROW := 6
+const CAPTION_GAP := 14  # ~8 px clear between the caption and the disc row, "New" badges included (user)
 
 func _build(span: Vector2i) -> void:
 	_caption.text = "Still to come this block" if compact else "Coming this block"
@@ -149,6 +154,14 @@ func _build(span: Vector2i) -> void:
 		_row.remove_child(child)
 		child.queue_free()
 	var kinds := kinds_in_range(drift_director, span.x, span.y)
+	# New rule-breakers (RuleBreakers: a flyer, sprinter… this run hasn't faced) lead at rests, larger, with their trait in words.
+	var breaking := {}
+	if not compact:
+		for item in RuleBreakers.new_in(drift_director, span.x, span.y):
+			breaking[item[0].resource_path] = true
+		if not breaking.is_empty():
+			var first_ones := kinds.filter(func(k: Array) -> bool: return breaking.has(k[0].resource_path))
+			kinds = first_ones + kinds.filter(func(k: Array) -> bool: return not breaking.has(k[0].resource_path))
 	var shown := kinds
 	var rest: Array = []
 	if kinds.size() > PER_ROW * 2:  # The last slot becomes "+N"
@@ -162,7 +175,7 @@ func _build(span: Vector2i) -> void:
 			line.add_theme_constant_override("separation", 6)
 			line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_row.add_child(line)
-		line.add_child(_make_item(shown[i][0], shown[i][1], shown[i][2]))
+		line.add_child(_make_item(shown[i][0], shown[i][1], shown[i][2], breaking.has(shown[i][0].resource_path)))
 	if not rest.is_empty():
 		line.add_child(_more_chip(rest))
 
@@ -192,13 +205,24 @@ func _light_next() -> void:
 
 # One kind: the same round disc for every kind (the art fitted inside, whatever its shape), "New" and
 # the count as badges on its corners, the resist / weak row under it (14 px). Its name on hover / tap.
-func _make_item(data: EnemyData, drift: int, count: int = 1) -> Control:
+func _make_item(data: EnemyData, drift: int, count: int = 1, breaks_rules: bool = false) -> Control:
 	var item := VBoxContainer.new()
 	item.set_meta(&"kind", data)
+	item.set_meta(&"breaks_rules", breaks_rules)
 	item.add_theme_constant_override("separation", 1)
 	item.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var side := FACE_SMALL if compact else FACE
+	var side := FACE_SMALL if compact else (FACE_BIG if breaks_rules else FACE)
+	# The disc and its badges as siblings in a holder: the disc clips its art, the badges must not be clipped
+	# (user screenshot: "New" showed as "EW", the counts as "×1?").
+	var holder := Control.new()
+	holder.name = "Disc"
+	holder.custom_minimum_size = Vector2(side, side)
+	holder.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	item.add_child(holder)
 	var face := Button.new()
+	face.name = "Face"
+	face.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	face.icon = NightmareCard.portrait(data)
 	face.expand_icon = true
 	face.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -215,31 +239,53 @@ func _make_item(data: EnemyData, drift: int, count: int = 1) -> Control:
 		face.pressed.connect(func() -> void: BossDossier.open_for(get_tree(), drift))
 	else:  # One centred card for every nightmare (its name, what it does)
 		face.pressed.connect(func() -> void: NightmareIntro.open_for(get_tree(), [data], drift))
-	item.add_child(face)
-	var badge := Label.new()  # How many come: a badge on the disc's lower-right corner
+	holder.add_child(face)
+	var badge := Label.new()  # How many come: on a dark pill inside the disc's lower-right corner
 	badge.name = "KindCount"
 	badge.text = "×%d" % count
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UiStyle.number(badge, 13, UiStyle.GOLD)
-	badge.add_theme_color_override("font_outline_color", UiStyle.FOG)
-	badge.add_theme_constant_override("outline_size", 5)
-	badge.position = Vector2(side - 14, side - 16)
-	face.add_child(badge)
-	if NightmareCard.is_new(data):  # "New": a small gold badge on the upper-left corner
+	badge.add_theme_stylebox_override("normal", _pill())
+	badge.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	badge.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	holder.add_child(badge)
+	if breaks_rules or NightmareCard.is_new(data):  # "New": a gold tab over the disc's top edge (a new rule-breaker: always)
 		var tag := Label.new()
 		tag.name = "New"
 		tag.text = "New"
 		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		UiStyle.caps(tag, 11, UiStyle.GOLD)
-		tag.add_theme_color_override("font_outline_color", UiStyle.FOG)
-		tag.add_theme_constant_override("outline_size", 5)
-		tag.position = Vector2(-4, -6)
-		face.add_child(tag)
+		tag.add_theme_stylebox_override("normal", _pill())
+		tag.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+		tag.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		tag.offset_top = -6.0
+		holder.add_child(tag)
 	if not compact:
 		var icons := NightmareIcons.make_rows(data, 14.0, true)
-		icons.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		# The item's full width (the flow centres them): shrunk to one icon, a flow wrapped every icon onto its own line
+		# (a Phantom resisting one family and weak to another stood 113 px tall, Spire 2026-10-02).
+		icons.size_flags_horizontal = Control.SIZE_FILL
 		item.add_child(icons)
+	if breaks_rules:  # Just its verb ("Flies"): the DriftPanel's warning line has the sentence
+		var words := Label.new()
+		words.name = "TraitWords"
+		words.text = String(RuleBreakers.VERBS.get(data.trait_kind, "Breaks the rules")).capitalize()
+		words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		words.add_theme_font_size_override("font_size", 14)
+		words.add_theme_color_override("font_color", UiStyle.GOLD)
+		item.add_child(words)
 	return item
+
+# The dark pill behind a badge (like the status stack pills): readable over any portrait.
+func _pill() -> StyleBoxFlat:
+	var pill := StyleBoxFlat.new()
+	pill.bg_color = Color(Palette.VOID, 0.85)
+	pill.set_corner_radius_all(6)
+	pill.content_margin_left = 3.0
+	pill.content_margin_right = 3.0
+	return pill
 
 # "+N": the kinds that didn't fit; a tap opens their cards in turn.
 func _more_chip(rest: Array) -> Control:

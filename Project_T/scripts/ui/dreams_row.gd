@@ -83,6 +83,7 @@ func refresh() -> void:
 		if _list.visible:
 			_build_list()
 	for icon in _icons:
+		icon.credit = credit_text(icon.card)
 		icon.set_live(dream_state.get_live_bonus_text(icon.card))
 		if _live_labels.has(icon.card.id) and is_instance_valid(_live_labels[icon.card.id]):
 			_live_labels[icon.card.id].text = icon.live
@@ -131,6 +132,8 @@ static func group_of(card: UpgradeData) -> String:
 # Plain text of the list (tests, and the pause menu's run summary).
 func get_list_text() -> String:
 	var lines: Array[String] = ["Dreams this run"]
+	if dream_state.supply_line() != "":
+		lines.append(dream_state.supply_line())
 	for icon in _icons:
 		var line := icon.card.display_name
 		if icon.stacks > 1:
@@ -153,6 +156,12 @@ func _build_list() -> void:
 	title.text = "Dreams this run"
 	UiStyle.title(title, 20)
 	_list_box.add_child(title)
+	if dream_state.supply_line() != "":  # Rerolls and let-gos are a run-long supply (DreamState)
+		var supply := Label.new()
+		supply.name = "Supply"
+		supply.text = dream_state.supply_line()
+		UiStyle.caps(supply)
+		_list_box.add_child(supply)
 	if _icons.is_empty():
 		var none := Label.new()
 		none.text = "None yet. Dreams come at every rest."
@@ -215,23 +224,21 @@ func _card_row(source: DreamIcon) -> Control:
 	var body := StatusLinks.make_label(card.description, 14, UiStyle.INK)
 	body.mouse_filter = Control.MOUSE_FILTER_PASS
 	text.add_child(body)
-	var resonance: String = dream_state.resonance_line(card) if dream_state.has_method("resonance_line") else ""
-	if resonance != "":  # Tag resonance, locked when taken (dream_audit.md)
-		var res_label := Label.new()
-		res_label.text = resonance
-		res_label.add_theme_color_override("font_color", UiStyle.GOLD)
-		res_label.add_theme_font_size_override("font_size", 13)
-		text.add_child(res_label)
-	if source.dormant:  # Asleep: dimmed, with the families it still needs ("Needs Dewdrop")
-		var needs_row := NeedsRow.make(dream_state.missing_needs(card), 13, UiStyle.INK_DIM) if dream_state.has_method("missing_needs") else null
-		if needs_row != null:  # "Needs Wind", as on the Dream card
-			text.add_child(needs_row)
-		else:
-			var needs := Label.new()
-			needs.text = _sleeping_text(card)
-			needs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			UiStyle.caps(needs, 13)
-			text.add_child(needs)
+	if CardDiagram.has_diagram(card):  # Placement cards show their diagram (dream_design.md)
+		text.add_child(CardDiagram.make(card))
+	if source.credit != "":  # Feeling the cards: what it did this run
+		var credit := Label.new()
+		credit.name = "Credit"
+		credit.text = source.credit
+		UiStyle.number(credit, 14, UiStyle.GOLD)
+		text.add_child(credit)
+	if source.dormant:  # Not active yet: dimmed, and why ("Not active yet: needs a Water Warden"; no NeedsRow)
+		var needs := Label.new()
+		needs.text = _sleeping_text(card)
+		needs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		needs.add_theme_font_size_override("font_size", 13)
+		needs.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		text.add_child(needs)
 		frame.modulate = Color(1, 1, 1, 0.55)
 	row.add_child(text)
 	var live := Label.new()
@@ -267,12 +274,28 @@ func _missing_text(card: UpgradeData) -> String:
 
 # "Needs Dewdrop" for a sleeping card (dream_design.md half-dreamed "Card face"; no "Half-dreamed" label).
 func _sleeping_text(card: UpgradeData) -> String:
+	var reason: String = dream_state.not_active_reason(card) if dream_state.has_method("not_active_reason") else ""
+	if reason != "":
+		return reason  # "Not active yet: needs a Water Warden" (dream_design.md 2026-10-01)
 	var text: String = dream_state.missing_families_text(card) if dream_state.has_method("missing_families_text") else ""
 	return IconInfo.format(text) if text != "" else _needs_text(card)
 
-# A card still asleep until its families are yours (dream_design.md "Adapt, don't get handed"): shown greyed.
+# A card still asleep until its families are yours (dream_design.md "Adapt, don't get handed"), or not active yet
+# (needs a Warden you don't have): shown greyed, its hover says why.
 func _dormant(card: UpgradeData) -> bool:
-	return dream_state.has_method("is_dormant") and dream_state.is_dormant(card)
+	return (dream_state.has_method("is_dormant") and dream_state.is_dormant(card)) \
+		or (dream_state.has_method("not_active_reason") and dream_state.not_active_reason(card) != "")  # Or waiting on a Warden it needs
+
+# "This run: +1,840" / "This run: +60 Dew" (dream_design.md "Feeling the cards"; DreamState's credit), "" before any.
+func credit_text(card: UpgradeData) -> String:
+	if not dream_state.has_method("get_card_credit"):
+		return ""
+	var credit: Dictionary = dream_state.get_card_credit(card.id, &"run")
+	if float(credit.get("amount", 0.0)) <= 0.0 and float(credit.get("damage", 0.0)) <= 0.0:
+		return ""
+	var text := String(credit.get("text", ""))
+	var at := text.find(" · ")
+	return "This run: " + (text.substr(at + 3) if at >= 0 else text)
 
 func _toggle_list() -> void:
 	_list.visible = not _list.visible
@@ -287,18 +310,24 @@ class DreamIcon extends Control:
 	var live := ""  # The live bonus under the icon ("" = none)
 	var dormant := false  # Asleep until its families are yours: greyed, "Needs Dewdrop" in the tooltip
 	var sleeping_text := ""
+	var credit := ""  # "This run: +1,840" (DreamsRow.credit_text)
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		set_live(live)
 
+	var _tip_credit := ""
+
 	func set_live(text: String) -> void:
-		if text == live and tooltip_text != "":
+		if text == live and credit == _tip_credit and tooltip_text != "":
 			return
 		live = text
-		tooltip_text = "%s (%s%s)\n%s%s" % [card.display_name, UpgradeData.rarity_name(card.rarity),
+		_tip_credit = credit
+		tooltip_text = "%s (%s%s)\n%s%s%s%s" % [card.display_name, UpgradeData.rarity_name(card.rarity),
 			" ×%d" % stacks if stacks > 1 else "", IconInfo.format(card.description),
-			"\n" + sleeping_text if dormant else ("\nNow: " + live if live != "" else "")]
+			("\n" + IconInfo.format(card.tip)) if card.tip != "" else "",  # The card's detail (Sunlit Rest: which rank, who)
+			"\n" + sleeping_text if dormant else ("\nNow: " + live if live != "" else ""),
+			"\n" + credit if credit != "" else ""]
 		queue_redraw()
 
 	func _gui_input(event: InputEvent) -> void:
@@ -308,7 +337,7 @@ class DreamIcon extends Control:
 
 	func _draw() -> void:
 		var centre := Vector2(size.x / 2.0, 15.0)
-		UiStyle.draw_gem(self, centre, 12.0, card.rarity)
+		UiStyle.draw_gem(self, centre, 12.0, card.rarity, UiStyle.dream_glyph(card))  # The card's glyph in its gem
 		var font := UiStyle.number_font()
 		if stacks > 1:
 			var count := str(stacks)

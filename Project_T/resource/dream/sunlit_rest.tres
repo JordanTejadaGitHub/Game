@@ -6,7 +6,8 @@
 script = ExtResource("1_card")
 id = "sunlit_rest"
 display_name = "Sunlit Rest"
-description = "At every {rest}, your ranked Warden nearest the Heartwood gains a free rank. With none, your attacking Warden nearest it reaches rank I."
+description = "At every {rest}, the attacking Warden nearest the Heartwood gains a free Nurture rank."
+tip = "The free rank repeats that Warden's last rank choice (Power if it has none). If it's at max rank, the next-nearest gets it."
 rarity = 1
 kind = 3
 tags = Array[String](["nurture", "tall"])

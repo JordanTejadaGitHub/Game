@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "static_field_ii"
 display_name = "Charged Field II"
-description = "{static} bolts also hit nightmares within 1.5 tiles, and give them 1 {static} stack."
+description = "{static} bolts also hit nightmares within 1.5 cells, and give them 1 {static} stack."
 rarity = 2
 kind = 3
 tags = Array[String](["storm"])
@@ -14,4 +14,4 @@ requires = Array[String](["firefly_jar"])
 max_stacks = 1
 deepens = "static_field"
 rule_id = &"static_field"
-in_start_pool = false
+in_start_pool = true

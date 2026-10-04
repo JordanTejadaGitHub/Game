@@ -6,7 +6,8 @@
 script = ExtResource("1_card")
 id = "kin_and_kindling"
 display_name = "Kin and Kindling"
-description = "Harmony strikes also apply both Wardens' statuses (1 stack each) to the nightmare."
+description = "{harmonies} apply both Wardens' statuses (1 stack each) to the nightmare."
+cost_description = "They deal no damage."
 rarity = 2
 kind = 3
 tags = Array[String](["kinship", "reaction"])

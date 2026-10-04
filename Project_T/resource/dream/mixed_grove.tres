@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "mixed_grove"
 display_name = "Mixed Grove"
-description = "A Warden touching a Warden of another family deals 15% more damage for each such family (max +45%)."
+description = "A Warden touching a Warden of another family deals 15% more damage for each such family (up to +45%)."
 rarity = 1
 kind = 3
 tags = Array[String](["variety", "maze", "overgrowth"])
@@ -14,3 +14,4 @@ requires = Array[String]([])
 max_stacks = 1
 min_families = 2
 rule_id = &"mixed_grove"
+in_start_pool = false

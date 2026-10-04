@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_sporemother"
 display_name = "Sporemother"
-description = "Any spore final form can ascend into Sporemother (400 Dew, one per run): every second she breathes spores over everything in range (4 {spored} each); nightmares at 10 stacks burst and spread them."
+description = "Any {family:sporeling}-family final form can ascend into Sporemother ({grow_cost:sporemother} Dew, one per run): her storm gives 2 {spored} per second to everything in range, and {spored} never wears off while a nightmare is in her range."
 rarity = 3
 kind = 1
 tags = Array[String](["spore"])

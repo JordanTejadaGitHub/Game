@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "overlap"
+display_name = "Overlap"
+description = "A nightmare hit by two different Wardens' area attacks within 1 s takes 40% more from the second."
+rarity = 1
+kind = 3
+tags = Array[String](["reach"])
+max_stacks = 1
+in_start_pool = false
+rule_id = &"overlap"
+diagram = ".......\n.PPPPP.\n.W.*.W.\n.......\n......."
+diagram_caption = "Two area Wardens covering the same spot: +40%."

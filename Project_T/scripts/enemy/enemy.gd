@@ -24,6 +24,9 @@ signal rose_again(enemy: Node2D)
 signal lapped(enemy: Node2D)
 signal lantern_requested(enemy: Node2D)
 signal bellow_requested(enemy: Node2D)  # Hollow Stag at half health: its bellow_spawn run from the start
+# A boss that got through stays at the Heartwood and drains a leaf every HEARTWOOD_DRAIN_EVERY s (the
+# spawner takes it and emits boss_drained); enemy_design.md "A boss that reaches the Heartwood stays".
+signal heartwood_drained(enemy: Node2D)
 signal wither_requested(enemy: Node2D, count: int)
 signal echo_requested(enemy: Node2D, act: int)
 signal shrugged(enemy: Node2D)
@@ -73,6 +76,21 @@ const LEAP_TIME := 0.45  # Seconds to sink, move under the mire and rise again
 const GROUP := "enemies"
 const BLIGHT_SHADER := preload("res://shaders/blight.gdshader")
 const HEALTH_BAR_SIZE := Vector2(40, 5)
+const HEARTWOOD_DRAIN_EVERY := 2.0  # A boss at the Heartwood takes a leaf this often (s)
+const GROUND_DROP_TIME := 0.25  # Groundroot: a flyer's drop onto the route
+const CORNER_ROUNDING := 0.3  # Cells before and after a turn's centre where the drawn path curves (the route stays square)
+const BOSS_SILENCE_SPEED := 0.5  # A silenced boss's timed abilities run this fast (Hushbell; tower_design.md 279ebb63)
+const BOSS_SILENCE_FLOOR := 0.35  # …and never slower than this, however deep the Hushbell (Nurture rework e2631f54)
+const UNTOUCHABLE_TINT := Color(0.42, 0.38, 0.55)  # The Night Mare lingering: a dark, smoky shimmer (a self_modulate multiplier)
+const UNTOUCHABLE_ALPHA := 0.55
+const AWAKE_RING_COLOR := Color(Palette.MOONLIGHT, 0.35)  # Just woke: can't fall asleep again yet
+const AWAKE_RING_RADIUS := 20.0
+const AWAKE_RING_POINTS := 24
+const SLOW_FLOOR_COLOR := Color(Palette.MOONLIGHT, 0.75)  # Slowed to the limit: the floor mark
+# Enemy Assets' art bounds: {sheet: {"frame", "top", "bottom"}} (px from the frame centre). The bar
+# goes BAR_ABOVE_HEAD over the top of tall art (the big bosses), never lower than HEALTH_BAR_OFFSET.
+const ART_BOUNDS_PATH := "res://assets/creatures/bounds.json"
+const BAR_ABOVE_HEAD := 6.0
 const HEALTH_BAR_OFFSET := Vector2(0, -38)  # Bar centre, relative to the enemy's origin
 # Dispel: shriek, crack with light, burst, then the motes drift up (about 1.2 s in all).
 const SHRIEK_TIME := 0.12
@@ -95,10 +113,27 @@ var health_scale := 1.0
 # Damp, Drowsy, Spored, Marked, Static (see EnemyStatuses). Wardens apply them via apply_status().
 var statuses := EnemyStatuses.new()
 
+# Status icons (screens_ui.md "Status icons, revised"): the bare pixel-art icons in one row above the
+# health bar, a thin bar under each that shortens with the time left, the stack count in the lower-
+# right corner from 2 stacks (gold, with a glow behind the icon, at max). Screen px (they keep their
+# screen size when zoomed and follow the UI scale); bosses and elites get the big ones.
+const STATUS_BADGE := 28.0
+const STATUS_BADGE_BIG := 32.0
+const STATUS_BADGE_GAP := 3.0
+const STATUS_BADGES_MAX := 3  # More → the most important ones (BADGE_ORDER) and "+N" (4 at 28 px overhang both neighbours)
+const BADGE_ORDER: Array[StringName] = [&"static", &"held", &"silenced", &"marked", &"spored", &"drowsy", &"damp"]
+const VIEW_MARGIN := 96.0  # px past the screen edge where nightmares still draw (their badges overhang)
+const HUD_TIME_FRAMES := 4  # The time bars under the icons are looked at every this many frames (_update_hud)
+const TIME_BAR_GAP := 6.0  # Room under each icon for its time bar (px, above the health bar)
+const TIME_BAR_HEIGHT := 3.0
+# The HUD's canvas items (update_hud), each kind on its own z layer so the whole field batches.
+enum { HUD_BARS, HUD_MARKS, HUD_ICONS, HUD_PILLS, HUD_TEXT }
+const HUD_PASSES := [HUD_BARS, HUD_MARKS, HUD_ICONS, HUD_PILLS, HUD_TEXT]
 const STATUS_DOT_RADIUS := 3.0  # Fallback when the icon sheet has no icon for a status
-const STATUS_ICON_STEP := 17.0  # 16 px icons, 1 px apart
-const STACK_FONT_SIZE := 8
-static var _icons := {}  # {status id: Texture2D or null}, shared by every nightmare
+const STACK_FONT_SIZE := 16
+const STACK_POP_TIME := 0.18  # An icon's quick scale bump when a stack is added
+const STACK_POP_SCALE := 0.35  # …up to this much bigger
+const STACK_PIP_MAX := 4.0  # Stack pips above an icon: at most this big (px), smaller when many
 const BOLT_FLASH_TIME := 0.2
 const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
 # Damage that only happened because of a Reaction (DamageLog: whole-hit combos, event kind "reaction").
@@ -111,6 +146,13 @@ const CRIT_FLASH_TIME := 0.3  # Seconds a crit counts as "just happened" (the gl
 var _crit_flash := 0.0
 # Extra Dew when dispelled (Magpie Perch: +1 once it's been hit by a magpie).
 var bonus_dew := 0
+# The Dew pot (run_design.md "The Dew pot"): its share of its drift's pot, set by the DriftDirector at
+# spawn (set_dew_share); -1 = none assigned (old rule: EnemyData.dew_reward). Followers share half of
+# their leader's (dew_followers); split children share 60% of their parent's (the spawner's _split).
+var dew_share := -1.0
+var dew_followers: Array = []
+const FOLLOWER_DEW_SHARE := 0.5  # Of a leader's share, split among its followers
+const SPLIT_CHILDREN_DEW_SHARE := 0.6  # Of a parent's share, split among the children it breaks into
 # The next hit ignores the blight coat's (dread shell's) reduction (Needle Point pecks).
 var pierce_coat_once := false
 # Seconds before this nightmare can be frozen (Frostfern) / pushed back (Whirligig) again.
@@ -152,6 +194,12 @@ var _trait_timer := 0.0
 var _trampled := 0
 var _startled := false
 var _charge_left := 0.0
+var at_heartwood := false  # A boss that got through: it stays, draining leaves (see heartwood_drained)
+var _drain_left := 0.0  # Seconds to its next leaf (0 on arrival: the first goes at once)
+var _linger_left := 0.0  # Night Mare: seconds left of this visit before it gallops off again
+var _grounded_left := 0.0  # Groundroot: seconds left on the ground (a flyer walking the maze; see ground)
+var _corner_offset := Vector2.ZERO  # Drawn minus logical position on a rounded corner (_round_corners)
+var _untouchable := false  # Night Mare lingering: no hits, no statuses, not targeted (_set_untouchable)
 var straight_charging := false  # Hollow Stag: on a straight of straight_charge_tiles+ (see _update_straight_charge)
 var _bellowed := false
 var _leaping := false  # Sinking / underground / rising (Mire Hag, Gravecrawler): not walking
@@ -186,7 +234,35 @@ var _held_by: Node = null
 var _lingered := false
 var _release_spent := false  # The current hold came from a release pull (Snare): it won't pull again
 var _caught_left := 0.0  # Caught time after last frame's tick (a rise = caught again)
-var _drawn_changes := -1
+var _redraw_pending := false  # Something drawn changed: redrawn in _process once on screen
+var _bar_offset := HEALTH_BAR_OFFSET  # The health bar's centre: raised over tall art (_measure_bar_offset)
+# The HUD's canvas items (update_hud): a root the overlay moves, and one item per HUD_* kind
+var _hud_root := RID()
+var _hud_items: Array[RID] = []
+var _hud_shown := false
+var _hud_scale := -1.0
+# What the bars item shows (health, coat, Restless, bars always), and the marks item (statuses, time-bar steps)
+var _hud_health := -2  # (Bar width in px; -1 = hidden)
+var _hud_coat := -1
+var _hud_restless := -1
+var _hud_unbound := false
+var _hud_always := false
+var _hud_slow_capped := false  # Slowed to the limit (statuses.slow_capped): a floor mark under the bar
+var _hud_awake := false  # Can't fall asleep again yet (statuses.sleep_cooldown): a faint ring
+var _hud_marks_key := -1
+var _hud_stagger := randi() % 4  # So a crowd doesn't check its time bars on the same frame
+var _hud_pops := {}  # {status id: seconds left of its icon's pop} (a stack was just added)
+var _hud_popping := false
+var _hud_flashing := false
+var hud_builds := 0  # Items rebuilt (tests: only when something changed)
+# The badge row, cached until statuses.changes moves (_update_hud_layout)
+var _hud_changes := -1
+var _hud_ids: Array = []
+var _hud_total := 0  # Badge-worthy statuses in all (silence included): "+N" = this − the shown ones
+var _hud_stacks: Array[int] = []
+var _hud_full: Array[bool] = []
+var _hud_colors: Array[Color] = []
+var _hud_icons: Array[Texture2D] = []
 var _drawn_aura := false
 var _was_animating := false
 var _speed_cache := 0.0
@@ -231,6 +307,7 @@ var _lantern_timer := 0.0
 var _shrug_timer := 0.0
 var _shrug_flash := 0.0
 var _since_hit := 0.0  # Seconds since the last hit (Mourning Mother's Sorrow)
+var sorrowing := false  # Mourning Mother mending right now (Sorrow): plays her "sorrow" loop
 var _regen_left := -1.0  # Health it may still mend (< 0 = not worked out yet)
 var _wither_timer := 0.0
 var _wither_bursts := 0  # wither_burst_at shares already passed
@@ -240,6 +317,10 @@ var _regrouped := false  # Huntsman's pack came back at half health; no more hor
 # Cells to walk through, in grid coordinates. `_path_index` is the cell we're currently walking toward.
 var _path: PackedVector2Array
 var _path_index: int = 0
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		_free_hud()  # Its HUD canvas items live in the RenderingServer, not in the tree
 
 func _ready() -> void:
 	add_to_group(GROUP)
@@ -252,6 +333,7 @@ func _ready() -> void:
 	health = max_health
 	speed = enemy_data.speed * modifiers.get("speed", 1.0)
 	statuses.is_boss = enemy_data.is_boss
+	statuses.is_elite = elite  # Deeply Blighted: its own slow floor
 	statuses.ignores_slows = enemy_data.ignores_slows
 	# A copy: Omens (Sleepless) add to it per nightmare, never to the shared EnemyData.
 	statuses.immune = enemy_data.status_immune.duplicate()
@@ -272,15 +354,15 @@ func _ready() -> void:
 	# Set up animations
 	sprite.sprite_frames = enemy_data.sprite_frames
 	sprite.scale = Vector2.ONE * enemy_data.sprite_scale * (ELITE_SCALE if elite else 1.0)
+	_measure_bar_offset()
 	sprite.modulate = enemy_data.tint
 	if is_echo:
 		sprite.modulate.a *= ECHO_ALPHA  # A pale face from the Oak's bark
 	sprite.play("walk_side")
 
-	# Nightmare look: per-enemy material so each one can crack apart on its own
-	var blight_material := ShaderMaterial.new()
-	blight_material.shader = BLIGHT_SHADER
-	sprite.material = blight_material
+	# Nightmare look: one material shared by every nightmare (so their sprites batch into few draw
+	# calls); one cracking apart gets its own copy (_set_crack), outlined elites share a second one.
+	sprite.material = _blight_material(false)
 
 	_refresh_display_settings()
 	_keep_always_statuses()
@@ -288,7 +370,7 @@ func _ready() -> void:
 		_set_hidden(true)  # Revealed on the first presence tick if something sees it
 
 func _process(delta: float) -> void:
-	if is_cleansed or _path_index >= _path.size():
+	if is_cleansed or (_path_index >= _path.size() and not at_heartwood):
 		return
 
 	# Thin-family bookkeeping only while one of those cards is owned (the spawner checks once a frame).
@@ -319,6 +401,7 @@ func _process(delta: float) -> void:
 		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 		if dreams != null:
 			spore_soothe *= dreams.get_spored_tick_multiplier(self)  # Damp Rot: harder on Soaked nightmares
+		BranchKit.on_spore_tick(self)  # Lichenling: its spores strip the dread shell and stop mending
 		take_damage(spore_soothe, statuses.spore_line(), true, false, statuses.source(EnemyStatuses.SPORED),
 			&"spored")
 		if is_cleansed:
@@ -327,41 +410,72 @@ func _process(delta: float) -> void:
 		Reactions.on_smother_ended(self)  # Fever Dream (a Crowned Reaction)
 		if is_cleansed:
 			return
-	_bolt_flash = maxf(_bolt_flash - delta, 0.0)
-	_shrug_flash = maxf(_shrug_flash - delta, 0.0)
+	# Timers: only the running ones count down (most sit at 0; this runs for every nightmare every frame).
+	if _bolt_flash > 0.0:
+		_bolt_flash = maxf(_bolt_flash - delta, 0.0)
+	if _shrug_flash > 0.0:
+		_shrug_flash = maxf(_shrug_flash - delta, 0.0)
 	if elite:
 		_haze_phase += ELITE_HAZE_SPEED * delta
-	_hit_mark_time = maxf(_hit_mark_time - delta, 0.0)
-	for id: StringName in (_status_flash.keys() if not _status_flash.is_empty() else []):
-		_status_flash[id] -= delta
-		if _status_flash[id] <= 0.0:
-			_status_flash.erase(id)
-	_crit_flash = maxf(_crit_flash - delta, 0.0)
-	_pose_left = maxf(_pose_left - delta, 0.0)
-	freeze_cooldown = maxf(freeze_cooldown - delta, 0.0)
-	push_cooldown = maxf(push_cooldown - delta, 0.0)
-	# Smother's looping effect lasts while it's held with spores on it (Reactions).
-	if has_meta(&"smother_fx") and not statuses.smothering:
-		var smother = get_meta(&"smother_fx")
-		if is_instance_valid(smother):
-			smother.queue_free()
-		remove_meta(&"smother_fx")
-	# Redraw only when something drawn changed: the status row (a status came, went or changed
-	# stacks), the Stag aura ring, or an animation that's playing (flashes, haze, embers, glow).
-	# Health / shell bars redraw from take_damage and heal.
+	if _hit_mark_time > 0.0:
+		_hit_mark_time = maxf(_hit_mark_time - delta, 0.0)
+	if not _status_flash.is_empty():
+		for id: StringName in _status_flash.keys():
+			_status_flash[id] -= delta
+			if _status_flash[id] <= 0.0:
+				_status_flash.erase(id)
+	if _crit_flash > 0.0:
+		_crit_flash = maxf(_crit_flash - delta, 0.0)
+	if _pose_left > 0.0:
+		_pose_left = maxf(_pose_left - delta, 0.0)
+	if freeze_cooldown > 0.0:
+		freeze_cooldown = maxf(freeze_cooldown - delta, 0.0)
+	if push_cooldown > 0.0:
+		push_cooldown = maxf(push_cooldown - delta, 0.0)
+	if _grounded_left > 0.0 and not _leaping:  # Groundroot: back up into the air when it runs out
+		_grounded_left -= delta
+		if _grounded_left <= 0.0:
+			_rise_from_ground()
+	# Smother's looping effect lasts while it's held with spores on it (Reactions): ended on the frame
+	# tick() reports it stopping, and checked on each presence tick as well (_update_presence).
+	if statuses.smother_ended:
+		_end_smother_fx()
+	# Its own drawing (the bars and badges are NightmareOverlay's): redrawn only for the Stag aura ring
+	# or an animation that's playing (flashes, haze, embers, glow); off screen it waits until it's back.
 	var aura := statuses.is_in_stag_aura()
 	var animating := _bolt_flash > 0.0 or _shrug_flash > 0.0 or _hit_mark_time > 0.0 or elite or _crit_flash > 0.0 \
-		or not _status_flash.is_empty() or not _ash_cells.is_empty() or unbound
-	if animating or _was_animating or statuses.changes != _drawn_changes or aura != _drawn_aura:
-		_drawn_changes = statuses.changes
+		or not _ash_cells.is_empty() or unbound or enemy_data.pack_shield < 1.0  # (The Huntsman's shield ring follows his hounds)
+	if animating or _was_animating or aura != _drawn_aura:
 		_drawn_aura = aura
-		queue_redraw()  # (One more after an animation ends, to clear its last frame.)
+		_redraw_pending = true  # (One more after an animation ends, to clear its last frame.)
 	_was_animating = animating
+	if _redraw_pending and _on_screen(self):
+		_redraw_pending = false
+		queue_redraw()
+	_update_hud(delta)
 	_update_presence(delta)
 
 	if _dragging:
 		_update_drag(delta)  # Pulled back: no walking, traits or trampling meanwhile
 		return
+	if at_heartwood:
+		if _path_index < _path.size():
+			at_heartwood = false  # Pulled back off the Heartwood, or re-routed: it walks in again
+		else:
+			if enemy_data.laps():  # Night Mare: it lingers (10 s: leaves at 0, 2 … 8), then gallops off again
+				_linger_left -= delta
+				sprite.self_modulate.a = UNTOUCHABLE_ALPHA + 0.15 * sin(Time.get_ticks_msec() / 180.0)  # Smoky shimmer
+				if _linger_left <= 0.0:
+					_linger_left = 0.0
+					at_heartwood = false
+					_set_untouchable(false)  # Back on the path: it can be hit again
+					_lap()
+					return
+			_drain_left -= delta  # It stays, draining a leaf every HEARTWOOD_DRAIN_EVERY s
+			if _drain_left <= 0.0:
+				_drain_left = HEARTWOOD_DRAIN_EVERY
+				heartwood_drained.emit(self)
+			return
 	if hold_time > 0.0:
 		hold_time -= delta
 		return
@@ -408,16 +522,46 @@ func _process(delta: float) -> void:
 
 	# Update animation based on movement direction
 	update_animation(position - previous_position)
+	_round_corners()
 
 	if _path_index >= _path.size():
 		if loops_route:
 			_restart_route()
 			return
-		if enemy_data.laps():
-			_lap()
+		if enemy_data.laps() and _linger_left <= 0.0:  # Night Mare: a new visit, a little longer each lap
+			_linger_left = enemy_data.lap_linger + enemy_data.lap_linger_step * laps
+			_drain_left = 0.0  # Its first leaf of the visit at once
+			_set_untouchable(true)  # At the Heartwood it can't be touched
+		if (enemy_data.is_boss and not is_echo and enemy_data.stays_at_heartwood) or enemy_data.laps():
+			at_heartwood = true  # The Hollow Oak stays (the timers keep running if it's re-routed and walks back in)
 			return
+		if BranchKit.before_goal(self):
+			return  # Heartroot's "Not yet": dragged back off the Heartwood (the drift's first leak)
 		reached_goal.emit(self)
 		queue_free()
+
+# Night Mare: seconds left of its stay at the Heartwood (0 when it isn't there): the boss bar shows it.
+func linger_left() -> float:
+	return _linger_left if at_heartwood else 0.0
+
+# Night Mare lingering at the Heartwood: it can't be hit or given statuses, and no Warden targets it
+# (it leaves the enemies group, as hidden nightmares do); a dark, smoky shimmer. The boss bar tags it.
+func is_untouchable() -> bool:
+	return _untouchable
+
+func _set_untouchable(value: bool) -> void:
+	if value == _untouchable:
+		return
+	_untouchable = value
+	if value:
+		remove_from_group(GROUP)
+		for id in statuses.active_ids():
+			statuses.remove(id)  # Nothing sticks while it lingers
+		sprite.self_modulate = Color(UNTOUCHABLE_TINT, UNTOUCHABLE_ALPHA)
+	else:
+		if not _hidden and not is_cleansed:
+			add_to_group(GROUP)
+		sprite.self_modulate = Color(1, 1, 1, HIDDEN_ALPHA if _hidden else 1.0)
 
 # Night Mare: the Heartwood loses its lap leaves (the spawner takes them) and the Mare gallops back to
 # the start, faster each time.
@@ -478,56 +622,340 @@ func _draw() -> void:
 		var t := _shrug_flash / SHRUG_FLASH_TIME
 		draw_arc(Vector2.ZERO, enemy_data.shrug_radius * grid.cell_size.x * (1.0 - t * 0.6), 0.0, TAU, 48,
 			Color(SHRUG_COLOR, 0.6 * t), 4.0)
-	if enemy_data.pack_shield < 1.0 and pack_alive() > 0:  # Huntsman: the faint ring the pack keeps round him
+	if enemy_data.pack_shield < 1.0 and get_pack_multiplier() < 1.0:  # Huntsman: the faint ring while the pack shields him
 		draw_arc(Vector2(0, -8), 30.0 * sprite.scale.x, 0.0, TAU, 32, Color(Palette.DEWLIGHT, 0.35), 2.0)
 	if _hit_mark_time > 0.0:
 		_draw_hit_mark(_hit_mark_time / HIT_MARK_TIME)
 	if statuses.is_in_stag_aura():
 		draw_arc(Vector2(0, 6), 18.0, 0.0, TAU, 24, Color(Palette.MOONLIGHT, 0.35), 2.0)
-	# One icon per status (IconInfo's pixel-art sheet; a coloured dot if it has none), in a row just
-	# above the health bar, with the stack count when there's more than one.
-	var ids := statuses.active_ids()
-	var x := -(ids.size() - 1) * STATUS_ICON_STEP / 2.0
-	for id in ids:
-		var at := HEALTH_BAR_OFFSET + Vector2(x, -12)
-		var color: Color = EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT)
-		var texture := _status_icon(id)
-		if texture != null:
-			draw_texture(texture, (at - texture.get_size() / 2.0).round())
-		else:
-			draw_circle(at, STATUS_DOT_RADIUS + 1, Color(Palette.VOID, 0.8))
-			draw_circle(at, STATUS_DOT_RADIUS, color)
+	# The health bar, coat, Restless arrows and status badges are in the HUD's own canvas items (update_hud).
+
+# The HUD over this nightmare (health bar, blight coat, Restless arrows, status badges), in canvas
+# items of its own under this node's (so they move with it, and the renderer culls them off screen):
+# HUD_BARS, HUD_MARKS, HUD_ICONS, HUD_TEXT, each on its own absolute z layer (NightmareOverlay.Z +
+# kind), so every nightmare's bars draw together, then every mark (time bars, glows: one atlas), every icon, every
+# number: the field batches. Each item is rebuilt only when what it shows changes (checked from
+# _process); freed with the nightmare. NightmareOverlay keeps the shared badge atlas.
+func _update_hud(delta: float) -> void:
+	var overlay: NightmareOverlay = _spawner.overlay if _spawner != null else null
+	if overlay == null or overlay.badge_atlas == null:
+		return
+	var show := not _hidden and not is_cleansed
+	if not _hud_root.is_valid():
+		if not show:
+			return
+		_make_hud()
+	if show != _hud_shown:
+		_hud_shown = show
+		RenderingServer.canvas_item_set_visible(_hud_root, show)
+	if not show:
+		return
+	var text_scale := WorldLabel.text_scale(self)
+	if text_scale != _hud_scale:  # The badges keep their screen size: scaled round the row's anchor
+		_hud_scale = text_scale
+		var badges := Transform2D(0.0, Vector2(text_scale, text_scale), 0.0, _hud_anchor())
+		for kind in [HUD_MARKS, HUD_ICONS, HUD_PILLS, HUD_TEXT]:
+			RenderingServer.canvas_item_set_transform(_hud_items[kind], badges)
+	# The bars are keyed on their width in whole px (a smaller change can't be seen), -1 = not shown.
+	var bar_px := int(HEALTH_BAR_SIZE.x * health / max_health) if health < max_health or _bars_always else -1
+	var coat_px := int(HEALTH_BAR_SIZE.x * coat / maxf(coat_max, 1.0)) if coat > 0.0 else -1
+	var awake := statuses.sleep_cooldown > 0.0
+	if bar_px != _hud_health or coat_px != _hud_coat or restless != _hud_restless or unbound != _hud_unbound \
+			or _bars_always != _hud_always or statuses.slow_capped != _hud_slow_capped or awake != _hud_awake:
+		_hud_health = bar_px
+		_hud_coat = coat_px
+		_hud_restless = restless
+		_hud_unbound = unbound
+		_hud_always = _bars_always
+		_hud_slow_capped = statuses.slow_capped
+		_hud_awake = awake
+		_build_hud_bars(_hud_items[HUD_BARS])
+		hud_builds += 1
+	if _hud_ids.is_empty() and _hud_changes == statuses.changes:
+		return  # No badges: nothing more to check
+	var changed := _hud_changes != statuses.changes
+	if changed:
+		_update_hud_layout()
+		_build_hud_pills(_hud_items[HUD_PILLS], overlay)
+		_build_hud_text(_hud_items[HUD_TEXT])
+	# A stack was just added: that icon pops (a quick scale bump), rebuilt each frame while it plays.
+	if not _hud_pops.is_empty():
+		for id in _hud_pops.keys():
+			_hud_pops[id] -= delta
+			if _hud_pops[id] <= 0.0:
+				_hud_pops.erase(id)
+		_build_hud_icons(_hud_items[HUD_ICONS])
+		_hud_popping = true
+	elif changed or _hud_popping:
+		_hud_popping = false
+		_build_hud_icons(_hud_items[HUD_ICONS])
+	# The time bars shorten in TIME_STEPS steps: looked at every HUD_TIME_FRAMES frames (staggered), and
+	# the marks rebuilt when a step moved (or a status changed, or a combo flash plays).
+	var flashing := not _status_flash.is_empty()
+	if not changed and not flashing and not _hud_flashing \
+			and (Engine.get_process_frames() + _hud_stagger) % HUD_TIME_FRAMES != 0:
+		return
+	var marks_key := _hud_changes << 16  # Below that: 4 bits of time-bar steps per icon (up to 4 icons)
+	for i in _hud_ids.size():
+		marks_key += _time_steps(i) << (i * 4)
+	if marks_key != _hud_marks_key or flashing or _hud_flashing:
+		_hud_marks_key = marks_key
+		_hud_flashing = not _status_flash.is_empty()  # (One more once a flash ends, to clear it)
+		_build_hud_marks(_hud_items[HUD_MARKS], overlay)
+		hud_builds += 1
+
+func _make_hud() -> void:
+	_hud_root = RenderingServer.canvas_item_create()
+	RenderingServer.canvas_item_set_parent(_hud_root, get_canvas_item())  # Moves with the nightmare, no script
+	RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, _corner_offset))  # (Mid-corner already)
+	_hud_items.clear()
+	for kind in HUD_PASSES:
+		var item := RenderingServer.canvas_item_create()
+		RenderingServer.canvas_item_set_parent(item, _hud_root)
+		RenderingServer.canvas_item_set_z_as_relative_to_parent(item, false)
+		RenderingServer.canvas_item_set_z_index(item, NightmareOverlay.Z + kind)
+		if kind == HUD_ICONS:  # The pixel-art icons keep their pixels; the marks and numbers are smooth
+			RenderingServer.canvas_item_set_default_texture_filter(item, RenderingServer.CANVAS_ITEM_TEXTURE_FILTER_NEAREST)
+		elif kind != HUD_BARS:
+			RenderingServer.canvas_item_set_default_texture_filter(item, RenderingServer.CANVAS_ITEM_TEXTURE_FILTER_LINEAR)
+		_hud_items.append(item)
+	_hud_shown = true
+	_hud_scale = -1.0
+	_hud_changes = -1
+	_hud_health = -2  # Builds the bars on the first update
+
+func _free_hud() -> void:
+	if not _hud_root.is_valid():
+		return
+	for item in _hud_items:  # Children first, then the root
+		if item.is_valid():
+			RenderingServer.free_rid(item)
+	_hud_items.clear()
+	RenderingServer.free_rid(_hud_root)
+	_hud_root = RID()
+
+# Where the badge row sits (its bottom centre on the health bar's top edge), from the nightmare's origin.
+func _hud_anchor() -> Vector2:
+	return _bar_offset - Vector2(0, HEALTH_BAR_SIZE.y / 2.0 + 2.0)
+
+# The badge row's statuses, stacks, caps, colours and icons, worked out again only when a status
+# comes, goes or changes stacks (statuses.changes).
+func _update_hud_layout() -> void:
+	_hud_changes = statuses.changes
+	var before := {}  # Stacks last time: an icon whose stacks went up pops
+	for i in _hud_ids.size():
+		before[_hud_ids[i]] = _hud_stacks[i]
+	var order := get_status_order()
+	_hud_total = order.size()
+	_hud_ids = order.slice(0, STATUS_BADGES_MAX)
+	for id in _hud_ids:
+		if statuses.stacks(id) > int(before.get(id, 0)):
+			_hud_pops[id] = STACK_POP_TIME
+	_hud_stacks.clear()
+	_hud_full.clear()
+	_hud_colors.clear()
+	_hud_icons.clear()
+	for id in _hud_ids:
 		var stacks := statuses.stacks(id)
-		if stacks > 1:
-			var corner := at + Vector2(3, 8)
-			WorldLabel.begin_screen_size(self, corner)  # The number keeps its screen size when zoomed in
-			draw_string_outline(ThemeDB.fallback_font, corner, str(stacks), HORIZONTAL_ALIGNMENT_LEFT,
-				-1, STACK_FONT_SIZE, 3, Palette.DREAD)
-			draw_string(ThemeDB.fallback_font, corner, str(stacks), HORIZONTAL_ALIGNMENT_LEFT, -1,
-				STACK_FONT_SIZE, Palette.MOONLIGHT)
-			WorldLabel.end_screen_size(self)
-		if _status_flash.has(id):
-			var f: float = _status_flash[id] / STATUS_FLASH_TIME  # 1 -> 0
-			draw_circle(at, 7.0, Color(1, 1, 1, 0.55 * f))
-			draw_arc(at, 9.0 + 4.0 * (1.0 - f), 0.0, TAU, 16, Color(color, f), 1.5)
-		x += STATUS_ICON_STEP
+		var cap := statuses.get_max_stacks(id)
+		_hud_stacks.append(stacks)
+		_hud_full.append(cap > 1 and stacks >= cap)
+		_hud_colors.append(EnemyStatuses.COLORS.get(id, Palette.MOONLIGHT))
+		_hud_icons.append(_status_icon(id))
+
+# Status icon i's centre in the badge items' space (screen px round the anchor): a row of icons with
+# room under each for its time bar.
+func _badge_centre(i: int) -> Vector2:
+	var r := get_badge_size() / 2.0
+	var step := r * 2.0 + STATUS_BADGE_GAP
+	var extra := _hud_total - _hud_ids.size()
+	var width := _hud_ids.size() * step - STATUS_BADGE_GAP + (step * 0.6 if extra > 0 else 0.0)
+	return Vector2(-width / 2.0 + r + i * step, -r - TIME_BAR_GAP)
+
+func _time_steps(i: int) -> int:
+	return mini(ceili(statuses.time_share(_hud_ids[i]) * NightmareOverlay.TIME_STEPS), NightmareOverlay.TIME_STEPS)
+
+func _build_hud_bars(item: RID) -> void:
+	RenderingServer.canvas_item_clear(item)
+	if _hud_awake:  # Just woke: a faint ring round it, it can't fall asleep again yet (tower_design.md)
+		var ring := PackedVector2Array()
+		for i in AWAKE_RING_POINTS + 1:
+			ring.append(Vector2(0, -8) + Vector2.from_angle(TAU * i / AWAKE_RING_POINTS) * AWAKE_RING_RADIUS * sprite.scale.x)
+		RenderingServer.canvas_item_add_polyline(item, ring, PackedColorArray([AWAKE_RING_COLOR]), 1.5)
+	if _hud_slow_capped:  # Slowed to the limit: a pale floor line with end ticks under the health bar
+		var y := _bar_offset.y + HEALTH_BAR_SIZE.y / 2.0 + 3.0
+		var half := HEALTH_BAR_SIZE.x / 2.0
+		var floor_line := PackedVector2Array([Vector2(-half, y - 2), Vector2(-half, y), Vector2(half, y), Vector2(half, y - 2)])
+		RenderingServer.canvas_item_add_polyline(item, floor_line, PackedColorArray([SLOW_FLOOR_COLOR]), 1.5)
 	# Restless: a small backward arrow per stack, right of the health bar (red-hot once Unbound)
 	for i in restless:
-		var tip := HEALTH_BAR_OFFSET + Vector2(HEALTH_BAR_SIZE.x / 2 + 5 + i * 6, 0)
+		var tip := _bar_offset + Vector2(HEALTH_BAR_SIZE.x / 2 + 5 + i * 6, 0)
 		var arrow := PackedVector2Array([tip + Vector2(4, -3), tip, tip + Vector2(4, 3)])
-		draw_polyline(arrow, Color(Palette.VOID, 0.8), 3.0)
-		draw_polyline(arrow, UNBOUND_GLOW if unbound else RESTLESS_COLOR, 1.5)
+		RenderingServer.canvas_item_add_polyline(item, arrow, PackedColorArray([Color(Palette.VOID, 0.8)]), 3.0)
+		RenderingServer.canvas_item_add_polyline(item, arrow, PackedColorArray([UNBOUND_GLOW if unbound else RESTLESS_COLOR]), 1.5)
 	# Health bar once the enemy has been hit, with the blight coat as a grey bar on top of it
-	var bar := Rect2(HEALTH_BAR_OFFSET - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
+	var bar := Rect2(_bar_offset - HEALTH_BAR_SIZE / 2, HEALTH_BAR_SIZE)
 	if health < max_health or _bars_always:
-		draw_rect(bar.grow(1), Color(Palette.VOID, 0.8))
+		RenderingServer.canvas_item_add_rect(item, bar.grow(1), Color(Palette.VOID, 0.8))
 		var fill := bar
 		fill.size.x *= float(health) / max_health
-		draw_rect(fill, Palette.SPRIG)  # The health bar is HUD, not the nightmare: green reads as health
+		RenderingServer.canvas_item_add_rect(item, fill, Palette.SPRIG)  # The health bar is HUD, not the nightmare: green reads as health
 	if coat > 0.0:
 		var crust := Rect2(bar.position - Vector2(0, 4), Vector2(bar.size.x * coat / maxf(coat_max, 1.0), 3))
-		draw_rect(crust.grow(1), Color(Palette.VOID, 0.8))
-		draw_rect(crust, COAT_COLOR)
+		RenderingServer.canvas_item_add_rect(item, crust.grow(1), Color(Palette.VOID, 0.8))
+		RenderingServer.canvas_item_add_rect(item, crust, COAT_COLOR)
+
+# The marks around the status icons, from NightmareOverlay's atlas: a soft gold glow behind an icon at
+# max stacks, a row of pips above a stacking status's icon (one per stack it can hold, filled per
+# stack, gold when full), a thin bar under each icon that shortens with the time left, a dot if the
+# icon sheet has none, and the flash when a combo just used the status.
+func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
+	RenderingServer.canvas_item_clear(item)
+	var atlas: Texture2D = overlay.badge_atlas
+	var solid := overlay.badge_region(NightmareOverlay.MARK_SOLID)
+	var dot := overlay.badge_region(NightmareOverlay.MARK_DOT)
+	var r := get_badge_size() / 2.0
+	for i in _hud_ids.size():
+		var centre := _badge_centre(i)
+		var color: Color = _hud_colors[i]
+		var id: StringName = _hud_ids[i]
+		if _hud_full[i]:  # At max stacks: a warm glow behind the icon
+			var g := r * 1.7
+			atlas.draw_rect_region(item, Rect2(centre - Vector2(g, g), Vector2(g, g) * 2.0),
+				overlay.badge_region(NightmareOverlay.MARK_GLOW), Color(Palette.GOLD, 0.75))
+		var cap := statuses.get_max_stacks(id)
+		if cap > 1:  # Stack pips, centred over the icon
+			var pip := minf(STACK_PIP_MAX, (r * 2.0 - (cap - 1)) / cap)
+			var x := centre.x - (cap * pip + (cap - 1)) / 2.0
+			var y := centre.y - r - pip - 2.0
+			var lit: Color = Palette.GOLD if _hud_full[i] else color
+			for k in cap:
+				var at := Rect2(x + k * (pip + 1.0), y, pip, pip)
+				atlas.draw_rect_region(item, at.grow(1.0), dot, Color(Palette.VOID, 0.8))
+				atlas.draw_rect_region(item, at, dot, lit if k < _hud_stacks[i] else Color(color, 0.25))
+		var bar := Rect2(centre + Vector2(-r * 0.8, r + 1.5), Vector2(r * 1.6, TIME_BAR_HEIGHT))
+		atlas.draw_rect_region(item, bar.grow(1.0), solid, Color(Palette.VOID, 0.75))
+		var steps := _time_steps(i)
+		if steps > 0:
+			bar.size.x *= float(steps) / NightmareOverlay.TIME_STEPS
+			atlas.draw_rect_region(item, bar, solid, color)
+		if _hud_icons[i] == null:
+			RenderingServer.canvas_item_add_circle(item, centre, STATUS_DOT_RADIUS, color)
+		if _status_flash.has(id):
+			var f: float = _status_flash[id] / STATUS_FLASH_TIME  # 1 -> 0
+			RenderingServer.canvas_item_add_circle(item, centre, r + 2.0 + 4.0 * (1.0 - f), Color(color, 0.5 * f))
+			RenderingServer.canvas_item_add_circle(item, centre, r, Color(1, 1, 1, 0.45 * f))
+
+# The bare pixel-art status icons, at the badge size (drawn nearest-neighbour: the icons' own look);
+# an icon that just gained a stack pops (bigger, easing back over STACK_POP_TIME).
+func _build_hud_icons(item: RID) -> void:
+	RenderingServer.canvas_item_clear(item)
+	for i in _hud_ids.size():
+		var icon: Texture2D = _hud_icons[i]
+		if icon == null:
+			continue
+		var s := get_badge_size()
+		if _hud_pops.has(_hud_ids[i]):
+			var t: float = 1.0 - _hud_pops[_hud_ids[i]] / STACK_POP_TIME  # 0 -> 1
+			s *= 1.0 + STACK_POP_SCALE * sin(PI * t)
+		icon.draw_rect(item, Rect2(_badge_centre(i) - Vector2(s, s) / 2.0, Vector2(s, s)), false)
+
+# The dark pill behind each stack count (lower right of the icon, from 2 stacks).
+func _build_hud_pills(item: RID, overlay: NightmareOverlay) -> void:
+	RenderingServer.canvas_item_clear(item)
+	var atlas: Texture2D = overlay.badge_atlas
+	var pill := overlay.badge_region(NightmareOverlay.MARK_PILL)
+	for i in _hud_ids.size():
+		if _hud_stacks[i] > 1:
+			atlas.draw_rect_region(item, _stack_pill(i), pill, Color(Palette.VOID, 0.9))
+
+# Stack counts (bold, on their pills, from 2 stacks; gold at max) and "+N" past the last icon.
+func _build_hud_text(item: RID) -> void:
+	RenderingServer.canvas_item_clear(item)
+	var r := get_badge_size() / 2.0
+	for i in _hud_ids.size():
+		if _hud_stacks[i] > 1:
+			var text := str(_hud_stacks[i])
+			var box := _stack_pill(i)
+			var width := _stack_font_face().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE).x
+			var baseline := Vector2(box.get_center().x - width / 2.0, box.get_center().y + STACK_FONT_SIZE * 0.35)
+			_add_stack_text(item, baseline, text, Palette.GOLD if _hud_full[i] else Palette.MOONLIGHT)
+	var extra := _hud_total - _hud_ids.size()
+	if extra > 0:
+		var after := _badge_centre(_hud_ids.size() - 1) + Vector2(r + STATUS_BADGE_GAP, STACK_FONT_SIZE * 0.35)
+		_add_stack_text(item, after, "+%d" % extra, Palette.MOONLIGHT)
+
+# Icon i's stack-count pill: sized to its number, over the icon's lower-right corner.
+func _stack_pill(i: int) -> Rect2:
+	var r := get_badge_size() / 2.0
+	var width := _stack_font_face().get_string_size(str(_hud_stacks[i]), HORIZONTAL_ALIGNMENT_LEFT, -1,
+		STACK_FONT_SIZE).x + 8.0
+	var height := STACK_FONT_SIZE + 2.0
+	var corner := _badge_centre(i) + Vector2(r + 2.0, r + 1.0)  # The pill's lower-right corner
+	return Rect2(corner - Vector2(maxf(width, height), height), Vector2(maxf(width, height), height))
+
+# The stack-count font: NightmareOverlay's (an instance's, freed with the run: a Font kept in a static
+# is freed after the TextServer at exit and crashes).
+func _stack_font_face() -> Font:
+	return _spawner.overlay.stack_font
+
+func _add_stack_text(item: RID, at: Vector2, text: String, color: Color) -> void:
+	var font := _stack_font_face()
+	font.draw_string_outline(item, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, 3, Palette.VOID)
+	font.draw_string(item, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, STACK_FONT_SIZE, color)
+
+func _end_smother_fx() -> void:
+	if has_meta(&"smother_fx") and not statuses.smothering:
+		var smother = get_meta(&"smother_fx")
+		if is_instance_valid(smother):
+			smother.queue_free()
+		remove_meta(&"smother_fx")
+
+# Whether `node` is inside the camera's view (plus a margin), with the view worked out once a frame
+# for every nightmare. No camera, or headless: always on screen.
+static func _on_screen(node: Node2D) -> bool:
+	var frame := Engine.get_process_frames()
+	if frame != _view_frame:
+		_view_frame = frame
+		_view_rect = Rect2()
+		var camera := node.get_viewport().get_camera_2d()
+		# Headless has a 64 px stand-in window: no culling there (tests and perf runs see every redraw)
+		if camera != null and camera.zoom.x > 0.0 and DisplayServer.get_name() != "headless":
+			var size := node.get_viewport().get_visible_rect().size / camera.zoom
+			_view_rect = Rect2(camera.get_screen_center_position() - size / 2.0, size).grow(VIEW_MARGIN)
+	return not _view_rect.has_area() or _view_rect.has_point(node.global_position)
+static var _view_frame := -1
+static var _view_rect := Rect2()
+
+# The statuses its badges show, most important first (BADGE_ORDER), at most STATUS_BADGES_MAX; the
+# rest only count towards the "+N".
+func get_badge_ids() -> Array:
+	return get_status_order().slice(0, STATUS_BADGES_MAX)
+
+# Lines for the nightmare info panel about the limits on slow and sleep (tower_design.md "Slow and
+# sleep have limits"), under its statuses.
+func get_status_notes() -> Array[String]:
+	var notes: Array[String] = []
+	if statuses.slow_capped:
+		notes.append("Slowed to the limit")
+	if statuses.sleep_cooldown > 0.0:
+		notes.append("Awake: can't fall asleep again for %.1f s" % statuses.sleep_cooldown)
+	return notes
+
+# Every status it carries, most important first (the info panel lists them in this order).
+func get_status_order() -> Array:
+	var ids := statuses.active_ids()
+	if statuses.silence_time > 0.0:
+		ids.append(EnemyStatuses.SILENCED)  # Hushbell's silence (not one of _active's): a badge all the same
+	ids.sort_custom(func(a: StringName, b: StringName) -> bool: return _badge_rank(a) < _badge_rank(b))
+	return ids
+
+static func _badge_rank(id: StringName) -> int:
+	var rank := BADGE_ORDER.find(id)
+	return rank if rank >= 0 else BADGE_ORDER.size()
+
+func get_badge_size() -> float:
+	return STATUS_BADGE_BIG if enemy_data.is_boss or elite else STATUS_BADGE
 
 # Deeply Blighted: soft puffs drifting slowly round the nightmare, and a swirl left of the health bar.
 func _draw_elite_haze() -> void:
@@ -538,7 +966,7 @@ func _draw_elite_haze() -> void:
 		var size := (9.0 + 3.0 * sin(_haze_phase * 1.7 + i)) * sprite.scale.x
 		draw_circle(at, size + 2.0, ELITE_HAZE_RIM)
 		draw_circle(at, size, ELITE_HAZE_COLOR)
-	var centre := HEALTH_BAR_OFFSET + Vector2(-HEALTH_BAR_SIZE.x / 2 - 8.0, 0)
+	var centre := _bar_offset + Vector2(-HEALTH_BAR_SIZE.x / 2 - 8.0, 0)
 	var mark := _status_icon(&"elite")
 	if mark != null:  # The sheet's Deeply Blighted icon; the drawn swirl otherwise
 		draw_texture(mark, (centre - mark.get_size() / 2.0).round())
@@ -572,6 +1000,12 @@ func update_animation(velocity: Vector2) -> void:
 	if rolling and sprite.sprite_frames.has_animation(&"roll"):
 		animation = &"roll"
 		flip = velocity.x < 0
+	elif _charge_left > 0.0 and sprite.sprite_frames.has_animation(&"gallop"):
+		animation = &"gallop"  # Night Mare's Bolt
+		flip = velocity.x < 0
+	elif sorrowing and sprite.sprite_frames.has_animation(&"sorrow"):
+		animation = &"sorrow"  # Mourning Mother mending: hands to her face, black tears
+		flip = velocity.x < 0
 	elif abs(velocity.x) >= abs(velocity.y):  # Moving horizontally
 		animation = &"walk_side"
 		flip = velocity.x < 0  # Flip horizontally if moving left
@@ -581,16 +1015,145 @@ func update_animation(velocity: Vector2) -> void:
 		sprite.play(animation)  # Only when it changes: this runs every frame for every nightmare
 	sprite.flip_h = flip
 
-# Dew for dispelling this nightmare (Omens can change it, e.g. Dry Spell = 0).
+# Dew for dispelling this nightmare (Omens can change it, e.g. Dry Spell = 0): its Dew pot share when
+# it has one (a leak pays nothing: only a dispel pays), else the old per-kind dew_reward.
 func get_dew_reward() -> int:
+	return roundi(get_dew_share())
+
+# The same, before rounding (the pot's shares are fractions; RunState can carry the remainder).
+func get_dew_share() -> float:
+	if dew_share == 0.0:
+		return 0.0  # A summon (or a summon's split): nothing, not even card bonuses (they'd be farmable)
+	if dew_share > 0.0:
+		return dew_share * modifiers.get("dew", 1.0) + bonus_dew
 	return roundi(enemy_data.dew_reward * modifiers.get("dew", 1.0)) * (ELITE_DEW if elite else 1) + bonus_dew
+
+# The DriftDirector's pot share for this nightmare. A leader with followers keeps half and its
+# followers share the other half (FOLLOWER_DEW_SHARE).
+func set_dew_share(share: float) -> void:
+	var followers := dew_followers.filter(func(f) -> bool: return is_instance_valid(f) and not f.is_cleansed)
+	if followers.is_empty():
+		dew_share = share
+		return
+	dew_share = share * (1.0 - FOLLOWER_DEW_SHARE)
+	for follower in followers:
+		follower.dew_share = share * FOLLOWER_DEW_SHARE / followers.size()
 
 # Leaves lost when this nightmare reaches the Heartwood (Deeply Blighted cost at least 2).
 func get_leaf_cost() -> int:
+	if enemy_data.is_boss and not is_echo and not enemy_data.stays_at_heartwood and not enemy_data.laps() \
+			and _spawner != null:
+		return _spawner.get_boss_bite(_spawner.act_of(self))  # An act boss's flat bite (8 / 10 / 12)
 	return maxi(enemy_data.leaf_cost, ELITE_LEAVES) if elite else enemy_data.leaf_cost
 
 func is_flying() -> bool:
-	return enemy_data.trait_kind == EnemyData.Trait.FLYING
+	return enemy_data.trait_kind == EnemyData.Trait.FLYING and _grounded_left <= 0.0  # (Groundroot: not while grounded)
+
+# Rounded corners (user-approved, 2026-10-04): the route stays square and the logical position walks
+# it exactly (speed, ETA, progress unchanged); only the drawn sprite and HUD ease through a turn, on a
+# quadratic curve from CORNER_ROUNDING cells before the corner's centre to as far after it, with the
+# centre as its control point. That curve stays inside the corner cell. Not for flyers, or while
+# sinking, rising or being dragged.
+func _round_corners() -> void:
+	var offset := Vector2.ZERO
+	if not is_flying() and not _leaping and not _dragging and _path_index >= 1 and _path_index < _path.size():
+		var here := position
+		var next_c := grid.calculate_map_position(_path[_path_index])
+		var prev_c := grid.calculate_map_position(_path[_path_index - 1])
+		# Approaching a turn at the next centre, or just leaving one at the previous centre
+		if _path_index + 1 < _path.size():
+			offset = _corner_curve(prev_c, next_c, grid.calculate_map_position(_path[_path_index + 1]), here, true)
+		if offset == Vector2.ZERO and _path_index >= 2:
+			offset = _corner_curve(grid.calculate_map_position(_path[_path_index - 2]), prev_c, next_c, here, false)
+	if offset == _corner_offset:
+		return
+	_corner_offset = offset
+	sprite.offset = offset / sprite.scale
+	if _hud_root.is_valid():
+		RenderingServer.canvas_item_set_transform(_hud_root, Transform2D(0.0, offset))
+
+# The drawn offset at `here` for a turn at `corner` (from `before`, towards `after`); zero if the route
+# doesn't turn there or `here` is farther than the rounding from it. `approaching`: before the corner.
+func _corner_curve(before: Vector2, corner: Vector2, after: Vector2, here: Vector2, approaching: bool) -> Vector2:
+	var into := (corner - before)
+	var out := (after - corner)
+	if into.is_zero_approx() or out.is_zero_approx():
+		return Vector2.ZERO
+	var d_in := into.normalized()
+	var d_out := out.normalized()
+	if d_in.is_equal_approx(d_out):
+		return Vector2.ZERO  # Straight on
+	var r := minf(CORNER_ROUNDING * grid.cell_size.x, 0.5 * minf(into.length(), out.length()))  # (Half-steps too)
+	var dist := here.distance_to(corner)
+	if dist > r:
+		return Vector2.ZERO
+	var s := r - dist if approaching else r + dist  # Distance along the two legs from the curve's start
+	var t := s / (2.0 * r)
+	var a := corner - d_in * r
+	var b := corner + d_out * r
+	var drawn := a * (1.0 - t) * (1.0 - t) + corner * 2.0 * (1.0 - t) * t + b * t * t
+	return drawn - here
+
+# --- Branch Phase 2 hooks (tower_design.md; Tower Code's BranchKit calls them) ---
+
+# Quaker's slam: ends any speed boost it's on now: a Night Hound's sprint, the Hollow Stag's straight
+# charge, a bolt / charge (_charge_left). Restless isn't a boost.
+func stop_speed_boosts() -> void:
+	rolling = false
+	_straight_steps = 0
+	straight_charging = false
+	_charge_left = 0.0
+	_speed_stale = true
+
+# Groundroot: a flyer is dragged down onto the nearest route cell and walks the maze for `seconds`
+# (is_flying() is false meanwhile: it re-routes, walls block it, walker-only effects reach it), then
+# rises and flies straight at the Heartwood from where it is. Never a boss (BranchKit doesn't pass one).
+func ground(seconds: float) -> void:
+	if is_cleansed or enemy_data.trait_kind != EnemyData.Trait.FLYING or enemy_data.is_boss:
+		return
+	var map_generator = _map_generator()
+	if map_generator == null:
+		return
+	if _grounded_left > 0.0:
+		_grounded_left = maxf(_grounded_left, seconds)  # Already down: just longer
+		return
+	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	if route.is_empty():
+		return
+	var nearest: Vector2 = route[0]
+	for cell in route:
+		if grid.calculate_map_position(cell).distance_squared_to(position) \
+				< grid.calculate_map_position(nearest).distance_squared_to(position):
+			nearest = cell
+	_grounded_left = seconds
+	_end_drag(false)
+	_leaping = true  # No walking during the drop
+	var tween := create_tween()
+	_leap_tween = tween
+	tween.tween_property(self, "position", grid.calculate_map_position(nearest), GROUND_DROP_TIME) \
+		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tween.parallel().tween_property(sprite, "scale", sprite.scale * Vector2(1.2, 0.8), GROUND_DROP_TIME)
+	tween.tween_property(sprite, "scale", sprite.scale, 0.1)
+	tween.tween_callback(func() -> void:
+		_leaping = false
+		set_path(map_generator.get_path_from(nearest))
+		_speed_stale = true)
+
+func is_grounded() -> bool:
+	return _grounded_left > 0.0
+
+# Its time on the ground ran out: it rises and flies straight at the Heartwood from here.
+func _rise_from_ground() -> void:
+	_grounded_left = 0.0
+	var map_generator = _map_generator()
+	if map_generator != null and not is_cleansed:
+		set_path(PackedVector2Array([get_current_cell(), map_generator.endPath]))
+		_speed_stale = true
+
+# Earthbind / Deeproot on what Held can't stop (Phantoms): a plain stop for `seconds`, no status, no Reactions.
+func pause(seconds: float) -> void:
+	if not is_cleansed:
+		hold_time = maxf(hold_time, seconds)
 
 # Pixels per second right now: base speed, sprinting / lost / charging, then slows.
 func get_move_speed() -> float:
@@ -648,6 +1211,12 @@ func _on_cell_reached() -> void:
 		_ash_cells[get_current_cell()] = enemy_data.ash_trail_time
 	if enemy_data.straight_charge_tiles > 0:
 		_update_straight_charge()
+	if not modifiers.is_empty():  # Omens: Tramplers, Burrowers
+		if modifiers.get("tramples_thornwall", false) and _spawner != null and not is_flying():
+			_spawner.try_omen_trample(self)
+		var burrow_tiles := int(modifiers.get("burrow_tiles", 0))
+		if burrow_tiles > 0 and not _leaping:
+			_try_omen_burrow(burrow_tiles, float(modifiers.get("burrow_time", 0.5)))
 	match enemy_data.trait_kind:
 		EnemyData.Trait.ROLLING:
 			_update_rolling()
@@ -665,7 +1234,9 @@ func _update_rolling() -> void:
 	_last_step = step
 	# Keeps rolling only while the next step goes the same way; stops at the turn.
 	var next_same := _path_index < _path.size() and _path[_path_index] - _path[_path_index - 1] == step
-	rolling = _straight_steps >= enemy_data.roll_after_tiles and next_same
+	# A sprint can't start on a cracked cell (Earthshaker, Fault Line); one already running carries on
+	var may_start := rolling or not BranchKit.is_cracked(self, get_current_cell())
+	rolling = _straight_steps >= enemy_data.roll_after_tiles and next_same and may_start
 	_speed_stale = true
 
 # Hollow Stag: charges along any straight of straight_charge_tiles+ path tiles (the whole straight,
@@ -685,7 +1256,9 @@ func _update_straight_charge() -> void:
 		while i >= 1 and _path[i] - _path[i - 1] == step:
 			tiles += 1
 			i -= 1
-		straight_charging = tiles >= enemy_data.straight_charge_tiles
+		# A charge can't start on a cracked cell (Earthshaker, Fault Line); one already running carries on
+		straight_charging = tiles >= enemy_data.straight_charge_tiles \
+			and (was or not BranchKit.is_cracked(self, _path[here]))
 	if straight_charging != was:
 		_speed_stale = true
 
@@ -704,6 +1277,8 @@ func _leap() -> void:
 				creature.apply_status(EnemyStatuses.DAMP)
 		leaped.emit(self)
 		if _path_index >= _path.size():
+			if BranchKit.before_goal(self):
+				return  # Heartroot's "Not yet"
 			reached_goal.emit(self)
 			queue_free())
 
@@ -757,6 +1332,35 @@ func _play_pose(animation: StringName, seconds: float, backwards: bool = false) 
 	else:
 		sprite.play(animation)
 	_pose_left = seconds
+
+# Raises the health bar (and the status icons over it) above tall art: BAR_ABOVE_HEAD px over the
+# top of its sheet's solid pixels (bounds.json, at its sprite_scale), if that's higher than the usual
+# HEALTH_BAR_OFFSET. Everyday nightmares keep the usual place.
+func _measure_bar_offset() -> void:
+	_bar_offset = HEALTH_BAR_OFFSET
+	var frames := sprite.sprite_frames
+	if frames == null or not frames.has_animation(&"walk_side") or frames.get_frame_count(&"walk_side") == 0:
+		return
+	var texture := frames.get_frame_texture(&"walk_side", 0)
+	var sheet: String = texture.atlas.resource_path if texture is AtlasTexture else texture.resource_path
+	var bounds: Dictionary = _art_bounds().get(sheet.get_file().get_basename(), {})
+	if bounds.has("top"):
+		var top: float = float(bounds.top) * sprite.scale.y + sprite.position.y
+		_bar_offset.y = minf(HEALTH_BAR_OFFSET.y, top - BAR_ABOVE_HEAD)
+
+# bounds.json, read once (plain numbers: safe to keep in a static).
+static func _art_bounds() -> Dictionary:
+	if _bounds_cache.is_empty() and FileAccess.file_exists(ART_BOUNDS_PATH):
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string(ART_BOUNDS_PATH))
+		_bounds_cache = parsed if parsed is Dictionary else {"": {}}
+	return _bounds_cache
+static var _bounds_cache := {}
+
+# Plays a one-off pose from its art for its own length, if it has one (the Huntsman's horn when a
+# hound joins, the Lamplighter lighting a lantern); walking picks up again after.
+func play_pose(animation: StringName) -> void:
+	if not is_cleansed:
+		_play_pose(animation, _animation_length(animation))
 
 func _animation_length(animation: StringName) -> float:
 	var frames := sprite.sprite_frames
@@ -891,6 +1495,9 @@ func _is_blocked_ahead(delta: float) -> bool:
 		return false
 	var next := _path[_path_index]
 	var holder = spawner.rooted_cells.get(next)
+	if holder != null and holder != self and holder.has_meta(FinalTwists.LOGJAM_META):
+		waiting = true  # Logjam: the ones behind a Snugroot hold queue, they don't path around it
+		return true
 	if holder != null and holder != self:
 		_reroute_wait -= delta
 		if _reroute_wait <= 0.0:
@@ -925,11 +1532,14 @@ func _try_burrow() -> void:
 		return
 	var walls := _tower_cells()
 	var here := get_current_cell()
+	if _spawner != null and _spawner.is_lit(here):
+		return  # Rootlight's light holds it above ground
 	var best_route := PackedVector2Array()
 	var best_length := _path.size() - _path_index - enemy_data.burrow_min_saving  # Cells to beat
 	for direction in DIRECTIONS:
 		var beyond := here + direction * 2
-		if not walls.has(here + direction) or not _is_walkable(beyond, map_generator):
+		if not walls.has(here + direction) or not _is_walkable(beyond, map_generator) \
+				or BranchKit.is_stone_cell(self, here + direction):  # Rampart's stone walls can't be dug under
 			continue
 		var route: PackedVector2Array = map_generator.get_path_from(beyond)
 		if not route.is_empty() and route.size() + 1 <= best_length:  # +1: the tunnel under the wall
@@ -940,6 +1550,42 @@ func _try_burrow() -> void:
 	_burrows += 1
 	var surface := grid.calculate_map_position(best_route[0])
 	_sink_and_rise(surface, func() -> void: set_path(best_route))
+
+# The Burrowers Omen (run_design.md "Omens with teeth"; modifiers burrow_tiles, burrow_time): at a bend
+# in its route it burrows `tiles` path tiles ahead, untargetable while under (out of the enemies group).
+# Never onto the Heartwood's own tile, and never from a tile Rootlight lights.
+func _try_omen_burrow(tiles: int, seconds: float) -> void:
+	if _path_index < 2 or _path_index >= _path.size() or is_flying():
+		return
+	var here := _path[_path_index - 1]
+	if _path[_path_index] - here == here - _path[_path_index - 2]:
+		return  # Not a bend
+	if _spawner != null and _spawner.is_lit(here):
+		return
+	var landing_index := mini(_path_index + tiles - 1, _path.size() - 2)
+	if landing_index < _path_index:
+		return
+	_end_drag(false)
+	_leaping = true
+	remove_from_group(GROUP)
+	var route := _path
+	var landing := grid.calculate_map_position(_path[landing_index])
+	var tween := create_tween()
+	_leap_tween = tween
+	tween.tween_property(sprite, "modulate:a", 0.15, seconds * 0.3)
+	tween.tween_property(self, "position", landing, seconds * 0.4)
+	tween.tween_property(sprite, "modulate:a", 1.0, seconds * 0.3)
+	tween.tween_callback(func() -> void:
+		_leaping = false
+		if _path == route:
+			_path_index = landing_index + 1
+			_last_cell = _path[landing_index]
+		else:  # The maze changed while it was under: on from where it surfaced
+			var map_generator = _map_generator()
+			if map_generator != null:
+				set_path(map_generator.get_path_from(grid.calculate_grid_coordinates(position)))
+		if not is_cleansed and not _hidden and not _untouchable:
+			add_to_group(GROUP))
 
 # Sleepwalker: sometimes steps into a dead-end pocket beside it, walks to the end and comes back.
 func _try_wander() -> void:
@@ -1032,6 +1678,8 @@ func _update_presence(delta: float) -> void:
 	var elapsed := _presence_elapsed
 	_presence_elapsed = 0.0
 	_speed_stale = true  # Timed slows (the Stag's aura, charges) may have run out
+	if not statuses.smothering:
+		_end_smother_fx()
 
 	_revealed_time = maxf(_revealed_time - elapsed, 0.0)
 	var hide := (enemy_data.hidden or _is_eclipsed()) and not _is_revealed()
@@ -1041,7 +1689,18 @@ func _update_presence(delta: float) -> void:
 	if _settings_elapsed >= SETTINGS_TICK:  # The settings panel's changes show within half a second
 		_settings_elapsed = 0.0
 		_refresh_display_settings()
-	if enemy_data.wake_radius > 0.0:  # Watcher
+	var silenced := statuses.silence_time > 0.0  # Hushbell (BranchKit): no abilities while silenced
+	# Timed abilities' clock: a silenced boss runs them at BOSS_SILENCE_SPEED (a delay, never a stop;
+	# tower_design.md 279ebb63), anything else silenced doesn't run them at all. Health-threshold
+	# abilities (grief, bursts, echoes, bellow, laps) don't use this clock.
+	var ability_elapsed := elapsed
+	if silenced:
+		# A Hushbell's Deep ranks slow it further (BranchKit sets the meta: 0.5 ÷ its Potency), never below the floor
+		var boss_speed: float = maxf(float(get_meta(&"silence_boss_speed", BOSS_SILENCE_SPEED)), BOSS_SILENCE_FLOOR)
+		ability_elapsed = elapsed * boss_speed if enemy_data.is_boss else 0.0
+	elif has_meta(&"silence_boss_speed"):
+		remove_meta(&"silence_boss_speed")  # The silence ended: the next one starts from half speed again
+	if enemy_data.wake_radius > 0.0 and not silenced:  # Watcher
 		for other in _others_within(enemy_data.wake_radius):
 			if other.statuses.has(EnemyStatuses.DROWSY):
 				other.statuses.remove(EnemyStatuses.DROWSY)
@@ -1049,7 +1708,7 @@ func _update_presence(delta: float) -> void:
 			if other.statuses.sleep_time > 0.0 and other.statuses.sleep_locked_time <= 0.0:
 				other.statuses.sleep_time = 0.0  # Wakes sleepers too (not under Nightbloom's lock)
 	_mend_stopped = maxf(_mend_stopped - elapsed, 0.0)
-	if enemy_data.mend_radius > 0.0 and _mend_stopped <= 0.0:  # Weeper (a magpie can stop it)
+	if enemy_data.mend_radius > 0.0 and _mend_stopped <= 0.0 and not silenced:  # Weeper (a magpie or a Hushbell can stop it)
 		for other in _others_within(enemy_data.mend_radius):
 			other.heal(other.max_health * enemy_data.mend_rate * elapsed)
 	if not _ash_cells.is_empty():  # Ash Crawler
@@ -1057,17 +1716,17 @@ func _update_presence(delta: float) -> void:
 			if other != self and other.statuses.has(EnemyStatuses.SPORED) and _ash_cells.has(other.get_current_cell()):
 				other.statuses.remove(EnemyStatuses.SPORED)
 				other.queue_redraw()
-	if enemy_data.brood != null:  # Moth Queen
-		_brood_timer += elapsed
+	if enemy_data.brood != null:  # Moth Queen (and the Huntsman's horn)
+		_brood_timer += ability_elapsed
 		if _brood_timer >= enemy_data.brood_interval:
 			_brood_timer = 0.0
 			brood_requested.emit(self)
 	if enemy_data.sapling != null:  # Hollow Oak
-		_sapling_timer += elapsed * _sapling_speed
+		_sapling_timer += ability_elapsed * _sapling_speed
 		if _sapling_timer >= enemy_data.sapling_interval:
 			_sapling_timer = 0.0
 			sapling_requested.emit(self)
-	_update_boss_pool_abilities(elapsed)
+	_update_boss_pool_abilities(ability_elapsed)
 
 # The new bosses' timed abilities (enemy_design.md "Boss pools"), on the presence tick.
 func _update_boss_pool_abilities(elapsed: float) -> void:
@@ -1085,12 +1744,15 @@ func _update_boss_pool_abilities(elapsed: float) -> void:
 		_wither_timer += elapsed * _sapling_speed
 		if _wither_timer >= enemy_data.wither_interval:
 			_wither_timer = 0.0
+			play_pose(&"wither")  # Two roots lift and stab down
 			wither_requested.emit(self, 1)
 	if enemy_data.regen_rate > 0.0:  # Mourning Mother's Sorrow
 		_since_hit += elapsed
 		if _regen_left < 0.0:
 			_regen_left = max_health * enemy_data.regen_cap
-		if _since_hit >= enemy_data.regen_delay and _regen_left > 0.0 and health < max_health:
+		sorrowing = _since_hit >= enemy_data.regen_delay and _regen_left > 0.0 and health < max_health \
+			and statuses.veil_time <= 0.0
+		if sorrowing:
 			var amount := minf(max_health * enemy_data.regen_rate * elapsed, _regen_left)
 			_regen_left -= amount
 			heal(amount)
@@ -1104,15 +1766,19 @@ func shrug() -> void:
 		creature.statuses.sleep_time = 0.0
 		creature.queue_redraw()
 	_shrug_flash = SHRUG_FLASH_TIME
+	play_pose(&"shrug")  # Shoulders heave, a ring of grave-dust rolls out
 	shrugged.emit(self)
 	queue_redraw()
 
-# Huntsman: the soothe share it takes while any of its hounds still hunts (1.0 once they're gone).
+# Huntsman: the soothe share it takes while any of its hounds still hunts near it (within
+# pack_shield_reach tiles; 1.0 once none is close, so clearing the hounds round him lets the maze finish him).
 func get_pack_multiplier() -> float:
 	if enemy_data.pack_shield >= 1.0:
 		return 1.0
+	var reach := enemy_data.pack_shield_reach * grid.cell_size.x
 	for hound in pack:
-		if is_instance_valid(hound) and not hound.is_cleansed:
+		if is_instance_valid(hound) and not hound.is_cleansed \
+				and (reach <= 0.0 or hound.global_position.distance_to(global_position) <= reach):
 			return enemy_data.pack_shield
 	return 1.0
 
@@ -1143,14 +1809,33 @@ func _refresh_display_settings() -> void:
 	var outlined := elite and not _hidden and not is_cleansed and bool(Fx.setting("blight_outline", false))
 	if outlined != _outlined:
 		_outlined = outlined
-		(sprite.material as ShaderMaterial).set_shader_parameter("outline_color",
-			ELITE_OUTLINE_COLOR if outlined else Color(0, 0, 0, 0))
+		if _is_shared_material():
+			sprite.material = _blight_material(outlined)
+		else:  # Cracking apart on its own copy: change just that
+			(sprite.material as ShaderMaterial).set_shader_parameter("outline_color",
+				ELITE_OUTLINE_COLOR if outlined else Color(0, 0, 0, 0))
+
+# The shared blight material: plain, or with the Deeply Blighted outline. Kept by the spawner (never
+# a static: a material still held at exit is freed after the renderer and crashes). A nightmare
+# outside an EnemyContainer gets a material of its own.
+func _blight_material(outlined: bool) -> ShaderMaterial:
+	var shared: Dictionary = _spawner.blight_materials if _spawner != null else {}
+	if not shared.has(outlined):
+		var material := ShaderMaterial.new()
+		material.shader = BLIGHT_SHADER
+		if outlined:
+			material.set_shader_parameter("outline_color", ELITE_OUTLINE_COLOR)
+		shared[outlined] = material
+	return shared[outlined]
+
+func _is_shared_material() -> bool:
+	return _spawner != null and (sprite.material == _spawner.blight_materials.get(false)
+		or sprite.material == _spawner.blight_materials.get(true))
 
 # The 16×16 pixel-art icon for a status id (or "elite"), cached; null if the sheet has none.
-static func _status_icon(id: StringName) -> Texture2D:
-	if not _icons.has(id):
-		_icons[id] = IconInfo.icon(id)
-	return _icons[id]
+func _status_icon(id: StringName) -> Texture2D:
+	var overlay: NightmareOverlay = _spawner.overlay if _spawner != null else null
+	return overlay.icon(id) if overlay != null else IconInfo.icon(id)
 
 func _outline_alpha() -> float:
 	var color = (sprite.material as ShaderMaterial).get_shader_parameter("outline_color")
@@ -1165,6 +1850,23 @@ func _is_eclipsed() -> bool:
 func _is_revealed() -> bool:
 	if _revealed_time > 0.0:
 		return true  # Held in the light a while (Lantern Roots)
+	if _spawner != null:  # The spawner's lookups: a few cells and short lists, not every Warden and nightmare
+		_spawner.refresh_reveal_lookup()
+		var reach := CLOSE_REVEAL_CELLS * grid.cell_size.x
+		var here := get_current_cell()
+		for dy in range(-2, 3):
+			for dx in range(-2, 3):
+				var tower = _spawner.tower_cells.get(here + Vector2(dx, dy))
+				if tower != null and is_instance_valid(tower) and global_position.distance_to(tower.global_position) <= reach:
+					return true
+		for tower in _spawner.marker_towers:
+			if is_instance_valid(tower) and global_position.distance_to(tower.global_position) <= tower.get_range_pixels():
+				return true
+		for other in _spawner.revealers:
+			if other != self and is_instance_valid(other) and not other.is_cleansed and not other.is_hidden() \
+					and global_position.distance_to(other.global_position) <= other.enemy_data.reveal_radius * grid.cell_size.x:
+				return true
+		return false
 	var towers = get_parent().get("tower_container") if get_parent() else null
 	if towers:
 		for tower in towers.get_children():
@@ -1193,13 +1895,12 @@ func _others_within(cells: float) -> Array:
 
 # Weeper's mending: restores up to `amount` health (fractions add up over time).
 func heal(amount: float) -> void:
-	if is_cleansed or health >= max_health:
-		return
+	if is_cleansed or health >= max_health or statuses.veil_time > 0.0:
+		return  # (Veil: nothing mends inside Morning Fog's fog; FinalTwists)
 	_heal_carry += amount
 	var whole := int(_heal_carry)
 	_heal_carry -= whole
 	health = mini(health + whole, max_health)
-	queue_redraw()
 
 # Boss moments that happen at a share of health: the Moth Queen's Eclipse, the Hollow Oak's Grief.
 func _check_health_thresholds() -> void:
@@ -1215,13 +1916,18 @@ func _check_health_thresholds() -> void:
 	while _griefs < enemy_data.grief_at.size() and health <= max_health * enemy_data.grief_at[_griefs]:
 		_griefs += 1
 		hold_time = maxf(hold_time, enemy_data.grief_pause)  # It stops and wails
-		_play_pose(&"grief", enemy_data.grief_pause)
+		if sprite.sprite_frames.has_animation(&"burst"):  # Scarecrow: the coat flies open, Crows scatter
+			_play_pose(&"burst", maxf(enemy_data.grief_pause, _animation_length(&"burst")))
+		else:
+			_play_pose(&"grief", enemy_data.grief_pause)
 		grief_requested.emit(self)
 	while _wither_bursts < enemy_data.wither_burst_at.size() and health <= max_health * enemy_data.wither_burst_at[_wither_bursts]:
 		_wither_bursts += 1
+		play_pose(&"wither")
 		wither_requested.emit(self, enemy_data.wither_burst_count)  # Withering Oak: Drought
 	while _echoes < enemy_data.echo_at.size() and health <= max_health * enemy_data.echo_at[_echoes]:
 		_echoes += 1
+		play_pose(&"echo")  # A pale bark face lights and the echo rises out of it
 		echo_requested.emit(self, _echoes)  # Remembering Oak: act 1's boss, then 2's, then 3's
 	if enemy_data.bellow_count > 0 and not _bellowed and health <= max_health / 2:
 		_bellowed = true
@@ -1249,25 +1955,32 @@ func _try_rise() -> bool:
 # Marked, then the blight coat takes its bite. At 0 health the enemy is cleansed.
 # `source` (the Warden) and `tag` (&"spored" tick, &"static" bolt, &"conducted" lightning through
 # Damp) feed the DamageLog; crit/weak/Marked/fog combos are worked out here.
+# Damp Rot (a Dream card) trades Soaked's water boost away (DreamState.soaked_boosts_water).
+func _soaked_boosts_water() -> bool:
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+	return dreams == null or dreams.soaked_boosts_water()
+
 func take_damage(amount: float, line: String = "", is_area: bool = false, is_crit: bool = false,
 		source: Node = null, tag: StringName = &"") -> void:
-	if is_cleansed:
+	if is_cleansed or _untouchable:  # (Night Mare lingering at the Heartwood: nothing touches it)
 		return
 	if source is Tower and Reactions.is_effect(tag):
 		amount *= Reactions.effect_multiplier(self, source)  # Potency (and Seeping)
+	amount *= Reactions.chain_falloff(self, tag)  # Chain falloff: 6th link ×0.85, 7th ×0.70 … (floor 25%)
 	if is_crit:
 		_crit_flash = CRIT_FLASH_TIME
 		var world := Reactions._world(self)
 		if world:
 			Fx.crit(global_position, world)  # The crit_flare glint (drawn by the effects player)
 	var family := enemy_data.get_soothe_multiplier(line, is_area)
-	if line == "water" and statuses.has(EnemyStatuses.DAMP):
+	if line == "water" and statuses.has(EnemyStatuses.DAMP) and _soaked_boosts_water():
 		# Soaked conducts: water hits +20% (Damp's potency 1.5 with Soaked Through II: +30%)
-		family *= 1.0 + EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP))
+		family *= 1.0 + statuses.soaked_bonus(EnemyStatuses.DAMP_WATER_BONUS * maxf(1.0, statuses.potency(EnemyStatuses.DAMP)))  # × the applier's Potency, capped
 	var taken := statuses.get_damage_taken_multiplier()
 	var soothe := amount * family * taken * get_pack_multiplier()  # Huntsman: the pack shields him
 	var soothe_before_coat := soothe
 	_since_hit = 0.0  # Mourning Mother: Sorrow waits for a quiet moment
+	sorrowing = false  # (Her walk comes back at once: update_animation)
 	if line in enemy_data.resists:
 		_mark_hit(-1)
 	elif line in enemy_data.weak_to:
@@ -1288,7 +2001,6 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	var whole := int(_soothe_carry)
 	_soothe_carry -= whole
 	health = maxi(health - whole, 1 if unkillable else 0)
-	queue_redraw()
 	# Asleep is long but fragile: one hit (not an effect tick) of 10%+ of max health wakes it.
 	if statuses.can_wake_from_hit() and not Reactions.is_effect(tag) \
 			and soothe >= max_health * EnemyStatuses.WAKE_HIT_SHARE:
@@ -1308,7 +2020,7 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 # fills up sets off a free bolt right away.
 func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potency: float = 0.0,
 		max_stacks: int = 0, line: String = "", source: Node = null) -> void:
-	if is_cleansed:
+	if is_cleansed or _untouchable:
 		return
 	if id in statuses.immune or (rolling and id in enemy_data.immune_while_sprinting):
 		_refuse_status(id)  # Night Hound: can't be Held mid-sprint
@@ -1316,14 +2028,15 @@ func apply_status(id: StringName, stacks: int = 1, duration: float = 0.0, potenc
 	if id == EnemyStatuses.DROWSY:
 		statuses.drowsy_cap_bonus = Reactions.drowsy_cap_bonus(self)  # Heavy Eyelids
 	var was_held := statuses.is_held()
-	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line, source)
-	queue_redraw()
+	var bolt := statuses.apply(id, stacks, duration, potency, max_stacks, line, source)  # (Bumps statuses.changes: the badges redraw)
 	if id == EnemyStatuses.HELD and statuses.is_held() and not was_held:
 		_spread_root_web(source)
 	if bolt > 0.0:
 		_bolt_flash = BOLT_FLASH_TIME
-		# Static bolts count as light; a Lightning Rod nearby takes the bolt instead.
-		Reactions.strike_bolt(self, bolt, source, &"static")
+		# Static bolts count as light; a Lightning Rod nearby takes the bolt instead. Credited to the Warden
+		# whose charge it was (EnemyStatuses.bolt_source), not the last stack's.
+		var charger: Node = statuses.bolt_source if is_instance_valid(statuses.bolt_source) else source
+		Reactions.strike_bolt(self, bolt, charger, &"static")
 	if not is_cleansed and id in statuses.ALL:
 		Reactions.on_status(self, id, source)  # Two statuses may meet: a Reaction
 
@@ -1416,6 +2129,11 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 	if tag == &"spored" and statuses.is_in_fog():
 		event.combos.append(&"fog")
 		factor *= 1.0 + EnemyStatuses.FOG_SPORE_BONUS
+	if tag == &"spored" and statuses.burn_time > 0.0 and statuses.burn_rate > 1.0:
+		# Ignite's burn: Spored ticks burn_rate× as often, so (1 - 1/rate) of this tick is the Reaction's
+		# (Balancing: the sims and "from combos" couldn't see it); still credited to the Spored applier.
+		event.combos.append(&"ignite")
+		factor *= statuses.burn_rate
 	if tag == &"conducted" or tag == &"static" or tag == &"popped" or tag in REACTION_TAGS:
 		event.combos.append(tag)
 		event.combo_amount = dealt  # The whole hit only happened thanks to the combo
@@ -1443,6 +2161,9 @@ func _mark_hit(kind: int) -> void:
 # the old "cleanse" names; players only ever see "dispel".
 func _cleanse() -> void:
 	is_cleansed = true
+	if _hud_root.is_valid():
+		RenderingServer.canvas_item_set_visible(_hud_root, false)  # No bars or badges on the way out
+		_hud_shown = false
 	_end_drag(false)
 	remove_from_group(GROUP)
 	# Great Dreamcatcher: a Caught nightmare (never a boss) leaves a Dreamlight shard.
@@ -1512,6 +2233,10 @@ func _burst_into_motes() -> void:
 
 # 0 = whole, 1 = cracked through with light (see shaders/blight.gdshader).
 func _set_crack(amount: float) -> void:
+	if _is_shared_material():
+		if is_zero_approx(amount):
+			return  # Whole already: the shared material says so
+		sprite.material = sprite.material.duplicate()  # Its own copy, to crack apart on its own
 	(sprite.material as ShaderMaterial).set_shader_parameter("crack", amount)
 
 

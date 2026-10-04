@@ -40,7 +40,7 @@ const FAMILY_BASE := {"spore": "sporeling", "stone": "pebbling", "water": "dewdr
 	"root": "rootling", "song": "bellflower", "acorn": "acorn", "wing": "nestling", "wind": "whirligig"}
 const PULSE_THROTTLE_MS := {"bramble": 800, "honeysuckle": 3000, "acorn": 5000, "tempest": 400}
 # Sound id prefixes a Warden can have (warden_sounds, tests).
-const EVENT_PREFIXES := ["attack_", "hit_", "drowsy_", "pop_", "cloud_", "fog_", "sleep_", "trap_", "trigger_",
+const EVENT_PREFIXES := ["attack_", "hit_", "drowsy_", "cloud_", "fog_", "sleep_", "trap_", "trigger_",
 	"crit_", "storm_", "loop_", "echo_", "shard_", "place_", "plop_", "dew_", "turn_", "catch_", "event_",
 	"ascend_", "plant_", "sap_", "ripen_", "wither_", "recover_"]
 # Ascended Wardens (tier 4, audio_direction.md 4d1f283): their big events are the loudest Warden
@@ -50,7 +50,6 @@ const ASCENDED_EVENT_DB := -2.0
 const ASCENDED_GROWTH_DB := 1.5  # Per doubling of nightmares hit, up to ASCENDED_GROWTH_MAX
 const ASCENDED_GROWTH_MAX := 4.0
 const ASCENDED_DUCK_INTERVAL_MS := 1500  # Stormheart chains often; its duck doesn't pump
-const ASCENDED_POP_MS := 300  # Sporemother's crowds popping read as one rolling fwoomp
 const PRESENCE_LEVEL := 0.45  # Presence loops: very quiet, a little fuller while nightmares walk
 const ASCEND_SWELL_DELAY := 0.8  # Evolve bloom, then the material swell, then the first event
 const ASCEND_EVENT_DELAY := 2.6
@@ -88,6 +87,15 @@ const HARVEST_DB := -3.0
 const HARVEST_WINDOW_MS := 4000  # Pours within this of the first belong to the same Harvest
 # Close calls: a soft tension cue, one per 2 s at most (like the Heartwood's tremble).
 const CLOSE_CALL_DB := -8.0
+const BOSS_REVEAL_DB := -4.0  # The boss card's sting (UI bus)
+const BOSS_DRAIN_DB := 1.0  # A boss draining the Heartwood: leaf lost, heavier
+const BOSS_DRAIN_PITCH := 0.8
+const BOLT_DB := -10.0  # Static bolts: under the Warden hits
+const BOLT_THROTTLE_MS := 150
+const FINAL_BLOOM_DB := -4.0  # A final form's first bloom per run
+const FINAL_SIGNATURE_DELAY := 0.9  # Then the new form's hit, as its signature
+const REMEMBER_DB := -4.0  # The Remember screen (UI bus)
+const REMEMBER_TRAVEL := 0.45  # Seconds for the unlock swell to travel the gold line before the bloom
 const PULL_BOSS_PITCH := 0.8  # Rootcurl dragging a boss: lower, strained
 const DRAG_TAIL := 0.12  # Seconds the soil drag fades when the drag ends early
 const CLOSE_CALL_THROTTLE_MS := 2000
@@ -123,7 +131,6 @@ var _attack_counts := {}  # Tower instance id -> attacks released (storms, sleep
 var _loop_until := {}  # loop id -> [until msec, level]
 var _slept_at := {}  # Warden id -> msec of its last sleep drone
 var _withered := {}  # Tower instance id -> Sapling withered since the last rest
-var _popped_at := {}  # Tower instance id -> msec of its last pop sound (Sporemother)
 var _ducked_at := {}  # Tower instance id -> msec of its last Ascended duck
 var _nurture_frame := -1  # Group nurtures arrive in one frame
 var _nurture_index := 0
@@ -137,7 +144,9 @@ var _resting := true
 var _presence := {}  # Tower instance id -> a Warden with a presence loop
 var _dew_catch_at := -100000
 var _close_call_at := -100000
+var _bolt_at := -100000  # msec of the last bolt sound
 var _drags := {}  # Nightmare instance id -> its soil-drag player (cut when the pull ends)
+var _final_blooming := {}  # Tower instance id -> a Final Bloom is playing its hit (skip the first breath)
 var _harvest_at := -100000  # msec of this rest's harvest sound (later pours add droplets)
 
 func _ready() -> void:
@@ -153,10 +162,16 @@ func _ready() -> void:
 	enemy_container.child_entered_tree.connect(_on_enemy_added)
 	enemy_container.enemy_cleansed.connect(func(enemy: Node2D) -> void:
 		# Bigger nightmares: a lower, slower sigh (the same weight as their hits).
-		sound.play_dispel(enemy.global_position, enemy.enemy_data.is_boss, _weight_pitch(enemy)))
+		sound.play_dispel(enemy.global_position, enemy.enemy_data.is_boss, _weight_pitch(enemy), enemy.elite))
 	enemy_container.enemy_reached_goal.connect(func(_enemy: Node2D) -> void:
 		sound.duck(8.0, 1.0)
 		sound.play(&"leaf_lost", null, 0.0, 1.0, 0.03))
+	# A boss at the Heartwood drains a leaf every 2 s until dispelled (Enemy Code cfd21fe5): the leaf-lost
+	# sound, lower and heavier, with a lighter duck so the music doesn't pump every 2 s.
+	if enemy_container.has_signal("boss_drained"):
+		enemy_container.boss_drained.connect(func(_enemy: Node2D, _leaves: int) -> void:
+			sound.duck(4.0, 0.6)
+			sound.play(&"leaf_lost", null, BOSS_DRAIN_DB, BOSS_DRAIN_PITCH, 0.02))
 	enemy_container.enemy_split.connect(func(parent: Node2D, child: Node2D) -> void:
 		if parent.is_cleansed:  # Followers (Wraiths) also come through here; only real splits crack
 			sound.play(&"split", child.global_position, -4.0))
@@ -171,13 +186,15 @@ func _ready() -> void:
 		_event("place_", tower, tower.global_position))  # The White Stag arriving
 	tower_placer.build_rejected.connect(func(_cell: Vector2) -> void: sound.ui(&"invalid"))
 	tower_seller.tower_sold.connect(func(tower: Tower, _refund: int) -> void:
-		sound.play(&"sell", MAP_GRID.calculate_map_position(tower.cell)))
+		sound.play(&"sell", tower.global_position))  # Not from tower.cell: Wardens can sit at a half-cell offset
 	map_generator.obstacle_cleared.connect(func(cell: Vector2, data: ObstacleData) -> void:
 		var id := &"move" if data.resource_path.get_file().begins_with("rock") else &"tend"
 		sound.play(id, MAP_GRID.calculate_map_position(cell)))
 	map_generator.path_changed.connect(_on_path_changed)
 
 	run_state.dew_short.connect(func(_cost: int) -> void: sound.ui(&"invalid"))
+	if dream_state.has_signal("dreamlight_short"):  # A grow / unlock refused for too little Dreamlight
+		dream_state.dreamlight_short.connect(func(_cost: int) -> void: sound.ui(&"invalid"))
 	# No Dew sound per kill (third listen: kills sounded like coins); only lump sums make one.
 	run_state.run_ended.connect(_on_run_ended)
 
@@ -232,6 +249,7 @@ func _ready() -> void:
 	for node in owner.find_children("*", "", true, false):  # Kinship nodes already in the scene
 		_hook_kinships(node)
 		_hook_economy(node)
+		_hook_remember(node)
 
 	sound.play_music(&"act1", [&"base"])
 	sound.play_ambience(&"act1")
@@ -439,18 +457,13 @@ func _on_tower_added(node: Node) -> void:
 			sound.play(&"crit_punch", enemy.global_position, -4.0)
 		if t.attack_data.crit_dew > 0:
 			_event("dew_", t, enemy.global_position, EVENT_DB - 3.0))
-	tower.popped.connect(func(t: Tower, enemy: Node2D, _stacks: int) -> void:
-		if t.tower_data.tier >= ASCENDED_TIER:  # A crowd popping reads as one rolling fwoomp
-			var now := Time.get_ticks_msec()
-			if now - int(_popped_at.get(t.get_instance_id(), -100000)) < ASCENDED_POP_MS:
-				return
-			_popped_at[t.get_instance_id()] = now
-		_event("pop_", t, enemy.global_position))
 	# Beams (Sunpetal / Midsummer): one warm loop per Warden type, swelling with the ramp (1 -> 4 or 5).
 	tower.beam_ticked.connect(func(t: Tower, ramp: float) -> void:
 		_touch_loop("loop_" + warden_id(t.attack_data), 0.5 + 0.5 * clampf((ramp - 1.0) / 3.0, 0.0, 1.0), BEAM_HOLD))
 	tower.nurtured.connect(_on_nurtured)
 	# Ascended Wardens and the Sapling (Tower Code a187e96); connected only if present.
+	if tower.has_signal("final_bloomed"):
+		tower.final_bloomed.connect(_on_final_bloomed)
 	if tower.has_signal("ascended"):
 		tower.ascended.connect(_on_ascended)
 	if tower.has_signal("ascended_event"):
@@ -532,6 +545,28 @@ func _nurture_swell(tower_id: int, id: StringName, volume: float, pitch: float, 
 	if lean != &"":
 		sound.play(lean, tower.global_position, volume, 1.0, 0.03)
 
+# Final Bloom (audio_direction.md 23c6c5d7; the first grow into each final form per run): after the
+# evolve bloom, a warm harp strum in D over a slow swell of the family's material, then the new form's
+# hit once (instead of the usual first breath), with a small duck. Unpositioned: growing works while
+# the game is paused. Later grows into the same form use the normal evolve.
+func _on_final_bloomed(tower: Tower) -> void:
+	var tower_id := tower.get_instance_id()
+	_final_blooming[tower_id] = true
+	sound.duck(3.0, 0.5)
+	sound.play(&"final_bloom", null, FINAL_BLOOM_DB, 1.0, 0.0)
+	var material := StringName("nurture_" + tower.tower_data.line)
+	sound.play(material if sound.has_sound(material) else &"nurture_sprout", null, FINAL_BLOOM_DB - 2.0, 0.8, 0.0)
+	get_tree().create_timer(FINAL_SIGNATURE_DELAY).timeout.connect(_final_signature.bind(tower_id))
+
+func _final_signature(tower_id: int) -> void:
+	_final_blooming.erase(tower_id)
+	var tower := _tower_from(tower_id)
+	if tower == null:
+		return
+	var id := _sound_for("hit_", tower.attack_data)
+	if id != &"":
+		sound.play(id, null, HIT_DB, 1.0, 0.0, _bus_for(tower))
+
 # Ascending: the evolve bloom (evolved), then a slow, deep swell of the family's material, then the
 # Warden's first event (or its hit, for Wardens without one).
 func _on_ascended(tower: Tower) -> void:
@@ -561,8 +596,8 @@ func _tower_from(tower_id: int) -> Tower:
 # The evolved Warden's first hit, as a "first breath" after the bloom.
 func _first_breath(tower_id: int) -> void:
 	var tower := _tower_from(tower_id)
-	if tower == null:
-		return
+	if tower == null or _final_blooming.has(tower_id):
+		return  # A Final Bloom plays the new form's hit itself
 	var id := _sound_for("hit_", tower.attack_data)
 	if id != &"":
 		sound.play(id, tower.global_position, HIT_DB, 1.0, 0.03, _bus_for(tower))
@@ -742,12 +777,23 @@ static func _weight_pitch_for(base_health: int, elite: bool, boss: bool) -> floa
 # duck, and count as 2 links. Chains build a warm swell link by link, never higher; ×5 surges,
 # ×10 is the Dawnburst with its stinger.
 
+# A Static (Charged) bolt striking: a soft rounded zap, quiet and throttled (bolts can come fast).
+func _on_bolt_struck(at: Vector2, _damage: float) -> void:
+	var now := Time.get_ticks_msec()
+	if now - _bolt_at < BOLT_THROTTLE_MS:
+		return
+	_bolt_at = now
+	sound.play(&"bolt_strike", at, BOLT_DB, 1.0, 0.04)
+
 func _on_node_added(node: Node) -> void:
 	if node is ReactionTracker and not node.reaction_fired.is_connected(_on_reaction):
 		node.reaction_fired.connect(_on_reaction)
 		node.chain_reached.connect(_on_chain)
+		if node.has_signal("bolt_struck"):  # Tower Code 3d6f86e9
+			node.bolt_struck.connect(_on_bolt_struck)
 	_hook_kinships(node)
 	_hook_economy(node)
+	_hook_remember(node)
 
 # Kinships (tower_design.md "Kinships"): whichever node carries these signals (Tower Code's), hooked
 # when it joins the tree. Rewarding but quiet: bonds and stage-ups are chords at rests, the Harmony
@@ -786,7 +832,7 @@ func _on_family_whole(_family: String) -> void:
 # one warm pour, fuller with the amount; the Wellspring's interest is a gentle ripple.
 func _hook_economy(node: Node) -> void:
 	for pair in [["dew_caught", _on_dew_caught], ["harvest_poured", _on_harvest_poured], ["interest_paid", _on_interest_paid],
-			["close_call", _on_close_call]]:
+			["close_call", _on_close_call], ["boss_revealed", _on_boss_revealed]]:
 		if node.has_signal(pair[0]) and not node.is_connected(pair[0], pair[1]):
 			node.connect(pair[0], pair[1])
 
@@ -815,6 +861,62 @@ func _on_interest_paid(_tower: Node = null, _amount = 0) -> void:
 
 # Close calls (Main's CloseCalls, 6d95009; added deferred, so hooked as it joins the tree): a nightmare
 # past 85% of its route. A soft tension cue, throttled like the visual (one per 2 s).
+# The Remember screen (audio_direction.md ecc238a4). Its signals are generic names, so only a
+# RememberScreen is hooked; DreamState's dreamlight_earned (gained, never spent) plays the shared glow.
+func _hook_remember(node: Node) -> void:
+	if node.has_signal("dreamlight_earned") and not node.is_connected("dreamlight_earned", _on_dreamlight_earned):
+		node.connect("dreamlight_earned", _on_dreamlight_earned)
+	if not node is RememberScreen:
+		return
+	if not _choice_screens.has(node):
+		_choice_screens.append(node)  # The music is muffled while it's open
+	for pair in [["opened", _on_remember_opened], ["closed", _on_remember_closed], ["node_selected", _on_remember_tap],
+			["unlocked", _on_remember_unlocked], ["unlock_rejected", _on_remember_rejected]]:
+		if node.has_signal(pair[0]) and not node.is_connected(pair[0], pair[1]):
+			node.connect(pair[0], pair[1])
+
+func _on_remember_opened() -> void:
+	sound.play(&"remember_open", null, REMEMBER_DB, 1.0, 0.0, &"UI")
+
+func _on_remember_closed() -> void:
+	sound.play(&"remember_close", null, REMEMBER_DB, 1.0, 0.0, &"UI")
+
+func _on_remember_tap(_data: Resource = null) -> void:
+	sound.play(&"remember_tap", null, REMEMBER_DB - 2.0, 1.0, 0.03, &"UI")
+
+func _on_remember_rejected(_data: Resource = null) -> void:
+	sound.ui(&"invalid")
+
+# An unlock: a warm swell travels along the gold line, then the node blooms (see _remember_bloom).
+func _on_remember_unlocked(data: TowerData) -> void:
+	sound.play(&"remember_travel", null, REMEMBER_DB, 1.0, 0.0, &"UI")
+	get_tree().create_timer(REMEMBER_TRAVEL).timeout.connect(_remember_bloom.bind(data))
+
+# The bloom in the Warden's family material + a warm sung note in key (branch, ~1 s); a final form sings
+# two notes a fifth apart (~1.5 s); an Ascended adds the crown's choir swell and its deep family swell.
+func _remember_bloom(data: TowerData) -> void:
+	var material := StringName("nurture_" + data.line)
+	sound.play(material if sound.has_sound(material) else &"nurture_sprout", null, REMEMBER_DB, 0.9, 0.0, &"UI")
+	sound.play(&"remember_fifth" if data.tier >= 3 else &"remember_note", null, REMEMBER_DB, 1.0, 0.0, &"UI")
+	if data.tier >= ASCENDED_TIER:
+		sound.play(&"crown_swell", null, REMEMBER_DB, 1.0, 0.0, &"UI")
+		var deep := StringName("ascend_" + warden_id(data))
+		if sound.has_sound(deep):
+			sound.play(deep, null, REMEMBER_DB - 2.0, 1.0, 0.0, &"UI")
+
+# Sources (Roguelite Code 9c3c25ee): boss, shard, glimmer, first_pick, wake, card, omen, other. "other"
+# is Early Light at run start, and "sapling" (Tower Code ee849b19) plays its own ripening swell, so both
+# stay quiet here.
+func _on_dreamlight_earned(_amount = 0, source = &"") -> void:
+	if source == &"other" or source == &"sapling":
+		return
+	sound.play(&"dreamlight_glow", null, REMEMBER_DB, 1.0, 0.0, &"UI")
+
+# The boss card opening (Main's BossDossier, 6a57ff6e; at act starts and from the banner): a low sting
+# and one heartbeat, under the portrait fading up and the name writing in.
+func _on_boss_revealed(_data: Resource = null) -> void:
+	sound.play(&"boss_reveal", null, BOSS_REVEAL_DB, 1.0, 0.0, &"UI")
+
 func _on_close_call(enemy: Node2D = null) -> void:
 	var now := Time.get_ticks_msec()
 	if now - _close_call_at < CLOSE_CALL_THROTTLE_MS:

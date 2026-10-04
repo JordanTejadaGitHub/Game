@@ -49,7 +49,7 @@ func _run() -> void:
 	var dew := run_state.dew
 	await _dispel(near)
 	_check(run_state.dew == dew + roundi(reward * multiplier) or run_state.dew >= dew, "the dispel still pays its own Dew now")
-	_check(is_equal_approx(catcher.bowl, reward * multiplier * 0.4), "Dewcatcher: +40%% into the bowl (%.2f of %d)" % [catcher.bowl, reward])
+	_check(is_equal_approx(catcher.bowl, reward * multiplier * catcher.tower_data.catch_share), "Dewcatcher: its catch into the bowl (%.2f of %d)" % [catcher.bowl, reward])
 	_check(caught.size() == 1, "dew_caught fires once")
 	var far := _spawn(catcher.global_position + Vector2(3 * CELL, 0))
 	var bowl := catcher.bowl
@@ -61,7 +61,7 @@ func _run() -> void:
 	var plain := catcher.get_damage()
 	catcher.rank = 2
 	var probe := _spawn(catcher.global_position)
-	_check(is_equal_approx(catcher.get_catch_share(probe), 0.6), "rank II: +60%% catch (%.2f)" % catcher.get_catch_share(probe))
+	_check(is_equal_approx(catcher.get_catch_share(probe), catcher.tower_data.catch_share + 2 * catcher.tower_data.catch_per_rank), "rank II: +2 ranks of catch (%.2f)" % catcher.get_catch_share(probe))
 	_check(is_equal_approx(catcher.get_damage(), plain), "ranks don't add damage to a catcher")
 	catcher.rank = 0
 
@@ -71,13 +71,13 @@ func _run() -> void:
 	bowl = catcher.bowl
 	var well_bowl := well.bowl
 	await _dispel(both)
-	_check(is_equal_approx(catcher.bowl, bowl) and well.bowl > well_bowl, "two catchers never stack: the Wellspring's +60% applies")
-	_check(is_equal_approx(well.bowl - well_bowl, reward * multiplier * 0.6), "Wellspring: +60%% (%.2f)" % (well.bowl - well_bowl))
+	_check(is_equal_approx(catcher.bowl, bowl) and well.bowl > well_bowl, "two catchers never stack: the Wellspring's higher catch applies")
+	_check(is_equal_approx(well.bowl - well_bowl, reward * multiplier * well.tower_data.catch_share), "Wellspring: its catch (%.2f)" % (well.bowl - well_bowl))
 
 	# Drift Dew goes into the bowl too
 	bowl = catcher.bowl
 	catcher._on_drift_cleared(1, 0, true)
-	_check(is_equal_approx(catcher.bowl, bowl + 4), "Dewcatcher: +4 Dew per drift, into the bowl")
+	_check(is_equal_approx(catcher.bowl, bowl + catcher.tower_data.dew_per_drift), "Dewcatcher: its Dew per drift, into the bowl")
 
 	# --- The Harvest, then interest ---
 	var poured := []
@@ -142,11 +142,11 @@ func _run() -> void:
 	# Dew Bowl / Dew Trail (Wide Bowl merged into it: +0.5 catch radius)
 	_take("dew_bowl")
 	var damp := _spawn(catcher.global_position + Vector2(CELL, 0))
-	_check(is_equal_approx(catcher.get_catch_share(damp), 0.55), "Dew Bowl: +15%% catch (%.2f)" % catcher.get_catch_share(damp))
+	_check(is_equal_approx(catcher.get_catch_share(damp), catcher.tower_data.catch_share + 0.15), "Dew Bowl: +15%% catch (%.2f)" % catcher.get_catch_share(damp))
 	_take("dew_trail")
 	_check(is_equal_approx(catcher.get_catch_radius(), 3.0), "Dew Trail: +0.5 cells catch radius")
 	damp.apply_status(EnemyStatuses.DAMP, 1, 5.0, 1.0)
-	var trail := 0.55 + DewCatch.DEW_TRAIL[0] * dreams.rule_power(&"dew_trail")
+	var trail := catcher.tower_data.catch_share + 0.15 + DewCatch.DEW_TRAIL[0] * dreams.rule_power(&"dew_trail")
 	_check(is_equal_approx(catcher.get_catch_share(damp), trail), "Dew Trail: +30%% (with its tag resonance) on a Damp nightmare (%.2f, want %.2f)" % [catcher.get_catch_share(damp), trail])
 	catcher.queue_free()
 	await _clean()
@@ -163,7 +163,7 @@ func _run() -> void:
 	_check(slog.get_stats(acorn).aura_damage > 0.0, "SupportLog: the Acorn is credited with the extra damage (%.2f)" % slog.get_stats(acorn).aura_damage)
 	_check(slog.get_panel_line(acorn).begins_with("Added this run:"), "aura panel line (%s)" % slog.get_panel_line(acorn))
 	acorn._refresh_neighbours()
-	_check(acorn.get_node_or_null("AuraRing") != null, "the Acorn's aura ring breathes")
+	_check(acorn.get_node_or_null("AuraRing") == null, "no breathing aura ring (the boost area is AuraView's square, user 2026-10-03)")
 	_check(is_instance_valid(buddy._leaf_mote), "a boosted Warden carries a leaf mote")
 	# Show exactly who gets the aura (AuraView): a 3×3 square, only the boosted Wardens, a live chip.
 	var outside := _plant("sporeling", Vector2(7, 12))  # In the Acorn's attack range (2.5), outside its aura
@@ -210,20 +210,23 @@ func _run() -> void:
 	middle._refresh_neighbours()
 	var one := stumps[0].get_aura_bonus(true)
 	_check(is_equal_approx(middle._aura_speed, one * 1.75), "three Elder Stumps: 100%% + 50%% + 25%% (%.3f, one is %.3f)" % [middle._aura_speed, one])
-	_check(middle.get_aura_lines() == ["Elder Stump ×3: +%d%% attack speed" % roundi(one * 175.0)], "panel line: %s" % [middle.get_aura_lines()])
-	stumps[2].focus = Tower.Focus.KINDRED
+	_check(middle.get_aura_lines() == ["Elder Stump ×3: attacks %d%% faster" % roundi(middle._aura_speed * 100.0)], "panel line: %s" % [middle.get_aura_lines()])
+	stumps[2].rank = 1
+	stumps[2].rank_choices = [Tower.Focus.KINDRED]  # Nurture v3: a Kindred rank
 	middle._refresh_neighbours()
-	_check(is_equal_approx(middle._aura_speed, one * 2.5), "a Kindred Elder Stump sits outside the falloff (%.3f)" % middle._aura_speed)
+	var kindred_bonus := stumps[2].get_aura_bonus(true)
+	_check(is_equal_approx(middle._aura_speed, kindred_bonus + one * 1.5), "a Kindred Elder Stump sits outside the falloff (%.3f)" % middle._aura_speed)
 	_check(stumps[0].focus_options() == Tower.SUPPORT_FOCUSES and middle.focus_options() == Tower.ATTACKER_FOCUSES,
 		"support Wardens choose Wide / Strong / Kindred, attackers Power / Swift / Reach / Deep")
 	stumps[0].rank = 2
 	_check(is_equal_approx(stumps[0].get_aura_bonus(true), one * 1.21) and is_equal_approx(stumps[0].get_rank_damage_multiplier(), 1.0),
 		"support Nurture: the aura ×1.1 per rank, no damage (%.3f)" % stumps[0].get_aura_bonus(true))
 	stumps[0].rank = 5
-	stumps[0].focus = Tower.Focus.STRONG
+	stumps[0].rank_choices = [Tower.Focus.STRONG, Tower.Focus.STRONG, Tower.Focus.STRONG, Tower.Focus.STRONG, Tower.Focus.STRONG]
 	_check(is_equal_approx(stumps[0].get_aura_bonus(true), one * pow(1.1, 5) * 1.25), "Strong: ×1.25 more by rank V (%.3f)" % stumps[0].get_aura_bonus(true))
-	stumps[1].focus = Tower.Focus.WIDE
-	_check(is_equal_approx(stumps[1].get_aura_reach(), 2.5), "Wide: the 8 around become everything within 2 cells")
+	stumps[1].rank = 5
+	stumps[1].rank_choices = [Tower.Focus.WIDE, Tower.Focus.WIDE, Tower.Focus.WIDE, Tower.Focus.WIDE, Tower.Focus.WIDE]
+	_check(is_equal_approx(stumps[1].get_aura_reach(), 2.5), "Wide ×5: the 8 around become everything within 2 cells")
 	await _clean_towers()
 
 	# --- Walls: Bramble Oath, The Quiet Ones; Honeysuckle's Drowsy credit ---

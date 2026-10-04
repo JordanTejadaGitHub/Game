@@ -69,9 +69,176 @@ discounts). Ranks never get cheaper by being bought early.
 - **Bellflower, Whirligig, Nestling:** raised to the same floor (tune damage or rate; keep their shapes).
 Target: each family reaches drift 25 alone in **≥ 8 of 10** runs, like the starting three. Tower Code tunes the exact numbers against the opening check. **Status 2026-09-29:** 7 of 9 pass; **Pebbling (3/10) and Whirligig (7/10)** die at 22–24, close misses: small further bumps (about +15% damage each) until they pass. Acorn and Whirligig pass but bleed 9–16 leaves: fine for harder families. **Rerun:** Pebbling fell to 1/10 after its bump: the real cause was that **2 of act 1's 4 types resisted stone** (Husk, Night Hound). Fix (user-approved): the **Husk now resists water** instead (`enemy_design.md`), and **Pebbling's base pebble gets a small splash** (0.5 cells, 40%) for swarms, on top of its skip.
 
-**Sprouts get pricier as you plant** (2026-09-28, user-approved after the first balance batch: a Sprout swarm on a fresh profile was 1.6× the Balanced style with no Sprout cards at all). **Every 5 Sprouts on the map add +3 Dew** to the next Sprout's price (10 for the first 5, then 13, 16, 19…; 40 Sprouts ≈ 34 each). The balance batch (1a4d494) showed +5 per 5 left a Seedfall-less Sprout maze at ×0.20 of Balanced (stalled at ~20 Sprouts, dead by drift 13), so it settled at +3 (2026-09-29). History: +1 per Sprout (too much), then +1 per 5 (user: "very minimal, didn't feel like it changed anything", a run without Seedfall), then this, the user's own suggestion (2026-09-29). Walls should be Thornwalls; Sprouts are the flexible attacker. Selling or growing a Sprout lowers it again. **Seedfall** opens the swarm build: Sprouts cost a **flat 6 and the price never rises** (2026-09-29; balance batch 62af1fd: the swarm at ×1.05 of Balanced, where half-speed rising added nothing). The Warden bar shows the current price. Sprouts planted for free (Seedling Gift charges) don't add to the price.
+**Sprouts cost more, walls do the maze** (2026-09-30, user: *"I'm not using the mazing and walls
+well … maybe increase Sprout costs as well; I still spam Sprouts"*; their run history: **59 Sprouts**
+after taking Seedfall at drift 15, the maze built of Sprouts, not Thornwalls):
+- **Base Sprout 10 → 12 Dew, and every 5 Sprouts on the map add +4** (was +3): 12, 16, 20, 24…;
+  40 Sprouts ≈ 44 each. A Thornwall stays **3 Dew**, so a wall is a quarter of a Sprout: walls build
+  the maze, Sprouts are placed where they can hit.
+- **Seedfall no longer freezes the price:** Sprouts start at **8** and rise **+2 per 5** (half speed).
+  Still the door to the swarm build, never an unlimited one.
+- Tooltip, "↑" tag and first-rise toast follow the new numbers.
+- Watch: the bot's Sprout style and the next human runs (Sprout count by drift 25 / 50, Thornwalls
+  planted, path length).
 
-**Ranks III–V need a Nurture Dream** (2026-09-28, user: "the maze aspect is getting lost with a
+**Sprouts get pricier as you plant** (2026-09-28, user-approved after the first balance batch: a Sprout swarm on a fresh profile was 1.6× the Balanced style with no Sprout cards at all). **Every 5 Sprouts on the map add +3 Dew** to the next Sprout's price (10 for the first 5, then 13, 16, 19…; 40 Sprouts ≈ 34 each). The balance batch (1a4d494) showed +5 per 5 left a Seedfall-less Sprout maze at ×0.20 of Balanced (stalled at ~20 Sprouts, dead by drift 13), so it settled at +3 (2026-09-29). History: +1 per Sprout (too much), then +1 per 5 (user: "very minimal, didn't feel like it changed anything", a run without Seedfall), then this, the user's own suggestion (2026-09-29). Walls should be Thornwalls; Sprouts are the flexible attacker. Selling or growing a Sprout lowers it again. **Seedfall** opens the swarm build: Sprouts cost a **flat 6 and the price never rises** (2026-09-29; balance batch 62af1fd: the swarm at ×1.05 of Balanced, where half-speed rising added nothing). The Warden bar shows the current price. Sprouts planted for free (Seedling Gift charges) don't add to the price. **The rule is shown** (2026-09-30, user: "should have information the Sprout costs more the more you plant"): the Sprout button's tooltip reads *"Sprout · 13 Dew. Every 5 Sprouts on the map add +3 Dew to the price (next rise at 10 Sprouts). Selling or growing one lowers it."*; the price under the button gets a small "↑" and a count to the next rise ("8/10"); the first time the price rises in a run, a one-line toast: *"Sprouts now cost 13 Dew: the more you have, the more they cost."* With Seedfall the tooltip says the price is fixed at 6.
+
+**Branches: pricier and worth it** (2026-09-30, user: *"I want the tier 2 upgrade to be more
+expensive and more worthwhile; it shouldn't be as easy to upgrade to it"*). Today a branch costs 80
+Dew for only ~1.2–1.5× its base's damage (Firefly Jar 18 DPS → Stormcap ~22 before its chain;
+Sporeling 14 → Driftspore 20; Dewdrop 18 → Rain Lily 28), so players grew everything cheaply.
+- **Grow cost 80 → 120 Dew** (× the usual Dream discounts; the rank difference on growing still
+  applies). Dreamlight unlock unchanged (1).
+- **Power: about 2× its base Warden's damage per second** in its own role, counting its mechanic
+  (a chain's extra jumps, a splash, a status that does damage): each branch's numbers are raised to
+  that line by Tower Code, with its identity kept (Stormcap stays the chain, Mistveil the fog).
+  Support branches (Elder Stump, Dewcatcher, Graftling…) get a matching jump in what they give.
+- **Final forms are the big payoff** (same day, user: *"its final form should be a big payoff as
+  well"*): grow cost **200 → 300 Dew** (Dreamlight unchanged, 2), power **about 2.5× its branch**
+  (≈5× its base) in its role, and its **signature mechanic turned up** so it changes how the maze
+  plays (e.g. Thunderhead's all-Soaked strike every 3rd strike instead of every 5th; Tower Code picks
+  one lever per final and lists them). Growing into one is a moment: a bigger bloom, the Warden's
+  name as a callout the first time each run, and the grow preview's "2.5×".
+- **Ascended keeps its gap:** it stays about 5× an average final form (`tower_design.md`), so it
+  scales up with the finals; its price goes **400 → 600 Dew** (3 Dreamlight unchanged).
+- The ladder reads **25 → 120 → 300 → 600**. Nurture v3's ranks and the late Dew cut all pull on
+  the same Dew: the run history decides whether income needs to ease back.
+- **A branch should feel like an event:** fewer of them, each one clearly stronger on the DPS tag
+  (the grow preview shows "2.1× damage"). Watch act 1 (fewer early branches) with the first boss
+  sweep, and the Balanced bot's reach at 25.
+
+**Nurture v3: every rank is a choice, no Dream gate** (2026-09-30, user after human run 1, which ended
+with 9,277 Dew unspent because ranks stopped at II: *"ranks III–V for Dew … maybe for the nurture, all
+levels you choose an option"*). Replaces the gate below and the fixed per-rank gains:
+- **Ranks I–V are bought with Dew**, same costs (25/40/60/90/135 × tier), no Nurture Dream needed.
+  Deeper Rings still opens VI–VII.
+- **Every rank, you choose one** (attackers):
+
+  | Choice | Each rank adds |
+  |---|---|
+  | **Power** | +18% damage |
+  | **Swift** | +12% attack speed |
+  | **Reach** | +0.3 range |
+  | **Deep** | +18% Potency and status duration |
+
+  Five Power ranks ≈ ×1.9 damage (the old rank V with Power was ≈ ×2.1 DPS); a mix is the point: a
+  Warden's ranks read as its story ("Power, Power, Reach"). Support Wardens choose from their
+  support table (below) at every rank the same way.
+- **Choices are kept** through evolution and can't be changed; selling refunds as before. The rank
+  difference on growing is unchanged.
+- UI: Nurture (R) opens the four choices in the Warden panel (1–4 or click; each shows its effect on
+  this Warden: "Power · 28 → 33 damage"). Group Nurture asks once and applies it to every selected
+  Warden. The rank pips under a Warden show each rank's choice by shape/colour.
+  **Playtest fix (2026-09-30**, user: *"fix the text alignment for the upgrades, and the hotkeys
+  aren't working"*): the four choices were always shown with keys 1–4, which clash with the Warden
+  bar's 1–4. Now:
+  - The panel shows **one button, "Nurture to rank III · 50 Dew (R)"**. Pressing it (or R) opens the
+    four choices in place; **while they're open, 1–4 pick** (they don't reach the Warden bar) and
+    Esc / R closes them.
+  - Each choice is a **three-column row**: the choice's name left-aligned, the change in the middle
+    column ("14 → 17 damage"), the price right-aligned, the key badge at the far right. All four rows
+    share the same column edges.
+- The Nurture cards stay as boosts (Tender Care cheaper, Warm Hands +6% per rank, Sunlit Rest free
+  ranks); none of them gate anything any more.
+- The old "Focus at rank III" disappears; a Warden with a Focus from an old save keeps it as the
+  choice for ranks III–V and Power for I–II.
+- Watch in the run history: whether a few tall Wardens now beat the maze (the reason the gate
+  existed). The act 2–4 health rise makes ranks a needed sink, not a shortcut.
+
+### Nurture choices that fit every Warden (audit 2026-10-03)
+
+User: *"make sure the Nurture makes sense on all Wardens."* A code audit of every form (Phase 1 and 2
+branches included) found that the same four attacker choices were offered to every non-support
+Warden, and many of them did nothing for it:
+- **Deep** did nothing on about 40 forms with no status or effect damage (the whole Pebbling family,
+  the birds, beams, cones, spinners), and on Beacon (its Exposed is already above the cap).
+- **Swift** only sped up the basic attack. Timed abilities (holds, pulls, Mark-all), BranchKit timers
+  (fence ticks, grounding, thorns, rockfall), returning birds and seeds, and patrols ignored it.
+- **Reach** only changed targeting range. Fixed areas (silence, catch, fence length, jet length,
+  cloud and burst radii, the goal guard, the 8 tiles around a spinner) ignored it.
+- Control, setup and economy Wardens (Hushbell, Dreamcatcher, Groundroot, Deeproot, Seedbearer, Nurse
+  Log, Dream Oak) had every choice only touch a 12–35 damage pulse: **five ranks for almost nothing**.
+- Kindred on Elder Stump / Grove Heart only counts once; ranks 2–5 of it were wasted. The catcher
+  choice texts said +1 radius / +10% catch, the code gives +0.2 / +6%.
+
+**The rule now: each choice means "more of this Warden's job".**
+
+| Choice | Means, for every Warden | Examples |
+|---|---|---|
+| **Power** | more of **all** its damage: hits, zones, arcs, thorns, rocks, links | Jarlink arc, Jetreed's max-health share |
+| **Swift** | its **main cycle** runs faster: attacks, timed abilities, ticks, spawns, flights, patrols | Tangleroot's hold every 3 → 2.7 s, Groundroot's grab, birds fly and peck faster |
+| **Reach** | its **main area** is bigger: range, or the area its effect covers | silence radius, catch area, fence length, cone, guard ring, cloud radius |
+| **Deep** | its **effect** is stronger (Potency): statuses, effect damage, holds, pulls, linger | pull distance, grounded time, crack length, copied stacks |
+| **Keen** *(new)* | **+crit chance** per rank (**+10%**, cap 75%; Balancing Discussion 2026-10-03). Replaces Deep for Wardens with no status or effect: the build-around choice for crit (Prism Jar, Pinned, Moonstone, Magpie's Hoard) | Mossback, Whetstone, the birds, Thrum |
+| **Yield** *(new)* | **more of what it makes** (Balancing: +1 sprite / Sprout alive per **2** ranks; Dream Oak +0.5 shard per drift per rank) | Brood Cap sprites, Seedbearer Sprouts, Dream Oak shards |
+| **Wide / Strong / Kindred** | supports, as before (Wide = aura/catch reach, Strong = the aura or catch, Kindred = see the table) | |
+
+- **A Warden only shows the choices that do something for it** (3–4, a few economy Wardens 2). Each
+  shows its real effect on this Warden ("Swift · holds every 3.0 → 2.7 s", "Reach · silence 2.0 →
+  2.3 cells"), as the panel already does for damage.
+- **Choices taken earlier stay** if a Warden grows into a form that doesn't offer them: they keep
+  working where they still apply, and the pip shows them dimmed with "no effect on Silence" when they
+  don't. No refunds (pre-release).
+- **A one-time choice** (Kindred on aura supports) is greyed after the first rank of it: "Already
+  taken: Kindred works once."
+- **Walls stay un-nurtured:** Thornwall, Bramble, Honeysuckle are cheap maze pieces; their growth
+  comes from Dream cards. Rampart is a Warden (a golem in the wall), not a wall, and is nurtured.
+- **Grandmother Oak** (Ascended, AURA) had no ranks at all: it gets the support set.
+
+**Per form** (branch / final share a row when they share choices; "fix" = what changes in code or
+text; Balancing Discussion sets every per-rank number marked *).
+
+| Form(s) | Role | Choices now | Verdict | Fix |
+|---|---|---|---|---|
+| Sprout | striker | Power · Swift · Reach | OK | no Deep (no status) |
+| **Sporeling** family: Sporeling, Driftspore / Puffball, Inkcap / Deliquescent, Lichenling / Old Lichen, Sporemother | afflicter | Power · Swift · Reach · Deep | OK | — |
+| Bloomcap / Dreamshroom | afflicter | Power · Swift · Reach · Deep | Reach only aimed the cloud | Reach also widens the cloud* |
+| Fairy Ring / Elf Circle | afflicter (traps) | Power · Swift · Reach · Deep | Swift stalled at the ring cap | Swift also raises the ring cap (+1 per 2 Swift ranks*) |
+| Brood Cap / Hatchery | afflicter (spawner) | Power · Swift · Deep · **Yield** | Reach did nothing; Swift stalled at 4 sprites | Reach → Yield (+1 sprite alive per rank*) |
+| Dewdrop, Rain Lily / Monsoon, Frostfern / Hoarfrost, Tidecaller | afflicter | Power · Swift · Reach · Deep | OK (Deep = Soaked strength / freeze, to the caps) | text shows "Soaked +20% → +25%" |
+| Mistveil / Morning Fog | afflicter | Power · Swift · Reach · Deep | Reach only aimed | Reach also widens the fog* |
+| Cloudlet / Nimbus | afflicter | Power · Swift · Reach · Deep | Deep only touched Soaked | rain damage becomes effect damage (tag `rain`), so Deep scales it |
+| Undercurrent / Maelstrom | afflicter | Power · Swift · Reach · Deep | Deep did nothing | `linked` damage becomes effect damage: Deep raises the link share (25% × Potency, cap 50%*) |
+| Jetreed / Torrent | striker | Power · Swift · Reach · Keen | Power missed the max-health share; Reach missed the jet; Deep nothing | Power also scales the max-health share; Reach lengthens the jet*; Deep → Keen |
+| Firefly Jar, Stormcap / Thunderhead, Stormheart, Lanternmoth, Chime Stone / Lullaby Bell, Great Bell, Bellflower, Silver Bell / Vesper Bell | afflicter | Power · Swift · Reach · Deep | OK | Stormcap: Reach also lengthens chain jumps* |
+| Beacon | afflicter | Power · Swift · Reach · **Keen** | Deep did nothing (Exposed above the cap); Swift missed Mark-all | Swift also speeds Mark-all; Deep → Keen |
+| Sparkler / Starburst | afflicter | Power · Swift · Reach · Deep | Reach only aimed | Reach also widens the burst* |
+| Jarlink / Lightning Fence | afflicter (fence) | Power · Swift · Reach · Deep | Swift and Reach did nothing | Swift = the arc ticks faster; Reach = longer link range (4 → +0.3 per rank*) |
+| Sunpetal / Midsummer | striker (beam) | Power · Swift · Reach · Keen | Deep nothing | Deep → Keen |
+| Prism Jar / Rainbow Prism | hybrid support | Power · Swift · **Wide · Strong** | its job (the crit aura) took no ranks; Deep nothing | Wide = aura reach; Strong = +crit aura per rank* |
+| Thrum / Resonance | striker (cone) | Power · Swift · Reach · Keen | Deep nothing | Deep → Keen |
+| Hushbell / Silence | control | Reach · Deep · Power | every choice only touched its pulse | Reach = silence radius; Deep = silenced bosses' timers slower (× Potency, cap*) and Silence's linger longer; Swift removed |
+| Dreamcatcher / Great Dreamcatcher | setup | Reach · Deep · Power | Swift / Power only touched a 13–24 shot; Deep nothing | Reach = catch area (works); Deep = Caught statuses keep going 0.5 s per rank* after leaving (Great: also its +25% tick × Potency); Swift removed |
+| Echo Hollow / Whispering Hollow | setup | Reach · Deep · Power | Swift only touched the pulse | Swift removed |
+| Pebbling, Mossback / Boulderback, Standing Stone / Moonstone, Cairn / Rockslide, Whetstone / Edgestone | striker | Power · Swift · Reach · Keen | Deep nothing | Deep → Keen |
+| Old Mountain | striker | Power · Swift · Reach · Deep | OK (Deep = its freeze) | — |
+| Quaker / Earthshaker | striker | Power · Swift · Reach · Deep | Deep nothing | Deep = the reveal and the crack last longer (× Potency) |
+| Rampart / Bastion | striker (spin) | Power · Swift · Keen | Reach and Deep nothing; Swift missed the rockfall | Reach hidden (fixed 8 tiles); Swift also speeds the rockfall; Deep → Keen |
+| Rootling | afflicter | Power · Swift · Reach · Deep | OK (Deep = its hold) | — |
+| Tangleroot / Snugroot | control | Swift · Reach · Deep | Swift missed the hold; Power only the pulse | Swift = the hold cycle; Power removed |
+| Rootcurl / Long Way Home | control | Swift · Reach · Deep | Swift missed the pull; Deep nothing | Swift = the pull cycle; Deep = pull distance × Potency*; Power removed |
+| Groundroot / Earthbind | control | Swift · Reach · Deep | everything only touched the pulse | Swift = the grab cycle; Reach = grab reach; Deep = grounded time (+ Earthbind's landing hold) |
+| Deeproot / Heartroot | control | Reach · Deep · Power | only Deep worked | Reach = the guard ring (3 cells +0.2 per rank*); Power = its pulse; Swift removed |
+| Thorncoil / Crown of Thorns | afflicter | Power · Swift · Reach · Deep | Swift missed the thorns | Swift = the thorn tick |
+| Rootlight / Starcave | control | Power · Swift · Reach · Deep | Deep nothing on Rootlight | Deep = lit tiles stretch holds more (+50% × Potency) |
+| World Root | control | Power · Swift · Reach · Deep | OK | — |
+| Acorn | striker + aura | Power · Swift · Reach · **Strong** | the aura took no ranks; Deep nothing | Deep → Strong (+1% aura per rank*) |
+| Elder Stump / Grove Heart | support | Wide · Strong · Kindred | Kindred ranks 2–5 wasted | Kindred is one-time (greyed after) |
+| Dewcatcher / Wellspring | economy (catcher) | Wide · Strong · Kindred | texts wrong | texts: "+0.2 catch radius", "+6% catch" |
+| Graftling / Grafted Elder | support (copy) | Power · Swift · Reach · Deep | works through the copied Warden | Deep greyed "its copy applies no status" when so |
+| Grandmother Oak | support | Wide · Strong · Kindred | no ranks at all | gets the support set |
+| Seedbearer / Grove Keeper | economy | **Yield** · Swift · Kindred | everything only touched the pulse | Yield = +1 Sprout alive per rank*; Swift = a seed sooner (−0.3 drifts per rank*); Kindred = its Sprouts +6% damage per rank* |
+| Nurse Log / Mother Log | economy | Strong · Wide · Kindred | everything only touched the pulse | Strong = +3% discount per rank*; Wide = +0.2 radius; Kindred = Wardens in range also evolve 2% cheaper per rank* |
+| Dream Oak / Dreamroot | economy | **Yield** · Wide | everything only touched the pulse | Yield = more shards per drift*; Wide = families counted from further (+0.2 per rank) |
+| Nestling, Wren's Nest / Starling Murmuration, Magpie Perch / Magpie's Hoard | striker | Power · Swift · Reach · Keen | Deep nothing | Deep → Keen |
+| Hummingbird Bower / Jewelwing Court | striker | Power · Swift · Reach · Keen | Swift did nothing (waits for birds) | Swift = faster pecks and flight; Deep → Keen |
+| Samara / Autumn Gale | striker | Power · Swift · Reach · Keen | Swift did little (waits for the seed) | Swift = the seed flies faster; Reach = longer throw*; Deep → Keen |
+| Gust / Zephyr | setup | Swift · Reach · Deep | Power and Deep did nothing | Deep = copies carry more stacks (half → +10% per rank*); Swift also speeds Zephyr's gale; Power removed |
+| Pinwheel / Windmill | striker (spin) | Power · Swift · Keen | Reach and Deep nothing | Reach hidden; Deep → Keen |
+| Dawnwing, The Whirlwind | striker (patrol) | Power · Swift · Reach · Keen | Swift did nothing | Swift = faster patrol / strikes; Deep → Keen |
+| Thornwall, Bramble, Honeysuckle | wall | — | — | not nurtured (unchanged) |
+
+**(Replaced by Nurture v3 above.) Ranks III–V need a Nurture Dream** (2026-09-28, user: "the maze aspect is getting lost with a
 few strong Wardens through upgrades… focusing on strong Wardens should only happen when you get the
 cards for them"). Every Warden can be nurtured to **rank II**; **ranks III–V** (and Focus) open once
 you own **any `nurture` card** (Tender Care and Warm Hands are Commons, opened by 30 Dew spent on
@@ -154,7 +321,7 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | ✓ Sprout | 10 | 2.5 | 10 × 1.0 | 10 | projectile | none |
 | ✓ Thornwall | 3 | — | — | — | wall | no attack |
 | ✓ Bramble | +10 | 1.25 | 6 × 1.5 | 9 (area) | pulse | soothes creatures walking beside it; **×2 vs Held** (proposed) |
-| ✓ Honeysuckle | +10 | 1.25 | — | — | aura | nightmares beside it gain **1 Drowsy per 1.5 s** (no damage) |
+| ✓ Honeysuckle | **+30** (was +10) | 1.25 | — | — | aura | nightmares beside it gain **1 Drowsy per 1.5 s** (no damage); **Drowsy from walls caps at 3 stacks** (walls slow, they don't put to sleep alone; 2026-09-30, user: "too overpowering with the slow for how cheap it was", run 2 had 35 Honeysuckles) |
 
 ## Sporeling family (spore)
 
@@ -165,8 +332,8 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | Puffball | final | +90 | 2.5 | 12 × 2.0 | 24 | projectile | Spored 2 per hit, cap 12. At **10+ stacks** the target **pops**: soothes it and creatures within 1 cell for **6 × stacks**, and half its stacks spread to up to 3 nearby creatures |
 | ✓ Bloomcap | branch | +45 | 2.5 | 10 × 0.5 | cloud | cloud | leaves a sleepy cloud on the path (radius 0.75, 3 s): Drowsy |
 | Dreamshroom | final | +90 | 2.5 | 14 × 0.6 | cloud | cloud | bigger cloud (radius 1.0, 4 s), **2 Drowsy** per tick; at 5 Drowsy a creature **sleeps 1.5 s** (once each; bosses cap at 3 Drowsy, so they never sleep) |
-| ✓ Fairy Ring *(hidden)* | branch | +45 | 2.5 | 35 per burst | trap | trap | every 2 s plants a ring on a random path tile in range (max 4, last 10 s); stepping on one: 35 damage within 0.6 cells + **Spored 2** |
-| ✓ Elf Circle *(hidden)* | final | +90 | 3 | 60 per burst | trap | trap | every 1.5 s, max 6 rings, **rings last until stepped on**; Spored 3 |
+| ✓ Fairy Ring *(hidden)* | branch | +45 | 2.5 | 35 per burst | trap | trap | every 2 s plants a ring on a random path tile in range (max 4, last 10 s); stepping on one: 35 damage within 0.6 cells + **Spored 2**; *Balancing 2026-10-02 (branch sweep, per Dew vs Driftspore): ~1.6× Driftspore, so burst damage 44 → 30.* |
+| ✓ Elf Circle *(hidden)* | final | +90 | 3 | 60 per burst | trap | trap | every 1.5 s, max 6 rings, **rings last until stepped on**; Spored 3; *Balancing 2026-10-02 (finals sweep, damage per Dew vs Puffball): damage ×0.75 (was 1.3–1.6× in act 2, 2.1–2.4× in act 3).* |
 
 ## Dewdrop family (water)
 
@@ -190,7 +357,7 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | ✓ Lanternmoth | branch | +45 | 4.5 | 12 × 1.0 | 12 | projectile | Marked; **reveals** fog-hidden creatures in range |
 | Beacon | final | +90 | 5 | 16 × 1.0 | 16 | projectile + pulse | every 2 s, **Marks everything** in range; its Marked is **+35%** |
 | ✓ Sunpetal *(hidden)* | branch | +45 | 3.5 | 12/s, ramping | 12 → 48 | beam | ramps +25% per second on one target (max ×4); ramps **2× as fast** on Drowsy or Held |
-| ✓ Midsummer *(hidden)* | final | +90 | 4 | 18/s, ramping | 18 → 90 | beam | ramps +35%/s (max ×5), 2× on Drowsy/Held; beam **also hits the nightmare right behind** its target at 50%. **Buffed 2026-09-28** (probe: ~3%): starts at **45/s** (27 → 36 in be7fd06, the row's 18 predates the ×1.5 finals pass; then +25% after a rerun at ~5–6% share) and keeps **half its ramp** for 1 s when it switches target. Target ~6–8% |
+| ✓ Midsummer *(hidden)* | final | +90 | 4 | 18/s, ramping | 18 → 90 | beam | ramps +35%/s (max ×5), 2× on Drowsy/Held; beam **also hits the nightmare right behind** its target at 50%. **Buffed 2026-09-28** (probe: ~3%): starts at **45/s** (27 → 36 in be7fd06, the row's 18 predates the ×1.5 finals pass; then +25% after a rerun at ~5–6% share) and keeps **half its ramp** for 1 s when it switches target. Target ~6–8%; *Balancing 2026-10-02 (finals sweep, damage per Dew vs Puffball): damage 68 → 170 (×2.5, after the beam fix; was 0.28×).* |
 
 ## Pebbling family (stone) — heavy hits: close, far, area
 
@@ -200,7 +367,7 @@ adds +5%. Clouds, fog, Spored, Static bolts and Puffball pops never crit.
 | Mossback | branch | +45 | 1.75 | 110 × 0.4 | 44 | projectile | **×2 vs Marked** |
 | Boulderback | final | +90 | 1.75 | 220 × 0.35 | 77 | projectile | splashes 50% to creatures within 1 cell; **always crits (×2) on Drowsy** |
 | ✓ Standing Stone | branch | +45 | **8** (min 2) | 100 every 3 s | 33 | projectile | **+10% damage per cell** of distance beyond 3 (max +50%); crit 20% ×2.5; target priority. With crits and full distance ≈ 65 DPS. *(Was hidden; now branch B, 2026-09-27 review.)* |
-| ✓ Moonstone | final | +90 | **10** (min 2) | 220 every 3.5 s | 63 | projectile | distance bonus as above; crit 25% **×3**; **first hit on each nightmare always crits**. Full distance + crits ≈ 140 DPS |
+| ✓ Moonstone | final | +90 | **10** (min 2) | 220 every 3.5 s | 63 | projectile | distance bonus as above; crit 25% **×3**; **first hit on each nightmare always crits**. Full distance + crits ≈ 140 DPS; *Balancing 2026-10-02 (finals sweep, damage per Dew vs Puffball): damage ×0.75 (was 1.3–1.6× in act 2, 2.1–2.4× in act 3).* |
 | Cairn *(hidden)* | branch | +45 | **6** (min 2) | 60 every 2.5 s | 24 (area) | lob | lobs over walls onto the target's tile: 60 to everything within **1 cell**; crit 8% ×2 |
 | Rockslide *(hidden)* | final | +90 | 7 (min 2) | 110 every 2.5 s | 44 (area) | lob | splash **1.25 cells**; the path tiles hit get **rubble**: −25% speed for 3 s; crit 10% |
 
@@ -215,12 +382,17 @@ Owns **Drowsy**. Chime Stone and Lullaby Bell moved here from Pebbling (numbers 
 | Lullaby Bell | final | +90 | 2.5 | 40 × 0.8 | 32 (area) | pulse | Static 1 + **Drowsy 1** per pulse; sets off Static like Chime Stone. **Tuned 2026-09-28** (probe: ~20% of a 12-Warden board each, vs 8% average): pulse every **1.75 s** (was 1.25 s) and sets off Static at **4** stacks (was 3); target ~12% |
 | Dreamcatcher | branch | +45 | 2.5 | 10 × 1.0 | 10 | projectile | nightmares in range that are **asleep or at max Drowsy** are **Caught**: its **statuses stop wearing off** (Spored keeps ticking, Static doesn't decay, Damp / Marked / Held timers pause). *Changed 2026-09-29: was +damage taken (Marked's job)* |
 | Great Dreamcatcher | final | +90 | 3.5 | 16 × 1.0 | 16 | projectile | Caught statuses tick **+25%**; sleep in range lasts **+1 s** (once per nightmare); each Caught nightmare dispelled drops a **Dreamlight shard** (10 shards = 1 Dreamlight; max 2 Dreamlight per run from shards) |
-| Echo Hollow *(hidden)* | branch | +45 | 2.5 | 8 × 1.0 | 8 (area) | echo | a Reaction within range **repeats 1 s later at 50%** on the same spot (echoes don't echo) |
-| Whispering Hollow *(hidden)* | final | +90 | 3.5 | 12 × 1.0 | 12 (area) | echo | echoes at **75%**; each echo **counts as a chain link** |
+| Echo Hollow *(hidden)* | branch | +45 | 2.5 | 8 × 1.0 | 8 (area) | echo | a Reaction within range **repeats 1 s later at its echo share** (**75%**, final: Balancing Discussion 2026-10-02) on the **same nightmare** (wherever it has walked; if it was dispelled, where it died) (echoes don't echo) |
+| Whispering Hollow *(hidden)* | final | +90 | 3.5 | 12 × 1.0 | 12 (area) | echo | echo share **100%** (final: Balancing Discussion 2026-10-02); each echo **counts as a chain link** |
 
-**Echoes, as built (a9ba4b6):** an echo is a burst at the Reaction's spot, sized from the applier's
-damage × a per-Reaction factor (Thunderclap 4, Ignite 3, Shatter 2.5, Lightning Rod 6) × 50% (Echo
-Hollow) or 75% (Whispering Hollow). Drown echoes as a shorter sleep, Pinned re-primes its guaranteed
+**Echoes follow the nightmare** (changed 2026-10-02: on the same spot they missed, since nightmares
+had walked on after 1 s: 1.6% of the Hollow's damage at drift 45, 0% at 61). The echo hits the
+nightmare the Reaction fired on, wherever it is now, plus anything within 1 cell of it; if that
+nightmare was dispelled, the echo fires where it died. **Echoes, as built (a9ba4b6):** an echo is a burst, sized from the applier's
+damage × a per-Reaction factor (Thunderclap 4, Ignite 3, Shatter 2.5, Lightning Rod 6) × the echo share (final, Balancing Discussion 2026-10-02: Echo Hollow 75%, Whispering Hollow 100%).
+**Hollow pulse raised** (2026-10-02): with echoes landing, Reactions are still too infrequent for
+echoes to carry the Hollows (boards 0.6–0.9×), so their own pulse goes up: **Echo Hollow 10 → 22,
+Whispering Hollow 18 → 50**. They stay Reaction repeaters. Drown echoes as a shorter sleep, Pinned re-primes its guaranteed
 crit, Mushrooming grows a shorter cloud, and **Smother doesn't echo**.
 
 Caught no longer adds damage (2026-09-29), so it pairs with Marked instead of stacking with it: a
@@ -236,7 +408,7 @@ Caught bosses give no Dreamlight shards.
 | Rootcurl | branch | +45 | 2 | 14 × 1.0 | 14 (area) | pulse + pull | every **4 s**, pulls the creature furthest along (in range) **back 1 tile** |
 | Long Way Home | final | +90 | 2.5 | 18 × 1.0 | 18 (area) | pulse + pull | every **5 s**, pulls back **3 tiles**; each creature only once (bosses: 1 tile) |
 | Tangleroot | branch | +45 | 2 | 14 × 1.0 | 14 (area) | pulse + hold | every **3 s**, **Holds** the creature furthest along for 1 s |
-| Snugroot | final | +90 | 2.5 | 20 × 1.0 | 20 (area) | pulse + hold | every 3 s, Holds **up to 3** creatures for 1 s |
+| Snugroot | final | +90 | 2.5 | 20 × 1.0 | 20 (area) | pulse + hold | every 3 s, Holds **up to 3** creatures for 1 s; *Balancing 2026-10-02 (finals sweep, damage per Dew vs Puffball): damage ×0.75 (was 1.3–1.6× in act 2, 2.1–2.4× in act 3).* |
 | ✓ Rootlight *(hidden)* | branch | +45 | 3 | 10 × 1.0 | 10 (area) | pulse + light | lights path tiles in range: **reveals Lurkers**, **Gravecrawlers can't burrow** on lit tiles, **Held lasts 50% longer** on lit tiles (no Marked since 2026-09-29: Marked is Firefly Jar's) |
 | ✓ Starcave *(hidden)* | final | +90 | 4 | 16 × 1.0 | 16 (area) | pulse + light | as Rootlight; Held lasts **twice as long** on lit tiles |
 
@@ -292,7 +464,7 @@ walls get path tiles added (Thornwall), damage (Bramble) or Drowsy applied (Hone
 |---|---|---|---|---|---|---|---|
 | ✓ Nestling | base | 25 (+15) | 3 | 14 × 1.2 | 17 | swoop | bird flies out and back; ×1.25 vs Phantoms |
 | ✓ Wren's Nest | branch | +45 | 3.5 | 8 × 3.0 | 24 | swoop | targets the **fastest** nightmare in range; ×1.5 vs Phantoms and sprinting Night Hounds; crit 15%; **each swoop also strikes a second nightmare it passes (50%)** (2026-09-29: an early multi-target tool for Nestling) |
-| ✓ Starling Murmuration | final | +90 | 4 | 3 birds × 10 × 1.5 | 45 (split) | swoop | **changed 2026-09-27:** 3 starlings each hunt one of the **3 fastest** nightmares in range; ×1.5 vs Phantoms and sprinting Night Hounds; crit 15%. (Was: sweeps the 5 busiest path tiles) |
+| ✓ Starling Murmuration | final | +90 | 4 | 3 birds × 10 × 1.5 | 45 (split) | swoop | **changed 2026-09-27:** 3 starlings each hunt one of the **3 fastest** nightmares in range; ×1.5 vs Phantoms and sprinting Night Hounds; crit 15%. (Was: sweeps the 5 busiest path tiles); *Balancing 2026-10-02 (finals sweep, damage per Dew vs Puffball): damage ×1.5 (was 0.5×).* |
 | ✓ Magpie Perch | branch | +45 | 3 | 12 × 1.0 | 12 | swoop | **thief** (2026-09-29): each hit strips a nightmare buff: removes **2× its normal chip** of dread shell, stops a Weeper's mending for **3 s**, removes an Omen's boosts from that nightmare; **+1 Dew** when a nightmare it stripped is dispelled; crit 10% |
 | ✓ Magpie's Hoard | final | +90 | 3.5 | 20 × 1.0 | 20 | swoop | as Magpie Perch (every hit strips); **each crit +1 Dew** (max 15 per drift); crit 15% |
 | Hummingbird Bower *(hidden)* | branch | +45 | 3 | 6 pecks × 4, every 1.5 s | 16 | multi-hit | pecks one nightmare 6 times in 1 s, returns in 0.5 s; **each peck is a full hit** (crit roll, Marked, on-hit cards) |
@@ -308,7 +480,7 @@ walls get path tiles added (Thornwall), damage (Bramble) or Drowsy applied (Hone
 | ✓ Pinwheel | branch | +45 | 1 (adjacent tiles) | 12 × 2.0 | 24 (area) | blades | hits every nightmare on the 8 tiles around it; **+20% damage per adjacent path tile beyond 2** (max +100%) |
 | ✓ Windmill | final | +90 | 1 | 18 × 2.5 | 45 (area) | blades | as Pinwheel |
 | Samara *(hidden)* | branch | +45 | 4 (line) | 20 per pass, ~1 throw / 1.6 s | ~25 to **each** in the line | boomerang | straight out and back through everything; each nightmare hit twice; carries the first-hit nightmare's statuses (half stacks) down the line |
-| Autumn Gale *(hidden)* | final | +90 | 5 (line) | 2 seeds × 35 per pass, ~1 throw / 1.6 s | ~44 to each, two lines | boomerang | aims along the 2 lines with most nightmares; each catch +10% next-throw damage (max +50%; resets if a throw hits nothing) |
+| Autumn Gale *(hidden)* | final | +90 | 5 (line) | 2 seeds × 35 per pass, ~1 throw / 1.6 s | ~44 to each, two lines | boomerang | aims along the 2 lines with most nightmares; each catch +10% next-throw damage (max +50%; resets if a throw hits nothing); *Balancing 2026-10-02 (finals sweep, damage per Dew vs Puffball): damage ×0.75 (was 1.3–1.6× in act 2, 2.1–2.4× in act 3).* |
 
 As built: Samara aims its line at its **first target**; Autumn Gale picks the **two lines through the
 most nightmares**. The catch rhythm counts **per throw** (+10% if any seed hit, reset if none did),
@@ -349,6 +521,35 @@ For the coding chat, in rough order of need:
    **traps** (Fairy Ring), **freeze** (Frostfern, reuses Held), **lit tiles** that block burrowing
    (Rootlight), **attack copying** (Graftling), **swoop** projectiles that return, **status
    copying** (Gust), **adjacent-tile blades** (Pinwheel), **unique** Memory Wardens.
+
+## Tuning from the 2026-10-02 probe series (Balancing Discussion)
+
+The current numbers after Balancing Discussion's overnight sweeps (every final and every branch ×4
+on a fixed board, rank IV, no Dreams, damage per Dew vs Puffball / Driftspore), the follow-up
+re-probes and the last step on 2ef6d56f. **Where this list and an older row in the tables above
+disagree, this list wins** (the tables keep pre-pass values plus row notes). The probe series is
+closed; **human runs judge from here**. Full measurements: `balance_simulation.md`.
+
+| Warden | Change | Why |
+|---|---|---|
+| Autumn Gale | ×0.75, then **85 → 72** | 1.3–1.6× in act 2, 2.1–2.4× in act 3 |
+| Moonstone, Elf Circle | ×0.75 | the same |
+| Snugroot | ×0.75, then **56 → 48** | the same; act 3 still ~2.1× after the first cut |
+| Midsummer | **68 → 170** (×2.5, after the beam fix) | was 0.28× |
+| Starling Murmuration | ×1.5 | was 0.5× |
+| Fairy Ring | burst **44 → 30** | ~1.6× Driftspore |
+| Hummingbird Bower | **27 → 40** | 0.10× Driftspore |
+| Sunpetal | **81 → 113** | 0.11× (also check beam target retention) |
+| Stormcap | damage **18 → 24** | 0.22× at drifts 45–49 |
+| Echo Hollow | echo share **75%** (final); pulse **10 → 22 → 28** | echoes now follow the nightmare, but Reactions are too rare to carry it |
+| Whispering Hollow | echo share **100%** (final); pulse **18 → 50 → 62** | the same |
+| Dreamshroom | Dream spores at **half** soothe, one puff per sleeper per second | ~2.1× Puffball per Warden |
+| Deep focus | **+25% Potency** per rank (was +18%) | committed Deep builds trailed Power |
+| Acorn family | **+15% attack damage** (auras unchanged) | weakest family in act 1 |
+
+Role notes from the same series (`tower_design.md` roles): Gust, Zephyr, Echo/Whispering Hollow,
+Frostfern and the support Wardens are judged by **what they add to the board** (support credit),
+not by direct damage per Dew.
 
 ## To check in playtests
 

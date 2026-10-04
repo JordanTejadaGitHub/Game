@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/inkcap.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_inkcap"
+display_name = "Inkcap"
+description = "Sporelings can now grow into Inkcaps ({grow_cost:inkcap} Dew): {spored} nightmares leave ink trails that poison those behind."
+rarity = 1
+kind = 1
+tags = Array[String](["spore"])
+requires = Array[String](["sporeling"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")

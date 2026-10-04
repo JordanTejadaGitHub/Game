@@ -6,7 +6,8 @@
 script = ExtResource("1_card")
 id = "prism_heart"
 display_name = "Prism Heart"
-description = "Prismstorm shards add 3 {static} stacks and fly 0.5 cells further."
+description = "{combo:prismstorm} shards add 3 {static} stacks and fly 0.5 cells further."
+cost_description = "{combo:prismstorm} can fire half as often."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])

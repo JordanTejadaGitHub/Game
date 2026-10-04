@@ -19,6 +19,7 @@ const OFF_COLOR := UiStyle.OFF
 const RUN_WIDE_COLOR := UiStyle.MOONLIGHT
 const BOOSTED_COLOR := UiStyle.GOLD  # The warm tint for a boosted stat
 const ICON_SCRIPT := preload("res://scripts/ui/dreams_row.gd")
+const GEMS_PER_ROW := 8  # Dream gems per row in the Warden panel
 
 # --- Rows -------------------------------------------------------------------------------------------
 
@@ -37,11 +38,62 @@ static func make_rows_at(data: TowerData, cell: Vector2, tower: Tower = null) ->
 	title.add_theme_font_size_override("font_size", 15)
 	title.add_theme_color_override("font_color", Palette.DEWLIGHT)
 	box.add_child(title)
-	# Active first, then run-wide, then the ones that are off.
-	dreams.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _rank(a) < _rank(b))
-	for entry in dreams:
-		box.add_child(_row(entry))
+	# Compact (screens_ui.md "The Warden panel never fills the screen"): the active cards as one row of
+	# gems (rarity shape + stacks; hover / tap = its line), the rest collapsed to one muted line.
+	var merged := merge_by_card(dreams)
+	merged.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _rank(a) < _rank(b))
+	# Fixed rows of GEMS_PER_ROW, one gem per card with a gap (a flow container stacked them on top of each
+	# other in the Warden panel before its width settled: user screenshot, Driftspore).
+	var gems := VBoxContainer.new()
+	gems.add_theme_constant_override("separation", 6)
+	var off: Array[String] = []
+	var states := _dream_state()
+	for entry in merged:
+		var card: UpgradeData = entry.card
+		if not entry.get("active", false):
+			off.append("%s: %s" % [card.display_name, String(entry.get("reason", "it doesn't apply here"))])
+			continue
+		var icon = ICON_SCRIPT.DreamIcon.new()  # The Dreams row's rarity-shaped card icon
+		icon.card = card
+		icon.stacks = states.card_stacks(card.id) if states != null else 1
+		icon.custom_minimum_size = Vector2(30, 30)
+		var line := get_line(entry)
+		TapTip.attach(icon, IconInfo.format("%s: %s" % [card.display_name, line if line != "" else card.description]))
+		if gems.get_child_count() == 0 or gems.get_child(-1).get_child_count() >= GEMS_PER_ROW:
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 8)
+			gems.add_child(row)
+		gems.get_child(-1).add_child(icon)
+	if gems.get_child_count() > 0:
+		box.add_child(gems)
+	if not off.is_empty():
+		var more := Label.new()
+		more.text = "%d more don't apply here" % off.size() if off.size() != 1 else "1 more doesn't apply here"
+		more.add_theme_font_size_override("font_size", 14)
+		more.add_theme_color_override("font_color", OFF_COLOR)
+		TapTip.attach(more, IconInfo.format("\n".join(off)))
+		box.add_child(more)
 	return box
+
+# One entry per card: a card with extra rules (Hunter's Patience + its Skyward Gaze rule) reports one
+# effect per rule; they merge here (its lines joined), so it's listed once under its own name.
+static func merge_by_card(entries: Array) -> Array:
+	var by_card := {}
+	var order: Array = []
+	for entry in entries:
+		var card: UpgradeData = entry.card
+		if not by_card.has(card):
+			by_card[card] = entry.duplicate()
+			order.append(card)
+			continue
+		var merged: Dictionary = by_card[card]
+		var line := get_line(entry)
+		if entry.get("active", false):
+			if not merged.get("active", false):  # An active rule wins over an inactive one
+				by_card[card] = entry.duplicate()
+			elif line != "" and not String(merged.get("effect", "")).contains(line):
+				merged["effect"] = "%s · %s" % [String(merged.get("effect", "")), line] if String(merged.get("effect", "")) != "" else line
+	return order.map(func(c: UpgradeData) -> Dictionary: return by_card[c])
 
 static func _rank(entry: Dictionary) -> int:
 	if not entry.get("active", false):
@@ -90,7 +142,7 @@ static func _colour(active: bool, run_wide: bool) -> Color:
 static func get_line(entry: Dictionary) -> String:
 	if not entry.get("active", false):
 		var reason: String = entry.get("reason", "")
-		return "off: " + reason if reason != "" else "off"
+		return "Off: " + reason if reason != "" else "Off"  # (The panel collapses these into "N more don't apply here")
 	if entry.get("run_wide", false) and String(entry.get("note", "")) != "":
 		return entry.note  # A run-wide card's live value
 	return entry.get("effect", "")

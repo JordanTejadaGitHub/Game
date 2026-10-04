@@ -19,6 +19,9 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	# The player's own settings (reduce flashes, Kinship effects) must not change what the test sees.
+	HeartwoodMemory.file_path = "user://test_kinships_%d.json" % OS.get_process_id()
+	Fx.reset_run()
 	Kinships.force_full = true
 	main = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
@@ -72,6 +75,57 @@ func _run() -> void:
 	kin.refresh()
 	_check(kin.get_pair(drift).get("id") == &"slumber_rot" and is_equal_approx(drift.kin_share(&"slumber_rot", "a"), 0.75),
 		"evolving into Puffball keeps the bond and its age")
+
+	# --- Bonds are sticky: a nearer newcomer never takes over a bond; it pairs with a free kin ---
+	var s1 := _plant("driftspore", Vector2(1, 8))
+	var s2 := _plant("bloomcap", Vector2(3, 8))  # 2 cells away
+	await process_frame
+	kin.refresh()
+	var sticky: Dictionary = kin.get_pair(s1)
+	_check(kin.get_partner(s1) == s2, "a pair to test sticky bonds with")
+	kin.ages[sticky.get("key", "")] = 3
+	var free_kin := _plant("driftspore", Vector2(2, 10))
+	var newcomer := _plant("bloomcap", Vector2(2, 9))  # 1 cell from the bonded Driftspore
+	await process_frame
+	kin.refresh()
+	_check(kin.get_partner(s1) == s2 and kin.ages.get(kin.get_pair(s1).get("key", ""), -1) == 3,
+		"a nearer Bloomcap doesn't take over the bond; its age stays (%s)" % [kin.ages.get(kin.get_pair(s1).get("key", ""), -1)])
+	_check(kin.get_partner(newcomer) == free_kin, "the newcomer bonds with the free Driftspore")
+	s1.evolve(load("res://resource/tower/puffball.tres"), 0)
+	kin.refresh()
+	_check(kin.get_partner(s1) == s2 and kin.ages.get(kin.get_pair(s1).get("key", ""), -1) == 3, "growing a partner keeps the bond and its age")
+	for tower in [s1, s2, free_kin, newcomer]:
+		tower.queue_free()
+	await process_frame
+	kin.refresh()
+
+	# A vertical pair (user: "can't see the visual root if they're above each other"): its vine bows out
+	# sideways beside the sprites; a knot at each base shows above them; a long diagonal stays straight.
+	var top := _plant("driftspore", Vector2(2, 8))
+	var below := _plant("bloomcap", Vector2(2, 9))
+	await process_frame
+	kin.refresh()
+	var upright: Dictionary = kin.get_pair(top)
+	var bow: Vector2 = kin.bow_offset(upright) if not upright.is_empty() else Vector2.ZERO
+	_check(kin.get_partner(top) == below and absf(bow.x) >= 0.4 * CELL and is_zero_approx(bow.y),
+		"a vertical pair's vine bows sideways (%s)" % bow)
+	var knots: Node2D = kin.get_node_or_null("KinKnots")
+	_check(knots != null and not knots.z_as_relative and knots.z_index > 0, "kin knots draw above the Wardens")
+	_check(kin.bow_offset({"a": drift, "b": bloom}) == Vector2.ZERO,
+		"a bond 2 cells across stays straight")
+	# A kin in reach but bonded elsewhere: the panel says why (user: "these two aren't kin"); an unrelated
+	# family stays silent.
+	var late := _plant("driftspore", Vector2(3, 9))  # Beside the bonded Bloomcap
+	var stranger := _plant("standing_stone", Vector2(1, 9))
+	await process_frame
+	kin.refresh()
+	_check(kin.get_pairs(late).is_empty() and kin.unbonded_reason(late) == "No kin: the Bloomcap nearby is bonded to its Driftspore",
+		"a would-be kin that's taken is explained (%s)" % kin.unbonded_reason(late))
+	_check(kin.unbonded_reason(stranger) == "", "another family: nothing to explain")
+	for tower in [top, below, late, stranger]:
+		tower.queue_free()
+	await process_frame
+	kin.refresh()
 
 	# --- Harmony strike ---
 	var enemy := _spawn(drift.global_position + Vector2(CELL, 0))
@@ -297,7 +351,7 @@ func _run() -> void:
 		"Hoar Fog: the Frostfern's shot leaves a fog puff")
 	var puffer: Tower = made[&"spore_nursery"][1]
 	var map = main.get_node("%MapGenerator")
-	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var route: PackedVector2Array = Tower.route_cells(map.get_path_from(map.startPath))  # Whole cells (half-step routes)
 	puffer._kin_on_landing(null, Tower.MAP_GRID.calculate_map_position(route[5]))
 	_check(is_instance_valid(puffer._nursery_ring) and puffer._nursery_ring.cell == route[5],
 		"Spore Nursery: the Driftspore's puff plants a mushroom ring on the path")
@@ -332,8 +386,8 @@ func _run() -> void:
 	# --- The demo has only its three ---
 	Kinships.force_full = false
 	if ResultsScreen.is_demo():
-		_check(not Kinships.is_available(&"snare") and Kinships.is_available(&"slumber_rot"),
-			"the demo has Slumber Rot, Rainfog and Storm Beacon only")
+		_check(not Kinships.is_available(&"snare") and Kinships.is_available(&"slumber_rot") and Kinships.is_available(&"night_chimes"),
+			"the demo has Slumber Rot, Rainfog, Storm Beacon and Night Chimes only (Bellflower starts in the demo)")
 	Kinships.force_full = true
 
 	print("kinships test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))

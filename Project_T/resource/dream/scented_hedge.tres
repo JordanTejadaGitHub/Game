@@ -13,4 +13,4 @@ tags = Array[String](["tending", "wall"])
 max_stacks = 1
 requires = Array[String](["honeysuckle"])
 rule_id = &"scented_hedge"
-in_start_pool = true
+in_start_pool = false

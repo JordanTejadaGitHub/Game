@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_rootling"
 display_name = "Rootling"
-description = "Sprouts can now grow into Rootlings (15 Dew), or plant one directly (25 Dew). Roots nip at everything nearby."
+description = "Sprouts can now grow into Rootlings ({grow_cost:rootling} Dew), or plant one directly ({plant_cost:rootling} Dew). Roots nip at everything nearby."
 rarity = 0
 kind = 0
 tags = Array[String](["root"])

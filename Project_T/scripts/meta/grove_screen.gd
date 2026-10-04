@@ -48,14 +48,6 @@ func _ready() -> void:
 	background.color = Palette.VOID
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
-	# The sky again, covering the screen and dimmed, so a wide window has no bars beside the tree.
-	var sky := TextureRect.new()
-	sky.texture = load(GroveTreeView.ART + "grove/grove_sky.png")
-	sky.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	sky.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	sky.modulate = Color(0.55, 0.55, 0.65)  # A multiplier on the sky art, not a colour
-	sky.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(sky)
 	tree_view.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(tree_view)
 	tree_view.node_pressed.connect(_select)
@@ -203,7 +195,7 @@ func _build_footer() -> void:
 		button.pressed.connect(tree_view.zoom_by.bind(spec[1]))
 		zoom.add_child(button)
 	var whole := Button.new()
-	whole.text = "Whole tree"
+	whole.text = "Show all"  # Fits the whole Heartwood in view (not "Whole Tree": that's a Kinship name)
 	whole.custom_minimum_size = Vector2(0, 48)
 	whole.focus_mode = Control.FOCUS_NONE
 	whole.pressed.connect(tree_view.fit)
@@ -296,7 +288,7 @@ func _update_card() -> void:
 		tags.append("Level %d of %d" % [level, levels])
 	_card_section.text = " · ".join(tags)
 	_card_section.add_theme_color_override("font_color", colour)
-	_card_text.text = StatusLinks.bbcode(selected.description)
+	_card_text.text = StatusLinks.bbcode(selected.get_description() + family_branches_text(selected))
 	var problem := HeartwoodMemory.buy_problem(_memory, selected)
 	var cost := selected.get_cost(HeartwoodMemory.unlock_level(_memory, selected.id))
 	_plant.visible = problem != "Grown" and not selected.is_free()
@@ -493,3 +485,36 @@ func _button(parent: Control, text: String, action: Callable) -> void:
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(action)
 	parent.add_child(button)
+
+# A family node's branches for its card (meta_design.md "Branch expansion in the Grove"), read from the Warden data
+# so it follows each expansion phase: every regular branch with its one-line job and final forms, then how many a
+# run's dreams offer. The hidden branch (its own node) and parked forms aren't listed. "" for other nodes.
+static func family_branches_text(unlock: UnlockData) -> String:
+	if unlock == null or unlock.root != UnlockData.Root.WARDENS or unlock.memory_warden != "":
+		return ""
+	var families: Array[String] = unlock.families.duplicate()
+	if families.is_empty() and unlock.start:  # Starting families are in every run, so their nodes list none
+		families.append(unlock.id)
+	var hidden := HeartwoodMemory.get_unlock(unlock.id + "_hidden")
+	var lines: Array[String] = []
+	for family in families:
+		var path := "res://resource/tower/%s.tres" % family
+		var base := load(path) as TowerData if ResourceLoader.exists(path) else null
+		if base == null:
+			continue
+		for branch in base.evolves_to:
+			if not (branch is TowerData) or branch.tier != 2 or branch.parked:
+				continue
+			if hidden != null and hidden.dream_cards.has("dream_" + branch.get_id()):
+				continue  # The hidden branch: its own node
+			var finals: Array[String] = []
+			for final in branch.evolves_to:
+				if final is TowerData and final.tier == 3 and not final.parked:
+					finals.append(final.display_name)
+			var job: String = branch.description.strip_edges()
+			lines.append("• %s%s%s" % [branch.display_name, ": " + job if job != "" else "",
+				" → " + ", ".join(finals) if not finals.is_empty() else ""])
+	if lines.is_empty():
+		return ""
+	var dreams := "\nIn your dreams: %d a run." % DreamState.BRANCH_OFFER_SIZE if lines.size() > DreamState.BRANCH_OFFER_SIZE else ""
+	return "\n\nBranches:\n" + "\n".join(lines) + dreams

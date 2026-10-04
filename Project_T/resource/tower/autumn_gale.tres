@@ -9,20 +9,21 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Autumn Gale"
-description = "Two seeds down the two busiest lines; each caught seed that hit something makes the next throw 10% stronger (up to 50%)."
+description = "Three seeds down the three busiest lines; each caught seed that hit something makes the next throw 10% stronger (up to 50%)."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+counter_tags = Array[StringName]([&"anti_swarm"])
 line = "wind"
 tier = 3
 buildable_directly = false
-evolve_cost = 200
+evolve_cost = 300
 attack_kind = 15
 attack_range = 5.0
-damage = 53
+damage = 72
 attacks_per_second = 0.625
 boomerang_length = 5.0
-boomerang_seeds = 2
+boomerang_seeds = 3
 catch_bonus = 0.1
 catch_bonus_max = 0.5
 crit_chance = 0.05

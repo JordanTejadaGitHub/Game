@@ -37,26 +37,29 @@ const PACKAGES := {
 	"B16 Bramble Maze": ["Hedge Maze", "Bitter Hedges", "Weathered Walls", "Living Walls", "Thorn Snare", "Bramble Oath", "Thornheart"],
 	"B17 The Grove": ["Grandfather Stump", "Kind Canopy", "Shared Light", "Hedgerow Roots", "Warm Hearth"],
 	"B18 Greedy Gardener": ["Dew Bowl", "Harvest Moon", "Deep Well", "Overflowing Well", "Dew Trail", "Morning Dew", "Call of the Wild"],
-	# The 8 card builds (dream_design.md "Pool trim", layer 2 + rounds 2–3): enhancers only, Legendaries are capstones.
+	# The 10 card builds (dream_design.md "Pool trim" rounds 2–3 + the Grove branches Swift and Wide Reach): enhancers only, Legendaries are capstones.
 	"C1 Tall": ["Tender Care", "Kindred Roots", "Sunlit Rest", "Deeper Rings", "Chosen Few", "Elder Kin", "Solitude", "Few and Mighty"],
-	"C2 Overgrowth": ["Seedfall", "Sprout Chorus", "Root Network", "Seedling Gift", "Canopy", "Many Hands", "Mixed Grove", "Odd One Out", "Grand Tour"],
+	"C2 Overgrowth": ["Seedfall", "Sprout Chorus", "Root Network", "Seedling Gift", "Canopy", "Many Hands", "Mixed Grove", "Odd One Out", "Grand Tour", "Warm Hearth"],
 	"C3 Daring": ["Call of the Wild", "Fresh Growth", "Head Start", "Quick Step", "Second Wind", "Scarred Bark", "Desperate Bloom", "Thin Bark", "Last Stand"],
-	"C4 Precision": ["Glinting Dew", "Sharpened Light", "Shattering Blow", "Still Target", "First Light", "Lone Hunter", "Hunter's Patience", "Watchful Rest"],
+	"C4 Precision": ["Glinting Dew", "Sharpened Light", "Shattering Blow", "Still Target", "First Light", "Lone Hunter", "Hunter's Patience", "Watchful Rest", "Heavy Stones", "Called Shot"],
 	"C5 Affliction": ["Bitter Sap", "Seeping", "Venom Bloom", "Lasting Dreams", "Heavy Air", "Crowd Breaker", "Crowded Path", "Last Breath", "Thinning the Herd"],
 	"C6 Maze": ["Cozy Corners", "Straightaway", "Winding Path", "Heart of the Maze", "Forest's Edge", "Hedge Maze", "Bitter Hedges", "Thornheart", "Weathered Walls"],
-	"C7 Tending": ["Cleared Ground", "Heartwood's Reach", "Reclaimed Earth", "Tended Forest", "Burn Back the Dead Wood", "Morning Dew", "Evergreen", "Living Walls", "Scented Hedge", "Thorn Snare", "Warm Hearth", "Kind Canopy"],
+	"C7 Tending": ["Heartwood's Reach", "Tended Stumps", "Hollow Ground", "Reclaimed Earth", "Tended Forest", "Burn Back the Dead Wood", "Morning Dew", "Living Walls", "Scented Hedge", "Thorn Snare"],
 	"C8 Kinship": ["Family Ties", "Sweet Harmony", "Old Friends", "Rooted Bond", "Extended Family", "Kin and Kindling", "Blood Is Thicker", "Elder Kin"],
+	"C9 Swift": ["Momentum", "Quickening", "Flurry", "Restless Roots", "Hummingheart", "Drumbeat", "Quick Step"],  # Grove build branch
+	"C10 Wide Reach": ["Broad Splash", "Lingering Splash", "Far Reach", "Spillover", "Overlap", "Crowd Breaker", "Last Breath", "Shattering Blow"],  # Grove build branch
 }
 # Board extras the chasing bot needs for some builds (ranks, Sprouts, walls, a Kinship, clearing…).
 const EXTRAS := {
 	"C1 Tall": {"ranks": true},
 	"C2 Overgrowth": {"wide": true, "families": ["sporeling", "firefly_jar", "dewdrop", "pebbling"]},
 	"C8 Kinship": {"kinship": true},
+	"C10 Wide Reach": {"families": ["acorn", "dewdrop"]},  # Area attackers (pulses)
 	"C6 Maze": {"walls": true},
 	"B2 The Long Walk": {"walls": true},
 	"B8 Hairpin Mill": {"walls": true, "families": ["whirligig"]},
 	"B16 Bramble Maze": {"walls": true, "families": ["rootling"], "forms": ["bramble"]},
-	"C7 Tending": {"clearing": true, "walls": true, "families": ["acorn"]},
+	"C7 Tending": {"clearing": true, "walls": true},
 	"B6 Gale": {"families": ["whirligig", "sporeling"]},
 	"B17 The Grove": {"families": ["acorn"], "forms": ["grove_heart", "elder_stump"]},
 	"B18 Greedy Gardener": {"families": ["acorn"], "forms": ["dewcatcher", "wellspring"]},
@@ -70,6 +73,7 @@ var ids := {}  # Build -> Array of card ids
 var missing := {}  # Display name -> true (named in the catalogue, not a card)
 var _planted: Array[Tower] = []
 var _policy: DreamSimPolicy
+var use_run_pool := false
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -80,6 +84,7 @@ func _run() -> void:
 	var runs := 300
 	var picker := "balanced"
 	var tag_weight := -1.0
+	var preset := "full"  # full: the whole Grove, everything discovered; fresh: a new account (start pool, nothing discovered)
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--mode="):
 			mode = arg.trim_prefix("--mode=")
@@ -89,6 +94,10 @@ func _run() -> void:
 			runs = int(arg.trim_prefix("--runs="))
 		elif arg.begins_with("--picker="):
 			picker = arg.trim_prefix("--picker=")  # balanced / random / mixed (emergence)
+		elif arg.begins_with("--preset="):
+			preset = arg.trim_prefix("--preset=")
+		elif arg == "--run_pool":
+			use_run_pool = true  # Each run draws its own pool (dream_design.md "Exact rules")
 		elif arg.begins_with("--tag_weight="):
 			tag_weight = float(arg.trim_prefix("--tag_weight="))  # Tuning: overrides DreamState.tag_weight
 	MetaRun.force_all_families = true  # Full Grove: every family in the picks (Grove families' cards can be eligible)
@@ -99,11 +108,16 @@ func _run() -> void:
 	dreams = main.get_node("%DreamState")
 	director = main.get_node("%DriftDirector")
 	dreams.unlock_everything = false
-	dreams.grove_cards.assign(dreams.pool.map(func(c: UpgradeData) -> String: return c.id))  # Full Grove
+	if preset == "fresh":
+		dreams.grove_cards.clear()  # A new account: the start pool only
+	else:
+		dreams.grove_cards.assign(dreams.pool.map(func(c: UpgradeData) -> String: return c.id))  # Full Grove
 	dreams.allow_bittersweet = true
 	if tag_weight > 0.0:
 		dreams.tag_weight = tag_weight
-	dreams.discovery_profile = null  # Not the real game: everything discovered
+	dreams.discovery_profile = {"seen": [], "wardens_built": [], "best_chain": 0} if preset == "fresh" else null  # fresh: nothing discovered
+	dreams.allow_bittersweet = preset != "fresh"
+	dreams.run_pool_forced = use_run_pool
 	_policy = DreamSimPolicy.new(dreams, DreamSimPolicy.Style.BALANCED)
 	for tower in main.get_node("%TowerContainer").get_children():
 		tower.free()
@@ -151,6 +165,7 @@ func _chase(build: String, runs: int) -> void:
 				if not fresh.is_empty():
 					return fresh[0]
 				return _policy.pick_dream(offer))
+			_spend_dreamlight()
 			var count := _count(package)
 			if drift == 50 and count >= 3:
 				three += 1
@@ -188,6 +203,8 @@ func _build_chase_board(package: Array, extras: Dictionary) -> void:
 	for form in forms:
 		dreams.unlocked[form] = true
 		plant.append(form)
+	dreams.add_dreamlight(dreams.sim_dreamlight_for(&"first"))
+	_spend_dreamlight()
 	if extras.get("wide", false):
 		for i in 10:
 			plant.append(families.keys()[i % families.size()])
@@ -226,6 +243,8 @@ func _emerge(runs: int, picker: String = "balanced") -> void:
 				var family: String = left[rng.randi_range(0, left.size() - 1)]
 				owned.append(family)
 				dreams.unlocked[family] = true
+				if drift == 5:
+					dreams.add_dreamlight(dreams.sim_dreamlight_for(&"first"))
 				_plant([family, family, family, "sprout", "thornwall"])
 				dreams.bump_board()
 			var lines := {}
@@ -248,6 +267,7 @@ func _emerge(runs: int, picker: String = "balanced") -> void:
 					if c.tags.any(func(t: String) -> bool: return lines.has(t)):
 						shown[1] += 1
 				return offer[rng.randi_range(0, offer.size() - 1)] if picker == "random" else policy.pick_dream(offer))
+			_spend_dreamlight()
 		var hit := false
 		for build in PACKAGES:
 			if _count(ids[build]) >= 3:
@@ -289,20 +309,42 @@ func _plant(list: Array) -> void:
 		tower.set_process(false)
 		_planted.append(tower)
 
+# A player spends Dreamlight as it comes: final forms of the owned families first (the costliest that
+# fits), then hidden branches and wall growths.
+func _spend_dreamlight() -> void:
+	while true:
+		var best: TowerData = null
+		for tree in dreams.get_remember_trees():
+			for form in _tree_forms(tree):
+				if dreams.can_unlock(form) and (best == null or form.tier > best.tier):
+					best = form
+		if best == null or not dreams.unlock_with_dreamlight(best):
+			return
+		_plant([best.get_id()])  # A player grows what they buy (round 5: a card's Warden must have stood on the map)
+		dreams.bump_board()
+
+func _tree_forms(tree: Array) -> Array:
+	var forms: Array = []
+	for branch in tree[1]:
+		forms.append(branch[0])
+		forms.append_array(branch[1])
+	if tree[2] != null:
+		forms.append(tree[2])
+	return forms
+
 func _reset(run: int) -> void:
 	for tower in _planted:
 		tower.free()
 	_planted.clear()
 	dreams.stacks.clear()
-	dreams._resonance.clear()
 	dreams.unlocked = {"sprout": true, "thornwall": true}
+	dreams.dreamlight = 0
+	dreams.grown_wardens.clear()
 	dreams.dreams_seen = 0
 	dreams._dreams_without_rare = 0
 	dreams._rare_dreams_left = 0
 	dreams._extra_cards_next = 0
-	dreams._entwined_offered.clear()
 	dreams._offer_drift = 0
-	dreams._owed_families.clear()
 	dreams._declined_families.clear()
 	dreams._passed_count.clear()
 	dreams._passed_at.clear()
@@ -312,4 +354,7 @@ func _reset(run: int) -> void:
 	dreams.sim_kinships = 0
 	dreams.clearing_open = false
 	dreams._rng.seed = 1000 + run
+	if use_run_pool:
+		dreams.run_pool.clear()  # Drawn again at the run's first offer (seeded by the run)
+		main.get_node("MapGenerator").map_seed = 424242 + run
 	dreams.bump_board()

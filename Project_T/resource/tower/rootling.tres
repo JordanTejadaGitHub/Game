@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=7 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://resource/tower/script/tower_data.gd" id="1_tdata"]
 [ext_resource type="Texture2D" path="res://assets/towers/rootling.png" id="2_tex"]
@@ -7,6 +7,9 @@
 [ext_resource type="Resource" path="res://resource/tower/rootcurl.tres" id="ev_rc"]
 [ext_resource type="Resource" path="res://resource/tower/tangleroot.tres" id="ev_tr"]
 
+[ext_resource type="Resource" path="res://resource/tower/groundroot.tres" id="p2_1"]
+[ext_resource type="Resource" path="res://resource/tower/deeproot.tres" id="p2_2"]
+[ext_resource type="Resource" path="res://resource/tower/thorncoil.tres" id="p2_3"]
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Rootling"
@@ -27,4 +30,4 @@ description = "Roots lash every nightmare nearby; every 4th pulse Holds the one 
 line = "root"
 tier = 1
 evolve_cost = 15
-evolves_to = Array[Resource]([ExtResource("ev_rc"), ExtResource("ev_tr"), ExtResource("ev_1")])
+evolves_to = Array[Resource]([ExtResource("ev_rc"), ExtResource("ev_tr"), ExtResource("ev_1"), ExtResource("p2_1"), ExtResource("p2_2"), ExtResource("p2_3")])

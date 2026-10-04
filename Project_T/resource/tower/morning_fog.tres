@@ -8,20 +8,21 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Morning Fog"
-description = "A wide fog on the path: nightmares inside are Soaked (it lingers 3 s after they leave), and Poisoned ticks harder inside."
+description = "A wide, lasting fog on the path (7 s): nightmares inside are Soaked (it lingers 3 s after they leave), and Poisoned ticks harder inside."
 cost = 0
+counter_tags = Array[StringName]([&"detection", &"anti_support"])
 line = "water"
 tier = 3
 buildable_directly = false
-evolve_cost = 200
+evolve_cost = 300
 attack_kind = 3
 attack_range = 3.0
-damage = 15
+damage = 38
 attacks_per_second = 0.5
 projectile_color = Color(0.8627451, 0.9098039, 0.95686275, 1)
 applies_status = &"damp"
 cloud_radius = 1.25
-cloud_duration = 5.0
+cloud_duration = 7.0
 cloud_fog = true
 status_duration = 3.0
 potency = 1.15

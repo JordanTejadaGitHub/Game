@@ -6,12 +6,12 @@
 script = ExtResource("1_card")
 id = "seedfall"
 display_name = "Seedfall"
-description = "Sprouts cost 6 Dew, their price never rises, and they deal 30% more damage."
+description = "Sprouts start at 8 Dew, their price rises half as fast, and they deal 30% more damage."
 rarity = 0
 kind = 4
 tags = Array[String](["sprout", "wide", "overgrowth"])
 max_stacks = 1
 set_cost_warden = "sprout"
-set_cost = 6
+set_cost = 8
 stat_warden = "sprout"
 soothe_bonus = 0.3

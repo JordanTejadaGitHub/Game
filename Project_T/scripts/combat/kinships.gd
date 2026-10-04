@@ -49,7 +49,7 @@ const KINSHIPS := {
 	&"storm_beacon": ["Storm Beacon", "light", "stormcap", "lanternmoth", true],
 	&"hammer_and_anvil": ["Hammer and Anvil", "stone", "mossback", "standing_stone", false],
 	&"snare": ["Snare", "root", "rootcurl", "tangleroot", false],
-	&"night_chimes": ["Night Chimes", "song", "chime_stone", "dreamcatcher", false],
+	&"night_chimes": ["Night Chimes", "song", "chime_stone", "dreamcatcher", true],  # In the demo since Bellflower starts there (meta_design.md a3375108)
 	&"old_growth": ["Old Growth", "acorn", "elder_stump", "dewcatcher", false],
 	&"flock_together": ["Flock Together", "wing", "wrens_nest", "magpie_perch", false],
 	&"dust_devil": ["Dust Devil", "wind", "gust", "pinwheel", false],
@@ -63,6 +63,15 @@ const KINSHIPS := {
 	&"true_graft": ["True Graft", "acorn", "graftling", "elder_stump", false],
 	&"jewel_thieves": ["Jewel Thieves", "wing", "hummingbird_bower", "magpie_perch", false],
 	&"tailwind": ["Tailwind", "wind", "samara", "gust", false],
+	# Branch expansion, Phase 1 (tower_design.md; traits in BranchKit): one named pair per starting family.
+	&"crusted_brood": ["Crusted Brood", "spore", "lichenling", "brood_cap", false],
+	&"eye_of_the_storm": ["Eye of the Storm", "water", "cloudlet", "undercurrent", false],
+	&"fireworks_fence": ["Fireworks Fence", "light", "jarlink", "sparkler", false],
+	&"vespers": ["Vespers", "song", "silver_bell", "hushbell", false],
+	# Phase 2 (Pebbling, Rootling, Acorn). Seed Cradle (id nursery_bond; "Nursery" is a Dream card, and Spore Nursery a Kinship).
+	&"fault_line": ["Fault Line", "stone", "rampart", "quaker", false],
+	&"bramble_bed": ["Bramble Bed", "root", "groundroot", "thorncoil", false],
+	&"nursery_bond": ["Seed Cradle", "acorn", "seedbearer", "nurse_log", false],
 }
 # The colours of each family, for vines and Harmony sparks.
 const FAMILY_COLORS := {"spore": Palette.NEWLEAF, "water": Palette.DEWLIGHT,  # One palette colour each
@@ -92,6 +101,7 @@ static var force_full := false  # Tests: every Kinship and Whole Tree, as in the
 var pairs: Array = []  # [{id, a: Tower, b: Tower, key}]
 var ages := {}  # Pair key -> drifts stood together
 var families := {}  # line -> 0 none, 1 Kindred, 2 Whole Tree
+var version := 0  # Bumped when the pairs or the families change (Tower._stats_fresh reads it, not the dictionaries)
 var formed_block := 0
 var formed_run := 0
 var harmony_block := 0
@@ -132,6 +142,13 @@ static func find(near: Node) -> Kinships:
 func _ready() -> void:
 	add_to_group(GROUP)
 	z_index = -1  # With the ground and path (drawn after them), under the y-sorted Wardens and nightmares
+	# Kin knots: a small glowing knot at each partner's base, above the sprites (a bond reads even when the
+	# vine is covered; user: "can't see the visual root if they're above each other").
+	_knots.name = "KinKnots"
+	_knots.z_as_relative = false
+	_knots.z_index = 1  # Above the y-sorted Wardens (z 0), under the lighting pass (z 3)
+	_knots.draw.connect(_draw_knots)
+	add_child(_knots)
 	var scene := get_parent()
 	_placer = scene.get_node_or_null("%TowerPlacer")
 	_seller = scene.get_node_or_null("%TowerSeller")
@@ -194,12 +211,37 @@ static func branch_of(data: TowerData) -> String:
 
 # A planted Warden's branch: its form's, or for an Ascended form the branch it grew from.
 static func branch_for(tower: Tower) -> String:
+	if tower._branch_form == tower.tower_data:
+		return tower._branch_cached  # Perf: refresh asks for every Warden twice a second
 	var branch := branch_of(tower.tower_data)
 	if branch == "" and tower.tower_data.tier >= DreamState.ASCENDED_TIER:
-		return tower.kin_branch
+		return tower.kin_branch  # Not cached: kin_branch can change while the form stays
+	tower._branch_form = tower.tower_data
+	tower._branch_cached = branch
 	return branch
 
-# The Kinship two branches form ("" if none).
+# Generic Kin (tower_design.md "Kinships with 6 branches", branch expansion): any two different branches of one
+# family that aren't a named pair still bond: +10% damage each, Harmony strikes, stages and the vine, no traits.
+const GENERIC := &"kin"
+const GENERIC_NAME := "Kin"
+const GENERIC_BONUS := 0.10
+
+# The bond two different branches of one family form: their named Kinship, else generic Kin.
+static func kinship_or_kin(branch_a: String, branch_b: String) -> StringName:
+	var id := kinship_for(branch_a, branch_b)
+	return id if id != &"" else GENERIC
+
+# A Kinship's name ("Kin" for the generic bond).
+static func name_of(id: StringName) -> String:
+	return KINSHIPS[id][0] if KINSHIPS.has(id) else GENERIC_NAME
+
+# A pair's family line.
+static func line_of(pair: Dictionary) -> String:
+	if KINSHIPS.has(pair.id):
+		return KINSHIPS[pair.id][1]
+	return pair.a.tower_data.line if is_instance_valid(pair.a) else ""
+
+# The named Kinship two branches form ("" if none).
 static func kinship_for(branch_a: String, branch_b: String) -> StringName:
 	for id in KINSHIPS:
 		var row: Array = KINSHIPS[id]
@@ -211,6 +253,8 @@ static func _demo() -> bool:
 	return ResultsScreen.is_demo() and not force_full
 
 static func is_available(id: StringName) -> bool:
+	if id == GENERIC:
+		return not _demo()  # Generic Kin: the full game (the demo keeps its 4 named Kinships)
 	return KINSHIPS[id][4] or not _demo()
 
 
@@ -260,28 +304,48 @@ func note_moved(tower: Tower, old_cell: Vector2) -> void:
 func refresh() -> void:
 	_refresh_timer = REFRESH
 	var towers := _towers()
+	# Perf (stacked drifts: 0.7 ms a call with 200+ Wardens): branch_for once per Warden, then pairs only
+	# within a family; Sprouts and walls (no branch) never enter the pair loop.
+	var by_line := {}
+	for tower in towers:
+		var branch := branch_for(tower)
+		if branch != "":
+			var line: String = tower.tower_data.line
+			if not by_line.has(line):
+				by_line[line] = []
+			by_line[line].append([tower, branch])
 	var edges := []
-	for i in towers.size():
-		var ta: Tower = towers[i]
-		var ba := branch_for(ta)
-		if ba == "":
-			continue
-		for j in range(i + 1, towers.size()):
-			var tb: Tower = towers[j]
-			if tb.tower_data.line != ta.tower_data.line:
-				continue
-			var bb := branch_for(tb)
-			if bb == "" or bb == ba:
-				continue
-			var id := kinship_for(ba, bb)
-			if id == &"" or not is_available(id):
-				continue
-			var distance := _distance(ta, tb)
-			if distance <= get_reach():
-				# Side A is the Warden from the table's first branch.
-				var first: bool = KINSHIPS[id][2] == ba
-				edges.append([distance, id, ta if first else tb, tb if first else ta])
+	for line in by_line:
+		var kin: Array = by_line[line]
+		for i in kin.size():
+			var ta: Tower = kin[i][0]
+			var ba: String = kin[i][1]
+			for j in range(i + 1, kin.size()):
+				var tb: Tower = kin[j][0]
+				var bb: String = kin[j][1]
+				if bb == ba:
+					continue
+				var id := kinship_or_kin(ba, bb)
+				if id == &"" or not is_available(id):
+					continue
+				var distance := _distance(ta, tb)
+				if distance <= get_reach():
+					# Side A is the Warden from the table's first branch.
+					var first: bool = KINSHIPS[id][2] == ba if KINSHIPS.has(id) else true
+					edges.append([distance, id, ta if first else tb, tb if first else ta])
 	edges.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
+	# Bonds are sticky (tower_design.md): a bond still in reach is kept before anyone else pairs, so a
+	# nearer newcomer never takes it over; nearest-first only matches the Wardens still unbonded.
+	var held := {}
+	for pair in pairs:
+		if is_instance_valid(pair.a) and is_instance_valid(pair.b):
+			held["%d:%d" % [pair.a.get_instance_id(), pair.b.get_instance_id()]] = pair.id
+	var kept := []
+	var rest := []
+	for edge in edges:
+		var pair_id := "%d:%d" % [edge[2].get_instance_id(), edge[3].get_instance_id()]
+		(kept if held.get(pair_id, &"") == edge[1] else rest).append(edge)
+	edges = kept + rest
 	var taken := {}  # Tower instance id -> bonds so far
 	var capacity := 2 if _has(&"extended_family") else 1  # Extended Family: two kin each
 	var new_pairs := []
@@ -320,13 +384,28 @@ func refresh() -> void:
 				if not memory.is_empty() and not memory.standing.has(kin.get_instance_id()):
 					ages[pair.key] = maxi(ages[pair.key], memory.age)
 					_remembered.erase(tower.get_instance_id())
+			# Memory Seed (Heartwood's Gift): a replanted Warden bonds with an old partner at the old age.
+			for side in [[pair.a, pair.b], [pair.b, pair.a]]:
+				var seeded: Dictionary = _inherited.get(side[0].get_instance_id(), {})
+				if seeded.has(side[1].get_instance_id()):
+					ages[pair.key] = maxi(ages[pair.key], int(seeded[side[1].get_instance_id()]))
 			_on_formed(pair)
+	# Bonds that just ended, by Warden (Memory Seed reads them once the sold Warden has left the tree).
+	for old in pairs:
+		if not keys.has(old.key) and is_instance_valid(old.a) and is_instance_valid(old.b):
+			for side in [[old.a, old.b], [old.b, old.a]]:
+				var ended: Dictionary = _ended_bonds.get(side[0].get_instance_id(), {})
+				ended[side[1].get_instance_id()] = int(ages.get(old.key, 0))
+				_ended_bonds[side[0].get_instance_id()] = ended
+	if _ended_bonds.size() > ENDED_BONDS_KEPT:
+		_ended_bonds.erase(_ended_bonds.keys()[0])
 	for key in ages.keys():
 		if not keys.has(key):
 			ages.erase(key)
 	var changed := pairs.size() != new_pairs.size() or pairs.any(func(p) -> bool: return not keys.has(p.key))
 	pairs = new_pairs
 	if changed:
+		version += 1
 		for tower in towers:
 			tower.queue_redraw()  # Their leaf badges come and go
 	_partner.clear()
@@ -336,7 +415,7 @@ func refresh() -> void:
 				_partner[tower.get_instance_id()] = []
 			_partner[tower.get_instance_id()].append(pair)
 		_breathe_together(pair)
-	_count_families(towers)
+	_count_families(towers, by_line)
 
 # Breathing together: a bonded pair's idle animations sync (the Warden planted later takes its kin's
 # phase), once per bond. Kept in Subtle, off when Kinship effects are Off.
@@ -373,7 +452,7 @@ func _stacks(rule: StringName) -> int:
 	var dreams := _dreams()
 	return dreams.rule_stacks(rule) if dreams else 0
 
-# Tag resonance (dream_audit.md): the card's numbers scale with owned cards sharing its tags.
+# A card's power: 1.0 (tag resonance was removed, dream_audit.md a6628056).
 func _power(rule: StringName) -> float:
 	var dreams := _dreams()
 	return dreams.rule_power(rule) if dreams and dreams.has_method("rule_power") else 1.0
@@ -393,11 +472,54 @@ func get_stage_drifts() -> Array[int]:
 		result.append(maxi(STAGE_DRIFTS[i] - cut, 1))
 	return result
 
-# Old Friends: new bonds start at Blooming (II: Old Kin), counting on from there.
+# Old Friends: new bonds start at Blooming (II: Old Kin), counting on from there. Heartwood's Gift Old Kin
+# (GiftGround): one stage up on top, for its act.
 func _start_age() -> int:
-	if not _has(&"old_friends"):
-		return 0
-	return get_stage_drifts()[2 if _level(&"old_friends") > 0 else 1]
+	var stage := 0
+	if _has(&"old_friends"):
+		stage = 2 if _level(&"old_friends") > 0 else 1
+	var gifts := GiftGround.active_for(self)
+	if gifts:
+		stage += gifts.kin_start_stages()
+	var thresholds := get_stage_drifts()
+	return thresholds[mini(stage, thresholds.size() - 1)]
+
+# Old Kin (Heartwood's Gift): the Kinship `key` jumps a stage now (announced like any stage-up).
+func raise_stage(key: String) -> bool:
+	for pair in pairs:
+		if pair.key != key:
+			continue
+		var thresholds := get_stage_drifts()
+		var before := get_stage(pair)
+		if before >= thresholds.size() - 1:
+			return false  # Already at its last stage
+		ages[key] = maxi(int(ages.get(key, 0)), thresholds[before + 1])
+		version += 1
+		_queue(["grew", pair, before + 1])
+		return true
+	return false
+
+# Memory Seed (Heartwood's Gift): `tower`, replanted, bonds again with its old partners at their old ages
+# ({partner instance id: bond age}), used when those pairs form (refresh).
+var _inherited := {}  # Tower instance id -> {partner instance id: age}
+
+const ENDED_BONDS_KEPT := 64
+var _ended_bonds := {}  # Warden instance id -> {partner instance id: age} of bonds that ended
+
+# The bonds `tower` had when they last ended ({partner instance id: age}), or {}.
+func ended_bonds(tower: Tower) -> Dictionary:
+	return _ended_bonds.get(tower.get_instance_id(), {})
+
+func inherit_ages(tower: Tower, partners: Dictionary) -> void:
+	if not partners.is_empty():
+		_inherited[tower.get_instance_id()] = partners.duplicate()
+	refresh()
+	# A bond that already formed as it was planted takes the old age now.
+	for pair in pairs:
+		for side in [[pair.a, pair.b], [pair.b, pair.a]]:
+			if side[0] == tower and partners.has(side[1].get_instance_id()):
+				ages[pair.key] = maxi(int(ages.get(pair.key, 0)), int(partners[side[1].get_instance_id()]))
+				version += 1
 
 # Kinships on the map (card prerequisites at offer time).
 func count() -> int:
@@ -412,6 +534,8 @@ static func count_on_map(near: Node) -> int:
 func damage_bonus(tower: Tower) -> float:
 	var bonus := family_bonus(tower.tower_data.line)
 	var bonded := not get_pairs(tower).is_empty()
+	if get_pairs(tower).any(func(p) -> bool: return p.id == GENERIC):
+		bonus += GENERIC_BONUS  # Generic Kin: +10% each
 	if bonded:
 		bonus += FAMILY_TIES_PER * _stacks(&"family_ties") * _power(&"family_ties")
 	if _has(&"blood_is_thicker") and tower.tower_data.can_attack:
@@ -420,16 +544,23 @@ func damage_bonus(tower: Tower) -> float:
 		bonus += minf(GROVE_OF_KIN_PER * _power(&"grove_of_kin") * pairs.size(), GROVE_OF_KIN_MAX * _power(&"grove_of_kin"))
 	return bonus
 
-func _count_families(towers: Array) -> void:
+# `by_line` ({line: [[tower, branch], …]}, from refresh) saves looking every branch up again.
+func _count_families(towers: Array, by_line = null) -> void:
 	var present := {}
-	for tower in towers:
-		var branch := branch_for(tower)
-		if branch == "":
-			continue
-		var line: String = tower.tower_data.line
-		if not present.has(line):
+	if by_line is Dictionary:
+		for line in by_line:
 			present[line] = {}
-		present[line][branch] = true
+			for entry in by_line[line]:
+				present[line][entry[1]] = true
+	else:
+		for tower in towers:
+			var branch := branch_for(tower)
+			if branch == "":
+				continue
+			var line: String = tower.tower_data.line
+			if not present.has(line):
+				present[line] = {}
+			present[line][branch] = true
 	var before := families.duplicate()
 	families.clear()
 	for line in present:
@@ -438,6 +569,8 @@ func _count_families(towers: Array) -> void:
 			families[line] = 2
 		elif count >= 2:
 			families[line] = 1
+	if families != before:
+		version += 1
 	for line in families:
 		if not kindred_shown and before.get(line, 0) == 0:
 			kindred_shown = true  # The first Kindred of the run gets one quiet callout
@@ -503,12 +636,38 @@ func describe(tower: Tower) -> String:
 		var partner: Tower = pair.b if pair.a == tower else pair.a
 		var stage := get_stage(pair)
 		var text := "Kin: %s · %s · %s" % [partner.tower_data.display_name if is_instance_valid(partner) else "?",
-			KINSHIPS[pair.id][0], STAGE_NAMES[stage]]
+			name_of(pair.id), STAGE_NAMES[stage]]
 		if stage < thresholds.size() - 1:
 			var left: int = thresholds[stage + 1] - ages.get(pair.key, 0)
 			text += " (%d drift%s to %s)" % [left, "" if left == 1 else "s", STAGE_NAMES[stage + 1]]
 		lines.append(text)
 	return "\n".join(lines)
+
+# Why a Warden with a would-be kin in reach has no bond (bonds are sticky, one each): "No kin: the Stormcap
+# nearby is bonded to its Lanternmoth". "" when it's bonded, or no kin of its family is in reach (not kin:
+# nothing to explain, the less-hand-holding rule).
+func unbonded_reason(tower: Tower) -> String:
+	if not get_pairs(tower).is_empty():
+		return ""
+	var branch := branch_for(tower)
+	if branch == "":
+		return ""
+	var capacity := 2 if _has(&"extended_family") else 1
+	for other in _towers():
+		if other == tower or other.tower_data.line != tower.tower_data.line:
+			continue
+		var other_branch := branch_for(other)
+		if other_branch == "" or other_branch == branch:
+			continue
+		var id := kinship_for(branch, other_branch)
+		if id == &"" or not is_available(id) or _distance(tower, other) > get_reach():
+			continue
+		var taken := get_pairs(other)
+		if taken.size() >= capacity:
+			var partner: Tower = taken[0].b if taken[0].a == other else taken[0].a
+			return "No kin: the %s nearby is bonded to its %s" % [other.tower_data.display_name,
+				partner.tower_data.display_name if is_instance_valid(partner) else "kin"]
+	return ""
 
 # For a branch Warden with no kin, what would bond it: "No kin. A Chime Stone within 2 cells would form
 # Night Chimes." (+ "(unlock Chime Stone with Dreamlight)" if that branch is locked). "" otherwise.
@@ -571,11 +730,11 @@ func preview(data: TowerData, cell: Vector2) -> Dictionary:
 		var other := branch_for(tower)
 		if other == "" or other == branch:
 			continue
-		var id := kinship_for(branch, other)
+		var id := kinship_or_kin(branch, other)
 		var distance := _distance_to_cell(tower, cell)
 		if id != &"" and is_available(id) and distance <= REACH and distance < best_distance:
 			best_distance = distance
-			best = {"id": id, "name": KINSHIPS[id][0], "partner": tower}
+			best = {"id": id, "name": name_of(id), "partner": tower}
 	return best
 
 
@@ -610,13 +769,16 @@ func note_hit(tower: Tower, enemy: Node2D, dealt: float) -> void:
 		_harmony_look(enemy.global_position, pair)
 		harmony_struck.emit(tower, enemy)
 		# Credited to the Warden whose hit just landed, so DamageLog merges it into that hit's number (green).
-		enemy.take_damage(damage, tower.tower_data.line, true, false, tower, &"harmony")
+		# Kin and Kindling (dream_design.md 83c40cd7): the strike applies both statuses instead of dealing damage.
+		var kindling := _has(&"kin_and_kindling")
+		if not kindling:
+			enemy.take_damage(damage, tower.tower_data.line, true, false, tower, &"harmony")
 		# Spore Kin (Dream): a Sporeling-line pair's Harmony strike also poisons.
 		if _has(&"spore_kin") and tower.tower_data.line == "spore" and is_instance_valid(enemy) and not enemy.is_cleansed:
 			tower._apply_one_status(enemy, EnemyStatuses.SPORED, roundi(DreamState.SPORE_KIN_SPORED * _power(&"spore_kin")), weaker.get_damage())
-		# Kin and Kindling: the strike also applies both Wardens' statuses (1 stack each); they can
+		# Kin and Kindling: the strike applies both Wardens' statuses (1 stack each) instead of its damage; they can
 		# complete Reactions, but the strike itself is never a chain link.
-		if _has(&"kin_and_kindling"):
+		if kindling:
 			for kin_warden in [pair.a, pair.b]:
 				if is_instance_valid(kin_warden) and is_instance_valid(enemy) and not enemy.is_cleansed \
 						and kin_warden.attack_data.applies_status != &"":
@@ -631,9 +793,9 @@ func _on_formed(pair: Dictionary) -> void:
 	formed_run += 1
 	var mid: Vector2 = (pair.a.global_position + pair.b.global_position) / 2.0
 	kinship_formed.emit(pair.id, pair.a, pair.b)
-	kin_bonded.emit(KINSHIPS[pair.id][1], mid)
+	kin_bonded.emit(line_of(pair), mid)
 	if _effects() == 0:
-		Fx.callout("Kinship: %s" % KINSHIPS[pair.id][0], _colour(pair), mid, get_parent(), &"kinship")
+		Fx.callout("Kinship: %s" % name_of(pair.id), _colour(pair), mid, get_parent(), &"kinship")
 		if not Fx.reduce_flashes():
 			_burst(pair.a.global_position, pair)
 			_burst(pair.b.global_position, pair)
@@ -671,9 +833,9 @@ func _announce(event: Array) -> void:
 			if not is_instance_valid(pair.a) or not is_instance_valid(pair.b):
 				return
 			var mid: Vector2 = (pair.a.global_position + pair.b.global_position) / 2.0
-			kin_stage_grew.emit(KINSHIPS[pair.id][1], event[2], mid)
+			kin_stage_grew.emit(line_of(pair), event[2], mid)
 			if _effects() == 0:
-				Fx.callout("%s: %s" % [KINSHIPS[pair.id][0], STAGE_NAMES[event[2]]], _colour(pair), mid,
+				Fx.callout("%s: %s" % [name_of(pair.id), STAGE_NAMES[event[2]]], _colour(pair), mid,
 					get_parent(), &"kinship")
 				for tower in [pair.a, pair.b]:
 					var up := Fx.play(&"kin_stage_up", tower.global_position, get_parent())
@@ -699,7 +861,7 @@ static func _effects() -> int:
 	return int(Fx.setting("kinship_effects", 0))  # Cached (get_settings reads the profile from disk)
 
 func _colour(pair: Dictionary) -> Color:
-	return FAMILY_COLORS.get(KINSHIPS[pair.id][1], Palette.NEWLEAF)
+	return FAMILY_COLORS.get(line_of(pair), Palette.NEWLEAF)
 
 
 # --- Drawing -----------------------------------------------------------------------------------------
@@ -726,40 +888,179 @@ func _draw() -> void:
 		to -= direction * _edge(pair.b)
 		if from.distance_to(to) < 8.0:
 			continue
-		if stage == 2 and mode == 0:
-			_draw_arch(pair)
-		var colour := Color(_colour(pair), alpha)
-		var sheet: StringName = [&"kin_vine_sapling", &"kin_vine_blooming", &"kin_vine_oldkin"][stage]
-		var tex := Fx.texture(sheet)
-		if tex != null:
-			# Tile the 32×10 swaying segment along the pair (anchored at its middle row).
-			var entry := Fx.info(sheet)
-			var frames: int = int(entry.get("frames", 4))
-			var fps: float = float(entry.get("fps", 4.0))
-			var frame := int(_clock * fps) % maxi(frames, 1)
-			var seg := Vector2(tex.get_width() / float(frames), tex.get_height())
-			var length := from.distance_to(to)
-			draw_set_transform(from, from.angle_to_point(to))
-			var x := 0.0
-			while x < length:
-				var w := minf(seg.x, length - x)
-				draw_texture_rect_region(tex, Rect2(x, -seg.y / 2.0, w, seg.y),
-					Rect2(seg.x * frame, 0, w, seg.y), colour)
-				x += seg.x
-			draw_set_transform(Vector2.ZERO)
+		_draw_vine(pair, stage, mode, alpha)
+	_knots.queue_redraw()
+
+var _knots := Node2D.new()
+const KNOT_RADIUS := 3.0
+
+# One knot per bonded Warden, at its base's front edge, in the family colour (Subtle: fainter; Off: none).
+func _draw_knots() -> void:
+	var mode := _effects()
+	if mode == 2:
+		return
+	var alpha := 0.9 if mode == 0 else 0.55
+	var seen := {}
+	for pair in pairs:
+		if not is_instance_valid(pair.a) or not is_instance_valid(pair.b):
 			continue
-		var bend := (to - from).orthogonal().normalized() * 6.0
-		var points := PackedVector2Array()
-		for i in 9:
-			var t := i / 8.0
-			points.append(from.lerp(to, t) + bend * sin(t * TAU))
-		draw_polyline(points, Color(Palette.MOSS, alpha * 0.8), 2.0 + stage * 1.5)
-		draw_polyline(points, colour, 1.0 + stage)
-		if stage >= 1:
-			for i in [2, 6]:  # Leaves
-				draw_circle(points[i] + bend.normalized() * 3.0, 2.0 + stage, Color(Palette.SPRIG, alpha))
-		if stage >= 2:
-			draw_circle(points[4], 3.5, Color(Palette.BLOSSOM, alpha))  # A flower (Old Kin)
+		for tower in [pair.a, pair.b]:
+			if seen.has(tower):
+				continue
+			seen[tower] = true
+			var at := _knots.to_local(tower.global_position + ARCH_FOOT)
+			draw_knot(_knots, at, _colour(pair), alpha)
+
+static func draw_knot(canvas: CanvasItem, at: Vector2, colour: Color, alpha: float) -> void:
+	canvas.draw_circle(at, KNOT_RADIUS + 1.5, Color(Palette.DEEPMOSS, 0.7 * alpha))
+	canvas.draw_circle(at, KNOT_RADIUS, Color(colour, alpha))
+	canvas.draw_circle(at + Vector2(-0.8, -0.8), 1.2, Color(Palette.HEARTLIGHT, 0.8 * alpha))  # Its glint
+
+# The Kinship vine (tower_design.md / screens_ui.md, playtest "kinship" 2026-10-01; "looks like string": a root):
+# wavy vine in the family colour on the ground, base to base (it was a tinted 32x10 strip at body
+# height, which read as a debug bar). Sapling: a bare vine; Blooming: leaves and buds; Old Kin: flowers.
+# Fainter over path tiles (nightmares walk there). Subtle mode: fainter, no leaves or flowers.
+const VINE_WIDTH := 3.0
+const VINE_WAVE := 2.5  # px either side
+const VINE_WAVELENGTH := 26.0
+const VINE_PATH_ALPHA := 0.45  # Its share of the vine's alpha over path tiles
+const PULSE_SPEED := 40.0  # px a second: the light travelling along a Blooming / Old Kin root
+
+func _draw_vine(pair: Dictionary, stage: int, mode: int, alpha: float) -> void:
+	var from: Vector2 = to_local(pair.a.global_position + ARCH_FOOT)
+	var to: Vector2 = to_local(pair.b.global_position + ARCH_FOOT)
+	var length := from.distance_to(to)
+	if length < 8.0:
+		return
+	if mode == 1:
+		alpha *= 0.6
+	var dir := (to - from) / length
+	var side := dir.orthogonal()
+	var bow := bow_offset(pair)  # A hidden bond (vertical / short) bows out beside the sprites
+	var path := {}
+	for cell in _route_cells_cached():
+		path[cell] = true
+	var steps := maxi(int(length / 4.0), 4)
+	var points := PackedVector2Array()
+	var shades: Array[float] = []
+	for i in steps + 1:
+		var t := float(i) / steps
+		var d := length * t
+		var p := from + dir * d + bow * 4.0 * t * (1.0 - t) \
+			+ side * sin(d / VINE_WAVELENGTH * TAU + pair.a.cell.x) * VINE_WAVE * sin(t * PI)
+		points.append(p.round())  # Pixel-snapped (Heartwood 32 pixel art)
+		var on_path: bool = path.has(Tower.MAP_GRID.calculate_grid_coordinates(to_global(p)))
+		shades.append(VINE_PATH_ALPHA if on_path else 1.0)
+	var colour := _colour(pair)
+	# A living root (user: "it looks like string"): a dark outline, a bark core, its top edge in the family
+	# colour; knots (Sapling), leaves and buds (Blooming), flowers (Old Kin); palette colours only.
+	var width := VINE_WIDTH + (1.0 if stage >= 1 else 0.0)
+	for i in steps:
+		var a := alpha * shades[i]
+		draw_line(points[i], points[i + 1], Color(Palette.ROOT, 0.7 * a), width + 2.0)
+		draw_line(points[i], points[i + 1], Color(Palette.BARK, a), width)
+		draw_line(points[i] + Vector2(0, -1), points[i + 1] + Vector2(0, -1), Color(colour, 0.85 * a), 1.0)
+	var spacing := 12.0
+	var n := int(length / spacing)
+	for k in range(1, n):
+		var i := clampi(int(float(k) / n * steps), 0, steps)
+		if shades[i] < 1.0:
+			continue
+		var p := points[i]
+		var out := side * (1.0 if k % 2 == 0 else -1.0)
+		if stage == 0 or mode != 0:
+			if k % 2 == 0:
+				draw_circle(p, 1.5, Color(Palette.OAK, alpha))  # A knot in the root
+			continue
+		var leaf := (p + out * 4.0).round()
+		draw_colored_polygon(PackedVector2Array([p, leaf + dir * 2.0, leaf + out * 2.0, leaf - dir * 2.0]),
+			Color(Palette.LEAF, alpha))
+		draw_line(p, leaf, Color(colour, alpha), 1.0)  # Its stem in the family colour
+		if stage == 1 and k % 3 == 1:
+			draw_circle((p - out * 3.0).round(), 1.5, Color(colour, alpha))  # A bud
+		if stage >= 2 and k % 2 == 1:
+			var at := (p - out * 3.5).round()
+			draw_circle(at, 2.5, Color(Palette.BLOSSOM, alpha))  # A flower
+			draw_circle(at, 1.0, Color(colour, alpha))
+	# Blooming / Old Kin: a slow light travels along the root (two at Old Kin). Full effects only.
+	if mode == 0 and stage >= 1 and not Fx.reduce_flashes() and not Fx.reduced():  # Effects quality / long frames: no pulse
+		for bead in (2 if stage >= 2 else 1):
+			var t := fmod(_clock * PULSE_SPEED / maxf(length, 1.0) + bead * 0.5 + pair.a.cell.x * 0.13, 1.0)
+			var at := points[clampi(int(t * steps), 0, steps)]
+			draw_circle(at, 3.5, Color(colour, 0.35 * alpha))
+			draw_circle(at, 1.5, Color(Palette.HEARTLIGHT, 0.9 * alpha))
+
+# A bond whose straight vine the sprites cover (user: "can't see the visual root if they're above each other"):
+# a vertical bond, or any shorter than BOW_UNDER, bows out BOW cells to the side with more free ground
+# (a horizontal one bows down, in front of the sprites). Returns the offset at the vine's middle (zero = straight).
+const BOW := 0.45  # Cells
+const BOW_UNDER := 1.5  # Cells: shorter bonds are mostly under the sprites
+
+func bow_offset(pair: Dictionary) -> Vector2:
+	if not is_instance_valid(pair.a) or not is_instance_valid(pair.b):
+		return Vector2.ZERO
+	var delta: Vector2 = pair.b.global_position - pair.a.global_position
+	var cell_size: float = Tower.MAP_GRID.cell_size.x
+	var vertical := absf(delta.normalized().y) > 0.8
+	if not vertical and delta.length() >= BOW_UNDER * cell_size:
+		# Long enough to show: straight, unless it crosses the path and a bow either way crosses less
+		# (user: the root should bow toward grass, not over the path).
+		var straight := _path_cells_on(pair, Vector2.ZERO)
+		if straight == 0:
+			return Vector2.ZERO
+		var side := delta.normalized().orthogonal() * BOW_AROUND * cell_size
+		var best := Vector2.ZERO
+		var fewest := straight
+		for offset in [side, -side]:
+			var crossed := _path_cells_on(pair, offset)
+			if crossed < fewest:
+				fewest = crossed
+				best = offset
+		return best
+	if not vertical:
+		return Vector2(0, BOW * cell_size)  # Short and level: down, in front of the sprites
+	var right := Vector2(BOW * cell_size, 0)
+	var on_right := _path_cells_on(pair, right)
+	var on_left := _path_cells_on(pair, -right)
+	if on_right != on_left:
+		return right if on_right < on_left else -right  # Toward the grass
+	return right * _freer_side(pair)
+
+const BOW_AROUND := 0.6  # Cells: how far a path-crossing bond bows to go around
+
+# Path tiles the vine would lie on with `bow` at its middle (sampled along it).
+func _path_cells_on(pair: Dictionary, bow: Vector2) -> int:
+	var path := {}
+	for cell in _route_cells_cached():
+		path[cell] = true
+	var from: Vector2 = pair.a.global_position + ARCH_FOOT
+	var to: Vector2 = pair.b.global_position + ARCH_FOOT
+	var seen := {}
+	for i in 13:
+		var t := i / 12.0
+		var cell: Vector2 = Tower.MAP_GRID.calculate_grid_coordinates(from.lerp(to, t) + bow * 4.0 * t * (1.0 - t))
+		if path.has(cell):
+			seen[cell] = true
+	return seen.size()
+
+# -1 (left) or 1 (right): the side of a vertical pair with fewer Wardens beside it.
+func _freer_side(pair: Dictionary) -> float:
+	var taken := {}
+	for tower in _towers():
+		for cell in tower.get_cells():
+			taken[cell] = true
+	var score := 0
+	for tower in [pair.a, pair.b]:
+		score += int(taken.has(tower.cell + Vector2.LEFT)) - int(taken.has(tower.cell + Vector2.RIGHT))
+	return 1.0 if score >= 0 else -1.0  # Left busier (or a tie): bow right
+
+var _route_cache: Array = []
+var _route_cache_at := -1.0
+func _route_cells_cached() -> Array:
+	if _route_cache_at < 0.0 or _clock - _route_cache_at > 1.0:
+		_route_cache = Reactions._route_cells(self)
+		_route_cache_at = _clock
+	return _route_cache
 
 # Old Kin: a small flowering arch (kin_oldkin_arch, 64x32, feet at (0,31) and (63,31)) spans the pair's
 # bases, stretched along x only, never upside down. Full effects only.

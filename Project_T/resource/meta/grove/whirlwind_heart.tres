@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "whirlwind_heart"
+display_name = "Whirlwind Heart"
+description = "Legendary: Whirlwind Heart joins the pool."
+root = 1
+costs = Array[int]([120])
+order = 3
+icon = 13
+requires_all = Array[String](["light_feet"])
+legendary = true
+dream_cards = Array[String](["whirlwind_heart"])

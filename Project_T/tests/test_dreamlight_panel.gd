@@ -1,8 +1,8 @@
 extends SceneTree
 
-# Headless test for the Warden panel's Dreamlight unlocks (run_design.md "Dreamlight"): a locked form
-# reads "Grow into Driftspore · Unlock with 1 Dreamlight"; a click opens the Remember screen on that form
-# (with or without enough Dreamlight), where it's unlocked for Dreamlight.
+# Headless test for the Warden panel's Dreamlight unlocks (run_design.md "Dreamlight"):
+# a locked final form reads "Unlock <final> · N Dreamlight" ("Grow into" once unlocked) and a click opens the Remember screen on
+# that form, where it is unlocked; short of Dreamlight the cost turns POOR and a click refuses.
 #   godot --headless --path . --script res://tests/test_dreamlight_panel.gd --fixed-fps 60
 
 var failures := 0
@@ -21,27 +21,37 @@ func _run() -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
 	var panel: Node = main.find_child("WardenPanel", true, false)
 	var driftspore: TowerData = load("res://resource/tower/driftspore.tres")
+	# Owning a family unlocks its regular branches free (a75b5770): the Dreamlight flow is for final forms.
+	var final_form: TowerData = driftspore.evolves_to[0]
+	var final_name := final_form.display_name
 	dreams.unlocked["sporeling"] = true
 	dreams.unlocks_changed.emit()
 	run_state.dew = 1000
 
 	var tower := _build(placer, map_generator, load("res://resource/tower/sporeling.tres"))
 	_check(tower != null, "planted a Sporeling")
+	dreams.unlocked["driftspore"] = true  # The branch (free with the family or bought: either way it's owned here)
+	tower.evolve(driftspore, 0)  # Grown into the branch: its final is the locked form
 	seller.select(tower)
 	await process_frame
-	_check(not dreams.is_unlocked("driftspore"), "Driftspore starts locked")
+	_check(not dreams.is_unlocked(final_form.get_id()), "the final form starts locked")
 
-	# No Dreamlight: the button says what it costs, and opens the Remember screen.
+	# No Dreamlight: the can't-afford style says what's missing, and a press refuses (user 2026-10-01: the
+	# button shakes, a toast, the Dreamlight counter flashes, nothing opens).
 	dreams.dreamlight = 0
 	dreams.dreamlight_changed.emit(0)
 	await process_frame
-	var button := _button(panel, "Grow into Driftspore")
-	_check(button != null and "Unlock with 1 Dreamlight" in button.text,
-		"a locked form shows its Dreamlight cost (%s)" % (button.text if button else "none"))
+	var cost := dreams.get_unlock_cost(final_form)
+	var button := _button(panel, "Unlock " + final_name)
+	_check(button != null and ("· %d Dreamlight" % cost) in button.text and button.get_meta(&"short", false)
+		and not button.disabled, "a locked form shows its Dreamlight cost in POOR (%s)" % (button.text if button else "none"))
 	var asked := []
+	var shorts := []
 	dreams.remember_requested.connect(func(focus: TowerData) -> void: asked.append(focus))
+	dreams.dreamlight_short.connect(func(c: int) -> void: shorts.append(c))
 	button.pressed.emit()
-	_check(asked == [driftspore], "without enough Dreamlight it opens the Remember screen on that form")
+	_check(asked.is_empty() and shorts == [cost] and panel.grow_refused == 1,
+		"without enough Dreamlight a press refuses: nothing opens, the counter flashes (%s, %s)" % [asked, shorts])
 	var remember := main.find_child("RememberScreen", true, false)
 	if remember != null and remember.visible and remember.has_method("close"):
 		remember.close()
@@ -51,13 +61,15 @@ func _run() -> void:
 
 	# With Dreamlight the click opens the Remember tree on that form too (screens_ui.md playtest fixes
 	# 2026-09-30); the unlock happens there and spends Dreamlight, not Dew.
-	dreams.dreamlight = 1
-	dreams.dreamlight_changed.emit(1)
+	dreams.dreamlight = dreams.get_unlock_cost(final_form)
+	dreams.dreamlight_changed.emit(dreams.dreamlight)
 	await process_frame
 	asked.clear()
-	_button(panel, "Grow into Driftspore").pressed.emit()
+	_check(("· %d Dreamlight" % cost) in _button(panel, "Unlock " + final_name).text
+		and not _button(panel, "Unlock " + final_name).get_meta(&"short", true), "with the Dreamlight it's the normal look at once")
+	_button(panel, "Unlock " + final_name).pressed.emit()
 	await process_frame
-	_check(asked == [driftspore] and not dreams.is_unlocked("driftspore"), "with enough Dreamlight it opens Remember as well, nothing spent")
+	_check(asked == [final_form] and not dreams.is_unlocked(final_form.get_id()), "with enough Dreamlight it opens Remember as well, nothing spent")
 	remember = main.find_child("RememberScreen", true, false)
 	if remember != null and remember.visible and remember.has_method("close"):
 		remember.close()
@@ -65,12 +77,13 @@ func _run() -> void:
 		remember.visible = false
 	main.get_node("%GameSpeed").set_paused(false)
 	var dew := run_state.dew
-	dreams.unlock_with_dreamlight(driftspore)
+	dreams.unlock_with_dreamlight(final_form)
 	await process_frame
-	_check(dreams.is_unlocked("driftspore") and dreams.dreamlight == 0 and run_state.dew == dew,
-		"unlocking spends 1 Dreamlight (not Dew) and unlocks Driftspore")
-	var grow := _button(panel, "Grow into Driftspore")
-	_check(grow != null and "Dew" in grow.text, "then it offers growing for Dew as usual (%s)" % (grow.text if grow else "none"))
+	_check(dreams.is_unlocked(final_form.get_id()) and dreams.dreamlight == 0 and run_state.dew == dew,
+		"unlocking spends its Dreamlight (not Dew) and unlocks the final form")
+	var grow := _button(panel, "Grow into " + final_name)
+	_check(grow != null and "Dew" in grow.text and _button(panel, "Unlock " + final_name) == null,
+		"then the same slot reads Grow into for Dew, no Unlock (%s)" % (grow.text if grow else "none"))
 
 	print("dreamlight panel test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

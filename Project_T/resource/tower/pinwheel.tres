@@ -7,18 +7,19 @@
 
 [resource]
 script = ExtResource("1_tdata")
+counter_tags = Array[StringName]([&"anti_swarm"])
 display_name = "Pinwheel"
-description = "Spinning blades hit every nightmare on the 8 tiles around it; stronger the more of them are path."
+description = "Spinning blades hit every nightmare on the 8 cells around it; stronger the more of them are path."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
 line = "wind"
 tier = 2
 buildable_directly = false
-evolve_cost = 80
+evolve_cost = 120
 attack_kind = 10
 attack_range = 1.5
-damage = 15
+damage = 16
 attacks_per_second = 2.0
 spin_free_path_tiles = 2
 spin_bonus = 0.2

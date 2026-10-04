@@ -37,6 +37,13 @@ func _run() -> void:
 		placer.select_tower(buildable[3])
 		main.get_node("HUD")._sync_buttons()
 	await _frames(30)
+	for path in ["HUD/BossDossier", "HUD/NightmareIntro"]:  # They open themselves at some rests
+		var card := main.get_node_or_null(path) as CanvasItem
+		if card != null:
+			card.visible = false
+	for node in get_nodes_in_group(&"boss_dossier"):
+		(node as CanvasItem).visible = false
+	await _frames(5)
 	_save("hud")
 
 	var offer: Array[UpgradeData] = []
@@ -124,6 +131,32 @@ func _sheet() -> Control:
 		UiStyle.card_button(card, UiStyle.rarity_color(rarity))
 		card.text = UpgradeData.rarity_name(rarity)
 		cards.add_child(card)
+	# Feeling the cards (dream_design.md): the impact lines, a credit line, the toast and a bloom.
+	var impact := Label.new()
+	impact.text = "On your board · +22% damage on 7 Wardens"
+	UiStyle.impact_line(impact)
+	box.add_child(impact)
+	var none := Label.new()
+	none.text = "None of your Wardens yet"
+	UiStyle.impact_line(none, false)
+	box.add_child(none)
+	var credit := RichTextLabel.new()
+	credit.bbcode_enabled = true
+	credit.fit_content = true
+	credit.custom_minimum_size = Vector2(700, 0)
+	credit.text = UiStyle.credit_bbcode("Dreams this block", [["Lingering Spores", "+1,840"], ["Cozy Corners", "+920"],
+		["Flurry", "+610"]])
+	box.add_child(credit)
+	var toast := Label.new()
+	toast.text = "Cozy Corners · 6 Wardens +30%"
+	UiStyle.impact_toast(toast)
+	box.add_child(toast)
+	var blooms := Control.new()
+	blooms.custom_minimum_size = Vector2(500, 90)
+	blooms.draw.connect(func() -> void:
+		for i in 4:
+			UiStyle.draw_bloom(blooms, Vector2(60 + i * 120, 80), [0.1, 0.35, 0.6, 0.85][i], i, &"spore"))
+	box.add_child(blooms)
 	return page
 
 func _save(name: String) -> void:

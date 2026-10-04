@@ -2,10 +2,10 @@ extends RichTextLabel
 
 # Heartwood whispers (onboarding.md): one-line italic hints at the top of the screen, in the story's
 # voice, each shown the first time it matters and then never again (remembered in HeartwoodMemory).
-# Off when the "Heartwood whispers" setting is off. Mostly polls simple conditions each frame, so it
+# Off when the "Hints" setting is off (player-facing "Hints" since 2026-10-01; the code keeps "whispers").
+# Mostly polls simple conditions each frame, so it
 # needs no hooks in the systems it teaches.
 
-const SHOW_TIME := 5.0
 const TEXT := {
 	&"start": "Something moves at the edge of the dream.",
 	&"plant": "Plant a Warden near the path.",
@@ -13,10 +13,11 @@ const TEXT := {
 	&"walls": "Wardens are walls. Make them take the long way.",
 	&"flow": "They don't stop. They come in {drifts}, like fog.",
 	&"speed": "Pause if you need to think. They'll wait.",
-	&"rest": "Rest here. Rearrange the forest; nothing is lost.",
+	&"rest": "Rest here. Rearrange the forest while they're gone.",  # (Rests refund 75%, not everything: onboarding.md)
 	&"save": "The forest will wait for you.",
 	&"cage": "A dream can bend, but never close.",
-	&"grow": "This Sprout could grow.",
+	&"grow": "That %s could grow. Click it.",  # The Warden's name (GrowHints, the first rest one can grow)
+	&"grow_more": "Your Wardens can become much more than this.",  # Drift 15, nothing grown or ranked yet (GrowHints)
 	&"kin": "Two of one family, planted close, learn from each other.",
 	&"unbound": "Turn them too often, and they stop listening.",
 	&"dead_wood": "Dead wood. I can't move it… yet.",
@@ -24,16 +25,23 @@ const TEXT := {
 	&"chain": "One reaction set off another: a chain. Reach 10 for a Dawnburst.",
 	&"leaf": "It fed. A leaf blackens and falls.",
 	&"flyer": "Some of them don't walk. Guard the ground near the Heartwood.",
-	&"sell": "Selling gives everything back during a {rest}, and half while nightmares walk.",
+	&"sell": "Selling gives back most of it during a {rest}, and half while nightmares walk.",  # 75% / 50% (TowerSeller)
 	&"boss": "Something old has found the dream.",
 	&"after_boss": "It's gone, and something I'd forgotten came back.",
 	&"again": "The Heartwood dreams again.",
-	&"damp": "{damp}: slower, and lightning loves it.",
+	&"damp": "{damp}: water hits it harder, and lightning loves it.",  # Soaked no longer slows (IconInfo)
 	&"drowsy": "{drowsy}: heavy-eyed and slow.",
 	&"spored": "{spored}: the poison keeps eating at it.",
 	&"marked": "{marked}: every Warden hits it harder.",
 	&"static": "{static}: five charges, and a bolt.",
 	&"held": "{held}: it can't move. Now's the time.",
+	# Approved 2026-10-02 (story chat, user: "Players will get used to it."):
+	&"omen": "Face it, or let the sky stay clear.",  # The first Omen offer
+	&"dreamlight": "Dreamlight remembers what your Wardens could become.",  # The first Dreamlight earned
+	&"boss_toll": "It took its toll, and went back into the dark.",  # The first boss to reach the Heartwood
+	&"rule_breaker": "This one doesn't keep to the path. Watch for it.",  # The first rule-breaker warning (RuleBreakers)
+	&"nurture": "Tend it, and it grows deeper roots.",  # The first rank
+	&"let_pass": "Not every dream is yours to keep. You can let one pass.",  # The first Dream offer that can be let pass
 }
 
 @onready var run_state: RunState = %RunState
@@ -69,8 +77,7 @@ var _tween: Tween
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	StatusLinks.hook(self)  # Status names in whispers are links
-	UiStyle.whisper(self, 22)  # Cormorant italic, warm, with a dark outline and no panel (ui_style.md)
-	add_theme_color_override("font_outline_color", Color(UiStyle.FOG, 0.9))
+	_style()  # The body face on a fog patch above the Warden bar (was Cormorant italic, top centre: hard to read)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE  # On only while a whisper with links or a term shows
 	var memory := HeartwoodMemory.load_data()
 	enabled = memory.settings.whispers
@@ -102,10 +109,23 @@ func _ready() -> void:
 	var spawner = %EnemyContainer
 	spawner.enemy_cleansed.connect(func(_e: Node2D) -> void: whisper(&"first_cleanse"), CONNECT_ONE_SHOT)
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
-		if reason == &"first":
-			whisper(&"walls")
-		else:
+		if reason != &"first":
 			whisper(&"after_boss"))
+	# "Wardens are walls" once the first pick closes (the pick screen hid it when it came as the pick opened).
+	%FamilyPickScreen.family_chosen.connect(func(_offered: Array, _chosen: Resource) -> void:
+		if drift_director.drifts_started <= 1:
+			whisper(&"walls"))
+	# The approved lines (2026-10-02): the first Omen offer, Dreamlight, a boss's toll, a rule-breaker, a rank, Let it pass.
+	%OmenDirector.offer_ready.connect(func(_omens: Array[OmenData], _block: int) -> void: whisper(&"omen"))
+	dream_state.dreamlight_earned.connect(func(amount: int, _source: StringName) -> void:
+		if amount > 0:
+			whisper(&"dreamlight"))
+	dream_state.offer_ready.connect(func(_cards: Array[UpgradeData], _drift: int) -> void:
+		if dream_state.can_skip():
+			whisper(&"let_pass"))
+	tower_container.child_entered_tree.connect(func(node: Node) -> void:
+		if node is Tower and not node.nurtured.is_connected(_on_nurtured):
+			node.nurtured.connect(_on_nurtured))
 	drift_director.drift_started.connect(func(number: int) -> void:
 		if number == 2:
 			whisper(&"flow")
@@ -114,15 +134,23 @@ func _ready() -> void:
 		whisper(&"rest")
 		whisper(&"save")
 		if drift_director.is_boss_drift(drift_director.drifts_started + drift_director.drifts_per_block):
-			whisper(&"boss"))
+			whisper(&"boss")
+		if not RuleBreakers.coming(drift_director).is_empty():
+			whisper(&"rule_breaker"))  # As the Coming strip and DriftPanel warn of it
 	run_state.leaves_changed.connect(func(leaves: int, _max: int) -> void:
 		if leaves < run_state.max_leaves:
 			whisper(&"leaf"))
 	# The first leaf lost to a flyer (a Phantom): it never walked the maze (onboarding.md).
 	%EnemyContainer.enemy_reached_goal.connect(func(enemy: Node2D) -> void:
 		if enemy.has_method("is_flying") and enemy.is_flying():
-			whisper(&"flyer"))
+			whisper(&"flyer")
+		var data = enemy.get("enemy_data")
+		if data is EnemyData and data.is_boss:
+			whisper(&"boss_toll"))  # Acts 1–3: a flat leaf toll, then it leaves
 	%TowerSeller.tower_sold.connect(func(_t: Tower, _refund: int) -> void: whisper(&"sell"), CONNECT_ONE_SHOT)
+
+func _on_nurtured(_tower: Tower) -> void:
+	whisper(&"nurture")
 
 # First run: the camera glides from the forest's edge to the Heartwood along the path.
 func _glide_along_path() -> void:
@@ -132,56 +160,195 @@ func _glide_along_path() -> void:
 	var map_generator = %MapGenerator
 	var cells: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	var points := PackedVector2Array()
-	for i in range(0, cells.size(), maxi(cells.size() / 12, 1)):
-		points.append(map_generator.MAP_GRID.calculate_map_position(cells[i]))
-	points.append(map_generator.MAP_GRID.calculate_map_position(cells[-1]))
-	camera.glide(points, 6.0)
+	for cell in cells:  # Every cell: the camera paces itself by distance (GameCameraNode.glide_route)
+		points.append(map_generator.MAP_GRID.calculate_map_position(cell))
+	camera.glide_route(points)  # No glide when the whole route already fits on screen
 
 # Shows `id` once ever (queued behind whatever is showing).
-func whisper(id: StringName) -> void:
+var _args := {}  # Whisper id -> the words for its %s (the grow whisper's Warden name)
+
+# `args` fill the text's %s ("That %s could grow." + ["Sporeling"]).
+func whisper(id: StringName, args: Array = []) -> void:
 	if not enabled or _seen.has(String(id)) or _queue.has(id):
 		return
+	if not args.is_empty():
+		_args[id] = args
 	_queue.append(id)
 	if _queue.size() == 1:
 		_show_next()
+
+# The Heartwood's voice at the top of the screen (user, 2026-10-02: "go back to how it was before, but more readable,
+# and lasting a bit longer no matter the speed"): the italic whisper face at HINT_SIZE in the whisper colour, a dark
+# outline and a soft shadow, and only a faint feathered mist behind the line (no box) so it reads on the pale path and
+# on effects. On screen for show_time() in REAL time (game speed and pause don't shorten it), with a slow fade;
+# hovering or tapping holds it, tapping again dismisses it (a hint naming a Codex term opens it instead); one at a time.
+const HINT_SIZE := 26
+const HINT_MAX_WIDTH := 760.0
+const TOP := 214.0  # Under the drift banner and the Coming strip (as before)
+const MIN_TIME := 7.0
+const BASE_TIME := 3.0
+const PER_CHAR := 0.07
+const FADE_OUT := 1.5
+var held := false  # Tapped (or hovered): stays until dismissed
+
+# Real seconds a hint stays: at least MIN_TIME, longer for long lines.
+static func show_time(line: String) -> float:
+	return maxf(MIN_TIME, BASE_TIME + PER_CHAR * line.length())
+
+func _style() -> void:
+	UiStyle.whisper(self, HINT_SIZE)  # Cormorant italic (ui_style.md)
+	# The Heartwood's gold, not cream: cream sat on the pale path's own colour (user: "the text colour is a bit too close")
+	add_theme_color_override("default_color", UiStyle.GOLD)
+	add_theme_color_override("font_outline_color", Palette.DREAD)
+	add_theme_constant_override("outline_size", 6)  # 3 px each side (scales with the UI)
+	add_theme_color_override("font_shadow_color", Color(Palette.VOID, 0.7))
+	add_theme_constant_override("shadow_offset_x", 1)
+	add_theme_constant_override("shadow_offset_y", 2)
+	add_theme_constant_override("shadow_outline_size", 8)
+	var mist := UiStyle.fog_patch(28.0, 8.0)  # Feathered: fades to nothing at its edges, no hard box
+	mist.center_alpha = 0.7  # Dark enough behind the line to read on the path and on effects
+	mist.edge_alpha = 0.0
+	add_theme_stylebox_override("normal", mist)
+	fit_content = true
+	autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mouse_entered.connect(func() -> void:
+		if _tween and modulate.a > 0.0:
+			_tween.pause())
+	mouse_exited.connect(func() -> void:
+		if _tween and not held:
+			_tween.play())
+
+# Top centre (as before), as wide as the line needs.
+func _place() -> void:
+	var font := UiStyle.whisper_font()
+	var width := clampf(font.get_string_size(plain, HORIZONTAL_ALIGNMENT_LEFT, -1, HINT_SIZE).x + 80.0, 280.0, HINT_MAX_WIDTH)
+	set_anchors_preset(Control.PRESET_CENTER_TOP)
+	offset_left = -width / 2.0
+	offset_right = width / 2.0
+	var top := _clear_top()
+	offset_top = top
+	offset_bottom = top
+	custom_minimum_size = Vector2(width, 0)
+
+# Under the drift banner, the Coming strip and the boss reminder whatever their height this rest (user screenshot: a
+# hint across the Coming strip): TOP, or lower when one of them reaches past it.
+func _clear_top() -> float:
+	var hud := get_parent() as Control
+	if hud == null:
+		return TOP
+	var top := TOP
+	for node in hud.get_children():
+		if not (node is Control) or not node.visible or node == self:
+			continue
+		if node is ComingStrip or node.name == "DriftBanner":
+			top = maxf(top, _lowest(node) - hud.global_position.y + 8.0)
+	var reminder := hud.find_child("BossReminder", true, false) as Control
+	if reminder != null and reminder.is_visible_in_tree():
+		top = maxf(top, _lowest(reminder) - hud.global_position.y + 8.0)
+	return top
+
+# The real bottom of `node`'s visible contents: the Coming strip's lead entry and its trait label hang below the strip's
+# own rect (user screenshot: a hint over "Flies").
+static func _lowest(node: Control) -> float:
+	var bottom := node.get_global_rect().end.y
+	for child in node.find_children("*", "Control", true, false):
+		if child.is_visible_in_tree() and child.size.y > 0.0:
+			bottom = maxf(bottom, child.get_global_rect().end.y)
+	return bottom
+
+# A choice screen (family pick, Dream, gift, Omen) is open: hints wait behind it (user screenshot: a hint across the
+# family cards), except the ones about that screen. One already showing pauses, hidden, and goes on after.
+const ON_CHOICE_SCREENS: Array[StringName] = [&"let_pass", &"omen"]
+var _hidden_for_choice := false
+
+func _choice_open() -> bool:
+	var pause := get_node_or_null("%PauseMenu") as Control  # The pause menu and its Codex cover the screen too
+	if pause != null and pause.visible:
+		return true
+	return drift_director != null and (drift_director.pending_choice() != &"" or drift_director.awaiting_family_pick)
 
 func _show_next() -> void:
 	if _queue.is_empty():
 		return
 	var id: StringName = _queue[0]
+	if _choice_open() and not ON_CHOICE_SCREENS.has(id):
+		return  # _process shows it once the choice closes
 	_seen.append(String(id))
 	_remember()
-	plain = IconInfo.format(TEXT.get(id, ""))  # {damp} … become today's status names
-	var linked := StatusLinks.bbcode(TEXT.get(id, ""))  # From the tokens: game terms become links too
+	var raw: String = TEXT.get(id, "")
+	if _args.has(id):
+		raw = raw % _args[id]
+	plain = IconInfo.format(raw)  # {damp} … become today's status names
+	var linked := StatusLinks.bbcode(raw)  # From the tokens: game terms become links too
 	text = "[center]%s[/center]" % linked
 	whispered.emit(id)
 	# Status names are links of their own (hover / tap: their definition). A whisper without one is
 	# tappable as a whole when it names a Codex term (screens_ui.md "The Codex").
 	var has_links := linked != plain.replace("[", "[lb]")
 	term = "" if has_links else CodexData.find_term(plain)
-	mouse_filter = Control.MOUSE_FILTER_STOP if has_links or term != "" else Control.MOUSE_FILTER_IGNORE
+	mouse_filter = Control.MOUSE_FILTER_STOP  # Hover / tap hold it
 	tooltip_text = "%s in the Codex" % term if term != "" else ""
+	held = false
+	_place()
+	_place.call_deferred()  # Again once the text has its height
 	if _tween:
 		_tween.kill()
 	_tween = create_tween()
-	_tween.tween_property(self, "modulate:a", 1.0, 0.4)
-	_tween.tween_interval(SHOW_TIME)
-	_tween.tween_property(self, "modulate:a", 0.0, 0.8)
-	_tween.tween_callback(func() -> void:
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		term = ""
+	_tween.set_ignore_time_scale(true)  # Real time: 3× speed doesn't cut it short (and the node runs while paused)
+	_tween.tween_property(self, "modulate:a", 1.0, 0.3)  # A fade only: nothing moves (reduced motion too)
+	_tween.tween_interval(show_time(plain))
+	_tween.tween_property(self, "modulate:a", 0.0, FADE_OUT)
+	_tween.tween_callback(_finish)
+
+# The showing hint ends (its time ran out, or a tap dismissed it); the next queued one follows.
+func _finish() -> void:
+	if _tween:
+		_tween.kill()
+	modulate.a = 0.0
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	term = ""
+	held = false
+	if not _queue.is_empty():
 		_queue.pop_front()
-		_show_next())
+	_show_next()
 
 func _gui_input(event: InputEvent) -> void:
-	if term != "" and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+		return
+	accept_event()
+	if term != "":
 		var pause := get_node_or_null("%PauseMenu")
 		if pause != null and pause.has_method("open_codex"):
 			pause.open_codex(&"glossary", term)
-		accept_event()
+		_finish()
+	elif held:
+		_finish()  # The second tap dismisses it
+	else:
+		held = true  # The first tap holds it
+		if _tween:
+			_tween.pause()
 
 # Conditions that are easiest to notice by looking.
 func _process(_delta: float) -> void:
+	var showing := not _queue.is_empty() and _seen.has(String(_queue[0]))
+	if showing and visible:
+		var top := _clear_top()  # The strip can grow while a hint shows (a rest's Coming strip, the boss reminder)
+		if not is_equal_approx(top, offset_top):
+			offset_top = top
+			offset_bottom = top
+	var choice := _choice_open() and not (showing and ON_CHOICE_SCREENS.has(_queue[0]))
+	if choice and showing and not _hidden_for_choice:
+		_hidden_for_choice = true  # Paused behind the choice screen
+		visible = false
+		if _tween:
+			_tween.pause()
+	elif not choice and _hidden_for_choice:
+		_hidden_for_choice = false
+		visible = true
+		if _tween and not held:
+			_tween.play()
+	elif not choice and not showing and not _queue.is_empty():
+		_show_next()  # One waited for the choice to close
 	if tower_placer.hover_breaks_path():
 		whisper(&"cage")
 	# Obstacles can't be cleared until the run's first clearing Dream (run_design.md).
@@ -193,13 +360,7 @@ func _process(_delta: float) -> void:
 	# Kinships (screens_ui.md "Kinship feedback", playtest fix): two branches of one family planted.
 	if not _seen.has("kin") and RestReport.two_branch_family(tower_container.get_children()) != "":
 		whisper(&"kin")
-	if not _seen.has("grow"):
-		for tower in tower_container.get_children():
-			if tower is Tower and tower.tower_data.get_id() == "sprout":
-				for option in dream_state.get_evolutions(tower.tower_data):
-					if option[1] and run_state.can_afford(tower.get_grow_cost(option[0]).total):  # Ranked: + the rank difference
-						whisper(&"grow")
-						return
+	# "That Sporeling could grow. Click it." comes from GrowHints at the first rest a Warden can grow.
 
 func _any_creature_has(id: StringName) -> bool:
 	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):

@@ -35,6 +35,9 @@ func _run() -> void:
 		strip._stack()
 		_check(strip.offset_top >= omen_tag.offset_top + omen_tag.size.y, "the Coming strip stacks under the Omen line (%.0f vs %.0f)"
 			% [strip.offset_top, omen_tag.offset_top + omen_tag.size.y])
+		var banner_end: float = main.get_node("%DriftBanner").drawn_rect().end.y
+		_check(omen_tag.get_global_rect().position.y >= banner_end - 0.5, "the Omen line starts under the drift banner (%.0f vs %.0f)"
+			% [omen_tag.get_global_rect().position.y, banner_end])
 		omen_tag.visible = false
 		strip._stack()
 	else:
@@ -92,18 +95,219 @@ func _run() -> void:
 	run_state.add_sprout_charges(2)
 	_check(hud_node._seed_badge.visible, "free Sprouts show a seed badge on the Sprout button")
 	run_state.add_sprout_charges(-2)
-	for screen in [Vector2i(1920, 1080), Vector2i(1280, 800)]:
-		root.size = screen
+	# Real windows, then the UI scale cases (user screenshots: 2560x1440 at the largest UI size = 1280x720
+	# virtual, and at 40%): [window, UI share (0 = no stretch)]. `screen` is the virtual size the HUD lays out in.
+	var layout_was := [root.content_scale_mode, root.content_scale_size, root.content_scale_aspect, root.content_scale_factor]
+	for case in [[Vector2i(1920, 1080), 0.0], [Vector2i(1280, 800), 0.0], [Vector2i(1280, 720), 0.0],
+			[Vector2i(2560, 1440), 1.0], [Vector2i(1920, 1080), 1.0], [Vector2i(3840, 2160), 1.0], [Vector2i(2560, 1440), 0.4]]:
+		if case[1] > 0.0:
+			root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+			root.content_scale_size = UiStyle.LAYOUT_MIN
+			root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+			root.content_scale_factor = case[1]
+		else:
+			root.content_scale_mode = layout_was[0]
+			root.content_scale_size = layout_was[1]
+			root.content_scale_aspect = layout_was[2]
+			root.content_scale_factor = layout_was[3]
+		root.size = case[0]
 		await _frames(2)
+		hud_node._fit_tower_bar()
+		hud_node._layout_top_row()
+		await _frames(2)
+		var screen := Vector2i(main.get_viewport().get_visible_rect().size)
 		# The Clear tool + the Warden bar, centred together at the bottom.
 		var tool_rect := (main.get_node("HUD/ClearTool") as Control).get_global_rect()
 		var bar_rect := bar.get_global_rect().merge(tool_rect)
+		for arrow_name in ["BarArrowLeft", "BarArrowRight"]:  # A scrolling bar centres with its arrows
+			var arrow := main.get_node("HUD").get_node_or_null(arrow_name) as Control
+			if arrow != null and arrow.visible:
+				bar_rect = bar_rect.merge(arrow.get_global_rect())
 		_check(bar_rect.end.y > screen.y - 100 and absf(bar_rect.get_center().x - screen.x / 2.0) < 2.0
 			and tool_rect.end.x < bar.get_global_rect().position.x,
 			"the Clear tool and Warden bar sit at the bottom centre at %s (%s)" % [screen, bar_rect])
+		# The Clear slot is a Warden slot's size and shape, on the same baseline (user: not a different size).
+		var visible_slots := bar.get_children().filter(func(b: Node) -> bool: return b is Control and b.visible)
+		var slot_rect := (visible_slots[-1] as Control).get_global_rect()  # A shown slot (the bar may scroll)
+		_check(tool_rect.size.is_equal_approx(slot_rect.size) and absf(tool_rect.end.y - slot_rect.end.y) < 1.0
+			and (main.get_node("HUD/ClearTool").get_node_or_null("Hotkey") as Label) != null,
+			"the Clear slot matches a Warden slot at %s (%s vs %s)" % [screen, tool_rect, slot_rect])
 		for name in ["WardenPanel", "DriftPanel", "DriftBanner"]:
 			var other := (main.get_node("HUD/" + name) as Control).get_global_rect()
 			_check(not bar_rect.intersects(other), "the Warden bar doesn't overlap %s at %s (%s vs %s)" % [name, screen, bar_rect, other])
+		# A minimised choice's "Back to …" button never covers the banner, the Coming strip or the bar.
+		var peek_screen := Control.new()
+		peek_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+		main.get_node("HUD").add_child(peek_screen)
+		var peek := ChoicePeek.new(peek_screen, [], "Back to the Dream")
+		peek.set_peeking(true)
+		await process_frame
+		var back_rect := (peek_screen.get_children().filter(func(c: Node) -> bool: return c is Button)[0] as Button).get_global_rect()
+		var strip_rect := Rect2()
+		for child in main.get_node("HUD").get_children():
+			if child is ComingStrip:
+				strip_rect = (child as Control).get_global_rect()
+		_check(not back_rect.intersects(bar_rect) and not back_rect.intersects((main.get_node("HUD/DriftBanner") as Control).get_global_rect())
+			and not back_rect.intersects(strip_rect) and back_rect.end.y <= screen.y
+			and absf(back_rect.get_center().x - screen.x / 2.0) < 2.0 and back_rect.get_center().y > screen.y / 2.0,
+			"the peek's Back pill sits mid-screen, a little below centre, clear of the bar, banner and Coming strip at %s (%s; bar %s, strip %s)" % [screen, back_rect, bar_rect, strip_rect])
+		peek_screen.queue_free()
+		# The top-right row (screens_ui.md "Top-right layout, as in the Moonlit Thread mock-up"): leaves ·
+		# Dew · Dreamlight · path, then Remember · Boosts · ? · Menu, on one fog patch clear of the
+		# banner's text (the buttons wrap onto a second line inside the patch when it's too narrow).
+		var top_names := ["RememberButton", "BuffLensButton", "CodexButton", "MenuButton"]
+		var was_shown := {}
+		for n in top_names:
+			var b := main.get_node("HUD/" + n) as Control
+			was_shown[n] = b.visible
+			b.visible = true
+		var row_hud = main.get_node("HUD")
+		row_hud.set_process(false)  # Its 0.2 s relayout would hide Boosts again (no boost source here)
+		row_hud._layout_top_row()
+		await _frames(2)
+		var row_rect: Rect2 = row_hud.resource_row_rect()
+		var banner_rect: Rect2 = main.get_node("%DriftBanner").drawn_rect()
+		var parts: Array = top_names.map(func(n: String) -> Rect2: return (main.get_node("HUD/" + n) as Control).get_global_rect())
+		for n in ["%LeavesLabel", "%DewLabel", "HUD/DreamlightLabel", "%PathLabel"]:
+			parts.append((main.get_node(n) as Control).get_global_rect())
+		var inside := parts.all(func(r: Rect2) -> bool: return row_rect.grow(1.0).encloses(r))
+		var ordered: bool = parts[0].end.x <= parts[1].position.x + 0.5 and parts[1].end.x <= parts[2].position.x + 0.5 \
+			and parts[2].end.x <= parts[3].position.x + 0.5 and parts[4].end.x <= parts[5].position.x + 0.5 \
+			and parts[5].end.x <= parts[6].position.x + 0.5 and parts[6].end.x <= parts[7].position.x + 0.5
+		_check(inside and ordered and not row_rect.intersects(banner_rect) and absf(parts[3].end.x - (screen.x - 16.0)) < 1.0
+			and parts.slice(0, 4).all(func(r: Rect2) -> bool: return r.size.y >= 48.0),
+			"the top-right row: counters and buttons in order on one fog patch, clear of the banner at %s (row %s, banner %s, wrapped %s)" % [screen, row_rect, banner_rect, row_hud.row_wrapped])
+		for n in top_names:
+			(main.get_node("HUD/" + n) as Control).visible = was_shown[n]
+		row_hud.set_process(true)
+		# The expanded damage meter (both tabs, the top rows + "and N more") never covers the DriftPanel
+		# (user: "maze dps shouldn't go over the call drift").
+		var meter := main.get_node("HUD/DriftMeter") as DriftMeter
+		var meter_was := meter.visible
+		meter.set_process(false)  # Its refresh would hide it (no Warden meter in this test)
+		meter.visible = true
+		var fake_rows: Array[Button] = []
+		for i in 6:
+			var row := Button.new()
+			row.text = "Sporeling %d" % i
+			row.custom_minimum_size = Vector2(0, 40)
+			meter._rows.add_child(row)
+			fake_rows.append(row)
+		meter._more.visible = true
+		meter._more.text = "and 16 more"
+		for summary in [false, true]:
+			meter.block_summary = summary
+			for f in 4:
+				meter._fit()
+				while meter._rows.get_child_count() > meter._max_rows:  # What refresh does with the cap
+					var extra := meter._rows.get_child(meter._rows.get_child_count() - 1)
+					meter._rows.remove_child(extra)
+					extra.queue_free()
+				await process_frame
+			var meter_rect := meter.get_global_rect()
+			var panel_rect := (main.get_node("HUD/DriftPanel") as Control).get_global_rect()
+			_check(not meter_rect.intersects(panel_rect) and meter_rect.position.y >= DriftMeter.TOP_LIMIT - 1.0,
+				"the damage meter (%s tab) clears the DriftPanel at %s (%s vs %s)" % ["block" if summary else "Wardens", screen, meter_rect, panel_rect])
+		# With the nightmare info open (user screenshot: a Mourner pinned), the meter shrinks to its header line
+		# and never reaches the DriftPanel; it opens again when the info closes.
+		meter.block_summary = false
+		meter._user_open = true
+		meter._body.visible = true
+		var info_node := main.get_node("%NightmareInfo") as Control
+		var pinned: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+		pinned.set_process(false)
+		info_node._target = pinned
+		for f in 4:
+			await process_frame
+			meter._fit()
+		var meter_info_rect := meter.get_global_rect()
+		var panel_info_rect := (main.get_node("HUD/DriftPanel") as Control).get_global_rect()
+		_check(info_node.visible and meter.collapsed and not meter._body.visible and not meter_info_rect.intersects(panel_info_rect),
+			"with the nightmare info open the meter is its header line, clear of the DriftPanel at %s (%s vs %s)" % [screen, meter_info_rect, panel_info_rect])
+		info_node._target = null
+		pinned.queue_free()
+		for f in 3:
+			await process_frame
+			meter._fit()
+		_check(not meter.collapsed and meter._body.visible, "…and opens again when the info closes at %s" % screen)
+		meter._user_open = false
+		for row in fake_rows.filter(func(r) -> bool: return is_instance_valid(r)):
+			row.queue_free()
+		meter._more.visible = false
+		meter.block_summary = false
+		meter.visible = meter_was
+		meter.set_process(true)
+	# The pause menu's Settings at 1280×720 virtual (the largest UI size): on screen, all six tabs on one row,
+	# and the Coming strip hidden under the menu (user screenshot: it showed through over the panel).
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	root.content_scale_size = UiStyle.LAYOUT_MIN
+	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+	root.content_scale_factor = 1.0
+	root.size = Vector2i(2560, 1440)
+	await _frames(2)
+	var pause_menu := main.get_node("%PauseMenu")
+	pause_menu.open()
+	pause_menu._show_settings()
+	await _frames(3)
+	var settings_panel: SettingsPanel = pause_menu._settings
+	var view_rect := main.get_viewport().get_visible_rect()
+	var tab_bar := settings_panel.tabs.get_tab_bar()
+	await create_timer(0.3, true, false, true).timeout  # The strip checks every 0.2 s
+	var strip_hidden: bool = main.get_node("HUD").get_children().filter(func(c: Node) -> bool: return c is ComingStrip and c.visible).is_empty()
+	_check(view_rect.encloses(settings_panel.get_global_rect()) and not tab_bar.get_offset_buttons_visible() and strip_hidden,
+		"at %s virtual the Settings panel fits, shows all %d tabs and hides the Coming strip (%s in %s, tab arrows %s, strip hidden %s)"
+		% [view_rect.size, settings_panel.tabs.get_tab_count(), settings_panel.get_global_rect(), view_rect, tab_bar.get_offset_buttons_visible(), strip_hidden])
+	pause_menu.close()
+	root.content_scale_mode = layout_was[0]
+	root.content_scale_size = layout_was[1]
+	root.content_scale_aspect = layout_was[2]
+	root.content_scale_factor = layout_was[3]
+	root.size = Vector2i(1920, 1080)
+	await _frames(2)
+	# The Warden bar is always one row (user: "the tower bar should not stack like this"), even with every
+	# family: slots shrink to 56 px, then the bar scrolls with arrows.
+	var bar_dreams: DreamState = main.get_node("%DreamState")
+	var was_everything := bar_dreams.unlock_everything
+	bar_dreams.unlock_everything = true
+	bar_dreams.unlocks_changed.emit()
+	# Every UI scale share too (user screenshot: two rows at a high UI scale): canvas_items stretch from
+	# UiStyle.LAYOUT_MIN with the share as the factor, as UiStyle.apply_ui_scale sets it outside headless.
+	var scale_was := [root.content_scale_mode, root.content_scale_size, root.content_scale_aspect, root.content_scale_factor, root.size]
+	var bar_hud := main.get_node("HUD")
+	for share in [0.0, 0.4, 0.5, 0.75, 1.0, 2.0]:  # 0 = no stretch (headless default); 2.0 = an old saved value
+		if share > 0.0:
+			root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+			root.content_scale_size = UiStyle.LAYOUT_MIN
+			root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+			root.content_scale_factor = share
+		for screen in [Vector2i(1280, 800), Vector2i(1920, 1080), Vector2i(2560, 1440), Vector2i(3840, 2160)]:
+			root.size = screen
+			await _frames(3)
+			bar_hud._fit_tower_bar()
+			await _frames(2)
+			var shown_slots: Array = bar.get_children().filter(func(b: Node) -> bool: return b is Button and b.visible)
+			var tool_rect := (main.get_node("HUD/ClearTool") as Control).get_global_rect()
+			var view := bar_hud.get_viewport().get_visible_rect()
+			var one_row := not shown_slots.is_empty() and shown_slots.all(func(b: Button) -> bool:
+				var r := b.get_global_rect()
+				return absf(r.position.y - tool_rect.position.y) < 1.0 and r.size.x >= 55.0 and view.encloses(r))
+			var all_slots := bar.get_children().filter(func(b: Node) -> bool: return b is Button).size()
+			var arrows := bar_hud.get_node_or_null("BarArrowRight") as Control
+			_check(one_row and (shown_slots.size() == all_slots or (arrows != null and arrows.visible)),
+				"the Warden bar stays one row, on screen, with %d Wardens at %s, UI scale %s (%d shown, arrows %s)" % [all_slots, screen,
+				share, shown_slots.size(), arrows != null and arrows.visible])
+	root.content_scale_mode = scale_was[0]
+	root.content_scale_size = scale_was[1]
+	root.content_scale_aspect = scale_was[2]
+	root.content_scale_factor = scale_was[3]
+	root.size = scale_was[4]
+	await _frames(2)
+	# The slots are solid (user: the map showed through them).
+	var slot_box := (bar.get_child(0) as Button).get_theme_stylebox("normal") as StyleBoxFlat
+	_check(slot_box != null and slot_box.bg_color.a >= 0.9, "Warden slots are solid (fill alpha %.2f)" % (slot_box.bg_color.a if slot_box else 0.0))
+	bar_dreams.unlock_everything = was_everything
+	bar_dreams.unlocks_changed.emit()
+	await _frames(2)
 	_check(banner.get_drift_text() == "Ready · Drift 1", "before the first drift the banner reads Ready · Drift 1")
 	# The camera can scroll past the map's far corner, so the Heartwood can clear the drift controls.
 	var camera = main.get_node("GameCameraNode")
@@ -158,7 +362,17 @@ func _run() -> void:
 	tap.button_index = MOUSE_BUTTON_LEFT
 	tap.pressed = true
 	light.gui_input.emit(tap)
-	_check((main.get_node("%ToastLabel") as Label).text.begins_with("Dreamlight"), "tapping the counter explains it (no hover-only info)")
+	var light_tip: TapTip = main.get_node("HUD").dreamlight_tip
+	_check(light_tip.visible and light_tip._label.text.begins_with("Dreamlight") and light_tip._label.text.contains("(%d)" % dreams.dreamlight),
+		"tapping the counter explains it at the counter (no hover-only info)")
+	# Tips are opaque and on their own top layer, by the pointer (screens_ui.md "tips are opaque").
+	_check(light_tip.get_parent() is CanvasLayer and (light_tip.get_parent() as CanvasLayer).layer == UiStyle.TIP_LAYER,
+		"the tip draws on the top tip layer")
+	var above_right := UiStyle.tip_position(Vector2(400, 400), Vector2(200, 60), Vector2(1280, 800))
+	var flipped := UiStyle.tip_position(Vector2(1250, 20), Vector2(200, 60), Vector2(1280, 800))
+	_check(above_right == Vector2(416, 328) and flipped.x + 200.0 <= 1250.0 and flipped.y >= 20.0,
+		"tips sit above-right of the pointer and flip at the edges (%s, %s)" % [above_right, flipped])
+	light_tip.visible = false
 	# Resources explain themselves on hover and tap (IconInfo, TapTip).
 	var dew_label: Label = main.get_node("%DewLabel")
 	_check(dew_label.tooltip_text == IconInfo.resource_tooltip(&"dew") and dew_label.tooltip_text.begins_with("Dew: "), "Dew has a plain-words tooltip")
@@ -173,8 +387,13 @@ func _run() -> void:
 		"a stat breakdown reads base → final with each part")
 	_check(DreamBonusView.format_breakdown(&"range", {"base": 2.5, "final": 2.5, "parts": []}) == "Range 2.5", "an unchanged stat is just its value")
 	var some_card: UpgradeData = main.get_node("%DreamState").pool[0]
-	_check(DreamBonusView.get_line({"card": some_card, "active": false, "reason": "Rain Lily is 1 cell away"}) == "off: Rain Lily is 1 cell away"
+	_check(DreamBonusView.get_line({"card": some_card, "active": false, "reason": "Rain Lily is 1 cell away"}) == "Off: Rain Lily is 1 cell away"
 		and DreamBonusView.get_line({"card": some_card, "active": true, "effect": "+30% damage"}) == "+30% damage", "row lines: the effect, or why it's off")
+	# One card with two rules (Hunter's Patience + Skyward Gaze) is listed once, under its own name.
+	var two_rules := DreamBonusView.merge_by_card([{"card": some_card, "active": true, "effect": "+20% damage"},
+		{"card": some_card, "active": true, "effect": "+40% against flying"}])
+	_check(two_rules.size() == 1 and String(two_rules[0].effect).contains("+20% damage") and String(two_rules[0].effect).contains("+40% against flying"),
+		"a card with two rules shows once, both lines joined (%s)" % [two_rules])
 	_check(DreamBonusView.chip_text({"card": some_card, "active": true, "effect": "+30% damage"}) == some_card.display_name + " ✓ +30% damage"
 		and DreamBonusView.chip_text({"card": some_card, "active": false, "reason": "Rain Lily is 1 cell away"}).ends_with("✗ Rain Lily is 1 cell away"),
 		"ghost chips: ✓ with the effect, ✗ with the reason")
@@ -195,6 +414,10 @@ func _run() -> void:
 	var off_row := DreamBonusView._row({"card": some_card, "active": false, "reason": "not alone"})
 	_check(off_row.get_child(0).modulate.a < 1.0, "an off card is greyed")
 	off_row.free()
+	# Dream gems carry UI Asset's per-tag glyph (UiStyle.dream_glyph; DreamIcon draws it, panel and Dreams row alike).
+	var spore_card := UpgradeData.new()
+	spore_card.tags.assign(["spore", "maze"])
+	_check(UiStyle.dream_glyph(spore_card) not in [&"", &"generic"], "a Spore card has its own glyph (%s)" % UiStyle.dream_glyph(spore_card))
 	# Status display names (story.md): ids unchanged, names from IconInfo; {tokens} fill them in.
 	_check(IconInfo.status_name(&"damp") == "Soaked" and IconInfo.status_name(&"static") == "Charged"
 		and IconInfo.status_name(&"held") == "Rooted" and IconInfo.format("{spored} + {marked}") == "Poisoned + Exposed",
@@ -207,10 +430,24 @@ func _run() -> void:
 	main.get_node("HUD").add_child(link_label)
 	await process_frame
 	link_label.meta_clicked.emit("status:damp")
-	var popup: StatusLinks = link_label.get_children().filter(func(c: Node) -> bool: return c is StatusLinks)[0]
+	var popup: StatusLinks = link_label.get_meta(&"status_popup")
 	_check(popup.visible and popup._name.text == "Soaked" and popup._text.text.begins_with("Water hits deal 20% more"), "tapping a status shows its definition")
 	link_label.meta_clicked.emit("status:damp")
 	_check(not popup.visible, "tapping it again closes it")
+	# Combo links (user: "hovering over combos doesn't do anything"): {combo:id} is a link; hovering shows
+	# its tip (name, statuses, what it does, times set off), "???" until discovered.
+	var combo_label := StatusLinks.make_label("Pairs with {combo:thunderclap}.")
+	main.get_node("HUD").add_child(combo_label)
+	await process_frame
+	var combo_found := CodexData.is_discovered(&"thunderclap")
+	_check(combo_label.text.contains("[url=combo:thunderclap]") and combo_label.text.contains("Thunderclap" if combo_found else "???"),
+		"a combo token becomes a link (its name, or ??? until found)")
+	combo_label.meta_hover_started.emit("combo:thunderclap")
+	var combo_popup: StatusLinks = combo_label.get_meta(&"status_popup")
+	_check(combo_popup.visible and combo_popup._name.text == ("Thunderclap" if combo_found else "???") and combo_popup._text.text != "",
+		"hovering a combo link shows its tip (%s: %s)" % [combo_popup._name.text, combo_popup._text.text])
+	combo_popup.visible = false
+	combo_label.queue_free()
 	# Game terms (playtest fixes 2026-09-30): {block}-style tokens are links to their glossary line.
 	var term_text := StatusLinks.bbcode("{Perfect_block}: no leaf lost in a {block} of {drifts}. Soaked {deeply_blighted}.")
 	_check(term_text.contains("[url=term:perfect_block]") and term_text.contains("Perfect block[/color]")
@@ -220,6 +457,11 @@ func _run() -> void:
 	_check(IconInfo.format("each {block}, {Rests}, {dreamlight}") == "each block, Rests, Dreamlight", "plain text gets the words")
 	for id in IconInfo.TERMS:
 		_check(CodexData.definition(StatusLinks.term_name(id)) != "", "the glossary defines %s" % StatusLinks.term_name(id))
+	# "Potency" in card text is a link as written (user: "Potency in cards doesn't have the underline").
+	var potency_text := StatusLinks.bbcode("All Wardens +20% Potency (stacks). {spored} grows with Potency.")
+	_check(potency_text.count("[url=term:potency]") == 2 and potency_text.contains("[url=status:spored]")
+		and not StatusLinks.bbcode("Impotency").contains("term:potency"), "the plain word Potency is a glossary link (%s)" % potency_text)
+	_check(CodexData.definition("Potency").contains("statuses and effects"), "the glossary's Potency line says what it does")
 	# Family names as links ({family:dewdrop}): the popup shows its emblem, damage type and identity.
 	var family_text := StatusLinks.bbcode("Needs {family:dewdrop}.")
 	_check(family_text.contains("[url=family:dewdrop]") and family_text.contains("Dewdrop[/color]")
@@ -290,6 +532,8 @@ func _run() -> void:
 	var tool: ClearToolButton = main.get_node("HUD/ClearTool")
 	tool._update_icon()
 	_check(tool._frame == ClearToolButton.FRAME_AVAILABLE, "the icon shows the tool available once clearing opens")
+	_check(not tool.shows_locked and tool.tooltip_text == ClearToolButton.TOOL_TIP
+		and not tool.has_theme_stylebox_override("normal"), "open: the normal look and the tool's tooltip")
 	tool.toggle_tool()
 	tool._update_icon()
 	_check(clearer.is_tool_active() and tool.button_pressed and tool._frame == ClearToolButton.FRAME_ACTIVE,
@@ -300,6 +544,10 @@ func _run() -> void:
 	tool.toggle_tool()
 	_check(not clearer.is_tool_active() and (main.get_node("%ToastLabel") as Label).text == ClearToolButton.LOCKED_TEXT,
 		"while locked it explains why instead")
+	tool._update_icon()
+	_check(tool.shows_locked and tool.tooltip_text == ClearToolButton.LOCKED_TEXT
+		and tool.get_theme_stylebox("normal") == tool.get_theme_stylebox("disabled") and not tool.disabled,
+		"locked: greyed out (the disabled look), \"Clearing needs a Dream\" tooltip, still pressable to say why")
 	_check(InputMap.has_action("clear_tool"), "0 / C pick the Clear tool")
 	clearer._hover_obstacle = null
 	clearer.set_process(true)
@@ -342,7 +590,7 @@ func _run() -> void:
 	var family = main.get_node("%FamilyPickScreen")
 	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
 	_check(family.get_status_text(sporeling) == "Applies Poisoned", "the family card names its status (%s)" % family.get_status_text(sporeling))
-	_check(family.get_branches(sporeling).size() == 2, "the family card previews two branches")
+	_check(family.get_routes(sporeling).offered.size() == 2, "the family card previews two branches")
 	family.show_pick(&"first")
 	await _frames(3)
 	# Each card holds all of its content (the "Grows into" rows used to spill out of the bottom).
@@ -405,6 +653,9 @@ func _run() -> void:
 		"Plant plants the stroke")
 	touch_placer.begin_stroke(_free_cell(main.get_node("%MapGenerator")))
 	var touch_camera = main.get_node("GameCameraNode")
+	var open_dossier := main.get_tree().get_first_node_in_group(BossDossier.GROUP) as BossDossier
+	if open_dossier != null and open_dossier.visible:
+		open_dossier.close_dossier()  # It opens by itself at the first rest; a modal screen stops map pans
 	var cam_before: Vector2 = touch_camera.target_position
 	for i in 2:
 		var press := InputEventScreenTouch.new()
@@ -432,6 +683,28 @@ func _run() -> void:
 	var idx := func(n: String) -> int: return order_hud.get_node(n).get_index()
 	_check(idx.call("RememberScreen") > idx.call("RememberButton") and idx.call("DreamScreen") > idx.call("MenuButton")
 		and idx.call("PauseMenu") == order_hud.get_child_count() - 1, "overlays draw above the HUD, the pause menu on top")
+	# Boosts: the button shows only once a local boost source is on the map (screens_ui.md "The lens button, revised").
+	order_hud._update_boosts()
+	var boosts_button := order_hud.get_node("BuffLensButton") as Button
+	_check(boosts_button.visible == (BuffOverlay.has_local_sources(order_hud) or boosts_button.button_pressed),
+		"the Boosts button shows only with a boost source on the map (%s)" % boosts_button.visible)
+	# Its glyph follows the toggle (UI Asset c2a2a600): grey arrow off, gold with sparkles on.
+	var glyph_region := func() -> Rect2: return (boosts_button.icon as AtlasTexture).region if boosts_button.icon is AtlasTexture else Rect2()
+	var off_region: Rect2 = glyph_region.call()
+	boosts_button.button_pressed = true
+	var on_region: Rect2 = glyph_region.call()
+	boosts_button.button_pressed = false
+	_check(off_region == (IconInfo.hud_icon(&"boosts_off") as AtlasTexture).region and on_region == (IconInfo.hud_icon(&"boosts_on") as AtlasTexture).region
+		and glyph_region.call() == off_region, "the Boosts glyph: off, then on while pressed, then off again")
+	_check(idx.call("PauseMenu") == order_hud.get_child_count() - 1, "…and the pause menu stays on top after the legend is made")
+	# The field cap: nightmares waiting in the start mist show as "+N" over it.
+	var mist := main.get_node_or_null("MistCount") as MistCount
+	if mist != null:
+		mist._clock = 0.0
+		mist._process(0.0)
+	_check(mist != null and mist.waiting == (main.get_node("%DriftDirector") as DriftDirector).get_waiting_count(),
+		"the start mist counts the nightmares waiting there")
+	await _check_mist_full(main)
 	var strip_node: Node = order_hud.get_children().filter(func(c: Node) -> bool: return c is ComingStrip).front()
 	_check(strip_node.get_index() < idx.call("OmenScreen"), "the Coming strip stays under the Omen screen")
 	# UI scrolling never moves the map: a wheel over the open Codex leaves the zoom alone; over the
@@ -525,7 +798,7 @@ func _run() -> void:
 			return group[1].any(func(entry: Array) -> bool: return entry[0] == "Permanent"))
 	_check(not TowerPlacer.sapling_enabled and not sapling_terms.call(), "no Sapling terms in the Codex while it's off")
 	TowerPlacer.sapling_enabled = true  # The rest of this part checks the Sapling's UI when it's on
-	_check(sapling_terms.call(), "…and they come back with it")
+	# (Its terms were removed from the glossary for good: screens_ui.md "Glossary and Families, revised".)
 	var sapling_placer = main.get_node("%TowerPlacer")
 	if sapling_placer.has_method("can_take_sapling"):
 		var started_before := director.drifts_started
@@ -597,14 +870,14 @@ func _run() -> void:
 		seller.select(tip_tower)
 		await process_frame
 		var panel := main.find_child("WardenPanel", true, false)
-		var priced: Array = panel._buttons.get_children().filter(func(b) -> bool: return b.has_meta(&"cost"))
+		var priced: Array = panel._buttons.get_children().filter(func(b) -> bool: return b.has_meta(&"cost") and b.get_meta(&"currency", &"dew") == &"dew")  # Dew prices (a locked form is priced in Dreamlight)
 		var ids: Array = panel._buttons.get_children().map(func(b) -> int: return b.get_instance_id())
 		run_state.dew = 0
 		run_state.dew_changed.emit(0)
 		await process_frame
 		var ids_after: Array = panel._buttons.get_children().map(func(b) -> int: return b.get_instance_id())
 		_check(ids_after == ids, "a Dew change keeps the Warden panel's buttons (a tooltip under the pointer stays)")
-		_check(priced.all(func(b) -> bool: return b.disabled), "and their affordability updates in place")
+		_check(priced.all(func(b) -> bool: return b.get_meta(&"short", false) and not b.disabled), "and their affordability updates in place (dimmed, still pressable for the can't-buy refusal)")
 		run_state.dew = 100000
 		run_state.dew_changed.emit(100000)
 		_check(priced.all(func(b) -> bool: return not b.disabled or b.text.contains("Dreamlight")), "back when there's Dew")
@@ -643,13 +916,19 @@ func _run() -> void:
 		var body_sizes: Array = []
 		for card in omen_screen._cards.get_children():
 			var labels: Array = card.find_children("*", "Label", true, false)
-			body_sizes.append(labels[1].get_theme_font_size("font_size") if labels.size() > 1 else -1)
+			body_sizes.append(labels[2].get_theme_font_size("font_size") if labels.size() > 2 else -1)  # Name, flavour, then the body
+			_check(card.find_child("Flavor", true, false) != null, "%s has a flavour line (Omen voice)" % card.name)
 		_check(body_sizes.size() == 2 and body_sizes[0] == body_sizes[1], "Face an Omen and Clear Skies share one body size (%s)" % [body_sizes])
 		omen_screen._clear_cards()
 		for i in range(0, all_omens.size(), 3):
 			omen_screen._reveal(all_omens.slice(i, i + 3), null)
 			await _frames(3)
 			_check_omen_cards(omen_screen, "revealed Omens %d–%d at %s" % [i, i + 2, view])
+			for card in omen_screen._cards.get_children():
+				var reward_label: Label = card.find_child("Reward", true, false)
+				var bullets: Array = card.find_children("RewardBullet", "", true, false)
+				_check(reward_label != null and reward_label.text.to_lower() == "reward" and not bullets.is_empty(),  # Small caps lower it
+					"%s: a \"Reward\" header and a bullet per reward (%d)" % [card.name, bullets.size()])
 			omen_screen._clear_cards()
 	omen_screen._on_closed()
 	root.size = Vector2i(1280, 800)
@@ -685,6 +964,32 @@ func _free_cell(map_generator) -> Vector2:
 			if not path.has(cell) and map_generator.can_block(cell):
 				return cell
 	return Vector2(-1, -1)
+
+# The field cap's side effects (platforms.md "Cap side effects, fixed"): with nightmares held in the mist,
+# Call early greys out with "The mist is full", and comes back once the queue is out.
+func _check_mist_full(main: Node) -> void:
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var panel := main.get_node("HUD/DriftPanel")
+	var saved := [director.resting, director.drifts_started, director._arriving.duplicate()]
+	var shade: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	director.resting = false
+	director.drifts_started = 2  # Drift 3 is next, in the same block: calling early is possible
+	director._arriving = {2: {"schedule": [[0.0, shade, false], [0.5, shade, false], [30.0, shade, false]], "clock": 1.0}}
+	_check(director.is_mist_full() and not director.can_start_next_drift() and not director.start_next_drift(),
+		"two nightmares held in the mist: calling the next drift early is refused")
+	panel._process(0.0)
+	var button: Button = panel._start_button
+	_check(button.disabled and button.tooltip_text.begins_with("The mist is full"),
+		"…and the Call early button greys out with \"The mist is full\"")
+	director._arriving[2].schedule = [[30.0, shade, false]]  # The queue is out (the last one isn't due yet)
+	_check(not director.is_mist_full() and director.can_start_next_drift(), "once the mist's queue is out, calling early is back")
+	panel._process(0.0)
+	_check(not button.disabled and button.tooltip_text == "", "…and the button with it")
+	director.resting = saved[0]
+	director.drifts_started = saved[1]
+	director._arriving = saved[2]
+	panel._process(0.0)
+	await process_frame
 
 func _check(condition: bool, label: String) -> void:
 	if not condition:

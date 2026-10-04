@@ -107,6 +107,15 @@ func _run() -> void:
 		_check(saved.towers.any(func(t) -> bool: return t.data == sapling.tower_data.resource_path),
 			"the Sapling is saved")
 
+	# --- The first grow into each final form this run blooms (Fx.final_bloom + final_bloomed, once) ---
+	var chime: TowerData = load("res://resource/tower/chime_stone.tres")
+	var blooms := [0]
+	for i in 2:
+		var stone := _build_at(placer, chime, _open_area(map_generator, placer.tower_container))
+		stone.final_bloomed.connect(func(_t: Tower) -> void: blooms[0] += 1)
+		placer.evolve(stone, load("res://resource/tower/lullaby_bell.tres"))
+	_check(blooms[0] == 1, "only the first Lullaby Bell of the run blooms (%d)" % blooms[0])
+
 	# --- One Ascended form per family on the map (selling it frees the slot) ---
 	var bell_data: TowerData = load("res://resource/tower/great_bell.tres")
 	var lullaby: TowerData = load("res://resource/tower/lullaby_bell.tres")
@@ -190,7 +199,7 @@ func _run() -> void:
 	oak.evolve(load("res://resource/tower/grandmother_oak.tres"), 0)
 	oak.global_position = neighbour.global_position + Vector2(64, 0)
 	neighbour._refresh_neighbours()
-	_check(is_equal_approx(neighbour.get_damage(), base_damage * 1.4), "Grandmother Oak: +40% damage nearby")
+	_check(is_equal_approx(neighbour.get_damage(), base_damage * (1.0 + oak.tower_data.aura_damage_bonus)), "Grandmother Oak: her aura damage nearby")
 
 	await process_frame
 	paused = false  # The rest above opened a Dream offer, which pauses the run
@@ -249,8 +258,8 @@ func _run() -> void:
 func _check_data() -> void:
 	for id in ASCENDED:
 		var data: TowerData = load("res://resource/tower/%s.tres" % id)
-		_check(data != null and data.tier == 4 and not data.buildable_directly and data.evolve_cost == 400,
-			"%s is an Ascended form (tier 4, 400 Dew)" % id)
+		_check(data != null and data.tier == 4 and not data.buildable_directly and data.evolve_cost == 600,
+			"%s is an Ascended form (tier 4, 600 Dew)" % id)
 		_check(data.line == ASCENDED[id], "%s belongs to the %s family" % [id, ASCENDED[id]])
 		_check(data.texture != null and data.attack_texture != null and data.sprite_offset == Vector2(0, -24),
 			"%s has its Ascended art" % id)
@@ -271,9 +280,9 @@ func _check_data() -> void:
 			continue
 		var data: TowerData = load("res://resource/tower/" + file)
 		if data.tier == 2 and not data.buildable_directly:
-			_check(data.evolve_cost == 80, "%s (branch) grows for 80 Dew" % data.display_name)
+			_check(data.evolve_cost == 120, "%s (branch) grows for 120 Dew" % data.display_name)
 		elif data.tier == 3:
-			_check(data.evolve_cost == 200, "%s (final form) grows for 200 Dew" % data.display_name)
+			_check(data.evolve_cost == 300, "%s (final form) grows for 300 Dew" % data.display_name)
 
 func _check(condition: bool, label: String) -> void:
 	if not condition:

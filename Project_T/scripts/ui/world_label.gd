@@ -22,7 +22,7 @@ static func text_scale(canvas: CanvasItem) -> float:
 		_lookup_frame = frame
 		_camera = canvas.get_viewport().get_camera_2d()
 		var root := canvas.get_tree().root
-		_ui = root.content_scale_factor if root.content_scale_factor > 0.0 else 1.0
+		_ui = UiStyle.ui_factor(root)  # The total UI scale (canvas_items stretch × the share)
 	if _camera == null:
 		return 1.0
 	return _ui / maxf(_camera.zoom.x * _ui, 1.0)
@@ -39,11 +39,34 @@ static func end_screen_size(canvas: CanvasItem) -> void:
 	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 # Draws `text` on a dark tag, horizontally centred on `center_x`, with its baseline at `baseline_y`.
+# Screen rects world labels keep clear of (an open panel, user: "24 DPS" showing through the see-through Warden
+# panel): {key: Rect2 in the viewport's canvas space}. Plain data, so a static is safe.
+static var covers := {}
+
+static func set_cover(key: StringName, rect: Rect2, on: bool) -> void:
+	if on:
+		covers[key] = rect
+	else:
+		covers.erase(key)
+
+# Whether `local_rect` (in `canvas`'s own space) lies under a cover: don't draw it.
+static func covered(canvas: CanvasItem, local_rect: Rect2) -> bool:
+	if covers.is_empty() or not canvas.is_inside_tree():
+		return false
+	var screen := canvas.get_global_transform_with_canvas() * local_rect
+	for key in covers:
+		if (covers[key] as Rect2).intersects(screen):
+			return true
+	return false
+
 static func draw_tag(canvas: CanvasItem, center_x: float, baseline_y: float, text: String,
 		color: Color = AFFORDABLE_COLOR) -> void:
 	var font := ThemeDB.fallback_font
 	var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE)
 	var origin := Vector2(center_x - size.x / 2, baseline_y)
+	var s := text_scale(canvas)
+	if covered(canvas, Rect2(Vector2(center_x, baseline_y) + Vector2(-size.x / 2 - 6, -size.y) * s, (size + Vector2(12, 6)) * s)):
+		return  # Under an open panel
 	begin_screen_size(canvas, Vector2(center_x, baseline_y))
 	canvas.draw_rect(Rect2(origin + Vector2(-6, -size.y), size + Vector2(12, 6)), BACKGROUND)
 	canvas.draw_string(font, origin, text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, color)

@@ -6,13 +6,19 @@ extends Control
 # active Omen in a small tag under the toast, and toasts when one starts and when its reward is paid.
 # Built in code.
 
-const CARD_SIZE := Vector2(270, 200)
+const CARD_SIZE := Vector2(380, 220)  # Wide enough that the 16–18 px lines don't wrap much (user: "can barely read this")
 const CARD_PAD := Vector2(18, 16)  # Inner padding on every side (x: left and right, y: top and bottom)
-const BODY_SIZE := 15  # One body style for every card's line
-const SECONDARY_MIN_SIZE := 12  # Secondary lines shrink to this before a card outgrows the screen
+const REWARD_SIZE := 16  # The reward line (screens_ui.md readable text: 16 px+ body)
+const FRONT_BODY_SIZE := 18  # Face an Omen and Clear Skies: the Dream card body size (user: "a bit bigger")
+const EMBLEM_SCALE := 2  # The 16 px icons drawn x2 (32 px), nearest: the fallback until the card emblems exist (x3+ read as a skull: user)
+const CARD_EMBLEM_SHEET := "res://assets/ui/omen_cards.png"  # UI Asset's 32 px card emblems (omen_cards.json)
+const CARD_EMBLEMS := {&"omen": 0, &"clear_skies": 1}  # Frame per emblem: omen_card, clear_skies_card
+const CARD_EMBLEM_SIZE := 32.0
+const CARD_EMBLEM_SCALE := 2.0  # Shown x2 (64 px), nearest
+const FLAVOR_SIZE := 17  # The whisper face runs large; this sits level with the 18 px body
+const SECONDARY_MIN_SIZE := 16  # Lines never shrink below the readable floor (screens_ui.md); the card grows instead
 const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
 const OMEN_COLOR := UiStyle.BUTTON_GOLD  # Heartwood 32 "Gold"
-const TWIST_COLOR := Color("9a84e8")  # Heartwood 32 "Wraithlight": the nightmares' side of the deal
 const REWARD_COLOR := UiStyle.GOLD  # Heartwood 32 "Glow": the reward in gold (run_design.md)
 const CLEAR_SKIES_COLOR := UiStyle.MOONLIGHT  # A calm moonlit card: Moonlight thread and title
 const CLEAR_SKIES_GLOW := Color("3c3c5c")  # Dusk: a cooler, lighter middle than an Omen's Night
@@ -50,6 +56,7 @@ func _ready() -> void:
 	box.add_child(_cards)
 	peek = ChoicePeek.new(self, [dim, center], "Back to the Omens")
 	box.add_child(peek.make_peek_button())
+	arm = ChoiceArm.attach(self, _cards)
 	visible = false
 
 	# The active-Omen tag lives on the HUD, outside this (usually hidden) screen.
@@ -58,16 +65,45 @@ func _ready() -> void:
 	_active_tag.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_active_tag.offset_top = 64
 	_active_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_active_tag.add_theme_color_override("font_color", OMEN_COLOR)
-	_active_tag.add_theme_color_override("font_outline_color", Palette.DREAD)
-	_active_tag.add_theme_constant_override("outline_size", 6)
+	_active_tag.add_theme_color_override("font_color", Color(OMEN_COLOR, 0.0))  # The overlay (_tag_rich) draws the text
+	_active_tag.add_theme_constant_override("outline_size", 0)
+	_active_tag.add_theme_stylebox_override("normal", UiStyle.fog_patch())  # A backing: reads on the pale path too
 	_active_tag.visible = false
+	var tag_style := _active_tag.get_theme_stylebox("normal")
+	_tag_rich.bbcode_enabled = true
+	_tag_rich.fit_content = true
+	_tag_rich.scroll_active = false
+	_tag_rich.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_tag_rich.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tag_rich.name = "TagText"
+	_tag_rich.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_tag_rich.offset_left = tag_style.get_margin(SIDE_LEFT)
+	_tag_rich.offset_top = tag_style.get_margin(SIDE_TOP)
+	_tag_rich.offset_right = -tag_style.get_margin(SIDE_RIGHT)
+	_tag_rich.offset_bottom = -tag_style.get_margin(SIDE_BOTTOM)
+	_tag_rich.add_theme_font_override("normal_font", _active_tag.get_theme_font("font"))
+	_tag_rich.add_theme_font_size_override("normal_font_size", _active_tag.get_theme_font_size("font_size"))
+	_tag_rich.add_theme_color_override("font_outline_color", Palette.DREAD)
+	_tag_rich.add_theme_constant_override("outline_size", 6)
+	_active_tag.add_child(_tag_rich)
+	# The Omen's icon inline at the start of the first line ("[icon] Omen: Stubborn Blight · drifts 11–15"), placed by
+	# _place_tag_icon after layout (user: the old one floated off into the void).
+	_tag_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_tag_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_tag_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tag_icon.name = "OmenIcon"
+	_active_tag.add_child(_tag_icon)
+	_active_tag.mouse_filter = Control.MOUSE_FILTER_PASS  # Its tooltip says where the reward stands
+	_active_tag.resized.connect(_place_tag_icon)
 	get_parent().add_child.call_deferred(_active_tag)
 
 	omens.offer_ready.connect(_show_offer)
 	omens.offer_closed.connect(_on_closed)
 	omens.omen_started.connect(_on_omen_started)
 	omens.omen_rewarded.connect(_on_omen_rewarded)
+	var run_state := get_node_or_null("%RunState")
+	if run_state:
+		run_state.leaves_changed.connect(func(_l: int, _m: int) -> void: _refresh_tag())  # The reward line follows the block's losses
 
 # Commit blind (run_design.md "Commit blind, then the Omen is revealed"): a face-down "Face an Omen"
 # card and Clear Skies. Facing it flips to the drawn Omens (2; Omen Reader 3): pick one, no going back.
@@ -80,6 +116,7 @@ func _show_offer(_offer: Array[OmenData], block: int) -> void:
 	_title.text = "The wind stirs · drifts %d–%d" % [_drifts.x, _drifts.y]
 	_clear_cards()
 	visible = true
+	arm.arm()
 	if omens.forced or omens.faced:
 		if omens.forced:
 			_title.text = "An Omen must be faced · drifts %d–%d" % [_drifts.x, _drifts.y]
@@ -90,6 +127,7 @@ func _show_offer(_offer: Array[OmenData], block: int) -> void:
 	_cards.add_child(_make_clear_skies_card())
 
 var _drifts := Vector2i.ZERO
+var arm: ChoiceArm  # Cards and Esc / right-click ignore input for a moment as the screen appears
 
 func _clear_cards() -> void:
 	for child in _cards.get_children():
@@ -103,18 +141,58 @@ func _make_face_down_card() -> Button:
 	button.custom_minimum_size = CARD_SIZE
 	button.focus_mode = Control.FOCUS_NONE
 	UiStyle.card_button(button, OMEN_COLOR)
+	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot)
 	var box := _card_box(button)
 	UiStyle.title(_add_line(box, "Face an Omen", UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
-	var body := _add_line(box, "An unknown twist for the next block. Survive it for a reward.", UiStyle.INK, BODY_SIZE)
-	var swirl := Control.new()
-	swirl.custom_minimum_size = Vector2(0, 64)
-	swirl.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	swirl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	swirl.draw.connect(func() -> void: _draw_swirl(swirl))
-	box.add_child(swirl)
+	_add_flavor(box, "Something stirs out in the dark.")
+	var body := _add_line(box, "A twist for the next block. Face it for a reward.", UiStyle.INK, FRONT_BODY_SIZE)
+	box.add_child(_emblem(&"omen", true))  # A moth before the moon (the wind swirl until UI Asset's icon exists)
 	_fit_card(button, box, [body])
 	button.pressed.connect(func() -> void: _reveal(omens.face(), button))
 	return button
+
+# A card's emblem (run_design.md "How an Omen looks"): the icon from assets/ui/icons.png drawn x4 (64 px, nearest)
+# on a soft glow (`glow`), centred in the card's spare space; without the icon, the old wind swirl (`swirl`) or an
+# empty space.
+func _emblem(id: StringName, swirl: bool, glow: Color = OMEN_COLOR) -> Control:
+	var icon: Texture2D = _card_emblem(id)  # UI Asset's 32 px card emblem, x2
+	var side := CARD_EMBLEM_SIZE * CARD_EMBLEM_SCALE
+	if icon == null:
+		icon = IconInfo.icon(id)  # Until then the 16 px icon, x2 (x3 read as a skull: user)
+		side = 16.0 * EMBLEM_SCALE
+	if icon != null:
+		var canvas := Control.new()
+		canvas.custom_minimum_size = Vector2(side, side + 12)
+		canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		canvas.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		canvas.name = "Emblem"
+		canvas.draw.connect(func() -> void:
+			var centre := canvas.size / 2.0
+			for i in 6:  # A soft round glow, faint at the edge
+				canvas.draw_circle(centre, side * (0.95 - i * 0.1), Color(glow, 0.05 + i * 0.02))
+			canvas.draw_texture_rect(icon, Rect2(centre - Vector2(side, side) / 2.0, Vector2(side, side)), false))
+		return canvas
+	var canvas := Control.new()
+	canvas.custom_minimum_size = Vector2(0, 64 if swirl else 0)
+	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if swirl:
+		canvas.draw.connect(func() -> void: _draw_swirl(canvas))
+	return canvas
+
+# The 32 px card emblem for `id` from UI Asset's sheet (null until it's there). Kept on the instance, not static.
+var _emblem_sheet: Texture2D = null
+
+func _card_emblem(id: StringName) -> Texture2D:
+	if not CARD_EMBLEMS.has(id) or not ResourceLoader.exists(CARD_EMBLEM_SHEET):
+		return null
+	if _emblem_sheet == null:
+		_emblem_sheet = load(CARD_EMBLEM_SHEET)
+	var atlas := AtlasTexture.new()
+	atlas.atlas = _emblem_sheet
+	atlas.region = Rect2(CARD_EMBLEMS[id] * CARD_EMBLEM_SIZE, 0, CARD_EMBLEM_SIZE, CARD_EMBLEM_SIZE)
+	return atlas
 
 # Three nested wind arcs.
 func _draw_swirl(canvas: Control) -> void:
@@ -194,16 +272,74 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(omens.choose.bind(omen))
 	UiStyle.card_button(button, OMEN_COLOR)  # Moonlit Thread card (ui_style.md)
+	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot)
 	var box := _card_box(button)
 	UiStyle.title(_add_line(box, omen.display_name, UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
-	var twist := StatusLinks.make_label(omen.description, 16, TWIST_COLOR)  # Status words as links
+	# Name, flavour (whisper), the twist, a thin divider, the reward right under it (run_design.md "Omen voice")
+	var flavor: Label = null
+	if omen.flavor != "":
+		flavor = _add_flavor(box, omen.flavor)
+	var twist := StatusLinks.make_label(omen.description, FRONT_BODY_SIZE, UiStyle.INK)  # Status words as links
 	twist.mouse_filter = Control.MOUSE_FILTER_PASS  # A click still picks the Omen
-	twist.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(twist)
-	var reward := omens.describe_reward(omen, act)
-	var reward_line := _add_line(box, "Reward: " + reward if reward != "" else "Double-edged: the twist is the reward", REWARD_COLOR, BODY_SIZE)
-	_fit_card(button, box, [twist, reward_line])
+	var divider := HSeparator.new()
+	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(divider)
+	# The reward in point form (user: "point form for each different reward"): a "Reward" caps header, then a bullet
+	# per reward with its own condition (OmenDirector.reward_bullets); hover or tap the header for the whole rule
+	var reward_line := _add_line(box, "Reward", REWARD_COLOR, REWARD_SIZE)
+	UiStyle.caps(reward_line, REWARD_SIZE, REWARD_COLOR)
+	reward_line.name = "Reward"
+	reward_line.tooltip_text = OmenDirector.REWARD_RULE if not OmenDirector.is_dew_prize(omen) else ""
+	reward_line.mouse_filter = Control.MOUSE_FILTER_PASS  # The tooltip; a click still picks the Omen
+	var bullet_labels: Array[Label] = []
+	for text in omens.reward_bullets(omen, act, omens.current_offer_block):
+		bullet_labels.append(_add_bullet(box, text))
+	var spare := Control.new()  # No emblem on a revealed Omen (user: "just the beginning"); its spare height still goes here
+	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(spare)
+	var secondary: Array = [twist]
+	secondary.append_array(bullet_labels)
+	if flavor != null:
+		secondary.push_front(flavor)
+	_fit_card(button, box, secondary)
 	return button
+
+# An Omen's flavour line: the whisper face, no quote marks (run_design.md "Omen voice").
+func _add_flavor(box: VBoxContainer, text: String) -> Label:
+	var label := _add_line(box, text, UiStyle.WHISPER, FLAVOR_SIZE)
+	UiStyle.whisper(label, FLAVOR_SIZE)
+	label.name = "Flavor"
+	return label
+
+# One reward bullet: a small gold diamond, then the text, which wraps under itself (not under the diamond).
+const BULLET_SIDE := 7.0
+
+func _add_bullet(box: VBoxContainer, text: String) -> Label:
+	var row := HBoxContainer.new()
+	row.name = "RewardBullet"
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var diamond := Control.new()
+	diamond.custom_minimum_size = Vector2(BULLET_SIDE + 2.0, 0)
+	diamond.size_flags_vertical = Control.SIZE_FILL
+	diamond.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	diamond.draw.connect(func() -> void:
+		var c := Vector2(diamond.size.x / 2.0, REWARD_SIZE * 0.7)  # On the first line's middle
+		var r := BULLET_SIDE / 2.0
+		diamond.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -r), c + Vector2(r, 0), c + Vector2(0, r), c + Vector2(-r, 0)]), REWARD_COLOR))
+	row.add_child(diamond)
+	box.add_child(row)
+	var label := Label.new()
+	label.text = text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_color_override("font_color", REWARD_COLOR)
+	label.add_theme_font_size_override("font_size", REWARD_SIZE)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(label)
+	return label
 
 func _add_line(box: VBoxContainer, text: String, color: Color, font_size: int) -> Label:
 	var label := Label.new()
@@ -221,10 +357,89 @@ func _on_closed() -> void:
 	game_speed.set_paused(_was_paused)
 
 func _on_omen_started(omen: OmenData, first_drift: int, last_drift: int) -> void:
-	_active_tag.text = "Omen: %s · drifts %d–%d · %s" % [omen.display_name, first_drift, last_drift,
-		IconInfo.format(omen.description)]
+	_tag_title = "%s · %d–%d" % [omen.display_name, first_drift, last_drift]
+	var own := IconInfo.icon(StringName(omen.id))  # The Omen's own icon if it has one, else the generic one
+	_tag_icon.texture = own if own != null else IconInfo.icon(&"omen")
 	_active_tag.visible = true
+	_refresh_tag()
 	_toast("Omen faced: %s" % omen.display_name)
+
+# The tag (user: "one compact line"): [icon] "Crowded Paths · 11–15 · +60 Dew". The amount follows the block's
+# losses (in POOR once it drops; "Reward gone" at 4+); a Dream reward reads "Reward kept" / "Reward lost"; a double-edged
+# Omen shows only its name and drifts. The twist and the plain-words reward are in its tooltip (hover or tap, opaque,
+# by the tag). The Label keeps the plain text (layout, ComingStrip, tests); a RichTextLabel over it draws the colours.
+var _tag_title := ""
+var _tag_icon := TextureRect.new()
+var _tag_rich := RichTextLabel.new()
+var _tag_tip: TapTip = null
+
+func _refresh_tag() -> void:
+	if not _active_tag.visible or omens.active == null:
+		return
+	var share := tag_share_text()
+	_active_tag.text = _icon_pad() + _tag_title + (" · " + share if share != "" else "")
+	var poor := share == "Reward gone" or share == "Reward lost" or omens.get_reward_share() < 1.0
+	_tag_rich.text = "[center]%s[color=#%s]%s[/color]%s[/center]" % [_icon_pad(), OMEN_COLOR.to_html(false), _tag_title,
+		(" · [color=#%s]%s[/color]" % [(UiStyle.POOR if poor else OMEN_COLOR).to_html(false), share]) if share != "" else ""]
+	var tip := IconInfo.format(omens.active.description) + "\n" + omens.reward_sentence(omens.active,
+		drift_director.get_act(maxi(drift_director.drifts_started, 1)), omens.active_block)
+	var status := omens.get_reward_status()
+	if status != "":
+		tip += "\n" + status
+	if _tag_tip == null:
+		_tag_tip = TapTip.attach(_active_tag, tip)
+	_active_tag.tooltip_text = tip
+	_tag_tip._label.text = tip
+	_place_tag_icon.call_deferred()
+
+# The live reward ("+30 Dew", "+5 Seeds"; "Reward 75%" without an amount) or "Reward gone"; Dream-only rewards "Reward kept" /
+# "Reward lost"; "" if double-edged.
+func tag_share_text() -> String:
+	var omen := omens.active
+	if omen == null:
+		return ""
+	if OmenDirector.is_dew_prize(omen):
+		return omens.live_reward_text()  # "+120 of ~310": the extra Dew so far
+	var dream_only := omen.reward_dew <= 0 and omen.reward_seeds <= 0 and omen.reward_tree_seeds <= 0 \
+		and omen.reward_pot_multiplier <= 0.0 and omen.reward_rest_bonus_multiplier <= 1.0
+	if dream_only:
+		return "Reward kept" if omens.keeps_dream_reward() else "Reward lost"
+	var share := omens.get_reward_share()
+	if share <= 0.0:
+		return "Reward gone"
+	var live := omens.live_reward_text()  # "+30 Dew": the live amount (user: "or show the live Dew")
+	return live if live != "" else "Reward %d%%" % roundi(share * 100)
+
+# The icon sits in leading spaces at the start of the centred line, clear of the text.
+const TAG_ICON_GAP := 8.0
+
+func _tag_icon_side() -> float:
+	return 32.0 if _active_tag.get_theme_font("font").get_height(_active_tag.get_theme_font_size("font_size")) >= 28.0 else 16.0
+
+# Spaces wide enough for the icon and its gap ("" without an icon).
+func _icon_pad() -> String:
+	if _tag_icon.texture == null:
+		return ""
+	var font := _active_tag.get_theme_font("font")
+	var space := maxf(font.get_string_size(" ", HORIZONTAL_ALIGNMENT_LEFT, -1, _active_tag.get_theme_font_size("font_size")).x, 1.0)
+	return " ".repeat(ceili((_tag_icon_side() + TAG_ICON_GAP) / space))
+
+func _place_tag_icon() -> void:
+	if _tag_icon.texture == null:
+		_tag_icon.visible = false
+		return
+	var font := _active_tag.get_theme_font("font")
+	var font_size := _active_tag.get_theme_font_size("font_size")
+	var line_height := font.get_height(font_size)
+	var side := _tag_icon_side()
+	var style := _active_tag.get_theme_stylebox("normal")
+	var left := style.get_margin(SIDE_LEFT) if style else 0.0
+	var top := style.get_margin(SIDE_TOP) if style else 0.0
+	var inner := _active_tag.size.x - left - (style.get_margin(SIDE_RIGHT) if style else 0.0)
+	var width := font.get_string_size(_active_tag.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	_tag_icon.size = Vector2(side, side)
+	_tag_icon.position = Vector2(left + maxf((inner - width) / 2.0, 0.0), top + (line_height - side) / 2.0)
+	_tag_icon.visible = true
 
 func _on_omen_rewarded(omen: OmenData, summary: String) -> void:
 	_active_tag.visible = false
@@ -238,7 +453,7 @@ func _toast(text: String) -> void:
 
 # Esc / right-click = Clear Skies (not once faced, nor when an Omen must be faced: then pick one).
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible or omens.forced or omens.faced or peek.peeking:
+	if not visible or omens.forced or omens.faced or peek.peeking or not arm.is_armed():  # A right-click cancelling build mode isn't Clear Skies
 		return
 	var right_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT
 	if event.is_action_pressed("ui_cancel") or right_click:
@@ -252,17 +467,15 @@ func _make_clear_skies_card() -> Button:
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(omens.choose.bind(null))
 	UiStyle.card_button(button, CLEAR_SKIES_COLOR)
+	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot)
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
 		var style := button.get_theme_stylebox(state) as MoonStyleBox
 		style.glow_color = CLEAR_SKIES_GLOW.lightened(0.08) if state.begins_with("hover") else CLEAR_SKIES_GLOW
 	var box := _card_box(button)
 	UiStyle.title(_add_line(box, "Clear Skies", CLEAR_SKIES_COLOR, 22), UiStyle.CARD_NAME_SIZE, CLEAR_SKIES_COLOR)
-	# The same body style and spot as Face an Omen's line; only the calmer whisper colour differs
-	var calm := _add_line(box, "Nothing changes. No reward.", UiStyle.WHISPER, BODY_SIZE)
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(spacer)
+	_add_flavor(box, "The night stays still.")
+	var calm := _add_line(box, "Nothing changes. No reward.", UiStyle.INK, FRONT_BODY_SIZE)  # The same rules spot as Face an Omen's
+	box.add_child(_emblem(&"clear_skies", false, CLEAR_SKIES_COLOR))  # The moon and stars (an empty space until the icon exists)
 	UiStyle.caps(_add_line(box, "The default", UiStyle.INK_DIM, 13), 14)
 	_fit_card(button, box, [calm])
 	return button

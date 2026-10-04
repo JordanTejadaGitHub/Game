@@ -28,8 +28,9 @@ func _run() -> void:
 	await process_frame
 	_check(Reactions.all().size() == 8, "eight Reactions are defined (%d)" % Reactions.all().size())
 
-	var jar := _plant("firefly_jar", Vector2(2, 2))
-	var sporeling := _plant("sporeling", Vector2(2, 4))
+	# Reactions need a grown Warden (tower_design.md "Reactions"): the sources here are branch forms.
+	var jar := _plant("stormcap", Vector2(2, 2))
+	var sporeling := _plant("driftspore", Vector2(2, 4))
 	var pebbling := _plant("pebbling", Vector2(2, 6))
 	var base := jar.get_damage()
 	var origin := Vector2(12.5, 8.5) * CELL  # A cell centre, where nightmares walk
@@ -59,6 +60,21 @@ func _run() -> void:
 			"the DamageLog credits Thunderclap damage to the Firefly Jar")
 	await _clean()
 
+	# --- Base Wardens apply statuses but never react; one grown source is enough ---
+	var base_jar := _plant("firefly_jar", Vector2(6, 2))
+	var base_spore := _plant("sporeling", Vector2(6, 4))
+	var unreacted := _spawn(origin)
+	unreacted.apply_status(EnemyStatuses.SPORED, 4, 5.0, 2.0, 0, "spore", base_spore)
+	unreacted.apply_status(EnemyStatuses.STATIC, 1, 0.0, base, 0, "light", base_jar)
+	_check(unreacted.statuses.burn_time <= 0.0 and unreacted.statuses.has(EnemyStatuses.STATIC), "two base Wardens: no Ignite (the Charged stays)")
+	var mixed := _spawn(origin + Vector2(0, 3) * CELL)
+	mixed.apply_status(EnemyStatuses.SPORED, 4, 5.0, 2.0, 0, "spore", base_spore)
+	mixed.apply_status(EnemyStatuses.STATIC, 1, 0.0, base, 0, "light", jar)
+	_check(mixed.statuses.burn_time > 0.0, "a grown Stormcap's Charged on a base Sporeling's spores: Ignite")
+	base_jar.queue_free()
+	base_spore.queue_free()
+	await _clean()
+
 	# --- Ignite (status jobs, 2026-09-29): 3+ Spored + Static. The spores burn 3 s (Spored ticks 3x as
 	# fast); each second 1 stack spreads within 1 cell; uses up the Static, not the Spored ---
 	var potency := 2.0
@@ -73,9 +89,28 @@ func _run() -> void:
 	var burning: float = c.statuses.tick(1.0)
 	var calm_tick: float = calm.statuses.tick(1.0)
 	_check(absf(burning - calm_tick * Reactions.BURN_SPORE_RATE) < calm_tick * 0.4, "burning Spored ticks 3x as fast (%.1f vs %.1f)" % [burning, calm_tick])
+	# The burn's extra share of a Spored tick is the "ignite" combo (Balancing: the sims couldn't see it),
+	# credited to the Spored applier; a calm nightmare's tick has none.
+	c.take_damage(30.0, "spore", true, false, sporeling, &"spored")
+	var burnt: DamageLog.Event = c.recent_hits.back()
+	var share: float = 1.0 - 1.0 / c.statuses.burn_rate
+	_check(burnt.combos.has(&"ignite") and burnt.source == sporeling and (burnt.combos.size() > 1 or absf(burnt.combo_amount - burnt.amount * share) < 0.01),
+		"a burning Spored tick: its extra share is the ignite combo (%s, %.2f of %.2f)" % [burnt.combos, burnt.combo_amount, burnt.amount])
+	calm.take_damage(30.0, "spore", true, false, sporeling, &"spored")
+	_check(not calm.recent_hits.back().combos.has(&"ignite"), "a calm Spored tick carries no ignite")
 	calm.queue_free()
 	await _wait(1.1)
 	_check(beside.statuses.stacks(EnemyStatuses.SPORED) >= 1, "after a second, a Spored stack spreads to the neighbour")
+	await _clean()
+
+	# --- A Charged bolt is credited to the Warden whose charge it was (story chat: Live Wire seemed to buff
+	# spores): a weaker applier adding the last stack doesn't take the bolt (or Live Wire's share of it) ---
+	var charged := _spawn(origin)
+	charged.apply_status(EnemyStatuses.STATIC, 4, 0.0, base, 0, "light", jar)
+	charged.apply_status(EnemyStatuses.STATIC, 1, 0.0, base * 0.25, 0, "light", sporeling)
+	var bolts: Array = charged.recent_hits.filter(func(e: DamageLog.Event) -> bool: return e.tag == &"static") if is_instance_valid(charged) else []
+	_check(not bolts.is_empty() and bolts.all(func(e: DamageLog.Event) -> bool: return e.source == jar),
+		"the 5th Charged from a spore Warden sets off the bolt, credited to the Stormcap that charged it (%s)" % [bolts.map(func(e) -> String: return e.source.name if e.source else "none")])
 	await _clean()
 
 	# --- Mushrooming: 3+ Spored + Damp. Spored ticks +50%, a spore cloud on the tile; uses up Damp ---

@@ -91,6 +91,19 @@ func _run() -> void:
 		if director.is_resting():
 			_check(tags.all_shown() and tags._shown_towers().size() >= 1, "at a rest every Warden's tag shows")
 		_check(not tags._rows.is_empty() and tags.tag_text(tags._rows.values()[0]).contains(" DPS"), "a tag reads N DPS")
+		# Dense clusters (user screenshot): short tags unless focused / the meter is open, never two overlapping.
+		var sample := {"dps": 182.0, "change": 0.16, "last_dps": 150.0}
+		_check(tags.tag_text(sample, false) == "182 DPS" and tags.tag_text(sample, true).contains("↑16%"),
+			"short tags (\"182 DPS\"); the change only when focused or with the meter open")
+		tags.queue_redraw()
+		await process_frame
+		await process_frame
+		var overlap := false
+		for i in tags.drawn.size():
+			for j in range(i + 1, tags.drawn.size()):
+				if (tags.drawn[i][1] as Rect2).intersects(tags.drawn[j][1]):
+					overlap = true
+		_check(not overlap, "no two DPS tags overlap (%d drawn of %d shown)" % [tags.drawn.size(), tags._shown_towers().size()])
 
 	# Rest report: the maze line first, then Carrying / Underused.
 	var text := RestReport.meter_text(main.get_node("%RestReport"))

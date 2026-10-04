@@ -113,25 +113,80 @@ func _run() -> void:
 	_check(_count(husk_data) == 6, "once")
 	_clear_enemies()
 
-	# --- Night Mare: laps ---
+	# --- Act bosses take a flat bite and leave; only the Hollow Oak stays and drains (balance 538b85b7) ---
+	var drains := []
+	spawner.boss_drained.connect(func(e: Node2D, n: int) -> void: drains.append(n))
+	var leaks := [0]
+	spawner.enemy_reached_goal.connect(func(_e: Node2D) -> void: leaks[0] += 1)
+	var through := _still("old_stag", route[-1])
+	through.set_path(PackedVector2Array([route[-1]]))
+	var before_leaves := run_state.leaves
+	_check(through.get_leaf_cost() == spawner.get_boss_bite(1) and spawner.get_boss_bite(1) == 10
+		and spawner.get_boss_bite(2) == 10 and spawner.get_boss_bite(3) == 12, "an act boss bites 10 / 10 / 12 by act")
+	through._process(0.016)
+	_check(not is_instance_valid(through) or through.is_queued_for_deletion(), "an act boss that gets through is gone")
+	_check(run_state.leaves == before_leaves - 10 and leaks[0] == 1 and drains.is_empty(),
+		"it takes its bite as a leak (%d → %d, %d leak)" % [before_leaves, run_state.leaves, leaks[0]])
+	_clear_enemies()
+	var staying_oak := _still("hollow_oak", route[-1])
+	staying_oak.set_path(PackedVector2Array([route[-1]]))
+	before_leaves = run_state.leaves
+	staying_oak._process(0.016)
+	staying_oak._process(0.016)
+	_check(is_instance_valid(staying_oak) and not staying_oak.is_queued_for_deletion() and staying_oak.at_heartwood,
+		"the Hollow Oak that gets through stays at the Heartwood")
+	_check(run_state.leaves == before_leaves - 1 and drains == [1], "it takes one leaf at once (%d → %d)" % [before_leaves, run_state.leaves])
+	for f in 60:
+		staying_oak._process(1.0 / 30.0)  # 2 s
+	_check(run_state.leaves == before_leaves - 2 and drains.size() == 2, "and one more every 2 s (%d)" % drains.size())
+	var staying_oak_hp: int = staying_oak.health
+	staying_oak.take_damage(100.0)
+	_check(staying_oak.health < staying_oak_hp and staying_oak.is_in_group(staying_oak.GROUP), "Wardens can still hit it there")
+	_clear_enemies()
+	run_state.leaves = run_state.max_leaves  # (The bite and the drain above took most of them)
+
+	# --- Night Mare: it lingers at the Heartwood, draining, then laps (10 s, 14 s, 18 s…) ---
 	var mare := _still("night_mare", route[-1])
 	mare.set_path(PackedVector2Array([route[-1]]))
 	var leaves := run_state.leaves
 	var mare_speed: float = mare.speed
-	mare._process(0.016)
-	_check(is_instance_valid(mare) and not mare.is_queued_for_deletion(), "the Night Mare doesn't leave at the Heartwood")
-	_check(run_state.leaves == leaves - 3, "a lap costs 3 leaves (%d → %d)" % [leaves, run_state.leaves])
-	_check(mare.laps == 1 and is_equal_approx(mare.speed, mare_speed * 1.3), "and it goes round again 30% faster")
+	mare._process(0.016)  # Arrives
+	mare._process(0.016)  # Its first leaf (the frame after it arrives, as for every boss)
+	_check(is_instance_valid(mare) and mare.at_heartwood and mare.laps == 0, "the Night Mare stays at the Heartwood")
+	_check(run_state.leaves == leaves - 1 and is_equal_approx(mare.linger_left(), 10.0 - 0.016),
+		"drains a leaf at once and lingers 10 s (%d → %d, %.2f s)" % [leaves, run_state.leaves, mare.linger_left()])
+	var lingering_hp: int = mare.health
+	mare.take_damage(500.0)
+	mare.apply_status(EnemyStatuses.MARKED, 1, 5.0, 1.0)
+	_check(mare.is_untouchable() and not mare.is_in_group(mare.GROUP) and mare.health == lingering_hp
+		and mare.statuses.count() == 0, "while it lingers it can't be hit, given statuses or targeted")
+	for f in 300:
+		mare._process(1.0 / 30.0)
+	_check(run_state.leaves == leaves - 5, "5 leaves in its first 10 s (%d → %d)" % [leaves, run_state.leaves])
+	_check(not mare.is_untouchable() and mare.is_in_group(mare.GROUP) and mare.sprite.self_modulate.a == 1.0,
+		"back on the path it can be hit again")
+	_check(mare.laps == 1 and not mare.at_heartwood and is_equal_approx(mare.speed, mare_speed * 1.3),
+		"then it goes round again 30% faster")
 	_check(mare.get_target_cell() == route[0] or mare.grid.calculate_grid_coordinates(mare.position) == map_generator.startPath,
 		"back at the start")
 	var shade_data: EnemyData = load("res://resource/enemy/leaf_bug.tres")
 	_check(_count(shade_data) == 4, "each lap drops 4 Shades in behind it (%d)" % _count(shade_data))
+	_check(spawner.get_children().filter(func(e) -> bool: return e.enemy_data == shade_data)[0]._bar_offset.y == -38.0, "an everyday nightmare keeps its bar at the usual -38")
 	var mare_start: Vector2 = mare.grid.calculate_map_position(map_generator.startPath)
 	var lined_up := true
 	for shade in spawner.get_children().filter(func(e) -> bool: return e.enemy_data == shade_data):
 		lined_up = lined_up and shade.position.distance_to(mare_start) <= 4.5 * spawner.SPLIT_SPACING + 1.0 \
 			and shade._path[0] == route[0]
 	_check(lined_up, "lined up behind the start, walking the maze")
+	var after_first := run_state.leaves
+	mare.position = mare.grid.calculate_map_position(route[-1])
+	mare.set_path(PackedVector2Array([route[-1]]))
+	mare._process(0.016)
+	mare._process(0.016)
+	_check(mare.at_heartwood and is_equal_approx(mare.linger_left(), 14.0 - 0.016), "its second visit lingers 14 s (%.2f)" % mare.linger_left())
+	for f in 420:
+		mare._process(1.0 / 30.0)
+	_check(mare.laps == 2 and run_state.leaves == after_first - 7, "7 leaves on its second visit (%d → %d)" % [after_first, run_state.leaves])
 	mare.take_damage(mare.max_health * 0.55)
 	_check(mare._charge_left > 0.0, "it bolts at half health")
 	_clear_enemies()
@@ -139,16 +194,19 @@ func _run() -> void:
 	# --- Scarecrow: crows at every 20% ---
 	var crow_data: EnemyData = load("res://resource/enemy/crow.tres")
 	var scarecrow := _still("scarecrow", route[8])
+	scarecrow._path_index = 9  # Walking from route[8] to route[9] (its target cell)
 	scarecrow.take_damage(scarecrow.max_health * 0.21)
-	_check(_count(crow_data) == 5, "5 Crows burst out at 80%% (%d)" % _count(crow_data))
+	_check(_count(crow_data) == 4, "4 Crows burst out at 80%% (%d)" % _count(crow_data))
+	_check(scarecrow.sprite.animation == &"burst", "and its coat flies open (the burst pose)")
 	scarecrow.take_damage(scarecrow.max_health * 0.4)
-	_check(_count(crow_data) == 15, "5 more at 60%% and 40%% (%d)" % _count(crow_data))
+	_check(_count(crow_data) == 12, "4 more at 60%% and 40%% (%d)" % _count(crow_data))
+	_check(crow_data.leaf_cost == 1, "each Crow that gets through takes 1 leaf (human run 12)")
 	var crows := spawner.get_children().filter(func(e) -> bool: return e.enemy_data == crow_data)
 	var airborne := true
 	for crow in crows:
-		airborne = airborne and crow.is_flying() and crow._path.size() == 2 and crow._path[-1] == map_generator.endPath \
-			and crow._path[0].distance_to(route[8]) <= 1.0
-	_check(airborne, "the Crows take to the air: straight at the Heartwood from where they burst")
+		airborne = airborne and crow.is_flying() and crow._path.size() > 2 and crow._path[-1] == map_generator.endPath \
+			and crow._path[0].distance_to(route[8]) <= 1.0 and crow._path == map_generator.get_path_from(crow._path[0])
+	_check(airborne, "the Crows take to the air: they fly the route from where they burst (Wardens along it reach them)")
 	_check(not spawner.get_maze_walkers().any(func(e) -> bool: return e.enemy_data == crow_data), "flyers: not maze walkers")
 	var walk: float = scarecrow.get_move_speed()
 	_check(is_equal_approx(walk, scarecrow.speed * 1.25), "Stitched: faster below 40% health")
@@ -157,9 +215,19 @@ func _run() -> void:
 	# --- Huntsman: the pack shields him ---
 	var huntsman := _still("huntsman", route[8])
 	_check(huntsman.pack_alive() == 4, "4 Night Hounds run with him (%d)" % huntsman.pack_alive())
+	for hound in huntsman.pack:
+		hound.position = huntsman.position  # (_still moved only him: the pack runs with him)
 	var before: int = huntsman.health
 	huntsman.take_damage(100.0)
 	_check(before - huntsman.health == 50, "half damage while a hound hunts (%d)" % (before - huntsman.health))
+	var hound_away := Vector2(5 * 64, 0)  # 5 tiles: past the shield's 3
+	for hound in huntsman.pack:
+		hound.position += hound_away
+	before = huntsman.health
+	huntsman.take_damage(100.0)
+	_check(before - huntsman.health == 100, "full damage when no hound is within 3 tiles (Human run 4; %d)" % (before - huntsman.health))
+	for hound in huntsman.pack:
+		hound.position -= hound_away
 	for hound in huntsman.pack:
 		hound.dispel()
 	before = huntsman.health
@@ -167,6 +235,8 @@ func _run() -> void:
 	_check(before - huntsman.health == 100, "full damage once the pack is gone")
 	spawner._on_brood_requested(huntsman)
 	_check(huntsman.pack_alive() == 1, "the horn calls one hound while the pack is short")
+	_check(huntsman.sprite.animation == &"horn", "he blows the horn as a hound joins")
+	_check(huntsman._bar_offset.y < -60.0, "his bar sits over his tall art, not at the usual -38 (%.0f)" % huntsman._bar_offset.y)
 	huntsman.take_damage(huntsman.max_health)  # Down past half (halved: the new hound shields him)
 	_check(huntsman.pack_alive() == 4 and huntsman.is_regrouped(), "The Kill: the whole pack returns at half health")
 	spawner._on_brood_requested(huntsman)
@@ -179,8 +249,10 @@ func _run() -> void:
 	lamplighter._path_index = 10
 	spawner._on_lantern_requested(lamplighter)
 	_check(spawner._lanterns.size() == 1, "it lights a lantern beside the route")
+	_check(lamplighter.sprite.animation == &"light", "it lowers the pole to light it")
 	if spawner._lanterns.size() == 1:
 		var lantern: ColdLantern = spawner._lanterns[0]
+		_check(lantern._sprite != null and lantern._sprite.animation == &"ignite", "the lantern kindles (its sheet)")
 		_check(not route.has(lantern.cell) and map_generator.is_buildable(lantern.cell), "on an empty cell off the route")
 		var warden := _plant("sprout", _free_neighbour_of(lantern.cell))
 		var far := _plant("sprout", _far_cell(lantern.cell))
@@ -203,6 +275,30 @@ func _run() -> void:
 			far.free()
 	_clear_enemies()
 
+	# --- Silence (Hushbell, tower_design.md 279ebb63): a boss's timed abilities run at half speed ---
+	var queen := _still("moth_queen", route[10])
+	queen.statuses.silence_time = 100.0
+	queen._brood_timer = 0.0
+	queen._update_presence(0.2)
+	_check(is_equal_approx(queen._brood_timer, 0.1), "a silenced boss's timers run at half speed (%.2f of 0.2 s)" % queen._brood_timer)
+	queen.statuses.silence_time = 0.0
+	queen._update_presence(0.2)
+	_check(is_equal_approx(queen._brood_timer, 0.3), "full speed again once the silence ends (%.2f)" % queen._brood_timer)
+	# A deep Hushbell (Nurture rework e2631f54) slows it further, down to the 0.35 floor
+	queen.statuses.silence_time = 100.0
+	queen.set_meta(&"silence_boss_speed", 0.4)
+	queen._brood_timer = 0.0
+	queen._update_presence(0.2)
+	_check(is_equal_approx(queen._brood_timer, 0.08), "a deeper silence: its speed from the Hushbell (%.3f)" % queen._brood_timer)
+	queen.set_meta(&"silence_boss_speed", 0.1)
+	queen._brood_timer = 0.0
+	queen._update_presence(0.2)
+	_check(is_equal_approx(queen._brood_timer, 0.07), "never below the 0.35 floor (%.3f)" % queen._brood_timer)
+	queen.statuses.silence_time = 0.0
+	queen._update_presence(0.2)
+	_check(not queen.has_meta(&"silence_boss_speed"), "the silence's speed is forgotten when it ends")
+	_clear_enemies()
+
 	# --- Barrow King: Iron Will and the Shrug ---
 	var king := _still("barrow_king", route[8])
 	var near := _still("leaf_bug", route[9])
@@ -213,6 +309,7 @@ func _run() -> void:
 	near.apply_status(EnemyStatuses.DAMP)
 	king.shrug()
 	_check(king.statuses.active_ids().is_empty() and near.statuses.active_ids().is_empty(), "the Shrug clears his statuses and his neighbours'")
+	_check(king.sprite.animation == &"shrug", "his shoulders heave (the shrug pose)")
 	_clear_enemies()
 
 	# --- Mourning Mother: Sorrow ---
@@ -223,6 +320,11 @@ func _run() -> void:
 	_check(mother.health == hurt, "no mending right after a hit")
 	mother._update_boss_pool_abilities(1.0)
 	_check(mother.health > hurt, "she mends once left alone (%d → %d)" % [hurt, mother.health])
+	mother.update_animation(Vector2(1, 0))
+	_check(mother.sorrowing and mother.sprite.animation == &"sorrow", "while she mends, the sorrow loop plays")
+	mother.take_damage(10.0)
+	mother.update_animation(Vector2(1, 0))
+	_check(not mother.sorrowing and mother.sprite.animation == &"walk_side", "a hit brings her walk back at once")
 	for i in 60:
 		mother._update_boss_pool_abilities(1.0)
 	_check(mother.health <= roundi(mother.max_health * 0.7 + mother.max_health * 0.25) + 1, "never more than 25% of her health in all")
@@ -240,6 +342,8 @@ func _run() -> void:
 	_check(weak.is_withered(), "never the same one twice in a row")
 	weak.free()
 	strong.free()
+	oak.take_damage(oak.max_health * 0.4)  # Past its first Drought burst
+	_check(oak.sprite.animation == &"wither", "Drought: two roots lift and stab down (the wither pose)")
 	_clear_enemies()
 
 	# --- Remembering Oak: echoes of this run's bosses ---
@@ -252,6 +356,7 @@ func _run() -> void:
 		if enemy.is_echo:
 			echo = enemy
 	_check(echo != null and echo.enemy_data.resource_path.ends_with("night_mare.tres"), "at 75% the echo of act 1's boss (the Night Mare) rises")
+	_check(remembering.sprite.animation == &"echo", "a pale bark face lights as the echo rises (the echo pose)")
 	if echo:
 		var full := roundi(echo.enemy_data.health * director.get_health_scale(echo.enemy_data, maxi(director.drifts_started, 1)))
 		_check(absi(echo.max_health - roundi(full * 0.2)) <= 1, "with 20%% of its health (%d of %d)" % [echo.max_health, full])

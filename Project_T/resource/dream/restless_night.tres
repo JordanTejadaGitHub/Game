@@ -6,10 +6,11 @@
 script = ExtResource("1_card")
 id = "restless_night"
 display_name = "Restless Night"
-description = "+8% damage for each {drift} you call early this {block} (up to +40%); resets at each {rest}."
+description = "Wardens deal 8% more damage for each {drift} you call early this {block} (up to +40%); resets at each {rest}."
 rarity = 3
 kind = 3
 tags = Array[String](["tempo", "daring"])
 max_stacks = 1
 min_act = 2
 rule_id = &"restless_night"
+in_start_pool = false

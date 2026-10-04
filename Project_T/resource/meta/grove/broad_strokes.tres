@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "broad_strokes"
+display_name = "Broad Strokes"
+description = "Splash Dreams join the pool: Broad Splash, Lingering Splash, Overlap."
+root = 1
+costs = Array[int]([50])
+order = 21
+icon = 14
+dream_cards = Array[String](["broad_splash", "lingering_splash", "lingering_splash_ii", "overlap"])

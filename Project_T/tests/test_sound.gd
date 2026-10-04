@@ -3,7 +3,7 @@ extends SceneTree
 # SoundHooks asks for exists (a missing file would just be silent in game, so check here).
 # Run: Godot --headless --path . --script res://tests/test_sound.gd
 
-const HOOK_IDS := [&"dispel", &"dispel_release", &"dispel_boss", &"split", &"leaf_lost", &"dew",
+const HOOK_IDS := [&"dispel", &"dispel_elite", &"dispel_boss", &"split", &"leaf_lost", &"dew",
 	&"plant", &"evolve", &"sell", &"invalid", &"tend", &"move", &"path_shimmer", &"trample",
 	&"attack_spore", &"attack_stone", &"attack_water", &"attack_light", &"attack_root",
 	&"attack_sprout", &"attack_acorn", &"ui_click", &"dream_open", &"dream_take_0", &"dream_take_1",
@@ -79,7 +79,8 @@ func _initialize() -> void:
 	# Kinships: a bond chord per family (own colour), stage-up, Harmony strike, Whole.
 	for family in ["spore", "stone", "water", "light", "root", "song", "acorn", "wing", "wind"]:
 		_check(sound.has_sound(StringName("kin_bond_" + family)), "kin_bond_%s exists" % family)
-	for id in [&"kin_bond", &"kin_stage_up", &"harmony_strike", &"whole_tree", &"dew_catch", &"harvest", &"interest_ripple", &"close_call", &"root_yank", &"soil_drag_short", &"soil_drag_long"]:
+	for id in [&"kin_bond", &"kin_stage_up", &"harmony_strike", &"whole_tree", &"dew_catch", &"harvest", &"interest_ripple", &"close_call", &"root_yank", &"soil_drag_short", &"soil_drag_long", &"boss_reveal", &"final_bloom", &"bolt_strike", &"dispel_elite", &"remember_open", &"remember_close",
+			&"remember_tap", &"remember_travel", &"remember_note", &"remember_fifth", &"dreamlight_glow"]:
 		_check(sound.has_sound(id), "%s exists" % id)
 	# Nurture: a swell per family material, Focus leans, and Dawnwing's calm + busy loops in sync.
 	for file in DirAccess.get_files_at("res://resource/tower/"):
@@ -141,6 +142,19 @@ func _initialize() -> void:
 	sound.play_dispel(Vector2.ZERO, false, 0.85)
 	_check(sound._duck_until == duck_until, "normal dispels don't duck the music (fourth listen)")
 	_check(HeartwoodMemory.defaults().settings.music_volume == 0.55, "music defaults to 55%")
+	# A button that leaves and re-enters the tree (a re-parented panel, a reopened screen) stays connected
+	# once: no "already connected" error, exactly one click per press.
+	var button := Button.new()
+	root.add_child(button)
+	root.remove_child(button)
+	root.add_child(button)
+	var clicks := button.pressed.get_connections().filter(func(c: Dictionary) -> bool:
+		return c.callable == Callable(sound, &"_click"))
+	_check(clicks.size() == 1, "a re-added button clicks once (%d connections)" % clicks.size())
+	sound._last_start.erase(&"ui_click")
+	button.pressed.emit()
+	_check(sound._last_start.has(&"ui_click"), "a press plays the click")
+	button.free()
 	# A freed voice (a finished player) must not break play() for the same id, and gets pruned
 	# (playtest bug: the typed filter lambda errored on freed players many times a second).
 	var gone := Node.new()

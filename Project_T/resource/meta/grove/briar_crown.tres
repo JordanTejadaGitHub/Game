@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "briar_crown"
+display_name = "Briar Crown"
+description = "Legendary: Briar Crown joins the pool."
+root = 1
+costs = Array[int]([80])
+order = 41
+icon = 16
+requires_all = Array[String](["bitter_hedges"])
+legendary = true
+dream_cards = Array[String](["briar_crown"])

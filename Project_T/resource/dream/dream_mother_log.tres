@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+[ext_resource type="Resource" path="res://resource/tower/mother_log.tres" id="2_tower"]
+
+[resource]
+script = ExtResource("1_card")
+id = "dream_mother_log"
+display_name = "Mother Log"
+description = "Nurse Logs can now grow into Mother Logs ({grow_cost:mother_log} Dew): cheaper still, and a sold Warden's rank stays in the log."
+rarity = 2
+kind = 1
+tags = Array[String](["acorn"])
+requires = Array[String](["nurse_log"])
+max_stacks = 1
+unlocks = ExtResource("2_tower")
+in_start_pool = false

@@ -28,20 +28,25 @@ const ISLAND_EDGE := 15  # The island's rim: column = neighbour mask of island c
 const CLIFF := 16  # Under the bottom row: column bit 1 = cliff to the west, bit 2 = to the east; rows = variants
 const ROPE_BRIDGE := 17  # Shared (dream/): column 0 = east-west, 1 = north-south
 const PATH_RIM := 18  # path.png's art, transparent outside the path: for the start and goal, over the rim
+const POND := 19  # Column = neighbour mask of pond cells (N=1, E=2, S=4, W=8); its 4 frames run down the rows
+const POND_INNER := 20  # Inside-corner overlays for ponds that aren't rectangles: columns NE, SE, SW, NW (static)
+const FALLEN_LOG := 21  # The log feature: 6 static pieces, 0 W end, 1 E-W middle, 2 E end, 3 N end, 4 N-S middle, 5 S end
+const LOG_FURROW := 22  # Where a log was tended: the same 6 pieces, each on its log piece's cell (walkable mark)
 # (Ids 2 and 8-10 were the drystone wall and healthy trees; the island and the void replaced them.)
 
 const SHEETS := {
 	GRASS: "grass", PATH: "path", WITHERED_TREE: "withered_tree",
 	TENDED_STUMP: "tended_stump", MOSSY_BOULDER: "mossy_boulder", MOVED_HOLLOW: "moved_hollow",
 	EDGE_MIST: "edge_mist", GROUND_DETAILS: "ground_details", WAYSTONE: "waystone",
-	DEW_POOL: "dew_pool", BLIGHT_PATCH: "blight_patch", ISLAND_EDGE: "island_edge", CLIFF: "cliff", PATH_RIM: "path_rim",
+	DEW_POOL: "dew_pool", BLIGHT_PATCH: "blight_patch", ISLAND_EDGE: "island_edge", CLIFF: "cliff", PATH_RIM: "path_rim", POND: "pond", POND_INNER: "pond_inner",
+	FALLEN_LOG: "fallen_log", LOG_FURROW: "log_furrow",
 }
 # The dream's outer layer, the same in every act (assets/environment/dream/).
 const DREAM_FOLDER := "dream"
 const SHARED_SHEETS := {ROPE_BRIDGE: "rope_bridge"}
 const ANIMATED: Array[int] = [WITHERED_TREE, EDGE_MIST, WAYSTONE, DEW_POOL, BLIGHT_PATCH]
-# Sheets whose cells are taller than a map cell (withered_tree.png: 64×96, overhanging the cell above).
-const TALL := {WITHERED_TREE: Vector2i(64, 96)}
+# Sheets whose cells are bigger than a map cell (withered_tree.png: 96×128, overhanging the cell above and its sides).
+const TALL := {WITHERED_TREE: Vector2i(96, 128)}
 # Animated tiles start at a random point per cell (so a field of them never pulses in step), and
 # each dead-tree type (row) runs at its own pace with uneven frame timing: one frame held, one quick.
 const TREE_SPEEDS: Array[float] = [0.8, 0.95, 0.7, 0.85, 0.6, 1.1, 0.75, 0.9, 0.65]
@@ -68,7 +73,16 @@ static func create_tile_set(act: int = 1) -> TileSet:
 		var region: Vector2i = TALL.get(id, SIZE)
 		source.texture_region_size = region
 		var grid := source.get_atlas_grid_size()
-		if id in ANIMATED:
+		if id == POND:  # One tile per mask column, animated down its column
+			for column in grid.x:
+				var coords := Vector2i(column, 0)
+				source.create_tile(coords)
+				source.set_tile_animation_columns(coords, 1)
+				source.set_tile_animation_frames_count(coords, grid.y)
+				source.set_tile_animation_mode(coords, TileSetAtlasSource.TILE_ANIMATION_MODE_RANDOM_START_TIMES)
+				for frame in grid.y:
+					source.set_tile_animation_frame_duration(coords, frame, 1.0 / FPS)
+		elif id in ANIMATED:
 			for row in grid.y:
 				var coords := Vector2i(0, row)
 				source.create_tile(coords)
@@ -80,6 +94,8 @@ static func create_tile_set(act: int = 1) -> TileSet:
 				if id == WITHERED_TREE:
 					source.set_tile_animation_speed(coords, TREE_SPEEDS[row % TREE_SPEEDS.size()])
 				_anchor_bottom(source, coords, region)
+				if id == WITHERED_TREE:
+					_add_fade_alternatives(source, coords, region, grid.y)
 		else:
 			for row in grid.y:
 				for column in grid.x:
@@ -88,7 +104,25 @@ static func create_tile_set(act: int = 1) -> TileSet:
 		tile_set.add_source(source, id)
 	return tile_set
 
-# A tall tile (64×96) puts its bottom 64 px on its own cell; the rest overhangs the cell above.
+# Withered Trees fade their overhang over what's behind them (TallObstacleFade): alternative tiles
+# 1..FADE_STEPS, each a step closer to FADE_ALPHA. They share the base tile's animation.
+const FADE_STEPS := 3
+const FADE_ALPHA := 0.45
+const FADE_SHADER := preload("res://shaders/obstacle_fade.gdshader")
+
+static func _add_fade_alternatives(source: TileSetAtlasSource, coords: Vector2i, region: Vector2i, rows: int) -> void:
+	for step in range(1, FADE_STEPS + 1):
+		var alternative := source.create_alternative_tile(coords, step)
+		var material := ShaderMaterial.new()  # Per tile set (no static Resources: they crash at exit)
+		material.shader = FADE_SHADER
+		material.set_shader_parameter(&"top_alpha", lerpf(1.0, FADE_ALPHA, float(step) / FADE_STEPS))
+		material.set_shader_parameter(&"rows", float(rows))
+		material.set_shader_parameter(&"top_share", float(region.y - SIZE.y) / region.y)
+		var data := source.get_tile_data(coords, alternative)
+		data.material = material
+		data.texture_origin = source.get_tile_data(coords, 0).texture_origin
+
+# A big tile (96×128) puts its bottom 64 px rows on its own cell, centred; the rest overhangs the cells around.
 static func _anchor_bottom(source: TileSetAtlasSource, coords: Vector2i, region: Vector2i) -> void:
 	if region.y > SIZE.y:
 		source.get_tile_data(coords, 0).texture_origin = Vector2i(0, (region.y - SIZE.y) / 2)
@@ -111,3 +145,12 @@ static func path_tile(mask: int) -> Vector2i:
 # A stable pseudo-random pick per cell, so redraws don't reshuffle variants.
 static func cell_variant(cell: Vector2i, count: int, salt: int = 0) -> int:
 	return posmod(hash(Vector3i(cell.x, cell.y, salt)), count)
+
+# fallen_log.png's piece for `cell` of a straight log over `cells` (2+ cells): its ends and middles,
+# E-W or N-S.
+static func log_piece(cell: Vector2, cells: Array) -> Vector2i:
+	var vertical: bool = cells.size() > 1 and cells[0].x == cells[1].x
+	var along: Array = cells.map(func(c: Vector2) -> float: return c.y if vertical else c.x)
+	var at := cell.y if vertical else cell.x
+	var piece := 0 if at == along.min() else (2 if at == along.max() else 1)
+	return Vector2i(piece + (3 if vertical else 0), 0)

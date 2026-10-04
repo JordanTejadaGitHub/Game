@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_magpie_perch"
 display_name = "Magpie Perch"
-description = "Nestlings can now grow into Magpie Perchs (80 Dew): nightmares its magpie hits drop +1 Dew when dispelled."
+description = "Nestlings can now grow into Magpie Perchs ({grow_cost:magpie_perch} Dew): nightmares its magpie hits drop +1 Dew when dispelled."
 rarity = 1
 kind = 1
 tags = Array[String](["wing"])

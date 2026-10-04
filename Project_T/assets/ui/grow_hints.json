@@ -1,0 +1,20 @@
+{
+	"hints": {
+		"grow_bud": {
+			"frame_size": 16,
+			"frames": 3,
+			"image": "grow_bud.png"
+		},
+		"grow_spotlight": {
+			"frame_size": 24,
+			"frames": 4,
+			"image": "grow_spotlight.png"
+		},
+		"rank_dew": {
+			"frame_size": 12,
+			"frames": 2,
+			"image": "rank_dew.png"
+		}
+	},
+	"note": "Grow hints at a Warden's base (screens_ui.md). Whole-number scale, nearest; ~60% opacity. grow_bud = can grow, rank_dew = can rank, grow_spotlight = the one-time first-grow spotlight. Frames left to right; loop grow_bud 0-1-2-1, rank_dew 0-1, grow_spotlight 0-3."
+}

@@ -60,6 +60,13 @@
 			],
 			"projectile": "autumn_seed"
 		},
+		"bastion": {
+			"kind": "pulse",
+			"point": [
+				31,
+				44
+			]
+		},
 		"beacon": {
 			"kind": "pulse",
 			"point": [
@@ -96,6 +103,14 @@
 				46
 			]
 		},
+		"brood_cap": {
+			"kind": "spawn",
+			"point": [
+				44,
+				14
+			],
+			"projectile": "spore_sprite"
+		},
 		"cairn": {
 			"kind": "lob",
 			"point": [
@@ -110,6 +125,35 @@
 				31,
 				46
 			]
+		},
+		"cloudlet": {
+			"kind": "zone",
+			"point": [
+				11,
+				12
+			]
+		},
+		"crown_of_thorns": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"deeproot": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"deliquescent": {
+			"kind": "projectile",
+			"point": [
+				40,
+				12
+			],
+			"projectile": "ink_drop"
 		},
 		"dewdrop": {
 			"kind": "projectile",
@@ -142,12 +186,34 @@
 			],
 			"projectile": "spore"
 		},
+		"earthbind": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"earthshaker": {
+			"kind": "pulse",
+			"point": [
+				31,
+				44
+			]
+		},
 		"echo_hollow": {
 			"kind": "echo",
 			"point": [
 				34,
 				29
 			]
+		},
+		"edgestone": {
+			"kind": "projectile",
+			"point": [
+				52,
+				20
+			],
+			"projectile": "whetstone_slash"
 		},
 		"elder_stump": {
 			"kind": "pulse",
@@ -210,6 +276,13 @@
 			],
 			"projectile": "dream_mote"
 		},
+		"groundroot": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
 		"grove_heart": {
 			"kind": "pulse",
 			"point": [
@@ -219,6 +292,21 @@
 		},
 		"gust": {
 			"kind": "spread",
+			"point": [
+				31,
+				46
+			]
+		},
+		"hatchery": {
+			"kind": "spawn",
+			"point": [
+				44,
+				14
+			],
+			"projectile": "spore_sprite"
+		},
+		"heartroot": {
+			"kind": "pulse",
 			"point": [
 				31,
 				46
@@ -247,6 +335,35 @@
 			],
 			"projectile": "hummingbird"
 		},
+		"hushbell": {
+			"kind": "aura",
+			"point": [
+				31,
+				40
+			]
+		},
+		"inkcap": {
+			"kind": "projectile",
+			"point": [
+				40,
+				12
+			],
+			"projectile": "ink_drop"
+		},
+		"jarlink": {
+			"kind": "fence",
+			"point": [
+				8,
+				9
+			]
+		},
+		"jetreed": {
+			"kind": "jet",
+			"point": [
+				60,
+				20
+			]
+		},
 		"jewelwing_court": {
 			"kind": "multi",
 			"point": [
@@ -263,6 +380,21 @@
 			],
 			"projectile": "light_orb"
 		},
+		"lichenling": {
+			"kind": "projectile",
+			"point": [
+				46,
+				6
+			],
+			"projectile": "lichen_flake"
+		},
+		"lightning_fence": {
+			"kind": "fence",
+			"point": [
+				7,
+				7
+			]
+		},
 		"long_way_home": {
 			"kind": "pull",
 			"point": [
@@ -275,6 +407,13 @@
 			"point": [
 				31,
 				46
+			]
+		},
+		"maelstrom": {
+			"kind": "zone",
+			"point": [
+				31,
+				44
 			]
 		},
 		"magpie_perch": {
@@ -353,6 +492,21 @@
 			],
 			"projectile": "sparrow"
 		},
+		"nimbus": {
+			"kind": "zone",
+			"point": [
+				52,
+				9
+			]
+		},
+		"old_lichen": {
+			"kind": "projectile",
+			"point": [
+				48,
+				4
+			],
+			"projectile": "lichen_flake"
+		},
 		"pebbling": {
 			"kind": "projectile",
 			"point": [
@@ -375,6 +529,13 @@
 				30
 			]
 		},
+		"prism_jar": {
+			"kind": "aura",
+			"point": [
+				30,
+				9
+			]
+		},
 		"puffball": {
 			"kind": "projectile",
 			"point": [
@@ -383,6 +544,13 @@
 			],
 			"projectile": "spore"
 		},
+		"quaker": {
+			"kind": "pulse",
+			"point": [
+				31,
+				44
+			]
+		},
 		"rain_lily": {
 			"kind": "projectile",
 			"point": [
@@ -390,6 +558,27 @@
 				2
 			],
 			"projectile": "dew_drop"
+		},
+		"rainbow_prism": {
+			"kind": "beam",
+			"point": [
+				30,
+				9
+			]
+		},
+		"rampart": {
+			"kind": "pulse",
+			"point": [
+				31,
+				44
+			]
+		},
+		"resonance": {
+			"kind": "cone",
+			"point": [
+				47,
+				8
+			]
 		},
 		"rockslide": {
 			"kind": "lob",
@@ -428,11 +617,32 @@
 			],
 			"projectile": "maple_seed"
 		},
+		"silence": {
+			"kind": "aura",
+			"point": [
+				31,
+				40
+			]
+		},
+		"silver_bell": {
+			"kind": "toll",
+			"point": [
+				45,
+				14
+			]
+		},
 		"snugroot": {
 			"kind": "hold",
 			"point": [
 				31,
 				46
+			]
+		},
+		"sparkler": {
+			"kind": "firework",
+			"point": [
+				54,
+				12
 			]
 		},
 		"sporeling": {
@@ -458,6 +668,13 @@
 				11
 			],
 			"projectile": "sling_stone"
+		},
+		"starburst": {
+			"kind": "firework",
+			"point": [
+				56,
+				13
+			]
 		},
 		"starcave": {
 			"kind": "light",
@@ -495,12 +712,55 @@
 				46
 			]
 		},
+		"thorncoil": {
+			"kind": "pulse",
+			"point": [
+				31,
+				46
+			]
+		},
+		"thrum": {
+			"kind": "cone",
+			"point": [
+				51,
+				9
+			]
+		},
 		"thunderhead": {
 			"kind": "chain",
 			"point": [
 				44,
 				5
 			]
+		},
+		"torrent": {
+			"kind": "jet",
+			"point": [
+				61,
+				18
+			]
+		},
+		"undercurrent": {
+			"kind": "zone",
+			"point": [
+				31,
+				44
+			]
+		},
+		"vesper_bell": {
+			"kind": "toll",
+			"point": [
+				48,
+				16
+			]
+		},
+		"whetstone": {
+			"kind": "projectile",
+			"point": [
+				52,
+				22
+			],
+			"projectile": "whetstone_slash"
 		},
 		"whirligig": {
 			"kind": "gust",

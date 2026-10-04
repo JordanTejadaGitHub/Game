@@ -21,7 +21,24 @@ made now must not block it**. This doc is the checklist.
    **Revised 2026-09-28** (playtest: "super laggy" with ~150 Sprouts at drift 46; Sprout swarms are a
    real build, so huge mazes are normal): the worst case is **every buildable cell filled (~200
    Wardens) + 150 nightmares + a Reaction chain**. Targets (revised again 2026-09-29, user decision via Main): scripts **≤ 10 ms at p95** (60% of a 60 fps frame) in the stress case **at 1×** on PC; **3× is a stretch goal**, measured and printed by `test_perf_stress` and revisited before release (so far: 1× p95 ~11 ms on a loaded machine, borderline; 3× ~22 ms; the manager-node refactor was dropped, no measurable gain); 60 fps on a
-   mid-range phone at 1×. Rules:
+   mid-range phone at 1×. **3× is now required** (2026-09-30, user: *"super laggy at this point at
+   ×3"*, drift 100 of a Sprout swarm run: ~150 Wardens, a full Coming strip, Reactions every second):
+   players speed up the late game, so the stress case must hold **p95 ≤ 16 ms of script time at 3×**
+   (and ≤ 10 ms at 1×). When a frame still runs long, the game **thins what's decorative first,
+   automatically**: Fx lite mode, callouts and damage numbers throttled harder, DPS tags updated
+   less often, status badge arcs frozen, idle animations of off-screen Wardens paused. Rules and
+   damage are never thinned. **First profile (2026-09-30, stress scene, 3×):** scripts p95 16.7 ms
+   (Wardens' `_process` ~10 ms, nightmares ~4 ms); the **whole frame** in a window p95 **29 ms**, GPU
+   only 1.6 ms, **1,724 draw calls**: the cost is CPU-side draw submission, and **nightmares' drawing
+   is 13.9 ms of it** (~5.6 draw calls each: per-nightmare blight materials and `_draw` breaking
+   batches). Wardens draw cheaply. Plan: **one shared blight material** (per-nightmare values through
+   COLOR / modulate) and **all health bars and status badges drawn by one overlay node** (Enemy
+   Code, target −10 ms); cached Warden stats, retargeting every ~0.1 s, idle Wardens skipped (Tower
+   Code). The thinning ladder's **first rung is simplifying nightmare bars and badges**, not Fx.
+   **Calling drifts early stacks them** (2026-09-30, user: *"it gets laggy when I call the drifts early at late drifts"*): late drifts called back to back put several drifts' nightmares on the field at once. Rule: **at most ~180 nightmares on the field**; spawns beyond that **wait in the start mist** (still "arriving", shown as a count on the mist, "+24") and walk in as room frees up. Calling early still pays its Dew and still stacks pressure; only the *simultaneous* count is capped. The stress test adds this case: drift 90, three drifts called back to back, at 3×.
+   **Status 2026-10-01 (quiet machine, pushed main + 1c8d8f2f / 98c5a7ce / d3326c4f):** stacked drifts 88–90 at 3×: **p50 9.6 ms, p95 14.0 ms (target met), p99 ~21 ms**; 1× p95 ~9–10 ms (target met). Readings of 17–29 ms earlier that day were machine load (18 Godot processes), not regressions: measure perf only on a quiet machine. Fixes: Kinships.refresh 0.9 → 0.2 ms, DreamState._sample_drift 3.2 → 1.05 ms (cell buckets), and `AreaHitQueue` (area hits past 24 in one frame land at the start of the next, same numbers and order). **Decision: p99 is not chased further** (the remaining spikes are many small costs plus engine time); revisit only if players report hitches or on Steam Deck / mobile.
+   **Cap side effects, fixed** (same day, user: *"any problems for players with the lag restriction? clarity, and would it be easier?"*): the cap (now **140**, an export per platform) made stacking safer than intended. So **"Call early" is greyed out while the mist holds nightmares** (tooltip *"The mist is full"*): you can stack up to the cap, not past it for free Dew. The mist's **"+N" gets a tooltip** (*"The mist holds them back until there's room on the path."*), the glossary gets a **Mist** entry, and the greyed Call early button shares it. **Mobile / Steam Deck** use a lower cap (~100–120), set when porting.
+   Rules:
    - No per-frame work that scales with **Wardens × nightmares** (targeting uses a spatial grid or a
      cheap interval, not a scan of every nightmare every frame).
    - Card / Kinship / network / Heart of the Maze queries are **cached** and only recomputed when

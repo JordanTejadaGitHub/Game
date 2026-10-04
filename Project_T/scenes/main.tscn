@@ -152,7 +152,7 @@ offset_right = 20.0
 offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_constants/separation = 3
+theme_override_constants/separation = 6
 
 [node name="DewLabel" type="Label" parent="HUD"]
 unique_name_in_owner = true

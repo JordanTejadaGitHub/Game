@@ -28,6 +28,44 @@ func _initialize() -> void:
 		var button := saved.get_stylebox("normal", "Button") as StyleBoxFlat
 		_check(button != null and Color(button.border_color, 1.0).is_equal_approx(UiStyle.BUTTON_GOLD),
 			"button outlines are BUTTON_GOLD")
+	# Dream glyphs (UI Asset's dream_glyphs.json): first priority id a tag maps to, else the fallback.
+	var tagged := UpgradeData.new()
+	tagged.tags = ["swift", "bittersweet"]
+	_check(UiStyle.dream_glyph(tagged) == &"bittersweet", "a card's glyph is the highest-priority tag (%s)" % UiStyle.dream_glyph(tagged))
+	_check(UiStyle.dream_glyph(UpgradeData.new()) == &"generic", "an untagged card gets the fallback glyph")
+	_check(UiStyle.dream_glyph_texture(&"spore") != null, "the glyph sheet has a spore cell")
+	# Tips anchor to their control: centred above, flipped below at the top, clamped at the sides.
+	var above := UiStyle.tip_beside(Rect2(600, 400, 32, 32), Vector2(200, 60), Vector2(1280, 800))
+	var below := UiStyle.tip_beside(Rect2(600, 10, 32, 32), Vector2(200, 60), Vector2(1280, 800))
+	var edge := UiStyle.tip_beside(Rect2(1250, 400, 24, 24), Vector2(200, 60), Vector2(1280, 800))
+	_check(above == Vector2(516, 332) and below.y == 50.0 and edge.x + 200.0 <= 1276.0,
+		"tips sit centred above their control, flip below, stay on screen (%s, %s, %s)" % [above, below, edge])
+	# Even letter spacing at fractional UI scales (2026-10-01: "B l oom i ng"): every UI font imports with
+	# subpixel positioning off, so oversampled glyphs land on whole pixels.
+	for file in ["AlegreyaSans-Regular.ttf", "AlegreyaSans-Medium.ttf", "CormorantGaramond-Variable.ttf",
+			"CormorantGaramond-Italic-Variable.ttf", "CormorantSC-Medium.ttf"]:
+		var font: FontFile = load(UiStyle.FONT_DIR + file)
+		_check(font != null and font.subpixel_positioning == TextServer.SUBPIXEL_POSITIONING_DISABLED,
+			"%s imports with subpixel positioning off" % file)
+	# Word gaps stay visible at fractional UI scales (2026-10-02: "Asmall splash"): every UI face adds
+	# SPACE_EXTRA to the space advance.
+	for face: Font in [UiStyle.body_font(), UiStyle.body_medium_font(), UiStyle.display_font(), UiStyle.number_font(),
+			UiStyle.caps_font(), UiStyle.whisper_font()]:
+		_check(face is FontVariation and (face as FontVariation).spacing_space >= UiStyle.SPACE_EXTRA,
+			"%s adds space width" % face)
+	var saved_default: Theme = load(UiStyle.THEME_PATH)
+	_check(saved_default.default_font is FontVariation and (saved_default.default_font as FontVariation).spacing_space >= 1,
+		"the saved theme's default font has the extra space (re-run the generator?)")
+	# Every glyph id has a non-empty cell inside the sheet (a blank region drew a white square).
+	var sheet: Texture2D = load(UiStyle.DREAM_GLYPHS + ".png")
+	var glyph_ids: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(UiStyle.DREAM_GLYPHS + ".json")).icons
+	for id in glyph_ids:
+		var region := UiStyle.dream_glyph_region(StringName(id))
+		_check(region.has_area() and Rect2(Vector2.ZERO, sheet.get_size()).encloses(region), "glyph %s has a cell in the sheet (%s)" % [id, region])
+	# Feeling the cards: the credit line keeps names Ink and numbers Gold, escaping brackets.
+	var credit := UiStyle.credit_bbcode("Dreams this block", [["Lingering Spores", "+1,840"], ["Odd [card]", "+9"]])
+	_check(credit.contains(UiStyle.GOLD.to_html(false)) and credit.contains("Odd [lb]card]") and credit.count(" · ") + credit.count("·[/color]") >= 1,
+		"credit_bbcode builds the Dreams-this-block line (%s)" % credit)
 	_scale_and_layout.call_deferred()
 
 # UI scale (UiStyle.apply_ui_scale): only the UI scales, never past its 1280×720 layout, and the
@@ -52,6 +90,11 @@ func _scale_and_layout() -> void:
 	for i in 30:
 		await process_frame
 	var hud := main.get_node("HUD")
+	# Text draws linear, pixel art stays Nearest (strokes dropped at fractional scales, 2026-10-02).
+	UiStyle.install_text_filter(self)
+	_check((main.get_node("%DewLabel") as CanvasItem).texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR, "HUD text draws with a linear filter")
+	var slot := main.get_node("%TowerBar").get_child(0) as CanvasItem
+	_check(slot.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "a Warden slot (pixel sprite) keeps Nearest")
 	var avoid: Array[Control] = [main.get_node("%DriftBanner"), main.get_node("%DewLabel"), main.get_node("%LeavesLabel"),
 		main.get_node("%PathLabel"), hud.get_node("DreamlightLabel"), main.get_node("HUD/NightmareInfo")]
 	for child in hud.get_children():

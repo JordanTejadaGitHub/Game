@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "spore_kin"
 display_name = "Spore Kin"
-description = "Harmony strikes by Sporeling-line kin apply 2 {spored}."
+description = "{harmonies} by Sporeling-line kin apply 2 {spored}."
 rarity = 1
 kind = 3
 tags = Array[String](["spore", "kinship"])

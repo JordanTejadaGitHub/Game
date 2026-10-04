@@ -7,19 +7,21 @@
 
 [resource]
 script = ExtResource("1_tdata")
+sprite_offset = Vector2(0, -16)
 display_name = "Grafted Elder"
-description = "Copies its strongest neighbor's attack at 85%."
+description = "Copies its strongest neighbor's attack at full strength."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+role_tag = &"support"
 line = "acorn"
 tier = 3
 buildable_directly = false
-evolve_cost = 200
+evolve_cost = 300
 attack_kind = 6
 attack_range = 0.0
 damage = 0
-copy_share = 0.85
+copy_share = 1.0
 attack_texture = ExtResource("4_atk")
 attack_frame_count = 6
 attack_release_frame = 2

@@ -8,18 +8,19 @@
 
 [resource]
 script = ExtResource("1_tdata")
+counter_tags = Array[StringName]([&"anti_armour", &"anti_support", &"boss_abilities"])
 display_name = "Magpie's Hoard"
-description = "As Magpie Perch (every hit strips a buff), and every crit it lands gives +1 Dew (up to 15 per drift)."
+description = "Each hit strips a buff, and every crit it lands gives +1 Dew (up to 25 per drift)."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
 line = "wing"
 tier = 3
 buildable_directly = false
-evolve_cost = 200
+evolve_cost = 300
 attack_kind = 7
 attack_range = 3.5
-damage = 30
+damage = 68
 attacks_per_second = 1.0
 projectile_speed = 440
 projectile_returns = true
@@ -27,7 +28,7 @@ dew_mark = true
 strips_buffs = true
 crit_chance = 0.15
 crit_dew = 1
-crit_dew_per_drift = 15
+crit_dew_per_drift = 25
 projectile_texture = ExtResource("3_proj")
 attack_texture = ExtResource("4_atk")
 attack_frame_count = 6

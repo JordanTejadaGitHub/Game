@@ -34,18 +34,20 @@ func _test_card_changes() -> void:
 	dreams.clearing_open = true  # Wildwood Reclaimed is a clearing follow-up
 	var ids := ["crossroads", "briar_crown", "menagerie", "restless_night", "last_leaf", "lucid_dreaming",
 		"hunters_moon", "eternal_static", "rooted_nightmares", "wildwood_reclaimed"]
+	dreams.grove_cards.assign(ids)  # Every Legendary is a Grove tip since the lean starting pool (2026-09-30)
 	for id in ids:
 		var card := _card(id)
 		_check(card.rarity == UpgradeData.Rarity.LEGENDARY and card.min_act == 2 and card.max_stacks == 1
-			and card.in_start_pool and card.requires.is_empty() and card.requires_tag == "",
-			"%s: a Start-pool Legendary with no Needs" % id)
+			and not card.in_start_pool and card.requires.is_empty() and card.requires_tag == "",
+			"%s: a Grove Legendary with no Needs" % id)
 		_check(dreams.is_eligible(card, 2) and not dreams.is_eligible(card, 1), "%s is offered from act 2" % id)
 	for id in ["thousand_cuts", "seed_storm", "eye_of_the_tempest", "ring_of_rings"]:
 		_check(_card(id).rarity == UpgradeData.Rarity.RARE, "%s is now Rare" % id)
 	_check(_card("nightshade").potency_bonus == 0.0 and _card("the_old_ones").rank_crit_bonus == 0.0,
 		"Nightshade and The Old Ones keep to one archetype")
 	dreams.clearing_open = false
-	_check(not dreams.can_offer(_card("wildwood_reclaimed"), 2), "Wildwood Reclaimed waits for clearing (a follow-up)")
+	_check(dreams.can_offer(_card("wildwood_reclaimed"), 2) and dreams.opens_clearing(_card("wildwood_reclaimed")),
+		"Wildwood Reclaimed opens clearing itself (2026-09-30: any clearing card does)")
 	dreams.clearing_open = true
 
 # Ranks past V belong to one Warden, the Eldest.
@@ -94,7 +96,7 @@ func _test_court() -> void:
 func _test_legendary_weighting() -> void:
 	_reset()
 	var maze_card := _card("cozy_corners")  # tags: maze
-	var plain := _card("quickened_sap")  # no tags
+	var plain := _card("deeper_calm")  # no tags
 	dreams.take(_card("crossroads"))
 	var maze_picks := 0
 	for i in 2000:
@@ -173,8 +175,6 @@ func _test_damage_legendaries() -> void:
 	var off_clear := _plant("sporeling", Vector2(104, 100), 0)
 	var on_base := dreams.get_soothe_multiplier(on_clear)
 	var off_base := dreams.get_soothe_multiplier(off_clear)
-	dreams.clearing_open = false
-	_check(not dreams.can_offer(_card("wildwood_reclaimed"), 2), "Wildwood Reclaimed waits for clearing (a follow-up)")
 	dreams.clearing_open = true
 	dreams.take(_card("wildwood_reclaimed"))
 	_check(is_equal_approx(dreams.get_soothe_multiplier(on_clear) - on_base, 0.36)

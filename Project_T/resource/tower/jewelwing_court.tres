@@ -9,19 +9,20 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Jewelwing Court"
-description = "Three hummingbirds, eight pecks each; every sixth peck is a guaranteed crit. They spread out or all focus the strongest."
+description = "Three hummingbirds, twelve pecks each; every sixth peck is a guaranteed crit. They spread out or all focus the strongest."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
+counter_tags = Array[StringName]([&"anti_tank"])
 line = "wing"
 tier = 3
 buildable_directly = false
-evolve_cost = 200
+evolve_cost = 300
 attack_kind = 14
 attack_range = 3.5
-damage = 9
+damage = 28
 attacks_per_second = 0.667
-pecks = 8
+pecks = 12
 peck_time = 1.0
 peck_birds = 3
 flurry_every = 6

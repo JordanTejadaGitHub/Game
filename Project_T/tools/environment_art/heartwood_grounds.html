@@ -331,13 +331,20 @@ function pick(r, t, x, y, dither = .5) {
   dither *= STYLE.dither;
   const n = r.length; return r[clamp(Math.floor(t * n + (bay(x, y) - .5) * dither), 0, n - 1)]; }
 
-// TT: an optional vertical transform for drawing tall sprites from 64 px designs (the dead trees):
-// ellipse / stroke / tset map a design y through it; the shapes' radii stay as drawn.
-let TT = null;
+// TT / TX: optional vertical and horizontal transforms for drawing big sprites from 64 px designs
+// (the dead trees): ellipse / stroke / tset map a design point through them; heights stay as drawn,
+// widths grow by TX_W so trunks and limbs fill the wider frame.
+let TT = null, TX = null;
+const TX_W = 1.3;
 const ty = y => TT ? TT(y) : y;
-function tset(L, x, y, c) { L.set(x, ty(y), c); }
-function talpha(L, x, y) { return L.alpha(x, Math.floor(ty(y))); }
-function ellipse(L, cx, cy, rx, ry, col) { ellipseRaw(L, cx, ty(cy), rx, ry, col); }
+const tx = x => TX ? TX(x) : x;
+function tset(L, x, y, c) {
+  if (!TX) { L.set(x, ty(y), c); return; }
+  const x0 = Math.floor(tx(x)), x1 = Math.max(x0 + 1, Math.floor(tx(x + 1)));  // a design pixel spans 1–2 columns
+  for (let ox = x0; ox < x1; ox++) L.set(ox, ty(y), c);
+}
+function talpha(L, x, y) { return L.alpha(Math.floor(tx(x)), Math.floor(ty(y))); }
+function ellipse(L, cx, cy, rx, ry, col) { ellipseRaw(L, tx(cx), ty(cy), TX ? rx * TX_W : rx, ry, col); }
 function ellipseRaw(L, cx, cy, rx, ry, col) {
   for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++)
     for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
@@ -362,8 +369,8 @@ function blob(L, cx, cy, rx, ry, ramp, o = {}) {
     }
 }
 function stroke(L, x0, y0, x1, y1, w0, w1, fn) {
-  y0 = ty(y0); y1 = ty(y1);
-  if (TT) { w0 *= 1.25; w1 *= 1.25; }  // tall trees get sturdier trunks and limbs
+  y0 = ty(y0); y1 = ty(y1); x0 = tx(x0); x1 = tx(x1);
+  if (TT) { const k = TX ? 1.25 * TX_W : 1.25; w0 *= k; w1 *= k; }  // big trees get sturdier trunks and limbs
   const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1, px = -dy / len, py = dx / len, n = Math.ceil(len * 2) + 1;
   for (let i = 0; i <= n; i++) {
     const t = i / n, cx = x0 + dx * t, cy = y0 + dy * t, r = Math.max(.6, (w0 + (w1 - w0) * t) / 2);
@@ -400,28 +407,28 @@ const BLIGHT = ["#0e0a14", "#1c1626", "#2c2438", "#3e344c", "#5a4e6a"];
 const ACTS = [
   { id:"edge", n:1, name:"Forest's Edge", drifts:"1–25", season:"Spring dusk", boss:"The Hollow Stag",
     swatch:"#4f7e4c",
-    grass:["#14261e","#1c3a2a","#244a32","#33603e","#4f7e4c"],
+    grass:["#140f26","#24243c","#1c3c2c","#2c4c5c","#34643c"],  // night ground, moss grain (the title / Grove look)
     canopy:["#0a1410","#142a20","#1e3e2c","#2c5638","#4a7648"],
     bark:["#120c10","#2a1e22","#44323a","#645058"],
     path:["#6c5c5c","#6c5c5c","#b4a494","#dccdb2"],  // Heartwood 32 Path ramp: Loam, Loam, Path, Moonpath
     dots:["#c8b8f0","#f0e8ff","#ffd27a"], accentName:"moonflower" },
   { id:"deep", n:2, name:"Deep Wood", drifts:"26–50", season:"Summer night", boss:"The Mire Hag or the Moth Queen",
     swatch:"#386254",
-    grass:["#0e1c1c","#142a2a","#1a3634","#244840","#386254"],
+    grass:["#05050d","#24243c","#2c4c5c","#1c3c2c","#34643c"],  // night ground, teal pool grain
     canopy:["#060e0e","#0e2020","#163030","#204440","#346058"],
     bark:["#0e0a0e","#221a20","#3a2e36","#584a52"],
     path:["#6c5c5c","#6c5c5c","#b4a494","#dccdb2"],  // Heartwood 32 Path ramp: Loam, Loam, Path, Moonpath
     dots:["#8ad8e8","#e0faff","#b0f0c0"], accentName:"glowcap" },
   { id:"misty", n:3, name:"Misty Hollow", drifts:"51–75", season:"Autumn fog", boss:"the other act 2 boss",
     swatch:"#a85a34",
-    grass:["#1c1e1a","#2a2c24","#3a3a2e","#4e4a3a","#6e6450"],
+    grass:["#140f26","#2c2444","#3c3c5c","#5c3c24","#8c5c34"],  // violet fog ground, rust tufts
     canopy:["#140a0c","#2e1216","#4e1e1c","#7a3424","#a85a34"],
     bark:["#120a0c","#2a1a1c","#44302e","#644a44"],
     path:["#6c5c5c","#6c5c5c","#b4a494","#dccdb2"],  // Heartwood 32 Path ramp: Loam, Loam, Path, Moonpath
     dots:["#c0663a","#e8a060","#f0e0c8"], accentName:"ember leaf" },
   { id:"glade", n:4, name:"Heartwood Glade", drifts:"76–100", season:"Winter dark", boss:"The Hollow Oak",
     swatch:"#a8b8d0", frozen:true,
-    grass:["#1a2230","#28324a","#3a4660","#5a6a86","#a8b8d0"],
+    grass:["#140f26","#24243c","#3c3c5c","#5c5a78","#b4b0c8"],  // night ground, frost
     canopy:["#0a1018","#142030","#203048","#6a7e9a","#d8e4f0"],
     bark:["#100c10","#241c22","#3c3038","#5a4a52"],
     path:["#6c5c5c","#6c5c5c","#b4a494","#dccdb2"],  // Heartwood 32 Path ramp: Loam, Loam, Path, Moonpath
@@ -578,16 +585,28 @@ function branch(L, x, y, a, len, w, d, seed, fn) {
 const HEART_CANOPY = ["#121a0c", "#243c16", "#3a5e22", "#5a8030", "#8aa844"];
 const HEART_LEAF_HI = "#b4c65c";
 const HEART_BARK = ["#1a0e08", "#3a2414", "#5e3c20", "#8a5e34"];
-// Ashen umber dead wood: a different hue from the lavender stone, so trees and rocks separate by
-// colour as well as shape, even under the cold edge lighting.
-const DEAD = ["#241a16", "#56463c", "#8a7462", "#bca38c"];
-// Dead trees are 64×96: the bottom 64 px are their cell (base and shadow where the old 64 px base
-// was), the top 32 px overhang the cell above. Heights above the base (design y 56) are × 1.5.
-const TREE_TT = y => 88 + (y - 56) * 1.5;
+// Since 2026-09-30 (fit the title and Grove screens): the Grove trunks' cool look, night-indigo bark with a
+// teal lit side and moss flecks. Rocks stay lavender stone, so trees and rocks still split by hue.
+const DEAD = ["#140f26", "#24243c", "#2c4c5c", "#4c8ca4"];
+// Moss flecks on the bark, like the Grove's trunks: a few green pixels inside the trunk and limbs.
+function mossFlecks(out, L, seed) {
+  for (let k = 0; k < 90; k++) {
+    const x = Math.floor(hash(k, 1, seed + 51) * L.w), y = Math.floor(hash(k, 2, seed + 51) * L.h);
+    if (!L.alpha(x, y) || !L.alpha(x - 1, y) || !L.alpha(x + 1, y)) continue;
+    out.set(x, y, hash(k, 3, seed + 51) < .6 ? "#34643c" : "#5c944c");
+    if (hash(k, 4, seed + 51) < .5) out.set(x, y + 1, "#1c3c2c");
+  }
+}
+// Dead trees are 96×128: the bottom 64 px rows are their cell (base and shadow where the old 64 px
+// base was), centred, so 16 px overhang each side and the top 64 px the cell above. Heights above the
+// base (design y 56) are × 2, widths × 1.3 (TX_W) around the centre (design x 32).
+const TREE_W = 96, TREE_H = 128;
+const TREE_TT = y => 120 + (y - 56) * 2.0;
+const TREE_TX = x => 48 + (x - 32) * TX_W;
 function withered(A, f, seed) {
   // Pale bark on the lit side so the tree reads as a pale shape on dark grass (value order).
-  const out = new Img(64, 96), L = new Img(64, 96);
-  TT = TREE_TT;  // drawn 1.5× taller from the 64 px design (see TREE_TT)
+  const out = new Img(TREE_W, TREE_H), L = new Img(TREE_W, TREE_H);
+  TT = TREE_TT; TX = TREE_TX;  // drawn bigger from the 64 px design (see TREE_TT / TREE_TX)
   const bf = (x, y, nx) => nx < .15 ? (hash(x, y >> 1, 77) < .15 ? DEAD[2] : DEAD[3]) : nx > .6 ? DEAD[1] : DEAD[2];
   ellipse(out, 32, 55, 20, 6, SHADOW(.42));
   ellipse(out, 32, 53, 21, 7, CA("#6a5a80", .18));
@@ -618,7 +637,8 @@ function withered(A, f, seed) {
     ellipse(out, x, y, r, r * .85, CA("#140e20", a));
     tset(out, x - 1, y - 1, CA("#6a4a9a", a));
   }
-  TT = null;
+  mossFlecks(out, L, seed);
+  TT = null; TX = null;
   return out;
 }
 
@@ -743,6 +763,195 @@ function pool(A, f) {
   return L;
 }
 
+// Pond (2026-10-01, the map's pond feature): one body of still water over a 2×2 to 3×3 patch, by
+// neighbour mask like the path (N=1 E=2 S=4 W=8), transparent outside its banks. Ponds are rectangles,
+// so where two sides join the diagonal cell is pond too (no inner corners). Earth-and-moss banks,
+// water darkening toward the middle, moonlight glints that shimmer over the 4 frames; ice in winter.
+// Distance in px from each pixel of a pond tile to the nearest shore (0 on land), measured over the
+// tile plus a 24 px border so water in the neighbouring cells counts. A min of the boxes' own distance
+// fields dipped where two boxes overlapped and drew light lines across the water. Same for every act
+// and frame, so it's cached per mask.
+const POND_SHORE = new Map();
+function pondShore(mask, D) {
+  const key = SEED + "|" + mask;
+  if (POND_SHORE.has(key)) return POND_SHORE.get(key);
+  const E = 24, G = T + E * 2, INF = 1e9, dist = new Float32Array(G * G);
+  for (let y = 0; y < G; y++) for (let x = 0; x < G; x++) dist[y * G + x] = D(x - E, y - E) < 0 ? INF : 0;
+  const relax = (i, j, c) => { if (dist[j] + c < dist[i]) dist[i] = dist[j] + c; };
+  for (let y = 1; y < G; y++) for (let x = 1; x < G - 1; x++) {  // chamfer pass, top-left to bottom-right
+    const i = y * G + x; relax(i, i - 1, 1); relax(i, i - G, 1); relax(i, i - G - 1, 1.414); relax(i, i - G + 1, 1.414);
+  }
+  for (let y = G - 2; y >= 0; y--) for (let x = G - 2; x >= 1; x--) {  // and back
+    const i = y * G + x; relax(i, i + 1, 1); relax(i, i + G, 1); relax(i, i + G + 1, 1.414); relax(i, i + G - 1, 1.414);
+  }
+  const out = new Float32Array(T * T);
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) out[y * T + x] = Math.min(dist[(y + E) * G + x + E], 99);
+  POND_SHORE.set(key, out);
+  return out;
+}
+// Pond colours by Heartwood 32 name, not the old WATER / ICE ramps (those snapped to violet, the same as the night ground).
+const POND_WATER =["#2c4c5c", "#2c4c5c", "#4c8ca4", "#9cd4fc", "#dce8f4"], POND_ICE = ["#5c5a78", "#5c5a78", "#8c8cac", "#b4b0c8", "#dce8f4"];
+function pondTile(A, mask, f) {
+  const L = new Img(), W = A.frozen ? POND_ICE : POND_WATER, g = A.grass, s = SEED + 900, m = 7;
+  const boxes = [[m, m, T - m, T - m]];
+  if (mask & 1) boxes.push([m, -20, T - m, 32]);
+  if (mask & 2) boxes.push([32, m, T + 20, T - m]);
+  if (mask & 4) boxes.push([m, 32, T - m, T + 20]);
+  if (mask & 8) boxes.push([-20, m, 32, T - m]);
+  if ((mask & 1) && (mask & 2)) boxes.push([32, -20, T + 20, 32]);
+  if ((mask & 2) && (mask & 4)) boxes.push([32, 32, T + 20, T + 20]);
+  if ((mask & 4) && (mask & 8)) boxes.push([-20, 32, 32, T + 20]);
+  if ((mask & 8) && (mask & 1)) boxes.push([-20, -20, 32, 32]);
+  // The wobble noise wraps every 64 px, so banks and depth meet up across cell edges.
+  const D = (x, y) => { let d = 1e9; for (const b of boxes) d = Math.min(d, sdBox(x + .5, y + .5, b, 12)); return d + (pnoise(x, y, 8, s, 8) - .5) * 4; };
+  const shore = pondShore(mask, D);
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const d = D(x, y), r = shore[y * T + x];
+    if (d > 1) continue;
+    if (d > 0 || r < 2.5) {  // the bank: dark earth with moss creeping over its lip
+      const lip = d > 0 || r < 1;
+      L.set(x, y, A.frozen && lip ? "#dce8f4" : hash(x, y, s + 3) < .4 ? g[2] : lip ? "#241c14" : "#140f26");
+      continue;
+    }
+    const t = clamp((r - 2.5) / 16 + (pnoise(x, y, 16, s + 5, 4) - .5) * .25, 0, 1);
+    L.set(x, y, A.frozen ? pick([W[3], W[2], W[1]], t, x, y, .5) : pick([W[2], W[1], W[0]], t, x, y, .5));
+  }
+  const inner = (x, y) => x >= 0 && y >= 0 && x < T && y < T && shore[y * T + x] > 6;
+  if (A.frozen) {
+    // Cracks in the ice, kept inside the cell so they never cut off at its edge.
+    for (let k = 0; k < 2; k++) {
+      const x0 = 10 + hash(k, 1, s + mask) * 40, y0 = 10 + hash(k, 2, s + mask) * 40, a = hash(k, 3, s + mask) * Math.PI;
+      for (let i = 0; i < 9; i++) { const x = Math.round(x0 + Math.cos(a) * i), y = Math.round(y0 + Math.sin(a) * i * .6); if (x > 4 && x < 60 && inner(x, y)) L.set(x, y, W[4]); }
+    }
+  } else {
+    // Moonlight glints: short level dashes that slide and fade over the frames.
+    for (let k = 0; k < 7; k++) {
+      const x0 = 8 + Math.floor(hash(k, 1, s + mask) * 44), y = 8 + Math.floor(hash(k, 2, s + mask) * 48), len = 2 + Math.floor(hash(k, 3, s + mask) * 4);
+      const ph = (f + k) % 4, shift = ph - 1;
+      for (let i = 0; i < len; i++) { const x = x0 + shift + i; if (x > 3 && x < 61 && inner(x, y)) L.set(x, y, ph === 3 ? W[2] : ph === 0 ? W[4] : W[3]); }
+    }
+    // Now and then a lily pad, well inside the water.
+    if (hash(mask, 9, s) < .5) {
+      const px = 20 + Math.floor(hash(mask, 10, s) * 24), py = 20 + Math.floor(hash(mask, 11, s) * 24);
+      if (inner(px - 6, py) && inner(px + 6, py) && inner(px, py - 4) && inner(px, py + 4)) {
+        const pad = new Img();
+        ellipse(pad, px, py, 5, 3, (x, y, dx, dy) => (dx > .1 && Math.abs(dy) < .22) ? null : (dy < -.2 ? g[4] : g[3]));
+        L.stamp(pad, g[0]);
+      }
+    }
+  }
+  return L;
+}
+// Inside corners for ponds that aren't rectangles (pond_inner.png; Environment Code draws one over the
+// pond tile for each missing diagonal). k: 0 NE, 1 SE, 2 SW, 3 NW. In the corner's frame (mirrored to
+// NE) the land is the box beyond the neighbouring banks' lines (x > T - 7, y < 7) with its tip rounded,
+// plus the same wobble noise as pond.png at the real pixel, so its banks run on into the two
+// neighbouring pond cells' banks. Paints grass on the land (the pond tile under it is water there), the
+// bank, and shallows round the point. Static.
+function pondInner(A, k) {
+  const L = new Img(), W = A.frozen ? POND_ICE : POND_WATER, g = A.grass, s = SEED + 900, m = 7;
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const fx = k === 2 || k === 3 ? T - 1 - x : x, fy = k === 1 || k === 2 ? T - 1 - y : y;  // into the NE frame
+    const land = sdBox(fx + .5, fy + .5, [T - m, -20, T + 20, m], 8) + (pnoise(x, y, 8, s, 8) - .5) * 4;  // < 0 on land
+    const d = -land;  // as in pondTile: < 0 in the water
+    if (d > 1) {  // the point of land: grass
+      L.set(x, y, hash(x, y, s + 7) < .3 ? g[2] : g[1]);
+    } else if (d > -2.5) {  // the bank
+      const lip = d > 0;
+      L.set(x, y, A.frozen && lip ? "#dce8f4" : hash(x, y, s + 3) < .4 ? g[2] : lip ? "#241c14" : "#140f26");
+    } else if (d > -7) {  // shallows round the point
+      L.set(x, y, pick([W[2], W[1]], (-d - 2.5) / 4.5, x, y, .5));
+    }
+  }
+  return L;
+}
+// Fallen log (fallen_log.png; the map's log feature and the Fallen Giant gift): a dead tree lying
+// along a line of cells, in the dead trees' cool bark with moss on its back. k: 0 west end, 1 east–west
+// middle, 2 east end, 3 north end, 4 north–south middle, 5 south end. Drawn on a wider canvas and
+// cropped, so its outline never lands on a cell edge and pieces join; the bark grain wraps every 64 px.
+// The north–south pieces are the east–west ones turned (x ↔ y), lit from the upper left like the rest.
+function fallenLog(A, k) {
+  const vertical = k >= 3, part = k % 3, M = 16, W = T + M * 2, g = A.grass, s = SEED + 811;
+  const L = new Img(W, T), out = new Img(W, T), cy = 38, r = 15;
+  const jag = y => Math.floor(hash(y >> 1, 1, s) * 7);
+  const rad = x => r + (pnoise(((x - M) % T + T) % T, 0, 16, s + 5, 4) - .5) * 3;  // the trunk swells a little along its length
+  const x0 = part === 0 ? M + 10 : 0, x1 = part === 2 ? M + T - 10 : W;  // the log's ends on the wide canvas
+  for (let x = 0; x < W; x++) for (let y = cy + r - 2; y <= cy + r + 3; y++) if (x >= x0 - 2 && x < x1 + 3) out.set(x, y, SHADOW(.38));
+  for (let y = Math.floor(cy - r - 2); y <= cy + r + 2; y++) {
+    const xa = part === 0 ? x0 + jag(y) : x0, xb = part === 2 ? x1 - jag(y + 7) : x1;
+    for (let x = xa; x < xb; x++) {
+      const a = (y + .5 - cy) / rad(x); if (Math.abs(a) > 1) continue;
+      const xs = ((x - M) % T + T) % T, grain = pnoise(xs, y * 3, 8, s + 1, 8);
+      let c = a < -.3 ? DEAD[3] : a < .3 ? DEAD[2] : DEAD[1];
+      if (grain > .66) c = a < -.3 ? DEAD[2] : DEAD[1];  // bark furrows along the log
+      L.set(x, y, c);
+    }
+    // the broken ends: a pale splintered face with dark rings
+    const a0 = (y + .5 - cy) / r;
+    if (Math.abs(a0) <= 1) {
+      if (part === 0) for (let i = 0; i < 4; i++) L.set(xa + i, y, i < 2 ? "#b4b0c8" : (y + i) % 4 ? "#8c8cac" : "#5c5a78");
+      if (part === 2) for (let i = 1; i <= 4; i++) L.set(xb - i, y, i < 3 ? "#b4b0c8" : (y + i) % 4 ? "#8c8cac" : "#5c5a78");
+    }
+  }
+  if (part === 1) {  // a broken branch stub reaching up off the trunk
+    const bx = M + 22 + Math.floor(hash(k, 4, s) * 18);
+    stroke(L, bx, cy - r + 3, bx - 6, cy - r - 8, 5, 3, (x, y, nx) => nx < -.2 ? DEAD[3] : DEAD[2]);
+    L.set(bx - 7, cy - r - 9, "#b4b0c8"); L.set(bx - 6, cy - r - 9, "#8c8cac");
+  }
+  out.stamp(L, DEAD[0]);
+  // moss along its back, and a little moss and fungus on the sides
+  for (let x = 0; x < W; x++) {
+    const xs = ((x - M) % T + T) % T, n = pnoise(xs, 0, 16, s + 2, 4);
+    for (let y = Math.floor(cy - r); y < cy - r + 4; y++) if (L.alpha(x, y) && n > .45 && (y > cy - r + 1 || n > .6)) out.set(x, y, n > .62 ? g[4] : g[3]);
+  }
+  for (let kk = 0; kk < 3; kk++) {
+    const x = M + 8 + Math.floor(hash(kk, part, s + 3) * 48), y = cy + 3 + kk;
+    if (L.alpha(x, y) && L.alpha(x + 2, y)) { out.set(x, y, "#9a84e8"); out.set(x + 1, y, "#bc44dc"); out.set(x + 2, y, "#9a84e8"); }
+  }
+  const crop = new Img();
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) { const c = out.get(x + M, y); if (c[3]) crop.set(vertical ? y : x, vertical ? x : y, c); }
+  return crop;
+}
+// Log furrow (log_furrow.png): the walkable mark a Tended fallen log leaves, in fallen_log.png's layout
+// (0 W end, 1 E–W middle, 2 E end, 3 N end, 4 N–S middle, 5 S end) so it lines up cell for cell. A
+// shallow rotted trench where the log lay: dark peat with a faint lit lip, bark chips in the log's own
+// colours, a few pale splinters and moss creeping back. Calm and low, like the tended stump. Drawn wide
+// and cropped like the log, so pieces join.
+function logFurrow(A, k) {
+  const vertical = k >= 3, part = k % 3, M = 16, W = T + M * 2, g = A.grass, s = SEED + 823;
+  const out = new Img(W, T), cy = 38;
+  const xs = x => ((x - M) % T + T) % T;
+  const half = x => {  // the trench's half width, rounding off at the ends
+    let h = 7 + pnoise(xs(x), 0, 16, s, 4) * 3;
+    if (part === 0) h *= Math.sqrt(clamp((x - (M + 10)) / 10, 0, 1));
+    if (part === 2) h *= Math.sqrt(clamp((M + T - 10 - x) / 10, 0, 1));
+    return h;
+  };
+  for (let x = 0; x < W; x++) {
+    const h = half(x); if (h < .5) continue;
+    for (let y = Math.floor(cy - h - 2); y <= cy + h + 1; y++) {
+      const a = (y + .5 - cy) / h, n = pnoise(xs(x), y, 8, s + 1, 8);
+      if (a < -1.25 || a > 1.1) continue;
+      if (a < -1) { if (bay(x, y) < .5) out.set(x, y, "#6c5c5c"); continue; }  // the lip catches a little light
+      if (a < -.7) { out.set(x, y, "#05050d"); continue; }  // shadow under the near lip
+      out.set(x, y, pick(["#140f26", "#241c14", "#241c14", "#241c14", "#5c3c24"], clamp(.42 + (n - .5) * .45 + a * .2, 0, 1), x, y, .4));
+    }
+  }
+  for (let i = 0; i < 14; i++) {  // bark chips and splinters left behind
+    const x = M + Math.floor(hash(i, part, s + 2) * T), y = Math.round(cy - 3 + hash(i, part, s + 3) * 8);
+    if (!out.alpha(x, y) || half(x) < 3) continue;
+    if (i % 3 === 0) { out.set(x, y, "#8c8cac"); out.set(x + 1, y - 1, "#5c5a78"); }
+    else { out.set(x, y, i % 2 ? DEAD[2] : DEAD[3]); out.set(x + 1, y, DEAD[2]); }
+  }
+  for (let i = 0; i < 6; i++) {  // moss creeping back in
+    const x = M + Math.floor(hash(i, part, s + 4) * T), y = Math.round(cy - 4 + hash(i, part, s + 5) * 9);
+    if (!out.alpha(x, y) || half(x) < 3) continue;
+    out.set(x, y, g[3]); out.set(x + 1, y, g[4]); out.set(x, y - 1, g[4]);
+  }
+  const crop = new Img();
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) { const c = out.get(x + M, y); if (c[3]) crop.set(vertical ? y : x, vertical ? x : y, c); }
+  return crop;
+}
 function blightPatch(A, f, seed) {
   const L = grass(A, 0), B = BLIGHT, s = seed + 60;
   for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
@@ -783,123 +992,251 @@ function mist(A, f, eyes = true) {
 }
 
 // `lost` leaves (0–20): each one blackens a patch of canopy and dims the hollow.
-function heartwood(A, f, lost = 0) {
-  // The Heartwood keeps its own warm moss-gold in every act: it's the warm side of the contrast.
-  const W = 128, out = new Img(W, W), Tr = new Img(W, W), Cn = new Img(W, W);
-  const HC = HEART_CANOPY, HB = HEART_BARK, bf = barkFn(HB), warm = 1 - lost / 26, flick = [.8, .92, 1, .9][f];
-
-  // Warm halo behind the whole tree, ground shadow, and a ring of moss at its foot.
-  ellipse(out, 64, 46, 62, 46, (x, y, dx, dy) => CA("#ffd27a", (1 - Math.hypot(dx, dy)) * .2 * warm));
-  ellipse(out, 64, 114, 54, 11, SHADOW(.34));
-  ellipse(out, 64, 111, 42, 8, (x, y, dx, dy) => {
-    const n = pnoise(x, y, 5, 41);
-    return n + Math.hypot(dx, dy) * .5 > .95 ? null : pick([HC[1], HC[2], HC[3]], clamp(.5 - dy * .4 + (n - .5), 0, 1), x, y);
-  });
-
-  // Roots: tapering curves that spread and curl over the ground.
-  const root = (p0, p1, p2, w0) => {
-    let [px, py] = p0;
-    for (let i = 1; i <= 10; i++) {
-      const t = i / 10, u = 1 - t;
-      const x = u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0], y = u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1];
-      stroke(Tr, px, py, x, y, w0 * (1 - (t - .1) * .8), w0 * (1 - t * .8), bf);
-      px = x; py = y;
+// The Heartwood (goal), redrawn 2026-09-30 to match the Memory Grove's Heartwood (tools/meta_art):
+// a twisted three-strand trunk leaning in an S, cool grey-brown mossy bark with a 1 px gold rim, the
+// Hollow's banded gold light, a night crown (green-black shade, cool lit tops, a few bright clusters),
+// moss drapes and dream-fruit, a mossy mound, and muted violet dream mist at its feet.
+// Damage (lost 0..20): rot spreads through the crown, fruit go dark one per 4 leaves, the rim turns
+// ember and the Hollow's light fades out by 20. Colours by Heartwood 32 name.
+const HWN = {
+  Void: "#05050d", Night: "#24243c", Dusk: "#3c3c5c", Slate: "#5c5a78", Dread: "#140f26", Shade: "#2c2444",
+  Bruise: "#4c3c74", Wraithlight: "#9a84e8", Deepmoss: "#1c3c2c", Moss: "#34643c", Leaf: "#5c944c",
+  Root: "#241c14", Bark: "#5c3c24", Oak: "#8c5c34", Loam: "#6c5c5c", Ember: "#b8662c", Gold: "#e9a83c",
+  Glow: "#fcd47c", Heartlight: "#fff4dc", Pool: "#2c4c5c",
+};
+function heartCatmull(pts, samples) {
+  const out = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+    for (let s = 0; s < samples; s++) {
+      const t = s / samples, t2 = t * t, t3 = t2 * t;
+      out.push([0, 1].map(k => .5 * (2 * p1[k] + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3)));
     }
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
+}
+function heartPath(L, pts, w0, w1, fn) {
+  let len = 0; const cum = [0];
+  for (let i = 1; i < pts.length; i++) { len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); cum.push(len); }
+  for (let i = 1; i < pts.length; i++) stroke(L, pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], w0 + (w1 - w0) * cum[i - 1] / len, w0 + (w1 - w0) * cum[i] / len, fn);
+}
+// Canopy stages for the in-run Heartwood that mirrors the player's Memory Grove (meta_design.md
+// "Carried into the run"; heartwood_stage_0..3.png): the same 128 px frame, the crown fuller and
+// broader per stage like grove_canopy_0..3, never bigger than stage 3 (today's crown). Per stage: the
+// crown's ellipses (cx, cy, rx, ry), its three lit lobes, how far the limbs reach, and its blossoms.
+// Flatter and wider from stage 1 up (2026-10-02, Meta Game Asset's Grove-match review): the Grove's
+// crown is a wide spreading canopy (about 1.7:1) with a dark underside, not a tall dome.
+const HEART_STAGES = [
+  { crown: [[64, 42, 38, 18], [36, 48, 15, 10], [92, 48, 15, 10], [64, 30, 20, 10]], lobes: [[38, 46, 14], [90, 46, 14], [64, 32, 22]], reach: .62, blossoms: 2, drapes: 5 },
+  { crown: [[64, 41, 47, 19], [30, 47, 20, 12], [98, 47, 20, 12], [64, 29, 32, 11], [43, 33, 15, 8], [85, 33, 15, 8]], lobes: [[33, 45, 17], [95, 45, 17], [64, 30, 25]], reach: .78, blossoms: 4, drapes: 7 },
+  { crown: [[64, 40, 53, 19], [26, 47, 23, 13], [102, 47, 23, 13], [64, 27, 38, 12], [39, 31, 19, 9], [89, 31, 19, 9]], lobes: [[31, 45, 19], [97, 45, 19], [64, 29, 28]], reach: .9, blossoms: 7, drapes: 8 },
+  { crown: [[64, 40, 58, 20], [22, 47, 19, 13], [106, 47, 19, 13], [64, 24, 42, 13], [36, 29, 22, 10], [92, 29, 22, 10]], lobes: [[28, 45, 20], [100, 45, 20], [64, 27, 30]], reach: 1, blossoms: 10, drapes: 10 },
+];
+// The original single Heartwood (heartwood.png, archived) keeps its old crown.
+const HEART_LEGACY = { crown: [[64, 36, 52, 26], [28, 44, 24, 16], [100, 44, 24, 16], [64, 18, 38, 16], [40, 24, 20, 12], [88, 24, 20, 12]], lobes: [[32, 42, 20], [96, 42, 20], [64, 24, 28]] };
+// Crown facts per stage for the game (heartwood_stages.json): set by heartwood() the first time it
+// draws a stage (the crown doesn't depend on damage or frame).
+const HEART_INFO = [];
+// stage -1 = the original single Heartwood (heartwood.png, with its dream-fruit); 0..3 = the Grove
+// stages: no fruit or twinkles (the game draws dream-fruit for Memories and glints for planted nodes),
+// a crown in 2 px blocks like the Grove's, Bark-to-Root wood, fruit vines at the fruit anchors, and
+// black leaves falling as leaves are lost.
+function heartwood(A, f, lost = 0, stage = -1) {
+  const MH = 128, out = new Img(MH, MH), WOOD = new Img(MH, MH), dmg = lost / 20, E = ellipseRaw, ST = HEART_STAGES[stage];
+  // Ground: a low mossy mound the roots sink into (lit on its upper left).
+  E(out, 64, 113, 40, 11, (x, y, dx, dy) => pick([HWN.Void, HWN.Deepmoss, HWN.Deepmoss, HWN.Moss], clamp(.45 - dy * .35 - dx * .2 + (pnoise(x, y, 4, 7) - .5) * .4, 0, 1), x, y, .6));
+  // Wood: cylinder light from the upper left, cool grey-brown (the warmth is saved for the Hollow and rim).
+  const wood = seed => (x, y, nx) => {
+    if (Math.abs(nx) > .8) return HWN.Root;
+    const t = .55 - nx * .5 + (pnoise(x * 2, y, 6, seed) - .5) * .25;
+    return pick(ST ? [HWN.Root, HWN.Root, HWN.Bark, HWN.Bark] : [HWN.Root, HWN.Root, HWN.Bark, HWN.Loam], clamp(t, 0, 1), x, y, .5);
   };
-  root([54, 100], [42, 100], [26, 110], 10); root([74, 100], [86, 100], [102, 110], 10);
-  root([58, 104], [52, 112], [46, 121], 8); root([70, 104], [78, 112], [84, 121], 8);
-  root([52, 97], [40, 93], [24, 99], 7); root([76, 97], [88, 93], [104, 99], 7);
-  root([64, 106], [65, 114], [62, 122], 7);
-
-  // Trunk: a slow S-twist with bark grooves following it, a flared base and moss on the lit side.
-  for (let y = 54; y <= 112; y++) {
-    const cx = 64 + Math.sin((112 - y) / 18) * 2.5;
-    let w = 10 + (y - 54) * .07; if (y > 94) w += (y - 94) * .55;
-    for (let x = Math.floor(cx - w); x <= Math.ceil(cx + w); x++) {
-      const nx = (x + .5 - cx) / w; if (Math.abs(nx) > 1) continue;
-      const groove = Math.abs((((nx * 3.2 + Math.sin(y * .13) * .35 + y * .015) % 1) + 1) % 1 - .5) < .09;
-      let c = nx < -.5 ? HB[3] : nx > .45 ? HB[1] : HB[2];
-      if (groove) c = nx < -.5 ? HB[2] : HB[1];
-      if (y < 100 && nx < .2 && pnoise(x, y, 7, 43) > .64) c = pick([HC[2], HC[3], HC[4]], clamp(.6 - nx * .4, 0, 1), x, y);
-      Tr.set(x, y, c);
+  // Roots: short thick flares bending down into the mound.
+  [[[58, 98], [48, 105], [42, 112]], [[70, 98], [80, 105], [86, 111]], [[61, 103], [56, 113]], [[67, 103], [72, 113]]]
+    .forEach((r, i) => heartPath(WOOD, heartCatmull(r, 8), [15, 15, 12, 12][i], 7, wood(20 + i)));
+  // The trunk: three strands twisting up an S-curve, then three limbs into the crown.
+  const spine = heartCatmull([[64, 110], [58, 96], [62, 82], [70, 70], [64, 56]], 10), N = spine.length - 1;
+  for (let i = 0; i < N; i++) {
+    const [x0, y0] = spine[i], [x1, y1] = spine[i + 1], d = Math.hypot(x1 - x0, y1 - y0) || 1, px = -(y1 - y0) / d, py = (x1 - x0) / d, segs = [];
+    for (let k = 0; k < 3; k++) {
+      const a0 = i / N * .8 * Math.PI * 2 + k * 2.094, a1 = (i + 1) / N * .8 * Math.PI * 2 + k * 2.094, w0 = 32 - i / N * 10, w1 = 32 - (i + 1) / N * 10;
+      segs.push({ z: Math.cos(a0), a: [x0 + px * Math.sin(a0) * w0 * .25, y0 + py * Math.sin(a0) * w0 * .25], b: [x1 + px * Math.sin(a1) * w1 * .25, y1 + py * Math.sin(a1) * w1 * .25], w0: w0 * .5, w1: w1 * .5, k });
+    }
+    segs.sort((p, q) => p.z - q.z).forEach(s => stroke(WOOD, s.a[0], s.a[1], s.b[0], s.b[1], s.w0, s.w1, wood(30 + s.k * 5)));
+  }
+  const reach = ST ? ST.reach : 1, limbAt = ([x, y]) => [64 + (x - 64) * reach, 58 - (58 - y) * reach];
+  for (const limb of [[[64, 58], [52, 50], [40, 42]], [[64, 58], [64, 46], [66, 36]], [[64, 58], [78, 50], [90, 42]]]) heartPath(WOOD, heartCatmull(ST ? limb.map(limbAt) : limb, 6), 12, 5, wood(40));
+  out.stamp(WOOD, HWN.Void);
+  const inHollow = (x, y) => x > 52 && x < 72 && y > 84 && y < 108;
+  for (let y = 1; y < MH - 1; y++) for (let x = 1; x < MH - 1; x++) {
+    if (!WOOD.alpha(x, y) || !WOOD.alpha(x + 1, y + 1)) continue;
+    if (!WOOD.alpha(x - 1, y) && !WOOD.alpha(x, y - 1)) out.set(x, y, dmg > .6 ? HWN.Ember : HWN.Gold);  // 1 px gold rim, upper-left edge only
+    else if (!inHollow(x, y)) {  // moss patches, like the title's mossy giant
+      const n = pnoise(x, y, 6, 95) * .7 + pnoise(x, y, 2, 96) * .3;
+      const mo = ST ? .1 : 0;  // the Grove stages wear much more moss, like the Grove's moss-wrapped trunk
+      if (n > .62 - mo) out.set(x, y, n > .72 - mo ? HWN.Moss : HWN.Deepmoss); else if (n > .59 - mo && hash(x, y, 97) < .5) out.set(x, y, HWN.Leaf);
     }
   }
-  for (const [x1, y1, w] of [[38, 40, 6], [90, 38, 6], [62, 30, 6], [26, 54, 4], [104, 54, 4]]) stroke(Tr, 64, 62, x1, y1, w, 2.5, bf);
-
-  // The hollow: an arched doorway into the tree, full of warm light.
-  const hollow = [];
-  for (let y = 82; y <= 102; y++) for (let x = 56; x <= 72; x++) {
-    const dx = x + .5 - 64;
-    if (Math.abs(dx) <= 6 && (y >= 90 || Math.hypot(dx, (y + .5 - 90) * 1.1) <= 6)) hollow.push([x, y]);
+  // The Hollow: a pointed doorway at the trunk's foot, banded gold light that dims with damage.
+  const glow = [HWN.Heartlight, HWN.Glow, HWN.Gold, HWN.Ember, HWN.Bark, HWN.Root], dim = Math.round(dmg * 3.2);
+  for (let y = 86; y <= 106; y++) for (let x = 54; x <= 70; x++) {
+    const dx = x + .5 - 62 - (y - 106) * .08, inside = Math.abs(dx) <= 5.5 && (y >= 92 || Math.hypot(dx, (y - 92) * .9) <= 5.5);
+    const lip = !inside && Math.abs(dx) <= 7 && (y >= 92 || Math.hypot(dx, (y - 92) * .9) <= 7);
+    if (lip) { out.set(x, y, dx < 0 ? HWN.Oak : HWN.Root); continue; }
+    if (!inside) continue;
+    const r = Math.hypot(dx / 5.5, (y - 101) / 14);
+    out.set(x, y, glow[Math.min(5, (r < .35 ? 0 : r < .65 ? 1 : r < .9 ? 2 : 3) + dim)]);
   }
-  const hs = new Set(hollow.map(p => p + ""));
-  const inner = (x, y) => hs.has([x + 1, y] + "") && hs.has([x - 1, y] + "") && hs.has([x, y - 1] + "");
-  for (const [x, y] of hollow) Tr.set(x, y, inner(x, y) ? "#2a160a" : "#1a0e08");
-  out.stamp(Tr, HB[0]);
-  for (const [x, y] of hollow) {
-    if (!inner(x, y)) continue;
-    const r = Math.hypot(x + .5 - 64, (y + .5 - 95) * .8) / 8;
-    out.set(x, y, CA(r < .35 ? "#fff4c8" : r < .7 ? "#ffd27a" : "#e0883a", flick * warm));
+  // (no glow painted over the wood: it would blend into solid gold once snapped to the palette)
+  // The crown: leaf clusters on three lit lobes; green-black shade, cool lit tops.
+  const W = MH, L = new Img(W, W), TIER = new Int8Array(W * W).fill(-1);
+  const crownShape = ST ? ST.crown : HEART_LEGACY.crown, lobes = ST ? ST.lobes : HEART_LEGACY.lobes;
+  const inCrown = (x, y) => crownShape.some(([cx, cy, rx, ry]) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 < 1 + (pnoise(x, y, 10, 11) - .5) * .35);
+  const lobe = (x, y) => { let t = -1; for (const [lx, ly, r] of lobes) { const dx = (x - lx) / r, dy = (y - ly) / r, q = dx * dx + dy * dy; if (q <= 1) t = Math.max(t, clamp((-dx * .5 - dy * .8 + Math.sqrt(1 - q) * .5 + .2) / 1.2, 0, 1)); } return t < 0 ? .25 : t; };
+  const cl = [];
+  for (let gy = 2; gy < 66; gy += 4) for (let gx = 0; gx < W; gx += 5) {
+    const x = gx + (hash(gx, gy, 12) - .5) * 3 + (gy / 4 % 2) * 2.5, y = gy + (hash(gx, gy, 13) - .5) * 2;
+    if (inCrown(x, y)) cl.push([x, y, 3 + hash(gx, gy, 14) * 1.6]);
   }
-  for (let x = 57; x <= 71; x++) out.set(x, 103, CA("#ffd27a", .35 * warm * flick));
-
-  // Canopy: a darker back layer for depth, then front clusters, then small leaf clumps
-  // (a lit arc over a shadowed underside) so it reads as foliage, not as balls.
-  [[64, 16, 26, 14], [38, 24, 20, 13], [90, 24, 20, 13], [20, 42, 15, 11], [108, 42, 15, 11]]
-    .forEach(([x, y, rx, ry], k) => blob(Cn, x, y, rx, ry, HC.slice(0, 4), { lump: .12, seed: k * 13 + 1, tex: .1, rim: true }));
-  [[64, 26, 20, 12], [48, 36, 24, 16], [80, 36, 24, 16], [30, 54, 18, 11], [98, 54, 18, 11], [64, 48, 30, 15]]
-    .forEach(([x, y, rx, ry], k) => blob(Cn, x, y, rx, ry, HC.slice(1), { lump: .1, seed: k * 17 + 5, tex: .1, rim: true }));
-  for (let k = 0; k < 110; k++) {
-    const x = 8 + Math.floor(hash(k, 7, 912) * 112), y = 4 + Math.floor(hash(k, 8, 912) * 62);
-    if (!Cn.alpha(x - 1, y) || !Cn.alpha(x + 2, y + 2) || !Cn.alpha(x, y - 1)) continue;
-    const hi = x < 70 && y < 44 && hash(k, 9, 912) < .5 ? HEART_LEAF_HI : x < 80 && y < 50 ? HC[4] : HC[3];
-    Cn.set(x - 1, y + 1, hi); Cn.set(x, y, hi); Cn.set(x + 1, y, hi); Cn.set(x + 2, y + 1, HC[3]);
-    Cn.set(x, y + 2, HC[1]); Cn.set(x + 1, y + 2, HC[1]);
-  }
-  out.stamp(Cn, HC[0]);
-
-  // Vines hanging from the canopy's underside, each ending in a glowing dream-fruit.
-  // Fruit go dark as leaves are lost.
-  [[26, 10], [42, 14], [56, 8], [74, 12], [88, 15], [102, 9]].forEach(([vx, len], k) => {
-    let vy = 72; while (vy > 0 && !Cn.alpha(vx, vy)) vy--;
-    let fx = vx;
-    for (let i = 1; i <= len; i++) { fx = vx + Math.round(Math.sin(i * .7 + k) * .8); out.set(fx, vy + i, i % 3 === 2 ? HC[3] : HC[2]); }
-    const fy = vy + len + 1;
-    if (k < 6 - Math.floor(lost / 4)) {
-      const a = (.75 + .25 * ((f + k) % 2)) * warm;
-      ellipse(out, fx + 1, fy + 1, 4.5, 4.5, (x, y, dx, dy) => CA("#ffd27a", (1 - Math.hypot(dx, dy)) * .4 * a));
-      out.set(fx, fy, "#fff4c8"); out.set(fx + 1, fy, "#ffd27a"); out.set(fx, fy + 1, "#ffd27a"); out.set(fx + 1, fy + 1, "#e0883a");
-    } else {
-      out.set(fx, fy, "#2a2030"); out.set(fx + 1, fy, "#1a1420"); out.set(fx, fy + 1, "#1a1420"); out.set(fx + 1, fy + 1, "#0e0a12");
+  cl.sort((a, b) => b[1] - a[1]).forEach(([cx, cy, r]) => {
+    const base = clamp(1 + Math.floor((lobe(cx, cy) * .9 + .2 - (cy - 16) / 60 * .45) * 4), 1, 4);
+    for (let y = Math.floor(cy - r); y <= cy + r; y++) for (let x = Math.floor(cx - r); x <= cx + r; x++) {
+      const dx = (x + .5 - cx) / r, dy = (y + .5 - cy) / r, q = Math.hypot(dx, dy); if (q > 1 || x < 0 || y < 0 || x >= W || y >= W) continue;
+      TIER[y * W + x] = clamp(dy > .35 && q > .6 ? base - 1 : dx < .2 && dy < 0 && q < .7 ? base + 1 : base, 0, 5);
     }
   });
-  const rot = [];
-  for (let k = 0; k < 20; k++) rot.push([26 + hash(k, 5, 911) * 76, 12 + hash(k, 6, 911) * 50]);
-  // Blackened leaves: ragged patches of violet-black with ashen clump highlights, not flat circles.
-  for (let k = 0; k < lost; k++) {
-    const [cx, cy] = rot[k];
-    ellipse(out, cx, cy, 10, 8, (x, y, dx, dy) => {
-      if (!Cn.alpha(x, y) || pnoise(x, y, 4, 900 + k) < Math.hypot(dx, dy) * .85) return null;
-      if (hash(x, y, 950 + k) < .08) return "#3e344c";
-      return pick(["#0e0a14", "#1c1626", "#2c2438"], clamp(.55 - dx * .3 - dy * .35, 0, 1), x, y);
-    });
+  const LEAF = [HWN.Void, HWN.Void, HWN.Deepmoss, HWN.Pool, HWN.Moss, HWN.Moss];
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+    if (TIER[y * W + x] < 0) continue;
+    // The Grove stages shade in 2 px blocks (the Grove crown's pixel size); the silhouette stays 1 px.
+    const bx = ST && TIER[(y & ~1) * W + (x & ~1)] >= 0 ? x & ~1 : x, by = ST && TIER[(y & ~1) * W + (x & ~1)] >= 0 ? y & ~1 : y;
+    let t = TIER[by * W + bx];
+    let below = 0; for (let yy = by + 1; yy < W && TIER[yy * W + bx] >= 0; yy++) below++;
+    if (below < (ST ? 5 : 3)) t = Math.min(t, 2);  // a dark green belly (deeper on the Grove stages, like the Grove's underside)
+    const rot = pnoise(bx, by, 10, 21) * .7 + pnoise(bx, by, 3, 22) * .3;
+    if (dmg > 0 && rot > 1 - dmg * .62) { L.set(x, y, hash(bx, by, 23) < .05 ? HWN.Slate : rot > 1.08 - dmg * .62 ? HWN.Dread : HWN.Shade); continue; }
+    L.set(x, y, t === 1 ? ((bx + by) % (ST ? 4 : 2) ? HWN.Void : HWN.Deepmoss) : t >= 4 && by < 22 && hash(bx, by, 24) < .15 ? HWN.Leaf : LEAF[t]);
   }
-  for (let k = 0; k < Math.min(lost, 4); k++) {
-    const ph = ((f / 4) + k / 4) % 1;
-    out.set(30 + k * 20 + Math.sin(ph * 6) * 3, 72 + ph * 40, CA("#16121c", Math.sin(ph * Math.PI)));
+  if (ST && !HEART_INFO[stage]) {
+    // For the game: the crown's box, the lit tops where glints may twinkle (every lit 2 px block's
+    // corner), and up to 10 fruit anchors (under the crown's belly, clear of the trunk, centre out).
+    let x0 = W, y0 = W, x1 = -1, y1 = -1;
+    const glints = [];
+    for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+      if (TIER[y * W + x] < 0) continue;
+      x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+      if (!(x & 1) && !(y & 1) && TIER[y * W + x] >= 4 && TIER[(y + 4) * W + x] >= 0) glints.push([x, y]);
+    }
+    // Uneven spacing and hang lengths: an even row read as a string of fairy lights.
+    const spots = [];
+    for (let k = 0, x = x0 + 7; x <= x1 - 7; k++, x += 9 + Math.floor(hash(k, 1, 45) * 5)) {
+      if (Math.abs(x - 64) < 13) continue;
+      let y = W - 1; while (y > 0 && TIER[y * W + x] < 0) y--;
+      if (y > 40) spots.push([x, Math.min(y + 4 + Math.floor(hash(k, 2, 45) * 10), 100)]);
+    }
+    spots.sort((a, b) => Math.abs(a[0] - 64) - Math.abs(b[0] - 64) || a[0] - b[0]);
+    // Not 10 under the belly: nestle the rest in the crown's lower half, at least 12 px from any other.
+    for (let k = 0; k < 400 && spots.length < 10; k++) {
+      const x = x0 + 6 + Math.floor(hash(k, 3, 45) * (x1 - x0 - 12)), y = y0 + Math.floor((y1 - y0) * (.45 + hash(k, 4, 45) * .35));
+      if (TIER[y * W + x] < 0 || TIER[(y - 4) * W + x] < 0 || spots.some(([sx, sy]) => Math.hypot(sx - x, sy - y) < 12)) continue;
+      spots.push([x, y]);
+    }
+    HEART_INFO[stage] = { crown: [x0, y0, x1, y1], glints, fruit: spots.slice(0, 10) };
   }
-  const blackened = (x, y) => rot.slice(0, lost).some(([cx, cy]) => Math.hypot((x - cx) / 8, (y - cy) / 6) < 1.1);
-  for (let k = 0; k < 20; k++) {
-    const x = 20 + Math.floor(hash(k, 1, 909) * 88), y = 10 + Math.floor(hash(k, 2, 909) * 52);
-    if (!Cn.alpha(x, y) || !Cn.alpha(x + 1, y + 1) || blackened(x, y)) continue;
-    const on = (k + f) % 4; if (on === 0) continue;
-    out.set(x, y, CA("#fff4b8", on === 2 ? 1 : .6));
-    if (on === 2) { out.set(x + 1, y, CA("#ffd27a", .8)); out.set(x, y + 1, CA("#ffd27a", .8)); }
+  const C2 = new Img(W, W); C2.stamp(L, HWN.Void);
+  out.put(C2);
+  if (ST) {  // the great limbs reaching up into the crown's belly (the Grove shows its three limbs)
+    for (const limb of [[[62, 64], [52, 57], [40, 52]], [[66, 64], [76, 57], [88, 52]], [[64, 62], [65, 55], [63, 50]]]) heartPath(out, heartCatmull(limb.map(([x, y]) => [64 + (x - 64) * ST.reach, y]), 6), 7, 3, wood(41));
   }
-  for (let k = 0; k < 12; k++) { const ph = ((f / 4) + k / 12) % 1; out.set(14 + hash(k, 3, 910) * 100, 96 - ph * 70 - hash(k, 4, 910) * 10, CA("#ffe9a0", Math.sin(ph * Math.PI) * warm)); }
+  for (let y = 1; y < MH; y++) for (let x = 1; x < MH; x++) if (C2.alpha(x, y) && !C2.alpha(x - 1, y - 1) && C2.alpha(x + 1, y + 1) && hash(x, y, 31) < .7 - dmg * .5) out.set(x, y, dmg > .6 ? HWN.Ember : HWN.Gold);
+  // Moss drapes from the crown's belly.
+  for (let k = 0; k < (ST ? ST.drapes : 9); k++) {
+    const x = 18 + hash(k, 1, 33) * 92 | 0; let y = 70; while (y > 20 && !C2.alpha(x, y)) y--;
+    if (y < 30) continue;
+    const len = 5 + hash(k, 2, 33) * 9;
+    for (let i = 0; i < len; i++) out.set(x + Math.round(Math.sin(i * .5 + k + f * .4) * .8), y + i, i % 3 ? HWN.Moss : HWN.Deepmoss);
+  }
+  if (ST) {
+    // Blossoms (the Grove crown's warm specks), more on older trees; they go out as the rot spreads.
+    const lit = [];
+    for (let y = 0; y < W; y += 2) for (let x = 0; x < W; x += 2) if (TIER[y * W + x] >= 4 && TIER[(y + 4) * W + x] >= 0) lit.push([x, y]);
+    for (let k = 0; k < ST.blossoms && lit.length; k++) {
+      const [x, y] = lit[Math.floor(hash(k, 1, 41) * lit.length)];
+      if (hash(k, 2, 41) < dmg) continue;
+      out.set(x, y, HWN.Gold); out.set(x + 1, y, HWN.Glow); out.set(x, y + 1, HWN.Ember);
+    }
+    // Vines hanging to the fruit anchors (the game hangs a dream-fruit at the tip per Memory).
+    for (const [fx, fy] of HEART_INFO[stage] ? HEART_INFO[stage].fruit : []) {
+      let vy = fy - 3; while (vy > 20 && !C2.alpha(fx, vy)) vy--;
+      for (let y = vy + 1; y <= fy - 3; y++) out.set(fx + Math.round(Math.sin(y * .5 + fx) * .6), y, y % 3 ? HWN.Moss : HWN.Deepmoss);
+    }
+    // Black leaves falling off the crown, more as leaves are lost.
+    for (let k = 0; k < Math.ceil(lost * .6); k++) {
+      const x = 20 + hash(k, 1, 43) * 88 | 0, y = 50 + hash(k, 2, 43) * 24 + ((f + k) % 4) * 5 | 0, sx = x + ((f + k) % 2);
+      out.set(sx, y, HWN.Dread); out.set(sx + 1, y, HWN.Void); out.set(sx, y + 1, HWN.Void);
+    }
+  }
+  // Twinkling dream-leaves (fewer as the rot spreads).
+  for (let k = 0; k < (ST ? 0 : 14); k++) {
+    const x = 14 + hash(k, 1, 30) * 100 | 0, y = 10 + hash(k, 2, 30) * 44 | 0;
+    if ((k + f) % 4 === 0 || hash(k, 3, 30) < dmg || !out.alpha(x, y)) continue;
+    out.set(x, y, HWN.Glow); if (k % 3 === 0) out.set(x + 1, y, HWN.Gold);
+  }
+  // Vines with dream-fruit; fruit k darkens once lost reaches (k + 1) × 4 (the original Heartwood only).
+  (ST ? [] : [[22, 58, 10], [42, 62, 8], [86, 62, 9], [106, 58, 10], [56, 64, 6]]).forEach(([vx, vy, len], k) => {
+    const sway = [0, 1, 0, -1][(f + k) % 4] * (k % 2 ? 1 : .5);
+    for (let i = 0; i < len; i++) out.set(vx + Math.round(Math.sin(i * .5 + k) * .8 + sway * i / len), vy + i, i % 3 ? HWN.Moss : HWN.Deepmoss);
+    const fx = vx + Math.round(sway), fy = vy + len + 2, dark = lost >= (k + 1) * 4;
+    if (!dark) for (const [r, a] of [[4, .45], [5.5, .22]]) E(out, fx, fy, r, r, (x, y, dx, dy) => Math.hypot(dx, dy) > .72 ? CA(HWN.Glow, a) : null);
+    E(out, fx, fy, 2.2, 2.6, (x, y, dx, dy) => dark ? (dy < 0 ? HWN.Dusk : HWN.Night) : dx < 0 && dy < 0 ? HWN.Heartlight : dy > .3 ? HWN.Ember : HWN.Gold);
+  });
+  // Muted violet dream mist drifting over the mound and the roots, thickest at the ground.
+  for (let y = 96; y < 126; y++) for (let x = 12; x < 116; x++) {
+    if (x > 54 && x < 70 && y > 86 && y < 107) continue;
+    const band = clamp(1 - Math.abs(y - 114) / 12, 0, 1) * (1 - Math.abs(x - 64) / 58);
+    const d = band * clamp((pnoise(x + f * 2, y, 9, 34) - .3) * 2.4, 0, 1);
+    if (d > 0 && bay(x, y) < d * .8) out.set(x, y, d > .6 ? HWN.Shade : HWN.Dusk);
+  }
+  return out;
+}
+// A dream-fruit for the in-run Heartwood (dream_fruit.png): the game hangs one per unlocked Memory at
+// the stage's fruit anchors. 12×12 cells, centre (6, 6). v 0 = lit: a golden fruit in an opaque
+// dithered halo that breathes over the 4 frames; v 1 = dark, for fruit whose leaves are lost (still).
+function dreamFruit(v, f) {
+  const out = new Img(12, 12), dark = v === 1;
+  if (!dark) {
+    const density = [.35, .55, .75, .55][f];
+    for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) {
+      const r = Math.hypot(x + .5 - 6, (y + .5 - 6.5) * 1.1);
+      if (r > 3 && r < 5.6 && bay(x, y) < density * (1 - (r - 3) / 2.6)) out.set(x, y, r < 4.2 ? HWN.Glow : HWN.Gold);
+    }
+  }
+  if (dark) {
+    // A dark husk, still hanging (the user's call, 2026-10-01: lost fruit must stay visible): shrivelled
+    // cold violet-grey with a dent, a 1 px Dread outline and a faint cold rim, so it reads against the
+    // Deepmoss / Pool crown and the night ground.
+    const H = new Img(12, 12);
+    H.set(6, 2, HWN.Dusk); H.set(6, 3, HWN.Dusk);  // a withered stem
+    ellipseRaw(H, 6, 6.5, 2.2, 2.6, (x, y, dx, dy) => dx < -.1 && dy < -.1 ? "#8c8cac" /* Stone */ : dy > .35 || dx > .55 ? HWN.Dusk : HWN.Slate);
+    H.set(7, 6, HWN.Dusk); H.set(6, 7, HWN.Dusk);  // the shrivelled dent
+    out.stamp(H, HWN.Dread);
+    for (let y = 1; y < 11; y++) for (let x = 1; x < 11; x++)  // cold rim on the upper-left edge
+      if (H.alpha(x, y) && !H.alpha(x - 1, y) && !H.alpha(x, y - 1) && y > 3) out.set(x, y, HWN.Wraithlight);
+    return out;
+  }
+  out.set(6, 2, HWN.Moss); out.set(6, 3, HWN.Deepmoss);  // stem
+  ellipseRaw(out, 6, 6.5, 2.4, 2.8, (x, y, dx, dy) => dx < 0 && dy < 0 ? HWN.Heartlight : dy > .3 ? HWN.Ember : HWN.Gold);
   return out;
 }
 
+// Ground details: 12 variants = the 4 kinds (v % 4) each drawn at 3 spots in the cell, so a scatter of
+// them never lines up on the cell grid. Variants 0–3 are the four kinds, one spot each.
+const DECOR_SPOTS = [[-13, -18], [11, -6], [-6, 6]];
+function decorAt(A, v, seed) {
+  const kind = v % 4, [dx, dy] = DECOR_SPOTS[(Math.floor(v / 4) + kind) % 3];
+  return new Img().put(decor(A, kind, seed), dx, dy);
+}
 function decor(A, v, seed) {
   const out = new Img(), L = new Img(), g = A.grass;
   if (v === 0) {
@@ -952,19 +1289,19 @@ function glintEyes(out, f, pts) { if (f === 2) for (const [x, y] of pts) tset(ou
 
 // t: 0 split trunk, 1 broken snag, 2 weeping willow, 3 dead pine, 4 dead birch, 5 thorn tree
 function deadTree(A, t, f, seed) {
-  const out = new Img(64, 96), L = new Img(64, 96);
-  TT = TREE_TT;  // drawn 1.5× taller from the 64 px design (see TREE_TT)
+  const out = new Img(TREE_W, TREE_H), L = new Img(TREE_W, TREE_H);
+  TT = TREE_TT; TX = TREE_TX;  // drawn bigger from the 64 px design (see TREE_TT / TREE_TX)
   deadBase(out, seed);
   if (t === 0) {
     stroke(L, 32, 56, 32, 40, 13, 10, deadFn); deadRoots(L, deadFn);
     stroke(L, 29, 41, 19, 13, 7, 3, deadFn); stroke(L, 35, 41, 45, 11, 7, 3, deadFn);
     branch(L, 21, 19, -2.5, 7, 3, 0, seed, deadFn); branch(L, 43, 17, -.6, 8, 3, 0, seed + 3, deadFn);
     out.stamp(L, DEAD[0]);
-    for (let y = Math.round(ty(30)); y <= ty(45); y++) { const x = 32 + Math.round(Math.sin(y * .5) * 1.2); out.set(x, y, "#0c0a12"); if (y % 4 === 0) out.set(x + 1, y, "#d8d0e8"); }
+    for (let y = Math.round(ty(30)); y <= ty(45); y++) { const x = Math.round(tx(32) + Math.sin(y * .5) * 1.2); out.set(x, y, "#0c0a12"); if (y % 4 === 0) out.set(x + 1, y, "#d8d0e8"); }
     smoke(out, f, [22, 33, 42]);
   } else if (t === 1) {
     stroke(L, 32, 57, 32, 26, 17, 13, deadFn); stroke(L, 30, 54, 20, 58, 5, 2, deadFn); stroke(L, 34, 54, 44, 58, 5, 2, deadFn);
-    for (let x = 16; x <= 48; x++) { const top = 24 + [0, -5, -2, -7, -1, -4][(x + seed) % 6] + Math.floor(hash(x, 1, seed) * 2); for (let y = 0; y < ty(top); y++) copyPx(L, x, y, [0, 0, 0, 0]); }
+    for (let x = 16; x <= 48; x++) { const top = 24 + [0, -5, -2, -7, -1, -4][(x + seed) % 6] + Math.floor(hash(x, 1, seed) * 2); for (let ox = Math.floor(tx(x)); ox < Math.floor(tx(x + 1)); ox++) for (let y = 0; y < ty(top); y++) copyPx(L, ox, y, [0, 0, 0, 0]); }
     // Limbs reaching out, so it reads as a tree (branching, tall) and never as a stone pillar.
     branch(L, 38, 34, -.55, 11, 4, 1, seed, deadFn);
     branch(L, 26, 30, -2.55, 11, 4, 1, seed + 2, deadFn);
@@ -989,8 +1326,8 @@ function deadTree(A, t, f, seed) {
     pts.forEach(([x, y], k) => {
       if (k % 2) return;
       const len = 8 + hash(k, 5, seed) * 16;
-      const y0 = Math.round(ty(y)), n = Math.round(len * 1.4);
-      for (let i = 1; i < n; i++) out.set(x + Math.round(sway * i / n * 1.5), y0 + i, i % 4 === 0 ? "#4a4054" : "#7a6e86");
+      const y0 = Math.round(ty(y)), n = Math.round(len * 1.6);
+      for (let i = 1; i < n; i++) out.set(Math.round(tx(x) + sway * i / n * 1.5), y0 + i, i % 4 === 0 ? "#4a4054" : "#7a6e86");
     });
     smoke(out, f, [26, 38]);
   } else if (t === 3) {
@@ -1020,10 +1357,11 @@ function deadTree(A, t, f, seed) {
     stroke(L, 32, 57, 31, 40, 13, 9, deadFn);
     for (const [a, len] of [[-2.9, 18], [-2.4, 16], [-1.9, 13], [-1.25, 13], [-.7, 16], [-.25, 18]]) branch(L, 31, 42, a, len, 4.5, 1, seed + len, deadFn);
     out.stamp(L, DEAD[0]);
-    for (let y = 4; y < ty(50); y++) for (let x = 2; x < 62; x++) if (L.alpha(x, y) && !L.alpha(x, y - 1) && hash(x, y, seed + 9) < .22) out.set(x, y - 1, DEAD[0]);
+    for (let y = 4; y < ty(50); y++) for (let x = 2; x < L.w - 2; x++) if (L.alpha(x, y) && !L.alpha(x, y - 1) && hash(x, y, seed + 9) < .22) out.set(x, y - 1, DEAD[0]);
     smoke(out, f, [22, 32, 42]);
   }
-  TT = null;
+  mossFlecks(out, L, seed);
+  TT = null; TX = null;
   return out;
 }
 
@@ -1105,27 +1443,57 @@ function rock(A, t, seed) {
 // fringe show the step down. South lips meet the cliff tiles below.
 // Heartwood 32 names: Void, Dread, Root, Shade, Bark (drawn in palette colours so nothing snaps to moss).
 const RIM_EARTH = ["#05050d", "#140f26", "#241c14", "#2c2444", "#5c3c24"];
-function islandEdge(A, mask) {
+// v = variant (row): every variant shares the wobble at the tile's ends, so any variants sit side by
+// side, but bulges and bites differently in between. One variant repeated every 64 px read as a
+// regular scallop all round the island (2026-10-01: "the outer edges don't look natural").
+const RIM_VARIANTS = 4;
+function islandEdge(A, mask, v = 0) {
   const L = new Img(), g = A.grass, m = 10, s = SEED + 900;
   const open = { n: !(mask & 1), e: !(mask & 2), s: !(mask & 4), w: !(mask & 8) };
   const rect = [open.w ? m : -20, open.n ? m : -20, open.e ? T - m : T + 20, open.s ? T - m : T + 20];
   const opens = Object.values(open).filter(Boolean).length;
-  const D = (x, y) => sdBox(x + .5, y + .5, rect, 14) + (pnoise(x, y, 6, s, 8) - .5) * 9 + (pnoise(x, y, 3, s + 1, 16) - .5) * 3;
-  // The step up to the buildable grass: only for straight edges (one open side), on the opposite side.
-  const inner = opens === 1 ? (open.n ? "s" : open.s ? "n" : open.e ? "w" : "e") : null;
-  const toInner = (x, y) => inner === "s" ? T - 1 - y : inner === "n" ? y : inner === "w" ? x : inner === "e" ? T - 1 - x : 99;
+  const win = u => Math.sin(Math.PI * (u + .5) / T);  // 0 at the tile's ends, 1 in the middle
+  // Per-variant bumps along each open side, strongest at that side and gone 40 px in.
+  const bumps = (x, y) => {
+    let b = 0;
+    for (const [k, u, to] of [["n", x, y], ["s", x, T - 1 - y], ["w", y, x], ["e", y, T - 1 - x]]) {
+      if (!open[k]) continue;
+      b += (pnoise(u, "nesw".indexOf(k) * 31 + v * 97, 14, s + 30) - .5) * 44 * win(u) * clamp(1 - to / 40, 0, 1);
+    }
+    return b;
+  };
+  const D = (x, y) => sdBox(x + .5, y + .5, rect, 14) + (pnoise(x, y, 6, s, 8) - .5) * 9 + (pnoise(x, y, 3, s + 1, 16) - .5) * 3
+    + (pnoise(x, y, 16, s + 10, 4) - .5) * 8 + (pnoise(x, y, 32, s + 11, 2) - .5) * 8 + bumps(x, y);
+  // The step up to the buildable grass, on the sides facing the island (opposite the open sides): the
+  // grass creeps over the lip in uneven tongues with a shadow under them, so the ground doesn't end on a
+  // straight cell edge. A straight rim tile has one such side; a corner has two, and the grass only
+  // reaches into the corner where both meet (the ground is its diagonal neighbour). The creep depth is a
+  // function of the position along that side only, so it lines up with the neighbouring rim tiles.
+  const creepDepth = (u, side) => Math.max(1, 2 + pnoise(u, side * 16, 8, s + 20, 8) * 6 + pnoise(u, side * 16 + 8, 16, s + 21, 4) * 8
+    + pnoise(u, side * 16 + 4, 32, s + 22, 2) * 6 + (pnoise(u, side * 31 + v * 97, 12, s + 31) - .3) * 40 * win(u));
+  const innerSides = opens === 1 || opens === 2 ? ["n", "e", "s", "w"].filter(k => open[{ n: "s", e: "w", s: "n", w: "e" }[k]]) : [];
+  const creep = (x, y) => {  // > 0 inside the grass, the distance past its edge (negative) outside
+    if (!innerSides.length) return -99;
+    let v = 1e9;
+    for (const k of innerSides) {
+      const to = k === "s" ? T - 1 - y : k === "n" ? y : k === "w" ? x : T - 1 - x;
+      v = Math.min(v, creepDepth(k === "n" || k === "s" ? x : y, "nesw".indexOf(k)) - to);
+    }
+    return v;
+  };
   for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
     const d = D(x, y);
     if (d > 0) continue;
     if (d > -3 && bay(x, y) < (d + 3) / 3.5) continue;  // the crumbling edge fades into the void
     // Seamless noise only (a per-tile light gradient repeated as a checker along the rim).
-    const lit = .42 + (pnoise(x, y, 5, s + 2, 16) - .5) * .6 + (pnoise(x, y, 16, s + 3, 4) - .5) * .3;
+    const lit = .42 + (pnoise(x, y, 8, s + 2, 8) - .5) * .35 + (pnoise(x, y, 16, s + 3, 4) - .5) * .35
+      + (pnoise(x, y, 10, s + 40 + v * 13) - .5) * .35 * win(x) * win(y);
     let c = pick(RIM_EARTH.slice(1), clamp(lit, 0, 1), x, y, .6);
-    if (d > -5) c = pick(RIM_EARTH.slice(2), clamp(lit + .2, 0, 1), x, y, .4);  // the broken lip catches a little light
+    if (d > -5 && hash(x >> 2, y >> 2, s + 12) < .3) c = pick(RIM_EARTH.slice(2), clamp(lit + .2, 0, 1), x, y, .4);  // bits of the broken lip catch a little light (a continuous band read as a rope)
     if (hash(x, y, s + 3) < .025) c = hash(x, y, s + 4) < .5 ? "#3c3c5c" : "#5c5a78";  // loose stones
-    const ti = toInner(x, y);
-    if (ti < 4) c = RIM_EARTH[0];  // shadow under the grass edge above
-    if (ti < 2 && hash(x, y, s + 5) < .55) c = hash(x, y, s + 6) < .5 ? g[1] : g[2];  // grass hanging over the step
+    const cv = creep(x, y);
+    if (cv > 0) c = cv < 1.2 && hash(x, y, s + 5) < .5 ? g[3] : hash(x, y, s + 6) < .3 ? g[2] : g[1];  // grass, its lip catching light
+    else if (cv > -3) c = RIM_EARTH[0];  // shadow under the grass edge
     L.set(x, y, c);
   }
   // Roots falling off the lip into the void: straight down past the west and east lips, curling over the north lip.
@@ -1224,6 +1592,240 @@ const WOOD = ["#1e1410", "#3a2618", "#5a3c24", "#7c5634", "#9c7448"];
 // Cloud shadows (256×128, transparent), seen from above as they pass over the map: an elongated,
 // lobed patch whose edge breaks into wisps on the downwind (right) side, denser in the middle.
 // Three banded alpha steps of Dread (dithered where they meet), never a soft blur.
+// Mist banks (2026-09-30, the title / Grove fog): a seamless 256×256 tile of dithered fog in the
+// title's fog ramp (Pool → Slate → Stone → Mist), opaque palette pixels in three density bands. The
+// game draws it at low alpha, stretched 2× wide so the banks lie flat, thicker at the map's back and edges.
+function mistBanks() {
+  const W = 256, out = new Img(W, W), ramp = ["#2c4c5c", "#5c5a78", "#8c8cac", "#b4b0c8"];
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+    const n = .6 * pnoise(x, y, 64, 1907, 4) + .4 * pnoise(x, y, 32, 1913, 8);
+    const d = clamp((n - .38) * 1.9, 0, 1);
+    if (d <= 0 || bay(x, y) >= d * .85) continue;
+    out.set(x, y, ramp[Math.min(3, Math.floor(d * 3.2))]);
+  }
+  return out;
+}
+// Route mist (screens_ui.md "Route mist", 2026-10-01): the cold mist the route preview draws along the
+// path. route_mist.png is a 64×24 strip that tiles left to right; route_mist_start / _end are 32×24 caps
+// sampled from the same pattern (the start cap from the strip's last 32 px, the end cap from its first
+// 32), so cap–strip–cap joins without seams. A Slate fog body in 3 alpha bands (0.6 core) that fades
+// out at the top and bottom edges, with thin Wraithlight and Moonlight wisps. `fade(x)` (0..1) thins
+// it toward a cap's open end; `curl` adds the end cap's forward curl.
+const ROUTE_W = 64, ROUTE_H = 24;
+function routeMistPx(L, x, xs, fade, s) {
+  // xs = position in the strip's 64 px period; the noise wraps there, so every piece lines up.
+  // v2 (2026-10-01, it vanished on the pale path at play zoom): a denser body, a pale Mist core (reads on
+  // dark grass) inside Slate, inside a cold Shade edge (a cold shadow that reads on the pale stone).
+  const thick = (5.5 + pnoise(xs, 0, 16, s, 4) * 5) * fade, mid = 12 + (pnoise(xs, 3, 32, s + 1, 2) - .5) * 2;
+  for (let y = 0; y < ROUTE_H; y++) {
+    const d = Math.abs(y + .5 - mid) / Math.max(thick, .01) + (pnoise(xs, y, 8, s + 2, 8) - .5) * .6;
+    if (y < 1 || y > ROUTE_H - 2 || d >= 1.15) continue;
+    if (d >= .78 && bay(x, y) > .65) continue;  // a broken, dithered cold edge (an even band read as a pipe)
+    L.set(x, y, d < .4 ? CA("#b4b0c8", .75 * fade) : d < .78 ? CA("#5c5a78", .65 * fade) : CA("#2c2444", .7 * fade));
+  }
+  // Soft broken strands of pale mist drifting through the core (a continuous sharp violet line read as
+  // lightning, i.e. the Charged status): 2 px tall, gently wavy, in short pieces.
+  for (const [k, col, ph] of [[1, "#dce8f4", 0], [2, "#9a84e8", 2.4]]) {
+    const y = Math.round(mid - 1 + Math.sin((xs / ROUTE_W) * Math.PI * 2 + ph) * 1.6 * fade) + (k === 2 ? 2 : 0);
+    if (pnoise(xs, k * 9, 16, s + 3 + k, 4) < .5 || fade < .3) continue;
+    L.set(x, y, CA(col, .7 * fade)); L.set(x, y + 1, CA(col, .45 * fade));
+  }
+}
+function routeMist(part) {
+  const s = SEED + 960;
+  if (part === 0) { const L = new Img(ROUTE_W, ROUTE_H); for (let x = 0; x < ROUTE_W; x++) routeMistPx(L, x, x, 1, s); return L; }
+  const L = new Img(32, ROUTE_H);
+  for (let x = 0; x < 32; x++) {
+    if (part === 1) routeMistPx(L, x, x + 32, clamp((x + .5) / 26, 0, 1) ** 1.5, s);  // start: thin, fading in
+    else routeMistPx(L, x, x, clamp(1 - (x + .5) / 30, 0, 1) ** .8, s);  // end: fading out...
+  }
+  if (part === 2) {  // ...with a curl reaching forward
+    for (let i = 0; i <= 24; i++) {
+      const t = i / 24, a = -Math.PI / 2 + t * Math.PI * 1.6, r = 5.5 - t * 3;
+      const x = Math.round(18 + t * 6 + Math.cos(a) * r), y = Math.round(12 + Math.sin(a) * r);
+      L.set(x, y, CA(t < .7 ? "#9a84e8" : "#dce8f4", .85 - t * .35));
+    }
+  }
+  return L;
+}
+// route_wisp.png: a brighter wisp for the run start, drifting along the route. 24×24 frames (6), facing
+// right, centre (15, 12): a Heartlight / Moonlight core in a banded Wraithlight glow with a thin cold
+// Shade rim (so it reads on the pale path), a soft 2 px tail swaying behind it.
+function routeWisp(f) {
+  const L = new Img(24, 24), sway = Math.sin(f / 6 * Math.PI * 2), pulse = .5 + .5 * Math.cos(f / 6 * Math.PI * 2);
+  for (let i = 0; i < 12; i++) {  // the tail, thinning to the left
+    const x = 12 - i, y = Math.round(12 + Math.sin(i * .6 + f) * sway * (i / 5));
+    L.set(x, y, CA("#9a84e8", .8 - i * .06)); if (i < 8) L.set(x, y + 1, CA(i < 4 ? "#dce8f4" : "#9a84e8", .55 - i * .05));
+    if (i < 6) L.set(x, y + 2, CA("#2c2444", .45));
+  }
+  for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) {
+    const r = Math.hypot(x + .5 - 15, y + .5 - 12);
+    if (r < 2.2) L.set(x, y, "#fff4dc");
+    else if (r < 3.4) L.set(x, y, CA("#dce8f4", .95));
+    else if (r < 5) L.set(x, y, CA("#9a84e8", .55 + .2 * pulse));
+    else if (r < 6.4) L.set(x, y, CA("#9a84e8", .2 + .15 * pulse));
+    else if (r < 7.4) L.set(x, y, CA("#2c2444", .5));
+  }
+  return L;
+}
+// ---------- Heartwood's Gifts (heartwood_gifts.md, experiment/spire-difficulty) ----------
+// Map pieces the act-break gifts place. Same palette and pipeline as the rest of the act's sheets.
+
+// Lightning Tree (an obstacle): a split, scorched dead tree in the Withered Tree format (96×128), a
+// charred cleft down its middle and Wraithlight static in its bark that flickers; on frame 2 a spark
+// jumps between its two tops. Charged bolts near it hit harder, so it may crackle.
+function lightningTree(A, f) {
+  const out = new Img(TREE_W, TREE_H), L = new Img(TREE_W, TREE_H), seed = SEED + 777;
+  TT = TREE_TT; TX = TREE_TX;
+  deadBase(out, seed);
+  stroke(L, 30, 57, 25, 22, 10, 5, deadFn); stroke(L, 34, 57, 40, 20, 10, 5, deadFn); deadRoots(L, deadFn);
+  branch(L, 25, 24, -2.3, 10, 4, 1, seed, deadFn); branch(L, 40, 22, -.8, 10, 4, 1, seed + 3, deadFn);
+  out.stamp(L, DEAD[0]);
+  for (let y = 24; y <= 54; y++) tset(out, 32 + Math.round(Math.sin(y * .4)), y, "#05050d");  // the charred cleft
+  const vein = f % 2 ? "#dce8f4" : "#9a84e8";
+  for (const [x0, y0, len, k] of [[27, 50, 18, 1], [37, 48, 18, 2]]) {
+    let x = x0;
+    for (let i = 0; i < len; i++) { const y = y0 - i * 1.5; x += (hash(i, k, seed) < .5 ? -1 : 1) * .6; if (talpha(L, x, y)) { tset(out, x, y, vein); tset(out, x + 1, y, "#9a84e8"); } }
+  }
+  if (f === 2) for (let i = 0; i <= 8; i++) { const t = i / 8; tset(out, 25 + t * 15, 21 - Math.sin(t * Math.PI) * 4 + (i % 2), i % 3 ? "#9a84e8" : "#fff4dc"); }
+  mossFlecks(out, L, seed);
+  TT = null; TX = null;
+  return out;
+}
+
+// Moonwell (an unbuildable lit cell): a ring of waystone with still water holding the moon's
+// reflection, which wobbles; motes of moonlight rise from it.
+function moonwell(A, f) {
+  const out = new Img(), L = new Img(), s = SEED + 781, wob = [0, 1, 0, -1][f];
+  ellipse(out, 32, 48, 22, 7, SHADOW(.4));
+  blob(L, 32, 41, 21, 13, STONE_RAMP, { lump: .08, seed: s, tex: .12, rim: true });
+  out.stamp(L, ST.out);
+  ellipseRaw(out, 32, 39, 14, 7.5, (x, y, dx, dy) => dy < -.75 ? ST.d2 : pick(["#2c4c5c", "#2c4c5c", "#4c8ca4"], clamp(.25 - dy * .35 + (pnoise(x, y, 5, s) - .5) * .3, 0, 1), x, y, .4));
+  ellipseRaw(out, 34 + wob, 38.5, 3.4, 2.2, (x, y, dx, dy) => dx < 0 && dy < 0 ? "#fff4dc" : "#dce8f4");
+  for (let i = -5; i <= 5; i += 2) out.set(31 + i - wob, 43, "#9cd4fc");
+  for (let k = 0; k < 4; k++) {
+    const ph = (f + k) % 4, x = 23 + k * 6 + (k % 2), y = 33 - ph * 5;
+    out.set(x, y, ph === 3 ? "#9a84e8" : "#dce8f4"); if (ph < 2) out.set(x, y + 1, CA("#9a84e8", .6));
+  }
+  return out;
+}
+
+// Bell Stone (a singing stone): a standing stone with a small bronze bell in its hollow, a rune that
+// glows gold as it sings, and a ring of sound that spreads and fades over the frames.
+function bellStone(A, f) {
+  const out = new Img(), L = new Img(), s = SEED + 785, g = A.grass;
+  ellipse(out, 32, 54, 16, 5, SHADOW(.4));
+  blob(L, 32, 36, 12, 19, STONE_RAMP, { lump: .06, seed: s, tex: .12, rim: true });
+  ellipse(L, 32, 29, 3.2, 4.2, "#140f26");  // the hollow it sings through
+  mossPass(L, 32, 36, 12, 19, g, s + 2, .72);
+  out.stamp(L, ST.out);
+  out.set(32, 26, "#5c3c24");
+  ellipseRaw(out, 32, 29.5, 1.8, 2.2, (x, y, dx, dy) => dy > .5 ? "#5c3c24" : dx < 0 ? "#e9a83c" : "#b8662c");
+  const lit = f === 1 || f === 2;
+  for (const [x, y] of [[30, 39], [31, 40], [32, 41], [33, 40], [34, 39], [32, 43], [32, 44]]) out.set(x, y, lit ? "#fcd47c" : ST.d1);
+  const r = 9 + f * 4;
+  for (let a = 0; a < 72; a += 2) {
+    const t = a / 72 * Math.PI * 2;
+    if (Math.abs(Math.cos(t)) < .5) continue;  // only beside the stone, never across it
+    out.set(32 + Math.cos(t) * r * 1.15, 32 + Math.sin(t) * r * .75, CA("#b4b0c8", .65 - f * .14));
+  }
+  return out;
+}
+
+// Mushroom Ring (a 3×3 ground patch, drawn under Wardens): a fairy ring of lush moss with toadstools
+// round it whose caps breathe a soft glow, each a step out of time with the next.
+function mushroomRing(A, f) {
+  const W = 192, out = new Img(W, W), s = SEED + 790, g = A.grass;
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+    const r = Math.hypot((x + .5 - 96) / 76, (y + .5 - 98) / 70) + (pnoise(x, y, 8, s) - .5) * .06;
+    if (Math.abs(r - 1) < .055 && bay(x, y) < .6) out.set(x, y, Math.abs(r - 1) < .025 ? g[4] : g[3]);
+  }
+  const caps = [];
+  for (let k = 0; k < 15; k++) {
+    const a = k / 15 * Math.PI * 2 + (hash(k, 1, s) - .5) * .3, rr = 1 + (hash(k, 2, s) - .5) * .08;
+    caps.push([96 + Math.cos(a) * 76 * rr, 98 + Math.sin(a) * 70 * rr, .8 + hash(k, 3, s) * .55, k]);
+  }
+  caps.sort((p, q) => p[1] - q[1]).forEach(([cx, cy, z, k]) => {
+    const pulse = [0, .5, 1, .5][(f + k) % 4];
+    for (let y = Math.floor(cy - 10 * z); y <= cy + 4; y++) for (let x = Math.floor(cx - 9 * z); x <= cx + 9 * z; x++) {
+      const d = Math.hypot((x + .5 - cx) / (8 * z), (y + .5 - (cy - 4 * z)) / (6 * z));
+      if (d > .8 && d < 1.2 && bay(x, y) < pulse * .35) out.set(x, y, "#ec9cf4");
+    }
+    ellipseRaw(out, cx, cy + 1, 4.5 * z, 1.6 * z, SHADOW(.4));
+    for (let y = Math.round(cy - 4 * z); y <= cy; y++) { out.set(cx - .5, y, "#b4b0c8"); out.set(cx + .5, y, "#8c8cac"); }
+    ellipseRaw(out, cx, cy - 4.5 * z, 4.2 * z, 2.6 * z, (x, y, dx, dy) => dy > .45 ? "#4c3c74" : dx < -.1 && dy < -.1 ? "#ec9cf4" : "#bc44dc");
+    out.set(cx - 1.5 * z, cy - 5.5 * z, "#fff4dc"); if (z > 1) out.set(cx + 1.5 * z, cy - 4.8 * z, "#fff4dc");
+  });
+  return out;
+}
+
+// Heartwood Roots (an overlay on the last path cells before the Heartwood), by the path's neighbour
+// mask: gnarled warm roots running along the path, two strands per side, meeting in a knot. Each
+// strand reaches its tile edge at a fixed lane and its wiggle fades to 0 there, so cells join up.
+function heartwoodRoots(A, mask) {
+  const out = new Img(), L = new Img(), s = SEED + 795;
+  const rootFn = (x, y, nx) => nx < -.3 ? "#8c5c34" : nx > .5 ? "#241c14" : hash(x, y >> 1, s) < .2 ? "#241c14" : "#5c3c24";
+  const sides = [[1, 0, -1], [2, 1, 0], [4, 0, 1], [8, -1, 0]].filter(([b]) => mask & b);
+  for (const [b, dx, dy] of sides.length ? sides : [[0, 0, 0]]) for (const lane of [-9, 8]) {
+    const px = -dy, py = dx, n = 10;  // across the side's direction
+    let x0 = 32 + px * lane * .4, y0 = 32 + py * lane * .4;
+    for (let i = 1; i <= n; i++) {
+      const t = i / n, wig = Math.sin(t * Math.PI) * (hash(b, lane + i, s) - .5) * 5;
+      const x1 = 32 + dx * 32 * t + px * (lane * (.4 + .6 * t) + wig), y1 = 32 + dy * 32 * t + py * (lane * (.4 + .6 * t) + wig);
+      if (b) stroke(L, x0, y0, x1 + dx * (i === n ? 1 : 0), y1 + dy * (i === n ? 1 : 0), 4.2 - t * .8, 4.2 - t * .8, rootFn);
+      x0 = x1; y0 = y1;
+    }
+  }
+  blob(L, 32, 32, 6, 5, ["#241c14", "#5c3c24", "#5c3c24", "#8c5c34"], { lump: .15, seed: s, tex: .1 });  // the knot
+  out.stamp(L, "#140f26");
+  for (let k = 0; k < 6; k++) {  // a warm glint of sap here and there
+    const x = 4 + Math.floor(hash(k, mask, s + 1) * 56), y = 4 + Math.floor(hash(k, mask, s + 2) * 56);
+    if (L.alpha(x, y) && L.alpha(x + 1, y)) { out.set(x, y, "#e9a83c"); out.set(x + 1, y, "#fcd47c"); }
+  }
+  return out;
+}
+
+// Bog path (Mire): the path tile's shape by neighbour mask, its stone turned to dark peat with
+// still puddles, reed tufts and a wet dark edge. The noise wraps every 64 px, so cells join up.
+function bogTile(A, mask) {
+  const L = pathTile(A, mask), p = A.path.map(C), s = SEED + 799, g = A.grass;
+  const is = (x, y, c) => { const v = L.get(x, y); return v[3] && v[0] === c[0] && v[1] === c[1] && v[2] === c[2]; };
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    if (is(x, y, p[2]) || is(x, y, p[3]) || is(x, y, C(ST.hi)) || is(x, y, C(ST.l2)) || is(x, y, C(ST.m)) || is(x, y, C(ST.d1))) {
+      const n = pnoise(x, y, 16, s, 4) * .65 + pnoise(x, y, 8, s + 1, 8) * .35;
+      if (n > .66) L.set(x, y, n > .72 && hash(x, y, s + 2) < .05 ? "#9cd4fc" : pick(["#2c4c5c", "#4c8ca4"], clamp((n - .66) * 6, 0, 1), x, y, .3));
+      else L.set(x, y, pick(["#5c3c24", "#6c5c5c", "#6c5c5c", "#6c5c5c", "#8c5c34"], clamp(.5 + (pnoise(x, y, 8, s + 3, 8) - .5) * .5 + (n - .45) * .6, 0, 1), x, y, .3));
+    } else if (is(x, y, p[1]) || is(x, y, p[0])) L.set(x, y, "#241c14");
+  }
+  for (let k = 0; k < 6; k++) {  // reeds
+    const x = 8 + Math.floor(hash(k, mask, s + 4) * 48), y = 10 + Math.floor(hash(k, mask, s + 5) * 44);
+    if (!is(x, y + 1, C("#6c5c5c")) && !is(x, y + 1, C("#5c3c24"))) continue;
+    for (let i = 0; i < 4; i++) L.set(x + (i > 2 ? 1 : 0), y - i, i < 2 ? g[2] : g[3]);
+  }
+  return L;
+}
+
+// Ancient Stump (a Warden planted on one starts at rank I): a broad old cut stump seen from above,
+// its top ringed with years, roots spreading into the grass, moss on its rim. 3 variants.
+function ancientStump(A, v) {
+  const out = new Img(), L = new Img(), s = SEED + 803 + v * 17, g = A.grass;
+  ellipse(out, 32, 47, 25, 8, SHADOW(.4));
+  for (let k = 0; k < 5; k++) {  // roots
+    const a = Math.PI * (.05 + k * .22) + (hash(k, 1, s) - .5) * .3;
+    stroke(L, 32, 44, 32 + Math.cos(a) * 26, 44 + Math.sin(a) * 9, 5, 2, (x, y, nx) => nx < -.2 ? "#8c5c34" : "#5c3c24");
+  }
+  ellipse(L, 32, 42, 21, 9, (x, y, dx, dy) => dx < -.4 ? "#8c5c34" : "#5c3c24");  // the bark side
+  ellipse(L, 32, 37, 20, 8.5, (x, y, dx, dy) => {  // the cut top with its rings
+    const r = Math.hypot(dx, dy * 1.05) + (pnoise(x, y, 6, s) - .5) * .12;
+    if (r > .88) return "#5c3c24";
+    const band = Math.floor(r * (6 + v));
+    return v === 2 && r < .35 && dx > 0 ? "#241c14" : band % 2 ? "#8c5c34" : "#bca48c";
+  });
+  if (v === 1) for (let i = 0; i < 9; i++) L.set(30 + i, 33 + Math.round(i * .4), "#241c14");  // a crack
+  mossPass(L, 32, 40, 22, 10, g, s + 2, v === 0 ? .8 : .86);
+  out.stamp(L, "#241c14");
+  return out;
+}
 function cloudShadow(v) {
   const W = 256, H = 128, L = new Img(W, H), s = 1300 + v * 37;
   const rx = 78 + hash(v, 1, s) * 26, ry = 30 + hash(v, 2, s) * 12, cx = 124, cy = 64;
@@ -1290,22 +1892,38 @@ const BUILD = {
   dent: A => dent(A),
   waystone: (A, v, f) => waystone(A, f),
   pool: (A, v, f) => pool(A, f),
+  pond: (A, v, f) => pondTile(A, v, f),
+  pondin: (A, v) => pondInner(A, v),
+  flog: (A, k) => fallenLog(A, k),  // 0 W end, 1 E-W middle, 2 E end, 3 N end, 4 N-S middle, 5 S end
+  lfurrow: (A, k) => logFurrow(A, k),  // the same 6 pieces
   blight: (A, v, f) => blightPatch(A, f, SEED + v * 5),
   mist: (A, v, f) => mist(A, f),
   heart: (A, v, f) => heartwood(A, f, v),
-  decor: (A, v) => decor(A, v, SEED + v),
+  hstage: (A, k, f) => heartwood(A, f, k % 21, Math.floor(k / 21)),  // k = leaves lost + 21 × stage
+  fruit: (A, v, f) => dreamFruit(v, f),
+  decor: (A, v) => decorAt(A, v, SEED + v),
   dead: (A, v, f) => deadTree(A, v, f, SEED + v * 29),
   rock: (A, v) => shrinkRock(rock(A, v, SEED + v * 31)),
-  isle: (A, m) => islandEdge(A, m),
+  isle: (A, k) => islandEdge(A, k & 15, k >> 4),  // k = mask + 16 × variant
   cliff: (A, k) => cliffTile(A, k),
   voidsky: () => voidSky(),
   voidstars: () => voidStars(),
   islet: (A, v) => islet(A, v),
   bridge: (A, v) => ropeBridge(v),
   cloud: (A, v) => cloudShadow(v),
+  mistbank: () => mistBanks(),
+  route: (A, v) => routeMist(v),  // 0 strip, 1 start cap, 2 end cap
+  ltree: (A, v, f) => lightningTree(A, f),
+  mwell: (A, v, f) => moonwell(A, f),
+  bstone: (A, v, f) => bellStone(A, f),
+  mring: (A, v, f) => mushroomRing(A, f),
+  hroots: (A, m) => heartwoodRoots(A, m),
+  bog: (A, m) => bogTile(A, m),
+  astump: (A, v) => ancientStump(A, v),
+  rwisp: (A, v, f) => routeWisp(f),
 };
-const ANIM = new Set(["withered", "waystone", "pool", "blight", "mist", "heart", "dead"]);
-const TILES = new Set(["grass", "path", "wall", "pool", "blight"]);
+const ANIM = new Set(["withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "ltree", "mwell", "bstone", "mring", "dead"]);
+const TILES = new Set(["grass", "path", "wall", "pool", "pond", "pondin", "flog", "lfurrow", "hroots", "bog", "blight"]);
 const SOLID = 200;
 function copyPx(dst, x, y, c) { const i = (y * dst.w + x) * 4; dst.d[i] = c[0]; dst.d[i+1] = c[1]; dst.d[i+2] = c[2]; dst.d[i+3] = c[3]; }
 // Storybook: halve the resolution (most common solid colour per 2×2 block), outline sprites in a
@@ -1447,7 +2065,8 @@ function buildGround() {
     else { const h = hash(x, y, SEED + 1); key = "grass:" + (h < .5 ? 0 : h < .72 ? 1 : h < .88 ? 2 : 3); }
     g.drawImage(getCan(key), x * T, y * T);
   }
-  for (const [k, x, y] of DECALS) g.drawImage(getCan(k), x * T, y * T);
+  // Big sprites (the 96×128 trees) sit bottom-centre on their cell, drawn top row first.
+  for (const [k, x, y] of DECALS.slice().sort((a, b) => a[2] - b[2])) { const cv = getCan(k); g.drawImage(cv, x * T - (cv.width - T) / 2, y * T - (cv.height - T)); }
   groundCanvas = c;
 }
 

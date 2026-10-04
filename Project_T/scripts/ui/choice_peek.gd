@@ -11,6 +11,7 @@ class_name ChoicePeek
 signal changed(peeking: bool)
 
 var peeking := false
+var catch_mouse := true  # The screen catches the mouse while not peeking (off for a click-through overlay)
 var _screen: Control
 var _content: Array
 var _back := Button.new()
@@ -20,12 +21,9 @@ func _init(screen: Control, content: Array, back_text: String) -> void:
 	_content = content
 	_back.text = back_text
 	_back.focus_mode = Control.FOCUS_NONE
-	_back.custom_minimum_size = Vector2(260, 48)
-	_back.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_back.offset_left = -130
-	_back.offset_right = 130
-	_back.offset_top = 80
-	_back.offset_bottom = 128
+	# Mid-screen for every paused screen (choices and pausing cards: one spot; user: "the middle for paused things like
+	# that"): never over the drift banner, the Omen line or the Coming strip at the top.
+	place_back_centre()
 	_back.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_back.visible = false
 	_back.pressed.connect(set_peeking.bind(false))
@@ -33,6 +31,23 @@ func _init(screen: Control, content: Array, back_text: String) -> void:
 	screen.visibility_changed.connect(func() -> void:
 		if not screen.visible:
 			set_peeking(false))
+
+# Every paused screen (the Dream / family / Omen choices, the discovery and new-nightmare cards): the "Back" / "Return"
+# pill sits in the middle of the screen, a little below centre, solid (user: "just put the placement in the middle for
+# paused things like that, since they need to close it before starting or resuming the drift"). Never at the top (it
+# covered the Coming strip) or at the edges.
+const CENTRE_DROP := 70.0  # Pixels below the middle
+func place_back_centre() -> void:
+	_back.set_anchors_preset(Control.PRESET_CENTER)
+	_back.custom_minimum_size = Vector2(280, 44)
+	_back.offset_left = -140
+	_back.offset_right = 140
+	_back.offset_top = CENTRE_DROP
+	_back.offset_bottom = CENTRE_DROP + 44
+	UiStyle.primary(_back)  # Solid
+
+func back_button() -> Button:
+	return _back
 
 # A "Peek at the map" button for the choice screen's own layout.
 func make_peek_button(text: String = "Peek at the map") -> Button:
@@ -51,5 +66,6 @@ func set_peeking(on: bool) -> void:
 	for node in _content:
 		node.visible = not on
 	_back.visible = on
-	_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE if on else Control.MOUSE_FILTER_STOP
+	if catch_mouse:
+		_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE if on else Control.MOUSE_FILTER_STOP
 	changed.emit(on)

@@ -33,12 +33,57 @@ var root_web_boss_share := 0.0  # …and bosses for this share
 var release_pull := 0.0  # Tangled Release: tiles pulled back when a hold ends
 var caught_linger := 0.0  # Lullaby: seconds Caught lasts after leaving a Dreamcatcher
 var marked_bonus := 0.0  # Bright Marks: added to Marked's extra damage taken
+var overlay: NightmareOverlay  # Draws every nightmare's health bar and status badges (see NightmareOverlay)
+var blight_materials := {}  # {outlined: ShaderMaterial} shared by the nightmares (Enemy._blight_material)
+# Most nightmares on the field at once (platforms.md "Calling drifts early stacks them"): drifts
+# called early stack, so the drift schedule holds new arrivals in the start mist while it's full
+# (DriftDirector asks has_room). Split children, followers and summons still always come.
+@export var max_field := 140  # PC (was 180: stacked late drifts still spiked at 3x)
+# Mobile and Steam Deck get a lower cap (platforms.md; tuned when porting). The Deck export preset
+# needs the custom feature tag "steamdeck".
+@export var max_field_handheld := 110
+# Leaves an act boss takes when it reaches the Heartwood, by act (1, 2, 3, …); then it's gone, a leak
+# like any other. The Hollow Oak stays and drains instead (EnemyData.stays_at_heartwood), and the
+# Night Mare runs its laps (balance_simulation.md 538b85b7).
+@export var boss_bite_leaves: Array[int] = [10, 10, 12]
+
+# The bite for a boss in act `act` (the last entry for later acts).
+func get_boss_bite(act: int) -> int:
+	if boss_bite_leaves.is_empty():
+		return 5
+	return boss_bite_leaves[clampi(act - 1, 0, boss_bite_leaves.size() - 1)]
+
+# The act `enemy` is in: its drift's, else the drift being played (tests, summons outside a drift).
+func act_of(enemy: Node) -> int:
+	var director = get_node_or_null("%DriftDirector")
+	if director == null:
+		return 1
+	var number: int = director.drift_of(enemy)
+	if number <= 0:
+		number = maxi(director.drifts_started, 1)
+	return director.get_act(number)
+# For hidden nightmares' reveal checks (Enemy._is_revealed), kept here so a crowd of Lurkers doesn't
+# each scan every Warden and every nightmare: {cell: Tower} for every Warden's cells, the Wardens that
+# Mark (they reveal in their whole range), and the nightmares that reveal others (reveal_radius).
+# Rebuilt when Wardens come or go, and every TOWER_LOOKUP_REFRESH s (evolving changes what they apply).
+var tower_cells := {}
+var marker_towers: Array = []
+var revealers: Array = []
+var _towers_dirty := true
+var _revealers_dirty := true
+var _tower_lookup_age := 0.0
+const TOWER_LOOKUP_REFRESH := 0.5
+var _lit := {}  # Rootlight's lit path tiles this frame ({cell: true}; is_lit)
+var _lit_frame := -1
 var thin_cards := false  # Any of the above owned (else nightmares skip their per-frame bookkeeping)
 var rooted_cells := {}  # {cell: Held nightmare} (Rooted Nightmares; see _update_rooted_cells)
 var waiting_cells := {}  # {cell: nightmare waiting behind a rooted one}
 # Boss pools (enemy_design.md): the Night Mare galloped round again (it took `leaves`); a Warden
 # withered; a lantern was lit / snuffed.
 signal enemy_lapped(enemy: Node2D, leaves: int)
+# A boss staying at the Heartwood took `leaves` (every Enemy.HEARTWOOD_DRAIN_EVERY s until dispelled):
+# for the boss bar ("At the Heartwood"), LeakEffect, the Heartwood's tremble, Sound and the drift's leak.
+signal boss_drained(enemy: Node2D, leaves: int)
 signal tower_withered(tower: Node2D, by: Node2D)
 signal lantern_lit(lantern: Node2D)
 signal lantern_snuffed(lantern: Node2D, by_player: bool)
@@ -55,8 +100,25 @@ var _sapling_sprites := {}  # {cell: AnimatedSprite2D} the saplings' grow / idle
 @onready var tower_container: Node2D = %TowerContainer
 
 func _ready() -> void:
+	if OS.has_feature("mobile") or OS.has_feature("steamdeck"):
+		max_field = max_field_handheld
+	# Every nightmare's bars and badges, from one canvas item (never a child of this node: its
+	# children are all nightmares)
+	overlay = NightmareOverlay.new()
+	overlay.name = "NightmareOverlay"
+	overlay.spawner = self
+	(owner if owner != null else get_parent()).add_child.call_deferred(overlay)
+	tower_container.child_entered_tree.connect(func(_node: Node) -> void: _towers_dirty = true)
+	tower_container.child_exiting_tree.connect(func(_node: Node) -> void: _towers_dirty = true)
+	child_entered_tree.connect(func(_node: Node) -> void: _revealers_dirty = true)
+	child_exiting_tree.connect(func(_node: Node) -> void: _revealers_dirty = true)
 	map_generator.path_changed.connect(_on_path_changed)
 	map_generator.obstacle_cleared.connect(func(cell: Vector2, _data: ObstacleData) -> void: _wither_sprite(cell))
+
+# Room for another scheduled arrival (fewer than max_field nightmares out, the dispelled ones fading
+# away included: they still draw).
+func has_room() -> bool:
+	return get_child_count() < max_field
 
 # Spawns a creature at the start of the maze. Returns it, or null if there's no route.
 # `modifiers`: Omen multipliers for the creature (see Enemy.modifiers). `elite`: Deeply Blighted.
@@ -97,6 +159,7 @@ func _create_prepared(enemy, enemy_data: EnemyData, health_scale: float, modifie
 	enemy.status_refused.connect(status_refused.emit)
 	enemy.trample_cell_requested.connect(_on_trample_cell_requested)
 	enemy.lapped.connect(_on_lapped)
+	enemy.heartwood_drained.connect(_on_heartwood_drained)
 	enemy.bellow_requested.connect(_on_bellow_requested)
 	enemy.lantern_requested.connect(_on_lantern_requested)
 	enemy.wither_requested.connect(_on_wither_requested)
@@ -120,6 +183,7 @@ func _spawn_followers(leader: Node2D, path: PackedVector2Array) -> void:
 		follower.hold_time = data.follower_spacing * (i + 1)
 		followers.append(follower)
 		enemy_split.emit(leader, follower)
+	leader.dew_followers.append_array(followers)  # They share half its Dew pot share (Enemy.set_dew_share)
 	if data.pack_shield < 1.0:
 		leader.pack.append_array(followers)  # Huntsman: they shield him while they hunt
 	leader.cleansed.connect(func(_leader: Node2D) -> void:
@@ -152,6 +216,7 @@ func _process(delta: float) -> void:
 	thin_cards = root_web_share > 0.0 or root_web_boss_share > 0.0 or release_pull > 0.0 \
 			or caught_linger > 0.0 or marked_bonus > 0.0
 	_update_rooted_cells(dreams)
+	_update_reveal_lookup(delta)
 	_update_lantern_light()
 
 # Rooted Nightmares (Dream card 122): with the card, every Held maze walker blocks its cell for the
@@ -162,13 +227,82 @@ func _update_rooted_cells(dreams: DreamState = null) -> void:
 	waiting_cells.clear()
 	if dreams == null:
 		dreams = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	if dreams == null or not dreams.has_rule(ROOTED_RULE):
-		return
-	for enemy in get_maze_walkers():
+	var rooted_rule := dreams != null and dreams.has_rule(ROOTED_RULE)
+	# Also without the card: a walker Snugroot holds (Logjam, a final-form twist; FinalTwists marks it
+	# FinalTwists.LOGJAM_META) blocks its cell, and the ones behind it queue (Enemy._is_blocked_ahead).
+	for enemy in get_children():
+		if enemy.is_cleansed or enemy.is_flying():
+			continue
 		if enemy.statuses.is_held():
-			rooted_cells[enemy.get_current_cell()] = enemy
+			if rooted_rule or enemy.has_meta(FinalTwists.LOGJAM_META):
+				rooted_cells[enemy.get_current_cell()] = enemy
 		elif enemy.waiting:
 			waiting_cells[enemy.get_current_cell()] = enemy
+
+# The reveal lookups (see tower_cells) go stale every TOWER_LOOKUP_REFRESH s (evolving changes what a
+# Warden applies); coming and going marks them stale at once (signals in _ready).
+func _update_reveal_lookup(delta: float) -> void:
+	_tower_lookup_age += delta
+	if _tower_lookup_age >= TOWER_LOOKUP_REFRESH:  # Evolving changes what a Warden applies
+		_tower_lookup_age = 0.0
+		_towers_dirty = true
+
+# Rebuilds the reveal lookups that went stale (Wardens or nightmares came or went, or the refresh):
+# Enemy._is_revealed calls it first, so a Warden planted this frame already counts.
+func refresh_reveal_lookup() -> void:
+	if _revealers_dirty:
+		_revealers_dirty = false
+		revealers.clear()
+		for enemy in get_children():
+			if enemy.enemy_data.reveal_radius > 0.0:
+				revealers.append(enemy)
+	if not _towers_dirty:
+		return
+	_towers_dirty = false
+	tower_cells.clear()
+	marker_towers.clear()
+	for tower in tower_container.get_children():
+		if not tower is Tower or tower.is_queued_for_deletion() or tower.attack_data == null:
+			continue
+		for cell in tower.get_cells():
+			tower_cells[cell] = tower
+		if tower.attack_data.applies_status == EnemyStatuses.MARKED:
+			marker_towers.append(tower)
+
+# Rootlight's lit path tiles stop burrowing (Gravecrawlers, the Burrowers Omen). Gathered from the
+# Wardens at most once a frame, and only when someone asks.
+func is_lit(cell: Vector2) -> bool:
+	var frame := Engine.get_process_frames()
+	if frame != _lit_frame:
+		_lit_frame = frame
+		_lit.clear()
+		for tower in tower_container.get_children():
+			var lit = tower.get("_lit_cells")
+			if lit is Array:
+				for at in lit:
+					_lit[at] = true
+	return _lit.has(cell)
+
+# The Tramplers Omen (run_design.md "Omens with teeth"): the first nightmare of each drift to walk
+# past a Thornwall tramples it, like the Hollow Stag (gone for good, no refund, everyone re-routes).
+# OmenDirector.claim_trample(drift) lets only the first caller of each drift through.
+func try_omen_trample(enemy: Node2D) -> void:
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams != null and dreams.has_rule(WEATHERED_WALLS_RULE):
+		return  # Weathered Walls: Thornwalls stand like any other wall
+	refresh_reveal_lookup()  # (tower_cells: Wardens by cell)
+	var here: Vector2 = enemy.get_current_cell()
+	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+		var tower = tower_cells.get(here + offset)
+		if tower == null or not is_instance_valid(tower) or tower.tower_data.line != "wall" or BranchKit.is_stone(tower):
+			continue
+		var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
+		var director = get_node_or_null("%DriftDirector")
+		if omens == null or director == null or not omens.claim_trample(director.drift_of(enemy)):
+			return
+		_trample_tower(tower, here + offset, enemy)
+		_towers_dirty = true
+		return
 
 # A route from `from` to the Heartwood that avoids every rooted cell (except `from` itself), without
 # changing the map. Empty if the Held nightmares close every way (then the walker waits).
@@ -199,10 +333,18 @@ func _split(parent: Node2D) -> void:
 		return
 	var ahead: Vector2 = parent.grid.calculate_map_position(path[0]) - parent.position
 	var back := -ahead.normalized() if not ahead.is_zero_approx() else Vector2.ZERO
+	# The Dew pot: the children share 60% of the parent's share, the parent keeps 40% (paid just after
+	# this, when enemy_cleansed goes out).
+	var share: float = parent.dew_share
+	var child_share: float = share * parent.SPLIT_CHILDREN_DEW_SHARE / data.split_count if share >= 0.0 else -1.0
+	if share >= 0.0:
+		parent.dew_share = share * (1.0 - parent.SPLIT_CHILDREN_DEW_SHARE)
 	for i in data.split_count:
 		var child := _create(data.split_into, parent.health_scale, parent.modifiers)
 		child.position = parent.position + back * SPLIT_SPACING * i
 		child.set_path(_flight_from(child) if _flies_straight(data.split_into) else path)
+		if child_share >= 0.0:
+			child.dew_share = child_share
 		enemy_split.emit(parent, child)
 
 # Flyers that burst out mid-maze (the Scarecrow's Crows) fly straight at the Heartwood from there.
@@ -223,6 +365,7 @@ func _run_from_start(data: EnemyData, count: int, parent: Node2D) -> void:
 	var back := -ahead.normalized()
 	for i in count:
 		var child := _create(data, drift_health_scale, parent.modifiers)
+		child.dew_share = 0.0  # A summon: its summoner's Dew share pays for the fight (the Dew pot)
 		child.position = first + back * SPLIT_SPACING * (i + 1)
 		child.set_path(path)
 		enemy_split.emit(parent, child)
@@ -240,7 +383,7 @@ func _on_trample_requested(enemy: Node2D) -> void:
 	var here: Vector2 = enemy.get_current_cell()
 	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 		var tower := _tower_on(here + offset)
-		if tower != null and tower.tower_data.line == "wall":
+		if tower != null and tower.tower_data.line == "wall" and not BranchKit.is_stone(tower):  # (Rampart's stone walls hold)
 			_trample_tower(tower, here + offset, enemy)
 			enemy.trampled()
 			return
@@ -263,8 +406,11 @@ func _tower_on(cell: Vector2) -> Tower:
 func _trample_tower(tower: Tower, cell: Vector2, by: Node2D) -> void:
 	tower_container.remove_child(tower)
 	tower.queue_free()
-	for c in tower.get_cells():
-		map_generator.unblock_cell(c)
+	if map_generator.has_method("unblock_halves"):
+		map_generator.unblock_halves(tower.get_halves())  # Half-cell experiment (Tower Code): a Warden at a half offset
+	else:
+		for c in tower.get_cells():
+			map_generator.unblock_cell(c)
 	wall_trampled.emit(cell, by)
 
 # The maze changed: every enemy re-routes from the cell it's currently walking toward. One whose next
@@ -330,6 +476,7 @@ func _on_brood_requested(queen: Node2D) -> void:
 			nearest = i
 	var path := route.slice(nearest)
 	var child := _create(queen.enemy_data.brood, drift_health_scale)
+	child.dew_share = 0.0  # A summon pays no Dew (the Dew pot)
 	child.position = child.grid.calculate_map_position(path[0])
 	child.set_path(path)
 	enemy_split.emit(queen, child)
@@ -342,6 +489,7 @@ func _on_grief_requested(oak: Node2D) -> void:
 		return
 	for i in data.grief_count:
 		var child := _create(data.grief_spawn, drift_health_scale)
+		child.dew_share = 0.0  # A summon pays no Dew (the Dew pot)
 		child.position = oak.position + Vector2.from_angle(TAU * i / data.grief_count) * GRIEF_RING
 		child.set_path(_flight_from(child) if _flies_straight(data.grief_spawn) else path)
 		enemy_split.emit(oak, child)
@@ -431,21 +579,27 @@ func _call_pack(huntsman: Node2D) -> void:
 	var count := missing if huntsman.is_regrouped() else 1
 	for i in count:
 		var hound := _create(data.brood, drift_health_scale, huntsman.modifiers)
+		hound.dew_share = 0.0  # A summon pays no Dew (the Dew pot)
 		hound.position = huntsman.position + Vector2.from_angle(TAU * i / maxi(count, 1)) * SPLIT_SPACING
 		hound.set_path(path)
 		huntsman.pack.append(hound)
 		enemy_split.emit(huntsman, hound)
+	if count > 0:
+		huntsman.play_pose(&"horn")  # He raises the bone horn and blows
 
-# Night Mare: every lap takes its lap leaves (Leaf Fall doubles them, as for any leak).
-func _on_lapped(enemy: Node2D) -> void:
-	var leaves: int = enemy.enemy_data.lap_leaves
+# Night Mare: back at the start for another lap (its leaves went while it lingered), Shades behind it.
+func _on_heartwood_drained(enemy: Node2D) -> void:
+	var leaves := 1
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	if omens:
-		leaves = roundi(leaves * omens.get_leak_multiplier())
+		leaves = roundi(leaves * omens.get_leak_multiplier())  # Leaf Fall doubles it, as for any leak
 	var run_state = get_node_or_null("%RunState")
 	if run_state != null:
 		run_state.lose_leaves(leaves)
-	enemy_lapped.emit(enemy, leaves)
+	boss_drained.emit(enemy, leaves)
+
+func _on_lapped(enemy: Node2D) -> void:
+	enemy_lapped.emit(enemy, 0)  # A lap costs nothing itself: it drains leaves while it lingers (boss_drained)
 	_run_from_start(enemy.enemy_data.lap_spawn, enemy.enemy_data.lap_spawn_count, enemy)  # Shades behind it
 
 # Lamplighter: lights a cold lantern on an empty cell beside its route, near it (up to lantern_max).
@@ -483,6 +637,7 @@ func _on_lantern_requested(lamplighter: Node2D) -> void:
 	map_generator.add_child(lantern)  # In the world, never under this node (its children are nightmares)
 	_lanterns.append(lantern)
 	lantern_lit.emit(lantern)
+	lamplighter.play_pose(&"light")  # It lowers the pole and the lantern kindles
 
 func _on_lantern_snuffed(lantern: ColdLantern, by_player: bool) -> void:
 	_lanterns.erase(lantern)
@@ -552,6 +707,7 @@ func _on_echo_requested(oak: Node2D, act: int) -> void:
 	var echo = enemy_scene.instantiate()
 	echo.is_echo = true
 	var created := _create_prepared(echo, boss, scale)
+	created.dew_share = 0.0  # A summon pays no Dew (the Dew pot)
 	if boss.trait_kind == EnemyData.Trait.FLYING and not boss.flies_along_route:
 		path = PackedVector2Array([oak.get_target_cell(), map_generator.endPath])
 	created.position = oak.position + Vector2(GRIEF_RING, 0).rotated(TAU * act / 3.0)

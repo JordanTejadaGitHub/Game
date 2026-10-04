@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "burrowers"
+display_name = "Burrowers"
+description = "At every bend, nightmares burrow 2 path tiles ahead, out of reach for a moment."
+flavor = "They dig beneath the roots."
+min_drift = 26
+kind = 4
+waiting_for_hook = false
+burrow_tiles = 2
+burrow_time = 0.5
+reward_rare_dreams = 1

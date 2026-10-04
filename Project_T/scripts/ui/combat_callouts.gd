@@ -7,14 +7,16 @@ extends Node2D
 
 const MAX_ALIVE := 3
 const TAG_COOLDOWN := 0.7  # Seconds before the same word can pop again
+const REDUCED_MAX_ALIVE := 1  # Effects quality Reduced
+const REDUCED_COOLDOWN := 2.0
 const LIFE := 0.9
 # Combo tag -> the word shown ("" = no word, only the status flash).
-const WORDS := {&"conducted": "Conducted!", &"popped": "Popped!", &"asleep": "Asleep!",
+const WORDS := {&"conducted": "Conducted!", &"asleep": "Asleep!",
 	&"crit": "Critical!", &"weak": "Weak!", &"marked": "", &"fog": "", &"static": ""}
 # Combo tag -> the status it used (flashes on the nightmare).
-const USES_STATUS := {&"conducted": &"damp", &"popped": &"spored", &"asleep": &"drowsy",
+const USES_STATUS := {&"conducted": &"damp", &"asleep": &"drowsy",
 	&"marked": &"marked", &"fog": &"spored", &"static": &"static"}
-const PRIORITY: Array[StringName] = [&"popped", &"asleep", &"conducted", &"crit", &"weak"]
+const PRIORITY: Array[StringName] = [&"asleep", &"conducted", &"crit", &"weak"]
 
 var _cooldowns := {}  # tag -> seconds left
 var _alive: Array = []  # [age, text, colour, enemy (weak ref target), offset]
@@ -38,7 +40,8 @@ func _on_damage(event: DamageLog.Event) -> void:
 		if status != &"" and event.enemy.has_method("flash_status"):
 			event.enemy.flash_status(status)
 	var tag := _pick(event)
-	if tag == &"" or _alive.size() >= MAX_ALIVE or _cooldowns.get(tag, 0.0) > 0.0:
+	var reduced := Fx.reduced()  # Effects quality Reduced, or Fx stepped down on long frames: one at a time, slower repeats
+	if tag == &"" or _alive.size() >= (REDUCED_MAX_ALIVE if reduced else MAX_ALIVE) or _cooldowns.get(tag, 0.0) > 0.0:
 		return
 	if tag == &"weak":
 		var id := event.enemy.get_instance_id()
@@ -48,7 +51,7 @@ func _on_damage(event: DamageLog.Event) -> void:
 	for callout in _alive:
 		if callout[3] == event.enemy:
 			return  # One callout per nightmare at a time
-	_cooldowns[tag] = TAG_COOLDOWN
+	_cooldowns[tag] = REDUCED_COOLDOWN if reduced else TAG_COOLDOWN
 	_alive.append([0.0, WORDS[tag], _colour(event.source), event.enemy, event.enemy.global_position])
 	_note_seen(tag)
 

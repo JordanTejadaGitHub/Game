@@ -5,7 +5,6 @@ extends VBoxContainer
 # call-early button (Enter), the Auto-drift toggle, and pause / 1× / 2× / 3× buttons (Space pauses,
 # Tab cycles speed). The act / drift line is the top-centre DriftBanner.
 
-const BUTTON_FONT_SIZE := 19
 
 @onready var drift_director: DriftDirector = %DriftDirector
 @onready var game_speed: GameSpeed = %GameSpeed
@@ -16,6 +15,9 @@ const BUTTON_FONT_SIZE := 19
 @onready var dream_state: DreamState = %DreamState
 
 var _status_label := Label.new()
+var warning_label := Label.new()  # "Flyers in drift 31: they ignore your maze" (tests)
+var finale_label := Label.new()  # Spire: "Finale (drift 10): clear it clean for a Rare dream" (tests)
+var _warning_key := ""
 var _remember_button := Button.new()
 var _sapling_button := Button.new()
 var _start_button := Button.new()
@@ -25,20 +27,41 @@ var _speed_buttons: Array[Button] = []
 
 func _ready() -> void:
 	alignment = BoxContainer.ALIGNMENT_END
+	add_theme_constant_override("separation", 8)  # The status line keeps clear of Start
 	# Status line, with the Remember button (run_design.md "Dreamlight") beside it during rests.
 	var status_row := HBoxContainer.new()
 	add_child(status_row)
+	# New rule-breakers in the next block (RuleBreakers): one warning line under the status, at rests
+	warning_label.name = "RuleBreakerWarning"
+	warning_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	warning_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	warning_label.visible = false
+	UiStyle.caps(warning_label, 14, UiStyle.GOLD)
+	warning_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
+	warning_label.add_theme_constant_override("outline_size", 5)
+	add_child(warning_label)
+	# Block finales (spire_difficulty.md Phase 2): the block's last drift brings elites; cleared without a leaf lost, a
+	# Rare dream waits at the rest. Said before it comes (while resting before the block, and during it).
+	finale_label.name = "FinaleLine"
+	finale_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	finale_label.visible = false
+	UiStyle.caps(finale_label, 14, UiStyle.GOLD)
+	finale_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
+	finale_label.add_theme_constant_override("outline_size", 5)
+	add_child(finale_label)
 	_remember_button.text = "Remember"
 	_remember_button.tooltip_text = "Spend Dreamlight on branches and final forms of your families."
 	_remember_button.focus_mode = Control.FOCUS_NONE
-	_remember_button.custom_minimum_size = Vector2(0, 40)
+	_remember_button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
+	_remember_button.theme_type_variation = &"HudButton"
 	_remember_button.pressed.connect(func() -> void: dream_state.open_remember())
 	status_row.add_child(_remember_button)
 	# The Heartwood Sapling (run_design.md): plant it later if it was declined, or place it if taken.
 	_sapling_button.text = "Sapling"
 	_sapling_button.tooltip_text = "Plant the Heartwood Sapling: free, 2×2, rooted; yields Dew after every drift."
 	_sapling_button.focus_mode = Control.FOCUS_NONE
-	_sapling_button.custom_minimum_size = Vector2(0, 40)
+	_sapling_button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
+	_sapling_button.theme_type_variation = &"HudButton"
 	_sapling_button.visible = false
 	_sapling_button.pressed.connect(plant_sapling)
 	status_row.add_child(_sapling_button)
@@ -51,22 +74,27 @@ func _ready() -> void:
 	_status_label.add_theme_font_size_override("font_size", 15)
 	_status_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	status_row.add_child(_status_label)
+	var edge := Control.new()  # A little room between the status text and the panel's right edge
+	edge.custom_minimum_size = Vector2(6, 0)
+	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	status_row.add_child(edge)
 
 	_start_button.focus_mode = Control.FOCUS_NONE
-	_start_button.custom_minimum_size = Vector2(272, 48)
-	_start_button.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
-	UiStyle.primary(_start_button)
+	# One HUD scale (ui_style.md): the same height and text as every HUD button, in the primary look.
+	_start_button.custom_minimum_size = Vector2(272, UiStyle.HUD_BUTTON_H)
+	_start_button.theme_type_variation = &"HudPrimary"
 	_start_button.pressed.connect(_on_start_pressed)
 	add_child(_start_button)
 
 	# Kept compact (screens_ui.md principle 5): Auto-drift shares the speed row.
 	var speed_row := HBoxContainer.new()
 	speed_row.alignment = BoxContainer.ALIGNMENT_END
-	speed_row.add_theme_constant_override("separation", 2)
+	speed_row.add_theme_constant_override("separation", 6)
 	add_child(speed_row)
 	_auto_toggle.text = "Auto"
 	_auto_toggle.toggle_mode = true
-	_auto_toggle.custom_minimum_size = Vector2(64, 40)
+	_auto_toggle.custom_minimum_size = Vector2(64, UiStyle.HUD_BUTTON_H)
+	_auto_toggle.theme_type_variation = &"HudButton"
 	_auto_toggle.tooltip_text = "Auto-drift: drifts in a block start by themselves a few seconds after the last one arrived."
 	_auto_toggle.focus_mode = Control.FOCUS_NONE
 	_auto_toggle.button_pressed = drift_director.auto_drift
@@ -104,7 +132,8 @@ func plant_sapling() -> void:
 func _add_speed_button(row: HBoxContainer, button: Button) -> void:
 	button.toggle_mode = true
 	button.focus_mode = Control.FOCUS_NONE
-	button.custom_minimum_size = Vector2(44, 40)
+	button.custom_minimum_size = Vector2(44, UiStyle.HUD_BUTTON_H)
+	button.theme_type_variation = &"HudButton"
 	row.add_child(button)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -114,10 +143,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # The call-early bonus changes every frame as creatures walk, so refresh continuously.
 func _process(_delta: float) -> void:
+	_update_warning()
+	_update_finale()
 	var latest := drift_director.drifts_started
 	var next := latest + 1
 
 	_start_button.disabled = not drift_director.can_start_next_drift()
+	_start_button.tooltip_text = MIST_FULL if drift_director.is_mist_full() else ""
 	# Remember moved to the top right (HUD RememberButton, run_design.md); this one stays hidden.
 	_remember_button.visible = false
 	_sapling_button.visible = drift_director.is_resting() and not drift_director.awaiting_family_pick \
@@ -130,7 +162,8 @@ func _process(_delta: float) -> void:
 		_status_label.text = "The last drift is walking"
 		_start_button.text = "Final drift"
 	elif drift_director.is_resting():
-		_status_label.text = "Resting · %d%% refunds" % roundi(tower_seller.build_phase_refund * 100)
+		_status_label.text = "Resting · %d%% refunds · Drift %d: %d Dew" % [roundi(tower_seller.build_phase_refund * 100), next,
+			roundi(drift_director.get_effective_pot(next))]  # The Dew pot (run_design.md)
 		var boss := " · boss" if drift_director.is_boss_drift(next) else ""
 		_start_button.text = "Start drift %d%s (Enter)" % [next, boss]
 	elif drift_director.can_start_next_drift():
@@ -140,6 +173,9 @@ func _process(_delta: float) -> void:
 		var bonus := drift_director.get_call_early_bonus()
 		_start_button.text = "Call drift %d early · +%d Dew" % [next, bonus] if bonus > 0 \
 			else "Start drift %d now" % next
+	elif drift_director.is_mist_full() and drift_director.get_block(next) == drift_director.get_block(latest):
+		_status_label.text = "The mist is full"  # Calling early waits until the queue is out
+		_start_button.text = "Start drift %d now" % next
 	else:
 		_status_label.text = "Rest once the field is clear"
 		_start_button.text = "Rest after drift %d" % block_end
@@ -152,9 +188,12 @@ func _process(_delta: float) -> void:
 			_start_button.text = "Choose an Omen"  # "Face an Omen" was picked: one of its Omens must be chosen
 		_start_button.disabled = false
 
+const MIST_FULL := "The mist is full: it holds nightmares back until there's room on the path. Calling early waits until they're out."
+
 # Screens_ui.md "Choice screens": what the Start button says while a choice waits.
-const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Face an Omen or Clear Skies"}
-const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen", &"omen": "OmenScreen"}
+const PENDING_TEXT := {&"family": "Pick a family", &"dream": "Choose a Dream", &"omen": "Face an Omen or Clear Skies",
+	&"gift": "Choose a gift"}  # Heartwood's Gifts (Spire)
+const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen", &"omen": "OmenScreen", &"gift": "GiftScreen"}
 
 func _on_start_pressed() -> void:
 	var pending := drift_director.pending_choice()
@@ -180,3 +219,33 @@ func _on_speed_changed(paused: bool, speed: float) -> void:
 	for i in _speed_buttons.size():
 		_speed_buttons[i].set_pressed_no_signal(not paused and game_speed.speeds[i] == speed)
 
+
+const FINALE_TEXT := "Finale (drift %d): clear it clean for a Rare dream"
+
+# The finale drift ahead in this block (resting: the next block's), or 0 when there's none / it has begun its rest.
+static func coming_finale(director: DriftDirector) -> int:
+	var at := director.drifts_started + (1 if director.is_resting() else 0)
+	var last := director.get_block(maxi(at, 1)) * director.drifts_per_block
+	if last < at or not director.has_method("get_block_finale_elites") or director.get_block_finale_elites(last) <= 0:
+		return 0
+	return last
+
+func _update_finale() -> void:
+	var finale := coming_finale(drift_director) if not run_state.is_over else 0
+	finale_label.visible = finale > 0
+	if finale > 0:
+		finale_label.text = FINALE_TEXT % finale
+
+# The rule-breaker warning (screens_ui.md "New rule-breaker warning"): rebuilt only when the drift count or
+# the rest changes (the scan reads the drift tables).
+func _update_warning() -> void:
+	var key := "%d:%s:%s" % [drift_director.drifts_started, drift_director.is_resting(), drift_director.awaiting_family_pick]
+	if key == _warning_key:
+		return
+	_warning_key = key
+	var lines: Array[String] = []
+	if not drift_director.awaiting_family_pick:
+		for item in RuleBreakers.coming(drift_director):
+			lines.append(RuleBreakers.warning_line(item[0], item[1]))
+	warning_label.text = "\n".join(lines)
+	warning_label.visible = not lines.is_empty()

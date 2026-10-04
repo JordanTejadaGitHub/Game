@@ -86,6 +86,7 @@ func pick_dream(offer: Array) -> UpgradeData:
 
 # The rest after `drift`: its Dream, then Dreamlight. Returns the cards taken.
 func rest(drift: int, perfect: bool = true) -> Array[UpgradeData]:
+	_last_block_clean = perfect
 	var taken := dreams.sim_rest(drift, pick_dream, perfect)
 	for card in taken:
 		choices.append("drift %d: Dream %s" % [drift, card.id])
@@ -95,7 +96,11 @@ func rest(drift: int, perfect: bool = true) -> Array[UpgradeData]:
 # --- Family picks -----------------------------------------------------------------------------------
 
 func pick_family(offered: Array) -> StringName:
-	var owed: Array[String] = dreams._owed_families
+	var owed: Array[String] = []  # The families the bot's half-dreamed cards still miss (picks no longer include them)
+	for card in dreams._taken_cards(true):
+		for family in dreams.half_dreamed_missing(card):
+			if not owed.has(family):
+				owed.append(family)
 	if style == Style.COMBO:
 		var best := ""
 		var best_count := -1
@@ -153,6 +158,9 @@ func spend_dreamlight() -> void:
 			var cost := dreams.get_unlock_cost(form)
 			if cost == 0 or dreams.get_unlock_blocker(form) != "":
 				continue  # Owned, or not open yet (Memory Grove, Ascended before drift 51…)
+			cost = dreams.get_unlock_price(form)  # Waking Root's discount (Spire branch)
+			if dreams.dreamlight < cost and form.tier >= DreamState.ASCENDED_TIER:
+				continue  # Ascended only when affordable: never saved for (it would hold every other form back)
 			if dreams.dreamlight < cost or not dreams.unlock_with_dreamlight(form):
 				return  # Save up for the next form of this family
 			choices.append("Dreamlight: %s" % form.get_id())
@@ -170,9 +178,16 @@ func _forms_in_order(tree: Array) -> Array[TowerData]:
 			break
 	# Ascended right after the first final form (design 0d0642d): while it's still closed (Grove, drift
 	# 51) spend_dreamlight skips it and goes on; once open, the family saves up for it first.
+	if carry_first:  # The carry branch first (a stable sort: the rest keep their order)
+		var carry := branches.filter(func(b: Array) -> bool: return DreamState.is_carry(b[0]))
+		branches = carry + branches.filter(func(b: Array) -> bool: return not DreamState.is_carry(b[0]))
 	var ascended: TowerData = tree[2] if tree.size() > 2 else null
+	if branches_first:  # Kinship placement: two branches before any final form (a Kinship needs two)
+		for branch in branches.slice(0, 2):
+			forms.append(branch[0])
 	for branch in branches:
-		forms.append(branch[0])
+		if not forms.has(branch[0]):
+			forms.append(branch[0])
 		for final in branch[1]:
 			forms.append(final)
 			if ascended != null and not forms.has(ascended):
@@ -182,15 +197,31 @@ func _forms_in_order(tree: Array) -> Array[TowerData]:
 	return forms
 
 const AREA_FIRST := {"pebbling": "cairn", "nestling": "wrens_nest"}  # Cairn's lob splash, Wren's second strike
+var branches_first := false  # The runner sets it with Kinship placement on (balance_sim.gd --no-kin keeps the old order)
+var carry_first := false  # The runner sets it (--no-carry-pref clears it): the carry branch (DreamState.is_carry) is unlocked first
 
 # --- Omens ------------------------------------------------------------------------------------------
 
 # The baseline takes Clear Skies (no Omen); `face_omens` faces every one and picks the lower-risk of
 # the revealed Omens (omen_risk). Pass the result to OmenDirector.choose().
 var face_omens := false
+# Omens with teeth (run_design.md, the three-way measurement): "clear" Clear Skies always; "always" faces
+# every Omen and takes the first revealed; "clean" faces only after a clean block (no leaf lost), taking
+# the first revealed. "" = face_omens (the older "face": every Omen, the lower-risk one).
+var omen_mode := ""
+var _last_block_clean := true  # The block before this rest lost no leaf (rest's `perfect`)
 
 func pick_omen(offer: Array) -> OmenData:
-	if not face_omens or offer.is_empty():
+	if offer.is_empty():
+		return null
+	match omen_mode:
+		"clear":
+			return null
+		"always":
+			return offer[0]
+		"clean":
+			return offer[0] if _last_block_clean else null
+	if not face_omens:
 		return null
 	var best: OmenData = offer[0]
 	for omen in offer:

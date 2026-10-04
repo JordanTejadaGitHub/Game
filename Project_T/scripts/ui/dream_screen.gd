@@ -8,6 +8,7 @@ const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
 const SECONDARY_SIZE := 12  # Entwined / Deepened / "Needs Dewdrop" lines
 const SECONDARY_MIN_SIZE := 10
 const SCREEN_MARGIN := 240.0  # Title, buttons and gaps around the cards
+const SIDE_MARGIN := 16.0  # Left and right of the card row when many cards (5) narrow it
 const ENTWINED_COLOR := Palette.SPRIG  # Vine border
 const DEEPENED_COLOR := Palette.DEWLIGHT
 const BITTERSWEET_COLOR := UiStyle.POOR  # The cost line: Ember, the palette's "bad" colour
@@ -19,10 +20,18 @@ const SEED_COLOR := Color("d4ec9c")  # Heartwood 32 "Newleaf": what a Seed card 
 var _was_paused := false
 var _title := Label.new()
 var _cards := HBoxContainer.new()
+var _card_width := CARD_SIZE.x  # Narrower when 5 cards (Thick Blight + Wider Dreams) would pass the screen
 var _skip := Button.new()
 var _reroll := Button.new()  # Second Thoughts (Memory Grove)
+var _rerolled_in := -1  # The Dream (its drift) a reroll was used in: its last one stays shown, disabled, until it closes
+var _let_go_in := -1  # Same for Let Go
 var _dev_any := Button.new()  # "Dev: any card…" (dev runs of debug builds; demo_scope.md "Pick any card")
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
+var _diagram: CardDiagram = null  # The hovered placement card's map picture (dream_design.md "Placement cards show a diagram")
+var _scene: CardScene = null  # The living mini-scene (pooled: one view, reused card to card)
+var _held_for_diagram := false  # A long-press showed the diagram: that release doesn't take the card
+var arm: ChoiceArm  # Cards ignore input for a moment as the screen appears (clicks meant for the map)
+const LONG_PRESS := 0.45
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -47,7 +56,9 @@ func _ready() -> void:
 	_skip.focus_mode = Control.FOCUS_NONE
 	_skip.pressed.connect(dream_state.skip)
 	_reroll.focus_mode = Control.FOCUS_NONE
-	_reroll.pressed.connect(dream_state.reroll)
+	_reroll.pressed.connect(func() -> void:
+		_rerolled_in = dream_state.current_offer_drift  # Before: the reroll shows the new offer at once
+		dream_state.reroll())
 	var skip_row := HBoxContainer.new()
 	skip_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	skip_row.add_theme_constant_override("separation", 16)
@@ -60,6 +71,7 @@ func _ready() -> void:
 	box.add_child(skip_row)
 	peek = ChoicePeek.new(self, [dim, center], "Back to the Dream")
 	box.add_child(peek.make_peek_button())
+	arm = ChoiceArm.attach(self, _cards)
 
 	visible = false
 	dream_state.offer_ready.connect(_show_offer)
@@ -75,32 +87,62 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	_skip.text = "Let it pass · +%d Dew" % dream_state.skip_dew if dream_state.skip_dew > 0 else "Let it pass"
 	_skip.visible = dream_state.can_skip()  # Restless Dreams
 	_dev_any.visible = DreamState.dev_tools_on()
-	_reroll.text = "Dream again · %d left" % dream_state.rerolls_left
-	_reroll.visible = dream_state.rerolls_left > 0
+	# A run-long supply: "1 left this run"; the last one used leaves the button disabled for the rest of that Dream
+	_reroll.text = dream_state.reroll_label()
+	_reroll.tooltip_text = dream_state.reroll_tip()
+	_reroll.disabled = dream_state.rerolls_left <= 0
+	_reroll.visible = dream_state.rerolls_left > 0 or _rerolled_in == drift_number
+	var show_let_go: bool = dream_state.banishes_left > 0 or _let_go_in == drift_number
+	var gap := float(_cards.get_theme_constant("separation"))
+	var room := get_viewport_rect().size.x - 2.0 * SIDE_MARGIN - gap * (cards.size() - 1)
+	_card_width = minf(CARD_SIZE.x, floorf(room / maxf(cards.size(), 1.0)))
 	for child in _cards.get_children():
 		_cards.remove_child(child)  # Right away: a reroll rebuilds the row in the same frame
 		child.queue_free()
 	for card in cards:
 		var column := VBoxContainer.new()
 		column.add_child(_make_card(card))
-		if dream_state.banishes_left > 0:  # Let Go (Memory Grove)
+		if show_let_go:  # Let Go (Memory Grove)
 			var let_go := Button.new()
-			let_go.text = "Let go · %d left" % dream_state.banishes_left
-			let_go.tooltip_text = "This card won't come back this run; another takes its place."
+			let_go.text = dream_state.banish_label()
+			let_go.tooltip_text = dream_state.banish_tip()
+			let_go.disabled = dream_state.banishes_left <= 0
 			let_go.focus_mode = Control.FOCUS_NONE
-			let_go.pressed.connect(dream_state.banish.bind(card))
+			let_go.pressed.connect(func() -> void:
+				_let_go_in = dream_state.current_offer_drift
+				dream_state.banish(card))
 			column.add_child(let_go)
 		_cards.add_child(column)
 	visible = true
+	arm.arm()  # Every new set of cards, rerolls too: a second click can't take a card it never saw
 
 func _make_card(card: UpgradeData) -> Button:
 	var button := Button.new()
-	button.custom_minimum_size = CARD_SIZE
+	button.custom_minimum_size = Vector2(_card_width, CARD_SIZE.y)
 	button.focus_mode = Control.FOCUS_NONE
-	button.pressed.connect(dream_state.choose.bind(card))
+	button.pressed.connect(func() -> void:
+		if _held_for_diagram:
+			_held_for_diagram = false  # The long-press was to look, not to take
+			return
+		dream_state.choose(card))
+	if CardDiagram.has_diagram(card):
+		button.mouse_entered.connect(show_diagram.bind(card, button))
+		button.mouse_exited.connect(hide_diagram)
+		button.button_down.connect(func() -> void:  # Touch: a long-press shows it
+			await get_tree().create_timer(LONG_PRESS, true).timeout
+			if is_instance_valid(button) and button.button_pressed:
+				_held_for_diagram = true
+				show_diagram(card, button))
+		button.button_up.connect(func() -> void:
+			if not _held_for_diagram:
+				return
+			hide_diagram())
 	# Moonlit Thread card (ui_style.md): solid fog, the top thread in the rarity colour (Entwined: the
 	# vine green; Woven: glowing).
 	UiStyle.card_button(button, ENTWINED_COLOR if card.entwined else UpgradeData.rarity_color(card.rarity))
+	if card.tip != "":  # The card's detail on hover (Sunlit Rest: which rank, who gets it)
+		button.tooltip_text = IconInfo.format(card.tip)
+	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot); a Starlit back thins it again below
 	if card.woven:
 		for state in ["normal", "hover", "pressed", "hover_pressed"]:
 			(button.get_theme_stylebox(state) as MoonStyleBox).underline = true  # A glowing line along the foot too
@@ -126,10 +168,12 @@ func _make_card(card: UpgradeData) -> Button:
 	gem_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	gem_row.add_theme_constant_override("separation", 8)
 	var gem := Control.new()
-	gem.custom_minimum_size = Vector2(18, 18)
+	gem.custom_minimum_size = Vector2(28, 28)  # Room for the 16 px glyph inside the gem
+	gem.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	gem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	gem.draw.connect(func() -> void: UiStyle.draw_gem(gem, gem.size / 2.0, 8.0, card.rarity))
+	var glyph := UiStyle.dream_glyph(card)  # The card's glyph inside its rarity gem (UI Asset)
+	gem.draw.connect(func() -> void: UiStyle.draw_gem(gem, gem.size / 2.0, 13.0, card.rarity, glyph))
 	gem_row.add_child(gem)
 	gem_row.add_child(rarity)
 	box.add_child(gem_row)
@@ -139,37 +183,35 @@ func _make_card(card: UpgradeData) -> Button:
 	UiStyle.title(name_label, UiStyle.CARD_NAME_SIZE)
 	box.add_child(name_label)
 	if dream_state.opens_clearing(card):
-		_add_opens_clearing(button, box)
+		_add_opens_clearing(box)
 	# The effect comes right after the name; it never shrinks.
 	_add_linked_line(box, card.description, UiStyle.INK, 16)
-	var res := dream_state.resonance_preview(card)
-	if res.bonus > 0.0:  # Tag resonance (dream_audit.md): "+20% from 2 spore cards"
-		_add_line(box, DreamState.resonance_text(res.bonus, res.tag, res.count), UiStyle.GOLD, 14).name = "ResonanceLine"
 	var live: String = dream_state.effects().preview_line(card)
-	if live != "":  # Scaling cards: where you stand now (dream_design.md #75)
+	# What it would do to your board now (dream_design.md "Feeling the cards"), computed once as the offer opens
+	var impact: Dictionary = dream_state.preview_card_impact(card)
+	var impact_line := _add_line(box, impact.text, UiStyle.GOLD if impact.kind != &"none" else UiStyle.INK_DIM, 14)
+	impact_line.name = "ImpactLine"
+	if live != "" and impact.kind != &"economy":  # Scaling cards: where you stand now (dream_design.md #75)
 		_add_line(box, live, UiStyle.GOLD, 14).name = "LiveLine"
 	if card.cost_description != "":
 		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, 15)
 	if card.grows_text != "":  # Seed cards: the bigger effect once its Wardens are yours
-		_add_linked_line(box, "🌱 Grows with %s: %s" % [_grows_with_names(card), card.grows_text], SEED_COLOR, 14)
+		_add_linked_line(box, "Grows with %s: %s" % [_grows_with_names(card), card.grows_text], SEED_COLOR, 14)
 	# Secondary lines below, smaller and muted; they shrink first when a card runs out of room.
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(spacer)
 	var secondary: Array[Label] = []
-	if card.entwined:
-		secondary.append(_add_line(box, "Woven" if card.woven else "Entwined", ENTWINED_COLOR, SECONDARY_SIZE))
+	if card.entwined:  # The vine border says it; no "Entwined" label (user: "still don't know what Entwined is")
+		if card.woven:
+			secondary.append(_add_line(box, "Woven", ENTWINED_COLOR, SECONDARY_SIZE))
 	elif card.is_deepened():
 		secondary.append(_add_line(box, "Deepened · replaces %s" % dream_state.get_display_name(card.deepens), DEEPENED_COLOR, SECONDARY_SIZE))
 	elif card.is_bittersweet():
 		secondary.append(_add_line(box, "Bittersweet", BITTERSWEET_COLOR, SECONDARY_SIZE))
-	if dream_state.is_half_dreamed(card):  # One muted line, no label (dream_design.md half-dreamed "Card face")
-		_add_missing_row(box, card)  # "Needs Wind": the damage type, linked
-	else:
-		_add_needs_row(box, card)  # "Needs: Soaked + Charged" / "Nestling family": never a Warden's name
-	if dream_state.calls_family_now(card) != "":  # A Seed card calls its family to the next pick (not one you own)
-		secondary.append(_add_line(box, "Seed · calls %s to your next family pick" % dream_state.get_display_name(card.calls_family), SEED_COLOR, SECONDARY_SIZE))
+	# No "Needs …" line (dream_design.md 2026-10-01, user: "can remove the Needs Water"): the card text names what it
+	# uses; Dreams this run dims a card that isn't active yet and says why on hover (DreamState.not_active_reason).
 	for label in secondary:
 		label.modulate.a = 0.85  # Muted
 	for label in [rarity, name_label]:
@@ -180,8 +222,8 @@ func _make_card(card: UpgradeData) -> Button:
 
 # While clearing is locked, a clearing card leads with what it unlocks (dream_design.md "Clearing
 # cards" / "Make the unlock obvious"): the Clear tool icon + "Unlocks clearing", what clearing is, a
-# thin divider, then the card's own effect; and a gold "Opens clearing" tag in the corner.
-func _add_opens_clearing(button: Button, box: VBoxContainer) -> void:
+# thin divider, then the card's own effect (one label: no corner tag, text_style.md 2026-10-01).
+func _add_opens_clearing(box: VBoxContainer) -> void:
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", 6)
@@ -205,14 +247,6 @@ func _add_opens_clearing(button: Button, box: VBoxContainer) -> void:
 	var divider := HSeparator.new()
 	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(divider)
-	var tag := Label.new()
-	tag.name = "OpensClearingTag"
-	tag.text = DreamState.OPENS_CLEARING_TAG
-	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UiStyle.caps(tag, 12, UiStyle.GOLD)
-	tag.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 10)
-	tag.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	button.add_child(tag)
 
 # A card grows to fit its content (a Button doesn't size to its children), at least CARD_SIZE tall.
 # If that would pass the screen, the secondary lines shrink first, never the effect.
@@ -265,7 +299,7 @@ func _fit_card(button: Button, box: Control, secondary: Array[Label]) -> void:
 			for label in secondary:
 				if label.get_theme_font_size("font_size") > SECONDARY_MIN_SIZE:
 					label.add_theme_font_size_override("font_size", SECONDARY_MIN_SIZE)  # Refits via minimum_size_changed
-		button.custom_minimum_size = Vector2(CARD_SIZE.x, maxf(CARD_SIZE.y, needed))
+		button.custom_minimum_size = Vector2(_card_width, maxf(CARD_SIZE.y, needed))
 	box.minimum_size_changed.connect(fit)
 	fit.call_deferred()
 
@@ -287,7 +321,49 @@ func _add_linked_line(box: VBoxContainer, text: String, color: Color, font_size:
 	box.add_child(label)
 	return label
 
+# The diagram panel beside `button` (right of it, or left when there's no room), kept on screen.
+# Cards with a living mini-scene (CardScene.LIVE_CARDS) play it in the one pooled view; reduced motion and the
+# rest keep the still diagram.
+func show_diagram(card: UpgradeData, button: Control) -> void:
+	hide_diagram()
+	var panel: Control
+	if CardScene.can_show(card):
+		if _scene == null or not is_instance_valid(_scene):
+			_scene = CardScene.new()
+			_scene.name = "CardScene"
+			_scene.z_index = 10
+			add_child(_scene)
+		_scene.show_card(card)
+		panel = _scene
+	else:
+		_diagram = CardDiagram.make(card)
+		if _diagram == null:
+			return
+		_diagram.name = "CardDiagram"
+		_diagram.z_index = 10
+		add_child(_diagram)
+		panel = _diagram
+	await get_tree().process_frame
+	if not is_instance_valid(panel) or not panel.visible or not is_instance_valid(button):
+		return
+	var card_rect := button.get_global_rect()
+	var view := get_viewport_rect().size
+	var size := panel.get_combined_minimum_size()
+	var x := card_rect.end.x + 8.0
+	if x + size.x > view.x - 8.0:
+		x = card_rect.position.x - size.x - 8.0
+	var y := clampf(card_rect.position.y + 24.0, 8.0, view.y - size.y - 8.0)
+	panel.global_position = Vector2(maxf(x, 8.0), y)
+
+func hide_diagram() -> void:
+	if _diagram != null and is_instance_valid(_diagram):
+		_diagram.queue_free()
+	_diagram = null
+	if _scene != null and is_instance_valid(_scene):
+		_scene.stop()  # Pooled: kept, but nothing runs or draws
+
 func _on_closed() -> void:
+	hide_diagram()
 	# If another Dream is queued, offer_ready follows right away and shows (and pauses) again.
 	visible = false
 	game_speed.set_paused(_was_paused)
@@ -299,51 +375,5 @@ static func _roman(n: int) -> String:
 # "Dewcatcher, Wellspring", or "the Rootling line" when a Seed names a whole line.
 # "the Acorn line": a Seed card always names the family, never a Warden you may not have.
 func _grows_with_names(card: UpgradeData) -> String:
-	var id := card.calls_family if card.calls_family != "" else (card.grows_with[0] if not card.grows_with.is_empty() else "")
+	var id := card.grows_with[0] if not card.grows_with.is_empty() else ""
 	return "the %s line" % dream_state.family_name_for(id)
-
-# The Needs row (dream_design.md "How Needs are shown on a card"): status icons + names, lit when one
-# of your Wardens applies it, dim when not; families and card ingredients as text.
-func _add_needs_row(box: VBoxContainer, card: UpgradeData) -> void:
-	var parts := dream_state.needs_parts(card)
-	if parts.statuses.is_empty() and parts.families.is_empty() and parts.cards.is_empty():
-		return
-	var row := HFlowContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("h_separation", 4)
-	box.add_child(row)
-	row.add_child(_needs_label("Needs:", UiStyle.INK_DIM))
-	for i in parts.statuses.size():
-		var status: StringName = parts.statuses[i][0]
-		var lit: bool = parts.statuses[i][1]
-		if i > 0:
-			row.add_child(_needs_label("+", UiStyle.INK_DIM))
-		var icon := IconInfo.make_icon(status)
-		if icon != null:
-			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			icon.modulate.a = 1.0 if lit else 0.4
-			row.add_child(icon)
-		var name := _needs_label(IconInfo.status_name(status), UiStyle.INK if lit else UiStyle.INK_DIM)
-		name.modulate.a = 1.0 if lit else 0.6
-		row.add_child(name)
-	var text := dream_state.needs_text(card).trim_prefix("Needs: ")
-	if not parts.statuses.is_empty():
-		var rest := text.split(" · ")
-		text = " · ".join(rest.slice(1)) if rest.size() > 1 else ""
-	if text != "":
-		row.add_child(_needs_label(text, UiStyle.INK_DIM))
-
-# "Needs Wind" (NeedsRow, shared with "Dreams this run").
-func _add_missing_row(box: VBoxContainer, card: UpgradeData) -> void:
-	var row := NeedsRow.make(dream_state.missing_needs(card), SECONDARY_SIZE, UiStyle.INK_DIM)
-	if row != null:
-		row.modulate.a = 0.85
-		box.add_child(row)
-
-func _needs_label(text: String, colour: Color) -> Label:
-	var label := Label.new()
-	label.text = text
-	label.add_theme_color_override("font_color", colour)
-	label.add_theme_font_size_override("font_size", SECONDARY_SIZE)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return label

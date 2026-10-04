@@ -64,10 +64,19 @@ const GROW_OPTION_KEYS: Array[Key] = [KEY_Q, KEY_E, KEY_Z]
 
 # A grow key went down / up: the panel previews that option while it's held.
 signal grow_option_held(index: int, held: bool)
+# R (nurture_warden): the Warden panel arms its rank choices (1–4); Nurture v3 asks every rank.
+signal nurture_asked
+# A grow couldn't be paid for (refuse_if_short): option `index` (-1 = G), and the toast's text. The Warden
+# panel shakes that button and shows the toast.
+signal grow_refused(index: int, text: String)
 
 func _ready() -> void:
+	Tower.seller_ref = weakref(self)  # Tall Wardens fade when the cell behind them is hovered / selected
+	FxCache.find.call_deferred(self)  # Load the effect sheets at the run's start, not mid-fight on the first effect (a one-off ~70 ms hitch)
 	# Build mode owns the mouse; selling is available the rest of the time.
 	_ensure_grow_actions()
+	if OS.is_debug_build():
+		get_parent().add_child.call_deferred(PerfOverlay.new())  # F3: FPS, frame ms, draw calls, effects (dev builds)
 	# Buff pips, source threads and the buff lens (screens_ui.md "Buff readability").
 	var overlay := BuffOverlay.new()
 	overlay.name = "BuffOverlay"  # test_perf_stress --breakdown switches it off by name
@@ -95,8 +104,19 @@ func set_active(value: bool) -> void:
 
 # The Overgrown Dream (bittersweet) roots Wardens in place while creatures are walking.
 func can_sell() -> bool:
+	return sell_block_reason() == ""
+
+# Why selling is refused right now ("" = it isn't): the Frozen Ground Omen (no selling while nightmares walk,
+# like planting; Roguelite 279f8137) or the Overgrown Dream.
+func sell_block_reason() -> String:
+	if drift_director.is_build_phase():
+		return ""
+	if tower_placer.frozen_ground():
+		return "Frozen Ground: sell at the rest"
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	return drift_director.is_build_phase() or dreams == null or not dreams.has_rule(&"overgrown")
+	if dreams != null and dreams.has_rule(&"overgrown"):
+		return "Overgrown: no selling while nightmares walk"
+	return ""
 
 # Dew that selling `tower` gives back right now.
 func get_refund(tower: Tower) -> int:
@@ -125,17 +145,32 @@ func get_tower_at(cell: Vector2) -> Tower:
 			return tower
 	return null
 
+# The Warden under a point on the map (pixels): by the half cell under it (half cells: a Warden at a
+# half offset covers parts of 4 whole cells).
+func get_tower_at_point(world: Vector2) -> Tower:
+	if not map_generator.has_method("pixels_to_half"):
+		return get_tower_at(MAP_GRID.calculate_grid_coordinates(world))
+	var half: Vector2 = map_generator.pixels_to_half(world)
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.get_halves().has(half):
+			return tower
+	return null
+
 # Sells the Warden on `cell`. Returns false if there's none.
 func sell(cell: Vector2) -> bool:
 	var tower := get_tower_at(cell)
 	if tower == null or not can_sell() or tower.tower_data.rooted:
 		return false  # The Heartwood Sapling is rooted: never sold or moved
 	var refund := get_refund(tower)
+	BranchKit.remember_rank(tower)  # Mother Log: its rank stays in the log for the next Warden on this cell
 	tower_container.remove_child(tower)
 	tower.queue_free()
-	for c in tower.get_cells():
-		map_generator.unblock_cell(c)  # Emits path_changed -> creatures re-route
-	tower_placer.settle(tower.get_cells())  # Settling ground: not plantable again for a moment (drifts only)
+	if map_generator.has_method("unblock_halves"):
+		map_generator.unblock_halves(tower.get_halves())  # Its half cells; emits path_changed
+	else:
+		for c in tower.get_cells():
+			map_generator.unblock_cell(c)  # Emits path_changed -> creatures re-route
+	tower_placer.settle(tower.get_touched_cells())  # Settling ground: not plantable again for a moment (drifts only)
 	run_state.earn_dew_at(refund, tower.position)
 	tower_sold.emit(tower, refund)
 	if selection.has(tower):
@@ -299,7 +334,7 @@ func grow_group(towers: Array, into: TowerData) -> int:
 # they're left out).
 static func _nurturable(tower, focus: Tower.Focus) -> bool:
 	return is_instance_valid(tower) and tower.can_nurture() \
-		and (tower.focus_options().has(focus) or not tower.needs_focus())  # Only a Focus it can take
+		and (focus == Tower.Focus.NONE or tower.choice_available(focus))  # Only a choice it can take now (its own list; Kindred once)
 
 # The Wardens in `towers` that group Nurture would raise one rank each with the Dew there is,
 # nearest the Heartwood first (like group grow), and what that costs: [Array[Tower], cost].
@@ -350,6 +385,8 @@ func nurture_group(towers: Array, focus: Tower.Focus = Tower.Focus.NONE) -> int:
 			raised += 1
 	if raised > 0:
 		_selection_updated()
+	else:
+		_short_of_dew(towers.filter(func(t) -> bool: return _nurturable(t, focus)).map(func(t: Tower) -> int: return t.get_nurture_price()))
 	return raised
 
 # Dew for selling the whole selection right now.
@@ -368,8 +405,13 @@ func get_selection_refund() -> int:
 func sell_key() -> bool:
 	var targets: Array = selection.duplicate() if not selection.is_empty() else ([_hover_tower] if _hover_tower else [])
 	targets = targets.filter(func(t) -> bool: return is_instance_valid(t) and not t.tower_data.rooted)
-	if targets.is_empty() or not can_sell():
+	if targets.is_empty():
 		return false
+	if not can_sell():
+		var hud := owner.get_node_or_null("HUD") if owner else null
+		if hud and hud.has_method("show_toast"):
+			hud.show_toast(sell_block_reason())
+		return true  # Handled: the toast says why
 	var ask: bool = not drift_director.is_build_phase() and Fx.setting("confirm_sell", true)  # Cached (get_settings reads the profile)
 	var now := Time.get_ticks_msec()
 	if ask and not (now < _sell_armed_until and _sell_armed == targets):
@@ -451,8 +493,10 @@ func grow_option(index: int) -> bool:
 		if index >= options.size():
 			continue
 		var next: TowerData = options[index][0]
+		if refuse_if_short(group[1], next, options[index][1], index):
+			return false  # The "can't buy": nothing opens, nothing is spent
 		if not options[index][1]:
-			dreams.open_remember(next)
+			dreams.open_remember(next)  # Affordable: the Remember tree unlocks it
 			return true
 		if group[1].size() == 1 and next.footprint > group[1][0].get_footprint():
 			acted = tower_placer.begin_grow_choice(group[1][0], next) or acted
@@ -469,12 +513,56 @@ func grow_selected() -> bool:
 	if dreams == null or selection.is_empty():
 		return false
 	var grown := false
+	var wanted: Array = []  # Unlocked forms nobody could pay for: the "can't buy" below
 	for group in get_selection_groups():
 		for option in Tower.grow_options(dreams, group[0]):
 			if option[1] and count_affordable(group[1], option[0]) > 0:
 				grown = grow_group(group[1], option[0]) > 0 or grown
 				break
+			if option[1]:
+				wanted.append(group[1][0].get_grow_cost(option[0]).total)
+	if not grown and not wanted.is_empty():
+		_short_of_dew(wanted)
+		grow_refused.emit(-1, dew_message(wanted.min()))
 	return grown
+
+# Growing `towers` into `next` (option `index`; `unlocked` = the form is already unlocked) can't be paid for:
+# a locked form short of Dreamlight (or not open yet), or an unlocked one nobody can pay Dew for. Then the
+# refusal plays (dew_short / dreamlight_short and grow_refused: the panel's button shakes, a toast) and this
+# returns true; nothing opens and nothing is spent. Q / E / Z, G and the Warden panel's buttons all use it.
+func refuse_if_short(towers: Array, next: TowerData, unlocked: bool, index: int) -> bool:
+	var dreams := _dreams()
+	if dreams == null or towers.is_empty():
+		return false
+	if not unlocked:
+		if not dreams.has_method("get_unlock_cost"):
+			return false
+		var blocker: String = dreams.get_unlock_blocker(next)
+		var cost: int = dreams.get_unlock_price(next)  # Waking Root's discount included
+		if blocker != "":
+			grow_refused.emit(index, blocker_message(blocker))
+			return true
+		if cost > dreams.dreamlight:
+			dreams.dreamlight_short.emit(cost)
+			grow_refused.emit(index, "Not enough Dreamlight")
+			return true
+		return false
+	if count_affordable(towers, next) > 0:
+		return false
+	var prices: Array = towers.map(func(t: Tower) -> int: return t.get_grow_cost(next).total)
+	_short_of_dew(prices)
+	grow_refused.emit(index, dew_message(prices.min()))
+	return true
+
+# The refusal toast: no counts (user: "a bit too much hand holding").
+func dew_message(_cost: int) -> String:
+	return "Not enough Dew"
+
+# Why a form can't be unlocked yet, as a toast ("Memory Grove", "needs Stormcap", "from drift 51").
+static func blocker_message(blocker: String) -> String:
+	if blocker == "Memory Grove":
+		return "Plant it in the Memory Grove first"
+	return "Not yet: %s" % blocker
 
 func _dreams() -> DreamState:
 	return get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
@@ -495,7 +583,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		select(null)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("nurture_warden") and not selection.is_empty():
-		nurture_group(selection)
+		nurture_asked.emit()  # Every rank is a choice: the panel's 1–4 pick it
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("grow_warden") and not selection.is_empty():
 		grow_selected()
@@ -561,7 +649,7 @@ func _input(event: InputEvent) -> void:
 		queue_redraw()
 		return
 	# A plain click: one Warden, or empty ground clears.
-	var tower := get_tower_at(MAP_GRID.calculate_grid_coordinates(_press_world))
+	var tower := get_tower_at_point(_press_world)
 	if _press_shift:
 		if tower != null:
 			_add_or_remove([tower])
@@ -582,10 +670,13 @@ func _process(delta: float) -> void:
 	if _dragging:
 		queue_redraw()
 	var cell: Vector2 = MAP_GRID.calculate_grid_coordinates(get_global_mouse_position())
-	if cell != _hover_cell:
+	var half: Vector2 = map_generator.pixels_to_half(get_global_mouse_position()) if map_generator.has_method("pixels_to_half") else cell
+	if cell != _hover_cell or half != _hover_half:
 		_hover_cell = cell
-		_hover_tower = get_tower_at(cell)
+		_hover_half = half  # Half cells: a Warden at a half offset changes within a whole cell
+		_hover_tower = get_tower_at_point(get_global_mouse_position())
 		queue_redraw()
+var _hover_half := Vector2(-1, -1)
 
 
 # --- Drawing --------------------------------------------------------------------------------------------
@@ -627,7 +718,7 @@ func _draw() -> void:
 		draw_rect(box, Color(SELECTED_COLOR, 0.8), false, 1.5)
 	if _hover_tower == null or _dragging:
 		return
-	var center: Vector2 = MAP_GRID.calculate_map_position(_hover_cell)
+	var center: Vector2 = _hover_tower.position  # The Warden itself (it may sit between cells)
 	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
 	var label := _hover_tower.tower_data.display_name  # Just the name (text_style.md: no hints on hover)
@@ -660,3 +751,12 @@ static func _ensure_target_action() -> void:
 	var key := InputEventKey.new()
 	key.physical_keycode = KEY_T
 	InputMap.action_add_event("cycle_target", key)
+
+# Nothing could be paid for: the "can't buy" feedback (RunState.dew_short: the Dew counter's shake and the
+# "needs N Dew" toast) at the cheapest price asked, so a refused group Nurture / G isn't silent.
+func _short_of_dew(prices: Array) -> void:
+	if prices.is_empty() or tower_placer == null or tower_placer.run_state == null:
+		return
+	var cheapest: int = prices.min()
+	if cheapest > tower_placer.run_state.dew:
+		tower_placer.run_state.dew_short.emit(cheapest)

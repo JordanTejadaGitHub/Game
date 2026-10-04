@@ -27,13 +27,22 @@ func _run() -> void:
 	var codex := CodexPanel.new()
 	root.add_child(codex)
 	codex.open(&"combos")
-	_check(not codex._entries.has("marked_blow"), "without Pebbling, Exposed Blow isn't listed")
-	_check(not codex._entries.has("spore_nursery") and codex._entries.has("slumber_rot"),
+	# Out of reach = "???" under the "N more wait in the Memory Grove" line (the counter shows the real total).
+	var waits := func(id: String) -> bool:
+		var entry: Control = codex._entries.get(id)
+		if entry == null:
+			return false
+		var texts := entry.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
+		return entry.get_meta(&"waiting", false) and texts.has("???") and texts.all(func(t: String) -> bool: return t == "???")
+	_check(waits.call("marked_blow"), "without Pebbling, Exposed Blow waits as ??? in the Memory Grove")
+	_check(codex._combo_count.text.ends_with("/ %d combos discovered" % CodexData.combos().size()), "the counter counts every combo (%s)" % codex._combo_count.text)
+	_check(waits.call("spore_nursery") and codex._entries.has("slumber_rot") and not waits.call("slumber_rot"),
 		"a hidden Kinship (Fairy Ring, a hidden branch) waits for its Grove node; Slumber Rot is listed")
 	var waiting := codex._combos.find_children("Waiting", "Label", false, false)
 	_check(not waiting.is_empty() and (waiting[0] as Label).text.ends_with("wait in the Memory Grove."),
 		"…one line says how many wait in the Memory Grove (%s)" % ((waiting[0] as Label).text if not waiting.is_empty() else "none"))
-	_check(codex.family_cards.size() == 3 and not codex.family_cards.has("pebbling"), "the Families page shows the three")
+	_check(codex.family_cards.size() == CodexData.DEMO_FAMILIES.size() and codex.family_cards.has("bellflower") and not codex.family_cards.has("pebbling"),
+		"the Families page shows the starting four (%s)" % [codex.family_cards.keys()])
 	var covered_before: Array = (CodexData.combos() + CodexData.crowned() + CodexData.kinships()).filter(
 		func(e: Dictionary) -> bool: return CodexData.in_build(e, scope)).map(func(e: Dictionary) -> String: return String(e.id))
 

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "hummingheart"
+display_name = "Hummingheart"
+description = "Every +10% bonus attack speed a Warden has also makes it deal 3% more damage (up to +60%)."
+rarity = 2
+kind = 3
+tags = Array[String](["swift"])
+max_stacks = 1
+in_start_pool = false
+rule_id = &"hummingheart"

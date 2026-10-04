@@ -8,10 +8,15 @@ class_name OmenData
 @export var id: String = ""
 @export var display_name: String = "Omen"
 @export_multiline var description: String = ""  # The twist, e.g. "Creatures have 20% more health."
+@export var flavor: String = ""  # One line in the Heartwood's voice, shown in the whisper face (run_design.md "Omen voice")
 @export var min_drift: int = 0  # Only offered for blocks starting at this drift or later
 @export var requires_flyers: bool = false  # Only offered if the next block has flying creatures
+@export var requires_coat: bool = false  # Only offered if the next block has a coated nightmare (Hard Bark)
+@export var requires_legendary: bool = false  # Only offered if a Legendary can still be offered this run (Lean Season)
+@export var requires_clearing: bool = false  # Only offered once clearing is unlocked this run (Shifting Ground: its reward is for clearing)
+@export var never_before_boss: bool = false  # Not offered for a block with a boss drift (Leaf Fall: a doubled boss leak would end the run)
 # The offer shows 2 Omens of different kinds (run_design.md "More Omens").
-enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP }
+enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP, MAZE }  # MAZE: Omens that test the maze, not the numbers
 @export var kind: Kind = Kind.NIGHTMARES
 @export var needs_free_cells: int = 0  # Only on maps with this many free cells away from the route (Shifting Ground)
 @export var waiting_for_hook: bool = false  # Not offered until its twist is built in Tower / Enemy code
@@ -35,16 +40,23 @@ enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP }
 @export var extra_elites: int = 0  # Elder Night: +1 elite in every drift
 @export var all_flyer_drifts: int = 0  # Hollow Wind: the block's first N drifts are all flyers
 @export var sprout_obstacles: int = 0  # Shifting Ground: Withered Trees sprout at the block's start
+@export var sprouts_beside_path: bool = false  # Shifting Ground: trees may sprout right beside the route (never on it)
+# The maze Omens (run_design.md "Omens with teeth"):
+@export var trample_thornwall: bool = false  # Tramplers: each drift, the first nightmare to walk past a Thornwall tramples it (Enemy Code)
+@export var crumble_thornwall: bool = false  # Second Path: the block's start crumbles the Thornwall that shortens the route most (full refund; no replanting until the rest)
+@export var burrow_tiles: int = 0  # Burrowers: at every bend, nightmares burrow this many path tiles ahead (Enemy Code)
+@export var burrow_time: float = 0.5  # …untargetable for this long
 
 @export_group("Reward")
 # Dew and Seeds scale with the act (OmenDirector.ACT_REWARD_SCALE).
 @export var reward_dew: int = 0
 @export var reward_seeds: int = 0
-@export var reward_leaves: int = 0  # Regrow now
-@export var reward_max_leaves: int = 0  # The Heartwood holds more (and regrows them)
+@export var reward_leaves: int = 0  # Unused: no Omen heals leaves (run_design.md "Omen rewards: no leaf regrowth")
+@export var reward_max_leaves: int = 0  # Unused: no Omen gives leaves of any kind (run_design.md, 2026-10-01)
 @export var reward_rare_dreams: int = 0  # The next N Dreams each include a Rare+ card
 @export var reward_extra_dream_cards: int = 0  # The next Dream offers N more cards
 @export var reward_rest_bonus_multiplier: float = 1.0  # This rest's bonus × N (Dry Spell: 2)
-@export var reward_dreamlight: int = 0
+@export var reward_pot_multiplier: float = 0.0  # Dry Spell: at the rest, the block's base Dew pot × this (what it would have earned, and more)
+@export var reward_dreamlight: int = 0  # Unused: no Omen gives Dreamlight, it stays in cards (run_design.md, 2026-10-01)
 @export var reward_legendary: bool = false  # The next Dream includes a Legendary (act 2+)
 @export var reward_tree_seeds: int = 0  # Shifting Ground: each tree cleared from now on gives this many extra Seeds

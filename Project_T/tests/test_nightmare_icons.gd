@@ -75,6 +75,7 @@ func _run() -> void:
 	var empty := NightmareIcons.make_rows(load("res://resource/enemy/leaf_bug.tres"), 16.0, true)
 	_check(empty.get_child_count() == 0 or not stag.resists.is_empty(), "a compact row with nothing to show is empty")
 
+	NightmareIntro.pause_in_tests = true  # This test checks the cards that open by themselves (first rest, mid-block)
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
@@ -93,6 +94,13 @@ func _run() -> void:
 	await process_frame
 	_check(info.visible and not _icons(info._rows_box, NightmareIcons.Kind.FAMILY, &"resist").is_empty(),
 		"the nightmare info shows the resist icons")
+	# Slow / sleep limits (Enemy's get_status_notes) are listed under the statuses.
+	enemy.statuses.sleep_cooldown = 3.0
+	await process_frame
+	await process_frame  # The panel rewrites its body in its own _process, after this frame's signal
+	var body: String = info._body.get_parsed_text()
+	_check(body.contains("Awake: can't fall asleep again"), "the info lists the status limits under the statuses: Awake (%s)" % body)
+	enemy.statuses.sleep_cooldown = 0.0
 
 	# --- Map pips in context -------------------------------------------------------------------
 	var pips: ResistPips = null
@@ -126,12 +134,23 @@ func _run() -> void:
 	await process_frame
 	_check(strip != null and strip.visible and strip.items().size() == ComingStrip.kinds_in_block(director, 1).size(),
 		"the strip shows block 1's kinds at the first rest")
+	if strip != null and strip.visible:
+		await process_frame
+		var caption_rect: Rect2 = strip._caption.get_global_rect()
+		var clear := strip.items().all(func(item: Control) -> bool:
+			var face := item.get_child(0) as Control
+			var top := face.get_global_rect().position.y
+			for badge in face.get_children():  # "New" sits above the disc
+				if badge is Label:
+					top = minf(top, (badge as Label).get_global_rect().position.y)
+			return top - caption_rect.end.y >= 6.0)
+		_check(clear, "the caption stands clear of the discs and their badges (user: the disc overlapped it)")
 	# "Too tall" (screens_ui.md): one row of equal discs, the count a badge on the disc, the name on hover.
 	var first_kinds := ComingStrip.kinds_in_block(director, 1)
 	if strip != null and not first_kinds.is_empty():
 		var first_item: Control = strip.items()[0]
 		var count_label := first_item.find_child("KindCount", true, false) as Label
-		var face := first_item.get_child(0) as Button
+		var face := first_item.find_child("Face", true, false) as Button
 		_check(count_label != null and count_label.text == "×%d" % first_kinds[0][2] and face.tooltip_text.begins_with(first_kinds[0][0].display_name)
 			and first_item.find_child("KindName", true, false) == null, "each kind: its count as a badge, its name on hover")
 		_check(strip._row.get_child_count() == ceili(first_kinds.size() / float(ComingStrip.PER_ROW))
@@ -147,8 +166,8 @@ func _run() -> void:
 	_check(d10[0][2] >= listed, "counts include the extra nightmares (drift 10: %d listed, %d shown)" % [listed, d10[0][2]])
 
 	# --- The dossier at the start of each act (screens_ui.md, 2026-09-29) ---------------------------
-	# Act 1: it opens by itself at the run's first rest, after the new kinds' introductions (the test
-	# profile has met nothing).
+	# Act 1: it opens by itself at the run's first rest, before the new kinds' introductions (user, 2026-10-03: the boss
+	# dossier comes first; the test profile has met nothing).
 	var dossier := root.get_tree().get_first_node_in_group(BossDossier.GROUP) as BossDossier
 	var omens := root.get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	var intro := root.get_tree().get_first_node_in_group(NightmareIntro.GROUP) as NightmareIntro
@@ -163,13 +182,22 @@ func _run() -> void:
 		if dossier.visible:
 			break
 	if NightmareIntro.enabled():
-		_check(intro_first, "a new kind's introduction comes before the dossier")
+		_check(not intro_first and not intro.visible, "the dossier comes before a new kind's introduction")
 	_check(dossier.visible and dossier.shown_drift == 25, "act 1: the dossier opens by itself at the first rest (drift %d)" % dossier.shown_drift)
 	var text := _text(dossier._content)
 	var health := NightmareCard.health_at(stag, 25, director)
-	_check(health == maxi(roundi(stag.health * director.get_health_scale(stag, 25)), 1) and text.contains(str(health)),
-		"the real boss health (%d)" % health)
-	_check(text.contains(stag.title) and text.contains("Arrives in drift 25"), "header: title and arrival")
+	var on_page: bool = dossier._content.find_children("*", "Label", true, false).any(func(l: Label) -> bool: return l.is_visible_in_tree() and l.text.contains(BossDossier.thousands(health)))
+	_check(health == maxi(roundi(stag.health * director.get_health_scale(stag, 25)), 1) and not on_page
+		and dossier._stage.tooltip_text.contains(BossDossier.thousands(health)),
+		"the real boss health (%d) is in the portrait's tip, not on the page" % health)
+	_check(text.contains(stag.title) and text.contains("drift 25 · the last drift of the act") and text.contains("the boss of act 1") and text.contains("Arrives in"), "header: eyebrow, title, drift and arrival")
+	_check(text.contains("Takes 10 leaves if it reaches the Heartwood") and not text.contains("tiles/s") and not text.contains("It brings"),
+		"only the leaf toll, large; no speed, no \"It brings\" (user: \"a lot of information on the boss page\") (%s)" % text.left(300))
+	_check(BossDossier.toll_text(stag, 1) == "Takes 10 leaves if it reaches the Heartwood", "the toll without a run (the Codex on the title screen)")
+	var revealed := []
+	dossier.boss_revealed.connect(func(d: EnemyData) -> void: revealed.append(d))
+	dossier.open(25)
+	_check(revealed == [stag], "opening it emits boss_revealed for Sound")
 	_check(text.contains("What it does") and text.contains("Charge") and text.contains("at 50% health"), "abilities with when")
 	_check(not text.contains("What helps") and text.contains("Your record") and text.contains("New"), "no What helps (removed 2026-09-30); the record")
 	dossier.close_dossier()
@@ -178,7 +206,7 @@ func _run() -> void:
 	_check(dossier.visible and dossier.shown_drift == 25, "reopens for the next boss")
 	dossier.close_dossier()
 
-	# The rest opening the boss block (after drift 20): only a reminder, with "Open dossier".
+	# The rest opening the boss block (after drift 20): only a reminder, with "About <boss>".
 	director.drifts_started = 20
 	director.rest_started.emit(4, false, 0, true)
 	await _settle(dossier, dreams, omens, intro, func() -> bool: return dossier.is_reminding())
@@ -191,7 +219,7 @@ func _run() -> void:
 				"the reminder sits under the Coming strip, not on it (%.0f vs %.0f)" % [dossier._reminder.position.y, coming.position.y + coming.size.y])
 	var open_button: Button = dossier._reminder.find_children("*", "Button", true, false)[0]
 	open_button.pressed.emit()
-	_check(dossier.visible and dossier.shown_drift == 25 and not dossier.is_reminding(), "Open dossier opens the card")
+	_check(dossier.visible and dossier.shown_drift == 25 and not dossier.is_reminding(), "About <boss> opens the card")
 	dossier.close_dossier()
 
 	# The act break (the boss rest after drift 25): the NEXT act's boss, last in the rest.
@@ -218,6 +246,9 @@ func _run() -> void:
 	# Click / tap a nightmare: its centred card with live state; a boss: the dossier; a never-seen
 	# kind spawning mid-block opens its card too.
 	if intro != null:
+		intro._pending = []  # The first rest's introductions (they now follow the dossier) are past
+		if intro.visible:
+			intro.close()
 		var click_spawner = main.get_node("%EnemyContainer")
 		var clicked: Node2D = click_spawner.spawn_enemy(load("res://resource/enemy/bark_beetle.tres"))
 		clicked.set_process(false)
@@ -252,11 +283,24 @@ func _run() -> void:
 		var card_centre: Vector2 = intro._panel.get_global_rect().get_center()
 		var screen_centre: Vector2 = intro.get_viewport_rect().size / 2.0
 		_check(card_centre.distance_to(screen_centre) < 2.0, "the card is centred on screen (%s vs %s)" % [card_centre, screen_centre])
+		# Peek: the card goes, a solid "Return to …" pill waits mid-screen, a little below centre; still paused.
+		intro.peek.set_peeking(true)
+		await process_frame
+		var pill := intro.peek.back_button()
+		var pill_rect := pill.get_global_rect()
+		_check(not intro._panel.is_visible_in_tree() and pill.visible and pill.text.begins_with("Return to") and speed_node.paused
+			and pill_rect.get_center().y > screen_centre.y and pill_rect.get_center().y < screen_centre.y + 150.0
+			and absf(pill_rect.get_center().x - screen_centre.x) < 2.0,
+			"peeking leaves a \"%s\" pill mid-screen (%s), still paused" % [pill.text, pill_rect])
+		intro.queue.append(load("res://resource/enemy/leaf_bug.tres"))
+		_check(intro.return_text() == "Return (2)", "several waiting: Return (2)")
+		intro.queue.clear()
+		pill.pressed.emit()
+		_check(not intro.peek.peeking and intro._panel.is_visible_in_tree(), "the pill brings the card back")
 		root.size = old_size
 		intro.close()
 		_check(not speed_node.paused, "closing it resumes")
 		_check(NightmareIntro.enabled(), "introductions are always on")
-		NightmareIntro.pause_in_tests = true  # This part checks the mid-drift card
 		var sob: Node2D = click_spawner.spawn_enemy(load("res://resource/enemy/puffcaplet.tres"))
 		sob.set_process(false)
 		await process_frame
@@ -265,7 +309,6 @@ func _run() -> void:
 			"a never-seen kind appearing mid-block opens its centred card")
 		intro.close()
 		sob.queue_free()
-		NightmareIntro.pause_in_tests = false
 	# --- Record ----------------------------------------------------------------------------------
 	BossDossier.record_dispel(stag, 65.0)
 	BossDossier.record_dispel(stag, 80.0)
@@ -303,6 +346,10 @@ func _settle(dossier: BossDossier, dreams: DreamState, omens: OmenDirector, intr
 		if dreams.is_offering() or dreams.has_pending_offer():
 			_check(not dossier.visible, "the dossier waits for the Dream")
 			dreams.skip()
+		var gifts := HeartwoodGifts.find(dossier)  # Spire: the act-break gift, before the Omen and the dossier
+		if gifts != null and gifts.is_offering():
+			_check(not dossier.visible, "the dossier waits for the gift")
+			gifts.let_pass()
 		if omens != null and omens.is_offering():
 			_check(not dossier.visible, "the dossier waits for the Omen")
 			omens.choose(null)

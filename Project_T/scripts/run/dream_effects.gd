@@ -34,7 +34,7 @@ const REPORTERS := {
 	&"sudden_bloom": "_sudden_bloom", &"watchful_rest": "_watchful_rest", &"straightaway": "_straightaway",
 	&"many_rings": "_many_rings", &"hedgerow": "_hedgerow", &"spinning_corners": "_spinning_corners",
 	&"fresh_soil": "_fresh_soil", &"heartwoods_fury": "_heartwoods_fury", &"patchwork": "_patchwork",
-	&"mixed_grove": "_mixed_grove", &"quick_step": "_quick_step",
+	&"mixed_grove": "_mixed_grove", &"quick_step": "_quick_step", &"restless_roots": "_restless_roots", &"far_reach": "_far_reach", &"tended_stumps": "_tended_stumps", &"hollow_ground": "_hollow_ground", &"drumbeat": "_drumbeat",
 	&"long_shadows": "_long_shadows", &"scarred_bark": "_scarred_bark", &"desperate_bloom": "_desperate_bloom",
 	&"odd_one_out": "_odd_one_out", &"grand_tour": "_grand_tour",
 	&"heart_of_the_maze": "_heart_of_the_maze",
@@ -46,7 +46,8 @@ const STAT_KEYS := {&"damage": "damage", &"attack_speed": "speed", &"range": "ra
 
 # The rows that move with the field between board changes (nightmares in range, dispels this drift):
 # rows_cached recomputes these on every call.
-const LIVE_RULES: Array[StringName] = [&"crowded_path", &"thinning_the_herd", &"quick_step", &"scarred_bark", &"desperate_bloom"]
+const LIVE_RULES: Array[StringName] = [&"crowded_path", &"thinning_the_herd", &"quick_step", &"scarred_bark", &"desperate_bloom",
+	&"fresh_growth", &"old_growth"]  # Rows that read per-Warden or run state the row cache key doesn't cover
 
 var ds: DreamState
 var _board: Board = null
@@ -183,7 +184,7 @@ func _soon(tower: Node) -> void:
 # rows() for a planted Warden, cached until the board or the cards change (DreamState.board_version,
 # the taken cards, its rank and form); the LIVE_RULES rows are recomputed on every call. For the
 # per-frame stat reads (Tower) and the badge poll.
-func rows_cached(tower: Tower) -> Array[Dictionary]:
+func rows_cached(tower: Tower, allow_stale: bool = true) -> Array[Dictionary]:
 	var spot := spot_for(tower)
 	var base := hash([ds.board_version, ds.stacks, tower.tower_data, tower.cell])
 	var key := hash([base, tower.rank, _near_rank.get(tower.get_instance_id(), 0)])
@@ -195,7 +196,7 @@ func rows_cached(tower: Tower) -> Array[Dictionary]:
 		if frame != _rebuild_frame:
 			_rebuild_frame = frame
 			_rebuilds = 0
-		if cached.size() > 2 and cached[2] == base and _rebuilds >= RANK_REBUILDS_PER_FRAME:
+		if allow_stale and cached.size() > 2 and cached[2] == base and _rebuilds >= RANK_REBUILDS_PER_FRAME:
 			_soon(tower)  # Only a rank changed: the previous rows for now, rebuilt within a moment
 			return _with_live(spot, cached[1])
 		_rebuilds += 1
@@ -221,9 +222,9 @@ func _with_live(spot: Dictionary, rows_in: Array) -> Array[Dictionary]:
 	return out
 
 # rule_total over the cached rows (Tower's hot path).
-func rule_total_cached(tower: Tower, key: String) -> float:
+func rule_total_cached(tower: Tower, key: String, allow_stale: bool = true) -> float:
 	var total := 0.0
-	for row in rows_cached(tower):
+	for row in rows_cached(tower, allow_stale):
 		if row.active and not row.plain:
 			total += row.get(key, 0.0)
 	return total
@@ -242,10 +243,6 @@ func _finish(row: Dictionary, card: UpgradeData) -> Dictionary:
 		"note": "", "damage": 0.0, "speed": 0.0, "range": 0.0, "cost": 0, "rank_share": 0.0, "radius": 0.0,
 		"positional": false, "run_wide": false, "plain": false}
 	full.merge(row, true)
-	var power := ds.resonance(card)  # Tag resonance scales the numbers, never the rule
-	if power != 1.0:
-		for key in ["damage", "speed", "range"]:
-			full[key] = full[key] * power
 	full["conditional"] = full.positional or full.run_wide
 	if not full.has("effect"):
 		full["effect"] = _describe(full)
@@ -389,6 +386,7 @@ func _monoculture(spot: Dictionary, board: Board, _card: UpgradeData) -> Diction
 	lines[spot.data.line] = true
 	var on := lines.size() == 1
 	return {"run_wide": true, "active": on, "damage": DreamState.MONOCULTURE_BONUS,
+		"note": count_text(lines.size(), "Warden line"),
 		"reason": "" if on else "%d Warden lines (needs one)" % lines.size()}
 
 func _crossroads(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
@@ -404,7 +402,7 @@ func _menagerie(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionar
 	var kinds := board.kinds.duplicate()
 	kinds[spot.data.get_id()] = true
 	return {"run_wide": true, "damage": minf(DreamState.MENAGERIE_PER * kinds.size(), DreamState.MENAGERIE_MAX),
-		"note": "%d kinds" % kinds.size()}
+		"note": count_text(kinds.size(), "kind") + " of Warden"}
 
 func _restless_night(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var bonus := minf(DreamState.RESTLESS_PER * ds._early_calls, DreamState.RESTLESS_MAX)
@@ -441,6 +439,7 @@ func _last_light(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictiona
 	var attackers := board.attackers_with(spot)
 	var on := attackers <= DreamState.LAST_LIGHT_MAX
 	return {"run_wide": true, "active": on, "speed": 1.0, "effect": "attacks twice as fast",
+		"note": count_text(attackers, "attacking Warden"),
 		"reason": "" if on else "%d attacking Wardens (needs %d or fewer)" % [attackers, DreamState.LAST_LIGHT_MAX]}
 
 func _rootbound(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
@@ -508,7 +507,7 @@ func _first_light(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dicti
 	return {"effect": "first hit on each nightmare ×3"}
 
 func _last_stand(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	return {"effect": "+%d%% damage to nightmares within %d cells of the Heartwood" % [
+	return {"effect": "deal %d%% more damage to nightmares within %d cells of the Heartwood" % [
 		roundi(DreamState.LAST_STAND_BONUS * 100), DreamState.LAST_STAND_CELLS]}
 
 func _old_growth(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
@@ -523,7 +522,7 @@ func _old_growth(spot: Dictionary, _board: Board, _card: UpgradeData) -> Diction
 		"reason": "" if bonus > 0.0 else "has stood %d of %d drifts" % [stood, DreamState.OLD_GROWTH_STEPS[-1][0]]}
 
 func _hunters_patience(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	return {"effect": "+%d%% damage to Deeply Blighted nightmares, +%d%% to bosses" % [
+	return {"effect": "deal %d%% more damage to Deeply Blighted nightmares, %d%% more to bosses" % [
 		roundi(DreamState.HUNTERS_PATIENCE_ELITE * 100), roundi(DreamState.HUNTERS_PATIENCE_BOSS * 100)]}
 
 func _thinning_the_herd(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
@@ -561,11 +560,11 @@ func _crowded_path(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dicti
 		"reason": "" if bonus > 0.0 else "no nightmare in range"}
 
 func _lone_hunter(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	return {"effect": "+%d%% damage to a nightmare with no other within 2 cells" % roundi(
+	return {"effect": "deal %d%% more damage to a nightmare with no other within 2 cells" % roundi(
 		DreamState.LONE_HUNTER_BONUS[ds.rule_level(&"lone_hunter")] * 100)}
 
 func _skyward_gaze(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
-	return {"effect": "+%d%% damage and +%d range against flying nightmares" % [
+	return {"effect": "deal %d%% more damage and get +%d range against flying nightmares" % [
 		roundi(DreamState.SKYWARD_BONUS * 100), roundi(DreamState.SKYWARD_RANGE)]}
 
 func _fresh_growth(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
@@ -617,7 +616,7 @@ func _heart_of_the_maze(spot: Dictionary, _board: Board, _card: UpgradeData) -> 
 func _rain_on_glass(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.data.line != "light":
 		return {}
-	return {"effect": "+%d%% damage to Soaked nightmares" % roundi(DreamState.RAIN_ON_GLASS_PER * ds.rule_stacks(&"rain_on_glass") * 100)}
+	return {"effect": "deal %d%% more damage to Soaked nightmares" % roundi(DreamState.RAIN_ON_GLASS_PER * ds.rule_stacks(&"rain_on_glass") * 100)}
 
 # Seed cards (dream_design.md "Seed cards"): the "Now" effects that change a Warden's damage.
 func _kind_canopy(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
@@ -630,7 +629,7 @@ func _shared_light(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictio
 	var touching := board.touching(spot).size()
 	var bonus := minf(DreamState.SHARED_LIGHT_PER * touching, DreamState.SHARED_LIGHT_MAX)
 	return {"positional": true, "radius": 1.0, "active": bonus > 0.0, "damage": bonus,
-		"note": "%d Wardens touching" % touching, "reason": "" if bonus > 0.0 else "no Warden touching it"}
+		"note": count_text(touching, "Warden") + " touching", "reason": "" if bonus > 0.0 else "no Warden touching it"}
 
 func _bramble_oath(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var tiles := ds.walls_added_tiles()
@@ -638,18 +637,67 @@ func _bramble_oath(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dict
 	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "walls add %d path tiles" % tiles,
 		"reason": "" if bonus > 0.0 else "your walls add fewer than 10 path tiles"}
 
-func _golden_harvest(_spot: Dictionary, _board: Board, card: UpgradeData) -> Dictionary:
-	var dew := ds.dew_harvested()
-	var bonus := minf(DreamState.GOLDEN_HARVEST_PER * (dew / 100), DreamState.GOLDEN_HARVEST_MAX)
-	var grown := ds.seed_grown(card)
-	return {"run_wide": true, "active": grown and bonus > 0.0, "damage": bonus, "note": "%d Dew harvested" % dew,
-		"reason": "" if grown and bonus > 0.0 else ("no catcher yet" if not grown else "harvest 100 Dew")}
+# Golden Harvest: every GOLDEN_HARVEST_STEP Dew earned this run (catchers' and interest Dew counting double) gives all
+# Wardens 2% more damage, up to 30%; no catcher needed (it was a Seed card waiting for one: never dead now).
+func _golden_harvest(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	var dew := ds.golden_harvest_dew()
+	var bonus := minf(DreamState.GOLDEN_HARVEST_PER * (dew / DreamState.GOLDEN_HARVEST_STEP), DreamState.GOLDEN_HARVEST_MAX)
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d Dew counted" % dew,
+		"reason": "" if bonus > 0.0 else "earn %d Dew" % DreamState.GOLDEN_HARVEST_STEP}
+
+# Drumbeat (card 248, Swift): touching 2+ other attacking Wardens (the 8 cells) = +30% attack speed. Live.
+func _drumbeat(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var touching := board.touching(spot).filter(func(o: Dictionary) -> bool: return DreamEffects._data(o).can_attack).size()
+	var on := touching >= DreamState.DRUMBEAT_TOUCHING
+	return {"positional": true, "radius": 1.0, "active": on, "speed": DreamState.DRUMBEAT_SPEED,
+		"note": count_text(touching, "attacking Warden") + " touching",
+		"reason": "" if on else "touches %d attacking Wardens (needs %d)" % [touching, DreamState.DRUMBEAT_TOUCHING]}
+
+# Clearing payoffs (cards 246–247): a Warden touching a tended stump, or planted in a moved hollow.
+func _tended_stumps(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on := ds.touches_stump(spot.cell)
+	return {"positional": true, "radius": 1.0, "active": on, "damage": DreamState.TENDED_STUMPS_BONUS[ds.rule_level(&"tended_stumps")],
+		"reason": "" if on else "no tended stump touching it"}
+
+func _hollow_ground(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on := ds.in_hollow(spot.cell)
+	return {"positional": true, "radius": 0.0, "active": on, "range": DreamState.HOLLOW_GROUND_RANGE[ds.rule_level(&"hollow_ground")],
+		"reason": "" if on else "not planted in a moved hollow"}
+
+# Grove build branches (cards 238, 243): Restless Roots speeds slow Wardens; Far Reach lengthens area attackers.
+func _restless_roots(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on: bool = spot.data.attacks_per_second < DreamState.RESTLESS_ROOTS_BELOW
+	return {"active": on, "speed": DreamState.RESTLESS_ROOTS_SPEED,
+		"reason": "" if on else "attacks %.2f times a second (needs under 1)" % spot.data.attacks_per_second}
+
+func _far_reach(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on := DreamState.has_area_attack(spot.data)
+	return {"active": on, "range": DreamState.FAR_REACH_RANGE[ds.rule_level(&"far_reach")],
+		"reason": "" if on else "no area attack"}
 
 # The live line a board-scaling card shows on its face in an offer (dream_design.md #75): "You have 7
 # attacking Wardens · +40%", "Now: 12 cleared · +12%". "" for cards that don't scale with the board.
 # Uses the card's reporter as if it were taken, on a planted attacker (or a hypothetical one).
+#   A zero bonus reads
+# "+0%", never "off"; cards whose value only exists during a drift show the last drift's averages at a
+# rest ("" before drift 1). Counts use plurals ("1 Thornwall").
 func preview_line(card: UpgradeData) -> String:
-	if card == null or not REPORTERS.has(card.rule_id):
+	if card == null:
+		return ""
+	var power := 1.0  # (Tag resonance was removed; the reporters still take a multiplier)
+	if STATE_LINES.has(card.rule_id):
+		return _state_line(card.rule_id, power)
+	if not REPORTERS.has(card.rule_id):
 		return ""
 	var spot := {}
 	for tower in ds._towers():
@@ -661,18 +709,108 @@ func preview_line(card: UpgradeData) -> String:
 	var row: Dictionary = call(REPORTERS[card.rule_id], spot, _shared_board(), card)
 	if row.is_empty() or not row.get("run_wide", false):
 		return ""
-	var value := "off"
+	var value := "+0%"
 	if row.get("active", false):
-		if row.get("damage", 0.0) != 0.0:
-			value = "%+d%%" % roundi(row.damage * 100)
-		elif row.get("speed", 0.0) != 0.0:
-			value = "on"
+		if row.get("speed", 0.0) != 0.0 and row.get("damage", 0.0) == 0.0:
+			value = "%+d%% speed" % roundi(row.speed * power * 100)
+		else:
+			value = "%+d%%" % roundi(row.get("damage", 0.0) * power * 100)
 	var note: String = row.get("note", "")
-	if note == "" or note.contains("attacking Wardens"):
-		note = "You have %d attacking %s" % [ds.count_attackers(), "Warden" if ds.count_attackers() == 1 else "Wardens"]
+	if note == "":
+		return ""  # No number from the run to show (Heart of the Maze, Long Shadows…): no live line
+	if note.ends_with("attacking Wardens") or note.ends_with("attacking Warden"):
+		note = "You have %s" % count_text(ds.count_attackers(), "attacking Warden")
 	else:
 		note = "Now: " + note
 	return "%s · %s" % [note, value]
+
+# "1 Thornwall", "3 Thornwalls" (text_style.md plurals).
+static func count_text(n: int, word: String, plural: String = "") -> String:
+	return "%d %s" % [n, word if n == 1 else (plural if plural != "" else word + "s")]
+
+# Cards whose live line comes from the run rather than a Warden's row.
+const STATE_LINES: Array[StringName] = [&"winding_path", &"deep_well", &"canopy", &"old_growth", &"bitter_hedges",
+	&"hedge_maze", &"crowded_path", &"lone_hunter", &"last_stand", &"quick_step", &"sunlit_rest"]
+
+func _state_line(rule: StringName, power: float) -> String:
+	match rule:
+		&"sunlit_rest":
+			return ds.sunlit_line()
+		&"winding_path":
+			var tiles: int = ds.path_length
+			return "Now: %s · +%d Dew per rest" % [count_text(tiles, "path tile"),
+				roundi(tiles / DreamState.WINDING_PATH_TILES * power)]
+		&"deep_well":
+			return "Now: %d Dew banked · +%d Dew at the next rest" % [ds.run_state.dew, ds.deep_well_interest(power)]
+		&"canopy":
+			var planted: int = ds._attackers_planted
+			var steps := ds.canopy_steps_reached()
+			var line := "Now: %s planted · %+d%%" % [count_text(planted, "attacking Warden"),
+				roundi(DreamState.CANOPY_BONUS * steps * power * 100)]
+			if steps < DreamState.CANOPY_STEPS.size():
+				line += " (%d for the next %+d%%)" % [DreamState.CANOPY_STEPS[steps], roundi(DreamState.CANOPY_BONUS * power * 100)]
+			return line
+		&"old_growth":
+			var towers := ds._towers().filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
+			var five := towers.filter(func(t: Tower) -> bool: return DreamState.drifts_stood(t) >= DreamState.OLD_GROWTH_STEPS[-1][0]).size()
+			var fifteen := towers.filter(func(t: Tower) -> bool: return DreamState.drifts_stood(t) >= DreamState.OLD_GROWTH_STEPS[0][0]).size()
+			return "Now: %s stood %d+ drifts (%+d%%), %d stood %d+ (%+d%%)" % [count_text(five, "Warden"),
+				DreamState.OLD_GROWTH_STEPS[-1][0], roundi(DreamState.OLD_GROWTH_STEPS[-1][1] * power * 100), fifteen,
+				DreamState.OLD_GROWTH_STEPS[0][0], roundi(DreamState.OLD_GROWTH_STEPS[0][1] * power * 100)]
+		&"bitter_hedges":
+			var walls := ds.walls_beside_path()
+			return "Now: %s beside the path · up to %+d%% for a nightmare passing them" % [count_text(walls, "Thornwall"),
+				roundi(minf(DreamState.BITTER_PER * walls, DreamState.BITTER_MAX) * power * 100)]
+		&"hedge_maze":
+			var level := ds.rule_level(&"hedge_maze") if ds.has_rule(&"hedge_maze") else 0
+			var per: int = DreamState.HEDGE_PER_WALLS[level]
+			var walls := ds.count_wardens("thornwall")
+			var bonus := minf(DreamState.HEDGE_BONUS_PER * (walls / per), DreamState.HEDGE_BONUS_MAX[level]) * power
+			var next := (walls / per + 1) * per
+			return "Now: %s · %+d%% (%d for the next %+d%%)" % [count_text(walls, "Thornwall"), roundi(bonus * 100), next,
+				roundi(DreamState.HEDGE_BONUS_PER * power * 100)]
+		&"crowded_path", &"lone_hunter", &"last_stand":
+			return _drift_line(rule, power)
+		&"quick_step":  # About calling drifts early: only during a block (user: it showed the attacker count)
+			if ds.drift_director.resting:
+				return ""
+			var speed := DreamState.QUICK_STEP_SPEED * maxi(ds.rule_stacks(&"quick_step"), 1) * power if ds.quick_step_active() else 0.0
+			return "Now: %d called early this block · %+d%% speed" % [ds._early_calls, roundi(speed * 100)]
+	return ""
+
+# During a drift: the value now; at a rest: last drift's averages ("" before the first drift).
+func _drift_line(rule: StringName, power: float) -> String:
+	var live := not ds.drift_director.resting
+	var stats: Dictionary = ds.last_drift_stats
+	if not live and stats.is_empty():
+		return ""
+	match rule:
+		&"crowded_path":
+			var level := ds.rule_level(&"crowded_path") if ds.has_rule(&"crowded_path") else 0
+			var count: float
+			if live:
+				count = ds.average_in_range()
+			else:
+				count = float(stats.in_range)
+			var bonus := minf(DreamState.CROWDED_PER[level] * count, DreamState.CROWDED_MAX[level]) * power
+			if live:
+				return "Now: %.1f nightmares in range on average · about %+d%%" % [count, roundi(bonus * 100)]
+			return "Last drift: %.1f nightmares in range on average · about %+d%%" % [count, roundi(bonus * 100)]
+		&"lone_hunter":
+			var level := ds.rule_level(&"lone_hunter") if ds.has_rule(&"lone_hunter") else 0
+			var share := float(stats.get("alone", 0.0))
+			if live:
+				share = ds.alone_share()  # A rotating slice (perf)
+			return "%s: %d%% of nightmares alone · %+d%% on those" % ["Now" if live else "Last drift", roundi(share * 100),
+				roundi(DreamState.LONE_HUNTER_BONUS[level] * power * 100)]
+		&"last_stand":
+			var share := float(stats.get("near", 0.0))
+			if live:
+				var enemies: Array = ds.spawner.get_enemies()
+				share = float(enemies.filter(func(e: Node2D) -> bool: return ds.is_near_heartwood(e)).size()) / maxf(enemies.size(), 1.0)
+			return "%s: %d%% of nightmares near the Heartwood · %+d%% on those" % ["Now" if live else "Last drift",
+				roundi(share * 100), roundi(DreamState.LAST_STAND_BONUS * power * 100)]
+	return ""
 
 const PREVIEW_ATTACKER := preload("res://resource/tower/sprout.tres")
 
@@ -769,6 +907,7 @@ func _desperate_bloom(spot: Dictionary, _board: Board, _card: UpgradeData) -> Di
 		return {}
 	var on: bool = ds.run_state.leaves * 2 < ds.run_state.max_leaves
 	return {"run_wide": true, "active": on, "speed": DreamState.DESPERATE_BLOOM_SPEED,
+		"note": "%d of %d leaves" % [ds.run_state.leaves, ds.run_state.max_leaves],
 		"reason": "" if on else "not below half your leaves"}
 
 func _odd_one_out(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
@@ -785,4 +924,4 @@ func _grand_tour(spot: Dictionary, _board: Board, _card: UpgradeData) -> Diction
 		return {}
 	var statuses := ds.owned_statuses().size()
 	var bonus := minf(DreamState.GRAND_TOUR_PER * statuses, DreamState.GRAND_TOUR_MAX)
-	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d statuses" % statuses}
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": count_text(statuses, "status", "statuses")}

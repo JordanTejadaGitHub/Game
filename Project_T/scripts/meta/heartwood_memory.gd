@@ -8,10 +8,27 @@ class_name HeartwoodMemory
 # Static helpers only: every caller loads, changes and saves. The file is tiny.
 
 const PATH := "user://heartwood.json"
-const VERSION := 5  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3; 4: REFUNDED_V4; 5: REFUNDED_V5
+const VERSION := 9  # 2: Grove ids match grove_layout.json (MIGRATED_IDS), perk loadout; 3: REFUNDED_V3; 4: REFUNDED_V4; 5: REFUNDED_V5; 6: REFUNDED_V6; 7: REFUNDED_V7; 8–9: nothing (free lean-pool grants dropped: the game isn't out, no players to protect)
 
-# Where the profile lives (tests point this elsewhere so they never touch the player's Seeds).
-static var file_path := PATH
+# Where the profile lives. Under a --script run (tests, tools) it defaults to a fresh per-process temp profile,
+# so a test starts from defaults() and never reads or writes the player's real settings or Seeds. A tool that
+# wants the real profile passes "-- --real-profile". Tests may still point it elsewhere.
+static var file_path := _default_path()
+
+static func _default_path() -> String:
+	var args := OS.get_cmdline_args()
+	if not args.has("--script") or OS.get_cmdline_user_args().has("--real-profile"):
+		return PATH
+	var temp := "user://test_heartwood_%d.json" % OS.get_process_id()
+	for file in [temp, temp + ".bak", temp + ".unreadable"]:  # A crashed run with the same pid left one behind
+		if FileAccess.file_exists(file):
+			DirAccess.remove_absolute(file)
+	UiStyle.release_at_exit(func() -> void:  # Tidy up at quit: one temp profile per test process otherwise piles up
+		for file in [temp, temp + ".bak", temp + ".unreadable"]:
+			if FileAccess.file_exists(file):
+				DirAccess.remove_absolute(file))
+	return temp
+
 # Dev Grove (DevGrove): while set, the profile is a dev one but settings stay in this real file.
 static var real_settings_path := ""
 # Parsed files, so the many callers don't re-read and re-parse the JSON each time (Tower Code's perf
@@ -74,7 +91,7 @@ static func defaults() -> Dictionary:
 # what the player has met, discovered and seen. With Dev Grove on these are read from and written to
 # the REAL profile (like the settings); only the Grove unlocks, perks and loadout come from the dev one.
 const ACCOUNT_KEYS := ["nightmares_seen", "intros_seen", "nightmare_dispels", "boss_records", "combos_seen",
-	"combos_seen_dev", "reactions_seen", "codex_covered", "dreams_seen", "dreams_seen_dev", "dreams_taken",
+	"combos_seen_dev", "reactions_seen", "chains_seen", "chain_best", "codex_covered", "dreams_seen", "dreams_seen_dev", "dreams_taken",
 	"dreams_won", "dreams_viewed", "nightmares_viewed", "whispers_seen", "callouts_seen"]
 
 static func load_data() -> Dictionary:
@@ -102,14 +119,98 @@ static func _shared(path: String) -> Dictionary:
 	if not hit.is_empty() and hit[0] == stamp:
 		return hit[1]
 	var data := defaults()
-	var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
+	var parsed = _parse_file(path)
+	if typeof(parsed) != TYPE_DICTIONARY:  # Caught mid-write by another process? Read once more
+		parsed = _parse_file(path)
 	if typeof(parsed) != TYPE_DICTIONARY:
-		push_warning("Heartwood save unreadable; starting fresh")
-		return data
+		# Never fall back to a fresh profile while a good copy exists (a save would then wipe the player's
+		# Grove): the last parse, else the backup save_data keeps. Not cached, so the next read tries again.
+		if not hit.is_empty():
+			push_warning("Heartwood save unreadable; using the last good copy")
+			return hit[1]
+		var backup = _parse_file(path + ".bak") if FileAccess.file_exists(path + ".bak") else null
+		DirAccess.copy_absolute(path, path + ".unreadable")  # Kept for a look, whatever happens next
+		if typeof(backup) != TYPE_DICTIONARY:
+			push_warning("Heartwood save unreadable; starting fresh (the file is kept as .unreadable)")
+			return data
+		push_warning("Heartwood save unreadable; using its backup")
+		parsed = backup
 	_merge(data, parsed)
 	_migrate(data)
 	_cache[path] = [stamp, data]
 	return data
+
+# --- Reset to a new profile (demo_scope.md, Settings → Developer) ---
+# The real profile, never a Dev Grove preset (those are rebuilt from presets anyway).
+const BACKUPS_KEPT := 5
+
+static func _real_path() -> String:
+	return real_settings_path if real_settings_path != "" else file_path
+
+# "<dir>/<name>.backup-" for the real profile: backups sit next to it and follow file_path (tests use temp files).
+static func _backup_prefix() -> String:
+	var path := _real_path()
+	return path.get_base_dir().path_join(path.get_file().get_basename() + ".backup-")
+
+# Copies the real profile to "<name>.backup-YYYYMMDD-HHMMSS.json" beside it and keeps the newest 5.
+# Returns the backup's path, or "" when there's no profile yet.
+static func backup_profile() -> String:
+	var path := _real_path()
+	if not FileAccess.file_exists(path):
+		return ""
+	var t := Time.get_datetime_dict_from_system()
+	var stamp := "%04d%02d%02d-%02d%02d%02d" % [t.year, t.month, t.day, t.hour, t.minute, t.second]
+	var backup := "%s%s.json" % [_backup_prefix(), stamp]
+	var n := 1
+	while FileAccess.file_exists(backup):  # Two in one second: keep both
+		n += 1
+		backup = "%s%s-%d.json" % [_backup_prefix(), stamp, n]
+	if DirAccess.copy_absolute(path, backup) != OK:
+		push_error("Could not back up %s" % path)
+		return ""
+	var backups := _backups()
+	while backups.size() > BACKUPS_KEPT:
+		DirAccess.remove_absolute(backups.pop_front())
+	return backup
+
+# Every backup of the real profile, oldest first (the timestamp names sort by time).
+static func _backups() -> Array[String]:
+	var dir := _real_path().get_base_dir()
+	var name := _backup_prefix().get_file()
+	var result: Array[String] = []
+	for file in DirAccess.get_files_at(dir):
+		if file.begins_with(name) and file.ends_with(".json"):
+			result.append(dir.path_join(file))
+	result.sort_custom(func(a: String, b: String) -> bool: return a.naturalnocasecmp_to(b) < 0)
+	return result
+
+static func latest_backup() -> String:
+	var backups := _backups()
+	return backups.back() if not backups.is_empty() else ""
+
+# A brand-new profile (backed up first): Grove, Seeds, counts, milestones, Blight, account knowledge, whispers,
+# loadout and the rest all go; only the settings stay when `keep_settings`.
+static func reset_profile(keep_settings := true) -> void:
+	var path := _real_path()
+	backup_profile()
+	var data := defaults()
+	if keep_settings and FileAccess.file_exists(path):
+		data.settings = _shared(path).settings.duplicate(true)
+	_write_atomic(path, JSON.stringify(data, "\t"))
+	forget()
+
+# Puts a backup back over the real profile. False when it's missing or unreadable.
+static func restore_backup(path: String) -> bool:
+	if path == "" or not FileAccess.file_exists(path) or typeof(_parse_file(path)) != TYPE_DICTIONARY:
+		return false
+	_write_atomic(_real_path(), FileAccess.get_file_as_string(path))
+	forget()
+	return true
+
+# The JSON in the file at `path`, or null when it doesn't parse (quietly: the callers handle a torn file).
+static func _parse_file(path: String) -> Variant:
+	var json := JSON.new()
+	return json.data if json.parse(FileAccess.get_file_as_string(path)) == OK else null
 
 # Drops every cached profile (a test or tool that writes the file without save_data).
 static func forget() -> void:
@@ -141,6 +242,15 @@ const REFUNDED_V4 := {"slot_2": 40, "slot_3": 80}
 # Version 5 (dream_audit.md "Pool trim", 2026-09-30): Reckless and Wild Planting granted only cut cards
 # and were removed; Full Moon now grows from Sharpened, Rootbound from Seedbed.
 const REFUNDED_V5 := {"reckless": 40, "wild_planting": 50}
+# Version 6 (meta_design.md "Final-forms nodes removed", 2026-09-30): owning a family gives its finals in
+# runs (2 Dreamlight each), so the nine final-forms nodes are gone and their Seeds come back.
+const REFUNDED_V6 := {
+	"sporeling_final": 50, "firefly_jar_final": 50, "dewdrop_final": 50, "pebbling_final": 50,
+	"rootling_final": 50, "bellflower_final": 50, "acorn_final": 50, "nestling_final": 60, "whirligig_final": 60,
+}
+# Version 7 (meta_design.md "Section 3: Cards", 2026-09-30): no combo cards in the Grove. These nodes are gone
+# (their cards come from discovery or the starting families now) and their Seeds come back.
+const REFUNDED_V7 := {"storm_lore": 40, "guiding_lights": 60, "spore_lore": 40, "dawnbreak": 120, "grove_of_kin": 120}
 
 static func _migrate(data: Dictionary) -> void:
 	var version := int(data.get("version", VERSION))
@@ -167,6 +277,16 @@ static func _migrate(data: Dictionary) -> void:
 			if int(data.unlocks.get(id, 0)) > 0:
 				data.seeds = int(data.seeds) + REFUNDED_V5[id]
 				data.unlocks.erase(id)
+	if version < 6:
+		for id in REFUNDED_V6:
+			if int(data.unlocks.get(id, 0)) > 0:
+				data.seeds = int(data.seeds) + REFUNDED_V6[id]
+				data.unlocks.erase(id)
+	if version < 7:
+		for id in REFUNDED_V7:
+			if int(data.unlocks.get(id, 0)) > 0:
+				data.seeds = int(data.seeds) + REFUNDED_V7[id]
+				data.unlocks.erase(id)
 	data.version = VERSION
 
 static func save_data(data: Dictionary) -> void:
@@ -174,11 +294,30 @@ static func save_data(data: Dictionary) -> void:
 	if real_settings_path != "" and real_settings_path != file_path:
 		_save_account_keys(data)  # Dev Grove: account knowledge goes to the real profile
 	_cache.erase(file_path)  # The path actually written (save_settings switches it for Dev Grove)
-	var file := FileAccess.open(file_path, FileAccess.WRITE)
+	_write_atomic(file_path, JSON.stringify(data, "\t"))
+
+# Writes `text` to `path` without ever leaving a half-written file (every Godot process shares user://,
+# and a crash mid-write would cost the profile): a per-process temp file, renamed over the real one.
+# The previous good version is kept as `path`.bak, the fallback when the file can't be read.
+static func _write_atomic(path: String, text: String) -> void:
+	var temp := "%s.%d.tmp" % [path, OS.get_process_id()]
+	var file := FileAccess.open(temp, FileAccess.WRITE)
 	if file == null:
-		push_error("Could not write %s: %s" % [file_path, error_string(FileAccess.get_open_error())])
+		push_error("Could not write %s: %s" % [temp, error_string(FileAccess.get_open_error())])
 		return
-	file.store_string(JSON.stringify(data, "\t"))
+	file.store_string(text)
+	var failed := file.get_error() != OK
+	file.close()
+	if failed:
+		push_error("Could not write %s" % temp)
+		DirAccess.remove_absolute(temp)
+		return
+	if FileAccess.file_exists(path) and typeof(_parse_file(path)) == TYPE_DICTIONARY:
+		DirAccess.copy_absolute(path, path + ".bak")
+	var error := DirAccess.rename_absolute(temp, path)
+	if error != OK:
+		push_error("Could not replace %s: %s" % [path, error_string(error)])
+		DirAccess.remove_absolute(temp)
 
 # Merged, never replaced: account knowledge only grows, so a fresh dev profile being written (Dev
 # Grove presets) can't wipe what the player has seen. Lists gain new entries; dictionaries gain or
@@ -269,6 +408,7 @@ static func load_grove() -> Array[UnlockData]:
 # The Grove node with this id, or null.
 static func get_unlock(id: String) -> UnlockData:
 	if _grove_by_id.is_empty():
+		UiStyle.release_at_exit(func() -> void: _grove_by_id.clear())  # Resources in a static var crash the exit (exit 139)
 		for unlock in load_grove():
 			_grove_by_id[unlock.id] = unlock
 	return _grove_by_id.get(id)
@@ -344,6 +484,17 @@ static func grown_share(data: Dictionary) -> float:
 			grown += 1
 	return float(grown) / maxf(total, 1.0)
 
+# The grown Grove nodes, for the in-run Heartwood that mirrors the Grove (meta_design.md "Carried into the
+# run"): [{id, limb ("perks" / "families" / "cards"), pos (Vector2, grove_layout.json tree space)}], in layout
+# order. Reads the current profile, so Dev Grove runs see their preset. Callers skip it in the demo.
+static func planted_nodes(data: Dictionary) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for node in GroveTreeView.load_layout().get("nodes", []):
+		var unlock := get_unlock(str(node.id))
+		if unlock != null and node_level(data, unlock) > 0:
+			result.append({"id": unlock.id, "limb": str(node.section), "pos": GroveTreeView.vec(node.pos)})
+	return result
+
 # --- Perk loadout ("Carry into the dream") ---
 
 const BASE_LOADOUT_SLOTS := 3  # Slots 1–3 are open from the start; 4 and 5 are Perks nodes
@@ -411,7 +562,13 @@ static func max_blight_level(data: Dictionary) -> int:
 		return 0
 	return mini(int(data.highest_blight_won) + 1, 10)
 
+# Settings' unapplied changes, previewed live (SettingsPanel "Apply and Cancel"): every reader sees them, nothing
+# saves them; empty = none. The panel clears it on Apply, Cancel and close.
+static var preview_settings := {}
+
 static func get_settings() -> Dictionary:  # Only the settings are copied (read often)
+	if not preview_settings.is_empty():
+		return preview_settings.duplicate(true)
 	return _shared(real_settings_path if real_settings_path != "" else file_path).settings.duplicate(true)
 
 static func save_settings(settings: Dictionary) -> void:

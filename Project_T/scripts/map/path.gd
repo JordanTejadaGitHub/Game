@@ -45,17 +45,17 @@ func draw():
 	current_path = _pathGenerator.calculate_point_path(cell_start_path, cell_end_path)
 	# Later re-routes (towers, cleared obstacles, enemies mid-walk) stick to this route when they can.
 	_pathGenerator.set_preferred_cells(current_path)
-	# And we draw a tile for every cell in the path: the sheet has one per neighbour mask, and the
-	# start runs off the island's edge onto the rope bridge.
+	# Half cells (documentation/half_cells.md): route points step by half a cell, so the path is a soft fill drawn
+	# under every body position (HalfPathFill), not tiles. The start still runs off the rim onto the bridge.
 	for cell in current_path:
-		var mask := _get_tile_score(cell)
-		if cell == cell_start_path:
-			mask |= _edge_mask(cell)
-		var on_rim := cell == cell_start_path or cell == cell_end_path  # Over the rim: no grass around the path
-		set_cell(cell, EnvironmentTiles.PATH_RIM if on_rim else EnvironmentTiles.PATH, EnvironmentTiles.path_tile(mask))
 		if board != null:
-			board.environment_object_layer.wear_away(Vector2i(cell))  # The path wore the debris away
+			for x in [floorf(cell.x), ceilf(cell.x)]:  # The full cells this body overlaps
+				for y in [floorf(cell.y), ceilf(cell.y)]:
+					board.environment_object_layer.wear_away(Vector2i(x, y))  # The path wore the debris away
 		current_path_curve.add_point(grid.calculate_map_position(cell))
+	if not current_path.is_empty():
+		set_cell(cell_start_path, EnvironmentTiles.PATH_RIM, EnvironmentTiles.path_tile(_edge_mask(cell_start_path)))
+	_fill().queue_redraw()
 
 # The neighbour bit pointing off the map from an edge cell (N=1, E=2, S=4, W=8), else 0.
 func _edge_mask(cell: Vector2) -> int:
@@ -120,6 +120,11 @@ func _get_tile_score(tile:Vector2i) -> int:
 	
 	return score
 
+# Makes the next draw() (and the sticky re-routes after it) take `cells` when it's among the shortest
+# routes: MapGenerator hands it the straightest one so the opening route isn't a staircase.
+func prefer_route(cells: PackedVector2Array) -> void:
+	_pathGenerator.set_preferred_cells(cells)
+
 # `path_drawn` is only parented once draw_unit_path() runs; free it ourselves otherwise so it doesn't leak.
 func _exit_tree() -> void:
 	if path_drawn.get_parent() == null:
@@ -129,3 +134,35 @@ func _exit_tree() -> void:
 func stop() -> void:
 	_pathGenerator = null
 	clear()
+
+# --- Half cells (documentation/half_cells.md) ---------------------------------------------------------
+
+# The soft path fill: a 64 px rounded square under every body position on the route (they overlap by
+# half), an edge in a darker shade first. A look good enough to judge play, not final art.
+var _path_fill: Node2D
+
+func _fill() -> Node2D:
+	if _path_fill == null:
+		_path_fill = Node2D.new()
+		_path_fill.name = "HalfPathFill"
+		_path_fill.draw.connect(_draw_fill)
+		add_child(_path_fill)
+	return _path_fill
+
+func _draw_fill() -> void:
+	var size := Vector2(grid.cell_size)
+	for pass_index in 2:
+		var grow := 3.0 if pass_index == 0 else -1.0
+		var colour := Color(Palette.LOAM, 0.9) if pass_index == 0 else Palette.PATH
+		for cell in current_path:
+			var rect := Rect2(grid.calculate_map_position(cell) - size / 2.0, size).grow(grow)
+			_path_fill.draw_rect(rect, colour)
+
+func get_finder() -> FindPath:
+	return _pathGenerator
+
+func is_half_blocked(h: Vector2) -> bool:
+	return _pathGenerator.is_half_blocked(h)
+
+func set_half_blocked(h: Vector2, blocked: bool) -> void:
+	_pathGenerator.set_half_blocked(h, blocked)

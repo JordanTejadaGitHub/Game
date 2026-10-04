@@ -29,6 +29,8 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	HeartwoodMemory.file_path = "user://test_family_finals_%d.json" % OS.get_process_id()  # Not the player's settings (reduced motion shortens drags)
+	Fx.reset_run()
 	_check_data()
 	main = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
@@ -88,7 +90,8 @@ func _run() -> void:
 		w3._update_drag(1.0 / 60.0)
 	w3.push_back(cell_px)
 	await _wait_drag(w3)
-	_check(starts[0] == 1 and w3.global_position.is_equal_approx(Tower.MAP_GRID.calculate_map_position(route[12])),
+	var per_tile := roundi(cell_px / Tower.MAP_GRID.calculate_map_position(route[0]).distance_to(Tower.MAP_GRID.calculate_map_position(route[1])))  # Half cells: 2 route points a tile
+	_check(starts[0] == 1 and w3.global_position.is_equal_approx(Tower.MAP_GRID.calculate_map_position(route[14 - 2 * per_tile])),
 		"two pulls = one drag, 2 tiles back (%d drags, at %s)" % [starts[0], w3.global_position])
 	w3.push_back(cell_px)
 	w3.set_path(route)
@@ -108,7 +111,7 @@ func _run() -> void:
 	snug._update_ability(0.1)
 	var count := held.filter(func(e) -> bool: return e.statuses.is_held()).size()
 	var reachable := held.filter(func(e) -> bool: return snug.get_enemies_in_range().has(e)).size()
-	_check(count == mini(reachable, 3) and count > 0, "Snugroot Holds up to 3 (%d of %d in range)" % [count, reachable])
+	_check(count == mini(reachable, snug.tower_data.hold_targets) and count > 0, "Snugroot Holds up to its hold_targets (%d of %d in range)" % [count, reachable])
 	snug.queue_free()
 	await _clean()
 
@@ -118,7 +121,7 @@ func _run() -> void:
 	var b := _spawn(beacon.global_position + Vector2(0, 2 * CELL))
 	beacon._update_ability(0.1)
 	_check(a.statuses.has(EnemyStatuses.MARKED) and b.statuses.has(EnemyStatuses.MARKED), "Beacon Marks everything in range")
-	_check(is_equal_approx(a.statuses.get_damage_taken_multiplier(), 1.35), "its Marked is +35%% (%.2f)" % a.statuses.get_damage_taken_multiplier())
+	_check(is_equal_approx(a.statuses.get_damage_taken_multiplier(), 1.0 + beacon.tower_data.marked_bonus), "its Marked is +marked_bonus (%.2f)" % a.statuses.get_damage_taken_multiplier())
 	beacon.queue_free()
 	await _clean()
 
@@ -129,7 +132,7 @@ func _run() -> void:
 	friend._refresh_neighbours()
 	far_friend._refresh_neighbours()
 	var speed := far_friend.get_attacks_per_second()  # 3 tiles away: no aura
-	_check(is_equal_approx(friend.get_attacks_per_second(), speed * 1.2), "Elder Stump: +20% attack speed beside it")
+	_check(is_equal_approx(friend.get_attacks_per_second(), speed * (1.0 + load("res://resource/tower/elder_stump.tres").aura_speed_bonus)), "Elder Stump: its attack-speed aura beside it")
 	stump.evolve(load("res://resource/tower/grove_heart.tres"), 0)
 	var extra := _plant("sprout", Vector2(5, 6))
 	for t in [stump, friend, extra]:
@@ -155,7 +158,7 @@ func _run() -> void:
 	await process_frame
 	var dew := run_state.dew
 	director.drift_cleared.emit(5, 0, true)
-	_check(run_state.dew == dew and is_equal_approx(catcher.bowl, 4.0), "Dewcatcher: +4 Dew per drift, into the bowl (%.1f)" % catcher.bowl)
+	_check(run_state.dew == dew and is_equal_approx(catcher.bowl, float(catcher.tower_data.dew_per_drift)), "Dewcatcher: its Dew per drift, into the bowl (%.1f)" % catcher.bowl)
 	catcher.queue_free()
 	await process_frame
 	paused = false
@@ -211,6 +214,29 @@ func _run() -> void:
 	_check(is_equal_approx(sun._beam_ramp, 1.0), "over a second later it starts from scratch (%.2f)" % sun._beam_ramp)
 	second.queue_free()
 	sun.queue_free()
+	await _clean()
+
+	# --- Sunpetal: the beam holds its target until it's dispelled or leaves range (Balancing: switching to each
+	# new front-runner kept resetting the ramp) ---
+	var petal := _plant("sunpetal", Vector2(16, 14))
+	petal.target_chosen = true
+	petal.target_mode = TowerData.TargetMode.STRONGEST
+	var beamed := _spawn(petal.global_position + Vector2(CELL, 0))
+	petal._update_beam(0.1)
+	petal._beam_ramp = 2.5
+	var stronger := _spawn(petal.global_position + Vector2(0, CELL))
+	stronger.max_health = 5000000
+	stronger.health = 5000000
+	_check(petal.find_target() == stronger, "(setup) targeting alone would switch to the stronger one")
+	petal._update_beam(0.1)
+	_check(petal._beam_target == beamed and petal._beam_ramp > 2.5, "the beam keeps its target and its ramp (%.2f)" % petal._beam_ramp)
+	beamed.global_position = petal.global_position + Vector2(20, 0) * CELL  # Out of range
+	await process_frame  # (the in-range list is kept for the frame)
+	petal._update_beam(0.1)
+	_check(petal._beam_target == stronger and petal._beam_ramp < 1.5, "once it leaves range the beam takes a new one, ramp from scratch (%.2f)" % petal._beam_ramp)
+	beamed.queue_free()
+	stronger.queue_free()
+	petal.queue_free()
 	await _clean()
 
 	# --- Thunderclap arcs reach at most the 8 nearest Soaked nightmares ---
@@ -269,11 +295,11 @@ func _check_data() -> void:
 			_check(card != null and card.unlocks == branch, "%s has its card" % line[0])
 			if line.size() > 1:
 				var final: TowerData = load("res://resource/tower/%s.tres" % line[1])
-				_check(branch.evolves_to.has(final) and final.tier == 3 and final.evolve_cost == 200,
-					"%s grows into %s (final, 200 Dew)" % [line[0], line[1]])
+				_check(branch.evolves_to.has(final) and final.tier == 3 and final.evolve_cost == 300,
+					"%s grows into %s (final, 300 Dew)" % [line[0], line[1]])
 				_check(load("res://resource/dream/dream_%s.tres" % line[1]) != null, "%s has its card" % line[1])
 			else:
-				_check(branch.tier == 3 and branch.evolve_cost == 200, "%s is a final form (200 Dew)" % line[0])
+				_check(branch.tier == 3 and branch.evolve_cost == 300, "%s is a final form (300 Dew)" % line[0])
 	for final in ASCEND:
 		var data: TowerData = load("res://resource/tower/%s.tres" % final)
 		_check(data.evolves_to.has(load("res://resource/tower/%s.tres" % ASCEND[final])),

@@ -68,8 +68,10 @@ func _run() -> void:
 	var codex := CodexPanel.new()
 	root.add_child(codex)
 	codex.open(&"combos")
-	for id in ["set_off", "marked_blow", "caught"]:
+	for id in ["marked_blow"]:  # Pebbling's (set_off and caught are Bellflower's: a starting family since 2026-10-01)
 		_check(not codex._entries.has(id), "the demo Codex leaves out %s (another family's combo)" % id)
+	for id in ["set_off", "caught"]:
+		_check(codex._entries.has(id), "the demo Codex lists %s (Bellflower's combo)" % id)
 	_check(codex._entries.has("conducted") and codex._entries.has("thunderclap"), "…and keeps the demo's own combos")
 	var kin_listed := CodexData.kinships().filter(func(k: Dictionary) -> bool: return codex._entries.has(String(k.id)))
 	_check(kin_listed.all(func(k: Dictionary) -> bool: return Kinships.is_available(k.id)) and kin_listed.size() < CodexData.kinships().size(),

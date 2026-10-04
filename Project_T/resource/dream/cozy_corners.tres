@@ -13,3 +13,5 @@ tags = Array[String](["maze"])
 requires = Array[String]([])
 max_stacks = 1
 rule_id = &"cozy_corners"
+diagram = ".P.....\n.PW....\n.+PPPP.\n.....w.\n......."
+diagram_caption = "Beside a bend in the path: +30%. ✗ beside a straight stretch."

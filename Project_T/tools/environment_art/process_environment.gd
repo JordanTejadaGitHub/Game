@@ -12,8 +12,11 @@ const OUT := "res://assets/environment"
 const KINDS := {
 	"grass": DetailPass.Kind.TILE, "path": DetailPass.Kind.TILE, "path_rim": DetailPass.Kind.TILE,
 	"island_edge": DetailPass.Kind.TILE,
-	"cliff": DetailPass.Kind.TILE, "dew_pool": DetailPass.Kind.TILE, "blight_patch": DetailPass.Kind.TILE,
+	"cliff": DetailPass.Kind.TILE, "dew_pool": DetailPass.Kind.TILE, "pond": DetailPass.Kind.TILE, "pond_inner": DetailPass.Kind.TILE,
+	"heartwood_roots": DetailPass.Kind.TILE, "bog_path": DetailPass.Kind.TILE,
+	"lightning_tree": DetailPass.Kind.OBSTACLE, "moonwell": DetailPass.Kind.OBSTACLE, "bell_stone": DetailPass.Kind.OBSTACLE, "ancient_stump": DetailPass.Kind.OBSTACLE, "blight_patch": DetailPass.Kind.TILE,
 	"border_wall": DetailPass.Kind.TILE, "rope_bridge": DetailPass.Kind.TILE,
+	"fallen_log": DetailPass.Kind.TILE, "log_furrow": DetailPass.Kind.TILE,
 	"withered_tree": DetailPass.Kind.OBSTACLE, "mossy_boulder": DetailPass.Kind.OBSTACLE,
 	"tended_stump": DetailPass.Kind.OBSTACLE, "moved_hollow": DetailPass.Kind.OBSTACLE,
 	"ground_details": DetailPass.Kind.OBSTACLE, "waystone": DetailPass.Kind.OBSTACLE,
@@ -22,10 +25,12 @@ const KINDS := {
 	"heartwood": DetailPass.Kind.WARDEN,
 }
 # Palette snap only: soft alpha overlays and the seamless 256 px void (a per-64 pass would seam it).
-const SNAP_ONLY := ["edge_mist", "void_sky", "void_stars", "cloud_shadows"]
+const SNAP_ONLY := ["edge_mist", "void_sky", "void_stars", "cloud_shadows", "mist_banks", "heartwood",
+	"heartwood_stage_0", "heartwood_stage_1", "heartwood_stage_2", "heartwood_stage_3", "dream_fruit",
+	"route_mist", "route_mist_start", "route_mist_end", "route_wisp", "mushroom_ring"]  # heartwood*: drawn with its own rim and banded glow (matches the Memory Grove)
 # Grain strength (the user's picks, 2026-09-28): no added grain on anything grassy, a light grain on
 # the other ground tiles, full detail on props.
-const NO_GRAIN := ["grass", "island_edge", "dew_pool", "blight_patch"]
+const NO_GRAIN := ["grass", "island_edge", "dew_pool", "pond", "pond_inner", "heartwood_roots", "blight_patch"]
 const TILE_GRAIN := 0.3
 
 func _init() -> void:
@@ -43,6 +48,10 @@ func _init() -> void:
 	for folder in DirAccess.get_directories_at(raw):
 		var means := {}
 		for file in DirAccess.get_files_at(raw + "/" + folder):
+			if file.ends_with(".json"):  # data for the game (heartwood_stages.json): copied as is
+				DirAccess.make_dir_recursive_absolute(out + "/" + folder)
+				DirAccess.copy_absolute(raw + "/" + folder + "/" + file, out + "/" + folder + "/" + file)
+				continue
 			if not file.ends_with(".png"):
 				continue
 			var sheet := file.get_basename()
@@ -91,8 +100,8 @@ func _detail(img: Image, sheet: String) -> void:
 	var frame := Vector2i(64, 64)
 	if sheet == "heartwood":
 		frame = Vector2i(128, 128)
-	elif sheet == "withered_tree":
-		frame = Vector2i(64, 96)  # Tall trees: the bottom 64 px are the cell
+	elif sheet == "withered_tree" or sheet == "lightning_tree":
+		frame = Vector2i(96, 128)  # Big trees: the bottom 64 px rows are the cell, centred
 	DetailPass.apply_sheet(img, frame, kind, 0, texture)
 
 # Mean OKLab lightness of the opaque pixels.

@@ -34,6 +34,19 @@ const DARK_MOSS := ["void", "night", "deepmoss", "moss"]
 const FOG := ["void", "night", "pool", "slate", "stone", "mist", "moonlight"]  # teal-grey swamp fog
 const WARM := ["slate", "loam", "path", "moonpath", "heartlight"]  # fog lit by the Heartwood
 
+const FLESH := ["void", "dread", "shade", "bruise", "loam", "blossom"]  # the Sporeling variant's body
+const CAP := ["void", "dread", "shade", "bruise", "stone", "mist"]      # its Bloomcap cap
+const BARK := ["void", "root", "bark", "oak", "deadwood"]               # the Rootling variant's bark
+
+## Which Warden the titan is: "stone" (the title art) or "sporeling" (a comparison variant, a vast
+## Bloomcap). Set with `-- --warden=sporeling --out=<file.png>`; a variant never overwrites the title art.
+var variant := "stone"
+var out_file := ""
+var _skip := ""                      # a step _build leaves out ("titan" / "figures")
+var _titan_px := PackedByteArray()   # 1 where the Warden step drew
+var _titan_img: Image                # right after the Warden step
+var _nm_id := PackedByteArray()      # the nightmare (index + 1) that drew each pixel
+var _nm_img: Image                   # right after the nightmares
 var img: Image
 var noise := FastNoiseLite.new()
 var grain := FastNoiseLite.new()
@@ -44,20 +57,70 @@ var _shape := []                  # per part: Vector4(centre x, centre y, radius
 
 
 func _init() -> void:
-	rng.seed = 20260930
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--warden="):
+			variant = arg.get_slice("=", 1)
+		elif arg.begins_with("--out="):
+			out_file = arg.get_slice("=", 1)
+	if variant != "stone" and out_file == "":
+		push_error("title_art_generator: a variant needs --out=<file.png>")
+		quit(1)
+		return
 	noise.seed = 11
 	noise.frequency = 0.045
 	noise.fractal_octaves = 3
 	grain.seed = 5
 	grain.frequency = 0.25
+	var raw := _build("")
+	var final := img.duplicate() as Image
+
+	if out_file != "":
+		final.save_png(out_file)
+		var big_variant := final.duplicate() as Image
+		big_variant.resize(W * 3, H * 3, Image.INTERPOLATE_NEAREST)
+		big_variant.save_png(out_file.get_basename() + "_3x.png")
+		print("title_art_generator: wrote ", out_file)
+		quit()
+		return
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(PREVIEW.get_base_dir()))
+	final.save_png(OUT + "title_background.png")
+	var big := final.duplicate() as Image
+	big.resize(W * 3, H * 3, Image.INTERPOLATE_NEAREST)
+	big.save_png(PREVIEW)
+	var titan_px := _titan_px.duplicate()
+	var titan_img := _titan_img
+	var nm_id := _nm_id.duplicate()
+	var nm_img := _nm_img
+	_build("titan")
+	var no_titan := img.duplicate() as Image
+	_build("figures")
+	var no_figures := img.duplicate() as Image
+	_export_layers(raw, final, no_titan, no_figures, titan_px, titan_img, nm_id, nm_img)
+	print("title_art_generator: wrote ", OUT, "title_background.png and the animation layers")
+	quit()
+
+
+## One full render. `skip` leaves out the Warden ("titan") or the nightmares ("figures"), for the
+## backgrounds behind the animated layers. A full render also records which pixels the Warden and each
+## nightmare drew. Returns the image before the palette snap; `img` ends snapped.
+func _build(skip: String) -> Image:
+	rng.seed = 20260930
 	img = Image.create(W, H, false, Image.FORMAT_RGBA8)
 	_mask.resize(W * H)
-
+	_mask.fill(0)
+	_skip = skip
+	_nm_id.resize(W * H)
+	_nm_id.fill(0)
 	_sky()
 	_heartwood()
 	_trunk_layer(46, 0.58, Vector2(2.0, 5.0), 290.0, 1, 96.0)   # far trees, ghostly in the fog (none over the Heartwood)
 	_mist(210, 290, 0.62)
-	_titan()
+	var pre := img.duplicate() as Image
+	if skip != "titan":
+		_titan()
+	_titan_img = img.duplicate() as Image
+	_titan_px = _changed(pre, img)
 	_islets()
 	_mist(246, 292, 0.58)
 	_trunk_layer(20, 0.38, Vector2(4.0, 8.0), 292.0, 2, 128.0)  # nearer trees round the Warden
@@ -68,20 +131,100 @@ func _init() -> void:
 	_lilies()
 	_banks()
 	_glow_shrooms()
-	_figure()
+	if skip != "figures":
+		_figure()
+	_nm_img = img.duplicate() as Image
 	_frame_trees()
 	_motes()
 	_fireflies()
+	var raw := img.duplicate() as Image
 	Palette.snap_image(img)
+	return raw
 
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(PREVIEW.get_base_dir()))
-	img.save_png(OUT + "title_background.png")
-	var big := img.duplicate() as Image
-	big.resize(W * 3, H * 3, Image.INTERPOLATE_NEAREST)
-	big.save_png(PREVIEW)
-	print("title_art_generator: wrote ", OUT, "title_background.png")
-	quit()
+
+func _changed(a: Image, b: Image) -> PackedByteArray:
+	var out := PackedByteArray()
+	out.resize(W * H)
+	for y in H:
+		for x in W:
+			out[y * W + x] = 1 if a.get_pixel(x, y) != b.get_pixel(x, y) else 0
+	return out
+
+
+# --- animation layers ------------------------------------------------------------------------------
+# The title screen (TitleBackdrop) animates the art in layers: the background without the Warden or
+# the nightmares, the Warden (it breathes), each nightmare (they breathe too), a front layer for what
+# covers them (trees, mist), and seamless mist strips that drift. Stacked still, they give exactly
+# title_background.png. Layout in title_layers.json.
+
+func _export_layers(raw: Image, final: Image, no_titan: Image, no_figures: Image, titan_px: PackedByteArray,
+		titan_img: Image, nm_id: PackedByteArray, nm_img: Image) -> void:
+	var back := final.duplicate() as Image
+	var warden := Image.create(W, H, false, Image.FORMAT_RGBA8)
+	var nightmares := Image.create(W, H, false, Image.FORMAT_RGBA8)
+	var front := Image.create(W, H, false, Image.FORMAT_RGBA8)
+	var warden_top := H
+	var boxes := {}  # nightmare index -> Rect2i
+	for y in H:
+		for x in W:
+			var i := y * W + x
+			var c := final.get_pixel(x, y)
+			if nm_id[i] != 0:
+				back.set_pixel(x, y, no_figures.get_pixel(x, y))
+				if raw.get_pixel(x, y) == nm_img.get_pixel(x, y):
+					nightmares.set_pixel(x, y, c)
+					var n := int(nm_id[i]) - 1
+					boxes[n] = (boxes[n] as Rect2i).expand(Vector2i(x, y)) if boxes.has(n) else Rect2i(x, y, 1, 1)
+				else:
+					front.set_pixel(x, y, c)
+			elif titan_px[i] != 0 and y < WATER_Y:
+				back.set_pixel(x, y, no_titan.get_pixel(x, y))
+				if raw.get_pixel(x, y) == titan_img.get_pixel(x, y):
+					warden.set_pixel(x, y, c)
+					warden_top = mini(warden_top, y)
+				else:
+					front.set_pixel(x, y, c)
+	back.save_png(OUT + "title_back.png")
+	warden.save_png(OUT + "title_warden.png")
+	nightmares.save_png(OUT + "title_nightmares.png")
+	front.save_png(OUT + "title_front.png")
+	var layout := {"size": [W, H], "warden": {"top": warden_top, "pivot": WATER_Y, "amp": 2, "period": 5.5}, "nightmares": [], "mists": []}
+	var r := RandomNumberGenerator.new()
+	r.seed = 31
+	for n in boxes.keys():
+		var box: Rect2i = boxes[n]
+		box.size += Vector2i.ONE
+		layout.nightmares.append({"name": NIGHTMARES[n][0], "rect": [box.position.x, box.position.y, box.size.x, box.size.y],
+			"amp": 2, "period": snappedf(r.randf_range(2.2, 3.4), 0.01), "phase": snappedf(r.randf(), 0.01),
+			"floats": NIGHTMARES[n][0] == "will_o_wisp"})
+	for m in MIST_STRIPS.size():
+		var strip: Array = MIST_STRIPS[m]
+		var file := "title_mist_%d.png" % m
+		_mist_strip(strip[1], strip[2], 70 + m).save_png(OUT + file)
+		layout.mists.append({"file": file, "y": strip[0], "speed": strip[3]})
+	var json := FileAccess.open(OUT + "title_layers.json", FileAccess.WRITE)
+	json.store_string(JSON.stringify(layout, "\t"))
+	json.close()
+
+
+## [y, height, fog value, speed in art px per second (negative = leftward)]
+const MIST_STRIPS := [[222, 40, 0.6, 1.6], [252, 44, 0.52, -2.4], [284, 26, 0.46, 3.2]]
+
+
+## A band of drifting mist wisps that tiles seamlessly left to right (the noise is sampled round a
+## cylinder), thinner than the painted mist so it only moves over it.
+func _mist_strip(h: int, value: float, salt: int) -> Image:
+	var strip := Image.create(W, h, false, Image.FORMAT_RGBA8)
+	var radius := W / TAU * 0.35
+	for y in h:
+		var band := maxf(0.0, 1.0 - absf(y - h * 0.5) / (h * 0.5))
+		for x in W:
+			var ang := TAU * x / W
+			var m := noise.get_noise_3d(cos(ang) * radius + salt * 50.0, y * 2.4, sin(ang) * radius)
+			var a := (m + 0.15) * band
+			if a > 0.4 or (a > 0.28 and (x + y) % 2 == 0) or (a > 0.18 and bayer(x, y) < 0.2):
+				strip.set_pixel(x, y, pick(FOG, value, x, y))
+	return strip
 
 
 # --- helpers -------------------------------------------------------------------------------------
@@ -125,6 +268,16 @@ func pick(ramp: Array, v: float, x: int, y: int, seam := 0.16) -> Color:
 	var hi := 0.5 + seam
 	var up := t > hi or (t >= lo and (t - lo) / (hi - lo) > bayer(x, y))
 	return col(ramp[mini(i + 1, ramp.size() - 1)] if up else ramp[i])
+
+
+## True where t crosses 0.5: solid on each side, dithered only in a narrow seam. For light that should
+## read as painted bands (the Heartwood's haze, the rim), not a field of dots.
+func band(t: float, x: int, y: int, width := 0.06) -> bool:
+	if t > 0.5 + width:
+		return true
+	if t < 0.5 - width:
+		return false
+	return bayer(x, y) < (t - (0.5 - width)) / (2.0 * width)
 
 
 ## A banded glow: a few alpha steps, never a soft blur (art_direction.md "Banded glow").
@@ -238,9 +391,12 @@ func _sky() -> void:
 			var v := 0.28 + 0.2 * exp(-absf(y - 200.0) / 70.0) + 0.45 * exp(-d / 110.0)
 			v -= clampf((70.0 - y) / 70.0, 0.0, 1.0) * 0.16
 			v += noise.get_noise_2d(x * 0.4, y * 1.6) * 0.05
-			var c := pick(FOG, v, x, y, 0.22)
-			if bayer(x, y) < exp(-d / 110.0) * 1.2 - 0.3:
-				c = pick(WARM, v * 1.05 - 0.1, x, y, 0.22)
+			var c := pick(FOG, v, x, y, 0.1)
+			var heat := exp(-d / 150.0) * 1.3 - 0.1 + noise.get_noise_2d(x * 0.7, y * 0.7) * 0.12
+			if band(heat, x, y):  # the Heartwood's haze in two painted bands, not scattered dots
+				c = pick(WARM, v * 1.05 - 0.1, x, y, 0.1)
+			elif band(heat + 0.22, x, y):
+				c = pick(WARM, v * 0.9 - 0.14, x, y, 0.1)
 			img.set_pixel(x, y, c)
 
 
@@ -260,7 +416,7 @@ func _heartwood() -> void:
 				v -= 0.06  # a soft groove between strands
 			var warm := exp(-Vector2(x, y).distance_to(MOON) / 110.0)
 			var c := pick(FOG, v, x, y)
-			if bayer(x, y) < warm * 0.9 - 0.15:
+			if band(warm * 0.9 - 0.15 + noise.get_noise_2d(x * 0.7, y * 0.7) * 0.12 + 0.2, x, y):
 				c = pick(WARM, v + 0.05, x, y)
 			put(x, y, c)
 	var r := RandomNumberGenerator.new()
@@ -333,6 +489,8 @@ func _mist(y0: int, y1: int, value: float) -> void:
 			var a := (m + 0.3) * band
 			if a > 0.42:
 				put(x, y, pick(FOG, value, x, y))
+			elif _part_at(x, y) != 0:
+				continue  # over the Warden only solid wisps: no checker on its body
 			elif a > 0.26 and (x + y) % 2 == 0:
 				put(x, y, pick(FOG, value, x, y))
 			elif a > 0.14 and bayer(x, y) < 0.25:
@@ -373,6 +531,17 @@ func _titan() -> void:
 			var id := _mask[y * W + x]
 			if id != 0:
 				put(x, y, _titan_pixel(x, y, id))
+	if variant == "sporeling":
+		_spore_mushrooms()
+		_face()
+		_giant_cap()
+		return
+	if variant == "rootling":
+		_hanging_moss()
+		_great_roots()
+		_face()
+		_giant_sprout()
+		return
 	_hanging_moss()
 	_crown_tree(Vector2(HEAD.x - 20, HEAD.y - 40), 1.0)
 	_crown_tree(Vector2(TITAN_X - 74, 124), 0.6)
@@ -388,9 +557,10 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 	# Body, arms and shoulders share one stone pattern, so the arms read as grown from the body.
 	var s := stones(x, y, 8.0, 7 if id in [1, 4, 5, 6, 7] else 7 + id)
 	# Round form: brighter toward the moon, darker away; plus stones, cracks and a sky-lit top.
-	var v := 0.24 + 0.1 * q.normalized().dot(to_moon) * minf(q.length(), 1.0) + (s.z - 0.5) * 0.08
-	if s.y < 1.0:
-		v -= 0.11
+	# Backlit, it is one great dark mass against the light: detail lives in the upper body and fades below.
+	var v := 0.17 + 0.1 * q.normalized().dot(to_moon) * minf(q.length(), 1.0) + (s.z - 0.5) * (0.08 if variant != "stone" else 0.06)
+	if s.y < (1.0 if variant != "stone" else 0.85) and variant != "sporeling":  # flesh has no cracks
+		v -= 0.07 * (1.0 - clampf((y - 160.0) / 100.0, 0.0, 1.0))  # the cracks, softer and lost in the mist lower down
 	if _part_at(x, y - 2) == 0:
 		v += 0.1
 	var behind := false
@@ -411,8 +581,8 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 			if other == 4 or other == 5:
 				v -= 0.09
 				break
-	# Backlit: the Heartwood's light is behind it, so every outer edge catches a rim, gold near the
-	# light and cold further out.
+	# Backlit: the Heartwood's light is behind it, so its outer edges catch a rim near the light. Broken
+	# and fading with distance, never a full outline.
 	var rim := 0
 	for d in [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1), Vector2i(0, 1)]:
 		if _part_at(x + d.x, y + d.y) == 0:
@@ -422,26 +592,167 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 			if _part_at(x + d.x, y + d.y) == 0:
 				rim = 1
 	var warm := exp(-Vector2(x, y).distance_to(MOON) / 130.0)
-	if rim > 0 and y < WATER_Y - 4 and bayer(x, y) < warm * 1.8 - 0.2:
-		return col("glow") if rim == 2 else col("gold")
-	var fog := clampf((y - 200.0) / 90.0, 0.0, 1.0) * 0.5 + 0.1
-	# Moss grows over the tops and down the sides in thick patches.
-	var mossy := noise.get_noise_2d(x * 0.9 + 13.0, y * 0.9) - q.y * 0.25
-	if id == 8:
-		mossy -= 0.2 if absf(q.x) < 0.7 and q.y > -0.45 else -0.2  # keep the face mostly bare
-	if mossy > 0.2:
-		var mv := 0.22 + (s.z - 0.5) * 0.1 + (0.45 if rim == 2 else (0.22 if rim == 1 else 0.0))
-		if grain.get_noise_2d(x * 3.0, y * 3.0) > 0.4:
-			mv += 0.14
-		var c := pick(MOSS, mv, x, y)
-		if bayer(x, y) < fog * 0.7:
-			c = pick(FOG, lerpf(v, 0.52, fog), x, y)
+	var lit := warm * 1.6 - 0.3 + noise.get_noise_2d(x * 2.0, y * 2.0) * 0.3
+	if rim == 2 and y < WATER_Y - 4 and band(lit, x, y, 0.1):
+		return col("glow") if lit > 0.8 else col("gold")
+	if rim == 1 and lit < 0.35:
+		rim = 0  # away from the light the edge stays in shadow
+	var fog := clampf((y - 160.0) / 120.0, 0.0, 1.0) * (0.8 if variant != "stone" else 0.55) + 0.05  # the mist swallows it from the waist down
+	if variant == "sporeling":
+		return _flesh_pixel(x, y, id, v, rim, lit, fog)
+	if variant == "rootling":
+		return _bark_pixel(x, y, v, rim, lit, fog)
+	# The base: a hard, chipped waterline, dark where the stone meets the swamp, with a broken wet lip.
+	var chip := int(hash01(x / 3, 7) * 3.0)
+	var base_line := WATER_Y - 3 - chip
+	if y >= base_line:
+		return col("void") if y > base_line else (col("night") if (x / 3) % 5 == 0 else col("slate"))
+	# Moss in deliberate clumps: it hangs from the top edges (head, shoulders, arms), deeper where the
+	# Heartwood's light reaches, each clump with a bright lip on top and a dark fringe. The face stays bare.
+	var below_edge := 0
+	while below_edge < 16 and _part_at(x, y - below_edge - 1) == id:
+		below_edge += 1
+	var clump := noise.get_noise_2d(x * 0.35 + 13.0, 7.0)  # one value per column: clumps, not blotches
+	var depth := 2.0 + maxf(0.0, clump + 0.1) * 24.0 + maxf(0.0, lit) * 4.0 + (9.0 if hash01(x, 3) > 0.86 else 0.0)  # a few longer drips
+	if id in [1, 6, 7]:
+		depth += 7.0  # the shoulders and the body's top hold the thickest moss
+	var from_sky := _part_at(x, y - below_edge - 1) == 0 and q.y < -0.25  # only under the true top silhouette
+	var face := id == 8 and absf(q.x) < 0.72 and q.y > -0.5
+	if not face and from_sky and below_edge < 16 and below_edge < depth and y < 250:
+		var c := col("leaf") if below_edge < depth * 0.5 else col("moss")  # lighter near the top, darker down the clump
+		if below_edge <= 1:
+			c = col("sprig") if lit > 0.1 else col("leaf")  # the lip, catching the light
+		elif below_edge >= depth - 2.0:
+			c = col("deepmoss")  # the fringe
 		return c
 	if rim == 2:
-		v = 0.72
+		v = maxf(v, 0.3 + lit * 0.4)
 	elif rim == 1:
-		v = maxf(v, 0.55)
-	return pick(FOG, lerpf(v, 0.52, fog), x, y)
+		v = maxf(v, 0.4)
+	return pick(FOG, lerpf(v, 0.5, fog), x, y, 0.0)  # hard shading bands, no dither seam
+
+
+## The Sporeling variant's body: soft fungal flesh (no cracks), fibrous streaks and pale spore
+## freckles, in shadow under its cap.
+func _flesh_pixel(x: int, y: int, id: int, v: float, rim: int, lit: float, fog: float) -> Color:
+	v += 0.05 if grain.get_noise_2d(x * 0.5, y * 3.0) > 0.4 else 0.0  # fibres, running down
+	if blocky(x, y, 2, 91) > 0.988:
+		v += 0.1  # freckles, faint
+	if id == 8 and y < HEAD.y - 4:
+		v -= 0.12  # the cap's shadow on the head
+	if rim == 2:
+		v = maxf(v, 0.3 + lit * 0.4)
+	elif rim == 1:
+		v = maxf(v, 0.4)
+	if band(fog + noise.get_noise_2d(x * 0.8, y * 0.8) * 0.2, x, y, 0.08):
+		return pick(FOG, lerpf(v, 0.5, fog), x, y, 0.1)
+	return pick(FLESH, v + 0.14, x, y, 0.1)
+
+
+## The Rootling variant's body: old bark in long vertical grain with dark grooves, moss in the hollows.
+func _bark_pixel(x: int, y: int, v: float, rim: int, lit: float, fog: float) -> Color:
+	var g := grain.get_noise_2d(x * 0.7 + noise.get_noise_1d(y * 0.4) * 6.0, y * 0.035)
+	if absf(g) < 0.1:
+		v -= 0.2  # a groove between the bark ridges
+	elif g > 0.3:
+		v += 0.06  # a ridge catching a little light
+	if rim == 2:
+		v = maxf(v, 0.3 + lit * 0.4)
+	elif rim == 1:
+		v = maxf(v, 0.4)
+	if band(fog + noise.get_noise_2d(x * 0.8, y * 0.8) * 0.2, x, y, 0.08):
+		return pick(FOG, lerpf(v, 0.5, fog), x, y, 0.1)
+	if noise.get_noise_2d(x * 0.6 + 40.0, y * 0.9) > 0.5:
+		return pick(MOSS, v + 0.02, x, y, 0.1)  # moss in the hollows
+	return pick(BARK, v + 0.1, x, y, 0.1)
+
+
+## The Rootling variant's crown: the Rootling's sprout grown huge, two great leaves on a stem, backlit.
+func _giant_sprout() -> void:
+	var base := Vector2(HEAD.x + 4, HEAD.y - 40)
+	for k in 18:  # the stem, curving a little
+		var p := base + Vector2(sin(k * 0.08) * 4.0, -k)
+		for dx in range(-2, 3):
+			put(int(p.x) + dx, int(p.y), col("night") if absi(dx) < 2 else col("deepmoss"))
+	var tip := base + Vector2(1, -18)
+	for leaf: Vector3 in [Vector3(-1.0, 40.0, 0.1), Vector3(1.0, 36.0, -0.1)]:
+		var dir := Vector2(leaf.x, -0.25).normalized().rotated(leaf.z)
+		var length := leaf.y
+		var n := Vector2(-dir.y, dir.x)
+		for k in int(length):
+			var t := k / length
+			var half := sin(t * PI) * length * 0.3
+			var mid := tip + dir * k + Vector2(0, t * t * 14.0 - sin(t * PI) * 4.0)  # drooping at the tip
+			for w in range(-int(half), int(half) + 1):
+				var p := mid + n * w
+				var warm := exp(-p.distance_to(MOON) / 130.0)
+				var edge := absi(w) >= int(half) - 1
+				var v := 0.18 + (0.08 if absi(w) < 1 else 0.0) + (0.1 if grain.get_noise_2d(p.x * 2.0, p.y * 2.0) > 0.35 else 0.0)
+				if edge and w * signf(n.y) < 0 and band(warm * 1.6 - 0.1, int(p.x), int(p.y), 0.1):
+					put(int(p.x), int(p.y), col("gold"))  # the Heartwood's rim on the upper edge
+				else:
+					put(int(p.x), int(p.y), pick(MOSS, v, int(p.x), int(p.y)))
+			put(int(mid.x), int(mid.y), col("deepmoss"))  # the vein
+
+
+## The Rootling variant's roots: great roots arching from its base into the water.
+func _great_roots() -> void:
+	for root: Array in [[Vector2(-104, 250), Vector2(-160, 214), Vector2(-186, 296), 10.0, 4.0],
+			[Vector2(-80, 268), Vector2(-120, 240), Vector2(-132, 300), 8.0, 3.0],
+			[Vector2(106, 252), Vector2(164, 216), Vector2(188, 298), 10.0, 4.0],
+			[Vector2(82, 270), Vector2(124, 242), Vector2(138, 300), 8.0, 3.0],
+			[Vector2(-20, 290), Vector2(-36, 284), Vector2(-50, 302), 6.0, 3.0]]:
+		var off := Vector2(TITAN_X, 0)
+		_root_arch(off + (root[0] as Vector2), off + (root[1] as Vector2), off + (root[2] as Vector2), root[3], root[4])
+
+
+## The Sporeling variant's crown: a vast cap (the Bloomcap's), backlit, its brim drooping low over the
+## eyes; faintly glowing gills underneath and spores drifting down from them.
+func _giant_cap() -> void:
+	var c := Vector2(HEAD.x, HEAD.y - 22)
+	var rx := 108.0
+	var top := 62.0
+	for x in range(int(c.x - rx) - 4, int(c.x + rx) + 5):
+		var u := (x - c.x) / rx
+		if absf(u) > 1.0:
+			continue
+		var dome_top := c.y - top * sqrt(1.0 - u * u) + noise.get_noise_1d(x * 3.0) * 3.0
+		var under := c.y + pow(absf(u), 1.6) * 18.0  # where the dome's rim meets the gills
+		var brim := c.y + 7.0 + pow(absf(u), 1.6) * 26.0 + grain.get_noise_1d(x * 2.0) * 2.0
+		for y in range(int(dome_top), int(brim) + 1):
+			if not inside(x, y):
+				continue
+			var warm := exp(-Vector2(x, y).distance_to(MOON) / 130.0)
+			if y < under:
+				# The dome: dark against the light, pale spots, a gold rim along its top edge.
+				var edge := y - dome_top
+				var lit := warm * 1.6 - 0.3 + noise.get_noise_2d(x * 2.0, y * 2.0) * 0.3
+				if edge < 2.0 and band(lit + 0.25, x, y, 0.1):
+					put(x, y, col("glow") if edge < 1.0 and lit > 0.6 else col("gold"))
+					continue
+				var v := 0.24 + (1.0 - (y - dome_top) / maxf(under - dome_top, 1.0)) * 0.12
+				if noise.get_noise_2d(x * 1.4 + 70.0, y * 2.2) > 0.32:
+					v += 0.2  # the Bloomcap's pale patches
+				put(x, y, pick(CAP, v, x, y, 0.1))
+			else:
+				# The gills: dark, fine lines running out from the stem, some glowing faintly.
+				var ang := atan2(y - (c.y - 40.0), x - c.x)
+				var line := absf(fmod(ang * 60.0, 1.0))
+				var c2 := col("void") if line > 0.3 else col("dread")
+				if line < 0.12 and hash01(int(ang * 60.0), 3) > 0.55 and y > brim - 4.0:
+					c2 = col("blossom") if hash01(x, y, 5) > 0.5 else col("orchid")
+				put(x, y, c2)
+	var r := RandomNumberGenerator.new()
+	r.seed = 77
+	for i in 260:  # spores, falling from the gills
+		var sx := c.x + r.randf_range(-rx, rx) * 0.95
+		var sy := c.y + 14.0 + pow(r.randf(), 1.8) * 170.0
+		if sy >= WATER_Y:
+			continue
+		var fade := 1.0 - (sy - c.y) / 190.0
+		if r.randf() > fade:
+			continue
+		put(int(sx), int(sy), col("blossom") if r.randf() < 0.5 else col("dewlight"))
 
 
 func _part_at(x: int, y: int) -> int:
@@ -598,16 +909,29 @@ func _root_arch(a: Vector2, c: Vector2, b: Vector2, r0: float, r1: float) -> voi
 				put(x, y, col("slate") if lit else (col("night") if grain.get_noise_2d(x * 2.0, y * 2.0) > 0.3 else col("void")))
 
 
+## [sheet, frame, foot, flip, fog]: the nightmares, each its own layer on the title screen.
+const NIGHTMARES := [
+	["leaf_bug", Vector2i(0, 2), Vector2i(282, 340), false, 0.0],     # a Shade on the front bank, its back to us
+	["leaf_bug", Vector2i(0, 0), Vector2i(236, 346), false, 0.0],     # another, creeping right toward it
+	["gravecrawler", Vector2i(0, 0), Vector2i(560, 334), true, 0.0],  # crawling off the right bank
+	["weeper", Vector2i(0, 0), Vector2i(84, 322), false, 0.15],       # on the left bank, turned toward it
+	["watcher", Vector2i(0, 0), Vector2i(186, 302), false, 0.35],     # half in the fog, all eyes on it
+	["will_o_wisp", Vector2i(0, 0), Vector2i(360, 290), false, 0.0],  # drifting toward the light
+]
+
+
 func _figure() -> void:
 	# The nightmares are the game's own sprites (assets/creatures/, frame 0), so they look exactly like
 	# the nightmares in play. They stand on the banks and roots, turned toward the Warden; only the
 	# will-o'-wisp floats, as it does in the game. Further ones sink a little into the fog.
-	_sprite("leaf_bug", Vector2i(0, 2), Vector2i(282, 340), false, 0.0)     # a Shade on the front bank, its back to us
-	_sprite("leaf_bug", Vector2i(0, 0), Vector2i(236, 346), false, 0.0)    # another, creeping right toward it
-	_sprite("gravecrawler", Vector2i(0, 0), Vector2i(560, 334), true, 0.0)  # crawling off the right bank
-	_sprite("weeper", Vector2i(0, 0), Vector2i(84, 322), false, 0.15)       # on the left bank, turned toward it
-	_sprite("watcher", Vector2i(0, 0), Vector2i(186, 302), false, 0.35)     # half in the fog, all eyes on it
-	_sprite("will_o_wisp", Vector2i(0, 0), Vector2i(360, 290), false, 0.0)  # drifting toward the light
+	for n in NIGHTMARES.size():
+		var nm: Array = NIGHTMARES[n]
+		var pre := img.duplicate() as Image
+		_sprite(nm[0], nm[1], nm[2], nm[3], nm[4])
+		for y in H:
+			for x in W:
+				if img.get_pixel(x, y) != pre.get_pixel(x, y):
+					_nm_id[y * W + x] = n + 1
 
 
 func _sprite(sheet: String, frame: Vector2i, foot: Vector2i, flip: bool, fog: float) -> void:
@@ -727,6 +1051,8 @@ func _motes() -> void:
 	r.seed = 4040
 	for i in 90:
 		var p := Vector2(r.randf_range(160.0, 630.0), r.randf_range(30.0, 330.0))
+		if _near_titan(Vector2i(p)):
+			continue  # no stray dots on the Warden
 		var kind := i % 3
 		var c := col("dewlight") if kind == 0 else (col("blossom") if kind == 1 else col("glow"))
 		if i % 5 == 0:
@@ -737,6 +1063,8 @@ func _motes() -> void:
 			put(int(p.x), int(p.y) + 3, col("slate"))
 	for i in 14:
 		var p := Vector2i(r.randi_range(170, 630), r.randi_range(30, 280))
+		if _near_titan(p):
+			continue
 		put(p.x, p.y, col("heartlight"))
 		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 			put(p.x + d.x, p.y + d.y, col("mist"))
@@ -826,6 +1154,17 @@ func _fireflies() -> void:
 	r.seed = 5150
 	for i in 60:
 		var p := Vector2(r.randf_range(60.0, 620.0), r.randf_range(120.0, 340.0))
+		if _near_titan(Vector2i(p)):
+			continue
 		if i % 4 == 0:
 			glow(p, 4.0, col("gold"), 0.4)
 		put(int(p.x), int(p.y), col("glow") if i % 3 else col("heartlight"))
+
+
+## True on or within 2 px of the Warden (the scene's motes and fireflies keep off its body).
+func _near_titan(p: Vector2i) -> bool:
+	for dy in range(-2, 3):
+		for dx in range(-2, 3):
+			if _part_at(p.x + dx, p.y + dy) != 0:
+				return true
+	return false

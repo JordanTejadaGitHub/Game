@@ -237,14 +237,18 @@ func _run() -> void:
 	_check(sapling_sprites.size() == 1 and sapling_sprites[0].animation == &"grow", "the sapling grows in")
 	_check(not map_generator.get_path_from(map_generator.startPath).is_empty(), "the path stays open")
 	var grief := []
-	spawner.enemy_split.connect(func(parent: Node2D, child: Node2D) -> void:
+	# Captures the Oak, so it's disconnected once these checks are done (a lambda whose capture was freed
+	# logs an error every time the signal fires).
+	var count_grief := func(parent: Node2D, child: Node2D) -> void:
 		if parent == oak:
-			grief.append(child))
+			grief.append(child)
+	spawner.enemy_split.connect(count_grief)
 	oak.take_damage(oak.max_health * 0.34 + 1)
 	_check(grief.size() == 6 and oak.hold_time > 0.0, "two-thirds health: it stops, and 6 Mourners rise")
 	_check(oak.sprite.animation == &"grief", "and wails (grief animation)")
 	oak.take_damage(oak.max_health * 0.34)
 	_check(grief.size() == 12, "and again at one third")
+	spawner.enemy_split.disconnect(count_grief)
 	MetaRun.blight_level = 10
 	oak.take_damage(1e9)
 	_check(not oak.is_cleansed and oak.health == oak.max_health / 2, "Blight Level 10: it rises again at half health")
@@ -315,9 +319,9 @@ func _run() -> void:
 	var mourner_intro: String = load("res://resource/enemy/puffcap.tres").get_intro_lines()[0]
 	_check(mourner_intro == "Breaks into 3 Sobs when dispelled.", "intro numbers come from the data (%s)" % mourner_intro)
 	var weeper_intro: String = load("res://resource/enemy/weeper.tres").get_intro_lines()[0]
-	_check(weeper_intro.contains("1.5 tiles") and weeper_intro.contains("2%"), "Weeper intro: %s" % weeper_intro)
+	_check(weeper_intro.contains("1.5 cells") and weeper_intro.contains("2%"), "Weeper intro: %s" % weeper_intro)
 	var stag_charge: Dictionary = load("res://resource/enemy/old_stag.tres").get_ability(1)
-	_check(stag_charge.text.contains("2.5×") and stag_charge.when.contains("4+ tiles"), "numbers come from the data (%s / %s)" % [stag_charge.when, stag_charge.text])
+	_check(stag_charge.text.contains("2.5×") and stag_charge.when.contains("4+ cells"), "numbers come from the data (%s / %s)" % [stag_charge.when, stag_charge.text])
 	var oak_grief: Dictionary = load("res://resource/enemy/hollow_oak.tres").get_ability(1)
 	_check(oak_grief.when == "at 67% and 33% health" and oak_grief.text.contains("6 Mourners"), "Grief: %s / %s" % [oak_grief.when, oak_grief.text])
 	var summons: Array = load("res://resource/enemy/moth_queen.tres").get_summons()
@@ -377,6 +381,7 @@ func _run() -> void:
 	var wet_loss: int = 100000 - rot_wet.health
 	_check(dry_loss > 0 and is_equal_approx(float(wet_loss) / dry_loss, 1.0 + DreamState.DAMP_ROT_PER),
 		"Damp Rot: a Soaked nightmare's Poisoned tick is +50%% (%d vs %d)" % [wet_loss, dry_loss])
+	dreams.stacks.erase("damp_rot")  # It trades Soaked's water boost away (e328fb55): the checks below need it gone
 	_clear_enemies()
 
 	# --- Status jobs (tower_design.md, 2026-09-29) ---
@@ -575,11 +580,260 @@ func _run() -> void:
 	_check(boss_walker.get_restless() == 3 and not boss_walker.is_unbound(), "a boss gains Restless but never turns Unbound")
 	_clear_enemies()
 
+	# --- The Dew pot (run_design.md): shares split with their children / followers, a leak pays nothing ---
+	_clear_enemies()
+	var pot_state = main.get_node("%RunState")
+	var spider := _still("mother_spider", route[10])
+	spider.dew_share = 10.0
+	var children_before := spawner.get_child_count()
+	spider.dispel()
+	var spiderlings := spawner.get_children().slice(children_before)
+	var children_total := 0.0
+	for child in spiderlings:
+		children_total += child.get_dew_share()
+	_check(is_equal_approx(spider.get_dew_share(), 4.0) and is_equal_approx(children_total, 6.0),
+		"a split parent keeps 40%% of its share, its children share 60%% (%.2f + %.2f)" % [spider.get_dew_share(), children_total])
+	_clear_enemies()
+	var duck: Node2D = spawner.spawn_enemy(load("res://resource/enemy/mother_duck.tres"))
+	duck.set_dew_share(10.0)
+	var ducklings_total := 0.0
+	for duckling in duck.dew_followers:
+		ducklings_total += duckling.get_dew_share()
+	_check(not duck.dew_followers.is_empty() and is_equal_approx(duck.get_dew_share(), 5.0) and is_equal_approx(ducklings_total, 5.0),
+		"a leader keeps half its share, its followers share the other half (%.2f + %.2f)" % [duck.get_dew_share(), ducklings_total])
+	_clear_enemies()
+	var summoner := _still("scarecrow", route[9])
+	summoner.dew_share = 50.0
+	summoner.take_damage(summoner.max_health * 0.21)  # Its first Crows burst out
+	var crows_out := spawner.get_children().filter(func(e) -> bool: return e != summoner)
+	for crow in crows_out:
+		crow.bonus_dew = 3  # A card's bonus doesn't make a summon pay either
+	_check(not crows_out.is_empty() and crows_out.all(func(e) -> bool: return e.get_dew_reward() == 0),
+		"a summon (the Scarecrow's Crows) pays no Dew (%d of them)" % crows_out.size())
+	_clear_enemies()
+	var leaker := _still("leaf_bug", route[-1])
+	leaker.dew_share = 7.0
+	leaker.set_path(PackedVector2Array([route[-1]]))
+	var dew_before: int = pot_state.dew
+	leaker._process(0.016)
+	_check(pot_state.dew == dew_before, "a leak pays nothing (%d → %d)" % [dew_before, pot_state.dew])
+	_clear_enemies()
+
+	# --- Omens with teeth: Tramplers (one Thornwall trampled per drift) and Burrowers (bends) ---
+	_clear_enemies()
+	var omen_director = main.get_node("%OmenDirector")
+	var drifts = main.get_node("%DriftDirector")
+	omen_director.active = load("res://resource/omen/tramplers.tres")
+	omen_director.active_block = drifts.get_block(30)
+	var hedge_cell := _free_neighbour(route[14])
+	var hedge := _plant("thornwall", hedge_cell)
+	var other_cell := _free_neighbour(route[16])
+	var other_hedge := _plant("thornwall", other_cell)
+	var trampler := _still("leaf_bug", route[14])
+	trampler.modifiers = {"tramples_thornwall": true}
+	drifts._drift_of[trampler] = 30
+	trampler.set_path(route)
+	trampler._path_index = 15
+	var walls_card: int = dreams.stacks.get("weathered_walls", 0)
+	if walls_card > 0:  # Taken earlier in this test: Weathered Walls keeps Thornwalls standing
+		trampler._on_cell_reached()
+		_check(is_instance_valid(hedge) and not hedge.is_queued_for_deletion(), "Tramplers: Weathered Walls still holds")
+		dreams.stacks.erase("weathered_walls")
+	trampler._on_cell_reached()
+	_check(not is_instance_valid(hedge) or hedge.is_queued_for_deletion(), "Tramplers: the first nightmare past a Thornwall tramples it")
+	if walls_card > 0:
+		dreams.stacks["weathered_walls"] = walls_card
+	var second := _still("leaf_bug", route[16])
+	second.modifiers = {"tramples_thornwall": true}
+	drifts._drift_of[second] = 30
+	second.set_path(route)
+	second._path_index = 17
+	second._on_cell_reached()
+	_check(is_instance_valid(other_hedge) and not other_hedge.is_queued_for_deletion(), "only one per drift")
+	omen_director.active = null
+	if is_instance_valid(other_hedge):
+		other_hedge.free()
+	_clear_enemies()
+	route = map_generator.get_path_from(map_generator.startPath)
+	var bend := -1
+	for i in range(3, route.size() - 4):
+		if route[i] - route[i - 1] != route[i + 1] - route[i]:
+			bend = i
+			break
+	if bend > 0:
+		var burrower := _still("leaf_bug", route[bend])
+		burrower.modifiers = {"burrow_tiles": 2, "burrow_time": 0.5}
+		burrower.set_path(route)
+		burrower._path_index = bend + 1
+		burrower._on_cell_reached()
+		_check(burrower._leaping and not burrower.is_in_group(burrower.GROUP), "Burrowers: at a bend it burrows, untargetable")
+		for f in 45:
+			await process_frame
+		_check(not burrower._leaping and burrower.is_in_group(burrower.GROUP) and burrower._path_index == bend + 3,
+			"and surfaces 2 tiles ahead (index %d, bend %d)" % [burrower._path_index, bend])
+		var straight := _still("leaf_bug", route[bend + 1])
+		straight.modifiers = {"burrow_tiles": 2}
+		straight.set_path(route)
+		straight._path_index = bend + 2
+		straight._on_cell_reached()
+		_check(not straight._leaping or route[bend + 1] - route[bend] != route[bend + 2] - route[bend + 1], "not on a straight")
+	_clear_enemies()
+
+	# --- Rounded corners: the drawn path curves, the route and the timing stay square ---
+	_clear_enemies()
+	var l_walker := _still("leaf_bug", Vector2(2, 2))
+	var l_route := PackedVector2Array([Vector2(2, 2), Vector2(3, 2), Vector2(4, 2), Vector2(4, 3), Vector2(4, 4), Vector2(4, 5), Vector2(4, 6)])
+	l_walker.position = l_walker.grid.calculate_map_position(l_route[0])
+	l_walker.set_path(l_route)
+	var corridor := {}
+	for cell in l_route:
+		corridor[cell] = true
+	var walk_frames := 0
+	var stayed_inside := true
+	var curved := false
+	while l_walker._path_index < 5 and walk_frames < 2000:  # Until it reaches (4, 4): 4 cells, one turn
+		l_walker._process(1.0 / 60.0)
+		walk_frames += 1
+		var drawn: Vector2 = l_walker.position + l_walker._corner_offset
+		stayed_inside = stayed_inside and corridor.has(l_walker.grid.calculate_grid_coordinates(drawn))
+		curved = curved or l_walker._corner_offset.length() > 1.0
+	var expected_frames: float = 4.0 * l_walker.grid.cell_size.x / l_walker.get_move_speed() * 60.0
+	_check(absf(walk_frames - expected_frames) <= expected_frames * 0.01 + 1.0,
+		"rounded corners: travel time along an L is unchanged (%d frames vs %.1f)" % [walk_frames, expected_frames])
+	_check(curved and stayed_inside, "the drawn path curves at the turn and never leaves the corridor cells")
+	_clear_enemies()
+
+	# --- Branch Phase 2 hooks: Groundroot grounds a flyer, Quaker's slam stops a sprint ---
+	_clear_enemies()
+	var grounded_flyer := _still("dandelion_seed", route[6] + Vector2(0, 1))
+	grounded_flyer.set_process(true)
+	grounded_flyer.ground(2.0)
+	for f in 30:
+		await process_frame
+	_check(grounded_flyer.is_grounded() and not grounded_flyer.is_flying() and spawner.get_maze_walkers().has(grounded_flyer)
+		and grounded_flyer._path.size() > 2, "Groundroot: a grounded Phantom walks the maze (it re-routes with the walkers)")
+	for f in 120:
+		await process_frame
+	_check(grounded_flyer.is_flying() and grounded_flyer._path.size() == 2, "then rises and flies straight at the Heartwood")
+	var slammed_hound := _still("hedgehog", route[6])
+	slammed_hound.rolling = true
+	slammed_hound._charge_left = 2.0
+	slammed_hound.stop_speed_boosts()
+	_check(not slammed_hound.rolling and slammed_hound._charge_left == 0.0, "Quaker's slam: the sprint and the bolt stop")
+	_clear_enemies()
+
+	# --- Field cap (platforms.md "Calling drifts early stacks them"): arrivals wait in the start mist ---
+	_clear_enemies()
+	await process_frame
+	var director = main.get_node("%DriftDirector")
+	var shade_kind: EnemyData = load("res://resource/enemy/leaf_bug.tres")
+	var cap_before: int = spawner.max_field
+	spawner.max_field = 3
+	var due := []
+	for i in 6:
+		due.append([0.0, shade_kind, false])
+	director._active[999] = {"remaining": 0, "arriving": true, "leaked": false}
+	director._arriving[999] = {"clock": 10.0, "schedule": due}
+	director._process(0.0)
+	_check(spawner.get_child_count() == 3 and director.get_waiting_count() == 3,
+		"a full field holds the rest in the mist (%d out, %d waiting)" % [spawner.get_child_count(), director.get_waiting_count()])
+	_check(director.is_arriving(), "the drift is still arriving while they wait")
+	spawner.get_child(0).free()
+	spawner.get_child(0).free()
+	director._process(0.0)
+	_check(spawner.get_child_count() == 3 and director.get_waiting_count() == 1, "they walk in as room frees up (%d waiting)" % director.get_waiting_count())
+	var was_resting: bool = director.resting
+	director.resting = false
+	_check(director.is_mist_full() and not director.can_start_next_drift(), "calling early is refused while the mist is full")
+	director.resting = was_resting
+	var split_parent: Node2D = spawner.get_child(0)
+	spawner._run_from_start(shade_kind, 2, split_parent)
+	_check(spawner.get_child_count() == 5, "summons are never held back (%d)" % spawner.get_child_count())
+	director._arriving.erase(999)
+	director._active.erase(999)
+	spawner.max_field = cap_before
+	_clear_enemies()
+
+	# --- Status badges (screens_ui.md "Status icons, clearer") ---
+	_clear_enemies()
+	var badged := _still("leaf_bug", route[6])
+	for id in [&"damp", &"drowsy", &"spored", &"marked", &"held"]:
+		badged.statuses.apply(id, 1, 4.0, 1.0)
+	badged.statuses.apply(&"static", 4, 0.0, 1.0)
+	_check(badged.get_badge_ids() == [&"static", &"held", &"marked"],
+		"3 icons, the most important first (%s)" % [badged.get_badge_ids()])
+	_check(badged.get_status_order().size() == 6, "the info panel still lists all 6")
+	# Silence (Hushbell; Main 2421cbd6) shows like a status: a badge with its time bar
+	badged.statuses.silence_time = 4.0  # (No tick here: the checks below need its other statuses as they are)
+	_check(badged.get_status_order().has(EnemyStatuses.SILENCED) and badged.get_badge_ids()[2] == EnemyStatuses.SILENCED,
+		"Silenced gets a badge, ranked after Held (%s)" % [badged.get_badge_ids()])
+	badged.statuses.silence_time = 0.0
+	_check(not badged.get_status_order().has(EnemyStatuses.SILENCED), "and none without silence")
+	var hush := EnemyStatuses.new()
+	hush.silence_time = 4.0
+	var hush_changes := hush.changes
+	hush.tick(1.0)
+	_check(hush.changes > hush_changes and is_equal_approx(hush.time_share(EnemyStatuses.SILENCED), 0.75)
+		and hush.describe(EnemyStatuses.SILENCED) == "Silenced · 3.0 s",
+		"its time bar drains (%.2f) and the info line reads %s" % [hush.time_share(EnemyStatuses.SILENCED), hush.describe(EnemyStatuses.SILENCED)])
+	hush_changes = hush.changes
+	hush.tick(5.0)
+	_check(hush.changes > hush_changes and hush.silence_time == 0.0, "its end bumps changes (the badge goes)")
+	_check(badged.statuses.describe(&"static") == "Charged 4/5 · 2.0 s", "info line: %s" % badged.statuses.describe(&"static"))
+	_check(badged.statuses.describe(&"damp") == "Soaked · 4.0 s", "no stack count for a status that can't stack (%s)" % badged.statuses.describe(&"damp"))
+	badged.statuses.tick(1.0)
+	_check(is_equal_approx(badged.statuses.time_share(&"damp"), 0.75), "the rim drains with the time left (%.2f)" % badged.statuses.time_share(&"damp"))
+	badged.statuses.apply(&"damp", 1, 4.0, 1.0)
+	_check(is_equal_approx(badged.statuses.time_share(&"damp"), 1.0), "a fresh Damp fills it again")
+	_check(badged.get_badge_size() == badged.STATUS_BADGE and _still("old_stag", route[7]).get_badge_size() == badged.STATUS_BADGE_BIG,
+		"20 px status icons, 24 px on bosses")
+	# Bars and badges are the HUD's own canvas items under one NightmareOverlay (batched by kind),
+	# rebuilt only when what they show changes; not each nightmare's own _draw.
+	var overlay: Node2D = spawner.overlay
+	_check(overlay != null and overlay.is_inside_tree() and overlay.get_parent() != spawner,
+		"one NightmareOverlay holds the bars and badges (outside the EnemyContainer)")
+	badged.statuses.remove(&"spored")  # Its ticks hurt, and hits and combo flashes redraw on their own
+	badged.statuses.remove(&"marked")
+	badged.set_process(true)
+	badged.hold_time = 100.0  # Stands still
+	for f in 3:
+		await process_frame
+	_check(badged._hud_root.is_valid() and badged._hud_items.size() == 5, "its HUD items exist once it's shown")
+	var redraws := [0]
+	badged.draw.connect(func() -> void: redraws[0] += 1)
+	var builds: int = badged.hud_builds
+	for f in 30:
+		await process_frame
+	_check(badged.hud_builds - builds <= 4,
+		"its HUD is rebuilt only when something changes (the arcs step; %d in 30 frames)" % (badged.hud_builds - builds))
+	builds = badged.hud_builds
+	badged.take_damage(5.0)
+	await process_frame
+	var bar_px := int(badged.HEALTH_BAR_SIZE.x * badged.health / badged.max_health)
+	_check(badged.hud_builds > builds and badged._hud_health == bar_px,
+		"a hit rebuilds the bars at their new width (%d px, %d builds)" % [badged._hud_health, badged.hud_builds - builds])
+	badged.statuses.slow_capped = true
+	badged.statuses.sleep_cooldown = 2.0
+	await process_frame
+	_check(badged._hud_slow_capped and badged._hud_awake and badged.get_status_notes().size() == 2,
+		"slowed to the limit and just-woke show (floor mark, awake ring, info lines: %s)" % [badged.get_status_notes()])
+	badged.statuses.slow_capped = false
+	badged.statuses.sleep_cooldown = 0.0
+	badged.statuses.apply(&"drowsy", 1, 4.0, 1.0)
+	await process_frame
+	_check(badged._hud_pops.has(&"drowsy"), "a stack added: its icon pops")
+	for f in 20:
+		await process_frame
+	_check(badged._hud_pops.is_empty() and not badged._hud_popping, "and settles back")
+	_check(redraws[0] == 0, "a nightmare doesn't redraw itself for statuses or hits (%d in 30 frames)" % redraws[0])
+	_clear_enemies()
+
 	# --- Display settings: health bars "always", the Deeply Blighted outline ---
 	_clear_enemies()
 	Fx._settings = {}  # Defaults, whatever the player's profile says
 	Fx._settings_at = Time.get_ticks_msec()
 	var plain: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"), 1.0, {}, true)
+	_check(plain.statuses.is_elite, "an elite tells its statuses (its own slow floor)")
 	_check(not plain._bars_always and plain._outline_alpha() == 0.0, "by default: bars once hit, no outline")
 	Fx._settings = {"health_bars": 1, "blight_outline": true}
 	Fx._settings_at = Time.get_ticks_msec()

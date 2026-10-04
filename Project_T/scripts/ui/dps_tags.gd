@@ -11,7 +11,6 @@ const SETTING := "dps_tags"
 const REFRESH := 0.5
 const OFFSET := Vector2(0, 40)  # Under the Warden
 const FONT_SIZE := 15
-const TAG_SIZE := Vector2(96, 18)
 
 var drift_director: DriftDirector
 var _rows := {}  # Tower instance id -> its meter row
@@ -75,20 +74,56 @@ func _process(delta: float) -> void:
 				ranked[i]["tag_color"] = DriftMeter.rank_color(i, ranked.size())
 	queue_redraw()
 
-func tag_text(r: Dictionary) -> String:
-	var change := DriftMeter.change_text(r.get("change"))
+# Short ("182 DPS") unless `full`: the change vs last drift only on the selected / hovered Warden or with the
+# damage meter open (user screenshot: dense clusters overlapped).
+func tag_text(r: Dictionary, full: bool = true) -> String:
+	var change := DriftMeter.change_text(r.get("change")) if full else ""
 	return "%s DPS%s%s" % [DriftMeter.fmt(r.dps), " " + change if change != "" else "",
 		" ★" if r.get("most_improved", false) else ""]
 
+var drawn: Array = []  # [tower, world rect] of the tags drawn this frame (clicks, tests)
+
+# The selected / hovered Wardens (their tags win a clash, and show the change).
+func _focus() -> Array:
+	var result: Array = []
+	if _seller != null:
+		result.append_array(_seller.selection)
+		var hovered = _seller.get("_hover_tower")
+		if hovered != null and not result.has(hovered):
+			result.append(hovered)
+	return result
+
+# The damage meter is open with its rows: every tag shows its change.
+func _meter_open() -> bool:
+	var meter = get_parent().get_node_or_null("HUD/DriftMeter") if get_parent() != null else null
+	return meter != null and meter.visible and bool(meter.get("_user_open")) and not bool(meter.get("collapsed"))
+
 func _draw() -> void:
 	var font := UiStyle.number_font()  # Moonlit Thread: numbers in Cormorant, lining figures
-	for tower in _shown_towers():
-		if not is_instance_valid(tower) or not _rows.has(tower.get_instance_id()):
-			continue
+	var focus := _focus()
+	var full_all := _meter_open()
+	var s := WorldLabel.text_scale(self)
+	# Focus first, then the highest DPS: a tag that would overlap one already placed is skipped.
+	var towers: Array = _shown_towers().filter(func(t) -> bool: return is_instance_valid(t) and _rows.has(t.get_instance_id()))
+	towers.sort_custom(func(a, b) -> bool:
+		var fa := focus.has(a)
+		var fb := focus.has(b)
+		if fa != fb:
+			return fa
+		return float(_rows[a.get_instance_id()].dps) > float(_rows[b.get_instance_id()].dps))
+	drawn.clear()
+	for tower in towers:
 		var r: Dictionary = _rows[tower.get_instance_id()]
-		var text := tag_text(r)
+		var text := tag_text(r, full_all or focus.has(tower))
 		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
 		var anchor: Vector2 = tower.global_position + OFFSET
+		# Its rect in world units (drawn at screen size: the text scale shrinks it as the camera zooms in)
+		var world_rect := Rect2(anchor + Vector2(-width / 2.0 - 4.0, -FONT_SIZE) * s, Vector2(width + 8.0, FONT_SIZE + 5.0) * s)
+		if drawn.any(func(d: Array) -> bool: return (d[1] as Rect2).intersects(world_rect)):
+			continue  # Would overlap a neighbour's tag
+		if WorldLabel.covered(self, Rect2(to_local(world_rect.position), world_rect.size)):
+			continue  # Under the open Warden panel (it's see-through: the tag read through its text)
+		drawn.append([tower, world_rect])
 		var at: Vector2 = anchor + Vector2(-width / 2.0, 0)
 		WorldLabel.begin_screen_size(self, anchor)  # Keeps its screen size when zoomed in
 		draw_rect(Rect2(at + Vector2(-4, -FONT_SIZE), Vector2(width + 8, FONT_SIZE + 5)), Color(UiStyle.FOG, 0.65))
@@ -100,13 +135,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
 	var world := get_global_mouse_position()
-	for tower in _shown_towers():
-		if not is_instance_valid(tower):
-			continue
-		var s := WorldLabel.text_scale(self)
-		var centre: Vector2 = tower.global_position + OFFSET + Vector2(0, -FONT_SIZE / 2.0) * s
-		var tag := TAG_SIZE * s  # Drawn at screen size
-		if Rect2(centre - tag / 2.0, tag).has_point(world):
+	for d in drawn:  # The tags actually drawn (a skipped one can't be clicked)
+		var tower = d[0]
+		if is_instance_valid(tower) and (d[1] as Rect2).has_point(world):
 			DriftMeter.focus_tower(tower)
 			get_viewport().set_input_as_handled()
 			return

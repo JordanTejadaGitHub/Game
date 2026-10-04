@@ -18,7 +18,10 @@ const SQRT2 := 1.41421356
 @export var warden_glow_alpha := 0.22
 @export var warden_glow_radius := 80.0  # px
 
-static var _light_texture: Texture2D
+# Weak (exit crash hunt, like Fx bb5076e2): a static Texture2D outliving the scene can crash on quit.
+# Users hold their own reference: lights keep their texture, this node keeps `_disc` for its glows.
+static var _light_texture: WeakRef
+var _disc: Texture2D
 
 var tower_container: Node  # Set before adding; every Warden added to it glows
 var _wardens: Dictionary = {}  # {Tower: glows (bool)}
@@ -26,6 +29,7 @@ var _glow: Node2D  # Draws every Warden glow (additive, over the multiply)
 
 func _ready() -> void:
 	z_index = VIGNETTE_Z
+	_disc = light_texture()  # Held for the glows: draw commands don't keep it alive
 	add_child(_make_vignette())
 	_glow = Node2D.new()
 	_glow.name = "WardenGlow"
@@ -42,7 +46,8 @@ func _ready() -> void:
 
 # A soft white disc that fades out at its rim: the shape of every warm light.
 static func light_texture() -> Texture2D:
-	if _light_texture == null:
+	var held: Texture2D = _light_texture.get_ref() if _light_texture != null else null
+	if held == null:
 		var gradient := Gradient.new()
 		gradient.set_color(0, Color(1, 1, 1, 1))
 		gradient.set_color(1, Color(1, 1, 1, 0))
@@ -54,14 +59,15 @@ static func light_texture() -> Texture2D:
 		texture.fill = GradientTexture2D.FILL_RADIAL
 		texture.fill_from = Vector2(0.5, 0.5)
 		texture.fill_to = Vector2(1.0, 0.5)
-		_light_texture = texture
-	return _light_texture
+		_light_texture = weakref(texture)
+		held = texture
+	return held
 
 # A warm PointLight2D of `radius` px.
 static func make_light(color: Color, energy: float, radius: float) -> PointLight2D:
 	var light := PointLight2D.new()
 	light.texture = light_texture()
-	light.texture_scale = radius / (light_texture().get_width() / 2.0)
+	light.texture_scale = radius / (light.texture.get_width() / 2.0)
 	light.color = color
 	light.energy = energy
 	return light
@@ -109,7 +115,7 @@ func _update_glow(tower: Tower) -> void:
 # batch instead of a PointLight2D pass each (platforms.md performance budget: ~200 Wardens).
 # Wardens don't move, so it only redraws when one is planted, sold or grows.
 func _draw_glows() -> void:
-	var texture := light_texture()
+	var texture := _disc
 	var size := Vector2.ONE * warden_glow_radius * 2.0
 	var color := Color(warden_glow_color, warden_glow_alpha)
 	for tower: Tower in _wardens:

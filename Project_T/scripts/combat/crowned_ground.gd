@@ -100,7 +100,7 @@ func _nightbloom(enemy: Node2D) -> void:
 	if full:
 		s.apply(EnemyStatuses.DROWSY, 1)  # Refreshes it; it can't run out in here
 	if not s.is_boss and s.is_asleep():
-		s.sleep_time = maxf(s.sleep_time, TICK * 2.0)
+		s.sleep(TICK * 2.0)
 		s.sleep_locked_time = maxf(s.sleep_locked_time, TICK * 2.0)  # Hits can't wake it in here (Enemy's wake rule)
 
 func _ring(enemy: Node2D) -> void:
