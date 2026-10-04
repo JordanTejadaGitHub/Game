@@ -186,7 +186,7 @@ func _ready() -> void:
 		_event("place_", tower, tower.global_position))  # The White Stag arriving
 	tower_placer.build_rejected.connect(func(_cell: Vector2) -> void: sound.ui(&"invalid"))
 	tower_seller.tower_sold.connect(func(tower: Tower, _refund: int) -> void:
-		sound.play(&"sell", MAP_GRID.calculate_map_position(tower.cell)))
+		sound.play(&"sell", tower.global_position))  # Not from tower.cell: Wardens can sit at a half-cell offset
 	map_generator.obstacle_cleared.connect(func(cell: Vector2, data: ObstacleData) -> void:
 		var id := &"move" if data.resource_path.get_file().begins_with("rock") else &"tend"
 		sound.play(id, MAP_GRID.calculate_map_position(cell)))

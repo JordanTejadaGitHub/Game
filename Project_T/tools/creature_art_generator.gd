@@ -24,7 +24,8 @@ enum { SIDE, DOWN, UP }
 
 # fps: animation speed (extra_fps for the extra rows; `once` lists extra rows that don't loop, such
 # as a burrow the game plays forwards to sink and backwards to surface). draw: shared draw function (default: the
-# file's own). k: size scale for the small ones spawned by splitters. variant: passed to the draw
+# file's own). k: size scale for the small ones spawned by splitters. texture: DetailPass grain and
+# motes (0..1, default 1). variant: passed to the draw
 # function as st.variant. anims: replaces the walk rows (for things that don't walk; dir is -1).
 # size: frame size in px (default
 # 64); bosses get bigger frames instead of a sprite_scale so their pixels match everyone else's.
@@ -56,7 +57,7 @@ const CREATURES := {
 	"shellbound_cracked": {fps = 8.0, draw = "shellbound", variant = "cracked"},  # once its dread shell breaks
 	"whisper_swarm": {fps = 8.0},
 	"dream_thief": {fps = 12.0},
-	"weeper": {fps = 5.0},
+	"weeper": {fps = 5.0, texture = 0.3},  # few motes: the dense default read as blotches on its grey shroud (AI-look audit #7)
 	"hollow_oak": {fps = 5.0, size = 176, extra = ["grief"], extra_fps = 8.0},
 	# Pool bosses (enemy_design.md "Boss pools") and their followers.
 	"night_mare": {fps = 8.0, size = 112, extra = ["gallop"], extra_fps = 12.0},
@@ -138,7 +139,7 @@ func _make(creature: String, info: Dictionary) -> void:
 			warm_sheet.blit_rect(warm, Rect2i(0, 0, S, S), Vector2i(f * S, row * S))
 	# The detailed-64 pass; glow radius 3 so boss frames get the same px spread as 64px ones.
 	var kind := DetailPass.Kind.OBSTACLE if info.get("obstacle", false) else DetailPass.Kind.NIGHTMARE
-	sheet = DetailPass.apply_sheet(sheet, Vector2i(S, S), kind, 3)
+	sheet = DetailPass.apply_sheet(sheet, Vector2i(S, S), kind, 3, info.get("texture", 1.0))
 	# Soft warm glow becomes a dither of solid pixels, so blending it on can't mix in-between colours
 	# off the palette.
 	for y in warm_sheet.get_height():

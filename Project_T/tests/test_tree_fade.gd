@@ -68,6 +68,30 @@ func _run() -> void:
 	await _frames(20)
 	_check(env.get_cell_alternative_tile(other) == 0, "the nightmare gone: whole again")
 
+	# A half-offset Warden whose centre is beside the cell above (Tower.cell elsewhere), one of its halves in it.
+	var t := Vector2(tree)
+	var origin := Vector2(2 * t.x + 1, 2 * t.y - 3)
+	if map.can_block_halves(map.halves_of(origin)):
+		var half_warden := _half_warden(main, origin)
+		_check(half_warden.cell != t + Vector2.UP, "its centre's whole cell is beside, not above")
+		await _frames(20)
+		_check(env.get_cell_alternative_tile(tree) == EnvironmentTiles.FADE_STEPS, "one of its half cells above: the overhang fades")
+		half_warden.free()
+		await _frames(20)
+	else:
+		_check(false, "room for a half-offset Warden beside the tree")
+
+	# The Heartwood's canopy: a half-offset Warden with one half in the row behind it.
+	var end: Vector2 = map.endPath
+	var behind_origin := Vector2(2 * (end.x + 1) + 1, 2 * (end.y - 1))
+	if map.can_block_halves(map.halves_of(behind_origin)):
+		var under := _half_warden(main, behind_origin)
+		await _frames(2)
+		_check(map.heartwood.is_something_behind(), "a Warden half under the canopy fades it")
+		under.free()
+		await _frames(2)
+		_check(not map.heartwood.is_something_behind(), "and only while it's there")
+
 	# The hovered cell (the seller's) above a tree.
 	var seller: TowerSeller = main.get_node("%TowerSeller")
 	seller.set_process(false)  # Its own update would put the hover back under the (headless) mouse
@@ -83,6 +107,18 @@ func _run() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
 	print("test_tree_fade: %d failure(s)" % failures)
 	quit(failures)
+
+# A Sprout on the half grid: its 2×2 half footprint at `origin`, centred there (as TowerPlacer plants one).
+func _half_warden(main: Node, origin: Vector2) -> Tower:
+	var map = main.get_node("%MapGenerator")
+	var warden: Tower = main.get_node("%TowerPlacer").tower_scene.instantiate()
+	warden.tower_data = load("res://resource/tower/sprout.tres")
+	warden.half_cell = origin
+	var centre: Vector2 = (origin + Vector2.ONE) * map.MAP_GRID.cell_size / 2.0
+	warden.cell = map.MAP_GRID.calculate_grid_coordinates(centre)
+	warden.position = centre
+	main.get_node("%TowerContainer").add_child(warden)
+	return warden
 
 func _frames(n: int) -> void:
 	for i in n:

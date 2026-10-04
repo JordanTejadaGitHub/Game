@@ -1,7 +1,7 @@
 extends RefCounted
 class_name FindPath
 
-# Grid pathfinding for nightmares on the HALF-CELL grid (experiment/half-cells, documentation/half_cells.md).
+# Grid pathfinding for nightmares on the HALF-CELL grid (documentation/half_cells.md).
 # The map's 64 px cells are split into 32 px half cells (46×36 on the 23×18 map); anything that blocks
 # (border, obstacles, Wardens) blocks half cells. A nightmare is a 2×2-half-cell body (one full cell wide),
 # so the pathing node is the body's top-left half cell: walkable only if all 4 half cells under it are

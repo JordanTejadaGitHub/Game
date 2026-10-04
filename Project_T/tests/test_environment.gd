@@ -399,7 +399,7 @@ func _blend_pond_corners(image: Image, map: Node, offset: Vector2i) -> void:
 			var region := Rect2i(child.region_rect)
 			image.blend_rect(art, region, Vector2i(child.position) - region.size / 2 + offset)
 
-# Half cells (experiment/half-cells): the route is PathGenerator's soft fill, not tiles. Drawn the same way.
+# Half cells (documentation/half_cells.md): the route is PathGenerator's soft fill, not tiles. Drawn the same way.
 func _blend_half_path(image: Image, map: Node, offset: Vector2i) -> void:
 	var size := Vector2(map.MAP_GRID.cell_size)
 	for pass_index in 2:
