@@ -66,8 +66,12 @@ const ELITE_LEAVES := 2
 const ELITE_SCALE := 1.2
 const ELITE_HAZE_PUFFS := 6
 const ELITE_HAZE_SPEED := 0.6  # Radians per second the haze drifts round
-const ELITE_HAZE_COLOR := Color(Palette.DREAD, 0.32)
-const ELITE_HAZE_RIM := Color(Palette.STONE, 0.16)  # Keeps the haze visible on dark ground
+# Hard-edged Dread smoke (art_direction.md: darker, more smoke, never a pale halo): each puff is 3 stacked
+# discs, so its alpha steps up in hard bands toward the middle; a few Wraithlight motes mark it as elite.
+const ELITE_HAZE_COLOR := Color(Palette.DREAD, 0.26)
+const ELITE_HAZE_BANDS := [1.0, 0.7, 0.4]  # Disc radii as shares of the puff
+const ELITE_MOTE_COLOR := Palette.WRAITHLIGHT
+const ELITE_MOTES := 3
 const ELITE_SWIRL_COLOR := Palette.MIST
 const ELITE_OUTLINE_COLOR := Color(Palette.MOONLIGHT, 0.9)  # Setting "blight_outline" (accessibility)
 const LEAP_TIME := 0.45  # Seconds to sink, move under the mire and rise again
@@ -958,15 +962,21 @@ static func _badge_rank(id: StringName) -> int:
 func get_badge_size() -> float:
 	return STATUS_BADGE_BIG if enemy_data.is_boss or elite else STATUS_BADGE
 
-# Deeply Blighted: soft puffs drifting slowly round the nightmare, and a swirl left of the health bar.
+# Deeply Blighted: hard-edged smoke puffs drifting slowly round the nightmare, a few cold motes in it,
+# and a swirl left of the health bar.
 func _draw_elite_haze() -> void:
 	var r := 18.0 * sprite.scale.x
 	for i in ELITE_HAZE_PUFFS:
 		var a := _haze_phase + TAU * i / ELITE_HAZE_PUFFS
-		var at := Vector2(cos(a) * r, sin(a) * r * 0.5 - 8.0)  # Flattened ring round the body
+		var at := Vector2(cos(a) * r, sin(a) * r * 0.5 - 8.0).round()  # Flattened ring round the body
 		var size := (9.0 + 3.0 * sin(_haze_phase * 1.7 + i)) * sprite.scale.x
-		draw_circle(at, size + 2.0, ELITE_HAZE_RIM)
-		draw_circle(at, size, ELITE_HAZE_COLOR)
+		for band: float in ELITE_HAZE_BANDS:
+			draw_circle(at, roundf(size * band), ELITE_HAZE_COLOR, true, -1.0, false)
+	for i in ELITE_MOTES:
+		var a := -_haze_phase * 1.3 + TAU * i / ELITE_MOTES
+		var at := Vector2(cos(a) * r * 0.8, sin(a) * r * 0.4 - 10.0).round()
+		var twinkle := 0.5 + 0.5 * sin(_haze_phase * 4.0 + i * 2.1)
+		draw_rect(Rect2(at, Vector2(2, 2)), Color(ELITE_MOTE_COLOR, 0.35 + 0.5 * twinkle))
 	var centre := _bar_offset + Vector2(-HEALTH_BAR_SIZE.x / 2 - 8.0, 0)
 	var mark := _status_icon(&"elite")
 	if mark != null:  # The sheet's Deeply Blighted icon; the drawn swirl otherwise
