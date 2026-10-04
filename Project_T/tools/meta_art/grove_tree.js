@@ -689,6 +689,7 @@ const TWIG_MAX_X = 556;  // the Keepsakes twig stays on the Perks side of the tr
 function spreadNodes(mask) {
   CROWN_MASK = mask;
   const list = NODES;
+  list.forEach(n => { n.x0 = n.x; n.y0 = n.y; });  // the seeded spot (which side of its limb a node belongs on)
   // A line's first node grows from the nearest point on its own limb (inside the leaves), so its
   // branch is short; every other node grows from its parent.
   const limbPts = {};
@@ -784,7 +785,27 @@ function spreadNodes(mask) {
     }
     if (!improved) break;
   }
-  for (const n of list) if (n.from) n.from = nearestLimb(n).map(Math.round);
+  // A line's first node must sit off its limb, never on the limb's own line (a zero-length branch
+  // has no sheet): if it ended up closer than MIN_FIRST to its limb point, it steps out sideways,
+  // across the limb to the side it was seeded on, to the first spot inside the leaves.
+  const MIN_FIRST = 24;
+  for (const n of list) {
+    if (!n.from) continue;
+    let f = nearestLimb(n);
+    if (Math.hypot(n.x - f[0], n.y - f[1]) < MIN_FIRST) {
+      const pts = limbPts[n.section], i = pts.indexOf(f), a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      const tl = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      let px = -(b[1] - a[1]) / tl, py = (b[0] - a[0]) / tl;
+      if ((n.x0 - f[0]) * px + (n.y0 - f[1]) * py < 0) { px = -px; py = -py; }
+      const clear = (x, y) => inMask(x, y, 20) && list.every(o => o === n || Math.hypot(o.x - x, o.y - y) > 28);
+      search: for (const side of [1, -1]) for (let d = MIN_FIRST; d < MIN_FIRST * 4; d += 2) for (const slide of [0, 8, -8, 16, -16]) {  // its own side first; slide along the limb to find room
+        const x = f[0] + px * side * d + py * slide, y = f[1] + py * side * d - px * slide;
+        if (clear(x, y)) { n.x = Math.round(x); n.y = Math.round(y); break search; }
+      }
+      f = nearestLimb(n);
+    }
+    n.from = f.map(Math.round);
+  }
 }
 // The lowest leafy pixel in a column (where dream-fruit hang from).
 function maskBottom(x) { let y = 780; while (y > 0 && !CROWN_MASK.alpha(x, y)) y--; return y; }
