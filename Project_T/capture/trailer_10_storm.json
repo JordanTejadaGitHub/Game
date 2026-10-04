@@ -1,6 +1,6 @@
 {
 	"title": "Trailer 60-70 s: the storm chain to a Dawnburst.",
-	"note": "Trailer chat (marketing.md section 5, scene 10; also feeds 16-28 s). Board copied exactly from short_02.json at fcde10c4 (Short Form Video tuned it; chaotic: never change a plant/spawn line, count or order). Only size and captions differ, and slow_chain is removed: the trailer runs at real speed (user rule). Without the slow-down the steps after x7 differ, so check the log's 'chain xN' on the first render (short: x22 at ~10.7 s).",
+	"note": "Trailer chat (marketing.md section 5, scene 10; also feeds 16-28 s). Board copied exactly from short_02.json at fcde10c4 (Short Form Video tuned it; chaotic: never change a plant/spawn line, count or order). Only size and captions differ, and slow_chain is removed: the trailer runs at real speed (user rule). Dry run at real speed (b762edb3): chain x22 at 9.1 s. Chains only print when slow_chain is set; to check, dry-run a temp copy with {\"at\": 999, \"speed\": 1.0, \"hold\": 0.0}.",
 	"seed": 4242,
 	"size": [1920, 1080],
 	"drift": 60,
