@@ -22,7 +22,9 @@ class_name CaptureDirector
 #   {"speed": 0.25}                      game speed (slow motion < 1)
 #   {"spawn": "<enemy id>", "count": 1, "elite": false}
 #   {"leaves": 1} / {"dew": 500}
-#   {"gift": "<gift id>", "cells": [[x, y], …]}   a Heartwood's Gift, applied as if picked (the effect's placement)
+#   {"gift": "<gift id>", "cells": [[x, y], …]}   a Heartwood's Gift, applied as if picked (the effect's placement);
+#                                       "auto": "detour" instead of cells lays it where it lengthens the route most
+# Dry runs print a progress line every 5 s (route, field, drift, boss hp, furthest), chains, gifts, boss dispels, leaks.
 #   {"dossier": true | false}            open / close the boss dossier ("What's coming")
 #   {"camera": "hold", "at": [x, y] | "start" | "heartwood" | "centre", "zoom": 1.2}
 #   {"camera": "glide", "duration": 8.0, "zoom": 1.4}          along the route, start → Heartwood
@@ -108,6 +110,7 @@ static func begin(tree: SceneTree) -> bool:
 	settings.ui_scale = 1.0
 	settings.fullscreen = false
 	settings[SETTING] = 0
+	settings[ComboFeedback.PAUSE_SETTING] = false  # A fresh profile discovers every combo: never freeze the clip on one
 	HeartwoodMemory.save_settings(settings)
 	HeartwoodMemory.apply_settings()
 	# The frame is the project's viewport size (capture.ps1 writes it to override.cfg with stretch mode "viewport", so
@@ -210,12 +213,39 @@ func _process(delta: float) -> void:
 	_age_tags(delta / maxf(_scale, 0.0001))
 	_update_slow_motion(delta / maxf(_scale, 0.0001))
 	_update_filter()
+	if clip_time >= _next_report:
+		_next_report += REPORT_EVERY
+		_report()
 	if clip_time >= float(scene.get("length", 20.0)):
 		set_process(false)
 		var map = _main.get_node("%MapGenerator")
 		print("Capture: done, %d Wardens, route %d cells" % [_main.get_node("%TowerContainer").get_child_count(),
 			map.route_length(map.get_path_from(map.startPath))])
 		get_tree().quit()
+
+# Every REPORT_EVERY clip seconds (for tuning on dry runs): the route, the field, the boss and the furthest nightmare.
+const REPORT_EVERY := 5.0
+var _next_report := REPORT_EVERY
+var _spot_ms := 0  # Time spent picking auto spots (they cost a route search per candidate)
+
+func _report() -> void:
+	var map = _main.get_node("%MapGenerator")
+	var parts: Array[String] = ["t=%.1f" % clip_time, "route %d" % map.route_length(map.get_path_from(map.startPath))]
+	var walking: Array = _main.get_node("%EnemyContainer").get_enemies().filter(func(e: Node) -> bool: return not e.is_cleansed)
+	parts.append("%d on the field" % walking.size())
+	var director: DriftDirector = _main.get_node("%DriftDirector")
+	parts.append("drift %d%s%s" % [director.drifts_started, " (resting)" if director.is_resting() else "",
+		" PAUSED: %s" % director.pending_choice() if get_tree().paused else ""])
+	var furthest: Node2D = _pick("furthest")
+	var boss: Node2D = _pick("boss")
+	if boss != null:
+		parts.append("boss %d%% hp, %.1f cells left" % [roundi(100.0 * boss.health / maxf(boss.max_health, 1.0)), boss.get_remaining_distance() / 64.0])
+	if furthest != null:
+		parts.append("furthest %s %.1f cells left" % [furthest.enemy_data.resource_path.get_file().get_basename() if furthest.enemy_data else "?",
+			furthest.get_remaining_distance() / 64.0])
+	if _spot_ms > 0:
+		parts.append("spot search %.1f s so far" % (_spot_ms / 1000.0))
+	print("Capture: " + " / ".join(parts))
 
 # Hides what a marketing shot never shows.
 func _apply_hud() -> void:
@@ -244,6 +274,9 @@ func _shut_screens() -> void:
 	var gifts := HeartwoodGifts.find(_main)
 	if gifts != null and gifts.waiting:
 		gifts.let_pass()
+	if get_tree().paused:  # Anything else that paused the run (a discovery card…): the clip keeps playing
+		print("Capture: something paused the game at %.1f s; unpaused" % clip_time)
+		_main.get_node("%GameSpeed").set_paused(false)
 
 # plant_each → one plant per step.
 func _expand(timeline: Array) -> Array:
@@ -294,7 +327,13 @@ func _run(event: Dictionary) -> void:
 			var cells: Array = []
 			for c in event.get("cells", []):
 				cells.append(Vector2(float(c[0]), float(c[1])))
+			if String(event.get("auto", "")) == "detour":
+				cells = detour_cells(StringName(event.gift))
+				print("Capture: %s laid on %s" % [event.gift, cells])
+			var map = _main.get_node("%MapGenerator")
+			var before: int = map.route_length(map.get_path_from(map.startPath))
 			gifts.choose(StringName(event.gift), {"cells": cells})
+			print("Capture: %s at %.1f s, route %d -> %d cells" % [event.gift, clip_time, before, map.route_length(map.get_path_from(map.startPath))])
 	if event.has("dossier"):
 		if bool(event.dossier):
 			BossDossier.open_for(get_tree(), int(event.get("drift", 0)))
@@ -359,7 +398,9 @@ func plant(id: String, at, auto: String = "", rank: int = 0, tag: bool = true) -
 	if at is Array and at.size() == 2:
 		origin = Vector2(float(at[0]), float(at[1]))
 	else:
+		var started := Time.get_ticks_msec()
 		origin = best_spot(chain[-1], auto if auto != "" else ("cover" if chain[-1].can_attack else "maze"))
+		_spot_ms += Time.get_ticks_msec() - started
 	if origin.x < 0:
 		return false
 	var before: int = map.route_length(map.get_path_from(map.startPath))
@@ -425,6 +466,48 @@ func best_spot(data: TowerData, how: String) -> Vector2:
 				if score > best_score:
 					best_score = score
 					best = origin
+	return best
+
+# A blocking gift laid where it lengthens the route most, keeping it open: "chain" and "line" gifts as a straight
+# run of their largest size across cells the gift screen would allow (free, not the glade); "cell" one cell.
+func detour_cells(id: StringName) -> Array:
+	var info: Dictionary = HeartwoodGifts.POOL.get(id, {})
+	var place: StringName = info.get("place", &"cell")
+	var size: int = 1
+	if info.get("size") is Array:
+		size = int(info.size[-1])
+	elif info.get("size") is int:
+		size = int(info.size)
+	if place == &"cell":
+		size = 1
+	var map = _main.get_node("%MapGenerator")
+	var glade: Array = Array(map.get_glade_cells()) if map.has_method("get_glade_cells") else []
+	var ok := func(cell: Vector2) -> bool: return map.is_buildable(cell) and not glade.has(cell)
+	var length: int = map.route_length(map.get_path_from(map.startPath))
+	var best: Array = []
+	var best_gain := -INF
+	var tried := {}
+	for point in map.get_path_from(map.startPath):
+		for cell in DreamState.route_cells(point):
+			for dir in [Vector2.RIGHT, Vector2.DOWN]:
+				for shift in size:  # Every run of `size` cells through this route cell
+					var start: Vector2 = cell - dir * shift
+					var key := "%s/%s" % [start, dir]
+					if tried.has(key):
+						continue
+					tried[key] = true
+					var run: Array = []
+					for i in size:
+						run.append(start + dir * i)
+					if not run.all(ok):
+						continue
+					var path: PackedVector2Array = map.get_path_if_blocked_cells(run)
+					if path.is_empty():
+						continue
+					var gain: float = map.route_length(path) - length + randf() * 0.01
+					if gain > best_gain:
+						best_gain = gain
+						best = run
 	return best
 
 # --- Camera ------------------------------------------------------------------------------------------
