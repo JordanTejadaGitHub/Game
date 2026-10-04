@@ -25,6 +25,9 @@ page points to the Steam page.
    twist, solo at your own pace as the reason. Script in §4 (Short Form Video), in the user's words. Name the mods only:
    no Warcraft footage, logos or art (Blizzard's trademarks). "Try the demo now" only once the demo is live; until then
    the call is "wishlist it on Steam", and the page must be up before it posts.
+   **Hold on all video renders** (the user, 2026-10-04): the path and other environment art are still changing, so no
+   final renders of shorts, the trailer or screenshots until Theme Discussion calls the look stable (the half-grid path
+   art, the Heartwood glow fix, the grain clean-up). Scripts, voiceover, capture scenes and test renders can go on.
 3. **Trailer** (60–90 s): once the capture tools exist.
 4. **Demo + Steam Next Fest**: the biggest wishlist spike; plan it for when the demo is polished.
 
