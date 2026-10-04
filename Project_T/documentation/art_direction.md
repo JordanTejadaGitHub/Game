@@ -163,6 +163,17 @@ lost 0–20). They're wired into the map (`EnvironmentTiles`), with the lighting
   leaf clumps) with twinkling dream-leaves; **vines hang from beneath it, each ending in a glowing
   dream-fruit**; the whole tree sits in a soft warm halo. The canopy stays warm moss-gold in every
   act.
+- **The Heartwood reads as a solid tree, not a beam of light** (2026-10-04, from Marketing's 600 px
+  check): in whole-island captures the last path stretch and the route mist's end glowed together
+  into a bright vertical shaft, and the tree inside it looked washed out and see-through. Rules:
+  - The tree is drawn **solid and in front of its light**: dark trunk, mid-value canopy, the gold only
+    in the hollow, the fruit and a rim. Nothing makes the whole sprite translucent or brighter.
+  - Its **warm light falls on the ground around it** as a pool, never as an additive wash over the
+    tree or a streak along the path.
+  - The path's last stretch and the route mist's end stay **path-value**, not lit gold. Arriving at
+    the Heartwood is shown by the tree itself.
+  - Test: a whole-island capture at 600 px must show a tree shape (canopy over trunk) at the route's
+    end.
 - **Damage shows on the tree** as **leaves lost (0–20)**: ragged violet-black rot patches with ash
   flecks spread across the canopy and black leaves fall, the **dream-fruit darken one by one**, and the halo and the hollow's
   light dim. The player should feel the damage by looking at the tree, not just the counter.
