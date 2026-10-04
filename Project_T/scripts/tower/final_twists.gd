@@ -160,7 +160,7 @@ static func landslide(tower: Tower, target: Node2D) -> void:
 	if index < 0:
 		return
 	var tiles: Array[Vector2] = []
-	for step in range(1, LANDSLIDE_TILES + 1):
+	for step in range(1, LANDSLIDE_TILES * _per_cell(route) + 1):  # 2 path tiles in whole cells (half-step routes)
 		if index - step >= 0:
 			tiles.append(route[index - step])  # Toward the start
 	for enemy in tower.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
@@ -303,11 +303,16 @@ static func next_graft(tower: Tower) -> void:
 
 # --- Starling Murmuration: Dark swirl -----------------------------------------------------------------
 
+# Route points per whole cell (half cells: 2; route points are body centres 0.5 cells apart).
+static func _per_cell(route: PackedVector2Array) -> int:
+	return maxi(roundi(1.0 / maxf(route[1].distance_to(route[0]), 0.01)), 1) if route.size() > 1 else 1
+
 static func _start_swirl(tower: Tower) -> void:
 	var best := Vector2(-1, -1)
 	var best_count := 0
-	var reach := 0.75 * Tower.MAP_GRID.cell_size.x  # Its own tile (not the neighbours')
-	for at in tower._route():
+	var route := tower._route()
+	var reach := 0.75 * Tower.MAP_GRID.cell_size.x / _per_cell(route)  # Its own route step (not the neighbours')
+	for at in route:
 		if not tower._is_cell_in_range(at):
 			continue
 		var centre := Tower.MAP_GRID.calculate_map_position(at)
@@ -355,7 +360,7 @@ static func gale(tower: Tower) -> void:
 	for i in range(route.size() - 1, -1, -1):
 		if tower._is_cell_in_range(route[i]):
 			tiles.append(route[i])
-			if tiles.size() >= GALE_TILES:
+			if tiles.size() >= GALE_TILES * _per_cell(route):  # 3 path tiles in whole cells (half-step routes)
 				break
 	var copied: Array = source.statuses.snapshot()
 	for enemy in tower.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
