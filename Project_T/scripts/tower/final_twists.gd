@@ -440,20 +440,41 @@ static func _mended_leaf(tower: Tower) -> void:
 	if leaf != null:
 		leaf.create_tween().tween_property(leaf, "global_position", heart, 1.1).set_trans(Tween.TRANS_SINE)
 
-# Beacon: one radial wash over the whole map, in fast (0.2 s) and out slow (1 s).
+# Beacon: a crisp ring of light sweeps out from the Beacon (art_direction.md "Avoiding the AI look": glow only as signal,
+# hard alpha steps, no soft discs). It replaced a whole-map radial wash that Fx's size cap turned into a 600 px blurry
+# disc at the map's centre (Theme, marketing capture stable_test_t10).
 static func _beacon_pulse(tower: Tower) -> void:
 	if Fx.reduce_flashes():
 		return
-	var centre := Vector2(Tower.MAP_GRID.size) * Tower.MAP_GRID.cell_size / 2.0
-	var wash: Node2D = Fx.play(&"beacon_pulse", centre, Reactions._world(tower),
-		maxf(Tower.MAP_GRID.size.x, Tower.MAP_GRID.size.y) * Tower.MAP_GRID.cell_size.x / 64.0, true, 1.2)
-	if wash == null:
+	var world := Reactions._world(tower)
+	if world == null:
 		return
-	wash.z_index = Fx.Z
-	wash.modulate.a = 0.0
-	var tween := wash.create_tween()
-	tween.tween_property(wash, "modulate:a", 1.0, 0.2)
-	tween.tween_property(wash, "modulate:a", 0.0, 1.0)
+	var ring := BeaconRing.new()
+	ring.reach = tower.get_range_pixels()
+	ring.z_index = Fx.Z
+	world.add_child(ring)
+	ring.global_position = tower.global_position
+
+class BeaconRing extends Node2D:
+	const GROW := 0.45  # Seconds to sweep out to its reach…
+	const HOLD := 0.35  # …then it fades in hard steps
+	var reach := 192.0
+	var _age := 0.0
+
+	func _process(delta: float) -> void:
+		_age += delta
+		if _age >= GROW + HOLD:
+			queue_free()
+			return
+		queue_redraw()
+
+	func _draw() -> void:
+		var r := reach * minf(_age / GROW, 1.0)
+		if r < 2.0:
+			return
+		var fade := 1.0 if _age < GROW else ceilf((1.0 - (_age - GROW) / HOLD) * 3.0) / 3.0  # 1, ⅔, ⅓: hard steps
+		draw_arc(Vector2.ZERO, r, 0.0, TAU, 96, Color(Palette.GOLD, 0.9 * fade), 2.0)
+		draw_arc(Vector2.ZERO, maxf(r - 5.0, 1.0), 0.0, TAU, 96, Color(Palette.GLOW, 0.25 * fade), 2.0)  # A faint inner band
 
 # Snugroot: a root knot under the jammed nightmare for the Hold.
 static func _logjam_knot(tower: Tower, enemy: Node2D) -> void:
