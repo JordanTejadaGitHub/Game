@@ -309,6 +309,10 @@ func _update_card() -> void:
 	_carry.disabled = not carried and HeartwoodMemory.get_loadout(_memory).size() >= HeartwoodMemory.loadout_slots(_memory)
 	if _carry.disabled:
 		_carry.text = "Loadout full"
+	if selected.keepsake != "" and level > 0:  # A keepsake: the same button switches it on or off
+		_carry.visible = true
+		_carry.disabled = false
+		_carry.text = "Hide it" if MetaRun.keepsake_on(selected.keepsake) else "Show it"
 	# Shrink to the content (a card with fewer lines than the last one), still centred on the right.
 	_fit_card.call_deferred()  # After the labels have re-measured
 
@@ -381,6 +385,11 @@ func _check_crown() -> void:
 
 func _toggle_carry() -> void:
 	if selected == null:
+		return
+	if selected.keepsake != "":
+		MetaRun.set_keepsake_shown(selected.keepsake, not MetaRun.keepsake_on(selected.keepsake))
+		_memory = HeartwoodMemory.load_data()
+		_refresh()
 		return
 	var carried := HeartwoodMemory.get_loadout(_memory)
 	if carried.has(selected.id):

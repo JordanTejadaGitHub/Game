@@ -54,9 +54,33 @@ static func all_families_active() -> bool:
 		return false
 	return bool(HeartwoodMemory.get_settings().get(ALL_FAMILIES_SETTING, false))
 
-# Dream offers' starlit card backs are parked (no longer the "See every Dream card" reward; art kept).
+# Keepsakes (meta_design.md Section 1, user 2026-10-04): 4 Grove nodes on the Perks limb's twig, bought with Seeds,
+# no gameplay. Once owned each can be switched off (its node card, or Settings → Display → Keepsakes): the setting
+# lists the hidden ones. Readers ask keepsake_on(id): golden_leaf (the in-run Heartwood's leaves), blossoms (every
+# Warden), gilded_pages (the Codex), starlit_backs (Dream cards, DreamScreen). The full game only.
+const KEEPSAKES: Array[String] = ["golden_leaf", "blossoms", "gilded_pages", "starlit_backs"]
+const KEEPSAKES_HIDDEN_SETTING := "keepsakes_hidden"
+
+static func keepsake_owned(id: String) -> bool:
+	var unlock := HeartwoodMemory.get_unlock(id)
+	return unlock != null and unlock.keepsake != "" and not ResultsScreen.is_demo() \
+		and HeartwoodMemory.node_level(HeartwoodMemory.load_data(), unlock) > 0
+
+static func keepsake_on(id: String) -> bool:
+	return keepsake_owned(id) and not (HeartwoodMemory.get_settings().get(KEEPSAKES_HIDDEN_SETTING, []) as Array).has(id)
+
+static func set_keepsake_shown(id: String, shown: bool) -> void:
+	var settings := HeartwoodMemory.get_settings()
+	var hidden: Array = (settings.get(KEEPSAKES_HIDDEN_SETTING, []) as Array).duplicate()
+	hidden.erase(id)
+	if not shown:
+		hidden.append(id)
+	settings[KEEPSAKES_HIDDEN_SETTING] = hidden
+	HeartwoodMemory.save_settings(settings)
+
+# Dream offer cards get the night-sky frame (DreamScreen): the Starlit Card Backs keepsake.
 static func starlit_backs() -> bool:
-	return false
+	return keepsake_on("starlit_backs")
 
 # Developer toggle (settings, debug builds only): the secret 6th loadout slot for testing, without
 # recording "The Heartwood in full bloom" or writing the profile.

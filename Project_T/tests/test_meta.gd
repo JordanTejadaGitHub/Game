@@ -275,7 +275,7 @@ func _run() -> void:
 	_check(omens.omens_per_offer == 3, "Omen Reader: facing an Omen reveals 3 (%d)" % omens.omens_per_offer)
 	_check(run_state.free_nurtures == 3, "First Care: 3 free Nurture ranks (%d)" % run_state.free_nurtures)
 	_check(run_state.max_leaves == run_state.starting_leaves + 3, "Deep Taproot III: +3 max leaves")
-	_check(dreams.rerolls_left == 2 and dreams.cards_per_offer == 4, "Second Thoughts II and Wider Dreams")
+	_check(dreams.rerolls_left == 3 and dreams.cards_per_offer == 4, "Second Thoughts III and Wider Dreams")
 	_check(dreams.banishes_left == 0, "Let Go owned but not carried")
 	main.queue_free()
 	await process_frame
@@ -284,7 +284,7 @@ func _run() -> void:
 	HeartwoodMemory.save_data(memory)
 	main = await _new_run()
 	dreams = main.get_node("%DreamState")
-	_check(dreams.rerolls_left == 2 and not MetaRun.starlit_backs(), "See every Dream card adds no reroll or card backs (%d)" % dreams.rerolls_left)
+	_check(dreams.rerolls_left == 3 and not MetaRun.starlit_backs(), "See every Dream card adds no reroll or card backs (%d)" % dreams.rerolls_left)
 	memory.milestones.erase("all_dreams")
 	HeartwoodMemory.save_data(memory)
 	_check(dreams.allow_bittersweet and dreams.grove_cards.has("deep_sleep"), "the Bittersweet Dreams node lets bittersweet cards be offered")
@@ -627,11 +627,33 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 
+	# --- Keepsakes (meta_design.md Section 1): 4 cosmetic nodes, no gameplay, each can be switched off ---
+	var keep_data := HeartwoodMemory.defaults()
+	keep_data.unlocks.starlit_backs = 1
+	keep_data.loadout = ["starlit_backs"]
+	HeartwoodMemory.save_data(keep_data)
+	var leaf := _unlock(grove, "golden_leaf")
+	var keepsakes_ok := leaf != null and leaf.costs == [30]
+	for keep_id in MetaRun.KEEPSAKES:
+		var keep_node := _unlock(grove, keep_id)
+		keepsakes_ok = keepsakes_ok and keep_node != null and keep_node.keepsake == keep_id and not keep_node.is_perk()
+	_check(keepsakes_ok, "4 Keepsake nodes, not perks (no loadout slot)")
+	_check(not _unlock(grove, HeartwoodMemory.CROWN).is_perk(), "The Heartwood's Crown isn't carried either")
+	_check(HeartwoodMemory.get_loadout(HeartwoodMemory.load_data()).is_empty(), "a keepsake can't be carried")
+	_check(MetaRun.keepsake_on("starlit_backs") and MetaRun.starlit_backs() and not MetaRun.keepsake_on("golden_leaf"),
+		"an owned keepsake shows; one not owned doesn't")
+	MetaRun.set_keepsake_shown("starlit_backs", false)
+	_check(not MetaRun.starlit_backs() and HeartwoodMemory.node_level(HeartwoodMemory.load_data(), _unlock(grove, "starlit_backs")) == 1,
+		"switched off: hidden, still owned")
+	MetaRun.set_keepsake_shown("starlit_backs", true)
+	_check(MetaRun.starlit_backs(), "switched back on")
+	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
+
 	# --- The Heartwood's Crown (the secret 6th slot): hidden until every other node is grown, then bought ---
 	var bloom := GrovePresets.profile(&"full")
 	bloom.unlocks.erase(HeartwoodMemory.CROWN)
 	var crown_node := _unlock(grove, HeartwoodMemory.CROWN)
-	_check(crown_node != null and crown_node.is_perk() and crown_node.costs == [250], "The Heartwood's Crown: a 250-Seed Perks node")
+	_check(crown_node != null and crown_node.root == UnlockData.Root.PERKS and crown_node.costs == [250], "The Heartwood's Crown: a 250-Seed Perks node")
 	_check(HeartwoodMemory.loadout_slots(bloom) == 5 and not HeartwoodMemory.has_sixth_slot(bloom), "no 6th slot before the Crown")
 	var partial := bloom.duplicate(true)
 	partial.unlocks.erase("slot_5")
@@ -741,7 +763,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 93 and grove.size() == 93 - parked, "93 Grove spots, %d nodes on the tree (layout %d, data %d)" % [93 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 97 and grove.size() == 97 - parked, "97 Grove spots, %d nodes on the tree (layout %d, data %d)" % [97 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:
@@ -768,7 +790,7 @@ func _check_layout(grove: Array[UnlockData]) -> void:
 		_check(unlock.legendary == bool(node.legendary) and unlock.start == bool(node.start), "%s: Legendary / start match" % node.id)
 		_check(ResourceLoader.exists("res://assets/meta/grove/branches/%s.png" % node.id), "%s has branch art" % node.id)
 		if node.parent != null and node.id != "firefly_jar_ascension":  # Drawn from Sunpetal, needs final forms
-			_check(unlock.requires_all.any(func(r: String) -> bool: return r.split(":")[0] == node.parent) or unlock.milestone != "" and unlock.is_free()
+			_check(unlock.requires_all.any(func(r: String) -> bool: return r.split(":")[0] == node.parent) or unlock.milestone != "" and unlock.is_free() or unlock.keepsake != ""
 				or (unlock.requires_all.is_empty() and unlock.requires_any.is_empty()),  # Drawn off a node it doesn't need (a start family, Stormheart)
 				"%s needs its parent %s" % [node.id, node.parent])
 	for unlock in grove:
