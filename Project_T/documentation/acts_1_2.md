@@ -51,7 +51,7 @@ A gaunt stag of bark and bone, ghost-fire burning in its antlers.
   trampling. Burst it down before it charges, or spread damage along the route.
 - **Escort:** 12 Shades ahead, then the Stag, then 6 Husks.
 - **Dispelled:** its ghost-fire gutters out, the bone cracks with light and it bursts apart. *"The
-  Hollow Stag is gone. Something the Heartwood had forgotten comes back to it."* (the new family
+  ghost-fire gutters out and the antlers crumble to ash. In the Heartwood, an old memory stirs."* (the new family
   pick follows)
 
 ### The Mire Hag (drift 50; the demo's finale)
@@ -65,8 +65,8 @@ A bent bog witch wrapped in reeds and black water.
   builds).
 - **Desperate:** below half health, she sinks every 4 seconds.
 - **Escort:** 10 Night Hounds, then the Hag, then 2 Processions.
-- **Dispelled:** she shrieks, the mire boils away into light. *"The Mire Hag is gone. The Deep Wood
-  is quiet, for now."*
+- **Dispelled:** she shrieks, the mire boils away into light. *"The fen goes still. The frogs,
+  cautiously, start up again."*
 
 ## Drift composition rules
 
