@@ -797,6 +797,17 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 **tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
 `longest_path` / `tended` requested in the run history to re-check.
 
+## Human run 17 (2026-10-04, build a4bd05 = 0b41c1ed: act 1 ×1.30, half cells, one-half gaps; 0 Grove)
+
+**Lost at drift 40**, 16 min; user: *"didn't play too much"* (drift 2 took 152 s; **1,000–1,337 Dew unspent**
+from drift 37). Bellflower → Sporeling; Brood Cap / Chime Stones / Silver + Vesper Bells; combos 34%.
+Longest path **68 cells**. **Act 1 at ×1.30 still read very calm** (closest 0.14–0.22 most drifts, 0.46–0.70
+only at the finales; the Stag in 15 s). Act 2 calm to 37 (≤ 0.45), then **38: 13 leaks / 6 leaves, 39: 8**,
+dead at 40.
+- A low-attention run (Dew left unspent), so not used to tune.
+- **Pattern across runs 15–17:** full leaves deep into act 2, then a collapse at 38–40. Watching it: if the
+  next attentive run repeats it, act 2's last third (37–45, 3.45 → 4.5) gets smoothed.
+
 ## Human run 16 (2026-10-03, build 0848cb = 27c658f7, the real profile with 0 Grove nodes)
 
 **Lost at drift 42**, 13 min. Firefly Jar → Dewdrop; **2 Starbursts = 53% of damage**, 7 Sparklers, 3
