@@ -26,10 +26,11 @@ page points to the Steam page.
    no Warcraft footage, logos or art (Blizzard's trademarks). "Try the demo now" only once the demo is live; until then
    the call is "wishlist it on Steam", and the page must be up before it posts.
    **Hold on all video renders** (the user, 2026-10-04): the path and other environment art are still changing, so no
-   final renders of shorts, the trailer or screenshots until Theme Discussion calls the look stable. Open: the Heartwood
-   glow fix and path ribbon (Environment Code), **ground variation** (moss / clearing / flower patches; Environment
-   Discussion → Assets + Code), bigger dead-fruit husks on the Heartwood, **bigger Wardens** (if the user approves the
-   preview, the whole roster changes first). Environment Assets' other art is final. Done: grain clean-up, nightmare readability. Scripts, voiceover, capture scenes and test renders can go on.
+   final renders of shorts, the trailer or screenshots until Theme Discussion calls the look stable. Open: **bigger
+   Wardens** (being rolled out across the whole roster; the locked maze may need re-checking for footprint),
+   **ground variation** (moss / clearing / flower patches; Environment Discussion → Assets + Code), nightmare footing,
+   bigger dead-fruit husks on the Heartwood. Done: grain clean-up, nightmare readability, the Heartwood glow fix
+   (61db39aa; a 600 px test capture confirms it). Environment Assets' other art is final. Scripts, voiceover, capture scenes and test renders can go on.
 3. **Trailer** (60–90 s): once the capture tools exist.
 4. **Demo + Steam Next Fest**: the biggest wishlist spike; plan it for when the demo is polished.
 
@@ -235,16 +236,17 @@ bed but has no shape: no hit on the hook, no build, no ending on the end card.
 - The music is not on hold: the art hold covers renders, not audio. Compose to the locked cut lists; when a cut moves,
   the cue's section map moves with it.
 
-**1. Trailer cue (~75 s), through-composed to the §5 cut list**
+**1. Trailer cue (~75 s), through-composed to the §5 cut list** (Trailer's cuts snap to 2.5 s bars, 72 bpm 3/4;
+7d6e9d8d; if Sound picks another tempo, Trailer re-snaps)
 | Time | Picture | Music |
 |---|---|---|
 | 0–5 s | The maze being built | The motif alone, soft and warm; each Warden snap on a pulse (the snaps are the rhythm) |
-| 5–9 s | The Shade close-up | Drop to near-silence, one cold low note; the dispel is the first hit |
-| 9–16 s | The drift walks the maze | The pulse returns, low dread underneath |
-| 16–28 s | Soaked + Charged, Thunderclap | Building; percussion enters; the Thunderclap lands on a hit |
-| 28–46 s | Rest, Dream pick, Gift | A breath: warmer, half the density (the rest swell), then rising again under the ridge |
-| 46–60 s | Bosses | The boss material; heaviest low end; a hard stop on the Stag stalling on the bend |
-| 60–70 s | Dawnburst | Everything, the peak; the chain's ×10 on the biggest hit |
+| 5–10 s | The Shade close-up | Drop to near-silence, one cold low note; **hit 7.5 s**: the dispel |
+| 10–15 s | The drift walks the maze | The pulse returns, low dread underneath |
+| 15–27.5 s | Soaked + Charged, Thunderclap | Building; percussion enters; **hit 20 s**: the Thunderclap |
+| 27.5–45 s | Rest, Dream pick (to 37.5), Gift | A breath: warmer, half the density (the rest swell), then rising again under the ridge |
+| 45–60 s | Bosses | The boss material; heaviest low end; **hit 52.5 s**: a hard stop as the Stag stalls on the bend |
+| 60–70 s | Dawnburst | Everything, the peak; **hit 65 s**: the chain's ×10 |
 | 70–75 s | Logo, Wishlist | The resolve, one held warm chord under the logo |
 
 **2. Short beds (9:16, 15–35 s)**
