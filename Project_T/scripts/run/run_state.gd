@@ -77,7 +77,7 @@ func _ready() -> void:
 	enemy_spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	enemy_spawner.enemy_reached_goal.connect(_on_enemy_reached_goal)
 	var track_path := func() -> void:
-		longest_path = maxi(longest_path, map_generator.get_path_from(map_generator.startPath).size())
+		longest_path = maxi(longest_path, map_generator.route_length(map_generator.get_path_from(map_generator.startPath)))  # Full cells (half-cell route)
 	map_generator.path_changed.connect(track_path)
 	track_path.call_deferred()  # The map builds its path after RunState is ready
 	map_generator.obstacle_cleared.connect(func(cell: Vector2, _data: ObstacleData) -> void:

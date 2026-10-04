@@ -96,6 +96,12 @@ func _test_economy() -> void:
 		"Call of the Wild: +10% pot only on a drift called early")
 	dreams.take(_card("winding_path"))
 	_check(dreams.get_rest_bonus_add() == 10 + dreams.path_length / 5, "Winding Path: +1 Dew per 5 path tiles (%d tiles, + Morning Dew's 10)" % dreams.path_length)
+	# Half cells: the route steps half a cell, path tiles stay full cells (not the point count)
+	var route_points: PackedVector2Array = main.get_node("MapGenerator").get_path_from(main.get_node("MapGenerator").startPath)
+	_check(dreams.path_length == main.get_node("MapGenerator").route_length(route_points) and dreams.path_length < route_points.size(),
+		"path tiles count full cells on the half-cell route (%d tiles, %d points)" % [dreams.path_length, route_points.size()])
+	_check(DreamState.route_cells(Vector2(3, 4)) == [Vector2(3, 4)] and DreamState.route_cells(Vector2(3.5, 4)).size() == 2
+		and DreamState.route_cells(Vector2(3.5, 4.5)).size() == 4, "a half-offset route point covers 2 or 4 cells")
 	var rerolls := dreams.rerolls_left
 	dreams.take(_card("wandering_mind"))
 	_check(dreams.rerolls_left == rerolls + 2, "Wandering Mind: +2 rerolls")

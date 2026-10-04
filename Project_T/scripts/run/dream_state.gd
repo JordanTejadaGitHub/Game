@@ -1749,25 +1749,40 @@ func _taken_cards(include_dormant: bool = false) -> Array[UpgradeData]:
 
 func _update_bends() -> void:
 	_bend_cells.clear()
+	# Half cells: route points step half a cell (x.0 / x.5), so lengths go through MapGenerator.route_length and
+	# every point marks the full cells its body covers (route_cells); steps count in full cells (point i = step ⌈i/2⌉).
 	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
-	path_length = path.size()
+	path_length = map_generator.route_length(path)
 	_path_index.clear()
 	for i in path.size():
-		_path_index[path[i]] = i  # Crossroads, Briar Crown
+		for cell in route_cells(path[i]):
+			if not _path_index.has(cell):
+				_path_index[cell] = ceili(i / 2.0)  # Crossroads, Briar Crown
 	for i in range(1, path.size() - 1):
 		if path[i] - path[i - 1] != path[i + 1] - path[i]:
-			_bend_cells[path[i]] = true
+			for cell in route_cells(path[i]):
+				_bend_cells[cell] = true
 	# Straightaway: tiles of straight stretches of STRAIGHT_TILES+ (a run of equal steps a..b covers
-	# tiles a..b+1)
+	# points a..b)
 	_straight_cells.clear()
 	var run_start := 0
 	for step in range(1, path.size()):
 		if step == path.size() - 1 or path[step + 1] - path[step] != path[step] - path[step - 1]:
-			if step - run_start + 1 >= STRAIGHT_TILES:
+			if map_generator.route_length(path.slice(run_start, step + 1)) >= STRAIGHT_TILES:
 				for i in range(run_start, step + 1):
-					_straight_cells[path[i]] = true
+					for cell in route_cells(path[i]):
+						_straight_cells[cell] = true
 			run_start = step
 	_heart_cache.clear()
+
+# The full cells a route point's body covers: 1, or 2 / 4 at a half offset (x.5).
+static func route_cells(point: Vector2) -> Array[Vector2]:
+	var cells: Array[Vector2] = []
+	for x in [floorf(point.x), ceilf(point.x)]:
+		for y in [floorf(point.y), ceilf(point.y)]:
+			if not cells.has(Vector2(x, y)):
+				cells.append(Vector2(x, y))
+	return cells
 
 
 # An exclusive pair (dream_design.md "Combo cards are choices, not musts"): a card a taken card excludes, or one that

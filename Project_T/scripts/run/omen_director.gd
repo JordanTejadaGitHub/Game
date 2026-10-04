@@ -495,8 +495,9 @@ func get_free_cells(beside_path: bool = false) -> Array[Vector2]:
 	if map_generator == null:
 		return result
 	var route := {}
-	for cell in map_generator.get_path_from(map_generator.startPath):
-		route[cell] = true
+	for point in map_generator.get_path_from(map_generator.startPath):
+		for cell in DreamState.route_cells(point):  # Half-cell points: x.5 covers two cells
+			route[cell] = true
 	var seller = get_node_or_null("%TowerSeller")
 	var size: Vector2 = map_generator.MAP_GRID.size
 	for x in range(1, int(size.x) - 1):
