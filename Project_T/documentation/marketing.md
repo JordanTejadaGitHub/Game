@@ -158,8 +158,8 @@ words of the short description**. Nothing on the page opens with lore or the loo
 | Item | Status | Waiting on |
 |---|---|---|
 | Name | **"Heartwood TD"** (decided 2026-09-28, pitch.md "Title") | free check: Steam, itch.io, trademark search for "Heartwood" |
-| Capsule art | **A, chosen** (the watchful Warden, 2026-10-04) | hire a human artist for the final? (brief in art_direction.md) |
-| Logo | not started | the artist decision |
+| Capsule art | **A, chosen** (the watchful Warden, 2026-10-04); **AI-made for now** (Theme Asset) | artist: **deferred** (the user, 2026-10-04: "Leave it AI for now, then I'll decide later"; brief stays in art_direction.md) |
+| Logo | not started; **AI-made for now** (Theme Asset) | artist: deferred, same as the capsule |
 | Short description | drafted above, maze first | — |
 | About | outline above | GIFs (capture tools) |
 | Tags | drafted above | — |
@@ -174,6 +174,10 @@ AI assistance (art and audio by generator scripts written with AI). Disclose it 
 the help of AI tools: its pixel art, sound effects and music were produced by generator scripts written with AI assistance,
 and AI was used for code and writing. All content was directed, curated and edited by the developer."* Check Valve's current
 wording at submission.
+
+Valve's survey covers store-page assets too. While the capsule and logo are AI-made (artist deferred, 2026-10-04), the
+disclosure must say so: add *"The store art and logo were also made with AI assistance."* Remove that line only if a
+human artist replaces both.
 
 ## 8. Posting and measuring
 
