@@ -35,27 +35,42 @@ const RIM := {
 
 ## Runs the full pass on one frame in place (converted to RGBA8) and returns it. `glow_radius` (px)
 ## sets how far the glow halo and nightmare smoke spread; 0 = from the frame width, max(3, w / 32)
-## (64 → 3, 112 → 4, 144 → 5, 176 → 6). Rim, seams, texture and motes are always 1 px.
+## (64 → 3, 112 → 4, 144 → 5, 176 → 6); -1 = no glow at all (idle sheets: glow marks attacks).
+## Rim, seams, texture and motes are always 1 px.
 ## `texture` (0..1) thins the grain, material texture and motes: 1 = the reference, 0.5 = half as
 ## many pixels, 0 = none (for art that is already shaded, or calm ground tiles). Rim, seams, form
 ## light, glow and smoke stay.
-static func apply(img: Image, kind: Kind, glow_radius := 0, texture := 1.0) -> Image:
+## `calm` (AI-look audit, art_direction.md 2026-10-04): no random grain, the glow in 2 hard alpha
+## steps, and every isolated pixel the pass itself added inside a shape is cleaned up, so no
+## speckle or screen-door lands on flat areas. The art's own single-pixel details (eyes, highlights)
+## stay. Light and shade snap within the colour's own ramp (a pink body shades to Orchid, never to
+## a blue-violet), and shadows lean to black, not to violet. Rim, band seams, form light and
+## clustered texture stay. The default (calm = false) is unchanged, byte for byte.
+static func apply(img: Image, kind: Kind, glow_radius := 0, texture := 1.0, calm := false) -> Image:
 	if img.get_format() != Image.FORMAT_RGBA8:
 		img.convert(Image.FORMAT_RGBA8)
 	var w := img.get_width()
 	var h := img.get_height()
 	var p := _read(img)
 	var tile := kind == Kind.TILE
-	_refine(p, w, h, tile, _hex(RIM[kind][0]), RIM[kind][1], texture)
-	_enrich(p, w, h, kind, glow_radius if glow_radius > 0 else maxi(3, roundi(w / 32.0)), texture)
+	var before := img.duplicate() as Image if calm else null
+	_refine(p, w, h, tile, _hex(RIM[kind][0]), RIM[kind][1], 0.0 if calm else texture)
+	_enrich(p, w, h, kind, glow_radius if glow_radius > 0 else maxi(3, roundi(w / 32.0)), texture, calm,
+		glow_radius >= 0)
 	_write(img, p)
-	HeartwoodPalette.snap_image(img, kind == Kind.NIGHTMARE)
+	if calm:
+		HeartwoodPalette.snap_image(before, kind == Kind.NIGHTMARE)
+		_snap_in_ramp(img, before, kind == Kind.NIGHTMARE)
+		_despeckle(img, before, tile)
+	else:
+		HeartwoodPalette.snap_image(img, kind == Kind.NIGHTMARE)
 	return img
 
 
 ## Runs the pass on each `frame`-sized cell of a sheet separately, so blur and edges never bleed
 ## between frames. Returns the sheet.
-static func apply_sheet(sheet: Image, frame: Vector2i, kind: Kind, glow_radius := 0, texture := 1.0) -> Image:
+static func apply_sheet(sheet: Image, frame: Vector2i, kind: Kind, glow_radius := 0, texture := 1.0,
+		calm := false) -> Image:
 	if sheet.get_format() != Image.FORMAT_RGBA8:
 		sheet.convert(Image.FORMAT_RGBA8)
 	for y in range(0, sheet.get_height() - frame.y + 1, frame.y):
@@ -64,9 +79,94 @@ static func apply_sheet(sheet: Image, frame: Vector2i, kind: Kind, glow_radius :
 			var cell := sheet.get_region(rect)
 			if cell.is_invisible():
 				continue
-			apply(cell, kind, glow_radius, texture)
+			apply(cell, kind, glow_radius, texture, calm)
 			sheet.blit_rect(cell, Rect2i(Vector2i.ZERO, frame), rect.position)
 	return sheet
+
+
+# Calm mode's snap: a pixel that was solid before the pass snaps to the nearest colour in the ramp
+# of its own (snapped) colour, so light and shade step along the ramp (Blossom → Orchid) instead of
+# jumping to another hue (a pink body's shadow turning blue-violet). Everything else (glow, smoke,
+# new pixels) snaps to the whole palette as usual.
+static func _snap_in_ramp(img: Image, before: Image, cold: bool) -> void:
+	var ramp_of := {}  # 0xRRGGBB -> Array of [0xRRGGBB, OKLab] in that ramp
+	for r: Dictionary in HeartwoodPalette.RAMPS:
+		var members := []
+		for e: Array in r.colors:
+			members.append([String(e[1]).hex_to_int(), HeartwoodPalette.oklab(Color.html(e[1]))])
+		for e: Array in r.colors:
+			ramp_of[String(e[1]).hex_to_int()] = members
+	var data := img.get_data()
+	var orig := before.get_data()
+	HeartwoodPalette.snap_image(img, cold)
+	var snapped := img.get_data()
+	for i in range(0, data.size(), 4):
+		if orig[i + 3] < 128 or data[i + 3] == 0:
+			continue
+		var members: Variant = ramp_of.get((orig[i] << 16) | (orig[i + 1] << 8) | orig[i + 2])
+		if members == null:
+			continue
+		var lab := HeartwoodPalette.oklab(Color8(data[i], data[i + 1], data[i + 2]))
+		var best := 0
+		var best_d := INF
+		for m: Array in members:
+			var d := lab.distance_squared_to(m[1])
+			if d < best_d:
+				best_d = d
+				best = m[0]
+		snapped[i] = (best >> 16) & 0xff
+		snapped[i + 1] = (best >> 8) & 0xff
+		snapped[i + 2] = best & 0xff
+	img.set_data(img.get_width(), img.get_height(), false, Image.FORMAT_RGBA8, snapped)
+
+
+# Calm mode's clean-up: a solid pixel the pass changed that now differs from all 4 solid neighbours
+# is speckle (the audit's "grain"), so it takes its neighbours' most common colour. `before` is the
+# input snapped to the palette; pixels the pass left alone (the art's own eyes and highlights) stay.
+static func _despeckle(img: Image, before: Image, tile: bool) -> void:
+	var w := img.get_width()
+	var h := img.get_height()
+	var p := _read(img)
+	var orig := _read(before)
+	for _round in 2:
+		var src := p.duplicate()
+		var changed := false
+		for y in h:
+			for x in w:
+				var i := y * w + x
+				var v := _k(src[i])
+				if v == 0 or v == _k(orig[i]):
+					continue
+				var around := [_at(src, w, h, tile, x, y - 1), _at(src, w, h, tile, x, y + 1),
+					_at(src, w, h, tile, x - 1, y), _at(src, w, h, tile, x + 1, y)]
+				if around.has(0) or around.has(v):
+					continue
+				var best: int = orig[i]
+				var best_n := 0
+				var ramp := _ramp_id(orig[i])
+				for c: int in around:
+					var n := around.count(c)
+					if n > best_n and _ramp_id(c) == ramp:  # Stay in its own ramp (never the outline)
+						best_n = n
+						best = c
+				p[i] = (best & 0xffffff) | (src[i] & 0xff000000)
+				changed = true
+		if not changed:
+			break
+	_write(img, p)
+
+
+static var _ramp_ids := {}  # packed pixel rgb (b << 16 | g << 8 | r) -> ramp index
+
+
+## Which Heartwood 32 ramp a packed pixel's colour belongs to, or -1.
+static func _ramp_id(v: int) -> int:
+	if _ramp_ids.is_empty():
+		for r in HeartwoodPalette.RAMPS.size():
+			for e: Array in HeartwoodPalette.RAMPS[r].colors:
+				var c := String(e[1]).hex_to_int()
+				_ramp_ids[_pack((c >> 16) & 0xff, (c >> 8) & 0xff, c & 0xff, 0)] = r
+	return _ramp_ids.get(v & 0xffffff, -1)
 
 
 # ---- pixels: ints packed like the reference's little-endian Uint32 (a << 24 | b << 16 | g << 8 | r)
@@ -217,7 +317,9 @@ static func _box_blur(a: PackedFloat32Array, w: int, h: int, r: int) -> PackedFl
 	return o
 
 
-static func _enrich(p: PackedInt64Array, w: int, h: int, kind: Kind, radius: int, texture: float) -> void:
+static func _enrich(p: PackedInt64Array, w: int, h: int, kind: Kind, radius: int, texture: float,
+		calm := false, glow_on := true) -> void:
+	var glow_steps := 2.0 if calm else 3.0
 	var base := p.duplicate()
 	var tile := kind == Kind.TILE
 	var night := kind == Kind.NIGHTMARE
@@ -229,6 +331,8 @@ static func _enrich(p: PackedInt64Array, w: int, h: int, kind: Kind, radius: int
 	var black := _hex("07060c")
 	var light_c := _hex("c7b4ff" if night else "fff0c8")
 	var shadow_c := _hex("0a0716" if night else "1a1430")
+	if calm:
+		shadow_c = _hex("000000")  # Shade toward black, so the band stays in its own colour family
 	var leaf_hi := _hex("e9f5a8")
 	var violet := _hex("8a6fe0")
 	for y in h:
@@ -327,6 +431,8 @@ static func _enrich(p: PackedInt64Array, w: int, h: int, kind: Kind, radius: int
 				if b > 0.18 and _hash(x, y) < b * 1.4:
 					p[i] = _pack(22, 16, 42, 170 if b > 0.35 else 105)
 	# Glow: warm lights bloom gold; nightmare eyes bloom cold. Banded in thirds, never a soft blur.
+	if not glow_on:
+		return
 	var glow := PackedFloat32Array()
 	glow.resize(w * h)
 	var any := false
@@ -349,7 +455,7 @@ static func _enrich(p: PackedInt64Array, w: int, h: int, kind: Kind, radius: int
 		var a := minf(1.0, glow_b[i] * 3.2)
 		if a < 0.08:
 			continue
-		a = roundf(a * 3.0) / 3.0
+		a = roundf(a * glow_steps) / glow_steps
 		var v := p[i]
 		if _k(v) == 0 and (v >> 24) < 60:
 			p[i] = (glow_c & 0xffffff) | (roundi(a * 150.0) << 24)
