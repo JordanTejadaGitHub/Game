@@ -83,6 +83,8 @@ const HEALTH_BAR_SIZE := Vector2(40, 5)
 const HEARTWOOD_DRAIN_EVERY := 2.0  # A boss at the Heartwood takes a leaf this often (s)
 const GROUND_DROP_TIME := 0.25  # Groundroot: a flyer's drop onto the route
 const CORNER_ROUNDING := 0.3  # Cells before and after a turn's centre where the drawn path curves (the route stays square)
+const SQUEEZE_WIDTH := 0.8  # Drawn width in a one-half gap (half_cells.md "The look in a narrow gap")
+const SQUEEZE_RATE := 14.0  # Eases in and out over a few frames (reduced motion: at once)
 const BOSS_SILENCE_SPEED := 0.5  # A silenced boss's timed abilities run this fast (Hushbell; tower_design.md 279ebb63)
 const BOSS_SILENCE_FLOOR := 0.35  # …and never slower than this, however deep the Hushbell (Nurture rework e2631f54)
 const UNTOUCHABLE_TINT := Color(0.42, 0.38, 0.55)  # The Night Mare lingering: a dark, smoky shimmer (a self_modulate multiplier)
@@ -203,6 +205,7 @@ var _drain_left := 0.0  # Seconds to its next leaf (0 on arrival: the first goes
 var _linger_left := 0.0  # Night Mare: seconds left of this visit before it gallops off again
 var _grounded_left := 0.0  # Groundroot: seconds left on the ground (a flyer walking the maze; see ground)
 var _corner_offset := Vector2.ZERO  # Drawn minus logical position on a rounded corner (_round_corners)
+var _squeeze := 1.0  # The width factor sprite.scale.x carries now (_update_squeeze)
 var _untouchable := false  # Night Mare lingering: no hits, no statuses, not targeted (_set_untouchable)
 var straight_charging := false  # Hollow Stag: on a straight of straight_charge_tiles+ (see _update_straight_charge)
 var _bellowed := false
@@ -528,6 +531,7 @@ func _process(delta: float) -> void:
 	# Update animation based on movement direction
 	update_animation(position - previous_position)
 	_round_corners()
+	_update_squeeze(delta)
 
 	if _path_index >= _path.size():
 		if loops_route:
@@ -1056,6 +1060,46 @@ func get_leaf_cost() -> int:
 			and _spawner != null:
 		return _spawner.get_boss_bite(_spawner.act_of(self))  # An act boss's flat bite (8 / 10 / 12)
 	return maxi(enemy_data.leaf_cost, ELITE_LEAVES) if elite else enemy_data.leaf_cost
+
+# Half cells (half_cells.md): in a gap one half cell wide a nightmare is drawn SQUEEZE_WIDTH wide, eased in
+# and out, so it reads as slipping through rather than clipping into stone. Bosses too. Read from the half
+# cells beside its position (and a little ahead), so it doesn't depend on how route points are encoded.
+# Not for flyers, or while sinking, rising or dropping (their tweens own the scale and keep the factor).
+func _update_squeeze(delta: float) -> void:
+	if _leaping:
+		return
+	var target := SQUEEZE_WIDTH if not is_flying() and _in_narrow_gap() else 1.0
+	var next := target
+	if not bool(Fx.setting("reduced_motion", false)):
+		next = lerpf(_squeeze, target, 1.0 - exp(-SQUEEZE_RATE * delta))
+		if absf(next - target) < 0.005:
+			next = target
+	if next == _squeeze:
+		return
+	sprite.scale.x = sprite.scale.x / _squeeze * next
+	_squeeze = next
+	sprite.offset = _corner_offset / sprite.scale  # The rounded-corner offset stays in world pixels
+
+# Whether the walker is in (or about to enter) a one-half gap: its half cell open, both halves beside it
+# across its walking direction blocked.
+func _in_narrow_gap() -> bool:
+	if _path_index < 1 or _path_index >= _path.size():
+		return false
+	var map_generator = _map_generator()
+	if map_generator == null:
+		return false
+	var finder: FindPath = map_generator.path_layer.get_finder()
+	var step := _path[_path_index] - _path[_path_index - 1]
+	var dir := Vector2(signf(step.x), signf(step.y))
+	if dir == Vector2.ZERO:
+		return false
+	var side := Vector2(absf(dir.y), absf(dir.x))
+	var half := grid.cell_size.x / FindPath.HALF
+	for ahead: float in [0.0, half * 0.75]:
+		var h := ((position + dir * ahead) / half).floor()
+		if not finder.is_half_blocked(h) and finder.is_half_blocked(h + side) and finder.is_half_blocked(h - side):
+			return true
+	return false
 
 func is_flying() -> bool:
 	return enemy_data.trait_kind == EnemyData.Trait.FLYING and _grounded_left <= 0.0  # (Groundroot: not while grounded)
@@ -2205,6 +2249,7 @@ func _cleanse() -> void:
 		sprite.position.y = 0.0
 	var base_scale := Vector2.ONE * enemy_data.sprite_scale * (ELITE_SCALE if elite else 1.0)
 	sprite.scale = base_scale
+	_squeeze = 1.0  # Dispelled in a gap: cracks apart at full width
 	_shriek()
 	var tween := create_tween()
 	tween.tween_interval(SHRIEK_TIME)

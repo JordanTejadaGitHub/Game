@@ -711,6 +711,31 @@ func _run() -> void:
 	_check(curved and stayed_inside, "the drawn path curves at the turn and never leaves the corridor cells")
 	_clear_enemies()
 
+	# --- Half cells: in a one-half gap the nightmare is drawn 80% wide, and full width again after ---
+	route = map_generator.get_path_from(map_generator.startPath)
+	var squeezer := _still("leaf_bug", route[6])
+	squeezer.set_path(route.slice(6))
+	squeezer._path_index = 1
+	var wide: float = squeezer.sprite.scale.x
+	var finder: FindPath = map_generator.path_layer.get_finder()
+	var walk_dir: Vector2 = (route[7] - route[6]).sign()
+	var across := Vector2(absf(walk_dir.y), absf(walk_dir.x))
+	var gap_half: Vector2 = (squeezer.position / (squeezer.grid.cell_size.x / FindPath.HALF)).floor()
+	var walls_were := [finder.is_half_blocked(gap_half + across), finder.is_half_blocked(gap_half - across)]
+	finder.set_half_blocked(gap_half + across, true)
+	finder.set_half_blocked(gap_half - across, true)
+	squeezer._update_squeeze(1.0)
+	_check(is_equal_approx(squeezer.sprite.scale.x, wide * squeezer.SQUEEZE_WIDTH) and is_equal_approx(squeezer.sprite.scale.y, wide),
+		"squeeze: in a one-half gap it's drawn %d%% wide (%.2f)" % [roundi(squeezer.SQUEEZE_WIDTH * 100), squeezer.sprite.scale.x / wide])
+	finder.set_half_blocked(gap_half + across, walls_were[0])
+	finder.set_half_blocked(gap_half - across, walls_were[1])
+	squeezer._update_squeeze(1.0 / 60.0)
+	_check(squeezer.sprite.scale.x > wide * squeezer.SQUEEZE_WIDTH + 0.001 and squeezer.sprite.scale.x < wide,
+		"and eases back out over a few frames")
+	squeezer._update_squeeze(1.0)
+	_check(is_equal_approx(squeezer.sprite.scale.x, wide), "back to full width once through")
+	_clear_enemies()
+
 	# --- Branch Phase 2 hooks: Groundroot grounds a flyer, Quaker's slam stops a sprint ---
 	_clear_enemies()
 	var grounded_flyer := _still("dandelion_seed", route[6] + Vector2(0, 1))
