@@ -44,7 +44,7 @@ func _run() -> void:
 	for unlock in grove:
 		if unlock.root == UnlockData.Root.WARDENS and not unlock.costs.is_empty():
 			limb += unlock.costs[0]
-	_check(limb == 1390 + 1080 - 470 - 60, "the Families limb costs 1,940 Seeds (final-forms nodes removed, Bellflower starts) (%d)" % limb)
+	_check(limb == 1390 + 1080 - 470 - 60 + 60, "the Families limb costs 2,000 Seeds (final-forms nodes removed, Bellflower starts, Sunpetal bought) (%d)" % limb)
 	for family: String in ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"]:
 		_check(HeartwoodMemory.get_unlock(family + "_final") == null, "no final-forms node for %s (finals come with the family)" % family)
 	_check(_unlock(grove, "bellflower").start and _unlock(grove, "bellflower").costs.is_empty() and _unlock(grove, "bellflower").requires_any.is_empty(),
@@ -97,8 +97,8 @@ func _run() -> void:
 		"family nodes bring their branches, not their final forms")
 	for line: String in ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"]:
 		var ascension := _unlock(grove, line + "_ascension")
-		_check(ascension != null and ascension.costs == [120] and ascension.requires_all == ([] if line == "firefly_jar" else [line + "_hidden"]) and ascension.dream_cards.size() == 1,
-			"%s Ascension: 120 Seeds, needs the hidden branch (Firefly Jar: final forms, Sunpetal is milestone-only), opens the Ascended Warden" % line)
+		_check(ascension != null and ascension.costs == [120] and ascension.requires_all == [line + "_hidden"] and ascension.dream_cards.size() == 1,
+			"%s Ascension: 120 Seeds, needs the hidden branch, opens the Ascended Warden" % line)
 	_check(_unlock(grove, "pebbling_hidden").dream_cards.has("dream_cairn") and _unlock(grove, "whirligig_hidden").dream_cards.has("dream_autumn_gale"),
 		"hidden nodes open their hidden Wardens")
 	_check(is_equal_approx(director.blight_health_multiplier, 1.1) and is_equal_approx(director.blight_boss_health_multiplier, 1.25)
@@ -159,34 +159,34 @@ func _run() -> void:
 	run_state.end_run(true)
 	await process_frame
 	memory = HeartwoodMemory.load_data()
-	for id in ["first_boss", "first_win", "flawless_win", "path_300", "blight_5"]:
+	for id in ["first_boss", "first_win", "flawless_win", "path_300", "blight_5", "all_combos", "all_dreams"]:
 		_check(memory.milestones.has(id), "milestone %s" % id)
 	_check(int(memory.highest_blight_won) == 5 and HeartwoodMemory.max_blight_level(memory) == 6, "Blight 5 won: level 6 opens")
-	_check(memory.cosmetics.has("golden_leaf"), "a flawless win grows the Golden Leaf")
-	_check(memory.cosmetics.has("gilded_pages"), "Discover every combo: the gilded Codex pages")
-	_check(memory.cosmetics.has("starlit_backs"), "Dream of everything: the starlit card backs")
-	memory.milestones.erase(MetaRun.ALL_DREAMS)  # Its reroll would change the perk checks below
-	HeartwoodMemory.save_data(memory)
-	_check(HeartwoodMemory.memories_unlocked(memory) > 1 + 7 / 3, "milestones reveal Memories too")
+	# Milestones only give bonus Seeds (meta_design.md "Milestones"): one line each in the breakdown, after the Seed bonus.
+	var milestone_lines: Array = meta.milestone_seed_lines(true)
+	var line_names: Array = milestone_lines.map(func(l: Array) -> String: return l[0])
+	_check(line_names == ["Milestone · Dispel your first boss", "Milestone · Win a run", "Milestone · Build a 130-tile path",
+		"Milestone · Win without losing a leaf", "Milestone · Reach Blight Level 5", "Milestone · Discover every combo", "Milestone · See every Dream card"],
+		"each new milestone is its own Seed line (%s)" % [line_names])
+	_check(milestone_lines.reduce(func(sum: int, l: Array) -> int: return sum + int(l[1]), 0) == 20 + 60 + 30 + 100 + 50 + 60 + 60, "with its bonus")
+	_check(run_state.get_seed_breakdown(10, 1, false).any(func(l: Array) -> bool: return l[0] == "Milestone · Win a run"), "the breakdown shows them")
+	_check(memory.cosmetics.is_empty() and HeartwoodMemory.memories_unlocked(memory) == 1 + HeartwoodMemory.total_unlock_levels(memory) / 3,
+		"no cosmetics, no Memories from milestones")
 
 	main.queue_free()
 	await process_frame
 	MetaRun.blight_level = 0
 
-	# --- Milestone nodes: Sunpetal grows with 500 Shades; One Line's Seeds come back when its
-	# milestone grows it after it was bought ---
+	# --- Every node is bought with Seeds: a milestone grows nothing (Sunpetal, One Line, The Long Walk) ---
 	memory = HeartwoodMemory.load_data()
 	var sunpetal := _unlock(grove, "firefly_jar_hidden")
-	_check(sunpetal.is_free() and HeartwoodMemory.buy_problem(memory, sunpetal) == "Grows by itself", "Sunpetal can't be bought")
+	_check(not sunpetal.is_free() and sunpetal.costs == [60] and sunpetal.requires_all == ["firefly_jar"], "Sunpetal: 60 Seeds after Firefly Jar")
 	memory.milestones.shades_500 = true
-	_check(HeartwoodMemory.node_level(memory, sunpetal) == 1, "500 Shades grows Sunpetal's node")
-	memory.seeds = 80
-	HeartwoodMemory.save_data(memory)
-	_check(HeartwoodMemory.buy(_unlock(grove, "one_line")), "One Line can also be bought")
-	memory = HeartwoodMemory.load_data()
 	memory.milestones.one_line_win = true
-	HeartwoodMemory.grow_milestone_nodes(memory, "one_line_win")
-	_check(int(memory.seeds) == 80, "One Line bought, then its milestone: the 80 Seeds come back (%d)" % int(memory.seeds))
+	memory.milestones.path_300 = true
+	_check(HeartwoodMemory.node_level(memory, sunpetal) == 0 and HeartwoodMemory.node_level(memory, _unlock(grove, "one_line")) == 0
+		and HeartwoodMemory.node_level(memory, _unlock(grove, "the_long_walk")) == 0, "milestones grow no nodes")
+	memory.milestones = {}
 	HeartwoodMemory.save_data(memory)
 	_check(_unlock(grove, "sporeling").start and HeartwoodMemory.node_level(memory, _unlock(grove, "sporeling")) == 1,
 		"Sporeling is grown from the start")
@@ -280,14 +280,12 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 	memory = HeartwoodMemory.load_data()
-	memory.milestones[MetaRun.ALL_DREAMS] = true
+	memory.milestones.all_dreams = true  # No longer a reward: no extra reroll, no starlit backs
 	HeartwoodMemory.save_data(memory)
 	main = await _new_run()
 	dreams = main.get_node("%DreamState")
-	_check(dreams.rerolls_left == 3 and MetaRun.starlit_backs(), "Dream of everything: a 3rd reroll on top of Second Thoughts II, starlit backs (%d)" % dreams.rerolls_left)
-	var offer_card: UpgradeData = dreams.pool[0]
-	_check(main.get_node("HUD/DreamScreen")._make_card(offer_card).has_node("StarlitBack"), "Dream offer cards get the night-sky back")
-	memory.milestones.erase(MetaRun.ALL_DREAMS)
+	_check(dreams.rerolls_left == 2 and not MetaRun.starlit_backs(), "See every Dream card adds no reroll or card backs (%d)" % dreams.rerolls_left)
+	memory.milestones.erase("all_dreams")
 	HeartwoodMemory.save_data(memory)
 	_check(dreams.allow_bittersweet and dreams.grove_cards.has("deep_sleep"), "the Bittersweet Dreams node lets bittersweet cards be offered")
 	main.queue_free()
@@ -494,7 +492,7 @@ func _run() -> void:
 		"Half: about half the tree by Seeds (%.2f), 3 slots, 3 perks carried (%s)" % [share, half.loadout])
 	var full := GrovePresets.profile(&"full")
 	_check(is_equal_approx(spent_share.call(full), 1.0) and HeartwoodMemory.loadout_slots(full) == 6 and full.loadout.size() == 6
-		and full.milestones.has(HeartwoodMemory.FULL_BLOOM)
+		and HeartwoodMemory.has_sixth_slot(full)  # The Crown, planted like every node
 		and grove.all(func(u: UnlockData) -> bool: return HeartwoodMemory.is_grown(full, u)), "Full: every node grown, in full bloom, 6 perks carried")
 	var real_path := HeartwoodMemory.file_path
 	MetaRun.load_preset(&"full")
@@ -629,21 +627,38 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 
-	# --- The Heartwood in full bloom: every node grown opens the secret 6th slot and its waystone ---
+	# --- The Heartwood's Crown (the secret 6th slot): hidden until every other node is grown, then bought ---
 	var bloom := GrovePresets.profile(&"full")
-	bloom.milestones.erase(HeartwoodMemory.FULL_BLOOM)
-	_check(HeartwoodMemory.loadout_slots(bloom) == 5 and not HeartwoodMemory.has_sixth_slot(bloom), "no 6th slot before full bloom")
+	bloom.unlocks.erase(HeartwoodMemory.CROWN)
+	var crown_node := _unlock(grove, HeartwoodMemory.CROWN)
+	_check(crown_node != null and crown_node.is_perk() and crown_node.costs == [250], "The Heartwood's Crown: a 250-Seed Perks node")
+	_check(HeartwoodMemory.loadout_slots(bloom) == 5 and not HeartwoodMemory.has_sixth_slot(bloom), "no 6th slot before the Crown")
 	var partial := bloom.duplicate(true)
 	partial.unlocks.erase("slot_5")
-	_check(not HeartwoodMemory.check_full_bloom(partial), "one node short keeps the tree unfinished")
+	_check(not HeartwoodMemory.requirements_met(partial, crown_node) and HeartwoodMemory.requirements_met(bloom, crown_node),
+		"the Crown needs every other node at max level")
+	partial.seeds = 999
+	partial.erase("sixth_stone_risen")
+	HeartwoodMemory.save_data(partial)
+	grove_screen = load("res://scenes/grove.tscn").instantiate()
+	root.add_child(grove_screen)
+	await process_frame
+	_check(grove_screen.tree_view.is_concealed(HeartwoodMemory.CROWN), "one node short: the Crown stays hidden")
+	grove_screen.queue_free()
+	await process_frame
+	bloom.seeds = 300
 	bloom.erase("sixth_stone_risen")
 	HeartwoodMemory.save_data(bloom)
 	grove_screen = load("res://scenes/grove.tscn").instantiate()
 	root.add_child(grove_screen)
 	await process_frame
+	_check(not grove_screen.tree_view.is_concealed(HeartwoodMemory.CROWN) and not grove_screen.tree_view.is_sixth_rising(),
+		"the whole tree grown: the Crown appears, no waystone yet")
+	grove_screen.selected = crown_node
+	grove_screen._plant_selected()
 	memory = HeartwoodMemory.load_data()
-	_check(memory.milestones.has(HeartwoodMemory.FULL_BLOOM) and HeartwoodMemory.loadout_slots(memory) == 6
-		and memory.get("sixth_stone_risen", false), "the Grove records full bloom and the 6th slot opens")
+	_check(int(memory.seeds) == 50 and HeartwoodMemory.loadout_slots(memory) == 6 and memory.get("sixth_stone_risen", false),
+		"planting the Crown opens the 6th slot (%d Seeds left)" % int(memory.seeds))
 	_check(grove_screen.tree_view.is_sixth_rising(), "the sixth waystone rises at the roots")
 	grove_screen.queue_free()
 	await process_frame
@@ -660,22 +675,6 @@ func _run() -> void:
 	await process_frame
 	_check(FileAccess.get_file_as_string(PROFILE_PATH) == plain_text, "the secret-slot toggle writes nothing")
 	MetaRun.force_sixth_slot = false
-
-	# --- Developer "Dream of everything rewards": both rewards, nothing recorded or written ---
-	HeartwoodMemory.save_data(HeartwoodMemory.defaults())
-	var fresh_text := FileAccess.get_file_as_string(PROFILE_PATH)
-	MetaRun.force_all_dreams = true
-	main = await _new_run()
-	dreams = main.get_node("%DreamState")
-	_check(dreams.rerolls_left == 1 and MetaRun.starlit_backs() and MetaRun.is_dev_run() and not (main.get_node("%MetaRun") as MetaRun).records,
-		"the dev toggle: 1 reroll, starlit backs, a dev run")
-	(main.get_node("%ResultsScreen") as ResultsScreen).bank_in_tests = true
-	main.get_node("%RunState").end_run(true)
-	await process_frame
-	_check(FileAccess.get_file_as_string(PROFILE_PATH) == fresh_text, "the dev toggle writes nothing (no milestone, no Seeds)")
-	main.queue_free()
-	await process_frame
-	MetaRun.force_all_dreams = false
 
 	# --- Developer "Unlock all families": a fresh profile, even in the demo, gets every family and
 	# their Grove Dream cards, without touching the profile, and banks nothing ---
@@ -742,7 +741,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 92 and grove.size() == 92 - parked, "92 Grove spots, %d nodes on the tree (layout %d, data %d)" % [92 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 93 and grove.size() == 93 - parked, "93 Grove spots, %d nodes on the tree (layout %d, data %d)" % [93 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:

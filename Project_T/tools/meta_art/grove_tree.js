@@ -43,6 +43,7 @@ N("let_go", "perks", "Let Go", 196, 180, "second_thoughts");
 N("omen_reader", "perks", "Omen Reader", 188, 118, "let_go");
 N("wider_dreams", "perks", "Wider Dreams", 244, 90, "omen_reader");
 N("wider_roots", "perks", "Wider Roots", 140, 80, "omen_reader");  // Branch expansion: a wider family this run
+N("heartwoods_crown", "perks", "The Heartwood's Crown", 520, 330, [480, 500]);  // The secret 6th slot: hidden until every other node is grown
 N("early_bloom", "perks", "Early Bloom", 250, 372, "second_thoughts");
 N("early_light", "perks", "Early Light", 232, 436, "early_bloom");
 N("kindling", "perks", "Kindling", 214, 500, "early_light");

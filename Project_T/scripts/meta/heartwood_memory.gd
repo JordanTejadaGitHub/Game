@@ -386,8 +386,6 @@ const MEMORIES: Array[String] = [
 	"The Heartwood remembers it promised to come back.",
 	"The path to the Hollow is still there, under the nightmares.",
 ]
-# Milestones that reveal a Memory (the rest reward cards, Wardens or cosmetics).
-const MEMORY_MILESTONES: Array[String] = ["first_boss", "first_win", "tend_100", "blight_5", "all_combos"]
 
 static var _grove_by_id := {}
 
@@ -417,9 +415,10 @@ static func get_unlock(id: String) -> UnlockData:
 static func unlock_level(data: Dictionary, id: String) -> int:
 	return int(data.unlocks.get(id, 0))
 
-# Levels a node has grown: bought levels, or all of them for a start node or a reached milestone.
+# Levels a node has grown: bought levels, or all of them for a start node. Milestones only pay Seeds
+# (meta_design.md "Milestones", 2026-10-04); only a Memory Warden bloom (parked) still grows from its boss.
 static func node_level(data: Dictionary, unlock: UnlockData) -> int:
-	if unlock.start or (unlock.milestone != "" and data.milestones.has(unlock.milestone)):
+	if unlock.start or (unlock.memory_warden != "" and unlock.milestone != "" and data.milestones.has(unlock.milestone)):
 		return maxi(unlock.get_levels(), 1)
 	return unlock_level(data, unlock.id)
 
@@ -434,6 +433,8 @@ static func _meets(data: Dictionary, requirement: String) -> bool:
 	return level >= (int(parts[1]) if parts.size() > 1 else 1)
 
 static func requirements_met(data: Dictionary, unlock: UnlockData) -> bool:
+	if unlock.crown and not tree_complete(data):  # The Heartwood's Crown: every other node at max level
+		return false
 	for requirement in unlock.requires_all:
 		if not _meets(data, requirement):
 			return false
@@ -465,13 +466,6 @@ static func buy(unlock: UnlockData) -> bool:
 	save_data(data)
 	return true
 
-# A milestone was just reached (MetaRun, at run end): nodes it grows are now owned, and any Seeds
-# already spent on them come back (meta_design.md: free unlocks refund a duplicate purchase).
-static func grow_milestone_nodes(data: Dictionary, milestone: String) -> void:
-	for unlock in load_grove():
-		if unlock.milestone == milestone:
-			data.seeds += unlock.get_spent(unlock_level(data, unlock.id))
-
 # The share of the tree grown (0..1), for the canopy stage. Start nodes don't count.
 static func grown_share(data: Dictionary) -> float:
 	var total := 0
@@ -498,7 +492,7 @@ static func planted_nodes(data: Dictionary) -> Array[Dictionary]:
 # --- Perk loadout ("Carry into the dream") ---
 
 const BASE_LOADOUT_SLOTS := 3  # Slots 1–3 are open from the start; 4 and 5 are Perks nodes
-const FULL_BLOOM := "full_bloom"  # Milestone: every Grove node at max level (the secret 6th slot)
+const CROWN := "heartwoods_crown"  # The Heartwood's Crown: the secret 6th slot's node (was the full_bloom milestone)
 
 static func loadout_slots(data: Dictionary) -> int:
 	var slots := BASE_LOADOUT_SLOTS
@@ -509,21 +503,14 @@ static func loadout_slots(data: Dictionary) -> int:
 		slots += 1
 	return slots
 
-# The secret 6th slot (and its waystone): "The Heartwood in full bloom", or the developer toggle.
+# The secret 6th slot (and its waystone): The Heartwood's Crown planted, or the developer toggle.
 static func has_sixth_slot(data: Dictionary) -> bool:
-	return data.milestones.has(FULL_BLOOM) or MetaRun.sixth_slot_dev_active()
+	var crown := get_unlock(CROWN)
+	return (crown != null and node_level(data, crown) > 0) or MetaRun.sixth_slot_dev_active()
 
-# Every Grove node at its max level, the free milestone and Memory Warden blooms included.
+# Every other Grove node at its max level (the Crown's requirement; the Crown itself doesn't count).
 static func tree_complete(data: Dictionary) -> bool:
-	return load_grove().all(func(u: UnlockData) -> bool: return is_grown(data, u))
-
-# Records "The Heartwood in full bloom" in `data` the first time the tree is complete (the caller
-# saves). Returns true when it was just reached.
-static func check_full_bloom(data: Dictionary) -> bool:
-	if data.milestones.has(FULL_BLOOM) or not tree_complete(data):
-		return false
-	data.milestones[FULL_BLOOM] = true
-	return true
+	return load_grove().all(func(u: UnlockData) -> bool: return u.crown or is_grown(data, u))
 
 # The perk ids carried: owned perks from the saved loadout, at most one per slot.
 static func get_loadout(data: Dictionary) -> Array[String]:
@@ -545,16 +532,12 @@ static func total_unlock_levels(data: Dictionary) -> int:
 		total += int(data.unlocks[id])
 	return total
 
-# How many Memories are revealed: the first after your first run, one per 3 Grove unlocks, and one
-# per Memory milestone.
+# How many Memories are revealed: the first after your first run, then one per 3 Grove levels planted
+# (milestones no longer reveal any, meta_design.md "Milestones").
 static func memories_unlocked(data: Dictionary) -> int:
 	if data.runs_played == 0:
 		return 0
-	var count := 1 + total_unlock_levels(data) / UNLOCKS_PER_MEMORY
-	for id in MEMORY_MILESTONES:
-		if data.milestones.has(id):
-			count += 1
-	return mini(count, MEMORIES.size())
+	return mini(1 + total_unlock_levels(data) / UNLOCKS_PER_MEMORY, MEMORIES.size())
 
 # Blight Levels open after the first win; you can pick up to one above your best.
 static func max_blight_level(data: Dictionary) -> int:

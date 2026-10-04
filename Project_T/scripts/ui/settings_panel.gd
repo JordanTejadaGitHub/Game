@@ -140,10 +140,8 @@ func _ready() -> void:
 		_toggle(box, "Test Grove: every Warden unlocked (from the next run)", TestGrove.SETTING)
 		_toggle(box, "Unlock all families: normal runs, every family in the picks (no Seeds banked)", MetaRun.ALL_FAMILIES_SETTING,
 			false, "As if the Memory Grove's Warden root were fully grown, for this and later runs while on.\nYour real Grove unlocks are not changed.")
-		_toggle(box, "Dream of Everything rewards · starlit card backs, +1 Dream reroll", MetaRun.ALL_DREAMS_SETTING,  # meta_design.md "Dev options"
-			false, "For testing: nothing is recorded and no Seeds are banked.")
 		_toggle(box, "Secret 6th loadout slot", MetaRun.SIXTH_SLOT_SETTING,  # meta_design.md: the secret 6th loadout slot, for testing
-			false, "For testing: no milestone is recorded and no Seeds are banked.")
+			false, "For testing: The Heartwood's Crown isn't planted and no Seeds are banked.")
 		# Demo mode (demo_scope.md): overrides game/demo in this build (-1 project setting, 0 full, 1 demo); applying a
 		# change goes back to the title.
 		var demo_row := HBoxContainer.new()

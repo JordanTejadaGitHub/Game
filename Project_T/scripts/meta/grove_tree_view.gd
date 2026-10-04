@@ -319,12 +319,19 @@ func _touch_centre() -> Vector2:
 	var points: Array = _touches.values()
 	return ((points[0] as Vector2) + (points[1] as Vector2)) / 2.0
 
+# The Heartwood's Crown stays out of sight (no bud, no branch, no tap) until every other node is grown, then
+# appears and can be planted (meta_design.md "Milestones": the secret 6th slot).
+func is_concealed(id: String) -> bool:
+	var unlock: UnlockData = _unlocks.get(id)
+	return unlock != null and unlock.crown and HeartwoodMemory.node_level(_memory, unlock) == 0 \
+		and not HeartwoodMemory.requirements_met(_memory, unlock)
+
 # What a tap at `point` (tree space) hits: a node, a dream-fruit, the waystones, or nothing.
 func tap(point: Vector2) -> void:
 	var best_id := ""
 	var best := TAP_RADIUS
 	for node in _nodes:
-		if not _unlocks.has(node.id):
+		if not _unlocks.has(node.id) or is_concealed(node.id):
 			continue
 		var distance := point.distance_to(vec(node.pos))
 		if distance < best:
@@ -379,14 +386,16 @@ func _draw_layer() -> void:
 	_draw_hollow_light()
 	_draw_mists()
 	for node in _nodes:
-		_draw_branch(node)
+		if not is_concealed(node.id):
+			_draw_branch(node)
 	_draw_fruit()
 	_draw_stones()
 	if not _reduced_motion:
 		_draw_motes()
 	var font := ThemeDB.fallback_font
 	for node in _nodes:
-		_draw_node(node, font)
+		if not is_concealed(node.id):
+			_draw_node(node, font)
 
 func _branch_texture(id: String) -> Texture2D:
 	if not _branch_textures.has(id):
