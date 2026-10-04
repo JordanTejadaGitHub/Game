@@ -3245,7 +3245,7 @@ func owns_range_at_most(reach: float) -> bool:
 			return true
 	return false
 
-# Damp Rot: Poisoned (Spored) tick multiplier on `enemy` (enemy.gd's tick asks; 1.0 without it).
+# Soaked Rot: Poisoned (Spored) tick multiplier on `enemy` (enemy.gd's tick asks; 1.0 without it).
 func get_spored_tick_multiplier(enemy: Node2D) -> float:
 	var n := rule_stacks(&"damp_rot")
 	if n == 0 or enemy == null or not enemy.statuses.has(EnemyStatuses.DAMP):
@@ -3262,7 +3262,7 @@ func get_ignite_multiplier(enemy: Node2D = null) -> float:
 		return 1.0
 	return 1.0 + SPARKING_SPORES_PER * rule_stacks(&"sparking_spores")
 
-# Damp Rot's trade: with it, Soaked no longer boosts water hits on a nightmare (Enemy.take_damage asks).
+# Soaked Rot's trade: with it, Soaked no longer boosts water hits on a nightmare (Enemy.take_damage asks).
 func soaked_boosts_water() -> bool:
 	return not has_rule(&"damp_rot")
 
@@ -3442,7 +3442,7 @@ func walls_added_tiles() -> int:
 	if not walls.is_empty():
 		var layer = map_generator.path_layer
 		if layer.has_method("set_half_blocked"):
-			# Half-cell experiment (Tower Code): unblock each wall's halves; lengths in full cells.
+			# Half cells (Tower Code): unblock each wall's halves; lengths in full cells.
 			var now: int = map_generator.route_length(layer.find_path_from(map_generator.startPath))
 			for wall in walls:
 				for h in wall.get_halves():

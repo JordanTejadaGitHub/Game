@@ -400,7 +400,7 @@ func _process(delta: float) -> void:
 	if spore_soothe > 0.0:
 		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 		if dreams != null:
-			spore_soothe *= dreams.get_spored_tick_multiplier(self)  # Damp Rot: harder on Soaked nightmares
+			spore_soothe *= dreams.get_spored_tick_multiplier(self)  # Soaked Rot: harder on Soaked nightmares
 		BranchKit.on_spore_tick(self)  # Lichenling: its spores strip the dread shell and stop mending
 		take_damage(spore_soothe, statuses.spore_line(), true, false, statuses.source(EnemyStatuses.SPORED),
 			&"spored")
@@ -1955,7 +1955,7 @@ func _try_rise() -> bool:
 # Marked, then the blight coat takes its bite. At 0 health the enemy is cleansed.
 # `source` (the Warden) and `tag` (&"spored" tick, &"static" bolt, &"conducted" lightning through
 # Damp) feed the DamageLog; crit/weak/Marked/fog combos are worked out here.
-# Damp Rot (a Dream card) trades Soaked's water boost away (DreamState.soaked_boosts_water).
+# Soaked Rot (a Dream card) trades Soaked's water boost away (DreamState.soaked_boosts_water).
 func _soaked_boosts_water() -> bool:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
 	return dreams == null or dreams.soaked_boosts_water()
