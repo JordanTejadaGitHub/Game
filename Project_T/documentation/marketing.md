@@ -126,27 +126,43 @@ for timing. Steam wants the trailer first on the page: lock the date with Market
 
 ## 6. Steam page text (draft)
 
-- **Short description (≤ 300 characters; 2026-10-04 rewrite, ~230):** *A maze tower defence roguelite where your towers
+**The capsule is concept A (the watchful Warden, 2026-10-04; brief in art_direction.md).** It doesn't show the maze, so
+the hook "your towers are the maze" has to land in **screenshot 1**, the **first seconds of the trailer** and the **first
+words of the short description**. Nothing on the page opens with lore or the look before the maze.
+
+- **Short description (≤ 300 characters; 2026-10-04 rewrite, ~230):** *A maze tower defense roguelite where your towers
   are the walls. Every Warden you plant bends the path the nightmares take to the Heartwood. Soak them, then charge them,
   and the lightning jumps through the whole crowd. New island every run.*
-  (Was: "Nightmares are hunting the Heartwood's dream… grow a new forest every run…": flagged as generic in text_pass.md.)
+  Leads with the maze (the capsule can't). Store copy spells "defense" (US) to match the Steam tag and search; in-game
+  text stays UK. Replaces pitch.md's earlier draft (pitch.md points here). (Was: "Nightmares are hunting the Heartwood's
+  dream…": flagged as generic in text_pass.md.)
 - **About (outline):** the hook (Wardens are the maze) · combos and Reactions · runs that are never the same (branches,
   Dreams, Omens, Gifts) · bosses · the Memory Grove (meta progression) · the look and sound. Write each block as one
-  concrete scene from play (a GIF + two sentences), not a feature list.
-- **Tags (draft):** Tower Defense, Roguelite, Strategy, Pixel Graphics, Dark Fantasy, Singleplayer, Maze, Fantasy. Drop
+  concrete scene from play (a GIF + two sentences), not a feature list. The first GIF is a maze being built.
+- **Tags** (pitch.md's order; the first 5 matter most): Tower Defense, Roguelite, Strategy, Dark Fantasy, Cute, then Pixel
+  Graphics, Atmospheric, Procedural Generation, Replay Value, Singleplayer, Steam Deck (once verified). No
   "Deckbuilding-lite": not a Steam tag, and Dream picks aren't a deck.
+- **Screenshots, in order** (capture once the starting three Wardens are redone):
+  1. **The maze:** a staggered half-cell maze (half_cells.md) at full scale with the **route shown** (route mist / line
+     winding through it) and a drift walking it. Must read as "they built this path" as a 600 px thumbnail.
+  2. Building: the ghost Warden, "+N path", the route preview bending into the new detour.
+  3. A Reaction: Thunderclap lightning jumping through Soaked nightmares, callouts on.
+  4. A dispel close-up: a nightmare cracking into light.
+  5. The Dream screen: 3 cards, one Rare.
+  6. A boss in the maze (the Hollow Stag on a bent corridor).
+  7–8 (optional): the Memory Grove; a Heartwood's Gift reshaping the island.
 
 ### Steam page checklist (status 2026-10-04)
 | Item | Status | Waiting on |
 |---|---|---|
-| Name | open ("Heartwood TD"?) | the user |
-| Capsule art | drafts A / B / hybrid (A's Warden in front of B's path) | the user's pick; hire a human artist? (brief in art_direction.md) |
-| Logo | not started | same decision as the capsule |
-| Short description | drafted above | the name |
-| About | outline above | the name, then GIFs |
+| Name | **"Heartwood TD"** (decided 2026-09-28, pitch.md "Title") | free check: Steam, itch.io, trademark search for "Heartwood" |
+| Capsule art | **A, chosen** (the watchful Warden, 2026-10-04) | hire a human artist for the final? (brief in art_direction.md) |
+| Logo | not started | the artist decision |
+| Short description | drafted above, maze first | — |
+| About | outline above | GIFs (capture tools) |
 | Tags | drafted above | — |
-| 5–8 screenshots | **on hold** | art refresh (grain clean-up, one golem pose per family; the starting three first) + capture mode |
-| Trailer | script in §5 | Short Form Video, capture tools |
+| 5–8 screenshots | **on hold**; order above, #1 = half-cell maze + route | art refresh (grain clean-up, one golem pose per family; the starting three first) + capture mode |
+| Trailer | §5; its first seconds = the maze | Trailer chat, capture tools; date locked by Marketing Discussion |
 | AI disclosure | drafted in §7 | Valve's wording at submission |
 
 ## 7. AI disclosure (Steam requires it)

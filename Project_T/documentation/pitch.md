@@ -27,9 +27,8 @@ Everything else (roguelite Dreams, evolving Wardens, the Memory Grove) supports 
 
 ## Steam short description (≤ 300 characters)
 
-> A maze-building tower defense roguelite. Plant Warden spirits that become the walls of a winding
-> dream-forest, force the nightmares down the long way round, and dispel them before they reach the
-> Heartwood. A new forest every night, 100 drifts, and a story of what the nightmares really are.
+The current draft lives in `marketing.md` §6 (Marketing Discussion, 2026-10-04): it leads with the maze, because
+the capsule (concept A) doesn't show it.
 
 ## Key selling points (store page, in this order)
 
@@ -52,15 +51,16 @@ Procedural Generation, Replay Value, Singleplayer, Steam Deck (once verified).
 
 ## Capsule art concept
 
-The capsule must read at tiny sizes (231×87), so **one idea, big shapes**:
+**Decided (2026-10-04): concept A, "the watchful Warden"** (the user's pick over B and the A+B hybrid;
+the brief is in art_direction.md). The relit stone Warden from the title art, large, menacing rather
+than cute, lit warm against the cold dark, logo on the dark side; nightmares press in from the cold
+edges. It must read at tiny sizes (231×87): one idea, big shapes.
 
-- **Composition:** a winding path seen from above, lined with glowing Wardens; the **Sporeling**
-  (the purple spirit from the concept art) large in the foreground, lit up mid-puff.
-- **The idea in one image:** **warm light vs cold dark.** Nightmares (shadowy shapes, pinprick eyes)
-  press in along the path from the dark edge; where they meet the Sporeling's light they crack
-  apart into motes.
-- **Top:** the Heartwood's canopy glowing gold; the logo sits in the leaves.
-- **Palette:** warm golds and greens in the middle, cold blue-black and violet at the edges.
+**The capsule doesn't show the maze**, so the hook has to land elsewhere: screenshot 1 (a staggered
+half-cell maze with the route shown), the trailer's first seconds, and the short description's first
+words (`marketing.md` §6).
+
+(Superseded: the earlier concept of a winding path lined with Wardens and the Sporeling in front.)
 
 ## Trailer: the first 10 seconds
 
@@ -74,13 +74,10 @@ Most viewers decide in the first 5 seconds. Show both hooks immediately; no logo
    (lightning chaining through drenched nightmares, a Night Hound pack sprinting, the Hollow Stag
    trampling a wall, a Phantom gliding through a wall).
 
-## Screenshots (first 5)
+## Screenshots
 
-1. A mid-run maze at full scale: long winding path, many glowing Wardens, dark nightmares in it.
-2. Close-up of a dispel: a nightmare cracking into light, "+Dew" motes.
-3. Building: ghost Warden with the route preview showing the new detour.
-4. The Dream screen: 3 cards, one of them Rare.
-5. A boss (the Hollow Stag) in the maze, or the Memory Grove.
+The order and status live in `marketing.md` §6. Screenshot 1 carries the hook, since the capsule
+can't: a staggered half-cell maze at full scale with the route shown and nightmares walking it.
 
 ## Positioning
 
