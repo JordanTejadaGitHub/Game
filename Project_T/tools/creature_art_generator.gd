@@ -31,12 +31,12 @@ enum { SIDE, DOWN, UP }
 # size: frame size in px (default
 # 64); bosses get bigger frames instead of a sprite_scale so their pixels match everyone else's.
 const CREATURES := {
-	"leaf_bug": {fps = 10.0},  # Shade
-	"bark_beetle": {fps = 6.0},  # Husk
+	"leaf_bug": {fps = 10.0, calm = true},  # Shade. Calm: hard eye glow, no pale grain (reads on the pale path)
+	"bark_beetle": {fps = 6.0, calm = true},  # Husk
 	"dusk_moth": {fps = 10.0},  # Lurker
 	"dandelion_seed": {fps = 6.0},  # Phantom
-	"puffcap": {fps = 6.0},  # Mourner
-	"puffcaplet": {fps = 8.0, draw = "puffcap", k = 0.55},  # Sob
+	"puffcap": {fps = 6.0, calm = true},  # Mourner
+	"puffcaplet": {fps = 8.0, draw = "puffcap", k = 0.55, calm = true},  # Sob
 	"mother_spider": {fps = 9.0},  # Widow
 	"spiderling": {fps = 14.0, draw = "mother_spider", k = 0.5},  # Creep
 	"hedgehog": {fps = 9.0, extra = ["roll"], extra_fps = 14.0},  # Night Hound; "roll" = sprint
@@ -58,7 +58,7 @@ const CREATURES := {
 	"shellbound_cracked": {fps = 8.0, draw = "shellbound", variant = "cracked"},  # once its dread shell breaks
 	"whisper_swarm": {fps = 8.0},
 	"dream_thief": {fps = 12.0},
-	"weeper": {fps = 5.0, calm = true},  # calm pass: the dense default motes read as blotches on its grey shroud (AI-look audit #7)
+	"weeper": {fps = 5.0, calm = true},  # calm: dense default motes read as blotches (AI-look audit #7)
 	"hollow_oak": {fps = 5.0, size = 176, extra = ["grief"], extra_fps = 8.0},
 	# Pool bosses (enemy_design.md "Boss pools") and their followers.
 	"night_mare": {fps = 8.0, size = 112, extra = ["gallop"], extra_fps = 12.0},
@@ -527,7 +527,7 @@ func _grooves(layer: Image, c: Vector2, r: Vector2, ramp: Array[Color], lengthwi
 
 func _draw_bark_beetle(canvas: Image, st: Dictionary) -> void:
 	var o := NIGHT_O
-	var bark := _ramp(["Void", "Night", "Dusk", "Slate"])
+	var bark := _ramp(["Void", "Dread", "Night", "Dusk"])  # dark all through: it must read on the pale path
 	var f: int = st.f
 	var ph: float = st.ph
 	var bob: int = [0, 0, 0, -1, 0, 0][f]  # a heavy lurch, then still
@@ -714,7 +714,7 @@ func _face_hole(canvas: Image, x: int, y: int, w: int, h: int) -> void:
 
 func _draw_puffcap(canvas: Image, st: Dictionary) -> void:
 	var k: float = st.k
-	var veil := _ramp(["Night", "Dusk", "Slate", "Stone"])
+	var veil := _ramp(["Dread", "Night", "Dusk", "Slate"])  # no pale band: it must read on the pale path
 	var o := _c("Dread")
 	var tear := _c("Dewlight")
 	var f: int = st.f
@@ -749,7 +749,7 @@ func _draw_puffcap(canvas: Image, st: Dictionary) -> void:
 				_px(ghost, tx, ey, EYE)
 				_px(ghost, tx, ey + 1, tear)
 				_px(ghost, tx, ey + 2 + f % 2, tear)
-	_merge(canvas, ghost, 0.88, Vector2i(shake, 0))
+	_merge(canvas, ghost, 1.0, Vector2i(shake, 0))  # solid core; only the dissolved hem is see-through
 
 # --- Widow (mother_spider) / Creep (spiderling) -------------------------------------------------
 # Bursts into 6 Creeps when dispelled: a bloated many-legged shadow on thin spiked legs, a cluster
@@ -2051,7 +2051,7 @@ func _draw_dream_thief(canvas: Image, st: Dictionary) -> void:
 # hanging to the ground, pale slit eyes streaming black tears that drip and pool.
 
 func _draw_weeper(canvas: Image, st: Dictionary) -> void:
-	var shroud := _ramp(["Night", "Dusk", "Slate", "Stone"])
+	var shroud := _ramp(["Dread", "Night", "Dusk", "Slate"])  # no pale band: it must read on the pale path
 	var skin := _ramp(["Slate", "Stone", "Mist"])
 	var tear := _c("Void")
 	var o := NIGHT_O
@@ -2074,7 +2074,7 @@ func _draw_weeper(canvas: Image, st: Dictionary) -> void:
 		_ellipse(fig, hc, Vector2(4.5, 4.5), skin)
 	var ghost := _layer()
 	_stamp(ghost, fig, o)
-	_merge(canvas, ghost, 0.95)
+	_merge(canvas, ghost)
 	var drip := (f % 3) * 2
 	match st.dir:
 		SIDE:
