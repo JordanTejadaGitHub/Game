@@ -76,6 +76,13 @@ var empty_loadout := false
 var sidegrade := -1
 var carry_pref := true  # --no-carry-pref: act 1 growth and Dreamlight don't prefer the carry branch (DreamState.is_carry), the bot before 2026-10-02
 var fence_pref := true  # --no-fence-pref: Jarlink growth ignores where its arc would fall (the bot before 2026-10-02)
+var half_pref := true  # --no-half-pref: full cells only on the half grid (the bot before 2026-10-04)
+const NUDGE_TOP := 3  # Half cells: the best full cells whose 8 half-offset nudges _build tries
+var _top: Array = []  # [[score, cell], …] best first, from the last _best_cell
+var _last_args: Array = []  # That call's reach, growth weight, cover_heart, data, route, walker cells
+var half_spots := [0, 0, 0, 0]  # Attackers weighed with half nudges, built at a half offset, refused there; walls planted by the half search
+var route_open := -1  # Route length in full cells after the opening spend, and as drifts 24 / 45 start
+var route_at := {}
 var demo_run := false  # --demo: game/demo stays true (DEMO_RULES, demo bosses and Kinships), for the demo sanity check
 var kin_placement := true  # --no-kin: no Kinship placement, and growth takes the first open form in evolves_to (the old bot)
 var focus_mode := ""  # --focus=deep: Nurture picks Deep where it's offered and Potency cards score high (a committed Deep build)
@@ -149,6 +156,7 @@ func _run() -> void:
 			"--demo": demo_run = true
 			"--no-carry-pref": carry_pref = false
 			"--no-fence-pref": fence_pref = false
+			"--no-half-pref": half_pref = false
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
@@ -241,6 +249,7 @@ func _run() -> void:
 	_new_window()
 	_last_dew = run_state.dew
 	_spend()  # The opening
+	route_open = _route_cells(map.get_path_from(map.startPath))
 	Engine.time_scale = speed
 	var frames := 0
 	# Effects in lite mode and no hitstops (they slow time); nothing else may change the sim's speed.
@@ -263,6 +272,9 @@ func _run() -> void:
 			wardens_24 = _warden_counts()
 			auras_24 = _attackers().filter(func(t: Tower) -> bool: return _covered_by_aura(t)).size()
 			heart_cover_24 = _attackers().filter(func(t: Tower) -> bool: return t.cell.distance_to(map.endPath) <= t.get_range_cells()).size()
+		for mark in [24, 45]:
+			if director.drifts_started >= mark and not route_at.has(mark):
+				route_at[mark] = _route_cells(map.get_path_from(map.startPath))
 		for mark in [25, 51]:
 			if director.drifts_started >= mark and not kin_pairs.has(mark):
 				kin_pairs[mark] = Kinships.count_on_map(main)
@@ -463,16 +475,120 @@ func _plant_wall() -> bool:
 	var wall: TowerData = load("res://resource/tower/thornwall.tres")
 	if not run_state.can_afford(placer.get_cost(wall)):
 		return false
+	if _half_mode():
+		placer.tower_data = wall
+		if placer.half_placement():
+			return _plant_half_wall()
 	var cell := _best_cell(0.0, 1.0)
 	return cell != NO_CELL and _build(wall, cell)
 
+# Half cells: a Thornwall on the half origin beside the route that adds the most path (staggered walls). Every origin
+# whose footprint touches the halves within one of a route point's body is weighed: the cheap way to cover the half
+# grid, since a wall off the route never lengthens it.
+func _plant_half_wall() -> bool:
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var origins := {}
+	for point in route:
+		for h in map.body_halves(point):
+			for dy in range(-3, 3):
+				for dx in range(-3, 3):
+					origins[h + Vector2(dx, dy)] = true
+	var walkers := placer._walker_points()
+	var best := Vector2(-1, -1)
+	var best_growth := 0
+	for origin in origins:
+		var halves: Array[Vector2] = map.halves_of(origin)
+		if not halves.all(func(h: Vector2) -> bool: return map.is_buildable_half(h)):
+			continue
+		var touched := Tower.cells_of_halves(halves)
+		if placer.settling_left(touched) > 0.0 or placer.omen_locked(touched) or placer._halves_occupied(halves):
+			continue
+		var new_route: PackedVector2Array = map.get_path_if_blocked_halves(halves)
+		var growth := new_route.size() - route.size()
+		if new_route.is_empty() or growth <= best_growth or not map.can_block_halves(halves, walkers):
+			continue
+		best_growth = growth
+		best = origin
+	if best == Vector2(-1, -1):
+		return false
+	half_spots[3] += 1
+	return placer._try_build_half(best)
+
 func _build(data: TowerData, cell: Vector2) -> bool:
 	placer.tower_data = data
+	if not _half_mode() or _top.is_empty() or not placer.half_placement():
+		return placer._try_build(cell)
+	# Half cells (half_cells.md): the 8 half-offset nudges around each of the NUDGE_TOP best full cells, scored the
+	# same way; a full cell keeps its own score. The best spot is built (full cells through _try_build).
+	var reach: float = _last_args[0]
+	var growth_weight: float = _last_args[1]
+	var cover_heart: bool = _last_args[2]
+	var route: PackedVector2Array = _last_args[4]
+	var enemy_cells: PackedVector2Array = _last_args[5]
+	var best_origin: Vector2 = cell * 2.0
+	var best_score: float = _top[0][0]
+	for entry in _top:
+		for dy in [-1, 0, 1]:
+			for dx in [-1, 0, 1]:
+				if dx == 0 and dy == 0:
+					continue
+				var origin: Vector2 = entry[1] * 2.0 + Vector2(dx, dy)
+				var halves: Array[Vector2] = map.halves_of(origin)
+				if not halves.all(func(h: Vector2) -> bool: return map.is_buildable_half(h)):
+					continue
+				var touched := Tower.cells_of_halves(halves)
+				if placer.settling_left(touched) > 0.0 or placer.omen_locked(touched) or placer._halves_occupied(halves):
+					continue
+				var centre := origin / 2.0  # The footprint's centre in full-cell units (route points are x.0 / x.5)
+				if cover_heart and centre.distance_to(map.endPath) > reach:
+					continue
+				if not map.can_block_halves(halves, enemy_cells):
+					continue
+				var new_route: PackedVector2Array = map.get_path_if_blocked_halves(halves)
+				if new_route.is_empty():
+					continue
+				var score := _spot_score(centre, Tower.half_home_cell(origin), new_route, route, reach, growth_weight, cover_heart, _last_args[3])
+				if score > best_score:
+					best_score = score
+					best_origin = origin
+	half_spots[0] += 1
+	_top = []
+	if best_origin == cell * 2.0:
+		return placer._try_build(cell)
+	half_spots[1] += 1
+	if placer._try_build_half(best_origin):
+		return true
+	half_spots[2] += 1  # Refused at the half offset: the full cell instead
 	return placer._try_build(cell)
+
+# Half cells are on (MapGenerator.halves_of, main since b8305630) and the bot may use them (--no-half-pref: full
+# cells only, the bot before 2026-10-04).
+func _half_mode() -> bool:
+	return half_pref and map.has_method("halves_of")
+
+# Route points per full cell: 2 on the half grid (points step by half a cell), else 1.
+func _route_step() -> int:
+	return 2 if map.has_method("halves_of") else 1
+
+# A route's length in full cells (MapGenerator.route_length on the half grid).
+func _route_cells(route: PackedVector2Array) -> int:
+	return map.route_length(route) if map.has_method("route_length") else route.size()
+
+# A spot's score: route points within `reach` of `centre` (the last LAST_STRETCH cells double with `cover_heart`) +
+# `growth_weight` × the points it adds + aura / Kinship bonuses at `anchor` (the full cell they measure from).
+func _spot_score(centre: Vector2, anchor: Vector2, new_route: PackedVector2Array, route: PackedVector2Array, reach: float,
+		growth_weight: float, cover_heart: bool, data: TowerData) -> float:
+	var cover := 0
+	var stretch := LAST_STRETCH * _route_step()
+	if reach > 0.0:
+		for i in new_route.size():
+			if new_route[i].distance_to(centre) <= reach:
+				cover += 2 if cover_heart and i >= new_route.size() - stretch else 1
+	return cover + growth_weight * (new_route.size() - route.size()) + (_aura_bonus(anchor, data) + _kin_bonus(anchor, data) if data != null else 0.0)
 
 # The open cell scoring best: path cells within `reach` + `growth_weight` × the path it adds. Walls
 # (reach 0) only count if they add path. `cover_heart`: only cells reaching the Heartwood, the last
-# LAST_STRETCH route tiles counting double.
+# LAST_STRETCH route tiles counting double. Keeps the NUDGE_TOP best in _top for _build's half-cell nudges.
 func _best_cell(reach: float, growth_weight: float, cover_heart := false, data: TowerData = null) -> Vector2:
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
 	var enemy_cells := PackedVector2Array()
@@ -480,6 +596,7 @@ func _best_cell(reach: float, growth_weight: float, cover_heart := false, data: 
 		enemy_cells.append(enemy.get_target_cell())
 	var best := NO_CELL
 	var best_score := 0.0 if reach <= 0.0 else -INF
+	var scored: Array = []
 	for y in Tower.MAP_GRID.size.y:
 		for x in Tower.MAP_GRID.size.x:
 			var cell := Vector2(x, y)
@@ -490,15 +607,15 @@ func _best_cell(reach: float, growth_weight: float, cover_heart := false, data: 
 			var new_route: PackedVector2Array = map.get_path_if_blocked_cells([cell])
 			if new_route.is_empty() or not map.can_block_cells([cell], enemy_cells):
 				continue
-			var cover := 0
-			if reach > 0.0:
-				for i in new_route.size():
-					if new_route[i].distance_to(cell) <= reach:
-						cover += 2 if cover_heart and i >= new_route.size() - LAST_STRETCH else 1
-			var score := cover + growth_weight * (new_route.size() - route.size()) + (_aura_bonus(cell, data) + _kin_bonus(cell, data) if data != null else 0.0)
+			var score := _spot_score(cell, cell, new_route, route, reach, growth_weight, cover_heart, data)
+			if score > (0.0 if reach <= 0.0 else -INF):
+				scored.append([score, cell])  # Walls only when they add path
 			if score > best_score:
 				best_score = score
 				best = cell
+	scored.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
+	_top = scored.slice(0, NUDGE_TOP)
+	_last_args = [reach, growth_weight, cover_heart, data, route, enemy_cells]
 	return best
 
 func _coverage(tower: Tower) -> int:
@@ -664,7 +781,7 @@ func _close_window(n: int) -> void:
 		"spent_nurture": d.spent_nurture, "banked": run_state.dew, "attackers": _attackers().size(),
 		"walls": _walls().size(), "tier1": tiers[1], "tier2": tiers[2], "tier3": tiers[3], "tier4": tiers[4],
 		"avg_rank": snappedf(float(ranks) / maxf(_attackers().size(), 1), 0.1),
-		"route": map.get_path_from(map.startPath).size(), "families": lines.size(), "cards": dreams.stacks.size(),
+		"route": _route_cells(map.get_path_from(map.startPath)), "families": lines.size(), "cards": dreams.stacks.size(),
 		"dreamlight": dreams.dreamlight, "top_warden": top, "top_share": snappedf(top_amount / damage, 0.001),
 		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "combo_amount_share": snappedf(d.combo / damage, 0.001), "status_share": snappedf(d.status / damage, 0.001), "hit_share": snappedf(d.hit / damage, 0.001), "combo_damage": roundi(d.combo_damage), "reaction_damage": roundi(d.reaction_damage), "status_damage": roundi(d.status_damage), "combo_share": snappedf((d.combo_damage + d.reaction_damage) / damage, 0.001), "longest_chain": _longest_chain(),
 		"crit_share": snappedf(d.crit / damage, 0.001), "restless": d.restless, "trampled": d.trampled,
@@ -766,6 +883,11 @@ func _finish() -> void:
 	summary.dream_off_ids = "+".join(dream_off_ids.keys().map(func(id) -> String: return "%s:%d" % [id, dream_off_ids[id]]))
 	summary.dream_pool_mean = snappedf(float(dream_offers.pool) / maxf(dream_offers.offers, 1.0), 0.1)
 	summary.gifts = "+".join(gifts_log)
+	summary.half_spots = "%d/%d/%d" % [half_spots[1] - half_spots[2], half_spots[0], half_spots[2]]  # Attackers: at a half offset / weighed / refused there
+	summary.half_walls = half_spots[3]
+	summary.route_open = route_open
+	summary.route_24 = route_at.get(24, -1)
+	summary.route_45 = route_at.get(45, -1)
 	summary.jarlinks = _jarlink_text()
 	summary.branch_offers = ";".join(dreams.branch_offers.keys().map(func(id) -> String: return "%s:%s" % [id, "/".join(dreams.branch_offers[id].map(func(t) -> String: return t.get_id() if t is TowerData else str(t)))]))
 	summary.dreamlight_unlocks = "+".join(policy.choices.filter(func(c: String) -> bool: return c.begins_with("Dreamlight: ")).map(func(c: String) -> String: return c.substr(12)))
@@ -856,7 +978,7 @@ func _sprout_share() -> float:
 # Closest approach (balance_simulation.md "Spend or save"): how far along the route the furthest
 # nightmare is right now (0 at the start, 1 at the Heartwood); the drift window keeps the maximum.
 func _sample_approach() -> void:
-	var route_px := maxf((map.get_path_from(map.startPath).size() - 1) * Tower.MAP_GRID.cell_size.x, 1.0)
+	var route_px := maxf((map.get_path_from(map.startPath).size() - 1) * Tower.MAP_GRID.cell_size.x / _route_step(), 1.0)  # Half grid: points step by half a cell
 	for enemy in spawner.get_enemies():
 		if is_instance_valid(enemy) and enemy.enemy_data.is_boss:
 			_watch_boss(enemy)
