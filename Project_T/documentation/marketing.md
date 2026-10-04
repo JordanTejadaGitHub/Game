@@ -258,3 +258,9 @@ bed but has no shape: no hit on the hook, no build, no ending on the end card.
 - **Video 0 ("why I made this"):** the developer talking. Gentle, warm, mostly the base stem's motif, voice mix only;
   it lifts on "So I made one." under the maze pull-back and resolves on the end card.
 - **End-card button:** a 1.5 s signature (the same two or three notes on every short), so the series has a sound.
+
+**Sound's answers (audio_direction.md "Marketing music", 518676a8; Sound Code building):** 72 bpm 3/4 stays; energy
+rises through density, subdivision, the bass an octave down for bosses and percussion layers, not tempo. The button is
+the Heartwood motif's Hope form (D-A-F#, harp + music box, onto a warm D major), the same phrase players hear in game
+when a boss falls. Short beds are rendered per short to Short Form Video's hit times (main hit on a downbeat, the rest
+on a hits stem). Files land in `marketing/`: stems low / mid / top / perc, the full mix and the voice mix.
