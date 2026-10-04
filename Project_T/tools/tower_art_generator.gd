@@ -357,6 +357,7 @@ func _make(tower_name: String, draw: Callable) -> Image:
 		OY = HEADROOM
 		var canvas := _layer()
 		var st := _idle_state(f)
+		_apply_pose(tower_name, st)
 		draw.call(canvas, st)
 		_final_extra(tower_name, canvas, st)
 		sheet.blit_rect(_tall_frame(tower_name, canvas, st), Rect2i(0, 0, S, h), Vector2i(f * S, 0))
@@ -436,6 +437,7 @@ func _make_attack(tower_name: String) -> Image:
 		OY = HEADROOM
 		var canvas := _layer()
 		var st := _attack_state(a)
+		_apply_pose(tower_name, st)
 		call("_draw_" + tower_name, canvas, st)
 		_final_extra(tower_name, canvas, st)
 		call("_attack_" + tower_name, canvas, st)
@@ -531,6 +533,7 @@ func _make_channel(tower_name: String) -> Image:
 		OY = HEADROOM
 		var canvas := _layer()
 		var st := _attack_state(RELEASE_FRAME)
+		_apply_pose(tower_name, st)
 		st.f = c
 		st.power = [0.85, 1.0, 0.9][c]
 		call("_draw_" + tower_name, canvas, st)
@@ -558,6 +561,10 @@ func _save_attack_info() -> void:
 	for warden: String in ATTACKS:
 		var info: Dictionary = ATTACKS[warden].duplicate()
 		info.point = [info.point.x, info.point.y]
+		# A family pose moves the head and upper body: points up there follow it.
+		var fp := _family_pose(warden)
+		if not fp.is_empty() and info.point[1] < 30:
+			info.point[1] += int(fp.head)
 		wardens[warden] = info
 	# Where the Dew catchers' bowls sit (the bowl's surface centre and radii at dy 0), and how far the
 	# bowl bobs per idle frame (add dy_by_frame[frame] to point.y). Fill overlays in effects.json
@@ -629,6 +636,8 @@ func _parse(rows: Array, top: int = TOP) -> Dictionary:
 # two little rocks beside the golem are the same neutral stone on every Warden (ROCK_PAL).
 func _draw_template_figure(canvas: Image, pose: Dictionary, pal: Dictionary) -> Image:
 	pal = _body_pal(pal)
+	if not _pose_warp.is_empty():
+		return _draw_posed_figure(canvas, pose, pal)
 	var mask := _layer()
 	for i in S * S:
 		var ch: String = pose.grid[i]
@@ -8081,3 +8090,98 @@ func _stone_thorns(canvas: Image, st: Dictionary, theme: String, lush: bool) -> 
 					_px(canvas, x + d.x * 2, y + d.y * 2, Color("#140f26"))
 					_px(canvas, x + d.x * 3, y + d.y * 3, Color("#3c3c5c"))
 					break
+
+# --- Family poses (user decision, art_direction.md 573929a4: "one new golem pose per family") -------
+# The base and branch Wardens of a family share a pose that says the family's job; finals keep the
+# classic seat (their epic layer sets them apart), and Sprout stays the plain seated golem. A pose is
+# a warp of the template figure (not of the slab or its rocks): the head moves by `head` px (and the
+# frame's dy with it, so hats, faces and head props follow), the torso between neck and seat
+# stretches to meet it and widens by `sx`, and the feet move by `foot` px.
+const FAMILY_POSE := {
+	"sporeling": {head = 7, sx = 1.3, foot = 0.0},   # round and hunched, its cap over its shoulders
+	"firefly_jar": {head = -8, sx = 0.86, foot = 0.0},  # tall, holding its light up
+	"dewdrop": {head = 4, sx = 1.0, foot = -7.0},      # leaning forward
+}
+const POSE_NECK := 18
+const POSE_SEAT := 46
+
+var _pose_warp := {}  # the warp for the Warden being drawn ({} = the classic seat)
+
+func _family_pose(tower_name: String) -> Dictionary:
+	for line: String in LINES:
+		var ids: Array = LINES[line]
+		var i := ids.find(tower_name)
+		if i < 0:
+			continue
+		if FAMILY_POSE.has(line) and (i == 0 or i % 2 == 1):
+			return FAMILY_POSE[line]
+		return {}
+	return {}
+
+# Sets the warp for a frame and moves its head offset with it.
+func _apply_pose(tower_name: String, st: Dictionary) -> void:
+	_pose_warp = _family_pose(tower_name)
+	if not _pose_warp.is_empty():
+		st.dy = int(st.dy) + int(_pose_warp.head)
+
+# Where a target pixel of the posed figure comes from in the classic figure.
+func _pose_source(x: int, y: int) -> Vector2:
+	var head: float = _pose_warp.head
+	var neck_t := POSE_NECK + head
+	if y < neck_t:
+		return Vector2(x, y - head)
+	var foot: float = _pose_warp.foot
+	var sx: float = _pose_warp.sx
+	if y > POSE_SEAT:
+		return Vector2(31.5 + (x - foot - 31.5) / sx, y)
+	var t := (y - neck_t) / (POSE_SEAT - neck_t)
+	var widen := lerpf(1.0, sx, smoothstep(0.0, 0.35, t))
+	var xc := 31.5 + foot * t
+	return Vector2(31.5 + (x - xc) / widen, POSE_NECK + t * (POSE_SEAT - POSE_NECK))
+
+func _warp_pose(src: Image) -> Image:
+	var dst := _layer()
+	for y in range(-OY, S):
+		for x in S:
+			var p := _pose_source(x, y)
+			var sx := roundi(p.x - 0.5)
+			var sy := roundi(p.y - 0.5)
+			if sx >= 0 and sx < S and sy >= -OY and sy < S:
+				var c := _gp(src, sx, sy)
+				if c.a > 0.0:
+					_sp(dst, x, y, c)
+	return dst
+
+# The template figure in the family's pose: rocks first, the warped figure over them (its own outline
+# warped with it; any gap the warp opens is outlined again),
+# then the front rock again so the figure still stands behind it.
+func _draw_posed_figure(canvas: Image, pose: Dictionary, pal: Dictionary) -> Image:
+	var body := _layer()
+	var mask := _layer()
+	var front: Array = []
+	for i in S * S:
+		var ch: String = pose.grid[i]
+		if ch == "." or pose.outside[i] != 0:
+			continue
+		var x := i % S
+		var y := i / S
+		if _is_rock(pose, x, y):
+			if _rock_group(x, y) in _hidden_rocks():
+				continue
+			_sp(canvas, x, y, ROCK_PAL[ch])
+			if _rock_group(x, y) == "front":
+				front.append(i)
+		else:
+			_sp(body, x, y, pal[ch])  # its own outline and inner lines too
+			_sp(mask, x, y, Color.WHITE)
+	var posed := _warp_pose(body)
+	_stamp(canvas, posed, pal.o)
+	for i: int in front:
+		_sp(canvas, i % S, i / S, ROCK_PAL[pose.grid[i]])
+	var rock_px := {}
+	for i in S * S:
+		if pose.grid[i] != "." and pose.outside[i] == 0 and _is_rock(pose, i % S, i / S) \
+				and not _rock_group(i % S, i / S) in _hidden_rocks():
+			rock_px[Vector2i(i % S, i / S)] = true
+	_touch_rocks(canvas, rock_px, _rock_touch_for(_warden_name))
+	return _warp_pose(mask)

@@ -85,7 +85,7 @@
 			"kind": "cloud",
 			"point": [
 				49,
-				14
+				21
 			]
 		},
 		"boulderback": {
@@ -107,7 +107,7 @@
 			"kind": "spawn",
 			"point": [
 				44,
-				14
+				21
 			],
 			"projectile": "spore_sprite"
 		},
@@ -130,7 +130,7 @@
 			"kind": "zone",
 			"point": [
 				11,
-				12
+				16
 			]
 		},
 		"crown_of_thorns": {
@@ -159,7 +159,7 @@
 			"kind": "projectile",
 			"point": [
 				30,
-				2
+				6
 			],
 			"projectile": "dew_drop"
 		},
@@ -182,7 +182,7 @@
 			"kind": "projectile",
 			"point": [
 				46,
-				9
+				16
 			],
 			"projectile": "spore"
 		},
@@ -242,7 +242,7 @@
 			"kind": "projectile",
 			"point": [
 				31,
-				6
+				-2
 			],
 			"projectile": "spark"
 		},
@@ -250,7 +250,7 @@
 			"kind": "projectile",
 			"point": [
 				45,
-				4
+				8
 			],
 			"projectile": "frost_shard"
 		},
@@ -346,7 +346,7 @@
 			"kind": "projectile",
 			"point": [
 				40,
-				12
+				19
 			],
 			"projectile": "ink_drop"
 		},
@@ -354,14 +354,14 @@
 			"kind": "fence",
 			"point": [
 				8,
-				9
+				1
 			]
 		},
 		"jetreed": {
 			"kind": "jet",
 			"point": [
 				60,
-				20
+				24
 			]
 		},
 		"jewelwing_court": {
@@ -376,7 +376,7 @@
 			"kind": "projectile",
 			"point": [
 				31,
-				4
+				-4
 			],
 			"projectile": "light_orb"
 		},
@@ -384,7 +384,7 @@
 			"kind": "projectile",
 			"point": [
 				46,
-				6
+				13
 			],
 			"projectile": "lichen_flake"
 		},
@@ -533,7 +533,7 @@
 			"kind": "aura",
 			"point": [
 				30,
-				9
+				1
 			]
 		},
 		"puffball": {
@@ -555,7 +555,7 @@
 			"kind": "projectile",
 			"point": [
 				30,
-				2
+				6
 			],
 			"projectile": "dew_drop"
 		},
@@ -642,14 +642,14 @@
 			"kind": "firework",
 			"point": [
 				54,
-				12
+				4
 			]
 		},
 		"sporeling": {
 			"kind": "projectile",
 			"point": [
 				46,
-				9
+				16
 			],
 			"projectile": "spore"
 		},
@@ -695,14 +695,14 @@
 			"kind": "chain",
 			"point": [
 				40,
-				6
+				-2
 			]
 		},
 		"sunpetal": {
 			"kind": "beam",
 			"point": [
 				38,
-				12
+				4
 			]
 		},
 		"tangleroot": {
