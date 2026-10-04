@@ -577,10 +577,10 @@ func _route_cells(route: PackedVector2Array) -> int:
 	return map.route_length(route) if map.has_method("route_length") else route.size()
 
 # Route halves squeezed into a one-half corridor (half_cells.md 04c10c33: a nightmare fits through one half): both
-# left and right, or both above and below, are blocked. -1 before the one-half rule (FindPath.point_to_node).
+# left and right, or both above and below, are blocked. -1 before the one-half rule (FindPath.is_whole_cell).
 func _narrow_halves() -> int:
 	var finder: Script = FindPath
-	if not finder.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "point_to_node") \
+	if not finder.get_script_method_list().any(func(m: Dictionary) -> bool: return m.name == "is_whole_cell") \
 			or not map.path_layer.has_method("is_half_blocked"):
 		return -1
 	var count := 0
