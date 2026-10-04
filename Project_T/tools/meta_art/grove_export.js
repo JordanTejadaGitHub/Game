@@ -1,6 +1,6 @@
 
 // The icon sheets' orders (used by the per-node blooms before the icon sheets are written).
-const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", "clear_sight", "sprout_bed", "kindling", "early_bloom", "early_light", "first_care", "deep_taproot", "second_thoughts", "let_go", "omen_reader", "wider_dreams", "wider_roots"];
+const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", "clear_sight", "sprout_bed", "kindling", "early_bloom", "early_light", "first_care", "deep_taproot", "second_thoughts", "let_go", "omen_reader", "wider_dreams", "wider_roots", "golden_leaf", "blossoms", "gilded_pages", "starlit_backs"];
 const FAMILY_ORDER = ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"];
 const CARD_ORDER = ["storm", "spores_and_reactions", "keen_edges", "tending", "overgrowth", "lone_lantern", "the_long_way", "bittersweet", "woven", "deep_poison", "kinship", "seeds", "quiet_ones", "swift", "wide_reach", "daring", "hedgerows", "reclaiming"];  // Storm, Spores and Kinship icons stay for stable indices (their nodes are gone)
 
