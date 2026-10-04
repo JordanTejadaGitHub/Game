@@ -78,6 +78,10 @@ can't: a staggered half-cell maze at full scale with the route shown and nightma
 
 - **For players of:** maze tower defense and TD roguelites (e.g. Rogue Tower), and cute-but-dark
   games (e.g. Cult of the Lamb, Don't Starve) for the look.
+- **The developer's own story** (the user, 2026-10-04): a tower defense fan who loved the Warcraft 3 maze maps
+  (Maze TD, Jungle TD) and roguelites like Slay the Spire and Risk of Rain 2, couldn't find a game that mixed them, and
+  made one: solo, at your own pace, every run different. Use it in the first video, the About section and press
+  replies; name those games, never show their footage or art.
 - **Short version for press and Next Fest:** *"a maze tower defense roguelite in a dark fairytale
   dream"*.
 - **Platforms:** PC (Steam), Steam Deck verified as a goal; **mobile (iOS/Android) port later**
