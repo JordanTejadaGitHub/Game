@@ -18,7 +18,7 @@ These replace the older targets below for the **full game**; the demo keeps the 
 | Fresh profile | usually dies in **act 2–3** |
 | Act 4 | a real test |
 | Every block | can kill you; the **block finale** (last drift, ×1.4 health + elites) costs an average maze ~1 leaf; a clean finale earns a Rare+ Dream slot |
-| Bot, fresh, act 1 boss (full game, real boss draw) | Balanced **~55–60%** survive, skip **≤ 15%** |
+| Bot, fresh, act 1 boss (full game, real boss draw) | Balanced **~55–60%** survive, skip **≤ 15–20%** |
 | Grove | a full carried loadout adds **≤ +10–15 points** of bot survival / reach over no perks (measured +15) |
 | Combos + Reactions | **~25–40%** of a good build's damage (`combo_share`) |
 | Damage branches | **0.8–1.0× Driftspore** per Dew on the fixed board (drift 45); a drawn branch must match the one it replaces |
@@ -778,6 +778,9 @@ either bot**, so **half cells barely move act 1**. The jump from 53% (84bbaf44) 
 between (finale ×1.4 from drift 15, finale elites without ×1.4, the Firefly Jar buff, Nurture): now **above
 the 55–60% target**. Held until the skip arm: if skip also rises well above 15%, act 1 tightens (the ramp or
 the drift 20 finale); humans (runs 15–16) still end in act 2 and found it fair.
+**Item 2, skip:** **43%** (target ≤ 15%; it was 0% on 175058a0); finales 10 / 15 cost 0.03 / 0.07 leaves.
+**Act 1 tightens: `act1_health_multiplier` 1.15 → 1.30** (full game only; the demo keeps 1.15 via
+DEMO_RULES). Expected: Balanced ~60%, skip ~20%; re-run both after.
 
 ## Milestone thresholds (2026-10-04; milestones give bonus Seeds only, meta_design.md 269b14b0)
 
