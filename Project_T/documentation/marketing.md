@@ -20,7 +20,11 @@ page points to the Steam page.
 
 1. **Steam page** (before any push for views; wishlists only count once it exists): capsule art (Theme Asset, open
    item), the short description, 5–8 screenshots, the trailer, tags. Status and the tag list: §6 "Steam page checklist".
-2. **Shorts and TikToks**: 3–4 a week, from the shot list below.
+2. **Shorts and TikToks**: 3–4 a week, from the shot list below. **The first video is the developer's "why I made
+   this"** (the user, 2026-10-04): the Warcraft 3 maze TD maps (Maze TD, Jungle TD) as the hook, roguelite runs as the
+   twist, solo at your own pace as the reason. Script in §4 (Short Form Video), in the user's words. Name the mods only:
+   no Warcraft footage, logos or art (Blizzard's trademarks). "Try the demo now" only once the demo is live; until then
+   the call is "wishlist it on Steam", and the page must be up before it posts.
 3. **Trailer** (60–90 s): once the capture tools exist.
 4. **Demo + Steam Next Fest**: the biggest wishlist spike; plan it for when the demo is polished.
 
