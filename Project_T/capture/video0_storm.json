@@ -1,0 +1,22 @@
+{
+	"title": "Video 0 clip: another island, a chain",
+	"note": "Video 0 (marketing.md §4), clip for 23-29 s: a different island (another seed, the act 3 look) and a Reaction chain at real speed. short_02's storm board without slow motion.",
+	"seed": 9177,
+	"size": [1080, 1920],
+	"drift": 60,
+	"dew": 9999,
+	"hud": "none",
+	"dreams": ["dawnbreak"],
+	"length": 16.0,
+	"timeline": [
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.8},
+		{"t": 0.0, "plant_each": 0.05, "count": 16, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 3, "plant": "monsoon", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 2, "plant": "rain_lily", "auto": "cover", "tag": false},
+		{"t": 0.5, "plant_each": 0.1, "count": 3, "plant": "thunderhead", "auto": "cover", "tag": false},
+		{"t": 0.5, "plant_each": 0.1, "count": 2, "plant": "lanternmoth", "auto": "cover", "tag": false},
+		{"t": 0.5, "start": true},
+		{"t": 8.5, "spawn": "bark_beetle", "count": 24, "elite": true, "progress": 0.35, "spread": 0.2},
+		{"t": 8.5, "camera": "follow", "target": "bark_beetle", "zoom": 1.3}
+	]
+}
