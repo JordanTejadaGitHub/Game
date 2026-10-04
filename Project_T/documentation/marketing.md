@@ -212,3 +212,44 @@ human artist replaces both.
 - Track per video: 3-second hold, average watch %, shares, and wishlists that day (Steamworks). Keep what holds past 3 s;
   test 2–3 hooks on the same clip.
 - Reply to comments yourself; a real dev voice is the best marketing.
+
+## 9. Music for marketing (brief, 2026-10-04)
+
+The user asked for trailer music and short-form music. Owner of the brief: Marketing Discussion. **Sound Discussion**
+decides the musical direction (audio_direction.md), **Sound Code** synthesizes it (`tools/sound_generator.gd`), and
+Trailer / Short Form Video cut to it. Today export.ps1 loops the 20 s in-game stems under every clip, which works as a
+bed but has no shape: no hit on the hook, no build, no ending on the end card.
+
+**Shared rules**
+- Same world as the game: D minor, the game's instruments and motifs, "rounded, never sharp" (no clicks or crackle).
+  Someone who hears a short and then plays the game should recognise it.
+- Made in-house = no copyright claims on YouTube / TikTok. Post shorts with the original audio named
+  "Heartwood TD – <cue>" so others can use the sound.
+- Every cue ends **on** the end card (a resolve or a single held note that lands with the logo), never a fade or a
+  loop cut.
+- Each cue also exists as a **voice mix**: same music with the 300 Hz–3 kHz band thinned, for the voiceover versions.
+- Deliver as WAV stems (low / mid / top / percussion) plus the full mix, so Trailer and Short Form Video can drop a layer.
+- The music is not on hold: the art hold covers renders, not audio. Compose to the locked cut lists; when a cut moves,
+  the cue's section map moves with it.
+
+**1. Trailer cue (~75 s), through-composed to the §5 cut list**
+| Time | Picture | Music |
+|---|---|---|
+| 0–5 s | The maze being built | The motif alone, soft and warm; each Warden snap on a pulse (the snaps are the rhythm) |
+| 5–9 s | The Shade close-up | Drop to near-silence, one cold low note; the dispel is the first hit |
+| 9–16 s | The drift walks the maze | The pulse returns, low dread underneath |
+| 16–28 s | Soaked + Charged, Thunderclap | Building; percussion enters; the Thunderclap lands on a hit |
+| 28–46 s | Rest, Dream pick, Gift | A breath: warmer, half the density (the rest swell), then rising again under the ridge |
+| 46–60 s | Bosses | The boss material; heaviest low end; a hard stop on the Stag stalling on the bend |
+| 60–70 s | Dawnburst | Everything, the peak; the chain's ×10 on the biggest hit |
+| 70–75 s | Logo, Wishlist | The resolve, one held warm chord under the logo |
+
+**2. Short beds (9:16, 15–35 s)**
+- **Instant start:** music at full presence from frame 1 (viewers decide in 2 s); no fade in.
+- **One bed per mood, reusable:** *Build* (maze shorts 1 and 4: warm, steady pulse, rising as the maze grows), *Storm*
+  (short 2: tension into a hit on the chain), *Boss* (short 3: the boss stem with a stinger on the dispel), *Close call*
+  (short 5: the heartbeat thinning to near-silence, one release on the dispel). Each about 35 s with 2–3 hit points that
+  a cut list can move.
+- **Video 0 ("why I made this"):** the developer talking. Gentle, warm, mostly the base stem's motif, voice mix only;
+  it lifts on "So I made one." under the maze pull-back and resolves on the end card.
+- **End-card button:** a 1.5 s signature (the same two or three notes on every short), so the series has a sound.
