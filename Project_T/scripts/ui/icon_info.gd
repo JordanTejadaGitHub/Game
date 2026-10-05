@@ -24,7 +24,8 @@ const STATUSES := {
 	&"hidden": ["Hidden", "Can't be seen or targeted until something reveals it, or it comes close."],
 	# Hushbell's silence (BranchKit.silence; EnemyStatuses.silence_time): the numbers are checked against the data in
 	# test_text_style (Silence's linger, the Vespers toll, Enemy.BOSS_SILENCE_SPEED).
-	&"silenced": ["Silenced", "Its abilities stop while a Hushbell's song reaches it, and for 2 s after a Silence or a Vespers toll: the Watcher can't wake, Weepers can't mend, a Lantern Bearer goes dark and its Wraiths are lost. Bosses run their timed abilities at half speed."],
+	# User: "Silenced still doesn't make sense from the Codex": what it does first, the edge cases after.
+	&"silenced": ["Silenced", "It can't use its abilities. A Watcher can't wake, a Weeper can't heal, and a Lantern Bearer's lantern goes dark, so its Wraiths lose their way. Bosses still fight, but their timed abilities come at half speed.\nLasts while a Hushbell's song reaches it. A Silence (Hushbell's next form) or a Vespers toll keeps it 2 s longer."],
 }
 const STATS := {
 	&"damage": ["Damage", "How much each hit deals."],
