@@ -38,6 +38,8 @@ var _card_chips := HFlowContainer.new()
 var _card_cost := HBoxContainer.new()  # The Seeds glyph, the price, "of N Seeds"
 var _card_price := Label.new()
 var _card_wallet := Label.new()
+var _footer := VBoxContainer.new()  # The button column, bottom right (the card keeps clear of it)
+var _zoom_row := HBoxContainer.new()  # The zoom buttons, bottom left
 var _backdrop := ColorRect.new()
 var _viewer := PanelContainer.new()
 var _viewer_art := TextureRect.new()
@@ -214,7 +216,7 @@ func _build_card() -> void:
 
 func _build_footer() -> void:
 	# Stacked in the bottom-right corner so the waystones at the roots stay clear.
-	var footer := VBoxContainer.new()
+	var footer := _footer
 	footer.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	footer.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	footer.add_theme_constant_override("separation", 10)
@@ -226,7 +228,7 @@ func _build_footer() -> void:
 	add_child(footer)
 	footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 20)
 	# Zoom buttons (touch: pinch works too, but buttons are always there).
-	var zoom := HBoxContainer.new()
+	var zoom := _zoom_row
 	zoom.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	zoom.add_theme_constant_override("separation", 8)
 	for spec in [["−", 1.0 / 1.25], ["+", 1.25]]:
@@ -433,9 +435,38 @@ func _chip(text: String, met: bool) -> PanelContainer:
 	chip.add_child(label)
 	return chip
 
+# Placement (UI Asset's rule): the card's right edge sits CARD_GAP left of the button column, measured; its top stays
+# under the moon; its height stops CARD_GAP above the zoom row (a long description scrolls instead). When the
+# selected node would sit under the card, it flips to the left of the tree. Sizes are the screen's own, so the
+# 1.5× UI scale at 1920 follows by itself.
+const CARD_GAP := 16.0
+const CARD_TOP_SHARE := 0.27  # The card's top, as a share of the screen height (under the moon)
+
 func _fit_card() -> void:
+	_card_text.fit_content = true
+	_card_text.scroll_active = false
+	_card_text.custom_minimum_size.y = 0
 	_card.reset_size()
-	_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT, Control.PRESET_MODE_MINSIZE, 20)
+	var top := size.y * CARD_TOP_SHARE
+	var bottom := _zoom_row.position.y - CARD_GAP
+	if _card.size.y > bottom - top:  # Long text: the description scrolls, the card keeps its place
+		var over := _card.size.y - (bottom - top)
+		_card_text.fit_content = false
+		_card_text.scroll_active = true
+		_card_text.custom_minimum_size.y = maxf(_card_text.size.y - over, 48.0)
+		_card.reset_size()
+	var rect := Rect2(Vector2(_footer.position.x - CARD_GAP - _card.size.x, top), _card.size)
+	if selected != null and rect.grow(CARD_GAP).has_point(_node_screen_position(selected.id)):
+		rect.position.x = _zoom_row.position.x + CARD_GAP  # The other side, clear of the left HUD's margin
+	_card.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_card.position = rect.position
+
+# Where node `id` is drawn now (screen space of this screen), or off-screen when it isn't on the tree.
+func _node_screen_position(id: String) -> Vector2:
+	for node in GroveTreeView.load_layout().get("nodes", []):
+		if node.id == id:
+			return tree_view.to_screen(GroveTreeView.vec(node.pos))
+	return Vector2(-1000, -1000)
 
 # "Pebbling or Rootling", "Second Thoughts II", "2 of …"
 func _needs_text(unlock: UnlockData) -> String:
