@@ -83,6 +83,9 @@ const GLOSSARY_SOURCE := [
 		["Flying", "Flies straight over the maze, ignoring walls.", ["Nightmare"]],
 		["Restless", "A nightmare turned back by a change of route: +20% speed per stack, for good. Three make it Unbound. Not a status.", ["Unbound"]],
 		["Unbound", "Turned back three times, it stops listening to the maze: it keeps its route and tramples any Warden planted on it (no refund). Bosses never become Unbound.", ["Restless"]],
+		# EnemyData BURROW (burrow_max, burrow_min_saving) and laps() (lap_linger …): who has them is nightmares_line.
+		["Burrow", "Sinks under a Warden or wall beside it and comes up on the other side, when that cuts its route short. Only a set number of times per trip.", ["Nightmare"]],
+		["Laps", "Reaching the Heartwood, it stays and drains leaves, and can't be hit while it's there. Then it gallops back to the start and comes again, staying a little longer each lap.", ["Leak", "Leaves"]],
 	]],
 	["Statuses", [
 		["{damp}", "{tip:damp}", ["Conducted", "Thunderclap"]],
@@ -490,7 +493,8 @@ static func _example(entry: Array) -> String:
 
 # Terms some nightmares carry (user: "the nightmares that wear a dread shell" as links, read from the data, never typed):
 # glossary name -> the line's wording. term_nightmares() reads each kind's EnemyData.
-const NIGHTMARE_TERMS := {"dread shell": "Worn by %s.", "flying": "Flying: %s.", "hidden": "Hidden: %s."}
+const NIGHTMARE_TERMS := {"dread shell": "Worn by %s.", "flying": "Nightmares: %s.", "hidden": "Nightmares: %s.", "burrow": "Nightmares: %s.",
+	"laps": "Nightmares: %s."}
 
 static func term_nightmares(term: String) -> Array[String]:
 	var kinds: Array[String] = []
@@ -506,6 +510,10 @@ static func term_nightmares(term: String) -> Array[String]:
 				has = data.trait_kind == EnemyData.Trait.FLYING
 			"hidden":
 				has = data.hidden
+			"burrow":
+				has = data.trait_kind == EnemyData.Trait.BURROW
+			"laps":
+				has = data.laps()
 		if has:
 			kinds.append(NightmareCodex.kind_of(data))
 	return kinds
