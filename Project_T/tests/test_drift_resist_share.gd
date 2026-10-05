@@ -14,7 +14,7 @@ const MAX_SHARE := 0.40
 # Only damage types a player can own by then count (the design chat, option a): in act 1 the
 # starting three families' types. Plain never counts. Grove families join later acts.
 const OWNABLE_ACT_1 := ["spore", "water", "light"]
-const EXTRA_FROM := 10  # DriftDirector.extra_nightmares_from
+const EXTRA_FROM := 11  # DriftDirector.extra_nightmares_from (the full game; the demo keeps 10)
 const EXTRA := 1.25  # DriftDirector.extra_nightmares
 
 var failures := 0

@@ -77,7 +77,7 @@ func _test_blocks_and_rests() -> void:
 	_check(director.is_resting() and director.drifts_started == 0, "the run starts resting")
 	_check(run_state.leaves == 15 and run_state.max_leaves == 15 and run_state.dew == 60, "15 leaves, 60 Dew")
 	_check(spawner.get_enemies().is_empty(), "no creatures before Start")
-	_check(director.get_extra_nightmares(9) == 1.0 and director.get_extra_nightmares(10) == 1.25, "extra nightmares from drift 10")
+	_check(director.get_extra_nightmares(10) == 1.0 and director.get_extra_nightmares(11) == 1.25, "extra nightmares from drift 11 (the demo: 10)")
 	# The Dew pot (run_design.md): a fixed pot per drift from the table, linear inside each act, bosses apart.
 	var pots: Array[Vector2] = director.dew_pot_acts
 	var boss_pots: Array[float] = director.dew_pot_bosses

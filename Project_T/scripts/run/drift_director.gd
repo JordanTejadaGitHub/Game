@@ -101,7 +101,7 @@ func get_block_finale_elites(number: int) -> int:
 @export var act2_steep_from: int = 37  # "Human run 2": drifts 26-37 keep the old ramp (to act2_steep_value), the rest of the rise comes after
 @export var act2_steep_value: float = 3.45  # Drift 37: on the straight line 2.0 @26 → 4.5 @45, so no knee (Spire, Balancing Discussion; was 3.3, 2.9, 2.3, 1.995)
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
-@export var extra_nightmares_from: int = 10  # The intro drifts before it are unchanged
+@export var extra_nightmares_from: int = 11  # The intro drifts before it are unchanged (Balancing 2026-10-05: 11, so drift 10 isn't also the first finale; the demo keeps 10, DEMO_RULES)
 # Rest bonus = base + per_block × block number (economy pass v2, run_design.md: was 20 + 10 × block,
 # which made the late game "infinite money")
 @export var rest_bonus_base: int = 30
@@ -161,6 +161,7 @@ const DEMO_RULES := {
 	"dew_pot_bosses": [220.0, 270.0, 320.0, 0.0],
 	"block_finale_elites": {}, "block_finale_health_multiplier": 1.0,
 	"act1_health_multiplier": 1.15,  # The full game is at 1.20 (be7b5a94); the demo keeps its tuning
+	"extra_nightmares_from": 10,  # The full game moved it to 11 (2026-10-05)
 }
 
 func apply_demo_rules() -> void:
