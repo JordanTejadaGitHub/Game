@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_rainbow_prism"
 display_name = "Rainbow Prism"
-description = "Prism Jars can now grow into Rainbow Prisms ({grow_cost:rainbow_prism} Dew): a stronger crit aura, and its shot splits into 3 beams."
+description = "Prism Jars can now grow into Rainbow Prisms ({grow_cost:rainbow_prism} Dew): a stronger crit aura, and its shot splits into {field:rainbow_prism.special_params.beams:count} beams."
 rarity = 2
 kind = 1
 tags = Array[String](["light"])

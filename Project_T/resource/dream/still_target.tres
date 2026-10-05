@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "still_target"
 display_name = "Still Target"
-description = "+25% crit chance against {drowsy}, {held} or frozen nightmares."
+description = "+25% crit chance against {drowsy}, {held} or {frozen} nightmares."
 rarity = 1
 kind = 3
 tags = Array[String](["crit", "sleep", "precision"])

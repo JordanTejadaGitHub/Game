@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "deep_frost"
 display_name = "Deep Frost"
-description = "Frozen nightmares take 45% more damage."
+description = "{frozen} nightmares take 45% more damage."
 rarity = 1
 kind = 3
 tags = Array[String](["water", "crit"])

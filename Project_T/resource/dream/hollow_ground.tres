@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "hollow_ground"
 display_name = "Hollow Ground"
-description = "A Warden planted in a moved hollow (where you cleared a Mossy Boulder or Thorn-Sapling) gets +1 range."
+description = "A Warden planted where you cleared a Mossy Boulder or Thorn-Sapling gets +1 range."
 rarity = 1
 kind = 3
 tags = Array[String](["clearing", "tending"])

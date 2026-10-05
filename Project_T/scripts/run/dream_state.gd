@@ -4460,7 +4460,7 @@ func _economy_line(card: UpgradeData) -> String:
 	if card.rest_bonus_add > 0:
 		bits.append("+%d Dew every rest" % card.rest_bonus_add)
 	if card.free_clears_add > 0:
-		bits.append("%d free clears" % card.free_clears_add)
+		bits.append("%d half-price clears" % card.free_clears_add)  # free_clears are half price (RunState.try_clear)
 	return ("On your board · " + ", ".join(bits)) if not bits.is_empty() else "None of your Wardens yet"
 
 # A Warden's Dream multipliers now: {damage: 1 + Σ damage parts, speed: 1 + Σ speed parts, range: Σ range parts}.

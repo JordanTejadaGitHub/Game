@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "heartwoods_reach"
 display_name = "Heartwood's Reach"
-description = "Clearing costs 25% less Dew (stacks, up to 50% less), and gain 3 half-price clears. Use them any time; they last all run."
+description = "Clearing costs 25% less Dew (stacks, up to 50% less).\nGain 3 half-price clears on top; they last all run."
 rarity = 0
 kind = 4
 tags = Array[String](["clearing", "opener", "tending"])

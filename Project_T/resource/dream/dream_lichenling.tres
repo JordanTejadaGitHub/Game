@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_lichenling"
 display_name = "Lichenling"
-description = "Sporelings can now grow into Lichenlings ({grow_cost:lichenling} Dew): crusted spores that strip dread shells and stop mending."
+description = "Sporelings can now grow into Lichenlings ({grow_cost:lichenling} Dew): crusted spores that strip {dread_shells} and stop mending."
 rarity = 1
 kind = 1
 tags = Array[String](["spore"])

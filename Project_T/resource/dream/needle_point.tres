@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "needle_point"
 display_name = "Needle Point"
-description = "Multi-hit Wardens' hits ignore dread shell reduction."
+description = "Multi-hit Wardens' hits ignore {dread_shell} reduction."
 rarity = 1
 kind = 3
 tags = Array[String](["wing", "on-hit"])

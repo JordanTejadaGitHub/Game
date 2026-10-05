@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "reclaimed_earth"
 display_name = "Reclaimed Earth"
-description = "Each clear refunds 40% of the Dew you paid for it and leaves the ground fertile: the first Warden planted there costs half. Sprouts on cleared cells deal 20% more damage."
+description = "Each clear refunds 40% of the Dew you paid for it.\nThe first Warden planted on a cleared cell costs half.\nSprouts on cleared cells deal 20% more damage."
 rarity = 0
 kind = 3
 tags = Array[String](["clearing", "economy", "tending"])

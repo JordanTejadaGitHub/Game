@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "static_sky"
 display_name = "Crackling Sky"
-description = "Nightmares are always {static}, but 30% faster."
+description = "Nightmares always carry at least 1 {static} (kept topped up), but move 30% faster."
 flavor = "The air hums. They run with sparks in their fur."
 requires_grove = "restless_omens"
 kind = 2

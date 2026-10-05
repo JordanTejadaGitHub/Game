@@ -6,7 +6,7 @@
 script = ExtResource("1_omen")
 id = "burrowers"
 display_name = "Burrowers"
-description = "At every bend, nightmares burrow 2 path tiles ahead, out of reach for a moment."
+description = "At every bend, nightmares burrow 2 path tiles ahead and can't be hit for 0.5 s."
 flavor = "They dig beneath the roots."
 min_drift = 26
 kind = 4

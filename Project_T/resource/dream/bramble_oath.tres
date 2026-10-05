@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "bramble_oath"
 display_name = "Bramble Oath"
-description = "Wardens deal 3% more damage for every 5 path tiles your walls add (up to +30%)."
+description = "Wardens deal 3% more damage for every 5 path tiles your Thornwalls add to the route (up to +30%)."
 rarity = 0
 kind = 3
 tags = Array[String](["seed", "wall"])

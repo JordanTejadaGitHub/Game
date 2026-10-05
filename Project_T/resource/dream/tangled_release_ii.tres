@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "tangled_release_ii"
 display_name = "Tangled Release II"
-description = "A nightmare freed from a hold is pulled back 1 path tile along its route."
+description = "A nightmare freed from {held} is pulled back 1 path tile along its route."
 rarity = 1
 kind = 3
 tags = Array[String](["root", "held"])

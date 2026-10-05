@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "wild_dew"
 display_name = "Wild Dew"
-description = "Every drift's Dew is rolled between ×0.6 and ×1.6, shown before the drift starts."
+description = "Each {drift}'s Dew pot is rolled between ×0.6 and ×1.6. You see the roll before it starts."
 rarity = 0
 kind = 4
 tags = Array[String](["strange"])

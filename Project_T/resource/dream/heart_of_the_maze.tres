@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "heart_of_the_maze"
 display_name = "Heart of the Maze"
-description = "The attacking Warden furthest along the path from the others deals ×2 damage."
+description = "The attacking Warden with the most path between it and its nearest other attacker (counted along the route) deals ×2 damage. A tie goes to the one nearer the Heartwood."
 rarity = 2
 kind = 3
 tags = Array[String](["maze"])

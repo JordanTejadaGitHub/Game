@@ -14,10 +14,7 @@ const KNOWN := {
 }
 
 const TYPED_KNOWN := {
-	"dream_world_root": "every 5 s = 1 / attacks_per_second 0.2 (no reciprocal token); the 5 matches crit_chance 0.05 only by chance",
-	"dream_nimbus": "every 4 s is special_params.drift_every (a dictionary: no field token); attack_range 4 only by chance",
-	"dream_hatchery": "every 5th / splits into 3 are special_params (big_every, a split constant); status_stacks 3 only by chance",
-	"dream_rainbow_prism": "3 beams is special_params.beams; attack_range 3 only by chance",
+	"dream_hatchery": "splits into 3 is a split constant (not a field); status_stacks 3 only by chance",
 }
 
 var failures := 0
