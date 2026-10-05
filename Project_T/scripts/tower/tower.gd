@@ -477,6 +477,7 @@ func evolve(data: TowerData, cost: int) -> void:
 	# A Warden keeps its size unless it was given room: TowerPlacer takes the 2×2 square first (and sets
 	# footprint_size); growing any other way stays on the cells it has.
 	var size := get_footprint()
+	var old_frame := tower_data.get_frame_rect(0).size if tower_data.texture else Vector2.ZERO
 	if data.tier >= DreamState.ASCENDED_TIER and tower_data.tier == DreamState.ASCENDED_TIER - 1:
 		legacy_data = tower_data  # It keeps its final form's attack
 	tower_data = data
@@ -486,6 +487,8 @@ func evolve(data: TowerData, cost: int) -> void:
 	if resting:
 		rest_dew += cost
 	_apply_data()
+	if data.texture and data.get_frame_rect(0).size != old_frame:
+		_grow_bloom()  # The art changes size (a 64 base into a big branch): a puff covers the swap
 	_nudge_neighbours()
 	if _rule_stacks(&"sudden_bloom") > 0:
 		bloom_left = maxf(bloom_left, SUDDEN_BLOOM_SECONDS * _rule_power(&"sudden_bloom"))  # ×2 damage for 10 s
@@ -4277,10 +4280,9 @@ func tall_behind() -> bool:
 	for enemy in nightmares_near(get_tree(), area.get_center(), MAP_GRID.cell_size.x):
 		if is_instance_valid(enemy) and not enemy.is_cleansed and area.has_point(enemy.global_position):
 			return true
-	# Another Warden with any of its half cells in the overhang (environment_assets.md "Half-cell grid" §4).
-	for other in _towers_near():
-		if other != self and is_instance_valid(other) and _halves_in(other.get_halves(), area):
-			return true
+	# Another Warden only when the player points at it (hovered / selected, below). An ambient "any Warden in the
+	# overhang" rule (environment_assets.md "Half-cell grid" §4) faded every Warden with one in the cell above once
+	# the art grew taller (story chat 2026-10-04: whole columns of a maze drawn see-through), so it's gone.
 	var seller: TowerSeller = seller_ref.get_ref() if seller_ref != null else null
 	if seller != null:
 		for picked in [seller._hover_tower, seller.selected]:
@@ -4314,3 +4316,56 @@ func _update_tall_fade(delta: float) -> void:
 	if absf(_tall_alpha - target) > 0.01:
 		_tall_alpha = lerpf(_tall_alpha, target, 1.0 - exp(-TALL_FADE_RATE * delta))
 		_tall_fade.set_shader_parameter(&"top_alpha", _tall_alpha)
+
+# --- Grow bloom: growing into art of another size (story chat 2026-10-04: bases are 64 again, branches big) ----
+const GROW_BLOOM_TIME := 0.4
+
+func _grow_bloom() -> void:
+	if not is_inside_tree():
+		return
+	var world := Reactions._world(self)
+	if world == null:
+		return
+	var bloom := GrowBloom.new()
+	bloom.height = tower_data.get_frame_rect(0).size.y
+	bloom.motes = not Fx.reduce_flashes()
+	bloom.z_index = Fx.Z
+	world.add_child(bloom)
+	bloom.global_position = global_position + Vector2(0, MAP_GRID.cell_size.y / 2.0)  # The footprint's bottom
+	if not Fx.reduce_flashes():
+		sprite.modulate = Color(1.5, 1.5, 1.3)  # multiplier: the new form steps out of the puff bright
+		create_tween().tween_property(sprite, "modulate", Color.WHITE, GROW_BLOOM_TIME)
+
+# A soft warm puff over the Warden's whole height, with leaf motes scattering out and up. Script-only node.
+class GrowBloom extends Node2D:
+	var height := 96.0
+	var motes := true
+	var _age := 0.0
+	var _seeds: Array = []  # [direction, speed, colour]
+
+	func _ready() -> void:
+		for i in 10:
+			var dir := Vector2.from_angle(-PI / 2.0 + randf_range(-1.3, 1.3))
+			_seeds.append([dir, randf_range(30.0, 60.0), [Palette.SPRIG, Palette.NEWLEAF, Palette.GLOW][i % 3]])
+
+	func _process(delta: float) -> void:
+		_age += delta
+		if _age >= GROW_BLOOM_TIME:
+			queue_free()
+			return
+		queue_redraw()
+
+	func _draw() -> void:
+		var t := _age / GROW_BLOOM_TIME
+		var centre := Vector2(0, -height * 0.4)
+		var fade := 1.0 - t
+		# Hard-stepped puff (pixel look): two discs, largest while the art swaps.
+		var r := lerpf(height * 0.42, height * 0.55, t)
+		draw_circle(centre, r, Color(Palette.HEARTLIGHT, 0.10 * fade))
+		draw_circle(centre, r * 0.6, Color(Palette.GLOW, 0.22 * fade))
+		if not motes:
+			return
+		for seed in _seeds:
+			var at: Vector2 = centre + seed[0] * (height * 0.2 + seed[1] * t)
+			var s := 3.0 if t < 0.5 else 2.0
+			draw_rect(Rect2(at.round() - Vector2(s, s) / 2.0, Vector2(s, s)), Color(seed[2], fade))
