@@ -176,6 +176,7 @@ func _build_footer() -> void:
 	_button(footer, "Start run", _start_run)
 	_button(footer, "Carry", func() -> void: _open_loadout(false))
 	_button(footer, "Codex", func() -> void: codex.open())
+	_button(footer, "Keepsakes", open_keepsakes)
 	_button(footer, "Back", func() -> void: get_tree().change_scene_to_file(TITLE_SCENE))
 	add_child(footer)
 	footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 20)
@@ -293,9 +294,8 @@ func _update_card() -> void:
 	match problem:
 		"Grown":
 			_card_status.text = "In bloom" if not selected.start else "Grown from the start"
-		"Grows by itself":  # A Keepsake (its milestone) or a parked Memory Warden bloom (its boss's first dispel)
-			var milestone: Array = MetaRun.MILESTONE_SEEDS.get(selected.milestone, [])
-			_card_status.text = "Grows by itself: %s." % milestone[1] if not milestone.is_empty() else "Grows by itself."
+		"Grows by itself":  # A parked Memory Warden bloom: grown by its boss's first dispel
+			_card_status.text = "Grows by itself."
 		"Needs another unlock first":
 			_card_status.text = "Needs " + _needs_text(selected) + "."
 		"Not enough Seeds":
@@ -310,10 +310,6 @@ func _update_card() -> void:
 	_carry.disabled = not carried and HeartwoodMemory.get_loadout(_memory).size() >= HeartwoodMemory.loadout_slots(_memory)
 	if _carry.disabled:
 		_carry.text = "Loadout full"
-	if selected.keepsake != "" and level > 0:  # A keepsake: the same button switches it on or off
-		_carry.visible = true
-		_carry.disabled = false
-		_carry.text = "Hide it" if MetaRun.keepsake_on(selected.keepsake) else "Show it"
 	# Shrink to the content (a card with fewer lines than the last one), still centred on the right.
 	_fit_card.call_deferred()  # After the labels have re-measured
 
@@ -386,11 +382,6 @@ func _check_crown() -> void:
 
 func _toggle_carry() -> void:
 	if selected == null:
-		return
-	if selected.keepsake != "":
-		MetaRun.set_keepsake_shown(selected.keepsake, not MetaRun.keepsake_on(selected.keepsake))
-		_memory = HeartwoodMemory.load_data()
-		_refresh()
 		return
 	var carried := HeartwoodMemory.get_loadout(_memory)
 	if carried.has(selected.id):
@@ -483,6 +474,67 @@ func _go() -> void:
 	RunSaver.delete_save()
 	RunSaver.resume_next = false
 	get_tree().change_scene_to_file(GAME_SCENE)
+
+# The Keepsakes shelf (meta_design.md Section 1, user 2026-10-05): the four cosmetics, each earned by its milestone.
+# Earned ones get a Show / Hide switch (the same setting as Settings → Display → Keepsakes); unearned ones are
+# greyed with their milestone.
+var keepsakes_shelf := PanelContainer.new()
+var _shelf_rows := VBoxContainer.new()
+
+func open_keepsakes() -> void:
+	if keepsakes_shelf.get_parent() == null:
+		keepsakes_shelf.custom_minimum_size = Vector2(460, 0)
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 10)
+		keepsakes_shelf.add_child(box)
+		var title := Label.new()
+		title.text = "Keepsakes"
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title.add_theme_font_size_override("font_size", 24)
+		title.add_theme_color_override("font_color", Palette.GLOW)
+		box.add_child(title)
+		_shelf_rows.add_theme_constant_override("separation", 8)
+		box.add_child(_shelf_rows)
+		var close := Button.new()
+		close.text = "Close"
+		close.focus_mode = Control.FOCUS_NONE
+		close.custom_minimum_size = Vector2(130, 48)
+		close.size_flags_horizontal = Control.SIZE_SHRINK_END
+		close.pressed.connect(func() -> void: keepsakes_shelf.visible = false)
+		box.add_child(close)
+		add_child(keepsakes_shelf)
+	_rebuild_shelf()
+	keepsakes_shelf.visible = true
+	keepsakes_shelf.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+
+func _rebuild_shelf() -> void:
+	for child in _shelf_rows.get_children():
+		child.queue_free()
+	for id in MetaRun.KEEPSAKES:
+		var row := HBoxContainer.new()
+		row.name = id
+		row.add_theme_constant_override("separation", 12)
+		var words := Label.new()
+		var owned := MetaRun.keepsake_owned(id)
+		var milestone: Array = MetaRun.MILESTONE_SEEDS.get(MetaRun.KEEPSAKE_MILESTONES[id], [0, ""])
+		words.text = "%s\n%s" % [MetaRun.KEEPSAKE_TEXT[id][0], MetaRun.KEEPSAKE_TEXT[id][1] if owned else "Earned by: %s." % milestone[1]]
+		words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		words.add_theme_color_override("font_color", Palette.HEARTLIGHT if owned else Palette.MOONPATH)
+		if not owned:
+			words.modulate = Color(1, 1, 1, 0.6)  # multiplier: greyed until earned
+		row.add_child(words)
+		if owned:
+			var toggle := Button.new()
+			toggle.name = "Toggle"
+			toggle.focus_mode = Control.FOCUS_NONE
+			toggle.custom_minimum_size = Vector2(110, 44)
+			toggle.text = "Hide" if MetaRun.keepsake_on(id) else "Show"
+			toggle.pressed.connect(func() -> void:
+				MetaRun.set_keepsake_shown(id, not MetaRun.keepsake_on(id))
+				_rebuild_shelf())
+			row.add_child(toggle)
+		_shelf_rows.add_child(row)
 
 func _button(parent: Control, text: String, action: Callable) -> void:
 	var button := Button.new()

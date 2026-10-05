@@ -51,7 +51,7 @@ N("slot_4", "perks", "Loadout slot 4", 400, 520, [410, 466]);  // Slots 1–3 ar
 N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
 // Keepsakes twig (meta_design.md b8fd690c): cosmetics at the foot of the Perks limb, no gameplay effect.
 // Off until their UnlockData exist (test_meta checks layout = data); Meta Game Code flips it with the .tres files.
-const KEEPSAKES = true;
+const KEEPSAKES = false;  // Keepsakes moved to a shelf in the Grove screen (user 2026-10-05); the twig gets bought nodes later
 if (KEEPSAKES) {
 N("golden_leaf", "perks", "Golden Leaf", 534, 540, [533, 568], { twig: true });
 N("blossoms", "perks", "Blossoms", 548, 492, "golden_leaf", { twig: true });
