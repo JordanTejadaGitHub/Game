@@ -146,6 +146,11 @@ Name Warcraft only: no footage, logos or art from it. On-screen text uses "defen
 | 18–24 s | *"Then the combos kick in…"* (let the chain run 2–3 s) | | The storm chain (`short_02` ~9–13 s, or `kit_late_game`) |
 | 24–28 s | *"It's called Heartwood TD. Wishlist it on Steam."* | | End card (the store art + logo) |
 
+**TikTok alt hook (A/B; TikTok skews younger, so the Warcraft nostalgia may not land there):** same video, only two lines change.
+- 0–2 s: VO *"This is a tower defense where you build the maze."* · on screen **A tower defense where YOU build the maze**
+- 7–11 s: VO *"I couldn't find one like it,"* (beat) *"so I made one."*
+Post the Warcraft version on YouTube Shorts and Reddit, the alt on TikTok, and compare 3-second holds.
+
 **End card line (every short):** *"Heartwood TD. Wishlist it on Steam, link below."* (swap the name if it changes)
 
 **Recording tips:** a quiet room, phone mic close and slightly off to the side, read each line two or three ways, and
