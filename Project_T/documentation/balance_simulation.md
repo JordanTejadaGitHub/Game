@@ -841,6 +841,14 @@ lost agree within noise.
 
 Later, not now: teaching the bot finals, Ascended, Reactions and Kinships.
 
+**Built:** `--start-at` 2685a9cd (Dreamlight 9 at 51 / 20 at 76 from human runs), `--from-save` / `--save-at`
+f66dae95, `%DreamState.final_damage_multiplier` 3707c71c (tier 3 only). **User said yes to copying their saves**
+(2026-10-05). Main Merger asked for per-rest save copies (dev opt-in) to grow the library.
+**First arms (half Grove, 30 seeds each):** from 51, 0/30 reach 76 on either bot; from 76, 1/30 wins (spender).
+**70–80% die in the first drift:** the bot turns ~5,700 / ~9,700 Dew into 16–26 attackers, where the user had
+42–88 at these drifts. These arms measure the bot's board-building, not acts 3–4. Next: a late-start build
+rule (plant to the human attacker count, then grow, then rank, near the human 52 / 29 / 13 split), then rerun.
+
 ## Overlap-audit reworks, power check (2026-10-05, dream_design.md e1e39b56; dream_audit.md budgets)
 
 | Card | As reworked | Budget | Verdict |
