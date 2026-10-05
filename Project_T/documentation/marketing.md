@@ -57,7 +57,7 @@ Capture after the half-cell merge (and after the final half-grid path art, when 
 | # | Title / hook (first 2 s) | What happens | Capture setup |
 |---|---|---|---|
 | 1 | "Your towers ARE the maze." | Time-lapse: an empty island → a winding maze; the route mist stretches longer with each Warden ("+12 path"); then a drift floods in and walks the whole maze. | Test Grove, a fixed seed, scripted placements every 0.5 s, then drift 20 at 1×. |
-| 2 | "Watch this chain." | One Charged nightmare is Soaked → Thunderclap → the chain jumps across a crowd → ×10 → Dawnburst. Slow-motion on the ×10. | A late storm board (Thunderhead, Lanternmoth, Rain Lily, Monsoon), drift 60, a dense block. |
+| 2 | "Watch this chain." | One Charged nightmare is Soaked → Thunderclap → the chain jumps across a crowd → ×10 → Dawnburst. | A late storm board (Thunderhead, Lanternmoth, Rain Lily, Monsoon), drift 60, a dense block. |
 | 3 | "The first boss." | The Hollow Stag's reveal (the What's coming page), its charge down a straight corridor, the maze bending it back, dispelled at 2 % health. | Drift 25, a fair board, the camera following the Stag. |
 | 4 | "The forest moves." | A Heartwood's Gift (Sow a Ridge): a ridge rises, the route mist re-routes live, nightmares take the long way. Before / after split screen. | An act break, the gift screen, then the same drift before and after. |
 | 5 | "One leaf left." | A close call: the last leaf, a nightmare at the Heartwood, the tree trembling, dispelled on its doorstep. | Drift ~40, 1 leaf left (Test Grove invulnerable off), the camera on the Heartwood. |
@@ -86,17 +86,17 @@ several captures (export `cuts`, see `capture/video0.json`); every clip at real 
 - 8–12.5 s: *"Fifty Wardens in, and the path's about four times as long as when I started."* (the hand-built maze: 50 Wardens, route ~18 → 70 cells)
 - 12.5–28 s: *"Then I hit start, and they have to walk every bend of it."* · end card: *"It's called Heartwood TD. Wishlist it on Steam."*
 
-**Short 2: "Watch this chain." (~22 s)**
+**Short 2: "Watch this chain." (~24 s, real speed)**
 - 0–2 s: *"Watch this chain."*
 - 2–8 s: *"Water soaks them. Lightning charges them. Soaked and charged together? That's a Thunderclap."*
-- 8–16 s: *"And it jumps. Nightmare to nightmare. Five, eight, ten…"*
-- 16–22 s: *"Ten in a row is a Dawnburst."* (beat) *"I could watch that all day."* · end card line.
+- 8–12 s: *"And it jumps. Nightmare to nightmare. Five, eight, ten…"*
+- 12–24 s: *"Ten in a row is a Dawnburst."* (beat) *"I could watch that all day."* · end card line.
 
-**Short 3: "The first boss." (~30 s)**
+**Short 3: "The first boss." (~32 s)**
 - 0–2 s: *"This is the first boss. The Hollow Stag."*
 - 2–10 s: *"On long straight corridors, it charges, so the trick is: never give it a straight line."*
-- 10–22 s: *"Bend the maze. Make it turn. Every corner kills its charge."*
-- 22–30 s: *"A few tiles from the tree."* (beat) *"It never got its run-up."* · end card line.
+- 10–27 s: *"Bend the maze. Make it turn. Every corner kills its charge."*
+- 27–32 s: *"A few tiles from the tree."* (beat) *"It never got its run-up."* · end card line.
 
 **Short 4: "The forest moves." (~22 s)**
 - 0–2 s: *"After every boss, the Heartwood gives you a gift."*
@@ -104,11 +104,11 @@ several captures (export `cuts`, see `capture/video0.json`); every clip at real 
 - 10–17 s: *"Watch the route. It bends right around it. They have to take the long way now."*
 - 17–22 s: *"Every run, the map is different, and you get to change it."* · end card line.
 
-**Short 5: "One leaf left." (~25 s)**
+**Short 5: "One leaf left." (~19 s, one jump cut at 9 s)**
 - 0–2 s: *"One leaf left."*
 - 2–9 s: *"If one more nightmare reaches the tree, the run is over."*
-- 9–22 s: *"Come on, come on…"* (let the action breathe)
-- 22–25 s: *"Dispelled. On the doorstep."* (exhale) *"That's the game."* · end card line.
+- 9–16 s: *"Come on, come on…"* (let the action breathe)
+- 16–19 s: *"Dispelled. On the doorstep."* (exhale) *"That's the game."* · end card line.
 
 **End card line (every short):** *"Heartwood TD. Wishlist it on Steam, link below."* (swap the name if it changes)
 

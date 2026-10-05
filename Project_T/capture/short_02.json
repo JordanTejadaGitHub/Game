@@ -12,8 +12,8 @@
 	"captions": [
 		[0.0, 2.0, "Watch this chain."],
 		[2.0, 8.0, "Soaked, then Charged: a Thunderclap."],
-		[8.0, 16.0, "It jumps. Five, eight, ten..."],
-		[16.0, 22.0, "Ten in a row is a Dawnburst."]
+		[8.0, 12.0, "It jumps. Five, eight, ten..."],
+		[12.0, 24.0, "Ten in a row is a Dawnburst."]
 	],
 	"timeline": [
 		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.8},
