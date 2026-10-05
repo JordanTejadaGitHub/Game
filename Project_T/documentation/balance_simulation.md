@@ -816,13 +816,13 @@ Goal: planting the Nth copy, growing (base → branch 120, branch → final 450)
 | | Sporeling | Firefly Jar | Dewdrop | Bellflower |
 |---|---|---|---|---|
 | Base DPS | 14 | 21 | 18 | 17 (pulse) |
-| Copy N price (step 0.08) | 25 → 33 (N 5) → 41 (N 10) → 53 (N 15) | same | same | same |
-| Copy DPS / Dew, N 1 / 5 / 10 / 15 | 0.56 / 0.42 / 0.34 / 0.26 | 0.84 / 0.64 / 0.51 / 0.40 | 0.72 / 0.55 / 0.44 / 0.34 | 0.68 / 0.52 / 0.41 / 0.32 |
+| Copy N price (step 0.08) | 25 → 33 (N 5) → 43 (N 10) → 53 (N 15) | same | same | same |
+| Copy DPS / Dew, N 1 / 5 / 10 / 15 | 0.56 / 0.42 / 0.33 / 0.26 | 0.84 / 0.64 / 0.49 / 0.40 | 0.72 / 0.55 / 0.42 / 0.34 | 0.68 / 0.52 / 0.40 / 0.32 |
 | Branch mean DPS (range) | 20 (12–39) | 51 (10–113) | 30 (6–72) | 38 (13–70) |
 | Grow → branch, DPS / Dew | 0.05 | 0.25 | 0.10 | 0.18 |
 | Final mean DPS (range) | 41 (27–60) | 94 (10–240) | 31 (8–60) | 85 (24–165) |
 | Branch → final, DPS / Dew | 0.05 | 0.10 | 0.00 | 0.10 |
-| Rank I on base / branch / final (≈ +14% DPS) | 0.07 / 0.05 / 0.06 | 0.10 / 0.12 / 0.15 | 0.08 / 0.07 / 0.05 | 0.08 / 0.09 / 0.13 |
+| Rank I on base / branch / final (≈ +14% DPS) | 0.07 / 0.05 / 0.06 | 0.10 / 0.12 / 0.15 | 0.09 / 0.07 / 0.05 | 0.08 / 0.09 / 0.13 |
 
 On paper the 15th copy still beats any grow by 2–5×, yet in the sims they come out even: at copy step 0.08 the
 **default bot (13 Wardens, ~5 branches) survives the act 1 boss 63–70%, the spender (~18 Wardens, no grows)
