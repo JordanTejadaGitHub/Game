@@ -13,4 +13,3 @@ tags = Array[String](["variety", "overgrowth"])
 requires = Array[String]([])
 max_stacks = 1
 rule_id = &"odd_one_out"
-in_start_pool = false

@@ -14,7 +14,7 @@ const IDS := ["call_of_the_wild", "lasting_dreams",
 	"glimmering_hunt", "straightaway", "straightaway_ii", "heart_of_the_maze"]
 
 # The lean starting pool (dream_design.md "The starting Dream pool", 2026-09-30): these moved to Grove nodes.
-const LEAN_GROVE := ["bitter_hedges", "bramble_oath", "briar_crown", "crossroads", "crowd_breaker", "desperate_bloom", "elder_kin", "eternal_static", "few_and_mighty", "forests_edge", "grand_tour", "hunters_moon", "hunters_patience", "last_leaf", "last_stand", "lucid_dreaming", "menagerie", "mixed_grove", "odd_one_out", "odd_one_out_ii", "reclaimed_earth", "restless_night", "rooted_nightmares", "scarred_bark", "scarred_bark_ii", "scented_hedge", "second_wind", "sharpened_light", "sharpened_light_ii", "solitude", "tended_forest", "thin_bark", "thorn_snare", "thorn_snare_ii", "thornheart", "wildwood_reclaimed"]
+const LEAN_GROVE := ["bitter_hedges", "bramble_oath", "briar_crown", "crossroads", "desperate_bloom", "elder_kin", "eternal_static", "few_and_mighty", "forests_edge", "grand_tour", "hunters_moon", "hunters_patience", "last_leaf", "last_stand", "lucid_dreaming", "menagerie", "mixed_grove", "reclaimed_earth", "restless_night", "rooted_nightmares", "scarred_bark", "scarred_bark_ii", "scented_hedge", "second_wind", "sharpened_light", "sharpened_light_ii", "tended_forest", "thin_bark", "thorn_snare", "thorn_snare_ii", "thornheart", "wildwood_reclaimed"]
 
 var failures := 0
 var main: Node
@@ -697,10 +697,11 @@ func _test_grove_branches() -> void:
 	_reset()
 	var swift := ["momentum", "momentum_ii", "quickening", "flurry", "restless_roots", "hummingheart", "whirlwind_heart", "drumbeat"]
 	var reach := ["broad_splash", "lingering_splash", "lingering_splash_ii", "far_reach", "far_reach_ii", "spillover", "great_ripple", "overlap"]
+	var start_pool := ["momentum", "momentum_ii", "drumbeat", "overlap"]  # Back in the start pool (dream_design.md 21ac910b)
 	for id in swift + reach:
 		var card := _card(id)
-		_check(card != null and not card.in_start_pool and card.tags == [("swift" if swift.has(id) else "reach")],
-			"%s: Grove pool, the %s tag" % [id, "swift" if swift.has(id) else "reach"])
+		_check(card != null and card.in_start_pool == start_pool.has(id) and card.tags == [("swift" if swift.has(id) else "reach")],
+			"%s: %s, the %s tag" % [id, "start pool" if start_pool.has(id) else "Grove pool", "swift" if swift.has(id) else "reach"])
 	_check(DreamState.ARCHETYPE_TAGS.has("swift") and DreamState.ARCHETYPE_TAGS.has("reach"), "swift and reach are build tags")
 	_check(_card("whirlwind_heart").rarity == UpgradeData.Rarity.LEGENDARY and _card("great_ripple").rarity == UpgradeData.Rarity.LEGENDARY
 		and _card("broad_splash").max_stacks == 3 and _card("momentum_ii").deepens == "momentum", "rarities, stacks, Deepened")
