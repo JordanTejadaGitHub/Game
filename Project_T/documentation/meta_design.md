@@ -171,24 +171,33 @@ Slot nodes 2 and 3 are gone (2026-09-29), so the tree is 120 Seeds cheaper. Seed
 the end of the Economy path, so it can't be rushed first for faster Seeds.
 
 
-**Keepsakes (cosmetics)**: a small **Keepsakes twig** at the foot of the Perks limb, **no loadout
-slot, no gameplay effect**; each has an on/off toggle once grown (node card and Settings → Display
-→ Keepsakes). **They are achievement unlocks, never bought** (user 2026-10-05: *"all the keepsake
-nodes on the tree should be milestone achievement unlocks; anything cosmetic"*): the matching
-milestone **grows its Keepsake for free**, on top of the milestone's Seed bonus. Until then the node
-shows as a bud with its milestone ("Win without losing a leaf"). **Rule: anything cosmetic is
-unlocked by a milestone, never by Seeds; everything with gameplay is bought.**
+**Keepsakes (cosmetics) live on a shelf, not the tree** (user 2026-10-05). Anything cosmetic is a
+milestone achievement unlock, never bought, and isn't a Grove node: the four Keepsakes sit on a
+**Keepsakes shelf** next to the Memories shelf in the Grove screen, each with its on/off toggle
+once earned (also in Settings → Display → Keepsakes). Unearned ones show greyed with their milestone
+("Win without losing a leaf"). Each milestone also pays its Seed bonus.
 
-| Keepsake | Grown by | What it does |
+| Keepsake | Earned by | What it does |
 |---|---|---|
 | Golden Leaf | Win without losing a leaf (`flawless_win`) | the in-run Heartwood's leaves turn gold |
 | Blossoms | Win at Blight Level 10 (`blight_10_win`) | every Warden wears a small blossom |
 | Gilded Pages | Discover every combo (`all_combos`) | the Codex pages get gilded edges |
 | Starlit Card Backs | See every Dream card (`all_dreams`) | Dream offer cards get the night-sky frame |
 
-- Keepsakes **don't count** toward the Heartwood's Crown ("every other node at max level"), so a
-  cosmetic achievement never gates a gameplay slot. New cosmetics later follow the same rule (a
-  milestone, its own Keepsake node).
+**The twig gets bought nodes instead** (user 2026-10-05): options, not power; no loadout slot, always
+on once planted. Placement by limb colour (user: *"should be the orange seed, all the card ones
+should be purple"*): the non-card ones are **orange Perks** on the twig at the foot of the Perks
+limb; the card one is **purple**, on the Cards limb.
+
+| Node | Limb | Cost | What it adds | Designed by |
+|---|---|---|---|---|
+| **Restless Omens** | Perks (orange), twig | 40 | 4 new double-edged Omens join the Omen pool | the design hub (`run_design.md` Omens) |
+| **Remembered Seed** | Perks (orange), twig | 30 | start a run on any map from your run history, or type a seed | Main Merger (run start) |
+| **Wanderer's Map** | Perks (orange), twig | 60 | a new map layout joins the random roll (e.g. two starts) | Environment Discussion |
+| **Strange Dreams** | Cards (purple), its own small branch | 50 | a bundle of gamble Dream cards (odd, swingy effects) joins the pool | Roguelite Mechanic Discussion |
+
+- These count toward the Heartwood's Crown like any bought node. +180 Seeds.
+- Each node waits for its content; until then it isn't on the tree.
 
 **Power budget:** 15 perks, carry 3 at the start, up to 5 (6 once the whole tree is grown). A full economy loadout (Morning Stores III, Rich Dew
 III, Rested Roots II, Sprout Bed, Clear Sight) makes the early game noticeably smoother, which is
@@ -377,7 +386,7 @@ A Memory fragment appears **every 3 nodes planted** (plus the milestone ones bel
 
 **Milestones only give bonus Seeds** (user, 2026-10-04; replaces the free unlocks). A milestone
 never grows a gameplay node, refunds a purchase or unlocks a Memory: **every gameplay node is bought
-with Seeds**; the only exception is cosmetic (four milestones also grow a Keepsake, Section 1, user 2026-10-05). Each milestone pays a **one-time Seed bonus** at the run end it's reached, as its own
+with Seeds**; the only exception is cosmetic (four milestones also earn a Keepsake on the Keepsakes shelf, Section 1, user 2026-10-05). Each milestone pays a **one-time Seed bonus** at the run end it's reached, as its own
 results line (*"Milestone · Dispel 3,000 Shades · +25 Seeds"*), scaled by how hard it is. Steam
 achievements still map to the milestone ids. Dev runs record none (as before).
 
@@ -400,7 +409,7 @@ achievements still map to the milestone ids. Dev runs record none (as before).
   they may retune them, e.g. once `longest_path` is in the run history.
 - **Memories** now come only from the first run and Grove growth (one per 3 levels planted); 10
   arrive well before the tree is complete.
-- **Cosmetics** (Golden Leaf, Blossoms, gilded pages, starlit backs) are Keepsake nodes grown by their milestone
+- **Cosmetics** (Golden Leaf, Blossoms, gilded pages, starlit backs) are Keepsakes on a shelf, earned by their milestone
   (Section 1; flawless win, Blight 10 win, every combo, every Dream card); the extra reroll is Second Thoughts III (bought).
 - **Sunpetal** (Firefly Jar's hidden branch) is a normal node: **60 Seeds, needs Firefly Jar**, like
   the other hidden branches. **Stormheart's Ascension** now needs Sunpetal, like every other
