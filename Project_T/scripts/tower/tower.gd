@@ -626,8 +626,15 @@ func _compute_damage() -> float:
 		* get_wall_multiplier() * (1.0 + _chorus) \
 		* (1.0 + (GroveRules.hummingheart(self, get_attacks_per_second()) if _dream_state and _has_rule(&"hummingheart") else 0.0)) \
 		* (1.0 + _gift_bonus(&"damage")) \
-		* BranchKit.damage_multiplier(self)  # Gift Spring: water Wardens beside it; Rampart: its walls
+		* BranchKit.damage_multiplier(self) \
+		* _final_damage_multiplier()  # Gift Spring: water Wardens beside it; Rampart: its walls
 	# (Kindred / Whole Tree, Kinship cards; Bramble Oath; Lullaby Bell's Chorus; Hummingheart: bonus speed as damage)
+
+# Balancing's A/B on final forms (tier 3 only; Ascended keeps its own): DreamState.final_damage_multiplier, 1.0 = off.
+func _final_damage_multiplier() -> float:
+	if tower_data.tier != 3 or _dream_state == null or not ("final_damage_multiplier" in _dream_state):
+		return 1.0
+	return _dream_state.final_damage_multiplier
 
 # Withering Oak: the Warden withers for `seconds` (grey, no attacks), then comes back unharmed.
 func wither(seconds: float) -> void:
