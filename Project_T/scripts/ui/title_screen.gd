@@ -79,13 +79,14 @@ func _ready() -> void:
 		demo.add_theme_color_override("font_outline_color", Palette.VOID)
 		demo.add_theme_constant_override("outline_size", 8)
 		_menu.add_child(demo)
+	# A fog patch behind the column, no thread of its own: the primary carries the one mark (UI light pass).
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", UiStyle.panel(20.0, 18.0))
+	panel.add_theme_stylebox_override("panel", UiStyle.fog_patch(20.0, 18.0))
 	_menu.add_child(panel)
-	_buttons.add_theme_constant_override("separation", 10)
+	_buttons.add_theme_constant_override("separation", 4)  # Quiet rows close enough to read as a list
 	panel.add_child(_buttons)
 
-	# The first choice takes the primary look (ui_style.md "Buttons").
+	# The first choice takes the primary look; every other entry is quiet (ui_style.md "Buttons").
 	if RunSaver.has_save():
 		UiStyle.primary(_add_button("Continue", _continue))
 	var new_run := _add_button("New run", _new_run)
@@ -106,17 +107,18 @@ func _ready() -> void:
 		_menu.visible = false
 		_codex.open())
 	_add_button("Credits", _show_credits)
-	_add_button("Quit", func() -> void: get_tree().quit())
+	var quit := _add_button("Quit", func() -> void: get_tree().quit())
+	quit.add_theme_color_override("font_color", UiStyle.INK_DIM)  # Last, in Mist
 
-	var seeds := Label.new()
 	var memory := HeartwoodMemory.load_data()
-	seeds.text = "Seeds banked: %d" % memory.seeds if memory.runs_played > 0 else ""
+	if memory.runs_played > 0:  # Seeds banked: the Seeds glyph and the number, in Sprig
+		_buttons.add_child(_seeds_row(int(memory.seeds)))
 	if int(memory.highest_blight_won) > 0:  # A blossom per Blight Level won (text until the art exists)
-		seeds.text += "\n" + "✿".repeat(int(memory.highest_blight_won)) + "  Blight Level %d won" % int(memory.highest_blight_won)
-	seeds.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	seeds.add_theme_color_override("font_color", UiStyle.LIVE)
-	seeds.visible = seeds.text != ""
-	_buttons.add_child(seeds)
+		var blight := Label.new()
+		blight.text = "✿".repeat(int(memory.highest_blight_won)) + "  Blight Level %d won" % int(memory.highest_blight_won)
+		blight.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.caps(blight, UiStyle.LABEL_SIZE, UiStyle.LIVE)
+		_buttons.add_child(blight)
 
 	_settings = SettingsPanel.new()
 	_settings.visible = false
@@ -149,14 +151,40 @@ func open_codex(tab: StringName = &"", entry: String = "") -> void:
 	_settings.visible = false
 	_codex.open(tab, entry)
 
+# A menu entry: quiet (ink text, Glow on hover, the full column width as its hit area, 48 px tall).
+# The primary choice is restyled by the caller.
 func _add_button(text: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.custom_minimum_size = Vector2(0, 48)
 	button.focus_mode = Control.FOCUS_NONE
+	UiStyle.quiet(button)
+	button.add_theme_font_size_override("font_size", UiStyle.BUTTON_SIZE)  # The menu keeps its size
 	button.pressed.connect(action)
 	_buttons.add_child(button)
 	return button
+
+# "Seeds banked" as an icon row: the Seeds glyph at 2× and the number in the number font, Sprig.
+func _seeds_row(seeds: int) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	row.tooltip_text = "Seeds banked"
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	var glyph := IconInfo.icon(&"seeds")
+	if glyph:
+		var icon := TextureRect.new()
+		icon.texture = glyph
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.custom_minimum_size = glyph.get_size() * 2.0
+		row.add_child(icon)
+	var count := Label.new()
+	count.text = str(seeds)
+	UiStyle.number(count, UiStyle.NUMBER_SIZE, UiStyle.LIVE)
+	row.add_child(count)
+	return row
 
 func _continue() -> void:
 	RunSaver.resume_next = true
