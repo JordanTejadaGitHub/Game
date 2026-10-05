@@ -278,7 +278,9 @@ func _fit() -> void:
 
 func refresh() -> void:
 	var m := meter()
-	visible = m != null and drift_director.drifts_started > 0
+	# Never in capture mode (marketing captures): the director hides it each frame, but a refresh after its turn
+	# showed it for one frame (Short Form Video).
+	visible = m != null and drift_director.drifts_started > 0 and CaptureDirector.hud_mode() == CaptureDirector.Hud.FULL
 	if not visible:
 		return
 	var b := m.get_benchmark()
