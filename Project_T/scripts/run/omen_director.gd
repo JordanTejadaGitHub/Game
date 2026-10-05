@@ -171,6 +171,9 @@ func get_spawn_modifiers(drift_number: int) -> Dictionary:
 		modifiers["status_immune"] = active.status_immune  # Sleepless (Enemy Code adds them)
 	if active.always_status != &"":
 		modifiers["always_status"] = active.always_status  # Heavy Rain: always Soaked (Enemy Code)
+	if active.straight_speed_cells > 0:  # Swift Stream (Enemy Code): this speed only on straights of N+ cells
+		modifiers["straight_speed"] = active.straight_speed_multiplier
+		modifiers["straight_speed_cells"] = active.straight_speed_cells
 	if active.trample_thornwall:
 		modifiers["tramples_thornwall"] = true  # Tramplers (Enemy Code): ask claim_trample() before trampling
 	if active.burrow_tiles > 0:
@@ -478,14 +481,18 @@ func make_offer(block: int) -> Array[OmenData]:
 	var offer: Array[OmenData] = []
 	var kinds := {}
 	for omen in eligible:
-		if offer.size() < omens_per_offer and not kinds.has(omen.kind):
+		if offer.size() < omens_per_offer and not kinds.has(omen.kind) and not _clashes(omen, offer):
 			offer.append(omen)
 			kinds[omen.kind] = true
 	for omen in eligible:
-		if offer.size() < omens_per_offer and not offer.has(omen):
+		if offer.size() < omens_per_offer and not offer.has(omen) and not _clashes(omen, offer):
 			offer.append(omen)
 	_last_offer_ids.assign(offer.map(func(o: OmenData) -> String: return o.id))
 	return offer
+
+# Brittle Night / Leaf Fall (both double leaks): never in the same offer, whichever names the other.
+static func _clashes(omen: OmenData, offer: Array[OmenData]) -> bool:
+	return offer.any(func(o: OmenData) -> bool: return o.never_with.has(omen.id) or omen.never_with.has(o.id))
 
 # --- Next-block rules other scripts ask (Tower, TowerPlacer, RunState, DriftDirector) --------------
 

@@ -11,6 +11,7 @@ flavor = "They crack at a touch. So does the Heartwood."
 requires_grove = "restless_omens"
 kind = 2
 never_before_boss = true
+never_with = Array[String](["leaf_fall"])
 health_multiplier = 0.75
 leak_multiplier = 2.0
 reward_dew = 45

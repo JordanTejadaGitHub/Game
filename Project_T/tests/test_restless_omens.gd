@@ -2,7 +2,7 @@ extends SceneTree
 
 # Headless test for the Restless Omens (run_design.md "Restless Omens: four Grove Omens"): only with the Grove node
 # restless_omens; Swarming Night (×2 count, ×0.6 health), Giants' Walk (×0.5 count, ×2.4 health, +1 leaf a leak; act 2+,
-# never a boss block), Brittle Night (×0.75 health, double leaks; never a boss block), Static Sky (always Charged, +30%
+# never a boss block), Brittle Night (×0.75 health, double leaks; never a boss block), Crackling Sky (always Charged, +30%
 # speed; once something applies Charged). Never touches the player's saves: the node comes from force_grove.
 #   godot --headless --path . --script res://tests/test_restless_omens.gd --fixed-fps 60
 
@@ -61,7 +61,7 @@ func _test_data() -> void:
 	_check(giants.count_multiplier == 0.5 and giants.health_multiplier == 2.4 and giants.leak_add == 1 and giants.reward_dew == 25
 		and giants.reward_rare_dreams == 1, "Giants' Walk: ×0.5 count, ×2.4 health, +1 leaf a leak, +25 Dew and a Rare+")
 	_check(brittle.health_multiplier == 0.75 and brittle.leak_multiplier == 2.0 and brittle.reward_dew == 45, "Brittle Night: ×0.75 health, double leaks, +45 Dew")
-	_check(sky.always_status == EnemyStatuses.STATIC and sky.speed_multiplier == 1.3 and sky.reward_dew == 40, "Static Sky: always Charged, +30% speed, +40 Dew")
+	_check(sky.always_status == EnemyStatuses.STATIC and sky.speed_multiplier == 1.3 and sky.reward_dew == 40, "Crackling Sky: always Charged, +30% speed, +40 Dew")
 
 # The ids offered over many rests for `block`.
 func _seen(block: int, rests: int = 60) -> Dictionary:
@@ -77,10 +77,17 @@ func _test_gates() -> void:
 	var without := _seen(3)
 	_check(not IDS.any(func(id: String) -> bool: return without.has(id)), "without the Grove node none of them is offered (%s)" % [without.keys()])
 	OmenDirector.force_grove.assign(["restless_omens"])
+	var together := 0  # Brittle Night and Leaf Fall both double leaks: never in one offer
+	for i in 200:
+		omens._last_offer_ids.clear()
+		var ids: Array = omens.make_offer(3).map(func(o: OmenData) -> String: return o.id)
+		if ids.has("brittle_night") and ids.has("leaf_fall"):
+			together += 1
+	_check(together == 0, "Brittle Night and Leaf Fall are never offered together (%d times in 200)" % together)
 	var act_one := _seen(3)  # Drifts 11–15
 	_check(act_one.has("swarming_night") and act_one.has("brittle_night"), "with it: Swarming Night and Brittle Night in act 1 (%s)" % [act_one.keys()])
 	_check(not act_one.has("giants_walk"), "Giants' Walk waits for act 2")
-	_check(not act_one.has("static_sky"), "Static Sky waits for something that applies Charged")
+	_check(not act_one.has("static_sky"), "Crackling Sky waits for something that applies Charged")
 	dreams.unlocked["firefly_jar"] = true  # Its line applies Charged
 	_check(omens.has_charged_source() and _seen(3).has("static_sky"), "…then it can be offered")
 	dreams.unlocked.erase("firefly_jar")
@@ -107,7 +114,7 @@ func _test_twists() -> void:
 	_check(leaves - run_state.leaves == 2 and omens.get_multiplier(31, "health_multiplier") == 0.75, "Brittle Night: 0.75× health, a 1-leaf leak costs 2")
 	omens.active = _omen("static_sky")
 	var mods := omens.get_spawn_modifiers(31)
-	_check(mods.get("always_status") == EnemyStatuses.STATIC and mods.get("speed") == 1.3, "Static Sky: always Charged, 30% faster")
+	_check(mods.get("always_status") == EnemyStatuses.STATIC and mods.get("speed") == 1.3, "Crackling Sky: always Charged, 30% faster")
 	leak.free()
 	omens.active = null
 	director.drifts_started = 0

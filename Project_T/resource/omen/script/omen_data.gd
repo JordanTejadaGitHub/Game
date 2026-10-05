@@ -16,7 +16,8 @@ class_name OmenData
 @export var requires_clearing: bool = false  # Only offered once clearing is unlocked this run (Shifting Ground: its reward is for clearing)
 @export var never_before_boss: bool = false  # Not offered for a block with a boss drift (Leaf Fall: a doubled boss leak would end the run)
 @export var requires_grove: String = ""  # Only in the pool once this Grove node is planted (Restless Omens; the full game)
-@export var requires_charged_source: bool = false  # Only offered once something this run applies Charged (Static Sky)
+@export var requires_charged_source: bool = false  # Only offered once something this run applies Charged (Crackling Sky)
+@export var never_with: Array[String] = []  # Omen ids never in the same offer (Brittle Night / Leaf Fall: both double leaks)
 # The offer shows 2 Omens of different kinds (run_design.md "More Omens").
 enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP, MAZE }  # MAZE: Omens that test the maze, not the numbers
 @export var kind: Kind = Kind.NIGHTMARES
@@ -27,6 +28,8 @@ enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP, MAZE }  # MAZE: Omens that
 @export var health_multiplier: float = 1.0
 @export var speed_multiplier: float = 1.0
 @export var count_multiplier: float = 1.0  # Creatures per drift
+@export var straight_speed_multiplier: float = 1.0  # Swift Stream: this speed only on straights of straight_speed_cells+ (Enemy Code)
+@export var straight_speed_cells: int = 0
 @export var flyer_count_multiplier: float = 1.0  # Flying creatures, on top of count_multiplier
 @export var coat_multiplier: float = 1.0  # Blight coats
 @export var creature_dew_multiplier: float = 1.0
