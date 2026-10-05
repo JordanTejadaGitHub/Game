@@ -191,11 +191,14 @@ the card one is **purple**, on the Cards limb (the right side).
 
 | Node | Limb | Cost | What it adds | Designed by |
 |---|---|---|---|---|
-| **Restless Omens** | Perks limb (orange, left) | 40 | 4 new double-edged Omens join the Omen pool | the design hub (`run_design.md` Omens) |
+| **Restless Omens** | Cards limb (purple, right), with Strange Dreams | 40 | 4 new double-edged Omens join the Omen pool | the design hub (`run_design.md` Omens) |
 | **Remembered Seed** | Perks limb (orange, left) | 30 | start a run on any map from your run history, or type a seed | Main Merger (run start) |
-| **Strange Dreams** | Cards (purple), its own small branch | 50 | a bundle of gamble Dream cards (odd, swingy effects) joins the pool | Roguelite Mechanic Discussion |
+| **Strange Dreams** | Cards limb (purple, right), a small branch with Restless Omens | 50 | a bundle of gamble Dream cards (odd, swingy effects) joins the pool | Roguelite Mechanic Discussion |
+| **Second Look** | Perks limb (orange, left) | 40 | before drift 1, reroll the map once | Main Merger / Environment Code (map reroll at the first rest) |
+| **Chosen Hunt** | Perks limb (orange, left) | 80 | when an act begins, see its 3 possible bosses and pick which one comes (the act 4 Hollow Oak picks its variation) | Enemy Code (boss pools) + Main (the choice screen) |
+| **Leaf or Dew** | Perks limb (orange, left) | 40 | before the run, trade up to 3 leaves for +15 Dew each, or up to 45 Dew for +1 leaf per 15 | Meta Game Code (run start) |
 
-- These count toward the Heartwood's Crown like any bought node. +120 Seeds. (Wanderer's Map, a new map layout, was dropped 2026-10-05: user "Removing it".)
+- **Rule (user 2026-10-05): anything card-like (Dreams, Omens) goes on the right side, purple; the left side, orange, holds run and loadout options.** These count toward the Heartwood's Crown like any bought node. +280 Seeds. (Wanderer's Map, a new map layout, was dropped 2026-10-05: user "Removing it".)
 - Each node waits for its content; until then it isn't on the tree.
 
 **Power budget:** 15 perks, carry 3 at the start, up to 5 (6 once the whole tree is grown). A full economy loadout (Morning Stores III, Rich Dew
