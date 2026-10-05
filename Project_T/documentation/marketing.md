@@ -151,15 +151,16 @@ only (a demo trailer drops "over 100 Wardens").
 
 | Time | Shot | On screen | Music |
 |---|---|---|---|
-| 0–5 s | Frame one: a staggered half-cell maze. Wardens snap down one after another; with each, the route mist bends live into a longer detour ("+N path"). | "Build the maze with your Wardens" | motif, Warden snaps on the pulse |
-| 5–10 s | Close on the forest edge (zoom 4): a Shade skitters in; a spore puff hits it; it shrieks and cracks into motes. | | near-silence; **hit 7.5 s**: the dispel |
-| 10–15 s | Pull back: the drift streams in and walks every bend of the maze. | "Make every nightmare take the long way" | pulse returns |
-| 15–27.5 s | Close on a crowd: Soaked, Charged, Thunderclap after Thunderclap. | "Discover combos between Wardens" | build; **hit 20 s**: the Thunderclap |
-| 27.5–37.5 s | A rest: the Dream pick (3 cards, one taken), then the next drift starts. One idea only. | "Pick a Dream to power your maze" | breath |
-| 37.5–45 s | One Warden grows in place, close: Sporeling → Driftspore → Puffball → Sporemother (Ascended). | "Grow over 100 Wardens" (116 forms, Tower Code) | |
-| 45–60 s | The Hollow Stag charges up a straight corridor and turns on the corner (zoom 3); one beat each of the Night Mare's gallop and the Hollow Oak. | "Bend the maze to break a boss's charge" (over the Stag) | boss; **hit 52.5 s**: the Stag turns |
-| 60–70 s | A late storm board, close on the crowd: one chain to ×10, Dawnburst. | "Chain lightning through the whole crowd" | full; **hit 65 s**: the Dawnburst |
-| 70–75 s | Logo, the tagline *"Grow a living maze. Hold back the nightmares."*, "Wishlist on Steam", platforms. | "Heartwood TD" (pitch.md "Title"; trademark check pending) | held chord from 70 s |
+| 0–5 s | Frame one: a staggered half-cell maze. Wardens snap down one after another; with each, the route mist bends live into a longer detour ("+N path"). | "Build the maze with your Wardens" | motif, Warden snaps on the pulse; carries through the cut |
+| 5–8.33 s | Close (zoom 4): a Shade skitters in; a spore puff hits it; it cracks into motes. Cut one beat after. | | **hit 7.5 s**: the dispel |
+| 8.33–15 s | Pull back: a crowd of nightmares walks every bend of the maze. | "Make every nightmare take the long way" | pulse returns |
+| 15–25 s | Close on a crowd: Soaked, Charged, Thunderclap after Thunderclap. | "Discover combos between Wardens" | build; **hit 20 s** |
+| 25–35 s | Lightning arcs, then the storm crowd close: a chain to ×10, Dawnburst. | "Chain lightning through the whole crowd" | drive; **the big hit at 30 s** |
+| 35–40 s | A rest: the Dream pick (3 cards, one taken). | "Pick a Dream to power your maze" | a breath |
+| 40–47.5 s | One Warden grows in place, close: Sprout → Sporeling → Driftspore → Puffball (40 / 41.25 / 42.5 / 43.75), the Ascended form at 45 shown only as a dark silhouette (a tease). | "Grow over 100 Wardens" (116 forms, Tower Code) | swells on 40 / 42.5 / 45 |
+| 47.5–60 s | The Night Mare's gallop, the Hollow Oak, then the Stag (zoom 3, the follow leads it) dispelled on the 60 s hit. | "Dispel bosses" | gallop, Oak drums, the Stag's horn; **hit 60 s**, "the turn" (no silence) |
+| 60–70 s | The Memory Grove: close on Rootling as it's planted (branch grows, bud opens), then a pull-back while the whole tree grows from fresh to full. | "and grow the Grove" | the hopeful motif out of the dispel's ring, rising |
+| 70–75 s | The logo on the store art, the tagline *"Grow a living maze. Hold back the nightmares."*, "Wishlist on Steam", platforms. | "Heartwood TD" | the button + held D major chord |
 
 **Music:** the dedicated trailer cue (§9), not the loop stems. Cuts sit on 2.5 s bars (72 bpm 3/4) and the four hits
 fall on downbeats; if Sound Discussion picks another tempo, the cuts move to its bars. Cut changes go to Sound Discussion.
