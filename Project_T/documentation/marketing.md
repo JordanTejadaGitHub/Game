@@ -275,11 +275,36 @@ human artist replaces both.
 
 ## 8. Posting and measuring
 
-- 3–4 shorts a week; post each on TikTok and YouTube Shorts, plus X / Bluesky and a relevant subreddit when it fits
-  (r/TowerDefense, r/roguelites, r/godot for dev-angle clips; read each sub's self-promo rules).
-- Track per video: 3-second hold, average watch %, shares, and wishlists that day (Steamworks). Keep what holds past 3 s;
-  test 2–3 hooks on the same clip.
+- **2–3 shorts a week** (was 3–4; see the study below: frequency barely mattered, consistency and testing did). Post each
+  on TikTok and YouTube Shorts, plus X / Bluesky and a relevant subreddit when it fits (r/TowerDefense, r/roguelites,
+  r/godot for dev-angle clips; read each sub's self-promo rules).
+- Post from **the developer's own account** (a solo dev's personal account reads as "a real indie game", people root for
+  it). The Steam link and "wishlist" go in the **bio**: that mattered as much as saying it in the video.
+- Track per video: 3-second hold, average watch %, shares, and wishlists that day (Steamworks). **Re-post each format 2–3
+  times** before judging it; the same video can get 10k views one day and 1M the next.
 - Reply to comments yourself; a real dev voice is the best marketing.
+- Expectation: roughly **2 wishlists per 1,000 views** for gameplay-driven virality (~2,000–2,500 per million). Funny or
+  dev-tip videos get views but convert a quarter to a tenth as well; paid boosts converted poorly. Don't pay for views.
+
+### What a study of 100+ viral indie TikToks says (Indie Game Luke, "How 100 Indie Games Went Viral on TikTok", 2025)
+- **Gameplay is king, and unique beats genre.** Tower defense / strategy was *rarely* seen going viral, so we win on what's
+  distinct: Wardens that are the walls, the chain lightning, the Grove, the dark-fairytale look. Visual distinctiveness
+  correlated with wishlists per view.
+- **Formats that worked, mapped to us** (each a short series to test 2–3 times):
+  1. *Pure gameplay*: "15 seconds of my maze tower defense". Shorts 1–2 already are this.
+  2. *The trailer, vertical* (blurred-bar background): a cheap win once the trailer is approved.
+  3. **Dev journey / how it started vs now** (the study's top pick): the first placeholder blocks and cozy prototype →
+     today's Wardens and nightmares. The git history and old art are the source. Make this a series.
+  4. **Early game vs late game**: an act 1 Sprout maze vs an act 4 storm of Ascended Wardens. A perfect fit for us.
+  5. *Nostalgia*: "Remember Warcraft 3 maze TD?" (Video 0's hook); the study saw nostalgia clips hit 1M+.
+  6. *Comparison to known games* ("Warcraft 3 maze TD meets a roguelite"): works when it's a new mix, backfires when it
+     looks like a copy.
+  7. *Ask for feedback* ("which Warden should get an Ascended form next?") and *responding to comments*.
+  8. *Milestones*: Steam page live, demo out, Next Fest. Always post one.
+  9. *A funny bug*: record it before fixing it.
+- **Length didn't matter** (15 s to 2 min all went viral). Trending sounds and CapCut memes rarely mattered.
+- **Curators**: TikTok channels that feature indie games (e.g. Brax finds games, Mad Morph) got some games ~1M views the
+  dev's own account never got. Pitch them once the Steam page is live.
 
 ## 9. Music for marketing (brief, 2026-10-04)
 
