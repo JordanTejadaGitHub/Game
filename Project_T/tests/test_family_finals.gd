@@ -62,7 +62,7 @@ func _run() -> void:
 	curl.queue_free()
 	await _clean()
 
-	# --- Long Way Home: 3 tiles, each nightmare once ---
+	# --- Long Way Home: 4 tiles, each nightmare once ---
 	var home := _plant("long_way_home", route[12])
 	home.position = Tower.MAP_GRID.calculate_map_position(route[12]) + Vector2(0, CELL)
 	var w2 := _walker(route, 12)
@@ -70,9 +70,14 @@ func _run() -> void:
 	home._update_ability(0.1)
 	home._advance_attack(1.0)
 	var seconds := await _wait_drag(w2)
-	_check(seconds > 0.7 and seconds < 1.3, "3 tiles take ~0.95 s: grab, then the drag (%.2f s)" % seconds)
+	_check(seconds > 0.7 and seconds < 1.3, "4 tiles take ~1.15 s: grab, then the drag (%.2f s)" % seconds)
 	var after_first: int = w2.get_route_index()
-	_check(start_index - after_first >= 2, "Long Way Home drags it back about 3 tiles (%d -> %d)" % [start_index, after_first])
+	# 4 tiles (the final's lever since the late-game pass 54155266; Balancing 2026-10-04): measured along the
+	# route in cells, since route points are half cells.
+	var dragged := 0.0
+	for i in range(after_first, start_index):
+		dragged += route[i].distance_to(route[i + 1])
+	_check(dragged >= 3.5 and dragged <= 4.5, "Long Way Home drags it back about 4 tiles (%.1f: %d -> %d)" % [dragged, start_index, after_first])
 	w2.global_position = Tower.MAP_GRID.calculate_map_position(route[12])
 	home._ability_timer = 0.0
 	home._update_ability(0.1)
