@@ -806,6 +806,12 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 **tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
 `longest_path` / `tended` requested in the run history to re-check.
 
+## Lichen shell strip (2026-10-05, flagged by Tower Code)
+
+`shell_strip` was 1% of a dread shell per Spored tick (one tick a second, whatever the stacks): ~100 s
+per shell. **Lichenling 0.10, Old Lichen 0.15** (crack at 8 unchanged): one Lichenling clears a shell in
+~10 s of Spored, two in ~5 s; Old Lichen ~7 s. Sent to Tower Code.
+
 ## Acts 3–4 coverage (user via the hub, 2026-10-05: the bots never get there)
 
 Balancing Discussion decides, Balancing Code builds the tools. At most 2 sims in parallel while the user may play.
