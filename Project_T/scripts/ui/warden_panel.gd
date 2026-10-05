@@ -292,12 +292,12 @@ func _refresh() -> void:
 			button.set_meta(&"grow_form", next)  # A form it can grow into now (pulse, tests)
 			var awake := tower_placer.ascended_blocker(next)
 			if awake != "":
-				button.text = "%s · %s%s" % [next.display_name, awake, button.get_meta(&"key", "")]  # One per family
-				button.disabled = true
+				button.disabled = true  # One per family
+				_row_note(button, next.display_name, awake)
 			elif next.footprint > _tower.get_footprint() and tower_placer.get_grow_squares(_tower, next).is_empty():
 				# A 2×2 form needs three free cells (or Thornwalls) beside it, and the path must stay open.
-				button.text = "%s · Needs 3 free cells beside it%s" % [next.display_name, button.get_meta(&"key", "")]
 				button.disabled = true
+				_row_note(button, next.display_name, "Needs 3 free cells beside it")
 			else:
 				var primary := grow_primary and run_state.can_afford(cost)
 				grow_primary = grow_primary and not primary  # Only the first affordable one
@@ -379,7 +379,7 @@ func _refresh() -> void:
 	elif drift_director.is_build_phase() and _tower.rest_dew > 0:
 		note = "This rest's %d Dew comes back in full." % _tower.rest_dew
 	_details_toggle()
-	var sell := _add_footer_button("Sell · +%s Dew" % BossDossier.thousands(refund))
+	var sell := _add_footer_button("Sell · +%s Dew (%s)" % [BossDossier.thousands(refund), tower_seller.sell_key_name()])
 	sell.tooltip_text = (note + "\n\n" if note != "" else "") + "Key: %s" % tower_seller.sell_key_name()  # Light pass: the key in the tip
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if _tower.tower_data.rooted:
@@ -465,8 +465,8 @@ func _refresh_group() -> void:
 			button.set_meta(&"grow_form", next)
 			var awake := tower_placer.ascended_blocker(next)
 			if awake != "":
-				button.text = "%s · %s%s" % [next.display_name, awake, button.get_meta(&"key", "")]
 				button.disabled = true
+				_row_note(button, next.display_name, awake)
 			else:
 				_priced(button, label, "%s Dew" % BossDossier.thousands(price), cheapest, &"dew", false)  # Short of even one: the can't-afford style
 			button.pressed.connect(func() -> void:
@@ -512,7 +512,7 @@ func _refresh_group() -> void:
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
 	_details_toggle()
-	var sell := _add_footer_button("Sell %d · +%s Dew" % [selection.size(), BossDossier.thousands(refund)])
+	var sell := _add_footer_button("Sell %d · +%s Dew (%s)" % [selection.size(), BossDossier.thousands(refund), tower_seller.sell_key_name()])
 	sell.tooltip_text = ("Half the Dew back while nightmares walk.\n\n" if in_drift else "") + "Key: %s" % tower_seller.sell_key_name()
 	if _confirm_sell:
 		sell.text = "Really sell %d? +%s Dew" % [selection.size(), BossDossier.thousands(refund)]  # The tip says why it asks
@@ -712,7 +712,7 @@ func _locked_form_button(button: Button, label: String, next: TowerData, towers:
 		button.set_meta(&"price", WardenHeaderView.blocker_text(blocker))
 		_set_short(button, true, false)  # Not a price: just the dim look
 	else:
-		_priced(button, label, ("%d Dreamlight" % cost) if cost > 0 else "free", cost, &"dreamlight", true)
+		_priced(button, label, ("%d Dreamlight" % cost) if cost > 0 else "free", cost, &"dreamlight", false)  # A row: the one primary is Nurture or a grow
 	button.pressed.connect(func() -> void:
 		_confirm_unlock = null
 		if tower_seller.refuse_if_short(towers, next, false, index):
@@ -1162,10 +1162,83 @@ func _apply_price(button: Button) -> void:
 		button.tooltip_text = tip
 	_set_short(button, short)
 
+# A grow / unlock row (user: "the texts overflow for the warden panel"; UI Asset's suggestion): the form's name on the
+# first line, its price or what it needs small in Mist under it, the key as a chip at the right, all inside the panel.
+# The button's own text keeps the whole line ("Chime Stone · 180 Dew (Q)"), transparent, for tests and screen readers.
+const ROW_NAME_SIZE := 16
+const ROW_NOTE_SIZE := 13
+
+func _row_look(button: Button, short: bool, poor_price: bool) -> void:
+	button.set_meta(&"short", short)
+	button.set_meta(&"cant_afford", short)  # CantAfford.is_shown, like the Remember screen's buttons
+	var label: String = button.get_meta(&"label", "")
+	var price: String = button.get_meta(&"price", "")
+	var key: String = button.get_meta(&"key", "")
+	button.text = label + (" · " + price if price != "" else "") + key
+	button.modulate.a = 1.0
+	var primary: bool = button.get_meta(&"primary", false) and not short
+	button.theme_type_variation = &"PrimaryButton" if primary else &"RowButton"
+	for state in FONT_STATES + ["font_disabled_color"]:
+		button.add_theme_color_override(state, Color(UiStyle.INK, 0.0))  # The overlay draws the words
+	var row := button.get_node_or_null("Row") as HBoxContainer
+	if row == null:
+		row = HBoxContainer.new()
+		row.name = "Row"
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_theme_constant_override("separation", 8)
+		row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		row.offset_left = button.get_theme_stylebox("normal").get_margin(SIDE_LEFT)
+		row.offset_right = -8
+		button.add_child(row)
+		var lines := VBoxContainer.new()
+		lines.name = "Lines"
+		lines.alignment = BoxContainer.ALIGNMENT_CENTER
+		lines.add_theme_constant_override("separation", -2)
+		lines.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(lines)
+		for i in 2:
+			var part := Label.new()
+			part.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			part.clip_text = true
+			part.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			part.add_theme_font_size_override("font_size", ROW_NAME_SIZE if i == 0 else ROW_NOTE_SIZE)
+			lines.add_child(part)
+		var chip := UiStyle.key_chip("")
+		chip.name = "Key"
+		row.add_child(chip)
+	# "Sporeling · 3 of 5" (a group): the name first, the rest joins the price on the small line.
+	var parts := label.split(" · ", true, 1)
+	var name_label := row.get_node("Lines").get_child(0) as Label
+	var note_label := row.get_node("Lines").get_child(1) as Label
+	name_label.text = parts[0]
+	var notes: Array[String] = []
+	if parts.size() > 1:
+		notes.append(parts[1])
+	if price != "":
+		notes.append(price)
+	note_label.text = ", ".join(notes)
+	note_label.visible = note_label.text != ""
+	var dim := short or button.disabled
+	name_label.add_theme_color_override("font_color", UiStyle.INK_DIM if dim else (UiStyle.GOLD if primary else UiStyle.INK))
+	note_label.add_theme_color_override("font_color", UiStyle.POOR if short and poor_price else Color(UiStyle.MOON_MIST, 0.8))
+	var chip := row.get_node("Key") as Label
+	chip.text = key.strip_edges().trim_prefix("(").trim_suffix(")")
+	chip.visible = chip.text != ""
+
+# A row that can't be pressed, with its reason as the small line ("Needs 3 free cells beside it", "Awake elsewhere").
+func _row_note(button: Button, form_name: String, reason: String) -> void:
+	button.set_meta(&"label", form_name)
+	button.set_meta(&"price", reason)
+	_row_look(button, false, false)
+
 # The look: normal (primary frame for Grow), or the can't-afford style. A short line is drawn by an overlay of
 # three labels (label, price, key; the button's own text stays, transparent, so sizes and tests see the line).
 # `poor_price` false: a dim line with nothing in POOR (a form that isn't open yet).
 func _set_short(button: Button, short: bool, poor_price := true) -> void:
+	if button.get_meta(&"variation", &"") == &"RowButton":
+		_row_look(button, short, poor_price)
+		return
 	button.set_meta(&"short", short)
 	button.set_meta(&"cant_afford", short)  # CantAfford.is_shown, like the Remember screen's buttons
 	var label: String = button.get_meta(&"label", "")

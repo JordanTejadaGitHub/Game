@@ -7,9 +7,9 @@ const UNAFFORDABLE_BUTTON_ALPHA := UiStyle.UNAFFORDABLE_ALPHA
 # cost (UiStyle.HUD_SLOT). They stay between the Warden panel and the drift controls: slots shrink to
 # BUTTON_MIN_WIDTH (the 48 px touch minimum, platforms.md), then the bar wraps into more rows.
 # Smaller, centred (user: "the tower bar should be centred, make it smaller then"): 48 px wide, the touch minimum.
-const BUTTON_SIZE := Vector2(56, 72)  # One step up from 48 × 62 (user: "the tower bar can be a bit bigger")
-const SLOT_SPRITE := 40  # The Warden sprite in a slot (was UiStyle.HUD_SPRITE, 48; 32 in the smaller bar)
-const SLOT_COST_SIZE := 15  # The cost under the sprite
+const BUTTON_SIZE := Vector2(64, 84)  # Two steps up from 48 × 62 (user, twice: "the tower bar can be a bit bigger")
+const SLOT_SPRITE := 48  # The Warden sprite in a slot (UiStyle.HUD_SPRITE size again)
+const SLOT_COST_SIZE := 16  # The cost under the sprite
 const SLOT_KEY_SIZE := 12  # The hotkey in the corner
 const BUTTON_MIN_WIDTH := UiStyle.HUD_BUTTON_H
 const BAR_GAP := 6  # Between slots and between rows

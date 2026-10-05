@@ -23,8 +23,9 @@ const GROUP := &"boss_dossier"
 const ENEMY_SCRIPT := preload("res://scripts/enemy/enemy.gd")  # HEARTWOOD_DRAIN_EVERY
 const SPAWNER_SCRIPT := preload("res://scripts/enemy/enemy_spawner.gd")  # boss_bite_leaves (toll_text without a run)
 const RECORDS_KEY := "boss_records"  # Profile: {kind: {"dispelled": n, "best": seconds}}
-const WIDTH := 880.0
-const PORTRAIT := 240.0  # The boss's portrait, ~3× the old one
+const WIDTH := 820.0  # Light pass (UI Asset's second page): 820 wide, a 220 px left column
+const PORTRAIT := 200.0  # The boss's portrait on its disc
+const LEFT_COLUMN := 220.0
 const BOSS_COLOR := UiStyle.BOSS  # Heartwood 32 (ui_style.md)
 const COMPARE_PATH := "res://resource/enemy/bark_beetle.tres"  # The Husk: "about 13 Husks"
 const PULSE_SPEED := 1.1  # The vignette's slow breath (radians per second)
@@ -135,18 +136,27 @@ func _ready() -> void:
 	_content.custom_minimum_size = Vector2(WIDTH - 16, 0)
 	_content.add_theme_constant_override("separation", 10)
 	_scroll.add_child(_content)
-	_close_button.text = "Prepare"
+	_close_button.text = "Face it"
 	_close_button.tooltip_text = "Reopen it from the boss name at the top."
-	_close_button.custom_minimum_size = Vector2(200, 44)
+	_close_button.custom_minimum_size = Vector2(200, UiStyle.HUD_BUTTON_H)
 	_close_button.focus_mode = Control.FOCUS_NONE
 	_close_button.pressed.connect(close_dossier)
+	UiStyle.primary(_close_button)  # Light pass: the one primary, with its key
+	var enter := UiStyle.key_chip("⏎")
+	enter.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	enter.offset_left = -38
+	enter.offset_right = -14
+	_close_button.add_child(enter)
 	# "What's coming" at an act's start (user, 2026-10-03): forced, with Peek at the map and Continue.
 	_peek = ChoicePeek.new(self, [shade, _vignette, centre], "Return to what's coming")
 	_peek.place_back_centre()
 	var buttons := HBoxContainer.new()
-	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-	buttons.add_theme_constant_override("separation", 12)
-	buttons.add_child(_peek.make_peek_button())
+	buttons.alignment = BoxContainer.ALIGNMENT_END
+	buttons.add_theme_constant_override("separation", 18)
+	var peek_button := _peek.make_peek_button()
+	if peek_button is Button:
+		UiStyle.quiet(peek_button)
+	buttons.add_child(peek_button)
 	buttons.add_child(_close_button)
 	outer.add_child(buttons)
 	if drift_director != null:
@@ -159,8 +169,8 @@ func _ready() -> void:
 		spawner.child_entered_tree.connect(_on_spawned)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if visible and event.is_action_pressed("cancel_build"):
-		close_dossier()
+	if visible and (event.is_action_pressed("cancel_build") or event.is_action_pressed("ui_accept")) and not _peek.peeking:
+		close_dossier()  # Esc, or Enter for the "Face it ⏎" primary
 		get_viewport().set_input_as_handled()
 
 # --- When it shows -------------------------------------------------------------------------------
@@ -335,12 +345,14 @@ func open(drift: int = 0) -> void:
 	_build(data, drift)
 	if not whats_coming.is_empty():
 		_add_coming_rows()
-	_close_button.text = "Continue" if not whats_coming.is_empty() else "Prepare"
+	_close_button.text = "Continue" if not whats_coming.is_empty() else "Face it"
 	visible = true
 	_entrance(data)
 	_scroll.scroll_vertical = 0
-	var screen := get_viewport_rect().size
-	_scroll.custom_minimum_size.y = minf(_content.get_combined_minimum_size().y, screen.y - 140.0)
+	_fit_scroll()
+	_fit_scroll.call_deferred()  # Again once the wrapped rows have their widths (a fresh label reports a tall minimum)
+	if not _content.minimum_size_changed.is_connected(_fit_scroll):
+		_content.minimum_size_changed.connect(_fit_scroll)
 	# Mid-drift it pauses (a choice screen's calm); at rests nothing walks anyway.
 	var speed := drift_director.get_node_or_null("%GameSpeed") as GameSpeed
 	_paused_it = speed != null and not drift_director.is_resting() and not speed.paused
@@ -349,6 +361,11 @@ func open(drift: int = 0) -> void:
 
 # The card comes up: the portrait fades up out of the mist and the name writes in (reduced motion:
 # a plain fade of the whole card). Runs while paused.
+# The card's height: its content, at most the screen less a margin (it scrolls past that).
+func _fit_scroll() -> void:
+	if is_inside_tree():
+		_scroll.custom_minimum_size.y = minf(_content.get_combined_minimum_size().y, get_viewport_rect().size.y - 140.0)
+
 func _entrance(data: EnemyData) -> void:
 	boss_revealed.emit(data)
 	_clock = 0.0
@@ -435,38 +452,108 @@ func boss_data(drift: int) -> EnemyData:
 
 # The portrait in its mist on the left, everything else in the right column.
 func _build(data: EnemyData, drift: int) -> void:
+	# Light pass (UI Asset's second page, user-approved): the portrait on its disc with the arrival and the stakes
+	# under it on the left; the name, its title as a whisper, the defences as icon rows and what it does on the right.
 	var columns := HBoxContainer.new()
-	columns.add_theme_constant_override("separation", 22)
+	columns.add_theme_constant_override("separation", 28)
 	_content.add_child(columns)
+	var left := VBoxContainer.new()
+	left.custom_minimum_size.x = LEFT_COLUMN
+	left.add_theme_constant_override("separation", 12)
+	columns.add_child(left)
 	_stage = BossStage.new(data, PORTRAIT)
-	_stage.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	columns.add_child(_stage)
+	_stage.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	left.add_child(_stage)
+	# Less on the page (user: "a lot of information on the boss page, remove health and speed and what it brings"):
+	# health lives on the boss bar in the fight, and in the portrait's tip here.
+	var health := NightmareCard.health_at(data, drift, drift_director)
+	TapTip.attach(_stage, "Health %s%s (with this run's growth, Blight and Dreams)" % [thousands(health), _compare_text(health, drift)])
+	var eyebrow_label := eyebrow(drift_director.get_act(drift), 14)
+	eyebrow_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	left.add_child(eyebrow_label)
+	var started := drift_director.drifts_started
+	var last := drift == drift_director.get_act(drift) * drift_director.drifts_per_act
+	var arrives := _stake("Arrives", "walking now" if drift <= started else "drift %d" % drift)
+	arrives.tooltip_text = "Drift %d%s. %s" % [drift, " · the last drift of the act" if last else "",
+		"Walking now" if drift <= started else "Arrives in %d drift%s" % [drift - started, "" if drift - started == 1 else "s"]]
+	left.add_child(arrives)
+	# What it costs you, read from the data (EnemyContainer's bite by act; the Night Mare and the Hollow Oak in words).
+	var spawner = drift_director.get_node_or_null("%EnemyContainer") if drift_director != null else null
+	var act := drift_director.get_act(drift) if drift_director != null else 1
+	var toll := toll_text(data, act, spawner)
+	var bite := bite_leaves(data, act, spawner)
+	if bite > 0:
+		var stakes := _stake("If it reaches the Heartwood", "−%d" % bite, &"leaves", UiStyle.POOR)
+		stakes.name = "Toll"
+		stakes.tooltip_text = toll
+		left.add_child(stakes)
+	else:
+		var words := Label.new()
+		words.name = "Toll"
+		words.text = toll
+		words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.custom_minimum_size.x = LEFT_COLUMN
+		words.add_theme_font_size_override("font_size", 14)
+		words.add_theme_color_override("font_color", UiStyle.POOR)
+		left.add_child(words)
+	var record := StatusLinks.make_label(record_text(data), 14, UiStyle.INK_DIM)  # Your record, one quiet line
+	record.name = "Record"
+	record.custom_minimum_size.x = LEFT_COLUMN
+	left.add_child(record)
+
 	var right := VBoxContainer.new()
-	right.add_theme_constant_override("separation", 10)
+	right.add_theme_constant_override("separation", 12)
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	columns.add_child(right)
 	right.add_child(_header(data, drift))
-	# Less on the page (user: "a lot of information on the boss page, remove health and speed and what it brings"):
-	# health lives on the boss bar in the fight, and in the portrait's tip here; speed and "It brings" are gone
-	# (escorts show in the Coming strip; a summoning ability's row names what it calls).
-	var health := NightmareCard.health_at(data, drift, drift_director)
-	TapTip.attach(_stage, "Health %s%s (with this run's growth, Blight and Dreams)" % [thousands(health), _compare_text(health, drift)])
-	var leaves := Label.new()  # What it costs you, large
-	var spawner = drift_director.get_node_or_null("%EnemyContainer") if drift_director != null else null
-	leaves.text = toll_text(data, drift_director.get_act(drift) if drift_director != null else 1, spawner)
-	UiStyle.display(leaves, 26)
-	leaves.add_theme_color_override("font_color", BOSS_COLOR.lightened(0.25))
-	TapTip.attach(leaves, IconInfo.resource_tooltip(&"leaves"))
-	right.add_child(leaves)
-	var rows := NightmareIcons.make_rows(data, 36.0, false, true)
+	var rows := NightmareIcons.make_rows(data, 24.0, false, true)
 	if rows.get_child_count() > 0:
 		right.add_child(rows)
 	if data.abilities.size() > 0:
 		right.add_child(_section("What it does"))
 		for i in data.abilities.size():
 			right.add_child(_ability_row(data.get_ability(i)))
-	right.add_child(_section("Your record"))
-	right.add_child(StatusLinks.make_label(record_text(data), 15))
+
+# One stake under the portrait: the quiet label on the left, the value (an icon before it) on the right.
+func _stake(label_text: String, value: String, icon_id: StringName = &"", colour: Color = UiStyle.GOLD) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	var label := Label.new()
+	label.text = label_text
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.custom_minimum_size.x = 110
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	row.add_child(label)
+	if icon_id != &"":
+		var icon := TextureRect.new()
+		icon.texture = IconInfo.icon(icon_id)
+		icon.custom_minimum_size = Vector2(18, 18)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(icon)
+	var number := Label.new()
+	number.text = value
+	UiStyle.number(number, 18, colour)
+	row.add_child(number)
+	return row
+
+# The leaves a boss takes at the Heartwood (EnemyContainer's bite by act, else its leaf_cost); 0 for the Night Mare and
+# the Hollow Oak, whose toll is in words (toll_text).
+static func bite_leaves(data: EnemyData, act: int, spawner: Node = null) -> int:
+	if data.laps() or data.stays_at_heartwood:
+		return 0
+	if spawner != null and spawner.has_method("get_boss_bite"):
+		return spawner.get_boss_bite(act)
+	var spawner_script: Script = SPAWNER_SCRIPT
+	var table = spawner_script.get_property_default_value("boss_bite_leaves")
+	if table is Array and not table.is_empty():
+		return int(table[clampi(act - 1, 0, table.size() - 1)])
+	return data.leaf_cost
 
 # What a boss costs you at the Heartwood (the dossier, large; the Codex's boss entry): "Takes 10 leaves if it reaches
 # the Heartwood"; the Night Mare and the Hollow Oak in their own words. Without a run's EnemyContainer (the Codex on the
@@ -495,38 +582,43 @@ func _compare_text(health: int, drift: int) -> String:
 	var count := roundi(float(health) / maxf(each, 1.0))
 	return " · about %d %s" % [count, husk.display_name + ("s" if count != 1 else "")] if count >= 2 else ""
 
-func _header(data: EnemyData, drift: int) -> Control:
+func _header(data: EnemyData, _drift: int) -> Control:
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
+	box.add_theme_constant_override("separation", 2)
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_child(eyebrow(drift_director.get_act(drift)))
+	var name_row := HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 10)
+	box.add_child(name_row)
 	var name := Label.new()
-	name.text = data.display_name + (" · New" if NightmareCard.is_new(data) else "")
-	UiStyle.display(name, 34)
-	name.add_theme_color_override("font_color", BOSS_COLOR.lightened(0.25))
-	box.add_child(name)
+	name.text = data.display_name
+	UiStyle.display(name, 38)
+	name.visible_characters_behavior = TextServer.VC_CHARS_AFTER_SHAPING  # The write-in keeps its size
+	name.add_theme_color_override("font_color", UiStyle.INK)
+	name_row.add_child(name)
 	_name_label = name
+	if NightmareCard.is_new(data):
+		var chip := Label.new()  # "New: never faced", a gold chip
+		chip.name = "NewChip"
+		chip.text = "New: never faced"
+		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		chip.add_theme_font_size_override("font_size", 13)
+		chip.add_theme_color_override("font_color", UiStyle.GOLD)
+		var frame := StyleBoxFlat.new()
+		frame.draw_center = false
+		frame.border_color = UiStyle.GOLD
+		frame.set_border_width_all(1)
+		frame.set_corner_radius_all(11)
+		frame.content_margin_left = 8
+		frame.content_margin_right = 8
+		chip.add_theme_stylebox_override("normal", frame)
+		name_row.add_child(chip)
 	var title: String = data.title
 	if title != "":
 		var sub := Label.new()
 		sub.text = title
-		sub.add_theme_font_size_override("font_size", 16)
+		UiStyle.whisper(sub, 17)
 		sub.add_theme_color_override("font_color", TITLE_COLOR)
 		box.add_child(sub)
-	var when := Label.new()
-	var last := drift == drift_director.get_act(drift) * drift_director.drifts_per_act
-	when.text = "Drift %d%s" % [drift, " · the last drift of the act" if last else ""]
-	UiStyle.caps(when, 14, UiStyle.INK_DIM)
-	box.add_child(when)
-	var whisper := StatusLinks.make_label("[i]\"%s\"[/i]" % whisper_line(data), 15, WHISPER_COLOR)
-	whisper.text = _links_keep_tags("[i]\"%s\"[/i]" % whisper_line(data))  # Italic, status names still links
-	box.add_child(whisper)
-	var arrives := Label.new()
-	var started := drift_director.drifts_started
-	arrives.text = "Walking now" if drift <= started else "Arrives in %d drift%s" % [drift - started, "" if drift - started == 1 else "s"]
-	arrives.add_theme_font_size_override("font_size", 15)
-	arrives.add_theme_color_override("font_color", SECTION_COLOR)
-	box.add_child(arrives)
 	return box
 
 static func whisper_line(data: EnemyData) -> String:
@@ -536,26 +628,52 @@ static func whisper_line(data: EnemyData) -> String:
 func _section(text: String) -> Label:
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_size_override("font_size", 17)
-	label.add_theme_color_override("font_color", SECTION_COLOR)
+	UiStyle.caps(label, 14)  # Light pass: a caps heading ("what it does")
 	return label
 
 func _ability_row(ability: Dictionary) -> Control:
+	# Light pass: the icon in a small ring, the name with its "when" as a chip, then one line of what it does.
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
-	var icon := NightmareIcons.trait_icon(StringName(ability.get("icon", "")), 34.0)
+	var icon := NightmareIcons.trait_icon(StringName(ability.get("icon", "")), 36.0)
 	icon.tip = IconInfo.format("%s: %s" % [ability.get("name", ""), ability.get("text", "")])
 	icon.tooltip_text = icon.tip
+	icon.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	for child in icon.get_children():
 		if child is TapTip:
 			child._label.text = icon.tip
 	row.add_child(icon)
-	var text := "[b]%s[/b]  [color=#%s]%s[/color]\n%s" % [ability.get("name", ""), SECTION_COLOR.to_html(false),
-		ability.get("when", ""), ability.get("text", "")]
-	var label := StatusLinks.make_label("", 15)
-	label.text = _links_keep_tags(text)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 2)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(column)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 8)
+	column.add_child(head)
+	var name := Label.new()
+	name.text = String(ability.get("name", ""))
+	UiStyle.display(name, 19)
+	head.add_child(name)
+	var when := String(ability.get("when", ""))
+	if when != "":
+		var chip := Label.new()
+		chip.text = when
+		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		chip.add_theme_font_size_override("font_size", 13)
+		chip.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		var frame := StyleBoxFlat.new()
+		frame.draw_center = false
+		frame.border_color = Color(UiStyle.INK_DIM, 0.4)
+		frame.set_border_width_all(1)
+		frame.set_corner_radius_all(11)
+		frame.content_margin_left = 8
+		frame.content_margin_right = 8
+		chip.add_theme_stylebox_override("normal", frame)
+		head.add_child(chip)
+	var label := StatusLinks.make_label("", 14, UiStyle.INK_DIM)
+	label.text = _links_keep_tags(String(ability.get("text", "")))
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(label)
+	column.add_child(label)
 	return row
 
 # StatusLinks.bbcode escapes "[" (plain text in); here the card's own tags must survive.

@@ -190,16 +190,20 @@ func _run() -> void:
 	_check(health == maxi(roundi(stag.health * director.get_health_scale(stag, 25)), 1) and not on_page
 		and dossier._stage.tooltip_text.contains(BossDossier.thousands(health)),
 		"the real boss health (%d) is in the portrait's tip, not on the page" % health)
-	_check(text.contains(stag.title) and text.contains("drift 25 · the last drift of the act") and text.contains("the boss of act 1") and text.contains("Arrives in"), "header: eyebrow, title, drift and arrival")
-	_check(text.contains("Takes 10 leaves if it reaches the Heartwood") and not text.contains("tiles/s") and not text.contains("It brings"),
-		"only the leaf toll, large; no speed, no \"It brings\" (user: \"a lot of information on the boss page\") (%s)" % text.left(300))
+	# Light pass (UI Asset's second page): the arrival and the stakes under the portrait, the details in their tips.
+	var arrival: Control = dossier._content.find_children("*", "HBoxContainer", true, false).filter(func(c: Control) -> bool: return c.tooltip_text.begins_with("Drift 25")).front()
+	_check(text.contains(stag.title) and text.contains("drift 25") and text.contains("the boss of act 1") and arrival != null
+		and arrival.tooltip_text.contains("the last drift of the act") and arrival.tooltip_text.contains("Arrives in"), "header: eyebrow, title, drift and arrival")
+	var toll: Control = dossier._content.find_child("Toll", true, false)
+	_check(toll != null and toll.tooltip_text == "Takes 10 leaves if it reaches the Heartwood" and text.contains("−10") and not text.contains("tiles/s") and not text.contains("It brings"),
+		"only the leaf toll, from the data (−10); no speed, no \"It brings\" (user: \"a lot of information on the boss page\") (%s)" % text.left(300))
 	_check(BossDossier.toll_text(stag, 1) == "Takes 10 leaves if it reaches the Heartwood", "the toll without a run (the Codex on the title screen)")
 	var revealed := []
 	dossier.boss_revealed.connect(func(d: EnemyData) -> void: revealed.append(d))
 	dossier.open(25)
 	_check(revealed == [stag], "opening it emits boss_revealed for Sound")
-	_check(text.contains("What it does") and text.contains("Charge") and text.contains("at 50% health"), "abilities with when")
-	_check(not text.contains("What helps") and text.contains("Your record") and text.contains("New"), "no What helps (removed 2026-09-30); the record")
+	_check(text.to_lower().contains("what it does") and text.contains("Charge") and text.contains("at 50% health"), "abilities with when")
+	_check(not text.contains("What helps") and dossier._content.find_child("Record", true, false) != null and text.contains("New"), "no What helps (removed 2026-09-30); the record")
 	dossier.close_dossier()
 	_check(not dossier.visible, "Prepare closes it")
 	BossDossier.open_for(root.get_tree())

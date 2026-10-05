@@ -144,11 +144,8 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 	desc.text = StatusLinks.bbcode(data.description)  # {damp}-style tokens and plain names both work
 	full_description = ""
 	detail_lines.clear()
-	if compact:
-		var short := short_description(data.description)
-		desc.text = StatusLinks.bbcode(short)
-		if short != data.description:
-			full_description = data.description
+	# Compact: the description whole, wrapping (user: "The description also cuts off"); short_description stays for
+	# callers that want an opening line.
 	if is_instance_valid(tower) and tower.legacy_data != null:
 		# An Ascended form still makes its final form's attack.
 		if compact:

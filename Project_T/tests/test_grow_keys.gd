@@ -222,11 +222,11 @@ func _run() -> void:
 	var first_form: TowerData = Tower.grow_options(dreams, poor.tower_data)[0][0]
 	var want: int = poor.get_grow_cost(first_form).total
 	_check(grow_button.text == "%s · %s Dew (Q)" % [first_form.display_name, BossDossier.thousands(want)]
-		and grow_button.get_meta(&"short") and grow_button.has_node("Short"), "a short Grow shows its cost (%s)" % grow_button.text)
+		and grow_button.get_meta(&"short") and grow_button.has_node("Row"), "a short Grow shows its cost (%s)" % grow_button.text)
 	var nurture_button: Button = panel._buttons.get_children().filter(func(b) -> bool: return b is Button and b.text.begins_with("Nurture")).front()
 	_check(nurture_button.text.ends_with("· %d Dew (R)" % poor.get_nurture_price()) and nurture_button.get_meta(&"short"),
 		"a short Nurture reads the same way (%s)" % nurture_button.text)
-	_check(grow_button.tooltip_text.begins_with("Not enough Dew.") and (grow_button.get_node("Short").get_child(1) as Label).get_theme_color("font_color") == UiStyle.POOR, "only the cost in POOR; its tip says why")
+	_check(grow_button.tooltip_text.begins_with("Not enough Dew.") and (grow_button.get_node("Row/Lines").get_child(1) as Label).get_theme_color("font_color") == UiStyle.POOR, "only the cost in POOR; its tip says why")
 	run_state.dew = want
 	run_state.dew_changed.emit(want)
 	_check(not grow_button.get_meta(&"short") and not grow_button.has_node("Short") and grow_button.text.ends_with("%s Dew (Q)" % BossDossier.thousands(want))
