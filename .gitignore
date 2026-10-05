@@ -1,2 +1,5 @@
 # Rendered marketing videos (tools/marketing/*.ps1): large, never committed. Root only.
 /marketing/
+
+# Release builds (Project_T/tools/build_release.ps1): exported games and their zips, never committed
+/builds/

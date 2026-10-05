@@ -36,6 +36,7 @@ folder_colors={
 [game]
 
 demo=false
+demo.demo_build=true
 wishlist_url=""
 
 [gui]
