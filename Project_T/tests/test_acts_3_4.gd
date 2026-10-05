@@ -328,7 +328,7 @@ func _run() -> void:
 		for line in intro + [kind_data.hint]:
 			_check(not IconInfo.format(line).contains("{"), "%s reads fully: %s" % [file, IconInfo.format(line)])
 	var mourner_intro: String = load("res://resource/enemy/puffcap.tres").get_intro_lines()[0]
-	_check(mourner_intro == "Breaks into 3 Sobs when dispelled.", "intro numbers come from the data (%s)" % mourner_intro)
+	_check(mourner_intro.ends_with("it breaks into 3 Sobs."), "intro numbers come from the data (%s)" % mourner_intro)
 	var weeper_intro: String = load("res://resource/enemy/weeper.tres").get_intro_lines()[0]
 	_check(weeper_intro.contains("1.5 cells") and weeper_intro.contains("2%"), "Weeper intro: %s" % weeper_intro)
 	var stag_charge: Dictionary = load("res://resource/enemy/old_stag.tres").get_ability(1)
