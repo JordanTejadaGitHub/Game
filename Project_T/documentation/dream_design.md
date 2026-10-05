@@ -1645,6 +1645,7 @@ The player builds finer, twistier mazes in the same space.
     blocking and refusal, sell and save.
   - Tower Assets: a 32 px Thornwall sprite.
   - Environment: no change; the path art already handles one-half pinches.
+- **Built:** the card in 817e2146 (Roguelite Code; `DreamState.twig_walls()`, Hedge Maze counts a twig wall as half) and the wall in 527ac43d (Tower Code; Thornwall with `Tower.twig`, one half, saved per wall, 32×40 art).
 
 ## Strange Dreams: gamble cards (2026-10-05; cards 252–255)
 
