@@ -806,6 +806,16 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 **tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
 `longest_path` / `tended` requested in the run history to re-check.
 
+## Human run 18 (2026-10-04, build 5d8f3f = 7762f0cd; 0 Grove)
+
+**Lost at drift 35**, 9 min; user: *"feels fine so far."* Bellflower → Sporeling; **2 Thrums = 66% of damage**
+(Thrum at 70 is a real carry now); 3 Dreamshrooms; combos 22%. **Longest path 47 cells** (a short maze);
+**Dew banked up to 1,340 at drift 20** (saved for act 2). Act 1 closest 0.14–0.28 throughout, **15/15 leaves
+to 24**; the Night Mare at 25 cost 5 (41 s). Act 2 calm (≤ 0.24) until **drift 31, the Phantoms' intro (5
+flyers leaked) and 32 (5 more): 7 leaves**, the run's end. No anti-air in this pair of families.
+- On target (a fresh profile ends in act 2), and the user finds it fair. **No change.**
+- Act 1 at ×1.30 still reads calm for this player with a carry (the bot sits at 60%); watch, don't tune yet.
+
 ## Human run 17 (2026-10-04, build a4bd05 = 0b41c1ed: act 1 ×1.30, half cells, one-half gaps; 0 Grove)
 
 **Lost at drift 40**, 16 min; user: *"didn't play too much"* (drift 2 took 152 s; **1,000–1,337 Dew unspent**
