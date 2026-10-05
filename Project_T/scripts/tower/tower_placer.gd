@@ -1036,7 +1036,31 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 		var per_step := sprout_per_step()
 		if per_step > 0:
 			cost += (count_paid_sprouts() + planned_sprouts) / per_step * sprout_step_dew()
+	# Copies (user via Balancing 2026-10-04, demo too: mass-planting one base beat act 1 at any grow price): each
+	# planted Warden of a kind costs +copy_cost_step per copy of that kind already on the map (selling lowers it);
+	# walls are exempt (they're the maze), grown forms count under their own id. `planned_sprouts` = copies earlier in
+	# the same drag stroke (a stroke plants one kind).
+	# Sprouts are exempt too (Balancing 2026-10-04): they have their own step above, and 5 must still fit the 60 Dew opening.
+	if copy_cost_step > 0.0 and cost > 0 and warden.buildable_directly and warden.line != "wall" and warden.get_id() != "sprout":
+		cost = roundi(cost * (1.0 + copy_cost_step * (count_copies(warden) + planned_sprouts)))
 	return cost
+
+@export var copy_cost_step := 0.05  # +5% per copy on the map (0 = off, the sims' A/B)
+var _copy_counts := {}  # id -> planted copies, rebuilt when the board changes
+var _copy_board := -1
+
+# Planted Wardens of `data`'s kind on the map (Seedling Gift Sprouts don't count, as for the Sprout price).
+func count_copies(data: TowerData) -> int:
+	# DreamState.board_version moves on every plant, sale (path_changed, exiting the tree) and grow (evolved).
+	var board: int = dream_state.board_version if dream_state else -2
+	if board != _copy_board or board == -2:
+		_copy_board = board
+		_copy_counts = {}
+		for tower in tower_container.get_children():
+			if tower is Tower and not tower.is_queued_for_deletion() and not tower.get_meta(&"gift_sprout", false):
+				var id: String = tower.tower_data.get_id()
+				_copy_counts[id] = _copy_counts.get(id, 0) + 1
+	return _copy_counts.get(data.get_id(), 0)
 
 func sprout_price_halved() -> bool:
 	return dream_state.has_card(SEEDFALL_CARD)
@@ -1596,7 +1620,7 @@ func _plan_stroke_half() -> void:
 			else:
 				dew -= cost
 				blocked.append_array(halves)
-				if tower_data.get_id() == "sprout" and cost > 0:
+				if cost > 0:  # Priced after the earlier ones: the Sprout step and copies
 					planned_sprouts += 1
 				unique_used = tower_data.is_unique
 		_stroke_plan[o] = why
@@ -1641,7 +1665,7 @@ func _plan_stroke() -> void:
 			else:
 				dew -= cost
 				blocked.append(c)
-				if tower_data.get_id() == "sprout" and cost > 0:
+				if cost > 0:  # Priced after the earlier ones: the Sprout step and copies
 					planned_sprouts += 1  # Each Sprout in the stroke is priced after the ones before it
 				unique_used = tower_data.is_unique
 		_stroke_plan[c] = why

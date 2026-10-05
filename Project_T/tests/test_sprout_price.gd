@@ -26,6 +26,7 @@ func _run() -> void:
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	dreams.unlock_everything = true
 	run_state.dew = 10000
+	# Sprouts are exempt from copies (+5% each, checked at the end): only the Sprout step prices them
 
 	var planted: Array = []
 	for i in 5:
@@ -77,6 +78,28 @@ func _run() -> void:
 	expected = start + (paid / per_step * TowerPlacer.SEEDFALL_STEP_DEW if per_step > 0 else 0)
 	_check(paid < 16 or placer.get_cost(sprout) == expected, "and %s with %d on the map (%d)" % [
 		"never rise" if per_step == 0 else "rise +2 per %d" % per_step, paid, placer.get_cost(sprout)])
+
+	# Copies (user via Balancing 2026-10-04): each planted Warden costs +5% per copy of its kind on the map;
+	# walls and Sprouts are exempt, selling lowers it, a grown one counts under its new form.
+	placer.copy_cost_step = 0.05
+	var spore: TowerData = load("res://resource/tower/sporeling.tres")
+	var wall: TowerData = load("res://resource/tower/thornwall.tres")
+	var base := dreams.get_build_cost(spore)
+	var had := placer.count_copies(spore)  # The Sprout grown above became a Sporeling: it counts
+	_check(had == 1, "a Sprout grown into a Sporeling counts as a Sporeling (%d)" % had)
+	_check(placer.get_cost(spore) == roundi(base * (1.0 + 0.05 * had)), "the next Sporeling pays +5%% per copy (%d of base %d)" % [placer.get_cost(spore), base])
+	var spores: Array = [_build(placer, map, spore), _build(placer, map, spore)]
+	_check(spores.all(func(t) -> bool: return t != null), "two Sporelings planted")
+	_check(spores[1].invested_dew == roundi(base * (1.0 + 0.05 * (had + 1))), "each paid after the ones before it (%d)" % spores[1].invested_dew)
+	_check(placer.get_cost(spore) == roundi(base * (1.0 + 0.05 * (had + 2))), "the next costs more again (%d)" % placer.get_cost(spore))
+	var wall_cost := placer.get_cost(wall)
+	for i in 3:
+		_build(placer, map, wall)
+	_check(placer.get_cost(wall) == wall_cost, "Thornwalls never cost more for copies (%d)" % placer.get_cost(wall))
+	seller.sell(spores[1].cell)
+	_check(placer.get_cost(spore) == roundi(base * (1.0 + 0.05 * (had + 1))), "selling one lowers it (%d)" % placer.get_cost(spore))
+	spores[0].evolve(spore.evolves_to[0], 0)
+	_check(placer.get_cost(spore) == roundi(base * (1.0 + 0.05 * had)), "a grown one no longer counts as a Sporeling (%d)" % placer.get_cost(spore))
 
 	print("sprout price test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
