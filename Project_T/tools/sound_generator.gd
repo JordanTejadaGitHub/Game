@@ -52,6 +52,14 @@ func _init() -> void:
 	for dir in [SFX_DIR, MUSIC_DIR]:
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
 	var started := Time.get_ticks_msec()
+	var args := OS.get_cmdline_user_args()
+	if args.has("--marketing"):  # Marketing cues only: -- --marketing <out dir> [cue …]
+		var at := args.find("--marketing")
+		var out_dir: String = args[at + 1] if args.size() > at + 1 else "D:/Projects/Game/marketing/music/"
+		_make_marketing(out_dir.trim_suffix("/") + "/", args.slice(at + 2))
+		print("Marketing cues rendered in %.1f s" % ((Time.get_ticks_msec() - started) / 1000.0))
+		quit()
+		return
 	_make_sfx()
 	_make_music()
 	print("Sounds generated in %.1f s" % ((Time.get_ticks_msec() - started) / 1000.0))
@@ -1935,3 +1943,260 @@ func _make_remember() -> void:
 			return _env(_lowpass(out, 1800.0), SFX_RATE, swell(0.1, 0.9, 1.5))), 0.45)
 	_ws("dreamlight_glow", 1, 0.4, func(_v: int) -> PackedFloat32Array:  # Dreamlight earned: one warm glow swell
 		return _lowpass(_layers([[_glow_swell(1.0), 1.0], [_air(1.0, 500.0, 0.3, 0.6), 0.3]]), 1600.0))
+
+# --- Marketing music (audio_direction.md "Marketing music", marketing.md §9) ----------------------
+# Same world as the game: D minor, 72 bpm 3/4 (2.5 s bars), the Heartwood motif, the act 1 palette.
+# Each cue: four mono stems (low / mid / top / perc), mixed to stereo with a little placement, all
+# scaled by one gain so the stems sum to the full mix; plus the voice mix (300 Hz–3 kHz thinned ~6 dB).
+# Hit times and the bar map are parameters (TRAILER_*), so a re-render keeps the cut fitting.
+# Run: Godot --headless --path . --script res://tools/sound_generator.gd -- --marketing <out dir> [cue …]
+
+const MK_BAR := 2.5
+const MK_BEAT := MK_BAR / 3.0
+const MK_EIGHTH := MK_BAR / 6.0
+const TRAILER_LENGTH := 75.0
+const TRAILER_HITS := {"dispel": 7.5, "thunderclap": 20.0, "stop": 52.5, "dawnburst": 65.0, "endcard": 70.0}
+# Chords per bar (30 bars): [root midi, third]. D minor home; the boss section sits on D.
+const TRAILER_CHORDS := [[50, 3], [50, 3], [50, 3], [50, 3], [50, 3], [46, 4], [50, 3], [46, 4], [53, 4], [48, 4],
+	[45, 4], [50, 3], [46, 4], [53, 4], [45, 4], [46, 4], [48, 4], [45, 4], [50, 3], [50, 3], [50, 3], [50, 3],
+	[50, 3], [50, 3], [46, 4], [48, 4], [50, 4], [50, 4], [50, 4], [50, 4]]
+
+func _make_marketing(out_dir: String, only: Array) -> void:
+	DirAccess.make_dir_recursive_absolute(out_dir)
+	var cues := {"trailer": _cue_trailer, "endcard_button": _cue_endcard}
+	for cue in cues:
+		if only.is_empty() or only.has(cue):
+			var main := rng  # Each cue its own seeded RNG (like _own)
+			rng = RandomNumberGenerator.new()
+			rng.seed = hash("cue_" + cue)
+			var stems: Dictionary = cues[cue].call()
+			rng = main
+			_save_cue(out_dir, cue, stems)
+			print("  ", cue)
+
+# The end-card button: the Hope form D-A-F# on harp + music box, ~0.4 s apart, landing on a warm D
+# major chord that rings ~0.7 s (~1.5 s total; a little ring after).
+func _endcard_into(stems: Dictionary, at: float, hold: float) -> void:
+	var r := SFX_RATE
+	for k in 3:
+		var m: int = [74, 81, 78][k]
+		_mix(stems.top, _bell(r, hz(m), 0.32, 0.9, MUSIC_BOX, 2.5), r, at + k * 0.4)
+		_mix(stems.mid, _pluck(r, hz(m - 12), 0.3, 2.0, 0.7, 0.998), r, at + k * 0.4)
+	var chord_at := at + 1.2
+	for k in 5:
+		_mix(stems.mid, _pluck(r, hz([50, 57, 62, 66, 69][k]), 0.32, hold + 1.5, 0.7, 0.998), r, chord_at + k * 0.03)
+	_mix(stems.top, _bell(r, hz(74), 0.3, 1.4, MUSIC_BOX, hold + 1.0), r, chord_at)
+	_mix(stems.low, _env(_mk_pad([38, 50, 54, 57], hold + 0.8), r, swell(0.3, 1.0, hold + 0.8)), r, chord_at - 0.2, 0.9)
+
+func _cue_endcard() -> Dictionary:
+	var stems := _mk_stems(2.6)
+	_endcard_into(stems, 0.0, 0.7)
+	return stems
+
+func _cue_trailer() -> Dictionary:
+	var r := SFX_RATE
+	var b := MK_BAR
+	var stems := _mk_stems(TRAILER_LENGTH)
+	var bar_t := func(n: int) -> float: return (n - 1) * b  # Bar n (1-based) starts here
+
+	# Bars 1–2 (0–5 s): the motif alone on music box, soft and warm; a felt pulse on each beat.
+	for k in 4:
+		_mix(stems.top, _bell(r, hz([74, 81, 77, 74][k]), 0.3, 1.0, MUSIC_BOX, 3.0), r, k * MK_BEAT * (1.5 if k == 3 else 1.0))
+	for k in 6:
+		_mix(stems.perc, _mk_felt(r, 110.0), r, k * MK_BEAT, 0.45)
+	_mix(stems.mid, _mk_pad_chord([50, 3], 5.2), r, 0.0, 0.5)
+
+	# Bars 3–4 (5–10 s): near-silence; one cold low A-flat in bowed bass; the dispel bloom at 7.5, silence.
+	_mix(stems.low, _env(_bowed(r, 44, 2.4, 380.0), r, swell(0.3, 1.2, 2.4)), r, bar_t.call(3), 0.25)  # Faint, cold
+	var bloom := _normalize(_light_burst(0.15, 1.2, DISPEL_CHORD + [50, 57]), 1.0)  # The dispel bloom, trailer-sized
+	_mix(stems.top, bloom, r, TRAILER_HITS.dispel - 0.15, 1.6)
+	_mix(stems.mid, _env(_mk_pad([62, 66, 69], 1.6), r, swell(0.05, 1.2, 1.6)), r, TRAILER_HITS.dispel, 0.6)
+
+	# Bars 5–6 (10–15 s): the pulse returns in quarters, dread1's drone under it.
+	for k in 6:
+		_mix(stems.perc, _mk_felt(r, 105.0), r, bar_t.call(5) + k * MK_BEAT, 0.5)
+	_mix(stems.low, _mk_drone(5.0), r, bar_t.call(5), 0.5)
+	_mk_harmony(stems, 5, 6, 0.6)
+
+	# Bars 7–11 (15–27.5 s): building; low toms enter, then the frame drum; the Thunderclap at 20.
+	for bar in range(7, 12):
+		var t0: float = bar_t.call(bar)
+		for k in 3:
+			_mix(stems.perc, _mk_felt(r, 100.0), r, t0 + k * MK_BEAT, 0.5)
+		_mix(stems.perc, _tom(r, 58.0), r, t0, 0.8)
+		if bar >= 9:
+			_mix(stems.perc, _frame_drum(r), r, t0 + MK_BEAT, 0.45)
+			_mix(stems.perc, _tom(r, 70.0), r, t0 + 2 * MK_BEAT, 0.5)
+	_mk_harmony(stems, 7, 11, 0.8)
+	_mk_motif(stems, bar_t.call(7), 0)
+	_mk_motif(stems, bar_t.call(10), 12)
+	_mix(stems.low, _normalize(_thump(1.2, 60.0, 0.3), 1.0), r, TRAILER_HITS.thunderclap, 0.9)  # A warm boom
+	_mix(stems.low, _normalize(_thunder_roll(), 1.0), r, TRAILER_HITS.thunderclap + 0.1, 0.6)  # A far roll
+	_mix(stems.top, _normalize(_glow_swell(1.2), 1.0), r, TRAILER_HITS.thunderclap, 0.5)
+
+	# Bars 12–15 (27.5–37.5 s): a breath; half the density, the rest piece's harp, the warm motif, no drums.
+	for bar in range(12, 16):
+		var chord: Array = TRAILER_CHORDS[bar - 1]
+		for k in 3:
+			_mix(stems.mid, _pluck(r, hz([chord[0], chord[0] + 7, chord[0] + 12 + chord[1]][k]), 0.3, 3.0, 0.7, 0.998), r, bar_t.call(bar) + k * 0.09)
+		_mix(stems.mid, _mk_pad_chord(chord, b * 1.1), r, bar_t.call(bar), 0.35)
+	_mk_motif(stems, bar_t.call(12), 0)
+	_mk_motif(stems, bar_t.call(14), 0)
+
+	# Bars 16–18 (37.5–45 s): rising again; a slow swell, the pulse in eighths, the bass climbing.
+	for bar in range(16, 19):
+		for k in 6:
+			_mix(stems.perc, _mk_felt(r, 110.0), r, bar_t.call(bar) + k * MK_EIGHTH, 0.3 + 0.1 * (bar - 16))
+	var climb := [38, 40, 41, 43, 45, 46]
+	for k in 6:
+		_mix(stems.low, _bowed(r, climb[k], b * 0.55, 400.0), r, bar_t.call(16) + k * b * 0.5, 0.7)
+	_mix(stems.mid, _env(_mk_pad([57, 62, 65, 69], 7.6), r, swell(7.0, 0.4, 7.6)), r, bar_t.call(16), 0.7)
+	_mk_harmony(stems, 16, 18, 0.7)
+
+	# Bars 19–24 (45–60 s): the act 1 boss theme, bass an octave lower, the Stag's horn call; a hard stop
+	# at 52.5 (bar 22) with one bar of low drone, then the Night Mare's gallop and the Oak's drums build back.
+	var stop: float = TRAILER_HITS.stop
+	_mk_boss_drive(stems, bar_t.call(19), stop)
+	_mix(stems.mid, _horn_call(r, 50, b * 0.6), r, bar_t.call(19), 0.8)
+	_mix(stems.mid, _horn_call(r, 57, b * 1.2), r, bar_t.call(19) + b * 0.5, 0.8)
+	_mix(stems.low, _env(_mk_drone(b), SFX_RATE, swell(0.4, 0.3, b)), r, stop + 0.15, 0.3)  # The bar of drone alone, low
+	for bar in range(23, 25):  # The Night Mare's gallop, then the Oak's deep wooden drums
+		for half in 2:
+			var t0: float = bar_t.call(bar) + half * b * 0.5
+			for k in 3:
+				_mix(stems.perc, _felt_hoof(r, [95.0, 100.0, 85.0][k]), r, t0 + k * MK_EIGHTH, [0.35, 0.4, 0.65][k])
+		if bar == 24:
+			for k in 3:
+				_mix(stems.perc, _knock(r, 48.0, 0.2), r, bar_t.call(bar) + k * MK_BEAT, 0.8)
+	_mix(stems.low, _mk_drone(b * 2.0), r, bar_t.call(23), 0.5)
+
+	# Bars 25–28 (60–70 s): everything; the boss drive, the warm counter-melody in full, the Hope form
+	# building; the Dawnburst at 65 (bar 27), the biggest moment.
+	_mk_boss_drive(stems, bar_t.call(25), TRAILER_HITS.endcard)
+	for bar in range(25, 29):
+		var t0: float = bar_t.call(bar)
+		for k in 3:  # The warm form, then hope
+			var m: int = [74, 81, 77][k] if bar < 27 else [74, 81, 78][k]
+			_mix(stems.top, _bell(r, hz(m), 0.32, 0.9, MUSIC_BOX, 2.4), r, t0 + k * MK_BEAT)
+		_mix(stems.mid, _pluck(r, hz(62), 0.3, 2.4, 0.7, 0.998), r, t0)
+	var dawn: float = TRAILER_HITS.dawnburst
+	_mix(stems.low, _normalize(_thump(1.4, 45.0, 0.4), 1.0), r, dawn, 1.0)
+	_mix(stems.low, _normalize(_rumble(2.4, 70.0, 0.02, 1.8), 1.0), r, dawn, 0.7)
+	_mix(stems.top, _normalize(_air(2.4, 450.0, 0.2, 1.8, 0.7), 1.0), r, dawn, 0.6)
+	_mix(stems.top, _normalize(_glow_swell(2.0), 1.0), r, dawn, 0.5)
+	_mix(stems.mid, _env(_mk_pad([50, 54, 57, 62], 5.0), r, swell(0.3, 2.0, 5.0)), r, dawn, 0.8)
+
+	# Bars 29–30 (70–75 s): the end-card button, then one held warm D major chord to the end.
+	_endcard_into(stems, TRAILER_HITS.endcard, TRAILER_LENGTH - TRAILER_HITS.endcard - 1.2)
+	_mk_trim(stems, TRAILER_LENGTH, 1.5)  # Exactly 75 s for the edit; the held chord fades out at the very end
+	return stems
+
+# Cuts every stem to `length` s, fading the last `fade` s.
+func _mk_trim(stems: Dictionary, length: float, fade: float) -> void:
+	var n := int(length * SFX_RATE)
+	for k in stems:
+		var stem: PackedFloat32Array = stems[k]
+		stem.resize(n)
+		for i in int(fade * SFX_RATE):
+			stem[n - 1 - i] *= float(i) / (fade * SFX_RATE)
+		stems[k] = stem
+
+# The act 1 boss drive from `from` to `until` (a hard stop): felt toms + frame drum, the bowed ostinato
+# on the hollow form an octave lower, and the cold bowed theme.
+func _mk_boss_drive(stems: Dictionary, from: float, until: float) -> void:
+	var r := SFX_RATE
+	var bars := int(round((until - from) / MK_BAR))
+	for bar in bars:
+		var t0 := from + bar * MK_BAR
+		_mix(stems.perc, _tom(r, 52.0), r, t0, 1.0)
+		_mix(stems.perc, _frame_drum(r), r, t0, 0.5)
+		_mix(stems.perc, _tom(r, 70.0), r, t0 + 2 * MK_EIGHTH, 0.4)
+		_mix(stems.perc, _tom(r, 58.0), r, t0 + 3 * MK_EIGHTH, 0.8)
+		_mix(stems.perc, _tom(r, 70.0), r, t0 + 5 * MK_EIGHTH, 0.45)
+		var pattern := [26, 26, 32, 29, 29, 26]  # The hollow form, an octave down
+		for k in 6:
+			_mix(stems.low, _bowed(r, pattern[k], MK_EIGHTH * 1.1, 300.0), r, t0 + k * MK_EIGHTH, 0.8 if k % 3 == 0 else 0.55)
+	var slot := MK_BAR / 2.0
+	for note in BOSS1_THEME:
+		var at: float = from + note[0] * slot
+		if at < until - 0.2:
+			var length := minf(slot * note[2] * 1.05, until - at)
+			_mix(stems.mid, _bowed(r, note[1], length, 1100.0, true), r, at, 0.7)
+	# A hard stop: nothing rings past `until`
+	for stem in [stems.perc, stems.low, stems.mid]:
+		var cut := int(until * r)
+		for i in range(cut, mini(cut + int(0.05 * r), stem.size())):
+			stem[i] *= 0.0
+
+func _mk_stems(length: float) -> Dictionary:
+	return {"low": _seg(length, SFX_RATE), "mid": _seg(length, SFX_RATE), "top": _seg(length, SFX_RATE), "perc": _seg(length, SFX_RATE)}
+
+func _mk_felt(rate: int, freq: float) -> PackedFloat32Array:  # A soft felt pulse
+	return _filter(_tone(rate, 0.3, glide(freq * 1.3, freq, 0.03), perc(0.005, 0.06, 0.3)), rate, 700.0, 0.7)
+
+func _mk_pad(notes: Array, length: float) -> PackedFloat32Array:
+	var pad := _seg(length, SFX_RATE)
+	for m in notes:
+		_mix(pad, _tone(SFX_RATE, length, hz(m), swell(minf(0.6, length * 0.3), minf(0.8, length * 0.4), length), "tri"), SFX_RATE, 0.0, 0.25)
+	return _filter(pad, SFX_RATE, 1500.0, 0.7)
+
+func _mk_pad_chord(chord: Array, length: float) -> PackedFloat32Array:
+	return _mk_pad([chord[0] + 12, chord[0] + 12 + chord[1], chord[0] + 19], length)
+
+func _mk_drone(length: float) -> PackedFloat32Array:
+	var out := _seg(length, SFX_RATE)
+	for detune in [0.997, 1.003]:
+		_mix(out, _filter(_tone(SFX_RATE, length, hz(38) * detune, swell(0.4, 0.4, length), "saw"), SFX_RATE, 240.0, 0.5), SFX_RATE, 0.0, 0.5)
+	return out
+
+# The harp waltz + a soft pad over bars `from`..`to` (1-based), at `level`.
+func _mk_harmony(stems: Dictionary, from: int, to: int, level: float) -> void:
+	var r := SFX_RATE
+	for bar in range(from, to + 1):
+		var chord: Array = TRAILER_CHORDS[bar - 1]
+		var t0 := (bar - 1) * MK_BAR
+		_mix(stems.mid, _pluck(r, hz(chord[0]), 0.4 * level, 2.4, 0.7, 0.998), r, t0)
+		_mix(stems.mid, _pluck(r, hz(chord[0] + 7), 0.28 * level, 2.0, 0.6, 0.998), r, t0 + MK_BEAT)
+		_mix(stems.mid, _pluck(r, hz(chord[0] + 12 + chord[1]), 0.26 * level, 2.0, 0.6, 0.998), r, t0 + 2 * MK_BEAT)
+		_mix(stems.mid, _mk_pad_chord(chord, MK_BAR * 1.1), r, t0, 0.3 * level)
+		_mix(stems.low, _bowed(r, chord[0] - 12, MK_BAR * 1.05, 350.0), r, t0, 0.45 * level)
+
+func _mk_motif(stems: Dictionary, at: float, up: int) -> void:  # The warm form D-A-F, home to D
+	for k in 4:
+		_mix(stems.top, _bell(SFX_RATE, hz([74, 81, 77, 74][k] + up), 0.3, 0.9, MUSIC_BOX, 2.4), SFX_RATE, at + k * MK_BEAT)
+
+# Writes <cue>_low/_mid/_top/_perc, _full and _voice (stereo, 44.1 kHz), scaled by one shared gain.
+const CUE_PAN := {"low": 0.5, "mid": 0.42, "top": 0.58, "perc": 0.5}
+func _save_cue(out_dir: String, cue: String, stems: Dictionary) -> void:
+	var r := SFX_RATE
+	var length := 0
+	for k in stems:
+		length = maxi(length, stems[k].size())
+	for k in stems:
+		stems[k].resize(length)
+		stems[k] = _filter(stems[k], r, 5000.0, 0.7)  # Rounded: a dark top end
+	var full := _seg(float(length) / r, r)
+	for k in stems:
+		_mix(full, stems[k], r, 0.0, 1.0)
+	var top := 0.0
+	for v in full:
+		top = maxf(top, absf(v))
+	var gain := 0.8 / top if top > 0.0 else 1.0
+	for k in stems:
+		_save_stereo(stems[k], CUE_PAN[k], gain, out_dir + "%s_%s.wav" % [cue, k])
+	_save_stereo(full, 0.5, gain, out_dir + cue + "_full.wav")
+	# The voice mix: the full mix with 300 Hz–3 kHz thinned by ~6 dB.
+	var band := _filter(_filter(full, r, 300.0, 0.7, "hp"), r, 3000.0, 0.7)
+	var voice := full.duplicate()
+	_mix(voice, band, r, 0.0, -0.5)
+	_save_stereo(voice, 0.5, gain, out_dir + cue + "_voice.wav")
+
+func _save_stereo(seg: PackedFloat32Array, pan: float, gain: float, path: String) -> void:
+	var both := PackedFloat32Array()
+	both.resize(seg.size() * 2)
+	var l := cos(pan * PI / 2.0) * sqrt(2.0)
+	var rr := sin(pan * PI / 2.0) * sqrt(2.0)
+	for i in seg.size():
+		both[i * 2] = seg[i] * gain * l
+		both[i * 2 + 1] = seg[i] * gain * rr
+	_save(both, SFX_RATE, path, true)
