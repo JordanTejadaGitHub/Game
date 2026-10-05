@@ -265,9 +265,7 @@ func _refresh() -> void:
 		birds.pressed.connect(func() -> void:
 			_tower.focus_strongest = not _tower.focus_strongest
 			_refresh())
-	var options := Tower.grow_options(dream_state, data)
-	if options.is_empty() and data.line == "sprout":
-		_add_button(Tower.NO_FAMILY_YET).disabled = true  # No family picked yet
+	var options := Tower.grow_options(dream_state, data)  # A Sprout before the first family pick: none, and no placeholder (user)
 	# Light pass: one primary, the best next step: Nurture when it can rank up and pay for it, else the first form it
 	# can afford, else Nurture anyway (Tower Code's note on b999a33d: a dimmed Nurture shouldn't outrank an affordable grow).
 	var can_rank := _tower.can_nurture() and not _choosing \
