@@ -196,8 +196,9 @@ the card one is **purple**, on the Cards limb (the right side).
 | **Strange Dreams** | Cards limb (purple, right), a small branch with Restless Omens | 50 | a bundle of gamble Dream cards (odd, swingy effects) joins the pool | Roguelite Mechanic Discussion |
 | **Chosen Hunt** | Perks limb (orange, left) | 80 | when an act begins, see its 3 possible bosses and pick which one comes (the act 4 Hollow Oak picks its variation) | Enemy Code (boss pools) + Main (the choice screen) |
 | **Leaf or Dew** | Perks limb (orange, left) | 40 | before the run, a −3…+3 step: give up to 3 leaves (max and current) for +15 Dew each, or pay 15 Dew per extra leaf (max and current) up to +3. Leaves traded away don't regrow | Meta Game Code (run start) |
+| **Kin Foretold** | Perks limb (orange, left), on the run-options path | 60 | at every family pick, also see the families the **next** boss pick will offer, so you can plan which to combine (was pitched as "Family Ties", renamed: a Dream card already has that name) | Main Merger (FamilyPickScreen; the next offer is drawn ahead and kept) |
 
-- **Rule (user 2026-10-05): anything card-like (Dreams, Omens) goes on the right side, purple; the left side, orange, holds run and loadout options.** These count toward the Heartwood's Crown like any bought node. +240 Seeds. (Second Look, a map reroll, was dropped 2026-10-05 as a duplicate of Remembered Seed; Waystone Swap was declined.) (Wanderer's Map, a new map layout, was dropped 2026-10-05: user "Removing it".)
+- **Rule (user 2026-10-05): anything card-like (Dreams, Omens) goes on the right side, purple; the left side, orange, holds run and loadout options.** These count toward the Heartwood's Crown like any bought node. +300 Seeds. (Second Look, a map reroll, was dropped 2026-10-05 as a duplicate of Remembered Seed; Waystone Swap was declined.) (Wanderer's Map, a new map layout, was dropped 2026-10-05: user "Removing it".)
 - Each node waits for its content; until then it isn't on the tree.
 
 **Power budget:** 15 perks, carry 3 at the start, up to 5 (6 once the whole tree is grown). A full economy loadout (Morning Stores III, Rich Dew
