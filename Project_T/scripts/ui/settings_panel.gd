@@ -209,19 +209,25 @@ func _ready() -> void:
 	conflict_label.add_theme_color_override("font_color", UiStyle.POOR)
 	conflict_label.visible = false
 	outer.add_child(conflict_label)
-	# Footer, always on screen (touch, controller): Defaults · Cancel · Apply · Back.
+	# Footer, always on screen (touch, controller), light pass (UI Asset's last page): "Reset this tab" quiet on the left;
+	# Cancel quiet and "Apply and close" the one primary on the right (Esc still asks first when something is unapplied).
 	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 18)
 	outer.add_child(row)
-	defaults_button = _footer_button(row, "Defaults", reset_tab)
+	defaults_button = _footer_button(row, "Reset this tab", reset_tab)
+	defaults_button.name = "Defaults"
 	defaults_button.tooltip_text = "This tab's defaults (Apply to keep them)."
+	UiStyle.quiet(defaults_button)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
 	cancel_button = _footer_button(row, "Cancel", cancel)
 	cancel_button.tooltip_text = "Closes without saving the changes."
-	apply_button = _footer_button(row, "Apply", apply)
+	UiStyle.quiet(cancel_button)
+	apply_button = _footer_button(row, "Apply and close", _close_apply)
+	apply_button.name = "Apply"
+	apply_button.custom_minimum_size.x = 200
 	UiStyle.primary(apply_button)
-	_footer_button(row, "Back", request_close)
 	tabs.tab_changed.connect(func(_index: int) -> void: _mark())
 
 	close_prompt = _prompt("ClosePrompt", "Apply your changes?",
@@ -358,10 +364,13 @@ func _register(key: String, default, refresh: Callable) -> void:
 # A row with the dot and the setting's name.
 func _label_row(text: String, key: String) -> HBoxContainer:
 	var row := HBoxContainer.new()
+	row.custom_minimum_size.y = UiStyle.HUD_BUTTON_H  # Light pass: 48 px rows (touch)
+	row.add_theme_constant_override("separation", 16)
 	_dots[key] = _dot(row)
 	var label := Label.new()
 	label.text = text
-	label.custom_minimum_size = Vector2(120, 0)
+	label.custom_minimum_size = Vector2(140, 0)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(label)
 	return row
 
@@ -397,11 +406,24 @@ func _slider(box: VBoxContainer, text: String, key: String, min_value: float = 0
 	slider.max_value = max_value
 	slider.step = step
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER  # Level with its label in the 48 px row
 	slider.focus_mode = Control.FOCUS_NONE
 	slider.value_changed.connect(func(value: float) -> void: _set_value(key, value))
 	row.add_child(slider)
+	var shown := Label.new()  # The value on the right, in the number font (a 0–1 slider as 0–100)
+	shown.name = "Value"
+	shown.custom_minimum_size.x = 44
+	shown.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	shown.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	UiStyle.number(shown, 16)
+	row.add_child(shown)
+	var show_value := func(value: float) -> void:
+		shown.text = str(roundi(value * 100.0)) if max_value <= 1.0 else String.num(value, 2 if step < 1.0 else 0)
+	slider.value_changed.connect(show_value)
 	box.add_child(row)
-	_register(key, max_value, func() -> void: slider.set_value_no_signal(float(_value(key))))
+	_register(key, max_value, func() -> void:
+		slider.set_value_no_signal(float(_value(key)))
+		show_value.call(float(_value(key))))
 
 # Keepsakes (meta_design.md, MetaRun.KEEPSAKES): one switch per OWNED keepsake; the setting lists the hidden ones.
 # Nothing shows until one is planted in the Memory Grove.
@@ -440,6 +462,8 @@ func _keepsake_toggles(box: VBoxContainer) -> void:
 
 func _toggle(box: VBoxContainer, text: String, key: String, default: bool = false, tip: String = "") -> CheckButton:
 	var row := HBoxContainer.new()
+	row.custom_minimum_size.y = UiStyle.HUD_BUTTON_H  # Light pass: 48 px rows (touch)
+	row.add_theme_constant_override("separation", 12)
 	_dots[key] = _dot(row)
 	var check := CheckButton.new()
 	check.text = text
@@ -447,6 +471,15 @@ func _toggle(box: VBoxContainer, text: String, key: String, default: bool = fals
 	check.focus_mode = Control.FOCUS_NONE
 	check.toggled.connect(func(on: bool) -> void: _set_value(key, on))
 	row.add_child(check)
+	if tip != "" and tip.length() <= 70:  # A short tip reads beside the switch, quiet (a long one stays the tooltip)
+		var note := Label.new()
+		note.name = "Note"
+		note.text = tip
+		note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		note.add_theme_font_size_override("font_size", 13)
+		note.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		row.add_child(note)
 	box.add_child(row)
 	_register(key, default, func() -> void: check.set_pressed_no_signal(bool(_value(key))))
 	return check
@@ -486,7 +519,7 @@ func _footer_button(row: HBoxContainer, text: String, action: Callable) -> Butto
 	button.name = text.replace(" ", "")
 	button.text = text
 	button.focus_mode = Control.FOCUS_NONE
-	button.custom_minimum_size = Vector2(96, 0)
+	button.custom_minimum_size = Vector2(96, UiStyle.HUD_BUTTON_H)
 	button.pressed.connect(action)
 	row.add_child(button)
 	return button
