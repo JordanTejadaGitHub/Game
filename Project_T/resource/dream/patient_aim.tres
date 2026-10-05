@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "patient_aim"
 display_name = "Patient Aim"
-description = "A Warden deals 15% more damage for each second it hasn't fired (up to +60%)."
+description = "A Warden has 15% more crit chance for each second it hasn't fired (up to +45%)."
 rarity = 1
 kind = 3
 tags = Array[String](["crit", "stone"])

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "nightshade"
 display_name = "Nightshade"
-description = "Effects deal 20% more for each status the nightmare carries."
+description = "Effects deal double damage to nightmares carrying 4 or more statuses."
 rarity = 3
 kind = 3
 tags = Array[String](["potency", "affliction"])

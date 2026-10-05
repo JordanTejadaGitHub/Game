@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "resonance"
-display_name = "Resonance"
+display_name = "Thunder Chimes"
 description = "Chime Stone pulses count as lightning: each nightmare hit gains 1 {static}."
 rarity = 2
 kind = 3

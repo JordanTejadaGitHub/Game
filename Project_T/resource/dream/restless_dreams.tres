@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "restless_dreams"
-display_name = "Restless Dreams"
+display_name = "Waking Dreams"
 description = "The next 3 Dreams each include a Rare or better card."
 cost_description = "Dreams can't be let pass for the rest of the run."
 rarity = 2

@@ -53,7 +53,7 @@ const EFFECTS := {
 	"hedgerow_roots": {"text": "aura through the wall", "damage": 1.2},
 	"hollow_ground": {"text": "+1 range", "range": 1.0},
 	"hollow_ground_ii": {"text": "+1.5 range", "range": 1.5},
-	"kind_canopy": {"text": "+20%", "damage": 1.2},
+	"kind_canopy": {"text": "+35%", "damage": 1.35},
 	"last_stand": {"text": "+35%", "damage": 1.35},
 	"overlap": {"text": "+40%", "damage": 1.4},
 	"root_network": {"text": "+18%", "damage": 1.18},

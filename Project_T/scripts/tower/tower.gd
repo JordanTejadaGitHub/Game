@@ -1592,7 +1592,7 @@ func _release() -> void:
 # Card hit multipliers (dream_design.md): Patient Aim (+15% per second it didn't fire, max +60%), Crush (area
 # hits on a crowded nightmare), Crowd Breaker (area attacks +5% per nightmare hit, max +45%), Shiny Things
 # (the Magpie's stolen buffs).
-const HIT_CARD_RULES: Array[StringName] = [&"patient_aim", &"crush", &"crowd_breaker", &"shiny_things"]
+const HIT_CARD_RULES: Array[StringName] = [&"crush", &"crowd_breaker", &"shiny_things"]  # (Patient Aim is crit chance now: DreamState.get_crit_chance_bonus)
 const CATALOGUE_HIT_RULES: Array[StringName] = [&"mycelium", &"fireflies_in_the_grass", &"resonance"]
 
 # True if any of `rules` is owned; cached with the shared rule cache under `key`.
@@ -1619,8 +1619,6 @@ func _card_hit_multiplier(enemy: Node2D, is_area: bool) -> float:
 	if _dream_state == null or (_shiny.is_empty() and not _any_rule(&"__hit_cards", HIT_CARD_RULES)):
 		return 1.0  # Performance: most runs own none of these (one cached check per hit)
 	var multiplier := 1.0
-	if _rule_stacks(&"patient_aim") > 0:
-		multiplier *= 1.0 + minf(DreamState.PATIENT_AIM_PER * _aim_idle, DreamState.PATIENT_AIM_MAX) * _rule_power(&"patient_aim")  # Slow snipers gain most
 	if is_area and _rule_stacks(&"crush") > 0:
 		var crowd := 0
 		for other in get_tree().get_nodes_in_group(ENEMY_GROUP):

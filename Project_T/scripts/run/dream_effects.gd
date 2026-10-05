@@ -626,11 +626,16 @@ func _rain_on_glass(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dict
 	return {"effect": "deal %d%% more damage to Soaked nightmares" % roundi(DreamState.RAIN_ON_GLASS_PER * ds.rule_stacks(&"rain_on_glass") * 100)}
 
 # Seed cards (dream_design.md "Seed cards"): the "Now" effects that change a Warden's damage.
+# Sheltering Boughs (was Kind Canopy; dream_design.md e1e39b56): touching an aura Warden (an aura, or a support Warden).
 func _kind_canopy(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
-	var touching := board.touching(spot).size()
-	var on := touching >= DreamState.KIND_CANOPY_TOUCHING
+	var shelter: Array = board.touching(spot).filter(func(o: Dictionary) -> bool: return is_aura_warden(_data(o)))
+	var on := not shelter.is_empty()
 	return {"positional": true, "radius": 1.0, "active": on, "damage": DreamState.KIND_CANOPY_BONUS,
-		"reason": "" if on else "touches %d Wardens (needs %d)" % [touching, DreamState.KIND_CANOPY_TOUCHING]}
+		"note": "beside %s" % _data(shelter[0]).display_name if on else "", "reason": "" if on else "touches no aura Warden"}
+
+# An aura Warden (Sheltering Boughs): one with an aura (aura_radius > 0), or a support Warden.
+static func is_aura_warden(data: TowerData) -> bool:
+	return data != null and (data.aura_radius > 0.0 or data.role_tag == &"support")
 
 func _shared_light(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	var touching := board.touching(spot).size()

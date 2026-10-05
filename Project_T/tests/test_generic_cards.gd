@@ -602,15 +602,19 @@ func _test_seed_cards() -> void:
 	run_state.dew = 5000
 	dreams._rest_rules(false)
 	_check(run_state.dew == 5040, "…up to 40")
-	# Kind Canopy and Shared Light (touching Wardens)
+	# Sheltering Boughs (was Kind Canopy: touching an aura Warden, dream_design.md e1e39b56) and Shared Light (touching Wardens)
 	dreams.take(_card("kind_canopy"))
 	dreams.take(_card("shared_light"))
 	var centre := _plant("sporeling", Vector2(101, 101))
-	for c in [Vector2(100, 100), Vector2(102, 100), Vector2(100, 102)]:
+	for c in [Vector2(102, 100), Vector2(100, 102)]:
 		_plant("sporeling", c)
+	_check(not _row(centre.tower_data, centre.cell, "kind_canopy", centre).active, "Sheltering Boughs: off beside plain attackers")
+	_plant("acorn", Vector2(100, 100))  # An aura Warden
+	dreams.bump_board()
 	var canopy := _row(centre.tower_data, centre.cell, "kind_canopy", centre)
 	var light := _row(centre.tower_data, centre.cell, "shared_light", centre)
-	_check(canopy.active and is_equal_approx(light.damage, 0.12), "Kind Canopy on with 3 touching; Shared Light +4%% each (%.2f)" % light.damage)
+	_check(canopy.active and is_equal_approx(canopy.damage, DreamState.KIND_CANOPY_BONUS) and is_equal_approx(light.damage, 0.12),
+		"Sheltering Boughs on beside an aura Warden (+%d%%); Shared Light +4%% each (%.2f)" % [roundi(canopy.damage * 100), light.damage])
 	# Patient Roots and Bramble Oath's measure
 	dreams.take(_card("patient_roots"))
 	_check(dreams.get_held_bonus() == 0.5 and dreams.walls_added_tiles() >= 0, "Patient Roots: Held +0.5 s; walls' path tiles measured")

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "restless_roots"
-display_name = "Restless Roots"
+display_name = "Stirring Roots"
 description = "Wardens with under 1 attack per second (before bonuses) attack 45% faster."
 rarity = 1
 kind = 3

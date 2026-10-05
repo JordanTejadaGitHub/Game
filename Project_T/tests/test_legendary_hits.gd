@@ -66,17 +66,19 @@ func _run() -> void:
 	_check(c.statuses.is_held(), "Rooted Nightmares: the 8th hit Roots it")
 	await _clean()
 
-	# --- Nightshade: effect damage +20% per status the nightmare carries (hits get nothing) ---
+	# --- Nightshade (dream_design.md e1e39b56): effect damage ×2 on a nightmare with 4+ statuses (hits get nothing) ---
 	_take("nightshade")
 	var d := _spawn(sprout.global_position + Vector2(CELL, 0))
 	d.apply_status(EnemyStatuses.SPORED, 2, 5.0, 1.0, 0, "spore", sprout)
 	d.apply_status(EnemyStatuses.DAMP)
 	d.apply_status(EnemyStatuses.STATIC, 1, 0.0, 1.0, 0, "light", sprout)
+	_check(Reactions.nightshade_bonus(d) == 0.0, "Nightshade: nothing under 4 statuses (%d)" % d.statuses.active_ids().size())
+	d.apply_status(EnemyStatuses.DROWSY, 1, 5.0, 1.0, 0, "song", sprout)  # A 4th status that changes no damage
 	var count: int = d.statuses.active_ids().size()
-	_check(is_equal_approx(Reactions.nightshade_bonus(d), 0.2 * count), "Nightshade: +20%% per status (%d statuses)" % count)
+	_check(count >= 4 and is_equal_approx(Reactions.nightshade_bonus(d), 1.0), "Nightshade: ×2 at 4+ statuses (%d statuses)" % count)
 	var before: int = d.health
 	d.take_damage(100.0, "", true, false, sprout, &"static")
-	var expected := int(100.0 * sprout.get_potency() * (1.0 + 0.2 * count))
+	var expected := int(100.0 * sprout.get_potency() * Reactions.NIGHTSHADE_MULTIPLIER)
 	_check(absi((before - d.health) - expected) <= 1, "a Charged bolt gets it (%d, expected %d)" % [before - d.health, expected])
 	before = d.health
 	d.take_damage(100.0, "", false, false, sprout, &"")

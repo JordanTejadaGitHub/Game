@@ -6,13 +6,12 @@
 script = ExtResource("1_card")
 id = "last_stand"
 display_name = "Last Stand"
-description = "Nightmares within 4 cells of the Heartwood take 35% more damage, and Wardens within 4 cells of it deal 3% more for each missing leaf (up to +30%)."
+description = "Nightmares within 4 cells of the Heartwood take 60% more damage."
 rarity = 2
 kind = 3
 tags = Array[String](["maze", "daring"])
 max_stacks = 1
 rule_id = &"last_stand"
-extra_rules = Array[StringName]([&"heartwoods_fury"])
 diagram = "w.*****\n..*W***\nPPPPPPH\n..*****\n..*****"
-diagram_caption = "Within 4 cells of the Heartwood: nightmares there take +35%, Wardens there +3% per missing leaf."
+diagram_caption = "Within 4 cells of the Heartwood: nightmares there take +60%."
 in_start_pool = false

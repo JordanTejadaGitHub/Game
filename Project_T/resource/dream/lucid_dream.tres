@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "lucid_dream"
-display_name = "Remembered Path"
+display_name = "Borrowed Branch"
 description = "Choose a family and see the branches not in this dream. Call one into the run, free."
 rarity = 2
 kind = 3

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "restless_night"
-display_name = "Restless Night"
+display_name = "Impatient Night"
 description = "Wardens deal 8% more damage for each {drift} you call early this {block} (up to +40%); resets at each {rest}."
 rarity = 3
 kind = 3

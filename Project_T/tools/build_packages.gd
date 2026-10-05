@@ -26,27 +26,27 @@ const PACKAGES := {
 	"B5 Full Moon": ["Glinting Dew", "Sharpened Light", "Still Target", "Shattering Blow", "Deep Frost", "Shiny Things"],
 	"B6 Gale": ["Carried on the Wind", "Lasting Dreams", "Ill Wind", "Eddy"],
 	"B7 Fairy Mines": ["Ring Dance", "Sweet Scent", "Scented Hedge", "Deep Grip", "Root Web", "Lingering Spores"],
-	"B8 Hairpin Mill": ["Hairpin Winds", "Cozy Corners", "Hedge Maze", "Crowded Path", "Spinning Corners"],
-	"B9 Sleepy Hollow": ["Heavy Eyelids", "Hush", "Bad Dreams", "Many Threads", "Lullaby", "Clear Tones", "Chorus", "Heavy Air"],
+	"B8 Hairpin Mill": ["Hairpin Winds", "Cozy Corners", "Hedge Maze", "In the Thick", "Spinning Corners"],
+	"B9 Sleepy Hollow": ["Heavy Eyelids", "Hush", "Bad Dreams", "Many Threads", "Slow Waking", "Clear Tones", "Chorus", "Heavy Air"],
 	"B10 Storm Corridor": ["Windborne Rain", "Straightaway", "Longer Flight", "Rolling Thunder", "Rain on Glass", "Heavy Dew"],
 	"B11 Thousand Cuts": ["Charged Feathers", "Thousand Cuts", "Sharp Beaks", "Needle Point", "Called Shot", "Bright Marks"],
 	"B12 Encore": ["Encore", "Quick Reactions", "Seeping", "Kin and Kindling", "Rolling Thunder", "Wildfire Spores", "Sparking Spores", "Mushroom Rain", "Soaked Rot", "Deep Water"],
-	"B13 Rockfall": ["Loose Stones", "Shattering Blow", "Heavy Stones", "Crowded Path", "Falling Weight"],
+	"B13 Rockfall": ["Loose Stones", "Shattering Blow", "Heavy Stones", "In the Thick", "Falling Weight"],
 	"B14 Deep Poison": ["Seeping", "Bitter Sap", "Venom Bloom", "Soft Spores", "Lingering Spores", "Soaked Rot", "Lasting Dreams", "Ill Wind"],
-	"B15 Thunder Chimes": ["Clear Tones", "Charged Field", "Brighter Jars", "Chorus", "Resonance"],
-	"B16 Bramble Maze": ["Hedge Maze", "Bitter Hedges", "Weathered Walls", "Living Walls", "Thorn Snare", "Bramble Oath", "Thornheart"],
-	"B17 The Grove": ["Grandfather Stump", "Kind Canopy", "Shared Light", "Hedgerow Roots", "Warm Hearth"],
+	"B15 Thunder Chimes": ["Clear Tones", "Charged Field", "Brighter Jars", "Chorus", "Thunder Chimes"],
+	"B16 Bramble Maze": ["Hedge Maze", "Bitter Hedges", "Weathered Walls", "Living Walls", "Briar Trap", "Bramble Oath", "Thornheart"],
+	"B17 The Grove": ["Grandfather Stump", "Sheltering Boughs", "Shared Light", "Hedgerow Roots", "Warm Hearth"],
 	"B18 Greedy Gardener": ["Dew Bowl", "Harvest Moon", "Deep Well", "Overflowing Well", "Dew Trail", "Morning Dew", "Call of the Wild"],
 	# The 10 card builds (dream_design.md "Pool trim" rounds 2–3 + the Grove branches Swift and Wide Reach): enhancers only, Legendaries are capstones.
 	"C1 Tall": ["Tender Care", "Kindred Roots", "Sunlit Rest", "Deeper Rings", "Chosen Few", "Elder Kin", "Solitude", "Few and Mighty"],
-	"C2 Overgrowth": ["Seedfall", "Sprout Chorus", "Root Network", "Seedling Gift", "Canopy", "Many Hands", "Mixed Grove", "Odd One Out", "Grand Tour", "Warm Hearth"],
+	"C2 Overgrowth": ["Seedfall", "Thicket", "Root Network", "Seedling Gift", "Canopy", "Many Hands", "Mixed Grove", "Odd One Out", "Grand Tour", "Warm Hearth"],
 	"C3 Daring": ["Call of the Wild", "Fresh Growth", "Head Start", "Quick Step", "Second Wind", "Scarred Bark", "Desperate Bloom", "Thin Bark", "Last Stand"],
 	"C4 Precision": ["Glinting Dew", "Sharpened Light", "Shattering Blow", "Still Target", "First Light", "Lone Hunter", "Hunter's Patience", "Watchful Rest", "Heavy Stones", "Called Shot"],
-	"C5 Affliction": ["Bitter Sap", "Seeping", "Venom Bloom", "Lasting Dreams", "Heavy Air", "Crowd Breaker", "Crowded Path", "Last Breath", "Thinning the Herd"],
+	"C5 Affliction": ["Bitter Sap", "Seeping", "Venom Bloom", "Lasting Dreams", "Heavy Air", "Crowd Breaker", "In the Thick", "Last Breath", "Thinning the Herd"],
 	"C6 Maze": ["Cozy Corners", "Straightaway", "Winding Path", "Heart of the Maze", "Forest's Edge", "Hedge Maze", "Bitter Hedges", "Thornheart", "Weathered Walls"],
-	"C7 Tending": ["Heartwood's Reach", "Tended Stumps", "Hollow Ground", "Reclaimed Earth", "Tended Forest", "Burn Back the Dead Wood", "Morning Dew", "Living Walls", "Scented Hedge", "Thorn Snare"],
+	"C7 Tending": ["Heartwood's Reach", "Tended Stumps", "Hollow Ground", "Reclaimed Earth", "Tended Forest", "Burn Back the Dead Wood", "Morning Dew", "Living Walls", "Scented Hedge", "Briar Trap"],
 	"C8 Kinship": ["Family Ties", "Sweet Harmony", "Old Friends", "Rooted Bond", "Extended Family", "Kin and Kindling", "Blood Is Thicker", "Elder Kin"],
-	"C9 Swift": ["Momentum", "Quickening", "Flurry", "Restless Roots", "Hummingheart", "Drumbeat", "Quick Step"],  # Grove build branch
+	"C9 Swift": ["Momentum", "Hunt's Rush", "Flurry", "Stirring Roots", "Hummingheart", "Drumbeat", "Quick Step"],  # Grove build branch
 	"C10 Wide Reach": ["Broad Splash", "Lingering Splash", "Far Reach", "Spillover", "Overlap", "Crowd Breaker", "Last Breath", "Shattering Blow"],  # Grove build branch
 }
 # Board extras the chasing bot needs for some builds (ranks, Sprouts, walls, a Kinship, clearing…).

@@ -299,15 +299,19 @@ func _test_new_cards(main: Node) -> void:
 	_check(most <= 1, "at most one bittersweet card per offer (saw %d)" % most)
 	run_state.max_leaves = 20
 	run_state.leaves = 20
-	dreams.take(deep_sleep)
-	_check(run_state.max_leaves == 16 and run_state.leaves == 16, "Deep Sleep: −4 max leaves, lose 4 now (%d/%d)" % [run_state.leaves, run_state.max_leaves])
+	dreams.take(deep_sleep)  # dream_design.md e1e39b56: its cost is the rest bonus now, never leaves
+	_check(run_state.max_leaves == 20 and run_state.leaves == 20, "Deep Sleep: no leaves lost (%d/%d)" % [run_state.leaves, run_state.max_leaves])
+	var rest_director: DriftDirector = main.get_node("%DriftDirector")
+	var dew_before := run_state.dew
+	var paid: Array = rest_director._pay_rest_bonus()
+	_check(not dreams.keeps_rest_bonus() and paid[0] == maxi(dreams.get_dew_per_clear() + dreams.get_rest_bonus_add(), 0)
+		and run_state.dew - dew_before == paid[0], "Deep Sleep: no rest bonus, only what Dreams add (%d)" % paid[0])
 	var sprout_tower := Tower.new()
 	sprout_tower.tower_data = load("res://resource/tower/sprout.tres")
-	_check(is_equal_approx(dreams.get_soothe_multiplier(sprout_tower), 1.4), "Deep Sleep: +40% soothe")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(sprout_tower), 1.6), "Deep Sleep: +60% soothe")
 	sprout_tower.free()
 	dreams.stacks.erase("deep_sleep")
-	run_state.leaves = 4
-	_check(not dreams.is_eligible(deep_sleep, 2), "Deep Sleep never offered when it would end the run")
+	_check(dreams.keeps_rest_bonus(), "…without it the rest bonus is back")
 	run_state.leaves = 16
 	dreams.take(_card(dreams, "restless_dreams"))
 	_check(not dreams.can_skip(), "Restless Dreams: no Let it pass")
