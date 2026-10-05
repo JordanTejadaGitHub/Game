@@ -78,7 +78,7 @@ const GLOSSARY_SOURCE := [
 		["Dispel", "Breaking a nightmare apart with your Wardens' light. It leaves Dew behind.", ["Nightmare"]],
 		["Deeply Blighted", "An elite nightmare: three times the health, a triple share of the Dew, and it takes two leaves.", ["Leaves"]],
 		["Leak", "A nightmare that reaches the Heartwood: it takes leaves (most take 1, elites 2, bosses more) and its share of the Dew with it.", ["Leaves", "The Dew pot"]],
-		["Dread shell", "A shell that soaks part of every hit: chip damage barely gets through, heavy hits mostly do. Each hit wears it down until it cracks for good.", ["Crit"], "Shellbound wears one. Crits and big single hits get through it best."],
+		["Dread shell", "A shell that soaks part of every hit: chip damage barely gets through, heavy hits mostly do. Each hit wears it down until it cracks for good.", ["Crit"], "Crits and big single hits get through it best."],  # Who wears one: nightmares_line (from the data)
 		["Hidden", "Lurkers can't be seen or targeted until revealed or close.", ["Nightmare"]],
 		["Flying", "Flies straight over the maze, ignoring walls.", ["Nightmare"]],
 		["Restless", "A nightmare turned back by a change of route: +20% speed per stack, for good. Three make it Unbound. Not a status.", ["Unbound"]],
@@ -423,7 +423,7 @@ static func glossary() -> Array:
 					text = IconInfo.STATUSES.get(StringName(text.trim_prefix("{tip:").trim_suffix("}")), ["", ""])[1]
 				entries.append([IconInfo.format(entry[0]), IconInfo.format(text),
 					entry[2].map(func(s: String) -> String: return IconInfo.format(s)),
-					IconInfo.format(entry[3]) if entry.size() > 3 else ""])  # [3]: one muted example line
+					_example(entry)])  # [3]: one muted example line
 			if group[0] == "Damage types":
 				entries.append_array(damage_type_entries(entries))
 			if not entries.is_empty():  # The demo's "Branch effects" is empty
@@ -477,6 +477,46 @@ static func callout_entries() -> Array:
 	return entries
 
 # The glossary's one-line definition of `term` ("" if it has none): the popup of a linked game term.
+# A glossary entry's muted line: the nightmares that carry the term ({nightmare:} tokens, linked where it's shown), then
+# its own example.
+static func _example(entry: Array) -> String:
+	var parts: Array[String] = []
+	var carried := nightmares_line(entry[0])
+	if carried != "":
+		parts.append(carried)
+	if entry.size() > 3 and entry[3] != "":
+		parts.append(IconInfo.format(entry[3]))
+	return " ".join(parts)
+
+# Terms some nightmares carry (user: "the nightmares that wear a dread shell" as links, read from the data, never typed):
+# glossary name -> the line's wording. term_nightmares() reads each kind's EnemyData.
+const NIGHTMARE_TERMS := {"dread shell": "Worn by %s.", "flying": "Flying: %s.", "hidden": "Hidden: %s."}
+
+static func term_nightmares(term: String) -> Array[String]:
+	var kinds: Array[String] = []
+	var key := term.to_lower()
+	if not NIGHTMARE_TERMS.has(key):
+		return kinds
+	for data in NightmareCodex.all_kinds():
+		var has := false
+		match key:
+			"dread shell":
+				has = data.coat_total > 0 or data.coat_per_hit > 0
+			"flying":
+				has = data.trait_kind == EnemyData.Trait.FLYING
+			"hidden":
+				has = data.hidden
+		if has:
+			kinds.append(NightmareCodex.kind_of(data))
+	return kinds
+
+# "Worn by {nightmare:shellbound}." for a term in NIGHTMARE_TERMS ("" otherwise): tokens, so StatusLinks links them.
+static func nightmares_line(term: String) -> String:
+	var kinds := term_nightmares(term)
+	if kinds.is_empty():
+		return ""
+	return NIGHTMARE_TERMS[term.to_lower()] % ", ".join(kinds.map(func(kind: String) -> String: return "{nightmare:%s}" % kind))
+
 static func definition(term: String) -> String:
 	for group in glossary():
 		for entry in group[1]:

@@ -273,7 +273,7 @@ func _build_glossary() -> void:
 		for entry in group[1]:
 			var parts: Array = [entry[0], entry[1]]
 			if entry.size() > 3:
-				parts.append(entry[3])
+				parts.append(IconInfo.format(entry[3]))  # Nightmare tokens as their names (??? until met)
 			if entry.size() > 2:
 				parts.append(" ".join(entry[2]))
 			_haystacks["%s/%s" % [group[0], entry[0]]] = " ".join(parts).to_lower()
@@ -443,7 +443,12 @@ func _entry_card(group: String, entry: Array) -> Control:
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_child(text)
 	var example: String = entry[3] if entry.size() > 3 else ""
-	if example != "":
+	if example.contains("{nightmare:"):  # The nightmares that carry the term, as links to their cards (??? until met)
+		var carried := StatusLinks.make_label(example, 15, UiStyle.INK_DIM)
+		carried.name = "Carried"
+		carried.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		body.add_child(carried)
+	elif example != "":
 		var muted := Label.new()
 		muted.text = example
 		muted.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

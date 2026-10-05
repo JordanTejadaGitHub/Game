@@ -16,6 +16,7 @@ class_name StatusLinks
 const META_PREFIX := "status:"
 const TERM_PREFIX := "term:"  # Game terms ({block} …): the popup is the Codex glossary's line
 const FAMILY_PREFIX := "family:"  # Family names ({family:dewdrop}): emblem, damage type, identity
+const NIGHTMARE_PREFIX := "nightmare:"  # Nightmares ({nightmare:shellbound}): portrait, name, trait; a click opens its NightmareCard; ??? until met
 const COMBO_PREFIX := "combo:"  # Combos ({combo:thunderclap}): name, statuses, what it does, times set off; ??? until found
 const CODEX_HOST_GROUP := &"codex_host"
 const HIDE_DELAY := 0.5  # Seconds after the pointer leaves the word (or the popup) before it hides
@@ -31,6 +32,8 @@ var _status: StringName = &""
 var _is_term := false  # _status is a term id, not a status
 var _is_family := false  # _status is a family id
 var _is_combo := false  # _status is a combo id
+var _is_nightmare := false  # _status is a nightmare kind
+var _more := LinkButton.new()  # "More in the Codex" (not for nightmares: a click on the word opens its card)
 var _host: Control = null  # The label the popup belongs to (it draws on the tip layer)
 var _hide_in := -1.0
 
@@ -52,18 +55,25 @@ static func bbcode(text: String) -> String:
 		for found in _combo_pattern().search_all(text):  # {combo:thunderclap}: its name, or ??? until found
 			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
 			terms.append(combo_link(StringName(found.get_string(1))))
-	# Terms written as plain words (user: "Potency in cards doesn't have the underline"): whole word, as written.
+	# Terms written as plain words (user: "Potency in cards doesn't have the underline"): whole word, any case, singular
+	# or plural, linked as written ("A dread shell", "Dread shells").
 	for id in PLAIN_TERMS:
-		var word := _plain_pattern(id)
-		if word.search(text) != null:
-			text = word.sub(text, "\u0001%d\u0001" % terms.size(), true)
-			terms.append(_link(TERM_PREFIX + String(id), IconInfo.TERMS[id][0]))
+		var found_all := _plain_pattern(id).search_all(text)
+		for i in range(found_all.size() - 1, -1, -1):
+			var found: RegExMatch = found_all[i]
+			text = text.substr(0, found.get_start()) + "\u0001%d\u0001" % terms.size() + text.substr(found.get_end())
+			terms.append(_link(TERM_PREFIX + String(id), found.get_string()))
+	if text.contains("{nightmare:"):  # {nightmare:shellbound}: its name, ??? until met; a click opens its card
+		for found in IconInfo.nightmare_pattern().search_all(text):
+			var kind := found.get_string(1)
+			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
+			terms.append(_link(NIGHTMARE_PREFIX + kind, IconInfo.nightmare_name(kind)))
 	text = _statuses(IconInfo.format(text).replace("[", "[lb]"))
 	for i in terms.size():
 		text = text.replace("\u0001%d\u0001" % i, terms[i])
 	return text
 
-const PLAIN_TERMS: Array[StringName] = [&"potency"]  # IconInfo.TERMS ids linked wherever their word appears
+const PLAIN_TERMS: Array[StringName] = [&"potency", &"dread_shell"]  # IconInfo.TERMS ids linked wherever their word appears
 static var _plain_regex := {}  # Term id -> RegEx for its word
 
 static func _plain_pattern(id: StringName) -> RegEx:
@@ -71,7 +81,7 @@ static func _plain_pattern(id: StringName) -> RegEx:
 		if _plain_regex.is_empty():
 			UiStyle.release_at_exit(func() -> void: _plain_regex.clear())
 		var regex := RegEx.new()
-		regex.compile("\\b" + _escape(IconInfo.TERMS[id][0]) + "\\b")
+		regex.compile("(?i)\\b" + _escape(IconInfo.TERMS[id][0]) + "s?\\b")  # Any case, and the plural
 		_plain_regex[id] = regex
 	return _plain_regex[id]
 
@@ -185,11 +195,10 @@ func _init() -> void:
 	box.add_child(_name)
 	UiStyle.tip_body(_text)
 	box.add_child(_text)
-	var more := LinkButton.new()
-	more.text = "More in the Codex"
-	more.focus_mode = Control.FOCUS_NONE
-	more.pressed.connect(_open_codex)
-	box.add_child(more)
+	_more.text = "More in the Codex"
+	_more.focus_mode = Control.FOCUS_NONE
+	_more.pressed.connect(_open_codex)
+	box.add_child(_more)
 	mouse_entered.connect(func() -> void: _hide_in = -1.0)
 	mouse_exited.connect(_hide_soon)
 
@@ -197,10 +206,16 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 	var is_term := meta.begins_with(TERM_PREFIX)
 	var is_family := meta.begins_with(FAMILY_PREFIX)
 	var is_combo := meta.begins_with(COMBO_PREFIX)
-	if not meta.begins_with(META_PREFIX) and not is_term and not is_family and not is_combo:
+	var is_nightmare := meta.begins_with(NIGHTMARE_PREFIX)
+	if not meta.begins_with(META_PREFIX) and not is_term and not is_family and not is_combo and not is_nightmare:
 		return
 	var id := StringName(meta.get_slice(":", 1))
-	if tapped and visible and id == _status and _is_term == is_term and _is_family == is_family and _is_combo == is_combo:
+	if is_nightmare and tapped and IconInfo.nightmare_met(String(id)):
+		visible = false
+		_open_nightmare_card(String(id), host)  # Met: its full card (health, speed, resists); ??? kinds keep the popup
+		return
+	if tapped and visible and id == _status and _is_term == is_term and _is_family == is_family and _is_combo == is_combo \
+			and _is_nightmare == is_nightmare:
 		if is_combo and CodexData.is_discovered(id):
 			_open_codex()  # A combo: the second tap (or a click after hovering) opens it in the Codex
 		else:
@@ -211,7 +226,17 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 	_is_term = is_term
 	_is_family = is_family
 	_is_combo = is_combo
-	if is_combo:  # A combo: its name (??? until found), its statuses, what it does, times set off
+	_is_nightmare = is_nightmare
+	_more.visible = not is_nightmare
+	if is_nightmare:  # A nightmare: its portrait, name and trait once met; ??? and a hint until then
+		var kind := String(id)
+		var data := IconInfo.nightmare_data(kind)
+		var met := data != null and IconInfo.nightmare_met(kind)
+		_icon.texture = NightmareCard.portrait(data) if met else null
+		_icon.visible = _icon.texture != null
+		_name.text = IconInfo.nightmare_name(kind)
+		_text.text = (IconInfo.format(data.trait_text) + "\nClick for its card.") if met else "Not met yet. It shows itself in a run."
+	elif is_combo:  # A combo: its name (??? until found), its statuses, what it does, times set off
 		var combo := CodexData.get_any(id)
 		var found := CodexData.is_discovered(id) and not combo.is_empty()
 		var statuses: Array = combo.get("statuses", [])
@@ -230,6 +255,9 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 		_icon.visible = false
 		_name.text = term_name(id)
 		_text.text = CodexData.definition(term_name(id))
+		var carried := CodexData.nightmares_line(term_name(id))  # "Worn by Shellbound." (names here; links in the Codex)
+		if carried != "":
+			_text.text += "\n" + IconInfo.format(carried)
 	else:
 		_icon.texture = IconInfo.icon(id)
 		_icon.visible = _icon.texture != null
@@ -242,6 +270,20 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 	# Above-right of the pointer, flipped at the edges: never over the word or the line being read.
 	global_position = UiStyle.tip_position(mouse, size, get_viewport_rect().size)
 	_hide_in = -1.0
+
+# A met nightmare's NightmareCard over the word's label (one per label; the same word again closes it).
+func _open_nightmare_card(kind: String, host: Control) -> void:
+	var data := IconInfo.nightmare_data(kind)
+	if data == null or not is_instance_valid(host):
+		return
+	var card := host.get_meta(&"nightmare_card") as NightmareCard if host.has_meta(&"nightmare_card") else null
+	if card == null or not is_instance_valid(card):
+		card = NightmareCard.new()
+		host.add_child(card)
+		host.set_meta(&"nightmare_card", card)
+	var run := get_tree().current_scene  # In a run: health as it'd arrive next; elsewhere (title, Grove) its base numbers
+	var director := run.get_node_or_null("%DriftDirector") as DriftDirector if run != null else null
+	card.toggle_for(data, director.drifts_started + 1 if director != null else 1, director, host)
 
 func _hide_soon() -> void:
 	if visible:
