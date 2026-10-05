@@ -18,6 +18,6 @@
 		{"t": 0.2, "dossier": true, "drift": 25},
 		{"t": 2.3, "dossier": false},
 		{"t": 2.5, "spawn": "old_stag"},
-		{"t": 2.5, "camera": "follow", "target": "boss", "zoom": 1.0}
+		{"t": 2.5, "camera": "follow", "target": "boss", "zoom": 3.0}
 	]
 }
