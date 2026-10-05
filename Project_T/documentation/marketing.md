@@ -186,7 +186,10 @@ words of the short description**. Nothing on the page opens with lore or the loo
   4. A dispel close-up: a nightmare cracking into light.
   5. The Dream screen: 3 cards, one Rare.
   6. A boss in the maze (the Hollow Stag on a bent corridor).
-  7–8 (optional): the Memory Grove; a Heartwood's Gift reshaping the island.
+  7–8 (optional): the Memory Grove; a late-game board in another act's palette (Ascended / final Wardens, a dense
+     drift), so the page shows the game changing. (The Gift ridge was dropped as a still: it only reads in motion.)
+  **Rule for every still** (first review, 2026-10-04): action shots at zoom 2–4 (nightmares, combos, bosses), only the
+  maze shot wide; vary the shots so they don't all look like the same dark violet board.
 
 ### Steam page checklist (status 2026-10-04)
 | Item | Status | Waiting on |
@@ -197,7 +200,7 @@ words of the short description**. Nothing on the page opens with lore or the loo
 | Short description | drafted above, maze first | — |
 | About | outline above | GIFs (capture tools) |
 | Tags | drafted above | — |
-| 5–8 screenshots | **#1 final, chosen:** `marketing/screenshots/final/screenshot_01_t12.png` (main b0efacf9, maze v4; passes at 600 px, nothing clipped) | #2–8: capture scenes still to write (Short Form Video / Trailer can reuse their boards: build ghost, Thunderclap, dispel, Dream screen, Stag, Grove) |
+| 5–8 screenshots | **#1 final, chosen:** `marketing/screenshots/final/screenshot_01_t12.png` (main b0efacf9, maze v4; passes at 600 px, nothing clipped)  **#5 chosen:** `screenshot_05_t1.5`. | #3 chain, #4 dispel, #6 Stag: re-shoot close (zoom 2 / 4 / 2, Short Form Video); #2 build ghost: Main Merger's ghost action; #7 Grove: needs a capture hook (Meta / Main Merger); #8 late-game board in another act |
 | Trailer | §5; its first seconds = the maze. **Target: user-approved by 2026-10-07**, slips day for day if the video pause runs past 2026-10-05 (~1 day of render + rough cut after the all-clear, then review) | **the user's all-clear** (paused for the tower-asset changes); Sound's cue stems; then the user's review + one revision. Ready: 9 scenes dry-run, cut list 8459d82b, 16:9 export 902f7207 |
 | AI disclosure | drafted in §7 | Valve's wording at submission |
 
