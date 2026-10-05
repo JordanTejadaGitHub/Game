@@ -8,7 +8,7 @@ page points to the Steam page.
 
 - **One line:** *A dark-fairytale maze tower defence roguelite: your Wardens are the walls, and nightmares are coming for
   the dream.*
-- **The hook in four words:** *Your towers are the maze.*
+- **The hook in four words:** *Your Wardens are the maze.*
 - **What makes it different** (lead with these, in this order):
   1. Wardens are walls: you build the maze the nightmares must walk.
   2. Combos and Reactions: statuses meet and chain (Soaked + Charged = Thunderclap, chains up to a ×10 Dawnburst).
@@ -19,7 +19,7 @@ page points to the Steam page.
   line *promises what you get to do*, never instructs ("Take one.", "Don't build any." read as orders). Verb first,
   inviting, a real number where we have one. Used by the trailer cards, the Steam About headers and short captions.
   The trailer shows only what makes the game special: **the maze and the combos** first, then Dreams and the scale.
-  - *Build the maze with your towers*
+  - *Build the maze with your Wardens*
   - *Make every nightmare take the long way*
   - *Discover combos between Wardens*
   - *Pick a Dream to power your maze*
@@ -29,6 +29,9 @@ page points to the Steam page.
   - *Choose from over 250 Dreams* (**confirmed**, Roguelite Code 2026-10-04: 262 cards offerable across full-game runs;
     "300+" is not true. 125 of them are Grove-planted, so full game only)
   Numbers go on screen only once the owning chat confirms them for the build the trailer ships with.
+- **One name per thing** (the user, 2026-10-04: "make sure the wording is consistent"): the player's towers are always
+  **Wardens**, the enemies **nightmares**, the cards **Dreams**, the goal **the Heartwood**. "Tower" appears only in
+  the genre name ("tower defense", the Steam tag) and when talking about other games (Video 0's Warcraft maps).
 
 ## 2. Order of work
 
@@ -174,10 +177,10 @@ for timing. Steam wants the trailer first on the page: lock the date with Market
 ## 6. Steam page text (draft)
 
 **The capsule is concept A (the watchful Warden, 2026-10-04; brief in art_direction.md).** It doesn't show the maze, so
-the hook "your towers are the maze" has to land in **screenshot 1**, the **first seconds of the trailer** and the **first
+the hook "your Wardens are the maze" has to land in **screenshot 1**, the **first seconds of the trailer** and the **first
 words of the short description**. Nothing on the page opens with lore or the look before the maze.
 
-- **Short description (≤ 300 characters; 2026-10-04 rewrite, ~230):** *A maze tower defense roguelite where your towers
+- **Short description (≤ 300 characters; 2026-10-04 rewrite, ~230):** *A maze tower defense roguelite where your Wardens
   are the walls. Every Warden you plant bends the path the nightmares take to the Heartwood. Soak them, then charge them,
   and the lightning jumps through the whole crowd. New island every run.*
   Leads with the maze (the capsule can't). Store copy spells "defense" (US) to match the Steam tag and search; in-game

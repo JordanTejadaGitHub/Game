@@ -5,7 +5,7 @@ the hook, question it.** Revised 2026-09-27 for the **nightmare** theme (`story.
 
 ## The hook
 
-**Your towers are the maze, and nightmares are hunting the dream.**
+**Your Wardens are the maze, and nightmares are hunting the dream.**
 
 Two things no competitor combines:
 1. **Maze-building** tower defense: every Warden is a wall, and nightmares re-route around what you
@@ -32,7 +32,7 @@ the capsule (concept A) doesn't show it.
 
 ## Key selling points (store page, in this order)
 
-1. **Your towers are the maze.** Every Warden is a wall. Build the path, watch nightmares re-route
+1. **Your Wardens are the maze.** Every Warden is a wall. Build the path, watch nightmares re-route
    live, and make the long way round the only way round.
 2. **Guard the dream.** Shades, hounds, phantoms that glide through walls, and worse: every nightmare
    hunts differently, and every one that gets through tears a piece out of the dream.
