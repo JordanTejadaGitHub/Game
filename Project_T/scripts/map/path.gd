@@ -46,6 +46,8 @@ func draw():
 	# Later re-routes (towers, cleared obstacles, enemies mid-walk) stick to this route when they can.
 	_pathGenerator.set_preferred_cells(current_path)
 	_route_version = _pathGenerator.version
+	if current_path.is_empty() and board != null:  # Never expected (every block keeps a way through): leave a trace
+		push_error("PathGenerator.draw: no route from %s to %s" % [cell_start_path, cell_end_path])
 	_route_index.clear()
 	for i in current_path.size():
 		_route_index[current_path[i]] = i

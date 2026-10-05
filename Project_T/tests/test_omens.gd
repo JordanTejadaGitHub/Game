@@ -553,9 +553,10 @@ func _test_teeth(main: Node) -> void:
 	# Second Path: a Thornwall on the route lengthens it; at the block's start it crumbles (full refund) and locks
 	var wall_cell := Vector2(-1, -1)
 	for i in range(3, route.size() - 3):
-		if map_generator.is_buildable(route[i]) and map_generator.can_block(route[i]) \
-				and map_generator.get_path_if_blocked(route[i]).size() > route.size():
-			wall_cell = route[i]
+		var here := Vector2(FindPath.point_to_node(route[i]) / 2)  # Half cells: the whole cell under the route point
+		if (map_generator.is_buildable(here) and map_generator.can_block(here)
+				and map_generator.get_path_if_blocked(here).size() > route.size()):
+			wall_cell = here
 			break
 	_check(wall_cell.x >= 0, "a route cell a Thornwall can lengthen the route from")
 	if wall_cell.x >= 0:

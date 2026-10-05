@@ -389,10 +389,7 @@ func is_buildable(cell: Vector2) -> bool:
 # Returns the start-to-end path that would exist if `cell` were blocked, without changing anything.
 # Empty means blocking `cell` would leave enemies with no way through.
 func get_path_if_blocked(cell: Vector2) -> PackedVector2Array:
-	path_layer.set_cell_blocked(cell, true)
-	var path := path_layer.find_path_from(startPath)
-	path_layer.set_cell_blocked(cell, false)
-	return path
+	return get_path_if_blocked_cells([cell])
 
 # True if blocking `cell` keeps the end reachable from the start and from every cell in `also_from`
 # (e.g. cells enemies are currently walking toward).
@@ -419,12 +416,12 @@ func block_cell(cell: Vector2) -> void:
 
 # The start-to-end path if all of `cells` were blocked (empty = no way through). Changes nothing.
 func get_path_if_blocked_cells(cells: Array) -> PackedVector2Array:
+	# Only the halves free now are closed and opened again: a whole cell may already hold a Warden's half, and
+	# opening all 4 afterwards used to punch holes in walls.
+	var halves: Array = []
 	for c in cells:
-		path_layer.set_cell_blocked(c, true)
-	var path := path_layer.find_path_from(startPath)
-	for c in cells:
-		path_layer.set_cell_blocked(c, false)
-	return path
+		halves.append_array(FindPath.halves_of_cell(c))
+	return get_path_if_blocked_halves(halves)
 
 # True if every cell is buildable and blocking them all keeps the end reachable from the start and
 # from every cell in `also_from`.
@@ -538,6 +535,16 @@ func get_path_if_blocked_halves(halves: Array) -> PackedVector2Array:
 		path_layer.set_half_blocked(h, false)
 	return path
 
+# The start's route if `halves` were opened (a Warden there gone), without changing anything.
+func get_path_if_opened_halves(halves: Array) -> PackedVector2Array:
+	var changed: Array = halves.filter(func(h: Vector2) -> bool: return path_layer.is_half_blocked(h))
+	for h in changed:
+		path_layer.set_half_blocked(h, false)
+	var path := path_layer.find_path_from(startPath)
+	for h in changed:
+		path_layer.set_half_blocked(h, true)
+	return path
+
 # Blocks `halves` (call can_block_halves() first), redraws the route and notifies nightmares.
 func block_halves(halves: Array) -> void:
 	for h in halves:
@@ -585,13 +592,15 @@ func get_obstacle(cell: Vector2) -> ObstacleData:
 # The start-to-end path that would exist if the obstacle on `cell` were cleared, without changing
 # anything. Clearing only ever opens routes, so this is never empty when a path exists now.
 func get_path_if_cleared(cell: Vector2) -> PackedVector2Array:
-	var cells := get_obstacle_cells(cell)  # A log opens all its cells at once
-	for at in cells:
-		path_layer.set_cell_blocked(at, false)
-	var path := path_layer.find_path_from(startPath)
-	for at in cells:
-		path_layer.set_cell_blocked(at, true)
-	return path
+	# Only the halves blocked now are opened and closed again: a whole cell may hold free halves (a half-offset
+	# Warden straddles cells), and re-blocking all 4 used to wall off free ground (the run-breaking "sold a
+	# Warden and the maze vanished": Second Path measured its Thornwalls this way).
+	var halves: Array[Vector2] = []
+	for at in get_obstacle_cells(cell):  # A log opens all its cells at once
+		for h in FindPath.halves_of_cell(at):
+			if path_layer.is_half_blocked(h):
+				halves.append(h)
+	return get_path_if_opened_halves(halves)
 
 # Removes the obstacle on `cell` (no-op if there isn't one), redraws the path and notifies enemies.
 func clear_obstacle(cell: Vector2) -> bool:

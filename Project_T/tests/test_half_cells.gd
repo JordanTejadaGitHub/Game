@@ -73,6 +73,15 @@ func _run() -> void:
 			_check(masks_ok and halves.all(func(h: Vector2) -> bool: return not path_halves.has(Vector2i(h))),
 				"the dual path: every tile by its corners, none on the Warden's halves")
 			_check(not map.can_block_halves(halves) and map.block_refusal() == &"occupied", "the same halves can't be taken twice")
+			# The route probes on a whole cell the footprint straddles change nothing (they used to re-block all 4
+			# halves, or open all 4: the "sold a Warden and the maze vanished" run-breaker).
+			var snapshot := _blocked_halves(map)
+			for h in halves:
+				var whole := (h / 2.0).floor()
+				map.get_path_if_cleared(whole)
+				map.get_path_if_blocked(whole)
+				map.get_path_if_blocked_cells([whole])
+			_check(_blocked_halves(map) == snapshot, "probing the cells a half-offset Warden straddles leaves every half as it was")
 			map.unblock_halves(halves)
 			_check(map.get_path_from(map.startPath) == before, "unblocked: the old route back")
 			placed = true
@@ -106,6 +115,9 @@ func _run() -> void:
 	print("  half-cell route search: %.0f us each; 150 nightmares re-routing on a placement ~ %.1f ms" % [per_path, per_path * 150 / 1000.0])
 	_check(per_path < 2000.0, "a route search stays under 2 ms (%.0f us)" % per_path)
 
+	# Second Path (OmenDirector._crumble_thornwall) on a half-offset Thornwall: only its own halves open, the cells
+	# its halves touch lock, and the map's blocked halves stay exactly the map's plus the standing Wardens'.
+	await _crumble_check(main)
 	main.queue_free()
 	await process_frame
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
@@ -159,3 +171,54 @@ func _dual_masks() -> void:
 	# Path halves: row 0 x 0-2, row 1 x 0-4, row 2 x 1-4.
 	_check(PathGenerator.dual_mask(jog, Vector2i(3, 1)) == 1 | 4 | 8, "jog: the top bank steps down (all but TR)")
 	_check(PathGenerator.dual_mask(jog, Vector2i(1, 2)) == 1 | 2 | 4, "jog: the bottom bank steps in (all but BL)")
+
+func _crumble_check(main: Node) -> void:
+	var map = main.get_node("%MapGenerator")
+	var placer: TowerPlacer = main.get_node("%TowerPlacer")
+	var omens = main.get_node("%OmenDirector")
+	var container: Node = main.get_node("%TowerContainer")
+	main.get_node("%RunState").dew = 100000
+	for t in container.get_children():  # Start from the bare map
+		map.unblock_halves(t.get_halves())
+		t.free()
+	var size: Vector2i = map.path_layer.get_finder().size()
+	var base := {}
+	for x in size.x:
+		for y in size.y:
+			if map.path_layer.is_half_blocked(Vector2(x, y)):
+				base[Vector2(x, y)] = true
+	placer.tower_data = load("res://resource/tower/thornwall.tres")
+	var walls := 0
+	for i in 40:  # Half-offset Thornwalls beside the route
+		var route: PackedVector2Array = map.get_path_from(map.startPath)
+		var p := Vector2(FindPath.point_to_node(route[(i * 5 + 4) % route.size()]))
+		for off in [Vector2(1, 0), Vector2(-2, 0), Vector2(0, 1), Vector2(0, -2)]:
+			if placer._try_build_half(p + off + Vector2(1, 1) * (i % 2)):
+				walls += 1
+				break
+	var target: Tower = omens.second_path_target()
+	if target == null:
+		_check(walls == 0, "Second Path finds a Thornwall to crumble (%d placed)" % walls)
+		return
+	var touched: Array[Vector2] = target.get_touched_cells()
+	omens._crumble_thornwall()
+	await process_frame
+	var wrong := 0
+	for x in size.x:
+		for y in size.y:
+			var h := Vector2(x, y)
+			var want: bool = base.has(h) or container.get_children().any(func(t: Tower) -> bool: return t.get_halves().has(h))
+			if map.path_layer.is_half_blocked(h) != want:
+				wrong += 1
+	_check(wrong == 0, "Second Path crumble: blocked halves match the map and the standing Wardens (%d off)" % wrong)
+	_check(touched.all(func(c: Vector2) -> bool: return omens.is_cell_locked(c)), "the cells its halves touched lock until the rest")
+	_check(not map.get_path_from(map.startPath).is_empty(), "the way stays open")
+
+func _blocked_halves(map: Node) -> Array:
+	var out: Array = []
+	var size: Vector2i = map.path_layer.get_finder().size()
+	for x in size.x:
+		for y in size.y:
+			if map.path_layer.is_half_blocked(Vector2(x, y)):
+				out.append(Vector2(x, y))
+	return out

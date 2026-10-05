@@ -595,7 +595,8 @@ func second_path_target() -> Tower:
 	for tower in towers.get_children():
 		if not (tower is Tower) or tower.is_queued_for_deletion() or tower.tower_data.get_id() != "thornwall":
 			continue
-		var length: int = map_generator.get_path_if_cleared(tower.cell).size()
+		var length: int = (map_generator.get_path_if_opened_halves(tower.get_halves()) if map_generator.has_method("get_path_if_opened_halves")
+			else map_generator.get_path_if_cleared(tower.cell)).size()  # Half cells: the wall's own halves
 		if length > 0 and length < best_length:
 			best_length = length
 			best = tower
@@ -613,12 +614,17 @@ func _crumble_thornwall() -> void:
 	var map_generator = get_node("%MapGenerator")
 	var seller = get_node_or_null("%TowerSeller")
 	var refund: int = tower.invested_dew
-	var cells: Array = tower.get_cells()
+	var cells: Array = tower.get_touched_cells()  # Half cells: every whole cell its halves touch
+	var halves: Array = tower.get_halves()
 	tower.get_parent().remove_child(tower)
 	tower.queue_free()
+	if map_generator.has_method("unblock_halves"):
+		map_generator.unblock_halves(halves)  # Its own halves only (a whole-cell unblock left ghost walls and opened neighbours)
+	else:
+		for c in cells:
+			map_generator.unblock_cell(c)
 	for c in cells:
-		map_generator.unblock_cell(c)  # Re-routes the nightmares
-		locked_cells.append(c)
+		locked_cells.append(c)  # No planting here until the rest
 	run_state.earn_dew_at(refund, tower.position)
 	if seller:
 		seller.tower_sold.emit(tower, refund)  # Selection, RunHistory and Sound see it as a sale
