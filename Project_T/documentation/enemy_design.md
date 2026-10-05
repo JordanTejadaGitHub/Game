@@ -238,6 +238,38 @@ The three Hollow Oak forms share one defeat line on purpose: it's the same Oak a
 | Hollow Oak: Withering (`hollow_oak_withering`) | the Hollow's heart in drought | It's still. Far off, something sighs. | 1. Cover every stretch twice: a maze that leans on one great Warden stalls. 2. It picks the strongest Warden near it, never the same one twice running. 3. Withered Wardens come back on their own after a few seconds. 4. Badly hurt, it withers three at once. |
 | Hollow Oak: Remembering (`hollow_oak_remembering`) | the Hollow's heart, wearing faces | It's still. Far off, something sighs. | 1. Its echoes are the great nightmares you dispelled this run, with all their tricks. 2. Every echo walks your whole maze again. 3. Remember how you beat them the first time. |
 
+### New-nightmare card text (2026-10-05)
+
+The new-nightmare card shows `trait_text` as its title line and `intro_lines` right under it, so the
+two must not say the same thing (the user's screenshot: Shade "Quick, and never alone." over "A small
+shadow that never comes alone."). Rule: **the title line names the trait in a few words; the
+description adds what the title doesn't** (how it looks, the numbers, the catch), and the hint
+doesn't repeat either. Enemy Code copies the changes below into the `.tres`; `{tokens}` stay as
+written. Nightmares not listed keep their text (the title is short and the description adds the
+numbers: Gravecrawler, Night Hound, Shellbound, Watcher, Lantern Bearer, Wraith, Crow).
+
+| Nightmare (file) | Field | New text |
+|---|---|---|
+| Shade (`leaf_bug`) | intro_lines | "A small, quick shadow. Where there's one, there are ten." |
+| Husk (`bark_beetle`) | intro_lines | "A hollow shell of dead bark with something moving inside: it takes a lot to dispel." |
+| Lurker (`dusk_moth`) | intro_lines[0] | "Wardens can't target it while it's hidden." (line 2 unchanged) |
+| Phantom (`dandelion_seed`) | intro_lines | "Your maze doesn't exist for it: it takes the shortest line to the Heartwood, walls and all." |
+| Phantom (`dandelion_seed`) | hint | "Guard the ground near the Heartwood: every Phantom passes there." |
+| Sleepwalker (`wandering_hare`) | intro_lines | "Its eyes are closed: now and then it turns into a dead end, walks to the bottom, and comes back." |
+| Barrow Wight (`barrow_wight`) | intro_lines | "Older than the forest, and very hard to dispel." / "{drowsy} lasts half as long on it, and roots can't get a grip: it can't be {held}." |
+| Drowned One (`drowned_one`) | intro_lines | "Black water streams off it as it walks: no slow takes hold." |
+| Drowned One (`drowned_one`) | hint | "Lightning loves the {damp}, and it never dries." |
+| Ash Crawler (`ash_crawler`) | intro_lines | "Each cell it crosses smoulders for {ash_trail_time} s, and {spored} on anything walking through burns away." |
+| Will-o'-Wisp (`will_o_wisp`) | intro_lines | "Lurkers within {reveal_radius} cells of it can be seen by every Warden." |
+| Will-o'-Wisp (`will_o_wisp`) | hint | "It walks with the nightmares, but its glow gives the Lurkers away." |
+| Mourner (`puffcap`) | intro_lines | "A veiled ghost, weeping as it walks. Dispelled, it breaks into {split_count} {split_into:name}s." |
+| Sob (`puffcaplet`) | intro_lines | "What's left of a Mourner, still crying as it runs." |
+| Widow (`mother_spider`) | intro_lines | "A bloated, many-legged shadow. Dispelled, it bursts into {split_count} fast {split_into:name}s." |
+| Creep (`spiderling`) | intro_lines | "They pour out of a dispelled Widow and scatter down the path." |
+| Whisper Swarm (`whisper_swarm`) | intro_lines | "A cloud of whispering motes: single-target hits deal only {single_target_multiplier:pct} damage." |
+| Dream Thief (`dream_thief`) | intro_lines | "A grinning shape clutching stolen light. If it reaches the Heartwood it takes {steals_dew} Dew; dispel it and it drops double." |
+| Weeper (`weeper`) | intro_lines | "Mends nightmares within {mend_radius} cells for {mend_rate:pct} of their health each second." |
+
 ## Resistances
 
 Resistances give the 4 family picks per run weight: some nightmares are easy for your families and
