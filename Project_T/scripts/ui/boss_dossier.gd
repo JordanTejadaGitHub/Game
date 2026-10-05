@@ -58,6 +58,7 @@ var _reminder: PanelContainer  # Its own node: the dossier root is hidden while 
 var _vignette := TextureRect.new()
 var _clock := 0.0
 var _stage: BossStage  # The portrait in its mist (entrance)
+var hunting_drift := 0  # Chosen Hunt: the boss drift whose boss the player is picking (0 = not picking)
 var _name_label: Label  # Writes in on the entrance
 
 # "The boss of act 1", Wraithlight small caps (the dossier, the reminder and the Codex).
@@ -169,6 +170,9 @@ func _ready() -> void:
 		spawner.child_entered_tree.connect(_on_spawned)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if visible and is_hunting() and (event.is_action_pressed("cancel_build") or event.is_action_pressed("ui_accept")):
+		get_viewport().set_input_as_handled()  # Chosen Hunt: a pick has to be made
+		return
 	if visible and (event.is_action_pressed("cancel_build") or event.is_action_pressed("ui_accept")) and not _peek.peeking:
 		close_dossier()  # Esc, or Enter for the "Face it ⏎" primary
 		get_viewport().set_input_as_handled()
@@ -238,7 +242,10 @@ func _process(delta: float) -> void:
 		return  # After the whisper on screen, but a first run's queue of them doesn't hold it forever
 	if _pending > 0:
 		_auto_shown[_pending] = true
-		open(_pending)
+		if offers_hunt(_pending):
+			open_hunt(_pending)  # Chosen Hunt: the player names the act's boss first
+		else:
+			open(_pending)
 		_pending = 0
 	elif _reminder_pending > 0:
 		_show_reminder(_reminder_pending)
@@ -359,6 +366,132 @@ func open(drift: int = 0) -> void:
 	if _paused_it:
 		speed.set_paused(true)
 
+# --- Chosen Hunt (BossPool.chosen_hunt_active) --------------------------------------------------------
+
+# Whether the act starting with boss drift `drift` lets the player pick its boss: the node is planted and
+# the act's pool has a choice.
+func offers_hunt(drift: int) -> bool:
+	return BossPool.chosen_hunt_active() and BossPool.get_pool(_act_of(drift)).size() > 1
+
+func _act_of(drift: int) -> int:
+	return ceili(float(drift) / drift_director.drifts_per_act)
+
+# Instead of the card, the act's whole pool side by side: portrait, name, title, toll and "Hunt it". The pick
+# goes into the run (BossPool.choose), the run saves, and the card opens for it. No skipping: Esc and Enter
+# do nothing while picking (Peek at the map still works).
+func open_hunt(drift: int) -> void:
+	var act := _act_of(drift)
+	var pool := BossPool.get_pool(act)
+	if pool.size() < 2:
+		open(drift)
+		return
+	hunting_drift = drift
+	shown_drift = drift
+	_pending = 0
+	_stage = null
+	_name_label = null
+	for child in _content.get_children():
+		child.queue_free()
+	var head := VBoxContainer.new()
+	head.add_theme_constant_override("separation", 2)
+	var eyebrow_label := eyebrow(act)
+	eyebrow_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	head.add_child(eyebrow_label)
+	var title := Label.new()
+	title.text = "Choose your hunt" if act < BossPool.ACTS else "Choose how the Hollow Oak wakes"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiStyle.display(title, 34)
+	title.add_theme_color_override("font_color", UiStyle.INK)
+	head.add_child(title)
+	var line := Label.new()
+	line.text = "The Heartwood remembers them all. Name the one that comes."
+	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiStyle.whisper(line, 16)
+	line.add_theme_color_override("font_color", WHISPER_COLOR)
+	head.add_child(line)
+	_content.add_child(head)
+	var row := HBoxContainer.new()
+	row.name = "HuntChoices"
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 18)
+	_content.add_child(row)
+	var current: BossData = drift_director.get_drawn_boss(act)
+	for data in pool:
+		row.add_child(_hunt_choice(data, act, drift, data == current))
+	_close_button.visible = false
+	visible = true
+	_panel.modulate.a = 1.0
+	_scroll.scroll_vertical = 0
+	_fit_scroll()
+	_fit_scroll.call_deferred()
+	if not _content.minimum_size_changed.is_connected(_fit_scroll):
+		_content.minimum_size_changed.connect(_fit_scroll)
+
+func _hunt_choice(boss: BossData, act: int, drift: int, drawn: bool) -> Control:
+	var data := boss.boss
+	var column := VBoxContainer.new()
+	column.custom_minimum_size.x = (WIDTH - 60.0) / 3.0
+	column.add_theme_constant_override("separation", 6)
+	var portrait := BossPortrait.new(data, 140.0)
+	portrait.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	column.add_child(portrait)
+	var name := Label.new()
+	name.text = data.display_name
+	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UiStyle.display(name, 24)
+	name.add_theme_color_override("font_color", UiStyle.INK)
+	column.add_child(name)
+	if String(data.title) != "":
+		var sub := Label.new()
+		sub.text = data.title
+		sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		UiStyle.whisper(sub, 15)
+		sub.add_theme_color_override("font_color", TITLE_COLOR)
+		column.add_child(sub)
+	var toll := Label.new()
+	toll.text = toll_text(data, act, drift_director.get_node_or_null("%EnemyContainer"))
+	toll.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toll.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	toll.add_theme_font_size_override("font_size", 14)
+	toll.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	column.add_child(toll)
+	if NightmareCard.is_new(data):
+		var new_tag := Label.new()
+		new_tag.text = "Never faced"
+		new_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.caps(new_tag, 13, UiStyle.GOLD)
+		column.add_child(new_tag)
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(spacer)
+	var pick := Button.new()
+	pick.name = "Hunt_" + boss.get_id()
+	pick.text = "Hunt it"
+	pick.tooltip_text = "The Heartwood's draw this run" if drawn else ""
+	pick.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
+	pick.focus_mode = Control.FOCUS_NONE
+	pick.pressed.connect(choose_hunt.bind(boss))  # Equal choices: plain bordered buttons, no primary (light pass)
+	column.add_child(pick)
+	return column
+
+# The player names act's boss: it goes into the run, the run saves (the real game), and its card opens.
+func choose_hunt(boss: BossData) -> void:
+	var drift := hunting_drift
+	if drift <= 0:
+		return
+	hunting_drift = 0
+	BossPool.choose(drift_director, _act_of(drift), boss)
+	_close_button.visible = true
+	var saver := drift_director.owner.get_node_or_null("%RunSaver") if drift_director.owner != null else null
+	if saver != null and saver.get("autosave") == true:
+		saver.save_now()  # The pick is kept even if the run is closed before the next rest
+	open(drift)
+
+func is_hunting() -> bool:
+	return hunting_drift > 0
+
 # The card comes up: the portrait fades up out of the mist and the name writes in (reduced motion:
 # a plain fade of the whole card). Runs while paused.
 # The card's height: its content, at most the screen less a margin (it scrolls past that).
@@ -383,6 +516,8 @@ func _entrance(data: EnemyData) -> void:
 		tween.parallel().tween_property(_name_label, "visible_ratio", 1.0, 0.7).set_delay(0.35)
 
 func close_dossier() -> void:
+	if is_hunting():
+		return  # Chosen Hunt: closes once a boss is picked (choose_hunt)
 	if _peek != null:
 		_peek.set_peeking(false)
 	visible = false

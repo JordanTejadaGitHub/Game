@@ -96,6 +96,39 @@ static func set_keepsake_shown(id: String, shown: bool) -> void:
 	settings[KEEPSAKES_HIDDEN_SETTING] = hidden
 	HeartwoodMemory.save_settings(settings)
 
+# Leaf or Dew (Grove option node, meta_design.md f7a357de): before a run, trade up to 3 leaves for 15 Dew each, or
+# up to 45 Dew for leaves. A step moves max leaves with current leaves, so traded leaves don't regrow at act breaks.
+# The Grove's Start run sets leaf_dew_trade (+N = leaves into Dew, −N = Dew into leaves); the run applies it once.
+const LEAF_DEW_NODE := "leaf_or_dew"
+const LEAF_DEW_RATE := 15
+const LEAF_DEW_MAX := 3
+static var leaf_dew_trade := 0
+
+static func leaf_or_dew_available() -> bool:
+	if ResultsScreen.is_demo():
+		return false
+	var unlock := HeartwoodMemory.get_unlock(LEAF_DEW_NODE)
+	return unlock != null and HeartwoodMemory.node_level(HeartwoodMemory.load_data(), unlock) > 0
+
+# Applied once at run start (after the perks), then cleared, so a resumed run never trades again.
+func _apply_leaf_dew_trade() -> void:
+	var trade := clampi(leaf_dew_trade, -LEAF_DEW_MAX, LEAF_DEW_MAX)
+	leaf_dew_trade = 0
+	if trade == 0 or not leaf_or_dew_available():
+		return
+	if trade > 0:  # Leaves into Dew: keep at least 1 leaf
+		var steps := mini(trade, mini(run_state.leaves, run_state.max_leaves) - 1)
+		run_state.max_leaves -= steps
+		run_state.leaves -= steps
+		run_state.add_dew(steps * LEAF_DEW_RATE)
+	else:  # Dew into leaves: never below 0 Dew
+		var steps := mini(-trade, run_state.dew / LEAF_DEW_RATE)
+		run_state.dew -= steps * LEAF_DEW_RATE
+		run_state.dew_changed.emit(run_state.dew)
+		run_state.max_leaves += steps
+		run_state.leaves += steps
+	run_state.leaves_changed.emit(run_state.leaves, run_state.max_leaves)
+
 # Dream offer cards get the night-sky frame (DreamScreen): the Starlit Card Backs keepsake.
 static func starlit_backs() -> bool:
 	return keepsake_on("starlit_backs")
@@ -209,6 +242,7 @@ func _ready() -> void:
 	_milestones_at_start = memory.milestones.duplicate()
 	_counters_at_start = memory.counters.duplicate()
 	_apply_grove(memory)
+	_apply_leaf_dew_trade()
 	if all_families:
 		_apply_all_families()
 	_apply_blight(blight_level)

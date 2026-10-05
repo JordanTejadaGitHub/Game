@@ -432,7 +432,37 @@ func _run() -> void:
 		"Remembered Seed: 30 Seeds, opens the map choice once planted, never carried")
 	seed_profile.unlocks.erase(SeedPicker.NODE_ID)
 	seed_profile.loadout = []
+	# Leaf or Dew (meta_design.md f7a357de): −3…+3 before the run; max leaves move with the leaves.
+	_check(not MetaRun.leaf_or_dew_available(), "Leaf or Dew needs its node")
+	seed_profile.unlocks[MetaRun.LEAF_DEW_NODE] = 1
 	HeartwoodMemory.save_data(seed_profile)
+	MetaRun.leaf_dew_trade = 2
+	var trade_run := await _new_run()
+	var trade_state: RunState = trade_run.get_node("%RunState")
+	_check(trade_state.max_leaves == trade_state.starting_leaves - 2 and trade_state.leaves == trade_state.max_leaves
+		and trade_state.dew == trade_state.starting_dew + 30 and MetaRun.leaf_dew_trade == 0,
+		"2 leaves into 30 Dew, max leaves too, applied once (%d / %d, %d Dew)" % [trade_state.leaves, trade_state.max_leaves, trade_state.dew])
+	trade_run.queue_free()
+	await process_frame
+	MetaRun.leaf_dew_trade = -3
+	trade_run = await _new_run()
+	trade_state = trade_run.get_node("%RunState")
+	_check(trade_state.max_leaves == trade_state.starting_leaves + 3 and trade_state.leaves == trade_state.max_leaves
+		and trade_state.dew == trade_state.starting_dew - 45, "45 Dew into 3 more leaves (and max)")
+	trade_run.queue_free()
+	await process_frame
+	seed_profile.unlocks.erase(MetaRun.LEAF_DEW_NODE)
+	HeartwoodMemory.save_data(seed_profile)
+	# The other option nodes (meta_design.md 72ccfceb): their effects live with their owners, gated on the node.
+	var hunt := _unlock(HeartwoodMemory.load_grove(), "chosen_hunt")
+	var omens_node := _unlock(HeartwoodMemory.load_grove(), "restless_omens")
+	var strange := _unlock(HeartwoodMemory.load_grove(), "strange_dreams")
+	_check(hunt != null and hunt.always_on and not hunt.is_perk() and hunt.root == UnlockData.Root.PERKS and hunt.costs == [80],
+		"Chosen Hunt: an 80-Seed option on the Perks limb")
+	_check(omens_node != null and omens_node.always_on and omens_node.root == UnlockData.Root.DREAMS and omens_node.costs == [40]
+		and strange != null and strange.root == UnlockData.Root.DREAMS and strange.costs == [50]
+		and strange.dream_cards.all(func(id: String) -> bool: return ResourceLoader.exists("res://resource/dream/%s.tres" % id)),
+		"Restless Omens and Strange Dreams on the Cards limb, their cards real")
 	var roots_memory := HeartwoodMemory.load_data()
 	roots_memory.unlocks.wider_roots = 1
 	roots_memory.loadout = ["wider_roots"]
@@ -782,7 +812,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 94 and grove.size() == 94 - parked, "94 Grove spots, %d nodes on the tree (layout %d, data %d)" % [94 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 98 and grove.size() == 98 - parked, "98 Grove spots, %d nodes on the tree (layout %d, data %d)" % [98 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:

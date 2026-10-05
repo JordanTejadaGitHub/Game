@@ -89,6 +89,30 @@ func _run() -> void:
 	_check(_drift_has(director.drifts[99], load("res://resource/enemy/hollow_oak_remembering.tres")), "the Remembering Oak takes drift 100")
 	_check(director.get_drawn_boss(2).get_id() == "huntsman", "get_drawn_boss reads the draw")
 
+	# --- Chosen Hunt (Grove node): at an act's start the player picks its boss from the pool ---
+	var dossier := main.get_tree().get_first_node_in_group(BossDossier.GROUP) as BossDossier
+	_check(dossier != null, "the HUD made the boss dossier")
+	if dossier != null:
+		BossPool.force_chosen_hunt = true
+		var act2_pool := BossPool.get_pool(2)
+		_check(dossier.offers_hunt(50), "with Chosen Hunt planted, act 2's start offers the hunt")
+		dossier.open_hunt(50)
+		var choices := dossier.find_child("HuntChoices", true, false)
+		_check(dossier.is_hunting() and choices != null and choices.get_child_count() == act2_pool.size(),
+			"it shows the act's whole pool (%d)" % (choices.get_child_count() if choices != null else 0))
+		dossier.close_dossier()
+		_check(dossier.is_open() and dossier.is_hunting(), "no closing it without a pick")
+		var picked: BossData = act2_pool[0] if act2_pool[0].get_id() != "huntsman" else act2_pool[1]
+		dossier.choose_hunt(picked)
+		_check(director.get_drawn_boss(2) == picked and director.drifts[49] == picked.drift,
+			"the pick is act 2's boss and its drift is drift 50 (%s)" % picked.get_id())
+		_check(BossPool.ids(director.bosses)[1] == picked.get_id(), "the run save keeps it (bosses)")
+		_check(not dossier.is_hunting() and dossier.is_open() and dossier.shown_drift == 50, "then its card opens")
+		dossier.close_dossier()
+		BossPool.force_chosen_hunt = false
+		BossPool.choose(director, 2, BossPool.find(2, "huntsman"))  # Back to the preset draw for the checks below
+		_check(not dossier.offers_hunt(50) or BossPool.chosen_hunt_active(), "without the node, the drawn boss comes")
+
 	# --- Hollow Stag (sharpened): charges down straights of 4+ tiles, bellows 6 Husks at half health ---
 	var stag := _still("old_stag", route[0])
 	var stag_speed: float = stag.get_move_speed()

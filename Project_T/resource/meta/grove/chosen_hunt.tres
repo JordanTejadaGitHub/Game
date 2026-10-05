@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "chosen_hunt"
+display_name = "Chosen Hunt"
+description = "When an act begins, choose its boss from the three in its pool."
+root = 2
+costs = Array[int]([80])
+order = 47
+icon = 23
+always_on = true

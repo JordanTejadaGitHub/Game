@@ -80,6 +80,29 @@ static func apply(director: Node, bosses: Array[BossData]) -> void:
 		if bosses[i] != null and number <= director.drifts.size():
 			director.drifts[number - 1] = bosses[i].drift
 
+# Chosen Hunt (Grove node, Perks limb; meta_design.md 72ccfceb): once planted, each act's start shows the
+# act's whole pool and the player picks the boss (act 4: the Hollow Oak's variation) instead of the draw.
+# The full game only. The pick replaces the act's entry in DriftDirector.bosses, so the run save keeps it.
+const CHOSEN_HUNT_NODE := "chosen_hunt"
+static var force_chosen_hunt := false  # Tests
+
+static func chosen_hunt_active() -> bool:
+	if force_chosen_hunt:
+		return true
+	if ResultsScreen.is_demo():
+		return false
+	var unlock := HeartwoodMemory.get_unlock(CHOSEN_HUNT_NODE)
+	return unlock != null and HeartwoodMemory.node_level(HeartwoodMemory.load_data(), unlock) > 0
+
+# Makes `data` act `act`'s boss in this run: its drift goes in at drift 25 × act.
+static func choose(director: Node, act: int, data: BossData) -> void:
+	if data == null or act < 1 or act > director.bosses.size():
+		return
+	director.bosses[act - 1] = data
+	var number: int = act * director.drifts_per_act
+	if number <= director.drifts.size():
+		director.drifts[number - 1] = data.drift
+
 static func ids(bosses: Array[BossData]) -> Array:
 	return bosses.map(func(b: BossData) -> String: return b.get_id() if b != null else "")
 

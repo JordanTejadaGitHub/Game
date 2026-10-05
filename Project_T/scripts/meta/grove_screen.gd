@@ -457,10 +457,91 @@ func _start_run() -> void:
 		add_child(confirm)
 		confirm.popup_centered()
 		return
+	MetaRun.leaf_dew_trade = 0
+	if MetaRun.leaf_or_dew_available():
+		open_leaf_dew()  # Its Continue goes on to the loadout / Blight steps
+	else:
+		_after_leaf_dew()
+
+func _after_leaf_dew() -> void:
 	if _has_perks():
 		_open_loadout(true)
 	else:
 		_pick_blight()
+
+# Leaf or Dew (Grove option node): a −3…+3 stepper before the run, applied once at run start (MetaRun).
+var leaf_dew_step := PanelContainer.new()
+var _leaf_dew_label := Label.new()
+
+func open_leaf_dew() -> void:
+	if leaf_dew_step.get_parent() == null:
+		leaf_dew_step.custom_minimum_size = Vector2(440, 0)
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 12)
+		leaf_dew_step.add_child(box)
+		var title := Label.new()
+		title.text = "Leaf or Dew"
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title.add_theme_font_size_override("font_size", 24)
+		title.add_theme_color_override("font_color", Palette.GLOW)
+		box.add_child(title)
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 12)
+		box.add_child(row)
+		_leaf_dew_button(row, "More Dew", "MoreDew", 1)
+		_leaf_dew_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_leaf_dew_label.custom_minimum_size = Vector2(190, 0)
+		_leaf_dew_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		row.add_child(_leaf_dew_label)
+		_leaf_dew_button(row, "More leaves", "MoreLeaves", -1)
+		row.move_child(_leaf_dew_label, 1)
+		var footer := HBoxContainer.new()
+		footer.alignment = BoxContainer.ALIGNMENT_END
+		footer.add_theme_constant_override("separation", 12)
+		box.add_child(footer)
+		var back := Button.new()
+		back.text = "Back"
+		back.focus_mode = Control.FOCUS_NONE
+		back.custom_minimum_size = Vector2(130, 48)
+		back.pressed.connect(func() -> void:
+			MetaRun.leaf_dew_trade = 0
+			leaf_dew_step.visible = false)
+		footer.add_child(back)
+		var go := Button.new()
+		go.name = "Continue"
+		go.text = "Continue"
+		go.focus_mode = Control.FOCUS_NONE
+		go.custom_minimum_size = Vector2(130, 48)
+		go.pressed.connect(func() -> void:
+			leaf_dew_step.visible = false
+			_after_leaf_dew())
+		footer.add_child(go)
+		add_child(leaf_dew_step)
+	_show_leaf_dew()
+	leaf_dew_step.visible = true
+	leaf_dew_step.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+
+func _leaf_dew_button(row: HBoxContainer, text: String, button_name: String, step: int) -> void:
+	var button := Button.new()
+	button.name = button_name
+	button.text = text
+	button.focus_mode = Control.FOCUS_NONE
+	button.custom_minimum_size = Vector2(110, 48)
+	button.pressed.connect(func() -> void:
+		MetaRun.leaf_dew_trade = clampi(MetaRun.leaf_dew_trade + step, -MetaRun.LEAF_DEW_MAX, MetaRun.LEAF_DEW_MAX)
+		_show_leaf_dew())
+	row.add_child(button)
+
+func _show_leaf_dew() -> void:
+	var trade := MetaRun.leaf_dew_trade
+	var rate := MetaRun.LEAF_DEW_RATE
+	if trade > 0:
+		_leaf_dew_label.text = "%d fewer leaves (max too)\n+%d Dew" % [trade, trade * rate]
+	elif trade < 0:
+		_leaf_dew_label.text = "%d more leaves (max too)\n−%d Dew" % [-trade, -trade * rate]
+	else:
+		_leaf_dew_label.text = "No trade"
 
 func _pick_blight() -> void:
 	var max_level := HeartwoodMemory.max_blight_level(_memory)
@@ -479,13 +560,19 @@ func _go() -> void:
 
 # The Keepsakes shelf (meta_design.md Section 1, user 2026-10-05): the four cosmetics, each earned by its milestone.
 # Earned ones get a Show / Hide switch (the same setting as Settings → Display → Keepsakes); unearned ones are
-# greyed with their milestone.
+# greyed with their milestone. Art (Meta Game Asset f6fb233c): four niches standing on a mossy shelf, drawn at 2×.
+const SHELF_TEXTURE := preload("res://assets/meta/ui/keepsake_shelf.png")  # 208×40
+const NICHE_TEXTURE := preload("res://assets/meta/ui/keepsake_slots.png")  # 40×40 frames: 0–3 earned, 4–7 not yet
+const NICHE := 40
+const SHELF_SCALE := 2
+const NICHE_GAP := 12  # Art px between niches, so four sit across the shelf's 208
 var keepsakes_shelf := PanelContainer.new()
-var _shelf_rows := VBoxContainer.new()
+var _niche_row := HBoxContainer.new()
+var _shelf_rows := HBoxContainer.new()  # Under the shelf: one column per keepsake (named by its id): name, line, switch
 
 func open_keepsakes() -> void:
 	if keepsakes_shelf.get_parent() == null:
-		keepsakes_shelf.custom_minimum_size = Vector2(460, 0)
+		keepsakes_shelf.custom_minimum_size = Vector2(SHELF_TEXTURE.get_width() * SHELF_SCALE + 40, 0)
 		var box := VBoxContainer.new()
 		box.add_theme_constant_override("separation", 10)
 		keepsakes_shelf.add_child(box)
@@ -495,6 +582,22 @@ func open_keepsakes() -> void:
 		title.add_theme_font_size_override("font_size", 24)
 		title.add_theme_color_override("font_color", Palette.GLOW)
 		box.add_child(title)
+		var stand := VBoxContainer.new()  # The niches stand on the shelf's top moss
+		stand.add_theme_constant_override("separation", -(SHELF_TEXTURE.get_height() - 16) * SHELF_SCALE)
+		stand.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		_niche_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		_niche_row.add_theme_constant_override("separation", NICHE_GAP * SHELF_SCALE)
+		stand.add_child(_niche_row)
+		var shelf := TextureRect.new()
+		shelf.texture = SHELF_TEXTURE
+		shelf.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		shelf.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		shelf.custom_minimum_size = SHELF_TEXTURE.get_size() * SHELF_SCALE
+		shelf.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stand.add_child(shelf)
+		stand.move_child(shelf, 0)  # Drawn first, so the niches sit in front of it
+		box.add_child(stand)
+		_shelf_rows.alignment = BoxContainer.ALIGNMENT_CENTER
 		_shelf_rows.add_theme_constant_override("separation", 8)
 		box.add_child(_shelf_rows)
 		var close := Button.new()
@@ -510,18 +613,32 @@ func open_keepsakes() -> void:
 	keepsakes_shelf.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
 
 func _rebuild_shelf() -> void:
-	for child in _shelf_rows.get_children():
+	for child in _shelf_rows.get_children() + _niche_row.get_children():
+		child.get_parent().remove_child(child)  # Gone now, so a rebuild's new rows can take the same names
 		child.queue_free()
-	for id in MetaRun.KEEPSAKES:
-		var row := HBoxContainer.new()
-		row.name = id
-		row.add_theme_constant_override("separation", 12)
-		var words := Label.new()
+	for i in MetaRun.KEEPSAKES.size():
+		var id: String = MetaRun.KEEPSAKES[i]
 		var owned := MetaRun.keepsake_owned(id)
+		var niche := TextureRect.new()
+		var frame := AtlasTexture.new()
+		frame.atlas = NICHE_TEXTURE
+		frame.region = Rect2((i + (0 if owned else 4)) * NICHE, 0, NICHE, NICHE)
+		niche.texture = frame
+		niche.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		niche.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		niche.custom_minimum_size = Vector2.ONE * NICHE * SHELF_SCALE
+		niche.tooltip_text = MetaRun.KEEPSAKE_TEXT[id][0]
+		_niche_row.add_child(niche)
+		var row := VBoxContainer.new()
+		row.name = id
+		row.custom_minimum_size = Vector2((NICHE + NICHE_GAP) * SHELF_SCALE - 8, 0)
+		row.add_theme_constant_override("separation", 4)
+		var words := Label.new()
 		var milestone: Array = MetaRun.MILESTONE_SEEDS.get(MetaRun.KEEPSAKE_MILESTONES[id], [0, ""])
 		words.text = "%s\n%s" % [MetaRun.KEEPSAKE_TEXT[id][0], MetaRun.KEEPSAKE_TEXT[id][1] if owned else "Earned by: %s." % milestone[1]]
+		words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		words.add_theme_font_size_override("font_size", 13)
 		words.add_theme_color_override("font_color", Palette.HEARTLIGHT if owned else Palette.MOONPATH)
 		if not owned:
 			words.modulate = Color(1, 1, 1, 0.6)  # multiplier: greyed until earned
@@ -530,7 +647,8 @@ func _rebuild_shelf() -> void:
 			var toggle := Button.new()
 			toggle.name = "Toggle"
 			toggle.focus_mode = Control.FOCUS_NONE
-			toggle.custom_minimum_size = Vector2(110, 44)
+			toggle.custom_minimum_size = Vector2(88, 44)
+			toggle.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 			toggle.text = "Hide" if MetaRun.keepsake_on(id) else "Show"
 			toggle.pressed.connect(func() -> void:
 				MetaRun.set_keepsake_shown(id, not MetaRun.keepsake_on(id))
