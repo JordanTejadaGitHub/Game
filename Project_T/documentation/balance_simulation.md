@@ -806,6 +806,26 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 **tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
 `longest_path` / `tended` requested in the run history to re-check.
 
+## Restless Omens numbers (2026-10-05, for run_design.md a106b83d; data values, before the act scale)
+
+Calibrated on the live data (Swift Stream ×1.25 speed → 5 Seeds; Heavy Rain +50% health → 45 Dew; Crowded
+Paths ×1.45 → 60 Dew; Moth Night → Rare+ and 25 Dew). A double-edged Omen's twist moves **total** health up
+by ~20%, so it is never free for the build it favours.
+
+| Omen | Twist | Reward |
+|---|---|---|
+| Swarming Night | count ×2 (round up), health **×0.6** each (total ×1.2) | **5 Seeds** |
+| Giants' Walk | count ×0.5 (min 1), health **×2.4** each (total ×1.2; elites ×3 on top), each leak **+1 leaf**; act 2+, never a boss block | Rare+ card **+ 25 Dew** |
+| Brittle Night | health **×0.75**, leaks ×2; never a boss block | **45 Dew** |
+| Static Sky | always Charged, speed **×1.3** | **40 Dew** |
+
+- Swarming Night's halves leak at full leaf cost each, which is its real teeth for single-target builds.
+- Brittle Night is the one Omen that lowers health: a safe maze takes it for Dew, which is its point; the
+  double leak keeps it a gamble. Static Sky is offered only with a Charged source, so its taker usually
+  profits from the Charged: the speed is above Swift Stream's to pay for that.
+- Watch on human runs (RunHistory Omens + leaks per block): any of the four taken > 60% of the times
+  offered, or leaking < Clear Skies blocks, gets its reward cut first.
+
 ## Pricier growing (user, 2026-10-04: "make growing your Wardens more expensive, make the player rely on making more Wardens early instead of saving")
 
 Intent: in acts 1–2 the best use of Dew is **more Wardens** (a longer maze, more coverage); growing becomes a

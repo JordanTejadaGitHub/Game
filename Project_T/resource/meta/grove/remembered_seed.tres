@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "remembered_seed"
+display_name = "Remembered Seed"
+description = "When you start a run, choose its map: a new one, one you've played before, or a seed you type."
+root = 2
+costs = Array[int]([30])
+order = 45
+icon = 22
+always_on = true

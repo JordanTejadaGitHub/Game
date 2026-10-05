@@ -471,9 +471,11 @@ func _pick_blight() -> void:
 		_go()
 
 func _go() -> void:
-	RunSaver.delete_save()
-	RunSaver.resume_next = false
-	get_tree().change_scene_to_file(GAME_SCENE)
+	# Remembered Seed (Grove node): the picker asks which map first; without the node it starts at once.
+	SeedPicker.ask(self, func() -> void:
+		RunSaver.delete_save()
+		RunSaver.resume_next = false
+		get_tree().change_scene_to_file(GAME_SCENE))
 
 # The Keepsakes shelf (meta_design.md Section 1, user 2026-10-05): the four cosmetics, each earned by its milestone.
 # Earned ones get a Show / Hide switch (the same setting as Settings → Display → Keepsakes); unearned ones are

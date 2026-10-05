@@ -1513,6 +1513,34 @@ Why: a new account's first run can be offered most of the pool (123 base cards i
   one (Emergence), while the payoffs need the Grove (a build you choose to grow into, across runs).
   Re-measure with a fresh-profile preset (`MetaRun.load_preset(&"fresh")`) after the move.
 
+## Strange Dreams: gamble cards (2026-10-05; cards 252–255)
+
+For the Grove node **Strange Dreams** (Cards limb, 50 Seeds; user decision, `meta_design.md`
+952b986e). Odd, swingy cards: **options, not raw power** (their average is near or under their
+rarity's budget, the swing is the point), **generic** (no family, no combo). Each is a different
+kind of gamble. Tag `strange` (not an archetype). Grove pool, one copy each.
+
+| # | Card (id) | Rarity | Effect | The gamble |
+|---|---|---|---|---|
+| 252 | **Mystery Dream** (`mystery_dream`) | Uncommon | Shown face-down. When taken, it becomes a **random Uncommon or Rare card** you could be offered now, revealed at once. | quality and fit: it may not suit your build |
+| 253 | **Moonflip** (`moonflip`) | Uncommon | At every rest a coin flips: for the next block all Wardens **deal 25% more damage**, or **15% less**. | a coin each block (average +5%); the HUD shows the side |
+| 254 | **Double or Nothing** (`double_or_nothing`) | Rare | Every Omen you face pays **double** if you lose **no leaf** in its block, and **nothing** if you lose any (instead of −25% per leaf). | a bet on your own maze |
+| 255 | **Wild Dew** (`wild_dew`) | Common | Every drift's Dew pot is rolled between **×0.6 and ×1.6** (average ×1.1), shown before the drift starts. | swingy income |
+
+- **Mystery Dream:** draws by the usual weights from eligible Uncommons and Rares (not Legendaries,
+  not Bittersweet), never a card you hold at max stacks. If nothing qualifies, it becomes a random
+  eligible Common. Its face shows a moth and *"?"*; the impact preview says *"Unknown until taken"*.
+- **Moonflip:** flips at the rest after each block, from the run's seeded rng (the same map flips the
+  same way). The DriftPanel shows *"Moonflip · +25%"* or *"−15%"* for the block.
+- **Double or Nothing:** needs Omens (offered from drift 10). Dew, Seeds and Dream rewards all
+  follow it; a double-edged Omen (whose reward is its twist) is unaffected. Omens still never give
+  leaves or Dreamlight.
+- **Wild Dew:** multiplies with the pot's other modifiers; the DriftPanel's next-drift pot shows
+  the rolled number. Seeded, like Moonflip.
+- **Numbers:** Balancing Discussion checks the averages (Moonflip +5%, Wild Dew +10% Dew) against
+  the budget.
+- **Ids for Meta's node:** `mystery_dream`, `moonflip`, `double_or_nothing`, `wild_dew`.
+
 ## Grove build branches: Swift and Wide Reach (2026-09-30)
 
 For `meta_design.md` Section 3 (Meta Game Discussion, after the user's "no combo cards in the

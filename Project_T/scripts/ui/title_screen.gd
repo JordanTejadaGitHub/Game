@@ -203,9 +203,10 @@ func _start_new() -> void:
 		MetaRun.blight_level = 0
 		_go()
 
+# A fresh run (never Continue). With the Remembered Seed node the map picker opens first.
 func _go() -> void:
 	RunSaver.resume_next = false
-	get_tree().change_scene_to_file(GAME_SCENE)
+	SeedPicker.ask(self, func() -> void: get_tree().change_scene_to_file(GAME_SCENE))
 
 func _show_settings() -> void:
 	_menu.visible = false

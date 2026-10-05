@@ -420,6 +420,19 @@ func _run() -> void:
 	var roots_perk := _unlock(HeartwoodMemory.load_grove(), "wider_roots")
 	_check(roots_perk != null and roots_perk.is_perk() and roots_perk.costs == [120] and roots_perk.requires_all == ["omen_reader"] and roots_perk.wider_roots,
 		"Wider Roots: a 120-Seed perk after Omen Reader")
+	# Remembered Seed (meta_design.md 952b986e): an option on the Perks twig, always on once planted, never carried.
+	var seed_node := _unlock(HeartwoodMemory.load_grove(), SeedPicker.NODE_ID)
+	var seed_profile := HeartwoodMemory.load_data()
+	var seed_before: bool = SeedPicker.available()
+	seed_profile.unlocks[SeedPicker.NODE_ID] = 1
+	seed_profile.loadout = [SeedPicker.NODE_ID]
+	HeartwoodMemory.save_data(seed_profile)
+	_check(seed_node != null and seed_node.costs == [30] and seed_node.always_on and not seed_node.is_perk() and not seed_before
+		and SeedPicker.available() and HeartwoodMemory.get_loadout(HeartwoodMemory.load_data()).is_empty(),
+		"Remembered Seed: 30 Seeds, opens the map choice once planted, never carried")
+	seed_profile.unlocks.erase(SeedPicker.NODE_ID)
+	seed_profile.loadout = []
+	HeartwoodMemory.save_data(seed_profile)
 	var roots_memory := HeartwoodMemory.load_data()
 	roots_memory.unlocks.wider_roots = 1
 	roots_memory.loadout = ["wider_roots"]
@@ -769,7 +782,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 93 and grove.size() == 93 - parked, "93 Grove spots, %d nodes on the tree (layout %d, data %d)" % [93 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 94 and grove.size() == 94 - parked, "94 Grove spots, %d nodes on the tree (layout %d, data %d)" % [94 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:
