@@ -1630,8 +1630,13 @@ The player builds finer, twistier mazes in the same space.
   - Bitter Hedges and Hedgerow Roots work by touch as usual.
   - Living Walls skips twig walls: a Bramble needs a full footprint.
   - Thorn Snare / Briar Trap hold as usual.
-- **Balancing Discussion:** check route length with twig walls (the route can grow a lot), and say
-  whether it needs `min_act` 2 or a cap.
+- **Balance** (Balancing Discussion, balance_simulation.md fd7e1b0e): **`min_act` 2**, because act 1
+  was tuned on full walls.
+  - Price: half is right.
+  - Cap: none yet. Twig corridors give about ×1.5 the route (73-cell mazes become ~100–110), worth
+    about +40–50% damage, the Rare budget.
+  - If `longest_path` on human runs with the card passes ~120 cells, it gets a cap (e.g. up to 30
+    twig walls).
 - **Who builds it:**
   - Roguelite Code: the card.
   - Tower Code: a one-half footprint for the Thornwall under the card, covering the ghost snap,
