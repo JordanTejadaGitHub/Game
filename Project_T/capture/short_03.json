@@ -1,6 +1,6 @@
 {
 	"title": "The first boss.",
-	"note": "Cleared island, 14 Thornwalls (auto maze), 14 Sporelings at rank 4 + 6 Dewdrops at rank 5 (ranks tune damage without moving the auto placements; counts do move them). The Stag walks the whole route from 2.5 s and is dispelled ~6-9 cells from the Heartwood at ~24.5-26 s (residual randomness) (main 8459d82b). Dewdrops at rank 4 is a knife edge (1-3% hp at the door, then it reaches the tree).",
+	"note": "Cleared island, 14 Thornwalls (auto maze), 14 Sporelings at rank 5 + 6 Dewdrops at rank 3 (ranks tune damage without moving the auto placements; counts do move them). The Stag walks the whole route from 2.5 s and is dispelled ~4-5 cells from the Heartwood at ~27.5-28 s (main f2217e2d, base Wardens 64) (main 8459d82b). Dewdrops at rank 4 is a knife edge (1-3% hp at the door, then it reaches the tree).",
 	"seed": 4242,
 	"size": [1080, 1920],
 	"drift": 25,
@@ -13,13 +13,13 @@
 	"captions": [
 		[0.0, 2.5, "The first boss: the Hollow Stag."],
 		[2.5, 11.0, "On a straight line, it charges."],
-		[11.0, 25.0, "So bend the maze. Every corner breaks the charge."],
-		[25.0, 32.0, "A few tiles from the tree. It never got its run-up."]
+		[11.0, 27.0, "So bend the maze. Every corner breaks the charge."],
+		[27.0, 32.0, "A few tiles from the tree. It never got its run-up."]
 	],
 	"timeline": [
 		{"t": 0.0, "plant_each": 0.05, "count": 14, "plant": "thornwall", "auto": "maze", "tag": false},
-		{"t": 0.0, "plant_each": 0.1, "count": 14, "plant": "sporeling", "auto": "cover", "rank": 4, "tag": false},
-		{"t": 0.0, "plant_each": 0.1, "count": 6, "plant": "dewdrop", "auto": "cover", "rank": 5, "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 14, "plant": "sporeling", "auto": "cover", "rank": 5, "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 6, "plant": "dewdrop", "auto": "cover", "rank": 3, "tag": false},
 		{"t": 0.2, "dossier": true, "drift": 25},
 		{"t": 2.3, "dossier": false},
 		{"t": 2.5, "spawn": "old_stag"},
