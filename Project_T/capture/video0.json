@@ -1,22 +1,23 @@
 {
 	"title": "Why I made this",
-	"note": "Video 0 (marketing.md §4): the cut list. Clips are rendered with capture.ps1 (video0_maze, video0_dream, video0_storm), then export.ps1 video0 joins them and adds captions, music and the end card. Caption times are on the joined timeline. video0_dream waits for a dream_offer capture action (asked of Main Merger).",
+	"note": "Video 0 (marketing.md §4, the short-form rewrite): the cut list. Clips rendered with capture.ps1 (video0_maze, video0_island, video0_dream, video0_storm); export.ps1 video0 joins them and adds captions, music and the end card. Caption times are on the joined timeline (28 s + 2.5 s end card).",
 	"size": [1080, 1920],
 	"cuts": [
-		{"clip": "video0_maze", "from": 1.0, "to": 10.0},
-		{"clip": "video0_dream", "from": 0.0, "to": 8.0},
-		{"clip": "video0_maze", "from": 15.5, "to": 21.5},
-		{"clip": "video0_storm", "from": 11.0, "to": 17.0}
+		{"clip": "video0_maze", "from": 1.0, "to": 9.0},
+		{"clip": "video0_island", "from": 1.5, "to": 3.5},
+		{"clip": "video0_dream", "from": 0.5, "to": 5.5},
+		{"clip": "video0_storm", "from": 11.0, "to": 20.0},
+		{"clip": "video0_maze", "from": 18.5, "to": 22.5}
 	],
-	"end_card": 5.0,
+	"end_card": 2.5,
 	"end_button": "D:/Projects/Game/marketing/music/endcard_button_full.wav",
 	"music": ["base", "dread1"],
 	"captions": [
-		[0.0, 3.0, "Remember the Warcraft 3 maze TD maps?"],
-		[3.0, 9.0, "Maze TD, Jungle TD: every tower was a wall."],
-		[9.0, 17.0, "I love tower defense. I love roguelites."],
-		[17.0, 20.0, "I couldn't find a game that mixed the two."],
-		[20.0, 23.0, "So I made one."],
-		[23.0, 29.0, "Single-player, your own pace, every run different."]
+		[0.0, 2.0, "Warcraft 3 maze TD... but a roguelite"],
+		[2.0, 8.0, "Every Warden is a wall. They walk the path you leave."],
+		[8.0, 15.0, "A new island every run. A Dream at every rest."],
+		[15.0, 20.0, "Then the combos kick in..."],
+		[20.0, 24.0, "...and the whole crowd lights up."],
+		[24.0, 28.0, "Solo, at your own pace. Heartwood TD."]
 	]
 }
