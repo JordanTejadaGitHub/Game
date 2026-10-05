@@ -699,7 +699,7 @@ cards: crit cards grow hits, these grow effects (Spored, Static bolts, clouds, f
 | 109 | **Bitter Sap** | Common | all Wardens +8% Potency (stacks) | potency | — | Start |
 | 110 | **Seeping** | Uncommon | effects deal **+8% per status** the nightmare carries (up to +40%; data) | potency, reaction | any 2 status families | Grove |
 | 111 | **Venom Bloom** | Uncommon, **Bittersweet** | all Wardens +30% Potency. **Cost:** hits do −15% damage | potency, bittersweet | — | Grove |
-| 112 | **Nightshade** | Legendary | effects deal **+20% damage for every status** the nightmare carries (**no cap**) | potency | — | Grove |
+| 112 | **Nightshade** | Legendary | effects deal **double damage to nightmares carrying 4+ statuses** (2026-10-05; multiplies with Potency and Seeping) | potency | — | Grove |
 
 Deepened: **Seeping II** +7% per status (max +42%).
 
@@ -725,7 +725,7 @@ branch, Rare final); only the extra cards are listed here.
 |---|---|---|---|---|---|---|
 | 45 | **Skipping Stones** | Uncommon | Pebbling-line shots bounce once to another nightmare in a straight line behind the target (60%) | stone, maze | Pebbling | Grove |
 | 46 | **Long Shadows** | Uncommon | Wardens with range 5+ get +2 range | range | Standing Stone or Lanternmoth | Grove |
-| 47 | **Patient Aim** | Uncommon | +15% damage per second a Warden hasn't fired (max +60%) | crit, stone | Standing Stone | Grove |
+| 47 | **Patient Aim** | Uncommon | +15% crit chance per second a Warden hasn't fired (up to +45%; 2026-10-05) | crit, stone | Standing Stone | Grove |
 | 48 | **Ring Dance** | Rare, **Entwined** (Fairy Ring + Driftspore) | a Fairy Ring burst sets off any ring within 2 tiles | spore, trap | — | Grove |
 | 49 | **Deep Frost** | Uncommon | frozen nightmares take +20% damage | water, crit | Frostfern | Grove |
 | 50 | **Carried on the Wind** | Rare, **Entwined** (Gust + any status branch) | Gust and Zephyr copy **full** stacks | wind | — | Grove |
@@ -1089,7 +1089,7 @@ its own line on the card, in a muted plum colour.
 
 | Card | Rarity | Upside | Cost |
 |---|---|---|---|
-| **Deep Sleep** | Rare | all Wardens +40% soothe | −4 max leaves (and lose them now) |
+| **Deep Sleep** | Rare | all Wardens +60% damage (2026-10-05) | no rest bonus for the rest of the run |
 | **Borrowed Dew** | Uncommon | +150 Dew now | rest bonus −15 for the rest of the run |
 | **Wild Growth** | Uncommon | evolving −40% Dew | creatures +10% health |
 | **Overgrown** | Rare | all Wardens +1 range | no selling while creatures are walking |
@@ -1523,10 +1523,10 @@ overlap; clear on what they do"*) found overlapping cards and name clashes. Deci
 | Card | Was | Now | Why |
 |---|---|---|---|
 | **Nightshade** (L) | effects +20% per status the nightmare carries | effects deal **double damage to nightmares carrying 4 or more statuses** | was a bigger Seeping; a Legendary starts a build (load 4 statuses) instead of enlarging an enhancer |
-| **Deep Sleep** (Bittersweet) | +40% damage; −4 max leaves | +40% damage; **cost: no rest bonus for the rest of the run** | same trade as Thin Bark; now an economy cost |
-| **Kind Canopy** | Wardens touching 3+ Wardens +20% | Wardens **touching an aura Warden** deal 20% more damage | same trigger as Rootbound; it's a support card |
-| **Last Stand** | +35% near the Heartwood **and** +3% per missing leaf | +35% near the Heartwood **only** (the merged Heartwood's Fury part is removed) | Last Leaf and Scarred Bark already scale with missing leaves |
-| **Patient Aim** | +15% damage per second not fired | **+10% crit chance per second not fired** (up to +40%) | overlapped Watchful Rest; crit suits its snipers |
+| **Deep Sleep** (Bittersweet) | +40% damage; −4 max leaves | **+60%** damage; **cost: no rest bonus for the rest of the run** | same trade as Thin Bark; now an economy cost |
+| **Kind Canopy** | Wardens touching 3+ Wardens +20% | Wardens **touching an aura Warden** deal **35%** more damage | same trigger as Rootbound; it's a support card |
+| **Last Stand** | +35% near the Heartwood **and** +3% per missing leaf | **+60%** near the Heartwood **only** (the merged Heartwood's Fury part is removed) | Last Leaf and Scarred Bark already scale with missing leaves |
+| **Patient Aim** | +15% damage per second not fired | **+15% crit chance per second not fired** (up to +45%) | overlapped Watchful Rest; crit suits its snipers |
 
 **Renames** (display names only; ids stay, so saves and code don't change):
 
@@ -1552,8 +1552,8 @@ overlap; clear on what they do"*) found overlapping cards and name clashes. Deci
   follows the new name.
 - **Docs fixed:** Seeping (8% / up to 40%) and Thin Bark (35%) rows match the data. "Resonance" is no
   longer ambiguous: tag Resonance was removed (2026-10-02), and the card is now Thunder Chimes.
-- Balancing Discussion checks the reworked Nightshade, Deep Sleep, Kind Canopy and Patient Aim
-  against their budgets.
+- Balancing Discussion checked the reworked Nightshade, Deep Sleep, Kind Canopy and Patient Aim
+  against their budgets (balance_simulation.md 738088c3): the numbers above are theirs.
 
 ## Strange Dreams: gamble cards (2026-10-05; cards 252–255)
 
@@ -1824,7 +1824,7 @@ weight (1.4×). Legendary and Bittersweet rules as usual.
 | 169 | **Dew Bowl** | Common, stacks (max 3) | +10 Dew now | **Dewcatcher, Wellspring:** catch +15% (per stack) | Grove |
 | 170 | **Harvest Moon** | Uncommon | +5 Dew at every rest | **catchers:** the Harvest pays **+50%** | Grove |
 | 171 | **Deep Well** | Rare | at every rest, **3% interest** on banked Dew (max 20) | **Wellspring:** its interest cap +30 each (90) | Grove |
-| 172 | **Kind Canopy** | Uncommon | Wardens touching 3+ other Wardens +5% damage | **Acorn, Elder Stump, Grove Heart:** aura radius **+1** | Grove |
+| 172 | **Kind Canopy** | Uncommon | Sheltering Boughs (2026-10-05): Wardens touching an aura Warden +35% damage | **Acorn, Elder Stump, Grove Heart:** aura radius **+1** | Grove |
 | 173 | **Shared Light** | Rare | every Warden gives the Wardens touching it **+2% damage** (max +10% on one Warden) | **aura Wardens:** their bonuses **+50%** | Grove |
 | 174 | **Bramble Oath** | Common | +2% damage for every 10 path tiles your walls add (max +15%) | **Bramble, Honeysuckle:** 50% stronger | Start |
 | 175 | **Patient Roots** | Uncommon | Held lasts **+0.25 s** from any source (Frostfern, Snugroot, World Root…) | **Rootling line:** pulls go 0.5 tiles further, holds another +0.25 s | Grove |
@@ -1879,7 +1879,7 @@ and have loose or no Needs. Each rewards a way of building, not a family; all on
 |---|---|---|---|---|---|---|
 | 135 | **Root Network** | Rare | Sprouts that **touch each other** (side by side, not diagonal) form a network: each Sprout gets **+6% damage per Sprout in its network** (a line of 8 = +48% each; max +60%). The networks glow faintly along their shared edges | sprout, wide | 4+ Sprouts (soft) | Start |
 | 136 | **First Light** | Rare | each Warden's **first hit on a nightmare** deals **×3** damage | — | — | Start |
-| 137 | **Last Stand** | Rare | nightmares within **4 cells of the Heartwood** take **+35% damage** from every Warden | maze | — | Start |
+| 137 | **Last Stand** | Rare | nightmares within **4 cells of the Heartwood** take **+60% damage** from every Warden (2026-10-05) | maze | — | Start |
 | 138 | **Steadfast** (id `old_growth`; "Deep Roots" and "Old Growth" were taken) | Rare | Wardens that have stood **5 drifts** (never sold; growing keeps the count) deal **+15% damage**; **15 drifts: +30%** | — | — | Start |
 | 139 | **Hunter's Patience** | Rare | Wardens deal **+50% damage to Deeply Blighted** nightmares and **+20% to bosses** | — | act 2+ | Start |
 | 140 | **Thinning the Herd** | Rare | each nightmare dispelled within a Warden's range gives that Warden **+1% damage for the rest of the drift** (max +25%) | — | — | Start |
