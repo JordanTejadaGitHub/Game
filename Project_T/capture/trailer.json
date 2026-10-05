@@ -1,6 +1,6 @@
 {
 	"title": "Heartwood TD trailer (marketing.md section 5)",
-	"note": "Trailer chat. Cut list for the cue (2.5 s bars, hits 7.5 / 20 / 52.5 / 65). User notes on cut 4: no awkward pauses; the boss part becomes Dispel bosses and grow the Grove. 0-5 maze, 5-8.5 Shade (dispel 7.5), 8.5-15 drift walk with a crowd, 15-27.5 Thunderclaps (x5 on 20), 27.5-32.5 Dream pick, 32.5-40 growth (Ascended as a silhouette), 40-45 a late maze wide, 45-52.5 the Stag dispelled on 52.5 (clip 28.1), 52.5-60 the Grove growing (placeholder: the Hollow Oak until the Grove capture exists), 60-70 lightning, x10 on 65.",
+	"note": "Trailer chat. Cut list for the cue (2.5 s bars, hits 7.5 / 20 / 52.5 / 65). User notes on cut 4: no awkward pauses; the boss part becomes Dispel bosses and grow the Grove. 0-5 maze, 5-8.5 Shade (dispel 7.5), 8.5-15 drift walk with a crowd, 15-27.5 Thunderclaps (x5 on 20), 27.5-32.5 Dream pick, 32.5-40 growth (the Ascended form as a silhouette, a tease), 40-45 the Night Mare and the Hollow Oak (a beat each), 45-52.5 the Stag dispelled on 52.5 (clip 28.1), 52.5-60 the Memory Grove growing (trailer_11_grove), 60-70 lightning, x10 on 65.",
 	"format": "trailer",
 	"size": [1920, 1080],
 	"bed": "D:/Projects/Game/marketing/music/trailer_full.wav",
@@ -13,9 +13,10 @@
 		{"clip": "trailer_04_thunder", "from": 1.0, "to": 13.5},
 		{"clip": "trailer_05_rest", "from": 0.0, "to": 5.0},
 		{"clip": "trailer_06_grow", "from": 0.0, "to": 7.5},
-		{"clip": "trailer_10_storm", "from": 0.5, "to": 5.5},
+		{"clip": "trailer_08_nightmare", "from": 1.0, "to": 3.5},
+		{"clip": "trailer_09_oak", "from": 1.0, "to": 3.5},
 		{"clip": "trailer_07_stag", "from": 20.6, "to": 28.1},
-		{"clip": "trailer_09_oak", "from": 1.0, "to": 8.5},
+		{"clip": "trailer_11_grove", "from": 0.5, "to": 8.0},
 		{"clip": "trailer_04_thunder", "from": 13.5, "to": 16.0},
 		{"clip": "trailer_10_storm", "from": 8.2, "to": 15.7}
 	],

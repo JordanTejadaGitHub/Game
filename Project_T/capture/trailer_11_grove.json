@@ -1,0 +1,16 @@
+{
+	"title": "Trailer 52.5-60 s: the Memory Grove grows.",
+	"note": "Trailer chat (the user: 'dispel bosses and grow the Grove'). The Grove on the 'half' preset (a capture profile, never the player's); two family nodes planted (branch grows, bud opens), camera from the whole tree onto each. Needs Main Merger's grove capture (c6325d7b).",
+	"scene": "grove",
+	"grove": "half",
+	"size": [1920, 1080],
+	"length": 9.0,
+	"captions": [],
+	"timeline": [
+		{"t": 0.0, "camera": "fit"},
+		{"t": 0.5, "plant": "acorn"},
+		{"t": 0.8, "camera": "focus", "node": "acorn", "zoom": 2.0, "duration": 2.5},
+		{"t": 4.2, "plant": "rootling"},
+		{"t": 4.2, "camera": "focus", "node": "rootling", "zoom": 2.0, "duration": 2.5}
+	]
+}

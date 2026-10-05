@@ -18,6 +18,7 @@
 		{"t": 1.8, "grow": [11, 24], "into": "sporeling"},
 		{"t": 3.3, "grow": [11, 24], "into": "driftspore"},
 		{"t": 4.8, "grow": [11, 24], "into": "puffball"},
-		{"t": 6.3, "grow": [11, 24], "into": "sporemother"}
+		{"t": 6.3, "grow": [11, 24], "into": "sporemother"},
+		{"t": 6.3, "silhouette": [11, 24], "on": true}
 	]
 }
