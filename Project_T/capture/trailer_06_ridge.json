@@ -1,22 +1,23 @@
 {
-	"title": "Trailer 38-46 s: Sow a Ridge.",
-	"note": "Trailer chat (marketing.md section 5, scene 6). Board copied exactly from short_04.json at fcde10c4 (Short Form Video tuned it; chaotic: never change a plant line, count or order). The ridge lands at (10,3)-(10,7), route 28 -> 38. Only size and captions differ; the card goes on in the edit.",
+	"title": "Trailer 37.5-45 s: Sow a Ridge.",
+	"note": "Trailer chat (marketing.md section 5, scene 6). Board copied exactly from short_04.json at df5e46b8 (maze v4 minus [14, 8] and [15, 10]: the route takes that shortcut, 54 cells, until Sow a Ridge at [7, 5], [7, 4], [8, 4] seals it at 6 s and the route snaps back to 70). Only size, zoom (0.9 for 16:9) and captions differ; the card goes on in the edit. Not dry-run yet (videos paused 2026-10-04).",
 	"seed": 4242,
 	"size": [1920, 1080],
 	"drift": 26,
 	"dew": 900,
 	"obstacles": "edge",
+	"families": ["sporeling"],
 	"hud": "none",
 	"length": 22.0,
 	"music": ["base", "dread1"],
 	"captions": [],
 	"timeline": [
-		{"t": 0.0, "plant_each": 0.05, "count": 12, "plant": "thornwall", "auto": "maze", "tag": false},
-		{"t": 0.0, "plant_each": 0.1, "count": 5, "plant": "sporeling", "auto": "cover", "tag": false},
-		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.8},
+		{"t": 0.0, "plant_each": 0.0, "plant": "thornwall", "spots": [[7, 10], [7, 12], [7, 14], [7, 16], [7, 18], [6, 20], [6, 22], [6, 24], [6, 26], [6, 28], [6, 30], [15, 6], [14, 12], [15, 14], [14, 16], [15, 18], [14, 20], [23, 10], [23, 12], [23, 14], [23, 16], [23, 18], [24, 20], [24, 22], [24, 24], [24, 26], [24, 28], [24, 30], [24, 32], [25, 14], [27, 14], [29, 14], [31, 14], [33, 14], [35, 14], [35, 16], [35, 18], [35, 20], [35, 22], [35, 24], [35, 26], [26, 24], [28, 24], [30, 24]], "tag": false},
+		{"t": 0.0, "plant_each": 0.0, "plant": "sporeling", "spots": [[7, 8], [15, 22], [23, 8], [35, 28], [37, 20]], "tag": false},
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.9},
 		{"t": 1.0, "start": true},
-		{"t": 6.0, "gift": "sow_ridge", "auto": "detour"},
-		{"t": 5.0, "camera": "push", "at": [10, 5], "zoom": 1.0, "duration": 3.0},
-		{"t": 12.0, "camera": "follow", "target": "furthest", "zoom": 1.1}
+		{"t": 4.0, "camera": "push", "at": [8, 5], "zoom": 1.0, "duration": 2.0},
+		{"t": 6.0, "gift": "sow_ridge", "cells": [[7, 5], [7, 4], [8, 4]]},
+		{"t": 10.0, "camera": "push", "at": "centre", "zoom": 0.9, "duration": 2.5}
 	]
 }
