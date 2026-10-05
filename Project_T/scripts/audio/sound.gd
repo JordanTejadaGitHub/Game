@@ -257,6 +257,10 @@ func has_music_set(set_name: StringName) -> bool:
 func get_music_set() -> StringName:
 	return _music_set
 
+# Seconds until a playing one-shot hands over to its next set (0 when none is playing).
+func once_remaining() -> float:
+	return maxf(_queue_wait, 0.0) + ONCE_OVERLAP if not _queued_set.is_empty() else 0.0
+
 # Plays one-shot music `once_id` (mus_once_<id>.wav: the drift's resolving tail, the Hope form), then
 # starts `next_set`. `hard`: the current music stops now (a boss dispelled); otherwise it waits for the
 # next bar line and fades over a bar (the drift resolving into the rest).

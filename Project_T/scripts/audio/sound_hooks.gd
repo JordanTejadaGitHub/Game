@@ -28,6 +28,9 @@ const MUSIC_DRIFT := &"drift"
 const MUSIC_BOSS := &"boss"
 const MUSIC_AFTER := &"after"  # A boss's Hope form playing out into the rest
 const BOSS_DRUM_CUT := 2.5  # A boss biting the Heartwood: the drums drop out for a bar
+const SAPLINGS_DENSER := 2  # The Thorned Oak's taps tighten as its saplings spread
+const SAPLINGS_DENSEST := 5
+const WITHER_MUSIC := 6.0  # Seconds the Oak's warm notes stay out after it withers Wardens
 const LOW_LEAVES := 5
 const QUIET_LINES := ["wall"]  # Wardens that never attack
 # Attacks (audio_direction.md "Wardens"): a quiet launch when the Warden fires, the impact on the hit.
@@ -158,6 +161,8 @@ var _music_mode := MUSIC_REST
 var _boss_cold := false  # The boss has bitten the Heartwood: its warm layer stays off
 var _drums_back_at := 0  # msec: the boss drums return after a bite
 var _sig_layers: Array[StringName] = []  # Signature layers on now
+var _lanterns_lit := 0  # The Lamplighter's lanterns burning (one held note each)
+var _wither_until := 0  # msec: the Oak's warm notes are out until then
 var _drags := {}  # Nightmare instance id -> its soil-drag player (cut when the pull ends)
 var _final_blooming := {}  # Tower instance id -> a Final Bloom is playing its hit (skip the first breath)
 var _harvest_at := -100000  # msec of this rest's harvest sound (later pours add droplets)
@@ -192,6 +197,10 @@ func _ready() -> void:
 	enemy_container.enemy_split.connect(func(parent: Node2D, child: Node2D) -> void:
 		if parent.is_cleansed:  # Followers (Wraiths) also come through here; only real splits crack
 			sound.play(&"split", child.global_position, -4.0))
+	if enemy_container.has_signal("lantern_lit"):  # The Lamplighter's lanterns (one held note each)
+		enemy_container.lantern_lit.connect(func(_lantern: Node2D) -> void: _lanterns_lit += 1)
+		enemy_container.lantern_snuffed.connect(func(_lantern: Node2D, _by_player: bool) -> void:
+			_lanterns_lit = maxi(_lanterns_lit - 1, 0))
 	enemy_container.wall_trampled.connect(func(cell: Vector2, _by: Node2D) -> void:
 		sound.duck(8.0, 1.0)
 		sound.play(&"trample", MAP_GRID.calculate_map_position(cell), 2.0))
@@ -340,6 +349,14 @@ func _on_boss_dispelled() -> void:
 	_music_mode = MUSIC_AFTER
 	sound.music_then(_once_for("hope"), _set_for(MUSIC_REST), [&"base"], true)
 
+func _sapling_count() -> int:
+	var saplings = enemy_container.get("_saplings")  # {Hollow Oak: [cells]} (read-only)
+	var count := 0
+	if saplings is Dictionary:
+		for cells in saplings.values():
+			count += cells.size()
+	return count
+
 # A boss biting the Heartwood: the drums drop out for a bar, and the theme returns colder (no warm).
 func _on_boss_bit() -> void:
 	if _music_mode != MUSIC_BOSS:
@@ -358,10 +375,17 @@ func _scan_field() -> void:
 	var boss_laps := 0  # The Night Mare: one more signature layer per lap
 	var winning := false  # The boss is below half health: the warm counter-melody enters
 	var near_distance := _path_pixels / 3.0
+	var boss_sorrowing := false  # The Mourning Mother mending
+	var echo_ids: Array[String] = []  # The Hollow Oak's echoes on the field
 	for enemy in enemies:
-		if enemy.enemy_data.is_boss and not enemy.is_echo and boss_id == "":
+		if enemy.enemy_data.is_boss and enemy.is_echo:
+			var echo_id: String = enemy.enemy_data.resource_path.get_file().get_basename()
+			if not echo_ids.has(echo_id):
+				echo_ids.append(echo_id)
+		elif enemy.enemy_data.is_boss and boss_id == "":
 			boss_id = enemy.enemy_data.resource_path.get_file().get_basename()
 			boss_laps = enemy.laps
+			boss_sorrowing = enemy.sorrowing
 			winning = enemy.health * 2 <= enemy.max_health
 		if not near and enemy.get_remaining_distance() < near_distance:
 			near = true
@@ -372,14 +396,30 @@ func _scan_field() -> void:
 		sound.set_layer(&"dread2", enemies.size() >= DREAD2_COUNT or near)
 		sound.set_layer(&"heartbeat", run_state.leaves <= LOW_LEAVES and not run_state.is_over)
 	elif _music_mode == MUSIC_BOSS:
-		sound.set_layer(&"warm", winning and not _boss_cold)
 		if Time.get_ticks_msec() >= _drums_back_at:
 			sound.set_layer(&"drums", true)
+		var withering := Time.get_ticks_msec() < _wither_until  # The Oak withering Wardens: its warm notes drop out
+		sound.set_layer(&"warm", winning and not _boss_cold and not withering)
+		sound.set_layer(&"theme", not withering)
 		var sigs: Array[StringName] = []
 		if boss_id != "":
-			sigs.append(StringName("sig_" + boss_id))
+			if boss_id == "mourning_mother" and boss_sorrowing:  # Mending: the weeping line hangs on one note
+				sigs.append(&"sig_mourning_mother_mend")
+			else:
+				sigs.append(StringName("sig_" + boss_id))
 			for lap in range(2, mini(boss_laps, 2) + 2):  # sig_night_mare_2 after lap 1, _3 after lap 2
 				sigs.append(StringName("sig_%s_%d" % [boss_id, lap]))
+			if boss_id == "lamplighter":  # Each lantern lit adds one soft held note
+				for n in range(2, mini(_lanterns_lit, 3) + 2):
+					sigs.append(StringName("sig_lamplighter_%d" % n))
+			if boss_id == "hollow_oak":  # Thorned: denser as saplings spread
+				var saplings := _sapling_count()
+				if saplings >= SAPLINGS_DENSER:
+					sigs.append(&"sig_hollow_oak_2")
+				if saplings >= SAPLINGS_DENSEST:
+					sigs.append(&"sig_hollow_oak_3")
+		for echo_id in echo_ids:  # Remembering: the echoed boss's signature, from inside the bark
+			sigs.append(StringName("sig_echo_" + echo_id))
 		for sig in _sig_layers:
 			if not sigs.has(sig):
 				sound.set_layer(sig, false)
@@ -401,6 +441,8 @@ func _on_enemy_added(enemy: Node) -> void:
 	if enemy.has_signal("drag_started") and not enemy.is_connected("drag_started", _on_drag_started):
 		enemy.connect("drag_started", _on_drag_started)  # Rootcurl's drag
 		enemy.connect("drag_ended", _on_drag_ended)
+	if enemy.has_signal("wither_requested") and not enemy.is_connected("wither_requested", _on_oak_withers):
+		enemy.connect("wither_requested", _on_oak_withers)  # The Withering Oak: its warm notes drop out
 	if enemy.has_signal("leaped"):
 		enemy.leaped.connect(func(e: Node2D) -> void:
 			if e.enemy_data.is_boss:
@@ -1064,6 +1106,19 @@ func _on_path_changed() -> void:
 	if is_node_ready() and tower_container.get_child_count() > 0:
 		sound.play(&"path_shimmer", null, -10.0, 1.0, 0.0)
 
+func _on_oak_withers(_enemy: Node2D, _count: int) -> void:
+	_wither_until = Time.get_ticks_msec() + int(WITHER_MUSIC * 1000.0)
+
+# Loss: the loss stinger. Win: the Oak's fall (its Hope form, played whole) finishes, then the win stinger.
 func _on_run_ended(won: bool) -> void:
+	if won and _music_mode == MUSIC_AFTER:
+		var wait: float = sound.once_remaining()
+		if wait > 0.0:
+			get_tree().create_timer(wait, true).timeout.connect(_play_win)
+			return
 	sound.stop_music()
 	sound.play(&"win" if won else &"loss", null, 0.0, 1.0, 0.0, &"UI")
+
+func _play_win() -> void:
+	sound.stop_music()
+	sound.play(&"win", null, 0.0, 1.0, 0.0, &"UI")

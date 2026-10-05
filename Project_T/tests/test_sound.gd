@@ -20,7 +20,19 @@ const MUSIC_LAYERS := ["base", "dread1", "dread2", "heartbeat"]  # The act 1 dri
 const SCORE_SETS := {"rest_act1": ["base"], "act1": ["base", "dread1", "dread2", "heartbeat"],
 	"boss_act1": ["drums", "bass", "theme", "warm", "sig_old_stag", "sig_night_mare", "sig_night_mare_2",
 		"sig_night_mare_3", "sig_scarecrow"]}
-const SCORE_ONCE := ["act1_tail", "act1_hope"]
+const SCORE_ONCE := ["act1_tail", "act1_hope", "act2_tail", "act2_hope", "act3_tail", "act3_hope", "act4_tail", "act4_hope"]
+# Acts 2–4 (same pattern): rest, drift and boss sets; the Hollow Oak's finale is act 4's boss set.
+const SCORE_SETS_LATER := {"rest_act2": ["base"], "rest_act3": ["base"], "rest_act4": ["base"],
+	"act2": ["base", "dread1", "dread2", "heartbeat"], "act3": ["base", "dread1", "dread2", "heartbeat"],
+	"act4": ["base", "dread1", "dread2", "heartbeat"],
+	"boss_act2": ["drums", "bass", "theme", "warm", "sig_great_toad", "sig_huntsman", "sig_lamplighter", "sig_lamplighter_2",
+		"sig_lamplighter_3", "sig_lamplighter_4"],
+	"boss_act3": ["drums", "bass", "theme", "warm", "sig_moth_queen", "sig_barrow_king", "sig_mourning_mother",
+		"sig_mourning_mother_mend"],
+	"boss_act4": ["drums", "bass", "theme", "warm", "sig_hollow_oak", "sig_hollow_oak_2", "sig_hollow_oak_3",
+		"sig_hollow_oak_withering", "sig_hollow_oak_remembering", "sig_echo_old_stag", "sig_echo_night_mare",
+		"sig_echo_scarecrow", "sig_echo_great_toad", "sig_echo_huntsman", "sig_echo_lamplighter", "sig_echo_moth_queen",
+		"sig_echo_barrow_king", "sig_echo_mourning_mother"]}
 
 var failures := 0
 
@@ -104,15 +116,17 @@ func _initialize() -> void:
 	_check(ResourceLoader.exists("res://assets/audio/music/amb_act1.wav"), "act 1 ambience exists")
 
 	# The score: every set's stems exist and share one loop length (so they stay in sync); one-shots exist.
-	for set_name in SCORE_SETS:
+	var all_sets := SCORE_SETS.duplicate()
+	all_sets.merge(SCORE_SETS_LATER)
+	for set_name in all_sets:
 		var lengths := []
-		for layer in SCORE_SETS[set_name]:
+		for layer in all_sets[set_name]:
 			var path := "res://assets/audio/music/mus_%s_%s.wav" % [set_name, layer]
 			_check(ResourceLoader.exists(path), "%s %s exists" % [set_name, layer])
 			if ResourceLoader.exists(path):
 				lengths.append(snappedf((load(path) as AudioStream).get_length(), 0.01))
 		_check(lengths.all(func(l: float) -> bool: return l == lengths[0]), "%s stems share one length %s" % [set_name, lengths])
-		_check(sound._set_files(StringName(set_name)).size() == SCORE_SETS[set_name].size(),
+		_check(sound._set_files(StringName(set_name)).size() == all_sets[set_name].size(),
 			"%s has exactly its stems (no stray files) %s" % [set_name, sound._set_files(StringName(set_name)).keys()])
 	for once in SCORE_ONCE:
 		_check(ResourceLoader.exists("res://assets/audio/music/mus_once_%s.wav" % once), "one-shot %s exists" % once)

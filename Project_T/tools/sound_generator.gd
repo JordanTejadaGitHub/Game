@@ -1440,6 +1440,7 @@ func _make_music() -> void:
 	_music_stereo("amb_act1", left, right, 0.5)
 
 	_make_score_act1()
+	_make_score_acts()
 
 # --- The score (audio_direction.md "The score (2026-10-04)") --------------------------------------
 # One motif through everything: the Heartwood motif D-A-F (warm), D-Ab-F (hollow: the corruption of
@@ -1655,6 +1656,375 @@ func _make_score_act1() -> void:
 		_mix(s, _bell(r, hz(74), 0.32, 1.6, MUSIC_BOX, 5.0), r, lead + SCORE_BAR)
 		_mix(s, _score_pad([50, 4], 7.0), r, lead + SCORE_BAR * 0.5, 0.06)
 		return s), 0.6)
+
+
+# --- The score, acts 2–4 (same pattern as act 1; retune by palette) -------------------------------
+# Each act: rest_act<N> (the Heartwood theme in the act's warm lead), act<N> drift stems, a tail and a
+# Hope one-shot, and boss_act<N> (drums / bass / theme / warm + sig_<boss enemy id>). Act 4's boss set
+# is the Hollow Oak's finale: deep wooden drums, the hollow motif at its heaviest, a full choir warm
+# layer, its three forms' layers, and each earlier boss's signature "from inside the bark" (sig_echo_<id>).
+# Acts get slightly denser (a counter-line per act), never louder: the stems are trimmed in game.
+
+const MARIMBA := [[1.0, 1.0, 1.0], [3.9, 0.25, 0.35], [9.8, 0.05, 0.15]]
+const KALIMBA := [[1.0, 1.0, 1.0], [5.4, 0.12, 0.25], [2.0, 0.08, 0.3]]
+# The act's palette: lead (rest + drift melody), pulse (the drift's waltz), cold (dread2 colour),
+# boss voice (the boss melody), density (counter-lines in the drift).
+const SCORE_PALETTE := {
+	2: {"lead": "marimba", "pulse": "marimba", "cold": "croaks", "boss_voice": "tremolo", "density": 1},
+	3: {"lead": "flute", "pulse": "harp", "cold": "saw", "boss_voice": "saw", "density": 2},
+	4: {"lead": "bells", "pulse": "bells", "cold": "ice", "boss_voice": "deep", "density": 3},
+}
+# Each act's boss signature builders, by boss enemy id.
+const SCORE_SIGS := {2: ["great_toad", "huntsman", "lamplighter"], 3: ["moth_queen", "barrow_king", "mourning_mother"]}
+const SCORE_ECHO_BOSSES := ["old_stag", "night_mare", "scarecrow", "great_toad", "huntsman", "lamplighter", "moth_queen",
+	"barrow_king", "mourning_mother"]
+
+func _make_score_acts() -> void:
+	for act in [2, 3, 4]:
+		_make_score_act(act)
+
+func _make_score_act(act: int) -> void:
+	var r := MUSIC_RATE
+	var pal: Dictionary = SCORE_PALETTE[act]
+	var rest_loop := SCORE_REST_BAR * 20
+	var loop := SCORE_BAR * SCORE_BARS
+	var beat := SCORE_BAR / 3.0
+	var e := SCORE_BAR / 6.0
+	var slot := SCORE_BAR / 2.0
+	var key := "act%d" % act
+
+	# Rest: the same Heartwood theme in the act's warm lead, rolled chords, no pulse.
+	_music("mus_rest_%s_base" % key, _own("rest_" + key, func() -> PackedFloat32Array:
+		var s := _seg(rest_loop + TAIL, r)
+		for bar in 20:
+			var chord: Array = REST_CHORDS[bar]
+			var t0 := bar * SCORE_REST_BAR
+			_mix(s, _score_roll(act, chord, 3.2), r, t0)
+			_mix(s, _score_pad(chord, SCORE_REST_BAR * 1.1), r, t0, 0.03 + 0.01 * (act - 1))
+		for note in REST_MELODY:
+			_mix(s, _score_lead(act, note[1], 1.2), r, float(note[0]))
+		return _score_space(act, s)), 0.6, false, rest_loop)
+
+	# Drift: base (pulse + lead melody + counter-lines), dread1, dread2 (the act's cold colour), heartbeat.
+	_music("mus_%s_base" % key, _own("drift_%s_base" % key, func() -> PackedFloat32Array:
+		var s := _seg(loop + TAIL, r)
+		for bar in SCORE_BARS:
+			var chord: Array = DRIFT_CHORDS[bar]
+			var t0 := bar * SCORE_BAR
+			_mix(s, _score_pulse(act, chord[0], 0.45), r, t0)
+			_mix(s, _score_pulse(act, chord[0] + 7, 0.3), r, t0 + beat)
+			_mix(s, _score_pulse(act, chord[0] + 12 + chord[1], 0.28), r, t0 + 2.0 * beat)
+			_mix(s, _score_pad(chord, SCORE_BAR * 1.1), r, t0, 0.035 + 0.01 * pal.density)
+			if pal.density >= 2 and bar % 2 == 1:  # Act 3+: a counter-line answering the melody
+				_mix(s, _score_lead(act, chord[0] + 24, 0.8), r, t0 + 1.5 * beat, 0.5)
+			if pal.density >= 3:  # Act 4: the hummed choir under it, the fullest base
+				_mix(s, _env(_filter(_choir(r, hz(chord[0] + 12), SCORE_BAR * 1.05), r, 800.0, 0.7), r, swell(0.6, 0.6, SCORE_BAR * 1.05)), r, t0, 0.25)
+		for note in DRIFT_MELODY:
+			_mix(s, _score_lead(act, note[1], 0.8), r, float(note[0]) * beat)
+		if pal.density >= 1:  # Act 2+: the kalimba's eighth-note sparkle every other bar (low, soft)
+			for bar in range(1, SCORE_BARS, 2):
+				for k in 3:
+					_mix(s, _bell(r, hz(DRIFT_CHORDS[bar][0] + 24 + [0, 7, 12][k]), 0.12, 0.5, KALIMBA, 1.4), r, bar * SCORE_BAR + k * e * 2.0 + e)
+		return _score_space(act, s)), 0.6, false, loop)
+	_music("mus_%s_dread1" % key, _own("drift_%s_dread1" % key, func() -> PackedFloat32Array:
+		var s := _seg(loop + TAIL, r)
+		var weight := 1.0 + 0.15 * (act - 1)  # Heaviest in act 4
+		for detune in [0.997, 1.003]:
+			var drone := _tone(r, loop + TAIL, hz(38) * detune, func(t: float) -> float: return 0.5 + 0.2 * sin(t * TAU / loop * 4.0), "saw")
+			_mix(s, _filter(drone, r, func(t: float) -> float: return 200.0 + 80.0 * sin(t * TAU / loop * 8.0), 0.5), r, 0.0, 0.4 * weight)
+		for bar in SCORE_BARS:
+			_mix(s, _tone(r, 0.6, glide(70.0, 42.0, 0.3), perc(0.008, 0.15, 0.6)), r, bar * SCORE_BAR, 0.6)
+			if bar % 4 == 0:  # The hollow motif D-Ab-F in bowed bass
+				for k in 3:
+					_mix(s, _bowed(r, [38, 44, 41][k], [0.8, 0.8, 1.6][k] * (1.0 + 0.2 * (act - 1)), 420.0), r, bar * SCORE_BAR + k * beat, 0.6 * weight)
+		return s), 0.5, true, loop)
+	_music("mus_%s_dread2" % key, _own("drift_%s_dread2" % key, func() -> PackedFloat32Array:
+		var s := _score_cold(act, loop + TAIL)
+		for k in SCORE_BARS * 6:  # The soft-mallet tom pattern
+			_mix(s, _filter(_tom(r, 70.0 if k % 2 == 0 else 88.0), r, 500.0, 0.7), r, k * beat / 2.0, 0.4 if k % 2 == 0 else 0.22)
+		return s), 0.45, true, loop)
+	_music("mus_%s_heartbeat" % key, _own("drift_%s_heartbeat" % key, func() -> PackedFloat32Array:
+		var s := _seg(loop + TAIL, r)
+		for k in SCORE_BARS * 3:
+			_mix(s, _tone(r, 0.25, glide(65.0, 45.0, 0.12), perc(0.008, 0.06, 0.25)), r, k * beat)
+			_mix(s, _tone(r, 0.2, glide(55.0, 40.0, 0.1), perc(0.008, 0.05, 0.2)), r, k * beat + 0.28, 0.7)
+		return s), 0.7, false, loop)
+	_music_once("mus_once_%s_tail" % key, _own("tail_" + key, func() -> PackedFloat32Array:
+		var s := _seg(SCORE_BAR * 2 + 3.5, r)
+		_mix(s, _score_roll(act, [45, 4], 2.6), r, 0.0)
+		_mix(s, _score_lead(act, 76, 0.6), r, 0.0)
+		_mix(s, _score_lead(act, 73, 0.6), r, beat * 1.5)
+		_mix(s, _score_roll(act, [50, 3], 4.5), r, SCORE_BAR)
+		_mix(s, _score_lead(act, 74, 1.4), r, SCORE_BAR)
+		_mix(s, _score_pad([50, 3], 5.5), r, SCORE_BAR, 0.05)
+		return _score_space(act, s)), 0.6)
+	# The Hope one-shot: the turn (A-flat rising to A under a warm swell), then D-A-F# into D major. Act 4's
+	# is the Oak's fall: the only time the Hope form plays whole and full, into the win.
+	_music_once("mus_once_%s_hope" % key, _own("hope_" + key, func() -> PackedFloat32Array:
+		var lead := 0.8
+		var full := act == 4
+		var s := _seg(lead + SCORE_BAR * (6 if full else 3) + 3.0, r)
+		_mix(s, _env(_bowed(r, 44, 1.0, 380.0), r, swell(0.05, 0.3, 1.0)), r, 0.0, 0.6)
+		_mix(s, _env(_bowed(r, 45, 4.5, 380.0), r, swell(0.3, 2.5, 4.5)), r, 0.7, 0.6)
+		_mix(s, _env(_score_pad([38, 4], 6.0), r, swell(0.4, 4.0, 6.0)), r, 0.0, 0.08)
+		var notes := [74, 81, 78] if not full else [74, 81, 78, 74, 86, 81, 78, 74]
+		for k in notes.size():
+			_mix(s, _score_lead(act, notes[k], 1.0), r, lead + k * beat)
+		var land := lead + notes.size() * beat
+		_mix(s, _score_roll(act, [50, 4], 5.5), r, land)
+		_mix(s, _score_lead(act, 74, 1.6), r, land)
+		_mix(s, _score_pad([50, 4], 7.0), r, land - beat, 0.06)
+		if full:  # The Oak's fall: the full warm choir under the landing
+			for m in [50, 57, 62, 66]:
+				_mix(s, _env(_filter(_choir(r, hz(m), 6.0), r, 900.0, 0.7), r, swell(1.0, 3.0, 6.0)), r, land - 1.0, 0.3)
+		return _score_space(act, s)), 0.6)
+
+	# The boss set: drums / bass / theme / warm, then the signature layers.
+	_music("mus_boss_%s_drums" % key, _own("boss_%s_drums" % key, func() -> PackedFloat32Array:
+		var s := _seg(loop + TAIL, r)
+		for bar in SCORE_BARS:
+			var t0 := bar * SCORE_BAR
+			if act == 4:  # The Oak: deep wooden drums
+				_mix(s, _knock(r, 46.0, 0.25), r, t0, 1.0)
+				_mix(s, _knock(r, 62.0, 0.18), r, t0 + 3 * e, 0.75)
+				_mix(s, _tom(r, 52.0), r, t0, 0.7)
+				_mix(s, _knock(r, 70.0, 0.12), r, t0 + 5 * e, 0.4)
+			else:
+				_mix(s, _tom(r, 52.0), r, t0, 1.0)
+				_mix(s, _frame_drum(r), r, t0, 0.5)
+				_mix(s, _tom(r, 70.0), r, t0 + 2 * e, 0.4)
+				_mix(s, _tom(r, 58.0), r, t0 + 3 * e, 0.8)
+				_mix(s, _frame_drum(r), r, t0 + 3 * e, 0.35)
+				_mix(s, _tom(r, 70.0), r, t0 + 5 * e, 0.45)
+			if bar % 4 == 3:
+				_mix(s, _tom(r, 80.0), r, t0 + 4 * e, 0.35)
+				_mix(s, _tom(r, 76.0), r, t0 + 4.5 * e, 0.3)
+		return s), 0.6, false, loop)
+	_music("mus_boss_%s_bass" % key, _own("boss_%s_bass" % key, func() -> PackedFloat32Array:
+		var s := _seg(loop + TAIL, r)
+		for bar in SCORE_BARS:
+			var pattern: Array = [38, 38, 44, 41, 41, 38] if bar % 8 < 6 else [34, 34, 41, 38, 38, 34]
+			for k in 6:
+				_mix(s, _bowed(r, pattern[k] - (12 if act == 4 else 0), e * 1.1, 350.0), r, bar * SCORE_BAR + k * e, 0.8 if k % 3 == 0 else 0.55)
+		if act == 4:  # The Oak's hummed drone under it
+			_mix(s, _filter(_choir(r, hz(38), loop + TAIL), r, 400.0, 0.7), r, 0.0, 0.4)
+		return s), 0.55, false, loop)
+	_music("mus_boss_%s_theme" % key, _own("boss_%s_theme" % key, func() -> PackedFloat32Array:
+		var s := _seg(loop + TAIL, r)
+		for note in BOSS1_THEME:
+			_mix(s, _score_boss_voice(act, note[1] - (5 if act == 3 else 0), slot * note[2] * 1.05), r, note[0] * slot, 0.7)
+		return s), 0.55, false, loop)
+	_music("mus_boss_%s_warm" % key, _own("boss_%s_warm" % key, func() -> PackedFloat32Array:
+		var s := _seg(loop + TAIL, r)
+		for bar in SCORE_BARS:
+			var t0 := bar * SCORE_BAR
+			var chord: Array = DRIFT_CHORDS[bar]
+			_mix(s, _score_pulse(act, chord[0] + 12, 0.3), r, t0)
+			if bar % 2 == 0:
+				for k in 3:
+					_mix(s, _score_lead(act, [74, 81, 77][k] - (12 if bar % 8 == 4 else 0), 0.8), r, t0 + k * 2 * e)
+			else:
+				_mix(s, _score_lead(act, 74, 1.0), r, t0 + 3 * e)
+			if act == 4:  # The Oak: the warm counter-melody in full choir
+				_mix(s, _env(_filter(_choir(r, hz(chord[0] + 12), SCORE_BAR), r, 1000.0, 0.7), r, swell(0.4, 0.6, SCORE_BAR)), r, t0, 0.45)
+				_mix(s, _env(_filter(_choir(r, hz(chord[0] + 19), SCORE_BAR), r, 1000.0, 0.7), r, swell(0.4, 0.6, SCORE_BAR)), r, t0, 0.35)
+		return s), 0.5, false, loop)
+	if act < 4:
+		for boss_id in SCORE_SIGS[act]:
+			_music("mus_boss_%s_sig_%s" % [key, boss_id], _own("sig_" + boss_id, func() -> PackedFloat32Array:
+				return _score_sig(boss_id, 0)), 0.5, false, loop)
+			if boss_id == "lamplighter":  # Each lantern lit adds one soft held note (up to three)
+				for n in range(2, 5):
+					_music("mus_boss_%s_sig_lamplighter_%d" % [key, n], _own("sig_lamplighter%d" % n, func() -> PackedFloat32Array:
+						return _score_sig("lamplighter", n)), 0.4, true, loop)
+			if boss_id == "mourning_mother":  # While she mends, the weeping line hangs on one note
+				_music("mus_boss_%s_sig_mourning_mother_mend" % key, _own("sig_mourning_mend", func() -> PackedFloat32Array:
+					return _score_sig("mourning_mother", 1)), 0.45, true, loop)
+	else:  # The Hollow Oak's forms, and the echoes it remembers
+		_music("mus_boss_act4_sig_hollow_oak", _own("sig_hollow_oak", func() -> PackedFloat32Array: return _score_sig("thorned", 1)), 0.5, false, loop)
+		for n in range(2, 4):  # Thorned: denser as saplings spread
+			_music("mus_boss_act4_sig_hollow_oak_%d" % n, _own("sig_hollow_oak%d" % n, func() -> PackedFloat32Array:
+				return _score_sig("thorned", n)), 0.45, false, loop)
+		_music("mus_boss_act4_sig_hollow_oak_withering", _own("sig_oak_withering", func() -> PackedFloat32Array:
+			return _score_sig("withering", 0)), 0.45, true, loop)
+		_music("mus_boss_act4_sig_hollow_oak_remembering", _own("sig_oak_remembering", func() -> PackedFloat32Array:
+			return _score_sig("remembering", 0)), 0.45, true, loop)
+		for boss_id in SCORE_ECHO_BOSSES:  # From inside the bark: lowpassed, quieter fragments
+			_music("mus_boss_act4_sig_echo_%s" % boss_id, _own("sig_echo_" + boss_id, func() -> PackedFloat32Array:
+				return _filter(_filter(_score_sig(boss_id, 0), MUSIC_RATE, 700.0, 0.7), MUSIC_RATE, 700.0, 0.7)), 0.3, false, loop)
+
+# The act's warm lead: one note `midi`, ringing about `decay` s.
+func _score_lead(act: int, midi: float, decay: float) -> PackedFloat32Array:
+	var r := MUSIC_RATE
+	match act:
+		2:
+			return _bell(r, hz(midi), 0.32, decay * 0.5, MARIMBA, decay * 1.8)
+		3:
+			var length := decay * 1.3
+			var f := hz(midi)
+			var flute := _tone(r, length, func(t: float) -> float: return f * (1.0 + 0.005 * sin(t * 5.0 * TAU)), swell(0.08, length * 0.5, length), "tri")
+			_mix(flute, _filter(_noise(r, length, swell(0.05, length * 0.5, length)), r, f * 2.0, 0.6, "bp"), r, 0.0, 0.08)
+			return _env(flute, r, func(_t: float) -> float: return 0.3)
+		4:
+			var bell := _filter(_bell(r, hz(midi), 0.28, decay * 0.8, BELL, decay * 2.5), r, 2500.0, 0.7)
+			_mix(bell, _env(_filter(_choir(r, hz(midi - 12), decay * 1.5), r, 800.0, 0.7), r, swell(0.2, decay * 0.8, decay * 1.5)), r, 0.0, 0.12)
+			return bell
+	return _bell(r, hz(midi), 0.3, decay, MUSIC_BOX, decay * 3.0)
+
+# The drift's waltz pulse note in the act's instrument.
+func _score_pulse(act: int, midi: float, amp: float) -> PackedFloat32Array:
+	var r := MUSIC_RATE
+	match act:
+		2:
+			return _bell(r, hz(midi), amp * 0.8, 0.3, MARIMBA, 1.4)
+		4:
+			return _filter(_bell(r, hz(midi), amp * 0.6, 0.6, BELL, 2.0), r, 1800.0, 0.7)
+	return _pluck(r, hz(midi), amp, 2.4, 0.7, 0.998)
+
+# A slow rolled chord in the act's instrument.
+func _score_roll(act: int, chord: Array, length: float) -> PackedFloat32Array:
+	var r := MUSIC_RATE
+	var out := _seg(length + 0.3, r)
+	for k in 3:
+		var m: int = [chord[0], chord[0] + 7, chord[0] + 12 + chord[1]][k]
+		_mix(out, _score_pulse(act, m, 0.32 - k * 0.04), r, k * 0.09)
+	return out
+
+# Act 3's fog: longer, softer ring (a few feedback taps, lowpassed); other acts unchanged.
+func _score_space(act: int, seg: PackedFloat32Array) -> PackedFloat32Array:
+	if act != 3:
+		return seg
+	var r := MUSIC_RATE
+	var wet := _filter(seg, r, 1400.0, 0.7)
+	var out := seg.duplicate()
+	for tap in [[0.13, 0.35], [0.21, 0.28], [0.34, 0.2], [0.55, 0.12]]:
+		_mix(out, wet, r, tap[0], tap[1])
+	return out
+
+# dread2: the act's cold colour.
+func _score_cold(act: int, length: float) -> PackedFloat32Array:
+	var r := MUSIC_RATE
+	var s := _seg(length, r)
+	match act:
+		2:  # Low tremolo strings and soft, low frog-like croaks
+			for m in [50, 51]:
+				var strings := _tone(r, length, hz(m), func(t: float) -> float: return 0.3 * (0.6 + 0.4 * sin(t * 6.5 * TAU)), "saw")
+				_mix(s, _filter(strings, r, 900.0, 0.6), r, 0.0, 0.45)
+			var at := 0.7
+			while at < length - 1.0:
+				var croak := _noise(r, 0.35, func(t: float) -> float: return pow(maxf(sin(TAU * 28.0 * t), 0.0), 3.0) * swell(0.03, 0.15, 0.35).call(t))
+				_mix(s, _filter(croak, r, rng.randf_range(220.0, 320.0), 0.2, "bp"), r, at, 0.9)
+				at += rng.randf_range(1.5, 3.5)
+		3:  # A bowed saw (a wavering pure tone) and wind through reeds
+			var saw := _tone(r, length, func(t: float) -> float: return hz(69) * (1.0 + 0.02 * sin(t * 4.5) + 0.01 * sin(t * 0.7)),
+				func(t: float) -> float: return 0.25 * (0.6 + 0.4 * sin(t * 0.4)))
+			_mix(s, saw, r, 0.0, 1.0)
+			var reeds := _noise(r, length, func(t: float) -> float: return 0.5 + 0.4 * sin(t * 0.9 + sin(t * 0.37)))
+			_mix(s, _filter(reeds, r, func(t: float) -> float: return 600.0 + 250.0 * sin(t * 0.5), 0.15, "bp"), r, 0.0, 0.5)
+		4:  # Deep drones and slow ice groans (no crackle)
+			for m in [26, 33]:
+				_mix(s, _filter(_tone(r, length, hz(m), 0.4, "saw"), r, 200.0, 0.5), r, 0.0, 0.6)
+			var at := 1.0
+			while at < length - 2.5:
+				_mix(s, _filter(_creak(r, 2.0, 4.0, 8.0, 140.0), r, 400.0, 0.7), r, at, 0.8)
+				at += rng.randf_range(4.0, 7.0)
+	return s
+
+# The boss melody's voice: act 2 low tremolo strings, act 3 a bowed saw, act 4 deep bowed + a hum.
+func _score_boss_voice(act: int, midi: float, length: float) -> PackedFloat32Array:
+	var r := MUSIC_RATE
+	match act:
+		2:
+			var out := _bowed(r, midi - 12, length, 900.0, true)
+			return _env(out, r, func(t: float) -> float: return 0.65 + 0.35 * sin(t * 6.5 * TAU))
+		3:
+			return _env(_tone(r, length, func(t: float) -> float: return hz(midi) * (1.0 + 0.015 * sin(t * 4.5)), 0.4),
+				r, swell(minf(0.2, length * 0.3), minf(0.4, length * 0.5), length))
+		4:
+			var out := _bowed(r, midi - 12, length, 700.0, true)
+			_mix(out, _env(_filter(_choir(r, hz(midi - 12), length), r, 700.0, 0.7), r, swell(0.2, 0.4, length)), r, 0.0, 0.4)
+			return out
+	return _bowed(r, midi, length, 1100.0, true)
+
+# A boss's signature layer (16 bars). `n`: a variant (a lantern's held note, a lap, a sapling stage).
+func _score_sig(boss_id: String, n: int) -> PackedFloat32Array:
+	var r := MUSIC_RATE
+	var loop := SCORE_BAR * SCORE_BARS
+	var e := SCORE_BAR / 6.0
+	var slot := SCORE_BAR / 2.0
+	var s := _seg(loop + TAIL, r)
+	match boss_id:
+		"old_stag":  # For the Oak's echoes
+			for bar in range(0, SCORE_BARS, 4):
+				_mix(s, _horn_call(r, 50, slot * 1.2), r, bar * SCORE_BAR, 0.8)
+				_mix(s, _horn_call(r, 57, slot * 2.4), r, bar * SCORE_BAR + slot * 1.2, 0.8)
+		"night_mare":
+			for bar in SCORE_BARS:
+				for half in 2:
+					for k in 3:
+						_mix(s, _felt_hoof(r, [95.0, 100.0, 85.0][k]), r, bar * SCORE_BAR + half * slot + k * e, [0.35, 0.4, 0.65][k])
+		"scarecrow":
+			for bar in SCORE_BARS:
+				var notes: Array = [[62, 69, 68], [60, 67, 66], [62, 68, 65], [61, 68, 64]][bar % 4]
+				for k in 3:
+					_mix(s, _bell(r, hz(notes[k]), 0.25, 0.5, MUSIC_BOX, 1.6), r, bar * SCORE_BAR + [0.0, 0.9, 1.75][k])
+		"great_toad":  # The Mire Hag: bubbling low reeds and a lurching, off-balance figure
+			for bar in SCORE_BARS:
+				var reed := _tone(r, SCORE_BAR * 0.9, hz(DRIFT_CHORDS[bar][0] - 12), func(t: float) -> float:
+					return swell(0.15, 0.3, SCORE_BAR * 0.9).call(t) * (0.6 + 0.4 * sin(t * 31.0 + sin(t * 9.0))), "square")
+				_mix(s, _filter(reed, r, 480.0, 0.35), r, bar * SCORE_BAR, 0.4)
+				for k in [0.0, 1.35, 2.0]:  # Lurching: the second beat late
+					_mix(s, _knock(r, 75.0, 0.1), r, bar * SCORE_BAR + k * (SCORE_BAR / 3.0), 0.5)
+				var bubble_at := rng.randf_range(0.2, 2.0)
+				_mix(s, _filter(_tone(r, 0.08, glide(180.0, 320.0, 0.08), perc(0.005, 0.02, 0.08)), r, 600.0, 0.7), r, bar * SCORE_BAR + bubble_at, 0.3)
+		"huntsman":  # A deep bone-horn call every 4 bars + a running pack rhythm on low toms
+			for bar in SCORE_BARS:
+				if bar % 4 == 0:
+					_mix(s, _horn_call(r, 45, SCORE_BAR * 1.5), r, bar * SCORE_BAR, 0.9)
+				for k in 6:
+					_mix(s, _filter(_tom(r, 66.0 if k % 2 == 0 else 78.0), r, 500.0, 0.7), r, bar * SCORE_BAR + k * e, 0.45 if k % 3 == 0 else 0.25)
+		"lamplighter":  # A slow, cold organ-like pad with a soft flicker; n >= 2: one held note per lantern
+			if n == 0:
+				var pad := _seg(loop + TAIL, r)
+				for m in [50, 57, 63]:
+					_mix(pad, _tone(r, loop + TAIL, hz(m), 0.3, "tri"), r, 0.0, 0.33)
+				_mix(s, _env(_filter(pad, r, 900.0, 0.7), r, func(t: float) -> float: return 0.7 + 0.15 * sin(t * 7.0 + sin(t * 2.3))), r, 0.0, 1.0)
+			else:
+				var held: int = [0, 0, 69, 74, 77][n]
+				_mix(s, _env(_filter(_tone(r, loop + TAIL, hz(held), 0.3, "tri"), r, 1200.0, 0.7),
+					r, func(t: float) -> float: return 0.8 + 0.1 * sin(t * 6.0 + n)), r, 0.0, 1.0)
+		"moth_queen":  # A soft, low bowed tremolo shimmer over slow wingbeats
+			for m in [57, 58]:
+				var shimmer := _tone(r, loop + TAIL, hz(m), func(t: float) -> float: return 0.3 * (0.55 + 0.45 * sin(t * 6.0 * TAU)), "saw")
+				_mix(s, _filter(shimmer, r, 800.0, 0.6), r, 0.0, 0.4)
+			var wings := _noise(r, loop + TAIL, func(t: float) -> float: return pow(maxf(sin(TAU * t / (SCORE_BAR / 2.0)), 0.0), 3.0))
+			_mix(s, _filter(_filter(wings, r, 400.0, 0.7), r, 400.0, 0.7), r, 0.0, 2.0)
+		"barrow_king":  # A heavy processional: a slow dragging drum on the downbeat, bass dragging behind
+			for bar in SCORE_BARS:
+				var t0 := bar * SCORE_BAR
+				_mix(s, _tom(r, 46.0), r, t0, 1.0)
+				_mix(s, _filter(_knock(r, 90.0, 0.2), r, 500.0, 0.7), r, t0 + 0.06, 0.4)  # Muffled iron, rounded
+				_mix(s, _bowed(r, DRIFT_CHORDS[bar][0] - 12, SCORE_BAR * 0.8, 300.0), r, t0 + 0.35, 0.7)  # Behind the beat
+		"mourning_mother":  # A weeping descending line on bowed saw + a low hummed lament (one vowel)
+			_mix(s, _env(_filter(_choir(r, hz(50), loop + TAIL), r, 700.0, 0.7), r, func(t: float) -> float: return 0.5 + 0.2 * sin(t * 0.6)), r, 0.0, 0.5)
+			if n == 1:  # Mending: the line hangs on one note
+				_mix(s, _tone(r, loop + TAIL, func(t: float) -> float: return hz(69) * (1.0 + 0.01 * sin(t * 4.0)), 0.25), r, 0.0, 1.0)
+			else:
+				for bar in range(0, SCORE_BARS, 2):
+					for k in 4:
+						var m: int = [74, 72, 70, 69][k]
+						_mix(s, _env(_tone(r, slot * 1.1, func(t: float) -> float: return hz(m) * (1.0 + 0.012 * sin(t * 4.5)), 0.3),
+							r, swell(0.15, 0.4, slot * 1.1)), r, bar * SCORE_BAR + k * slot, 0.8)
+		"thorned":  # The Hollow Oak, Thorned: a tightening figure of soft wooden taps, denser per stage
+			var per_bar: int = [0, 3, 6, 9][n]
+			for bar in SCORE_BARS:
+				for k in per_bar:
+					_mix(s, _filter(_knock(r, 260.0 + 30.0 * (k % 3), 0.03), r, 1100.0, 0.7), r, bar * SCORE_BAR + k * SCORE_BAR / per_bar, 0.35)
+		"withering":  # A thin, low dry drone (the layer that takes away; SoundHooks drops the warm notes)
+			_mix(s, _filter(_tone(r, loop + TAIL, hz(31), 0.35, "saw"), r, 180.0, 0.5), r, 0.0, 1.0)
+		"remembering":  # A faint, low hummed memory under the echoes
+			_mix(s, _env(_filter(_choir(r, hz(45), loop + TAIL), r, 600.0, 0.7), r, func(t: float) -> float: return 0.5 + 0.2 * sin(t * 0.4)), r, 0.0, 1.0)
+	return s
 
 # A soft sustained chord (tri), for air under the rest and drift.
 func _score_pad(chord: Array, length: float) -> PackedFloat32Array:
@@ -1970,6 +2340,8 @@ const TRAILER_CHORDS := [[50, 3], [50, 3], [50, 3], [50, 3], [50, 3], [46, 4], [
 func _make_marketing(out_dir: String, only: Array) -> void:
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	var cues := {"trailer": _cue_trailer, "endcard_button": _cue_endcard}
+	for bed in BED_CUES:
+		cues[bed] = _cue_bed.bind(bed)
 	for cue in cues:
 		if only.is_empty() or only.has(cue):
 			var main := rng  # Each cue its own seeded RNG (like _own)
@@ -2269,7 +2641,7 @@ func _mk_motif(stems: Dictionary, at: float, up: int) -> void:  # The warm form 
 		_mix(stems.top, _bell(SFX_RATE, hz([74, 81, 77, 74][k] + up), 0.3, 0.9, MUSIC_BOX, 2.4), SFX_RATE, at + k * MK_BEAT)
 
 # Writes <cue>_low/_mid/_top/_perc, _full and _voice (stereo, 44.1 kHz), scaled by one shared gain.
-const CUE_PAN := {"low": 0.5, "mid": 0.42, "top": 0.58, "perc": 0.5}
+const CUE_PAN := {"low": 0.5, "mid": 0.42, "top": 0.58, "perc": 0.5, "hits": 0.5}
 func _save_cue(out_dir: String, cue: String, stems: Dictionary) -> void:
 	var r := SFX_RATE
 	var length := 0
@@ -2303,3 +2675,159 @@ func _save_stereo(seg: PackedFloat32Array, pan: float, gain: float, path: String
 		both[i * 2] = seg[i] * gain * l
 		both[i * 2 + 1] = seg[i] * gain * rr
 	_save(both, SFX_RATE, path, true)
+
+# --- Short beds and Video 0 (audio_direction.md "Marketing music" 2.–3.) ---------------------------
+# Each bed is rendered to its own short: full presence from frame 1, the bar grid offset so the MAIN hit
+# lands on a downbeat, other hits as accents on a separate `hits` stem (the editor can nudge them), and
+# the button on the end card. Hit times from Short Form Video (2026-10-04 finals); they're parameters.
+const BED_CUES := {
+	"build_short1": {"length": 28.0, "end": 1.5, "main": 12.0, "hits": [2.0, 9.0, 14.0, 16.5], "mood": "build"},
+	"build_short4": {"length": 22.0, "end": 1.5, "main": 6.0, "hits": [1.0, 4.0, 10.0], "mood": "build"},
+	"storm_short2": {"length": 24.0, "end": 1.5, "main": 10.4, "hits": [0.5, 8.5], "mood": "storm"},
+	"boss_short3": {"length": 32.0, "end": 1.5, "main": 27.8, "hits": [0.2, 2.5], "mood": "boss"},
+	"closecall_short5": {"length": 19.0, "end": 1.5, "main": 16.4, "hits": [0.0, 1.0, 9.0], "mood": "closecall"},
+	"video0": {"length": 29.0, "end": 5.0, "main": 20.0, "hits": [0.5, 9.0, 11.5, 13.5, 23.0, 27.9], "mood": "video0"},
+}
+
+func _cue_bed(name: String) -> Dictionary:
+	var cue: Dictionary = BED_CUES[name]
+	var r := SFX_RATE
+	var total: float = cue.length + cue.end
+	var stems := _mk_stems(total)
+	stems["hits"] = _seg(total, r)
+	var main: float = cue.main
+	var grid := fposmod(main, MK_BAR)  # Bar lines fall on grid + n·2.5 (the main hit on one)
+	var bars: Array[float] = []
+	var t := grid - MK_BAR if grid > 0.0 else 0.0
+	while t < total:
+		bars.append(t)
+		t += MK_BAR
+	var end_at: float = cue.length  # The end card: the button, then the held chord
+	match cue.mood:
+		"build":
+			for i in bars.size():
+				var t0: float = bars[i]
+				if t0 >= end_at - 0.5:
+					break
+				var chord: Array = DRIFT_CHORDS[i % DRIFT_CHORDS.size()]
+				var rise := clampf(t0 / maxf(main, 1.0), 0.3, 1.0) if t0 < main else 1.0
+				_mk_bed_waltz(stems, t0, chord, rise)
+				if i % 2 == 0:
+					_mk_motif(stems, maxf(t0, 0.0), 0 if t0 < main else 12)
+			_mk_bed_hit(stems, main, "bloom")
+		"storm":
+			for i in bars.size():
+				var t0: float = bars[i]
+				if t0 >= end_at - 0.5:
+					break
+				var chord: Array = DRIFT_CHORDS[i % DRIFT_CHORDS.size()]
+				var near := clampf(1.0 - (main - t0) / 8.0, 0.2, 1.0) if t0 < main else 0.6
+				_mk_bed_waltz(stems, t0, chord, 0.7)
+				for k in 6:  # The drive tightens into the hit
+					_mix(stems.perc, _tom(r, 58.0 if k % 3 == 0 else 74.0), r, t0 + k * MK_EIGHTH, (0.6 if k % 3 == 0 else 0.25) * near)
+			_mix(stems.low, _env(_mk_drone(main + 0.5), r, swell(0.03, 0.3, main + 0.5)), r, 0.0, 0.5)  # Full from frame 1
+			_mix(stems.mid, _env(_mk_pad_chord(DRIFT_CHORDS[0], 2.6), r, swell(0.03, 0.6, 2.6)), r, 0.0, 0.4)
+			_mk_bed_hit(stems, main, "dawnburst")
+		"boss":
+			_mix(stems.low, _env(_mk_drone(2.6), r, swell(0.05, 0.4, 2.6)), r, 0.0, 0.6)  # The dossier: a held low drone
+			var drive_from := 2.5
+			for t0 in bars:
+				if t0 >= drive_from - 0.01 and t0 < main - 0.01:
+					_mk_bed_boss_bar(stems, t0)
+			_mix(stems.mid, _horn_call(r, 50, MK_BAR * 0.6), r, drive_from, 0.8)
+			_mix(stems.mid, _horn_call(r, 57, MK_BAR * 1.2), r, drive_from + MK_BAR * 0.5, 0.8)
+			_mk_bed_hit(stems, main, "turn")
+		"closecall":
+			# One leaf left: the heartbeat alone; the Husk brings dread1's drone under it; the jump cut at
+			# 9.0 drops to the heartbeat alone for a bar (never silence); the release at the main hit.
+			var beat_at := 0.0
+			while beat_at < main:
+				_mix(stems.perc, _tone(r, 0.25, glide(65.0, 45.0, 0.12), perc(0.008, 0.06, 0.25)), r, beat_at, 0.9)
+				_mix(stems.perc, _tone(r, 0.2, glide(55.0, 40.0, 0.1), perc(0.008, 0.05, 0.2)), r, beat_at + 0.28, 0.6)
+				beat_at += MK_BEAT
+			_mix(stems.low, _env(_mk_drone(8.0), r, swell(1.0, 0.6, 8.0)), r, 1.0, 0.5)
+			_mix(stems.low, _env(_mk_drone(main - 11.5 + 0.5), r, swell(1.2, 0.3, main - 11.5 + 0.5)), r, 11.5, 0.55)
+			_mix(stems.mid, _env(_bowed(r, 44, main - 11.5, 380.0), r, swell(2.0, 0.3, main - 11.5)), r, 11.5, 0.3)
+			_mk_bed_hit(stems, main, "release")
+		"video0":
+			# Gentle, under a voice: the act 1 rest piece's harp + music box, a soft pulse from the first
+			# snap; the pulse drops away at the Dream (9.0–11.5); a swell at the grow (13.5); the lift at
+			# 20.0 (the drift base and the warm motif in full); a gentle swell at the chain peak.
+			for i in bars.size():
+				var t0: float = bars[i]
+				if t0 >= end_at - 0.5:
+					break
+				var chord: Array = REST_CHORDS[i % REST_CHORDS.size()]
+				var lifted := t0 >= main - 0.01
+				_mix(stems.mid, _pluck(r, hz(chord[0]), 0.3, 3.0, 0.7, 0.998), r, maxf(t0, 0.0))
+				_mix(stems.mid, _mk_pad_chord(chord, MK_BAR * 1.1), r, maxf(t0, 0.0), 0.35 if not lifted else 0.5)
+				var dream := t0 >= 9.0 - MK_BAR and t0 < 11.5
+				if t0 >= 0.5 - MK_BAR and not dream:
+					for k in 3:
+						_mix(stems.perc, _mk_felt(r, 110.0), r, maxf(t0, 0.5) + k * MK_BEAT, 0.22 if not lifted else 0.3)
+				if lifted:
+					_mk_bed_waltz(stems, t0, DRIFT_CHORDS[i % DRIFT_CHORDS.size()], 0.6)
+			_mk_motif(stems, 0.5, 0)
+			_mix(stems.mid, _env(_mk_pad([57, 62, 65], 2.5), r, swell(1.2, 1.0, 2.5)), r, 13.5, 0.5)  # The grow
+			_mk_motif(stems, main, 0)  # The lift: the warm form in full
+			_mk_motif(stems, main + MK_BAR, 12)
+			_mix(stems.mid, _env(_mk_pad([50, 57, 62, 65], 2.5), r, swell(1.0, 1.2, 2.5)), r, 27.9 - 1.0, 0.5)  # The chain peak
+	if cue.mood in ["storm", "boss", "closecall"]:  # After the hit, a warm held swell carries to the end card
+		var hold: float = end_at - main + 0.6
+		_mix(stems.mid, _env(_mk_pad([50, 54, 57, 62], hold), r, swell(1.0, 0.5, hold)), r, main + 0.4, 0.45)
+		_mix(stems.low, _env(_mk_pad([38, 45], hold), r, swell(1.2, 0.5, hold)), r, main + 0.4, 0.35)
+	for h in cue.hits:  # Accents at their exact times, on the hits stem (softer under Video 0's voice)
+		_mix(stems.hits, _mk_accent(cue.mood), r, h, 0.3 if cue.mood == "video0" else 0.6)
+	_endcard_into(stems, end_at, cue.end + 0.4)
+	_mk_trim(stems, total, 0.6)
+	return stems
+
+func _mk_bed_waltz(stems: Dictionary, t0: float, chord: Array, level: float) -> void:
+	var r := SFX_RATE
+	for k in 3:
+		var at := t0 + k * MK_BEAT
+		if at < 0.0:
+			continue
+		var m: int = [chord[0], chord[0] + 7, chord[0] + 12 + chord[1]][k]
+		_mix(stems.mid, _pluck(r, hz(m), [0.4, 0.28, 0.26][k] * level, 2.2, 0.7, 0.998), r, at)
+		_mix(stems.perc, _mk_felt(r, 108.0), r, at, 0.35 * level)
+	_mix(stems.mid, _mk_pad_chord(chord, MK_BAR * 1.1), r, maxf(t0, 0.0), 0.3 * level)
+	_mix(stems.low, _bowed(r, chord[0] - 12, MK_BAR * 1.05, 350.0), r, maxf(t0, 0.0), 0.4 * level)
+
+func _mk_bed_boss_bar(stems: Dictionary, t0: float) -> void:
+	var r := SFX_RATE
+	_mix(stems.perc, _tom(r, 52.0), r, t0, 0.8)
+	_mix(stems.perc, _frame_drum(r), r, t0, 0.45)
+	_mix(stems.perc, _tom(r, 58.0), r, t0 + 3 * MK_EIGHTH, 0.65)
+	for k in 6:
+		_mix(stems.low, _bowed(r, [26, 26, 32, 29, 29, 26][k], MK_EIGHTH * 1.1, 300.0), r, t0 + k * MK_EIGHTH, 0.8 if k % 3 == 0 else 0.55)
+
+# The main hit by mood: the dispel bloom, the Dawnburst, the boss turn into the Hope form, the release.
+func _mk_bed_hit(stems: Dictionary, at: float, kind: String) -> void:
+	var r := SFX_RATE
+	match kind:
+		"bloom", "release":
+			_mix(stems.top, _normalize(_light_burst(0.15, 1.4, DISPEL_CHORD + [50, 57]), 1.0), r, at - 0.15, 1.4)
+			_mix(stems.mid, _env(_mk_pad([62, 66, 69], 2.0), r, swell(0.05, 1.5, 2.0)), r, at, 0.6)
+		"dawnburst":
+			_mix(stems.low, _normalize(_thump(1.4, 45.0, 0.4), 1.0), r, at, 1.4)
+			_mix(stems.low, _normalize(_rumble(2.4, 70.0, 0.02, 1.8), 1.0), r, at, 0.9)
+			_mix(stems.top, _normalize(_glow_swell(2.0), 1.0), r, at, 0.5)
+			for k in 3:
+				_mix(stems.top, _bell(r, hz([74, 81, 78][k]), 0.34, 1.0, MUSIC_BOX, 2.6), r, at + k * MK_BEAT)
+		"turn":  # The boss dispelled: the drums fall away, A-flat rising to A, the Hope form grows
+			for stem in [stems.perc, stems.low]:
+				var cut := int(at * r)
+				for i in range(cut, stem.size()):
+					stem[i] *= clampf(1.0 - float(i - cut) / (0.6 * r), 0.0, 1.0)
+			_mix(stems.top, _normalize(_light_burst(0.4, 2.5, [50, 54, 57, 62, 66, 69, 74]), 1.0), r, at - 0.2, 1.2)
+			_mix(stems.low, _env(_bowed(r, 44, 1.0, 380.0), r, swell(0.05, 0.3, 1.0)), r, at - 0.5, 0.6)
+			_mix(stems.low, _env(_bowed(r, 45, 3.0, 380.0), r, swell(0.2, 2.0, 3.0)), r, at + 0.4, 0.6)
+			for k in 3:
+				_mix(stems.top, _bell(r, hz([74, 81, 78][k]), 0.3, 1.0, MUSIC_BOX, 2.4), r, at + 0.8 + k * MK_BEAT)
+
+func _mk_accent(mood: String) -> PackedFloat32Array:  # A short, soft accent stinger
+	var r := SFX_RATE
+	if mood == "storm" or mood == "boss":
+		return _normalize(_tom(r, 62.0), 1.0)
+	return _normalize(_bell(r, hz(74), 0.3, 0.5, MUSIC_BOX, 1.4), 1.0)
