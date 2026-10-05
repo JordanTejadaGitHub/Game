@@ -12,8 +12,8 @@ extends Control
 signal sapling_offered  # The Heartwood Sapling's card appears (once, after the drift 50 pick)
 signal family_chosen(offered: Array, chosen: Resource)  # RunHistory: the offer and the pick
 
-const CARD_SIZE := Vector2(250, 300)
-const CARD_PADDING := 24.0  # The box's top + bottom offsets inside a card
+const CARD_SIZE := Vector2(300, 400)  # Light pass (UI Asset's last page): 300 wide, the "Wake …" action at the foot
+const CARD_PADDING := 32.0  # The box's top + bottom offsets inside a card
 const SAPLING_DRIFT := 50  # The act 2 boss: the Heartwood Sapling is offered after its family pick
 const TITLES := {
 	&"first": "Oh. I know you.",
@@ -50,6 +50,7 @@ var _foretold_line := Label.new()
 var offer: Array = []  # TowerData (a new family) or UpgradeData (a Family Blessing)
 var _was_paused := false
 var _title := Label.new()
+var _subtitle := Label.new()  # "Choose a family to wake", quiet under the title (light pass)
 var _cards := HBoxContainer.new()
 var arm: ChoiceArm  # The arm delay (choice_arm.gd)
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
@@ -71,6 +72,11 @@ func _ready() -> void:
 	UiStyle.display(_title, 28)
 	_title.add_theme_color_override("font_color", UiStyle.LIVE)
 	box.add_child(_title)
+	_subtitle.name = "Subtitle"
+	_subtitle.text = "Choose a family to wake"
+	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_subtitle.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	box.add_child(_subtitle)
 	_cards.add_theme_constant_override("separation", 16)
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_cards)
@@ -83,7 +89,11 @@ func _ready() -> void:
 	_foretold_line.visible = false
 	box.add_child(_foretold_line)
 	peek = ChoicePeek.new(self, [dim, center], "Back to the family pick")
-	box.add_child(peek.make_peek_button())
+	var peek_button := peek.make_peek_button()
+	if peek_button is Button:
+		UiStyle.quiet(peek_button)  # Light pass: quiet; the cards hold the choice
+		peek_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	box.add_child(peek_button)
 	# A press for 0.6 s after the cards show never picks (Roguelite's ChoiceArm; user: "sometimes I click on cards when
 	# waves end because I'm trying to place towers").
 	arm = ChoiceArm.attach(self, _cards)
@@ -152,6 +162,7 @@ func show_pick(reason: StringName = &"first") -> void:
 		_was_paused = game_speed.paused
 	game_speed.set_paused(true)
 	_title.text = TITLES.get(reason, TITLES[&"first"])
+	_subtitle.visible = true
 	for child in _cards.get_children():
 		_cards.remove_child(child)
 		child.queue_free()
@@ -264,6 +275,7 @@ func _show_sapling() -> void:
 	sapling_offered.emit()  # For its own swell (SoundHooks; audio_direction.md)
 	var placer = %TowerPlacer
 	_title.text = "The Heartwood offers a seedling of itself"
+	_subtitle.visible = false  # Not a family
 	for child in _cards.get_children():
 		_cards.remove_child(child)
 		child.queue_free()
@@ -319,16 +331,24 @@ func _make_card(data: TowerData) -> Button:
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(choose.bind(data))
 	UiStyle.card_button(button, Palette.SPRIG)  # Moonlit Thread card (ui_style.md)
+	ChoiceCard.solid(button)  # Hides the map behind it, as the Dream and Omen cards
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
-	box.offset_left = 14
-	box.offset_top = 12
-	box.offset_right = -14
-	box.offset_bottom = -12
+	box.offset_left = 20
+	box.offset_top = 18
+	box.offset_right = -20
+	box.offset_bottom = -14
+	box.add_theme_constant_override("separation", 8)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
 	_fit_card(button, box)
+	# Light pass: the emblem beside the name and its status chips; the job; the costs as an icon row; "dreams into, 2 of 5
+	# this run" and the lanes; the framed "Wake …" at the foot (drawn: the whole card is the hit area).
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 14)
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(header)
 	var emblem := BranchEmblem.family(data)  # The family's emblem (UI Asset), else the base Warden's portrait
 	if emblem != null or data.texture != null:
 		var icon := TextureRect.new()
@@ -345,24 +365,124 @@ func _make_card(data: TowerData) -> Button:
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED if emblem != null else TextureRect.STRETCH_KEEP_CENTERED
 		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		box.add_child(icon)
-	var sprout_cost := dream_state.get_evolve_cost(data)
-	# screens_ui.md "Family pick": name, identity, the statuses it applies, previews of its branches.
-	var lines := [[data.display_name, 22, UiStyle.INK], [IconInfo.format(data.description), 15, UiStyle.INK]]
-	var statuses := get_status_text(data)
-	if statuses != "":
-		lines.append([statuses, 14, Palette.DEWLIGHT])
-	lines.append(["Grow a Sprout into it: %d Dew · plant directly: %d Dew" % [sprout_cost, data.cost], 13, UiStyle.LIVE])
-	for line in lines:
-		var label := Label.new()
-		label.text = line[0]
-		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		label.add_theme_font_size_override("font_size", line[1])
-		label.add_theme_color_override("font_color", line[2])
-		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		box.add_child(label)
+		icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		header.add_child(icon)
+	var names := VBoxContainer.new()
+	names.add_theme_constant_override("separation", 6)
+	names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	names.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	names.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(names)
+	var title := Label.new()
+	title.name = "FamilyName"
+	title.text = data.display_name
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiStyle.title(title, 26)
+	names.add_child(title)
+	var chips := HFlowContainer.new()
+	chips.add_theme_constant_override("h_separation", 6)
+	chips.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	names.add_child(chips)
+	for status in _statuses_of(data):
+		chips.add_child(_status_chip(status))
+	var job := Label.new()  # What it does, in its words
+	job.name = "Job"
+	job.text = IconInfo.format(data.description)
+	job.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	job.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	job.add_theme_font_size_override("font_size", 15)
+	job.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	box.add_child(job)
+	var costs := HBoxContainer.new()  # "Sprout into it [Dew] 15   Plant [Dew] 25"
+	costs.name = "Costs"
+	costs.add_theme_constant_override("separation", 16)
+	costs.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(costs)
+	for pair in [["Sprout into it", dream_state.get_evolve_cost(data)], ["Plant", data.cost]]:
+		costs.add_child(_cost_part(pair[0], int(pair[1])))
 	_add_routes(box, data)
+	var spare := Control.new()
+	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(spare)
+	var wake := Button.new()  # Drawn as the framed primary; the press is the card's
+	wake.name = "Wake"
+	wake.text = "Wake %s" % data.display_name
+	wake.focus_mode = Control.FOCUS_NONE
+	wake.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wake.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+	UiStyle.primary(wake)
+	box.add_child(wake)
 	return button
+
+# The statuses a family applies (its base Warden's), in order, once each.
+static func _statuses_of(data: TowerData) -> Array[StringName]:
+	var out: Array[StringName] = []
+	for status in [data.applies_status, data.extra_status]:
+		if status != &"" and not out.has(status):
+			out.append(status)
+	return out
+
+# A status as a chip: its icon and name in a thin outline.
+func _status_chip(status: StringName) -> Control:
+	var chip := PanelContainer.new()
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var frame := StyleBoxFlat.new()
+	frame.draw_center = false
+	frame.border_color = Color(UiStyle.MOON_MIST, 0.3)
+	frame.set_border_width_all(1)
+	frame.set_corner_radius_all(11)
+	frame.content_margin_left = 8
+	frame.content_margin_right = 8
+	chip.add_theme_stylebox_override("panel", frame)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_child(row)
+	var icon := TextureRect.new()
+	icon.texture = IconInfo.icon(status)
+	icon.custom_minimum_size = Vector2(16, 16)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(icon)
+	var label := Label.new()
+	label.text = IconInfo.status_name(status)
+	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(label)
+	return chip
+
+# "Plant [Dew] 25": the words quiet, the Dew glyph, the number in the number font.
+func _cost_part(words: String, dew: int) -> Control:
+	var part := HBoxContainer.new()
+	part.add_theme_constant_override("separation", 5)
+	part.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var label := Label.new()
+	label.text = words
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	part.add_child(label)
+	var icon := TextureRect.new()
+	icon.texture = IconInfo.icon(&"dew")
+	icon.custom_minimum_size = Vector2(14, 14)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	part.add_child(icon)
+	var number := Label.new()
+	number.text = str(dew)
+	UiStyle.number(number, 16)
+	number.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	part.add_child(number)
+	return part
 
 # --- Routes (user, 2026-10-02: "when picking a family, it should show the family routes it can dream into") ---
 # Under the base Warden: this run's branches (the same draw Remember shows: DreamState.preview_branch_offer), each
@@ -405,17 +525,20 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 	var offered: Array = routes.offered
 	if offered.is_empty():
 		return
+	# One caps line (light pass): "dreams into", and when the run draws from more, "dreams into, 2 of 5 this run"
+	# (the branches are drawn per run: user via story chat; its tip says how to call another in).
+	var regular: int = dream_state.regular_branches(data).size() if DreamState.branch_expansion_on() else 0
+	var size: int = dream_state.branch_offer_size(data)
 	var head := Label.new()
 	head.name = "RoutesHead"
-	head.text = "Dreams into"
+	head.text = "Dreams into" if regular <= size else OFFER_LINE % [size, regular]
 	UiStyle.caps(head, 13, UiStyle.WHISPER)
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(head)
-	# Say plainly that the branches are drawn per run (user via story chat; Remember shows the same line).
-	var regular: int = dream_state.regular_branches(data).size() if DreamState.branch_expansion_on() else 0
-	var size: int = dream_state.branch_offer_size(data)
 	if regular > size:
-		box.add_child(_offer_line(data, size, regular))
+		head.name = "OfferLine"
+		head.mouse_filter = Control.MOUSE_FILTER_PASS
+		head.tooltip_text = OFFER_TIP % dream_state.call_back_cost(data)
 	for branch: TowerData in offered:
 		box.add_child(_route_lane(branch))
 	var missing: Array = routes.not_offered
@@ -454,7 +577,7 @@ func _route_lane(branch: TowerData) -> Control:
 	words.add_child(_lane_line(branch.display_name, 13, UiStyle.INK, "Name"))
 	var role := role_text(branch)
 	if dream_state.is_hidden_branch(branch):
-		role = "Grove · hidden branch" + (" · " + role if role != "" else "")
+		role = "Grove's hidden branch" + (", " + role if role != "" else "")
 	if role != "":
 		words.add_child(_lane_line(role, 11, UiStyle.GOLD, "Role"))
 	lane.add_child(words)
@@ -469,7 +592,7 @@ func _route_lane(branch: TowerData) -> Control:
 	return lane
 
 # "This dream offers 2 of 5 branches, different each run." Hover / tap: the call-in rule.
-const OFFER_LINE := "This dream offers %d of %d branches, different each run."
+const OFFER_LINE := "Dreams into, %d of %d this run"  # Small caps lower it
 const OFFER_TIP := "The others aren't in this dream. Call one in on Remember for %d Dreamlight, once per family."
 
 func _offer_line(data: TowerData, size: int, regular: int) -> Label:
