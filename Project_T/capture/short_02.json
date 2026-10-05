@@ -8,6 +8,7 @@
 	"hud": "none",
 	"dreams": ["dawnbreak"],
 	"length": 24.0,
+	"end_button": "D:/Projects/Game/marketing/music/endcard_button_full.wav",
 	"music": ["base", "dread1", "dread2"],
 	"captions": [
 		[0.0, 2.0, "Watch this chain."],

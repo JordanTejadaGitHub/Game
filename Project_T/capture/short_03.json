@@ -9,6 +9,7 @@
 	"families": ["sporeling", "dewdrop"],
 	"hud": "none",
 	"length": 32.0,
+	"end_button": "D:/Projects/Game/marketing/music/endcard_button_full.wav",
 	"music": ["base", "dread1", "boss_stag"],
 	"captions": [
 		[0.0, 2.5, "The first boss: the Hollow Stag."],

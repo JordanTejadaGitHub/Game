@@ -9,6 +9,7 @@
 	"families": ["sporeling"],
 	"hud": "none",
 	"length": 28.0,
+	"end_button": "D:/Projects/Game/marketing/music/endcard_button_full.wav",
 	"music": ["base", "dread1"],
 	"captions": [
 		[0.0, 2.5, "Your towers ARE the maze."],

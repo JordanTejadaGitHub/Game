@@ -9,6 +9,7 @@
 		{"clip": "video0_storm", "from": 11.0, "to": 17.0}
 	],
 	"end_card": 5.0,
+	"end_button": "D:/Projects/Game/marketing/music/endcard_button_full.wav",
 	"music": ["base", "dread1"],
 	"captions": [
 		[0.0, 3.0, "Remember the Warcraft 3 maze TD maps?"],

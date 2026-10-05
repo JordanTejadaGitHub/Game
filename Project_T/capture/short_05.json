@@ -6,6 +6,7 @@
 		{"clip": "short_05_take", "from": 0.0, "to": 9.0},
 		{"clip": "short_05_take", "from": 15.0, "to": 25.0}
 	],
+	"end_button": "D:/Projects/Game/marketing/music/endcard_button_full.wav",
 	"music": ["base", "dread1", "heartbeat"],
 	"captions": [
 		[0.0, 2.0, "One leaf left."],
