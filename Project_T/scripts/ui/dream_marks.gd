@@ -217,7 +217,7 @@ class BarkShield extends Control:
 			var t := 1.0 - _intro / DreamMarks.INTRO_TIME
 			draw_arc(c, 10.0 + 16.0 * t, 0.0, TAU, 28, Color(RIM, 0.8 * (1.0 - t)), 2.0, true)
 			var picked := card()
-			var words: String = picked.display_name if picked != null else "Thick Bark"
+			var words: String = picked.display_name if picked != null else "Hardened Bark"
 			var font := ThemeDB.fallback_font
 			var width := font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 			var at := Vector2(c.x - width / 2.0, size.y + 16.0)

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "lullaby"
-display_name = "Lullaby"
+display_name = "Slow Waking"
 description = "A {caught} nightmare stays {caught} 1 s after leaving a Dreamcatcher's range."
 rarity = 1
 kind = 3

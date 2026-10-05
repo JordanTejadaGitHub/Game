@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "quickening"
-display_name = "Quickening"
+display_name = "Hunt's Rush"
 description = "When a nightmare is dispelled in a Warden's range, that Warden attacks 30% faster for 4 s."
 rarity = 0
 kind = 3

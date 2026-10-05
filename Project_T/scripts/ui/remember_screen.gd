@@ -235,7 +235,7 @@ func offer_line(root: TowerData) -> String:
 	return "This dream offers %d of %d branches, different each run. Call others in with Dreamlight." % [  # As the family pick
 		dream_state.branch_offer_size(root), dream_state.regular_branches(root).size()]
 
-const MISTY_TIP := "Each run the dream offers only some of a family's branches, at random. These weren't drawn this time: call one in for Dreamlight (once per family), or find the Remembered Path card. The Heartwood may offer them next run."
+const MISTY_TIP := "Each run the dream offers only some of a family's branches, at random. These weren't drawn this time: call one in for Dreamlight (once per family), or find the Borrowed Branch card. The Heartwood may offer them next run."
 const GROVE_HINT := "One more branch grows in the Memory Grove."
 
 # A strip emblem's tip (user: "hovering emblems gives me repeated explanations of the branch"): this branch's name and
@@ -246,7 +246,7 @@ func branch_tip(form: TowerData) -> String:
 
 # The strip under the tree (story chat: the not-offered branches beside the base read as its siblings): each
 # branch of `root`'s family not in this run, a faint silhouette with its name and "Call in · 3 Dreamlight" (once per
-# family; free with Remembered Path; greyed after use). A tap on one shows it in the side panel too.
+# family; free with Borrowed Branch; greyed after use). A tap on one shows it in the side panel too.
 const MISTY_PORTRAIT := 40.0
 const MISTY_EMBLEM := 32.0  # UI Asset's emblems are 32 px art (nearest)
 
@@ -591,7 +591,7 @@ func _add_combos(data: TowerData) -> void:
 	_side_box.add_child(links)
 
 # Branch expansion: a branch not in this run. Its silhouette and name, the line, what it does (to judge a call),
-# and the call-back: CALL_BACK_DREAMLIGHT once per family, or free with Remembered Path.
+# and the call-back: CALL_BACK_DREAMLIGHT once per family, or free with Borrowed Branch.
 const NOT_IN_DREAM_LINE := "Not in this dream. The Heartwood may remember it next time."
 
 func _fill_not_in_dream(data: TowerData) -> void:
@@ -625,7 +625,7 @@ func _add_call_back(data: TowerData) -> void:
 		CantAfford.apply(button, "Call into this dream", "%d Dreamlight" % cost, IconInfo.format(SHORT_TIP))
 		button.pressed.connect(_refuse_call_back.bind(button, cost))
 		return
-	button.text = "Call into this dream, free (Remembered Path)" if free else "Call into this dream  %d" % cost  # The glyph after it
+	button.text = "Call into this dream, free (Borrowed Branch)" if free else "Call into this dream  %d" % cost  # The glyph after it
 	if not free:
 		button.icon = IconInfo.icon(&"dreamlight")
 		button.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT

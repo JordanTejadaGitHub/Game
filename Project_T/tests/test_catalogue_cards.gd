@@ -101,12 +101,16 @@ func _run() -> void:
 	_check(dreams.get_bolt_multiplier() > bolt_before, "Live Wire: the bolt multiplier grows (%.2f)" % dreams.get_bolt_multiplier())
 
 	# --- Crit / new-Warden cards and 227-234 (34a713c0, f771aaf5) ---
-	# Patient Aim: waiting longer hits harder.
+	# Patient Aim (dream_design.md e1e39b56): waiting longer means more crit chance, never more damage.
 	_rule(&"patient_aim")
 	var sniper := _plant("standing_stone", Vector2(18, 12))
+	sniper._aim_idle = 0.0
+	var aim_base := sniper.get_raw_crit_chance()
 	sniper._aim_idle = 2.0
-	_check(is_equal_approx(sniper._card_hit_multiplier(null, false), 1.0 + minf(DreamState.PATIENT_AIM_PER * 2.0, DreamState.PATIENT_AIM_MAX) * dreams.rule_power(&"patient_aim")),
-		"Patient Aim: +15%% per second it didn't fire")
+	_check(is_equal_approx(sniper.get_raw_crit_chance() - aim_base, minf(DreamState.PATIENT_AIM_PER * 2.0, DreamState.PATIENT_AIM_MAX) * dreams.rule_power(&"patient_aim"))
+		and is_equal_approx(sniper._card_hit_multiplier(null, false), 1.0), "Patient Aim: +15% crit chance per second it didn't fire, no damage")
+	sniper._aim_idle = 10.0
+	_check(is_equal_approx(sniper.get_raw_crit_chance() - aim_base, DreamState.PATIENT_AIM_MAX * dreams.rule_power(&"patient_aim")), "…up to +45%")
 	# Crowd Breaker and Crush: area hits on a crowd.
 	_rule(&"crowd_breaker")
 	_rule(&"crush")

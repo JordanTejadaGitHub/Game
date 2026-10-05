@@ -719,6 +719,8 @@ func _pay_rest_bonus() -> Array:
 	var bonus := roundi(get_rest_bonus(block) * blight_rest_bonus_multiplier * rest_bonus_perk_multiplier) \
 		+ (perfect_block_bonus if perfect else 0)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
+	if dreams and not dreams.keeps_rest_bonus():
+		bonus = 0  # Deep Sleep: no rest bonus for the rest of the run (Dreams below still add)
 	if dreams:
 		bonus += dreams.get_dew_per_clear()  # Morning Dew
 		bonus += dreams.get_rest_bonus_add()  # Borrowed Dew (negative)

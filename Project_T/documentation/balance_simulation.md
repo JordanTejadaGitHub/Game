@@ -816,6 +816,8 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 | Last Stand (Rare) | +35% within 4 cells of the Heartwood | Rare conditional +70% | **raise to +60%**. Only the route's last stretch counts; Forest's Edge (Common, start) is +20% |
 | Patient Aim (U) | +10% crit chance per idle second, max +40% | Uncommon conditional +45% | **+15% per second, max +45%**. At a ×2 crit, +10% chance is +10% damage a second, below the old +15% |
 
+All five in a4be7e06 (Deep Sleep: Dream cards that add to the rest bonus still pay; fine, the base bonus is the cost).
+
 ## Restless Omens numbers (2026-10-05, for run_design.md a106b83d; data values, before the act scale)
 
 Calibrated on the live data (Swift Stream ×1.25 speed → 5 Seeds; Heavy Rain +50% health → 45 Dew; Crowded

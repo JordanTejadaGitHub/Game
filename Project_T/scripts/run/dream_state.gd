@@ -106,7 +106,7 @@ const ROOT_NETWORK_PER := [0.06, 0.08]  # Per Sprout in the network (II: diagona
 const ROOT_NETWORK_MAX := [0.60, 0.80]
 const FIRST_LIGHT_MULTIPLIER := 3.0
 const LAST_STAND_CELLS := 4  # From the Heartwood (Chebyshev)
-const LAST_STAND_BONUS := 0.35
+const LAST_STAND_BONUS := 0.60  # Balancing 738088c3 (the per-missing-leaf part was dropped, dream_design.md e1e39b56)
 const OLD_GROWTH_STEPS := [[15, 0.40], [5, 0.20]]  # [drifts stood, damage], highest first
 const HUNTERS_PATIENCE_ELITE := 0.60
 const HUNTERS_PATIENCE_BOSS := 0.35
@@ -156,8 +156,7 @@ const RAIN_ON_GLASS_PER := 0.35  # Light Wardens vs Soaked
 # Seed cards (dream_design.md "Seed cards", 169–176)
 const DEEP_WELL_RATE := 0.05
 const DEEP_WELL_MAX := 40
-const KIND_CANOPY_TOUCHING := 3
-const KIND_CANOPY_BONUS := 0.20
+const KIND_CANOPY_BONUS := 0.35  # Sheltering Boughs (Balancing 738088c3)
 const SHARED_LIGHT_PER := 0.04
 const SHARED_LIGHT_MAX := 0.20
 const BRAMBLE_OATH_PER := 0.03  # Per BRAMBLE_OATH_TILES path tiles the walls add
@@ -1142,6 +1141,8 @@ func get_crit_chance_bonus(_tower: Tower, enemy: Node2D = null) -> float:
 		bonus += HEAVY_STONES_PER * rule_stacks(&"heavy_stones") * rule_power(&"heavy_stones")
 	if _tower != null and has_rule(&"seasoned_eye"):  # +1% per rank (max +7%: only the Eldest reaches it)
 		bonus += minf(SEASONED_EYE_PER * _tower.rank, SEASONED_EYE_MAX) * rule_power(&"seasoned_eye")
+	if _tower != null and has_rule(&"patient_aim"):  # Patient Aim: crit chance per second it waited (no damage)
+		bonus += minf(PATIENT_AIM_PER * _tower._aim_idle, PATIENT_AIM_MAX) * rule_power(&"patient_aim")
 	if has_rule(&"full_moon"):
 		bonus += FULL_MOON_CRIT
 	if has_rule(&"reckless_bloom"):
@@ -1567,7 +1568,7 @@ const HIT_RULES: Array[StringName] = [&"last_stand", &"hunters_patience", &"bitt
 	&"rain_on_glass", &"skyward_gaze", &"deep_grip", &"head_start", &"deep_frost", &"falling_weight", &"murmur",
 	&"first_light"]  # Every rule on_hit_multiplier reads
 const CRIT_RULES: Array[StringName] = [&"glinting_dew", &"heavy_stones", &"seasoned_eye", &"full_moon",
-	&"reckless_bloom", &"still_target", &"starlit_aim"]  # Every rule get_crit_chance_bonus reads
+	&"reckless_bloom", &"still_target", &"starlit_aim", &"patient_aim"]  # Every rule get_crit_chance_bonus reads
 var _rules_of: Array = [null, {}]  # [the _taken_cards() array it was built from, {rule: stacks}]
 var _any_hit_rule := false
 var _any_crit_rule := false
@@ -1598,6 +1599,11 @@ func get_dew_per_clear() -> int:
 	for card in _taken_cards():
 		dew += card.dew_per_clear * stacks[card.id]
 	return dew
+
+# Deep Sleep (Bittersweet, dream_design.md e1e39b56): no rest bonus for the rest of the run. The base bonus (and the
+# perfect block's) becomes 0; Dreams that add to it (Morning Dew, Winding Path…) still add. DriftDirector asks.
+func keeps_rest_bonus() -> bool:
+	return not has_rule(&"deep_sleep")
 
 # Added to every rest (drift-clear) bonus; negative after Borrowed Dew. The bonus never goes below 0.
 func get_rest_bonus_add() -> int:
@@ -4053,8 +4059,8 @@ const SHARPENED_LIGHT: Array[float] = [0.5, 1.0]  # Crit multiplier (II)
 const DEEP_FROST_BONUS := 0.45  # Frozen nightmares
 const LONG_SHADOWS_RANGE := 2.0  # Wardens whose range is LONG_SHADOWS_FROM or more
 const LONG_SHADOWS_FROM := 5.0
-const PATIENT_AIM_PER := 0.15  # Per second a Warden hasn't fired
-const PATIENT_AIM_MAX := 0.60
+const PATIENT_AIM_PER := 0.15  # Crit chance per second a Warden hasn't fired (dream_design.md e1e39b56; Balancing 738088c3)
+const PATIENT_AIM_MAX := 0.45
 const RING_DANCE_TILES := 2.0  # A Fairy Ring burst sets off rings this close
 const SWEET_SCENT_TILES := 2.0  # Honeysuckle's Drowsy reach
 const SHINY_THINGS_BONUS := 0.15  # Per stolen buff, SHINY_THINGS_TIME s, max SHINY_THINGS_STACKS

@@ -271,11 +271,11 @@ static func is_stat_card(card: UpgradeData) -> bool:
 # (card_text_audit.md "Verified by hand and correct", 2026-10-02). "X / II" covers both. The CSV says "verified".
 const VERIFIED_ON := "2026-10-02"
 const VERIFIED := ["Bitter Hedges", "Briar Crown", "Canopy", "Chosen Few", "Cozy Corners / II", "Crossroads", "Crowd Breaker",
-	"Crowded Path / II", "Soaked Rot", "Dawnbreak", "Deep Stillness", "Deep Water / II", "Deeper Rings", "Desperate Bloom",
+	"In the Thick / II", "Soaked Rot", "Dawnbreak", "Deep Stillness", "Deep Water / II", "Deeper Rings", "Desperate Bloom",
 	"Endless Night", "Endless Rings", "Falling Stars", "Fever Pitch", "Few and Mighty", "Glimmering Hunt", "Grandfather Stump",
 	"Heavy Eyelids", "Hedge Maze / II", "Kindred Roots / II", "Last Stand", "Loose Stones", "Lucid Dreaming", "Overflowing Well",
-	"Quick Reactions", "Reclaimed Earth", "Restless Night", "Ricochet / II", "Rolling Thunder / II", "Scarred Bark / II",
-	"Second Wind", "Seed Storm", "Seeping / II", "Shattering Blow / II", "Solitude", "Sprout Chorus", "Static Field II",
+	"Quick Reactions", "Reclaimed Earth", "Impatient Night", "Ricochet / II", "Rolling Thunder / II", "Scarred Bark / II",
+	"Second Wind", "Seed Storm", "Seeping / II", "Shattering Blow / II", "Solitude", "Thicket", "Static Field II",
 	"Straightaway / II", "Sweet Harmony", "The Long Walk", "Thinning the Herd", "Thousand Cuts", "Twin Puff II",
 	"Watchful Rest / II", "Whirlwind Heart", "Wildfire Spores", "Wildwood Reclaimed", "Bad Dreams II", "Bramble Oath"]
 

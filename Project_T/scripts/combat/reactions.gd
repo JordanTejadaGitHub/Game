@@ -231,21 +231,21 @@ static func effect_multiplier(enemy: Node2D, source: Tower) -> float:
 	var multiplier := source.get_potency()
 	var dreams := _dreams(enemy)
 	if dreams and dreams.has_method("get_effect_bonus"):
-		multiplier *= 1.0 + dreams.get_effect_bonus(enemy) + nightshade_bonus(enemy)  # Seeping + Nightshade add
-	elif dreams:
-		multiplier *= 1.0 + nightshade_bonus(enemy)
+		multiplier *= 1.0 + dreams.get_effect_bonus(enemy)  # Seeping
+	multiplier *= 1.0 + nightshade_bonus(enemy)  # Nightshade multiplies with Potency and Seeping (Balancing 738088c3)
 	return multiplier
 
-# Nightshade (Legendary #112): effect damage +20% for every status the nightmare carries (one per
-# status, not per stack; every status counts, the one dealing the damage too; no cap). Adds with
-# Seeping. 0 without the card. Also shown on the nightmare's info card.
-const NIGHTSHADE_PER_STATUS := 0.20
+# Nightshade (Legendary #112; dream_design.md e1e39b56): effect damage ×2 on a nightmare carrying 4 or more statuses
+# (one per status, not per stack; the one dealing the damage counts too). Multiplies with Potency and Seeping. The
+# bonus part (1.0 = ×2), 0 without the card or under 4 statuses. Also shown on the nightmare's info card.
+const NIGHTSHADE_MIN_STATUSES := 4
+const NIGHTSHADE_MULTIPLIER := 2.0
 
 static func nightshade_bonus(enemy: Node2D) -> float:
 	var dreams := _dreams(enemy)
 	if dreams == null or not dreams.has_rule(&"nightshade"):
 		return 0.0
-	return NIGHTSHADE_PER_STATUS * enemy.statuses.active_ids().size()
+	return NIGHTSHADE_MULTIPLIER - 1.0 if enemy.statuses.active_ids().size() >= NIGHTSHADE_MIN_STATUSES else 0.0
 
 static func is_crowned(id: StringName) -> bool:
 	return CROWNED_BASE.has(id)
