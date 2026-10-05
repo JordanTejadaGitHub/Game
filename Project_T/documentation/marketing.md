@@ -283,7 +283,7 @@ words of the short description**. Nothing on the page opens with lore or the loo
 | About | outline above | GIFs (capture tools) |
 | Tags | drafted above | — |
 | 5–8 screenshots | **#1 final, chosen:** `marketing/screenshots/final/screenshot_01_t12.png` (main b0efacf9, maze v4; passes at 600 px, nothing clipped)  **Also chosen:** #3 chain `screenshot_03_t9.5` (zoom 2, act 3), #5 Dream `screenshot_05_t1.5`, #6 Stag `screenshot_06_t13.0` (zoom 2, trample callout + boss bar), #8 late game `screenshot_08_t12` (act 4, Ascended, Reactions). #7 Memory Grove `screenshot_07_full_t1.0` (full preset, no UI; the page's warmest, most different shot). **Six done (Steam's minimum is five).** #4 dispel dropped: as a still it's a small shape on an empty path (it sells in motion, in the trailer). | #2 build ghost (Main Merger's ghost action) and #7 Grove (Main Merger's grove scene) are extras; the page doesn't wait for them |
-| Trailer | §5; its first seconds = the maze. **Target: user-approved by 2026-10-07**, slips day for day if the video pause runs past 2026-10-05 (~1 day of render + rough cut after the all-clear, then review) | **the user's all-clear** (paused for the tower-asset changes); Sound's cue stems; then the user's review + one revision. Ready: 9 scenes dry-run, cut list 8459d82b, 16:9 export 902f7207 |
+| Trailer | **Paused, no date** (the user, 2026-10-05: "Don't make any trailers for now"). The user edits videos themselves; the 10 final trailer clips, cue v2.1 and cut 6.1 (reference) are in the editor kit | the user's word to restart. The Steam page needs a trailer to go live, so the page date waits on it too |
 | AI disclosure | drafted in §7 | Valve's wording at submission |
 
 ## 7. AI disclosure (Steam requires it)
