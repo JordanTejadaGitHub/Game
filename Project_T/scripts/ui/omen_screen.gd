@@ -6,8 +6,8 @@ extends Control
 # active Omen in a small tag under the toast, and toasts when one starts and when its reward is paid.
 # Built in code.
 
-const CARD_SIZE := Vector2(380, 220)  # Wide enough that the 16–18 px lines don't wrap much (user: "can barely read this")
-const CARD_PAD := Vector2(18, 16)  # Inner padding on every side (x: left and right, y: top and bottom)
+const CARD_SIZE := Vector2(330, 330)  # Light pass (UI Asset's second page): square cards with their action at the foot
+const CARD_PAD := Vector2(20, 18)  # Inner padding on every side (x: left and right, y: top and bottom)
 const REWARD_SIZE := 16  # The reward line (screens_ui.md readable text: 16 px+ body)
 const FRONT_BODY_SIZE := 18  # Face an Omen and Clear Skies: the Dream card body size (user: "a bit bigger")
 const EMBLEM_SCALE := 2  # The 16 px icons drawn x2 (32 px), nearest: the fallback until the card emblems exist (x3+ read as a skull: user)
@@ -29,6 +29,7 @@ const CLEAR_SKIES_GLOW := Color("3c3c5c")  # Dusk: a cooler, lighter middle than
 
 var _was_paused := false
 var _title := Label.new()
+var _subtitle := Label.new()  # "for drifts 11 to 15" under the title, quiet (light pass)
 var _cards := HBoxContainer.new()
 var _active_tag := Label.new()
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
@@ -48,14 +49,22 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 18)
 	center.add_child(box)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UiStyle.display(_title, 28)
-	_title.add_theme_color_override("font_color", OMEN_COLOR)
+	UiStyle.display(_title, 34)
+	_title.add_theme_color_override("font_color", UiStyle.GOLD)
 	box.add_child(_title)
-	_cards.add_theme_constant_override("separation", 16)
+	_subtitle.name = "Subtitle"
+	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_subtitle.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	box.add_child(_subtitle)
+	_cards.add_theme_constant_override("separation", 26)
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_cards)
 	peek = ChoicePeek.new(self, [dim, center], "Back to the Omens")
-	box.add_child(peek.make_peek_button())
+	var peek_button := peek.make_peek_button()
+	if peek_button is Button:
+		UiStyle.quiet(peek_button)  # Quiet: the cards hold the choice
+		peek_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	box.add_child(peek_button)
 	arm = ChoiceArm.attach(self, _cards)
 	visible = false
 
@@ -113,13 +122,14 @@ func _show_offer(_offer: Array[OmenData], block: int) -> void:
 		_was_paused = game_speed.paused
 	game_speed.set_paused(true)
 	_drifts = omens.get_block_range(block)
-	_title.text = "The wind's turned · drifts %d–%d" % [_drifts.x, _drifts.y]
+	_title.text = "The wind has turned"
+	_subtitle.text = "for drifts %d to %d" % [_drifts.x, _drifts.y]
 	_clear_cards()
 	visible = true
 	arm.arm()
 	if omens.forced or omens.faced:
 		if omens.forced:
-			_title.text = "An Omen must be faced · drifts %d–%d" % [_drifts.x, _drifts.y]
+			_title.text = "An Omen must be faced"
 		_reveal(omens.face(), null)
 		return
 	var back := _make_face_down_card()
@@ -143,13 +153,60 @@ func _make_face_down_card() -> Button:
 	UiStyle.card_button(button, OMEN_COLOR)
 	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot)
 	var box := _card_box(button)
-	UiStyle.title(_add_line(box, "Face an Omen", UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
-	_add_flavor(box, "Something's out there. Waiting to be asked.")
-	var body := _add_line(box, "A twist for the next block. Face it for a reward.", UiStyle.INK, FRONT_BODY_SIZE)
-	box.add_child(_emblem(&"omen", true))  # A moth before the moon (the wind swirl until UI Asset's icon exists)
-	_fit_card(button, box, [body])
+	# Light pass: the emblem beside the name and its whisper, two points, the primary at the foot.
+	var top := _card_top(box, &"omen")
+	UiStyle.title(_add_line(top, "Face an Omen", UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
+	_add_flavor(top, "Something's out there, waiting to be asked.")
+	var points: Array = [_add_bullet(box, "A twist for the next block", UiStyle.INK, FRONT_BODY_SIZE),
+		_add_bullet(box, "A reward if you survive it", UiStyle.INK, FRONT_BODY_SIZE)]
+	_card_action(box, "Face it", true)
+	_fit_card(button, box, points)
 	button.pressed.connect(func() -> void: _reveal(omens.face(), button))
 	return button
+
+# The top of a front card: the 64 px emblem, then a column for the name and its whisper (returned).
+func _card_top(box: VBoxContainer, id: StringName) -> VBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(row)
+	var art := _card_emblem(id)
+	if art == null:
+		art = IconInfo.icon(id)
+	if art != null:
+		var emblem := TextureRect.new()
+		emblem.name = "Emblem"
+		emblem.texture = art
+		emblem.custom_minimum_size = Vector2.ONE * CARD_EMBLEM_SIZE * CARD_EMBLEM_SCALE
+		emblem.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		emblem.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		emblem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(emblem)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 4)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(column)
+	return column
+
+# A card's action at its foot, drawn as a button (the whole card is the hit area, so a press anywhere picks it):
+# the framed primary, or the plain secondary frame.
+func _card_action(box: VBoxContainer, text: String, primary: bool) -> void:
+	var spare := Control.new()
+	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(spare)
+	var action := Button.new()
+	action.name = "Action"
+	action.text = text
+	action.focus_mode = Control.FOCUS_NONE
+	action.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	action.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+	if primary:
+		UiStyle.primary(action)
+	box.add_child(action)
 
 # A card's emblem (run_design.md "How an Omen looks"): the icon from assets/ui/icons.png drawn x4 (64 px, nearest)
 # on a soft glow (`glow`), centred in the card's spare space; without the icon, the old wind swirl (`swirl`) or an
@@ -217,7 +274,8 @@ func _reveal(offer: Array[OmenData], from: Button) -> void:
 			_cards.remove_child(child)
 			child.queue_free()  # Clear Skies goes: no backing out
 	if not omens.forced:
-		_title.text = "Choose the Omen · drifts %d–%d" % [_drifts.x, _drifts.y]
+		_title.text = "Choose the Omen"
+	_subtitle.text = "for drifts %d to %d, no going back" % [_drifts.x, _drifts.y]
 	if from != null and not HeartwoodMemory.get_settings().get("reduced_motion", false):  # The flip
 		from.pivot_offset = from.size / 2.0
 		var tween := create_tween()
@@ -279,12 +337,9 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	var flavor: Label = null
 	if omen.flavor != "":
 		flavor = _add_flavor(box, omen.flavor)
-	var twist := StatusLinks.make_label(omen.description, FRONT_BODY_SIZE, UiStyle.INK)  # Status words as links
+	var twist := StatusLinks.make_label(omen.description, FRONT_BODY_SIZE - 2, UiStyle.INK)  # Status words as links
 	twist.mouse_filter = Control.MOUSE_FILTER_PASS  # A click still picks the Omen
 	box.add_child(twist)
-	var divider := HSeparator.new()
-	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(divider)
 	# The reward in point form (user: "point form for each different reward"): a "Reward" caps header, then a bullet
 	# per reward with its own condition (OmenDirector.reward_bullets); hover or tap the header for the whole rule
 	var reward_line := _add_line(box, "Reward", REWARD_COLOR, REWARD_SIZE)
@@ -295,10 +350,7 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	var bullet_labels: Array[Label] = []
 	for text in omens.reward_bullets(omen, act, omens.current_offer_block):
 		bullet_labels.append(_add_bullet(box, text))
-	var spare := Control.new()  # No emblem on a revealed Omen (user: "just the beginning"); its spare height still goes here
-	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(spare)
+	_card_action(box, "Take this Omen", true)  # No emblem on a revealed Omen (user: "just the beginning")
 	var secondary: Array = [twist]
 	secondary.append_array(bullet_labels)
 	if flavor != null:
@@ -316,7 +368,7 @@ func _add_flavor(box: VBoxContainer, text: String) -> Label:
 # One reward bullet: a small gold diamond, then the text, which wraps under itself (not under the diamond).
 const BULLET_SIDE := 7.0
 
-func _add_bullet(box: VBoxContainer, text: String) -> Label:
+func _add_bullet(box: VBoxContainer, text: String, colour: Color = REWARD_COLOR, font_size: int = REWARD_SIZE) -> Label:
 	var row := HBoxContainer.new()
 	row.name = "RewardBullet"
 	row.add_theme_constant_override("separation", 8)
@@ -326,7 +378,7 @@ func _add_bullet(box: VBoxContainer, text: String) -> Label:
 	diamond.size_flags_vertical = Control.SIZE_FILL
 	diamond.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	diamond.draw.connect(func() -> void:
-		var c := Vector2(diamond.size.x / 2.0, REWARD_SIZE * 0.7)  # On the first line's middle
+		var c := Vector2(diamond.size.x / 2.0, font_size * 0.7)  # On the first line's middle
 		var r := BULLET_SIDE / 2.0
 		diamond.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -r), c + Vector2(r, 0), c + Vector2(0, r), c + Vector2(-r, 0)]), REWARD_COLOR))
 	row.add_child(diamond)
@@ -335,8 +387,8 @@ func _add_bullet(box: VBoxContainer, text: String) -> Label:
 	label.text = text
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.add_theme_color_override("font_color", REWARD_COLOR)
-	label.add_theme_font_size_override("font_size", REWARD_SIZE)
+	label.add_theme_color_override("font_color", colour)
+	label.add_theme_font_size_override("font_size", font_size)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(label)
 	return label
@@ -357,7 +409,9 @@ func _on_closed() -> void:
 	game_speed.set_paused(_was_paused)
 
 func _on_omen_started(omen: OmenData, first_drift: int, last_drift: int) -> void:
-	_tag_title = "%s · %d–%d" % [omen.display_name, first_drift, last_drift]
+	_tag_name = omen.display_name
+	_tag_drifts = "drifts %d–%d" % [first_drift, last_drift]
+	_tag_title = _tag_name + TAG_DIVIDER + _tag_drifts
 	var own := IconInfo.icon(StringName(omen.id))  # The Omen's own icon if it has one, else the generic one
 	_tag_icon.texture = own if own != null else IconInfo.icon(&"omen")
 	_active_tag.visible = true
@@ -369,6 +423,9 @@ func _on_omen_started(omen: OmenData, first_drift: int, last_drift: int) -> void
 # Omen shows only its name and drifts. The twist and the plain-words reward are in its tooltip (hover or tap, opaque,
 # by the tag). The Label keeps the plain text (layout, ComingStrip, tests); a RichTextLabel over it draws the colours.
 var _tag_title := ""
+var _tag_name := ""
+var _tag_drifts := ""
+const TAG_DIVIDER := "  │  "  # Light pass: segments, no " · " (the bar drawn dim gold)
 var _tag_icon := TextureRect.new()
 var _tag_rich := RichTextLabel.new()
 var _tag_tip: TapTip = null
@@ -377,10 +434,12 @@ func _refresh_tag() -> void:
 	if not _active_tag.visible or omens.active == null:
 		return
 	var share := tag_share_text()
-	_active_tag.text = _icon_pad() + _tag_title + (" · " + share if share != "" else "")
+	_active_tag.text = _icon_pad() + _tag_title + (TAG_DIVIDER + share if share != "" else "")
 	var poor := share == "Reward gone" or share == "Reward lost" or omens.get_reward_share() < 1.0
-	_tag_rich.text = "[center]%s[color=#%s]%s[/color]%s[/center]" % [_icon_pad(), OMEN_COLOR.to_html(false), _tag_title,
-		(" · [color=#%s]%s[/color]" % [(UiStyle.POOR if poor else OMEN_COLOR).to_html(false), share]) if share != "" else ""]
+	var bar := "[color=#%s]%s[/color]" % [Color(OMEN_COLOR, 0.3).to_html(true), TAG_DIVIDER]
+	_tag_rich.text = "[center]%s[color=#%s]%s[/color]%s[color=#%s]%s[/color]%s[/center]" % [_icon_pad(), UiStyle.GOLD.to_html(false),
+		_tag_name, bar, UiStyle.INK_DIM.to_html(false), _tag_drifts,
+		(bar + "[color=#%s]%s[/color]" % [(UiStyle.POOR if poor else OMEN_COLOR).to_html(false), share]) if share != "" else ""]
 	var tip := IconInfo.format(omens.active.description) + "\n" + omens.reward_sentence(omens.active,
 		drift_director.get_act(maxi(drift_director.drifts_started, 1)), omens.active_block)
 	var status := omens.get_reward_status()
@@ -472,10 +531,12 @@ func _make_clear_skies_card() -> Button:
 		var style := button.get_theme_stylebox(state) as MoonStyleBox
 		style.glow_color = CLEAR_SKIES_GLOW.lightened(0.08) if state.begins_with("hover") else CLEAR_SKIES_GLOW
 	var box := _card_box(button)
-	UiStyle.title(_add_line(box, "Clear Skies", CLEAR_SKIES_COLOR, 22), UiStyle.CARD_NAME_SIZE, CLEAR_SKIES_COLOR)
-	_add_flavor(box, "The night stays still.")
-	var calm := _add_line(box, "Nothing changes. No reward.", UiStyle.INK, FRONT_BODY_SIZE)  # The same rules spot as Face an Omen's
-	box.add_child(_emblem(&"clear_skies", false, CLEAR_SKIES_COLOR))  # The moon and stars (an empty space until the icon exists)
-	UiStyle.caps(_add_line(box, "The default", UiStyle.INK_DIM, 13), 14)
-	_fit_card(button, box, [calm])
+	var top := _card_top(box, &"clear_skies")  # The moon and stars beside the name
+	UiStyle.title(_add_line(top, "Clear Skies", CLEAR_SKIES_COLOR, 22), UiStyle.CARD_NAME_SIZE, CLEAR_SKIES_COLOR)
+	_add_flavor(top, "The night stays still.")
+	var points: Array = [_add_bullet(box, "Nothing changes", UiStyle.INK_DIM, FRONT_BODY_SIZE),  # The same rules spot as Face an Omen's
+		_add_bullet(box, "No reward", UiStyle.INK_DIM, FRONT_BODY_SIZE)]
+	UiStyle.caps(_add_line(box, "The default, Esc", UiStyle.INK_DIM, 13), 14)
+	_card_action(box, "Keep the night", false)
+	_fit_card(button, box, points)
 	return button

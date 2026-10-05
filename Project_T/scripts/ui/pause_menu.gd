@@ -20,7 +20,9 @@ const FAMILY_TIER := 1  # Base Wardens are the families
 var _was_paused := false
 var _menu := VBoxContainer.new()
 var _panel := PanelContainer.new()
-var _summary := Label.new()
+var _summary := Label.new()  # The run summary as text (kept for tests and screen readers; hidden)
+var _facts := GridContainer.new()  # "This run" as icon rows (light pass): drift, Dreams, Omen, time
+var _families := HBoxContainer.new()  # The run's families as their emblems
 var _settings: SettingsPanel
 var codex: CodexPanel  # The Reaction Codex (screens_ui.md "Reactions")
 var _save_button: Button
@@ -48,34 +50,73 @@ func _ready() -> void:
 		if not codex.visible:
 			row.visible = true)
 	center.add_child(codex)
+	# Light pass (UI Asset's second page, user-approved): one panel, two columns. Left: the title, Resume the one
+	# primary (Esc), Settings / Codex / Save and quit, then Abandon run and Quit game as quiet text. Right: "this run"
+	# as icon rows, the families' emblems, and the Hints switch at the bottom.
 	row.add_child(_panel)
-	_menu.add_theme_constant_override("separation", 10)
-	_menu.custom_minimum_size = Vector2(300, 0)
-	_panel.add_child(_menu)
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 28)
+	_panel.add_child(columns)
+	_menu.add_theme_constant_override("separation", 8)
+	_menu.custom_minimum_size = Vector2(250, 0)
+	columns.add_child(_menu)
 	var title := Label.new()
 	title.text = "Paused"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UiStyle.display(title, 26)
+	UiStyle.display(title, 32)
 	_menu.add_child(title)
-	_add_button("Resume", close)
+	var resume := _add_button("Resume", close)
+	UiStyle.primary(resume)
+	var esc := UiStyle.key_chip("Esc")
+	esc.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	esc.offset_left = -44
+	esc.offset_right = -14
+	resume.add_child(esc)
 	_add_button("Settings", _show_settings)
 	_add_button("Codex", func() -> void:
 		row.visible = false
 		codex.open())
-	_save_button = _add_button("Save & Quit", _save_and_quit)
-	_add_button("Abandon run", func() -> void: _confirm_abandon.popup_centered())
-	_add_button("Quit game", func() -> void: get_tree().quit())
-	_whispers_toggle.text = "Hints"  # The Heartwood's hints (were "Heartwood whispers")
-	_whispers_toggle.focus_mode = Control.FOCUS_NONE
-	_whispers_toggle.toggled.connect(_set_whispers)
-	_menu.add_child(_whispers_toggle)
+	_save_button = _add_button("Save and quit", _save_and_quit)
+	var quiet_row := GridContainer.new()
+	quiet_row.columns = 2
+	_menu.add_child(quiet_row)
+	for pair in [["Abandon run", func() -> void: _confirm_abandon.popup_centered()], ["Quit game", func() -> void: get_tree().quit()]]:
+		var button := _add_button(pair[0], pair[1])
+		_menu.remove_child(button)
+		UiStyle.quiet(button)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		quiet_row.add_child(button)
 
-	var summary_panel := PanelContainer.new()
-	summary_panel.custom_minimum_size = Vector2(260, 0)
-	_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	summary_panel.add_child(_summary)
-	row.add_child(summary_panel)
-	_panel.set_meta("summary", summary_panel)
+	var side := VBoxContainer.new()
+	side.custom_minimum_size = Vector2(240, 0)
+	side.add_theme_constant_override("separation", 12)
+	columns.add_child(side)
+	var head := Label.new()
+	head.text = "This run"
+	UiStyle.caps(head, 14)
+	side.add_child(head)
+	_facts.columns = 2
+	_facts.add_theme_constant_override("h_separation", 12)
+	_facts.add_theme_constant_override("v_separation", 10)
+	side.add_child(_facts)
+	_families.add_theme_constant_override("separation", 6)
+	side.add_child(_families)
+	_summary.visible = false
+	side.add_child(_summary)
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	side.add_child(spacer)
+	var hints := HBoxContainer.new()
+	hints.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+	var hints_label := Label.new()
+	hints_label.text = "Hints"  # The Heartwood's hints (were "Heartwood whispers")
+	hints_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hints_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	hints.add_child(hints_label)
+	_whispers_toggle.focus_mode = Control.FOCUS_NONE
+	_whispers_toggle.tooltip_text = "The Heartwood's hints"
+	_whispers_toggle.toggled.connect(_set_whispers)
+	hints.add_child(_whispers_toggle)
+	side.add_child(hints)
 
 	_settings = SettingsPanel.new()
 	_settings.visible = false
@@ -95,7 +136,7 @@ func _add_button(text: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.focus_mode = Control.FOCUS_NONE
-	button.custom_minimum_size = Vector2(0, 40)
+	button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)  # 48: every button a tap target
 	button.pressed.connect(action)
 	_menu.add_child(button)
 	return button
@@ -118,7 +159,65 @@ func open() -> void:
 	_save_button.tooltip_text = "" if run_saver.can_save_now() else "Resumes from the last rest."
 	_whispers_toggle.set_pressed_no_signal(HeartwoodMemory.get_settings().whispers)
 	_summary.text = get_run_summary()
+	_fill_facts()
 	visible = true
+
+# "This run" (light pass): icon, label, value per row; the families as emblems (their names when there's no art).
+func _fill_facts() -> void:
+	for child in _facts.get_children() + _families.get_children():
+		child.get_parent().remove_child(child)
+		child.queue_free()
+	var dreams := 0
+	for id in dream_state.stacks:
+		dreams += dream_state.stacks[id]
+	_fact(&"path_length", "drift", "%d of %d" % [drift_director.drifts_started, drift_director.get_total_drifts()])
+	_fact(&"rank", "dreams", str(dreams))
+	var omens := get_tree().get_first_node_in_group(&"omens")
+	if omens != null and omens.get("active") != null:
+		_fact(&"omen", "omen", omens.active.display_name)
+	var seconds := int(run_state.play_time)
+	_fact(&"", "time", "%d:%02d:%02d" % [seconds / 3600, seconds / 60 % 60, seconds % 60])
+	for data in tower_placer.towers:
+		if data.tier == FAMILY_TIER and dream_state.is_unlocked(data.get_id()):
+			var art := BranchEmblem.family(data)
+			if art == null:
+				art = data.texture  # No emblem yet: the base Warden's frame
+			var emblem := TextureRect.new()
+			if art == data.texture and data.texture != null:
+				var frame := AtlasTexture.new()
+				frame.atlas = data.texture
+				frame.region = data.get_frame_rect(0)
+				art = frame
+			emblem.texture = art
+			emblem.custom_minimum_size = Vector2(32, 32)
+			emblem.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			emblem.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			emblem.tooltip_text = data.display_name
+			_families.add_child(emblem)
+
+func _fact(icon_id: StringName, label: String, value: String) -> void:
+	var left := HBoxContainer.new()
+	left.add_theme_constant_override("separation", 6)
+	var art: Texture2D = IconInfo.icon(icon_id) if icon_id != &"" else null
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(16, 16)
+	icon.texture = art
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	left.add_child(icon)
+	var name_label := Label.new()
+	name_label.text = label
+	name_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	left.add_child(name_label)
+	_facts.add_child(left)
+	var value_label := Label.new()
+	value_label.name = "Fact_" + label
+	value_label.text = value
+	UiStyle.number(value_label, 18)
+	_facts.add_child(value_label)
 
 # Opens the pause menu straight on the Codex (the HUD "?" button, a tapped discovery card),
 # optionally on a tab and entry (CodexPanel.open).
