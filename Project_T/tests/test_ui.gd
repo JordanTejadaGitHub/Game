@@ -967,6 +967,29 @@ func _run() -> void:
 	_check(summary.contains("Drift 0") and summary.contains("Families"), "pause shows a run summary")
 	pause.open()
 	_check(paused, "the pause menu pauses")
+	_check(WorldLabel.covers.has(&"pause_menu"), "no world tags over the pause menu (a whole-screen cover)")
+	# One way out (user: "Save and quit and Quit game seem similar, also Abandon run"): Quit… opens the dialog.
+	var menu_texts: Array = pause._menu.find_children("*", "Button", true, false).map(func(b: Button) -> String: return b.text)
+	_check(menu_texts.has("Quit…") and not menu_texts.has("Save and quit") and not menu_texts.has("Quit game") and not menu_texts.has("Abandon run"),
+		"the menu has Quit…, not three ways out (%s)" % [menu_texts])
+	pause.ask_quit()
+	var quit_box: Control = pause.find_child("QuitBox", true, false)
+	_check(pause.is_asking_quit() and quit_box.find_child("QuitToTitle", true, false) != null and quit_box.find_child("QuitToDesktop", true, false) != null,
+		"Quit… asks: Quit to title, Quit to desktop")
+	var body: String = (quit_box.find_child("Body", true, false) as Label).text
+	_check(body.contains("saved"), "it says what's saved (%s)" % body)
+	var esc := InputEventAction.new()
+	esc.action = &"open_menu"
+	esc.pressed = true
+	pause._unhandled_input(esc)
+	_check(pause.visible and not pause.is_asking_quit(), "Esc cancels back to the menu")
+	pause.ask_quit()
+	(quit_box.find_child("AbandonLink", true, false) as Button).pressed.emit()
+	_check((quit_box.find_child("Abandon", true, false) as Control).is_visible_in_tree() and not (quit_box.find_child("QuitToTitle", true, false) as Control).is_visible_in_tree(),
+		"Abandon this run… asks once more")
+	pause.close()
+	_check(not WorldLabel.covers.has(&"pause_menu"), "world tags come back when it closes")
+	pause.open()
 	pause._abandon()
 	await _frames(2)
 	var results: ResultsScreen = main.get_node("%ResultsScreen")

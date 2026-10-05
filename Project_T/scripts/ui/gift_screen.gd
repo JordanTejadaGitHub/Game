@@ -86,6 +86,7 @@ func _init(director: DriftDirector = null, gift_node: HeartwoodGifts = null) -> 
 	gifts = gift_node
 
 func _ready() -> void:
+	WorldLabel.cover_while_visible(self, &"gift_screen")  # No world tags (DPS, hover names) over a full-screen screen
 	name = "GiftScreen"
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

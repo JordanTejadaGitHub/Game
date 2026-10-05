@@ -90,6 +90,7 @@ func _init(director: DriftDirector = null) -> void:
 	drift_director = director
 
 func _ready() -> void:
+	WorldLabel.cover_while_visible(self, &"boss_dossier")  # No world tags (DPS, hover names) over a full-screen screen
 	add_to_group(GROUP)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)  # Offsets too: exactly the screen

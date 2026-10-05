@@ -34,6 +34,7 @@ var arm: ChoiceArm  # Cards ignore input for a moment as the screen appears (cli
 const LONG_PRESS := 0.45
 
 func _ready() -> void:
+	WorldLabel.cover_while_visible(self, &"dream_screen")  # No world tags (DPS, hover names) over a full-screen screen
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var dim := ColorRect.new()

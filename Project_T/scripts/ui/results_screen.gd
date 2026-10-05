@@ -21,6 +21,7 @@ var bank_in_tests := false  # Tests that point HeartwoodMemory.file_path at a te
 var not_banked := false  # Developer run: the breakdown is shown but nothing was saved
 
 func _ready() -> void:
+	WorldLabel.cover_while_visible(self, &"results_screen")  # No world tags (DPS, hover names) over a full-screen screen
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false

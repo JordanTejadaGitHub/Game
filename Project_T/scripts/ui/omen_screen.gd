@@ -35,6 +35,7 @@ var _active_tag := Label.new()
 var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice screens")
 
 func _ready() -> void:
+	WorldLabel.cover_while_visible(self, &"omen_screen")  # No world tags (DPS, hover names) over a full-screen screen
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var dim := ColorRect.new()

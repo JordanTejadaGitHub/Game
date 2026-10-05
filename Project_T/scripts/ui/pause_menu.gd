@@ -1,9 +1,10 @@
 extends Control
 
-# Esc menu during a run (screens_ui.md "Pause"): Resume, Settings, Codex, Save & Quit, Abandon run (confirm;
-# still earns Seeds), Quit game, a Heartwood whispers toggle, and a run summary on the side (drift,
-# Dreams, families, active Omen, time played). Pauses the game while open. Save & Quit saves right
-# away when resting; otherwise the run resumes from its last rest (run_design.md "Mid-run save").
+# Esc menu during a run (screens_ui.md "Pause"): Resume, Settings, Codex and Quit…, a Heartwood hints toggle, and a run
+# summary on the side (drift, Dreams, families, active Omen, time played). Pauses the game while open. Quit… (and the
+# window's close button during a run) opens one dialog: Quit to title, Quit to desktop, Cancel, and "Abandon this run…"
+# behind a second confirm (Seeds still banked); it says what's saved: right now at a rest, else the last rest's save
+# (run_design.md "Mid-run save").
 # Esc still cancels build mode / a selection first. Built in code.
 
 const TITLE_SCENE := "res://scenes/title.tscn"
@@ -27,7 +28,6 @@ var _settings: SettingsPanel
 var codex: CodexPanel  # The Reaction Codex (screens_ui.md "Reactions")
 var _save_button: Button
 var _whispers_toggle := CheckButton.new()
-var _confirm_abandon := ConfirmationDialog.new()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -51,7 +51,7 @@ func _ready() -> void:
 			row.visible = true)
 	center.add_child(codex)
 	# Light pass (UI Asset's second page, user-approved): one panel, two columns. Left: the title, Resume the one
-	# primary (Esc), Settings / Codex / Save and quit, then Abandon run and Quit game as quiet text. Right: "this run"
+	# primary (Esc), Settings / Codex / Quit… (its dialog holds every way out). Right: "this run"
 	# as icon rows, the families' emblems, and the Hints switch at the bottom.
 	row.add_child(_panel)
 	var columns := HBoxContainer.new()
@@ -75,16 +75,10 @@ func _ready() -> void:
 	_add_button("Codex", func() -> void:
 		row.visible = false
 		codex.open())
-	_save_button = _add_button("Save and quit", _save_and_quit)
-	var quiet_row := GridContainer.new()
-	quiet_row.columns = 2
-	_menu.add_child(quiet_row)
-	for pair in [["Abandon run", func() -> void: _confirm_abandon.popup_centered()], ["Quit game", func() -> void: get_tree().quit()]]:
-		var button := _add_button(pair[0], pair[1])
-		_menu.remove_child(button)
-		UiStyle.quiet(button)
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		quiet_row.add_child(button)
+	# One way out (user: "Save and quit and Quit game seem similar, also Abandon run"): Quit… asks where to, says what's
+	# saved, and keeps Abandon a step further in.
+	_save_button = _add_button("Quit…", ask_quit)
+	_save_button.name = "Quit"
 
 	var side := VBoxContainer.new()
 	side.custom_minimum_size = Vector2(240, 0)
@@ -126,11 +120,123 @@ func _ready() -> void:
 	center.add_child(_settings)
 	_settings.set_meta("row", row)
 
-	_confirm_abandon.dialog_text = "Abandon this run? The dream goes dark, but you keep the Seeds you've earned."
-	_confirm_abandon.process_mode = Node.PROCESS_MODE_ALWAYS
-	_confirm_abandon.confirmed.connect(_abandon)
-	add_child(_confirm_abandon)
+	_build_quit_box(center, row)
+	add_to_group(GROUP)
+	WorldLabel.cover_while_visible(self, &"pause_menu")  # No world tags over the menu
 	visible = false
+
+# --- Quit… (roguelite standard: one dialog for every way out) ----------------------------------------------------
+const GROUP := &"pause_menu"
+var _quit_box := PanelContainer.new()
+var _quit_page := VBoxContainer.new()
+var _abandon_page := VBoxContainer.new()
+var _quit_body := Label.new()
+
+func _build_quit_box(center: Control, row: Control) -> void:
+	_quit_box.name = "QuitBox"
+	_quit_box.visible = false
+	_quit_box.custom_minimum_size = Vector2(420, 0)
+	center.add_child(_quit_box)
+	_quit_box.set_meta("row", row)
+	var pages := VBoxContainer.new()
+	_quit_box.add_child(pages)
+	for page in [_quit_page, _abandon_page]:
+		page.add_theme_constant_override("separation", 10)
+		pages.add_child(page)
+	var title := Label.new()
+	title.text = "Leave the dream?"
+	UiStyle.display(title, 28)
+	_quit_page.add_child(title)
+	_quit_body.name = "Body"
+	_quit_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_quit_body.custom_minimum_size.x = 380
+	_quit_body.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	_quit_page.add_child(_quit_body)
+	var to_title := _dialog_button(_quit_page, "Quit to title", _quit_to.bind(false))
+	to_title.name = "QuitToTitle"
+	UiStyle.primary(to_title)
+	_dialog_button(_quit_page, "Quit to desktop", _quit_to.bind(true)).name = "QuitToDesktop"
+	var cancel := _dialog_button(_quit_page, "Cancel", cancel_quit)
+	cancel.name = "Cancel"
+	UiStyle.quiet(cancel)
+	_key_chip_on(cancel, "Esc")
+	var abandon_link := _dialog_button(_quit_page, "Abandon this run…", _show_abandon)
+	abandon_link.name = "AbandonLink"
+	UiStyle.quiet(abandon_link)
+	var sure := Label.new()
+	sure.text = "End this run?"
+	UiStyle.display(sure, 28)
+	_abandon_page.add_child(sure)
+	var seeds := Label.new()
+	seeds.text = "The dream goes dark. The Seeds earned so far are banked."
+	seeds.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	seeds.custom_minimum_size.x = 380
+	seeds.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	_abandon_page.add_child(seeds)
+	var abandon := _dialog_button(_abandon_page, "Abandon", _abandon)
+	abandon.name = "Abandon"
+	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
+		abandon.add_theme_color_override(state, UiStyle.POOR)
+	var keep := _dialog_button(_abandon_page, "Keep playing", cancel_quit)
+	keep.name = "KeepPlaying"
+	UiStyle.primary(keep)
+
+func _dialog_button(page: Control, text: String, action: Callable) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.focus_mode = Control.FOCUS_NONE
+	button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
+	button.pressed.connect(action)
+	page.add_child(button)
+	return button
+
+func _key_chip_on(button: Button, key: String) -> void:
+	var chip := UiStyle.key_chip(key)
+	chip.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	chip.offset_left = -44
+	chip.offset_right = -14
+	button.add_child(chip)
+
+# What leaving keeps: saved right now (at a rest with nothing open), else the last rest's save and what's lost.
+func quit_body() -> String:
+	if run_saver.can_save_now():
+		return "Your run is saved right now. You'll continue from here."
+	var drift := RunSaver.saved_drift()
+	if drift <= 0:
+		return "This run hasn't been saved yet: leaving now loses it."
+	return "Your run is saved at the last rest, before drift %d. You'll continue from there; what happened since is lost." % drift
+
+# Quit… (or the window's close button during a run): the dialog over the paused game.
+func ask_quit() -> void:
+	if not visible:
+		open()
+	(_quit_box.get_meta("row") as Control).visible = false
+	_settings.visible = false
+	codex.visible = false
+	_quit_body.text = quit_body()
+	_quit_page.visible = true
+	_abandon_page.visible = false
+	_quit_box.visible = true
+
+func is_asking_quit() -> bool:
+	return visible and _quit_box.visible
+
+func cancel_quit() -> void:
+	_quit_box.visible = false
+	(_quit_box.get_meta("row") as Control).visible = true
+
+func _show_abandon() -> void:
+	_quit_page.visible = false
+	_abandon_page.visible = true
+
+# Saves first when it can (at a rest with nothing open), then the title or the desktop.
+func _quit_to(desktop: bool) -> void:
+	if run_saver.can_save_now() and run_saver.autosave:
+		run_saver.save_now()
+	if desktop:
+		RunSaver.safe_quit(get_tree())
+	else:
+		get_tree().change_scene_to_file(TITLE_SCENE)
 
 func _add_button(text: String, action: Callable) -> Button:
 	var button := Button.new()
@@ -144,7 +250,9 @@ func _add_button(text: String, action: Callable) -> Button:
 func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed("open_menu"):
 		return
-	if visible:
+	if visible and _quit_box.visible:
+		cancel_quit()  # Esc = Cancel: back to the menu
+	elif visible:
 		close()
 	elif tower_placer.build_mode or tower_seller.selected != null or run_state.is_over:
 		return  # Esc cancels building / deselects first (they handle it)
@@ -155,8 +263,6 @@ func _unhandled_input(event: InputEvent) -> void:
 func open() -> void:
 	_was_paused = game_speed.paused
 	game_speed.set_paused(true)
-	_save_button.text = "Save and quit"
-	_save_button.tooltip_text = "" if run_saver.can_save_now() else "Resumes from the last rest."
 	_whispers_toggle.set_pressed_no_signal(HeartwoodMemory.get_settings().whispers)
 	_summary.text = get_run_summary()
 	_fill_facts()
@@ -230,6 +336,7 @@ func open_codex(tab: StringName = &"", entry: String = "") -> void:
 func close() -> void:
 	visible = false
 	_settings.visible = false
+	_quit_box.visible = false
 	codex.visible = false
 	(_settings.get_meta("row") as Control).visible = true
 	game_speed.set_paused(_was_paused)
@@ -271,8 +378,3 @@ func _abandon() -> void:
 	close()
 	run_state.abandoned = true
 	run_state.end_run(false)
-
-func _save_and_quit() -> void:
-	if run_saver.can_save_now():
-		run_saver.save_now()
-	get_tree().change_scene_to_file(TITLE_SCENE)

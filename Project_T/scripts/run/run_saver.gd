@@ -36,7 +36,13 @@ const QUIT_FRAMES := 3  # Frames between freeing the run and quitting
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		safe_quit(get_tree())
+		# During a run the close button asks first (the pause menu's Quit… dialog: what's saved, title or desktop); a
+		# second close while it's asking, or once the run is over, quits.
+		var menu := get_tree().get_first_node_in_group(&"pause_menu")
+		if menu != null and not run_state.is_over and not menu.is_asking_quit():
+			menu.ask_quit()
+		else:
+			safe_quit(get_tree())
 	elif what == NOTIFICATION_EXIT_TREE:
 		get_tree().auto_accept_quit = true  # Back to the title / Grove: their close is the engine's
 
@@ -84,6 +90,13 @@ static func write_snapshot(text: String, file_name: String, dir: String = SNAPSH
 	for i in range(kept, names.size()):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(dir.path_join(names[i])))
 	return path
+
+# The drift a Continue would start before (the save's drifts_started + 1), or 0 with no save (the quit dialog says it).
+static func saved_drift() -> int:
+	if not has_save():
+		return 0
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(file_path))
+	return int(parsed.get("drifts_started", 0)) + 1 if parsed is Dictionary else 0
 
 static func has_save() -> bool:
 	return FileAccess.file_exists(file_path)

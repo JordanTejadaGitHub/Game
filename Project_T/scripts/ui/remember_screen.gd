@@ -60,6 +60,7 @@ var _offer_line := Label.new()  # "This dream offers 2 of 5 branches, different 
 var _dev_free := CheckButton.new()  # "Dev: unlock free" (dev runs of debug builds)
 
 func _ready() -> void:
+	WorldLabel.cover_while_visible(self, &"remember_screen")  # No world tags (DPS, hover names) over a full-screen screen
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var dim := ColorRect.new()

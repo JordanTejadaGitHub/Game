@@ -49,6 +49,14 @@ static func set_cover(key: StringName, rect: Rect2, on: bool) -> void:
 	else:
 		covers.erase(key)
 
+# A full-screen screen (the pause menu, a choice screen, the results) hides every world label while it shows (user:
+# a "Withered Tree" tag and the DPS tags over the pause menu): a cover over the whole screen, keyed by `key`.
+const WHOLE_SCREEN := Rect2(-1.0e7, -1.0e7, 2.0e7, 2.0e7)
+
+static func cover_while_visible(screen: Control, key: StringName) -> void:
+	screen.visibility_changed.connect(func() -> void: set_cover(key, WHOLE_SCREEN, screen.is_visible_in_tree()))
+	screen.tree_exiting.connect(func() -> void: set_cover(key, WHOLE_SCREEN, false))
+
 # Whether `local_rect` (in `canvas`'s own space) lies under a cover: don't draw it.
 static func covered(canvas: CanvasItem, local_rect: Rect2) -> bool:
 	if covers.is_empty() or not canvas.is_inside_tree():
