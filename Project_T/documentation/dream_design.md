@@ -1646,6 +1646,7 @@ The player builds finer, twistier mazes in the same space.
   - Tower Assets: a 32 px Thornwall sprite.
   - Environment: no change; the path art already handles one-half pinches.
 - **Built:** the card in 817e2146 (Roguelite Code; `DreamState.twig_walls()`, Hedge Maze counts a twig wall as half) and the wall in 527ac43d (Tower Code; Thornwall with `Tower.twig`, one half, saved per wall, 32×40 art).
+- **Stacks with Bramble Verge** (the Heartwood's Gift that halves Thornwall prices): the twig half only keeps cost per length even, so other wall discounts apply on top (3 Dew → 2 with Verge → 1 as a twig; min 1).
 
 ## Strange Dreams: gamble cards (2026-10-05; cards 252–255)
 
