@@ -813,6 +813,12 @@ mid/late sink, not something saved up for by drift 6 (human run 18 banked 1,340 
 as exports for A/B (Tower Code): **branch ×1.5 (120 → 180), final ×1.5 (300 → 450), Ascended ×1.0 (600)**,
 Nurture **30 / 48 / 60 / 90 / 135** (+20% on the first two). The demo gets them too. In f9fd8526 (DreamState exports); **wall-line forms (Honeysuckle…) exempt** (more maze early is the point). Measured: Wardens owned at
 10 / 25, Dew banked per rest, the first-grow drift, act 1 survival (base Wardens now carry more of act 1).
+**Constraint (user):** no across-the-board damage raise to match (that brings saving back); if the late game
+gets too hard, compensate on **final forms only (~+10–15% damage)**. Act 1 has no finals, so an act 1 drop is
+answered on the curve (act 1 health), not on Warden damage.
+**First arms** (4497566a, 30 seeds): old costs 60%, new costs **37%** for the default bot. It plants the same
+Wardens (its room target is drift-based) and **never reaches a branch in act 1** (banks ~40–50 vs a 180 branch).
+The spender arm (plants when it can't afford a growth) is the real test; it's running.
 
 ## Human run 18 (2026-10-04, build 5d8f3f = 7762f0cd; 0 Grove)
 
