@@ -150,6 +150,16 @@ lost 0–20). They're wired into the map (`EnvironmentTiles`), with the lighting
 - **Readability order (value):** dark ground < pale obstacles < **palest path**, and the island rim
   < the ground. The path is pale, moonlit earth and must always be the most readable thing on the
   map. Checked in every act after the colour pass.
+- **Path width: at least half a cell** (user, 2026-10-04, on "make the path half a cell"). The pale
+  path is **one half cell (32 px) of pale earth everywhere**: never thinner, and not broader (the
+  user found the old broad path "too big"). A hairline path
+  (a capture showed a ~¼-cell line) loses the route at thumbnail size and drops nightmares onto dark
+  grass, where they vanish. Nightmares' feet sit on the path's centreline, so their bodies stand on
+  pale earth.
+- **Ground variation** (2026-10-04, environment_assets.md "Ground variation"): 3–5 large, soft,
+  irregular patches per map (deep moss, worn earth, fern beds, one act accent) plus a moss ring
+  under the Heartwood. Each is within one palette step of the ground and clearly darker than the
+  path.
 - **Obstacles:** the **Withered Tree** is cool night bark with a teal lit side and moss flecks (like
   the Grove trunks), dark smoke at its roots, and two knot-holes that sometimes glint like eyes. It's
   drawn **96×128 px**, overhanging its 64 px cell like the Heartwood does; the cell and gameplay
@@ -201,8 +211,14 @@ lost 0–20). They're wired into the map (`EnvironmentTiles`), with the lighting
   every outline redrawn 1 px): *"this is the feel I wanted."* Conditions from the user:
   - **The art must be complete:** no chopped bases or faces at the frame edges (the preview clipped
     some plinths and Dewdrop's head).
-  - **Sprout keeps today's size.** It's the seed every family grows from, so the size jump is part
-    of growing.
+  - **Sprout and Thornwall keep today's size.** Sprout is the seed every family grows from, so the
+    size jump is part of growing; Thornwall is a plain wall (the user: "keep the Thornwall the same
+    size as well"). Their grown forms (Bramble, Honeysuckle and the stone forms) grow like every other branch, which shows the growth.
+  - **Every family's base Warden keeps today's size too** (user, 2026-10-04: *"update the
+    beginning family Wardens to keep the same size as before as well"*): Sporeling, Firefly Jar,
+    Dewdrop, Pebbling, Rootling, Acorn, Bellflower, Nestling, Whirligig and every other family root
+    stay at 64 px (the calm-mode art). **Only branches, finals and Ascended forms are 1.4×**, so
+    growing a Warden visibly makes it bigger.
   - **Nightmares must look like they walk on the path**, not float over it or beside it, next to
     the bigger Wardens.
   - **The footprint stays one cell** (2×2 half cells); only the art grows. Gameplay, pathing and
