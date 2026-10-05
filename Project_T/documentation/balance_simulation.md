@@ -837,6 +837,7 @@ Targets: default ~55%, spender ≤ ~80%, skip ≤ 15–20%; demo 75–85%.
 | 1.5 | 0.08 / 0.10 | 1.20 | 30 / 30% | 67 / 57% | the step stops the spender, costs the default too |
 | 1.5 | 0.10 | 1.15 | 32% (60) | 47% (60) | confirmed on seeds 31–60 |
 | 1.25 | 0.05 / 0.08 | 1.30 / 1.20 | 23 / 33% | 77 / 73% | 1.25 still out of reach in act 1 |
+| 1.25 | 0.05 | 1.20 | 40% | 90% | |
 | **1.0** | **0.08** | **1.20** | **63% (60)** | **70% (60)** | **skip 10%; demo (×1.15) 90% / 85%** |
 
 - **Why the default bot fell:** at the old prices it grew ~5 branches by 24 (first at a median drift 14) and
