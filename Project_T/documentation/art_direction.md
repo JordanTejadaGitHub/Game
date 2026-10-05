@@ -214,6 +214,11 @@ lost 0–20). They're wired into the map (`EnvironmentTiles`), with the lighting
   - **Sprout and Thornwall keep today's size.** Sprout is the seed every family grows from, so the
     size jump is part of growing; Thornwall is a plain wall (the user: "keep the Thornwall the same
     size as well"). Their grown forms (Bramble, Honeysuckle and the stone forms) grow like every other branch, which shows the growth.
+  - **Every family's base Warden keeps today's size too** (user, 2026-10-04: *"update the
+    beginning family Wardens to keep the same size as before as well"*): Sporeling, Firefly Jar,
+    Dewdrop, Pebbling, Rootling, Acorn, Bellflower, Nestling, Whirligig and every other family root
+    stay at 64 px (the calm-mode art). **Only branches, finals and Ascended forms are 1.4×**, so
+    growing a Warden visibly makes it bigger.
   - **Nightmares must look like they walk on the path**, not float over it or beside it, next to
     the bigger Wardens.
   - **The footprint stays one cell** (2×2 half cells); only the art grows. Gameplay, pathing and
