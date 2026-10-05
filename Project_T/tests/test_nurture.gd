@@ -8,15 +8,15 @@ extends SceneTree
 # Focus for the group), the R hotkey and the mid-run save. Run from the project folder:
 #   godot --headless --path . --script res://tests/test_nurture.gd --fixed-fps 60
 
-const RUN_PATH := "user://test_nurture_run.json"
-
 var failures := 0
 
 func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
-	RunSaver.file_path = RUN_PATH
+	# Per-process files (CLAUDE.md): a fixed name collided when two chats ran this test at once (a flaky save check).
+	RunSaver.file_path = "user://test_nurture_run_%d.json" % OS.get_process_id()
+	HeartwoodMemory.file_path = "user://test_nurture_heartwood_%d.json" % OS.get_process_id()  # Not the player's settings
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
