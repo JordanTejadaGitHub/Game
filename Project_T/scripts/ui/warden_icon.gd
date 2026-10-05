@@ -58,3 +58,22 @@ static func visible_region(data: TowerData) -> Rect2:
 			result = Rect2(frame.position + Vector2(used.position), Vector2(used.size))
 	_visible[key] = result
 	return result
+
+# The Warden's icon at its usual size (the bar's slots: never scaled up), its drawn pixels moved to the middle of the
+# canvas and `low` px under it so the plinth sits a little low (UI Asset: tall forms sat high or off to one side). The
+# canvas crop when the drawn art fills it anyway.
+static func make_centred(data: TowerData, low: float = 2.0) -> Texture2D:
+	if data == null or data.texture == null:
+		return null
+	var canvas := region(data)
+	var drawn := visible_region(data)
+	var atlas := AtlasTexture.new()
+	atlas.atlas = data.texture
+	if data.footprint > 1 or drawn.size.x >= canvas.size.x and drawn.size.y >= canvas.size.y:
+		atlas.region = canvas
+		return atlas
+	atlas.region = drawn
+	var spare := canvas.size - drawn.size
+	var offset := Vector2(spare.x / 2.0, minf(spare.y / 2.0 + low, spare.y))
+	atlas.margin = Rect2(offset.floor(), spare)
+	return atlas

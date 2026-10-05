@@ -296,20 +296,9 @@ func _fill_misty(root: TowerData) -> void:
 		look.draw.connect(func() -> void:  # The moonlit disc behind the silhouette (as on the tree), faint
 			UiStyle.draw_moon_disc(look, look.size / 2.0, MISTY_PORTRAIT / 2.0 - 1))
 		look.modulate = Color(1, 1, 1, 0.6)  # multiplier: the mist
-		var emblem := BranchEmblem.texture(form)  # UI Asset's branch emblem when it exists, else the silhouette
-		if emblem != null:
-			var mark := TextureRect.new()
-			mark.texture = emblem
-			mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			mark.size = Vector2(MISTY_EMBLEM, MISTY_EMBLEM)  # 32 px art at 1:1 (crisp; 40 would scale it unevenly)
-			mark.position = Vector2(MISTY_PORTRAIT - MISTY_EMBLEM, MISTY_PORTRAIT - MISTY_EMBLEM) / 2.0
-			mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			look.add_child(mark)
-		else:
-			var portrait := Portrait.new(form, MISTY_PORTRAIT, true)
-			portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			look.add_child(portrait)
+		var portrait := Portrait.new(form, MISTY_PORTRAIT)  # The Warden itself, in the mist (user: "the look of the Warden instead of the icon")
+		portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		look.add_child(portrait)
 		look.pressed.connect(_select.bind(form))
 		item.add_child(look)
 		var words := VBoxContainer.new()
@@ -325,7 +314,11 @@ func _fill_misty(root: TowerData) -> void:
 		call.focus_mode = Control.FOCUS_NONE
 		var problem := dream_state.call_back_problem(form)
 		var free := dream_state.free_calls > 0
-		call.text = "Call in · free" if free else "Call in · %d Dreamlight" % dream_state.call_back_cost(root)
+		call.text = "Call in, free" if free else "Call in  %d" % dream_state.call_back_cost(root)  # The Dreamlight glyph after it (no " · ")
+		if not free:
+			call.icon = IconInfo.icon(&"dreamlight")
+			call.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			call.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		call.disabled = problem != ""
 		call.tooltip_text = (problem[0].to_upper() + problem.substr(1) + ".") if problem != "" \
 			else "Once per family each run. Its final still costs %d." % DreamState.FINAL_DREAMLIGHT
@@ -459,19 +452,24 @@ func _fill_side(data: TowerData) -> void:
 	var kind := HBoxContainer.new()
 	kind.add_theme_constant_override("separation", 6)
 	names.add_child(kind)
+	kind.add_theme_constant_override("separation", 10)  # Two words, no " · " (light pass)
 	var tier := Label.new()
-	tier.text = "%s · %s damage" % [_tier_name(data), IconInfo.damage_type_name(data.line)]  # No icon (user): the damage type in its colour
-	tier.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
+	tier.text = _tier_name(data)
+	tier.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	kind.add_child(tier)
+	var damage_kind := Label.new()
+	damage_kind.text = "%s damage" % IconInfo.damage_type_name(data.line)  # No icon (user): the damage type in its colour
+	damage_kind.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
+	kind.add_child(damage_kind)
 	var what := StatusLinks.make_label(data.description, 15, UiStyle.INK)
 	what.custom_minimum_size = Vector2(SIDE_WIDTH - 30, 0)
 	_side_box.add_child(what)
 	if data.can_attack:
-		var parts: Array[String] = ["%d damage" % data.damage, "%.2f attacks/s" % data.attacks_per_second,
-			"range %.1f" % data.attack_range]
+		var stats: Array = [[&"damage", str(data.damage)], [&"attack_speed", "%.1f/s" % data.attacks_per_second],
+			[&"range", "%.1f" % data.attack_range]]  # One icon row, as the Warden panel (light pass)
 		if data.potency != 1.0:
-			parts.append("potency %d%%" % roundi(data.potency * 100))
-		_line(" · ".join(parts), UiStyle.INK_DIM, 14)
+			stats.append([&"potency", "%d%%" % roundi(data.potency * 100)])
+		_side_box.add_child(_icon_stats(stats))
 	var statuses: Array[String] = []
 	for status in [data.applies_status, data.extra_status]:
 		if status != &"":
@@ -495,6 +493,32 @@ func _fill_side(data: TowerData) -> void:
 		_line(kin, UiStyle.LIVE, 14)
 	_add_combos(data)
 	_add_unlock(data)
+
+# Stats as icons with their values (the Warden panel's row): [[icon id, value], …]; each icon's tip names it.
+func _icon_stats(stats: Array) -> HFlowContainer:
+	var row := HFlowContainer.new()
+	row.name = "Stats"
+	row.add_theme_constant_override("h_separation", 14)
+	for stat in stats:
+		var pair := HBoxContainer.new()
+		pair.add_theme_constant_override("separation", 3)
+		var icon := TextureRect.new()
+		icon.texture = IconInfo.icon(stat[0])
+		icon.custom_minimum_size = Vector2(16, 16)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		pair.add_child(icon)
+		var value := Label.new()
+		value.name = "Value_%s" % stat[0]
+		value.text = stat[1]
+		value.add_theme_font_size_override("font_size", 14)
+		pair.add_child(value)
+		pair.tooltip_text = IconInfo.stat_tooltip(stat[0])
+		pair.mouse_filter = Control.MOUSE_FILTER_PASS
+		row.add_child(pair)
+	return row
 
 func _line(text: String, colour: Color, font_size: int) -> Label:
 	var label := Label.new()
@@ -601,7 +625,11 @@ func _add_call_back(data: TowerData) -> void:
 		CantAfford.apply(button, "Call into this dream", "%d Dreamlight" % cost, IconInfo.format(SHORT_TIP))
 		button.pressed.connect(_refuse_call_back.bind(button, cost))
 		return
-	button.text = "Call into this dream · free (Remembered Path)" if free else "Call into this dream · %d Dreamlight" % cost
+	button.text = "Call into this dream, free (Remembered Path)" if free else "Call into this dream  %d" % cost  # The glyph after it
+	if not free:
+		button.icon = IconInfo.icon(&"dreamlight")
+		button.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	if problem != "":
 		button.disabled = true
 		_line(problem[0].to_upper() + problem.substr(1) + ".", UiStyle.INK_DIM, 13)
@@ -858,7 +886,7 @@ class FormNode extends Button:
 		# (No waystone disc under the portrait: offset below it, it read as a doubled ghost ring: story chat screenshot)
 		UiStyle.draw_moon_disc(self, centre, PORTRAIT / 2.0 - 1)  # The lit backdrop on every node (unlocked ones lost it: story chat)
 		if screen.is_veiled(data):  # Not revealed yet: the disc at ~62% (UI Asset's Remember mock v4)
-			draw_circle(centre, PORTRAIT / 2.0 - 1, Color(Palette.VOID, 0.38))
+			draw_circle(centre, PORTRAIT / 2.0 - 1, Color(Palette.VOID, 0.25))  # ~75%: the shadow still reads as a Warden
 		if screen.selected == data:
 			draw_arc(centre, PORTRAIT / 2.0 + 3, 0.0, TAU, 40, UiStyle.GOLD, 2.0, true)
 		if screen.is_veiled(data):  # Not revealed yet: only its shadow, no name, cost or glow

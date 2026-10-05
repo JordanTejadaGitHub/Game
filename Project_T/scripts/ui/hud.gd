@@ -632,7 +632,7 @@ func show_toast(text: String) -> void:
 
 # First idle frame of the tower's sheet.
 func _tower_icon(data: TowerData) -> Texture2D:
-	return WardenIcon.make(data)  # Big Wardens (the Sapling) cropped to the bottom centre
+	return WardenIcon.make_centred(data)  # Centred by its drawn pixels at its usual size; the Sapling cropped to the bottom centre
 
 # --- Remember (run_design.md "The Remember screen, fleshed out") ----------------------------------
 # Top right beside the Dreamlight counter, always there: opens the Remember screen (DreamState
