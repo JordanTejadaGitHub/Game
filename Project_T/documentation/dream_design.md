@@ -1576,7 +1576,7 @@ cards feel more like damage boosters instead of build enhancers or definers."*
 
 **Decided:**
 1. **At most 1 family card per offer.** A family card is one with a Warden in `requires` /
-   `requires_any`. An Entwined card's guaranteed slot is that slot. The other slots draw from cards
+   `requires_any`. The other slots draw from cards
    that need no Warden, so every offer shows at least two non-family choices.
 2. **At most 1 plain stat card per offer:** Deeper Calm, Quickened Sap, Longer Roots, Bitter Sap,
    Glinting Dew. The core keeps them in the pool, but they no longer fill offers in pairs.
@@ -1602,6 +1602,8 @@ cards feel more like damage boosters instead of build enhancers or definers."*
 Family cards that change how a family plays stay (Root Web, Eddy, Twin Puff, Chorus, Deep Water,
 the combo cards). Balancing Code re-measures family cards per offer and plain stat cards per offer
 after the build.
+
+**Built** in e3826bff (offer caps, 10 cards removed, Spore Cascade needs only Driftspore) and 99d0217e (the six cards in the start pool, Momentum II and Odd One Out II with them; the Grove nodes land in the same merge). There is no Entwined guaranteed slot any more, so the cap has no exception.
 
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 
