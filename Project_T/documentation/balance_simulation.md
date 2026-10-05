@@ -823,7 +823,7 @@ The spender arm (plants when it can't afford a growth) is the real test; it's ru
 Skip on new costs 0%; the demo, default bot 80% → 25%. **Mass-planting base Wardens already dominated act 1 at
 any grow price**; the default bot only looked balanced because its room target capped it at 13 attackers.
 **User decision: copies cost more**: each planted Warden costs **+5% per copy of the same kind** on the map
-(attackers and Sprouts; walls exempt; `copy_cost_step`). A/B queued: the default bot, the spender, skip, and the
+(family base Wardens; walls and Sprouts exempt: Sprouts already escalate +4 per 5 and the opening needs 5 at 12; `TowerPlacer.copy_cost_step`). A/B queued: the default bot, the spender, skip, and the
 spender without the step, on the new grow prices.
 
 ## Human run 18 (2026-10-04, build 5d8f3f = 7762f0cd; 0 Grove)
