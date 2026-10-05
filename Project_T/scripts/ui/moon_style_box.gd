@@ -3,16 +3,13 @@ extends StyleBox
 class_name MoonStyleBox
 
 # The Moonlit Thread panel (ui_style.md "Parts"): no border, a radial dark fog behind the content
-# (darkest in the middle), and the style's signature, a 1 px thread across the top that fades out at
-# both ends with a small hollow diamond at its centre. Dream cards use the FULL thread in their
+# (darkest in the middle), and the style's signature, a 1 px inked thread across the top, parted
+# around the Heartwood mark (a pixel sprout) at its centre. Dream cards use the FULL thread in their
 # rarity colour; Warden bar slots use NONE plus the glowing `underline` when selected.
 # Used by the project theme (UiStyle.make_theme) and by UiStyle's helpers.
 
 enum TopLine { NONE, GOLD, FULL }
 
-const THREAD_INSET := 0.1  # Of the width, at each end (GOLD)
-const DIAMOND_HALF := 5.0  # An 8 px square turned 45°
-const DIAMOND_FILL := Color("05050d")  # Void (Heartwood 32)
 const UNDERLINE_INSET := 14.0
 
 @export var fog_color := Color("05050d"):  # Void (Heartwood 32)
@@ -29,7 +26,7 @@ const UNDERLINE_INSET := 14.0
 	set(v): thread = v; emit_changed()
 @export var thread_color := Color("fcd47c", 0.8):  # Glow
 	set(v): thread_color = v; emit_changed()
-@export var diamond := true:  # GOLD threads only
+@export var diamond := true:  # The Heartwood mark on the thread (the name is from the old diamond)
 	set(v): diamond = v; emit_changed()
 @export var side_edges := false:  # Dream cards: faint 1 px sides
 	set(v): side_edges = v; emit_changed()
@@ -80,32 +77,52 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 		rs.canvas_item_add_line(to_canvas_item, a, b, gold, 2.0)
 	match thread:
 		TopLine.GOLD:
-			draw_thread(to_canvas_item, rect, thread_color, THREAD_INSET, diamond)
+			draw_thread(to_canvas_item, rect, thread_color, INK_GOLD, diamond)
 		TopLine.FULL:
-			draw_thread(to_canvas_item, rect, thread_color, 0.0, false)
+			draw_thread(to_canvas_item, rect, thread_color, INK_RARITY, diamond)  # The mark stays gold
 
-# The thread along `rect`'s top edge: transparent at both ends, full colour in the middle.
-static func draw_thread(ci: RID, rect: Rect2, colour: Color, inset: float, with_diamond: bool) -> void:
+# The light pass (user-approved 2026-10-05, UI Asset's "Moonlit Thread, refined"): an inked thread,
+# fading out unevenly at both ends like ink on paper, parted in the middle around the Heartwood mark.
+# Stops are [fraction of a half, alpha × the colour's alpha]; the left half runs edge → mark, the right
+# mark → edge (mirrored stops from the mock).
+const INK_GOLD := [[[0.0, 0.0], [0.065, 0.18], [0.152, 0.62], [0.207, 0.4], [0.326, 0.88], [1.0, 0.95]],
+	[[0.0, 0.95], [0.652, 0.9], [0.761, 0.55], [0.826, 0.75], [0.935, 0.22], [1.0, 0.0]]]
+const INK_RARITY := [[[0.0, 0.0], [0.087, 0.25], [0.304, 1.0], [1.0, 1.0]],
+	[[0.0, 1.0], [0.696, 1.0], [0.848, 0.4], [1.0, 0.0]]]
+const MARK_GAP := 11.0  # The thread parts this far either side of the mark's centre
+# The Heartwood mark: a two-leaf sprout, 7×4 art px (H = Heartlight, G = Glow, g = Gold), 2 px per art px.
+const MARK := ["HG...GH", ".GG.GG.", "...g...", "...g..."]
+const MARK_INK := {"H": Color("fff4dc"), "G": Color("fcd47c"), "g": Color("e9a83c")}
+const MARK_PX := 2.0
+
+static func draw_thread(ci: RID, rect: Rect2, colour: Color, ink: Array, with_mark: bool) -> void:
 	var y := rect.position.y + 0.5
-	var x0 := rect.position.x + rect.size.x * inset
-	var x1 := rect.end.x - rect.size.x * inset
-	var mid := (x0 + x1) / 2.0
-	var clear := Color(colour, 0.0)
-	var ends := clear if inset > 0.0 else Color(colour, colour.a * 0.3)  # A card's runs edge to edge
-	RenderingServer.canvas_item_add_polyline(ci, PackedVector2Array([Vector2(x0, y), Vector2(mid, y), Vector2(x1, y)]),
-		PackedColorArray([ends, colour, ends]), 1.0, false)
-	if with_diamond:
-		draw_diamond(ci, Vector2(mid, y), Color(colour, 1.0))
+	var mid := rect.get_center().x
+	var gap := MARK_GAP if with_mark else 0.0
+	_ink_segment(ci, Vector2(rect.position.x, y), Vector2(mid - gap, y), colour, ink[0])
+	_ink_segment(ci, Vector2(mid + gap, y), Vector2(rect.end.x, y), colour, ink[1])
+	if with_mark:
+		draw_mark(ci, Vector2(mid, y))
 
-# The small hollow diamond: dark fill, 1 px gold outline.
-static func draw_diamond(ci: RID, centre: Vector2, colour: Color) -> void:
-	var h := DIAMOND_HALF
-	var points := PackedVector2Array([centre + Vector2(0, -h), centre + Vector2(h, 0), centre + Vector2(0, h),
-		centre + Vector2(-h, 0)])
-	RenderingServer.canvas_item_add_polygon(ci, points, PackedColorArray([DIAMOND_FILL]))
-	var outline := points.duplicate()
-	outline.append(points[0])
-	RenderingServer.canvas_item_add_polyline(ci, outline, PackedColorArray([colour]), 1.0, true)
+static func _ink_segment(ci: RID, from: Vector2, to: Vector2, colour: Color, stops: Array) -> void:
+	if to.x - from.x < 2.0:
+		return
+	var points := PackedVector2Array()
+	var colours := PackedColorArray()
+	for stop in stops:
+		points.append(from.lerp(to, float(stop[0])))
+		colours.append(Color(colour, colour.a * float(stop[1])))
+	RenderingServer.canvas_item_add_polyline(ci, points, colours, 1.0, false)
+
+# The Heartwood mark centred on `centre` (drawn as rects: no texture to keep alive).
+static func draw_mark(ci: RID, centre: Vector2) -> void:
+	var origin := (centre - Vector2(MARK[0].length(), MARK.size()) * MARK_PX / 2.0).round()
+	for j in MARK.size():
+		var row: String = MARK[j]
+		for i in row.length():
+			var ink: String = row[i]
+			if MARK_INK.has(ink):
+				RenderingServer.canvas_item_add_rect(ci, Rect2(origin + Vector2(i, j) * MARK_PX, Vector2(MARK_PX, MARK_PX)), MARK_INK[ink])
 
 static func _radial_texture() -> GradientTexture2D:
 	if _radial == null:

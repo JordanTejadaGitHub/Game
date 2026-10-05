@@ -26,11 +26,12 @@ const LIVE := Color("d4ec9c")  # Newleaf: live bonuses, rewards
 const OFF := Color("8c8cac")  # Stone: a bonus that is off right now
 const MOONLIGHT := Color("dce8f4")  # Moonlight: the pale disc under nightmare portraits
 const MOON_MIST := Color("b4b0c8")  # Mist: the disc's outer ring
+const ROOT := Color("241c14")  # Root: dark ink on the warm primary button
 const RARITY := [Color("b4b0c8"), Color("9cc46c"), Color("9cd4fc"), Color("e9a83c")]  # Mist, Sprig, Dewlight, Gold
 const PALETTE_NAMES := {"INK": "Heartlight", "INK_DIM": "Mist", "GOLD": "Glow", "BUTTON_GOLD": "Gold",
 	"GOLD_TEXT": "Heartlight", "WHISPER": "Moonpath", "POOR": "Ember", "FOG": "Void", "CARD_BG": "Night",
 	"BOSS": "Wraithlight", "LIVE": "Newleaf", "OFF": "Stone",
-	"MOONLIGHT": "Moonlight", "MOON_MIST": "Mist"}
+	"MOONLIGHT": "Moonlight", "MOON_MIST": "Mist", "ROOT": "Root"}
 const RARITY_NAMES := ["Mist", "Sprig", "Dewlight", "Gold"]
 const DISABLED_ALPHA := 0.45
 const UNAFFORDABLE_ALPHA := 0.5
@@ -309,9 +310,12 @@ static func card(colour: Color, hover: bool = false) -> MoonStyleBox:
 	return box
 
 # A Warden bar slot: a fog patch, and the glowing gold underline when selected.
+# The light pass (2026-10-05, the user: "calmer, more transparent"): a soft fog patch, lighter than the
+# panels, the map showing through at the rim; selected = the glowing gold underline, no frame.
 static func slot(selected: bool, hover: bool = false) -> MoonStyleBox:
 	var box := fog_patch(4.0, 4.0)
-	box.center_alpha = 0.85 if hover or selected else 0.75
+	box.center_alpha = 0.8 if hover or selected else 0.66
+	box.edge_alpha = 0.12
 	box.underline = selected
 	return box
 
@@ -365,12 +369,18 @@ static func button_box(hover: bool = false) -> StyleBoxFlat:
 # Primary buttons (the panel's main action, Continue, Start): at rest only a solid gold outline on the
 # fog, never a fill (user, 2026-09-30: "still seems highlighted when I'm not hovering"); hovering fills
 # the whole box with the soft highlight, like every button.
-static func primary_box(hover: bool = false) -> StyleBoxFlat:
+# The one warm primary per panel (the light pass, 2026-10-05): a filled Gold button with dark Root text,
+# toned down from the mock (the user: "less bright"): Gold darkened, a faint Glow rim, a soft glow.
+# Hover brightens it to plain Gold; a press darkens it.
+const PRIMARY_FILL := Color("e9a83c")  # Gold
+static func primary_box(hover: bool = false, pressed: bool = false) -> StyleBoxFlat:
 	var box := button_box()
-	box.border_color = GOLD if hover else BUTTON_GOLD
-	box.set_border_width_all(2 if hover else 1)
-	if hover:
-		box.bg_color = Color(FOG, 0.55).blend(HOVER_FILL)
+	box.bg_color = PRIMARY_FILL.darkened(0.36 if pressed else (0.1 if hover else 0.24))
+	box.border_color = Color(GOLD, 0.6 if hover else 0.35)
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(3)
+	box.shadow_color = Color(GOLD, 0.0 if pressed else 0.14)
+	box.shadow_size = 7
 	return box
 
 # Selected vs hovered (screens_ui.md, playtest 2026-09-30: "First" selected and a hovered button looked
@@ -655,6 +665,83 @@ static func _font(control: Control, font: Font, font_size: int, colour: Color) -
 static func primary(button: Button) -> void:
 	button.theme_type_variation = &"PrimaryButton"
 
+# Text-only, for actions that shouldn't compete with the primary (Sell, Close, Details ▸).
+static func quiet(button: Button) -> void:
+	button.theme_type_variation = &"QuietButton"
+	button.custom_minimum_size.y = maxf(button.custom_minimum_size.y, HUD_BUTTON_H)
+
+# One row of a list (the Warden panel's grow options): text-only, left-aligned, 40 px tall.
+const ROW_H := 40.0
+static func row(button: Button) -> void:
+	button.theme_type_variation = &"RowButton"
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.custom_minimum_size.y = maxf(button.custom_minimum_size.y, ROW_H)
+
+# A row of toggle buttons as one outlined group (DriftPanel's Auto / II / 1× / 2× / 3×): thin
+# dividers, the active (pressed) one tinted with Glow text. Call after adding the buttons.
+static func segmented(row: HBoxContainer) -> void:
+	row.add_theme_constant_override("separation", 0)
+	var buttons := row.get_children().filter(func(n: Node) -> bool: return n is Button)
+	for i in buttons.size():
+		var button: Button = buttons[i]
+		var first := i == 0
+		var last := i == buttons.size() - 1
+		for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+			var box := StyleBoxFlat.new()
+			box.bg_color = Color(FOG, 0.55)
+			if state.begins_with("hover"):
+				box.bg_color = box.bg_color.blend(HOVER_FILL)
+			if state.ends_with("pressed"):
+				box.bg_color = box.bg_color.blend(Color(BUTTON_GOLD, 0.12))
+			box.border_color = Color(BUTTON_GOLD, 0.35)
+			box.border_width_top = 1
+			box.border_width_bottom = 1
+			box.border_width_left = 1  # The first one's outer edge, then the dividers
+			box.border_width_right = 1 if last else 0
+			box.corner_radius_top_left = 2 if first else 0
+			box.corner_radius_bottom_left = 2 if first else 0
+			box.corner_radius_top_right = 2 if last else 0
+			box.corner_radius_bottom_right = 2 if last else 0
+			_margins(box, 8.0, 4.0)
+			if state == "disabled":
+				box.border_color.a *= DISABLED_ALPHA
+			button.add_theme_stylebox_override(state, box)
+		button.add_theme_color_override("font_color", INK_DIM)
+		button.add_theme_color_override("font_hover_color", INK)
+		for state in ["font_pressed_color", "font_hover_pressed_color"]:
+			button.add_theme_color_override(state, GOLD)
+
+# A small key chip ("Q", "R", "⏎") for rows and buttons: Mist on a dim outline; inside a primary
+# button it turns to dark Root ink by itself.
+static func key_chip(text: String) -> Label:
+	var chip := Label.new()
+	chip.text = text
+	chip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	chip.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	chip.custom_minimum_size = Vector2(18, 18)
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_theme_font_override("font", body_medium_font())
+	chip.add_theme_font_size_override("font_size", 12)
+	var frame := StyleBoxFlat.new()
+	frame.draw_center = false
+	frame.set_border_width_all(1)
+	frame.set_corner_radius_all(2)
+	_margins(frame, 4.0, 0.0)
+	var paint := func() -> void:
+		var on_primary := false
+		var up := chip.get_parent()
+		while up != null and not on_primary:
+			on_primary = up is Button and (up as Button).theme_type_variation in [&"PrimaryButton", &"HudPrimary"]
+			up = up.get_parent()
+		var ink := ROOT if on_primary else INK_DIM
+		chip.add_theme_color_override("font_color", ink)
+		frame.border_color = Color(ink, 0.45 if on_primary else 0.35)
+		chip.add_theme_stylebox_override("normal", frame)
+	chip.tree_entered.connect(paint)
+	paint.call()
+	return chip
+
 # Gives a Button the card look in `colour` (normal + hover + pressed).
 static func card_button(button: Button, colour: Color) -> void:
 	var normal := card(colour)
@@ -692,14 +779,12 @@ static func make_theme() -> Theme:
 		_button_styles(theme, type, button_box(), hover_box(), selected_box(), hover_box(true))
 	theme.set_type_variation("PrimaryButton", "Button")
 	# The call to action keeps its gold look; hovering fills it, pressing darkens it.
-	var primary_press := primary_box()
-	primary_press.bg_color = Color(FOG, 0.7)
-	primary_press.shadow_size = 0
+	var primary_press := primary_box(false, true)
 	var primary_hover := primary_box(true)
-	# (primary_box(true) already carries the hover fill)
 	_button_styles(theme, "PrimaryButton", primary_box(), primary_hover, primary_press, primary_hover)
-	for state in ["font_color", "font_hover_color", "font_focus_color"]:
-		theme.set_color(state, "PrimaryButton", GOLD_TEXT)
+	for state in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
+		theme.set_color(state, "PrimaryButton", ROOT)  # Dark ink on the warm fill
+	theme.set_color("font_disabled_color", "PrimaryButton", Color(ROOT, 0.6))
 	# Check boxes / switches: no box, just the text (and the toggle's own icon).
 	for type in ["CheckBox", "CheckButton"]:
 		var empty := StyleBoxEmpty.new()
@@ -708,13 +793,10 @@ static func make_theme() -> Theme:
 			theme.set_stylebox(state, type, empty)
 		_font_colours(theme, type)
 
-	# Warden bar slot: the same frame as every HUD button (the bar is the hero, not a lesser row);
-	# selected = the gold border, like any selected control.
+	# Warden bar slot (the light pass, 2026-10-05: "calmer, more transparent"): a soft fog patch, the
+	# glowing gold underline when selected, no frame (UiStyle.slot).
 	theme.set_type_variation("WardenSlot", "Button")
-	var slot_boxes := [button_box(), hover_box(), selected_box(), hover_box(true), disabled_box()]
-	for box: StyleBoxFlat in slot_boxes:
-		_margins(box, 4.0, 4.0)
-		box.bg_color.a = maxf(box.bg_color.a, TIP_ALPHA)  # Solid: the map never shows through a slot (user)
+	var slot_boxes := [slot(false), slot(false, true), slot(true), slot(true, true), slot(false)]
 	for i in 5:
 		theme.set_stylebox(["normal", "hover", "pressed", "hover_pressed", "disabled"][i], "WardenSlot", slot_boxes[i])
 	theme.set_stylebox("focus", "WardenSlot", StyleBoxEmpty.new())
@@ -731,11 +813,48 @@ static func make_theme() -> Theme:
 	theme.set_type_variation("HudPrimary", "Button")
 	_button_styles(theme, "HudPrimary", _compact(primary_box()), _compact(primary_hover), _compact(primary_press),
 		_compact(primary_hover))
-	for state in ["font_color", "font_hover_color", "font_focus_color"]:
-		theme.set_color(state, "HudPrimary", GOLD_TEXT)
+	for state in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
+		theme.set_color(state, "HudPrimary", ROOT)
 	for type in ["HudButton", "HudPrimary"]:
 		theme.set_font("font", type, caps_font())
 		theme.set_font_size("font_size", type, HUD_TEXT_SIZE)
+
+	# Quiet buttons (the light pass): text only, Mist, Heartlight on hover; the padding keeps the hit
+	# area HUD_BUTTON_H tall (platforms.md touch). Sell, Close, Details ▸, Peek at the map.
+	theme.set_type_variation("QuietButton", "Button")
+	var quiet_box := StyleBoxEmpty.new()
+	_margins(quiet_box, 8.0, 14.0)
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		theme.set_stylebox(state, "QuietButton", quiet_box)
+	theme.set_stylebox("focus", "QuietButton", focus_box())
+	theme.set_font("font", "QuietButton", body_font())
+	theme.set_font_size("font_size", "QuietButton", 15)
+	theme.set_color("font_color", "QuietButton", INK_DIM)
+	for state in ["font_hover_color", "font_focus_color", "font_hover_pressed_color"]:
+		theme.set_color(state, "QuietButton", INK)
+	theme.set_color("font_pressed_color", "QuietButton", GOLD)
+	theme.set_color("font_disabled_color", "QuietButton", Color(INK_DIM, DISABLED_ALPHA))
+
+	# Row buttons (the light pass: the Warden panel's grow options): no box, Heartlight text left-aligned,
+	# a faint Night / Gold tint on hover; 40 px tall (the small-button touch minimum, ui_style.md) so a list
+	# of rows stays compact.
+	theme.set_type_variation("RowButton", "Button")
+	var row_idle := StyleBoxEmpty.new()
+	_margins(row_idle, 8.0, 10.0)
+	var row_hover := StyleBoxFlat.new()
+	row_hover.bg_color = Color(CARD_BG, 0.55).blend(Color(BUTTON_GOLD, 0.08))
+	row_hover.set_corner_radius_all(2)
+	_margins(row_hover, 8.0, 10.0)
+	for state in ["normal", "disabled"]:
+		theme.set_stylebox(state, "RowButton", row_idle)
+	for state in ["hover", "pressed", "hover_pressed"]:
+		theme.set_stylebox(state, "RowButton", row_hover)
+	theme.set_stylebox("focus", "RowButton", focus_box())
+	theme.set_font("font", "RowButton", body_font())
+	theme.set_font_size("font_size", "RowButton", 16)
+	for state in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
+		theme.set_color(state, "RowButton", INK)
+	theme.set_color("font_disabled_color", "RowButton", Color(INK, DISABLED_ALPHA))
 
 	# Tabs (the settings panel).
 	var tab_selected := StyleBoxFlat.new()

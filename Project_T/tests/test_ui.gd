@@ -80,15 +80,16 @@ func _run() -> void:
 	main.get_node("HUD")._unhandled_input(v)
 	_check(not BuffLens.on and listener.get("calls") == [true, false], "and off again")
 	listener.queue_free()
-	# Selected vs hovered: no button rests filled; the primary look at rest is only its gold border.
+	# Selected vs hovered: plain buttons rest unfilled. The one warm primary per panel is filled (the
+	# light pass, user-approved 2026-10-05, toned down: "less bright"), and hover brightens it.
 	var theme := ThemeDB.get_project_theme()
 	var plain_rest := theme.get_stylebox("normal", "Button") as StyleBoxFlat
 	var primary_rest := theme.get_stylebox("normal", "PrimaryButton") as StyleBoxFlat
 	var primary_hover := theme.get_stylebox("hover", "PrimaryButton") as StyleBoxFlat
 	var focus := theme.get_stylebox("focus", "Button") as StyleBoxFlat
-	_check(primary_rest.bg_color == plain_rest.bg_color and primary_rest.shadow_size == 0
-		and primary_hover.bg_color != primary_rest.bg_color and not focus.draw_center,
-		"primary buttons rest unfilled (gold border only); hover fills; focus is an outline")
+	_check(plain_rest.bg_color.a < 0.7 and primary_rest.bg_color.a > 0.9 and primary_rest.bg_color != plain_rest.bg_color
+		and primary_hover.bg_color.v > primary_rest.bg_color.v and not focus.draw_center,
+		"plain buttons rest unfilled; the primary is a warm fill that brightens on hover; focus is an outline")
 	# Seedling Gift: a seed badge with the count on the Sprout button, hidden at 0.
 	var hud_node = main.get_node("HUD")
 	_check(hud_node._seed_badge != null and not hud_node._seed_badge.visible, "no seed badge without free Sprouts")
@@ -302,9 +303,14 @@ func _run() -> void:
 	root.content_scale_factor = scale_was[3]
 	root.size = scale_was[4]
 	await _frames(2)
-	# The slots are solid (user: the map showed through them).
-	var slot_box := (bar.get_child(0) as Button).get_theme_stylebox("normal") as StyleBoxFlat
-	_check(slot_box != null and slot_box.bg_color.a >= 0.9, "Warden slots are solid (fill alpha %.2f)" % (slot_box.bg_color.a if slot_box else 0.0))
+	# The slots are the light pass's calm fog patch (2026-10-05, the user: "calmer, more transparent", over
+	# the older "solid" request): a MoonStyleBox, dark in the middle so the sprite and cost read, lighter at
+	# the rim; selected = the gold underline.
+	var slot_button := bar.get_child(0) as Button
+	var slot_box := slot_button.get_theme_stylebox("normal") as MoonStyleBox
+	var slot_selected := slot_button.get_theme_stylebox("pressed") as MoonStyleBox
+	_check(slot_box != null and slot_box.center_alpha >= 0.6 and slot_box.edge_alpha < 0.3 and slot_selected != null
+		and slot_selected.underline, "Warden slots are a calm fog patch, underlined when selected")
 	bar_dreams.unlock_everything = was_everything
 	bar_dreams.unlocks_changed.emit()
 	await _frames(2)

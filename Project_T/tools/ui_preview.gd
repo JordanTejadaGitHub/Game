@@ -131,6 +131,49 @@ func _sheet() -> Control:
 		UiStyle.card_button(card, UiStyle.rarity_color(rarity))
 		card.text = UpgradeData.rarity_name(rarity)
 		cards.add_child(card)
+	# The light pass (2026-10-05): primary + key chip, quiet, rows, the segmented speed row, slots.
+	var light := HBoxContainer.new()
+	light.add_theme_constant_override("separation", 14)
+	box.add_child(light)
+	var nurture := Button.new()
+	nurture.text = "Nurture to rank I  "
+	nurture.custom_minimum_size = Vector2(200, 44)
+	UiStyle.primary(nurture)
+	light.add_child(nurture)
+	light.add_child(UiStyle.key_chip("Q"))  # A key chip off a primary (Mist)
+	var sell := Button.new()
+	sell.text = "Sell +25"
+	UiStyle.quiet(sell)
+	light.add_child(sell)
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 0)
+	for name in ["Chime Stone · 180 Dew", "Dreamcatcher · 180 Dew"]:
+		var r := Button.new()
+		r.text = name
+		r.custom_minimum_size.x = 220
+		UiStyle.row(r)
+		rows.add_child(r)
+	light.add_child(rows)
+	var speeds := HBoxContainer.new()
+	for t in ["Auto", "II", "1×", "2×", "3×"]:
+		var b := Button.new()
+		b.text = t
+		b.toggle_mode = true
+		b.button_pressed = t in ["Auto", "1×"]
+		b.custom_minimum_size = Vector2(46, 40)
+		speeds.add_child(b)
+	light.add_child(speeds)
+	UiStyle.segmented(speeds)
+	var slots := HBoxContainer.new()
+	for i in 3:
+		var s := Button.new()
+		s.theme_type_variation = &"WardenSlot"
+		s.toggle_mode = true
+		s.button_pressed = i == 1
+		s.text = str([12, 3, 25][i])
+		s.custom_minimum_size = Vector2(56, 70)
+		slots.add_child(s)
+	light.add_child(slots)
 	# Feeling the cards (dream_design.md): the impact lines, a credit line, the toast and a bloom.
 	var impact := Label.new()
 	impact.text = "On your board · +22% damage on 7 Wardens"
