@@ -81,9 +81,9 @@ func _run() -> void:
 	await process_frame
 	_check(dreams.is_unlocked(final_form.get_id()) and dreams.dreamlight == 0 and run_state.dew == dew,
 		"unlocking spends its Dreamlight (not Dew) and unlocks the final form")
-	var grow := _button(panel, "Grow into " + final_name)
+	var grow := _button(panel, final_name + " · ")  # Light pass: the form once, under "Grow into"
 	_check(grow != null and "Dew" in grow.text and _button(panel, "Unlock " + final_name) == null,
-		"then the same slot reads Grow into for Dew, no Unlock (%s)" % (grow.text if grow else "none"))
+		"then the same slot reads the form for Dew, no Unlock (%s)" % (grow.text if grow else "none"))
 
 	print("dreamlight panel test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)

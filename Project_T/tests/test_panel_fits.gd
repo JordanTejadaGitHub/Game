@@ -47,9 +47,9 @@ func _run() -> void:
 			await process_frame
 		var view: Rect2 = panel.get_viewport().get_visible_rect()
 		var buttons: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool:
-			return b.is_visible_in_tree() and (b.text.begins_with("Grow") or b.text.begins_with("Nurture")
+			return b.is_visible_in_tree() and (b.has_meta(&"grow_form") or b.text.begins_with("Nurture")
 				or b.text.begins_with("Sell") or b.text == "Close"))
-		_check(buttons.any(func(b: Button) -> bool: return b.text.begins_with("Grow")) and buttons.any(func(b: Button) -> bool: return b.text.begins_with("Sell")),
+		_check(buttons.any(func(b: Button) -> bool: return b.has_meta(&"grow_form")) and buttons.any(func(b: Button) -> bool: return b.text.begins_with("Sell")),
 			"%s: Grow and Sell buttons are there (%s)" % [screen, buttons.map(func(b: Button) -> String: return b.text)])
 		for b in buttons:
 			var rect: Rect2 = b.get_global_rect()

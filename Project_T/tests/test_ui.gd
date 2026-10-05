@@ -42,6 +42,23 @@ func _run() -> void:
 		strip._stack()
 	else:
 		_check(false, "the Omen line and the Coming strip exist")
+	# The Coming strip (user: "missing upcoming enemies in the wave"): shown and filled at a rest, and in a block's last
+	# drift too (the next drift, "After the rest"), so it never silently vanishes.
+	if strip != null:
+		strip._clock = 0.0
+		strip._process(0.0)
+		_check(strip.visible and strip.items().size() > 0, "the Coming strip shows the next block's nightmares at a rest (%d)" % strip.items().size())
+		var started_was := director.drifts_started
+		director.drifts_started = director.drifts_per_block  # The block's last drift walking
+		director.resting = false
+		strip._clock = 0.0
+		strip._process(0.0)
+		_check(strip.visible and strip.compact and strip.items().size() > 0 and strip._caption.text == "After the rest",
+			"…and in a block's last drift, the next drift's (%s, %d)" % [strip._caption.text, strip.items().size()])
+		director.drifts_started = started_was
+		director.resting = true
+		strip._clock = 0.0
+		strip._process(0.0)
 
 	# --- HUD layout (screens_ui.md "The run HUD", principles 5 and 6) ---
 	var dreams: DreamState = main.get_node("%DreamState")
@@ -96,6 +113,19 @@ func _run() -> void:
 	run_state.add_sprout_charges(2)
 	_check(hud_node._seed_badge.visible, "free Sprouts show a seed badge on the Sprout button")
 	run_state.add_sprout_charges(-2)
+	# Two Bellflowers (many grow rows) for the open-panel checks below: the Warden panel (one selected, then the
+	# group of two) sits bottom-left and never overlaps the centred bar or DriftPanel (user: "fit the Warden panel
+	# in the bottom left").
+	var panel_placer: TowerPlacer = main.get_node("%TowerPlacer")
+	var panel_seller: TowerSeller = main.get_node("%TowerSeller")
+	var panel_towers: Array = []
+	run_state.dew = 5000
+	for k in 2:
+		var panel_cell := _free_cell(main.get_node("%MapGenerator"))
+		panel_placer.select_tower(load("res://resource/tower/bellflower.tres"))
+		if panel_placer._try_build(panel_cell):
+			panel_towers.append(panel_seller.get_tower_at(panel_cell))
+	panel_placer.set_build_mode(false)
 	# Real windows, then the UI scale cases (user screenshots: 2560x1440 at the largest UI size = 1280x720
 	# virtual, and at 40%): [window, UI share (0 = no stretch)]. `screen` is the virtual size the HUD lays out in.
 	var layout_was := [root.content_scale_mode, root.content_scale_size, root.content_scale_aspect, root.content_scale_factor]
@@ -136,6 +166,25 @@ func _run() -> void:
 		for name in ["WardenPanel", "DriftPanel", "DriftBanner"]:
 			var other := (main.get_node("HUD/" + name) as Control).get_global_rect()
 			_check(not bar_rect.intersects(other), "the Warden bar doesn't overlap %s at %s (%s vs %s)" % [name, screen, bar_rect, other])
+		for picked in [panel_towers.slice(0, 1), panel_towers]:
+			if picked.is_empty():
+				continue
+			panel_seller.set_selection(picked)
+			await _frames(3)
+			var warden_panel := main.get_node("HUD/WardenPanel") as Control
+			var panel_rect := warden_panel.get_global_rect()
+			var drift_rect := (main.get_node("HUD/DriftPanel") as Control).get_global_rect()
+			_check(warden_panel.visible and not panel_rect.intersects(bar_rect) and not panel_rect.intersects(drift_rect)
+				and panel_rect.position.x <= 32.0 and screen.y - panel_rect.end.y <= 32.0 and panel_rect.position.y >= 0.0,
+				"the open Warden panel (%d selected) sits bottom-left, clear of the bar and DriftPanel at %s (%s; bar %s, drift %s)" % [
+				picked.size(), screen, panel_rect, bar_rect, drift_rect])
+			# Light pass size (story chat 2026-10-05: "Warden panel is too large"): 280 wide, within 45% of the height.
+			var panel_script = warden_panel.get_script()  # Untyped: its constants
+			_check(panel_rect.size.x <= panel_script.PANEL_WIDTH + 1.0 and panel_rect.size.y <= screen.y * panel_script.MAX_SHARE + 1.0,
+				"the Warden panel (%d selected) is at most %d wide and %d%% of the height at %s (%s)" % [picked.size(),
+				panel_script.PANEL_WIDTH, roundi(panel_script.MAX_SHARE * 100), screen, panel_rect.size])
+		panel_seller.set_selection([])
+		await _frames(1)
 		# A minimised choice's "Back to …" button never covers the banner, the Coming strip or the bar.
 		var peek_screen := Control.new()
 		peek_screen.set_anchors_preset(Control.PRESET_FULL_RECT)

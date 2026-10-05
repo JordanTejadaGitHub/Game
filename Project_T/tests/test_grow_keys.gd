@@ -92,7 +92,7 @@ func _run() -> void:
 	# Renamed (user: "rename Grow to Unlock if they haven't unlocked it yet"): locked slots read "Unlock X",
 	# the unlocked one "Grow into X"; the onboarding pulse (Main's GrowHints) only touches the Grow ones.
 	var slots: Array = panel._buttons.get_children().filter(func(b) -> bool: return b is Button and not b.is_queued_for_deletion() and b.has_meta(&"grow_index"))
-	_check(slots.filter(func(b: Button) -> bool: return b.text.begins_with("Grow into")).size() == 1
+	_check(slots.filter(func(b: Button) -> bool: return b.has_meta(&"grow_form")).size() == 1  # Light pass: a form row, under "Grow into"
 		and slots.filter(func(b: Button) -> bool: return b.text.begins_with("Unlock ") or b.text.begins_with(RememberScreen.UNKNOWN_NAME)).size() == slots.size() - 1,
 		"one Grow into, the locked ones Unlock / ??? (%s)" % [slots.map(func(b: Button) -> String: return b.text)])
 	_check(panel.pulse(&"grow") == 1, "pulse(&\"grow\") pulses only the Grow button")
@@ -103,9 +103,10 @@ func _run() -> void:
 	seller.select(null)
 	seller.select(spore)
 	await process_frame
-	var badges: Array = panel.find_children("*", "Button", true, false).map(func(b: Button) -> String: return b.text)
-	_check(badges.any(func(t: String) -> bool: return t.begins_with("Grow into") and t.ends_with("(Q)"))
-		and badges.any(func(t: String) -> bool: return t.begins_with("Grow into") and t.ends_with("(E)")),
+	var grow_rows: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.has_meta(&"grow_form"))
+	var badges: Array = grow_rows.map(func(b: Button) -> String: return b.text)
+	_check(badges.any(func(t: String) -> bool: return t.ends_with("(Q)"))
+		and badges.any(func(t: String) -> bool: return t.ends_with("(E)")),
 		"the Grow buttons show Q and E (%s)" % [badges])
 	var held := []
 	seller.grow_option_held.connect(func(i: int, on: bool) -> void: held.append([i, on]))
@@ -141,7 +142,7 @@ func _run() -> void:
 		var into: TowerData = sprout_options[index][0]
 		var key_name := TowerSeller.key_name(TowerSeller.GROW_OPTION_ACTIONS[index])
 		var named: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool:
-			return b.text.begins_with("Grow into %s" % into.display_name) and b.text.ends_with("(%s)" % key_name))
+			return b.text.begins_with("%s · " % into.display_name) and b.text.ends_with("(%s)" % key_name))
 		_check(sprout_options.size() >= 2 and named.size() == 1, "the %s button names %s (%d options)" % [key_name, into.display_name, sprout_options.size()])
 		# A Sprout's family Wardens preview too (user: "it helps decide which Warden to grow into, if the range fits").
 		if named.size() == 1:
@@ -220,7 +221,7 @@ func _run() -> void:
 	var grow_button: Button = panel._buttons.get_children().filter(func(b) -> bool: return b is Button and b.get_meta(&"grow_index", -1) == 0).front()
 	var first_form: TowerData = Tower.grow_options(dreams, poor.tower_data)[0][0]
 	var want: int = poor.get_grow_cost(first_form).total
-	_check(grow_button.text == "Grow into %s · %s Dew (Q)" % [first_form.display_name, BossDossier.thousands(want)]
+	_check(grow_button.text == "%s · %s Dew (Q)" % [first_form.display_name, BossDossier.thousands(want)]
 		and grow_button.get_meta(&"short") and grow_button.has_node("Short"), "a short Grow shows its cost (%s)" % grow_button.text)
 	var nurture_button: Button = panel._buttons.get_children().filter(func(b) -> bool: return b is Button and b.text.begins_with("Nurture")).front()
 	_check(nurture_button.text.ends_with("· %d Dew (R)" % poor.get_nurture_price()) and nurture_button.get_meta(&"short"),
@@ -229,7 +230,7 @@ func _run() -> void:
 	run_state.dew = want
 	run_state.dew_changed.emit(want)
 	_check(not grow_button.get_meta(&"short") and not grow_button.has_node("Short") and grow_button.text.ends_with("%s Dew (Q)" % BossDossier.thousands(want))
-		and grow_button.theme_type_variation == &"PrimaryButton", "affordable: the normal look at once (%s)" % grow_button.text)
+		and grow_button.theme_type_variation == &"RowButton", "affordable: the normal look at once (a row: Nurture is the primary) (%s)" % grow_button.text)
 	# G short of Dew: nothing grows, the refusal plays.
 	run_state.dew = 1
 	run_state.dew_changed.emit(1)

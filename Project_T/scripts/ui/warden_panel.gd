@@ -34,9 +34,19 @@ var _buttons := VBoxContainer.new()
 var _scroll := ScrollContainer.new()  # Everything between the header and the footer, capped (_fit_height)
 var _content: VBoxContainer
 var _footer := HBoxContainer.new()  # Sell and Close: always visible
-var _buffs_open := false  # Buffs: folded to the Total line until "Details"
+var _buffs_open := false  # Details open: Buffs, "This run", Kinship, combos, Dreams on it (else folded away)
+static var details_choice := false  # Details open or closed: remembered for the session (story chat 2026-10-05)
+var _details := VBoxContainer.new()  # Behind the footer's Details toggle (light pass)
+var _notes := Label.new()  # The header's own notes ("A wall: no attack."): always shown
+var _extra := VBoxContainer.new()  # In Details: combos, Kindred, the rest of the description, Dreams on it
+var _more_open := false  # Grow rows past MAX_ROWS: behind "+N more" until pressed
+const PANEL_WIDTH := 280.0  # Light pass: bottom-left beside the centred Warden bar, never into it at 1280 × 800
+const MAX_ROWS := 3  # Grow / unlock rows shown before "+N more" (2 on a short screen: _row_limit)
+const SHORT_SCREEN := 900.0  # Below this height (1280 × 800 and 720) the grow list shows 2 lines: the header keeps its room
+const SCROLL_BAR := 8.0  # The info part's scroll bar takes this much width when it shows
+var _built_limit := MAX_ROWS  # The row limit the panel was last built with (a resize past SHORT_SCREEN rebuilds)
 const LOCKED_FORM_TIP := WardenHeaderView.LOCKED_FORM_TIP  # A locked form's Grow tooltip
-const MAX_SHARE := 0.55  # The panel never takes more of the screen's height than this
+const MAX_SHARE := 0.45  # The panel never takes more of the screen's height than this
 const TOP_CLEAR := 150.0  # Keeps clear of the Dreams row and the top-right buttons
 const BOTTOM_MARGIN := 16.0  # The panel's offset from the bottom edge
 const MIN_INFO := 80.0  # The info part never squeezes below this (it scrolls)
@@ -48,20 +58,29 @@ var _confirm_grow: TowerData = null  # Touch: the Grow tapped once (previewing; 
 var _touch := false
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(300, 0)
+	custom_minimum_size = Vector2(PANEL_WIDTH, 0)
+	offset_right = offset_left + PANEL_WIDTH  # The scene had it 300 wide
+	# The fog panel's inner margin one step down (story chat 2026-10-05: "Warden panel is too large").
+	var frame := get_theme_stylebox("panel").duplicate() as StyleBox
+	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+		frame.set_content_margin(side, maxf(frame.get_margin(side) - 4.0, 6.0))
+	add_theme_stylebox_override("panel", frame)
+	var inner := PANEL_WIDTH - frame.get_margin(SIDE_LEFT) - frame.get_margin(SIDE_RIGHT) - SCROLL_BAR  # Room for the info part's scroll bar
+	_buffs_open = details_choice
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
+	box.add_theme_constant_override("separation", 4)
 	add_child(box)
-	# The header (portrait + name, damage type, description, stats, Dreams on it) is the shared
-	# WardenHeaderView, also on the Warden bar's hover card and the Codex, so they never disagree.
+	# The header (portrait + name, damage type, description, stats) is the shared WardenHeaderView, also on the
+	# Warden bar's hover card and the Codex, so they never disagree; here in its compact form.
 	_header.growth.visible = false
+	_header.set_compact(inner)
 	# screens_ui.md "The Warden panel never fills the screen": the info part (header, Buffs, notes) scrolls
 	# inside a cap; the action buttons (Grow, Nurture, Targeting ...) and Sell / Close stay below it, always on screen.
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(_scroll)
 	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 6)
+	content.add_theme_constant_override("separation", 4)
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(content)
 	_content = content
@@ -69,19 +88,32 @@ func _ready() -> void:
 	_ranks_row.name = "RankPicks"
 	_ranks_row.add_theme_constant_override("h_separation", 8)
 	content.add_child(_ranks_row)
+	_notes.name = "Notes"
+	_notes.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_notes.custom_minimum_size = Vector2(inner, 0)
+	_notes.add_theme_font_size_override("font_size", 15)
+	_notes.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	content.add_child(_notes)
+	content.add_child(_groups)
+	# Details (light pass): "This run", Kinship, combos, Buffs, Dreams on it, the rest of the description.
+	_details.name = "Details"
+	_details.add_theme_constant_override("separation", 4)
+	content.add_child(_details)
+	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_body.custom_minimum_size = Vector2(inner, 0)
+	_details.add_child(_body)
+	_extra.add_theme_constant_override("separation", 2)
+	_details.add_child(_extra)
 	_buffs.add_theme_constant_override("separation", 1)
-	content.add_child(_buffs)
+	_details.add_child(_buffs)
 	_map_note.name = "MapNote"
 	_map_note.visible = false
 	_map_note.add_theme_font_size_override("font_size", 14)
 	_map_note.add_theme_color_override("font_color", UiStyle.INK_DIM)
-	content.add_child(_map_note)
-	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_body.custom_minimum_size = Vector2(280, 0)
-	content.add_child(_body)
-	content.add_child(_groups)
+	_details.add_child(_map_note)
+	_buttons.add_theme_constant_override("separation", 0)  # Rows: 48 px each, the hit areas touch
 	box.add_child(_buttons)  # Actions: never scrolled away
-	_footer.add_theme_constant_override("separation", 6)
+	_footer.add_theme_constant_override("separation", 0)
 	box.add_child(_footer)
 	get_viewport().size_changed.connect(_fit_height)
 	visible = false
@@ -111,6 +143,7 @@ func _ready() -> void:
 	tower_seller.grow_refused.connect(_on_grow_refused)
 	tower_seller.selection_changed.connect(func(_t: Array[Tower]) -> void:
 		_confirm_grow = null
+		_more_open = false
 		_choosing = false)
 
 # TowerSeller emits tower_selected right before selection_changed, which refreshes: refreshing here
@@ -126,6 +159,11 @@ func _refresh() -> void:
 	_shown = _selection_state()
 	for child in _groups.get_children():
 		child.queue_free()
+	for child in _extra.get_children():
+		_extra.remove_child(child)
+		child.queue_free()
+	_notes.text = ""
+	_notes.visible = false
 	tower_placer.hide_catch_preview()
 	tower_placer.hide_grow_preview()
 	if tower_seller.selection.size() > 1:
@@ -137,6 +175,7 @@ func _refresh() -> void:
 		_fill_buffs(null)
 		_title.tooltip_text = ""
 		_refresh_group()
+		_show_details()
 		return
 	if not is_instance_valid(_tower) or _tower.is_queued_for_deletion():
 		_tower = null
@@ -159,6 +198,11 @@ func _refresh() -> void:
 	_title.mouse_filter = Control.MOUSE_FILTER_PASS if _title.tooltip_text != "" else Control.MOUSE_FILTER_IGNORE
 	if data.is_unique:
 		lines.append("A freed memory: one per run, can't grow.")
+	_notes.text = "\n".join(lines)  # The header's own notes stay in view; the rest goes behind Details
+	_notes.visible = not lines.is_empty()
+	lines.clear()
+	if _header.full_description != "":
+		_extra.add_child(StatusLinks.make_label(_header.full_description, 15))
 	# Combat feedback (screens_ui.md): what this Warden has done, and what it combos with.
 	var log := DamageLog.instance
 	if log != null and data.can_attack:
@@ -175,7 +219,7 @@ func _refresh() -> void:
 		if id != "" and not combo_ids.has(id):
 			combo_ids.append(id)
 	if not combo_ids.is_empty():
-		_stats.add_child(StatusLinks.make_label("Combos with: " + ", ".join(combo_ids.map(func(id: String) -> String:
+		_extra.add_child(StatusLinks.make_label("Combos with: " + ", ".join(combo_ids.map(func(id: String) -> String:
 			return "{combo:%s}" % id)), 15))
 	elif not links.is_empty():
 		lines.append("Combos with: " + ", ".join(links.map(func(l: Array) -> String: return l[1])))
@@ -188,7 +232,7 @@ func _refresh() -> void:
 			lines.append(kin_line)  # Only with kin (screens_ui.md: no "No kin. A … would form …" line)
 		var family := kin.family_bonus(data.line)
 		if family > 0.0:
-			_stats.add_child(_kindred_row(data.line, family))  # The family icon + "Kindred +10%"
+			_extra.add_child(_kindred_row(data.line, family))  # The family icon + "Kindred +10%"
 	var support := SupportLog.find(_tower)
 	var support_line := support.get_panel_line(_tower) if support else ""
 	if support_line != "":
@@ -199,6 +243,9 @@ func _refresh() -> void:
 		if crossroads > 0.0:
 			lines.append("Crossroads: +%d%%" % roundi(crossroads * 100))
 	_body.text = "\n".join(lines)
+	_body.visible = not lines.is_empty()
+	_extra.add_child(DreamBonusView.make_rows(_tower))  # "Dreams on this Warden" (the compact header leaves them out)
+	_show_details()
 
 	for child in _buttons.get_children() + _footer.get_children():
 		child.queue_free()
@@ -207,6 +254,8 @@ func _refresh() -> void:
 		_add_target_switch([_tower])
 	if data.has_bird_toggle:
 		var birds := _add_button("Birds: %s" % ("all on the strongest" if _tower.focus_strongest else "spread out"))
+		_buttons.remove_child(birds)
+		_extra.add_child(birds)  # In Details, beside Targeting
 		birds.tooltip_text = "Spread out, or all on the strongest."
 		birds.pressed.connect(func() -> void:
 			_tower.focus_strongest = not _tower.focus_strongest
@@ -214,11 +263,15 @@ func _refresh() -> void:
 	var options := Tower.grow_options(dream_state, data)
 	if options.is_empty() and data.line == "sprout":
 		_add_button(Tower.NO_FAMILY_YET).disabled = true  # No family picked yet
+	# Light pass: one primary, the best next step: Nurture when it can rank up, else the first form it can afford.
+	var nurture_primary := _tower.can_nurture() and not _choosing \
+		and not (dream_state.has_method("needs_eldest_confirm") and dream_state.needs_eldest_confirm(_tower))
+	var grow_primary := not nurture_primary and not _choosing
+	_grow_heading(options.size())
 	for index in options.size():
 		var option: Array = options[index]
 		var next: TowerData = option[0]
-		var button := _add_button("")
-		UiStyle.primary(button)  # Grow is the panel's main action (ui_style.md)
+		var button := _grow_row(index, options.size())
 		_grow_key(button, index)
 		if option[1]:
 			var grow := _tower.get_grow_cost(next)  # Ranked Wardens also pay the rank difference
@@ -227,17 +280,21 @@ func _refresh() -> void:
 			button.tooltip_text = tower_placer.grow_changes(_tower, next) + "\n\n" + IconInfo.format(next.description)  # {spored}-style tokens as words
 			if grow.ranks > 0:
 				button.tooltip_text += "\n\n%d Dew + %d for its rank %s." % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
-			var label := "Grow" if _confirm_grow == next else "Grow into %s" % next.display_name  # Touch: the second tap grows
+			# The row says the form once, under the "Grow into" heading (light pass); touch: the second tap grows.
+			var label := "Grow %s" % next.display_name if _confirm_grow == next else next.display_name
+			button.set_meta(&"grow_form", next)  # A form it can grow into now (pulse, tests)
 			var awake := tower_placer.ascended_blocker(next)
 			if awake != "":
-				button.text = "Grow into %s · %s%s" % [next.display_name, awake, button.get_meta(&"key", "")]  # One per family
+				button.text = "%s · %s%s" % [next.display_name, awake, button.get_meta(&"key", "")]  # One per family
 				button.disabled = true
 			elif next.footprint > _tower.get_footprint() and tower_placer.get_grow_squares(_tower, next).is_empty():
 				# A 2×2 form needs three free cells (or Thornwalls) beside it, and the path must stay open.
-				button.text = "Grow into %s · Needs 3 free cells beside it%s" % [next.display_name, button.get_meta(&"key", "")]
+				button.text = "%s · Needs 3 free cells beside it%s" % [next.display_name, button.get_meta(&"key", "")]
 				button.disabled = true
 			else:
-				_priced(button, label, "%s Dew" % BossDossier.thousands(cost), cost, &"dew", true)  # Short: dim, the cost in POOR; a press refuses
+				var primary := grow_primary and run_state.can_afford(cost)
+				grow_primary = grow_primary and not primary  # Only the first affordable one
+				_priced(button, label, "%s Dew" % BossDossier.thousands(cost), cost, &"dew", primary)  # Short: dim, the cost in POOR; a press refuses
 			var tower := _tower
 			button.pressed.connect(func() -> void:
 				if tower_seller.refuse_if_short([tower], next, true, index):
@@ -257,6 +314,7 @@ func _refresh() -> void:
 			_locked_form_button(button, "Unlock %s" % next.display_name, next, [_tower], index)
 			continue  # Locked: no ring, no ghost
 		_preview_on(button, [[_tower, next]])
+	_more_row(options.size())
 	_not_in_dream_button(data)
 	_seed_button()
 	if _tower.can_nurture():
@@ -279,7 +337,7 @@ func _refresh() -> void:
 				nurture.tooltip_text = ("Choose what rank %s adds. Kept when it grows; can't be changed." % Tower.rank_name(_tower.rank + 1)
 					if _tower.needs_focus() else "Rank %s: %s." % [Tower.rank_name(_tower.rank + 1), _tower.focus_text(_tower.default_choice())]) + _growth_note()
 				var price := 0 if _free_rank() else cost
-				_priced(nurture, "Nurture to rank %s" % Tower.rank_name(_tower.rank + 1), _price(price), price, &"dew", false)
+				_priced(nurture, "Nurture to rank %s" % Tower.rank_name(_tower.rank + 1), _price(price), price, &"dew", nurture_primary)
 				nurture.pressed.connect(_toggle_choices)  # Short: refuses (_refuse_nurture)
 				_rank_preview_on(nurture, [_tower], _tower.default_choice() if not _tower.needs_focus() else Tower.Focus.NONE)
 			else:
@@ -310,8 +368,9 @@ func _refresh() -> void:
 		note = "Placed this rest: all its Dew back."
 	elif drift_director.is_build_phase() and _tower.rest_dew > 0:
 		note = "This rest's %d Dew comes back in full." % _tower.rest_dew
-	var sell := _add_footer_button("Sell · +%s Dew (%s)" % [BossDossier.thousands(refund), tower_seller.sell_key_name()])  # Its hotkey, like Nurture's (R)
-	sell.tooltip_text = note
+	_details_toggle()
+	var sell := _add_footer_button("Sell · +%s Dew" % BossDossier.thousands(refund))
+	sell.tooltip_text = (note + "\n\n" if note != "" else "") + "Key: %s" % tower_seller.sell_key_name()  # Light pass: the key in the tip
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if _tower.tower_data.rooted:
 		sell.text = "Permanent: the Sapling can't be sold or moved"
@@ -356,6 +415,11 @@ func _refresh_group() -> void:
 	var aimed := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_choose_target())
 	if not aimed.is_empty():
 		_add_target_switch(aimed)
+	var row_count := 0
+	for group in groups:
+		row_count += Tower.grow_options(dream_state, group[0]).size()
+	_grow_heading(row_count)
+	var row_index := 0  # Across every kind: "+N more" past MAX_ROWS
 	for group in groups:
 		var data: TowerData = group[0]
 		var towers: Array = group[1]
@@ -363,8 +427,8 @@ func _refresh_group() -> void:
 		for index in group_options.size():
 			var option: Array = group_options[index]
 			var next: TowerData = option[0]
-			var button := _add_button("")
-			UiStyle.primary(button)
+			var button := _grow_row(row_index, row_count)
+			row_index += 1
 			_grow_key(button, index)
 			if not option[1]:
 				_locked_form_button(button, "Unlock %s" % next.display_name, next, towers, index)
@@ -374,27 +438,31 @@ func _refresh_group() -> void:
 			var plan: Array = tower_seller.plan_grow(towers, next)
 			var affordable: int = plan[0]
 			var cheapest: int = towers.map(func(t: Tower) -> int: return t.get_grow_cost(next).total).min()
+			# Light pass: "Sporeling · 3 of 5" under the "Grow into" heading; the kind grown is in the tip.
 			var label: String
 			var price := plan[1] as int
 			if affordable >= towers.size():
-				label = "Grow %d %s into %s" % [towers.size(), _plural(data, towers.size()), next.display_name]
+				label = "%s · all %d" % [next.display_name, towers.size()]
 			elif affordable > 0:
 				# Grows as many as the Dew allows, closest to the Heartwood first.
-				label = "Grow %d of %d %s into %s" % [affordable, towers.size(), _plural(data, towers.size()), next.display_name]
+				label = "%s · %d of %d" % [next.display_name, affordable, towers.size()]
 			else:
 				# None affordable: the price of the first one.
-				label = "Grow 1 of %d %s into %s" % [towers.size(), _plural(data, towers.size()), next.display_name]
+				label = "%s · 1 of %d" % [next.display_name, towers.size()]
 				price = cheapest
+			button.tooltip_text = "Grows %s into %s.\n\n" % [_plural(data, towers.size()), next.display_name] + button.tooltip_text
+			button.set_meta(&"grow_form", next)
 			var awake := tower_placer.ascended_blocker(next)
 			if awake != "":
-				button.text = "%s → %s · %s%s" % [_plural(data, towers.size()), next.display_name, awake, button.get_meta(&"key", "")]
+				button.text = "%s · %s%s" % [next.display_name, awake, button.get_meta(&"key", "")]
 				button.disabled = true
 			else:
-				_priced(button, label, "%s Dew" % BossDossier.thousands(price), cheapest, &"dew", true)  # Short of even one: the can't-afford style
+				_priced(button, label, "%s Dew" % BossDossier.thousands(price), cheapest, &"dew", false)  # Short of even one: the can't-afford style
 			button.pressed.connect(func() -> void:
 				if not tower_seller.refuse_if_short(towers, next, true, index):
 					tower_seller.grow_group(towers, next))
 			_preview_on(button, towers.map(func(t: Tower) -> Array: return [t, next]))
+	_more_row(row_count)
 	# Nurture v3: one choice for the whole group ("Group Nurture asks once"); each Warden takes it if it can
 	# (attackers Power / Swift / Reach / Deep, support Wardens their own). R arms 1–4.
 	var rank_options: Array[Tower.Focus] = []
@@ -408,7 +476,8 @@ func _refresh_group() -> void:
 		var open := _add_button("")
 		open.set_meta(&"key", " (R)")
 		var cheapest_rank: int = 0 if _free_rank() else nurturable.map(func(t: Tower) -> int: return t.get_nurture_price()).min()
-		_priced(open, "Nurture %d · choose a rank" % nurturable.size(), _price(cheapest_rank), cheapest_rank, &"dew", false)  # Short: R refuses
+		open.tooltip_text = "Choose the rank each one gains."  # Before _priced: it keeps the tip
+		_priced(open, "Nurture %d" % nurturable.size(), _price(cheapest_rank), cheapest_rank, &"dew", true)  # The one primary; short: R refuses
 		open.pressed.connect(_toggle_choices)
 		_rank_preview_on(open, nurturable, Tower.Focus.NONE)
 	for index in (rank_options.size() if _choosing else 0):
@@ -431,10 +500,11 @@ func _refresh_group() -> void:
 		_rank_preview_on(button, selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_nurture()), which)
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
-	var sell := _add_footer_button("Sell %d · +%s Dew (%s)" % [selection.size(), BossDossier.thousands(refund), tower_seller.sell_key_name()])
-	sell.tooltip_text = "Half the Dew back while nightmares walk." if in_drift else ""
+	_details_toggle()
+	var sell := _add_footer_button("Sell %d · +%s Dew" % [selection.size(), BossDossier.thousands(refund)])
+	sell.tooltip_text = ("Half the Dew back while nightmares walk.\n\n" if in_drift else "") + "Key: %s" % tower_seller.sell_key_name()
 	if _confirm_sell:
-		sell.text = "Really sell %d while nightmares walk? +%d Dew" % [selection.size(), refund]
+		sell.text = "Really sell %d? +%s Dew" % [selection.size(), BossDossier.thousands(refund)]  # The tip says why it asks
 	sell.pressed.connect(_sell_group)
 	if not tower_seller.can_sell():
 		sell.text = tower_seller.sell_block_reason()
@@ -482,10 +552,9 @@ func _sell_group() -> void:
 # Targeting (screens_ui.md): a 4-way switch First / Last / Strongest / Closest for `towers` (one Warden or a
 # group). A group with mixed modes shows none pressed; a press sets them all. T cycles (TowerSeller).
 func _add_target_switch(towers: Array) -> void:
+	# Light pass: one quiet segmented group, the word "Targeting" in each tip (the row fits the 280 px panel).
 	var row := HBoxContainer.new()
-	var label := Label.new()
-	label.text = "Targeting"
-	row.add_child(label)
+	row.name = "Targeting"
 	var modes := {}
 	for tower in towers:
 		modes[tower.get_target_mode()] = true
@@ -495,12 +564,17 @@ func _add_target_switch(towers: Array) -> void:
 		button.toggle_mode = true
 		button.focus_mode = Control.FOCUS_NONE
 		button.button_pressed = modes.size() == 1 and modes.has(mode)
-		button.tooltip_text = TARGET_TIPS[mode] + " (T cycles)"
+		button.tooltip_text = "Targeting: " + TARGET_TIPS[mode] + " (T cycles)"
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.clip_text = true
+		button.add_theme_font_size_override("font_size", 14)
+		button.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 		button.pressed.connect(func() -> void:
 			tower_seller.set_target_group(towers, mode)
 			_refresh())
 		row.add_child(button)
-	_buttons.add_child(row)
+	UiStyle.segmented(row)
+	_extra.add_child(row)  # In Details (light pass): a setting, not the next step; T cycles it from anywhere
 
 # A form that isn't unlocked yet (run_design.md "Dreamlight"): "Grow into Stormcap · Unlock with 1
 # Dreamlight". With enough Dreamlight, the first click asks and the second unlocks it; otherwise it
@@ -518,25 +592,14 @@ func _fill_buffs(tower: Tower) -> void:
 	if entries.is_empty():
 		return
 	_buffs.visible = true
-	var head := HBoxContainer.new()  # "Buffs" and its Details toggle: the list folds to its Total line
+	var head := HBoxContainer.new()  # "Buffs" (the whole section sits behind the footer's Details, light pass)
 	var header := Label.new()
 	header.text = "Buffs"
 	UiStyle.caps(header)
 	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(header)
-	var details := Button.new()
-	details.text = "Hide" if _buffs_open else "Details (%d)" % entries.size()
-	details.flat = true
-	details.focus_mode = Control.FOCUS_NONE
-	details.pressed.connect(func() -> void:
-		_buffs_open = not _buffs_open
-		_fill_buffs(tower)
-		_fit_height()
-		if not get_tree().process_frame.is_connected(_fit_height):
-			get_tree().process_frame.connect(_fit_height, CONNECT_ONE_SHOT))  # Again once the new rows are laid out
-	head.add_child(details)
 	_buffs.add_child(head)
-	for entry in (entries if _buffs_open else []):
+	for entry in entries:
 		var colour: Color = BuffSources.PENALTY_TEXT if entry.negative else BuffSources.color(entry.kind, entry.source)
 		var row: Control
 		if entry.source is Tower and is_instance_valid(entry.source):
@@ -835,8 +898,68 @@ func _add_button(text: String) -> Button:
 	button.text = text
 	button.focus_mode = Control.FOCUS_NONE
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.clip_text = true  # A long line never widens the panel into the Warden bar (light pass); its tip has it all
+	button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_buttons.add_child(button)
 	return button
+
+# Light pass: "Grow into" said once, as a caps heading over the grow / unlock rows.
+func _grow_heading(count: int) -> void:
+	if count <= 0:
+		return
+	var head := Label.new()
+	head.name = "GrowHeading"
+	head.text = "Grow into"
+	UiStyle.caps(head, 14)
+	_buttons.add_child(head)
+
+# One grow / unlock row (RowButton, 48 tall); past MAX_ROWS it waits behind "+N more" (its key still works).
+# Grow lines shown before "+N more": MAX_ROWS, 2 on a short screen (the actions then still fit MAX_SHARE).
+func _row_limit() -> int:
+	return MAX_ROWS if not is_inside_tree() or get_viewport().get_visible_rect().size.y >= SHORT_SCREEN else 2
+
+func _grow_row(index: int, count: int) -> Button:
+	var button := _add_button("")
+	UiStyle.row(button)
+	button.set_meta(&"variation", &"RowButton")  # _set_short keeps the row look when it isn't the primary
+	var limit := _row_limit()
+	button.visible = _more_open or count <= limit or index < limit - 1
+	return button
+
+# "+N more" (story chat 2026-10-05): the rows past the first MAX_ROWS − 1 when there are more than MAX_ROWS.
+func _more_row(count: int) -> void:
+	var limit := _row_limit()
+	_built_limit = limit
+	if count <= limit or _more_open:
+		return
+	var more := _add_button("+%d more" % (count - limit + 1))
+	more.name = "MoreRows"
+	UiStyle.row(more)
+	more.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	more.pressed.connect(func() -> void:
+		_more_open = true
+		_refresh())
+
+# The footer's Details toggle (light pass): Buffs, "This run", Kinship, combos and Dreams on it; open or closed is
+# remembered for the session (details_choice).
+func _details_toggle() -> void:
+	var has_any := _body.text != "" or _buffs.visible or _extra.get_child_count() > 0
+	if not has_any:
+		return
+	var toggle := _add_footer_button("Hide" if _buffs_open else "Details")
+	toggle.name = "DetailsToggle"
+	toggle.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	toggle.pressed.connect(func() -> void:
+		_buffs_open = not _buffs_open
+		details_choice = _buffs_open
+		_show_details()
+		toggle.text = "Hide" if _buffs_open else "Details"
+		_fit_height()
+		if not get_tree().process_frame.is_connected(_fit_height):
+			get_tree().process_frame.connect(_fit_height, CONNECT_ONE_SHOT))  # Again once the rows are laid out
+
+func _show_details() -> void:
+	_details.visible = _buffs_open
 
 func _evolve(into: TowerData) -> void:
 	if into.footprint > _tower.get_footprint():
@@ -954,14 +1077,20 @@ func _add_footer_button(text: String) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.focus_mode = Control.FOCUS_NONE
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # Never clipped: "Sell · +113 Dew (X)" whole (user screenshot)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # Sell takes the room left; Details and Close shrink to their words
+	UiStyle.quiet(button)  # Light pass: quiet text, one line
 	_footer.add_child(button)
+	if text == "Close":
+		button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	return button
 
 # The middle scrolls once the panel would pass MAX_SHARE of the screen (the Dreams row stays clear).
 func _fit_height() -> void:
 	if _content == null:
 		return
+	if visible and _row_limit() != _built_limit:
+		_built_limit = _row_limit()
+		_refresh.call_deferred()  # Crossed SHORT_SCREEN with a long grow list: rebuild with the new limit
 	var screen: float = get_viewport().get_visible_rect().size.y
 	# The whole panel (info + actions + footer) within MAX_SHARE of the screen, never past its top margin.
 	var actions := _buttons.get_combined_minimum_size().y + _footer.get_combined_minimum_size().y + 40.0
@@ -1022,11 +1151,11 @@ func _set_short(button: Button, short: bool, poor_price := true) -> void:
 	if not short:
 		if overlay != null:
 			overlay.free()
-		button.theme_type_variation = &"PrimaryButton" if button.get_meta(&"primary", false) else &""
+		button.theme_type_variation = &"PrimaryButton" if button.get_meta(&"primary", false) else button.get_meta(&"variation", &"")
 		for state in FONT_STATES:
 			button.remove_theme_color_override(state)
 		return
-	button.theme_type_variation = &""  # One frame for every short action
+	button.theme_type_variation = button.get_meta(&"variation", &"")  # One frame for every short action (rows stay rows)
 	for state in FONT_STATES:
 		button.add_theme_color_override(state, Color(UiStyle.INK, 0.0))  # The overlay draws the words
 	if overlay == null:
@@ -1130,7 +1259,7 @@ func pulse(kind: StringName) -> int:
 		if not button is Button or button.is_queued_for_deletion():
 			continue
 		var text := String(button.text)
-		var match_kind: bool = (kind == &"grow" and button.has_meta(&"grow_index") and text.begins_with("Grow")) \
+		var match_kind: bool = (kind == &"grow" and button.has_meta(&"grow_form") and button.visible) \
 			or (kind == &"nurture" and text.begins_with("Nurture"))
 		if match_kind:
 			count += 1
