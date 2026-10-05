@@ -44,7 +44,9 @@ page points to the Steam page.
 
 1. **Steam page** (before any push for views; wishlists only count once it exists): capsule art (Theme Asset, open
    item), the short description, 5–8 screenshots, the trailer, tags. Status and the tag list: §6 "Steam page checklist".
-2. **Shorts and TikToks**: 3–4 a week, from the shot list below. **The first video is the developer's "why I made
+2. **Shorts and TikToks** (**paused 2026-10-05**: the user to Short Form Video, "don't create short videos until I ask
+   you to"; no new shorts, scripts, scenes or renders until the user asks Short Form Video directly. The trailer is
+   paused too. The user edits from the editor kit, which is final.): 2–3 a week (§8), from the shot list below. **The first video is the developer's "why I made
    this"** (the user, 2026-10-04): the Warcraft 3 maze TD maps (Maze TD, Jungle TD) as the hook, roguelite runs as the
    twist, solo at your own pace as the reason. Script in §4 (Short Form Video), in the user's words. Name the mods only:
    no Warcraft footage, logos or art (Blizzard's trademarks). "Try the demo now" only once the demo is live; until then
