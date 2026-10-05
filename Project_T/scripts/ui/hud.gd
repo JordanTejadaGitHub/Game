@@ -88,9 +88,10 @@ func _ready() -> void:
 	# New Wardens unlocked by Dreams appear in the bar (and prices can change).
 	dream_state.unlocks_changed.connect(_build_tower_bar)
 	# The Sprout price follows the Sprouts on the map (planted, sold, grown): refresh the bar after each.
-	var refresh_prices := func(_node: Node) -> void: (func() -> void: _on_dew_changed(run_state.dew)).call_deferred()
-	tower_placer.tower_container.child_entered_tree.connect(refresh_prices)
-	tower_placer.tower_container.child_exiting_tree.connect(refresh_prices)
+	# One refresh per frame however many Wardens come and go, and none while the run is being freed (Environment Code:
+	# freeing a run with many Wardens queued one per Warden and overflowed the stack).
+	tower_placer.tower_container.child_entered_tree.connect(_queue_price_refresh.unbind(1))
+	tower_placer.tower_container.child_exiting_tree.connect(_queue_price_refresh.unbind(1))
 	# Keep the buttons in sync when build mode is toggled with B / cancelled with Esc or right-click.
 	tower_placer.build_mode_changed.connect(_sync_buttons.unbind(1))
 
@@ -424,6 +425,17 @@ func _sync_buttons() -> void:
 	for i in _tower_buttons.size():
 		var selected := tower_placer.build_mode and _bar_towers[i] == tower_placer.tower_data
 		_tower_buttons[i].set_pressed_no_signal(selected)
+
+var _prices_pending := false
+
+func _queue_price_refresh() -> void:
+	if _prices_pending or not is_inside_tree() or is_queued_for_deletion():
+		return
+	_prices_pending = true
+	(func() -> void:
+		_prices_pending = false
+		if is_inside_tree() and not is_queued_for_deletion():
+			_on_dew_changed(run_state.dew)).call_deferred()
 
 func _on_dew_changed(dew: int) -> void:
 	dew_label.text = str(dew)
