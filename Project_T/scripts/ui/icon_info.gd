@@ -294,15 +294,26 @@ static func pct_text(warden_id: String, field: String) -> String:
 	return "full strength" if is_equal_approx(value, 1.0) else "%d%%" % roundi(value * 100.0)  # Like {echo:}: 1.0 reads "full"
 
 # Any TowerData number in text (text_pass.md 797758fe: 17 Warden cards quoted stale numbers): "{field:snugroot.hold_targets}"
-# -> "5", with an optional format: ":count" (whole number), ":seconds" ("1.5 s"), ":pct" (× 100, "80%"), ":cells"
+# -> "5", one Dictionary key deep ("{field:nimbus.special_params.burst_every}"), with an optional format: ":count"
+# (whole number), ":seconds" ("1.5 s"), ":every" (a per-second rate as its period: "5 s"), ":pct" (× 100, "80%"), ":cells"
 # ("2.5 cells"), ":times" ("×1.5"). No format: a whole number when it is one, else up to 2 decimals.
 static func field_text(warden_id: String, field: String, style: String = "") -> String:
 	var path := "res://resource/tower/%s.tres" % warden_id
 	var data := load(path) as TowerData if ResourceLoader.exists(path) else null
-	if data == null or not (field in data):
+	var parts := field.split(".")  # "special_params.key": a key inside a Dictionary field (BranchKit specials)
+	if data == null or not (parts[0] in data):
 		return "%s.%s" % [warden_id, field]
-	var value := float(data.get(field))
+	var raw = data.get(parts[0])
+	if parts.size() > 1:
+		if not (raw is Dictionary) or not raw.has(parts[1]):
+			return "%s.%s" % [warden_id, field]
+		raw = raw[parts[1]]
+	if not (raw is float or raw is int):
+		return "%s.%s" % [warden_id, field]
+	var value := float(raw)
 	match style:
+		"every":  # A rate per second as its period: attacks_per_second 0.2 -> "5 s"
+			return "%s s" % _number(1.0 / value) if value > 0.0 else "%s.%s" % [warden_id, field]
 		"count":
 			return str(roundi(value))
 		"pct":
@@ -325,7 +336,7 @@ static var _field_regex: RegEx = null
 static func _field_pattern() -> RegEx:
 	if _field_regex == null:
 		UiStyle.release_at_exit(func() -> void: _field_regex = null)
-		_field_regex = RegEx.create_from_string("\\{field:([a-z_0-9]+)\\.([a-z_0-9]+)(?::([a-z]+))?\\}")
+		_field_regex = RegEx.create_from_string("\\{field:([a-z_0-9]+)\\.([a-z_0-9]+(?:\\.[a-z_0-9]+)?)(?::([a-z]+))?\\}")
 	return _field_regex
 
 static var _pct_regex: RegEx = null
