@@ -300,6 +300,7 @@ func _card(id: StringName) -> Button:
 	plant.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	plant.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	UiStyle.primary(plant)
+	ChoiceCard.link_cue(plant)  # Lights with the card (hover, press)
 	box.add_child(plant)
 	box.minimum_size_changed.connect(func() -> void:
 		button.custom_minimum_size = Vector2(CARD_SIZE.x, maxf(CARD_SIZE.y, box.get_combined_minimum_size().y + 32.0)))
