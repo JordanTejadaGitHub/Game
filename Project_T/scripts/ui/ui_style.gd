@@ -309,13 +309,29 @@ static func card(colour: Color, hover: bool = false) -> MoonStyleBox:
 	return box
 
 # A Warden bar slot: a fog patch, and the glowing gold underline when selected.
-# The light pass (2026-10-05, the user: "calmer, more transparent"): a soft fog patch, lighter than the
-# panels, the map showing through at the rim; selected = the glowing gold underline, no frame.
+# The light pass (UI Asset's final tokens, 2026-10-05; the user: "calmer, more transparent"): no box, a
+# fog tile of Void .35 → .08. Hovered: a 1 px Gold inset at .35. Selected: a darker tile (.55 → .20), a
+# 1 px Gold inset at .6 and the 2 px Glow underline with its glow.
 static func slot(selected: bool, hover: bool = false) -> MoonStyleBox:
 	var box := fog_patch(4.0, 4.0)
-	box.center_alpha = 0.8 if hover or selected else 0.66
-	box.edge_alpha = 0.12
+	box.center_alpha = 0.55 if selected else 0.35
+	box.edge_alpha = 0.2 if selected else 0.08
+	box.corner_radius = 2
+	if selected:
+		box.frame_color = Color(BUTTON_GOLD, 0.6)
+	elif hover:
+		box.frame_color = Color(BUTTON_GOLD, 0.35)
 	box.underline = selected
+	return box
+
+# The Warden bar's backing panel (calmer than other panels): Void .55 in the middle → .18 at the rim,
+# the thread at .6 and no mark. For the PanelContainer behind %TowerBar.
+static func bar_panel() -> MoonStyleBox:
+	var box := panel(10.0, 6.0)
+	box.center_alpha = 0.55
+	box.edge_alpha = 0.18
+	box.thread_color = Color(GOLD, 0.6)
+	box.diamond = false
 	return box
 
 # Nightmare portraits on dark UI sit on a pale moonlit disc with a thin cold rim (screens_ui.md
@@ -675,8 +691,8 @@ static func quiet(button: Button) -> void:
 	button.theme_type_variation = &"QuietButton"
 	button.custom_minimum_size.y = maxf(button.custom_minimum_size.y, HUD_BUTTON_H)
 
-# One row of a list (the Warden panel's grow options): text-only, left-aligned, 40 px tall.
-const ROW_H := 40.0
+# One row of a list (the Warden panel's grow options): text-only, left-aligned, 48 px tall.
+const ROW_H := HUD_BUTTON_H  # 48: rows are tappable (platforms.md), and padding a 40 px row would overlap the next
 static func row(button: Button) -> void:
 	button.theme_type_variation = &"RowButton"
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -807,9 +823,9 @@ static func make_theme() -> Theme:
 		theme.set_stylebox(["normal", "hover", "pressed", "hover_pressed", "disabled"][i], "WardenSlot", slot_boxes[i])
 	theme.set_stylebox("focus", "WardenSlot", StyleBoxEmpty.new())
 	theme.set_font("font", "WardenSlot", number_font())
-	theme.set_font_size("font_size", "WardenSlot", 16)
+	theme.set_font_size("font_size", "WardenSlot", 13)  # The cost: 12.5 px Glow at .8 (rounded to 13)
 	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
-		theme.set_color(state, "WardenSlot", GOLD)
+		theme.set_color(state, "WardenSlot", Color(GOLD, 0.8))
 
 	# HUD buttons (top-right row, drift controls): compact, HUD_BUTTON_H tall, small caps at
 	# HUD_TEXT_SIZE, the thin frame. HudPrimary is the same size in the call-to-action look (Start).
@@ -846,15 +862,14 @@ static func make_theme() -> Theme:
 	theme.set_color("font_disabled_color", "QuietButton", Color(INK_DIM, DISABLED_ALPHA))
 
 	# Row buttons (the light pass: the Warden panel's grow options): no box, Heartlight text left-aligned,
-	# a faint Night / Gold tint on hover; 40 px tall (the small-button touch minimum, ui_style.md) so a list
-	# of rows stays compact.
+	# a faint Night / Gold tint on hover; 48 px tall, a full touch target (platforms.md).
 	theme.set_type_variation("RowButton", "Button")
 	var row_idle := StyleBoxEmpty.new()
-	_margins(row_idle, 8.0, 10.0)
+	_margins(row_idle, 8.0, 14.0)
 	var row_hover := StyleBoxFlat.new()
 	row_hover.bg_color = Color(CARD_BG, 0.55).blend(Color(BUTTON_GOLD, 0.08))
 	row_hover.set_corner_radius_all(2)
-	_margins(row_hover, 8.0, 10.0)
+	_margins(row_hover, 8.0, 14.0)
 	for state in ["normal", "disabled"]:
 		theme.set_stylebox(state, "RowButton", row_idle)
 	for state in ["hover", "pressed", "hover_pressed"]:

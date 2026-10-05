@@ -65,6 +65,12 @@ func _initialize() -> void:
 	for id in glyph_ids:
 		var region := UiStyle.dream_glyph_region(StringName(id))
 		_check(region.has_area() and Rect2(Vector2.ZERO, sheet.get_size()).encloses(region), "glyph %s has a cell in the sheet (%s)" % [id, region])
+	# Grow / unlock rows are full touch targets (platforms.md: >= 48 px).
+	var probe_row := Button.new()
+	probe_row.text = "Chime Stone · 180 Dew"
+	UiStyle.row(probe_row)
+	_check(probe_row.custom_minimum_size.y >= UiStyle.HUD_BUTTON_H, "a row button is at least 48 px tall")
+	probe_row.free()
 	# Feeling the cards: the credit line keeps names Ink and numbers Gold, escaping brackets.
 	var credit := UiStyle.credit_bbcode("Dreams this block", [["Lingering Spores", "+1,840"], ["Odd [card]", "+9"]])
 	_check(credit.contains(UiStyle.GOLD.to_html(false)) and credit.contains("Odd [lb]card]") and credit.count(" · ") + credit.count("·[/color]") >= 1,
