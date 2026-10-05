@@ -363,4 +363,17 @@ rules. The brief stays here in case the user hires an artist later.
   hollow diamond, Cormorant Garamond / Cormorant SC / Alegreya Sans, pixel icons scaled by whole
   numbers). The spec is in `ui_style.md` (owned by the UI Asset chat); icons keep the shape-based
   language in `screens_ui.md`. UI colours come from Heartwood 32 (Ink, Moonlight and Gold ramps).
+- **UI: remove the AI look** (user, 2026-10-05: "Fix the UI", after asking whether it looks
+  AI-generated). **Proof first:** UI Asset mocks up three screens before / after (the Warden panel
+  with the Bellflower from the user's screenshot, the Dream card screen, the HUD bar). The user
+  approves before the rollout. The tells, and the direction for each:
+  | Tell | Direction |
+  |---|---|
+  | Smooth vector panels (thin gold thread, soft fog, diamond ornament) over 64 px pixel art (the biggest) | Panel frames, buttons and dividers **drawn as pixel art at the world's pixel density**: nine-patch, crisp, no anti-aliasing, hand-made corners (roots, moss, a small lantern). |
+  | Every action is the same outlined rectangle | **One primary action per panel** (filled, warm); secondary actions plainer; Close / Sell quiet. |
+  | " · "-separated stat strings ("Damage 17 · 1.00/s · range 2.00") | **Stats as a small icon grid** (icon + number, aligned columns). |
+  | Thin gold border + diamond = the default "AI dark fantasy UI" | **One signature motif:** a pixel root or vine along panel edges, the same everywhere, in place of the diamond. |
+  The Moonlit Thread palette and fonts stay, so it's the same family. `ui_style.md` is updated once
+  the user approves. Owners: UI Asset (art, mock-ups), UI Code (`UiStyle`, theme, `MoonStyleBox`),
+  Main Merger (panel layouts).
 - **Accessibility pass:** make sure warm vs cold never relies on colour alone.
