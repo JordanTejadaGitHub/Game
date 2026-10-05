@@ -323,6 +323,18 @@ human artist replaces both.
 - **Tower defense does travel on TikTok** when it's a clear, readable fight: clips of *Sir, We Have an Orc Problem* hit
   45–99× their creators' medians with plain commentary over wave-by-wave planning.
 - Most outliers: fast cuts, dynamic captions, voice + music, about a day's work.
+- **Indie-dev outliers in general** (second pass, any genre, 100k+ views): the strongest dev format by far is
+  **"a problem in my game, and how I fixed it"**: "The humans in my godsimulator are completely overpowered" (1.5M,
+  88×), "This streamer found a major issue with the glider in my game" (1M, 321×), "Someone's trying to turn my shotgun
+  into a pinpoint sniper rifle" (1.9M), "I REINVENTED shotguns for my indie game" (1.1M, 223×), "Playtesters are too
+  good at my indie game". Ours, all true: the Wardens got so strong the Stag died 17 tiles from the tree (we re-tuned);
+  players could seal the path, so placement had to be refused; the base Wardens grew 1.4× and went back.
+  Also working: **fans steering the game** ("HAIL JIMOTHY PLEASE ADD HIM", 99×; "Making a game with your help. Am I
+  cooked?", 40×), **stakes** ("Steam just handed me an ultimatum", 59×; "My indie game BLEW UP because I was dumb", 3M)
+  and **"I made X, but Y"** ("I Made Minecraft, but It's 4D", 1.1M, 75×), which is Video 0's shape.
+- **More curators** (YouTube Shorts channels whose indie features broke out): darkgeek ("THIS BRAZILIAN INDIE GAME IS
+  INCREDIBLE", 1.6M, 49.7k subs), Keaton Luis ("Sniper Dan Is A Hilarious New Indie Game…", 1.3M, 184×, 17.5k subs),
+  Warlord Mdama ("This Indie Game Lets You Build Your OWN Empire", 32×), Jake (Jake Lucky's indie dev segments).
 - **Curators to pitch** once the Steam page is live (shorts channels featuring indie TD / roguelites): DimeByTheSword
   ("This Tower Defense Has 1 Million Enemies On Screen", 14.6k subs, 260k views) and Indie Game Joe (69.6k subs).
 
