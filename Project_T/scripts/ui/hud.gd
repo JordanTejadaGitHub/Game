@@ -6,7 +6,11 @@ const UNAFFORDABLE_BUTTON_ALPHA := UiStyle.UNAFFORDABLE_ALPHA
 # Warden bar slots (bottom centre): the HUD's hero, framed like every HUD button, a 48 px sprite and the
 # cost (UiStyle.HUD_SLOT). They stay between the Warden panel and the drift controls: slots shrink to
 # BUTTON_MIN_WIDTH (the 48 px touch minimum, platforms.md), then the bar wraps into more rows.
-const BUTTON_SIZE := UiStyle.HUD_SLOT
+# Smaller, centred (user: "the tower bar should be centred, make it smaller then"): 48 px wide, the touch minimum.
+const BUTTON_SIZE := Vector2(48, 62)
+const SLOT_SPRITE := 32  # The Warden sprite in a slot (was UiStyle.HUD_SPRITE, 48)
+const SLOT_COST_SIZE := 13  # The cost under the sprite
+const SLOT_KEY_SIZE := 11  # The hotkey in the corner
 const BUTTON_MIN_WIDTH := UiStyle.HUD_BUTTON_H
 const BAR_GAP := 6  # Between slots and between rows
 # Half-width taken from each side: the Warden panel (16–316 px) or the drift controls (272 px + 16),
@@ -231,11 +235,11 @@ func _build_tower_bar() -> void:
 		button.icon = _tower_icon(data)
 		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-		button.add_theme_constant_override("icon_max_width", UiStyle.HUD_SPRITE)
+		button.add_theme_constant_override("icon_max_width", SLOT_SPRITE)
 		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # Pixel art stays crisp
 		button.expand_icon = true  # The sprite fits the slot (above the cost), never taller than it
 		button.theme_type_variation = &"WardenSlot"  # The HUD button frame; selected = the gold border
-		button.add_theme_font_size_override("font_size", 16)
+		button.add_theme_font_size_override("font_size", SLOT_COST_SIZE)
 		button.custom_minimum_size = BUTTON_SIZE
 		# Hover (long-press on touch) shows the Warden card (WardenHeaderView + price), not a plain tooltip.
 		button.set_meta(&"price_line", "Cost: %d Dew · key %s" % [tower_placer.get_cost(data), str(i + 1) if i < 9 else "none"])
@@ -250,7 +254,7 @@ func _build_tower_bar() -> void:
 			hotkey.text = str(i + 1)
 			hotkey.position = Vector2(3, 0)
 			hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			UiStyle.number(hotkey, 13, UiStyle.INK_DIM)
+			UiStyle.number(hotkey, SLOT_KEY_SIZE, Color(UiStyle.MOON_MIST, 0.6))
 			hotkey.add_theme_color_override("font_outline_color", UiStyle.FOG)
 			hotkey.add_theme_constant_override("outline_size", 3)
 			button.add_child(hotkey)
@@ -267,7 +271,7 @@ func _build_tower_bar() -> void:
 # controls (right). It is always ONE row (user: "the tower bar should not stack like this"): the Clear
 # slot first, then the Wardens in key order. Slots shrink evenly to SLOT_MIN_WIDTH; past that the bar
 # shows a window of slots with ‹ › arrows at its ends (hotkeys still reach every Warden).
-const SLOT_MIN_WIDTH := 56.0
+const SLOT_MIN_WIDTH := 48.0
 const ARROW_W := 28.0
 var _bar_offset := 0  # The first Warden shown when the bar scrolls
 var _bar_arrows: Array[Button] = []
@@ -285,7 +289,7 @@ func _fit_tower_bar() -> void:
 		shown = clampi(floori((inner - width - CLEAR_TOOL_GAP + BAR_GAP) / (width + BAR_GAP)), 1, n)
 	width = minf(width, BUTTON_SIZE.x)
 	_bar_offset = clampi(_bar_offset, 0, n - shown)
-	var icon := mini(UiStyle.HUD_SPRITE, int(width) - 12)
+	var icon := mini(SLOT_SPRITE, int(width) - 12)
 	for i in n:
 		var button: Button = _tower_buttons[i]
 		button.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)
@@ -312,6 +316,29 @@ func _fit_tower_bar() -> void:
 	tower_bar.offset_bottom = -16.0
 	tower_bar.offset_top = -16.0 - BUTTON_SIZE.y
 	_place_bar_arrows(scrolling, bar_left, bar_left + bar_width, n - shown)
+	if is_inside_tree() and not get_tree().process_frame.is_connected(_recentre_bar):
+		get_tree().process_frame.connect(_recentre_bar, CONNECT_ONE_SHOT)
+
+# The bar is laid out from computed widths; if the slots' real minimum size is wider (a cost or sprite), the HBox grows
+# to the right and the group drifts off-centre (user: "Tower bar isn't centred still"). Next frame, from what is drawn:
+# shift the whole group (Clear tool, bar, arrows) so its middle is the screen's middle.
+func _recentre_bar() -> void:
+	if not is_instance_valid(tower_bar) or not tower_bar.is_visible_in_tree():
+		return
+	var parts: Array[Control] = [clear_tool, tower_bar]
+	for arrow in _bar_arrows:
+		if arrow.visible:
+			parts.append(arrow)
+	var group := tower_bar.get_global_rect()
+	for part in parts:
+		if part.visible:
+			group = group.merge(part.get_global_rect())
+	var shift := get_viewport().get_visible_rect().get_center().x - group.get_center().x
+	if absf(shift) < 0.5:
+		return
+	for part in parts:
+		part.offset_left += shift
+		part.offset_right += shift
 
 func _place_bar_arrows(scrolling: bool, bar_left: float, bar_right: float, hidden: int) -> void:
 	if _bar_arrows.is_empty():

@@ -295,12 +295,22 @@ func _run() -> void:
 			var view := bar_hud.get_viewport().get_visible_rect()
 			var one_row := not shown_slots.is_empty() and shown_slots.all(func(b: Button) -> bool:
 				var r := b.get_global_rect()
-				return absf(r.position.y - tool_rect.position.y) < 1.0 and r.size.x >= 55.0 and view.encloses(r))
+				return absf(r.position.y - tool_rect.position.y) < 1.0 and r.size.x >= 48.0 and view.encloses(r))  # 48: the touch minimum (smaller bar, user)
 			var all_slots := bar.get_children().filter(func(b: Node) -> bool: return b is Button).size()
 			var arrows := bar_hud.get_node_or_null("BarArrowRight") as Control
 			_check(one_row and (shown_slots.size() == all_slots or (arrows != null and arrows.visible)),
 				"the Warden bar stays one row, on screen, with %d Wardens at %s, UI scale %s (%d shown, arrows %s)" % [all_slots, screen,
 				share, shown_slots.size(), arrows != null and arrows.visible])
+			# Centred on the screen (user: "the tower bar should be centred"): the Clear tool, the slots and the arrows as one group.
+			var group := tool_rect
+			for b in shown_slots:
+				group = group.merge((b as Control).get_global_rect())
+			for arrow_name in ["BarArrowLeft", "BarArrowRight"]:
+				var arrow := bar_hud.get_node_or_null(arrow_name) as Control
+				if arrow != null and arrow.visible:
+					group = group.merge(arrow.get_global_rect())
+			_check(absf(group.get_center().x - view.get_center().x) < 2.0,
+				"the bar group is centred at %s, UI scale %s (centre %.1f vs %.1f)" % [screen, share, group.get_center().x, view.get_center().x])
 	root.content_scale_mode = scale_was[0]
 	root.content_scale_size = scale_was[1]
 	root.content_scale_aspect = scale_was[2]
