@@ -806,6 +806,18 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 **tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
 `longest_path` / `tended` requested in the run history to re-check.
 
+## Twig Walls (card 256, Rare; dream_design.md c6fefe1b)
+
+Geometry: a serpentine's pitch is corridor + wall. One-half corridors with Thornwalls (2 halves thick) =
+pitch 3 halves; with twig walls (1 half) = pitch 2. **The same walled area gives ~×1.5 the route**: the user's
+73-cell mazes become ~100–110. Wall Dew per length stays about equal (Thornwall 3 per 2 halves, twig 2 per
+half), and wall Dew was never the limit, so price changes little. ×1.5 exposure ≈ +40–50% damage for every
+Warden: about the Rare all-Wardens budget (+40%), before stacking with route cards.
+**Verdict:** keep half price, **min_act 2** (act 1's curve was tuned on full walls), no cap yet. Measure
+human `longest_path` with the card; **above ~120 cells, cap it** (e.g. twig walls up to 30). A static route
+probe (the bot's wall planner, same walled area, Thornwalls vs twigs, 20 maps) goes in the queue after the
+plant/grow probe.
+
 ## Human run 19 (2026-10-05, build c473ca = 4aae45a5, the new grow setting; 0 Grove): "a bit too hard early on"
 
 Sporeling (Brood Cap ×3), lost at drift 20. Drifts 1–9 calm (closest ≤ 0.33, 0 leaks). **Drift 10: 10 leaks,
