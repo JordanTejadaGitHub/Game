@@ -1554,6 +1554,12 @@ overlap; clear on what they do"*) found overlapping cards and name clashes. Deci
   longer ambiguous: tag Resonance was removed (2026-10-02), and the card is now Thunder Chimes.
 - Balancing Discussion checked the reworked Nightshade, Deep Sleep, Kind Canopy and Patient Aim
   against their budgets (balance_simulation.md 738088c3): the numbers above are theirs.
+- **Built** in a4be7e06 (Roguelite Code): all 14 renames and their II cards (In the Thick II, Slow
+  Waking II, Briar Trap II, Hardened Bark II); the Grove node texts are updated by Meta in 0d22495f.
+  As built:
+  - Deep Sleep zeroes the base and perfect-block rest bonus; Dreams that add to the rest bonus still add.
+  - "Aura Warden" = `aura_radius` > 0 or the support role.
+  - Patient Aim crits use the Warden's `crit_multiplier`; every Warden has one (default ×2).
 
 ## Strange Dreams: gamble cards (2026-10-05; cards 252–255)
 
