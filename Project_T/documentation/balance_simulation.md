@@ -792,7 +792,7 @@ near target; the Scarecrow is the hardest (its drift costs 2.7 leaves, the drift
 Night Mare's losses are laps / drain, not leaks. No change.
 **Demo** (one-half gaps, demo ×1.15, 20 seeds): Balanced **80%** ✓, skip **65%** (band 25–45%; 3 runs from 50%).
 **Kept**: the demo is the gentle intro, and Balanced being in band matters more. **The half-cell re-check is
-closed**. Rootling: Rootcurl 1 tile per pull, two pulls = one drag (2 tiles) ✓; Long Way Home overshoots (~4.5 tiles vs 3): sent to Tower Code.
+closed**. Rootling: Rootcurl 1 tile per pull, two pulls = one drag (2 tiles) ✓; Long Way Home pulls 4 tiles by design (the final's lever since 54155266; the "3" in warden_stats.md was stale), test tightened to 3.5–4.5.
 **Item 3, demo** (0596eb94, old corridor rule, 20 seeds): Balanced **100%**, skip **50%** (pre-merge 70% / 40%;
 band 75–85% / 25–45%), route at 24 ~86 cells. Half cells plus the Firefly / Nurture changes eased the demo
 too. Held with the full game for the new corridor rule (which lengthens mazes further); then the demo's
