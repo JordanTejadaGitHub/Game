@@ -98,12 +98,16 @@ func _run() -> void:
 		tags.queue_redraw()
 		await process_frame
 		await process_frame
+		# Never hidden (user: "sometimes the maze DPS disappear"): every shown tag is drawn; one that still overlaps after
+		# its nudges is the number alone.
 		var overlap := false
 		for i in tags.drawn.size():
 			for j in range(i + 1, tags.drawn.size()):
-				if (tags.drawn[i][1] as Rect2).intersects(tags.drawn[j][1]):
+				if (tags.drawn[i][1] as Rect2).intersects(tags.drawn[j][1]) and String(tags.drawn[j][2]).contains(" DPS"):
 					overlap = true
-		_check(not overlap, "no two DPS tags overlap (%d drawn of %d shown)" % [tags.drawn.size(), tags._shown_towers().size()])
+		_check(not overlap and tags.drawn.size() == tags._shown_towers().size(),
+			"every DPS tag is drawn, a crowded one as its number (%d drawn of %d shown)" % [tags.drawn.size(), tags._shown_towers().size()])
+		await _dense_row(main, tags)
 
 	# Rest report: the maze line first, then Carrying / Underused.
 	var text := RestReport.meter_text(main.get_node("%RestReport"))
@@ -132,6 +136,48 @@ func _build(placer: TowerPlacer, map, route: PackedVector2Array, index: int) -> 
 			if placer._try_build(cell):
 				return placer.tower_container.get_child(count)
 	return null
+
+# A dense row of 6 Wardens side by side (user: "sometimes the maze DPS disappear"): each gets a tag, drawn every frame
+# in the same place (no blinking as the order would change).
+func _dense_row(main: Node, tags: DpsTags) -> void:
+	var placer: TowerPlacer = main.get_node("%TowerPlacer")
+	var map = main.get_node("MapGenerator")
+	placer.tower_data = load("res://resource/tower/sporeling.tres")
+	var row: Array = []
+	for y in range(1, Tower.MAP_GRID.size.y - 1):
+		row.clear()
+		for x in range(1, Tower.MAP_GRID.size.x - 1):
+			var cell := Vector2(x, y)
+			var count := placer.tower_container.get_child_count()
+			if map.is_buildable(cell) and map.can_block(cell) and placer._try_build(cell):
+				row.append(placer.tower_container.get_child(count))
+				if row.size() == 6:
+					break
+			else:
+				row.clear()  # Not side by side: start over further on (the walls placed stay; harmless here)
+		if row.size() == 6:
+			break
+	_check(row.size() == 6, "six Wardens side by side (%d)" % row.size())
+	if row.size() < 6:
+		return
+	tags._clock = 1000.0  # Our rows, not the meter's
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	director.drifts_started = maxi(director.drifts_started, 1)
+	placer.build_mode = true  # Every tag shows (as at a rest)
+	tags._rows.clear()
+	for i in row.size():
+		tags._rows[row[i].get_instance_id()] = {"tower": row[i], "dps": 100.0 + 37.0 * i, "tag_color": DriftMeter.FINE_COLOR}
+	tags.queue_redraw()
+	await process_frame
+	await process_frame
+	var first: Array = tags.drawn.map(func(d: Array) -> Rect2: return d[1])
+	var tagged: Array = tags.drawn.map(func(d: Array) -> Object: return d[0])
+	_check(row.all(func(t: Tower) -> bool: return tagged.has(t)), "all six get a tag (%d drawn)" % tags.drawn.size())
+	tags._rows[row[0].get_instance_id()].dps = 999.0  # The ranking changes: nothing moves
+	tags.queue_redraw()
+	await process_frame
+	await process_frame
+	_check(tags.drawn.map(func(d: Array) -> Rect2: return d[1]) == first, "the tags stay put when the numbers change")
 
 # A Warden at least 5 cells from every path tile.
 func _build_far(placer: TowerPlacer, map, route: PackedVector2Array) -> Tower:
