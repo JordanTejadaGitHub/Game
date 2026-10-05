@@ -49,20 +49,24 @@ N("early_light", "perks", "Early Light", 232, 436, "early_bloom");
 N("kindling", "perks", "Kindling", 214, 500, "early_light");
 N("slot_4", "perks", "Loadout slot 4", 400, 520, [410, 466]);  // Slots 1–3 are open from the start
 N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
-// The twig at the foot of the Perks limb (meta_design.md 952b986e): Restless Omens and Remembered Seed.
-// Each line is off until its UnlockData exists (test_meta checks layout = data); Meta Game Code flips it
-// with the .tres files. The Keepsakes left the tree for a shelf; KEEPSAKES goes false with their .tres.
-const KEEPSAKES = true, RESTLESS_OMENS = false, REMEMBERED_SEED = false, STRANGE_DREAMS = false;
+// New nodes (meta_design.md 72ccfceb), each off until its UnlockData exists (test_meta checks layout =
+// data); Meta Game Code flips its flag with the .tres. KEEPSAKES: the old Keepsakes twig at the Perks
+// foot, gone from the tree once their .tres are deleted (they live on the Keepsakes shelf now).
+const KEEPSAKES = true, REMEMBERED_SEED = false, CHOSEN_HUNT = false, LEAF_OR_DEW = false, RESTLESS_OMENS = false, STRANGE_DREAMS = false;
 if (KEEPSAKES) {
 N("golden_leaf", "perks", "Golden Leaf", 534, 540, [533, 568], { twig: true });
 N("blossoms", "perks", "Blossoms", 548, 492, "golden_leaf", { twig: true });
 N("gilded_pages", "perks", "Gilded Pages", 500, 520, "golden_leaf", { twig: true });
 N("starlit_backs", "perks", "Starlit Card Backs", 536, 446, "blossoms", { twig: true });
 }
-if (RESTLESS_OMENS) N("restless_omens", "perks", "Restless Omens", 530, 528, [533, 568], { twig: true });
-if (REMEMBERED_SEED) N("remembered_seed", "perks", "Remembered Seed", 540, 470, RESTLESS_OMENS ? "restless_omens" : [533, 568], { twig: true });
-// Strange Dreams: a small branch of its own at the foot of the Cards limb, kept on the Cards side.
-if (STRANGE_DREAMS) N("strange_dreams", "cards", "Strange Dreams", 760, 520, [747, 568], { twig: true });
+// A line's nodes chain to the nearest earlier one that is on the tree (the first grows from the limb).
+const chain = (from, nodes, section) => { let last = null; for (const [id, name, on, x, y, after] of nodes) { if (!on) continue; const parent = after && byIdSoFar(after) ? after : last; N(id, section, name, x, y, parent || from); if (!after) last = id; } };
+const byIdSoFar = id => NODES.some(n => n.id === id);
+// Run options (left, orange): their own short path on the Perks limb, between Economy and Survival.
+chain([432, 482], [["remembered_seed", "Remembered Seed", REMEMBERED_SEED, 412, 420], ["chosen_hunt", "Chosen Hunt", CHOSEN_HUNT, 398, 340],
+  ["leaf_or_dew", "Leaf or Dew", LEAF_OR_DEW, 446, 384, "remembered_seed"]], "perks");
+// Card-like nodes (right, purple): a small branch on the Cards limb.
+chain([848, 482], [["strange_dreams", "Strange Dreams", STRANGE_DREAMS, 868, 430], ["restless_omens", "Restless Omens", RESTLESS_OMENS, 890, 372]], "cards");
 // Families: a short branch of three per family (family, hidden branch, Ascension),
 // alternating sides up the middle limb.
 [["sporeling", "Sporeling", true], ["firefly_jar", "Firefly Jar", true], ["dewdrop", "Dewdrop", true], ["pebbling", "Pebbling"],
