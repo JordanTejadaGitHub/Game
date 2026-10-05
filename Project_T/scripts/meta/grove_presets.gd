@@ -41,6 +41,8 @@ static func profile(preset: StringName) -> Dictionary:
 			for unlock in HeartwoodMemory.load_grove():
 				if not unlock.is_free():  # Every node, The Heartwood's Crown (the 6th slot) too
 					data.unlocks[unlock.id] = unlock.get_levels()
+				elif unlock.keepsake != "" and unlock.milestone != "":
+					data.milestones[unlock.milestone] = true  # Keepsakes grow from their milestones
 		_:
 			push_error("Unknown Grove preset %s" % preset)
 	data.loadout = _loadout(data)

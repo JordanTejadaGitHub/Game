@@ -418,7 +418,8 @@ static func unlock_level(data: Dictionary, id: String) -> int:
 # Levels a node has grown: bought levels, or all of them for a start node. Milestones only pay Seeds
 # (meta_design.md "Milestones", 2026-10-04); only a Memory Warden bloom (parked) still grows from its boss.
 static func node_level(data: Dictionary, unlock: UnlockData) -> int:
-	if unlock.start or (unlock.memory_warden != "" and unlock.milestone != "" and data.milestones.has(unlock.milestone)):
+	# Cosmetics are milestone unlocks (user 2026-10-05: Keepsakes; the parked Memory Warden blooms too); gameplay is bought.
+	if unlock.start or ((unlock.memory_warden != "" or unlock.keepsake != "") and unlock.milestone != "" and data.milestones.has(unlock.milestone)):
 		return maxi(unlock.get_levels(), 1)
 	return unlock_level(data, unlock.id)
 
@@ -510,7 +511,7 @@ static func has_sixth_slot(data: Dictionary) -> bool:
 
 # Every other Grove node at its max level (the Crown's requirement; the Crown itself doesn't count).
 static func tree_complete(data: Dictionary) -> bool:
-	return load_grove().all(func(u: UnlockData) -> bool: return u.crown or is_grown(data, u))
+	return load_grove().all(func(u: UnlockData) -> bool: return u.crown or u.keepsake != "" or is_grown(data, u))  # Keepsakes don't count
 
 # The perk ids carried: owned perks from the saved loadout, at most one per slot.
 static func get_loadout(data: Dictionary) -> Array[String]:

@@ -284,7 +284,7 @@ func _run() -> void:
 	HeartwoodMemory.save_data(memory)
 	main = await _new_run()
 	dreams = main.get_node("%DreamState")
-	_check(dreams.rerolls_left == 3 and not MetaRun.starlit_backs(), "See every Dream card adds no reroll or card backs (%d)" % dreams.rerolls_left)
+	_check(dreams.rerolls_left == 3 and MetaRun.starlit_backs(), "See every Dream card adds no reroll, and grows the Starlit Card Backs keepsake (%d)" % dreams.rerolls_left)
 	memory.milestones.erase("all_dreams")
 	HeartwoodMemory.save_data(memory)
 	_check(dreams.allow_bittersweet and dreams.grove_cards.has("deep_sleep"), "the Bittersweet Dreams node lets bittersweet cards be offered")
@@ -629,11 +629,11 @@ func _run() -> void:
 
 	# --- Keepsakes (meta_design.md Section 1): 4 cosmetic nodes, no gameplay, each can be switched off ---
 	var keep_data := HeartwoodMemory.defaults()
-	keep_data.unlocks.starlit_backs = 1
+	keep_data.milestones.all_dreams = true  # Cosmetics are milestone unlocks (user 2026-10-05): See every Dream card
 	keep_data.loadout = ["starlit_backs"]
 	HeartwoodMemory.save_data(keep_data)
 	var leaf := _unlock(grove, "golden_leaf")
-	var keepsakes_ok := leaf != null and leaf.costs == [30]
+	var keepsakes_ok := leaf != null and leaf.is_free() and leaf.milestone == "flawless_win" and HeartwoodMemory.buy_problem(keep_data, leaf) == "Grows by itself"
 	for keep_id in MetaRun.KEEPSAKES:
 		var keep_node := _unlock(grove, keep_id)
 		keepsakes_ok = keepsakes_ok and keep_node != null and keep_node.keepsake == keep_id and not keep_node.is_perk()
@@ -659,6 +659,10 @@ func _run() -> void:
 	partial.unlocks.erase("slot_5")
 	_check(not HeartwoodMemory.requirements_met(partial, crown_node) and HeartwoodMemory.requirements_met(bloom, crown_node),
 		"the Crown needs every other node at max level")
+	var no_keepsakes := bloom.duplicate(true)
+	no_keepsakes.milestones = {}
+	_check(HeartwoodMemory.requirements_met(no_keepsakes, crown_node) and HeartwoodMemory.node_level(no_keepsakes, leaf) == 0,
+		"Keepsakes don't count for the Crown")
 	partial.seeds = 999
 	partial.erase("sixth_stone_risen")
 	HeartwoodMemory.save_data(partial)

@@ -293,8 +293,9 @@ func _update_card() -> void:
 	match problem:
 		"Grown":
 			_card_status.text = "In bloom" if not selected.start else "Grown from the start"
-		"Grows by itself":  # A Memory Warden bloom (parked): grown by its boss's first dispel
-			_card_status.text = "Grows by itself."
+		"Grows by itself":  # A Keepsake (its milestone) or a parked Memory Warden bloom (its boss's first dispel)
+			var milestone: Array = MetaRun.MILESTONE_SEEDS.get(selected.milestone, [])
+			_card_status.text = "Grows by itself: %s." % milestone[1] if not milestone.is_empty() else "Grows by itself."
 		"Needs another unlock first":
 			_card_status.text = "Needs " + _needs_text(selected) + "."
 		"Not enough Seeds":
