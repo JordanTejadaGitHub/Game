@@ -6,7 +6,7 @@
 		{"clip": "video0_maze", "from": 1.0, "to": 9.0},
 		{"clip": "video0_island", "from": 1.5, "to": 3.5},
 		{"clip": "video0_dream", "from": 0.5, "to": 5.5},
-		{"clip": "video0_storm", "from": 11.0, "to": 20.0},
+		{"clip": "video0_storm", "from": 12.0, "to": 21.0},
 		{"clip": "video0_maze", "from": 18.5, "to": 22.5}
 	],
 	"end_card": 2.5,
@@ -16,8 +16,8 @@
 		[0.0, 2.0, "Warcraft 3 maze TD... but a roguelite"],
 		[2.0, 8.0, "Every Warden is a wall. They walk the path you leave."],
 		[8.0, 15.0, "A new island every run. A Dream at every rest."],
-		[15.0, 20.0, "Then the combos kick in..."],
-		[20.0, 24.0, "...and the whole crowd lights up."],
+		[15.0, 21.0, "Then the combos kick in..."],
+		[21.0, 24.0, "...and the whole crowd lights up."],
 		[24.0, 28.0, "Solo, at your own pace. Heartwood TD."]
 	]
 }

@@ -93,7 +93,7 @@ several captures (export `cuts`, see `capture/video0.json`); every clip at real 
 | 0–2 s | *"I made a roguelite out of the old Warcraft 3 maze maps."* · big on-screen text: **"Warcraft 3 maze TD… but a roguelite"** | Empty island, the first Wardens snapping down (`video0_maze` 1–9 s, short 1's maze) |
 | 2–8 s | *"Every Warden you place is a wall, and the nightmares have to walk whatever path you leave them."* | The maze growing, "+N path" (same clip) |
 | 8–15 s | *"Each run is a new island, and at every rest you pick a Dream that changes how your maze plays."* | 8–10 s: a visibly different island, wide (act 4, `video0_island` 1.5–3.5 s); 10–15 s: a Rare Dream offer, the pick, a Sporeling growing into a Puffball (`video0_dream` 0.5–5.5 s) |
-| 15–24 s | *"Then the combos kick in…"* (3–4 s with no words while the chain runs, peak ~20 s) *"…and the whole crowd lights up."* | Another island (act 3), the storm crowd chaining (`video0_storm` 11–20 s) |
+| 15–24 s | *"Then the combos kick in…"* (3–4 s with no words while the chain runs, peak ~23.5 s) *"…and the whole crowd lights up."* | Another island (act 3), the storm crowd chaining (`video0_storm` 12–21 s) |
 | 24–28 s | *"Solo, at your own pace. It's called Heartwood TD."* | Pull-back over the whole maze with the drift in it (`video0_maze` 18.5–22.5 s) |
 | 28–30.5 s | *"Wishlist it on Steam."* | End card (2.5 s) |
 
