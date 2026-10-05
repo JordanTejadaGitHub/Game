@@ -265,7 +265,7 @@ func _refresh() -> void:
 		birds.pressed.connect(func() -> void:
 			_tower.focus_strongest = not _tower.focus_strongest
 			_refresh())
-	var options := Tower.grow_options(dream_state, data)  # A Sprout before the first family pick: none, and no placeholder (user)
+	var options: Array = [] if _tower.twig else Tower.grow_options(dream_state, data)  # A Sprout before the first family pick: none, and no placeholder (user); a twig wall never grows
 	# Light pass: one primary, the best next step: Nurture when it can rank up and pay for it, else the first form it
 	# can afford, else Nurture anyway (Tower Code's note on b999a33d: a dimmed Nurture shouldn't outrank an affordable grow).
 	var can_rank := _tower.can_nurture() and not _choosing \
@@ -351,19 +351,24 @@ func _refresh() -> void:
 				nurture.pressed.connect(_toggle_choices)  # Short: refuses (_refuse_nurture)
 				_rank_preview_on(nurture, [_tower], _tower.default_choice() if not _tower.needs_focus() else Tower.Focus.NONE)
 			else:
+				# The open choices (user, Brood Cap: "fix"): their own heading with the price said once, then one
+				# unboxed row each, the name and its short change, the key as a chip; the full change is the tip.
+				var price := 0 if _free_rank() else cost
+				_nurture_gap()
+				_nurture_heading("Nurture to rank %s" % Tower.rank_name(_tower.rank + 1), price)
 				var choices: Array = _tower.focus_options()
 				for index in choices.size():
 					var which: Tower.Focus = choices[index]
-					var button := _choice_row(index, Tower.FOCUS_NAMES[which], _choice_preview(_tower, which), _price(cost))
-					button.tooltip_text = "Rank %s: %s. Kept when it grows; can't be changed." % [
-						Tower.rank_name(_tower.rank + 1), _tower.focus_text(which)] + _growth_note()
-					button.set_meta(&"cost", 0 if _free_rank() else cost)
+					var tip := "Rank %s: %s.\n%s. Kept when it grows; can't be changed." % [Tower.rank_name(_tower.rank + 1),
+						_choice_preview(_tower, which), _tower.focus_text(which).trim_suffix(".")] + _growth_note()
+					var button := _nurture_choice(index, Tower.FOCUS_NAMES[which], _choice_delta(_tower, which), tip, price)
 					if _tower.has_method("choice_available") and not _tower.choice_available(which):
 						button.disabled = true  # A one-time choice already taken ("Already taken: Kindred works once")
 						button.tooltip_text = _tower.choice_blocker(which)
+						button.set_meta(&"tip", button.tooltip_text)
+						_row_look(button, false, false)
 						continue
-					_mark_choice(button, _free_rank() or run_state.can_afford(cost))  # Picking one plays the refusal (spend_dew)
-					button.pressed.connect(_nurture_with.bind(which))
+					button.pressed.connect(_nurture_with.bind(which))  # Short: the press plays the refusal (spend_dew)
 					_rank_preview_on(button, [_tower], which)
 	elif _tower.can_be_nurtured() and _tower.rank > 0:
 		var others_can: bool = dream_state.has_method("get_max_rank") and dream_state.get_max_rank() > _tower.rank
@@ -402,6 +407,15 @@ func _is_eldest(tower: Tower) -> bool:
 # One row of stats ("Damage 24 · 1.00/s · range 2.50"): each part is its icon and a label, both
 # explaining the stat on hover and on tap (IconInfo). `parts`: [[text, stat id], …] or
 # [text, status id, true] for a status (&"" = plain text).
+# The selection's kinds that can grow: twig walls left out (Tower Code 527ac43d: TowerPlacer.evolve refuses a twig).
+static func _growable_groups(groups: Array) -> Array:
+	var out: Array = []
+	for group in groups:
+		var towers: Array = group[1].filter(func(t) -> bool: return is_instance_valid(t) and not t.twig)
+		if not towers.is_empty():
+			out.append([group[0], towers])
+	return out
+
 # Several Wardens selected: grouped by kind, with totals, group grow buttons and Sell all.
 func _refresh_group() -> void:
 	_ranks_row.visible = false  # One Warden's picks only
@@ -431,12 +445,13 @@ func _refresh_group() -> void:
 	var aimed := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_choose_target())
 	if not aimed.is_empty():
 		_add_target_switch(aimed)
+	var growing := _growable_groups(groups)  # Twig walls never grow
 	var row_count := 0
-	for group in groups:
+	for group in growing:
 		row_count += Tower.grow_options(dream_state, group[0]).size()
 	_grow_heading(row_count)
 	var row_index := 0  # Across every kind: "+N more" past MAX_ROWS
-	for group in groups:
+	for group in growing:
 		var data: TowerData = group[0]
 		var towers: Array = group[1]
 		var group_options := Tower.grow_options(dream_state, data)  # Sprouts: only this run's families
@@ -498,20 +513,27 @@ func _refresh_group() -> void:
 		_priced(open, "Nurture %d" % nurturable.size(), _price(cheapest_rank), cheapest_rank, &"dew", false)  # A choice like the grow rows; short: R refuses
 		open.pressed.connect(_toggle_choices)
 		_rank_preview_on(open, nurturable, Tower.Focus.NONE)
+	if _choosing and not rank_options.is_empty():
+		_nurture_gap()
+		_nurture_heading("Nurture each one rank", -1)  # Prices differ per choice and Warden: on each row here
 	for index in (rank_options.size() if _choosing else 0):
 		var which: Tower.Focus = rank_options[index]
 		var cost: Array = tower_seller.full_nurture_cost(selection, which)
 		var plan_focus: Array = tower_seller.plan_nurture(selection, which)
-		var button: Button
-		if plan_focus[0].size() >= cost[0]:
-			button = _choice_row(index, Tower.FOCUS_NAMES[which], "all %d" % cost[0], _price(cost[1]))
-		else:
-			button = _choice_row(index, Tower.FOCUS_NAMES[which], "%d of %d" % [plan_focus[0].size(), cost[0]], _price(plan_focus[1]))
-			_mark_choice(button, not plan_focus[0].is_empty())  # None affordable: the press plays the refusal
+		var all_of_them: bool = plan_focus[0].size() >= cost[0]
 		# The selected Warden's real change when it offers this choice ("holds every 3.0 → 2.7 s"), else the general text.
 		var lead: Tower = _tower if is_instance_valid(_tower) and _tower.focus_options().has(which) else null
-		button.tooltip_text = "Each gains a rank of %s: %s. Kept when it grows; can't be changed." % [
+		var tip := "Each gains a rank of %s: %s. Kept when it grows; can't be changed." % [
 			Tower.FOCUS_NAMES[which], lead.focus_text(which) if lead != null else Tower.FOCUS_TEXT[which]]
+		var button := _add_button("")
+		_as_choice(button)
+		button.set_meta(&"choice", index)
+		button.set_meta(&"key", " (%d)" % (index + 1))
+		button.tooltip_text = tip
+		# "Power · all 3" / "· 2 of 3" under the name, the price at the right; none affordable: short (the press refuses).
+		var count := ("all %d" % cost[0]) if all_of_them else ("%d of %d" % [plan_focus[0].size(), cost[0]])
+		var spend: int = cost[1] if all_of_them else (plan_focus[1] if not plan_focus[0].is_empty() else run_state.dew + 1)
+		_priced(button, "%s · %s" % [Tower.FOCUS_NAMES[which], count], _price(cost[1] if all_of_them else plan_focus[1]), spend, &"dew", false)
 		button.pressed.connect(func() -> void:
 			_choosing = false
 			tower_seller.nurture_group(tower_seller.selection, which))
@@ -668,7 +690,7 @@ func _on_grow_key_held(index: int, held: bool) -> void:
 		tower_placer.hide_grow_preview()
 		return
 	var pairs := []
-	for group in tower_seller.get_selection_groups():
+	for group in _growable_groups(tower_seller.get_selection_groups()):
 		var options := Tower.grow_options(dream_state, group[0])
 		if index < options.size():
 			for tower in group[1]:
@@ -732,15 +754,69 @@ func _locked_form_button(button: Button, label: String, next: TowerData, towers:
 		# Playtest fix (screens_ui.md 2026-09-30): the Remember tree on that node, where it's unlocked.
 		dream_state.open_remember(next))
 
+# One rank of `which` on `tower` as a short change for its row (user, Brood Cap's panel: "fix"; one line, never broken
+# inside a number): "+5 damage", "+12% speed", "+0.3 range", "+25% Potency"; support choices ask Tower Code's
+# focus_short when it has one. The full before → after is the row's tip (_choice_preview).
+func _choice_delta(tower: Tower, which: Tower.Focus) -> String:
+	var own: String = tower.call("focus_short", which) if tower.has_method("focus_short") else ""
+	if own != "":
+		return own  # Tower Code's words for it (Jarlink's arc, Brood Cap's sprites …)
+	match which:
+		Tower.Focus.POWER:
+			var mult := tower.get_rank_damage_multiplier()
+			var now := roundi(tower.get_damage())
+			return "+%d damage" % (roundi(tower.get_damage() * (mult + Tower.FOCUS_POWER) / maxf(mult, 0.01)) - now)
+		Tower.Focus.SWIFT:
+			return "+%d%% speed" % roundi(Tower.FOCUS_SWIFT * 100.0)
+		Tower.Focus.REACH:
+			return "+%s range" % String.num(Tower.FOCUS_REACH, 1)
+		Tower.Focus.DEEP:
+			return "+%d%% Potency" % roundi(Tower.deep_share() * 100.0)
+	return tower.focus_text(which)  # Cut with "…" in the row; whole in the tip
+
+# One Nurture choice row (the grow rows' look): `choice_name` left, `change` right ("+5 damage"), the key (1–4) as a
+# chip; `cost` decides the short look (dim; the heading's price turns POOR). 1–4 press it (_pick_choice).
+func _nurture_choice(index: int, choice_name: String, change: String, tip: String, cost: int) -> Button:
+	var button := _add_button("")
+	_as_choice(button)
+	button.set_meta(&"choice", index)
+	button.set_meta(&"change", true)
+	button.set_meta(&"key", " (%d)" % (index + 1))
+	button.tooltip_text = tip  # Before _priced: it keeps the tip
+	_priced(button, choice_name, change, cost, &"dew", false)
+	return button
+
+# The open choices' heading: "Nurture to rank II", the price said once at its right (POOR when short), not on each row.
+func _nurture_heading(text: String, cost: int) -> void:
+	var line := HBoxContainer.new()
+	line.name = "NurtureHeading"
+	var head := Label.new()
+	head.text = text
+	head.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiStyle.caps(head, 14)
+	line.add_child(head)
+	var price := Label.new()
+	price.name = "Price"
+	price.text = _price(cost) if cost >= 0 else ""  # -1: no price (a group: each row has its own)
+	price.set_meta(&"cost", cost)
+	price.visible = price.text != ""
+	UiStyle.number(price, ROW_NOTE_SIZE + 1, UiStyle.POOR if not run_state.can_afford(cost) else UiStyle.GOLD)
+	line.add_child(price)
+	_buttons.add_child(line)
+
 # One rank of `which` on `tower`, as its effect: "28 → 33 damage", "2.5 → 2.8 range".
 func _choice_preview(tower: Tower, which: Tower.Focus) -> String:
 	match which:
 		Tower.Focus.POWER:
+			if tower.attack_data != null and tower.attack_data.special == BranchKit.JARLINK:
+				return tower.focus_text(which)  # In arc terms ("arc 210 → 248/s · damage 10 → 12"; Tower Code)
 			var mult := tower.get_rank_damage_multiplier()
 			return "%d → %d damage" % [roundi(tower.get_damage()), roundi(tower.get_damage() * (mult + Tower.FOCUS_POWER) / maxf(mult, 0.01))]
 		Tower.Focus.SWIFT:
 			return "%.2f → %.2f/s" % [tower.get_attacks_per_second(), tower.get_attacks_per_second() * (1.0 + Tower.FOCUS_SWIFT)]
 		Tower.Focus.REACH:
+			if tower._main_area()[1] != "":
+				return tower.focus_text(which)  # Its main area grows (Jarlink's link, Hushbell's silence…), and the range
 			return "%.1f → %.1f range" % [tower.get_range_cells(), tower.get_range_cells() + Tower.FOCUS_REACH]
 		Tower.Focus.DEEP:
 			return "Potency %d%% → %d%%" % [roundi(tower.get_potency() * 100.0), roundi((tower.get_potency() + Tower.deep_share()) * 100.0)]
@@ -793,48 +869,6 @@ func _refuse_nurture() -> void:
 func _free_rank() -> bool:
 	return int(run_state.get("free_nurtures") if run_state.get("free_nurtures") != null else 0) > 0
 var nurture_refused := 0  # Refusals so far (tests)
-
-# One rank choice as a row of columns: name, its change, price, key. Fixed widths, so every row's
-# columns line up (warden_stats.md "Playtest fix").
-const CHOICE_NAME_WIDTH := 64.0
-const CHOICE_PRICE_WIDTH := 60.0
-const CHOICE_KEY_WIDTH := 22.0
-
-func _choice_row(index: int, choice_name: String, change: String, price: String) -> Button:
-	var button := _add_button("")
-	button.set_meta(&"choice", index)
-	button.custom_minimum_size.y = 30
-	var row := HBoxContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	row.offset_left = 8
-	row.offset_right = -6
-	row.add_theme_constant_override("separation", 6)
-	button.add_child(row)
-	for column in [[choice_name, CHOICE_NAME_WIDTH, HORIZONTAL_ALIGNMENT_LEFT], [change, 0.0, HORIZONTAL_ALIGNMENT_LEFT],
-			[price, CHOICE_PRICE_WIDTH, HORIZONTAL_ALIGNMENT_RIGHT], [str(index + 1), CHOICE_KEY_WIDTH, HORIZONTAL_ALIGNMENT_CENTER]]:
-		var label := Label.new()
-		label.text = column[0]
-		label.horizontal_alignment = column[2]
-		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		if column[1] > 0.0:
-			label.custom_minimum_size.x = column[1]  # A floor: a longer name widens its column rather than being cut
-		else:
-			label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # The change wraps to a second line, never cut
-			label.custom_minimum_size.x = 60
-		row.add_child(label)
-	var badge: Label = row.get_child(3)  # The key, as a badge like the Warden bar's numbers
-	UiStyle.number(badge, 13, UiStyle.INK_DIM)
-	# The button (its row is a child it doesn't size to) grows with a wrapped change line.
-	var fit := func() -> void:
-		if is_instance_valid(button) and is_instance_valid(row):
-			button.custom_minimum_size.y = maxf(30.0, row.get_combined_minimum_size().y + 6.0)
-	row.minimum_size_changed.connect(fit)
-	row.resized.connect(fit)
-	fit.call_deferred()
-	return button
 
 func _nurture_with(which: Tower.Focus) -> void:
 	_choosing = false
@@ -1300,25 +1334,56 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 	var note_label := row.get_node("Lines").get_child(1) as Label
 	var price_label := row.get_node("Price") as Label
 	name_label.text = parts[0]
+	if not name_label.has_meta(&"fitting"):  # Never cut a form's name (_fit_name), again whenever the row resizes
+		name_label.set_meta(&"fitting", true)
+		name_label.resized.connect(_fit_name.bind(name_label), CONNECT_DEFERRED)
+	_fit_name.call_deferred(name_label)
 	var notes: Array[String] = []
 	if parts.size() > 1:
 		notes.append(parts[1])
 	var is_price := _is_price(price)
-	if price != "" and not is_price:
+	var change: bool = button.get_meta(&"change", false)  # A Nurture choice: its short change in the right column
+	if price != "" and not is_price and not change:
 		notes.append(price)
-	price_label.text = price if is_price else ""
+	price_label.text = price if is_price or change else ""
 	price_label.visible = price_label.text != ""
+	if change:  # One line, cut with "…" rather than wrapped (its tip has the whole change)
+		price_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		price_label.size_flags_stretch_ratio = 1.6
+		price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		price_label.clip_text = true
+		price_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	note_label.text = ", ".join(notes)
 	note_label.visible = note_label.text != ""
 	var dim := short or button.disabled
 	name_label.add_theme_color_override("font_color", UiStyle.INK_DIM if dim else (UiStyle.GOLD if primary else UiStyle.INK))
 	note_label.add_theme_color_override("font_color", UiStyle.POOR if short and poor_price and not is_price else Color(UiStyle.MOON_MIST, 0.8))
-	price_label.add_theme_color_override("font_color", UiStyle.POOR if short and poor_price else (UiStyle.INK_DIM if dim else UiStyle.GOLD))
+	if change:  # The change in Mist (the price is the heading's, in POOR there when short)
+		price_label.add_theme_color_override("font_color", UiStyle.INK_DIM if dim else Color(UiStyle.MOON_MIST, 0.9))
+	else:
+		price_label.add_theme_color_override("font_color", UiStyle.POOR if short and poor_price else (UiStyle.INK_DIM if dim else UiStyle.GOLD))
 	var chip := row.get_node("Key") as Label
 	chip.text = key.strip_edges().trim_prefix("(").trim_suffix(")")
 	chip.visible = chip.text != ""
 
 # A row that can't be pressed, with its reason as the small line ("Needs 3 free cells beside it", "Awake elsewhere").
+# A row's name is never cut (user, Jarlink: "Unlock Lightning F…"): it steps down a font size or two until it fits its
+# column; only past the smallest does the "…" come back (its tip has the whole line).
+const ROW_NAME_SIZES := [ROW_NAME_SIZE, 14, 13, 12]
+
+static func _fit_name(label: Label) -> void:
+	if not is_instance_valid(label) or label.size.x <= 0.0:
+		return
+	var font := label.get_theme_font("font")
+	var fit: int = ROW_NAME_SIZES.back()
+	for font_size in ROW_NAME_SIZES:
+		if font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x <= label.size.x:
+			fit = font_size
+			break
+	# Only a real change: a new size resizes the label, which asks again (deferred; the same answer then stops it).
+	if label.get_theme_font_size("font_size") != fit:
+		label.add_theme_font_size_override("font_size", fit)
+
 func _row_note(button: Button, form_name: String, reason: String) -> void:
 	button.set_meta(&"label", form_name)
 	button.set_meta(&"price", reason)
@@ -1370,29 +1435,17 @@ func _set_short(button: Button, short: bool, poor_price := true) -> void:
 		part.text = parts[i]
 		part.add_theme_color_override("font_color", UiStyle.POOR if i == 1 and poor_price else UiStyle.INK_DIM)
 
-# A Nurture choice row (columns: name, change, price, key): the same style, its price column in POOR.
-func _mark_choice(button: Button, affordable: bool) -> void:
-	button.set_meta(&"short", not affordable)
-	var row := button.get_child(0) as HBoxContainer if button.get_child_count() > 0 else null
-	if row == null or row.get_child_count() < 4:
-		return
-	for i in 4:
-		var colour: Color = UiStyle.INK if affordable else UiStyle.INK_DIM
-		if i == 2 and not affordable:
-			colour = UiStyle.POOR
-		if i == 3:
-			continue  # The key badge keeps its own colour
-		(row.get_child(i) as Label).add_theme_color_override("font_color", colour)
-
 # Dew or Dreamlight changed: every priced button follows at once (no rebuild: a tooltip under the pointer stays).
 func _update_prices() -> void:
 	for button in _buttons.get_children():
+		if button.name == &"NurtureHeading":  # The choices' price, said once: POOR while short
+			var price := button.get_node("Price") as Label
+			price.add_theme_color_override("font_color", UiStyle.POOR if not run_state.can_afford(int(price.get_meta(&"cost", 0))) else UiStyle.GOLD)
+			continue
 		if not button is Button:
 			continue
 		if button.has_meta(&"currency"):
 			_apply_price(button)
-		elif button.has_meta(&"cost") and button.has_meta(&"choice"):
-			_mark_choice(button, run_state.can_afford(int(button.get_meta(&"cost"))))
 
 func _shake(button: Control) -> void:
 	CantAfford.shake(button)  # The Remember screen's shake (none under reduced motion)

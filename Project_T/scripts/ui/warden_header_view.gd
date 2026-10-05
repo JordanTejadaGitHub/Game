@@ -325,7 +325,7 @@ func _stat_row(parts: Array, icons := false) -> void:
 			label.name = "Value_%s" % id
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if not is_status and id != &"" and is_instance_valid(_tower) and _tower != _probe and DreamBonusView.is_boosted(_tower, id):
-			label.text += " ↑"
+			# Boosted: gold, and its tip says by what (no "↑": user, Jarlink's panel, an unexplained glyph)
 			label.add_theme_color_override("font_color", DreamBonusView.BOOSTED_COLOR)
 		target.add_child(label)
 		var tip := IconInfo.status_tooltip(id) if is_status else stat_tip(id)

@@ -178,8 +178,18 @@ func _run() -> void:
 	var rows: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.get_meta(&"choice", -1) >= 0)
 	_check(rows.size() == 4, "R opens the four choices (%d)" % rows.size())
 	if rows.size() == 4:
-		var edges: Array = rows.map(func(b: Button) -> float: return b.get_child(0).get_child(2).position.x)
-		_check(edges.all(func(x: float) -> bool: return is_equal_approx(x, edges[0])), "the price column lines up (%s)" % [edges])
+		# Brood Cap fix (user: "fix"): one line each, the name and a short change ("+5 damage") with its key as a chip; the
+		# price said once, on the "Nurture to rank II" heading, never on a row.
+		var chips: Array = rows.map(func(b: Button) -> Label: return b.get_node("Row/Key"))
+		var ends: Array = chips.map(func(k: Label) -> float: return k.global_position.x + k.size.x)
+		_check(ends.all(func(x: float) -> bool: return is_equal_approx(x, ends[0])) and chips.map(func(k: Label) -> String: return k.text) == ["1", "2", "3", "4"],
+			"the keys are chips 1–4 in one column (%s)" % [ends])
+		var row_changes: Array = rows.map(func(b: Button) -> String: return (b.get_node("Row/Price") as Label).text)
+		_check(row_changes.all(func(c: String) -> bool: return c.begins_with("+") and not c.ends_with(" Dew")), "each row says its short change, no price (%s)" % [row_changes])
+		var heading := panel.find_child("NurtureHeading", true, false)
+		_check(heading != null and (heading.get_node("Price") as Label).text == "%d Dew" % nursling.get_nurture_price(),
+			"the heading says the price once (%s)" % [(heading.get_node("Price") as Label).text if heading else "none"])
+		_check(rows.all(func(b: Button) -> bool: return b.size.y >= UiStyle.HUD_BUTTON_H - 0.5), "48 px rows")
 	var options_now := nursling.focus_options()
 	_push(KEY_2)
 	await process_frame
