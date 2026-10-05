@@ -11,6 +11,7 @@
 		"kinship": 11,
 		"leaves": 14,
 		"maze": 15,
+		"moth": 21,
 		"nurture": 16,
 		"reaction": 18,
 		"root": 4,
@@ -27,6 +28,7 @@
 	"note": "Dream card glyphs, light on the dark rarity gem. Show x2 (16 px), nearest. A card shows the first glyph in `priority` that any of its tags maps to in `tags`; untagged or unknown tags use `fallback`.",
 	"priority": [
 		"bittersweet",
+		"moth",
 		"kinship",
 		"spore",
 		"water",
@@ -84,6 +86,7 @@
 		"status": "reaction",
 		"stone": "stone",
 		"storm": "storm",
+		"strange": "moth",
 		"support": "acorn",
 		"swift": "wind",
 		"tall": "nurture",

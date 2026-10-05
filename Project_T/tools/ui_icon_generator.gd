@@ -1761,6 +1761,16 @@ const DREAM_GLYPHS := {
 		"..HHHH..",
 		"...HH...",
 		"...HH..."],
+	# Strange Dreams (dream_design.md, tag "strange"): a moth, wings spread, fore and hind wings parted.
+	"moth": [
+		"H......H",
+		".H....H.",
+		"HHHMMHHH",
+		"HHHMMHHH",
+		".HHMMHH.",
+		"...MM...",
+		".HHMMHH.",
+		"HH....HH"],
 }
 
 # Every card tag (resource/dream/*.tres) -> its glyph. Rare tags fold into the closest one.
@@ -1784,11 +1794,12 @@ const DREAM_TAG_GLYPHS := {
 	"crit": "crit", "precision": "crit", "reach": "crit", "range": "crit", "mark": "crit",
 	"reaction": "reaction", "affliction": "reaction", "status": "reaction", "on-hit": "reaction", "sleep": "reaction",
 	"bittersweet": "bittersweet",
+	"strange": "moth",
 	"daring": "generic", "variety": "generic", "opener": "generic", "dreams": "generic", "overgrowth": "generic",
 }
 
 # A card with several tags shows the first glyph in this order that any of its tags maps to.
-const DREAM_GLYPH_PRIORITY := ["bittersweet", "kinship", "spore", "water", "storm", "stone", "root", "song",
+const DREAM_GLYPH_PRIORITY := ["bittersweet", "moth", "kinship", "spore", "water", "storm", "stone", "root", "song",
 	"wing", "wind", "acorn", "sprout", "wall", "clearing", "economy", "leaves", "maze", "nurture", "crit",
 	"reaction", "generic"]
 
