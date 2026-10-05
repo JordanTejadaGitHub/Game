@@ -806,6 +806,16 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 **tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
 `longest_path` / `tended` requested in the run history to re-check.
 
+## Overlap-audit reworks, power check (2026-10-05, dream_design.md e1e39b56; dream_audit.md budgets)
+
+| Card | As reworked | Budget | Verdict |
+|---|---|---|---|
+| Nightshade (L) | effects ×2 vs 4+ statuses | ×2-class | **keep**. At 4 statuses it beats the old +80%, at 3 it gives nothing: a build card, as meant. It multiplies with Potency and Seeping (not added) |
+| Deep Sleep (Rare, Bittersweet) | +40% all; no rest bonus for the run | Rare all +40% × 1.5 = **+60%** | **raise to +60%**. +40% is the plain Rare budget, and the cost (≈15–20% of a run's Dew from act 2) is heavier than −4 leaves |
+| Sheltering Boughs (U) | +20% touching an aura Warden | Uncommon conditional +45% | **raise to +35%**. It needs an aura family; it stays under budget because those auras already help neighbours |
+| Last Stand (Rare) | +35% within 4 cells of the Heartwood | Rare conditional +70% | **raise to +60%**. Only the route's last stretch counts; Forest's Edge (Common, start) is +20% |
+| Patient Aim (U) | +10% crit chance per idle second, max +40% | Uncommon conditional +45% | **+15% per second, max +45%**. At a ×2 crit, +10% chance is +10% damage a second, below the old +15% |
+
 ## Restless Omens numbers (2026-10-05, for run_design.md a106b83d; data values, before the act scale)
 
 Calibrated on the live data (Swift Stream ×1.25 speed → 5 Seeds; Heavy Rain +50% health → 45 Dew; Crowded
