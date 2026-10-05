@@ -26,11 +26,12 @@ const LIVE := Color("d4ec9c")  # Newleaf: live bonuses, rewards
 const OFF := Color("8c8cac")  # Stone: a bonus that is off right now
 const MOONLIGHT := Color("dce8f4")  # Moonlight: the pale disc under nightmare portraits
 const MOON_MIST := Color("b4b0c8")  # Mist: the disc's outer ring
+const SLATE := Color("5c5a78")  # Slate: a Warden slot you can't afford (its border)
 const RARITY := [Color("b4b0c8"), Color("9cc46c"), Color("9cd4fc"), Color("e9a83c")]  # Mist, Sprig, Dewlight, Gold
 const PALETTE_NAMES := {"INK": "Heartlight", "INK_DIM": "Mist", "GOLD": "Glow", "BUTTON_GOLD": "Gold",
 	"GOLD_TEXT": "Heartlight", "WHISPER": "Moonpath", "POOR": "Ember", "FOG": "Void", "CARD_BG": "Night",
 	"BOSS": "Wraithlight", "LIVE": "Newleaf", "OFF": "Stone",
-	"MOONLIGHT": "Moonlight", "MOON_MIST": "Mist"}
+	"MOONLIGHT": "Moonlight", "MOON_MIST": "Mist", "SLATE": "Slate"}
 const RARITY_NAMES := ["Mist", "Sprig", "Dewlight", "Gold"]
 const DISABLED_ALPHA := 0.45
 const UNAFFORDABLE_ALPHA := 0.5
@@ -104,6 +105,7 @@ static func install_text_filter(tree: SceneTree) -> void:
 		return
 	_text_filter_tree = tree
 	tree.node_added.connect(_linear_text)
+	tree.node_added.connect(_watch_marks)
 	if tree.root != null:
 		for node in tree.root.find_children("*", "Control", true, false):
 			_linear_text(node)
@@ -114,6 +116,90 @@ static func _linear_text(node: Node) -> void:
 	var is_text := node is Label or node is RichTextLabel or node is LineEdit or node is TextEdit
 	if is_text or (node is Button and (node as Button).icon == null):
 		(node as CanvasItem).texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+
+# One Heartwood mark per group (the user, 2026-10-05: "redundant sprout"): a panel's thread mark or a
+# divider's mark is dropped when a primary button (which has its own mark) sits right below it. Checked
+# on the control's first draw, after layout, against the primary's real position.
+const MARK_STACK_PANEL := 48.0  # A primary whose top is this close under a panel's top edge
+const MARK_STACK_DIVIDER := 40.0  # ... or this close under a divider
+const PRIMARY_VARIATIONS := [&"PrimaryButton", &"HudPrimary"]
+
+static func _watch_marks(node: Node) -> void:
+	if node is PanelContainer or node is Panel or node is TabContainer or node is HSeparator:
+		# Two frames after it joins the tree: containers have placed their children by then (frame-based,
+		# not `draw`, so it also runs headless).
+		# One queue drained by a single process_frame callback: Godot treats bound copies of one callable
+		# as the same connection, so a per-node connect dropped every node after the first in a frame.
+		_mark_queue.append([node, 2])
+		var tree := node.get_tree()
+		if not tree.process_frame.is_connected(_drain_marks):
+			tree.process_frame.connect(_drain_marks)
+
+static var _mark_queue: Array = []  # [node, frames left]; plain node references, never resources
+
+static func _drain_marks() -> void:
+	var due: Array = []
+	var waiting: Array = []
+	for entry in _mark_queue:
+		if not is_instance_valid(entry[0]):
+			continue
+		if entry[1] <= 1:
+			due.append(entry[0])
+		else:
+			waiting.append([entry[0], entry[1] - 1])
+	_mark_queue = waiting
+	for node in due:
+		if (node as Node).is_inside_tree():
+			_unstack_mark(node)
+	if _mark_queue.is_empty():
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree != null and tree.process_frame.is_connected(_drain_marks):
+			tree.process_frame.disconnect(_drain_marks)
+
+static func _unstack_mark(control: Control) -> void:
+	if not is_instance_valid(control) or not control.is_inside_tree():
+		return
+	var is_panel := control is PanelContainer or control is Panel or control is TabContainer
+	var box := control.get_theme_stylebox("panel" if is_panel else "separator")
+	var panel_marked := box is MoonStyleBox and (box as MoonStyleBox).thread != MoonStyleBox.TopLine.NONE \
+		and (box as MoonStyleBox).diamond
+	var marked := panel_marked or (box is MoonDivider and (box as MoonDivider).mark)
+	if not marked:
+		return
+	# One sprout per screen (ui_style.md, 2026-10-05: "too many redundant sprout icons"): a panel or divider
+	# inside a panel that already draws a thread keeps a plain thread. Framed primary buttons keep theirs
+	# (they aren't panels), and stand-alone HUD panels have no threaded ancestor.
+	if _inside_threaded_panel(control):
+		_drop_mark(control, box, is_panel)
+		return
+	var rect := control.get_global_rect()
+	var line_y := rect.position.y if is_panel else rect.get_center().y
+	var scope: Node = control if is_panel else control.get_parent()
+	var reach := MARK_STACK_PANEL if is_panel else MARK_STACK_DIVIDER
+	for button in scope.find_children("*", "Button", true, false):
+		if button.is_visible_in_tree() and (button as Control).theme_type_variation in PRIMARY_VARIATIONS:
+			var gap := (button as Control).get_global_rect().position.y - line_y
+			if gap >= -1.0 and gap <= reach:
+				_drop_mark(control, box, is_panel)
+				return
+
+static func _drop_mark(control: Control, box: StyleBox, is_panel: bool) -> void:
+	var plain := box.duplicate() as StyleBox
+	if plain is MoonStyleBox:
+		(plain as MoonStyleBox).diamond = false
+	else:
+		(plain as MoonDivider).mark = false
+	control.add_theme_stylebox_override("panel" if is_panel else "separator", plain)
+
+static func _inside_threaded_panel(control: Control) -> bool:
+	var up := control.get_parent()
+	while up != null:
+		if up is PanelContainer or up is Panel or up is TabContainer:
+			var outer := (up as Control).get_theme_stylebox("panel")
+			if outer is MoonStyleBox and (outer as MoonStyleBox).thread != MoonStyleBox.TopLine.NONE:
+				return true
+		up = up.get_parent()
+	return false
 
 # Godot's own canvas_items stretch does the fitting: base size LAYOUT_MIN with aspect "expand" scales
 # by min(window / LAYOUT_MIN) (= ui_scale_factor's fit) and content_scale_factor = the share. Unlike a
@@ -226,6 +312,7 @@ static func panel(margin_x: float = 16.0, margin_y: float = 12.0) -> MoonStyleBo
 const TIP_ALPHA := 0.95
 static func tip_panel() -> MoonStyleBox:
 	var box := panel(12.0, 8.0)
+	box.diamond = false  # One sprout per screen: tips never carry the mark (ui_style.md)
 	box.center_alpha = TIP_ALPHA
 	box.edge_alpha = TIP_ALPHA
 	box.shadow_size = 10
@@ -309,27 +396,44 @@ static func card(colour: Color, hover: bool = false) -> MoonStyleBox:
 	return box
 
 # A Warden bar slot: a fog patch, and the glowing gold underline when selected.
-# The light pass (UI Asset's final tokens, 2026-10-05; the user: "calmer, more transparent"): no box, a
-# fog tile of Void .35 → .08. Hovered: a 1 px Gold inset at .35. Selected: a darker tile (.55 → .20), a
-# 1 px Gold inset at .6 and the 2 px Glow underline with its glow.
-static func slot(selected: bool, hover: bool = false) -> MoonStyleBox:
+# Tower bar with borders (the user, 2026-10-05: "add borders to towers to make them more visible";
+# UI Asset's spec, including the fix for slots vanishing over the bright path): a fog tile of Void .78 at
+# the centre → .60 at the rim, 3 px radius, a 1 px Gold border at .45. Hovered: the border at .70.
+# Selected: a solid Gold border, an Ember glow inside (~.30), a faint outer Gold glow (~.18) and the
+# Glow underline. Short on Dew (slot_short): the border in Slate at .80, the tile unchanged.
+static func slot(selected: bool, hover: bool = false, short: bool = false) -> MoonStyleBox:
 	var box := fog_patch(4.0, 4.0)
-	box.center_alpha = 0.55 if selected else 0.35
-	box.edge_alpha = 0.2 if selected else 0.08
-	box.corner_radius = 2
+	box.corner_radius = 3
+	box.edge_alpha = 0.6
+	box.center_alpha = 0.78
 	if selected:
-		box.frame_color = Color(BUTTON_GOLD, 0.6)
-	elif hover:
-		box.frame_color = Color(BUTTON_GOLD, 0.35)
+		box.glow_color = PRIMARY_GLOW  # Ember, ~.30 over the rim's fog
+		box.center_alpha = 1.0 - (1.0 - 0.3) * (1.0 - box.edge_alpha)
+		box.frame_color = BUTTON_GOLD
+		box.shadow_color = Color(BUTTON_GOLD, 0.18)
+		box.shadow_size = 6
+	elif short:
+		box.frame_color = Color(SLATE, 0.8)
+	else:
+		box.frame_color = Color(BUTTON_GOLD, 0.7 if hover else 0.45)
 	box.underline = selected
 	return box
 
-# The Warden bar's backing panel (calmer than other panels): Void .55 in the middle → .18 at the rim,
+# Marks a Warden slot short on Dew without disabling it (a press still refuses with a shake): the Slate
+# border in its resting and hovered states; false puts the theme's boxes back.
+static func slot_short(button: Button, short: bool) -> void:
+	for state in ["normal", "hover", "disabled"]:
+		if short:
+			button.add_theme_stylebox_override(state, slot(false, false, true))
+		else:
+			button.remove_theme_stylebox_override(state)
+
+# The band under the Warden bar (calmer than other panels): Void .70 in the middle → .20 at the rim,
 # the thread at .6 and no mark. For the PanelContainer behind %TowerBar.
 static func bar_panel() -> MoonStyleBox:
 	var box := panel(10.0, 6.0)
-	box.center_alpha = 0.55
-	box.edge_alpha = 0.18
+	box.center_alpha = 0.7
+	box.edge_alpha = 0.2
 	box.thread_color = Color(GOLD, 0.6)
 	box.diamond = false
 	return box
@@ -818,7 +922,7 @@ static func make_theme() -> Theme:
 	# Warden bar slot (the light pass, 2026-10-05: "calmer, more transparent"): a soft fog patch, the
 	# glowing gold underline when selected, no frame (UiStyle.slot).
 	theme.set_type_variation("WardenSlot", "Button")
-	var slot_boxes := [slot(false), slot(false, true), slot(true), slot(true, true), slot(false)]
+	var slot_boxes := [slot(false), slot(false, true), slot(true), slot(true, true), slot(false, false, true)]
 	for i in 5:
 		theme.set_stylebox(["normal", "hover", "pressed", "hover_pressed", "disabled"][i], "WardenSlot", slot_boxes[i])
 	theme.set_stylebox("focus", "WardenSlot", StyleBoxEmpty.new())
@@ -826,6 +930,10 @@ static func make_theme() -> Theme:
 	theme.set_font_size("font_size", "WardenSlot", 13)  # The cost: 12.5 px Glow at .8 (rounded to 13)
 	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
 		theme.set_color(state, "WardenSlot", Color(GOLD, 0.8))
+	# Slot text (cost, hotkey, "Clear") keeps a 1 px Void shadow so it reads over the bright path.
+	theme.set_color("font_shadow_color", "WardenSlot", Color(FOG, 0.8))
+	theme.set_constant("shadow_offset_x", "WardenSlot", 1)
+	theme.set_constant("shadow_offset_y", "WardenSlot", 1)
 
 	# HUD buttons (top-right row, drift controls): compact, HUD_BUTTON_H tall, small caps at
 	# HUD_TEXT_SIZE, the thin frame. HudPrimary is the same size in the call-to-action look (Start).

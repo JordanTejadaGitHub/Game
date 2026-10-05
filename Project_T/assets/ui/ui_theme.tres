@@ -888,6 +888,7 @@ content_margin_bottom = 8.0
 script = ExtResource("1_k4cr1")
 center_alpha = 0.95
 edge_alpha = 0.95
+diamond = false
 shadow_size = 10
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_0jums"]
@@ -940,10 +941,10 @@ content_margin_top = 4.0
 content_margin_right = 4.0
 content_margin_bottom = 4.0
 script = ExtResource("1_k4cr1")
-center_alpha = 0.35
-edge_alpha = 0.08
-corner_radius = 2
+edge_alpha = 0.6
+corner_radius = 3
 thread = 0
+frame_color = Color(0.36078432, 0.3529412, 0.47058824, 0.8)
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_b6bbk"]
 
@@ -955,11 +956,10 @@ content_margin_top = 4.0
 content_margin_right = 4.0
 content_margin_bottom = 4.0
 script = ExtResource("1_k4cr1")
-center_alpha = 0.35
-edge_alpha = 0.08
-corner_radius = 2
+edge_alpha = 0.6
+corner_radius = 3
 thread = 0
-frame_color = Color(0.9137255, 0.65882355, 0.23529412, 0.35)
+frame_color = Color(0.9137255, 0.65882355, 0.23529412, 0.7)
 
 [sub_resource type="StyleBox" id="StyleBox_3tmps"]
 resource_local_to_scene = false
@@ -969,12 +969,15 @@ content_margin_top = 4.0
 content_margin_right = 4.0
 content_margin_bottom = 4.0
 script = ExtResource("1_k4cr1")
-center_alpha = 0.55
-edge_alpha = 0.2
-corner_radius = 2
+center_alpha = 0.72
+edge_alpha = 0.6
+glow_color = Color(0.72156864, 0.4, 0.17254902, 1)
+corner_radius = 3
 thread = 0
 underline = true
-frame_color = Color(0.9137255, 0.65882355, 0.23529412, 0.6)
+frame_color = Color(0.9137255, 0.65882355, 0.23529412, 1)
+shadow_size = 6
+shadow_color = Color(0.9137255, 0.65882355, 0.23529412, 0.18)
 
 [sub_resource type="StyleBox" id="StyleBox_wjdny"]
 resource_local_to_scene = false
@@ -984,10 +987,10 @@ content_margin_top = 4.0
 content_margin_right = 4.0
 content_margin_bottom = 4.0
 script = ExtResource("1_k4cr1")
-center_alpha = 0.35
-edge_alpha = 0.08
-corner_radius = 2
+edge_alpha = 0.6
+corner_radius = 3
 thread = 0
+frame_color = Color(0.9137255, 0.65882355, 0.23529412, 0.45)
 
 [sub_resource type="StyleBox" id="StyleBox_f7xnv"]
 resource_local_to_scene = false
@@ -997,12 +1000,15 @@ content_margin_top = 4.0
 content_margin_right = 4.0
 content_margin_bottom = 4.0
 script = ExtResource("1_k4cr1")
-center_alpha = 0.55
-edge_alpha = 0.2
-corner_radius = 2
+center_alpha = 0.72
+edge_alpha = 0.6
+glow_color = Color(0.72156864, 0.4, 0.17254902, 1)
+corner_radius = 3
 thread = 0
 underline = true
-frame_color = Color(0.9137255, 0.65882355, 0.23529412, 0.6)
+frame_color = Color(0.9137255, 0.65882355, 0.23529412, 1)
+shadow_size = 6
+shadow_color = Color(0.9137255, 0.65882355, 0.23529412, 0.18)
 
 [resource]
 default_font = SubResource("FontVariation_g2k3a")
@@ -1244,6 +1250,9 @@ WardenSlot/colors/font_focus_color = Color(0.9882353, 0.83137256, 0.4862745, 0.8
 WardenSlot/colors/font_hover_color = Color(0.9882353, 0.83137256, 0.4862745, 0.8)
 WardenSlot/colors/font_hover_pressed_color = Color(0.9882353, 0.83137256, 0.4862745, 0.8)
 WardenSlot/colors/font_pressed_color = Color(0.9882353, 0.83137256, 0.4862745, 0.8)
+WardenSlot/colors/font_shadow_color = Color(0.019607844, 0.019607844, 0.050980393, 0.8)
+WardenSlot/constants/shadow_offset_x = 1
+WardenSlot/constants/shadow_offset_y = 1
 WardenSlot/font_sizes/font_size = 13
 WardenSlot/fonts/font = SubResource("FontVariation_a2jc5")
 WardenSlot/styles/disabled = SubResource("StyleBox_uaiew")

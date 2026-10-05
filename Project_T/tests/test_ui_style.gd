@@ -102,6 +102,38 @@ func _scale_and_layout() -> void:
 	# Text draws linear, pixel art stays Nearest (strokes dropped at fractional scales, 2026-10-02).
 	UiStyle.install_text_filter(self)
 	_check((main.get_node("%DewLabel") as CanvasItem).texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR, "HUD text draws with a linear filter")
+	# One sprout per screen: nested panels and dividers inside a threaded panel go plain; a framed
+	# primary keeps its own mark; the outer panel keeps its mark when no primary sits right under its top.
+	var outer := PanelContainer.new()
+	outer.position = Vector2(100, 100)
+	var stack := VBoxContainer.new()
+	outer.add_child(stack)
+	var heading := Label.new()
+	heading.text = "Codex"
+	heading.custom_minimum_size.y = 60
+	stack.add_child(heading)
+	var inner := PanelContainer.new()
+	inner.custom_minimum_size = Vector2(200, 40)
+	stack.add_child(inner)
+	var divider := HSeparator.new()
+	stack.add_child(divider)
+	var spacer := Control.new()
+	spacer.custom_minimum_size.y = 60
+	stack.add_child(spacer)
+	var act := Button.new()
+	act.text = "Face it"
+	UiStyle.primary(act)
+	stack.add_child(act)
+	hud.add_child(outer)
+	for i in 6:
+		await process_frame
+	var outer_box := outer.get_theme_stylebox("panel") as MoonStyleBox
+	var inner_box := inner.get_theme_stylebox("panel") as MoonStyleBox
+	var divider_box := divider.get_theme_stylebox("separator") as MoonDivider
+	var act_box := act.get_theme_stylebox("normal") as MoonStyleBox
+	_check(outer_box.diamond and not inner_box.diamond and not divider_box.mark and act_box.diamond,
+		"one sprout per screen: outer keeps it, nested panel + divider go plain, the primary keeps its own")
+	outer.queue_free()
 	var slot := main.get_node("%TowerBar").get_child(0) as CanvasItem
 	_check(slot.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "a Warden slot (pixel sprite) keeps Nearest")
 	var avoid: Array[Control] = [main.get_node("%DriftBanner"), main.get_node("%DewLabel"), main.get_node("%LeavesLabel"),
@@ -133,7 +165,7 @@ static func _drawn_rect(control: Control) -> Rect2:
 static func _token(name: String) -> Color:
 	return {"INK": UiStyle.INK, "INK_DIM": UiStyle.INK_DIM, "GOLD": UiStyle.GOLD, "BUTTON_GOLD": UiStyle.BUTTON_GOLD,
 		"GOLD_TEXT": UiStyle.GOLD_TEXT, "WHISPER": UiStyle.WHISPER, "POOR": UiStyle.POOR, "FOG": UiStyle.FOG,
-		"CARD_BG": UiStyle.CARD_BG, "BOSS": UiStyle.BOSS, "LIVE": UiStyle.LIVE, "OFF": UiStyle.OFF, "MOONLIGHT": UiStyle.MOONLIGHT, "MOON_MIST": UiStyle.MOON_MIST}[name]
+		"CARD_BG": UiStyle.CARD_BG, "BOSS": UiStyle.BOSS, "LIVE": UiStyle.LIVE, "OFF": UiStyle.OFF, "MOONLIGHT": UiStyle.MOONLIGHT, "MOON_MIST": UiStyle.MOON_MIST, "SLATE": UiStyle.SLATE}[name]
 
 func _check(ok: bool, what: String) -> void:
 	if not ok:
