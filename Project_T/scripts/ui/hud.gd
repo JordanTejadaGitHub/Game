@@ -3,6 +3,13 @@ extends CanvasLayer
 const DEW_COLOR := UiStyle.GOLD
 const DEW_SHORT_COLOR := UiStyle.POOR
 const UNAFFORDABLE_BUTTON_ALPHA := UiStyle.UNAFFORDABLE_ALPHA
+const UNAFFORDABLE_SPRITE_ALPHA := 0.45  # An unaffordable slot: its Warden at this alpha, the tile itself full strength
+
+# A 1 px Void shadow at 80% under a bar text (cost, key, "Clear"), as on whispers: it reads over sand and grass.
+static func _shadowed(control: Control) -> void:
+	control.add_theme_color_override("font_shadow_color", Color(Palette.VOID, 0.8))
+	control.add_theme_constant_override("shadow_offset_x", 1)
+	control.add_theme_constant_override("shadow_offset_y", 1)
 # Warden bar slots (bottom centre): the HUD's hero, framed like every HUD button, a 48 px sprite and the
 # cost (UiStyle.HUD_SLOT). They stay between the Warden panel and the drift controls: slots shrink to
 # BUTTON_MIN_WIDTH (the 48 px touch minimum, platforms.md), then the bar wraps into more rows.
@@ -240,6 +247,7 @@ func _build_tower_bar() -> void:
 		button.expand_icon = true  # The sprite fits the slot (above the cost), never taller than it
 		button.theme_type_variation = &"WardenSlot"  # The HUD button frame; selected = the gold border
 		button.add_theme_font_size_override("font_size", SLOT_COST_SIZE)
+		_shadowed(button)  # Reads over the bright path (user screenshot)
 		button.custom_minimum_size = BUTTON_SIZE
 		# Hover (long-press on touch) shows the Warden card (WardenHeaderView + price), not a plain tooltip.
 		button.set_meta(&"price_line", "Cost: %d Dew · key %s" % [tower_placer.get_cost(data), str(i + 1) if i < 9 else "none"])
@@ -255,6 +263,7 @@ func _build_tower_bar() -> void:
 			hotkey.position = Vector2(3, 0)
 			hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			UiStyle.number(hotkey, SLOT_KEY_SIZE, Color(UiStyle.MOON_MIST, 0.6))
+			_shadowed(hotkey)
 			hotkey.add_theme_color_override("font_outline_color", UiStyle.FOG)
 			hotkey.add_theme_constant_override("outline_size", 3)
 			button.add_child(hotkey)
@@ -299,9 +308,12 @@ func _fit_tower_bar() -> void:
 			_seed_badge.position.x = width - 14
 	clear_tool.add_theme_constant_override("icon_max_width", icon)
 	clear_tool.add_theme_font_size_override("font_size", SLOT_COST_SIZE)  # Its caption and key as a Warden slot's cost and key
+	clear_tool.add_theme_color_override("font_color", UiStyle.MOON_MIST)  # Mist, not dim Slate (UI Asset)
+	_shadowed(clear_tool)
 	var clear_key := clear_tool.get_node_or_null("Hotkey") as Label
 	if clear_key != null:
 		UiStyle.number(clear_key, SLOT_KEY_SIZE, Color(UiStyle.MOON_MIST, 0.6))
+		_shadowed(clear_key)
 	clear_tool.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)  # Exactly a Warden slot (user: not a different size)
 	# Centre the tool + bar (+ arrows) from the computed widths (the container only re-sorts its children
 	# next frame), one row, 16 px above the bottom.
@@ -431,7 +443,13 @@ func _on_dew_changed(dew: int) -> void:
 		_tower_buttons[i].set_meta(&"price_line", "Cost: %d Dew" % cost)
 		if _bar_towers[i].get_id() == SPROUT_ID:
 			_update_sprout_rule(_tower_buttons[i], cost)
-		_tower_buttons[i].modulate.a = 1.0 if affordable else UNAFFORDABLE_BUTTON_ALPHA
+		# The slot stays a dark, readable tile; only the Warden dims (UI Asset: the whole slot faded into the path).
+		_tower_buttons[i].modulate.a = 1.0
+		for state in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_hover_pressed_color", "icon_focus_color"]:
+			if affordable:
+				_tower_buttons[i].remove_theme_color_override(state)
+			else:
+				_tower_buttons[i].add_theme_color_override(state, Color(1, 1, 1, UNAFFORDABLE_SPRITE_ALPHA))  # multiplier: the sprite dims
 		# Colour is never alone (ui_style.md): faded AND the cost in red.
 		for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
 			if affordable:

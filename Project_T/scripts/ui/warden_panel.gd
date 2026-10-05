@@ -43,7 +43,7 @@ var _more_open := false  # Grow rows past MAX_ROWS: behind "+N more" until press
 const PANEL_WIDTH := 280.0  # Light pass: bottom-left beside the centred Warden bar, never into it at 1280 × 800
 const MAX_ROWS := 3  # Grow / unlock rows shown before "+N more" (2 on a short screen: _row_limit)
 const SHORT_SCREEN := 900.0  # Below this height the grow list shows 2 rows (1280 × 800), below LOW_SCREEN 1 (720)
-const LOW_SCREEN := 780.0
+const LOW_SCREEN := 820.0  # Counts the 12 px above Nurture: 1280 × 800 shows one row and "+N more"
 const SCROLL_BAR := 8.0  # The info part's scroll bar takes this much width when it shows
 var _built_limit := MAX_ROWS  # The row limit the panel was last built with (a resize past SHORT_SCREEN rebuilds)
 const LOCKED_FORM_TIP := WardenHeaderView.LOCKED_FORM_TIP  # A locked form's Grow tooltip
@@ -340,6 +340,7 @@ func _refresh() -> void:
 			# in place, 1–4 pick, Esc / R close. (The Heartwood Sapling's ranks only raise its yield: the
 			# button nurtures at once.)
 			if not _choosing or not _tower.needs_focus():
+				_nurture_gap()  # Apart from the grow rows (user: "a little separation")
 				var nurture := _add_button("")
 				_as_choice(nurture)  # The same weight as the grow rows (no primary)
 				nurture.set_meta(&"key", " (R)")
@@ -488,6 +489,7 @@ func _refresh_group() -> void:
 					rank_options.append(which)
 	if not rank_options.is_empty() and not _choosing:
 		var nurturable := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_nurture())
+		_nurture_gap()
 		var open := _add_button("")
 		_as_choice(open)
 		open.set_meta(&"key", " (R)")
@@ -1136,6 +1138,20 @@ func _key_on(button: Button, key: String) -> void:
 	button.draw.connect(func() -> void:
 		if is_instance_valid(chip):
 			chip.visible = button.text == button.get_meta(&"keyed_text", ""))
+
+# The space above Nurture (user: "add a little separation between the nurture button and the grow into buttons"):
+# 12 px with a faint Mist rule in its middle (no sprout); the same with no grow rows (a Sprout before its pick).
+const NURTURE_GAP := 12.0
+
+func _nurture_gap() -> void:
+	var gap := Control.new()
+	gap.name = "NurtureGap"
+	gap.custom_minimum_size.y = NURTURE_GAP
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gap.draw.connect(func() -> void:
+		var y := floorf(gap.size.y / 2.0) + 0.5
+		gap.draw_line(Vector2(4, y), Vector2(gap.size.x - 4, y), Color(UiStyle.MOON_MIST, 0.15), 1.0))
+	_buttons.add_child(gap)
 
 # A small gap in the actions column.
 func _gap(height: float) -> void:
