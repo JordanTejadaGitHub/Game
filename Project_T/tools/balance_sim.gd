@@ -88,6 +88,14 @@ var route_open := -1  # Route length in full cells after the opening spend, and 
 var route_base := -1  # The empty map's route in full cells, before the opening spend (the corridor rule alone)
 var old_growth := false  # --old-growth: DreamState's growth prices from before f9fd8526 (branch / final ×1.0, ranks 25/40/60/90/135), the A/B
 var node_sets := []  # --set=%Node.prop=value (repeatable): an export on a scene-unique node, set after _ready (e.g. %TowerPlacer.copy_cost_step=0)
+var start_at := 0  # --start-at=51|76 (balance_simulation.md "Acts 3–4 coverage"): skip to that rest with a typical holding (_synthetic_start), build there, play on
+var start_dreamlight := -1  # --start-dreamlight=N: override the human-run mean (START_DREAMLIGHT)
+var start_leaves := -1  # --start-leaves=N: override START_LEAVES
+var start_dew := 0  # What _synthetic_start gave (start_dew column)
+var start_dl := -1  # Dreamlight earned by the start (start_dreamlight column)
+const START_DREAMLIGHT := {51: 9, 76: 20}  # Mean Dreamlight earned by that drift in the human run history (non-dev runs, 2026-10-05; runs past it prorated by drift)
+const START_LEAVES := {51: 10, 76: 8}  # Of 15 (Balancing 584f9521)
+const START_POT_SHARE := 0.9  # Share of each skipped drift's Dew pot a typical player catches
 var grow_count := 0  # Growth purchases (balance_simulation.md growth costs A/B): all, and as drift 25 starts
 var grows_25 := -1
 var first_grow := -1  # The drift of the first growth into a tier 2+ form
@@ -170,6 +178,9 @@ func _run() -> void:
 			"--no-pair-search": pair_search = false
 			"--old-growth": old_growth = true
 			"--set": node_sets.append(arg.substr(arg.find("=") + 1))
+			"--start-at": start_at = int(value)
+			"--start-dreamlight": start_dreamlight = int(value)
+			"--start-leaves": start_leaves = int(value)
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
@@ -281,7 +292,9 @@ func _run() -> void:
 	_new_window()
 	_last_dew = run_state.dew
 	route_base = _route_cells(map.get_path_from(map.startPath))
-	_spend()  # The opening
+	if start_at > 1:
+		_synthetic_start()
+	_spend()  # The opening (with --start-at: the whole board, built in that one rest)
 	route_open = _route_cells(map.get_path_from(map.startPath))
 	Engine.time_scale = speed
 	var frames := 0
@@ -392,6 +405,49 @@ func _on_rest(perfect: bool) -> void:
 	_busy = false
 
 # --- Spending ------------------------------------------------------------------------------------------
+
+# --start-at (balance_simulation.md 584f9521 "Acts 3–4 coverage"): the run as a typical player would hold it at the rest
+# before `start_at`. Walks the skipped drifts with the director's counters set to each: the first family pick, a Dream
+# offer per rest by the bot's normal logic (boss rests Rare+: make_offer), the boss family picks; Dew = what the run
+# already has (starting Dew, Grove) + each skipped drift's pot × its multiplier × START_POT_SHARE + each base rest bonus;
+# Dreamlight topped up to the human-run mean; leaves set to START_LEAVES. The opening _spend() then builds the board.
+func _synthetic_start() -> void:
+	var rest_drift := start_at - 1
+	if rest_drift % director.drifts_per_block != 0 or rest_drift >= director.get_total_drifts():
+		printerr("--start-at=%d: must be one past a rest (51, 76, …)" % start_at)
+		quit(1)
+		return
+	var dew := float(run_state.dew)
+	for r in range(1, start_at):
+		director.drifts_started = r
+		director.drifts_cleared = r
+		if r == 1:
+			_pick_family_now(&"first")
+		dew += director.get_dew_pot(r) * director.get_dew_pot_multiplier(r, false, false) * START_POT_SHARE
+		if r % director.drifts_per_block == 0:
+			if director.is_boss_drift(r):
+				_pick_family_now(&"boss")
+			dew += director.get_rest_bonus(director.get_block(r))
+			policy.rest(r, true)
+	director.blocks_rested = rest_drift / director.drifts_per_block
+	var target: int = start_dreamlight if start_dreamlight >= 0 else int(START_DREAMLIGHT.get(start_at, 0))
+	var earned := 0
+	for amount in dreamlight_by_source.values():
+		earned += int(amount)
+	if target > earned:
+		dreams.add_dreamlight(target - earned, &"start_at")
+	start_dl = maxi(target, earned)
+	policy.spend_dreamlight()
+	run_state.dew = roundi(dew)
+	start_dew = run_state.dew
+	run_state.leaves = mini(start_leaves if start_leaves >= 0 else int(START_LEAVES.get(start_at, run_state.max_leaves)), run_state.max_leaves)
+	director.act_started.emit(director.get_act(start_at), 0)  # The act's look (Seasons) and HUD
+
+func _pick_family_now(kind: StringName) -> void:
+	if forced_families.is_empty():
+		policy.family_pick(kind)
+	else:
+		_forced_family_pick(kind)
 
 func _spend() -> void:
 	for guard in 60:
@@ -985,6 +1041,10 @@ func _finish() -> void:
 	summary.grows_25 = grows_25
 	summary.first_grow = first_grow
 	summary.sets = ";".join(node_sets)
+	summary.start_at = start_at  # 0 = a full run; never mix these rows with full runs
+	summary.start_dew = start_dew
+	summary.start_dreamlight = start_dl
+	summary.start_leaves = START_LEAVES.get(start_at, -1) if start_leaves < 0 else start_leaves
 	summary.growth_costs = "%s/%s/%s/%s" % [dreams.get("branch_cost_multiplier"), dreams.get("final_cost_multiplier"), dreams.get("ascended_cost_multiplier"), dreams.get("rank_costs")]
 	summary.route_open = route_open
 	summary.route_24 = route_at.get(24, -1)
