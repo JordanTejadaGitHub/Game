@@ -153,12 +153,13 @@ own full finale.
 
 - **The Hollow Oak finale** (`mus_boss_oak_*`, its own full track): deep wooden drums and a hummed
   drone, the act 4 bells, the Hollow form of the motif at its heaviest. Below 50 % the warm
-  counter-melody enters **in full choir**. When it falls: hard stop, the boss dispel bloom, then the
+  counter-melody enters **in full choir**. When it falls: **the turn** (see Transitions), the boss dispel bloom, then the
   **Hope form** of the motif played whole, the only time the game plays it at full length, into the
   win.
 
 ### Transitions
 
+- **Never dead air, never a cut-off** (2026-10-04, user: "the music cuts off and changes at weird parts"). No silence longer than a beat anywhere in the score or the marketing cues; a quiet moment is a held note or a drone, never nothing. Every change of section is **prepared**: the next section's sound (a note, a swell, its instrument) enters before the change, and the outgoing section's tail rings into it. Hits mark a change; they don't stop the music.
 - **Crossfades land on bar lines** (rest, drift and boss all use 2.5 s or 3 s bars; crossfade over one
   bar of the outgoing piece).
 - **Drift → rest:** on the **last dispel of the block**, the dread layers fall away within a bar, the
@@ -166,8 +167,8 @@ own full finale.
 - **Rest → drift:** on Start, the rest finishes its bar, then the drift base enters on the next bar.
 - **Drift → boss:** when the boss drift starts, the boss drums enter on the next bar line under the
   last drift layers, then the full theme.
-- **Boss dispelled:** a hard stop, the boss dispel sound, then the **Hope form** of the motif (2–4
-  bars) in the act's warm lead, then the rest. A boss that **reaches the Heartwood** (act bosses take
+- **Boss dispelled: the turn, never a stop** (2026-10-04, user: "the music cuts off and changes at weird parts"). On the dispel the drums fall away, but the **boss bass keeps sounding**: its Hollow-form A♭ **rises a half step to A**, the cold motif healing into the warm one, under the boss dispel bloom's ringing tail; the **Hope form** of the motif (2–4
+  bars) grows out of that held A in the act's warm lead, then the rest. One continuous breath, no dead air. A boss that **reaches the Heartwood** (act bosses take
   their bite and leave) cuts the drums for a bar on the bite, then the theme returns, colder (warm layer off).
 - **Act break:** the act_started swell, then the next act's rest piece.
 - **Loss:** the loss stinger; **win:** the Oak finale's Hope form, then the win stinger.
@@ -211,18 +212,18 @@ grid, same tempo; every hit is a bar downbeat.
 | Bars (time) | Picture | Music |
 |---|---|---|
 | 1–2 (0–5 s) | maze built, Warden snaps | the motif alone on music box, soft and warm; a felt pulse on each beat (the snaps sit on it) |
-| 3–4 (5–10 s) | Shade close-up (to 8.5), then the drift | **near-silence**: one cold low note (the Hollow form's A♭ in bowed bass); **hit at 7.5 s** (bar 4) = the dispel bloom; the pulse returns under the drift walk |
+| 3–4 (5–10 s) | Shade close-up (to 8.5), then the drift | **hushed, never silent**: one held cold low note (the Hollow form's A♭ in bowed bass); **hit at 7.5 s** (bar 4) = the dispel bloom; the pulse returns under the drift walk |
 | 5–6 (10–15 s) | the drift walks the maze | quarters pulse, dread1's drone underneath |
 | 7–10 (15–25 s) | Thunderclaps | building: low toms, then the frame drum; **hit at 20 s** (bar 9) = a warm boom + far thunder roll |
 | 11–14 (25–35 s) | chain lightning to ×10 | the storm drive at full: eighth-note figures, the bass climbing; **hit at 30 s** (bar 13) = **the Dawnburst, the loudest moment**, then the drive rides it out for a bar and thins |
 | 15–16 (35–40 s) | the Dream pick | **a breath**: the rest piece's harp and the motif's warm form, no percussion |
 | 17–19 (40–47.5 s) | a Warden grows Sprout → Ascended | rising tiers: each grow lands on a bar with a bigger swell of warm material; the Ascended step gets the **Final Bloom** harp strum and the crown choir swell |
 | 20–24 (47.5–60 s) | bosses: Night Mare, Oak, the Stag | the **act 1 boss theme**, bass an octave lower, the Hollow form: the Night Mare's gallop, then the Oak's drums, then the Stag's horn call, building to bar 24 |
-| 25 (60 s) | **the Stag dispelled** | **hard stop on the downbeat**: the boss dispel bloom, then half a bar of near-silence |
+| 25 (60 s) | **the Stag dispelled** | **the turn, no silence** (third trailer note: the old hard stop read as "cutting off"): the drums fall away on the downbeat, the boss dispel bloom lands with a **long ringing tail** (a deep, held warm swell + reverb; low, no chime), and the bowed bass's Hollow-form **A♭ rises to A** under it, the cold turning warm. The Grove's Hope form starts inside that tail |
 | 25–28 (60–70 s) | the Memory Grove grows | out of the stop, **the warm peak**: the Hope form (D–A–F♯) in harp and music box, rising in a slow swell with the hummed choir and strings, fuller each bar; not as loud as the Dawnburst, but the most beautiful moment |
 | 29–30 (70–75 s) | logo, Wishlist | the **end-card button** (Hope form) resolving into **one held warm D major chord** to the end |
 
-Hits (Sound Code's `TRAILER_HITS`): 7.5 · 20 · **30** (Dawnburst) · **60** (hard stop, the Stag dispelled) ·
+Hits (Sound Code's `TRAILER_HITS`): 7.5 · 20 · **30** (Dawnburst) · **60** (the turn: the Stag dispelled, ringing into the Grove) ·
 70 (button + chord). (v1: Dawnburst at 65, the stop at 52.5.)
 
 ### 2. Short beds (9:16, ~15–35 s)
@@ -241,7 +242,7 @@ The cut lists' hits don't fall on bars, so each bed is **rendered per short** to
 | **Build** | warm, steady pulse, rising as the maze grows | short 1 (28 s): snaps from 2.0 as a soft pulse, Sporelings 9.0, **main hit 12.0** (drift starts), push-in 14.0, follow 16.5. Short 4 (22 s): drift 1.0, **main hit 6.0** (the ridge rises), follow 12.0 |
 | **Storm** | tension into a hit on the chain | short 2 (24 s): drift 0.5, crowd 8.5, **main hit ~10.7** (×22 + Dawnburst). If the ~2.5 s slow motion stays, hold a suspended swell from 10.5 to 13.0 and land the hit as it ends |
 | **Boss** | the act 1 boss theme + the Stag's signature | short 3 (30 s): dossier 0.2–2.3 (a held low drone under it), the Stag 2.5 (drums in), **main hit ~27.0** (dispelled; ±0.6 s, so render after the final dry run) = the boss dispel bloom + Hope form |
-| **Close call** | the heartbeat thinning to near-silence, one release | short 5 (~19 s): "one leaf left" 0.0 (the heartbeat alone), Husk 1.0 (dread1 under it), jump cut 9.0 (a hard cut in the bed too: a bar of near-silence), **main hit ~16.3** = the release (the dispel bloom, then the button) |
+| **Close call** | the heartbeat thinning to near-silence, one release | short 5 (~19 s): "one leaf left" 0.0 (the heartbeat alone), Husk 1.0 (dread1 under it), jump cut 9.0 (the bed drops to the heartbeat alone for a bar, never silence), **main hit ~16.3** = the release (the dispel bloom, then the button) |
 
 ### 3. Video 0 ("why I made this", 34 s, voice mix only)
 
