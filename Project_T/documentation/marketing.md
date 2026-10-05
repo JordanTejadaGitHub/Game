@@ -35,6 +35,13 @@ page points to the Steam page.
 
 ## 2. Order of work
 
+0. **First fans, one by one (start now, alongside everything below).** From "Why Indie Game Marketing Doesn't Work"
+   (Indie Game Marketing Tips, 2025): channels and influencers amplify an audience you already have; they don't create
+   the first one. So find the niche early and talk to players directly: maze-TD players (people who loved the Warcraft 3
+   maze maps, Legion TD 2 and Element TD players), r/TowerDefense and r/roguelites (within each sub's rules), and a small
+   **Discord** for the game. Invite a handful to **playtest the demo** (Steam Playtest or a private build), ask what they'd
+   change, and iterate. These first fans become the word of mouth that makes the later steps work.
+
 1. **Steam page** (before any push for views; wishlists only count once it exists): capsule art (Theme Asset, open
    item), the short description, 5–8 screenshots, the trailer, tags. Status and the tag list: §6 "Steam page checklist".
 2. **Shorts and TikToks**: 3–4 a week, from the shot list below. **The first video is the developer's "why I made
