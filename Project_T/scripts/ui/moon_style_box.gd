@@ -36,6 +36,8 @@ const UNDERLINE_INSET := 14.0
 	set(v): frame_color = v; emit_changed()
 @export var shadow_size := 0:  # Cards: a soft drop shadow
 	set(v): shadow_size = v; _changed()
+@export var shadow_color := Color(0, 0, 0, 0):  # The shadow's colour (a selected slot's outer Gold glow); clear = dark Void
+	set(v): shadow_color = v; _changed()
 
 var _base: StyleBoxFlat
 static var _radial: GradientTexture2D
@@ -53,7 +55,7 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 		_base.set_corner_radius_all(corner_radius)
 		_base.anti_aliasing = corner_radius > 0
 		if shadow_size > 0:
-			_base.shadow_color = Color(UiStyle.FOG, 0.45)
+			_base.shadow_color = shadow_color if shadow_color.a > 0.0 else Color(UiStyle.FOG, 0.45)
 			_base.shadow_size = shadow_size
 			_base.shadow_offset = Vector2(0, shadow_size * 0.6)
 	_base.draw(to_canvas_item, rect)

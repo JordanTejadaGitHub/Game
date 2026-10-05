@@ -26,11 +26,12 @@ const LIVE := Color("d4ec9c")  # Newleaf: live bonuses, rewards
 const OFF := Color("8c8cac")  # Stone: a bonus that is off right now
 const MOONLIGHT := Color("dce8f4")  # Moonlight: the pale disc under nightmare portraits
 const MOON_MIST := Color("b4b0c8")  # Mist: the disc's outer ring
+const SLATE := Color("5c5a78")  # Slate: a Warden slot you can't afford (its border)
 const RARITY := [Color("b4b0c8"), Color("9cc46c"), Color("9cd4fc"), Color("e9a83c")]  # Mist, Sprig, Dewlight, Gold
 const PALETTE_NAMES := {"INK": "Heartlight", "INK_DIM": "Mist", "GOLD": "Glow", "BUTTON_GOLD": "Gold",
 	"GOLD_TEXT": "Heartlight", "WHISPER": "Moonpath", "POOR": "Ember", "FOG": "Void", "CARD_BG": "Night",
 	"BOSS": "Wraithlight", "LIVE": "Newleaf", "OFF": "Stone",
-	"MOONLIGHT": "Moonlight", "MOON_MIST": "Mist"}
+	"MOONLIGHT": "Moonlight", "MOON_MIST": "Mist", "SLATE": "Slate"}
 const RARITY_NAMES := ["Mist", "Sprig", "Dewlight", "Gold"]
 const DISABLED_ALPHA := 0.45
 const UNAFFORDABLE_ALPHA := 0.5
@@ -395,27 +396,44 @@ static func card(colour: Color, hover: bool = false) -> MoonStyleBox:
 	return box
 
 # A Warden bar slot: a fog patch, and the glowing gold underline when selected.
-# The light pass (UI Asset's final tokens, 2026-10-05; the user: "calmer, more transparent"): no box, a
-# fog tile of Void .35 → .08. Hovered: a 1 px Gold inset at .35. Selected: a darker tile (.55 → .20), a
-# 1 px Gold inset at .6 and the 2 px Glow underline with its glow.
-static func slot(selected: bool, hover: bool = false) -> MoonStyleBox:
+# Tower bar with borders (the user, 2026-10-05: "add borders to towers to make them more visible";
+# UI Asset's spec, including the fix for slots vanishing over the bright path): a fog tile of Void .78 at
+# the centre → .60 at the rim, 3 px radius, a 1 px Gold border at .45. Hovered: the border at .70.
+# Selected: a solid Gold border, an Ember glow inside (~.30), a faint outer Gold glow (~.18) and the
+# Glow underline. Short on Dew (slot_short): the border in Slate at .80, the tile unchanged.
+static func slot(selected: bool, hover: bool = false, short: bool = false) -> MoonStyleBox:
 	var box := fog_patch(4.0, 4.0)
-	box.center_alpha = 0.55 if selected else 0.35
-	box.edge_alpha = 0.2 if selected else 0.08
-	box.corner_radius = 2
+	box.corner_radius = 3
+	box.edge_alpha = 0.6
+	box.center_alpha = 0.78
 	if selected:
-		box.frame_color = Color(BUTTON_GOLD, 0.6)
-	elif hover:
-		box.frame_color = Color(BUTTON_GOLD, 0.35)
+		box.glow_color = PRIMARY_GLOW  # Ember, ~.30 over the rim's fog
+		box.center_alpha = 1.0 - (1.0 - 0.3) * (1.0 - box.edge_alpha)
+		box.frame_color = BUTTON_GOLD
+		box.shadow_color = Color(BUTTON_GOLD, 0.18)
+		box.shadow_size = 6
+	elif short:
+		box.frame_color = Color(SLATE, 0.8)
+	else:
+		box.frame_color = Color(BUTTON_GOLD, 0.7 if hover else 0.45)
 	box.underline = selected
 	return box
 
-# The Warden bar's backing panel (calmer than other panels): Void .55 in the middle → .18 at the rim,
+# Marks a Warden slot short on Dew without disabling it (a press still refuses with a shake): the Slate
+# border in its resting and hovered states; false puts the theme's boxes back.
+static func slot_short(button: Button, short: bool) -> void:
+	for state in ["normal", "hover", "disabled"]:
+		if short:
+			button.add_theme_stylebox_override(state, slot(false, false, true))
+		else:
+			button.remove_theme_stylebox_override(state)
+
+# The band under the Warden bar (calmer than other panels): Void .70 in the middle → .20 at the rim,
 # the thread at .6 and no mark. For the PanelContainer behind %TowerBar.
 static func bar_panel() -> MoonStyleBox:
 	var box := panel(10.0, 6.0)
-	box.center_alpha = 0.55
-	box.edge_alpha = 0.18
+	box.center_alpha = 0.7
+	box.edge_alpha = 0.2
 	box.thread_color = Color(GOLD, 0.6)
 	box.diamond = false
 	return box
@@ -904,7 +922,7 @@ static func make_theme() -> Theme:
 	# Warden bar slot (the light pass, 2026-10-05: "calmer, more transparent"): a soft fog patch, the
 	# glowing gold underline when selected, no frame (UiStyle.slot).
 	theme.set_type_variation("WardenSlot", "Button")
-	var slot_boxes := [slot(false), slot(false, true), slot(true), slot(true, true), slot(false)]
+	var slot_boxes := [slot(false), slot(false, true), slot(true), slot(true, true), slot(false, false, true)]
 	for i in 5:
 		theme.set_stylebox(["normal", "hover", "pressed", "hover_pressed", "disabled"][i], "WardenSlot", slot_boxes[i])
 	theme.set_stylebox("focus", "WardenSlot", StyleBoxEmpty.new())
@@ -912,6 +930,10 @@ static func make_theme() -> Theme:
 	theme.set_font_size("font_size", "WardenSlot", 13)  # The cost: 12.5 px Glow at .8 (rounded to 13)
 	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
 		theme.set_color(state, "WardenSlot", Color(GOLD, 0.8))
+	# Slot text (cost, hotkey, "Clear") keeps a 1 px Void shadow so it reads over the bright path.
+	theme.set_color("font_shadow_color", "WardenSlot", Color(FOG, 0.8))
+	theme.set_constant("shadow_offset_x", "WardenSlot", 1)
+	theme.set_constant("shadow_offset_y", "WardenSlot", 1)
 
 	# HUD buttons (top-right row, drift controls): compact, HUD_BUTTON_H tall, small caps at
 	# HUD_TEXT_SIZE, the thin frame. HudPrimary is the same size in the call-to-action look (Start).

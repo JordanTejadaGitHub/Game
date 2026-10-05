@@ -372,9 +372,14 @@ func _run() -> void:
 	var slot_button := bar.get_child(0) as Button
 	var slot_box := slot_button.get_theme_stylebox("normal") as MoonStyleBox
 	var slot_selected := slot_button.get_theme_stylebox("pressed") as MoonStyleBox
-	_check(slot_box != null and slot_box.center_alpha <= 0.4 and slot_box.edge_alpha <= 0.1 and slot_selected != null
-		and slot_selected.underline and slot_selected.frame_color.a > 0.5,
-		"Warden slots are a calm fog tile; selected = a gold inset + the underline")
+	_check(slot_box != null and slot_box.frame_color.a >= 0.4 and slot_box.center_alpha >= 0.7 and slot_selected != null
+		and slot_selected.underline and slot_selected.frame_color.a > 0.95,
+		"Warden slots are bordered fog tiles (visible over the path); selected = solid gold border + underline")
+	UiStyle.slot_short(slot_button, true)
+	var short_box := slot_button.get_theme_stylebox("normal") as MoonStyleBox
+	_check(short_box != null and short_box.frame_color.is_equal_approx(Color(UiStyle.SLATE, 0.8)) and not slot_button.disabled,
+		"slot_short gives a Slate border without disabling the slot")
+	UiStyle.slot_short(slot_button, false)
 	bar_dreams.unlock_everything = was_everything
 	bar_dreams.unlocks_changed.emit()
 	await _frames(2)
