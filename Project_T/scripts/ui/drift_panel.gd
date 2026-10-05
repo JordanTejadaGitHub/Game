@@ -73,6 +73,7 @@ func _ready() -> void:
 	_status_label.add_theme_constant_override("outline_size", 5)
 	_status_label.add_theme_font_size_override("font_size", 15)
 	_status_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	_status_label.mouse_filter = Control.MOUSE_FILTER_PASS  # Its tooltip: the next drift's Dew pot
 	status_row.add_child(_status_label)
 	var edge := Control.new()  # A little room between the status text and the panel's right edge
 	edge.custom_minimum_size = Vector2(6, 0)
@@ -162,8 +163,9 @@ func _process(_delta: float) -> void:
 		_status_label.text = "The last drift is walking"
 		_start_button.text = "Final drift"
 	elif drift_director.is_resting():
-		_status_label.text = "Resting · %d%% refunds · Drift %d: %d Dew" % [roundi(tower_seller.build_phase_refund * 100), next,
-			roundi(drift_director.get_effective_pot(next))]  # The Dew pot (run_design.md)
+		# Light pass (user-approved): "Resting, 75% refunds"; the drift's Dew pot (run_design.md) moved to the tooltip.
+		_status_label.text = "Resting, %d%% refunds" % roundi(tower_seller.build_phase_refund * 100)
+		_status_label.tooltip_text = "Drift %d pays %d Dew, shared among its nightmares." % [next, roundi(drift_director.get_effective_pot(next))]
 		var boss := " · boss" if drift_director.is_boss_drift(next) else ""
 		_start_button.text = "Start drift %d%s (Enter)" % [next, boss]
 	elif drift_director.can_start_next_drift():
