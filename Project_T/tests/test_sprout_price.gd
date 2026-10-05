@@ -88,7 +88,7 @@ func _check(condition: bool, label: String) -> void:
 
 # Three open cells side by side, away from the route.
 func _row_of_three(map, placer: TowerPlacer) -> Array:
-	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var route: PackedVector2Array = Tower.route_cells(map.get_path_from(map.startPath))  # Whole cells (half-cell routes)
 	for y in Tower.MAP_GRID.size.y:
 		for x in Tower.MAP_GRID.size.x - 2:
 			var row := [Vector2(x, y), Vector2(x + 1, y), Vector2(x + 2, y)]
@@ -98,7 +98,7 @@ func _row_of_three(map, placer: TowerPlacer) -> Array:
 	return []
 
 func _build(placer: TowerPlacer, map, data: TowerData) -> Tower:
-	var path: PackedVector2Array = map.get_path_from(map.startPath)
+	var path: PackedVector2Array = Tower.route_cells(map.get_path_from(map.startPath))  # Whole cells (half-cell routes)
 	var container: Node = placer.tower_container
 	for i in range(6, path.size() - 3):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
