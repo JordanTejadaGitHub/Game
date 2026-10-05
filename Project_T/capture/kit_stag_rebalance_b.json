@@ -1,0 +1,19 @@
+{
+	"title": "Kit: Stag rebalance, after",
+	"note": "Editor kit (problem and fix): the re-tuned Stag board (short 3s layout, 14 Sporelings rank 4 + 6 Dewdrops rank 1, tuned on main b8eb7875). The Stag is dispelled ~5 cells from the Heartwood at ~33.4 s. Whole board in view, 16:9, no HUD. Pairs with kit_stag_rebalance_a.",
+	"seed": 4242,
+	"size": [1920, 1080],
+	"drift": 25,
+	"dew": 99999,
+	"obstacles": "edge",
+	"families": ["sporeling", "dewdrop"],
+	"hud": "none",
+	"length": 38.0,
+	"timeline": [
+		{"t": 0.0, "plant_each": 0.05, "count": 14, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 14, "plant": "sporeling", "auto": "cover", "rank": 4, "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 6, "plant": "dewdrop", "auto": "cover", "rank": 1, "tag": false},
+		{"t": 2.5, "spawn": "old_stag"},
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 1.0}
+	]
+}
