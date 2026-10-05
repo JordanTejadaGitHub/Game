@@ -26,12 +26,11 @@ const LIVE := Color("d4ec9c")  # Newleaf: live bonuses, rewards
 const OFF := Color("8c8cac")  # Stone: a bonus that is off right now
 const MOONLIGHT := Color("dce8f4")  # Moonlight: the pale disc under nightmare portraits
 const MOON_MIST := Color("b4b0c8")  # Mist: the disc's outer ring
-const ROOT := Color("241c14")  # Root: dark ink on the warm primary button
 const RARITY := [Color("b4b0c8"), Color("9cc46c"), Color("9cd4fc"), Color("e9a83c")]  # Mist, Sprig, Dewlight, Gold
 const PALETTE_NAMES := {"INK": "Heartlight", "INK_DIM": "Mist", "GOLD": "Glow", "BUTTON_GOLD": "Gold",
 	"GOLD_TEXT": "Heartlight", "WHISPER": "Moonpath", "POOR": "Ember", "FOG": "Void", "CARD_BG": "Night",
 	"BOSS": "Wraithlight", "LIVE": "Newleaf", "OFF": "Stone",
-	"MOONLIGHT": "Moonlight", "MOON_MIST": "Mist", "ROOT": "Root"}
+	"MOONLIGHT": "Moonlight", "MOON_MIST": "Mist"}
 const RARITY_NAMES := ["Mist", "Sprig", "Dewlight", "Gold"]
 const DISABLED_ALPHA := 0.45
 const UNAFFORDABLE_ALPHA := 0.5
@@ -369,18 +368,24 @@ static func button_box(hover: bool = false) -> StyleBoxFlat:
 # Primary buttons (the panel's main action, Continue, Start): at rest only a solid gold outline on the
 # fog, never a fill (user, 2026-09-30: "still seems highlighted when I'm not hovering"); hovering fills
 # the whole box with the soft highlight, like every button.
-# The one warm primary per panel (the light pass, 2026-10-05): a filled Gold button with dark Root text,
-# toned down from the mock (the user: "less bright"): Gold darkened, a faint Glow rim, a soft glow.
-# Hover brightens it to plain Gold; a press darkens it.
-const PRIMARY_FILL := Color("e9a83c")  # Gold
-static func primary_box(hover: bool = false, pressed: bool = false) -> StyleBoxFlat:
-	var box := button_box()
-	box.bg_color = PRIMARY_FILL.darkened(0.36 if pressed else (0.1 if hover else 0.24))
-	box.border_color = Color(GOLD, 0.6 if hover else 0.35)
-	box.set_border_width_all(1)
-	box.set_corner_radius_all(3)
-	box.shadow_color = Color(GOLD, 0.0 if pressed else 0.14)
-	box.shadow_size = 7
+# The one primary per panel (the user, 2026-10-05: "Don't make the button solid gold"): the dark fog
+# fill like every button, but a warm 1 px Gold frame topped by the full thread with the Heartwood mark,
+# Glow text in the display face, and a soft Ember glow inside that brightens on hover. It stands out by
+# frame, text and glow, never by a fill. A press darkens it and drops the glow.
+const PRIMARY_GLOW := Color("b8662c")  # Ember
+static func primary_box(hover: bool = false, pressed: bool = false) -> MoonStyleBox:
+	var box := MoonStyleBox.new()
+	box.fog_color = FOG
+	box.edge_alpha = 0.7 if pressed else 0.55
+	box.glow_color = PRIMARY_GLOW
+	# The Ember glow over the fog: about 18% at rest, 32% on hover (centre = 1 - (1 - glow)(1 - edge)).
+	var glow := 0.0 if pressed else (0.32 if hover else 0.18)
+	box.center_alpha = 1.0 - (1.0 - glow) * (1.0 - box.edge_alpha)
+	box.corner_radius = 2
+	box.frame_color = GOLD if hover else Color(BUTTON_GOLD, 0.85)
+	box.thread = MoonStyleBox.TopLine.GOLD
+	box.thread_color = Color(GOLD, 0.9)
+	_margins(box, 14.0, 6.0)
 	return box
 
 # Selected vs hovered (screens_ui.md, playtest 2026-09-30: "First" selected and a hovered button looked
@@ -712,7 +717,7 @@ static func segmented(row: HBoxContainer) -> void:
 			button.add_theme_color_override(state, GOLD)
 
 # A small key chip ("Q", "R", "⏎") for rows and buttons: Mist on a dim outline; inside a primary
-# button it turns to dark Root ink by itself.
+# button it turns gold by itself, like the primary's text.
 static func key_chip(text: String) -> Label:
 	var chip := Label.new()
 	chip.text = text
@@ -734,9 +739,9 @@ static func key_chip(text: String) -> Label:
 		while up != null and not on_primary:
 			on_primary = up is Button and (up as Button).theme_type_variation in [&"PrimaryButton", &"HudPrimary"]
 			up = up.get_parent()
-		var ink := ROOT if on_primary else INK_DIM
+		var ink := GOLD if on_primary else INK_DIM
 		chip.add_theme_color_override("font_color", ink)
-		frame.border_color = Color(ink, 0.45 if on_primary else 0.35)
+		frame.border_color = Color(ink, 0.35)
 		chip.add_theme_stylebox_override("normal", frame)
 	chip.tree_entered.connect(paint)
 	paint.call()
@@ -782,9 +787,10 @@ static func make_theme() -> Theme:
 	var primary_press := primary_box(false, true)
 	var primary_hover := primary_box(true)
 	_button_styles(theme, "PrimaryButton", primary_box(), primary_hover, primary_press, primary_hover)
-	for state in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
-		theme.set_color(state, "PrimaryButton", ROOT)  # Dark ink on the warm fill
-	theme.set_color("font_disabled_color", "PrimaryButton", Color(ROOT, 0.6))
+	for state in ["font_color", "font_focus_color", "font_pressed_color"]:
+		theme.set_color(state, "PrimaryButton", GOLD)  # Glow text in the display face
+	for state in ["font_hover_color", "font_hover_pressed_color"]:
+		theme.set_color(state, "PrimaryButton", GOLD_TEXT)
 	# Check boxes / switches: no box, just the text (and the toggle's own icon).
 	for type in ["CheckBox", "CheckButton"]:
 		var empty := StyleBoxEmpty.new()
@@ -813,11 +819,15 @@ static func make_theme() -> Theme:
 	theme.set_type_variation("HudPrimary", "Button")
 	_button_styles(theme, "HudPrimary", _compact(primary_box()), _compact(primary_hover), _compact(primary_press),
 		_compact(primary_hover))
-	for state in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
-		theme.set_color(state, "HudPrimary", ROOT)
+	for state in ["font_color", "font_focus_color", "font_pressed_color"]:
+		theme.set_color(state, "HudPrimary", GOLD)
+	for state in ["font_hover_color", "font_hover_pressed_color"]:
+		theme.set_color(state, "HudPrimary", GOLD_TEXT)
 	for type in ["HudButton", "HudPrimary"]:
 		theme.set_font("font", type, caps_font())
 		theme.set_font_size("font_size", type, HUD_TEXT_SIZE)
+	theme.set_font("font", "HudPrimary", display_font())  # The primary speaks in the display face
+	theme.set_font_size("font_size", "HudPrimary", HUD_TEXT_SIZE + 2)
 
 	# Quiet buttons (the light pass): text only, Mist, Heartlight on hover; the padding keeps the hit
 	# area HUD_BUTTON_H tall (platforms.md touch). Sell, Close, Details ▸, Peek at the map.

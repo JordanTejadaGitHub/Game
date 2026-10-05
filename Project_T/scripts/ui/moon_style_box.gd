@@ -32,6 +32,8 @@ const UNDERLINE_INSET := 14.0
 	set(v): side_edges = v; emit_changed()
 @export var underline := false:  # Selected Warden bar slot: 2 px glowing gold line at the bottom
 	set(v): underline = v; emit_changed()
+@export var frame_color := Color(0, 0, 0, 0):  # A 1 px frame inside the rect (the primary button); clear = none
+	set(v): frame_color = v; emit_changed()
 @export var shadow_size := 0:  # Cards: a soft drop shadow
 	set(v): shadow_size = v; _changed()
 
@@ -66,6 +68,10 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 			Vector2(rect.position.x + 0.5, rect.end.y), edge)
 		rs.canvas_item_add_line(to_canvas_item, Vector2(rect.end.x - 0.5, rect.position.y),
 			Vector2(rect.end.x - 0.5, rect.end.y), edge)
+	if frame_color.a > 0.0:
+		var r := rect.grow(-0.5)
+		RenderingServer.canvas_item_add_polyline(to_canvas_item, PackedVector2Array([r.position, Vector2(r.end.x, r.position.y),
+			r.end, Vector2(r.position.x, r.end.y), r.position]), PackedColorArray([frame_color]), 1.0, false)
 	if underline:
 		var y := rect.end.y - 1.0
 		var inset := minf(UNDERLINE_INSET, rect.size.x * 0.18)  # Narrow slots keep most of the line

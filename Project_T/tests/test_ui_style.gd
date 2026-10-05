@@ -22,7 +22,10 @@ func _initialize() -> void:
 		"the project theme is %s" % UiStyle.THEME_PATH)
 	if saved != null:
 		_check(saved.get_color("font_color", "Label").is_equal_approx(UiStyle.INK), "the saved theme's text colour is INK (re-run the generator?)")
-		_check(saved.get_color("font_color", "PrimaryButton").is_equal_approx(UiStyle.ROOT), "primary buttons use dark Root ink on their warm fill")
+		_check(saved.get_color("font_color", "PrimaryButton").is_equal_approx(UiStyle.GOLD), "primary buttons speak in Glow text")
+		var primary := saved.get_stylebox("normal", "PrimaryButton") as MoonStyleBox
+		_check(primary != null and primary.frame_color.a > 0.5 and primary.thread == MoonStyleBox.TopLine.GOLD and primary.diamond
+			and primary.glow_color.is_equal_approx(UiStyle.PRIMARY_GLOW), "the primary is a gold frame + thread + mark with an Ember glow, not a fill")
 		var panel := saved.get_stylebox("panel", "PanelContainer") as MoonStyleBox
 		_check(panel != null and panel.fog_color.is_equal_approx(UiStyle.FOG), "panels are MoonStyleBoxes in FOG")
 		var button := saved.get_stylebox("normal", "Button") as StyleBoxFlat
@@ -124,7 +127,7 @@ static func _drawn_rect(control: Control) -> Rect2:
 static func _token(name: String) -> Color:
 	return {"INK": UiStyle.INK, "INK_DIM": UiStyle.INK_DIM, "GOLD": UiStyle.GOLD, "BUTTON_GOLD": UiStyle.BUTTON_GOLD,
 		"GOLD_TEXT": UiStyle.GOLD_TEXT, "WHISPER": UiStyle.WHISPER, "POOR": UiStyle.POOR, "FOG": UiStyle.FOG,
-		"CARD_BG": UiStyle.CARD_BG, "BOSS": UiStyle.BOSS, "LIVE": UiStyle.LIVE, "OFF": UiStyle.OFF, "MOONLIGHT": UiStyle.MOONLIGHT, "MOON_MIST": UiStyle.MOON_MIST, "ROOT": UiStyle.ROOT}[name]
+		"CARD_BG": UiStyle.CARD_BG, "BOSS": UiStyle.BOSS, "LIVE": UiStyle.LIVE, "OFF": UiStyle.OFF, "MOONLIGHT": UiStyle.MOONLIGHT, "MOON_MIST": UiStyle.MOON_MIST}[name]
 
 func _check(ok: bool, what: String) -> void:
 	if not ok:

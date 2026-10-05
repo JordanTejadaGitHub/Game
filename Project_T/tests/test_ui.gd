@@ -80,16 +80,16 @@ func _run() -> void:
 	main.get_node("HUD")._unhandled_input(v)
 	_check(not BuffLens.on and listener.get("calls") == [true, false], "and off again")
 	listener.queue_free()
-	# Selected vs hovered: plain buttons rest unfilled. The one warm primary per panel is filled (the
-	# light pass, user-approved 2026-10-05, toned down: "less bright"), and hover brightens it.
+	# Selected vs hovered: no button rests filled. The primary stands out by its gold frame, thread and an
+	# Ember glow inside (the user, 2026-10-05: "Don't make the button solid gold"), which hover brightens.
 	var theme := ThemeDB.get_project_theme()
 	var plain_rest := theme.get_stylebox("normal", "Button") as StyleBoxFlat
-	var primary_rest := theme.get_stylebox("normal", "PrimaryButton") as StyleBoxFlat
-	var primary_hover := theme.get_stylebox("hover", "PrimaryButton") as StyleBoxFlat
+	var primary_rest := theme.get_stylebox("normal", "PrimaryButton") as MoonStyleBox
+	var primary_hover := theme.get_stylebox("hover", "PrimaryButton") as MoonStyleBox
 	var focus := theme.get_stylebox("focus", "Button") as StyleBoxFlat
-	_check(plain_rest.bg_color.a < 0.7 and primary_rest.bg_color.a > 0.9 and primary_rest.bg_color != plain_rest.bg_color
-		and primary_hover.bg_color.v > primary_rest.bg_color.v and not focus.draw_center,
-		"plain buttons rest unfilled; the primary is a warm fill that brightens on hover; focus is an outline")
+	_check(plain_rest.bg_color.a < 0.7 and primary_rest != null and primary_rest.edge_alpha < 0.7 and primary_rest.frame_color.a > 0.5
+		and primary_hover.center_alpha > primary_rest.center_alpha and not focus.draw_center,
+		"buttons rest unfilled; the primary is a gold frame whose glow brightens on hover; focus is an outline")
 	# Seedling Gift: a seed badge with the count on the Sprout button, hidden at 0.
 	var hud_node = main.get_node("HUD")
 	_check(hud_node._seed_badge != null and not hud_node._seed_badge.visible, "no seed badge without free Sprouts")
