@@ -697,7 +697,7 @@ cards: crit cards grow hits, these grow effects (Spored, Static bolts, clouds, f
 | # | Card | Rarity | Effect | Tags | Needs | Pool |
 |---|---|---|---|---|---|---|
 | 109 | **Bitter Sap** | Common | all Wardens +8% Potency (stacks) | potency | — | Start |
-| 110 | **Seeping** | Uncommon | effects deal **+5% per status** the nightmare carries (max +30%) | potency, reaction | any 2 status families | Grove |
+| 110 | **Seeping** | Uncommon | effects deal **+8% per status** the nightmare carries (up to +40%; data) | potency, reaction | any 2 status families | Grove |
 | 111 | **Venom Bloom** | Uncommon, **Bittersweet** | all Wardens +30% Potency. **Cost:** hits do −15% damage | potency, bittersweet | — | Grove |
 | 112 | **Nightshade** | Legendary | effects deal **+20% damage for every status** the nightmare carries (**no cap**) | potency | — | Grove |
 
@@ -1256,7 +1256,7 @@ unless noted; family cards join through discovery as usual.
 | 220 | **Quick Step** | Common, stacks (max 3) | Tempo (tempo) | calling a drift early gives all Wardens **+10% attack speed for 10 s** | — |
 | 221 | **Hurried Harvest** | Uncommon | Tempo + economy (tempo, economy) | nightmares of a drift you **called early** give **+1 Dew** (cap 20 per drift) | — |
 | 222 | **Heartwood's Fury** | Uncommon | Last Leaf + Long Walk (leaves, maze) | Wardens within 4 cells of the Heartwood **+3% damage per missing leaf** (max +30%) | — |
-| 223 | **Thin Bark** | Uncommon, **Bittersweet** | Last Leaf (leaves) | all Wardens **+15% damage**. **Cost:** −3 max leaves (and lose them now) | act 2+ |
+| 223 | **Thin Bark** | Uncommon, **Bittersweet** | Last Leaf (leaves) | all Wardens **deal 35% more damage** (data; power pass). **Cost:** −3 max leaves (and lose them now) | act 2+ |
 | 224 | **Patchwork** | Common | Menagerie (variety) | **+3% damage per family you own** (max +12%) | — |
 | 225 | **Mixed Grove** | Uncommon | Menagerie + maze (variety, maze) | a Warden touching a Warden of **another family** **+8% damage** (max +24%, one per neighbouring family) | 2 families |
 | 226 | **Live Wire** | Common, stacks (max 3) | Eternal Charge + Storm Grid (storm) | Charged bolts **+15%** | a Warden that applies Charged |
@@ -1512,6 +1512,48 @@ Why: a new account's first run can be offered most of the pool (123 base cards i
 - **Interaction with the trim's measurements:** tasters keep every card build discoverable on run
   one (Emergence), while the payoffs need the Grove (a build you choose to grow into, across runs).
   Re-measure with a fresh-profile preset (`MetaRun.load_preset(&"fresh")`) after the move.
+
+## Overlaps and names (2026-10-05, from the Dreams and Omens audit)
+
+The design hub's read-only audit (`text_pass.md` "Dreams and Omens audit", 797758fe; user: *"no
+overlap; clear on what they do"*) found overlapping cards and name clashes. Decided here:
+
+**Overlaps resolved** (each card keeps its id):
+
+| Card | Was | Now | Why |
+|---|---|---|---|
+| **Nightshade** (L) | effects +20% per status the nightmare carries | effects deal **double damage to nightmares carrying 4 or more statuses** | was a bigger Seeping; a Legendary starts a build (load 4 statuses) instead of enlarging an enhancer |
+| **Deep Sleep** (Bittersweet) | +40% damage; −4 max leaves | +40% damage; **cost: no rest bonus for the rest of the run** | same trade as Thin Bark; now an economy cost |
+| **Kind Canopy** | Wardens touching 3+ Wardens +20% | Wardens **touching an aura Warden** deal 20% more damage | same trigger as Rootbound; it's a support card |
+| **Last Stand** | +35% near the Heartwood **and** +3% per missing leaf | +35% near the Heartwood **only** (the merged Heartwood's Fury part is removed) | Last Leaf and Scarred Bark already scale with missing leaves |
+| **Patient Aim** | +15% damage per second not fired | **+10% crit chance per second not fired** (up to +40%) | overlapped Watchful Rest; crit suits its snipers |
+
+**Renames** (display names only; ids stay, so saves and code don't change):
+
+| Id | Old name | New name | Clash |
+|---|---|---|---|
+| `crowded_path` | Crowded Path | **In the Thick** | the Omen Crowded Paths |
+| `resonance` | Resonance | **Thunder Chimes** | the Resonance word on a Warden; also the removed "tag resonance" |
+| `restless_night` | Restless Night | **Impatient Night** | Restless Wind, the Restless nightmares |
+| `restless_dreams` | Restless Dreams | **Waking Dreams** | same |
+| `restless_roots` | Restless Roots | **Stirring Roots** | same |
+| `lucid_dream` | Remembered Path | **Borrowed Branch** | the Remember screen |
+| `kind_canopy` | Kind Canopy | **Sheltering Boughs** | Canopy |
+| `sprout_chorus` | Sprout Chorus | **Thicket** | Chorus |
+| `lullaby` | Lullaby | **Slow Waking** | the Lullaby Bell Warden |
+| `nursery` | Nursery | **Cradle** | the Spore Nursery Kinship |
+| `eye_of_the_tempest` | Eye of the Tempest | **Tempest's Reach** | Eye of the Storm |
+| `thorn_snare` | Thorn Snare | **Briar Trap** | the Snare Kinship |
+| `thick_bark` | Thick Bark | **Hardened Bark** | the Omen Thick Blight |
+| `quickening` | Quickening | **Hunt's Rush** | Quickened Sap |
+
+- Older sections of this doc keep the old names where they record history; this table is the
+  authority. Text that mentions a renamed card (e.g. a Deepened "II", an Entwined ingredient list)
+  follows the new name.
+- **Docs fixed:** Seeping (8% / up to 40%) and Thin Bark (35%) rows match the data. "Resonance" is no
+  longer ambiguous: tag Resonance was removed (2026-10-02), and the card is now Thunder Chimes.
+- Balancing Discussion checks the reworked Nightshade, Deep Sleep, Kind Canopy and Patient Aim
+  against their budgets.
 
 ## Strange Dreams: gamble cards (2026-10-05; cards 252–255)
 
