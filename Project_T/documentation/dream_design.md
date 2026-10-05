@@ -1603,6 +1603,42 @@ Family cards that change how a family plays stay (Root Web, Eddy, Twin Puff, Cho
 the combo cards). Balancing Code re-measures family cards per offer and plain stat cards per offer
 after the build.
 
+## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
+
+User (typed in Environment Discussion): *"make a card that makes walls 1x1 cell instead of the
+standard 4x4"*.
+
+On the half grid (`half_cells.md`), a Warden's footprint is 2×2 half cells, and nightmares fit
+through one-half gaps. So this card makes the **Thornwall** take a **single half cell (32 px)**.
+The player builds finer, twistier mazes in the same space.
+
+| # | Card | Rarity | Effect | Tags | Needs | Pool |
+|---|---|---|---|---|---|---|
+| 256 | **Twig Walls** | Rare | Thornwalls you plant take **one half cell** and cost **half** (rounded up, at least 1 Dew) | maze | — | Start |
+
+- **Text:** "Thornwalls you plant take a quarter of the space and cost half as much."
+- **New walls only.** Thornwalls already planted keep their 2×2 footprint; sell and replant to
+  change them. No reshaping of the map when the card is taken.
+- **Why half price:** a wall line two halves long has two small walls per big wall's length, so
+  half price keeps the cost per length of wall the same. The gain is finer turns, not cheaper
+  mazes.
+- **Same rules as any wall:** the route can't be closed; walls can't go on an occupied half; selling
+  and refunds go by Dew paid; it's saved with the run.
+- **With other Thornwall cards:**
+  - Weathered Walls: a twig wall costs 1 and can't be trampled.
+  - Hedge Maze counts a twig wall as half a Thornwall.
+  - Bitter Hedges and Hedgerow Roots work by touch as usual.
+  - Living Walls skips twig walls: a Bramble needs a full footprint.
+  - Thorn Snare / Briar Trap hold as usual.
+- **Balancing Discussion:** check route length with twig walls (the route can grow a lot), and say
+  whether it needs `min_act` 2 or a cap.
+- **Who builds it:**
+  - Roguelite Code: the card.
+  - Tower Code: a one-half footprint for the Thornwall under the card, covering the ghost snap,
+    blocking and refusal, sell and save.
+  - Tower Assets: a 32 px Thornwall sprite.
+  - Environment: no change; the path art already handles one-half pinches.
+
 ## Strange Dreams: gamble cards (2026-10-05; cards 252–255)
 
 For the Grove node **Strange Dreams** (Cards limb, 50 Seeds; user decision, `meta_design.md`
