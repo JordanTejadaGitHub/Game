@@ -326,7 +326,10 @@ func get_attack_origin() -> Vector2:
 static var grow_cost_multipliers := {2: 1.5, 3: 1.5, 4: 1.0}
 
 # Dew to grow into this form before Dream discounts: evolve_cost × its tier's multiplier. Every price read goes here.
+# The wall line (Thornwall's growths) keeps its price: walls are the maze, and "more maze early" is the point.
 func get_grow_price() -> int:
+	if line == "wall":
+		return evolve_cost
 	return roundi(evolve_cost * float(grow_cost_multipliers.get(tier, 1.0)))
 
 func get_sprite_offset() -> Vector2:
