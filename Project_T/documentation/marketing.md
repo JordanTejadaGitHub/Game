@@ -310,6 +310,22 @@ human artist replaces both.
   8. *Milestones*: Steam page live, demo out, Next Fest. Always post one.
   9. *A funny bug*: record it before fixing it.
 - **Length didn't matter** (15 s to 2 min all went viral). Trending sounds and CapCut memes rarely mattered.
+### vidIQ check (2026-10-04: YouTube Shorts "tower defense" outliers, last 6 months; TikTok + Reels indie-dev outliers since April)
+- **Winning hooks state the one unusual mechanic as a sentence on screen in the first second**: "In this game your best
+  loot isn't actually yours to keep" (1.1M), "A war game where you're not supposed to kill anyone" (54× the creator's
+  median), "This Tower Defense Has 1 Million Enemies On Screen" (39×), "Is this Scrabble meets Tower Defense?". For us:
+  *"In this tower defense, your towers are the maze."* / *"You build the path the enemies have to walk."*
+- **"I made this game because…"** opened a 130× outlier (an indie roguelite FPS), the same shape as Video 0.
+- **Split screen (the dev talking to camera + gameplay)** appears in several outliers ("I just published my first game
+  on Steam", 432× median). Worth testing once: the user on camera, the game below.
+- **Low-effort can work**: a 13 s gameplay clip with one line of text and lo-fi music ("help an aspiring indie dev",
+  36×) and a 12 s single-shot clip both broke out. Not everything needs a voiceover.
+- **Tower defense does travel on TikTok** when it's a clear, readable fight: clips of *Sir, We Have an Orc Problem* hit
+  45–99× their creators' medians with plain commentary over wave-by-wave planning.
+- Most outliers: fast cuts, dynamic captions, voice + music, about a day's work.
+- **Curators to pitch** once the Steam page is live (shorts channels featuring indie TD / roguelites): DimeByTheSword
+  ("This Tower Defense Has 1 Million Enemies On Screen", 14.6k subs, 260k views) and Indie Game Joe (69.6k subs).
+
 ### Bopl Battle's playbook (Johan Grönvall on Jonas Tyroller's podcast, "TikTok and Shorts Are Insane for Indie Devs", 2025)
 Shorts were the *only* marketing that worked for him (Reddit, YouTubers, even a big streamer barely showed on the
 wishlist graph); roughly all his wishlists came from his own shorts (~70k at launch, his estimate).
