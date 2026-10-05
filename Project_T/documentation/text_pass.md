@@ -55,3 +55,50 @@ Discussion (art_direction.md "Style references"); this file covers player-facing
 marketing.md:59 ("not just placing towers"), :60, :104-105 trailer cards and :112 Steam description: rewrite in the
 developer's own words, one concrete thing per line. **Done:** :59-60 VO (Short Form Video d3aec1ea), :112 Steam
 description (Marketing Discussion d3aec1ea / 9af99f70), :104-105 trailer cards (Trailer 302f7d7e).
+
+## Dreams and Omens audit (2026-10-05, user: "check all the Dreams and Omens, no overlap; text and glossary; clear on what they do")
+Read-only pass over 373 Dream cards, 9 Blessings and 27 Omens. Owners apply; the data wins for numbers.
+
+### Omens (decided here, run_design.md)
+- **Swift Stream** was a weaker Blood Moon: now **+40% speed on straights of 4+ cells** (a winding maze shrugs it off).
+- **Brittle Night** and **Leaf Fall** both double leaks: kept, but **never in the same offer**.
+- **Static Sky** → **Crackling Sky** (the status is Charged; "Static" is the old word).
+- run_design.md's stale "current values" line is replaced by "the data is authoritative"; Frozen Ground's rule
+  now matches the code (no selling during drifts).
+
+### Dream overlaps (Roguelite Mechanic Discussion decides; recommendation in brackets)
+- Seeping vs Nightshade: same "per status" effect [Nightshade becomes Seeping's Deepened III, or a new trigger].
+- Thin Bark vs Deep Sleep: same Bittersweet trade [give Deep Sleep a different cost, e.g. no rest bonus].
+- Kind Canopy vs Rootbound: same "touching 3+" trigger [Kind Canopy → touching an aura Warden].
+- Last Leaf / Scarred Bark / Last Stand: three "per missing leaf" scalers [drop Last Stand's leaf part].
+- Patient Aim vs Watchful Rest: both reward not firing [Patient Aim becomes crit-only].
+- Name clashes: card Crowded Path (vs Omen Crowded Paths), card Resonance (vs the Warden), three "Restless"
+  cards (vs Restless Wind / Restless Omens / the Restless nightmare), Remembered Path (the "remember" rule)
+  [rename all of them]. Near-twins to check: Canopy / Kind Canopy, Chorus / Sprout Chorus, Lullaby / Lullaby
+  Bell, Nursery / Spore Nursery, Eye of the Tempest / Eye of the Storm, Thorn Snare / Snare, Thick Bark /
+  Thick Blight, Quickening / Quickened Sap.
+
+### Numbers that drifted (Roguelite Code + Tower Code: read them from the data with tokens)
+dream_graftling, elder_stump, grandmother_oak, dewcatcher, wellspring, long_way_home, snugroot, monsoon,
+jewelwing_court, thunderhead, magpies_hoard, autumn_gale, puffball, dreamshroom, zephyr, gust, starcave all
+quote numbers that no longer match their Warden. Add a generic `{field:warden.x}` token so it can't happen
+again. Also: "free clears" that are half-price (dream_state.gd ~4463); Elite "2× Dew" vs the glossary's 3×
+(say "a triple share of the Dew").
+
+### Glossary (Main Merger: icon_info.gd / codex_data.gd)
+- Focus values stale (Power 18%, Swift 12%, Reach +0.3, Deep +25% Potency); Rank range "I–V" (now VII+).
+- Missing entries: Leak, Sprout, Area attack, Effect, Aura, Eldest, Harvest / interest, Blooming / Old Kin.
+- Old words in card text: held / hold (Rooted), Marks (Exposed), frozen / soak / dread shells / Charges
+  without links; "Chain 10" vs "×10 chain" (pick "Chain 10"); shard caps (say each cap separately).
+- Typo: "Magpie Perchs".
+
+### Clarity rewrites (Roguelite Code; the audit's lines are the starting point)
+dry_spell, burrowers, blood_moon / bountiful_night ("each drift's pot holds 40% / 50% more Dew"),
+crackling_sky / heavy_rain (say "at least 1 stack, kept topped up"), canopy, bramble_oath, heart_of_the_maze,
+hunters_patience and reclaimed_earth (split into one effect per line), heartwoods_reach, quick_step,
+thousand_cuts, overflowing_well, golden_harvest / hollow_ground / eddy / hairpin_winds (name the exact thing),
+great_bell, wild_dew. Rule: one effect per line, every number stated, every term linked, say when a reward pays.
+
+### Docs (owners)
+dream_design.md Seeping / Thin Bark numbers and the Resonance contradiction (Roguelite Mechanic Discussion);
+CLAUDE.md INTEREST_CAP 80 → 120 and the boss bite 10 / 10 / 12 (Main Merger, with the user's OK).
