@@ -154,7 +154,7 @@ func _build(won: bool) -> void:
 	seeds.add_child(total)
 	if not is_demo():
 		_label(box, "%d in the bank" % banked, 14, UiStyle.INK_DIM).name = "SeedsBanked"
-	if not_banked:
+	if not_banked and not CaptureDirector.capturing():  # Captures force Test Grove: no dev line on screen
 		_label(box, "%s: nothing was banked." % ("Test Grove" if TestGrove.is_active() else "Developer run"), 15,
 			UiStyle.GOLD)
 	if is_demo():

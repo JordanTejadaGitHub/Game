@@ -152,7 +152,7 @@ func open(focus_form: TowerData = null) -> void:
 	if focus != null:
 		_tab_root = _root_of(focus)
 	_layout_for_screen()
-	_dev_free.visible = DreamState.dev_tools_on()
+	_dev_free.visible = DreamState.dev_tools_on() and not CaptureDirector.capturing()  # Never in marketing captures
 	if not _dev_free.visible:
 		_dev_free.button_pressed = false
 	_rebuild()
