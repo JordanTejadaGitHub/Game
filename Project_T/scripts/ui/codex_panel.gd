@@ -680,6 +680,18 @@ func _full_game_row(art: Texture2D, title: String, line: String) -> Control:
 	name_label.text = title
 	name_label.add_theme_font_size_override("font_size", 16)
 	head.add_child(name_label)
+	head.add_child(_full_game_tag())
+	if line != "":
+		var text := Label.new()
+		text.text = line
+		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		text.add_theme_font_size_override("font_size", 13)
+		text.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		words.add_child(text)
+	return row
+
+# The gold "Full game" chip.
+func _full_game_tag() -> Label:
 	var tag := Label.new()
 	tag.name = "FullGameTag"
 	tag.text = FULL_GAME_TAG
@@ -694,15 +706,22 @@ func _full_game_row(art: Texture2D, title: String, line: String) -> Control:
 	frame.content_margin_left = 7
 	frame.content_margin_right = 7
 	tag.add_theme_stylebox_override("normal", frame)
-	head.add_child(tag)
-	if line != "":
-		var text := Label.new()
-		text.text = line
-		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		text.add_theme_font_size_override("font_size", 13)
-		text.add_theme_color_override("font_color", UiStyle.INK_DIM)
-		words.add_child(text)
-	return row
+	return tag
+
+# Demo only: a Dream card the demo can't offer (the story chat's rule, from the data): it enters the pool only through
+# a Grove node (Legendary included), it's Bittersweet (a Grove node allows those), or it needs a Warden outside the
+# demo (its requires / requires_any name one the demo's scope doesn't cover). Blessings live outside the Dreams
+# list. Everything else keeps "??? until seen".
+static func full_game_card(card: UpgradeData, scope: Dictionary) -> bool:
+	if not CodexData.demo_limited():
+		return false
+	if not card.in_start_pool or card.tags.has("bittersweet"):
+		return true
+	var wardens: Dictionary = scope.get("wardens", {})
+	for id in card.requires + card.requires_any:
+		if ResourceLoader.exists(TOWER_DIR + id + ".tres") and not wardens.has(id):
+			return true
+	return false
 
 # A form's one line for a Full game row: its role, else the opening of its description.
 static func _one_line(form: TowerData) -> String:
@@ -1580,6 +1599,8 @@ func _passes_filters(card: UpgradeData) -> bool:
 		return false
 	return true
 
+var _dream_scope := {}  # The Codex scope the Dreams page was built with (full_game_card)
+
 func _build_dreams() -> void:
 	for child in _dreams.get_children():
 		_dreams.remove_child(child)
@@ -1591,6 +1612,7 @@ func _build_dreams() -> void:
 	var taken: Dictionary = profile.get(DreamCodex.TAKEN_KEY, {})
 	var won: Dictionary = profile.get(DreamCodex.WON_KEY, {})
 	var cards := DreamCodex.all_cards()
+	_dream_scope = CodexData.scope()
 	var seen_count := cards.filter(func(c: UpgradeData) -> bool: return seen.has(c.id)).size()
 	_dreams_count.text = "%d / %d Dreams seen" % [seen_count, cards.size()]
 	tabs.set_tab_title(3, "Dreams %d / %d" % [seen_count, cards.size()])
@@ -1622,6 +1644,24 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 3)
 	panel.add_child(box)
+	if not seen.has(card.id) and full_game_card(card, _dream_scope):  # Demo: the full game's card by name, tagged
+		style.thread = MoonStyleBox.TopLine.GOLD
+		panel.set_meta(&"full_game", true)
+		var top := HBoxContainer.new()
+		top.add_theme_constant_override("separation", 8)
+		var full_gem := DreamsRow.DreamIcon.new()
+		full_gem.card = card
+		full_gem.custom_minimum_size = DreamsRow.ICON_SIZE
+		full_gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top.add_child(full_gem)
+		var full_name := Label.new()
+		full_name.text = card.display_name
+		UiStyle.title(full_name, 20, UpgradeData.rarity_color(card.rarity))
+		top.add_child(full_name)
+		top.add_child(_full_game_tag())
+		box.add_child(top)
+		box.add_child(StatusLinks.make_label(WardenHeaderView.short_description(card.description), 14, UiStyle.INK_DIM))
+		return panel
 	if not seen.has(card.id):  # Never offered: "???", nothing else (no rarity, text or hints)
 		var unknown := Label.new()
 		unknown.text = "???"

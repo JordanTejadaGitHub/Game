@@ -82,6 +82,25 @@ func _run() -> void:
 		"the demo Codex lists the full game's families and Kinships, tagged Full game (%d rows)" % demo_rows.size())
 	_check(not demo_waiting.is_empty() and (demo_waiting[0] as Label).text.ends_with("more in the full game."),
 		"…and says how many more the full game holds (%s)" % ((demo_waiting[0] as Label).text if not demo_waiting.is_empty() else "none"))
+	# Dreams (the story chat's rule, from the data): a Grove-only card, a Bittersweet one and one needing a Warden outside
+	# the demo show by name, tagged Full game; a start-pool card the demo offers stays ??? until seen.
+	var demo_scope := CodexData.scope()
+	var all_cards := DreamCodex.all_cards()
+	var grove_only: Array = all_cards.filter(func(c: UpgradeData) -> bool: return not c.in_start_pool)
+	var bitter: Array = all_cards.filter(func(c: UpgradeData) -> bool: return c.in_start_pool and c.tags.has("bittersweet"))
+	var outside := func(id: String) -> bool: return ResourceLoader.exists("res://resource/tower/%s.tres" % id) and not demo_scope.wardens.has(id)
+	var needs_other: Array = all_cards.filter(func(c: UpgradeData) -> bool:
+		return c.in_start_pool and not c.tags.has("bittersweet") and (c.requires + c.requires_any).any(outside))
+	var plain: Array = all_cards.filter(func(c: UpgradeData) -> bool: return not CodexPanel.full_game_card(c, demo_scope))
+	_check(not grove_only.is_empty() and not bitter.is_empty() and not needs_other.is_empty() and not plain.is_empty()
+		and CodexPanel.full_game_card(grove_only[0], demo_scope) and CodexPanel.full_game_card(bitter[0], demo_scope)
+		and CodexPanel.full_game_card(needs_other[0], demo_scope),
+		"demo Dreams: Grove-only %s, Bittersweet %s and %s (needs a full-game Warden) are Full game; %s stays ???" % [
+		grove_only[0].id if not grove_only.is_empty() else "none", bitter[0].id if not bitter.is_empty() else "none",
+		needs_other[0].id if not needs_other.is_empty() else "none", plain[0].id if not plain.is_empty() else "none"])
+	var shown: Control = codex.dream_entries.get(grove_only[0].id) if not grove_only.is_empty() else null
+	_check(shown != null and shown.get_meta(&"full_game", false) and shown.find_child("FullGameTag", true, false) != null,
+		"…and the Dreams page shows it by name with the tag")
 	var results_screen := ResultsScreen.new()
 	var teaser: HBoxContainer = results_screen._grove_teaser()
 	_check(teaser.get_child_count() == 3 and teaser.find_children("FullGameTag", "Label", true, false).size() == 3,
