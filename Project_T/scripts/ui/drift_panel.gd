@@ -17,6 +17,7 @@ extends VBoxContainer
 var _status_label := Label.new()
 var warning_label := Label.new()  # "Flyers in drift 31: they ignore your maze" (tests)
 var finale_label := Label.new()  # Spire: "Finale (drift 10): clear it clean for a Rare dream" (tests)
+var moonflip_label := Label.new()  # Strange Dreams' Moonflip: "Moonflip +25%" for the block (Roguelite's moonflip_text)
 var _warning_key := ""
 var _remember_button := Button.new()
 var _sapling_button := Button.new()
@@ -49,6 +50,13 @@ func _ready() -> void:
 	finale_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
 	finale_label.add_theme_constant_override("outline_size", 5)
 	add_child(finale_label)
+	moonflip_label.name = "MoonflipLine"
+	moonflip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	moonflip_label.visible = false
+	UiStyle.caps(moonflip_label, 14, UiStyle.GOLD)
+	moonflip_label.add_theme_color_override("font_outline_color", UiStyle.FOG)
+	moonflip_label.add_theme_constant_override("outline_size", 5)
+	add_child(moonflip_label)
 	_remember_button.text = "Remember"
 	_remember_button.tooltip_text = "Spend Dreamlight on branches and final forms of your families."
 	_remember_button.focus_mode = Control.FOCUS_NONE
@@ -146,6 +154,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	_update_warning()
 	_update_finale()
+	_update_moonflip()
 	var latest := drift_director.drifts_started
 	var next := latest + 1
 
@@ -237,6 +246,13 @@ func _update_finale() -> void:
 	finale_label.visible = finale > 0
 	if finale > 0:
 		finale_label.text = FINALE_TEXT % finale
+
+# Moonflip (dream_design.md, Strange Dreams): the block's roll, "" without the card; seeded per block, changes at a rest.
+func _update_moonflip() -> void:
+	var text: String = dream_state.moonflip_text() if dream_state.has_method("moonflip_text") and not run_state.is_over else ""
+	moonflip_label.visible = text != ""
+	if text != "":
+		moonflip_label.text = text.replace(" · ", "  ").to_lower()  # Light pass: no " · "; small caps lower it anyway
 
 # The rule-breaker warning (screens_ui.md "New rule-breaker warning"): rebuilt only when the drift count or
 # the rest changes (the scan reads the drift tables).

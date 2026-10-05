@@ -173,7 +173,7 @@ the end of the Economy path, so it can't be rushed first for faster Seeds.
 
 **Keepsakes (cosmetics) live on a shelf, not the tree** (user 2026-10-05). Anything cosmetic is a
 milestone achievement unlock, never bought, and isn't a Grove node: the four Keepsakes sit on a
-**Keepsakes shelf** next to the Memories shelf in the Grove screen, each with its on/off toggle
+**Keepsakes shelf** opened from a "Keepsakes" button in the Grove footer, each with its on/off toggle
 once earned (also in Settings → Display → Keepsakes). Unearned ones show greyed with their milestone
 ("Win without losing a leaf"). Each milestone also pays its Seed bonus.
 
@@ -184,18 +184,21 @@ once earned (also in Settings → Display → Keepsakes). Unearned ones show gre
 | Gilded Pages | Discover every combo (`all_combos`) | the Codex pages get gilded edges |
 | Starlit Card Backs | See every Dream card (`all_dreams`) | Dream offer cards get the night-sky frame |
 
-**The twig gets bought nodes instead** (user 2026-10-05): options, not power; no loadout slot, always
+**New bought nodes instead** (user 2026-10-05): options, not power; no loadout slot, always
 on once planted. Placement by limb colour (user: *"should be the orange seed, all the card ones
-should be purple"*): the non-card ones are **orange Perks** on the twig at the foot of the Perks
-limb; the card one is **purple**, on the Cards limb.
+should be purple"*): the non-card ones are **orange Perks nodes on the Perks limb, the left side of the tree** (user: *"the orange seeds are the left side of the Grove tree"*), among the other perks, not a separate twig;
+the card one is **purple**, on the Cards limb (the right side).
 
 | Node | Limb | Cost | What it adds | Designed by |
 |---|---|---|---|---|
-| **Restless Omens** | Perks (orange), twig | 40 | 4 new double-edged Omens join the Omen pool | the design hub (`run_design.md` Omens) |
-| **Remembered Seed** | Perks (orange), twig | 30 | start a run on any map from your run history, or type a seed | Main Merger (run start) |
-| **Strange Dreams** | Cards (purple), its own small branch | 50 | a bundle of gamble Dream cards (odd, swingy effects) joins the pool | Roguelite Mechanic Discussion |
+| **Restless Omens** | Cards limb (purple, right), with Strange Dreams | 40 | 4 new double-edged Omens join the Omen pool | the design hub (`run_design.md` Omens) |
+| **Remembered Seed** | Perks limb (orange, left) | 30 | start a run on any map from your run history, or type a seed | Main Merger (run start) |
+| **Strange Dreams** | Cards limb (purple, right), a small branch with Restless Omens | 50 | a bundle of gamble Dream cards (odd, swingy effects) joins the pool | Roguelite Mechanic Discussion |
+| **Second Look** | Perks limb (orange, left) | 40 | before drift 1, reroll the map once | Main Merger / Environment Code (map reroll at the first rest) |
+| **Chosen Hunt** | Perks limb (orange, left) | 80 | when an act begins, see its 3 possible bosses and pick which one comes (the act 4 Hollow Oak picks its variation) | Enemy Code (boss pools) + Main (the choice screen) |
+| **Leaf or Dew** | Perks limb (orange, left) | 40 | before the run, a −3…+3 step: give up to 3 leaves (max and current) for +15 Dew each, or pay 15 Dew per extra leaf (max and current) up to +3. Leaves traded away don't regrow | Meta Game Code (run start) |
 
-- These count toward the Heartwood's Crown like any bought node. +120 Seeds. (Wanderer's Map, a new map layout, was dropped 2026-10-05: user "Removing it".)
+- **Rule (user 2026-10-05): anything card-like (Dreams, Omens) goes on the right side, purple; the left side, orange, holds run and loadout options.** These count toward the Heartwood's Crown like any bought node. +280 Seeds. (Wanderer's Map, a new map layout, was dropped 2026-10-05: user "Removing it".)
 - Each node waits for its content; until then it isn't on the tree.
 
 **Power budget:** 15 perks, carry 3 at the start, up to 5 (6 once the whole tree is grown). A full economy loadout (Morning Stores III, Rich Dew
