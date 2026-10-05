@@ -191,6 +191,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			second.append([strength, attack.applies_status, true])  # "Soaked: water hits +24%", "Rooted 1.2 s"
 		if not second.is_empty():
 			_stat_row(second, true)  # Wraps too: never wider than the card
+		notes.append_array(BranchKit.stat_lines(_tower))  # Jarlink's arc, live (Tower Code)
 	else:
 		notes.append("A wall: no attack.")
 	if dreams != null and not compact:  # Compact: the panel puts them in Details

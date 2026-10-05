@@ -72,7 +72,8 @@ func _run() -> void:
 
 	# Reach grows Hushbell's silence.
 	var hush := _plant("hushbell")
-	_check(hush.focus_text(F.REACH) == "silence 2.0 → 2.3 cells", "Reach's line: %s" % hush.focus_text(F.REACH))
+	_check(hush.focus_text(F.REACH).begins_with("silence 2 → 2.3 cells"), "Reach's line: %s" % hush.focus_text(F.REACH))
+	_check(hush.focus_text(F.REACH).contains("range 2.0 → 2.3"), "and the range it also grows")
 	hush.nurture(0, F.REACH)
 	_check(is_equal_approx(hush._main_area()[0], 2.3), "one Reach rank: silence 2.3 cells (%.2f)" % hush._main_area()[0])
 

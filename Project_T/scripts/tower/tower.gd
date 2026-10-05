@@ -902,6 +902,9 @@ func focus_text(which: Focus) -> String:
 	match which:
 		Focus.POWER:
 			var d := _with_choice(which, func() -> float: return _compute_damage())
+			if special == BranchKit.JARLINK:  # Its damage is the arc's (story chat: "arc 210 → 248/s")
+				var arc := BranchKit.arc_dps(self)
+				return "arc %d → %d/s · damage %d → %d" % [roundi(arc), roundi(arc * d[1] / maxf(d[0], 0.001)), roundi(d[0]), roundi(d[1])]
 			return "damage %d → %d" % [roundi(d[0]), roundi(d[1])]
 		Focus.SWIFT:
 			var cycle := _with_choice(which, func() -> float: return _compute_attacks_per_second())
@@ -911,7 +914,8 @@ func focus_text(which: Focus) -> String:
 				return "a seed every %.1f → %.1f drifts" % [every.call(choice_count(Focus.SWIFT)), every.call(choice_count(Focus.SWIFT) + 1)]
 			var timed := _main_timer()
 			if timed[0] > 0.0:
-				return "%s every %.1f → %.1f s" % [timed[1], timed[0] / get_cycle_multiplier(), timed[0] / (get_cycle_multiplier() * ratio)]
+				var fmt := "%s every %.2f → %.2f s" if timed[0] < 1.0 else "%s every %.1f → %.1f s"  # The arc's 0.25 s tick reads 0.25 → 0.22
+				return fmt % [timed[1], timed[0] / get_cycle_multiplier(), timed[0] / (get_cycle_multiplier() * ratio)]
 			if id == "fairy_ring" or id == "elf_circle":
 				return "attacks %.2f → %.2f a second; +1 ring every 2 ranks" % [cycle[0], cycle[1]]
 			return "attacks %.2f → %.2f a second" % [cycle[0], cycle[1]]

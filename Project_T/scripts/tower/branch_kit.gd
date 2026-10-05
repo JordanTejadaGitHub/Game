@@ -391,6 +391,22 @@ class WaitSpark extends Node2D:
 		draw_line(Vector2(0, -r), Vector2(0, r), Color(LINK_COLOR, 0.8 * pulse), 1.0)
 		draw_circle(Vector2.ZERO, 1.2, Color(Palette.HEARTLIGHT, 0.9 * pulse))
 
+# The arc's damage a second to each nightmare touching it, as this jar would deal it now (story chat 2026-10-05: the panel
+# should say what the link does): arc_dps × its damage multipliers (ranks, Dreams, family) × Swift's faster ticks.
+static func arc_dps(tower: Tower) -> float:
+	return p(tower, "arc_dps", 60.0) * tower.get_damage() / maxf(float(tower.attack_data.damage), 1.0) * tower.get_cycle_multiplier()
+
+# Lines a special Warden adds under its stats (WardenHeaderView): Jarlink's arc.
+static func stat_lines(tower: Tower) -> Array[String]:
+	var lines: Array[String] = []
+	if tower == null or tower.attack_data == null:
+		return lines
+	if tower.attack_data.special == JARLINK:
+		lines.append("Arc: %s damage a second to each nightmare touching it (with a Jarlink within %s cells)" % [
+			BossDossier.thousands(roundi(arc_dps(tower))), IconInfo._number(link_range(tower))])
+		lines.append("A flyer crossing it takes %d %s at once." % [int(p(tower, "flyer_charge", 3)), IconInfo.status_name(EnemyStatuses.STATIC)])
+	return lines
+
 static func _update_fence(tower: Tower, delta: float) -> void:
 	var partner := _fence_partner(tower)
 	_update_wait_spark(tower, partner == null)
