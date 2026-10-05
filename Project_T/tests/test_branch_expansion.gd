@@ -248,6 +248,13 @@ func _test_firefly() -> void:
 	BranchKit.process(a, 0.016)
 	BranchKit.process(b, 0.016)
 	_check(crosser.health < crosser.max_health and crosser.statuses.has(EnemyStatuses.STATIC), "a nightmare crossing the Jarlinks' arc is hit and Charged")
+	# Link range shown (user 2026-10-05): a paired jar has no waiting spark; a lone one does.
+	var spark_a := a.get_node_or_null("WaitSpark") as Node2D
+	_check(spark_a == null or not spark_a.visible, "a paired Jarlink shows no waiting spark")
+	var lone := _plant("jarlink", Vector2(16, 14))
+	BranchKit.process(lone, 0.016)
+	var spark := lone.get_node_or_null("WaitSpark") as Node2D
+	_check(spark != null and spark.visible, "a lone Jarlink shows a waiting spark")
 	await _clean()
 
 	# Jarlinks across the route (Balancing: partners there read ~0.03×): a nightmare walking between them is struck by

@@ -347,8 +347,53 @@ static func _jet(tower: Tower) -> void:
 # flyer crossing it takes 3 Charged at once. Only the Lightning Fence touches Phantoms gliding through.
 const FENCE_TICK := 0.25
 
+# Link range shown (user via story chat 2026-10-05: "have Jarlink have its range connection"): a dashed square of the
+# cells a partner may stand in (Chebyshev, like the bond), in the arc's colour, distinct from the round attack range.
+const LINK_COLOR := Palette.DEWLIGHT
+
+static func draw_link_area(canvas: CanvasItem, centre: Vector2, reach: float, alpha: float = 0.7) -> void:
+	var half := (reach + 0.5) * CELL
+	var corners := [centre + Vector2(-half, -half), centre + Vector2(half, -half), centre + Vector2(half, half), centre + Vector2(-half, half)]
+	for i in 4:
+		canvas.draw_dashed_line(corners[i], corners[(i + 1) % 4], Color(LINK_COLOR, alpha), 2.0, 6.0)
+
+# A jar within reach (the ghost's candidates; a selected jar's partner): a soft ring at its base.
+static func draw_link_mark(canvas: CanvasItem, at: Vector2, strong: bool) -> void:
+	canvas.draw_arc(at, CELL * 0.45, 0.0, TAU, 32, Color(LINK_COLOR, 0.9 if strong else 0.45), 3.0 if strong else 1.5)
+
+# Unpaired jars show a small idle spark (waiting for a partner); off with Kinship effects Off, steady with reduce flashes.
+static func _update_wait_spark(tower: Tower, waiting: bool) -> void:
+	var spark := tower.get_node_or_null("WaitSpark") as Node2D
+	var show := waiting and Kinships._effects() != 2
+	if spark == null and show:
+		spark = WaitSpark.new()
+		spark.name = "WaitSpark"
+		spark.z_index = 2
+		spark.position = tower.tower_data.get_attack_origin()
+		tower.add_child(spark)
+	if spark != null:
+		spark.visible = show
+
+class WaitSpark extends Node2D:
+	var _age := randf() * 2.0
+
+	func _process(delta: float) -> void:
+		if not visible:
+			return
+		_age += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var steady := Fx.reduce_flashes()
+		var pulse := 1.0 if steady else 0.5 + 0.5 * absf(sin(_age * 2.5))
+		var r := 2.0 + 1.5 * pulse
+		draw_line(Vector2(-r, 0), Vector2(r, 0), Color(LINK_COLOR, 0.8 * pulse), 1.0)
+		draw_line(Vector2(0, -r), Vector2(0, r), Color(LINK_COLOR, 0.8 * pulse), 1.0)
+		draw_circle(Vector2.ZERO, 1.2, Color(Palette.HEARTLIGHT, 0.9 * pulse))
+
 static func _update_fence(tower: Tower, delta: float) -> void:
 	var partner := _fence_partner(tower)
+	_update_wait_spark(tower, partner == null)
 	if partner == null or partner.get_instance_id() < tower.get_instance_id():
 		return  # One side of each pair does the work (the lower id)
 	FenceLayer.find(tower).note(tower, partner)

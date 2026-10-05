@@ -699,6 +699,19 @@ var _hover_half := Vector2(-1, -1)
 
 # --- Drawing --------------------------------------------------------------------------------------------
 
+# A selected / hovered Jarlink (user 2026-10-05: "have Jarlink have its range connection"): its link range, its arc
+# brighter, and its partner ringed. An unpaired one shows only the range.
+func _draw_jar_link(jar: Tower) -> void:
+	if not is_instance_valid(jar) or jar.attack_data == null or jar.attack_data.special != BranchKit.JARLINK:
+		return
+	BranchKit.draw_link_area(self, jar.position, BranchKit.link_range(jar))
+	var partner = jar.get_meta(BranchKit.FENCE_BOND) if jar.has_meta(BranchKit.FENCE_BOND) else null
+	if is_instance_valid(partner) and partner is Tower:
+		var from := jar.position + jar.tower_data.get_attack_origin()
+		var to: Vector2 = partner.position + partner.tower_data.get_attack_origin()
+		draw_line(from, to, Color(BranchKit.LINK_COLOR, 0.6), 4.0)
+		BranchKit.draw_link_mark(self, partner.position, true)
+
 func _draw() -> void:
 	if selection.size() == 1 and is_instance_valid(selected):
 		# Aura Wardens: exactly who gets the aura (AuraView); a boosted Warden: lines back to its boosters.
@@ -710,6 +723,7 @@ func _draw() -> void:
 			for i in walk.size():
 				walk[i] = to_local(walk[i])
 			BranchKit.draw_brood_walk(self, walk, true)
+		_draw_jar_link(selected)
 		# The attack range: a thin, unfilled circle (a warm fill read as "everything in here is boosted").
 		if selected.tower_data.can_attack:
 			draw_arc(selected.position, selected.get_range_pixels(), 0.0, TAU, 64, Color(SELECTED_COLOR, 0.45), 1.5)
@@ -742,6 +756,8 @@ func _draw() -> void:
 		draw_rect(box, Color(SELECTED_COLOR, 0.8), false, 1.5)
 	if _hover_tower == null or _dragging:
 		return
+	if _hover_tower != selected:
+		_draw_jar_link(_hover_tower)
 	var center: Vector2 = _hover_tower.position  # The Warden itself (it may sit between cells)
 	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)

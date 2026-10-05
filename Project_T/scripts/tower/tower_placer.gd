@@ -703,13 +703,22 @@ func _draw_fence_preview() -> void:
 	var reach := float(tower_data.special_params.get("link_range", 4.0))
 	var partner := BranchKit.fence_partner_at(self, _hover_cell, reach)
 	draw_set_transform(Vector2.ZERO)
+	var here := to_local(MAP_GRID.calculate_map_position(_hover_cell))
+	# Its link range (user 2026-10-05: "have Jarlink have its range connection"), and every jar inside it.
+	BranchKit.draw_link_area(self, here, reach)
+	for other in get_tree().get_nodes_in_group(Tower.GROUP):
+		if other is Tower and other.attack_data != null and other.attack_data.special == BranchKit.JARLINK \
+				and Kinships._cheb(_hover_cell, other.cell) <= reach:
+			BranchKit.draw_link_mark(self, to_local(other.global_position), other == partner)
 	if partner != null:
-		var from := to_local(MAP_GRID.calculate_map_position(_hover_cell))
 		var to := to_local(partner.global_position)
 		for cell in BranchKit._arc_cells(_hover_cell, partner.cell):
 			var rect := Rect2(to_local(MAP_GRID.calculate_map_position(cell)) - MAP_GRID.cell_size / 2.0, MAP_GRID.cell_size)
-			draw_rect(rect.grow(-4), Color(Palette.GLOW, 0.12))
-		draw_line(from, to, Color(Palette.GLOW, 0.8), 2.0)
+			draw_rect(rect.grow(-4), Color(BranchKit.LINK_COLOR, 0.12))
+		draw_dashed_line(here, to, Color(BranchKit.LINK_COLOR, 0.8), 2.0, 6.0)  # The arc it would make
+	else:
+		WorldLabel.draw_tag(self, here.x, here.y - MAP_GRID.cell_size.y - 10.0,
+			"no Jarlink within %s cells" % IconInfo._number(reach), Color(BranchKit.LINK_COLOR, 0.9))
 	draw_set_transform(_ghost_centre())
 
 func _draw_card_areas() -> void:
