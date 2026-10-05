@@ -38,7 +38,7 @@ const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, 
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
 	"dew_rest", "dew_other", "spent_plant", "spent_walls", "spent_grow", "spent_nurture", "banked",
 	"attackers", "walls", "tier1", "tier2", "tier3", "tier4", "avg_rank", "route", "families", "cards",
-	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain", "combo_amount_share", "status_share", "hit_share", "combo_damage", "reaction_damage", "status_damage", "combo_share", "leaked_health"]
+	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain", "combo_amount_share", "status_share", "hit_share", "combo_damage", "reaction_damage", "status_damage", "combo_share", "leaked_health", "closest_mean"]
 
 # Per style: [attacker room at drift 0, + per drift, cap], walls per attacker, nurture weight.
 const STYLE_PLAN := {
@@ -100,6 +100,7 @@ var resumed_at := -1  # The drift the resumed save was resting after (resumed_at
 var _finals_first := false  # _grow prefers the highest tier (the --start-at build)
 var extra_spend := ""  # --extra-spend=plant|grow|final|rank|none (balance_simulation.md a8c0365c "Plant vs grow vs rank"): at the resumed rest, X extra Dew spent only that way
 var extra_dew := 0  # --extra-dew=X
+var extra_x_mode := ""  # --extra-dew=grow|final: X = the cheapest base → branch / branch → final growth on the board
 var extra_spent := 0
 var base_kind := ""  # The family base Warden most on the map at the start, and its copies (copy number N)
 var copies_at_start := -1
@@ -200,7 +201,11 @@ func _run() -> void:
 			"--from-save": from_save = arg.substr(arg.find("=") + 1)
 			"--save-at": save_at.append(int(value))
 			"--extra-spend": extra_spend = value
-			"--extra-dew": extra_dew = int(value)
+			"--extra-dew":  # A number, or grow / final: the cheapest such growth on the resumed board (Balancing)
+				if value in ["grow", "final"]:
+					extra_x_mode = value
+				else:
+					extra_dew = int(value)
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
@@ -561,6 +566,8 @@ func _extra_spend() -> void:
 		if base_kind == "" or counts[id] > counts[base_kind]:
 			base_kind = id
 	copies_at_start = int(counts.get(base_kind, 0))
+	if extra_x_mode != "":
+		extra_dew = _cheapest_growth_price(2 if extra_x_mode == "grow" else 3)
 	var before := run_state.dew
 	run_state.dew += extra_dew
 	match extra_spend:
@@ -583,6 +590,18 @@ func _extra_spend() -> void:
 	extra_spent = before + extra_dew - run_state.dew
 	run_state.dew = mini(run_state.dew, before)  # The unspent extra goes back
 	print("EXTRA %s: %d of %d spent (base %s ×%d)" % [extra_spend, extra_spent, extra_dew, base_kind, copies_at_start])
+
+# The cheapest growth into an unlocked form of `tier` on the board (what it costs a Warden as it stands, ranks
+# included); 0 = none open.
+func _cheapest_growth_price(tier: int) -> int:
+	var best := 0
+	for t in _attackers():
+		for form in t.tower_data.evolves_to:
+			if form is TowerData and form.tier == tier and dreams.is_unlocked(form.get_id()) and placer.ascended_blocker(form) == "":
+				var price: int = t.get_grow_cost(form).total
+				if best == 0 or price < best:
+					best = price
+	return best
 
 func _pick_family_now(kind: StringName) -> void:
 	if forced_families.is_empty():
@@ -1029,7 +1048,7 @@ func _new_window() -> void:
 	d = {"start": game_time, "health_spawned": 0.0, "damage": 0.0, "chain_deep": 0.0, "leaks": 0, "leaves_left": run_state.leaves,
 		"leaves_before": run_state.leaves, "dew_rest": 0, "dew_other": 0, "spent_plant": 0, "spent_walls": 0,
 		"spent_grow": 0, "spent_nurture": 0, "by_tower": {}, "asleep": 0.0, "reaction": 0.0, "crit": 0.0,
-		"restless": 0, "trampled": 0, "approach": 0.0, "combo": 0.0, "status": 0.0, "hit": 0.0, "combo_damage": 0.0, "reaction_damage": 0.0, "status_damage": 0.0, "leaked_health": 0.0}
+		"restless": 0, "trampled": 0, "approach": 0.0, "combo": 0.0, "status": 0.0, "hit": 0.0, "combo_damage": 0.0, "reaction_damage": 0.0, "status_damage": 0.0, "leaked_health": 0.0, "approach_sum": 0.0, "approach_n": 0}
 
 func _on_damage(event) -> void:
 	d.damage += event.amount
@@ -1097,7 +1116,7 @@ func _close_window(n: int) -> void:
 		"avg_rank": snappedf(float(ranks) / maxf(_attackers().size(), 1), 0.1),
 		"route": _route_cells(map.get_path_from(map.startPath)), "families": lines.size(), "cards": dreams.stacks.size(),
 		"dreamlight": dreams.dreamlight, "top_warden": top, "top_share": snappedf(top_amount / damage, 0.001),
-		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "combo_amount_share": snappedf(d.combo / damage, 0.001), "status_share": snappedf(d.status / damage, 0.001), "hit_share": snappedf(d.hit / damage, 0.001), "combo_damage": roundi(d.combo_damage), "reaction_damage": roundi(d.reaction_damage), "status_damage": roundi(d.status_damage), "combo_share": snappedf((d.combo_damage + d.reaction_damage) / damage, 0.001), "longest_chain": _longest_chain(), "leaked_health": roundi(d.leaked_health),
+		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "combo_amount_share": snappedf(d.combo / damage, 0.001), "status_share": snappedf(d.status / damage, 0.001), "hit_share": snappedf(d.hit / damage, 0.001), "combo_damage": roundi(d.combo_damage), "reaction_damage": roundi(d.reaction_damage), "status_damage": roundi(d.status_damage), "combo_share": snappedf((d.combo_damage + d.reaction_damage) / damage, 0.001), "longest_chain": _longest_chain(), "leaked_health": roundi(d.leaked_health), "closest_mean": snappedf(d.approach_sum / maxf(d.approach_n, 1), 0.001),
 		"crit_share": snappedf(d.crit / damage, 0.001), "restless": d.restless, "trampled": d.trampled,
 		"approach": snappedf(d.approach, 0.01)}
 	rows.append(row)
@@ -1213,7 +1232,8 @@ func _finish() -> void:
 	summary.from_save = from_save.get_file()
 	summary.resumed_at = resumed_at
 	summary.extra_spend = extra_spend
-	summary.extra_dew = extra_dew
+	summary.extra_dew = extra_dew  # X (with --extra-dew=grow / final: the cheapest such growth on the board)
+	summary.extra_x = extra_x_mode
 	summary.extra_spent = extra_spent
 	summary.base_kind = base_kind
 	summary.copies_at_start = copies_at_start
@@ -1317,6 +1337,7 @@ func _sprout_share() -> float:
 # Closest approach (balance_simulation.md "Spend or save"): how far along the route the furthest
 # nightmare is right now (0 at the start, 1 at the Heartwood); the drift window keeps the maximum.
 func _sample_approach() -> void:
+	var furthest := -1.0
 	var route_px := maxf((map.get_path_from(map.startPath).size() - 1) * Tower.MAP_GRID.cell_size.x / _route_step(), 1.0)  # Half grid: points step by half a cell
 	for enemy in spawner.get_enemies():
 		if is_instance_valid(enemy) and enemy.enemy_data.is_boss:
@@ -1324,7 +1345,12 @@ func _sample_approach() -> void:
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
 			_sample_statuses(enemy.statuses)
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
-			d.approach = maxf(d.approach, clampf(1.0 - enemy.get_remaining_distance() / route_px, 0.0, 1.0))
+			var along := clampf(1.0 - enemy.get_remaining_distance() / route_px, 0.0, 1.0)
+			d.approach = maxf(d.approach, along)
+			furthest = maxf(furthest, along)
+	if furthest >= 0.0:  # closest_mean: the furthest nightmare's share of the route, averaged over the drift's samples
+		d.approach_sum += furthest
+		d.approach_n += 1
 
 # A Sprout that will grow into the family isn't nurtured (ranks raise what the growth costs): before the
 # first family pick, or while a family base form is open to it. The Sprout build keeps its Sprouts, and
