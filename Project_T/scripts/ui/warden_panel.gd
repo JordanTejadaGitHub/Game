@@ -346,7 +346,7 @@ func _refresh() -> void:
 				nurture.tooltip_text = ("Choose what rank %s adds. Kept when it grows; can't be changed." % Tower.rank_name(_tower.rank + 1)
 					if _tower.needs_focus() else "Rank %s: %s." % [Tower.rank_name(_tower.rank + 1), _tower.focus_text(_tower.default_choice())]) + _growth_note()
 				var price := 0 if _free_rank() else cost
-				_priced(nurture, "Nurture to rank %s" % Tower.rank_name(_tower.rank + 1), _price(price), price, &"dew", nurture_primary)
+				_priced(nurture, "Nurture rank %s" % Tower.rank_name(_tower.rank + 1), _price(price), price, &"dew", nurture_primary)
 				nurture.pressed.connect(_toggle_choices)  # Short: refuses (_refuse_nurture)
 				_rank_preview_on(nurture, [_tower], _tower.default_choice() if not _tower.needs_focus() else Tower.Focus.NONE)
 			else:
@@ -1188,7 +1188,7 @@ func _place_from_bottom() -> void:
 
 # --- Prices on action buttons (screens_ui.md "can't buy", user 2026-10-01) ---------------------------------
 # Every action the player can't pay for looks the same: the plain frame, a dim INK_DIM label, and only the
-# cost in POOR ("Nurture to rank III · 120 Dew (R)", "Grow into Beacon · 2 Dreamlight (Q)"; no "more
+# cost in POOR ("Nurture rank III · 120 Dew (R)", "Grow into Beacon · 2 Dreamlight (Q)"; no "more
 # needed": user, "a bit too much hand holding"). Still pressable: the press plays the refusal
 # (TowerSeller.refuse_if_short / _refuse_nurture: the button shakes, "Not enough Dew", the counter flashes).
 # Dew / Dreamlight changes update it in place (_update_prices), back to the normal look the moment it's affordable.
