@@ -303,6 +303,33 @@ human artist replaces both.
   8. *Milestones*: Steam page live, demo out, Next Fest. Always post one.
   9. *A funny bug*: record it before fixing it.
 - **Length didn't matter** (15 s to 2 min all went viral). Trending sounds and CapCut memes rarely mattered.
+### Bopl Battle's playbook (Johan Grönvall on Jonas Tyroller's podcast, "TikTok and Shorts Are Insane for Indie Devs", 2025)
+Shorts were the *only* marketing that worked for him (Reddit, YouTubers, even a big streamer barely showed on the
+wishlist graph); roughly all his wishlists came from his own shorts (~70k at launch, his estimate).
+- **Story shorts in the dev's own voice**: one a week (every Friday, about a day's work), each a real thing that happened
+  while making the game: a bug turned into a feature, a friend's idea that saved an ability, a prank. Keep a running
+  list of these stories as you work.
+- **The first seconds**: say it's your game ("In my game…") and open an honest question the short answers ("I almost
+  deleted this ability, but a friend had a brilliant idea to fix it"). Never click-bait: deliver the payoff, or the
+  next video gets skipped.
+- **No jargon the audience doesn't know.** His StarCraft-style "units and buildings" short flopped with TikTok's young
+  audience. For us: avoid "drift", "Dreamlight", "Reactions" unexplained, and **don't rely on Warcraft 3 on TikTok**
+  (many viewers never played it). Keep Video 0's Warcraft hook for YouTube, Reddit and older audiences; test a TikTok
+  version that opens on the maze itself.
+- **TikTok first, YouTube later**: TikTok tells you within days which shorts are good. Post only the proven ones to
+  YouTube Shorts, in a burst around a big moment (demo, Next Fest, release). His YouTube exploded at launch (some shorts
+  10–20M views). Stack the spikes: demo + Next Fest + a new short the same week.
+- **A generous demo with visible locks**: his demo was nearly the full game, but every locked ability was visible by
+  name, which made people want the full game. (For demo_scope.md's owners: show the locked families and Grove in the
+  demo, named.)
+- **Post-release updates + a short about each** kept producing sales spikes.
+
+**Our story bank** (real things from this project; the user picks, tells them in their own words, adds their own):
+the theme pivot from cozy to dark fairytale; "your towers are walls, so I had to stop players sealing the path";
+half-cell placement making new maze shapes possible; the Hollow Stag, a boss built to punish straight corridors;
+bigger Wardens tried and then reverted for the base forms; a chain that once hit ×26; the Memory Grove growing from
+every run. Avoid making AI tools the story; the disclosure covers them.
+
 - **Curators**: TikTok channels that feature indie games (e.g. Brax finds games, Mad Morph) got some games ~1M views the
   dev's own account never got. Pitch them once the Steam page is live.
 
