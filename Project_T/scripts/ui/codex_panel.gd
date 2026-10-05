@@ -67,15 +67,29 @@ func _ready() -> void:
 	visible = false
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
-	box.custom_minimum_size = Vector2(900, 560)  # Two panes and a two-column card grid
+	box.custom_minimum_size = Vector2(900, MIN_HEIGHT)  # Light pass v2: the height follows the open tab (_fit_height)
+	_box = box
 	add_child(box)
+	# The title on the left, a quiet ✕ on the right (light pass: no Close button at the foot).
+	var header := HBoxContainer.new()
+	box.add_child(header)
 	var title := Label.new()
 	_title = title
 	title.text = "Codex"
-	UiStyle.display(title, 24)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
+	UiStyle.display(title, 30)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title)
+	var close := Button.new()
+	close.name = "Close"
+	close.text = "✕"
+	close.tooltip_text = "Close"
+	close.focus_mode = Control.FOCUS_NONE
+	close.custom_minimum_size = Vector2(48, 48)
+	UiStyle.quiet(close)
+	close.pressed.connect(func() -> void: visible = false)
+	header.add_child(close)
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tabs.tab_changed.connect(func(_t: int) -> void: _fit_height.call_deferred())
 	box.add_child(tabs)
 
 	# The glossary in two panes (screens_ui.md "Glossary and Families, revised"): the groups down the
@@ -140,12 +154,41 @@ func _ready() -> void:
 	_setup_nightmares_page()
 	_setup_past_runs_page()
 
-	var close := Button.new()
-	close.text = "Close"
-	close.focus_mode = Control.FOCUS_NONE
-	close.custom_minimum_size = Vector2(0, 48)
-	close.pressed.connect(func() -> void: visible = false)
-	box.add_child(close)
+
+# Light pass v2 (UI Asset's last page, user: "no dead space"): the panel is as tall as the open tab's content, between
+# MIN_HEIGHT and the screen less a margin; past that the tab scrolls.
+const MIN_HEIGHT := 320.0
+const SCREEN_MARGIN := 90.0
+var _box: VBoxContainer
+
+func _fit_height() -> void:
+	if _box == null or not is_inside_tree():
+		return
+	var page := tabs.get_current_tab_control()
+	var chrome := 48.0 + 8.0 + 48.0 + 16.0  # The header row, a gap, the tab bar, a little air
+	var wanted := (_natural_height(page) if page != null else 0.0) + chrome
+	_box.custom_minimum_size.y = clampf(wanted, MIN_HEIGHT, get_viewport_rect().size.y - SCREEN_MARGIN)
+	reset_size()
+
+# A control's height without its scrolling: a ScrollContainer counts its content.
+func _natural_height(node: Control) -> float:
+	if node is ScrollContainer:
+		return (node.get_child(0) as Control).get_combined_minimum_size().y if node.get_child_count() > 0 else 0.0
+	if node is HBoxContainer:
+		var tallest := 0.0
+		for child in node.get_children():
+			if child is Control and child.visible:
+				tallest = maxf(tallest, _natural_height(child))
+		return tallest
+	if node is VBoxContainer:
+		var total := 0.0
+		var shown := 0
+		for child in node.get_children():
+			if child is Control and child.visible:
+				total += _natural_height(child)
+				shown += 1
+		return total + node.get_theme_constant("separation") * maxi(shown - 1, 0)
+	return node.get_combined_minimum_size().y
 
 # Opens the Codex, optionally on a tab (&"glossary" / &"combos") and an entry (term or combo id).
 func open(tab: StringName = &"", entry: String = "") -> void:
@@ -157,6 +200,7 @@ func open(tab: StringName = &"", entry: String = "") -> void:
 	_build_nightmares()
 	_build_past_runs()
 	visible = true
+	_fit_height.call_deferred()
 	if tab == &"combos":
 		tabs.current_tab = 1
 	elif tab == &"glossary":
@@ -270,6 +314,7 @@ func _filter_glossary() -> void:
 	_none_label.visible = not any
 	for button in _group_list.get_children():
 		(button as Button).set_pressed_no_signal(button.get_meta(&"group", "") == _group and query == "")
+	_fit_height.call_deferred()  # A group's length sets the panel's
 
 # The group containing `term`, or "".
 func _group_of(term: String) -> String:
@@ -292,9 +337,9 @@ func _build_group_list(all_groups: Array) -> void:
 		button.focus_mode = Control.FOCUS_NONE
 		button.icon = IconInfo.icon(GROUP_ICONS.get(group[0], &"note"))
 		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		button.add_theme_constant_override("icon_max_width", 24)
-		button.theme_type_variation = &"HudButton"
+		button.add_theme_constant_override("icon_max_width", 16)
 		button.custom_minimum_size = Vector2(0, 40)
+		_list_row_look(button)  # Light pass v2: a quiet list, the chosen group with a gold bar
 		var name: String = group[0]
 		button.set_meta(&"group", name)
 		button.pressed.connect(func() -> void:
@@ -304,18 +349,41 @@ func _build_group_list(all_groups: Array) -> void:
 			_filter_glossary())
 		_group_list.add_child(button)
 
-# A group's header (the gold thread divider) and its cards in a grid: 2 columns on wide screens.
+# A group in the list (light pass v2): no box; hover a faint wash; the chosen one a faint gold wash with a gold bar on the
+# left; its text dim until chosen.
+func _list_row_look(button: Button) -> void:
+	var empty := StyleBoxEmpty.new()
+	empty.content_margin_left = 10
+	var hover := StyleBoxFlat.new()
+	hover.bg_color = Color(UiStyle.MOON_MIST, 0.06)
+	hover.content_margin_left = 10
+	var chosen := StyleBoxFlat.new()
+	chosen.bg_color = Color(UiStyle.GOLD, 0.08)
+	chosen.border_width_left = 2
+	chosen.border_color = UiStyle.GOLD
+	chosen.content_margin_left = 10
+	button.add_theme_stylebox_override("normal", empty)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", chosen)
+	button.add_theme_stylebox_override("hover_pressed", chosen)
+	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	button.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	button.add_theme_color_override("font_hover_color", UiStyle.INK)
+	button.add_theme_color_override("font_pressed_color", UiStyle.INK)
+	button.add_theme_color_override("font_hover_pressed_color", UiStyle.INK)
+
+# A group's caps header and its entries in one column, close together (light pass v2: no boxes, no dead space).
 func _add_group(title: String, entries: Array) -> void:
 	var header := Label.new()
 	header.text = title
-	UiStyle.caps(header, 18, UiStyle.GOLD)
+	UiStyle.caps(header, 15)
 	_glossary.add_child(header)
-	var divider := HSeparator.new()  # The theme draws it as the MoonDivider thread
+	var divider := Control.new()  # (Was the thread divider: the caps header carries the group now)
 	_glossary.add_child(divider)
 	var grid := GridContainer.new()
-	grid.columns = 2 if get_viewport_rect().size.x >= WIDE_CODEX else 1
+	grid.columns = 1
 	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
+	grid.add_theme_constant_override("v_separation", 14)
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_glossary.add_child(grid)
 	var cards := {}
@@ -345,10 +413,12 @@ func _entry_card(group: String, entry: Array) -> Control:
 	elif line != "":
 		rim = IconInfo.damage_type_color(line)
 	var card := PanelContainer.new()
-	var style := UiStyle.card(rim)
-	style.shadow_size = 0  # Many cards in a grid: no drop shadow (as the Dreams tab)
+	var style := StyleBoxEmpty.new()  # Light pass v2: no box round an entry
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
 	card.add_theme_stylebox_override("panel", style)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.set_meta(&"rim", rim)  # Its status / damage-type colour, on the icon's side (kept for the extras)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	card.add_child(row)
@@ -385,14 +455,26 @@ func _entry_card(group: String, entry: Array) -> Control:
 	if line != "":
 		_damage_extras(body, line)
 	if entry.size() > 2 and not entry[2].is_empty():
-		var links := HFlowContainer.new()
-		links.add_theme_constant_override("h_separation", 6)
+		# "See also: Rest, Nurture" as underlined words right under the entry (light pass v2; a click jumps there).
+		var words: Array[String] = []
 		for other in entry[2]:
 			var combo := _find_combo(other)
 			if not combo.is_empty() and not CodexData.is_discovered(combo.id):
 				continue  # An undiscovered combo isn't named anywhere (screens_ui.md)
-			links.add_child(_chip(other, jump.bind(other)))
-		if links.get_child_count() > 0:
+			var shown_name := IconInfo.format(String(other))
+			words.append("[url=%s][color=#%s]%s[/color][/url]" % [String(other), UiStyle.INK.to_html(false), shown_name])
+		if not words.is_empty():
+			var links := RichTextLabel.new()
+			links.name = "SeeAlso"
+			links.bbcode_enabled = true
+			links.fit_content = true
+			links.scroll_active = false
+			links.meta_underlined = true
+			links.add_theme_font_size_override("normal_font_size", 14)
+			links.add_theme_color_override("default_color", UiStyle.INK_DIM)
+			links.text = "See also: " + ", ".join(words)
+			links.meta_clicked.connect(func(target) -> void: jump(String(target)))
+			links.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 			body.add_child(links)
 	return card
 
