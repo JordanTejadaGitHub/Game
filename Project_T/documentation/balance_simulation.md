@@ -806,6 +806,95 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 **tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
 `longest_path` / `tended` requested in the run history to re-check.
 
+## Human run 19 (2026-10-05, build c473ca = 4aae45a5, the new grow setting; 0 Grove): "a bit too hard early on"
+
+Sporeling (Brood Cap ×3), lost at drift 20. Drifts 1–9 calm (closest ≤ 0.33, 0 leaks). **Drift 10: 10 leaks,
+12 of 15 leaves in one drift**; then clean to 18, a leak at 19, and the drift 20 finale took the last 3. Dew:
+plant 437 / grow 375 / rank 456 of 1,400. Drift 10 stacks the Husk-heavy group (10 Shades + 6 Husks), the
+first finale elite and the first +25% count (`extra_nightmares_from` 10); it has been the early cliff before
+(Oct 3: 15 leaves there). **Fix: `extra_nightmares_from` 10 → 11** (full game; the demo keeps 10), so the +25%
+lands a drift after the finale. Sent to Tower Code; bot check after.
+
+## Plant vs grow vs rank: value per Dew (user via the hub, 2026-10-05: "placing more towers and growing them equal the same math with the new interest")
+
+Goal: planting the Nth copy, growing (base → branch 120, branch → final 450) and Nurture ranks (30 / 48 / 60 /
+90 / 135 × tier 1 / 2 / 3) give about the same value per Dew (±15%) over act 1–2's usual counts. Walls exempt.
+
+**Paper numbers (data, hit DPS = damage × attacks/s; no statuses, area, Reactions or reach):**
+
+| | Sporeling | Firefly Jar | Dewdrop | Bellflower |
+|---|---|---|---|---|
+| Base DPS | 14 | 21 | 18 | 17 (pulse) |
+| Copy N price (step 0.08) | 25 → 33 (N 5) → 43 (N 10) → 53 (N 15) | same | same | same |
+| Copy DPS / Dew, N 1 / 5 / 10 / 15 | 0.56 / 0.42 / 0.33 / 0.26 | 0.84 / 0.64 / 0.49 / 0.40 | 0.72 / 0.55 / 0.42 / 0.34 | 0.68 / 0.52 / 0.40 / 0.32 |
+| Branch mean DPS (range) | 20 (12–39) | 51 (10–113) | 30 (6–72) | 38 (13–70) |
+| Grow → branch, DPS / Dew | 0.05 | 0.25 | 0.10 | 0.18 |
+| Final mean DPS (range) | 41 (27–60) | 94 (10–240) | 31 (8–60) | 85 (24–165) |
+| Branch → final, DPS / Dew | 0.05 | 0.10 | 0.00 | 0.10 |
+| Rank I on base / branch / final (≈ +14% DPS) | 0.07 / 0.05 / 0.06 | 0.10 / 0.12 / 0.15 | 0.09 / 0.07 / 0.05 | 0.08 / 0.09 / 0.13 |
+
+On paper the 15th copy still beats any grow by 2–5×, yet in the sims they come out even: at copy step 0.08 the
+**default bot (13 Wardens, ~5 branches) survives the act 1 boss 63–70%, the spender (~18 Wardens, no grows)
+67–70%**. Hit DPS misses what growing buys (statuses, area, Reactions, a branch's ability, no new cell needed)
+and what each extra copy loses (worse spots, a status that's already on the target). **Paper DPS can't set
+these numbers; a measured value per Dew can.**
+
+**Measured probe (asked of Balancing Code):** from a bot board saved at drifts 10, 20 and 35 (`--save-at`), give
++X Dew and spend it only one way: (a) planted copies, (b) one grow to a branch (X = 120), (c) branch → final
+(X = 450), (d) ranks; each family via `--families`, 30 seeds. Value = the next block's leaves saved and health
+dispelled versus no extra Dew, per Dew. Plus the bot's mean +path per placement (the maze side of planting).
+Then the crossover ("from the Nth copy, growing is better") and a proposal; **nothing changes until the user
+approves.**
+
+## Lichen shell strip (2026-10-05, flagged by Tower Code)
+
+`shell_strip` was 1% of a dread shell per Spored tick (one tick a second, whatever the stacks): ~100 s
+per shell. **Lichenling 0.10, Old Lichen 0.15** (crack at 8 unchanged): one Lichenling clears a shell in
+~10 s of Spored, two in ~5 s; Old Lichen ~7 s. Sent to Tower Code.
+
+## Acts 3–4 coverage (user via the hub, 2026-10-05: the bots never get there)
+
+Balancing Discussion decides, Balancing Code builds the tools. At most 2 sims in parallel while the user may play.
+
+**1. Synthetic late start (now).** `--start-at=51` / `76`: the run skips straight to that rest with what a
+typical run holds there, the bot builds its whole board in that one rest, then plays on to 75 / 100.
+- **Dew:** `starting_dew` + Σ Dew pot of the skipped drifts × **0.9** (leaks lose shares) + Σ base rest
+  bonus (no perfect blocks), read from the live exports, so tuning changes follow automatically.
+- **Leaves:** **10 / 15 at 51, 8 at 76** (to calibrate against snapshots).
+- **Families:** the first pick + the boss picks (25, 50, 75) via the bot's normal pick logic.
+- **Dreams:** one offer per skipped rest from `DreamState.make_offer`, chosen by the bot's normal logic
+  (boss rests Rare+); Omens: Clear Skies.
+- **Dreamlight:** the act's mean earned by that drift from the run history (human runs). The bot spends it
+  on branch / final unlocks as usual.
+- **Grove:** fresh / half / full presets; --boss-draw.
+- **Arms:** per preset × {default, spender} × {51, 76}, 30 seeds. Then the finals question: the same at 76
+  with final forms **+12.5% damage** (an export, asked of Tower Code).
+- **Targets (bot, first read):** from 51, half Grove default survives the act 3 boss **~45–60%**; from 76,
+  half Grove wins **~30–50%** (the skilled-player target), fresh **~10–20%**, full ≤ ~65%. The bot does
+  not use finals, Ascended, Reactions or Kinships well yet, so it reads **low**; misses are judged with that
+  in mind and with human runs.
+- Measured: survival per boss, death drifts, leaves lost per drift and per finale, Dew banked, tier mix
+  (finals share of the board and of damage), closest.
+
+**2. Start from a save.** `--from-save=<run.json>`: the bot continues a real board saved by `RunSaver`. A
+snapshot library in `D:\Projects\logs\balancing\snapshots\` from the user's and the testers' runs (release
+builds save under `%APPDATA%\TopBunk Studios\Heartwood TD`). **Copies only with the user's yes; never
+written back.**
+
+**3. Calibration.** As snapshots arrive, compare a snapshot's continuation with a synthetic start at the
+same drift and Grove; adjust the 0.9 capture, the leaves and the Dreamlight until survival and leaves
+lost agree within noise.
+
+Later, not now: teaching the bot finals, Ascended, Reactions and Kinships.
+
+**Built:** `--start-at` 2685a9cd (Dreamlight 9 at 51 / 20 at 76 from human runs), `--from-save` / `--save-at`
+f66dae95, `%DreamState.final_damage_multiplier` 3707c71c (tier 3 only). **User said yes to copying their saves**
+(2026-10-05). Main Merger asked for per-rest save copies (dev opt-in) to grow the library.
+**First arms (half Grove, 30 seeds each):** from 51, 0/30 reach 76 on either bot; from 76, 1/30 wins (spender).
+**70–80% die in the first drift:** the bot turns ~5,700 / ~9,700 Dew into 16–26 attackers, where the user had
+42–88 at these drifts. These arms measure the bot's board-building, not acts 3–4. Next: a late-start build
+rule (plant to the human attacker count, then grow, then rank, near the human 52 / 29 / 13 split), then rerun.
+
 ## Overlap-audit reworks, power check (2026-10-05, dream_design.md e1e39b56; dream_audit.md budgets)
 
 | Card | As reworked | Budget | Verdict |

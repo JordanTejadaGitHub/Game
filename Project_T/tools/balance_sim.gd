@@ -38,7 +38,7 @@ const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, 
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
 	"dew_rest", "dew_other", "spent_plant", "spent_walls", "spent_grow", "spent_nurture", "banked",
 	"attackers", "walls", "tier1", "tier2", "tier3", "tier4", "avg_rank", "route", "families", "cards",
-	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain", "combo_amount_share", "status_share", "hit_share", "combo_damage", "reaction_damage", "status_damage", "combo_share"]
+	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain", "combo_amount_share", "status_share", "hit_share", "combo_damage", "reaction_damage", "status_damage", "combo_share", "leaked_health", "closest_mean"]
 
 # Per style: [attacker room at drift 0, + per drift, cap], walls per attacker, nurture weight.
 const STYLE_PLAN := {
@@ -88,6 +88,31 @@ var route_open := -1  # Route length in full cells after the opening spend, and 
 var route_base := -1  # The empty map's route in full cells, before the opening spend (the corridor rule alone)
 var old_growth := false  # --old-growth: DreamState's growth prices from before f9fd8526 (branch / final ×1.0, ranks 25/40/60/90/135), the A/B
 var node_sets := []  # --set=%Node.prop=value (repeatable): an export on a scene-unique node, set after _ready (e.g. %TowerPlacer.copy_cost_step=0)
+var start_at := 0  # --start-at=51|76 (balance_simulation.md "Acts 3–4 coverage"): skip to that rest with a typical holding (_synthetic_start), build there, play on
+var start_dreamlight := -1  # --start-dreamlight=N: override the human-run mean (START_DREAMLIGHT)
+var start_leaves := -1  # --start-leaves=N: override START_LEAVES
+var start_dew := 0  # What _synthetic_start gave (start_dew column)
+var start_dl := -1  # Dreamlight earned by the start (start_dreamlight column)
+var from_save := ""  # --from-save=<run.json>: resume that RunSaver board (a copy in a scratch user:// file, never the original) and play on
+var save_at: Array[int] = []  # --save-at=N (repeatable): after the bot's spending at the rest after drift N, write a RunSaver snapshot into --out
+var _save_copy := ""
+var resumed_at := -1  # The drift the resumed save was resting after (resumed_at column)
+var _finals_first := false  # _grow prefers the highest tier (the --start-at build)
+var extra_spend := ""  # --extra-spend=plant|grow|final|rank|none (balance_simulation.md a8c0365c "Plant vs grow vs rank"): at the resumed rest, X extra Dew spent only that way
+var extra_dew := 0  # --extra-dew=X
+var extra_x_mode := ""  # --extra-dew=grow|final: X = the cheapest base → branch / branch → final growth on the board
+var extra_spent := 0
+var base_kind := ""  # The family base Warden most on the map at the start, and its copies (copy number N)
+var copies_at_start := -1
+var _grow_only_tier := 0  # _grow only into this tier (2 = a branch, 3 = a final); 0 = any
+var path_added := {"plant": [0, 0], "wall": [0, 0]}  # Route cells added by the bot's placements: [sum, placements]
+const START_ATTACKERS := {51: 50, 76: 46}  # Human run history (non-dev runs, 2026-10-05): mean "attackers" of runs that ended at 50 (42, 75, 46, 38); at 75, the three runs past it prorated by drift (31@80, 58@100, 88@100)
+const START_PLANT_SHARE := 0.25  # (a) at most this share of the start Dew on planting + walls
+const START_GROW_SHARE := 0.52  # (b) growth up to about the human share by 50; (c) ranks take the rest
+var start_counts := ""  # start_build column: attackers / walls planted, Dew on plant / grow / rank
+const START_DREAMLIGHT := {51: 9, 76: 20}  # Mean Dreamlight earned by that drift in the human run history (non-dev runs, 2026-10-05; runs past it prorated by drift)
+const START_LEAVES := {51: 10, 76: 8}  # Of 15 (Balancing 584f9521)
+const START_POT_SHARE := 0.9  # Share of each skipped drift's Dew pot a typical player catches
 var grow_count := 0  # Growth purchases (balance_simulation.md growth costs A/B): all, and as drift 25 starts
 var grows_25 := -1
 var first_grow := -1  # The drift of the first growth into a tier 2+ form
@@ -170,6 +195,17 @@ func _run() -> void:
 			"--no-pair-search": pair_search = false
 			"--old-growth": old_growth = true
 			"--set": node_sets.append(arg.substr(arg.find("=") + 1))
+			"--start-at": start_at = int(value)
+			"--start-dreamlight": start_dreamlight = int(value)
+			"--start-leaves": start_leaves = int(value)
+			"--from-save": from_save = arg.substr(arg.find("=") + 1)
+			"--save-at": save_at.append(int(value))
+			"--extra-spend": extra_spend = value
+			"--extra-dew":  # A number, or grow / final: the cheapest such growth on the resumed board (Balancing)
+				if value in ["grow", "final"]:
+					extra_x_mode = value
+				else:
+					extra_dew = int(value)
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
@@ -216,6 +252,19 @@ func _run() -> void:
 		load("res://scripts/meta/meta_run.gd").set("force_sidegrade", sidegrade)  # Only on builds that have it (the Spire branch)
 	if all_families:
 		load("res://scripts/meta/meta_run.gd").set("force_all_families", true)
+	if from_save != "":
+		# A copy in a scratch user:// file (per process): the original is only read, and RunSaver never writes here
+		# (autosave is off outside the real game). RunSaver._ready restores the map seed, Blight and bosses from it.
+		if not FileAccess.file_exists(from_save):
+			printerr("--from-save: no file %s" % from_save)
+			quit(1)
+			return
+		_save_copy = "user://sim_run_%d.json" % OS.get_process_id()
+		var copy := FileAccess.open(_save_copy, FileAccess.WRITE)
+		copy.store_string(FileAccess.get_file_as_string(from_save))
+		copy.close()
+		RunSaver.file_path = _save_copy
+		RunSaver.resume_next = true
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
 	if hand_drifts:
@@ -226,6 +275,14 @@ func _run() -> void:
 		main.get_node("%DriftDirector").set(key, director_overrides[key])
 	root.add_child(main)
 	await process_frame
+	if from_save != "":
+		await process_frame  # RunSaver._restore is deferred
+		RunSaver.file_path = RunSaver.PATH
+		resumed_at = main.get_node("%DriftDirector").drifts_started
+		if resumed_at <= 0:
+			printerr("--from-save: the save didn't restore (wrong version or unreadable): %s" % from_save)
+			quit(1)
+			return
 	map = main.get_node("%MapGenerator")
 	placer = main.get_node("%TowerPlacer")
 	dreams = main.get_node("%DreamState")
@@ -281,7 +338,12 @@ func _run() -> void:
 	_new_window()
 	_last_dew = run_state.dew
 	route_base = _route_cells(map.get_path_from(map.startPath))
-	_spend()  # The opening
+	if start_at > 1:
+		_synthetic_start()
+	if extra_spend != "":
+		_extra_spend()  # Instead of the opening spend: every arm (the control too) keeps the saved board as it was
+	else:
+		_spend()  # The opening (with --start-at: the whole board, built in that one rest)
 	route_open = _route_cells(map.get_path_from(map.startPath))
 	Engine.time_scale = speed
 	var frames := 0
@@ -329,6 +391,8 @@ func _run() -> void:
 		for path in [sim_profile, sim_profile + ".bak"]:  # save_data keeps a .bak of the last write
 			if FileAccess.file_exists(path):
 				DirAccess.remove_absolute(path)
+	if _save_copy != "" and FileAccess.file_exists(_save_copy):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(_save_copy))  # --from-save's scratch copy
 	quit(0)
 
 # The real rest and family pick open screens and offers; the bot answers them through the policy
@@ -389,9 +453,161 @@ func _on_rest(perfect: bool) -> void:
 	if n % director.drifts_per_act == 0:
 		run.banked_at_act[n / director.drifts_per_act + 1] = run_state.dew
 	_spend()
+	if save_at.has(n):
+		_write_snapshot(n)
 	_busy = false
 
+# --save-at: the board as it stands after this rest's spending, as a RunSaver run.json (for --from-save and the
+# snapshot library). Written into --out; RunSaver's own path is put back right away.
+func _write_snapshot(n: int) -> void:
+	var saver: Node = main.get_node_or_null("%RunSaver")
+	if saver == null:
+		return
+	var dest := out_dir.path_join("snapshot_%s_%s_seed%d_d%d.json" % [profile, style, map_seed, n])
+	var old_path: String = RunSaver.file_path
+	RunSaver.file_path = dest
+	var ok: bool = saver.save_now()
+	RunSaver.file_path = old_path
+	print("SNAPSHOT %s %s" % ["written" if ok else "refused (a choice is open)", dest])
+
 # --- Spending ------------------------------------------------------------------------------------------
+
+# --start-at (balance_simulation.md 584f9521 "Acts 3–4 coverage"): the run as a typical player would hold it at the rest
+# before `start_at`. Walks the skipped drifts with the director's counters set to each: the first family pick, a Dream
+# offer per rest by the bot's normal logic (boss rests Rare+: make_offer), the boss family picks; Dew = what the run
+# already has (starting Dew, Grove) + each skipped drift's pot × its multiplier × START_POT_SHARE + each base rest bonus;
+# Dreamlight topped up to the human-run mean; leaves set to START_LEAVES. The opening _spend() then builds the board.
+func _synthetic_start() -> void:
+	var rest_drift := start_at - 1
+	if rest_drift % director.drifts_per_block != 0 or rest_drift >= director.get_total_drifts():
+		printerr("--start-at=%d: must be one past a rest (51, 76, …)" % start_at)
+		quit(1)
+		return
+	var dew := float(run_state.dew)
+	for r in range(1, start_at):
+		director.drifts_started = r
+		director.drifts_cleared = r
+		if r == 1:
+			_pick_family_now(&"first")
+		dew += director.get_dew_pot(r) * director.get_dew_pot_multiplier(r, false, false) * START_POT_SHARE
+		if r % director.drifts_per_block == 0:
+			if director.is_boss_drift(r):
+				_pick_family_now(&"boss")
+			dew += director.get_rest_bonus(director.get_block(r))
+			policy.rest(r, true)
+	director.blocks_rested = rest_drift / director.drifts_per_block
+	var target: int = start_dreamlight if start_dreamlight >= 0 else int(START_DREAMLIGHT.get(start_at, 0))
+	var earned := 0
+	for amount in dreamlight_by_source.values():
+		earned += int(amount)
+	if target > earned:
+		dreams.add_dreamlight(target - earned, &"start_at")
+	start_dl = maxi(target, earned)
+	policy.spend_dreamlight()
+	run_state.dew = roundi(dew)
+	start_dew = run_state.dew
+	run_state.leaves = mini(start_leaves if start_leaves >= 0 else int(START_LEAVES.get(start_at, run_state.max_leaves)), run_state.max_leaves)
+	director.act_started.emit(director.get_act(start_at), 0)  # The act's look (Seasons) and HUD
+	_late_build()
+
+# The --start-at board (Balancing, after the first arms: the bot's room cap built 16-26 attackers where people field
+# 42-88): (a) plant up to START_ATTACKERS, walls in the style's proportion, on at most START_PLANT_SHARE of the Dew;
+# (b) grow, finals first, up to START_GROW_SHARE; (c) Nurture with the rest. Live prices (copy cost included).
+func _late_build() -> void:
+	var dew0 := float(run_state.dew)
+	var plan: Dictionary = STYLE_PLAN.get(style, STYLE_PLAN.balanced)
+	var target := int(START_ATTACKERS.get(start_at, 0))
+	var plant_cap := dew0 * START_PLANT_SHARE
+	var spent := {"plant": 0.0, "grow": 0.0, "rank": 0.0}
+	var walls_planted := 0
+	for guard in 400:
+		if _attackers().size() >= target or spent.plant >= plant_cap:
+			break
+		var before := run_state.dew
+		var planted := _plant_attacker()
+		spent.plant += before - run_state.dew
+		while _walls().size() < int(_attackers().size() * float(plan.walls)) and spent.plant < plant_cap:
+			var before_wall := run_state.dew
+			if not _plant_wall():
+				break
+			walls_planted += 1
+			spent.plant += before_wall - run_state.dew
+		if not planted:
+			break
+	_finals_first = true
+	for guard in 400:
+		if spent.grow >= dew0 * START_GROW_SHARE:
+			break
+		var before := run_state.dew
+		if not _grow():
+			break
+		spent.grow += before - run_state.dew
+	_finals_first = false
+	for guard in 800:
+		var before := run_state.dew
+		if not _nurture():
+			break
+		spent.rank += before - run_state.dew
+	start_counts = "attackers %d of %d, walls %d (+%d planted), Dew plant %d / grow %d / rank %d of %d" % [_attackers().size(), target,
+		_walls().size(), walls_planted, roundi(spent.plant), roundi(spent.grow), roundi(spent.rank), roundi(dew0)]
+	print("START BUILD " + start_counts)
+
+# --extra-spend (balance_simulation.md a8c0365c "Plant vs grow vs rank"), at the rest a --from-save run resumes on:
+# `extra_dew` more Dew spent only one way, the unspent part taken back, then normal play. plant = copies of the
+# family base most on the map; grow = one base → branch; final = one branch → final; rank = Nurture on the bot's
+# usual targets; none = the control.
+func _extra_spend() -> void:
+	var counts := {}
+	for t in _attackers():
+		var d: TowerData = t.tower_data
+		if d.tier == 1 and d.buildable_directly and d.get_id() != "sprout" and dreams.family_of(d.get_id()) != "":
+			counts[d.get_id()] = int(counts.get(d.get_id(), 0)) + 1
+	for id in counts:
+		if base_kind == "" or counts[id] > counts[base_kind]:
+			base_kind = id
+	copies_at_start = int(counts.get(base_kind, 0))
+	if extra_x_mode != "":
+		extra_dew = _cheapest_growth_price(2 if extra_x_mode == "grow" else 3)
+	var before := run_state.dew
+	run_state.dew += extra_dew
+	match extra_spend:
+		"plant":
+			var base: TowerData = load("res://resource/tower/%s.tres" % base_kind) if base_kind != "" else null
+			for guard in 200:
+				if base == null or run_state.dew - before <= 0 or not run_state.can_afford(placer.get_cost(base)):
+					break
+				var cell := _best_cell(base.attack_range, 0.5, false, base)
+				if cell == NO_CELL or not _build(base, cell):
+					break
+		"grow", "final":
+			_grow_only_tier = 2 if extra_spend == "grow" else 3
+			_grow()
+			_grow_only_tier = 0
+		"rank":
+			for guard in 200:
+				if run_state.dew - before <= 0 or not _nurture():
+					break
+	extra_spent = before + extra_dew - run_state.dew
+	run_state.dew = mini(run_state.dew, before)  # The unspent extra goes back
+	print("EXTRA %s: %d of %d spent (base %s ×%d)" % [extra_spend, extra_spent, extra_dew, base_kind, copies_at_start])
+
+# The cheapest growth into an unlocked form of `tier` on the board (what it costs a Warden as it stands, ranks
+# included); 0 = none open.
+func _cheapest_growth_price(tier: int) -> int:
+	var best := 0
+	for t in _attackers():
+		for form in t.tower_data.evolves_to:
+			if form is TowerData and form.tier == tier and dreams.is_unlocked(form.get_id()) and placer.ascended_blocker(form) == "":
+				var price: int = t.get_grow_cost(form).total
+				if best == 0 or price < best:
+					best = price
+	return best
+
+func _pick_family_now(kind: StringName) -> void:
+	if forced_families.is_empty():
+		policy.family_pick(kind)
+	else:
+		_forced_family_pick(kind)
 
 func _spend() -> void:
 	for guard in 60:
@@ -589,9 +805,26 @@ func _plant_half_wall() -> bool:
 	if best == Vector2(-1, -1):
 		return false
 	half_spots[3] += 1
-	return placer._try_build_half(best)
+	var before := _route_cells(map.get_path_from(map.startPath))
+	var built: bool = placer._try_build_half(best)
+	if built:
+		_note_path(before, true)
+	return built
 
+# Builds and notes the route cells the placement added (path_per_plant / path_per_wall columns).
 func _build(data: TowerData, cell: Vector2) -> bool:
+	var before := _route_cells(map.get_path_from(map.startPath))
+	var built := _build_inner(data, cell)
+	if built:
+		_note_path(before, not data.can_attack)
+	return built
+
+func _note_path(before: int, wall: bool) -> void:
+	var entry: Array = path_added["wall" if wall else "plant"]
+	entry[0] += _route_cells(map.get_path_from(map.startPath)) - before
+	entry[1] += 1
+
+func _build_inner(data: TowerData, cell: Vector2) -> bool:
 	placer.tower_data = data
 	if not _half_mode() or _top.is_empty() or not placer.half_placement():
 		return placer._try_build(cell)
@@ -735,6 +968,8 @@ func _grow() -> bool:
 		for form in tower.tower_data.evolves_to:
 			if not (form is TowerData) or not dreams.is_unlocked(form.get_id()) or placer.ascended_blocker(form) != "":
 				continue
+			if _grow_only_tier > 0 and form.tier != _grow_only_tier:
+				continue  # --extra-spend grow / final: only that step
 			if form.footprint > tower.get_footprint() and placer.get_grow_squares(tower, form).is_empty():
 				continue
 			if tower.get_grow_cost(form).total > run_state.dew:
@@ -751,6 +986,8 @@ func _grow() -> bool:
 		if pick != null:
 			# Growing into an aura Warden: the Wardens around it count; into a kin branch: its unbonded kin.
 			var cover := _coverage(tower) + _aura_bonus(tower.cell, pick, tower, false) + _kin_bonus(tower.cell, pick, tower)
+			if _finals_first:
+				cover += 1000.0 * pick.tier  # The late-start build: finals before new branches
 			if fence_pref and pick.special == &"jarlink":
 				cover += _fence_bonus(tower)  # The arc must cross the route (the probe's --pairs rule)
 				if cover < 0.0:
@@ -784,6 +1021,8 @@ func _hook_stats() -> void:
 			(func() -> void: d.health_spawned += n.max_health).call_deferred())
 	spawner.enemy_reached_goal.connect(func(e) -> void:
 		d.leaks += 1
+		if is_instance_valid(e):
+			d.leaked_health += e.health  # Health that got through (dispelled share = 1 - leaked / spawned)
 		if is_instance_valid(e) and e.enemy_data.is_boss:  # An act boss bites (8 / 10 / 12 leaves) and leaves (bfc33e75)
 			_boss_leaked(e)
 		if run.first_leak == 0:
@@ -809,7 +1048,7 @@ func _new_window() -> void:
 	d = {"start": game_time, "health_spawned": 0.0, "damage": 0.0, "chain_deep": 0.0, "leaks": 0, "leaves_left": run_state.leaves,
 		"leaves_before": run_state.leaves, "dew_rest": 0, "dew_other": 0, "spent_plant": 0, "spent_walls": 0,
 		"spent_grow": 0, "spent_nurture": 0, "by_tower": {}, "asleep": 0.0, "reaction": 0.0, "crit": 0.0,
-		"restless": 0, "trampled": 0, "approach": 0.0, "combo": 0.0, "status": 0.0, "hit": 0.0, "combo_damage": 0.0, "reaction_damage": 0.0, "status_damage": 0.0}
+		"restless": 0, "trampled": 0, "approach": 0.0, "combo": 0.0, "status": 0.0, "hit": 0.0, "combo_damage": 0.0, "reaction_damage": 0.0, "status_damage": 0.0, "leaked_health": 0.0, "approach_sum": 0.0, "approach_n": 0}
 
 func _on_damage(event) -> void:
 	d.damage += event.amount
@@ -877,7 +1116,7 @@ func _close_window(n: int) -> void:
 		"avg_rank": snappedf(float(ranks) / maxf(_attackers().size(), 1), 0.1),
 		"route": _route_cells(map.get_path_from(map.startPath)), "families": lines.size(), "cards": dreams.stacks.size(),
 		"dreamlight": dreams.dreamlight, "top_warden": top, "top_share": snappedf(top_amount / damage, 0.001),
-		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "combo_amount_share": snappedf(d.combo / damage, 0.001), "status_share": snappedf(d.status / damage, 0.001), "hit_share": snappedf(d.hit / damage, 0.001), "combo_damage": roundi(d.combo_damage), "reaction_damage": roundi(d.reaction_damage), "status_damage": roundi(d.status_damage), "combo_share": snappedf((d.combo_damage + d.reaction_damage) / damage, 0.001), "longest_chain": _longest_chain(),
+		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "combo_amount_share": snappedf(d.combo / damage, 0.001), "status_share": snappedf(d.status / damage, 0.001), "hit_share": snappedf(d.hit / damage, 0.001), "combo_damage": roundi(d.combo_damage), "reaction_damage": roundi(d.reaction_damage), "status_damage": roundi(d.status_damage), "combo_share": snappedf((d.combo_damage + d.reaction_damage) / damage, 0.001), "longest_chain": _longest_chain(), "leaked_health": roundi(d.leaked_health), "closest_mean": snappedf(d.approach_sum / maxf(d.approach_n, 1), 0.001),
 		"crit_share": snappedf(d.crit / damage, 0.001), "restless": d.restless, "trampled": d.trampled,
 		"approach": snappedf(d.approach, 0.01)}
 	rows.append(row)
@@ -985,6 +1224,22 @@ func _finish() -> void:
 	summary.grows_25 = grows_25
 	summary.first_grow = first_grow
 	summary.sets = ";".join(node_sets)
+	summary.start_at = start_at  # 0 = a full run; never mix these rows with full runs
+	summary.start_dew = start_dew
+	summary.start_dreamlight = start_dl
+	summary.start_leaves = START_LEAVES.get(start_at, -1) if start_leaves < 0 else start_leaves
+	summary.start_build = start_counts.replace(",", ";")
+	summary.from_save = from_save.get_file()
+	summary.resumed_at = resumed_at
+	summary.extra_spend = extra_spend
+	summary.extra_dew = extra_dew  # X (with --extra-dew=grow / final: the cheapest such growth on the board)
+	summary.extra_x = extra_x_mode
+	summary.extra_spent = extra_spent
+	summary.base_kind = base_kind
+	summary.copies_at_start = copies_at_start
+	summary.path_per_plant = snappedf(float(path_added.plant[0]) / maxf(path_added.plant[1], 1.0), 0.01)
+	summary.path_per_wall = snappedf(float(path_added.wall[0]) / maxf(path_added.wall[1], 1.0), 0.01)
+	summary.placements = "%d/%d" % [path_added.plant[1], path_added.wall[1]]
 	summary.growth_costs = "%s/%s/%s/%s" % [dreams.get("branch_cost_multiplier"), dreams.get("final_cost_multiplier"), dreams.get("ascended_cost_multiplier"), dreams.get("rank_costs")]
 	summary.route_open = route_open
 	summary.route_24 = route_at.get(24, -1)
@@ -1082,6 +1337,7 @@ func _sprout_share() -> float:
 # Closest approach (balance_simulation.md "Spend or save"): how far along the route the furthest
 # nightmare is right now (0 at the start, 1 at the Heartwood); the drift window keeps the maximum.
 func _sample_approach() -> void:
+	var furthest := -1.0
 	var route_px := maxf((map.get_path_from(map.startPath).size() - 1) * Tower.MAP_GRID.cell_size.x / _route_step(), 1.0)  # Half grid: points step by half a cell
 	for enemy in spawner.get_enemies():
 		if is_instance_valid(enemy) and enemy.enemy_data.is_boss:
@@ -1089,7 +1345,12 @@ func _sample_approach() -> void:
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
 			_sample_statuses(enemy.statuses)
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
-			d.approach = maxf(d.approach, clampf(1.0 - enemy.get_remaining_distance() / route_px, 0.0, 1.0))
+			var along := clampf(1.0 - enemy.get_remaining_distance() / route_px, 0.0, 1.0)
+			d.approach = maxf(d.approach, along)
+			furthest = maxf(furthest, along)
+	if furthest >= 0.0:  # closest_mean: the furthest nightmare's share of the route, averaged over the drift's samples
+		d.approach_sum += furthest
+		d.approach_n += 1
 
 # A Sprout that will grow into the family isn't nurtured (ranks raise what the growth costs): before the
 # first family pick, or while a family base form is open to it. The Sprout build keeps its Sprouts, and

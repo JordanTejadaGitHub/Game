@@ -265,6 +265,9 @@ static func format(text: String) -> String:
 		for found in family_pattern().search_all(text):
 			var data := family_data(found.get_string(1))
 			text = text.replace(found.get_string(), data.display_name if data != null else found.get_string(1).capitalize())
+	if text.contains("{nightmare:"):  # A nightmare: its name, or ??? until met
+		for found in nightmare_pattern().search_all(text):
+			text = text.replace(found.get_string(), nightmare_name(found.get_string(1)))
 	if text.contains("{combo:"):  # A combo (or Crowned Reaction): its name, or ??? until discovered
 		for found in _combo_pattern().search_all(text):
 			var id := StringName(found.get_string(1))
@@ -397,6 +400,29 @@ static func family_pattern() -> RegEx:
 static func family_data(id: String) -> TowerData:
 	var path := "res://resource/tower/%s.tres" % id
 	return load(path) as TowerData if ResourceLoader.exists(path) else null
+
+# Nightmare names ({nightmare:shellbound}; user: "dread shell should have an underline with the nightmare linked"): the
+# kind's name once met on this profile, ??? until then (the Codex's rule). StatusLinks makes them links to its card.
+static var _nightmare_pattern: RegEx = null
+static func nightmare_pattern() -> RegEx:
+	if _nightmare_pattern == null:
+		UiStyle.release_at_exit(func() -> void: _nightmare_pattern = null)
+		_nightmare_pattern = RegEx.create_from_string("\\{nightmare:([a-z0-9_]+)\\}")
+	return _nightmare_pattern
+
+# The kind's EnemyData (resource/enemy/<kind>.tres), or null.
+static func nightmare_data(kind: String) -> EnemyData:
+	var path := NightmareCodex.DIR + kind + ".tres"
+	return load(path) as EnemyData if ResourceLoader.exists(path) else null
+
+static func nightmare_met(kind: String) -> bool:
+	return NightmareCodex.seen().has(kind)
+
+static func nightmare_name(kind: String) -> String:
+	var data := nightmare_data(kind)
+	if data == null:
+		return kind.capitalize()
+	return data.display_name if nightmare_met(kind) else "???"
 
 # The status id for a display name ("Soaked" -> &"damp"), or &"" (StatusLinks uses it).
 static func status_id(name: String) -> StringName:

@@ -70,26 +70,37 @@ func _ready() -> void:
 	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)  # Offsets too: exactly the screen
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(centre)
-	var solid := UiStyle.panel(18.0, 14.0)  # Solid: a paused card never shows another screen through it (user)
+	var solid := UiStyle.panel(18.0, 18.0)  # Solid: a paused card never shows another screen through it (user)
 	solid.center_alpha = UiStyle.TIP_ALPHA
 	solid.edge_alpha = UiStyle.TIP_ALPHA
 	_panel.add_theme_stylebox_override("panel", solid)
 	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	centre.add_child(_panel)
+	# The card and its ✕, which floats in the top-right corner over the padding (user: "a lot of blank space on top"
+	# with the ✕ on a row of its own): the portrait and the name start right under the thread.
+	var frame := Control.new()
+	frame.name = "CardFrame"
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	centre.add_child(frame)
+	frame.add_child(_panel)
+	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_panel.minimum_size_changed.connect(func() -> void: frame.custom_minimum_size = _panel.get_combined_minimum_size())
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 10)
 	_panel.add_child(outer)
-	var top := HBoxContainer.new()  # ✕ in the corner (tap-sized)
-	top.alignment = BoxContainer.ALIGNMENT_END
 	var cross := Button.new()
+	cross.name = "Close"
 	cross.text = "✕"
-	cross.flat = true
 	cross.focus_mode = Control.FOCUS_NONE
-	cross.custom_minimum_size = Vector2(44, 44)
 	cross.tooltip_text = "Close (Esc)"
 	cross.pressed.connect(close)
-	top.add_child(cross)
-	outer.add_child(top)
+	UiStyle.quiet(cross)
+	cross.custom_minimum_size = Vector2(44, 44)  # Tap-sized
+	cross.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	cross.offset_left = -48.0
+	cross.offset_right = -4.0
+	cross.offset_top = 4.0
+	cross.offset_bottom = 48.0
+	frame.add_child(cross)
 	_content.custom_minimum_size = Vector2(WIDTH, 0)
 	_content.add_theme_constant_override("separation", 8)
 	outer.add_child(_content)
@@ -108,7 +119,9 @@ func _ready() -> void:
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons.add_theme_constant_override("separation", 12)
-	buttons.add_child(peek.make_peek_button())
+	var peek_button := peek.make_peek_button()
+	UiStyle.quiet(peek_button)  # Light pass: "Got it" is the one framed primary
+	buttons.add_child(peek_button)
 	buttons.add_child(_next)
 	outer.add_child(buttons)
 	for kind in HeartwoodMemory.load_data().get("nightmares_seen", []):
@@ -342,6 +355,10 @@ func _build(data: EnemyData) -> void:
 	if data.trait_text != "":
 		titles.add_child(StatusLinks.make_label(data.trait_text, 15, UiStyle.INK_DIM))
 	head.add_child(titles)
+	var corner := Control.new()  # The floating ✕'s corner: the name wraps before it
+	corner.custom_minimum_size.x = 30.0
+	corner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(corner)
 	_content.add_child(head)
 	var lines: Array = data.get_intro_lines() if data.has_method("get_intro_lines") else []
 	if not lines.is_empty():

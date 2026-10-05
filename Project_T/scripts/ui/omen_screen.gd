@@ -206,6 +206,7 @@ func _card_action(box: VBoxContainer, text: String, primary: bool) -> void:
 	action.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	if primary:
 		UiStyle.primary(action)
+	ChoiceCard.link_cue(action)  # Lights with the card (hover, press)
 	box.add_child(action)
 
 # A card's emblem (run_design.md "How an Omen looks"): the icon from assets/ui/icons.png drawn x4 (64 px, nearest)

@@ -162,6 +162,11 @@ func _ready() -> void:
 	outer.add_child(buttons)
 	if drift_director != null:
 		drift_director.rest_started.connect(_on_rest_started)
+		# The block began some other way than Face it: never left open over the screens that come next (its full-screen
+		# shield would take their clicks; seen with the family pick after drift 1).
+		drift_director.rest_ended.connect(func(_block: int) -> void:
+			if visible and not is_hunting():
+				close_dossier())
 		_pending_first = true  # Act 1's boss at the first rest (if this is a new run: see _process)
 		_wait = OPEN_DELAY
 		_make_reminder.call_deferred()

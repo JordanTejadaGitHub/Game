@@ -991,6 +991,7 @@ void fragment() {
 			_silhouette = ShaderMaterial.new()
 			_silhouette.shader = shader
 			_silhouette.set_shader_parameter("ink", Palette.DREAD)
+			UiStyle.release_at_exit(func() -> void: _silhouette = null)  # Resources in a static var crash the exit (exit 139)
 		return _silhouette
 
 	func _init(form: TowerData, side: float, silhouette: bool = false) -> void:

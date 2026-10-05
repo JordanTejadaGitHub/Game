@@ -241,6 +241,7 @@ var first_offer_cards := 0  # Sidegrade Kindling: the first Dream offer (drifts 
 	set(value):
 		ascended_cost_multiplier = value
 		TowerData.grow_cost_multipliers[4] = value
+@export var final_damage_multiplier: float = 1.0  # Final forms' (tier 3) damage, for Balancing's "finals +10–15%" A/B
 @export var rank_costs: Array[int] = [30, 48, 60, 90, 135]:
 	set(value):
 		rank_costs = value

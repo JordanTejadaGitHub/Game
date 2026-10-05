@@ -413,6 +413,7 @@ func _make_card(data: TowerData) -> Button:
 	wake.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	wake.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	UiStyle.primary(wake)
+	ChoiceCard.link_cue(wake)  # Lights with the card (hover, press)
 	box.add_child(wake)
 	return button
 

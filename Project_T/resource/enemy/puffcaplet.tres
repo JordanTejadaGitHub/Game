@@ -11,5 +11,5 @@ health = 30
 speed = 128.0
 dew_reward = 1
 trait_text = "Small and quick."
-intro_lines = Array[String](["Small and quick: what's left of a Mourner."])
+intro_lines = Array[String](["What's left of a Mourner, still crying as it runs."])
 hint = "Area damage sweeps them up."

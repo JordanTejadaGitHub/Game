@@ -53,6 +53,7 @@ func _init() -> void:
 	_scan_script_strings("res://scripts/enemy", "Enemy Code", true)
 	_scan_script_strings("res://scripts/meta", "Meta Game Code", true)
 	_self_check()
+	_link_checks()
 	var failures := 0
 	for owner in findings:
 		var list: Array = findings[owner]
@@ -238,6 +239,32 @@ func _escape(s: String) -> String:
 	return out
 
 # The linter itself catches what it should (kept out of the findings).
+# Dread shell as a link (user: "dread shell should have an underline with the nightmare linked"): the {dread_shell}
+# token and the plain words (any case, plural) link the term, and the glossary's line names its wearers as nightmare
+# links, read from the data. Failures go to Main (enforced).
+func _link_checks() -> void:
+	var term := "[url=term:dread_shell]"
+	var cases := {
+		"token": StatusLinks.bbcode("Wears a {dread_shell} away."),
+		"plain words": StatusLinks.bbcode("A dread shell shrugs off small hits."),
+		"capitalised plural": StatusLinks.bbcode("Dread shells crack."),
+		"Lichenling": StatusLinks.bbcode((load("res://resource/tower/lichenling.tres") as TowerData).description),
+		"Old Lichen": StatusLinks.bbcode((load("res://resource/tower/old_lichen.tres") as TowerData).description),
+		"Crusted Brood": StatusLinks.bbcode(CodexData.KINSHIP_TEXT[&"crusted_brood"]),
+	}
+	for name in cases:
+		if not String(cases[name]).contains(term):
+			findings.get_or_add("Main", []).append("links: %s shows dread shell without its link" % name)
+	if not StatusLinks.bbcode("Dread shells crack.").contains("]Dread shells[/color]"):
+		findings.get_or_add("Main", []).append("links: a plain term keeps its written form")
+	var line := CodexData.nightmares_line("Dread shell")
+	if not line.contains("{nightmare:shellbound}"):
+		findings.get_or_add("Main", []).append("links: the dread shell glossary line names Shellbound from its data (%s)" % line)
+	if not StatusLinks.bbcode(line).contains("[url=nightmare:shellbound]"):
+		findings.get_or_add("Main", []).append("links: wearers are nightmare links")
+	if IconInfo.format(line).contains("{"):
+		findings.get_or_add("Main", []).append("links: nightmare tokens format to names (%s)" % IconInfo.format(line))
+
 func _self_check() -> void:
 	var saved := findings.duplicate(true)
 	findings.clear()
