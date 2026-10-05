@@ -335,6 +335,7 @@ func _init() -> void:
 	if not clipped.is_empty():
 		push_warning("Wardens touching their frame edge (frames): %s" % clipped)
 	_save_attack_info()
+	_make_twig()
 	_make_ranks()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT + "projectiles/"))
 	for p: String in ["spore", "pebble", "boulder", "dew_drop", "spark", "light_orb", "sling_stone", "moon_shard",
@@ -2151,6 +2152,86 @@ func _draw_thornwall(canvas: Image, st: Dictionary) -> void:
 # petals drifting off it.
 func _draw_bramble(canvas: Image, st: Dictionary) -> void:
 	_bramble_body(canvas, st, true)
+
+# Twig Walls (Dream card, dream_design.md c6fefe1b): a Thornwall on a single 32 px half cell.
+# thornwall_twig.png: 8 idle frames of 32 x 40 (the 64 x 80 rule at half scale: the bottom 32 rows
+# are the half-cell footprint, 8 rows of headroom). Drawn natively at this size: a little dark
+# thorny bramble mound, fast asleep, on a tiny grey stone with moss and a vine.
+const TWIG := 32
+const TWIG_HEAD := 8
+
+func _make_twig() -> void:
+	var sheet := Image.create_empty(TWIG * FRAMES, TWIG + TWIG_HEAD, false, Image.FORMAT_RGBA8)
+	for f in FRAMES:
+		OY = TWIG_HEAD
+		var canvas := _layer()
+		_draw_twig(canvas, _idle_state(f))
+		OY = 0
+		sheet.blit_rect(canvas, Rect2i(0, 0, TWIG, TWIG + TWIG_HEAD), Vector2i(f * TWIG, 0))
+	sheet = _warden_night(_detail_pass(sheet, Vector2i(TWIG, TWIG + TWIG_HEAD), true))
+	sheet.save_png(OUT + "thornwall_twig.png")
+
+# In canvas coords: x 0..31, y -8..31 (y 0..31 = the half cell).
+func _draw_twig(canvas: Image, st: Dictionary) -> void:
+	var dy: int = st.dy
+	var stone: Array = THEMES["bramble"]
+	var o := Color("#121a10")
+	var bush := _ramp(["#1e3a22", "#34552e", "#4e763c", "#6a9448"])
+	var thorn := Color("#e8d4a0")
+	var cane := Color("#6a4030")
+	# The stone: a small isometric slab (top face, two side faces, a dark edge).
+	var slab := _layer()
+	for y in range(14, 32):
+		for x in TWIG:
+			var p := Vector2(x + 0.5, y + 0.5)
+			var top := absf(p.x - 16.0) / 14.5 + absf(p.y - 22.0) / 6.5 <= 1.0
+			var below := absf(p.x - 16.0) / 14.5 + absf(p.y - 26.0) / 6.5 <= 1.0 and p.y > 22.0
+			if top:
+				_sp(slab, x, y, Color(stone[0]))
+			elif below:
+				_sp(slab, x, y, Color(stone[1]) if p.x < 16.0 else Color(stone[2]))
+	_stamp(canvas, slab, Color("#1e1c28"))
+	for p: Vector2i in [Vector2i(5, 22), Vector2i(6, 21), Vector2i(7, 22), Vector2i(24, 23), Vector2i(25, 22), Vector2i(23, 24)]:
+		_px(canvas, p.x, p.y, Color("#3c7040"))  # moss
+	_line(canvas, [Vector2(19, 27), Vector2(22, 25), Vector2(26, 24)], Color("#2e5a30"))
+	_px(canvas, 22, 24, Color("#58964a"))
+	# The bramble mound, bobbing with the idle.
+	var body := _layer()
+	_ellipse(body, Vector2(16, 14 + dy), Vector2(8.5, 7.5), bush, 22.0)
+	_stamp(canvas, body, o)
+	var on := func(x: int, y: int) -> bool:
+		return x >= 0 and y >= -OY and x < TWIG and y < S and _gp(body, x, y).a > 0.0
+	for y in range(-OY + 2, 22):  # thorns round its top and sides
+		for x in range(1, TWIG - 1):
+			if not on.call(x, y):
+				continue
+			if not on.call(x, y - 1) and x % 3 == 1:
+				_px(canvas, x, y - 1, cane)
+				_px(canvas, x, y - 2, thorn)
+			elif not on.call(x - 1, y) and y % 3 == 0:
+				_px(canvas, x - 1, y, thorn)
+			elif not on.call(x + 1, y) and y % 3 == 0:
+				_px(canvas, x + 1, y, thorn)
+	# A thorny cane wrapped across it, two dark berries, a few lighter leaves.
+	_line(canvas, [Vector2(8, 15 + dy), Vector2(10, 19 + dy), Vector2(15, 21 + dy)], cane)
+	for p: Vector2i in [Vector2i(8, 17), Vector2i(12, 21)]:
+		_px(canvas, p.x, p.y + dy, thorn)
+	for p: Vector2i in [Vector2i(9, 15), Vector2i(23, 14)]:
+		_px(canvas, p.x, p.y + dy, Color("#5a2a4a"))
+		_px(canvas, p.x, p.y - 1 + dy, Color("#a05080"))
+	for p: Vector2i in [Vector2i(12, 8), Vector2i(20, 9), Vector2i(9, 12)]:
+		_px(canvas, p.x, p.y + dy, Color("#86b060"))
+	# Fast asleep: a lighter face patch, two closed eyes curving down.
+	var face := _layer()
+	_flat_ellipse(face, Vector2(16, 13.5 + dy), Vector2(5.5, 3.0), Color("#6a9448"))
+	for y in range(-OY, 22):
+		for x in TWIG:
+			if _gp(face, x, y).a > 0.0:
+				_sp(canvas, x, y, _gp(face, x, y))
+	for ex: int in [13, 18]:
+		_px(canvas, ex, 13 + dy, o)
+		_px(canvas, ex + 1, 13 + dy, o)
+		_px(canvas, ex - 1, 12 + dy, Color("#86b060"))
 
 func _bramble_body(canvas: Image, st: Dictionary, bloom: bool) -> void:
 	# Thornwall reads as a dark, wild, THORNY hedge (spikes all round its outline, thick thorny canes
