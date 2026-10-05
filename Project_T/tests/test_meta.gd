@@ -409,7 +409,7 @@ func _run() -> void:
 	for unlock in HeartwoodMemory.load_grove():
 		for card in unlock.dream_cards:
 			every_card[card] = unlock.id
-	for card: String in ["hunters_patience", "sharpened_light", "crowd_breaker", "thornheart", "scented_hedge", "tended_stumps", "hollow_ground", "momentum", "great_ripple", "lucid_dreaming", "drumbeat", "overlap"]:
+	for card: String in ["hunters_patience", "sharpened_light", "thornheart", "scented_hedge", "tended_stumps", "hollow_ground", "great_ripple", "lucid_dreaming"]:
 		_check(every_card.has(card) and ResourceLoader.exists("res://resource/dream/%s.tres" % card), "a Grove node grants %s" % card)
 	_check(_unlock(HeartwoodMemory.load_grove(), "the_old_ones").requires_all == ["elders"], "The Old Ones needs Elders")
 	# Branch expansion in the Grove (meta_design.md 1f25e66e): family cards list their branches; Wider Roots.
@@ -513,6 +513,15 @@ func _run() -> void:
 	_check(grove_screen._card_section.text == "perk, level 0 of 3" and grove_screen._card_level_bars.get_child_count() == 3
 		and grove_screen._card_cost.visible and grove_screen._plant.text == "Plant"
 		and not card_texts.any(func(t: String) -> bool: return t.contains(" · ")), "the node card follows the approved layout (%s)" % [card_texts])
+	grove_screen.set_anchors_preset(Control.PRESET_TOP_LEFT)  # Headless windows are tiny: lay it out at 1280×800
+	grove_screen.size = Vector2(1280, 800)
+	await process_frame
+	grove_screen._fit_card()
+	await process_frame
+	var card_rect: Rect2 = grove_screen._card.get_rect()
+	_check(card_rect.end.x <= grove_screen._footer.position.x - grove_screen.CARD_GAP + 1
+		and card_rect.end.y <= grove_screen._zoom_row.position.y - grove_screen.CARD_GAP + 1,
+		"the card keeps clear of the button column and the zoom row (%s, column x %d)" % [card_rect, grove_screen._footer.position.x])
 	_check(view.state_of(_unlock(grove, "morning_stores")) == GroveTreeView.State.AFFORDABLE, "Morning Stores glows (affordable)")
 	_check(view.state_of(_unlock(grove, "rich_dew")) == GroveTreeView.State.LOCKED, "Rich Dew stays a bare twig until its parent grows")
 	grove_screen._plant_selected()

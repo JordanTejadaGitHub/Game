@@ -6,10 +6,10 @@
 script = ExtResource("1_unlock")
 id = "mixed_company"
 display_name = "Mixed Company"
-description = "Mixed-build Dreams join the pool: Mixed Grove, Odd One Out, Grand Tour."
+description = "Mixed-build Dreams join the pool: Mixed Grove, Grand Tour."
 root = 1
-costs = Array[int]([50])
+costs = Array[int]([40])
 order = 13
 icon = 4
 requires_all = Array[String](["seedbed"])
-dream_cards = Array[String](["mixed_grove", "odd_one_out", "odd_one_out_ii", "grand_tour"])
+dream_cards = Array[String](["mixed_grove", "grand_tour"])

@@ -6,9 +6,9 @@
 script = ExtResource("1_unlock")
 id = "broad_strokes"
 display_name = "Broad Strokes"
-description = "Splash Dreams join the pool: Broad Splash, Lingering Splash, Overlap."
+description = "Splash Dreams join the pool: Broad Splash, Lingering Splash."
 root = 1
-costs = Array[int]([50])
+costs = Array[int]([40])
 order = 21
 icon = 14
-dream_cards = Array[String](["broad_splash", "lingering_splash", "lingering_splash_ii", "overlap"])
+dream_cards = Array[String](["broad_splash", "lingering_splash", "lingering_splash_ii"])
