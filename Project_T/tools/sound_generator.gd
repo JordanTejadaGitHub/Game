@@ -2011,19 +2011,24 @@ func _cue_trailer() -> Dictionary:
 	_mk_motif(stems, 0.0, 0)
 	for k in 6:
 		_mix(stems.perc, _mk_felt(r, 110.0), r, k * MK_BEAT, 0.45)
-	_mix(stems.mid, _mk_pad_chord([50, 3], 5.6), r, 0.0, 0.5)
-	# Lead-in to the Shade: the last motif note rings on as a cold A-flat creeps in under it, held through
-	# the hush (never silence) into the walk's pulse.
-	_mix(stems.low, _env(_bowed(r, 44, 4.6, 380.0), r, swell(0.8, 1.0, 4.6)), r, 4.2, 0.28)
+	_mix(stems.mid, _mk_pad_chord([50, 3], 10.5), r, 0.0, 0.5)  # Carries through the hit into the walk
+	# 5–7.5 (v2.1, the user: "the beginning cut to dispelled also cuts the music weird"): no hush. The
+	# music carries straight through the cut to the Shade: the pulse goes on, a touch softer, the motif
+	# answers itself once more, lower, and a cold A-flat creeps in under it into the 7.5 hit.
+	for k in range(6, 9):
+		_mix(stems.perc, _mk_felt(r, 108.0), r, k * MK_BEAT, 0.4 - 0.05 * (k - 6))
+	for k in 3:
+		_mix(stems.top, _bell(r, hz([69, 77, 74][k]), 0.26, 1.0, MUSIC_BOX, 2.6), r, 5.0 + k * MK_BEAT)
+	_mix(stems.low, _env(_bowed(r, 44, 4.6, 380.0), r, swell(1.2, 1.0, 4.6)), r, 4.2, 0.28)
 
-	# 5–8.5: the Shade close-up, near-silence; the dispel bloom at 7.5.
+	# 7.5: the Shade's dispel, the accent.
 	var dispel: float = TRAILER_HITS.dispel
 	_mix(stems.top, _normalize(_light_burst(0.15, 1.2, DISPEL_CHORD + [50, 57]), 1.0), r, dispel - 0.15, 1.6)
 	_mix(stems.mid, _env(_mk_pad([62, 66, 69], 1.6), r, swell(0.05, 1.2, 1.6)), r, dispel, 0.6)
 
 	# 8.5–15: the drift walks the maze; the pulse swells back in, dread1's drone under it.
 	for k in range(1, 9):  # From the beat after the hit, fading up
-		_mix(stems.perc, _mk_felt(r, 105.0), r, dispel + k * MK_BEAT, minf(0.15 + 0.06 * k, 0.5))
+		_mix(stems.perc, _mk_felt(r, 105.0), r, dispel + k * MK_BEAT, minf(0.32 + 0.03 * k, 0.5))
 	_mix(stems.low, _env(_mk_drone(7.0), r, swell(1.5, 0.5, 7.0)), r, 8.3, 0.5)
 	_mk_harmony(stems, 5, 6, 0.6)
 	_mix(stems.perc, _tom(r, 76.0), r, 14.2, 0.35)  # A fill into the build
