@@ -630,9 +630,9 @@ static func summary(counts: Dictionary, longest_chain: int) -> String:
 	for id in ids:
 		var combo := CodexData.get_any(id)
 		parts.append("%s %d" % [combo.name if not combo.is_empty() else String(id), counts[id]])
-	var text := " · ".join(parts)
+	var text := ", ".join(parts)  # No " · " (light pass)
 	if longest_chain >= 2:
-		text += " · longest chain: %d" % longest_chain
+		text += ", longest Chain %d" % longest_chain  # "Chain 10", as everywhere (text_pass.md)
 	return text
 
 # "Damp + Static" for a Reaction (kept for callers from before the Codex).

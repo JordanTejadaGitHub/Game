@@ -226,7 +226,7 @@ func _run() -> void:
 	_check(not feedback._card.visible and feedback._queue.is_empty(), "…once")
 	ComboFeedback.pause_in_tests = false
 	report.show_report(1)
-	_check(report._label.get_parsed_text().contains("Reactions: Thunderclap 4 · Ignite 1 · Mushrooming 1 · longest chain: 3") and report._label.get_parsed_text().contains("New combos: Set Off, Thunderclap") and report._label.get_parsed_text().contains("New chain: Chain 3"),
+	_check(report._label.get_parsed_text().contains("Reactions: Thunderclap 4, Ignite 1, Mushrooming 1, longest Chain 3") and report._label.get_parsed_text().contains("New combos: Set Off, Thunderclap") and report._label.get_parsed_text().contains("New chain: Chain 3"),
 		"the rest report shows Reactions and new combos (%s)" % report._label.get_parsed_text())
 	var profile_after: Dictionary = HeartwoodMemory.load_data()
 	_check(profile_after.get("combos_seen", []) == profile_before.get("combos_seen", [])

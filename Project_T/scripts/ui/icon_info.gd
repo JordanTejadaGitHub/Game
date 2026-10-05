@@ -20,7 +20,7 @@ const STATUSES := {
 	&"asleep": ["Asleep", "Stopped for 3 s, long but fragile: a big hit (10%+ of its health) wakes it."],
 	&"caught": ["Caught", "{asleep} or fully {drowsy} near a Dreamcatcher: its statuses stop wearing off."],
 	&"frozen": ["Frozen", "Frost stops it for a moment."],
-	&"elite": ["Deeply Blighted", "An elite: 3× health, 2× Dew, and it takes 2 leaves."],
+	&"elite": ["Deeply Blighted", "An elite: 3× health, a triple share of the Dew, and it takes 2 leaves."],
 	&"hidden": ["Hidden", "Can't be seen or targeted until something reveals it, or it comes close."],
 	# Hushbell's silence (BranchKit.silence; EnemyStatuses.silence_time): the numbers are checked against the data in
 	# test_text_style (Silence's linger, the Vespers toll, Enemy.BOSS_SILENCE_SPEED).
@@ -34,12 +34,12 @@ const STATS := {
 	&"crit_chance": ["Crit chance", "The chance a hit is a critical hit."],
 	&"crit_damage": ["Crit damage", "How much harder a critical hit lands."],
 	&"potency": ["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and Reactions, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}."],
-	&"rank": ["Rank", "How nurtured it is (I–V): each rank adds damage, speed and range."],
-	&"focus": ["Focus", "Chosen at rank III: Power, Swift, Reach or Deep."],
-	&"focus_power": ["Power focus", "Deals 8% more damage."],
-	&"focus_swift": ["Swift focus", "Attacks 6% faster."],
-	&"focus_reach": ["Reach focus", "+0.2 range."],
-	&"focus_deep": ["Deep focus", "+10% status strength and duration."],
+	&"rank": ["Rank", "How nurtured it is (I and up; past V with the Eldest): each rank adds damage, speed and range."],
+	&"focus": ["Focus", "Each rank you pick one: Power, Swift, Reach or Deep."],
+	&"focus_power": ["Power focus", "Deals 18% more damage."],
+	&"focus_swift": ["Swift focus", "Attacks 12% faster."],
+	&"focus_reach": ["Reach focus", "+0.3 range."],
+	&"focus_deep": ["Deep focus", "+25% Potency."],
 	&"dew_cost": ["Dew cost", "Dew to plant, grow or nurture it."],
 	&"dreamlight_cost": ["Dreamlight cost", "Dreamlight to unlock this form for the run."],
 }
