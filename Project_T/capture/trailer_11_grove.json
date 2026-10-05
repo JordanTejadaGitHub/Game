@@ -1,16 +1,13 @@
 {
 	"title": "Trailer 52.5-60 s: the Memory Grove grows.",
-	"note": "Trailer chat (the user: 'dispel bosses and grow the Grove'). The Grove on the 'early' preset (a capture profile, never the player's), the whole tree in frame (zoom 2 was a wall of leaves); four family nodes planted 1.5 s apart (each branch grows, its bud opens). Needs Main Merger's grove capture (c6325d7b).",
+	"note": "Trailer chat (the user: 'dispel bosses and grow the Grove'). The whole tree ('fit') grows from the 'fresh' preset to 'full' over 6 s (Main Merger's grove_grow, 2069736f: nodes plant and bloom, the canopy crossfades through its stages). A capture profile, never the player's.",
 	"scene": "grove",
-	"grove": "early",
+	"grove": "fresh",
 	"size": [1920, 1080],
 	"length": 9.0,
 	"captions": [],
 	"timeline": [
 		{"t": 0.0, "camera": "fit"},
-		{"t": 0.5, "plant": "acorn"},
-		{"t": 2.0, "plant": "rootling"},
-		{"t": 3.5, "plant": "whirligig"},
-		{"t": 5.0, "plant": "nestling"}
+		{"t": 0.6, "grove_grow": "full", "duration": 6.0}
 	]
 }
