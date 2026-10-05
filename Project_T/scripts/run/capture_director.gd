@@ -540,6 +540,8 @@ func _run_grove(event: Dictionary) -> void:
 		else:
 			_grove._select(unlock)
 			_grove._plant_selected()
+			if not bool(scene.get("grove_ui", false)):
+				_grove._select(null)  # No node card or selection ring over the tree (the planting still plays)
 			print("Capture: planted %s at %.1f s (level %d)" % [event.plant, clip_time,
 				HeartwoodMemory.unlock_level(HeartwoodMemory.load_data(), String(event.plant))])
 	if event.has("camera"):
