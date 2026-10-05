@@ -19,6 +19,13 @@ const REPEATS := 16  # Copies each way, enough for a fully zoomed-out wide scree
 
 var bridge_end := Vector2i(-1, -1)  # Cell for the bridge's islet (set before adding)
 var map_seed := 0  # Scatter is reproducible per map
+var _bridge_islet: Sprite2D  # The big islet the rope bridge reaches
+
+# The bridge moved (Shifting Mist): its islet goes to the new far end.
+func move_bridge(end: Vector2i) -> void:
+	bridge_end = end
+	if _bridge_islet != null:
+		_bridge_islet.position = MAP_GRID.calculate_map_position(Vector2(end))
 
 func _ready() -> void:
 	z_index = VOID_Z
@@ -27,7 +34,8 @@ func _ready() -> void:
 	var islets: Texture2D = load(EnvironmentTiles.shared_path("void_islets"))
 	var count := islets.get_width() / EnvironmentTiles.SIZE.x
 	if bridge_end != Vector2i(-1, -1):
-		add_child(_islet(islets, 2, MAP_GRID.calculate_map_position(Vector2(bridge_end))))  # The biggest one
+		_bridge_islet = _islet(islets, 2, MAP_GRID.calculate_map_position(Vector2(bridge_end)))  # The biggest one
+		add_child(_bridge_islet)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = map_seed + 7
 	var map_rect := Rect2(Vector2.ZERO, MAP_GRID.size * MAP_GRID.cell_size)

@@ -109,8 +109,11 @@ func _run() -> void:
 		world._clock = 0.0
 		world._process(0.0)
 		_check(world.line_shown and world.line.visible and is_equal_approx(world.line.default_color.a, RuleBreakers.LINE_ALPHA)
-			and world.line.texture != null and world.line.width < 24.0 and world.line.points.size() == 2,
-			"a thin mist line shows the Phantom's straight path for the rest, in a 4th run too (width %.0f)" % world.line.width)
+			and world.line.texture != null and is_equal_approx(world.line.width, RuleBreakers.LINE_WIDTH) and world.line.points.size() == 2,
+			"a mist line shows the Phantom's straight path for the rest, in a 4th run too (width %.0f)" % world.line.width)
+		var core: Line2D = world.line.get_node("Core")
+		_check(core.points.size() == 2 and core.default_color.a > 0.0 and world.line.get_node("Wisps") != null,
+			"with a brighter core and drifting wisps (user: \"a bit more visible\")")
 
 	# The first Phantom on the field gets a name plate, once.
 	var spawner = main.get_node("%EnemyContainer")

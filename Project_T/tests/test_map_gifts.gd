@@ -38,12 +38,18 @@ func _init() -> void:
 
 	# Mire: nightmares on the bog are slowed (through the slow floors).
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
-	var bog: Array[Vector2] = [route[2], route[3], route[4]]
+	var route_cells: Array[Vector2] = []  # Half cells: the whole cells the route runs through, in order
+	for p in route:
+		var c := Vector2(FindPath.point_to_node(p) / 2)
+		if not route_cells.has(c):
+			route_cells.append(c)
+	var bog: Array[Vector2] = [route_cells[2], route_cells[3], route_cells[4]]
 	_give(gifts, run_state, MapGifts.MIRE, bog)
+	_check(not gifts.has_dual("bog") or gifts._dual_layers["bog"].get_used_cells().size() > 0, "the bog is drawn on the path's dual grid")
 	var shade: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
 	shade.set_physics_process(false)
 	shade.set_process(false)
-	shade.position = map.MAP_GRID.calculate_map_position(route[3])
+	shade.position = map.MAP_GRID.calculate_map_position(route_cells[3])
 	gifts._tick = 0.0
 	await process_frame
 	_check(is_equal_approx(shade.statuses.get_speed_multiplier(), 1.0 - MapGifts.MIRE_SLOW),
@@ -51,8 +57,9 @@ func _init() -> void:
 
 	# Heartwood Roots: the last 4 route cells before the Heartwood; +15% taken there.
 	var roots := gifts.roots_cells()
-	_check(roots.size() == 4 and not roots.has(map.endPath) and route.has(roots[0]), "roots: the last 4 path cells")
+	_check(roots.size() == 4 and not roots.has(map.endPath) and route_cells.has(roots[0]), "roots: the last 4 path cells")
 	_give(gifts, run_state, MapGifts.HEARTWOOD_ROOTS, roots)
+	_check(not gifts.has_dual("roots") or gifts._dual_layers["roots"].get_used_cells().size() > 0, "the roots are drawn on the path's dual grid")
 	shade.position = map.MAP_GRID.calculate_map_position(roots[0])
 	gifts._tick = 0.0
 	await process_frame
@@ -86,15 +93,14 @@ func _init() -> void:
 	_give(gifts, run_state, MapGifts.ANCIENT_STUMP, stump_cells)
 	_check(gifts.stumps.size() == 3 and map.is_buildable(stump_cells[0]), "3 stumps, still buildable")
 
-	# Glade: obstacles within 2 cleared free, each tended.
-	var glade_at := Vector2(-1, -1)
+	# Glade: up to 5 obstacles the player picks (user: a radius gave "no control"), each cleared free and tended.
+	var to_clear: Array = []
 	for cell: Vector2 in map.obstacles:
-		if gifts.glade_cells(cell).size() >= 3 and not map.get_glade_cells().has(cell) and not gifts.gift_obstacles.has(cell):
-			glade_at = cell
-			break
-	var to_clear: Array = gifts.glade_cells(glade_at)
+		if to_clear.size() < 5 and not gifts.gift_obstacles.has(cell) and map.get_obstacle_cells(cell).size() == 1:
+			to_clear.append(cell)
 	var tended := run_state.obstacles_tended
-	var glade_cells: Array[Vector2] = [glade_at]
+	var glade_cells: Array[Vector2] = []
+	glade_cells.assign(to_clear)
 	_give(gifts, run_state, MapGifts.GLADE, glade_cells)
 	_check(to_clear.all(func(c: Vector2) -> bool: return map.get_obstacle(c) == null)
 		and run_state.obstacles_tended == tended + to_clear.size(), "a glade: %d cleared and tended" % to_clear.size())
@@ -113,11 +119,34 @@ func _init() -> void:
 	_check(map.get_obstacle(from) == null and map.get_obstacle(to[0]) == moved and run_state.obstacles_tended == tended,
 		"a stone moves, not tended")
 
-	# Deeper Glade: the next ring out cleared.
-	var ring_cells := gifts.deeper_glade_cells()
-	_give(gifts, run_state, MapGifts.DEEPER_GLADE, [])
-	_check(ring_cells.all(func(c: Vector2) -> bool: return map.get_obstacle(c) == null) and gifts.glade_radius == 2,
-		"the glade grows a ring")
+	# Shifting Mist (replaced Deeper Glade): 3 rim spots with a route each; picking one moves the start.
+	_check(not MapGifts.TERRAIN_GIFTS.has(&"deeper_glade"), "Deeper Glade is gone")
+	var options := gifts.start_options(3)
+	_check(options.size() == 3 and options.all(func(c: Vector2) -> bool: return _rim_spot_ok(map, c)), "3 rim spots, each with a route (%s)" % [options])
+	_check(options == gifts.start_options(3), "the same spots when asked again")
+	var ghost := Node2D.new()  # The gift screen's ghost at each spot (Main's placer calls it)
+	var drawn := [0]
+	ghost.draw.connect(func() -> void:
+		for spot in options:
+			gifts.draw_start_ghost(ghost, spot, 0.5)
+			drawn[0] += 1)
+	map.add_child(ghost)
+	ghost.queue_redraw()
+	await process_frame
+	await process_frame
+	_check(drawn[0] == options.size(), "the mist-and-bridge ghost draws at each spot")
+	ghost.free()
+	var old_start: Vector2 = map.startPath
+	var preview := gifts.route_from_start(options[0])
+	var shift: Array[Vector2] = [options[0]]
+	_give(gifts, run_state, MapGifts.SHIFTING_MIST, shift)
+	_check(map.startPath == options[0] and map.get_path_from(map.startPath) == preview, "the start moves; the route is the preview")
+	_check(env.get_cell_source_id(Vector2i(options[0])) == EnvironmentTiles.EDGE_MIST
+		and env.get_cell_source_id(Vector2i(old_start)) == EnvironmentTiles.ISLAND_EDGE
+		and map.path_layer.is_cell_blocked(old_start) and not map.path_layer.is_cell_blocked(options[0]),
+		"the mist and the way in move; the old start is rim again")
+	var out: Vector2i = env._outward(Vector2i(options[0]))
+	_check(env.get_cell_source_id(Vector2i(options[0]) + out) == EnvironmentTiles.ROPE_BRIDGE, "a rope bridge out from the new start")
 
 	# The player tends a gift tree and the moved stone afterwards: they stay gone on resume.
 	map.clear_obstacle(ridge[1])
@@ -186,7 +215,7 @@ func _in_rings(gifts: MapGifts, cell: Vector2) -> bool:
 
 func _state(gifts: MapGifts) -> String:
 	return var_to_str([gifts.gift_obstacles, gifts.logs, gifts.spring_cells, gifts.moonwells, gifts.bell_stones,
-		gifts.bog_cells, gifts.root_cells, gifts.rings, gifts.stumps, gifts.glade_radius])
+		gifts.bog_cells, gifts.root_cells, gifts.rings, gifts.stumps, gifts.map.startPath])
 
 func _blocked(map: Node) -> Array:
 	var cells: Array = []
@@ -207,3 +236,8 @@ func _open(map: Node, c: Vector2) -> bool:
 	var gifts: MapGifts = map.gifts
 	return (map.is_buildable(c) and not map.get_glade_cells().has(c) and not gifts.is_bog(c) and not gifts.is_rooted(c)
 		and not gifts.stumps.has(c) and not _in_rings(gifts, c) and not map.path_layer.current_path.has(c))
+
+func _rim_spot_ok(map: Node, c: Vector2) -> bool:
+	var size := Vector2i(map.MAP_GRID.size)
+	var on_rim := c.x == 0 or c.y == 0 or c.x == size.x - 1 or c.y == size.y - 1
+	return on_rim and c != map.startPath and not map.gifts.route_from_start(c).is_empty()

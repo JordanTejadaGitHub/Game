@@ -235,9 +235,9 @@ func _update_rooted_cells(dreams: DreamState = null) -> void:
 			continue
 		if enemy.statuses.is_held():
 			if rooted_rule or enemy.has_meta(FinalTwists.LOGJAM_META):
-				rooted_cells[enemy.get_current_cell()] = enemy
+				rooted_cells[enemy.get_route_point()] = enemy
 		elif enemy.waiting:
-			waiting_cells[enemy.get_current_cell()] = enemy
+			waiting_cells[enemy.get_route_point()] = enemy
 
 # The reveal lookups (see tower_cells) go stale every TOWER_LOOKUP_REFRESH s (evolving changes what a
 # Warden applies); coming and going marks them stale at once (signals in _ready).
@@ -290,32 +290,67 @@ func try_omen_trample(enemy: Node2D) -> void:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams != null and dreams.has_rule(WEATHERED_WALLS_RULE):
 		return  # Weathered Walls: Thornwalls stand like any other wall
-	refresh_reveal_lookup()  # (tower_cells: Wardens by cell)
-	var here: Vector2 = enemy.get_current_cell()
-	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-		var tower = tower_cells.get(here + offset)
-		if tower == null or not is_instance_valid(tower) or tower.tower_data.line != "wall" or BranchKit.is_stone(tower):
-			continue
-		var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
-		var director = get_node_or_null("%DriftDirector")
-		if omens == null or director == null or not omens.claim_trample(director.drift_of(enemy)):
-			return
-		_trample_tower(tower, here + offset, enemy)
-		_towers_dirty = true
+	var tower := _wall_beside(enemy)
+	if tower == null:
 		return
+	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
+	var director = get_node_or_null("%DriftDirector")
+	if omens == null or director == null or not omens.claim_trample(director.drift_of(enemy)):
+		return
+	_trample_tower(tower, tower.cell, enemy)
+	_towers_dirty = true
 
 # A route from `from` to the Heartwood that avoids every rooted cell (except `from` itself), without
 # changing the map. Empty if the Held nightmares close every way (then the walker waits).
 func route_around(from: Vector2) -> PackedVector2Array:
-	var closed: Array[Vector2] = []
-	for cell: Vector2 in rooted_cells:
-		if cell != from and not map_generator.path_layer.is_cell_blocked(cell):
-			map_generator.path_layer.set_cell_blocked(cell, true)
-			closed.append(cell)
+	var closed: Array[Vector2] = []  # Half cells blocked here (and only those: restored after)
+	for point: Vector2 in rooted_cells:
+		if _bodies_overlap(point, from):
+			continue
+		for h in _halves_under(point):
+			if not map_generator.path_layer.is_half_blocked(h):
+				map_generator.path_layer.set_half_blocked(h, true)
+				closed.append(h)
 	var route: PackedVector2Array = map_generator.get_path_from(from)
-	for cell in closed:
-		map_generator.path_layer.set_cell_blocked(cell, false)
+	for h in closed:
+		map_generator.path_layer.set_half_blocked(h, false)
 	return route
+
+# The nightmare in `cells` (rooted_cells / waiting_cells, by route point) whose body would overlap one at
+# `point` (half cells: bodies a cell wide overlap within a cell on both axes), other than `me`; or null.
+func blocker_at(point: Vector2, me: Node, cells: Dictionary) -> Node:
+	for at: Vector2 in cells:
+		var who = cells[at]
+		if who != me and is_instance_valid(who) and _bodies_overlap(at, point):
+			return who
+	return null
+
+# The half cells a rooted body at route point `point` closes: those whose centres lie within half a cell
+# of the body's centre on both axes. A 2-half body (x.0 / x.5 points) closes its 2×2; a 1-half body
+# (x.25 / x.75, half_cells.md one-half gaps) just its own half.
+static func _halves_under(point: Vector2) -> Array[Vector2]:
+	var halves: Array[Vector2] = []
+	var centre := point * FindPath.HALF + Vector2.ONE  # In half cells (pixel / 32): the body centre; half h's centre is h + 0.5
+	for y in range(floori(centre.y - 1.0), floori(centre.y + 1.0) + 1):
+		for x in range(floori(centre.x - 1.0), floori(centre.x + 1.0) + 1):
+			if absf(x + 0.5 - centre.x) < 0.99 and absf(y + 0.5 - centre.y) < 0.99:
+				halves.append(Vector2(x, y))
+	return halves
+
+static func _bodies_overlap(a: Vector2, b: Vector2) -> bool:
+	return absf(a.x - b.x) < 0.99 and absf(a.y - b.y) < 0.99
+
+# The full cells a body at each route point covers (x.5 → both neighbours): for things placed beside
+# the route on whole cells (saplings, lanterns).
+static func _body_cells(points: PackedVector2Array) -> Array[Vector2]:
+	var cells: Array[Vector2] = []
+	for p in points:
+		for x in [floorf(p.x), ceilf(p.x)]:
+			for y in [floorf(p.y), ceilf(p.y)]:
+				var cell := Vector2(x, y)
+				if not cells.has(cell):
+					cells.append(cell)
+	return cells
 
 func _on_enemy_cleansed(enemy: Node2D) -> void:
 	_wither_saplings(enemy)
@@ -380,20 +415,45 @@ func _on_trample_requested(enemy: Node2D) -> void:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	if dreams != null and dreams.has_rule(WEATHERED_WALLS_RULE):
 		return  # Weathered Walls: Thornwalls stand like any other wall
-	var here: Vector2 = enemy.get_current_cell()
-	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-		var tower := _tower_on(here + offset)
-		if tower != null and tower.tower_data.line == "wall" and not BranchKit.is_stone(tower):  # (Rampart's stone walls hold)
-			_trample_tower(tower, here + offset, enemy)
-			enemy.trampled()
-			return
+	var tower := _wall_beside(enemy)
+	if tower != null:
+		_trample_tower(tower, tower.cell, enemy)
+		enemy.trampled()
 
 # An Unbound nightmare walks into a Warden on its route: any Warden, trampled (Weathered Walls
 # doesn't save it; nothing blocks an Unbound nightmare).
 func _on_trample_cell_requested(enemy: Node2D, cell: Vector2) -> void:
-	var tower := _tower_on(cell)
+	var tower := tower_at_point(cell)
 	if tower != null:
-		_trample_tower(tower, cell, enemy)
+		_trample_tower(tower, tower.cell, enemy)
+
+# The wall Warden (Thornwall line) beside a walker: one whose footprint takes a half cell up to a cell
+# from the walker's own half, left, right, up or down, nearest first (half cells: walls may sit at half
+# offsets and bodies walk one half). Rampart's stone walls hold. null if none.
+func _wall_beside(enemy: Node2D) -> Tower:
+	var half_px: float = enemy.grid.cell_size.x / FindPath.HALF
+	var here: Vector2 = (enemy.position / half_px).floor()
+	var by_half := {}
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.tower_data.line == "wall" \
+				and not BranchKit.is_stone(tower):
+			for half in tower.get_halves():
+				by_half[half] = tower
+	for reach in [1, 2]:
+		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+			var tower = by_half.get(here + offset * reach)
+			if tower != null:
+				return tower
+	return null
+
+# The Warden whose footprint takes route point `point`'s half cell (half cells: Wardens may sit at
+# half offsets), or null.
+func tower_at_point(point: Vector2) -> Tower:
+	var half := Vector2(FindPath.point_to_node(point))
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.get_halves().has(half):
+			return tower
+	return null
 
 func _tower_on(cell: Vector2) -> Tower:
 	for tower in tower_container.get_children():
@@ -406,8 +466,11 @@ func _tower_on(cell: Vector2) -> Tower:
 func _trample_tower(tower: Tower, cell: Vector2, by: Node2D) -> void:
 	tower_container.remove_child(tower)
 	tower.queue_free()
-	for c in tower.get_cells():
-		map_generator.unblock_cell(c)
+	if map_generator.has_method("unblock_halves"):
+		map_generator.unblock_halves(tower.get_halves())  # Half cells: a Warden may sit at a half-cell offset
+	else:
+		for c in tower.get_cells():
+			map_generator.unblock_cell(c)
 	wall_trampled.emit(cell, by)
 
 # The maze changed: every enemy re-routes from the cell it's currently walking toward. One whose next
@@ -498,13 +561,15 @@ func _on_sapling_requested(oak: Node2D) -> void:
 	var taken := {}
 	var also_from := PackedVector2Array()
 	for walker in walkers:
-		taken[walker.get_current_cell()] = true
-		taken[walker.get_target_cell()] = true
+		# (Half cells: route points to the whole cells the bodies cover)
+		for cell in _body_cells(PackedVector2Array([walker.get_route_point(), walker.get_target_cell()])):
+			taken[cell] = true
 		also_from.append(walker.get_target_cell())
 		if walker.is_unbound():  # It won't re-route: keep its whole route clear
-			for cell in walker.get_cells_ahead(1000):
+			for cell in _body_cells(walker.get_cells_ahead(1000)):
 				taken[cell] = true
-	var ahead: PackedVector2Array = oak.get_cells_ahead(SAPLING_REACH)
+	# SAPLING_REACH cells ahead (in route steps: two a cell on half cells), as whole cells
+	var ahead: Array[Vector2] = _body_cells(oak.get_cells_ahead(SAPLING_REACH * FindPath.HALF))
 	var on_route := {}
 	for cell in ahead:
 		on_route[cell] = true
@@ -608,10 +673,12 @@ func _on_lantern_requested(lamplighter: Node2D) -> void:
 	var taken := {}
 	for lantern in _lanterns:
 		taken[lantern.cell] = true
-	var near: PackedVector2Array = lamplighter.get_cells_ahead(3)
-	near.append_array(lamplighter.get_cells_behind().slice(-2))
+	# Near it: 3 cells ahead and 2 behind (in route steps: two a cell on half cells), as whole cells
+	var near_points: PackedVector2Array = lamplighter.get_cells_ahead(3 * FindPath.HALF)
+	near_points.append_array(lamplighter.get_cells_behind().slice(-2 * FindPath.HALF))
+	var near: Array[Vector2] = _body_cells(near_points)
 	var on_route := {}  # The whole route (a maze doubles back past itself), never lit on
-	for cell in lamplighter.get_cells_behind() + lamplighter.get_cells_ahead(1000):
+	for cell in _body_cells(lamplighter.get_cells_behind() + lamplighter.get_cells_ahead(1000)):
 		on_route[cell] = true
 	var candidates: Array[Vector2] = []
 	for cell in near:

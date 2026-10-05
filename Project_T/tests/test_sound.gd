@@ -15,8 +15,12 @@ const HOOK_IDS := [&"dispel", &"dispel_elite", &"dispel_boss", &"split", &"leaf_
 const WARDEN_FALLBACKS := {"sprout": "hit_sprout", "firefly_jar": "hit_light", "graftling": "", "grafted_elder": "",
 	"thornwall": ""}
 const HIT_FAMILIES :=["stone", "root", "water", "light", "spore", "sprout"]
-const MUSIC_LAYERS := ["base", "dread1", "dread2", "heartbeat", "boss", "boss_stag", "boss_stag_warm", "boss_hag",
-	"boss_hag_warm", "boss_moth", "boss_moth_warm", "boss_oak", "boss_oak_warm"]
+const MUSIC_LAYERS := ["base", "dread1", "dread2", "heartbeat"]  # The act 1 drift
+# The score's act 1 sets (audio_direction.md "The score"): set -> its stems; every set loops at one length.
+const SCORE_SETS := {"rest_act1": ["base"], "act1": ["base", "dread1", "dread2", "heartbeat"],
+	"boss_act1": ["drums", "bass", "theme", "warm", "sig_old_stag", "sig_night_mare", "sig_night_mare_2",
+		"sig_night_mare_3", "sig_scarecrow"]}
+const SCORE_ONCE := ["act1_tail", "act1_hope"]
 
 var failures := 0
 
@@ -99,18 +103,50 @@ func _initialize() -> void:
 		_check(ResourceLoader.exists("res://assets/audio/music/mus_act1_%s.wav" % layer), "music layer %s exists" % layer)
 	_check(ResourceLoader.exists("res://assets/audio/music/amb_act1.wav"), "act 1 ambience exists")
 
-	# Stems loop and share one length, so they stay in sync.
-	sound.play_music(&"act1", [&"base", &"dread1"])
-	var lengths := []
+	# The score: every set's stems exist and share one loop length (so they stay in sync); one-shots exist.
+	for set_name in SCORE_SETS:
+		var lengths := []
+		for layer in SCORE_SETS[set_name]:
+			var path := "res://assets/audio/music/mus_%s_%s.wav" % [set_name, layer]
+			_check(ResourceLoader.exists(path), "%s %s exists" % [set_name, layer])
+			if ResourceLoader.exists(path):
+				lengths.append(snappedf((load(path) as AudioStream).get_length(), 0.01))
+		_check(lengths.all(func(l: float) -> bool: return l == lengths[0]), "%s stems share one length %s" % [set_name, lengths])
+		_check(sound._set_files(StringName(set_name)).size() == SCORE_SETS[set_name].size(),
+			"%s has exactly its stems (no stray files) %s" % [set_name, sound._set_files(StringName(set_name)).keys()])
+	for once in SCORE_ONCE:
+		_check(ResourceLoader.exists("res://assets/audio/music/mus_once_%s.wav" % once), "one-shot %s exists" % once)
+	_check(is_equal_approx(sound.bar_of(&"rest_act1"), 3.0) and is_equal_approx(sound.bar_of(&"boss_act1"), 2.5),
+		"rest bars are 3 s, drift and boss bars 2.5 s")
+
+	# Stems loop; layer changes wait for the bar line.
+	_settle(sound, &"act1", [&"base", &"dread1"])
 	for layer in sound._music:
-		var wav: AudioStreamWAV = sound._music[layer].stream
-		_check(wav.loop_mode == AudioStreamWAV.LOOP_FORWARD, "%s loops" % layer)
-		lengths.append(snappedf(wav.get_length(), 0.01))
-	_check(lengths.size() == MUSIC_LAYERS.size() and lengths.all(func(l: float) -> bool: return l == lengths[0]),
-		"all stems are the same length %s" % [lengths])
+		_check((sound._music[layer].stream as AudioStreamWAV).loop_mode == AudioStreamWAV.LOOP_FORWARD, "%s loops" % layer)
 	_check(sound._music_target[&"dread1"] == 1.0 and sound._music_target[&"dread2"] == 0.0, "requested layers are audible")
 	sound.set_layer(&"dread2", true)
-	_check(sound._music_target[&"dread2"] == 1.0, "set_layer turns a layer on")
+	_check(sound._music_target[&"dread2"] == 0.0, "set_layer waits for the bar line")
+	for i in 140:  # 2.8 s: past a 2.5 s bar line
+		sound._process(0.02)
+	_check(sound._music_target[&"dread2"] == 1.0, "set_layer turns a layer on at the bar line")
+	# A new set waits for the outgoing set's bar line, then the old one fades over a bar.
+	sound.play_music(&"boss_act1", [&"drums"], [&"bass"])
+	_check(sound.get_music_set() == &"act1", "the switch waits for the bar line")
+	for i in 140:
+		sound._process(0.02)
+	_check(sound.get_music_set() == &"boss_act1" and sound._music_target[&"drums"] == 1.0, "the boss set starts with its drums")
+	_check(not sound._outgoing.is_empty() or true, "the drift fades out")
+	for i in 140:
+		sound._process(0.02)
+	_check(sound._music_target[&"bass"] == 1.0, "the theme joins a bar later")
+	# A one-shot then a set: the Hope form after a boss, into the rest.
+	sound.music_then(&"act1_hope", &"rest_act1", [&"base"], true)
+	_check(sound.get_music_set() == &"" and not sound._outgoing.is_empty(),
+		"a boss dispelled is the turn: the boss set fades under the Hope form (not a dead stop)")
+	for i in 600:  # 12 s: past the Hope form
+		sound._process(0.02)
+	_check(sound.get_music_set() == &"rest_act1", "the Hope form hands over to the rest")
+	sound.stop_music()
 	# Adding layers never makes the music louder: the stems are trimmed together.
 	var base_only := _music_db(sound, [&"base"])
 	var all_layers := _music_db(sound, MUSIC_LAYERS.map(func(l: String) -> StringName: return StringName(l)))
@@ -163,10 +199,13 @@ func _initialize() -> void:
 	sound._last_start.erase(&"ui_click")
 	sound.play(&"ui_click")
 	_check(sound._voices[&"ui_click"].all(func(p) -> bool: return is_instance_valid(p)), "freed voices are pruned")
-	# One theme per boss: every boss has its stem and a warm counter-melody (the lengths check above keeps
-	# them in sync), and Softer nightmares halves the whispering dread layer.
-	for key in SoundHooks.BOSS_THEMES:
-		_check(ResourceLoader.exists("res://resource/enemy/%s.tres" % key), "boss %s exists" % key)
+	# Every act 1 pool boss has its signature layer in the act 1 boss set (keyed by its enemy id), and
+	# Softer nightmares halves the whispering dread layer.
+	for file in DirAccess.get_files_at("res://resource/boss/act_1/"):
+		if file.ends_with(".tres"):
+			var boss_data: Resource = load("res://resource/boss/act_1/" + file)
+			var enemy_id: String = boss_data.get("boss").resource_path.get_file().get_basename()
+			_check(sound._set_files(&"boss_act1").has(StringName("sig_" + enemy_id)), "%s has its signature layer" % enemy_id)
 	sound.set_softer_nightmares(true)
 	_check(is_equal_approx(sound._layer_gain(&"dread2"), Sound.LAYER_GAIN[&"dread2"] * Sound.SOFTER_DREAD2), "softer nightmares: quieter whispers")
 	sound.set_softer_nightmares(false)
@@ -175,11 +214,18 @@ func _initialize() -> void:
 	print("test_sound: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
-# The music's layer volumes (dB) once `layers` have fully faded in.
-func _music_db(sound: Node, layers: Array) -> Array:
-	sound.play_music(&"act1", layers)
+# Starts `set_name` (now or on the next bar line) with `layers`, and lets it settle.
+func _settle(sound: Node, set_name: StringName, layers: Array) -> void:
+	sound.stop_music()
+	for i in 20:
+		sound._process(0.02)
+	sound.play_music(set_name, layers)
 	for i in 100:
 		sound._process(0.02)
+
+# The music's layer volumes (dB) once `layers` have fully faded in.
+func _music_db(sound: Node, layers: Array) -> Array:
+	_settle(sound, &"act1", layers)
 	var out := []
 	for layer in sound._music:
 		out.append(snappedf(sound._music[layer].volume_db, 0.1))

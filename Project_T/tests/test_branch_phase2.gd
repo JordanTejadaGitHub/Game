@@ -145,7 +145,7 @@ func _test_quaker() -> void:
 	BranchKit._quake(shaker)
 	_check(not lurker.is_hidden(), "the slam shakes it loose (revealed)")
 	var cracked := false
-	for cell in shaker._route():
+	for cell in Tower.route_cells(shaker._route()):  # Whole path tiles
 		cracked = cracked or BranchKit.is_cracked(main, cell)
 	_check(cracked, "Earthshaker: the path in reach is cracked")
 	await _clean()
@@ -262,7 +262,7 @@ func _source_shards(dreams: DreamState) -> int:
 # --- Helpers ---------------------------------------------------------------------------------------------------
 
 func _route_cell(index: int) -> Vector2:
-	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var route: PackedVector2Array = Tower.route_cells(map.get_path_from(map.startPath))  # Whole cells (half-cell routes)
 	return route[mini(index, route.size() - 1)]
 
 func _taken(cell: Vector2) -> bool:
@@ -285,7 +285,7 @@ func _neighbours_open(cell: Vector2) -> int:
 
 # An open cell next to `cell` (8 around), off the route.
 func _open_cell_near(cell: Vector2) -> Vector2:
-	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var route: PackedVector2Array = Tower.route_cells(map.get_path_from(map.startPath))  # Whole cells (half-cell routes)
 	for d in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN, Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
 		var at: Vector2 = cell + d
 		if map.is_buildable(at) and not _taken(at) and not route.has(at):
@@ -294,7 +294,7 @@ func _open_cell_near(cell: Vector2) -> Vector2:
 
 # A route cell `path`, an off-route wall cell beside it, and a Rampart cell on another side of the wall.
 func _wall_spot() -> Dictionary:
-	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var route: PackedVector2Array = Tower.route_cells(map.get_path_from(map.startPath))  # Whole cells (half-cell routes)
 	for i in range(3, route.size() - 3):
 		var path: Vector2 = route[i]
 		for d in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:

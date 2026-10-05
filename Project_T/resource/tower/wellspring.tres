@@ -6,7 +6,6 @@
 
 [resource]
 script = ExtResource("1_tdata")
-sprite_offset = Vector2(0, -16)
 display_name = "Wellspring"
 description = "Catches more: nightmares dispelled within 3 cells drop +90% Dew for the Harvest. At every rest, +8% of your banked Dew (up to 60; all Wellsprings together up to 120). Also +4 Dew each drift."
 cost = 0

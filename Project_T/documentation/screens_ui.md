@@ -397,7 +397,7 @@ one-line definition, a small icon, and "see also" links. Terms in tooltips, card
 
 | Group | Terms |
 |---|---|
-| **Resources** | Dew, Dreamlight, Dreamlight shard, Leaves, Seeds, The thinning dream (Dew per nightmare falls each act) |
+| **Resources** | Dew, Dreamlight, Dreamlight shard, Leaves, Seeds, The Dew pot (each drift pays a fixed pot, shared by its nightmares) |
 | **The run** | Drift, Block, Rest, Act, Boss, Family pick, Family Blessing, Dream, Omen, Call early, Auto-drift, Remember screen |
 | **Combos** | Reaction, Crowned Reaction, **Chain** (Reactions setting each other off within 1 s; shown "Chain 5", never "×5"; not a damage multiplier), Dawnburst (a Chain 10) |
 | **Wardens** | Warden, Family, Branch, Final form, Hidden branch, **Ascended** (a family's endgame Warden, from drift 51), Memory Warden, **Heartwood Sapling** (the 2×2 economy offshoot, from drift 51), **Rooted** (can't be sold or moved), Grow (evolve), Nurture, Rank, Focus (Power / Swift / Reach / Deep), Thornwall and wall growths, Crit, Potency, Clear tool / Tend |
@@ -918,7 +918,8 @@ more clear with icons of their resistances"):
   but smaller: animated portrait, name, the one-line trait, **what it does** (1–2 plain lines, e.g.
   *"Breaks into 3 Sobs when dispelled"*), resist / weak / immune icons, and one hint (*"Splash and
   pulses catch the Sobs"*). Several new types in one block: one card each, in order, with "Next".
-  - Shown after the Dream / Omen and before the boss dossier, like the other rest screens; dismissed
+  - Shown last at a rest, after the family pick, Dream, gift, Omen and boss dossier (one screen at a time, user
+    2026-10-03: RestScreens); dismissed
     by click, tap or Esc; reopen from its portrait in the Coming strip.
   - A type that first appears mid-block also gets a **2-second name plate** when the first one
     spawns (no pause), like the boss name plate.
@@ -994,9 +995,10 @@ resist / immune rows.
 
 ## Choice screens (time stops)
 
-**Rest order:** rest bonus toast → **family pick** (boss rests) → **Dream** → **Omen** (from drift 10)
-→ **boss dossier** (the act's start: run start and act-break rests; a short reminder at the rest
-opening a boss block) → free building → Start. Each choice screen can be **minimised** to look at the map first (a
+**Rest order (revised 2026-10-03, user: "a lot of pages players have to go through", and "we want the player to know for sure which act boss is coming and the new enemies"):** one screen at a time (`RestScreens`).
+- **Normal rest:** rest bonus toast → **Dream** → **Omen** (from drift 10) → **New this block** (only if the next block brings a nightmare this profile has never met: one compact page listing all of them, portrait, name, trait in words, the tip; tap a row for its full card) → free building → Start.
+- **Act break** (the rest after a boss, and the run's first rest for act 1): **family pick** → **Dream** → **Heartwood's gift** → **What's coming** → free building → Start. **No Omen at act breaks.** *What's coming* replaces the auto-opened boss dossier and the per-nightmare intro cards: the act's boss is the hero (portrait, name and title, leaf toll in large type, resists, abilities with "when"), with the next block's new nightmares as rows below. Forced, so players always see it; Peek and Continue. The full dossier stays reachable from the banner's "Boss in N" and the Coming strip.
+- Earlier order (superseded): family pick → Dream → Omen → boss dossier → separate new-nightmare cards. Each choice screen can be **minimised** to look at the map first (a
 "peek" button), then reopened.
 - **A minimised choice still blocks the next drift** (bug, 2026-09-30, user: "I can hide the Dream
   choice and start the wave"). While any choice (family pick, Dream, Omen) is open or minimised, Start

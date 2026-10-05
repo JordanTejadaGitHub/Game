@@ -70,7 +70,7 @@ func _refresh_route() -> void:
 func _speed() -> float:
 	var data: TowerData = _tower.attack_data
 	var multiplier := 1.0 + data.patrol_speed_per_nightmare * _tower.get_enemies_in_range().size()
-	return data.patrol_speed * minf(multiplier, maxf(data.patrol_speed_max, 1.0))
+	return data.patrol_speed * minf(multiplier, maxf(data.patrol_speed_max, 1.0)) * _tower.get_cycle_multiplier()  # Swift
 
 # Dawnwing: the bird is out while there are nightmares in range, otherwise it perches on the Warden.
 func is_out() -> bool:

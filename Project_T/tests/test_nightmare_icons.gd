@@ -166,8 +166,8 @@ func _run() -> void:
 	_check(d10[0][2] >= listed, "counts include the extra nightmares (drift 10: %d listed, %d shown)" % [listed, d10[0][2]])
 
 	# --- The dossier at the start of each act (screens_ui.md, 2026-09-29) ---------------------------
-	# Act 1: it opens by itself at the run's first rest, after the new kinds' introductions (the test
-	# profile has met nothing).
+	# Act 1: it opens by itself at the run's first rest, before the new kinds' introductions (user, 2026-10-03: the boss
+	# dossier comes first; the test profile has met nothing).
 	var dossier := root.get_tree().get_first_node_in_group(BossDossier.GROUP) as BossDossier
 	var omens := root.get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	var intro := root.get_tree().get_first_node_in_group(NightmareIntro.GROUP) as NightmareIntro
@@ -182,7 +182,7 @@ func _run() -> void:
 		if dossier.visible:
 			break
 	if NightmareIntro.enabled():
-		_check(intro_first, "a new kind's introduction comes before the dossier")
+		_check(not intro_first and not intro.visible, "the dossier comes before a new kind's introduction")
 	_check(dossier.visible and dossier.shown_drift == 25, "act 1: the dossier opens by itself at the first rest (drift %d)" % dossier.shown_drift)
 	var text := _text(dossier._content)
 	var health := NightmareCard.health_at(stag, 25, director)
@@ -246,6 +246,9 @@ func _run() -> void:
 	# Click / tap a nightmare: its centred card with live state; a boss: the dossier; a never-seen
 	# kind spawning mid-block opens its card too.
 	if intro != null:
+		intro._pending = []  # The first rest's introductions (they now follow the dossier) are past
+		if intro.visible:
+			intro.close()
 		var click_spawner = main.get_node("%EnemyContainer")
 		var clicked: Node2D = click_spawner.spawn_enemy(load("res://resource/enemy/bark_beetle.tres"))
 		clicked.set_process(false)

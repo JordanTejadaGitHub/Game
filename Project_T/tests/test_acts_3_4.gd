@@ -154,8 +154,8 @@ func _run() -> void:
 		grave._try_burrow()
 		_check(grave._leaping, "the Gravecrawler sinks under the wall")
 		await _wait(1.8)
-		_check(grave.get_current_cell() == burrow.beyond and grave._burrows == 1,
-			"and surfaces on the other side (%s)" % grave.get_current_cell())
+		_check(_cell_of(grave._path[0]) == burrow.beyond and grave._burrows == 1,  # (Its new route starts there; it may have walked on since)
+			"and surfaces on the other side (%s, beyond %s, burrows %d)" % [_cell_of(grave._path[0]), burrow.beyond, grave._burrows])
 		grave._leaping = false
 		grave._path_index = 1
 		var path_before: PackedVector2Array = grave._path.duplicate()
@@ -183,9 +183,9 @@ func _run() -> void:
 		walker.set_path(from)
 		walker._path_index = 1
 		walker._try_wander()
-		_check(walker._path.size() >= 2 and walker._path[0] == pocket.cell and walker._path[1] == from[0],
+		_check(walker._path.size() >= 2 and walker._path[0] == pocket.cell + from[0] - _cell_of(from[0]) and walker._path[1] == from[0],
 			"the Sleepwalker steps into the dead end and back")
-		_check(walker._path[walker._path.size() - 1] == map_generator.endPath, "then goes on to the Heartwood")
+		_check((walker._path[walker._path.size() - 1] + Vector2(0.5, 0.5)).floor() == map_generator.endPath, "then goes on to the Heartwood")
 		_clear_enemies()
 
 	# --- The Moth Queen: weaving flight, brood, Eclipse ---
@@ -211,7 +211,7 @@ func _run() -> void:
 		"she drops a Lurker every 4 s")
 	if brood.size() == 1:
 		_check(brood[0].max_health == 210, "grown like the drift's other nightmares (%d)" % brood[0].max_health)
-		_check(brood[0]._path[brood[0]._path.size() - 1] == map_generator.endPath, "it walks the maze from there")
+		_check((brood[0]._path[brood[0]._path.size() - 1] + Vector2(0.5, 0.5)).floor() == map_generator.endPath, "it walks the maze from there")
 	var bystander := _still("leaf_bug", route[25])
 	queen.take_damage(queen.max_health / 2 + 1)
 	_check(spawner.eclipse_left > 4.9, "half health: the Eclipse")
@@ -262,13 +262,21 @@ func _run() -> void:
 	# --- Rooted Nightmares (Dream 122): a Held nightmare blocks its cell for other walkers ---
 	_clear_enemies()
 	route = map_generator.get_path_from(map_generator.startPath)
+	var per_cell := maxi(roundi(1.0 / route[1].distance_to(route[0])), 1)  # Route steps per cell (2 on half cells)
+	var w := 9 - per_cell  # The walker a body behind the Held one, the follower a body behind that
+	var fw := 9 - 2 * per_cell
 	var holder := _still("leaf_bug", route[9])
 	holder.apply_status(EnemyStatuses.HELD, 1, 30.0)
-	var walker := _still("leaf_bug", route[8])
-	walker.set_path(route.slice(8))
+	var walker := _still("leaf_bug", route[w])
+	walker.set_path(route.slice(w))
 	walker._path_index = 1
+	var cells_to_go := 0.0
+	for i in range(w + 1, route.size()):
+		cells_to_go += route[i].distance_to(route[i - 1])
+	_check(absf(walker.get_remaining_distance() - cells_to_go * walker.grid.cell_size.x) < 1.0,
+		"remaining distance is the route's real length (half cells: half a cell a step; %.0f px)" % walker.get_remaining_distance())
 	spawner._update_rooted_cells()
-	_check(not walker._is_blocked_ahead(1.0) and walker._path[1] == route[9], "without the card, Held nightmares don't block")
+	_check(not walker._is_blocked_ahead(1.0) and walker._path[1] == route[w + 1], "without the card, Held nightmares don't block")
 	var dreams: DreamState = main.get_node("%DreamState")
 	for card in dreams.pool:
 		if card.id == "rooted_nightmares":
@@ -276,18 +284,21 @@ func _run() -> void:
 	_check(dreams.has_rule(&"rooted_nightmares"), "took Rooted Nightmares")
 	spawner._update_rooted_cells()
 	_check(spawner.rooted_cells.get(route[9]) == holder, "with it, the Held nightmare's cell is rooted")
+	_check(spawner._halves_under(Vector2(3, 2)) == FindPath.halves_of_cell(Vector2(3, 2)) and spawner._halves_under(Vector2(3.5, 2)).size() == 4,
+		"a rooted 2-half body (x.0 / x.5 points) closes its 2×2 half cells")
+	_check(spawner._halves_under(Vector2(3.25, 2.75)).size() == 1 and spawner._halves_under(Vector2(3.25, 2.75))[0] == Vector2(7, 6), "a 1-half body (x.25 / x.75) closes just its own half")
 	var blocked: bool = walker._is_blocked_ahead(1.0)
-	_check((blocked and walker.waiting) or (not blocked and walker._path[1] != route[9]),
+	_check((blocked and walker.waiting) or (not blocked and not walker._path.has(route[9])),
 		"the walker behind goes round it or waits (%s)" % ("waits" if blocked else "goes round"))
-	_check(walker.position == walker.grid.calculate_map_position(route[8]), "it never steps into the Held one's cell")
-	walker.waiting = true  # Waiting at route[8]: the next walker queues behind, not in the same cell
-	var follower := _still("leaf_bug", route[7])
-	follower.set_path(route.slice(7))
+	_check(walker.position == walker.grid.calculate_map_position(route[w]), "it never steps into the Held one's cell")
+	walker.waiting = true  # Waiting at route[w]: the next walker queues behind, not in the same cell
+	var follower := _still("leaf_bug", route[fw])
+	follower.set_path(route.slice(fw))
 	follower._path_index = 1
 	spawner._update_rooted_cells()
 	_check(follower._is_blocked_ahead(1.0), "a walker behind a waiting one queues")
-	var phantom := _still("dandelion_seed", route[8])
-	phantom.set_path(PackedVector2Array([route[8], route[9]]))
+	var phantom := _still("dandelion_seed", route[w])
+	phantom.set_path(PackedVector2Array([route[w], route[9]]))
 	phantom._path_index = 1
 	_check(not phantom._is_blocked_ahead(1.0), "flyers ignore rooted cells")
 	holder.statuses.remove(EnemyStatuses.HELD)
@@ -363,7 +374,7 @@ func _run() -> void:
 	wall_tower.free()
 	_clear_enemies()
 
-	# --- Damp Rot (Dream 169): Poisoned ticks +20% per stack on Soaked nightmares ---
+	# --- Soaked Rot (Dream 169): Poisoned ticks +20% per stack on Soaked nightmares ---
 	_clear_enemies()
 	var rot_dry := _still("leaf_bug", route[5])
 	var rot_wet := _still("leaf_bug", route[5])
@@ -372,7 +383,7 @@ func _run() -> void:
 		rotting.max_health = 100000
 		rotting.health = 100000
 		rotting.apply_status(EnemyStatuses.SPORED, 1, 10.0, 100.0)
-	dreams.unlocked["sporeling"] = true  # Damp Rot needs both families, or it lies dormant
+	dreams.unlocked["sporeling"] = true  # Soaked Rot needs both families, or it lies dormant
 	dreams.unlocked["dewdrop"] = true
 	_take_card(dreams, "damp_rot")
 	for rotting in [rot_dry, rot_wet]:
@@ -380,7 +391,7 @@ func _run() -> void:
 	var dry_loss: int = 100000 - rot_dry.health
 	var wet_loss: int = 100000 - rot_wet.health
 	_check(dry_loss > 0 and is_equal_approx(float(wet_loss) / dry_loss, 1.0 + DreamState.DAMP_ROT_PER),
-		"Damp Rot: a Soaked nightmare's Poisoned tick is +50%% (%d vs %d)" % [wet_loss, dry_loss])
+		"Soaked Rot: a Soaked nightmare's Poisoned tick is +50%% (%d vs %d)" % [wet_loss, dry_loss])
 	dreams.stacks.erase("damp_rot")  # It trades Soaked's water boost away (e328fb55): the checks below need it gone
 	_clear_enemies()
 
@@ -565,19 +576,20 @@ func _run() -> void:
 	_check(juggled._path == kept, "an Unbound nightmare ignores re-routes")
 	var trampled_cells := []
 	spawner.wall_trampled.connect(func(cell: Vector2, _by: Node2D) -> void: trampled_cells.append(cell))
-	var on_route := _plant("thornwall", route[13])
+	var on_route := _plant("thornwall", _cell_of(route[13]))
 	juggled.position = juggled.grid.calculate_map_position(route[12])
 	juggled.set_path(route.slice(12))
 	juggled._path_index = 1
 	juggled._trample_ahead()
-	_check(on_route.is_queued_for_deletion() and trampled_cells == [route[13]], "it tramples a Warden planted on its route")
+	_check(on_route.is_queued_for_deletion() and trampled_cells == [_cell_of(route[13])], "it tramples a Warden planted on its route")
 	_check(juggled.get_restless_info().unbound and juggled.get_restless_info().stacks == 3, "get_restless_info reports it")
 	_clear_enemies()
+	route = map_generator.get_path_from(map_generator.startPath)  # (The trample above opened halves: the route may have moved)
 	var boss_walker := _still("old_stag", route[10])
 	for flip in 3:
 		_walk_backwards(boss_walker, 10)
 		spawner._on_path_changed()
-	_check(boss_walker.get_restless() == 3 and not boss_walker.is_unbound(), "a boss gains Restless but never turns Unbound")
+	_check(boss_walker.get_restless() == 3 and not boss_walker.is_unbound(), "a boss gains Restless but never turns Unbound (%d)" % boss_walker.get_restless())
 	_clear_enemies()
 
 	# --- The Dew pot (run_design.md): shares split with their children / followers, a leak pays nothing ---
@@ -669,7 +681,7 @@ func _run() -> void:
 		_check(burrower._leaping and not burrower.is_in_group(burrower.GROUP), "Burrowers: at a bend it burrows, untargetable")
 		for f in 45:
 			await process_frame
-		_check(not burrower._leaping and burrower.is_in_group(burrower.GROUP) and burrower._path_index == bend + 3,
+		_check(not burrower._leaping and burrower.is_in_group(burrower.GROUP) and burrower._path_index == bend + 1 + 2 * per_cell,
 			"and surfaces 2 tiles ahead (index %d, bend %d)" % [burrower._path_index, bend])
 		var straight := _still("leaf_bug", route[bend + 1])
 		straight.modifiers = {"burrow_tiles": 2}
@@ -677,6 +689,75 @@ func _run() -> void:
 		straight._path_index = bend + 2
 		straight._on_cell_reached()
 		_check(not straight._leaping or route[bend + 1] - route[bend] != route[bend + 2] - route[bend + 1], "not on a straight")
+	_clear_enemies()
+
+	# --- Rounded corners: the drawn path curves, the route and the timing stay square ---
+	_clear_enemies()
+	var l_walker := _still("leaf_bug", Vector2(2, 2))
+	var l_route := PackedVector2Array([Vector2(2, 2), Vector2(3, 2), Vector2(4, 2), Vector2(4, 3), Vector2(4, 4), Vector2(4, 5), Vector2(4, 6)])
+	l_walker.position = l_walker.grid.calculate_map_position(l_route[0])
+	l_walker.set_path(l_route)
+	var corridor := {}
+	for cell in l_route:
+		corridor[cell] = true
+	var walk_frames := 0
+	var stayed_inside := true
+	var curved := false
+	while l_walker._path_index < 5 and walk_frames < 2000:  # Until it reaches (4, 4): 4 cells, one turn
+		l_walker._process(1.0 / 60.0)
+		walk_frames += 1
+		var drawn: Vector2 = l_walker.position + l_walker._corner_offset
+		stayed_inside = stayed_inside and corridor.has(l_walker.grid.calculate_grid_coordinates(drawn))
+		curved = curved or l_walker._corner_offset.length() > 1.0
+	var expected_frames: float = 4.0 * l_walker.grid.cell_size.x / l_walker.get_move_speed() * 60.0
+	_check(absf(walk_frames - expected_frames) <= expected_frames * 0.01 + 1.0,
+		"rounded corners: travel time along an L is unchanged (%d frames vs %.1f)" % [walk_frames, expected_frames])
+	_check(curved and stayed_inside, "the drawn path curves at the turn and never leaves the corridor cells")
+	_clear_enemies()
+	# One-half zig-zags (a staircase of half steps): the curves meet end to end, so the drawn body never jumps.
+	var z_walker := _still("leaf_bug", Vector2(2.25, 2.25))
+	var z_route := PackedVector2Array([Vector2(2.25, 2.25), Vector2(2.75, 2.25), Vector2(2.75, 2.75), Vector2(3.25, 2.75),
+		Vector2(3.25, 3.25), Vector2(3.75, 3.25), Vector2(3.75, 3.75)])
+	z_walker.set_path(z_route)
+	var z_frames := 0
+	var biggest_jump := 0.0
+	var last_drawn: Vector2 = z_walker.position
+	var zig_curved := false
+	while z_walker._path_index < z_route.size() and z_frames < 2000:
+		z_walker._process(1.0 / 60.0)
+		z_frames += 1
+		var z_drawn: Vector2 = z_walker.position + z_walker._corner_offset
+		biggest_jump = maxf(biggest_jump, z_drawn.distance_to(last_drawn))
+		last_drawn = z_drawn
+		zig_curved = zig_curved or z_walker._corner_offset.length() > 1.0
+	var step_px: float = z_walker.get_move_speed() / 60.0
+	_check(zig_curved and biggest_jump <= step_px * 1.5 + 0.5,
+		"rounded corners on a one-half zig-zag: curves, and never jumps (%.1f px a frame, walking %.1f)" % [biggest_jump, step_px])
+	_clear_enemies()
+
+	# --- Half cells: in a one-half gap the nightmare is drawn 80% wide, and full width again after ---
+	route = map_generator.get_path_from(map_generator.startPath)
+	var squeezer := _still("leaf_bug", route[6])
+	squeezer.set_path(route.slice(6))
+	squeezer._path_index = 1
+	var wide: float = squeezer.sprite.scale.x
+	var finder: FindPath = map_generator.path_layer.get_finder()
+	var walk_dir: Vector2 = (route[7] - route[6]).sign()
+	var across := Vector2(absf(walk_dir.y), absf(walk_dir.x))
+	var gap_half: Vector2 = (squeezer.position / (squeezer.grid.cell_size.x / FindPath.HALF)).floor()
+	var walls_were := [finder.is_half_blocked(gap_half + across), finder.is_half_blocked(gap_half - across)]
+	finder.set_half_blocked(gap_half + across, true)
+	finder.set_half_blocked(gap_half - across, true)
+	squeezer._update_squeeze(1.0)
+	_check(is_equal_approx(squeezer.sprite.scale.x, wide * squeezer.SQUEEZE_WIDTH) and is_equal_approx(squeezer.sprite.scale.y, wide),
+		"squeeze: in a one-half gap it's drawn %d%% wide (%.2f)" % [roundi(squeezer.SQUEEZE_WIDTH * 100), squeezer.sprite.scale.x / wide])
+	finder.set_half_blocked(gap_half + across, walls_were[0])
+	finder.set_half_blocked(gap_half - across, walls_were[1])
+	squeezer._update_squeeze(1.0 / 60.0)
+	_check(squeezer.sprite.scale.x > wide * squeezer.SQUEEZE_WIDTH + 0.001 and squeezer.sprite.scale.x < wide,
+		"and eases back out over a few frames")
+	squeezer._update_squeeze(1.0)
+	_check(is_equal_approx(squeezer.sprite.scale.x, wide), "back to full width once through")
 	_clear_enemies()
 
 	# --- Branch Phase 2 hooks: Groundroot grounds a flyer, Quaker's slam stops a sprint ---
@@ -872,9 +953,21 @@ func _plant_at_distance(kind: String, target: Vector2, cells: float) -> Tower:
 				tower.free()
 	return null
 
-func _free_neighbour(cell: Vector2) -> Vector2:
+# The whole cell a route point is in (half-cell routes: x.25 / x.75 points; whole cells map to themselves).
+static func _cell_of(point: Vector2) -> Vector2:
+	return (point + Vector2(0.5, 0.5)).floor()
+
+# Whether the route runs through whole cell `cell`.
+func _on_route(cell: Vector2) -> bool:
+	for p in route:
+		if _cell_of(p) == cell:
+			return true
+	return false
+
+func _free_neighbour(point: Vector2) -> Vector2:
+	var cell := _cell_of(point)
 	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-		if not route.has(cell + offset) and map_generator.is_buildable(cell + offset):
+		if not _on_route(cell + offset) and map_generator.is_buildable(cell + offset):
 			return cell + offset
 	return cell
 
@@ -882,11 +975,11 @@ func _free_neighbour(cell: Vector2) -> Vector2:
 # {here, beyond}, or {} if the map has no such spot.
 func _burrow_setup() -> Dictionary:
 	for i in range(5, route.size() - 5):
-		var here := route[i]
+		var here := _cell_of(route[i])
 		for direction in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 			var wall: Vector2 = here + direction
 			var beyond: Vector2 = here + direction * 2
-			if route.has(wall) or not map_generator.can_block(wall) or not map_generator.is_buildable(beyond):
+			if _on_route(wall) or not map_generator.can_block(wall) or not map_generator.is_buildable(beyond):
 				continue
 			map_generator.block_cell(wall)
 			if map_generator.get_path_from(beyond).is_empty():
@@ -901,14 +994,14 @@ func _burrow_setup() -> Dictionary:
 func _dead_end_setup() -> Dictionary:
 	for i in range(5, route.size() - 5):
 		for direction in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-			var side: Vector2 = route[i] + direction
-			if route.has(side) or not map_generator.is_buildable(side):
+			var side: Vector2 = _cell_of(route[i]) + direction
+			if _on_route(side) or not map_generator.is_buildable(side):
 				continue
 			var walls: Array[Vector2] = []
 			var ok := true
 			for step in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 				var around: Vector2 = side + step
-				if around == route[i] or route.has(around) or not map_generator.is_buildable(around):
+				if around == _cell_of(route[i]) or _on_route(around) or not map_generator.is_buildable(around):
 					continue
 				if not map_generator.can_block(around):
 					ok = false

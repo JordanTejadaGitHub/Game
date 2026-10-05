@@ -226,6 +226,25 @@ var nurture_perk_multiplier := 1.0  # Sidegrade perks (MetaRun, Spire experiment
 var first_offer_cards := 0  # Sidegrade Kindling: the first Dream offer (drifts 1–5) has this many cards; 0 = normal
 @export var tag_weight: float = 1.0  # Off (1.0 = no boost): offers are random within the run's pool (2026-09-30; was 1.6, then 1.3)
 @export var pity_after: int = 3  # Dreams in a row without Rare+ before one is guaranteed
+# Grow and Nurture prices (Balancing 2026-10-04, demo too; Tower Code): global multipliers on TowerData.evolve_cost by
+# tier, and the base Nurture costs for ranks I-V. They write the statics every price reads (TowerData.get_grow_price,
+# Tower.rank_costs), so panels, group grows and the sims agree. Old prices: 1.0 / 1.0 / 1.0, Tower.RANK_COSTS_V2.
+@export var branch_cost_multiplier: float = 1.5:
+	set(value):
+		branch_cost_multiplier = value
+		TowerData.grow_cost_multipliers[2] = value
+@export var final_cost_multiplier: float = 1.5:
+	set(value):
+		final_cost_multiplier = value
+		TowerData.grow_cost_multipliers[3] = value
+@export var ascended_cost_multiplier: float = 1.0:
+	set(value):
+		ascended_cost_multiplier = value
+		TowerData.grow_cost_multipliers[4] = value
+@export var rank_costs: Array[int] = [30, 48, 60, 90, 135]:
+	set(value):
+		rank_costs = value
+		Tower.rank_costs = value.duplicate()
 # Bittersweet cards stay out of the pool until leaves are tuned (dream_design.md). Act 2+ only,
 # at most one per offer.
 @export var allow_bittersweet: bool = false
@@ -300,6 +319,9 @@ var _effects: DreamEffects = null  # effects(): card rows per Warden
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	# The price statics outlive a run (a sim or test may have changed them): each run starts from its own exports.
+	TowerData.grow_cost_multipliers = {2: branch_cost_multiplier, 3: final_cost_multiplier, 4: ascended_cost_multiplier}
+	Tower.rank_costs = rank_costs.duplicate()
 	HeartwoodGifts.register(&"waking_root", DreamState._waking_root_gift)  # Heartwood's Gifts (Spire branch)
 	unlocks_changed.connect(_draw_branch_offers)  # Branch expansion: a family pick draws its 2 branches
 	run_state.dew_changed.connect(_on_dew_changed)  # Golden Harvest: Dew earned this run
@@ -442,7 +464,7 @@ func get_evolve_cost(to: TowerData) -> int:
 	for card in _taken_cards():
 		if _applies_to(card, to):
 			discount += card.evolve_discount * stacks[card.id]
-	return roundi(to.evolve_cost * maxf(1.0 - discount, 0.0))
+	return roundi(to.get_grow_price() * maxf(1.0 - discount, 0.0))
 
 # --- Dreamlight (run_design.md "Dreamlight: choosing your build paths") -------------------------------
 
@@ -1749,25 +1771,37 @@ func _taken_cards(include_dormant: bool = false) -> Array[UpgradeData]:
 
 func _update_bends() -> void:
 	_bend_cells.clear()
+	# Half cells: route points step half a cell (x.25 / x.75), so lengths go through MapGenerator.route_length and
+	# every point marks the whole cell it lies in (route_cells); steps count in full cells (point i = step ⌈i/2⌉).
 	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
-	path_length = path.size()
+	path_length = map_generator.route_length(path)
 	_path_index.clear()
 	for i in path.size():
-		_path_index[path[i]] = i  # Crossroads, Briar Crown
+		for cell in route_cells(path[i]):
+			if not _path_index.has(cell):
+				_path_index[cell] = ceili(i / 2.0)  # Crossroads, Briar Crown
 	for i in range(1, path.size() - 1):
 		if path[i] - path[i - 1] != path[i + 1] - path[i]:
-			_bend_cells[path[i]] = true
+			for cell in route_cells(path[i]):
+				_bend_cells[cell] = true
 	# Straightaway: tiles of straight stretches of STRAIGHT_TILES+ (a run of equal steps a..b covers
-	# tiles a..b+1)
+	# points a..b)
 	_straight_cells.clear()
 	var run_start := 0
 	for step in range(1, path.size()):
 		if step == path.size() - 1 or path[step + 1] - path[step] != path[step] - path[step - 1]:
-			if step - run_start + 1 >= STRAIGHT_TILES:
+			if map_generator.route_length(path.slice(run_start, step + 1)) >= STRAIGHT_TILES:
 				for i in range(run_start, step + 1):
-					_straight_cells[path[i]] = true
+					for cell in route_cells(path[i]):
+						_straight_cells[cell] = true
 			run_start = step
 	_heart_cache.clear()
+
+# The whole cell a route point lies in.
+static func route_cells(point: Vector2) -> Array[Vector2]:
+	# One-half routes (Environment a0ac78b8): a point is a half cell's centre (x.25 / x.75), inside one whole cell:
+	# the one under its pixel (Grid puts p at p * 64 + 32 px), as Tower.route_cells / Enemy.get_current_cell.
+	return [Vector2(floorf(point.x + 0.5), floorf(point.y + 0.5))]
 
 
 # An exclusive pair (dream_design.md "Combo cards are choices, not musts"): a card a taken card excludes, or one that
@@ -3245,7 +3279,7 @@ func owns_range_at_most(reach: float) -> bool:
 			return true
 	return false
 
-# Damp Rot: Poisoned (Spored) tick multiplier on `enemy` (enemy.gd's tick asks; 1.0 without it).
+# Soaked Rot: Poisoned (Spored) tick multiplier on `enemy` (enemy.gd's tick asks; 1.0 without it).
 func get_spored_tick_multiplier(enemy: Node2D) -> float:
 	var n := rule_stacks(&"damp_rot")
 	if n == 0 or enemy == null or not enemy.statuses.has(EnemyStatuses.DAMP):
@@ -3262,7 +3296,7 @@ func get_ignite_multiplier(enemy: Node2D = null) -> float:
 		return 1.0
 	return 1.0 + SPARKING_SPORES_PER * rule_stacks(&"sparking_spores")
 
-# Damp Rot's trade: with it, Soaked no longer boosts water hits on a nightmare (Enemy.take_damage asks).
+# Soaked Rot's trade: with it, Soaked no longer boosts water hits on a nightmare (Enemy.take_damage asks).
 func soaked_boosts_water() -> bool:
 	return not has_rule(&"damp_rot")
 
@@ -3437,19 +3471,28 @@ var _walls_tiles_cache := [-1, 0]  # [board_version, tiles]
 func walls_added_tiles() -> int:
 	if _walls_tiles_cache[0] == board_version:
 		return _walls_tiles_cache[1]
-	var cells: Array[Vector2] = []
-	for tower in _towers():
-		if tower.tower_data.line == "wall":
-			cells.append(tower.cell)
+	var walls: Array = _towers().filter(func(t) -> bool: return t.tower_data.line == "wall")
 	var tiles := 0
-	if not cells.is_empty():
+	if not walls.is_empty():
 		var layer = map_generator.path_layer
-		for cell in cells:
-			layer.set_cell_blocked(cell, false)
-		var without: int = layer.find_path_from(map_generator.startPath).size()
-		for cell in cells:
-			layer.set_cell_blocked(cell, true)
-		tiles = maxi(path_length - without, 0)
+		if layer.has_method("set_half_blocked"):
+			# Half cells (Tower Code): unblock each wall's halves; lengths in full cells.
+			var now: int = map_generator.route_length(layer.find_path_from(map_generator.startPath))
+			for wall in walls:
+				for h in wall.get_halves():
+					layer.set_half_blocked(h, false)
+			var without_halves: int = map_generator.route_length(layer.find_path_from(map_generator.startPath))
+			for wall in walls:
+				for h in wall.get_halves():
+					layer.set_half_blocked(h, true)
+			tiles = maxi(now - without_halves, 0)
+		else:
+			for wall in walls:
+				layer.set_cell_blocked(wall.cell, false)
+			var without: int = layer.find_path_from(map_generator.startPath).size()
+			for wall in walls:
+				layer.set_cell_blocked(wall.cell, true)
+			tiles = maxi(path_length - without, 0)
 	_walls_tiles_cache = [board_version, tiles]
 	return tiles
 

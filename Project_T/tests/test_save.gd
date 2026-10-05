@@ -186,9 +186,10 @@ func _dismiss(main: Node) -> void:
 func _free_cell(map_generator) -> Vector2:
 	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	for i in range(4, path.size()):
+		var on_route := Vector2(FindPath.point_to_node(path[i]) / 2)  # Half cells: the route point's whole cell
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-			var cell: Vector2 = path[i] + offset
-			if not path.has(cell) and map_generator.can_block(cell):
+			var cell: Vector2 = on_route + offset
+			if map_generator.can_block(cell) and not Array(path).any(func(p: Vector2) -> bool: return Vector2(FindPath.point_to_node(p) / 2) == cell):
 				return cell
 	return Vector2(-1, -1)
 

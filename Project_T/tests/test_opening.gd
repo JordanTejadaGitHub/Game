@@ -75,7 +75,7 @@ func _play_opening(map_seed: int) -> void:
 func _plant_best(main: Node, data: TowerData) -> bool:
 	var map_generator = main.get_node("%MapGenerator")
 	var placer: TowerPlacer = main.get_node("%TowerPlacer")
-	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var path: PackedVector2Array = Tower.route_cells(map_generator.get_path_from(map_generator.startPath))  # Whole cells (half-cell routes)
 	var reach := data.attack_range
 	var candidates: Array = []
 	var seen := {}

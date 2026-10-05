@@ -108,12 +108,16 @@ func _ready() -> void:
 	# accessibility toggles): Reduced thins particles, bursts, damage numbers, callouts, Kinship pulses and off-screen idle
 	# animation. Fx can also step down by itself when frames run long (Tower Code).
 	_choice(display, "Effects quality", EFFECTS_SETTING, ["Full", "Reduced"], 0)
+	# Placement grid in build mode (Tower Code 0bc2b870, half_cells.md "Placement feel"): whole-cell lines over buildable
+	# ground, half lines near the ghost.
+	_choice(display, "Placement grid", "placement_grid", ["On", "Near cursor", "Off"], 0)
+	_keepsake_toggles(display)
 
 	var gameplay := _tab("Gameplay")
 	# Hints (user, 2026-10-01: "update it to hints"; were "Heartwood whispers"): the Heartwood's lines the first time
 	# something happens, and under them the Growth marks (GrowHints), so hints live in one place.
 	_toggle(gameplay, "Hints", "whispers", true, "The Heartwood's short hints, the first time something happens.")
-	var growth_marks := _toggle(gameplay, "Growth marks", GrowHints.SETTING, true, "At rests, a gold ↑ on Wardens that can grow now and a dot when a rank is affordable.")
+	var growth_marks := _toggle(gameplay, "Growth marks", GrowHints.SETTING, true, "At rests, a bud on Wardens that can grow now and a dewdrop when a rank is affordable.")
 	growth_marks.get_parent().get_child(0).custom_minimum_size.x = 36  # Indented under Hints (its dot holds the space)
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"], 0)
@@ -140,10 +144,8 @@ func _ready() -> void:
 		_toggle(box, "Test Grove: every Warden unlocked (from the next run)", TestGrove.SETTING)
 		_toggle(box, "Unlock all families: normal runs, every family in the picks (no Seeds banked)", MetaRun.ALL_FAMILIES_SETTING,
 			false, "As if the Memory Grove's Warden root were fully grown, for this and later runs while on.\nYour real Grove unlocks are not changed.")
-		_toggle(box, "Dream of Everything rewards · starlit card backs, +1 Dream reroll", MetaRun.ALL_DREAMS_SETTING,  # meta_design.md "Dev options"
-			false, "For testing: nothing is recorded and no Seeds are banked.")
 		_toggle(box, "Secret 6th loadout slot", MetaRun.SIXTH_SLOT_SETTING,  # meta_design.md: the secret 6th loadout slot, for testing
-			false, "For testing: no milestone is recorded and no Seeds are banked.")
+			false, "For testing: The Heartwood's Crown isn't planted and no Seeds are banked.")
 		# Demo mode (demo_scope.md): overrides game/demo in this build (-1 project setting, 0 full, 1 demo); applying a
 		# change goes back to the title.
 		var demo_row := HBoxContainer.new()
@@ -170,6 +172,8 @@ func _ready() -> void:
 		box.add_child(dev_note)
 		# Grove perks as trade-offs (MetaRun.sidegrade_active): Sidegrade by default since the Spire merge, Power for testing.
 		_choice(box, "Perk style", MetaRun.PERK_STYLE_SETTING, ["Power", "Sidegrade"], 1)
+		# Capture mode (marketing.md §3): clean frames for recording; scripted scenes use -- --capture=<file>.
+		_choice(box, "Capture mode (hides dev tools, DPS tags, damage meter)", CaptureDirector.SETTING, ["Off", "Clean HUD", "No HUD"], 0)
 		box.add_child(HSeparator.new())
 		box.add_child(_profile_reset_box())
 
@@ -398,6 +402,41 @@ func _slider(box: VBoxContainer, text: String, key: String, min_value: float = 0
 	row.add_child(slider)
 	box.add_child(row)
 	_register(key, max_value, func() -> void: slider.set_value_no_signal(float(_value(key))))
+
+# Keepsakes (meta_design.md, MetaRun.KEEPSAKES): one switch per OWNED keepsake; the setting lists the hidden ones.
+# Nothing shows until one is planted in the Memory Grove.
+func _keepsake_toggles(box: VBoxContainer) -> void:
+	var owned: Array = Array(MetaRun.KEEPSAKES).filter(func(id: String) -> bool: return MetaRun.keepsake_owned(id))
+	if owned.is_empty():
+		return
+	var key := MetaRun.KEEPSAKES_HIDDEN_SETTING
+	var heading_row := HBoxContainer.new()
+	_dots[key] = _dot(heading_row)
+	var heading := Label.new()
+	heading.text = "Keepsakes"
+	UiStyle.caps(heading, 15)
+	heading_row.add_child(heading)
+	box.add_child(heading_row)
+	var checks := {}
+	for id in owned:
+		var row := HBoxContainer.new()
+		var check := CheckButton.new()
+		var unlock := HeartwoodMemory.get_unlock(id)
+		check.text = unlock.display_name if unlock != null else String(id).capitalize()
+		check.tooltip_text = unlock.description if unlock != null else ""
+		check.focus_mode = Control.FOCUS_NONE
+		check.toggled.connect(func(on: bool) -> void:
+			var hidden: Array = (_value(key) as Array).duplicate()
+			hidden.erase(id)
+			if not on:
+				hidden.append(id)
+			_set_value(key, hidden))
+		row.add_child(check)
+		box.add_child(row)
+		checks[id] = check
+	_register(key, [], func() -> void:
+		for id in checks:
+			checks[id].set_pressed_no_signal(not (_value(key) as Array).has(id)))
 
 func _toggle(box: VBoxContainer, text: String, key: String, default: bool = false, tip: String = "") -> CheckButton:
 	var row := HBoxContainer.new()

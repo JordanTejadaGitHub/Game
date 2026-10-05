@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "blossoms"
+display_name = "Blossoms"
+description = "A keepsake: a blossom on every Warden. Switch it off any time."
+root = 2
+costs = Array[int]([40])
+order = 41
+icon = 17
+keepsake = "blossoms"

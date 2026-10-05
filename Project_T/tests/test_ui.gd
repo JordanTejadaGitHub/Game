@@ -590,7 +590,7 @@ func _run() -> void:
 	var family = main.get_node("%FamilyPickScreen")
 	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
 	_check(family.get_status_text(sporeling) == "Applies Poisoned", "the family card names its status (%s)" % family.get_status_text(sporeling))
-	_check(family.get_branches(sporeling).size() == 2, "the family card previews two branches")
+	_check(family.get_routes(sporeling).offered.size() == 2, "the family card previews two branches")
 	family.show_pick(&"first")
 	await _frames(3)
 	# Each card holds all of its content (the "Grows into" rows used to spill out of the bottom).
@@ -957,7 +957,7 @@ func _check_omen_cards(screen, what: String) -> void:
 				% [card.name, label.text.left(24), rect, inner, what])
 
 func _free_cell(map_generator) -> Vector2:
-	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var path: PackedVector2Array = Tower.route_cells(map_generator.get_path_from(map_generator.startPath))  # Whole cells (half-cell routes)
 	for i in range(3, path.size()):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 			var cell: Vector2 = path[i] + offset

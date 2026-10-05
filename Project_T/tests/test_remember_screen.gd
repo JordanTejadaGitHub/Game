@@ -129,7 +129,8 @@ func _run() -> void:
 		"the Ascended node: normal size, its whole frame scaled in")
 	node.free()
 
-	# Playtest fixes (run_design.md 2026-09-30): an unplanted lane shows only its branch, as a silhouette.
+	# The tree shows only this run's branches (user: "only show 2 branch options unless we unlocked 3"): an unplanted
+	# hidden branch is no "???" lane; one line in the strip says another grows in the Memory Grove.
 	var hidden: TowerData = null
 	for next in sporeling.evolves_to:
 		if dreams.get_unlock_blocker(next) == "Memory Grove":
@@ -139,20 +140,12 @@ func _run() -> void:
 		screen.open(sporeling)
 		await process_frame
 		nodes = screen._canvas.nodes
-		_check(nodes.has(hidden) and screen.state_of(hidden) == RememberScreen.State.GROVE, "the unplanted branch shows as the Grove silhouette")
-		_check(not hidden.evolves_to.any(func(f: TowerData) -> bool: return nodes.has(f)), "…its final form is hidden")
-		_check(not screen._canvas.edges.any(func(e: Array) -> bool: return e[0] == hidden), "…and so is the line up to it")
-		screen._select(hidden)
-		var side: Array = screen._side_box.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
-		_check(side.size() == 3 and side[0] == "???" and side[1].to_lower() == "locked" and side[2] == "Plant it in the Memory Grove",
-			"its side panel: \"???\" (no name), \"Locked\" and to plant it, nothing else (%s)" % " | ".join(side))
-		var grove_node: Control = nodes[hidden]
-		_check(grove_node.portrait.material == RememberScreen.Portrait.silhouette_material(),
-			"a Grove form is a silhouette (on the moonlit disc)")
-		var side_portrait: Array = screen._side_box.find_children("*", "TextureRect", true, false)
-		_check(not side_portrait.is_empty() and side_portrait[0].material == RememberScreen.Portrait.silhouette_material(), "…and its silhouette, not the picture")
-		_check(grove_node.tooltip_text.begins_with("???") and not grove_node.tooltip_text.contains(hidden.display_name) and grove_node.name_shown() == "???",
-			"…and unnamed: \"???\" under it and in its tooltip (%s)" % grove_node.name_shown())
+		_check(not nodes.has(hidden) and not hidden.evolves_to.any(func(f: TowerData) -> bool: return nodes.has(f)),
+			"the unplanted hidden branch isn't in the tree (no phantom 3rd lane)")
+		var hint: Label = screen._misty.find_child("GroveHint", true, false)
+		_check(screen._misty.visible and hint != null and hint.text == RememberScreen.GROVE_HINT, "…one line says it grows in the Memory Grove")
+		var lanes := sporeling.evolves_to.filter(func(f) -> bool: return f is TowerData and f.tier == 2 and nodes.has(f)).size()
+		_check(lanes == dreams.get_branch_offer(sporeling).size(), "the tree's lanes are this run's offer (%d)" % lanes)
 		screen.close()
 
 	# The Ascended crown: hidden until its Grove node is planted and drift 51 is reached.

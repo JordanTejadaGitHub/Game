@@ -1,0 +1,21 @@
+{
+	"title": "Video 0 clip: a new island",
+	"note": "Video 0 (marketing.md §4), clip for 8-10 s (\"Each run is a new island\"): screenshot 8's act 4 board at 9:16, held wide.",
+	"seed": 9177,
+	"size": [1080, 1920],
+	"drift": 85,
+	"dew": 99999,
+	"hud": "none",
+	"dreams": ["dawnbreak"],
+	"length": 5.0,
+	"timeline": [
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.73},
+		{"t": 0.0, "plant_each": 0.05, "count": 16, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 3, "plant": "monsoon", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 2, "plant": "tidecaller", "auto": "cover", "tag": false},
+		{"t": 0.5, "plant_each": 0.1, "count": 3, "plant": "thunderhead", "auto": "cover", "tag": false},
+		{"t": 0.5, "plant_each": 0.1, "count": 2, "plant": "stormheart", "auto": "cover", "tag": false},
+		{"t": 0.5, "plant_each": 0.1, "count": 2, "plant": "lanternmoth", "auto": "cover", "tag": false},
+		{"t": 0.5, "start": true}
+	]
+}

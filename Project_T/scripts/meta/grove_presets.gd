@@ -39,11 +39,8 @@ static func profile(preset: StringName) -> Dictionary:
 			data.runs_won = 5
 			data.highest_blight_won = 0
 			for unlock in HeartwoodMemory.load_grove():
-				if not unlock.is_free():
+				if not unlock.is_free():  # Every node, The Heartwood's Crown (the 6th slot) too
 					data.unlocks[unlock.id] = unlock.get_levels()
-				elif unlock.milestone != "":
-					data.milestones[unlock.milestone] = true  # Sunpetal: 500 Shades
-			HeartwoodMemory.check_full_bloom(data)  # Every node grown: the secret 6th slot too
 		_:
 			push_error("Unknown Grove preset %s" % preset)
 	data.loadout = _loadout(data)

@@ -25,17 +25,19 @@ func _run() -> void:
 	var wall: TowerData = load("res://resource/tower/thornwall.tres")
 	placer.set_build_mode(true)
 	placer.select_tower(wall)
+	# Half cells (b8305630): a stroke holds half origins (a whole cell's = cell × 2), a Warden's width apart.
+	var h := 2.0 if placer.half_placement() else 1.0
 
 	# --- Axis lock and corner fill ---
 	placer.begin_stroke(Vector2(3, 3))
-	placer.extend_stroke(Vector2(4, 3))
-	placer.extend_stroke(Vector2(6, 5))  # Locked to row 3 after 2 cells
-	_check(placer.get_stroke_cells() == [Vector2(3, 3), Vector2(4, 3), Vector2(5, 3), Vector2(6, 3)], "a stroke locks to its row")
+	placer.extend_stroke(Vector2(4, 3) * h)
+	placer.extend_stroke(Vector2(6, 5) * h)  # Locked to row 3 after 2 cells
+	_check(placer.get_stroke_cells() == [Vector2(3, 3) * h, Vector2(4, 3) * h, Vector2(5, 3) * h, Vector2(6, 3) * h], "a stroke locks to its row")
 	placer.cancel_stroke()
 	_check(not placer.stroking and placer.get_stroke_cells().is_empty(), "cancel drops the stroke")
 	placer.begin_stroke(Vector2(3, 3))
-	placer.extend_stroke(Vector2(4, 4), true)  # Alt: free; a diagonal jump
-	_check(placer.get_stroke_cells() == [Vector2(3, 3), Vector2(4, 3), Vector2(4, 4)], "a diagonal jump fills the corner cell")
+	placer.extend_stroke(Vector2(4, 4) * h, true)  # Alt: free; a diagonal jump
+	_check(placer.get_stroke_cells() == [Vector2(3, 3) * h, Vector2(4, 3) * h, Vector2(4, 4) * h], "a diagonal jump fills the corner cell")
 	placer.cancel_stroke()
 
 	# --- A stroke across the map: the cell that would close the path is skipped ---
@@ -45,7 +47,7 @@ func _run() -> void:
 	run_state.dew = 100000
 	var before := container.get_child_count()
 	placer.begin_stroke(Vector2(column, 0))
-	placer.extend_stroke(Vector2(column, Tower.MAP_GRID.size.y - 1))
+	placer.extend_stroke(Vector2(column, Tower.MAP_GRID.size.y - 1) * h)
 	var plan := placer.get_stroke_plan()
 	var closing := plan.keys().filter(func(c) -> bool: return plan[c] == "would close the dream")
 	var green := plan.keys().filter(func(c) -> bool: return plan[c] == "")
@@ -57,7 +59,7 @@ func _run() -> void:
 	_check(planted == green.size() and container.get_child_count() == before + planted, "release plants all the green cells (%d)" % planted)
 	_check(not map.get_path_from(map.startPath).is_empty(), "and the dream stays open")
 	for c in closing:
-		_check(map.is_buildable(c), "the skipped cell is still open ground")
+		_check(map.is_buildable((c / h).floor()), "the skipped cell is still open ground")
 
 	# --- Out of Dew mid-stroke ---
 	var row := 1
@@ -67,7 +69,7 @@ func _run() -> void:
 			cells.append(Vector2(x, row))
 	run_state.dew = placer.get_cost(wall) * 2
 	placer.begin_stroke(Vector2(1, row))
-	placer.extend_stroke(Vector2(Tower.MAP_GRID.size.x - 2, row))
+	placer.extend_stroke(Vector2(Tower.MAP_GRID.size.x - 2, row) * h)
 	plan = placer.get_stroke_plan()
 	_check(plan.values().count("") <= 2 and plan.values().has("out of Dew"), "Dew runs out: the rest are skipped")
 	placer.cancel_stroke()

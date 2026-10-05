@@ -60,7 +60,7 @@ func _init() -> void:
 	_check(path.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.PATH_RIM
 		and ground.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.ISLAND_EDGE,
 		"the start draws rim-edge path over the rim, no grass")
-	_check(path.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.PATH
+	_check(map.halves_of(map.endPath * 2).has(Vector2(FindPath.point_to_node(map.path_layer.current_path[-1])))  # Ends on a Heartwood half
 		and ground.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.GRASS, "the Heartwood stands inland, on grass")
 	var out_bit: int = {Vector2i.UP: 1, Vector2i.RIGHT: 2, Vector2i.DOWN: 4, Vector2i.LEFT: 8}[out]
 	_check(start_mask & out_bit, "the start's path tile runs off its edge (mask %d)" % start_mask)
@@ -73,7 +73,7 @@ func _init() -> void:
 	# Clearing leaves the obstacle's mark (on a cell the route doesn't then take).
 	for cell in map.obstacles.keys():
 		var data: ObstacleData = map.obstacles[cell]
-		if map.get_path_if_cleared(cell).has(cell):
+		if Array(map.get_path_if_cleared(cell)).any(func(p: Vector2) -> bool: return Vector2(FindPath.point_to_node(p) / 2) == cell):
 			continue
 		if map.clear_obstacle(cell):
 			_check(env.get_cell_source_id(Vector2i(cell)) == data.cleared_source_id,
@@ -82,7 +82,7 @@ func _init() -> void:
 
 	# The path wears away decorations it's drawn over, and the cell stays bare if it moves away.
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
-	var worn := Vector2i(route[route.size() / 2])
+	var worn := FindPath.point_to_node(route[route.size() / 2]) / 2  # Half cells: the point's whole cell
 	env.set_cell(worn, EnvironmentTiles.GROUND_DETAILS, Vector2i.ZERO)
 	path.call("draw")  # PathGenerator.draw(), not CanvasItem's draw signal
 	_check(env.get_cell_source_id(worn) == -1, "the path wears away a ground detail under it")
@@ -113,7 +113,11 @@ func _init() -> void:
 	var vignette := lighting.get_child(0) as Sprite2D
 	_check(vignette != null and (vignette.material as CanvasItemMaterial).blend_mode == CanvasItemMaterial.BLEND_MODE_MUL,
 		"the edges get a cold multiply")
-	_check(heartwood.get_child(0) is PointLight2D and heartwood.get_child(1) is Sprite2D, "the Heartwood glows")
+	var pool: Sprite2D = map.ground_layer.get_node_or_null("HeartwoodGlow")
+	_check(heartwood.get_child(0) is PointLight2D and pool != null, "the Heartwood glows: a light and a pool on the ground")
+	_check((heartwood.get_child(0) as PointLight2D).range_item_cull_mask == Heartwood.GROUND_LIGHT_MASK
+		and map.ground_layer.light_mask & Heartwood.GROUND_LIGHT_MASK and not map.path_layer.light_mask & Heartwood.GROUND_LIGHT_MASK
+		and not heartwood.light_mask & Heartwood.GROUND_LIGHT_MASK, "its light lifts the grass, not the path or the tree (a solid tree, not a beam)")
 	var glowing_before := lighting.get_glowing_warden_count()
 	var nodes_before := lighting.get_child_count()
 	var sprout := _add_warden(main, "res://resource/tower/sprout.tres", Vector2(20, 18))
@@ -144,23 +148,31 @@ func _init() -> void:
 	var hatch: BuildHatch = map.build_hatch
 	_check(not hatch.visible, "no hatch outside build mode")
 	main.get_node("%TowerPlacer").build_mode_changed.emit(true)
-	var hatched := hatch.get_hatched_cells()
+	var hatched := hatch.get_hatched_halves()  # Half cells (half_cells.md)
 	var an_obstacle: Vector2 = map.obstacles.keys()[0]
-	_check(hatch.visible and hatched.has(Vector2(rim_cell)) and hatched.has(map.startPath) and hatched.has(map.endPath)
-		and hatched.has(an_obstacle), "build mode hatches the rim, the start, the end and obstacles")
+	var all_halves := func(cell: Vector2) -> bool: return map.halves_of(cell * 2).all(func(h: Vector2) -> bool: return hatched.has(h))
+	_check(hatch.visible and all_halves.call(Vector2(rim_cell)) and all_halves.call(map.startPath) and all_halves.call(map.endPath)
+		and all_halves.call(an_obstacle), "build mode hatches the rim, the start, the end and obstacles (all their halves)")
 	var open_cell := Vector2(-1, -1)
-	_check(hatched.all(func(cell: Vector2) -> bool: return not map.is_buildable(cell)), "only unbuildable cells are hatched")
+	_check(hatched.all(func(h: Vector2) -> bool: return not map.is_buildable_half(h)), "only unbuildable halves are hatched")
 	for x in range(1, 22):
 		if map.is_buildable(Vector2(x, 9)):
 			open_cell = Vector2(x, 9)
 			break
-	_check(not hatched.has(open_cell) and not hatched.has(Vector2(12, 10)),
-		"buildable cells and a Warden's own cell stay clear")
+	_check(not hatched.has(open_cell * 2) and not map.halves_of(Vector2(24, 20)).any(func(h: Vector2) -> bool: return hatched.has(h)),
+		"buildable halves and a Warden's own halves stay clear")
 	main.get_node("%TowerPlacer").build_mode_changed.emit(false)
 	_check(not hatch.visible, "leaving build mode hides the hatch")
 
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--preview="):
+			for act_arg in OS.get_cmdline_user_args():  # `-- --act=N`: the act's sheets (season close-ups)
+				if act_arg.begins_with("--act="):
+					map.set_act(int(act_arg.trim_prefix("--act=")))
+			if OS.get_cmdline_user_args().has("--stagger"):  # Half-offset Warden walls along the route
+				_stagger(main)
+			if OS.get_cmdline_user_args().has("--nightmares"):  # Shades along the route
+				await _nightmares(main)
 			_render(main, [ground, path, env], arg.trim_prefix("--preview="))
 		if arg.begins_with("--layouts="):
 			await _layout_sheet(arg.trim_prefix("--layouts="))
@@ -220,6 +232,10 @@ func _render(main: Node, layers: Array, file: String) -> void:
 			var coords := layer.get_cell_atlas_coords(cell)
 			var origin := source.get_tile_data(coords, 0).texture_origin
 			image.blend_rect(sheets[source], Rect2i(coords * region, region), at + (tile - region) / 2 - origin)
+		if layer == map.ground_layer and map.ground_patches != null:
+			_blend_patches(image, map, offset)
+		if layer == map.path_layer:
+			_blend_half_path(image, map, offset)
 	_blend_pond_corners(image, map, offset)
 	var heartwood: Heartwood = map.heartwood
 	var tree: Image = heartwood.texture.get_image()
@@ -231,6 +247,14 @@ func _render(main: Node, layers: Array, file: String) -> void:
 		var sprite: Image = tower.tower_data.texture.get_image()
 		sprite.convert(Image.FORMAT_RGBA8)
 		image.blend_rect(sprite, Rect2i(Vector2i.ZERO, tile), Vector2i(tower.position) - tile / 2 + offset)
+	for enemy in main.get_node("%EnemyContainer").get_enemies():  # `-- --nightmares`: their first frame, as drawn
+		var body: AnimatedSprite2D = enemy.sprite
+		var art: Image = body.sprite_frames.get_frame_texture(body.animation, 0).get_image()
+		art.convert(Image.FORMAT_RGBA8)
+		if body.scale != Vector2.ONE:
+			art.resize(roundi(art.get_width() * absf(body.scale.x)), roundi(art.get_height() * absf(body.scale.y)), Image.INTERPOLATE_NEAREST)
+		var at := Vector2i(enemy.position + body.position + body.offset * body.scale) - art.get_size() / 2 + offset
+		image.blend_rect(art, Rect2i(Vector2i.ZERO, art.get_size()), at)
 	image.resize(image.get_width() / 2, image.get_height() / 2, Image.INTERPOLATE_NEAREST)
 	_light_pass(image, map, offset, 2.0)
 	image.save_png(file)
@@ -245,15 +269,16 @@ func _light_pass(image: Image, map: Node, margin: Vector2i, scale: float) -> voi
 	var reach := edge.fill_to.x - 0.5
 	var falloff := (EnvironmentLighting.light_texture() as GradientTexture2D).gradient
 	var lights := []
-	var glow := map.heartwood.get_child(1) as Sprite2D  # Additive, over the multiply
+	var glow: Sprite2D = map.ground_layer.get_node("HeartwoodGlow")  # Additive pool on the ground (a squashed disc)
 	var glow_radius := glow.scale.x * 128.0
+	var squash := glow.scale.y / glow.scale.x
 	var heart_light := map.heartwood.get_child(0) as PointLight2D
 	lights.append([heart_light.global_position, heart_light.color * heart_light.energy, heart_light.texture_scale * 128.0 * heart_light.scale.x])
-	var glows := [[glow.global_position, glow.modulate * glow.modulate.a, glow_radius]]
+	var glows := [[glow.global_position, glow.modulate * glow.modulate.a, glow_radius, squash]]
 	for tower: Tower in lighting._wardens:
 		if lighting._wardens[tower]:
 			glows.append([tower.global_position + Vector2(0, -2),
-				Color(lighting.warden_glow_color, 1.0) * lighting.warden_glow_alpha, lighting.warden_glow_radius])
+				Color(lighting.warden_glow_color, 1.0) * lighting.warden_glow_alpha, lighting.warden_glow_radius, 1.0])
 	for y in image.get_height():
 		for x in image.get_width():
 			var world := Vector2(x, y) * scale - Vector2(margin)
@@ -266,7 +291,7 @@ func _light_pass(image: Image, map: Node, margin: Vector2i, scale: float) -> voi
 			var lift := Color(1, 1, 1) + warm
 			var c := image.get_pixel(x, y) * lift * cold * lift
 			for added: Array in glows:
-				var g: float = world.distance_to(added[0]) / added[2]
+				var g: float = ((world - added[0]) * Vector2(1.0, 1.0 / added[3])).length() / added[2]
 				if g < 1.0:
 					c += added[1] * falloff.sample(g).a
 			c.a = 1.0
@@ -353,6 +378,10 @@ func _flat_map(main: Node) -> Image:
 			var coords := layer.get_cell_atlas_coords(cell)
 			var origin := source.get_tile_data(coords, 0).texture_origin
 			image.blend_rect(sheets[source], Rect2i(coords * region, region), cell * tile + (tile - region) / 2 - origin)
+		if layer == map.ground_layer and map.ground_patches != null:
+			_blend_patches(image, map, Vector2i.ZERO)
+		if layer == map.path_layer:
+			_blend_half_path(image, map, Vector2i.ZERO)
 	_blend_pond_corners(image, map, Vector2i.ZERO)
 	var heartwood: Heartwood = map.heartwood
 	var tree: Image = heartwood.texture.get_image()
@@ -363,8 +392,8 @@ func _flat_map(main: Node) -> Image:
 
 func _draw_route(image: Image, route: PackedVector2Array, cell: int) -> void:
 	for i in route.size():
-		var a := Vector2i(route[i]) * cell + Vector2i.ONE * (cell / 2)
-		var b := Vector2i(route[mini(i + 1, route.size() - 1)]) * cell + Vector2i.ONE * (cell / 2)
+		var a := Vector2i((route[i] * cell + Vector2.ONE * (cell / 2.0)).round())  # Half cells: points step by x.5
+		var b := Vector2i((route[mini(i + 1, route.size() - 1)] * cell + Vector2.ONE * (cell / 2.0)).round())
 		var r := Rect2i(Vector2i(mini(a.x, b.x), mini(a.y, b.y)) - Vector2i.ONE, (a - b).abs() + Vector2i(3, 3))
 		image.fill_rect(r.intersection(Rect2i(Vector2i.ZERO, image.get_size())), ROUTE_COLOR)
 	if not route.is_empty():  # Start: a square; the Heartwood: a ring round its cell
@@ -394,3 +423,74 @@ func _blend_pond_corners(image: Image, map: Node, offset: Vector2i) -> void:
 			art.convert(Image.FORMAT_RGBA8)
 			var region := Rect2i(child.region_rect)
 			image.blend_rect(art, region, Vector2i(child.position) - region.size / 2 + offset)
+
+# Half cells (documentation/half_cells.md): the route is the dual-grid layer (32 px, offset 16 px), drawn here the same way.
+func _blend_half_path(image: Image, map: Node, offset: Vector2i) -> void:
+	var dual: TileMapLayer = map.path_layer.dual_layer
+	if dual == null:
+		return
+	var sheet: Image = (dual.tile_set.get_source(0) as TileSetAtlasSource).texture.get_image()
+	sheet.convert(Image.FORMAT_RGBA8)
+	var tile := Vector2i(dual.tile_set.tile_size)
+	for at in dual.get_used_cells():
+		image.blend_rect(sheet, Rect2i(dual.get_cell_atlas_coords(at) * tile, tile), at * tile + Vector2i(dual.position) + offset)
+	# The start's rim tile (path.png, the bridge join) draws over the dual path, as in the game.
+	var start := Vector2i(map.startPath)
+	var layer: TileMapLayer = map.path_layer
+	var source := layer.tile_set.get_source(layer.get_cell_source_id(start)) as TileSetAtlasSource
+	if source != null:
+		var art: Image = source.texture.get_image()
+		art.convert(Image.FORMAT_RGBA8)
+		var size := source.texture_region_size
+		image.blend_rect(art, Rect2i(layer.get_cell_atlas_coords(start) * size, size), start * size + offset)
+
+# `-- --stagger` (with --preview): Sprouts and Thornwalls half on the route, alternating sides,
+# so the preview shows staggered walls and the route jogging round them by half cells.
+func _stagger(main: Node) -> void:
+	var map = main.get_node("%MapGenerator")
+	var placed := 0
+	for step in range(6, 60, 5):  # Half on the route, alternating sides: it has to jog round each
+		if placed >= 8:
+			break
+		var route: PackedVector2Array = map.get_path_from(map.startPath)
+		if step >= route.size() - 6:
+			break
+		var p: Vector2 = route[step] * 2.0
+		var side := Vector2(1, 0) if route[step + 1].x == route[step].x else Vector2(0, 1)  # Across the route
+		var first := side if placed % 2 == 0 else -side
+		for origin in [p + first, p - first]:
+			var halves: Array[Vector2] = map.halves_of(origin)
+			if not map.can_block_halves(halves):
+				continue
+			var warden: Tower = main.get_node("%TowerPlacer").tower_scene.instantiate()
+			warden.tower_data = load("res://resource/tower/sprout.tres" if placed % 3 != 2 else "res://resource/tower/thornwall.tres")
+			warden.half_cell = origin
+			var centre: Vector2 = (origin + Vector2.ONE) * map.MAP_GRID.cell_size / 2.0
+			warden.cell = map.MAP_GRID.calculate_grid_coordinates(centre)
+			warden.position = centre
+			main.get_node("%TowerContainer").add_child(warden)
+			map.block_halves(halves)
+			placed += 1
+			break
+	print("staggered %d Wardens" % placed)
+
+# Ground variation: GroundPatches' 64 px dual tiles (32 px up-left), over the grass and under the path.
+func _blend_patches(image: Image, map: Node, offset: Vector2i) -> void:
+	var patches: GroundPatches = map.ground_patches
+	var sheet: Image = (patches.tile_set.get_source(0) as TileSetAtlasSource).texture.get_image()
+	sheet.convert(Image.FORMAT_RGBA8)
+	var tile := Vector2i(patches.tile_set.tile_size)
+	for at in patches.get_used_cells():
+		image.blend_rect(sheet, Rect2i(patches.get_cell_atlas_coords(at) * tile, tile), at * tile + Vector2i(patches.position) + offset)
+
+# `-- --nightmares` (with --preview): Shades standing on every 6th route point, held still, to check that
+# their bodies sit on the path's pale earth.
+func _nightmares(main: Node) -> void:
+	var map = main.get_node("%MapGenerator")
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	for i in range(3, route.size() - 3, 6):
+		var shade: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+		shade.set_physics_process(false)
+		shade.set_process(false)
+		shade.position = map.MAP_GRID.calculate_map_position(route[i])
+	await process_frame

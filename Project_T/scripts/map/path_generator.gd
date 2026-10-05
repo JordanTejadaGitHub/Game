@@ -1,59 +1,148 @@
 extends RefCounted
 class_name FindPath
 
-# Grid pathfinding for enemies, backed by Godot's AStarGrid2D. Every cell of the map is a point on
-# the grid; cells enemies can't walk through (border, trees, towers) are marked "solid".
-# Movement is limited to up, down, left and right.
+# Grid pathfinding for nightmares on the HALF-CELL grid (documentation/half_cells.md).
+# The map's 64 px cells are split into 32 px half cells (46×36 on the 23×18 map); anything that blocks
+# (border, obstacles, Wardens) blocks half cells. A nightmare fits through one half cell (half_cells.md 04c10c33:
+# a gap one half wide is enough), so each free half cell is a node. Route points are the half's centre in
+# FULL-cell units ((h - 0.5) / 2: x.25 or x.75; Grid puts point p at p * 64 + 32 px), so
+# Grid.calculate_map_position(point) is the half's centre pixel, the place to walk to.
+# A whole cell given as an end (the start, the Heartwood) means its nearest half. Movement is up/down/left/right.
+
+const HALF := 2  # Half cells per full cell, per axis
 
 var _grid: Grid
-var _astar := AStarGrid2D.new()
+var _size: Vector2i  # Half cells
+var _blocked: PackedByteArray  # 1 per blocked half cell
+var _astar := AStarGrid2D.new()  # One node per half cell
 
-# Stepping off the preferred route costs this much extra per cell. It's tiny (the total over the
-# longest possible route stays under 1 step), so paths are still always shortest; it only breaks
-# ties between equally short routes in favour of the one that reuses the most of the old route.
-# Without it, blocking one cell on open ground can make the route jump to a far-away equal-length one.
+# Stepping off the preferred route costs this much extra per node. It's tiny (the total over the longest
+# possible route stays under 1 step), so paths are still always shortest; it only breaks ties between
+# equally short routes in favour of the one that reuses the most of the old route.
 var _off_route_weight: float
-var _preferred_cells := PackedVector2Array()
+var version := 0  # Bumped on every blocking change (PathGenerator.route_tail checks its route is current)
+var _preferred_nodes: Array[Vector2i] = []
 
 
-# Builds the pathfinding grid. Only `walkable_cells` start out open; everything else is solid.
+# Builds the grid. Only `walkable_cells` (full cells) start out open; everything else is blocked.
 func _init(grid: Grid, walkable_cells: Array) -> void:
 	_grid = grid
-	_astar.region = Rect2i(Vector2i.ZERO, Vector2i(grid.size))
+	_size = Vector2i(grid.size) * HALF
+	_blocked = PackedByteArray()
+	_blocked.resize(_size.x * _size.y)
+	_blocked.fill(1)
+	_astar.region = Rect2i(Vector2i.ZERO, _size)
 	_astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
 	_astar.default_compute_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
 	_astar.default_estimate_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
 	_astar.update()
 	_astar.fill_solid_region(_astar.region, true)
 	for cell in walkable_cells:
-		_astar.set_point_solid(Vector2i(cell), false)
-	_off_route_weight = 1.0 + 1.0 / (grid.size.x * grid.size.y + 1.0)
+		for h in halves_of_cell(cell):
+			_blocked[int(h.y) * _size.x + int(h.x)] = 0
+	for y in _astar.region.size.y:
+		for x in _astar.region.size.x:
+			_astar.set_point_solid(Vector2i(x, y), _blocked[y * _size.x + x] == 1)
+	_off_route_weight = 1.0 + 1.0 / (_astar.region.size.x * _astar.region.size.y + 1.0)
 	_astar.fill_weight_scale_region(_astar.region, _off_route_weight)
 
+# --- Coordinates -----------------------------------------------------------------------------------
 
-# Makes future paths stick to `cells` (the current route) when there's a tie.
-func set_preferred_cells(cells: PackedVector2Array) -> void:
-	for cell in _preferred_cells:
-		_astar.set_point_weight_scale(Vector2i(cell), _off_route_weight)
-	_preferred_cells = cells.duplicate()
-	for cell in _preferred_cells:
-		_astar.set_point_weight_scale(Vector2i(cell), 1.0)
+# The 4 half cells of a 64 px footprint whose top-left half cell is `origin`.
+static func halves_of(origin: Vector2) -> Array[Vector2]:
+	var o := Vector2(roundf(origin.x), roundf(origin.y))
+	var halves: Array[Vector2] = [o, o + Vector2(1, 0), o + Vector2(0, 1), o + Vector2(1, 1)]
+	return halves
 
+# A whole cell's 4 half cells (a 2×2 footprint at a whole cell).
+static func halves_of_cell(cell: Vector2) -> Array[Vector2]:
+	return halves_of((cell * HALF).floor())
 
-# Returns the path found between `start` and `end` as an array of cell coordinates (start and end
-# included), or an empty array if there is no path.
-func calculate_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
-	if not is_walkable(start) or not is_walkable(end):
-		return PackedVector2Array()
-	# With the default cell_size of (1, 1), point positions are the cell coordinates themselves.
-	return _astar.get_point_path(Vector2i(start), Vector2i(end))
+# Route point (a half's centre, full-cell units: x.25 / x.75) <-> half cell. A whole cell (x.0) maps to its
+# top-left half.
+static func point_to_node(point: Vector2) -> Vector2i:
+	if is_whole_cell(point):
+		return Vector2i(point * HALF)
+	return Vector2i(roundi(point.x * HALF + 0.5), roundi(point.y * HALF + 0.5))
 
+static func node_to_point(node: Vector2i) -> Vector2:
+	return (Vector2(node) - Vector2(0.5, 0.5)) / HALF
 
-func is_walkable(cell: Vector2) -> bool:
-	return _astar.is_in_boundsv(Vector2i(cell)) and not _astar.is_point_solid(Vector2i(cell))
+# True for a whole-cell coordinate (the start, the Heartwood), not a route point.
+static func is_whole_cell(point: Vector2) -> bool:
+	return point == point.floor()
 
+func size() -> Vector2i:
+	return _size
 
-# Marks a cell as blocked (e.g. a tower was built on it) or open again.
+# --- Blocking ------------------------------------------------------------------------------------------
+
+func is_half_blocked(h: Vector2) -> bool:
+	var i := Vector2i(h)
+	return i.x < 0 or i.y < 0 or i.x >= _size.x or i.y >= _size.y or _blocked[i.y * _size.x + i.x] == 1
+
+func set_half_blocked(h: Vector2, blocked: bool) -> void:
+	var i := Vector2i(h)
+	if i.x < 0 or i.y < 0 or i.x >= _size.x or i.y >= _size.y:
+		return
+	var value := 1 if blocked else 0
+	if _blocked[i.y * _size.x + i.x] == value:
+		return
+	_blocked[i.y * _size.x + i.x] = value
+	version += 1
+	_astar.set_point_solid(i, blocked)
+
+# Marks a whole cell blocked or open: its 4 half cells.
 func set_blocked(cell: Vector2, blocked: bool) -> void:
-	if _astar.is_in_boundsv(Vector2i(cell)):
-		_astar.set_point_solid(Vector2i(cell), blocked)
+	for h in halves_of_cell(cell):
+		set_half_blocked(h, blocked)
+
+# --- Paths -----------------------------------------------------------------------------------------------
+
+# Makes future paths stick to `points` (the current route) when there's a tie.
+func set_preferred_cells(points: PackedVector2Array) -> void:
+	for node in _preferred_nodes:
+		if _astar.is_in_boundsv(node):
+			_astar.set_point_weight_scale(node, _off_route_weight)
+	_preferred_nodes.clear()
+	for point in points:
+		var node := point_to_node(point)
+		if _astar.is_in_boundsv(node):
+			_astar.set_point_weight_scale(node, 1.0)
+			_preferred_nodes.append(node)
+
+# The route between `start` and `end` (route points, full-cell units; start and end included), or empty. A
+# whole cell at either end means its half nearest the other end.
+func calculate_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
+	var a := point_to_node(start)
+	var b := point_to_node(end)
+	if is_whole_cell(end):
+		b = _nearest_half(end, Vector2(a) if not is_whole_cell(start) else start * HALF + Vector2.ONE * 0.5)
+	if is_whole_cell(start):
+		a = _nearest_half(start, Vector2(b))
+	if not _walkable_node(a) or not _walkable_node(b):
+		return PackedVector2Array()
+	var nodes := _astar.get_id_path(a, b)
+	var points := PackedVector2Array()
+	points.resize(nodes.size())
+	for i in nodes.size():
+		points[i] = node_to_point(nodes[i])
+	return points
+
+# A nightmare fits at `point` (a route point; a whole cell: its top-left half).
+func is_walkable(point: Vector2) -> bool:
+	return _walkable_node(point_to_node(point))
+
+func _walkable_node(node: Vector2i) -> bool:
+	return _astar.is_in_boundsv(node) and not _astar.is_point_solid(node)
+
+# The free half of whole cell `cell` nearest `toward` (half-cell units), else its top-left half.
+func _nearest_half(cell: Vector2, toward: Vector2) -> Vector2i:
+	var best := point_to_node(cell)
+	var best_d := INF
+	for h in halves_of_cell(cell):
+		var d: float = absf(h.x - toward.x) + absf(h.y - toward.y)
+		if d < best_d and _walkable_node(Vector2i(h)):
+			best_d = d
+			best = Vector2i(h)
+	return best

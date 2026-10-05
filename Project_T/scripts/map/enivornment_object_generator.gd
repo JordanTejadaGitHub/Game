@@ -302,18 +302,36 @@ func wear_away(cell: Vector2i) -> void:
 const DETAIL_SHARE := 0.3
 
 # Sprinkles grass details (decoration only) on cells not in `skip_cells`. Call after generate_obstacles().
-func generate_details(rng: RandomNumberGenerator, skip_cells: PackedVector2Array) -> void:
+# Details follow the ground patches (`patch_kinds`: cell -> GroundPatches kind): ferns in fern beds (and a few
+# more of them), pebbles on worn earth, fewer on deep moss. The rng draws are the same either way, so the
+# rest of the map is untouched. ground_details.png: column % 4 = mushrooms, ferns, pebbles, leaf litter.
+func generate_details(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, patch_kinds: Dictionary = {}) -> void:
 	var noise: FastNoiseLite = noise_texture.noise
+	var details := tile_set.get_source(EnvironmentTiles.GROUND_DETAILS) as TileSetAtlasSource
+	var columns := details.get_atlas_grid_size().x
 	for x in MAP_GRID.size.x:
 		for y in MAP_GRID.size.y:
 			var cell := Vector2(x, y)
 			if skip_cells.has(cell):
 				continue
 			var value := noise.get_noise_2d(x, y)
+			var kind: int = patch_kinds.get(cell, -1)
+			var column := -1
 			if value > _tree_level and value <= _detail_level and rng.randf() < DETAIL_SHARE:
-				var details := tile_set.get_source(EnvironmentTiles.GROUND_DETAILS) as TileSetAtlasSource
-				set_cell(Vector2i(cell), EnvironmentTiles.GROUND_DETAILS,
-					Vector2i(rng.randi_range(0, details.get_atlas_grid_size().x - 1), 0))
+				column = rng.randi_range(0, columns - 1)
+			if kind == GroundPatches.FERN_BED and column < 0 and EnvironmentTiles.cell_variant(Vector2i(cell), 5, 3) < 2:
+				column = EnvironmentTiles.cell_variant(Vector2i(cell), columns, 5)  # Fern beds: a few more
+			if column < 0:
+				continue
+			match kind:
+				GroundPatches.FERN_BED:
+					column = column / 4 * 4 + 1  # Ferns
+				GroundPatches.WORN_EARTH:
+					column = column / 4 * 4 + 2  # Pebbles
+				GroundPatches.DEEP_MOSS, GroundPatches.GLADE_RING:
+					if EnvironmentTiles.cell_variant(Vector2i(cell), 3, 9) != 0:
+						continue  # Velvety: fewer details
+			set_cell(Vector2i(cell), EnvironmentTiles.GROUND_DETAILS, Vector2i(column, 0))
 
 func _compute_noise_levels(noise: FastNoiseLite, tree_density: float) -> void:
 	var lowest := INF
@@ -359,6 +377,26 @@ func _generate_bridge(startPath: Vector2i) -> void:
 	for i in range(1, BRIDGE_CELLS + 1):
 		set_cell(startPath + out * i, EnvironmentTiles.ROPE_BRIDGE, tile)
 	bridge_end = startPath + out * (BRIDGE_CELLS + 1)
+
+# Shifting Mist (heartwood_gifts.md 0c552b28): the start moves to `new` on the rim. The old start turns back
+# into rim (its bridge goes, the cliffs come back under the bottom row); the new one gets the mist and a bridge.
+func move_start(old: Vector2i, new: Vector2i) -> void:
+	var size := Vector2i(MAP_GRID.size)
+	var out := _outward(old)
+	for i in range(1, BRIDGE_CELLS + 1):
+		var cell := old + out * i
+		erase_cell(cell)
+		if cell.y == size.y and cell.x >= 0 and cell.x < size.x:  # Under the bottom row: its cliff face again
+			set_cell(cell, EnvironmentTiles.CLIFF, Vector2i((1 if cell.x > 0 else 0) | (2 if cell.x < size.x - 1 else 0), EnvironmentTiles.cell_variant(cell, 4)))
+	var variants := (tile_set.get_source(EnvironmentTiles.ISLAND_EDGE) as TileSetAtlasSource).get_atlas_grid_size().y
+	set_cell(old, EnvironmentTiles.ISLAND_EDGE, Vector2i(EnvironmentTiles.rim_mask(old, size), absi(hash(old)) % maxi(variants, 1)))
+	unwalkable_cells.append(Vector2(old))
+	var at := unwalkable_cells.find(Vector2(new))
+	if at >= 0:
+		unwalkable_cells.remove_at(at)
+	_start = new
+	_generate_bridge(new)
+	set_cell(new, EnvironmentTiles.EDGE_MIST, Vector2i.ZERO)
 
 # The direction off the island from an edge cell.
 func _outward(cell: Vector2i) -> Vector2i:

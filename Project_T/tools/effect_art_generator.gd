@@ -40,6 +40,7 @@ func _init() -> void:
 	_final_signatures()
 	_branch_effects()
 	_phase2_effects()
+	_brood_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -54,6 +55,9 @@ func _sheet(name: String, size: Vector2i, frames: int, fps: float, anchor: Vecto
 	for f in frames:
 		var img := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
 		draw.call(img, f)
+		_hard_alpha(img)
+		if name.begins_with("crowned_") or name == "shatter":
+			_relight(img)
 		sheet.blit_rect(img, Rect2i(Vector2i.ZERO, size), Vector2i(f * size.x, 0))
 	_snap32(sheet)
 	sheet.save_png(OUT + name + ".png")
@@ -321,14 +325,15 @@ func _shatter(img: Image, f: int) -> void:
 		for y in range(16, 48):
 			for x in range(16, 48):
 				if Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), pts):
-					img.set_pixel(x, y, ice if x < 32 else ice_mid)
+					img.set_pixel(x, y, ice if (x - 32) + (y - 32) < 0 else ice_mid)  # lit from the upper left
 		for k in 5:
 			_line(img, pts[k], pts[(k + 1) % 5], OUTLINE)
-		var cracks := [[c, c + Vector2(-7, -6)], [c, c + Vector2(6, 8)]]
+		var cracks := [[c, c + Vector2(-7, -6)]]
 		if f == 1:
 			cracks += [[c, c + Vector2(8, -3)], [c, c + Vector2(-5, 9)], [c + Vector2(-7, -6), c + Vector2(-3, -11)]]
 		for cr: Array in cracks:
 			_line(img, cr[0], cr[1], Color.WHITE)
+		_line(img, c, c + Vector2(6, 8), ice_mid.darkened(0.3))  # the crack on the shadow side
 		return
 	var k := f - 2
 	if k <= 1:
@@ -339,8 +344,9 @@ func _shatter(img: Image, f: int) -> void:
 		var p := c + d * (6 + k * 6) + Vector2(0, k * k * 0.8)
 		var tip := p + d * (4 - k * 0.5)
 		var side := d.orthogonal() * 2.0
-		_line(img, p - side, tip, ice)
-		_line(img, p + side, tip, ice_mid)
+		var lit_side := -side if side.x + side.y > 0.0 else side  # the face towards the upper left
+		_line(img, p + lit_side, tip, ice)
+		_line(img, p - lit_side, tip, ice_mid)
 		_line(img, p - side, p + side, OUTLINE)
 	if k >= 3:
 		for i in 6:
@@ -470,7 +476,7 @@ func _chain_ui() -> void:
 		{lite = "dawnburst_lite", note = "x10 chain. Screen-level: draw centred on the reaction, above the map."})
 	_sheet("dawnburst_lite", Vector2i(256, 256), 8, 16, Vector2i(128, 128), false, "screen", _dawnburst.bind(true))
 	_sheet("surge", Vector2i(128, 128), 1, 0, Vector2i(64, 64), false, "overlay", _surge,
-		{note = "x5 chain: stretch over the whole screen and fade alpha 0 -> 0.8 -> 0 over ~0.5 s. Smooth, not pixel art."})
+		{note = "x5 chain: stretch over the whole screen and fade alpha 0 -> 0.8 -> 0 over ~0.5 s. Two hard bands of warm light (AI-look audit: no soft gradients)."})
 	_sheet("light_thread", Vector2i(32, 8), 4, 16, Vector2i(0, 4), true, "segment", _light_thread,
 		{note = "Stretch or tile along x from a Warden to the reaction; starts and ends at y = 4."})
 	_sheet("crit_flare", Vector2i(48, 48), 5, 20, Vector2i(24, 24), false, "hit", _crit_flare)
@@ -544,8 +550,12 @@ func _surge(img: Image, _f: int) -> void:
 	var c := Vector2(64, 64)
 	for y in 128:
 		for x in 128:
-			var q := clampf((Vector2(x + 0.5, y + 0.5).distance_to(c) / 90.0), 0.0, 1.0)
-			var a := smoothstep(0.35, 1.0, q) * 0.85
+			# Two hard bands (AI-look audit: no soft gradients), their inner edges wavy so the steps read
+			# as a drawn frame of light, not banding.
+			var p := Vector2(x + 0.5, y + 0.5) - c
+			var wob := sin(p.angle() * 7.0) * 0.025 + sin(p.angle() * 3.0 + 1.0) * 0.02
+			var q := p.length() / 90.0 + wob
+			var a := 0.75 if q > 0.86 else (0.4 if q > 0.68 else 0.0)
 			img.set_pixel(x, y, Color(1.0, 0.82, 0.45, a))
 
 func _light_thread(img: Image, f: int) -> void:
@@ -836,7 +846,7 @@ func _dreamlight_shard(img: Image, f: int) -> void:
 			var p := Vector2(x + 0.5, y + 0.5)
 			if Geometry2D.is_point_in_polygon(p, pts):
 				img.set_pixel(x, y, CORE if p.x < c.x else (WARM if p.y < c.y else LILAC))
-	for i in 4:
+	for i in [1, 2]:  # outline only the shadow (lower right) edges; the lit ones stay bright
 		_line(img, pts[i], pts[(i + 1) % 4], Color("#6a4a9a"))
 	if f % 4 == 0:
 		_star(img, c + Vector2(4, -4), 1, Color.WHITE, WARM)
@@ -1370,6 +1380,7 @@ func _crowned_crown(img: Image, f: int) -> void:
 					_px(img, x, y + 2, Color("#ff8aa0"))
 				"w":
 					_px(img, x, y + 2, CORE)
+	_light_upper_left(img, CROWN_DEEP, CROWN_GOLD)
 	# A glint running along the band.
 	var gx: int = [3, 6, 9, 12][f]
 	_px(img, gx, 7, Color.WHITE)
@@ -2130,9 +2141,7 @@ func _final_signatures() -> void:
 	_sheet("shatter_chain_burst", Vector2i(48, 48), 7, 16, Vector2i(24, 24), false, "signature", _shatter_chain_burst,
 		{note = "Hoarfrost: an ice burst with shards flying out (smaller than crowned_prismstorm)."})
 	_sheet("beacon_flare", Vector2i(16, 64), 8, 12, Vector2i(8, 60), false, "signature", _beacon_flare,
-		{note = "Beacon: a flare shooting up from the Beacon (anchor = its top) and bursting; then fade beacon_pulse over the map."})
-	_sheet("beacon_pulse", Vector2i(64, 64), 1, 1, Vector2i(32, 32), false, "overlay", _beacon_pulse,
-		{note = "Map-wide light pulse: scale it over the whole map (it's a soft warm radial wash in palette alpha steps), fade in ~0.2 s and out ~1 s, additive or ~40% alpha."})
+		{note = "Beacon: a flare shooting up from the Beacon (anchor = its top) and bursting; the ring of light that follows is drawn in code (BeaconRing)."})
 	_sheet("solstice_fork", Vector2i(32, 32), 6, 16, Vector2i(16, 16), false, "signature", _solstice_fork,
 		{note = "Midsummer: a bright flash where the beam forks (anchor = the fork point; rays drawn pointing right, rotate to the beam)."})
 	_sheet("starlit_snare", Vector2i(32, 32), 6, 12, Vector2i(16, 20), false, "signature", _starlit_snare,
@@ -2166,9 +2175,11 @@ func _logjam_knot(img: Image, f: int) -> void:
 				if front != (pass_i == 1):
 					continue
 				var p := rc + Vector2(cos(a) * 5.5, sin(a) * 2.8 + sin(f * TAU / 6.0 + k) * 0.3)
-				_disc(layer, p, 0.75, ROOT_MID if front else ROOT_DARK)
-				if front and sin(a) > 0.6:
-					layer.set_pixel(floori(p.x), floori(p.y), ROOT_LIGHT)
+				_disc(layer, p, 0.75, ROOT_MID if (front or sin(a) < -0.5) else ROOT_DARK)
+				if not front and sin(a) < -0.6 and cos(a) < 0.3:
+					layer.set_pixel(floori(p.x), floori(p.y), ROOT_LIGHT)  # lit on the upper left
+				elif front and sin(a) > 0.7:
+					layer.set_pixel(floori(p.x), floori(p.y), ROOT_DARK)
 	_outlined(img, layer, ROOT_EDGE)
 	for k in 3:
 		var a := f * TAU / 6.0 + k * TAU / 3.0
@@ -2290,17 +2301,6 @@ func _beacon_flare(img: Image, f: int) -> void:
 		for k in 8:
 			var p := c + Vector2.from_angle(k * TAU / 8.0) * (3.0 + t * 4.0)
 			_px(img, floori(p.x), floori(p.y), Color(CORE if k % 2 == 0 else GOLD, 1.0 - t * 0.6))
-
-func _beacon_pulse(img: Image, _f: int) -> void:
-	# A soft warm wash, brightest in the middle, stepping down in alpha (palette colours only).
-	var c := Vector2(32, 32)
-	for y in 64:
-		for x in 64:
-			var q := Vector2(x + 0.5, y + 0.5).distance_to(c) / 32.0
-			if q < 1.0:
-				var a := snappedf(0.5 * (1.0 - q * q), 0.05)
-				if a > 0.0:
-					img.set_pixel(x, y, Color(WARM if q < 0.4 else GOLD, a))
 
 func _solstice_fork(img: Image, f: int) -> void:
 	# The beam comes in from the left and splits into three bright rays; a sun-flash at the fork.
@@ -2562,8 +2562,11 @@ func _silence_mark(img: Image, f: int) -> void:
 	# A little bell wrapped in moss, a muted sound line crossed through, bobbing.
 	var bob: int = [0, 0, -1, -1, 0, 0, 1, 1][f]
 	var c := Vector2(12, 11 + bob)
-	_ellipse(img, c, Vector2(4.5, 4.0), Color("#b4b0c8"))
+	_ellipse(img, c, Vector2(4.5, 4.0), Color("#8c8cac"))
+	_ellipse(img, c + Vector2(-0.8, -0.8), Vector2(3.4, 3.0), Color("#b4b0c8"))  # lit from the upper left
 	_ellipse(img, c + Vector2(0, -2), Vector2(5.0, 2.2), Color("#5c944c"))  # the moss muffle
+	_ellipse(img, c + Vector2(-1, -3), Vector2(3.0, 1.0), Color("#9cc46c"))
+	_px(img, int(c.x) - 2, int(c.y) - 1, Color("#dce8f4"))
 	_line(img, c + Vector2(-5, 3), c + Vector2(5, 3), Color("#3c3c5c"))
 	for d in [-1, 1]:
 		_line(img, c + Vector2(d * 6, -2), c + Vector2(d * 9, -4), Color("#dce8f4", 0.8))
@@ -3093,8 +3096,143 @@ func _shard_rise(img: Image, f: int) -> void:
 		for xx in range(9, 16):
 			if Geometry2D.is_point_in_polygon(Vector2(xx + 0.5, yy + 0.5), pts):
 				_px(img, xx, yy, Color("#ec9cf4") if xx < 12 else Color("#9a84e8"))
-	_line(img, c + Vector2(0, -5), c + Vector2(0, 5), Color("#fff4dc"))
+	_line(img, c + Vector2(0, -5), c + Vector2(0, 1), Color("#fff4dc"))
+	_px(img, int(c.x) - 1, int(c.y) - 3, Color("#ffffff"))
 	for k in 3:
-		_px(img, 12 + (k % 2) * 2 - 1, int(y) + 9 + k * 4, Color("#ec9cf4", 0.8 - k * 0.25))
+		_px(img, 12 + (k % 2) * 2 - 1, int(y) + 9 + k * 4, Color("#9a84e8", 0.8 - k * 0.25))
 	if f % 3 == 1:
 		_star(img, c + Vector2(0, -8), 2, Color("#ffffff"), Color("#ec9cf4"))
+
+# Hard alpha steps (AI-look audit #8): every partly transparent pixel snaps to one of two steps (or
+# out, or solid), so glows read as stepped pixel art, not a blur.
+func _hard_alpha(img: Image) -> void:
+	for y in img.get_height():
+		for x in img.get_width():
+			var c := img.get_pixel(x, y)
+			if c.a <= 0.0 or c.a >= 1.0:
+				continue
+			c.a = 0.0 if c.a < 0.15 else (0.4 if c.a < 0.55 else (0.75 if c.a < 0.88 else 1.0))
+			img.set_pixel(x, y, c)
+
+# Lights a shape's upper / left outline: outline pixels with open space above or to the left turn
+# `lit` (the crown's gold band catching the light from the upper left).
+func _light_upper_left(img: Image, dark: Color, lit: Color) -> void:
+	var src := img.duplicate() as Image
+	for y in img.get_height():
+		for x in img.get_width():
+			if not src.get_pixel(x, y).is_equal_approx(dark):
+				continue
+			var up := y == 0 or src.get_pixel(x, y - 1).a == 0.0
+			var left := x == 0 or src.get_pixel(x - 1, y).a == 0.0
+			if up or left:
+				img.set_pixel(x, y, lit)
+
+# Relights a sheet from the upper left (AI-look audit #8): solid pixels just inside a lower / right
+# edge darken a step, those just inside an upper / left edge lighten a step (the palette snap puts
+# both back on the ramp). For effects whose shapes had no consistent light side.
+func _relight(img: Image) -> void:
+	var src := img.duplicate() as Image
+	var w := img.get_width()
+	var h := img.get_height()
+	var solid := func(x: int, y: int) -> bool:
+		return x >= 0 and y >= 0 and x < w and y < h and src.get_pixel(x, y).a > 0.5
+	for y in h:
+		for x in w:
+			var c := src.get_pixel(x, y)
+			if c.a < 0.97:
+				continue
+			var ul: bool = not solid.call(x, y - 2) or not solid.call(x - 2, y)
+			var dr: bool = not solid.call(x, y + 2) or not solid.call(x + 2, y)
+			if dr and not ul:
+				img.set_pixel(x, y, c.darkened(0.3))
+			elif ul and not dr:
+				img.set_pixel(x, y, c.lightened(0.2))
+
+# --- Brood Cap (story chat request, 2026-10-04) ---------------------------------------------------
+const SPORE_PINK := Color("#ec9cf4")
+const SPORE_DEEP := Color("#bc44dc")
+const SPORE_PALE := Color("#f7c8fa")
+const SPORE_CREAM := Color("#fff4dc")
+const SPORE_RIM := Color("#fcd47c")
+
+func _brood_effects() -> void:
+	_sheet("brood_hatch", Vector2i(48, 48), 6, 14, Vector2i(24, 32), false, "signature", _brood_hatch,
+		{note = "Brood Cap / Hatchery: where a spore-sprite drops onto the path (anchor = the drop spot), at the attack's release frame. Spores fall in, a pink puff blooms, a ring marks the spot. ~0.43 s."})
+	_sheet("spore_arc", Vector2i(32, 12), 4, 12, Vector2i(0, 6), false, "segment", _spore_arc,
+		{note = "Brood Cap / Hatchery: spores streaming from the attack origin to the drop spot. Stretch along x (y = 6 on the line), Warden -> spot, ~0.35 s."})
+	_sheet("brood_end", Vector2i(24, 16), 1, 1, Vector2i(12, 9), false, "ground", _brood_end,
+		{note = "Brood Cap / Hatchery: static marker where a sprite's walk gives up (a dotted ring round a little cap). Draw at texture size, centred on the anchor, z -1."})
+	_sheet("spore_sprite_burst", Vector2i(48, 48), 6, 16, Vector2i(24, 28), false, "signature", _spore_sprite_burst,
+		{note = "Brood Cap / Hatchery: a spore-sprite bursting on the nightmare it bumped (anchor = the sprite). Sized for the 1.5x sprite; scale x1.5 for Hatchery's big one."})
+
+func _brood_hatch(img: Image, f: int) -> void:
+	var c := Vector2(24, 32)
+	if f < 2:  # spores falling in onto the spot
+		for k in 4:
+			var p := c + Vector2(-6 + k * 4, -18 + f * 8 + (k % 2) * 3)
+			_px(img, int(p.x), int(p.y), SPORE_PINK)
+			_px(img, int(p.x), int(p.y) - 1, SPORE_CREAM)
+	var ring: float = [4.0, 7.0, 11.0, 15.0, 18.0, 20.0][f]
+	_ring(img, c, Vector2(ring, ring * 0.4), 1.2, Color(SPORE_RIM, 1.0 if f < 3 else (0.75 if f < 5 else 0.4)))
+	_ring(img, c, Vector2(ring - 2, (ring - 2) * 0.4), 1.0, Color(SPORE_PINK, 1.0 if f < 4 else 0.4))
+	if f >= 1 and f <= 4:  # the puff
+		var r: float = [0.0, 5.0, 8.0, 10.0, 11.0][f]
+		_spore_puff(img, c + Vector2(0, -2 - f), r, 1.0 if f < 3 else 0.4)
+	if f == 2:
+		_star(img, c + Vector2(6, -10), 2, SPORE_CREAM, SPORE_RIM)
+	if f >= 3:  # motes drifting up
+		for k in 3:
+			_px(img, 14 + k * 9, 22 - (f - 3) * 3 - k % 2 * 2, Color(SPORE_PALE, 1.0 if f < 5 else 0.4))
+
+func _spore_arc(img: Image, f: int) -> void:
+	# Spores streaming along the line, the lead ones brightest; each frame they move on 8 px.
+	for k in 4:
+		var x := (k * 8 + f * 8) % 32
+		var y: int = 6 + [0, -1, 0, 1][(x / 4) % 4]
+		var lead := k == (3 - f) % 4
+		_px(img, x, y, SPORE_CREAM if lead else SPORE_PINK)
+		_px(img, x + 1, y, SPORE_PINK)
+		_px(img, x - 1, y, Color(SPORE_RIM, 0.75))
+		_px(img, x, y - 1, Color(SPORE_DEEP, 0.75))
+
+func _brood_end(img: Image, _f: int) -> void:
+	var c := Vector2(12, 9)
+	for k in 16:  # a dotted ring on the ground
+		if k % 2 == 0:
+			var a := k * TAU / 16.0
+			_px(img, roundi(c.x - 0.5 + cos(a) * 10.5), roundi(c.y + 1.5 + sin(a) * 5.0), SPORE_RIM if k % 4 == 0 else SPORE_PINK)
+	_ellipse(img, c + Vector2(0, 2), Vector2(2.2, 2.6), OUTLINE)  # a little cap on a stalk
+	_ellipse(img, c + Vector2(0, 2), Vector2(1.2, 1.8), SPORE_CREAM)
+	_ellipse(img, c + Vector2(0, -1.5), Vector2(5.5, 3.4), OUTLINE)
+	_ellipse(img, c + Vector2(0, -1.5), Vector2(4.5, 2.4), SPORE_PINK)
+	_ellipse(img, c + Vector2(-1.5, -2.5), Vector2(1.6, 0.9), SPORE_CREAM)
+
+func _spore_sprite_burst(img: Image, f: int) -> void:
+	# The sprite pops: a cream flash, a pink spore puff, bits of cap and a ring of spores flying out.
+	var c := Vector2(24, 28)
+	if f == 0:
+		_ellipse(img, c, Vector2(8, 6), SPORE_PINK)
+		_ellipse(img, c + Vector2(-1, -1), Vector2(5, 3.5), SPORE_CREAM)
+		_star(img, c, 4, SPORE_CREAM, SPORE_RIM)
+		return
+	var r: float = [0.0, 9.0, 13.0, 15.0, 16.0, 16.0][f]
+	var a := 1.0 if f < 3 else (0.75 if f < 4 else 0.4)
+	if f < 5:
+		_spore_puff(img, c, r, a)
+	for k in 6:  # cap bits
+		var d := Vector2.from_angle(k * TAU / 6.0 + 0.4)
+		var p := c + Vector2(d.x, d.y * 0.7) * (r + 3 + f * 1.5)
+		if p.x >= 1 and p.x < 46 and p.y >= 1 and p.y < 46:
+			_px(img, int(p.x), int(p.y), Color(SPORE_PINK, 1.0 if f < 4 else 0.4))
+			_px(img, int(p.x) + 1, int(p.y), Color(SPORE_DEEP, 1.0 if f < 4 else 0.4))
+			_px(img, int(p.x), int(p.y) - 1, Color(SPORE_CREAM, 1.0 if f < 4 else 0.4))
+
+# A spore puff: three round lobes, deep underneath, pink lit from the upper left, a cream glint.
+func _spore_puff(img: Image, c: Vector2, r: float, a: float) -> void:
+	var lobes := [Vector3(-0.45, 0.15, 0.6), Vector3(0.45, 0.2, 0.55), Vector3(0.0, -0.3, 0.68)]
+	for l: Vector3 in lobes:
+		_ellipse(img, c + Vector2(l.x, l.y) * r, Vector2(l.z, l.z * 0.8) * r, Color(SPORE_DEEP, a))
+	for l: Vector3 in lobes:
+		_ellipse(img, c + Vector2(l.x, l.y) * r + Vector2(-0.8, -0.8), Vector2(l.z, l.z * 0.8) * r - Vector2(1.2, 1.2), Color(SPORE_PINK, a))
+	if a >= 1.0:
+		_ellipse(img, c + Vector2(-0.3, -0.55) * r, Vector2(maxf(1.0, r * 0.18), maxf(0.8, r * 0.12)), SPORE_CREAM)

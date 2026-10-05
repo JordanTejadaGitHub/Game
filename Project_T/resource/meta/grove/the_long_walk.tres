@@ -13,5 +13,4 @@ order = 18
 icon = 6
 requires_all = Array[String](["dead_wood"])
 legendary = true
-milestone = "path_300"
 dream_cards = Array[String](["the_long_walk"])

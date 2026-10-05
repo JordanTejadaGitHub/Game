@@ -1,0 +1,15 @@
+{
+	"title": "Trailer 60-70 s: the Memory Grove grows (the finale).",
+	"note": "Trailer chat (the user: 'zoom in when unlocking nodes'). A 'fresh' Grove (capture profile, never the player's): close on Rootling (a first-ring node) as it's planted (the branch grows, the bud opens), then an eased pull-back to the whole tree while it grows to 'full' (Main Merger's focus / fit duration / grove_grow, a884600b + 2069736f).",
+	"scene": "grove",
+	"grove": "fresh",
+	"size": [1920, 1080],
+	"length": 11.0,
+	"captions": [],
+	"timeline": [
+		{"t": 0.0, "camera": "focus", "node": "rootling", "zoom": 2.5, "duration": 0.1},
+		{"t": 0.6, "plant": "rootling"},
+		{"t": 4.0, "camera": "fit", "duration": 2.5},
+		{"t": 4.0, "grove_grow": "full", "duration": 5.5}
+	]
+}

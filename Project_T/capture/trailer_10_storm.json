@@ -1,0 +1,25 @@
+{
+	"title": "Trailer 60-70 s: the storm chain to a Dawnburst.",
+	"note": "Trailer chat (marketing.md section 5, scene 10; also feeds 16-28 s). Board copied exactly from short_02.json at fcde10c4 (Short Form Video tuned it; chaotic: never change a plant/spawn line, count or order). Only size and captions differ, and slow_chain is removed: the trailer runs at real speed (user rule). Re-tuned with short_02 (b0efacf9): 30 Husks, chain x11-13 at ~10.4 s on f2217e2d. Chains only print when slow_chain is set; to check, dry-run a temp copy with {\"at\": 999, \"speed\": 1.0, \"hold\": 0.0}.",
+	"seed": 4242,
+	"size": [1920, 1080],
+	"drift": 60,
+	"dew": 9999,
+	"hud": "none",
+	"dreams": ["dawnbreak"],
+	"length": 24.0,
+	"music": ["base", "dread1", "dread2"],
+	"captions": [],
+	"timeline": [
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.8},
+		{"t": 0.0, "plant_each": 0.05, "count": 16, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 3, "plant": "monsoon", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 2, "plant": "rain_lily", "auto": "cover", "tag": false},
+		{"t": 0.5, "plant_each": 0.1, "count": 3, "plant": "thunderhead", "auto": "cover", "tag": false},
+		{"t": 0.5, "plant_each": 0.1, "count": 2, "plant": "lanternmoth", "auto": "cover", "tag": false},
+		{"t": 0.5, "start": true},
+		{"t": 8.5, "spawn": "bark_beetle", "count": 30, "elite": true, "progress": 0.35, "spread": 0.2},
+		{"t": 4.0, "camera": "push", "at": "centre", "zoom": 1.3, "duration": 4.0},
+		{"t": 8.5, "camera": "follow", "target": "furthest", "zoom": 2.0}
+	]
+}

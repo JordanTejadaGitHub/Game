@@ -489,6 +489,8 @@ func _mist(y0: int, y1: int, value: float) -> void:
 			var a := (m + 0.3) * band
 			if a > 0.42:
 				put(x, y, pick(FOG, value, x, y))
+			elif _part_at(x, y) != 0:
+				continue  # over the Warden only solid wisps: no checker on its body
 			elif a > 0.26 and (x + y) % 2 == 0:
 				put(x, y, pick(FOG, value, x, y))
 			elif a > 0.14 and bayer(x, y) < 0.25:
@@ -556,8 +558,8 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 	var s := stones(x, y, 8.0, 7 if id in [1, 4, 5, 6, 7] else 7 + id)
 	# Round form: brighter toward the moon, darker away; plus stones, cracks and a sky-lit top.
 	# Backlit, it is one great dark mass against the light: detail lives in the upper body and fades below.
-	var v := 0.17 + 0.1 * q.normalized().dot(to_moon) * minf(q.length(), 1.0) + (s.z - 0.5) * 0.08
-	if s.y < 1.0 and variant != "sporeling":  # flesh has no cracks
+	var v := 0.17 + 0.1 * q.normalized().dot(to_moon) * minf(q.length(), 1.0) + (s.z - 0.5) * (0.08 if variant != "stone" else 0.06)
+	if s.y < (1.0 if variant != "stone" else 0.85) and variant != "sporeling":  # flesh has no cracks
 		v -= 0.07 * (1.0 - clampf((y - 160.0) / 100.0, 0.0, 1.0))  # the cracks, softer and lost in the mist lower down
 	if _part_at(x, y - 2) == 0:
 		v += 0.1
@@ -595,27 +597,39 @@ func _titan_pixel(x: int, y: int, id: int) -> Color:
 		return col("glow") if lit > 0.8 else col("gold")
 	if rim == 1 and lit < 0.35:
 		rim = 0  # away from the light the edge stays in shadow
-	var fog := clampf((y - 160.0) / 120.0, 0.0, 1.0) * 0.8 + 0.05  # the mist swallows it from the waist down
+	var fog := clampf((y - 160.0) / 120.0, 0.0, 1.0) * (0.8 if variant != "stone" else 0.55) + 0.05  # the mist swallows it from the waist down
 	if variant == "sporeling":
 		return _flesh_pixel(x, y, id, v, rim, lit, fog)
 	if variant == "rootling":
 		return _bark_pixel(x, y, v, rim, lit, fog)
-	# Moss grows over the tops and down the sides in thick patches.
-	var mossy := noise.get_noise_2d(x * 0.9 + 13.0, y * 0.9) - q.y * 0.25
-	if id == 8:
-		mossy -= 0.2 if absf(q.x) < 0.7 and q.y > -0.45 else -0.2  # keep the face mostly bare
-	if mossy > 0.2:
-		var mv := 0.22 + (s.z - 0.5) * 0.1 + (0.45 if rim == 2 else (0.22 if rim == 1 else 0.0))
-		if grain.get_noise_2d(x * 3.0, y * 3.0) > 0.4:
-			mv += 0.14
-		if band(fog + noise.get_noise_2d(x * 0.8, y * 0.8) * 0.2, x, y, 0.08):
-			return pick(FOG, lerpf(v, 0.52, fog), x, y)
-		return pick(MOSS, mv - 0.08, x, y)
+	# The base: a hard, chipped waterline, dark where the stone meets the swamp, with a broken wet lip.
+	var chip := int(hash01(x / 3, 7) * 3.0)
+	var base_line := WATER_Y - 3 - chip
+	if y >= base_line:
+		return col("void") if y > base_line else (col("night") if (x / 3) % 5 == 0 else col("slate"))
+	# Moss in deliberate clumps: it hangs from the top edges (head, shoulders, arms), deeper where the
+	# Heartwood's light reaches, each clump with a bright lip on top and a dark fringe. The face stays bare.
+	var below_edge := 0
+	while below_edge < 16 and _part_at(x, y - below_edge - 1) == id:
+		below_edge += 1
+	var clump := noise.get_noise_2d(x * 0.35 + 13.0, 7.0)  # one value per column: clumps, not blotches
+	var depth := 2.0 + maxf(0.0, clump + 0.1) * 24.0 + maxf(0.0, lit) * 4.0 + (9.0 if hash01(x, 3) > 0.86 else 0.0)  # a few longer drips
+	if id in [1, 6, 7]:
+		depth += 7.0  # the shoulders and the body's top hold the thickest moss
+	var from_sky := _part_at(x, y - below_edge - 1) == 0 and q.y < -0.25  # only under the true top silhouette
+	var face := id == 8 and absf(q.x) < 0.72 and q.y > -0.5
+	if not face and from_sky and below_edge < 16 and below_edge < depth and y < 250:
+		var c := col("leaf") if below_edge < depth * 0.5 else col("moss")  # lighter near the top, darker down the clump
+		if below_edge <= 1:
+			c = col("sprig") if lit > 0.1 else col("leaf")  # the lip, catching the light
+		elif below_edge >= depth - 2.0:
+			c = col("deepmoss")  # the fringe
+		return c
 	if rim == 2:
 		v = maxf(v, 0.3 + lit * 0.4)
 	elif rim == 1:
 		v = maxf(v, 0.4)
-	return pick(FOG, lerpf(v, 0.5, fog), x, y, 0.1)
+	return pick(FOG, lerpf(v, 0.5, fog), x, y, 0.0)  # hard shading bands, no dither seam
 
 
 ## The Sporeling variant's body: soft fungal flesh (no cracks), fibrous streaks and pale spore
@@ -1037,6 +1051,8 @@ func _motes() -> void:
 	r.seed = 4040
 	for i in 90:
 		var p := Vector2(r.randf_range(160.0, 630.0), r.randf_range(30.0, 330.0))
+		if _near_titan(Vector2i(p)):
+			continue  # no stray dots on the Warden
 		var kind := i % 3
 		var c := col("dewlight") if kind == 0 else (col("blossom") if kind == 1 else col("glow"))
 		if i % 5 == 0:
@@ -1047,6 +1063,8 @@ func _motes() -> void:
 			put(int(p.x), int(p.y) + 3, col("slate"))
 	for i in 14:
 		var p := Vector2i(r.randi_range(170, 630), r.randi_range(30, 280))
+		if _near_titan(p):
+			continue
 		put(p.x, p.y, col("heartlight"))
 		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 			put(p.x + d.x, p.y + d.y, col("mist"))
@@ -1136,6 +1154,17 @@ func _fireflies() -> void:
 	r.seed = 5150
 	for i in 60:
 		var p := Vector2(r.randf_range(60.0, 620.0), r.randf_range(120.0, 340.0))
+		if _near_titan(Vector2i(p)):
+			continue
 		if i % 4 == 0:
 			glow(p, 4.0, col("gold"), 0.4)
 		put(int(p.x), int(p.y), col("glow") if i % 3 else col("heartlight"))
+
+
+## True on or within 2 px of the Warden (the scene's motes and fireflies keep off its body).
+func _near_titan(p: Vector2i) -> bool:
+	for dy in range(-2, 3):
+		for dx in range(-2, 3):
+			if _part_at(p.x + dx, p.y + dy) != 0:
+				return true
+	return false

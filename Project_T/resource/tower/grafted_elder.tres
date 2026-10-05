@@ -7,7 +7,6 @@
 
 [resource]
 script = ExtResource("1_tdata")
-sprite_offset = Vector2(0, -16)
 display_name = "Grafted Elder"
 description = "Copies its strongest neighbor's attack at full strength."
 cost = 0

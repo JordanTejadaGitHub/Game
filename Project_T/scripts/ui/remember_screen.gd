@@ -231,6 +231,7 @@ func offer_line(root: TowerData) -> String:
 		dream_state.branch_offer_size(root), dream_state.regular_branches(root).size()]
 
 const MISTY_TIP := "Each run the dream offers only some of a family's branches, at random. These weren't drawn this time: call one in for Dreamlight (once per family), or find the Remembered Path card. The Heartwood may offer them next run."
+const GROVE_HINT := "One more branch grows in the Memory Grove."
 
 # A strip emblem's tip (user: "hovering emblems gives me repeated explanations of the branch"): this branch's name and
 # what it does, never the strip's general explanation (that's on the header, once).
@@ -249,16 +250,31 @@ func _fill_misty(root: TowerData) -> void:
 		_misty.remove_child(child)
 		child.queue_free()
 	var forms: Array[TowerData] = dream_state.not_offered_branches(root) if root.tier == 1 else ([] as Array[TowerData])
-	_misty.visible = not forms.is_empty()
+	# An unplanted hidden branch isn't a lane in the tree any more (user: "only show 2 branch options unless we unlocked
+	# 3"): one line here says it exists
+	var grove_left := root.tier == 1 and root.evolves_to.any(func(f) -> bool:
+		return f is TowerData and f.tier == 2 and dream_state.get_unlock_blocker(f) == "Memory Grove")
+	_misty.visible = not forms.is_empty() or grove_left
+	var top := HBoxContainer.new()  # The header and the Grove hint share one row (the screen must fit 1280×800)
+	top.add_theme_constant_override("separation", 16)
+	_misty.add_child(top)
+	if not forms.is_empty():
+		var head := Label.new()
+		head.text = "Not in this dream"
+		UiStyle.caps(head, 15)
+		head.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		head.tooltip_text = MISTY_TIP  # Hover or tap: why these aren't in the tree
+		head.mouse_filter = Control.MOUSE_FILTER_PASS
+		top.add_child(head)
+	if grove_left:
+		var grove := Label.new()
+		grove.name = "GroveHint"
+		grove.text = GROVE_HINT
+		grove.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		grove.add_theme_font_size_override("font_size", 14)
+		top.add_child(grove)
 	if forms.is_empty():
 		return
-	var head := Label.new()
-	head.text = "Not in this dream"
-	UiStyle.caps(head, 15)
-	head.add_theme_color_override("font_color", UiStyle.INK_DIM)
-	head.tooltip_text = MISTY_TIP  # Hover or tap: why these aren't in the tree
-	head.mouse_filter = Control.MOUSE_FILTER_PASS
-	_misty.add_child(head)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 18)
 	_misty.add_child(row)
@@ -695,7 +711,7 @@ class TreeCanvas extends Control:
 		for branch in tree[1]:
 			var blocker := screen.dream_state.get_unlock_blocker(branch[0])
 			if blocker == "Memory Grove":
-				hidden.append(branch)
+				continue  # Not planted: no phantom 3rd lane (user: "only show 2 unless we unlocked 3"); the strip hints at it
 			elif blocker == DreamState.NOT_IN_DREAM:
 				misty.append(branch[0])
 			else:
@@ -813,6 +829,8 @@ class FormNode extends Button:
 			badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			add_child(badge)
 		tooltip_text = UNKNOWN_NAME + " · Plant it in the Memory Grove" if state == State.GROVE else data.display_name  # Grove-locked: no name (user), the hint
+		if state != State.GROVE and data.tier == 2 and screen.dream_state.is_hidden_branch(data):
+			tooltip_text = data.display_name + " · from your Memory Grove: in every dream, beside the branches drawn"
 		if state == State.NOT_IN_DREAM:  # Branch expansion: a faint, misty silhouette
 			modulate = Color(1, 1, 1, 0.5)  # multiplier: the mist
 			tooltip_text = data.display_name + " · not in this dream"
@@ -862,6 +880,9 @@ class FormNode extends Button:
 				text = name_shown()  # "???" under it (user: no name until planted), and a Grove leaf badge on the stone
 				colour = UiStyle.INK_DIM
 				_draw_leaf(centre + Vector2(PORTRAIT / 2.0 - 8, -PORTRAIT / 2.0 + 8))
+		if state != State.GROVE and data.tier == 2 and screen.dream_state.is_hidden_branch(data):
+			# A planted hidden branch: the Grove's own lane, outside the 2 drawn (user: it read as one of the chosen)
+			_draw_leaf(centre + Vector2(-PORTRAIT / 2.0 + 8, -PORTRAIT / 2.0 + 8))
 		if text != "":
 			# Counts and motes in the number face; names in the body font, readable (story chat: small caps were tiny)
 			var words := state == State.LOCKED or state == State.GROVE or state == State.NOT_IN_DREAM

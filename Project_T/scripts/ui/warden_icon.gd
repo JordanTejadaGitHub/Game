@@ -20,8 +20,8 @@ static func region(data: TowerData) -> Rect2:
 	var frame := data.get_frame_rect(0)
 	# A tall one-cell Warden (64x96: its top rises over the cell above) shows whole; only wide, multi-cell art (the
 	# Sapling) is cropped (user: "some of the Wardens' top parts being cut off" in the bar, Codex, Remember).
-	if frame.size.x <= SIZE:
-		return frame
+	if frame.size.x <= SIZE or data.footprint <= 1:
+		return frame  # (Bigger one-cell art, art_direction.md bcabe980, is wider than 64 too: still whole)
 	var w := minf(frame.size.x, SIZE)
 	var h := minf(frame.size.y, SIZE)
 	return Rect2(frame.position.x + (frame.size.x - w) / 2.0, frame.position.y + frame.size.y - h, w, h)

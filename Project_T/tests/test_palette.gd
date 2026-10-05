@@ -271,6 +271,33 @@ func _check_detail_pass() -> void:
 	_check(_changed(flat, half) < _changed(flat, busy) and _changed(flat, half) > 0,
 		"texture 0.5 adds less texture than the default (%d < %d px)" % [_changed(flat, half), _changed(flat, busy)])
 
+	# Calm mode (AI-look audit 2026-10-04): far less grain than the default, no isolated pixel the
+	# pass added, a pink body shades within its own ramp, and glow_radius -1 adds no halo.
+	var pink := _blob(rng)
+	for y in 64:
+		for x in 64:
+			var c := pink.get_pixel(x, y)
+			if c.a > 0.5 and c.r8 > 30 and not (c.r8 > 200 and c.g8 > 180):
+				pink.set_pixel(x, y, HeartwoodPalette.color("blossom"))
+	var loud := DetailPass.apply(pink.duplicate(), DetailPass.Kind.WARDEN)
+	var quiet := DetailPass.apply(pink.duplicate(), DetailPass.Kind.WARDEN, 0, 1.0, true)
+	_check(_only_palette(quiet, false), "the calm pass leaves only palette colours")
+	_check(_grain(quiet) < 0.08 and _grain(quiet) < _grain(loud),
+		"calm grain %.3f is under 0.08 and the default's %.3f" % [_grain(quiet), _grain(loud)])
+	var off_ramp := 0
+	for y in 64:
+		for x in 64:
+			var c := quiet.get_pixel(x, y)
+			var was := pink.get_pixel(x, y)
+			if c.a > 0.5 and was == HeartwoodPalette.color("blossom") and not c in HeartwoodPalette.ramp("Blossom"):
+				off_ramp += 1
+	_check(off_ramp == 0, "calm shades a Blossom body within its ramp (%d px left it)" % off_ramp)
+	var lamp := pink.duplicate() as Image
+	lamp.fill_rect(Rect2i(28, 10, 8, 3), Color8(255, 220, 110))
+	var halo := _partial(DetailPass.apply(lamp.duplicate(), DetailPass.Kind.WARDEN, 0, 1.0, true))
+	var none := _partial(DetailPass.apply(lamp.duplicate(), DetailPass.Kind.WARDEN, -1, 1.0, true))
+	_check(halo > 0 and none == 0, "glow_radius -1 adds no glow halo (%d halo px with glow, %d without)" % [halo, none])
+
 	var sheet := Image.create(128, 64, false, Image.FORMAT_RGBA8)
 	var frame := _blob(rng)
 	sheet.blit_rect(frame, Rect2i(0, 0, 64, 64), Vector2i.ZERO)
@@ -348,6 +375,32 @@ func _only_palette(img: Image, cold: bool) -> bool:
 				push_error("off-palette pixel %s at %d,%d" % [c.to_html(), x, y])
 				return false
 	return true
+
+
+func _partial(img: Image) -> int:
+	var n := 0
+	for y in img.get_height():
+		for x in img.get_width():
+			var a := img.get_pixel(x, y).a
+			if a > 0.0 and a < 0.9:
+				n += 1
+	return n
+
+
+# The AI-look audit's grain: share of fully surrounded solid pixels that differ from all 4 neighbours.
+func _grain(img: Image) -> float:
+	var inner := 0
+	var iso := 0
+	for y in range(1, img.get_height() - 1):
+		for x in range(1, img.get_width() - 1):
+			var c := img.get_pixel(x, y)
+			var n := [img.get_pixel(x, y - 1), img.get_pixel(x, y + 1), img.get_pixel(x - 1, y), img.get_pixel(x + 1, y)]
+			if c.a < 0.97 or n.any(func(o: Color) -> bool: return o.a < 0.5):
+				continue
+			inner += 1
+			if not n.has(c):
+				iso += 1
+	return float(iso) / maxi(inner, 1)
 
 
 func _changed(a: Image, b: Image) -> int:

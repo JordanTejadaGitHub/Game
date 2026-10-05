@@ -20,6 +20,9 @@ var next_to: Array = []  # --next-to=puffball,lullaby_bell: the cast is planted 
 var pairs := false  # --pairs: every second copy goes 3-4 cells from the one before it, the line between them over the most route tiles (Jarlink fences)
 var walls := 0  # --walls=N: after each copy, Thornwalls on up to N of its four free sides (Rampart / Bastion count walls touching), bought with real Dew
 var near_goal := false  # --near-goal: the copies take the spots nearest the Heartwood first (Deeproot / Heartroot guard the goal)
+var cand_focus := -1  # --focus=keen|yield|power|…: the candidates' Nurture choice at every rank (the cast stays Power); -1 = Power first
+var _planting_candidate := false
+var sprite_samples := Vector2.ZERO  # Brood sprites alive per candidate while nightmares are on the field: (sum, samples)
 var walls_built := 0
 var wall_dew := 0
 var keep_away: Array = []  # Cells a new pair must stay over 4 cells from (other pairs' jars), so each jar links to its own partner
@@ -65,6 +68,7 @@ func _run() -> void:
 			"--pairs": pairs = true
 			"--walls": walls = int(value)
 			"--near-goal": near_goal = true
+			"--focus": cand_focus = Tower.FOCUS_NAMES.find_key(value.capitalize()) if Tower.FOCUS_NAMES.find_key(value.capitalize()) != null else -2
 			"--director": director_overrides[arg.get_slice("=", 1)] = arg.get_slice("=", 2)
 	ProjectSettings.set_setting("game/demo", false)  # The full game (as the user plays it)
 	main = load("res://scenes/main.tscn").instantiate()
@@ -90,8 +94,13 @@ func _run() -> void:
 	run_state.dew = 10000000
 	run_state.invulnerable = true
 	var rest: Array = cast.duplicate()
+	if cand_focus == -2:
+		printerr("--focus: no such choice")
+		quit(1)
+		return
 	for i in COPIES:
 		var tower: Tower = null
+		_planting_candidate = true
 		if pairs and i % 2 == 0:
 			keep_away = candidates.map(func(t) -> Vector2: return t.cell)  # A new pair: away from the jars already planted
 			tower = _plant(placer, form_id)
@@ -113,6 +122,7 @@ func _run() -> void:
 			printerr("could not plant %s" % form_id)
 			quit(1)
 			return
+		_planting_candidate = false
 		candidates.append(tower)
 		if walls > 0:
 			_add_walls(placer, tower)
@@ -156,6 +166,10 @@ func _run() -> void:
 		await process_frame
 		frames += 1
 		game_time += SPEED / 60.0
+		if frames % 15 == 0 and not spawner.get_enemies().is_empty():
+			for c in candidates:
+				if is_instance_valid(c):
+					sprite_samples += Vector2(BranchKit.BroodSprite.alive_for(c), 1)
 		if frames % 15 == 0:  # Bosses: first seen, and the health they reach the Heartwood with (a lingering one too)
 			for e in spawner.get_enemies():
 				if is_instance_valid(e) and e.enemy_data.is_boss:
@@ -250,6 +264,8 @@ func _plant(placer: TowerPlacer, id: String, next_to: Array = [], beside: Tower 
 	for step in chain.slice(1):
 		placer.evolve(tower, step)
 	for r in rank:
+		if _planting_candidate and cand_focus >= 0 and placer.nurture(tower, cand_focus):
+			continue
 		if not placer.nurture(tower, Tower.Focus.POWER):
 			for focus in [Tower.Focus.STRONG, Tower.Focus.WIDE, Tower.Focus.SWIFT]:
 				if placer.nurture(tower, focus):
@@ -327,7 +343,7 @@ func _report(director: DriftDirector) -> void:
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
 		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "pairs": pairs, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "board_damage": roundi(total),
 		"bosses": ";".join(boss_fights.values().map(func(b) -> String: return "%s:%d:%s:%.0f:%d" % [b.kind, b.health, "1" if b.dispelled else "0", (b.end - b.spawn) if b.dispelled else -1.0, b.hp_arrive])),
-		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001), "hit_target_hp": roundi(hit_target_hp.x / maxf(hit_target_hp.y, 1.0)), "base_damage": snappedf(candidates[0].get_damage(), 0.1), "walls": snappedf(float(walls_built) / COPIES, 0.01), "wall_dew": wall_dew, "near_goal": near_goal}
+		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001), "hit_target_hp": roundi(hit_target_hp.x / maxf(hit_target_hp.y, 1.0)), "base_damage": snappedf(candidates[0].get_damage(), 0.1), "walls": snappedf(float(walls_built) / COPIES, 0.01), "wall_dew": wall_dew, "near_goal": near_goal, "focus": Tower.FOCUS_NAMES.get(cand_focus, "power-first"), "focus_ranks": candidates[0].choice_count(cand_focus) if cand_focus >= 0 else -1, "sprites_alive": snappedf(sprite_samples.x / maxf(sprite_samples.y, 1.0), 0.01)}
 	print("FINALS %s" % JSON.stringify(row))
 	if out_path != "":
 		var exists := FileAccess.file_exists(out_path)

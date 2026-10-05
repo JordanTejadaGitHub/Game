@@ -38,16 +38,26 @@ N("sprout_bed", "perks", "Sprout Bed", 546, 450, "morning_stores");
 N("deep_taproot", "perks", "Deep Taproot", 344, 358, [362, 424], { lv: 3 });
 N("first_care", "perks", "First Care", 334, 288, "deep_taproot");
 N("clear_sight", "perks", "Clear Sight", 324, 218, "first_care");
-N("second_thoughts", "perks", "Second Thoughts", 206, 246, [224, 306], { lv: 2 });
+N("second_thoughts", "perks", "Second Thoughts", 206, 246, [224, 306], { lv: 3 });
 N("let_go", "perks", "Let Go", 196, 180, "second_thoughts");
 N("omen_reader", "perks", "Omen Reader", 188, 118, "let_go");
 N("wider_dreams", "perks", "Wider Dreams", 244, 90, "omen_reader");
 N("wider_roots", "perks", "Wider Roots", 140, 80, "omen_reader");  // Branch expansion: a wider family this run
+N("heartwoods_crown", "perks", "The Heartwood's Crown", 520, 330, [480, 500]);  // The secret 6th slot: hidden until every other node is grown
 N("early_bloom", "perks", "Early Bloom", 250, 372, "second_thoughts");
 N("early_light", "perks", "Early Light", 232, 436, "early_bloom");
 N("kindling", "perks", "Kindling", 214, 500, "early_light");
 N("slot_4", "perks", "Loadout slot 4", 400, 520, [410, 466]);  // Slots 1–3 are open from the start
 N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
+// Keepsakes twig (meta_design.md b8fd690c): cosmetics at the foot of the Perks limb, no gameplay effect.
+// Off until their UnlockData exist (test_meta checks layout = data); Meta Game Code flips it with the .tres files.
+const KEEPSAKES = true;
+if (KEEPSAKES) {
+N("golden_leaf", "perks", "Golden Leaf", 534, 540, [533, 568], { twig: true });
+N("blossoms", "perks", "Blossoms", 548, 492, "golden_leaf", { twig: true });
+N("gilded_pages", "perks", "Gilded Pages", 500, 520, "golden_leaf", { twig: true });
+N("starlit_backs", "perks", "Starlit Card Backs", 536, 446, "blossoms", { twig: true });
+}
 // Families: a short branch of three per family (family, hidden branch, Ascension),
 // alternating sides up the middle limb.
 [["sporeling", "Sporeling", true], ["firefly_jar", "Firefly Jar", true], ["dewdrop", "Dewdrop", true], ["pebbling", "Pebbling"],
@@ -499,7 +509,10 @@ const CROWN = (() => {
   for (let gy = 0; gy < H * .78; gy += sp * .8) for (let gx = 0; gx < W; gx += sp) {
     const x = gx + (hash(gx * 7, gy * 3, seed + 1) - .5) * sp * .9 + (Math.round(gy / (sp * .8)) % 2) * sp / 2, y = gy + (hash(gx * 5, gy * 11, seed + 2) - .5) * sp * .7;
     const m = macro(x, y); if (m < -.5) continue;
-    clusters.push([x, y, (12 + hash(gx, gy, seed + 3) * 7) / s, m, Math.hypot((x * s - 640) / 620, (y * s - 380) / 330) + hash(gx * 3, gy * 5, 840) * .08]);
+    // Sizes vary a lot (a few big clumps, many small ones), so no two read as the same stamp.
+    const big = hash(gx * 13, gy * 7, seed + 9);
+    const r = (big > .9 ? 26 + hash(gx, gy, seed + 3) * 14 : big > .6 ? 16 + hash(gx, gy, seed + 3) * 9 : 8 + hash(gx, gy, seed + 3) * 9) / s;
+    clusters.push([x, y, r, m, Math.hypot((x * s - 640) / 620, (y * s - 380) / 330) + hash(gx * 3, gy * 5, 840) * .08]);
   }
   clusters.sort((a, b) => b[1] - a[1]);
   const ranks = clusters.map(c => c[4]).sort((a, b) => a - b);
@@ -514,17 +527,24 @@ function crownDrip(cx, cy, len, w, k) {
 function groveCanopy(stage) {
   const { W, H, clusters, cut } = CROWN, s = CROWN_PX, P = CROWN_P, seed = CROWN_SEED;
   const L = new Img(W, H), TIER = new Int8Array(W * H).fill(-1), shown = clusters.filter(c => c[4] <= cut[stage]);
+  // Each cluster gets its own outline (lobe count, depth, stretch, tilt) and not every one is drawn
+  // as a separate clump: flat ones melt into the band they sit in, so the crown reads as a few big
+  // masses with hard band edges rather than one clump repeated. Shadow is solid Deepmoss with a
+  // near-black rim, never a checker.
   shown.forEach(([cx, cy, r, m], k) => {
-    const base = clamp(1 + Math.floor(m * 5), 1, 5);
-    for (let y = Math.floor(cy - r); y <= cy + r; y++) for (let x = Math.floor(cx - r * 1.2); x <= cx + r * 1.2; x++) {
+    const base = clamp(1 + Math.floor(m * 5), 1, 5), h = i => hash(k, i, seed + 40);
+    const lobesN = 3 + Math.floor(h(1) * 5), deep = .06 + h(2) * .24, stretch = 1 + h(3) * .5, tilt = (h(4) - .5) * .8, ph = h(5) * 6.28;
+    const flat = h(6) < .42, tipped = !flat && h(7) < .7;
+    const cs = Math.cos(tilt), sn = Math.sin(tilt), R = r * stretch * 1.1;
+    for (let y = Math.floor(cy - R); y <= cy + R; y++) for (let x = Math.floor(cx - R); x <= cx + R; x++) {
       if (x < 0 || y < 0 || x >= W || y >= H) continue;
-      const dx = (x + .5 - cx) / (r * 1.15), dy = (y + .5 - cy) / r, a = Math.atan2(dy, dx);
-      const q = Math.hypot(dx, dy) / (1 + .16 * Math.sin(a * 3 + k) + .1 * Math.sin(a * 5 + k * 1.3)); if (q > 1) continue;
+      const ux = x + .5 - cx, uy = y + .5 - cy, dx = (ux * cs + uy * sn) / (r * stretch), dy = (uy * cs - ux * sn) / r, a = Math.atan2(dy, dx);
+      const q = Math.hypot(dx, dy) / (1 + deep * Math.sin(a * lobesN + ph) + deep * .5 * Math.sin(a * (lobesN + 2) + ph * 1.7)); if (q > 1) continue;
       let t = base;
-      if (dy > .3 && q > .72) t = base - 2;                                   // dark rim under the cluster
-      else if (dy > .05 && q > .55) t = base - 1;
-      else if (dx < .15 && dy < -.02 && q < .72 && base >= 2) t = base + 1;   // lit tip
-      TIER[y * W + x] = clamp(t, 1, 6);
+      if (!flat && uy / r > .3 && q > .74) t = base - 2;                                      // dark rim under the cluster
+      else if (!flat && uy / r > .1 && q > .6) t = base - 1;
+      else if (tipped && ux / r < .15 && uy / r < -.02 && q < .7 && base >= 2) t = base + 1;   // lit tip
+      TIER[y * W + x] = clamp(t, 0, 6);
     }
   });
   // The dark belly along the crown's underside, and a few rounded drips hanging from it.
@@ -533,10 +553,10 @@ function groveCanopy(stage) {
     const bottom = bottomAt(x); if (bottom < 0) continue;
     for (let y = bottom - Math.floor(16 / s); y <= bottom; y++) if (y > 0 && TIER[y * W + x] >= 0) TIER[y * W + x] = y > bottom - 7 / s ? 2 : Math.min(TIER[y * W + x], 3);  // a dark green belly, not black
   }
-  for (let X = 4; X < W; X += Math.round(30 / s)) {
+  for (let X = 4, j = 0; X < W; X += Math.round((10 + hash(j, 9, seed + 5) ** 2 * 70) / s), j++) {  // uneven spacing: some close together, long gaps
     if (hash(X, 0, seed + 5) > .55) continue;
     const bottom = bottomAt(X); if (bottom < 60 / s) continue;
-    const w = (5 + hash(X, 1, seed + 5) * 6) / s, len = (8 + hash(X, 2, seed + 5) ** 2 * 44) / s;
+    const w = (3 + hash(X, 1, seed + 5) ** 1.5 * 10) / s, len = (6 + hash(X, 2, seed + 5) ** 2.5 * 64) / s;
     crownDrip(X, bottom - w * .5, len, w, X).forEach(([bx, by, rx, ry]) => {
       for (let y = Math.floor(by - ry); y <= by + ry; y++) for (let x = Math.floor(bx - rx); x <= bx + rx; x++)
         if (x >= 0 && y >= 0 && x < W && y < H && ((x + .5 - bx) / rx) ** 2 + ((y + .5 - by) / ry) ** 2 <= 1) TIER[y * W + x] = 2;
@@ -544,9 +564,10 @@ function groveCanopy(stage) {
   }
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = TIER[y * W + x]; if (t < 0) continue;
-    // The deepest shade is a checker of near-black and Deepmoss, so it reads as leafy shadow (dark
-    // green from afar), never as the sky showing through.
-    L.set(x, y, t === 1 ? ((x + y) % 2 ? P[0] : P[2]) : (t >= 5 && y * s < 300 && hash(x, y, seed + 6) < .08 ? HW.Leaf : P[t]));  // bright Leaf only on the crown's topmost clusters
+    // The deepest shade is only the thin rims under clusters (solid near-black), so the shadow reads
+    // as leafy shapes, never as the sky showing through.
+    // Deep shade: near-black with irregular dark-leaf shapes in it (noise blobs, not a screen).
+    L.set(x, y, t === 1 ? (pnoise(x, y, 22, seed + 7) > .52 ? P[0] : P[2]) : t === 6 && y * s < 300 ? HW.Leaf : P[t]);  // bright Leaf only on the lit tips of the topmost clusters
   }
   const small = new Img(W, H); small.stamp(L, P[0]);
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
@@ -554,35 +575,45 @@ function groveCanopy(stage) {
   // Scale up 2× into the tree's space.
   const out = new Img(GW, GH);
   for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const X = x / s | 0, Y = y / s | 0; if (small.alpha(X, Y)) out.set(x, y, small.get(X, Y)); }
-  // The same cool veil over the crown, faint at the top, a little thicker at its underside.
+  // The same cool veil over the crown, thicker at its underside: whole patches step one tone cooler
+  // (hard-edged, in 2 px art pixels), not a halftone screen.
+  const key = hex => C(hex).slice(0, 3).join(), COOLER = new Map([[key(HW.Moss), HW.Pool], [key(HW.Pool), HW.Deepmoss], [key(HW.Leaf), HW.Moss]]);
   for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
     if (!out.alpha(x, y)) continue;
-    const d = clamp((y - 150) / 500, 0, 1) * (.5 + pnoise(x, y, 60, 102) * .6);
-    if (bay(x, y) < d * .22) out.set(x, y, d > .55 ? HW.Pool : HW.Dusk);
+    const X = x >> 1 << 1, Y = y >> 1 << 1, d = clamp((Y - 220) / 460, 0, 1) * (.35 + pnoise(X, Y, 70, 102) * .9);
+    if (d > .5) { const c = COOLER.get(out.get(x, y).slice(0, 3).join()); if (c) out.set(x, y, c); }
   }
-  // Violet dream mist drifting across the crown itself, over the leaves (the shape stays the same for
-  // the node layout, which reads this layer).
-  for (const [cy, h, seed, dens] of [[360, 46, 122, .16], [490, 44, 123, .3]]) for (let y = cy - h * 2; y < cy + h * 2; y++) for (let x = 0; x < GW; x++) {
+  // Violet dream mist drifting across the crown itself: a few hard-edged wisps (the shape stays the
+  // same for the node layout, which reads this layer).
+  for (const [cy, h, seed] of [[360, 46, 122], [490, 44, 123]]) for (let y = cy - h * 2; y < cy + h * 2; y++) for (let x = 0; x < GW; x++) {
     if (y < 0 || !out.alpha(x, y)) continue;
-    const wob = (pnoise(x, 0, 90, seed + 2) - .5) * h * 1.2, yy = y - wob;
-    const band = clamp(1 - Math.abs(yy - cy) / h, 0, 1) ** 1.5, n = pnoise(x * .6, yy, 34, seed) * .75 + pnoise(x, yy, 12, seed + 1) * .25;
-    const d = band * clamp((n - .36) * 2.6, 0, 1);
-    if (d > 0 && bay(x, y) < d * dens) out.set(x, y, d > .8 ? HW.Shade : HW.Dusk);  // muted: mostly dusk, violet only at the cores
+    const X = x >> 1 << 1, Y = y >> 1 << 1, wob = (pnoise(X, 0, 90, seed + 2) - .5) * h * 1.2, yy = Y - wob;
+    const band = clamp(1 - Math.abs(yy - cy) / h, 0, 1) ** 1.5, n = pnoise(X * .5, yy, 30, seed) * .8 + pnoise(X, yy, 12, seed + 1) * .2;
+    const d = band * clamp((n - .4) * 2.6, 0, 1);
+    if (d > .74) out.set(x, y, HW.Dusk);  // muted: mostly dusk, violet only at the cores
   }
   // A wisp of mist drifting in front of the crown's underside and the top of the trunk, continuing
   // across the open fog (this layer is drawn over the limbs and trunk).
   for (let y = 560; y < 640; y++) for (let x = 0; x < GW; x++) {
     if (!out.alpha(x, y)) continue;  // only over the leaves: the open-air part is in grove_tree.png (the layout reads this layer's shape)
-    const band = Math.sin(Math.PI * (y - 560) / 80) ** 2, n = pnoise(x * .35, y, 26, 113) * .8 + pnoise(x, y, 9, 114) * .2;
+    const X = x >> 1 << 1, Y = y >> 1 << 1, band = Math.sin(Math.PI * (Y - 560) / 80) ** 2, n = pnoise(X * .35, Y, 26, 113) * .8 + pnoise(X, Y, 9, 114) * .2;
     const d = band * clamp((n - .32) * 2.4, 0, 1);
-    if (d > 0 && bay(x, y) < d * .25) out.set(x, y, d > .8 ? HW.Shade : HW.Dusk);
+    if (d > .6) out.set(x, y, d > .85 ? HW.Shade : HW.Dusk);
   }
-  // Long swamp-moss drapes hanging from the crown.
-  for (let k = 0; k < 140; k++) {
+  // Swamp-moss drapes hanging from the crown: in uneven clumps (dense in places, none in others),
+  // each with its own length, thickness and curl, some forking near the tip.
+  for (let k = 0; k < 170; k++) {
     const x = 70 + hash(k, 1, 99) * 1140 | 0; let y = 600; while (y > 60 && !out.alpha(x, y)) y--;
-    if (y < 150 || hash(k, 2, 99) < .3) continue;
-    const len = 20 + hash(k, 3, 99) ** 1.5 * 90;
-    for (let i = 0; i < len; i++) { const xx = x + Math.round(Math.sin(i * .12 + k) * 2); out.set(xx, y + i, i > len * .75 ? HW.Deepmoss : i % 4 ? HW.Moss : HW.Deepmoss); if (i % 6 === 3) out.set(xx + (k % 2 ? 1 : -1), y + i, HW.Leaf); }
+    if (y < 150 || hash(k, 2, 99) < .25 || pnoise(x, 0, 130, 98) < .42) continue;
+    const len = 8 + hash(k, 3, 99) ** 2.2 * 120, amp = hash(k, 4, 99) * 4, freq = .04 + hash(k, 5, 99) * .2, ph = hash(k, 6, 99) * 6.28;
+    const thick = hash(k, 7, 99) < .3, fork = len > 50 && hash(k, 8, 99) < .4 ? len * (.55 + hash(k, 9, 99) * .25) : -1, lean = (hash(k, 10, 99) - .5) * .25;
+    let fx = 0;
+    for (let i = 0; i < len; i++) {
+      const xx = x + Math.round(Math.sin(i * freq + ph) * amp * (i / len + .3) + i * lean), col = i > len * .78 ? HW.Deepmoss : (i + k) % 5 ? HW.Moss : HW.Deepmoss;
+      out.set(xx, y + i, col); if (thick && i < len * .6) out.set(xx + 1, y + i, HW.Deepmoss);
+      if (hash(k, i, 97) < .12) out.set(xx + (hash(k, i, 96) < .5 ? 1 : -1), y + i, HW.Leaf);
+      if (fork > 0 && i > fork) { fx += .35 + lean; out.set(xx + Math.round(fx), y + i, HW.Deepmoss); }
+    }
   }
   // Dream motes floating in and round the crown: tiny gold and pale-violet crosses (opaque, 1 px arms),
   // small enough never to read as nodes; more of them the fuller the tree.
@@ -655,9 +686,11 @@ function limbsInCrown(img) {
     }
   }
 }
+const TWIG_MAX_X = 556;  // the Keepsakes twig stays on the Perks side of the trunk
 function spreadNodes(mask) {
   CROWN_MASK = mask;
   const list = NODES;
+  list.forEach(n => { n.x0 = n.x; n.y0 = n.y; });  // the seeded spot (which side of its limb a node belongs on)
   // A line's first node grows from the nearest point on its own limb (inside the leaves), so its
   // branch is short; every other node grows from its parent.
   const limbPts = {};
@@ -685,7 +718,8 @@ function spreadNodes(mask) {
     list.forEach((n, i) => {
       if (!sc[i]) return;
       let mx = (sx[i] / sc[i] - n.x) * .6, my = (sy[i] / sc[i] - n.y) * .6;
-      const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * (n.parent ? (n.section === "cards" ? 2.4 : 1.6) : (n.section === "cards" ? 1.1 : .75))) { mx *= .2; my *= .2; }
+      const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * (n.twig ? .9 : n.parent ? (n.section === "cards" ? 2.4 : 1.6) : (n.section === "cards" ? 1.1 : .75))) { mx *= .2; my *= .2; }
+      if (n.twig && n.x + mx > TWIG_MAX_X) mx = Math.min(mx, 0);
       mx = clamp(mx, -8, 8); my = clamp(my, -8, 8);
       if (inMask(n.x + mx, n.y + my, 26)) { n.x += mx; n.y += my; }
     });
@@ -700,11 +734,11 @@ function spreadNodes(mask) {
     }
     list.forEach((n, i) => {
       const p = anchor(n), dx = p.x - n.x, dy = p.y - n.y, d = Math.hypot(dx, dy);
-      const lim = R * (n.parent ? 1.3 : .6);  // a line's first node stays close to its limb
+      const lim = R * (n.twig ? .8 : n.parent ? 1.3 : .6);  // a line's first node stays close to its limb
       if (d > lim) { mv[i][0] += dx / d * (d - lim) * .25; mv[i][1] += dy / d * (d - lim) * .25; }
     });
     list.forEach((n, i) => {
-      const mx = clamp(mv[i][0], -4, 4), my = clamp(mv[i][1], -4, 4);
+      const mx = clamp(mv[i][0], -4, n.twig && n.x > TWIG_MAX_X - 4 ? 0 : 4), my = clamp(mv[i][1], -4, 4);
       if (inMask(n.x + mx, n.y + my, 26)) { n.x += mx; n.y += my; } else if (inMask(n.x + mx, n.y, 26)) n.x += mx; else if (inMask(n.x, n.y + my, 26)) n.y += my;
     });
   }
@@ -743,7 +777,7 @@ function spreadNodes(mask) {
     let improved = false;
     for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
       const a = list[i], b = list[j];
-      if (a.section !== b.section) continue;
+      if (a.section !== b.section || !!a.twig !== !!b.twig) continue;
       const touched = [...new Set([i, j, ...kids[i], ...kids[j]])], score = () => touched.reduce((s, k) => s + branchCost(k), 0);
       const before = score();
       [a.x, b.x] = [b.x, a.x]; [a.y, b.y] = [b.y, a.y]; touched.forEach(refresh);
@@ -752,7 +786,27 @@ function spreadNodes(mask) {
     }
     if (!improved) break;
   }
-  for (const n of list) if (n.from) n.from = nearestLimb(n).map(Math.round);
+  // A line's first node must sit off its limb, never on the limb's own line (a zero-length branch
+  // has no sheet): if it ended up closer than MIN_FIRST to its limb point, it steps out sideways,
+  // across the limb to the side it was seeded on, to the first spot inside the leaves.
+  const MIN_FIRST = 24;
+  for (const n of list) {
+    if (!n.from) continue;
+    let f = nearestLimb(n);
+    if (Math.hypot(n.x - f[0], n.y - f[1]) < MIN_FIRST) {
+      const pts = limbPts[n.section], i = pts.indexOf(f), a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      const tl = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      let px = -(b[1] - a[1]) / tl, py = (b[0] - a[0]) / tl;
+      if ((n.x0 - f[0]) * px + (n.y0 - f[1]) * py < 0) { px = -px; py = -py; }
+      const clear = (x, y) => inMask(x, y, 20) && list.every(o => o === n || Math.hypot(o.x - x, o.y - y) > 28);
+      search: for (const side of [1, -1]) for (let d = MIN_FIRST; d < MIN_FIRST * 4; d += 2) for (const slide of [0, 8, -8, 16, -16]) {  // its own side first; slide along the limb to find room
+        const x = f[0] + px * side * d + py * slide, y = f[1] + py * side * d - px * slide;
+        if (clear(x, y)) { n.x = Math.round(x); n.y = Math.round(y); break search; }
+      }
+      f = nearestLimb(n);
+    }
+    n.from = f.map(Math.round);
+  }
 }
 // The lowest leafy pixel in a column (where dream-fruit hang from).
 function maskBottom(x) { let y = 780; while (y > 0 && !CROWN_MASK.alpha(x, y)) y--; return y; }
@@ -829,12 +883,19 @@ function drawTwig(L, g, ox, oy, seed) {
     for (let i = 1; i < 5; i++) L.set(x - ox + s * i, y - oy - i, "#3a2616");
   }
 }
+// stroke() hands its shader the signed distance across the stroke, which flips with the stroke's
+// direction (a branch growing left would be lit from below). This turns it into "faces the lower
+// right", so every branch is lit from the upper left whichever way it grows.
+function litStroke(L, x0, y0, x1, y1, w0, w1, fn) {
+  const len = Math.hypot(x1 - x0, y1 - y0) || 1, px = -(y1 - y0) / len, py = (x1 - x0) / len, k = (px * .6 + py * .8) * 1.25;
+  stroke(L, x0, y0, x1, y1, w0, w1, (x, y, nx) => fn(x, y, nx * k));
+}
 function drawLiving(L, g, ox, oy, upto, seed) {
   const steps = Math.ceil(g.len * 2 * upto), fn = barkBig(seed);
   let last = g.a;
   for (let i = 1; i <= steps; i++) {
     const t = i / Math.ceil(g.len * 2), [x, y] = along(g, t), w = g.w0 + (g.w1 - g.w0) * t;
-    stroke(L, last[0] - ox, last[1] - oy, x - ox, y - oy, w, w, fn); last = [x, y];
+    litStroke(L, last[0] - ox, last[1] - oy, x - ox, y - oy, w, w, fn); last = [x, y];
   }
   return last;
 }
@@ -846,8 +907,8 @@ function sideTwigs(L, g, ox, oy, upto, seed) {
     const [x, y] = along(g, t), [x2, y2] = along(g, Math.min(1, t + .02));
     const ang = Math.atan2(y2 - y, x2 - x) + (hash(J.sd, 50 + k, 80) < .5 ? -1 : 1) * (.6 + hash(J.sd, 60 + k, 80) * .6);
     const len = 7 + hash(J.sd, 70 + k, 80) * 11, ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len - len * .25;
-    stroke(L, x - ox, y - oy, ex - ox, ey - oy, Math.max(2, g.w0 * .5), 1.4, fn);
-    L.set(ex - ox, ey - oy - 1, LEAFG[3]); L.set(ex - ox + 1, ey - oy - 1, LEAFG[4]); L.set(ex - ox - 1, ey - oy, LEAFG[2]);
+    litStroke(L, x - ox, y - oy, ex - ox, ey - oy, Math.max(2, g.w0 * .5), 1.4, fn);
+    L.set(ex - ox, ey - oy - 1, LEAFG[3]); L.set(ex - ox - 1, ey - oy - 1, LEAFG[4]); L.set(ex - ox + 1, ey - oy, LEAFG[2]);  // brightest leaf on the upper left
   }
 }
 // The living wood of one branch up to `upto`: bark, side twigs, and moss with leaf pairs along it.
@@ -857,7 +918,7 @@ function growWood(L, g, box, upto, seed) {
   for (let k = 1; k < 12; k++) {
     const t = k / 12; if (t > upto) break;
     const [x, y] = along(g, t), s = k % 2 ? -1 : 1, lx = x - box[0], ly = y - box[1] - g.w0 * .4;
-    L.set(lx + s * 2, ly - 2, LEAFG[3]); L.set(lx + s * 3, ly - 2, LEAFG[3]); L.set(lx + s * 3, ly - 3, LEAFG[4]); L.set(lx + s * 2, ly - 1, LEAFG[2]);
+    L.set(lx + s * 2, ly - 2, LEAFG[3]); L.set(lx + s * 3, ly - 2, s < 0 ? LEAFG[4] : LEAFG[2]); L.set(lx + s * 3, ly - 3, s < 0 ? LEAFG[4] : LEAFG[3]); L.set(lx + s * 2, ly - 1, LEAFG[2]);  // lit on the left
   }
   return tip;
 }
@@ -882,9 +943,9 @@ function segment(n) {
       growing.forEach(f => {
         if (fbGrowth(f, upto) < 1) return;
         const [ex, ey] = f.g.b;  // a leaf tuft on the false branch's tip
-        [[0, -1, 3], [1, -2, 4], [-1, -2, 3], [2, -1, 2], [-2, 0, 2], [0, -3, 4], [1, 0, 2]].forEach(([dx, dy, c]) => out.set(ex - box[0] + dx, ey - box[1] + dy, LEAFG[c]));
+        [[0, -1, 3], [1, -2, 3], [-1, -2, 4], [2, -1, 2], [-2, 0, 2], [0, -3, 4], [1, 0, 2]].forEach(([dx, dy, c]) => out.set(ex - box[0] + dx, ey - box[1] + dy, LEAFG[c]));
       });
-      if (upto < 1) { out.set(tip[0] - box[0], tip[1] - box[1], LEAFG[4]); out.set(tip[0] - box[0] + 1, tip[1] - box[1] - 1, "#d8f0a0"); }
+      if (upto < 1) { out.set(tip[0] - box[0], tip[1] - box[1], LEAFG[4]); out.set(tip[0] - box[0] - 1, tip[1] - box[1] - 1, "#d8f0a0"); }
     }
     frames[frames.length] = integrateBranch(out, g, box, seed);
   }

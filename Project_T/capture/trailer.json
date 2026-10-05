@@ -1,0 +1,33 @@
+{
+	"title": "Heartwood TD trailer (marketing.md section 5)",
+	"note": "Trailer chat. Cut list for the cue (2.5 s bars). The user on cut 5: combos then straight to chain lightning; the Grove close on a planting. 0-5 maze, 5-8.33 Shade (hit 7.5; cut one beat after it), 8.33-15 drift walk, 15-25 Thunderclaps (x5 on 20), 25-27.5 arcs, 27.5-35 storm crowd (x10 on the big hit at 30), 35-40 Dream pick, 40-47.5 growth (Ascended as a silhouette), 47.5-50 Night Mare, 50-52.5 Hollow Oak, 52.5-60 the Stag dispelled on the 60 s hit (it resolves into the Grove, no dead stop) (clip 28.1), 60-70 the Grove (a planting close, then the whole tree grows), 70-75 end card.",
+	"format": "trailer",
+	"size": [1920, 1080],
+	"bed": "D:/Projects/Game/marketing/music/trailer_full.wav",
+	"caption_style": "scrim",
+	"end_tagline": "Grow a living maze. Hold back the nightmares.",
+	"cuts": [
+		{"clip": "trailer_01_maze", "from": 2.0, "to": 7.0},
+		{"clip": "trailer_02_shade", "from": 2.4, "to": 5.73},
+		{"clip": "trailer_01_maze", "from": 13.0, "to": 19.67},
+		{"clip": "trailer_04_thunder", "from": 1.0, "to": 11.0},
+		{"clip": "trailer_04_thunder", "from": 13.5, "to": 16.0},
+		{"clip": "trailer_10_storm", "from": 8.2, "to": 15.7},
+		{"clip": "trailer_05_rest", "from": 0.0, "to": 5.0},
+		{"clip": "trailer_06_grow", "from": 0.0, "to": 7.5},
+		{"clip": "trailer_08_nightmare", "from": 1.0, "to": 3.5},
+		{"clip": "trailer_09_oak", "from": 1.0, "to": 3.5},
+		{"clip": "trailer_07_stag", "from": 20.6, "to": 28.1},
+		{"clip": "trailer_11_grove", "from": 0.0, "to": 10.0}
+	],
+	"captions": [
+		[0.5, 4.5, "Build the maze with your Wardens"],
+		[9.0, 14.0, "Make every nightmare take the long way"],
+		[15.5, 19.5, "Discover combos between Wardens"],
+		[25.5, 29.5, "Chain lightning through the whole crowd"],
+		[35.5, 39.5, "Pick a Dream to power your maze"],
+		[40.5, 47.0, "Grow over 100 Wardens"],
+		[52.5, 59.5, "Dispel bosses"],
+		[60.5, 68.5, "and grow the Grove"]
+	]
+}

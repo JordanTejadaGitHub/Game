@@ -380,8 +380,9 @@ func save_heat_map(path: String) -> bool:
 		image.fill_rect(Rect2i(cell * MAP_SCALE + Vector2i(inset, inset), Vector2i.ONE * (MAP_SCALE - 2 * inset)), colour)
 	for cell in map.obstacles:
 		fill.call(Vector2i(cell), Palette.SHADE, 1)
-	for cell in map.get_path_from(map.startPath):
-		fill.call(Vector2i(cell), Palette.DUSK, 0)
+	for point in map.get_path_from(map.startPath):  # Half-step points: x.5 covers two cells
+		for cell in DreamState.route_cells(point):
+			fill.call(Vector2i(cell), Palette.DUSK, 0)
 	var most := 1.0
 	for tower in container.get_children():
 		if tower is Tower:
@@ -489,6 +490,8 @@ func _on_run_ended(won: bool) -> void:
 	run.survived = drift_director.drifts_started
 	run["early_calls"] = drift_director.early_calls  # Drifts called early (balancing)
 	run["dew_call_early"] = drift_director.call_early_dew
+	run["longest_path"] = run_state.longest_path  # Milestone checks (Balancing): the 130-cell path, 120 tends
+	run["tended"] = run_state.obstacles_tended
 	var gifts := HeartwoodGifts.find(self)  # Heartwood's Gifts (Spire): [{id, act, placement}], acts let pass
 	if gifts != null:
 		run["gifts"] = gifts.taken.map(func(t: Dictionary) -> Dictionary: return {"id": t.id, "act": t.act})
@@ -624,6 +627,7 @@ static func report_text(record: Dictionary) -> String:
 	lines.append("Grove: %d nodes · perks %s · Dreamlight +%d / −%d" % [record.get("grove", {}).size(),
 		", ".join(record.get("perks", [])), int(record.get("dreamlight", {}).get("earned", 0)), int(record.get("dreamlight", {}).get("spent", 0))])
 	lines.append("Called early: %d drifts · %d Dew" % [int(record.get("early_calls", 0)), int(record.get("dew_call_early", 0))])
+	lines.append("Longest path: %d cells · obstacles cleared: %d" % [int(record.get("longest_path", 0)), int(record.get("tended", 0))])
 	if not record.get("gifts", []).is_empty() or not record.get("gifts_passed", []).is_empty():
 		lines.append("Gifts: %s%s" % [", ".join(record.get("gifts", []).map(func(g: Dictionary) -> String: return "%s (act %d)" % [g.id, int(g.act)])),
 			" · passed in act %s" % ", ".join(record.get("gifts_passed", []).map(func(a) -> String: return str(int(a)))) if not record.get("gifts_passed", []).is_empty() else ""])

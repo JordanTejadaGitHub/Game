@@ -96,6 +96,13 @@ func _test_economy() -> void:
 		"Call of the Wild: +10% pot only on a drift called early")
 	dreams.take(_card("winding_path"))
 	_check(dreams.get_rest_bonus_add() == 10 + dreams.path_length / 5, "Winding Path: +1 Dew per 5 path tiles (%d tiles, + Morning Dew's 10)" % dreams.path_length)
+	# Half cells: the route steps half a cell, path tiles stay full cells (not the point count)
+	var route_points: PackedVector2Array = main.get_node("MapGenerator").get_path_from(main.get_node("MapGenerator").startPath)
+	_check(dreams.path_length == main.get_node("MapGenerator").route_length(route_points) and dreams.path_length < route_points.size(),
+		"path tiles count full cells on the half-cell route (%d tiles, %d points)" % [dreams.path_length, route_points.size()])
+	var tower_cells := Tower.route_cells(PackedVector2Array([Vector2(3.25, 4.75), Vector2(3.75, 4.25)]))
+	_check(DreamState.route_cells(Vector2(3.25, 4.75))[0] == tower_cells[0] and DreamState.route_cells(Vector2(3.75, 4.25))[0] == tower_cells[1]
+		and DreamState.route_cells(Vector2(3, 4)) == [Vector2(3, 4)], "a half-cell route point lies in one whole cell, as Tower.route_cells (%s)" % [tower_cells])
 	var rerolls := dreams.rerolls_left
 	dreams.take(_card("wandering_mind"))
 	_check(dreams.rerolls_left == rerolls + 2, "Wandering Mind: +2 rerolls")
@@ -186,7 +193,7 @@ func _test_hit_rules() -> void:
 	dreams.take(_card("rain_on_glass"))
 	dreams.unlocked["firefly_jar"] = true
 	dreams.take(_card("rain_on_glass"))
-	_check(dreams.get_spored_tick_multiplier(soaked) == 1.0 and dreams.get_ignite_multiplier() == 1.0, "no Damp Rot / Sparking Spores: ×1")
+	_check(dreams.get_spored_tick_multiplier(soaked) == 1.0 and dreams.get_ignite_multiplier() == 1.0, "no Soaked Rot / Sparking Spores: ×1")
 	var dry := dreams.on_hit_multiplier(jar, soaked)
 	soaked.apply_status(EnemyStatuses.DAMP, 1, 4.0)
 	_check(is_equal_approx(dreams.on_hit_multiplier(jar, soaked) / dry, (1.0 + 0.70) / 1.0) or is_equal_approx(dreams.on_hit_multiplier(jar, soaked) - dry, 0.70),
@@ -195,7 +202,7 @@ func _test_hit_rules() -> void:
 	dreams.take(_card("damp_rot"))
 	dreams.take(_card("sparking_spores"))
 	_check(is_equal_approx(dreams.get_spored_tick_multiplier(soaked), 1.5) and is_equal_approx(dreams.get_ignite_multiplier(), 1.5),
-		"Damp Rot: Poisoned ticks +50% on Soaked; Sparking Spores: Ignite +50%")
+		"Soaked Rot: Poisoned ticks +50% on Soaked; Sparking Spores: Ignite +50%")
 	_free_enemies()
 	_clear()
 
@@ -1019,7 +1026,7 @@ func _test_card_feel() -> void:
 	_clear()
 
 # Combo cards are choices, not musts (dream_design.md 83c40cd7): the exclusive pair, every changed card's trade on
-# its own line, and the trades read in DreamState (Damp Rot, Sparking Spores' condition, Quick Reactions).
+# its own line, and the trades read in DreamState (Soaked Rot, Sparking Spores' condition, Quick Reactions).
 func _test_combo_choices() -> void:
 	dreams.stacks.clear()
 	var feathers := _card("charged_feathers")
@@ -1037,10 +1044,10 @@ func _test_combo_choices() -> void:
 			"charged_feathers", "pollen_beaks", "windborne_rain", "deep_stillness", "endless_night", "eye_of_the_tempest",
 			"falling_stars", "fever_pitch", "mountains_fall", "prism_heart", "ring_of_rings"]:
 		_check(_card(id).cost_description != "", "%s shows its trade on its own line" % id)
-	# Damp Rot: Soaked stops boosting water hits
+	# Soaked Rot: Soaked stops boosting water hits
 	_check(dreams.soaked_boosts_water(), "Soaked boosts water hits")
 	_hold("damp_rot")
-	_check(not dreams.soaked_boosts_water(), "…not with Damp Rot")
+	_check(not dreams.soaked_boosts_water(), "…not with Soaked Rot")
 	dreams.stacks.clear()
 	# Quick Reactions: 35% less
 	_check(is_equal_approx(dreams.get_reaction_damage_multiplier(), 1.0), "Reactions deal full damage")

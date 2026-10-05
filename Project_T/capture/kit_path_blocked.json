@@ -1,0 +1,13 @@
+{
+	"title": "Kit: the path can't be sealed",
+	"note": "Editor kit (story: Wardens are walls, so a placement that would seal the path is refused): a full-height Thornwall wall with one gap; the build ghost hovers in the gap (ember outline, 'would close the dream'), glides beside it and plants; the route bends around the new Warden ('+N path'). Clean HUD, zoom 2.",
+	"seed": 4242, "size": [1920, 1080], "drift": 20, "dew": 340, "obstacles": "edge", "families": ["sporeling"], "hud": "clean", "length": 9.0,
+	"timeline": [
+		{"t": 0.0, "camera": "hold", "at": [8, 10], "zoom": 2.0},
+		{"t": 0.0, "plant_each": 0.0, "plant": "thornwall", "spots": [[16, 2], [16, 4], [16, 6], [16, 8], [16, 10], [16, 12], [16, 14], [16, 16], [16, 18], [16, 22], [16, 24], [16, 26], [16, 28], [16, 30], [16, 32]], "tag": false},
+		{"t": 1.0, "ghost": "thornwall", "at": [16, 20]},
+		{"t": 3.8, "ghost_move": [20, 20], "duration": 0.6},
+		{"t": 5.2, "ghost_place": true},
+		{"t": 7.5, "ghost": false}
+	]
+}

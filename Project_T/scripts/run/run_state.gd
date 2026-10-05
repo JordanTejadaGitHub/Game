@@ -77,7 +77,7 @@ func _ready() -> void:
 	enemy_spawner.enemy_cleansed.connect(_on_enemy_cleansed)
 	enemy_spawner.enemy_reached_goal.connect(_on_enemy_reached_goal)
 	var track_path := func() -> void:
-		longest_path = maxi(longest_path, map_generator.get_path_from(map_generator.startPath).size())
+		longest_path = maxi(longest_path, map_generator.route_length(map_generator.get_path_from(map_generator.startPath)))  # Full cells (half-cell route)
 	map_generator.path_changed.connect(track_path)
 	track_path.call_deferred()  # The map builds its path after RunState is ready
 	map_generator.obstacle_cleared.connect(func(cell: Vector2, _data: ObstacleData) -> void:
@@ -107,6 +107,12 @@ func get_seed_breakdown(drifts_cleared: int, bosses: int, first_run: bool) -> Ar
 		var extra := roundi(total * seed_bonus)
 		lines.append(["Seed bonus +%d%%" % roundi(seed_bonus * 100.0), extra])
 		total += extra
+	# Milestones: a one-time Seed bonus each, after the Seed bonus (it doesn't multiply them; MetaRun, meta_design.md)
+	var meta := get_tree().get_first_node_in_group(MetaRun.GROUP) if is_inside_tree() else null
+	if meta != null:
+		for line in meta.milestone_seed_lines(won):
+			lines.append(line)
+			total += int(line[1])
 	lines.append(["Total", total])
 	return lines
 

@@ -51,7 +51,7 @@ func _run() -> void:
 	path = map_generator.get_path_from(map_generator.startPath)
 	var beside := 0
 	for i in path.size():
-		if path[i].distance_to(tower.cell) == 1.0:
+		if i >= 1 and path[i].distance_to(tower.cell) <= 1.3:  # Beside it (half-cell routes: x.25 / x.75 points)
 			beside = i
 			break
 	var behind = _spawn_at(spawner, leaf_bug, map_generator, path[beside - 1])
@@ -87,10 +87,13 @@ func _wait(seconds: float) -> void:
 
 # A buildable cell next to the path near index `from_index` that keeps the path open.
 func _cell_next_to_path(map_generator, path: PackedVector2Array, from_index: int) -> Vector2:
+	var on_path := {}  # Whole cells the route runs through (half-cell routes: x.25 / x.75 points)
+	for p in path:
+		on_path[(p + Vector2(0.5, 0.5)).floor()] = true
 	for i in range(from_index, path.size()):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-			var cell: Vector2 = path[i] + offset
-			if not path.has(cell) and map_generator.can_block(cell):
+			var cell: Vector2 = (path[i] + Vector2(0.5, 0.5)).floor() + offset
+			if not on_path.has(cell) and map_generator.can_block(cell):
 				return cell
 	return Vector2(-1, -1)
 

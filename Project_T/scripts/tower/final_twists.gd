@@ -154,13 +154,13 @@ static func landslide(tower: Tower, target: Node2D) -> void:
 	state[&"hits"] = int(state.get(&"hits", 0)) + 1
 	if state[&"hits"] % LANDSLIDE_EVERY != 0 or not is_instance_valid(target):
 		return
-	var route: PackedVector2Array = tower._route()
+	var route: PackedVector2Array = Tower.route_cells(tower._route())  # Whole cells (get_current_cell)
 	var at: Vector2 = target.get_current_cell()
 	var index := route.find(at)
 	if index < 0:
 		return
 	var tiles: Array[Vector2] = []
-	for step in range(1, LANDSLIDE_TILES + 1):
+	for step in range(1, LANDSLIDE_TILES + 1):  # 2 whole path tiles
 		if index - step >= 0:
 			tiles.append(route[index - step])  # Toward the start
 	for enemy in tower.get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
@@ -303,11 +303,16 @@ static func next_graft(tower: Tower) -> void:
 
 # --- Starling Murmuration: Dark swirl -----------------------------------------------------------------
 
+# Route points per whole cell (half cells: 2; route points are body centres 0.5 cells apart).
+static func _per_cell(route: PackedVector2Array) -> int:
+	return maxi(roundi(1.0 / maxf(route[1].distance_to(route[0]), 0.01)), 1) if route.size() > 1 else 1
+
 static func _start_swirl(tower: Tower) -> void:
 	var best := Vector2(-1, -1)
 	var best_count := 0
-	var reach := 0.75 * Tower.MAP_GRID.cell_size.x  # Its own tile (not the neighbours')
-	for at in tower._route():
+	var route := tower._route()
+	var reach := 0.75 * Tower.MAP_GRID.cell_size.x / _per_cell(route)  # Its own route step (not the neighbours')
+	for at in route:
 		if not tower._is_cell_in_range(at):
 			continue
 		var centre := Tower.MAP_GRID.calculate_map_position(at)
@@ -351,7 +356,7 @@ static func gale(tower: Tower) -> void:
 		return
 	# The 3 path tiles in range nearest the Heartwood (route order).
 	var tiles: Array[Vector2] = []
-	var route: PackedVector2Array = tower._route()
+	var route: PackedVector2Array = Tower.route_cells(tower._route())  # Whole cells (get_current_cell)
 	for i in range(route.size() - 1, -1, -1):
 		if tower._is_cell_in_range(route[i]):
 			tiles.append(route[i])
@@ -435,20 +440,41 @@ static func _mended_leaf(tower: Tower) -> void:
 	if leaf != null:
 		leaf.create_tween().tween_property(leaf, "global_position", heart, 1.1).set_trans(Tween.TRANS_SINE)
 
-# Beacon: one radial wash over the whole map, in fast (0.2 s) and out slow (1 s).
+# Beacon: a crisp ring of light sweeps out from the Beacon (art_direction.md "Avoiding the AI look": glow only as signal,
+# hard alpha steps, no soft discs). It replaced a whole-map radial wash that Fx's size cap turned into a 600 px blurry
+# disc at the map's centre (Theme, marketing capture stable_test_t10).
 static func _beacon_pulse(tower: Tower) -> void:
 	if Fx.reduce_flashes():
 		return
-	var centre := Vector2(Tower.MAP_GRID.size) * Tower.MAP_GRID.cell_size / 2.0
-	var wash: Node2D = Fx.play(&"beacon_pulse", centre, Reactions._world(tower),
-		maxf(Tower.MAP_GRID.size.x, Tower.MAP_GRID.size.y) * Tower.MAP_GRID.cell_size.x / 64.0, true, 1.2)
-	if wash == null:
+	var world := Reactions._world(tower)
+	if world == null:
 		return
-	wash.z_index = Fx.Z
-	wash.modulate.a = 0.0
-	var tween := wash.create_tween()
-	tween.tween_property(wash, "modulate:a", 1.0, 0.2)
-	tween.tween_property(wash, "modulate:a", 0.0, 1.0)
+	var ring := BeaconRing.new()
+	ring.reach = tower.get_range_pixels()
+	ring.z_index = Fx.Z
+	world.add_child(ring)
+	ring.global_position = tower.global_position
+
+class BeaconRing extends Node2D:
+	const GROW := 0.45  # Seconds to sweep out to its reach…
+	const HOLD := 0.35  # …then it fades in hard steps
+	var reach := 192.0
+	var _age := 0.0
+
+	func _process(delta: float) -> void:
+		_age += delta
+		if _age >= GROW + HOLD:
+			queue_free()
+			return
+		queue_redraw()
+
+	func _draw() -> void:
+		var r := reach * minf(_age / GROW, 1.0)
+		if r < 2.0:
+			return
+		var fade := 1.0 if _age < GROW else ceilf((1.0 - (_age - GROW) / HOLD) * 3.0) / 3.0  # 1, ⅔, ⅓: hard steps
+		draw_arc(Vector2.ZERO, r, 0.0, TAU, 96, Color(Palette.GOLD, 0.9 * fade), 2.0)
+		draw_arc(Vector2.ZERO, maxf(r - 5.0, 1.0), 0.0, TAU, 96, Color(Palette.GLOW, 0.25 * fade), 2.0)  # A faint inner band
 
 # Snugroot: a root knot under the jammed nightmare for the Hold.
 static func _logjam_knot(tower: Tower, enemy: Node2D) -> void:

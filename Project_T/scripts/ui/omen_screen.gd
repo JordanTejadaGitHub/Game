@@ -113,7 +113,7 @@ func _show_offer(_offer: Array[OmenData], block: int) -> void:
 		_was_paused = game_speed.paused
 	game_speed.set_paused(true)
 	_drifts = omens.get_block_range(block)
-	_title.text = "The wind stirs · drifts %d–%d" % [_drifts.x, _drifts.y]
+	_title.text = "The wind's turned · drifts %d–%d" % [_drifts.x, _drifts.y]
 	_clear_cards()
 	visible = true
 	arm.arm()
@@ -144,7 +144,7 @@ func _make_face_down_card() -> Button:
 	ChoiceCard.solid(button)  # Hides the HUD behind it (user screenshot)
 	var box := _card_box(button)
 	UiStyle.title(_add_line(box, "Face an Omen", UiStyle.INK, 22), UiStyle.CARD_NAME_SIZE)
-	_add_flavor(box, "Something stirs out in the dark.")
+	_add_flavor(box, "Something's out there. Waiting to be asked.")
 	var body := _add_line(box, "A twist for the next block. Face it for a reward.", UiStyle.INK, FRONT_BODY_SIZE)
 	box.add_child(_emblem(&"omen", true))  # A moth before the moon (the wind swirl until UI Asset's icon exists)
 	_fit_card(button, box, [body])

@@ -272,6 +272,12 @@ func _build(diagram: String) -> void:
 				_add_prop("bell_stone", cell)
 			elif c == "z":
 				_add_prop("lightning_tree", cell)
+	if bool(_effect.get("kin", false)):  # Kinship bonds between neighbouring Wardens, under them (Old Kin)
+		var kin := Node2D.new()
+		kin.name = "KinBond"
+		kin.z_index = -1  # Over the ground, under the Wardens
+		kin.draw.connect(_draw_kin.bind(kin))
+		_world.add_child(kin)
 	var gift_ground := Node2D.new()  # Bog, roots, ancient stumps and the mushroom ring, over the path tiles
 	gift_ground.z_index = -1
 	gift_ground.draw.connect(_draw_gift_ground.bind(gift_ground))
@@ -352,6 +358,29 @@ func _draw_prop(canvas: Node2D, kind: String, piece: int, line: Array) -> void:
 
 # Bog (B) and roots (r) by neighbour mask over the path, ancient stumps (u), and one mushroom ring over the 3×3 from
 # the k cells' top-left.
+# The Kinship bond ({"kin": true}, Old Kin: "a Kinship grows a stage at once"): a vine between each two neighbouring
+# Wardens' feet; one stage before, a stage brighter and fuller after (the gift scene's After half).
+func _draw_kin(canvas: Node2D) -> void:
+	var stage := 2 if _in_scene and _showing_after else 1
+	var feet: Array[Vector2] = []
+	for warden in _wardens:
+		feet.append(warden.sprite.position + Vector2(0, 18))
+	for i in feet.size():
+		for j in range(i + 1, feet.size()):
+			if feet[i].distance_to(feet[j]) > CELL * 1.5:
+				continue
+			var a := feet[i]
+			var b := feet[j]
+			if stage >= 2:
+				canvas.draw_line(a, b, Color(Palette.GLOW, 0.3), 10.0, true)  # The grown bond glows
+			canvas.draw_line(a, b, Palette.MOSS, 4.0 + 2.0 * (stage - 1), true)
+			canvas.draw_line(a, b, Palette.SPRIG, 2.0 + (stage - 1), true)
+			var leaves := 2 + stage  # More leaves on the grown bond
+			for k in leaves:
+				var at := a.lerp(b, (k + 1.0) / (leaves + 1.0))
+				var side := Vector2(0, -5 if k % 2 == 0 else 5)
+				canvas.draw_circle(at + side, 3.0 + stage, Palette.SPRIG if stage < 2 else Palette.GLOW)
+
 func _draw_gift_ground(canvas: Node2D) -> void:
 	var cell_size := Vector2(CELL, CELL)
 	var ring_top := Vector2i(COLS, ROWS)

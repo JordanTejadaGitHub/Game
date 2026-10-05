@@ -44,7 +44,7 @@ func _run() -> void:
 
 	# --- Economy pass: pricier ranks and growth ---
 	var sprout := _build(placer, map_generator, load("res://resource/tower/sprout.tres"))
-	_check(Tower.RANK_COSTS == [25, 40, 60, 90, 135], "Nurture base costs are 25/40/60/90/135")
+	_check(Tower.RANK_COSTS == [30, 48, 60, 90, 135] and Tower.rank_costs == Tower.RANK_COSTS, "Nurture base costs are 30/48/60/90/135 (Balancing 2026-10-04)")
 	var ascended_tower := _build(placer, map_generator, load("res://resource/tower/sprout.tres"))
 	ascended_tower.evolve(load("res://resource/tower/stormheart.tres"), 0)
 	_check(ascended_tower.get_tier_cost_multiplier() == 4.0, "Ascended Wardens nurture at ×4")

@@ -116,6 +116,8 @@ func _test_blocks_and_rests() -> void:
 		and is_equal_approx(director.get_health_scale(shade_data, 10), director.get_growth(10) * director.get_early_multiplier(10) * director.get_health_multiplier(shade_data, 10))
 		and is_equal_approx(director.get_health_scale(shade_data, 5), director.get_growth(5) * director.get_early_multiplier(5) * director.get_health_multiplier(shade_data, 5)),
 		"a block finale from drift 15 has ×%.1f health; drift 10 (only its elite) and the first block's finale (5) don't" % director.block_finale_health_multiplier)
+	_check(is_equal_approx(director.get_health_scale(shade_data, 15, true), base_15),
+		"a finale's elites keep their own ×3, without the finale's ×%.1f on top (run 16)" % director.block_finale_health_multiplier)
 	var stag_25: EnemyData = load("res://resource/enemy/old_stag.tres")
 	_check(is_equal_approx(director.get_health_scale(stag_25, 25), director.act1_boss_health_multiplier * director.get_health_multiplier(stag_25, 25))
 		and director.get_block_finale_elites(25) == -1, "boss drifts are never finales: the boss keeps its own multiplier")
@@ -404,7 +406,7 @@ func _send_to_goal(enemy: Node2D, map_generator) -> void:
 	enemy.set_path(PackedVector2Array([goal]))
 
 func _free_cell(map_generator) -> Vector2:
-	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var path: PackedVector2Array = Tower.route_cells(map_generator.get_path_from(map_generator.startPath))  # Whole cells (half-cell routes)
 	for i in range(4, path.size()):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 			var cell: Vector2 = path[i] + offset

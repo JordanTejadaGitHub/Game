@@ -12,10 +12,6 @@ const TITLE_SCENE := "res://scenes/title.tscn"
 const GAME_SCENE := "res://scenes/main.tscn"
 const MEMORY_ART := "res://assets/meta/memories/memory_%02d.png"
 const SECTION_NAMES := {"perks": "Perks", "families": "Families", "cards": "Cards"}
-const MILESTONE_TEXT := {
-	"shades_500": "Dispel 500 Shades", "one_line_win": "Win with only one Warden line",
-	"path_300": "Build a 300-tile path",
-}
 const CARD_WIDTH := 320
 
 var tree_view := GroveTreeView.new()
@@ -78,7 +74,7 @@ func _ready() -> void:
 		_go())
 	_refresh()
 	_welcome()
-	_check_full_bloom()
+	_check_crown()
 
 func _build_header() -> void:
 	var header := VBoxContainer.new()
@@ -297,14 +293,14 @@ func _update_card() -> void:
 	match problem:
 		"Grown":
 			_card_status.text = "In bloom" if not selected.start else "Grown from the start"
-		"Grows by itself":
-			_card_status.text = "Grows by itself: %s." % MILESTONE_TEXT.get(selected.milestone, "a milestone")
+		"Grows by itself":  # A Memory Warden bloom (parked): grown by its boss's first dispel
+			_card_status.text = "Grows by itself."
 		"Needs another unlock first":
 			_card_status.text = "Needs " + _needs_text(selected) + "."
 		"Not enough Seeds":
 			_card_status.text = "You need %d more Seeds." % (cost - int(_memory.seeds))
 		_:
-			_card_status.text = ("Or grows by itself: %s." % MILESTONE_TEXT.get(selected.milestone, "a milestone")) if selected.milestone != "" else ""
+			_card_status.text = ""
 	_card_status.visible = _card_status.text != ""
 	_card_status.add_theme_color_override("font_color", Palette.NEWLEAF if problem == "Grown" else Palette.MOONPATH)
 	var carried := HeartwoodMemory.get_loadout(_memory).has(selected.id)
@@ -313,6 +309,10 @@ func _update_card() -> void:
 	_carry.disabled = not carried and HeartwoodMemory.get_loadout(_memory).size() >= HeartwoodMemory.loadout_slots(_memory)
 	if _carry.disabled:
 		_carry.text = "Loadout full"
+	if selected.keepsake != "" and level > 0:  # A keepsake: the same button switches it on or off
+		_carry.visible = true
+		_carry.disabled = false
+		_carry.text = "Hide it" if MetaRun.keepsake_on(selected.keepsake) else "Show it"
 	# Shrink to the content (a card with fewer lines than the last one), still centred on the right.
 	_fit_card.call_deferred()  # After the labels have re-measured
 
@@ -366,25 +366,30 @@ func _plant_selected() -> void:
 		_message.text = "A Memory returns: a dream-fruit ripens on the Heartwood."
 	else:
 		_message.text = ""
-	_check_full_bloom()
+	_check_crown()
 
-# "The Heartwood in full bloom" (meta_design.md): once every node is grown, the milestone is recorded
-# and the secret sixth waystone rises at the roots, once (seen on this visit or the next; the
-# profile remembers it has risen). The developer toggle shows the stone without any of this.
-func _check_full_bloom() -> void:
+# The Heartwood's Crown (meta_design.md "Milestones"): planting it raises the secret sixth waystone at the roots,
+# once (this visit or the next; the profile remembers it has risen). The developer toggle shows the stone without it.
+func _check_crown() -> void:
 	var data := HeartwoodMemory.load_data()
-	var changed := HeartwoodMemory.check_full_bloom(data)
-	if data.milestones.has(HeartwoodMemory.FULL_BLOOM) and not data.get("sixth_stone_risen", false):
+	var crown := HeartwoodMemory.get_unlock(HeartwoodMemory.CROWN)
+	var changed := false
+	if crown != null and HeartwoodMemory.node_level(data, crown) > 0 and not data.get("sixth_stone_risen", false):
 		data.sixth_stone_risen = true
 		changed = true
 		tree_view.play_sixth_rise()
-		_message.text = "The Heartwood is in full bloom. A sixth waystone rises from its roots."
+		_message.text = "The Heartwood wears its crown. A sixth waystone rises from its roots."
 	if changed:
 		HeartwoodMemory.save_data(data)
 		_refresh()
 
 func _toggle_carry() -> void:
 	if selected == null:
+		return
+	if selected.keepsake != "":
+		MetaRun.set_keepsake_shown(selected.keepsake, not MetaRun.keepsake_on(selected.keepsake))
+		_memory = HeartwoodMemory.load_data()
+		_refresh()
 		return
 	var carried := HeartwoodMemory.get_loadout(_memory)
 	if carried.has(selected.id):
@@ -441,12 +446,12 @@ func _on_loadout_closed(start: bool) -> void:
 	if start:
 		_pick_blight()
 
-# First visit with Seeds already waiting (e.g. from the demo): "The forest remembered you."
+# First visit with Seeds already waiting (e.g. from the demo): "Back again. Good." (text_pass.md)
 func _welcome() -> void:
 	if _memory.grove_welcome_shown:
 		return
 	if _memory.seeds > 0:
-		_message.text = "The forest remembered you. Your %d Seeds were waiting." % int(_memory.seeds)
+		_message.text = "Back again. Good. Your %d Seeds were waiting." % int(_memory.seeds)
 	_memory.grove_welcome_shown = true
 	HeartwoodMemory.save_data(_memory)
 

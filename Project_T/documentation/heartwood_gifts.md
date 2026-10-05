@@ -25,7 +25,7 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
 |---|---|
 | **Sow a Ridge** | Draw a ridge of 3–5 Withered Trees, cell by cell (adjacent cells). Clearable later at the normal cost. |
 | **Fallen Giant** | Lay a fallen log 2–4 cells long, straight, where you choose. It can't be cleared this run. |
-| **Glade** | Clear every obstacle within 2 cells of a chosen cell, free; each one still counts as tended (+1 Seed). |
+| **Glade** | Clear **up to 5 obstacles of your choice**, free; each still counts as tended (+1 Seed). Pick them one by one on the gift screen (gold outline + ×, click again to unselect; counter "3 of 5 · −6 path"; the route mist previews live); "Clear them" confirms. (Revised 2026-10-03, user: the radius version "didn't feel right and was unintuitive"; as built 3ab8abee.) |
 | **Shift the Stones** | Move up to 3 obstacles to new empty cells. |
 | **Mire** | Pick 3 connected path cells: the ground turns to bog, and nightmares move 20% slower there. |
 
@@ -50,7 +50,7 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
 | Gift | What it does |
 |---|---|
 | **Old Kin** | One Kinship you choose jumps a stage, and new bonds start one stage up for the next act. |
-| **Deeper Glade** | The Heartwood's glade grows by one ring of clear cells (more room to wall it in), and +1 max leaf. |
+| **Shifting Mist** | The start mist moves. 3 spots on the island's rim are offered (the MapLayout rules: on the rim, far enough from the Heartwood), each previewed with its route mist and path length; pick one, or keep the old start. Nightmares arrive from there for the rest of the run, so your maze faces a new way. Bridge and mist move with it. (Replaces Deeper Glade, 2026-10-04, user: "seems useless".) |
 | **Waking Root** | The next form you unlock on the Remember screen costs 1 less Dreamlight. |
 | **Memory Seed** | Choose a Warden: this act, selling and replanting it keeps its ranks and Kinship age (move it freely at rests). |
 

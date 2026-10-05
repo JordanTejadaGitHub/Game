@@ -50,8 +50,8 @@ A vast moth with a skull-like face on its wings. Health 16,000 × 1.5 = **24,000
   Will-o'-Wisp). Detection Wardens pay off here. **The Queen herself stays visible and targetable**
   during the Eclipse (settled in implementation: hiding the boss would just stall the fight).
 - **Escort:** 12 Lurkers ahead, then the Queen, then 6 Night Hounds.
-- **Dispelled:** her wings burn white, then scatter into a cloud of moths that fade. *"The Moth
-  Queen is gone, and the light comes back."* (Memory Warden, parked: **the Moon Moth**.)
+- **Dispelled:** her wings burn white, then scatter into a cloud of moths that fade. *"Her wings
+  burn white and come apart into a thousand small moths, flying off every way at once."* (Memory Warden, parked: **the Moon Moth**.)
 
 ### The Hollow Oak (drift 100: the run's end)
 
@@ -72,8 +72,8 @@ Dew.
 - **Blight Level 10 ("The Hollow Oak remembers"):** after it's dispelled, it rises once more at half
   health with double sapling speed.
 - **Escort:** 3 Processions, 8 Mourners and 4 Weepers.
-- **Dispelled:** it falls silent; the thorn-saplings crumble; far away, something stirs. *"The
-  Hollow Oak is still. Somewhere beyond the dream, the Hollow remembers."* **The run is won.**
+- **Dispelled:** it falls silent; the thorn-saplings crumble; far away, something sighs. *"It's
+  still. Far off, something sighs."* **The run is won.**
 
 ## Special drifts (new)
 

@@ -320,6 +320,18 @@ func get_attack_origin() -> Vector2:
 # Where the sprite sits so its slab is on the cell: sprite_offset when a .tres sets it (the Sapling), else from the
 # frame height (Tower Assets 2026-10-02: regular art is 64×80, tall 64×96, Ascended 128): the body is the bottom 64
 # rows, so a frame h tall moves up (h − 64) / 2.
+# Global grow-cost multipliers by tier (user via Balancing 2026-10-04: "make growing more expensive, rely on making
+# more Wardens early instead of saving"): branches ×1.5, finals ×1.5, Ascended ×1.0. DreamState's exports set them
+# (branch_ / final_ / ascended_cost_multiplier) so the sims can A/B; 1.0 = the old prices.
+static var grow_cost_multipliers := {2: 1.5, 3: 1.5, 4: 1.0}
+
+# Dew to grow into this form before Dream discounts: evolve_cost × its tier's multiplier. Every price read goes here.
+# The wall line (Thornwall's growths) keeps its price: walls are the maze, and "more maze early" is the point.
+func get_grow_price() -> int:
+	if line == "wall":
+		return evolve_cost
+	return roundi(evolve_cost * float(grow_cost_multipliers.get(tier, 1.0)))
+
 func get_sprite_offset() -> Vector2:
 	if sprite_offset != Vector2.ZERO or texture == null:
 		return sprite_offset
@@ -339,6 +351,12 @@ static func _read_attack_point(key: String):
 	var point = json.wardens[key].get("point")
 	if not (point is Array and point.size() == 2):
 		return false
+	# A bigger canvas (art_direction.md "Bigger Wardens", up to 80×128): the entry's own "frame" [w, h]. Tower Assets
+	# (2c398d71) gives x in the w-wide frame and y from the top of the bottom 64 rows (the cell), so the cell centre is
+	# at (w / 2, 32) in those units; a point above the cell has a negative y.
+	var frame = json.wardens[key].get("frame")
+	if frame is Array and frame.size() == 2:
+		return Vector2(point[0] - frame[0] / 2.0, point[1] - 32.0)
 	var half: float = json.get("frame_size", 64) / 2.0
 	return Vector2(point[0] - half, point[1] - half)
 

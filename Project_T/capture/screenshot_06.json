@@ -1,0 +1,22 @@
+{
+	"title": "Screenshot 6: the Stag",
+	"note": "Steam screenshot 6 (the Stag on a bent corridor), short_03's board at 16:9, clean HUD. Cleared island, 14 Thornwalls (auto maze), 14 Sporelings at rank 5 + 6 Dewdrops at rank 3 (ranks tune damage without moving the auto placements; counts do move them). The Stag walks the whole route from 2.5 s and is dispelled ~4-5 cells from the Heartwood at ~27.5-28 s (main f2217e2d, base Wardens 64) (main 8459d82b). Dewdrops at rank 4 is a knife edge (1-3% hp at the door, then it reaches the tree).",
+	"seed": 4242,
+	"size": [1920, 1080],
+	"drift": 25,
+	"dew": 99999,
+	"obstacles": "edge",
+	"families": ["sporeling", "dewdrop"],
+	"hud": "clean",
+	"length": 32.0,
+	"timeline": [
+		{"t": 0.0, "plant_each": 0.05, "count": 14, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 14, "plant": "sporeling", "auto": "cover", "rank": 5, "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 6, "plant": "dewdrop", "auto": "cover", "rank": 3, "tag": false},
+		{"t": 0.2, "dossier": true, "drift": 25},
+		{"t": 2.3, "dossier": false},
+		{"t": 2.5, "spawn": "old_stag"},
+		{"t": 4.0, "dew": 520},
+		{"t": 2.5, "camera": "follow", "target": "boss", "zoom": 2.0}
+	]
+}

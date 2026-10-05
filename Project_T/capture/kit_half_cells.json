@@ -1,0 +1,9 @@
+{
+	"title": "Kit: half cells",
+	"note": "Editor kit: Thornwalls planted one by one at half-cell offsets into a zigzag wall (maze v4's middle wall), close (zoom 2), '+N path' tags and the route bending live. Clean HUD.",
+	"seed": 4242, "size": [1920, 1080], "drift": 20, "dew": 340, "obstacles": "edge", "families": ["sporeling"], "hud": "clean", "length": 12.0,
+	"timeline": [
+		{"t": 0.0, "camera": "hold", "at": [8, 8], "zoom": 2.0},
+		{"t": 1.0, "plant_each": 1.0, "plant": "thornwall", "spots": [[15, 6], [14, 8], [15, 10], [14, 12], [15, 14], [14, 16], [15, 18], [14, 20], [15, 22]], "tag": true}
+	]
+}

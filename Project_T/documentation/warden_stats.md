@@ -145,6 +145,99 @@ levels you choose an option"*). Replaces the gate below and the fixed per-rank g
 - Watch in the run history: whether a few tall Wardens now beat the maze (the reason the gate
   existed). The act 2–4 health rise makes ranks a needed sink, not a shortcut.
 
+### Nurture choices that fit every Warden (audit 2026-10-03)
+
+User: *"make sure the Nurture makes sense on all Wardens."* A code audit of every form (Phase 1 and 2
+branches included) found that the same four attacker choices were offered to every non-support
+Warden, and many of them did nothing for it:
+- **Deep** did nothing on about 40 forms with no status or effect damage (the whole Pebbling family,
+  the birds, beams, cones, spinners), and on Beacon (its Exposed is already above the cap).
+- **Swift** only sped up the basic attack. Timed abilities (holds, pulls, Mark-all), BranchKit timers
+  (fence ticks, grounding, thorns, rockfall), returning birds and seeds, and patrols ignored it.
+- **Reach** only changed targeting range. Fixed areas (silence, catch, fence length, jet length,
+  cloud and burst radii, the goal guard, the 8 tiles around a spinner) ignored it.
+- Control, setup and economy Wardens (Hushbell, Dreamcatcher, Groundroot, Deeproot, Seedbearer, Nurse
+  Log, Dream Oak) had every choice only touch a 12–35 damage pulse: **five ranks for almost nothing**.
+- Kindred on Elder Stump / Grove Heart only counts once; ranks 2–5 of it were wasted. The catcher
+  choice texts said +1 radius / +10% catch, the code gives +0.2 / +6%.
+
+**The rule now: each choice means "more of this Warden's job".**
+
+| Choice | Means, for every Warden | Examples |
+|---|---|---|
+| **Power** | more of **all** its damage: hits, zones, arcs, thorns, rocks, links | Jarlink arc, Jetreed's max-health share |
+| **Swift** | its **main cycle** runs faster: attacks, timed abilities, ticks, spawns, flights, patrols | Tangleroot's hold every 3 → 2.7 s, Groundroot's grab, birds fly and peck faster |
+| **Reach** | its **main area** is bigger: range, or the area its effect covers | silence radius, catch area, fence length, cone, guard ring, cloud radius |
+| **Deep** | its **effect** is stronger (Potency): statuses, effect damage, holds, pulls, linger | pull distance, grounded time, crack length, copied stacks |
+| **Keen** *(new)* | **+crit chance** per rank (**+10%**, cap 75%; Balancing Discussion 2026-10-03). Replaces Deep for Wardens with no status or effect: the build-around choice for crit (Prism Jar, Pinned, Moonstone, Magpie's Hoard) | Mossback, Whetstone, the birds, Thrum |
+| **Yield** *(new)* | **more of what it makes** (Balancing: +1 sprite / Sprout alive per **2** ranks; Dream Oak +0.5 shard per drift per rank) | Brood Cap sprites, Seedbearer Sprouts, Dream Oak shards |
+| **Wide / Strong / Kindred** | supports, as before (Wide = aura/catch reach, Strong = the aura or catch, Kindred = see the table) | |
+
+- **A Warden only shows the choices that do something for it** (3–4, a few economy Wardens 2). Each
+  shows its real effect on this Warden ("Swift · holds every 3.0 → 2.7 s", "Reach · silence 2.0 →
+  2.3 cells"), as the panel already does for damage.
+- **Choices taken earlier stay** if a Warden grows into a form that doesn't offer them: they keep
+  working where they still apply, and the pip shows them dimmed with "no effect on Silence" when they
+  don't. No refunds (pre-release).
+- **A one-time choice** (Kindred on aura supports) is greyed after the first rank of it: "Already
+  taken: Kindred works once."
+- **Walls stay un-nurtured:** Thornwall, Bramble, Honeysuckle are cheap maze pieces; their growth
+  comes from Dream cards. Rampart is a Warden (a golem in the wall), not a wall, and is nurtured.
+- **Grandmother Oak** (Ascended, AURA) had no ranks at all: it gets the support set.
+
+**Per form** (branch / final share a row when they share choices; "fix" = what changes in code or
+text; Balancing Discussion sets every per-rank number marked *).
+
+| Form(s) | Role | Choices now | Verdict | Fix |
+|---|---|---|---|---|
+| Sprout | striker | Power · Swift · Reach | OK | no Deep (no status) |
+| **Sporeling** family: Sporeling, Driftspore / Puffball, Inkcap / Deliquescent, Lichenling / Old Lichen, Sporemother | afflicter | Power · Swift · Reach · Deep | OK | — |
+| Bloomcap / Dreamshroom | afflicter | Power · Swift · Reach · Deep | Reach only aimed the cloud | Reach also widens the cloud* |
+| Fairy Ring / Elf Circle | afflicter (traps) | Power · Swift · Reach · Deep | Swift stalled at the ring cap | Swift also raises the ring cap (+1 per 2 Swift ranks*) |
+| Brood Cap / Hatchery | afflicter (spawner) | Power · Swift · Deep · **Yield** | Reach did nothing; Swift stalled at 4 sprites | Reach → Yield (+1 sprite alive per rank*) |
+| Dewdrop, Rain Lily / Monsoon, Frostfern / Hoarfrost, Tidecaller | afflicter | Power · Swift · Reach · Deep | OK (Deep = Soaked strength / freeze, to the caps) | text shows "Soaked +20% → +25%" |
+| Mistveil / Morning Fog | afflicter | Power · Swift · Reach · Deep | Reach only aimed | Reach also widens the fog* |
+| Cloudlet / Nimbus | afflicter | Power · Swift · Reach · Deep | Deep only touched Soaked | rain damage becomes effect damage (tag `rain`), so Deep scales it |
+| Undercurrent / Maelstrom | afflicter | Power · Swift · Reach · Deep | Deep did nothing | `linked` damage becomes effect damage: Deep raises the link share (25% × Potency, cap 50%*) |
+| Jetreed / Torrent | striker | Power · Swift · Reach · Keen | Power missed the max-health share; Reach missed the jet; Deep nothing | Power also scales the max-health share; Reach lengthens the jet*; Deep → Keen |
+| Firefly Jar, Stormcap / Thunderhead, Stormheart, Lanternmoth, Chime Stone / Lullaby Bell, Great Bell, Bellflower, Silver Bell / Vesper Bell | afflicter | Power · Swift · Reach · Deep | OK | Stormcap: Reach also lengthens chain jumps* |
+| Beacon | afflicter | Power · Swift · Reach · **Keen** | Deep did nothing (Exposed above the cap); Swift missed Mark-all | Swift also speeds Mark-all; Deep → Keen |
+| Sparkler / Starburst | afflicter | Power · Swift · Reach · Deep | Reach only aimed | Reach also widens the burst* |
+| Jarlink / Lightning Fence | afflicter (fence) | Power · Swift · Reach · Deep | Swift and Reach did nothing | Swift = the arc ticks faster; Reach = longer link range (4 → +0.3 per rank*) |
+| Sunpetal / Midsummer | striker (beam) | Power · Swift · Reach · Keen | Deep nothing | Deep → Keen |
+| Prism Jar / Rainbow Prism | hybrid support | Power · Swift · **Wide · Strong** | its job (the crit aura) took no ranks; Deep nothing | Wide = aura reach; Strong = +crit aura per rank* |
+| Thrum / Resonance | striker (cone) | Power · Swift · Reach · Keen | Deep nothing | Deep → Keen |
+| Hushbell / Silence | control | Reach · Deep · Power | every choice only touched its pulse | Reach = silence radius; Deep = silenced bosses' timers slower (× Potency, cap*) and Silence's linger longer; Swift removed |
+| Dreamcatcher / Great Dreamcatcher | setup | Reach · Deep · Power | Swift / Power only touched a 13–24 shot; Deep nothing | Reach = catch area (works); Deep = Caught statuses keep going 0.5 s per rank* after leaving (Great: also its +25% tick × Potency); Swift removed |
+| Echo Hollow / Whispering Hollow | setup | Reach · Deep · Power | Swift only touched the pulse | Swift removed |
+| Pebbling, Mossback / Boulderback, Standing Stone / Moonstone, Cairn / Rockslide, Whetstone / Edgestone | striker | Power · Swift · Reach · Keen | Deep nothing | Deep → Keen |
+| Old Mountain | striker | Power · Swift · Reach · Deep | OK (Deep = its freeze) | — |
+| Quaker / Earthshaker | striker | Power · Swift · Reach · Deep | Deep nothing | Deep = the reveal and the crack last longer (× Potency) |
+| Rampart / Bastion | striker (spin) | Power · Swift · Keen | Reach and Deep nothing; Swift missed the rockfall | Reach hidden (fixed 8 tiles); Swift also speeds the rockfall; Deep → Keen |
+| Rootling | afflicter | Power · Swift · Reach · Deep | OK (Deep = its hold) | — |
+| Tangleroot / Snugroot | control | Swift · Reach · Deep | Swift missed the hold; Power only the pulse | Swift = the hold cycle; Power removed |
+| Rootcurl / Long Way Home | control | Swift · Reach · Deep | Swift missed the pull; Deep nothing | Swift = the pull cycle; Deep = pull distance × Potency*; Power removed |
+| Groundroot / Earthbind | control | Swift · Reach · Deep | everything only touched the pulse | Swift = the grab cycle; Reach = grab reach; Deep = grounded time (+ Earthbind's landing hold) |
+| Deeproot / Heartroot | control | Reach · Deep · Power | only Deep worked | Reach = the guard ring (3 cells +0.2 per rank*); Power = its pulse; Swift removed |
+| Thorncoil / Crown of Thorns | afflicter | Power · Swift · Reach · Deep | Swift missed the thorns | Swift = the thorn tick |
+| Rootlight / Starcave | control | Power · Swift · Reach · Deep | Deep nothing on Rootlight | Deep = lit tiles stretch holds more (+50% × Potency) |
+| World Root | control | Power · Swift · Reach · Deep | OK | — |
+| Acorn | striker + aura | Power · Swift · Reach · **Strong** | the aura took no ranks; Deep nothing | Deep → Strong (+1% aura per rank*) |
+| Elder Stump / Grove Heart | support | Wide · Strong · Kindred | Kindred ranks 2–5 wasted | Kindred is one-time (greyed after) |
+| Dewcatcher / Wellspring | economy (catcher) | Wide · Strong · Kindred | texts wrong | texts: "+0.2 catch radius", "+6% catch" |
+| Graftling / Grafted Elder | support (copy) | Power · Swift · Reach · Deep | works through the copied Warden | Deep greyed "its copy applies no status" when so |
+| Grandmother Oak | support | Wide · Strong · Kindred | no ranks at all | gets the support set |
+| Seedbearer / Grove Keeper | economy | **Yield** · Swift · Kindred | everything only touched the pulse | Yield = +1 Sprout alive per rank*; Swift = a seed sooner (−0.3 drifts per rank*); Kindred = its Sprouts +6% damage per rank* |
+| Nurse Log / Mother Log | economy | Strong · Wide · Kindred | everything only touched the pulse | Strong = +3% discount per rank*; Wide = +0.2 radius; Kindred = Wardens in range also evolve 2% cheaper per rank* |
+| Dream Oak / Dreamroot | economy | **Yield** · Wide | everything only touched the pulse | Yield = more shards per drift*; Wide = families counted from further (+0.2 per rank) |
+| Nestling, Wren's Nest / Starling Murmuration, Magpie Perch / Magpie's Hoard | striker | Power · Swift · Reach · Keen | Deep nothing | Deep → Keen |
+| Hummingbird Bower / Jewelwing Court | striker | Power · Swift · Reach · Keen | Swift did nothing (waits for birds) | Swift = faster pecks and flight; Deep → Keen |
+| Samara / Autumn Gale | striker | Power · Swift · Reach · Keen | Swift did little (waits for the seed) | Swift = the seed flies faster; Reach = longer throw*; Deep → Keen |
+| Gust / Zephyr | setup | Swift · Reach · Deep | Power and Deep did nothing | Deep = copies carry more stacks (half → +10% per rank*); Swift also speeds Zephyr's gale; Power removed |
+| Pinwheel / Windmill | striker (spin) | Power · Swift · Keen | Reach and Deep nothing | Reach hidden; Deep → Keen |
+| Dawnwing, The Whirlwind | striker (patrol) | Power · Swift · Reach · Keen | Swift did nothing | Swift = faster patrol / strikes; Deep → Keen |
+| Thornwall, Bramble, Honeysuckle | wall | — | — | not nurtured (unchanged) |
+
 **(Replaced by Nurture v3 above.) Ranks III–V need a Nurture Dream** (2026-09-28, user: "the maze aspect is getting lost with a
 few strong Wardens through upgrades… focusing on strong Wardens should only happen when you get the
 cards for them"). Every Warden can be nurtured to **rank II**; **ranks III–V** (and Focus) open once
@@ -313,7 +406,7 @@ Caught bosses give no Dreamlight shards.
 |---|---|---|---|---|---|---|---|
 | ✓ Rootling | base | 25 (+15) | 2 | 6 × 1.0 | 6 (area) | pulse | every **4th** pulse **Holds** the nightmare furthest along for **0.3 s**. *Changed 2026-09-29: half damage (control family), Held instead of a slow* |
 | Rootcurl | branch | +45 | 2 | 14 × 1.0 | 14 (area) | pulse + pull | every **4 s**, pulls the creature furthest along (in range) **back 1 tile** |
-| Long Way Home | final | +90 | 2.5 | 18 × 1.0 | 18 (area) | pulse + pull | every **5 s**, pulls back **3 tiles**; each creature only once (bosses: 1 tile) |
+| Long Way Home | final | +90 | 2.5 | 18 × 1.0 | 18 (area) | pulse + pull | every **5 s**, pulls back **4 tiles** (since the late-game pass 54155266); each creature only once (bosses: 1 tile) |
 | Tangleroot | branch | +45 | 2 | 14 × 1.0 | 14 (area) | pulse + hold | every **3 s**, **Holds** the creature furthest along for 1 s |
 | Snugroot | final | +90 | 2.5 | 20 × 1.0 | 20 (area) | pulse + hold | every 3 s, Holds **up to 3** creatures for 1 s; *Balancing 2026-10-02 (finals sweep, damage per Dew vs Puffball): damage ×0.75 (was 1.3–1.6× in act 2, 2.1–2.4× in act 3).* |
 | ✓ Rootlight *(hidden)* | branch | +45 | 3 | 10 × 1.0 | 10 (area) | pulse + light | lights path tiles in range: **reveals Lurkers**, **Gravecrawlers can't burrow** on lit tiles, **Held lasts 50% longer** on lit tiles (no Marked since 2026-09-29: Marked is Firefly Jar's) |

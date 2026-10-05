@@ -55,6 +55,24 @@ func _run() -> void:
 	heartwood.setup(0, none, 3)
 	_check(heartwood.texture.resource_path.ends_with("heartwood_stage_0.png") and heartwood.get_glint_count() == 0
 		and heartwood.get_fruit_count() == 3, "demo tree: stage 0, no glints, 3 fruit")
+	# The Golden Leaf keepsake: a palette swap on the crown; off means no material.
+	heartwood.set_golden(true)
+	_check(heartwood.material is ShaderMaterial, "golden leaf: the swap is on")
+	heartwood.set_golden(false)
+	_check(heartwood.material == null, "golden leaf off: the tree as drawn")
+	var art: Image = load(EnvironmentTiles.sheet_path("heartwood_stage_3", 1)).get_image()
+	art.decompress()
+	var found := 0
+	for green: Color in Heartwood.GOLDEN_FROM:
+		var hit := false
+		for y in range(0, 70, 2):
+			for x in range(0, 128, 2):
+				var c := art.get_pixel(x, y)
+				if c.a > 0.5 and Vector3(c.r - green.r, c.g - green.g, c.b - green.b).length() < 0.02:
+					hit = true
+		if hit:
+			found += 1
+	_check(found >= 3, "golden leaf: %d of its colours are in the stage-3 crown" % found)
 	heartwood.queue_free()
 	await process_frame
 	print("failures: ", failures)

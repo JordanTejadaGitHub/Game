@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "bellflower_ascension"
 display_name = "Ascension: The Great Bell"
-description = "The Great Bell, {family:bellflower}'s Ascended form, can grow in your runs: from {drift} 51, 3 {dreamlight}, then 400 Dew on a final form. Its toll puts everything to sleep and sets off every {static} charge."
+description = "The Great Bell, {family:bellflower}'s Ascended form, can grow in your runs: from {drift} 51, 3 {dreamlight}, then 600 Dew on a final form. Its toll puts everything to sleep and sets off every {static} charge."
 root = 0
 costs = Array[int]([120])
 order = 35

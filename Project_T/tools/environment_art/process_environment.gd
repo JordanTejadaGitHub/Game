@@ -17,6 +17,7 @@ const KINDS := {
 	"lightning_tree": DetailPass.Kind.OBSTACLE, "moonwell": DetailPass.Kind.OBSTACLE, "bell_stone": DetailPass.Kind.OBSTACLE, "ancient_stump": DetailPass.Kind.OBSTACLE, "blight_patch": DetailPass.Kind.TILE,
 	"border_wall": DetailPass.Kind.TILE, "rope_bridge": DetailPass.Kind.TILE,
 	"fallen_log": DetailPass.Kind.TILE, "log_furrow": DetailPass.Kind.TILE,
+	"path_dual": DetailPass.Kind.TILE, "ground_patch": DetailPass.Kind.TILE, "bog_path_dual": DetailPass.Kind.TILE, "heartwood_roots_dual": DetailPass.Kind.TILE,
 	"withered_tree": DetailPass.Kind.OBSTACLE, "mossy_boulder": DetailPass.Kind.OBSTACLE,
 	"tended_stump": DetailPass.Kind.OBSTACLE, "moved_hollow": DetailPass.Kind.OBSTACLE,
 	"ground_details": DetailPass.Kind.OBSTACLE, "waystone": DetailPass.Kind.OBSTACLE,
@@ -30,8 +31,8 @@ const SNAP_ONLY := ["edge_mist", "void_sky", "void_stars", "cloud_shadows", "mis
 	"route_mist", "route_mist_start", "route_mist_end", "route_wisp", "mushroom_ring"]  # heartwood*: drawn with its own rim and banded glow (matches the Memory Grove)
 # Grain strength (the user's picks, 2026-09-28): no added grain on anything grassy, a light grain on
 # the other ground tiles, full detail on props.
-const NO_GRAIN := ["grass", "island_edge", "dew_pool", "pond", "pond_inner", "heartwood_roots", "blight_patch"]
-const TILE_GRAIN := 0.3
+const NO_GRAIN := ["grass", "island_edge", "dew_pool", "pond", "pond_inner", "heartwood_roots", "blight_patch", "ground_patch"]
+const TILE_GRAIN := 0.0  # was 0.3; the AI-look audit (2026-10-04): grain on ground tiles read as generated
 
 func _init() -> void:
 	var raw := ""
@@ -95,14 +96,16 @@ func _detail(img: Image, sheet: String) -> void:
 	if sheet == "grass":
 		# One image, not per tile: the pass hashes local pixel positions, so per-tile runs would stamp
 		# the same grain on every grass variant.
-		DetailPass.apply(img, kind, 0, texture)
+		DetailPass.apply(img, kind, 0, texture, true)  # calm: the AI-look audit (no grain, no seam dither)
 		return
-	var frame := Vector2i(64, 64)
+	var frame := Vector2i(32, 32) if sheet.ends_with("_dual") else Vector2i(64, 64)  # dual-grid half-cell tiles are 32 px
 	if sheet == "heartwood":
 		frame = Vector2i(128, 128)
 	elif sheet == "withered_tree" or sheet == "lightning_tree":
 		frame = Vector2i(96, 128)  # Big trees: the bottom 64 px rows are the cell, centred
-	DetailPass.apply_sheet(img, frame, kind, 0, texture)
+	# Ground tiles in the pass's calm mode (Theme Code 3426257d; the AI-look audit, 2026-10-04): no random
+	# grain, no seam dither, nothing isolated left behind. Props keep the full pass (they passed the audit).
+	DetailPass.apply_sheet(img, frame, kind, 0, texture, kind == DetailPass.Kind.TILE)
 
 # Mean OKLab lightness of the opaque pixels.
 func _mean_l(img: Image) -> float:

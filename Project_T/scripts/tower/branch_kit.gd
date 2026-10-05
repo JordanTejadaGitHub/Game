@@ -50,6 +50,14 @@ const CELL := 64.0
 static func p(tower: Tower, key: String, fallback: float) -> float:
 	return float(tower.attack_data.special_params.get(key, fallback))
 
+# Yield (Nurture rework): the extra sprites / Sprouts a Warden's Yield ranks buy (one per NurtureChoices.YIELD_PER ranks).
+static func yield_ranks(tower: Tower) -> int:
+	return tower.choice_count(Tower.Focus.YIELD) / NurtureChoices.YIELD_PER
+
+# Jarlink's link range (cells): its own, + Reach ranks.
+static func link_range(tower: Tower) -> float:
+	return p(tower, "link_range", 4.0) + tower.area_bonus()
+
 static func is_final(tower: Tower) -> bool:
 	return tower.attack_data.special_final
 
@@ -75,21 +83,21 @@ static func targetable(near: Node) -> Array:
 static func process(tower: Tower, delta: float) -> bool:
 	match tower.attack_data.special:
 		JARLINK:
-			_update_fence(tower, delta)
+			_update_fence(tower, delta * tower.get_cycle_multiplier())  # Swift: the arc ticks faster
 		HUSH:
 			_update_silence(tower, delta)
 		CLOUD:
 			if is_final(tower):
-				_update_cloud_drift(tower, delta)
+				_update_cloud_drift(tower, delta * tower.get_cycle_multiplier())
 		RAMPART:
 			if is_final(tower):
-				_update_rockfall(tower, delta)
+				_update_rockfall(tower, delta * tower.get_cycle_multiplier())
 		GROUNDROOT:
-			_update_grounding(tower, delta)
+			_update_grounding(tower, delta * tower.get_cycle_multiplier())
 		DEEPROOT:
 			_update_goal_guard(tower, delta)
 		THORNCOIL:
-			_update_thorns(tower, delta)
+			_update_thorns(tower, delta * tower.get_cycle_multiplier())
 	return false
 
 # Whether an attack now would do anything (null = the normal rule).
@@ -168,8 +176,8 @@ static func crit_aura(tower: Tower) -> float:
 	for other in tower.get_tree().get_nodes_in_group(Tower.GROUP):
 		if other == tower or not (other is Tower) or other.attack_data == null or other.attack_data.special != PRISM:
 			continue
-		if Kinships._distance(tower, other) <= p(other, "aura_radius", 1.5):
-			best = maxf(best, p(other, "crit_aura", 0.10))
+		if Kinships._distance(tower, other) <= p(other, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+			best = maxf(best, p(other, "crit_aura", 0.10) + NurtureChoices.STRONG_CRIT_AURA * other.choice_count(Tower.Focus.STRONG))
 	return best
 
 # Prism Jar's aura, crit damage: the strongest Prism within reach adds this to crit damage (Balancing: +25%).
@@ -180,7 +188,7 @@ static func crit_damage_aura(tower: Tower) -> float:
 	for other in tower.get_tree().get_nodes_in_group(Tower.GROUP):
 		if other == tower or not (other is Tower) or other.attack_data == null or other.attack_data.special != PRISM:
 			continue
-		if Kinships._distance(tower, other) <= p(other, "aura_radius", 1.5):
+		if Kinships._distance(tower, other) <= p(other, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
 			best = maxf(best, p(other, "crit_damage_aura", 0.0))
 	return best
 
@@ -212,7 +220,7 @@ static func _rain(tower: Tower) -> void:
 	var at = _densest(tower)
 	if at == null:
 		return
-	var zone := GroundZone.new(tower, &"rain", at, 1.5 * CELL, p(tower, "cloud_time", 4.0), 0.5)
+	var zone := GroundZone.new(tower, &"rain", at, (1.5 + tower.area_bonus()) * CELL, p(tower, "cloud_time", 4.0), 0.5)
 	zone.square = true
 	zone.hits_flyers = true
 	zone.damage_per_second = p(tower, "dps", 12.0)
@@ -247,7 +255,7 @@ static func _whirl(tower: Tower) -> void:
 	var route := tower._route()
 	var best := Vector2(-1, -1)
 	var most := 0
-	var radius := p(tower, "radius", 1.5)
+	var radius := p(tower, "radius", 1.5) + tower.area_bonus()
 	for cell in route:
 		if not tower._is_cell_in_range(cell):
 			continue
@@ -278,7 +286,11 @@ static func share_hit(enemy: Node2D, dealt: float, tower: Tower) -> void:
 	var zone = enemy.get_meta(LINK_META) if enemy.has_meta(LINK_META) else null  # (get_meta with a null default still errors when missing)
 	if not is_instance_valid(zone) or not zone.linked.has(enemy) or zone.link_share <= 0.0:
 		return
-	zone.share(enemy, dealt * zone.link_share, tower.tower_data.line, tower)
+	# Deep on the Undercurrent: its link share × its Potency, up to LINK_SHARE_CAP.
+	var share: float = zone.link_share
+	if is_instance_valid(zone.tower) and zone.tower.attack_data != null and zone.tower.attack_data.special == WHIRLPOOL:
+		share = minf(share * zone.tower.get_potency(), maxf(share, NurtureChoices.LINK_SHARE_CAP))
+	zone.share(enemy, dealt * share, tower.tower_data.line, tower)
 
 # Reactions.strike_bolt: Maelstrom's current carries a Charged bolt to every other linked nightmare at half.
 static func share_bolt(enemy: Node2D, damage: float, source: Node) -> void:
@@ -297,7 +309,7 @@ static func _jet(tower: Tower) -> void:
 		return
 	var from := tower.global_position
 	var dir := (target.global_position - from).normalized()
-	var length := p(tower, "length", 6.0) * CELL
+	var length := (p(tower, "length", 6.0) + tower.area_bonus()) * CELL
 	var share := p(tower, "erosion_boss", 0.005) if target.enemy_data.is_boss else p(tower, "erosion", 0.02)
 	# Capped at erosion_cap × the hit's base damage (Balancing: Torrent reached 7–11× its base at drift 61).
 	var erosion := minf(float(target.max_health) * share, p(tower, "erosion_cap", 4.0) * tower.get_damage())
@@ -401,7 +413,7 @@ static func _arc_cells(a: Vector2, b: Vector2) -> Dictionary:
 const FENCE_BOND := &"fence_bond"
 
 static func _fence_partner(tower: Tower) -> Tower:
-	var reach := p(tower, "link_range", 4.0)
+	var reach := link_range(tower)
 	var held = tower.get_meta(FENCE_BOND) if tower.has_meta(FENCE_BOND) else null
 	if _bond_holds(tower, held, reach):
 		return held
@@ -423,7 +435,7 @@ static func _bonded_elsewhere(jar: Tower, except: Node) -> bool:
 	if not jar.has_meta(FENCE_BOND):
 		return false
 	var other = jar.get_meta(FENCE_BOND)
-	return other != except and _bond_holds(jar, other, p(jar, "link_range", 4.0))
+	return other != except and _bond_holds(jar, other, link_range(jar))
 
 # The Jarlink a jar on `cell` would link to: the nearest unbonded one within `reach` whose arc would cover at least one
 # cell (side by side jars make no arc: Balancing, a second pair planted beside the first cross-linked into nothing).
@@ -474,7 +486,7 @@ static func _burst_sparks(tower: Tower) -> void:
 
 # `sparks` sparks of `each` damage on nightmares within the burst radius of `at`, each adding Charged.
 static func _spark_burst_at(tower: Tower, at: Vector2, sparks: int, each: float, may_rebound: bool) -> void:
-	var radius := p(tower, "burst_radius", 1.5) * CELL
+	var radius := (p(tower, "burst_radius", 1.5) + tower.area_bonus()) * CELL
 	var near := targetable(tower).filter(func(e) -> bool: return e.global_position.distance_to(at) <= radius)
 	Fx.play(&"spark_burst" if not may_rebound else &"firework_burst", at, world(tower))  # A full burst, or the small spark of a fence crossing
 	if near.is_empty():
@@ -526,8 +538,8 @@ static func _update_silence(tower: Tower, delta: float) -> void:
 		tower.set_meta(&"hush_tick", left)
 		return
 	tower.set_meta(&"hush_tick", SILENCE_TICK)
-	var reach := p(tower, "radius", 2.0) * CELL
-	var hold := SILENCE_TICK * 1.5 + (p(tower, "linger", 2.0) if is_final(tower) else 0.0)
+	var reach := (p(tower, "radius", 2.0) + tower.area_bonus()) * CELL
+	var hold := SILENCE_TICK * 1.5 + (p(tower, "linger", 2.0) * tower.get_potency() if is_final(tower) else 0.0)
 	for e in field(tower):
 		if e.global_position.distance_to(tower.global_position) <= reach:
 			silence(e, hold, tower)
@@ -537,6 +549,11 @@ static func _update_silence(tower: Tower, delta: float) -> void:
 static func silence(enemy: Node2D, seconds: float, by: Tower) -> void:
 	var was: bool = enemy.statuses.silence_time > 0.0
 	enemy.statuses.silence_time = maxf(enemy.statuses.silence_time, seconds)
+	# Deep on a Hushbell: a silenced boss's timers run slower (Enemy.BOSS_SILENCE_SPEED ÷ Potency, floor 0.35).
+	# Enemy reads the meta when it's set (the slowest silencer wins while the silence lasts).
+	if is_instance_valid(by) and enemy.enemy_data.is_boss:
+		var slow := maxf(0.5 / maxf(by.get_potency(), 1.0), NurtureChoices.BOSS_SILENCE_FLOOR)
+		enemy.set_meta(&"silence_boss_speed", minf(slow, float(enemy.get_meta(&"silence_boss_speed", 0.5)) if enemy.has_meta(&"silence_boss_speed") else slow))
 	# The Procession's Lantern Bearer (tower_design.md 9fcb8cdf): silenced, its lantern goes dark and its Wraiths
 	# are lost, as if it had been dispelled first; they find the way again when the silence ends (SilenceWatch).
 	if is_instance_valid(by):
@@ -633,6 +650,12 @@ static func walls_touching(tower: Tower) -> Array:
 
 # Tower._compute_damage: +15% per wall touching a Rampart (up to 4).
 static func damage_multiplier(tower: Tower) -> float:
+	if tower.has_meta(&"seeded_by"):
+		# Kindred on a Seedbearer: its Sprouts deal 6% more damage per rank.
+		var seedbearer = instance_from_id(int(tower.get_meta(&"seeded_by")))
+		if seedbearer is Tower and is_instance_valid(seedbearer):
+			return 1.0 + NurtureChoices.SEED_KINDRED * seedbearer.choice_count(Tower.Focus.KINDRED)
+		return 1.0
 	if tower.attack_data.special != RAMPART:
 		return 1.0
 	return 1.0 + p(tower, "per_wall", 0.15) * mini(walls_touching(tower).size(), int(p(tower, "max_walls", 4)))
@@ -680,7 +703,7 @@ static func _update_rockfall(tower: Tower, delta: float) -> void:
 	if left > 0.0:
 		tower.set_meta(&"rock_left", left)
 		return
-	var route := tower._route()
+	var route := Tower.route_cells(tower._route())  # Whole cells (beside the walls)
 	var dropped := false
 	for wall in walls_touching(tower):
 		var best := Vector2(-1, -1)
@@ -724,17 +747,17 @@ static func _quake(tower: Tower) -> void:
 	for e in field(tower):
 		if e.has_method("is_hidden") and e.is_hidden() and e.has_method("reveal_for") \
 				and e.global_position.distance_to(tower.global_position) <= shake:
-			e.reveal_for(p(tower, "reveal_time", 3.0))
+			e.reveal_for(p(tower, "reveal_time", 3.0) * tower.get_potency())
 	if is_final(tower):
 		var reach := tower.get_range_pixels()
-		for cell in tower._route():
+		for cell in Tower.route_cells(tower._route()):  # Whole cells: a crack is a path tile
 			if Tower.MAP_GRID.calculate_map_position(cell).distance_to(tower.global_position) <= reach:
-				crack(tower, cell, p(tower, "crack_time", CRACK_TIME))
+				crack(tower, cell, p(tower, "crack_time", CRACK_TIME) * tower.get_potency())
 	var fault := tower.kin_share(FAULT_LINE, "b")
 	var rampart := tower._kin_partner()
 	if fault <= 0.0 or not is_instance_valid(rampart):
 		return
-	var route := tower._route()
+	var route := Tower.route_cells(tower._route())  # Whole cells (beside the walls)
 	var struck := {}
 	for wall in walls_touching(rampart):
 		for side in SIDES:
@@ -765,7 +788,7 @@ static func _update_grounding(tower: Tower, delta: float) -> void:
 	if left > 0.0:
 		tower.set_meta(&"ground_left", left)
 		return
-	var reach := p(tower, "ground_reach", 3.5) * CELL
+	var reach := (p(tower, "ground_reach", 3.5) + tower.area_bonus()) * CELL
 	var flyers := targetable(tower).filter(func(e) -> bool:
 		return e.is_flying() and not e.enemy_data.is_boss and e.global_position.distance_to(tower.global_position) <= reach)
 	if flyers.is_empty():
@@ -779,7 +802,7 @@ static func _update_grounding(tower: Tower, delta: float) -> void:
 static func ground(tower: Tower, e: Node2D) -> void:
 	if not e.has_method("ground"):
 		return  # Enemy's side not in yet
-	e.ground(p(tower, "ground_time", 3.0))
+	e.ground(minf(p(tower, "ground_time", 3.0) * tower.get_potency(), NurtureChoices.GROUND_CAP))  # Deep: longer, up to 5 s
 	_fx(&"flyer_grab", e.global_position, world(tower))
 	if is_final(tower):
 		_land_hold(tower, e, p(tower, "land_hold", 0.5))  # Earthbind: Rooted when it lands
@@ -806,7 +829,7 @@ static func _update_goal_guard(tower: Tower, delta: float) -> void:
 	var heart := _heartwood_at(tower)
 	if heart == Vector2.INF:
 		return
-	var reach := p(tower, "goal_reach", 3.0) * CELL
+	var reach := (p(tower, "goal_reach", 3.0) + tower.area_bonus(NurtureChoices.REACH_GUARD)) * CELL
 	for e in targetable(tower):
 		if not e.has_meta(&"deeproot_held") and e.global_position.distance_to(heart) <= reach:
 			e.set_meta(&"deeproot_held", true)  # Once each, whichever Deeproot got there first
@@ -909,9 +932,9 @@ static func nurture_multiplier(tower: Tower) -> float:
 	var best := 0.0
 	for other in logs(tower):
 		if other.attack_data != null and other.attack_data.special == NURSE_LOG \
-				and Kinships._distance(tower, other) <= p(other, "nurse_radius", 1.5):
-			best = maxf(best, p(other, "nurture_discount", 0.25))
-	return 1.0 - best
+				and Kinships._distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+			best = maxf(best, p(other, "nurture_discount", 0.25) + NurtureChoices.NURSE_STRONG * other.choice_count(Tower.Focus.STRONG))
+	return 1.0 - minf(best, NurtureChoices.NURSE_CAP)
 
 # Nursery (b): Wardens beside the Nurse Log also grow 10% cheaper. Tower.get_grow_cost (the base part).
 static func grow_multiplier(tower: Tower) -> float:
@@ -920,6 +943,10 @@ static func grow_multiplier(tower: Tower) -> float:
 		if other.attack_data != null and other.attack_data.special == NURSE_LOG \
 				and absf(other.cell.x - tower.cell.x) <= 1 and absf(other.cell.y - tower.cell.y) <= 1:
 			best = maxf(best, 0.10 * other.kin_share(NURSERY, "b"))
+	# Kindred on a Nurse Log: Wardens in its reach grow 2% cheaper per rank.
+	for other in logs(tower):
+		if Kinships._distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+			best = maxf(best, NurtureChoices.NURSE_KINDRED * other.choice_count(Tower.Focus.KINDRED))
 	return 1.0 - best
 
 # Mother Log's Remembered rings: a Warden sold in its reach leaves its rank for the next one planted on that cell.
@@ -928,7 +955,7 @@ static func remember_rank(sold: Tower) -> void:
 		return
 	for other in logs(sold):
 		if other.attack_data != null and other.attack_data.special == NURSE_LOG and is_final(other) \
-				and Kinships._distance(sold, other) <= p(other, "nurse_radius", 1.5):
+				and Kinships._distance(sold, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
 			var rings: Dictionary = other.get_meta(&"rings", {})
 			rings[sold.cell] = [sold.rank, Array(sold.rank_choices)]
 			other.set_meta(&"rings", rings)
@@ -957,15 +984,22 @@ static func _grant_ranks(tower: Tower, ranks: int, choices: Array = []) -> void:
 static func on_drift_cleared(tower: Tower) -> void:
 	match tower.attack_data.special:
 		SEEDBEARER:
-			var drifts := int(tower.get_meta(&"seed_drifts", 0)) + 1
-			if drifts >= int(p(tower, "seed_every", 3.0)):
-				drifts = 0
-				if seeds_alive(tower) + int(tower.get_meta(&"seeds_ready", 0)) < int(p(tower, "seed_max", 3.0)):
+			var drifts := float(tower.get_meta(&"seed_drifts", 0.0)) + 1.0
+			# Swift: a seed sooner (−0.3 drifts per rank, never under 1 drift); fractions carry to the next seed.
+			var every := maxf(p(tower, "seed_every", 3.0) - NurtureChoices.SEED_SWIFT * tower.choice_count(Tower.Focus.SWIFT),
+				NurtureChoices.SEED_MIN)
+			if drifts >= every:
+				drifts -= every
+				if seeds_alive(tower) + int(tower.get_meta(&"seeds_ready", 0)) < int(p(tower, "seed_max", 3.0)) + yield_ranks(tower) * NurtureChoices.YIELD_SPROUTS:
 					tower.set_meta(&"seeds_ready", int(tower.get_meta(&"seeds_ready", 0)) + 1)
 					tower.queue_redraw()
 			tower.set_meta(&"seed_drifts", drifts)
 		DREAM_OAK:
-			var shards := 1 + mini(_families_near(tower, p(tower, "family_reach", 2.0)), int(p(tower, "family_max", 3.0)))
+			var shards := 1 + mini(_families_near(tower, p(tower, "family_reach", 2.0) + NurtureChoices.WIDE_STEP * tower.choice_count(Tower.Focus.WIDE)), int(p(tower, "family_max", 3.0)))
+			# Yield: +0.5 shard a drift per rank (the fraction carries).
+			var extra := float(tower.get_meta(&"yield_carry", 0.0)) + NurtureChoices.YIELD_SHARDS * tower.choice_count(Tower.Focus.YIELD)
+			shards += int(extra)
+			tower.set_meta(&"yield_carry", extra - int(extra))
 			tower.set_meta(&"block_shards", int(tower.get_meta(&"block_shards", 0)) + shards)
 			_add_shards(tower, shards)
 
@@ -1096,6 +1130,61 @@ class CrackField extends Node2D:
 			draw_polyline(PackedVector2Array([at + Vector2(-24, -6), at + Vector2(-6, 2), at + Vector2(4, -8), at + Vector2(22, 4)]), colour, 2.0)
 			draw_polyline(PackedVector2Array([at + Vector2(-6, 2), at + Vector2(-2, 18)]), colour, 2.0)
 
+# --- Brood Cap's reach (user: "show where it places its sprites… and where it ends") ---------------------------------
+# A sprite hatches on the route point nearest the Warden and walks back toward the start at sprite_speed cells/s for
+# SPRITE_LIFE s, so it gives up after speed × life cells (3 × 8 = 24) or at the route's start, whichever is first.
+const SPRITE_LIFE := 8.0
+const BROOD_PATH := Color(Palette.NEWLEAF, 0.22)
+const BROOD_END := Color(Palette.SPRIG, 0.75)
+
+static func brood_spawn_index(route: PackedVector2Array, at: Vector2) -> int:
+	var best := 0
+	var best_d := INF
+	for i in route.size():
+		var d := Tower.MAP_GRID.calculate_map_position(route[i]).distance_to(at)
+		if d < best_d:
+			best_d = d
+			best = i
+	return best
+
+# The walk in world points, from the hatch spot to where it gives up (cut mid-step at the exact distance).
+static func brood_walk(route: PackedVector2Array, at: Vector2, speed_cells: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	if route.is_empty():
+		return out
+	var i := brood_spawn_index(route, at)
+	var left := speed_cells * SPRITE_LIFE * CELL
+	var here := Tower.MAP_GRID.calculate_map_position(route[i])
+	out.append(here)
+	while i > 0 and left > 0.0:
+		var next := Tower.MAP_GRID.calculate_map_position(route[i - 1])
+		var step := here.distance_to(next)
+		if step >= left:
+			out.append(here.move_toward(next, left))
+			break
+		left -= step
+		here = next
+		out.append(here)
+		i -= 1
+	return out
+
+# Draws the walk on `canvas` (`walk` already in its local space): the stretch faint when `stretch`, and the end mark
+# (Tower Assets' brood_end when it exists, else a ring with a small cap). `alpha` scales it (subtle while sprites walk).
+static func draw_brood_walk(canvas: CanvasItem, walk: PackedVector2Array, stretch: bool, alpha: float = 1.0) -> void:
+	if walk.size() < 2:
+		return
+	if stretch:
+		canvas.draw_polyline(walk, Color(BROOD_PATH, BROOD_PATH.a * alpha), 6.0)
+	var end: Vector2 = walk[-1]
+	var tex := Fx.texture(&"brood_end") if not Fx.info(&"brood_end").is_empty() else null
+	if tex != null:
+		var size := Vector2(tex.get_width(), tex.get_height())
+		canvas.draw_texture_rect(tex, Rect2(end - size / 2.0, size), false, Color(1, 1, 1, alpha))  # A fade (modulate), not a colour
+		return
+	var colour := Color(BROOD_END, BROOD_END.a * alpha)
+	canvas.draw_arc(end, 9.0, 0.0, TAU, 20, colour, 1.5)
+	canvas.draw_colored_polygon(PackedVector2Array([end + Vector2(-5, 1), end + Vector2(0, -5), end + Vector2(5, 1)]), colour)
+
 class BroodSprite extends Node2D:
 	var tower: Tower
 	var route: PackedVector2Array
@@ -1114,14 +1203,14 @@ class BroodSprite extends Node2D:
 		var path := t._route()
 		if path.is_empty():
 			return
-		# Start on the route cell nearest the Warden.
-		var best := 0
-		var best_d := INF
-		for i in path.size():
-			var d := Tower.MAP_GRID.calculate_map_position(path[i]).distance_to(t.global_position)
-			if d < best_d:
-				best_d = d
-				best = i
+		var best := BranchKit.brood_spawn_index(path, t.global_position)  # The route point nearest the Warden
+		var spot := Tower.MAP_GRID.calculate_map_position(path[best])
+		# Where it drops (on the attack's release frame): Tower Assets' hatch puff, and the spore arc from the attack
+		# origin when its art exists (Fx keeps budget / lite / reduced motion).
+		BranchKit._fx(&"brood_hatch", spot, BranchKit.world(t))
+		if not Fx.info(&"spore_arc").is_empty():
+			Fx.segment(&"spore_arc", t.global_position + t.tower_data.get_attack_origin(), spot, BranchKit.world(t), 0.35)
+		t.queue_redraw()  # Its end marker shows while sprites are out
 		var sprite := BroodSprite.new()
 		sprite.tower = t
 		sprite.route = path
@@ -1158,10 +1247,11 @@ class BroodSprite extends Node2D:
 		queue_redraw()
 
 	func _burst(enemy: Node2D) -> void:
+		BranchKit._fx(&"spore_sprite_burst", global_position, get_parent(), 1.5 if big else 1.0)  # Tower Assets 4553d7a0
 		if enemy.has_method("is_hidden") and enemy.is_hidden():
 			enemy.reveal_for(2.0)  # Bumped into a Lurker: it shows itself
 		var stacks := int(BranchKit.p(tower, "spored", 2))
-		tower.hit(enemy, 1.0, true)
+		tower.hit(enemy, 1.0 + NurtureChoices.YIELD_BROOD_DAMAGE * tower.choice_count(Tower.Focus.YIELD), true)  # Yield: harder bursts
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
 			enemy.apply_status(EnemyStatuses.SPORED, stacks, 0.0, tower.get_damage() * Tower.SPORE_POTENCY, 0, "spore", tower)
 			# Crusted Brood (b): its sprites also eat dread shell.
@@ -1181,7 +1271,11 @@ class BroodSprite extends Node2D:
 				small.global_position = global_position + Vector2(randf_range(-10, 10), randf_range(-10, 10))
 		queue_free()
 
-	const SHEET := "res://assets/towers/projectiles/spore_sprite.png"  # 24×24, 4 walk frames drawn walking right
+	func _exit_tree() -> void:
+		if is_instance_valid(tower):
+			tower.queue_redraw()  # The last sprite gone: its end marker goes
+
+	const SHEET := "res://assets/towers/projectiles/spore_sprite.png"  # 4 walk frames drawn walking right (any size)
 	var _tex: Texture2D = load(SHEET) if ResourceLoader.exists(SHEET) else null  # Per sprite (cached): never a static
 	var _age := 0.0
 	var _left_facing := false
@@ -1192,9 +1286,10 @@ class BroodSprite extends Node2D:
 			draw_circle(Vector2.ZERO, r, Color(Palette.NEWLEAF, 0.9))
 			draw_circle(Vector2(0, -r * 0.4), r * 0.45, Color(Palette.SPRIG, 0.9))
 			return
-		var size := Vector2(24, 24) * (1.5 if big else 1.0)  # Hatchery's big one, scaled up
+		var frame_size := Vector2(_tex.get_width() / 4.0, _tex.get_height())  # 4 walk frames, whatever their size
+		var size := frame_size * (1.5 if big else 1.0)  # Hatchery's big one, scaled up
 		var frame := int(_age * 8.0) % 4
-		var region := Rect2(frame * 24, 0, 24, 24)
+		var region := Rect2(frame * frame_size.x, 0, frame_size.x, frame_size.y)
 		var rect := Rect2(-size / 2.0 - Vector2(0, size.y * 0.3), size)
 		if _left_facing:
 			rect = Rect2(rect.position + Vector2(rect.size.x, 0), Vector2(-rect.size.x, rect.size.y))
@@ -1313,7 +1408,11 @@ class GroundZone extends Node2D:
 		for e in BranchKit.targetable(tower):
 			if (e.is_flying() and not hits_flyers) or not _inside(e):
 				continue
-			if damage_per_second > 0.0:
+			if damage_per_second > 0.0 and kind == &"rain":
+				# Rain is effect damage (tag "rain": Potency and Deep scale it), with the Warden's damage multipliers.
+				e.take_damage(damage_per_second * tick * tower.get_damage() / maxf(float(tower.attack_data.damage), 1.0),
+					tower.tower_data.line, true, false, tower, &"rain")
+			elif damage_per_second > 0.0:
 				tower.hit(e, damage_per_second * tick / maxf(float(tower.attack_data.damage), 1.0), true)
 			if not is_instance_valid(e) or e.is_cleansed:
 				continue

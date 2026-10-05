@@ -22,6 +22,9 @@ const LIGHT_RADIUS := 230.0  # px
 const GLOW_ALPHA := 0.42
 const GLOW_RADIUS := 230.0  # px
 const LIGHT_OFFSET := Vector2(0, -16)
+const POOL_OFFSET := Vector2(0, 20)  # The glow pool's centre: on the ground round the tree's foot
+const POOL_SQUASH := 0.55  # The pool is flatter than wide (ground seen from above at an angle)
+const GROUND_LIGHT_MASK := 2  # The Heartwood's light lifts only canvas items with this light-mask bit (the grass)
 
 # The Grove mirror (heartwood_stages.json: per stage a crown rect, 10 fruit anchors, the lit glint pixels).
 const STAGE_SHEET := "heartwood_stage_%d"
@@ -51,6 +54,7 @@ var enemy_container: Node
 var stage := 0  # Canopy stage 0-3
 var planted: Array[Dictionary] = []  # HeartwoodMemory.planted_nodes(): {id, limb, pos}
 var memories := 0  # Dream-fruit, 0-MAX_FRUIT
+var golden := false  # The Golden Leaf keepsake (MetaRun.keepsake_on, read once at run start)
 var _configured := false  # setup() ran before _ready: don't read the profile
 var _act := 1
 var _leaf_state := 0
@@ -70,6 +74,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # For the canopy fade; _process skips the rest while paused
 	if not _configured:
 		_load_profile()
+		golden = MetaRun.keepsake_on("golden_leaf")
 	if tower_container != null:  # Recheck the Wardens only when one joins or leaves
 		tower_container.child_entered_tree.connect(func(_n: Node) -> void: _refresh_wardens_behind.call_deferred())
 		tower_container.child_exiting_tree.connect(func(_n: Node) -> void: _refresh_wardens_behind.call_deferred())
@@ -78,19 +83,30 @@ func _ready() -> void:
 	vframes = EnvironmentTiles.HEARTWOOD_STATES
 	var half_cell := EnvironmentTiles.SIZE.y / 2.0
 	offset = Vector2(0, half_cell + BASE_BELOW_CELL - EnvironmentTiles.HEARTWOOD_SIZE / 2.0)
+	# A solid tree in a pool of its own light, not a beam (art_direction.md "The Heartwood reads as a solid tree", a568c1e5):
+	# the light only lifts the grass (GROUND_LIGHT_MASK; the path and the tree keep their own values) and the
+	# additive glow is a flattened pool drawn between the grass and the path, under the tree.
 	_light = EnvironmentLighting.make_light(LIGHT_COLOR, LIGHT_ENERGY, LIGHT_RADIUS)
 	_light.position = LIGHT_OFFSET
+	_light.range_item_cull_mask = GROUND_LIGHT_MASK
 	add_child(_light)
 	_glow = Sprite2D.new()
+	_glow.name = "HeartwoodGlow"
 	_glow.texture = EnvironmentLighting.light_texture()
-	_glow.position = LIGHT_OFFSET
-	_glow.scale = Vector2.ONE * GLOW_RADIUS / (_glow.texture.get_width() / 2.0)
 	_glow.modulate = Color(LIGHT_COLOR, GLOW_ALPHA)
-	_glow.z_index = EnvironmentLighting.GLOW_Z
+	_glow.scale = Vector2(1.0, POOL_SQUASH) * GLOW_RADIUS / (_glow.texture.get_width() / 2.0)
 	var additive := CanvasItemMaterial.new()
 	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	_glow.material = additive
-	add_child(_glow)
+	var ground: Node2D = get_parent().get("ground_layer") if get_parent() != null else null
+	if ground != null:  # Over the grass, under the path layer (its next sibling) and everything standing
+		_glow.position = position + POOL_OFFSET
+		ground.add_child(_glow)
+		tree_exiting.connect(_glow.queue_free)
+	else:
+		_glow.position = POOL_OFFSET
+		_glow.show_behind_parent = true
+		add_child(_glow)
 	_glints = Node2D.new()
 	_glints.name = "Glints"
 	_glints.draw.connect(_draw_glints)
@@ -140,7 +156,7 @@ func _process(delta: float) -> void:
 	_light_time += delta
 	var flicker := 1.0 + sin(_light_time * 2.3) * 0.04
 	_light.scale = Vector2.ONE * flicker
-	_glow.scale = Vector2.ONE * flicker * GLOW_RADIUS / (_glow.texture.get_width() / 2.0)
+	_glow.scale = Vector2(1.0, POOL_SQUASH) * flicker * GLOW_RADIUS / (_glow.texture.get_width() / 2.0)
 	if not _glint_points.is_empty() and not _reduced_motion():
 		_glints.queue_redraw()  # The twinkle: the only per-frame work
 
@@ -162,6 +178,7 @@ func _build() -> void:
 	_build_glints(info)
 	_build_fruit(info)
 	_glints.queue_redraw()
+	_apply_golden(info)
 
 # One stage's entry from heartwood_stages.json ({crown, fruit, glints} in 128 px frame pixels).
 func _stage_info(which: int) -> Dictionary:
@@ -180,6 +197,31 @@ func _frame_to_local(pixel: Vector2) -> Vector2:
 
 # Each planted node at its spot on the Grove tree, mapped onto this stage's crown and snapped to the
 # nearest lit crown pixel still free.
+# The Golden Leaf keepsake (meta_design.md "Keepsakes", the meta chat): the canopy's greens swap to the
+# gold family (shaders/golden_leaf.gdshader), the crown rows only; a cosmetic the player can switch off.
+const GOLDEN_SHADER := preload("res://shaders/golden_leaf.gdshader")
+const GOLDEN_FROM: Array[Color] = [Palette.DEEPMOSS, Palette.POOL, Palette.MOSS, Palette.LEAF, Palette.SPRIG, Palette.NEWLEAF]  # The crown: moss greens, a pool-blue shade
+const GOLDEN_TO: Array[Color] = [Palette.BARK, Palette.EMBER, Palette.GOLD, Palette.GLOW, Palette.GLOW, Palette.HEARTLIGHT]  # Same value order, gold-lit
+const GOLDEN_CROWN_MARGIN := 8.0  # px below the crown box still swapped (leaves hanging under it)
+
+func set_golden(on: bool) -> void:
+	golden = on
+	if is_inside_tree() and _glints != null:
+		_apply_golden(_stage_info(stage))
+
+func _apply_golden(info: Dictionary) -> void:
+	if not golden:
+		material = null
+		return
+	var shader := ShaderMaterial.new()
+	shader.shader = GOLDEN_SHADER
+	var crown: Array = info.get("crown", [0, 0, 0, EnvironmentTiles.HEARTWOOD_SIZE * 0.6])
+	shader.set_shader_parameter(&"from_colours", PackedVector3Array(GOLDEN_FROM.map(func(c: Color) -> Vector3: return Vector3(c.r, c.g, c.b))))
+	shader.set_shader_parameter(&"to_colours", PackedVector3Array(GOLDEN_TO.map(func(c: Color) -> Vector3: return Vector3(c.r, c.g, c.b))))
+	shader.set_shader_parameter(&"frames", Vector2(hframes, vframes))
+	shader.set_shader_parameter(&"crown_bottom", (float(crown[3]) + GOLDEN_CROWN_MARGIN) / EnvironmentTiles.HEARTWOOD_SIZE)
+	material = shader
+
 func _build_glints(info: Dictionary) -> void:
 	_glint_points.clear()
 	var crown: Array = info.get("crown", [0, 0, 0, 0])
@@ -283,8 +325,9 @@ func _refresh_wardens_behind() -> void:
 	var cell := MAP_GRID.calculate_grid_coordinates(position)
 	var behind: Array[Vector2] = [cell + Vector2(-1, -1), cell + Vector2(0, -1), cell + Vector2(1, -1)]
 	for tower in tower_container.get_children():
+		# Any of its half cells under the canopy (a half-offset Warden straddles up to 4 whole cells)
 		if tower is Tower and not tower.is_queued_for_deletion() \
-				and (behind.has(tower.cell) or tower.get_cells().any(func(c: Vector2) -> bool: return behind.has(c))):
+				and TallObstacleFade.whole_cells_of(tower).any(func(c: Vector2) -> bool: return behind.has(c)):
 			_warden_behind = true
 			return
 

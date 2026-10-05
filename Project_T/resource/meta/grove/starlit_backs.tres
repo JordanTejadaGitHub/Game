@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "starlit_backs"
+display_name = "Starlit Card Backs"
+description = "A keepsake: Dream cards get the night-sky frame. Switch it off any time."
+root = 2
+costs = Array[int]([30])
+order = 43
+icon = 19
+keepsake = "starlit_backs"

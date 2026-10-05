@@ -31,7 +31,7 @@ static var pause_in_tests := false
 # that turns pause_in_tests on: on a fresh test profile every kind is new, and the cards paused every timing test
 # (Tower Code, 2026-10-01, with the suite's isolated user://).
 static func auto_open_ok() -> bool:
-	return pause_in_tests or not OS.get_cmdline_args().has("--script")
+	return (pause_in_tests or not OS.get_cmdline_args().has("--script")) and not CaptureDirector.quiet  # Captures: never
 
 var drift_director: DriftDirector
 var queue: Array = []  # EnemyData still to show, in order
@@ -70,7 +70,10 @@ func _ready() -> void:
 	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)  # Offsets too: exactly the screen
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(centre)
-	_panel.add_theme_stylebox_override("panel", UiStyle.panel(18.0, 14.0))
+	var solid := UiStyle.panel(18.0, 14.0)  # Solid: a paused card never shows another screen through it (user)
+	solid.center_alpha = UiStyle.TIP_ALPHA
+	solid.edge_alpha = UiStyle.TIP_ALPHA
+	_panel.add_theme_stylebox_override("panel", solid)
 	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	centre.add_child(_panel)
 	var outer := VBoxContainer.new()
@@ -220,18 +223,7 @@ func _on_rest_started(block: int, _boss: bool, _bonus: int, _perfect: bool) -> v
 
 # The rest's earlier screens (family pick, Dream, Omen, pause, results) are done.
 func screens_clear() -> bool:
-	var main := drift_director.owner
-	for path in ["HUD/FamilyPickScreen", "HUD/DreamScreen", "HUD/OmenScreen", "HUD/RememberScreen", "HUD/PauseMenu", "HUD/ResultsScreen"]:
-		var screen := main.get_node_or_null(path) as CanvasItem if main != null else null
-		if screen != null and screen.visible:
-			return false
-	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	if dreams != null and (dreams.is_offering() or dreams.has_pending_offer()):
-		return false
-	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
-	if omens != null and omens.is_offering():
-		return false
-	return not drift_director.awaiting_family_pick
+	return RestScreens.clear_for(self, drift_director)  # After the gift and the boss dossier (user: one screen at a time)
 
 # The boss dossier waits while a card is open or about to open.
 func is_busy() -> bool:
@@ -246,11 +238,16 @@ func _process(delta: float) -> void:
 	if not drift_director.is_resting():
 		_pending = []
 		return
+	var dossier := get_tree().get_first_node_in_group(BossDossier.GROUP) as BossDossier
+	if dossier != null and dossier.is_waiting():
+		dossier.add_whats_coming(_pending)  # An act's start: listed under the boss on "What's coming", no page of its own
+		_pending = []
+		return
 	_wait -= real
 	if _wait <= 0.0 and screens_clear():
 		var kinds := _pending
 		_pending = []
-		open(kinds, _drift)
+		open_list(kinds, _drift)  # One page for the block's new kinds (user, 2026-10-03)
 
 # --- Open / next / close -------------------------------------------------------------------------
 
@@ -370,6 +367,107 @@ func _build(data: EnemyData) -> void:
 		UiStyle.number(_live_label, 15, UiStyle.GOLD)
 		_content.add_child(_live_label)
 		_update_live()
+
+# --- "New this block" (user, 2026-10-03: one page per rest, not a card per kind) ---------------------------------
+
+# One new nightmare as a short row: portrait, name, its trait in a word, its tip. Tapping it opens the full card in
+# place (intro lines and resists below the row), so no second screen ever opens on top. Shared with the boss dossier's
+# "What's coming".
+static func make_row(data: EnemyData) -> Control:
+	var row := VBoxContainer.new()
+	row.name = "New_" + kind_of(data)
+	row.add_theme_constant_override("separation", 4)
+	var head := Button.new()
+	head.name = "Head"
+	head.flat = true
+	head.focus_mode = Control.FOCUS_NONE
+	head.tooltip_text = "Tap for its full card"
+	row.add_child(head)
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 10)
+	line.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(line)
+	var portrait := BossDossier.BossPortrait.new(data, 48.0)
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_child(portrait)
+	var words := VBoxContainer.new()
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.alignment = BoxContainer.ALIGNMENT_CENTER
+	words.add_theme_constant_override("separation", 0)
+	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_child(words)
+	var name := Label.new()
+	var verb := String(RuleBreakers.VERBS.get(data.trait_kind, ""))
+	name.text = data.display_name + ((" · " + verb) if verb != "" else "")
+	UiStyle.title(name, 18)
+	name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	words.add_child(name)
+	var hint := String(data.get("hint")) if data.get("hint") != null else ""
+	if hint != "":
+		var tip := Label.new()
+		tip.text = IconInfo.format(hint)
+		tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		tip.add_theme_font_size_override("font_size", 14)
+		tip.add_theme_color_override("font_color", UiStyle.WHISPER)
+		tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		words.add_child(tip)
+	var details := VBoxContainer.new()  # The full card, opened by a tap
+	details.name = "Details"
+	details.visible = false
+	details.add_theme_constant_override("separation", 6)
+	var lines: Array = data.get_intro_lines() if data.has_method("get_intro_lines") else []
+	if not lines.is_empty():
+		details.add_child(StatusLinks.make_label("\n".join(lines), 15, UiStyle.INK))
+	elif data.trait_text != "":
+		details.add_child(StatusLinks.make_label(data.trait_text, 15, UiStyle.INK))
+	var resists := NightmareIcons.make_rows(data, 24.0)
+	if resists.get_child_count() > 0:
+		details.add_child(resists)
+	else:
+		resists.free()
+	row.add_child(details)
+	head.pressed.connect(func() -> void: details.visible = not details.visible)
+	var fit := func() -> void:  # The button grows with its row (a Button doesn't size to its children)
+		if is_instance_valid(head) and is_instance_valid(line):
+			head.custom_minimum_size.y = maxf(52.0, line.get_combined_minimum_size().y + 4.0)
+	line.minimum_size_changed.connect(fit)
+	fit.call_deferred()
+	return row
+
+# The rest's page: every new kind of the coming block as a row, one Continue.
+func open_list(kinds: Array, drift: int = 0) -> void:
+	if kinds.is_empty():
+		return
+	queue.clear()
+	shown = null
+	live = null
+	_live_label = null
+	_drift = drift
+	if peek != null:
+		peek.set_peeking(false)
+	for child in _content.get_children():
+		_content.remove_child(child)
+		child.queue_free()
+	var head := Label.new()
+	head.name = "ListHead"
+	head.text = "New this block"
+	UiStyle.caps(head, 15, NEW_COLOR)
+	_content.add_child(head)
+	if drift > 0:
+		var when := Label.new()
+		when.text = "From drift %d" % drift
+		UiStyle.caps(when, 13)
+		_content.add_child(when)
+	for data in kinds:
+		_content.add_child(make_row(data))
+		_remember(data)
+	_next.text = "Continue"
+	visible = true
+	var speed := drift_director.get_node_or_null("%GameSpeed") as GameSpeed if drift_director else null
+	if speed != null and not speed.paused:
+		_paused_it = true
+		speed.set_paused(true)
 
 # "Health 180 / 240 · Soaked ×2 8s · Restless ×1", or "Dispelled" once it's gone.
 func live_text() -> String:

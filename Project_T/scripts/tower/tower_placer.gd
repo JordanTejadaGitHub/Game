@@ -146,9 +146,9 @@ func _tick_settling(delta: float) -> void:
 		queue_redraw()  # The ghost's "settling (5 s)" counts down (_process re-checks validity)
 
 func _hover_cell_valid() -> bool:
-	return not frozen_ground() and not _hover_path.is_empty() and not _cells_occupied(_footprint(_hover_cell)) \
-		and not is_unique_placed(tower_data) and settling_left(_footprint(_hover_cell)) <= 0.0 \
-		and not omen_locked(_footprint(_hover_cell))
+	return not frozen_ground() and not _hover_path.is_empty() and not _halves_occupied(_ghost_halves()) \
+		and not is_unique_placed(tower_data) and settling_left(_ghost_cells()) <= 0.0 \
+		and not omen_locked(_ghost_cells())
 
 func _marks() -> Node2D:
 	if not is_instance_valid(_settling_marks):
@@ -179,6 +179,7 @@ func set_build_mode(active: bool) -> void:
 	Tower.set_badges_visible(&"build", active)  # Card badges show in build mode
 	_update_visible()
 	_hover_cell = NO_CELL
+	_hover_half = NO_CELL  # Else a still mouse keeps its old half offset and the ghost waits for a move (user: hotkey, no outline)
 	build_mode_changed.emit(active)
 
 # Picks the tower to build and enters build mode.
@@ -230,6 +231,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			set_build_mode(false)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("place_tower"):
+		_update_hover()  # Placement feel: the click places where the cursor is this frame
 		if tower_data.footprint > 1:
 			_try_build(_hover_cell)  # Big Wardens: one per click
 		else:
@@ -255,12 +257,10 @@ func _process(delta: float) -> void:
 		return
 	if not build_mode:
 		return
-	var cell: Vector2 = MAP_GRID.calculate_grid_coordinates(get_global_mouse_position())
 	if stroking:
 		return  # The stroke has its own ghosts and route (_stroke_input)
-	if cell != _hover_cell:
-		_hover_cell = cell
-		_refresh_hover()
+	if not _update_hover():
+		_flush_slow()  # The cursor rested a frame: the card preview and heart check catch up
 	# Enemies move every frame, so re-check whether one is standing on the hovered cell.
 	var valid := _hover_cell_valid()
 	# Dew changes while hovering (creatures get cleansed), so re-check affordability too.
@@ -287,15 +287,18 @@ func _draw() -> void:
 		_draw_catch_zone(_catch_preview.at, _catch_preview.radius)
 	if _hover_cell == NO_CELL or not MAP_GRID.is_within_bounds(_hover_cell):
 		return
+	if build_mode:
+		_draw_placement_grid()
+		_draw_ghost_footprint()
 	if tower_data.catch_share > 0.0:
-		_draw_catch_zone(Tower.footprint_centre(_hover_cell, tower_data.footprint), tower_data.catch_radius \
+		_draw_catch_zone(_ghost_centre(), tower_data.catch_radius \
 			+ (DewCatch.WIDE_BOWL_STEP if dream_state.has_rule(&"dew_trail") else 0.0))  # Dew Trail widens the catch
 	# What it would receive here (BuffSources): threads in from each aura, "+30% attack speed from 2 Elder
 	# Stumps" above the ghost.
 	var received := ""
 	if tower_data.can_attack and not AuraView.is_aura(tower_data):
 		draw_set_transform(Vector2.ZERO)
-		var ghost_at := Tower.footprint_centre(_hover_cell, tower_data.footprint)
+		var ghost_at := _ghost_centre()
 		var entries := BuffSources.would_receive(tower_data, ghost_at, tower_container.get_children())
 		for entry in entries:
 			var colour := BuffSources.color(entry.kind, entry.source)
@@ -304,9 +307,9 @@ func _draw() -> void:
 		received = BuffSources.summary(entries)
 	if AuraView.is_aura(tower_data):  # Exactly who it would boost (AuraView)
 		draw_set_transform(Vector2.ZERO)
-		AuraView.draw_ghost(self, tower_data, Tower.footprint_centre(_hover_cell, tower_data.footprint),
+		AuraView.draw_ghost(self, tower_data, _ghost_centre(),
 			tower_container.get_children())
-	draw_set_transform(Tower.footprint_centre(_hover_cell, tower_data.footprint))
+	draw_set_transform(_ghost_centre())
 	var tint := VALID_TINT if _hover_valid and _hover_affordable else INVALID_TINT
 	if tower_data.can_attack:
 		# The range this Warden would really have on this cell (position cards included). A gain shows
@@ -323,6 +326,15 @@ func _draw() -> void:
 	_draw_card_areas()
 	if tower_data.special == BranchKit.JARLINK:
 		_draw_fence_preview()  # The arc this jar would make (Balancing: players couldn't tell which jar links to which)
+	if tower_data.special == BranchKit.BROOD:
+		# Brood Cap: the stretch its sprites would walk from here, and where they'd give up.
+		var walk := BranchKit.brood_walk(_hover_path if not _hover_path.is_empty() else map_generator.get_path_from(map_generator.startPath),
+			_ghost_centre(), float(tower_data.special_params.get("sprite_speed", 3.0)))
+		for i in walk.size():
+			walk[i] = to_local(walk[i])
+		draw_set_transform(Vector2.ZERO)
+		BranchKit.draw_brood_walk(self, walk, true)
+		draw_set_transform(_ghost_centre())
 	if tower_data.texture == null:
 		Tower.draw_placeholder(self, tint)
 	else:
@@ -340,13 +352,13 @@ func _draw() -> void:
 		tag += " · Frozen Ground: plant at the rest"
 	elif is_unique_placed(tower_data):
 		tag += " · already planted (one per run)"
-	elif settling_left(_footprint(_hover_cell)) > 0.0:
-		tag += " · The ground is settling (%d s)" % ceili(settling_left(_footprint(_hover_cell)))
-	elif omen_locked(_footprint(_hover_cell)):
+	elif settling_left(_ghost_cells()) > 0.0:
+		tag += " · The ground is settling (%d s)" % ceili(settling_left(_ghost_cells()))
+	elif omen_locked(_ghost_cells()):
 		tag += " · the old way is open until the rest"  # Second Path (Omen)
 	elif hover_breaks_path():
 		tag += " · would close the dream"  # The forest's rule: it may bend, never close
-	elif _cells_occupied(_footprint(_hover_cell)):
+	elif _halves_occupied(_ghost_halves()):
 		tag += " · nightmare here"
 	elif growth != 0:
 		tag += " · %+d path" % growth  # "Wardens are walls": how much longer the walk gets
@@ -603,6 +615,7 @@ func _draw_catch_zone(at: Vector2, radius: float) -> void:
 # Chips for the ghost's position cards: [[text, on], …] ("Solitude ✓ +30% damage, +0.5 range" /
 # "Solitude ✗ Rain Lily is 1 cell away").
 func get_ghost_chips() -> Array:
+	_flush_slow()
 	var chips := []
 	for row in _ghost_rows:
 		if row.active:
@@ -613,6 +626,7 @@ func get_ghost_chips() -> Array:
 
 # Planted Wardens whose position cards this placement would turn off or on: [[tower, card name, on]].
 func get_neighbour_changes() -> Array:
+	_flush_slow()
 	return _neighbour_changes
 
 # Recomputes the ghost's card rows, its range gain and the neighbour check for the hovered cell (only
@@ -636,11 +650,17 @@ func _update_dream_preview() -> void:
 	if reach <= 0.0:
 		return
 	var ghost := {"cell": _hover_cell, "data": tower_data}
+	if _before_board != dream_state.board_version:
+		_before_board = dream_state.board_version  # The board changed: every "without the ghost" answer is stale
+		_before_cache.clear()
 	for tower in tower_container.get_children():
 		if not tower is Tower or tower.is_queued_for_deletion() \
 				or maxf(absf(tower.cell.x - _hover_cell.x), absf(tower.cell.y - _hover_cell.y)) > reach:
 			continue
-		var before := _active_positional(dream_state.get_card_effects(tower.tower_data, tower.cell, tower))
+		var id: int = tower.get_instance_id()
+		if not _before_cache.has(id):  # Without the ghost it only changes with the board (half the card checks)
+			_before_cache[id] = _active_positional(dream_state.get_card_effects(tower.tower_data, tower.cell, tower))
+		var before: Array = _before_cache[id]
 		var after := _active_positional(dream_state.get_card_effects(tower.tower_data, tower.cell, tower, ghost))
 		for name in before:
 			if not after.has(name):
@@ -648,6 +668,9 @@ func _update_dream_preview() -> void:
 		for name in after:
 			if not before.has(name):
 				_neighbour_changes.append([tower, name, true])
+
+var _before_cache := {}  # Tower instance id -> its active position cards without the ghost (this board version)
+var _before_board := -1
 
 static func _active_positional(rows: Array) -> Array:
 	var names := []
@@ -687,7 +710,7 @@ func _draw_fence_preview() -> void:
 			var rect := Rect2(to_local(MAP_GRID.calculate_map_position(cell)) - MAP_GRID.cell_size / 2.0, MAP_GRID.cell_size)
 			draw_rect(rect.grow(-4), Color(Palette.GLOW, 0.12))
 		draw_line(from, to, Color(Palette.GLOW, 0.8), 2.0)
-	draw_set_transform(Tower.footprint_centre(_hover_cell, tower_data.footprint))
+	draw_set_transform(_ghost_centre())
 
 func _draw_card_areas() -> void:
 	var done := {}
@@ -704,33 +727,193 @@ func _draw_card_areas() -> void:
 
 # Where the ghost's tags hang from (this node's space): the hovered footprint's centre. Tested: never the map origin.
 func ghost_tag_origin() -> Vector2:
-	return to_local(Tower.footprint_centre(_hover_cell, tower_data.footprint))
+	return to_local(_ghost_centre())
+
+# --- Half-cell placement (documentation/half_cells.md) ---
+# A 1-cell Warden snaps to the half grid: its 2×2 half-cell footprint's top-left half is _hover_half, and
+# _hover_cell is the full cell under its centre (ranges, cards, Kinship spots keep full cells). Bigger Wardens
+# (the Sapling) stay on whole cells.
+
+var _hover_half := NO_CELL
+# Marketing captures (CaptureDirector's "ghost" actions) aim the build ghost here instead of at the mouse; INF = the mouse.
+var cursor_override := Vector2(INF, INF)
+
+func half_placement() -> bool:
+	return tower_data != null and tower_data.footprint <= 1 and map_generator.has_method("halves_of")
+
+# The top-left half of a 2×2 footprint centred nearest `world` (pixels).
+static func half_origin_at(world: Vector2) -> Vector2:
+	return (world / (MAP_GRID.cell_size / 2.0)).round() - Vector2.ONE
+
+# The ghost's centre (pixels), its half cells, and the full cells they touch.
+func _ghost_centre() -> Vector2:
+	return Tower.half_centre(_hover_half) if half_placement() and _hover_half != NO_CELL \
+		else Tower.footprint_centre(_hover_cell, tower_data.footprint)
+
+func _ghost_halves() -> Array[Vector2]:
+	if half_placement() and _hover_half != NO_CELL:
+		return map_generator.halves_of(_hover_half)
+	var out: Array[Vector2] = []
+	for c in _footprint(_hover_cell):
+		for dy in 2:
+			for dx in 2:
+				out.append(c * 2.0 + Vector2(dx, dy))
+	return out
+
+func _ghost_cells() -> Array[Vector2]:
+	return Tower.cells_of_halves(_ghost_halves()) if half_placement() else _footprint(_hover_cell)
+
+# A nightmare's body is on (or stepping into) any of `halves`.
+func _halves_occupied(halves: Array) -> bool:
+	var bodies := _walker_bodies()
+	for h in halves:
+		if bodies.has(h):
+			return true
+	return false
+
+# The half cells under every walking nightmare's body (where it is and where it's stepping), built once a frame:
+# the hover asks every frame and strokes per cell (150 walkers × 2 points × 4 halves was ~0.9 ms a check).
+var _bodies := {}
+var _bodies_frame := -1
+
+func _walker_bodies() -> Dictionary:
+	var frame := Engine.get_process_frames()
+	if frame == _bodies_frame:
+		return _bodies
+	_bodies_frame = frame
+	_bodies = {}
+	for enemy in enemy_spawner.get_maze_walkers():
+		for point in [enemy.get_target_cell(), enemy.get_last_cell() if enemy.has_method("get_last_cell") else enemy.get_current_cell()]:
+			for h in map_generator.body_halves(point):
+				_bodies[h] = true
+	return _bodies
+
+func _ghost_buildable() -> bool:
+	if half_placement():
+		return _ghost_halves().all(func(h: Vector2) -> bool: return map_generator.is_buildable_half(h))
+	return _footprint(_hover_cell).all(func(c: Vector2) -> bool: return map_generator.is_buildable(c))
 
 # How many tiles longer creatures would walk if the ghost were built (0 if it can't be).
 func get_hover_path_growth() -> int:
 	if _hover_path.is_empty():
 		return 0
-	return _hover_path.size() - map_generator.get_path_from(map_generator.startPath).size()
+	return map_generator.route_length(_hover_path) - map_generator.route_length(map_generator.get_path_from(map_generator.startPath))
 
 # The hovered cell is free but building there would cut creatures off (the forest's rule).
 func hover_breaks_path() -> bool:
-	return build_mode and _hover_cell != NO_CELL \
-		and _footprint(_hover_cell).all(func(c: Vector2) -> bool: return map_generator.is_buildable(c)) \
-		and _hover_path.is_empty()
+	return build_mode and _hover_cell != NO_CELL and _ghost_buildable() and _hover_path.is_empty()
 
 # Recomputes the route preview for the hovered cell (only needed when the cell or the maze changes).
-func _refresh_hover() -> void:
+const HOVER_DEAD_ZONE := 4.0  # Pixels past a half line before the ghost changes offset (no flicker on the line)
+
+# --- Placement grid (half_cells.md "Placement feel"): in build mode, faint whole-cell lines over buildable ground,
+# half lines near the cursor, the ghost's 2×2 outlined in gold and its refused halves in the "can't" colour. Setting
+# `placement_grid`: 0 On (default), 1 Near cursor, 2 Off.
+const GRID_LINE := Color(Palette.MOONLIGHT, 0.08)
+const GRID_HALF_LINE := Color(Palette.MOONLIGHT, 0.05)
+const GRID_NEAR := 3.0  # Cells around the cursor that show half lines (and, in Near cursor mode, all lines)
+const GRID_FOOTPRINT := Color(Palette.GOLD, 0.9)
+const GRID_REFUSED := Color(Palette.EMBER, 0.35)  # The palette has no red: Ember is "no" (INVALID_TINT's colour)
+
+func _draw_placement_grid() -> void:
+	var mode := int(Fx.setting("placement_grid", 0))
+	if mode >= 2 or not half_placement():
+		return
+	draw_set_transform(Vector2.ZERO)
+	var size := MAP_GRID.cell_size
+	var cursor := _ghost_centre()
+	var near := GRID_NEAR * size.x
+	var lines := PackedVector2Array()
+	var halves := PackedVector2Array()
+	for y in MAP_GRID.size.y:
+		for x in MAP_GRID.size.x:
+			var cell := Vector2(x, y)
+			if not map_generator.is_buildable(cell):
+				continue
+			var centre := MAP_GRID.calculate_map_position(cell)
+			var close := centre.distance_to(cursor) <= near
+			if mode == 1 and not close:
+				continue
+			var tl := to_local(centre - size / 2.0)
+			lines.append_array([tl, tl + Vector2(size.x, 0), tl, tl + Vector2(0, size.y)])  # Top and left edges
+			if not map_generator.is_buildable(cell + Vector2.RIGHT):
+				lines.append_array([tl + Vector2(size.x, 0), tl + size])
+			if not map_generator.is_buildable(cell + Vector2.DOWN):
+				lines.append_array([tl + Vector2(0, size.y), tl + size])
+			if close:  # Half lines through the cell
+				halves.append_array([tl + Vector2(size.x / 2.0, 0), tl + Vector2(size.x / 2.0, size.y),
+					tl + Vector2(0, size.y / 2.0), tl + Vector2(size.x, size.y / 2.0)])
+	if not lines.is_empty():
+		draw_multiline(lines, GRID_LINE, 1.0)
+	if not halves.is_empty():
+		draw_multiline(halves, GRID_HALF_LINE, 1.0)
+
+# The ghost's 2×2 halves: refused ones (taken, unbuildable, a nightmare on it, or the whole footprint when it would
+# close the route) filled in the "can't" colour, then the footprint outlined in gold.
+func _draw_ghost_footprint() -> void:
+	if not half_placement() or _hover_half == NO_CELL:
+		return
+	draw_set_transform(Vector2.ZERO)
+	var half := MAP_GRID.cell_size / 2.0
+	var bodies := _walker_bodies()
+	var closes := _ghost_buildable() and _hover_path.is_empty()
+	for h in _ghost_halves():
+		if closes or not map_generator.is_buildable_half(h) or bodies.has(h):
+			draw_rect(Rect2(to_local(h * half), half), GRID_REFUSED)
+	draw_rect(Rect2(to_local(_hover_half * half), half * 2.0), GRID_FOOTPRINT, false, 1.5)
+
+# Moves the ghost to the cursor (the same frame it crosses a half line, past a 4 px dead zone). Returns whether it
+# moved; the route, validity and price refresh at once, the card preview a frame later.
+func _update_hover() -> bool:
+	var mouse := get_global_mouse_position() if cursor_override.x == INF else cursor_override
+	if half_placement():
+		var origin := half_origin_at(mouse)
+		if origin != _hover_half and _hover_half != NO_CELL:
+			var off := (mouse - Tower.half_centre(_hover_half)).abs()
+			var hold := MAP_GRID.cell_size.x / 4.0 + HOVER_DEAD_ZONE  # Half a half cell, + the dead zone
+			if off.x < hold and off.y < hold:
+				origin = _hover_half  # Still inside the dead zone around the current offset
+		if origin == _hover_half:
+			return false
+		_hover_half = origin
+		_hover_cell = Tower.half_home_cell(origin)
+	else:
+		var cell: Vector2 = MAP_GRID.calculate_grid_coordinates(mouse)
+		if cell == _hover_cell:
+			return false
+		_hover_cell = cell
+		_hover_half = NO_CELL
+	_refresh_hover(true)
+	return true
+
+# `defer`: the per-frame hover passes true, so the card preview and the heart check follow a frame later (placement
+# feel: they were ~6 ms of a full board's refresh) and the ghost itself never waits.
+func _refresh_hover(defer := false) -> void:
 	if stroking:
 		_plan_stroke()  # The maze changed under the stroke
 		return
 	_hover_path = PackedVector2Array()
-	if _footprint(_hover_cell).all(func(c: Vector2) -> bool: return map_generator.is_buildable(c)):
-		_hover_path = map_generator.get_path_if_blocked_cells(_footprint(_hover_cell))
+	if _ghost_buildable():
+		_hover_path = map_generator.get_path_if_blocked_halves(_ghost_halves()) if half_placement() \
+			else map_generator.get_path_if_blocked_cells(_footprint(_hover_cell))
 	# Route mist (screens_ui.md): the new route, the old one faint where it differs, a glint when it gets longer.
 	RouteLine.draw_route(_path_preview, _hover_path, PREVIEW_COLOR, 6.0, map_generator.get_path_from(map_generator.startPath))
 	_hover_valid = _hover_cell_valid()
-	_heart_here = becomes_heart(_hover_cell, _hover_path)
 	_hover_affordable = run_state.can_afford(get_cost(null, _hover_cell))
+	_slow_due = true
+	if not defer:
+		_flush_slow()  # Callers that read the rows right away (tests, a path change)
+	queue_redraw()
+
+# The slower parts of the hover (card rows, neighbour changes, Kinship spots, Heart of the Maze): a frame after the
+# ghost moved, so the ghost itself never waits on them. Getters flush them first, so callers always see current rows.
+var _slow_due := false
+
+func _flush_slow() -> void:
+	if not _slow_due:
+		return
+	_slow_due = false
+	_heart_here = becomes_heart(_hover_cell, _hover_path)
 	_update_dream_preview()
 	queue_redraw()
 
@@ -746,6 +929,8 @@ func is_unique_placed(data: TowerData) -> bool:
 # Builds a tower on `cell` and charges its Dew cost. Returns false (and charges nothing) if the cell
 # can't be built on or the player can't afford it.
 func _try_build(cell: Vector2) -> bool:
+	if half_placement():
+		return _try_build_half(cell * 2.0)  # A whole cell = the half origin on its corner (callers, tests)
 	if tower_data == null or tower_data.parked:
 		build_rejected.emit(cell)
 		return false  # Parked Wardens (cut for now) are never planted
@@ -794,6 +979,47 @@ func _try_build(cell: Vector2) -> bool:
 		set_build_mode(false)
 	return true
 
+# Half-cell placement: plants the selected 1-cell Warden with its 2×2 half footprint's top-left half at `origin`.
+func _try_build_half(origin: Vector2) -> bool:
+	var home := Tower.half_home_cell(origin)
+	if tower_data == null or tower_data.parked or is_unique_placed(tower_data):
+		build_rejected.emit(home)
+		return false
+	if frozen_ground():
+		_toast_frozen()
+		build_rejected.emit(home)
+		return false
+	var halves: Array[Vector2] = map_generator.halves_of(origin)
+	var touched := Tower.cells_of_halves(halves)
+	if settling_left(touched) > 0.0 or omen_locked(touched) or _halves_occupied(halves):
+		build_rejected.emit(home)
+		return false
+	if not map_generator.can_block_halves(halves, _walker_points()):
+		build_rejected.emit(home)
+		return false
+	var cost := get_cost(null, home)
+	if not run_state.spend_dew(cost):
+		return false
+	run_state.fertile_cells.erase(home)
+	var tower: Tower = tower_scene.instantiate()
+	tower.tower_data = tower_data
+	tower.half_cell = origin
+	tower.cell = home
+	tower.invested_dew = cost
+	if tower_data.get_id() == "sprout" and cost == 0:
+		tower.set_meta(&"gift_sprout", true)
+	tower.rest_dew = cost if Tower.resting else 0
+	tower.position = Tower.half_centre(origin)
+	tower_container.add_child(tower)
+	map_generator.block_halves(halves)  # Emits path_changed -> enemies re-route, preview refreshes
+	BranchKit.on_planted(tower)
+	tower_built.emit(tower)
+	return true
+
+# The route points the path rule protects (walkers' targets with a way out), for can_block_halves.
+func _walker_points() -> PackedVector2Array:
+	return _walker_cells()
+
 # Dew to plant the selected Warden (Dreams can change it, e.g. Cheap Hedges). With `cell`, the price
 # on that cell (Reclaimed Earth: fertile cells halve the first Warden).
 func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: int = 0) -> int:
@@ -810,7 +1036,31 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 		var per_step := sprout_per_step()
 		if per_step > 0:
 			cost += (count_paid_sprouts() + planned_sprouts) / per_step * sprout_step_dew()
+	# Copies (user via Balancing 2026-10-04, demo too: mass-planting one base beat act 1 at any grow price): each
+	# planted Warden of a kind costs +copy_cost_step per copy of that kind already on the map (selling lowers it);
+	# walls are exempt (they're the maze), grown forms count under their own id. `planned_sprouts` = copies earlier in
+	# the same drag stroke (a stroke plants one kind).
+	# Sprouts are exempt too (Balancing 2026-10-04): they have their own step above, and 5 must still fit the 60 Dew opening.
+	if copy_cost_step > 0.0 and cost > 0 and warden.buildable_directly and warden.line != "wall" and warden.get_id() != "sprout":
+		cost = roundi(cost * (1.0 + copy_cost_step * (count_copies(warden) + planned_sprouts)))
 	return cost
+
+@export var copy_cost_step := 0.05  # +5% per copy on the map (0 = off, the sims' A/B)
+var _copy_counts := {}  # id -> planted copies, rebuilt when the board changes
+var _copy_board := -1
+
+# Planted Wardens of `data`'s kind on the map (Seedling Gift Sprouts don't count, as for the Sprout price).
+func count_copies(data: TowerData) -> int:
+	# DreamState.board_version moves on every plant, sale (path_changed, exiting the tree) and grow (evolved).
+	var board: int = dream_state.board_version if dream_state else -2
+	if board != _copy_board or board == -2:
+		_copy_board = board
+		_copy_counts = {}
+		for tower in tower_container.get_children():
+			if tower is Tower and not tower.is_queued_for_deletion() and not tower.get_meta(&"gift_sprout", false):
+				var id: String = tower.tower_data.get_id()
+				_copy_counts[id] = _copy_counts.get(id, 0) + 1
+	return _copy_counts.get(data.get_id(), 0)
 
 func sprout_price_halved() -> bool:
 	return dream_state.has_card(SEEDFALL_CARD)
@@ -956,6 +1206,13 @@ func _take_square(tower: Tower, into: TowerData, origin: Vector2) -> void:
 			wall.queue_free()
 		else:
 			free.append(c)
+	if tower.half_cell.x >= 0 and map_generator.has_method("unblock_halves"):
+		# Half cells: a Warden at a half offset grows onto whole cells; its old halves open first, and its
+		# own cell in the square is blocked whole with the rest.
+		map_generator.unblock_halves(tower.get_halves())
+		tower.half_cell = Vector2(-1, -1)
+		if not free.has(tower.cell):
+			free.append(tower.cell)
 	var old_cell := tower.cell
 	tower.cell = origin
 	tower.position = Tower.footprint_centre(origin, size)
@@ -1152,7 +1409,7 @@ func nurture(tower: Tower, focus: Tower.Focus = Tower.Focus.NONE) -> bool:
 	if frozen_ground():
 		_toast_frozen()
 		return false
-	if focus != Tower.Focus.NONE and not tower.focus_options().has(focus):
+	if focus != Tower.Focus.NONE and not tower.choice_available(focus):
 		return false  # A choice this Warden can't take (support Wardens: Wide / Strong / Kindred); none = its default
 	# Rank VI would make it the Eldest (only one Warden grows past V): the panel asks first and calls
 	# DreamState.make_eldest; group Nurture and the hotkey never crown one by accident.
@@ -1225,9 +1482,23 @@ var _stroke_axis := -1  # -1 not locked yet, 0 = a row (y fixed), 1 = a column (
 var _stroke_cost := 0
 var _stroke_growth := 0
 
+# Starts a stroke on whole cell `cell` (clicks, touch, tests). With half cells, the hovered cell starts at the
+# ghost's half offset; any other whole cell at its own corner's half origin (cell × 2).
 func begin_stroke(cell: Vector2) -> void:
 	if cell == NO_CELL or not MAP_GRID.is_within_bounds(cell):
 		return
+	if half_placement():
+		begin_stroke_half(_hover_half if cell == _hover_cell and _hover_half != NO_CELL else cell * 2.0)
+		return
+	_start_stroke(cell)
+
+# Starts a stroke at half origin `origin` (half cells: the stroke holds half origins).
+func begin_stroke_half(origin: Vector2) -> void:
+	if origin == NO_CELL:
+		return
+	_start_stroke(origin)
+
+func _start_stroke(cell: Vector2) -> void:
 	stroking = true
 	_stroke.assign([cell])
 	_stroke_axis = -1
@@ -1237,12 +1508,16 @@ func begin_stroke(cell: Vector2) -> void:
 # Adds the cells from the stroke's end to `cell`, one step at a time (a diagonal step goes via the corner
 # cell). Once the stroke has 2 cells it locks to their row or column unless `free` (Alt).
 func extend_stroke(cell: Vector2, free := false) -> void:
-	if not stroking or _stroke.is_empty() or not MAP_GRID.is_within_bounds(cell):
+	if not stroking or _stroke.is_empty() or not (half_placement() or MAP_GRID.is_within_bounds(cell)):
 		return
+	var unit := 1.0
+	if half_placement():
+		unit = 2.0  # A Warden's width in halves: snap the target to the stroke's own offset
+		cell = _stroke[0] + ((cell - _stroke[0]) / 2.0).round() * 2.0
 	var target := _locked(cell, free)
 	var last: Vector2 = _stroke.back()
 	while last != target:
-		var step := Vector2(signf(target.x - last.x), signf(target.y - last.y))
+		var step := Vector2(signf(target.x - last.x), signf(target.y - last.y)) * unit
 		if step.x != 0.0 and step.y != 0.0:
 			step.y = 0.0  # The corner first
 		last += step
@@ -1264,6 +1539,7 @@ func cancel_stroke() -> void:
 	_stroke_plan.clear()
 	stroke_changed.emit(false)
 	_hover_cell = NO_CELL  # _process refreshes the single ghost
+	_hover_half = NO_CELL  # (Half cells: also with a still mouse, as in set_build_mode, Main 7ec7adcf)
 	queue_redraw()
 
 # Plants every green cell in drag order (each re-checked by _try_build). Returns how many.
@@ -1272,7 +1548,7 @@ func plant_stroke() -> int:
 	stroking = false  # So the builds below refresh the preview normally
 	var planted := 0
 	for c in cells:
-		if _try_build(c):
+		if (_try_build_half(c) if half_placement() else _try_build(c)):
 			planted += 1
 	if planted == 0 and not _stroke.is_empty():
 		build_rejected.emit(_stroke[0])  # A click on a cell that can't take it (the sound)
@@ -1280,6 +1556,7 @@ func plant_stroke() -> int:
 	_stroke_plan.clear()
 	stroke_changed.emit(false)
 	_hover_cell = NO_CELL
+	_hover_half = NO_CELL  # The ghost refreshes over what was just planted, mouse still or not
 	queue_redraw()
 	return planted
 
@@ -1307,12 +1584,57 @@ func _stroke_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion and get_viewport().gui_get_hovered_control() == null:
 		# (Over a HUD button, e.g. touch's Plant: an emulated nudge mustn't extend the stroke.)
-		extend_stroke(MAP_GRID.calculate_grid_coordinates(get_global_mouse_position()), event.alt_pressed)
+		extend_stroke(half_origin_at(get_global_mouse_position()) if half_placement() else MAP_GRID.calculate_grid_coordinates(get_global_mouse_position()), event.alt_pressed)
 	elif event.is_action_released("place_tower") and confirm_on_release:
 		plant_stroke()
 		get_viewport().set_input_as_handled()
 
+# Half-cell strokes: the stroke holds half origins, a Warden's width (2 halves) apart.
+func _plan_stroke_half() -> void:
+	_stroke_plan.clear()
+	var blocked: Array[Vector2] = []  # Halves
+	var dew := run_state.dew
+	var points := _walker_points()
+	var planned_sprouts := 0
+	var unique_used := is_unique_placed(tower_data)
+	for o in _stroke:
+		var halves: Array[Vector2] = map_generator.halves_of(o)
+		var home := Tower.half_home_cell(o)
+		var why := ""
+		if frozen_ground():
+			why = "Frozen Ground: plant at the rest"
+		elif halves.any(func(h: Vector2) -> bool: return blocked.has(h) or not map_generator.is_buildable_half(h)):
+			why = "can't plant here"
+		elif _halves_occupied(halves):
+			why = "nightmare here"
+		elif settling_left(Tower.cells_of_halves(halves)) > 0.0:
+			why = "the ground is settling"
+		elif unique_used:
+			why = "one per run"
+		elif not map_generator.can_block_halves(blocked + halves, points):
+			why = "would close the dream"
+		else:
+			var cost := get_cost(null, home, planned_sprouts)
+			if cost > dew:
+				why = "out of Dew"
+			else:
+				dew -= cost
+				blocked.append_array(halves)
+				if cost > 0:  # Priced after the earlier ones: the Sprout step and copies
+					planned_sprouts += 1
+				unique_used = tower_data.is_unique
+		_stroke_plan[o] = why
+	_stroke_cost = run_state.dew - dew
+	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var new_route: PackedVector2Array = map_generator.get_path_if_blocked_halves(blocked) if not blocked.is_empty() else route
+	_stroke_growth = map_generator.route_length(new_route) - map_generator.route_length(route)
+	RouteLine.draw_route(_path_preview, new_route, PREVIEW_COLOR, 6.0, route)
+	queue_redraw()
+
 func _plan_stroke() -> void:
+	if half_placement():
+		_plan_stroke_half()
+		return
 	_stroke_plan.clear()
 	var blocked: Array[Vector2] = []
 	var dew := run_state.dew
@@ -1343,7 +1665,7 @@ func _plan_stroke() -> void:
 			else:
 				dew -= cost
 				blocked.append(c)
-				if tower_data.get_id() == "sprout" and cost > 0:
+				if cost > 0:  # Priced after the earlier ones: the Sprout step and copies
 					planned_sprouts += 1  # Each Sprout in the stroke is priced after the ones before it
 				unique_used = tower_data.is_unique
 		_stroke_plan[c] = why
@@ -1356,7 +1678,7 @@ func _plan_stroke() -> void:
 
 func _draw_stroke() -> void:
 	for c in _stroke:
-		draw_set_transform(MAP_GRID.calculate_map_position(c))
+		draw_set_transform(Tower.half_centre(c) if half_placement() else MAP_GRID.calculate_map_position(c))
 		var ok: bool = _stroke_plan.get(c, "x") == ""
 		var tint := VALID_TINT if ok else STROKE_SKIP_TINT
 		if tower_data.texture == null:
@@ -1367,7 +1689,7 @@ func _draw_stroke() -> void:
 	if _stroke.is_empty():
 		return
 	draw_set_transform(Vector2.ZERO)
-	var last := to_local(MAP_GRID.calculate_map_position(_stroke.back()))  # draw_tag sets its own transform
+	var last := to_local(Tower.half_centre(_stroke.back()) if half_placement() else MAP_GRID.calculate_map_position(_stroke.back()))  # draw_tag sets its own transform
 	var last_why: String = _stroke_plan.get(_stroke.back(), "")
 	var tag := get_stroke_tag() + (" · %s" % last_why if last_why != "" else "")
 	WorldLabel.draw_tag(self, last.x, last.y + MAP_GRID.cell_size.y / 2.0 + 18.0, tag, WorldLabel.cost_color(true))

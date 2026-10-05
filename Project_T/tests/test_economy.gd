@@ -85,7 +85,8 @@ func _check(condition: bool, label: String) -> void:
 		printerr("FAIL: " + label)
 
 # A buildable cell next to the path near index `from_index` that keeps the path open.
-func _cell_next_to_path(map_generator, path: PackedVector2Array, from_index: int) -> Vector2:
+func _cell_next_to_path(map_generator, route: PackedVector2Array, from_index: int) -> Vector2:
+	var path := Tower.route_cells(route)  # Whole cells (route points are half-cell centres)
 	for i in range(from_index, path.size()):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 			var cell: Vector2 = path[i] + offset

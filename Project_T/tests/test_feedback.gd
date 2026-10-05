@@ -384,7 +384,7 @@ func _run() -> void:
 	quit(failures)
 
 func _free_cell(map_generator, from_index: int) -> Vector2:
-	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var path: PackedVector2Array = Tower.route_cells(map_generator.get_path_from(map_generator.startPath))  # Whole cells (half-cell routes)
 	for i in range(from_index, path.size()):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 			var cell: Vector2 = path[i] + offset

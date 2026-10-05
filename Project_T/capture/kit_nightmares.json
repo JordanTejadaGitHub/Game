@@ -1,0 +1,14 @@
+{
+	"title": "Kit: kit_nightmares",
+	"note": "Editor kit: a nightmare parade, one every 3 s from the start (order: leaf_bug bark_beetle puffcap hedgehog mother_duck dandelion_seed); no Wardens; the camera holds on the straight at zoom 4. Timings in marketing/raw/kit_nightmares.txt.",
+	"seed": 4242, "size": [1920, 1080], "drift": 20, "dew": 340, "obstacles": "edge", "hud": "none", "length": 28.0,
+	"timeline": [
+		{"t": 1.0, "spawn": "leaf_bug", "count": 1, "progress": 0.0},
+		{"t": 4.0, "spawn": "bark_beetle", "count": 1, "progress": 0.0},
+		{"t": 7.0, "spawn": "puffcap", "count": 1, "progress": 0.0},
+		{"t": 10.0, "spawn": "hedgehog", "count": 1, "progress": 0.0},
+		{"t": 13.0, "spawn": "mother_duck", "count": 1, "progress": 0.0},
+		{"t": 16.0, "spawn": "dandelion_seed", "count": 1, "progress": 0.0},
+		{"t": 0.0, "camera": "hold", "at": [7, 10], "zoom": 4.0}
+	]
+}

@@ -28,6 +28,7 @@ func _run() -> void:
 	_test_reward_words(main)
 	_test_bullets_match_data(main)
 	_test_extra_dew_estimate(main)
+	_test_no_omen_at_act_break(main)
 	print("omens test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -785,3 +786,40 @@ func _check(condition: bool, label: String) -> void:
 	if not condition:
 		failures += 1
 		printerr("FAIL: " + label)
+
+# No Omen at an act-break rest (user: fewer screens after a boss): the boss rest pays the Omen taken for its block
+# (drift 20's rest → paid at drift 25's), then offers nothing, not even Clear Skies; the next rest offers as usual.
+func _test_no_omen_at_act_break(main: Node) -> void:
+	var omens: OmenDirector = main.get_node("%OmenDirector")
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	var dreams: DreamState = main.get_node("%DreamState")
+	omens.mode_override = "ask"
+	omens.current_offer.clear()
+	omens._offer_waiting = false
+	var omen: OmenData = load("res://resource/omen/thick_blight.tres") if ResourceLoader.exists("res://resource/omen/thick_blight.tres") else null
+	if omen == null:
+		for file in DirAccess.get_files_at("res://resource/omen/"):
+			if omen == null and file.trim_suffix(".remap").ends_with(".tres"):
+				omen = load("res://resource/omen/" + file.trim_suffix(".remap"))
+	omens.active = omen
+	omens.active_block = 5
+	var run_state: RunState = main.get_node("%RunState")
+	var was_over := run_state.is_over
+	run_state.is_over = false  # An earlier test may have ended the run
+	var paid_before: int = omens.stats.paid
+	director.drifts_started = 25
+	omens._on_rest_started(5, true, 0, true)
+	_check(omens.stats.paid == paid_before + 1 and omens.active == null, "the boss rest pays the Omen taken for its block")
+	_check(omens.current_offer.is_empty() and not omens._offer_waiting, "…and offers no Omen, not even Clear Skies")
+	omens.force_omen = true  # A Blight Level's forced Omen skips it too
+	omens._on_rest_started(5, true, 0, true)
+	_check(omens.current_offer.is_empty() and not omens._offer_waiting, "…a forced Omen waits for the next rest as well")
+	omens.force_omen = false
+	director.drifts_started = 30
+	omens._on_rest_started(6, false, 0, true)
+	_check(not omens.current_offer.is_empty() and omens._offer_waiting, "the next normal rest offers as usual")
+	omens.current_offer.clear()
+	omens._offer_waiting = false
+	if dreams.is_offering():
+		dreams.skip()
+	run_state.is_over = was_over

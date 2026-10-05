@@ -495,8 +495,9 @@ func get_free_cells(beside_path: bool = false) -> Array[Vector2]:
 	if map_generator == null:
 		return result
 	var route := {}
-	for cell in map_generator.get_path_from(map_generator.startPath):
-		route[cell] = true
+	for point in map_generator.get_path_from(map_generator.startPath):
+		for cell in DreamState.route_cells(point):  # Half-cell points (x.25 / x.75): the whole cell each lies in
+			route[cell] = true
 	var seller = get_node_or_null("%TowerSeller")
 	var size: Vector2 = map_generator.MAP_GRID.size
 	for x in range(1, int(size.x) - 1):
@@ -617,11 +618,13 @@ func choose(omen: OmenData) -> void:
 	if was_showing:
 		offer_closed.emit()
 
-func _on_rest_started(block: int, _is_boss_rest: bool, bonus: int, _perfect: bool) -> void:
+func _on_rest_started(block: int, is_boss_rest: bool, bonus: int, _perfect: bool) -> void:
 	locked_cells.clear()  # Second Path: the rest settles its ground
 	# Pay first, so "next Dream" rewards count for this rest's Dream (its offer is built deferred).
 	if active != null and active_block == block:
 		_pay_reward(bonus)
+	if is_boss_rest:
+		return  # No Omen at an act-break rest (user: fewer screens there), not even a forced one; the block's reward was paid above
 	if drift_director.drifts_started < first_rest_drift or not drift_director.has_next_drift() or run_state.is_over:
 		return
 	var offer := make_offer(block + 1)

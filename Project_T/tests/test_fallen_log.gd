@@ -65,7 +65,7 @@ func _run() -> void:
 	_check(run_state.obstacles_tended == tended + 1 and run_state.tended_cells.size() == clears + 1, "it counts as one clear (one Seed)")
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
 	var marks_ok := log.all(func(c: Vector2) -> bool:
-		if route.has(c):  # The path wears clearing marks away (WORN_BY_PATH)
+		if Array(route).any(func(p: Vector2) -> bool: return Vector2(FindPath.point_to_node(p) / 2) == c):  # The path wears marks away (WORN_BY_PATH)
 			return env.get_cell_source_id(Vector2i(c)) == -1
 		return env.get_cell_source_id(Vector2i(c)) == EnvironmentTiles.LOG_FURROW and env.get_cell_atlas_coords(Vector2i(c)).x == piece_at[c])
 	_check(marks_ok, "a furrow piece for piece where the path doesn't wear it away")

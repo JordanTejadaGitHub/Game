@@ -46,23 +46,39 @@
 			"frames": 8,
 			"kind": "signature",
 			"loop": false,
-			"note": "Beacon: a flare shooting up from the Beacon (anchor = its top) and bursting; then fade beacon_pulse over the map."
+			"note": "Beacon: a flare shooting up from the Beacon (anchor = its top) and bursting; the ring of light that follows is drawn in code (BeaconRing)."
 		},
-		"beacon_pulse": {
+		"brood_end": {
 			"anchor": [
-				32,
-				32
+				12,
+				9
 			],
-			"file": "beacon_pulse.png",
+			"file": "brood_end.png",
 			"fps": 1.0,
 			"frame_size": [
-				64,
-				64
+				24,
+				16
 			],
 			"frames": 1,
-			"kind": "overlay",
+			"kind": "ground",
 			"loop": false,
-			"note": "Map-wide light pulse: scale it over the whole map (it's a soft warm radial wash in palette alpha steps), fade in ~0.2 s and out ~1 s, additive or ~40% alpha."
+			"note": "Brood Cap / Hatchery: static marker where a sprite's walk gives up (a dotted ring round a little cap). Draw at texture size, centred on the anchor, z -1."
+		},
+		"brood_hatch": {
+			"anchor": [
+				24,
+				32
+			],
+			"file": "brood_hatch.png",
+			"fps": 14.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Brood Cap / Hatchery: where a spore-sprite drops onto the path (anchor = the drop spot), at the attack's release frame. Spores fall in, a pink puff blooms, a ring marks the spot. ~0.43 s."
 		},
 		"carried_storm": {
 			"anchor": [
@@ -1823,6 +1839,38 @@
 			"loop": false,
 			"note": "Sparkler / Starburst's firework at the burst point (and Fireworks Fence's crossing burst): a smaller, quicker burst than firework_burst."
 		},
+		"spore_arc": {
+			"anchor": [
+				0,
+				6
+			],
+			"file": "spore_arc.png",
+			"fps": 12.0,
+			"frame_size": [
+				32,
+				12
+			],
+			"frames": 4,
+			"kind": "segment",
+			"loop": false,
+			"note": "Brood Cap / Hatchery: spores streaming from the attack origin to the drop spot. Stretch along x (y = 6 on the line), Warden -> spot, ~0.35 s."
+		},
+		"spore_sprite_burst": {
+			"anchor": [
+				24,
+				28
+			],
+			"file": "spore_sprite_burst.png",
+			"fps": 16.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Brood Cap / Hatchery: a spore-sprite bursting on the nightmare it bumped (anchor = the sprite). Sized for the 1.5x sprite; scale x1.5 for Hatchery's big one."
+		},
 		"sprout_puff": {
 			"anchor": [
 				24,
@@ -1949,7 +1997,7 @@
 			"frames": 1,
 			"kind": "overlay",
 			"loop": false,
-			"note": "x5 chain: stretch over the whole screen and fade alpha 0 -> 0.8 -> 0 over ~0.5 s. Smooth, not pixel art."
+			"note": "x5 chain: stretch over the whole screen and fade alpha 0 -> 0.8 -> 0 over ~0.5 s. Two hard bands of warm light (AI-look audit: no soft gradients)."
 		},
 		"thorn_spread": {
 			"anchor": [

@@ -24,17 +24,19 @@ enum { SIDE, DOWN, UP }
 
 # fps: animation speed (extra_fps for the extra rows; `once` lists extra rows that don't loop, such
 # as a burrow the game plays forwards to sink and backwards to surface). draw: shared draw function (default: the
-# file's own). k: size scale for the small ones spawned by splitters. variant: passed to the draw
+# file's own). k: size scale for the small ones spawned by splitters. calm: DetailPass calm mode (no
+# grain, motes kept in their own ramp, hard-stepped glow). texture: DetailPass grain and
+# motes (0..1, default 1). variant: passed to the draw
 # function as st.variant. anims: replaces the walk rows (for things that don't walk; dir is -1).
 # size: frame size in px (default
 # 64); bosses get bigger frames instead of a sprite_scale so their pixels match everyone else's.
 const CREATURES := {
-	"leaf_bug": {fps = 10.0},  # Shade
-	"bark_beetle": {fps = 6.0},  # Husk
+	"leaf_bug": {fps = 10.0, calm = true},  # Shade. Calm: hard eye glow, no pale grain (reads on the pale path)
+	"bark_beetle": {fps = 6.0, calm = true},  # Husk
 	"dusk_moth": {fps = 10.0},  # Lurker
 	"dandelion_seed": {fps = 6.0},  # Phantom
-	"puffcap": {fps = 6.0},  # Mourner
-	"puffcaplet": {fps = 8.0, draw = "puffcap", k = 0.55},  # Sob
+	"puffcap": {fps = 6.0, calm = true},  # Mourner
+	"puffcaplet": {fps = 8.0, draw = "puffcap", k = 0.55, calm = true},  # Sob
 	"mother_spider": {fps = 9.0},  # Widow
 	"spiderling": {fps = 14.0, draw = "mother_spider", k = 0.5},  # Creep
 	"hedgehog": {fps = 9.0, extra = ["roll"], extra_fps = 14.0},  # Night Hound; "roll" = sprint
@@ -56,7 +58,7 @@ const CREATURES := {
 	"shellbound_cracked": {fps = 8.0, draw = "shellbound", variant = "cracked"},  # once its dread shell breaks
 	"whisper_swarm": {fps = 8.0},
 	"dream_thief": {fps = 12.0},
-	"weeper": {fps = 5.0},
+	"weeper": {fps = 5.0, calm = true},  # calm: dense default motes read as blotches (AI-look audit #7)
 	"hollow_oak": {fps = 5.0, size = 176, extra = ["grief"], extra_fps = 8.0},
 	# Pool bosses (enemy_design.md "Boss pools") and their followers.
 	"night_mare": {fps = 8.0, size = 112, extra = ["gallop"], extra_fps = 12.0},
@@ -74,9 +76,11 @@ const CREATURES := {
 	"thorn_sapling": {fps = 4.0, obstacle = true, anims = ["idle", "grow", "wither"], extra_fps = 8.0, once = ["grow", "wither"]},
 }
 # Defaults of shaders/blight.gdshader, for the in-game frame at the end of each preview row.
-const SHADER_TRANSLUCENCY := 0.85
-const SHADER_GLOW_START := 0.6
+const SHADER_BODY_ALPHA := 0.95  # solid pixels (alpha >= 0.9)
+const SHADER_TRANSLUCENCY := 0.85  # partial pixels: ragged edges, smoke
+const SHADER_GLOW_START := 0.6  # a hard step: at least this bright = glowing
 const SHADER_GLOW_STRENGTH := 0.5
+const SHADER_SMALL_OUTLINE := Color(0.078, 0.059, 0.149, 0.85)  # Dread, at whole-map zoom
 
 # Shadow-stuff, lit from the upper left like the Wardens: [deep, dark, mid, rim].
 const NIGHT := ["Void", "Dread", "Shade", "Bruise"]
@@ -138,7 +142,7 @@ func _make(creature: String, info: Dictionary) -> void:
 			warm_sheet.blit_rect(warm, Rect2i(0, 0, S, S), Vector2i(f * S, row * S))
 	# The detailed-64 pass; glow radius 3 so boss frames get the same px spread as 64px ones.
 	var kind := DetailPass.Kind.OBSTACLE if info.get("obstacle", false) else DetailPass.Kind.NIGHTMARE
-	sheet = DetailPass.apply_sheet(sheet, Vector2i(S, S), kind, 3)
+	sheet = DetailPass.apply_sheet(sheet, Vector2i(S, S), kind, 3, info.get("texture", 1.0), info.get("calm", false))
 	# Soft warm glow becomes a dither of solid pixels, so blending it on can't mix in-between colours
 	# off the palette.
 	for y in warm_sheet.get_height():
@@ -220,21 +224,36 @@ func _save_preview() -> void:
 func _frame_size(sheet: Image) -> int:
 	return sheet.get_width() / FRAMES
 
-# The sheet as the blight shader shows it in game at blight = 1 (without its shimmer): see-through
-# body, the brightest pixels solid and brightened.
+# The sheet as the blight shader shows it in game at blight = 1 and whole-map zoom (without its
+# shimmer): solid pixels at body alpha, partial ones at translucency, glowing pixels solid and
+# brightened (a hard step), and the 1 px Dread outline round the solid body.
 func _in_game(sheet: Image) -> Image:
 	var out: Image = sheet.duplicate()
 	for y in out.get_height():
 		for x in out.get_width():
-			var c := out.get_pixel(x, y)
+			var c := sheet.get_pixel(x, y)
+			if c.a < 0.5:
+				if c.a < 0.1 and _solid_neighbours(sheet, x, y) > 0.9:
+					out.set_pixel(x, y, SHADER_SMALL_OUTLINE)
+					continue
 			if c.a == 0.0:
 				continue
 			var lum := c.r * 0.299 + c.g * 0.587 + c.b * 0.114
-			var glow := smoothstep(SHADER_GLOW_START, 1.0, lum)
+			var glow := 1.0 if lum >= SHADER_GLOW_START else 0.0
 			var col := c * (1.0 + glow * SHADER_GLOW_STRENGTH)
-			col.a = c.a * lerpf(SHADER_TRANSLUCENCY, 1.0, glow)
+			var base := SHADER_BODY_ALPHA if c.a >= 0.9 else SHADER_TRANSLUCENCY
+			col.a = c.a * lerpf(base, 1.0, glow)
 			out.set_pixel(x, y, col.clamp())
 	return out
+
+# Sum of the four neighbours' alpha, as the shader samples it (frame edges count as empty).
+func _solid_neighbours(img: Image, x: int, y: int) -> float:
+	var sum := 0.0
+	for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		var p := Vector2i(x, y) + d
+		if p.x >= 0 and p.y >= 0 and p.x < img.get_width() and p.y < img.get_height():
+			sum += img.get_pixelv(p).a
+	return sum
 
 # --- Primitives -------------------------------------------------------------------------------
 
@@ -472,7 +491,7 @@ func _ragged(canvas: Image, pts: Array, dy: int) -> void:
 # head; smoke curls off its back.
 
 func _draw_leaf_bug(canvas: Image, st: Dictionary) -> void:
-	var body := _ramp(NIGHT)
+	var body := _ramp(["Void", "Dread", "Dread", "Shade"])  # Dread mass, Shade only where lit (upper left); the pass adds the rim
 	var f: int = st.f
 	var ph: float = st.ph
 	var bob: int = [0, 0, -1, 0, 0, -1][f]
@@ -525,7 +544,7 @@ func _grooves(layer: Image, c: Vector2, r: Vector2, ramp: Array[Color], lengthwi
 
 func _draw_bark_beetle(canvas: Image, st: Dictionary) -> void:
 	var o := NIGHT_O
-	var bark := _ramp(["Void", "Night", "Dusk", "Slate"])
+	var bark := _ramp(["Void", "Dread", "Night", "Dusk"])  # dark all through: it must read on the pale path
 	var f: int = st.f
 	var ph: float = st.ph
 	var bob: int = [0, 0, 0, -1, 0, 0][f]  # a heavy lurch, then still
@@ -712,7 +731,7 @@ func _face_hole(canvas: Image, x: int, y: int, w: int, h: int) -> void:
 
 func _draw_puffcap(canvas: Image, st: Dictionary) -> void:
 	var k: float = st.k
-	var veil := _ramp(["Night", "Dusk", "Slate", "Stone"])
+	var veil := _ramp(["Void", "Dread", "Night", "Dusk"])  # dark mass, Dusk only where lit: it must read on the pale path
 	var o := _c("Dread")
 	var tear := _c("Dewlight")
 	var f: int = st.f
@@ -747,7 +766,7 @@ func _draw_puffcap(canvas: Image, st: Dictionary) -> void:
 				_px(ghost, tx, ey, EYE)
 				_px(ghost, tx, ey + 1, tear)
 				_px(ghost, tx, ey + 2 + f % 2, tear)
-	_merge(canvas, ghost, 0.88, Vector2i(shake, 0))
+	_merge(canvas, ghost, 1.0, Vector2i(shake, 0))  # solid core; only the dissolved hem is see-through
 
 # --- Widow (mother_spider) / Creep (spiderling) -------------------------------------------------
 # Bursts into 6 Creeps when dispelled: a bloated many-legged shadow on thin spiked legs, a cluster
@@ -2049,7 +2068,7 @@ func _draw_dream_thief(canvas: Image, st: Dictionary) -> void:
 # hanging to the ground, pale slit eyes streaming black tears that drip and pool.
 
 func _draw_weeper(canvas: Image, st: Dictionary) -> void:
-	var shroud := _ramp(["Night", "Dusk", "Slate", "Stone"])
+	var shroud := _ramp(["Void", "Dread", "Night", "Dusk"])  # dark mass, Dusk only where lit: it must read on the pale path
 	var skin := _ramp(["Slate", "Stone", "Mist"])
 	var tear := _c("Void")
 	var o := NIGHT_O
@@ -2072,7 +2091,7 @@ func _draw_weeper(canvas: Image, st: Dictionary) -> void:
 		_ellipse(fig, hc, Vector2(4.5, 4.5), skin)
 	var ghost := _layer()
 	_stamp(ghost, fig, o)
-	_merge(canvas, ghost, 0.95)
+	_merge(canvas, ghost)
 	var drip := (f % 3) * 2
 	match st.dir:
 		SIDE:

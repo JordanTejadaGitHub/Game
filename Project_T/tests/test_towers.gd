@@ -43,7 +43,7 @@ func _run() -> void:
 		run_state.dew = 1000  # Test the roster, not the economy
 		placer.select_tower(data)
 		_check(placer.build_mode and placer.tower_data == data, "selecting %s enters build mode" % data.display_name)
-		var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+		var path: PackedVector2Array = Tower.route_cells(map_generator.get_path_from(map_generator.startPath))  # Whole cells (half-cell routes)
 		var cell := _cell_next_to_path(map_generator, path)
 		var count := tower_container.get_child_count()
 		placer._try_build(cell)

@@ -1,0 +1,23 @@
+{
+	"title": "Kit: kit_nightmares_late",
+	"note": "Editor kit: a nightmare parade, one every 3 s from the start (order: ash_crawler barrow_wight crow dream_thief drowned_one dusk_moth gravecrawler mother_spider shellbound spiderling wandering_hare watcher weeper whisper_swarm will_o_wisp); no Wardens; the camera holds on the straight at zoom 4. Timings in marketing/raw/kit_nightmares_late.txt.",
+	"seed": 4242, "size": [1920, 1080], "drift": 20, "dew": 340, "obstacles": "edge", "hud": "none", "length": 55.0,
+	"timeline": [
+		{"t": 1.0, "spawn": "ash_crawler", "count": 1, "progress": 0.0},
+		{"t": 4.0, "spawn": "barrow_wight", "count": 1, "progress": 0.0},
+		{"t": 7.0, "spawn": "crow", "count": 1, "progress": 0.0},
+		{"t": 10.0, "spawn": "dream_thief", "count": 1, "progress": 0.0},
+		{"t": 13.0, "spawn": "drowned_one", "count": 1, "progress": 0.0},
+		{"t": 16.0, "spawn": "dusk_moth", "count": 1, "progress": 0.0},
+		{"t": 19.0, "spawn": "gravecrawler", "count": 1, "progress": 0.0},
+		{"t": 22.0, "spawn": "mother_spider", "count": 1, "progress": 0.0},
+		{"t": 25.0, "spawn": "shellbound", "count": 1, "progress": 0.0},
+		{"t": 28.0, "spawn": "spiderling", "count": 1, "progress": 0.0},
+		{"t": 31.0, "spawn": "wandering_hare", "count": 1, "progress": 0.0},
+		{"t": 34.0, "spawn": "watcher", "count": 1, "progress": 0.0},
+		{"t": 37.0, "spawn": "weeper", "count": 1, "progress": 0.0},
+		{"t": 40.0, "spawn": "whisper_swarm", "count": 1, "progress": 0.0},
+		{"t": 43.0, "spawn": "will_o_wisp", "count": 1, "progress": 0.0},
+		{"t": 0.0, "camera": "hold", "at": [7, 10], "zoom": 4.0}
+	]
+}

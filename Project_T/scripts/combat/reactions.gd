@@ -197,7 +197,7 @@ static func on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 # never with crit (except Nightshade). Shatter's own hit is a hit; its spreads are effects.
 const EFFECT_TAGS: Array[StringName] = [&"spored", &"static", &"thunderclap", &"ignite", &"lightning_rod",
 	&"popped", &"echo", &"carried_storm", &"avalanche", &"starfall", &"fever_dream", &"fog", &"cloud", &"harmony", &"last_breath", &"drown",
-	&"lingering_splash", &"thorns"]  # thorns: Thorncoil (BranchKit)
+	&"lingering_splash", &"thorns", &"rain"]  # thorns: Thorncoil; rain: Cloudlet / Nimbus (BranchKit)
 
 static func is_effect(tag: StringName) -> bool:
 	return tag in EFFECT_TAGS
@@ -894,7 +894,7 @@ static func _route_cells(near: Node2D) -> Array:
 	if dreams == null or dreams.map_generator == null:
 		return []
 	var map = dreams.map_generator
-	return Array(map.get_path_from(map.startPath))
+	return Array(Tower.route_cells(map.get_path_from(map.startPath)))  # Whole cells (half-step routes)
 
 # Carried Storm: a Samara / Autumn Gale seed passing through the spot of Reaction `id` repeats it at
 # 50% on a nightmare it hits after (damage Reactions as a burst, Drown as a short sleep, Pinned as a

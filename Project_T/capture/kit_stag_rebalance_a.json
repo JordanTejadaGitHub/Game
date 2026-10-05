@@ -1,0 +1,19 @@
+{
+	"title": "Kit: Stag rebalance, before",
+	"note": "Editor kit (problem and fix), RE-CREATED: short 3s board made stronger (20 Sporelings + 8 Dewdrops, all rank 5), standing in for the over-strong board before the re-tune; the Stag dies ~16 cells from the tree at ~22.7 s. Whole board in view, 16:9, no HUD. Pairs with kit_stag_rebalance_b.",
+	"seed": 4242,
+	"size": [1920, 1080],
+	"drift": 25,
+	"dew": 99999,
+	"obstacles": "edge",
+	"families": ["sporeling", "dewdrop"],
+	"hud": "none",
+	"length": 30.0,
+	"timeline": [
+		{"t": 0.0, "plant_each": 0.05, "count": 14, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 20, "plant": "sporeling", "auto": "cover", "rank": 5, "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 8, "plant": "dewdrop", "auto": "cover", "rank": 5, "tag": false},
+		{"t": 2.5, "spawn": "old_stag"},
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 1.0}
+	]
+}

@@ -151,7 +151,7 @@ func _test_evolution(main: Node) -> void:
 	dew = run_state.dew
 	run_state.dew = 1000
 	dew = run_state.dew
-	var evergreen_cost := roundi(driftspore.evolve_cost * 0.75)
+	var evergreen_cost := roundi(driftspore.get_grow_price() * 0.75)
 	_check(placer.evolve(tower, driftspore) and run_state.dew == dew - evergreen_cost, "Evergreen: branch costs 25%% less (%d)" % evergreen_cost)
 	seller.sell(cell)
 	_clear(main)
@@ -233,7 +233,7 @@ func _test_new_cards(main: Node) -> void:
 	dreams.take(_card(dreams, "evergreen"))
 	_check(dreams.is_eligible(_card(dreams, "evergreen_ii")), "Evergreen II offered once Evergreen is owned")
 	dreams.take(_card(dreams, "evergreen_ii"))
-	_check(dreams.get_evolve_cost(driftspore) == roundi(driftspore.evolve_cost * 0.6), "Evergreen II: 40%% off, replacing Evergreen (got %d)" % dreams.get_evolve_cost(driftspore))
+	_check(dreams.get_evolve_cost(driftspore) == roundi(driftspore.get_grow_price() * 0.6), "Evergreen II: 40%% off, replacing Evergreen (got %d)" % dreams.get_evolve_cost(driftspore))
 	_check(not dreams.is_eligible(_card(dreams, "evergreen_ii")), "a card deepens once")
 	dreams.take(_card(dreams, "lingering_spores"))
 	dreams.take(_card(dreams, "lingering_spores_ii"))
@@ -1359,10 +1359,16 @@ func _free_cell(map_generator) -> Vector2:
 	for enemy in map_generator.get_node("%EnemyContainer").get_maze_walkers():
 		if not map_generator.get_path_from(enemy.get_target_cell()).is_empty():
 			enemy_cells.append(enemy.get_target_cell())
-	for i in range(3, path.size()):
+	var cells := Tower.route_cells(path)  # Half cells: route points are x.25 / x.75; the whole cells they pass over
+	var route := {}
+	for c in cells:
+		route[c] = true
+	for i in range(3, cells.size()):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-			var cell: Vector2 = path[i] + offset
-			if not path.has(cell) and map_generator.can_block(cell, enemy_cells) and not _near_enemy(map_generator, cell):
+			var cell: Vector2 = cells[i] + offset
+			if route.has(cell):
+				continue  # Whole cells off the route only
+			if map_generator.can_block(cell, enemy_cells) and not _near_enemy(map_generator, cell):
 				return cell
 	return Vector2(-1, -1)
 

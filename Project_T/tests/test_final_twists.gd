@@ -16,6 +16,7 @@ var container: Node
 var run_state: RunState
 var dreams: DreamState
 var route: PackedVector2Array
+var per := 1  # Route points per whole cell (half-step routes: 2)
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -34,6 +35,7 @@ func _run() -> void:
 	await _clean()
 	var map = main.get_node("%MapGenerator")
 	route = map.get_path_from(map.startPath)
+	per = FinalTwists._per_cell(route)
 
 	for id in FinalTwists.TWISTS:
 		var data: TowerData = load("res://resource/tower/%s.tres" % id)
@@ -71,12 +73,12 @@ func _snugroot() -> void:
 	_check(walker.statuses.is_held() and walker.get_meta(FinalTwists.LOGJAM_META, false), "Logjam: a walker Snugroot Holds jams its cell")
 	_check(not flyer.get_meta(FinalTwists.LOGJAM_META, false), "flyers never jam")
 	# The queue (Enemy Code's spawner + _is_blocked_ahead): the walker behind waits, it doesn't path around.
-	var behind := _walker(7)
+	var behind := _walker(8 - per)  # A body behind (one whole cell)
 	var route_before: PackedVector2Array = behind._path.duplicate()
 	behind.set_process(true)
 	for i in 30:
 		await process_frame
-	_check(behind.get_current_cell() == route[7] and behind.waiting, "the nightmare behind a jammed cell waits there (%s)" % behind.get_current_cell())
+	_check(behind.get_current_cell() == _cell_of(route[8 - per]) and behind.waiting, "the nightmare behind a jammed cell waits there (%s)" % behind.get_current_cell())
 	_check(behind._path == route_before, "and doesn't path around (the route is unchanged)")
 	behind.set_process(false)
 	snug.queue_free()
@@ -119,8 +121,8 @@ func _boulderback() -> void:
 	boulder.tower_data.id = "boulderback"  # A duplicate has no path to take its id from
 	boulder._apply_data()
 	var target := _walker(12)
-	var behind := _walker(10)
-	var ahead := _walker(14)
+	var behind := _walker(12 - 2 * per)  # 2 path tiles back
+	var ahead := _walker(12 + 2 * per)
 	for i in 3:
 		boulder.projectile_landed(target, target.global_position)
 	_check(_lost(behind) == 0, "no boulder for the first 3 hits")
@@ -242,11 +244,14 @@ func _starcave() -> void:
 	cave._light()
 	_check(not cave._lit_cells.is_empty(), "Starcave lights path tiles")
 	var lit: Vector2 = cave._lit_cells[0]
-	var first := _walker(route.find(lit))
+	for c in cave._lit_cells:  # The lit tile nearest the cave (a half-cell route point sits off the tile centre)
+		if _at(c).distance_to(cave.global_position) < _at(lit).distance_to(cave.global_position):
+			lit = c
+	var first := _walker(_index_of_cell(lit))
 	FinalTwists.update(cave, FinalTwists.SNARE_CHECK)
 	_check(first.statuses.is_held(), "Starlit snare: the first walker on a lit tile is Held")
 	first.statuses.remove(EnemyStatuses.HELD)
-	var next := _walker(route.find(lit))
+	var next := _walker(_index_of_cell(lit))
 	FinalTwists.update(cave, FinalTwists.SNARE_CHECK)
 	_check(not next.statuses.is_held(), "only the first each drift")
 	cave.queue_free()
@@ -328,10 +333,11 @@ func _zephyr() -> void:
 	var sick := _walker(11)
 	sick.statuses.apply(EnemyStatuses.SPORED, 6, 5.0, 1.0)
 	var lane: Array[Node2D] = []
-	var tiles: Array = []
-	for i in range(route.size() - 1, -1, -1):
-		if zephyr._is_cell_in_range(route[i]):
-			tiles.append(i)
+	var tiles: Array = []  # The 3 whole path tiles in range nearest the Heartwood (as the gale picks them)
+	var cells := Tower.route_cells(route)
+	for i in range(cells.size() - 1, -1, -1):
+		if zephyr._is_cell_in_range(cells[i]):
+			tiles.append(_index_of_cell(cells[i]))
 			if tiles.size() == FinalTwists.GALE_TILES:
 				break
 	for i in tiles:
@@ -383,6 +389,16 @@ func _elf_circle() -> void:
 
 func _at(cell: Vector2) -> Vector2:
 	return Tower.MAP_GRID.calculate_map_position(cell)
+
+# Half-cell routes: the whole cell a route point is in, and the first route point inside whole cell `c`.
+func _cell_of(point: Vector2) -> Vector2:
+	return Tower.MAP_GRID.calculate_grid_coordinates(_at(point))
+
+func _index_of_cell(c: Vector2) -> int:
+	for i in route.size():
+		if _cell_of(route[i]) == c:
+			return i
+	return -1
 
 func _check(condition: bool, label: String) -> void:
 	if not condition:

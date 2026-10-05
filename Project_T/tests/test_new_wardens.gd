@@ -72,8 +72,8 @@ func _test_data(dream_state: DreamState) -> void:
 		if data == null:
 			continue
 		var frame: Vector2 = data.get_frame_rect(0).size if data.texture != null else Vector2.ZERO
-		_check(frame.x == 64.0 and frame.y in [64.0, 80.0, 96.0] and data.get_sprite_offset() == Vector2(0, -(frame.y - 64.0) / 2.0),
-			"%s has a 64 wide idle sheet (64/80/96 tall) lifted onto its cell (%s, %s)" % [id, frame, data.get_sprite_offset()])
+		_check(frame.x in [64.0, 80.0] and frame.y >= 64.0 and frame.y <= 128.0 and data.get_sprite_offset() == Vector2(0, -(frame.y - 64.0) / 2.0),
+			"%s has a 64 or 80 wide idle sheet (up to 128 tall) with its bottom on its cell (%s, %s)" % [id, frame, data.get_sprite_offset()])
 		_check(data.attack_kind == TowerData.AttackKind.AURA or data.attack_texture != null, "%s has an attack sheet" % id)
 		_check(reachable.has(id) != data.parked, "%s can be reached (planted or grown into), unless parked (Memory Wardens, cut for now)" % id)
 		if not data.is_unique:
@@ -170,7 +170,7 @@ func _test_traps() -> void:
 	tower._plant_ring()
 	_check(tower._rings.size() == 1, "Fairy Ring plants a ring")
 	var ring: FairyRing = tower._rings[0]
-	_check(route.has(ring.cell) and tower._is_cell_in_range(ring.cell), "the ring is on a path tile in range")
+	_check(Tower.route_cells(route).has(ring.cell) and tower._is_cell_in_range(ring.cell), "the ring is on a path tile in range")
 	var walker := _spawn_at(map_generator.MAP_GRID.calculate_map_position(ring.cell))
 	await process_frame
 	await process_frame

@@ -40,6 +40,8 @@ var omen_mist: OmenMist  # Low gold-violet mist while an Omen twists the block
 var build_hatch: BuildHatch  # In build mode: a cold hatch on every unbuildable cell
 var lighting: EnvironmentLighting  # Cold edges, warm Warden lights
 var ambience: EnvironmentAmbience  # Edge fog and the act's particles
+var ground_patches: GroundPatches  # Ground variation (environment_assets.md "Ground variation")
+var tree_fade: TallObstacleFade  # Withered Trees fade their overhang over what's behind them
 var gifts: MapGifts  # Heartwood's Gifts: terrain the act-break gifts leave (map_gifts.gd)
 
 
@@ -65,6 +67,7 @@ func _ready() -> void:
 	for sorted: Node2D in [environment_object_layer, get_node("%TowerContainer"), get_node("%EnemyContainer")]:
 		sorted.y_sort_enabled = true
 	ground_layer.z_index = -1
+	ground_layer.light_mask |= Heartwood.GROUND_LIGHT_MASK  # The Heartwood's light lifts the grass only, never the path
 	path_layer.z_index = -1
 	ground_layer.initialize()
 	# The start sits in the rim ring: the rim goes under its path (path_rim.png is transparent outside the
@@ -93,9 +96,12 @@ func _ready() -> void:
 	path_layer.prefer_route(_straightest_route())  # Fewest turns among the shortest routes
 
 	path_layer.draw()
+	ground_patches = GroundPatches.new()  # Ground variation: big soft patches over the grass, under the path
+	ground_patches.build(self)
+	ground_layer.add_child(ground_patches)
 	var no_details := unwalkable_cells + path_layer.current_path + PackedVector2Array(obstacles.keys())
 	no_details.append_array(PackedVector2Array(environment_object_layer.pond_cells))
-	environment_object_layer.generate_details(rng, no_details)
+	environment_object_layer.generate_details(rng, no_details, ground_patches.kind_at)
 	_draw_pond_corners()
 
 	heartwood = Heartwood.new()
@@ -127,6 +133,11 @@ func _ready() -> void:
 	ambience = EnvironmentAmbience.new()
 	ambience.heartwood_position = heartwood.position
 	add_child(ambience)
+	tree_fade = TallObstacleFade.new()
+	tree_fade.map = self
+	tree_fade.tower_container = get_node_or_null("%TowerContainer")
+	tree_fade.enemy_container = get_node_or_null("%EnemyContainer")
+	add_child(tree_fade)
 	gifts = MapGifts.new()
 	gifts.name = "Gifts"
 	gifts.map = self
@@ -163,6 +174,8 @@ func set_act(act: int) -> void:
 	for corner: Sprite2D in _pond_corners:  # The inside corners follow the season's pond sheet
 		corner.texture = (tile_set.get_source(EnvironmentTiles.POND_INNER) as TileSetAtlasSource).texture
 	heartwood.set_act(act)
+	path_layer.set_act(act)  # The dual-grid path sheet
+	ground_patches.set_act(act)
 	gifts.set_act(act)
 	ambience.act = act
 
@@ -242,14 +255,19 @@ func _extend_route_if_short() -> void:
 	var glade := get_glade_cells()
 	for attempt in 12:
 		var route := path_layer.find_path_from(startPath)
-		if route.size() >= min_route_length:
+		if route_length(route) >= min_route_length:
 			return
 		var best := Vector2(-1, -1)
-		var best_length := route.size()
-		for cell in route:
+		var best_length := route_length(route)
+		var cells: Array[Vector2] = []  # The whole cells the route runs through (obstacles go on whole cells)
+		for point in route:
+			var whole := (Vector2(FindPath.point_to_node(point)) / 2.0).floor()
+			if not cells.has(whole):
+				cells.append(whole)
+		for cell in cells:
 			if cell == startPath or cell == endPath or glade.has(cell):
 				continue
-			var longer := get_path_if_blocked(cell).size()
+			var longer := route_length(get_path_if_blocked(cell))
 			if longer > best_length and longer <= max_route_length:
 				best_length = longer
 				best = cell
@@ -266,7 +284,7 @@ func _extend_route_if_short() -> void:
 # or failing that the one that shortens it most, so the zig-zag survives. Never the feature.
 func _trim_route_if_long() -> void:
 	for attempt in 8:
-		var length := path_layer.find_path_from(startPath).size()
+		var length := route_length(path_layer.find_path_from(startPath))
 		if length <= max_route_length:
 			return
 		var cell := _best_trim(length, false)
@@ -285,7 +303,7 @@ func _best_trim(length: int, ridges: bool) -> Vector2:
 	for cell in obstacles:
 		if environment_object_layer.feature_cells.has(cell) or environment_object_layer.ridge_cells.has(cell) != ridges:
 			continue
-		var new_length := get_path_if_cleared(cell).size()
+		var new_length := route_length(get_path_if_cleared(cell))
 		if new_length <= 0 or new_length >= length:
 			continue
 		if new_length <= max_route_length and new_length > under_length:
@@ -441,6 +459,123 @@ func unblock_cell(cell: Vector2) -> void:
 	path_changed.emit()
 
 
+# --- Half cells (documentation/half_cells.md) ----------------------------------------------------------------
+# Pathing runs on 32 px half cells (FindPath): a Warden is a 2×2 footprint at any half offset; a nightmare fits
+# through one half cell (half_cells.md 04c10c33). Half cells are integer Vector2 on the (MAP_GRID.size × 2) grid;
+# route points are half centres in full-cell units (x.25 / x.75). The full-cell API above still works: a full
+# cell c is the halves {2c, 2c+1}².
+
+var _refusal := &""  # Why the last can_block_halves() said no: &"occupied" or &"closes"
+
+# A route's length in full cells (route points step by half a cell).
+static func route_length(route: PackedVector2Array) -> int:
+	return 0 if route.is_empty() else ceili((route.size() - 1) / 2.0) + 1
+
+# The 4 half cells of a footprint whose top-left half cell is `origin`.
+func halves_of(origin: Vector2) -> Array[Vector2]:
+	return FindPath.halves_of(origin)
+
+# The half cell a nightmare at route point `point` stands on (a whole cell: its 4).
+func body_halves(point: Vector2) -> Array[Vector2]:
+	if FindPath.is_whole_cell(point):
+		return FindPath.halves_of_cell(point)
+	var halves: Array[Vector2] = [Vector2(FindPath.point_to_node(point))]
+	return halves
+
+# A half cell's centre in pixels, and the half cell under a pixel.
+func half_to_pixels(h: Vector2) -> Vector2:
+	return h * MAP_GRID.cell_size / 2.0 + MAP_GRID.cell_size / 4.0
+
+func pixels_to_half(p: Vector2) -> Vector2:
+	return (p / (MAP_GRID.cell_size / 2.0)).floor()
+
+# Nothing on half cell `h`: inside the map, not border, obstacle, pond or Warden, not the start's or the
+# Heartwood's halves (the glade stays buildable).
+func is_buildable_half(h: Vector2) -> bool:
+	var cell := (h / 2.0).floor()
+	return (MAP_GRID.is_within_bounds(cell) and cell != startPath and cell != endPath
+		and not path_layer.is_half_blocked(h))
+
+# True if every half is buildable and blocking them all keeps the Heartwood reachable from the start and from
+# each route point in `also_from`. Otherwise block_refusal() says why.
+func can_block_halves(halves: Array, also_from: PackedVector2Array = PackedVector2Array()) -> bool:
+	_refusal = &""
+	for h in halves:
+		if not is_buildable_half(h):
+			_refusal = &"occupied"
+			return false
+	for h in halves:
+		path_layer.set_half_blocked(h, true)
+	var route := path_layer.find_path_from(startPath)
+	var ok := not route.is_empty()
+	if ok and not also_from.is_empty():  # Nightmares on the new route get there; search only for the others, once each
+		var on_route := {}
+		for point in route:
+			on_route[point] = true
+		for from_point in also_from:
+			if on_route.has(from_point):
+				continue
+			on_route[from_point] = true  # Searched (and fine if we go on)
+			if path_layer.find_path_from(from_point).is_empty():
+				ok = false
+				break
+	if not ok:
+		_refusal = &"closes"
+	for h in halves:
+		path_layer.set_half_blocked(h, false)
+	return ok
+
+func block_refusal() -> StringName:
+	return _refusal
+
+# The start's route if `halves` were blocked (empty = no way through). Changes nothing.
+func get_path_if_blocked_halves(halves: Array) -> PackedVector2Array:
+	var changed: Array = halves.filter(func(h: Vector2) -> bool: return not path_layer.is_half_blocked(h))
+	for h in changed:
+		path_layer.set_half_blocked(h, true)
+	var path := path_layer.find_path_from(startPath)
+	for h in changed:
+		path_layer.set_half_blocked(h, false)
+	return path
+
+# Blocks `halves` (call can_block_halves() first), redraws the route and notifies nightmares.
+func block_halves(halves: Array) -> void:
+	for h in halves:
+		path_layer.set_half_blocked(h, true)
+		environment_object_layer.erase_cell(Vector2i((h / 2.0).floor()))  # No grass detail under the Warden
+	path_layer.draw()
+	path_changed.emit()
+
+# Opens `halves` again (a Warden sold). Opening never cuts a route.
+func unblock_halves(halves: Array) -> void:
+	for h in halves:
+		path_layer.set_half_blocked(h, false)
+	path_layer.draw()
+	path_changed.emit()
+
+# Shifting Mist (heartwood_gifts.md 0c552b28): nightmares come from `new_start`, a rim cell, from now on. The
+# rim, mist and bridge move (EnvironmentObjectGenerator.move_start), the halves swap, the route is redrawn and
+# path_changed re-routes everything walking. Spawns read startPath, so they follow.
+func move_start(new_start: Vector2) -> void:
+	var old := startPath
+	if new_start == old:
+		return
+	environment_object_layer.move_start(Vector2i(old), Vector2i(new_start))
+	unwalkable_cells = environment_object_layer.unwalkable_cells
+	ground_layer.erase_cell(Vector2i(old))  # Rim cells have no ground under them; the start's rim sits on the ground layer
+	ground_layer.set_cell(Vector2i(new_start), EnvironmentTiles.ISLAND_EDGE,
+		Vector2i(EnvironmentTiles.rim_mask(Vector2i(new_start), Vector2i(MAP_GRID.size)), 0))
+	path_layer.set_cell_blocked(old, true)
+	path_layer.set_cell_blocked(new_start, false)
+	startPath = new_start
+	path_layer.cell_start_path = new_start
+	if layout != null:
+		layout.start = Vector2i(new_start)
+	if dream_void != null:
+		dream_void.move_bridge(environment_object_layer.bridge_end)
+	path_layer.draw()
+	path_changed.emit()
+
 # --- Obstacles ------------------------------------------------------------------------------------
 
 # The tree/rock on `cell`, or null.
@@ -492,4 +627,5 @@ func remove_obstacle(cell: Vector2) -> void:
 
 # Path from `cell` to the end, in cell coordinates. Used by enemies to re-route.
 func get_path_from(cell: Vector2) -> PackedVector2Array:
-	return path_layer.find_path_from(cell)
+	var tail := path_layer.route_tail(cell)  # On the current route: its tail, no search (every walker re-routes)
+	return tail if not tail.is_empty() else path_layer.find_path_from(cell)

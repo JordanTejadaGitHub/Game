@@ -62,6 +62,10 @@ static func catch(enemy: Node2D, scaled_dew: float) -> Tower:
 static func bowl_point(tower: Tower) -> Vector2:
 	var info := bowl_info(tower.tower_data)
 	var local: Vector2 = tower.tower_data.get_attack_origin()
+	if info.has("point") and info.has("frame"):
+		# Bigger art (Tower Assets 2c398d71): x in the frame's width, y from the top of the cell (its bottom 64 rows):
+		# relative to the Warden's cell centre, no sprite offset.
+		return tower.to_global(Vector2(info.point[0] - info.frame[0] / 2.0, info.point[1] - 32.0))
 	if info.has("point"):
 		local = Vector2(info.point[0] - 32.0, info.point[1] - 32.0)
 	return tower.sprite.to_global(local + tower.sprite.offset) if tower.sprite else tower.global_position + local

@@ -145,6 +145,27 @@ func get_tower_at(cell: Vector2) -> Tower:
 			return tower
 	return null
 
+# The Warden under a point on the map (pixels): by the half cell under it (half cells: a Warden at a
+# half offset covers parts of 4 whole cells).
+func get_tower_at_point(world: Vector2) -> Tower:
+	if not map_generator.has_method("pixels_to_half"):
+		return get_tower_at(MAP_GRID.calculate_grid_coordinates(world))
+	var half: Vector2 = map_generator.pixels_to_half(world)
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.get_halves().has(half):
+			return tower
+	# Bigger Wardens (art_direction.md "Bigger Wardens"): a click on a Warden's art above its footprint picks it, unless a
+	# nightmare is under the cursor (it wins). Overlapping art: the front-most (lowest on screen, drawn on top).
+	for enemy in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+		if is_instance_valid(enemy) and enemy.global_position.distance_to(world) <= MAP_GRID.cell_size.x * 0.4:
+			return null
+	var best: Tower = null
+	for tower in tower_container.get_children():
+		if tower is Tower and not tower.is_queued_for_deletion() and tower.is_tall() and tower._overhang_rect().has_point(world) \
+				and (best == null or tower.global_position.y > best.global_position.y):
+			best = tower
+	return best
+
 # Sells the Warden on `cell`. Returns false if there's none.
 func sell(cell: Vector2) -> bool:
 	var tower := get_tower_at(cell)
@@ -154,9 +175,12 @@ func sell(cell: Vector2) -> bool:
 	BranchKit.remember_rank(tower)  # Mother Log: its rank stays in the log for the next Warden on this cell
 	tower_container.remove_child(tower)
 	tower.queue_free()
-	for c in tower.get_cells():
-		map_generator.unblock_cell(c)  # Emits path_changed -> creatures re-route
-	tower_placer.settle(tower.get_cells())  # Settling ground: not plantable again for a moment (drifts only)
+	if map_generator.has_method("unblock_halves"):
+		map_generator.unblock_halves(tower.get_halves())  # Its half cells; emits path_changed
+	else:
+		for c in tower.get_cells():
+			map_generator.unblock_cell(c)  # Emits path_changed -> creatures re-route
+	tower_placer.settle(tower.get_touched_cells())  # Settling ground: not plantable again for a moment (drifts only)
 	run_state.earn_dew_at(refund, tower.position)
 	tower_sold.emit(tower, refund)
 	if selection.has(tower):
@@ -320,7 +344,7 @@ func grow_group(towers: Array, into: TowerData) -> int:
 # they're left out).
 static func _nurturable(tower, focus: Tower.Focus) -> bool:
 	return is_instance_valid(tower) and tower.can_nurture() \
-		and (focus == Tower.Focus.NONE or tower.focus_options().has(focus))  # Only a choice it can take
+		and (focus == Tower.Focus.NONE or tower.choice_available(focus))  # Only a choice it can take now (its own list; Kindred once)
 
 # The Wardens in `towers` that group Nurture would raise one rank each with the Dew there is,
 # nearest the Heartwood first (like group grow), and what that costs: [Array[Tower], cost].
@@ -635,14 +659,22 @@ func _input(event: InputEvent) -> void:
 		queue_redraw()
 		return
 	# A plain click: one Warden, or empty ground clears.
-	var tower := get_tower_at(MAP_GRID.calculate_grid_coordinates(_press_world))
+	var tower := get_tower_at_point(_press_world)
 	if _press_shift:
 		if tower != null:
 			_add_or_remove([tower])
 	else:
 		select(tower)
 
+# What the range ring was last drawn for: a grow, a rank or a 2×2 move changes the ring at once (user: "a bit of
+# pause when a warden upgrades in terms of its UI range indicator": it waited for the mouse to change cells).
+var _ring_key := []
+
 func _process(delta: float) -> void:
+	var ring_key := [selected.tower_data, selected.rank, selected.position] if selection.size() == 1 and is_instance_valid(selected) else []
+	if ring_key != _ring_key:
+		_ring_key = ring_key
+		queue_redraw()
 	if not _blooms.is_empty():
 		for bloom in _blooms:
 			bloom[1] -= delta
@@ -656,10 +688,13 @@ func _process(delta: float) -> void:
 	if _dragging:
 		queue_redraw()
 	var cell: Vector2 = MAP_GRID.calculate_grid_coordinates(get_global_mouse_position())
-	if cell != _hover_cell:
+	var half: Vector2 = map_generator.pixels_to_half(get_global_mouse_position()) if map_generator.has_method("pixels_to_half") else cell
+	if cell != _hover_cell or half != _hover_half:
 		_hover_cell = cell
-		_hover_tower = get_tower_at(cell)
+		_hover_half = half  # Half cells: a Warden at a half offset changes within a whole cell
+		_hover_tower = get_tower_at_point(get_global_mouse_position())
 		queue_redraw()
+var _hover_half := Vector2(-1, -1)
 
 
 # --- Drawing --------------------------------------------------------------------------------------------
@@ -669,6 +704,12 @@ func _draw() -> void:
 		# Aura Wardens: exactly who gets the aura (AuraView); a boosted Warden: lines back to its boosters.
 		if AuraView.is_aura(selected.tower_data):
 			AuraView.draw_selected(self, selected, false)  # Its area and who it boosts (BuffOverlay labels the threads)
+		if selected.attack_data != null and selected.attack_data.special == BranchKit.BROOD:
+			# Brood Cap: the stretch its sprites walk, from the hatch spot to where they give up.
+			var walk := BranchKit.brood_walk(selected._route(), selected.global_position, BranchKit.p(selected, "sprite_speed", 3.0))
+			for i in walk.size():
+				walk[i] = to_local(walk[i])
+			BranchKit.draw_brood_walk(self, walk, true)
 		# The attack range: a thin, unfilled circle (a warm fill read as "everything in here is boosted").
 		if selected.tower_data.can_attack:
 			draw_arc(selected.position, selected.get_range_pixels(), 0.0, TAU, 64, Color(SELECTED_COLOR, 0.45), 1.5)
@@ -701,7 +742,7 @@ func _draw() -> void:
 		draw_rect(box, Color(SELECTED_COLOR, 0.8), false, 1.5)
 	if _hover_tower == null or _dragging:
 		return
-	var center: Vector2 = MAP_GRID.calculate_map_position(_hover_cell)
+	var center: Vector2 = _hover_tower.position  # The Warden itself (it may sit between cells)
 	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
 	var label := _hover_tower.tower_data.display_name  # Just the name (text_style.md: no hints on hover)

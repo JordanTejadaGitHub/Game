@@ -270,7 +270,7 @@ func _run() -> void:
 	walker.global_position = Tower.MAP_GRID.calculate_map_position(route[10])
 	tangle.pull(walker, 1.0)
 	_check(is_equal_approx(slog.get_stats(tangle).tiles_pulled, 1.0 + Tower.PATIENT_ROOTS_PULL * dreams.rule_power(&"patient_roots")), "Patient Roots: pulls further, credited (%.2f)" % slog.get_stats(tangle).tiles_pulled)
-	_check(slog.get_panel_line(tangle).begins_with("Held "), "control panel line (%s)" % slog.get_panel_line(tangle))
+	_check(slog.get_panel_line(tangle).begins_with("Rooted "), "control panel line (%s)" % slog.get_panel_line(tangle))
 	_check(not slog.get_support_rows("run").is_empty() and not slog.get_top_support("run").is_empty(), "support rows and a top supporter")
 	await _clean_towers()
 	await _clean()

@@ -1,0 +1,15 @@
+{
+	"title": "Kit: early game",
+	"note": "Editor kit (the user edits): act 1, drift 3, a few Sprouts and Thornwalls, a short route, a handful of Shades. Pairs with kit_late_game_v (same camera logic: zoom 2 following the crowd).",
+	"seed": 4242, "size": [1080, 1920], "drift": 3, "dew": 999, "obstacles": "edge", "families": ["sporeling"], "hud": "none", "length": 20.0,
+	"timeline": [
+		{"t": 0.0, "camera": "hold", "at": "start", "zoom": 2.0},
+		{"t": 0.0, "plant_each": 0.05, "count": 6, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 3, "plant": "sprout", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 2, "plant": "sporeling", "auto": "cover", "tag": false},
+		{"t": 0.5, "dew": 45},
+		{"t": 0.5, "start": true},
+		{"t": 1.0, "spawn": "leaf_bug", "count": 6, "progress": 0.0, "spread": 1.5},
+		{"t": 1.5, "camera": "follow", "target": "leaf_bug", "zoom": 2.0}
+	]
+}

@@ -24,7 +24,8 @@ const STATUSES := {
 	&"hidden": ["Hidden", "Can't be seen or targeted until something reveals it, or it comes close."],
 	# Hushbell's silence (BranchKit.silence; EnemyStatuses.silence_time): the numbers are checked against the data in
 	# test_text_style (Silence's linger, the Vespers toll, Enemy.BOSS_SILENCE_SPEED).
-	&"silenced": ["Silenced", "Its abilities stop while a Hushbell's song reaches it, and for 2 s after a Silence or a Vespers toll: the Watcher can't wake, Weepers can't mend, a Lantern Bearer goes dark and its Wraiths are lost. Bosses run their timed abilities at half speed."],
+	# User: "Silenced still doesn't make sense from the Codex": what it does first, the edge cases after.
+	&"silenced": ["Silenced", "It can't use its abilities. A Watcher can't wake, a Weeper can't heal, and a Lantern Bearer's lantern goes dark, so its Wraiths lose their way. Bosses still fight, but their timed abilities come at half speed.\nLasts while a Hushbell's song reaches it. A Silence (Hushbell's next form) or a Vespers toll keeps it 2 s longer."],
 }
 const STATS := {
 	&"damage": ["Damage", "How much each hit deals."],
@@ -44,7 +45,7 @@ const STATS := {
 }
 const RESOURCES := {
 	&"dew": ["Dew", "Spent on Wardens, growth, Nurture and clearing. Earned by dispelling nightmares and at rests."],
-	&"dreamlight": ["Dreamlight", "Unlocks branches, final forms and Ascended forms on the Remember screen (at rests)."],
+	&"dreamlight": ["Dreamlight", "Unlocks branches, final forms and Ascended forms on the Remember screen (open it any time; a drift pauses)."],
 	&"leaves": ["Leaves", "The Heartwood's life: a nightmare that reaches it takes leaves. Lose them all and the dream goes dark."],
 	&"seeds": ["Seeds", "Earned every run, win or lose; spent in the Memory Grove."],
 	&"path": ["Path length", "How many cells the nightmares walk. Longer is better."],
@@ -311,7 +312,7 @@ static func cost_text(kind: String, warden_id: String) -> String:
 	var data := load(path) as TowerData if ResourceLoader.exists(path) else null
 	if data == null:
 		return warden_id
-	return str(data.evolve_cost if kind == "grow_cost" else data.cost)
+	return str(data.get_grow_price() if kind == "grow_cost" else data.cost)
 
 static var _cost_regex: RegEx = null
 static func _cost_pattern() -> RegEx:

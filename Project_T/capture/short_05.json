@@ -1,0 +1,17 @@
+{
+	"title": "One leaf left.",
+	"note": "Cut list: one jump cut over the long approach (Marketing's retention note; never sped up). Clip short_05_take: 0-9 s, then 15-25 s; the elite Husk is dispelled ~2.8 cells from the Heartwood at take ~22.4 s = ~16.4 s here.",
+	"size": [1080, 1920],
+	"cuts": [
+		{"clip": "short_05_take", "from": 0.0, "to": 9.0},
+		{"clip": "short_05_take", "from": 15.0, "to": 25.0}
+	],
+	"end_button": "D:/Projects/Game/marketing/music/endcard_button_full.wav",
+	"music": ["base", "dread1", "heartbeat"],
+	"captions": [
+		[0.0, 2.0, "One leaf left."],
+		[2.0, 9.0, "One more nightmare at the tree and the run's over."],
+		[9.0, 16.2, "Come on..."],
+		[16.2, 19.0, "Dispelled. On the doorstep."]
+	]
+}

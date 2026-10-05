@@ -215,6 +215,34 @@ func _run() -> void:
 	main.get_node("MapGenerator").map_seed = 777
 	_check(no_carry_offers.is_empty(), "every offered pair holds a damage branch (%s)" % [no_carry_offers])
 
+	# The hidden branch is never one of the drawn 2 (user: "the hidden branch shouldn't be one of the chosen branches"):
+	# Firefly Jar's Sunpetal, once planted, is a 3rd lane on top; never in the "Not in this dream" strip
+	var firefly: TowerData = load("res://resource/tower/firefly_jar.tres")
+	var sunpetal: TowerData = load("res://resource/tower/sunpetal.tres")
+	var sunpetal_card := dreams._unlock_card_for(sunpetal)
+	var hidden_drawn := 0
+	var lane_missing := 0
+	dreams.unlocked["firefly_jar"] = true
+	if sunpetal_card != null:
+		dreams.grove_cards.append(sunpetal_card.id)
+	for s in 30:
+		main.get_node("MapGenerator").map_seed = 4000 + s
+		dreams.branch_offers.erase("firefly_jar")
+		var drawn: Array = dreams._compute_branch_offer(firefly)
+		hidden_drawn += 1 if drawn.has("sunpetal") else 0
+		var firefly_offer: Array = dreams.get_branch_offer(firefly)
+		if not firefly_offer.has("sunpetal") or firefly_offer.size() != 3:
+			lane_missing += 1
+		if dreams.not_offered_branches(firefly).has(sunpetal):
+			lane_missing += 1
+	_check(dreams.is_hidden_branch(sunpetal) and not dreams.regular_branches(firefly).has(sunpetal), "Sunpetal is Firefly Jar's hidden branch, outside the draw")
+	_check(hidden_drawn == 0 and lane_missing == 0, "the 2 drawn are never the hidden one, and planted it's always the 3rd lane (%d drawn, %d missing)" % [hidden_drawn, lane_missing])
+	if sunpetal_card != null:
+		dreams.grove_cards.erase(sunpetal_card.id)
+	dreams.branch_offers.erase("firefly_jar")
+	main.get_node("MapGenerator").map_seed = 777
+	dreams.unlocked.erase("firefly_jar")
+
 	# Wider Roots (Grove perk, meta_design.md 1f25e66e): the first family picked offers 3 of its branches, and calling
 	# one of its others back costs 4; the first pick's cards preview the 3
 	var wide := _form("test_wide", 1)

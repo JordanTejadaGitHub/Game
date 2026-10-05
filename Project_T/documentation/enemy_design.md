@@ -147,19 +147,19 @@ nightmares' family tally below (they're one fight each, not a drift's worth of h
 - **The Night Mare** (act 1). *Laps:* reaching the Heartwood costs 3 leaves (not 5), then it
   reappears at the start at +20% speed (stacking). It keeps its damage taken, so every lap is
   progress. *Bolt* (at half health): 3 s of +50% speed, once. Escort: 10 Shades ahead, 4 Husks
-  behind. Dispelled: *"The Night Mare is gone. The hoofbeats fade, and the dream is still."*
+  behind. Dispelled: *"The last hoofbeat lands, and doesn't echo."*
   Memory: **The Carousel Horse**, a painted wooden horse from a child's dream; nightmares passing it
   slow down as if caught on the carousel.
 - **The Scarecrow** (act 1). *Crows:* 5 at 80/60/40/20% health (and 5 more when dispelled): 40
   health each (× drift growth), speed 150, walk the maze from where the Scarecrow is. *Stitched:*
   below 40% it walks 25% faster. Escort: 8 Shades, then the Scarecrow, then 3 Mourners. Dispelled:
-  *"The Scarecrow falls. The crows scatter, and they don't come back."* Memory: **The Harvest Doll**,
+  *"The pole tips over in the grass. One crow stays behind to pick at the straw."* Memory: **The Harvest Doll**,
   a little corn doll that birds love; Talon damage from the crows nesting in it.
 - **The Huntsman** (act 2). *Pack:* 4 Night Hounds walk around him (they count as normal Night Hounds
   and sprint on straights). The half-damage shield shows as a faint ring linking him to each hound.
   *The Kill* (at half health): he blows three times and all missing hounds return at once, then no
-  more horns. Escort: 6 Night Hounds ahead, 2 Processions behind. Dispelled: *"The horn falls
-  silent. The hunt is over."* Memory: **The Old Hound**, a faithful grey dog spirit that runs down
+  more horns. Escort: 6 Night Hounds ahead, 2 Processions behind. Dispelled: *"The horn drops into the
+  bracken. Somewhere, a hound lies down to sleep."* Memory: **The Old Hound**, a faithful grey dog spirit that runs down
   the nightmare closest to the Heartwood.
 - **The Lamplighter** (act 2). *Lanterns* (as built 2026-09-29): up to 4 at once, on empty cells
   beside its route, never on the route or a Warden (they don't block at all, they're a light). Each
@@ -185,8 +185,8 @@ nightmares' family tally below (they're one fight each, not a drift's worth of h
 
 The Hollow's heart takes the shape of its grief: **Thorned** keeps everyone out, **Withering** lets
 everything die, **Remembering** can't let go. All three are the Hollow Oak: same silhouette (a
-walking oak on its roots), same slow walk (35), same finale (*"The Hollow Oak is still. Somewhere
-beyond the dream, the Hollow remembers."*), no Memory Warden. Drawn at run start like the other
+walking oak on its roots), same slow walk (35), same finale (*"It's still. Far off, something
+sighs."*; text pass 2026-10-04), no Memory Warden. Drawn at run start like the other
 bosses and shown from drift 76; **a player's first act 4 is always Thorned** (the story's version,
 described in `acts_3_4.md`). **Blight Level 10** ("The Hollow Oak remembers") works for every
 variation: it rises once more at half health with its trait twice as fast.
@@ -213,6 +213,30 @@ you drafted first always has a variation it's good against.
 
 Dispelling a boss is a big moment: it shatters with light, extra Dew, and a line of text; the
 Heartwood recovers a lost memory (a new Warden family).
+
+### Boss text (text pass 2026-10-04, `text_pass.md` "Bosses")
+
+The source for every boss's `title`, `cleanse_line` (the defeat line) and `tips` (Enemy Code copies
+them into the `.tres`; whispers and abilities unchanged). Rules from the audit: **tip counts vary
+(2–4); a closing proverb on two bosses only** (the Hollow Stag and the Barrow King); **defeat lines
+are concrete and each different**, never "X is gone. Y."; **"the X that Y" titles on two bosses
+only** (Night Mare, Moth Queen). A weakness no longer needs a tip: the dossier shows it as an icon.
+The three Hollow Oak forms share one defeat line on purpose: it's the same Oak and the same ending.
+
+| Boss (file) | Title | Defeat line | Tips |
+|---|---|---|---|
+| Hollow Stag (`old_stag`) | the gaunt king of the old wood | The ghost-fire gutters out and the antlers crumble to ash. In the Heartwood, an old memory stirs. | 1. It tramples walls in its path: don't let the whole maze hang on one wall. 2. Break up long straights with turns: it charges down every straight of 4 cells or more. 3. Rain douses the ghost-fire in its antlers. |
+| Night Mare (`night_mare`) | the hoofbeats that never stop | The last hoofbeat lands, and doesn't echo. | 1. It can only be hurt on the path, never at the Heartwood: every lap is another pass through your whole maze, so make it long. 2. It keeps the damage it's taken, so each lap brings it closer to the end. |
+| Scarecrow (`scarecrow`) | the stitched thing in the far field | The pole tips over in the grass. One crow stays behind to pick at the straw. | 1. Hit it where many things can be hit at once: the Crows come in flocks. 2. The Crows fly the path over your walls: Wardens all along the maze can reach them. |
+| Mire Hag (`great_toad`) | the drowned witch of the deep fen | The fen goes still. The frogs, cautiously, start up again. | 1. She skips ahead: Wardens gathered in one spot will miss her. 2. Spread Wardens along the whole route, so wherever she surfaces something is in reach. 3. Where she surfaces, nightmares come up {damp}, and lightning loves the {damp}. 4. Her skips get quicker once she's badly hurt. |
+| Huntsman (`huntsman`) | the rider without a face | The horn drops into the bracken. Somewhere, a hound lies down to sleep. | 1. Break the pack first, then the rider: with no hound near him, he takes full damage. 2. The Night Hounds sprint down straight corridors: give them corners. 3. At half health the whole pack comes back at once: save something for it. |
+| Lamplighter (`lamplighter`) | the keeper of the cold flame | The cold lanterns go out, one by one. | 1. Don't put everything in one place: its lanterns dim whole clusters. 2. Snuff the lanterns that fall among your strongest Wardens. 3. A lantern burns out on its own; snuffing one by hand pays a little Dew. |
+| Moth Queen (`moth_queen`) | the wings that close the sky | Her wings burn white and come apart into a thousand small moths, flying off every way at once. | 1. She follows your maze from above: the longer it winds, the longer your Wardens have her. 2. Something that reveals the hidden keeps the field in sight through the Eclipse. |
+| Barrow King (`barrow_king`) | the king under the hill | The Barrow King lies down again, and this time he sleeps. | 1. Statuses won't last on him: hit hard between his shrugs. 2. Burst him down before the dead rise. 3. Roots pull him back into his barrow. |
+| Mourning Mother (`mourning_mother`) | the mother of every Weeper | She stops weeping. For the first time, the Hollow is quiet. | 1. Leave no quiet stretch in your maze: every gap lets her heal. 2. Her children mend too: don't let them walk beside her. |
+| Hollow Oak: Thorned (`hollow_oak`) | the Hollow's grieving heart | It's still. Far off, something sighs. | 1. Its Thorn-Saplings reshape the path: leave yourself room to adapt. 2. When it grieves, a crowd rises at once: be ready to hit many. |
+| Hollow Oak: Withering (`hollow_oak_withering`) | the Hollow's heart in drought | It's still. Far off, something sighs. | 1. Cover every stretch twice: a maze that leans on one great Warden stalls. 2. It picks the strongest Warden near it, never the same one twice running. 3. Withered Wardens come back on their own after a few seconds. 4. Badly hurt, it withers three at once. |
+| Hollow Oak: Remembering (`hollow_oak_remembering`) | the Hollow's heart, wearing faces | It's still. Far off, something sighs. | 1. Its echoes are the great nightmares you dispelled this run, with all their tricks. 2. Every echo walks your whole maze again. 3. Remember how you beat them the first time. |
 
 ## Resistances
 

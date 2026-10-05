@@ -94,6 +94,9 @@ static func create_tile_set(act: int = 1) -> TileSet:
 				if id == WITHERED_TREE:
 					source.set_tile_animation_speed(coords, TREE_SPEEDS[row % TREE_SPEEDS.size()])
 				_anchor_bottom(source, coords, region)
+				if id == WITHERED_TREE:
+					source.get_tile_data(coords, 0).y_sort_origin = TREE_SORT_BIAS
+					_add_fade_alternatives(source, coords, region, grid.y)
 		else:
 			for row in grid.y:
 				for column in grid.x:
@@ -101,6 +104,33 @@ static func create_tile_set(act: int = 1) -> TileSet:
 					_anchor_bottom(source, Vector2i(column, row), region)
 		tile_set.add_source(source, id)
 	return tile_set
+
+# Withered Trees fade their overhang over what's behind them (TallObstacleFade): alternative tiles
+# 1..FADE_STEPS at FADE_ALPHAS[step]. They share the base tile's animation. A nightmare, the hover or the ghost behind
+# the tree fades it to FADE_STEP_SEEN; a Warden behind fades it further (FADE_STEP_WARDEN): at 45% the trunk left a
+# pale sliver across the Warden's middle (story chat, trail_fade_a966f314).
+const FADE_ALPHAS: Array[float] = [1.0, 0.8, 0.62, 0.45, 0.3, 0.18]
+const FADE_STEPS := 5
+const FADE_STEP_SEEN := 3  # 45%
+const FADE_STEP_WARDEN := 5  # 18%
+const FADE_ALPHA := 0.45  # FADE_ALPHAS[FADE_STEP_SEEN]
+# Withered Trees sort a pixel earlier than anything standing in their own row, so a Warden or nightmare beside a tree
+# draws over its 16 px side overhang (a tie used to go to the tree: branches over a plinth corner).
+const TREE_SORT_BIAS := -1
+const FADE_SHADER := preload("res://shaders/obstacle_fade.gdshader")
+
+static func _add_fade_alternatives(source: TileSetAtlasSource, coords: Vector2i, region: Vector2i, rows: int) -> void:
+	for step in range(1, FADE_STEPS + 1):
+		var alternative := source.create_alternative_tile(coords, step)
+		var material := ShaderMaterial.new()  # Per tile set (no static Resources: they crash at exit)
+		material.shader = FADE_SHADER
+		material.set_shader_parameter(&"top_alpha", FADE_ALPHAS[step])
+		material.set_shader_parameter(&"rows", float(rows))
+		material.set_shader_parameter(&"top_share", float(region.y - SIZE.y) / region.y)
+		var data := source.get_tile_data(coords, alternative)
+		data.material = material
+		data.texture_origin = source.get_tile_data(coords, 0).texture_origin
+		data.y_sort_origin = TREE_SORT_BIAS
 
 # A big tile (96×128) puts its bottom 64 px rows on its own cell, centred; the rest overhangs the cells around.
 static func _anchor_bottom(source: TileSetAtlasSource, coords: Vector2i, region: Vector2i) -> void:

@@ -18,7 +18,7 @@ These replace the older targets below for the **full game**; the demo keeps the 
 | Fresh profile | usually dies in **act 2–3** |
 | Act 4 | a real test |
 | Every block | can kill you; the **block finale** (last drift, ×1.4 health + elites) costs an average maze ~1 leaf; a clean finale earns a Rare+ Dream slot |
-| Bot, fresh, act 1 boss (full game, real boss draw) | Balanced **~55–60%** survive, skip **≤ 15%** |
+| Bot, fresh, act 1 boss (full game, real boss draw) | Balanced **~55–60%** survive, skip **≤ 15–20%** |
 | Grove | a full carried loadout adds **≤ +10–15 points** of bot survival / reach over no perks (measured +15) |
 | Combos + Reactions | **~25–40%** of a good build's damage (`combo_share`) |
 | Damage branches | **0.8–1.0× Driftspore** per Dew on the fixed board (drift 45); a drawn branch must match the one it replaces |
@@ -755,6 +755,123 @@ were at 0.1–0.4 of the route, nothing near the Heartwood.
   one elite as a small first spike). The demo is unaffected.
 - Nestling isn't expanded yet (the sky merge is Phase 3), so both branches were offered and the user picked
   the support. Not a draw issue; watch whether Magpie Perch reads as a trap first pick.
+
+## Half-cell placement: the re-check plan (2026-10-04; half_cells.md, experiment until the user says yes)
+
+Once it merges (Wardens at half-cell offsets, nightmares on a 32 px grid, 1-cell corridor minimum), re-check
+on the merged build, at low sim load while the user may play:
+1. **Route length:** the opening route, the route at drifts 24 / 45, and "+N path" units (cells vs half cells).
+   Mazes are expected to be longer, which eases every drift.
+2. **Act 1 baseline:** fresh Balanced / skip, 30 seeds, --boss-draw, finale leaves (targets as the Current
+   targets table).
+3. **Each act 1 boss forced** (Stag, Night Mare, Scarecrow), 20 seeds; the Stag's trample and the Night
+   Mare's laps on longer routes.
+4. **Time in range:** per-form probes for close-range and pulse Wardens (they gain most from hugging walls).
+5. **Rootling pulls:** the "two pulls = one drag" test in tiles walked (half steps).
+6. **Cell-measured things:** auras, Kinship reach, gift areas, Deeproot's guard ring. They stay in full cells
+   by spec, so check only that they read the same.
+Lever if mazes grow a lot: act 1 ramp / finale health, not Warden numbers.
+
+**Item 1, routes + act 1** (0596eb94; the bot made half-aware in the same commit, 30 seeds per bot): half-aware
+mazes are **+7% (opening) to +12% (drift 24)** longer (83 vs 74 cells at 24). Act 1 survival is **73% with
+either bot**, so **half cells barely move act 1**. The jump from 53% (84bbaf44) comes from the changes in
+between (finale ×1.4 from drift 15, finale elites without ×1.4, the Firefly Jar buff, Nurture): now **above
+the 55–60% target**. Held until the skip arm: if skip also rises well above 15%, act 1 tightens (the ramp or
+the drift 20 finale); humans (runs 15–16) still end in act 2 and found it fair.
+**Item 2, skip:** **43%** (target ≤ 15%; it was 0% on 175058a0); finales 10 / 15 cost 0.03 / 0.07 leaves.
+**Act 1 tightens: `act1_health_multiplier` 1.15 → 1.30** (full game only; the demo keeps 1.15 via
+DEMO_RULES; in 4e8162d2). Expected: Balanced ~60%, skip ~20%; re-run both after.
+**Corridor rule changed** (user, half_cells.md 04c10c33): nightmares fit through one-half gaps, so mazes can be
+denser and longer. The ×1.30 checks (Balanced, skip, bosses) are held for that build; the current results
+read the old one-cell corridor rule.
+**Act 1 on 1768f778** (one-half gaps + ×1.30; half-aware bot with pair search; 30 seeds): Balanced **60%** ✓,
+skip **10%** ✓ (both in band). Route: base 40, opening 51, drift 24 ~80 cells (human run 17: 68). The drift
+20 finale is act 1's real test (1.2 leaves Balanced, 4.4 skip). **×1.30 stays.** The bosses and the demo follow.
+**Act 1 bosses forced** (same build, 20 seeds each): survived **Stag 75%, Night Mare 70%, Scarecrow 60%** ✓ all
+near target; the Scarecrow is the hardest (its drift costs 2.7 leaves, the drift 20 finale before it 1.8). The
+Night Mare's losses are laps / drain, not leaks. No change.
+**Demo** (one-half gaps, demo ×1.15, 20 seeds): Balanced **80%** ✓, skip **65%** (band 25–45%; 3 runs from 50%).
+**Kept**: the demo is the gentle intro, and Balanced being in band matters more. **The half-cell re-check is
+closed**. Rootling: Rootcurl 1 tile per pull, two pulls = one drag (2 tiles) ✓; Long Way Home pulls 4 tiles by design (the final's lever since 54155266; the "3" in warden_stats.md was stale), test tightened to 3.5–4.5.
+**Item 3, demo** (0596eb94, old corridor rule, 20 seeds): Balanced **100%**, skip **50%** (pre-merge 70% / 40%;
+band 75–85% / 25–45%), route at 24 ~86 cells. Half cells plus the Firefly / Nurture changes eased the demo
+too. Held with the full game for the new corridor rule (which lengthens mazes further); then the demo's
+own DEMO_RULES act 1 value gets a step if it stays above band.
+
+## Milestone thresholds (2026-10-04; milestones give bonus Seeds only, meta_design.md 269b14b0)
+
+Checked against the user's profile and run history: shades_dispelled 577 after a few real runs; a drift-42
+run dispels ~1,200 nightmares (~700 Shades). **Shades 3,000** total (was 2,000: the third good run); **path 130
+tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–57, bot mazes ~80 at drift 24);
+**tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
+`longest_path` / `tended` requested in the run history to re-check.
+
+## Pricier growing (user, 2026-10-04: "make growing your Wardens more expensive, make the player rely on making more Wardens early instead of saving")
+
+Intent: in acts 1–2 the best use of Dew is **more Wardens** (a longer maze, more coverage); growing becomes a
+mid/late sink, not something saved up for by drift 6 (human run 18 banked 1,340 by drift 20). Starting values,
+as exports for A/B (Tower Code): **branch ×1.5 (120 → 180), final ×1.5 (300 → 450), Ascended ×1.0 (600)**,
+Nurture **30 / 48 / 60 / 90 / 135** (+20% on the first two). The demo gets them too. In f9fd8526 (DreamState exports); **wall-line forms (Honeysuckle…) exempt** (more maze early is the point). Measured: Wardens owned at
+10 / 25, Dew banked per rest, the first-grow drift, act 1 survival (base Wardens now carry more of act 1).
+**Constraint (user):** no across-the-board damage raise to match (that brings saving back); if the late game
+gets too hard, compensate on **final forms only (~+10–15% damage)**. Act 1 has no finals, so an act 1 drop is
+answered on the curve (act 1 health), not on Warden damage.
+**First arms** (4497566a, 30 seeds): old costs 60%, new costs **37%** for the default bot. It plants the same
+Wardens (its room target is drift-based) and **never reaches a branch in act 1** (banks ~40–50 vs a 180 branch).
+The spender arm (plants when it can't afford a growth) is the real test; it's running.
+**Spender results:** new costs **100%**, old costs **100%** (zero leaks, ~80 attackers + ~50 walls by drift 25).
+Skip on new costs 0%; the demo, default bot 80% → 25%. **Mass-planting base Wardens already dominated act 1 at
+any grow price**; the default bot only looked balanced because its room target capped it at 13 attackers.
+**User decision: copies cost more**: each planted Warden costs **+5% per copy of the same kind** on the map
+(family base Wardens; walls and Sprouts exempt: Sprouts already escalate +4 per 5 and the opening needs 5 at 12; `TowerPlacer.copy_cost_step`; in a7525077). A/B queued: the default bot, the spender, skip, and the
+spender without the step, on the new grow prices.
+
+## Human run 18 (2026-10-04, build 5d8f3f = 7762f0cd; 0 Grove)
+
+**Lost at drift 35**, 9 min; user: *"feels fine so far."* Bellflower → Sporeling; **2 Thrums = 66% of damage**
+(Thrum at 70 is a real carry now); 3 Dreamshrooms; combos 22%. **Longest path 47 cells** (a short maze);
+**Dew banked up to 1,340 at drift 20** (saved for act 2). Act 1 closest 0.14–0.28 throughout, **15/15 leaves
+to 24**; the Night Mare at 25 cost 5 (41 s). Act 2 calm (≤ 0.24) until **drift 31, the Phantoms' intro (5
+flyers leaked) and 32 (5 more): 7 leaves**, the run's end. No anti-air in this pair of families.
+- On target (a fresh profile ends in act 2), and the user finds it fair. **No change.**
+- Act 1 at ×1.30 still reads calm for this player with a carry (the bot sits at 60%); watch, don't tune yet.
+
+## Human run 17 (2026-10-04, build a4bd05 = 0b41c1ed: act 1 ×1.30, half cells, one-half gaps; 0 Grove)
+
+**Lost at drift 40**, 16 min; user: *"didn't play too much"* (drift 2 took 152 s; **1,000–1,337 Dew unspent**
+from drift 37). Bellflower → Sporeling; Brood Cap / Chime Stones / Silver + Vesper Bells; combos 34%.
+Longest path **68 cells**. **Act 1 at ×1.30 still read very calm** (closest 0.14–0.22 most drifts, 0.46–0.70
+only at the finales; the Stag in 15 s). Act 2 calm to 37 (≤ 0.45), then **38: 13 leaks / 6 leaves, 39: 8**,
+dead at 40.
+- A low-attention run (Dew left unspent), so not used to tune.
+- **Pattern across runs 15–17:** full leaves deep into act 2, then a collapse at 38–40. Watching it: if the
+  next attentive run repeats it, act 2's last third (37–45, 3.45 → 4.5) gets smoothed.
+
+## Human run 16 (2026-10-03, build 0848cb = 27c658f7, the real profile with 0 Grove nodes)
+
+**Lost at drift 42**, 13 min. Firefly Jar → Dewdrop; **2 Starbursts = 53% of damage**, 7 Sparklers, 3
+Cloudlets. **Combos 41%** of damage (the top of the 25–40% target). **15/15 leaves through drift 39**, no leak
+before 40; the Hollow Stag in 22 s; act 2 closest mostly 0.2–0.4. Then **the drift 40 finale: 9 leaks, 13
+leaves in one drift** (its 3 elites at ×3 × 1.4 = ×4.2 health), and 41–42 finished it. Kills sat at 0.0–0.3 of
+the route, Heartwood share 0%.
+- On target: a fresh profile ending in act 2 ✓.
+- A full-leaf run losing almost everything to one finale is a cliff: **the finale's ×1.4 no longer stacks on
+  its elites** (elites keep ×3; in 577f62b0).
+
+## Nurture rework (2026-10-03, tower_design / warden_stats 02417f32; in e2631f54, boss side 0a309566)
+
+Numbers: Keen +10% crit chance per rank (cap 75%); Yield +1 alive per 2 ranks (Brood Cap, Seedbearer), Dream
+Oak +0.5 shard / drift per rank; Reach +0.3 cells; Deep caps (pull 1.5×, grounding 5 s, link 50%, boss
+slow floor 0.35); supports Prism +2%, Acorn +1%, Nurse Log +3% (40% max). **Probe** (rank V, no Dreams):
+**Keen 0.61–0.82× Power** per Dew; **Brood Cap Yield 0.56×** (max-alive rarely binds). Changes: **Keen also
++10% crit damage per rank**; **Brood Cap Yield = sprite interval −0.25 s per rank** (floors 0.75 / 0.5 s; in b1e28266). **Re-run:** Keen 0.87–0.91× Power (Moonstone 0.64: already 25% crit, Power is its pick; accepted); Brood Yield 0.78× → **+8% sprite burst per rank** too (dc26dea0): Brood Yield now **1.09× Power** (leak 0.228 vs 0.211) ✓. Nurture tuning closed.
+
+## Human run 15 (2026-10-03, 83d9b3b0 → 5692de; before the finale-health fix, Dev Grove: Full)
+
+**Lost at drift 39**, 18 min. Pebbling → Rootling; 7 Mossbacks carried (from combos 26–34%); run combo share
+**23%** (near the 25–40% target). Act 1 calm (closest ~0.3–0.5) except the finales (10: −3, 15: −2); the
+Hollow Stag in 23 s; act 2 calm to 29, then **the drift 30 finale −6**, and 38–39 the rest. Kills at 0.2–0.4 of
+the route. User: **"Feels fine, keep it for now. Needs a bit more testing."** No change.
 
 ## Human run 14 (2026-10-03, same build, Dev Grove: Full)
 
