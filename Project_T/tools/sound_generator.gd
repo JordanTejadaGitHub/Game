@@ -1639,15 +1639,21 @@ func _make_score_act1() -> void:
 				_mix(s, _filter(_filter(wings, r, 900.0, 0.7), r, 900.0, 0.7), r, bar * SCORE_BAR + 3 * e, 1.2)
 		return s), 0.5, false, loop)
 
-	# 5. The Hope form D-A-F# on music box + harp, landing on D major (a boss dispelled), ~3 bars.
+	# 5. A boss dispelled: "the turn" (audio_direction.md 8c083a71), never a dead stop. Under the boss
+	# dispel's bloom the bowed bass holds the hollow motif's A-flat and rises a half step to A, a deep warm
+	# swell rings, and the Hope form D-A-F# grows out of it on music box + harp, landing on D major.
 	_music_once("mus_once_act1_hope", _own("hope_act1", func() -> PackedFloat32Array:
-		var s := _seg(SCORE_BAR * 3 + 3.0, r)
+		var lead := 0.8  # The Hope form enters inside the turn
+		var s := _seg(lead + SCORE_BAR * 3 + 3.0, r)
+		_mix(s, _env(_bowed(r, 44, 1.0, 380.0), r, swell(0.05, 0.3, 1.0)), r, 0.0, 0.6)  # A-flat …
+		_mix(s, _env(_bowed(r, 45, 4.5, 380.0), r, swell(0.3, 2.5, 4.5)), r, 0.7, 0.6)  # … rising to A
+		_mix(s, _env(_score_pad([38, 4], 6.0), r, swell(0.4, 4.0, 6.0)), r, 0.0, 0.08)  # The deep warm swell
 		for k in 3:
-			_mix(s, _bell(r, hz([74, 81, 78][k]), 0.32, 1.0, MUSIC_BOX, 3.0), r, k * beat)
+			_mix(s, _bell(r, hz([74, 81, 78][k]), 0.32, 1.0, MUSIC_BOX, 3.0), r, lead + k * beat)
 		for k in 5:
-			_mix(s, _pluck(r, hz([50, 57, 62, 66, 69][k]), 0.34, 5.5, 0.7, 0.998), r, SCORE_BAR + k * 0.08)
-		_mix(s, _bell(r, hz(74), 0.32, 1.6, MUSIC_BOX, 5.0), r, SCORE_BAR)
-		_mix(s, _score_pad([50, 4], 7.0), r, SCORE_BAR * 0.5, 0.06)
+			_mix(s, _pluck(r, hz([50, 57, 62, 66, 69][k]), 0.34, 5.5, 0.7, 0.998), r, lead + SCORE_BAR + k * 0.08)
+		_mix(s, _bell(r, hz(74), 0.32, 1.6, MUSIC_BOX, 5.0), r, lead + SCORE_BAR)
+		_mix(s, _score_pad([50, 4], 7.0), r, lead + SCORE_BAR * 0.5, 0.06)
 		return s), 0.6)
 
 # A soft sustained chord (tri), for air under the rest and drift.

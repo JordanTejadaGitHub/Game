@@ -141,7 +141,8 @@ func _initialize() -> void:
 	_check(sound._music_target[&"bass"] == 1.0, "the theme joins a bar later")
 	# A one-shot then a set: the Hope form after a boss, into the rest.
 	sound.music_then(&"act1_hope", &"rest_act1", [&"base"], true)
-	_check(sound.get_music_set() == &"", "a boss dispelled stops the music hard")
+	_check(sound.get_music_set() == &"" and not sound._outgoing.is_empty(),
+		"a boss dispelled is the turn: the boss set fades under the Hope form (not a dead stop)")
 	for i in 600:  # 12 s: past the Hope form
 		sound._process(0.02)
 	_check(sound.get_music_set() == &"rest_act1", "the Hope form hands over to the rest")

@@ -33,6 +33,7 @@ const REST_BAR := 3.0  # Rest pieces: 60 bpm, 3/4
 const DRIFT_BAR := 2.5  # Drift (72 bpm, 3/4) and boss (96 bpm, 6/8 feel)
 const ONCE_DB := -2.0  # One-shot music (the resolving tail, the Hope form)
 const ONCE_OVERLAP := 1.0  # The next set starts this long before a one-shot ends (it rings on)
+const TURN_FADE := 0.9  # A boss dispelled: the boss set fades this long under the Hope form (drums at once)
 # Softer nightmares (accessibility setting): nightmare shrieks and whispers play this much quieter,
 # muffled, and the whispering dread layer is halved.
 const SOFTER_DB := -8.0
@@ -267,7 +268,11 @@ func music_then(once_id: StringName, next_set: StringName, next_layers: Array = 
 	_queued_set = {}
 	_then_once = {"path": path, "set": next_set, "layers": next_layers}
 	if hard or _music.is_empty():
-		_fade_out_current(0.15 if hard else _music_bar)
+		# `hard` (a boss dispelled) is "the turn", not a dead stop: the drums fall away at once, the rest
+		# of the set fades under the one-shot (audio_direction.md 8c083a71).
+		if _music.has(&"drums"):
+			_music_level[&"drums"] = 0.0
+		_fade_out_current(TURN_FADE if hard else _music_bar)
 		_start_once()
 	else:
 		_once_wait = _time_to_bar()
