@@ -6,7 +6,7 @@
 		{"clip": "video0_maze", "from": 1.0, "to": 10.0},
 		{"clip": "video0_dream", "from": 0.0, "to": 8.0},
 		{"clip": "video0_maze", "from": 15.5, "to": 21.5},
-		{"clip": "video0_storm", "from": 6.5, "to": 12.5}
+		{"clip": "video0_storm", "from": 11.0, "to": 17.0}
 	],
 	"end_card": 5.0,
 	"music": ["base", "dread1"],
