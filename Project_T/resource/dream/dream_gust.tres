@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_gust"
 display_name = "Gust"
-description = "Whirligigs can now grow into Gusts ({grow_cost:gust} Dew): copies the statuses of the most-afflicted nightmare in range onto 2 nearby ones (half stacks)."
+description = "Whirligigs can now grow into Gusts ({grow_cost:gust} Dew): copies the statuses of the most-afflicted nightmare in range onto {field:gust.spread_targets:count} nearby ones (half stacks)."
 rarity = 1
 kind = 1
 tags = Array[String](["wind"])

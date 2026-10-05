@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_jewelwing_court"
 display_name = "Jewelwing Court"
-description = "Hummingbird Bowers can now grow into Jewelwing Courts ({grow_cost:jewelwing_court} Dew): three hummingbirds, eight pecks each; every sixth peck is a guaranteed crit. They spread out or all focus the strongest."
+description = "Hummingbird Bowers can now grow into Jewelwing Courts ({grow_cost:jewelwing_court} Dew): {field:jewelwing_court.peck_birds:count} hummingbirds, {field:jewelwing_court.pecks:count} pecks each; every {field:jewelwing_court.flurry_every:count} pecks, one is a guaranteed crit. They spread out or all focus the strongest."
 rarity = 2
 kind = 1
 tags = Array[String](["wing"])

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_tangleroot"
 display_name = "Tangleroot"
-description = "Rootlings can now grow into Tangleroots ({grow_cost:tangleroot} Dew): every 3 s the nightmare furthest along is {held} for 1 s."
+description = "Rootlings can now grow into Tangleroots ({grow_cost:tangleroot} Dew): every {field:tangleroot.ability_every:seconds} the nightmare furthest along is {held} for {field:tangleroot.hold_time:seconds}."
 rarity = 1
 kind = 1
 tags = Array[String](["root"])

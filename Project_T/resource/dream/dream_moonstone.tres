@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_moonstone"
 display_name = "Moonstone"
-description = "Standing Stones can now grow into Moonstones ({grow_cost:moonstone} Dew): range 10; its first hit on each nightmare is always a crit."
+description = "Standing Stones can now grow into Moonstones ({grow_cost:moonstone} Dew): range {field:moonstone.attack_range:count}; its first hit on each nightmare is always a crit."
 rarity = 2
 kind = 1
 tags = Array[String](["stone"])

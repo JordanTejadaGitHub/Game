@@ -13,6 +13,13 @@ const KNOWN := {
 	"soaked_through_ii": "correct: Soaked's 20% × (1 + status_strength_bonus 0.5) = 30% (a derived number)",
 }
 
+const TYPED_KNOWN := {
+	"dream_world_root": "every 5 s = 1 / attacks_per_second 0.2 (no reciprocal token); the 5 matches crit_chance 0.05 only by chance",
+	"dream_nimbus": "every 4 s is special_params.drift_every (a dictionary: no field token); attack_range 4 only by chance",
+	"dream_hatchery": "every 5th / splits into 3 are special_params (big_every, a split constant); status_stacks 3 only by chance",
+	"dream_rainbow_prism": "3 beams is special_params.beams; attack_range 3 only by chance",
+}
+
 var failures := 0
 
 func _initialize() -> void:
@@ -36,6 +43,18 @@ func _initialize() -> void:
 			unlock_cards += 1
 			_check(not Check.has_written_price(card), "%s: a hand-written Dew price (\"%s\"): use {grow_cost:id} / {plant_cost:id}" % [card.id, card.description])
 	_check(unlock_cards >= 60, "the check sees the unlock cards (%d)" % unlock_cards)
+	# A grow card never types a number its Warden's fields carry (text_pass.md 797758fe: 17 cards had drifted): it uses
+	# {field:<id>.<field>[:format]}. TYPED_KNOWN: numbers that only look like a field (with why).
+	for card in Check.load_cards():
+		var typed := Check.typed_warden_numbers(card)
+		if not typed.is_empty() and not TYPED_KNOWN.has(card.id):
+			_check(false, "%s: hand-typed %s that its Warden's fields carry: use {field:%s.<field>} (\"%s\")" % [card.id, typed,
+				card.unlocks.get_id(), card.description])
+		elif typed.is_empty() and TYPED_KNOWN.has(card.id):
+			print("  %s has no typed Warden number now: take it off TYPED_KNOWN" % card.id)
+	var graft: UpgradeData = load("res://resource/dream/dream_graftling.tres")
+	var share := "%d%%" % roundi((load("res://resource/tower/graftling.tres") as TowerData).copy_share * 100.0)
+	_check(IconInfo.format(graft.description).contains("at " + share), "Graftling's card reads copy_share (%s): \"%s\"" % [share, IconInfo.format(graft.description)])
 	var acorn: UpgradeData = load("res://resource/dream/dream_acorn.tres")
 	_check(IconInfo.format(acorn.description).contains("(15 Dew)") or IconInfo.format(acorn.description).contains("(%d Dew)" % (load("res://resource/tower/acorn.tres") as TowerData).evolve_cost),
 		"the price tokens read the Warden (\"%s\")" % IconInfo.format(acorn.description))

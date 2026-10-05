@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_grove_heart"
 display_name = "Grove Heart"
-description = "Elder Stumps can now grow into Grove Hearts ({grow_cost:grove_heart} Dew): Wardens within 2 cells deal 15% more damage and attack 15% faster, more the more Wardens there are."
+description = "Elder Stumps can now grow into Grove Hearts ({grow_cost:grove_heart} Dew): Wardens within {field:grove_heart.aura_radius:cells} deal {field:grove_heart.aura_damage_bonus:pct} more damage and attack {field:grove_heart.aura_speed_bonus:pct} faster, more the more Wardens there are."
 rarity = 2
 kind = 1
 tags = Array[String](["acorn"])
