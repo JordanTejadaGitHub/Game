@@ -42,6 +42,8 @@ const SETTING := "capture_mode"
 const FLAG := "--capture="
 const PROFILE := "user://capture_heartwood.json"
 const GAME_SCENE := "res://scenes/main.tscn"
+const GROVE_SCENE := "res://scenes/grove.tscn"
+const SILHOUETTE := Color(0.05, 0.05, 0.09)  # multiplier: a planted Warden drawn as a dark shape (a tease)
 const TAG_LIFE := 1.4  # Seconds a "+N path" tag floats
 const TAG_RISE := 36.0
 
@@ -65,6 +67,9 @@ var _slow_left := 0.0  # Real seconds of chain slow motion left
 var _speed_before := 1.0
 var _rng := RandomNumberGenerator.new()  # Auto spots break ties with this (seeded per scene), never the global RNG
 var _frame := 0
+var _silhouettes := {}  # Half-cell origin -> true: Wardens drawn dark (kept through grows)
+var _grove: Node = null  # The Memory Grove screen, in a "scene": "grove" capture
+var _grove_cam := {}
 
 # --- Launch ------------------------------------------------------------------------------------------
 
@@ -113,6 +118,11 @@ static func begin(tree: SceneTree) -> bool:
 			DirAccess.remove_absolute(file)
 	HeartwoodMemory.file_path = PROFILE
 	HeartwoodMemory.real_settings_path = ""
+	if is_grove():  # The Memory Grove on a preset tree (GrovePresets), written to the capture profile, Seeds to spare
+		GrovePresets.load_preset(StringName(scene.get("grove", "early")), PROFILE)
+		var data := HeartwoodMemory.load_data()
+		data.seeds = 1000000
+		HeartwoodMemory.save_data(data)
 	RunSaver.file_path = "user://capture_run.json"
 	RunHistory.file_path = "user://capture_run_history.json"
 	var settings := HeartwoodMemory.get_settings()
@@ -135,10 +145,19 @@ static func begin(tree: SceneTree) -> bool:
 	ResultsScreen.demo_override = 0  # The full game
 	TestGrove.force_on = true  # Every Warden plantable; a dev run (no Seeds, no records)
 	quiet = true
+	if is_grove():
+		var grove: Node = load(GROVE_SCENE).instantiate()
+		grove.add_child(CaptureDirector.new())  # The Grove has no Main to make it
+		tree.change_scene_to_node.call_deferred(grove)
+		return true
 	var main: Node = load(GAME_SCENE).instantiate()
 	main.get_node("%MapGenerator").map_seed = int(scene.get("seed", 4242))
 	tree.change_scene_to_node.call_deferred(main)
 	return true
+
+# A Memory Grove scene ("scene": "grove") rather than a run.
+static func is_grove() -> bool:
+	return String(scene.get("scene", "")) == "grove"
 
 # Made by Main when capture mode is on or a scene is playing.
 static func wanted() -> bool:
@@ -153,6 +172,13 @@ func _ready() -> void:
 	_camera = get_tree().get_first_node_in_group(&"game_camera")
 	get_tree().process_frame.connect(func() -> void: _scale = Engine.time_scale)
 	if scene.is_empty():
+		return
+	if is_grove():
+		_grove = _main
+		get_viewport().gui_disable_input = true
+		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+		_events = _expand(scene.get("timeline", []))
+		_setup_grove.call_deferred()
 		return
 	_tag_layer = Node2D.new()
 	_tag_layer.z_index = 30
@@ -250,9 +276,13 @@ func _setup() -> void:
 	print("Capture: playing %s (%.0f s), bosses %s" % [scene.get("title", ""), float(scene.get("length", 20.0)), BossPool.ids(director.bosses)])
 
 func _process(delta: float) -> void:
+	if _grove != null:
+		_process_grove(delta)
+		return
 	_apply_hud()
 	if scene.is_empty() or not _started:
 		return
+	_apply_silhouettes()
 	_frame += 1
 	seed(hash([int(scene.get("seed", 4242)), _frame]))
 	clip_time += delta / maxf(_scale, 0.0001)
@@ -418,6 +448,15 @@ func _run(event: Dictionary) -> void:
 	if event.has("grow"):  # Grows the Warden planted at half-cell origin "grow" [hx, hy] into "into" (a form id), in place
 		var grew := grow_at(Vector2(float(event.grow[0]), float(event.grow[1])), String(event.get("into", "")))
 		print("Capture: grew %s into %s at %.1f s: %s" % [event.grow, event.get("into", ""), clip_time, "ok" if grew else "FAILED"])
+	if event.has("silhouette"):  # {"silhouette": [hx, hy], "on": true}: that Warden as a dark shape, through later grows
+		var spot := Vector2(float(event.silhouette[0]), float(event.silhouette[1]))
+		if bool(event.get("on", true)):
+			_silhouettes[spot] = true
+		else:
+			_silhouettes.erase(spot)
+			var tower := _tower_near(spot)
+			if tower != null:
+				tower.modulate = Color.WHITE  # multiplier
 	if event.has("dream_offer"):  # A Dream offer now, as at a rest ("rare": true = a boss rest's, Rare and up); set
 		# "quiet": false first or it's passed over at once
 		var dreams: DreamState = _main.get_node("%DreamState")
@@ -439,6 +478,83 @@ func _run(event: Dictionary) -> void:
 		_followed = null
 		if String(event.camera) == "glide" and _camera != null:
 			_camera.glide(_route_pixels(), float(event.get("duration", 6.0)))
+
+# --- Silhouettes ------------------------------------------------------------------------------------
+
+# The Warden standing on half-cell origin `spot`: the nearest one to its centre (a grown 2×2 form's centre moves).
+func _tower_near(spot: Vector2) -> Tower:
+	var at := Tower.half_centre(spot)
+	var best: Tower = null
+	var best_distance := 80.0
+	for child in _main.get_node("%TowerContainer").get_children():
+		if child is Tower and (child as Tower).position.distance_to(at) < best_distance:
+			best = child
+			best_distance = (child as Tower).position.distance_to(at)
+	return best
+
+# Every frame: a grow may replace the art (or the node), so the dark modulate is put back each time.
+func _apply_silhouettes() -> void:
+	for spot in _silhouettes:
+		var tower := _tower_near(spot)
+		if tower != null:
+			tower.modulate = SILHOUETTE
+
+# --- The Memory Grove ("scene": "grove") -------------------------------------------------------------
+# Timeline actions: {"plant": "<unlock id>"} (as the Plant button: the branch grows, the bud opens),
+# {"camera": "fit"}, {"camera": "focus", "node": "<unlock id>" | "at": [x, y] (tree px), "zoom": z, "duration": s}.
+# "grove_ui": true keeps the header, card and footer (default: only the tree).
+
+func _setup_grove() -> void:
+	if not bool(scene.get("grove_ui", false)):
+		for child in _grove.get_children():
+			if child != self and child != _grove.tree_view and not (child is ColorRect and child.get_index() == 0):
+				child.visible = false
+	_grove.tree_view.fit()
+	_started = true
+	print("Capture: playing %s (%.0f s) in the Memory Grove (%s)" % [scene.get("title", ""), float(scene.get("length", 20.0)), scene.get("grove", "early")])
+
+func _process_grove(delta: float) -> void:
+	if not _started:
+		return
+	clip_time += delta
+	while _next < _events.size() and float(_events[_next].get("t", 0.0)) <= clip_time:
+		_run_grove(_events[_next])
+		_next += 1
+	if not _grove_cam.is_empty():
+		var view = _grove.tree_view
+		var t := clampf((clip_time - float(_grove_cam.started)) / maxf(float(_grove_cam.duration), 0.001), 0.0, 1.0)
+		var eased := t * t * (3.0 - 2.0 * t)
+		var zoom: float = lerpf(float(_grove_cam.from_zoom), float(_grove_cam.to_zoom), eased)
+		view.zoom_by(zoom / maxf(view.zoom, 0.0001))
+		view.focus_on((_grove_cam.from_at as Vector2).lerp(_grove_cam.to_at, eased))
+	if clip_time >= float(scene.get("length", 20.0)):
+		set_process(false)
+		get_tree().quit()
+
+func _run_grove(event: Dictionary) -> void:
+	var view = _grove.tree_view
+	if event.has("plant"):
+		var unlock = HeartwoodMemory.get_unlock(String(event.plant))
+		if unlock == null:
+			push_error("Capture: no Grove node %s" % event.plant)
+		else:
+			_grove._select(unlock)
+			_grove._plant_selected()
+			print("Capture: planted %s at %.1f s (level %d)" % [event.plant, clip_time,
+				HeartwoodMemory.unlock_level(HeartwoodMemory.load_data(), String(event.plant))])
+	if event.has("camera"):
+		var centre: Vector2 = view.to_tree(view.size / 2.0)
+		if String(event.camera) == "fit":
+			_grove_cam = {}
+			view.fit()
+			return
+		var to_at := centre
+		if event.has("node"):
+			to_at = view.to_tree(view.node_screen_position(String(event.node)))
+		elif event.has("at"):
+			to_at = Vector2(float(event.at[0]), float(event.at[1]))
+		_grove_cam = {"started": clip_time, "duration": float(event.get("duration", 0.0)), "from_zoom": view.zoom,
+			"to_zoom": float(event.get("zoom", view.zoom)), "from_at": centre, "to_at": to_at}
 
 # --- Planting ----------------------------------------------------------------------------------------
 
