@@ -527,7 +527,7 @@ func _late_build() -> void:
 		var before := run_state.dew
 		var planted := _plant_attacker()
 		spent.plant += before - run_state.dew
-		while _walls().size() < int(_attackers().size() * float(plan.walls)) and spent.plant < plant_cap:
+		while _wall_area() < float(_attackers().size() * float(plan.walls)) and spent.plant < plant_cap:
 			var before_wall := run_state.dew
 			if not _plant_wall():
 				break
@@ -629,7 +629,7 @@ func _next_buy() -> String:
 	var room: Array = plan.room
 	var attackers := _attackers().size()
 	var target := mini(int(room[2]), int(room[0] + room[1] * director.drifts_started))
-	var walls := _walls().size()
+	var walls := _wall_area()  # Twig walls count a quarter (the same area)
 	# Grow into the family first: a Sprout that can become the family's base Warden grows before more
 	# Sprouts are planted (players don't sit on five Sprouts while drift 3 walks in).
 	if style != "sprout" and _grow_sprout_into_family():
@@ -691,6 +691,17 @@ func _attackers() -> Array:
 	return container.get_children().filter(func(t) -> bool:
 		return t is Tower and not t.is_queued_for_deletion() and t.tower_data.can_attack)
 
+# Wall area in Thornwalls: a twig wall (Tower.twig, one half) counts a quarter.
+func _wall_area() -> float:
+	var area := 0.0
+	for t in _walls():
+		area += 0.25 if bool(t.get("twig")) else 1.0
+	return area
+
+# Twig Walls are on (DreamState.twig_walls(), or TowerPlacer.force_twig): new Thornwalls take one half.
+func _twig_on() -> bool:
+	return bool(placer.get("force_twig")) or (dreams.has_method("twig_walls") and dreams.twig_walls())
+
 func _walls() -> Array:
 	return container.get_children().filter(func(t) -> bool:
 		return t is Tower and not t.is_queued_for_deletion() and not t.tower_data.can_attack)
@@ -735,9 +746,51 @@ func _plant_wall() -> bool:
 	if _half_mode():
 		placer.tower_data = wall
 		if placer.half_placement():
-			return _plant_half_wall()
+			return _plant_twig_bar() if _twig_on() else _plant_half_wall()
 	var cell := _best_cell(0.0, 1.0)
 	return cell != NO_CELL and _build(wall, cell)
+
+# Twig Walls (Balancing: the same wall area, as bars): a lone half diverts no one, so the bot places a straight bar
+# of 4 or 2 twig walls (a Thornwall's area at most), the bar adding the most route per half, as long as the Dew lasts
+# (tools/balance_twig_route.gd's planner). True if at least one twig went down.
+const TWIG_BARS := [4, 2]
+
+func _plant_twig_bar() -> bool:
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var walkers := placer._walker_points()
+	var starts := {}
+	for point in route:
+		for h in map.body_halves(point):
+			for dy in range(-3, 4):
+				for dx in range(-3, 4):
+					starts[h + Vector2(dx, dy)] = true
+	var best: Array[Vector2] = []
+	var best_rate := 0.0
+	for start in starts:
+		for length in TWIG_BARS:
+			for dir in [Vector2.RIGHT, Vector2.DOWN]:
+				var bar: Array[Vector2] = []
+				for i in length:
+					bar.append(start + dir * i)
+				if not bar.all(func(h: Vector2) -> bool: return _half_wall_open(h)):
+					continue
+				var new_route: PackedVector2Array = map.get_path_if_blocked_halves(bar)
+				if new_route.is_empty():
+					continue
+				var rate: float = float(new_route.size() - route.size()) / length
+				if rate > best_rate and map.can_block_halves(bar, walkers):
+					best_rate = rate
+					best = bar
+	var placed := 0
+	for h in best:
+		if not run_state.can_afford(placer.get_cost(placer.tower_data)):
+			break
+		var before := _route_cells(map.get_path_from(map.startPath))
+		if placer._try_build_half(h):
+			_note_path(before, true)
+			placed += 1
+	half_spots[3] += placed
+	return placed > 0
 
 # The halves a wall planted at half `origin` would block: TowerPlacer.origin_halves knows Twig Walls (one half while
 # DreamState.twig_walls(), 817e2146 / 527ac43d); older builds: the 2×2.
