@@ -819,6 +819,12 @@ answered on the curve (act 1 health), not on Warden damage.
 **First arms** (4497566a, 30 seeds): old costs 60%, new costs **37%** for the default bot. It plants the same
 Wardens (its room target is drift-based) and **never reaches a branch in act 1** (banks ~40–50 vs a 180 branch).
 The spender arm (plants when it can't afford a growth) is the real test; it's running.
+**Spender results:** new costs **100%**, old costs **100%** (zero leaks, ~80 attackers + ~50 walls by drift 25).
+Skip on new costs 0%; the demo, default bot 80% → 25%. **Mass-planting base Wardens already dominated act 1 at
+any grow price**; the default bot only looked balanced because its room target capped it at 13 attackers.
+**User decision: copies cost more**: each planted Warden costs **+5% per copy of the same kind** on the map
+(attackers and Sprouts; walls exempt; `copy_cost_step`). A/B queued: the default bot, the spender, skip, and the
+spender without the step, on the new grow prices.
 
 ## Human run 18 (2026-10-04, build 5d8f3f = 7762f0cd; 0 Grove)
 
