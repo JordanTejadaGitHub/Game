@@ -122,8 +122,8 @@ func _ready() -> void:
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(centre)
 	var frame := UiStyle.panel_in(BOSS_COLOR, 16.0, 16.0)  # Thread and diamond in Wraithlight
-	frame.center_alpha = 0.95  # Over the whole field: nearly solid
-	frame.edge_alpha = 0.9
+	frame.center_alpha = 1.0  # Solid: nothing (a whisper, the map) reads through behind the text
+	frame.edge_alpha = 0.97
 	_panel.add_theme_stylebox_override("panel", frame)
 	centre.add_child(_panel)
 	var outer := VBoxContainer.new()
@@ -496,10 +496,11 @@ func _build(data: EnemyData, drift: int) -> void:
 		words.add_theme_font_size_override("font_size", 14)
 		words.add_theme_color_override("font_color", UiStyle.POOR)
 		left.add_child(words)
-	var record := StatusLinks.make_label(record_text(data), 14, UiStyle.INK_DIM)  # Your record, one quiet line
-	record.name = "Record"
-	record.custom_minimum_size.x = LEFT_COLUMN
-	left.add_child(record)
+	if not NightmareCard.is_new(data):  # A new one says so once, in the name's chip
+		var record := StatusLinks.make_label(record_text(data), 14, UiStyle.INK_DIM)  # Your record, one quiet line
+		record.name = "Record"
+		record.custom_minimum_size.x = LEFT_COLUMN
+		left.add_child(record)
 
 	var right := VBoxContainer.new()
 	right.add_theme_constant_override("separation", 12)
@@ -592,6 +593,8 @@ func _header(data: EnemyData, _drift: int) -> Control:
 	var name := Label.new()
 	name.text = data.display_name
 	UiStyle.display(name, 38)
+	name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A long name wraps, never clipped
+	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name.visible_characters_behavior = TextServer.VC_CHARS_AFTER_SHAPING  # The write-in keeps its size
 	name.add_theme_color_override("font_color", UiStyle.INK)
 	name_row.add_child(name)

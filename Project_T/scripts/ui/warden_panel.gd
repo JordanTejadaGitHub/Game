@@ -342,6 +342,7 @@ func _refresh() -> void:
 			# in place, 1–4 pick, Esc / R close. (The Heartwood Sapling's ranks only raise its yield: the
 			# button nurtures at once.)
 			if not _choosing or not _tower.needs_focus():
+				_gap(6.0)  # Room above the primary's thread and mark
 				var nurture := _add_button("")
 				nurture.set_meta(&"key", " (R)")
 				nurture.tooltip_text = ("Choose what rank %s adds. Kept when it grows; can't be changed." % Tower.rank_name(_tower.rank + 1)
@@ -379,7 +380,8 @@ func _refresh() -> void:
 	elif drift_director.is_build_phase() and _tower.rest_dew > 0:
 		note = "This rest's %d Dew comes back in full." % _tower.rest_dew
 	_details_toggle()
-	var sell := _add_footer_button("Sell · +%s Dew (%s)" % [BossDossier.thousands(refund), tower_seller.sell_key_name()])
+	var sell := _add_footer_button("Sell +%s Dew" % BossDossier.thousands(refund))
+	_key_on(sell, tower_seller.sell_key_name())  # Light pass: the key as a chip (no " · ")
 	sell.tooltip_text = (note + "\n\n" if note != "" else "") + "Key: %s" % tower_seller.sell_key_name()  # Light pass: the key in the tip
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
 	if _tower.tower_data.rooted:
@@ -484,6 +486,7 @@ func _refresh_group() -> void:
 					rank_options.append(which)
 	if not rank_options.is_empty() and not _choosing:
 		var nurturable := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_nurture())
+		_gap(6.0)
 		var open := _add_button("")
 		open.set_meta(&"key", " (R)")
 		var cheapest_rank: int = 0 if _free_rank() else nurturable.map(func(t: Tower) -> int: return t.get_nurture_price()).min()
@@ -512,7 +515,8 @@ func _refresh_group() -> void:
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
 	_details_toggle()
-	var sell := _add_footer_button("Sell %d · +%s Dew (%s)" % [selection.size(), BossDossier.thousands(refund), tower_seller.sell_key_name()])
+	var sell := _add_footer_button("Sell %d +%s Dew" % [selection.size(), BossDossier.thousands(refund)])
+	_key_on(sell, tower_seller.sell_key_name())
 	sell.tooltip_text = ("Half the Dew back while nightmares walk.\n\n" if in_drift else "") + "Key: %s" % tower_seller.sell_key_name()
 	if _confirm_sell:
 		sell.text = "Really sell %d? +%s Dew" % [selection.size(), BossDossier.thousands(refund)]  # The tip says why it asks
@@ -959,6 +963,9 @@ func _more_row(count: int) -> void:
 	more.add_theme_font_size_override("font_size", 14)
 	more.add_theme_color_override("font_color", UiStyle.GOLD)
 	more.tooltip_text = "Show every form it can grow into"
+	for state in ["normal", "hover", "pressed", "hover_pressed", "focus"]:
+		more.add_theme_stylebox_override(state, StyleBoxEmpty.new())  # As tall as its words: the heading line stays thin
+	more.add_theme_color_override("font_hover_color", UiStyle.INK)
 	heading.add_child(more)
 	more.pressed.connect(func() -> void:
 		_more_open = true
@@ -1095,6 +1102,38 @@ func _growth_note() -> String:
 		return ""
 	var extra := _tower.get_next_rank_growth_extra(next)
 	return "\n\n+%d when it grows into %s." % [extra, next.display_name] if extra > 0 else ""
+
+# A key chip at the right of a footer button (Sell: X); its text keeps clear of it. A changed text (a block reason)
+# drops it.
+func _key_on(button: Button, key: String) -> void:
+	if key == "":
+		return
+	var chip := UiStyle.key_chip(key)
+	chip.name = "Key"
+	chip.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	chip.offset_left = -24
+	chip.offset_right = -4
+	button.add_child(chip)
+	var room := button.get_theme_stylebox("normal").duplicate() as StyleBox
+	room.content_margin_right = room.get_margin(SIDE_RIGHT) + 22.0
+	button.add_theme_stylebox_override("normal", room)
+	for state in ["hover", "pressed", "hover_pressed", "disabled"]:
+		var box := button.get_theme_stylebox(state).duplicate() as StyleBox
+		box.content_margin_right = box.get_margin(SIDE_RIGHT) + 22.0
+		button.add_theme_stylebox_override(state, box)
+	var text := button.text
+	button.set_meta(&"keyed_text", text)
+	chip.visible = true
+	button.draw.connect(func() -> void:
+		if is_instance_valid(chip):
+			chip.visible = button.text == button.get_meta(&"keyed_text", ""))
+
+# A small gap in the actions column.
+func _gap(height: float) -> void:
+	var gap := Control.new()
+	gap.custom_minimum_size.y = height
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_buttons.add_child(gap)
 
 # Sell / Close: in the footer, never scrolled away.
 func _add_footer_button(text: String) -> Button:

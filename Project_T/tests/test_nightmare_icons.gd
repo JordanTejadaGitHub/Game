@@ -203,7 +203,7 @@ func _run() -> void:
 	dossier.open(25)
 	_check(revealed == [stag], "opening it emits boss_revealed for Sound")
 	_check(text.to_lower().contains("what it does") and text.contains("Charge") and text.contains("at 50% health"), "abilities with when")
-	_check(not text.contains("What helps") and dossier._content.find_child("Record", true, false) != null and text.contains("New"), "no What helps (removed 2026-09-30); the record")
+	_check(not text.contains("What helps") and (dossier._content.find_child("Record", true, false) != null) != (dossier._content.find_child("NewChip", true, false) != null) and text.contains("New"), "no What helps (removed 2026-09-30); the record, or once the New chip")
 	dossier.close_dossier()
 	_check(not dossier.visible, "Prepare closes it")
 	BossDossier.open_for(root.get_tree())
