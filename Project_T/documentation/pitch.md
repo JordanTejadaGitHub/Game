@@ -88,6 +88,17 @@ can't: a staggered half-cell maze at full scale with the route shown and nightma
   (`platforms.md`).
 - **Price:** typical for this genre and scope is $9.99–$19.99; decide closer to launch.
 
+## Studio name (planned)
+
+**"Topbunk Studios"**: the user's plan (2026-10-05), not final; spelling and capitals to confirm (Topbunk vs TopBunk).
+Before it's final, the user checks:
+- a business-name / trademark search in their region (and "Topbunk" in the games class)
+- the domain: topbunkstudios.com or topbunk.games
+- the Steam partner (developer / publisher) name
+- free handles on TikTok, YouTube, X, Bluesky, Reddit and Instagram; ideally the same on all
+Then it goes on the Steam page (developer / publisher), the end card and credits, and a small hand-feel wordmark
+(Theme Asset). Shorts post from the dev's own account (marketing.md §8), so the studio handles are for the store page and press.
+
 ## Title
 
 **Title decided (2026-09-28): "Heartwood TD"** (was "The Heartwood Remembers"). Before
