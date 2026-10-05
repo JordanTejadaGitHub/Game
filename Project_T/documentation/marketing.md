@@ -331,7 +331,7 @@ human artist replaces both.
 - **Winning hooks state the one unusual mechanic as a sentence on screen in the first second**: "In this game your best
   loot isn't actually yours to keep" (1.1M), "A war game where you're not supposed to kill anyone" (54× the creator's
   median), "This Tower Defense Has 1 Million Enemies On Screen" (39×), "Is this Scrabble meets Tower Defense?". For us:
-  *"In this tower defense, your towers are the maze."* / *"You build the path the enemies have to walk."*
+  *"A tower defense where you build the maze."* / *"You build the path the enemies have to walk."*
 - **"I made this game because…"** opened a 130× outlier (an indie roguelite FPS), the same shape as Video 0.
 - **Split screen (the dev talking to camera + gameplay)** appears in several outliers ("I just published my first game
   on Steam", 432× median). Worth testing once: the user on camera, the game below.
@@ -377,7 +377,7 @@ wishlist graph); roughly all his wishlists came from his own shorts (~70k at lau
 - **Post-release updates + a short about each** kept producing sales spikes.
 
 **Our story bank** (real things from this project; the user picks, tells them in their own words, adds their own):
-the theme pivot from cozy to dark fairytale; "your towers are walls, so I had to stop players sealing the path";
+the theme pivot from cozy to dark fairytale; "my Wardens are walls, so I had to stop players sealing the path";
 half-cell placement making new maze shapes possible; the Hollow Stag, a boss built to punish straight corridors;
 bigger Wardens tried and then reverted for the base forms; a chain that once hit ×26; the Memory Grove growing from
 every run. Avoid making AI tools the story; the disclosure covers them.
