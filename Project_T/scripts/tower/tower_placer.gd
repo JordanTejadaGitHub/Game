@@ -735,6 +735,8 @@ func ghost_tag_origin() -> Vector2:
 # (the Sapling) stay on whole cells.
 
 var _hover_half := NO_CELL
+# Marketing captures (CaptureDirector's "ghost" actions) aim the build ghost here instead of at the mouse; INF = the mouse.
+var cursor_override := Vector2(INF, INF)
 
 func half_placement() -> bool:
 	return tower_data != null and tower_data.footprint <= 1 and map_generator.has_method("halves_of")
@@ -863,7 +865,7 @@ func _draw_ghost_footprint() -> void:
 # Moves the ghost to the cursor (the same frame it crosses a half line, past a 4 px dead zone). Returns whether it
 # moved; the route, validity and price refresh at once, the card preview a frame later.
 func _update_hover() -> bool:
-	var mouse := get_global_mouse_position()
+	var mouse := get_global_mouse_position() if cursor_override.x == INF else cursor_override
 	if half_placement():
 		var origin := half_origin_at(mouse)
 		if origin != _hover_half and _hover_half != NO_CELL:

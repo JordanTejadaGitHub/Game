@@ -296,6 +296,7 @@ func _process(delta: float) -> void:
 	_update_camera(delta / maxf(_scale, 0.0001))
 	_age_tags(delta / maxf(_scale, 0.0001))
 	_update_slow_motion(delta / maxf(_scale, 0.0001))
+	_update_ghost()
 	_update_filter()
 	if clip_time >= _next_report:
 		_next_report += REPORT_EVERY
@@ -466,6 +467,14 @@ func _run(event: Dictionary) -> void:
 		var act_boss: int = director.get_act(maxi(director.drifts_started, 1)) * director.drifts_per_act
 		dreams._pending_drifts.append(act_boss if bool(event.get("rare", false)) else director.drifts_started)
 		dreams._show_next_offer()
+		if bool(event.get("bittersweet", false)) and not dreams.current_offer.is_empty() \
+				and not dreams.current_offer.any(func(c: UpgradeData) -> bool: return c.tags.has("bittersweet")):
+			# One Bittersweet card in the offer (normally act 2+ and off until allow_bittersweet): the last slot, seeded
+			var bitter: Array = dreams.pool.filter(func(c: UpgradeData) -> bool:
+				return c.tags.has("bittersweet") and not dreams.current_offer.has(c))
+			if not bitter.is_empty():
+				dreams.current_offer[-1] = bitter[_rng.randi() % bitter.size()]
+				dreams.offer_ready.emit(dreams.current_offer, dreams.current_offer_drift)  # The screen shows the new hand
 		print("Capture: Dream offer at %.1f s: %s" % [clip_time, dreams.current_offer.map(func(c: UpgradeData) -> String: return String(c.id))])
 	if event.has("pick_dream"):  # Takes the offer's Nth card (screens shown with "quiet": false)
 		var dreams: DreamState = _main.get_node("%DreamState")
@@ -480,6 +489,77 @@ func _run(event: Dictionary) -> void:
 		_followed = null
 		if String(event.camera) == "glide" and _camera != null:
 			_camera.glide(_route_pixels(), float(event.get("duration", 6.0)))
+	if event.has("ghost"):
+		_ghost(event)
+	if event.has("ghost_move"):
+		_ghost_move = {"from": _ghost_at, "to": _spot_of(event.ghost_move), "started": clip_time,
+			"duration": maxf(float(event.get("duration", 0.6)), 0.01)}
+	if event.has("ghost_place"):
+		_ghost_place()
+
+# --- The build ghost ("ghost" actions: a cursor the player never moved) -----------------------------
+# {"ghost": "<warden id>", "at": [hx, hy] | "auto": "block"} shows the build ghost there, as hovering in build mode: the
+# route preview, "+N path", the placement grid; "auto": "block" picks a free spot that would seal the route (red).
+# {"ghost_move": [hx, hy], "duration": s} glides it; {"ghost_place": true} plants where it is; {"ghost": false} ends it.
+
+var _ghost_at := Vector2.ZERO  # Half-cell origin
+var _ghost_move := {}
+
+func _spot_of(at) -> Vector2:
+	return Vector2(float(at[0]), float(at[1])) if at is Array else _ghost_at
+
+func _ghost(event: Dictionary) -> void:
+	var placer = _main.get_node("%TowerPlacer")
+	if event.ghost is bool and not event.ghost:
+		_ghost_move = {}
+		placer.cursor_override = Vector2(INF, INF)
+		placer.set_build_mode(false)
+		return
+	var data := _tower(String(event.ghost))
+	if data == null:
+		push_error("Capture: no Warden %s for the ghost" % event.ghost)
+		return
+	_ghost_at = _spot_of(event.get("at", null))
+	if String(event.get("auto", "")) == "block":
+		_ghost_at = _blocking_spot()
+	_ghost_move = {}
+	placer.cursor_override = Tower.half_centre(_ghost_at)
+	placer.select_tower(data)
+	print("Capture: ghost %s at %s" % [event.ghost, _ghost_at])
+
+func _update_ghost() -> void:
+	if _ghost_move.is_empty():
+		return
+	var t := clampf((clip_time - float(_ghost_move.started)) / float(_ghost_move.duration), 0.0, 1.0)
+	var eased := t * t * (3.0 - 2.0 * t)
+	var at: Vector2 = Tower.half_centre(_ghost_move.from).lerp(Tower.half_centre(_ghost_move.to), eased)
+	_main.get_node("%TowerPlacer").cursor_override = at
+	if t >= 1.0:
+		_ghost_at = _ghost_move.to
+		_ghost_move = {}
+
+# A free spot next to the route that would seal it: the ghost shows it refused.
+func _blocking_spot() -> Vector2:
+	var map = _main.get_node("%MapGenerator")
+	for point in map.get_path_from(map.startPath):
+		var centre: Vector2 = (point * 2.0).floor()
+		for dx in range(-2, 2):
+			for dy in range(-2, 2):
+				var origin := centre + Vector2(dx, dy)
+				var halves: Array = map.halves_of(origin)
+				if halves.all(func(h: Vector2) -> bool: return map.is_buildable_half(h)) and map.get_path_if_blocked_halves(halves).is_empty():
+					return origin
+	return _ghost_at
+
+func _ghost_place() -> void:
+	var placer = _main.get_node("%TowerPlacer")
+	var run_state: RunState = _main.get_node("%RunState")
+	var shown := run_state.dew  # Paid from a loan, as plant()
+	run_state.dew = 1000000
+	var planted: bool = placer._try_build_half(_ghost_at)
+	run_state.dew = shown
+	run_state.dew_changed.emit(run_state.dew)
+	print("Capture: ghost planted at %s: %s" % [_ghost_at, "ok" if planted else "refused"])
 
 # --- Silhouettes ------------------------------------------------------------------------------------
 
