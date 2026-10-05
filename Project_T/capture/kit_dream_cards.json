@@ -1,6 +1,6 @@
 {
 	"title": "Kit: Dream cards",
-	"note": "Editor kit: the Dream screen at 16:9 (legible), three offers in a row, each held 3 s then the first card taken. Drift 30 (act 2) so the offers vary; Rare offers. Clean HUD.",
+	"note": "Editor kit: the Dream screen at 16:9 (legible), three offers in a row, each held 3 s then a card taken: two Rare offers, then one with a Bittersweet card. Drift 30 (act 2). Clean HUD.",
 	"seed": 4242, "size": [1920, 1080], "drift": 30, "dew": 640, "obstacles": "edge", "families": ["sporeling"], "hud": "clean", "length": 13.0,
 	"timeline": [
 		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 1.0},
@@ -11,7 +11,7 @@
 		{"t": 3.5, "pick_dream": 0},
 		{"t": 4.5, "dream_offer": true, "rare": true},
 		{"t": 7.5, "pick_dream": 1},
-		{"t": 8.5, "dream_offer": true},
+		{"t": 8.5, "dream_offer": true, "bittersweet": true},
 		{"t": 11.5, "pick_dream": 2}
 	]
 }

@@ -1,0 +1,19 @@
+{
+	"title": "Kit: building the maze",
+	"note": "Editor kit (and Steam screenshot #2): build mode on the open island, the ghost gliding over the straight route with the route preview and '+N path' updating live, then four staggered Thornwalls planted. Clean HUD, zoom 2.",
+	"seed": 4242, "size": [1920, 1080], "drift": 20, "dew": 340, "obstacles": "edge", "families": ["sporeling"], "hud": "clean", "length": 13.0,
+	"timeline": [
+		{"t": 0.0, "camera": "hold", "at": [9, 10], "zoom": 2.0},
+		{"t": 0.8, "ghost": "thornwall", "at": [8, 20]},
+		{"t": 1.8, "ghost_move": [10, 20], "duration": 0.7},
+		{"t": 3.0, "ghost_place": true},
+		{"t": 3.6, "ghost_move": [13, 21], "duration": 0.7},
+		{"t": 4.8, "ghost_move": [14, 19], "duration": 0.5},
+		{"t": 6.0, "ghost_place": true},
+		{"t": 6.6, "ghost_move": [18, 21], "duration": 0.7},
+		{"t": 7.8, "ghost_place": true},
+		{"t": 8.4, "ghost_move": [22, 19], "duration": 0.7},
+		{"t": 9.6, "ghost_place": true},
+		{"t": 11.5, "ghost": false}
+	]
+}
