@@ -14,7 +14,7 @@
 		{"clip": "trailer_05_rest", "from": 0.0, "to": 10.0},
 		{"clip": "trailer_06_ridge", "from": 4.0, "to": 11.5},
 		{"clip": "trailer_07_stag", "from": 6.5, "to": 16.5},
-		{"clip": "trailer_08_nightmare", "from": 2.0, "to": 4.5},
+		{"clip": "trailer_08_nightmare", "from": 1.0, "to": 3.5},
 		{"clip": "trailer_09_oak", "from": 1.0, "to": 3.5},
 		{"clip": "trailer_10_storm", "from": 5.7, "to": 15.7}
 	],
