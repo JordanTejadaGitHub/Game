@@ -917,9 +917,11 @@ func focus_text(which: Focus) -> String:
 			return "attacks %.2f → %.2f a second" % [cycle[0], cycle[1]]
 		Focus.REACH:
 			var area := _main_area()
-			if area[1] != "":
-				return "%s %.1f → %.1f cells" % [area[1], area[0], area[0] + area[2]]
 			var r := _with_choice(which, func() -> float: return _compute_range_cells())
+			if area[1] != "":
+				# Its main area first (Jarlink's link, Hushbell's silence…), then the range, which Reach also grows.
+				var text := "%s %s → %s cells" % [area[1], IconInfo._number(area[0]), IconInfo._number(area[0] + area[2])]
+				return text + (" · range %.1f → %.1f" % [r[0], r[1]] if tower_data.can_attack and absf(r[1] - r[0]) >= 0.05 else "")
 			return "range %.1f → %.1f cells" % [r[0], r[1]]
 		Focus.DEEP:
 			var potency := _with_choice(which, func() -> float: return get_potency())
