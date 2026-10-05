@@ -187,7 +187,7 @@ func _sheet() -> Control:
 	credit.bbcode_enabled = true
 	credit.fit_content = true
 	credit.custom_minimum_size = Vector2(700, 0)
-	credit.text = UiStyle.credit_bbcode("Dreams this block", [["Lingering Spores", "+1,840"], ["Cozy Corners", "+920"],
+	credit.text = UiStyle.credit_bbcode("Dreams this block", [["Spore Cascade", "+1,840"], ["Cozy Corners", "+920"],
 		["Flurry", "+610"]])
 	box.add_child(credit)
 	var toast := Label.new()

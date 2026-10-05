@@ -183,7 +183,10 @@ const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_fr
 	"hurried_harvest": "call_of_the_wild", "borrowed_dew": "", "hungry_roots": "", "overgrown": "", "wild_growth": "",
 	"reckless_bloom": "", "overgrowth": "", "borrowed_memory": "", "remembered_care": "", "remembered_care_ii": "",
 	"seasoned_eye": "", "many_rings": "", "big_family": "", "sudden_bloom": "", "underdog": "", "underdog_ii": "",
-	"cliffside": "", "tangled": "", "patchwork": "", "hedgerow": "", "shelter_of_stones": "", "short_roots": ""}
+	"cliffside": "", "tangled": "", "patchwork": "", "hedgerow": "", "shelter_of_stones": "", "short_roots": "",
+	# Fewer family boosters (dream_design.md 21ac910b): cut
+	"brighter_jars": "", "clear_tones": "", "heavy_stones": "", "soft_spores": "", "lingering_mark": "", "lingering_mark_ii": "",
+	"lingering_spores": "", "lingering_spores_ii": "", "soaked_through": "", "soaked_through_ii": ""}
 const BOSS_DREAMLIGHT := 3  # Each boss rest (user 2026-10-01: "only 3 Dreamlight every 25 drifts"; was 4, plus +1 a rest from drift 51)
 const BRANCH_DREAMLIGHT := 1  # Branch (regular or hidden), wall growth: bought with Dreamlight in a run (clarified 2026-09-30)
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
@@ -1138,8 +1141,6 @@ func get_crit_chance_bonus(_tower: Tower, enemy: Node2D = null) -> float:
 		return 0.0  # The common case: no crit card owned (asked on every Warden hit)
 	var bonus := 0.0
 	bonus += GLINTING_DEW_PER * rule_stacks(&"glinting_dew") * rule_power(&"glinting_dew")  # Glinting Dew
-	if _tower != null and _tower.tower_data.line == "stone":  # Heavy Stones: the Pebbling line
-		bonus += HEAVY_STONES_PER * rule_stacks(&"heavy_stones") * rule_power(&"heavy_stones")
 	if _tower != null and has_rule(&"seasoned_eye"):  # +1% per rank (max +7%: only the Eldest reaches it)
 		bonus += minf(SEASONED_EYE_PER * _tower.rank, SEASONED_EYE_MAX) * rule_power(&"seasoned_eye")
 	if _tower != null and has_rule(&"patient_aim"):  # Patient Aim: crit chance per second it waited (no damage)
@@ -1568,7 +1569,7 @@ func rule_stacks(rule: StringName) -> int:
 const HIT_RULES: Array[StringName] = [&"last_stand", &"hunters_patience", &"bitter_hedges", &"lone_hunter",
 	&"rain_on_glass", &"skyward_gaze", &"deep_grip", &"head_start", &"deep_frost", &"falling_weight", &"murmur",
 	&"first_light"]  # Every rule on_hit_multiplier reads
-const CRIT_RULES: Array[StringName] = [&"glinting_dew", &"heavy_stones", &"seasoned_eye", &"full_moon",
+const CRIT_RULES: Array[StringName] = [&"glinting_dew", &"seasoned_eye", &"full_moon",
 	&"reckless_bloom", &"still_target", &"starlit_aim", &"patient_aim"]  # Every rule get_crit_chance_bonus reads
 var _rules_of: Array = [null, {}]  # [the _taken_cards() array it was built from, {rule: stacks}]
 var _any_hit_rule := false
@@ -2351,6 +2352,17 @@ func count_taken_with_tag(tag: String) -> int:
 			count += 1
 	return count
 
+# The plain stat cards (at most one per offer, dream_design.md 21ac910b).
+const PLAIN_STAT_CARDS: Array[String] = ["deeper_calm", "quickened_sap", "longer_roots", "bitter_sap", "glinting_dew"]
+var _family_card_cache := {}  # Card id -> whether it needs a Warden
+
+# A family card: one that needs a Warden (a Warden id in requires or requires_any). At most one per offer.
+func is_family_card(card: UpgradeData) -> bool:
+	if not _family_card_cache.has(card.id):
+		_family_card_cache[card.id] = (card.requires + card.requires_any).any(func(id: String) -> bool:
+			return ResourceLoader.exists("res://resource/tower/%s.tres" % id))
+	return _family_card_cache[card.id]
+
 func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool, stray: bool = false) -> UpgradeData:
 	var has_bittersweet := exclude.any(func(c: UpgradeData) -> bool: return c.is_bittersweet())
 	var eligible: Array[UpgradeData] = []
@@ -2365,6 +2377,15 @@ func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool, stray: b
 			eligible.append(card)
 	if eligible.is_empty():
 		return null
+	# Fewer family boosters, more build shapes (dream_design.md 21ac910b): at most 1 family card and 1 plain stat card per
+	# offer; once the offer has one, the other slots draw from the rest (back to the normal draw only if nothing is left).
+	var has_family := exclude.any(is_family_card)
+	var has_plain := exclude.any(func(c: UpgradeData) -> bool: return PLAIN_STAT_CARDS.has(c.id))
+	if has_family or has_plain:
+		var shaped := eligible.filter(func(c: UpgradeData) -> bool:
+			return not (has_family and is_family_card(c)) and not (has_plain and PLAIN_STAT_CARDS.has(c.id)))
+		if not shaped.is_empty():
+			eligible.assign(shaped)
 	# Passed-over cards fade across rarities (dream_design.md): when every card of the rolled rarity is
 	# faded, keep that rarity with a chance equal to their best weight, else re-roll among the others
 	# (a forced Rare+ slot falls through to Legendary).
@@ -4051,11 +4072,10 @@ func count_owned_families() -> int:
 
 
 # --- The 11 catalogue cards specced earlier (dream_design.md crit cards 37–39, new-Warden cards 46–53)
-# Mine: Glinting Dew, Heavy Stones (crit chance), Sharpened Light / II (crit multiplier), Deep Frost
+# Mine: Glinting Dew (crit chance), Sharpened Light / II (crit multiplier), Deep Frost
 # (per hit) and Long Shadows (a DreamEffects row). Tower Code reads the rest by rule id: Patient Aim,
 # Ring Dance, Carried on the Wind, Sweet Scent, Shiny Things, Hairpin Winds.
 const GLINTING_DEW_PER := 0.08  # All Wardens, per stack (max 3)
-const HEAVY_STONES_PER := 0.15  # Pebbling line, per stack (max 3)
 const SHARPENED_LIGHT: Array[float] = [0.5, 1.0]  # Crit multiplier (II)
 const DEEP_FROST_BONUS := 0.45  # Frozen nightmares
 const LONG_SHADOWS_RANGE := 2.0  # Wardens whose range is LONG_SHADOWS_FROM or more

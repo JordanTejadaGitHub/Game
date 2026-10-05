@@ -327,7 +327,7 @@ func _test_sim_policy() -> void:
 func _test_catalogue() -> void:
 	_reset()
 	dreams.unlocked["sporeling"] = true
-	var soft := _card("soft_spores")
+	var soft := _card("chain_bloom")  # A spore card (Soft Spores was cut, dream_design.md 21ac910b)
 	_check(not dreams.is_in_build(soft), "owning Sporeling doesn't make spore cards your build")
 	dreams.take(_card("glinting_dew"))
 	_check(dreams.is_in_build(_card("sharpened_light")) and not dreams.is_in_build(soft), "a taken precision card lifts the precision build")
@@ -343,7 +343,7 @@ func _test_catalogue() -> void:
 	# Family line tags never weigh (round 3 reverted round 2's rule), not even from a taken card
 	dreams.unlocked["sporeling"] = true
 	_check(not dreams.is_in_build(soft), "owning Sporeling still doesn't")
-	dreams.take(_card("lingering_spores"))
+	dreams.take(_card("damp_rot"))
 	_check(not dreams.is_in_build(soft), "…nor a taken spore card (only archetype tags weigh)")
 	dreams.stacks.clear()
 	# The new cards' own numbers
@@ -398,7 +398,7 @@ func _test_eleven_cards() -> void:
 	_reset()
 	var grove := ["long_shadows", "patient_aim", "ring_dance", "deep_frost", "carried_on_the_wind", "sweet_scent",
 		"shiny_things", "hairpin_winds"]
-	for id in ["glinting_dew", "heavy_stones", "sharpened_light", "sharpened_light_ii"] + grove:
+	for id in ["glinting_dew", "sharpened_light", "sharpened_light_ii"] + grove:
 		var card := _card(id)
 		if card:
 			_check(card.in_start_pool != (grove.has(id) or LEAN_GROVE.has(id)) and not card.tags.is_empty(), "%s: pool and tags" % id)
@@ -409,9 +409,6 @@ func _test_eleven_cards() -> void:
 	var base := dreams.get_crit_chance_bonus(spore)
 	dreams.take(_card("glinting_dew"))
 	_check(is_equal_approx(dreams.get_crit_chance_bonus(spore) - base, 0.08), "Glinting Dew: +8% crit, all Wardens")
-	dreams.take(_card("heavy_stones"))
-	_check(is_equal_approx(dreams.get_crit_chance_bonus(pebble) - dreams.get_crit_chance_bonus(spore), 0.15),
-		"Heavy Stones: the Pebbling line +15% more")
 	_check(dreams.get_crit_overflow_multiplier(0.5) == 0.0, "no Sharpened Light: crits ×2 as before")
 	dreams.take(_card("sharpened_light"))
 	_check(is_equal_approx(dreams.get_crit_overflow_multiplier(0.5), 0.5), "Sharpened Light: crits +0.5×")

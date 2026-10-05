@@ -31,6 +31,7 @@ func _run() -> void:
 	_test_grown_needs(main)
 	_test_blessing_dream(main)
 	_test_run_pool(main)
+	_test_offer_shape(main)
 	print("dreams test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -235,16 +236,6 @@ func _test_new_cards(main: Node) -> void:
 	dreams.take(_card(dreams, "evergreen_ii"))
 	_check(dreams.get_evolve_cost(driftspore) == roundi(driftspore.get_grow_price() * 0.6), "Evergreen II: 40%% off, replacing Evergreen (got %d)" % dreams.get_evolve_cost(driftspore))
 	_check(not dreams.is_eligible(_card(dreams, "evergreen_ii")), "a card deepens once")
-	dreams.take(_card(dreams, "lingering_spores"))
-	dreams.take(_card(dreams, "lingering_spores_ii"))
-	_check(is_equal_approx(dreams.get_status_duration(sporeling, EnemyStatuses.SPORED), 10.0), "Lingering Spores II: Spored 5 + 5 s")
-	_check(dreams.get_status_max_stacks(sporeling, EnemyStatuses.SPORED) == 10, "Lingering Spores II: Spored stacks to 10")
-	dreams.take(_card(dreams, "soaked_through"))
-	dreams.take(_card(dreams, "soaked_through_ii"))
-	_check(is_equal_approx(dreams.get_status_duration(dewdrop, EnemyStatuses.DAMP), 12.0), "Soaked Through II: Damp ×3")
-	var soaked := EnemyStatuses.new()
-	soaked.apply(EnemyStatuses.DAMP, 1, 0.0, dreams.get_status_strength_multiplier(EnemyStatuses.DAMP))
-	_check(is_equal_approx(soaked.potency(EnemyStatuses.DAMP), 1.5), "Soaked Through II: Damp at 1.5× strength (water +30%)")
 	dreams.take(_card(dreams, "cozy_corners"))
 	_check(dreams.rule_level(&"cozy_corners") == 0, "Cozy Corners starts at its base level")
 	dreams.take(_card(dreams, "cozy_corners_ii"))
@@ -343,9 +334,6 @@ func _test_card_effects(main: Node) -> void:
 	run_state.leaves = 15
 	dreams.take(_card(dreams, "deep_roots"))
 	_check(run_state.max_leaves == 23 and run_state.leaves == 18, "Deep Roots: +3 max, regrow 3")
-	var dewdrop: TowerData = load("res://resource/tower/dewdrop.tres")
-	dreams.take(_card(dreams, "soaked_through"))
-	_check(is_equal_approx(dreams.get_status_duration(dewdrop, EnemyStatuses.DAMP), 8.0), "Soaked Through doubles Damp")
 
 # Clearing cards 54–58 (dream_design.md, "Clearing cards").
 func _test_clearing_cards(main: Node) -> void:
@@ -1317,6 +1305,27 @@ func _test_grown_needs(main: Node) -> void:
 	_check(dreams.grown_needs_met(thunder), "Test Grove: no need to grow anything")
 	_reset_dreams(main)
 
+
+# Fewer family boosters, more build shapes (dream_design.md 21ac910b): at most 1 family card (needs a Warden) and 1 plain
+# stat card per offer, with several families owned.
+func _test_offer_shape(main: Node) -> void:
+	var dreams: DreamState = main.get_node("%DreamState")
+	_reset_dreams(main)
+	for family in ["sporeling", "dewdrop", "firefly_jar", "pebbling", "rootling", "acorn"]:
+		dreams.unlocked[family] = true
+	dreams.unlocks_changed.emit()
+	_check(dreams.is_family_card(_card(dreams, "spore_cascade")) and not dreams.is_family_card(_card(dreams, "deeper_calm")),
+		"a family card needs a Warden (Spore Cascade); Deeper Calm doesn't")
+	var most_family := 0
+	var most_plain := 0
+	for i in 120:
+		dreams._passed_count.clear()
+		var offer := dreams.make_offer(12 + i % 60)
+		most_family = maxi(most_family, offer.filter(dreams.is_family_card).size())
+		most_plain = maxi(most_plain, offer.filter(func(c: UpgradeData) -> bool: return DreamState.PLAIN_STAT_CARDS.has(c.id)).size())
+	_check(most_family <= 1, "at most 1 family card per offer (saw %d)" % most_family)
+	_check(most_plain <= 1, "at most 1 plain stat card per offer (saw %d)" % most_plain)
+	_reset_dreams(main)
 func _reset_dreams(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
 	dreams.free_first_clears = 0

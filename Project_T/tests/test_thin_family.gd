@@ -8,9 +8,9 @@ extends SceneTree
 
 const CARDS := {
 	"deep_grip": "rootling", "tangled_release": "rootling", "tangled_release_ii": "rootling",
-	"long_light": "rootlight", "root_web": "rootling", "clear_tones": "bellflower", "lullaby": "dreamcatcher",
+	"long_light": "rootlight", "root_web": "rootling", "lullaby": "dreamcatcher",
 	"lullaby_ii": "dreamcatcher", "chorus": "bellflower", "bright_marks": "lanternmoth",
-	"lingering_mark": "lanternmoth", "lingering_mark_ii": "lanternmoth", "called_shot": "lanternmoth",
+	"called_shot": "lanternmoth",
 	"homing_instinct": "nestling", "homing_instinct_ii": "nestling", "murmur": "nestling",
 }
 
@@ -46,9 +46,9 @@ func _test_data() -> void:
 		dreams.discovery_profile["wardens_built"] = [CARDS[id]]
 		_check(dreams.discovery_met(card), "%s: …then it can come" % id)
 		dreams.discovery_profile = null
-	_check(_card("deep_grip").max_stacks == 1 and _card("bright_marks").max_stacks == 1 and _card("clear_tones").max_stacks == 0,
-		"Deep Grip and Bright Marks once (power pass), Clear Tones stacks")
-	for pair in [["tangled_release_ii", "tangled_release"], ["lullaby_ii", "lullaby"], ["lingering_mark_ii", "lingering_mark"],
+	_check(_card("deep_grip").max_stacks == 1 and _card("bright_marks").max_stacks == 1,
+		"Deep Grip and Bright Marks once (power pass)")
+	for pair in [["tangled_release_ii", "tangled_release"], ["lullaby_ii", "lullaby"],
 			["homing_instinct_ii", "homing_instinct"]]:
 		_check(_card(pair[0]).deepens == pair[1], "%s deepens %s" % pair)
 	# Chorus: a soft Need of 2 Bellflower-line Wardens
@@ -123,17 +123,6 @@ func _test_queries() -> void:
 	_check(is_equal_approx(dreams.get_swoop_return_multiplier(), 1.5), "Homing Instinct: 50% faster")
 	dreams.take(_card("homing_instinct_ii"))
 	_check(is_equal_approx(dreams.get_swoop_return_multiplier(), 1.9), "…II: 90%")
-	# Plain stat / status cards
-	var bell: TowerData = load("res://resource/tower/bellflower.tres")
-	var moth: TowerData = load("res://resource/tower/lanternmoth.tres")
-	var speed := dreams.get_attack_speed_multiplier(bell)
-	dreams.take(_card("clear_tones"))
-	_check(is_equal_approx(dreams.get_attack_speed_multiplier(bell), speed + 0.35), "Clear Tones: the Bellflower line +35% attack speed")
-	var marked := dreams.get_status_duration(moth, EnemyStatuses.MARKED)
-	dreams.take(_card("lingering_mark"))
-	_check(is_equal_approx(dreams.get_status_duration(moth, EnemyStatuses.MARKED), marked + 3.0), "Lingering Mark: +3 s")
-	dreams.take(_card("lingering_mark_ii"))
-	_check(is_equal_approx(dreams.get_status_duration(moth, EnemyStatuses.MARKED), marked + 6.0), "…II: +6 s (replaces it)")
 	dreams.stacks.clear()
 
 func _card(id: String) -> UpgradeData:
