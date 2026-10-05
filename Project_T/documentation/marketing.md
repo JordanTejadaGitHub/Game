@@ -307,12 +307,20 @@ human artist replaces both.
 - Track per video: 3-second hold, average watch %, shares, and wishlists that day (Steamworks). **Re-post each format 2–3
   times** before judging it; the same video can get 10k views one day and 1M the next.
 - Reply to comments yourself; a real dev voice is the best marketing.
-- **Hooks to A/B** (compare 3-second holds per platform):
-  | Hook | Where | Note |
-  |---|---|---|
-  | "Remember Warcraft 3 tower defense maps?" | YouTube Shorts, Reddit | nostalgia; older audience knows it |
-  | "A tower defense where YOU build the maze" | TikTok | needs no prior knowledge |
-  | "What if Slay the Spire and a maze tower defense had a kid?" (the user's idea) | TikTok | StS is well known to young viewers, but we have no deck: open on the Dream card pick (`kit_dream_cards`) so the claim is visibly true, then cut to the maze and a chain. Expect some "this isn't Slay the Spire" comments |
+- **Hooks to A/B** (v2, 2026-10-04, built on the vidIQ outliers and the two studies; compare 3-second holds per platform).
+  Every hook: on screen as text in the first second, and the short pays it off.
+  | Format | Hook | Where | Clips |
+  |---|---|---|---|
+  | Mechanic in one sentence | "A tower defense where YOU build the maze" | TikTok | `build_ghost`, `s1_wardens_are_the_maze` |
+  | Mashup | "What if Slay the Spire and a maze tower defense had a kid?" (the user's idea) | TikTok | open on `dream_cards` so the claim is visibly true, then the maze and a chain; we have no deck, so expect "this isn't Slay the Spire" comments |
+  | Nostalgia | "Remember Warcraft 3 maze maps? I turned them into a roguelite." | YouTube Shorts, Reddit | `v0_*` clips |
+  | Problem and fix (the strongest dev format) | "My Wardens got so strong the first boss never reached the tree." | all | `story_stag_rebalance_A` → `_B` |
+  | Problem and fix | "Players kept sealing the path in my tower defense, so I had to stop them." | all | `path_blocked` |
+  | Problem and fix | "I made my Wardens 40% bigger. Then I changed my mind." | all | `story_warden_size_*` |
+  | Curiosity | "This boss has one weakness: corners." | all | `bosses/old_stag`, `s3_first_boss_stag` |
+  | Early vs late | "Act 1 vs act 4 of my tower defense." | all | `early_game` / `late_game` split screen |
+  | Close call | "One leaf left." | all | `s5_one_leaf_left`, `run_loss` |
+  | Fans steering (only if the user will follow through) | "Comment a Warden idea. I'll make the best one." | TikTok | `families/` |
 - **Track where wishlists come from**: a Steam **UTM link** per platform (TikTok bio, YouTube description, Reddit post),
   so Steamworks shows which platform drives wishlists. The most useful setup step; do it before the first post.
 - **Tools** (the user edits): CapCut desktop for vertical edits and auto-captions (or DaVinci Resolve, free, heavier);
