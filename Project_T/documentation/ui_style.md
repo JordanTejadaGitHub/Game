@@ -46,7 +46,8 @@ doesn't fit the theme as well." Frames stay soft fog; no pixel borders on panels
 - **Warden panel:** the stats as one icon row (damage, speed, range, + Potency); per-run stats (this
   run, from combos, combos with) behind a quiet **Details**; grow / unlock rows unboxed: the name, the
   price or "needs …" small in Mist under it, the key chip at the right; the description shown whole.
-  Nurture or the first affordable form is the one primary; Sell and Close quiet.
+  Nurture and the grow rows are equal plain choices (no primary in this panel, 7edb250e); Sell and
+  Close quiet. A Sprout with nothing to grow into yet shows no "Grow into" heading or placeholder.
 - **Tower bar: more transparent, less busy.** The bar is a fog band (Void 55% / 30% / 18%), no boxes;
   each slot is a fog tile (Void 35% → 8%); only the selected slot is framed (Gold 60% inset) with a
   Glow underline. Slots 64 × 84 with a 48 px Warden, cost 16 px, key 12 px, centred between the Warden
