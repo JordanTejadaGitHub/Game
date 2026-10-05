@@ -196,7 +196,7 @@ the card one is **purple**, on the Cards limb (the right side).
 | **Strange Dreams** | Cards limb (purple, right), a small branch with Restless Omens | 50 | a bundle of gamble Dream cards (odd, swingy effects) joins the pool | Roguelite Mechanic Discussion |
 | **Second Look** | Perks limb (orange, left) | 40 | before drift 1, reroll the map once | Main Merger / Environment Code (map reroll at the first rest) |
 | **Chosen Hunt** | Perks limb (orange, left) | 80 | when an act begins, see its 3 possible bosses and pick which one comes (the act 4 Hollow Oak picks its variation) | Enemy Code (boss pools) + Main (the choice screen) |
-| **Leaf or Dew** | Perks limb (orange, left) | 40 | before the run, trade up to 3 leaves for +15 Dew each, or up to 45 Dew for +1 leaf per 15 | Meta Game Code (run start) |
+| **Leaf or Dew** | Perks limb (orange, left) | 40 | before the run, a −3…+3 step: give up to 3 leaves (max and current) for +15 Dew each, or pay 15 Dew per extra leaf (max and current) up to +3. Leaves traded away don't regrow | Meta Game Code (run start) |
 
 - **Rule (user 2026-10-05): anything card-like (Dreams, Omens) goes on the right side, purple; the left side, orange, holds run and loadout options.** These count toward the Heartwood's Crown like any bought node. +280 Seeds. (Wanderer's Map, a new map layout, was dropped 2026-10-05: user "Removing it".)
 - Each node waits for its content; until then it isn't on the tree.
