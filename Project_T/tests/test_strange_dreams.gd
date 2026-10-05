@@ -95,7 +95,7 @@ func _test_moonflip() -> void:
 	_check(dreams.moonflip_bonus() == 0.0 and dreams.moonflip_text() == "", "no Moonflip: no coin")
 	dreams.take(_card("moonflip"))
 	var bonus := dreams.moonflip_bonus()
-	_check(bonus == DreamState.MOONFLIP_UP or bonus == DreamState.MOONFLIP_DOWN, "Moonflip: +25% or −15% (%s)" % bonus)
+	_check(bonus == DreamState.MOONFLIP_UP or bonus == DreamState.MOONFLIP_DOWN, "Moonflip: +25%% or −15%% (%s)" % bonus)
 	_check(is_equal_approx(dreams.get_soothe_multiplier(tower), before + bonus), "…on every Warden's damage (%.2f → %.2f)" % [before, dreams.get_soothe_multiplier(tower)])
 	_check(dreams.moonflip_text() == ("Moonflip · +25%" if bonus > 0.0 else "Moonflip · −15%"), "the DriftPanel line: %s" % dreams.moonflip_text())
 	var ups := 0
