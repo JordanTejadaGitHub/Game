@@ -177,6 +177,13 @@ func _run() -> void:
 		_check(inside and ordered and not row_rect.intersects(banner_rect) and absf(parts[3].end.x - (screen.x - 16.0)) < 1.0
 			and parts.slice(0, 4).all(func(r: Rect2) -> bool: return r.size.y >= 48.0),
 			"the top-right row: counters and buttons in order on one fog patch, clear of the banner at %s (row %s, banner %s, wrapped %s)" % [screen, row_rect, banner_rect, row_hud.row_wrapped])
+		# One row (user: "all the icons and buttons should fit in one row on the top right"): without the Boosts
+		# button (shown only while a Warden is boosted) it fits even at 1280, the counters stepped down if needed.
+		(main.get_node("HUD/BuffLensButton") as Control).visible = false
+		row_hud._layout_top_row()
+		await _frames(2)
+		_check(not row_hud.row_wrapped and not row_hud.resource_row_rect().intersects(main.get_node("%DriftBanner").drawn_rect()),
+			"the counters and three buttons fit one row at %s (compact %s, row %s)" % [screen, row_hud.row_compact, row_hud.resource_row_rect()])
 		for n in top_names:
 			(main.get_node("HUD/" + n) as Control).visible = was_shown[n]
 		row_hud.set_process(true)
