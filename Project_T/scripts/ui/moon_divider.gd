@@ -7,7 +7,9 @@ class_name MoonDivider
 
 @export var colour := Color("fcd47c", 0.75):  # Glow (Heartwood 32)
 	set(v): colour = v; emit_changed()
+@export var mark := true:  # False = a plain thread (a primary right below has its own mark: one per group)
+	set(v): mark = v; emit_changed()
 
 func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 	var line := Rect2(rect.position.x, floorf(rect.get_center().y), rect.size.x, 1.0)
-	MoonStyleBox.draw_thread(to_canvas_item, line, colour, MoonStyleBox.INK_GOLD, true)
+	MoonStyleBox.draw_thread(to_canvas_item, line, colour, MoonStyleBox.INK_GOLD, mark)

@@ -104,6 +104,7 @@ static func install_text_filter(tree: SceneTree) -> void:
 		return
 	_text_filter_tree = tree
 	tree.node_added.connect(_linear_text)
+	tree.node_added.connect(_watch_marks)
 	if tree.root != null:
 		for node in tree.root.find_children("*", "Control", true, false):
 			_linear_text(node)
@@ -114,6 +115,46 @@ static func _linear_text(node: Node) -> void:
 	var is_text := node is Label or node is RichTextLabel or node is LineEdit or node is TextEdit
 	if is_text or (node is Button and (node as Button).icon == null):
 		(node as CanvasItem).texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+
+# One Heartwood mark per group (the user, 2026-10-05: "redundant sprout"): a panel's thread mark or a
+# divider's mark is dropped when a primary button (which has its own mark) sits right below it. Checked
+# on the control's first draw, after layout, against the primary's real position.
+const MARK_STACK_PANEL := 48.0  # A primary whose top is this close under a panel's top edge
+const MARK_STACK_DIVIDER := 40.0  # ... or this close under a divider
+const PRIMARY_VARIATIONS := [&"PrimaryButton", &"HudPrimary"]
+
+static func _watch_marks(node: Node) -> void:
+	if node is PanelContainer or node is HSeparator:
+		# A frame after the first draw: containers have placed their children by then.
+		(node as CanvasItem).draw.connect(func() -> void:
+			if node.is_inside_tree():
+				node.get_tree().process_frame.connect(_unstack_mark.bind(node), CONNECT_ONE_SHOT), CONNECT_ONE_SHOT)
+
+static func _unstack_mark(control: Control) -> void:
+	if not is_instance_valid(control) or not control.is_inside_tree():
+		return
+	var is_panel := control is PanelContainer
+	var box := control.get_theme_stylebox("panel" if is_panel else "separator")
+	var panel_marked := box is MoonStyleBox and (box as MoonStyleBox).thread != MoonStyleBox.TopLine.NONE \
+		and (box as MoonStyleBox).diamond
+	var marked := panel_marked or (box is MoonDivider and (box as MoonDivider).mark)
+	if not marked:
+		return
+	var rect := control.get_global_rect()
+	var line_y := rect.position.y if is_panel else rect.get_center().y
+	var scope: Node = control if is_panel else control.get_parent()
+	var reach := MARK_STACK_PANEL if is_panel else MARK_STACK_DIVIDER
+	for button in scope.find_children("*", "Button", true, false):
+		if button.is_visible_in_tree() and (button as Control).theme_type_variation in PRIMARY_VARIATIONS:
+			var gap := (button as Control).get_global_rect().position.y - line_y
+			if gap >= -1.0 and gap <= reach:
+				var plain := box.duplicate() as StyleBox
+				if plain is MoonStyleBox:
+					(plain as MoonStyleBox).diamond = false
+				else:
+					(plain as MoonDivider).mark = false
+				control.add_theme_stylebox_override("panel" if is_panel else "separator", plain)
+				return
 
 # Godot's own canvas_items stretch does the fitting: base size LAYOUT_MIN with aspect "expand" scales
 # by min(window / LAYOUT_MIN) (= ui_scale_factor's fit) and content_scale_factor = the share. Unlike a
