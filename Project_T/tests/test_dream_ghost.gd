@@ -92,6 +92,7 @@ func _run() -> void:
 	_check(placer.becomes_heart(far_cell, map_generator.get_path_if_blocked_cells([far_cell])),
 		"far along the route from the other Warden: it becomes the Heart of the Maze")
 	placer._hover_cell = far_cell
+	placer._hover_half = far_cell * 2.0  # Half placement reads the half origin (a whole cell = its corner half)
 	placer._refresh_hover()
 	_check(placer._heart_here, "and the ghost tag says so")
 	var wall: TowerData = load("res://resource/tower/thornwall.tres")
