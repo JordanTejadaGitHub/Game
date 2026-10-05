@@ -17,7 +17,7 @@ var map: Node  # MapGenerator
 var tower_container: Node
 var enemy_container: Node
 var _warden_cells := {}  # {cell: true} under every Warden (refreshed on plant / sell)
-var _behind := {}  # {tree cell: true}: something is in the cell above it now
+var _behind := {}  # {tree cell: target fade step}: something is in the cell above it now
 var _levels := {}  # {tree cell: fade step 1..FADE_STEPS}: trees not fully shown
 var _check := 0.0
 var _step := 0.0
@@ -48,10 +48,11 @@ func _process(delta: float) -> void:
 	if _step > 0.0:
 		return
 	_step = STEP_TIME
-	for cell in _behind:  # Fade in a step
+	for cell in _behind:  # A step toward its target (deeper for a Warden behind)
 		var level: int = _levels.get(cell, 0)
-		if level < EnvironmentTiles.FADE_STEPS and _set_level(cell, level + 1):
-			_levels[cell] = level + 1
+		var target: int = _behind[cell]
+		if level != target and _set_level(cell, level + signi(target - level)):
+			_levels[cell] = level + signi(target - level)
 	for cell in _levels.keys():  # Come back a step
 		if _behind.has(cell):
 			continue
@@ -65,7 +66,7 @@ func _process(delta: float) -> void:
 func _find_behind() -> void:
 	_behind.clear()
 	for cell in _warden_cells:
-		_mark(cell)
+		_mark(cell, EnvironmentTiles.FADE_STEP_WARDEN)
 	if enemy_container != null and enemy_container.has_method("get_enemies"):
 		for enemy: Node2D in enemy_container.get_enemies():
 			_mark(MAP_GRID.calculate_grid_coordinates(enemy.position))
@@ -93,11 +94,11 @@ static func whole_cells_of(tower: Tower) -> Array[Vector2]:
 			cells.append(cell)
 	return cells
 
-# `cell` holds something to see: the tree below it (if any) fades.
-func _mark(cell: Vector2) -> void:
+# `cell` holds something to see: the tree below it (if any) fades to step `level` (or deeper, if already asked).
+func _mark(cell: Vector2, level: int = EnvironmentTiles.FADE_STEP_SEEN) -> void:
 	var tree := cell + Vector2.DOWN
 	if map.environment_object_layer.get_cell_source_id(Vector2i(tree)) == EnvironmentTiles.WITHERED_TREE:
-		_behind[tree] = true
+		_behind[tree] = maxi(_behind.get(tree, 0), level)
 
 # Shows the tree on `cell` at fade step `level` (0 = whole). False if there's no tree there any more.
 func _set_level(cell: Vector2, level: int) -> bool:

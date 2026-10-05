@@ -28,9 +28,13 @@ func _run() -> void:
 	var trees := env.get_used_cells_by_id(EnvironmentTiles.WITHERED_TREE)
 	var source := map.tile_set.get_source(EnvironmentTiles.WITHERED_TREE) as TileSetAtlasSource
 	_check(source.get_alternative_tiles_count(Vector2i(0, 0)) == EnvironmentTiles.FADE_STEPS + 1, "each tree has its fade steps")
-	var last: ShaderMaterial = source.get_tile_data(Vector2i(0, 0), EnvironmentTiles.FADE_STEPS).material
-	_check(last != null and is_equal_approx(float(last.get_shader_parameter(&"top_alpha")), EnvironmentTiles.FADE_ALPHA)
-		and is_equal_approx(float(last.get_shader_parameter(&"top_share")), 0.5), "the last step: the top half at 45%")
+	var seen: ShaderMaterial = source.get_tile_data(Vector2i(0, 0), EnvironmentTiles.FADE_STEP_SEEN).material
+	var deepest: ShaderMaterial = source.get_tile_data(Vector2i(0, 0), EnvironmentTiles.FADE_STEP_WARDEN).material
+	_check(source.get_tile_data(Vector2i(0, 0), 0).y_sort_origin == EnvironmentTiles.TREE_SORT_BIAS
+		and source.get_tile_data(Vector2i(0, 0), 2).y_sort_origin == EnvironmentTiles.TREE_SORT_BIAS,
+		"trees sort just before anything in their own row (a Warden beside one draws over its branches)")
+	_check(deepest != null and float(deepest.get_shader_parameter(&"top_alpha")) < 0.25 and seen != null and is_equal_approx(float(seen.get_shader_parameter(&"top_alpha")), EnvironmentTiles.FADE_ALPHA)
+		and is_equal_approx(float(seen.get_shader_parameter(&"top_share")), 0.5), "the top half fades: 45% when something is behind, under 25% for a Warden")
 
 	# Two trees with open ground above them.
 	var open: Array[Vector2i] = []
@@ -49,7 +53,7 @@ func _run() -> void:
 	warden.position = map.MAP_GRID.calculate_map_position(warden.cell)
 	main.get_node("%TowerContainer").add_child(warden)
 	await _frames(20)
-	_check(env.get_cell_alternative_tile(tree) == EnvironmentTiles.FADE_STEPS, "a Warden above: the overhang fades (%d)" % env.get_cell_alternative_tile(tree))
+	_check(env.get_cell_alternative_tile(tree) == EnvironmentTiles.FADE_STEP_WARDEN, "a Warden above: the overhang fades deep (%d)" % env.get_cell_alternative_tile(tree))
 	var atlas_before := env.get_cell_atlas_coords(tree)
 	_check(env.get_cell_source_id(tree) == EnvironmentTiles.WITHERED_TREE and atlas_before == env.get_cell_atlas_coords(tree), "still the same tree")
 	warden.free()
@@ -63,7 +67,7 @@ func _run() -> void:
 	shade.set_process(false)
 	shade.position = map.MAP_GRID.calculate_map_position(Vector2(other + Vector2i.UP))
 	await _frames(20)
-	_check(env.get_cell_alternative_tile(other) == EnvironmentTiles.FADE_STEPS, "a nightmare above: the overhang fades")
+	_check(env.get_cell_alternative_tile(other) == EnvironmentTiles.FADE_STEP_SEEN, "a nightmare above: the overhang fades")
 	shade.free()
 	await _frames(20)
 	_check(env.get_cell_alternative_tile(other) == 0, "the nightmare gone: whole again")
@@ -75,7 +79,7 @@ func _run() -> void:
 		var half_warden := _half_warden(main, origin)
 		_check(half_warden.cell != t + Vector2.UP, "its centre's whole cell is beside, not above")
 		await _frames(20)
-		_check(env.get_cell_alternative_tile(tree) == EnvironmentTiles.FADE_STEPS, "one of its half cells above: the overhang fades")
+		_check(env.get_cell_alternative_tile(tree) == EnvironmentTiles.FADE_STEP_WARDEN, "one of its half cells above: the overhang fades")
 		half_warden.free()
 		await _frames(20)
 	else:
@@ -97,7 +101,7 @@ func _run() -> void:
 	seller.set_process(false)  # Its own update would put the hover back under the (headless) mouse
 	seller._hover_cell = Vector2(tree + Vector2i.UP)
 	await _frames(20)
-	_check(env.get_cell_alternative_tile(tree) == EnvironmentTiles.FADE_STEPS, "the hovered cell above: the overhang fades")
+	_check(env.get_cell_alternative_tile(tree) == EnvironmentTiles.FADE_STEP_SEEN, "the hovered cell above: the overhang fades")
 	seller._hover_cell = TowerSeller.NO_CELL
 	await _frames(20)
 	_check(env.get_cell_alternative_tile(tree) == 0, "hover gone: whole again")
