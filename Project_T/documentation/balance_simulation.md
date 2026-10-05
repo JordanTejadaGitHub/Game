@@ -448,11 +448,11 @@ health (0.7%) left cost all 18 leaves, the same as 3,400. The bot now covers the
 
 **Decision (user, 2026-10-01: "most bosses just lose a lot of leaves and have 1 boss that sticks"):**
 - **Only the Hollow Oak (drift 100, every form) stays and drains** until dispelled: the last stand.
-- **Every other act boss takes a flat bite and leaves:** **8 leaves in act 1, 10 in act 2, 12 in act 3**
+- **Every other act boss takes a flat bite and leaves:** **10 leaves in act 1 (was 8, raised 2026-10-01, below), 10 in act 2, 12 in act 3**
   (user chose flat over health-scaled). Elite/escort leaks unchanged.
 - **The Night Mare keeps its own laps** (untouchable lingers that drain, then another lap).
 - This replaces enemy_design.md's "A boss that reaches the Heartwood stays" for every boss but the Oak.
-  Act 1's target "always-skip loses to the boss" now has to come from leaks before 25 plus the 8.
+  Act 1's target "always-skip loses to the boss" now has to come from leaks before 25 plus the bite (10).
 - **Leaf Fall is never offered for a block with a boss drift** (its ×2 would make the bite 16–24
   leaves: a boss must never one-shot the run).
 - In the game: **bfc33e75** (boss bite, `EnemyContainer.boss_bite_leaves` [8, 10, 12],
