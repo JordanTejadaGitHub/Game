@@ -87,6 +87,7 @@ var half_spots := [0, 0, 0, 0, 0]  # Attackers weighed with half nudges, built a
 var route_open := -1  # Route length in full cells after the opening spend, and as drifts 24 / 45 start
 var route_base := -1  # The empty map's route in full cells, before the opening spend (the corridor rule alone)
 var old_growth := false  # --old-growth: DreamState's growth prices from before f9fd8526 (branch / final ×1.0, ranks 25/40/60/90/135), the A/B
+var node_sets := []  # --set=%Node.prop=value (repeatable): an export on a scene-unique node, set after _ready (e.g. %TowerPlacer.copy_cost_step=0)
 var grow_count := 0  # Growth purchases (balance_simulation.md growth costs A/B): all, and as drift 25 starts
 var grows_25 := -1
 var first_grow := -1  # The drift of the first growth into a tier 2+ form
@@ -168,6 +169,7 @@ func _run() -> void:
 			"--no-half-pref": half_pref = false
 			"--no-pair-search": pair_search = false
 			"--old-growth": old_growth = true
+			"--set": node_sets.append(arg.substr(arg.find("=") + 1))
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
@@ -236,6 +238,16 @@ func _run() -> void:
 			dreams.set(key, 1.0)
 		var old_ranks: Array[int] = [25, 40, 60, 90, 135]
 		dreams.set("rank_costs", old_ranks)
+	for s in node_sets:  # --set: after _ready, like --old-growth
+		var target: String = s.get_slice("=", 0)
+		var node := main.get_node_or_null(target.get_slice(".", 0))
+		var prop := target.get_slice(".", 1)
+		if node == null or node.get(prop) == null:
+			printerr("--set: no %s" % target)
+			quit(1)
+			return
+		var raw: String = s.get_slice("=", 1)
+		node.set(prop, int(raw) if node.get(prop) is int else float(raw))
 	dreams.dreamlight_earned.connect(func(amount: int, source: StringName) -> void: dreamlight_by_source[source] = dreamlight_by_source.get(source, 0) + amount)
 	run_state = main.get_node("%RunState")
 	director = main.get_node("%DriftDirector")
@@ -972,6 +984,7 @@ func _finish() -> void:
 	summary.grows = grow_count
 	summary.grows_25 = grows_25
 	summary.first_grow = first_grow
+	summary.sets = ";".join(node_sets)
 	summary.growth_costs = "%s/%s/%s/%s" % [dreams.get("branch_cost_multiplier"), dreams.get("final_cost_multiplier"), dreams.get("ascended_cost_multiplier"), dreams.get("rank_costs")]
 	summary.route_open = route_open
 	summary.route_24 = route_at.get(24, -1)
