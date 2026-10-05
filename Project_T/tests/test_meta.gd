@@ -812,7 +812,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 98 and grove.size() == 98 - parked, "98 Grove spots, %d nodes on the tree (layout %d, data %d)" % [98 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 99 and grove.size() == 99 - parked, "99 Grove spots, %d nodes on the tree (layout %d, data %d)" % [99 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:

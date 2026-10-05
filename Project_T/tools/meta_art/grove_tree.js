@@ -52,7 +52,7 @@ N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
 // New nodes (meta_design.md 72ccfceb), each off until its UnlockData exists (test_meta checks layout =
 // data); Meta Game Code flips its flag with the .tres. KEEPSAKES: the old Keepsakes twig at the Perks
 // foot, gone from the tree (their .tres are deleted; they live on the Keepsakes shelf now).
-const KEEPSAKES = false, REMEMBERED_SEED = true, CHOSEN_HUNT = true, LEAF_OR_DEW = true, RESTLESS_OMENS = true, STRANGE_DREAMS = true;
+const KEEPSAKES = false, REMEMBERED_SEED = true, CHOSEN_HUNT = true, LEAF_OR_DEW = true, KIN_FORETOLD = true, RESTLESS_OMENS = true, STRANGE_DREAMS = true;
 if (KEEPSAKES) {
 N("golden_leaf", "perks", "Golden Leaf", 534, 540, [533, 568], { twig: true });
 N("blossoms", "perks", "Blossoms", 548, 492, "golden_leaf", { twig: true });
@@ -64,7 +64,7 @@ const chain = (from, nodes, section) => { let last = null; for (const [id, name,
 const byIdSoFar = id => NODES.some(n => n.id === id);
 // Run options (left, orange): their own short path on the Perks limb, between Economy and Survival.
 chain([432, 482], [["remembered_seed", "Remembered Seed", REMEMBERED_SEED, 412, 420], ["chosen_hunt", "Chosen Hunt", CHOSEN_HUNT, 398, 340],
-  ["leaf_or_dew", "Leaf or Dew", LEAF_OR_DEW, 446, 384, "remembered_seed"]], "perks");
+  ["leaf_or_dew", "Leaf or Dew", LEAF_OR_DEW, 446, 384, "remembered_seed"], ["kin_foretold", "Kin Foretold", KIN_FORETOLD, 372, 300, "chosen_hunt"]], "perks");
 // Card-like nodes (right, purple): a small branch on the Cards limb.
 chain([848, 482], [["strange_dreams", "Strange Dreams", STRANGE_DREAMS, 868, 430], ["restless_omens", "Restless Omens", RESTLESS_OMENS, 890, 372]], "cards");
 // Families: a short branch of three per family (family, hidden branch, Ascension),

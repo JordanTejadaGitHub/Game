@@ -137,6 +137,7 @@ func save_now() -> bool:
 		"free_clears": run_state.free_clears,
 		"sprout_charges": run_state.sprout_charges,  # Seedling Gift, Sprout Bed
 		"free_nurtures": run_state.free_nurtures,  # First Care
+		"foretold": family_screen.foretold if "foretold" in family_screen else [],  # Kin Foretold: the next boss pick's families
 		"gifts": HeartwoodGifts.find(self).to_save() if HeartwoodGifts.find(self) != null else {},  # Heartwood's Gifts (Spire)
 		"dew_harvested": run_state.dew_harvested,  # The Harvest + interest (Golden Harvest)
 		"fertile_cells": run_state.fertile_cells.keys().map(func(c: Vector2) -> Array: return [c.x, c.y]),
@@ -254,6 +255,8 @@ func _restore(data: Dictionary) -> void:
 	run_state.add_free_clears(int(data.get("free_clears", 0)) - run_state.free_clears)
 	run_state.add_sprout_charges(int(data.get("sprout_charges", 0)) - run_state.sprout_charges)
 	run_state.free_nurtures = int(data.get("free_nurtures", 0))
+	if "foretold" in family_screen:
+		family_screen.foretold = Array(data.get("foretold", []))  # Kin Foretold: the same families, as promised
 	run_state.dew_harvested = int(data.get("dew_harvested", 0))
 	if "rank_dew_spent" in run_state:
 		run_state.rank_dew_spent = int(data.get("rank_dew_spent", 0))

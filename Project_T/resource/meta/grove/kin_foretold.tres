@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "kin_foretold"
+display_name = "Kin Foretold"
+description = "Every {family_pick} also shows which families the next boss pick will offer."
+root = 2
+costs = Array[int]([60])
+order = 48
+icon = 25
+always_on = true
