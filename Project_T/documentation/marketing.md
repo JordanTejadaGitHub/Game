@@ -134,6 +134,18 @@ several captures (export `cuts`, see `capture/video0.json`); every clip at real 
 - 9–16 s: *"Come on, come on…"* (let the action breathe)
 - 16–19 s: *"Dispelled. On the doorstep."* (exhale) *"That's the game."* · end card line.
 
+**Short 6: "Remember Warcraft 3 tower defense maps?" (~28 s; the user's hook, 2026-10-04; built from kit clips, the user edits)**
+Name Warcraft only: no footage, logos or art from it. On-screen text uses "defense" (Steam tag); the VO can say either.
+
+| Time | VO | On screen | Shot (kit clip, in-point) |
+|---|---|---|---|
+| 0–2 s | *"Remember Warcraft 3 tower defense maps?"* | **Remember Warcraft 3 TD maps?** | The maze snapping together (`video0_maze` from ~1.5 s, or `kit_build_ghost`) |
+| 2–7 s | *"You'd spend the whole game building one giant maze… then watch everything walk it."* | | A drift walking the finished maze, wide (`kit_long_take_maze`, any 5 s after ~20 s) |
+| 7–11 s | *"I couldn't find a game that felt like that anymore."* (beat) *"So I made one."* | | The pull-back over the whole maze, landing on "So I made one" (`video0_maze` 18.5–22.5 s) |
+| 11–18 s | *"Your Wardens are the walls, and every run is a new island with a new maze."* | | Half-cell walls going down (`kit_half_cells`), then act 1 → act 4 (`kit_early_game` → `kit_late_game`) |
+| 18–24 s | *"Then the combos kick in…"* (let the chain run 2–3 s) | | The storm chain (`short_02` ~9–13 s, or `kit_late_game`) |
+| 24–28 s | *"It's called Heartwood TD. Wishlist it on Steam."* | | End card (the store art + logo) |
+
 **End card line (every short):** *"Heartwood TD. Wishlist it on Steam, link below."* (swap the name if it changes)
 
 **Recording tips:** a quiet room, phone mic close and slightly off to the side, read each line two or three ways, and
