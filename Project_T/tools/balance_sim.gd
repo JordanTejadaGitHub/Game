@@ -38,7 +38,7 @@ const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, 
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
 	"dew_rest", "dew_other", "spent_plant", "spent_walls", "spent_grow", "spent_nurture", "banked",
 	"attackers", "walls", "tier1", "tier2", "tier3", "tier4", "avg_rank", "route", "families", "cards",
-	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain", "combo_amount_share", "status_share", "hit_share", "combo_damage", "reaction_damage", "status_damage", "combo_share"]
+	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain", "combo_amount_share", "status_share", "hit_share", "combo_damage", "reaction_damage", "status_damage", "combo_share", "leaked_health"]
 
 # Per style: [attacker room at drift 0, + per drift, cap], walls per attacker, nurture weight.
 const STYLE_PLAN := {
@@ -98,6 +98,13 @@ var save_at: Array[int] = []  # --save-at=N (repeatable): after the bot's spendi
 var _save_copy := ""
 var resumed_at := -1  # The drift the resumed save was resting after (resumed_at column)
 var _finals_first := false  # _grow prefers the highest tier (the --start-at build)
+var extra_spend := ""  # --extra-spend=plant|grow|final|rank|none (balance_simulation.md a8c0365c "Plant vs grow vs rank"): at the resumed rest, X extra Dew spent only that way
+var extra_dew := 0  # --extra-dew=X
+var extra_spent := 0
+var base_kind := ""  # The family base Warden most on the map at the start, and its copies (copy number N)
+var copies_at_start := -1
+var _grow_only_tier := 0  # _grow only into this tier (2 = a branch, 3 = a final); 0 = any
+var path_added := {"plant": [0, 0], "wall": [0, 0]}  # Route cells added by the bot's placements: [sum, placements]
 const START_ATTACKERS := {51: 50, 76: 46}  # Human run history (non-dev runs, 2026-10-05): mean "attackers" of runs that ended at 50 (42, 75, 46, 38); at 75, the three runs past it prorated by drift (31@80, 58@100, 88@100)
 const START_PLANT_SHARE := 0.25  # (a) at most this share of the start Dew on planting + walls
 const START_GROW_SHARE := 0.52  # (b) growth up to about the human share by 50; (c) ranks take the rest
@@ -192,6 +199,8 @@ func _run() -> void:
 			"--start-leaves": start_leaves = int(value)
 			"--from-save": from_save = arg.substr(arg.find("=") + 1)
 			"--save-at": save_at.append(int(value))
+			"--extra-spend": extra_spend = value
+			"--extra-dew": extra_dew = int(value)
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
@@ -326,7 +335,10 @@ func _run() -> void:
 	route_base = _route_cells(map.get_path_from(map.startPath))
 	if start_at > 1:
 		_synthetic_start()
-	_spend()  # The opening (with --start-at: the whole board, built in that one rest)
+	if extra_spend != "":
+		_extra_spend()  # Instead of the opening spend: every arm (the control too) keeps the saved board as it was
+	else:
+		_spend()  # The opening (with --start-at: the whole board, built in that one rest)
 	route_open = _route_cells(map.get_path_from(map.startPath))
 	Engine.time_scale = speed
 	var frames := 0
@@ -535,6 +547,43 @@ func _late_build() -> void:
 		_walls().size(), walls_planted, roundi(spent.plant), roundi(spent.grow), roundi(spent.rank), roundi(dew0)]
 	print("START BUILD " + start_counts)
 
+# --extra-spend (balance_simulation.md a8c0365c "Plant vs grow vs rank"), at the rest a --from-save run resumes on:
+# `extra_dew` more Dew spent only one way, the unspent part taken back, then normal play. plant = copies of the
+# family base most on the map; grow = one base → branch; final = one branch → final; rank = Nurture on the bot's
+# usual targets; none = the control.
+func _extra_spend() -> void:
+	var counts := {}
+	for t in _attackers():
+		var d: TowerData = t.tower_data
+		if d.tier == 1 and d.buildable_directly and d.get_id() != "sprout" and dreams.family_of(d.get_id()) != "":
+			counts[d.get_id()] = int(counts.get(d.get_id(), 0)) + 1
+	for id in counts:
+		if base_kind == "" or counts[id] > counts[base_kind]:
+			base_kind = id
+	copies_at_start = int(counts.get(base_kind, 0))
+	var before := run_state.dew
+	run_state.dew += extra_dew
+	match extra_spend:
+		"plant":
+			var base: TowerData = load("res://resource/tower/%s.tres" % base_kind) if base_kind != "" else null
+			for guard in 200:
+				if base == null or run_state.dew - before <= 0 or not run_state.can_afford(placer.get_cost(base)):
+					break
+				var cell := _best_cell(base.attack_range, 0.5, false, base)
+				if cell == NO_CELL or not _build(base, cell):
+					break
+		"grow", "final":
+			_grow_only_tier = 2 if extra_spend == "grow" else 3
+			_grow()
+			_grow_only_tier = 0
+		"rank":
+			for guard in 200:
+				if run_state.dew - before <= 0 or not _nurture():
+					break
+	extra_spent = before + extra_dew - run_state.dew
+	run_state.dew = mini(run_state.dew, before)  # The unspent extra goes back
+	print("EXTRA %s: %d of %d spent (base %s ×%d)" % [extra_spend, extra_spent, extra_dew, base_kind, copies_at_start])
+
 func _pick_family_now(kind: StringName) -> void:
 	if forced_families.is_empty():
 		policy.family_pick(kind)
@@ -737,9 +786,26 @@ func _plant_half_wall() -> bool:
 	if best == Vector2(-1, -1):
 		return false
 	half_spots[3] += 1
-	return placer._try_build_half(best)
+	var before := _route_cells(map.get_path_from(map.startPath))
+	var built: bool = placer._try_build_half(best)
+	if built:
+		_note_path(before, true)
+	return built
 
+# Builds and notes the route cells the placement added (path_per_plant / path_per_wall columns).
 func _build(data: TowerData, cell: Vector2) -> bool:
+	var before := _route_cells(map.get_path_from(map.startPath))
+	var built := _build_inner(data, cell)
+	if built:
+		_note_path(before, not data.can_attack)
+	return built
+
+func _note_path(before: int, wall: bool) -> void:
+	var entry: Array = path_added["wall" if wall else "plant"]
+	entry[0] += _route_cells(map.get_path_from(map.startPath)) - before
+	entry[1] += 1
+
+func _build_inner(data: TowerData, cell: Vector2) -> bool:
 	placer.tower_data = data
 	if not _half_mode() or _top.is_empty() or not placer.half_placement():
 		return placer._try_build(cell)
@@ -883,6 +949,8 @@ func _grow() -> bool:
 		for form in tower.tower_data.evolves_to:
 			if not (form is TowerData) or not dreams.is_unlocked(form.get_id()) or placer.ascended_blocker(form) != "":
 				continue
+			if _grow_only_tier > 0 and form.tier != _grow_only_tier:
+				continue  # --extra-spend grow / final: only that step
 			if form.footprint > tower.get_footprint() and placer.get_grow_squares(tower, form).is_empty():
 				continue
 			if tower.get_grow_cost(form).total > run_state.dew:
@@ -934,6 +1002,8 @@ func _hook_stats() -> void:
 			(func() -> void: d.health_spawned += n.max_health).call_deferred())
 	spawner.enemy_reached_goal.connect(func(e) -> void:
 		d.leaks += 1
+		if is_instance_valid(e):
+			d.leaked_health += e.health  # Health that got through (dispelled share = 1 - leaked / spawned)
 		if is_instance_valid(e) and e.enemy_data.is_boss:  # An act boss bites (8 / 10 / 12 leaves) and leaves (bfc33e75)
 			_boss_leaked(e)
 		if run.first_leak == 0:
@@ -959,7 +1029,7 @@ func _new_window() -> void:
 	d = {"start": game_time, "health_spawned": 0.0, "damage": 0.0, "chain_deep": 0.0, "leaks": 0, "leaves_left": run_state.leaves,
 		"leaves_before": run_state.leaves, "dew_rest": 0, "dew_other": 0, "spent_plant": 0, "spent_walls": 0,
 		"spent_grow": 0, "spent_nurture": 0, "by_tower": {}, "asleep": 0.0, "reaction": 0.0, "crit": 0.0,
-		"restless": 0, "trampled": 0, "approach": 0.0, "combo": 0.0, "status": 0.0, "hit": 0.0, "combo_damage": 0.0, "reaction_damage": 0.0, "status_damage": 0.0}
+		"restless": 0, "trampled": 0, "approach": 0.0, "combo": 0.0, "status": 0.0, "hit": 0.0, "combo_damage": 0.0, "reaction_damage": 0.0, "status_damage": 0.0, "leaked_health": 0.0}
 
 func _on_damage(event) -> void:
 	d.damage += event.amount
@@ -1027,7 +1097,7 @@ func _close_window(n: int) -> void:
 		"avg_rank": snappedf(float(ranks) / maxf(_attackers().size(), 1), 0.1),
 		"route": _route_cells(map.get_path_from(map.startPath)), "families": lines.size(), "cards": dreams.stacks.size(),
 		"dreamlight": dreams.dreamlight, "top_warden": top, "top_share": snappedf(top_amount / damage, 0.001),
-		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "combo_amount_share": snappedf(d.combo / damage, 0.001), "status_share": snappedf(d.status / damage, 0.001), "hit_share": snappedf(d.hit / damage, 0.001), "combo_damage": roundi(d.combo_damage), "reaction_damage": roundi(d.reaction_damage), "status_damage": roundi(d.status_damage), "combo_share": snappedf((d.combo_damage + d.reaction_damage) / damage, 0.001), "longest_chain": _longest_chain(),
+		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "combo_amount_share": snappedf(d.combo / damage, 0.001), "status_share": snappedf(d.status / damage, 0.001), "hit_share": snappedf(d.hit / damage, 0.001), "combo_damage": roundi(d.combo_damage), "reaction_damage": roundi(d.reaction_damage), "status_damage": roundi(d.status_damage), "combo_share": snappedf((d.combo_damage + d.reaction_damage) / damage, 0.001), "longest_chain": _longest_chain(), "leaked_health": roundi(d.leaked_health),
 		"crit_share": snappedf(d.crit / damage, 0.001), "restless": d.restless, "trampled": d.trampled,
 		"approach": snappedf(d.approach, 0.01)}
 	rows.append(row)
@@ -1142,6 +1212,14 @@ func _finish() -> void:
 	summary.start_build = start_counts.replace(",", ";")
 	summary.from_save = from_save.get_file()
 	summary.resumed_at = resumed_at
+	summary.extra_spend = extra_spend
+	summary.extra_dew = extra_dew
+	summary.extra_spent = extra_spent
+	summary.base_kind = base_kind
+	summary.copies_at_start = copies_at_start
+	summary.path_per_plant = snappedf(float(path_added.plant[0]) / maxf(path_added.plant[1], 1.0), 0.01)
+	summary.path_per_wall = snappedf(float(path_added.wall[0]) / maxf(path_added.wall[1], 1.0), 0.01)
+	summary.placements = "%d/%d" % [path_added.plant[1], path_added.wall[1]]
 	summary.growth_costs = "%s/%s/%s/%s" % [dreams.get("branch_cost_multiplier"), dreams.get("final_cost_multiplier"), dreams.get("ascended_cost_multiplier"), dreams.get("rank_costs")]
 	summary.route_open = route_open
 	summary.route_24 = route_at.get(24, -1)
