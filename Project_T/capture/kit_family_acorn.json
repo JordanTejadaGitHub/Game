@@ -1,0 +1,11 @@
+{
+	"title": "Kit: family acorn (grove_keeper)",
+	"note": "Editor kit, every-family clip: the acorn family's final form (grove_keeper) beside the straight route on the cleared island; an elite Husk crowd then Shades walk past it. Close (zoom 2).",
+	"seed": 4242, "size": [1920, 1080], "drift": 40, "dew": 999, "obstacles": "edge", "families": ["acorn"], "hud": "none", "length": 9.0,
+	"timeline": [
+		{"t": 0.0, "camera": "hold", "at": [7, 11], "zoom": 2.0},
+		{"t": 0.0, "plant": "grove_keeper", "at": [14, 23], "rank": 3, "tag": false},
+		{"t": 0.3, "spawn": "bark_beetle", "count": 6, "elite": true, "progress": 0.12, "spread": 0.7},
+		{"t": 2.5, "spawn": "leaf_bug", "count": 8, "progress": 0.12, "spread": 0.6}
+	]
+}

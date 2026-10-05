@@ -1,0 +1,10 @@
+{
+	"title": "Kit: the last leaf",
+	"note": "Editor kit: 1 leaf, invulnerable off, an elite Husk a few cells from the Heartwood with nothing to stop it: it reaches the tree, the last leaf falls, the run ends and the results screen shows. Clean HUD.",
+	"seed": 4242, "size": [1920, 1080], "drift": 40, "dew": 385, "leaves": 1, "invulnerable": false, "obstacles": "edge", "families": ["sporeling"], "hud": "clean", "length": 16.0,
+	"timeline": [
+		{"t": 6.5, "quiet": false},
+		{"t": 0.0, "camera": "hold", "at": "heartwood", "zoom": 2.0},
+		{"t": 0.5, "spawn": "bark_beetle", "elite": true, "cells_left": 7}
+	]
+}

@@ -1,0 +1,29 @@
+{
+	"title": "Kit: long take, storm",
+	"note": "Editor kit: an uncut 150 s take of the late storm board (act 4, drift 85, Ascended Wardens), wide (zoom 1), elite crowds every 20 s. Cut freely.",
+	"seed": 9177,
+	"size": [1920, 1080],
+	"drift": 85,
+	"dew": 99999,
+	"hud": "none",
+	"dreams": ["dawnbreak"],
+	"length": 150.0,
+	"timeline": [
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 1.0},
+		{"t": 0.0, "plant_each": 0.05, "count": 16, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 3, "plant": "monsoon", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 2, "plant": "tidecaller", "auto": "cover", "tag": false},
+		{"t": 0.5, "plant_each": 0.1, "count": 3, "plant": "thunderhead", "auto": "cover", "tag": false},
+		{"t": 0.5, "plant_each": 0.1, "count": 2, "plant": "stormheart", "auto": "cover", "tag": false},
+		{"t": 0.5, "plant_each": 0.1, "count": 2, "plant": "lanternmoth", "auto": "cover", "tag": false},
+		{"t": 2.0, "dew": 2310},
+		{"t": 0.5, "start": true},
+		{"t": 15.0, "spawn": "bark_beetle", "count": 16, "elite": true, "progress": 0.3, "spread": 0.4},
+		{"t": 35.0, "spawn": "bark_beetle", "count": 16, "elite": true, "progress": 0.3, "spread": 0.4},
+		{"t": 55.0, "spawn": "bark_beetle", "count": 16, "elite": true, "progress": 0.3, "spread": 0.4},
+		{"t": 75.0, "spawn": "bark_beetle", "count": 16, "elite": true, "progress": 0.3, "spread": 0.4},
+		{"t": 95.0, "spawn": "bark_beetle", "count": 16, "elite": true, "progress": 0.3, "spread": 0.4},
+		{"t": 115.0, "spawn": "bark_beetle", "count": 16, "elite": true, "progress": 0.3, "spread": 0.4},
+		{"t": 135.0, "spawn": "bark_beetle", "count": 16, "elite": true, "progress": 0.3, "spread": 0.4}
+	]
+}
