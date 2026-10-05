@@ -21,7 +21,7 @@ func _run() -> void:
 	# --- Drift banner: next boss countdown ---
 	var banner = main.get_node("%DriftBanner")
 	var text: String = banner._next_boss_text(0)
-	_check(text.ends_with(" in 25"), "banner names the next boss with the countdown (%s)" % text)
+	_check(text == "25", "banner shows the next boss as its portrait and the countdown (%s)" % text)
 
 	# The top-centre stack: the active Omen's line sits under the banner, the Coming strip under it.
 	var omen_tag := main.get_node_or_null("HUD/ActiveOmen") as Label
@@ -178,13 +178,10 @@ func _run() -> void:
 		_check(inside and ordered and not row_rect.intersects(banner_rect) and absf(parts[3].end.x - (screen.x - 16.0)) < 1.0
 			and parts.slice(0, 4).all(func(r: Rect2) -> bool: return r.size.y >= 48.0),
 			"the top-right row: counters and buttons in order on one fog patch, clear of the banner at %s (row %s, banner %s, wrapped %s)" % [screen, row_rect, banner_rect, row_hud.row_wrapped])
-		# One row (user: "all the icons and buttons should fit in one row on the top right"): without the Boosts
-		# button (shown only while a Warden is boosted) it fits even at 1280, the counters stepped down if needed.
-		(main.get_node("HUD/BuffLensButton") as Control).visible = false
-		row_hud._layout_top_row()
-		await _frames(2)
+		# One row (user: "all the icons and buttons should fit in one row on the top right"): the counters and all four
+		# buttons, even at 1280 (the counters step down; the banner's boss line is its portrait + countdown).
 		_check(not row_hud.row_wrapped and not row_hud.resource_row_rect().intersects(main.get_node("%DriftBanner").drawn_rect()),
-			"the counters and three buttons fit one row at %s (compact %s, row %s)" % [screen, row_hud.row_compact, row_hud.resource_row_rect()])
+			"the counters and four buttons fit one row at %s (compact %s, row %s)" % [screen, row_hud.row_compact, row_hud.resource_row_rect()])
 		for n in top_names:
 			(main.get_node("HUD/" + n) as Control).visible = was_shown[n]
 		row_hud.set_process(true)

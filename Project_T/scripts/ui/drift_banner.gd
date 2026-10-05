@@ -184,7 +184,8 @@ func _get_tooltip(at: Vector2) -> String:
 	var data := _next_boss_data(drift_director.drifts_started)
 	if data == null or not _countdown_rect.has_point(at):
 		return ""
-	return "About %s" % IconInfo.name_in_sentence(data.display_name)
+	var left := _next_boss_drift(drift_director.drifts_started) - drift_director.drifts_started
+	return "%s in %d drift%s. Tap for its dossier." % [data.display_name, left, "" if left == 1 else "s"]
 
 func _gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
@@ -228,20 +229,20 @@ func show_marker_tip(line: String, at: Vector2) -> void:
 	_marker_tip.global_position = Vector2(clampf(global_position.x + at.x - _marker_tip.size.x / 2.0,
 		4, screen.x - _marker_tip.size.x - 4), global_position.y + 70)
 
-const TOP_GAP := "      "  # Between the act's name and the drift count
+const TOP_GAP := "   "  # Between the act's name and the drift count (trimmed: the top-right row needs the room at 1280)
 
 # "Drift 7 of 100" (light pass, user-approved: the total is back, "Ready ·" is gone); drift 1 before the first.
 func get_drift_text() -> String:
 	var latest := drift_director.drifts_started
 	return "Drift %d of %d" % [maxi(latest, 1), drift_director.get_total_drifts()]
 
-# "The Hollow Stag in 18" for the next boss drift after `latest` (drifts to go), or "".
+# The next boss line after `latest`: just its countdown ("18") beside the boss portrait (design hub: the top-right row needs the room; the name and "in 18 drifts" are the tooltip, a tap opens the dossier), or "".
 func _next_boss_text(latest: int) -> String:
 	var number := _next_boss_drift(latest)
 	if number == 0:
 		return ""
 	var data := _boss_of(number)
-	return "%s in %d" % [data.display_name if data != null else "Boss", number - latest]  # "The Hollow Stag in 25" (light pass)
+	return str(number - latest)
 
 func _next_boss_data(latest: int) -> EnemyData:
 	var number := _next_boss_drift(latest)
