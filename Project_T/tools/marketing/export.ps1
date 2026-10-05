@@ -83,7 +83,6 @@ New-Item -ItemType Directory $work | Out-Null
 Copy-Item (Join-Path $Project "assets\ui\fonts\AlegreyaSans-Medium.ttf") (Join-Path $work "body.ttf")
 Copy-Item (Join-Path $Project "assets\ui\fonts\CormorantSC-Medium.ttf") (Join-Path $work "title.ttf")
 Copy-Item (Join-Path $Project "assets\ui\fonts\CormorantGaramond-Variable.ttf") (Join-Path $work "display.ttf")
-Copy-Item (Join-Path $Project "assets\ui\title\title_background.png") (Join-Path $work "backdrop.png")
 # Music: a finished bed from Sound ("bed": a .wav, with "bed_voice" for the voiceover cut and "bed_offset" seconds:
 # positive skips into the bed, negative starts it later), else the game's stems ("music": names, looped). Either way
 # "end_button" (a .wav) plays under the end card. Paths are relative to the project or absolute.
@@ -122,7 +121,6 @@ function Wrap([string]$text, [int]$width = 24) {
 }
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 function Text([string]$file, [string]$text) { [IO.File]::WriteAllText((Join-Path $work $file), $text, $utf8) }
-Text "card_title.txt" "Heartwood TD"
 Text "card_wish.txt" "Wishlist on Steam"
 Text "card_link.txt" "link in the description"
 
@@ -162,25 +160,35 @@ function Captions([string]$style) {
 	return ($filters -join ",")
 }
 
-# The end card: the title art, darkened, with the name and the call to action.
-$card = "[1:v]scale=iw*6:ih*6:flags=neighbor,crop=1080:1920,eq=brightness=-0.18:saturation=0.85," +
-	"drawtext=fontfile=title.ttf:textfile=card_title.txt:fontsize=118:fontcolor=0xe9a83c:x=(w-text_w)/2:y=h*0.36," +
-	"drawtext=fontfile=body.ttf:textfile=card_wish.txt:fontsize=74:fontcolor=0xfff4dc:x=(w-text_w)/2:y=h*0.36+170," +
-	"drawtext=fontfile=body.ttf:textfile=card_link.txt:fontsize=42:fontcolor=0xfff4dc@0.75:x=(w-text_w)/2:y=h*0.36+270," +
+# The end card (the store art, steam_capsules.md: concept A's watchful Warden with the hand-lettered logo; whole-number
+# nearest scaling only): its background is composed once here, the words go on per render.
+#   9:16  source_title_polished x6 (3840x2160) cropped 1080x1920 around the Warden, the logo x4 at ~60% (under its eyes, as the vertical capsule)
+#   16:9  the source x3 (exactly 1920x1080), the logo x5 at ~18%
+$storeArt = Join-Path $Project "assets\store\steam"
+& $Ffmpeg -v error -y -i (Join-Path $storeArt "source_title_polished.png") -i (Join-Path $storeArt "logo_1x.png") -filter_complex `
+	"[0:v]scale=iw*6:ih*6:flags=neighbor,crop=1080:1920:2160:120,eq=brightness=-0.12:saturation=0.9[bg];[1:v]scale=iw*4:ih*4:flags=neighbor[logo];[bg][logo]overlay=x=(W-w)/2:y=H*0.60-h/2" `
+	-frames:v 1 (Join-Path $work "card_tall.png")
+& $Ffmpeg -v error -y -i (Join-Path $storeArt "source_title_polished.png") -i (Join-Path $storeArt "logo_1x.png") -filter_complex `
+	"[0:v]scale=iw*3:ih*3:flags=neighbor,eq=brightness=-0.15:saturation=0.9[bg];[1:v]scale=iw*5:ih*5:flags=neighbor[logo];[bg][logo]overlay=x=(W-w)/2:y=H*0.24-h/2" `
+	-frames:v 1 (Join-Path $work "card_wide.png")
+if (-not (Test-Path (Join-Path $work "card_tall.png")) -or -not (Test-Path (Join-Path $work "card_wide.png"))) { throw "Couldn't compose the end card from $storeArt" }
+Copy-Item (Join-Path $work $(if ($trailer) { "card_wide.png" } else { "card_tall.png" })) (Join-Path $work "backdrop.png") -Force
+$card = "[1:v]" +
+	"drawtext=fontfile=body.ttf:textfile=card_wish.txt:fontsize=74:fontcolor=0xfff4dc:shadowcolor=0x05050d@0.8:shadowx=3:shadowy=3:x=(w-text_w)/2:y=h*0.60+190," +
+	"drawtext=fontfile=body.ttf:textfile=card_link.txt:fontsize=42:fontcolor=0xfff4dc@0.8:shadowcolor=0x05050d@0.8:shadowx=2:shadowy=2:x=(w-text_w)/2:y=h*0.60+290," +
 	"fps=60,trim=duration=$(F $endCard),setpts=PTS-STARTPTS,format=yuv420p,fade=t=in:st=0:d=0.25[card]"
-if ($trailer) {  # 1920x1080: the title art at exactly x3, the name, the call to action and the platform
+if ($trailer) {  # 1920x1080: the store art at exactly x3 with the logo, the tagline, the call to action and the platform
 	Text "card_platform.txt" "Steam $([char]0x00B7) PC"  # The middle dot as a char code: PowerShell 5.1 reads this file as ANSI
 	# "end_tagline": a line in the display font under the title; the rest moves down to make room.
 	$tagline = ""; $drop = 0
 	if ($null -ne $scene.end_tagline -and [string]$scene.end_tagline -ne "") {
 		Text "card_tagline.txt" ([string]$scene.end_tagline)
-		$tagline = "drawtext=fontfile=display.ttf:textfile=card_tagline.txt:fontsize=58:fontcolor=0xfff4dc@0.92:x=(w-text_w)/2:y=h*0.30+185,"
-		$drop = 95
+		$tagline = "drawtext=fontfile=display.ttf:textfile=card_tagline.txt:fontsize=58:fontcolor=0xfff4dc@0.95:shadowcolor=0x05050d@0.85:shadowx=3:shadowy=3:x=(w-text_w)/2:y=h*0.24+200,"
+		$drop = 85
 	}
-	$card = "[1:v]scale=iw*3:ih*3:flags=neighbor,eq=brightness=-0.2:saturation=0.85," +
-		"drawtext=fontfile=title.ttf:textfile=card_title.txt:fontsize=150:fontcolor=0xe9a83c:x=(w-text_w)/2:y=h*0.30," + $tagline +
-		"drawtext=fontfile=body.ttf:textfile=card_wish.txt:fontsize=72:fontcolor=0xfff4dc:x=(w-text_w)/2:y=h*0.30+$(200 + $drop)," +
-		"drawtext=fontfile=body.ttf:textfile=card_platform.txt:fontsize=40:fontcolor=0xfff4dc@0.75:x=(w-text_w)/2:y=h*0.30+$(300 + $drop)," +
+	$card = "[1:v]" + $tagline +
+		"drawtext=fontfile=body.ttf:textfile=card_wish.txt:fontsize=72:fontcolor=0xfff4dc:shadowcolor=0x05050d@0.85:shadowx=3:shadowy=3:x=(w-text_w)/2:y=h*0.24+$(200 + $drop)," +
+		"drawtext=fontfile=body.ttf:textfile=card_platform.txt:fontsize=40:fontcolor=0xfff4dc@0.8:shadowcolor=0x05050d@0.85:shadowx=2:shadowy=2:x=(w-text_w)/2:y=h*0.24+$(295 + $drop)," +
 		"fps=60,trim=duration=$(F $endCard),setpts=PTS-STARTPTS,format=yuv420p,fade=t=in:st=0:d=0.5[card]"
 }
 
