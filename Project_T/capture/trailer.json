@@ -4,6 +4,7 @@
 	"format": "trailer",
 	"size": [1920, 1080],
 	"bed": "",
+	"end_tagline": "Grow a living maze. Hold back the nightmares.",
 	"cuts": [
 		{"clip": "trailer_01_maze", "from": 2.0, "to": 7.0},
 		{"clip": "trailer_02_shade", "from": 0.5, "to": 5.5},
