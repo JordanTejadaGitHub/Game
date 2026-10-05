@@ -1,0 +1,29 @@
+{
+	"title": "Short 5 take (clip for the short_05 cut list)",
+	"note": "Locked v4 maze (short 1), rank-3 Sporelings, 1 leaf, invulnerable off. One Deeply Blighted Husk spawned 22 cells from the Heartwood (3 Shades trailing) is dispelled ~3 cells from the tree at ~22 s (dry run).",
+	"seed": 4242,
+	"size": [1080, 1920],
+	"drift": 40,
+	"dew": 99999,
+	"leaves": 1,
+	"invulnerable": false,
+	"obstacles": "edge",
+	"families": ["sporeling"],
+	"hud": "clean",
+	"length": 25.0,
+	"music": ["base", "dread1", "heartbeat"],
+	"captions": [
+		[0.0, 2.0, "One leaf left."],
+		[2.0, 9.0, "One more nightmare at the tree and the run's over."],
+		[9.0, 22.0, "Come on..."],
+		[22.0, 25.0, "Dispelled. On the doorstep."]
+	],
+	"timeline": [
+		{"t": 0.0, "plant_each": 0.0, "plant": "thornwall", "spots": [[7, 10], [7, 12], [7, 14], [7, 16], [7, 18], [6, 20], [6, 22], [6, 24], [6, 26], [6, 28], [6, 30], [15, 6], [14, 8], [15, 10], [14, 12], [15, 14], [14, 16], [15, 18], [14, 20], [23, 10], [23, 12], [23, 14], [23, 16], [23, 18], [24, 20], [24, 22], [24, 24], [24, 26], [24, 28], [24, 30], [24, 32], [25, 14], [27, 14], [29, 14], [31, 14], [33, 14], [35, 14], [35, 16], [35, 18], [35, 20], [35, 22], [35, 24], [35, 26], [26, 24], [28, 24], [30, 24]], "tag": false},
+		{"t": 0.0, "plant_each": 0.0, "plant": "sporeling", "spots": [[7, 8], [15, 22], [23, 8], [35, 28], [37, 20]], "rank": 3, "tag": false},
+		{"t": 0.0, "camera": "hold", "at": "heartwood", "zoom": 1.0},
+		{"t": 1.0, "spawn": "bark_beetle", "elite": true, "cells_left": 22},
+		{"t": 1.0, "spawn": "leaf_bug", "count": 3, "cells_left": 28, "spread": 2},
+		{"t": 2.0, "camera": "follow", "target": "bark_beetle", "zoom": 2.0}
+	]
+}
