@@ -1,0 +1,23 @@
+{
+	"title": "Screenshot 3: a chain",
+	"note": "Steam screenshot 3 (a chain), short_02's board at 16:9, clean HUD; grab ~10.4 s. Storm board, drift 60, Dawnbreak card; 30 Deeply Blighted Husks dropped a third of the way along at 8.5 s chain to x11-13 at ~10.4 s at real speed (main f2217e2d).",
+	"seed": 4242,
+	"size": [1920, 1080],
+	"drift": 60,
+	"dew": 9999,
+	"hud": "clean",
+	"dreams": ["dawnbreak"],
+	"length": 24.0,
+	"timeline": [
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.8},
+		{"t": 0.0, "plant_each": 0.05, "count": 16, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 3, "plant": "monsoon", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 2, "plant": "rain_lily", "auto": "cover", "tag": false},
+		{"t": 0.5, "plant_each": 0.1, "count": 3, "plant": "thunderhead", "auto": "cover", "tag": false},
+		{"t": 0.5, "plant_each": 0.1, "count": 2, "plant": "lanternmoth", "auto": "cover", "tag": false},
+		{"t": 0.5, "start": true},
+		{"t": 8.5, "spawn": "bark_beetle", "count": 30, "elite": true, "progress": 0.35, "spread": 0.2},
+		{"t": 4.0, "camera": "push", "at": "centre", "zoom": 1.3, "duration": 4.0},
+		{"t": 8.5, "camera": "follow", "target": "bark_beetle", "zoom": 1.0}
+	]
+}
