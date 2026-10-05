@@ -179,6 +179,7 @@ func set_build_mode(active: bool) -> void:
 	Tower.set_badges_visible(&"build", active)  # Card badges show in build mode
 	_update_visible()
 	_hover_cell = NO_CELL
+	_hover_half = NO_CELL  # Else a still mouse keeps its old half offset and the ghost waits for a move (user: hotkey, no outline)
 	build_mode_changed.emit(active)
 
 # Picks the tower to build and enters build mode.
