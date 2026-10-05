@@ -51,6 +51,40 @@ static func safe_quit(tree: SceneTree, exit_code: int = 0) -> void:
 		await tree.process_frame
 	tree.quit(exit_code)
 
+# Balance snapshots (Balancing Discussion + the story chat, 2026-10-05): opt-in, a copy of each rest's autosave for
+# Balancing Code's --from-save (it only reads them). Debug builds only, never an export: the Developer setting
+# keep_snapshots, off by default. Files <date>_<seed>_d<drift>_<build>.json, "_dev" added for dev runs (Unlock all
+# families; Test Grove never autosaves); the newest SNAPSHOTS_KEPT are kept. run.json itself is untouched.
+const SNAPSHOT_DIR := "D:/Projects/logs/balancing/snapshots"
+const SNAPSHOTS_KEPT := 40
+const SNAPSHOT_SETTING := "keep_snapshots"
+const SNAPSHOT_PATTERN := "^\\d{4}-\\d{2}-\\d{2}_-?\\d+_d\\d{3}_.*\\.json$"  # Pruning only ever touches snapshots
+
+static func snapshots_on() -> bool:
+	return OS.is_debug_build() and bool(HeartwoodMemory.get_settings().get(SNAPSHOT_SETTING, false))
+
+# The snapshot's file name: date, map seed, drift, build (and "_dev" for dev runs).
+static func snapshot_name(map_seed: int, drift: int, dev: bool) -> String:
+	var build := String(BuildInfo.current().get("id", "build")).validate_filename().left(12)
+	return "%s_%d_d%03d_%s%s.json" % [Time.get_date_string_from_system(), map_seed, drift, build, "_dev" if dev else ""]
+
+# Writes `text` to dir/file_name and drops the oldest snapshots past `kept`. Returns the path written ("" = failed).
+static func write_snapshot(text: String, file_name: String, dir: String = SNAPSHOT_DIR, kept: int = SNAPSHOTS_KEPT) -> String:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
+	var path := dir.path_join(file_name)
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return ""
+	file.store_string(text)
+	file.close()
+	var pattern := RegEx.create_from_string(SNAPSHOT_PATTERN)
+	var names := Array(DirAccess.get_files_at(dir)).filter(func(n: String) -> bool: return pattern.search(n) != null)
+	names.sort_custom(func(x: String, y: String) -> bool:
+		return FileAccess.get_modified_time(dir.path_join(x)) > FileAccess.get_modified_time(dir.path_join(y)))
+	for i in range(kept, names.size()):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(dir.path_join(names[i])))
+	return path
+
 static func has_save() -> bool:
 	return FileAccess.file_exists(file_path)
 
@@ -172,7 +206,10 @@ func save_now() -> bool:
 	if file == null:
 		push_error("Could not write %s" % file_path)
 		return false
-	file.store_string(JSON.stringify(data))
+	var text := JSON.stringify(data)
+	file.store_string(text)
+	if autosave and snapshots_on():  # Real game only (tests add the scene by hand)
+		write_snapshot(text, snapshot_name(map_generator.map_seed, drift_director.drifts_started, MetaRun.is_dev_run()))
 	return true
 
 func _read() -> Dictionary:

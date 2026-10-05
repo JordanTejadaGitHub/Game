@@ -146,6 +146,8 @@ func _ready() -> void:
 			false, "As if the Memory Grove's Warden root were fully grown, for this and later runs while on.\nYour real Grove unlocks are not changed.")
 		_toggle(box, "Secret 6th loadout slot", MetaRun.SIXTH_SLOT_SETTING,  # meta_design.md: the secret 6th loadout slot, for testing
 			false, "For testing: The Heartwood's Crown isn't planted and no Seeds are banked.")
+		_toggle(box, "Keep balance snapshots (a copy of each rest's save)", RunSaver.SNAPSHOT_SETTING,
+			false, "For Balancing's --from-save: writes to D:\\Projects\\logs\\balancing\\snapshots, the newest 40.\nYour run save is not changed.")
 		# Demo mode (demo_scope.md): overrides game/demo in this build (-1 project setting, 0 full, 1 demo); applying a
 		# change goes back to the title.
 		var demo_row := HBoxContainer.new()
