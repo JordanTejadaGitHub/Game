@@ -1561,6 +1561,48 @@ overlap; clear on what they do"*) found overlapping cards and name clashes. Deci
   - "Aura Warden" = `aura_radius` > 0 or the support role.
   - Patient Aim crits use the Warden's `crit_multiplier`; every Warden has one (default ×2).
 
+## Fewer family boosters, more build shapes (2026-10-05)
+
+User (via Meta Game Discussion): *"I feel like I am being given family cards most of the time; the
+cards feel more like damage boosters instead of build enhancers or definers."*
+
+**What the data shows** (start pool, base cards):
+- 99 cards; about half need a Warden.
+- Sporeling alone gates 9 Commons/Uncommons.
+- 7 of the family cards are plain numbers: attack speed, crit, or a longer status.
+- The pool isn't seeded by family; it's sampled at 60% from everything. Family cards only crowd the
+  offers because every family card you could use stays eligible, and the lean pool sent most
+  family-free build cards to the Grove.
+
+**Decided:**
+1. **At most 1 family card per offer.** A family card is one with a Warden in `requires` /
+   `requires_any`. An Entwined card's guaranteed slot is that slot. The other slots draw from cards
+   that need no Warden, so every offer shows at least two non-family choices.
+2. **At most 1 plain stat card per offer:** Deeper Calm, Quickened Sap, Longer Roots, Bitter Sap,
+   Glinting Dew. The core keeps them in the pool, but they no longer fill offers in pairs.
+3. **Cut the plain family stat cards** (and their II cards) from the game:
+   - Brighter Jars, Clear Tones, Heavy Stones, Soft Spores: "the X line +N%". The Family Blessing
+     is the one family stat card.
+   - Lingering Mark, Lingering Spores, Soaked Through: Lasting Dreams already lengthens every status.
+   - Spore Cascade loses its Lingering Spores need (Driftspore only).
+4. **Six build shapes move from the Grove into the start pool as Uncommons.** Each says how to
+   build, not how much damage to add:
+
+   | Card | Shape | Grove node that loses it |
+   |---|---|---|
+   | Solitude | spread out | `elders` |
+   | Drumbeat | pack tight | `light_feet` |
+   | Momentum | single target | `quickening` |
+   | Crowd Breaker | area | `seeping` |
+   | Odd One Out | one of each | `mixed_company` |
+   | Overlap | overlapping areas | `broad_strokes` |
+
+   Meta Game Discussion rebalances those nodes.
+
+Family cards that change how a family plays stay (Root Web, Eddy, Twin Puff, Chorus, Deep Water,
+the combo cards). Balancing Code re-measures family cards per offer and plain stat cards per offer
+after the build.
+
 ## Strange Dreams: gamble cards (2026-10-05; cards 252–255)
 
 For the Grove node **Strange Dreams** (Cards limb, 50 Seeds; user decision, `meta_design.md`
