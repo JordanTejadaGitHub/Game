@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "light_feet"
 display_name = "Light Feet"
-description = "Speed Dreams join the pool: Restless Roots, Hummingheart, Drumbeat."
+description = "Speed Dreams join the pool: Stirring Roots, Hummingheart, Drumbeat."
 root = 1
 costs = Array[int]([70])
 order = 2

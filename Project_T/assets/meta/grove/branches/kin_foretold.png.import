@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bwil5fd1ai0dl"
-path="res://.godot/imported/starlit_backs.png-256e78a196bb4e311d5a0954eade5365.ctex"
+uid="uid://dqi0switlxtw8"
+path="res://.godot/imported/kin_foretold.png-159effcff677fa8d5d4fcd30a4e1839b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/meta/grove/branches/starlit_backs.png"
-dest_files=["res://.godot/imported/starlit_backs.png-256e78a196bb4e311d5a0954eade5365.ctex"]
+source_file="res://assets/meta/grove/branches/kin_foretold.png"
+dest_files=["res://.godot/imported/kin_foretold.png-159effcff677fa8d5d4fcd30a4e1839b.ctex"]
 
 [params]
 

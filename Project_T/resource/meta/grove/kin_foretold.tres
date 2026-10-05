@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1_unlock")
-id = "gilded_pages"
-display_name = "Gilded Pages"
-description = "A keepsake: the Codex pages are gilded. Switch it off any time."
+id = "kin_foretold"
+display_name = "Kin Foretold"
+description = "Every {family_pick} also shows which families the next boss pick will offer."
 root = 2
-costs = Array[int]([20])
-order = 42
-icon = 18
-keepsake = "gilded_pages"
+costs = Array[int]([60])
+order = 48
+icon = 25
+always_on = true

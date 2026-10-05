@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cpc7xtebcsd0q"
-path="res://.godot/imported/golden_leaf.png-e2ed310b80be255233cb76bf8996cdaa.ctex"
+uid="uid://d1uhpr5sbunby"
+path="res://.godot/imported/chosen_hunt.png-a48a027bd51bd043d84e0e690aafedb1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/meta/grove/branches/golden_leaf.png"
-dest_files=["res://.godot/imported/golden_leaf.png-e2ed310b80be255233cb76bf8996cdaa.ctex"]
+source_file="res://assets/meta/grove/branches/chosen_hunt.png"
+dest_files=["res://.godot/imported/chosen_hunt.png-a48a027bd51bd043d84e0e690aafedb1.ctex"]
 
 [params]
 

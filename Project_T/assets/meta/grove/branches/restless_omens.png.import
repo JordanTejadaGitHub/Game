@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://baofjtq1o1goi"
-path="res://.godot/imported/gilded_pages.png-ed20244e1b8cb6699998d4a0cf9e039d.ctex"
+uid="uid://d3qpmpmc0ucg2"
+path="res://.godot/imported/restless_omens.png-b2cc5ac5fe533af71f95a31d4b95f3f7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/meta/grove/branches/gilded_pages.png"
-dest_files=["res://.godot/imported/gilded_pages.png-ed20244e1b8cb6699998d4a0cf9e039d.ctex"]
+source_file="res://assets/meta/grove/branches/restless_omens.png"
+dest_files=["res://.godot/imported/restless_omens.png-b2cc5ac5fe533af71f95a31d4b95f3f7.ctex"]
 
 [params]
 

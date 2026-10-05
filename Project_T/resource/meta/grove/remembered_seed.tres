@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1_unlock")
-id = "starlit_backs"
-display_name = "Starlit Card Backs"
-description = "A keepsake: Dream cards get the night-sky frame. Switch it off any time."
+id = "remembered_seed"
+display_name = "Remembered Seed"
+description = "When you start a run, choose its map: a new one, one you've played before, or a seed you type."
 root = 2
 costs = Array[int]([30])
-order = 43
-icon = 19
-keepsake = "starlit_backs"
+order = 45
+icon = 22
+always_on = true

@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1_unlock")
-id = "blossoms"
-display_name = "Blossoms"
-description = "A keepsake: a blossom on every Warden. Switch it off any time."
+id = "chosen_hunt"
+display_name = "Chosen Hunt"
+description = "When an act begins, choose its boss from the three in its pool."
 root = 2
-costs = Array[int]([40])
-order = 41
-icon = 17
-keepsake = "blossoms"
+costs = Array[int]([80])
+order = 47
+icon = 23
+always_on = true

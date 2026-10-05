@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_unlock")
 id = "restless_night"
-display_name = "Restless Night"
-description = "Legendary: Restless Night joins the pool."
+display_name = "Impatient Night"
+description = "Legendary: Impatient Night joins the pool."
 root = 1
 costs = Array[int]([80])
 order = 39

@@ -51,8 +51,8 @@ N("slot_4", "perks", "Loadout slot 4", 400, 520, [410, 466]);  // Slots 1–3 ar
 N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
 // New nodes (meta_design.md 72ccfceb), each off until its UnlockData exists (test_meta checks layout =
 // data); Meta Game Code flips its flag with the .tres. KEEPSAKES: the old Keepsakes twig at the Perks
-// foot, gone from the tree once their .tres are deleted (they live on the Keepsakes shelf now).
-const KEEPSAKES = true, REMEMBERED_SEED = false, CHOSEN_HUNT = false, LEAF_OR_DEW = false, KIN_FORETOLD = false, RESTLESS_OMENS = false, STRANGE_DREAMS = false;
+// foot, gone from the tree (their .tres are deleted; they live on the Keepsakes shelf now).
+const KEEPSAKES = false, REMEMBERED_SEED = true, CHOSEN_HUNT = true, LEAF_OR_DEW = true, KIN_FORETOLD = true, RESTLESS_OMENS = true, STRANGE_DREAMS = true;
 if (KEEPSAKES) {
 N("golden_leaf", "perks", "Golden Leaf", 534, 540, [533, 568], { twig: true });
 N("blossoms", "perks", "Blossoms", 548, 492, "golden_leaf", { twig: true });

@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "thorn_and_bramble"
 display_name = "Thorn and Bramble"
-description = "Clearing Dreams join the pool: Tended Forest, Thorn Snare, Bramble Oath."
+description = "Clearing Dreams join the pool: Tended Forest, Briar Trap, Bramble Oath."
 root = 1
 costs = Array[int]([70])
 order = 44

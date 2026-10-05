@@ -12,7 +12,7 @@ const TITLE_SCENE := "res://scenes/title.tscn"
 const GAME_SCENE := "res://scenes/main.tscn"
 const MEMORY_ART := "res://assets/meta/memories/memory_%02d.png"
 const SECTION_NAMES := {"perks": "Perks", "families": "Families", "cards": "Cards"}
-const CARD_WIDTH := 320
+const CARD_WIDTH := 360  # The node card (UI Asset's approved page "Memory Grove: the node card")
 
 var tree_view := GroveTreeView.new()
 var loadout := LoadoutPanel.new(tree_view)
@@ -30,6 +30,14 @@ var _card_text := RichTextLabel.new()  # The description, with status / term / f
 var _card_status := Label.new()
 var _plant := Button.new()
 var _carry := Button.new()
+var _card_levels := HBoxContainer.new()  # Small bars, then "+5% now, +10% next"
+var _card_level_bars := HBoxContainer.new()
+var _card_level_text := Label.new()
+var _card_needs := VBoxContainer.new()  # "needs" in caps, then a chip per requirement
+var _card_chips := HFlowContainer.new()
+var _card_cost := HBoxContainer.new()  # The Seeds glyph, the price, "of N Seeds"
+var _card_price := Label.new()
+var _card_wallet := Label.new()
 var _backdrop := ColorRect.new()
 var _viewer := PanelContainer.new()
 var _viewer_art := TextureRect.new()
@@ -114,56 +122,93 @@ func _build_card() -> void:
 	_card.custom_minimum_size = Vector2(CARD_WIDTH, 0)
 	_card.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_card.grow_vertical = Control.GROW_DIRECTION_BOTH
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(Palette.DREAD, 0.94)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(10)
-	style.set_content_margin_all(14)
-	_card.add_theme_stylebox_override("panel", style)
+	# The node card (UI Asset's approved page "Memory Grove: the node card"): the theme's moonlit panel, a
+	# moon-disc header, one line of what it does, level bars, "needs" chips, the cost row, Plant as the one
+	# primary and Close as quiet text. No " · " separators anywhere on it.
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
+	box.add_theme_constant_override("separation", 10)
 	_card.add_child(box)
+	var inner := CARD_WIDTH - 32  # Text width inside the panel's margins
 	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 10)
-	_card_icon.custom_minimum_size = Vector2(48, 48)
+	head.add_theme_constant_override("separation", 12)
+	_card_icon.custom_minimum_size = Vector2(40, 40)
 	_card_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_card_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	head.add_child(_card_icon)
+	_card_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_card_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var disc := UiStyle.on_moon_disc(_card_icon)
+	disc.custom_minimum_size = Vector2(64, 64)
+	head.add_child(disc)
 	var names := VBoxContainer.new()
 	names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_card_name.add_theme_font_size_override("font_size", 20)
+	names.alignment = BoxContainer.ALIGNMENT_CENTER
+	UiStyle.title(_card_name, 26)
 	_card_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	names.add_child(_card_name)
-	_card_section.add_theme_font_size_override("font_size", 13)
+	UiStyle.caps(_card_section)
 	names.add_child(_card_section)
 	head.add_child(names)
-	var close := Button.new()
-	close.text = "×"
-	close.flat = true
-	close.focus_mode = Control.FOCUS_NONE
-	close.custom_minimum_size = Vector2(40, 40)
-	close.pressed.connect(func() -> void: _select(null))
-	head.add_child(close)
 	box.add_child(head)
 	_card_text.bbcode_enabled = true
 	_card_text.fit_content = true
 	_card_text.scroll_active = false
 	_card_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_card_text.custom_minimum_size = Vector2(CARD_WIDTH - 28, 0)
+	_card_text.custom_minimum_size = Vector2(inner, 0)
+	_card_text.add_theme_font_size_override("normal_font_size", 15)
+	_card_text.add_theme_color_override("default_color", Palette.MIST)
 	box.add_child(_card_text)
 	StatusLinks.hook(_card_text)
+	_card_levels.add_theme_constant_override("separation", 10)
+	_card_level_bars.add_theme_constant_override("separation", 4)
+	_card_level_bars.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_card_levels.add_child(_card_level_bars)
+	_card_level_text.add_theme_font_size_override("font_size", 14)
+	_card_level_text.add_theme_color_override("font_color", Palette.MIST)
+	_card_levels.add_child(_card_level_text)
+	box.add_child(_card_levels)
+	var needs_title := Label.new()
+	needs_title.text = "needs"
+	UiStyle.caps(needs_title)
+	_card_needs.add_child(needs_title)
+	_card_chips.add_theme_constant_override("h_separation", 6)
+	_card_chips.add_theme_constant_override("v_separation", 6)
+	_card_needs.add_child(_card_chips)
+	box.add_child(_card_needs)
 	_card_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_card_status.custom_minimum_size = Vector2(CARD_WIDTH - 28, 0)
+	_card_status.custom_minimum_size = Vector2(inner, 0)
 	_card_status.add_theme_font_size_override("font_size", 14)
 	box.add_child(_card_status)
+	_card_cost.add_theme_constant_override("separation", 8)
+	var glyph := TextureRect.new()
+	glyph.texture = IconInfo.icon(&"seeds")
+	glyph.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	glyph.custom_minimum_size = Vector2(32, 32)  # The 16 px glyph at 2×
+	glyph.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_card_cost.add_child(glyph)
+	UiStyle.number(_card_price, UiStyle.NUMBER_SIZE, Palette.SPRIG)
+	_card_cost.add_child(_card_price)
+	_card_wallet.add_theme_font_size_override("font_size", 14)
+	_card_wallet.add_theme_color_override("font_color", Palette.MIST)
+	_card_wallet.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_card_cost.add_child(_card_wallet)
+	box.add_child(_card_cost)
 	_plant.custom_minimum_size = Vector2(0, 48)
 	_plant.focus_mode = Control.FOCUS_NONE
+	UiStyle.primary(_plant)
 	_plant.pressed.connect(_plant_selected)
 	box.add_child(_plant)
-	_carry.custom_minimum_size = Vector2(0, 44)
+	_carry.custom_minimum_size = Vector2(0, 48)
 	_carry.focus_mode = Control.FOCUS_NONE
 	_carry.pressed.connect(_toggle_carry)
 	box.add_child(_carry)
+	var close := Button.new()
+	close.text = "Close"
+	close.focus_mode = Control.FOCUS_NONE
+	close.custom_minimum_size = Vector2(0, 48)
+	UiStyle.quiet(close)
+	close.pressed.connect(func() -> void: _select(null))
+	box.add_child(close)
 	add_child(_card)
 	_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT, Control.PRESET_MODE_MINSIZE, 20)
 
@@ -176,6 +221,7 @@ func _build_footer() -> void:
 	_button(footer, "Start run", _start_run)
 	_button(footer, "Carry", func() -> void: _open_loadout(false))
 	_button(footer, "Codex", func() -> void: codex.open())
+	_button(footer, "Keepsakes", open_keepsakes)
 	_button(footer, "Back", func() -> void: get_tree().change_scene_to_file(TITLE_SCENE))
 	add_child(footer)
 	footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 20)
@@ -271,50 +317,121 @@ func _update_card() -> void:
 	if selected == null:
 		return
 	var section := selected.get_section()
-	var colour: Color = GroveTreeView.SECTION_COLOR.get(section, Palette.HEARTLIGHT)
-	(_card.get_theme_stylebox("panel") as StyleBoxFlat).border_color = colour
 	_card_icon.texture = tree_view.get_icon(selected)
 	_card_name.text = selected.display_name
 	var level := HeartwoodMemory.node_level(_memory, selected)
 	var levels := selected.get_levels()
-	var tags: Array[String] = [SECTION_NAMES.get(section, "")]
+	# "perk, level 1 of 3", "legendary card", "family" (small caps; a comma, never " · ").
+	var kind: String = {"perks": "perk", "families": "family", "cards": "card"}.get(section, "")
 	if selected.legendary:
-		tags.append("Legendary")
-	if levels > 1:
-		tags.append("Level %d of %d" % [level, levels])
-	_card_section.text = " · ".join(tags)
-	_card_section.add_theme_color_override("font_color", colour)
+		kind = "legendary " + kind
+	_card_section.text = "%s, level %d of %d" % [kind, level, levels] if levels > 1 else kind
 	_card_text.text = StatusLinks.bbcode(selected.get_description() + family_branches_text(selected))
+	# Levels as small bars: Glow for the ones grown, dim for the rest, then the effect now and next.
+	for bar in _card_level_bars.get_children():
+		bar.queue_free()
+	for i in levels:
+		var bar := ColorRect.new()
+		bar.color = Palette.GLOW if i < level else Color(Palette.MIST, 0.25)
+		bar.custom_minimum_size = Vector2(22, 6)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_card_level_bars.add_child(bar)
+	_card_level_text.text = _level_effect_text(selected, level)
+	_card_levels.visible = levels > 1
+	# "needs" chips: met ones in a Sprig outline with a ✓, the rest in Mist.
+	for chip in _card_chips.get_children():
+		chip.queue_free()
+	for requirement in _requirement_chips(selected):
+		_card_chips.add_child(_chip(requirement[0], requirement[1]))
+	_card_needs.visible = _card_chips.get_child_count() > 0 and not HeartwoodMemory.is_grown(_memory, selected)
 	var problem := HeartwoodMemory.buy_problem(_memory, selected)
 	var cost := selected.get_cost(HeartwoodMemory.unlock_level(_memory, selected.id))
-	_plant.visible = problem != "Grown" and not selected.is_free()
+	var buyable := problem != "Grown" and not selected.is_free()
+	_card_cost.visible = buyable
+	_card_price.text = str(cost)
+	_card_wallet.text = "of %d Seeds" % int(_memory.seeds)
+	_plant.visible = buyable
 	_plant.disabled = problem != ""
-	_plant.text = ("Grow level %d · %d Seeds" % [level + 1, cost] if level > 0 else "Plant · %d Seeds" % cost)
+	_plant.text = "Grow to level %d" % (level + 1) if level > 0 else "Plant"
 	match problem:
 		"Grown":
 			_card_status.text = "In bloom" if not selected.start else "Grown from the start"
-		"Grows by itself":  # A Memory Warden bloom (parked): grown by its boss's first dispel
+		"Grows by itself":  # A parked Memory Warden bloom: grown by its boss's first dispel
 			_card_status.text = "Grows by itself."
-		"Needs another unlock first":
-			_card_status.text = "Needs " + _needs_text(selected) + "."
 		"Not enough Seeds":
 			_card_status.text = "You need %d more Seeds." % (cost - int(_memory.seeds))
 		_:
-			_card_status.text = ""
+			_card_status.text = ""  # Unmet needs show as chips
 	_card_status.visible = _card_status.text != ""
-	_card_status.add_theme_color_override("font_color", Palette.NEWLEAF if problem == "Grown" else Palette.MOONPATH)
+	_card_status.add_theme_color_override("font_color", Palette.SPRIG if problem == "Grown" else Palette.MIST)
 	var carried := HeartwoodMemory.get_loadout(_memory).has(selected.id)
 	_carry.visible = selected.is_perk() and level > 0
 	_carry.text = "Put back" if carried else "Carry into the dream"
 	_carry.disabled = not carried and HeartwoodMemory.get_loadout(_memory).size() >= HeartwoodMemory.loadout_slots(_memory)
 	if _carry.disabled:
 		_carry.text = "Loadout full"
-	if selected.keepsake != "" and level > 0:  # A keepsake: the same button switches it on or off
-		_carry.visible = true
-		_carry.disabled = false
-		_carry.text = "Hide it" if MetaRun.keepsake_on(selected.keepsake) else "Show it"
 	# Shrink to the content (a card with fewer lines than the last one), still centred on the right.
 	_fit_card.call_deferred()  # After the labels have re-measured
+
+# "+5% now, +10% next" for a node with levels, from its per-level perk numbers ("" at 0 / when nothing scales).
+static func _level_effect_text(unlock: UnlockData, level: int) -> String:
+	var per_level: Array = []  # [format, value per level]
+	if unlock.starting_dew != 0:
+		per_level = ["+%d Dew", unlock.starting_dew]
+	elif unlock.dew_gain != 0.0:
+		per_level = ["+%d%%", unlock.dew_gain * 100.0]
+	elif unlock.rest_bonus != 0.0:
+		per_level = ["+%d%%", unlock.rest_bonus * 100.0]
+	elif unlock.max_leaves != 0:
+		per_level = ["+%d leaves", unlock.max_leaves]
+	elif unlock.dream_rerolls != 0:
+		per_level = ["%d rerolls", unlock.dream_rerolls]
+	if per_level.is_empty():
+		return ""
+	var at := func(n: int) -> String: return per_level[0] % roundi(float(per_level[1]) * n)
+	var parts: Array[String] = []
+	if level > 0:
+		parts.append("%s now" % at.call(level))
+	if level < unlock.get_levels():
+		parts.append("%s next" % at.call(level + 1))
+	return ", ".join(parts)
+
+# Each requirement as [name, met]: every requires_all, then the requires_any group as one chip.
+func _requirement_chips(unlock: UnlockData) -> Array:
+	var chips: Array = []
+	for requirement in unlock.requires_all:
+		chips.append([_requirement_name(requirement), HeartwoodMemory._meets(_memory, requirement)])
+	if not unlock.requires_any.is_empty():
+		var owned := unlock.requires_any.filter(func(id: String) -> bool: return HeartwoodMemory._meets(_memory, id)).size()
+		var names: Array[String] = []
+		for id in unlock.requires_any:
+			names.append(_requirement_name(id))
+		var text := " or ".join(names) if unlock.requires_any_count <= 1 \
+			else ("%d of %s" % [unlock.requires_any_count, ", ".join(names)] if names.size() <= 5
+				else "any %d other %s nodes" % [unlock.requires_any_count, SECTION_NAMES.get(unlock.get_section(), "").to_lower()])
+		chips.append([text, owned >= unlock.requires_any_count])
+	if unlock.crown:
+		chips.append(["every other node grown", HeartwoodMemory.tree_complete(_memory)])
+	return chips
+
+func _chip(text: String, met: bool) -> PanelContainer:
+	var chip := PanelContainer.new()
+	var box := StyleBoxFlat.new()  # A small outline chip (no panel fill), Sprig when met
+	box.bg_color = Color(Palette.VOID, 0.0)
+	box.border_color = Palette.SPRIG if met else Color(Palette.MIST, 0.5)
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(10)
+	box.content_margin_left = 8
+	box.content_margin_right = 8
+	box.content_margin_top = 2
+	box.content_margin_bottom = 2
+	chip.add_theme_stylebox_override("panel", box)
+	var label := Label.new()
+	label.text = ("✓ " + text) if met else text
+	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_color_override("font_color", Palette.SPRIG if met else Palette.MIST)
+	chip.add_child(label)
+	return chip
 
 func _fit_card() -> void:
 	_card.reset_size()
@@ -385,11 +502,6 @@ func _check_crown() -> void:
 
 func _toggle_carry() -> void:
 	if selected == null:
-		return
-	if selected.keepsake != "":
-		MetaRun.set_keepsake_shown(selected.keepsake, not MetaRun.keepsake_on(selected.keepsake))
-		_memory = HeartwoodMemory.load_data()
-		_refresh()
 		return
 	var carried := HeartwoodMemory.get_loadout(_memory)
 	if carried.has(selected.id):
@@ -465,10 +577,91 @@ func _start_run() -> void:
 		add_child(confirm)
 		confirm.popup_centered()
 		return
+	MetaRun.leaf_dew_trade = 0
+	if MetaRun.leaf_or_dew_available():
+		open_leaf_dew()  # Its Continue goes on to the loadout / Blight steps
+	else:
+		_after_leaf_dew()
+
+func _after_leaf_dew() -> void:
 	if _has_perks():
 		_open_loadout(true)
 	else:
 		_pick_blight()
+
+# Leaf or Dew (Grove option node): a −3…+3 stepper before the run, applied once at run start (MetaRun).
+var leaf_dew_step := PanelContainer.new()
+var _leaf_dew_label := Label.new()
+
+func open_leaf_dew() -> void:
+	if leaf_dew_step.get_parent() == null:
+		leaf_dew_step.custom_minimum_size = Vector2(440, 0)
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 12)
+		leaf_dew_step.add_child(box)
+		var title := Label.new()
+		title.text = "Leaf or Dew"
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title.add_theme_font_size_override("font_size", 24)
+		title.add_theme_color_override("font_color", Palette.GLOW)
+		box.add_child(title)
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 12)
+		box.add_child(row)
+		_leaf_dew_button(row, "More Dew", "MoreDew", 1)
+		_leaf_dew_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_leaf_dew_label.custom_minimum_size = Vector2(190, 0)
+		_leaf_dew_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		row.add_child(_leaf_dew_label)
+		_leaf_dew_button(row, "More leaves", "MoreLeaves", -1)
+		row.move_child(_leaf_dew_label, 1)
+		var footer := HBoxContainer.new()
+		footer.alignment = BoxContainer.ALIGNMENT_END
+		footer.add_theme_constant_override("separation", 12)
+		box.add_child(footer)
+		var back := Button.new()
+		back.text = "Back"
+		back.focus_mode = Control.FOCUS_NONE
+		back.custom_minimum_size = Vector2(130, 48)
+		back.pressed.connect(func() -> void:
+			MetaRun.leaf_dew_trade = 0
+			leaf_dew_step.visible = false)
+		footer.add_child(back)
+		var go := Button.new()
+		go.name = "Continue"
+		go.text = "Continue"
+		go.focus_mode = Control.FOCUS_NONE
+		go.custom_minimum_size = Vector2(130, 48)
+		go.pressed.connect(func() -> void:
+			leaf_dew_step.visible = false
+			_after_leaf_dew())
+		footer.add_child(go)
+		add_child(leaf_dew_step)
+	_show_leaf_dew()
+	leaf_dew_step.visible = true
+	leaf_dew_step.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+
+func _leaf_dew_button(row: HBoxContainer, text: String, button_name: String, step: int) -> void:
+	var button := Button.new()
+	button.name = button_name
+	button.text = text
+	button.focus_mode = Control.FOCUS_NONE
+	button.custom_minimum_size = Vector2(110, 48)
+	button.pressed.connect(func() -> void:
+		MetaRun.leaf_dew_trade = clampi(MetaRun.leaf_dew_trade + step, -MetaRun.LEAF_DEW_MAX, MetaRun.LEAF_DEW_MAX)
+		_show_leaf_dew())
+	row.add_child(button)
+
+func _show_leaf_dew() -> void:
+	var trade := MetaRun.leaf_dew_trade
+	var rate := MetaRun.LEAF_DEW_RATE
+	if trade > 0:
+		_leaf_dew_label.text = "%d fewer leaves (max too)\n+%d Dew" % [trade, trade * rate]
+	elif trade < 0:
+		_leaf_dew_label.text = "%d more leaves (max too)\n−%d Dew" % [-trade, -trade * rate]
+	else:
+		_leaf_dew_label.text = "No trade"
 
 func _pick_blight() -> void:
 	var max_level := HeartwoodMemory.max_blight_level(_memory)
@@ -479,9 +672,109 @@ func _pick_blight() -> void:
 		_go()
 
 func _go() -> void:
-	RunSaver.delete_save()
-	RunSaver.resume_next = false
-	get_tree().change_scene_to_file(GAME_SCENE)
+	# Remembered Seed (Grove node): the picker asks which map first; without the node it starts at once.
+	SeedPicker.ask(self, func() -> void:
+		RunSaver.delete_save()
+		RunSaver.resume_next = false
+		get_tree().change_scene_to_file(GAME_SCENE))
+
+# The Keepsakes shelf (meta_design.md Section 1, user 2026-10-05): the four cosmetics, each earned by its milestone.
+# Earned ones get a Show / Hide switch (the same setting as Settings → Display → Keepsakes); unearned ones are
+# greyed with their milestone. Art (Meta Game Asset f6fb233c): four niches standing on a mossy shelf, drawn at 2×.
+const SHELF_TEXTURE := preload("res://assets/meta/ui/keepsake_shelf.png")  # 208×40
+const NICHE_TEXTURE := preload("res://assets/meta/ui/keepsake_slots.png")  # 40×40 frames: 0–3 earned, 4–7 not yet
+const NICHE := 40
+const SHELF_SCALE := 2
+const NICHE_GAP := 12  # Art px between niches, so four sit across the shelf's 208
+var keepsakes_shelf := PanelContainer.new()
+var _niche_row := HBoxContainer.new()
+var _shelf_rows := HBoxContainer.new()  # Under the shelf: one column per keepsake (named by its id): name, line, switch
+
+func open_keepsakes() -> void:
+	if keepsakes_shelf.get_parent() == null:
+		keepsakes_shelf.custom_minimum_size = Vector2(SHELF_TEXTURE.get_width() * SHELF_SCALE + 40, 0)
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 10)
+		keepsakes_shelf.add_child(box)
+		var title := Label.new()
+		title.text = "Keepsakes"
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title.add_theme_font_size_override("font_size", 24)
+		title.add_theme_color_override("font_color", Palette.GLOW)
+		box.add_child(title)
+		var stand := VBoxContainer.new()  # The niches stand on the shelf's top moss
+		stand.add_theme_constant_override("separation", -(SHELF_TEXTURE.get_height() - 16) * SHELF_SCALE)
+		stand.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		_niche_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		_niche_row.add_theme_constant_override("separation", NICHE_GAP * SHELF_SCALE)
+		stand.add_child(_niche_row)
+		var shelf := TextureRect.new()
+		shelf.texture = SHELF_TEXTURE
+		shelf.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		shelf.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		shelf.custom_minimum_size = SHELF_TEXTURE.get_size() * SHELF_SCALE
+		shelf.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stand.add_child(shelf)
+		stand.move_child(shelf, 0)  # Drawn first, so the niches sit in front of it
+		box.add_child(stand)
+		_shelf_rows.alignment = BoxContainer.ALIGNMENT_CENTER
+		_shelf_rows.add_theme_constant_override("separation", 8)
+		box.add_child(_shelf_rows)
+		var close := Button.new()
+		close.text = "Close"
+		close.focus_mode = Control.FOCUS_NONE
+		close.custom_minimum_size = Vector2(130, 48)
+		close.size_flags_horizontal = Control.SIZE_SHRINK_END
+		close.pressed.connect(func() -> void: keepsakes_shelf.visible = false)
+		box.add_child(close)
+		add_child(keepsakes_shelf)
+	_rebuild_shelf()
+	keepsakes_shelf.visible = true
+	keepsakes_shelf.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+
+func _rebuild_shelf() -> void:
+	for child in _shelf_rows.get_children() + _niche_row.get_children():
+		child.get_parent().remove_child(child)  # Gone now, so a rebuild's new rows can take the same names
+		child.queue_free()
+	for i in MetaRun.KEEPSAKES.size():
+		var id: String = MetaRun.KEEPSAKES[i]
+		var owned := MetaRun.keepsake_owned(id)
+		var niche := TextureRect.new()
+		var frame := AtlasTexture.new()
+		frame.atlas = NICHE_TEXTURE
+		frame.region = Rect2((i + (0 if owned else 4)) * NICHE, 0, NICHE, NICHE)
+		niche.texture = frame
+		niche.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		niche.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		niche.custom_minimum_size = Vector2.ONE * NICHE * SHELF_SCALE
+		niche.tooltip_text = MetaRun.KEEPSAKE_TEXT[id][0]
+		_niche_row.add_child(niche)
+		var row := VBoxContainer.new()
+		row.name = id
+		row.custom_minimum_size = Vector2((NICHE + NICHE_GAP) * SHELF_SCALE - 8, 0)
+		row.add_theme_constant_override("separation", 4)
+		var words := Label.new()
+		var milestone: Array = MetaRun.MILESTONE_SEEDS.get(MetaRun.KEEPSAKE_MILESTONES[id], [0, ""])
+		words.text = "%s\n%s" % [MetaRun.KEEPSAKE_TEXT[id][0], MetaRun.KEEPSAKE_TEXT[id][1] if owned else "Earned by: %s." % milestone[1]]
+		words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.add_theme_font_size_override("font_size", 13)
+		words.add_theme_color_override("font_color", Palette.HEARTLIGHT if owned else Palette.MOONPATH)
+		if not owned:
+			words.modulate = Color(1, 1, 1, 0.6)  # multiplier: greyed until earned
+		row.add_child(words)
+		if owned:
+			var toggle := Button.new()
+			toggle.name = "Toggle"
+			toggle.focus_mode = Control.FOCUS_NONE
+			toggle.custom_minimum_size = Vector2(88, 44)
+			toggle.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			toggle.text = "Hide" if MetaRun.keepsake_on(id) else "Show"
+			toggle.pressed.connect(func() -> void:
+				MetaRun.set_keepsake_shown(id, not MetaRun.keepsake_on(id))
+				_rebuild_shelf())
+			row.add_child(toggle)
+		_shelf_rows.add_child(row)
 
 func _button(parent: Control, text: String, action: Callable) -> void:
 	var button := Button.new()

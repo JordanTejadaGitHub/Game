@@ -54,17 +54,35 @@ static func all_families_active() -> bool:
 		return false
 	return bool(HeartwoodMemory.get_settings().get(ALL_FAMILIES_SETTING, false))
 
-# Keepsakes (meta_design.md Section 1, user 2026-10-04): 4 Grove nodes on the Perks limb's twig, bought with Seeds,
-# no gameplay. Once owned each can be switched off (its node card, or Settings → Display → Keepsakes): the setting
-# lists the hidden ones. Readers ask keepsake_on(id): golden_leaf (the in-run Heartwood's leaves), blossoms (every
-# Warden), gilded_pages (the Codex), starlit_backs (Dream cards, DreamScreen). The full game only.
+# Keepsakes (meta_design.md Section 1, user 2026-10-05): cosmetics on a shelf in the Grove screen, not Grove nodes.
+# Each is earned by its milestone (anything cosmetic is a milestone unlock; gameplay is bought), kept in the profile's
+# `cosmetics`, and can be switched off (the shelf, or Settings → Display → Keepsakes): the setting lists the hidden
+# ones. Readers ask keepsake_on(id): golden_leaf (the in-run Heartwood's leaves), blossoms (every Warden),
+# gilded_pages (the Codex), starlit_backs (Dream cards, DreamScreen). The full game only.
 const KEEPSAKES: Array[String] = ["golden_leaf", "blossoms", "gilded_pages", "starlit_backs"]
 const KEEPSAKES_HIDDEN_SETTING := "keepsakes_hidden"
+const KEEPSAKE_MILESTONES := {
+	"golden_leaf": "flawless_win", "blossoms": "blight_10_win", "gilded_pages": "all_combos", "starlit_backs": "all_dreams",
+}
+const KEEPSAKE_TEXT := {  # The shelf: [name, what it does]
+	"golden_leaf": ["Golden Leaf", "The Heartwood's leaves turn gold in your runs."],
+	"blossoms": ["Blossoms", "Every Warden wears a small blossom."],
+	"gilded_pages": ["Gilded Pages", "The Codex pages get gilded edges."],
+	"starlit_backs": ["Starlit Card Backs", "Dream cards get the night-sky frame."],
+}
 
+# Earned: in the profile's cosmetics, or its milestone is reached (the Codex records some mid-run).
 static func keepsake_owned(id: String) -> bool:
-	var unlock := HeartwoodMemory.get_unlock(id)
-	return unlock != null and unlock.keepsake != "" and not ResultsScreen.is_demo() \
-		and HeartwoodMemory.node_level(HeartwoodMemory.load_data(), unlock) > 0
+	if ResultsScreen.is_demo() or not KEEPSAKE_MILESTONES.has(id):
+		return false
+	var data := HeartwoodMemory.load_data()
+	return (data.get("cosmetics", []) as Array).has(id) or data.milestones.has(KEEPSAKE_MILESTONES[id])
+
+# Writes the Keepsakes earned by `data`'s milestones into its cosmetics (the caller saves).
+static func record_keepsakes(data: Dictionary) -> void:
+	for id in KEEPSAKES:
+		if data.milestones.has(KEEPSAKE_MILESTONES[id]) and not (data.cosmetics as Array).has(id):
+			data.cosmetics.append(id)
 
 static func keepsake_on(id: String) -> bool:
 	return keepsake_owned(id) and not (HeartwoodMemory.get_settings().get(KEEPSAKES_HIDDEN_SETTING, []) as Array).has(id)
@@ -77,6 +95,39 @@ static func set_keepsake_shown(id: String, shown: bool) -> void:
 		hidden.append(id)
 	settings[KEEPSAKES_HIDDEN_SETTING] = hidden
 	HeartwoodMemory.save_settings(settings)
+
+# Leaf or Dew (Grove option node, meta_design.md f7a357de): before a run, trade up to 3 leaves for 15 Dew each, or
+# up to 45 Dew for leaves. A step moves max leaves with current leaves, so traded leaves don't regrow at act breaks.
+# The Grove's Start run sets leaf_dew_trade (+N = leaves into Dew, −N = Dew into leaves); the run applies it once.
+const LEAF_DEW_NODE := "leaf_or_dew"
+const LEAF_DEW_RATE := 15
+const LEAF_DEW_MAX := 3
+static var leaf_dew_trade := 0
+
+static func leaf_or_dew_available() -> bool:
+	if ResultsScreen.is_demo():
+		return false
+	var unlock := HeartwoodMemory.get_unlock(LEAF_DEW_NODE)
+	return unlock != null and HeartwoodMemory.node_level(HeartwoodMemory.load_data(), unlock) > 0
+
+# Applied once at run start (after the perks), then cleared, so a resumed run never trades again.
+func _apply_leaf_dew_trade() -> void:
+	var trade := clampi(leaf_dew_trade, -LEAF_DEW_MAX, LEAF_DEW_MAX)
+	leaf_dew_trade = 0
+	if trade == 0 or not leaf_or_dew_available():
+		return
+	if trade > 0:  # Leaves into Dew: keep at least 1 leaf
+		var steps := mini(trade, mini(run_state.leaves, run_state.max_leaves) - 1)
+		run_state.max_leaves -= steps
+		run_state.leaves -= steps
+		run_state.add_dew(steps * LEAF_DEW_RATE)
+	else:  # Dew into leaves: never below 0 Dew
+		var steps := mini(-trade, run_state.dew / LEAF_DEW_RATE)
+		run_state.dew -= steps * LEAF_DEW_RATE
+		run_state.dew_changed.emit(run_state.dew)
+		run_state.max_leaves += steps
+		run_state.leaves += steps
+	run_state.leaves_changed.emit(run_state.leaves, run_state.max_leaves)
 
 # Dream offer cards get the night-sky frame (DreamScreen): the Starlit Card Backs keepsake.
 static func starlit_backs() -> bool:
@@ -191,6 +242,7 @@ func _ready() -> void:
 	_milestones_at_start = memory.milestones.duplicate()
 	_counters_at_start = memory.counters.duplicate()
 	_apply_grove(memory)
+	_apply_leaf_dew_trade()
 	if all_families:
 		_apply_all_families()
 	_apply_blight(blight_level)
@@ -396,6 +448,7 @@ func _on_run_ended(won: bool) -> void:
 		memory.milestones[MEMORY_BOSS_PREFIX + kind] = true
 	if won:
 		memory.highest_blight_won = maxi(int(memory.highest_blight_won), blight_level)
+	record_keepsakes(memory)  # The Keepsakes its milestones earn (the shelf)
 	HeartwoodMemory.save_data(memory)
 
 # The milestones this run reaches for the first time, in MILESTONE_SEEDS order: the ones judged at run end (from

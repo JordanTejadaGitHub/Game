@@ -55,7 +55,9 @@ enum Root { WARDENS, DREAMS, PERKS, FORESTS }  # Limbs: Families, Cards, Perks (
 @export var free_nurtures: int = 0  # First Care: free Nurture ranks
 @export var wider_roots: bool = false  # Wider Roots: the first-picked family offers 3 of its branches, call-back 4 Dreamlight
 @export var crown: bool = false  # The Heartwood's Crown: needs every other node at max level; hidden until then
-@export var keepsake: String = ""  # A Keepsake (cosmetic id, meta_design.md Section 1): no gameplay, shown or hidden by a toggle
+# An option, always on once planted, never carried (meta_design.md 952b986e: Remembered Seed, Restless Omens); its
+# effect is read where it applies (SeedPicker.available, the Omen pool), not by MetaRun's perk loop.
+@export var always_on: bool = false
 
 # The text the node card and loadout show: the sidegrade one while sidegrade perks are on.
 func get_description() -> String:
@@ -83,7 +85,7 @@ func get_spent(level: int) -> int:
 
 # A perk: carried in the loadout to work (not the loadout slot nodes themselves).
 func is_perk() -> bool:
-	return root == Root.PERKS and loadout_slots == 0 and not crown and keepsake == ""
+	return root == Root.PERKS and loadout_slots == 0 and not crown and not always_on
 
 # Grown without buying it, from the start or only by a milestone.
 func is_free() -> bool:

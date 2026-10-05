@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "planted_promises"
 display_name = "Planted Promises"
-description = "Seed Dreams join the pool: Dew Bowl, Harvest Moon, Kind Canopy, Patient Roots."
+description = "Seed Dreams join the pool: Dew Bowl, Harvest Moon, Kind Canopy, Sheltering Boughs."
 root = 1
 costs = Array[int]([50])
 order = 50

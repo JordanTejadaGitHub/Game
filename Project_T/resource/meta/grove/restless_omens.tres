@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "restless_omens"
+display_name = "Restless Omens"
+description = "Four new Omens join the pool: Swarming Night, Giants' Walk, Brittle Night, Static Sky."
+root = 1
+costs = Array[int]([40])
+order = 71
+icon = 19
+always_on = true

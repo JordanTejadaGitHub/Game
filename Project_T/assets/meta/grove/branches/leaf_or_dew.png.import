@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cqqrfv4eblyik"
-path="res://.godot/imported/blossoms.png-c54021f74695698eacb66fbbf648c553.ctex"
+uid="uid://c51mmv7x21gdo"
+path="res://.godot/imported/leaf_or_dew.png-402d907a7f2b8c03fd986e1a92f3b759.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/meta/grove/branches/blossoms.png"
-dest_files=["res://.godot/imported/blossoms.png-c54021f74695698eacb66fbbf648c553.ctex"]
+source_file="res://assets/meta/grove/branches/leaf_or_dew.png"
+dest_files=["res://.godot/imported/leaf_or_dew.png-402d907a7f2b8c03fd986e1a92f3b759.ctex"]
 
 [params]
 
