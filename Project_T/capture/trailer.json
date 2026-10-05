@@ -12,18 +12,19 @@
 		{"clip": "trailer_01_maze", "from": 15.0, "to": 20.0},
 		{"clip": "trailer_04_thunder", "from": 1.0, "to": 13.5},
 		{"clip": "trailer_05_rest", "from": 0.0, "to": 10.0},
-		{"clip": "trailer_06_ridge", "from": 4.0, "to": 11.5},
+		{"clip": "trailer_06_grow", "from": 0.0, "to": 7.5},
 		{"clip": "trailer_07_stag", "from": 6.5, "to": 16.5},
 		{"clip": "trailer_08_nightmare", "from": 1.0, "to": 3.5},
 		{"clip": "trailer_09_oak", "from": 1.0, "to": 3.5},
 		{"clip": "trailer_10_storm", "from": 5.7, "to": 15.7}
 	],
 	"captions": [
-		[0.5, 4.5, "Your Wardens are the walls."],
-		[10.5, 14.5, "Now they take the long way."],
-		[15.5, 19.5, "Soaked + Charged = Thunderclap."],
-		[28.5, 32.5, "Three Dreams at every rest. Take one."],
-		[38.5, 42.5, "That ridge wasn't there a minute ago."],
-		[45.5, 51.5, "The Stag charges straight lines. Don't build any."]
+		[0.5, 4.5, "Build the maze with your towers"],
+		[10.5, 14.5, "Make every nightmare take the long way"],
+		[15.5, 19.5, "Discover combos between Wardens"],
+		[28.5, 32.5, "Pick a Dream to power your maze"],
+		[38.0, 44.0, "Grow over 100 Wardens"],
+		[45.5, 51.5, "Bend the maze to break a boss's charge"],
+		[60.5, 64.5, "Chain lightning through the whole crowd"]
 	]
 }
