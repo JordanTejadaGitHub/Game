@@ -4,6 +4,7 @@
 	"format": "trailer",
 	"size": [1920, 1080],
 	"bed": "D:/Projects/Game/marketing/music/trailer_full.wav",
+	"caption_style": "scrim",
 	"end_tagline": "Grow a living maze. Hold back the nightmares.",
 	"cuts": [
 		{"clip": "trailer_01_maze", "from": 2.0, "to": 7.0},
