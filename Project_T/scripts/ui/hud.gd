@@ -281,7 +281,7 @@ func _build_tower_bar() -> void:
 # slot first, then the Wardens in key order. Slots shrink evenly to SLOT_MIN_WIDTH; past that the bar
 # shows a window of slots with ‹ › arrows at its ends (hotkeys still reach every Warden).
 const SLOT_MIN_WIDTH := 48.0
-const ARROW_W := 28.0
+const ARROW_W := 32.0  # Narrow and quiet
 var _bar_offset := 0  # The first Warden shown when the bar scrolls
 var _bar_arrows: Array[Button] = []
 
@@ -363,7 +363,7 @@ func _place_bar_arrows(scrolling: bool, bar_left: float, bar_right: float, hidde
 			arrow.name = "BarArrowLeft" if pair[1] < 0 else "BarArrowRight"
 			arrow.text = pair[0]
 			arrow.focus_mode = Control.FOCUS_NONE
-			arrow.theme_type_variation = &"HudButton"
+			arrow.theme_type_variation = &"WardenSlot"  # The bar's ends in the slots' own frame, never stronger than the Wardens (UI Asset)
 			arrow.add_theme_font_size_override("font_size", 22)
 			arrow.anchor_left = 0.5
 			arrow.anchor_right = 0.5
