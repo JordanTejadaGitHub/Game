@@ -73,11 +73,11 @@ func _run() -> void:
 	_check(seconds > 0.7 and seconds < 1.3, "4 tiles take ~1.15 s: grab, then the drag (%.2f s)" % seconds)
 	var after_first: int = w2.get_route_index()
 	# 4 tiles (the final's lever since the late-game pass 54155266; Balancing 2026-10-04): measured along the
-	# route in cells, since route points are half cells.
+	# route in cells, since route points are half cells. Up to 5.0: corners round the drag up (4.5 here).
 	var dragged := 0.0
 	for i in range(after_first, start_index):
 		dragged += route[i].distance_to(route[i + 1])
-	_check(dragged >= 3.5 and dragged <= 4.5, "Long Way Home drags it back about 4 tiles (%.1f: %d -> %d)" % [dragged, start_index, after_first])
+	_check(dragged >= 3.5 and dragged <= 5.0, "Long Way Home drags it back about 4 tiles (%.1f: %d -> %d)" % [dragged, start_index, after_first])
 	w2.global_position = Tower.MAP_GRID.calculate_map_position(route[12])
 	home._ability_timer = 0.0
 	home._update_ability(0.1)
