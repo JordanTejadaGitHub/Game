@@ -394,8 +394,8 @@ static func primary_box(hover: bool = false, pressed: bool = false) -> MoonStyle
 	box.fog_color = FOG
 	box.edge_alpha = 0.7 if pressed else 0.55
 	box.glow_color = PRIMARY_GLOW
-	# The Ember glow over the fog: about 18% at rest, 32% on hover (centre = 1 - (1 - glow)(1 - edge)).
-	var glow := 0.0 if pressed else (0.32 if hover else 0.18)
+	# The Ember glow over the fog: about 18% at rest, 34% on hover (centre = 1 - (1 - glow)(1 - edge)).
+	var glow := 0.0 if pressed else (0.34 if hover else 0.18)
 	box.center_alpha = 1.0 - (1.0 - glow) * (1.0 - box.edge_alpha)
 	box.corner_radius = 2
 	box.frame_color = GOLD if hover else Color(BUTTON_GOLD, 0.85)

@@ -69,9 +69,12 @@ func _draw(to_canvas_item: RID, rect: Rect2) -> void:
 		rs.canvas_item_add_line(to_canvas_item, Vector2(rect.end.x - 0.5, rect.position.y),
 			Vector2(rect.end.x - 0.5, rect.end.y), edge)
 	if frame_color.a > 0.0:
+		# With a thread, the frame runs down the sides and along the bottom; the thread is its top edge.
 		var r := rect.grow(-0.5)
-		RenderingServer.canvas_item_add_polyline(to_canvas_item, PackedVector2Array([r.position, Vector2(r.end.x, r.position.y),
-			r.end, Vector2(r.position.x, r.end.y), r.position]), PackedColorArray([frame_color]), 1.0, false)
+		var points := PackedVector2Array([Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y), r.position])
+		if thread == TopLine.NONE:
+			points.append(Vector2(r.end.x, r.position.y))
+		RenderingServer.canvas_item_add_polyline(to_canvas_item, points, PackedColorArray([frame_color]), 1.0, false)
 	if underline:
 		var y := rect.end.y - 1.0
 		var inset := minf(UNDERLINE_INSET, rect.size.x * 0.18)  # Narrow slots keep most of the line
