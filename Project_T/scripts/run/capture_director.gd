@@ -70,6 +70,8 @@ var _frame := 0
 var _silhouettes := {}  # Half-cell origin -> true: Wardens drawn dark (kept through grows)
 var _grove: Node = null  # The Memory Grove screen, in a "scene": "grove" capture
 var _grove_cam := {}
+var _grow_steps: Array = []  # "grove_grow": [time, unlock id, level], due in order
+var _grow_memory := {}  # The profile as shown while it grows (never saved)
 
 # --- Launch ------------------------------------------------------------------------------------------
 
@@ -527,12 +529,41 @@ func _process_grove(delta: float) -> void:
 		var zoom: float = lerpf(float(_grove_cam.from_zoom), float(_grove_cam.to_zoom), eased)
 		view.zoom_by(zoom / maxf(view.zoom, 0.0001))
 		view.focus_on((_grove_cam.from_at as Vector2).lerp(_grove_cam.to_at, eased))
+	var grew := false
+	while not _grow_steps.is_empty() and float(_grow_steps[0][0]) <= clip_time:  # "grove_grow": the next levels come in
+		var step: Array = _grow_steps.pop_front()
+		var first: bool = int(_grow_memory.unlocks.get(step[1], 0)) == 0
+		_grow_memory.unlocks[step[1]] = int(step[2])
+		grew = true
+		if first:
+			_grove.tree_view.play_plant(String(step[1]))
+	if grew:
+		_grove.tree_view.refresh(_grow_memory.duplicate(true))  # Display only: the canopy crossfades as the share passes stages
 	if clip_time >= float(scene.get("length", 20.0)):
 		set_process(false)
 		get_tree().quit()
 
 func _run_grove(event: Dictionary) -> void:
 	var view = _grove.tree_view
+	if event.has("grove_grow"):  # {"grove_grow": "full", "duration": 5}: the tree grows to that preset's levels on screen
+		_grow_memory = HeartwoodMemory.load_data()
+		var target: Dictionary = GrovePresets.profile(StringName(event.grove_grow)).unlocks
+		var working: Dictionary = _grow_memory.duplicate(true)
+		var order: Array = []  # [id, level], each level after its requirements (as a player would buy them)
+		var left := true
+		while left:
+			left = false
+			for unlock in HeartwoodMemory.load_grove():
+				var level := int(working.unlocks.get(unlock.id, 0))
+				if level < int(target.get(unlock.id, 0)) and HeartwoodMemory.requirements_met(working, unlock):
+					working.unlocks[unlock.id] = level + 1
+					order.append([unlock.id, level + 1])
+					left = true
+		var duration := maxf(float(event.get("duration", 5.0)), 0.1)
+		_grow_steps.clear()
+		for i in order.size():
+			_grow_steps.append([clip_time + duration * float(i + 1) / order.size(), order[i][0], order[i][1]])
+		print("Capture: the Grove grows to %s over %.1f s (%d levels)" % [event.grove_grow, duration, order.size()])
 	if event.has("plant"):
 		var unlock = HeartwoodMemory.get_unlock(String(event.plant))
 		if unlock == null:
