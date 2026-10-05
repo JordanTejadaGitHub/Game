@@ -203,17 +203,27 @@ boss falls.
 
 ### 1. Trailer cue (~75 s = 30 bars at 72 bpm)
 
+**v2 (2026-10-04, the user re-ordered the trailer: "discover combos, then straight to chain
+lightning").** The loud peak (the Dawnburst) now comes early, at 30 s; the ending is a **warm peak**
+instead: the Stag dispelled, then the Memory Grove growing on the Hope form into the end card. Same
+grid, same tempo; every hit is a bar downbeat.
+
 | Bars (time) | Picture | Music |
 |---|---|---|
 | 1–2 (0–5 s) | maze built, Warden snaps | the motif alone on music box, soft and warm; a felt pulse on each beat (the snaps sit on it) |
-| 3–4 (5–10 s) | Shade close-up | **near-silence**: one cold low note (the Hollow form's A♭ in bowed bass); **hit at 7.5 s** (bar 4 downbeat) = the dispel bloom, then silence |
-| 5–6 (10–15 s) | drift walks the maze | the pulse returns (quarters), dread1's drone underneath |
-| 7–11 (15–27.5 s) | Soaked + Charged, Thunderclaps | building: percussion enters in layers (low toms, then frame drum); **hit at 20 s** (bar 9) = a warm boom + far thunder roll, the Thunderclap |
-| 12–15 (27.5–37.5 s) | rest: Dream pick, grow, Kinship | **a breath**: half the density, the rest piece's harp and the motif's warm form, no percussion |
-| 16–18 (37.5–45 s) | Sow a Ridge | rising again: a slow swell, the pulse back in eighths, the bass climbing |
-| 19–24 (45–60 s) | bosses | the **act 1 boss theme** (drums, bowed bass an octave lower, the Hollow form) with the Stag's horn call; **hard stop at 52.5 s** (bar 22 downbeat) on the Stag stalling, a bar of only a low drone, then the Night Mare's gallop and the Oak's drums build back |
-| 25–28 (60–70 s) | storm chain to Dawnburst | everything: the boss drive + the warm counter-melody in full + the Hope form building; **hit at 65 s** (bar 27) = the Dawnburst, the biggest moment |
-| 29–30 (70–75 s) | logo, Wishlist | the **end-card button** (Hope form) resolving into **one held warm D major chord** from 70 s to the end |
+| 3–4 (5–10 s) | Shade close-up (to 8.5), then the drift | **near-silence**: one cold low note (the Hollow form's A♭ in bowed bass); **hit at 7.5 s** (bar 4) = the dispel bloom; the pulse returns under the drift walk |
+| 5–6 (10–15 s) | the drift walks the maze | quarters pulse, dread1's drone underneath |
+| 7–10 (15–25 s) | Thunderclaps | building: low toms, then the frame drum; **hit at 20 s** (bar 9) = a warm boom + far thunder roll |
+| 11–14 (25–35 s) | chain lightning to ×10 | the storm drive at full: eighth-note figures, the bass climbing; **hit at 30 s** (bar 13) = **the Dawnburst, the loudest moment**, then the drive rides it out for a bar and thins |
+| 15–16 (35–40 s) | the Dream pick | **a breath**: the rest piece's harp and the motif's warm form, no percussion |
+| 17–19 (40–47.5 s) | a Warden grows Sprout → Ascended | rising tiers: each grow lands on a bar with a bigger swell of warm material; the Ascended step gets the **Final Bloom** harp strum and the crown choir swell |
+| 20–24 (47.5–60 s) | bosses: Night Mare, Oak, the Stag | the **act 1 boss theme**, bass an octave lower, the Hollow form: the Night Mare's gallop, then the Oak's drums, then the Stag's horn call, building to bar 24 |
+| 25 (60 s) | **the Stag dispelled** | **hard stop on the downbeat**: the boss dispel bloom, then half a bar of near-silence |
+| 25–28 (60–70 s) | the Memory Grove grows | out of the stop, **the warm peak**: the Hope form (D–A–F♯) in harp and music box, rising in a slow swell with the hummed choir and strings, fuller each bar; not as loud as the Dawnburst, but the most beautiful moment |
+| 29–30 (70–75 s) | logo, Wishlist | the **end-card button** (Hope form) resolving into **one held warm D major chord** to the end |
+
+Hits (Sound Code's `TRAILER_HITS`): 7.5 · 20 · **30** (Dawnburst) · **60** (hard stop, the Stag dispelled) ·
+70 (button + chord). (v1: Dawnburst at 65, the stop at 52.5.)
 
 ### 2. Short beds (9:16, ~15–35 s)
 
