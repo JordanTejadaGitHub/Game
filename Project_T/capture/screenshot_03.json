@@ -9,6 +9,7 @@
 	"dreams": ["dawnbreak"],
 	"length": 24.0,
 	"timeline": [
+		{"t": 2.0, "dew": 640},
 		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.8},
 		{"t": 0.0, "plant_each": 0.05, "count": 16, "plant": "thornwall", "auto": "maze", "tag": false},
 		{"t": 0.0, "plant_each": 0.1, "count": 3, "plant": "monsoon", "auto": "cover", "tag": false},
