@@ -188,6 +188,9 @@ func _draw_pips(tower: Tower, canvas: CanvasItem = self) -> void:
 # kinship (a leaf) and penalty (a down chevron) are grey, tinted here (family colour; Bruise). ×1 on the map.
 const PIP_SHEET := "res://assets/ui/buff_pips.png"
 const STACK_SHEET := "res://assets/ui/buff_stacks.png"
+# Loaded with the script, never inside a draw: a texture first loaded mid-draw rendered as a solid white rect (Tower Code).
+const PIP_TEX := preload("res://assets/ui/buff_pips.png")
+const STACK_TEX := preload("res://assets/ui/buff_stacks.png")
 const PIP_FRAMES := {"acorn": 0, "elder_stump": 1, "grove_heart": 2, "grandmother_oak": 3, "old_growth": 4,
 	"kinship": 5, "kindred": 6, "whole_tree": 7, "penalty": 8}
 const PIP_TINTED := ["kinship", "penalty"]
@@ -201,7 +204,7 @@ static func draw_pip(canvas: CanvasItem, at: Vector2, kind: String, colour: Colo
 		var scale := maxf(roundf(r * 2.0 / PIP_FRAME), 1.0)  # Whole-pixel scale (r 4.5 = ×1)
 		var side := Vector2(PIP_FRAME, PIP_FRAME) * scale
 		var tint: Color = colour if PIP_TINTED.has(kind) else Color.WHITE  # A multiplier on the grey art
-		canvas.draw_texture_rect_region(load(PIP_SHEET), Rect2(at - side / 2.0, side),
+		canvas.draw_texture_rect_region(PIP_TEX, Rect2(at - side / 2.0, side),
 			Rect2(int(PIP_FRAMES[kind]) * PIP_FRAME, 0, PIP_FRAME, PIP_FRAME), tint)
 		return
 	var dark := Color(Palette.DREAD, 0.85)
@@ -239,7 +242,7 @@ static func draw_pip(canvas: CanvasItem, at: Vector2, kind: String, colour: Colo
 static func draw_stacks(canvas: CanvasItem, at: Vector2, count: int, colour: Color, font: Font) -> void:
 	if ResourceLoader.exists(STACK_SHEET):
 		var frame := clampi(count, 2, 9) - 2
-		canvas.draw_texture_rect_region(load(STACK_SHEET), Rect2(at, STACK_SIZE),
+		canvas.draw_texture_rect_region(STACK_TEX, Rect2(at, STACK_SIZE),
 			Rect2(frame * STACK_SIZE.x, 0, STACK_SIZE.x, STACK_SIZE.y))
 		return
 	canvas.draw_string(font, at + Vector2(0, 8), "×%d" % count, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, colour)
