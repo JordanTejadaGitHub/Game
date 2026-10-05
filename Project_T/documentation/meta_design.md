@@ -318,14 +318,15 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 
 | Branch (direction) | Node 1 (near the trunk) | Node 2 | Tip(s): Legendary |
 |---|---|---|---|
-| **Swift** (attack speed) | *Quickening*: Momentum, Quickening, Flurry (50) | *Light Feet*: Restless Roots, Hummingheart, Drumbeat (70) | **Whirlwind Heart** (120) |
-| **Wide Reach** (area, splash) | *Broad Strokes*: Broad Splash, Lingering Splash, Overlap (50) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
+| **Swift** (attack speed) | *Quickening*: Quickening, Flurry (40) | *Light Feet*: Restless Roots, Hummingheart (60) | **Whirlwind Heart** (120) |
+| **Wide Reach** (area, splash) | *Broad Strokes*: Broad Splash, Lingering Splash (40) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
 | **Keen Edges** (precision, crit) | *Sharpened*: Still Target, Shattering Blow, **Hunter's Patience**, **Sharpened Light** (50) | — | **Full Moon** (120) · **Hunter's Moon** (80) |
-| **Deep Poison** (affliction, effects) | *Seeping*: + **Crowd Breaker** (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) · **Eternal Charge** (80) |
+| **Deep Poison** (affliction, effects) | *Seeping* (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) · **Eternal Charge** (80) |
 | **Daring** (low leaves, tempo) *(new)* | *Scarred Bark*: Scarred Bark, Thin Bark (40) | *Last Stand*: Desperate Bloom, Second Wind, Last Stand (50) | **Last Leaf** (80) · **Restless Night** (80) |
-| **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) → *Elders*: Solitude, Elder Kin, Few and Mighty (50) | **The Old Ones** + **Endless Rings** (150; needs Elders) |
+| **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) → *Elders*: Elder Kin, Few and Mighty (40) | **The Old Ones** + **Endless Rings** (150; needs Elders) |
 | **Lone Lantern** (narrow) | *One Line*: Monoculture (80) | — | **The Last Light** (120) |
-| **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Mixed Company*: Mixed Grove, Odd One Out, Grand Tour (50) | **Rootbound** (100; needs Seedbed) · **Menagerie** (80; needs Mixed Company) |
+| **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Mixed Company*: Mixed Grove, Grand Tour (40) | **Rootbound** (100; needs Seedbed) · **Menagerie** (80; needs Mixed Company) |
+| *(2026-10-05: Momentum, Drumbeat, Overlap, Crowd Breaker, Solitude and Odd One Out moved back to the start pool as Uncommons, `dream_design.md` "Fewer family boosters, more build shapes"; their nodes cost 10 less.)* | | | |
 | **The Long Way** (path length) | *Dead Wood*: Burn Back the Dead Wood (40) | *Winding Roads*: Forest's Edge (50) | **The Long Walk** (100; needs Dead Wood) · **Crossroads** (80; needs Winding Roads) |
 | **Hedgerows** (walls, holding) *(new)* | *Bitter Hedges*: Bitter Hedges, **Thornheart** (40) | — | **Briar Crown** (80) · **Rooted Nightmares** (80) |
 | **Reclaiming** (clearing) *(new)* | *Reclaimed Earth*: Reclaimed Earth, Tended Stumps, Hollow Ground (50; the "where you clear" payoffs first) | *Thorn and Bramble*: Tended Forest, Thorn Snare, Bramble Oath (70) | **Wildwood Reclaimed** (80) |
