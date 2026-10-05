@@ -173,7 +173,7 @@ the end of the Economy path, so it can't be rushed first for faster Seeds.
 
 **Keepsakes (cosmetics) live on a shelf, not the tree** (user 2026-10-05). Anything cosmetic is a
 milestone achievement unlock, never bought, and isn't a Grove node: the four Keepsakes sit on a
-**Keepsakes shelf** next to the Memories shelf in the Grove screen, each with its on/off toggle
+**Keepsakes shelf** opened from a "Keepsakes" button in the Grove footer, each with its on/off toggle
 once earned (also in Settings → Display → Keepsakes). Unearned ones show greyed with their milestone
 ("Win without losing a leaf"). Each milestone also pays its Seed bonus.
 
