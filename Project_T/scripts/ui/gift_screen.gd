@@ -123,9 +123,15 @@ func _ready() -> void:
 	_pass.pressed.connect(func() -> void:
 		gifts.let_pass()
 		_close())
+	_pass.icon = IconInfo.icon(&"dew")  # "Let them pass, +30 [Dew]": the secondary frame
+	_pass.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_pass.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	row.add_child(_pass)
 	peek = ChoicePeek.new(self, [_dim, centre], "Back to the gifts")
-	row.add_child(peek.make_peek_button())
+	var peek_button := peek.make_peek_button()
+	if peek_button is Button:
+		UiStyle.quiet(peek_button)  # Light pass: quiet; the cards hold the choice
+	row.add_child(peek_button)
 	arm = ChoiceArm.attach(self, _cards)
 	_choose = centre
 	# Placing: the cards go, a bar at the bottom says what to do; the world takes the clicks.
@@ -173,7 +179,7 @@ func open() -> void:
 		child.queue_free()
 	for id in gifts.current_offer:
 		_cards.add_child(_card(id))
-	_pass.text = "Let them pass · +%d Dew" % gifts.pass_dew()
+	_pass.text = "Let them pass, +%d" % gifts.pass_dew()  # The Dew glyph after it (no " · ")
 	if not gifts.current_offer.is_empty():
 		show_scene(gifts.current_offer[0])
 	visible = true
@@ -209,7 +215,7 @@ func _gift_emblem(id: StringName) -> Texture2D:
 	atlas.region = Rect2(rect[0], rect[1], rect[2], rect[3])
 	return atlas
 
-const CARD_SIZE := Vector2(250, 180)  # Grows with its text; short enough that the screen fits 720 under the banner
+const CARD_SIZE := Vector2(300, 220)  # Light pass: 300 wide, grows with its text; the screen still fits 720 under the banner
 
 func _card(id: StringName) -> Button:
 	var gift: Dictionary = HeartwoodGifts.POOL[id]
@@ -229,47 +235,95 @@ func _card(id: StringName) -> Button:
 	button.mouse_entered.connect(show_scene.bind(id))
 	var box := VBoxContainer.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	box.offset_left = 14
-	box.offset_top = 12
-	box.offset_right = -14
-	box.offset_bottom = -12
-	box.add_theme_constant_override("separation", 4)
+	box.offset_left = 18
+	box.offset_top = 18
+	box.offset_right = -18
+	box.offset_bottom = -14
+	box.add_theme_constant_override("separation", 8)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(box)
+	# Light pass (UI Asset's last page): the emblem beside the name and its category; what it is in one line, what it
+	# does as bullets; the framed "Plant it" at the foot (drawn: the whole card is the hit area).
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(header)
+	var names := VBoxContainer.new()
+	names.add_theme_constant_override("separation", 2)
+	names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	names.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	names.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var icon := TextureRect.new()
 	icon.name = "Emblem"
 	var emblem := _gift_emblem(id)  # UI Asset's gift emblem (7220e5fa), else the category's glyph tinted
 	icon.texture = emblem if emblem != null else IconInfo.icon(style[0])
-	icon.custom_minimum_size = Vector2(32, 32)  # Emblems are drawn at 32 (×1); the 16 px glyphs at ×2
+	icon.custom_minimum_size = Vector2(48, 48)  # The 32 px emblem at 1.5×, the 16 px glyphs at 3×
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if emblem == null:
 		icon.modulate = colour  # multiplier: the category's colour on the glyph
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(icon)
+	header.add_child(icon)
+	header.add_child(names)
 	var title := Label.new()
 	title.name = "Name"
 	title.text = gift.name
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	UiStyle.display(title, 20)
+	UiStyle.title(title, 24)
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(title)
+	names.add_child(title)
 	var group := Label.new()
 	group.name = "Category"
 	group.text = gift.group
-	group.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UiStyle.caps(group, 13, colour)
 	group.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(group)
-	var text := StatusLinks.make_label(gift.text, 15, UiStyle.INK)  # {spored}, Kinship… become links
+	names.add_child(group)
+	# What it is (the first sentence), then what it does, a bullet per sentence. Status words stay links.
+	var sentences := String(gift.text).split(". ", false)
+	var text := StatusLinks.make_label(sentences[0] + ("." if sentences.size() > 1 else ""), 15, UiStyle.INK)
 	text.name = "Text"
 	text.mouse_filter = Control.MOUSE_FILTER_PASS  # Status words hover; a click still picks the card
 	box.add_child(text)
+	for i in range(1, sentences.size()):
+		var line := String(sentences[i]).trim_suffix(".")
+		box.add_child(_bullet(line))
+	var spare := Control.new()
+	spare.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	spare.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(spare)
+	var plant := Button.new()
+	plant.name = "PlantIt"
+	plant.text = "Plant it"
+	plant.focus_mode = Control.FOCUS_NONE
+	plant.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plant.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+	UiStyle.primary(plant)
+	box.add_child(plant)
 	box.minimum_size_changed.connect(func() -> void:
-		button.custom_minimum_size = Vector2(CARD_SIZE.x, maxf(CARD_SIZE.y, box.get_combined_minimum_size().y + 24.0)))
+		button.custom_minimum_size = Vector2(CARD_SIZE.x, maxf(CARD_SIZE.y, box.get_combined_minimum_size().y + 32.0)))
 	return button
+
+# One point of what a gift does: a small gold diamond, then the words (status words linked), wrapping under themselves.
+func _bullet(text: String) -> Control:
+	var row := HBoxContainer.new()
+	row.name = "Point"
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var diamond := Control.new()
+	diamond.custom_minimum_size = Vector2(9, 0)
+	diamond.size_flags_vertical = Control.SIZE_FILL
+	diamond.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	diamond.draw.connect(func() -> void:
+		var c := Vector2(diamond.size.x / 2.0, 10.0)
+		diamond.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -3.5), c + Vector2(3.5, 0), c + Vector2(0, 3.5), c + Vector2(-3.5, 0)]), UiStyle.GOLD))
+	row.add_child(diamond)
+	var label := StatusLinks.make_label(text, 14, UiStyle.INK_DIM)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.mouse_filter = Control.MOUSE_FILTER_PASS
+	row.add_child(label)
+	return row
 
 # Plays gift `id`'s before → after mini-scene in the preview (a still after-diagram under reduced motion).
 func show_scene(id: StringName) -> void:
