@@ -140,31 +140,32 @@ the Night Mare's laps, the Memory Grove growing, Rank V Nurture choices, the Spi
 Owner: Trailer chat (2026-10-04). No logo intro: the first frame is the maze being built, because capsule A (the watchful
 Warden) doesn't show the maze, so the trailer has to deliver "your towers are the maze" before any mood shot; pitch.md's
 dispel hook comes second. Rules: every clip at real
-speed (1×, never sped up or slowed: cut instead); every maze shows staggered half-cell walls (half_cells.md); cards say
-one concrete thing each, in the developer's voice (text_pass.md), and read in under 3 s.
+speed (1×, never sped up or slowed: cut instead); every maze shows staggered half-cell walls (half_cells.md); wide
+shots (the maze) alternate with close ones (zoom 3–4: nightmares, combos, bosses). **Cards (the user, on rough cut 2):
+promise lines, not instructions**: verb first, inviting, a real number where there is one (like Legends of Idleon's
+"Pick from over 100 classes"); show only what makes the game special, the maze and the combos. Numbers are full game
+only (a demo trailer drops "over 100 Wardens").
 
 | Time | Shot | On screen | Music |
 |---|---|---|---|
-| 0–5 s | Frame one: a staggered half-cell maze. Wardens snap down one after another; with each, the route mist bends live into a longer detour ("+N path"). | "Your Wardens are the walls." | motif, Warden snaps on the pulse |
-| 5–10 s | Close on the forest edge: a Shade's eyes open and it skitters in. A spore puff hits it; it shrieks and cracks into motes. | | near-silence; **hit 7.5 s**: the dispel |
-| 10–15 s | Pull back: the drift streams in and walks every bend of the maze; dispels along it. | "Now they take the long way." | pulse returns |
-| 15–27.5 s | A Soaked crowd, Charged: Thunderclap callouts; Poisoned fog on the next bend. | "Soaked + Charged = Thunderclap." | build; **hit 20 s**: the Thunderclap |
-| 27.5–37.5 s | A rest: the Dream pick (3 cards, one taken); a Warden grows into its branch; Kinship roots join two kin. | "Three Dreams at every rest. Take one." | breath |
-| 37.5–45 s | A Heartwood's Gift (Sow a Ridge): the ridge rises, the route bends around it live. | "That ridge wasn't there a minute ago." | |
-| 45–60 s | The Hollow Stag charges a straight corridor, then stalls on a bend; cut to the Night Mare's laps; the Hollow Oak rising. | "The Stag charges straight lines. Don't build any." (over the Stag only) | boss; **hit 52.5 s**: the Stag stalls |
-| 60–70 s | A late storm board: one chain to ×10, Dawnburst; the Heartwood glowing gold. | | full; **hit 65 s**: the Dawnburst |
+| 0–5 s | Frame one: a staggered half-cell maze. Wardens snap down one after another; with each, the route mist bends live into a longer detour ("+N path"). | "Build the maze with your towers" | motif, Warden snaps on the pulse |
+| 5–10 s | Close on the forest edge (zoom 4): a Shade skitters in; a spore puff hits it; it shrieks and cracks into motes. | | near-silence; **hit 7.5 s**: the dispel |
+| 10–15 s | Pull back: the drift streams in and walks every bend of the maze. | "Make every nightmare take the long way" | pulse returns |
+| 15–27.5 s | Close on a crowd: Soaked, Charged, Thunderclap after Thunderclap. | "Discover combos between Wardens" | build; **hit 20 s**: the Thunderclap |
+| 27.5–37.5 s | A rest: the Dream pick (3 cards, one taken), then the next drift starts. One idea only. | "Pick a Dream to power your maze" | breath |
+| 37.5–45 s | One Warden grows in place, close: Sporeling → Driftspore → Puffball → Sporemother (Ascended). | "Grow over 100 Wardens" (116 forms, Tower Code) | |
+| 45–60 s | The Hollow Stag charges up a straight corridor and turns on the corner (zoom 3); one beat each of the Night Mare's gallop and the Hollow Oak. | "Bend the maze to break a boss's charge" (over the Stag) | boss; **hit 52.5 s**: the Stag turns |
+| 60–70 s | A late storm board, close on the crowd: one chain to ×10, Dawnburst. | "Chain lightning through the whole crowd" | full; **hit 65 s**: the Dawnburst |
 | 70–75 s | Logo, the tagline *"Grow a living maze. Hold back the nightmares."*, "Wishlist on Steam", platforms. | "Heartwood TD" (pitch.md "Title"; trademark check pending) | held chord from 70 s |
 
 **Music:** the dedicated trailer cue (§9), not the loop stems. Cuts sit on 2.5 s bars (72 bpm 3/4) and the four hits
 fall on downbeats; if Sound Discussion picks another tempo, the cuts move to its bars. Cut changes go to Sound Discussion.
 
-Dropped from the draft: the Omen screen (a second menu in 10 s; save it for a short).
+Dropped: the Omen screen, the Kinship and the Sow a Ridge gift (the user: show only the maze and the combos).
 
-**Capture scenes needed (Main Merger, capture_director.gd):** (1) a staggered maze built Warden by Warden, route mist
-bending each time (the opening shot; Short Form Video's short_01 idea at 16:9); (2) forest-edge Shade close-up; (3) drift ~20 walking the maze; (4) a storm board on a Soaked crowd, drift ~40; (5) a rest with Dream
-pick, grow and a Kinship; (6) an act break with Sow a Ridge; (7) drift 25 Stag on a board with one straight corridor;
-(8) the Night Mare; (9) the Hollow Oak's arrival; (10) a late storm board to Dawnburst, drift ~60, the Heartwood at a
-high Grove stage.
+**Capture scenes** (`capture/trailer_*.json`, the cut list in `capture/trailer.json`, exported with `export.ps1 trailer`):
+01 maze (also the drift walk), 02 Shade, 04 Thunderclap crowd, 05 Dream pick, 06 growth, 07 Stag, 08 Night Mare,
+09 Hollow Oak, 10 storm to Dawnburst. Boards 01, 07 and 10 are copies of Short Form Video's tuned short boards.
 
 **Timing:** final capture only after the grain clean-up (calm detail pass, Wardens and ground; Wardens keep the classic
 golem, the per-family poses were dropped), the nightmare readability fix and the final half-grid path art (art_direction.md "AI-look audit", half_cells.md). A rough cut from today's art is fine
