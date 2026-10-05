@@ -86,6 +86,7 @@ var _last_args: Array = []  # That call's reach, growth weight, cover_heart, dat
 var half_spots := [0, 0, 0, 0, 0]  # Attackers weighed with half nudges, built at a half offset, refused there; walls planted by the half search, of them built as the first of a better pair
 var route_open := -1  # Route length in full cells after the opening spend, and as drifts 24 / 45 start
 var route_base := -1  # The empty map's route in full cells, before the opening spend (the corridor rule alone)
+var old_growth := false  # --old-growth: DreamState's growth prices from before f9fd8526 (branch / final ×1.0, ranks 25/40/60/90/135), the A/B
 var grow_count := 0  # Growth purchases (balance_simulation.md growth costs A/B): all, and as drift 25 starts
 var grows_25 := -1
 var first_grow := -1  # The drift of the first growth into a tier 2+ form
@@ -166,6 +167,7 @@ func _run() -> void:
 			"--no-fence-pref": fence_pref = false
 			"--no-half-pref": half_pref = false
 			"--no-pair-search": pair_search = false
+			"--old-growth": old_growth = true
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
@@ -225,6 +227,15 @@ func _run() -> void:
 	map = main.get_node("%MapGenerator")
 	placer = main.get_node("%TowerPlacer")
 	dreams = main.get_node("%DreamState")
+	if old_growth:  # Set after _ready (it resets the statics from its exports); the setters write them
+		for key in ["branch_cost_multiplier", "final_cost_multiplier", "ascended_cost_multiplier"]:
+			if dreams.get(key) == null:
+				printerr("--old-growth: DreamState has no %s" % key)
+				quit(1)
+				return
+			dreams.set(key, 1.0)
+		var old_ranks: Array[int] = [25, 40, 60, 90, 135]
+		dreams.set("rank_costs", old_ranks)
 	dreams.dreamlight_earned.connect(func(amount: int, source: StringName) -> void: dreamlight_by_source[source] = dreamlight_by_source.get(source, 0) + amount)
 	run_state = main.get_node("%RunState")
 	director = main.get_node("%DriftDirector")
@@ -961,6 +972,7 @@ func _finish() -> void:
 	summary.grows = grow_count
 	summary.grows_25 = grows_25
 	summary.first_grow = first_grow
+	summary.growth_costs = "%s/%s/%s/%s" % [dreams.get("branch_cost_multiplier"), dreams.get("final_cost_multiplier"), dreams.get("ascended_cost_multiplier"), dreams.get("rank_costs")]
 	summary.route_open = route_open
 	summary.route_24 = route_at.get(24, -1)
 	summary.route_45 = route_at.get(45, -1)
