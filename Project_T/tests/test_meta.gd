@@ -502,6 +502,17 @@ func _run() -> void:
 	var stores_node := _layout_node("morning_stores")
 	view.tap(GroveTreeView.vec(stores_node.pos))
 	_check(grove_screen.selected != null and grove_screen.selected.id == "morning_stores", "tapping a bud selects its node")
+	# The node card (UI Asset's approved page): "perk, level 0 of 3", level bars, the cost row, no " · " anywhere.
+	var card_texts: Array[String] = []
+	var walk := [grove_screen._card]
+	while not walk.is_empty():
+		var node: Node = walk.pop_back()
+		walk.append_array(node.get_children())
+		if node is Label or node is Button:
+			card_texts.append(node.text)
+	_check(grove_screen._card_section.text == "perk, level 0 of 3" and grove_screen._card_level_bars.get_child_count() == 3
+		and grove_screen._card_cost.visible and grove_screen._plant.text == "Plant"
+		and not card_texts.any(func(t: String) -> bool: return t.contains(" · ")), "the node card follows the approved layout (%s)" % [card_texts])
 	_check(view.state_of(_unlock(grove, "morning_stores")) == GroveTreeView.State.AFFORDABLE, "Morning Stores glows (affordable)")
 	_check(view.state_of(_unlock(grove, "rich_dew")) == GroveTreeView.State.LOCKED, "Rich Dew stays a bare twig until its parent grows")
 	grove_screen._plant_selected()

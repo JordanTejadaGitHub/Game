@@ -12,7 +12,7 @@ const TITLE_SCENE := "res://scenes/title.tscn"
 const GAME_SCENE := "res://scenes/main.tscn"
 const MEMORY_ART := "res://assets/meta/memories/memory_%02d.png"
 const SECTION_NAMES := {"perks": "Perks", "families": "Families", "cards": "Cards"}
-const CARD_WIDTH := 320
+const CARD_WIDTH := 360  # The node card (UI Asset's approved page "Memory Grove: the node card")
 
 var tree_view := GroveTreeView.new()
 var loadout := LoadoutPanel.new(tree_view)
@@ -30,6 +30,14 @@ var _card_text := RichTextLabel.new()  # The description, with status / term / f
 var _card_status := Label.new()
 var _plant := Button.new()
 var _carry := Button.new()
+var _card_levels := HBoxContainer.new()  # Small bars, then "+5% now, +10% next"
+var _card_level_bars := HBoxContainer.new()
+var _card_level_text := Label.new()
+var _card_needs := VBoxContainer.new()  # "needs" in caps, then a chip per requirement
+var _card_chips := HFlowContainer.new()
+var _card_cost := HBoxContainer.new()  # The Seeds glyph, the price, "of N Seeds"
+var _card_price := Label.new()
+var _card_wallet := Label.new()
 var _backdrop := ColorRect.new()
 var _viewer := PanelContainer.new()
 var _viewer_art := TextureRect.new()
@@ -114,56 +122,93 @@ func _build_card() -> void:
 	_card.custom_minimum_size = Vector2(CARD_WIDTH, 0)
 	_card.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_card.grow_vertical = Control.GROW_DIRECTION_BOTH
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(Palette.DREAD, 0.94)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(10)
-	style.set_content_margin_all(14)
-	_card.add_theme_stylebox_override("panel", style)
+	# The node card (UI Asset's approved page "Memory Grove: the node card"): the theme's moonlit panel, a
+	# moon-disc header, one line of what it does, level bars, "needs" chips, the cost row, Plant as the one
+	# primary and Close as quiet text. No " · " separators anywhere on it.
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
+	box.add_theme_constant_override("separation", 10)
 	_card.add_child(box)
+	var inner := CARD_WIDTH - 32  # Text width inside the panel's margins
 	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 10)
-	_card_icon.custom_minimum_size = Vector2(48, 48)
+	head.add_theme_constant_override("separation", 12)
+	_card_icon.custom_minimum_size = Vector2(40, 40)
 	_card_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_card_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	head.add_child(_card_icon)
+	_card_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_card_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var disc := UiStyle.on_moon_disc(_card_icon)
+	disc.custom_minimum_size = Vector2(64, 64)
+	head.add_child(disc)
 	var names := VBoxContainer.new()
 	names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_card_name.add_theme_font_size_override("font_size", 20)
+	names.alignment = BoxContainer.ALIGNMENT_CENTER
+	UiStyle.title(_card_name, 26)
 	_card_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	names.add_child(_card_name)
-	_card_section.add_theme_font_size_override("font_size", 13)
+	UiStyle.caps(_card_section)
 	names.add_child(_card_section)
 	head.add_child(names)
-	var close := Button.new()
-	close.text = "×"
-	close.flat = true
-	close.focus_mode = Control.FOCUS_NONE
-	close.custom_minimum_size = Vector2(40, 40)
-	close.pressed.connect(func() -> void: _select(null))
-	head.add_child(close)
 	box.add_child(head)
 	_card_text.bbcode_enabled = true
 	_card_text.fit_content = true
 	_card_text.scroll_active = false
 	_card_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_card_text.custom_minimum_size = Vector2(CARD_WIDTH - 28, 0)
+	_card_text.custom_minimum_size = Vector2(inner, 0)
+	_card_text.add_theme_font_size_override("normal_font_size", 15)
+	_card_text.add_theme_color_override("default_color", Palette.MIST)
 	box.add_child(_card_text)
 	StatusLinks.hook(_card_text)
+	_card_levels.add_theme_constant_override("separation", 10)
+	_card_level_bars.add_theme_constant_override("separation", 4)
+	_card_level_bars.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_card_levels.add_child(_card_level_bars)
+	_card_level_text.add_theme_font_size_override("font_size", 14)
+	_card_level_text.add_theme_color_override("font_color", Palette.MIST)
+	_card_levels.add_child(_card_level_text)
+	box.add_child(_card_levels)
+	var needs_title := Label.new()
+	needs_title.text = "needs"
+	UiStyle.caps(needs_title)
+	_card_needs.add_child(needs_title)
+	_card_chips.add_theme_constant_override("h_separation", 6)
+	_card_chips.add_theme_constant_override("v_separation", 6)
+	_card_needs.add_child(_card_chips)
+	box.add_child(_card_needs)
 	_card_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_card_status.custom_minimum_size = Vector2(CARD_WIDTH - 28, 0)
+	_card_status.custom_minimum_size = Vector2(inner, 0)
 	_card_status.add_theme_font_size_override("font_size", 14)
 	box.add_child(_card_status)
+	_card_cost.add_theme_constant_override("separation", 8)
+	var glyph := TextureRect.new()
+	glyph.texture = IconInfo.icon(&"seeds")
+	glyph.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	glyph.custom_minimum_size = Vector2(32, 32)  # The 16 px glyph at 2×
+	glyph.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_card_cost.add_child(glyph)
+	UiStyle.number(_card_price, UiStyle.NUMBER_SIZE, Palette.SPRIG)
+	_card_cost.add_child(_card_price)
+	_card_wallet.add_theme_font_size_override("font_size", 14)
+	_card_wallet.add_theme_color_override("font_color", Palette.MIST)
+	_card_wallet.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_card_cost.add_child(_card_wallet)
+	box.add_child(_card_cost)
 	_plant.custom_minimum_size = Vector2(0, 48)
 	_plant.focus_mode = Control.FOCUS_NONE
+	UiStyle.primary(_plant)
 	_plant.pressed.connect(_plant_selected)
 	box.add_child(_plant)
-	_carry.custom_minimum_size = Vector2(0, 44)
+	_carry.custom_minimum_size = Vector2(0, 48)
 	_carry.focus_mode = Control.FOCUS_NONE
 	_carry.pressed.connect(_toggle_carry)
 	box.add_child(_carry)
+	var close := Button.new()
+	close.text = "Close"
+	close.focus_mode = Control.FOCUS_NONE
+	close.custom_minimum_size = Vector2(0, 48)
+	UiStyle.quiet(close)
+	close.pressed.connect(func() -> void: _select(null))
+	box.add_child(close)
 	add_child(_card)
 	_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT, Control.PRESET_MODE_MINSIZE, 20)
 
@@ -272,38 +317,53 @@ func _update_card() -> void:
 	if selected == null:
 		return
 	var section := selected.get_section()
-	var colour: Color = GroveTreeView.SECTION_COLOR.get(section, Palette.HEARTLIGHT)
-	(_card.get_theme_stylebox("panel") as StyleBoxFlat).border_color = colour
 	_card_icon.texture = tree_view.get_icon(selected)
 	_card_name.text = selected.display_name
 	var level := HeartwoodMemory.node_level(_memory, selected)
 	var levels := selected.get_levels()
-	var tags: Array[String] = [SECTION_NAMES.get(section, "")]
+	# "perk, level 1 of 3", "legendary card", "family" (small caps; a comma, never " · ").
+	var kind: String = {"perks": "perk", "families": "family", "cards": "card"}.get(section, "")
 	if selected.legendary:
-		tags.append("Legendary")
-	if levels > 1:
-		tags.append("Level %d of %d" % [level, levels])
-	_card_section.text = " · ".join(tags)
-	_card_section.add_theme_color_override("font_color", colour)
+		kind = "legendary " + kind
+	_card_section.text = "%s, level %d of %d" % [kind, level, levels] if levels > 1 else kind
 	_card_text.text = StatusLinks.bbcode(selected.get_description() + family_branches_text(selected))
+	# Levels as small bars: Glow for the ones grown, dim for the rest, then the effect now and next.
+	for bar in _card_level_bars.get_children():
+		bar.queue_free()
+	for i in levels:
+		var bar := ColorRect.new()
+		bar.color = Palette.GLOW if i < level else Color(Palette.MIST, 0.25)
+		bar.custom_minimum_size = Vector2(22, 6)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_card_level_bars.add_child(bar)
+	_card_level_text.text = _level_effect_text(selected, level)
+	_card_levels.visible = levels > 1
+	# "needs" chips: met ones in a Sprig outline with a ✓, the rest in Mist.
+	for chip in _card_chips.get_children():
+		chip.queue_free()
+	for requirement in _requirement_chips(selected):
+		_card_chips.add_child(_chip(requirement[0], requirement[1]))
+	_card_needs.visible = _card_chips.get_child_count() > 0 and not HeartwoodMemory.is_grown(_memory, selected)
 	var problem := HeartwoodMemory.buy_problem(_memory, selected)
 	var cost := selected.get_cost(HeartwoodMemory.unlock_level(_memory, selected.id))
-	_plant.visible = problem != "Grown" and not selected.is_free()
+	var buyable := problem != "Grown" and not selected.is_free()
+	_card_cost.visible = buyable
+	_card_price.text = str(cost)
+	_card_wallet.text = "of %d Seeds" % int(_memory.seeds)
+	_plant.visible = buyable
 	_plant.disabled = problem != ""
-	_plant.text = ("Grow level %d · %d Seeds" % [level + 1, cost] if level > 0 else "Plant · %d Seeds" % cost)
+	_plant.text = "Grow to level %d" % (level + 1) if level > 0 else "Plant"
 	match problem:
 		"Grown":
 			_card_status.text = "In bloom" if not selected.start else "Grown from the start"
 		"Grows by itself":  # A parked Memory Warden bloom: grown by its boss's first dispel
 			_card_status.text = "Grows by itself."
-		"Needs another unlock first":
-			_card_status.text = "Needs " + _needs_text(selected) + "."
 		"Not enough Seeds":
 			_card_status.text = "You need %d more Seeds." % (cost - int(_memory.seeds))
 		_:
-			_card_status.text = ""
+			_card_status.text = ""  # Unmet needs show as chips
 	_card_status.visible = _card_status.text != ""
-	_card_status.add_theme_color_override("font_color", Palette.NEWLEAF if problem == "Grown" else Palette.MOONPATH)
+	_card_status.add_theme_color_override("font_color", Palette.SPRIG if problem == "Grown" else Palette.MIST)
 	var carried := HeartwoodMemory.get_loadout(_memory).has(selected.id)
 	_carry.visible = selected.is_perk() and level > 0
 	_carry.text = "Put back" if carried else "Carry into the dream"
@@ -312,6 +372,66 @@ func _update_card() -> void:
 		_carry.text = "Loadout full"
 	# Shrink to the content (a card with fewer lines than the last one), still centred on the right.
 	_fit_card.call_deferred()  # After the labels have re-measured
+
+# "+5% now, +10% next" for a node with levels, from its per-level perk numbers ("" at 0 / when nothing scales).
+static func _level_effect_text(unlock: UnlockData, level: int) -> String:
+	var per_level: Array = []  # [format, value per level]
+	if unlock.starting_dew != 0:
+		per_level = ["+%d Dew", unlock.starting_dew]
+	elif unlock.dew_gain != 0.0:
+		per_level = ["+%d%%", unlock.dew_gain * 100.0]
+	elif unlock.rest_bonus != 0.0:
+		per_level = ["+%d%%", unlock.rest_bonus * 100.0]
+	elif unlock.max_leaves != 0:
+		per_level = ["+%d leaves", unlock.max_leaves]
+	elif unlock.dream_rerolls != 0:
+		per_level = ["%d rerolls", unlock.dream_rerolls]
+	if per_level.is_empty():
+		return ""
+	var at := func(n: int) -> String: return per_level[0] % roundi(float(per_level[1]) * n)
+	var parts: Array[String] = []
+	if level > 0:
+		parts.append("%s now" % at.call(level))
+	if level < unlock.get_levels():
+		parts.append("%s next" % at.call(level + 1))
+	return ", ".join(parts)
+
+# Each requirement as [name, met]: every requires_all, then the requires_any group as one chip.
+func _requirement_chips(unlock: UnlockData) -> Array:
+	var chips: Array = []
+	for requirement in unlock.requires_all:
+		chips.append([_requirement_name(requirement), HeartwoodMemory._meets(_memory, requirement)])
+	if not unlock.requires_any.is_empty():
+		var owned := unlock.requires_any.filter(func(id: String) -> bool: return HeartwoodMemory._meets(_memory, id)).size()
+		var names: Array[String] = []
+		for id in unlock.requires_any:
+			names.append(_requirement_name(id))
+		var text := " or ".join(names) if unlock.requires_any_count <= 1 \
+			else ("%d of %s" % [unlock.requires_any_count, ", ".join(names)] if names.size() <= 5
+				else "any %d other %s nodes" % [unlock.requires_any_count, SECTION_NAMES.get(unlock.get_section(), "").to_lower()])
+		chips.append([text, owned >= unlock.requires_any_count])
+	if unlock.crown:
+		chips.append(["every other node grown", HeartwoodMemory.tree_complete(_memory)])
+	return chips
+
+func _chip(text: String, met: bool) -> PanelContainer:
+	var chip := PanelContainer.new()
+	var box := StyleBoxFlat.new()  # A small outline chip (no panel fill), Sprig when met
+	box.bg_color = Color(Palette.VOID, 0.0)
+	box.border_color = Palette.SPRIG if met else Color(Palette.MIST, 0.5)
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(10)
+	box.content_margin_left = 8
+	box.content_margin_right = 8
+	box.content_margin_top = 2
+	box.content_margin_bottom = 2
+	chip.add_theme_stylebox_override("panel", box)
+	var label := Label.new()
+	label.text = ("✓ " + text) if met else text
+	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_color_override("font_color", Palette.SPRIG if met else Palette.MIST)
+	chip.add_child(label)
+	return chip
 
 func _fit_card() -> void:
 	_card.reset_size()
