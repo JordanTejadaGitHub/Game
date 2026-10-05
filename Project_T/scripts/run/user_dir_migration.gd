@@ -12,6 +12,7 @@ const MARKER := "moved_from_godot_userdata.txt"  # Written after a copy: where i
 
 func _init() -> void:
 	var to := OS.get_user_data_dir()
+	DirAccess.make_dir_recursive_absolute(to)  # A fresh machine: the custom folder doesn't exist yet, and saves need it
 	var from := OS.get_data_dir().path_join(OLD_FOLDER)
 	if to.simplify_path() == from.simplify_path():
 		return  # Not using the custom folder (nothing moved)
