@@ -307,6 +307,21 @@ human artist replaces both.
 - Track per video: 3-second hold, average watch %, shares, and wishlists that day (Steamworks). **Re-post each format 2–3
   times** before judging it; the same video can get 10k views one day and 1M the next.
 - Reply to comments yourself; a real dev voice is the best marketing.
+- **Hooks to A/B** (compare 3-second holds per platform):
+  | Hook | Where | Note |
+  |---|---|---|
+  | "Remember Warcraft 3 tower defense maps?" | YouTube Shorts, Reddit | nostalgia; older audience knows it |
+  | "A tower defense where YOU build the maze" | TikTok | needs no prior knowledge |
+  | "What if Slay the Spire and a maze tower defense had a kid?" (the user's idea) | TikTok | StS is well known to young viewers, but we have no deck: open on the Dream card pick (`kit_dream_cards`) so the claim is visibly true, then cut to the maze and a chain. Expect some "this isn't Slay the Spire" comments |
+- **Track where wishlists come from**: a Steam **UTM link** per platform (TikTok bio, YouTube description, Reddit post),
+  so Steamworks shows which platform drives wishlists. The most useful setup step; do it before the first post.
+- **Tools** (the user edits): CapCut desktop for vertical edits and auto-captions (or DaVinci Resolve, free, heavier);
+  Audacity to record the voice, Adobe Podcast Enhance (free) to clean it; native YouTube Studio / TikTok scheduling (or
+  Metricool / Buffer to cross-post); native analytics for the 3-second hold. Further reading: Chris Zukowski's How To
+  Market A Game, GameDiscoverCo.
+- **Workflow for scripted shorts: voice first.** The user records the VO and sends it with the script name; Short Form
+  Video times scenes so the beats land on the lines and renders clean clips cut to length. Pure-gameplay posts stay
+  clip-first.
 - Expectation: roughly **2 wishlists per 1,000 views** for gameplay-driven virality (~2,000–2,500 per million). Funny or
   dev-tip videos get views but convert a quarter to a tenth as well; paid boosts converted poorly. Don't pay for views.
 
