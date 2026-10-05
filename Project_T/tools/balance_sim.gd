@@ -304,7 +304,8 @@ func _run() -> void:
 			quit(1)
 			return
 		var raw: String = s.get_slice("=", 1)
-		node.set(prop, int(raw) if node.get(prop) is int else float(raw))
+		var current = node.get(prop)
+		node.set(prop, (raw == "true" or raw == "1") if current is bool else (int(raw) if current is int else float(raw)))
 	dreams.dreamlight_earned.connect(func(amount: int, source: StringName) -> void: dreamlight_by_source[source] = dreamlight_by_source.get(source, 0) + amount)
 	run_state = main.get_node("%RunState")
 	director = main.get_node("%DriftDirector")
@@ -738,9 +739,16 @@ func _plant_wall() -> bool:
 	var cell := _best_cell(0.0, 1.0)
 	return cell != NO_CELL and _build(wall, cell)
 
+# The halves a wall planted at half `origin` would block: TowerPlacer.origin_halves knows Twig Walls (one half while
+# DreamState.twig_walls(), 817e2146 / 527ac43d); older builds: the 2×2.
+func _wall_halves(origin: Vector2) -> Array[Vector2]:
+	if placer.has_method("origin_halves"):
+		return placer.origin_halves(origin)
+	return map.halves_of(origin)
+
 # A half origin a Thornwall could stand on now: every half buildable, not settling / Omen-locked / under a nightmare.
 func _half_wall_open(origin: Vector2) -> bool:
-	var halves: Array[Vector2] = map.halves_of(origin)
+	var halves: Array[Vector2] = _wall_halves(origin)
 	if not halves.all(func(h: Vector2) -> bool: return map.is_buildable_half(h)):
 		return false
 	var touched := Tower.cells_of_halves(halves)
@@ -764,7 +772,7 @@ func _plant_half_wall() -> bool:
 	for origin in origins:
 		if not _half_wall_open(origin):
 			continue
-		var halves: Array[Vector2] = map.halves_of(origin)
+		var halves: Array[Vector2] = _wall_halves(origin)
 		var new_route: PackedVector2Array = map.get_path_if_blocked_halves(halves)
 		if new_route.is_empty():
 			continue
@@ -784,22 +792,23 @@ func _plant_half_wall() -> bool:
 		var pair_first := Vector2(-1, -1)
 		for entry in singles.slice(0, PAIR_FIRSTS):
 			var first: Vector2 = entry[1]
-			var first_halves: Array[Vector2] = map.halves_of(first)
+			var first_halves: Array[Vector2] = _wall_halves(first)
 			for dy in range(-PAIR_REACH - 1, PAIR_REACH + 2):
 				for dx in range(-PAIR_REACH - 1, PAIR_REACH + 2):
 					var second: Vector2 = first + Vector2(dx, dy)
-					if absi(dx) < 2 and absi(dy) < 2:
+					var second_halves: Array[Vector2] = _wall_halves(second)
+					if second_halves.any(func(h: Vector2) -> bool: return first_halves.has(h)):
 						continue  # Overlaps the first wall's footprint
 					if not _half_wall_open(second):
 						continue
-					var both: Array = first_halves + map.halves_of(second)
+					var both: Array = first_halves + second_halves
 					var new_route: PackedVector2Array = map.get_path_if_blocked_halves(both)
 					var growth := new_route.size() - route.size()
 					if new_route.is_empty() or growth <= pair_best or not map.can_block_halves(both, walkers):
 						continue
 					pair_best = growth
 					pair_first = first
-		if pair_first != Vector2(-1, -1) and map.can_block_halves(map.halves_of(pair_first), walkers):
+		if pair_first != Vector2(-1, -1) and map.can_block_halves(_wall_halves(pair_first), walkers):
 			best = pair_first
 			half_spots[4] += 1
 	if best == Vector2(-1, -1):
