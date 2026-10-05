@@ -578,8 +578,13 @@ func _run_grove(event: Dictionary) -> void:
 	if event.has("camera"):
 		var centre: Vector2 = view.to_tree(view.size / 2.0)
 		if String(event.camera) == "fit":
-			_grove_cam = {}
-			view.fit()
+			if float(event.get("duration", 0.0)) <= 0.0:
+				_grove_cam = {}
+				view.fit()
+				return
+			# An eased pull-back from here to the whole tree
+			_grove_cam = {"started": clip_time, "duration": float(event.duration), "from_zoom": view.zoom,
+				"to_zoom": view.min_zoom(), "from_at": centre, "to_at": GroveTreeView.TREE_SIZE / 2.0}
 			return
 		var to_at := centre
 		if event.has("node"):
@@ -824,7 +829,38 @@ func _spot(at) -> Vector2:
 			return map.MAP_GRID.calculate_map_position(map.endPath)
 	return Vector2(map.MAP_GRID.size) * map.MAP_GRID.cell_size / 2.0
 
-func _update_camera(_real_delta: float) -> void:
+# Follow (Trailer: "the camera follow is off on enemies"): aimed at the drawn body, led by its velocity ("lead" s,
+# default 0.35) so it walks into the frame, the velocity averaged over frames (the walk is steppy), and the camera
+# critically damped toward that point ("damping", default 6) instead of the game camera's own chase.
+var _follow_pos := Vector2.ZERO
+var _follow_vel := Vector2.ZERO
+var _body_vel := Vector2.ZERO
+var _last_body := Vector2.ZERO
+var _follow_fresh := true
+
+func _update_follow(real_delta: float) -> void:
+	if _followed == null or real_delta <= 0.0:
+		return
+	var body: Vector2 = _followed.get_body_position() if _followed.has_method("get_body_position") else _followed.global_position
+	if _follow_fresh:  # A new subject: start on it, at rest
+		_follow_fresh = false
+		_last_body = body
+		_body_vel = Vector2.ZERO
+		_follow_pos = _camera.camera_2d.position
+		_follow_vel = Vector2.ZERO
+	# Game time moves the body; the velocity in game px per real second, smoothed over ~0.25 s
+	var step_vel := (body - _last_body) / real_delta
+	_last_body = body
+	_body_vel = _body_vel.lerp(step_vel, 1.0 - exp(-real_delta / 0.25))
+	var target: Vector2 = body + _body_vel * float(_cam.get("lead", 0.35))
+	var omega := float(_cam.get("damping", 6.0))
+	var accel := (target - _follow_pos) * omega * omega - _follow_vel * 2.0 * omega
+	_follow_vel += accel * real_delta
+	_follow_pos += _follow_vel * real_delta
+	_camera.target_position = _follow_pos
+	_camera.camera_2d.position = _follow_pos  # Our damping is the only smoothing
+
+func _update_camera(real_delta: float) -> void:
 	if _camera == null or _cam.is_empty():
 		return
 	var kind := String(_cam.camera)
@@ -844,8 +880,8 @@ func _update_camera(_real_delta: float) -> void:
 		"follow":
 			if not is_instance_valid(_followed) or _followed.is_cleansed:
 				_followed = _pick(String(_cam.get("target", "furthest")))
-			if _followed != null:
-				_camera.target_position = _followed.global_position
+				_follow_fresh = true
+			_update_follow(real_delta)
 			_camera.target_zoom = Vector2.ONE * zoom
 
 func _pick(target: String) -> Node2D:
