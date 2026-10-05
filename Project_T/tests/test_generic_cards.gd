@@ -58,9 +58,28 @@ func _run() -> void:
 	_test_combo_choices()
 	_test_source_shards()
 	_test_impact_conditions()
+	_test_twig_walls()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
+
+# Twig Walls (dream_design.md c6fefe1b, card 256): DreamState.twig_walls() for Tower Code's placer, a twig wall counts
+# half for Hedge Maze (Tower.twig). Rare, maze, start pool, act 2+ (Balancing fd7e1b0e).
+class TwigWall extends Node:
+	var twig := true
+
+func _test_twig_walls() -> void:
+	_reset()
+	var twig := _card("twig_walls")
+	_check(twig != null and twig.rarity == UpgradeData.Rarity.RARE and twig.tags == ["maze"] and twig.in_start_pool and twig.min_act == 2
+		and twig.requires.is_empty(), "Twig Walls: Rare, maze, start pool, act 2+, no needs")
+	_check(not dreams.twig_walls(), "no Twig Walls: full-size Thornwalls")
+	dreams.take(twig)
+	_check(dreams.twig_walls(), "Twig Walls held: TowerPlacer plants twig walls")
+	var stick := TwigWall.new()
+	_check(DreamState.wall_weight(stick) == 0.5 and DreamState.wall_weight(null) == 1.0, "a twig wall counts half a Thornwall for Hedge Maze")
+	stick.free()
+	dreams.stacks.clear()
 func _test_pool() -> void:
 	for id in IDS:
 		var card := _card(id)

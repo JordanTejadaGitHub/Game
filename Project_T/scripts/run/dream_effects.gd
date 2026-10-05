@@ -64,7 +64,7 @@ class Board:
 	var entries: Array = []  # Spot dicts {data, cell, rank, node}
 	var by_cell := {}  # Cell -> spot
 	var attackers := 0
-	var walls := 0
+	var walls := 0.0  # Thornwall line Wardens; a twig wall (Twig Walls) counts half
 	var lines := {}  # Attacking Wardens' lines
 	var kinds := {}  # Attacking Wardens' ids
 
@@ -78,7 +78,7 @@ class Board:
 				lines[data.line] = true
 				kinds[data.get_id()] = true
 			if data.line == "wall":
-				walls += 1
+				walls += DreamState.wall_weight(o.node)
 
 	# Whether `spot` itself is on this board (a real Warden); a hypothetical one isn't.
 	func holds(spot: Dictionary) -> bool:
@@ -102,8 +102,8 @@ class Board:
 	func attackers_with(spot: Dictionary) -> int:
 		return attackers + (1 if spot.data.can_attack and not holds(spot) else 0)
 
-	func walls_with(spot: Dictionary) -> int:
-		return walls + (1 if spot.data.line == "wall" and not holds(spot) else 0)
+	func walls_with(spot: Dictionary) -> float:
+		return walls + (DreamState.wall_weight(spot.get("node")) if spot.data.line == "wall" and not holds(spot) else 0.0)
 
 static func _data(o: Dictionary) -> TowerData:
 	return o.node.tower_data if o.node != null and is_instance_valid(o.node) else o.data
@@ -316,8 +316,8 @@ func _cozy_corners(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dicti
 func _hedge_maze(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
 	var level := ds.rule_level(&"hedge_maze")
 	var walls := board.walls_with(spot)
-	var bonus := minf(DreamState.HEDGE_BONUS_PER * (walls / DreamState.HEDGE_PER_WALLS[level]), DreamState.HEDGE_BONUS_MAX[level])
-	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d Thornwalls" % walls,
+	var bonus := minf(DreamState.HEDGE_BONUS_PER * (floori(walls) / DreamState.HEDGE_PER_WALLS[level]), DreamState.HEDGE_BONUS_MAX[level])
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%s Thornwalls" % str(snappedf(walls, 0.5)),
 		"reason": "" if bonus > 0.0 else "needs %d Thornwalls" % DreamState.HEDGE_PER_WALLS[level]}
 
 func _tended_forest(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
@@ -776,7 +776,7 @@ func _state_line(rule: StringName, power: float) -> String:
 		&"hedge_maze":
 			var level := ds.rule_level(&"hedge_maze") if ds.has_rule(&"hedge_maze") else 0
 			var per: int = DreamState.HEDGE_PER_WALLS[level]
-			var walls := ds.count_wardens("thornwall")
+			var walls := floori(ds.thornwall_count())  # A twig wall counts half (Twig Walls)
 			var bonus := minf(DreamState.HEDGE_BONUS_PER * (walls / per), DreamState.HEDGE_BONUS_MAX[level]) * power
 			var next := (walls / per + 1) * per
 			return "Now: %s · %+d%% (%d for the next %+d%%)" % [count_text(walls, "Thornwall"), roundi(bonus * 100), next,

@@ -1602,6 +1602,23 @@ func get_dew_per_clear() -> int:
 		dew += card.dew_per_clear * stacks[card.id]
 	return dew
 
+# Twig Walls (dream_design.md c6fefe1b): Thornwalls planted while held take one half cell at half cost (Tower Code's
+# TowerPlacer asks; walls already planted stay as they are, Tower.twig marks a twig wall).
+func twig_walls() -> bool:
+	return has_rule(&"twig_walls")
+
+# How much a wall counts toward Hedge Maze: a twig wall half a Thornwall.
+static func wall_weight(tower: Node) -> float:
+	return 0.5 if is_instance_valid(tower) and tower.get("twig") == true else 1.0
+
+# Thornwalls on the map for Hedge Maze, a twig wall counting half.
+func thornwall_count() -> float:
+	var count := 0.0
+	for tower in _towers():
+		if tower.tower_data.get_id() == "thornwall":
+			count += wall_weight(tower)
+	return count
+
 # Deep Sleep (Bittersweet, dream_design.md e1e39b56): no rest bonus for the rest of the run. The base bonus (and the
 # perfect block's) becomes 0; Dreams that add to it (Morning Dew, Winding Path…) still add. DriftDirector asks.
 func keeps_rest_bonus() -> bool:
