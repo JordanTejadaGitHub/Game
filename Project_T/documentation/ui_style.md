@@ -44,7 +44,9 @@ doesn't fit the theme as well." Frames stay soft fog; no pixel borders on panels
   **Never a filled gold button** (user: "Don't make the button solid gold"; "the yellow button too
   bright").
 - **Secondary:** 1 px Gold outline at 45%, ink text. **Quiet** (Sell, Close, Done, Peek at the map,
-  Cancel): Mist text, no box, still a 48 px hit area.
+  Cancel): Mist text, no box, still a 48 px hit area. **Exception, the title menu:** every entry keeps
+  its secondary box (user: "want to keep borders around all the buttons in the title"); Continue (or
+  New run) is the framed primary.
 - **No " · " strings.** Facts that used to be "a · b · c" are icon rows (icon + number), or a name with
   a small Mist line under it. Key hints are small key chips at the right, not "(R)" in the text.
 - **Warden panel:** the stats as one icon row (damage, speed, range, + Potency); per-run stats (this
