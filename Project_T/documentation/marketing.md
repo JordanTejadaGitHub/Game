@@ -186,9 +186,46 @@ words of the short description**. Nothing on the page opens with lore or the loo
   Leads with the maze (the capsule can't). Store copy spells "defense" (US) to match the Steam tag and search; in-game
   text stays UK. Replaces pitch.md's earlier draft (pitch.md points here). (Was: "Nightmares are hunting the Heartwood's
   dream…": flagged as generic in text_pass.md.)
-- **About (outline):** the hook (Wardens are the maze) · combos and Reactions · runs that are never the same (branches,
-  Dreams, Omens, Gifts) · bosses · the Memory Grove (meta progression) · the look and sound. Write each block as one
-  concrete scene from play (a GIF + two sentences), not a feature list. The first GIF is a maze being built.
+- **About this game (draft v1, 2026-10-04; full game).** Format from Thronefall (§10): a bold promise line per block,
+  a GIF under it, one or two plain sentences. One name per thing (§1). Numbers are confirmed unless marked.
+
+  > **Your Wardens are the maze.**
+  > *[GIF 1: an empty island; Wardens snap down one by one and the route mist bends into a longer detour, "+N path"]*
+  > Every Warden you plant is also a wall. The nightmares re-route the moment it lands, so the path they walk is the
+  > one you drew. The longer you make it, the longer your Wardens get to work on them.
+  >
+  > **Discover combos between Wardens.**
+  > *[GIF 2: a Soaked crowd gets Charged; "Thunderclap!" and the lightning jumps through all of them]*
+  > Soak a crowd, then charge it, and the lightning jumps from one nightmare to the next. There are 16 Reactions to find,
+  > 8 of them Crowned ones that only happen when a third status joins in. Chain ten in a row and you'll see a Dawnburst.
+  >
+  > **Grow over 100 Wardens.**
+  > *[GIF 3: a Sprout grows Sporeling → Driftspore → Puffball → Sporemother]*
+  > Every Warden starts as a Sprout. Nine families branch out from there into final forms, and one step further, Ascended.
+  >
+  > **Pick from over 250 Dreams to power your maze.**
+  > *[GIF 4: the Dream screen, three cards, one taken]*
+  > Three Dreams at every rest. Some are bittersweet: more power now, a price later.
+  >
+  > **100 drifts. A new island every run.**
+  > *[GIF 5: the Hollow Stag charging a straight corridor and stalling on a bend]*
+  > Four acts, each ending in a boss that breaks a rule your maze relies on. The Hollow Stag charges down straight lines.
+  > The boss you meet changes from run to run.
+  >
+  > **Grow the Memory Grove.**
+  > *[GIF 6: the Grove tree with buds opening (needs Main Merger's grove capture)]*
+  > Seeds from every run, won or lost, grow a tree of memories: six more Warden families, new Dreams, and small perks to
+  > carry into the next dream.
+  >
+  > **Why I made it**
+  > I grew up on the Warcraft 3 maze maps, Maze TD and Jungle TD, where you built the maze yourself. I love roguelites
+  > like Slay the Spire and Risk of Rain 2. I couldn't find a game that mixed the two, so I made one. Single-player, at
+  > your own pace.
+
+  To check before it goes up: "grew up on" is my wording, so the user confirms it's true or changes it; the boss pools
+  (full game draws the boss per act, BossPool) and "six more families" (3 starting + 6 Grove, Tower Code) hold on the
+  build that ships. GIFs: Short Form Video, ≤ 3 MB each, 616 px wide (Steam's About column), reusing the short / trailer
+  boards. **Demo page:** a separate About with demo numbers (3 families, no Grove), never these.
 - **Tags** (pitch.md's order; the first 5 matter most): Tower Defense, Roguelite, Strategy, Dark Fantasy, Cute, then Pixel
   Graphics, Atmospheric, Procedural Generation, Replay Value, Singleplayer, Steam Deck (once verified). No
   "Deckbuilding-lite": not a Steam tag, and Dream picks aren't a deck.
