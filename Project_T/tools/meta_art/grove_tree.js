@@ -49,15 +49,20 @@ N("early_light", "perks", "Early Light", 232, 436, "early_bloom");
 N("kindling", "perks", "Kindling", 214, 500, "early_light");
 N("slot_4", "perks", "Loadout slot 4", 400, 520, [410, 466]);  // Slots 1–3 are open from the start
 N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
-// Keepsakes twig (meta_design.md b8fd690c): cosmetics at the foot of the Perks limb, no gameplay effect.
-// Off until their UnlockData exist (test_meta checks layout = data); Meta Game Code flips it with the .tres files.
-const KEEPSAKES = true;
+// The twig at the foot of the Perks limb (meta_design.md 952b986e): Restless Omens and Remembered Seed.
+// Each line is off until its UnlockData exists (test_meta checks layout = data); Meta Game Code flips it
+// with the .tres files. The Keepsakes left the tree for a shelf; KEEPSAKES goes false with their .tres.
+const KEEPSAKES = true, RESTLESS_OMENS = false, REMEMBERED_SEED = false, STRANGE_DREAMS = false;
 if (KEEPSAKES) {
 N("golden_leaf", "perks", "Golden Leaf", 534, 540, [533, 568], { twig: true });
 N("blossoms", "perks", "Blossoms", 548, 492, "golden_leaf", { twig: true });
 N("gilded_pages", "perks", "Gilded Pages", 500, 520, "golden_leaf", { twig: true });
 N("starlit_backs", "perks", "Starlit Card Backs", 536, 446, "blossoms", { twig: true });
 }
+if (RESTLESS_OMENS) N("restless_omens", "perks", "Restless Omens", 530, 528, [533, 568], { twig: true });
+if (REMEMBERED_SEED) N("remembered_seed", "perks", "Remembered Seed", 540, 470, RESTLESS_OMENS ? "restless_omens" : [533, 568], { twig: true });
+// Strange Dreams: a small branch of its own at the foot of the Cards limb, kept on the Cards side.
+if (STRANGE_DREAMS) N("strange_dreams", "cards", "Strange Dreams", 760, 520, [747, 568], { twig: true });
 // Families: a short branch of three per family (family, hidden branch, Ascension),
 // alternating sides up the middle limb.
 [["sporeling", "Sporeling", true], ["firefly_jar", "Firefly Jar", true], ["dewdrop", "Dewdrop", true], ["pebbling", "Pebbling"],
@@ -686,7 +691,8 @@ function limbsInCrown(img) {
     }
   }
 }
-const TWIG_MAX_X = 556;  // the Keepsakes twig stays on the Perks side of the trunk
+const TWIG_MAX_X = 556, TWIG_MIN_X = 724;  // the twigs at a limb's foot stay on their own side of the trunk (Perks left, Cards right)
+const twigOut = (n, x) => n.twig && (n.section === "cards" ? x < TWIG_MIN_X : x > TWIG_MAX_X);
 function spreadNodes(mask) {
   CROWN_MASK = mask;
   const list = NODES;
@@ -719,7 +725,7 @@ function spreadNodes(mask) {
       if (!sc[i]) return;
       let mx = (sx[i] / sc[i] - n.x) * .6, my = (sy[i] / sc[i] - n.y) * .6;
       const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * (n.twig ? .9 : n.parent ? (n.section === "cards" ? 2.4 : 1.6) : (n.section === "cards" ? 1.1 : .75))) { mx *= .2; my *= .2; }
-      if (n.twig && n.x + mx > TWIG_MAX_X) mx = Math.min(mx, 0);
+      if (twigOut(n, n.x + mx)) mx = n.section === "cards" ? Math.max(mx, 0) : Math.min(mx, 0);
       mx = clamp(mx, -8, 8); my = clamp(my, -8, 8);
       if (inMask(n.x + mx, n.y + my, 26)) { n.x += mx; n.y += my; }
     });
@@ -738,7 +744,7 @@ function spreadNodes(mask) {
       if (d > lim) { mv[i][0] += dx / d * (d - lim) * .25; mv[i][1] += dy / d * (d - lim) * .25; }
     });
     list.forEach((n, i) => {
-      const mx = clamp(mv[i][0], -4, n.twig && n.x > TWIG_MAX_X - 4 ? 0 : 4), my = clamp(mv[i][1], -4, 4);
+      const mx = clamp(mv[i][0], twigOut(n, n.x - 4) ? 0 : -4, twigOut(n, n.x + 4) ? 0 : 4), my = clamp(mv[i][1], -4, 4);
       if (inMask(n.x + mx, n.y + my, 26)) { n.x += mx; n.y += my; } else if (inMask(n.x + mx, n.y, 26)) n.x += mx; else if (inMask(n.x, n.y + my, 26)) n.y += my;
     });
   }

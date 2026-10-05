@@ -46,6 +46,8 @@ const PERK_ICONS = {
   gilded_pages: () => icon((L, o) => { for (let y = 9; y <= 25; y++) for (let x = 4; x <= 28; x++) { const sag = Math.abs(x - 16) * .18, top = 9 + 3 - sag, bot = 25 - sag; if (y < top || y > bot) continue; const edge = y === Math.ceil(top) || y === Math.floor(bot) || x === 4 || x === 28; L.set(x, y, x === 16 ? PARCH[1] : edge || y <= Math.ceil(top) + 1 || y >= Math.floor(bot) - 1 || x <= 5 || x >= 27 ? "#e9a83c" : pick(PARCH.slice(2), .55 - (y - top) / 16 * .3, x, y, .3)); } for (const x of [8, 11, 21, 24]) for (let y = 15; y <= 21; y += 3) L.set(x, y + Math.abs(x - 16) * -.18 + 2, PARCH[1]); rays(o, 16, 14, 14, GOLDC[3]); }),
   starlit_backs: () => icon((L, o) => { for (let y = 4; y < 28; y++) for (let x = 8; x < 24; x++) L.set(x, y, x === 8 || y === 4 || x === 23 || y === 27 ? "#6b6fb0" : (x * 7 + y * 3) % 23 === 0 ? "#3c3c5c" : "#24243c"); for (const [x, y] of [[12, 9], [19, 12], [14, 17], [20, 21], [11, 23], [17, 7]]) L.set(x, y, "#dce8f4"); for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) L.set(16 + dx, 15 + dy, dx || dy ? "#fcd47c" : "#fff4dc"); }),
   heartwoods_crown: () => icon((L, o) => { const G = ["#5c3c24", "#b8662c", "#e9a83c", "#fcd47c"]; for (let y = 19; y <= 25; y++) for (let x = 7; x <= 25; x++) L.set(x, y, y === 19 ? G[3] : y === 25 ? G[1] : x < 12 ? G[3] : G[2]); for (const [cx, h, a] of [[10, 10, -.3], [16, 13, 0], [22, 10, .3]]) petal(L, cx, 20, -Math.PI / 2 + a, h, 4.2, LEAFG.slice(1)); for (const gx of [11, 16, 21]) { L.set(gx, 22, gx === 16 ? "#fff4dc" : "#9a84e8"); L.set(gx, 23, gx === 16 ? "#fcd47c" : "#4c3c74"); } }),
+  restless_omens: () => icon((L, o) => { ellipse(L, 15, 16, 10, 10, (x, y, dx, dy) => Math.hypot(dx - .45, dy + .15) < .78 ? null : dx < -.15 ? pick(["#b8662c", "#e9a83c", "#fcd47c"], .6 - dy * .3, x, y) : pick(["#4c3c74", "#9a84e8", "#dce8f4"], .55 - dy * .3, x, y)); for (const [y, l] of [[9, 5], [15, 7], [21, 4]]) for (let i = 0; i < l; i++) o.set(21 + i, y + (i > l - 3 ? 1 : 0), "#b4b0c8"); }),
+  remembered_seed: () => icon((L, o) => { blob(L, 16, 18, 5, 7, ["#5c3c24", "#8c5c34", "#b8662c", "#e9a83c"], { tex: .05 }); sprout(L, 16, 11, 2); for (let a = 0; a < Math.PI * 2; a += Math.PI / 7) o.set(16 + Math.cos(a) * 13, 17 + Math.sin(a) * 12, a < Math.PI * 1.1 ? "#dce8f4" : "#9a84e8"); }),
   wider_dreams: () => icon(L => { [[3, 10], [8, 7], [13, 5], [18, 7]].forEach(([x, y]) => card(L, x, y, 11, 17, DREAMC)); }),
 };
 const FAMILY_ICONS = {
@@ -77,6 +79,7 @@ const CARD_ICONS = {
   swift: e => { for (const [y, l] of [[12, 7], [16, 10], [20, 7]]) stroke(e, 11, y, 11 + l, y, 2, 1.2, y === 16 ? GOLDC[1] : DEWC[1]); for (let i = 0; i < 6; i++) for (let j = -i; j <= i; j++) e.set(25 - i, 16 + j * .9, i > 4 ? DEWC[1] : j === -i ? DEWC[3] : DEWC[1]); e.set(25, 16, DEWC[4]); },
   wide_reach: e => { for (const [r, c] of [[10, DEWC[1]], [7.5, DEWC[2]], [5, DEWC[3]]]) for (let a = 0; a < Math.PI * 2; a += .05) { e.set(17 + Math.cos(a) * r, 17 + Math.sin(a) * r * .62, c); e.set(17 + Math.cos(a) * (r - .8), 17 + Math.sin(a) * (r - .8) * .62, c); } drop(e, 17, 17, 2.4); },
   daring: e => { petal(e, 17, 26, -Math.PI / 2 - .15, 17, 4.6, ["#7a3a18", HW.Ember, HW.Gold, HW.Glow]); for (let y = 11; y <= 25; y++) e.set(17 + (25 - y) * .12, y, "#7a3a18"); [[13, 14], [14, 15], [15, 15], [16, 16], [17, 17], [18, 17], [19, 18], [20, 19]].forEach(([x, y]) => e.set(x, y, "#7a3a18")); for (const [x, y] of [[22, 9], [24, 12], [12, 8]]) { e.set(x, y, HW.Glow); e.set(x, y + 1, HW.Ember); } },
+  strange_dreams: e => { for (let y = 10; y <= 22; y++) for (let x = 10; x <= 22; x++) { const edge = x === 10 || y === 10 || x === 22 || y === 22; e.set(x, y, edge ? "#b4a494" : x + y < 30 ? "#fff4dc" : "#dccdb2"); } for (const [x, y] of [[13, 13], [16, 16], [19, 19], [19, 13], [13, 19]]) { e.set(x, y, "#4c3c74"); e.set(x + 1, y, "#4c3c74"); e.set(x, y + 1, "#2c2444"); e.set(x + 1, y + 1, "#2c2444"); } for (const [x, y] of [[24, 7], [8, 25]]) { e.set(x, y, "#ec9cf4"); e.set(x + 1, y, "#bc44dc"); e.set(x - 1, y, "#bc44dc"); e.set(x, y + 1, "#bc44dc"); e.set(x, y - 1, "#bc44dc"); } },
   hedgerows: e => { for (let x = 8; x <= 24; x += 4) ellipse(e, x, 19, 3, 5, (xx, yy, dx, dy) => pick(LEAFG.slice(0, 3), .55 - dx * .3 - dy * .35, xx, yy)); for (const [x, y] of [[10, 13], [14, 12], [18, 12], [22, 13], [12, 24], [20, 24]]) e.set(x, y, PARCH[1]); },
   reclaiming: e => { for (let y = 17; y <= 25; y++) for (let x = 10; x <= 22; x++) e.set(x, y, y === 17 ? "#e8b870" : pick(["#6a3a18", "#9a5a2a", "#c88a44"], .6 - (x - 16) / 12, x, y)); for (let a = 0; a < Math.PI * 2; a += .3) e.set(16 + Math.cos(a) * 3, 17 + Math.sin(a) * .8, "#9a5a2a"); sprout(e, 16, 17, 7); },
 };
@@ -88,4 +91,37 @@ function cardIcon(key) {
     CARD_ICONS[key](E);
     for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (E.alpha(x, y)) L.set(x - 2, y + 1, E.get(x, y));
   });
+}
+// ---- Keepsakes shelf (meta_design.md 952b986e): a mossy bark shelf for the Grove screen, and one
+// 40×40 niche per Keepsake: frames 0-3 earned (icon on a warm glow), 4-7 not yet (greyed silhouette).
+const KEEPSAKE_ORDER = ["golden_leaf", "blossoms", "gilded_pages", "starlit_backs"];
+function keepsakeShelf() {
+  const W = 208, H = 40, L = new Img(W, H), out = new Img(W, H);
+  // A living branch grown flat: thick in the middle, tapering to twigs at both ends, a knot or two.
+  const half = x => { const u = Math.abs(x - W / 2) / (W / 2 - 4); return u > 1 ? -1 : 2 + Math.round((1 - u ** 3) * 4 + (pnoise(x, 0, 11, 60) - .5) * 2); };
+  for (let x = 4; x < W - 4; x++) { const h = half(x); if (h < 0) continue; for (let y = 22 - h; y <= 22 + h; y++) { const t = .75 - (y - 22 + h) / (2 * h + 1) * .8 + (pnoise(x * .25, y, 5, 61) - .5) * .3; L.set(x, y, pick([HW.Root, HW.Bark, HW.Oak, HW.Deadwood], clamp(t, 0, 1), x, y, .2)); } }
+  for (const kx of [70, 150]) { L.set(kx, 22, HW.Root); L.set(kx + 1, 22, HW.Root); L.set(kx, 21, HW.Bark); }
+  for (const [x0, s] of [[6, -1], [W - 7, 1]]) for (let i = 0; i < 6; i++) L.set(x0 + s * i, 21 - i + (i > 3 ? 1 : 0), HW.Bark);  // twig ends curling up
+  for (let x = 4; x < W - 4; x++) { const h = Math.round(pnoise(x, 0, 9, 62) * 3 + (hash(x, 1, 63) < .15 ? 2 : 0)), top = 22 - Math.max(half(x), 0) - 1; if (half(x) < 2) continue; for (let k = 0; k < h; k++) L.set(x, top - k, k === h - 1 ? HW.Sprig : k ? HW.Leaf : HW.Moss); }  // moss on top
+  for (let k = 0; k < 9; k++) { const x = 12 + hash(k, 2, 64) * (W - 24) | 0, len = 3 + hash(k, 3, 64) ** 2 * 9; for (let i = 0; i < len; i++) L.set(x + Math.round(Math.sin(i * .5 + k) * .8), 23 + half(x) + i, i > len * .7 ? HW.Deepmoss : HW.Moss); }  // drapes, uneven
+  out.stamp(L, HW.Void); out.put(L);
+  return out;
+}
+function keepsakeSlot(i, earned) {
+  const S = 40, out = new Img(S, S), L = new Img(S, S);
+  for (let y = 2; y < S - 2; y++) for (let x = 3; x < S - 3; x++) {  // a round-topped niche
+    const dx = (x + .5 - S / 2) / 17, dy = (y + .5 - 16) / 14, inside = y >= 16 ? true : dx * dx + dy * dy <= 1;
+    if (!inside) continue;
+    const rim = y === S - 3 || x === 3 || x === S - 4 || (y < 16 && dx * dx + dy * dy > .8);
+    L.set(x, y, rim ? (x < S / 2 && y < 20 ? HW.Oak : HW.Bark) : earned && Math.hypot(x - S / 2, y - S / 2) < 11 ? HW.Shade : HW.Night);
+  }
+  if (earned) for (let y = 4; y < S - 4; y++) for (let x = 5; x < S - 5; x++) { const d = Math.hypot(x + .5 - S / 2, y + .5 - S / 2); if (L.alpha(x, y) && d > 8 && d < 9.6 && (x + y) % 3 === 0) L.set(x, y, HW.Ember); }  // a faint warm ring
+  out.stamp(L, HW.Void); out.put(L);
+  const ic = PERK_ICONS[KEEPSAKE_ORDER[i]]();
+  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
+    if (!ic.alpha(x, y)) continue;
+    const c = ic.get(x, y), lum = (c[0] * .3 + c[1] * .59 + c[2] * .11) / 255;
+    out.set(x + 4, y + 5, earned ? c : lum < .08 ? HW.Void : lum < .45 ? HW.Dusk : HW.Slate);
+  }
+  return out;
 }
