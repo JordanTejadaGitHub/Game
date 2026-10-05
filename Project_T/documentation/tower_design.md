@@ -175,7 +175,7 @@ it's the family that **cashes in** Marked, Held and Drowsy, and the answer to th
 |---|---|---|---|---|
 | Base | Rootling | roots nip at feet: every 4th pulse Holds the nightmare furthest along for 0.3 s (weak damage: a control family) | Held | long paths |
 | A | Rootcurl | pulls a nightmare back 1 tile every few seconds | — | Spored, long paths |
-| A+ | Long Way Home | pulls back 3 tiles; can't pull the same nightmare twice | — | Spored, long paths |
+| A+ | Long Way Home | pulls back 4 tiles; can't pull the same nightmare twice | — | Spored, long paths |
 | B | Tangleroot | holds a nightmare in place for 1 s | Held | area effects |
 | B+ | Snugroot | holds up to 3 nightmares at once | Held | area effects |
 | Hidden | Rootlight | glowing roots light up path tiles in range: **reveals Lurkers**, **Gravecrawlers can't burrow** there, and **Held lasts 50% longer** on lit tiles | — | Held, long paths |
@@ -186,7 +186,7 @@ knocks the enemy back; not teleport back"). Every pull-back (Rootcurl, Long Way 
 Kinship's half-tile drag, the Tidecaller's wave) plays in three beats:
 1. **Grab** (~0.15 s): roots burst from the ground and wrap the nightmare's feet, timed with the
    Warden's pull animation.
-2. **Drag** (~0.45 s for 1 tile, ~0.8 s for 3): the nightmare **slides backward along its route**,
+2. **Drag** (~0.45 s for 1 tile, ~0.9 s for 4): the nightmare **slides backward along its route**,
    fast at first then settling, still facing forward with its feet scraping and a small struggle
    wobble. Soil puffs kick up along the way and a **furrow** is left on the path, fading over ~1 s.
 3. **Release:** the roots sink back and it walks on.

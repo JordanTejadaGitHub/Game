@@ -406,7 +406,7 @@ Caught bosses give no Dreamlight shards.
 |---|---|---|---|---|---|---|---|
 | ✓ Rootling | base | 25 (+15) | 2 | 6 × 1.0 | 6 (area) | pulse | every **4th** pulse **Holds** the nightmare furthest along for **0.3 s**. *Changed 2026-09-29: half damage (control family), Held instead of a slow* |
 | Rootcurl | branch | +45 | 2 | 14 × 1.0 | 14 (area) | pulse + pull | every **4 s**, pulls the creature furthest along (in range) **back 1 tile** |
-| Long Way Home | final | +90 | 2.5 | 18 × 1.0 | 18 (area) | pulse + pull | every **5 s**, pulls back **3 tiles**; each creature only once (bosses: 1 tile) |
+| Long Way Home | final | +90 | 2.5 | 18 × 1.0 | 18 (area) | pulse + pull | every **5 s**, pulls back **4 tiles** (since the late-game pass 54155266); each creature only once (bosses: 1 tile) |
 | Tangleroot | branch | +45 | 2 | 14 × 1.0 | 14 (area) | pulse + hold | every **3 s**, **Holds** the creature furthest along for 1 s |
 | Snugroot | final | +90 | 2.5 | 20 × 1.0 | 20 (area) | pulse + hold | every 3 s, Holds **up to 3** creatures for 1 s; *Balancing 2026-10-02 (finals sweep, damage per Dew vs Puffball): damage ×0.75 (was 1.3–1.6× in act 2, 2.1–2.4× in act 3).* |
 | ✓ Rootlight *(hidden)* | branch | +45 | 3 | 10 × 1.0 | 10 (area) | pulse + light | lights path tiles in range: **reveals Lurkers**, **Gravecrawlers can't burrow** on lit tiles, **Held lasts 50% longer** on lit tiles (no Marked since 2026-09-29: Marked is Firefly Jar's) |
