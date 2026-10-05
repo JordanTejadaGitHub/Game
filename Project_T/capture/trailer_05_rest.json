@@ -18,6 +18,6 @@
 		{"t": 0.5, "dream_offer": true},
 		{"t": 2.5, "pick_dream": 0},
 		{"t": 3.5, "start": true},
-		{"t": 3.5, "camera": "push", "at": "centre", "zoom": 1.0, "duration": 4.0},
+		{"t": 3.5, "camera": "push", "at": "centre", "zoom": 1.0, "duration": 4.0}
 	]
 }
