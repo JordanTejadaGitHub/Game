@@ -200,7 +200,7 @@ words of the short description**. Nothing on the page opens with lore or the loo
 | Short description | drafted above, maze first | — |
 | About | outline above | GIFs (capture tools) |
 | Tags | drafted above | — |
-| 5–8 screenshots | **#1 final, chosen:** `marketing/screenshots/final/screenshot_01_t12.png` (main b0efacf9, maze v4; passes at 600 px, nothing clipped)  **#5 chosen:** `screenshot_05_t1.5`. | #3 chain, #4 dispel, #6 Stag: re-shoot close (zoom 2 / 4 / 2, Short Form Video); #2 build ghost: Main Merger's ghost action; #7 Grove: needs a capture hook (Meta / Main Merger); #8 late-game board in another act |
+| 5–8 screenshots | **#1 final, chosen:** `marketing/screenshots/final/screenshot_01_t12.png` (main b0efacf9, maze v4; passes at 600 px, nothing clipped)  **Also chosen:** #3 chain `screenshot_03_t9.5` (zoom 2, act 3), #5 Dream `screenshot_05_t1.5`, #6 Stag `screenshot_06_t13.0` (zoom 2, trample callout + boss bar), #8 late game `screenshot_08_t12` (act 4, Ascended, Reactions). **Five done = Steam's minimum.** #4 dispel dropped: as a still it's a small shape on an empty path (it sells in motion, in the trailer). | #2 build ghost (Main Merger's ghost action) and #7 Grove (Main Merger's grove scene) are extras; the page doesn't wait for them |
 | Trailer | §5; its first seconds = the maze. **Target: user-approved by 2026-10-07**, slips day for day if the video pause runs past 2026-10-05 (~1 day of render + rough cut after the all-clear, then review) | **the user's all-clear** (paused for the tower-asset changes); Sound's cue stems; then the user's review + one revision. Ready: 9 scenes dry-run, cut list 8459d82b, 16:9 export 902f7207 |
 | AI disclosure | drafted in §7 | Valve's wording at submission |
 
