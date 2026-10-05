@@ -282,7 +282,7 @@ func _make_card(data: TowerData) -> Button:
 		else:
 			var atlas := AtlasTexture.new()
 			atlas.atlas = data.texture
-			atlas.region = data.get_frame_rect(0)
+			atlas.region = WardenIcon.visible_region(data)  # Centred by its drawn pixels
 			icon.texture = atlas
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED if emblem != null else TextureRect.STRETCH_KEEP_CENTERED
 		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -519,7 +519,7 @@ func _make_memory_card(data: TowerData) -> Button:
 		var icon := TextureRect.new()
 		var atlas := AtlasTexture.new()
 		atlas.atlas = data.texture
-		atlas.region = data.get_frame_rect(0)
+		atlas.region = WardenIcon.visible_region(data)  # Centred by its drawn pixels
 		icon.texture = atlas
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE

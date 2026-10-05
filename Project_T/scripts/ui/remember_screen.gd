@@ -26,6 +26,7 @@ const NAME_MIN_SIZE := 11  # A long name shrinks to this, then wraps onto two li
 const NAME_FLOOR_SIZE := 9  # …and a still-too-wide line shrinks down to this (never cut)
 const EMBLEM_BADGE := 20.0  # A branch emblem badge on a tree node (BranchEmblem, when UI Asset's art exists)
 const PORTRAIT := 56.0
+const PORTRAIT_NUDGE := 6.0  # The Warden sits this much below the disc's centre, its plinth low (UI Asset)
 const TREE_SIZE := Vector2(560, 380)  # Shorter for the "Not in this dream" strip under it and the offer line above (fits 1280×800)
 const SIDE_WIDTH := 300.0
 const NARROW_WIDTH := 900.0  # Below this the side panel sits under the tree and slides up
@@ -117,13 +118,17 @@ func _ready() -> void:
 	done.focus_mode = Control.FOCUS_NONE
 	done.custom_minimum_size = Vector2(160, 48)
 	done.pressed.connect(close)
+	UiStyle.quiet(done)  # Light pass: Done and Peek as plain text; Unlock is the framed primary
 	footer.add_child(done)
 	_dev_free.text = "Dev: unlock free"
 	_dev_free.focus_mode = Control.FOCUS_NONE
 	_dev_free.toggled.connect(func(_on: bool) -> void: _fill_side(selected))
 	footer.add_child(_dev_free)
 	peek = ChoicePeek.new(self, [dim, center], "Back to Remember")
-	footer.add_child(peek.make_peek_button())
+	var peek_button := peek.make_peek_button()
+	if peek_button is Button:
+		UiStyle.quiet(peek_button)
+	footer.add_child(peek_button)
 	visible = false
 
 	dream_state.remember_requested.connect(open)
@@ -777,6 +782,9 @@ class TreeCanvas extends Control:
 			var a := _centre(edge[0])
 			var b := _centre(edge[1])
 			var child_state: int = screen.state_of(edge[1])
+			if screen.is_veiled(edge[1]):  # To a shadow: 1 px of Mist, not the path
+				draw_line(a, b, Color(UiStyle.MOON_MIST, 0.16), 1.0, true)
+				continue
 			# The chosen path glows gold (screens_ui.md "Playtest fixes"): lines to unlocked or grown
 			# forms; every other line stays dim.
 			if child_state == State.GROWN or child_state == State.UNLOCKED:
@@ -815,7 +823,7 @@ class FormNode extends Button:
 		portrait = Portrait.new(data, PORTRAIT, state == State.GROVE or state == State.NOT_IN_DREAM or veiled)  # Silhouettes: not planted, not in this dream, or not revealed yet
 		if state != State.GROVE and not RememberScreen.is_unlocked_state(state):
 			portrait.modulate = Color.WHITE.darkened(0.2)  # Grove-available, not unlocked this run: its real colours, ~80%
-		portrait.position = Vector2((NODE_SIZE.x - PORTRAIT) / 2.0, 4)
+		portrait.position = Vector2((NODE_SIZE.x - PORTRAIT) / 2.0, 4 + PORTRAIT_NUDGE)  # The plinth a little below centre
 		add_child(portrait)
 		var emblem := BranchEmblem.texture(data) if data.tier >= 2 and not screen.is_veiled(data) and state != State.GROVE else null  # Never on an unknown (???) form
 		if emblem != null:  # A small branch badge on the portrait's shoulder (the portrait stays: story chat)
@@ -834,8 +842,8 @@ class FormNode extends Button:
 		if state == State.NOT_IN_DREAM:  # Branch expansion: a faint, misty silhouette
 			modulate = Color(1, 1, 1, 0.5)  # multiplier: the mist
 			tooltip_text = data.display_name + " · not in this dream"
-		if veiled:  # A final not revealed yet: its dark silhouette only (user: "show the silhouette still"), a dim "?"
-			modulate = Color(1, 1, 1, 0.8)  # multiplier: dim
+		if veiled:  # A final not revealed yet: its dark silhouette only (user: "show the silhouette still"): no name, cost or button
+			portrait.modulate = Color(1, 1, 1, 0.85)  # multiplier: the shadow at .85
 			tooltip_text = "? · " + screen.veil_hint(data)
 		pressed.connect(func() -> void: screen._select(data))
 
@@ -849,10 +857,11 @@ class FormNode extends Button:
 		var centre := Vector2(NODE_SIZE.x / 2.0, 4 + PORTRAIT / 2.0)
 		# (No waystone disc under the portrait: offset below it, it read as a doubled ghost ring: story chat screenshot)
 		UiStyle.draw_moon_disc(self, centre, PORTRAIT / 2.0 - 1)  # The lit backdrop on every node (unlocked ones lost it: story chat)
+		if screen.is_veiled(data):  # Not revealed yet: the disc at ~62% (UI Asset's Remember mock v4)
+			draw_circle(centre, PORTRAIT / 2.0 - 1, Color(Palette.VOID, 0.38))
 		if screen.selected == data:
 			draw_arc(centre, PORTRAIT / 2.0 + 3, 0.0, TAU, 40, UiStyle.GOLD, 2.0, true)
-		if screen.is_veiled(data):  # Not revealed yet: its silhouette labelled "?", no name, cost or glow
-			_caption("?", UiStyle.body_font(), NAME_SIZE + 4, UiStyle.INK, NODE_SIZE.y - 6)
+		if screen.is_veiled(data):  # Not revealed yet: only its shadow, no name, cost or glow
 			return
 		if state == State.CAN_UNLOCK:
 			var glow := 0.35 + 0.25 * sin(_pulse * 3.0)
@@ -937,6 +946,7 @@ class Portrait extends TextureRect:
 	var _frame := 0
 	var _clock := 0.0
 	static var _silhouette: ShaderMaterial
+	const FIT_SHARE := 0.82  # The drawn art fills this much of the disc at most
 
 	# A form not unlocked this run (run_design.md "Not unlocked = a silhouette on a lit backdrop"): a flat dark
 	# silhouette; FormNode draws the pale moonlit disc behind it so it still reads.
@@ -968,13 +978,20 @@ void fragment() {
 			_atlas.atlas = data.texture
 			_atlas.region = _crop()
 			texture = _atlas
+			# Inside the disc: the drawn art fits FIT_SHARE of the box (a transparent margin around it), 1:1 when it
+			# already fits (never scaled up), centred either way.
+			var drawn := _atlas.region.size
+			var box := maxf(maxf(drawn.x, drawn.y) / FIT_SHARE, 1.0)
+			_atlas.margin = Rect2((Vector2(box, box) - drawn) / 2.0, Vector2(box, box) - drawn)
+			if box <= side:
+				stretch_mode = TextureRect.STRETCH_KEEP_CENTERED  # Fits: 1:1, crisp
 		if silhouette:  # Not unlocked this run: a dark silhouette (FormNode draws the moonlit disc behind it)
 			material = silhouette_material()
 
 	# An Ascended form (tier 4) is taller than 64 px: its whole frame, crown and all, scaled into the
 	# disc like the others (screens_ui.md "Playtest fixes"); the rest show their bottom 64 px.
 	func _crop() -> Rect2:
-		return data.get_frame_rect(0) if data.tier >= DreamState.ASCENDED_TIER else WardenIcon.region(data)
+		return WardenIcon.visible_region(data)  # Centred by its drawn pixels, not its canvas (user, via UI Asset)
 
 	func _process(delta: float) -> void:
 		if data.texture == null or data.frame_count <= 1:

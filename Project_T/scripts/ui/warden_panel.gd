@@ -1023,7 +1023,8 @@ func _animate_portrait(delta: float) -> void:
 	var data := _tower.tower_data
 	_portrait_time += delta
 	var frame := int(_portrait_time * data.animation_fps) % maxi(data.frame_count, 1)
-	var region := data.get_frame_rect(frame)
+	var crop := WardenIcon.visible_region(data)  # Centred by its drawn pixels, each frame offset from frame 0
+	var region := Rect2(crop.position + data.get_frame_rect(frame).position - data.get_frame_rect(0).position, crop.size)
 	if _portrait_atlas.region != region:
 		_portrait_atlas.region = region
 

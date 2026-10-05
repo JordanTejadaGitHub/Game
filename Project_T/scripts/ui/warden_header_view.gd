@@ -138,7 +138,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 	var notes: Array[String] = []
 	title.text = data.display_name
 	portrait_atlas.atlas = data.texture
-	portrait_atlas.region = data.get_frame_rect(0) if data.texture else Rect2()
+	portrait_atlas.region = WardenIcon.visible_region(data)  # Centred by its drawn pixels (user, via UI Asset)
 	portrait.visible = data.texture != null
 	_show_damage_type(data)
 	desc.text = StatusLinks.bbcode(data.description)  # {damp}-style tokens and plain names both work
