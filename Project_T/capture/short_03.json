@@ -10,7 +10,7 @@
 	"hud": "none",
 	"length": 32.0,
 	"end_button": "D:/Projects/Game/marketing/music/endcard_button_full.wav",
-	"music": ["base", "dread1", "boss_stag"],
+	"music": ["base", "dread1", "dread2", "heartbeat"],
 	"captions": [
 		[0.0, 2.5, "The first boss: the Hollow Stag."],
 		[2.5, 11.0, "On a straight line, it charges."],
