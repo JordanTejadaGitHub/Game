@@ -84,7 +84,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	_title.text = "A Dream, after drift %d" % drift_number
 	if dream_state.has_rule(&"lucid_dreaming"):  # Take 2 of 4
 		_title.text += " · take %d" % dream_state.picks_left if dream_state.picks_left > 1 else " · take 1 more"
-	_skip.text = "Let it pass · +%d Dew" % dream_state.skip_dew if dream_state.skip_dew > 0 else "Let it pass"
+	_skip.text = "Let it pass, +%d Dew" % dream_state.skip_dew if dream_state.skip_dew > 0 else "Let it pass"  # Light pass wording
 	_skip.visible = dream_state.can_skip()  # Restless Dreams
 	_dev_any.visible = DreamState.dev_tools_on()
 	# A run-long supply: "1 left this run"; the last one used leaves the button disabled for the rest of that Dream

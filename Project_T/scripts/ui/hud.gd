@@ -694,7 +694,17 @@ const ROW_GAP := 22.0  # Between counters
 const ROW_PAD := 10.0  # The fog patch around the row
 const BANNER_CLEARANCE := 16.0
 const ROW_BUTTON := 48.0  # Touch-sized (platforms.md); the icon inside is drawn smaller
+const ROW_STEPS := [[28, 22.0], [24, 12.0], [21, 10.0], [19, 8.0]]  # [counter number size, gap]: full, then tighter steps
+var row_compact := false  # The counters stepped down to keep one row (tests)
 var row_wrapped := false  # The buttons sit on a second line (tests)
+
+func _set_counter_size(counters: Array, size: int) -> void:
+	for label: Label in counters:
+		if label.get_theme_font_size("font_size") != size:
+			label.add_theme_font_size_override("font_size", size)
+			if _counter_icons.has(label):
+				_place_counter_icon.call_deferred(label)
+	_leaves_max.add_theme_font_size_override("font_size", roundi(size * 20.0 / 28.0))  # "/15" keeps its proportion
 var leaves_down := false  # …and the leaves counter with them (tests)
 var _leaves_max := Label.new()  # "/15" after the leaves value, dim
 var _clears_label: Label
@@ -706,17 +716,6 @@ func _layout_top_row() -> void:
 		return
 	var counters: Array = [%PathLabel, get_node_or_null("DreamlightLabel"), dew_label, leaves_label]  # Right to left
 	counters = counters.filter(func(c) -> bool: return c != null)
-	var widths := {}
-	var counters_w := 0.0
-	for label: Label in counters:
-		var icon: TextureRect = _counter_icons.get(label)
-		var text_w := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
-			label.get_theme_font_size("font_size")).x
-		widths[label] = ceilf(text_w + (icon.size.x + COUNTER_ICON_GAP if icon != null else 0.0) + 2.0)
-		counters_w += widths[label]
-	counters_w += ROW_GAP * (counters.size() - 1)
-	if _leaves_max.text != "":
-		counters_w += _leaves_max.get_theme_font("font").get_string_size(_leaves_max.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _leaves_max.get_theme_font_size("font_size")).x + 2.0
 	var buttons: Array = []
 	for name in TOP_ROW:
 		var button := get_node_or_null(name) as Button
@@ -728,8 +727,43 @@ func _layout_top_row() -> void:
 	var banner_right := 0.0
 	if banner != null and banner.has_method("drawn_rect") and banner.visible:
 		banner_right = banner.drawn_rect().end.x
-	var one_line_w := counters_w + (ROW_GAP + buttons_w if not buttons.is_empty() else 0.0)
-	row_wrapped = screen_w + ROW_RIGHT - one_line_w - ROW_PAD < banner_right + BANNER_CLEARANCE
+	# One row (user: "all the icons and buttons should fit in one row on the top right"): before wrapping, the counter
+	# numbers step down and the gaps tighten (ROW_STEPS); the buttons keep their 48 px hit area. Wraps only if even
+	# the smallest step would reach the banner's text.
+	var widths := {}
+	var counters_w := 0.0
+	var gap := ROW_GAP
+	row_wrapped = true
+	for step in ROW_STEPS:
+		row_compact = step[0] < ROW_STEPS[0][0]
+		_set_counter_size(counters, int(step[0]))
+		gap = float(step[1])
+		widths.clear()
+		counters_w = 0.0
+		for label: Label in counters:
+			var icon: TextureRect = _counter_icons.get(label)
+			var text_w := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(step[0])).x
+			widths[label] = ceilf(text_w + (icon.size.x + COUNTER_ICON_GAP if icon != null else 0.0) + 2.0)
+			counters_w += widths[label]
+		counters_w += gap * (counters.size() - 1)
+		if _leaves_max.text != "":
+			counters_w += _leaves_max.get_theme_font("font").get_string_size(_leaves_max.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _leaves_max.get_theme_font_size("font_size")).x + 2.0
+		var one_line_w := counters_w + (gap + buttons_w if not buttons.is_empty() else 0.0)
+		row_wrapped = screen_w + ROW_RIGHT - one_line_w - ROW_PAD < banner_right + BANNER_CLEARANCE
+		if not row_wrapped:
+			break
+	if row_wrapped:  # Even the smallest step doesn't fit: back to full size, the buttons on a second line
+		row_compact = false
+		_set_counter_size(counters, int(ROW_STEPS[0][0]))
+		gap = ROW_GAP
+		widths.clear()
+		counters_w = 0.0
+		for label: Label in counters:
+			var icon: TextureRect = _counter_icons.get(label)
+			var text_w := label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(ROW_STEPS[0][0])).x
+			widths[label] = ceilf(text_w + (icon.size.x + COUNTER_ICON_GAP if icon != null else 0.0) + 2.0)
+			counters_w += widths[label]
+		counters_w += gap * (counters.size() - 1)
 	# Buttons: right end of line 1, or line 2 when wrapped.
 	var x := ROW_RIGHT
 	var button_top := ROW_TOP + (ROW_H + 4.0 if row_wrapped else 0.0)
@@ -741,7 +775,7 @@ func _layout_top_row() -> void:
 		x -= ROW_BUTTON + TOP_ROW_GAP
 	# Counters: left of the buttons on one line, or from the right edge on line 1. If line 1 still
 	# reaches the banner's text (its boss line, at 1280), the leaves counter joins the buttons' line.
-	var line2_x := x - ROW_GAP + TOP_ROW_GAP
+	var line2_x := x - gap + TOP_ROW_GAP
 	x = line2_x if not row_wrapped and not buttons.is_empty() else ROW_RIGHT
 	var max_w := 0.0
 	if _leaves_max.text != "":
@@ -771,7 +805,7 @@ func _layout_top_row() -> void:
 		label.offset_bottom = top + ROW_H
 		left = minf(left, label.offset_left)
 		if not (label == leaves_label and leaves_down):
-			x = label.offset_left - ROW_GAP
+			x = label.offset_left - gap
 		_place_counter_icon.call_deferred(label)
 	if not buttons.is_empty():
 		left = minf(left, buttons[buttons.size() - 1].offset_left)

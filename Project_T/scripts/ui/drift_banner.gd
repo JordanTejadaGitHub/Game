@@ -57,7 +57,7 @@ func drawn_width() -> float:
 	var total := drift_director.get_total_drifts()
 	var shown := mini(latest + 1 if drift_director.is_resting() else maxi(latest, 1), total)
 	var act := drift_director.get_act(shown)
-	var top := "Act %d · %s      %s" % [act, drift_director.get_act_name(act), get_drift_text()]
+	var top := "%s%s%s" % [drift_director.get_act_name(act), TOP_GAP, get_drift_text()]
 	var width := font.get_string_size(top, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
 	var pips := (drift_director.drifts_per_block - 1) * PIP_RADIUS * 3.0 + PIP_RADIUS * 2.0
 	var boss_text := _next_boss_text(latest)
@@ -81,8 +81,16 @@ func _draw() -> void:
 	var total := drift_director.get_total_drifts()
 	var shown := mini(latest + 1 if drift_director.is_resting() else maxi(latest, 1), total)
 	var act := drift_director.get_act(shown)
-	var top := "Act %d · %s      %s" % [act, drift_director.get_act_name(act), get_drift_text()]
-	_draw_centered(font, top, Vector2(center_x, 20), FONT_SIZE, TEXT_COLOR)
+	# Light pass (user-approved): "Forest's Edge   Drift 1 of 100", the act's name in ink, the count quieter.
+	var place: String = drift_director.get_act_name(act) + TOP_GAP
+	var count := get_drift_text()
+	var place_w := font.get_string_size(place, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
+	var full_w := place_w + font.get_string_size(count, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
+	var top_left := center_x - full_w / 2.0
+	for part in [[place, top_left, TEXT_COLOR], [count, top_left + place_w, UiStyle.MOON_MIST]]:
+		draw_string_outline(font, Vector2(part[1], 20), part[0], HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, 6, Palette.DREAD)
+		draw_string(font, Vector2(part[1], 20), part[0], HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, part[2])
+	_drawn_half = maxf(_drawn_half, full_w / 2.0 + 6.0)
 
 	if is_instance_valid(_boss) and not _boss.is_cleansed:
 		_draw_boss_bar(font, center_x)
@@ -220,18 +228,20 @@ func show_marker_tip(line: String, at: Vector2) -> void:
 	_marker_tip.global_position = Vector2(clampf(global_position.x + at.x - _marker_tip.size.x / 2.0,
 		4, screen.x - _marker_tip.size.x - 4), global_position.y + 70)
 
-# "Drift 7" (no total: playtest fixes 2026-09-30), or "Ready · Drift 1" before the first drift.
+const TOP_GAP := "      "  # Between the act's name and the drift count
+
+# "Drift 7 of 100" (light pass, user-approved: the total is back, "Ready ·" is gone); drift 1 before the first.
 func get_drift_text() -> String:
 	var latest := drift_director.drifts_started
-	return "Ready · Drift 1" if latest == 0 else "Drift %d" % latest
+	return "Drift %d of %d" % [maxi(latest, 1), drift_director.get_total_drifts()]
 
-# "The Hollow Stag · drift 25 (in 18)" for the next boss drift after `latest`, or "".
+# "The Hollow Stag in 18" for the next boss drift after `latest` (drifts to go), or "".
 func _next_boss_text(latest: int) -> String:
 	var number := _next_boss_drift(latest)
 	if number == 0:
 		return ""
 	var data := _boss_of(number)
-	return "%s · drift %d (in %d)" % [data.display_name if data != null else "Boss", number, number - latest]
+	return "%s in %d" % [data.display_name if data != null else "Boss", number - latest]  # "The Hollow Stag in 25" (light pass)
 
 func _next_boss_data(latest: int) -> EnemyData:
 	var number := _next_boss_drift(latest)
