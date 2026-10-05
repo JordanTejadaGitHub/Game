@@ -541,7 +541,11 @@ func _update_ghost() -> void:
 # A free spot next to the route that would seal it: the ghost shows it refused.
 func _blocking_spot() -> Vector2:
 	var map = _main.get_node("%MapGenerator")
-	for point in map.get_path_from(map.startPath):
+	var route: Array = Array(map.get_path_from(map.startPath))
+	var middle := route.size() / 2
+	route.sort_custom(func(a: Vector2, b: Vector2) -> bool:  # From the middle of the route outwards: clear of the HUD's edges
+		return absi(route.find(a) - middle) < absi(route.find(b) - middle))
+	for point in route:
 		var centre: Vector2 = (point * 2.0).floor()
 		for dx in range(-2, 2):
 			for dy in range(-2, 2):
