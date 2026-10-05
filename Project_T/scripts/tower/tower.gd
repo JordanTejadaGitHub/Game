@@ -971,6 +971,72 @@ func focus_text(which: Focus) -> String:
 				return "Wardens in its reach grow %d%% cheaper" % roundi(NurtureChoices.NURSE_KINDRED * 100)
 	return FOCUS_TEXT.get(which, "")
 
+# One rank of `which` in a few words for the Nurture rows (Main's rework, user: Brood Cap / Jarlink panels "fix"):
+# ~18 characters, no " · ", a number never split from its unit. "" = the panel's own Power / Swift / Reach / Deep
+# line fits (or the choice is blocked); the full before → after stays focus_text, in the tooltip.
+func focus_short(which: Focus) -> String:
+	if choice_blocker(which).begins_with("Already"):
+		return ""
+	var special := attack_data.special if attack_data else &""
+	if is_catcher():
+		match which:
+			Focus.WIDE:
+				return "+%s catch reach" % IconInfo._number(FOCUS_WIDE)
+			Focus.STRONG:
+				return "+%d%% catch" % roundi(FOCUS_STRONG_CATCH * 100)
+			Focus.KINDRED:
+				return "+%s%% interest" % IconInfo._number(KINDRED_INTEREST * 100) if tower_data.rest_interest > 0.0 \
+					else "+%s Dew a drift" % IconInfo._number(KINDRED_DEW)
+	match which:
+		Focus.POWER:
+			if special == BranchKit.JARLINK:
+				var d := _with_choice(which, func() -> float: return _compute_damage())
+				var arc := BranchKit.arc_dps(self)
+				return "+%d arc/s" % roundi(arc * d[1] / maxf(d[0], 0.001) - arc)
+		Focus.SWIFT:
+			if special == BranchKit.SEEDBEARER:
+				return "−%s drift a seed" % IconInfo._number(NurtureChoices.SEED_SWIFT)
+			var timed := _main_timer()
+			if timed[0] > 0.0 and special != &"":
+				var cycle := _with_choice(which, func() -> float: return _compute_attacks_per_second())
+				var ratio: float = cycle[1] / maxf(cycle[0], 0.0001)
+				var now: float = timed[0] / get_cycle_multiplier()
+				return "%s %s s sooner" % ["tick" if special == BranchKit.JARLINK else "acts", IconInfo._number(now - now / ratio)]
+		Focus.REACH:
+			var area := _main_area()
+			if area[1] != "":
+				return "+%s %s" % [IconInfo._number(area[2]), area[1]]  # "+0.3 link", "+0.3 silence"
+		Focus.KEEN:
+			return "+%d%% crit" % roundi(NurtureChoices.KEEN_CRIT * 100)
+		Focus.YIELD:
+			if special == BranchKit.DREAM_OAK:
+				return "+%s shard a drift" % IconInfo._number(NurtureChoices.YIELD_SHARDS)
+			if special == BranchKit.BROOD:
+				var every := _with_choice(which, func() -> float: return 1.0 / maxf(_compute_attacks_per_second(), 0.0001))
+				return "sprite %s s sooner" % IconInfo._number(every[0] - every[1])
+			var base := int(BranchKit.p(self, "seed_max" if special == BranchKit.SEEDBEARER else "max_alive", 3.0 if special == BranchKit.SEEDBEARER else 4.0))
+			var next := base + (choice_count(Focus.YIELD) + 1) / NurtureChoices.YIELD_PER
+			return "+1 alive" if next > base + BranchKit.yield_ranks(self) else "toward +1 alive"
+		Focus.STRONG:
+			if special == BranchKit.PRISM:
+				return "+%d%% crit aura" % roundi(NurtureChoices.STRONG_CRIT_AURA * 100)
+			if special == BranchKit.NURSE_LOG:
+				return "+%d%% discount" % roundi(NurtureChoices.NURSE_STRONG * 100)
+			return "+%d%% aura" % roundi((NurtureChoices.STRONG_ACORN if not is_aura_support() else FOCUS_STRONG_AURA) * 100)
+		Focus.WIDE:
+			if special == BranchKit.DREAM_OAK:
+				return "+%s count reach" % IconInfo._number(NurtureChoices.WIDE_STEP)
+			if special == BranchKit.PRISM or special == BranchKit.NURSE_LOG:
+				return "+%s reach" % IconInfo._number(NurtureChoices.WIDE_STEP)
+			return "+%s aura reach" % IconInfo._number(FOCUS_WIDE)
+		Focus.KINDRED:
+			if special == BranchKit.SEEDBEARER:
+				return "+%d%% Sprout dmg" % roundi(NurtureChoices.SEED_KINDRED * 100)
+			if special == BranchKit.NURSE_LOG:
+				return "%d%% cheaper grows" % roundi(NurtureChoices.NURSE_KINDRED * 100)
+			return "full boosts"
+	return ""
+
 # [value now, value with one more rank of `which`] for `measure` (rank_choices is put back after).
 func _with_choice(which: Focus, measure: Callable) -> Array:
 	_migrate_choices()
