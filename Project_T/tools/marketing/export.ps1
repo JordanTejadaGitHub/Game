@@ -93,7 +93,9 @@ function Source([string]$path) {
 }
 $stemFiles = @()
 $bedFile = ""; $bedVoiceFile = ""; $buttonFile = ""
-if ($null -ne $scene.bed) {
+if ($null -ne $scene.bed -and [string]$scene.bed -eq "") {  # "bed": "" = no music (a rough cut before the cue lands)
+	& $Ffmpeg -v error -y -f lavfi -i "anullsrc=r=48000:cl=stereo" -t 1 (Join-Path $work "bed.wav"); $bedFile = "bed.wav"
+} elseif ($null -ne $scene.bed) {
 	Copy-Item (Source $scene.bed) (Join-Path $work "bed.wav"); $bedFile = "bed.wav"
 	if ($null -ne $scene.bed_voice) { Copy-Item (Source $scene.bed_voice) (Join-Path $work "bed_voice.wav"); $bedVoiceFile = "bed_voice.wav" }
 } else {
@@ -151,10 +153,17 @@ $card = "[1:v]scale=iw*6:ih*6:flags=neighbor,crop=1080:1920,eq=brightness=-0.18:
 	"fps=60,trim=duration=$(F $endCard),setpts=PTS-STARTPTS,format=yuv420p,fade=t=in:st=0:d=0.25[card]"
 if ($trailer) {  # 1920x1080: the title art at exactly x3, the name, the call to action and the platform
 	Text "card_platform.txt" "Steam $([char]0x00B7) PC"  # The middle dot as a char code: PowerShell 5.1 reads this file as ANSI
+	# "end_tagline": a line in the display font under the title; the rest moves down to make room.
+	$tagline = ""; $drop = 0
+	if ($null -ne $scene.end_tagline -and [string]$scene.end_tagline -ne "") {
+		Text "card_tagline.txt" ([string]$scene.end_tagline)
+		$tagline = "drawtext=fontfile=display.ttf:textfile=card_tagline.txt:fontsize=58:fontcolor=0xfff4dc@0.92:x=(w-text_w)/2:y=h*0.30+185,"
+		$drop = 95
+	}
 	$card = "[1:v]scale=iw*3:ih*3:flags=neighbor,eq=brightness=-0.2:saturation=0.85," +
-		"drawtext=fontfile=title.ttf:textfile=card_title.txt:fontsize=150:fontcolor=0xe9a83c:x=(w-text_w)/2:y=h*0.30," +
-		"drawtext=fontfile=body.ttf:textfile=card_wish.txt:fontsize=72:fontcolor=0xfff4dc:x=(w-text_w)/2:y=h*0.30+200," +
-		"drawtext=fontfile=body.ttf:textfile=card_platform.txt:fontsize=40:fontcolor=0xfff4dc@0.75:x=(w-text_w)/2:y=h*0.30+300," +
+		"drawtext=fontfile=title.ttf:textfile=card_title.txt:fontsize=150:fontcolor=0xe9a83c:x=(w-text_w)/2:y=h*0.30," + $tagline +
+		"drawtext=fontfile=body.ttf:textfile=card_wish.txt:fontsize=72:fontcolor=0xfff4dc:x=(w-text_w)/2:y=h*0.30+$(200 + $drop)," +
+		"drawtext=fontfile=body.ttf:textfile=card_platform.txt:fontsize=40:fontcolor=0xfff4dc@0.75:x=(w-text_w)/2:y=h*0.30+$(300 + $drop)," +
 		"fps=60,trim=duration=$(F $endCard),setpts=PTS-STARTPTS,format=yuv420p,fade=t=in:st=0:d=0.5[card]"
 }
 
