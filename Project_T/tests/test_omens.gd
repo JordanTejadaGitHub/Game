@@ -15,7 +15,7 @@ func _run() -> void:
 	root.add_child(main)
 	await process_frame
 	var omens: OmenDirector = main.get_node("%OmenDirector")
-	_check(omens.pool.size() == 23, "23 Omens in the pool (%d)" % omens.pool.size())
+	_check(omens.pool.size() == 27, "27 Omens in the pool, 4 of them Restless Omens from the Grove (%d)" % omens.pool.size())
 	await _test_flow(main)
 	_test_twists(main)
 	_test_rewards(main)

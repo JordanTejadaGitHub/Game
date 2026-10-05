@@ -16,6 +16,7 @@ enum Kind { UNLOCK_WARDEN, UNLOCK_EVOLUTION, STAT, RULE, ECONOMY }
 @export var requires: Array[String] = []  # Warden ids / card ids that must be owned first
 @export var max_stacks: int = 1  # 0 = stacks without limit (stat cards)
 @export var min_act: int = 1  # Legendary: 2
+@export var min_drift: int = 0  # Never offered before this drift (Double or Nothing: 10, when Omens begin)
 @export var in_start_pool: bool = true  # false = unlocked in the Memory Grove (meta)
 # Deepened card ("II"): the id of the base card it upgrades. Only offered once the base is owned;
 # taking it replaces the base card's effect (the base stops counting), so this card carries the

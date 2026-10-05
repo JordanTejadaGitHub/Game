@@ -37,7 +37,7 @@ const REPORTERS := {
 	&"mixed_grove": "_mixed_grove", &"quick_step": "_quick_step", &"restless_roots": "_restless_roots", &"far_reach": "_far_reach", &"tended_stumps": "_tended_stumps", &"hollow_ground": "_hollow_ground", &"drumbeat": "_drumbeat",
 	&"long_shadows": "_long_shadows", &"scarred_bark": "_scarred_bark", &"desperate_bloom": "_desperate_bloom",
 	&"odd_one_out": "_odd_one_out", &"grand_tour": "_grand_tour",
-	&"heart_of_the_maze": "_heart_of_the_maze",
+	&"heart_of_the_maze": "_heart_of_the_maze", &"moonflip": "_moonflip",
 	&"rain_on_glass": "_rain_on_glass",
 	&"kind_canopy": "_kind_canopy", &"shared_light": "_shared_light", &"bramble_oath": "_bramble_oath",
 	&"golden_harvest": "_golden_harvest",
@@ -374,6 +374,13 @@ func _solitude(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary
 		"damage": DreamState.SOLITUDE_BONUS, "range": DreamState.SOLITUDE_RANGE,
 		"reason": "" if on else "%s is %s away (needs no attacking Warden within %d)" % [DreamEffects._data(nearest).display_name,
 			_cells_word(_cheb(nearest.cell, spot.cell)), DreamState.NEARBY_CELLS]}
+
+# Moonflip (Strange Dreams): this block's coin, +25% or −15% damage for every Warden.
+func _moonflip(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var bonus := ds.moonflip_bonus()
+	return {"run_wide": true, "active": true, "damage": bonus, "note": "this block's coin: %s" % ("heads" if bonus > 0.0 else "tails")}
 
 func _long_walk(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var bonus := DreamState.LONG_WALK_PER * (ds.path_length / DreamState.LONG_WALK_TILES)

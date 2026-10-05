@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "swarming_night"
+display_name = "Swarming Night"
+description = "Twice as many nightmares, each with 40% less health."
+flavor = "They come in a rush, thin as moths."
+requires_grove = "restless_omens"
+kind = 2
+count_multiplier = 2.0
+health_multiplier = 0.6
+reward_seeds = 5

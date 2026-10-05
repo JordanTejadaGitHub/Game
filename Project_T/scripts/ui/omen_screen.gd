@@ -345,7 +345,7 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	var reward_line := _add_line(box, "Reward", REWARD_COLOR, REWARD_SIZE)
 	UiStyle.caps(reward_line, REWARD_SIZE, REWARD_COLOR)
 	reward_line.name = "Reward"
-	reward_line.tooltip_text = OmenDirector.REWARD_RULE if not OmenDirector.is_dew_prize(omen) else ""
+	reward_line.tooltip_text = omens.reward_rule() if not OmenDirector.is_dew_prize(omen) else ""
 	reward_line.mouse_filter = Control.MOUSE_FILTER_PASS  # The tooltip; a click still picks the Omen
 	var bullet_labels: Array[Label] = []
 	for text in omens.reward_bullets(omen, act, omens.current_offer_block):

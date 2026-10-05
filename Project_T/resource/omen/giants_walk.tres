@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "giants_walk"
+display_name = "Giants' Walk"
+description = "Half as many nightmares, each with 2.4× health. Every leak costs 1 more leaf."
+flavor = "Few come tonight. They are very large."
+requires_grove = "restless_omens"
+kind = 2
+min_drift = 26
+never_before_boss = true
+health_multiplier = 2.4
+count_multiplier = 0.5
+leak_add = 1
+reward_dew = 25
+reward_rare_dreams = 1

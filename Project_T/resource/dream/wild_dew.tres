@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "wild_dew"
+display_name = "Wild Dew"
+description = "Every drift's Dew is rolled between ×0.6 and ×1.6, shown before the drift starts."
+rarity = 0
+kind = 4
+tags = Array[String](["strange"])
+max_stacks = 1
+in_start_pool = false
+rule_id = &"wild_dew"
+

@@ -215,4 +215,4 @@ func get_dispel_multiplier() -> float:
 func _on_enemy_reached_goal(enemy: Node2D) -> void:
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) as OmenDirector
 	var multiplier := omens.get_leak_multiplier() if omens else 1.0  # Leaf Fall: ×2 (bosses too)
-	lose_leaves(roundi(enemy.get_leaf_cost() * multiplier))
+	lose_leaves(roundi(enemy.get_leaf_cost() * multiplier) + (omens.get_leak_add() if omens else 0))  # Giants' Walk: +1 a leak

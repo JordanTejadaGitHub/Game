@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "double_or_nothing"
+display_name = "Double or Nothing"
+description = "Every Omen you face pays double if you lose no leaf in its drifts, and nothing if you lose any."
+rarity = 2
+kind = 3
+tags = Array[String](["strange"])
+max_stacks = 1
+in_start_pool = false
+rule_id = &"double_or_nothing"
+min_drift = 10

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="OmenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/omen/script/omen_data.gd" id="1_omen"]
+
+[resource]
+script = ExtResource("1_omen")
+id = "static_sky"
+display_name = "Static Sky"
+description = "Nightmares are always {static}, but 30% faster."
+flavor = "The air hums. They run with sparks in their fur."
+requires_grove = "restless_omens"
+kind = 2
+requires_charged_source = true
+speed_multiplier = 1.3
+always_status = &"static"
+reward_dew = 40

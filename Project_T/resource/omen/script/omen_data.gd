@@ -15,6 +15,8 @@ class_name OmenData
 @export var requires_legendary: bool = false  # Only offered if a Legendary can still be offered this run (Lean Season)
 @export var requires_clearing: bool = false  # Only offered once clearing is unlocked this run (Shifting Ground: its reward is for clearing)
 @export var never_before_boss: bool = false  # Not offered for a block with a boss drift (Leaf Fall: a doubled boss leak would end the run)
+@export var requires_grove: String = ""  # Only in the pool once this Grove node is planted (Restless Omens; the full game)
+@export var requires_charged_source: bool = false  # Only offered once something this run applies Charged (Static Sky)
 # The offer shows 2 Omens of different kinds (run_design.md "More Omens").
 enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP, MAZE }  # MAZE: Omens that test the maze, not the numbers
 @export var kind: Kind = Kind.NIGHTMARES
@@ -34,6 +36,7 @@ enum Kind { NIGHTMARES, YOUR_SIDE, DOUBLE_EDGED, MAP, MAZE }  # MAZE: Omens that
 @export var warden_attack_speed_multiplier: float = 1.0  # Wilting: 0.85
 @export var no_build_during_drift: bool = false  # Frozen Ground: planting and growing only at rests
 @export var leak_multiplier: float = 1.0  # Leaf Fall: every leak costs ×2 leaves (bosses too)
+@export var leak_add: int = 0  # Giants' Walk: every leak costs this many more leaves (after leak_multiplier)
 @export var rest_bonus_multiplier: float = 1.0  # Lean Season: the block's rest bonus × 0.5
 @export var status_immune: Array[StringName] = []  # Sleepless: drowsy, held
 @export var always_status: StringName = &""  # Heavy Rain: always Soaked
