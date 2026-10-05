@@ -184,15 +184,15 @@ once earned (also in Settings → Display → Keepsakes). Unearned ones show gre
 | Gilded Pages | Discover every combo (`all_combos`) | the Codex pages get gilded edges |
 | Starlit Card Backs | See every Dream card (`all_dreams`) | Dream offer cards get the night-sky frame |
 
-**The twig gets bought nodes instead** (user 2026-10-05): options, not power; no loadout slot, always
+**New bought nodes instead** (user 2026-10-05): options, not power; no loadout slot, always
 on once planted. Placement by limb colour (user: *"should be the orange seed, all the card ones
-should be purple"*): the non-card ones are **orange Perks** on the twig at the foot of the Perks
-limb; the card one is **purple**, on the Cards limb.
+should be purple"*): the non-card ones are **orange Perks nodes on the Perks limb, the left side of the tree** (user: *"the orange seeds are the left side of the Grove tree"*), among the other perks, not a separate twig;
+the card one is **purple**, on the Cards limb (the right side).
 
 | Node | Limb | Cost | What it adds | Designed by |
 |---|---|---|---|---|
-| **Restless Omens** | Perks (orange), twig | 40 | 4 new double-edged Omens join the Omen pool | the design hub (`run_design.md` Omens) |
-| **Remembered Seed** | Perks (orange), twig | 30 | start a run on any map from your run history, or type a seed | Main Merger (run start) |
+| **Restless Omens** | Perks limb (orange, left) | 40 | 4 new double-edged Omens join the Omen pool | the design hub (`run_design.md` Omens) |
+| **Remembered Seed** | Perks limb (orange, left) | 30 | start a run on any map from your run history, or type a seed | Main Merger (run start) |
 | **Strange Dreams** | Cards (purple), its own small branch | 50 | a bundle of gamble Dream cards (odd, swingy effects) joins the pool | Roguelite Mechanic Discussion |
 
 - These count toward the Heartwood's Crown like any bought node. +120 Seeds. (Wanderer's Map, a new map layout, was dropped 2026-10-05: user "Removing it".)
