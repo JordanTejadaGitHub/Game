@@ -323,8 +323,9 @@ func _run() -> void:
 	var slot_button := bar.get_child(0) as Button
 	var slot_box := slot_button.get_theme_stylebox("normal") as MoonStyleBox
 	var slot_selected := slot_button.get_theme_stylebox("pressed") as MoonStyleBox
-	_check(slot_box != null and slot_box.center_alpha >= 0.6 and slot_box.edge_alpha < 0.3 and slot_selected != null
-		and slot_selected.underline, "Warden slots are a calm fog patch, underlined when selected")
+	_check(slot_box != null and slot_box.center_alpha <= 0.4 and slot_box.edge_alpha <= 0.1 and slot_selected != null
+		and slot_selected.underline and slot_selected.frame_color.a > 0.5,
+		"Warden slots are a calm fog tile; selected = a gold inset + the underline")
 	bar_dreams.unlock_everything = was_everything
 	bar_dreams.unlocks_changed.emit()
 	await _frames(2)
