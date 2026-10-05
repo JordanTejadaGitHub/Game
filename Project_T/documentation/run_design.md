@@ -692,6 +692,29 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
   extra cards, rest-bonus multiplier). `DriftDirector` applies the multipliers to the next block.
 - **To check:** is one more choice per rest too much? If it is, offer Omens only every other rest.
 
+### Restless Omens: four Grove Omens (2026-10-05)
+The Grove node **Restless Omens** (40 Seeds, meta_design.md 952b986e) adds these four **double-edged**
+Omens to the pool; without it they never appear. Like Heavy Rain, each one helps some builds and hurts
+others, so whether to face it depends on *your* maze. Same rules as the other Omens (two different kinds
+per offer, no repeat from the last rest, rewards × act for Dew and Seeds, bosses ignore them).
+
+| Omen | The next block | Reward | Flavour line | Offer rule |
+|---|---|---|---|---|
+| **Swarming Night** | **twice as many nightmares, each at half health** (same total health; the Dew pot is shared as usual) | +3 Seeds | *"They come in a rush, thin as moths."* | any act |
+| **Giants' Walk** | **half as many nightmares, each at 2.2× health**; each leak costs **+1 leaf** | next Dream: one card is Rare+ | *"Few come tonight. They are very large."* | act 2+; never a boss block |
+| **Brittle Night** | nightmares have **−30% health**, but every leak costs **double leaves** | +40 Dew | *"They crack at a touch. So does the Heartwood."* | never a boss block (as Leaf Fall) |
+| **Static Sky** | every nightmare is **always Charged**, but **+25% speed** | +30 Dew | *"The air hums. They run with sparks in their fur."* | once a Charged source exists this run (a lightning Warden or card), like Hollow Wind's flyer rule |
+
+- **Who they favour:** Swarming Night = area, pulse, chain and cloud builds (single-target snipers
+  struggle); Giants' Walk = single-target, beam and sniper builds (area and Spored builds struggle);
+  Brittle Night = a long, safe maze (one hole costs double); Static Sky = storm and Reaction builds
+  (Thunderclap, Conductive Soil), while the speed hurts everyone else.
+- **Numbers are starting points**; Balancing Discussion tunes them. Swarming Night's halves round up.
+  Giants' Walk never halves a drift below 1, and elites stay elites at 2.2× on top of their ×3.
+- **New `OmenData` fields** (Roguelite Code): count multiplier with an inverse health multiplier,
+  leak-cost add, always-applied Charged (reuses Heavy Rain's always-applied status), `requires_grove`
+  (the node id).
+
 ## Build rules
 
 - **Anything, any time:** build, evolve, sell and (once unlocked by a clearing card) tend obstacles
