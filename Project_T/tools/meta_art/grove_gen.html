@@ -513,7 +513,7 @@ N("slot_5", "perks", "Loadout slot 5", 318, 540, "slot_4");
 // New nodes (meta_design.md 72ccfceb), each off until its UnlockData exists (test_meta checks layout =
 // data); Meta Game Code flips its flag with the .tres. KEEPSAKES: the old Keepsakes twig at the Perks
 // foot, gone from the tree once their .tres are deleted (they live on the Keepsakes shelf now).
-const KEEPSAKES = true, REMEMBERED_SEED = false, CHOSEN_HUNT = false, LEAF_OR_DEW = false, RESTLESS_OMENS = false, STRANGE_DREAMS = false;
+const KEEPSAKES = true, REMEMBERED_SEED = false, CHOSEN_HUNT = false, LEAF_OR_DEW = false, KIN_FORETOLD = false, RESTLESS_OMENS = false, STRANGE_DREAMS = false;
 if (KEEPSAKES) {
 N("golden_leaf", "perks", "Golden Leaf", 534, 540, [533, 568], { twig: true });
 N("blossoms", "perks", "Blossoms", 548, 492, "golden_leaf", { twig: true });
@@ -525,7 +525,7 @@ const chain = (from, nodes, section) => { let last = null; for (const [id, name,
 const byIdSoFar = id => NODES.some(n => n.id === id);
 // Run options (left, orange): their own short path on the Perks limb, between Economy and Survival.
 chain([432, 482], [["remembered_seed", "Remembered Seed", REMEMBERED_SEED, 412, 420], ["chosen_hunt", "Chosen Hunt", CHOSEN_HUNT, 398, 340],
-  ["leaf_or_dew", "Leaf or Dew", LEAF_OR_DEW, 446, 384, "remembered_seed"]], "perks");
+  ["leaf_or_dew", "Leaf or Dew", LEAF_OR_DEW, 446, 384, "remembered_seed"], ["kin_foretold", "Kin Foretold", KIN_FORETOLD, 372, 300, "chosen_hunt"]], "perks");
 // Card-like nodes (right, purple): a small branch on the Cards limb.
 chain([848, 482], [["strange_dreams", "Strange Dreams", STRANGE_DREAMS, 868, 430], ["restless_omens", "Restless Omens", RESTLESS_OMENS, 890, 372]], "cards");
 // Families: a short branch of three per family (family, hidden branch, Ascension),
@@ -1701,6 +1701,7 @@ const PERK_ICONS = {
   remembered_seed: () => icon((L, o) => { blob(L, 16, 18, 5, 7, ["#5c3c24", "#8c5c34", "#b8662c", "#e9a83c"], { tex: .05 }); sprout(L, 16, 11, 2); for (let a = 0; a < Math.PI * 2; a += Math.PI / 7) o.set(16 + Math.cos(a) * 13, 17 + Math.sin(a) * 12, a < Math.PI * 1.1 ? "#dce8f4" : "#9a84e8"); }),
   chosen_hunt: () => icon((L, o) => { blob(L, 16, 18, 8, 8, ["#140f26", "#2c2444", "#4c3c74", "#5c5a78"], { tex: .05 }); stroke(L, 11, 13, 7, 5, 2.6, 1.2, "#8c8cac"); stroke(L, 21, 13, 25, 5, 2.6, 1.2, "#8c8cac"); L.set(7, 5, "#dce8f4"); L.set(25, 5, "#dce8f4"); L.set(13, 18, "#9a84e8"); L.set(19, 18, "#9a84e8"); for (let a = 0; a < Math.PI * 2; a += .1) if ((a / .1 | 0) % 4 < 2) o.set(16 + Math.cos(a) * 13, 18 + Math.sin(a) * 12, "#e9a83c"); for (const [x0, y0, x1, y1] of [[16, 3, 16, 7], [16, 29, 16, 31], [1, 18, 4, 18], [28, 18, 31, 18]]) stroke(o, x0, y0, x1, y1, 1, 1, "#fcd47c"); }),
   leaf_or_dew: () => icon((L, o) => { petal(L, 10, 22, -Math.PI * .35, 13, 4.5, LEAFG.slice(1)); drop(L, 23, 19, 5); for (let x = 12; x <= 20; x++) { o.set(x, 7, "#fcd47c"); o.set(x, 28, "#fcd47c"); } for (const [dx, dy] of [[-1, -1], [-1, 1], [-2, -2], [-2, 2]]) { o.set(20 + dx, 7 + dy, "#fcd47c"); } for (const [dx, dy] of [[1, -1], [1, 1], [2, -2], [2, 2]]) { o.set(12 + dx, 28 + dy, "#fcd47c"); } }),
+  kin_foretold: () => icon((L, o) => { for (const [x, y] of [[8, 23], [17, 24]]) { ellipse(L, x, y, 4.6, 4, (xx, yy, dx, dy) => pick(["#5c3c24", "#8c5c34", "#b8662c", "#e9a83c"], .6 - dx * .35 - dy * .3, xx, yy)); ellipse(L, x + 1, y - 6, 3, 2.4, (xx, yy, dx, dy) => dx + dy < -.3 ? LEAFG[4] : dy < .3 ? LEAFG[3] : LEAFG[2]); } const gx = 26, gy = 13; for (let a = 0; a < Math.PI * 2; a += .3) o.set(gx + Math.cos(a) * 4.2, gy + Math.sin(a) * 3.6, (a / .3 | 0) % 2 ? "#4c3c74" : "#9a84e8"); for (let a = 0; a < Math.PI * 2; a += .6) o.set(gx + 1 + Math.cos(a) * 2.6, gy - 6 + Math.sin(a) * 2, "#9a84e8"); }),
   wider_dreams: () => icon(L => { [[3, 10], [8, 7], [13, 5], [18, 7]].forEach(([x, y]) => card(L, x, y, 11, 17, DREAMC)); }),
 };
 const FAMILY_ICONS = {
@@ -2189,7 +2190,7 @@ function ascendedBloomPlain(f) {
 }
 
 // The icon sheets' orders (used by the per-node blooms before the icon sheets are written).
-const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", "clear_sight", "sprout_bed", "kindling", "early_bloom", "early_light", "first_care", "deep_taproot", "second_thoughts", "let_go", "omen_reader", "wider_dreams", "wider_roots", "golden_leaf", "blossoms", "gilded_pages", "starlit_backs", "heartwoods_crown", "restless_omens", "remembered_seed", "chosen_hunt", "leaf_or_dew"];
+const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", "clear_sight", "sprout_bed", "kindling", "early_bloom", "early_light", "first_care", "deep_taproot", "second_thoughts", "let_go", "omen_reader", "wider_dreams", "wider_roots", "golden_leaf", "blossoms", "gilded_pages", "starlit_backs", "heartwoods_crown", "restless_omens", "remembered_seed", "chosen_hunt", "leaf_or_dew", "kin_foretold"];
 const FAMILY_ORDER = ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"];
 const CARD_ORDER = ["storm", "spores_and_reactions", "keen_edges", "tending", "overgrowth", "lone_lantern", "the_long_way", "bittersweet", "woven", "deep_poison", "kinship", "seeds", "quiet_ones", "swift", "wide_reach", "daring", "hedgerows", "reclaiming", "strange_dreams", "restless_omens"];  // Storm, Spores and Kinship icons stay for stable indices (their nodes are gone)
 
