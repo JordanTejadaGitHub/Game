@@ -35,6 +35,13 @@ var first_boss_pick_fewer := 0  # Sidegrade Early Bloom (MetaRun, Spire experime
 # the next boss pick offers it in one of the slots (free, one per run).
 var pending_memory_warden: TowerData
 var previous_first_offer: Array = []  # Sorted ids of the last run's first-pick offer (profile "last_first_pick")
+# Kin Foretold (Grove Perks node, meta_design.md b585bec5; full game): every pick also shows, below the cards, the
+# families the NEXT boss pick will offer. That offer is drawn ahead and kept (saved with the run: RunSaver "foretold"),
+# so the same families really come. Drawn from what's still free, never a card on screen now, so any choice keeps it true.
+const KIN_FORETOLD_ID := "kin_foretold"
+static var force_kin_foretold := false  # Tests: as if the node were planted
+var foretold: Array = []  # Warden ids the next boss pick offers ([] = not drawn yet)
+var _foretold_line := Label.new()
 
 @onready var dream_state: DreamState = %DreamState
 @onready var drift_director: DriftDirector = %DriftDirector
@@ -67,6 +74,14 @@ func _ready() -> void:
 	_cards.add_theme_constant_override("separation", 16)
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_cards)
+	_foretold_line.name = "Foretold"
+	_foretold_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_foretold_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_foretold_line.custom_minimum_size.x = 520
+	_foretold_line.add_theme_font_size_override("font_size", 15)
+	_foretold_line.add_theme_color_override("font_color", UiStyle.MOON_MIST)
+	_foretold_line.visible = false
+	box.add_child(_foretold_line)
 	peek = ChoicePeek.new(self, [dim, center], "Back to the family pick")
 	box.add_child(peek.make_peek_button())
 	# A press for 0.6 s after the cards show never picks (Roguelite's ChoiceArm; user: "sometimes I click on cards when
@@ -101,6 +116,12 @@ func show_pick(reason: StringName = &"first") -> void:
 	# Picks follow only their own rules: no card puts a family into them (user, "make it predictable"; dream_design.md
 	# half-dreamed "Picks stay pure"). A half-dreamed card sleeps until a pick happens to offer its family.
 	offer = []  # Untyped: families (TowerData) and Blessings (UpgradeData) share it
+	if reason == &"boss" and not foretold.is_empty():  # Kin Foretold: the families shown last time, as promised
+		var promised := available.filter(func(d: TowerData) -> bool: return foretold.has(d.get_id()))
+		promised.sort_custom(func(a: TowerData, b: TowerData) -> bool: return foretold.find(a.get_id()) < foretold.find(b.get_id()))
+		available.assign(promised + available.filter(func(d: TowerData) -> bool: return not promised.has(d)))  # Typed: assign
+		count = maxi(count, promised.size())
+	foretold = []
 	offer.append_array(available.slice(0, count))
 	if reason == &"boss" and pending_memory_warden != null and not dream_state.is_unlocked(pending_memory_warden.get_id()):
 		if offer.size() >= cards_per_pick:
@@ -141,8 +162,45 @@ func show_pick(reason: StringName = &"first") -> void:
 			_cards.add_child(_make_memory_card(data))  # A boss's reward, not a family
 		else:
 			_cards.add_child(_make_card(data))
+	_foretell()
 	visible = true
 	arm.arm()
+
+static func kin_foretold_owned() -> bool:
+	if force_kin_foretold:
+		return true
+	if ResultsScreen.is_demo():
+		return false
+	var unlock := HeartwoodMemory.get_unlock(KIN_FORETOLD_ID)
+	return unlock != null and HeartwoodMemory.node_level(HeartwoodMemory.load_data(), unlock) > 0
+
+# The drift of the next boss pick (the act's last), or 0 when this is the last pick of the run.
+func next_pick_drift() -> int:
+	var per := drift_director.drifts_per_act
+	var next := (drift_director.drifts_started / per + 1) * per
+	return next if next < drift_director.get_total_drifts() else 0
+
+# Draws (once) and shows the next boss pick's families: still free, none of the cards on screen now.
+func _foretell() -> void:
+	_foretold_line.visible = false
+	var drift := next_pick_drift()
+	if not kin_foretold_owned() or drift <= 0:
+		return
+	if foretold.is_empty():
+		var on_screen := _ids(offer)
+		var pool := get_available().filter(func(d: TowerData) -> bool: return not on_screen.has(d.get_id()))
+		pool.shuffle()
+		var count := cards_per_pick
+		if first_boss_pick_fewer > 0 and drift <= drift_director.drifts_per_act:
+			count = maxi(count - first_boss_pick_fewer, 1)
+		foretold = pool.slice(0, count).map(func(d: TowerData) -> String: return d.get_id())
+	if foretold.is_empty():
+		return  # Every family offered: nothing to foretell
+	var names: Array = foretold.map(func(id: String) -> String:
+		var data := families.filter(func(d: TowerData) -> bool: return d.get_id() == id)
+		return data[0].display_name if not data.is_empty() else id.capitalize())
+	_foretold_line.text = "Next pick (drift %d): %s" % [drift, ", ".join(names)]
+	_foretold_line.visible = true
 
 # Sorted Warden ids of the families in `datas`.
 func _ids(datas: Array) -> Array:
