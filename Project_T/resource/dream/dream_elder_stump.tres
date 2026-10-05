@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_elder_stump"
 display_name = "Elder Stump"
-description = "Acorns can now grow into Elder Stumps ({grow_cost:elder_stump} Dew): the 8 Wardens around it attack 20% faster."
+description = "Acorns can now grow into Elder Stumps ({grow_cost:elder_stump} Dew): the 8 Wardens around it attack {field:elder_stump.aura_speed_bonus:pct} faster."
 rarity = 1
 kind = 1
 tags = Array[String](["acorn"])

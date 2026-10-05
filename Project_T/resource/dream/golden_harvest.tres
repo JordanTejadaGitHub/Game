@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "golden_harvest"
 display_name = "Golden Harvest"
-description = "Every 500 Dew you earn this run makes all Wardens deal 2% more damage (up to +30%); Dew from catchers and interest counts double."
+description = "All Wardens deal 2% more damage for every 500 Dew you've earned this run (up to +30%). Dew from Dewcatchers and Wellspring interest counts double toward it."
 rarity = 3
 kind = 3
 tags = Array[String](["acorn", "economy", "support"])

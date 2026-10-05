@@ -20,7 +20,7 @@ const STATUSES := {
 	&"asleep": ["Asleep", "Stopped for 3 s, long but fragile: a big hit (10%+ of its health) wakes it."],
 	&"caught": ["Caught", "{asleep} or fully {drowsy} near a Dreamcatcher: its statuses stop wearing off."],
 	&"frozen": ["Frozen", "Frost stops it for a moment."],
-	&"elite": ["Deeply Blighted", "An elite: 3× health, 2× Dew, and it takes 2 leaves."],
+	&"elite": ["Deeply Blighted", "An elite: 3× health, a triple share of the Dew, and it takes 2 leaves."],
 	&"hidden": ["Hidden", "Can't be seen or targeted until something reveals it, or it comes close."],
 	# Hushbell's silence (BranchKit.silence; EnemyStatuses.silence_time): the numbers are checked against the data in
 	# test_text_style (Silence's linger, the Vespers toll, Enemy.BOSS_SILENCE_SPEED).
@@ -34,12 +34,12 @@ const STATS := {
 	&"crit_chance": ["Crit chance", "The chance a hit is a critical hit."],
 	&"crit_damage": ["Crit damage", "How much harder a critical hit lands."],
 	&"potency": ["Potency", "How strong a Warden's statuses and effects are: higher Potency means more damage from {spored}, {static} and Reactions, a stronger slow from {drowsy}, a bigger bonus from {damp} and {marked}, and longer {held}."],
-	&"rank": ["Rank", "How nurtured it is (I–V): each rank adds damage, speed and range."],
-	&"focus": ["Focus", "Chosen at rank III: Power, Swift, Reach or Deep."],
-	&"focus_power": ["Power focus", "Deals 8% more damage."],
-	&"focus_swift": ["Swift focus", "Attacks 6% faster."],
-	&"focus_reach": ["Reach focus", "+0.2 range."],
-	&"focus_deep": ["Deep focus", "+10% status strength and duration."],
+	&"rank": ["Rank", "How nurtured it is (I and up; past V with the Eldest): each rank adds damage, speed and range."],
+	&"focus": ["Focus", "Each rank you pick one: Power, Swift, Reach or Deep."],
+	&"focus_power": ["Power focus", "Deals 18% more damage."],
+	&"focus_swift": ["Swift focus", "Attacks 12% faster."],
+	&"focus_reach": ["Reach focus", "+0.3 range."],
+	&"focus_deep": ["Deep focus", "+25% Potency."],
 	&"dew_cost": ["Dew cost", "Dew to plant, grow or nurture it."],
 	&"dreamlight_cost": ["Dreamlight cost", "Dreamlight to unlock this form for the run."],
 }
@@ -279,6 +279,9 @@ static func format(text: String) -> String:
 	if text.contains("{pct:"):  # A Warden's share field as a percent: "{pct:beacon.marked_bonus}" -> "50%" (texts follow the data)
 		for found in _pct_pattern().search_all(text):
 			text = text.replace(found.get_string(), pct_text(found.get_string(1), found.get_string(2)))
+	if text.contains("{field:"):  # Any Warden number: "{field:thunderhead.storm_every}", "{field:graftling.copy_share:pct}"
+		for found in _field_pattern().search_all(text):
+			text = text.replace(found.get_string(), field_text(found.get_string(1), found.get_string(2), found.get_string(3)))
 	return text
 
 # "{pct:beacon.marked_bonus}" -> "50%": TowerData field `field` of Warden `warden_id`, × 100 ("full strength" at 1.0).
@@ -289,6 +292,52 @@ static func pct_text(warden_id: String, field: String) -> String:
 		return "%s.%s" % [warden_id, field]
 	var value := float(data.get(field))
 	return "full strength" if is_equal_approx(value, 1.0) else "%d%%" % roundi(value * 100.0)  # Like {echo:}: 1.0 reads "full"
+
+# Any TowerData number in text (text_pass.md 797758fe: 17 Warden cards quoted stale numbers): "{field:snugroot.hold_targets}"
+# -> "5", one Dictionary key deep ("{field:nimbus.special_params.burst_every}"), with an optional format: ":count"
+# (whole number), ":seconds" ("1.5 s"), ":every" (a per-second rate as its period: "5 s"), ":pct" (× 100, "80%"), ":cells"
+# ("2.5 cells"), ":times" ("×1.5"). No format: a whole number when it is one, else up to 2 decimals.
+static func field_text(warden_id: String, field: String, style: String = "") -> String:
+	var path := "res://resource/tower/%s.tres" % warden_id
+	var data := load(path) as TowerData if ResourceLoader.exists(path) else null
+	var parts := field.split(".")  # "special_params.key": a key inside a Dictionary field (BranchKit specials)
+	if data == null or not (parts[0] in data):
+		return "%s.%s" % [warden_id, field]
+	var raw = data.get(parts[0])
+	if parts.size() > 1:
+		if not (raw is Dictionary) or not raw.has(parts[1]):
+			return "%s.%s" % [warden_id, field]
+		raw = raw[parts[1]]
+	if not (raw is float or raw is int):
+		return "%s.%s" % [warden_id, field]
+	var value := float(raw)
+	match style:
+		"every":  # A rate per second as its period: attacks_per_second 0.2 -> "5 s"
+			return "%s s" % _number(1.0 / value) if value > 0.0 else "%s.%s" % [warden_id, field]
+		"count":
+			return str(roundi(value))
+		"pct":
+			return "%d%%" % roundi(value * 100.0)
+		"seconds":
+			return "%s s" % _number(value)
+		"cells":
+			return "%s cell%s" % [_number(value), "" if is_equal_approx(value, 1.0) else "s"]
+		"times":
+			return "×%s" % _number(value)
+	return _number(value)
+
+# 3 -> "3", 1.5 -> "1.5", 0.333 -> "0.33".
+static func _number(value: float) -> String:
+	if is_equal_approx(value, roundf(value)):
+		return str(roundi(value))
+	return str(snappedf(value, 0.01))
+
+static var _field_regex: RegEx = null
+static func _field_pattern() -> RegEx:
+	if _field_regex == null:
+		UiStyle.release_at_exit(func() -> void: _field_regex = null)
+		_field_regex = RegEx.create_from_string("\\{field:([a-z_0-9]+)\\.([a-z_0-9]+(?:\\.[a-z_0-9]+)?)(?::([a-z]+))?\\}")
+	return _field_regex
 
 static var _pct_regex: RegEx = null
 static func _pct_pattern() -> RegEx:

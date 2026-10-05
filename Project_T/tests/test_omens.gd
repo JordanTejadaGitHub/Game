@@ -175,7 +175,8 @@ func _test_twists(main: Node) -> void:
 		"Bountiful Night: the pot ×1.5, never a per-nightmare Dew modifier (the pot carries it)")
 	_activate(omens, "swift_stream", 3)
 	var swift: Node2D = spawner.spawn_enemy(bug, 1.0, director.get_spawn_modifiers(bug, 12))
-	_check(is_equal_approx(swift.speed, bug.speed * 1.25), "Swift Stream: +25% speed")
+	_check(is_equal_approx(swift.speed, bug.speed) and director.get_spawn_modifiers(bug, 12).get("straight_speed") == 1.4 and director.get_spawn_modifiers(bug, 12).get("straight_speed_cells") == 4,
+		"Swift Stream: no plain speed; +40% on straights of 4+ cells (Enemy Code reads straight_speed)")
 	swift.free()
 	_activate(omens, "stubborn_blight", 3)
 	var stubborn: Node2D = spawner.spawn_enemy(bug, 1.0, director.get_spawn_modifiers(bug, 12))

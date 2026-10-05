@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_graftling"
 display_name = "Graftling"
-description = "Acorns can now grow into Graftlings ({grow_cost:graftling} Dew): copies the attack of its strongest neighbouring Warden at 60%, statuses and all."
+description = "Acorns can now grow into Graftlings ({grow_cost:graftling} Dew): copies the attack of its strongest neighbouring Warden at {field:graftling.copy_share:pct}, statuses and all."
 rarity = 1
 kind = 1
 tags = Array[String](["acorn"])

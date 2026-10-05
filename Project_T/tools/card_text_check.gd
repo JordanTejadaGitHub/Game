@@ -142,6 +142,33 @@ static func warden_numbers(data: TowerData) -> Array[float]:
 			out.append_array(numbers_in(str(value)))
 	return out
 
+# Warden fields that are art or bookkeeping, never a number a grow card quotes.
+const NOT_WARDEN_NUMBER := ["frame_count", "attack_frame_count", "attack_release_frame", "tier", "footprint", "sprite_offset",
+	"attack_origin", "evolve_cost", "cost", "order"]
+
+# A grow / unlock card's numbers typed by hand that its Warden's own fields carry (text_pass.md 797758fe: they drift when
+# the Warden changes): each should be a {field:<id>.<field>[:format]} token. Small counts (≤ SMALL) are words, not flagged.
+static func typed_warden_numbers(card: UpgradeData) -> Array[String]:
+	var data := card.unlocks
+	if data == null:
+		return []
+	var values: Array[float] = []
+	var defaults := TowerData.new()  # Only the fields this Warden sets (a default it never uses is no claim)
+	for prop in data.get_property_list():
+		if not (prop.usage & PROPERTY_USAGE_SCRIPT_VARIABLE) or NOT_WARDEN_NUMBER.has(prop.name) \
+				or "frame" in prop.name or "fps" in prop.name or prop.name.ends_with("kind"):
+			continue
+		var value = data.get(prop.name)
+		if (value is int or value is float) and absf(float(value)) > 0.0 and value != defaults.get(prop.name):
+			values.append_array(forms_of(float(value)))
+	var out: Array[String] = []
+	var text := RegEx.create_from_string("\\{[^}]*\\}").sub(card.description, "", true)
+	for m in RegEx.create_from_string("\\d+(?:\\.\\d+)?").search_all(text):
+		var n := float(m.get_string())
+		if n > SMALL and values.any(func(v: float) -> bool: return is_equal_approx(v, n)):
+			out.append(m.get_string())
+	return out
+
 # Every number in a constant's value text ("0.25", "[0.30, 0.50]", "{1: 2}").
 static func numbers_in(text: String) -> Array[float]:
 	var out: Array[float] = []

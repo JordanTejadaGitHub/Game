@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_tidecaller"
 display_name = "Tidecaller"
-description = "Any {family:dewdrop}-family final form can ascend into Tidecaller ({grow_cost:tidecaller} Dew, one per run): every 6 s a great wave soaks everything in range, pushes it back a tile and freezes the already {damp}."
+description = "Any {family:dewdrop}-family final form can ascend into Tidecaller ({grow_cost:tidecaller} Dew, one per run): every 6 s a great wave makes everything in range {damp}, pushes it back a tile, and leaves the already {damp} ones {frozen}."
 rarity = 3
 kind = 1
 tags = Array[String](["water"])

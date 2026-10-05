@@ -6,7 +6,8 @@
 script = ExtResource("1_omen")
 id = "swift_stream"
 display_name = "Swift Stream"
-description = "Nightmares move 25% faster."
+description = "On straights of 4+ cells, nightmares move 40% faster."
 flavor = "They're hungry, and they're hurrying."
-speed_multiplier = 1.25
+straight_speed_multiplier = 1.4
+straight_speed_cells = 4
 reward_seeds = 5

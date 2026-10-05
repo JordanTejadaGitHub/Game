@@ -589,7 +589,7 @@ risk: players set their own difficulty block by block.
 | **Thick Blight** | creatures +20% health | next Dream offers 4 cards |
 | **Crowded Paths** | +30% creatures per drift | +40 Dew |
 | **Hard Bark** | blight coats +50% | next Dream: one card is Rare+ |
-| **Swift Stream** | creatures +15% speed | +3 Seeds |
+| **Swift Stream** | nightmares **+40% speed on straights** of 4+ cells (they surge down long corridors; a winding maze shrugs it off; revised 2026-10-05, it was a weaker Blood Moon) | +3 Seeds |
 | **Dry Spell** | creatures give no Dew | rest bonus ×2 |
 | **Stubborn Blight** | status durations halved | regrow 2 leaves |
 | **Restless Wind** | drifts arrive 30% closer together | +1 max leaf |
@@ -617,7 +617,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
 - **Heavy Rain, Sleepless and Hollow Wind read your build:** they're great or awful depending on
   what you've built (Heavy Rain feeds Thunderclap and Conductive Soil; Sleepless hurts sleep builds).
   That's the point: an Omen that's free for *your* build is a reason to take it.
-- **Frozen Ground** still allows selling (at the usual 50%) and clearing; it's only about planting.
+- **Frozen Ground** blocks planting, growing and selling during drifts (rests only); clearing still works.
 - **Leaf Fall** doubles every leak, so it is **never offered for a block that contains a boss drift** (a boss leak would cost 16 / 20 / 24 and end the run; Balancing Discussion, enemy_design.md 8bc4be6a). Outside boss blocks it doubles normal leaks;
   (That includes the Hollow Oak's block, so its drain is never doubled.)
 - **Lean Season's Legendary** follows the Legendary rules (any Legendary you could be offered);
@@ -632,7 +632,7 @@ the map or the rules**. That makes ~20; aim for no Omen twice in a row and each 
   leak multiplier, rest-bonus multiplier below 1, status immunities, always-applied status, extra
   elites per drift, all-flyer drift count, obstacles to sprout, per-tree Seed bonus; rewards
   `dreamlight`, `dream_legendary`. Blood Moon and Bountiful Night have no separate reward (their Dew is it); **Heavy Rain keeps +30 Dew**, because its +35% health hurts every build while the Soaked only helps some.
-- **Current values (2026-09-30, the data in `resource/omen/` is authoritative; the tables above show the pre-×1.5 numbers):** Thick Blight +30% health · Crowded Paths +45% nightmares · Hard Bark coats +75% · Heavy Rain always Soaked, +50% health · Blood Moon +35% speed, +75% Dew · Bountiful Night +35% health, **+100% Dew** · Elder Night +2 elites per drift · Hollow Wind first 3 drifts flyers · Moth Night +60% flyers · Restless Wind 45% closer · Swift Stream +25% speed · Wilting 22% slower attacks · Fog Bank −1 range · Shifting Ground 5 trees · Lean Season rest bonus to a quarter · Leaf Fall double leaves.
+- **Current values:** the data in `resource/omen/` is authoritative (the tables above show starting numbers; the card text reads the data). Not repeated here, so it can't drift.
 - **Omen audit fixes (Meta Game Discussion, decided by the design chat):**
   0. **No double benefit from extra nightmares** (2026-10-01, user: *"some Omens give double benefit, since 45% more nightmares give more Dew"*): nightmares an Omen **adds** don't add Dew. Crowded Paths: Dew per nightmare × 1 / 1.45 for the block (same total as without the Omen); Elder Night: the added elites give normal Dew, not ×3; Moth Night: the added flyers give no Dew. The Omen's reward is its only payoff. (Bountiful Night and Blood Moon, whose reward *is* Dew, are unchanged.)
   1. **Hard Bark** is only offered when the next block has a nightmare with a blight coat (Shellbound, any `coat_total` > 0); "blight coat" becomes a glossary link.
@@ -702,12 +702,12 @@ per offer, no repeat from the last rest, rewards × act for Dew and Seeds, bosse
 |---|---|---|---|---|
 | **Swarming Night** | **twice as many nightmares, each at 0.6× health** (the Dew pot is shared as usual) | +5 Seeds | *"They come in a rush, thin as moths."* | any act |
 | **Giants' Walk** | **half as many nightmares, each at 2.4× health**; each leak costs **+1 leaf** | next Dream: one card is Rare+, and +25 Dew | *"Few come tonight. They are very large."* | act 2+; never a boss block |
-| **Brittle Night** | nightmares have **−25% health**, but every leak costs **double leaves** | +45 Dew | *"They crack at a touch. So does the Heartwood."* | never a boss block (as Leaf Fall) |
-| **Static Sky** | every nightmare is **always Charged**, but **+30% speed** | +40 Dew | *"The air hums. They run with sparks in their fur."* | once a Charged source exists this run (a lightning Warden or card), like Hollow Wind's flyer rule |
+| **Brittle Night** | nightmares have **−25% health**, but every leak costs **double leaves** | +45 Dew | *"They crack at a touch. So does the Heartwood."* | never a boss block, and never in the same offer as Leaf Fall (same doubled leaks; Brittle Night pays for itself with weaker nightmares, Leaf Fall doesn't) |
+| **Crackling Sky** | every nightmare is **always Charged**, but **+30% speed** | +40 Dew | *"The air hums. They run with sparks in their fur."* | once a Charged source exists this run (a lightning Warden or card), like Hollow Wind's flyer rule |
 
 - **Who they favour:** Swarming Night = area, pulse, chain and cloud builds (single-target snipers
   struggle); Giants' Walk = single-target, beam and sniper builds (area and Spored builds struggle);
-  Brittle Night = a long, safe maze (one hole costs double); Static Sky = storm and Reaction builds
+  Brittle Night = a long, safe maze (one hole costs double); Crackling Sky = storm and Reaction builds
   (Thunderclap, Conductive Soil), while the speed hurts everyone else.
 - **Numbers set by Balancing Discussion** (balance_simulation.md 47b990c3; the data in `resource/omen/` is authoritative). Swarming Night's doubled counts round up.
   Giants' Walk never halves a drift below 1, and elites stay elites at 2.4× on top of their ×3.

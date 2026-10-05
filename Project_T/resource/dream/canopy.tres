@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "canopy"
 display_name = "Canopy"
-description = "When you've planted 20, 30 and 40 attacking Wardens this run, every Warden deals 12% more damage for good, each time."
+description = "When you've planted 20, 30 and 40 attacking Wardens this run, every Warden deals 12% more damage for good, each time (up to +36%)."
 rarity = 2
 kind = 3
 tags = Array[String](["wide", "overgrowth"])

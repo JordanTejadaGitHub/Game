@@ -691,6 +691,30 @@ func _run() -> void:
 		_check(not straight._leaping or route[bend + 1] - route[bend] != route[bend + 2] - route[bend + 1], "not on a straight")
 	_clear_enemies()
 
+	# --- Swift Stream Omen: ×1.4 only on a straight of 4+ cells (half-cell steps) ---
+	var streamer := _still("leaf_bug", Vector2(2.25, 2.25))
+	var plain_speed: float = streamer.get_move_speed()
+	streamer.modifiers = {"straight_speed": 1.4, "straight_speed_cells": 4}
+	var long_straight := PackedVector2Array()
+	for i in 9:  # 8 half steps = a 4.5-cell straight, then a turn
+		long_straight.append(Vector2(2.25 + 0.5 * i, 2.25))
+	long_straight.append(Vector2(6.25, 2.75))
+	streamer.set_path(long_straight)
+	streamer._path_index = 2
+	streamer._on_cell_reached()
+	_check(streamer.stream_speeding and is_equal_approx(streamer.get_move_speed(), plain_speed * 1.4),
+		"Swift Stream: on a 4.5-cell straight it runs ×1.4 (%.1f vs %.1f)" % [streamer.get_move_speed(), plain_speed])
+	streamer._path_index = 9  # The turn
+	streamer._on_cell_reached()
+	_check(not streamer.stream_speeding and is_equal_approx(streamer.get_move_speed(), plain_speed), "back to its pace at the turn")
+	var short_straight := PackedVector2Array([Vector2(2.25, 2.25), Vector2(2.75, 2.25), Vector2(3.25, 2.25), Vector2(3.75, 2.25),
+		Vector2(3.75, 2.75), Vector2(3.75, 3.25)])
+	streamer.set_path(short_straight)
+	streamer._path_index = 2
+	streamer._on_cell_reached()
+	_check(not streamer.stream_speeding, "not on a 2.5-cell straight")
+	_clear_enemies()
+
 	# --- Rounded corners: the drawn path curves, the route and the timing stay square ---
 	_clear_enemies()
 	var l_walker := _still("leaf_bug", Vector2(2, 2))

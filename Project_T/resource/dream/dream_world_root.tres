@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_world_root"
 display_name = "World Root"
-description = "Any {family:rootling}-family final form can ascend into World Root ({grow_cost:world_root} Dew, one per run): every 5 s roots erupt, Rooting everything in range for 1 s; {held} nightmares take 30% more from every Warden."
+description = "Any {family:rootling}-family final form can ascend into World Root ({grow_cost:world_root} Dew, one per run): every {field:world_root.attacks_per_second:every} roots erupt, Rooting everything in range for {field:world_root.freeze_duration:seconds}; {held} nightmares take {field:world_root.held_damage_bonus:pct} more from every Warden."
 rarity = 3
 kind = 1
 tags = Array[String](["root"])

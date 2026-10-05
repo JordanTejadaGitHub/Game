@@ -211,6 +211,7 @@ var _squeeze := 1.0  # The width factor sprite.scale.x carries now (_update_sque
 var _foot_lift := 0.0
 var _untouchable := false  # Night Mare lingering: no hits, no statuses, not targeted (_set_untouchable)
 var straight_charging := false  # Hollow Stag: on a straight of straight_charge_tiles+ (see _update_straight_charge)
+var stream_speeding := false  # Swift Stream Omen: on a long straight, ×straight_speed (_update_swift_stream)
 var _bellowed := false
 var _leaping := false  # Sinking / underground / rising (Mire Hag, Gravecrawler): not walking
 # Rooted Nightmares (Dream card 122): a Held nightmare blocks its cell. Walkers re-route round it,
@@ -1165,6 +1166,7 @@ func stop_speed_boosts() -> void:
 	rolling = false
 	_straight_steps = 0
 	straight_charging = false
+	stream_speeding = false
 	_charge_left = 0.0
 	_speed_stale = true
 
@@ -1229,6 +1231,8 @@ func get_move_speed() -> float:
 		base *= enemy_data.charge_speed_multiplier
 	if straight_charging:
 		base *= enemy_data.straight_charge_multiplier
+	if stream_speeding:
+		base *= float(modifiers.get("straight_speed", 1.0))  # Swift Stream Omen
 	if enemy_data.hurt_below > 0.0 and health <= max_health * enemy_data.hurt_below:
 		base *= enemy_data.hurt_speed_multiplier  # Scarecrow: Stitched
 	base *= 1.0 + RESTLESS_SPEED * restless
@@ -1275,6 +1279,8 @@ func _on_cell_reached() -> void:
 	if enemy_data.straight_charge_tiles > 0:
 		_update_straight_charge()
 	if not modifiers.is_empty():  # Omens: Tramplers, Burrowers
+		if modifiers.has("straight_speed") and not is_flying():
+			_update_swift_stream()
 		if modifiers.get("tramples_thornwall", false) and _spawner != null and not is_flying():
 			_spawner.try_omen_trample(self)
 		var burrow_tiles := int(modifiers.get("burrow_tiles", 0))
@@ -1309,22 +1315,36 @@ func _update_straight_charge() -> void:
 	var was := straight_charging
 	straight_charging = false
 	if _path_index >= 1 and _path_index < _path.size():
-		var here := _path_index - 1
-		var step := _path[here + 1] - _path[here]
-		var tiles := 2
-		var i := here + 1
-		while i + 1 < _path.size() and _path[i + 1] - _path[i] == step:
-			tiles += 1
-			i += 1
-		i = here
-		while i >= 1 and _path[i] - _path[i - 1] == step:
-			tiles += 1
-			i -= 1
 		# A charge can't start on a cracked cell (Earthshaker, Fault Line); one already running carries on
-		var straight_cells := (tiles - 1) * _step_cells(here + 1) + 1.0  # Points → cells (half-cell routes too)
-		straight_charging = straight_cells >= enemy_data.straight_charge_tiles - 0.01 \
+		straight_charging = _straight_cells() >= enemy_data.straight_charge_tiles - 0.01 \
 			and (was or not BranchKit.is_cracked(self, get_current_cell()))
 	if straight_charging != was:
+		_speed_stale = true
+
+# The length in cells of the straight it's on now: the whole run of same-direction steps through its
+# current step, behind and ahead (half-cell routes too). 0 off a route.
+func _straight_cells() -> float:
+	if _path_index < 1 or _path_index >= _path.size():
+		return 0.0
+	var here := _path_index - 1
+	var step := _path[here + 1] - _path[here]
+	var tiles := 2
+	var i := here + 1
+	while i + 1 < _path.size() and _path[i + 1] - _path[i] == step:
+		tiles += 1
+		i += 1
+	i = here
+	while i >= 1 and _path[i] - _path[i - 1] == step:
+		tiles += 1
+		i -= 1
+	return (tiles - 1) * _step_cells(here + 1) + 1.0  # Points → cells
+
+# The Swift Stream Omen (run_design.md; modifiers straight_speed / straight_speed_cells): faster only while
+# on a straight of straight_speed_cells+ cells, back to its pace at the turn. Bosses never carry Omens.
+func _update_swift_stream() -> void:
+	var was := stream_speeding
+	stream_speeding = _straight_cells() >= float(modifiers.get("straight_speed_cells", 4)) - 0.01
+	if stream_speeding != was:
 		_speed_stale = true
 
 # Mire Hag: sinks into the mire and rises `leap_tiles` ahead along her path, then makes nightmares
@@ -2347,6 +2367,9 @@ func set_path(points: PackedVector2Array) -> void:
 	_path = points
 	_cells_left = PackedFloat32Array()
 	_path_index = 0
+	if stream_speeding:
+		stream_speeding = false  # Swift Stream: until it next reaches a cell on the new route
+		_speed_stale = true
 	if straight_charging:
 		straight_charging = false  # Until it next reaches a cell on the new route
 		_speed_stale = true

@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_earthbind"
 display_name = "Earthbind"
-description = "Groundroots can now grow into Earthbinds ({grow_cost:earthbind} Dew): more flyers, held as they land."
+description = "Groundroots can now grow into Earthbinds ({grow_cost:earthbind} Dew): more flyers, {held} as they land."
 rarity = 2
 kind = 1
 tags = Array[String](["root"])

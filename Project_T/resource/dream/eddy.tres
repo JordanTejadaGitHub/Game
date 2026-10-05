@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "eddy"
 display_name = "Eddy"
-description = "Gust's copies also reach nightmares on the path tiles beside the target (bends count double)."
+description = "Gust's copied statuses also reach nightmares 1 path tile either side of its target along the route (2 tiles when the target stands on a bend)."
 rarity = 1
 kind = 3
 tags = Array[String](["wind", "maze"])

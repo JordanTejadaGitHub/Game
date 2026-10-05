@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_autumn_gale"
 display_name = "Autumn Gale"
-description = "Samaras can now grow into Autumn Gales ({grow_cost:autumn_gale} Dew): two seeds down the two busiest lines; each caught seed that hit something makes the next throw 10% stronger (up to 50%)."
+description = "Samaras can now grow into Autumn Gales ({grow_cost:autumn_gale} Dew): {field:autumn_gale.boomerang_seeds:count} seeds down the busiest lines; each caught seed that hit something makes the next throw {field:autumn_gale.catch_bonus:pct} stronger (up to {field:autumn_gale.catch_bonus_max:pct})."
 rarity = 2
 kind = 1
 tags = Array[String](["wind"])

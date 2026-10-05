@@ -239,4 +239,8 @@ static func omen_risk(omen: OmenData) -> float:
 	risk += -omen.warden_range_add * 0.4 + omen.extra_elites * 0.25 + omen.all_flyer_drifts * 0.1 + omen.sprout_obstacles * 0.03
 	risk += 0.3 if omen.no_build_during_drift else 0.0
 	risk += 0.1 * omen.status_immune.size() + (0.2 if omen.always_status != &"" else 0.0)
+	# Swift Stream (364d8f2f): faster only on straights of straight_speed_cells+, so half the weight of a full speed-up
+	var straight = omen.get("straight_speed_multiplier")
+	if straight != null:
+		risk += (float(straight) - 1.0) * 0.75
 	return risk

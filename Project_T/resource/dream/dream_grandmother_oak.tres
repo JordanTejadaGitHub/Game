@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_grandmother_oak"
 display_name = "Grandmother Oak"
-description = "Any {family:acorn}-family final form can ascend into Grandmother Oak ({grow_cost:grandmother_oak} Dew, one per run): Wardens in her range deal 40% more and attack 20% faster; she gives 10 Dew after every {drift}."
+description = "Any {family:acorn}-family final form can ascend into Grandmother Oak ({grow_cost:grandmother_oak} Dew, one per run): Wardens in her range deal {field:grandmother_oak.aura_damage_bonus:pct} more and attack {field:grandmother_oak.aura_speed_bonus:pct} faster; she gives {field:grandmother_oak.dew_per_drift:count} Dew after every {drift}."
 rarity = 3
 kind = 1
 tags = Array[String](["acorn"])
