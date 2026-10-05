@@ -3,7 +3,7 @@
 	"note": "Trailer chat. Cut list on the cue's 2.5 s bars (72 bpm 3/4): cuts at 0 / 5 / 10 / 15 / 27.5 / 37.5 / 45 / 55 / 57.5 / 60 / 70, the end card 70-75. Hits: 7.5 dispel (trailer_02), 20 Thunderclap (trailer_04 x5 at clip 6.0 -> from 1.0), 52.5 Stag stall (trailer_07), 65 Dawnburst (trailer_10 x10 at clip 14.4 -> from 9.4). In-points marked 'provisional' are set from the first renders.",
 	"format": "trailer",
 	"size": [1920, 1080],
-	"bed": "",
+	"bed": "D:/Projects/Game/marketing/music/trailer_full.wav",
 	"end_tagline": "Grow a living maze. Hold back the nightmares.",
 	"cuts": [
 		{"clip": "trailer_01_maze", "from": 2.0, "to": 7.0},
