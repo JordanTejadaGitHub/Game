@@ -806,6 +806,37 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 **tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
 `longest_path` / `tended` requested in the run history to re-check.
 
+## Plant vs grow vs rank: value per Dew (user via the hub, 2026-10-05: "placing more towers and growing them equal the same math with the new interest")
+
+Goal: planting the Nth copy, growing (base → branch 120, branch → final 450) and Nurture ranks (30 / 48 / 60 /
+90 / 135 × tier 1 / 2 / 3) give about the same value per Dew (±15%) over act 1–2's usual counts. Walls exempt.
+
+**Paper numbers (data, hit DPS = damage × attacks/s; no statuses, area, Reactions or reach):**
+
+| | Sporeling | Firefly Jar | Dewdrop | Bellflower |
+|---|---|---|---|---|
+| Base DPS | 14 | 21 | 18 | 17 (pulse) |
+| Copy N price (step 0.08) | 25 → 33 (N 5) → 41 (N 10) → 53 (N 15) | same | same | same |
+| Copy DPS / Dew, N 1 / 5 / 10 / 15 | 0.56 / 0.42 / 0.34 / 0.26 | 0.84 / 0.64 / 0.51 / 0.40 | 0.72 / 0.55 / 0.44 / 0.34 | 0.68 / 0.52 / 0.41 / 0.32 |
+| Branch mean DPS (range) | 20 (12–39) | 51 (10–113) | 30 (6–72) | 38 (13–70) |
+| Grow → branch, DPS / Dew | 0.05 | 0.25 | 0.10 | 0.18 |
+| Final mean DPS (range) | 41 (27–60) | 94 (10–240) | 31 (8–60) | 85 (24–165) |
+| Branch → final, DPS / Dew | 0.05 | 0.10 | 0.00 | 0.10 |
+| Rank I on base / branch / final (≈ +14% DPS) | 0.07 / 0.05 / 0.06 | 0.10 / 0.12 / 0.15 | 0.08 / 0.07 / 0.05 | 0.08 / 0.09 / 0.13 |
+
+On paper the 15th copy still beats any grow by 2–5×, yet in the sims they come out even: at copy step 0.08 the
+**default bot (13 Wardens, ~5 branches) survives the act 1 boss 63–70%, the spender (~18 Wardens, no grows)
+67–70%**. Hit DPS misses what growing buys (statuses, area, Reactions, a branch's ability, no new cell needed)
+and what each extra copy loses (worse spots, a status that's already on the target). **Paper DPS can't set
+these numbers; a measured value per Dew can.**
+
+**Measured probe (asked of Balancing Code):** from a bot board saved at drifts 10, 20 and 35 (`--save-at`), give
++X Dew and spend it only one way: (a) planted copies, (b) one grow to a branch (X = 120), (c) branch → final
+(X = 450), (d) ranks; each family via `--families`, 30 seeds. Value = the next block's leaves saved and health
+dispelled versus no extra Dew, per Dew. Plus the bot's mean +path per placement (the maze side of planting).
+Then the crossover ("from the Nth copy, growing is better") and a proposal; **nothing changes until the user
+approves.**
+
 ## Lichen shell strip (2026-10-05, flagged by Tower Code)
 
 `shell_strip` was 1% of a dread shell per Spored tick (one tick a second, whatever the stacks): ~100 s
