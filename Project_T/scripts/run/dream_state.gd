@@ -229,7 +229,7 @@ var first_offer_cards := 0  # Sidegrade Kindling: the first Dream offer (drifts 
 # Grow and Nurture prices (Balancing 2026-10-04, demo too; Tower Code): global multipliers on TowerData.evolve_cost by
 # tier, and the base Nurture costs for ranks I-V. They write the statics every price reads (TowerData.get_grow_price,
 # Tower.rank_costs), so panels, group grows and the sims agree. Old prices: 1.0 / 1.0 / 1.0, Tower.RANK_COSTS_V2.
-@export var branch_cost_multiplier: float = 1.5:
+@export var branch_cost_multiplier: float = 1.0:  # Back to 120 Dew (be7b5a94; was 1.5 in f9fd8526)
 	set(value):
 		branch_cost_multiplier = value
 		TowerData.grow_cost_multipliers[2] = value

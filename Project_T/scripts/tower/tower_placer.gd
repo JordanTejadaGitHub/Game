@@ -1045,7 +1045,7 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 		cost = roundi(cost * (1.0 + copy_cost_step * (count_copies(warden) + planned_sprouts)))
 	return cost
 
-@export var copy_cost_step := 0.05  # +5% per copy on the map (0 = off, the sims' A/B)
+@export var copy_cost_step := 0.08  # +8% per copy on the map (be7b5a94; was 0.05. 0 = off, the sims' A/B)
 var _copy_counts := {}  # id -> planted copies, rebuilt when the board changes
 var _copy_board := -1
 

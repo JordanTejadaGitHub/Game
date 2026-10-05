@@ -321,9 +321,9 @@ func get_attack_origin() -> Vector2:
 # frame height (Tower Assets 2026-10-02: regular art is 64×80, tall 64×96, Ascended 128): the body is the bottom 64
 # rows, so a frame h tall moves up (h − 64) / 2.
 # Global grow-cost multipliers by tier (user via Balancing 2026-10-04: "make growing more expensive, rely on making
-# more Wardens early instead of saving"): branches ×1.5, finals ×1.5, Ascended ×1.0. DreamState's exports set them
+# more Wardens early instead of saving"): finals ×1.5 (branches back to ×1.0, be7b5a94), Ascended ×1.0. DreamState's exports set them
 # (branch_ / final_ / ascended_cost_multiplier) so the sims can A/B; 1.0 = the old prices.
-static var grow_cost_multipliers := {2: 1.5, 3: 1.5, 4: 1.0}
+static var grow_cost_multipliers := {2: 1.0, 3: 1.5, 4: 1.0}
 
 # Dew to grow into this form before Dream discounts: evolve_cost × its tier's multiplier. Every price read goes here.
 # The wall line (Thornwall's growths) keeps its price: walls are the maze, and "more maze early" is the point.
