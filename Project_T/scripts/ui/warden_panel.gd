@@ -114,7 +114,7 @@ func _ready() -> void:
 	_details.add_child(_map_note)
 	_buttons.add_theme_constant_override("separation", 0)  # Rows: 48 px each, the hit areas touch
 	box.add_child(_buttons)  # Actions: never scrolled away
-	_footer.add_theme_constant_override("separation", 0)
+	_footer.add_theme_constant_override("separation", 4)  # + the 16 px gap = 24 between Sell and Close
 	box.add_child(_footer)
 	get_viewport().size_changed.connect(_fit_height)
 	visible = false
@@ -342,8 +342,8 @@ func _refresh() -> void:
 			# in place, 1–4 pick, Esc / R close. (The Heartwood Sapling's ranks only raise its yield: the
 			# button nurtures at once.)
 			if not _choosing or not _tower.needs_focus():
-				_gap(6.0)  # Room above the primary's thread and mark
 				var nurture := _add_button("")
+				_as_choice(nurture)  # The same weight as the grow rows (no primary)
 				nurture.set_meta(&"key", " (R)")
 				nurture.tooltip_text = ("Choose what rank %s adds. Kept when it grows; can't be changed." % Tower.rank_name(_tower.rank + 1)
 					if _tower.needs_focus() else "Rank %s: %s." % [Tower.rank_name(_tower.rank + 1), _tower.focus_text(_tower.default_choice())]) + _growth_note()
@@ -390,7 +390,11 @@ func _refresh() -> void:
 	elif not tower_seller.can_sell():
 		sell.text = tower_seller.sell_block_reason()
 		sell.disabled = true
+	var gap := Control.new()  # Sell and Close apart (their keys sit inside each: X sells, Esc closes)
+	gap.custom_minimum_size.x = 16.0
+	_footer.add_child(gap)
 	var close := _add_footer_button("Close")
+	_key_on(close, "Esc")
 	close.pressed.connect(tower_seller.select.bind(null))
 
 func _is_eldest(tower: Tower) -> bool:
@@ -486,12 +490,12 @@ func _refresh_group() -> void:
 					rank_options.append(which)
 	if not rank_options.is_empty() and not _choosing:
 		var nurturable := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_nurture())
-		_gap(6.0)
 		var open := _add_button("")
+		_as_choice(open)
 		open.set_meta(&"key", " (R)")
 		var cheapest_rank: int = 0 if _free_rank() else nurturable.map(func(t: Tower) -> int: return t.get_nurture_price()).min()
 		open.tooltip_text = "Choose the rank each one gains."  # Before _priced: it keeps the tip
-		_priced(open, "Nurture %d" % nurturable.size(), _price(cheapest_rank), cheapest_rank, &"dew", true)  # The one primary; short: R refuses
+		_priced(open, "Nurture %d" % nurturable.size(), _price(cheapest_rank), cheapest_rank, &"dew", false)  # A choice like the grow rows; short: R refuses
 		open.pressed.connect(_toggle_choices)
 		_rank_preview_on(open, nurturable, Tower.Focus.NONE)
 	for index in (rank_options.size() if _choosing else 0):
@@ -524,7 +528,11 @@ func _refresh_group() -> void:
 	if not tower_seller.can_sell():
 		sell.text = tower_seller.sell_block_reason()
 		sell.disabled = true
+	var gap := Control.new()  # Sell and Close apart (their keys sit inside each: X sells, Esc closes)
+	gap.custom_minimum_size.x = 16.0
+	_footer.add_child(gap)
 	var close := _add_footer_button("Close")
+	_key_on(close, "Esc")
 	close.pressed.connect(tower_seller.select.bind(null))
 
 # Portrait and count for one kind in the selection.
@@ -942,8 +950,7 @@ func _row_limit() -> int:
 
 func _grow_row(index: int, count: int) -> Button:
 	var button := _add_button("")
-	UiStyle.row(button)
-	button.set_meta(&"variation", &"RowButton")  # _set_short keeps the row look when it isn't the primary
+	_as_choice(button)
 	var limit := _row_limit()
 	button.visible = _more_open or count <= limit or index < limit
 	return button
@@ -1111,16 +1118,19 @@ func _key_on(button: Button, key: String) -> void:
 		return
 	var chip := UiStyle.key_chip(key)
 	chip.name = "Key"
+	var side := maxf(chip.get_combined_minimum_size().x, 18.0)  # "Esc" is wider than "X"
 	chip.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
-	chip.offset_left = -24
+	chip.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	chip.offset_left = -4.0 - side
 	chip.offset_right = -4
 	button.add_child(chip)
+	var extra := side + 4.0
 	var room := button.get_theme_stylebox("normal").duplicate() as StyleBox
-	room.content_margin_right = room.get_margin(SIDE_RIGHT) + 22.0
+	room.content_margin_right = room.get_margin(SIDE_RIGHT) + extra
 	button.add_theme_stylebox_override("normal", room)
 	for state in ["hover", "pressed", "hover_pressed", "disabled"]:
 		var box := button.get_theme_stylebox(state).duplicate() as StyleBox
-		box.content_margin_right = box.get_margin(SIDE_RIGHT) + 22.0
+		box.content_margin_right = box.get_margin(SIDE_RIGHT) + extra
 		button.add_theme_stylebox_override(state, box)
 	var text := button.text
 	button.set_meta(&"keyed_text", text)
@@ -1143,7 +1153,13 @@ func _add_footer_button(text: String) -> Button:
 	button.focus_mode = Control.FOCUS_NONE
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # Sell takes the room left; Details and Close shrink to their words
 	UiStyle.quiet(button)  # Light pass: quiet text, one line
-	_footer.add_child(button)
+	button.add_theme_font_size_override("font_size", 14)  # The three fit one line with their key chips
+	_footer.add_child(button)  # In the tree first: the quiet variation's boxes resolve from the theme
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
+		var tight := button.get_theme_stylebox(state).duplicate() as StyleBox  # Narrow side padding: the row fits 280 px
+		tight.content_margin_left = 6.0
+		tight.content_margin_right = 6.0
+		button.add_theme_stylebox_override(state, tight)
 	if text == "Close":
 		button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	return button
@@ -1208,6 +1224,17 @@ func _apply_price(button: Button) -> void:
 const ROW_NAME_SIZE := 16
 const ROW_NOTE_SIZE := 13
 
+# Grow options and Nurture are equal choices (user, via Marketing: "Nurture to rank looks like the optimal choice;
+# upgrading to Sporeling should have the same weight"): the same plain 48 px button, no primary on the panel.
+func _as_choice(button: Button) -> void:
+	button.set_meta(&"row", true)
+	button.theme_type_variation = &""
+	button.custom_minimum_size.y = maxf(button.custom_minimum_size.y, UiStyle.HUD_BUTTON_H)
+
+# A price for the right-hand column ("180 Dew", "1 Dreamlight", "free"); anything longer is a note under the name.
+static func _is_price(text: String) -> bool:
+	return text == "free" or text.ends_with(" Dew") or text.ends_with(" Dreamlight")
+
 func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 	button.set_meta(&"short", short)
 	button.set_meta(&"cant_afford", short)  # CantAfford.is_shown, like the Remember screen's buttons
@@ -1216,8 +1243,8 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 	var key: String = button.get_meta(&"key", "")
 	button.text = label + (" · " + price if price != "" else "") + key
 	button.modulate.a = 1.0
-	var primary: bool = button.get_meta(&"primary", false) and not short
-	button.theme_type_variation = &"PrimaryButton" if primary else &"RowButton"
+	var primary := false  # Equal choices: never the primary look
+	button.theme_type_variation = &""
 	for state in FONT_STATES + ["font_disabled_color"]:
 		button.add_theme_color_override(state, Color(UiStyle.INK, 0.0))  # The overlay draws the words
 	var row := button.get_node_or_null("Row") as HBoxContainer
@@ -1244,24 +1271,35 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 			part.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 			part.add_theme_font_size_override("font_size", ROW_NAME_SIZE if i == 0 else ROW_NOTE_SIZE)
 			lines.add_child(part)
+		var cost_label := Label.new()  # The price, right-aligned before the key
+		cost_label.name = "Price"
+		cost_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cost_label.add_theme_font_size_override("font_size", ROW_NOTE_SIZE + 1)
+		row.add_child(cost_label)
 		var chip := UiStyle.key_chip("")
 		chip.name = "Key"
 		row.add_child(chip)
-	# "Sporeling · 3 of 5" (a group): the name first, the rest joins the price on the small line.
+	# Name left, price right, key at the far right; "Sporeling · 3 of 5" (a group) and reasons ("needs Bellflower") go
+	# small under the name.
 	var parts := label.split(" · ", true, 1)
 	var name_label := row.get_node("Lines").get_child(0) as Label
 	var note_label := row.get_node("Lines").get_child(1) as Label
+	var price_label := row.get_node("Price") as Label
 	name_label.text = parts[0]
 	var notes: Array[String] = []
 	if parts.size() > 1:
 		notes.append(parts[1])
-	if price != "":
+	var is_price := _is_price(price)
+	if price != "" and not is_price:
 		notes.append(price)
+	price_label.text = price if is_price else ""
+	price_label.visible = price_label.text != ""
 	note_label.text = ", ".join(notes)
 	note_label.visible = note_label.text != ""
 	var dim := short or button.disabled
 	name_label.add_theme_color_override("font_color", UiStyle.INK_DIM if dim else (UiStyle.GOLD if primary else UiStyle.INK))
-	note_label.add_theme_color_override("font_color", UiStyle.POOR if short and poor_price else Color(UiStyle.MOON_MIST, 0.8))
+	note_label.add_theme_color_override("font_color", UiStyle.POOR if short and poor_price and not is_price else Color(UiStyle.MOON_MIST, 0.8))
+	price_label.add_theme_color_override("font_color", UiStyle.POOR if short and poor_price else (UiStyle.INK_DIM if dim else UiStyle.GOLD))
 	var chip := row.get_node("Key") as Label
 	chip.text = key.strip_edges().trim_prefix("(").trim_suffix(")")
 	chip.visible = chip.text != ""
@@ -1276,7 +1314,7 @@ func _row_note(button: Button, form_name: String, reason: String) -> void:
 # three labels (label, price, key; the button's own text stays, transparent, so sizes and tests see the line).
 # `poor_price` false: a dim line with nothing in POOR (a form that isn't open yet).
 func _set_short(button: Button, short: bool, poor_price := true) -> void:
-	if button.get_meta(&"variation", &"") == &"RowButton":
+	if button.get_meta(&"row", false):
 		_row_look(button, short, poor_price)
 		return
 	button.set_meta(&"short", short)
