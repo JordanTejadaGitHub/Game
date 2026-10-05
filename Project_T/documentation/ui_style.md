@@ -52,9 +52,11 @@ doesn't fit the theme as well." Frames stay soft fog; no pixel borders on panels
   price or "needs …" small in Mist under it, the key chip at the right; the description shown whole.
   Nurture and the grow rows are equal plain choices (no primary in this panel, 7edb250e); Sell and
   Close quiet. A Sprout with nothing to grow into yet shows no "Grow into" heading or placeholder.
-- **Tower bar: more transparent, less busy.** The bar is a fog band (Void 55% / 30% / 18%), no boxes;
-  each slot is a fog tile (Void 35% → 8%); only the selected slot is framed (Gold 60% inset) with a
-  Glow underline. Slots 64 × 84 with a 48 px Warden, cost 16 px, key 12 px, centred between the Warden
+- **Tower bar: more transparent, less busy.** The bar is a fog band (Void 55% / 30% / 18%). Each slot
+  is a fog tile (Void ~50% → 28%) **with a 1 px Gold 45% border** (user, 2026-10-05: "add borders to
+  towers to make them more visible in the tower bar"; hover Gold ~70%). The selected slot: solid Gold
+  border, an inset Ember glow and the Glow underline. Unaffordable: the slot at ~55%, its border Slate,
+  the cost Ember. The Clear tool slot matches. Slots 64 × 84 with a 48 px Warden, cost 16 px, key 12 px, centred between the Warden
   panel and DriftPanel; the top-right buttons sit in one row under the resources.
 - **Warden sprites in circles and slots** are centred by their drawn (opaque) pixels, not the canvas,
   the plinth a little below centre, never scaled up to fill.
