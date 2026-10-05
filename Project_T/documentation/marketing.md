@@ -137,7 +137,7 @@ one concrete thing each, in the developer's voice (text_pass.md), and read in un
 | 15–27.5 s | A Soaked crowd, Charged: Thunderclap callouts; Poisoned fog on the next bend. | "Soaked + Charged = Thunderclap." | build; **hit 20 s**: the Thunderclap |
 | 27.5–37.5 s | A rest: the Dream pick (3 cards, one taken); a Warden grows into its branch; Kinship roots join two kin. | "Three Dreams at every rest. Take one." | breath |
 | 37.5–45 s | A Heartwood's Gift (Sow a Ridge): the ridge rises, the route bends around it live. | "That ridge wasn't there a minute ago." | |
-| 45–60 s | The Hollow Stag charges a straight corridor, then stalls on a bend; cut to the Night Mare's laps; the Hollow Oak rising. | "The Stag charges down straight lines. So don't build any." (over the Stag only) | boss; **hit 52.5 s**: the Stag stalls |
+| 45–60 s | The Hollow Stag charges a straight corridor, then stalls on a bend; cut to the Night Mare's laps; the Hollow Oak rising. | "The Stag charges straight lines. Don't build any." (over the Stag only) | boss; **hit 52.5 s**: the Stag stalls |
 | 60–70 s | A late storm board: one chain to ×10, Dawnburst; the Heartwood glowing gold. | | full; **hit 65 s**: the Dawnburst |
 | 70–75 s | Logo, the tagline *"Grow a living maze. Hold back the nightmares."*, "Wishlist on Steam", platforms. | "Heartwood TD" (pitch.md "Title"; trademark check pending) | held chord from 70 s |
 
