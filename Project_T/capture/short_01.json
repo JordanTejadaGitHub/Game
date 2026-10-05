@@ -1,5 +1,5 @@
 {
-	"title": "Your towers ARE the maze.",
+	"title": "Your Wardens ARE the maze.",
 	"note": "Hand-built maze (capture --map, seed 4242, obstacles edge): three walls alternating bottom/top/bottom (the outer two jog a half cell at the middle, the middle one zigzags a half cell every piece), a cap over the glade, an east wall and a sill so the route reaches the Heartwood from the side; Sporelings on the bends. 46 Thornwall + 5 Sporeling spots, 50 Wardens planted (one spot is taken), route ~18 -> 70 cells. screenshot_01 uses the same spots in the same order.",
 	"seed": 4242,
 	"size": [1080, 1920],
@@ -12,7 +12,7 @@
 	"end_button": "D:/Projects/Game/marketing/music/endcard_button_full.wav",
 	"music": ["base", "dread1"],
 	"captions": [
-		[0.0, 2.5, "Your towers ARE the maze."],
+		[0.0, 2.5, "Your Wardens ARE the maze."],
 		[2.5, 8.0, "Every Warden bends the path the nightmares walk."],
 		[8.0, 12.5, "Fifty Wardens in: four times the path."],
 		[12.5, 28.0, "Then I hit start. They walk every bend of it."]

@@ -73,7 +73,7 @@ Capture after the half-cell merge (and after the final half-grid path art, when 
 
 | # | Title / hook (first 2 s) | What happens | Capture setup |
 |---|---|---|---|
-| 1 | "Your towers ARE the maze." | Time-lapse: an empty island → a winding maze; the route mist stretches longer with each Warden ("+12 path"); then a drift floods in and walks the whole maze. | Test Grove, a fixed seed, scripted placements every 0.5 s, then drift 20 at 1×. |
+| 1 | "Your Wardens ARE the maze." | Time-lapse: an empty island → a winding maze; the route mist stretches longer with each Warden ("+12 path"); then a drift floods in and walks the whole maze. | Test Grove, a fixed seed, scripted placements every 0.5 s, then drift 20 at 1×. |
 | 2 | "Watch this chain." | One Charged nightmare is Soaked → Thunderclap → the chain jumps across a crowd → ×10 → Dawnburst. | A late storm board (Thunderhead, Lanternmoth, Rain Lily, Monsoon), drift 60, a dense block. |
 | 3 | "The first boss." | The Hollow Stag's reveal (the What's coming page), its charge down a straight corridor, the maze bending it back, dispelled at 2 % health. | Drift 25, a fair board, the camera following the Stag. |
 | 4 | "The forest moves." | A Heartwood's Gift (Sow a Ridge): a ridge rises, the route mist re-routes live, nightmares take the long way. Before / after split screen. | An act break, the gift screen, then the same drift before and after. |
@@ -97,8 +97,8 @@ several captures (export `cuts`, see `capture/video0.json`); every clip at real 
 | 23–29 s | *"Single-player, at your own pace, and every run plays out differently."* | A different island, a Reaction chain across a crowd (`video0_storm`) |
 | 29–34 s | *"It's called Heartwood TD. If that sounds like your thing, wishlist it on Steam."* | End card (held longer than the shorts' 1.5 s) |
 
-**Short 1: "Your towers ARE the maze." (~28 s)**
-- 0–2.5 s: *"In my game, your towers are the walls."*
+**Short 1: "Your Wardens ARE the maze." (~28 s)**
+- 0–2.5 s: *"In my game, your Wardens are the walls."*
 - 2.5–8 s: *"Every Warden you plant changes the path the nightmares have to walk. Longer path, more time to hit them."*
 - 8–12.5 s: *"Fifty Wardens in, and the path's about four times as long as when I started."* (the hand-built maze: 50 Wardens, route ~18 → 70 cells)
 - 12.5–28 s: *"Then I hit start, and they have to walk every bend of it."* · end card: *"It's called Heartwood TD. Wishlist it on Steam."*
