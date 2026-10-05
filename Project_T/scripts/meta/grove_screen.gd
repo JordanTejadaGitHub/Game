@@ -343,9 +343,11 @@ func _update_card() -> void:
 	# "needs" chips: met ones in a Sprig outline with a ✓, the rest in Mist.
 	for chip in _card_chips.get_children():
 		chip.queue_free()
-	for requirement in _requirement_chips(selected):
+	var requirements := _requirement_chips(selected)
+	for requirement in requirements:
 		_card_chips.add_child(_chip(requirement[0], requirement[1]))
-	_card_needs.visible = _card_chips.get_child_count() > 0 and not HeartwoodMemory.is_grown(_memory, selected)
+	# From the list, not the row: the last node's chips are only queued for deletion and still count as children.
+	_card_needs.visible = not requirements.is_empty() and not HeartwoodMemory.is_grown(_memory, selected)
 	var problem := HeartwoodMemory.buy_problem(_memory, selected)
 	var cost := selected.get_cost(HeartwoodMemory.unlock_level(_memory, selected.id))
 	var buyable := problem != "Grown" and not selected.is_free()
