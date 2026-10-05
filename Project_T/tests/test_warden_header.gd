@@ -29,8 +29,10 @@ func _run() -> void:
 	_check(view.title.text == driftspore.display_name, "the name (%s)" % view.title.text)
 	_check((view.damage_type.get_child(0) as Label).text == IconInfo.damage_type_text(driftspore.line), "the damage type as text")
 	var texts := _texts(view.stats)
-	_check(texts.any(func(t: String) -> bool: return t.begins_with("Damage %d" % driftspore.damage)), "base damage %d (%s)" % [driftspore.damage, texts])
-	_check(texts.any(func(t: String) -> bool: return t.begins_with("Applies")), "the status it applies")
+	# One icon row, values only (light pass): each value is named Value_<stat id>.
+	var damage_value := view.stats.find_child("Value_damage", true, false) as Label
+	_check(damage_value != null and damage_value.text == str(driftspore.damage), "base damage %d (%s)" % [driftspore.damage, texts])
+	_check(view.stats.find_child("Value_%s" % driftspore.applies_status, true, false) != null, "the status it applies, in the same row (%s)" % [texts])
 	var grows := _texts(view.growth)
 	_check(view.growth.visible and grows.any(func(t: String) -> bool: return t.to_lower() == "grows into") and grows.any(func(t: String) -> bool: return t.contains("Dew")),
 		"Grows into, with the Dew (%s)" % [grows])
@@ -48,8 +50,8 @@ func _run() -> void:
 		var boosted := WardenHeaderView.build(driftspore, null, dreams)
 		main.get_node("HUD").add_child(boosted)
 		await process_frame
-		var damage_line: String = _texts(boosted.stats).filter(func(t: String) -> bool: return t.begins_with("Damage"))[0]
-		_check(damage_line != "Damage %d" % driftspore.damage, "%s shows in the unplanted card (%s)" % [boost.id, damage_line])
+		var damage_line: String = (boosted.stats.find_child("Value_damage", true, false) as Label).text
+		_check(damage_line != str(driftspore.damage), "%s shows in the unplanted card (%s)" % [boost.id, damage_line])
 		boosted.queue_free()
 
 	# Planted: the panel is built from the same view.

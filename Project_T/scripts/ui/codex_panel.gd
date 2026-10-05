@@ -638,13 +638,95 @@ func _add_locked(entries: Array, seen: Array, make: Callable) -> void:
 func _add_waiting(hidden: int) -> void:
 	if hidden <= 0:
 		return
+	_combos.add_child(_waiting_line(hidden))
+
+# "4 more wait in the Memory Grove."; the demo: "4 more in the full game." (demo_scope.md "Show what the full game
+# holds", user 7938c7b2).
+func _waiting_line(hidden: int) -> Label:
 	var line := Label.new()
 	line.name = "Waiting"
-	line.text = "%d more wait%s in the Memory Grove." % [hidden, "s" if hidden == 1 else ""]
+	line.text = ("%d more in the full game." % hidden) if CodexData.demo_limited() \
+		else "%d more wait%s in the Memory Grove." % [hidden, "s" if hidden == 1 else ""]
 	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	line.add_theme_font_size_override("font_size", 13)
 	line.add_theme_color_override("font_color", LOCKED_COLOR)
-	_combos.add_child(line)
+	return line
+
+# Demo only (demo_scope.md "Show what the full game holds", user 7938c7b2): a full-game entry by its real name and
+# icon with one line, tagged "Full game"; no stats and no unlock path. Never in runs (the Warden panel, the family
+# pick and Dream offers stay as they are).
+const FULL_GAME_TAG := "Full game"
+
+func _full_game_row(art: Texture2D, title: String, line: String) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	row.set_meta(&"full_game", true)  # Tests
+	var icon := TextureRect.new()
+	icon.texture = art
+	icon.custom_minimum_size = Vector2(32, 32)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	row.add_child(icon)
+	var words := VBoxContainer.new()
+	words.add_theme_constant_override("separation", 0)
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(words)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 8)
+	words.add_child(head)
+	var name_label := Label.new()
+	name_label.text = title
+	name_label.add_theme_font_size_override("font_size", 16)
+	head.add_child(name_label)
+	head.add_child(_full_game_tag())
+	if line != "":
+		var text := Label.new()
+		text.text = line
+		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		text.add_theme_font_size_override("font_size", 13)
+		text.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		words.add_child(text)
+	return row
+
+# The gold "Full game" chip.
+func _full_game_tag() -> Label:
+	var tag := Label.new()
+	tag.name = "FullGameTag"
+	tag.text = FULL_GAME_TAG
+	tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	tag.add_theme_font_size_override("font_size", 12)
+	tag.add_theme_color_override("font_color", UiStyle.GOLD)
+	var frame := StyleBoxFlat.new()
+	frame.draw_center = false
+	frame.border_color = Color(UiStyle.GOLD, 0.7)
+	frame.set_border_width_all(1)
+	frame.set_corner_radius_all(9)
+	frame.content_margin_left = 7
+	frame.content_margin_right = 7
+	tag.add_theme_stylebox_override("normal", frame)
+	return tag
+
+# Demo only: a Dream card the demo can't offer (the story chat's rule, from the data): it enters the pool only through
+# a Grove node (Legendary included), it's Bittersweet (a Grove node allows those), or it needs a Warden outside the
+# demo (its requires / requires_any name one the demo's scope doesn't cover). Blessings live outside the Dreams
+# list. Everything else keeps "??? until seen".
+static func full_game_card(card: UpgradeData, scope: Dictionary) -> bool:
+	if not CodexData.demo_limited():
+		return false
+	if not card.in_start_pool or card.tags.has("bittersweet"):
+		return true
+	var wardens: Dictionary = scope.get("wardens", {})
+	for id in card.requires + card.requires_any:
+		if ResourceLoader.exists(TOWER_DIR + id + ".tres") and not wardens.has(id):
+			return true
+	return false
+
+# A form's one line for a Full game row: its role, else the opening of its description.
+static func _one_line(form: TowerData) -> String:
+	var role := IconInfo.role_text(form)
+	return role if role != "" else IconInfo.format(WardenHeaderView.short_description(form.description))
 
 # Entries covered now but not at the last look get the leaf mark; the covered set is then remembered
 # (the real game only: never tests or dev runs). The first look ever marks nothing.
@@ -714,6 +796,9 @@ func _build_kinships(seen: Array, counts: Dictionary, live: ComboFeedback, kin_a
 		_add_card(card, k.id, discovered)
 		_entries[String(k.id)] = card
 	_add_waiting(kin_all.size() - kin.size())
+	if CodexData.demo_limited():  # The full game's Kinships by name, tagged (no recipe, no unlock path)
+		for k in kin_all.filter(func(k: Dictionary) -> bool: return not _covered(k)):
+			_combos.add_child(_full_game_row(null, String(k.get("name", "")), String(k.get("line", ""))))
 	_add_locked(kin_all.filter(func(k: Dictionary) -> bool: return not _covered(k)), seen,
 		func(k: Dictionary, discovered: bool) -> Control: return _kinship_card(k, discovered, int(counts.get(String(k.id), 0))))
 
@@ -995,6 +1080,32 @@ func _build_families() -> void:
 	for root in roots:
 		if root.get_id() == _family:
 			_families.add_child(_family_page(root))
+	if CodexData.demo_limited():
+		_families.add_child(_full_game_families(roots))
+
+# Demo: the families the full game adds (the Memory Grove's family nodes), by name and icon, tagged "Full game".
+func _full_game_families(shown: Array[TowerData]) -> Control:
+	var box := VBoxContainer.new()
+	box.name = "FullGameFamilies"
+	box.add_theme_constant_override("separation", 6)
+	var head := Label.new()
+	head.text = "In the full game"
+	UiStyle.caps(head, 14, UiStyle.WHISPER)
+	box.add_child(head)
+	var ids: Array[String] = []
+	for unlock in HeartwoodMemory.load_grove():
+		for id in unlock.families:
+			if not ids.has(id) and not shown.any(func(r: TowerData) -> bool: return r.get_id() == id):
+				ids.append(id)
+	for id in ids:
+		var path: String = TOWER_DIR + id + ".tres"
+		if not ResourceLoader.exists(path):
+			continue
+		var root := load(path) as TowerData
+		box.add_child(_full_game_row(WardenIcon.make_centred(root), root.display_name, _one_line(root)))
+	if box.get_child_count() == 1:
+		box.visible = false
+	return box
 
 func _family_page(root: TowerData) -> Control:
 	var page := VBoxContainer.new()
@@ -1011,6 +1122,11 @@ func _family_page(root: TowerData) -> Control:
 	_show_form_card(root)
 	if DreamState.branch_expansion_on():  # Full game (the demo keeps its current page)
 		page.add_child(_branch_list(root))
+	elif CodexData.demo_limited():  # Demo: the full game's further branches of this family, by name, tagged
+		var extra: Array = root.evolves_to.filter(func(f) -> bool:
+			return f is TowerData and f.tier == 2 and not f.parked and not DreamState.in_this_edition(f))
+		for branch in extra:
+			page.add_child(_full_game_row(WardenIcon.make_centred(branch), branch.display_name, _one_line(branch)))
 	page.add_child(_family_links(root))
 	return page
 
@@ -1483,6 +1599,8 @@ func _passes_filters(card: UpgradeData) -> bool:
 		return false
 	return true
 
+var _dream_scope := {}  # The Codex scope the Dreams page was built with (full_game_card)
+
 func _build_dreams() -> void:
 	for child in _dreams.get_children():
 		_dreams.remove_child(child)
@@ -1494,6 +1612,7 @@ func _build_dreams() -> void:
 	var taken: Dictionary = profile.get(DreamCodex.TAKEN_KEY, {})
 	var won: Dictionary = profile.get(DreamCodex.WON_KEY, {})
 	var cards := DreamCodex.all_cards()
+	_dream_scope = CodexData.scope()
 	var seen_count := cards.filter(func(c: UpgradeData) -> bool: return seen.has(c.id)).size()
 	_dreams_count.text = "%d / %d Dreams seen" % [seen_count, cards.size()]
 	tabs.set_tab_title(3, "Dreams %d / %d" % [seen_count, cards.size()])
@@ -1525,6 +1644,24 @@ func _dream_entry(card: UpgradeData, seen: Array, viewed: Array, taken: Dictiona
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 3)
 	panel.add_child(box)
+	if not seen.has(card.id) and full_game_card(card, _dream_scope):  # Demo: the full game's card by name, tagged
+		style.thread = MoonStyleBox.TopLine.GOLD
+		panel.set_meta(&"full_game", true)
+		var top := HBoxContainer.new()
+		top.add_theme_constant_override("separation", 8)
+		var full_gem := DreamsRow.DreamIcon.new()
+		full_gem.card = card
+		full_gem.custom_minimum_size = DreamsRow.ICON_SIZE
+		full_gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top.add_child(full_gem)
+		var full_name := Label.new()
+		full_name.text = card.display_name
+		UiStyle.title(full_name, 20, UpgradeData.rarity_color(card.rarity))
+		top.add_child(full_name)
+		top.add_child(_full_game_tag())
+		box.add_child(top)
+		box.add_child(StatusLinks.make_label(WardenHeaderView.short_description(card.description), 14, UiStyle.INK_DIM))
+		return panel
 	if not seen.has(card.id):  # Never offered: "???", nothing else (no rarity, text or hints)
 		var unknown := Label.new()
 		unknown.text = "???"

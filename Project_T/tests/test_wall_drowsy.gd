@@ -26,8 +26,10 @@ func _run() -> void:
 	# Pricier growth (Balancing 2026-10-04) exempts the wall line: walls are the maze.
 	_check(load("res://resource/tower/honeysuckle.tres").get_grow_price() == 30 and load("res://resource/tower/bramble.tres").get_grow_price() \
 		== load("res://resource/tower/bramble.tres").evolve_cost, "wall growths keep their price under the grow multipliers")
+	_check(load("res://resource/tower/driftspore.tres").get_grow_price() == load("res://resource/tower/driftspore.tres").evolve_cost,
+		"a family branch is back at its own price (be7b5a94)")
 	_check(load("res://resource/tower/beacon.tres").get_grow_price() == roundi(load("res://resource/tower/beacon.tres").evolve_cost * 1.5),
-		"a family branch pays ×1.5")
+		"a final form pays ×1.5")
 
 	var honey := _plant(placer, container, "honeysuckle", Vector2(5, 5))
 	var bell := _plant(placer, container, "bellflower", Vector2(7, 5))

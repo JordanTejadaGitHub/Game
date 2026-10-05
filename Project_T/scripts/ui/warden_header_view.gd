@@ -26,6 +26,10 @@ const LOCKED_FORM_TIP := "Unlock it with Dreamlight, then grow it with Dew."  # 
 static func blocker_text(blocker: String) -> String:
 	return "in the Memory Grove" if blocker == "Memory Grove" else blocker
 
+var compact := false  # The Warden panel (light pass): name + damage type on one line, a short description, no Dreams rows (set_compact)
+var full_description := ""  # Compact: the description in full when the short one left some out (the panel's Details), else ""
+var detail_lines: Array[String] = []  # Compact: stat lines left for the panel's Details ("Soaked: water hits +24%")
+
 var _tower: Tower = null  # The planted Warden shown, or a probe carrying this run's bonuses (never in the tree)
 var _probe: Tower = null
 
@@ -62,6 +66,58 @@ func _init() -> void:
 	growth.add_theme_constant_override("separation", 2)
 	add_child(growth)
 
+# The Warden panel's compact header (light pass, story chat 2026-10-05: "Warden panel is too large"): a 32 px
+# emblem, the damage type on the name's line, the description at its first sentence (the rest in Details).
+func set_compact(width: float) -> void:
+	compact = true
+	portrait.custom_minimum_size = Vector2(32, 32)
+	UiStyle.title(title, 20)
+	# The name and, under it, the damage type (small): beside the 32 px emblem, never cut (story chat 2026-10-05).
+	var header := title.get_parent()
+	var names := VBoxContainer.new()
+	names.name = "Names"
+	names.add_theme_constant_override("separation", -2)
+	names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	names.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	header.add_child(names)
+	header.remove_child(title)
+	names.add_child(title)
+	damage_type.get_parent().remove_child(damage_type)
+	names.add_child(damage_type)
+	(damage_type.get_child(0) as Label).add_theme_font_size_override("font_size", 14)
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A very long name wraps rather than widening the panel
+	desc.custom_minimum_size = Vector2(width, 0)
+
+# The description's opening for the compact header: the first sentence, the second too while both stay short.
+const SHORT_CHARS := 70  # Two lines of the compact panel's description (84 wrapped to 3 with underlined links)
+
+static func short_description(text: String) -> String:
+	var sentences := text.split(". ")
+	var short := text
+	if sentences.size() >= 2:
+		short = sentences[0] + "."
+		if short.length() < 48 and short.length() + sentences[1].length() < 96:
+			short = sentences[0] + ". " + sentences[1] + ("." if sentences.size() > 2 else "")
+	return _cut_words(short, SHORT_CHARS)
+
+# `text` cut at a word to at most `limit` shown characters ({tokens} count as their word), with "…"; never inside
+# an open bracket.
+static func _cut_words(text: String, limit: int) -> String:
+	if _shown_length(text) <= limit:
+		return text
+	var out := ""
+	for word in text.split(" "):
+		var longer := word if out == "" else out + " " + word
+		if _shown_length(longer) > limit - 1:
+			break
+		out = longer
+	if out.count("(") > out.count(")"):
+		out = out.left(out.rfind("(")).strip_edges()
+	return out.rstrip(",;:—– ") + "…"
+
+static func _shown_length(text: String) -> int:
+	return text.replace("{", "").replace("}", "").length()
+
 func _exit_tree() -> void:
 	_free_probe()
 
@@ -82,13 +138,21 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 	var notes: Array[String] = []
 	title.text = data.display_name
 	portrait_atlas.atlas = data.texture
-	portrait_atlas.region = data.get_frame_rect(0) if data.texture else Rect2()
+	portrait_atlas.region = WardenIcon.visible_region(data)  # Centred by its drawn pixels (user, via UI Asset)
 	portrait.visible = data.texture != null
 	_show_damage_type(data)
 	desc.text = StatusLinks.bbcode(data.description)  # {damp}-style tokens and plain names both work
+	full_description = ""
+	detail_lines.clear()
+	# Compact: the description whole, wrapping (user: "The description also cuts off"); short_description stays for
+	# callers that want an opening line.
 	if is_instance_valid(tower) and tower.legacy_data != null:
 		# An Ascended form still makes its final form's attack.
-		desc.text += "\n[i]Still %s: %s[/i]" % [tower.legacy_data.display_name, StatusLinks.bbcode(tower.legacy_data.description)]
+		if compact:
+			full_description = (full_description if full_description != "" else data.description) \
+				+ "\nStill %s: %s" % [tower.legacy_data.display_name, tower.legacy_data.description]
+		else:
+			desc.text += "\n[i]Still %s: %s[/i]" % [tower.legacy_data.display_name, StatusLinks.bbcode(tower.legacy_data.description)]
 	desc.visible = desc.text != ""
 	for child in stats.get_children():
 		child.queue_free()
@@ -101,30 +165,35 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 	elif data.can_attack:
 		if is_instance_valid(tower) and tower.get_copied() != null:
 			notes.append("Copying %s at %d%%" % [attack.display_name, roundi(data.copy_share * 100)])
-		var range_text := "range %.2f" % _tower.get_range_cells()
+		# Light pass (user-approved): one icon row, values only (the icon says which; its tip names it): damage, speed,
+		# range, crit, the status it applies. Rarer numbers (crit damage, Potency, status strength) on a second row.
+		var range_text := "%.1f" % _tower.get_range_cells()
 		if attack.min_range > 0.0:
-			range_text = "range %.1f–%.1f" % [attack.min_range, _tower.get_range_cells()]
-		_stat_row([["Damage %s" % BossDossier.thousands(roundi(_tower.get_damage())), &"damage"],
-			["%.2f/s" % _tower.get_attacks_per_second(), &"attack_speed"],
-			[range_text, &"range"]])
-		var second: Array = []
+			range_text = "%.1f–%.1f" % [attack.min_range, _tower.get_range_cells()]
+		var main_row: Array = [[BossDossier.thousands(roundi(_tower.get_damage())), &"damage"],
+			["%.1f/s" % _tower.get_attacks_per_second(), &"attack_speed"], [range_text, &"range"]]
 		if _tower.get_crit_chance() > 0.0:
-			second.append(["Crit %d%%" % roundi(_tower.get_crit_chance() * 100), &"crit_chance"])
-			second.append(["×%s" % str(attack.crit_multiplier), &"crit_damage"])
+			main_row.append(["%d%%" % roundi(_tower.get_crit_chance() * 100), &"crit_chance"])
+		_stat_row(main_row, true)
+		var second: Array = []  # The status it applies leads the second row (the first stays one line at 280 px)
+		if attack.applies_status != &"":
+			second.append(["%s%s" % [IconInfo.status_name(attack.applies_status),
+				" ×%d" % attack.status_stacks if attack.status_stacks > 1 else ""], attack.applies_status, true])
+		if _tower.get_crit_chance() > 0.0:
+			second.append(["Crit ×%s" % str(attack.crit_multiplier), &"crit_damage"])
 		var potency := _tower.get_potency()
 		if not is_equal_approx(potency, 1.0):
 			second.append(["Potency %d%%" % roundi(potency * 100), &"potency"])  # Statuses and effect damage
 		var strength := status_strength_text(attack.applies_status, potency, attack.status_duration)
-		if strength != "":
+		if strength != "" and compact:
+			detail_lines.append(strength)  # The panel's Details
+		elif strength != "":
 			second.append([strength, attack.applies_status, true])  # "Soaked: water hits +24%", "Rooted 1.2 s"
 		if not second.is_empty():
-			_stat_row(second)
-		if attack.applies_status != &"":
-			_stat_row([["Applies %s%s" % [IconInfo.status_name(attack.applies_status),
-				" ×%d" % attack.status_stacks if attack.status_stacks > 1 else ""], attack.applies_status, true]])
+			_stat_row(second, true)  # Wraps too: never wider than the card
 	else:
 		notes.append("A wall: no attack.")
-	if dreams != null:
+	if dreams != null and not compact:  # Compact: the panel puts them in Details
 		stats.add_child(DreamBonusView.make_rows(_tower) if is_instance_valid(tower)
 			else DreamBonusView.make_rows_at(data, _tower.cell))  # "Dreams on this Warden"
 	_fill_growth(data, dreams if with_growth else null)
@@ -224,12 +293,13 @@ func _probe_for(data: TowerData, dreams: DreamState) -> Tower:
 # One row of stats. Each stat (its icon and value) is one hover / tap target, so its tip sits over the stat
 # pointed at, and the tip says what it means for this Warden: "Attack speed: 1.24 attacks a second (base 1.10,
 # Swift +13%)", with the Dream / Nurture breakdown and the local buffs (auras, Kinships) that changed it.
-func _stat_row(parts: Array) -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 0)
+# `icons`: the light pass's icon row (no " · " between parts, a 14 px gap; each value named "Value_<id>" for tests).
+func _stat_row(parts: Array, icons := false) -> void:
+	var row: Container = HFlowContainer.new() if icons else HBoxContainer.new()  # The icon row wraps on a narrow card
+	row.add_theme_constant_override("h_separation" if icons else "separation", 14 if icons else 0)
 	for i in parts.size():
 		var part: Array = parts[i]
-		if i > 0:
+		if i > 0 and not icons:
 			var dot := Label.new()
 			dot.text = " · "
 			row.add_child(dot)
@@ -250,6 +320,8 @@ func _stat_row(parts: Array) -> void:
 			target.add_child(icon)
 		var label := Label.new()
 		label.text = part[0]
+		if icons:
+			label.name = "Value_%s" % id
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if not is_status and id != &"" and is_instance_valid(_tower) and _tower != _probe and DreamBonusView.is_boosted(_tower, id):
 			label.text += " ↑"

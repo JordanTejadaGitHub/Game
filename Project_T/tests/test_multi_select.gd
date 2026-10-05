@@ -71,9 +71,9 @@ func _run() -> void:
 	run_state.dew_changed.emit(run_state.dew)  # Setting dew directly skips the signal the panel listens to
 	await process_frame
 	var grow_text := _button_texts(panel).filter(func(t: String) -> bool:
-		return t.begins_with("Grow 3 of 5 Sprouts into Sporeling"))
+		return t.begins_with("Sporeling · 3 of 5"))  # Light pass: the form once, under "Grow into"
 	_check(grow_text.size() == 1 and ("%d Dew" % (cost * 3)) in grow_text[0],
-		"the panel offers \"Grow 3 of 5 … · %d Dew\" (%s)" % [cost * 3, grow_text])
+		"the panel offers \"Sporeling · 3 of 5 · %d Dew\" (%s)" % [cost * 3, grow_text])
 	var nearest: Array = seller.sort_by_heartwood(sprouts).slice(0, 3)
 	var grown := seller.grow_group(sprouts, sporeling)
 	_check(grown == 3 and run_state.dew == cost / 2, "grew 3 and spent %d Dew" % (cost * 3))

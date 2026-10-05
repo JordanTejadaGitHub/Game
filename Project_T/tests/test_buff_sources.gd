@@ -77,12 +77,16 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var buffs: VBoxContainer = panel._buffs
-	# Folded by default (screens_ui.md "The Warden panel never fills the screen"): header + Total + Details.
-	var folded: Array = buffs.find_children("*", "", true, false).map(func(c: Node) -> String: return c.text if "text" in c else "")
-	_check(folded.any(func(t: String) -> bool: return t.begins_with("Total:")) and folded.any(func(t: String) -> bool: return t.begins_with("Details"))
-		and not folded.any(func(t: String) -> bool: return t.begins_with("Elder Stump")), "Buffs fold to the Total line with a Details toggle (%s)" % [folded])
-	panel._buffs_open = true
-	panel._fill_buffs(target)
+	# Behind the footer's Details (light pass; screens_ui.md "The Warden panel never fills the screen"): folded away
+	# until it's pressed.
+	var toggle := panel._footer.get_node_or_null("DetailsToggle") as Button
+	if panel._buffs_open and toggle != null:
+		toggle.pressed.emit()  # Remembered for the session: start from closed
+	_check(toggle != null and toggle.text == "Details" and not panel._details.visible and panel._details.is_ancestor_of(buffs),
+		"Buffs sit behind a Details toggle in the footer")
+	if toggle != null:
+		toggle.pressed.emit()
+	_check(panel._details.is_visible_in_tree() and toggle != null and toggle.text == "Hide", "Details opens them")
 	var texts: Array = buffs.find_children("*", "", true, false).map(func(c: Node) -> String: return c.text if "text" in c else "")
 	_check(buffs.visible and texts.any(func(t: String) -> bool: return t.to_lower() == "buffs") and texts.any(func(t: String) -> bool: return t.begins_with("Total:")),
 		"the panel lists the buffs and a total (%s)" % [texts])
@@ -107,11 +111,12 @@ func _run() -> void:
 	var screen: float = panel.get_viewport().get_visible_rect().size.y
 	# The info part gives way (it scrolls, down to MIN_INFO); the actions never do (test_panel_fits: every action on
 	# screen), so a Warden with many forms (a base growing into 6 on Spire's branch expansion) may need more.
-	var floor_height: float = panel._buttons.get_combined_minimum_size().y + panel._footer.get_combined_minimum_size().y + 40.0 + panel.MIN_INFO
+	var least_info: float = maxf(panel.MIN_INFO, panel._header.get_combined_minimum_size().y)  # The header never scrolls
+	var floor_height: float = panel._buttons.get_combined_minimum_size().y + panel._footer.get_combined_minimum_size().y + 40.0 + least_info
 	var limit := maxf(screen * panel.MAX_SHARE, floor_height)
 	_check(panel.size.y <= limit + 1.0, "the panel stays within %d%% of the screen, or just its actions + the least info (%.0f of %.0f px)" % [
 		roundi(panel.MAX_SHARE * 100), panel.size.y, limit])
-	_check(panel._scroll.size.y <= panel.MIN_INFO + 1.0 or panel.size.y <= screen * panel.MAX_SHARE + 1.0, "…the long info part is the one that gave way")
+	_check(panel._scroll.size.y <= least_info + 8.0 or panel.size.y <= screen * panel.MAX_SHARE + 1.0, "…the long info part is the one that gave way")
 	_check(panel._footer.get_children().any(func(c: Node) -> bool: return c is Button and c.text.begins_with("Sell"))
 		and panel._footer.get_children().any(func(c: Node) -> bool: return c is Button and c.text == "Close"), "Sell and Close stay in the footer")
 

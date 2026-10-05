@@ -125,8 +125,19 @@ func _run() -> void:
 	# Playtest fixes: an Ascended node is the same size as the others, its whole art in the disc.
 	var mother: TowerData = load("res://resource/tower/sporemother.tres")
 	var node := RememberScreen.FormNode.new(screen, mother)
-	_check(node.size == RememberScreen.NODE_SIZE and node.portrait._atlas.region.size == mother.get_frame_rect(0).size,
-		"the Ascended node: normal size, its whole frame scaled in")
+	var drawn: Rect2 = node.portrait._atlas.region
+	_check(node.size == RememberScreen.NODE_SIZE and mother.get_frame_rect(0).encloses(drawn) and drawn.size.x > 0.0
+		and (node.portrait.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED or drawn.size.x <= RememberScreen.PORTRAIT),
+		"the Ascended node: normal size, its whole drawn art scaled in (%s in %s)" % [drawn, mother.get_frame_rect(0)])
+	# Centred by its drawn pixels (user, via UI Asset): a 2-frame sheet with art in a corner crops to the art, over both frames.
+	var sheet := Image.create(80, 40, false, Image.FORMAT_RGBA8)
+	sheet.fill_rect(Rect2i(10, 20, 12, 15), Palette.GOLD)
+	sheet.fill_rect(Rect2i(48, 18, 12, 15), Palette.GOLD)  # Frame 2: the same art 2 px higher
+	var probe := TowerData.new()
+	probe.texture = ImageTexture.create_from_image(sheet)
+	probe.frame_count = 2
+	var crop := WardenIcon.visible_region(probe)
+	_check(crop == Rect2(8, 18, 14, 17), "visible_region: the art over both frames (%s)" % crop)
 	node.free()
 
 	# The tree shows only this run's branches (user: "only show 2 branch options unless we unlocked 3"): an unplanted

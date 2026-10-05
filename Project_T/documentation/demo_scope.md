@@ -44,6 +44,17 @@ After every demo run, the results screen shows the Grove **greyed out and asleep
 player's banked Seeds: *"In the full game, every run grows your Memory Grove. Your 214 Seeds will
 be waiting."* It sells the meta without building it for the demo.
 
+### Show what the full game holds (user, 2026-10-05; Marketing's research, marketing.md §8)
+Locked full-game content is shown by **real name and icon with a "Full game" tag**, never hidden or "???",
+in two places:
+- **Codex:** the families, Wardens (branches, finals), Dreams and Kinships outside the demo are listed
+  with name, icon and one line, tagged "Full game" (no stats, no unlock path). The "N more wait in the
+  Memory Grove" line becomes "N more in the full game".
+- **Grove teaser:** a few real Grove nodes (a family, a perk, a Legendary Dream) shown by name and icon on
+  the sleeping tree, tagged "Full game".
+**Not** in runs: the Warden panel, the family pick and Dream offers stay clean (the user removed "???"
+options there); demo runs never offer full-game content.
+
 ### Test Grove (developer playtest mode, not shipped)
 
 To choose the demo roster by playing, not guessing. A toggle (settings "Developer" section, or a

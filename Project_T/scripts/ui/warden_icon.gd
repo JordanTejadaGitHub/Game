@@ -25,3 +25,55 @@ static func region(data: TowerData) -> Rect2:
 	var w := minf(frame.size.x, SIZE)
 	var h := minf(frame.size.y, SIZE)
 	return Rect2(frame.position.x + (frame.size.x - w) / 2.0, frame.position.y + frame.size.y - h, w, h)
+
+# The Warden's drawn pixels in frame 0 (the union over its idle frames, so the loop never leaves the crop), in sheet
+# coordinates: a Warden on a disc or a tile is centred by what's drawn, not by its canvas (user, via UI Asset
+# 2026-10-05: bigger forms have empty canvas around the art). The frame itself when the image can't be read; the
+# 2x2 Sapling keeps its bottom square (region). Cached as plain rects, never a texture.
+static var _visible := {}
+
+static func visible_region(data: TowerData) -> Rect2:
+	if data == null or data.texture == null:
+		return Rect2()
+	if data.footprint > 1:
+		return region(data)
+	var frame := data.get_frame_rect(0)
+	var key := "%s:%s:%d" % [data.texture.resource_path if data.texture.resource_path != "" else str(data.texture.get_instance_id()), frame, data.frame_count]
+	if _visible.has(key):
+		return _visible[key]
+	var result := frame
+	var image := data.texture.get_image()
+	if image != null and not image.is_empty():
+		if image.is_compressed():
+			image.decompress()
+		var used := Rect2i()
+		var found := false
+		for i in maxi(data.frame_count, 1):
+			var part := image.get_region(Rect2i(data.get_frame_rect(i))).get_used_rect()
+			if part.size == Vector2i.ZERO:
+				continue
+			used = used.merge(part) if found else part
+			found = true
+		if found:
+			result = Rect2(frame.position + Vector2(used.position), Vector2(used.size))
+	_visible[key] = result
+	return result
+
+# The Warden's icon at its usual size (the bar's slots: never scaled up), its drawn pixels moved to the middle of the
+# canvas and `low` px under it so the plinth sits a little low (UI Asset: tall forms sat high or off to one side). The
+# canvas crop when the drawn art fills it anyway.
+static func make_centred(data: TowerData, low: float = 2.0) -> Texture2D:
+	if data == null or data.texture == null:
+		return null
+	var canvas := region(data)
+	var drawn := visible_region(data)
+	var atlas := AtlasTexture.new()
+	atlas.atlas = data.texture
+	if data.footprint > 1 or drawn.size.x >= canvas.size.x and drawn.size.y >= canvas.size.y:
+		atlas.region = canvas
+		return atlas
+	atlas.region = drawn
+	var spare := canvas.size - drawn.size
+	var offset := Vector2(spare.x / 2.0, minf(spare.y / 2.0 + low, spare.y))
+	atlas.margin = Rect2(offset.floor(), spare)
+	return atlas

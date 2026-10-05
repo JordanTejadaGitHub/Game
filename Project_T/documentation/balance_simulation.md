@@ -448,11 +448,11 @@ health (0.7%) left cost all 18 leaves, the same as 3,400. The bot now covers the
 
 **Decision (user, 2026-10-01: "most bosses just lose a lot of leaves and have 1 boss that sticks"):**
 - **Only the Hollow Oak (drift 100, every form) stays and drains** until dispelled: the last stand.
-- **Every other act boss takes a flat bite and leaves:** **8 leaves in act 1, 10 in act 2, 12 in act 3**
+- **Every other act boss takes a flat bite and leaves:** **10 leaves in act 1 (was 8, raised 2026-10-01, below), 10 in act 2, 12 in act 3**
   (user chose flat over health-scaled). Elite/escort leaks unchanged.
 - **The Night Mare keeps its own laps** (untouchable lingers that drain, then another lap).
 - This replaces enemy_design.md's "A boss that reaches the Heartwood stays" for every boss but the Oak.
-  Act 1's target "always-skip loses to the boss" now has to come from leaks before 25 plus the 8.
+  Act 1's target "always-skip loses to the boss" now has to come from leaks before 25 plus the bite (10).
 - **Leaf Fall is never offered for a block with a boss drift** (its ×2 would make the bite 16–24
   leaves: a boss must never one-shot the run).
 - In the game: **bfc33e75** (boss bite, `EnemyContainer.boss_bite_leaves` [8, 10, 12],
@@ -825,6 +825,39 @@ any grow price**; the default bot only looked balanced because its room target c
 **User decision: copies cost more**: each planted Warden costs **+5% per copy of the same kind** on the map
 (family base Wardens; walls and Sprouts exempt: Sprouts already escalate +4 per 5 and the opening needs 5 at 12; `TowerPlacer.copy_cost_step`; in a7525077). A/B queued: the default bot, the spender, skip, and the
 spender without the step, on the new grow prices.
+
+**Overnight batch (2026-10-04/05, a7525077, fresh, --boss-draw, act 1 boss survival, 30 seeds unless noted).**
+Targets: default ~55%, spender ≤ ~80%, skip ≤ 15–20%; demo 75–85%.
+
+| Branch × | Copy step | Act 1 health | Default | Spender | Notes |
+|---|---|---|---|---|---|
+| 1.5 | 0 | 1.30 | – | 100% | spender ~71 base Wardens + ~50 walls by 24 |
+| 1.5 | 0.05 | 1.30 (live) | 27% | 73% | skip 0%; demo default 40% / spender 100% |
+| 1.5 | 0.05 | 1.20 / 1.15 / 1.10 | 50 / 30 / 57% | 93 / 93 / 90% | the curve moves both bots together |
+| 1.5 | 0.08 / 0.10 | 1.20 | 30 / 30% | 67 / 57% | the step stops the spender, costs the default too |
+| 1.5 | 0.10 | 1.15 | 32% (60) | 47% (60) | confirmed on seeds 31–60 |
+| 1.25 | 0.05 / 0.08 | 1.30 / 1.20 | 23 / 33% | 77 / 73% | 1.25 still out of reach in act 1 |
+| 1.25 | 0.05 | 1.20 | 40% | 90% | |
+| **1.0** | **0.08** | **1.20** | **63% (60)** | **70% (60)** | **skip 10%; demo (×1.15) 90% / 85%** |
+
+- **Why the default bot fell:** at the old prices it grew ~5 branches by 24 (first at a median drift 14) and
+  spent 654 Dew on growth; at branch ×1.5 it never reaches one, so the Dew goes to Nurture ranks instead
+  (1,106 → 1,662 Dew) and ranks are worth less. Cheaper ranks would not help; branch reachability does.
+- **Levers separate cleanly:** the copy step sets the spender (0.05 → 24, 0.08 → 18, 0.10 → 15.5 base Wardens
+  at 24); the branch price sets the default bot (1.25 → 33%, 1.0 → 63% at the same step and curve).
+- At the winning row the default bot banks ~64 Dew by drift 15 for its first branch (human run 18: 1,340 by 20).
+- **Late game (C, half Grove, --last=100, 20 + 20):** the bot never reaches act 3 on either price, so it can't
+  judge finals. **No final-form +10–15% for now**; decided from human runs into acts 3–4.
+  (Half Grove carries sidegrade perks, ~fresh survival as designed.)
+- Seed 26 (shortest empty route, 35 vs mean 40) leaks at drift 1 with the opening in every arm; one map in 30,
+  a bot opening limit, left alone.
+
+**Recommendation (to the user, 2026-10-05):** branch ×1.0 (the old price), copy step **0.08**, act 1 health
+**×1.20** (demo keeps ×1.15); finals ×1.5 and Nurture 30 / 48 / … stay. Copies, not branch prices, now hold
+back early mass-planting. This walks back the branch half of "growing more expensive", so it waits for the
+user's yes. **Decided (user, 2026-10-05: "Yes")**, sent to Tower Code (`branch_cost_multiplier` 1.0,
+`copy_cost_step` 0.08, `act1_health_multiplier` 1.20 full game only). Watch: humans found act 1 at ×1.30 calm
+(runs 17–18, old growth); re-read act 1 closest on the first human runs at this build.
 
 ## Human run 18 (2026-10-04, build 5d8f3f = 7762f0cd; 0 Grove)
 

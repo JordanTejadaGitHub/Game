@@ -86,7 +86,7 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 		_title.text += " · take %d" % dream_state.picks_left if dream_state.picks_left > 1 else " · take 1 more"
 	_skip.text = "Let it pass, +%d Dew" % dream_state.skip_dew if dream_state.skip_dew > 0 else "Let it pass"  # Light pass wording
 	_skip.visible = dream_state.can_skip()  # Restless Dreams
-	_dev_any.visible = DreamState.dev_tools_on()
+	_dev_any.visible = DreamState.dev_tools_on() and not CaptureDirector.capturing()  # Never in marketing captures
 	# A run-long supply: "1 left this run"; the last one used leaves the button disabled for the rest of that Dream
 	_reroll.text = dream_state.reroll_label()
 	_reroll.tooltip_text = dream_state.reroll_tip()

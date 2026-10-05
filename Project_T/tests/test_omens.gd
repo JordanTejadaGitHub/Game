@@ -663,8 +663,8 @@ func _test_active_tag(main: Node) -> void:
 	screen._on_omen_started(omens.active, 16, 20)
 	await _frames(3)
 	var tag: Label = main.get_node("HUD/ActiveOmen")
-	# One compact line (user): [icon] "Stubborn Blight · 16–20 · +40 Dew"; the twist and the reward rule in the tooltip
-	_check(tag.text.strip_edges() == "Stubborn Blight · 16–20 · +40 Dew" and not tag.text.contains("\n"),
+	# One compact line (user), in segments (light pass): [icon] "Stubborn Blight │ drifts 16–20 │ +40 Dew"; the twist and the reward rule in the tooltip
+	_check(tag.text.strip_edges() == "Stubborn Blight  │  drifts 16–20  │  +40 Dew" and not tag.text.contains("\n"),
 		"the tag: one compact line with the live reward (%s)" % tag.text.strip_edges())
 	_check(tag.tooltip_text.begins_with("Statuses last a third as long.") and tag.tooltip_text.contains("Reward: +40 Dew, minus 10")
 		and tag.tooltip_text.ends_with("You'd get it all right now."), "…the twist, the reward and where it stands in its tooltip (%s)" % tag.tooltip_text.replace("\n", " / "))
@@ -680,10 +680,10 @@ func _test_active_tag(main: Node) -> void:
 		"…the icon sits inline before the text, inside the tag (%s in %s)" % [icon.position if icon else "none", tag.size])
 	_activate(omens, "thick_blight", 4)
 	screen._on_omen_started(omens.active, 16, 20)
-	_check(tag.text.strip_edges().ends_with("· Reward kept"), "a Dream reward: \"Reward kept\" (%s)" % tag.text.strip_edges())
+	_check(tag.text.strip_edges().ends_with("│  Reward kept"), "a Dream reward: \"Reward kept\" (%s)" % tag.text.strip_edges())
 	_activate(omens, "blood_moon", 4)
 	screen._on_omen_started(omens.active, 16, 20)
-	_check(tag.text.strip_edges().begins_with("Blood Moon · 16–20 · +0 of ~"), "Blood Moon: the extra Dew earned so far of the estimate (%s)" % tag.text.strip_edges())
+	_check(tag.text.strip_edges().begins_with("Blood Moon  │  drifts 16–20  │  +0 of ~"), "Blood Moon: the extra Dew earned so far of the estimate (%s)" % tag.text.strip_edges())
 	screen._on_omen_rewarded(omens.active, "")
 	omens.active = null
 	director.drifts_started = 0

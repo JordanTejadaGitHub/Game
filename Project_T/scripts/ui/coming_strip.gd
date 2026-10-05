@@ -20,6 +20,7 @@ const DIM := Color(1, 1, 1, 0.4)
 
 var drift_director: DriftDirector
 var compact := false  # A drift is walking: the small row
+var next_after_rest := false  # Compact in a block's last drift: the next block's first drift ("After the rest")
 var _caption := Label.new()
 var _row := VBoxContainer.new()  # Rows of up to PER_ROW kinds (each an HBoxContainer)
 var _built_for := ""  # "mode:first:last" of what's shown ("" = nothing)
@@ -106,6 +107,9 @@ func shown_span() -> Vector2i:
 	if drift_director.is_boss_drift(started) or _boss_walking():
 		return Vector2i(1, 0)
 	var block_end := drift_director.get_block(maxi(started, 1)) * per
+	next_after_rest = started >= block_end
+	if next_after_rest:  # The block's last drift walks: the next drift (after the rest), so the strip never vanishes mid-drift
+		return Vector2i(started + 1, started + 1)
 	return Vector2i(started + 1, mini(block_end, drift_director.get_total_drifts()))
 
 func _boss_walking() -> bool:
@@ -149,7 +153,7 @@ const PER_ROW := 6
 const CAPTION_GAP := 14  # ~8 px clear between the caption and the disc row, "New" badges included (user)
 
 func _build(span: Vector2i) -> void:
-	_caption.text = "Still to come this block" if compact else "Coming this block"
+	_caption.text = ("After the rest" if next_after_rest else "Still to come this block") if compact else "Coming this block"
 	for child in _row.get_children():
 		_row.remove_child(child)
 		child.queue_free()
