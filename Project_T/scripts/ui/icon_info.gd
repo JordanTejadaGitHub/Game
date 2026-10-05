@@ -279,6 +279,9 @@ static func format(text: String) -> String:
 	if text.contains("{pct:"):  # A Warden's share field as a percent: "{pct:beacon.marked_bonus}" -> "50%" (texts follow the data)
 		for found in _pct_pattern().search_all(text):
 			text = text.replace(found.get_string(), pct_text(found.get_string(1), found.get_string(2)))
+	if text.contains("{field:"):  # Any Warden number: "{field:thunderhead.storm_every}", "{field:graftling.copy_share:pct}"
+		for found in _field_pattern().search_all(text):
+			text = text.replace(found.get_string(), field_text(found.get_string(1), found.get_string(2), found.get_string(3)))
 	return text
 
 # "{pct:beacon.marked_bonus}" -> "50%": TowerData field `field` of Warden `warden_id`, × 100 ("full strength" at 1.0).
@@ -289,6 +292,41 @@ static func pct_text(warden_id: String, field: String) -> String:
 		return "%s.%s" % [warden_id, field]
 	var value := float(data.get(field))
 	return "full strength" if is_equal_approx(value, 1.0) else "%d%%" % roundi(value * 100.0)  # Like {echo:}: 1.0 reads "full"
+
+# Any TowerData number in text (text_pass.md 797758fe: 17 Warden cards quoted stale numbers): "{field:snugroot.hold_targets}"
+# -> "5", with an optional format: ":count" (whole number), ":seconds" ("1.5 s"), ":pct" (× 100, "80%"), ":cells"
+# ("2.5 cells"), ":times" ("×1.5"). No format: a whole number when it is one, else up to 2 decimals.
+static func field_text(warden_id: String, field: String, style: String = "") -> String:
+	var path := "res://resource/tower/%s.tres" % warden_id
+	var data := load(path) as TowerData if ResourceLoader.exists(path) else null
+	if data == null or not (field in data):
+		return "%s.%s" % [warden_id, field]
+	var value := float(data.get(field))
+	match style:
+		"count":
+			return str(roundi(value))
+		"pct":
+			return "%d%%" % roundi(value * 100.0)
+		"seconds":
+			return "%s s" % _number(value)
+		"cells":
+			return "%s cell%s" % [_number(value), "" if is_equal_approx(value, 1.0) else "s"]
+		"times":
+			return "×%s" % _number(value)
+	return _number(value)
+
+# 3 -> "3", 1.5 -> "1.5", 0.333 -> "0.33".
+static func _number(value: float) -> String:
+	if is_equal_approx(value, roundf(value)):
+		return str(roundi(value))
+	return str(snappedf(value, 0.01))
+
+static var _field_regex: RegEx = null
+static func _field_pattern() -> RegEx:
+	if _field_regex == null:
+		UiStyle.release_at_exit(func() -> void: _field_regex = null)
+		_field_regex = RegEx.create_from_string("\\{field:([a-z_0-9]+)\\.([a-z_0-9]+)(?::([a-z]+))?\\}")
+	return _field_regex
 
 static var _pct_regex: RegEx = null
 static func _pct_pattern() -> RegEx:
