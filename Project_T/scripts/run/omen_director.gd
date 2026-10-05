@@ -196,8 +196,8 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 	var share := 1.0
 	var dreams := true
 	if lost >= 0 and not is_dew_prize(omen):
-		share = clampf(1.0 - REWARD_CUT_PER_LEAF * lost, 0.0, 1.0)
-		dreams = lost <= DREAM_REWARD_MAX_LOST
+		share = share_for(lost)
+		dreams = dreams_kept_for(lost)
 	var dew := floori((roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)) * share)
 	if dew > 0:
 		parts.append("+%d Dew" % dew)
@@ -241,6 +241,11 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 # other reward: the extra Dew is the prize." REWARD_RULE is the full rule (the line's hover / tap).
 const REWARD_RULE := "Lose no leaf in the Omen's drifts and its reward is yours in full. Each leaf lost takes a quarter of its Dew and Seeds away (4 leaves: nothing). A Dream reward stays only if you lose at most 1 leaf."
 const DOUBLE_EDGED_LINE := "No other reward: the extra Dew is the prize."
+const DOUBLE_OR_NOTHING_RULE := "Double or Nothing: lose no leaf in the Omen's drifts and its reward is doubled; lose any leaf and it's nothing."
+
+# The whole reward rule (the Omen card's "Reward" hover / tap).
+func reward_rule() -> String:
+	return DOUBLE_OR_NOTHING_RULE if double_or_nothing() else REWARD_RULE
 
 # An Omen whose only prize is the extra Dew from its nightmares (Blood Moon, Bountiful Night: creature Dew above ×1 and no
 # reward of its own). Their twist is the reward: no reward bullets, never cut by leaves. A double-edged Omen with its own
@@ -255,6 +260,10 @@ static func is_dew_prize(omen: OmenData) -> bool:
 func reward_sentence(omen: OmenData, act: int, block: int = 0) -> String:
 	if is_dew_prize(omen):
 		return ("Reward: about +%d extra Dew over these drifts." % estimate_extra_dew(omen, block)) if block > 0 else DOUBLE_EDGED_LINE
+	if double_or_nothing():  # Double or Nothing: all of it twice with no leaf lost, nothing with any
+		var doubled := _reward_parts(omen, act, block, DOUBLE_OR_NOTHING, true)
+		var all: Array = doubled[0] + doubled[1]
+		return ("Reward: %s if you lose no leaf in these drifts; lose any and it's nothing (Double or Nothing)." % _and(all)) if not all.is_empty() else ""
 	var parts := _reward_parts(omen, act, block, 1.0, true)
 	var scaled: Array = parts[0]
 	var dream: Array = parts[1]
@@ -289,6 +298,13 @@ func reward_bullets(omen: OmenData, act: int, block: int = 0) -> Array[String]:
 	var bullets: Array[String] = []
 	if is_dew_prize(omen):  # The computed extra Dew (user: "should calculate how much Dew would come from the Omen")
 		bullets.append("About +%d extra Dew over these drifts" % estimate_extra_dew(omen, block) if block > 0 else "Extra Dew from every nightmare")
+		return bullets
+	if double_or_nothing():  # Each doubled part, kept only with no leaf lost
+		var doubled := _reward_parts(omen, act, block, DOUBLE_OR_NOTHING, true)
+		for part in doubled[0] + doubled[1]:
+			bullets.append(String(part).left(1).to_upper() + String(part).substr(1) + ", if you lose no leaf")
+		if not bullets.is_empty():
+			bullets.append("Lose any leaf: nothing (Double or Nothing)")
 		return bullets
 	var scale := _act_scale(act)
 	var keep := ", if you lose at most 1 leaf"
@@ -332,11 +348,11 @@ func paid_sentence(omen: OmenData, act: int, rest_bonus: int, lost: int, block: 
 		var pots := block_pots(omen, block)
 		var extra := floori(run_state.pot_earned_block * (1.0 - pots[0] / pots[1])) if pots[1] > 0.0 else 0
 		return "+%d extra Dew" % extra
-	var share := clampf(1.0 - REWARD_CUT_PER_LEAF * lost, 0.0, 1.0)
-	var parts := _reward_parts(omen, act, block, share, lost <= DREAM_REWARD_MAX_LOST, rest_bonus)
+	var share := share_for(lost)
+	var parts := _reward_parts(omen, act, block, share, dreams_kept_for(lost), rest_bonus)
 	var got: Array = parts[0] + parts[1]
 	var why := "%d %s lost" % [lost, "leaf" if lost == 1 else "leaves"]
-	var lost_dream: bool = not parts[2].is_empty() and lost > DREAM_REWARD_MAX_LOST
+	var lost_dream: bool = not parts[2].is_empty() and not dreams_kept_for(lost)
 	if got.is_empty():
 		return "No reward: %s." % why if lost > 0 else "No reward."
 	var text := "Reward: %s%s." % [_and(got), (" (%s)" % why) if lost > 0 else ""]
@@ -373,13 +389,15 @@ func _reward_parts(omen: OmenData, act: int, block: int, share: float, dreams: b
 	var tree_seeds := floori(omen.reward_tree_seeds * share)
 	if tree_seeds > 0:
 		scaled.append("%d Seeds for every Withered Tree you clear this run (not 1)" % (1 + tree_seeds))
-	var cards := maxi(dream_state.cards_per_offer, mini(dream_state.cards_per_offer + omen.reward_extra_dream_cards, DreamState.MAX_OFFER_CARDS))
+	var times := dream_times(share)  # Double or Nothing, nothing lost: Dream rewards count twice
+	var cards := maxi(dream_state.cards_per_offer, mini(dream_state.cards_per_offer + omen.reward_extra_dream_cards * times, DreamState.MAX_OFFER_CARDS))
+	var rare_text := "a Rare+ card in your next Dream" if times == 1 else "a Rare+ card in each of your next %d Dreams" % (omen.reward_rare_dreams * times)
 	if omen.reward_extra_dream_cards > 0 and omen.reward_rare_dreams > 0:
-		dream_all.append("your next Dream offers %d cards, one of them Rare+" % cards)
+		dream_all.append("your next Dream offers %d cards, one of them Rare+" % cards + ("" if times == 1 else " (and the Dream after a Rare+ too)"))
 	elif omen.reward_extra_dream_cards > 0:
 		dream_all.append("your next Dream offers %d cards" % cards)
 	elif omen.reward_rare_dreams > 0:
-		dream_all.append("a Rare+ card in your next Dream")
+		dream_all.append(rare_text)
 	if omen.reward_legendary:
 		dream_all.append("a Legendary in your next Dream")
 	var nothing_scaled := omen.reward_dew <= 0 and omen.reward_seeds <= 0 and omen.reward_tree_seeds <= 0 \
@@ -396,12 +414,46 @@ func _extra_rest_bonus(omen: OmenData, rest_bonus: int) -> int:
 # faced).
 # Never an Omen from the previous rest, and the Omens are of different kinds (run_design.md
 # "More Omens"; if there aren't enough kinds, the rest fill in).
+# Restless Omens (run_design.md): Grove Omens join the pool once their node is planted (the full game; a Dev Grove
+# run reads its preset's profile, Test Grove has everything). Tests name nodes in `force_grove`, never a profile.
+static var force_grove: Array[String] = []
+
+func grove_owned(id: String, memory: Dictionary = {}) -> bool:
+	if force_grove.has(id) or (dream_state != null and dream_state.unlock_everything):
+		return true
+	if ResultsScreen.is_demo() or not _is_real_game():
+		return false
+	var unlock := HeartwoodMemory.get_unlock(id)
+	return unlock != null and HeartwoodMemory.node_level(memory if not memory.is_empty() else HeartwoodMemory.load_data(), unlock) > 0
+
+func _is_real_game() -> bool:
+	return is_inside_tree() and get_tree().current_scene == owner
+
+# Static Sky: something this run applies Charged (a lightning Warden owned, or a card adding it).
+func has_charged_source() -> bool:
+	if dream_state == null:
+		return false
+	if dream_state.owned_statuses().has(EnemyStatuses.STATIC):
+		return true
+	for card in dream_state.pool:
+		if card.status_id == EnemyStatuses.STATIC and dream_state.card_stacks(card.id) > 0:
+			return true
+	return false
+
 func make_offer(block: int) -> Array[OmenData]:
 	var drifts := get_block_range(block)
 	var eligible: Array[OmenData] = []
+	var memory := {}  # The profile, read once if a Grove Omen asks
 	for omen in pool:
 		if omen.waiting_for_hook or omen.min_drift > drifts.x or _last_offer_ids.has(omen.id):
 			continue
+		if omen.requires_grove != "":
+			if memory.is_empty() and _is_real_game() and not ResultsScreen.is_demo():
+				memory = HeartwoodMemory.load_data()
+			if not grove_owned(omen.requires_grove, memory):
+				continue  # Restless Omens: only with their Grove node
+		if omen.requires_charged_source and not has_charged_source():
+			continue  # Static Sky: once something applies Charged
 		if omen.requires_flyers and not _block_has_flyers(drifts):
 			continue
 		if omen.requires_coat and not _block_has_coat(drifts):
@@ -460,6 +512,11 @@ func blocks_building() -> bool:
 func get_leak_multiplier() -> float:
 	var omen := current()
 	return omen.leak_multiplier if omen else 1.0
+
+# Giants' Walk: leaves every leak costs on top (after the multiplier).
+func get_leak_add() -> int:
+	var omen := current()
+	return omen.leak_add if omen else 0
 
 # Elder Night and Hollow Wind reshape a drift's schedule ([[time, EnemyData, elite], …]); DriftDirector
 # calls this when the drift starts. Bosses are never touched.
@@ -674,12 +731,31 @@ func get_reward_share(lost: int = -1) -> float:
 		return 1.0
 	if lost < 0:
 		lost = leaves_lost_in_block()
-	return clampf(1.0 - REWARD_CUT_PER_LEAF * lost, 0.0, 1.0)
+	return share_for(lost)
 
 func keeps_dream_reward(lost: int = -1) -> bool:
 	if active != null and is_dew_prize(active):
 		return true
-	return (leaves_lost_in_block() if lost < 0 else lost) <= DREAM_REWARD_MAX_LOST
+	return dreams_kept_for(leaves_lost_in_block() if lost < 0 else lost)
+
+# Double or Nothing (Strange Dreams card): every Omen pays double with no leaf lost in its block, nothing with any.
+const DOUBLE_OR_NOTHING := 2.0
+
+func double_or_nothing() -> bool:
+	return dream_state != null and dream_state.has_rule(&"double_or_nothing")
+
+# The reward share for a block with `lost` leaves lost (not for a double-edged Omen: its twist is the reward).
+func share_for(lost: int) -> float:
+	if double_or_nothing():
+		return DOUBLE_OR_NOTHING if lost <= 0 else 0.0
+	return clampf(1.0 - REWARD_CUT_PER_LEAF * lost, 0.0, 1.0)
+
+# Dream rewards (Rare+ offers, extra cards) count twice on a doubled share; a Legendary stays one.
+static func dream_times(share: float) -> int:
+	return 2 if share > 1.0 else 1
+
+func dreams_kept_for(lost: int) -> bool:
+	return lost <= 0 if double_or_nothing() else lost <= DREAM_REWARD_MAX_LOST
 
 # Where the active Omen's reward stands now, for the tag's tooltip ("" with no Omen or a double-edged one):
 # "You'd get it all right now." / "You'd get 75% right now: 1 leaf lost." (+ "The Dream reward is gone.")
@@ -748,21 +824,21 @@ func _pay_reward(rest_bonus: int) -> void:
 		var gone := mini(roundi(rest_bonus * (1.0 - omen.rest_bonus_multiplier)), run_state.dew)
 		if gone > 0:
 			run_state.spend_dew(gone)
-	var dreamlight := floori(floori(omen.reward_dreamlight * scale) * share)  # By act: +1 / +1 / +2 / +2
+	var dreamlight := floori(floori(omen.reward_dreamlight * scale) * minf(share, 1.0))  # By act: +1 / +1 / +2 / +2; never doubled
 	if dreamlight > 0:
 		dream_state.add_dreamlight(dreamlight, &"omen")
 	if omen.reward_legendary and dreams:
 		dream_state.add_legendary_dreams(1)
 	tree_seed_bonus += floori(omen.reward_tree_seeds * share)
 	run_state.omen_seeds += floori(roundi(omen.reward_seeds * scale) * share)
-	var max_leaves := floori(omen.reward_max_leaves * share)
+	var max_leaves := floori(omen.reward_max_leaves * minf(share, 1.0))  # Never doubled (Double or Nothing)
 	if max_leaves > 0:
 		run_state.max_leaves += max_leaves
 	if max_leaves > 0:
 		run_state.regrow_leaves(max_leaves)  # The new leaves grow in (no Omen heals lost ones: run_design.md)
 	if dreams:
-		dream_state.add_rare_dreams(omen.reward_rare_dreams)
-		dream_state.add_extra_cards(omen.reward_extra_dream_cards)
+		dream_state.add_rare_dreams(omen.reward_rare_dreams * dream_times(share))
+		dream_state.add_extra_cards(omen.reward_extra_dream_cards * dream_times(share))
 	omen_rewarded.emit(omen, paid_sentence(omen, act, rest_bonus, lost, block))
 
 # The run was won during an Omen's block: there's no rest after it, so pay now (Seeds still count).

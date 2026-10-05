@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "moonflip"
+display_name = "Moonflip"
+description = "At every rest a coin flips: for the next block all Wardens deal 25% more damage, or 15% less."
+rarity = 1
+kind = 3
+tags = Array[String](["strange"])
+max_stacks = 1
+in_start_pool = false
+rule_id = &"moonflip"
+

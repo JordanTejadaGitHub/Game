@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "mystery_dream"
+display_name = "Mystery Dream"
+description = "Face-down. When taken, it becomes a random Uncommon or Rare Dream you could be offered now."
+rarity = 1
+kind = 3
+tags = Array[String](["strange"])
+max_stacks = 1
+in_start_pool = false
+rule_id = &"mystery_dream"
+

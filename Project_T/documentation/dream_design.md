@@ -1534,7 +1534,10 @@ kind of gamble. Tag `strange` (not an archetype). Grove pool, one copy each.
   same way). The DriftPanel shows *"Moonflip · +25%"* or *"−15%"* for the block.
 - **Double or Nothing:** needs Omens (offered from drift 10). Dew, Seeds and Dream rewards all
   follow it; a double-edged Omen (whose reward is its twist) is unaffected. Omens still never give
-  leaves or Dreamlight.
+  leaves or Dreamlight. **As built** (116d52bc): Dream rewards double (a Rare+ card in the next 2
+  Dreams; extra cards doubled, up to 5), but a **Legendary reward stays one**.
+- **Built:** 116d52bc (`tests/test_strange_dreams.gd`). Mystery Dream shows what it became over the
+  map for ~2.4 s; Moonflip shows as a damage row on every Warden and in the DriftPanel.
 - **Wild Dew:** multiplies with the pot's other modifiers; the DriftPanel's next-drift pot shows
   the rolled number. Seeded, like Moonflip.
 - **Numbers:** Balancing Discussion checks the averages (Moonflip +5%, Wild Dew +10% Dew) against

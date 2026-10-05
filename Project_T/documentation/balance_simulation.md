@@ -824,7 +824,13 @@ by ~20%, so it is never free for the build it favours.
   double leak keeps it a gamble. Static Sky is offered only with a Charged source, so its taker usually
   profits from the Charged: the speed is above Swift Stream's to pay for that.
 - Watch on human runs (RunHistory Omens + leaks per block): any of the four taken > 60% of the times
-  offered, or leaking < Clear Skies blocks, gets its reward cut first.
+  offered, or leaking < Clear Skies blocks, gets its reward cut first. In 116d52bc.
+
+**Strange Dreams averages (116d52bc):** Moonflip (+25% / −15% per block, seeded coin) averages **+5%** per
+block; Wild Dew (pot ×0.6–1.6 per drift, uniform) averages **×1.1**, beside Rich Dew's +5–15%; Double or
+Nothing (Omen rewards ×2 on a clean block, 0 with any leaf lost) breaks even at a **50% clean rate** on Omen
+blocks. All three are mildly positive or neutral on average: fine as gambles. Watch Double or Nothing's clean
+rate on Omen blocks in the run history; above ~70% it is a straight upgrade.
 
 ## Pricier growing (user, 2026-10-04: "make growing your Wardens more expensive, make the player rely on making more Wardens early instead of saving")
 

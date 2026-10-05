@@ -200,6 +200,7 @@ const HELD_SOURCES: Array[String] = ["tangleroot", "snugroot"]
 
 signal unlocks_changed
 signal card_taken(card: UpgradeData)
+signal mystery_revealed(mystery: UpgradeData, card: UpgradeData)  # Mystery Dream became `card` (DreamScreen shows it)
 # A Dream is ready to be chosen (`cards` has up to 3). The Dream screen pauses and shows it.
 signal offer_ready(cards: Array[UpgradeData], drift_number: int)
 signal offer_closed
@@ -295,6 +296,7 @@ var last_clear_paid := 0  # Dew the clear being made cost (ObstacleClearer sets 
 var glimmer_shards := 0  # Glimmering Hunt's shards this run (10 = 1 Dreamlight, own cap)
 var _statuses_cache := []  # [state key, owned statuses] (owned_statuses)
 var _offer_drift := 0  # The drift of the offer being built (half-dreamed checks)
+var mystery_spent := false  # Mystery Dream was taken (it became another card; one copy)
 var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
 var _attackers_planted := 0  # Attacking Wardens planted this run (Canopy)
 var picks_left := 1  # Cards still to take from the current offer (Lucid Dreaming: 2)
@@ -1995,11 +1997,22 @@ func _show_next_offer() -> void:
 func choose(card: UpgradeData) -> void:
 	if not current_offer.has(card):
 		return
+	var mystery: UpgradeData = null
+	if card.rule_id == &"mystery_dream":  # Face-down: it becomes another card, revealed at once
+		mystery = card
+		card = mystery_pick()
+		mystery_spent = true
+		_passed_count.erase(mystery.id)
+		if card == null:  # Nothing at all could be offered: it fades with nothing (never in practice)
+			_close_offer()
+			return
+		mystery_revealed.emit(mystery, card)
 	var impact := preview_card_impact(card)  # Before taking it: the change it makes (the bloom)
 	take(card)
 	_announce_pick(card, impact)
 	_taken_this_offer.append(card.id)
 	picks_left -= 1
+	current_offer.erase(mystery)  # Taken (as the card it became)
 	if picks_left > 0 and current_offer.size() > 1:  # Lucid Dreaming: take a second card
 		current_offer.erase(card)
 		offer_ready.emit(current_offer, current_offer_drift)
@@ -2192,6 +2205,10 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false  # Not in this run's drawn pool
 	if act < card.min_act or card.kind == UpgradeData.Kind.UNLOCK_WARDEN:
 		return false  # Base Wardens come from the family pick
+	if card.min_drift > 0 and maxi(_offer_drift, drift_director.drifts_started if drift_director != null else 0) < card.min_drift:
+		return false  # Double or Nothing: from drift 10, when Omens begin
+	if card.rule_id == &"mystery_dream" and mystery_spent:
+		return false  # One copy: it became another card
 	if card.kind == UpgradeData.Kind.UNLOCK_EVOLUTION:
 		return false  # Branches and final forms are unlocked with Dreamlight now
 	if card.max_stacks > 0 and card_stacks(card.id) >= card.max_stacks:
@@ -2492,13 +2509,14 @@ func to_save() -> Dictionary:
 		"clearing_opened_by": clearing_opened_by,
 		"free_first_clears": free_first_clears,
 		"cleared_kinds": cleared_kinds.keys().map(func(cell: Vector2) -> Array: return [cell.x, cell.y, cleared_kinds[cell]]),
-		"grown_wardens": grown_wardens.keys(),
+		"grown_wardens": grown_wardens.keys(), "mystery_spent": mystery_spent,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
 func load_save(data: Dictionary) -> void:
 	branch_offers = data.get("branch_offers", {}).duplicate(true)  # First: an unlock signal below must not draw anew
 	wider_roots_family = String(data.get("wider_roots_family", ""))
+	mystery_spent = bool(data.get("mystery_spent", false))
 	unlocked.clear()
 	for id in data.get("unlocked", []):
 		unlocked[id] = true
@@ -2952,11 +2970,72 @@ func get_dew_gain_bonus() -> float:
 # Morning Dew +10%; Call of the Wild +10% on a drift called early (its double call-early Dew stays on top).
 const CALL_OF_THE_WILD_POT := 0.10
 
-func get_dew_pot_multiplier(_number: int, called_early: bool) -> float:
+func get_dew_pot_multiplier(number: int, called_early: bool) -> float:
 	var bonus := get_dew_gain_bonus()
 	if called_early and has_rule(&"call_of_the_wild"):
 		bonus += CALL_OF_THE_WILD_POT * rule_power(&"call_of_the_wild")
-	return 1.0 + bonus
+	return (1.0 + bonus) * wild_dew_roll(number)
+
+# --- Strange Dreams (dream_design.md "Strange Dreams: gamble cards") ------------------------------------------
+# Seeded by the map (the same map rolls the same way), so nothing to save and the DriftPanel can show it early.
+
+const MOONFLIP_UP := 0.25  # Moonflip: the next block's Wardens deal 25% more…
+const MOONFLIP_DOWN := -0.15  # …or 15% less
+const WILD_DEW_MIN := 0.6  # Wild Dew: each drift's pot ×0.6–×1.6
+const WILD_DEW_MAX := 1.6
+
+func _strange_rng(key: String, n: int) -> RandomNumberGenerator:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([int(map_generator.map_seed) if map_generator != null else 0, key, n])
+	return rng
+
+# Wild Dew: drift `number`'s pot roll (1.0 without the card).
+func wild_dew_roll(number: int) -> float:
+	if not has_rule(&"wild_dew"):
+		return 1.0
+	return snappedf(_strange_rng("wild_dew", number).randf_range(WILD_DEW_MIN, WILD_DEW_MAX), 0.01)
+
+# Moonflip: the block it applies to now (the one being walked, or at a rest the next one) and its side.
+func moonflip_block() -> int:
+	if drift_director == null:
+		return 1
+	return drift_director.get_block(drift_director.drifts_started + (1 if drift_director.resting else 0))
+
+func moonflip_is_up(block: int = -1) -> bool:
+	return _strange_rng("moonflip", moonflip_block() if block < 0 else block).randi() % 2 == 0
+
+# The damage bonus every Warden gets now (0.0 without the card).
+func moonflip_bonus() -> float:
+	if not has_rule(&"moonflip"):
+		return 0.0
+	return MOONFLIP_UP if moonflip_is_up() else MOONFLIP_DOWN
+
+# "Moonflip · +25%" / "Moonflip · −15%" for the DriftPanel ("" without the card).
+func moonflip_text() -> String:
+	if not has_rule(&"moonflip"):
+		return ""
+	return "Moonflip · %s%d%%" % ["+" if moonflip_is_up() else "−", absi(roundi(moonflip_bonus() * 100))]
+
+# Mystery Dream: a random Uncommon or Rare that could be offered now, by the usual weights (no Legendary, no
+# Bittersweet, never one held at max stacks: can_offer checks); else a random eligible Common.
+func mystery_pick() -> UpgradeData:
+	var act := drift_director.get_act(maxi(current_offer_drift, drift_director.drifts_started)) if drift_director != null else 1
+	var eligible: Array = pool.filter(func(c: UpgradeData) -> bool: return _mystery_can_become(c, act, false))
+	if eligible.is_empty():
+		eligible = pool.filter(func(c: UpgradeData) -> bool: return _mystery_can_become(c, act, true))
+	if eligible.is_empty():
+		return null
+	var odds: Array = RARITY_WEIGHTS[clampi(act, 1, RARITY_WEIGHTS.size()) - 1]  # The usual odds, Uncommon vs Rare
+	var rare: bool = _rng.randf() * (odds[1] + odds[2]) < odds[2]
+	var of_rarity := eligible.filter(func(c: UpgradeData) -> bool: return (c.rarity == UpgradeData.Rarity.RARE) == rare)
+	return _weighted_pick(of_rarity if not of_rarity.is_empty() else eligible)
+
+func _mystery_can_become(card: UpgradeData, act: int, common: bool) -> bool:
+	if card.rule_id == &"mystery_dream" or card.is_bittersweet() or not can_offer(card, act):
+		return false
+	if common:
+		return card.rarity == UpgradeData.Rarity.COMMON
+	return card.rarity == UpgradeData.Rarity.UNCOMMON or card.rarity == UpgradeData.Rarity.RARE
 
 # The refund share for selling (TowerSeller.get_refund asks). Fair Trade was cut (dream_audit.md), so
 # no card changes it now.
@@ -4263,6 +4342,18 @@ signal card_chosen(card: UpgradeData, towers: Array, impact: String)
 func preview_card_impact(card: UpgradeData) -> Dictionary:
 	var result := {"text": "None of your Wardens yet", "towers": [], "kind": &"none"}
 	if card == null:
+		return result
+	if card.rule_id == &"mystery_dream":
+		result.text = "Unknown until taken"
+		return result
+	if card.rule_id == &"wild_dew":  # The next drift's roll (seeded: it's the one you'd get)
+		var next := drift_director.drifts_started + 1 if drift_director != null else 1
+		result.text = "Next drift's Dew ×%s" % str(snappedf(_strange_rng("wild_dew", next).randf_range(WILD_DEW_MIN, WILD_DEW_MAX), 0.01))
+		result.kind = &"economy"
+		return result
+	if card.rule_id == &"double_or_nothing":
+		result.text = "Omens pay ×2, or nothing"
+		result.kind = &"economy"
 		return result
 	var towers := _towers()
 	var before := {}

@@ -76,6 +76,7 @@ func _ready() -> void:
 	visible = false
 	dream_state.offer_ready.connect(_show_offer)
 	dream_state.offer_closed.connect(_on_closed)
+	dream_state.mystery_revealed.connect(_on_mystery_revealed)
 
 func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 	if not visible:
@@ -184,6 +185,15 @@ func _make_card(card: UpgradeData) -> Button:
 	box.add_child(name_label)
 	if dream_state.opens_clearing(card):
 		_add_opens_clearing(box)
+	if card.rule_id == &"mystery_dream":  # Face-down (Strange Dreams): a big "?" under the name
+		var mark := Label.new()
+		mark.name = "MysteryMark"
+		mark.text = "?"
+		mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.display(mark, 40)
+		mark.add_theme_color_override("font_color", UpgradeData.rarity_color(card.rarity))
+		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(mark)
 	# The effect comes right after the name; it never shrinks.
 	_add_linked_line(box, card.description, UiStyle.INK, 16)
 	var live: String = dream_state.effects().preview_line(card)
@@ -361,6 +371,40 @@ func hide_diagram() -> void:
 	_diagram = null
 	if _scene != null and is_instance_valid(_scene):
 		_scene.stop()  # Pooled: kept, but nothing runs or draws
+
+# Mystery Dream (Strange Dreams): the card it became, shown at once over the map for a moment (a tap dismisses it).
+const REVEAL_TIME := 2.4
+
+func _on_mystery_revealed(_mystery: UpgradeData, card: UpgradeData) -> void:
+	var reveal := Control.new()
+	reveal.name = "MysteryReveal"
+	reveal.set_anchors_preset(Control.PRESET_FULL_RECT)
+	reveal.process_mode = Node.PROCESS_MODE_ALWAYS
+	reveal.mouse_filter = Control.MOUSE_FILTER_STOP
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	reveal.add_child(center)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 10)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.add_child(column)
+	var caption := Label.new()
+	caption.text = "Your Mystery Dream became"
+	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiStyle.caps(caption, 18, UiStyle.GOLD)
+	column.add_child(caption)
+	var face := _make_card(card)
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(face)
+	reveal.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.pressed or event is InputEventScreenTouch and event.pressed:
+			reveal.queue_free())
+	(get_parent() if get_parent() != null else self).add_child(reveal)
+	var tween := reveal.create_tween()
+	tween.tween_interval(REVEAL_TIME)
+	tween.tween_property(reveal, "modulate:a", 0.0, 0.4)
+	tween.tween_callback(reveal.queue_free)
 
 func _on_closed() -> void:
 	hide_diagram()
