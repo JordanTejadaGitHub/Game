@@ -396,8 +396,9 @@ wishlist graph); roughly all his wishlists came from his own shorts (~70k at lau
   YouTube Shorts, in a burst around a big moment (demo, Next Fest, release). His YouTube exploded at launch (some shorts
   10–20M views). Stack the spikes: demo + Next Fest + a new short the same week.
 - **A generous demo with visible locks**: his demo was nearly the full game, but every locked ability was visible by
-  name, which made people want the full game. (For demo_scope.md's owners: show the locked families and Grove in the
-  demo, named.)
+  name, which made people want the full game. **Decided (the user, 2026-10-05; demo_scope.md 7938c7b2):** in the demo's
+  Codex and Grove teaser only, full-game content shows by name and icon with a "Full game" tag; runs stay clean. Main
+  Merger builds it.
 - **Post-release updates + a short about each** kept producing sales spikes.
 
 **Our story bank** (real things from this project; the user picks, tells them in their own words, adds their own):
