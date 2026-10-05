@@ -51,7 +51,7 @@ func _run() -> void:
 		placer.set_build_mode(true)
 		placer.select_tower(sprout)
 		placer.begin_stroke(cells[0])
-		placer.extend_stroke(cells[2])
+		placer.extend_stroke(cells[2] * (2.0 if placer.half_placement() else 1.0))  # Strokes hold half origins (half cells)
 		_check(placer.get_stroke_tag().contains("3 Sprouts · 44 Dew"), "a stroke of 3 costs 12 + 16 + 16 (%s)" % placer.get_stroke_tag())
 		var dew := run_state.dew
 		placer.plant_stroke()

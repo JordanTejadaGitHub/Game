@@ -4266,6 +4266,9 @@ func _set_up_tall_fade() -> void:
 			_tall_fade = ShaderMaterial.new()
 			_tall_fade.shader = TALL_FADE_SHADER
 		sprite.material = _tall_fade
+		# Performance: staggered, so Wardens planted on one frame don't all look on one frame every 0.1 s (141 tall
+		# ones on the stress board cost a 2.6 ms spike every 6th frame: test_perf_stress's p95).
+		_tall_check_left = randf() * TALL_FADE_CHECK
 		_tall_fade.set_shader_parameter(&"top_share", (tower_data.get_frame_rect(0).size.y - MAP_GRID.cell_size.y) / tower_data.get_frame_rect(0).size.y)
 	elif _tall_fade != null:
 		sprite.material = null
