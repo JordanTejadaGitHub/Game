@@ -86,6 +86,9 @@ var _last_args: Array = []  # That call's reach, growth weight, cover_heart, dat
 var half_spots := [0, 0, 0, 0, 0]  # Attackers weighed with half nudges, built at a half offset, refused there; walls planted by the half search, of them built as the first of a better pair
 var route_open := -1  # Route length in full cells after the opening spend, and as drifts 24 / 45 start
 var route_base := -1  # The empty map's route in full cells, before the opening spend (the corridor rule alone)
+var grow_count := 0  # Growth purchases (balance_simulation.md growth costs A/B): all, and as drift 25 starts
+var grows_25 := -1
+var first_grow := -1  # The drift of the first growth into a tier 2+ form
 var route_at := {}
 var narrow_at := {}  # Route halves in a one-half corridor (both opposite neighbours blocked), as drifts 24 / 45 start
 var demo_run := false  # --demo: game/demo stays true (DEMO_RULES, demo bosses and Kinships), for the demo sanity check
@@ -279,6 +282,8 @@ func _run() -> void:
 			wardens_24 = _warden_counts()
 			auras_24 = _attackers().filter(func(t: Tower) -> bool: return _covered_by_aura(t)).size()
 			heart_cover_24 = _attackers().filter(func(t: Tower) -> bool: return t.cell.distance_to(map.endPath) <= t.get_range_cells()).size()
+		if director.drifts_started >= 25 and grows_25 < 0:
+			grows_25 = grow_count
 		for mark in [24, 45]:
 			if director.drifts_started >= mark and not route_at.has(mark):
 				route_at[mark] = _route_cells(map.get_path_from(map.startPath))
@@ -373,6 +378,10 @@ func _spend() -> void:
 			return
 		_spent_now = dew - run_state.dew
 		d["spent_" + kind] += maxi(_spent_now, 0)
+		if kind == "grow":
+			grow_count += 1
+			if first_grow < 0 and _attackers().any(func(t: Tower) -> bool: return t.tower_data.tier >= 2):
+				first_grow = maxi(director.drifts_started, 0)
 
 # One purchase by the plan's order; returns what it bought ("plant", "walls", "grow", "nurture") or "".
 func _next_buy() -> String:
@@ -949,6 +958,9 @@ func _finish() -> void:
 	summary.half_walls = half_spots[3]
 	summary.pair_walls = half_spots[4]  # Of them, built as the first wall of a better pair
 	summary.route_base = route_base
+	summary.grows = grow_count
+	summary.grows_25 = grows_25
+	summary.first_grow = first_grow
 	summary.route_open = route_open
 	summary.route_24 = route_at.get(24, -1)
 	summary.route_45 = route_at.get(45, -1)
