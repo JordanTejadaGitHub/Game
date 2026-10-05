@@ -666,7 +666,15 @@ func _input(event: InputEvent) -> void:
 	else:
 		select(tower)
 
+# What the range ring was last drawn for: a grow, a rank or a 2×2 move changes the ring at once (user: "a bit of
+# pause when a warden upgrades in terms of its UI range indicator": it waited for the mouse to change cells).
+var _ring_key := []
+
 func _process(delta: float) -> void:
+	var ring_key := [selected.tower_data, selected.rank, selected.position] if selection.size() == 1 and is_instance_valid(selected) else []
+	if ring_key != _ring_key:
+		_ring_key = ring_key
+		queue_redraw()
 	if not _blooms.is_empty():
 		for bloom in _blooms:
 			bloom[1] -= delta
