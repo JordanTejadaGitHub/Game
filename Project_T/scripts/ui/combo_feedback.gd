@@ -437,6 +437,9 @@ static func pause_setting() -> bool:
 	return bool(HeartwoodMemory.get_settings().get(PAUSE_SETTING, true))
 
 func _try_show() -> void:
+	if CaptureDirector.capturing():  # Marketing captures run on a fresh profile: every combo is "new", no cards
+		_queue.clear()
+		return
 	if _queue.is_empty() or showing():
 		return
 	if pause_setting() and _blocked():

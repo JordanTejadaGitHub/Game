@@ -71,6 +71,10 @@ var _frame := 0
 static func is_available() -> bool:
 	return OS.is_debug_build()
 
+# A scripted capture is playing (never in a normal run).
+static func capturing() -> bool:
+	return not scene.is_empty()
+
 static func launch_path() -> String:
 	if not is_available():
 		return ""
