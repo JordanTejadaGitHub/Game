@@ -151,7 +151,7 @@ own full finale.
 | 4 | Hollow Oak: Withering | a layer that **removes**: the finale's warm notes drop out one by one while it withers Wardens, returning after |
 | 4 | Hollow Oak: Remembering | at 75 / 50 / 25 %, the **signature layer of the echoed boss** returns for that echo's life (a fragment, quieter, filtered "from inside the bark") |
 
-- **The Hollow Oak finale** (`mus_boss_oak_*`, its own full track): deep wooden drums and a hummed
+- **The Hollow Oak finale** (its own full track, built as the act 4 boss set `mus_boss_act4_*` so it uses the same act switching; signature layers `sig_hollow_oak` (+ `_2` / `_3` by sapling count), `sig_hollow_oak_withering`, `sig_hollow_oak_remembering` + `sig_echo_<id>` for the 9 earlier bosses): deep wooden drums and a hummed
   drone, the act 4 bells, the Hollow form of the motif at its heaviest. Below 50 % the warm
   counter-melody enters **in full choir**. When it falls: **the turn** (see Transitions), the boss dispel bloom, then the
   **Hope form** of the motif played whole, the only time the game plays it at full length, into the
