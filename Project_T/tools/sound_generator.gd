@@ -2686,7 +2686,9 @@ const BED_CUES := {
 	"storm_short2": {"length": 24.0, "end": 1.5, "main": 10.4, "hits": [0.5, 8.5], "mood": "storm"},
 	"boss_short3": {"length": 32.0, "end": 1.5, "main": 27.8, "hits": [0.2, 2.5], "mood": "boss"},
 	"closecall_short5": {"length": 19.0, "end": 1.5, "main": 16.4, "hits": [0.0, 1.0, 9.0], "mood": "closecall"},
-	"video0": {"length": 29.0, "end": 5.0, "main": 20.0, "hits": [0.5, 9.0, 11.5, 13.5, 23.0, 27.9], "mood": "video0"},
+	# Video 0, re-cut to Marketing's short-form script (2026-10-05): 28 s + a 2.5 s end card.
+	"video0": {"length": 28.0, "end": 2.5, "main": 23.5, "hits": [0.5, 8.0, 10.0, 12.0, 14.0, 15.0], "mood": "video0",
+		"events": {"island": 8.0, "dream": 10.0, "grow": 14.0, "storm": 15.0, "pullback": 24.0}},
 }
 
 func _cue_bed(name: String) -> Dictionary:
@@ -2750,28 +2752,38 @@ func _cue_bed(name: String) -> Dictionary:
 			_mix(stems.mid, _env(_bowed(r, 44, main - 11.5, 380.0), r, swell(2.0, 0.3, main - 11.5)), r, 11.5, 0.3)
 			_mk_bed_hit(stems, main, "release")
 		"video0":
-			# Gentle, under a voice: the act 1 rest piece's harp + music box, a soft pulse from the first
-			# snap; the pulse drops away at the Dream (9.0–11.5); a swell at the grow (13.5); the lift at
-			# 20.0 (the drift base and the warm motif in full); a gentle swell at the chain peak.
+			# Gentle, under a voice (Short Form Video's re-cut, 2026-10-05; the times are cue.events): the
+			# act 1 rest piece's harp + music box and a soft pulse from the first snap; a swell at the cut to
+			# the new island; the pulse drops away for the Dream; a swell at the grow; the drift's waltz
+			# building under the storm; the chain peak (the main hit) as a warm bloom + the Hope form, not
+			# a bang; then the warm motif settling under the pull-back into the end card.
+			var ev: Dictionary = cue.events
 			for i in bars.size():
 				var t0: float = bars[i]
 				if t0 >= end_at - 0.5:
 					break
 				var chord: Array = REST_CHORDS[i % REST_CHORDS.size()]
-				var lifted := t0 >= main - 0.01
+				var storm: bool = t0 >= ev.storm - MK_BAR * 0.5 and t0 < main
 				_mix(stems.mid, _pluck(r, hz(chord[0]), 0.3, 3.0, 0.7, 0.998), r, maxf(t0, 0.0))
-				_mix(stems.mid, _mk_pad_chord(chord, MK_BAR * 1.1), r, maxf(t0, 0.0), 0.35 if not lifted else 0.5)
-				var dream := t0 >= 9.0 - MK_BAR and t0 < 11.5
-				if t0 >= 0.5 - MK_BAR and not dream:
+				_mix(stems.mid, _mk_pad_chord(chord, MK_BAR * 1.1), r, maxf(t0, 0.0), 0.4)
+				var dream: bool = t0 >= ev.dream - MK_BAR * 0.5 and t0 < ev.grow
+				if t0 >= 0.5 - MK_BAR and not dream and not storm:
 					for k in 3:
-						_mix(stems.perc, _mk_felt(r, 110.0), r, maxf(t0, 0.5) + k * MK_BEAT, 0.22 if not lifted else 0.3)
-				if lifted:
-					_mk_bed_waltz(stems, t0, DRIFT_CHORDS[i % DRIFT_CHORDS.size()], 0.6)
+						_mix(stems.perc, _mk_felt(r, 110.0), r, maxf(t0, 0.5) + k * MK_BEAT, 0.22)
+				if storm:  # The chain builds: the drift waltz, rising toward the peak
+					_mk_bed_waltz(stems, t0, DRIFT_CHORDS[i % DRIFT_CHORDS.size()], clampf(0.35 + (t0 - ev.storm) / 24.0, 0.35, 0.55))
 			_mk_motif(stems, 0.5, 0)
-			_mix(stems.mid, _env(_mk_pad([57, 62, 65], 2.5), r, swell(1.2, 1.0, 2.5)), r, 13.5, 0.5)  # The grow
-			_mk_motif(stems, main, 0)  # The lift: the warm form in full
-			_mk_motif(stems, main + MK_BAR, 12)
-			_mix(stems.mid, _env(_mk_pad([50, 57, 62, 65], 2.5), r, swell(1.0, 1.2, 2.5)), r, 27.9 - 1.0, 0.5)  # The chain peak
+			_mix(stems.mid, _env(_mk_pad([57, 62, 65], 2.4), r, swell(1.0, 1.0, 2.4)), r, ev.island - 0.8, 0.45)  # The new island
+			for k in 3:  # The Dream: a soft music-box shimmer, no pulse
+				_mix(stems.top, _bell(r, hz([81, 86, 84][k]), 0.2, 0.6, MUSIC_BOX, 1.6), r, ev.dream + k * 0.5)
+			_mix(stems.mid, _env(_mk_pad([57, 62, 65], 2.5), r, swell(1.0, 1.0, 2.5)), r, ev.grow - 0.6, 0.5)  # The grow
+			_mix(stems.low, _env(_mk_drone(main - ev.storm + 0.6), r, swell(1.5, 0.4, main - ev.storm + 0.6)), r, ev.storm, 0.35)
+			# The chain peak: a warm bloom and the Hope form (under the voice, not a bang)
+			_mix(stems.top, _normalize(_light_burst(0.3, 1.8, DISPEL_CHORD + [50, 57]), 1.0), r, main - 0.3, 1.3)
+			for k in 3:
+				_mix(stems.top, _bell(r, hz([74, 81, 78][k]), 0.3, 1.0, MUSIC_BOX, 2.4), r, main + k * MK_BEAT)
+			_mix(stems.mid, _env(_mk_pad([50, 54, 57, 62], end_at - main + 0.6), r, swell(0.6, 0.6, end_at - main + 0.6)), r, main, 0.55)
+			_mk_motif(stems, ev.pullback + MK_BEAT, 0)  # The pull-back: the warm motif settling
 	if cue.mood in ["storm", "boss", "closecall"]:  # After the hit, a warm held swell carries to the end card
 		var hold: float = end_at - main + 0.6
 		_mix(stems.mid, _env(_mk_pad([50, 54, 57, 62], hold), r, swell(1.0, 0.5, hold)), r, main + 0.4, 0.45)
