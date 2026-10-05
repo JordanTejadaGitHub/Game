@@ -26,7 +26,8 @@ page points to the Steam page.
   - *Grow over 100 Wardens* (**confirmed**, Tower Code 2026-10-04: 118 forms + the Heartwood Sapling. **Full game
     only**: the demo has 3 families, so a demo trailer or demo page can't use it)
   - *Chain lightning through the whole crowd*
-  - *Choose from 300+ Dreams* (to confirm with Roguelite Code: 369 files in resource/dream/, not all offerable)
+  - *Choose from over 250 Dreams* (**confirmed**, Roguelite Code 2026-10-04: 262 cards offerable across full-game runs;
+    "300+" is not true. 125 of them are Grove-planted, so full game only)
   Numbers go on screen only once the owning chat confirms them for the build the trailer ships with.
 
 ## 2. Order of work
