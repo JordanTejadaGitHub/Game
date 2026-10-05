@@ -102,6 +102,9 @@ if ($null -ne $scene.bed -and [string]$scene.bed -eq "") {  # "bed": "" = no mus
 	$stems = @("base", "dread1"); if ($null -ne $scene.music) { $stems = @($scene.music) }
 	foreach ($stem in $stems) {
 		$file = "stem_$stem.wav"
+		if (-not (Test-Path (Join-Path $Project "assets\audio\music\mus_act1_$stem.wav"))) {
+			throw "No music stem 'mus_act1_$stem.wav' in assets\audio\music (the 'music' list takes the part after mus_act1_: base, dread1, dread2, heartbeat, boss…; use 'bed' for any other .wav)"
+		}
 		Copy-Item (Join-Path $Project "assets\audio\music\mus_act1_$stem.wav") (Join-Path $work $file)
 		$stemFiles += $file
 	}
@@ -130,6 +133,20 @@ function Captions([string]$style) {
 		if ($null -eq $cap) { continue }
 		$text = [string]$cap[2]
 		if ($style -eq "lower") { $text = $text.ToLower() }
+		$on = "enable='between(t,$(F $cap[0]),$(F $cap[1]))'"
+		if ($trailer -and $null -ne $scene.caption_style -and [string]$scene.caption_style -eq "scrim") {
+			# Phone-readable (Marketing, rough cut 1): a feathered Night band over the bottom of the frame while the card
+			# shows, and the heavier body font, larger, centred in the bottom ~12%.
+			Text "cap_${style}_$i.txt" (Wrap $text 44)
+			$band = @(@(0.76, 0.04, 0.12), @(0.80, 0.04, 0.25), @(0.84, 0.16, 0.5))  # [top, height, alpha]: a soft top edge
+			foreach ($b in $band) {
+				$filters += "drawbox=x=0:y=ih*$($b[0]):w=iw:h=ih*$($b[1]):color=0x24243c@$($b[2]):t=fill:$on"
+			}
+			$filters += "drawtext=fontfile=body.ttf:textfile=cap_${style}_$i.txt:fontsize=82:fontcolor=0xfff4dc:line_spacing=8:text_align=C:" +
+				"shadowcolor=0x05050d@0.9:shadowx=2:shadowy=2:x=(w-text_w)/2:y=h*0.92-text_h/2:$on"
+			$i++
+			continue
+		}
 		if ($trailer) {  # A title card: the display font, centred in the lower third, a soft shadow instead of a box
 			Text "cap_${style}_$i.txt" (Wrap $text 40)
 			$filters += "drawtext=fontfile=display.ttf:textfile=cap_${style}_$i.txt:fontsize=76:fontcolor=0xfff4dc:line_spacing=10:text_align=C:" +
