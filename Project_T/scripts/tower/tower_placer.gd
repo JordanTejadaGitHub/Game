@@ -1183,6 +1183,10 @@ func get_grow_squares(tower: Tower, into: TowerData) -> Array[Vector2]:
 	for dy in range(-(size - 1), 1):
 		for dx in range(-(size - 1), 1):
 			var origin: Vector2 = tower.cell + Vector2(dx, dy)
+			if map_generator.has_method("halves_of"):  # Half cells: checked by halves (Environment 731000c5)
+				if _square_ok_halves(tower, origin, size):
+					squares.append(origin)
+				continue
 			var free = _square_free_cells(tower, origin, size)  # Array[Vector2] or null
 			if free == null:
 				continue
@@ -1196,6 +1200,21 @@ func get_grow_squares(tower: Tower, into: TowerData) -> Array[Vector2]:
 				continue  # The forest's rule: it may bend, never close
 			squares.append(origin)
 	return squares
+
+# Half cells: the square at `origin` takes only open halves, the Warden's own and Thornwalls it absorbs; no nightmare
+# or settling ground on it; blocking its open halves never closes the route.
+func _square_ok_halves(tower: Tower, origin: Vector2, size: int) -> bool:
+	var cells := Tower.footprint_cells(origin, size)
+	if cells.any(func(c: Vector2) -> bool: return not MAP_GRID.is_within_bounds(c)):
+		return false
+	var halves := _square_halves(origin, size)
+	if not _square_takeable(tower, halves) or _halves_occupied(halves) or settling_left(cells) > 0.0:
+		return false
+	var open: Array[Vector2] = []
+	for h in halves:
+		if map_generator.is_buildable_half(h):
+			open.append(h)
+	return open.is_empty() or map_generator.can_block_halves(open, _walker_points())
 
 # The cells of the square at `origin` that are open ground now (to be blocked), or null if one is
 # another Warden (other than a lone Thornwall), an obstacle, start/end or off the map.
@@ -1211,6 +1230,38 @@ func _square_free_cells(tower: Tower, origin: Vector2, size: int):
 		elif _thornwall_at(c) == null:
 			return null  # Another Warden, an obstacle, start / end, the border
 	return free
+
+# Half cells (Environment 731000c5: whole-cell grid calls are wrong for half-offset Wardens): the halves of a square, the
+# Thornwalls a grow there absorbs (any wall with a half in it: half-offset and twig walls too, several per cell), and
+# whether every taken half of the square is the growing Warden's own or such a wall's.
+func _square_halves(origin: Vector2, size: int) -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	for c in Tower.footprint_cells(origin, size):
+		for dy in 2:
+			for dx in 2:
+				out.append(c * 2.0 + Vector2(dx, dy))
+	return out
+
+func _walls_in_halves(halves: Array[Vector2], skip: Tower) -> Array[Tower]:
+	var walls: Array[Tower] = []
+	for other in tower_container.get_children():
+		if other is Tower and other != skip and not other.is_queued_for_deletion() \
+				and other.tower_data.get_id() == "thornwall" and other.get_footprint() == 1 \
+				and other.get_halves().any(func(h: Vector2) -> bool: return halves.has(h)):
+			walls.append(other)
+	return walls
+
+func _square_takeable(tower: Tower, halves: Array[Vector2]) -> bool:
+	var owned := {}
+	for h in tower.get_halves():
+		owned[h] = true
+	for wall in _walls_in_halves(halves, tower):
+		for h in wall.get_halves():
+			owned[h] = true
+	for h in halves:
+		if not map_generator.is_buildable_half(h) and not owned.has(h):
+			return false  # Another Warden, an obstacle, start / end, the border
+	return true
 
 # The player's own Thornwall on `cell` (absorbed by a growing Ascended form), or null.
 func _thornwall_at(cell: Vector2) -> Tower:
@@ -1236,6 +1287,9 @@ func best_grow_square(squares: Array[Vector2]) -> Vector2:
 # the open cells, and moves the Warden to the square's centre.
 func _take_square(tower: Tower, into: TowerData, origin: Vector2) -> void:
 	var size := into.footprint
+	if map_generator.has_method("halves_of"):
+		_take_square_halves(tower, origin, size)
+		return
 	var free: Array[Vector2] = []
 	for c in Tower.footprint_cells(origin, size):
 		if c == tower.cell:
@@ -1266,6 +1320,27 @@ func _take_square(tower: Tower, into: TowerData, origin: Vector2) -> void:
 		map_generator.block_cells(free)  # Emits path_changed: nightmares re-route
 	else:
 		map_generator.path_changed.emit()
+
+# Half cells: absorbs every Thornwall with a half in the square (half-offset and twig walls too; their Dew back in
+# full, their halves opened), opens the Warden's old halves, moves it, then blocks the square's halves exactly.
+func _take_square_halves(tower: Tower, origin: Vector2, size: int) -> void:
+	var halves := _square_halves(origin, size)
+	for wall in _walls_in_halves(halves, tower):
+		run_state.earn_dew_at(wall.invested_dew, wall.global_position)  # Absorbed: refunded in full
+		map_generator.unblock_halves(wall.get_halves())
+		tower_container.remove_child(wall)
+		wall.queue_free()
+	map_generator.unblock_halves(tower.get_halves())
+	tower.half_cell = Vector2(-1, -1)
+	var old_cell := tower.cell
+	tower.cell = origin
+	tower.position = Tower.footprint_centre(origin, size)
+	Tower.towers_moved()  # Its neighbour buckets
+	tower.footprint_size = size  # It has its room now (Tower.evolve keeps the size it's given)
+	var kin := Kinships.find(self)
+	if kin:
+		kin.note_moved(tower, old_cell)  # The bond keeps its age (evolving keeps it)
+	map_generator.block_halves(halves)  # Emits path_changed: nightmares re-route
 
 
 # --- Choosing the square (a Grow into a bigger form with several places to go) ---

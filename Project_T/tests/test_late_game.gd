@@ -170,6 +170,28 @@ func _run() -> void:
 		if is_instance_valid(w) and not w.is_queued_for_deletion():
 			seller.sell(w.cell)
 	await process_frame
+	# (e) Half cells (Environment 731000c5): four twig walls in one cell of the square are all absorbed, and every half
+	# of the 2×2 ends up blocked, then free again when it's sold (no phantom halves either way).
+	var t4 := _build_at(placer, thunder, open)
+	placer.force_twig = true
+	placer.tower_data = load("res://resource/tower/thornwall.tres")
+	var twig_cell := open + Vector2(1, 0)
+	var twigs := []
+	for dy in 2:
+		for dx in 2:
+			var half := twig_cell * 2.0 + Vector2(dx, dy)
+			if placer._try_build_half(half):
+				twigs.append(placer.tower_container.get_child(placer.tower_container.get_child_count() - 1))
+	placer.force_twig = false
+	_check(twigs.size() == 4, "four twig walls fill one cell of the square (%d)" % twigs.size())
+	_check(placer.get_grow_squares(t4, storm_data).has(open), "a square holding twig walls is a valid square")
+	_check(placer.evolve(t4, storm_data, open), "it grows over them")
+	_check(twigs.all(func(w) -> bool: return not is_instance_valid(w) or w.is_queued_for_deletion()), "all four twig walls are absorbed")
+	var square_halves := placer._square_halves(open, 2)
+	_check(square_halves.all(func(h: Vector2) -> bool: return not map_generator.is_buildable_half(h)), "every half of the 2×2 is blocked")
+	seller.sell(t4.cell)
+	await process_frame
+	_check(square_halves.all(func(h: Vector2) -> bool: return map_generator.is_buildable_half(h)), "selling it frees every half")
 	# (c) No room: Wardens (not Thornwalls) all round.
 	var t3 := _build_at(placer, thunder, open)
 	for offset in [Vector2(1, 0), Vector2(0, 1), Vector2(1, 1), Vector2(-1, 0), Vector2(-1, -1), Vector2(0, -1), Vector2(1, -1), Vector2(-1, 1)]:
