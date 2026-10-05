@@ -197,7 +197,7 @@ words of the short description**. Nothing on the page opens with lore or the loo
 | Short description | drafted above, maze first | — |
 | About | outline above | GIFs (capture tools) |
 | Tags | drafted above | — |
-| 5–8 screenshots | **released** (look stable 2026-10-04); order above, #1 = half-cell maze + route | nightmare readability (art_direction.md 395fed8a: Enemy Assets done f07637d1; Enemy Code shader, Environment Assets path shadows to land); Warden poses no longer block (reverted 7049be26); capture scene: inland clear + Warden-walled maze (Main Merger) |
+| 5–8 screenshots | **#1 final, chosen:** `marketing/screenshots/final/screenshot_01_t12.png` (main b0efacf9, maze v4; passes at 600 px, nothing clipped) | #2–8: capture scenes still to write (Short Form Video / Trailer can reuse their boards: build ghost, Thunderclap, dispel, Dream screen, Stag, Grove) |
 | Trailer | §5; its first seconds = the maze. **Target: user-approved by 2026-10-07**, slips day for day if the video pause runs past 2026-10-05 (~1 day of render + rough cut after the all-clear, then review) | **the user's all-clear** (paused for the tower-asset changes); Sound's cue stems; then the user's review + one revision. Ready: 9 scenes dry-run, cut list 8459d82b, 16:9 export 902f7207 |
 | AI disclosure | drafted in §7 | Valve's wording at submission |
 
