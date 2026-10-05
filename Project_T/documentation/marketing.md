@@ -23,7 +23,8 @@ page points to the Steam page.
   - *Make every nightmare take the long way*
   - *Discover combos between Wardens*
   - *Pick a Dream to power your maze*
-  - *Grow over 100 Wardens* (number to confirm with Tower Code: ~119 Warden forms on main, parked Memory Wardens excluded)
+  - *Grow over 100 Wardens* (**confirmed**, Tower Code 2026-10-04: 118 forms + the Heartwood Sapling. **Full game
+    only**: the demo has 3 families, so a demo trailer or demo page can't use it)
   - *Chain lightning through the whole crowd*
   - *Choose from 300+ Dreams* (to confirm with Roguelite Code: 369 files in resource/dream/, not all offerable)
   Numbers go on screen only once the owning chat confirms them for the build the trailer ships with.
