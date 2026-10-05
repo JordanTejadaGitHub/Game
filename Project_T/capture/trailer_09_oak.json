@@ -1,6 +1,6 @@
 {
 	"title": "Trailer 57.5-60 s: the Hollow Oak arrives.",
-	"note": "Trailer chat (marketing.md section 5, scene 9). The trailer_01 maze at drift 100; the Hollow Oak walks in from the start under a slow push. Only its arrival is used, on the cue's drums.",
+	"note": "Trailer chat (marketing.md section 5, scene 9). The trailer_01 maze at drift 100; the Hollow Oak drops in a quarter of the way along (progress 0.25, inland so the camera can centre it) and walks on, camera following. Only its arrival is used, on the cue's drums.",
 	"seed": 4242,
 	"size": [1920, 1080],
 	"drift": 100,
@@ -11,10 +11,10 @@
 	"length": 10.0,
 	"captions": [],
 	"timeline": [
-		{"t": 0.0, "camera": "hold", "at": "start", "zoom": 2.0},
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 2.0},
 		{"t": 0.0, "plant_each": 0.0, "plant": "thornwall", "spots": [[7, 10], [7, 12], [7, 14], [7, 16], [7, 18], [6, 20], [6, 22], [6, 24], [6, 26], [6, 28], [6, 30], [15, 6], [14, 8], [15, 10], [14, 12], [15, 14], [14, 16], [15, 18], [14, 20], [23, 10], [23, 12], [23, 14], [23, 16], [23, 18], [24, 20], [24, 22], [24, 24], [24, 26], [24, 28], [24, 30], [24, 32], [25, 14], [27, 14], [29, 14], [31, 14], [33, 14], [35, 14], [35, 16], [35, 18], [35, 20], [35, 22], [35, 24], [35, 26], [26, 24], [28, 24], [30, 24]], "tag": false},
 		{"t": 0.0, "plant_each": 0.0, "plant": "sporeling", "spots": [[7, 8], [15, 22], [23, 8], [35, 28], [37, 20]], "rank": 5, "tag": false},
-		{"t": 0.5, "spawn": "hollow_oak"},
+		{"t": 0.5, "spawn": "hollow_oak", "progress": 0.25},
 		{"t": 0.5, "camera": "follow", "target": "boss", "zoom": 3.0}
 	]
 }
