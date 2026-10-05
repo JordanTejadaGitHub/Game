@@ -454,9 +454,9 @@ func grow_at(origin: Vector2, into: String) -> bool:
 	if tower == null or target == null:
 		push_error("Capture: nothing to grow at %s into %s" % [origin, into])
 		return false
-	var chain := _chain(target)
-	var start := chain.find(tower.tower_data)
-	if start < 0:
+	var chain := _grow_path(tower.tower_data, target)  # Forward from this form: an Ascended form follows every final
+	var start := 0
+	if chain.is_empty():
 		push_error("Capture: %s doesn't grow into %s" % [tower.tower_data.get_id(), into])
 		return false
 	var run_state: RunState = _main.get_node("%RunState")
@@ -471,6 +471,24 @@ func grow_at(origin: Vector2, into: String) -> bool:
 	run_state.dew_changed.emit(run_state.dew)
 	dreams.unlock_everything = not limited
 	return tower.tower_data == target
+
+# The forms from `from` to `target` along evolves_to (both included; empty if it never gets there), shortest first.
+func _grow_path(from: TowerData, target: TowerData) -> Array[TowerData]:
+	var came := {from: null}
+	var queue: Array[TowerData] = [from]
+	while not queue.is_empty():
+		var data: TowerData = queue.pop_front()
+		if data == target:
+			var path: Array[TowerData] = []
+			while data != null:
+				path.push_front(data)
+				data = came[data]
+			return path
+		for next in data.evolves_to:
+			if next is TowerData and not came.has(next):
+				came[next] = data
+				queue.append(next)
+	return []
 
 func _tower(id: String) -> TowerData:
 	if _towers.is_empty():
