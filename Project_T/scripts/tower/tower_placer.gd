@@ -1513,6 +1513,7 @@ func cancel_stroke() -> void:
 	_stroke_plan.clear()
 	stroke_changed.emit(false)
 	_hover_cell = NO_CELL  # _process refreshes the single ghost
+	_hover_half = NO_CELL  # (Half cells: also with a still mouse, as in set_build_mode, Main 7ec7adcf)
 	queue_redraw()
 
 # Plants every green cell in drag order (each re-checked by _try_build). Returns how many.
@@ -1529,6 +1530,7 @@ func plant_stroke() -> int:
 	_stroke_plan.clear()
 	stroke_changed.emit(false)
 	_hover_cell = NO_CELL
+	_hover_half = NO_CELL  # The ghost refreshes over what was just planted, mouse still or not
 	queue_redraw()
 	return planted
 
