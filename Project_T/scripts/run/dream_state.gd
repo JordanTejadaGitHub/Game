@@ -226,6 +226,25 @@ var nurture_perk_multiplier := 1.0  # Sidegrade perks (MetaRun, Spire experiment
 var first_offer_cards := 0  # Sidegrade Kindling: the first Dream offer (drifts 1–5) has this many cards; 0 = normal
 @export var tag_weight: float = 1.0  # Off (1.0 = no boost): offers are random within the run's pool (2026-09-30; was 1.6, then 1.3)
 @export var pity_after: int = 3  # Dreams in a row without Rare+ before one is guaranteed
+# Grow and Nurture prices (Balancing 2026-10-04, demo too; Tower Code): global multipliers on TowerData.evolve_cost by
+# tier, and the base Nurture costs for ranks I-V. They write the statics every price reads (TowerData.get_grow_price,
+# Tower.rank_costs), so panels, group grows and the sims agree. Old prices: 1.0 / 1.0 / 1.0, Tower.RANK_COSTS_V2.
+@export var branch_cost_multiplier: float = 1.5:
+	set(value):
+		branch_cost_multiplier = value
+		TowerData.grow_cost_multipliers[2] = value
+@export var final_cost_multiplier: float = 1.5:
+	set(value):
+		final_cost_multiplier = value
+		TowerData.grow_cost_multipliers[3] = value
+@export var ascended_cost_multiplier: float = 1.0:
+	set(value):
+		ascended_cost_multiplier = value
+		TowerData.grow_cost_multipliers[4] = value
+@export var rank_costs: Array[int] = [30, 48, 60, 90, 135]:
+	set(value):
+		rank_costs = value
+		Tower.rank_costs = value.duplicate()
 # Bittersweet cards stay out of the pool until leaves are tuned (dream_design.md). Act 2+ only,
 # at most one per offer.
 @export var allow_bittersweet: bool = false
@@ -300,6 +319,9 @@ var _effects: DreamEffects = null  # effects(): card rows per Warden
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	# The price statics outlive a run (a sim or test may have changed them): each run starts from its own exports.
+	TowerData.grow_cost_multipliers = {2: branch_cost_multiplier, 3: final_cost_multiplier, 4: ascended_cost_multiplier}
+	Tower.rank_costs = rank_costs.duplicate()
 	HeartwoodGifts.register(&"waking_root", DreamState._waking_root_gift)  # Heartwood's Gifts (Spire branch)
 	unlocks_changed.connect(_draw_branch_offers)  # Branch expansion: a family pick draws its 2 branches
 	run_state.dew_changed.connect(_on_dew_changed)  # Golden Harvest: Dew earned this run
@@ -442,7 +464,7 @@ func get_evolve_cost(to: TowerData) -> int:
 	for card in _taken_cards():
 		if _applies_to(card, to):
 			discount += card.evolve_discount * stacks[card.id]
-	return roundi(to.evolve_cost * maxf(1.0 - discount, 0.0))
+	return roundi(to.get_grow_price() * maxf(1.0 - discount, 0.0))
 
 # --- Dreamlight (run_design.md "Dreamlight: choosing your build paths") -------------------------------
 

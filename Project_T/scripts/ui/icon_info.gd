@@ -312,7 +312,7 @@ static func cost_text(kind: String, warden_id: String) -> String:
 	var data := load(path) as TowerData if ResourceLoader.exists(path) else null
 	if data == null:
 		return warden_id
-	return str(data.evolve_cost if kind == "grow_cost" else data.cost)
+	return str(data.get_grow_price() if kind == "grow_cost" else data.cost)
 
 static var _cost_regex: RegEx = null
 static func _cost_pattern() -> RegEx:

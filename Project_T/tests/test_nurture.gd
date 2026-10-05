@@ -42,14 +42,14 @@ func _run() -> void:
 
 
 
-	# A Sprout ranks at half price: I 13, II 20 (25 and 40 × 0.5, rounded). Nurture v3 (warden_stats.md):
+	# A Sprout ranks at half price: I 15, II 24 (30 and 48 × 0.5; Balancing 2026-10-04). Nurture v3 (warden_stats.md):
 	# every rank is a choice; no choice given = the Warden's default (Power for attackers).
 	var dew := run_state.dew
-	_check(tower.get_nurture_cost() == 13, "Sprout rank I costs 25 × 0.5 = 13 (%d)" % tower.get_nurture_cost())
+	_check(tower.get_nurture_cost() == 15, "Sprout rank I costs 30 × 0.5 = 15 (%d)" % tower.get_nurture_cost())
 	placer.nurture(tower, Tower.Focus.POWER)
-	_check(tower.get_nurture_cost() == 20, "Sprout rank II costs 40 × 0.5 = 20")
+	_check(tower.get_nurture_cost() == 24, "Sprout rank II costs 48 × 0.5 = 24")
 	placer.nurture(tower)
-	_check(tower.rank == 2 and run_state.dew == dew - 33, "ranks I-II on a Sprout cost 33")
+	_check(tower.rank == 2 and run_state.dew == dew - 39, "ranks I-II on a Sprout cost 39")
 	_check(tower.rank_choices == [Tower.Focus.POWER, Tower.Focus.POWER], "each rank records its choice (%s)" % [tower.rank_choices])
 	_check(is_equal_approx(tower.get_damage(), base_damage * (1.0 + 2 * Tower.FOCUS_POWER)), "two Power ranks: +36% damage")
 	_check(is_equal_approx(tower.get_attacks_per_second(), base_speed) and is_equal_approx(tower.get_range_cells(), base_range),
@@ -61,18 +61,18 @@ func _run() -> void:
 	_check(placer.nurture(tower, Tower.Focus.REACH) and tower.rank == 3 and tower.focus == Tower.Focus.REACH,
 		"rank III with Reach")
 	_check(is_equal_approx(tower.get_range_cells(), base_range + Tower.FOCUS_REACH), "Reach: +0.3 range")
-	_check(tower.invested_dew == invested + 13 + 20 + 30, "rank Dew counts as invested")
+	_check(tower.invested_dew == invested + 15 + 24 + 30, "rank Dew counts as invested")
 	_check(seller.get_refund(tower) == tower.invested_dew,
 		"rank Dew bought this rest comes back in full, like the rest of it (placed this rest)")
 	if "rank_dew_spent" in run_state:
-		_check(run_state.rank_dew_spent == 63, "RunState counts Dew spent on ranks")
+		_check(run_state.rank_dew_spent == 69, "RunState counts Dew spent on ranks")
 
 	# Growing a ranked Warden pays the rank difference (warden_stats.md): for each rank held, its price
-	# at the new tier minus its price at the old one. Sprout ×0.5 → Sporeling ×1: (25-13)+(40-20)+(60-30).
+	# at the new tier minus its price at the old one. Sprout ×0.5 → Sporeling ×1: (30-15)+(48-24)+(60-30).
 	var grow := tower.get_grow_cost(sporeling_data)
 	var evolve_base: int = dreams.get_evolve_cost(sporeling_data)
-	_check(grow.base == evolve_base and grow.ranks == 12 + 20 + 30 and grow.total == evolve_base + 62,
-		"a rank III Sprout growing into a Sporeling pays %d + 62 (%s)" % [evolve_base, grow])
+	_check(grow.base == evolve_base and grow.ranks == 15 + 24 + 30 and grow.total == evolve_base + 69,
+		"a rank III Sprout growing into a Sporeling pays %d + 69 (%s)" % [evolve_base, grow])
 	var invested_before := tower.invested_dew
 	var dew_before: int = run_state.dew
 	# Ranks and their choices carry through evolution.
@@ -132,7 +132,7 @@ func _run() -> void:
 	var keeper: Tower = placer.tower_scene.instantiate()
 	keeper.tower_data = load("res://resource/tower/pond_keeper.tres")
 	container.add_child(keeper)
-	_check(keeper.get_nurture_cost() == 50, "a Memory Warden's rank I costs 25 × 2")
+	_check(keeper.get_nurture_cost() == 60, "a Memory Warden's rank I costs 30 × 2")
 	stag.queue_free()
 	keeper.queue_free()
 
@@ -141,11 +141,11 @@ func _run() -> void:
 	for i in 3:
 		group.append(_build(placer, map_generator, sprout_data))
 	seller.set_selection(group)
-	run_state.dew = 28  # Two of the three (13 each)
+	run_state.dew = 32  # Two of the three (15 each)
 	var plan: Array = seller.plan_nurture(group)
 	var nearest: Array = seller.sort_by_heartwood(group).slice(0, 2)
-	_check(plan[0].size() == 2 and plan[1] == 26, "can nurture 2 of 3 for 26 Dew")
-	_check(seller.full_nurture_cost(group) == [3, 39], "all three would cost 39")
+	_check(plan[0].size() == 2 and plan[1] == 30, "can nurture 2 of 3 for 30 Dew")
+	_check(seller.full_nurture_cost(group) == [3, 45], "all three would cost 45")
 	_check(seller.nurture_group(group) == 2 and run_state.dew == 2, "group Nurture raises 2 of 3")
 	_check(nearest.all(func(t: Tower) -> bool: return t.rank == 1), "the 2 nearest the Heartwood")
 
@@ -175,7 +175,7 @@ func _run() -> void:
 		var paid := freebie.invested_dew
 		run_state.free_nurtures = 2
 		run_state.dew = 100
-		var normal := roundi(Tower.RANK_COSTS[0] * freebie.get_tier_cost_multiplier())  # 25 × 0.5 = 13 on a Sprout
+		var normal := roundi(Tower.RANK_COSTS[0] * freebie.get_tier_cost_multiplier())  # 30 × 0.5 = 15 on a Sprout
 		_check(freebie.get_nurture_cost() == 0 and freebie.get_nurture_price() == normal, "a free rank shows as free (normally %d)" % normal)
 		var group_free := [freebie]
 		_check(seller.full_nurture_cost(group_free) == [1, 0], "group Nurture counts free ranks as free")

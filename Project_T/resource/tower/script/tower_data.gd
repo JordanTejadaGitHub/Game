@@ -320,6 +320,15 @@ func get_attack_origin() -> Vector2:
 # Where the sprite sits so its slab is on the cell: sprite_offset when a .tres sets it (the Sapling), else from the
 # frame height (Tower Assets 2026-10-02: regular art is 64×80, tall 64×96, Ascended 128): the body is the bottom 64
 # rows, so a frame h tall moves up (h − 64) / 2.
+# Global grow-cost multipliers by tier (user via Balancing 2026-10-04: "make growing more expensive, rely on making
+# more Wardens early instead of saving"): branches ×1.5, finals ×1.5, Ascended ×1.0. DreamState's exports set them
+# (branch_ / final_ / ascended_cost_multiplier) so the sims can A/B; 1.0 = the old prices.
+static var grow_cost_multipliers := {2: 1.5, 3: 1.5, 4: 1.0}
+
+# Dew to grow into this form before Dream discounts: evolve_cost × its tier's multiplier. Every price read goes here.
+func get_grow_price() -> int:
+	return roundi(evolve_cost * float(grow_cost_multipliers.get(tier, 1.0)))
+
 func get_sprite_offset() -> Vector2:
 	if sprite_offset != Vector2.ZERO or texture == null:
 		return sprite_offset

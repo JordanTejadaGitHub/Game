@@ -1157,7 +1157,7 @@ static func form_costs(data: TowerData) -> String:
 		return "Base · %d Dew" % data.cost
 	var dreamlight: int = DreamState.ASCENDED_DREAMLIGHT if data.tier >= DreamState.ASCENDED_TIER \
 		else (DreamState.FINAL_DREAMLIGHT if data.tier >= 3 else DreamState.BRANCH_DREAMLIGHT)
-	return "%s · %d Dew · %d Dreamlight" % [tier_name(data), data.evolve_cost, dreamlight]
+	return "%s · %d Dew · %d Dreamlight" % [tier_name(data), data.get_grow_price(), dreamlight]
 
 # The tapped form's card under the tree (the Warden panel's top half when Tower Code's shared
 # builder lands; until then: portrait, name, tier and costs, stats, the description with links).
@@ -1339,7 +1339,7 @@ class FamilyTree extends Control:
 		node.add_child(name)
 		var costs := Label.new()
 		costs.text = ("%s · %d" % [CodexPanel.tier_name(data), data.cost]) if data.buildable_directly \
-			else ("%d Dew · %d ✦" % [data.evolve_cost, DreamState.ASCENDED_DREAMLIGHT if data.tier >= DreamState.ASCENDED_TIER \
+			else ("%d Dew · %d ✦" % [data.get_grow_price(), DreamState.ASCENDED_DREAMLIGHT if data.tier >= DreamState.ASCENDED_TIER \
 				else (DreamState.FINAL_DREAMLIGHT if data.tier >= 3 else DreamState.BRANCH_DREAMLIGHT)])
 		costs.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		costs.position = Vector2(0, NODE_PORTRAIT + 24.0)

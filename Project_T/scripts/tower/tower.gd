@@ -63,7 +63,9 @@ const WIND_COLOR := Palette.MOONLIGHT
 const LIGHT_COLOR := Palette.GLOW
 # Nurture ranks (warden_stats.md "Nurture v2"). Costs are base × tier multiplier (at purchase) × Dreams.
 const RANK_MAX := 5  # Without Dreams (Deeper Rings: VII)
-const RANK_COSTS: Array[int] = [25, 40, 60, 90, 135]  # Base Dew for ranks I-V (economy pass v2)
+const RANK_COSTS: Array[int] = [30, 48, 60, 90, 135]  # Base Dew for ranks I-V (Balancing 2026-10-04: +20% on I-II)
+const RANK_COSTS_V2: Array[int] = [25, 40, 60, 90, 135]  # Economy pass v2, for the sims' A/B
+static var rank_costs: Array[int] = RANK_COSTS.duplicate()  # Live; DreamState.rank_costs (export) sets it
 const RANK_DAMAGE := 0.10
 const COOLDOWN_JITTER := 0.08  # ± share of each attack's cooldown (desyncs Wardens; see _start_attack)
 const PATIENT_ROOTS_PULL := 0.5  # Patient Roots (Seed card): the Rootling line pulls this much further…
@@ -1034,8 +1036,8 @@ static func tier_cost_multiplier_for(data: TowerData) -> float:
 # The Dew rank `which` (1 = I) costs for a Warden of `data`, with today's Dream discounts. `self_price`:
 # this Warden's own discounts (Nursery's Sprout half price); otherwise the ones a grown form would get.
 func _rank_price_for(which: int, data: TowerData, self_price: bool) -> int:
-	var base: float = RANK_COSTS[which - 1] if which <= RANK_COSTS.size() else 0.0
-	if which > RANK_COSTS.size() and _dream_state and _dream_state.has_method("get_extra_rank_cost"):
+	var base: float = rank_costs[which - 1] if which <= rank_costs.size() else 0.0
+	if which > rank_costs.size() and _dream_state and _dream_state.has_method("get_extra_rank_cost"):
 		base = _dream_state.get_extra_rank_cost(which)
 	var multiplier := tier_cost_multiplier_for(data)
 	if _dream_state and _dream_state.has_method("get_nurture_cost_multiplier"):
@@ -1091,8 +1093,8 @@ func get_nurture_price() -> int:
 	if not can_nurture():
 		return 0
 	var next := rank + 1
-	var base: float = RANK_COSTS[rank] if rank < RANK_COSTS.size() else 0.0
-	if next > RANK_COSTS.size() and _dream_state and _dream_state.has_method("get_extra_rank_cost"):
+	var base: float = rank_costs[rank] if rank < rank_costs.size() else 0.0
+	if next > rank_costs.size() and _dream_state and _dream_state.has_method("get_extra_rank_cost"):
 		base = _dream_state.get_extra_rank_cost(next)  # Deeper Rings: VI and VII
 	var multiplier := get_tier_cost_multiplier()
 	if _dream_state and _dream_state.has_method("get_nurture_cost_multiplier"):
