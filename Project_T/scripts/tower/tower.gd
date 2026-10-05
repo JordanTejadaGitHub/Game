@@ -118,6 +118,10 @@ static func grow_options(dreams: DreamState, data: TowerData) -> Array:
 	var options: Array = dreams.get_evolutions(data)
 	if not dreams.unlock_everything:
 		options = options.filter(func(option: Array) -> bool: return not _left_out(dreams, option[0]))
+		# Forms only the Memory Grove can open are hidden, not listed as "???" (user, 2026-10-07: "remove the question
+		# mark option if you don't have it unlocked"); the Remember tree keeps their silhouettes.
+		options = options.filter(func(option: Array) -> bool:
+			return option[1] or dreams.get_unlock_blocker(option[0]) != "Memory Grove")
 	if data.line != "sprout" or dreams.unlock_everything:
 		return options
 	return options.filter(func(option: Array) -> bool: return option[1])
