@@ -177,7 +177,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   `Tower.dim_multiplier` set each frame by the spawner), shrug + `min_speed_share` (Barrow King),
   `regen_*` (Mourning Mother), wither (`Tower.wither()` / `withered_left`), echoes (`Enemy.is_echo`:
   never counted as a boss). New bosses use tinted placeholder art. `tests/test_boss_pools.gd`.
-  At the Heartwood: act 1–3 bosses take a flat 8 / 10 / 12 leaves and leave; only the Hollow Oak stays and
+  At the Heartwood: act 1–3 bosses take a flat 10 / 10 / 12 leaves (`EnemyContainer.boss_bite_leaves`) and leave; only the Hollow Oak stays and
   drains (bfc33e75).
 - Selling: `TowerSeller` (`%TowerSeller`): outside build mode, hover a Warden, Delete (or the panel's Sell) sells for
   `Tower.invested_dew` × 100% (resting) or 50% (walking); `MapGenerator.unblock_cell`.
@@ -453,8 +453,8 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   (`pull_tiles`, `pull_once`: Rootcurl, Long Way Home), Hold (`hold_targets`: Tangleroot, Snugroot),
   Mark all at `marked_bonus` (Beacon; `EnemyStatuses.marked_extra`). Auras: `aura_radius` (1.5 = the 8
   around), `aura_per_warden` / `aura_max` (Grove Heart; Acorn +5%, Elder Stump +20% speed).
-  Dewcatcher = `dew_per_drift`; Wellspring = `rest_interest` (cap per Warden, `Tower.INTEREST_CAP` 80
-  for all). Monsoon = PULSE + `rain`; Morning Fog = CLOUD + `cloud_slow` / `cloud_drowsy_per_second`.
+  Dewcatcher = `dew_per_drift`; Wellspring = `rest_interest` (cap per Warden; all Wellsprings together pay at most `DewCatch.INTEREST_CAP` 120
+  a rest). Monsoon = PULSE + `rain`; Morning Fog = CLOUD + `cloud_slow` / `cloud_drowsy_per_second`.
   `tests/test_family_finals.gd`.
 - **Crowned Reactions** (a Reaction on a nightmare with a third status; `Reactions.CROWNED_BASE`):
   tempest, still_pool, fever_dream, starfall, avalanche, prismstorm, nightbloom, fairy_circle, handled

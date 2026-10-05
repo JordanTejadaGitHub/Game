@@ -445,6 +445,7 @@ func _on_dew_changed(dew: int) -> void:
 			_update_sprout_rule(_tower_buttons[i], cost)
 		# The slot stays a dark, readable tile; only the Warden dims (UI Asset: the whole slot faded into the path).
 		_tower_buttons[i].modulate.a = 1.0
+		UiStyle.slot_short(_tower_buttons[i], not affordable)  # A Slate border when it can't be paid for (the press still refuses)
 		for state in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_hover_pressed_color", "icon_focus_color"]:
 			if affordable:
 				_tower_buttons[i].remove_theme_color_override(state)
