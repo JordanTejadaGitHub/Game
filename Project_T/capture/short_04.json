@@ -1,11 +1,12 @@
 {
 	"title": "The forest moves.",
-	"note": "Sow a Ridge laid automatically where it lengthens the route most (auto detour). Act break = drift 26.",
+	"note": "Locked maze v4 with two middle-wall pieces left out ([14, 8], [15, 10]): the route takes that shortcut (54 cells) until Sow a Ridge seals it at 6 s and the route snaps back to the whole serpentine (70). On an open board a ridge is easy to walk around now that nightmares fit half-cell gaps, so the ridge has to close a real shortcut. Act break = drift 26.",
 	"seed": 4242,
 	"size": [1080, 1920],
 	"drift": 26,
 	"dew": 900,
 	"obstacles": "edge",
+	"families": ["sporeling"],
 	"hud": "none",
 	"length": 22.0,
 	"music": ["base", "dread1"],
@@ -16,12 +17,12 @@
 		[17.0, 22.0, "A new map every run, and you get to change it."]
 	],
 	"timeline": [
-		{"t": 0.0, "plant_each": 0.05, "count": 12, "plant": "thornwall", "auto": "maze", "tag": false},
-		{"t": 0.0, "plant_each": 0.1, "count": 5, "plant": "sporeling", "auto": "cover", "tag": false},
-		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.8},
+		{"t": 0.0, "plant_each": 0.0, "plant": "thornwall", "spots": [[7, 10], [7, 12], [7, 14], [7, 16], [7, 18], [6, 20], [6, 22], [6, 24], [6, 26], [6, 28], [6, 30], [15, 6], [14, 12], [15, 14], [14, 16], [15, 18], [14, 20], [23, 10], [23, 12], [23, 14], [23, 16], [23, 18], [24, 20], [24, 22], [24, 24], [24, 26], [24, 28], [24, 30], [24, 32], [25, 14], [27, 14], [29, 14], [31, 14], [33, 14], [35, 14], [35, 16], [35, 18], [35, 20], [35, 22], [35, 24], [35, 26], [26, 24], [28, 24], [30, 24]], "tag": false},
+		{"t": 0.0, "plant_each": 0.0, "plant": "sporeling", "spots": [[7, 8], [15, 22], [23, 8], [35, 28], [37, 20]], "tag": false},
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 0.73},
 		{"t": 1.0, "start": true},
-		{"t": 6.0, "gift": "sow_ridge", "auto": "detour"},
-		{"t": 5.0, "camera": "push", "at": [10, 5], "zoom": 1.0, "duration": 3.0},
-		{"t": 12.0, "camera": "follow", "target": "furthest", "zoom": 1.1}
+		{"t": 4.0, "camera": "push", "at": [8, 5], "zoom": 1.0, "duration": 2.0},
+		{"t": 6.0, "gift": "sow_ridge", "cells": [[7, 5], [7, 4], [8, 4]]},
+		{"t": 10.0, "camera": "push", "at": "centre", "zoom": 0.73, "duration": 2.5}
 	]
 }
