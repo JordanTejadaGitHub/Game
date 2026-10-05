@@ -483,13 +483,14 @@ func _top_row(img: Image) -> int:
 
 
 # --- Bigger Wardens (art_direction.md "Bigger Wardens", approved bcabe980) -----------------------
-# Every Warden but Sprout (the seed every family grows from) and Thornwall (the plain wall) has a body
-# BIG_K times the size, on its unchanged 64 px waystone, so its footprint still reads as one cell; the
-# art rises over the cell above and leans a little over the cells beside it. The body is drawn at 64
-# as before, then re-rasterised round its feet at BIG_K, like the Ascended golem: colour regions are
-# resampled and every outline, 1 px line and small detail is redrawn 1 px wide (no doubled pixels).
-# What belongs to the plinth (the slab, its rocks, tufts and props lying on it) stays at plinth size,
-# and the attack's effects keep their size and move with the part of the body they come from.
+# Every Warden but the family bases (Sprout, Sporeling, Pebbling and the rest: see _is_big) and
+# Thornwall (the plain wall) has a body BIG_K times the size, on its unchanged 64 px waystone, so its
+# footprint still reads as one cell; the art rises over the cell above and leans a little over the
+# cells beside it. The body is drawn at 64 as before, then re-rasterised round its feet at BIG_K, like
+# the Ascended golem: colour regions are resampled and every outline, 1 px line and small detail is
+# redrawn 1 px wide (no doubled pixels). What belongs to the plinth (the slab, its rocks, tufts and
+# props lying on it) stays at plinth size, and the attack's effects keep their size and move with the
+# part of the body they come from.
 # Frames: BIG_W wide, each Warden as tall as its tallest frame needs (+ BIG_MARGIN, at most
 # BIG_MAX_H), the cell in the bottom 64 rows (anchor = bottom centre). attacks.json gives each one's
 # "frame" and its point in that frame (y from the top of the bottom 64 rows).
@@ -526,7 +527,14 @@ func _fit_slope(extent: float) -> float:
 	return clampf((room - BIG_KNEE * BIG_K) / (extent - BIG_KNEE), 0.5, BIG_K)
 
 func _is_big(tower_name: String) -> bool:
-	return not tower_name in KEEP_SIZE
+	if tower_name in KEEP_SIZE:
+		return false
+	# Every family's base Warden stays at 64 too, so growing it visibly grows it (user, art_direction.md
+	# e47199c7). The Memory Wardens aren't a family: they stay big.
+	for line: String in LINES:
+		if line != "memory" and LINES[line][0] == tower_name:
+			return false
+	return true
 
 # A body point (64 px body coords) on the big frame (x in the BIG_W frame, y from the cell's top).
 func _big_point(p: Vector2) -> Vector2i:
