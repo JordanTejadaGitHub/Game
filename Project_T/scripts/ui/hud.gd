@@ -7,10 +7,10 @@ const UNAFFORDABLE_BUTTON_ALPHA := UiStyle.UNAFFORDABLE_ALPHA
 # cost (UiStyle.HUD_SLOT). They stay between the Warden panel and the drift controls: slots shrink to
 # BUTTON_MIN_WIDTH (the 48 px touch minimum, platforms.md), then the bar wraps into more rows.
 # Smaller, centred (user: "the tower bar should be centred, make it smaller then"): 48 px wide, the touch minimum.
-const BUTTON_SIZE := Vector2(48, 62)
-const SLOT_SPRITE := 32  # The Warden sprite in a slot (was UiStyle.HUD_SPRITE, 48)
-const SLOT_COST_SIZE := 13  # The cost under the sprite
-const SLOT_KEY_SIZE := 11  # The hotkey in the corner
+const BUTTON_SIZE := Vector2(56, 72)  # One step up from 48 × 62 (user: "the tower bar can be a bit bigger")
+const SLOT_SPRITE := 40  # The Warden sprite in a slot (was UiStyle.HUD_SPRITE, 48; 32 in the smaller bar)
+const SLOT_COST_SIZE := 15  # The cost under the sprite
+const SLOT_KEY_SIZE := 12  # The hotkey in the corner
 const BUTTON_MIN_WIDTH := UiStyle.HUD_BUTTON_H
 const BAR_GAP := 6  # Between slots and between rows
 # Half-width taken from each side: the Warden panel (16–316 px) or the drift controls (272 px + 16),
@@ -298,6 +298,10 @@ func _fit_tower_bar() -> void:
 		if button == _seed_badge_button():
 			_seed_badge.position.x = width - 14
 	clear_tool.add_theme_constant_override("icon_max_width", icon)
+	clear_tool.add_theme_font_size_override("font_size", SLOT_COST_SIZE)  # Its caption and key as a Warden slot's cost and key
+	var clear_key := clear_tool.get_node_or_null("Hotkey") as Label
+	if clear_key != null:
+		UiStyle.number(clear_key, SLOT_KEY_SIZE, Color(UiStyle.MOON_MIST, 0.6))
 	clear_tool.custom_minimum_size = Vector2(width, BUTTON_SIZE.y)  # Exactly a Warden slot (user: not a different size)
 	# Centre the tool + bar (+ arrows) from the computed widths (the container only re-sorts its children
 	# next frame), one row, 16 px above the bottom.
@@ -953,7 +957,7 @@ func _update_sprout_rule(button: Button, cost: int) -> void:
 	if per > 0:
 		tag.text = "↑ %d/%d" % [count, (count / per + 1) * per]
 	tag.reset_size()
-	tag.position = Vector2((button.size.x - tag.size.x) / 2.0, -tag.size.y + 2.0)
+	tag.position = Vector2((button.size.x - tag.size.x) / 2.0, -tag.size.y - 4.0)  # Clear of the slot's hotkey
 	button.set_meta(&"price_line", sprout_rule_text(cost))  # The hover card's price line
 	if _sprout_last_cost >= 0 and cost > _sprout_last_cost and per > 0 and not _sprout_rise_told:
 		_sprout_rise_told = true

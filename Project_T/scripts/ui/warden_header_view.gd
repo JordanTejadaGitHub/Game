@@ -28,6 +28,7 @@ static func blocker_text(blocker: String) -> String:
 
 var compact := false  # The Warden panel (light pass): name + damage type on one line, a short description, no Dreams rows (set_compact)
 var full_description := ""  # Compact: the description in full when the short one left some out (the panel's Details), else ""
+var detail_lines: Array[String] = []  # Compact: stat lines left for the panel's Details ("Soaked: water hits +24%")
 
 var _tower: Tower = null  # The planted Warden shown, or a probe carrying this run's bonuses (never in the tree)
 var _probe: Tower = null
@@ -71,16 +72,24 @@ func set_compact(width: float) -> void:
 	compact = true
 	portrait.custom_minimum_size = Vector2(32, 32)
 	UiStyle.title(title, 20)
+	# The name and, under it, the damage type (small): beside the 32 px emblem, never cut (story chat 2026-10-05).
 	var header := title.get_parent()
+	var names := VBoxContainer.new()
+	names.name = "Names"
+	names.add_theme_constant_override("separation", -2)
+	names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	names.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	header.add_child(names)
+	header.remove_child(title)
+	names.add_child(title)
 	damage_type.get_parent().remove_child(damage_type)
-	damage_type.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	header.add_child(damage_type)
-	title.clip_text = true  # A long name with a rank never widens the panel
-	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	names.add_child(damage_type)
+	(damage_type.get_child(0) as Label).add_theme_font_size_override("font_size", 14)
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A very long name wraps rather than widening the panel
 	desc.custom_minimum_size = Vector2(width, 0)
 
 # The description's opening for the compact header: the first sentence, the second too while both stay short.
-const SHORT_CHARS := 84  # About two lines of the compact panel's description
+const SHORT_CHARS := 70  # Two lines of the compact panel's description (84 wrapped to 3 with underlined links)
 
 static func short_description(text: String) -> String:
 	var sentences := text.split(". ")
@@ -134,6 +143,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 	_show_damage_type(data)
 	desc.text = StatusLinks.bbcode(data.description)  # {damp}-style tokens and plain names both work
 	full_description = ""
+	detail_lines.clear()
 	if compact:
 		var short := short_description(data.description)
 		desc.text = StatusLinks.bbcode(short)
@@ -167,18 +177,20 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			["%.1f/s" % _tower.get_attacks_per_second(), &"attack_speed"], [range_text, &"range"]]
 		if _tower.get_crit_chance() > 0.0:
 			main_row.append(["%d%%" % roundi(_tower.get_crit_chance() * 100), &"crit_chance"])
-		if attack.applies_status != &"":
-			main_row.append(["%s%s" % [IconInfo.status_name(attack.applies_status),
-				" ×%d" % attack.status_stacks if attack.status_stacks > 1 else ""], attack.applies_status, true])
 		_stat_row(main_row, true)
-		var second: Array = []
+		var second: Array = []  # The status it applies leads the second row (the first stays one line at 280 px)
+		if attack.applies_status != &"":
+			second.append(["%s%s" % [IconInfo.status_name(attack.applies_status),
+				" ×%d" % attack.status_stacks if attack.status_stacks > 1 else ""], attack.applies_status, true])
 		if _tower.get_crit_chance() > 0.0:
 			second.append(["Crit ×%s" % str(attack.crit_multiplier), &"crit_damage"])
 		var potency := _tower.get_potency()
 		if not is_equal_approx(potency, 1.0):
 			second.append(["Potency %d%%" % roundi(potency * 100), &"potency"])  # Statuses and effect damage
 		var strength := status_strength_text(attack.applies_status, potency, attack.status_duration)
-		if strength != "":
+		if strength != "" and compact:
+			detail_lines.append(strength)  # The panel's Details
+		elif strength != "":
 			second.append([strength, attack.applies_status, true])  # "Soaked: water hits +24%", "Rooted 1.2 s"
 		if not second.is_empty():
 			_stat_row(second, true)  # Wraps too: never wider than the card

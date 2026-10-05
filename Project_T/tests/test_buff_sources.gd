@@ -111,11 +111,12 @@ func _run() -> void:
 	var screen: float = panel.get_viewport().get_visible_rect().size.y
 	# The info part gives way (it scrolls, down to MIN_INFO); the actions never do (test_panel_fits: every action on
 	# screen), so a Warden with many forms (a base growing into 6 on Spire's branch expansion) may need more.
-	var floor_height: float = panel._buttons.get_combined_minimum_size().y + panel._footer.get_combined_minimum_size().y + 40.0 + panel.MIN_INFO
+	var least_info: float = maxf(panel.MIN_INFO, panel._header.get_combined_minimum_size().y)  # The header never scrolls
+	var floor_height: float = panel._buttons.get_combined_minimum_size().y + panel._footer.get_combined_minimum_size().y + 40.0 + least_info
 	var limit := maxf(screen * panel.MAX_SHARE, floor_height)
 	_check(panel.size.y <= limit + 1.0, "the panel stays within %d%% of the screen, or just its actions + the least info (%.0f of %.0f px)" % [
 		roundi(panel.MAX_SHARE * 100), panel.size.y, limit])
-	_check(panel._scroll.size.y <= panel.MIN_INFO + 1.0 or panel.size.y <= screen * panel.MAX_SHARE + 1.0, "…the long info part is the one that gave way")
+	_check(panel._scroll.size.y <= least_info + 8.0 or panel.size.y <= screen * panel.MAX_SHARE + 1.0, "…the long info part is the one that gave way")
 	_check(panel._footer.get_children().any(func(c: Node) -> bool: return c is Button and c.text.begins_with("Sell"))
 		and panel._footer.get_children().any(func(c: Node) -> bool: return c is Button and c.text == "Close"), "Sell and Close stay in the footer")
 

@@ -42,7 +42,8 @@ var _extra := VBoxContainer.new()  # In Details: combos, Kindred, the rest of th
 var _more_open := false  # Grow rows past MAX_ROWS: behind "+N more" until pressed
 const PANEL_WIDTH := 280.0  # Light pass: bottom-left beside the centred Warden bar, never into it at 1280 × 800
 const MAX_ROWS := 3  # Grow / unlock rows shown before "+N more" (2 on a short screen: _row_limit)
-const SHORT_SCREEN := 900.0  # Below this height (1280 × 800 and 720) the grow list shows 2 lines: the header keeps its room
+const SHORT_SCREEN := 900.0  # Below this height the grow list shows 2 rows (1280 × 800), below LOW_SCREEN 1 (720)
+const LOW_SCREEN := 780.0
 const SCROLL_BAR := 8.0  # The info part's scroll bar takes this much width when it shows
 var _built_limit := MAX_ROWS  # The row limit the panel was last built with (a resize past SHORT_SCREEN rebuilds)
 const LOCKED_FORM_TIP := WardenHeaderView.LOCKED_FORM_TIP  # A locked form's Grow tooltip
@@ -187,10 +188,11 @@ func _refresh() -> void:
 		tower_placer.show_catch_preview(_tower.global_position, _tower.get_catch_radius())  # Its catch zone
 	# The shared header: portrait, name, damage type, description, stats, Dreams on it.
 	var lines: Array[String] = _header.show_warden(data, _tower, dream_state, false)
-	if _tower.rank > 0:
-		_title.text += " · Rank %s" % Tower.rank_name(_tower.rank)
-		if _is_eldest(_tower):
-			_title.text += " · Eldest"
+	if _tower.rank > 0:  # On the small line under the name (the name is never cut)
+		var sub := _damage_type.get_child(0) as Label
+		var rank_text := "Rank %s" % Tower.rank_name(_tower.rank) + (" · Eldest" if _is_eldest(_tower) else "")
+		sub.text = rank_text if not _damage_type.visible else sub.text + " · " + rank_text
+		_damage_type.visible = true
 	_fill_rank_picks()
 	_title.tooltip_text = ""
 	if _tower.rank > 0:
@@ -203,6 +205,8 @@ func _refresh() -> void:
 	lines.clear()
 	if _header.full_description != "":
 		_extra.add_child(StatusLinks.make_label(_header.full_description, 15))
+	for line in _header.detail_lines:
+		_extra.add_child(StatusLinks.make_label(line, 15))
 	# Combat feedback (screens_ui.md): what this Warden has done, and what it combos with.
 	var log := DamageLog.instance
 	if log != null and data.can_attack:
@@ -248,6 +252,7 @@ func _refresh() -> void:
 	_show_details()
 
 	for child in _buttons.get_children() + _footer.get_children():
+		child.get_parent().remove_child(child)  # Out now: the new GrowHeading / DetailsToggle keep their names
 		child.queue_free()
 	_clear_not_in_dream()
 	if _tower.can_choose_target():
@@ -263,9 +268,11 @@ func _refresh() -> void:
 	var options := Tower.grow_options(dream_state, data)
 	if options.is_empty() and data.line == "sprout":
 		_add_button(Tower.NO_FAMILY_YET).disabled = true  # No family picked yet
-	# Light pass: one primary, the best next step: Nurture when it can rank up, else the first form it can afford.
-	var nurture_primary := _tower.can_nurture() and not _choosing \
+	# Light pass: one primary, the best next step: Nurture when it can rank up and pay for it, else the first form it
+	# can afford, else Nurture anyway (Tower Code's note on b999a33d: a dimmed Nurture shouldn't outrank an affordable grow).
+	var can_rank := _tower.can_nurture() and not _choosing \
 		and not (dream_state.has_method("needs_eldest_confirm") and dream_state.needs_eldest_confirm(_tower))
+	var nurture_primary := can_rank and (_free_rank() or run_state.can_afford(_tower.get_nurture_cost()))
 	var grow_primary := not nurture_primary and not _choosing
 	_grow_heading(options.size())
 	for index in options.size():
@@ -294,6 +301,8 @@ func _refresh() -> void:
 			else:
 				var primary := grow_primary and run_state.can_afford(cost)
 				grow_primary = grow_primary and not primary  # Only the first affordable one
+				if primary:
+					can_rank = false  # A grow took the primary
 				_priced(button, label, "%s Dew" % BossDossier.thousands(cost), cost, &"dew", primary)  # Short: dim, the cost in POOR; a press refuses
 			var tower := _tower
 			button.pressed.connect(func() -> void:
@@ -315,6 +324,7 @@ func _refresh() -> void:
 			continue  # Locked: no ring, no ghost
 		_preview_on(button, [[_tower, next]])
 	_more_row(options.size())
+	nurture_primary = nurture_primary or can_rank  # Nothing affordable: Nurture still leads
 	_not_in_dream_button(data)
 	_seed_button()
 	if _tower.can_nurture():
@@ -410,6 +420,7 @@ func _refresh_group() -> void:
 	_body.text = "\n".join(lines)
 
 	for child in _buttons.get_children() + _footer.get_children():
+		child.get_parent().remove_child(child)  # Out now: the new GrowHeading / DetailsToggle keep their names
 		child.queue_free()
 	_clear_not_in_dream()
 	var aimed := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_choose_target())
@@ -907,35 +918,48 @@ func _add_button(text: String) -> Button:
 func _grow_heading(count: int) -> void:
 	if count <= 0:
 		return
+	# The heading line also holds "+N more" on its right (_more_row): no row of its own (the panel keeps 45%).
+	var line := HBoxContainer.new()
+	line.name = "GrowHeading"
 	var head := Label.new()
-	head.name = "GrowHeading"
 	head.text = "Grow into"
+	head.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiStyle.caps(head, 14)
-	_buttons.add_child(head)
+	line.add_child(head)
+	_buttons.add_child(line)
 
 # One grow / unlock row (RowButton, 48 tall); past MAX_ROWS it waits behind "+N more" (its key still works).
 # Grow lines shown before "+N more": MAX_ROWS, 2 on a short screen (the actions then still fit MAX_SHARE).
 func _row_limit() -> int:
-	return MAX_ROWS if not is_inside_tree() or get_viewport().get_visible_rect().size.y >= SHORT_SCREEN else 2
+	if not is_inside_tree():
+		return MAX_ROWS
+	var height := get_viewport().get_visible_rect().size.y
+	return MAX_ROWS if height >= SHORT_SCREEN else 2 if height >= LOW_SCREEN else 1
 
 func _grow_row(index: int, count: int) -> Button:
 	var button := _add_button("")
 	UiStyle.row(button)
 	button.set_meta(&"variation", &"RowButton")  # _set_short keeps the row look when it isn't the primary
 	var limit := _row_limit()
-	button.visible = _more_open or count <= limit or index < limit - 1
+	button.visible = _more_open or count <= limit or index < limit
 	return button
 
 # "+N more" (story chat 2026-10-05): the rows past the first MAX_ROWS − 1 when there are more than MAX_ROWS.
 func _more_row(count: int) -> void:
 	var limit := _row_limit()
 	_built_limit = limit
-	if count <= limit or _more_open:
+	var heading := _buttons.get_node_or_null("GrowHeading")
+	if count <= limit or _more_open or heading == null:
 		return
-	var more := _add_button("+%d more" % (count - limit + 1))
+	var more := Button.new()  # On the heading's line, right-aligned: quiet text
 	more.name = "MoreRows"
-	UiStyle.row(more)
-	more.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	more.text = "+%d more" % (count - limit)
+	more.flat = true
+	more.focus_mode = Control.FOCUS_NONE
+	more.add_theme_font_size_override("font_size", 14)
+	more.add_theme_color_override("font_color", UiStyle.GOLD)
+	more.tooltip_text = "Show every form it can grow into"
+	heading.add_child(more)
 	more.pressed.connect(func() -> void:
 		_more_open = true
 		_refresh())
@@ -1096,7 +1120,9 @@ func _fit_height() -> void:
 	var actions := _buttons.get_combined_minimum_size().y + _footer.get_combined_minimum_size().y + 40.0
 	var room := minf(screen * MAX_SHARE, screen - TOP_CLEAR - BOTTOM_MARGIN) - actions
 	var wanted := _content.get_combined_minimum_size().y
-	_scroll.custom_minimum_size.y = clampf(wanted, 0.0, maxf(room, MIN_INFO))
+	# The header and notes never scroll (story chat 2026-10-05); only an open Details gives way.
+	var floor_info := wanted - (_details.get_combined_minimum_size().y if _details.visible else 0.0)
+	_scroll.custom_minimum_size.y = clampf(wanted, 0.0, maxf(room, maxf(floor_info, MIN_INFO)))
 	# No reset_size(): the panel is anchored to the bottom and grows upward; resetting kept its top and pushed
 	# the buttons off the bottom of the screen (the "can't upgrade" bug). It's placed from its bottom edge instead.
 	_place_from_bottom.call_deferred()
