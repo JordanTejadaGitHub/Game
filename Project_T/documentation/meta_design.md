@@ -171,19 +171,24 @@ Slot nodes 2 and 3 are gone (2026-09-29), so the tree is 120 Seeds cheaper. Seed
 the end of the Economy path, so it can't be rushed first for faster Seeds.
 
 
-**Keepsakes (cosmetics)** (user 2026-10-04: "yes on cosmetics"): a small **Keepsakes twig** at the
-foot of the Perks limb. Cheap, optional, **no loadout slot, no gameplay effect**; once bought, each
-has an on/off toggle (on its node card and in Settings → Display → Keepsakes). They count toward
-the tree for the Heartwood's Crown.
+**Keepsakes (cosmetics)**: a small **Keepsakes twig** at the foot of the Perks limb, **no loadout
+slot, no gameplay effect**; each has an on/off toggle once grown (node card and Settings → Display
+→ Keepsakes). **They are achievement unlocks, never bought** (user 2026-10-05: *"all the keepsake
+nodes on the tree should be milestone achievement unlocks; anything cosmetic"*): the matching
+milestone **grows its Keepsake for free**, on top of the milestone's Seed bonus. Until then the node
+shows as a bud with its milestone ("Win without losing a leaf"). **Rule: anything cosmetic is
+unlocked by a milestone, never by Seeds; everything with gameplay is bought.**
 
-| Keepsake | Cost | What it does |
+| Keepsake | Grown by | What it does |
 |---|---|---|
-| Golden Leaf | 30 | the in-run Heartwood's leaves turn gold |
-| Blossoms | 40 | every Warden wears a small blossom |
-| Gilded Pages | 20 | the Codex pages get gilded edges |
-| Starlit Card Backs | 30 | Dream offer cards get the night-sky frame |
+| Golden Leaf | Win without losing a leaf (`flawless_win`) | the in-run Heartwood's leaves turn gold |
+| Blossoms | Win at Blight Level 10 (`blight_10_win`) | every Warden wears a small blossom |
+| Gilded Pages | Discover every combo (`all_combos`) | the Codex pages get gilded edges |
+| Starlit Card Backs | See every Dream card (`all_dreams`) | Dream offer cards get the night-sky frame |
 
-(The art exists from when they were milestone rewards.) +120 Seeds to the tree.
+- Keepsakes **don't count** toward the Heartwood's Crown ("every other node at max level"), so a
+  cosmetic achievement never gates a gameplay slot. New cosmetics later follow the same rule (a
+  milestone, its own Keepsake node).
 
 **Power budget:** 15 perks, carry 3 at the start, up to 5 (6 once the whole tree is grown). A full economy loadout (Morning Stores III, Rich Dew
 III, Rested Roots II, Sprout Bed, Clear Sight) makes the early game noticeably smoother, which is
@@ -371,8 +376,8 @@ A Memory fragment appears **every 3 nodes planted** (plus the milestone ones bel
 ## Milestones (bonus Seeds; double as Steam achievements)
 
 **Milestones only give bonus Seeds** (user, 2026-10-04; replaces the free unlocks). A milestone
-never grows a Grove node, refunds a purchase, unlocks a cosmetic or a Memory: **every node is bought
-with Seeds**. Each milestone pays a **one-time Seed bonus** at the run end it's reached, as its own
+never grows a gameplay node, refunds a purchase or unlocks a Memory: **every gameplay node is bought
+with Seeds**; the only exception is cosmetic (four milestones also grow a Keepsake, Section 1, user 2026-10-05). Each milestone pays a **one-time Seed bonus** at the run end it's reached, as its own
 results line (*"Milestone · Dispel 3,000 Shades · +25 Seeds"*), scaled by how hard it is. Steam
 achievements still map to the milestone ids. Dev runs record none (as before).
 
@@ -395,8 +400,8 @@ achievements still map to the milestone ids. Dev runs record none (as before).
   they may retune them, e.g. once `longest_path` is in the run history.
 - **Memories** now come only from the first run and Grove growth (one per 3 levels planted); 10
   arrive well before the tree is complete.
-- **Cosmetics** (Golden Leaf, Blossoms, gilded pages, starlit backs) are no longer milestone rewards: they
-  are cheap Keepsake nodes (Section 1), and the extra reroll is Second Thoughts III.
+- **Cosmetics** (Golden Leaf, Blossoms, gilded pages, starlit backs) are Keepsake nodes grown by their milestone
+  (Section 1; flawless win, Blight 10 win, every combo, every Dream card); the extra reroll is Second Thoughts III (bought).
 - **Sunpetal** (Firefly Jar's hidden branch) is a normal node: **60 Seeds, needs Firefly Jar**, like
   the other hidden branches. **Stormheart's Ascension** now needs Sunpetal, like every other
   Ascension needs its hidden branch.
