@@ -193,10 +193,9 @@ limb; the card one is **purple**, on the Cards limb.
 |---|---|---|---|---|
 | **Restless Omens** | Perks (orange), twig | 40 | 4 new double-edged Omens join the Omen pool | the design hub (`run_design.md` Omens) |
 | **Remembered Seed** | Perks (orange), twig | 30 | start a run on any map from your run history, or type a seed | Main Merger (run start) |
-| **Wanderer's Map** | Perks (orange), twig | 60 | a new map layout joins the random roll (e.g. two starts) | Environment Discussion |
 | **Strange Dreams** | Cards (purple), its own small branch | 50 | a bundle of gamble Dream cards (odd, swingy effects) joins the pool | Roguelite Mechanic Discussion |
 
-- These count toward the Heartwood's Crown like any bought node. +180 Seeds.
+- These count toward the Heartwood's Crown like any bought node. +120 Seeds. (Wanderer's Map, a new map layout, was dropped 2026-10-05: user "Removing it".)
 - Each node waits for its content; until then it isn't on the tree.
 
 **Power budget:** 15 perks, carry 3 at the start, up to 5 (6 once the whole tree is grown). A full economy loadout (Morning Stores III, Rich Dew
