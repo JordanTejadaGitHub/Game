@@ -806,6 +806,15 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 **tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
 `longest_path` / `tended` requested in the run history to re-check.
 
+## Human run 19 (2026-10-05, build c473ca = 4aae45a5, the new grow setting; 0 Grove): "a bit too hard early on"
+
+Sporeling (Brood Cap ×3), lost at drift 20. Drifts 1–9 calm (closest ≤ 0.33, 0 leaks). **Drift 10: 10 leaks,
+12 of 15 leaves in one drift**; then clean to 18, a leak at 19, and the drift 20 finale took the last 3. Dew:
+plant 437 / grow 375 / rank 456 of 1,400. Drift 10 stacks the Husk-heavy group (10 Shades + 6 Husks), the
+first finale elite and the first +25% count (`extra_nightmares_from` 10); it has been the early cliff before
+(Oct 3: 15 leaves there). **Fix: `extra_nightmares_from` 10 → 11** (full game; the demo keeps 10), so the +25%
+lands a drift after the finale. Sent to Tower Code; bot check after.
+
 ## Plant vs grow vs rank: value per Dew (user via the hub, 2026-10-05: "placing more towers and growing them equal the same math with the new interest")
 
 Goal: planting the Nth copy, growing (base → branch 120, branch → final 450) and Nurture ranks (30 / 48 / 60 /
