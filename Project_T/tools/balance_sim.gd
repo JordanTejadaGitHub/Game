@@ -93,6 +93,10 @@ var start_dreamlight := -1  # --start-dreamlight=N: override the human-run mean 
 var start_leaves := -1  # --start-leaves=N: override START_LEAVES
 var start_dew := 0  # What _synthetic_start gave (start_dew column)
 var start_dl := -1  # Dreamlight earned by the start (start_dreamlight column)
+var from_save := ""  # --from-save=<run.json>: resume that RunSaver board (a copy in a scratch user:// file, never the original) and play on
+var save_at: Array[int] = []  # --save-at=N (repeatable): after the bot's spending at the rest after drift N, write a RunSaver snapshot into --out
+var _save_copy := ""
+var resumed_at := -1  # The drift the resumed save was resting after (resumed_at column)
 const START_DREAMLIGHT := {51: 9, 76: 20}  # Mean Dreamlight earned by that drift in the human run history (non-dev runs, 2026-10-05; runs past it prorated by drift)
 const START_LEAVES := {51: 10, 76: 8}  # Of 15 (Balancing 584f9521)
 const START_POT_SHARE := 0.9  # Share of each skipped drift's Dew pot a typical player catches
@@ -181,6 +185,8 @@ func _run() -> void:
 			"--start-at": start_at = int(value)
 			"--start-dreamlight": start_dreamlight = int(value)
 			"--start-leaves": start_leaves = int(value)
+			"--from-save": from_save = arg.substr(arg.find("=") + 1)
+			"--save-at": save_at.append(int(value))
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--boss": act1_boss = value
@@ -227,6 +233,19 @@ func _run() -> void:
 		load("res://scripts/meta/meta_run.gd").set("force_sidegrade", sidegrade)  # Only on builds that have it (the Spire branch)
 	if all_families:
 		load("res://scripts/meta/meta_run.gd").set("force_all_families", true)
+	if from_save != "":
+		# A copy in a scratch user:// file (per process): the original is only read, and RunSaver never writes here
+		# (autosave is off outside the real game). RunSaver._ready restores the map seed, Blight and bosses from it.
+		if not FileAccess.file_exists(from_save):
+			printerr("--from-save: no file %s" % from_save)
+			quit(1)
+			return
+		_save_copy = "user://sim_run_%d.json" % OS.get_process_id()
+		var copy := FileAccess.open(_save_copy, FileAccess.WRITE)
+		copy.store_string(FileAccess.get_file_as_string(from_save))
+		copy.close()
+		RunSaver.file_path = _save_copy
+		RunSaver.resume_next = true
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
 	if hand_drifts:
@@ -237,6 +256,14 @@ func _run() -> void:
 		main.get_node("%DriftDirector").set(key, director_overrides[key])
 	root.add_child(main)
 	await process_frame
+	if from_save != "":
+		await process_frame  # RunSaver._restore is deferred
+		RunSaver.file_path = RunSaver.PATH
+		resumed_at = main.get_node("%DriftDirector").drifts_started
+		if resumed_at <= 0:
+			printerr("--from-save: the save didn't restore (wrong version or unreadable): %s" % from_save)
+			quit(1)
+			return
 	map = main.get_node("%MapGenerator")
 	placer = main.get_node("%TowerPlacer")
 	dreams = main.get_node("%DreamState")
@@ -342,6 +369,8 @@ func _run() -> void:
 		for path in [sim_profile, sim_profile + ".bak"]:  # save_data keeps a .bak of the last write
 			if FileAccess.file_exists(path):
 				DirAccess.remove_absolute(path)
+	if _save_copy != "" and FileAccess.file_exists(_save_copy):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(_save_copy))  # --from-save's scratch copy
 	quit(0)
 
 # The real rest and family pick open screens and offers; the bot answers them through the policy
@@ -402,7 +431,22 @@ func _on_rest(perfect: bool) -> void:
 	if n % director.drifts_per_act == 0:
 		run.banked_at_act[n / director.drifts_per_act + 1] = run_state.dew
 	_spend()
+	if save_at.has(n):
+		_write_snapshot(n)
 	_busy = false
+
+# --save-at: the board as it stands after this rest's spending, as a RunSaver run.json (for --from-save and the
+# snapshot library). Written into --out; RunSaver's own path is put back right away.
+func _write_snapshot(n: int) -> void:
+	var saver: Node = main.get_node_or_null("%RunSaver")
+	if saver == null:
+		return
+	var dest := out_dir.path_join("snapshot_%s_%s_seed%d_d%d.json" % [profile, style, map_seed, n])
+	var old_path: String = RunSaver.file_path
+	RunSaver.file_path = dest
+	var ok: bool = saver.save_now()
+	RunSaver.file_path = old_path
+	print("SNAPSHOT %s %s" % ["written" if ok else "refused (a choice is open)", dest])
 
 # --- Spending ------------------------------------------------------------------------------------------
 
@@ -1045,6 +1089,8 @@ func _finish() -> void:
 	summary.start_dew = start_dew
 	summary.start_dreamlight = start_dl
 	summary.start_leaves = START_LEAVES.get(start_at, -1) if start_leaves < 0 else start_leaves
+	summary.from_save = from_save.get_file()
+	summary.resumed_at = resumed_at
 	summary.growth_costs = "%s/%s/%s/%s" % [dreams.get("branch_cost_multiplier"), dreams.get("final_cost_multiplier"), dreams.get("ascended_cost_multiplier"), dreams.get("rank_costs")]
 	summary.route_open = route_open
 	summary.route_24 = route_at.get(24, -1)
