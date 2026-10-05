@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "bittersweet_dreams"
 display_name = "Bittersweet Dreams"
-description = "Bittersweet Dreams join the pool: Deep Sleep, Restless Dreams."
+description = "Bittersweet Dreams join the pool: Deep Sleep, Waking Dreams."
 root = 1
 costs = Array[int]([52])
 order = 19

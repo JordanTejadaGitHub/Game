@@ -6,7 +6,7 @@
 script = ExtResource("1_unlock")
 id = "nursery"
 display_name = "Nursery"
-description = "Nurture Dreams join the pool: Nursery, Chosen Few."
+description = "Nurture Dreams join the pool: Cradle, Chosen Few."
 root = 1
 costs = Array[int]([70])
 order = 10
