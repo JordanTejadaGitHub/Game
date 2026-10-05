@@ -25,9 +25,10 @@ page points to the Steam page.
    twist, solo at your own pace as the reason. Script in §4 (Short Form Video), in the user's words. Name the mods only:
    no Warcraft footage, logos or art (Blizzard's trademarks). "Try the demo now" only once the demo is live; until then
    the call is "wishlist it on Steam", and the page must be up before it posts.
-   **PAUSED again (the user, 2026-10-04): "Aren't we changing some of the tower assets? Pause the videos."** The Warden
-   size decision and the Brood Cap art are in flight. No video work (renders) until the user gives the all-clear;
-   dry-runs, cut lists and scripts are ready. Before that, the render hold was released 2026-10-04: the user held final renders while the art changed; Theme Discussion called
+   **PAUSED again (the user, 2026-10-04): "Aren't we changing some of the tower assets? Pause the videos."** **All-clear given** (the user, via the design hub: "Then you
+   can restart the video with the changes"): once the base-Warden revert to 64 px (Tower Assets + Tower Code) and the
+   fade fix land, Short Form Video renders Theme's stable_test frame as a sanity check, then goes straight to the finals
+   with no further user OK. Trailer follows the same gate. Before that, the render hold was released 2026-10-04: the user held final renders while the art changed; Theme Discussion called
    the look **stable** on the test capture `stable_test_t10` (main ec668620: bigger Wardens, ½-cell path, ground
    variation, Heartwood, nightmare readability and footing). Two small fixes follow (Beacon's Mark ring made crisp, Tower
    Code; the boxy top-right ground patch made ragged, Environment Code): only shots showing a Beacon mark or that patch
