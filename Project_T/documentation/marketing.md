@@ -151,7 +151,7 @@ only (a demo trailer drops "over 100 Wardens").
 
 | Time | Shot | On screen | Music |
 |---|---|---|---|
-| 0–5 s | Frame one: a staggered half-cell maze. Wardens snap down one after another; with each, the route mist bends live into a longer detour ("+N path"). | "Build the maze with your towers" | motif, Warden snaps on the pulse |
+| 0–5 s | Frame one: a staggered half-cell maze. Wardens snap down one after another; with each, the route mist bends live into a longer detour ("+N path"). | "Build the maze with your Wardens" | motif, Warden snaps on the pulse |
 | 5–10 s | Close on the forest edge (zoom 4): a Shade skitters in; a spore puff hits it; it shrieks and cracks into motes. | | near-silence; **hit 7.5 s**: the dispel |
 | 10–15 s | Pull back: the drift streams in and walks every bend of the maze. | "Make every nightmare take the long way" | pulse returns |
 | 15–27.5 s | Close on a crowd: Soaked, Charged, Thunderclap after Thunderclap. | "Discover combos between Wardens" | build; **hit 20 s**: the Thunderclap |
