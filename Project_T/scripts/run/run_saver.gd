@@ -17,6 +17,7 @@ static var file_path := PATH
 
 # Set by the title screen before loading the main scene: restore the saved run.
 static var resume_next := false
+static var next_map_seed := 0  # The next new run's map seed (SeedPicker, Remembered Seed); 0 = a random map. Used once
 
 @onready var run_state: RunState = %RunState
 @onready var drift_director: DriftDirector = %DriftDirector
@@ -75,6 +76,9 @@ func _ready() -> void:
 			MetaRun.blight_level = int(_saved_data.get("blight_level", 0))  # Before MetaRun applies it
 			MetaRun.resumed_extra_ridges = int(_saved_data.get("extra_ridges", -1))  # Sidegrade Clear Sight: the same map
 			drift_director.preset_bosses = _saved_data.get("bosses", [])  # Before the (deferred) boss draw
+	elif next_map_seed != 0:  # Remembered Seed (SeedPicker): a past run's map or a typed seed, played and banked normally
+		map_generator.map_seed = next_map_seed
+	next_map_seed = 0
 	drift_director.rest_started.connect(func(_b: int, _boss: bool, _bonus: int, _perfect: bool) -> void: _dirty = true)
 	drift_director.family_pick_requested.connect(func(_reason: StringName) -> void: _dirty = true)
 	run_state.run_ended.connect(func(_won: bool) -> void:
