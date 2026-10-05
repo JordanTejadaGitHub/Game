@@ -97,6 +97,11 @@ var from_save := ""  # --from-save=<run.json>: resume that RunSaver board (a cop
 var save_at: Array[int] = []  # --save-at=N (repeatable): after the bot's spending at the rest after drift N, write a RunSaver snapshot into --out
 var _save_copy := ""
 var resumed_at := -1  # The drift the resumed save was resting after (resumed_at column)
+var _finals_first := false  # _grow prefers the highest tier (the --start-at build)
+const START_ATTACKERS := {51: 50, 76: 46}  # Human run history (non-dev runs, 2026-10-05): mean "attackers" of runs that ended at 50 (42, 75, 46, 38); at 75, the three runs past it prorated by drift (31@80, 58@100, 88@100)
+const START_PLANT_SHARE := 0.25  # (a) at most this share of the start Dew on planting + walls
+const START_GROW_SHARE := 0.52  # (b) growth up to about the human share by 50; (c) ranks take the rest
+var start_counts := ""  # start_build column: attackers / walls planted, Dew on plant / grow / rank
 const START_DREAMLIGHT := {51: 9, 76: 20}  # Mean Dreamlight earned by that drift in the human run history (non-dev runs, 2026-10-05; runs past it prorated by drift)
 const START_LEAVES := {51: 10, 76: 8}  # Of 15 (Balancing 584f9521)
 const START_POT_SHARE := 0.9  # Share of each skipped drift's Dew pot a typical player catches
@@ -486,6 +491,49 @@ func _synthetic_start() -> void:
 	start_dew = run_state.dew
 	run_state.leaves = mini(start_leaves if start_leaves >= 0 else int(START_LEAVES.get(start_at, run_state.max_leaves)), run_state.max_leaves)
 	director.act_started.emit(director.get_act(start_at), 0)  # The act's look (Seasons) and HUD
+	_late_build()
+
+# The --start-at board (Balancing, after the first arms: the bot's room cap built 16-26 attackers where people field
+# 42-88): (a) plant up to START_ATTACKERS, walls in the style's proportion, on at most START_PLANT_SHARE of the Dew;
+# (b) grow, finals first, up to START_GROW_SHARE; (c) Nurture with the rest. Live prices (copy cost included).
+func _late_build() -> void:
+	var dew0 := float(run_state.dew)
+	var plan: Dictionary = STYLE_PLAN.get(style, STYLE_PLAN.balanced)
+	var target := int(START_ATTACKERS.get(start_at, 0))
+	var plant_cap := dew0 * START_PLANT_SHARE
+	var spent := {"plant": 0.0, "grow": 0.0, "rank": 0.0}
+	var walls_planted := 0
+	for guard in 400:
+		if _attackers().size() >= target or spent.plant >= plant_cap:
+			break
+		var before := run_state.dew
+		var planted := _plant_attacker()
+		spent.plant += before - run_state.dew
+		while _walls().size() < int(_attackers().size() * float(plan.walls)) and spent.plant < plant_cap:
+			var before_wall := run_state.dew
+			if not _plant_wall():
+				break
+			walls_planted += 1
+			spent.plant += before_wall - run_state.dew
+		if not planted:
+			break
+	_finals_first = true
+	for guard in 400:
+		if spent.grow >= dew0 * START_GROW_SHARE:
+			break
+		var before := run_state.dew
+		if not _grow():
+			break
+		spent.grow += before - run_state.dew
+	_finals_first = false
+	for guard in 800:
+		var before := run_state.dew
+		if not _nurture():
+			break
+		spent.rank += before - run_state.dew
+	start_counts = "attackers %d of %d, walls %d (+%d planted), Dew plant %d / grow %d / rank %d of %d" % [_attackers().size(), target,
+		_walls().size(), walls_planted, roundi(spent.plant), roundi(spent.grow), roundi(spent.rank), roundi(dew0)]
+	print("START BUILD " + start_counts)
 
 func _pick_family_now(kind: StringName) -> void:
 	if forced_families.is_empty():
@@ -851,6 +899,8 @@ func _grow() -> bool:
 		if pick != null:
 			# Growing into an aura Warden: the Wardens around it count; into a kin branch: its unbonded kin.
 			var cover := _coverage(tower) + _aura_bonus(tower.cell, pick, tower, false) + _kin_bonus(tower.cell, pick, tower)
+			if _finals_first:
+				cover += 1000.0 * pick.tier  # The late-start build: finals before new branches
 			if fence_pref and pick.special == &"jarlink":
 				cover += _fence_bonus(tower)  # The arc must cross the route (the probe's --pairs rule)
 				if cover < 0.0:
@@ -1089,6 +1139,7 @@ func _finish() -> void:
 	summary.start_dew = start_dew
 	summary.start_dreamlight = start_dl
 	summary.start_leaves = START_LEAVES.get(start_at, -1) if start_leaves < 0 else start_leaves
+	summary.start_build = start_counts.replace(",", ";")
 	summary.from_save = from_save.get_file()
 	summary.resumed_at = resumed_at
 	summary.growth_costs = "%s/%s/%s/%s" % [dreams.get("branch_cost_multiplier"), dreams.get("final_cost_multiplier"), dreams.get("ascended_cost_multiplier"), dreams.get("rank_costs")]
