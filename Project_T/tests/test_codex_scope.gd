@@ -72,6 +72,22 @@ func _run() -> void:
 	# The demo stays at its three; dev runs cover everything.
 	ResultsScreen.demo_override = 1
 	_check(CodexData.scope().families == CodexData.DEMO_FAMILIES, "the demo covers only its three, whatever the profile")
+	# The demo shows what the full game holds (demo_scope.md, user 7938c7b2): its families, branches and Kinships by name,
+	# tagged "Full game"; "N more in the full game."
+	codex.open(&"combos")
+	var demo_rows := codex.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n.has_meta(&"full_game"))
+	var demo_waiting := codex._combos.find_children("Waiting", "Label", false, false)
+	_check(not demo_rows.is_empty() and demo_rows.all(func(n: Node) -> bool: return n.find_child("FullGameTag", true, false) != null)
+		and codex.find_child("FullGameFamilies", true, false) != null and codex.find_child("FullGameFamilies", true, false).get_child_count() > 1,
+		"the demo Codex lists the full game's families and Kinships, tagged Full game (%d rows)" % demo_rows.size())
+	_check(not demo_waiting.is_empty() and (demo_waiting[0] as Label).text.ends_with("more in the full game."),
+		"…and says how many more the full game holds (%s)" % ((demo_waiting[0] as Label).text if not demo_waiting.is_empty() else "none"))
+	var results_screen := ResultsScreen.new()
+	var teaser: HBoxContainer = results_screen._grove_teaser()
+	_check(teaser.get_child_count() == 3 and teaser.find_children("FullGameTag", "Label", true, false).size() == 3,
+		"the demo results' sleeping Grove shows a family, a perk and a Legendary Dream, tagged Full game (%d)" % teaser.get_child_count())
+	teaser.free()
+	results_screen.free()
 	ResultsScreen.demo_override = 0
 	MetaRun.force_all_families = true
 	_check(CodexData.scope().all, "Unlock all families covers everything")

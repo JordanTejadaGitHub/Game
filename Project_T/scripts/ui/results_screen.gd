@@ -160,6 +160,9 @@ func _build(won: bool) -> void:
 	if is_demo():
 		# The Memory Grove teaser: asleep in the demo, waiting in the full game.
 		_label(box, "The Memory Grove sleeps.", 18, Palette.PATH)
+		var teaser := _grove_teaser()  # A few real nodes by name and icon, tagged "Full game" (user 7938c7b2)
+		if teaser.get_child_count() > 0:
+			box.add_child(teaser)
 		_label(box, "In the full game, every run grows your Memory Grove. Your %d Seeds will be waiting." % banked,
 			15, UiStyle.INK_DIM, true)
 
@@ -197,6 +200,58 @@ func _build(won: bool) -> void:
 	var to_title := _button(quiet, "Title")
 	UiStyle.quiet(to_title)
 	to_title.pressed.connect(func() -> void: get_tree().change_scene_to_file(TITLE_SCENE))
+
+# The demo's Grove teaser (demo_scope.md "Show what the full game holds"): one family, one perk and one Legendary Dream
+# from the real Memory Grove, by name and icon, each tagged "Full game".
+const GROVE_ICON_SHEETS := {"perks": "res://assets/meta/icons/perk_icons.png",
+	"families": "res://assets/meta/icons/family_icons.png", "cards": "res://assets/meta/icons/card_bundle_icons.png"}
+
+func _grove_teaser() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = "GroveTeaser"
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 28)
+	var picks: Array = [null, null, null]
+	for unlock in HeartwoodMemory.load_grove():
+		if unlock.start:
+			continue
+		if picks[0] == null and not unlock.families.is_empty() and unlock.families.any(func(id: String) -> bool: return not CodexData.DEMO_FAMILIES.has(id)):
+			picks[0] = unlock
+		elif picks[1] == null and unlock.root == UnlockData.Root.PERKS and unlock.icon >= 0:
+			picks[1] = unlock
+		elif picks[2] == null and unlock.legendary:
+			picks[2] = unlock
+	for unlock in picks:
+		if unlock == null:
+			continue
+		var item := VBoxContainer.new()
+		item.add_theme_constant_override("separation", 2)
+		var icon := TextureRect.new()
+		var sheet_path: String = GROVE_ICON_SHEETS.get(unlock.get_section(), "")
+		if unlock.icon >= 0 and sheet_path != "" and ResourceLoader.exists(sheet_path):
+			var atlas := AtlasTexture.new()
+			atlas.atlas = load(sheet_path)
+			atlas.region = Rect2(unlock.icon * 32, 0, 32, 32)
+			icon.texture = atlas
+		icon.custom_minimum_size = Vector2(48, 48)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		item.add_child(icon)
+		var name_label := Label.new()
+		name_label.text = unlock.display_name
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.add_theme_font_size_override("font_size", 14)
+		item.add_child(name_label)
+		var tag := Label.new()
+		tag.name = "FullGameTag"
+		tag.text = "Full game"
+		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UiStyle.caps(tag, 12, UiStyle.GOLD)
+		item.add_child(tag)
+		row.add_child(item)
+	return row
 
 # One stat of the run's icon row: the icon and its number, a caps label under them.
 func _stat(icon_id: StringName, value: int, caption: String) -> Control:
