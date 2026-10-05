@@ -17,6 +17,7 @@
 		{"t": 0.0, "plant_each": 0.0, "plant": "sporeling", "spots": [[7, 8], [15, 22], [23, 8], [35, 28], [37, 20]], "tag": false},
 		{"t": 0.5, "dream_offer": true},
 		{"t": 2.5, "pick_dream": 0},
+		{"t": 3.0, "quiet": true},
 		{"t": 3.5, "start": true},
 		{"t": 3.5, "camera": "push", "at": "centre", "zoom": 1.0, "duration": 4.0}
 	]
