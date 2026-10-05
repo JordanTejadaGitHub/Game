@@ -15,6 +15,18 @@ page points to the Steam page.
   3. Every run is different: a new island, 2 of 5 branches per family, random Dreams, Omens and the Heartwood's Gifts
      that reshape the map.
   4. A dark fairytale look: cute Warden spirits against cold, eerie nightmares, in a starry dream void.
+- **Feature lines** (the user, 2026-10-04: like the Legends of Idleon trailer's "Pick from over 100 classes"): each
+  line *promises what you get to do*, never instructs ("Take one.", "Don't build any." read as orders). Verb first,
+  inviting, a real number where we have one. Used by the trailer cards, the Steam About headers and short captions.
+  The trailer shows only what makes the game special: **the maze and the combos** first, then Dreams and the scale.
+  - *Build the maze with your towers*
+  - *Make every nightmare take the long way*
+  - *Discover combos between Wardens*
+  - *Pick a Dream to power your maze*
+  - *Grow over 100 Wardens* (number to confirm with Tower Code: ~119 Warden forms on main, parked Memory Wardens excluded)
+  - *Chain lightning through the whole crowd*
+  - *Choose from 300+ Dreams* (to confirm with Roguelite Code: 369 files in resource/dream/, not all offerable)
+  Numbers go on screen only once the owning chat confirms them for the build the trailer ships with.
 
 ## 2. Order of work
 
