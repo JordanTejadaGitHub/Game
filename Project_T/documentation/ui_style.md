@@ -33,7 +33,11 @@ doesn't fit the theme as well." Frames stay soft fog; no pixel borders on panels
 
 - **Sprout mark, not the diamond.** The thread's centre carries a tiny pixel Heartwood sprout, 7×4 art
   px (rows `HG...GH`, `.GG.GG.`, `...g...`, `...g...`; H Heartlight, G Glow, g Gold), drawn at whole
-  scale (×2 at 1280, ×3 at 1920).
+  scale (×2 at 1280, ×3 at 1920). **One sprout per screen** (user: "too many redundant sprout icons"):
+  it sits only on the outermost panel's thread (and on a choice screen's framed primary). Everything
+  nested inside (entry cards, sections, dividers, tab underlines, scroll areas, tooltips over a panel)
+  gets no sprout; at most a plain thread or nothing. HUD panels that stand alone (Warden panel,
+  DriftPanel) each keep their own.
 - **Inked thread.** 1 px Gold, ends fading out unevenly like ink running dry, not a clean linear fade.
 - **One primary per panel or choice.** Primary = dark fog fill, a 1 px Gold frame on the sides and
   bottom, the thread and sprout as its top edge, Glow text, an Ember inner glow (~18%, ~34% on hover).
