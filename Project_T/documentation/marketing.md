@@ -218,11 +218,12 @@ words of the short description**. Nothing on the page opens with lore or the loo
   > carry into the next dream.
   >
   > **Why I made it**
-  > I grew up on the Warcraft 3 maze maps, Maze TD and Jungle TD, where you built the maze yourself. I love roguelites
-  > like Slay the Spire and Risk of Rain 2. I couldn't find a game that mixed the two, so I made one. Single-player, at
-  > your own pace.
+  > Heartwood TD started with the Warcraft 3 maze maps. The best part of those was the path: you built it, and every
+  > enemy had to walk it. I wanted that on my own schedule, playing solo, with the pull of a roguelite, so no two runs
+  > play out the same.
 
-  To check before it goes up: "grew up on" is my wording, so the user confirms it's true or changes it; the boss pools
+  (The user's story is context for this block, not a script: rewrite it in fresh words, claim nothing the user didn't
+  say.) To check before it goes up: the boss pools
   (full game draws the boss per act, BossPool) and "six more families" (3 starting + 6 Grove, Tower Code) hold on the
   build that ships. GIFs: Short Form Video, ≤ 3 MB each, 616 px wide (Steam's About column), reusing the short / trailer
   boards. **Demo page:** a separate About with demo numbers (3 families, no Grove), never these.
