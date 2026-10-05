@@ -161,6 +161,8 @@ func _ready() -> void:
 	get_viewport().gui_disable_input = true  # The mouse over the render window changes nothing
 	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 	_events = _expand(scene.get("timeline", []))
+	if _camera != null:
+		_camera.camera_zoom_in_max = 8.0  # Close-ups at whole zooms (3, 4…); the player's limit (2.5) clamped them each frame
 	# Bosses: each act's default (the Hollow Stag first) unless the scene names them ("bosses": [boss ids]); set now,
 	# before DriftDirector's deferred draw (a dev run would draw at random).
 	var director: DriftDirector = _main.get_node("%DriftDirector")
