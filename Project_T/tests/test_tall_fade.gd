@@ -46,6 +46,40 @@ func _run() -> void:
 		await process_frame
 	_check(tall._tall_alpha > 0.95, "a Warden in the cell above doesn't fade it (%.2f)" % tall._tall_alpha)
 	above.queue_free()
+	# Over the trail (user 2026-10-04): the overhang parts over route halves are see-through all the time; a big
+	# Warden whose art covers only ground and Wardens has no path mask.
+	var map = main.get_node("%MapGenerator")
+	var route_set := {}
+	for c in Tower.route_cells(map.get_path_from(map.startPath)):
+		route_set[c] = true
+	var by_path := Vector2(-1, -1)
+	var away := Vector2(-1, -1)
+	for y in range(1, Tower.MAP_GRID.size.y - 1):
+		for x in range(1, Tower.MAP_GRID.size.x - 1):
+			var c := Vector2(x, y)
+			if route_set.has(c) or not map.is_buildable(c):
+				continue
+			var near := 0
+			for dy in range(-2, 2):
+				for dx in range(-1, 2):
+					if route_set.has(c + Vector2(dx, dy)):
+						near += 1
+			if by_path.x < 0 and route_set.has(c + Vector2.UP):
+				by_path = c
+			elif away.x < 0 and near == 0:
+				away = c
+	var over: Tower = _plant(placer, container, "beacon", by_path)
+	var clear: Tower = _plant(placer, container, "beacon", away)
+	await process_frame
+	over._refresh_path_mask()
+	clear._refresh_path_mask()
+	_check(not over.path_mask.is_empty(), "a big Warden below the trail fades the part over it (%s at %s)" % [over.path_mask.size(), by_path])
+	_check(clear.path_mask.is_empty(), "one with only ground around stays opaque (%s at %s)" % [clear.path_mask.size(), away])
+	var sprout_over := _plant(placer, container, "sprout", by_path + Vector2(0, 0))
+	_check(not sprout_over.is_tall(), "64x80 art (Sprout, the family bases) never fades")
+	sprout_over.queue_free()
+	over.queue_free()
+	clear.queue_free()
 	# Every tall form is drawn whole in every state (user: "some of the Wardens' top parts being cut off"): the
 	# map sprite idle / attacking / channelling and the UI icon are 96 px tall; only multi-cell art (the Sapling)
 	# gets the cropped icon.

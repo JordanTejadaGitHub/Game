@@ -4181,6 +4181,7 @@ func _on_map_changed() -> void:
 	_dream_cache.clear()
 	_range_frame = -1
 	_neighbour_timer = minf(_neighbour_timer, randf_range(0.0, 0.3))
+	_path_mask_dirty = true  # Big Wardens: which overhang parts cover the trail (rebuilt at the next fade check)
 
 func _tick_dream_cache(delta: float) -> void:
 	_dream_cache_left -= delta
@@ -4257,8 +4258,12 @@ var _tall_behind := false
 var _tall_check_left := 0.0
 
 func is_tall() -> bool:
-	# Taller than the 64×80 frame every Warden has (16 rows of headroom, Tower Assets bdafee95): the 64×96 ones.
-	return tower_data.texture != null and tower_data.get_frame_rect(0).size.y > MAP_GRID.cell_size.y + 16.0 and tower_data.tier < DreamState.ASCENDED_TIER
+	# Bigger than the 64×80 frame every Warden has (16 rows of headroom, Tower Assets bdafee95): the big branches and
+	# finals (1.4x, art_direction.md bcabe980), taller and wider.
+	if tower_data.texture == null or tower_data.tier >= DreamState.ASCENDED_TIER:
+		return false
+	var size := tower_data.get_frame_rect(0).size
+	return size.y > MAP_GRID.cell_size.y + 16.0 or size.x > MAP_GRID.cell_size.x
 
 func _set_up_tall_fade() -> void:
 	if is_tall():
@@ -4269,7 +4274,7 @@ func _set_up_tall_fade() -> void:
 		# Performance: staggered, so Wardens planted on one frame don't all look on one frame every 0.1 s (141 tall
 		# ones on the stress board cost a 2.6 ms spike every 6th frame: test_perf_stress's p95).
 		_tall_check_left = randf() * TALL_FADE_CHECK
-		_tall_fade.set_shader_parameter(&"top_share", (tower_data.get_frame_rect(0).size.y - MAP_GRID.cell_size.y) / tower_data.get_frame_rect(0).size.y)
+		_path_mask_dirty = true  # Built at the first check (the Warden is placed by then)
 	elif _tall_fade != null:
 		sprite.material = null
 		_tall_fade = null
@@ -4277,10 +4282,10 @@ func _set_up_tall_fade() -> void:
 
 # Whether something the player should see is in the cell above (behind the overhang).
 func tall_behind() -> bool:
-	# The overhang: the strip above its footprint the tall sprite covers (half cells: a Warden may sit between cells,
-	# so it's a pixel area, not "the cell above").
-	var area := _overhang_rect()
-	for enemy in nightmares_near(get_tree(), area.get_center(), MAP_GRID.cell_size.x):
+	# The overhang: everything the art covers around its footprint, above and beside (half cells: a Warden may sit
+	# between cells, so it's a pixel area, not "the cell above"). Nothing stands on the footprint itself.
+	var area := _art_rect()
+	for enemy in nightmares_near(get_tree(), area.get_center(), maxf(area.size.x, area.size.y)):
 		if is_instance_valid(enemy) and not enemy.is_cleansed and area.has_point(enemy.global_position):
 			return true
 	# Another Warden only when the player points at it (hovered / selected, below). An ambient "any Warden in the
@@ -4314,11 +4319,67 @@ func _update_tall_fade(delta: float) -> void:
 	_tall_check_left -= delta
 	if _tall_check_left <= 0.0:
 		_tall_check_left = TALL_FADE_CHECK
+		if _path_mask_dirty:
+			_refresh_path_mask()
 		_tall_behind = tall_behind()
 	var target := TALL_FADE_ALPHA if _tall_behind else 1.0
 	if absf(_tall_alpha - target) > 0.01:
 		_tall_alpha = lerpf(_tall_alpha, target, 1.0 - exp(-TALL_FADE_RATE * delta))
 		_tall_fade.set_shader_parameter(&"top_alpha", _tall_alpha)
+
+# The art's whole drawn rect in world pixels (its bottom sits on the footprint's bottom, centred across it).
+func _art_rect() -> Rect2:
+	if tower_data.texture == null:
+		return Rect2(global_position - MAP_GRID.cell_size / 2.0, MAP_GRID.cell_size)
+	var size := tower_data.get_frame_rect(0).size
+	return Rect2(sprite.global_position + sprite.offset - size / 2.0, size)
+
+# Over the trail (user 2026-10-04): the parts of the overhang that cover a route half stay see-through all the
+# time; over Wardens, obstacles and ground the art stays opaque. Rebuilt after path_changed (_path_mask_dirty), at
+# this Warden's next staggered fade check. Rects go to the shader in the sprite's local pixels.
+const PATH_MASK_MAX := 16  # tall_fade.gdshader's path_rects
+const ROUTE_HALF := 16.0  # A route point's half cell: ±16 px (one nightmare body)
+var _path_mask_dirty := true
+var path_mask: Array[Rect2] = []  # World rects of the overhang over the trail (tests, tools)
+static var _route_cache := PackedVector2Array()
+static var _route_cache_frame := -1
+
+static func _route_pixels(map) -> PackedVector2Array:
+	var frame := Engine.get_process_frames()
+	if frame != _route_cache_frame:
+		_route_cache_frame = frame
+		_route_cache = PackedVector2Array()
+		if map != null and is_instance_valid(map):
+			for p in map.get_path_from(map.startPath):
+				_route_cache.append(MAP_GRID.calculate_map_position(p))
+	return _route_cache
+
+func _refresh_path_mask() -> void:
+	_path_mask_dirty = false
+	path_mask.clear()
+	var map = _dream_state.map_generator if _dream_state else null
+	var art := _art_rect()
+	var foot := Rect2(global_position - MAP_GRID.cell_size / 2.0, MAP_GRID.cell_size)
+	for at in _route_pixels(map):
+		if path_mask.size() >= PATH_MASK_MAX:
+			break
+		var half := Rect2(at - Vector2(ROUTE_HALF, ROUTE_HALF), Vector2(ROUTE_HALF, ROUTE_HALF) * 2.0)
+		var over := art.intersection(half)
+		if over.get_area() < 1.0 or foot.encloses(over):
+			continue
+		path_mask.append(over)
+	var to_sprite := sprite.get_global_transform().affine_inverse()
+	var rects := PackedVector4Array()
+	for r in path_mask:
+		var local: Rect2 = to_sprite * r
+		rects.append(Vector4(local.position.x, local.position.y, local.size.x, local.size.y))
+	var foot_local: Rect2 = to_sprite * foot
+	_tall_fade.set_shader_parameter(&"foot_rect", Vector4(foot_local.position.x, foot_local.position.y, foot_local.size.x, foot_local.size.y))
+	while rects.size() < PATH_MASK_MAX:
+		rects.append(Vector4.ZERO)
+	_tall_fade.set_shader_parameter(&"path_rects", rects)
+	_tall_fade.set_shader_parameter(&"path_count", path_mask.size())
+	_tall_fade.set_shader_parameter(&"path_alpha", TALL_FADE_ALPHA)
 
 # --- Grow bloom: growing into art of another size (story chat 2026-10-04: bases are 64 again, branches big) ----
 const GROW_BLOOM_TIME := 0.4
