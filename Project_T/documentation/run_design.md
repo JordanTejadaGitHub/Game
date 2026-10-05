@@ -700,17 +700,17 @@ per offer, no repeat from the last rest, rewards × act for Dew and Seeds, bosse
 
 | Omen | The next block | Reward | Flavour line | Offer rule |
 |---|---|---|---|---|
-| **Swarming Night** | **twice as many nightmares, each at half health** (same total health; the Dew pot is shared as usual) | +3 Seeds | *"They come in a rush, thin as moths."* | any act |
-| **Giants' Walk** | **half as many nightmares, each at 2.2× health**; each leak costs **+1 leaf** | next Dream: one card is Rare+ | *"Few come tonight. They are very large."* | act 2+; never a boss block |
-| **Brittle Night** | nightmares have **−30% health**, but every leak costs **double leaves** | +40 Dew | *"They crack at a touch. So does the Heartwood."* | never a boss block (as Leaf Fall) |
-| **Static Sky** | every nightmare is **always Charged**, but **+25% speed** | +30 Dew | *"The air hums. They run with sparks in their fur."* | once a Charged source exists this run (a lightning Warden or card), like Hollow Wind's flyer rule |
+| **Swarming Night** | **twice as many nightmares, each at 0.6× health** (the Dew pot is shared as usual) | +5 Seeds | *"They come in a rush, thin as moths."* | any act |
+| **Giants' Walk** | **half as many nightmares, each at 2.4× health**; each leak costs **+1 leaf** | next Dream: one card is Rare+, and +25 Dew | *"Few come tonight. They are very large."* | act 2+; never a boss block |
+| **Brittle Night** | nightmares have **−25% health**, but every leak costs **double leaves** | +45 Dew | *"They crack at a touch. So does the Heartwood."* | never a boss block (as Leaf Fall) |
+| **Static Sky** | every nightmare is **always Charged**, but **+30% speed** | +40 Dew | *"The air hums. They run with sparks in their fur."* | once a Charged source exists this run (a lightning Warden or card), like Hollow Wind's flyer rule |
 
 - **Who they favour:** Swarming Night = area, pulse, chain and cloud builds (single-target snipers
   struggle); Giants' Walk = single-target, beam and sniper builds (area and Spored builds struggle);
   Brittle Night = a long, safe maze (one hole costs double); Static Sky = storm and Reaction builds
   (Thunderclap, Conductive Soil), while the speed hurts everyone else.
-- **Numbers are starting points**; Balancing Discussion tunes them. Swarming Night's halves round up.
-  Giants' Walk never halves a drift below 1, and elites stay elites at 2.2× on top of their ×3.
+- **Numbers set by Balancing Discussion** (balance_simulation.md 47b990c3; the data in `resource/omen/` is authoritative). Swarming Night's doubled counts round up.
+  Giants' Walk never halves a drift below 1, and elites stay elites at 2.4× on top of their ×3.
 - **New `OmenData` fields** (Roguelite Code): count multiplier with an inverse health multiplier,
   leak-cost add, always-applied Charged (reuses Heavy Rain's always-applied status), `requires_grove`
   (the node id).
