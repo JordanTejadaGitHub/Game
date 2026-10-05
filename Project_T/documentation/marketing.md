@@ -276,7 +276,7 @@ words of the short description**. Nothing on the page opens with lore or the loo
 | Item | Status | Waiting on |
 |---|---|---|
 | Name | **"Heartwood TD"** (decided 2026-09-28, pitch.md "Title") | free check: Steam, itch.io, trademark search for "Heartwood" |
-| Studio | **"TopBunk Studios"** (planned; spelling confirmed by the user 2026-10-05, capital B) | the user's checks below; then the Steam developer / publisher fields, the end card / credits line, and a small wordmark (Theme Asset, hand-feel, anti-AI-look rules) |
+| Studio | **"TopBunk Studios": cleared** (2026-10-05; capital B). Trademark: 0 hits for "Topbunk" in CIPO and USPTO (the only exact "TOP BUNK" is a dead furniture mark). topbunkstudios.com and @topbunkstudios on X / YouTube: the user is taking them | a handle variant for Instagram / TikTok / Facebook / Pinterest, where "topbunkstudios" is taken (LinkedIn, Reddit to check); then the Steam developer / publisher fields, the end card / credits line, and a small wordmark (Theme Asset, hand-feel, anti-AI-look rules) |
 | Capsule art | **A, chosen** (the watchful Warden, 2026-10-04); **AI-made for now** (Theme Asset) | artist: **deferred** (the user, 2026-10-04: "Leave it AI for now, then I'll decide later"; brief stays in art_direction.md) |
 | Logo | not started; **AI-made for now** (Theme Asset) | artist: deferred, same as the capsule |
 | Short description | drafted above, maze first | — |

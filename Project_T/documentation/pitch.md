@@ -90,7 +90,10 @@ can't: a staggered half-cell maze at full scale with the route shown and nightma
 
 ## Studio name (planned)
 
-**"TopBunk Studios"** (capital B, spelling confirmed by the user 2026-10-05): planned; availability checks still to do.
+**"TopBunk Studios"** (capital B): **cleared 2026-10-05.** Trademark clear (0 hits for "Topbunk" in CIPO and USPTO;
+the only exact "TOP BUNK" is a dead furniture mark). The user is taking topbunkstudios.com and @topbunkstudios on X and
+YouTube; "topbunkstudios" is taken on Instagram, TikTok, Facebook and Pinterest, so a variant is still to pick.
+The checklist it went through:
 Before it's final, the user checks:
 - a business-name / trademark search in their region (and "TopBunk" in the games class)
 - the domain: topbunkstudios.com or topbunk.games
