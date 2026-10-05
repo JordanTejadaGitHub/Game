@@ -377,5 +377,9 @@ rules. The brief stays here in case the user hires an artist later.
     - stats as **one icon row** in place of " · " strings, with less text and the per-run stats
       behind Details;
     - the **tower bar more transparent and less busy**.
-  - Spec: `ui_style.md` (UI Asset). Build: UI Code (tokens, theme), Main Merger (panel layouts).
+  - Spec: `ui_style.md` "The light pass (approved 2026-10-05)" (merge 5ce70056), which wins over
+    this summary. Follow-ups there: the Warden panel has **no** primary (Nurture and the grow rows
+    are equal), one sprout mark per screen, tower-bar slots with a 1 px Gold 45% border and tiles
+    dark enough to read over the path, and the title menu keeps a box per entry with Continue as the
+    framed primary. Build: UI Code (tokens, theme), Main Merger (panel layouts).
 - **Accessibility pass:** make sure warm vs cold never relies on colour alone.
