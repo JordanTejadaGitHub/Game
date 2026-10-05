@@ -806,6 +806,14 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 **tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
 `longest_path` / `tended` requested in the run history to re-check.
 
+## Pricier growing (user, 2026-10-04: "make growing your Wardens more expensive, make the player rely on making more Wardens early instead of saving")
+
+Intent: in acts 1–2 the best use of Dew is **more Wardens** (a longer maze, more coverage); growing becomes a
+mid/late sink, not something saved up for by drift 6 (human run 18 banked 1,340 by drift 20). Starting values,
+as exports for A/B (Tower Code): **branch ×1.5 (120 → 180), final ×1.5 (300 → 450), Ascended ×1.0 (600)**,
+Nurture **30 / 48 / 60 / 90 / 135** (+20% on the first two). The demo gets them too. Measured: Wardens owned at
+10 / 25, Dew banked per rest, the first-grow drift, act 1 survival (base Wardens now carry more of act 1).
+
 ## Human run 18 (2026-10-04, build 5d8f3f = 7762f0cd; 0 Grove)
 
 **Lost at drift 35**, 9 min; user: *"feels fine so far."* Bellflower → Sporeling; **2 Thrums = 66% of damage**
