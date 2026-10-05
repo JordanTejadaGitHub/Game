@@ -24,6 +24,7 @@ func _run() -> void:
 	Fx.reset_run()
 	Kinships.force_full = true
 	main = load("res://scenes/main.tscn").instantiate()
+	main.get_node("%MapGenerator").map_seed = 42  # A fixed map: on a random one the route could cross the 2-cell pair (it bows)
 	root.add_child(main)
 	await process_frame
 	placer = main.get_node("%TowerPlacer")
