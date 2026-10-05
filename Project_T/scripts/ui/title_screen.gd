@@ -83,10 +83,10 @@ func _ready() -> void:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", UiStyle.fog_patch(20.0, 18.0))
 	_menu.add_child(panel)
-	_buttons.add_theme_constant_override("separation", 4)  # Quiet rows close enough to read as a list
+	_buttons.add_theme_constant_override("separation", 10)
 	panel.add_child(_buttons)
 
-	# The first choice takes the primary look; every other entry is quiet (ui_style.md "Buttons").
+	# The first choice takes the primary look; every other entry keeps its border (ui_style.md "Buttons").
 	if RunSaver.has_save():
 		UiStyle.primary(_add_button("Continue", _continue))
 	var new_run := _add_button("New run", _new_run)
@@ -151,15 +151,13 @@ func open_codex(tab: StringName = &"", entry: String = "") -> void:
 	_settings.visible = false
 	_codex.open(tab, entry)
 
-# A menu entry: quiet (ink text, Glow on hover, the full column width as its hit area, 48 px tall).
+# A menu entry: the secondary button (Gold outline, fog fill, ink text), full column width, 48 px tall.
 # The primary choice is restyled by the caller.
 func _add_button(text: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.custom_minimum_size = Vector2(0, 48)
 	button.focus_mode = Control.FOCUS_NONE
-	UiStyle.quiet(button)
-	button.add_theme_font_size_override("font_size", UiStyle.BUTTON_SIZE)  # The menu keeps its size
 	button.pressed.connect(action)
 	_buttons.add_child(button)
 	return button
