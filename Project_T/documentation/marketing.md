@@ -289,3 +289,21 @@ rises through density, subdivision, the bass an octave down for bosses and percu
 the Heartwood motif's Hope form (D-A-F#, harp + music box, onto a warm D major), the same phrase players hear in game
 when a boss falls. Short beds are rendered per short to Short Form Video's hit times (main hit on a downbeat, the rest
 on a hits stem). Files land in `marketing/`: stems low / mid / top / perc, the full mix and the voice mix.
+
+## 10. Comparables (research 2026-10-04; store pages + published trailer advice, the trailers not watched frame by frame)
+
+| Game | Hook | How the page sells features | Takeaway for us |
+|---|---|---|---|
+| **Rogue Tower** (closest: roguelite TD, path control) | "a continuously expanding path which you can influence"; ends on a verb list "Unlock, build, upgrade, expand, defend." | "over 400 unique cards and upgrades" | Their path grows randomly and you steer it; **ours you build yourself**. Say "you build the path" plainly; don't let it read as the same game. |
+| **Thronefall** (minimal TD/builder, ~1M sold) | one line: "A minimalist game about building and defending your little kingdom." | bold number headers: "10 Maps." "9 Unlockable Weapons." "Over 50 Unlockable Perks." | The format for our About section and the user's Idleon idea. Wishlists took off at **Next Fest with a demo** (+2,043 followers, #15 of ~1,000) plus the dev's YouTube. |
+| **Legion TD 2** (sequel to the WC3 mod) | "the 2nd most popular Warcraft 3 mod of all time" | "over 100 unique fighters" | The WC3 heritage sells to exactly our audience (Video 0's angle); "over 100" is the genre's standard claim. |
+
+**Trailer checks against published advice** (Derek Lieu via GameDiscover; Steam Page Analyzer): gameplay in the first 5 s, no logo intro
+(ours: the maze build at 0 s ✓); 60–90 s (75 s ✓); readable muted, since Steam autoplays without sound (the cards carry it ✓);
+text on gameplay, not full-screen slides (the scrim band ✓); end on a climax then title + "Wishlist" (the Dawnburst, then the end
+card ✓); 1080p ✓. Later: a **second, longer trailer** (2–3 min) for the systems (combos, Dreams, growth), since released pages
+average 2.4 videos; and a **muted dev-commentary cut** (Spelunky 2 did one) fits Video 0.
+
+**About section format** (from Thronefall): bold number lead-ins, one line each, a GIF under each:
+*Over 100 Wardens.* · *Over 250 Dreams.* · *Reactions* (number to confirm: 8 + 8 Crowned) · *100 drifts, 4 acts, a boss at
+the end of each* (check the boss-pool count before claiming more). Full game only; the demo page uses demo numbers.
