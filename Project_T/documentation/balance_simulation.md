@@ -806,6 +806,41 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 **tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
 `longest_path` / `tended` requested in the run history to re-check.
 
+## Acts 3–4 coverage (user via the hub, 2026-10-05: the bots never get there)
+
+Balancing Discussion decides, Balancing Code builds the tools. At most 2 sims in parallel while the user may play.
+
+**1. Synthetic late start (now).** `--start-at=51` / `76`: the run skips straight to that rest with what a
+typical run holds there, the bot builds its whole board in that one rest, then plays on to 75 / 100.
+- **Dew:** `starting_dew` + Σ Dew pot of the skipped drifts × **0.9** (leaks lose shares) + Σ base rest
+  bonus (no perfect blocks), read from the live exports, so tuning changes follow automatically.
+- **Leaves:** **10 / 15 at 51, 8 at 76** (to calibrate against snapshots).
+- **Families:** the first pick + the boss picks (25, 50, 75) via the bot's normal pick logic.
+- **Dreams:** one offer per skipped rest from `DreamState.make_offer`, chosen by the bot's normal logic
+  (boss rests Rare+); Omens: Clear Skies.
+- **Dreamlight:** the act's mean earned by that drift from the run history (human runs). The bot spends it
+  on branch / final unlocks as usual.
+- **Grove:** fresh / half / full presets; --boss-draw.
+- **Arms:** per preset × {default, spender} × {51, 76}, 30 seeds. Then the finals question: the same at 76
+  with final forms **+12.5% damage** (an export, asked of Tower Code).
+- **Targets (bot, first read):** from 51, half Grove default survives the act 3 boss **~45–60%**; from 76,
+  half Grove wins **~30–50%** (the skilled-player target), fresh **~10–20%**, full ≤ ~65%. The bot does
+  not use finals, Ascended, Reactions or Kinships well yet, so it reads **low**; misses are judged with that
+  in mind and with human runs.
+- Measured: survival per boss, death drifts, leaves lost per drift and per finale, Dew banked, tier mix
+  (finals share of the board and of damage), closest.
+
+**2. Start from a save.** `--from-save=<run.json>`: the bot continues a real board saved by `RunSaver`. A
+snapshot library in `D:\Projects\logs\balancing\snapshots\` from the user's and the testers' runs (release
+builds save under `%APPDATA%\TopBunk Studios\Heartwood TD`). **Copies only with the user's yes; never
+written back.**
+
+**3. Calibration.** As snapshots arrive, compare a snapshot's continuation with a synthetic start at the
+same drift and Grove; adjust the 0.9 capture, the leaves and the Dreamlight until survival and leaves
+lost agree within noise.
+
+Later, not now: teaching the bot finals, Ascended, Reactions and Kinships.
+
 ## Overlap-audit reworks, power check (2026-10-05, dream_design.md e1e39b56; dream_audit.md budgets)
 
 | Card | As reworked | Budget | Verdict |
