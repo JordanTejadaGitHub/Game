@@ -2141,9 +2141,7 @@ func _final_signatures() -> void:
 	_sheet("shatter_chain_burst", Vector2i(48, 48), 7, 16, Vector2i(24, 24), false, "signature", _shatter_chain_burst,
 		{note = "Hoarfrost: an ice burst with shards flying out (smaller than crowned_prismstorm)."})
 	_sheet("beacon_flare", Vector2i(16, 64), 8, 12, Vector2i(8, 60), false, "signature", _beacon_flare,
-		{note = "Beacon: a flare shooting up from the Beacon (anchor = its top) and bursting; then fade beacon_pulse over the map."})
-	_sheet("beacon_pulse", Vector2i(64, 64), 1, 1, Vector2i(32, 32), false, "overlay", _beacon_pulse,
-		{note = "Map-wide light pulse: scale it over the whole map (it's a soft warm radial wash in palette alpha steps), fade in ~0.2 s and out ~1 s, additive or ~40% alpha."})
+		{note = "Beacon: a flare shooting up from the Beacon (anchor = its top) and bursting; the ring of light that follows is drawn in code (BeaconRing)."})
 	_sheet("solstice_fork", Vector2i(32, 32), 6, 16, Vector2i(16, 16), false, "signature", _solstice_fork,
 		{note = "Midsummer: a bright flash where the beam forks (anchor = the fork point; rays drawn pointing right, rotate to the beam)."})
 	_sheet("starlit_snare", Vector2i(32, 32), 6, 12, Vector2i(16, 20), false, "signature", _starlit_snare,
@@ -2303,17 +2301,6 @@ func _beacon_flare(img: Image, f: int) -> void:
 		for k in 8:
 			var p := c + Vector2.from_angle(k * TAU / 8.0) * (3.0 + t * 4.0)
 			_px(img, floori(p.x), floori(p.y), Color(CORE if k % 2 == 0 else GOLD, 1.0 - t * 0.6))
-
-func _beacon_pulse(img: Image, _f: int) -> void:
-	# A soft warm wash, brightest in the middle, stepping down in alpha (palette colours only).
-	var c := Vector2(32, 32)
-	for y in 64:
-		for x in 64:
-			var q := Vector2(x + 0.5, y + 0.5).distance_to(c) / 32.0
-			if q < 1.0:
-				var a := snappedf(0.5 * (1.0 - q * q), 0.05)
-				if a > 0.0:
-					img.set_pixel(x, y, Color(WARM if q < 0.4 else GOLD, a))
 
 func _solstice_fork(img: Image, f: int) -> void:
 	# The beam comes in from the left and splits into three bright rays; a sun-flash at the fork.

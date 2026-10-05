@@ -25,12 +25,13 @@ page points to the Steam page.
    twist, solo at your own pace as the reason. Script in §4 (Short Form Video), in the user's words. Name the mods only:
    no Warcraft footage, logos or art (Blizzard's trademarks). "Try the demo now" only once the demo is live; until then
    the call is "wishlist it on Steam", and the page must be up before it posts.
-   **Hold on all video renders** (the user, 2026-10-04): the path and other environment art are still changing, so no
-   final renders of shorts, the trailer or screenshots until Theme Discussion calls the look stable. Open: the **bigger
-   Wardens** roster art (Tower Assets; code in; Sprout and Thornwall keep today's size), one last ground-patch softening
-   (Environment). Then one test capture, then Theme calls stable. Done: grain clean-up, nightmare readability, the
-   Heartwood glow (61db39aa) and husks (3712245a), path ≥ ½ cell of pale earth (56da16ae), nightmare footing (4ea858af),
-   ground variation (f583c5d6, 115df0d7), Mire/Roots duals (6ddbc824), rubble (0bc2b870). Scripts, voiceover, capture scenes and test renders can go on.
+   **PAUSED again (the user, 2026-10-04): "Aren't we changing some of the tower assets? Pause the videos."** The Warden
+   size decision and the Brood Cap art are in flight. No video work (renders) until the user gives the all-clear;
+   dry-runs, cut lists and scripts are ready. Before that, the render hold was released 2026-10-04: the user held final renders while the art changed; Theme Discussion called
+   the look **stable** on the test capture `stable_test_t10` (main ec668620: bigger Wardens, ½-cell path, ground
+   variation, Heartwood, nightmare readability and footing). Two small fixes follow (Beacon's Mark ring made crisp, Tower
+   Code; the boxy top-right ground patch made ragged, Environment Code): only shots showing a Beacon mark or that patch
+   re-render once they land. From now on, any change to the look goes through Theme Discussion first.
 3. **Trailer** (60–90 s): once the capture tools exist.
 4. **Demo + Steam Next Fest**: the biggest wishlist spike; plan it for when the demo is polished.
 
@@ -193,8 +194,8 @@ words of the short description**. Nothing on the page opens with lore or the loo
 | Short description | drafted above, maze first | — |
 | About | outline above | GIFs (capture tools) |
 | Tags | drafted above | — |
-| 5–8 screenshots | **on hold**; order above, #1 = half-cell maze + route | nightmare readability (art_direction.md 395fed8a: Enemy Assets done f07637d1; Enemy Code shader, Environment Assets path shadows to land); Warden poses no longer block (reverted 7049be26); capture scene: inland clear + Warden-walled maze (Main Merger) |
-| Trailer | §5; its first seconds = the maze | Trailer chat, capture tools; date locked by Marketing Discussion |
+| 5–8 screenshots | **released** (look stable 2026-10-04); order above, #1 = half-cell maze + route | nightmare readability (art_direction.md 395fed8a: Enemy Assets done f07637d1; Enemy Code shader, Environment Assets path shadows to land); Warden poses no longer block (reverted 7049be26); capture scene: inland clear + Warden-walled maze (Main Merger) |
+| Trailer | §5; its first seconds = the maze. **Target: user-approved by 2026-10-07**, slips day for day if the video pause runs past 2026-10-05 (~1 day of render + rough cut after the all-clear, then review) | **the user's all-clear** (paused for the tower-asset changes); Sound's cue stems; then the user's review + one revision. Ready: 9 scenes dry-run, cut list 8459d82b, 16:9 export 902f7207 |
 | AI disclosure | drafted in §7 | Valve's wording at submission |
 
 ## 7. AI disclosure (Steam requires it)

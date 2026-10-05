@@ -787,6 +787,12 @@ read the old one-cell corridor rule.
 **Act 1 on 1768f778** (one-half gaps + ×1.30; half-aware bot with pair search; 30 seeds): Balanced **60%** ✓,
 skip **10%** ✓ (both in band). Route: base 40, opening 51, drift 24 ~80 cells (human run 17: 68). The drift
 20 finale is act 1's real test (1.2 leaves Balanced, 4.4 skip). **×1.30 stays.** The bosses and the demo follow.
+**Act 1 bosses forced** (same build, 20 seeds each): survived **Stag 75%, Night Mare 70%, Scarecrow 60%** ✓ all
+near target; the Scarecrow is the hardest (its drift costs 2.7 leaves, the drift 20 finale before it 1.8). The
+Night Mare's losses are laps / drain, not leaks. No change.
+**Demo** (one-half gaps, demo ×1.15, 20 seeds): Balanced **80%** ✓, skip **65%** (band 25–45%; 3 runs from 50%).
+**Kept**: the demo is the gentle intro, and Balanced being in band matters more. **The half-cell re-check is
+closed** (Rootling's two-pulls test still to report).
 **Item 3, demo** (0596eb94, old corridor rule, 20 seeds): Balanced **100%**, skip **50%** (pre-merge 70% / 40%;
 band 75–85% / 25–45%), route at 24 ~86 cells. Half cells plus the Firefly / Nurture changes eased the demo
 too. Held with the full game for the new corridor rule (which lengthens mazes further); then the demo's

@@ -9,7 +9,6 @@
 	"dreams": ["dawnbreak"],
 	"length": 24.0,
 	"music": ["base", "dread1", "dread2"],
-	"slow_chain": {"at": 7, "speed": 0.3, "hold": 2.5},
 	"captions": [
 		[0.0, 2.0, "Watch this chain."],
 		[2.0, 8.0, "Soaked, then Charged: a Thunderclap."],

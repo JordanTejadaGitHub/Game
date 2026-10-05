@@ -626,8 +626,9 @@ function groundPatch(A, kind, k) {
   // tiles differ inside without seams. Worn earth is solid inside (Shade, a step under the old Dusk).
   const w = (x, y) => Math.sin(Math.PI * (x + .5) / PATCH) * Math.sin(Math.PI * (y + .5) / PATCH);
   const n = (x, y) => .6 * pnoise(x, y, 16, SEED + 940, 4) + .4 * pnoise(x, y, 8, SEED + 941, 8) + w(x, y) * (pnoise(x, y, 16, s + 942, 4) - .5) * .6;
-  const inner = [.46, -1, 2, act === 3 ? .5 : .46, .44][kind];  // the clump threshold deep inside (fern beds: no fill)
-  const inPatch = (x, y) => { const t = clamp((D(x, y) + PATCH_RIM_IN) / (PATCH_RIM_IN + PATCH_RIM_OUT), 0, 1); return n(x, y) > inner + (1.08 - inner) * t; };
+  const inner = [.46, .22, 2, act === 3 ? .5 : .46, .44][kind];  // the clump threshold deep inside (fern beds: no fill)
+  const rimIn = kind === 1 ? 18 : PATCH_RIM_IN;  // worn earth: nearly solid inside, so it breaks up over a wider rim (was a straight-edged slab)
+  const inPatch = (x, y) => { const t = clamp((D(x, y) + rimIn) / (rimIn + PATCH_RIM_OUT), 0, 1); return t === 0 && kind === 1 || n(x, y) > inner + (1.08 - inner) * t; };
   for (let y = 0; y < PATCH; y++) for (let x = 0; x < PATCH; x++) {
     if (!inPatch(x, y)) continue;
     const top = y > 0 && !inPatch(x, y - 1);  // a clump's lit upper edge (moss kinds only)

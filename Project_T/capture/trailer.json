@@ -1,0 +1,28 @@
+{
+	"title": "Heartwood TD trailer (marketing.md section 5)",
+	"note": "Trailer chat. Cut list on the cue's 2.5 s bars (72 bpm 3/4): cuts at 0 / 5 / 10 / 15 / 27.5 / 37.5 / 45 / 55 / 57.5 / 60 / 70, the end card 70-75. Hits: 7.5 dispel (trailer_02), 20 Thunderclap (trailer_04 x5 at clip 6.0 -> from 1.0), 52.5 Stag stall (trailer_07), 65 Dawnburst (trailer_10 x10 at clip 14.4 -> from 9.4). In-points marked 'provisional' are set from the first renders.",
+	"format": "trailer",
+	"size": [1920, 1080],
+	"bed": "",
+	"end_tagline": "Grow a living maze. Hold back the nightmares.",
+	"cuts": [
+		{"clip": "trailer_01_maze", "from": 2.0, "to": 7.0},
+		{"clip": "trailer_02_shade", "from": 0.5, "to": 5.5},
+		{"clip": "trailer_01_maze", "from": 15.0, "to": 20.0},
+		{"clip": "trailer_04_thunder", "from": 1.0, "to": 13.5},
+		{"clip": "trailer_05_rest", "from": 0.0, "to": 10.0},
+		{"clip": "trailer_06_ridge", "from": 4.0, "to": 11.5},
+		{"clip": "trailer_07_stag", "from": 2.5, "to": 12.5},
+		{"clip": "trailer_08_nightmare", "from": 2.0, "to": 4.5},
+		{"clip": "trailer_09_oak", "from": 1.0, "to": 3.5},
+		{"clip": "trailer_10_storm", "from": 9.4, "to": 19.4}
+	],
+	"captions": [
+		[0.5, 4.5, "Your Wardens are the walls."],
+		[10.5, 14.5, "Now they take the long way."],
+		[15.5, 19.5, "Soaked + Charged = Thunderclap."],
+		[28.5, 32.5, "Three Dreams at every rest. Take one."],
+		[38.5, 42.5, "That ridge wasn't there a minute ago."],
+		[45.5, 51.5, "The Stag charges down straight lines. So don't build any."]
+	]
+}

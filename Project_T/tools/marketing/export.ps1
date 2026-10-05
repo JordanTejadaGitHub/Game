@@ -68,7 +68,10 @@ if ($null -ne $scene.cuts) {
 if (-not (Test-Path $movie)) { throw "No capture $movie (run capture.ps1 first)" }
 $probe = & ($Ffmpeg -replace "ffmpeg.exe$", "ffprobe.exe") -v error -show_entries format=duration -of csv=p=0 $movie
 $clip = [double]::Parse($probe.Trim(), [Globalization.CultureInfo]::InvariantCulture)
-$endCard = 1.5; if ($null -ne $scene.end_card) { $endCard = [double]$scene.end_card }
+# "format": "trailer" (the Steam trailer, marketing.md §5): 1920x1080 cuts, cards in the display font as written (never
+# lowercased) in the lower third, a 5 s logo end card, the music bed from t = 0, one high-bitrate <name>_trailer.mp4.
+$trailer = ($null -ne $scene.format -and [string]$scene.format -eq "trailer")
+$endCard = $(if ($trailer) { 5.0 } else { 1.5 }); if ($null -ne $scene.end_card) { $endCard = [double]$scene.end_card }
 $total = $clip + $endCard
 
 function F([double]$x) { return $x.ToString("0.###", $inv) }
@@ -79,6 +82,7 @@ Remove-Item -Recurse -Force $work -ErrorAction SilentlyContinue
 New-Item -ItemType Directory $work | Out-Null
 Copy-Item (Join-Path $Project "assets\ui\fonts\AlegreyaSans-Medium.ttf") (Join-Path $work "body.ttf")
 Copy-Item (Join-Path $Project "assets\ui\fonts\CormorantSC-Medium.ttf") (Join-Path $work "title.ttf")
+Copy-Item (Join-Path $Project "assets\ui\fonts\CormorantGaramond-Variable.ttf") (Join-Path $work "display.ttf")
 Copy-Item (Join-Path $Project "assets\ui\title\title_background.png") (Join-Path $work "backdrop.png")
 # Music: a finished bed from Sound ("bed": a .wav, with "bed_voice" for the voiceover cut and "bed_offset" seconds:
 # positive skips into the bed, negative starts it later), else the game's stems ("music": names, looped). Either way
@@ -89,7 +93,9 @@ function Source([string]$path) {
 }
 $stemFiles = @()
 $bedFile = ""; $bedVoiceFile = ""; $buttonFile = ""
-if ($null -ne $scene.bed) {
+if ($null -ne $scene.bed -and [string]$scene.bed -eq "") {  # "bed": "" = no music (a rough cut before the cue lands)
+	& $Ffmpeg -v error -y -f lavfi -i "anullsrc=r=48000:cl=stereo" -t 1 (Join-Path $work "bed.wav"); $bedFile = "bed.wav"
+} elseif ($null -ne $scene.bed) {
 	Copy-Item (Source $scene.bed) (Join-Path $work "bed.wav"); $bedFile = "bed.wav"
 	if ($null -ne $scene.bed_voice) { Copy-Item (Source $scene.bed_voice) (Join-Path $work "bed_voice.wav"); $bedVoiceFile = "bed_voice.wav" }
 } else {
@@ -124,9 +130,15 @@ function Captions([string]$style) {
 		if ($null -eq $cap) { continue }
 		$text = [string]$cap[2]
 		if ($style -eq "lower") { $text = $text.ToLower() }
-		Text "cap_${style}_$i.txt" (Wrap $text)
-		$filters += "drawtext=fontfile=body.ttf:textfile=cap_${style}_$i.txt:fontsize=64:fontcolor=0xfff4dc:line_spacing=12:text_align=C:" +
-			"box=1:boxcolor=0x05050d@0.6:boxborderw=28:x=(w-text_w)/2:y=h*0.11:enable='between(t,$(F $cap[0]),$(F $cap[1]))'"
+		if ($trailer) {  # A title card: the display font, centred in the lower third, a soft shadow instead of a box
+			Text "cap_${style}_$i.txt" (Wrap $text 40)
+			$filters += "drawtext=fontfile=display.ttf:textfile=cap_${style}_$i.txt:fontsize=76:fontcolor=0xfff4dc:line_spacing=10:text_align=C:" +
+				"shadowcolor=0x05050d@0.85:shadowx=3:shadowy=3:x=(w-text_w)/2:y=h*0.74:enable='between(t,$(F $cap[0]),$(F $cap[1]))'"
+		} else {
+			Text "cap_${style}_$i.txt" (Wrap $text)
+			$filters += "drawtext=fontfile=body.ttf:textfile=cap_${style}_$i.txt:fontsize=64:fontcolor=0xfff4dc:line_spacing=12:text_align=C:" +
+				"box=1:boxcolor=0x05050d@0.6:boxborderw=28:x=(w-text_w)/2:y=h*0.11:enable='between(t,$(F $cap[0]),$(F $cap[1]))'"
+		}
 		$i++
 	}
 	if ($filters.Count -eq 0) { return "null" }
@@ -139,6 +151,21 @@ $card = "[1:v]scale=iw*6:ih*6:flags=neighbor,crop=1080:1920,eq=brightness=-0.18:
 	"drawtext=fontfile=body.ttf:textfile=card_wish.txt:fontsize=74:fontcolor=0xfff4dc:x=(w-text_w)/2:y=h*0.36+170," +
 	"drawtext=fontfile=body.ttf:textfile=card_link.txt:fontsize=42:fontcolor=0xfff4dc@0.75:x=(w-text_w)/2:y=h*0.36+270," +
 	"fps=60,trim=duration=$(F $endCard),setpts=PTS-STARTPTS,format=yuv420p,fade=t=in:st=0:d=0.25[card]"
+if ($trailer) {  # 1920x1080: the title art at exactly x3, the name, the call to action and the platform
+	Text "card_platform.txt" "Steam $([char]0x00B7) PC"  # The middle dot as a char code: PowerShell 5.1 reads this file as ANSI
+	# "end_tagline": a line in the display font under the title; the rest moves down to make room.
+	$tagline = ""; $drop = 0
+	if ($null -ne $scene.end_tagline -and [string]$scene.end_tagline -ne "") {
+		Text "card_tagline.txt" ([string]$scene.end_tagline)
+		$tagline = "drawtext=fontfile=display.ttf:textfile=card_tagline.txt:fontsize=58:fontcolor=0xfff4dc@0.92:x=(w-text_w)/2:y=h*0.30+185,"
+		$drop = 95
+	}
+	$card = "[1:v]scale=iw*3:ih*3:flags=neighbor,eq=brightness=-0.2:saturation=0.85," +
+		"drawtext=fontfile=title.ttf:textfile=card_title.txt:fontsize=150:fontcolor=0xe9a83c:x=(w-text_w)/2:y=h*0.30," + $tagline +
+		"drawtext=fontfile=body.ttf:textfile=card_wish.txt:fontsize=72:fontcolor=0xfff4dc:x=(w-text_w)/2:y=h*0.30+$(200 + $drop)," +
+		"drawtext=fontfile=body.ttf:textfile=card_platform.txt:fontsize=40:fontcolor=0xfff4dc@0.75:x=(w-text_w)/2:y=h*0.30+$(300 + $drop)," +
+		"fps=60,trim=duration=$(F $endCard),setpts=PTS-STARTPTS,format=yuv420p,fade=t=in:st=0:d=0.5[card]"
+}
 
 # The music inputs (after the movie and the backdrop): the bed (the voice mix for the voiceover cut) or the stems,
 # then the end-card button.
@@ -191,7 +218,8 @@ function Render([string]$out, [string]$captionStyle, [double]$musicDb, [double]$
 	$args = @("-v", "error", "-y", "-i", $movie, "-loop", "1", "-framerate", "60", "-i", "backdrop.png")
 	$args += MusicInputs ($captionStyle -eq "")
 	$args += @("-/filter_complex", $graphFile, "-map", "[v]", "-map", "[a]", "-t", (F $total),
-		"-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
+		"-c:v", "libx264", "-preset", "slow", "-crf", $(if ($trailer) { "14" } else { "18" }), "-pix_fmt", "yuv420p",
+		"-c:a", "aac", "-b:a", $(if ($trailer) { "320k" } else { "192k" }),
 		"-movflags", "+faststart", $out)
 	Push-Location $work
 	try { & $Ffmpeg @args; if ($LASTEXITCODE -ne 0) { throw "ffmpeg failed on $out" } } finally { Pop-Location }
@@ -200,6 +228,13 @@ function Render([string]$out, [string]$captionStyle, [double]$musicDb, [double]$
 
 $dest = Join-Path $Final $Name
 New-Item -ItemType Directory -Force $dest | Out-Null
+if ($trailer) {  # One output: the trailer cue at full level over the game's sound a little lower ("music_db", "game_db")
+	$tMusic = 0.0; if ($null -ne $scene.music_db) { $tMusic = [double]$scene.music_db }
+	$tGame = -6.0; if ($null -ne $scene.game_db) { $tGame = [double]$scene.game_db }
+	Render (Join-Path $dest "${Name}_trailer.mp4") "title" $tMusic $tGame $false
+	Remove-Item -Recurse -Force $work
+	exit 0
+}
 $musicDb = -9.0; if ($null -ne $scene.music_db) { $musicDb = [double]$scene.music_db }
 Render (Join-Path $dest "${Name}_youtube.mp4") "title" $musicDb 0.0 $false
 Render (Join-Path $dest "${Name}_tiktok.mp4") "lower" $musicDb 0.0 $false
