@@ -124,21 +124,52 @@ const MARK_STACK_DIVIDER := 40.0  # ... or this close under a divider
 const PRIMARY_VARIATIONS := [&"PrimaryButton", &"HudPrimary"]
 
 static func _watch_marks(node: Node) -> void:
-	if node is PanelContainer or node is HSeparator:
-		# A frame after the first draw: containers have placed their children by then.
-		(node as CanvasItem).draw.connect(func() -> void:
-			if node.is_inside_tree():
-				node.get_tree().process_frame.connect(_unstack_mark.bind(node), CONNECT_ONE_SHOT), CONNECT_ONE_SHOT)
+	if node is PanelContainer or node is Panel or node is TabContainer or node is HSeparator:
+		# Two frames after it joins the tree: containers have placed their children by then (frame-based,
+		# not `draw`, so it also runs headless).
+		# One queue drained by a single process_frame callback: Godot treats bound copies of one callable
+		# as the same connection, so a per-node connect dropped every node after the first in a frame.
+		_mark_queue.append([node, 2])
+		var tree := node.get_tree()
+		if not tree.process_frame.is_connected(_drain_marks):
+			tree.process_frame.connect(_drain_marks)
+
+static var _mark_queue: Array = []  # [node, frames left]; plain node references, never resources
+
+static func _drain_marks() -> void:
+	var due: Array = []
+	var waiting: Array = []
+	for entry in _mark_queue:
+		if not is_instance_valid(entry[0]):
+			continue
+		if entry[1] <= 1:
+			due.append(entry[0])
+		else:
+			waiting.append([entry[0], entry[1] - 1])
+	_mark_queue = waiting
+	for node in due:
+		if (node as Node).is_inside_tree():
+			_unstack_mark(node)
+	if _mark_queue.is_empty():
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree != null and tree.process_frame.is_connected(_drain_marks):
+			tree.process_frame.disconnect(_drain_marks)
 
 static func _unstack_mark(control: Control) -> void:
 	if not is_instance_valid(control) or not control.is_inside_tree():
 		return
-	var is_panel := control is PanelContainer
+	var is_panel := control is PanelContainer or control is Panel or control is TabContainer
 	var box := control.get_theme_stylebox("panel" if is_panel else "separator")
 	var panel_marked := box is MoonStyleBox and (box as MoonStyleBox).thread != MoonStyleBox.TopLine.NONE \
 		and (box as MoonStyleBox).diamond
 	var marked := panel_marked or (box is MoonDivider and (box as MoonDivider).mark)
 	if not marked:
+		return
+	# One sprout per screen (ui_style.md, 2026-10-05: "too many redundant sprout icons"): a panel or divider
+	# inside a panel that already draws a thread keeps a plain thread. Framed primary buttons keep theirs
+	# (they aren't panels), and stand-alone HUD panels have no threaded ancestor.
+	if _inside_threaded_panel(control):
+		_drop_mark(control, box, is_panel)
 		return
 	var rect := control.get_global_rect()
 	var line_y := rect.position.y if is_panel else rect.get_center().y
@@ -148,13 +179,26 @@ static func _unstack_mark(control: Control) -> void:
 		if button.is_visible_in_tree() and (button as Control).theme_type_variation in PRIMARY_VARIATIONS:
 			var gap := (button as Control).get_global_rect().position.y - line_y
 			if gap >= -1.0 and gap <= reach:
-				var plain := box.duplicate() as StyleBox
-				if plain is MoonStyleBox:
-					(plain as MoonStyleBox).diamond = false
-				else:
-					(plain as MoonDivider).mark = false
-				control.add_theme_stylebox_override("panel" if is_panel else "separator", plain)
+				_drop_mark(control, box, is_panel)
 				return
+
+static func _drop_mark(control: Control, box: StyleBox, is_panel: bool) -> void:
+	var plain := box.duplicate() as StyleBox
+	if plain is MoonStyleBox:
+		(plain as MoonStyleBox).diamond = false
+	else:
+		(plain as MoonDivider).mark = false
+	control.add_theme_stylebox_override("panel" if is_panel else "separator", plain)
+
+static func _inside_threaded_panel(control: Control) -> bool:
+	var up := control.get_parent()
+	while up != null:
+		if up is PanelContainer or up is Panel or up is TabContainer:
+			var outer := (up as Control).get_theme_stylebox("panel")
+			if outer is MoonStyleBox and (outer as MoonStyleBox).thread != MoonStyleBox.TopLine.NONE:
+				return true
+		up = up.get_parent()
+	return false
 
 # Godot's own canvas_items stretch does the fitting: base size LAYOUT_MIN with aspect "expand" scales
 # by min(window / LAYOUT_MIN) (= ui_scale_factor's fit) and content_scale_factor = the share. Unlike a
@@ -267,6 +311,7 @@ static func panel(margin_x: float = 16.0, margin_y: float = 12.0) -> MoonStyleBo
 const TIP_ALPHA := 0.95
 static func tip_panel() -> MoonStyleBox:
 	var box := panel(12.0, 8.0)
+	box.diamond = false  # One sprout per screen: tips never carry the mark (ui_style.md)
 	box.center_alpha = TIP_ALPHA
 	box.edge_alpha = TIP_ALPHA
 	box.shadow_size = 10
