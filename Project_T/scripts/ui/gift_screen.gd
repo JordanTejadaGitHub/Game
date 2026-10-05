@@ -409,7 +409,7 @@ class GiftPlacer extends Node2D:
 				elif cells.size() < int(size) and _cell_ok(cell):
 					cells.append(cell)
 			&"path":
-				var route := {}  # The full cells the route covers (half-cell points: x.5 covers two)
+				var route := {}  # The full cells the route covers (half-cell points: the cell each lies in)
 				for point in map.get_path_from(map.startPath):
 					for c in DreamState.route_cells(point):
 						route[c] = true

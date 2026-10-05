@@ -1359,15 +1359,15 @@ func _free_cell(map_generator) -> Vector2:
 	for enemy in map_generator.get_node("%EnemyContainer").get_maze_walkers():
 		if not map_generator.get_path_from(enemy.get_target_cell()).is_empty():
 			enemy_cells.append(enemy.get_target_cell())
-	var route := {}  # Half cells: route points step half a cell; the whole cells their bodies cover
-	for point in path:
-		for c in DreamState.route_cells(point):
-			route[c] = true
-	for i in range(3, path.size()):
+	var cells := Tower.route_cells(path)  # Half cells: route points are x.25 / x.75; the whole cells they pass over
+	var route := {}
+	for c in cells:
+		route[c] = true
+	for i in range(3, cells.size()):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
-			var cell: Vector2 = path[i] + offset
-			if cell != cell.floor() or route.has(cell):
-				continue  # Whole cells off the route only (a half-offset point + 1 is no cell)
+			var cell: Vector2 = cells[i] + offset
+			if route.has(cell):
+				continue  # Whole cells off the route only
 			if map_generator.can_block(cell, enemy_cells) and not _near_enemy(map_generator, cell):
 				return cell
 	return Vector2(-1, -1)

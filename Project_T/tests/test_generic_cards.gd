@@ -100,8 +100,9 @@ func _test_economy() -> void:
 	var route_points: PackedVector2Array = main.get_node("MapGenerator").get_path_from(main.get_node("MapGenerator").startPath)
 	_check(dreams.path_length == main.get_node("MapGenerator").route_length(route_points) and dreams.path_length < route_points.size(),
 		"path tiles count full cells on the half-cell route (%d tiles, %d points)" % [dreams.path_length, route_points.size()])
-	_check(DreamState.route_cells(Vector2(3, 4)) == [Vector2(3, 4)] and DreamState.route_cells(Vector2(3.5, 4)).size() == 2
-		and DreamState.route_cells(Vector2(3.5, 4.5)).size() == 4, "a half-offset route point covers 2 or 4 cells")
+	var tower_cells := Tower.route_cells(PackedVector2Array([Vector2(3.25, 4.75), Vector2(3.75, 4.25)]))
+	_check(DreamState.route_cells(Vector2(3.25, 4.75))[0] == tower_cells[0] and DreamState.route_cells(Vector2(3.75, 4.25))[0] == tower_cells[1]
+		and DreamState.route_cells(Vector2(3, 4)) == [Vector2(3, 4)], "a half-cell route point lies in one whole cell, as Tower.route_cells (%s)" % [tower_cells])
 	var rerolls := dreams.rerolls_left
 	dreams.take(_card("wandering_mind"))
 	_check(dreams.rerolls_left == rerolls + 2, "Wandering Mind: +2 rerolls")

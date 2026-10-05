@@ -130,7 +130,7 @@ func _test_nurture_rules() -> void:
 	# Sunlit Rest: a free rank for the Warden nearest the Heartwood
 	_reset()
 	dreams.take(_card("sunlit_rest"))
-	var path: PackedVector2Array = main.get_node("%MapGenerator").get_path_from(main.get_node("%MapGenerator").startPath)
+	var path: PackedVector2Array = Tower.route_cells(main.get_node("%MapGenerator").get_path_from(main.get_node("%MapGenerator").startPath))  # Whole cells (half-cell route)
 	var early := _plant_at("sporeling", _beside(path, 5), 1)
 	var late := _plant_at("sporeling", _beside(path, path.size() - 6), 1)
 	var nearest := _plant_at("sporeling", _beside(path, path.size() - 4), 2)
@@ -640,7 +640,7 @@ func _test_peek() -> void:
 		_check(not peek.peeking, "%s: closing the screen ends the peek" % name)
 
 func _free_cell(map_generator) -> Vector2:
-	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var path: PackedVector2Array = Tower.route_cells(map_generator.get_path_from(map_generator.startPath))  # Whole cells (half-cell route)
 	for i in range(3, path.size()):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 			var cell: Vector2 = path[i] + offset

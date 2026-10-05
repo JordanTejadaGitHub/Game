@@ -157,7 +157,7 @@ func _test_damage_legendaries() -> void:
 
 	# Crossroads: touching two route tiles 6+ steps apart
 	_reset()
-	var path: PackedVector2Array = main.get_node("%MapGenerator").get_path_from(main.get_node("%MapGenerator").startPath)
+	var path: PackedVector2Array = Tower.route_cells(main.get_node("%MapGenerator").get_path_from(main.get_node("%MapGenerator").startPath))  # Whole cells (half-cell route)
 	var fold := _find_crossroads_cell(path)
 	if fold != Vector2(-1, -1):
 		var cross := _plant("sporeling", fold, 0)
@@ -199,7 +199,7 @@ func _test_hunters_and_briar() -> void:
 	# Briar Crown: stepping onto a route tile beside a wall hits for 25% of the strongest Warden there
 	_reset()
 	var map_generator = main.get_node("%MapGenerator")
-	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var path: PackedVector2Array = Tower.route_cells(map_generator.get_path_from(map_generator.startPath))  # Whole cells (half-cell route)
 	var tile := path[8]
 	var wall_cell := Vector2(-1, -1)
 	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:

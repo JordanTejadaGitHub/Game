@@ -1749,8 +1749,8 @@ func _taken_cards(include_dormant: bool = false) -> Array[UpgradeData]:
 
 func _update_bends() -> void:
 	_bend_cells.clear()
-	# Half cells: route points step half a cell (x.0 / x.5), so lengths go through MapGenerator.route_length and
-	# every point marks the full cells its body covers (route_cells); steps count in full cells (point i = step ⌈i/2⌉).
+	# Half cells: route points step half a cell (x.25 / x.75), so lengths go through MapGenerator.route_length and
+	# every point marks the whole cell it lies in (route_cells); steps count in full cells (point i = step ⌈i/2⌉).
 	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	path_length = map_generator.route_length(path)
 	_path_index.clear()
@@ -1775,14 +1775,11 @@ func _update_bends() -> void:
 			run_start = step
 	_heart_cache.clear()
 
-# The full cells a route point's body covers: 1, or 2 / 4 at a half offset (x.5).
+# The whole cell a route point lies in.
 static func route_cells(point: Vector2) -> Array[Vector2]:
-	var cells: Array[Vector2] = []
-	for x in [floorf(point.x), ceilf(point.x)]:
-		for y in [floorf(point.y), ceilf(point.y)]:
-			if not cells.has(Vector2(x, y)):
-				cells.append(Vector2(x, y))
-	return cells
+	# One-half routes (Environment a0ac78b8): a point is a half cell's centre (x.25 / x.75), inside one whole cell:
+	# the one under its pixel (Grid puts p at p * 64 + 32 px), as Tower.route_cells / Enemy.get_current_cell.
+	return [Vector2(floorf(point.x + 0.5), floorf(point.y + 0.5))]
 
 
 # An exclusive pair (dream_design.md "Combo cards are choices, not musts"): a card a taken card excludes, or one that

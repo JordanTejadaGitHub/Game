@@ -73,7 +73,7 @@ func _run() -> void:
 		if card.id == "heart_of_the_maze":
 			dreams.take(card)
 	var map_generator = main.get_node("%MapGenerator")
-	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var route: PackedVector2Array = Tower.route_cells(map_generator.get_path_from(map_generator.startPath))  # Whole cells (half-cell route)
 	# By route step, not distance (the inland Heartwood can sit anywhere, 722cf38b): the planted Warden moves
 	# beside an early step, the ghost goes beside a step well further along.
 	var early := _beside_route(map_generator, route, 2, 1)
@@ -127,7 +127,7 @@ func _beside_route(map_generator, route: PackedVector2Array, from: int, step: in
 
 # A free cell with nothing within 3 cells (so Solitude would be on), away from the route.
 func _open_cell(map_generator, container: Node) -> Vector2:
-	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var route: PackedVector2Array = Tower.route_cells(map_generator.get_path_from(map_generator.startPath))  # Whole cells (half-cell route)
 	for y in range(2, Tower.MAP_GRID.size.y - 2):
 		for x in range(2, Tower.MAP_GRID.size.x - 3):
 			var cell := Vector2(x, y)
