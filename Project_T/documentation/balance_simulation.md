@@ -856,7 +856,8 @@ Targets: default ~55%, spender ≤ ~80%, skip ≤ 15–20%; demo 75–85%.
 **×1.20** (demo keeps ×1.15); finals ×1.5 and Nurture 30 / 48 / … stay. Copies, not branch prices, now hold
 back early mass-planting. This walks back the branch half of "growing more expensive", so it waits for the
 user's yes. **Decided (user, 2026-10-05: "Yes")**, sent to Tower Code (`branch_cost_multiplier` 1.0,
-`copy_cost_step` 0.08, `act1_health_multiplier` 1.20 full game only). Watch: humans found act 1 at ×1.30 calm
+`copy_cost_step` 0.08, `act1_health_multiplier` 1.20 full game only). **In 5bef4ddd**; live check (no --set,
+30 seeds): default **70%**, spender **67%**, first branch at a median drift 14, matching Bx4. Watch: humans found act 1 at ×1.30 calm
 (runs 17–18, old growth); re-read act 1 closest on the first human runs at this build.
 
 ## Human run 18 (2026-10-04, build 5d8f3f = 7762f0cd; 0 Grove)
