@@ -123,7 +123,7 @@ func _check(condition: bool, label: String) -> void:
 
 # Builds `data` on a free cell beside the path (keeping it open). Returns the new Warden or null.
 func _build(placer: TowerPlacer, map_generator, data: TowerData) -> Tower:
-	var path: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	var path: PackedVector2Array = Tower.route_cells(map_generator.get_path_from(map_generator.startPath))  # Whole cells (half-cell routes)
 	var container: Node = placer.tower_container
 	for i in range(3, path.size() - 3):
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
