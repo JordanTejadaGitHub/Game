@@ -19,6 +19,6 @@
 		{"t": 0.5, "start": true},
 		{"t": 8.5, "spawn": "bark_beetle", "count": 30, "elite": true, "progress": 0.35, "spread": 0.2},
 		{"t": 4.0, "camera": "push", "at": "centre", "zoom": 1.3, "duration": 4.0},
-		{"t": 8.5, "camera": "follow", "target": "bark_beetle", "zoom": 1.0}
+		{"t": 8.5, "camera": "follow", "target": "bark_beetle", "zoom": 2.0}
 	]
 }

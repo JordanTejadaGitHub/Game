@@ -17,6 +17,6 @@
 		{"t": 2.3, "dossier": false},
 		{"t": 2.5, "spawn": "old_stag"},
 		{"t": 4.0, "dew": 520},
-		{"t": 2.5, "camera": "follow", "target": "boss", "zoom": 1.0}
+		{"t": 2.5, "camera": "follow", "target": "boss", "zoom": 2.0}
 	]
 }
