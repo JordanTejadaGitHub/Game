@@ -19,6 +19,44 @@ behind them is the night.
 Rejected alternatives, kept on the concept page: Carved Waystone (pixel stone), Lantern Glass,
 Bark & Vellum, Root & Thorn.
 
+## The light pass (approved 2026-10-05)
+
+A refinement inside Moonlit Thread, approved by the user ("I like the new assets"). Mock-ups:
+https://claude.ai/artifact/VAotrp4FM3DiyYLQSgsAg8 (HUD, Warden panel, Dream choice),
+https://claude.ai/artifact/171CMFJHyf7hyMubmrrPcv (Boss dossier, Omens, results, pause),
+https://claude.ai/artifact/1kGRcqajif9Aqfy5ptxmbd (remaining screens; Remember built, the rest awaiting
+the user). Where this section and "Parts" below disagree, this section wins.
+
+**Rejected the same day:** a pixel bark-frame restyle (bark-wood frames, a vine along every top edge;
+https://claude.ai/artifact/X8vuDkckZWPnAWtaAoVk8f). The user: "Doesn't look as clean as the old UI, also
+doesn't fit the theme as well." Frames stay soft fog; no pixel borders on panels.
+
+- **Sprout mark, not the diamond.** The thread's centre carries a tiny pixel Heartwood sprout, 7×4 art
+  px (rows `HG...GH`, `.GG.GG.`, `...g...`, `...g...`; H Heartlight, G Glow, g Gold), drawn at whole
+  scale (×2 at 1280, ×3 at 1920).
+- **Inked thread.** 1 px Gold, ends fading out unevenly like ink running dry, not a clean linear fade.
+- **One primary per panel or choice.** Primary = dark fog fill, a 1 px Gold frame on the sides and
+  bottom, the thread and sprout as its top edge, Glow text, an Ember inner glow (~18%, ~34% on hover).
+  **Never a filled gold button** (user: "Don't make the button solid gold"; "the yellow button too
+  bright").
+- **Secondary:** 1 px Gold outline at 45%, ink text. **Quiet** (Sell, Close, Done, Peek at the map,
+  Cancel): Mist text, no box, still a 48 px hit area.
+- **No " · " strings.** Facts that used to be "a · b · c" are icon rows (icon + number), or a name with
+  a small Mist line under it. Key hints are small key chips at the right, not "(R)" in the text.
+- **Warden panel:** the stats as one icon row (damage, speed, range, + Potency); per-run stats (this
+  run, from combos, combos with) behind a quiet **Details**; grow / unlock rows unboxed: the name, the
+  price or "needs …" small in Mist under it, the key chip at the right; the description shown whole.
+  Nurture or the first affordable form is the one primary; Sell and Close quiet.
+- **Tower bar: more transparent, less busy.** The bar is a fog band (Void 55% / 30% / 18%), no boxes;
+  each slot is a fog tile (Void 35% → 8%); only the selected slot is framed (Gold 60% inset) with a
+  Glow underline. Slots 64 × 84 with a 48 px Warden, cost 16 px, key 12 px, centred between the Warden
+  panel and DriftPanel; the top-right buttons sit in one row under the resources.
+- **Warden sprites in circles and slots** are centred by their drawn (opaque) pixels, not the canvas,
+  the plinth a little below centre, never scaled up to fill.
+- **Not-yet forms** (Remember): a final form beyond a locked branch is a dark silhouette on a dimmed
+  disc, with no name or cost and a faint Mist line to it, until its branch is unlocked.
+- Every button and row stays at least **48 px** tall (touch).
+
 ## Colours
 
 Every UI colour is a **Heartwood 32** colour picked by name (`art_direction.md`; in Godot
