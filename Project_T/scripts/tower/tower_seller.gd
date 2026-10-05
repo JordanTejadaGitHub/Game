@@ -729,7 +729,7 @@ func _draw() -> void:
 			draw_arc(selected.position, selected.get_range_pixels(), 0.0, TAU, 64, Color(SELECTED_COLOR, 0.45), 1.5)
 	for tower in selection:
 		if is_instance_valid(tower):
-			draw_rect(Rect2(tower.position - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2),
+			draw_rect(Rect2(tower.position - tower.body_size() / 2, tower.body_size()).grow(-2),
 				SELECTED_COLOR, false, 3.0)
 	for bloom in _blooms:
 		var t: float = -bloom[1] / BLOOM_TIME  # 0 -> 1 once started
@@ -759,7 +759,7 @@ func _draw() -> void:
 	if _hover_tower != selected:
 		_draw_jar_link(_hover_tower)
 	var center: Vector2 = _hover_tower.position  # The Warden itself (it may sit between cells)
-	var rect := Rect2(center - MAP_GRID.cell_size / 2, MAP_GRID.cell_size).grow(-2)
+	var rect := Rect2(center - _hover_tower.body_size() / 2, _hover_tower.body_size()).grow(-2)
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
 	var label := _hover_tower.tower_data.display_name  # Just the name (text_style.md: no hints on hover)
 	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label)

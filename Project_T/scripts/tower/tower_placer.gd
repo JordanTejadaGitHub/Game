@@ -754,14 +754,40 @@ func half_placement() -> bool:
 static func half_origin_at(world: Vector2) -> Vector2:
 	return (world / (MAP_GRID.cell_size / 2.0)).round() - Vector2.ONE
 
+# Twig Walls (Dream card, dream_design.md c6fefe1b): while held, a Thornwall planted takes the one half cell under the
+# cursor and costs half (rounded up, at least 1). DreamState.twig_walls() (Roguelite Code); force_twig for tests.
+var force_twig := false
+
+func twig_mode(data: TowerData = null) -> bool:
+	var warden := data if data != null else tower_data
+	if warden == null or warden.get_id() != "thornwall":
+		return false
+	return force_twig or (dream_state != null and dream_state.has_method("twig_walls") and dream_state.twig_walls())
+
+# A placement origin (the half the ghost snaps to) and what it means: a 2×2's top-left half, or a twig wall's own half.
+func origin_at(world: Vector2) -> Vector2:
+	return (world / (MAP_GRID.cell_size / 2.0)).floor() if twig_mode() else half_origin_at(world)
+
+func origin_centre(origin: Vector2) -> Vector2:
+	return Tower.twig_centre(origin) if twig_mode() else Tower.half_centre(origin)
+
+func origin_home(origin: Vector2) -> Vector2:
+	return Tower.twig_home_cell(origin) if twig_mode() else Tower.half_home_cell(origin)
+
+func origin_halves(origin: Vector2) -> Array[Vector2]:
+	if twig_mode():
+		var one: Array[Vector2] = [origin]
+		return one
+	return map_generator.halves_of(origin)
+
 # The ghost's centre (pixels), its half cells, and the full cells they touch.
 func _ghost_centre() -> Vector2:
-	return Tower.half_centre(_hover_half) if half_placement() and _hover_half != NO_CELL \
+	return origin_centre(_hover_half) if half_placement() and _hover_half != NO_CELL \
 		else Tower.footprint_centre(_hover_cell, tower_data.footprint)
 
 func _ghost_halves() -> Array[Vector2]:
 	if half_placement() and _hover_half != NO_CELL:
-		return map_generator.halves_of(_hover_half)
+		return origin_halves(_hover_half)
 	var out: Array[Vector2] = []
 	for c in _footprint(_hover_cell):
 		for dy in 2:
@@ -869,23 +895,24 @@ func _draw_ghost_footprint() -> void:
 	for h in _ghost_halves():
 		if closes or not map_generator.is_buildable_half(h) or bodies.has(h):
 			draw_rect(Rect2(to_local(h * half), half), GRID_REFUSED)
-	draw_rect(Rect2(to_local(_hover_half * half), half * 2.0), GRID_FOOTPRINT, false, 1.5)
+	draw_rect(Rect2(to_local(_hover_half * half), half * (1.0 if twig_mode() else 2.0)), GRID_FOOTPRINT, false, 1.5)
 
 # Moves the ghost to the cursor (the same frame it crosses a half line, past a 4 px dead zone). Returns whether it
 # moved; the route, validity and price refresh at once, the card preview a frame later.
 func _update_hover() -> bool:
 	var mouse := get_global_mouse_position() if cursor_override.x == INF else cursor_override
 	if half_placement():
-		var origin := half_origin_at(mouse)
+		var origin := origin_at(mouse)
 		if origin != _hover_half and _hover_half != NO_CELL:
-			var off := (mouse - Tower.half_centre(_hover_half)).abs()
-			var hold := MAP_GRID.cell_size.x / 4.0 + HOVER_DEAD_ZONE  # Half a half cell, + the dead zone
+			var off := (mouse - origin_centre(_hover_half)).abs()
+			# Half a half cell (a twig wall: half of its own half), + the dead zone
+			var hold := MAP_GRID.cell_size.x / (8.0 if twig_mode() else 4.0) + HOVER_DEAD_ZONE
 			if off.x < hold and off.y < hold:
 				origin = _hover_half  # Still inside the dead zone around the current offset
 		if origin == _hover_half:
 			return false
 		_hover_half = origin
-		_hover_cell = Tower.half_home_cell(origin)
+		_hover_cell = origin_home(origin)
 	else:
 		var cell: Vector2 = MAP_GRID.calculate_grid_coordinates(mouse)
 		if cell == _hover_cell:
@@ -990,7 +1017,7 @@ func _try_build(cell: Vector2) -> bool:
 
 # Half-cell placement: plants the selected 1-cell Warden with its 2×2 half footprint's top-left half at `origin`.
 func _try_build_half(origin: Vector2) -> bool:
-	var home := Tower.half_home_cell(origin)
+	var home := origin_home(origin)
 	if tower_data == null or tower_data.parked or is_unique_placed(tower_data):
 		build_rejected.emit(home)
 		return false
@@ -998,7 +1025,7 @@ func _try_build_half(origin: Vector2) -> bool:
 		_toast_frozen()
 		build_rejected.emit(home)
 		return false
-	var halves: Array[Vector2] = map_generator.halves_of(origin)
+	var halves: Array[Vector2] = origin_halves(origin)  # A twig wall: its one half
 	var touched := Tower.cells_of_halves(halves)
 	if settling_left(touched) > 0.0 or omen_locked(touched) or _halves_occupied(halves):
 		build_rejected.emit(home)
@@ -1018,7 +1045,8 @@ func _try_build_half(origin: Vector2) -> bool:
 	if tower_data.get_id() == "sprout" and cost == 0:
 		tower.set_meta(&"gift_sprout", true)
 	tower.rest_dew = cost if Tower.resting else 0
-	tower.position = Tower.half_centre(origin)
+	tower.twig = twig_mode()
+	tower.position = origin_centre(origin)
 	tower_container.add_child(tower)
 	map_generator.block_halves(halves)  # Emits path_changed -> enemies re-route, preview refreshes
 	BranchKit.on_planted(tower)
@@ -1052,6 +1080,8 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 	# Sprouts are exempt too (Balancing 2026-10-04): they have their own step above, and 5 must still fit the 60 Dew opening.
 	if copy_cost_step > 0.0 and cost > 0 and warden.buildable_directly and warden.line != "wall" and warden.get_id() != "sprout":
 		cost = roundi(cost * (1.0 + copy_cost_step * (count_copies(warden) + planned_sprouts)))
+	if cost > 0 and twig_mode(warden):
+		cost = maxi(ceili(cost / 2.0), 1)  # Twig Walls: half a wall's price, rounded up, at least 1
 	return cost
 
 @export var copy_cost_step := 0.08  # +8% per copy on the map (be7b5a94; was 0.05. 0 = off, the sims' A/B)
@@ -1111,6 +1141,8 @@ func get_buildable_towers() -> Array[TowerData]:
 func evolve(tower: Tower, into: TowerData, origin: Vector2 = NO_CELL) -> bool:
 	if not tower.tower_data.evolves_to.has(into) or not dream_state.is_unlocked(into.get_id()):
 		return false
+	if tower.twig:
+		return false  # Twig Walls: a twig wall stays a wall (a Bramble needs a full footprint; sell and replant)
 	if frozen_ground():
 		_toast_frozen()
 		return false
@@ -1521,8 +1553,8 @@ func extend_stroke(cell: Vector2, free := false) -> void:
 		return
 	var unit := 1.0
 	if half_placement():
-		unit = 2.0  # A Warden's width in halves: snap the target to the stroke's own offset
-		cell = _stroke[0] + ((cell - _stroke[0]) / 2.0).round() * 2.0
+		unit = 1.0 if twig_mode() else 2.0  # A Warden's width in halves (a twig wall: one): snap the target to the stroke's own offset
+		cell = _stroke[0] + ((cell - _stroke[0]) / unit).round() * unit
 	var target := _locked(cell, free)
 	var last: Vector2 = _stroke.back()
 	while last != target:
@@ -1593,7 +1625,7 @@ func _stroke_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion and get_viewport().gui_get_hovered_control() == null:
 		# (Over a HUD button, e.g. touch's Plant: an emulated nudge mustn't extend the stroke.)
-		extend_stroke(half_origin_at(get_global_mouse_position()) if half_placement() else MAP_GRID.calculate_grid_coordinates(get_global_mouse_position()), event.alt_pressed)
+		extend_stroke(origin_at(get_global_mouse_position()) if half_placement() else MAP_GRID.calculate_grid_coordinates(get_global_mouse_position()), event.alt_pressed)
 	elif event.is_action_released("place_tower") and confirm_on_release:
 		plant_stroke()
 		get_viewport().set_input_as_handled()
@@ -1607,8 +1639,8 @@ func _plan_stroke_half() -> void:
 	var planned_sprouts := 0
 	var unique_used := is_unique_placed(tower_data)
 	for o in _stroke:
-		var halves: Array[Vector2] = map_generator.halves_of(o)
-		var home := Tower.half_home_cell(o)
+		var halves: Array[Vector2] = origin_halves(o)
+		var home := origin_home(o)
 		var why := ""
 		if frozen_ground():
 			why = "Frozen Ground: plant at the rest"
@@ -1687,7 +1719,7 @@ func _plan_stroke() -> void:
 
 func _draw_stroke() -> void:
 	for c in _stroke:
-		draw_set_transform(Tower.half_centre(c) if half_placement() else MAP_GRID.calculate_map_position(c))
+		draw_set_transform(origin_centre(c) if half_placement() else MAP_GRID.calculate_map_position(c))
 		var ok: bool = _stroke_plan.get(c, "x") == ""
 		var tint := VALID_TINT if ok else STROKE_SKIP_TINT
 		if tower_data.texture == null:
@@ -1698,7 +1730,7 @@ func _draw_stroke() -> void:
 	if _stroke.is_empty():
 		return
 	draw_set_transform(Vector2.ZERO)
-	var last := to_local(Tower.half_centre(_stroke.back()) if half_placement() else MAP_GRID.calculate_map_position(_stroke.back()))  # draw_tag sets its own transform
+	var last := to_local(origin_centre(_stroke.back()) if half_placement() else MAP_GRID.calculate_map_position(_stroke.back()))  # draw_tag sets its own transform
 	var last_why: String = _stroke_plan.get(_stroke.back(), "")
 	var tag := get_stroke_tag() + (" · %s" % last_why if last_why != "" else "")
 	WorldLabel.draw_tag(self, last.x, last.y + MAP_GRID.cell_size.y / 2.0 + 18.0, tag, WorldLabel.cost_color(true))

@@ -464,6 +464,12 @@ func _apply_data() -> void:
 	_flush_pull()  # Grown mid-lash: the pull still happens
 	_stop_beam()
 	sprite.offset = tower_data.get_sprite_offset()
+	sprite.scale = Vector2.ONE
+	if twig:  # Twig Walls: its own 32×40 art on the half cell (offset (0, −4), the 64×80 rule at half scale)
+		if _twig_texture() != null:
+			sprite.offset = Vector2(0, -4)
+		else:
+			sprite.scale = Vector2(0.5, 0.5)  # No art yet: the Thornwall at half size
 	_set_up_tall_fade()
 	_show_idle()
 	_update_withered()
@@ -1578,8 +1584,18 @@ func _advance_attack(delta: float) -> void:
 		return
 	sprite.frame = frame
 
+const TWIG_TEXTURE := "res://assets/towers/thornwall_twig.png"  # Tower Assets f82c1f8f: 32×40 frames, same count as the Thornwall
+
+# A twig wall's own 32 px sheet (null: none yet, the Thornwall is drawn at half size).
+func _twig_texture() -> Texture2D:
+	return load(TWIG_TEXTURE) as Texture2D if twig and ResourceLoader.exists(TWIG_TEXTURE) else null
+
 func _show_idle() -> void:
-	sprite.texture = BranchKit.idle_texture(self) if has_meta(&"stone") else tower_data.texture  # A stone Thornwall
+	var twig_art := _twig_texture()
+	if twig_art != null:
+		sprite.texture = twig_art
+	else:
+		sprite.texture = BranchKit.idle_texture(self) if has_meta(&"stone") else tower_data.texture  # A stone Thornwall
 	sprite.hframes = tower_data.frame_count
 	sprite.frame = int(_anim_time * tower_data.animation_fps) % tower_data.frame_count
 
@@ -3005,8 +3021,8 @@ func _scented_by() -> Tower:
 
 # Living Walls: a Thornwall that has stood 5 drifts grows into a free Bramble (at the drift's end).
 func _on_wall_drift_cleared(_number: int, _bonus: int, _perfect: bool) -> void:
-	if not is_inside_tree() or is_queued_for_deletion() or tower_data.get_id() != "thornwall" \
-			or _rule_stacks(&"living_walls") <= 0 or DreamState.drifts_stood(self) < LIVING_WALLS_DRIFTS:
+	if not is_inside_tree() or is_queued_for_deletion() or tower_data.get_id() != "thornwall" or twig \
+			or _rule_stacks(&"living_walls") <= 0 or DreamState.drifts_stood(self) < LIVING_WALLS_DRIFTS:  # Twig walls: no room for a Bramble
 		return
 	for data in tower_data.evolves_to:
 		if data is TowerData and data.get_id() == "bramble":
@@ -3084,10 +3100,27 @@ func get_cells() -> Array[Vector2]:
 # footprint, or (-1, -1) for a Warden on whole cells. `cell` stays the full cell under its centre (ranges, auras,
 # Kinships keep full cells).
 var half_cell := Vector2(-1, -1)
+# Twig Walls (Dream card, dream_design.md c6fefe1b): a Thornwall planted while it's held takes the single half cell
+# `half_cell`; walls planted before stay 2×2. Saved per wall (RunSaver "twig").
+var twig := false
+
+# The pixel centre of a twig wall on half `origin`, and the full cell it's in.
+static func twig_centre(origin: Vector2) -> Vector2:
+	return (origin + Vector2(0.5, 0.5)) * MAP_GRID.cell_size / 2.0
+
+static func twig_home_cell(origin: Vector2) -> Vector2:
+	return (origin / 2.0).floor()
+
+# The size of this Warden's footprint in pixels (a twig wall: one half cell).
+func body_size() -> Vector2:
+	return MAP_GRID.cell_size / 2.0 if twig else MAP_GRID.cell_size * get_footprint()
 
 # The half cells this Warden blocks: its 2×2 at half_cell, else the halves of its whole cells.
 func get_halves() -> Array[Vector2]:
 	var out: Array[Vector2] = []
+	if twig and half_cell.x >= 0:
+		out.append(half_cell)
+		return out
 	if half_cell.x >= 0 and get_footprint() <= 1:  # Grown into a 2×2 form: it's on whole cells now
 		for dy in 2:
 			for dx in 2:

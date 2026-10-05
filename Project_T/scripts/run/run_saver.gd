@@ -155,6 +155,7 @@ func save_now() -> bool:
 				"legacy": tower.legacy_data.resource_path if tower.legacy_data else "",  # An Ascended form's final
 				"drifts_stood": int(tower.get_meta(&"drifts_stood", 0)),  # Old Growth (DreamState counts it)
 				"gift_sprout": bool(tower.get_meta(&"gift_sprout", false)),  # Never raises the Sprout price
+				"twig": tower.twig,  # Twig Walls: a one-half Thornwall (walls planted before the card stay 2×2)
 				"underdog": bool(tower.get_meta(&"underdog", false))})  # Underdog's mark (set at each rest)
 	var data := {
 		"version": VERSION,
@@ -261,7 +262,11 @@ func _restore(data: Dictionary) -> void:
 			tower.footprint_size = size
 		var half: Array = saved.get("half", [-1, -1])  # Its half-cell origin, if it has one
 		tower.half_cell = Vector2(half[0], half[1])
-		tower.position = Tower.half_centre(tower.half_cell) if tower.half_cell.x >= 0 else Tower.footprint_centre(tower.cell, tower.get_footprint())
+		tower.twig = bool(saved.get("twig", false)) and tower.half_cell.x >= 0
+		if tower.twig:
+			tower.position = Tower.twig_centre(tower.half_cell)
+		else:
+			tower.position = Tower.half_centre(tower.half_cell) if tower.half_cell.x >= 0 else Tower.footprint_centre(tower.cell, tower.get_footprint())
 		tower_container.add_child(tower)
 		if map_generator.path_layer.has_method("set_half_blocked"):
 			for h in tower.get_halves():  # Its 2×2 halves (the Sapling: its cells' halves)
