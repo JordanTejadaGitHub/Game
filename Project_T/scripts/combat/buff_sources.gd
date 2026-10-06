@@ -28,7 +28,7 @@ const COLORS := {
 	"omen": Palette.STONE, "gift": Palette.LEAF, "penalty": Palette.BRUISE,  # Bruise (plum): never read as a fire or Ember effect (screens_ui.md)
 }
 const PENALTY_TEXT := Palette.WRAITHLIGHT  # Penalty rows in panels: the lighter plum (Bruise is too dark to read as text)
-const STAT_WORDS := {"damage": "damage", "attack_speed": "attack speed", "range": "range", "aura": "aura", "catch": "catch"}
+const STAT_WORDS := {"damage": "damage", "attack_speed": "attack speed", "range": "range", "aura": "aura", "catch": "catch", "crit": "crit chance"}
 const ORDINALS := ["", "", "2nd", "3rd", "4th", "5th", "6th"]
 
 static func color(kind: String, source: Node = null) -> Color:
@@ -121,7 +121,7 @@ static func for_tower(tower: Tower) -> Array[Dictionary]:
 			entry.label = "Omen %s range" % _signed(reach, true)
 			entry.negative = reach < 0.0
 			result.append(entry)
-	# Heartwood's Gifts (Spring, Sheltered, Moonwell, High ground, Bell Stone): GiftGround.buff_rows (Tower Code).
+	# Heartwood's Gifts (Spring, Sheltered, Moonwell, Lookout, Bell Stone): GiftGround.buff_rows (Tower Code).
 	var gifts := GiftGround.active_for(tower)
 	if gifts != null:
 		for row in gifts.buff_rows(tower):

@@ -784,6 +784,8 @@ func _gift_bonus(stat: StringName) -> float:
 			return gifts.speed_bonus(self)
 		&"range":
 			return gifts.range_bonus(self)
+		&"crit":
+			return gifts.crit_bonus(self)
 	return 0.0
 
 func _gift_version() -> int:
@@ -1227,6 +1229,9 @@ func get_grow_cost(into: TowerData, planned: int = 0) -> Dictionary:
 	var base: int = _dream_state.get_evolve_cost(into) if _dream_state else into.evolve_cost
 	base = maxi(base, _sprout_into_floor(into, planned))
 	base = roundi(base * BranchKit.grow_multiplier(self))  # Nursery (b): 10% cheaper beside the Nurse Log
+	var gifts := GiftGround.active_for(self)
+	if gifts and gifts.free_growth(tower_data, into):
+		base = 0  # Heartwood's Gift Bramble Verge: Thornwall -> Bramble is free this run
 	var ranks := 0
 	for which in range(1, rank + 1):
 		ranks += maxi(_rank_price_for(which, into, false) - _rank_price_for(which, tower_data, true), 0)
@@ -1368,6 +1373,7 @@ func get_raw_crit_chance(enemy: Node2D = null) -> float:
 		chance = cached[0]
 	else:
 		chance = attack_data.crit_chance + _aura_crit + BranchKit.crit_aura(self) + 0.1 * kin_share(&"hammer_and_anvil", "a")  # Hammer and Anvil: the sniper's eye
+		chance += _gift_bonus(&"crit")  # Gift: Fallen Giant (Lookout)
 		if choice_count(Focus.KEEN) > 0:  # Keen ranks (Nurture rework), up to KEEN_CAP
 			chance = maxf(chance, minf(chance + NurtureChoices.KEEN_CRIT * choice_count(Focus.KEEN), NurtureChoices.KEEN_CAP))
 		if _dream_state and _dream_state.has_method("get_rank_crit_bonus"):
