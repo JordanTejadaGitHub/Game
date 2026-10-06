@@ -809,15 +809,15 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 ## Maze feel: walls first (user via the hub, maze_feel.md 8b50fce6, 2026-10-05)
 
 "Walls early, upgrade only where it covers everything" (Tropical Tower Wars).
-1. **Walls:** Thornwall and the wall line are already exempt from `copy_cost_step` (a7525077). **Thornwall 3 →
-   2 Dew** (Twig 1). Wall Dew is a rounding error of a run (20 walls ≈ 60 of ~2,000 act 1 Dew), so price
-   isn't what keeps players off walls; 2 is a signal, and the open ground (maze_feel #5) is the real lever.
+1. **Walls:** Thornwall and the wall line are already exempt from `copy_cost_step` (a7525077). **User: Thornwall stays 3 Dew, up to 5 if checks call for it** (the 3 →
+   2 proposal is cancelled). Wall Dew is a rounding error of a run (20 walls ≈ 60 of ~2,000 act 1 Dew), so price
+   isn't what keeps players off walls; the open ground (maze_feel #5) is the real lever.
 2. **Checks (probe arms):** (e) X Dew all on walls vs (b) one grow; (b-hi) vs (b-lo), the grow at the highest vs
    the lowest coverage Warden (route halves in range, per pass). Wanted: (e) > (b) in act 1, and (b-hi) clearly >
    (b-lo). If not, the levers: range counting more for grown forms (e.g. branches +0.5 range), or the first grow
    priced so it only pays at a junction.
-3. **Act 1 re-check** on the Thornwall-2 hash (default / spender / skip, per boss). If cheaper walls lift the
-   default above ~70%, `act1_health_multiplier` 1.20 → 1.25 answers it.
+3. **Act 1 re-check** on main HEAD (walls at 3) (default / spender / skip, per boss). If cheaper walls lift the
+   default above ~70%, `act1_health_multiplier` 1.20 → 1.25 (or Thornwall up to 5) answers it.
 
 ## Nurture audit numbers (warden_stats.md b6f44fac, 2026-10-05; in 188a75ba)
 
