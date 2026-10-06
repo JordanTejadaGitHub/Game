@@ -438,7 +438,7 @@ budget became "a placement fits in one frame (≤ 10 ms), hover ≤ 4 ms" (`test
   - Groves, rock clusters, lone rocks and spur roots go only in the frame.
   - The feature sits in the frame or straddles its inner edge (no cell deeper than the bowl's first ring). Its
     near-route tries start around the route's frame stretch (`feature_near_route`).
-  - The bowl gets 2–4 lone decision obstacles, none touching another obstacle.
+  - The bowl gets 3–6 lone decision obstacles, none touching another obstacle.
 - **Bend spur:** one per map, on the row nearest the start, from the wall that needs the shorter reach.
   - A thin, gap-free line with a 2-cell root (3 rows thick).
   - Its tip sits `MapLayout.BEND_EXTRA / 2` = 5 cells past the start→Heartwood box, so every way round costs +10.
@@ -446,16 +446,16 @@ budget became "a placement fits in one frame (≤ 10 ms), hover ≤ 4 ms" (`test
   - Other spurs: gap-free, 25–35% across, on alternating walls; Blight 9 adds one. No strays.
 - **Heartwood fit check:** `MapLayout.bend_fits()`. A rolled Heartwood with no room for the bend re-rolls among spots
   where it fits (~16% of rolls; 174 distinct spots over 400 rolls). Every other roll keeps its spot.
-- **Obstacle count:** target 30–40.
+- **Obstacle count:** target 38–48 (user, 2026-10-06: "maybe a bit more obstacles"; was 30–40).
   - First the band's groves and clusters are thinned, loneliest first (never spurs or the feature).
-  - Then the bowl's extras drop to 2.
+  - Then the bowl's extras drop to 3.
   - Then the band is topped up, off the route, after carving.
 
   `_extend_route_if_short` is removed; `max_route_length` is generation-only.
 - **Measured** (`test_map_density` bands):
   - opening route 26–41 cells, median ~31 (band 24–42, Blight 9 up to 46);
-  - obstacles 30–40 at Blight 0 and 32–51 at Blight 9 (bands 30–42 / 30–52);
-  - the bowl holds 2–4 loose obstacles;
+  - obstacles 38–48 at Blight 0 (mean 41) and 38–52 at Blight 9 (mean 45);
+  - the bowl holds 3–6 loose obstacles;
   - buildable cells ~296 (≥ 285);
   - the bend appears on every map.
 - **Balancing (Balancing Discussion, 2026-10-06):** GO on the walling bot. Act 1: default 53%, skip 20%, spender 40%.
