@@ -412,6 +412,8 @@ static func stat_lines(tower: Tower) -> Array[String]:
 	var lines: Array[String] = []
 	if tower == null or tower.attack_data == null:
 		return lines
+	if tower.tower_data.can_attack and tower.is_inside_tree():  # maze_feel.md: where it covers everything
+		lines.append("Covers %d path tiles" % tower.get_coverage())
 	if tower.attack_data.special == JARLINK:
 		lines.append("Arc: %s damage a second to each nightmare touching it (with a Jarlink within %s cells)" % [
 			BossDossier.thousands(roundi(arc_dps(tower))), IconInfo._number(link_range(tower))])

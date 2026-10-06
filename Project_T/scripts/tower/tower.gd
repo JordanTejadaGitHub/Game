@@ -4490,6 +4490,25 @@ static func _route_pixels(map) -> PackedVector2Array:
 				_route_cache.append(MAP_GRID.calculate_map_position(p))
 	return _route_cache
 
+# Coverage (maze_feel.md 8b50fce6: "upgrade where it covers everything"): how much route a Warden at `centre` reaches,
+# in path tiles. Every route point (half a tile apart) inside its range counts, so a junction the route passes three
+# times counts three times. `min_px`: snipers' dead zone.
+static func coverage_at(map, centre: Vector2, range_px: float, min_px: float = 0.0) -> int:
+	var points := 0
+	var far := range_px * range_px
+	var near := min_px * min_px
+	for at in _route_pixels(map):
+		var d := centre.distance_squared_to(at)
+		if d <= far and d >= near:
+			points += 1
+	return roundi(points / 2.0)
+
+# This Warden's coverage now (its real range); 0 for Wardens that don't attack.
+func get_coverage() -> int:
+	if not tower_data.can_attack or _dream_state == null:
+		return 0
+	return coverage_at(_dream_state.map_generator, global_position, get_range_pixels(), attack_data.min_range * MAP_GRID.cell_size.x)
+
 func _refresh_path_mask() -> void:
 	_path_mask_dirty = false
 	path_mask.clear()
