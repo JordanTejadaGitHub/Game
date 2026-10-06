@@ -188,7 +188,7 @@ func _run() -> void:
 	memory.milestones.one_line_win = true
 	memory.milestones.path_300 = true
 	_check(HeartwoodMemory.node_level(memory, sunpetal) == 0 and HeartwoodMemory.node_level(memory, _unlock(grove, "one_line")) == 0
-		and HeartwoodMemory.node_level(memory, _unlock(grove, "the_long_walk")) == 0, "milestones grow no nodes")
+		and HeartwoodMemory.node_level(memory, _unlock(grove, "full_moon")) == 0, "milestones grow no nodes")
 	memory.milestones = {}
 	HeartwoodMemory.save_data(memory)
 	_check(_unlock(grove, "sporeling").start and HeartwoodMemory.node_level(memory, _unlock(grove, "sporeling")) == 1,
@@ -846,7 +846,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 100 and grove.size() == 100 - parked, "100 Grove spots, %d nodes on the tree (layout %d, data %d)" % [100 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 98 and grove.size() == 98 - parked, "98 Grove spots, %d nodes on the tree (layout %d, data %d)" % [98 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:
