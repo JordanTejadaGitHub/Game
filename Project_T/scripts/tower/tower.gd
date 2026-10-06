@@ -407,6 +407,8 @@ func signature() -> StringName:
 	_stats[&"signature"] = sig
 	if sig == Signatures.SPREADING:
 		Signatures.find(self)  # Its dispel watcher
+	if sig != &"" and _dream_state:
+		_dream_state.note_discovery(DreamState.EVENT_SIGNATURE)  # Lets Shared Training into the profile's pool
 	return sig
 
 # The rank its signature arrives at (V; IV with Shared Training and a matching kin).
