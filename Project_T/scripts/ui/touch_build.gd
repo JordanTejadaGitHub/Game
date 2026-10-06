@@ -17,6 +17,7 @@ var camera: Node
 var touch_mode := false
 var _plant := Button.new()
 var _cancel := Button.new()
+var _pin := Button.new()  # Keep placing (platforms.md: touch chains without Shift): TowerPlacer.set_keep_building
 var _touches := {}  # Finger index -> screen position
 
 func _init(placer: Node = null, camera_node: Node = null) -> void:
@@ -43,9 +44,24 @@ func _ready() -> void:
 		if button == _plant:
 			UiStyle.primary(button)  # The default (button rule)
 		add_child(button)
+	_pin.text = "Pin"
+	_pin.toggle_mode = true
+	_pin.focus_mode = Control.FOCUS_NONE
+	_pin.custom_minimum_size = Vector2(90, BUTTON_HEIGHT)
+	_pin.add_theme_font_size_override("font_size", 18)
+	_pin.tooltip_text = "Pin to keep placing: build mode stays on after each Warden."
+	_pin.toggled.connect(func(on: bool) -> void:
+		if tower_placer != null and tower_placer.has_method("set_keep_building"):
+			tower_placer.set_keep_building(on))
+	add_child(_pin)
+	move_child(_pin, 0)  # Pin, Plant, Cancel
 	visible = false
 	if tower_placer != null and tower_placer.has_signal("stroke_changed"):
 		tower_placer.stroke_changed.connect(func(_active: bool) -> void: _refresh())
+	if tower_placer != null and tower_placer.has_signal("build_mode_changed"):
+		tower_placer.build_mode_changed.connect(func(_on: bool) -> void: _refresh())
+	if tower_placer != null and tower_placer.has_signal("keep_building_changed"):
+		tower_placer.keep_building_changed.connect(func(on: bool) -> void: _pin.set_pressed_no_signal(on))
 
 func set_touch_mode(on: bool) -> void:
 	if touch_mode == on:
@@ -57,7 +73,11 @@ func set_touch_mode(on: bool) -> void:
 
 func _refresh() -> void:
 	var pending: bool = tower_placer != null and bool(tower_placer.get("stroking"))
-	visible = touch_mode and pending
+	var building: bool = tower_placer != null and bool(tower_placer.get("build_mode"))
+	visible = touch_mode and (pending or building)  # The pin shows all through build mode, Plant / Cancel with a stroke
+	_plant.visible = pending
+	_cancel.visible = pending
+	_pin.visible = building and tower_placer.has_method("set_keep_building")
 	if visible and tower_placer.has_method("get_stroke_tag"):
 		var plan: Dictionary = tower_placer.get_stroke_plan()
 		_plant.text = "Plant %d" % plan.values().count("")
@@ -69,7 +89,9 @@ func _process(_delta: float) -> void:
 		_refresh()  # The plan changes as the stroke grows
 
 func _on_plant() -> void:
-	tower_placer.plant_stroke()
+	var planted: int = tower_placer.plant_stroke()
+	if tower_placer.has_method("after_player_placement"):
+		tower_placer.after_player_placement(planted > 0)  # A tap places once unless the "keep building" pin is on
 	_refresh()
 
 func _on_cancel() -> void:
