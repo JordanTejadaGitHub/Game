@@ -1,0 +1,30 @@
+{
+	"flare": {
+		"card_inset": 8,
+		"frame_size": 48,
+		"frames": 5,
+		"note": "9-slice per frame (NinePatchRect, axis stretch TILE, scale x2) over the card rect grown by card_inset art px a side. Uncommon has its own row; Entwined uses the vine green.",
+		"patch_margin": 16,
+		"rows": {
+			"common": 0,
+			"entwined": 4,
+			"legendary": 3,
+			"rare": 2,
+			"uncommon": 1
+		},
+		"scale": 2,
+		"seconds_per_frame": 0.06
+	},
+	"pulse_ring": {
+		"frame_size": 32,
+		"frames": 5,
+		"note": "Centred on the glyph; neutral light, modulate by the rarity colour.",
+		"scale": 2
+	},
+	"spark": {
+		"frame_size": 7,
+		"frames": 4,
+		"note": "Trail particles for the card's flight into the Dreams row; modulate by rarity, shrink with the card.",
+		"scale": 2
+	}
+}

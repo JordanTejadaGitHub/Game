@@ -1,4 +1,7 @@
 {
+	"card_marks": [
+		"defining"
+	],
 	"crowned": [
 		"tempest",
 		"still_pool",
@@ -39,6 +42,7 @@
 		"damp": 0,
 		"dawnbreak": 78,
 		"deeply_blighted": 8,
+		"defining": 80,
 		"dew": 21,
 		"dew_cost": 21,
 		"dread_shell": 24,
