@@ -989,7 +989,7 @@ func _wide_radius() -> float:
 	if is_catcher():
 		return get_catch_radius()
 	if special == BranchKit.DREAM_OAK:
-		return BranchKit.p(self, "family_reach", 2.0) + NurtureChoices.WIDE_STEP * choice_count(Focus.WIDE)
+		return BranchKit.p(self, "family_reach", 2.5) + NurtureChoices.WIDE_STEP * choice_count(Focus.WIDE)
 	if special == BranchKit.PRISM:
 		return BranchKit.p(self, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * choice_count(Focus.WIDE)
 	if special == BranchKit.NURSE_LOG:

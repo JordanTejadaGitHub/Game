@@ -75,7 +75,7 @@ static func brood_max_alive(tower: Tower) -> int:
 
 # Jarlink's link range (cells): its own, + Reach ranks.
 static func link_range(tower: Tower) -> float:
-	return p(tower, "link_range", 4.0) + tower.area_bonus()
+	return p(tower, "link_range", 4.5) + tower.area_bonus()
 
 static func is_final(tower: Tower) -> bool:
 	return tower.attack_data.special_final
@@ -1108,7 +1108,7 @@ static func on_drift_cleared(tower: Tower) -> void:
 					tower.queue_redraw()
 			tower.set_meta(&"seed_drifts", drifts)
 		DREAM_OAK:
-			var shards := 1 + mini(_families_near(tower, p(tower, "family_reach", 2.0) + NurtureChoices.WIDE_STEP * tower.choice_count(Tower.Focus.WIDE)), int(p(tower, "family_max", 3.0)))
+			var shards := 1 + mini(_families_near(tower, p(tower, "family_reach", 2.5) + NurtureChoices.WIDE_STEP * tower.choice_count(Tower.Focus.WIDE)), int(p(tower, "family_max", 3.0)))
 			# Yield: +0.5 shard a drift per rank (the fraction carries).
 			var extra := float(tower.get_meta(&"yield_carry", 0.0)) + NurtureChoices.YIELD_SHARDS * tower.choice_count(Tower.Focus.YIELD)
 			shards += int(extra)
