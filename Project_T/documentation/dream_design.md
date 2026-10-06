@@ -1740,7 +1740,7 @@ Deepened ones that exist stay.
     | kinship | Shared Training, **Extended Family** (new) |
 
     Hedge Maze and Odd One Out lose `defining` and keep their archetype (maze, overgrowth).
-    Balancing Code first runs the even-weight bot on bf4fe891 (bot vs cards), then this set.
+    Balancing Code first runs the even-weight bot on bf4fe891 (bot vs cards), then this set. **Built** in a78f3a33.
   - Every other card loses `defining` but keeps its archetype tag. That includes Cozy Corners,
     Straightaway, Lone Hunter, Old Growth, First Light, Watchful Rest, Seedfall, Tender Care and
     the Grove cards tagged earlier. Cards whose archetype tags change get only the one above.
