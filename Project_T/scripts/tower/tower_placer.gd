@@ -1681,6 +1681,7 @@ func begin_stroke_half(origin: Vector2) -> void:
 	_start_stroke(origin)
 
 func _start_stroke(cell: Vector2) -> void:
+	_plan_cache = {}  # A new stroke plans from its first cell
 	stroking = true
 	_stroke.assign([cell])
 	_stroke_axis = -1
@@ -1804,14 +1805,31 @@ func _stroke_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 # Half-cell strokes: the stroke holds half origins, a Warden's width (2 halves) apart.
+# Dragging (Environment's maze perf profile: ~5.5 ms a cell, the whole stroke re-planned each step): the plan resumes
+# after the cells already planned while the board, the Dew and the Warden are the same; any board change (a placement,
+# a sale, path_changed) plans it all again. plant_stroke re-checks every wall on the live grid anyway.
+var _plan_cache := {}
+
 func _plan_stroke_half() -> void:
-	_stroke_plan.clear()
 	var blocked: Array[Vector2] = []  # Halves
 	var dew := run_state.dew
 	var points := _walker_points()
 	var planned_sprouts := 0
 	var unique_used := is_unique_placed(tower_data)
-	for o in _stroke:
+	var start := 0
+	var cache := _plan_cache
+	if not cache.is_empty() and cache.board == dream_state.board_version and cache.dew0 == run_state.dew \
+			and cache.data == tower_data and cache.stroke.size() <= _stroke.size() \
+			and _stroke.slice(0, cache.stroke.size()) == cache.stroke:
+		start = cache.stroke.size()
+		blocked = cache.blocked.duplicate()
+		dew = cache.dew
+		planned_sprouts = cache.sprouts
+		unique_used = cache.unique
+	else:
+		_stroke_plan.clear()
+	for i in range(start, _stroke.size()):
+		var o: Vector2 = _stroke[i]
 		var halves: Array[Vector2] = origin_halves(o)
 		var home := origin_home(o)
 		var why := ""
@@ -1838,6 +1856,8 @@ func _plan_stroke_half() -> void:
 					planned_sprouts += 1
 				unique_used = tower_data.is_unique
 		_stroke_plan[o] = why
+	_plan_cache = {"board": dream_state.board_version, "dew0": run_state.dew, "data": tower_data, "stroke": _stroke.duplicate(),
+		"blocked": blocked.duplicate(), "dew": dew, "sprouts": planned_sprouts, "unique": unique_used}
 	_stroke_cost = run_state.dew - dew
 	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 	var new_route: PackedVector2Array = map_generator.get_path_if_blocked_halves(blocked, true) if not blocked.is_empty() else route
