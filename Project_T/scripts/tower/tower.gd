@@ -489,6 +489,7 @@ func _signature_after_hit(enemy: Node2D, sig: StringName, is_crit: bool) -> void
 		var line := tower_data.line
 		var through: float = enemy.enemy_data.get_soothe_multiplier(line, false) * enemy.statuses.get_damage_taken_multiplier() \
 			* enemy.get_pack_multiplier()
+		Reactions._effect(&"executioner_slash", aim_at(enemy), self)  # Tower Assets 8d00143e
 		enemy.pierce_coat_once = true
 		enemy.take_damage((enemy.health + 1.0) / maxf(through, 0.01), line, false, false, self, &"executed")
 		signature_fired.emit(self, Signatures.EXECUTIONER)
