@@ -2216,6 +2216,7 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 		if card == null:
 			break
 		offer.append(card)
+	_ensure_defining(offer, act, drift_number)
 	if offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()):
 		_dreams_without_rare = 0
 	else:
@@ -2378,6 +2379,38 @@ func count_taken_with_tag(tag: String) -> int:
 		if card.tags.has(tag):
 			count += 1
 	return count
+
+# Build-defining cards (dream_design.md de439ea8 "B"): tag `defining`, and every Legendary. Main / UI mark them on screen.
+const DEFINING_FROM_DRIFT := 26  # Act 2
+
+func is_defining(card: UpgradeData) -> bool:
+	return card != null and (card.tags.has("defining") or card.rarity == UpgradeData.Rarity.LEGENDARY)
+
+# From act 2 every offer holds at least 1 defining card you don't own: if the draw has none, the lowest-rarity non-family
+# slot becomes a random unowned defining card of that rarity (else an Uncommon). Stops once none can be offered.
+func _ensure_defining(offer: Array[UpgradeData], act: int, drift_number: int) -> void:
+	if drift_number < DEFINING_FROM_DRIFT or offer.is_empty():
+		return
+	if offer.any(func(c: UpgradeData) -> bool: return is_defining(c) and not has_card(c.id)):
+		return
+	var slots := offer.filter(func(c: UpgradeData) -> bool: return not is_family_card(c))
+	if slots.is_empty():
+		return
+	slots.sort_custom(func(a: UpgradeData, b: UpgradeData) -> bool: return a.rarity < b.rarity)
+	var slot: UpgradeData = slots[0]
+	var others := offer.filter(func(c: UpgradeData) -> bool: return c != slot)
+	var family_taken := others.any(is_family_card)
+	var choices: Array = pool.filter(func(c: UpgradeData) -> bool: return _defining_choice(c, slot.rarity, offer, act, family_taken))
+	if choices.is_empty():
+		choices = pool.filter(func(c: UpgradeData) -> bool: return _defining_choice(c, UpgradeData.Rarity.UNCOMMON, offer, act, family_taken))
+	if choices.is_empty():
+		return
+	offer[offer.find(slot)] = _weighted_pick(choices)
+
+func _defining_choice(card: UpgradeData, rarity: int, offer: Array[UpgradeData], act: int, family_taken: bool) -> bool:
+	if not is_defining(card) or has_card(card.id) or card.rarity != rarity or offer.has(card):
+		return false
+	return can_offer(card, act) and not (family_taken and is_family_card(card))
 
 # The plain stat cards (at most one per offer, dream_design.md 21ac910b).
 const PLAIN_STAT_CARDS: Array[String] = ["deeper_calm", "quickened_sap", "longer_roots", "bitter_sap", "glinting_dew"]

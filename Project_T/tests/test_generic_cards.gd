@@ -72,7 +72,7 @@ class TwigWall extends Node:
 func _test_twig_walls() -> void:
 	_reset()
 	var twig := _card("twig_walls")
-	_check(twig != null and twig.rarity == UpgradeData.Rarity.RARE and twig.tags == ["maze"] and twig.in_start_pool and twig.min_act == 2
+	_check(twig != null and twig.rarity == UpgradeData.Rarity.RARE and twig.tags == ["maze", "defining"] and twig.in_start_pool and twig.min_act == 2
 		and twig.requires.is_empty(), "Twig Walls: Rare, maze, start pool, act 2+, no needs")
 	_check(not dreams.twig_walls(), "no Twig Walls: full-size Thornwalls")
 	dreams.take(twig)
@@ -752,7 +752,7 @@ func _test_grove_branches() -> void:
 	var start_pool := ["momentum", "momentum_ii", "drumbeat", "overlap", "flurry"]  # Back in the start pool (dream_design.md 21ac910b, de439ea8)
 	for id in swift + reach:
 		var card := _card(id)
-		_check(card != null and card.in_start_pool == start_pool.has(id) and card.tags == [("swift" if swift.has(id) else "reach")],
+		_check(card != null and card.in_start_pool == start_pool.has(id) and card.tags.filter(func(t: String) -> bool: return t != "defining") == [("swift" if swift.has(id) else "reach")],
 			"%s: %s, the %s tag" % [id, "start pool" if start_pool.has(id) else "Grove pool", "swift" if swift.has(id) else "reach"])
 	_check(DreamState.ARCHETYPE_TAGS.has("swift") and DreamState.ARCHETYPE_TAGS.has("reach"), "swift and reach are build tags")
 	_check(_card("whirlwind_heart").rarity == UpgradeData.Rarity.LEGENDARY and _card("great_ripple").rarity == UpgradeData.Rarity.LEGENDARY

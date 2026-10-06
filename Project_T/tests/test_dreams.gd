@@ -1321,6 +1321,22 @@ func _test_offer_shape(main: Node) -> void:
 		most_plain = maxi(most_plain, offer.filter(func(c: UpgradeData) -> bool: return DreamState.PLAIN_STAT_CARDS.has(c.id)).size())
 	_check(most_family <= 1, "at most 1 family card per offer (saw %d)" % most_family)
 	_check(most_plain <= 1, "at most 1 plain stat card per offer (saw %d)" % most_plain)
+	# Build-defining cards (dream_design.md de439ea8 "B"): from drift 26 every offer holds an unowned defining card
+	_check(dreams.is_defining(_card(dreams, "solitude")) and dreams.is_defining(_card(dreams, "thorny_walls"))
+		and not dreams.is_defining(_card(dreams, "deeper_calm")), "defining: Solitude and Thorny Walls yes, Deeper Calm no")
+	var without_defining := 0
+	for i in 60:
+		dreams._passed_count.clear()
+		var late := dreams.make_offer(26 + i % 40)
+		if not late.any(func(c: UpgradeData) -> bool: return dreams.is_defining(c) and not dreams.has_card(c.id)):
+			without_defining += 1
+	_check(without_defining == 0, "from drift 26 every offer shows an unowned defining card (%d without)" % without_defining)
+	var early_without := 0
+	for i in 60:
+		dreams._passed_count.clear()
+		if not dreams.make_offer(10).any(dreams.is_defining):
+			early_without += 1
+	_check(early_without > 0, "before drift 26 there's no such rule (%d of 60 offers had none)" % early_without)
 	_reset_dreams(main)
 func _reset_dreams(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
