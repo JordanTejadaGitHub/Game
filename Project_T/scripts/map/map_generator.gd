@@ -24,10 +24,11 @@ var layout: MapLayout
 @export var force_layout := -1
 @export var force_short := -1
 @export var force_feature := -1
-# Starting-route cap: environment_assets.md "Map layouts" keeps it within ±25% of the old median (46).
+# Starting-route cap, generation only (nothing caps the route in play): environment_assets.md "Map layouts".
 @export var max_route_length := 57
-# And its floor: an inland Heartwood can sit close, so a short route gets plain obstacles added on it.
-@export var min_route_length := 35
+# And its floor (Room to maze): the start→Heartwood Manhattan distance + 4, set per map in _ready(). Nothing
+# lengthens a short route any more (that filled the open bowl); the spurs give it its bend.
+var min_route_length := 0
 @export var map_seed: int = 0  # 0 = new random map every run; anything else reproduces a map
 var unwalkable_cells: PackedVector2Array
 # Clearable trees/rocks still on the map: {cell (Vector2): ObstacleData}.
@@ -93,8 +94,8 @@ func _ready() -> void:
 	for cell in environment_object_layer.pond_cells:  # Water: never walkable, buildable or cleared
 		path_layer.set_cell_blocked(cell, true)
 	_carve_route_if_blocked()
-	_trim_route_if_long()
-	_extend_route_if_short()
+	_trim_route_if_long()  # No route extension any more: it refilled the open bowl (Room to maze)
+	min_route_length = int(absf(endPath.x - startPath.x) + absf(endPath.y - startPath.y)) + 4
 	path_layer.prefer_route(_straightest_route())  # Fewest turns among the shortest routes
 
 	path_layer.draw()
@@ -248,37 +249,6 @@ func _straightest_route() -> PackedVector2Array:
 		route.insert(0, Vector2(key[0]))
 		key = best[key][1]
 	return route
-
-# A route shorter than `min_route_length` (an inland Heartwood close to the start) gets a plain
-# obstacle (a tree or rock, clearable like any other) on the route cell whose blocking lengthens it
-# most while a way through remains and it stays under `max_route_length`. Never the start, the
-# Heartwood or its glade.
-func _extend_route_if_short() -> void:
-	var glade := get_glade_cells()
-	for attempt in 12:
-		var route := path_layer.find_path_from(startPath)
-		if route_length(route) >= min_route_length:
-			return
-		var best := Vector2(-1, -1)
-		var best_length := route_length(route)
-		var cells: Array[Vector2] = []  # The whole cells the route runs through (obstacles go on whole cells)
-		for point in route:
-			var whole := (Vector2(FindPath.point_to_node(point)) / 2.0).floor()
-			if not cells.has(whole):
-				cells.append(whole)
-		for cell in cells:
-			if cell == startPath or cell == endPath or glade.has(cell):
-				continue
-			var longer := route_length(get_path_if_blocked(cell))
-			if longer > best_length and longer <= max_route_length:
-				best_length = longer
-				best = cell
-		if best == Vector2(-1, -1):
-			return
-		var data: ObstacleData = environment_object_layer.tree_obstacle if hash(best) % 2 == 0 else environment_object_layer.rock_obstacle
-		var tile: Vector2i = data.tiles[posmod(hash(best + Vector2(7, 3)), data.tiles.size())]
-		environment_object_layer._place_obstacle_tile(best, data, tile, obstacles)
-		path_layer.set_cell_blocked(best, true)
 
 # A route much longer than usual (trees piling up along the ridges) is trimmed back under
 # `max_route_length`, one cell at a time: a plain obstacle if one helps, else a ridge cell as a last
