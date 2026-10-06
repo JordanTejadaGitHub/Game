@@ -282,7 +282,7 @@ cycle, Deep = what its Potency strengthens, etc.).
 
 | Signature | Rule (what counts) |
 |---|---|
-| **Crushing** | **all damage the Warden itself deals** counts: hits, fence arcs, cloud and rain ticks, thorns (not Spored / Charged ticks, which belong to statuses). For ticking damage the shell strip scales with the tick's share of a full hit* |
+| **Crushing** | **all damage the Warden itself deals** counts: hits, fence arcs, cloud and rain ticks, thorns (not Spored / Charged ticks, which belong to statuses). For ticking damage the shell strip = 25% × (tick ÷ full hit), capped at 25% (Balancing) |
 | **Relentless** | **any dispel credited to the Warden** (by damage source, status ticks included) restarts **its main cycle**: attack, ability, grab timer, copy timer, zone placement. Beams keep their full ramp on the next target; patrols clear their per-nightmare hit cooldowns; birds and seeds return at once |
 | **Watchtower** | reveals hidden nightmares in its main area (Deeproot: inside its guard ring), **and they stay revealed 2 s after leaving it**. The trail is what makes it worth it on Wardens that already reveal (Quaker, Lanternmoth, Beacon) |
 | **Spreading** | on dispel, **what its Deep strengthens** jumps to the nearest nightmare within 2 cells: statuses (half), and the full remaining hold, silence, Caught or sleep. Pullers and grabbers: the pull / grab repeats once on the nearest. Quaker: the reveal jumps to hidden ones nearby. Echo Hollow: its last echo repeats on the nearest. Thorncoil: the held nightmare's remaining hold jumps |
@@ -300,7 +300,7 @@ cycle, Deep = what its Potency strengthens, etc.).
   and World Root hit the cap at rank IV (rule 2).
 - **Whirligig's Deep** was dead: it copies with Gust's Deep formula (half + per rank).
 - **Rootlight's stretch** keeps the original hold's source and Potency (it was erasing them).
-- **Acorn's Strong** (+1% aura) is too small to feel: Balancing Discussion raises it*.
+- **Acorn's Strong** (+1% aura) was too small to feel: now **+2.5% per rank** (Balancing; level with Power over 8 neighbours).
 
 ### Nurture audit fixes (2026-10-05)
 
