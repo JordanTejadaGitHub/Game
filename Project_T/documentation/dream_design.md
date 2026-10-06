@@ -1730,6 +1730,7 @@ Deepened ones that exist stay.
   - **Declined:** drawing a defining card's tag-mates more often once it's owned. That's steering.
   - Balancing Code re-measures no-build at drift 50 (the bar; drift 26 is dropped) before the run
     pool test (60 → 70%).
+  - **Measured** (bf4fe891, fresh × 30 to drift 50): **no build at 50: 13%** (drift-10 slot: 42%; before: 20%). Defining offered / taken by 50: 10.2 / 4.0; archetype cards unchanged (no push-out). So the trim did it, and the **60 → 70% pool change isn't needed**. Watch: Maze holds 4 of the 18 defining cards, and maze-anchored builds lead (Maze, Thorny Walls, Heart of the Maze).
 - **On screen:** a small "build" mark on defining cards (Main / UI Code; the look is UI's).
 
 ### C. Bittersweet: both sides dramatic
