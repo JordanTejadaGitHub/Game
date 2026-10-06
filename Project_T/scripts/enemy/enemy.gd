@@ -207,6 +207,14 @@ var _linger_left := 0.0  # Night Mare: seconds left of this visit before it gall
 var _grounded_left := 0.0  # Groundroot: seconds left on the ground (a flyer walking the maze; see ground)
 var _corner_offset := Vector2.ZERO  # Drawn minus logical position on a rounded corner (_round_corners)
 var _squeeze := 1.0  # The width factor sprite.scale.x carries now (_update_squeeze)
+# _in_narrow_gap's last answer and what it depended on (perf: re-checked only when the half cells under and
+# just ahead of the body, the step or the map's blocking change, not every frame)
+var _gap_finder: FindPath
+var _gap_here := Vector2i(-1, -1)
+var _gap_ahead := Vector2i(-1, -1)
+var _gap_step := -1
+var _gap_version := -1
+var _gap_answer := false
 # Pixels the drawn body (sprite, its HUD, its glows) is raised so its feet and contact shadow sit on the
 # route point, the path ribbon's centreline (art_direction.md "Bigger Wardens"); 0 for flyers.
 var _foot_lift := 0.0
@@ -1080,6 +1088,8 @@ func _update_squeeze(delta: float) -> void:
 	if _leaping:
 		return
 	var target := SQUEEZE_WIDTH if not is_flying() and _in_narrow_gap() else 1.0
+	if target == _squeeze:
+		return  # Nearly always: nothing to ease
 	var next := target
 	if not bool(Fx.setting("reduced_motion", false)):
 		next = lerpf(_squeeze, target, 1.0 - exp(-SQUEEZE_RATE * delta))
@@ -1096,21 +1106,31 @@ func _update_squeeze(delta: float) -> void:
 func _in_narrow_gap() -> bool:
 	if _path_index < 1 or _path_index >= _path.size():
 		return false
-	var map_generator = _map_generator()
-	if map_generator == null:
-		return false
-	var finder: FindPath = map_generator.path_layer.get_finder()
 	var step := _path[_path_index] - _path[_path_index - 1]
 	var dir := Vector2(signf(step.x), signf(step.y))
 	if dir == Vector2.ZERO:
 		return false
-	var side := Vector2(absf(dir.y), absf(dir.x))
 	var half := grid.cell_size.x / FindPath.HALF
-	for ahead: float in [0.0, half * 0.75]:
-		var h := ((position + dir * ahead) / half).floor()
-		if not finder.is_half_blocked(h) and finder.is_half_blocked(h + side) and finder.is_half_blocked(h - side):
-			return true
-	return false
+	var here := Vector2i((position / half).floor())
+	var ahead := Vector2i(((position + dir * half * 0.75) / half).floor())
+	if _gap_finder == null:
+		var map_generator = _map_generator()
+		if map_generator == null:
+			return false
+		_gap_finder = map_generator.path_layer.get_finder()
+	if here == _gap_here and ahead == _gap_ahead and _path_index == _gap_step and _gap_finder.version == _gap_version:
+		return _gap_answer
+	_gap_here = here
+	_gap_ahead = ahead
+	_gap_step = _path_index
+	_gap_version = _gap_finder.version
+	var side := Vector2(absf(dir.y), absf(dir.x))
+	_gap_answer = false
+	for h: Vector2 in [Vector2(here), Vector2(ahead)]:
+		if not _gap_finder.is_half_blocked(h) and _gap_finder.is_half_blocked(h + side) and _gap_finder.is_half_blocked(h - side):
+			_gap_answer = true
+			break
+	return _gap_answer
 
 func is_flying() -> bool:
 	return enemy_data.trait_kind == EnemyData.Trait.FLYING and _grounded_left <= 0.0  # (Groundroot: not while grounded)
@@ -2368,6 +2388,7 @@ func set_path(points: PackedVector2Array) -> void:
 	_end_drag()  # A re-route mid-drag: it walks the new route from here
 	_path = points
 	_cells_left = PackedFloat32Array()
+	_gap_step = -1  # A new route: the gap check looks again
 	_path_index = 0
 	if stream_speeding:
 		stream_speeding = false  # Swift Stream: until it next reaches a cell on the new route
