@@ -1694,6 +1694,14 @@ Deepened ones that exist stay.
   - It works with "1 family / 1 plain stat per offer".
   - Which defining card appears is random, so the player still adapts, never handed a build.
   - Once every defining card is owned, the rule stops.
+  - **Starts earlier (2026-10-06):** from the **rest after drift 10**, not drift 26. Balancing's
+    no-build check: fresh runs had no build at drift 26 in 87% of runs (full Grove 48%), and 20% at
+    drift 50.
+  - **Declined:** Balancing's proposal of a slot that matches your most-owned archetype at the
+    act 1 boss rest. That's steering toward the build you already have, which the user turned off
+    ("adapt to the cards you get"). An earlier random defining card gives a direction without
+    choosing it for you.
+  - Balancing Code re-measures the no-build share with this and the conditional maze cards in.
 - **On screen:** a small "build" mark on defining cards (Main / UI Code; the look is UI's).
 
 ### C. Bittersweet: both sides dramatic
