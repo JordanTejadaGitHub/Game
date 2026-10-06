@@ -906,7 +906,7 @@ func focus_text(which: Focus) -> String:
 	if is_catcher():
 		match which:
 			Focus.WIDE:
-				return "+%.1f catch radius" % FOCUS_WIDE
+				return "+%.1f catch radius%s" % [FOCUS_WIDE, _cells_note(get_catch_radius(), FOCUS_WIDE)]
 			Focus.STRONG:
 				return "+%d%% catch" % roundi(FOCUS_STRONG_CATCH * 100)
 			Focus.KINDRED:
@@ -938,7 +938,7 @@ func focus_text(which: Focus) -> String:
 			var r := _with_choice(which, func() -> float: return _compute_range_cells())
 			if area[1] != "":
 				# Its main area first (Jarlink's link, Hushbell's silence…), then the range, which Reach also grows.
-				var text := "%s %s → %s cells" % [area[1], IconInfo._number(area[0]), IconInfo._number(area[0] + area[2])]
+				var text := "%s %s → %s cells%s" % [area[1], IconInfo._number(area[0]), IconInfo._number(area[0] + area[2]), _cells_note(area[0], area[2])]
 				return text + (" · range %.1f → %.1f" % [r[0], r[1]] if tower_data.can_attack and absf(r[1] - r[0]) >= 0.05 else "")
 			return "range %.1f → %.1f cells" % [r[0], r[1]]
 		Focus.DEEP:
@@ -971,15 +971,35 @@ func focus_text(which: Focus) -> String:
 				return "its aura +%d%%" % roundi(NurtureChoices.STRONG_ACORN * 100)
 		Focus.WIDE:
 			if special == BranchKit.DREAM_OAK:
-				return "families counted from +%.1f cells further" % NurtureChoices.WIDE_STEP
+				return "families counted from +%.1f cells further%s" % [NurtureChoices.WIDE_STEP, _cells_note(_wide_radius(), NurtureChoices.WIDE_STEP)]
 			if special == BranchKit.PRISM or special == BranchKit.NURSE_LOG:
-				return "+%.1f cells of reach" % NurtureChoices.WIDE_STEP
+				return "+%.1f cells of reach%s" % [NurtureChoices.WIDE_STEP, _cells_note(_wide_radius(), NurtureChoices.WIDE_STEP)]
+			return FOCUS_TEXT[which] + _cells_note(_wide_radius(), FOCUS_WIDE)
 		Focus.KINDRED:
 			if special == BranchKit.SEEDBEARER:
 				return "its Sprouts deal %d%% more damage" % roundi(NurtureChoices.SEED_KINDRED * 100)
 			if special == BranchKit.NURSE_LOG:
 				return "Wardens in its reach grow %d%% cheaper" % roundi(NurtureChoices.NURSE_KINDRED * 100)
 	return FOCUS_TEXT.get(which, "")
+
+# The radius (cells) Wide widens for this form now: a catcher's catch, Dream Oak's family count, Prism / Nurse Log's
+# reach, else its aura (rule 1: all by distance).
+func _wide_radius() -> float:
+	var special := attack_data.special if attack_data else &""
+	if is_catcher():
+		return get_catch_radius()
+	if special == BranchKit.DREAM_OAK:
+		return BranchKit.p(self, "family_reach", 2.5) + NurtureChoices.WIDE_STEP * choice_count(Focus.WIDE)
+	if special == BranchKit.PRISM:
+		return BranchKit.p(self, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * choice_count(Focus.WIDE)
+	if special == BranchKit.NURSE_LOG:
+		return BranchKit.p(self, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * choice_count(Focus.WIDE)
+	return get_aura_reach()
+
+# " (+N cells)" for one more rank widening `radius` by `step` (rule 1: the panel shows the ground it adds).
+static func _cells_note(radius: float, step: float) -> String:
+	var n := BranchKit.cells_gained(radius, step)
+	return " (+%d cell%s)" % [n, "" if n == 1 else "s"]
 
 # One rank of `which` in a few words for the Nurture rows (Main's rework, user: Brood Cap / Jarlink panels "fix"):
 # ~18 characters, no " · ", a number never split from its unit. "" = the panel's own Power / Swift / Reach / Deep
@@ -1145,8 +1165,24 @@ func _rank_price_for(which: int, data: TowerData, self_price: bool) -> int:
 # the evolve cost plus, for each rank held, that rank's price at the new tier minus its price at this
 # one (free ranks pay it too). {"total", "base", "ranks"}. Every Grow button, group grow, the G hotkey
 # and TowerPlacer.evolve use this, so they all agree.
-func get_grow_cost(into: TowerData) -> Dictionary:
+# Dew paid to plant this Warden (TowerPlacer sets it; -1 = unknown, e.g. a Warden from an older save: invested_dew).
+var plant_dew := -1
+
+# Sprout into a family base (Balancing 2026-10-05: growing bypassed the per-copy price): at least that Warden's
+# planting price now (copies included) minus what this Sprout cost; a gift Sprout (0 Dew) pays the full price.
+# `planned`: copies of `into` grown earlier in the same group grow (each raises the next one's planting price).
+func _sprout_into_floor(into: TowerData, planned: int = 0) -> int:
+	if tower_data.get_id() != "sprout" or not into.buildable_directly or placer_ref == null:
+		return 0
+	var placer = placer_ref.get_ref()
+	if placer == null or not placer.has_method("get_cost"):
+		return 0
+	var paid: int = plant_dew if plant_dew >= 0 else invested_dew
+	return placer.get_cost(into, cell, planned) - paid
+
+func get_grow_cost(into: TowerData, planned: int = 0) -> Dictionary:
 	var base: int = _dream_state.get_evolve_cost(into) if _dream_state else into.evolve_cost
+	base = maxi(base, _sprout_into_floor(into, planned))
 	base = roundi(base * BranchKit.grow_multiplier(self))  # Nursery (b): 10% cheaper beside the Nurse Log
 	var ranks := 0
 	for which in range(1, rank + 1):
@@ -4489,6 +4525,25 @@ static func _route_pixels(map) -> PackedVector2Array:
 			for p in map.get_path_from(map.startPath):
 				_route_cache.append(MAP_GRID.calculate_map_position(p))
 	return _route_cache
+
+# Coverage (maze_feel.md 8b50fce6: "upgrade where it covers everything"): how much route a Warden at `centre` reaches,
+# in path tiles. Every route point (half a tile apart) inside its range counts, so a junction the route passes three
+# times counts three times. `min_px`: snipers' dead zone.
+static func coverage_at(map, centre: Vector2, range_px: float, min_px: float = 0.0) -> int:
+	var points := 0
+	var far := range_px * range_px
+	var near := min_px * min_px
+	for at in _route_pixels(map):
+		var d := centre.distance_squared_to(at)
+		if d <= far and d >= near:
+			points += 1
+	return roundi(points / 2.0)
+
+# This Warden's coverage now (its real range); 0 for Wardens that don't attack.
+func get_coverage() -> int:
+	if not tower_data.can_attack or _dream_state == null:
+		return 0
+	return coverage_at(_dream_state.map_generator, global_position, get_range_pixels(), attack_data.min_range * MAP_GRID.cell_size.x)
 
 func _refresh_path_mask() -> void:
 	_path_mask_dirty = false

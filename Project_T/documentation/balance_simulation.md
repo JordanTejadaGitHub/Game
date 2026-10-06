@@ -809,15 +809,15 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 ## Maze feel: walls first (user via the hub, maze_feel.md 8b50fce6, 2026-10-05)
 
 "Walls early, upgrade only where it covers everything" (Tropical Tower Wars).
-1. **Walls:** Thornwall and the wall line are already exempt from `copy_cost_step` (a7525077). **Thornwall 3 →
-   2 Dew** (Twig 1). Wall Dew is a rounding error of a run (20 walls ≈ 60 of ~2,000 act 1 Dew), so price
-   isn't what keeps players off walls; 2 is a signal, and the open ground (maze_feel #5) is the real lever.
+1. **Walls:** Thornwall and the wall line are already exempt from `copy_cost_step` (a7525077). **User: Thornwall stays 3 Dew, up to 5 if checks call for it** (the 3 →
+   2 proposal is cancelled). Wall Dew is a rounding error of a run (20 walls ≈ 60 of ~2,000 act 1 Dew), so price
+   isn't what keeps players off walls; the open ground (maze_feel #5) is the real lever.
 2. **Checks (probe arms):** (e) X Dew all on walls vs (b) one grow; (b-hi) vs (b-lo), the grow at the highest vs
    the lowest coverage Warden (route halves in range, per pass). Wanted: (e) > (b) in act 1, and (b-hi) clearly >
    (b-lo). If not, the levers: range counting more for grown forms (e.g. branches +0.5 range), or the first grow
    priced so it only pays at a junction.
-3. **Act 1 re-check** on the Thornwall-2 hash (default / spender / skip, per boss). If cheaper walls lift the
-   default above ~70%, `act1_health_multiplier` 1.20 → 1.25 answers it.
+3. **Act 1 re-check** on main HEAD (walls at 3) (default / spender / skip, per boss). If cheaper walls lift the
+   default above ~70%, `act1_health_multiplier` 1.20 → 1.25 (or Thornwall up to 5) answers it.
 
 ## Nurture audit numbers (warden_stats.md b6f44fac, 2026-10-05; in 188a75ba)
 
@@ -835,6 +835,9 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 | Wellspring Kindred | interest cap +10 per rank (80 → 130); the shared `DewCatch.INTEREST_CAP` 120 → **130** so a lone V Wellspring reaches it |
 | Dream Oak Yield | run cap +1 Dreamlight per rank (4 → 9); shard bonus trimmed +0.5 → **+0.3** per rank |
 | Drowsy / Exposed / Soaked | Drowsy duration × Potency; past a 40% cap, duration × (Potency ÷ Potency at the cap) |
+
+Rule 1 (distance areas, d3cd75c3 / 03880e14): base radii ≥ 2 got +0.5 (Grove Heart, Dream Oak 2.5; Jarlink link 4.5). Radius 2.5 covers
+20 cells vs the old 5×5 square's 24 (−17%); Wide rank II (2.9 ≥ √8) adds the 4 corners back. Accepted.
 
 ## Brood Cap / Hatchery Yield (Tower Discussion 68120c18, 2026-10-05)
 
@@ -856,6 +859,67 @@ Warden: about the Rare all-Wardens budget (+40%), before stacking with route car
 human `longest_path` with the card; **above ~120 cells, cap it** (e.g. twig walls up to 30). A static route
 probe (the bot's wall planner, same walled area, Thornwalls vs twigs, 20 maps) goes in the queue after the
 plant/grow probe.
+**Route probe (c2f1fd3c, 20 maps, same walled area; base route ~40):** route added Thornwall / twig: 10 walls'
+area +28.9 / +40.0 (twig longer on 20 of 20 maps), 20: +42.7 / +55.0 (18 of 20), 30: +51.4 / +59.2 (16 of 20).
+Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my ×1.5: real maps aren't open
+serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
+its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
+
+## Drawn route and early deaths (19f426c5, 2026-10-05)
+
+After "fewest turns among the shortest", 5–7 of 30 bot runs per arm die by drift 2 (was ~1 in 90). Same-board
+replays (seeds 7 / 8 / 9): the game holds the old boards, but **a new placement can flip the drawn route to
+another lane**, stranding earlier Wardens (seed 8's first Sprout ends at 0 coverage; seed 9 leaks 9 Shades after
+one d7 placement). Partly a bot weakness (it doesn't price the cover it takes from its other Wardens), but for a
+player too. Asked Environment Code for stronger stickiness: shortest → closest to the current route → fewest
+turns. Until then read main's act 1 "past d5" column.
+
+## Sprout-into follows the copy price (user found it, 2026-10-05)
+
+Sprout (~12) + sprout-into (15) was a flat 27, under the Nth planted copy (33 at 5, 43 at 10): a bypass of
+`copy_cost_step`. **Sprout-into = max(base, live planting price − the Sprout's paid price)**; gift Sprouts pay
+the full price; the grown Warden counts as a copy. The two routes cost the same; the Sprout only delays the
+choice. First copy unchanged (15), so the opening holds. In 526df9d7 (Tower.plant_dew; group grows price each Sprout in order).
+
+## Room to maze (maze_feel #5, worktree room-to-maze, 2026-10-05)
+
+Environment Code's open bowl: obstacles ~60 → 30–41, buildable ~275 → ~298 cells, but the **opening route ~46 →
+~25** (20–36); the bot's fresh seed 3 died at drift 2. **Verdict: open bowl yes, opening route kept at ~38–46**
+(the band's minimum ~38, made with ridges and the guaranteed bend): drifts 1–10 and the 60 Dew opening are
+tuned on it, and the user's goal is room to build longer, not a shorter start. **Revised:** Environment Discussion
+wants the short opening on purpose ("the player builds the length"), so it is simmed as is, with a wall-first bot
+opening (Thornwall 3: ~7 walls take 25 → ~45 and leave 3 Sprouts). Go if drifts 1–5 leak no more than main and
+act 1 survival is within ±10 points; else the bend spur adds +8–10 cells.
+**Sim (main 526df9d7 vs room c0ad2808, wall-first bot, 30 seeds per arm):** d1–5 leaks default 1.8 → 3.5, skip
+2.4 → 3.1, spender even; act 1 boss default 50 → 30%, spender 56 → 36%, skip 16 → 6%; route d1 / d10 66 / 73 vs
+44 / 49. Bosses no harder; room runs reach 25 less often. **No-go; the spur fallback (+8–10) asked for**, then the
+room arm re-simmed. (The bot stops walling at ~45 cells; a new player walls less, not more.) Act 1 bot check on the worktree
+before merge; if the extra room makes act 1 easy, the curve answers it.
+
+## Human run 21 (2026-10-05 20:57, build 91161b = b3c61186; 0 Grove)
+
+Sporeling, Bellflower picked at 25 but **none planted** (board: 10 Sporeling, 6 Inkcap, Hatchery, 6 Sprouts).
+Lost at **drift 33**. Act 1: 4 leaves (drift 20 finale), the Stag beaten at 25 with 11–12, closest 0.5–0.99:
+firm. Act 2: clean to 29; **30 (finale, under Leaf Fall) −4**; 32 dealt only 60% of its health (Puffcaps
+resist spore, Dandelion flyers skip the maze); 33 took the last 8 in 9 s under a **second Leaf Fall** (taken at
+the 30 rest with 8 leaves). Status ticks 41%, combos 13%. **Read: no tuning.** The death is the design working:
+a one-family spore board meets spore resistance and flyers, with leaks doubled by an Omen the player chose.
+It lands in the 32–42 act 2 band again. Watch: the Bellflower pick unused (did the panel make the second family
+clear?), and two Leaf Falls in one run (fine, it's offered, not forced).
+
+## Friend run 1 (2026-10-05 20:22, a new player, fresh profile, live main)
+
+Firefly Jar, then Dewdrop at 25; lost at **drift 40** (25 min). **Act 1: 1 leaf lost** (a leak at 5), the Stag
+beaten at 25 with 14–15 leaves, closest mostly 0.3–0.7: firm, not a wall. **Act 2: clean to 31**, first
+leaks at 32–35 (−9 leaves), then **38–40 took the last 6**: the same late-act-2 wall as human runs 15–18
+(deaths at 35–42). Board at the end: 33 attackers (13 Firefly Jar, 6 Lanternmoth, Beacon, Prism Jar, 3
+Cloudlet) + 10 Thornwalls + 8 Sprouts, route 60. Dew 3,988: plant 822 / **grow 2,266** / ranks 885. **Combos
+55% of damage** (Marked from Lanternmoth / Beacon; target 25–40%). Omens taken: Swift Stream, Frozen
+Ground, Thick Blight.
+**Read:** right on the fresh-profile target (dies in act 2–3) for a first-time player. Watch: (1) the
+38–40 wall: every human death in act 2 lands at 32–42, so it's the act's real test rather than a single
+spike (drift 38 is 168k health, after a light 37 at 63k); act 2 may need one earlier pressure point to spread
+it. (2) The combo share on Marked builds: one run above 40%, earlier runs 16–21%.
 
 ## Human run 20 (2026-10-05 19:06, live main: grow setting + drift 10 eased; 0 Grove)
 

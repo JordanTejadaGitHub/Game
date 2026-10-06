@@ -85,6 +85,32 @@ func _run() -> void:
 	placer.begin_stroke(cell)
 	_check(placer.plant_stroke() == 1 and container.get_child_count() == one + 1, "a click plants one")
 
+	# --- Shift to keep going (user 2026-10-05, Tropical Tower Wars) ---
+	placer.set_build_mode(true)
+	placer.after_player_placement(true)
+	_check(not placer.build_mode and placer.tower_data == wall, "a placement disarms, the Warden stays selected")
+	placer.set_build_mode(true)
+	placer.after_player_placement(false)
+	_check(placer.build_mode, "a refused placement keeps it armed")
+	placer.set_keep_building(true)
+	placer.after_player_placement(true)
+	_check(placer.build_mode, "the touch 'keep building' pin keeps it armed")
+	placer.set_keep_building(false)
+	var shift := InputEventKey.new()
+	shift.keycode = KEY_SHIFT
+	shift.pressed = true
+	Input.parse_input_event(shift)
+	await process_frame
+	placer.after_player_placement(true)
+	_check(placer.build_mode, "holding Shift keeps it armed")
+	var release := InputEventKey.new()
+	release.keycode = KEY_SHIFT
+	release.pressed = false
+	Input.parse_input_event(release)
+	placer._unhandled_input(release)
+	await process_frame
+	_check(not placer.build_mode, "letting go of Shift after a placement disarms")
+
 	print("drag build test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

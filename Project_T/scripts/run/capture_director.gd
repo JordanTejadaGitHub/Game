@@ -40,7 +40,10 @@ enum Hud { FULL, CLEAN, NONE }
 
 const SETTING := "capture_mode"
 const FLAG := "--capture="
-const PROFILE := "user://capture_heartwood.json"
+const PROFILE_NAME := "capture/capture_heartwood.json"  # Its own profile, on D: in dev (DevPaths: nothing temporary on C:)
+
+static func _profile() -> String:
+	return DevPaths.scratch(PROFILE_NAME)
 const GAME_SCENE := "res://scenes/main.tscn"
 const GROVE_SCENE := "res://scenes/grove.tscn"
 const SILHOUETTE := Color(0.05, 0.05, 0.09)  # multiplier: a planted Warden drawn as a dark shape (a tease)
@@ -115,18 +118,18 @@ static func begin(tree: SceneTree) -> bool:
 		push_error("Capture: can't read the scene file %s" % path)
 		tree.quit(1)
 		return true
-	for file in [PROFILE, PROFILE + ".bak"]:
+	for file in [_profile(), _profile() + ".bak"]:
 		if FileAccess.file_exists(file):
 			DirAccess.remove_absolute(file)
-	HeartwoodMemory.file_path = PROFILE
+	HeartwoodMemory.file_path = _profile()
 	HeartwoodMemory.real_settings_path = ""
 	if is_grove():  # The Memory Grove on a preset tree (GrovePresets), written to the capture profile, Seeds to spare
-		GrovePresets.load_preset(StringName(scene.get("grove", "early")), PROFILE)
+		GrovePresets.load_preset(StringName(scene.get("grove", "early")), _profile())
 		var data := HeartwoodMemory.load_data()
 		data.seeds = 1000000
 		HeartwoodMemory.save_data(data)
-	RunSaver.file_path = "user://capture_run.json"
-	RunHistory.file_path = "user://capture_run_history.json"
+	RunSaver.file_path = DevPaths.scratch("capture/capture_run.json")
+	RunHistory.file_path = DevPaths.scratch("capture/capture_run_history.json")
 	var settings := HeartwoodMemory.get_settings()
 	settings.whispers = false
 	settings.damage_numbers = int(scene.get("damage_numbers", 0))

@@ -249,7 +249,7 @@ Wardens don't repeat the faults:
    Warden's centre to each cell's centre** (like range), never in whole-cell rings. With rings, +0.2
    or +0.3 per rank only reached the next ring every 3–5 ranks, so the ranks between did nothing
    (Prism Jar, Nurse Log, Elder Stump / Grove Heart, Dream Oak, Jarlink's link range). With distance,
-   nearly every rank adds cells, and the panel shows how many ("+2 cells").
+   nearly every rank adds cells, and the panel shows how many ("+2 cells"). **Base radii of 2 or more grow by +0.5** (2026-10-05, as built d3cd75c3) so the switch only trims the far corners of the old squares: Grove Heart 2 → 2.5, Dream Oak 2 → 2.5, Jarlink link 4 → 4.5. Radius 1.5 (the 8 around) is unchanged.
 2. **No choice hits its cap before rank V.** A cap is set at what five ranks of that choice reach
    (Potency ×2.25, or five steps). Balancing Discussion re-sets the caps that bound at ranks 1–4.
 3. **Past a strength cap, Potency lengthens.** A status whose strength is capped (Exposed 40%, Soaked

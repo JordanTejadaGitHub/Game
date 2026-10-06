@@ -13,7 +13,7 @@ var _menu := VBoxContainer.new()  # The left column: the title over the menu pan
 var _buttons := VBoxContainer.new()
 var _settings: SettingsPanel
 var _codex: CodexPanel
-var _confirm: ConfirmationDialog
+var _confirm := PanelContainer.new()  # "Start a new run?" (_build_confirm)
 var _blight := BlightPicker.new()
 
 # The game was renamed from "Project_T" to "Heartwood TD" (project.godot config/name), which moves
@@ -34,6 +34,7 @@ static func migrate_old_saves() -> void:
 			DirAccess.copy_absolute(source, target)
 
 const GROUP := &"title_screen"
+const DIALOG := preload("res://scripts/ui/pause_menu.gd")  # The game's dialog style: _solid, _danger
 const MENU_LEFT := 72.0  # The menu sits in the art's calm left side
 const MENU_WIDTH := 340.0
 
@@ -132,10 +133,7 @@ func _ready() -> void:
 			_menu.visible = true)
 	center.add_child(_codex)
 
-	_confirm = ConfirmationDialog.new()
-	_confirm.dialog_text = "Start a new run? The run in progress will be lost."
-	_confirm.confirmed.connect(_start_new)
-	add_child(_confirm)
+	_build_confirm(center)
 	add_child(_blight)
 	_blight.picked.connect(func(level: int) -> void:
 		MetaRun.blight_level = level
@@ -190,9 +188,66 @@ func _continue() -> void:
 
 func _new_run() -> void:
 	if RunSaver.has_save():
-		_confirm.popup_centered()  # One run in progress at a time
+		_menu.visible = false  # One run in progress at a time: ask first
+		_confirm.visible = true
 	else:
 		_start_new()
+
+# "Start a new run?" in the game's one dialog style (the in-run abandon confirm, pause_menu.gd): Keep my run is
+# the primary and the default (Esc), Start new run framed in POOR.
+func _build_confirm(center: Control) -> void:
+	_confirm.name = "NewRunConfirm"
+	_confirm.visible = false
+	_confirm.custom_minimum_size = Vector2(420, 0)
+	center.add_child(_confirm)
+	DIALOG._solid(_confirm)
+	var page := VBoxContainer.new()
+	page.add_theme_constant_override("separation", 10)
+	_confirm.add_child(page)
+	var title := Label.new()
+	title.text = "Start a new run?"
+	UiStyle.display(title, 28)
+	page.add_child(title)
+	var body := Label.new()
+	body.text = "The run in progress will be lost."
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.custom_minimum_size.x = 380
+	body.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	page.add_child(body)
+	var gap := Control.new()
+	gap.custom_minimum_size.y = 12  # The text never touches the primary's thread
+	page.add_child(gap)
+	var keep := _confirm_button(page, "Keep my run", _close_confirm)
+	keep.name = "KeepRun"
+	UiStyle.primary(keep)
+	var chip := UiStyle.key_chip("Esc")
+	chip.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	chip.offset_left = -44
+	chip.offset_right = -14
+	keep.add_child(chip)
+	var start := _confirm_button(page, "Start new run", func() -> void:
+		_close_confirm()
+		_start_new())
+	start.name = "StartNewRun"
+	DIALOG._danger(start)
+
+func _confirm_button(page: Control, text: String, action: Callable) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.focus_mode = Control.FOCUS_NONE
+	button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
+	button.pressed.connect(action)
+	page.add_child(button)
+	return button
+
+func _close_confirm() -> void:
+	_confirm.visible = false
+	_menu.visible = true
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _confirm.visible and event.is_action_pressed("ui_cancel"):
+		_close_confirm()  # Esc keeps the run
+		get_viewport().set_input_as_handled()
 
 func _start_new() -> void:
 	RunSaver.delete_save()

@@ -27,6 +27,7 @@ static func blocker_text(blocker: String) -> String:
 	return "in the Memory Grove" if blocker == "Memory Grove" else blocker
 
 var compact := false  # The Warden panel (light pass): name + damage type on one line, a short description, no Dreams rows (set_compact)
+var brief := false  # Compact with many actions: the description's opening only (the panel sets it before show_warden)
 var full_description := ""  # Compact: the description in full when the short one left some out (the panel's Details), else ""
 var detail_lines: Array[String] = []  # Compact: stat lines left for the panel's Details ("Soaked: water hits +24%")
 
@@ -88,6 +89,18 @@ func set_compact(width: float) -> void:
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A very long name wraps rather than widening the panel
 	desc.custom_minimum_size = Vector2(width, 0)
 
+# A control at the right end of the name's line (the Warden panel's targeting chip); null clears it.
+func set_corner(control: Control) -> void:
+	var header := portrait.get_parent()
+	for old in header.get_children():
+		if old.has_meta(&"corner"):  # Tagged, not renamed: the control keeps its own name (TargetChip)
+			header.remove_child(old)
+			old.queue_free()
+	if control != null:
+		control.set_meta(&"corner", true)
+		control.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		header.add_child(control)
+
 # The description's opening for the compact header: the first sentence, the second too while both stay short.
 const SHORT_CHARS := 70  # Two lines of the compact panel's description (84 wrapped to 3 with underlined links)
 
@@ -143,6 +156,11 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 	_show_damage_type(data)
 	desc.text = StatusLinks.bbcode(data.description)  # {damp}-style tokens and plain names both work
 	full_description = ""
+	if compact and brief:  # Many actions below (story chat: the description gives way first): its opening, the rest in Details
+		var opening := short_description(data.description)
+		if opening != data.description:
+			desc.text = StatusLinks.bbcode(opening)
+			full_description = data.description
 	detail_lines.clear()
 	# Compact: the description whole, wrapping (user: "The description also cuts off"); short_description stays for
 	# callers that want an opening line.
@@ -174,6 +192,9 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			["%.1f/s" % _tower.get_attacks_per_second(), &"attack_speed"], [range_text, &"range"]]
 		if _tower.get_crit_chance() > 0.0:
 			main_row.append(["%d%%" % roundi(_tower.get_crit_chance() * 100), &"crit_chance"])
+		var covers := compact and is_instance_valid(tower) and tower.is_inside_tree()
+		if covers:  # Coverage in the icon row (story chat: always visible, no extra line; the path icon + N)
+			main_row.append([str(_tower.get_coverage()), &"path_length"])
 		_stat_row(main_row, true)
 		var second: Array = []  # The status it applies leads the second row (the first stays one line at 280 px)
 		if attack.applies_status != &"":
@@ -191,7 +212,10 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			second.append([strength, attack.applies_status, true])  # "Soaked: water hits +24%", "Rooted 1.2 s"
 		if not second.is_empty():
 			_stat_row(second, true)  # Wraps too: never wider than the card
-		notes.append_array(BranchKit.stat_lines(_tower))  # Jarlink's arc, live (Tower Code)
+		if compact:  # The panel keeps 45% of the screen: these go to its Details, like status strength (coverage is in the row)
+			detail_lines.append_array(BranchKit.stat_lines(_tower).filter(func(line: String) -> bool: return not line.begins_with("Covers ")))
+		else:
+			notes.append_array(BranchKit.stat_lines(_tower))  # Jarlink's arc, live (Tower Code)
 	else:
 		notes.append("A wall: no attack.")
 	if dreams != null and not compact:  # Compact: the panel puts them in Details
@@ -376,6 +400,8 @@ func stat_tip(stat: StringName) -> String:
 			meaning = "Crit chance: %d%% of its hits are critical" % roundi(_tower.get_crit_chance() * 100)
 		&"crit_damage":
 			meaning = "Critical hits deal ×%s damage" % str(attack.crit_multiplier)
+		&"path_length":  # Coverage (maze_feel.md #1: grow where it covers the most route)
+			return "Covers %d path tiles, counted once per pass." % _tower.get_coverage()
 		&"potency":
 			var p := _tower.get_potency()
 			if Tower.status_potency_on:

@@ -72,8 +72,8 @@ func _test_data(dream_state: DreamState) -> void:
 		if data == null:
 			continue
 		var frame: Vector2 = data.get_frame_rect(0).size if data.texture != null else Vector2.ZERO
-		_check(frame.x in [64.0, 80.0] and frame.y >= 64.0 and frame.y <= 128.0 and data.get_sprite_offset() == Vector2(0, -(frame.y - 64.0) / 2.0),
-			"%s has a 64 or 80 wide idle sheet (up to 128 tall) with its bottom on its cell (%s, %s)" % [id, frame, data.get_sprite_offset()])
+		_check(frame.x in [64.0, 72.0, 80.0] and frame.y >= 64.0 and frame.y <= 128.0 and data.get_sprite_offset() == Vector2(0, -(frame.y - 64.0) / 2.0),
+			"%s has a 64, 72 or 80 wide idle sheet (bases, branches, finals: art_direction.md b1a9ada7) (up to 128 tall) with its bottom on its cell (%s, %s)" % [id, frame, data.get_sprite_offset()])
 		_check(data.attack_kind == TowerData.AttackKind.AURA or data.attack_texture != null, "%s has an attack sheet" % id)
 		_check(reachable.has(id) != data.parked, "%s can be reached (planted or grown into), unless parked (Memory Wardens, cut for now)" % id)
 		if not data.is_unique:

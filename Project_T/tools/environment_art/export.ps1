@@ -8,13 +8,15 @@
 # Note: PowerShell variable names are case-insensitive; keep them distinct.
 param(
 	[string]$Chrome = "C:\Program Files\Google\Chrome\Application\chrome.exe",
-	[string]$Godot = "D:\Program Files\Godot\Godot_v4.7.2-stable_win64_console.exe"
+	# Godot runs through the dev wrapper: it sets APPDATA so user:// and Godot's logs stay on D:
+	# (user, 2026-10-05: nothing project-related on C:; user:// is the player's real profile otherwise).
+	[string]$GodotDev = "D:\Projects\logs\scripts\godot_dev.ps1"
 )
 # Not "Stop": PowerShell 5 turns Chrome's harmless stderr lines into errors. Failures are checked explicitly.
 $ErrorActionPreference = "Continue"
 $toolDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectDir = Split-Path -Parent (Split-Path -Parent $toolDir)
-$workDir = Join-Path $env:TEMP "environment_art_export"
+$workDir = "D:\Projects\logs\userdata\environment_art_export"  # not %TEMP% (C:)
 $rawDir = Join-Path $workDir "raw"
 if (Test-Path $rawDir) { Remove-Item $rawDir -Recurse -Force }
 New-Item -ItemType Directory -Force $rawDir | Out-Null
@@ -41,6 +43,6 @@ foreach ($m in $sheets) {
 "$($sheets.Count) raw sheets exported"
 
 # 2. Detail pass + palette into assets/environment/.
-& $Godot --headless --path $projectDir --script res://tools/environment_art/process_environment.gd -- "--raw=$rawDir"
+& $GodotDev environment_art --headless --path $projectDir --script res://tools/environment_art/process_environment.gd '--' "--raw=$rawDir"  # '--' quoted: a bare -- is eaten by PowerShell's script binding
 if ($LASTEXITCODE -ne 0) { throw "process_environment.gd reported $LASTEXITCODE problem(s)" }
-"Done. Now run: Godot --headless --path . --import"
+"Done. Now run: & D:\Projects\logs\scripts\godot_dev.ps1 environment_art --headless --path . --import"

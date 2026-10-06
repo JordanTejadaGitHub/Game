@@ -83,8 +83,8 @@ static func benchmark_text(b: Dictionary) -> String:
 		return ""
 	var pct := roundi(float(b.ratio) * 100.0)
 	if b.get("forecast", false):
-		return "Last drift %s DPS · drift %d needs ~%s · %d%%" % [fmt(b.maze_dps), int(b.drift), fmt(b.needed_dps), pct]
-	return "Your maze %s DPS · this drift needs ~%s · %d%%" % [fmt(b.maze_dps), fmt(b.needed_dps), pct]
+		return "Last drift %s DPS, drift %d needs ~%s (%d%%)" % [fmt(b.maze_dps), int(b.drift), fmt(b.needed_dps), pct]
+	return "Your maze %s DPS, this drift needs ~%s (%d%%)" % [fmt(b.maze_dps), fmt(b.needed_dps), pct]
 
 # Selects `tower` and glides the camera to it (a meter row, a DPS tag, a hit number).
 static func focus_tower(tower: Node) -> void:
@@ -169,7 +169,8 @@ func _ready() -> void:
 	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_body.add_child(_rows)
 	_more.name = "More"
-	UiStyle.caps(_more, 14)
+	_more.add_theme_font_size_override("font_size", 13)  # The normal small style, not caps (story chat)
+	_more.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	_more.visible = false
 	_body.add_child(_more)
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -415,7 +416,7 @@ func _fill_row(button: Button, r: Dictionary) -> void:
 	if is_instance_valid(tower) and (not button.has_meta(&"form") or button.get_meta(&"form") != tower.tower_data):  # A null default still warns
 		button.set_meta(&"form", tower.tower_data)
 		button.icon = WardenIcon.make(tower.tower_data)
-	button.text = "%s  %s DPS · %d%%%s" % [name, fmt(r.dps), roundi(float(r.share) * 100.0), star]
+	button.text = "%s  %s DPS  %d%%%s" % [name, fmt(r.dps), roundi(float(r.share) * 100.0), star]  # No " · " (light pass): spacing
 	var change: Array = row_change(r)
 	var change_label := button.get_node_or_null("Change") as Label
 	if change_label != null:

@@ -368,14 +368,21 @@ func _build_at(placer: TowerPlacer, data: TowerData, cell: Vector2) -> Tower:
 
 # A cell whose 3×3 surroundings are open ground away from the route (for the 2×2 tests).
 func _open_area(map_generator, container: Node) -> Vector2:
-	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
+	# Whole route cells (route points are half-cell centres), and nothing next to the route either, so a 2×2 grow
+	# there can't close it (Environment: on open maps the first 3×3 found sat on the route).
+	var route := Tower.route_cells(map_generator.get_path_from(map_generator.startPath))
+	var near_route := {}
+	for c in route:
+		for dy in range(-1, 2):
+			for dx in range(-1, 2):
+				near_route[c + Vector2(dx, dy)] = true
 	for y in range(3, Tower.MAP_GRID.size.y - 3):
 		for x in range(3, Tower.MAP_GRID.size.x - 3):
 			var ok := true
 			for dy in range(-1, 2):
 				for dx in range(-1, 2):
 					var c := Vector2(x + dx, y + dy)
-					if route.has(c) or not map_generator.is_buildable(c):
+					if near_route.has(c) or not map_generator.is_buildable(c):
 						ok = false
 			if ok:
 				return Vector2(x, y)

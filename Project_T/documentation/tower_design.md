@@ -417,7 +417,7 @@ Checked on role, owned status, attack shapes and their 5 branches.
 |---|---|---|---|---|---|
 | **Seedbearer → Grove Keeper** | **grows Wardens** | every 3 drifts grows a free Sprout on an adjacent cell | its Sprouts arrive at rank II | — (maze growth) | a golem carrying a seed sack |
 | **Nurse Log → Mother Log** (replaces Bark Shield, review 2026-10-02: Bark Shield only mattered against 2–3 boss abilities, so it sat idle most runs) | **nurture economy** | Wardens within 1.5 cells **Nurture 25% cheaper**: the spot where you grow your carries | **Remembered rings:** a Warden in range that's sold leaves its rank in the log; the next Warden planted on that cell starts at that rank (once per cell per rest) | — (deep, ranked builds; re-mazing) | a mossy fallen log with a sapling growing from it |
-| **Dream Oak → Dreamroot** | **Dreamlight economy** | gains 1 Dreamlight shard per drift, **+1 per different family among Wardens within 2 cells** (10 shards = 1 Dreamlight; capped per run), so it wants a mixed cluster (review 2026-10-02: adds a placement decision); feeds the branch call-back | shards double on perfect blocks | — (more branches and finals per run) | a small oak with a glowing fruit |
+| **Dream Oak → Dreamroot** | **Dreamlight economy** | gains 1 Dreamlight shard per drift, **+1 per different family among Wardens within 2.5 cells** (10 shards = 1 Dreamlight; capped per run), so it wants a mixed cluster (review 2026-10-02: adds a placement decision); feeds the branch call-back | shards double on perfect blocks | — (more branches and finals per run) | a small oak with a glowing fruit |
 
 ### Branch review: does each one earn its slot? (2026-10-02)
 
@@ -452,7 +452,7 @@ Seedbearer, and Deeproot (its twist changes, below).
 | **Quarry → Rampart** | building free walls isn't a heavy hit, copied Seedbearer's free growth, and its anti-trample twist copied Bark Shield | **Rampart**: a heavy hitter that grows with the Thornwalls touching it and turns them to stone (can't be trampled or burrowed). The maze becomes the weapon, inside Pebbling's role |
 | **Heartroot** (twist) | +1 leaf per 50 holds: a second leaf heal next to Great Dreamcatcher's ("the only leaf healing") | **Not yet:** once per drift the first would-be leak is dragged back 4 tiles. Pulling back is Rootling's job |
 | **Bark Shield → Nurse Log** | it only mattered against 2–3 boss abilities, so it sat idle most runs; the trample part moves to Rampart | **Nurse Log**: Nurture 25% cheaper in range, and a sold Warden's rank stays in the log for the next one. Gives Acorn a third economy (Dew: Dewcatcher; Dreamlight: Dream Oak; ranks: Nurse Log) and a reason to re-maze |
-| **Dream Oak** | passive: no placement decision | +1 shard per different family within 2 cells, so it wants a mixed cluster |
+| **Dream Oak** | passive: no placement decision | +1 shard per different family within 2.5 cells, so it wants a mixed cluster |
 
 **Nothing moves between families.** Two candidates were checked: Prism Jar (a support aura, which
 is Acorn's style) stays in Firefly because it's light, and a crit aura is part of the "exposed,

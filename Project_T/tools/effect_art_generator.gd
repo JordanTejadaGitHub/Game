@@ -41,6 +41,7 @@ func _init() -> void:
 	_branch_effects()
 	_phase2_effects()
 	_brood_effects()
+	_lichen_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -3236,3 +3237,52 @@ func _spore_puff(img: Image, c: Vector2, r: float, a: float) -> void:
 		_ellipse(img, c + Vector2(l.x, l.y) * r + Vector2(-0.8, -0.8), Vector2(l.z, l.z * 0.8) * r - Vector2(1.2, 1.2), Color(SPORE_PINK, a))
 	if a >= 1.0:
 		_ellipse(img, c + Vector2(-0.3, -0.55) * r, Vector2(maxf(1.0, r * 0.18), maxf(0.8, r * 0.12)), SPORE_CREAM)
+
+# --- Lichenling's hit (story chat, 2026-10-05: "make the Lichenling attack bigger") ----------------
+const LICHEN_PALE := Color("#d4ec9c")
+const LICHEN_MID := Color("#9cc46c")
+const LICHEN_DARK := Color("#5c944c")
+const POISON := Color("#de73e5")
+const POISON_DEEP := Color("#ba41d9")
+
+func _lichen_effects() -> void:
+	_sheet("lichen_hit", Vector2i(40, 40), 6, 16, Vector2i(20, 20), false, "signature", _lichen_hit.bind(1.0),
+		{note = "Lichenling: its crusted shot breaking on a nightmare (anchor = the hit). Crumbs of crust fly off and a Poisoned (Spored) puff blooms; ~0.38 s."})
+	_sheet("lichen_hit_big", Vector2i(48, 48), 6, 16, Vector2i(24, 24), false, "signature", _lichen_hit.bind(1.3),
+		{note = "Old Lichen: the same hit a step bigger, for its lichen_clump shot (anchor = the hit)."})
+
+func _lichen_hit(img: Image, f: int, size: float) -> void:
+	var c := Vector2(img.get_width(), img.get_height()) / 2.0
+	if f == 0:  # the clump cracking: a pale flash ringed with crust
+		_ellipse(img, c, Vector2(6, 5) * size, LICHEN_MID)
+		_ellipse(img, c + Vector2(-1, -1), Vector2(3.5, 2.8) * size, LICHEN_PALE)
+		_star(img, c, int(4 * size), CORE, LICHEN_PALE)
+		return
+	# The Poisoned puff: three lobes, deep underneath, lit from the upper left; it swells, then thins.
+	var r: float = [0.0, 6.0, 9.0, 11.0, 12.0, 12.5][f] * size
+	var a := 1.0 if f < 3 else (0.75 if f < 4 else 0.4)
+	if f < 5:
+		for l: Vector3 in [Vector3(-0.45, 0.15, 0.6), Vector3(0.45, 0.2, 0.55), Vector3(0.0, -0.3, 0.68)]:
+			_ellipse(img, c + Vector2(l.x, l.y) * r, Vector2(l.z, l.z * 0.8) * r, Color(POISON_DEEP, a))
+		for l: Vector3 in [Vector3(-0.45, 0.15, 0.6), Vector3(0.45, 0.2, 0.55), Vector3(0.0, -0.3, 0.68)]:
+			_ellipse(img, c + Vector2(l.x, l.y) * r + Vector2(-0.8, -0.8), Vector2(l.z, l.z * 0.8) * r - Vector2(1.2, 1.2), Color(POISON, a))
+	# Crumbs of crust flying out: chunky 3 x 2 chips (pale top, dark underside, outlined), falling a little.
+	for k in 6:
+		var d := Vector2.from_angle(k * TAU / 6.0 + 0.3)
+		var p := c + Vector2(d.x, d.y * 0.8) * (r * 0.9 + 3.0 + f * 2.0 * size) + Vector2(0, f * f * 0.3)
+		var col_a := 1.0 if f < 4 else 0.4
+		var x := int(p.x)
+		var y := int(p.y)
+		if x >= 1 and y >= 1 and x < img.get_width() - 4 and y < img.get_height() - 3:
+			for i in 3:
+				_px(img, x + i, y - 1, Color(OUTLINE, col_a))
+				_px(img, x + i, y, Color(LICHEN_PALE if i < 2 else LICHEN_MID, col_a))
+				_px(img, x + i, y + 1, Color(LICHEN_DARK, col_a))
+				_px(img, x + i, y + 2, Color(OUTLINE, col_a))
+			_px(img, x - 1, y, Color(OUTLINE, col_a))
+			_px(img, x - 1, y + 1, Color(OUTLINE, col_a))
+			_px(img, x + 3, y, Color(OUTLINE, col_a))
+			_px(img, x + 3, y + 1, Color(OUTLINE, col_a))
+	if f >= 2 and f <= 4:  # spores rising out of the puff
+		for k in 3:
+			_px(img, int(c.x) - 5 + k * 5, int(c.y - r * 0.7) - (f - 2) * 2 - k % 2, Color(CORE if k == 1 else POISON, a))

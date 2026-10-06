@@ -22,7 +22,7 @@ var _warning_key := ""
 var _remember_button := Button.new()
 var _sapling_button := Button.new()
 var _start_button := Button.new()
-var _auto_toggle := Button.new()  # A toggle: on = the primary look (ui_style.md)
+var _auto_toggle := Button.new()  # A toggle: on = the toggled-on look, as the active speed (never the primary; Start is)
 var _pause_button := Button.new()
 var _speed_buttons: Array[Button] = []
 
@@ -90,7 +90,7 @@ func _ready() -> void:
 
 	_start_button.focus_mode = Control.FOCUS_NONE
 	# One HUD scale (ui_style.md): the same height and text as every HUD button, in the primary look.
-	_start_button.custom_minimum_size = Vector2(272, UiStyle.HUD_BUTTON_H)
+	_start_button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)  # As wide as the speed row (user): _fit_start
 	_start_button.theme_type_variation = &"HudPrimary"
 	_start_button.pressed.connect(_on_start_pressed)
 	add_child(_start_button)
@@ -123,6 +123,12 @@ func _ready() -> void:
 
 	game_speed.changed.connect(_on_speed_changed)
 	_on_speed_changed(game_speed.paused, game_speed.speed)
+	# Start drift exactly as wide as the Auto / II / speed row, both on the panel's right edge (user: it stuck out)
+	_start_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	speed_row.size_flags_horizontal = Control.SIZE_SHRINK_END
+	var fit_start := func() -> void: _start_button.custom_minimum_size.x = speed_row.get_combined_minimum_size().x
+	speed_row.minimum_size_changed.connect(fit_start)
+	fit_start.call()
 	run_state.run_ended.connect(func(_won: bool) -> void: _start_button.visible = false)
 
 # The Sapling was declined (still takeable) or taken but not planted yet.
@@ -152,6 +158,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # The call-early bonus changes every frame as creatures walk, so refresh continuously.
 func _process(_delta: float) -> void:
+	# While a choice screen peeks at the map, its Return pill is the one glow: Start steps down to the plain look
+	var look := &"HudButton" if ChoicePeek.any_peeking() else &"HudPrimary"
+	if _start_button.theme_type_variation != look:
+		_start_button.theme_type_variation = look
 	_update_warning()
 	_update_finale()
 	_update_moonflip()
@@ -175,14 +185,13 @@ func _process(_delta: float) -> void:
 		# Light pass (user-approved): "Resting, 75% refunds"; the drift's Dew pot (run_design.md) moved to the tooltip.
 		_status_label.text = "Resting, %d%% refunds" % roundi(tower_seller.build_phase_refund * 100)
 		_status_label.tooltip_text = "Drift %d pays %d Dew, shared among its nightmares." % [next, roundi(drift_director.get_effective_pot(next))]
-		var boss := " · boss" if drift_director.is_boss_drift(next) else ""
-		_start_button.text = "Start drift %d%s (Enter)" % [next, boss]
+		_start_button.text = ("Start boss drift %d (Enter)" if drift_director.is_boss_drift(next) else "Start drift %d (Enter)") % next
 	elif drift_director.can_start_next_drift():
 		var countdown := drift_director.get_auto_countdown()
 		_status_label.text = "Drift %d in %d s" % [next, ceili(countdown)] if countdown >= 0.0 \
 			else "Rest after drift %d" % block_end
 		var bonus := drift_director.get_call_early_bonus()
-		_start_button.text = "Call drift %d early · +%d Dew" % [next, bonus] if bonus > 0 \
+		_start_button.text = "Call drift %d early, +%d Dew" % [next, bonus] if bonus > 0 \
 			else "Start drift %d now" % next
 	elif drift_director.is_mist_full() and drift_director.get_block(next) == drift_director.get_block(latest):
 		_status_label.text = "The mist is full"  # Calling early waits until the queue is out
@@ -198,6 +207,10 @@ func _process(_delta: float) -> void:
 		if pending == &"omen" and omens != null and bool(omens.get("faced")):
 			_start_button.text = "Choose an Omen"  # "Face an Omen" was picked: one of its Omens must be chosen
 		_start_button.disabled = false
+	# Paused mid-drift (user: "it should resume instead of bringing the next drift wave in"): the button only resumes.
+	if game_speed.paused and pending == &"" and not drift_director.is_resting() and not run_state.is_over:
+		_start_button.text = "Resume (Enter)"
+		_start_button.disabled = false
 
 const MIST_FULL := "The mist is full: it holds nightmares back until there's room on the path. Calling early waits until they're out."
 
@@ -208,8 +221,13 @@ const PENDING_SCREENS := {&"family": "FamilyPickScreen", &"dream": "DreamScreen"
 
 func _on_start_pressed() -> void:
 	var pending := drift_director.pending_choice()
+	if pending == &"" and game_speed.paused and not drift_director.is_resting():
+		game_speed.set_paused(false)  # Paused mid-drift: Resume only, never a call early (user)
+		return
 	if pending == &"":
 		drift_director.start_next_drift()
+		if game_speed.paused:
+			game_speed.set_paused(false)  # At a rest: the drift starts and the game runs, one press
 		return
 	reopen_choice(pending)
 

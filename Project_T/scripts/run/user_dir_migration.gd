@@ -14,6 +14,8 @@ func _init() -> void:
 	var to := OS.get_user_data_dir()
 	DirAccess.make_dir_recursive_absolute(to)  # A fresh machine: the custom folder doesn't exist yet, and saves need it
 	var from := OS.get_data_dir().path_join(OLD_FOLDER)
+	if DevPaths.script_in_real_profile():  # A test / sim / tool writing into the player's real profile on C:
+		push_warning("This --script run uses the real profile (%s). Run it through D:\\Projects\\logs\\scripts\\godot_dev.sh / .ps1 so its files land on D:." % to)
 	if to.simplify_path() == from.simplify_path():
 		return  # Not using the custom folder (nothing moved)
 	move_once(from, to)

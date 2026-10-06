@@ -165,6 +165,7 @@ func route_from_start(spot: Vector2) -> PackedVector2Array:
 	if spot == map.startPath:
 		return map.get_path_from(map.startPath)
 	var opened: Array[Vector2] = []
+	var version: int = map.probe_begin()
 	for h in FindPath.halves_of_cell(spot):
 		if map.path_layer.is_half_blocked(h):
 			opened.append(h)
@@ -172,6 +173,7 @@ func route_from_start(spot: Vector2) -> PackedVector2Array:
 	var route: PackedVector2Array = map.path_layer.get_finder().straightest_point_path(spot, map.endPath)  # As draw() will
 	for h in opened:
 		map.path_layer.set_half_blocked(h, true)
+	map.probe_end(version)
 	return route
 
 # Puts `gift` on `cells` (the caller checked them; Shift the Stones moves `from[i]` to `cells[i]`).

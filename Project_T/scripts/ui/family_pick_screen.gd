@@ -402,7 +402,7 @@ func _make_card(data: TowerData) -> Button:
 	costs.add_theme_constant_override("separation", 16)
 	costs.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(costs)
-	for pair in [["Sprout into it", dream_state.get_evolve_cost(data)], ["Plant", data.cost]]:
+	for pair in [["Sprout into it", _sprout_into_cost(data)], ["Plant", data.cost]]:
 		costs.add_child(_cost_part(pair[0], int(pair[1])))
 	_add_routes(box, data)
 	var spare := Control.new()
@@ -415,12 +415,23 @@ func _make_card(data: TowerData) -> Button:
 	wake.focus_mode = Control.FOCUS_NONE
 	wake.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	wake.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
-	UiStyle.primary(wake)
+	# Secondary, like the Dream cards: no card is the default (the hovered card is the emphasis; story chat)
 	ChoiceCard.link_cue(wake)  # Lights with the card (hover, press)
 	box.add_child(wake)
 	return button
 
 # The statuses a family applies (its base Warden's), in order, once each.
+# "Sprout into it": the live floor (Tower Code 526df9d7: growing a Sprout into a base pays at least the base's price minus
+# the Sprout's), as an estimate before any Sprout is planted; the grow buttons show each Sprout's exact price.
+func _sprout_into_cost(data: TowerData) -> int:
+	var cost := dream_state.get_evolve_cost(data)
+	var placer := get_node_or_null("%TowerPlacer")
+	if placer != null and placer.has_method("get_cost"):
+		cost = maxi(cost, int(placer.get_cost(data)) - int(placer.get_cost(SPROUT)))
+	return cost
+
+const SPROUT := preload("res://resource/tower/sprout.tres")
+
 static func _statuses_of(data: TowerData) -> Array[StringName]:
 	var out: Array[StringName] = []
 	for status in [data.applies_status, data.extra_status]:

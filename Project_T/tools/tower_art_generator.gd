@@ -184,7 +184,7 @@ const ATTACKS := {
 	"sporeling": {kind = "projectile", projectile = "spore", point = Vector2i(46, 9)},
 	# Branch expansion (2026-10-02): Sporeling C, D, E.
 	"lichenling": {kind = "projectile", projectile = "lichen_flake", point = Vector2i(46, 6)},
-	"old_lichen": {kind = "projectile", projectile = "lichen_flake", point = Vector2i(48, 4)},
+	"old_lichen": {kind = "projectile", projectile = "lichen_clump", point = Vector2i(48, 4)},
 	"brood_cap": {kind = "spawn", projectile = "spore_sprite", point = Vector2i(44, 14)},
 	"hatchery": {kind = "spawn", projectile = "spore_sprite", point = Vector2i(44, 14)},
 	"inkcap": {kind = "projectile", projectile = "ink_drop", point = Vector2i(40, 12)},
@@ -341,7 +341,7 @@ func _init() -> void:
 	for p: String in ["spore", "pebble", "boulder", "dew_drop", "spark", "light_orb", "sling_stone", "moon_shard",
 			"frost_shard", "sparrow", "wren", "magpie", "starling", "moon_mote", "fairy_ring", "elf_circle",
 			"dream_mote", "lob_stone", "hummingbird", "maple_seed", "autumn_seed", "starling_bird",
-			"lichen_flake", "ink_drop", "spore_sprite", "whetstone_slash"]:
+			"lichen_flake", "lichen_clump", "ink_drop", "spore_sprite", "whetstone_slash"]:
 		_make_projectile(p)
 	_save_projectile_preview()
 	quit()
@@ -485,9 +485,10 @@ func _top_row(img: Image) -> int:
 
 # --- Bigger Wardens (art_direction.md "Bigger Wardens", approved bcabe980) -----------------------
 # Every Warden but the family bases (Sprout, Sporeling, Pebbling and the rest: see _is_big) and
-# Thornwall (the plain wall) has a body BIG_K times the size, on its unchanged 64 px waystone, so its
-# footprint still reads as one cell; the art rises over the cell above and leans a little over the
-# cells beside it. The body is drawn at 64 as before, then re-rasterised round its feet at BIG_K, like
+# Thornwall (the plain wall) has a bigger body (finals BIG_K, branches MID_K: _use_size) on its
+# unchanged 64 px waystone, so its footprint still reads as one cell; the art rises over the cell
+# above and leans a little over the cells beside it. The body is drawn at 64 as before, then
+# re-rasterised round its feet at that scale (_k), like
 # the Ascended golem: colour regions are resampled and every outline, 1 px line and small detail is
 # redrawn 1 px wide (no doubled pixels). What belongs to the plinth (the slab, its rocks, tufts and
 # props lying on it) stays at plinth size, and the attack's effects keep their size and move with the
@@ -500,7 +501,7 @@ const BIG_W := 80
 const BIG_WORK_H := 176
 const BIG_MAX_H := 128
 const BIG_MARGIN := 2
-const BIG_GLOW := 3  # the detail pass's glow reach on attack frames: kept clear of the frame edge too
+const BIG_GLOW := 5  # the detail pass's glow reach on attack frames: kept clear of the frame edge too
 const KEEP_SIZE := ["sprout", "thornwall", "thornwall_stone"]  # the seed and the plain wall stay at 64 (user, 2026-10-04)
 const BIG_FEET := Vector2(32.0, 47.0)  # the classic golem's feet (template pose 0), in 64 px body coords
 var big_h := {}    # warden -> its frame height
@@ -511,21 +512,41 @@ var _slab_canvas: Image  # the plinth as drawn this frame (waystone, rocks, what
 const BIG_KNEE := 21.0
 var _big_a := BIG_K
 var big_a := {}  # warden -> its outer slope
+# Three size steps (art_direction.md "Three size steps", b1a9ada7): family bases at 64, branches at
+# MID_K in MID_W frames, finals (and the Memory Wardens) at BIG_K in BIG_W frames.
+const MID_K := 1.2
+const MID_W := 72
+var _k := BIG_K  # the body scale and frame width of the Warden being drawn (_use_size)
+var _w := BIG_W
+
+func _use_size(tower_name: String) -> void:
+	_k = MID_K if _is_branch(tower_name) else BIG_K
+	_w = MID_W if _is_branch(tower_name) else BIG_W
+
+# Branches: the odd places in a family's line (base, branch, final, branch, final...).
+func _is_branch(tower_name: String) -> bool:
+	for line: String in LINES:
+		if line == "memory" or line == "starters":
+			continue
+		var i: int = LINES[line].find(tower_name)
+		if i > 0:
+			return i % 2 == 1
+	return false
 
 func _bx(dx: float) -> float:  # source x offset from the feet -> big frame offset
 	var m := absf(dx)
-	return signf(dx) * (m * BIG_K if m <= BIG_KNEE else BIG_KNEE * BIG_K + (m - BIG_KNEE) * _big_a)
+	return signf(dx) * (m * _k if m <= BIG_KNEE else BIG_KNEE * _k + (m - BIG_KNEE) * _big_a)
 
 func _bx_back(tx: float) -> float:
 	var m := absf(tx)
-	return signf(tx) * (m / BIG_K if m <= BIG_KNEE * BIG_K else BIG_KNEE + (m - BIG_KNEE * BIG_K) / _big_a)
+	return signf(tx) * (m / _k if m <= BIG_KNEE * _k else BIG_KNEE + (m - BIG_KNEE * _k) / _big_a)
 
 # The outer slope that keeps everything `extent` px from the feet inside the frame (BIG_MARGIN clear).
 func _fit_slope(extent: float) -> float:
-	var room := BIG_W / 2.0 - BIG_MARGIN - BIG_GLOW
-	if extent * BIG_K <= room or extent <= BIG_KNEE:
-		return BIG_K
-	return clampf((room - BIG_KNEE * BIG_K) / (extent - BIG_KNEE), 0.5, BIG_K)
+	var room := _w / 2.0 - BIG_MARGIN - BIG_GLOW
+	if extent * _k <= room or extent <= BIG_KNEE:
+		return _k
+	return clampf((room - BIG_KNEE * _k) / (extent - BIG_KNEE), 0.5, _k)
 
 func _is_big(tower_name: String) -> bool:
 	if tower_name in KEEP_SIZE:
@@ -540,8 +561,8 @@ func _is_big(tower_name: String) -> bool:
 # A body point (64 px body coords) on the big frame (x in the BIG_W frame, y from the cell's top).
 func _big_point(p: Vector2) -> Vector2i:
 	var d := p + Vector2(0.5, 0.5) - BIG_FEET
-	var q := BIG_FEET + Vector2(_bx(d.x), d.y * BIG_K)
-	return Vector2i(floori(q.x) + (BIG_W - S) / 2, floori(q.y))
+	var q := BIG_FEET + Vector2(_bx(d.x), d.y * _k)
+	return Vector2i(floori(q.x) + (_w - S) / 2, floori(q.y))
 
 # One frame drawn at 64: [frame (64 x frame_h), plinth (same size), effect layer or null]. `extra`
 # (the attack or channel effect) is kept apart for big Wardens.
@@ -579,10 +600,11 @@ func _raw_frame(tower_name: String, st: Dictionary, draw: Callable, extra: Calla
 # use that Warden's frame (stone walls swap in for their wall).
 func _finish(tower_name: String, raw: Dictionary, size_of: String = "") -> Dictionary:
 	var big := _is_big(tower_name)
+	_use_size(tower_name)
 	if big:
 		_big_a = _fit_slope(_body_extent(raw))
 		big_a[tower_name] = _big_a
-	var w := BIG_W if big else S
+	var w := _w if big else S
 	var full := BIG_WORK_H if big else _frame_h(tower_name)
 	# Each kind's sheet at full height through the detail pass (idle-like kinds: no glow, Warden Night).
 	var sheets := {}
@@ -650,8 +672,8 @@ func _touches_edge(sheet: Image, w: int, n: int) -> bool:
 func _big_compose(frame: Image, slab: Image, fx: Image) -> Image:
 	var w := frame.get_width()
 	var h := frame.get_height()
-	var out := Image.create_empty(BIG_W, BIG_WORK_H, false, Image.FORMAT_RGBA8)
-	var dx := (BIG_W - S) / 2
+	var out := Image.create_empty(_w, BIG_WORK_H, false, Image.FORMAT_RGBA8)
+	var dx := (_w - S) / 2
 	var dy := BIG_WORK_H - h
 	out.blend_rect(slab, Rect2i(0, 0, w, h), Vector2i(dx, dy))
 	# The body: whatever differs from the bare plinth.
@@ -663,7 +685,7 @@ func _big_compose(frame: Image, slab: Image, fx: Image) -> Image:
 				src.set_pixel(x, y, c)
 	var src_feet := BIG_FEET + Vector2(0, h - S)
 	var dst_feet := BIG_FEET + Vector2(dx, BIG_WORK_H - S)
-	out.blend_rect(_reraster(src, src_feet, dst_feet), Rect2i(0, 0, BIG_W, BIG_WORK_H), Vector2i.ZERO)
+	out.blend_rect(_reraster(src, src_feet, dst_feet), Rect2i(0, 0, _w, BIG_WORK_H), Vector2i.ZERO)
 	if fx != null:
 		_place_fx(out, fx, src_feet, Vector2i(dx, dy))
 	return out
@@ -726,15 +748,15 @@ func _reraster(src: Image, src_feet: Vector2, dst_feet: Vector2) -> Image:
 		return col.call(x, y)
 	var back := func(t: Vector2i) -> Vector2:
 		var d := Vector2(t) + Vector2(0.5, 0.5) - dst_feet
-		return src_feet + Vector2(_bx_back(d.x), d.y / BIG_K)
+		return src_feet + Vector2(_bx_back(d.x), d.y / _k)
 	var fwd := func(p: Vector2i) -> Vector2i:
 		var d := Vector2(p) + Vector2(0.5, 0.5) - src_feet
-		var q := dst_feet + Vector2(_bx(d.x), d.y * BIG_K)
+		var q := dst_feet + Vector2(_bx(d.x), d.y * _k)
 		return Vector2i(floori(q.x), floori(q.y))
-	var body := Image.create_empty(BIG_W, BIG_WORK_H, false, Image.FORMAT_RGBA8)
+	var body := Image.create_empty(_w, BIG_WORK_H, false, Image.FORMAT_RGBA8)
 	# 1. Regions: back-projected; thin and edge pixels take the region colour beside them.
 	for y in BIG_WORK_H:
-		for x in BIG_W:
+		for x in _w:
 			var s: Vector2 = back.call(Vector2i(x, y))
 			var sx := floori(s.x)
 			var sy := floori(s.y)
@@ -744,13 +766,13 @@ func _reraster(src: Image, src_feet: Vector2, dst_feet: Vector2) -> Image:
 	# 2. A fresh 1 px outline round the new silhouette, coloured like the nearest edge it came from.
 	var edged := body.duplicate()
 	for y in BIG_WORK_H:
-		for x in BIG_W:
+		for x in _w:
 			if body.get_pixel(x, y).a == 0.0:
 				continue
 			var open := false
 			for n: Vector2i in [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1), Vector2i(0, 1)]:
 				var q := Vector2i(x, y) + n
-				if q.x < 0 or q.y < 0 or q.x >= BIG_W or q.y >= BIG_WORK_H or body.get_pixelv(q).a == 0.0:
+				if q.x < 0 or q.y < 0 or q.x >= _w or q.y >= BIG_WORK_H or body.get_pixelv(q).a == 0.0:
 					open = true
 					break
 			if not open:
@@ -820,7 +842,7 @@ func _place_fx(out: Image, fx: Image, src_feet: Vector2, at: Vector2i) -> void:
 							stack.append(q)
 			var centre := sum / piece.size() + Vector2(0.5, 0.5)
 			var off := centre - src_feet
-			var move := Vector2i((Vector2(_bx(off.x), off.y * BIG_K) - off).round())
+			var move := Vector2i((Vector2(_bx(off.x), off.y * _k) - off).round())
 			var lo := Vector2i(w, h)
 			var hi := Vector2i(-1, -1)
 			for p: Vector2i in piece:
@@ -828,7 +850,10 @@ func _place_fx(out: Image, fx: Image, src_feet: Vector2, at: Vector2i) -> void:
 				hi = hi.max(p)
 			# Kept inside the frame (clear of its sides and top, glow included).
 			var edge := BIG_MARGIN + BIG_GLOW
-			move.x = clampi(move.x, edge - lo.x - at.x, out.get_width() - 1 - edge - hi.x - at.x) if hi.x - lo.x < out.get_width() - 2 * edge else move.x
+			if hi.x - lo.x < out.get_width() - 2 * edge:
+				move.x = clampi(move.x, edge - lo.x - at.x, out.get_width() - 1 - edge - hi.x - at.x)
+			else:  # wider than the room (a ground ring as wide as the 64 frame): centred
+				move.x = (out.get_width() - (hi.x - lo.x + 1)) / 2 - lo.x - at.x
 			move.y = maxi(move.y, BIG_WORK_H - BIG_MAX_H + edge - lo.y - at.y)
 			for p: Vector2i in piece:
 				var t := p + at + move
@@ -936,9 +961,10 @@ func _save_attack_info() -> void:
 		info.point = [info.point.x, info.point.y]
 		if big_h.has(warden):  # bigger Wardens: the point on their own frame (y from the top of its bottom 64 rows)
 			_big_a = big_a[warden]
+			_use_size(warden)
 			var q := _big_point(Vector2(ATTACKS[warden].point))
 			info.point = [q.x, q.y]
-			info.frame = [BIG_W, big_h[warden]]
+			info.frame = [_w, big_h[warden]]
 		wardens[warden] = info
 	# Where the Dew catchers' bowls sit (the bowl's surface centre and radii at dy 0), and how far the
 	# bowl bobs per idle frame (add dy_by_frame[frame] to point.y). Fill overlays in effects.json
@@ -959,9 +985,10 @@ func _bowl(warden: String, point: Vector2, radius: Vector2, idle_dy: Array) -> D
 	if not big_h.has(warden):
 		return {point = [point.x, point.y], radius = [radius.x, radius.y], dy_by_frame = idle_dy}
 	_big_a = big_a[warden]
+	_use_size(warden)
 	var q := _big_point(point)
-	var r := (radius * BIG_K).round()
-	return {point = [q.x, q.y], radius = [r.x, r.y], frame = [BIG_W, big_h[warden]], dy_by_frame = idle_dy}
+	var r := (radius * _k).round()
+	return {point = [q.x, q.y], radius = [r.x, r.y], frame = [_w, big_h[warden]], dy_by_frame = idle_dy}
 
 # One row per Warden on grass: its idle loop, a gap, then its attack. Scaled up for eyeballing.
 func _save_line_preview(rows: Array, path: String) -> void:
@@ -1364,6 +1391,7 @@ func _pal(o: String, a: String, b: String, c: String) -> Dictionary:
 
 const P := 24
 const P_FRAMES := 4
+const P_SIZE := {"lichen_clump": 32}  # shots on a bigger frame than P (Tower Code reads the size from the sheet)
 const P_AT := 20  # the frame's top-left on the work canvas
 # Shots that light themselves in their own colour, and traps (they lie on the path, unlit).
 const P_OWN_GLOW := ["dew_drop", "spark", "light_orb", "moon_shard", "frost_shard", "moon_mote", "dream_mote",
@@ -1371,23 +1399,28 @@ const P_OWN_GLOW := ["dew_drop", "spark", "light_orb", "moon_shard", "frost_shar
 var projectile_sheets: Array[Image] = []
 
 func _make_projectile(proj_name: String) -> void:
-	var sheet := Image.create_empty(P * P_FRAMES, P, false, Image.FORMAT_RGBA8)
+	var size: int = P_SIZE.get(proj_name, P)
+	var at := 32 - size / 2
+	var sheet := Image.create_empty(size * P_FRAMES, size, false, Image.FORMAT_RGBA8)
 	for f in P_FRAMES:
 		var canvas := _layer()
 		call("_proj_" + proj_name, canvas, f)
 		if not proj_name in P_OWN_GLOW:
-			_soft_glow(canvas, Vector2(32, 32), Vector2(10.5, 9), f)  # every Warden shot glows warmly
-		sheet.blit_rect(canvas, Rect2i(P_AT, P_AT, P, P), Vector2i(f * P, 0))
+			_soft_glow(canvas, Vector2(32, 32), Vector2(10.5, 9) * size / P, f)  # every Warden shot glows warmly
+		sheet.blit_rect(canvas, Rect2i(at, at, size, size), Vector2i(f * size, 0))
 	_snap32(sheet).save_png(OUT + "projectiles/" + proj_name + ".png")
 	projectile_sheets.append(sheet)
 
 func _save_projectile_preview() -> void:
 	var pad := 4
-	var preview := Image.create_empty(P * P_FRAMES + pad * (P_FRAMES + 1), (P + pad) * projectile_sheets.size() + pad, false, Image.FORMAT_RGBA8)
+	var cell: int = P_SIZE.values().max() if not P_SIZE.is_empty() else P
+	var preview := Image.create_empty(cell * P_FRAMES + pad * (P_FRAMES + 1), (cell + pad) * projectile_sheets.size() + pad, false, Image.FORMAT_RGBA8)
 	preview.fill(Color("#5fa844"))
 	for i in projectile_sheets.size():
+		var size: int = projectile_sheets[i].get_height()
 		for f in P_FRAMES:
-			preview.blend_rect(projectile_sheets[i], Rect2i(f * P, 0, P, P), Vector2i(pad + f * (P + pad), pad + i * (P + pad)))
+			preview.blend_rect(projectile_sheets[i], Rect2i(f * size, 0, size, size),
+				Vector2i(pad + f * (cell + pad) + (cell - size) / 2, pad + i * (cell + pad) + (cell - size) / 2))
 	preview.resize(preview.get_width() * 8, preview.get_height() * 8, Image.INTERPOLATE_NEAREST)
 	preview.save_png(PREVIEWS + "projectiles.png")
 
@@ -2538,31 +2571,31 @@ func _warm_glow(canvas: Image, c: Vector2, r: Vector2, phase: int = 0) -> void:
 				_sp(canvas, x, y, Color(GLOW_OUTER, 0.4))
 
 # A puff that bursts on release, then scatters into dots and fades.
-func _burst(canvas: Image, c: Vector2, a: int, light_col: Color, dark_col: Color, o: Color) -> void:
+func _burst(canvas: Image, c: Vector2, a: int, light_col: Color, dark_col: Color, o: Color, size: float = 1.0) -> void:
 	if a == RELEASE_FRAME:
 		var puff := _layer()
-		_flat_ellipse(puff, c, Vector2(4, 3.4), light_col)
-		_flat_ellipse(puff, c + Vector2(-3.5, 2), Vector2(2.4, 2.2), light_col)
-		_flat_ellipse(puff, c + Vector2(3.5, 2), Vector2(2.6, 2.4), light_col)
+		_flat_ellipse(puff, c, Vector2(4, 3.4) * size, light_col)
+		_flat_ellipse(puff, c + Vector2(-3.5, 2) * size, Vector2(2.4, 2.2) * size, light_col)
+		_flat_ellipse(puff, c + Vector2(3.5, 2) * size, Vector2(2.6, 2.4) * size, light_col)
 		for y in range(-OY, S):
 			for x in S:
-				if _gp(puff, x, y).a > 0.0 and y > c.y + 2:
+				if _gp(puff, x, y).a > 0.0 and y > c.y + 2 * size:
 					_sp(puff, x, y, dark_col)
 		_stamp(canvas, puff, o)
-		for k in 4:
-			var d := Vector2.from_angle(k * TAU / 4.0 + 0.4) * 8.0
+		for k in (4 if size <= 1.0 else 6):
+			var d := Vector2.from_angle(k * TAU / (4.0 if size <= 1.0 else 6.0) + 0.4) * 8.0 * size
 			_px(canvas, roundi(c.x + d.x), roundi(c.y + d.y), light_col)
-		_warm_glow(canvas, c + Vector2(0, 1), Vector2(9, 7.5))
+		_warm_glow(canvas, c + Vector2(0, 1), Vector2(9, 7.5) * size)
 	elif a == RELEASE_FRAME + 1 or a == RELEASE_FRAME + 2:
-		var radius := 8.0 if a == RELEASE_FRAME + 1 else 11.0
+		var radius := (8.0 if a == RELEASE_FRAME + 1 else 11.0) * size
 		for k in 6:
 			var d := Vector2.from_angle(k * TAU / 6.0 + 0.2) * radius
 			_px(canvas, roundi(c.x + d.x), roundi(c.y + d.y), light_col if a == RELEASE_FRAME + 1 else dark_col)
 		if a == RELEASE_FRAME + 1:
 			var core := _layer()
-			_flat_ellipse(core, c, Vector2(2.5, 2.2), light_col)
+			_flat_ellipse(core, c, Vector2(2.5, 2.2) * size, light_col)
 			_stamp(canvas, core, o)
-			_warm_glow(canvas, c, Vector2(6, 5), 1)
+			_warm_glow(canvas, c, Vector2(6, 5) * size, 1)
 
 # A 1px ellipse ring on the ground; dithered when fading.
 func _ring(canvas: Image, c: Vector2, r: Vector2, color: Color, fading: bool) -> void:
@@ -5215,11 +5248,11 @@ func _lichen_body(canvas: Image, st: Dictionary, old: bool) -> void:
 
 func _attack_lichenling(canvas: Image, st: Dictionary) -> void:
 	_blow(canvas, st, Color("#ed9df2"), Color("#17174d"), Color(LICHEN[2]))
-	_burst(canvas, Vector2(ATTACKS["lichenling"].point), st.attack, Color(LICHEN[2]), Color(LICHEN[0]), Color("#17174d"))
+	_burst(canvas, Vector2(ATTACKS["lichenling"].point), st.attack, Color("#ec9cf4"), Color("#bc44dc"), Color("#17174d"), 1.5)  # spore pink, like the Poisoned puff it lands with
 
 func _attack_old_lichen(canvas: Image, st: Dictionary) -> void:
 	_blow(canvas, st, Color("#ed9df2"), Color("#17174d"), Color(LICHEN[2]))
-	_burst(canvas, Vector2(ATTACKS["old_lichen"].point), st.attack, Color(LICHEN[2]), Color(LICHEN[0]), Color("#17174d"))
+	_burst(canvas, Vector2(ATTACKS["old_lichen"].point), st.attack, Color("#ec9cf4"), Color("#bc44dc"), Color("#17174d"), 1.8)
 	if st.attack == RELEASE_FRAME + 1:
 		for p: Vector2i in [Vector2i(10, 4), Vector2i(52, 3)]:
 			_sparkle(canvas, p, Color(LICHEN[2]))
@@ -5422,19 +5455,45 @@ func _attack_deliquescent(canvas: Image, st: Dictionary) -> void:
 
 # Projectiles: a spinning lichen flake (Lichenling), a falling ink drop (Inkcap), and the brood's
 # walking spore-sprite (Brood Cap: 4 walk frames, drawn walking right).
+# Lichenling's shot (user: "make the Lichenling attack bigger"): a crusted spore clump about 1.5x the
+# old flake, tumbling, with a mossy rim and pink spores on it; Old Lichen's (lichen_clump, 32 px frame)
+# is a step bigger again.
 func _proj_lichen_flake(canvas: Image, f: int) -> void:
+	_crust_clump(canvas, Vector2(33, 32), 7.0, f, 2)
+	for k in 2:
+		_px_under(canvas, 23 - k * 2, 32 + (k + f) % 2, Color(LICHEN[2], 0.8 - k * 0.3))
+
+func _proj_lichen_clump(canvas: Image, f: int) -> void:
+	_crust_clump(canvas, Vector2(34, 32), 9.5, f, 4)
+	for k in 3:
+		_px_under(canvas, 22 - k * 2, 32 + (k + f) % 2, Color(LICHEN[2], 0.8 - k * 0.2))
+
+# A lumpy clump of crust (radius `r`, tumbling with frame `f`): pale lichen with darker crust plates,
+# a dark outline lit along its upper left, moss tufts on its rim and `spores` pink spore dots.
+func _crust_clump(canvas: Image, c: Vector2, r: float, f: int, spores: int) -> void:
 	var a := f * TAU / 8.0
 	var layer := _layer()
 	var pts := PackedVector2Array()
-	for k in 7:
-		var r := 5.0 if k % 2 == 0 else 3.8
-		pts.append(Vector2(32, 32) + Vector2(cos(a + k * TAU / 7.0) * r, sin(a + k * TAU / 7.0) * r * 0.6))
+	for k in 9:
+		var rr := r if k % 2 == 0 else r * 0.78
+		pts.append(c + Vector2(cos(a + k * TAU / 9.0) * rr, sin(a + k * TAU / 9.0) * rr * 0.72))
 	_flat_polygon(layer, pts, Color(LICHEN[1]))
+	for k in 3:  # crust plates
+		var p := c + Vector2.from_angle(a * 2.0 + k * 2.1) * r * 0.45
+		_flat_ellipse(layer, p, Vector2(r * 0.22, r * 0.16), Color(LICHEN[0]))
 	_stamp(canvas, layer, Color("#1e3a1a"))
-	_px(canvas, 31, 31, Color(LICHEN[2]))
-	_px(canvas, 33, 32, Color(LICHEN[0]))
-	for k in 3:
-		_px_under(canvas, 25 - k * 2, 32 + (k + f) % 2, Color(LICHEN[2], 0.8 - k * 0.2))
+	for y in range(-OY, S):  # the lit upper-left rim
+		for x in S:
+			if _gp(layer, x, y).a > 0.0 and _gp(canvas, x, y) != Color("#1e3a1a") \
+					and (_gp(layer, x - 1, y - 1).a == 0.0 or _gp(layer, x, y - 2).a == 0.0) and x < c.x + 1 and y < c.y:
+				_sp(canvas, x, y, Color(LICHEN[2]))
+	for k in 4:  # moss tufts on the rim
+		var d := Vector2.from_angle(a + k * TAU / 4.0 + 0.6)
+		var p := c + Vector2(d.x * (r + 1.0), d.y * (r + 1.0) * 0.72)
+		_px(canvas, roundi(p.x), roundi(p.y), Color(LICHEN[0]))
+	for k in spores:
+		var p := c + Vector2.from_angle(-a + k * TAU / spores) * r * 0.35
+		_px(canvas, roundi(p.x), roundi(p.y), Color("#de73e5"))
 
 func _proj_ink_drop(canvas: Image, f: int) -> void:
 	var layer := _layer()
@@ -8054,7 +8113,7 @@ func _draw_earthshaker(canvas: Image, st: Dictionary) -> void:
 	_quake_fists(canvas, st, fig, 1.25, Color("#e9a83c"))
 
 func _attack_quaker(canvas: Image, st: Dictionary) -> void:
-	_ground_slam(canvas, st, 1.0)
+	_ground_slam(canvas, st, 0.9)  # fits the branch's 72 px frame with its glow
 
 func _attack_earthshaker(canvas: Image, st: Dictionary) -> void:
 	_ground_slam(canvas, st, 1.3)
@@ -8068,7 +8127,7 @@ func _ground_slam(canvas: Image, st: Dictionary, size: float) -> void:
 	for w in 3:
 		_ring(canvas, c, Vector2(14 + k * 8 - w, 5 + k * 3 - w * 0.4) * size, Color("#fcd47c") if w == 0 else Color("#bca48c"), k == 2 and w > 0)
 	for s: int in [-1, 1]:
-		_fog(canvas, Vector2(31.5 + s * 21.0, 40 - k * 2), Vector2(7 + k * 2, 4 + k), Color("#dccdb2"), st.f + k)
+		_fog(canvas, Vector2(31.5 + s * 21.0 * minf(size, 1.0), 40 - k * 2), Vector2(7 + k * 2, 4 + k) * minf(size, 1.0), Color("#dccdb2"), st.f + k)
 	if k == 0:
 		_warm_glow(canvas, c, Vector2(16, 6))
 

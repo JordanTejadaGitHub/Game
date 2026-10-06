@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Grove Heart"
-description = "Pulses the nightmares in range. Wardens within 2 cells deal {pct:grove_heart.aura_damage_bonus} more damage and attack {pct:grove_heart.aura_speed_bonus} faster, 3% more for each Warden in that area (up to 45%)."
+description = "Pulses the nightmares in range. Wardens within {field:grove_heart.aura_radius:cells} deal {pct:grove_heart.aura_damage_bonus} more damage and attack {pct:grove_heart.aura_speed_bonus} faster, 3% more for each Warden in that area (up to 45%)."
 cost = 0
 role_tag = &"support"
 line = "acorn"
@@ -22,7 +22,7 @@ attacks_per_second = 1.0
 crit_chance = 0.05
 aura_damage_bonus = 0.15
 aura_speed_bonus = 0.15
-aura_radius = 2.0
+aura_radius = 2.5
 aura_per_warden = 0.03
 aura_max = 0.45
 texture = ExtResource("2_tex")

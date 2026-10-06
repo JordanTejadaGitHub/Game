@@ -187,7 +187,9 @@ func _refresh() -> void:
 	var data := _tower.tower_data
 	if _tower.is_catcher():
 		tower_placer.show_catch_preview(_tower.global_position, _tower.get_catch_radius())  # Its catch zone
-	# The shared header: portrait, name, damage type, description, stats, Dreams on it.
+	# The shared header: portrait, name, damage type, description, stats, Dreams on it. Many options below: the
+	# description gives way first (its opening, the rest in Details), never an action.
+	_header.brief = not _tower.twig and Tower.grow_options(dream_state, data).size() > MAX_ROWS
 	var lines: Array[String] = _header.show_warden(data, _tower, dream_state, false)
 	if _tower.rank > 0:  # On the small line under the name (the name is never cut)
 		var sub := _damage_type.get_child(0) as Label
@@ -256,6 +258,7 @@ func _refresh() -> void:
 		child.get_parent().remove_child(child)  # Out now: the new GrowHeading / DetailsToggle keep their names
 		child.queue_free()
 	_clear_not_in_dream()
+	_header.set_corner(_target_chip([_tower]) if _tower.can_choose_target() else null)  # Walls and untargeted: none
 	if _tower.can_choose_target():
 		_add_target_switch([_tower])
 	if data.has_bird_toggle:
@@ -444,6 +447,7 @@ func _refresh_group() -> void:
 		child.queue_free()
 	_clear_not_in_dream()
 	var aimed := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_choose_target())
+	_header.set_corner(_target_chip(aimed) if not aimed.is_empty() else null)  # Sets every selected attacker
 	if not aimed.is_empty():
 		_add_target_switch(aimed)
 	var growing := _growable_groups(groups)  # Twig walls never grow
@@ -546,7 +550,8 @@ func _refresh_group() -> void:
 	_key_on(sell, tower_seller.sell_key_name())
 	sell.tooltip_text = ("Half the Dew back while nightmares walk.\n\n" if in_drift else "") + "Key: %s" % tower_seller.sell_key_name()
 	if _confirm_sell:
-		sell.text = "Really sell %d? +%s Dew" % [selection.size(), BossDossier.thousands(refund)]  # The tip says why it asks
+		sell.text = "Sell %d Wardens? Press again" % selection.size()  # The tip says why it asks
+	_danger_footer(sell)
 	sell.pressed.connect(_sell_group)
 	if not tower_seller.can_sell():
 		sell.text = tower_seller.sell_block_reason()
@@ -588,12 +593,49 @@ static func _plural(data: TowerData, count: int) -> String:
 func _sell_group() -> void:
 	# Settings > Gameplay "confirm before selling during a drift" (on by default).
 	var ask: bool = HeartwoodMemory.get_settings().get("confirm_sell", true)
-	if ask and not drift_director.is_build_phase() and not _confirm_sell:
+	var big := tower_seller.selection.size() >= SELL_CONFIRM_FROM  # 3+: asks at rests too
+	if ((ask and not drift_director.is_build_phase()) or big) and not _confirm_sell:
 		_confirm_sell = true
 		_refresh()
+		get_tree().create_timer(SELL_CONFIRM_TIME, true).timeout.connect(func() -> void:
+			if _confirm_sell:
+				_confirm_sell = false  # Not pressed again in time
+				_refresh())
 		return
 	_confirm_sell = false
 	tower_seller.sell_selection()
+
+# The targeting chip on the name's line (user: "there's no more attack targeting, bring it back"): the current mode
+# (a group's when they agree, else "Mixed") with T as a key chip; a click (or T) cycles every attacker given, its tip
+# lists the modes. The full switch stays in Details.
+func _target_chip(towers: Array) -> Button:
+	var modes := {}
+	for tower in towers:
+		modes[tower.get_target_mode()] = true
+	var chip := Button.new()
+	chip.name = "TargetChip"
+	chip.text = Tower.TARGET_MODE_NAMES[modes.keys()[0]] if modes.size() == 1 else "Mixed"
+	chip.focus_mode = Control.FOCUS_NONE
+	chip.custom_minimum_size = Vector2(0, 36)
+	chip.add_theme_font_size_override("font_size", 14)
+	var lines: Array[String] = ["Targeting (click or T cycles):"]
+	for mode in Tower.PLAYER_TARGET_MODES:
+		lines.append("%s%s: %s" % ["▸ " if modes.size() == 1 and modes.has(mode) else "   ", Tower.TARGET_MODE_NAMES[mode], TARGET_TIPS[mode]])
+	chip.tooltip_text = "\n".join(lines)
+	chip.pressed.connect(func() -> void:
+		tower_seller.cycle_target_group(towers)
+		_refresh())
+	var key := UiStyle.key_chip("T")
+	key.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	key.offset_left = -24
+	key.offset_right = -6
+	chip.add_child(key)
+	for state in ["normal", "hover", "pressed"]:
+		var box := chip.get_theme_stylebox(state).duplicate() as StyleBox
+		box.content_margin_right = box.get_margin(SIDE_RIGHT) + 24.0  # The key chip's room
+		box.content_margin_left = 8.0
+		chip.add_theme_stylebox_override(state, box)
+	return chip
 
 # Targeting (screens_ui.md): a 4-way switch First / Last / Strongest / Closest for `towers` (one Warden or a
 # group). A group with mixed modes shows none pressed; a press sets them all. T cycles (TowerSeller).
@@ -873,7 +915,7 @@ func _refuse_nurture() -> void:
 		run_state.dew_short.emit(prices.min())
 		_toast(tower_seller.dew_message(prices.min()))  # "Not enough Dew"
 	nurture_refused += 1
-	for button in _buttons.get_children():
+	for button in _all_buttons():
 		if button is Button and String(button.text).begins_with("Nurture"):
 			_shake(button)
 
@@ -1003,35 +1045,41 @@ func _row_limit() -> int:
 	var height := get_viewport().get_visible_rect().size.y
 	return MAX_ROWS if height >= SHORT_SCREEN else 2 if height >= LOW_SCREEN else 1
 
+# The action buttons, the GrowGrid's rows included (prices, keys, refusals walk all of them).
+func _all_buttons() -> Array:
+	var out: Array = []
+	for child in _buttons.get_children():
+		if child is GridContainer:
+			out.append_array(child.get_children())
+		else:
+			out.append(child)
+	return out
+
+# Every option it can act on now is always shown (story chat; only not-in-this-dream forms wait, behind their Remember
+# link). Past MAX_ROWS they sit two to a line (GrowGrid: name, its price under it, the key chip), so the panel keeps 45%.
 func _grow_row(index: int, count: int) -> Button:
 	var button := _add_button("")
 	_as_choice(button)
-	var limit := _row_limit()
-	button.visible = _more_open or count <= limit or index < limit
+	if count > MAX_ROWS:
+		var grid := _buttons.get_node_or_null("GrowGrid") as GridContainer
+		if grid == null or grid.is_queued_for_deletion():
+			grid = GridContainer.new()
+			grid.name = "GrowGrid"
+			grid.columns = 2
+			grid.add_theme_constant_override("h_separation", 6)
+			grid.add_theme_constant_override("v_separation", 6)
+			_buttons.add_child(grid)
+			_buttons.move_child(grid, button.get_index())
+		_buttons.remove_child(button)
+		grid.add_child(button)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.custom_minimum_size.x = 0
+		button.set_meta(&"narrow", true)
 	return button
 
-# "+N more" (story chat 2026-10-05): the rows past the first MAX_ROWS − 1 when there are more than MAX_ROWS.
+# Was "+N more" over the rows past MAX_ROWS; every option it can act on now always shows (story chat), so it only notes the limit.
 func _more_row(count: int) -> void:
-	var limit := _row_limit()
-	_built_limit = limit
-	var heading := _buttons.get_node_or_null("GrowHeading")
-	if count <= limit or _more_open or heading == null:
-		return
-	var more := Button.new()  # On the heading's line, right-aligned: quiet text
-	more.name = "MoreRows"
-	more.text = "+%d more" % (count - limit)
-	more.flat = true
-	more.focus_mode = Control.FOCUS_NONE
-	more.add_theme_font_size_override("font_size", 14)
-	more.add_theme_color_override("font_color", UiStyle.GOLD)
-	more.tooltip_text = "Show every form it can grow into"
-	for state in ["normal", "hover", "pressed", "hover_pressed", "focus"]:
-		more.add_theme_stylebox_override(state, StyleBoxEmpty.new())  # As tall as its words: the heading line stays thin
-	more.add_theme_color_override("font_hover_color", UiStyle.INK)
-	heading.add_child(more)
-	more.pressed.connect(func() -> void:
-		_more_open = true
-		_refresh())
+	_built_limit = _row_limit()
 
 # The footer's Details toggle (light pass): Buffs, "This run", Kinship, combos and Dreams on it; open or closed is
 # remembered for the session (details_choice).
@@ -1216,6 +1264,24 @@ func _gap(height: float) -> void:
 	_buttons.add_child(gap)
 
 # Sell / Close: in the footer, never scrolled away.
+# Selling a group is destructive (story chat, button rule): the plain frame in POOR, lettered POOR, keeping the footer's
+# narrow padding and its key chip's room. A single Warden's Sell stays quiet.
+func _danger_footer(button: Button) -> void:
+	var theme := ThemeDB.get_project_theme()
+	for state in ["normal", "hover", "pressed"]:
+		var base: StyleBox = theme.get_stylebox(state, "Button") if theme != null else null
+		if base is MoonStyleBox:
+			var box := (base as MoonStyleBox).duplicate() as MoonStyleBox
+			box.frame_color = Color(UiStyle.POOR, 0.85 if state == "normal" else 1.0)
+			box.content_margin_left = 6.0
+			box.content_margin_right = button.get_theme_stylebox(state).content_margin_right  # The key chip's room
+			button.add_theme_stylebox_override(state, box)
+	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
+		button.add_theme_color_override(state, UiStyle.POOR)
+
+const SELL_CONFIRM_FROM := 3  # A group this big asks twice at rests too (story chat)
+const SELL_CONFIRM_TIME := 2.0  # Seconds the "Press again" stays
+
 func _add_footer_button(text: String) -> Button:
 	var button := Button.new()
 	button.text = text
@@ -1364,9 +1430,10 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 		notes.append(parts[1])
 	var is_price := _is_price(price)
 	var change: bool = button.get_meta(&"change", false)  # A Nurture choice: its short change in the right column
-	if price != "" and not is_price and not change:
+	var narrow: bool = button.get_meta(&"narrow", false)  # A half-width cell (GrowGrid): the price goes under the name
+	if price != "" and (narrow or (not is_price and not change)):
 		notes.append(price)
-	price_label.text = price if is_price or change else ""
+	price_label.text = price if (is_price or change) and not narrow else ""
 	price_label.visible = price_label.text != ""
 	if change:  # One line, cut with "…" rather than wrapped (its tip has the whole change)
 		price_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1463,7 +1530,7 @@ func _set_short(button: Button, short: bool, poor_price := true) -> void:
 
 # Dew or Dreamlight changed: every priced button follows at once (no rebuild: a tooltip under the pointer stays).
 func _update_prices() -> void:
-	for button in _buttons.get_children():
+	for button in _all_buttons():
 		if button.name == &"NurtureHeading":  # The choices' price, said once: POOR while short
 			var price := button.get_node("Price") as Label
 			price.add_theme_color_override("font_color", UiStyle.POOR if not run_state.can_afford(int(price.get_meta(&"cost", 0))) else UiStyle.GOLD)
@@ -1505,7 +1572,7 @@ func _toast(text: String) -> void:
 func _on_grow_refused(index: int, text: String) -> void:
 	grow_refused += 1
 	_toast(text)
-	for button in _buttons.get_children():
+	for button in _all_buttons():
 		if button is Button and button.has_meta(&"grow_index") and (index < 0 or int(button.get_meta(&"grow_index")) == index):
 			_shake(button)
 var grow_refused := 0  # Refusals so far (tests)
@@ -1525,7 +1592,7 @@ func _rank_preview_on(button: Button, towers: Array, focus: Tower.Focus) -> void
 # a form you can grow now. Returns how many buttons pulsed.
 func pulse(kind: StringName) -> int:
 	var count := 0
-	for button in _buttons.get_children():
+	for button in _all_buttons():
 		if not button is Button or button.is_queued_for_deletion():
 			continue
 		var text := String(button.text)
@@ -1533,7 +1600,7 @@ func pulse(kind: StringName) -> int:
 			or (kind == &"nurture" and text.begins_with("Nurture"))
 		if match_kind:
 			count += 1
-			var tween := button.create_tween()
+			var tween: Tween = button.create_tween()
 			tween.tween_property(button, "modulate", Color(1.5, 1.35, 1.0), 0.25)  # A multiplier (glow), not a colour
 			tween.tween_property(button, "modulate", Color.WHITE, 0.6)
 	return count

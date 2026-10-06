@@ -115,6 +115,8 @@ func _run() -> void:
 	print("  half-cell route search: %.0f us each; 150 nightmares re-routing on a placement ~ %.1f ms" % [per_path, per_path * 150 / 1000.0])
 	_check(per_path < 2000.0, "a route search stays under 2 ms (%.0f us)" % per_path)
 
+	_fast_routes_check(map)
+
 	# Second Path (OmenDirector._crumble_thornwall) on a half-offset Thornwall: only its own halves open, the cells
 	# its halves touch lock, and the map's blocked halves stay exactly the map's plus the standing Wardens'.
 	await _crumble_check(main)
@@ -123,6 +125,52 @@ func _run() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
 	print("test_half_cells: %d failure(s)" % failures)
 	quit(failures)
+
+# The shortcuts for many nightmares at once (test_maze_perf.gd times them) agree with a plain search from every
+# free half: has_route_from = "A* finds a way"; get_path_from off the drawn route (down the distance field, then
+# the route's tail) is as short as A*'s (within the half the Heartwood is entered by) and steps half a cell at a time. A probe (block,
+# search, open again) leaves FindPath.version as it was.
+func _fast_routes_check(map: Node) -> void:
+	var finder: FindPath = map.path_layer.get_finder()
+	var size := finder.size()
+	var wrong_reach := 0
+	var wrong_length := 0
+	var bad_steps := 0
+	var joined := 0
+	for x in size.x:
+		for y in size.y:
+			if finder.is_half_blocked(Vector2(x, y)):
+				continue
+			var point := FindPath.node_to_point(Vector2i(x, y))
+			var astar: PackedVector2Array = map.path_layer.find_path_from(point)
+			if map.has_route_from(point) != not astar.is_empty():
+				wrong_reach += 1
+			if astar.is_empty() or map.path_layer.route_tail(point).size() > 0:
+				continue
+			var fast: PackedVector2Array = map.get_path_from(point)
+			joined += 1
+			if absi(fast.size() - astar.size()) > 1:  # Within a half step: the Heartwood is a whole cell (4 halves); a joined
+				# route ends where the drawn one does, a search at the half nearest the start point
+				wrong_length += 1
+			for i in range(1, fast.size()):
+				if absf(fast[i].x - fast[i - 1].x) + absf(fast[i].y - fast[i - 1].y) != 0.5:
+					bad_steps += 1
+					break
+	_check(wrong_reach == 0, "has_route_from agrees with a search from every free half (%d differ)" % wrong_reach)
+	_check(joined > 50 and wrong_length == 0, "off the route: joining it is as short as a search, give or take the Heartwood half (%d of %d differ)" % [wrong_length, joined])
+	_check(bad_steps == 0, "off the route: the joined route steps half a cell at a time (%d bad)" % bad_steps)
+	var version := finder.version
+	var free_half := Vector2(-1, -1)
+	for p in map.path_layer.current_path:
+		var h := Vector2(FindPath.point_to_node(p))
+		if map.is_buildable_half(h) and map.is_buildable_half(h + Vector2(1, 1)) and map.is_buildable_half(h + Vector2(1, 0)) \
+				and map.is_buildable_half(h + Vector2(0, 1)):
+			free_half = h
+			break
+	if free_half != Vector2(-1, -1):
+		map.can_block_halves(map.halves_of(free_half))
+		map.get_path_if_blocked_halves(map.halves_of(free_half), true)
+		_check(finder.version == version, "probes leave FindPath.version as it was")
 
 # On a bare 6×4 grid: a wall of half cells with a 1-half gap lets a nightmare through; a full wall doesn't.
 func _corridor_rule() -> void:
@@ -159,6 +207,20 @@ func _corridor_rule() -> void:
 	straight = open.straightest_point_path(from, to)
 	_check(straight.size() == open.calculate_point_path(from, to).size() and _turns(straight) <= 2,
 		"round a wall: shortest, 2 turns at most (%d)" % _turns(straight))
+	# Sticky lanes (Balancing 2026-10-05): with the drawn route preferred, a block on it detours and rejoins the same
+	# lane instead of jumping to another lane with fewer turns (away from the Wardens built along the old one).
+	var lanes := FindPath.new(grid, cells)
+	var old_route := lanes.straightest_point_path(from, to)
+	lanes.set_preferred_cells(old_route)
+	var blocked_at := Vector2(FindPath.point_to_node(old_route[old_route.size() / 4]))
+	lanes.set_half_blocked(blocked_at, true)
+	var new_route := lanes.straightest_point_path(from, to)
+	var shared := 0
+	for p in new_route:
+		if old_route.has(p):
+			shared += 1
+	_check(new_route.size() == lanes.calculate_point_path(from, to).size() and shared >= old_route.size() - 4,
+		"a block on the drawn route keeps its lane: %d of %d points shared" % [shared, old_route.size()])
 
 func _turns(route: PackedVector2Array) -> int:
 	var n := 0

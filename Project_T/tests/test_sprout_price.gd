@@ -102,6 +102,22 @@ func _run() -> void:
 	spores[0].evolve(spore.evolves_to[0], 0)
 	_check(placer.get_cost(spore) == roundi(base * (1.0 + step * had)), "a grown one no longer counts as a Sporeling (%d)" % placer.get_cost(spore))
 
+	# Sprout into a base (Balancing 2026-10-05): at least the base's planting price now minus what the Sprout cost,
+	# so growing never undercuts planting the Nth copy; a gift Sprout pays the full price.
+	for i in 6:
+		_build(placer, map, spore)  # Several Sporelings: the copy step raises the planting price
+	var bud := _build(placer, map, sprout)
+	if bud != null:
+		var plant_now := placer.get_cost(spore, bud.cell)
+		var grow: Dictionary = bud.get_grow_cost(spore)
+		var floor_price := maxi(dreams.get_evolve_cost(spore), plant_now - bud.plant_dew)
+		_check(bud.plant_dew > 0 and grow.base == floor_price, "Sprout into Sporeling: max(%d, %d - %d) = %d (%s)" % [dreams.get_evolve_cost(spore), plant_now, bud.plant_dew, floor_price, grow])
+		_check(grow.base + bud.plant_dew >= plant_now, "growing never undercuts planting (%d + %d >= %d)" % [grow.base, bud.plant_dew, plant_now])
+		bud.plant_dew = 0  # As a gift Sprout
+		_check(bud.get_grow_cost(spore).base == maxi(dreams.get_evolve_cost(spore), plant_now), "a free Sprout pays the full planting price")
+	else:
+		_check(false, "planted a Sprout to grow")
+
 	print("sprout price test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

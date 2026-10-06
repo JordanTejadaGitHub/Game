@@ -51,6 +51,20 @@ static func p(tower: Tower, key: String, fallback: float) -> float:
 	return float(tower.attack_data.special_params.get(key, fallback))
 
 # Yield (Nurture rework): the extra sprites / Sprouts a Warden's Yield ranks buy (one per NurtureChoices.YIELD_PER ranks).
+# Nurture-widened areas measure by distance (Tower Discussion rule 1, warden_stats.md b6f44fac): from a Warden's centre
+# to the other's centre (a 2×2 form: its nearest cell's centre), in cells, never whole-cell rings, so every Wide / Reach
+# rank adds ground. Kinship bonds keep their own Chebyshev reach (Kinships._distance).
+static func area_distance(from: Tower, to: Tower) -> float:
+	return area_distance_at(from.global_position, to)
+
+static func area_distance_at(from_pos: Vector2, to: Tower) -> float:
+	if to.get_footprint() <= 1:
+		return from_pos.distance_to(to.global_position) / CELL
+	var best := INF
+	for c in to.get_cells():
+		best = minf(best, from_pos.distance_to(Tower.MAP_GRID.calculate_map_position(c)) / CELL)
+	return best
+
 static func yield_ranks(tower: Tower) -> int:
 	return tower.choice_count(Tower.Focus.YIELD) / NurtureChoices.YIELD_PER
 
@@ -61,7 +75,7 @@ static func brood_max_alive(tower: Tower) -> int:
 
 # Jarlink's link range (cells): its own, + Reach ranks.
 static func link_range(tower: Tower) -> float:
-	return p(tower, "link_range", 4.0) + tower.area_bonus()
+	return p(tower, "link_range", 4.5) + tower.area_bonus()
 
 static func is_final(tower: Tower) -> bool:
 	return tower.attack_data.special_final
@@ -150,6 +164,8 @@ static func on_hit(tower: Tower, enemy: Node2D) -> void:
 		INKCAP:
 			InkField.find(tower).mark(enemy, tower)
 		LICHEN:
+			# The impact (Tower Assets c3e6544a): crust crumbs and a Poisoned puff; Old Lichen's is bigger.
+			_fx(&"lichen_hit_big" if is_final(tower) else &"lichen_hit", tower.aim_at(enemy), world(tower))
 			# Crusted Brood (a): 1 in 4 of its shots also hatches a sprite on the target.
 			if Tower._kin_roll(0.25 * tower.kin_share(CRUSTED_BROOD, "a")):
 				BroodSprite.burst_at(tower, enemy, 0.5)
@@ -181,7 +197,7 @@ static func crit_aura(tower: Tower) -> float:
 	for other in tower.get_tree().get_nodes_in_group(Tower.GROUP):
 		if other == tower or not (other is Tower) or other.attack_data == null or other.attack_data.special != PRISM:
 			continue
-		if Kinships._distance(tower, other) <= p(other, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+		if area_distance(tower, other) <= p(other, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
 			best = maxf(best, p(other, "crit_aura", 0.10) + NurtureChoices.STRONG_CRIT_AURA * other.choice_count(Tower.Focus.STRONG))
 	return best
 
@@ -193,7 +209,7 @@ static func crit_damage_aura(tower: Tower) -> float:
 	for other in tower.get_tree().get_nodes_in_group(Tower.GROUP):
 		if other == tower or not (other is Tower) or other.attack_data == null or other.attack_data.special != PRISM:
 			continue
-		if Kinships._distance(tower, other) <= p(other, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+		if area_distance(tower, other) <= p(other, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
 			best = maxf(best, p(other, "crit_damage_aura", 0.0))
 	return best
 
@@ -349,15 +365,33 @@ static func _jet(tower: Tower) -> void:
 # flyer crossing it takes 3 Charged at once. Only the Lightning Fence touches Phantoms gliding through.
 const FENCE_TICK := 0.25
 
-# Link range shown (user via story chat 2026-10-05: "have Jarlink have its range connection"): a dashed square of the
-# cells a partner may stand in (Chebyshev, like the bond), in the arc's colour, distinct from the round attack range.
+# Link range shown (user via story chat 2026-10-05: "have Jarlink have its range connection"): a dashed circle of where a
+# partner may stand (by distance, rule 1), in the arc's colour, distinct from the solid attack-range ring.
 const LINK_COLOR := Palette.DEWLIGHT
 
+# Cells whose centres lie within `radius` cells of a Warden's centre, not counting its own (rule 1's "+N cells").
+static func cells_within(radius: float) -> int:
+	var count := 0
+	var r := int(floor(radius))
+	for dy in range(-r, r + 1):
+		for dx in range(-r, r + 1):
+			if (dx != 0 or dy != 0) and Vector2(dx, dy).length() <= radius + 0.0001:
+				count += 1
+	return count
+
+# "+N cells" for one more rank that widens an area from `radius` by `step` (may be "+0 cells" on a rank that
+# only edges the next ring).
+static func cells_gained(radius: float, step: float) -> int:
+	return cells_within(radius + step) - cells_within(radius)
+
 static func draw_link_area(canvas: CanvasItem, centre: Vector2, reach: float, alpha: float = 0.7) -> void:
-	var half := (reach + 0.5) * CELL
-	var corners := [centre + Vector2(-half, -half), centre + Vector2(half, -half), centre + Vector2(half, half), centre + Vector2(-half, half)]
-	for i in 4:
-		canvas.draw_dashed_line(corners[i], corners[(i + 1) % 4], Color(LINK_COLOR, alpha), 2.0, 6.0)
+	# A dashed circle (rule 1: the link reaches by distance, b6f44fac; it was a Chebyshev square).
+	var radius := reach * CELL
+	var steps := 48
+	for i in steps:
+		if i % 2 == 1:
+			continue  # Every other arc: dashed
+		canvas.draw_arc(centre, radius, TAU * i / steps, TAU * (i + 1) / steps, 3, Color(LINK_COLOR, alpha), 2.0)
 
 # A jar within reach (the ghost's candidates; a selected jar's partner): a soft ring at its base.
 static func draw_link_mark(canvas: CanvasItem, at: Vector2, strong: bool) -> void:
@@ -412,6 +446,8 @@ static func stat_lines(tower: Tower) -> Array[String]:
 	var lines: Array[String] = []
 	if tower == null or tower.attack_data == null:
 		return lines
+	if tower.tower_data.can_attack and tower.is_inside_tree():  # maze_feel.md: where it covers everything
+		lines.append("Covers %d path tiles" % tower.get_coverage())
 	if tower.attack_data.special == JARLINK:
 		lines.append("Arc: %s damage a second to each nightmare touching it (with a Jarlink within %s cells)" % [
 			BossDossier.thousands(roundi(arc_dps(tower))), IconInfo._number(link_range(tower))])
@@ -500,7 +536,7 @@ static func _fence_partner(tower: Tower) -> Tower:
 static func _bond_holds(tower: Tower, other, reach: float) -> bool:
 	return is_instance_valid(other) and other is Tower and other.is_inside_tree() and not other.is_queued_for_deletion() \
 		and other.attack_data != null and other.attack_data.special == JARLINK \
-		and Kinships._cheb(tower.cell, other.cell) <= reach and not _arc_cells(tower.cell, other.cell).is_empty()
+		and area_distance(tower, other) <= reach and not _arc_cells(tower.cell, other.cell).is_empty()
 
 # Whether `jar` is linked to a jar other than `except` (its bond still holding).
 static func _bonded_elsewhere(jar: Tower, except: Node) -> bool:
@@ -520,7 +556,7 @@ static func fence_partner_at(near: Node, cell: Vector2, reach: float, skip: Node
 			continue
 		if _bonded_elsewhere(other, skip):
 			continue  # Sticky: never steals a jar from its arc
-		var d := Kinships._cheb(cell, other.cell)
+		var d := area_distance_at(Tower.MAP_GRID.calculate_map_position(cell), other)  # Rule 1: by distance
 		if d <= reach and d < best_d and not _arc_cells(cell, other.cell).is_empty():
 			best_d = d
 			best = other
@@ -1007,7 +1043,7 @@ static func nurture_multiplier(tower: Tower) -> float:
 	var best := 0.0
 	for other in logs(tower):
 		if other.attack_data != null and other.attack_data.special == NURSE_LOG \
-				and Kinships._distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+				and area_distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
 			# Each log caps its own (audit b6f44fac: Mother Log 0.35 + 0.03 a rank reaches its 0.50 at V; Nurse Log 0.40)
 			best = maxf(best, minf(p(other, "nurture_discount", 0.25) + NurtureChoices.NURSE_STRONG * other.choice_count(Tower.Focus.STRONG),
 				p(other, "nurse_cap", NurtureChoices.NURSE_CAP)))
@@ -1022,7 +1058,7 @@ static func grow_multiplier(tower: Tower) -> float:
 			best = maxf(best, 0.10 * other.kin_share(NURSERY, "b"))
 	# Kindred on a Nurse Log: Wardens in its reach grow 2% cheaper per rank.
 	for other in logs(tower):
-		if Kinships._distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+		if area_distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
 			best = maxf(best, NurtureChoices.NURSE_KINDRED * other.choice_count(Tower.Focus.KINDRED))
 	return 1.0 - best
 
@@ -1032,7 +1068,7 @@ static func remember_rank(sold: Tower) -> void:
 		return
 	for other in logs(sold):
 		if other.attack_data != null and other.attack_data.special == NURSE_LOG and is_final(other) \
-				and Kinships._distance(sold, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+				and area_distance(sold, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
 			var rings: Dictionary = other.get_meta(&"rings", {})
 			rings[sold.cell] = [sold.rank, Array(sold.rank_choices)]
 			other.set_meta(&"rings", rings)
@@ -1072,7 +1108,7 @@ static func on_drift_cleared(tower: Tower) -> void:
 					tower.queue_redraw()
 			tower.set_meta(&"seed_drifts", drifts)
 		DREAM_OAK:
-			var shards := 1 + mini(_families_near(tower, p(tower, "family_reach", 2.0) + NurtureChoices.WIDE_STEP * tower.choice_count(Tower.Focus.WIDE)), int(p(tower, "family_max", 3.0)))
+			var shards := 1 + mini(_families_near(tower, p(tower, "family_reach", 2.5) + NurtureChoices.WIDE_STEP * tower.choice_count(Tower.Focus.WIDE)), int(p(tower, "family_max", 3.0)))
 			# Yield: +0.5 shard a drift per rank (the fraction carries).
 			var extra := float(tower.get_meta(&"yield_carry", 0.0)) + NurtureChoices.YIELD_SHARDS * tower.choice_count(Tower.Focus.YIELD)
 			shards += int(extra)
@@ -1091,7 +1127,7 @@ static func on_rest(tower: Tower, perfect: bool) -> void:
 static func _families_near(tower: Tower, reach: float) -> int:
 	var lines := {}
 	for other in tower._other_towers():
-		if Kinships._distance(tower, other) <= reach and not (other.tower_data.line in ["wall", "sprout", "heartwood", "memory", ""]):
+		if area_distance(tower, other) <= reach and not (other.tower_data.line in ["wall", "sprout", "heartwood", "memory", ""]):
 			lines[other.tower_data.line] = true
 	return lines.size()
 
@@ -1563,7 +1599,9 @@ class InkField extends Node:
 		return found
 
 	func mark(enemy: Node2D, tower: Tower) -> void:
-		marked[enemy.get_instance_id()] = [enemy, tower, BranchKit.p(tower, "trail_time", 2.0)]
+		var old: Array = marked.get(enemy.get_instance_id(), [])
+		# [enemy, Tower, trail seconds, where the ink was last laid (pixels; the trail follows the walked ribbon)]
+		marked[enemy.get_instance_id()] = [enemy, tower, BranchKit.p(tower, "trail_time", 2.0), old[3] if old.size() > 3 else enemy.global_position]
 
 	func _process(delta: float) -> void:
 		_clock += delta
@@ -1583,7 +1621,16 @@ class InkField extends Node:
 					cells[cell][0] = maxf(cells[cell][0], _clock + entry[2])  # Fresh ink lasts longer and keeps its tick
 				else:
 					cells[cell] = [_clock + entry[2], entry[1], 1.0, _clock + 1.0]
-					_show(cell, entry[2])
+				# The ink is drawn where it walked (story chat: "bugged and not clear, especially on vertical": it was a
+				# horizontal strip across each whole cell's centre): a piece from the last spot to here, rotated to the
+				# ribbon, every tick, so it follows turns and its fade matches how long the ink lasts.
+				var here: Vector2 = enemy.global_position
+				var last: Vector2 = entry[3]
+				if last.distance_to(here) > BranchKit.CELL * 1.5:
+					last = here  # Pulled back, leapt, or re-routed: start a new stretch
+				if last.distance_to(here) >= 4.0:
+					_lay(last, here, entry[2])
+					entry[3] = here
 		for cell in cells.keys():
 			var ink: Array = cells[cell]
 			if _clock >= ink[0] or not is_instance_valid(ink[1]):
@@ -1609,6 +1656,22 @@ class InkField extends Node:
 			_show(cell, BranchKit.p(tower, "pool_time", 4.0))
 		marked.erase(enemy.get_instance_id())
 
+	# A piece of ink from `from` to `to` (pixels, along the ribbon) for `seconds`, drawn by InkDraw (story chat: a clear
+	# dark-violet smear along the path's centre line, a visible edge, fading as it runs out, a faint Poisoned shimmer).
+	var pieces: Array = []  # [from, to, laid at, gone at]
+	var _draw_node: InkDraw = null
+
+	func _lay(from: Vector2, to: Vector2, seconds: float) -> void:
+		if _draw_node == null or not is_instance_valid(_draw_node):
+			_draw_node = InkDraw.new()
+			_draw_node.field = self
+			_draw_node.z_index = -1  # On the ground, over the path, under the nightmares
+			get_parent().add_child(_draw_node)
+		pieces.append([from, to, _clock, _clock + seconds])
+
+	func clock() -> float:
+		return _clock
+
 	# The ink on `cell` for `seconds` (Tower Assets' ink_trail across the cell).
 	func _show(cell: Vector2, seconds: float) -> void:
 		var at := Tower.MAP_GRID.calculate_map_position(cell)
@@ -1619,6 +1682,41 @@ class InkField extends Node:
 	func ink_at(cell: Vector2) -> bool:
 		return cells.has(cell) and _clock < cells[cell][0]
 
+
+# Inkcap's trail, drawn: per piece a dark edge under a violet core, fading over its last second, with a few spore
+# glints (Poisoned) twinkling along it. Pieces follow the walked ribbon, so vertical legs and turns read like straight ones.
+class InkDraw extends Node2D:
+	const EDGE := Palette.SHADE
+	const CORE := Palette.BRUISE
+	const GLINT := Palette.SPRIG
+	const EDGE_WIDTH := 16.0
+	const CORE_WIDTH := 10.0
+	var field: InkField
+
+	func _process(_delta: float) -> void:
+		if field == null or not is_instance_valid(field):
+			queue_free()
+			return
+		var now := field.clock()
+		field.pieces = field.pieces.filter(func(p: Array) -> bool: return now < p[3])
+		queue_redraw()
+
+	func _draw() -> void:
+		if field == null or not is_instance_valid(field):
+			return
+		var now := field.clock()
+		var steady := Fx.reduce_flashes()
+		for p in field.pieces:
+			var fade := clampf((p[3] - now) / 1.0, 0.0, 1.0)  # Full until its last second
+			var a: Vector2 = to_local(p[0])
+			var b: Vector2 = to_local(p[1])
+			draw_line(a, b, Color(EDGE, 0.85 * fade), EDGE_WIDTH)
+			draw_circle(b, EDGE_WIDTH / 2.0, Color(EDGE, 0.85 * fade))  # Round joins at turns
+			draw_line(a, b, Color(CORE, 0.9 * fade), CORE_WIDTH)
+			draw_circle(b, CORE_WIDTH / 2.0, Color(CORE, 0.9 * fade))
+			var seed := int(p[2] * 100.0) % 7
+			var glint := 1.0 if steady else 0.5 + 0.5 * sin(now * 4.0 + seed)
+			draw_circle(a.lerp(b, 0.3 + 0.08 * seed), 1.5, Color(GLINT, 0.6 * glint * fade))
 
 # Silenced Lantern Bearers: their Wraiths are lost until the silence ends (a dispel keeps them lost for good).
 class SilenceWatch extends Node:

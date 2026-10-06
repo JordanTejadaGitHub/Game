@@ -66,7 +66,31 @@ func _run() -> void:
 		covered = covered or placer.settling_left(Tower.footprint_cells(origin, 2)) > 0.0
 	_check(covered, "a 2×2 footprint over the settling cell sees it")
 	placer.settle(Tower.footprint_cells(Vector2(2, 2), 2))
-	_check(placer.settling.has(Vector2(3, 3)) and placer.settling.has(Vector2(2, 3)), "a 2×2 Warden sold settles all 4 cells")
+	_check(placer.settling_left([Vector2(3, 3)]) > 0.0 and placer.settling_left([Vector2(2, 3)]) > 0.0, "a 2×2 Warden sold settles all 4 cells")
+
+	# --- A Warden between cells (user: "selling between cells locks cells double the size"): only its own halves ---
+	var origin := Vector2(-1, -1)
+	for y in range(4, 30):
+		for x in range(5, 40, 2):  # Odd half origins: between whole cells
+			var o := Vector2(x, y)
+			if origin.x < 0 and map_generator.halves_of(o).all(func(h: Vector2) -> bool: return map_generator.is_buildable_half(h)) \
+					and placer.settling_left_halves(map_generator.halves_of(o)) <= 0.0 \
+					and map_generator.halves_of(o + Vector2(2, 0)).all(func(h: Vector2) -> bool: return map_generator.is_buildable_half(h)) \
+					and map_generator.can_block_halves(map_generator.halves_of(o)):
+				origin = o
+	main.get_node("%RunState").dew = 1000
+	placer.tower_data = sprout
+	_check(origin.x >= 0 and placer._try_build_half(origin), "a Sprout plants between cells")
+	var between: Tower = null
+	for t in placer.tower_container.get_children():
+		if t is Tower and t.half_cell == origin:
+			between = t
+	var own: Array = between.get_halves() if between else []
+	_check(between != null and seller.sell(between.cell), "and sells during the drift")
+	_check(own.all(func(h: Vector2) -> bool: return placer.settling_left_halves([h]) > 0.0), "its 4 halves settle")
+	var neighbour := origin + Vector2(2, 0)  # The 2×2 beside it, sharing the same whole cells
+	_check(placer.settling_left_halves(map_generator.halves_of(neighbour)) <= 0.0,
+		"the halves beside it, in the same whole cells, stay open (not double the size)")
 
 	# --- The next rest settles everything at once ---
 	director.build_phase_changed.emit(true)
