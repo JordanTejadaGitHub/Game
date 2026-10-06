@@ -947,6 +947,15 @@ static func _update_goal_guard(tower: Tower, delta: float) -> void:
 			_land_hold(tower, e, p(tower, "goal_hold", 1.0))
 			_fx(&"goal_hold", e.global_position, world(tower))
 
+# Deeproot's guard ring as [centre, reach in pixels] (the Watchtower signature watches it), [] for other Wardens.
+static func guard_area(tower: Tower) -> Array:
+	if tower.attack_data == null or tower.attack_data.special != DEEPROOT:
+		return []
+	var heart := _heartwood_at(tower)
+	if heart == Vector2.INF:
+		return []
+	return [heart, (p(tower, "goal_reach", 3.0) + tower.area_bonus(NurtureChoices.REACH_GUARD)) * CELL]
+
 static func _heartwood_at(near: Node) -> Vector2:
 	var map = world(near).get_node_or_null("%MapGenerator") if world(near) else null
 	return Tower.MAP_GRID.calculate_map_position(map.endPath) if map != null else Vector2.INF
@@ -981,7 +990,7 @@ static func thorn_per_second(tower: Tower) -> float:
 
 static func _thorn(tower: Tower, e: Node2D, amount: float) -> void:
 	if amount > 0.0 and is_instance_valid(e) and not e.is_cleansed:
-		e.take_damage(amount, tower.tower_data.line, true, false, tower, &"thorns")
+		e.take_damage(amount * tower.crush_tick(e, amount), tower.tower_data.line, true, false, tower, &"thorns")  # Crushing counts thorns
 
 static func _update_thorns(tower: Tower, delta: float) -> void:
 	var left := float(tower.get_meta(&"thorn_tick", 0.0)) - delta
@@ -1536,8 +1545,8 @@ class GroundZone extends Node2D:
 				continue
 			if damage_per_second > 0.0 and kind == &"rain":
 				# Rain is effect damage (tag "rain": Potency and Deep scale it), with the Warden's damage multipliers.
-				e.take_damage(damage_per_second * tick * tower.get_damage() / maxf(float(tower.attack_data.damage), 1.0),
-					tower.tower_data.line, true, false, tower, &"rain")
+				var rain := damage_per_second * tick * tower.get_damage() / maxf(float(tower.attack_data.damage), 1.0)
+				e.take_damage(rain * tower.crush_tick(e, rain), tower.tower_data.line, true, false, tower, &"rain")  # Crushing counts rain
 			elif damage_per_second > 0.0:
 				tower.hit(e, damage_per_second * tick / maxf(float(tower.attack_data.damage), 1.0), true)
 			if not is_instance_valid(e) or e.is_cleansed:

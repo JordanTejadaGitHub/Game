@@ -405,7 +405,7 @@ func signature() -> StringName:
 		return _stats[&"signature"]
 	var sig := Signatures.compute(self)
 	_stats[&"signature"] = sig
-	if sig == Signatures.SPREADING:
+	if sig == Signatures.SPREADING or sig == Signatures.RELENTLESS:
 		Signatures.find(self)  # Its dispel watcher
 	if sig != &"" and _dream_state:
 		_dream_state.note_discovery(DreamState.EVENT_SIGNATURE)  # Lets Shared Training into the profile's pool
@@ -432,6 +432,7 @@ func is_sheltered() -> bool:
 	return false
 
 var _relentless_at := -100.0
+var _keep_full_ramp := false  # Relentless: the beam's next target starts at the ramp it had
 var _watch_left := 0.0
 var _surge_clock := 0.0
 var _surging := false
@@ -442,13 +443,20 @@ func _update_watchtower(delta: float) -> void:
 	if _watch_left > 0.0:
 		return
 	_watch_left = Signatures.WATCH_TICK
+	var centre := global_position
 	var reach := get_range_pixels()
+	var guard := BranchKit.guard_area(self)  # Deeproot: inside its guard ring
+	if not guard.is_empty():
+		centre = guard[0]
+		reach = guard[1]
 	var revealed := false
-	for enemy in nightmares_near(get_tree(), global_position, reach):
-		if is_instance_valid(enemy) and not enemy.is_cleansed and enemy.global_position.distance_to(global_position) <= reach \
-				and enemy.has_method("is_hidden") and enemy.is_hidden():
+	for enemy in nightmares_near(get_tree(), centre, reach):
+		if is_instance_valid(enemy) and not enemy.is_cleansed and enemy.global_position.distance_to(centre) <= reach \
+				and enemy.has_method("reveal_for"):
+			# Every one inside is kept revealed (refreshed each tick), so it stays shown 2 s after it leaves.
+			if enemy.is_hidden():
+				revealed = true
 			enemy.reveal_for(Signatures.WATCH_REVEAL)
-			revealed = true
 	if revealed:
 		signature_fired.emit(self, Signatures.WATCHTOWER)
 
@@ -468,17 +476,25 @@ func _update_surge(delta: float) -> void:
 
 var _crush_hits := 0
 
-# Crushing: every 5th hit (its own hits, not effect ticks) lands x2 and strips 25% of the dread shell. Returns the
-# hit multiplier.
-func _crushing(enemy: Node2D) -> float:
+# Crushing: every 5th piece of damage the Warden itself deals (hits, fence arcs, cloud / rain ticks, thorns; not
+# status ticks) lands x2 and strips 25% of the dread shell x `share` (a tick's damage over a full hit, capped at 1;
+# Balancing, signature audit a09297af). Returns the multiplier.
+func _crushing(enemy: Node2D, share: float = 1.0) -> float:
 	_crush_hits += 1
 	if _crush_hits % Signatures.CRUSH_EVERY != 0:
 		return 1.0
 	if enemy.coat > 0.0:
-		enemy.coat = maxf(enemy.coat - enemy.coat_max * Signatures.CRUSH_SHELL, 0.0)
-	Reactions._effect(&"crushing_hit", aim_at(enemy), self)  # Tower Assets 8d00143e
+		enemy.coat = maxf(enemy.coat - enemy.coat_max * Signatures.CRUSH_SHELL * clampf(share, 0.0, 1.0), 0.0)
+	if share >= 0.5:
+		Reactions._effect(&"crushing_hit", aim_at(enemy), self)  # Tower Assets 8d00143e (not on small ticks)
 	signature_fired.emit(self, Signatures.CRUSHING)
 	return Signatures.CRUSH_MULTIPLIER
+
+# Crushing for damage dealt straight to a nightmare (thorns, rain): the multiplier for `amount`.
+func crush_tick(enemy: Node2D, amount: float) -> float:
+	if rank < Signatures.SHARED_RANK or signature() != Signatures.CRUSHING or not is_instance_valid(enemy):
+		return 1.0
+	return _crushing(enemy, amount / maxf(get_damage(), 1.0))
 
 # After a hit landed: Executioner (a crit under 20% health dispels a normal nightmare) and Relentless.
 func _signature_after_hit(enemy: Node2D, sig: StringName, is_crit: bool) -> void:
@@ -496,16 +512,27 @@ func _signature_after_hit(enemy: Node2D, sig: StringName, is_crit: bool) -> void
 		enemy.take_damage((enemy.health + 1.0) / maxf(through, 0.01), line, false, false, self, &"executed")
 		signature_fired.emit(self, Signatures.EXECUTIONER)
 	if sig == Signatures.RELENTLESS and enemy.is_cleansed:
-		_relentless()
+		_relentless()  # (Also from the dispel watcher for status-tick dispels; the 0.5 s gap keeps it to one)
 
 # Relentless: a dispel by this Warden starts its next cycle at once (attack, timed ability), at most every 0.5 s.
 func _relentless() -> void:
 	if _anim_time - _relentless_at < Signatures.RELENTLESS_GAP:
 		return
 	_relentless_at = _anim_time
+	# Its main cycle (signature audit a09297af): attack, ability, Groundroot's grab, Whirligig's copy; a beam keeps
+	# its full ramp on the next target; a patrol forgets its per-nightmare cooldowns; birds and seeds come home.
 	_cooldown = 0.0
 	if attack_data.ability_every > 0.0:
 		_ability_timer = 0.0
+	if has_meta(&"ground_left"):
+		set_meta(&"ground_left", 0.0)
+	_copy_timer = 0.0
+	_keep_full_ramp = attack_data.attack_kind == TowerData.AttackKind.BEAM
+	if is_instance_valid(_patrol):
+		_patrol._recent.clear()
+	for away in _out:
+		if is_instance_valid(away) and away.has_method("recall"):
+			away.recall()
 	signature_fired.emit(self, Signatures.RELENTLESS)
 
 # Old saves and ranks given by Dreams: Power (supports: their first option) for I–II, the old Focus from III.
@@ -2194,8 +2221,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		# First Light, Last Stand, Hunter's Patience, Bitter Hedges (tracked inside: once per hit).
 		soothe *= _dream_state.on_hit_multiplier(self, enemy)
 	var sig: StringName = signature() if rank >= Signatures.SHARED_RANK else &""
-	if sig == Signatures.CRUSHING and combo == &"":
-		soothe *= _crushing(enemy)  # Crushing: every 5th hit x2, cracks the shell
+	if sig == Signatures.CRUSHING and combo != &"spored" and combo != &"static":
+		soothe *= _crushing(enemy, soothe_multiplier)  # Crushing: every 5th x2, cracks the shell (ticks by their share)
 	# Reactions that change a hit: Pinned (a guaranteed ×3 crit) and Shatter (×2.5, shards).
 	var reaction := Reactions.before_hit(enemy, self, is_crit)
 	is_crit = reaction.crit
@@ -3905,7 +3932,8 @@ func _update_beam(delta: float) -> void:
 		# Midsummer (beam_keep_share): a new target within BEAM_KEEP_TIME of the last keeps part of the ramp.
 		var old_ramp := _beam_ramp if _beam_target != null else \
 			(_kept_ramp if _anim_time - _kept_ramp_at <= BEAM_KEEP_TIME else 1.0)
-		_beam_ramp = 1.0 + (old_ramp - 1.0) * attack_data.beam_keep_share
+		_beam_ramp = 1.0 + (old_ramp - 1.0) * (1.0 if _keep_full_ramp else attack_data.beam_keep_share)  # Relentless: all of it
+		_keep_full_ramp = false
 		_beam_tick = 0.0
 		_beam_target = target
 	if _beam_target == null:

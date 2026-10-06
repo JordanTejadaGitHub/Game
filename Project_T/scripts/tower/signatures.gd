@@ -57,7 +57,7 @@ const CRUSH_MULTIPLIER := 2.0
 const CRUSH_SHELL := 0.25  # Share of coat_max stripped
 const RELENTLESS_GAP := 0.5
 const WATCH_TICK := 0.25
-const WATCH_REVEAL := 0.5  # Seconds a reveal lasts (refreshed every tick while it stands)
+const WATCH_REVEAL := 2.0  # Seconds a reveal lasts: refreshed while inside, so it stays 2 s after leaving (audit a09297af)
 const SPREAD_REACH := 2.0  # Cells
 const EXECUTE_BELOW := 0.2
 const EXECUTE_BIG := 1.5  # Bosses and elites: the crit x1.5 instead
@@ -151,6 +151,12 @@ func _enter_tree() -> void:
 func _on_dispelled(enemy: Node2D) -> void:
 	if not is_instance_valid(enemy) or enemy.statuses == null:
 		return
+	# Relentless: any dispel credited to the Warden (the last damage on it, status ticks included).
+	var hits: Array = enemy.recent_hits if "recent_hits" in enemy else []
+	if not hits.is_empty():
+		var credited = hits[-1].source
+		if credited is Tower and is_instance_valid(credited) and credited.signature() == RELENTLESS:
+			credited._relentless()
 	var jumped: Array = enemy.get_meta(JUMPED, [])
 	var reach := SPREAD_REACH * Tower.MAP_GRID.cell_size.x
 	var nearest: Node2D = null

@@ -85,6 +85,26 @@ func _run() -> void:
 	swift._cooldown = 3.0
 	swift.hit(last, 1.0, false, Tower.NO_CRIT)
 	_check(last.is_cleansed and swift._cooldown == 0.0, "Relentless: the dispel resets its cooldown (%.2f)" % swift._cooldown)
+	# Audit a09297af: any dispel credited to it counts, a status tick too.
+	var ticked := _walker(Vector2(14, 5))
+	ticked.max_health = 5
+	ticked.health = 1
+	swift._cooldown = 3.0
+	swift._relentless_at = -100.0
+	ticked.take_damage(10.0, "spore", true, false, swift, &"spored")
+	_check(ticked.is_cleansed and swift._cooldown == 0.0, "Relentless: a status-tick dispel credited to it counts too (%.2f)" % swift._cooldown)
+
+	# Crushing counts ticks (audit a09297af): the 5th tick x2, the shell strip x the tick's share of a hit.
+	var ticking := _walker(Vector2(4, 6))
+	ticking.coat_max = 1000.0
+	ticking.coat = 1000.0
+	striker._crush_hits = 4
+	striker.hit(ticking, 0.2, false, Tower.NO_CRIT, &"cloud")
+	var stripped: float = 1000.0 - ticking.coat
+	_check(stripped >= 1000.0 * Signatures.CRUSH_SHELL * 0.2 - 0.5 and stripped < 1000.0 * Signatures.CRUSH_SHELL * 0.5,
+		"Crushing: a 20%% tick strips about 5%% of the shell (%.0f)" % stripped)
+	striker._crush_hits = 4
+	_check(is_equal_approx(striker.crush_tick(ticking, striker.get_damage() * 0.5), Signatures.CRUSH_MULTIPLIER), "Crushing: thorns / rain count (crush_tick)")
 
 	# Spreading: half the stacks jump to the nearest nightmare within 2 cells when the carrier is dispelled.
 	var deep := _plant("sporeling", Vector2(16, 2), [D, D, D, P, S])
