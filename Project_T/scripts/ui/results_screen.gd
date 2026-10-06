@@ -96,7 +96,8 @@ func _build(won: bool) -> void:
 	stats.alignment = BoxContainer.ALIGNMENT_CENTER
 	stats.add_theme_constant_override("separation", 22)
 	box.add_child(stats)
-	for stat in [[&"path_length", drift_director.drifts_started, "drift reached"], [&"damage", run_state.creatures_cleansed, "dispelled"],
+	# Drift reached = the nightmares' mark; the path icon only for the longest path (user: the same icon twice)
+	for stat in [[&"swarm", drift_director.drifts_started, "drift reached"], [&"damage", run_state.creatures_cleansed, "dispelled"],
 			[&"leaves", run_state.leaves_lost, "leaves lost"], [&"path_length", run_state.longest_path, "longest path"]]:
 		stats.add_child(_stat(stat[0], int(stat[1]), stat[2]))
 	var families := _family_row()
@@ -122,14 +123,21 @@ func _build(won: bool) -> void:
 			+ support_lines(), 14, UiStyle.MOONLIGHT)
 		report.name = "RunReport"
 		report.visible = false
-		var toggle := Button.new()
-		toggle.text = "Run report"
-		toggle.focus_mode = Control.FOCUS_NONE
-		UiStyle.quiet(toggle)
+		# Its heading line with a small Details link at the right (user: no control floating mid-screen)
+		var heading := HBoxContainer.new()
+		heading.name = "RunReportHeading"
+		var report_title := Label.new()
+		report_title.text = "Wardens and combos"
+		report_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		UiStyle.caps(report_title, 14)
+		heading.add_child(report_title)
+		var toggle := _link(heading, "Details")
+		toggle.name = "DetailsToggle"
+		toggle.custom_minimum_size.y = 0
 		toggle.pressed.connect(func() -> void:
 			report.visible = not report.visible
-			toggle.text = "Hide the run report" if report.visible else "Run report")
-		box.add_child(toggle)
+			toggle.text = "Hide" if report.visible else "Details")
+		box.add_child(heading)
 		box.add_child(report)
 
 	var seeds := VBoxContainer.new()
@@ -190,16 +198,19 @@ func _build(won: bool) -> void:
 	quiet.alignment = BoxContainer.ALIGNMENT_CENTER
 	quiet.add_theme_constant_override("separation", 24)
 	box.add_child(quiet)
-	var copy := _button(quiet, "Copy run report")  # For the design chat (RunHistory.report_text)
-	UiStyle.quiet(copy)
+	var copy := _link(quiet, "Copy run report")  # For the design chat (RunHistory.report_text)
+	copy.name = "CopyReport"
 	copy.tooltip_text = "Copies this run's numbers as text."
 	copy.pressed.connect(func() -> void:
 		var history := get_tree().get_first_node_in_group(RunHistory.GROUP) as RunHistory
 		if history != null:
 			DisplayServer.clipboard_set(RunHistory.report_text(history.run))
-			copy.text = "Copied")
-	var to_title := _button(quiet, "Title")
-	UiStyle.quiet(to_title)
+			copy.text = "Copied ✓"  # A flash on the link itself, then back (user: not a separate-looking item)
+			get_tree().create_timer(1.5, true).timeout.connect(func() -> void:
+				if is_instance_valid(copy):
+					copy.text = "Copy run report"))
+	var to_title := _link(quiet, "Title")
+	to_title.name = "ToTitle"
 	to_title.pressed.connect(func() -> void: get_tree().change_scene_to_file(TITLE_SCENE))
 
 # The demo's Grove teaser (demo_scope.md "Show what the full game holds"): one family, one perk and one Legendary Dream
@@ -339,6 +350,25 @@ func _label(parent: Control, text: String, font_size: int, color: Color, wrap: b
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	parent.add_child(label)
 	return label
+
+# A quiet link (Details, Copy run report, Title): one shared look, the light pass's quiet style with an underline on
+# hover, so they read as links and not stray labels.
+func _link(parent: Control, text: String) -> Button:
+	var link := _button(parent, text)
+	UiStyle.quiet(link)
+	link.custom_minimum_size.x = 0
+	link.draw.connect(func() -> void:
+		if not link.is_hovered():
+			return
+		var font := link.get_theme_font("font")
+		var font_size := link.get_theme_font_size("font_size")
+		var width := font.get_string_size(link.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		var y := link.size.y / 2.0 + font_size * 0.5 + 2.0
+		var x := (link.size.x - width) / 2.0
+		link.draw_line(Vector2(x, y), Vector2(x + width, y), Color(UiStyle.GOLD, 0.7), 1.0))
+	link.mouse_entered.connect(link.queue_redraw)
+	link.mouse_exited.connect(link.queue_redraw)
+	return link
 
 func _button(parent: Control, text: String) -> Button:
 	var button := Button.new()
