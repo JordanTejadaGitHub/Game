@@ -889,6 +889,11 @@ full hit), capped at 25%. Acorn Strong 0.01 → **0.025** aura per rank (≈ Pow
 Watchtower 2 s linger, Relentless on tick dispels (still ≤ once per 0.5 s): watch Sporeling boards. In ba55f063,
 8d89bbb2, 08d7ef32.
 
+**Signatures as counters (warden_stats.md ff93b498):** Crushing only on shelled / coated targets (fine).
+Executioner's price "−10% on non-crits" shrinks as crit rises (−3% at 50% crit against a ~+10–15% gain: still
+automatic). Proposed to Tower Discussion: **−15% on every hit**, so high crit wins against swarms, loses ~5–10%
+against tanky / boss drifts, and low crit doesn't take it.
+
 **Maze cards made conditional (dream_design.md 7fc0665c):** Winding Path **+1 Dew per 2 reached path tiles**
 (each once; ≈ +10% of a run's Dew; per 5 fell to ~3%). Hedge Maze **+5% per touching Thornwall, up to +30%**
 (twig half; typical +10–20%). **II: +8% per wall, up to +48%** (Deepened 1.6× floor; 7.5 / 45 was 1.5×).
