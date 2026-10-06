@@ -881,7 +881,8 @@ Crushing: every 5th hit ×2 + strips 25% of dread shell. Relentless: a dispel re
 the Lurker counter isn't trivialised). Spreading: half the stacks (min 1) jump within 2 cells on dispel.
 **Executioner: a crit under 20%** (not 30) dispels; bosses / elites take ×1.5 (at Moonstone / Hoard crit rates
 30% erased the last third of every normal nightmare, ≈ +40%). Firstborn, Shelter as designed. Surge: aura ×2
-for 2 s every 10 s (≈ +20%, in line with Crushing).
+for 2 s every 10 s (≈ +20%, in line with Crushing). In e951b540 (Crushing counts every hit, so an area Warden doubles every
+5th target: the same +20% on average, shell strips a bit more often; fine).
 
 ## Shape cards 262–264 (dream_design.md e4d17195, Uncommon, defining)
 
