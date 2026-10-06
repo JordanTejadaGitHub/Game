@@ -66,6 +66,9 @@ func _run() -> void:
 	_check(mark != null and mark.text.contains("Crushing") and mark.tooltip_text.contains("5th hit"),
 		"rank V: the Crushing mark with what it does (%s)" % (mark.text if mark else "none"))
 	_check(panel.find_child("SignatureHint", true, false) == null, "rank V: no hint")
+	var icon := panel.find_child("SignatureIcon", true, false) as TextureRect
+	_check(icon != null and icon.texture is AtlasTexture and (icon.texture as AtlasTexture).region.position.x == 0.0,
+		"rank V: Tower Assets' Crushing mark (the first of the sheet) joins the picks")
 
 	# The first fire: the name over the Warden and the discovery, once.
 	crusher.signature_fired.emit(crusher, Signatures.CRUSHING)

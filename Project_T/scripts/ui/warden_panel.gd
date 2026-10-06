@@ -992,6 +992,32 @@ func _fill_rank_picks() -> void:
 		_ranks_row.add_child(pick)
 	_add_signature_mark()
 
+# Tower Assets' 12 × 12 signature marks (assets/towers/ranks/signature_marks.png, 8d00143e), in Signatures.NAMES order.
+const SIGNATURE_MARKS_PATH := "res://assets/towers/ranks/signature_marks.png"
+var _signature_sheet: Texture2D  # Loaded once (on the instance: a static texture crashes at exit)
+
+func _signature_icon(sig: StringName) -> TextureRect:
+	var index := Signatures.NAMES.keys().find(sig)
+	if index < 0:
+		return null
+	if _signature_sheet == null and ResourceLoader.exists(SIGNATURE_MARKS_PATH):
+		_signature_sheet = load(SIGNATURE_MARKS_PATH)
+	if _signature_sheet == null:
+		return null
+	var atlas := AtlasTexture.new()
+	atlas.atlas = _signature_sheet
+	atlas.region = Rect2(index * 12, 0, 12, 12)
+	var rect := TextureRect.new()
+	rect.name = "SignatureIcon"
+	rect.texture = atlas
+	rect.custom_minimum_size = Vector2(24, 24)  # ×2, whole pixels
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	rect.mouse_filter = Control.MOUSE_FILTER_PASS
+	return rect
+
 # Rank V signatures (warden_stats.md 96d728dd, Tower Code 105f2252): a gold mark after the picks once it has one
 # (name, what it does in the tooltip; dimmed with a warning where its choice does nothing, e.g. Firstborn on a
 # Warden that makes nothing), else from rank III the way there ("2 more Power ranks: Crushing at rank V").
@@ -1006,9 +1032,15 @@ func _add_signature_mark() -> void:
 		mark.add_theme_color_override("font_color", UiStyle.GOLD)
 		mark.tooltip_text = "Signature: %s." % Signatures.TEXT.get(sig, "")
 		var choice: int = Signatures.BY_CHOICE.find_key(sig) if Signatures.BY_CHOICE.find_key(sig) != null else -1
+		var icon := _signature_icon(sig)
+		if icon != null:
+			icon.tooltip_text = mark.tooltip_text
+			_ranks_row.add_child(icon)
 		if choice >= 0 and _tower.has_method("choice_applies") and not _tower.choice_applies(choice):
 			mark.modulate.a = 0.4  # multiplier: dimmed, it does nothing here
 			mark.tooltip_text += "\nDoes nothing on %s." % _tower.tower_data.display_name
+			if icon != null:
+				icon.modulate.a = 0.4  # multiplier: dimmed with it
 	else:
 		var hint: String = _tower.signature_hint() if _tower.has_method("signature_hint") else ""
 		if hint == "":
