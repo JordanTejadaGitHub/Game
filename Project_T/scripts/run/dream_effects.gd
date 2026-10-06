@@ -37,7 +37,7 @@ const REPORTERS := {
 	&"mixed_grove": "_mixed_grove", &"quick_step": "_quick_step", &"restless_roots": "_restless_roots", &"far_reach": "_far_reach", &"tended_stumps": "_tended_stumps", &"hollow_ground": "_hollow_ground", &"drumbeat": "_drumbeat",
 	&"long_shadows": "_long_shadows", &"scarred_bark": "_scarred_bark", &"desperate_bloom": "_desperate_bloom",
 	&"odd_one_out": "_odd_one_out", &"grand_tour": "_grand_tour",
-	&"heart_of_the_maze": "_heart_of_the_maze", &"moonflip": "_moonflip",
+	&"heart_of_the_maze": "_heart_of_the_maze", &"moonflip": "_moonflip", &"many_talents": "_many_talents",
 	&"rain_on_glass": "_rain_on_glass",
 	&"kind_canopy": "_kind_canopy", &"shared_light": "_shared_light", &"bramble_oath": "_bramble_oath",
 	&"golden_harvest": "_golden_harvest",
@@ -374,6 +374,16 @@ func _solitude(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary
 		"damage": DreamState.SOLITUDE_BONUS, "range": DreamState.SOLITUDE_RANGE,
 		"reason": "" if on else "%s is %s away (needs no attacking Warden within %d)" % [DreamEffects._data(nearest).display_name,
 			_cells_word(_cheb(nearest.cell, spot.cell)), DreamState.NEARBY_CELLS]}
+
+# Many Talents (card 267): +10% damage per different Nurture choice among a planted Warden's ranks (up to +40%).
+func _many_talents(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	var node = spot.get("node")
+	if not spot.data.can_attack or node == null or not is_instance_valid(node):
+		return {}
+	var kinds := DreamState.different_choices(node)
+	var bonus := minf(DreamState.MANY_TALENTS_PER * kinds, DreamState.MANY_TALENTS_MAX)
+	return {"active": kinds > 0, "damage": bonus, "note": "%d different rank choices" % kinds,
+		"reason": "" if kinds > 0 else "no ranks yet"}
 
 # Moonflip (Strange Dreams): this block's coin, +25% or −15% damage for every Warden.
 func _moonflip(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
