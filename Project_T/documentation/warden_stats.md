@@ -295,6 +295,22 @@ cycle, Deep = what its Potency strengthens, etc.).
 - Nurse Log / Mother Log, **Strong** (a discount has no moment to surge).
 - Gust / Zephyr and Whirligig, **Deep** (they're the live spreaders already).
 
+**Trimmed (same day, user: *"the nurture doesn't have to work for all Wardens, just the choices of
+nurture for a given Warden; all of the nurture choices have to help"*).** Every **choice** offered must
+help; a **signature** need not exist on every Warden. The natural extensions stay (Crushing counts all
+the Warden's own damage; Relentless counts dispels by source and restarts the Warden's own cooldown,
+ability, grab or copy timer; Watchtower's 2 s linger; Spreading moves statuses, Held in full; Shelter
+and Surge on Prism Jar's aura). The ones that only filled a cell, each needing its own rule, are
+**cut** (no signature for that choice there):
+- **Deep (Spreading):** Rootcurl / Long Way Home, Groundroot / Earthbind, Quaker / Earthshaker, Echo
+  Hollow / Whispering Hollow, Hushbell / Silence, Dreamcatcher / Great Dreamcatcher, Thorncoil / Crown
+  of Thorns, Rootlight (the repeated pull / grab, reveal jump, echo repeat, silence, Caught and sleep
+  jumps, and the "mark" they needed, all go).
+- **Swift (Relentless):** Sunpetal / Midsummer (beam ramp), Dawnwing / The Whirlwind (patrol),
+  Hummingbird Bower / Jewelwing Court and Samara / Autumn Gale (birds and seeds returning).
+- **Wide (Shelter):** Dewcatcher / Wellspring, Nurse Log / Mother Log, Dream Oak / Dreamroot.
+- **Strong (Surge):** Dewcatcher / Wellspring, Dreamcatcher / Great Dreamcatcher.
+
 **Choice faults fixed:**
 - **Held cap 2.0 → 2.25 s** (`HELD_POTENCY_CAP`): Deep on Tangleroot / Snugroot, Deeproot / Heartroot
   and World Root hit the cap at rank IV (rule 2).
