@@ -37,7 +37,7 @@ const TERRAIN_GIFTS: Array[StringName] = [SOW_RIDGE, FALLEN_GIANT, GLADE, SHIFT_
 # Numbers (spire_difficulty.md Phase 3 starting points; Balancing tunes).
 const MIRE_SLOW := 0.2  # Through EnemyStatuses' extra slow: the slow floors still hold
 const SNAG_SLOW := 0.15  # Fallen Giant's Snag: path halves beside the log (heartwood_gifts.md b3e464e6, Balancing f32488cd)
-const SOWN_TREE_SEEDS := 2  # Sow a Ridge: each of its trees tended pays this on top of the usual +1 Seed
+const SOWN_TREE_SEEDS := 2  # Sow a Ridge: each of its trees tended pays this many Seeds in all (instead of the usual 1)
 const ROOTS_CELLS := 4
 const ROOTS_TAKEN := 0.15
 const TICK := 0.2  # s between ground checks on the nightmares
@@ -352,10 +352,10 @@ func _data_for(kind: String) -> ObstacleData:
 
 func _on_obstacle_cleared(cell: Vector2, _data: ObstacleData) -> void:
 	if gift_obstacles.has(cell):
-		if gift_obstacles[cell][0] == "sown":  # Sow a Ridge's tree: +SOWN_TREE_SEEDS Seeds on top of the usual tended +1
+		if gift_obstacles[cell][0] == "sown":  # Sow a Ridge's tree: SOWN_TREE_SEEDS in all (RunState already counted the usual 1)
 			var run_state: Node = map.get_node_or_null("%RunState")
 			if run_state != null and not run_state.clearing_without_seeds:
-				run_state.obstacles_tended += SOWN_TREE_SEEDS
+				run_state.obstacles_tended += SOWN_TREE_SEEDS - 1
 		gift_obstacles.erase(cell)
 		_rebuild_props()
 		gifts_changed.emit()

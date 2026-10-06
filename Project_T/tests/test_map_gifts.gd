@@ -164,8 +164,8 @@ func _init() -> void:
 	# The player tends a gift tree and the moved stone afterwards: they stay gone on resume.
 	var tended_before: int = run_state.obstacles_tended
 	map.clear_obstacle(ridge[1])
-	_check(run_state.obstacles_tended == tended_before + 1 + MapGifts.SOWN_TREE_SEEDS,
-		"tending a Sow a Ridge tree pays +%d Seeds over the usual 1" % MapGifts.SOWN_TREE_SEEDS)
+	_check(run_state.obstacles_tended == tended_before + MapGifts.SOWN_TREE_SEEDS,
+		"tending a Sow a Ridge tree pays %d Seeds (instead of 1)" % MapGifts.SOWN_TREE_SEEDS)
 	map.clear_obstacle(lightning[0])
 	_check(gifts.lightning_trees().is_empty() and not gifts.gift_obstacles.has(ridge[1]), "tended gift trees leave the gifts' terrain")
 	_check(not map.get_path_from(map.startPath).is_empty(), "the way is still open")
