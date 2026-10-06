@@ -36,6 +36,8 @@ const TERRAIN_GIFTS: Array[StringName] = [SOW_RIDGE, FALLEN_GIANT, GLADE, SHIFT_
 
 # Numbers (spire_difficulty.md Phase 3 starting points; Balancing tunes).
 const MIRE_SLOW := 0.2  # Through EnemyStatuses' extra slow: the slow floors still hold
+const SNAG_SLOW := 0.15  # Fallen Giant's Snag: path halves beside the log (heartwood_gifts.md b3e464e6, Balancing f32488cd)
+const SOWN_TREE_SEEDS := 2  # Sow a Ridge: each of its trees tended pays this on top of the usual +1 Seed
 const ROOTS_CELLS := 4
 const ROOTS_TAKEN := 0.15
 const TICK := 0.2  # s between ground checks on the nightmares
@@ -51,13 +53,14 @@ const ANIMATED: Array[String] = ["lightning_tree", "moonwell", "bell_stone", "mu
 
 var map: Node  # MapGenerator
 var act := 1
-var gift_obstacles := {}  # {cell: [kind ("tree" / "rock" / "lightning"), tile (Vector2i)]}: obstacles a gift put down
+var gift_obstacles := {}  # {cell: [kind ("sown" / "tree" / "rock" / "lightning"), tile (Vector2i)]}: obstacles a gift put down
 var logs: Array = []  # [[cells…], …]: Fallen Giants (blocked, never clearable)
 var spring_cells: Array[Vector2] = []
 var moonwells: Array[Vector2] = []
 var bell_stones: Array[Vector2] = []
 var bog_cells: Array[Vector2] = []
 var root_cells: Array[Vector2] = []
+var snag_halves := {}  # Half cells beside a Fallen Giant (Snag: nightmares there are slowed), from `logs`
 var rings: Array[Vector2] = []  # Top-left cells of 3×3 Mushroom Rings
 var stumps: Array[Vector2] = []
 var _props: Array[Node2D] = []
@@ -188,10 +191,11 @@ func apply(gift: StringName, cells: Array[Vector2], from: Array[Vector2] = [], r
 		SOW_RIDGE:
 			for cell in cells:
 				if not tended_later.call(cell):
-					_put_obstacle(cell, "tree", TREE_DATA.tiles[EnvironmentTiles.cell_variant(Vector2i(cell), TREE_DATA.tiles.size())])
+					_put_obstacle(cell, "sown", TREE_DATA.tiles[EnvironmentTiles.cell_variant(Vector2i(cell), TREE_DATA.tiles.size())])
 		FALLEN_GIANT:
 			logs.append(cells.duplicate())
 			_block(cells)
+			_find_snag_halves()
 		GLADE:  # The obstacles the player picked (up to 5; user: "no control" with a radius)
 			for cell in cells:
 				_clear(cell, restoring)
@@ -229,6 +233,23 @@ func apply(gift: StringName, cells: Array[Vector2], from: Array[Vector2] = [], r
 	queue_redraw()
 	gifts_changed.emit()
 
+# The free half cells beside any Fallen Giant (4 around each of its halves, off the log): its Snag.
+func _find_snag_halves() -> void:
+	snag_halves.clear()
+	for log_cells: Array in logs:
+		var halves := {}
+		for cell: Vector2 in log_cells:
+			for h in FindPath.halves_of_cell(cell):
+				halves[h] = true
+		for h: Vector2 in halves:
+			for step: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+				if not halves.has(h + step):
+					snag_halves[h + step] = true
+
+# True if a nightmare at route point `point` is in a Fallen Giant's Snag.
+func is_snagged(point: Vector2) -> bool:
+	return snag_halves.has(Vector2(FindPath.point_to_node(point)))
+
 func is_bog(cell: Vector2) -> bool:
 	return bog_cells.has(cell)
 
@@ -253,7 +274,7 @@ func _process(delta: float) -> void:
 		for prop in _props:
 			if _sheets.has(prop.kind) and ANIMATED.has(prop.kind):
 				prop.queue_redraw()
-	if bog_cells.is_empty() and root_cells.is_empty():
+	if bog_cells.is_empty() and root_cells.is_empty() and snag_halves.is_empty():
 		return
 	_tick -= delta
 	if _tick > 0.0:
@@ -268,6 +289,9 @@ func _process(delta: float) -> void:
 		if bog_cells.has(cell) and not enemy.is_flying():  # Flyers pass over the bog
 			s.slow_time = maxf(s.slow_time, TICK * 1.6)
 			s.slow_amount = maxf(s.slow_amount if s.slow_time > 0.0 else 0.0, MIRE_SLOW)
+		if not snag_halves.is_empty() and not enemy.is_flying() and is_snagged(enemy.get_route_point()):
+			s.slow_time = maxf(s.slow_time, TICK * 1.6)
+			s.slow_amount = maxf(s.slow_amount if s.slow_time > 0.0 else 0.0, SNAG_SLOW)
 		if root_cells.has(cell):
 			s.ground_taken = ROOTS_TAKEN
 			s.ground_taken_time = maxf(s.ground_taken_time, TICK * 1.6)
@@ -328,6 +352,10 @@ func _data_for(kind: String) -> ObstacleData:
 
 func _on_obstacle_cleared(cell: Vector2, _data: ObstacleData) -> void:
 	if gift_obstacles.has(cell):
+		if gift_obstacles[cell][0] == "sown":  # Sow a Ridge's tree: +SOWN_TREE_SEEDS Seeds on top of the usual tended +1
+			var run_state: Node = map.get_node_or_null("%RunState")
+			if run_state != null and not run_state.clearing_without_seeds:
+				run_state.obstacles_tended += SOWN_TREE_SEEDS
 		gift_obstacles.erase(cell)
 		_rebuild_props()
 		gifts_changed.emit()
