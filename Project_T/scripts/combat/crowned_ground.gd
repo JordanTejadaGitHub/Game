@@ -35,7 +35,7 @@ func _init(ground_kind: Kind, cells: Array[Vector2], duration: float, at: Vector
 		radius: float = 0.0) -> void:
 	kind = ground_kind
 	_cells = cells
-	_duration = duration
+	_duration = ShapeCards.ground_time(duration)  # Lingering Ground: x1.5
 	_radius = radius
 	position = at
 	z_index = -1  # Under the nightmares

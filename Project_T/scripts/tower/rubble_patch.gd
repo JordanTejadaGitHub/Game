@@ -17,7 +17,7 @@ var _drawn_by_fx := false
 func _init(cells: Array[Vector2], slow: float, duration: float) -> void:
 	_cells = cells
 	_slow = slow
-	_duration = duration
+	_duration = ShapeCards.ground_time(duration)  # Lingering Ground: x1.5
 
 func _ready() -> void:
 	# Drawn here, not with the effects player's rubble tile (art_direction.md "They must read on the pale path": that

@@ -23,6 +23,7 @@ var _data: TowerData
 var _boost := 1.0
 var _radius: float
 var _duration: float
+var _tick_share := 0.0  # One hit spread over the base duration, per tick
 var _fog: bool
 var _color: Color
 var _age := 0.0
@@ -40,7 +41,8 @@ func _init(tower: Tower, center: Vector2) -> void:
 	# attack_data: a Graftling copying a Bloomcap drops the Bloomcap's cloud.
 	var broad: float = tower._dream_state.get_area_radius_add() if tower._dream_state and tower._dream_state.has_method("get_area_radius_add") else 0.0
 	_radius = (_data.cloud_radius + broad + tower.area_bonus()) * Tower.MAP_GRID.cell_size.x  # Broad Splash and Reach widen clouds too
-	_duration = _data.cloud_duration
+	_duration = ShapeCards.ground_time(_data.cloud_duration)  # Lingering Ground: x1.5 (each tick keeps its share of the base, so damage grows too)
+	_tick_share = TICK / maxf(_data.cloud_duration, 0.01)
 	_fog = _data.cloud_fog
 	_color = _data.projectile_color
 	top_level = true
@@ -97,7 +99,7 @@ func _tick() -> void:
 		if not is_instance_valid(enemy) or enemy.is_cleansed:
 			continue
 		# A cloud's soothe per tick is a share of one attack, spread over its lifetime.
-		_tower.run_as(_data, _boost, func() -> void: _tower.hit(enemy, TICK / _duration, true, Tower.NO_CRIT, &"cloud"))  # Clouds never crit; an effect (Potency)
+		_tower.run_as(_data, _boost, func() -> void: _tower.hit(enemy, _tick_share, true, Tower.NO_CRIT, &"cloud"))  # Clouds never crit; an effect (Potency)
 
 func _draw() -> void:
 	var fade := minf(1.0, (_duration - _age) / 0.5) * minf(1.0, _age / 0.2 + 0.3)

@@ -93,19 +93,21 @@ class LingeringPatch extends Node2D:
 	const TICK := 0.5
 	var _tower: Tower
 	var _per_second: float
+	var _duration: float = DreamState.LINGERING_SPLASH_TIME
 	var _age := 0.0
 	var _tick := 0.0
 
 	func _init(tower: Tower, per_second: float) -> void:
 		_tower = tower
 		_per_second = per_second
+		_duration = ShapeCards.ground_time(DreamState.LINGERING_SPLASH_TIME)  # Lingering Ground: x1.5
 		top_level = true
 		z_index = -1  # On the ground
 
 	func _process(delta: float) -> void:
 		_age += delta
 		_tick += delta
-		if _age >= DreamState.LINGERING_SPLASH_TIME or not is_instance_valid(_tower):
+		if _age >= _duration or not is_instance_valid(_tower):
 			queue_free()
 			return
 		while _tick >= TICK:
@@ -117,7 +119,7 @@ class LingeringPatch extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
-		var fade := 1.0 - _age / DreamState.LINGERING_SPLASH_TIME
+		var fade := 1.0 - _age / _duration
 		draw_circle(Vector2.ZERO, Tower.MAP_GRID.cell_size.x * 0.5, Color(Palette.DEADWOOD, 0.25 * fade))
 
 # Quickening listens to dispels once per run scene (Tower._ready asks; cheap after the first).

@@ -103,6 +103,29 @@ var _briar_drift := -1  # Briar Trap: the drift this wall last held someone in
 func _beside_reach() -> float:
 	return 0.75 if twig else BESIDE_WALL
 
+var _sap_left := randf() * ShapeCards.SAP_EVERY
+
+# Sap Rising (ShapeCards): a support Warden pulses the 8 cells around it every 2 s; effect damage, logged under it.
+func _update_sap(delta: float) -> void:
+	_sap_left -= delta
+	if _sap_left > 0.0:
+		return
+	_sap_left = ShapeCards.SAP_EVERY
+	var damage := ShapeCards.sap_damage(self)
+	if damage <= 0.0:
+		return
+	var half: Vector2 = body_size() / 2.0 + MAP_GRID.cell_size  # Its body and the ring of cells around it
+	var struck := false
+	for enemy in nightmares_near(get_tree(), global_position, half.length()):
+		if not is_instance_valid(enemy) or enemy.is_cleansed:
+			continue
+		var apart: Vector2 = (enemy.global_position - global_position).abs()
+		if apart.x <= half.x and apart.y <= half.y:
+			enemy.take_damage(damage, tower_data.line, true, false, self, &"sap")
+			struck = true
+	if struck:
+		Reactions._effect(&"landing_dust", global_position, self, half.x * 2.0 / MAP_GRID.cell_size.x)  # Placeholder pulse
+
 # Lantern Glow and First Frost, every CARD_TICK for an attacking Warden (only when either card is held).
 func _update_card_watch(delta: float) -> void:
 	_card_tick -= delta
@@ -593,6 +616,8 @@ func _process(delta: float) -> void:
 		if withered_left <= 0.0:
 			sprite.self_modulate = Color.WHITE
 		return
+	if _dream_state and _has_rule(ShapeCards.SAP_RISING) and ShapeCards.is_support(tower_data):
+		_update_sap(delta)  # Sap Rising
 	if tower_data.caught_bonus > 0.0:
 		_update_catch(delta)  # Dreamcatchers catch sleepy nightmares whether or not they're shooting
 	if attack_data.ability_every > 0.0:
@@ -2387,6 +2412,7 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 # Projectile landed at `where` (on `target` if it's still there): soothe it, or everything in the
 # splash radius (the splash shares the main hit's crit roll).
 func projectile_landed(target: Node2D, where: Vector2) -> void:
+	var hand := ShapeCards.hands(self) if ShapeCards.sends_things_out(attack_data) else 1.0  # Small Hands: swooping birds, lobbed stones +35%
 	var splash := get_splash_cells() * MAP_GRID.cell_size.x
 	if splash > 0.0 and tower_data.get_id() == "puffball" and _dream_state \
 			and PathCloud.fog_at(get_tree(), where, "mistveil"):
@@ -2395,16 +2421,16 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 			splash *= CHAIN_BLOOM_SPLASH  # Chain Bloom: a puff inside Mistveil's fog covers 2 tiles
 	_kin_on_landing(target, where)
 	if splash <= 0.0:
-		hit(target)
+		hit(target, hand)
 		_skip(target, where)  # Pebbling: the pebble skips on to a second nightmare
 		if _kin_roll(kin_share(&"jewel_thieves", "b")):
-			hit(target)  # Jewel Thieves: the magpie pecks twice per swoop
+			hit(target, hand)  # Jewel Thieves: the magpie pecks twice per swoop
 			_kin_fired(&"jewel_thieves")
 		_spotter_splash(target, where)
 		# Sharp Beaks: Wren's Nest's wrens strike again (+1 per stack).
 		if tower_data.get_id() == "wrens_nest":
 			for i in DreamState.SHARP_BEAKS_HITS * _rule_stacks(&"sharp_beaks"):
-				hit(target)
+				hit(target, hand)
 		return
 	var crit := CRIT if target != null and is_instance_valid(target) and roll_crit(target) else NO_CRIT
 	if crit == NO_CRIT and target != null and is_instance_valid(target) and _kin_roll(kin_share(&"spotter", "a")):
@@ -2412,16 +2438,16 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 		_kin_fired(&"spotter")
 	if attack_data.splash_share < 1.0 and target != null and is_instance_valid(target):
 		# Boulderback: the full hit on its target, a share of it to everything else nearby.
-		hit(target, 1.0, false, crit)
+		hit(target, hand, false, crit)
 		_area_count = get_tree().get_nodes_in_group(ENEMY_GROUP).filter(func(e: Node2D) -> bool: return e.global_position.distance_to(where) <= splash).size()
 		for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
 			if enemy != target and enemy.global_position.distance_to(where) <= splash:
-				hit(enemy, attack_data.splash_share, true, crit)
+				hit(enemy, attack_data.splash_share * hand, true, crit)
 		_skip(target, where)  # Pebbling: the splash, then the skip
 		if _twist == &"landslide":
 			FinalTwists.landslide(self, target)  # Every 4th hit rolls a boulder back along the path
 	else:
-		_splash(where, splash, 1.0, crit)
+		_splash(where, splash, hand, crit)
 		var rainfog := kin_share(&"rainfog", "a")
 		if rainfog > 0.0 and is_instance_valid(_kin):
 			_kin.fog_patch(where, 2.0 * rainfog)  # Rainfog: the splash leaves a fog patch
@@ -3394,8 +3420,13 @@ func _send_hummingbirds() -> void:
 	for i in birds:
 		targets.append(chosen[i % chosen.size()])
 	var pecks := attack_data.pecks + DreamState.SHARP_BEAKS_HITS * _rule_stacks(&"sharp_beaks")
+	var peck_time: float = attack_data.peck_time
+	var longer := ShapeCards.hands_seconds(self)
+	if longer > 0.0 and peck_time > 0.0:
+		pecks += roundi(pecks * longer / peck_time)  # Small Hands: +1 s of pecking at the same pace
+		peck_time += longer
 	for target in targets:
-		var bird := PeckingBird.new(self, target, pecks, attack_data.peck_time)
+		var bird := PeckingBird.new(self, target, pecks, peck_time)
 		add_child(bird)
 		bird.global_position = global_position + tower_data.get_attack_origin()
 		_out.append(bird)
@@ -3412,7 +3443,7 @@ func peck(enemy: Node2D) -> void:
 	if _dream_state and _has_rule(&"needle_point"):
 		enemy.pierce_coat_once = true
 	Reactions._effect(&"peck_spark", aim_at(enemy) + Vector2(randf_range(-6, 6), 0), self)
-	hit(enemy, 1.0, false, crit)
+	hit(enemy, ShapeCards.hands(self), false, crit)  # Small Hands: +35%
 	if kin_share(&"jewel_thieves", "a") > 0.0 and is_instance_valid(enemy) and not enemy.is_cleansed:
 		_jewel_pecks += 1
 		if _jewel_pecks % JEWEL_THIEVES_EVERY == 0 and _kin_roll(kin_share(&"jewel_thieves", "a")):
@@ -3699,6 +3730,10 @@ func _light() -> void:
 			_lit_cells.append(at)
 	# Long Light (Dream): tiles the light moved on from stay lit a while (still holding once per nightmare).
 	var linger: float = _dream_state.get_lit_linger() if _dream_state and _dream_state.has_method("get_lit_linger") else 0.0
+	if _has_rule(ShapeCards.LINGERING_GROUND):
+		# Lingering Ground: lit tiles last x1.5. A tile is lit for one attack interval, so the light stays half an
+		# interval on tiles it moved on from (plus Long Light's linger x1.5).
+		linger = linger * ShapeCards.LINGERING_MULTIPLIER + (ShapeCards.LINGERING_MULTIPLIER - 1.0) / maxf(get_attacks_per_second(), 0.01)
 	if linger > 0.0:
 		for at in before:
 			if not _lit_cells.has(at) and not _lit_until.has(at):

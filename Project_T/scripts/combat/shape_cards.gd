@@ -40,9 +40,13 @@ static func makes_ground_effects(data: TowerData) -> bool:
 		return false
 	return data.attack_kind in GROUND_KINDS or data.lob or data.special in GROUND_SPECIALS
 
-# A support Warden for Sap Rising: doesn't attack and isn't a wall.
+# A support Warden for Sap Rising (the design's "non-attacking": auras, catchers, Dreamcatchers; never walls):
+# the support auras (Elder Stump, Grove Heart, Grandmother Oak; Acorn attacks), the Dew catchers (Dewcatcher,
+# Wellspring) and the Dreamcatchers.
 static func is_support(data: TowerData) -> bool:
-	return data != null and not data.can_attack and data.line != "wall"
+	if data == null or data.line == "wall":
+		return false
+	return Tower.SUPPORT_AURA_WARDENS.has(data.get_id()) or data.catch_share > 0.0 or data.caught_bonus > 0.0
 
 # --- Card state ----------------------------------------------------------------------------------------------
 

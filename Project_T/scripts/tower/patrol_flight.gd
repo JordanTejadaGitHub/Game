@@ -114,7 +114,7 @@ func _hit_nearby() -> void:
 		if carries:
 			_pick_up(enemy)
 			_leave_on(enemy)
-		_tower.hit(enemy, 1.0, true)
+		_tower.hit(enemy, ShapeCards.hands(_tower), true)  # Small Hands: +35%
 
 # The Whirlwind: the strongest version of each status it touches travels with it.
 func _pick_up(enemy: Node2D) -> void:
