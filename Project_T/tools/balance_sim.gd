@@ -1460,7 +1460,7 @@ func _finish() -> void:
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
 		"sprout_cards_25": run.sprout_cards_25,
 		"sprouts_end": _attackers().filter(func(t) -> bool: return t.tower_data.get_id() == "sprout").size(), "cards_start": "+".join(start_cards),
-		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "boss_draw": BossPool.force_draw, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "enemy": ";".join(enemy_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, enemy_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_35": dream_share.get(35, -1.0), "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "omen_paid": _omen_stat("paid"), "omen_share": _omen_stat("share"), "omen_leaves_lost": _omen_stat("leaves_lost"), "omen_dew": (_omen_stat("dew") + roundi(omen_pot_dew)) if omens != null and _facing() else -1, "omen_pot_dew": roundi(omen_pot_dew), "omen_dreamlight": dreamlight_by_source.get(&"omen", 0) if omen_mode != "" else -1, "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
+		"loadout": _loadout(), "all_families": all_families, "dreams": dream_mode, "boss": act1_boss, "boss_draw": BossPool.force_draw, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "enemy": ";".join(enemy_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, enemy_overrides[k]])), "boss_drained": run.boss_drained, "dream_share_20": dream_share.get(20, -1.0), "dream_share_25": dream_share.get(25, -1.0), "dreams_20": dreams_20, "dream_share_35": dream_share.get(35, -1.0), "dream_share_50": dream_share.get(50, -1.0), "dream_share_75": dream_share.get(75, -1.0), "favored": "+".join(favored), "control_used": "%d/%d" % policy.control_used if policy.get("control_used") != null else "", "save": save_mode, "omens": omen_mode, "omens_faced": "+".join(omens_faced), "omen_paid": _omen_stat("paid"), "omen_share": _omen_stat("share"), "omen_leaves_lost": _omen_stat("leaves_lost"), "omen_dew": (_omen_stat("dew") + roundi(omen_pot_dew)) if omens != null and _facing() else -1, "omen_pot_dew": roundi(omen_pot_dew), "omen_dreamlight": dreamlight_by_source.get(&"omen", 0) if omen_mode != "" else -1, "families_forced": "+".join(forced_families), "hand_drifts": hand_drifts,
 		"close_calls": rows.filter(func(r) -> bool: return r.approach > CLOSE_CALL).size(),
 		"approach_max": snappedf(rows.reduce(func(m, r) -> float: return maxf(m, r.approach), 0.0), 0.01),
 		"seconds": snappedf(game_time, 1.0)}
@@ -1673,6 +1673,8 @@ class FavorPolicy extends DreamSimPolicy:
 	var on_pick: Callable  # The runner logs each offer with the card taken (offers.csv)
 
 	func pick_dream(offer: Array) -> UpgradeData:
+		if not favored.is_empty() and mode != "skip":
+			offer = _chase_with_control()  # A chasing player spends Second Thoughts / Let Go on offers without a package card
 		if on_offer.is_valid():
 			on_offer.call(offer)
 		var pick: UpgradeData = null
@@ -1686,6 +1688,29 @@ class FavorPolicy extends DreamSimPolicy:
 		if on_pick.is_valid():
 			on_pick.call(offer, pick)
 		return pick
+
+	var control_used := [0, 0]  # [rerolls, banishes] spent chasing (--favor)
+
+	# While the offer holds no favored card: a reroll if any is left, else let go of its lowest-scoring card. Returns
+	# DreamState's current offer (what sim_rest checks the pick against).
+	func _chase_with_control() -> Array:
+		for guard in 20:
+			var current: Array = dreams.current_offer
+			if current.is_empty() or current.any(func(c: UpgradeData) -> bool: return favored.has(c.id)):
+				break
+			if dreams.rerolls_left > 0 and dreams.reroll():
+				control_used[0] += 1
+				continue
+			if dreams.banishes_left <= 0:
+				break
+			var worst: UpgradeData = null
+			for c in current:
+				if worst == null or score(c) < score(worst):
+					worst = c
+			if not dreams.banish(worst):
+				break
+			control_used[1] += 1
+		return dreams.current_offer.duplicate()
 
 # forms_now (per drift): the final and Ascended forms (tier 3+) on the map, id:count (build formation reads).
 func _forms_now() -> String:
