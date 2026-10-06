@@ -86,7 +86,8 @@ can't: a staggered half-cell maze at full scale with the route shown and nightma
   dream"*.
 - **Platforms:** PC (Steam), Steam Deck verified as a goal; **mobile (iOS/Android) port later**
   (`platforms.md`).
-- **Price:** typical for this genre and scope is $9.99–$19.99; decide closer to launch.
+- **Price:** **planned $4.99 on Steam and a $4.99 mobile unlock** (the user, 2026-10-06; the same price everywhere).
+  The final Steam price is checked against wishlists a few weeks before launch (marketing.md §6 checklist).
 
 ## Studio name (planned)
 
