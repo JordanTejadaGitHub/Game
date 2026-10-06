@@ -43,6 +43,7 @@ func _init() -> void:
 	_brood_effects()
 	_lichen_effects()
 	_sap_effects()
+	_signature_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -3347,3 +3348,82 @@ func _sap_pulse(img: Image, f: int) -> void:
 	if f < 3:
 		_ellipse(img, c, Vector2(14, 10) * (1.0 + f * 0.3), Color(GOLD, 0.4))
 		_ellipse(img, c, Vector2(7, 5) * (1.0 + f * 0.3), Color(WARM, 0.75))
+
+# --- Rank V signatures (warden_stats.md "Rank V signatures", Tower Code e951b540) -------------------
+# They fire often, so each is readable but quiet: thin lines, few frames, hard alpha steps.
+const SHELL_CRACK := Color("#dce8f4")
+const STONE_HIT := Color("#b4b0c8")
+const STONE_DARK := Color("#5c5a78")
+
+func _signature_effects() -> void:
+	_sheet("surge_pulse", Vector2i(192, 192), 6, 6, Vector2i(96, 96), true, "ground", _surge_pulse,
+		{note = "Surge (rank V signature): a support Warden's aura running warm for its 2 s, looped. Thin rings rolling out over its 3x3 cells at scale 1.0 (anchor = its cell centre; scale = reach / 3 cells), z -1."})
+	_sheet("crushing_hit", Vector2i(48, 48), 6, 16, Vector2i(24, 26), false, "signature", _crushing_hit,
+		{note = "Crushing (rank V signature): the heavy every-5th hit (anchor = the nightmare). A stone thump, dust, and its shell cracking. ~0.38 s."})
+	_sheet("executioner_slash", Vector2i(48, 48), 6, 18, Vector2i(24, 24), false, "signature", _executioner_slash,
+		{note = "Executioner (rank V signature): the finishing crit under 20% (anchor = the nightmare). One gold crescent sweep, then it fades. ~0.33 s; distinct from Whetstone's straight clean_cut."})
+
+func _surge_pulse(img: Image, f: int) -> void:
+	# Two thin rounded-square rings rolling out, one a half step behind the other (loops seamlessly).
+	var c := Vector2(96, 96)
+	for k in 2:
+		var t := fmod((f + k * 3) / 6.0, 1.0)
+		var r := 18.0 + t * 76.0
+		var a := 0.75 if t < 0.5 else 0.4
+		for y in 192:
+			for x in 192:
+				var p := (Vector2(x + 0.5, y + 0.5) - c) / r
+				var q := pow(pow(absf(p.x), 4.0) + pow(absf(p.y), 4.0), 0.25)
+				var dist := (1.0 - q) * r
+				if dist >= 0.0 and dist < 2.0:
+					img.set_pixel(x, y, Color(GOLD if dist < 1.0 else WARM, a))
+	# A few motes rising inside the aura.
+	for k in 5:
+		var p := c + Vector2.from_angle(k * TAU / 5.0 + f * 0.2) * (30.0 + (k * 17) % 50) + Vector2(0, -f * 2)
+		_px(img, int(p.x), int(p.y), Color(CORE, 0.75))
+
+func _crushing_hit(img: Image, f: int) -> void:
+	var c := Vector2(24, 26)
+	var a := 1.0 if f < 4 else 0.4
+	if f <= 1:  # the thump: a dark stone wedge driving down onto it, a pale flash
+		var drop: float = [-6.0, 0.0][f]
+		var pts := PackedVector2Array([c + Vector2(-6, -10 + drop), c + Vector2(6, -10 + drop), c + Vector2(4, -2 + drop), c + Vector2(-4, -2 + drop)])
+		for y in 48:
+			for x in 48:
+				if Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), pts):
+					img.set_pixel(x, y, STONE_HIT if y < c.y - 6 + drop else STONE_DARK)
+		if f == 1:
+			_ellipse(img, c + Vector2(0, 1), Vector2(7, 3), Color(CORE, 0.75))
+	# The shell cracking: jagged pale lines spreading from the impact.
+	if f >= 1:
+		var reach: float = [0.0, 5.0, 9.0, 11.0, 11.0, 11.0][f]
+		for k in 5:
+			var d := Vector2.from_angle(-PI * 0.9 + k * PI * 0.45)
+			var p := c
+			for s in int(reach):
+				var q := p + d + Vector2(0, 0.6 if s % 3 == 1 else -0.4)
+				_px(img, roundi(q.x), roundi(q.y), Color(SHELL_CRACK, a))
+				p = q
+	# Dust: a low band either side.
+	if f >= 2:
+		var w: float = [0.0, 0.0, 8.0, 12.0, 15.0, 16.0][f]
+		for s: int in [-1, 1]:
+			_ellipse(img, c + Vector2(s * w, 6), Vector2(4.0, 2.0), Color(Color("#bca48c"), 0.75 if f < 4 else 0.4))
+
+func _executioner_slash(img: Image, f: int) -> void:
+	# A gold crescent sweeping across it (upper right to lower left), a white edge, then fading.
+	var c := Vector2(24, 24)
+	var sweep: float = [0.3, 0.7, 1.0, 1.0, 1.0, 1.0][f]
+	var w: float = [1.5, 3.0, 3.5, 2.5, 1.5, 1.0][f]
+	var a := 1.0 if f < 4 else 0.4
+	var start := -0.9
+	var end := start + 2.2 * sweep
+	for i in 60:
+		var t := start + (end - start) * i / 59.0
+		var mid := Vector2.from_angle(t) * 15.0
+		var taper := sin(PI * float(i) / 59.0)
+		for j in range(0, int(w * taper + 0.5) + 1):
+			var p := c + mid * (1.0 - j * 0.06)
+			_px(img, roundi(p.x), roundi(p.y), Color(CORE if j == 0 else (GOLD if j < 2 else AMBER), a))
+	if f == 2:
+		_star(img, c + Vector2.from_angle(end) * 15.0, 3, CORE, GOLD)

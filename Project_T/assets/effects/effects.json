@@ -557,6 +557,22 @@
 			"kind": "crowned",
 			"loop": false
 		},
+		"crushing_hit": {
+			"anchor": [
+				24,
+				26
+			],
+			"file": "crushing_hit.png",
+			"fps": 16.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Crushing (rank V signature): the heavy every-5th hit (anchor = the nightmare). A stone thump, dust, and its shell cracking. ~0.38 s."
+		},
 		"dark_swirl": {
 			"anchor": [
 				32,
@@ -749,6 +765,22 @@
 			"kind": "overlay",
 			"loop": false,
 			"note": "Echo Hollow: play with the repeated Reaction (which can also be drawn at ~60% alpha, lilac-tinted)."
+		},
+		"executioner_slash": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "executioner_slash.png",
+			"fps": 18.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Executioner (rank V signature): the finishing crit under 20% (anchor = the nightmare). One gold crescent sweep, then it fades. ~0.33 s; distinct from Whetstone's straight clean_cut."
 		},
 		"fairy_circle_ring": {
 			"anchor": [
@@ -2046,6 +2078,22 @@
 			"kind": "overlay",
 			"loop": false,
 			"note": "x5 chain: stretch over the whole screen and fade alpha 0 -> 0.8 -> 0 over ~0.5 s. Two hard bands of warm light (AI-look audit: no soft gradients)."
+		},
+		"surge_pulse": {
+			"anchor": [
+				96,
+				96
+			],
+			"file": "surge_pulse.png",
+			"fps": 6.0,
+			"frame_size": [
+				192,
+				192
+			],
+			"frames": 6,
+			"kind": "ground",
+			"loop": true,
+			"note": "Surge (rank V signature): a support Warden's aura running warm for its 2 s, looped. Thin rings rolling out over its 3x3 cells at scale 1.0 (anchor = its cell centre; scale = reach / 3 cells), z -1."
 		},
 		"thorn_spread": {
 			"anchor": [

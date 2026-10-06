@@ -6191,6 +6191,38 @@ func _make_ranks() -> void:
 		burst.blit_rect(canvas, Rect2i(0, 0, S, S), Vector2i(f * S, 0))
 	_snap32(burst).save_png(RANKS_OUT + "rank_up.png")
 	_save_rank_preview(masks, badges)
+	_make_signature_marks()
+
+# signature_marks.png: one 12 x 12 mark per rank V signature (Signatures ids, in SIGNATURE_MARKS order),
+# for the rank pips: a gold glyph on a dark disc with a thin amber rim, like the code-drawn Focus pips.
+const SIGNATURE_MARKS := {
+	"crushing": ["..####..", ".######.", "########", ".######.", "........", "#.#..#.#", ".#.##.#.", "........"],
+	"relentless": ["..###...", ".#...#..", "#.....#.", "#.....#.", "#....###", ".#....#.", "..###...", "........"],
+	"watchtower": ["........", "..####..", ".#....#.", "#..##..#", "#..##..#", ".#....#.", "..####..", "........"],
+	"spreading": ["...#....", "........", "#..##..#", "...##...", "........", ".#....#.", "........", "........"],
+	"executioner": ["......##", ".....###", "....###.", "...###..", "#.###...", ".##.....", ".##.....", "#..#...."],
+	"firstborn": ["..#.#...", "...#....", ".##.##..", "#..#..#.", "...#....", "...#....", "..###...", "........"],
+	"shelter": ["...##...", "..####..", ".######.", "########", ".#....#.", ".#.##.#.", ".#.##.#.", "........"],
+	"surge": ["...##...", "..#..#..", ".#....#.", "...##...", "..#..#..", ".#....#.", "........", "........"],
+}
+const MARK := 12
+
+func _make_signature_marks() -> void:
+	var sheet := Image.create_empty(MARK * SIGNATURE_MARKS.size(), MARK, false, Image.FORMAT_RGBA8)
+	var i := 0
+	for id: String in SIGNATURE_MARKS:
+		var rows: Array = SIGNATURE_MARKS[id]
+		for y in MARK:
+			for x in MARK:
+				var d := Vector2(x + 0.5, y + 0.5).distance_to(Vector2(6, 6))
+				if d <= 5.9:
+					sheet.set_pixel(i * MARK + x, y, Color("#e9a83c") if d > 5.0 else Color("#241c14", 0.92))
+		for y in 8:
+			for x in 8:
+				if (rows[y] as String)[x] == "#":
+					sheet.set_pixel(i * MARK + 2 + x, 2 + y, Color("#fff4dc") if y < 3 else Color("#fcd47c"))
+		i += 1
+	_snap32(sheet).save_png(RANKS_OUT + "signature_marks.png")
 
 # The slab's top face, side faces and front rim (the top face's front edges), from the template.
 func _slab_masks() -> Dictionary:
