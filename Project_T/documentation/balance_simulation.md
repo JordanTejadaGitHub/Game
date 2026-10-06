@@ -877,6 +877,10 @@ Sized beside the living-ground gifts (Moonwell +1 range within 1 cell, Spring +2
 
 In: Tower Code cdedfec0 (Warden buffs), Main Merger 285dbd6b (Dew, fertile, Mist), Environment Code 8833efaf (log slow,
 ridge Seeds; fixed to 2 in total in 8ec114cb).
+**Overlap fixes (user, heartwood_gifts.md 8f46c6ac):** Fallen Giant = **+15% crit chance** touching the log only (range
+and slow dropped; 10% at ×2 crits sat under the Ridge's +10% damage). Shift the Stones = Dew only, **30 × act** per
+stone (fertile dropped: 3 half-price plants were worth ~40–75 Dew). Bramble Verge = free Thornwall → Bramble
+growth for the run + Drowsy cap +1 (≈ 10 Dew a wall, ~200–300 by act 2; as designed).
 
 ## Fewer, bigger cards: numbers (dream_design.md de439ea8, 2026-10-06)
 
