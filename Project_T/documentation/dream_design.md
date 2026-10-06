@@ -2003,7 +2003,7 @@ The Dreamlight / Dew numbers to drift 75 are being measured.
 
 | Card | Needs |
 |---|---|
-| Specialist, Many Talents | a Warden with 2+ ranks |
+| Specialist, Many Talents | a Warden at rank III+ (Balancing Discussion) |
 | Shared Training | a {kinship} on the map (it has the signature discovery gate too) |
 | Close Kin | a family with 2 branches unlocked (a Kinship is possible) |
 | Brimming | a Warden that applies a stacking status (Spored, Charged or Drowsy) |
