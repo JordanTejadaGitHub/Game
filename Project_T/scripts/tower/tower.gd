@@ -459,7 +459,7 @@ func _update_surge(delta: float) -> void:
 	_surging = now
 	_nudge_neighbours()
 	if _surging:
-		var swell := Reactions._effect(&"sap_pulse", global_position, self, get_aura_reach() * 2.0 / 3.0)  # Placeholder surge pulse
+		var swell := Reactions._effect(&"surge_pulse", global_position, self, get_aura_reach() * 2.0 / 3.0, Signatures.SURGE_TIME)  # Tower Assets 8d00143e (looped for the surge)
 		if swell != null:
 			swell.z_index = -1
 		signature_fired.emit(self, Signatures.SURGE)
@@ -474,6 +474,7 @@ func _crushing(enemy: Node2D) -> float:
 		return 1.0
 	if enemy.coat > 0.0:
 		enemy.coat = maxf(enemy.coat - enemy.coat_max * Signatures.CRUSH_SHELL, 0.0)
+	Reactions._effect(&"crushing_hit", aim_at(enemy), self)  # Tower Assets 8d00143e
 	signature_fired.emit(self, Signatures.CRUSHING)
 	return Signatures.CRUSH_MULTIPLIER
 
