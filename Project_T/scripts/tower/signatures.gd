@@ -33,6 +33,19 @@ const TEXT := {
 	SURGE: "every 10 s its aura doubles for 2 s",
 }
 
+# No signature where nothing fits the choice (signature audit a09297af); the choice itself still helps.
+const NONE_FOR := {
+	"jarlink": [Tower.Focus.SWIFT], "lightning_fence": [Tower.Focus.SWIFT],  # 0.25 s ticks: no cycle to restart
+	"thorncoil": [Tower.Focus.SWIFT], "crown_of_thorns": [Tower.Focus.SWIFT],
+	"seedbearer": [Tower.Focus.SWIFT], "grove_keeper": [Tower.Focus.SWIFT],  # Its cycle counts drifts
+	"nurse_log": [Tower.Focus.STRONG], "mother_log": [Tower.Focus.STRONG],  # A discount has no moment to surge
+	"gust": [Tower.Focus.DEEP], "zephyr": [Tower.Focus.DEEP], "whirligig": [Tower.Focus.DEEP],  # Already the live spreaders
+}
+
+# Whether a Warden of `data` can have the signature of `which`.
+static func fits(data: TowerData, which: int) -> bool:
+	return BY_CHOICE.has(which) and not (data != null and NONE_FOR.get(data.get_id(), []).has(which))
+
 const NEEDED := 3  # Ranks on one choice
 const RANK := 5  # The signature's rank (Shared Training: SHARED_RANK)
 const SHARED_RANK := 4
@@ -72,11 +85,11 @@ static func compute(tower: Tower) -> StringName:
 	var choices: Array = tower.rank_choices
 	if tower.rank >= RANK:
 		var which := majority(choices, RANK)
-		if which != Tower.Focus.NONE:
+		if which != Tower.Focus.NONE and fits(tower.tower_data, which):
 			return BY_CHOICE[which]
 	if tower.rank >= SHARED_RANK and tower._has_rule(SHARED_TRAINING):
 		var which := majority(choices, SHARED_RANK)
-		if which != Tower.Focus.NONE and is_instance_valid(tower._kin):
+		if which != Tower.Focus.NONE and fits(tower.tower_data, which) and is_instance_valid(tower._kin):
 			for pair in tower._kin.get_pairs(tower):
 				var partner: Tower = pair.b if pair.a == tower else pair.a
 				if is_instance_valid(partner) and partner.rank >= SHARED_RANK and majority(partner.rank_choices, SHARED_RANK) == which:
@@ -98,7 +111,7 @@ static func hint(tower: Tower) -> String:
 		counts[which] = int(counts.get(which, 0)) + 1
 	var best := Tower.Focus.NONE
 	for which in counts:
-		if BY_CHOICE.has(which) and (best == Tower.Focus.NONE or counts[which] > counts[best]):
+		if fits(tower.tower_data, which) and (best == Tower.Focus.NONE or counts[which] > counts[best]):
 			best = which
 	if best == Tower.Focus.NONE:
 		return ""

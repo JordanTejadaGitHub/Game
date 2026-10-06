@@ -4152,7 +4152,9 @@ func _update_status_copy(delta: float) -> void:
 	if to == null:
 		return
 	var applier: Node = s.source(status)
-	to.apply_status(status, maxi(s.stacks(status) / 2, 1), s.time_left(status), s.potency(status), 0,
+	# Deep: Gust's copy formula (half + GUST_STACKS a rank; signature audit a09297af: Whirligig's Deep was dead).
+	var share := 0.5 + NurtureChoices.GUST_STACKS * choice_count(Focus.DEEP)
+	to.apply_status(status, maxi(ceili(s.stacks(status) * share), 1), s.time_left(status), s.potency(status), 0,
 		applier.tower_data.line if applier is Tower else tower_data.line, applier if applier is Tower else self)
 
 # Rootlight / Starcave (status jobs, 2026-09-29): a Hold on a nightmare standing on a lit tile lasts
@@ -4184,7 +4186,8 @@ func _update_lit_holds(delta: float) -> void:
 			continue  # This Hold was already stretched
 		var longer := s.time_left(EnemyStatuses.HELD) * (1.0 + (attack_data.lit_hold_multiplier - 1.0) * get_potency())  # Deep stretches it more
 		SupportLog.credit(self, &"held_seconds", longer - s.time_left(EnemyStatuses.HELD))
-		s.apply(EnemyStatuses.HELD, 1, longer)
+		var held_by: Node = s.source(EnemyStatuses.HELD)
+		s.apply(EnemyStatuses.HELD, 1, longer, s.potency(EnemyStatuses.HELD), 0, "", held_by if held_by != null else self)  # Keeps the hold's source and Potency
 		_lit_stretched[id] = _anim_time + longer
 	if _lit_stretched.size() > 256:
 		_lit_stretched.clear()

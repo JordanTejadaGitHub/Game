@@ -239,7 +239,7 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 # status below its base (a card that already pushes it past the cap keeps its value).
 const SOAKED_CAP := 0.40  # Water hits on a Soaked nightmare: at most +40%
 const EXPOSED_CAP := 0.40  # Damage taken while Exposed: at most +40% (Beacon's bonus inside it)
-const HELD_POTENCY_CAP := 2.0  # Seconds: the longest Potency makes a Hold
+const HELD_POTENCY_CAP := 2.25  # Seconds: the longest Potency makes a Hold (signature audit a09297af: 2.0 capped Deep at rank IV)
 
 func _applier_potency(source: Node) -> float:
 	return source.get_potency() if source is Tower and is_instance_valid(source) else 1.0
