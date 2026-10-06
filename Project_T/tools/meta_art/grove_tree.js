@@ -87,7 +87,6 @@ N("memory_moon_moth", "families", "Memory Warden: The Moon Moth", 640, 530, [640
 // Cards: one branch per build style, Legendary flower at the tip.
 N("sharpened", "cards", "Sharpened", 952, 440, [942, 516]);
 N("full_moon", "cards", "Full Moon", 1000, 288, "sharpened", { legendary: true });  // Reckless was cut in the pool trim
-N("hunters_moon", "cards", "Hunter's Moon", 930, 300, "sharpened", { legendary: true });
 N("tending_hands", "cards", "Tending Hands", 1062, 392, [1044, 465]);
 N("nursery", "cards", "Nursery", 1090, 320, "tending_hands");
 N("elders", "cards", "Elders", 1096, 260, "nursery");
@@ -99,7 +98,6 @@ N("menagerie", "cards", "Menagerie", 1170, 200, "mixed_company", { legendary: tr
 N("one_line", "cards", "One Line", 832, 640, [846, 562]);
 N("the_last_light", "cards", "The Last Light", 800, 710, "one_line", { legendary: true });
 N("dead_wood", "cards", "Dead Wood", 962, 600, [944, 518]);
-N("the_long_walk", "cards", "The Long Walk", 992, 676, "dead_wood", { legendary: true });
 N("winding_roads", "cards", "Winding Roads", 950, 680, "dead_wood");
 N("crossroads", "cards", "Crossroads", 960, 750, "winding_roads", { legendary: true });
 N("bittersweet_dreams", "cards", "Bittersweet Dreams", 1152, 482, [1128, 410]);

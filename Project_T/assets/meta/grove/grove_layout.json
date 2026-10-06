@@ -87,7 +87,7 @@
    "section": "perks",
    "name": "Seed Pouch",
    "pos": [
-    376,
+    377,
     293
    ],
    "parent": "rested_roots",
@@ -97,12 +97,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     342,
-     258
+     344,
+     259
     ],
     "frame_size": [
-     147,
-     105
+     144,
+     101
     ],
     "frames": 5
    }
@@ -165,8 +165,8 @@
    "section": "perks",
    "name": "First Care",
    "pos": [
-    311,
-    278
+    275,
+    338
    ],
    "parent": "deep_taproot",
    "from": null,
@@ -175,12 +175,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     275,
-     243
+     239,
+     301
     ],
     "frame_size": [
-     98,
-     152
+     127,
+     95
     ],
     "frames": 5
    }
@@ -190,8 +190,8 @@
    "section": "perks",
    "name": "Clear Sight",
    "pos": [
-    334,
-    227
+    246,
+    380
    ],
    "parent": "first_care",
    "from": null,
@@ -200,12 +200,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     275,
-     191
+     212,
+     304
     ],
     "frame_size": [
-     95,
-     123
+     97,
+     110
     ],
     "frames": 5
    }
@@ -215,25 +215,25 @@
    "section": "perks",
    "name": "Second Thoughts",
    "pos": [
-    276,
-    339
+    178,
+    350
    ],
    "parent": null,
    "from": [
-    271,
-    364
+    217,
+    329
    ],
    "levels": 3,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     227,
-     297
+     136,
+     287
     ],
     "frame_size": [
-     91,
-     109
+     123,
+     105
     ],
     "frames": 5
    }
@@ -253,12 +253,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     215,
+     141,
      169
     ],
     "frame_size": [
-     109,
-     207
+     168,
+     218
     ],
     "frames": 5
    }
@@ -268,7 +268,7 @@
    "section": "perks",
    "name": "Omen Reader",
    "pos": [
-    356,
+    357,
     190
    ],
    "parent": "let_go",
@@ -279,11 +279,11 @@
    "branch": {
     "offset": [
      238,
-     156
+     140
     ],
     "frame_size": [
-     152,
-     84
+     153,
+     101
     ],
     "frames": 5
    }
@@ -293,7 +293,7 @@
    "section": "perks",
    "name": "Wider Dreams",
    "pos": [
-    438,
+    439,
     167
    ],
    "parent": "omen_reader",
@@ -303,12 +303,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     321,
-     130
+     323,
+     134
     ],
     "frame_size": [
-     151,
-     95
+     150,
+     115
     ],
     "frames": 5
    }
@@ -319,7 +319,7 @@
    "name": "Wider Roots",
    "pos": [
     445,
-    242
+    241
    ],
    "parent": "omen_reader",
    "from": null,
@@ -328,12 +328,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     322,
-     126
+     323,
+     156
     ],
     "frame_size": [
-     156,
-     149
+     155,
+     118
     ],
     "frames": 5
    }
@@ -343,25 +343,25 @@
    "section": "perks",
    "name": "The Heartwood's Crown",
    "pos": [
-    178,
-    350
+    396,
+    507
    ],
    "parent": null,
    "from": [
-    217,
-    329
+    432,
+    490
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     136,
-     287
+     353,
+     446
     ],
     "frame_size": [
-     123,
-     105
+     122,
+     104
     ],
     "frames": 5
    }
@@ -381,12 +381,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     139,
-     245
+     107,
+     249
     ],
     "frame_size": [
-     173,
-     130
+     115,
+     137
     ],
     "frames": 5
    }
@@ -421,8 +421,8 @@
    "section": "perks",
    "name": "Early Light",
    "pos": [
-    246,
-    380
+    232,
+    490
    ],
    "parent": "early_bloom",
    "from": null,
@@ -431,12 +431,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     148,
-     347
+     147,
+     394
     ],
     "frame_size": [
-     131,
-     116
+     120,
+     130
     ],
     "frames": 5
    }
@@ -446,8 +446,8 @@
    "section": "perks",
    "name": "Kindling",
    "pos": [
-    306,
-    418
+    311,
+    507
    ],
    "parent": "early_light",
    "from": null,
@@ -456,12 +456,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     212,
-     346
+     198,
+     456
     ],
     "frame_size": [
-     127,
-     112
+     146,
+     92
     ],
     "frames": 5
    }
@@ -471,25 +471,25 @@
    "section": "perks",
    "name": "Loadout slot 4",
    "pos": [
-    397,
-    507
+    366,
+    436
    ],
    "parent": null,
    "from": [
-    432,
-    490
+    377,
+    415
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     334,
-     440
+     299,
+     372
     ],
     "frame_size": [
-     140,
-     109
+     121,
+     107
     ],
     "frames": 5
    }
@@ -499,8 +499,8 @@
    "section": "perks",
    "name": "Loadout slot 5",
    "pos": [
-    312,
-    507
+    305,
+    418
    ],
    "parent": "slot_4",
    "from": null,
@@ -509,12 +509,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     276,
-     456
+     270,
+     382
     ],
     "frame_size": [
-     158,
-     88
+     132,
+     90
     ],
     "frames": 5
    }
@@ -524,7 +524,7 @@
    "section": "perks",
    "name": "Remembered Seed",
    "pos": [
-    422,
+    423,
     400
    ],
    "parent": null,
@@ -541,7 +541,7 @@
      358
     ],
     "frame_size": [
-     110,
+     106,
      114
     ],
     "frames": 5
@@ -552,8 +552,8 @@
    "section": "perks",
    "name": "Chosen Hunt",
    "pos": [
-    369,
-    434
+    312,
+    279
    ],
    "parent": "remembered_seed",
    "from": null,
@@ -562,12 +562,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     335,
-     365
+     278,
+     245
     ],
     "frame_size": [
-     122,
-     113
+     181,
+     191
     ],
     "frames": 5
    }
@@ -591,7 +591,7 @@
      325
     ],
     "frame_size": [
-     129,
+     130,
      111
     ],
     "frames": 5
@@ -602,8 +602,8 @@
    "section": "perks",
    "name": "Kin Foretold",
    "pos": [
-    232,
-    490
+    335,
+    227
    ],
    "parent": "chosen_hunt",
    "from": null,
@@ -612,12 +612,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     199,
-     388
+     266,
+     166
     ],
     "frame_size": [
-     206,
-     137
+     103,
+     147
     ],
     "frames": 5
    }
@@ -627,25 +627,25 @@
    "section": "cards",
    "name": "Strange Dreams",
    "pos": [
-    895,
-    414
+    899,
+    409
    ],
    "parent": null,
    "from": [
-    925,
-    441
+    932,
+    432
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     852,
-     371
+     857,
+     367
     ],
     "frame_size": [
-     116,
-     113
+     117,
+     107
     ],
     "frames": 5
    },
@@ -656,8 +656,8 @@
    "section": "cards",
    "name": "Restless Omens",
    "pos": [
-    921,
-    301
+    922,
+    359
    ],
    "parent": "strange_dreams",
    "from": null,
@@ -666,12 +666,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     853,
-     265
+     863,
+     323
     ],
     "frame_size": [
-     103,
-     186
+     95,
+     122
     ],
     "frames": 5
    },
@@ -682,25 +682,25 @@
    "section": "families",
    "name": "Sporeling",
    "pos": [
-    616,
-    490
+    614,
+    494
    ],
    "parent": null,
    "from": [
-    646,
-    495
+    645,
+    500
    ],
    "levels": 1,
    "start": true,
    "legendary": false,
    "branch": {
     "offset": [
-     574,
-     446
+     571,
+     451
     ],
     "frame_size": [
-     114,
-     91
+     117,
+     92
     ],
     "frames": 5
    },
@@ -711,8 +711,8 @@
    "section": "families",
    "name": "Sporeling: hidden branch",
    "pos": [
-    533,
-    500
+    531,
+    501
    ],
    "parent": "sporeling",
    "from": null,
@@ -721,12 +721,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     498,
-     441
+     495,
+     438
     ],
     "frame_size": [
-     154,
-     99
+     156,
+     101
     ],
     "frames": 5
    },
@@ -748,11 +748,11 @@
    "branch": {
     "offset": [
      434,
-     465
+     466
     ],
     "frame_size": [
-     134,
-     94
+     132,
+     93
     ],
     "frames": 5
    },
@@ -764,25 +764,25 @@
    "section": "families",
    "name": "Firefly Jar",
    "pos": [
-    680,
-    438
+    670,
+    425
    ],
    "parent": null,
    "from": [
-    641,
-    445
+    639,
+    435
    ],
    "levels": 1,
    "start": true,
    "legendary": false,
    "branch": {
     "offset": [
-     599,
-     396
+     597,
+     383
     ],
     "frame_size": [
-     123,
-     91
+     132,
+     96
     ],
     "frames": 5
    },
@@ -793,8 +793,8 @@
    "section": "families",
    "name": "Firefly Jar: hidden branch",
    "pos": [
-    727,
-    420
+    722,
+    423
    ],
    "parent": "firefly_jar",
    "from": null,
@@ -803,12 +803,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     644,
-     384
+     635,
+     383
     ],
     "frame_size": [
-     119,
-     93
+     121,
+     77
     ],
     "frames": 5
    },
@@ -819,8 +819,8 @@
    "section": "families",
    "name": "Firefly Jar: Ascension",
    "pos": [
-    753,
-    375
+    760,
+    377
    ],
    "parent": "firefly_jar_hidden",
    "from": null,
@@ -829,12 +829,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     692,
-     340
+     687,
+     342
     ],
     "frame_size": [
-     96,
-     115
+     108,
+     116
     ],
     "frames": 5
    },
@@ -847,7 +847,7 @@
    "name": "Dewdrop",
    "pos": [
     602,
-    450
+    451
    ],
    "parent": null,
    "from": [
@@ -859,11 +859,11 @@
    "legendary": false,
    "branch": {
     "offset": [
-     559,
+     560,
      397
     ],
     "frame_size": [
-     124,
+     122,
      96
     ],
     "frames": 5
@@ -875,8 +875,8 @@
    "section": "families",
    "name": "Dewdrop: hidden branch",
    "pos": [
-    584,
-    410
+    580,
+    414
    ],
    "parent": "dewdrop",
    "from": null,
@@ -885,12 +885,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     545,
-     374
+     544,
+     378
     ],
     "frame_size": [
      94,
-     113
+     109
     ],
     "frames": 5
    },
@@ -901,7 +901,7 @@
    "section": "families",
    "name": "Dewdrop: Ascension",
    "pos": [
-    544,
+    543,
     390
    ],
    "parent": "dewdrop_hidden",
@@ -911,12 +911,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     509,
-     354
+     508,
+     355
     ],
     "frame_size": [
-     111,
-     93
+     107,
+     94
     ],
     "frames": 5
    },
@@ -928,25 +928,25 @@
    "section": "families",
    "name": "Pebbling",
    "pos": [
-    665,
-    398
+    658,
+    384
    ],
    "parent": null,
    "from": [
-    630,
-    416
+    624,
+    406
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     588,
-     356
+     582,
+     342
     ],
     "frame_size": [
-     119,
-     102
+     118,
+     106
     ],
     "frames": 5
    },
@@ -957,8 +957,8 @@
    "section": "families",
    "name": "Pebbling: hidden branch",
    "pos": [
-    726,
-    339
+    729,
+    336
    ],
    "parent": "pebbling",
    "from": null,
@@ -967,12 +967,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     628,
-     302
+     623,
+     301
     ],
     "frame_size": [
-     134,
-     133
+     140,
+     118
     ],
     "frames": 5
    },
@@ -983,8 +983,8 @@
    "section": "families",
    "name": "Pebbling: Ascension",
    "pos": [
-    766,
-    264
+    767,
+    284
    ],
    "parent": "pebbling_hidden",
    "from": null,
@@ -993,12 +993,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     691,
-     230
+     693,
+     233
     ],
     "frame_size": [
-     135,
-     144
+     128,
+     139
     ],
     "frames": 5
    },
@@ -1010,24 +1010,24 @@
    "section": "families",
    "name": "Rootling",
    "pos": [
-    640,
-    361
+    642,
+    357
    ],
    "parent": null,
    "from": [
-    620,
-    348
+    623,
+    344
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     577,
-     305
+     580,
+     301
     ],
     "frame_size": [
-     106,
+     105,
      99
     ],
     "frames": 5
@@ -1039,8 +1039,8 @@
    "section": "families",
    "name": "Rootling: hidden branch",
    "pos": [
-    562,
-    320
+    564,
+    317
    ],
    "parent": "rootling",
    "from": null,
@@ -1049,8 +1049,8 @@
    "legendary": false,
    "branch": {
     "offset": [
-     527,
-     285
+     529,
+     282
     ],
     "frame_size": [
      149,
@@ -1065,7 +1065,7 @@
    "section": "families",
    "name": "Rootling: Ascension",
    "pos": [
-    518,
+    517,
     270
    ],
    "parent": "rootling_hidden",
@@ -1075,12 +1075,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     483,
-     226
+     453,
+     235
     ],
     "frame_size": [
-     115,
-     130
+     147,
+     118
     ],
     "frames": 5
    },
@@ -1092,25 +1092,25 @@
    "section": "families",
    "name": "Bellflower",
    "pos": [
-    677,
-    326
+    674,
+    318
    ],
    "parent": null,
    "from": [
-    651,
-    311
+    654,
+    306
    ],
    "levels": 1,
    "start": true,
    "legendary": false,
    "branch": {
     "offset": [
-     609,
-     269
+     612,
+     264
     ],
     "frame_size": [
-     110,
-     128
+     104,
+     96
     ],
     "frames": 5
    },
@@ -1121,8 +1121,8 @@
    "section": "families",
    "name": "Bellflower: hidden branch",
    "pos": [
-    702,
-    267
+    706,
+    266
    ],
    "parent": "bellflower",
    "from": null,
@@ -1131,12 +1131,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     642,
-     233
+     635,
+     230
     ],
     "frame_size": [
-     104,
-     128
+     106,
+     124
     ],
     "frames": 5
    },
@@ -1147,8 +1147,8 @@
    "section": "families",
    "name": "Bellflower: Ascension",
    "pos": [
-    741,
-    203
+    765,
+    219
    ],
    "parent": "bellflower_hidden",
    "from": null,
@@ -1157,12 +1157,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     664,
-     170
+     670,
+     184
     ],
     "frame_size": [
-     112,
-     132
+     153,
+     118
     ],
     "frames": 5
    },
@@ -1174,25 +1174,25 @@
    "section": "families",
    "name": "Acorn",
    "pos": [
-    625,
-    278
+    630,
+    272
    ],
    "parent": null,
    "from": [
     662,
-    281
+    271
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     582,
-     235
+     572,
+     206
     ],
     "frame_size": [
-     123,
-     92
+     132,
+     110
     ],
     "frames": 5
    },
@@ -1204,7 +1204,7 @@
    "name": "Acorn: hidden branch",
    "pos": [
     575,
-    228
+    229
    ],
    "parent": "acorn",
    "from": null,
@@ -1214,11 +1214,11 @@
    "branch": {
     "offset": [
      539,
-     170
+     194
     ],
     "frame_size": [
-     123,
-     145
+     127,
+     114
     ],
     "frames": 5
    },
@@ -1229,8 +1229,8 @@
    "section": "families",
    "name": "Acorn: Ascension",
    "pos": [
-    614,
-    177
+    508,
+    204
    ],
    "parent": "acorn_hidden",
    "from": null,
@@ -1239,12 +1239,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     539,
-     141
+     474,
+     151
     ],
     "frame_size": [
-     110,
-     123
+     136,
+     113
     ],
     "frames": 5
    },
@@ -1256,13 +1256,13 @@
    "section": "families",
    "name": "Nestling",
    "pos": [
-    679,
-    215
+    681,
+    211
    ],
    "parent": null,
    "from": [
-    655,
-    218
+    654,
+    213
    ],
    "levels": 1,
    "start": false,
@@ -1270,11 +1270,11 @@
    "branch": {
     "offset": [
      612,
-     170
+     149
     ],
     "frame_size": [
-     110,
-     92
+     111,
+     106
     ],
     "frames": 5
    },
@@ -1285,8 +1285,8 @@
    "section": "families",
    "name": "Nestling: hidden branch",
    "pos": [
-    690,
-    146
+    689,
+    144
    ],
    "parent": "nestling",
    "from": null,
@@ -1295,12 +1295,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     616,
-     110
+     644,
+     108
     ],
     "frame_size": [
-     110,
-     142
+     87,
+     140
     ],
     "frames": 5
    },
@@ -1311,8 +1311,8 @@
    "section": "families",
    "name": "Nestling: Ascension",
    "pos": [
-    771,
-    149
+    766,
+    154
    ],
    "parent": "nestling_hidden",
    "from": null,
@@ -1321,12 +1321,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     655,
-     111
+     654,
+     109
     ],
     "frame_size": [
-     150,
-     78
+     146,
+     86
     ],
     "frames": 5
    },
@@ -1338,25 +1338,25 @@
    "section": "families",
    "name": "Whirligig",
    "pos": [
-    636,
-    127
+    615,
+    180
    ],
    "parent": null,
    "from": [
-    614,
-    134
+    633,
+    165
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     571,
-     84
+     555,
+     96
     ],
     "frame_size": [
-     108,
-     93
+     120,
+     126
     ],
     "frames": 5
    },
@@ -1367,8 +1367,8 @@
    "section": "families",
    "name": "Whirligig: hidden branch",
    "pos": [
-    508,
-    205
+    540,
+    147
    ],
    "parent": "whirligig",
    "from": null,
@@ -1377,12 +1377,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     475,
-     92
+     505,
+     111
     ],
     "frame_size": [
-     196,
-     146
+     146,
+     105
     ],
     "frames": 5
    },
@@ -1393,8 +1393,8 @@
    "section": "families",
    "name": "Whirligig: Ascension",
    "pos": [
-    540,
-    147
+    615,
+    119
    ],
    "parent": "whirligig_hidden",
    "from": null,
@@ -1403,12 +1403,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     473,
-     112
+     504,
+     83
     ],
     "frame_size": [
-     101,
-     128
+     146,
+     100
     ],
     "frames": 5
    },
@@ -1420,13 +1420,13 @@
    "section": "families",
    "name": "Memory Warden: The White Stag",
    "pos": [
-    565,
-    431
+    574,
+    443
    ],
    "parent": null,
    "from": [
-    622,
-    400
+    630,
+    416
    ],
    "levels": 1,
    "start": false,
@@ -1434,11 +1434,11 @@
    "memory_row": 0,
    "branch": {
     "offset": [
-     523,
-     358
+     503,
+     371
     ],
     "frame_size": [
-     141,
+     169,
      114
     ],
     "frames": 5
@@ -1449,13 +1449,13 @@
    "section": "families",
    "name": "Memory Warden: The Pond Keeper",
    "pos": [
-    676,
-    513
+    668,
+    508
    ],
    "parent": null,
    "from": [
     644,
-    510
+    505
    ],
    "levels": 1,
    "start": false,
@@ -1463,12 +1463,12 @@
    "memory_row": 1,
    "branch": {
     "offset": [
-     602,
-     466
+     601,
+     460
     ],
     "frame_size": [
-     116,
-     89
+     110,
+     92
     ],
     "frames": 5
    }
@@ -1478,13 +1478,13 @@
    "section": "families",
    "name": "Memory Warden: The Moon Moth",
    "pos": [
-    581,
-    469
+    685,
+    465
    ],
    "parent": null,
    "from": [
-    644,
-    460
+    646,
+    470
    ],
    "levels": 1,
    "start": false,
@@ -1492,12 +1492,12 @@
    "memory_row": 2,
    "branch": {
     "offset": [
-     540,
-     413
+     603,
+     422
     ],
     "frame_size": [
-     146,
-     98
+     125,
+     95
     ],
     "frames": 5
    }
@@ -1507,25 +1507,25 @@
    "section": "cards",
    "name": "Sharpened",
    "pos": [
-    1005,
-    451
+    1008,
+    443
    ],
    "parent": null,
    "from": [
-    959,
-    402
+    963,
+    398
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     916,
-     359
+     920,
+     355
     ],
     "frame_size": [
-     132,
-     134
+     131,
+     130
     ],
     "frames": 5
    },
@@ -1536,8 +1536,8 @@
    "section": "cards",
    "name": "Full Moon",
    "pos": [
-    946,
-    332
+    937,
+    286
    ],
    "parent": "sharpened",
    "from": null,
@@ -1546,38 +1546,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     911,
-     297
+     901,
+     253
     ],
     "frame_size": [
-     131,
-     191
-    ],
-    "frames": 5
-   },
-   "display_level": 3
-  },
-  {
-   "id": "hunters_moon",
-   "section": "cards",
-   "name": "Hunter's Moon",
-   "pos": [
-    919,
-    364
-   ],
-   "parent": "sharpened",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": true,
-   "branch": {
-    "offset": [
-     884,
-     330
-    ],
-    "frame_size": [
-     157,
-     157
+     143,
+     226
     ],
     "frames": 5
    },
@@ -1588,25 +1562,25 @@
    "section": "cards",
    "name": "Tending Hands",
    "pos": [
-    1029,
-    364
+    976,
+    316
    ],
    "parent": null,
    "from": [
-    995,
-    348
+    1003,
+    331
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     953,
-     306
+     920,
+     274
     ],
     "frame_size": [
-     118,
-     100
+     125,
+     102
     ],
     "frames": 5
    },
@@ -1617,8 +1591,8 @@
    "section": "cards",
    "name": "Nursery",
    "pos": [
-    1047,
-    329
+    1007,
+    281
    ],
    "parent": "tending_hands",
    "from": null,
@@ -1627,11 +1601,11 @@
    "legendary": false,
    "branch": {
     "offset": [
-     993,
-     293
+     940,
+     245
     ],
     "frame_size": [
-     90,
+     103,
      107
     ],
     "frames": 5
@@ -1643,8 +1617,8 @@
    "section": "cards",
    "name": "Elders",
    "pos": [
-    1034,
-    285
+    1027,
+    257
    ],
    "parent": "nursery",
    "from": null,
@@ -1653,12 +1627,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     979,
-     237
+     973,
+     223
     ],
     "frame_size": [
-     106,
-     127
+     88,
+     92
     ],
     "frames": 5
    },
@@ -1669,8 +1643,8 @@
    "section": "cards",
    "name": "The Old Ones",
    "pos": [
-    973,
-    227
+    1003,
+    206
    ],
    "parent": "elders",
    "from": null,
@@ -1679,12 +1653,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     939,
-     192
+     944,
+     173
     ],
     "frame_size": [
-     130,
-     128
+     123,
+     118
     ],
     "frames": 5
    },
@@ -1695,25 +1669,25 @@
    "section": "cards",
    "name": "Seedbed",
    "pos": [
-    1037,
-    240
+    1042,
+    318
    ],
    "parent": null,
    "from": [
-    1049,
-    291
+    1032,
+    296
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     995,
-     199
+     990,
+     254
     ],
     "frame_size": [
-     96,
-     134
+     94,
+     106
     ],
     "frames": 5
    },
@@ -1724,8 +1698,8 @@
    "section": "cards",
    "name": "Rootbound",
    "pos": [
-    1079,
-    253
+    1108,
+    313
    ],
    "parent": "seedbed",
    "from": null,
@@ -1734,12 +1708,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     1001,
-     204
+     1006,
+     271
     ],
     "frame_size": [
-     114,
-     85
+     137,
+     83
     ],
     "frames": 5
    },
@@ -1750,8 +1724,8 @@
    "section": "cards",
    "name": "Mixed Company",
    "pos": [
-    1114,
-    273
+    1122,
+    277
    ],
    "parent": "seedbed",
    "from": null,
@@ -1760,12 +1734,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     1000,
-     203
+     1006,
+     241
     ],
     "frame_size": [
-     150,
-     109
+     151,
+     113
     ],
     "frames": 5
    },
@@ -1776,8 +1750,8 @@
    "section": "cards",
    "name": "Menagerie",
    "pos": [
-    1118,
-    309
+    1078,
+    258
    ],
    "parent": "mixed_company",
    "from": null,
@@ -1786,12 +1760,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     1077,
-     238
+     1043,
+     222
     ],
     "frame_size": [
-     116,
-     110
+     115,
+     91
     ],
     "frames": 5
    },
@@ -1802,25 +1776,25 @@
    "section": "cards",
    "name": "One Line",
    "pos": [
-    851,
-    554
+    799,
+    455
    ],
    "parent": null,
    "from": [
-    797,
-    518
+    823,
+    488
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     754,
-     475
+     756,
+     412
     ],
     "frame_size": [
-     140,
-     121
+     110,
+     119
     ],
     "frames": 5
    },
@@ -1831,8 +1805,8 @@
    "section": "cards",
    "name": "The Last Light",
    "pos": [
-    824,
-    529
+    645,
+    463
    ],
    "parent": "one_line",
    "from": null,
@@ -1841,12 +1815,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     787,
-     492
+     612,
+     411
     ],
     "frame_size": [
-     101,
-     99
+     222,
+     86
     ],
     "frames": 5
    },
@@ -1857,63 +1831,37 @@
    "section": "cards",
    "name": "Dead Wood",
    "pos": [
-    864,
-    446
+    890,
+    521
    ],
    "parent": null,
    "from": [
-    869,
-    472
+    883,
+    470
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     820,
-     404
+     839,
+     428
     ],
     "frame_size": [
-     91,
-     110
+     93,
+     135
     ],
     "frames": 5
    },
    "display_level": 1
   },
   {
-   "id": "the_long_walk",
-   "section": "cards",
-   "name": "The Long Walk",
-   "pos": [
-    822,
-    413
-   ],
-   "parent": "dead_wood",
-   "from": null,
-   "levels": 1,
-   "start": false,
-   "legendary": true,
-   "branch": {
-    "offset": [
-     786,
-     378
-    ],
-    "frame_size": [
-     114,
-     104
-    ],
-    "frames": 5
-   },
-   "display_level": 3
-  },
-  {
    "id": "winding_roads",
    "section": "cards",
    "name": "Winding Roads",
    "pos": [
-    835,
-    490
+    848,
+    514
    ],
    "parent": "dead_wood",
    "from": null,
@@ -1922,12 +1870,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     798,
-     409
+     812,
+     475
     ],
     "frame_size": [
-     103,
-     118
+     114,
+     82
     ],
     "frames": 5
    },
@@ -1938,8 +1886,8 @@
    "section": "cards",
    "name": "Crossroads",
    "pos": [
-    860,
-    525
+    871,
+    446
    ],
    "parent": "winding_roads",
    "from": null,
@@ -1948,12 +1896,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     799,
-     454
+     814,
+     413
     ],
     "frame_size": [
-     97,
-     107
+     91,
+     135
     ],
     "frames": 5
    },
@@ -1964,8 +1912,8 @@
    "section": "cards",
    "name": "Bittersweet Dreams",
    "pos": [
-    1018,
-    394
+    1020,
+    391
    ],
    "parent": null,
    "from": [
@@ -1977,12 +1925,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     943,
+     942,
      328
     ],
     "frame_size": [
-     117,
-     107
+     121,
+     106
     ],
     "frames": 5
    },
@@ -1993,8 +1941,8 @@
    "section": "cards",
    "name": "Lucid Dreaming",
    "pos": [
-    1054,
-    470
+    1055,
+    469
    ],
    "parent": "bittersweet_dreams",
    "from": null,
@@ -2003,12 +1951,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     981,
-     357
+     985,
+     356
     ],
     "frame_size": [
-     110,
-     149
+     136,
+     147
     ],
     "frames": 5
    },
@@ -2019,25 +1967,25 @@
    "section": "cards",
    "name": "Seeping",
    "pos": [
-    944,
-    455
+    946,
+    453
    ],
    "parent": null,
    "from": [
-    925,
-    441
+    928,
+    437
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     883,
-     399
+     886,
+     395
     ],
     "frame_size": [
-     103,
-     98
+     102,
+     100
     ],
     "frames": 5
    },
@@ -2048,8 +1996,8 @@
    "section": "cards",
    "name": "Venom",
    "pos": [
-    976,
-    445
+    968,
+    488
    ],
    "parent": "seeping",
    "from": null,
@@ -2058,12 +2006,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     908,
-     409
+     911,
+     418
     ],
     "frame_size": [
-     104,
-     82
+     92,
+     105
     ],
     "frames": 5
    },
@@ -2074,8 +2022,8 @@
    "section": "cards",
    "name": "Nightshade",
    "pos": [
-    1003,
-    501
+    1010,
+    494
    ],
    "parent": "venom",
    "from": null,
@@ -2084,12 +2032,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     940,
-     409
+     932,
+     449
     ],
     "frame_size": [
-     99,
-     127
+     114,
+     81
     ],
     "frames": 5
    },
@@ -2100,8 +2048,8 @@
    "section": "cards",
    "name": "Eternal Charge",
    "pos": [
-    965,
-    484
+    977,
+    443
    ],
    "parent": "venom",
    "from": null,
@@ -2110,12 +2058,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     930,
-     410
+     932,
+     407
     ],
     "frame_size": [
      81,
-     109
+     117
     ],
     "frames": 5
    },
@@ -2126,25 +2074,25 @@
    "section": "cards",
    "name": "Quickening",
    "pos": [
-    751,
-    475
+    883,
+    550
    ],
    "parent": null,
    "from": [
-    801,
-    513
+    869,
+    472
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     710,
-     433
+     821,
+     429
     ],
     "frame_size": [
-     133,
-     122
+     114,
+     163
     ],
     "frames": 5
    },
@@ -2155,8 +2103,8 @@
    "section": "cards",
    "name": "Light Feet",
    "pos": [
-    804,
-    380
+    807,
+    370
    ],
    "parent": "quickening",
    "from": null,
@@ -2165,12 +2113,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     716,
-     346
+     762,
+     339
     ],
     "frame_size": [
-     122,
-     164
+     157,
+     247
     ],
     "frames": 5
    },
@@ -2181,8 +2129,8 @@
    "section": "cards",
    "name": "Whirlwind Heart",
    "pos": [
-    816,
-    295
+    819,
+    294
    ],
    "parent": "light_feet",
    "from": null,
@@ -2191,12 +2139,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     769,
-     261
+     734,
+     259
     ],
     "frame_size": [
-     82,
-     154
+     124,
+     147
     ],
     "frames": 5
    },
@@ -2207,25 +2155,25 @@
    "section": "cards",
    "name": "Broad Strokes",
    "pos": [
-    866,
-    417
+    833,
+    429
    ],
    "parent": null,
    "from": [
-    876,
-    471
+    844,
+    477
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     824,
-     375
+     790,
+     386
     ],
     "frame_size": [
-     96,
-     138
+     97,
+     134
     ],
     "frames": 5
    },
@@ -2236,8 +2184,8 @@
    "section": "cards",
    "name": "Far Reach",
    "pos": [
-    869,
-    362
+    872,
+    360
    ],
    "parent": "broad_strokes",
    "from": null,
@@ -2246,12 +2194,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     831,
-     328
+     797,
+     325
     ],
     "frame_size": [
-     80,
-     124
+     111,
+     140
     ],
     "frames": 5
    },
@@ -2262,8 +2210,8 @@
    "section": "cards",
    "name": "Great Ripple",
    "pos": [
-    865,
-    278
+    863,
+    275
    ],
    "parent": "far_reach",
    "from": null,
@@ -2272,12 +2220,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     812,
-     244
+     828,
+     241
     ],
     "frame_size": [
-     98,
-     153
+     94,
+     154
     ],
     "frames": 5
    },
@@ -2317,8 +2265,8 @@
    "section": "cards",
    "name": "Last Stand",
    "pos": [
-    723,
-    513
+    712,
+    516
    ],
    "parent": "scarred_bark",
    "from": null,
@@ -2327,12 +2275,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     682,
-     477
+     676,
+     480
     ],
     "frame_size": [
-     83,
-     116
+     89,
+     113
     ],
     "frames": 5
    },
@@ -2343,8 +2291,8 @@
    "section": "cards",
    "name": "Last Leaf",
    "pos": [
-    657,
-    473
+    764,
+    472
    ],
    "parent": "last_stand",
    "from": null,
@@ -2353,12 +2301,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     623,
-     438
+     678,
+     439
     ],
     "frame_size": [
-     135,
-     110
+     120,
+     111
     ],
     "frames": 5
    },
@@ -2369,8 +2317,8 @@
    "section": "cards",
    "name": "Impatient Night",
    "pos": [
-    709,
-    471
+    724,
+    474
    ],
    "parent": "last_stand",
    "from": null,
@@ -2379,12 +2327,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     673,
-     435
+     676,
+     439
     ],
     "frame_size": [
-     86,
-     114
+     83,
+     112
     ],
     "frames": 5
    },
@@ -2395,25 +2343,25 @@
    "section": "cards",
    "name": "Bitter Hedges",
    "pos": [
-    895,
-    514
+    929,
+    491
    ],
    "parent": null,
    "from": [
-    883,
-    470
+    904,
+    461
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     841,
-     428
+     862,
+     419
     ],
     "frame_size": [
-     96,
-     128
+     109,
+     114
     ],
     "frames": 5
    },
@@ -2424,8 +2372,8 @@
    "section": "cards",
    "name": "Briar Crown",
    "pos": [
-    928,
-    492
+    911,
+    456
    ],
    "parent": "bitter_hedges",
    "from": null,
@@ -2434,12 +2382,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     859,
-     456
+     876,
+     421
     ],
     "frame_size": [
-     105,
-     94
+     88,
+     105
     ],
     "frames": 5
    },
@@ -2450,8 +2398,8 @@
    "section": "cards",
    "name": "Rooted Nightmares",
    "pos": [
-    934,
-    535
+    932,
+    533
    ],
    "parent": "bitter_hedges",
    "from": null,
@@ -2460,12 +2408,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     860,
-     479
+     887,
+     454
     ],
     "frame_size": [
-     109,
-     91
+     82,
+     115
     ],
     "frames": 5
    },
@@ -2476,25 +2424,25 @@
    "section": "cards",
    "name": "Reclaimed Earth",
    "pos": [
-    1086,
-    332
+    1034,
+    356
    ],
    "parent": null,
    "from": [
-    1068,
-    285
+    998,
+    342
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     1025,
-     242
+     956,
+     300
     ],
     "frame_size": [
-     107,
-     132
+     148,
+     102
     ],
     "frames": 5
    },
@@ -2505,8 +2453,8 @@
    "section": "cards",
    "name": "Thorn and Bramble",
    "pos": [
-    1071,
-    411
+    1065,
+    419
    ],
    "parent": "reclaimed_earth",
    "from": null,
@@ -2515,12 +2463,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     1035,
-     296
+     997,
+     320
     ],
     "frame_size": [
-     104,
-     150
+     103,
+     135
     ],
     "frames": 5
    },
@@ -2531,8 +2479,8 @@
    "section": "cards",
    "name": "Wildwood Reclaimed",
    "pos": [
-    1096,
-    492
+    1097,
+    497
    ],
    "parent": "thorn_and_bramble",
    "from": null,
@@ -2541,12 +2489,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     1037,
-     377
+     1029,
+     383
     ],
     "frame_size": [
-     93,
-     148
+     106,
+     149
     ],
     "frames": 5
    },
@@ -2557,25 +2505,25 @@
    "section": "cards",
    "name": "Planted Promises",
    "pos": [
-    1058,
-    355
+    997,
+    416
    ],
    "parent": null,
    "from": [
-    1003,
-    331
+    971,
+    390
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     961,
-     289
+     929,
+     348
     ],
     "frame_size": [
-     138,
-     108
+     110,
+     110
     ],
     "frames": 5
    },
@@ -2586,8 +2534,8 @@
    "section": "cards",
    "name": "Deep Promises",
    "pos": [
-    977,
-    379
+    985,
+    369
    ],
    "parent": "planted_promises",
    "from": null,
@@ -2596,12 +2544,12 @@
    "legendary": false,
    "branch": {
     "offset": [
-     943,
-     296
+     915,
+     331
     ],
     "frame_size": [
-     150,
-     117
+     118,
+     120
     ],
     "frames": 5
    },
@@ -2612,8 +2560,8 @@
    "section": "cards",
    "name": "Golden Harvest",
    "pos": [
-    997,
-    418
+    1071,
+    327
    ],
    "parent": "deep_promises",
    "from": null,
@@ -2622,12 +2570,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     943,
-     345
+     949,
+     291
     ],
     "frame_size": [
-     89,
-     107
+     157,
+     128
     ],
     "frames": 5
    },
@@ -2638,25 +2586,25 @@
    "section": "cards",
    "name": "Old Wood",
    "pos": [
-    823,
-    454
+    825,
+    534
    ],
    "parent": null,
    "from": [
-    833,
-    482
+    801,
+    513
    ],
    "levels": 1,
    "start": false,
    "legendary": false,
    "branch": {
     "offset": [
-     780,
-     411
+     759,
+     471
     ],
     "frame_size": [
-     96,
-     114
+     108,
+     105
     ],
     "frames": 5
    },
@@ -2667,8 +2615,8 @@
    "section": "cards",
    "name": "The Quiet Ones",
    "pos": [
-    790,
-    464
+    760,
+    517
    ],
    "parent": "old_wood",
    "from": null,
@@ -2677,12 +2625,12 @@
    "legendary": true,
    "branch": {
     "offset": [
-     734,
-     374
+     724,
+     475
     ],
     "frame_size": [
-     125,
-     126
+     138,
+     96
     ],
     "frames": 5
    },
