@@ -884,6 +884,10 @@ the Lurker counter isn't trivialised). Spreading: half the stacks (min 1) jump w
 for 2 s every 10 s (≈ +20%, in line with Crushing). In e951b540 (Crushing counts every hit, so an area Warden doubles every
 5th target: the same +20% on average, shell strips a bit more often; fine).
 
+**Signature audit (warden_stats.md a09297af):** Crushing on ticks: the 5th tick ×2, shell strip 25% × (tick ÷
+full hit), capped at 25%. Acorn Strong 0.01 → **0.025** aura per rank (≈ Power per rank). Held Potency cap 2.25,
+Watchtower 2 s linger, Relentless on tick dispels (still ≤ once per 0.5 s): watch Sporeling boards.
+
 ## Shape cards 262–264 (dream_design.md e4d17195, Uncommon, defining)
 
 Budget: Uncommon one-family **+50%** for the kits that match, ~0 for the rest (by design).
