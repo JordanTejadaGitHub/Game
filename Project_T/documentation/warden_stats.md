@@ -268,6 +268,26 @@ path. Meta Game Discussion proposed the set; Tower Discussion decided it (change
   time one fires ever: the discovery moment (name over the Warden, a toast) and its Codex entry
   unlocks; until then the Codex shows it as **???** like undiscovered combos. At rank V the mark joins
   the rank pips only once the signature is active.
+- **Signatures are counters, not raises** (user, 2026-10-06: *"don't want the nurture signature to
+  always be straightforward for a Warden to choose"*). A Warden's stats already point at one choice
+  (a sniper wants Power / Keen), so a signature that's good everywhere makes that path automatic.
+  Each signature instead **answers a threat**, so the right path depends on **this run's** nightmares
+  and boss (seen in the boss dossier, the Coming strip, Chosen Hunts):
+
+  | Signature | Answers | Change |
+  |---|---|---|
+  | Crushing | armour: shells, blight coat | the ×2 and the strip land **only on nightmares carrying a shell or coat**; on others the 5th hit is a plain hit |
+  | Watchtower | hidden nightmares (Lurkers, the Moth Queen's drops) | — |
+  | Relentless | swarms (many small kills) | — |
+  | Spreading | dense waves (statuses carried along the crowd) | — |
+  | Executioner | elites and high-health crowds | **a price:** the Warden's non-crit hits deal −10%* (it's the one signature still good against anything) |
+  | Firstborn | long drifts and economy runs | — |
+  | Shelter | bosses that wither, dim or trample | — |
+  | Surge | burst moments (boss phases, packed drifts) | — |
+
+  So the same Mossback may go Power for an armoured act and Keen for an elite-heavy one, or stay
+  **mixed**: no signature, flexible stats, the third path. Signatures stay undiscovered until first
+  fired; the Codex entry, once found, names what each one answers.
 - **Cards:** Roguelite Mechanic Discussion is designing *Specialist / Many Talents / Shared Training*
   around this.
 - **Numbers** (Balancing Discussion, 2026-10-06): Crushing ×2 + 25% shell; Relentless once per 0.5 s; Spreading half, within 2 cells; Executioner 20% (bosses / elites ×1.5); Firstborn and Shelter as designed; Surge ×2 for 2 s every 10 s. Watchtower stays: it reveals only inside its own range.
