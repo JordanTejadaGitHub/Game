@@ -865,6 +865,19 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Demo targets (demo_scope.md e5ce233d, 2026-10-06)
+
+The demo now ends at drift 50 (the Mire Hag), on the current rules (gifts at 25, card pool, prices, room-to-maze,
+half cells; `DEMO_RULES` retire), fixed bosses (Hollow Stag, Mire Hag), the 4 demo families, no Grove.
+**Targets (fresh, the 4 families, bot):**
+| | Default | Spender | Skip |
+|---|---|---|---|
+| Beat the Stag (25) | **75–85%** | 70–90% | ≤ 30% |
+| Reach the Mire Hag (50) | **45–55%** | ±10 of default | ≤ 10% |
+| Beat the Mire Hag (the demo win) | **30–40%** (≈ 2 in 3 who reach it) | ±10 of default | ≤ 5% |
+For a person: usually beats the Stag on the first try, wins the demo in about 1 of 3 attempts. Levers:
+demo-only health multipliers per act (exports asked of Tower Code), then the Mire Hag's own health.
+
 ## No forcing (user, 2026-10-06)
 
 *"Don't want to be able to force a build; want players to adapt to be optimal. Sometimes they can."* Target for
