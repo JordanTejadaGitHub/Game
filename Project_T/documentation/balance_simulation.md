@@ -870,7 +870,8 @@ its pick rate and human `longest_path`, and raise its effect only if humans pass
 Other roguelites (read, not data): a direction by ~⅓ of a run in ~90% of runs, the build carrying by ~½, a chosen
 build ~20–40%, a dream combo ~5–15%. Ours (bot): direction by 26 ~87%, built by 50 ~87%, Storm Grid 27%: in line.
 **The gap is timing:** every human act 2 death lands at 32–42, before most builds are online. **New target: fresh
-runs ~70%+ with a build by drift 35, ~80%+ by 40.** No-build reports now also classify at 35 / 40 (existing rows
+runs ~70%+ with a build by drift 35, ~80%+ by 40.** **Revised with the user: ~50% by 35, ~70% by 40, ~85–90% by 50**
+(a "build" here is loose; the rest of the runs adapt, which is the genre). No-build reports now also classify at 35 / 40 (existing rows
 reclassified). Levers if short: stronger act 1–2 openers (the use-now rule is a step), or a softer 32–40.
 **Reclassified (with a build, fresh, at 26 / 35 / 40 / 50):** before the slot moves 13 / 20 / 47 / 80%; drift-10 slot
 17 / 29 / 42 / 58%; **trim 20 / 43 / 70 / 87%** (full: 43 / 57 / 70 / 87%). The trim misses both targets (43 by 35, 70
