@@ -124,7 +124,9 @@ func _update_sap(delta: float) -> void:
 			enemy.take_damage(damage, tower_data.line, true, false, self, &"sap")
 			struck = true
 	if struck:
-		Reactions._effect(&"landing_dust", global_position, self, half.x * 2.0 / MAP_GRID.cell_size.x)  # Placeholder pulse
+		var swell := Reactions._effect(&"sap_pulse", global_position, self, half.x * 2.0 / (MAP_GRID.cell_size.x * 3.0))  # Tower Assets 70df154e: 3×3 cells at 1.0
+		if swell != null:
+			swell.z_index = -1  # A ground effect: under the Wardens and nightmares
 
 # Lantern Glow and First Frost, every CARD_TICK for an attacking Warden (only when either card is held).
 func _update_card_watch(delta: float) -> void:
