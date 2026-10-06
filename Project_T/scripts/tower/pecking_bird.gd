@@ -29,11 +29,6 @@ func _init(tower: Tower, target: Node2D, pecks: int, peck_time: float) -> void:
 	top_level = true
 	z_index = 5
 
-# Relentless (the Warden's signature): stop pecking and fly home now.
-func recall() -> void:
-	_pecks_left = 0
-	_state = 2  # Homeward
-
 func _process(delta: float) -> void:
 	_anim += delta
 	queue_redraw()

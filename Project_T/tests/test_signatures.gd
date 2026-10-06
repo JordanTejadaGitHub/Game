@@ -129,29 +129,12 @@ func _run() -> void:
 	await process_frame
 	_check(absf(held_next.statuses.time_left(EnemyStatuses.HELD) - hold_left) < 0.1,
 		"Spreading: a hold jumps whole (%.2f of %.2f)" % [held_next.statuses.time_left(EnemyStatuses.HELD), hold_left])
-	var curl := _plant("rootcurl", Vector2(18, 2), [D, D, D, P, S])
-	var pulled := _walker(Vector2(18, 8))
-	var neighbour := _walker(Vector2(18, 8))
-	neighbour.global_position = pulled.global_position + Vector2(40, 0)
-	curl.pull(pulled, 0.1)
-	_check(pulled.get_meta(Signatures.TOUCHED, {}).has(curl.get_instance_id()), "Spreading: a pull is remembered")
-	var fired: Array = []
-	curl.signature_fired.connect(func(_t, id) -> void: fired.append(id))
-	pulled.dispel()
-	await process_frame
-	_check(fired.has(Signatures.SPREADING) and neighbour.get_meta(Signatures.JUMPED, []).has("t%d" % curl.get_instance_id()),
-		"Spreading: the pull repeats on the nearest, once")
-
-	# Shelter and Surge on every support with an area (audit a09297af): a catcher's catch.
-	var bowl := _plant("dewcatcher", Vector2(14, 12), [W, W, W, ST, ST])
-	var near_bowl := _plant("sporeling", Vector2(15, 12), [])
-	_check(bowl.signature() == Signatures.SHELTER and near_bowl.is_sheltered(), "Shelter: a catcher's catch shelters too")
-	var surging_bowl := _plant("dewcatcher", Vector2(16, 14), [ST, ST, ST, W, W])
-	var catchable := _walker(Vector2(16, 15))
-	var catch_calm: float = surging_bowl.get_catch_share(catchable)
-	surging_bowl._update_surge(Signatures.SURGE_EVERY - Signatures.SURGE_TIME + 0.1)
-	_check(catch_calm > 0.0 and is_equal_approx(surging_bowl.get_catch_share(catchable), catch_calm * 2.0),
-		"Surge: a catcher's catch doubles (%.3f -> %.3f)" % [catch_calm, surging_bowl.get_catch_share(catchable)])
+	# No signature where it would only fill a cell (c9de9302): a puller's Deep, a catcher's Wide / Strong, a beam's Swift.
+	_check(_plant("rootcurl", Vector2(18, 2), [D, D, D, P, S]).signature() == &"", "Rootcurl's Deep: no Spreading")
+	_check(_plant("dewcatcher", Vector2(14, 12), [W, W, W, ST, ST]).signature() == &"", "Dewcatcher's Wide: no Shelter")
+	_check(_plant("dewcatcher", Vector2(16, 14), [ST, ST, ST, W, W]).signature() == &"", "Dewcatcher's Strong: no Surge")
+	_check(_plant("sunpetal", Vector2(18, 12), [S, S, S, P, P]).signature() == &"", "Sunpetal's Swift: no Relentless")
+	_check(Signatures.fits(_plant("prism_jar", Vector2(2, 14), []).tower_data, W), "Prism Jar keeps Shelter")
 
 	# Shelter and Surge (aura supports).
 	var shelter := _plant("elder_stump", Vector2(10, 10), [W, W, W, ST, ST])

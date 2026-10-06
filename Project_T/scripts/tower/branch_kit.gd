@@ -660,7 +660,6 @@ static func _update_silence(tower: Tower, delta: float) -> void:
 static func silence(enemy: Node2D, seconds: float, by: Tower) -> void:
 	var was: bool = enemy.statuses.silence_time > 0.0
 	enemy.statuses.silence_time = maxf(enemy.statuses.silence_time, seconds)
-	Signatures.touch(enemy, by)  # Spreading: the silence left jumps on
 	# Deep on a Hushbell: a silenced boss's timers run slower (Enemy.BOSS_SILENCE_SPEED ÷ Potency, floor 0.35).
 	# Enemy reads the meta when it's set (the slowest silencer wins while the silence lasts).
 	if is_instance_valid(by) and enemy.enemy_data.is_boss:
@@ -915,7 +914,6 @@ static func ground(tower: Tower, e: Node2D) -> void:
 	if not e.has_method("ground"):
 		return  # Enemy's side not in yet
 	e.ground(minf(p(tower, "ground_time", 3.0) * tower.get_potency(), NurtureChoices.GROUND_CAP))  # Deep: longer, up to 6.75 s (audit b6f44fac)
-	Signatures.touch(e, tower)  # Spreading: the grab repeats on the nearest when it's dispelled
 	_fx(&"flyer_grab", e.global_position, world(tower))
 	if is_final(tower):
 		_land_hold(tower, e, p(tower, "land_hold", 0.5))  # Earthbind: Rooted when it lands

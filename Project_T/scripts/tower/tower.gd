@@ -433,7 +433,6 @@ func is_sheltered() -> bool:
 	return false
 
 var _relentless_at := -100.0
-var _keep_full_ramp := false  # Relentless: the beam's next target starts at the ramp it had
 var _watch_left := 0.0
 var _surge_clock := 0.0
 var _surging := false
@@ -524,20 +523,13 @@ func _relentless() -> void:
 	if _anim_time - _relentless_at < Signatures.RELENTLESS_GAP:
 		return
 	_relentless_at = _anim_time
-	# Its main cycle (signature audit a09297af): attack, ability, Groundroot's grab, Whirligig's copy; a beam keeps
-	# its full ramp on the next target; a patrol forgets its per-nightmare cooldowns; birds and seeds come home.
+	# Its main cycle (signature audit a09297af, trimmed c9de9302): attack, ability, Groundroot's grab, Whirligig's copy.
 	_cooldown = 0.0
 	if attack_data.ability_every > 0.0:
 		_ability_timer = 0.0
 	if has_meta(&"ground_left"):
 		set_meta(&"ground_left", 0.0)
 	_copy_timer = 0.0
-	_keep_full_ramp = attack_data.attack_kind == TowerData.AttackKind.BEAM
-	if is_instance_valid(_patrol):
-		_patrol._recent.clear()
-	for away in _out:
-		if is_instance_valid(away) and away.has_method("recall"):
-			away.recall()
 	signature_fired.emit(self, Signatures.RELENTLESS)
 
 # Old saves and ranks given by Dreams: Power (supports: their first option) for I–II, the old Focus from III.
@@ -2343,7 +2335,6 @@ func _kin_chime_catch(in_range: Array) -> void:
 		if not s.is_caught():
 			Reactions._effect(&"caught", aim_at(enemy), self, 1.0, 0.8)
 		s.caught_time = maxf(s.caught_time, hold)
-		Signatures.touch(enemy, self)  # Spreading
 
 # Night Chimes (Dreamcatcher line): its hits set off Static at 3 charges, like a chime.
 func _kin_night_chimes(enemy: Node2D) -> void:
@@ -2945,15 +2936,10 @@ func _flush_pull() -> void:
 
 # Pulls `enemy` back `tiles` along its route (Patient Roots: the Rootling line 0.5 further), credited to
 # this Warden (SupportLog "tiles_pulled").
-# A puller's pull on `enemy` (its tiles for bosses or others, + Deep).
-func pull_tiles_for(enemy: Node2D) -> float:
-	return (attack_data.pull_boss_tiles if enemy.enemy_data.is_boss else attack_data.pull_tiles) \
-		+ float(NurtureChoices.PULL_DEEP.get(tower_data.get_id(), 0.0)) * choice_count(Focus.DEEP)
 
 func pull(enemy: Node2D, tiles: float) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
-	Signatures.touch(enemy, self)  # Spreading: the pull repeats on the nearest when it's dispelled
 	if tower_data.line == "root" and _rule_stacks(&"patient_roots") > 0:
 		tiles += PATIENT_ROOTS_PULL * _rule_power(&"patient_roots")
 	enemy.push_back(tiles * MAP_GRID.cell_size.x)
@@ -3142,10 +3128,9 @@ func _update_catch(delta: float) -> void:
 			Reactions._effect(&"caught", aim_at(enemy), self, 1.0, 0.8)  # The dreamcatcher glyph
 			ComboFeedback.report(&"caught", self)  # Codex: a nightmare is Caught
 		s.caught_time = maxf(s.caught_time, AURA_TICK * 1.6 + NurtureChoices.CAUGHT_LINGER * choice_count(Focus.DEEP))  # Deep: lingers after it leaves
-		Signatures.touch(enemy, self)  # Spreading: Caught and sleep jump on when it's dispelled
 		s.caught_bonus = maxf(s.caught_bonus if s.is_caught() else 0.0, tower_data.caught_bonus)
 		# Strong (audit b6f44fac, replaces Power): its statuses tick faster while Caught; the strongest catcher's counts.
-		s.caught_strong = maxf(s.caught_strong if s.is_caught() else 0.0, NurtureChoices.CAUGHT_STRONG * choice_count(Focus.STRONG) * surge_multiplier())  # (Surge: x2)
+		s.caught_strong = maxf(s.caught_strong if s.is_caught() else 0.0, NurtureChoices.CAUGHT_STRONG * choice_count(Focus.STRONG))
 		if tower_data.caught_shards:
 			s.caught_shard = true
 			s.caught_shard_tower = self  # Told when the shard drops (shard_dropped)
@@ -3196,7 +3181,6 @@ func _echo_now(id: StringName, mark: Array, share: float, applier, chain: int, a
 	var spot: Vector2 = mark[1]
 	if is_instance_valid(target):
 		spot = target.global_position  # Where it is now (a dispelled one stopped where it died)
-	set_meta(&"last_echo", [id, share, applier if is_instance_valid(applier) else null, chain])  # Spreading repeats it
 	Reactions.echo(id, spot, share, self, applier if is_instance_valid(applier) else null, chain, as_link, depth)
 
 
@@ -3301,7 +3285,6 @@ func get_catch_share(enemy: Node2D) -> float:
 		share = tower_data.catch_share + tower_data.catch_per_rank * get_effective_rank() \
 			+ DewCatch.DEW_BOWL_STEP * _rule_stacks(&"dew_bowl") \
 			+ FOCUS_STRONG_CATCH * choice_count(Focus.STRONG)
-		share *= surge_multiplier()  # Surge: the catch doubles
 	var growth := kin_share(&"old_growth", "a")
 	if growth > 0.0 and distance <= get_aura_reach():
 		share = maxf(share, DewCatch.OLD_GROWTH_CATCH * growth)
@@ -3947,8 +3930,7 @@ func _update_beam(delta: float) -> void:
 		# Midsummer (beam_keep_share): a new target within BEAM_KEEP_TIME of the last keeps part of the ramp.
 		var old_ramp := _beam_ramp if _beam_target != null else \
 			(_kept_ramp if _anim_time - _kept_ramp_at <= BEAM_KEEP_TIME else 1.0)
-		_beam_ramp = 1.0 + (old_ramp - 1.0) * (1.0 if _keep_full_ramp else attack_data.beam_keep_share)  # Relentless: all of it
-		_keep_full_ramp = false
+		_beam_ramp = 1.0 + (old_ramp - 1.0) * attack_data.beam_keep_share
 		_beam_tick = 0.0
 		_beam_target = target
 	if _beam_target == null:

@@ -41,12 +41,6 @@ func _init(tower: Tower, from: Vector2, direction: Vector2, length: float, damag
 	if dreams and dreams.has_rule(&"ricochet"):
 		_turns_left = 2 if dreams.rule_level(&"ricochet") > 0 else 1
 
-# Relentless (the Warden's signature): turn back now, along the way it came.
-func recall() -> void:
-	if not _returning:
-		_returning = true  # Heads for _points[_leg], the last point it passed
-		_hit_this_pass.clear()
-
 func _process(delta: float) -> void:
 	_anim += delta
 	queue_redraw()
