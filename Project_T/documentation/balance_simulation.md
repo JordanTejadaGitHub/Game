@@ -806,7 +806,7 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 **tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
 `longest_path` / `tended` requested in the run history to re-check.
 
-## Nurture audit numbers (warden_stats.md b6f44fac, 2026-10-05)
+## Nurture audit numbers (warden_stats.md b6f44fac, 2026-10-05; in 188a75ba)
 
 | Row | Number |
 |---|---|
@@ -819,7 +819,7 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 | Dreamcatcher Strong | Caught statuses tick **+10%** per rank (a conditional, so above Power's 18%/2) |
 | Mother Log Strong | 0.35 + 0.03 a rank, cap **0.50** (Nurse Log stays 0.40) |
 | Grove Keeper Swift | −0.2 drifts per rank |
-| Wellspring Kindred | interest cap +10 per rank (80 → 130) |
+| Wellspring Kindred | interest cap +10 per rank (80 → 130); the shared `DewCatch.INTEREST_CAP` 120 → **130** so a lone V Wellspring reaches it |
 | Dream Oak Yield | run cap +1 Dreamlight per rank (4 → 9); shard bonus trimmed +0.5 → **+0.3** per rank |
 | Drowsy / Exposed / Soaked | Drowsy duration × Potency; past a 40% cap, duration × (Potency ÷ Potency at the cap) |
 
