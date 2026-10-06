@@ -53,8 +53,8 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 const RUIN_STONES: Array[int] = [2, 3, 7]  # mossy_boulder.png: standing stone, cairn, ruined waystone
 const BEND_ROOT := 2  # Cells of the bend spur's root (up to 3 rows thick) at its wall, +0-1
 const BEND_ROOT_FILL := 0.65  # Root: chance for each of the rows either side
-const BEND_CLUMP_CHANCE := 0.2  # Past the root: chance per cell of a clump beside the line
-const BEND_ROCK_SHARE := Vector2(0.3, 0.6)  # Boulders among its trees (a mix, never all one kind)
+const BEND_CLUMP_CHANCE := 0.15  # Past the root: chance per cell of a clump beside the line
+
 const CLUSTER_FILL := 0.7  # Rock clusters: share of the blob's cells taken (gaps between clumps)
 const CLUSTER_ROCK_SHARE := 0.65  # Rock clusters: boulders, the rest Withered Trees
 const RIDGE_END_GAP := 3  # Ridge rows keep this far from the start's row and the Heartwood's (its glade is ±1)
@@ -90,6 +90,9 @@ var pond_corners: Array = []  # [cell (Vector2), pond_inner column (0 NE, 1 SE, 
 var feature_cells: Array[Vector2] = []
 var log_cells: Array[Vector2] = []  # The log feature's cells: one obstacle, cleared as a unit (MapGenerator.get_obstacle_cells)
 var feature_near_route := false  # The feature was placed by a near-the-route try (the route ran through the band)
+var ruin_tree := Vector2(-1, -1)  # The Ruin's Withered Tree (a plain obstacle, not a feature cell)
+var stray_cells: Array[Vector2] = []  # Lone obstacles past the bend spur's tip (not spur cells: they don't hold the bend)
+var rubble_cells: Array[Vector2] = []  # The Ruin's empty slots: walkable pebbles where stones fell
 var bowl_cells: Array[Vector2] = []  # The lone decision obstacles in the bowl
 
 func initialize(startPath: Vector2i, endPath: Vector2i) -> PackedVector2Array:
@@ -138,11 +141,14 @@ func generate_obstacles(rng: RandomNumberGenerator, skip_cells: PackedVector2Arr
 		if in_band(cell) and not ridge_cells.has(cell) and not feature_cells.has(cell):
 			scatter.append(cell)
 	_thin_to_target(scatter, obstacles)
-	for cell in bowl_cells.slice(bowl_obstacles_min):  # Still over (long spurs, a big feature): fewer decision obstacles
+	# Still over (long spurs, a big feature): the spur's strays go first, then decision obstacles down to the minimum.
+	for cell in stray_cells.duplicate() + bowl_cells.slice(bowl_obstacles_min):
 		if obstacles.size() <= target_obstacles_max:
 			break
 		obstacles.erase(cell)
 		erase_cell(Vector2i(cell))
+		stray_cells.erase(cell)
+		bowl_cells.erase(cell)
 	_fill_to_minimum(rng, skip, obstacles)
 	return obstacles
 
@@ -271,30 +277,72 @@ func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 func _bend_spur(rng: RandomNumberGenerator, v_base: int, from_low: bool, length: int, rows: Vector2i,
 		skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
 	var u_inner := _u_size() - 2
-	var rock_share := rng.randf_range(BEND_ROCK_SHARE.x, BEND_ROCK_SHARE.y)
+	stray_cells.clear()
+	var run := [false, 0]  # Trees and boulders about half and half, in runs of 2-3 of a kind
+	var lo := maxi(rows.x, v_base - 1)  # Steps and clumps stay within a row of the base: a free row to the next spur
+	var hi := mini(rows.y, v_base + 1)
 	var root := BEND_ROOT + rng.randi_range(0, 1)
 	var v := v_base
 	var next_step := root + rng.randi_range(1, 3)
+	var u_at := func(i: int) -> int: return 1 + i if from_low else u_inner - i
 	for i in length:
-		var u := 1 + i if from_low else u_inner - i
+		var u: int = u_at.call(i)
 		if i == next_step and i < length - 1:
-			_place_ridge_cell(rng, _cell(u, v), rock_share, skip_cells, obstacles)  # The corner: no diagonal gap
-			v = clampi(v + (1 if rng.randf() < 0.5 else -1), maxi(v_base - 1, rows.x), mini(v_base + 1, rows.y))
+			_place_spur_cell(rng, _cell(u, v), run, skip_cells, obstacles)  # The corner: no diagonal gap
+			v = clampi(v + (1 if rng.randf() < 0.5 else -1), lo, hi)
 			next_step = i + rng.randi_range(3, 5)
-		_place_ridge_cell(rng, _cell(u, v), rock_share, skip_cells, obstacles)
+		_place_spur_cell(rng, _cell(u, v), run, skip_cells, obstacles)
 		if i < root:  # Ragged root: most of the rows either side
 			for other in [v - 1, v + 1]:
 				if rng.randf() < BEND_ROOT_FILL:
-					_place_ridge_cell(rng, _cell(u, other), rock_share, skip_cells, obstacles)
-		elif rng.randf() < BEND_CLUMP_CHANCE:  # A clump of 1-2 beside the line (inside `rows`)
-			var side := 1 if rng.randf() < 0.5 else -1
-			if v + side < maxi(rows.x, v_base - 1) or v + side > mini(rows.y, v_base + 1):  # Within a row of its base: a free row to the next spur
-				side = -side
-			if v + side < maxi(rows.x, v_base - 1) or v + side > mini(rows.y, v_base + 1):
-				continue
-			_place_ridge_cell(rng, _cell(u, v + side), rock_share, skip_cells, obstacles)
-			if i + 1 < length and rng.randf() < 0.5:
-				_place_ridge_cell(rng, _cell(1 + i + 1 if from_low else u_inner - i - 1, v + side), rock_share, skip_cells, obstacles)
+					_place_spur_cell(rng, _cell(u, other), [], skip_cells, obstacles)  # Its own kind (not the line's run)
+		elif i < length - 1 and rng.randf() < BEND_CLUMP_CHANCE:  # A bulge of 1-2 beside the line
+			var side := _free_side(rng, v, lo, hi)
+			if side != 0:
+				_place_spur_cell(rng, _cell(u, v + side), [], skip_cells, obstacles)  # Its own kind (not the line's run)
+				if rng.randf() < 0.35:
+					_place_spur_cell(rng, _cell(u_at.call(i + 1), v + side), [], skip_cells, obstacles)  # Its own kind (not the line's run)
+	# A ragged tip: the line ends in a clump of 2-3, then 1-2 strays past it with gaps (plain obstacles: they
+	# don't count for the bend, and the way round the tip stays open).
+	var tip: int = u_at.call(length - 1)
+	var side := _free_side(rng, v, lo, hi)
+	if side != 0:
+		_place_spur_cell(rng, _cell(tip, v + side), [], skip_cells, obstacles)  # Its own kind (not the line's run)
+		if length >= 2 and rng.randf() < 0.5:
+			_place_spur_cell(rng, _cell(u_at.call(length - 2), v + side), [], skip_cells, obstacles)  # Its own kind (not the line's run)
+	var at := length - 1
+	for stray in rng.randi_range(1, 2):
+		at += rng.randi_range(2, 3)
+		var u: int = u_at.call(at)
+		var cell := _cell(u, clampi(v + rng.randi_range(-1, 1), lo, hi))
+		if u < 1 or u > u_inner or skip_cells.has(cell) or obstacles.has(cell):
+			continue
+		_place_obstacle(rng, cell, _next_kind(rng, run), obstacles)
+		stray_cells.append(cell)
+
+# A side (+1 / -1) of row `v` that stays within lo..hi, or 0.
+func _free_side(rng: RandomNumberGenerator, v: int, lo: int, hi: int) -> int:
+	var side := 1 if rng.randf() < 0.5 else -1
+	if v + side < lo or v + side > hi:
+		side = -side
+	return side if v + side >= lo and v + side <= hi else 0
+
+# The next obstacle kind of a spur: trees and boulders about half and half, in runs of 2-3 of one kind
+# (`run` = [rock?, left]).
+func _next_kind(rng: RandomNumberGenerator, run: Array) -> ObstacleData:
+	if run[1] <= 0:
+		run[0] = rng.randf() < 0.5
+		run[1] = rng.randi_range(2, 3)
+	run[1] -= 1
+	return rock_obstacle if run[0] else tree_obstacle
+
+func _place_spur_cell(rng: RandomNumberGenerator, cell: Vector2, run: Array, skip_cells: PackedVector2Array,
+		obstacles: Dictionary) -> void:
+	if skip_cells.has(cell) or not MAP_GRID.is_within_bounds(cell):
+		return
+	var kind := (rock_obstacle if rng.randf() < 0.5 else tree_obstacle) if run.is_empty() else _next_kind(rng, run)  # []: a kind of its own
+	_place_obstacle(rng, cell, kind, obstacles)
+	ridge_cells[cell] = true
 
 # One tapering ridge: from the low-u wall (or the high one) `length` cells along u, wandering inside
 # its band (v_base ±1): a thicket/outcrop root, a two-row middle, a one-row tip, then a few strays.
@@ -302,7 +350,7 @@ func _bend_spur(rng: RandomNumberGenerator, v_base: int, from_low: bool, length:
 func _ridge(rng: RandomNumberGenerator, v_base: int, from_low: bool, length: int, gaps_from: int,
 		skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
 	var u_inner := _u_size() - 2
-	var rock_share := rng.randf_range(0.25, 0.75)  # A mix of trees and boulders (user: variety)
+	var run := [false, 0]  # Trees and boulders about half and half, in runs of 2-3 (user: variety)
 	var root_end := roundi(length * ridge_root_fraction)
 	var tip_start := length - roundi(length * ridge_tip_fraction)
 	var v := v_base
@@ -312,18 +360,18 @@ func _ridge(rng: RandomNumberGenerator, v_base: int, from_low: bool, length: int
 		if i >= maxi(root_end, gaps_from) and rng.randf() < ridge_gap_chance:
 			continue  # A gap: this cell of the ridge is left open
 		var u := 1 + i if from_low else u_inner - i
-		_place_ridge_cell(rng, _cell(u, v), rock_share, skip_cells, obstacles)
+		_place_spur_cell(rng, _cell(u, v), run, skip_cells, obstacles)
 		if i < root_end:
 			# Root: a thicket or outcrop across the whole band, not a solid block.
 			for other in range(v_base - 1, v_base + 2):
 				if other != v and rng.randf() < ridge_root_fill_chance:
-					_place_ridge_cell(rng, _cell(u, other), rock_share, skip_cells, obstacles)
+					_place_spur_cell(rng, _cell(u, other), run, skip_cells, obstacles)
 		elif i < tip_start and rng.randf() < ridge_middle_fill_chance:
 			# Middle: one neighbouring row, kept inside the band.
 			var side := 1 if rng.randf() < 0.5 else -1
 			if absi(v + side - v_base) > 1:
 				side = -side
-			_place_ridge_cell(rng, _cell(u, v + side), rock_share, skip_cells, obstacles)
+			_place_spur_cell(rng, _cell(u, v + side), run, skip_cells, obstacles)
 	# No strays past the tip: the bowl beyond stays open (Room to maze).
 
 # The ridge frame: u along the ridges, v across them.
@@ -530,6 +578,8 @@ func _place_feature(rng: RandomNumberGenerator, skip: PackedVector2Array, obstac
 	log_cells.clear()
 	feature_near_route = false
 	pond_corners.clear()
+	rubble_cells.clear()
+	ruin_tree = Vector2(-1, -1)
 	if layout == null:
 		return
 	# A pond, ruin or log should shape the opening: the first tries must come within NEAR_ROUTE cells of the
@@ -570,8 +620,18 @@ func _place_feature(rng: RandomNumberGenerator, skip: PackedVector2Array, obstac
 				pond_cells.assign(cells)
 				_find_pond_corners(cells)
 			MapLayout.Feature.RUIN:
-				for cell in cells:  # Standing stones, cairns and ruined waystones
-					_place_obstacle_tile(cell, rock_obstacle, Vector2i(RUIN_STONES[rng.randi_range(0, RUIN_STONES.size() - 1)], 0), obstacles)
+				for cell in cells:  # Standing stones, cairns and ruined waystones; a Withered Tree growing in it
+					if cell == ruin_tree:
+						_place_obstacle(rng, cell, tree_obstacle, obstacles)
+					else:
+						_place_obstacle_tile(cell, rock_obstacle, Vector2i(RUIN_STONES[rng.randi_range(0, RUIN_STONES.size() - 1)], 0), obstacles)
+				cells.erase(ruin_tree)  # The tree is a plain obstacle, not part of the feature
+				var details := tile_set.get_source(EnvironmentTiles.GROUND_DETAILS) as TileSetAtlasSource
+				var groups := maxi(details.get_atlas_grid_size().x / 4, 1)
+				rubble_cells.assign(rubble_cells.filter(func(c: Vector2) -> bool:
+					return MAP_GRID.is_within_bounds(c) and not obstacles.has(c) and not skip.has(c)))
+				for cell in rubble_cells:  # Pebbles where the stones fell (walkable)
+					set_cell(Vector2i(cell), EnvironmentTiles.GROUND_DETAILS, Vector2i(rng.randi_range(0, groups - 1) * 4 + 2, 0))
 			MapLayout.Feature.LOG:  # One obstacle over its cells: end and middle pieces, cleared as a unit
 				for cell in cells:
 					rng.randi_range(0, tree_obstacle.tiles.size() - 1)  # The draw the trees it replaced took: same maps
@@ -611,18 +671,8 @@ func _feature_shape(rng: RandomNumberGenerator, feature: MapLayout.Feature, arou
 				for dy in size.y:
 					if not dropped.has(Vector2i(dx, dy)):
 						cells.append(at + Vector2(dx, dy))
-		MapLayout.Feature.RUIN:  # A ring of stones 3 or 4 across, open on one side
-			var side := rng.randi_range(3, 4)
-			var gap_side := rng.randi_range(0, 3)
-			var gap_at := rng.randi_range(1, side - 2)
-			for dx in side:
-				for dy in side:
-					if dx != 0 and dy != 0 and dx != side - 1 and dy != side - 1:
-						continue
-					var gap: bool = [dy == 0 and dx == gap_at, dx == side - 1 and dy == gap_at,
-						dy == side - 1 and dx == gap_at, dx == 0 and dy == gap_at][gap_side]
-					if not gap:
-						cells.append(at + Vector2(dx, dy))
+		MapLayout.Feature.RUIN:  # An old stone ring the forest reclaimed (Environment Discussion 2026-10-06)
+			cells = _ruin_shape(rng, at)
 		MapLayout.Feature.GROVE:  # A tight cluster of trees
 			for dx in range(-2, 3):
 				for dy in range(-2, 3):
@@ -632,6 +682,62 @@ func _feature_shape(rng: RandomNumberGenerator, feature: MapLayout.Feature, arou
 			var along := Vector2(1, 0) if rng.randf() < 0.5 else Vector2(0, 1)
 			for i in rng.randi_range(3, 4):
 				cells.append(at + along * i)
+	return cells
+
+# The Ruin: a rough ring of stones 3 or 4 across (corners dropped: all on a 4, 1-2 on a 3), broken by 1-2 gaps
+# on random sides, one stone fallen a cell outward, and a Withered Tree growing on a dropped corner. The empty
+# slots get rubble (pebbles, walkable) so the missing stones read as fallen. Returns every cell that blocks (the
+# tree too, so the route checks see it); `ruin_tree` and `rubble_cells` say which is which.
+func _ruin_shape(rng: RandomNumberGenerator, at: Vector2) -> Array[Vector2]:
+	var side := rng.randi_range(3, 4)
+	var last := side - 1
+	var corners: Array[Vector2] = [Vector2(0, 0), Vector2(last, 0), Vector2(0, last), Vector2(last, last)]
+	var dropped: Array[Vector2] = []
+	if side == 4:
+		dropped.assign(corners)
+	if side == 3:
+		var pool := corners.duplicate()
+		for n in rng.randi_range(1, 2):
+			dropped.append(pool.pop_at(rng.randi_range(0, pool.size() - 1)))
+	var slots: Array[Vector2] = []
+	for dx in side:
+		for dy in side:
+			var slot := Vector2(dx, dy)
+			if (dx == 0 or dy == 0 or dx == last or dy == last) and not dropped.has(slot):
+				slots.append(slot)
+	var gaps: Array[Vector2] = []
+	var sides := [0, 1, 2, 3]
+	for g in rng.randi_range(1, 2):  # 1-2 gaps on different sides, never a corner
+		var s: int = sides.pop_at(rng.randi_range(0, sides.size() - 1))
+		var k := rng.randi_range(1, side - 2)
+		gaps.append([Vector2(k, 0), Vector2(last, k), Vector2(k, last), Vector2(0, k)][s])
+	var stones: Array[Vector2] = []
+	stones.assign(slots.filter(func(c: Vector2) -> bool: return not gaps.has(c)))
+	var rubble: Array[Vector2] = []
+	rubble.assign(gaps + dropped)
+	var edge_stones := stones.filter(func(c: Vector2) -> bool: return not corners.has(c) or side == 3)
+	if not edge_stones.is_empty():  # One stone fallen: a cell outward from its slot
+		var fallen: Vector2 = edge_stones[rng.randi_range(0, edge_stones.size() - 1)]
+		var out := Vector2(-1 if fallen.x == 0 else (1 if fallen.x == last else 0),
+			-1 if fallen.y == 0 else (1 if fallen.y == last else 0))
+		if out.x != 0 and out.y != 0:
+			out.y = 0  # A corner stone falls sideways
+		stones.erase(fallen)
+		stones.append(fallen + out)
+		rubble.append(fallen)
+	ruin_tree = Vector2(-1, -1)
+	if not dropped.is_empty():  # A dead tree grows on a dropped corner
+		var corner: Vector2 = dropped[rng.randi_range(0, dropped.size() - 1)]
+		rubble.erase(corner)
+		ruin_tree = at + corner
+	rubble_cells.clear()
+	for c in rubble:
+		rubble_cells.append(at + c)
+	var cells: Array[Vector2] = []
+	for c in stones:
+		cells.append(at + c)
+	if ruin_tree != Vector2(-1, -1):
+		cells.append(ruin_tree)
 	return cells
 
 # More than one cell into the bowl (its first ring is where a feature may straddle the band's inner edge).

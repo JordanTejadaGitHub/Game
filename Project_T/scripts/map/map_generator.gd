@@ -111,6 +111,7 @@ func _ready() -> void:
 	var no_details := unwalkable_cells + PackedVector2Array(obstacles.keys())
 	no_details.append_array(PackedVector2Array(environment_object_layer.pond_cells))
 	no_details.append_array(PackedVector2Array([startPath, endPath]))  # The start's mist, the Heartwood
+	no_details.append_array(PackedVector2Array(environment_object_layer.rubble_cells))  # The Ruin's fallen-stone pebbles stay
 	for point in path_layer.current_path:  # Route points are half cells: no detail on the whole cell under each
 		no_details.append((Vector2(FindPath.point_to_node(point)) / 2.0).floor())
 	environment_object_layer.generate_details(rng, no_details, ground_patches.kind_at)

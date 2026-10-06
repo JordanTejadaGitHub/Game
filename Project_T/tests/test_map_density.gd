@@ -206,7 +206,8 @@ func _bends(map: Node) -> bool:
 func _bowl_loose(map: Node, env: Node) -> int:
 	var n := 0
 	for cell: Vector2 in map.obstacles:
-		if env.in_bowl(cell) and not env.ridge_cells.has(cell) and not env.feature_cells.has(cell):
+		if env.in_bowl(cell) and not env.ridge_cells.has(cell) and not env.feature_cells.has(cell) \
+				and not env.stray_cells.has(cell) and cell != env.ruin_tree:  # Not the spur's strays or the Ruin's tree
 			n += 1
 	return n
 
