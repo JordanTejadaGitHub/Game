@@ -865,6 +865,14 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## When builds come online (user, 2026-10-06)
+
+Other roguelites (read, not data): a direction by ~⅓ of a run in ~90% of runs, the build carrying by ~½, a chosen
+build ~20–40%, a dream combo ~5–15%. Ours (bot): direction by 26 ~87%, built by 50 ~87%, Storm Grid 27%: in line.
+**The gap is timing:** every human act 2 death lands at 32–42, before most builds are online. **New target: fresh
+runs ~70%+ with a build by drift 35, ~80%+ by 40.** No-build reports now also classify at 35 / 40 (existing rows
+reclassified). Levers if short: stronger act 1–2 openers (the use-now rule is a step), or a softer 32–40.
+
 ## Rank-choice cards 266–269 (dream_design.md cdfbe349)
 
 | Card | Number | Why |
