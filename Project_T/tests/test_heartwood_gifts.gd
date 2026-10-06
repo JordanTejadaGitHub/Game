@@ -144,6 +144,27 @@ func _run() -> void:
 	_check(gifts.taken.size() == 3 and applied.size() == 2 and applied.all(func(a: Array) -> bool: return a[1].restoring) and run_state.max_leaves == max_now,
 		"a resumed run rebuilds the gifts (restoring) and the max leaves stay")
 
+	# Payoffs (heartwood_gifts.md b3e464e6): Shifting Mist's Dew pots +10% for the act it opens; Shift the Stones pays
+	# 20 Dew × act per stone moved and leaves the old spots fertile.
+	var mist_act := int(gifts.taken.filter(func(t: Dictionary) -> bool: return StringName(t.id) == &"shifting_mist")[0].act)
+	var first_of := func(act: int) -> int: return (act - 1) * director.drifts_per_act + 1
+	_check(is_equal_approx(gifts.get_dew_pot_multiplier(first_of.call(mist_act + 1)), 1.0 + HeartwoodGifts.MIST_POT_BONUS)
+		and is_equal_approx(gifts.get_dew_pot_multiplier(first_of.call(mist_act)), 1.0)
+		and is_equal_approx(gifts.get_dew_pot_multiplier(first_of.call(mist_act + 2)), 1.0),
+		"Shifting Mist: only the next act's Dew pots get +10%")
+	var pot_with := director.get_dew_pot_multiplier(first_of.call(mist_act + 1))
+	gifts.taken = gifts.taken.filter(func(t: Dictionary) -> bool: return StringName(t.id) != &"shifting_mist")
+	_check(is_equal_approx(pot_with / director.get_dew_pot_multiplier(first_of.call(mist_act + 1)), 1.0 + HeartwoodGifts.MIST_POT_BONUS),
+		"DriftDirector's Dew pot reads the gift")
+	gifts.current_offer = [&"shift_stones"]
+	gifts.waiting = true
+	gifts.offer_act = 2
+	var dew_before := run_state.dew
+	var froms := [Vector2(3, 3), Vector2(4, 3)]
+	gifts.choose(&"shift_stones", {"cells": [Vector2(6, 6), Vector2(7, 6)], "from": froms})
+	_check(run_state.dew - dew_before == HeartwoodGifts.SHIFT_DEW * 2 * 2, "Shift the Stones: 20 Dew × act 2 × 2 stones (%d)" % (run_state.dew - dew_before))
+	_check(froms.all(func(c: Vector2) -> bool: return run_state.fertile_cells.has(c)), "Shift the Stones: the old spots are fertile")
+
 	main.queue_free()
 	await process_frame
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
