@@ -767,7 +767,7 @@ func _draw_fence_preview() -> void:
 	BranchKit.draw_link_area(self, here, reach)
 	for other in get_tree().get_nodes_in_group(Tower.GROUP):
 		if other is Tower and other.attack_data != null and other.attack_data.special == BranchKit.JARLINK \
-				and Kinships._cheb(_hover_cell, other.cell) <= reach:
+				and BranchKit.area_distance_at(MAP_GRID.calculate_map_position(_hover_cell), other) <= reach:
 			BranchKit.draw_link_mark(self, to_local(other.global_position), other == partner)
 	if partner != null:
 		var to := to_local(partner.global_position)

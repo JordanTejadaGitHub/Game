@@ -51,6 +51,20 @@ static func p(tower: Tower, key: String, fallback: float) -> float:
 	return float(tower.attack_data.special_params.get(key, fallback))
 
 # Yield (Nurture rework): the extra sprites / Sprouts a Warden's Yield ranks buy (one per NurtureChoices.YIELD_PER ranks).
+# Nurture-widened areas measure by distance (Tower Discussion rule 1, warden_stats.md b6f44fac): from a Warden's centre
+# to the other's centre (a 2×2 form: its nearest cell's centre), in cells, never whole-cell rings, so every Wide / Reach
+# rank adds ground. Kinship bonds keep their own Chebyshev reach (Kinships._distance).
+static func area_distance(from: Tower, to: Tower) -> float:
+	return area_distance_at(from.global_position, to)
+
+static func area_distance_at(from_pos: Vector2, to: Tower) -> float:
+	if to.get_footprint() <= 1:
+		return from_pos.distance_to(to.global_position) / CELL
+	var best := INF
+	for c in to.get_cells():
+		best = minf(best, from_pos.distance_to(Tower.MAP_GRID.calculate_map_position(c)) / CELL)
+	return best
+
 static func yield_ranks(tower: Tower) -> int:
 	return tower.choice_count(Tower.Focus.YIELD) / NurtureChoices.YIELD_PER
 
@@ -183,7 +197,7 @@ static func crit_aura(tower: Tower) -> float:
 	for other in tower.get_tree().get_nodes_in_group(Tower.GROUP):
 		if other == tower or not (other is Tower) or other.attack_data == null or other.attack_data.special != PRISM:
 			continue
-		if Kinships._distance(tower, other) <= p(other, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+		if area_distance(tower, other) <= p(other, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
 			best = maxf(best, p(other, "crit_aura", 0.10) + NurtureChoices.STRONG_CRIT_AURA * other.choice_count(Tower.Focus.STRONG))
 	return best
 
@@ -195,7 +209,7 @@ static func crit_damage_aura(tower: Tower) -> float:
 	for other in tower.get_tree().get_nodes_in_group(Tower.GROUP):
 		if other == tower or not (other is Tower) or other.attack_data == null or other.attack_data.special != PRISM:
 			continue
-		if Kinships._distance(tower, other) <= p(other, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+		if area_distance(tower, other) <= p(other, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
 			best = maxf(best, p(other, "crit_damage_aura", 0.0))
 	return best
 
@@ -351,15 +365,33 @@ static func _jet(tower: Tower) -> void:
 # flyer crossing it takes 3 Charged at once. Only the Lightning Fence touches Phantoms gliding through.
 const FENCE_TICK := 0.25
 
-# Link range shown (user via story chat 2026-10-05: "have Jarlink have its range connection"): a dashed square of the
-# cells a partner may stand in (Chebyshev, like the bond), in the arc's colour, distinct from the round attack range.
+# Link range shown (user via story chat 2026-10-05: "have Jarlink have its range connection"): a dashed circle of where a
+# partner may stand (by distance, rule 1), in the arc's colour, distinct from the solid attack-range ring.
 const LINK_COLOR := Palette.DEWLIGHT
 
+# Cells whose centres lie within `radius` cells of a Warden's centre, not counting its own (rule 1's "+N cells").
+static func cells_within(radius: float) -> int:
+	var count := 0
+	var r := int(floor(radius))
+	for dy in range(-r, r + 1):
+		for dx in range(-r, r + 1):
+			if (dx != 0 or dy != 0) and Vector2(dx, dy).length() <= radius + 0.0001:
+				count += 1
+	return count
+
+# "+N cells" for one more rank that widens an area from `radius` by `step` (may be "+0 cells" on a rank that
+# only edges the next ring).
+static func cells_gained(radius: float, step: float) -> int:
+	return cells_within(radius + step) - cells_within(radius)
+
 static func draw_link_area(canvas: CanvasItem, centre: Vector2, reach: float, alpha: float = 0.7) -> void:
-	var half := (reach + 0.5) * CELL
-	var corners := [centre + Vector2(-half, -half), centre + Vector2(half, -half), centre + Vector2(half, half), centre + Vector2(-half, half)]
-	for i in 4:
-		canvas.draw_dashed_line(corners[i], corners[(i + 1) % 4], Color(LINK_COLOR, alpha), 2.0, 6.0)
+	# A dashed circle (rule 1: the link reaches by distance, b6f44fac; it was a Chebyshev square).
+	var radius := reach * CELL
+	var steps := 48
+	for i in steps:
+		if i % 2 == 1:
+			continue  # Every other arc: dashed
+		canvas.draw_arc(centre, radius, TAU * i / steps, TAU * (i + 1) / steps, 3, Color(LINK_COLOR, alpha), 2.0)
 
 # A jar within reach (the ghost's candidates; a selected jar's partner): a soft ring at its base.
 static func draw_link_mark(canvas: CanvasItem, at: Vector2, strong: bool) -> void:
@@ -504,7 +536,7 @@ static func _fence_partner(tower: Tower) -> Tower:
 static func _bond_holds(tower: Tower, other, reach: float) -> bool:
 	return is_instance_valid(other) and other is Tower and other.is_inside_tree() and not other.is_queued_for_deletion() \
 		and other.attack_data != null and other.attack_data.special == JARLINK \
-		and Kinships._cheb(tower.cell, other.cell) <= reach and not _arc_cells(tower.cell, other.cell).is_empty()
+		and area_distance(tower, other) <= reach and not _arc_cells(tower.cell, other.cell).is_empty()
 
 # Whether `jar` is linked to a jar other than `except` (its bond still holding).
 static func _bonded_elsewhere(jar: Tower, except: Node) -> bool:
@@ -524,7 +556,7 @@ static func fence_partner_at(near: Node, cell: Vector2, reach: float, skip: Node
 			continue
 		if _bonded_elsewhere(other, skip):
 			continue  # Sticky: never steals a jar from its arc
-		var d := Kinships._cheb(cell, other.cell)
+		var d := area_distance_at(Tower.MAP_GRID.calculate_map_position(cell), other)  # Rule 1: by distance
 		if d <= reach and d < best_d and not _arc_cells(cell, other.cell).is_empty():
 			best_d = d
 			best = other
@@ -1011,7 +1043,7 @@ static func nurture_multiplier(tower: Tower) -> float:
 	var best := 0.0
 	for other in logs(tower):
 		if other.attack_data != null and other.attack_data.special == NURSE_LOG \
-				and Kinships._distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+				and area_distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
 			# Each log caps its own (audit b6f44fac: Mother Log 0.35 + 0.03 a rank reaches its 0.50 at V; Nurse Log 0.40)
 			best = maxf(best, minf(p(other, "nurture_discount", 0.25) + NurtureChoices.NURSE_STRONG * other.choice_count(Tower.Focus.STRONG),
 				p(other, "nurse_cap", NurtureChoices.NURSE_CAP)))
@@ -1026,7 +1058,7 @@ static func grow_multiplier(tower: Tower) -> float:
 			best = maxf(best, 0.10 * other.kin_share(NURSERY, "b"))
 	# Kindred on a Nurse Log: Wardens in its reach grow 2% cheaper per rank.
 	for other in logs(tower):
-		if Kinships._distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+		if area_distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
 			best = maxf(best, NurtureChoices.NURSE_KINDRED * other.choice_count(Tower.Focus.KINDRED))
 	return 1.0 - best
 
@@ -1036,7 +1068,7 @@ static func remember_rank(sold: Tower) -> void:
 		return
 	for other in logs(sold):
 		if other.attack_data != null and other.attack_data.special == NURSE_LOG and is_final(other) \
-				and Kinships._distance(sold, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
+				and area_distance(sold, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
 			var rings: Dictionary = other.get_meta(&"rings", {})
 			rings[sold.cell] = [sold.rank, Array(sold.rank_choices)]
 			other.set_meta(&"rings", rings)
@@ -1095,7 +1127,7 @@ static func on_rest(tower: Tower, perfect: bool) -> void:
 static func _families_near(tower: Tower, reach: float) -> int:
 	var lines := {}
 	for other in tower._other_towers():
-		if Kinships._distance(tower, other) <= reach and not (other.tower_data.line in ["wall", "sprout", "heartwood", "memory", ""]):
+		if area_distance(tower, other) <= reach and not (other.tower_data.line in ["wall", "sprout", "heartwood", "memory", ""]):
 			lines[other.tower_data.line] = true
 	return lines.size()
 

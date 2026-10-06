@@ -28,6 +28,10 @@ func _run() -> void:
 	var twice := route + route
 	_check(once > 0 and TowerPlacer.coverage_on(twice, centre, 2.5 * 64.0) == once * 2, "a route passed twice counts twice (%d)" % once)
 	_check(TowerPlacer.coverage_on(route, Vector2(-5000, -5000), 2.5 * 64.0) == 0, "nothing in range: 0")
+	# Rule 1 (warden_stats.md b6f44fac): Nurture-widened areas count cells by distance, so ranks add ground smoothly.
+	_check(BranchKit.cells_within(1.5) == 8 and BranchKit.cells_within(1.0) == 4 and BranchKit.cells_within(2.0) == 12,
+		"cells by distance: 4 within 1, 8 within 1.5, 12 within 2 (%d, %d, %d)" % [BranchKit.cells_within(1.0), BranchKit.cells_within(1.5), BranchKit.cells_within(2.0)])
+	_check(BranchKit.cells_gained(1.5, 0.6) == 4, "+0.6 from 1.5 reaches the 4 cells at distance 2 (%d)" % BranchKit.cells_gained(1.5, 0.6))
 
 	# A planted Warden beside the route reports it in its panel lines.
 	var beside := Vector2(-1, -1)
