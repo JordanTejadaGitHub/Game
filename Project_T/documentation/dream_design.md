@@ -2014,6 +2014,7 @@ The Dreamlight / Dew numbers to drift 75 are being measured.
 - Future shape cards follow the same rule: name the board condition in the spec.
 - Balancing Code re-checks act 1 survival after the build.
 - **Built:** f701c156. Close Kin's Need is both branches of a listed Kinship pair unlocked (only listed pairs bond). The shape cards read Tower Code's ShapeCards group, the same set their hooks use.
+- **Chase ceiling** (user: *"Don't want to be able to force a build; want players to adapt to be optimal. Sometimes they can."*): chasing one named build reaches 3+ cards in **at most ~30% of runs by drift 50 and ~50% by 75**. Storm Grid sits at the line (27 / 50). The use-now Needs remove dead slots, so they could raise it; Balancing Code re-measures fresh + full. If a build goes over, the fix is on its cards (rarity, Needs, pool), never steering.
 
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 
