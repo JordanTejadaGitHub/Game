@@ -76,6 +76,10 @@ var empty_loadout := false
 var sidegrade := -1
 var carry_pref := true  # --no-carry-pref: act 1 growth and Dreamlight don't prefer the carry branch (DreamState.is_carry), the bot before 2026-10-02
 var fence_pref := true  # --no-fence-pref: Jarlink growth ignores where its arc would fall (the bot before 2026-10-02)
+var wall_first := true  # --no-wall-first: the opening plants attackers first (the bot before 2026-10-05). Wall-first (Balancing, Room to maze): while the route is under WALL_FIRST_ROUTE cells, Thornwalls (the chain planner) come before everything else
+const WALL_FIRST_ROUTE := 45
+var wall_first_keep := 5  # --wall-first-keep=N: wall-first waits until N attackers are planted (the opening rule's 5 Sprouts; 0 = walls before any: on 60 Dew that left 2 Sprouts and drift 1 leaked)
+var _wall_first_stuck := -2  # drifts_started when no wall added route (wall-first rests until the next drift)
 var half_pref := true  # --no-half-pref: full cells only on the half grid (the bot before 2026-10-04)
 var pair_search := true  # --no-pair-search: the half-grid wall search weighs single walls only (greedy, the bot of 0596eb94)
 const PAIR_FIRSTS := 40  # Pair lookahead: the best single walls tried as a pair's first
@@ -196,6 +200,8 @@ func _run() -> void:
 			"--demo": demo_run = true
 			"--no-carry-pref": carry_pref = false
 			"--no-fence-pref": fence_pref = false
+			"--no-wall-first": wall_first = false
+			"--wall-first-keep": wall_first_keep = int(value)
 			"--no-half-pref": half_pref = false
 			"--no-pair-search": pair_search = false
 			"--old-growth": old_growth = true
@@ -694,6 +700,8 @@ func _next_buy() -> String:
 	var attackers := _attackers().size()
 	var target := mini(int(room[2]), int(room[0] + room[1] * director.drifts_started))
 	var walls := _wall_area()  # Twig walls count a quarter (the same area)
+	if wall_first and _wall_first():
+		return "walls"
 	# Grow into the family first: a Sprout that can become the family's base Warden grows before more
 	# Sprouts are planted (players don't sit on five Sprouts while drift 3 walks in).
 	if style != "sprout" and _grow_sprout_into_family():
@@ -734,6 +742,24 @@ func _next_buy() -> String:
 			and _plant_attacker():
 		return "plant"
 	return ""
+
+# Wall-first: under WALL_FIRST_ROUTE route cells, one chain of 1-3 Thornwalls (the most route per Dew). False once
+# the route is long enough, the Dew is short, or no wall adds route (then not again until the next drift starts).
+func _wall_first() -> bool:
+	if _attackers().size() < wall_first_keep or _wall_first_stuck == director.drifts_started or _route_cells(map.get_path_from(map.startPath)) >= WALL_FIRST_ROUTE:
+		return false
+	var wall: TowerData = load("res://resource/tower/thornwall.tres")
+	if not run_state.can_afford(placer.get_cost(wall)):
+		return false
+	placer.tower_data = wall
+	var placed := 0
+	if _half_mode() and placer.half_placement():
+		placed = _plant_wall_chain(run_state.dew)
+	elif _plant_wall():
+		placed = 1
+	if placed == 0:
+		_wall_first_stuck = director.drifts_started
+	return placed > 0
 
 # Dew for the cheapest growth open to a Warden on the map (0 = none).
 func _cheapest_growth() -> int:
