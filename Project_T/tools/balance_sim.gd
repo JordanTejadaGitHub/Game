@@ -1532,6 +1532,14 @@ func _finish() -> void:
 	summary.extra_dew = extra_dew  # X (with --extra-dew=grow / final: the cheapest such growth on the board)
 	summary.extra_x = extra_x_mode
 	summary.extra_spent = extra_spent
+	# Seeds this run would bank (RunState.get_seed_breakdown, not a first run; milestones included if any): demo Grove costs (Balancing)
+	var seed_lines: Array = run_state.get_seed_breakdown(director.drifts_cleared, director.bosses_cleansed, false)
+	var seed_total := 0
+	for line in seed_lines:
+		if not String(line[0]).begins_with("Total"):  # The breakdown ends with its own Total line
+			seed_total += int(line[1])
+	summary.seeds = seed_total
+	summary.seed_lines = ";".join(seed_lines.map(func(l) -> String: return "%s=%d" % [String(l[0]).get_slice(":", 0), int(l[1])]))
 	summary.extra_route_added = extra_info.route_added  # --extra-spend=walls: route cells the walls added, and how many
 	summary.extra_walls = extra_info.walls
 	summary.extra_cover = extra_info.cover  # Route halves in range of the Warden the extra grow went to (once per pass)
