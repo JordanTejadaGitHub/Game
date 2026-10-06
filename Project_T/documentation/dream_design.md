@@ -1839,7 +1839,7 @@ Kinship were the hardest card builds to reach.
     - **Elder Kin → start pool** (Uncommon). It leaves Grove node `elders`, which keeps Few and
       Mighty. It's also a Tall ↔ Kinship double-dip (ranks shared with kin).
     - No steering: the rest stays on the plain draw. Re-measure in the full emergence run.
-- **Built:** maze cards in e1fb1540 (twig wall counts half for Hedge Maze; **Hedge Maze II** +7.5% per wall, up to +45%, pending Balancing's check); Kinship doors in da04ea42 with Meta's 20e09ac0.
+- **Built:** maze cards in e1fb1540 (twig wall counts half for Hedge Maze; **Hedge Maze II** +8% per wall, up to +48% (Balancing: Deepened band 1.6–2×)); Kinship doors in da04ea42 with Meta's 20e09ac0.
 - **Family gaps** (Meta Game Discussion's matrix, a read, not measured): Acorn lacks Precision,
   Affliction, Swift and Wide Reach doors; Pebbling lacks Overgrowth, Affliction and Swift. Sap
   Rising (263) is Acorn's first. More shape cards for these gaps after the re-measure.
