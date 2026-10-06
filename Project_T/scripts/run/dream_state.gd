@@ -13,8 +13,8 @@ const RARITY_WEIGHTS := [[65, 28, 7, 0], [50, 32, 15, 3], [38, 34, 22, 6]]
 # Rule numbers: [base, Deepened (II)].
 const COZY_CORNERS_BONUS := [0.30, 0.50]
 const COZY_CORNERS_REACH := [1, 2]  # Cells from a bend, diagonals included (1 = the 8 around, 2 = 5×5)
-const HEDGE_TOUCH_PER := [0.05, 0.075]  # Hedge Maze / II: per Thornwall touching the Warden (dream_design.md 7fc0665c, Balancing)
-const HEDGE_TOUCH_MAX := [0.30, 0.45]
+const HEDGE_TOUCH_PER := [0.05, 0.08]  # Hedge Maze / II: per Thornwall touching the Warden (dream_design.md 7fc0665c, Balancing)
+const HEDGE_TOUCH_MAX := [0.30, 0.48]
 const SPORE_CASCADE_TARGETS := [2, 3]
 const TENDED_FOREST_PER_CLEAR := 0.02
 const TENDED_FOREST_MAX := 0.40
