@@ -16,9 +16,9 @@ const MIN_OBSTACLES := 12
 const MAX_RIDGES := 2  # The bend spur + one short spur; +1 at Blight 9 (as many as fit)
 const ROUTE_RANGE := Vector2i(24, 42)  # Opening route, full cells (Room to maze with the +10 bend, 2026-10-05; was ~46)
 const ROUTE_MAX_BLIGHT_9 := 46  # Its extra spur can stretch the opening a little
-const OBSTACLES_BLIGHT_0 := Vector2i(30, 42)
-const OBSTACLES_BLIGHT_9 := Vector2i(30, 52)  # The extra spur is a deliberate step: less open floor
-const BOWL_LOOSE := Vector2i(2, 4)  # Lone decision obstacles in the bowl (not spur or feature cells)
+const OBSTACLES_BLIGHT_0 := Vector2i(38, 48)  # User 2026-10-06: "a bit more obstacles" (was 30-42)
+const OBSTACLES_BLIGHT_9 := Vector2i(38, 56)  # The extra spur is a deliberate step: less open floor
+const BOWL_LOOSE := Vector2i(3, 6)  # Lone decision obstacles in the bowl (not spur or feature cells)
 const BUILDABLE_MIN := 285  # ~298 median with the bowl (was ~275 before it opened)
 
 var failures := 0

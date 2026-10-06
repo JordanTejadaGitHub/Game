@@ -26,10 +26,10 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 # from the rim) for the player's switchbacks. Groves, rock clusters, the feature and the spurs' roots go in the
 # frame band around it; the bowl only gets a few lone "decision" obstacles. Ground patches and details stay.
 @export var frame_band: int = 3  # Cells of frame between the rim and the bowl
-@export var bowl_obstacles_min: int = 2  # Lone decision obstacles in the bowl
-@export var bowl_obstacles_max: int = 4
-@export var target_obstacles_min: int = 30  # The whole map: band groves are thinned or topped up into this
-@export var target_obstacles_max: int = 40
+@export var bowl_obstacles_min: int = 3  # Lone decision obstacles in the bowl (user 2026-10-06: "a bit more obstacles")
+@export var bowl_obstacles_max: int = 6
+@export var target_obstacles_min: int = 38  # The whole map: band groves are thinned or topped up into this
+@export var target_obstacles_max: int = 48
 @export_group("Ridges")
 # Ridges are tapered spurs of rocks and trees reaching in from the frame, from alternating walls. They give
 # the opening route its bend; clearing one of their cells opens a shortcut.
