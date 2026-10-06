@@ -806,6 +806,23 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 **tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
 `longest_path` / `tended` requested in the run history to re-check.
 
+## Nurture audit numbers (warden_stats.md b6f44fac, 2026-10-05)
+
+| Row | Number |
+|---|---|
+| Swift (all) | **+15%** attack speed per rank (was 12%; Power +18% on damage stays ahead on plain strikers) |
+| Maelstrom / Undercurrent Deep | +1 linked nightmare per rank (6 → 11, 8 → 13), share fixed |
+| Pull per Deep rank | Rootcurl **+0.2** tiles (1 → 2.0), Long Way Home **+0.5** (4 → 6.5): ~+15–20% a rank each, no cap |
+| Groundroot / Earthbind | grounded 3 s × Potency, cap **6.75 s** |
+| Hushbell / Silence Deep | silence lingers **+0.4 s** per rank |
+| Sunpetal / Midsummer Swift | beam ramp **+15%** per rank |
+| Dreamcatcher Strong | Caught statuses tick **+10%** per rank (a conditional, so above Power's 18%/2) |
+| Mother Log Strong | 0.35 + 0.03 a rank, cap **0.50** (Nurse Log stays 0.40) |
+| Grove Keeper Swift | −0.2 drifts per rank |
+| Wellspring Kindred | interest cap +10 per rank (80 → 130) |
+| Dream Oak Yield | run cap +1 Dreamlight per rank (4 → 9); shard bonus trimmed +0.5 → **+0.3** per rank |
+| Drowsy / Exposed / Soaked | Drowsy duration × Potency; past a 40% cap, duration × (Potency ÷ Potency at the cap) |
+
 ## Brood Cap / Hatchery Yield (Tower Discussion 68120c18, 2026-10-05)
 
 Yield = **+1 sprite alive per rank** (cap 4 → 9 at V), nothing else; Swift = hatches faster (+12% a rank). The
