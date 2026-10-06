@@ -4401,8 +4401,11 @@ func tall_behind() -> bool:
 	# The overhang: everything the art covers around its footprint, above and beside (half cells: a Warden may sit
 	# between cells, so it's a pixel area, not "the cell above"). Nothing stands on the footprint itself.
 	var area := _art_rect()
+	# Only flyers (user 2026-10-05: "transparent when attacking"): a walker is on the trail, and the art's slice over the
+	# trail is already see-through (path mask). Fading the whole overhang for walkers made a Warden flicker see-through
+	# exactly while it attacked the nightmares passing behind it.
 	for enemy in nightmares_near(get_tree(), area.get_center(), maxf(area.size.x, area.size.y)):
-		if is_instance_valid(enemy) and not enemy.is_cleansed and area.has_point(enemy.global_position):
+		if is_instance_valid(enemy) and not enemy.is_cleansed and enemy.is_flying() and area.has_point(enemy.global_position):
 			return true
 	# Another Warden only when the player points at it (hovered / selected, below). An ambient "any Warden in the
 	# overhang" rule (environment_assets.md "Half-cell grid" §4) faded every Warden with one in the cell above once

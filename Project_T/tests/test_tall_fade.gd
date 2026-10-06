@@ -32,8 +32,18 @@ func _run() -> void:
 	for i in 30:
 		tall._update_tall_fade(1.0 / 60.0)
 		await process_frame
-	_check(tall._tall_alpha < 0.6, "a nightmare behind fades the top band (%.2f)" % tall._tall_alpha)
+	# A walker behind never fades the whole overhang (user 2026-10-05: "transparent when attacking"): it's on the trail,
+	# whose slice of the art is see-through anyway. A flyer behind does.
+	_check(tall._tall_alpha > 0.95, "a walking nightmare behind leaves it solid (%.2f)" % tall._tall_alpha)
 	nightmare.global_position = Tower.MAP_GRID.calculate_map_position(tall.cell + Vector2(4, 0))
+	var flyer: Node2D = spawner.spawn_enemy(load("res://resource/enemy/crow.tres"))
+	flyer.set_process(false)
+	flyer.global_position = Tower.MAP_GRID.calculate_map_position(tall.cell + Vector2.UP)
+	for i in 30:
+		tall._update_tall_fade(1.0 / 60.0)
+		await process_frame
+	_check(tall._tall_alpha < 0.6, "a flyer behind fades the overhang (%.2f)" % tall._tall_alpha)
+	flyer.global_position = Tower.MAP_GRID.calculate_map_position(tall.cell + Vector2(4, 0))
 	for i in 40:
 		tall._update_tall_fade(1.0 / 60.0)
 		await process_frame
