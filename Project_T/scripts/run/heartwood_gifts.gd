@@ -27,7 +27,7 @@ const THICK_MIST_SPACING := 1.25
 # MapGifts.start_options / route_from_start).
 const POOL := {
 	&"sow_ridge": {"name": "Sow a Ridge", "group": "Shape the land", "map": true, "place": &"chain", "size": [3, 5],
-		"text": "Draw a ridge of 3–5 Withered Trees, cell by cell. Sheltered: attacking Wardens touching it deal 10% more damage. Each tree gives 2 extra Seeds when tended (clearable at the normal cost)."},
+		"text": "Draw a ridge of 3–5 Withered Trees, cell by cell. Sheltered: attacking Wardens touching it deal 10% more damage. Its trees give 2 Seeds when tended instead of 1 (clearable at the normal cost)."},
 	&"fallen_giant": {"name": "Fallen Giant", "group": "Shape the land", "map": true, "place": &"line", "size": [2, 4],
 		"text": "Lay a Fallen Log 2–4 cells long, straight, where you choose. High ground: attacking Wardens touching it get +0.5 range. Snag: nightmares beside it move 15% slower. It can't be cleared this run."},
 	&"glade": {"name": "Glade", "group": "Shape the land", "map": true, "place": &"obstacles", "size": 5,
