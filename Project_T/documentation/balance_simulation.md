@@ -884,6 +884,9 @@ Taproot I (power, under a Hades split Meta Game Code is adding), Second Thoughts
 Scarred Bark, **Rootling (a 5th family)**: 375 Seeds → target median ≈ 94 per demo run. Hades perk style (power: Morning
 Stores, Deep Taproot I–II, Rested Roots; the rest sidegrade) becomes the default in cf8dae16, demo_full preset 90c593ec
 (both awaiting the user's Approve); Grove-profile baselines before it are the pure-sidegrade style.
+**Demo baseline, early (9e3b5b9c, 11–12 per arm):** the Stag 66 / 81 / 18% (default / spender / skip, near band); **reach
+the Mire Hag 0%**: deaths spread over 29–47, the same act 2 wall as every fresh human run (32–42). Seeds per run ≈ 68
+(target median ~94). Act 2 sweep queued: `demo_act2_health_scale` 0.5 / 0.6 / 0.7.
 
 ## No forcing (user, 2026-10-06)
 
