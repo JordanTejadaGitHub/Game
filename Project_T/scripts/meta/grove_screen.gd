@@ -220,7 +220,7 @@ func _build_footer() -> void:
 	footer.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	footer.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	footer.add_theme_constant_override("separation", 10)
-	_button(footer, "Start run", _start_run)
+	UiStyle.primary(_button(footer, "Start run", _start_run))  # The screen's one primary (ui_style.md)
 	_button(footer, "Carry", func() -> void: _open_loadout(false))
 	_button(footer, "Codex", func() -> void: codex.open())
 	_button(footer, "Keepsakes", open_keepsakes)
@@ -666,14 +666,16 @@ func open_leaf_dew() -> void:
 		go.text = "Continue"
 		go.focus_mode = Control.FOCUS_NONE
 		go.custom_minimum_size = Vector2(130, 48)
+		UiStyle.primary(go)  # The step's one primary; Back stays framed
 		go.pressed.connect(func() -> void:
 			leaf_dew_step.visible = false
 			_after_leaf_dew())
 		footer.add_child(go)
 		add_child(leaf_dew_step)
+		_solid(leaf_dew_step)
 	_show_leaf_dew()
 	leaf_dew_step.visible = true
-	leaf_dew_step.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+	_center_panel.call_deferred(leaf_dew_step)
 
 func _leaf_dew_button(row: HBoxContainer, text: String, button_name: String, step: int) -> void:
 	var button := Button.new()
@@ -735,20 +737,26 @@ func open_keepsakes() -> void:
 		title.add_theme_font_size_override("font_size", 24)
 		title.add_theme_color_override("font_color", Palette.GLOW)
 		box.add_child(title)
-		var stand := VBoxContainer.new()  # The niches stand on the shelf's top moss
-		stand.add_theme_constant_override("separation", -(SHELF_TEXTURE.get_height() - 16) * SHELF_SCALE)
+		# The niches stand on the shelf: their bottoms rest on its top moss (16 art px down), drawn in front of it.
+		var shelf_size: Vector2 = SHELF_TEXTURE.get_size() * SHELF_SCALE
+		var rise := (NICHE - 16) * SHELF_SCALE  # How far the niches reach above the shelf's top edge
+		var stand := Control.new()
+		stand.custom_minimum_size = Vector2(shelf_size.x, rise + shelf_size.y)
 		stand.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		_niche_row.alignment = BoxContainer.ALIGNMENT_CENTER
-		_niche_row.add_theme_constant_override("separation", NICHE_GAP * SHELF_SCALE)
-		stand.add_child(_niche_row)
+		stand.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var shelf := TextureRect.new()
 		shelf.texture = SHELF_TEXTURE
 		shelf.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		shelf.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		shelf.custom_minimum_size = SHELF_TEXTURE.get_size() * SHELF_SCALE
+		shelf.position = Vector2(0, rise)
+		shelf.size = shelf_size
 		shelf.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		stand.add_child(shelf)
-		stand.move_child(shelf, 0)  # Drawn first, so the niches sit in front of it
+		_niche_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		_niche_row.add_theme_constant_override("separation", NICHE_GAP * SHELF_SCALE)
+		_niche_row.position = Vector2.ZERO
+		_niche_row.size = Vector2(shelf_size.x, NICHE * SHELF_SCALE)
+		stand.add_child(_niche_row)  # After the shelf, so the niches sit in front of it
 		box.add_child(stand)
 		_shelf_rows.alignment = BoxContainer.ALIGNMENT_CENTER
 		_shelf_rows.add_theme_constant_override("separation", 8)
@@ -761,9 +769,10 @@ func open_keepsakes() -> void:
 		close.pressed.connect(func() -> void: keepsakes_shelf.visible = false)
 		box.add_child(close)
 		add_child(keepsakes_shelf)
+		_solid(keepsakes_shelf)
 	_rebuild_shelf()
 	keepsakes_shelf.visible = true
-	keepsakes_shelf.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+	_center_panel.call_deferred(keepsakes_shelf)
 
 func _rebuild_shelf() -> void:
 	for child in _shelf_rows.get_children() + _niche_row.get_children():
@@ -809,13 +818,30 @@ func _rebuild_shelf() -> void:
 			row.add_child(toggle)
 		_shelf_rows.add_child(row)
 
-func _button(parent: Control, text: String, action: Callable) -> void:
+# Shrinks a panel to its content and centres it, after layout: wrapping labels report a huge height before
+# they have a width, and a panel sized then never shrinks back by itself (the Keepsakes shelf ran off-screen).
+func _center_panel(panel: Control) -> void:
+	panel.reset_size()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+
+# A solid fill behind a panel's text, like the pause menu's dialogs (the theme's panel, made opaque), so it reads
+# over the busy tree.
+static func _solid(panel: PanelContainer) -> void:
+	var fill := panel.get_theme_stylebox("panel")
+	if fill is MoonStyleBox:
+		var solid := (fill as MoonStyleBox).duplicate() as MoonStyleBox
+		solid.center_alpha = UiStyle.TIP_ALPHA
+		solid.edge_alpha = UiStyle.TIP_ALPHA
+		panel.add_theme_stylebox_override("panel", solid)
+
+func _button(parent: Control, text: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.custom_minimum_size = Vector2(130, 48)
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(action)
 	parent.add_child(button)
+	return button
 
 # A family node's branches for its card (meta_design.md "Branch expansion in the Grove"), read from the Warden data
 # so it follows each expansion phase: every regular branch with its one-line job and final forms, then how many a
