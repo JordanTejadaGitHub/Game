@@ -283,6 +283,9 @@ const LEGENDARY_ICONS := ["dawnbreak"]
 # Statuses added after the sheet was laid out: appended at the end so no column moves; listed under
 # "statuses" in icons.json with the rest.
 const LATE_STATUS_ICONS := ["silenced"]
+# Dream card marks added later (appended, so no column moves): "defining" marks a build-defining card
+# (dream_design.md de439ea8, tag "defining"), top-right on the card and in the Dreams row.
+const CARD_MARK_ICONS := ["defining"]
 # Ids that share another icon's column.
 const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_cost", "dreamlight": "dreamlight_cost"}
 
@@ -293,7 +296,7 @@ var _n := ICON  # size of the icon being drawn (16; the Omen card emblems are 32
 
 func _make_icons() -> void:
 	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS + OMEN_ICONS \
-		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS + LATE_STATUS_ICONS
+		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS + LATE_STATUS_ICONS + CARD_MARK_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
@@ -308,7 +311,7 @@ func _make_icons() -> void:
 		nightmare = NIGHTMARE_ICONS + ["hidden", "always_damp", "burrows"], damage_type = DAMAGE_TYPE_ICONS,
 		resources = RESOURCE_ICONS + ["dew", "dreamlight"],
 		omen = OMEN_ICONS,
-		reactions = REACTION_ICONS, crowned = CROWNED_ICONS, legendary = LEGENDARY_ICONS,
+		reactions = REACTION_ICONS, crowned = CROWNED_ICONS, legendary = LEGENDARY_ICONS, card_marks = CARD_MARK_ICONS,
 		note = "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering."}
 	var file := FileAccess.open(OUT + "icons.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
@@ -2103,6 +2106,20 @@ func _ic_silenced() -> void:
 	_c_disc(Vector2(8, 14), 1.4, _rpn("mist", "stone", "slate"))
 	_c_rect(Rect2i(4, 6, 8, 2), _rpn("sprig", "leaf", "moss"))
 	_c_line([Vector2(1.4, 15), Vector2(14.6, 1.4)], 1.3, _rpn("heartlight", "glow", "gold"))
+func _ic_defining() -> void:
+	# A build-defining card: a stone arch with a gold keystone set in its crown; the whole arch rests on it.
+	var stone := _rpn("mist", "stone", "slate")
+	var c := Vector2(8, 11)
+	_c_ring(c, 7.6, 3.4, stone)
+	_c_rect(Rect2i(0, 11, 5, 5), stone)  # the legs down to the ground
+	_c_rect(Rect2i(11, 11, 5, 5), stone)
+	for a in [0.55, PI - 0.55]:  # joints between the arch stones
+		var d := Vector2.from_angle(-a)
+		_dt_line(Vector2i((c + d * 4.0).round()), Vector2i((c + d * 7.4).round()), Palette.color("dread"))
+	_c_poly(PackedVector2Array([Vector2(5.0, 1.0), Vector2(11.0, 1.0), Vector2(9.6, 8.0), Vector2(6.4, 8.0)]),
+		_rpn("heartlight", "glow", "gold"))
+	_dt(6, 2, Palette.color("heartlight"))
+
 # --- Family and branch emblems (32x32, shown x1 / x2) ---------------------------------------------
 # Heraldic badges, not portraits. Each family has its own frame SHAPE and border colour (its Kinship
 # family colour), so the family reads even in grey; a branch keeps its family's frame and border and
