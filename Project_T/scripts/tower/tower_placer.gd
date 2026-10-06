@@ -385,6 +385,10 @@ func _draw() -> void:
 	if received != "":
 		WorldLabel.draw_tag(self, ghost.x, y, received, BuffSources.COLORS.acorn)
 		y -= CHIP_STEP
+	var cover := coverage_chip()  # maze_feel.md: how much route this spot covers vs the board's best
+	if not cover.is_empty():
+		WorldLabel.draw_tag(self, ghost.x, y, cover[0], cover[1])
+		y -= CHIP_STEP
 	for chip in get_ghost_chips():
 		WorldLabel.draw_tag(self, ghost.x, y, chip[0], BONUS_ON if chip[1] else BONUS_OFF)
 		y -= CHIP_STEP
@@ -624,6 +628,61 @@ func get_ghost_chips() -> Array:
 			chips.append(["%s ✗ %s" % [row.name, row.get("reason", "")], false])
 	return chips
 
+# --- Coverage (maze_feel.md 8b50fce6: "only upgrade at the right spots where it covers everything") ---
+# The ghost's chip: path tiles inside its range on the route it would leave (every pass counts), tinted by how the
+# spot compares with the board's best open cell for this Warden's range (cached per board version).
+const COVER_GOOD := 0.85  # At least this share of the best: a top spot (BONUS_ON)
+const COVER_OK := 0.5  # At least this: fair (GLOW); below: a poor spot (BONUS_OFF)
+var _best_cover := {}  # "board:range" -> path tiles at the best open cell
+
+static func coverage_on(route: PackedVector2Array, centre: Vector2, range_px: float, min_px: float = 0.0) -> int:
+	var points := 0
+	for p in route:
+		var d := centre.distance_squared_to(MAP_GRID.calculate_map_position(p))
+		if d <= range_px * range_px and d >= min_px * min_px:
+			points += 1
+	return roundi(points / 2.0)
+
+func ghost_coverage() -> int:
+	if tower_data == null or not tower_data.can_attack or _hover_cell == NO_CELL:
+		return 0
+	var route: PackedVector2Array = _hover_path if not _hover_path.is_empty() else map_generator.get_path_from(map_generator.startPath)
+	var range_px := Tower.range_to_pixels(Tower.get_range_for(tower_data, dream_state) + _range_gain)
+	return coverage_on(route, _ghost_centre(), range_px, tower_data.min_range * MAP_GRID.cell_size.x)
+
+# The most path tiles any open cell's centre covers with this range (each route point adds to the cells around it).
+func best_coverage() -> int:
+	var range_px := Tower.range_to_pixels(Tower.get_range_for(tower_data, dream_state) + _range_gain)
+	var key := "%d:%d" % [dream_state.board_version, roundi(range_px)]
+	if _best_cover.has(key):
+		return _best_cover[key]
+	var reach := int(ceil(range_px / MAP_GRID.cell_size.x))
+	var counts := {}
+	for p in map_generator.get_path_from(map_generator.startPath):
+		var at := MAP_GRID.calculate_map_position(p)
+		var home := MAP_GRID.calculate_grid_coordinates(at)
+		for dy in range(-reach, reach + 1):
+			for dx in range(-reach, reach + 1):
+				var c := home + Vector2(dx, dy)
+				if MAP_GRID.calculate_map_position(c).distance_squared_to(at) <= range_px * range_px:
+					counts[c] = counts.get(c, 0) + 1
+	var best := 0
+	for c in counts:
+		if counts[c] > best and map_generator.is_buildable(c):
+			best = counts[c]
+	_best_cover = {key: roundi(best / 2.0)}  # Only the current board's answer is kept
+	return _best_cover[key]
+
+# [text, colour] for the ghost's coverage chip, or [] for Wardens that don't attack.
+func coverage_chip() -> Array:
+	if tower_data == null or not tower_data.can_attack or _hover_cell == NO_CELL:
+		return []
+	var covers := ghost_coverage()
+	var best := maxi(best_coverage(), 1)
+	var share := float(covers) / best
+	var colour: Color = BONUS_ON if share >= COVER_GOOD else (Palette.GLOW if share >= COVER_OK else BONUS_OFF)
+	return ["covers %d path tiles%s" % [covers, " · a top spot" if covers >= best else ""], colour]
+
 # Planted Wardens whose position cards this placement would turn off or on: [[tower, card name, on]].
 func get_neighbour_changes() -> Array:
 	_flush_slow()
@@ -708,7 +767,7 @@ func _draw_fence_preview() -> void:
 	BranchKit.draw_link_area(self, here, reach)
 	for other in get_tree().get_nodes_in_group(Tower.GROUP):
 		if other is Tower and other.attack_data != null and other.attack_data.special == BranchKit.JARLINK \
-				and Kinships._cheb(_hover_cell, other.cell) <= reach:
+				and BranchKit.area_distance_at(MAP_GRID.calculate_map_position(_hover_cell), other) <= reach:
 			BranchKit.draw_link_mark(self, to_local(other.global_position), other == partner)
 	if partner != null:
 		var to := to_local(partner.global_position)

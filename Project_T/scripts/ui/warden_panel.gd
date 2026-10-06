@@ -546,7 +546,8 @@ func _refresh_group() -> void:
 	_key_on(sell, tower_seller.sell_key_name())
 	sell.tooltip_text = ("Half the Dew back while nightmares walk.\n\n" if in_drift else "") + "Key: %s" % tower_seller.sell_key_name()
 	if _confirm_sell:
-		sell.text = "Really sell %d? +%s Dew" % [selection.size(), BossDossier.thousands(refund)]  # The tip says why it asks
+		sell.text = "Sell %d Wardens? Press again" % selection.size()  # The tip says why it asks
+	_danger_footer(sell)
 	sell.pressed.connect(_sell_group)
 	if not tower_seller.can_sell():
 		sell.text = tower_seller.sell_block_reason()
@@ -588,9 +589,14 @@ static func _plural(data: TowerData, count: int) -> String:
 func _sell_group() -> void:
 	# Settings > Gameplay "confirm before selling during a drift" (on by default).
 	var ask: bool = HeartwoodMemory.get_settings().get("confirm_sell", true)
-	if ask and not drift_director.is_build_phase() and not _confirm_sell:
+	var big := tower_seller.selection.size() >= SELL_CONFIRM_FROM  # 3+: asks at rests too
+	if ((ask and not drift_director.is_build_phase()) or big) and not _confirm_sell:
 		_confirm_sell = true
 		_refresh()
+		get_tree().create_timer(SELL_CONFIRM_TIME, true).timeout.connect(func() -> void:
+			if _confirm_sell:
+				_confirm_sell = false  # Not pressed again in time
+				_refresh())
 		return
 	_confirm_sell = false
 	tower_seller.sell_selection()
@@ -1216,6 +1222,24 @@ func _gap(height: float) -> void:
 	_buttons.add_child(gap)
 
 # Sell / Close: in the footer, never scrolled away.
+# Selling a group is destructive (story chat, button rule): the plain frame in POOR, lettered POOR, keeping the footer's
+# narrow padding and its key chip's room. A single Warden's Sell stays quiet.
+func _danger_footer(button: Button) -> void:
+	var theme := ThemeDB.get_project_theme()
+	for state in ["normal", "hover", "pressed"]:
+		var base: StyleBox = theme.get_stylebox(state, "Button") if theme != null else null
+		if base is MoonStyleBox:
+			var box := (base as MoonStyleBox).duplicate() as MoonStyleBox
+			box.frame_color = Color(UiStyle.POOR, 0.85 if state == "normal" else 1.0)
+			box.content_margin_left = 6.0
+			box.content_margin_right = button.get_theme_stylebox(state).content_margin_right  # The key chip's room
+			button.add_theme_stylebox_override(state, box)
+	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
+		button.add_theme_color_override(state, UiStyle.POOR)
+
+const SELL_CONFIRM_FROM := 3  # A group this big asks twice at rests too (story chat)
+const SELL_CONFIRM_TIME := 2.0  # Seconds the "Press again" stays
+
 func _add_footer_button(text: String) -> Button:
 	var button := Button.new()
 	button.text = text

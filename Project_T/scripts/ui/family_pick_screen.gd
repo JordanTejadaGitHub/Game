@@ -415,7 +415,7 @@ func _make_card(data: TowerData) -> Button:
 	wake.focus_mode = Control.FOCUS_NONE
 	wake.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	wake.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
-	UiStyle.primary(wake)
+	# Secondary, like the Dream cards: no card is the default (the hovered card is the emphasis; story chat)
 	ChoiceCard.link_cue(wake)  # Lights with the card (hover, press)
 	box.add_child(wake)
 	return button

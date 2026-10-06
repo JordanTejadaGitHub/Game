@@ -4,7 +4,7 @@
 [ext_resource type="Resource" path="res://resource/tower/sporemother.tres" id="asc_1"]
 [ext_resource type="Texture2D" path="res://assets/towers/old_lichen.png" id="2_tex"]
 [ext_resource type="Texture2D" path="res://assets/towers/old_lichen_attack.png" id="4_atk"]
-[ext_resource type="Texture2D" path="res://assets/towers/projectiles/lichen_flake.png" id="5_proj"]
+[ext_resource type="Texture2D" uid="uid://cl8l32sb2tqrj" path="res://assets/towers/projectiles/lichen_clump.png" id="5_proj"]
 
 [resource]
 script = ExtResource("1_tdata")

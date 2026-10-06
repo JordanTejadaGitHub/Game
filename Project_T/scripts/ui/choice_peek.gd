@@ -11,6 +11,10 @@ class_name ChoicePeek
 signal changed(peeking: bool)
 
 var peeking := false
+static var _open := 0  # Screens peeking right now (the HUD's Start drift steps down from primary meanwhile)
+
+static func any_peeking() -> bool:
+	return _open > 0
 var catch_mouse := true  # The screen catches the mouse while not peeking (off for a click-through overlay)
 var _screen: Control
 var _content: Array
@@ -63,6 +67,7 @@ func set_peeking(on: bool) -> void:
 	if on == peeking:
 		return
 	peeking = on
+	_open = maxi(_open + (1 if on else -1), 0)
 	for node in _content:
 		node.visible = not on
 	_back.visible = on

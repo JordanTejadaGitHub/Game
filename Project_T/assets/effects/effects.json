@@ -1343,6 +1343,38 @@
 			"loop": true,
 			"note": "Near-white, tint it. Very subtle: drift it slowly upward over aura-boosted Wardens, low alpha."
 		},
+		"lichen_hit": {
+			"anchor": [
+				20,
+				20
+			],
+			"file": "lichen_hit.png",
+			"fps": 16.0,
+			"frame_size": [
+				40,
+				40
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Lichenling: its crusted shot breaking on a nightmare (anchor = the hit). Crumbs of crust fly off and a Poisoned (Spored) puff blooms; ~0.38 s."
+		},
+		"lichen_hit_big": {
+			"anchor": [
+				24,
+				24
+			],
+			"file": "lichen_hit_big.png",
+			"fps": 16.0,
+			"frame_size": [
+				48,
+				48
+			],
+			"frames": 6,
+			"kind": "signature",
+			"loop": false,
+			"note": "Old Lichen: the same hit a step bigger, for its lichen_clump shot (anchor = the hit)."
+		},
 		"light_thread": {
 			"anchor": [
 				0,

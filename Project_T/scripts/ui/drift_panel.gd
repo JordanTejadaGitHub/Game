@@ -22,7 +22,7 @@ var _warning_key := ""
 var _remember_button := Button.new()
 var _sapling_button := Button.new()
 var _start_button := Button.new()
-var _auto_toggle := Button.new()  # A toggle: on = the primary look (ui_style.md)
+var _auto_toggle := Button.new()  # A toggle: on = the toggled-on look, as the active speed (never the primary; Start is)
 var _pause_button := Button.new()
 var _speed_buttons: Array[Button] = []
 
@@ -152,6 +152,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # The call-early bonus changes every frame as creatures walk, so refresh continuously.
 func _process(_delta: float) -> void:
+	# While a choice screen peeks at the map, its Return pill is the one glow: Start steps down to the plain look
+	var look := &"HudButton" if ChoicePeek.any_peeking() else &"HudPrimary"
+	if _start_button.theme_type_variation != look:
+		_start_button.theme_type_variation = look
 	_update_warning()
 	_update_finale()
 	_update_moonflip()

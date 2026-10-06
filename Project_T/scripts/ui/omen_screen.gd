@@ -160,7 +160,7 @@ func _make_face_down_card() -> Button:
 	_add_flavor(top, "Something's out there, waiting to be asked.")
 	var points: Array = [_add_bullet(box, "A twist for the next block", UiStyle.INK, FRONT_BODY_SIZE),
 		_add_bullet(box, "A reward if you survive it", UiStyle.INK, FRONT_BODY_SIZE)]
-	_card_action(box, "Face it", true)
+	_card_action(box, "Face it", false)  # Secondary: no card is the default (story chat)
 	_fit_card(button, box, points)
 	button.pressed.connect(func() -> void: _reveal(omens.face(), button))
 	return button
@@ -352,7 +352,7 @@ func _make_card(omen: OmenData, act: int) -> Button:
 	var bullet_labels: Array[Label] = []
 	for text in omens.reward_bullets(omen, act, omens.current_offer_block):
 		bullet_labels.append(_add_bullet(box, text))
-	_card_action(box, "Take this Omen", true)  # No emblem on a revealed Omen (user: "just the beginning")
+	_card_action(box, "Take this Omen", false)  # Secondary, as every card cue. No emblem on a revealed Omen (user: "just the beginning")
 	var secondary: Array = [twist]
 	secondary.append_array(bullet_labels)
 	if flavor != null:
