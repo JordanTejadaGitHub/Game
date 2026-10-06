@@ -1361,7 +1361,11 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 		price_label.size_flags_stretch_ratio = 3.0  # Names are short (Power, Yield): the change gets the room
 		price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		price_label.clip_text = true
-		price_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		price_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS  # Only past its smallest size
+		if not price_label.has_meta(&"fit_sizes"):  # Never cut the change (story chat): steps down like the names
+			price_label.set_meta(&"fit_sizes", [ROW_NOTE_SIZE + 1, ROW_NOTE_SIZE, ROW_NOTE_SIZE - 1, ROW_NOTE_SIZE - 2])
+			price_label.resized.connect(_fit_name.bind(price_label), CONNECT_DEFERRED)
+		_fit_name.call_deferred(price_label)
 	note_label.text = ", ".join(notes)
 	note_label.visible = note_label.text != ""
 	var dim := short or button.disabled
@@ -1385,8 +1389,9 @@ static func _fit_name(label: Label) -> void:
 	if not is_instance_valid(label) or label.size.x <= 0.0:
 		return
 	var font := label.get_theme_font("font")
-	var fit: int = ROW_NAME_SIZES.back()
-	for font_size in ROW_NAME_SIZES:
+	var sizes: Array = label.get_meta(&"fit_sizes", ROW_NAME_SIZES)  # A Nurture change: its own, smaller steps
+	var fit: int = sizes.back()
+	for font_size in sizes:
 		if font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x <= label.size.x:
 			fit = font_size
 			break
