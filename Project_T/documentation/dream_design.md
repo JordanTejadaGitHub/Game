@@ -1787,6 +1787,32 @@ existing cards, so those cards fill the role instead of new ones:
   plan.
 - Existing limits stay: no pins, 3 rerolls, the paid call-back.
 
+## Doors for Tall and Kinship (2026-10-06)
+
+The user wants many builds with distinct playstyles, and the best build reached rarely. Tall and
+Kinship were the hardest card builds to reach.
+
+- **Tall:** **Sunlit Rest** moves from the Grove (node `tending_hands`, which keeps Deeper Rings;
+  meta_design.md 77cd092c) to the **start pool**, Uncommon. With Tender Care (Common) and Kindred
+  Roots (Uncommon), Tall has three doors. It stays a late build by nature.
+- **Kinship:** it lost its Common door when Family Ties was cut ("Fewer, bigger cards"). New:
+
+  | # | Card | Rarity | Effect | Tags | Pool |
+  |---|---|---|---|---|---|
+  | 265 | **Close Kin** | Common | {kinships} reach 3 cells | kinship | Start |
+
+  **Extended Family** (Rare) keeps only "Each Warden can be in 2 {kinships}, with two different
+  kin". Reach is what lets bonds form inside a maze. Old Friends stays the Uncommon door.
+- **Not yet:** Storm Grid / Spore Bomb reliability and Maze as the default. Their numbers (rounds
+  2–3) predate steering being turned off, the Entwined slot removal and the offer caps. Balancing
+  Code re-measures first.
+  - Targets: combos 25–40% once both families are held.
+  - If Maze is still the default, Winding Path counts only tiles a Warden reaches, and Hedge Maze
+    counts only Thornwalls touching attacking Wardens.
+- **Family gaps** (Meta Game Discussion's matrix, a read, not measured): Acorn lacks Precision,
+  Affliction, Swift and Wide Reach doors; Pebbling lacks Overgrowth, Affliction and Swift. Sap
+  Rising (263) is Acorn's first. More shape cards for these gaps after the re-measure.
+
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 
 User (typed in Environment Discussion): *"make a card that makes walls 1x1 cell instead of the
