@@ -88,7 +88,7 @@ static func targetable(near: Node) -> Array:
 static func process(tower: Tower, delta: float) -> bool:
 	match tower.attack_data.special:
 		JARLINK:
-			_update_fence(tower, delta * tower.get_cycle_multiplier())  # Swift: the arc ticks faster
+			_update_fence(tower, delta)  # Swift: the arc ticks faster by the pair's best Swift (inside)
 		HUSH:
 			_update_silence(tower, delta)
 		CLOUD:
@@ -399,7 +399,16 @@ class WaitSpark extends Node2D:
 # The arc's damage a second to each nightmare touching it, as this jar would deal it now (story chat 2026-10-05: the panel
 # should say what the link does): arc_dps × its damage multipliers (ranks, Dreams, family) × Swift's faster ticks.
 static func arc_dps(tower: Tower) -> float:
-	return p(tower, "arc_dps", 60.0) * tower.get_damage() / maxf(float(tower.attack_data.damage), 1.0) * tower.get_cycle_multiplier()
+	return p(tower, "arc_dps", 60.0) * tower.get_damage() / maxf(float(tower.attack_data.damage), 1.0) * fence_cycle(tower)
+
+# How fast a jar's arc ticks: the average Swift of the pair (Tower Discussion, warden_stats.md b6f44fac; Nurture audit
+# 0422a3bc: only the lower-id jar runs the arc, so its own multiplier alone ignored its partner's Swift ranks). Alone: its own.
+static func fence_cycle(tower: Tower) -> float:
+	var cycle := tower.get_cycle_multiplier()
+	var partner = tower.get_meta(FENCE_BOND) if tower.has_meta(FENCE_BOND) else null
+	if is_instance_valid(partner) and partner is Tower:
+		cycle = (cycle + partner.get_cycle_multiplier()) / 2.0
+	return cycle
 
 # Lines a special Warden adds under its stats (WardenHeaderView): Jarlink's arc.
 static func stat_lines(tower: Tower) -> Array[String]:
@@ -418,7 +427,7 @@ static func _update_fence(tower: Tower, delta: float) -> void:
 	if partner == null or partner.get_instance_id() < tower.get_instance_id():
 		return  # One side of each pair does the work (the lower id)
 	FenceLayer.find(tower).note(tower, partner)
-	var left := float(tower.get_meta(&"fence_tick", 0.0)) - delta
+	var left := float(tower.get_meta(&"fence_tick", 0.0)) - delta * fence_cycle(tower)  # The pair's best Swift
 	if left > 0.0:
 		tower.set_meta(&"fence_tick", left)
 		return

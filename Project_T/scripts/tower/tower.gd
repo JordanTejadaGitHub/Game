@@ -242,7 +242,7 @@ const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "
 const FOCUS_TEXT := {Focus.POWER: "deals 18% more damage", Focus.SWIFT: "attacks 12% faster", Focus.REACH: "+0.3 range",
 	Focus.DEEP: "+25% Potency (stronger statuses and effects)",
 	Focus.WIDE: "+0.2 aura reach", Focus.STRONG: "+5% aura", Focus.KINDRED: "full boost from every source",
-	Focus.KEEN: "+8% crit chance", Focus.YIELD: "makes more"}
+	Focus.KEEN: "+%d%% crit chance" % roundi(NurtureChoices.KEEN_CRIT * 100), Focus.YIELD: "makes more"}  # Read, not typed: it said 8% while Keen gives 10%
 const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
 	Focus.REACH: Palette.DEWLIGHT, Focus.DEEP: Palette.ORCHID,
 	Focus.WIDE: Palette.SPRIG, Focus.STRONG: Palette.GLOW, Focus.KINDRED: Palette.BLOSSOM,
@@ -869,7 +869,16 @@ func focus_options() -> Array[Focus]:
 # Whether `which` can be taken now: offered here, and not a one-time choice already taken (Kindred on aura
 # supports: "Already taken: Kindred works once").
 func choice_available(which: Focus) -> bool:
-	return focus_options().has(which) and not (NurtureChoices.is_once(tower_data, which) and choice_count(which) > 0)
+	return focus_options().has(which) and not (NurtureChoices.is_once(tower_data, which) and choice_count(which) > 0) \
+		and not _graft_deep_idle(which)
+
+# Graftling / Grafted Elder (Nurture audit 0422a3bc): Deep strengthens statuses, so it's greyed while the Warden it
+# copies applies none (or it copies nothing yet).
+func _graft_deep_idle(which: Focus) -> bool:
+	if which != Focus.DEEP or tower_data.attack_kind != TowerData.AttackKind.COPY:
+		return false
+	var copied := get_copied()
+	return copied == null or copied.applies_status == &""
 
 # Why `which` can't be taken ("" = it can): for the panel's greyed choice.
 func choice_blocker(which: Focus) -> String:
@@ -877,6 +886,9 @@ func choice_blocker(which: Focus) -> String:
 		return "no effect on %s" % tower_data.display_name
 	if NurtureChoices.is_once(tower_data, which) and choice_count(which) > 0:
 		return "Already taken: %s works once" % FOCUS_NAMES[which]
+	if _graft_deep_idle(which):
+		return "No effect now: the Warden it copies applies no status" if get_copied() != null \
+			else "No effect now: it has nothing to copy"
 	return ""
 
 # Whether a choice taken earlier still does something on this form (old picks are kept through growth; the pip
@@ -2933,11 +2945,12 @@ func _on_drift_cleared(_number: int, _bonus: int, _perfect: bool) -> void:
 	if not is_inside_tree() or is_queued_for_deletion():
 		return
 	var dew := get_drift_yield()
-	if dew > 0 and is_catcher():
-		add_to_bowl(dew)  # A catcher's drift Dew waits in the bowl for the Harvest
+	if is_catcher() and get_drift_yield_exact() > 0.0:
+		var exact := get_drift_yield_exact()  # With the fraction: the bowl keeps it until the Harvest
+		add_to_bowl(exact)  # A catcher's drift Dew waits in the bowl for the Harvest
 		var log := SupportLog.find(self)
 		if log:
-			log.add(self, &"dew_caught", dew)
+			log.add(self, &"dew_caught", exact)
 		dew = 0
 	if dew > 0:
 		_dream_state.run_state.earn_dew_at(dew, global_position)
@@ -3084,10 +3097,15 @@ func _on_wall_drift_cleared(_number: int, _bonus: int, _perfect: bool) -> void:
 
 # Dew this Warden yields at the end of a drift right now.
 func get_drift_yield() -> int:
-	var dew := tower_data.dew_per_drift + tower_data.dew_per_rank * rank
+	return roundi(get_drift_yield_exact())
+
+# Unrounded: a Kindred Dewcatcher's +0.8 a rank goes into its bowl with the fraction (the Harvest floors the bowl
+# once a rest), so every rank adds something (Nurture audit 0422a3bc: roundi per drift made rank 3 add nothing).
+func get_drift_yield_exact() -> float:
+	var dew := float(tower_data.dew_per_drift + tower_data.dew_per_rank * rank)
 	if is_catcher() and tower_data.rest_interest <= 0.0:
-		dew += roundi(KINDRED_DEW * choice_count(Focus.KINDRED))  # Kindred Dewcatcher ranks
-	return roundi(dew * maxf(1.0 - WITHER_PER_LEAF * _wither, 0.0))
+		dew += KINDRED_DEW * choice_count(Focus.KINDRED)  # Kindred Dewcatcher ranks
+	return dew * maxf(1.0 - WITHER_PER_LEAF * _wither, 0.0)
 
 # Plays one pass of a sheet (a row of `frames`) with its `anchor` pixel on `at`, in the world (never
 # under the Warden or nightmare containers). Ascended effects: tide wave, root grasp, the crush.
