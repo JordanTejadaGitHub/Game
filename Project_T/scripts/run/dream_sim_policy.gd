@@ -110,7 +110,21 @@ func card_de(card: UpgradeData) -> float:
 	match card.id:
 		"morning_dew": dew += 60.0  # +10% of ~600 Dew of pots
 		"dew_line": dew += 60.0
-		"winding_path": dew += 30.0
+		"winding_path":  # e1fb1540: covered_path_tiles() / 2 Dew a rest, ~2 rests (older builds: ~30 Dew)
+			dew += float(dreams.call("covered_path_tiles")) if dreams.has_method("covered_path_tiles") else 30.0
+		"hedge_maze", "hedge_maze_ii":  # e1fb1540: per Warden, 5% (II 7.5%) per wall touching it, up to 30% (II 45%)
+			var ii := 1 if card.id == "hedge_maze_ii" else 0
+			var per: float = [0.05, 0.075][ii]
+			var top: float = [0.30, 0.45][ii]
+			var walls := dreams._towers().filter(func(t: Tower) -> bool: return t.tower_data.line == "wall")
+			var sum := 0.0
+			for a in attackers:
+				var touching := 0.0
+				for w in walls:
+					if w.cell.distance_to(a.cell) <= 1.5:
+						touching += 0.5 if w.get("twig") == true else 1.0
+				sum += minf(per * touching, top)
+			de += 100.0 * sum / n
 		"weathered_walls": dew += 20.0
 		"tender_care": dew += 25.0 * n  # Every Warden's first rank (25 Dew) free
 		"sudden_insight": de += 10.0  # 2 Dreamlight ≈ a branch soon
