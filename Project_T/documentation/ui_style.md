@@ -43,10 +43,16 @@ doesn't fit the theme as well." Frames stay soft fog; no pixel borders on panels
   bottom, the thread and sprout as its top edge, Glow text, an Ember inner glow (~18%, ~34% on hover).
   **Never a filled gold button** (user: "Don't make the button solid gold"; "the yellow button too
   bright").
-- **Secondary:** 1 px Gold outline at 45%, ink text. **Quiet** (Sell, Close, Done, Peek at the map,
-  Cancel): Mist text, no box, still a 48 px hit area. **Exception, the title menu:** every entry keeps
-  its secondary box (user: "want to keep borders around all the buttons in the title"); Continue (or
-  New run) is the framed primary.
+- **Secondary:** 1 px Gold outline at 45%, ink text.
+- **Choices look alike** (user, 2026-10-05, on the results screen and "Leave the dream?": "why are all
+  the buttons different?"). In dialogs, confirms, choice panels and menus (the title menu, pause, results,
+  the Quit and abandon confirms), **every real choice is a framed button of the same size**: one primary
+  (glow and thread), the rest secondary. A **destructive** action (Abandon run, Quit without saving,
+  Delete) is a smaller framed button set apart from the others (a gap or its own row), with a `POOR`
+  outline and ink text; never the primary, never the default on Enter.
+- **Quiet text buttons** (Mist text, no box, still a 48 px hit area) are only for in-panel utilities:
+  Details, Sell and Close in the Warden panel, Peek at the map, a dialog's ✕. Never for one of a dialog's
+  choices.
 - **No " · " strings.** Facts that used to be "a · b · c" are icon rows (icon + number), or a name with
   a small Mist line under it. Key hints are small key chips at the right, not "(R)" in the text.
 - **Warden panel:** the stats as one icon row (damage, speed, range, + Potency); per-run stats (this
