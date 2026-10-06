@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "venom_bloom"
 display_name = "Venom Bloom"
-description = "All Wardens' Potency is doubled."
+description = "All Wardens get +100% Potency."
 cost_description = "Direct hits deal 40% less damage."
 rarity = 1
 kind = 2

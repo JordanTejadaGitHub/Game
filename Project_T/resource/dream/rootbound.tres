@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "rootbound"
 display_name = "Rootbound"
-description = "Wardens touching 3 or more other Wardens attack twice as fast."
+description = "Wardens touching 3 or more other Wardens attack 100% faster."
 rarity = 3
 kind = 3
 tags = Array[String](["maze", "overgrowth"])
