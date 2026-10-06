@@ -40,6 +40,7 @@ const FOG_STATIC_BONUS := 0.25  # Static bolts +25% in fog (Morning Fog: "Static
 const CAUGHT_GREAT_TICK_BONUS := 0.25  # Great Dreamcatcher: Caught statuses tick +25%
 const DROWSY_SLOW_PER_STACK := 0.08
 const MARKED_EXTRA := 0.25
+const _EMPTY: Array = []  # Read-only (a const array): tick() starts its expired list here, copying on the first expiry
 const STATIC_BOLT_MULTIPLIER := 3.0
 const STATIC_DECAY_TIME := 2.0  # Seconds per lost Static stack
 const SPORE_TICK := 0.5  # Spored soothes in ticks this long
@@ -473,10 +474,11 @@ func tick(delta: float) -> float:
 		cut_time = maxf(cut_time - delta, 0.0)
 		if cut_time <= 0.0:
 			cut_stacks = 0
-	for reaction in (reaction_cooldowns.keys() if not reaction_cooldowns.is_empty() else []):
-		reaction_cooldowns[reaction] -= delta
-		if reaction_cooldowns[reaction] <= 0.0:
-			reaction_cooldowns.erase(reaction)
+	if not reaction_cooldowns.is_empty():  # (No empty array made every frame for the many without any)
+		for reaction in reaction_cooldowns.keys():
+			reaction_cooldowns[reaction] -= delta
+			if reaction_cooldowns[reaction] <= 0.0:
+				reaction_cooldowns.erase(reaction)
 	var spore_damage := 0.0
 	if has(SPORED):
 		smothering = has(HELD)
@@ -495,7 +497,7 @@ func tick(delta: float) -> float:
 	# Caught: statuses stop wearing off (Static doesn't bleed, timers pause); Spored still ticks.
 	# (Iterates the dictionary itself, no keys() copy: this runs for every nightmare every frame.)
 	if not _active.is_empty() and caught_time <= 0.0:
-		var expired: Array = []
+		var expired: Array = _EMPTY  # Shared until something expires (perf: no new array every frame)
 		for id in _active:
 			var status: Dictionary = _active[id]
 			status.time -= delta
@@ -511,6 +513,8 @@ func tick(delta: float) -> float:
 				status.time = STATIC_DECAY_TIME
 				status["full"] = STATIC_DECAY_TIME
 			else:
+				if expired.is_empty():
+					expired = []
 				expired.append(id)
 		for id in expired:
 			_active.erase(id)

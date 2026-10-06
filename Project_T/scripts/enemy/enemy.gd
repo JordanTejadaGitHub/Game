@@ -215,6 +215,13 @@ var _gap_ahead := Vector2i(-1, -1)
 var _gap_step := -1
 var _gap_version := -1
 var _gap_answer := false
+# Per-route caches (perf, mobile_plan.md): set_path bumps _path_serial, and each cache rebuilds on demand.
+var _path_serial := 0
+var _turns := PackedByteArray()  # Per route point: 1 = the route changes direction there (rounded corners)
+var _turns_serial := -1
+var _target_px := Vector2.ZERO  # The pixel of _path[_target_index] (walking: no Grid call every frame)
+var _target_index := -1
+var _target_serial := -1
 # Pixels the drawn body (sprite, its HUD, its glows) is raised so its feet and contact shadow sit on the
 # route point, the path ribbon's centreline (art_direction.md "Bigger Wardens"); 0 for flyers.
 var _foot_lift := 0.0
@@ -524,7 +531,7 @@ func _process(delta: float) -> void:
 		_speed_base = speed
 	var remaining := _speed_cache * delta
 	while remaining > 0.0 and _path_index < _path.size():
-		var target := grid.calculate_map_position(_path[_path_index])
+		var target := _point_px(_path_index)
 		var to_target := target - position
 		var distance := to_target.length()
 		if distance <= remaining:
@@ -678,7 +685,7 @@ func _update_hud(delta: float) -> void:
 		RenderingServer.canvas_item_set_visible(_hud_root, show)
 	if not show:
 		return
-	var text_scale := WorldLabel.text_scale(self)
+	var text_scale: float = _spawner.hud_text_scale  # (Worked out once a frame by the spawner; _spawner is set: overlay above)
 	if text_scale != _hud_scale:  # The badges keep their screen size: scaled round the row's anchor
 		_hud_scale = text_scale
 		var badges := Transform2D(0.0, Vector2(text_scale, text_scale), 0.0, _hud_anchor())
@@ -1047,7 +1054,8 @@ func update_animation(velocity: Vector2) -> void:
 		animation = &"walk_down"
 	if sprite.animation != animation or not sprite.is_playing():
 		sprite.play(animation)  # Only when it changes: this runs every frame for every nightmare
-	sprite.flip_h = flip
+	if flip != sprite.flip_h:
+		sprite.flip_h = flip
 
 # Dew for dispelling this nightmare (Omens can change it, e.g. Dry Spell = 0): its Dew pot share when
 # it has one (a leak pays nothing: only a dispel pays), else the old per-kind dew_reward.
@@ -1087,7 +1095,10 @@ func get_leaf_cost() -> int:
 func _update_squeeze(delta: float) -> void:
 	if _leaping:
 		return
-	var target := SQUEEZE_WIDTH if not is_flying() and _in_narrow_gap() else 1.0
+	# Looked at once a route step, or when the map's blocking changes (perf: not every frame)
+	if _gap_step != _path_index or (_gap_finder != null and _gap_finder.version != _gap_version):
+		_gap_answer = _in_narrow_gap() and not is_flying()
+	var target := SQUEEZE_WIDTH if _gap_answer else 1.0
 	if target == _squeeze:
 		return  # Nearly always: nothing to ease
 	var next := target
@@ -1104,25 +1115,25 @@ func _update_squeeze(delta: float) -> void:
 # Whether the walker is in (or about to enter) a one-half gap: its half cell open, both halves beside it
 # across its walking direction blocked.
 func _in_narrow_gap() -> bool:
+	_gap_step = _path_index  # (Asked again at the next route step, or when the blocking changes)
 	if _path_index < 1 or _path_index >= _path.size():
 		return false
 	var step := _path[_path_index] - _path[_path_index - 1]
 	var dir := Vector2(signf(step.x), signf(step.y))
 	if dir == Vector2.ZERO:
 		return false
+	# The halves it walks between: the point it left and the one it's heading to (the body's half and the
+	# one just ahead, whatever the route's encoding)
 	var half := grid.cell_size.x / FindPath.HALF
-	var here := Vector2i((position / half).floor())
-	var ahead := Vector2i(((position + dir * half * 0.75) / half).floor())
+	var here := Vector2i(((grid.calculate_map_position(_path[_path_index - 1])) / half).floor())
+	var ahead := Vector2i(((grid.calculate_map_position(_path[_path_index])) / half).floor())
 	if _gap_finder == null:
 		var map_generator = _map_generator()
 		if map_generator == null:
 			return false
 		_gap_finder = map_generator.path_layer.get_finder()
-	if here == _gap_here and ahead == _gap_ahead and _path_index == _gap_step and _gap_finder.version == _gap_version:
-		return _gap_answer
 	_gap_here = here
 	_gap_ahead = ahead
-	_gap_step = _path_index
 	_gap_version = _gap_finder.version
 	var side := Vector2(absf(dir.y), absf(dir.x))
 	_gap_answer = false
@@ -1131,6 +1142,27 @@ func _in_narrow_gap() -> bool:
 			_gap_answer = true
 			break
 	return _gap_answer
+
+# Whether the route turns at the point it's walking to or the one it just left (the only places a rounded
+# corner can bend the drawn path). Built once per route.
+func _near_turn() -> bool:
+	if _turns_serial != _path_serial or _turns.size() != _path.size():
+		_turns_serial = _path_serial
+		_turns.resize(_path.size())
+		_turns.fill(0)
+		for i in range(1, _path.size() - 1):
+			if _path[i] - _path[i - 1] != _path[i + 1] - _path[i]:
+				_turns[i] = 1
+	var i := _path_index
+	return (i < _turns.size() and _turns[i] == 1) or (i >= 1 and i - 1 < _turns.size() and _turns[i - 1] == 1)
+
+# The pixel of route point `index` (cached for the point it's walking to).
+func _point_px(index: int) -> Vector2:
+	if index != _target_index or _target_serial != _path_serial:
+		_target_index = index
+		_target_serial = _path_serial
+		_target_px = grid.calculate_map_position(_path[index])
+	return _target_px
 
 func is_flying() -> bool:
 	return enemy_data.trait_kind == EnemyData.Trait.FLYING and _grounded_left <= 0.0  # (Groundroot: not while grounded)
@@ -1141,6 +1173,8 @@ func is_flying() -> bool:
 # centre as its control point. That curve stays inside the corner cell. Not for flyers, or while
 # sinking, rising or being dragged.
 func _round_corners() -> void:
+	if _corner_offset == Vector2.ZERO and not _near_turn():
+		return  # On a straight: nothing to bend (nearly every frame)
 	var offset := Vector2.ZERO
 	if not is_flying() and not _leaping and not _dragging and _path_index >= 1 and _path_index < _path.size():
 		var here := position
@@ -2387,6 +2421,7 @@ func _set_crack(amount: float) -> void:
 func set_path(points: PackedVector2Array) -> void:
 	_end_drag()  # A re-route mid-drag: it walks the new route from here
 	_path = points
+	_path_serial += 1  # Per-route caches (turns, the walk target) rebuild
 	_cells_left = PackedFloat32Array()
 	_gap_step = -1  # A new route: the gap check looks again
 	_path_index = 0
