@@ -183,18 +183,16 @@ func _run() -> void:
 		dreams.unlocked[sporeling.get_id()] = true
 		_check(dreams.get_branch_offer(sporeling).size() == regular.size(), "a family with %d regular branches offers them all" % regular.size())
 
-	# The demo keeps today's branches: no draw, the expansion's forms not in it
+	# The demo plays by the current rules (demo_scope.md e5ce233d): the same branch draw, the expansion's forms in it too
 	ResultsScreen.demo_override = 1
-	_check(dreams.is_branch_offered(dreams.not_offered_branches(base)[0] if not dreams.not_offered_branches(base).is_empty() else off),
-		"the demo: every branch as today")
+	_check(DreamState.branch_expansion_on() and (dreams.not_offered_branches(base).is_empty() or not dreams.is_branch_offered(dreams.not_offered_branches(base)[0])),
+		"the demo: the same branch draw as the full game")
 	if has_phase:
 		var new_branch := _form("test_new", 2)
 		new_branch.set("expansion_phase", 1)
 		base.evolves_to.append(new_branch)
-		_check(dreams.get_unlock_blocker(new_branch) == "not in the demo" and not dreams.regular_branches(base).has(new_branch),
-			"…and the expansion's new branches aren't in it")
-	else:
-		print("  (demo phase check skipped: TowerData.expansion_phase isn't on this branch yet)")
+		_check(DreamState.in_this_edition(new_branch) and dreams.get_unlock_blocker(new_branch) != "not in the demo",
+			"…and the expansion's branches are in it")
 	ResultsScreen.demo_override = 0
 
 	# Every offered pair holds a damage branch (doc 66e9927b), in every family that has one (Acorn is exempt)

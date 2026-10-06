@@ -593,9 +593,9 @@ var free_calls := 0  # Remembered Path: calls back without Dreamlight or the onc
 var _last_branch_offer_written := {}  # What this run wrote to the profile (tests read it)
 
 static func branch_expansion_on() -> bool:
-	return not ResultsScreen.is_demo()
+	return true  # The demo plays by the current rules too (demo_scope.md "Decisions 2026-10-06", e5ce233d): the old branch set retired
 
-# The demo keeps today's branches: forms of the expansion (TowerData.expansion_phase > 0, Tower Code) aren't in it.
+# Whether a form is in this edition: every form since the demo plays the current rules (kept for callers and old saves).
 static func in_this_edition(form: TowerData) -> bool:
 	var phase = form.get("expansion_phase")
 	return branch_expansion_on() or phase == null or int(phase) <= 0
