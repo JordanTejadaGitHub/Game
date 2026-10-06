@@ -865,6 +865,15 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Drawn route and early deaths (19f426c5, 2026-10-05)
+
+After "fewest turns among the shortest", 5–7 of 30 bot runs per arm die by drift 2 (was ~1 in 90). Same-board
+replays (seeds 7 / 8 / 9): the game holds the old boards, but **a new placement can flip the drawn route to
+another lane**, stranding earlier Wardens (seed 8's first Sprout ends at 0 coverage; seed 9 leaks 9 Shades after
+one d7 placement). Partly a bot weakness (it doesn't price the cover it takes from its other Wardens), but for a
+player too. Asked Environment Code for stronger stickiness: shortest → closest to the current route → fewest
+turns. Until then read main's act 1 "past d5" column.
+
 ## Sprout-into follows the copy price (user found it, 2026-10-05)
 
 Sprout (~12) + sprout-into (15) was a flat 27, under the Nth planted copy (33 at 5, 43 at 10): a bypass of
