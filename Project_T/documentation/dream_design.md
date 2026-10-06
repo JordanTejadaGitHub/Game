@@ -1763,15 +1763,15 @@ existing cards, so those cards fill the role instead of new ones:
 
 | # | Card | Effect | Shines with |
 |---|---|---|---|
-| 262 | **Small Hands** | Anything a Warden sends out (sprites, birds, seeds, stones it lobs) deals 40% more and lasts 1 s longer | Brood Cap, Nestling birds, Samara, Cairn |
-| 263 | **Sap Rising** | Wardens that don't attack (auras, catchers, Dreamcatchers) pulse the 8 cells around them every 2 s for damage that grows with the bonus they give | Acorn, Grove Heart, Dewcatcher, Dreamcatcher |
-| 264 | **Lingering Ground** | Ground effects (clouds, trails, rings, rubble, pools, lit tiles) last twice as long | Sporeling, Fairy Ring, Dewdrop pools, Cairn rubble, Rootlight |
+| 262 | **Small Hands** | Anything a Warden sends out (sprites, birds, seeds, stones it lobs) deals **35%** more and lasts 1 s longer | Brood Cap, Nestling birds, Samara, Cairn |
+| 263 | **Sap Rising** | Wardens that don't attack (auras, catchers, Dreamcatchers) pulse the 8 cells around them every 2 s; each pulse deals **2 s × its aura bonus × the summed DPS of the attackers in its aura** (at least 2 s × 50% of the median attacker DPS, so catchers and Dreamcatchers hit too) | Acorn, Grove Heart, Dewcatcher, Dreamcatcher |
+| 264 | **Lingering Ground** | Ground effects (clouds, trails, rings, rubble, pools, lit tiles) **last 50% longer** (×1.5: overlapping clouds turn duration into damage almost 1:1) | Sporeling, Fairy Ring, Dewdrop pools, Cairn rubble, Rootlight |
 
 - **Sap Rising vs The Quiet Ones:** The Quiet Ones (Legendary) makes non-attacking Wardens 50%
   stronger at their job. Sap Rising makes them deal damage. Thornwalls are left out (Thorny Walls
   covers them).
 - **Small Hands:** Tower Code first checks whether sent-out things already carry Dream bonuses. If
-  they don't, the card's first effect is that they do; the 40% sits on top.
+  they don't, the card's first effect is that they do; the 35% sits on top. Numbers: balance_simulation.md 60dad611.
 - **Opposite pairs**, so no setup is best for every family mix:
   - Watchful Rest / Stirring Roots vs Flurry / Momentum
   - Solitude vs Drumbeat and the Kinship cards
