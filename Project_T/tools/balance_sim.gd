@@ -38,7 +38,7 @@ const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, 
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
 	"dew_rest", "dew_other", "spent_plant", "spent_walls", "spent_grow", "spent_nurture", "banked",
 	"attackers", "walls", "tier1", "tier2", "tier3", "tier4", "avg_rank", "route", "families", "cards",
-	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain", "combo_amount_share", "status_share", "hit_share", "combo_damage", "reaction_damage", "status_damage", "combo_share", "leaked_health", "closest_mean", "warmup", "leaked_kinds", "owned_cards", "forms_now"]
+	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain", "combo_amount_share", "status_share", "hit_share", "combo_damage", "reaction_damage", "status_damage", "combo_share", "leaked_health", "closest_mean", "warmup", "leaked_kinds", "owned_cards", "forms_now", "dl_earned", "final_price"]
 
 # Per style: [attacker room at drift 0, + per drift, cap], walls per attacker, nurture weight.
 const STYLE_PLAN := {
@@ -1269,7 +1269,15 @@ func _family_count(base: TowerData) -> int:
 
 # --- Recording -----------------------------------------------------------------------------------------
 
+var dl_earned := 0  # Dreamlight gained this run (dl_earned column; held = the dreamlight column)
+var _dl_last := -1
+
 func _hook_stats() -> void:
+	dreams.dreamlight_changed.connect(func(now: int) -> void:
+		if _dl_last >= 0 and now > _dl_last:
+			dl_earned += now - _dl_last
+		_dl_last = now)
+	_dl_last = dreams.dreamlight
 	if DamageLog.instance:
 		DamageLog.instance.damage_dealt.connect(_on_damage)
 	spawner.child_entered_tree.connect(func(n) -> void:
@@ -1377,7 +1385,7 @@ func _close_window(n: int) -> void:
 		"avg_rank": snappedf(float(ranks) / maxf(_attackers().size(), 1), 0.1),
 		"route": _route_cells(map.get_path_from(map.startPath)), "families": lines.size(), "cards": dreams.stacks.size(),
 		"dreamlight": dreams.dreamlight, "top_warden": top, "top_share": snappedf(top_amount / damage, 0.001),
-		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "combo_amount_share": snappedf(d.combo / damage, 0.001), "status_share": snappedf(d.status / damage, 0.001), "hit_share": snappedf(d.hit / damage, 0.001), "combo_damage": roundi(d.combo_damage), "reaction_damage": roundi(d.reaction_damage), "status_damage": roundi(d.status_damage), "combo_share": snappedf((d.combo_damage + d.reaction_damage) / damage, 0.001), "longest_chain": _longest_chain(), "leaked_health": roundi(d.leaked_health), "closest_mean": snappedf(d.approach_sum / maxf(d.approach_n, 1), 0.001),  "leaked_kinds": "+".join(d.leaked_kinds.keys().map(func(k) -> String: return "%s:%d" % [k, d.leaked_kinds[k]])), "owned_cards": "+".join(dreams.stacks.keys()), "forms_now": _forms_now(),
+		"asleep_share": snappedf(d.asleep / damage, 0.001), "reaction_share": snappedf(d.reaction / damage, 0.001), "chain_share": snappedf(d.chain_deep / damage, 0.001), "combo_amount_share": snappedf(d.combo / damage, 0.001), "status_share": snappedf(d.status / damage, 0.001), "hit_share": snappedf(d.hit / damage, 0.001), "combo_damage": roundi(d.combo_damage), "reaction_damage": roundi(d.reaction_damage), "status_damage": roundi(d.status_damage), "combo_share": snappedf((d.combo_damage + d.reaction_damage) / damage, 0.001), "longest_chain": _longest_chain(), "leaked_health": roundi(d.leaked_health), "closest_mean": snappedf(d.approach_sum / maxf(d.approach_n, 1), 0.001),  "leaked_kinds": "+".join(d.leaked_kinds.keys().map(func(k) -> String: return "%s:%d" % [k, d.leaked_kinds[k]])), "owned_cards": "+".join(dreams.stacks.keys()), "forms_now": _forms_now(), "dl_earned": dl_earned, "final_price": _cheapest_growth_price(3),
 		"crit_share": snappedf(d.crit / damage, 0.001), "restless": d.restless, "trampled": d.trampled,
 		"approach": snappedf(d.approach, 0.01)}
 	rows.append(row)
