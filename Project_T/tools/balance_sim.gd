@@ -63,6 +63,7 @@ var start_cards: Array[String] = []
 var forced_families: Array[String] = []
 var hand_drifts := false  # --hand-drifts: the hand-made drift files instead of rolled ones (DriftDirector.random_drifts)
 var save_mode := ""  # --save=spender (never saves up) or saver (holds Dew up to SAVER_DRIFTS drifts for a growth)
+var even_archetypes := false  # --even-archetypes: DreamSimPolicy.extra_tag_scores = +1 for every archetype tag (as build_packages emergence), so no style steers toward one archetype (Balancing 2026-10-06)
 var card_value := true  # Default since 2026-10-06 (Balancing; --no-card-value = the tag-only policy): DreamSimPolicy.card_value (card size as a damage-equivalent %); offers.csv then logs each card's score
 var card_scores := {}  # --card-score=<card id>:<score> (repeatable): DreamSimPolicy.score_overrides (Balancing 2026-10-06: Thorny Walls scored like an untagged Common = 0)
 var omen_mode := ""  # --omens=face (every Omen, the lower-risk one) | clear | always | clean (DreamSimPolicy.omen_mode); default: no Omens drawn
@@ -230,6 +231,7 @@ func _run() -> void:
 			"--card-score": card_scores[value.get_slice(":", 0)] = float(value.get_slice(":", 1))
 			"--card-value": card_value = true
 			"--no-card-value": card_value = false
+			"--even-archetypes": even_archetypes = true
 			"--boss": act1_boss = value
 			"--boss-draw": BossPool.force_draw = true  # The real per-seed boss draw (sims otherwise meet the defaults, like tests)
 			"--loadout": empty_loadout = value == "none"  # --loadout=none: the profile carries no perks (the Grove cap A/B)
@@ -347,6 +349,9 @@ func _run() -> void:
 	policy.mode = dream_mode
 	policy.score_overrides = card_scores
 	policy.card_value = card_value
+	if even_archetypes:
+		for tag in ["affliction", "daring", "kinship", "maze", "overgrowth", "precision", "support", "tall", "tending", "swift", "reach"]:
+			policy.extra_tag_scores[tag] = 1.0
 	policy.rng.seed = map_seed
 	omens = main.get_node_or_null("%OmenDirector")
 	if _facing() and omens:
