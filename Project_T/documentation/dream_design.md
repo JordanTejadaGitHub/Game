@@ -1965,6 +1965,7 @@ The user wants Legendary-anchored builds to be a run's high points.
 3. **The Long Walk** (maze) and **Hunter's Moon** (precision) move to the **start pool**. A first
    run can see a Legendary that works on its own. Meta Game Discussion removes their Grove tip
    nodes (meta_design.md b852d0d1); each forked branch keeps its other tip (Crossroads, Full Moon).
+- **Built:** fee0947c (Roguelite Code) with Meta's 0be2fa7d. The drift 25 rest is act 2 for everything act-based, so Bittersweet cards can also show there (accepted: it's an act break).
 
 Final forms are the other half: 0 of 30 fresh runs and 2 of 30 full runs planted one by drift 50.
 The Dreamlight / Dew numbers to drift 75 are being measured.
