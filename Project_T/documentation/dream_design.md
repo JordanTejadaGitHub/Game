@@ -1830,6 +1830,15 @@ Kinship were the hardest card builds to reach.
       +30%)." (Was +1% per 3 Thornwalls anywhere; now it rewards wall-hugging placement.)
   - **Kinship 0% is a sim artifact, not discovery:** discoveries are on in the sim, but the emergence bot never arranges a Kinship pair, and most Kinship cards need one on the map (`min_kinships`). Close Kin and Old Friends have no such need: they are the doors. Balancing Code gives the emergence bot a pair when its families allow. Tall is
     measured at drift 75 in part 2.
+  - **With pairs and fair bot weights** (970cc477, smoke 100 runs): a Kinship on the board in 100%
+    of runs, but only ~1.45 Kinship cards offered per run, and 0 runs reach 3. So it's the cards.
+    The start-pool package is thin at the bottom: 1 Common, 4 Uncommons (one Sporeling-only), and
+    Rares that are gated (Blood Is Thicker needs Bittersweet, Shared Training a signature).
+    Decided:
+    - **Old Friends → Common.** Kinship gets two Common doors (with Close Kin).
+    - **Elder Kin → start pool** (Uncommon). It leaves Grove node `elders`, which keeps Few and
+      Mighty. It's also a Tall ↔ Kinship double-dip (ranks shared with kin).
+    - No steering: the rest stays on the plain draw. Re-measure in the full emergence run.
 - **Family gaps** (Meta Game Discussion's matrix, a read, not measured): Acorn lacks Precision,
   Affliction, Swift and Wide Reach doors; Pebbling lacks Overgrowth, Affliction and Swift. Sap
   Rising (263) is Acorn's first. More shape cards for these gaps after the re-measure.
