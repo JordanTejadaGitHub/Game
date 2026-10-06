@@ -237,6 +237,56 @@ text; Balancing Discussion sets every per-rank number marked *).
 | Pinwheel / Windmill | striker (spin) | Power · Swift · Keen | Reach and Deep nothing | Reach hidden; Deep → Keen |
 | Dawnwing, The Whirlwind | striker (patrol) | Power · Swift · Reach · Keen | Swift did nothing | Swift = faster patrol / strikes; Deep → Keen |
 | Thornwall, Bramble, Honeysuckle | wall | — | — | not nurtured (unchanged) |
+| Whirligig (base, parked in Phase 3) | setup | Swift · Reach · Deep | missing from this table; Deep did nothing | Gust's set (Deep = copied stacks) |
+
+### Nurture audit fixes (2026-10-05)
+
+The design hub audited every choice against the code (`nurture_audit.md`, 0422a3bc): 22 rows were
+dead on some ranks, capped early, dominated or mislabelled. Three **rules** fix most of them, so new
+Wardens don't repeat the faults:
+
+1. **Areas grow smoothly.** Every area a Nurture choice widens is measured as the **distance from the
+   Warden's centre to each cell's centre** (like range), never in whole-cell rings. With rings, +0.2
+   or +0.3 per rank only reached the next ring every 3–5 ranks, so the ranks between did nothing
+   (Prism Jar, Nurse Log, Elder Stump / Grove Heart, Dream Oak, Jarlink's link range). With distance,
+   nearly every rank adds cells, and the panel shows how many ("+2 cells").
+2. **No choice hits its cap before rank V.** A cap is set at what five ranks of that choice reach
+   (Potency ×2.25, or five steps). Balancing Discussion re-sets the caps that bound at ranks 1–4.
+3. **Past a strength cap, Potency lengthens.** A status whose strength is capped (Exposed 40%, Soaked
+   40%, and Drowsy, whose slow meets the slow floor) turns the rest of its applier's Potency into
+   **duration**. Drowsy simply lengthens with Potency (its per-stack slow stays), since the floor binds
+   almost at once.
+
+**Per row** (* = Balancing Discussion sets the number):
+
+| Warden | Choice | Problem | Decision |
+|---|---|---|---|
+| Bellflower, Silver / Vesper Bell, Great Bell | Deep | capped at rank 1 (slow floor) | rule 3: Deep **lengthens Drowsy** (× Potency) |
+| Lanternmoth | Deep | capped at rank 3 (Exposed 40%) | rule 3: past the cap, longer Exposed |
+| Maelstrom (Undercurrent too) | Deep | link share capped at rank 1 (Undercurrent rank 4) | Deep = **+1 linked nightmare per rank** (6 → 11, Maelstrom 8 → 13*); the share is fixed |
+| Rootcurl / Long Way Home | Deep | pull capped at rank 2 | Deep = **+0.25 tiles of pull per rank** (added, no cap: 1 → 2.25, Long Way Home 4 → 5.25*) |
+| Groundroot / Earthbind | Deep | grounded time capped at rank 3 | rule 2: grounded 3 s × Potency, cap 6.75 s* |
+| Hushbell / Silence | Deep | bosses only, capped at rank 2 | Deep = **silence lingers** +0.4 s per rank* after a nightmare leaves (Hushbell too); the boss slow floor stays 0.35 |
+| Jarlink / Lightning Fence | Swift | **bug:** only one jar's speed counted | the arc ticks at the **average** of the pair's speeds, so nurturing either jar helps; the panel shows the pair's new tick |
+| Jarlink / Lightning Fence | Reach | dead ranks 1–3 | rule 1 |
+| Sunpetal / Midsummer | Swift | dominated by Power (the ramp ignored it) | Swift = **the beam ramps faster** (+12% ramp speed per rank*) |
+| Jetreed / Torrent | Power | didn't scale the max-health share | **Power scales the share too**, as designed (the code follows the doc) |
+| Dreamcatcher / Great Dreamcatcher | Power | near-dead (a small shot) | Power → **Strong**: Caught statuses tick +5% per rank* (Great's +25% adds) |
+| Graftling / Grafted Elder | Deep | dead when the copied Warden has no status | build the grey-out: "its copy applies no status" |
+| Prism Jar, Nurse Log, Elder Stump / Grove Heart | Wide | dead on alternate ranks | rule 1 |
+| Mother Log | Strong | capped by rank 2 (discount cap 40%) | rule 2: Balancing re-sets base and cap so five Strong ranks reach it* |
+| Grove Keeper | Swift | capped by rank 4 (seed floor) | Swift = **−0.2 drifts per rank** (2 → 1.0 at V) |
+| Wellspring | Kindred | near-dead past the interest cap | Kindred also raises the interest cap **+10 per rank** |
+| Dewcatcher | Kindred | rounding made rank 3 add nothing | carry the fraction (+0.8 Dew per rank, paid as it adds up) |
+| Dream Oak / Dreamroot | Yield, Wide | both only reached the shared 4-Dreamlight cap sooner; Wide dead ranks 1–4 | **Yield** also raises the run cap +1 Dreamlight per rank* (Balancing may trim the shard rate); **Wide**: rule 1 |
+| Gust / Zephyr | Deep | little on 1-stack statuses | fine; the text says "more stacks copied (statuses with stacks)" |
+| every form | Keen / Yield text | Keen said +8% (code 10%); Yield's fallback "makes more" was vague | fix FOCUS_TEXT; every Yield line names what it makes |
+
+**Swift vs Power on plain strikers:** Swift's +12% trails Power's +18%, and on a Warden with nothing
+on-hit it's simply worse. Swift still wins wherever hits carry something (statuses, crit rolls,
+Reactions, cycles of abilities), so it's not dead. **Proposal to Balancing Discussion: Swift +15% per
+rank** (its "faster cycle" now does more work than raw damage, and the ×1.45 attack speed at rank V
+stays inside the timers' cooldowns)*.
 
 **(Replaced by Nurture v3 above.) Ranks III–V need a Nurture Dream** (2026-09-28, user: "the maze aspect is getting lost with a
 few strong Wardens through upgrades… focusing on strong Wardens should only happen when you get the
