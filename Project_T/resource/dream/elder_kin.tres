@@ -14,4 +14,3 @@ requires = Array[String]([])
 max_stacks = 1
 min_rank_count = 1
 rule_id = &"elder_kin"
-in_start_pool = false

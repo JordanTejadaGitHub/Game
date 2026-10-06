@@ -14,7 +14,7 @@ const IDS := ["call_of_the_wild", "lasting_dreams",
 	"glimmering_hunt", "straightaway", "straightaway_ii", "heart_of_the_maze"]
 
 # The lean starting pool (dream_design.md "The starting Dream pool", 2026-09-30): these moved to Grove nodes.
-const LEAN_GROVE := ["bitter_hedges", "bramble_oath", "briar_crown", "crossroads", "desperate_bloom", "elder_kin", "eternal_static", "few_and_mighty", "forests_edge", "grand_tour", "hunters_moon", "hunters_patience", "last_leaf", "last_stand", "lucid_dreaming", "menagerie", "mixed_grove", "reclaimed_earth", "restless_night", "rooted_nightmares", "scarred_bark", "scarred_bark_ii", "scented_hedge", "second_wind", "sharpened_light", "sharpened_light_ii", "tended_forest", "thin_bark", "thorn_snare", "thorn_snare_ii", "thornheart", "wildwood_reclaimed"]
+const LEAN_GROVE := ["bitter_hedges", "bramble_oath", "briar_crown", "crossroads", "desperate_bloom", "eternal_static", "few_and_mighty", "forests_edge", "grand_tour", "hunters_moon", "hunters_patience", "last_leaf", "last_stand", "lucid_dreaming", "menagerie", "mixed_grove", "reclaimed_earth", "restless_night", "rooted_nightmares", "scarred_bark", "scarred_bark_ii", "scented_hedge", "second_wind", "sharpened_light", "sharpened_light_ii", "tended_forest", "thin_bark", "thorn_snare", "thorn_snare_ii", "thornheart", "wildwood_reclaimed"]
 
 var failures := 0
 var main: Node
