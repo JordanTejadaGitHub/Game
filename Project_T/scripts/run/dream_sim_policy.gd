@@ -77,7 +77,14 @@ const RULE_DE := {
 	"odd_one_out": 45.0, "solitude": 45.0, "crowd_breaker": 20.0, "overlap": 40.0, "root_network": 30.0,
 	"lasting_dreams": 15.0, "passing_dream": 8.0, "bitter_sap": 15.0, "sparking_spores": 10.0, "wildfire_spores": 10.0,
 	"live_wire": 10.0, "static_field": 10.0, "mycelium": 10.0,
+	# Shape cards (Roguelite Code d1d0f4aa, Balancing's DE e89eb28d), × their share in card_de
+	"small_hands": 35.0, "sap_rising": 15.0, "lingering_ground": 30.0,
+	# Rank-choice cards (Roguelite Code 31b43636, Balancing's DE 43496006), × their share in card_de
+	"specialist": 45.0, "many_talents": 30.0, "brimming": 30.0,
 }
+const SENT_OUT_KINDS := [TowerData.AttackKind.SWOOP, TowerData.AttackKind.SWEEP, TowerData.AttackKind.PECK,
+	TowerData.AttackKind.BOOMERANG, TowerData.AttackKind.PATROL]
+const GROUND_KINDS := [TowerData.AttackKind.CLOUD, TowerData.AttackKind.TRAP, TowerData.AttackKind.LIGHT]
 
 func score(card: UpgradeData) -> float:
 	if score_overrides.has(card.id):
@@ -129,7 +136,42 @@ func card_de(card: UpgradeData) -> float:
 			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.line == "spore")
 		"live_wire", "static_field":
 			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.applies_status == &"static")
+		"small_hands":  # Sprites, birds, seeds, lobbed stones (Tower Code's ShapeCards test when the build has it)
+			rule *= share.call(func(t: Tower) -> bool: return _shape_test(&"sends_things_out", t.tower_data,
+				t.tower_data.attack_kind in SENT_OUT_KINDS or t.tower_data.lob or String(t.tower_data.special).contains("brood")))
+		"lingering_ground":  # Clouds, rings, lit cells, rubble, pools
+			rule *= share.call(func(t: Tower) -> bool: return _shape_test(&"makes_ground_effects", t.tower_data,
+				t.tower_data.attack_kind in GROUND_KINDS or t.tower_data.lob))
+		"specialist", "many_talents":  # Ranked Wardens whose rank choices are all one (Specialist) / mixed (Many Talents)
+			var mixed := card.id == "many_talents"
+			rule *= share.call(func(t: Tower) -> bool:
+				if t.rank <= 0:
+					return false
+				var kinds: int = dreams.call("different_choices", t) if dreams.has_method("different_choices") else 1  # call(): older builds lack it
+				return kinds > 1 if mixed else kinds == 1)
+		"brimming":  # + the Spored appliers, − the Static ones
+			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.applies_status == &"spored") \
+				- share.call(func(t: Tower) -> bool: return t.tower_data.applies_status == &"static")
+		"sap_rising":  # The support Wardens (walls aside) among all Wardens
+			var wardens := dreams._towers().filter(func(t: Tower) -> bool: return t.tower_data.line != "wall")
+			rule *= wardens.filter(func(t: Tower) -> bool: return _shape_test(&"is_support", t.tower_data,
+				not t.tower_data.can_attack)).size() / maxf(wardens.size(), 1.0)
 	return de + rule
+
+# Tower Code's ShapeCards group test (596b23da) when this build has the script, else `fallback` (older builds: the
+# runner copies this policy into them, so the class is looked up at run time, never named).
+const SHAPE_CARDS_PATH := "res://scripts/combat/shape_cards.gd"
+var _shape_script: Script = null
+var _shape_checked := false
+
+func _shape_test(test: StringName, data: TowerData, fallback: bool) -> bool:
+	if not _shape_checked:
+		_shape_checked = true
+		if ResourceLoader.exists(SHAPE_CARDS_PATH):
+			_shape_script = load(SHAPE_CARDS_PATH)
+	if _shape_script != null and _shape_script.has_method(test):
+		return _shape_script.call(test, data)
+	return fallback
 
 func _tag_score(card: UpgradeData) -> float:
 	var tags: Dictionary = TAG_SCORES[style]

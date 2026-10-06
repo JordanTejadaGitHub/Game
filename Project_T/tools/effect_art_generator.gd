@@ -42,6 +42,7 @@ func _init() -> void:
 	_phase2_effects()
 	_brood_effects()
 	_lichen_effects()
+	_sap_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -3286,3 +3287,63 @@ func _lichen_hit(img: Image, f: int, size: float) -> void:
 	if f >= 2 and f <= 4:  # spores rising out of the puff
 		for k in 3:
 			_px(img, int(c.x) - 5 + k * 5, int(c.y - r * 0.7) - (f - 2) * 2 - k % 2, Color(CORE if k == 1 else POISON, a))
+
+# --- Sap Rising (Shape card, dream_design.md e4d17195 / 8fb6c205) ---------------------------------
+# A support Warden's pulse into the 8 cells around it: light runs out along its roots, a slow warm
+# earthen swell spreads to the edge of its 3x3 cells, little sprouts flick up in each cell, then it
+# settles. Ground level, warm (Warden magic), hard alpha steps.
+const SAP_SOIL := Color("#8c5c34")
+const SAP_SOIL_LIGHT := Color("#bca48c")
+const SAP_SPROUT := Color("#9cc46c")
+
+func _sap_effects() -> void:
+	_sheet("sap_pulse", Vector2i(192, 192), 8, 12, Vector2i(96, 96), false, "ground", _sap_pulse,
+		{note = "Sap Rising: a support Warden's pulse covering its 3x3 cells at scale 1.0 (anchor = the Warden's cell centre; scale x2/3 per extra cell for bigger footprints). ~0.67 s, z -1."})
+
+func _sap_pulse(img: Image, f: int) -> void:
+	var c := Vector2(96, 96)
+	var a := 1.0 if f < 5 else (0.75 if f < 6 else 0.4)
+	# Roots: eight lines out to the eight cells, light running along them (frames 0-3).
+	var reach: float = [0.3, 0.6, 0.9, 1.0, 1.0, 1.0, 1.0, 1.0][f]
+	for k in 8:
+		var d := Vector2.from_angle(k * TAU / 8.0)
+		var end := c + d * (64.0 if k % 2 == 0 else 90.5) * reach
+		var mid := c.lerp(end, 0.5) + d.orthogonal() * (4.0 if k % 2 == 0 else -4.0)
+		if f < 6:
+			_poly_line(img, [c, mid, end], Color(SAP_SOIL, a), 2)
+			if f < 4:
+				_poly_line(img, [c, mid, end], Color(GOLD if f < 3 else WARM, a))
+	# The swell: a rounded square band growing out to the 3x3 edge (96 px), soil with a gold crest.
+	var r: float = [0.0, 22.0, 42.0, 62.0, 80.0, 92.0, 94.0, 95.0][f]
+	if r > 0.0:
+		var thick: float = [0.0, 6.0, 8.0, 9.0, 9.0, 7.0, 4.0, 3.0][f]
+		for y in 192:
+			for x in 192:
+				var p := (Vector2(x + 0.5, y + 0.5) - c) / r
+				var q := pow(pow(absf(p.x), 4.0) + pow(absf(p.y), 4.0), 0.25)  # a squircle: 1 on the band
+				var dist := (1.0 - q) * r  # px inside the band's outer edge
+				if dist < 0.0 or dist > thick:
+					continue
+				var col: Color = GOLD if dist < 1.5 else (SAP_SOIL_LIGHT if dist < thick * 0.6 else SAP_SOIL)
+				img.set_pixel(x, y, Color(col, a if dist >= 1.5 else minf(a, 0.75 if f >= 5 else 1.0)))
+	# Sprouts flicking up in each of the 8 cells as the swell passes (frames 3-6).
+	if f >= 3 and f <= 6:
+		var h: int = [0, 0, 0, 3, 6, 6, 5][f]
+		for k in 8:
+			var p := c + Vector2.from_angle(k * TAU / 8.0) * (64.0 if k % 2 == 0 else 90.5) * 0.92
+			var x := int(p.x)
+			var y := int(p.y)
+			_px(img, x - 1, y + 1, Color(SAP_SOIL, a))  # a crumb of soil at its foot
+			_px(img, x + 1, y + 1, Color(SAP_SOIL, a))
+			for i in h:
+				_px(img, x, y - i, Color(SAP_SPROUT, a))
+			for s: int in [-1, 1]:  # two leaves
+				_px(img, x + s, y - h, Color(SAP_SPROUT, a))
+				_px(img, x + s * 2, y - h - 1, Color(SAP_SPROUT, a))
+				_px(img, x + s * 2, y - h, Color(SAP_SOIL_LIGHT if f < 5 else SAP_SPROUT, a))
+			if f == 4:
+				_px(img, x, y - h - 1, Color(CORE, a))
+	# The Warden's own cell: a warm pool of light at the roots on the first frames.
+	if f < 3:
+		_ellipse(img, c, Vector2(14, 10) * (1.0 + f * 0.3), Color(GOLD, 0.4))
+		_ellipse(img, c, Vector2(7, 5) * (1.0 + f * 0.3), Color(WARM, 0.75))

@@ -29,7 +29,7 @@ func _run() -> void:
 	var demo_wardens := _tree_ids(CodexData.DEMO_FAMILIES)
 	var other_wardens := _tree_ids(OTHER_FAMILIES)
 
-	# Family picks: the drift 1 pick offers the three, nothing else is ever pickable.
+	# Family picks: the drift 1 pick offers 2 of the three (e0c02e54), nothing else is ever pickable.
 	var ids: Array = family.families.map(func(d: TowerData) -> String: return d.get_id())
 	ids.sort()
 	var expected := CodexData.DEMO_FAMILIES.duplicate()
@@ -37,8 +37,8 @@ func _run() -> void:
 	_check(ids == expected, "the demo's family roster is the three (%s)" % str(ids))
 	family.show_pick(&"first")
 	var offered: Array = family.offer.filter(func(d) -> bool: return d is TowerData).map(func(d: TowerData) -> String: return d.get_id())
-	_check(offered.size() == 3 and offered.all(func(id: String) -> bool: return CodexData.DEMO_FAMILIES.has(id)),
-		"the drift 1 pick offers the three (%s)" % str(offered))
+	_check(offered.size() == family.pick_count() and offered.all(func(id: String) -> bool: return CodexData.DEMO_FAMILIES.has(id)),
+		"the drift 1 pick offers 2 of the three (%s)" % str(offered))
 	family.visible = false
 
 	# Own every demo Warden (all three trees), then no Dream card can lead to another family.

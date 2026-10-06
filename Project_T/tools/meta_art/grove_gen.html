@@ -505,7 +505,10 @@ N("omen_reader", "perks", "Omen Reader", 188, 118, "let_go");
 N("wider_dreams", "perks", "Wider Dreams", 244, 90, "omen_reader");
 N("wider_roots", "perks", "Wider Roots", 140, 80, "omen_reader");  // Branch expansion: a wider family this run
 N("heartwoods_crown", "perks", "The Heartwood's Crown", 520, 330, [480, 500]);  // The secret 6th slot: hidden until every other node is grown
-N("early_bloom", "perks", "Early Bloom", 250, 372, "second_thoughts");
+// Wider Choice (meta_design.md e0c02e54) sits between Second Thoughts and Early Bloom; off until its .tres.
+const WIDER_CHOICE = false;
+if (WIDER_CHOICE) N("wider_choice", "perks", "Wider Choice", 236, 312, "second_thoughts");
+N("early_bloom", "perks", "Early Bloom", 250, 372, WIDER_CHOICE ? "wider_choice" : "second_thoughts");
 N("early_light", "perks", "Early Light", 232, 436, "early_bloom");
 N("kindling", "perks", "Kindling", 214, 500, "early_light");
 N("slot_4", "perks", "Loadout slot 4", 400, 520, [410, 466]);  // Slots 1–3 are open from the start
@@ -1702,6 +1705,7 @@ const PERK_ICONS = {
   chosen_hunt: () => icon((L, o) => { blob(L, 16, 18, 8, 8, ["#140f26", "#2c2444", "#4c3c74", "#5c5a78"], { tex: .05 }); stroke(L, 11, 13, 7, 5, 2.6, 1.2, "#8c8cac"); stroke(L, 21, 13, 25, 5, 2.6, 1.2, "#8c8cac"); L.set(7, 5, "#dce8f4"); L.set(25, 5, "#dce8f4"); L.set(13, 18, "#9a84e8"); L.set(19, 18, "#9a84e8"); for (let a = 0; a < Math.PI * 2; a += .1) if ((a / .1 | 0) % 4 < 2) o.set(16 + Math.cos(a) * 13, 18 + Math.sin(a) * 12, "#e9a83c"); for (const [x0, y0, x1, y1] of [[16, 3, 16, 7], [16, 29, 16, 31], [1, 18, 4, 18], [28, 18, 31, 18]]) stroke(o, x0, y0, x1, y1, 1, 1, "#fcd47c"); }),
   leaf_or_dew: () => icon((L, o) => { petal(L, 10, 22, -Math.PI * .35, 13, 4.5, LEAFG.slice(1)); drop(L, 23, 19, 5); for (let x = 12; x <= 20; x++) { o.set(x, 7, "#fcd47c"); o.set(x, 28, "#fcd47c"); } for (const [dx, dy] of [[-1, -1], [-1, 1], [-2, -2], [-2, 2]]) { o.set(20 + dx, 7 + dy, "#fcd47c"); } for (const [dx, dy] of [[1, -1], [1, 1], [2, -2], [2, 2]]) { o.set(12 + dx, 28 + dy, "#fcd47c"); } }),
   kin_foretold: () => icon((L, o) => { for (const [x, y] of [[8, 23], [17, 24]]) { ellipse(L, x, y, 4.6, 4, (xx, yy, dx, dy) => pick(["#5c3c24", "#8c5c34", "#b8662c", "#e9a83c"], .6 - dx * .35 - dy * .3, xx, yy)); ellipse(L, x + 1, y - 6, 3, 2.4, (xx, yy, dx, dy) => dx + dy < -.3 ? LEAFG[4] : dy < .3 ? LEAFG[3] : LEAFG[2]); } const gx = 26, gy = 13; for (let a = 0; a < Math.PI * 2; a += .3) o.set(gx + Math.cos(a) * 4.2, gy + Math.sin(a) * 3.6, (a / .3 | 0) % 2 ? "#4c3c74" : "#9a84e8"); for (let a = 0; a < Math.PI * 2; a += .6) o.set(gx + 1 + Math.cos(a) * 2.6, gy - 6 + Math.sin(a) * 2, "#9a84e8"); }),
+  wider_choice: () => icon((L, o) => { for (const [x, y, a] of [[8, 24, -.5], [16, 21, 0], [24, 24, .5]]) { ellipse(L, x, y, 3.8, 3.4, (xx, yy, dx, dy) => pick(["#5c3c24", "#8c5c34", "#b8662c", "#e9a83c"], .6 - dx * .35 - dy * .3, xx, yy)); ellipse(L, x + Math.round(a * 3), y - 5.5, 3.3, 3, (xx, yy, dx, dy) => dx + dy < -.4 ? LEAFG[4] : dy < .3 ? LEAFG[3] : LEAFG[2]); } for (let a = -2.6; a <= -.54; a += .12) o.set(16 + Math.cos(a) * 14, 27 + Math.sin(a) * 14.5, "#fcd47c"); }),
   wider_dreams: () => icon(L => { [[3, 10], [8, 7], [13, 5], [18, 7]].forEach(([x, y]) => card(L, x, y, 11, 17, DREAMC)); }),
 };
 const FAMILY_ICONS = {
@@ -2190,7 +2194,7 @@ function ascendedBloomPlain(f) {
 }
 
 // The icon sheets' orders (used by the per-node blooms before the icon sheets are written).
-const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", "clear_sight", "sprout_bed", "kindling", "early_bloom", "early_light", "first_care", "deep_taproot", "second_thoughts", "let_go", "omen_reader", "wider_dreams", "wider_roots", "golden_leaf", "blossoms", "gilded_pages", "starlit_backs", "heartwoods_crown", "restless_omens", "remembered_seed", "chosen_hunt", "leaf_or_dew", "kin_foretold"];
+const PERK_ORDER = ["morning_stores", "rich_dew", "rested_roots", "seed_pouch", "clear_sight", "sprout_bed", "kindling", "early_bloom", "early_light", "first_care", "deep_taproot", "second_thoughts", "let_go", "omen_reader", "wider_dreams", "wider_roots", "golden_leaf", "blossoms", "gilded_pages", "starlit_backs", "heartwoods_crown", "restless_omens", "remembered_seed", "chosen_hunt", "leaf_or_dew", "kin_foretold", "wider_choice"];
 const FAMILY_ORDER = ["sporeling", "firefly_jar", "dewdrop", "pebbling", "rootling", "bellflower", "acorn", "nestling", "whirligig"];
 const CARD_ORDER = ["storm", "spores_and_reactions", "keen_edges", "tending", "overgrowth", "lone_lantern", "the_long_way", "bittersweet", "woven", "deep_poison", "kinship", "seeds", "quiet_ones", "swift", "wide_reach", "daring", "hedgerows", "reclaiming", "strange_dreams", "restless_omens"];  // Storm, Spores and Kinship icons stay for stable indices (their nodes are gone)
 

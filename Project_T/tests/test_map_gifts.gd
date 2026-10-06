@@ -35,19 +35,6 @@ func _init() -> void:
 	_give(gifts, run_state, MapGifts.FALLEN_GIANT, log_cells)
 	_check(log_cells.all(func(c: Vector2) -> bool: return not map.is_buildable(c) and map.get_obstacle(c) == null),
 		"the log blocks its cells and can't be cleared")
-	# Its Snag (heartwood_gifts.md b3e464e6): the halves just beside the log, never the log's own.
-	var beside := Vector2(log_cells[1] * 2) + Vector2(-1, 0)  # The half left of the middle cell's top-left half
-	_check(gifts.is_snagged(FindPath.node_to_point(Vector2i(beside))) and not gifts.is_snagged(FindPath.node_to_point(Vector2i(log_cells[1] * 2)))
-		and not gifts.is_snagged(FindPath.node_to_point(Vector2i(beside) + Vector2i(-1, 0))), "the Snag is the halves beside the log")
-	var snagged: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
-	if snagged != null:
-		snagged.position = map.MAP_GRID.calculate_map_position(FindPath.node_to_point(Vector2i(beside)))
-		snagged.set_path(PackedVector2Array([FindPath.node_to_point(Vector2i(beside))]))
-		gifts._tick = 0.0
-		gifts._process(0.01)
-		_check(snagged.statuses.slow_amount >= MapGifts.SNAG_SLOW and snagged.statuses.slow_time > 0.0,
-			"a nightmare in the Snag is slowed %d%%" % roundi(MapGifts.SNAG_SLOW * 100))
-		snagged.queue_free()
 
 	# Mire: nightmares on the bog are slowed (through the slow floors).
 	var route: PackedVector2Array = map.get_path_from(map.startPath)

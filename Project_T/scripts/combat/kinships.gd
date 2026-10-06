@@ -1187,7 +1187,7 @@ func trait_fired(learner: Tower, id: StringName) -> void:
 func fog_patch(at: Vector2, seconds: float) -> void:
 	if seconds <= 0.0:
 		return
-	var fog := KinFog.new(seconds)
+	var fog := KinFog.new(ShapeCards.ground_time(seconds))  # Lingering Ground: x1.5
 	get_parent().add_child(fog)
 	fog.global_position = at
 

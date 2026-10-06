@@ -60,6 +60,7 @@ func _run() -> void:
 	_test_impact_conditions()
 	_test_twig_walls()
 	_test_new_commons()
+	_test_nurture_path()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -108,6 +109,29 @@ func _test_new_commons() -> void:
 	for i in 20:
 		extras.append(dreams.dew_line_extra())
 	_check(extras[9] == 1.0 and extras[19] == 1.0 and extras.count(1.0) == 2, "Dew Line: the 10th and 20th dispels pay twice")
+	dreams.stacks.clear()
+
+# Nurture-path cards and Brimming (dream_design.md cdfbe349, balance_simulation.md 43496006): Specialist's x2 rank bonus
+# (Tower reads it), Many Talents' row, Brimming's cap x2 (EnemyStatuses reads it); Shared Training waits (not offered).
+func _test_nurture_path() -> void:
+	_reset()
+	var tower := _plant("sporeling", Vector2(100, 100))
+	tower.rank_choices.assign([Tower.Focus.POWER, Tower.Focus.POWER])
+	_check(dreams.specialist_rank_multiplier(tower) == 1.0, "no Specialist: x1")
+	dreams.take(_card("specialist"))
+	_check(dreams.specialist_rank_multiplier(tower) == 2.0, "Specialist: every rank the same choice: its rank bonuses x2")
+	tower.rank_choices.assign([Tower.Focus.POWER, Tower.Focus.SWIFT])
+	_check(dreams.specialist_rank_multiplier(tower) == 1.0, "…mixed choices: x1")
+	dreams.take(_card("many_talents"))
+	dreams.bump_board()
+	var talents := _row(tower.tower_data, tower.cell, "many_talents", tower)
+	_check(talents.active and is_equal_approx(talents.damage, 0.20), "Many Talents: +10% per different choice (2 -> +20%)")
+	_check(dreams.status_cap_multiplier() == 1, "no Brimming: caps x1")
+	dreams.take(_card("brimming"))
+	_check(dreams.status_cap_multiplier() == 2, "Brimming: caps x2")
+	var training := _card("shared_training")
+	_check(training != null and not training.in_start_pool and not dreams.can_offer(training, 3), "Shared Training waits for the rank V signatures")
+	tower.free()
 	dreams.stacks.clear()
 func _test_pool() -> void:
 	for id in IDS:

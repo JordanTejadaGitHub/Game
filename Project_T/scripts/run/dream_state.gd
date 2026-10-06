@@ -180,7 +180,7 @@ const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_fr
 	# Pool trim (dream_design.md "Pool trim", 2026-09-30)
 	"gathered_dew": "morning_dew", "fresh_soil": "reclaimed_earth", "tend_the_forest": "heartwoods_reach",
 	"mending_bark": "thick_bark", "heartwoods_fury": "last_stand", "warm_hands": "tender_care",
-	"court_of_the_eldest": "endless_rings", "sprout_surge": "seedfall", "close_kin": "extended_family",
+	"court_of_the_eldest": "endless_rings", "sprout_surge": "seedfall",
 	"close_kin_ii": "extended_family", "skyward_gaze": "hunters_patience", "crush": "crowd_breaker", "crush_ii": "crowd_breaker",
 	"hurried_harvest": "call_of_the_wild", "borrowed_dew": "", "hungry_roots": "", "overgrown": "", "wild_growth": "",
 	"reckless_bloom": "", "overgrowth": "", "borrowed_memory": "", "remembered_care": "", "remembered_care_ii": "",
@@ -1623,6 +1623,30 @@ func twig_walls() -> bool:
 # How much a wall counts toward Hedge Maze: a twig wall half a Thornwall.
 static func wall_weight(tower: Node) -> float:
 	return 0.5 if is_instance_valid(tower) and tower.get("twig") == true else 1.0
+
+# Nurture-path cards (dream_design.md cdfbe349). Specialist: a Warden whose ranks all took the same choice gets this much
+# more from each rank (Tower multiplies its rank bonuses). Many Talents: a damage row per different choice (DreamEffects).
+const SPECIALIST_RANK_MULTIPLIER := 2.0  # balance_simulation.md 43496006
+const MANY_TALENTS_PER := 0.10
+const MANY_TALENTS_MAX := 0.40
+
+func specialist_rank_multiplier(tower: Tower) -> float:
+	if tower == null or not has_rule(&"specialist") or tower.rank_choices.is_empty():
+		return 1.0
+	var first: int = tower.rank_choices[0]
+	return SPECIALIST_RANK_MULTIPLIER if tower.rank_choices.all(func(c: int) -> bool: return c == first) else 1.0
+
+static func different_choices(tower: Tower) -> int:
+	var seen := {}
+	for choice in tower.rank_choices:
+		seen[choice] = true
+	return seen.size()
+
+# Brimming (card 269): nightmares hold twice as many stacks of every stacking status (cap > 1); Heavy Eyelids adds after.
+const BRIMMING_MULTIPLIER := 2
+
+func status_cap_multiplier() -> int:
+	return BRIMMING_MULTIPLIER if has_rule(&"brimming") else 1
 
 # Thornwalls on the map for Hedge Maze, a twig wall counting half.
 func thornwall_count() -> float:

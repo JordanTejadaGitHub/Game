@@ -239,6 +239,37 @@ text; Balancing Discussion sets every per-rank number marked *).
 | Thornwall, Bramble, Honeysuckle | wall | — | — | not nurtured (unchanged) |
 | Whirligig (base, parked in Phase 3) | setup | Swift · Reach · Deep | missing from this table; Deep did nothing | Gust's set (Deep = copied stacks) |
 
+### Rank V signatures: specialise or stay flexible (2026-10-06)
+
+User design direction (via Meta Game Discussion): *Nurture choices should help create builds, not just
+add numbers.* **When a Warden reaches rank V and 3 or more of its ranks I–V are the same choice, it
+gains that choice's signature**, a new behaviour. A mixed Warden gets none but keeps its flexible
+stats. So each Warden asks "specialise or stay flexible", and one family plays differently by Nurture
+path. Meta Game Discussion proposed the set; Tower Discussion decided it (changes noted).
+
+| Majority | Signature | What it does | Notes |
+|---|---|---|---|
+| **Power** | **Crushing** | every **5th hit** lands **×2** and **cracks armour**: strips **25%** of the dread shell (and blight coat) | was "staggers (a brief stop)": a stop is Rooted's job. This gives Pebbling and strikers an anti-armour door |
+| **Swift** | **Relentless** | when it dispels a nightmare, its **next cycle starts at once** (attack, ability, spawn; at most once per 0.5 s) | was "every 6th cycle runs twice": the *Flurry* card already does that (every 5th attack fires twice), and Jewelwing's twist is also named Flurry |
+| **Reach** | **Watchtower** | **reveals hidden nightmares** in its range while it stands (Lurkers can be targeted by everyone) | was "targets flyers and the furthest-along first": Target priority already offers that. This gives any family a detection door |
+| **Deep** | **Spreading** | when a nightmare carrying its statuses is dispelled, **half their stacks / remaining time jump to the nearest nightmare** within 2 cells | as proposed; one jump, never chains (Gust stays the live spreader) |
+| **Keen** | **Executioner** | a crit on a nightmare **under 20% health dispels it** (Balancing: 30% deleted the last third at Moonstone / Hoard crit rates). **Bosses and elites:** that crit deals ×1.5 more instead | as proposed, plus the boss / elite rule; stacks with Whetstone's finisher on purpose |
+| **Yield** | **Firstborn** | **what it makes arrives one step better:** Seedbearer's Sprouts at rank I (Grove Keeper's at III), Brood sprites burst +50%, Dream Oak shards ×1.5 | was "spawns born at rank II": Grove Keeper's twist already gives rank II Sprouts |
+| **Wide** (supports) | **Shelter** | Wardens in its aura **can't be withered, dimmed or trampled** | re-homes the cut Bark Shield's job, so it's a build choice instead of a dead branch |
+| **Strong** (supports) | **Surge** | every **10 s** its aura **doubles for 2 s**, shown as a pulse through the cluster | — |
+| **Kindred** | — | none: Kindred is one-time on aura supports, so it can't be a majority | catchers' Kindred (repeatable) has no signature either: their Strong / Wide do |
+
+- **Count:** ranks I–V only; Deeper Rings' VI–VII and free ranks count as the choice they were. A
+  Warden with only 2–3 choices still qualifies.
+- **Old picks** that no longer apply (dimmed) still count toward the majority; the signature only
+  works where it can (e.g. Firstborn on a Warden that makes nothing does nothing, so the panel warns).
+- **Shown:** from rank III the panel says *"2 more Power ranks: Crushing at rank V"*; at rank V a
+  signature mark joins the rank pips, and the first time ever it fires there's a discovery callout.
+  The Codex lists the signatures (Glossary).
+- **Cards:** Roguelite Mechanic Discussion is designing *Specialist / Many Talents / Shared Training*
+  around this.
+- **Numbers** (Balancing Discussion, 2026-10-06): Crushing ×2 + 25% shell; Relentless once per 0.5 s; Spreading half, within 2 cells; Executioner 20% (bosses / elites ×1.5); Firstborn and Shelter as designed; Surge ×2 for 2 s every 10 s. Watchtower stays: it reveals only inside its own range.
+
 ### Nurture audit fixes (2026-10-05)
 
 The design hub audited every choice against the code (`nurture_audit.md`, 0422a3bc): 22 rows were

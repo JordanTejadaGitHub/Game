@@ -1764,14 +1764,20 @@ existing cards, so those cards fill the role instead of new ones:
 | # | Card | Effect | Shines with |
 |---|---|---|---|
 | 262 | **Small Hands** | Anything a Warden sends out (sprites, birds, seeds, stones it lobs) deals **35%** more and lasts 1 s longer | Brood Cap, Nestling birds, Samara, Cairn |
-| 263 | **Sap Rising** | Wardens that don't attack (auras, catchers, Dreamcatchers) pulse the 8 cells around them every 2 s; each pulse deals **2 s × its aura bonus × the summed DPS of the attackers in its aura** (at least 2 s × 50% of the median attacker DPS, so catchers and Dreamcatchers hit too) | Acorn, Grove Heart, Dewcatcher, Dreamcatcher |
+| 263 | **Sap Rising** | Wardens that don't attack (auras, catchers, Dreamcatchers) pulse the 8 cells around them every 2 s; each pulse deals **2 s × its aura bonus × the summed DPS of the attackers in its aura** (at least 2 s × 50% of the median attacker DPS, so catchers and Dreamcatchers hit too) | the Acorn line's Elder Stump, Grove Heart, Grandmother Oak; Dewcatcher, Wellspring, Dreamcatchers (the base Acorn attacks, so it doesn't pulse) |
 | 264 | **Lingering Ground** | Ground effects (clouds, trails, rings, rubble, pools, lit tiles) **last 50% longer** (×1.5: overlapping clouds turn duration into damage almost 1:1) | Sporeling, Fairy Ring, Dewdrop pools, Cairn rubble, Rootlight |
 
 - **Sap Rising vs The Quiet Ones:** The Quiet Ones (Legendary) makes non-attacking Wardens 50%
   stronger at their job. Sap Rising makes them deal damage. Thornwalls are left out (Thorny Walls
   covers them).
-- **Small Hands:** Tower Code first checks whether sent-out things already carry Dream bonuses. If
-  they don't, the card's first effect is that they do; the 35% sits on top. Numbers: balance_simulation.md 60dad611.
+- **Small Hands:** sent-out things already hit through their Warden's `hit()`, so they carried every
+  Dream bonus; the card is the +35% on top (numbers: balance_simulation.md 60dad611).
+  - The +1 s only applies to things with a timer: brood sprites (9 s instead of 8) and
+    hummingbirds' pecking.
+  - Seeds fly by distance and patrols never end, so they get only the damage.
+  - Text: "…deal 35% more damage; sprites and birds stay 1 s longer."
+- **Built:** Tower Code 712d37d3 (hooks), Roguelite Code d1d0f4aa / e89eb28d (cards). The Sap
+  Rising pulse uses a placeholder dust ring until Tower Assets draws one.
 - **Opposite pairs**, so no setup is best for every family mix:
   - Watchful Rest / Stirring Roots vs Flurry / Momentum
   - Solitude vs Drumbeat and the Kinship cards
@@ -1786,6 +1792,99 @@ existing cards, so those cards fill the role instead of new ones:
   offered) and the card in this run's sample, a payoff is three random gates: a lucky run, not a
   plan.
 - Existing limits stay: no pins, 3 rerolls, the paid call-back.
+
+## Doors for Tall and Kinship (2026-10-06)
+
+The user wants many builds with distinct playstyles, and the best build reached rarely. Tall and
+Kinship were the hardest card builds to reach.
+
+- **Tall:** **Sunlit Rest** moves from the Grove (node `tending_hands`, which keeps Deeper Rings;
+  meta_design.md 77cd092c) to the **start pool**, Uncommon. With Tender Care (Common) and Kindred
+  Roots (Uncommon), Tall has three doors. It stays a late build by nature.
+- **Kinship:** it lost its Common door when Family Ties was cut ("Fewer, bigger cards"). New:
+
+  | # | Card | Rarity | Effect | Tags | Pool |
+  |---|---|---|---|---|---|
+  | 265 | **Close Kin** | Common | {kinships} reach 3 cells | kinship | Start |
+
+  **Extended Family** (Rare) keeps only "Each Warden can be in 2 {kinships}, with two different
+  kin". Reach is what lets bonds form inside a maze. Old Friends stays the Uncommon door.
+- **Built:** 16b572f9 (Roguelite Code; Sunlit Rest + II in the start pool, Close Kin owns the `close_kin` reach rule) with Meta's eb3e4c46.
+- **Not yet:** Storm Grid / Spore Bomb reliability and Maze as the default. Their numbers (rounds
+  2–3) predate steering being turned off, the Entwined slot removal and the offer caps. Balancing
+  Code re-measures first.
+  - Targets: combos 25–40% once both families are held.
+  - If Maze is still the default, Winding Path counts only tiles a Warden reaches, and Hedge Maze
+    counts only Thornwalls touching attacking Wardens.
+- **Family gaps** (Meta Game Discussion's matrix, a read, not measured): Acorn lacks Precision,
+  Affliction, Swift and Wide Reach doors; Pebbling lacks Overgrowth, Affliction and Swift. Sap
+  Rising (263) is Acorn's first. More shape cards for these gaps after the re-measure.
+
+## Nurture-path cards and Brimming (2026-10-06)
+
+Two user requests (via Meta Game Discussion). Both are shape cards: they help one way of playing and
+hurt or ignore another.
+
+### Nurture path (cards 266–268)
+
+Every rank is a choice (Power / Swift / Reach / Deep, support Wide / Strong / Kindred). These cards
+read those choices, so the Nurture path shapes the build.
+
+| # | Card | Rarity | Effect | Tags |
+|---|---|---|---|---|
+| 266 | **Specialist** | Uncommon | A Warden whose every rank took the same choice gets **double the bonus from each rank's choice** (a true ×2; balance_simulation.md 43496006) | tall, nurture, defining |
+| 267 | **Many Talents** | Uncommon | A Warden deals **10% more damage for each different choice** among its ranks (up to +40%) | tall, nurture, defining |
+| 268 | **Shared Training** | Rare | Two Wardens in a {kinship} with the same majority choice both get its rank V signature at **rank IV** | tall, kinship, defining |
+
+- Specialist and Many Talents pull opposite ways on purpose. Neither needs a Warden; both work from
+  the first rank, so they're doors into Tall as well.
+- **Shared Training waits** for Tower Code to build the rank V signatures, which Tower Discussion
+  has decided (warden_stats.md "Rank V signatures", 96d728dd): a Warden with 3+ of ranks I–V on one
+  choice gets that choice's signature:
+
+  | Choice | Signature |
+  |---|---|
+  | Power | Crushing |
+  | Swift | Relentless |
+  | Reach | Watchtower |
+  | Deep | Spreading |
+  | Keen | Executioner |
+  | Yield | Firstborn |
+  | Wide | Shelter |
+  | Strong | Surge |
+  | Kindred | none |
+
+  - **With Shared Training:** two kin that both have 3 of ranks I–IV on the same choice get its
+    signature at **rank IV**.
+  - Kindred has no signature, so a Kindred pair gains nothing; the card text says "the same choice"
+    and the Warden panel shows which.
+  - Until the signatures are built, it isn't offered.
+- **Built:** cards 266–269 in 31b43636 (Roguelite Code, numbers 43496006). Specialist's and Brimming's hooks are Tower Code's. Shared Training's file has `in_start_pool = false` until the signatures land.
+- Numbers to Balancing Discussion.
+
+### Brimming (card 269)
+
+User: *"a card that doubles the status cap; it might help poison builds but it hurts Charge
+builds."*
+
+| # | Card | Rarity | Effect | Tags |
+|---|---|---|---|---|
+| 269 | **Brimming** | Rare | Nightmares can hold **twice as many stacks** of every status | status, affliction, defining |
+
+What it does to each status (EnemyStatuses caps 2026-10-06):
+
+| Status | Cap | With Brimming | Effect |
+|---|---|---|---|
+| Spored | 8 | 16 | ticks climb twice as high: **poison soars** |
+| Charged (static) | 5 (bosses 8) | 10 (16) | the bolt fires at the cap, so **bolts come half as often**: Charge builds suffer |
+| Drowsy | 5 (bosses 3) | 10 (6) | deeper slow (the slow floor still holds); Dreamcatchers Catch at full Drowsy, so **catching takes twice as long** |
+| Soaked, Marked, Held | 1 | 1 | on/off statuses: unchanged |
+
+- It's a true doubling (×2 on the cap; text "twice as many" is correct). Heavy Eyelids' +2 Drowsy
+  adds after the doubling.
+- Thunderclap's Charged threshold (`static_needed`) doesn't change. Only the bolt waits for the cap.
+- A real choice, not a flat boost: great for Sporeling, bad for Firefly / Stormcap, mixed for
+  Bellflower / Dreamcatcher.
 
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 
