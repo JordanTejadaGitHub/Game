@@ -896,6 +896,17 @@ act 1 survival is within ±10 points; else the bend spur adds +8–10 cells.
 room arm re-simmed. (The bot stops walling at ~45 cells; a new player walls less, not more.) Act 1 bot check on the worktree
 before merge; if the extra room makes act 1 easy, the curve answers it.
 
+## Human run 21 (2026-10-05 20:57, build 91161b = b3c61186; 0 Grove)
+
+Sporeling, Bellflower picked at 25 but **none planted** (board: 10 Sporeling, 6 Inkcap, Hatchery, 6 Sprouts).
+Lost at **drift 33**. Act 1: 4 leaves (drift 20 finale), the Stag beaten at 25 with 11–12, closest 0.5–0.99:
+firm. Act 2: clean to 29; **30 (finale, under Leaf Fall) −4**; 32 dealt only 60% of its health (Puffcaps
+resist spore, Dandelion flyers skip the maze); 33 took the last 8 in 9 s under a **second Leaf Fall** (taken at
+the 30 rest with 8 leaves). Status ticks 41%, combos 13%. **Read: no tuning.** The death is the design working:
+a one-family spore board meets spore resistance and flyers, with leaks doubled by an Omen the player chose.
+It lands in the 32–42 act 2 band again. Watch: the Bellflower pick unused (did the panel make the second family
+clear?), and two Leaf Falls in one run (fine, it's offered, not forced).
+
 ## Friend run 1 (2026-10-05 20:22, a new player, fresh profile, live main)
 
 Firefly Jar, then Dewdrop at 25; lost at **drift 40** (25 min). **Act 1: 1 leaf lost** (a leak at 5), the Stag
