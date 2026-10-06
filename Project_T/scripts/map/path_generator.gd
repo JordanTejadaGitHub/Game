@@ -130,10 +130,11 @@ func calculate_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
 		points[i] = node_to_point(nodes[i])
 	return points
 
-# The route calculate_point_path() would take, but with the fewest turns among the shortest routes
-# (ties: the most of the preferred route kept). The drawn route uses it: corridors are two or more halves
-# wide, and a plain A* route jogs between their lanes one half at a time, which draws as a broad smeared
-# band with the walkers on its edge.
+# A shortest route (as calculate_point_path), balancing two things: it keeps to the preferred route (the one drawn
+# now), and it turns as little as it can (a turn costs as much as two halves off the old route). The drawn route
+# uses it: corridors are two or more halves wide, and a plain A* route jogs between their lanes one half at a time,
+# which draws as a broad smeared band with the walkers on its edge; and a lane rarely changes unless the old one is
+# blocked or longer.
 func straightest_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
 	# Cached by what it depends on (the blocked halves, the ends, the preferred route): the build ghost's
 	# preview already searched the grid the placement makes, so draw() right after reuses it.
@@ -192,8 +193,11 @@ func _straightest_search(start: Vector2, end: Vector2) -> PackedVector2Array:
 	for n in _preferred_nodes:
 		if _astar.is_in_boundsv(n):
 			preferred[n.y * _size.x + n.x] = 1
-	# cost[node * 4 + heading] = turns * TURN + nodes off the preferred route; from[...] = the key before
-	const TURN := 1 << 16
+	# cost[node * 4 + heading] = nodes off the preferred route * OFF + turns * TURN; from[...] = the key before. Staying
+	# on the current route weighs heavily (Balancing 2026-10-05: a placement flipped a wide corridor to another lane, away
+	# from the Wardens built for it); turns still keep new stretches straight.
+	const OFF := 1  # A node off the current route; a turn costs TURN of them
+	const TURN := 2  # Measured: higher lets a placement flip the lane, a strict order (turns last) leaves jogs
 	var cost := PackedInt32Array()
 	cost.resize(count * 4)
 	cost.fill(-1)
@@ -207,7 +211,7 @@ func _straightest_search(start: Vector2, end: Vector2) -> PackedVector2Array:
 		if dist[i] > dist[ib]:
 			break
 		var node := Vector2i(i % _size.x, i / _size.x)
-		var off := 0 if preferred[i] == 1 else 1
+		var off := 0 if preferred[i] == 1 else OFF
 		for h in 4:
 			var back := node - steps[h]
 			if back.x < 0 or back.y < 0 or back.x >= _size.x or back.y >= _size.y:

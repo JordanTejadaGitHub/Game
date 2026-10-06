@@ -207,6 +207,20 @@ func _corridor_rule() -> void:
 	straight = open.straightest_point_path(from, to)
 	_check(straight.size() == open.calculate_point_path(from, to).size() and _turns(straight) <= 2,
 		"round a wall: shortest, 2 turns at most (%d)" % _turns(straight))
+	# Sticky lanes (Balancing 2026-10-05): with the drawn route preferred, a block on it detours and rejoins the same
+	# lane instead of jumping to another lane with fewer turns (away from the Wardens built along the old one).
+	var lanes := FindPath.new(grid, cells)
+	var old_route := lanes.straightest_point_path(from, to)
+	lanes.set_preferred_cells(old_route)
+	var blocked_at := Vector2(FindPath.point_to_node(old_route[old_route.size() / 4]))
+	lanes.set_half_blocked(blocked_at, true)
+	var new_route := lanes.straightest_point_path(from, to)
+	var shared := 0
+	for p in new_route:
+		if old_route.has(p):
+			shared += 1
+	_check(new_route.size() == lanes.calculate_point_path(from, to).size() and shared >= old_route.size() - 4,
+		"a block on the drawn route keeps its lane: %d of %d points shared" % [shared, old_route.size()])
 
 func _turns(route: PackedVector2Array) -> int:
 	var n := 0
