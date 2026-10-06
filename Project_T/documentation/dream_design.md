@@ -1947,6 +1947,28 @@ What it does to each status (EnemyStatuses caps 2026-10-06):
 - A real choice, not a flat boost: great for Sporeling, bad for Firefly / Stormcap, mixed for
   Bellflower / Dreamcatcher.
 
+## Legendaries as high points (2026-10-06)
+
+The user wants Legendary-anchored builds to be a run's high points.
+
+**Measured** (Balancing Code, 60 runs to drift 50):
+- Legendaries offered by drift 50: 0.8 per run on fresh profiles, 1.4 with a full Grove.
+- All of them came at drift 30 or later. None came at the drift 25 boss rest, because it counted
+  as act 1, and every Legendary has `min_act` 2 with weight 0 in act 1.
+
+**Decided** (with Meta Game Discussion):
+1. **A boss rest belongs to the next act:** its offer uses the next act's rarity weights and
+   `min_act`. The rest after drift 25 is act 2.
+2. **Every boss-rest offer has one Legendary slot** when any Legendary is eligible. The other two
+   slots stay Rare+. That's one Legendary sighting at drifts 25, 50 and 75, drawn at random, not
+   steered.
+3. **The Long Walk** (maze) and **Hunter's Moon** (precision) move to the **start pool**. A first
+   run can see a Legendary that works on its own. Meta Game Discussion removes their Grove tip
+   nodes (meta_design.md b852d0d1); each forked branch keeps its other tip (Crossroads, Full Moon).
+
+Final forms are the other half: 0 of 30 fresh runs and 2 of 30 full runs planted one by drift 50.
+The Dreamlight / Dew numbers to drift 75 are being measured.
+
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 
 User (typed in Environment Discussion): *"make a card that makes walls 1x1 cell instead of the
