@@ -249,11 +249,11 @@ path. Meta Game Discussion proposed the set; Tower Discussion decided it (change
 
 | Majority | Signature | What it does | Notes |
 |---|---|---|---|
-| **Power** | **Crushing** | every **5th hit** lands **×2** and **cracks armour**: strips dread shell and blight coat like a Shellbound breaker | was "staggers (a brief stop)": a stop is Rooted's job. This gives Pebbling and strikers an anti-armour door |
-| **Swift** | **Relentless** | when it dispels a nightmare, its **next cycle starts at once** (attack, ability, spawn) | was "every 6th cycle runs twice": the *Flurry* card already does that (every 5th attack fires twice), and Jewelwing's twist is also named Flurry |
+| **Power** | **Crushing** | every **5th hit** lands **×2** and **cracks armour**: strips **25%** of the dread shell (and blight coat) | was "staggers (a brief stop)": a stop is Rooted's job. This gives Pebbling and strikers an anti-armour door |
+| **Swift** | **Relentless** | when it dispels a nightmare, its **next cycle starts at once** (attack, ability, spawn; at most once per 0.5 s) | was "every 6th cycle runs twice": the *Flurry* card already does that (every 5th attack fires twice), and Jewelwing's twist is also named Flurry |
 | **Reach** | **Watchtower** | **reveals hidden nightmares** in its range while it stands (Lurkers can be targeted by everyone) | was "targets flyers and the furthest-along first": Target priority already offers that. This gives any family a detection door |
-| **Deep** | **Spreading** | when a nightmare carrying its statuses is dispelled, **half their stacks / remaining time jump to the nearest nightmare** | as proposed; one jump, never chains (Gust stays the live spreader) |
-| **Keen** | **Executioner** | a crit on a nightmare **under 30% health dispels it**. **Bosses and elites:** that crit deals ×1.5 more instead | as proposed, plus the boss / elite rule; stacks with Whetstone's finisher on purpose |
+| **Deep** | **Spreading** | when a nightmare carrying its statuses is dispelled, **half their stacks / remaining time jump to the nearest nightmare** within 2 cells | as proposed; one jump, never chains (Gust stays the live spreader) |
+| **Keen** | **Executioner** | a crit on a nightmare **under 20% health dispels it** (Balancing: 30% deleted the last third at Moonstone / Hoard crit rates). **Bosses and elites:** that crit deals ×1.5 more instead | as proposed, plus the boss / elite rule; stacks with Whetstone's finisher on purpose |
 | **Yield** | **Firstborn** | **what it makes arrives one step better:** Seedbearer's Sprouts at rank I (Grove Keeper's at III), Brood sprites burst +50%, Dream Oak shards ×1.5 | was "spawns born at rank II": Grove Keeper's twist already gives rank II Sprouts |
 | **Wide** (supports) | **Shelter** | Wardens in its aura **can't be withered, dimmed or trampled** | re-homes the cut Bark Shield's job, so it's a build choice instead of a dead branch |
 | **Strong** (supports) | **Surge** | every **10 s** its aura **doubles for 2 s**, shown as a pulse through the cluster | — |
@@ -268,8 +268,7 @@ path. Meta Game Discussion proposed the set; Tower Discussion decided it (change
   The Codex lists the signatures (Glossary).
 - **Cards:** Roguelite Mechanic Discussion is designing *Specialist / Many Talents / Shared Training*
   around this.
-- **Numbers:** Balancing Discussion (every 5th hit ×2, 30%, ×1.5, +50%, ×1.5, 10 s / 2 s are
-  starting points).
+- **Numbers** (Balancing Discussion, 2026-10-06): Crushing ×2 + 25% shell; Relentless once per 0.5 s; Spreading half, within 2 cells; Executioner 20% (bosses / elites ×1.5); Firstborn and Shelter as designed; Surge ×2 for 2 s every 10 s. Watchtower stays: it reveals only inside its own range.
 
 ### Nurture audit fixes (2026-10-05)
 
