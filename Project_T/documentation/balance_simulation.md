@@ -902,7 +902,8 @@ drift-50 rise is likely the conditional maze cards (Maze was half the builds). A
 **judge at drift 50 only**; at ≥ 35% no-build, first the run pool 60% → 70%, then a 4-card act 2 offer; no
 steering pull. Then: defining cards are ~half of all offers and the bot takes 3.6 of 5 by 26 (directions that
 don't connect). **Defining tag trimmed 68 → 18 + Legendaries, one archetype each, slot back to act 2** (6bf745e7);
-measured before the pool test.
+measured before the pool test. **Result (bf4fe891, fresh 30): no build at 50 13%** (was 20 / 42), (b) builds 52; archetype
+offers unchanged. **GO; the pool test dropped.**
 the all-Acorn check: in a real run that boss drains instead. **Cause:** ×1.3 speed per lap with no cap (it crossed
 the route between two shots). Capped at 3 laps (×2.2) in 8603af1b; real runs never reach lap 4.
 
