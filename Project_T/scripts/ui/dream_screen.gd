@@ -182,6 +182,19 @@ func _make_card(card: UpgradeData) -> Button:
 	gem.draw.connect(func() -> void: UiStyle.draw_gem(gem, gem.size / 2.0, 13.0, card.rarity, glyph))
 	gem_row.add_child(gem)
 	gem_row.add_child(rarity)
+	if card.tags.has("defining"):  # Build-defining (dream_design.md de439ea8): a small mark at the frame's corner, no numbers
+		var corner := Control.new()
+		corner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		corner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		gem_row.add_child(corner)
+		var build := Label.new()  # Words for now; UI Asset's glyph replaces them
+		build.name = "BuildMark"
+		build.text = "Build"
+		UiStyle.caps(build, 13, UiStyle.GOLD)
+		build.tooltip_text = "Build around it: changes what you plant next."
+		build.mouse_filter = Control.MOUSE_FILTER_PASS  # Its own tip; a click still takes the card
+		build.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		gem_row.add_child(build)
 	box.add_child(gem_row)
 	var name_label := Label.new()
 	name_label.text = card.display_name
