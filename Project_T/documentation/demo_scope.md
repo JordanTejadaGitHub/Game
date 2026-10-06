@@ -5,6 +5,15 @@ and runs follow the 100-drift structure (`run_design.md`). The demo's job: **tur
 wishlists** (Steam Next Fest and before it). It should show both hooks (`pitch.md`) and a
 replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 
+
+## Decisions 2026-10-06 (user; these override the sections below where they disagree)
+- **The demo ends at drift 50.** Acts 1–2, two bosses (the Hollow Stag at 25, the Mire Hag at 50), about 45–60 min. Dispelling the Mire Hag ends the run with the demo ending (*"Deeper in the dream, something larger stirs…"*), Seeds banked, the Wishlist button and the Grove teaser. Acts 3–4 are a reason to buy. (Replaces "the demo runs all 100 drifts".)
+- **The demo plays by the current game rules**: Heartwood's Gifts at the drift 25 act break, today's Dream pool ("fewer, bigger cards"), prices, the room-to-maze map, half cells, the current difficulty curve. Only the content is limited (the 4 demo families, no Memory Grove spending, the Full game showcase). `DriftDirector.DEMO_RULES` and the old branch set retire. Balancing re-tunes acts 1–2 for the demo on these rules.
+- **Fixed bosses:** always the Hollow Stag and the Mire Hag (no boss pools in the demo). Closes the open question below.
+- Family picks: after drift 1 and after the drift 25 boss. Dreams: after drifts 5, 10, … 45 (9 per run, the boss Dream Rare+). Omens from drift 10 as in the full game.
+- Only acts 1–2 nightmares need finished art and sound for the public demo.
+- Mobile's free tier is this same 50-drift demo (mobile_plan.md).
+
 ## Shape
 
 - **Now (2026-09-27, user decision): the demo runs all 100 drifts**, like the full game: the Hollow
