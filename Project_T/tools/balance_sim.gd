@@ -80,6 +80,9 @@ var wall_first := true  # --no-wall-first: the opening plants attackers first (t
 const WALL_FIRST_ROUTE := 45
 var wall_first_keep := 5  # --wall-first-keep=N: wall-first waits until N attackers are planted (the opening rule's 5 Sprouts; 0 = walls before any: on 60 Dew that left 2 Sprouts and drift 1 leaked)
 var _wall_first_stuck := -2  # drifts_started when no wall added route (wall-first rests until the next drift)
+var walls_keep_going := false  # --walls-keep-going (Balancing, Room to maze "a player who walls"): past the opening, Thornwall chains whenever each wall adds KEEP_GOING_CELLS+ route cells, before grows and ranks
+const KEEP_GOING_CELLS := 2
+var _keep_going_stuck := -2
 var half_pref := true  # --no-half-pref: full cells only on the half grid (the bot before 2026-10-04)
 var pair_search := true  # --no-pair-search: the half-grid wall search weighs single walls only (greedy, the bot of 0596eb94)
 const PAIR_FIRSTS := 40  # Pair lookahead: the best single walls tried as a pair's first
@@ -201,6 +204,7 @@ func _run() -> void:
 			"--no-carry-pref": carry_pref = false
 			"--no-fence-pref": fence_pref = false
 			"--no-wall-first": wall_first = false
+			"--walls-keep-going": walls_keep_going = true
 			"--wall-first-keep": wall_first_keep = int(value)
 			"--no-half-pref": half_pref = false
 			"--no-pair-search": pair_search = false
@@ -712,6 +716,8 @@ func _next_buy() -> String:
 		return "plant"
 	if walls < int(attackers * plan.walls) and _plant_wall():
 		return "walls"
+	if walls_keep_going and attackers >= wall_first_keep and _walls_keep_going():
+		return "walls"
 	if _grow():
 		_save_since = -1  # The saver got its growth
 		return "grow"
@@ -759,6 +765,21 @@ func _wall_first() -> bool:
 		placed = 1
 	if placed == 0:
 		_wall_first_stuck = director.drifts_started
+	return placed > 0
+
+# --walls-keep-going: one Thornwall chain whose walls add at least KEEP_GOING_CELLS route cells each (route points
+# are half steps: 2 per cell). Not again this drift once none does.
+func _walls_keep_going() -> bool:
+	if _keep_going_stuck == director.drifts_started:
+		return false
+	var wall: TowerData = load("res://resource/tower/thornwall.tres")
+	var cost: int = placer.get_cost(wall)
+	if not run_state.can_afford(cost) or not (_half_mode() and placer.half_placement()):
+		return false
+	placer.tower_data = wall
+	var placed := _plant_wall_chain(run_state.dew, 2.0 * KEEP_GOING_CELLS / cost)
+	if placed == 0:
+		_keep_going_stuck = director.drifts_started
 	return placed > 0
 
 # Dew for the cheapest growth open to a Warden on the map (0 = none).
@@ -905,7 +926,7 @@ func _half_wall_open(origin: Vector2) -> bool:
 # (0 = no chain adds route).
 const WALL_CHAINS := [1, 2, 3]
 
-func _plant_wall_chain(left: int) -> int:
+func _plant_wall_chain(left: int, min_rate := 0.0) -> int:
 	var wall: TowerData = placer.tower_data
 	var cost: int = placer.get_cost(wall)
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
@@ -936,7 +957,7 @@ func _plant_wall_chain(left: int) -> int:
 				if new_route.is_empty():
 					break
 				var rate: float = float(new_route.size() - route.size()) / (length * cost)
-				if rate > best_rate and map.can_block_halves(halves, walkers):
+				if rate > best_rate and rate >= min_rate and map.can_block_halves(halves, walkers):
 					best_rate = rate
 					best = chain.duplicate()
 	var placed := 0
