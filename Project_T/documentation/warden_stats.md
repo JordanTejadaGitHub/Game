@@ -264,14 +264,14 @@ Wardens don't repeat the faults:
 | Bellflower, Silver / Vesper Bell, Great Bell | Deep | capped at rank 1 (slow floor) | rule 3: Deep **lengthens Drowsy** (× Potency) |
 | Lanternmoth | Deep | capped at rank 3 (Exposed 40%) | rule 3: past the cap, longer Exposed |
 | Maelstrom (Undercurrent too) | Deep | link share capped at rank 1 (Undercurrent rank 4) | Deep = **+1 linked nightmare per rank** (6 → 11, Maelstrom 8 → 13*); the share is fixed |
-| Rootcurl / Long Way Home | Deep | pull capped at rank 2 | Deep = **+0.25 tiles of pull per rank** (added, no cap: 1 → 2.25, Long Way Home 4 → 5.25*) |
+| Rootcurl / Long Way Home | Deep | pull capped at rank 2 | Deep = **more pull per rank**, added, no cap (Balancing: Rootcurl +0.2 → 2.0, Long Way Home +0.5 → 6.5) |
 | Groundroot / Earthbind | Deep | grounded time capped at rank 3 | rule 2: grounded 3 s × Potency, cap 6.75 s* |
 | Hushbell / Silence | Deep | bosses only, capped at rank 2 | Deep = **silence lingers** +0.4 s per rank* after a nightmare leaves (Hushbell too); the boss slow floor stays 0.35 |
 | Jarlink / Lightning Fence | Swift | **bug:** only one jar's speed counted | the arc ticks at the **average** of the pair's speeds, so nurturing either jar helps; the panel shows the pair's new tick |
 | Jarlink / Lightning Fence | Reach | dead ranks 1–3 | rule 1 |
 | Sunpetal / Midsummer | Swift | dominated by Power (the ramp ignored it) | Swift = **the beam ramps faster** (+12% ramp speed per rank*) |
 | Jetreed / Torrent | Power | didn't scale the max-health share | **Power scales the share too**, as designed (the code follows the doc) |
-| Dreamcatcher / Great Dreamcatcher | Power | near-dead (a small shot) | Power → **Strong**: Caught statuses tick +5% per rank* (Great's +25% adds) |
+| Dreamcatcher / Great Dreamcatcher | Power | near-dead (a small shot) | Power → **Strong**: Caught statuses tick **+10%** per rank (Balancing; Great's +25% adds) |
 | Graftling / Grafted Elder | Deep | dead when the copied Warden has no status | build the grey-out: "its copy applies no status" |
 | Prism Jar, Nurse Log, Elder Stump / Grove Heart | Wide | dead on alternate ranks | rule 1 |
 | Mother Log | Strong | capped by rank 2 (discount cap 40%) | rule 2: Balancing re-sets base and cap so five Strong ranks reach it* |
@@ -286,7 +286,7 @@ Wardens don't repeat the faults:
 on-hit it's simply worse. Swift still wins wherever hits carry something (statuses, crit rolls,
 Reactions, cycles of abilities), so it's not dead. **Proposal to Balancing Discussion: Swift +15% per
 rank** (its "faster cycle" now does more work than raw damage, and the ×1.45 attack speed at rank V
-stays inside the timers' cooldowns)*.
+stays inside the timers' cooldowns). **Decided: Swift +15%** (Balancing Discussion, 22aa03f9). Mother Log's discount cap 50%, Nurse Log 40%; Sunpetal ramp +15% per Swift rank; Dream Oak shard bonus trimmed to +0.3.
 
 **(Replaced by Nurture v3 above.) Ranks III–V need a Nurture Dream** (2026-09-28, user: "the maze aspect is getting lost with a
 few strong Wardens through upgrades… focusing on strong Wardens should only happen when you get the
