@@ -891,7 +891,7 @@ Watchtower 2 s linger, Relentless on tick dispels (still ≤ once per 0.5 s): wa
 
 **Maze cards made conditional (dream_design.md 7fc0665c):** Winding Path **+1 Dew per 2 reached path tiles**
 (each once; ≈ +10% of a run's Dew; per 5 fell to ~3%). Hedge Maze **+5% per touching Thornwall, up to +30%**
-(twig half; typical +10–20%).
+(twig half; typical +10–20%). **II: +8% per wall, up to +48%** (Deepened 1.6× floor; 7.5 / 45 was 1.5×).
 
 ## Shape cards 262–264 (dream_design.md e4d17195, Uncommon, defining)
 
