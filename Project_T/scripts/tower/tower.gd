@@ -464,6 +464,36 @@ func _update_surge(delta: float) -> void:
 			swell.z_index = -1
 		signature_fired.emit(self, Signatures.SURGE)
 
+var _crush_hits := 0
+
+# Crushing: every 5th hit (its own hits, not effect ticks) lands x2 and strips 25% of the dread shell. Returns the
+# hit multiplier.
+func _crushing(enemy: Node2D) -> float:
+	_crush_hits += 1
+	if _crush_hits % Signatures.CRUSH_EVERY != 0:
+		return 1.0
+	if enemy.coat > 0.0:
+		enemy.coat = maxf(enemy.coat - enemy.coat_max * Signatures.CRUSH_SHELL, 0.0)
+	signature_fired.emit(self, Signatures.CRUSHING)
+	return Signatures.CRUSH_MULTIPLIER
+
+# After a hit landed: Executioner (a crit under 20% health dispels a normal nightmare) and Relentless.
+func _signature_after_hit(enemy: Node2D, sig: StringName, is_crit: bool) -> void:
+	if not is_instance_valid(enemy):
+		return
+	if sig == Signatures.EXECUTIONER and is_crit and not enemy.is_cleansed and not enemy.unkillable \
+			and not enemy.enemy_data.is_boss and not enemy.elite and enemy.max_health > 0 \
+			and float(enemy.health) < enemy.max_health * Signatures.EXECUTE_BELOW:
+		# Exactly what's left (through its family and damage-taken multipliers), past the shell: the log stays honest.
+		var line := tower_data.line
+		var through: float = enemy.enemy_data.get_soothe_multiplier(line, false) * enemy.statuses.get_damage_taken_multiplier() \
+			* enemy.get_pack_multiplier()
+		enemy.pierce_coat_once = true
+		enemy.take_damage((enemy.health + 1.0) / maxf(through, 0.01), line, false, false, self, &"executed")
+		signature_fired.emit(self, Signatures.EXECUTIONER)
+	if sig == Signatures.RELENTLESS and enemy.is_cleansed:
+		_relentless()
+
 # Relentless: a dispel by this Warden starts its next cycle at once (attack, timed ability), at most every 0.5 s.
 func _relentless() -> void:
 	if _anim_time - _relentless_at < Signatures.RELENTLESS_GAP:
@@ -708,6 +738,15 @@ func _process(delta: float) -> void:
 		return
 	if _dream_state and _has_rule(ShapeCards.SAP_RISING) and ShapeCards.is_support(tower_data):
 		_update_sap(delta)  # Sap Rising
+	if rank >= Signatures.SHARED_RANK:
+		var sig := signature()
+		if sig == Signatures.WATCHTOWER:
+			_update_watchtower(delta)
+		elif sig == Signatures.SURGE:
+			_update_surge(delta)
+		elif _surging:
+			_surging = false  # Lost the signature mid-surge
+			_nudge_neighbours()
 	if tower_data.caught_bonus > 0.0:
 		_update_catch(delta)  # Dreamcatchers catch sleepy nightmares whether or not they're shooting
 	if attack_data.ability_every > 0.0:
@@ -803,6 +842,9 @@ func _final_damage_multiplier() -> float:
 
 # Withering Oak: the Warden withers for `seconds` (grey, no attacks), then comes back unharmed.
 func wither(seconds: float) -> void:
+	if is_sheltered():
+		signature_fired.emit(self, Signatures.SHELTER)  # Shelter: the aura keeps it green
+		return
 	withered_left = maxf(withered_left, seconds)
 	sprite.self_modulate = WITHERED_TINT
 
@@ -844,7 +886,8 @@ func _compute_attacks_per_second() -> float:
 	var bonus := speed * dreams * (1.0 + _aura_speed) * omen * (1.0 + _gift_bonus(&"speed"))  # Gift: Bell Stone
 	if _dream_state and _has_rule(&"whirlwind_heart"):
 		bonus = GroveRules.whirlwind(self, bonus)  # Whirlwind Heart: the bonus part counts double
-	var aps := attack_data.attacks_per_second * bonus * dim_multiplier \
+	var dim := 1.0 if dim_multiplier < 1.0 and is_sheltered() else dim_multiplier  # Shelter: no cold-lantern dimming
+	var aps := attack_data.attacks_per_second * bonus * dim \
 		* (get_wall_multiplier() if attack_data.damage <= 0 else 1.0)  # Honeysuckle: Bramble Oath, The Quiet Ones
 	return aps
 
@@ -1588,6 +1631,8 @@ func get_aura_bonus(speed: bool) -> float:
 	var bonus := base + get_aura_extra()
 	if _rule_stacks(&"shared_light") > 0:
 		bonus *= 1.0 + SHARED_LIGHT * _rule_power(&"shared_light")
+	if _surging:
+		bonus *= Signatures.SURGE_MULTIPLIER  # Surge: x2 for 2 s every 10 s
 	return bonus * get_quiet_multiplier()
 
 # Bramble Oath (Seed card): Bramble and Honeysuckle 50% stronger (Bramble's damage, Honeysuckle's
@@ -2144,6 +2189,9 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	if _dream_state:
 		# First Light, Last Stand, Hunter's Patience, Bitter Hedges (tracked inside: once per hit).
 		soothe *= _dream_state.on_hit_multiplier(self, enemy)
+	var sig: StringName = signature() if rank >= Signatures.SHARED_RANK else &""
+	if sig == Signatures.CRUSHING and combo == &"":
+		soothe *= _crushing(enemy)  # Crushing: every 5th hit x2, cracks the shell
 	# Reactions that change a hit: Pinned (a guaranteed ×3 crit) and Shatter (×2.5, shards).
 	var reaction := Reactions.before_hit(enemy, self, is_crit)
 	is_crit = reaction.crit
@@ -2163,6 +2211,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		_kin_fired(&"flock_together")
 	if is_crit and _dream_state:
 		crit_multiplier += _dream_state.get_crit_overflow_multiplier(get_raw_crit_chance(enemy))  # Full Moon
+	if is_crit and sig == Signatures.EXECUTIONER and (enemy.enemy_data.is_boss or enemy.elite):
+		crit_multiplier *= Signatures.EXECUTE_BIG  # Executioner: bosses and elites take the crit x1.5 instead
 	var non_crit := 1.0
 	if not is_crit and _dream_state:
 		non_crit = _dream_state.get_non_crit_multiplier()  # Reckless Bloom
@@ -2174,6 +2224,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	enemy.take_damage(dealt, damage_line, is_area, is_crit, self, combo)
 	if attack_data.special != &"" and enemy.is_cleansed:
 		BranchKit.on_finish(self, enemy, dealt - health_before)  # Edgestone's Clean cut: the overkill spills on
+	if sig != &"":
+		_signature_after_hit(enemy, sig, is_crit)  # Executioner, Relentless
 	if enemy.has_meta(BranchKit.LINK_META):
 		BranchKit.share_hit(enemy, dealt, self)  # Undercurrent's current: a share reaches the other linked nightmares
 	if _dream_state and is_instance_valid(enemy) and not enemy.is_cleansed:

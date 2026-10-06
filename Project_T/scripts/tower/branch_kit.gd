@@ -1111,6 +1111,9 @@ static func on_drift_cleared(tower: Tower) -> void:
 			var shards := 1 + mini(_families_near(tower, p(tower, "family_reach", 2.5) + NurtureChoices.WIDE_STEP * tower.choice_count(Tower.Focus.WIDE)), int(p(tower, "family_max", 3.0)))
 			# Yield: +0.5 shard a drift per rank (the fraction carries).
 			var extra := float(tower.get_meta(&"yield_carry", 0.0)) + NurtureChoices.YIELD_SHARDS * tower.choice_count(Tower.Focus.YIELD)
+			if tower.signature() == Signatures.FIRSTBORN:
+				extra += shards * (Signatures.FIRSTBORN_SHARDS - 1.0)  # Firstborn: shards x1.5 (the fraction carries)
+				tower.signature_fired.emit(tower, Signatures.FIRSTBORN)
 			shards += int(extra)
 			tower.set_meta(&"yield_carry", extra - int(extra))
 			tower.set_meta(&"block_shards", int(tower.get_meta(&"block_shards", 0)) + shards)
@@ -1184,6 +1187,9 @@ static func seed_planted(seedbearer: Tower, sprout: Tower) -> void:
 			and Tower._kin_roll(nursery):
 		ranks = maxi(ranks, 1)
 		seedbearer._kin_fired(NURSERY)
+	if seedbearer.signature() == Signatures.FIRSTBORN:
+		ranks += Signatures.FIRSTBORN_RANKS  # Firstborn: its Sprouts arrive one rank up (Grove Keeper's at III)
+		seedbearer.signature_fired.emit(seedbearer, Signatures.FIRSTBORN)
 	_grant_ranks(sprout, ranks)
 	_fx(&"sprout_puff", sprout.global_position, world(seedbearer))
 	seedbearer.queue_redraw()
@@ -1370,7 +1376,8 @@ class BroodSprite extends Node2D:
 		if enemy.has_method("is_hidden") and enemy.is_hidden():
 			enemy.reveal_for(2.0)  # Bumped into a Lurker: it shows itself
 		var stacks := int(BranchKit.p(tower, "spored", 2))
-		tower.hit(enemy, ShapeCards.hands(tower), true)  # Small Hands: +35%
+		var firstborn := Signatures.FIRSTBORN_BURST if tower.signature() == Signatures.FIRSTBORN else 1.0  # Firstborn: +50% burst
+		tower.hit(enemy, ShapeCards.hands(tower) * firstborn, true)  # Small Hands: +35%
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
 			enemy.apply_status(EnemyStatuses.SPORED, stacks, 0.0, tower.get_damage() * Tower.SPORE_POTENCY, 0, "spore", tower)
 			# Crusted Brood (b): its sprites also eat dread shell.
