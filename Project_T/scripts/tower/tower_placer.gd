@@ -175,6 +175,8 @@ func _draw_settling() -> void:
 func set_build_mode(active: bool) -> void:
 	if not active and stroking:
 		cancel_stroke()
+	if not active:
+		_shift_chain = false
 	build_mode = active
 	Tower.set_badges_visible(&"build", active)  # Card badges show in build mode
 	_update_visible()
@@ -219,6 +221,11 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _shift_chain and event is InputEventKey and event.keycode == KEY_SHIFT and not event.pressed:
+		_shift_chain = false  # Shift let go after a placement: disarm (unless a line is being dragged)
+		if build_mode and not stroking and not keep_building:
+			set_build_mode(false)
+		return
 	if event.is_action_pressed("toggle_build_mode"):
 		set_build_mode(not build_mode)
 		get_viewport().set_input_as_handled()
@@ -233,7 +240,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("place_tower"):
 		_update_hover()  # Placement feel: the click places where the cursor is this frame
 		if tower_data.footprint > 1:
-			_try_build(_hover_cell)  # Big Wardens: one per click
+			after_player_placement(_try_build(_hover_cell))  # Big Wardens: one per click
 		else:
 			begin_stroke(_hover_cell)  # A click is a stroke of one; dragging adds cells
 		get_viewport().set_input_as_handled()
@@ -759,7 +766,7 @@ func _draw_kin_spots() -> void:
 # "within 2 cells" is something the player can see. Cells count as a square (Chebyshev).
 # Jarlink's build ghost: the arc to the jar it would link with (BranchKit.fence_partner_at) and the cells it covers.
 func _draw_fence_preview() -> void:
-	var reach := float(tower_data.special_params.get("link_range", 4.0))
+	var reach := float(tower_data.special_params.get("link_range", 4.5))
 	var partner := BranchKit.fence_partner_at(self, _hover_cell, reach)
 	draw_set_transform(Vector2.ZERO)
 	var here := to_local(MAP_GRID.calculate_map_position(_hover_cell))
@@ -1722,9 +1729,16 @@ func plant_stroke() -> int:
 	var cells := _stroke.filter(func(c: Vector2) -> bool: return _stroke_plan.get(c, "x") == "")
 	stroking = false  # So the builds below refresh the preview normally
 	var planted := 0
+	# One route update for the whole stroke (Environment, maze perf budget): each wall is still checked on the live
+	# grid; the route is redrawn and walkers re-routed once, at release.
+	var hold := map_generator.has_method("hold_route")
+	if hold:
+		map_generator.hold_route()
 	for c in cells:
 		if (_try_build_half(c) if half_placement() else _try_build(c)):
 			planted += 1
+	if hold:
+		map_generator.release_route()
 	if planted == 0 and not _stroke.is_empty():
 		build_rejected.emit(_stroke[0])  # A click on a cell that can't take it (the sound)
 	_stroke.clear()
@@ -1753,6 +1767,31 @@ func get_stroke_tag() -> String:
 		tag += " · %d skipped" % skipped
 	return tag
 
+# Build flow (user 2026-10-05, maze_feel.md: "Shift to keep going", Tropical Tower Wars): a player's placement (a click,
+# a dragged line, a big Warden) disarms build mode afterwards; the Warden stays selected in the bar, so its hotkey or a
+# click re-arms it. Holding Shift keeps it armed, and letting go of Shift after a placement disarms. Touch has no
+# Shift: the HUD's "keep building" pin sets keep_building (platforms.md: nothing keyboard-only).
+signal keep_building_changed(on: bool)
+var keep_building := false
+var _shift_chain := false  # Armed by Shift after a placement: letting go of Shift disarms
+
+func set_keep_building(on: bool) -> void:
+	if keep_building != on:
+		keep_building = on
+		keep_building_changed.emit(on)
+
+# Called after a player's placement (input paths and the touch Plant button; tests calling _try_build / plant_stroke
+# directly stay armed).
+func after_player_placement(placed: bool) -> void:
+	if not placed or not build_mode:
+		return
+	if Input.is_key_pressed(KEY_SHIFT):
+		_shift_chain = true
+		return
+	if keep_building:
+		return
+	set_build_mode(false)
+
 func _stroke_input(event: InputEvent) -> void:
 	if event.is_action_pressed("cancel_build"):
 		cancel_stroke()
@@ -1761,7 +1800,7 @@ func _stroke_input(event: InputEvent) -> void:
 		# (Over a HUD button, e.g. touch's Plant: an emulated nudge mustn't extend the stroke.)
 		extend_stroke(origin_at(get_global_mouse_position()) if half_placement() else MAP_GRID.calculate_grid_coordinates(get_global_mouse_position()), event.alt_pressed)
 	elif event.is_action_released("place_tower") and confirm_on_release:
-		plant_stroke()
+		after_player_placement(plant_stroke() > 0)  # A click or a dragged line is one placement
 		get_viewport().set_input_as_handled()
 
 # Half-cell strokes: the stroke holds half origins, a Warden's width (2 halves) apart.
@@ -1939,7 +1978,8 @@ func _walker_cells() -> PackedVector2Array:
 	var cells := PackedVector2Array()
 	for enemy in enemy_spawner.get_maze_walkers():
 		var target: Vector2 = enemy.get_target_cell()
-		if not map_generator.get_path_from(target).is_empty():
+		# One flood fill per grid change (Environment, maze perf budget); the old A* until their MapGenerator lands
+		if (map_generator.has_route_from(target) if map_generator.has_method("has_route_from") else not map_generator.get_path_from(target).is_empty()):
 			cells.append(target)
 	return cells
 
