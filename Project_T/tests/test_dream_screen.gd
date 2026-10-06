@@ -322,11 +322,19 @@ func _test_arm_delay(dreams: DreamState, screen, main: Node) -> void:
 	for i in 20:
 		await process_frame
 	_check(is_equal_approx(screen._cards.modulate.a, 1.0), "the cards are fully in")
+	# No impact or count preview on a card (user: "don't want to be too direct… how many it affects")
+	_check(screen._cards.find_children("ImpactLine", "", true, false).is_empty() and screen._cards.find_children("LiveLine", "", true, false).is_empty(),
+		"the cards show no impact or count line")
 	_click(at, true)
 	await process_frame
 	_click(at, false)
 	await process_frame
-	_check(dreams.stacks.has(offer[0].id), "a press and release after arming picks the card")
+	var flying := screen._cards.get_child(0) as Control
+	_check(not dreams.stacks.has(offer[0].id) and (flying.top_level or Fx.setting("reduced_motion", false)),
+		"the picked card flies to the Dreams row before it's taken")
+	for i in int(screen.FLY_TIME * 60.0) + 15:  # The card flies into the Dreams row first (screens_ui.md "Dream" ecbea61a)
+		await process_frame
+	_check(dreams.stacks.has(offer[0].id), "a press and release after arming picks the card (after its flight)")
 	# Omens: right-click (Clear Skies) waits too: a right-click cancelling build mode as the rest begins isn't a pick
 	var omen_screen = main.get_node("HUD/OmenScreen")
 	var omens = main.get_node("%OmenDirector")

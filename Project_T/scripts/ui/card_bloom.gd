@@ -25,14 +25,45 @@ func _ready() -> void:
 func bloom(card: UpgradeData, towers: Array) -> void:
 	_still = bool(Fx.setting("reduced_motion", false))
 	var live: Array = towers.filter(func(t) -> bool: return is_instance_valid(t) and t is Node2D)
-	if live.is_empty():
-		return  # Affects nothing yet: the card just goes to the row
-	var step := 0.0 if _still else minf(STAGGER_MAX, STAGGER_TOTAL / live.size())
+	var heart := _heartwood_position()
 	var now := Time.get_ticks_msec()
+	if live.is_empty():
+		# A rule card (screens_ui.md "Dream" ecbea61a): what it changes pulses instead: the Heartwood, and the Dew
+		# counter for an economy card. No numbers anywhere.
+		if heart != Vector2.INF:
+			pulses.append({"pos": heart, "at": now, "colour": UiStyle.rarity_color(card.rarity), "card": card})
+		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)
+		if dreams != null and dreams.has_method("preview_card_impact") and dreams.preview_card_impact(card).get("kind") == &"economy":
+			_pulse_counter("%DewLabel")
+		queue_redraw()
+		return
+	if heart != Vector2.INF:  # Staggered from the Heartwood out (screens_ui.md "Dream")
+		live.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+			return a.global_position.distance_squared_to(heart) < b.global_position.distance_squared_to(heart))
+	var step := 0.0 if _still else minf(STAGGER_MAX, STAGGER_TOTAL / live.size())
 	for i in live.size():
 		pulses.append({"pos": (live[i] as Node2D).global_position, "at": now + roundi(i * step * 1000.0),
 			"colour": UiStyle.rarity_color(card.rarity), "card": card})
 	queue_redraw()
+
+func _heartwood_position() -> Vector2:
+	var heart := get_tree().root.find_child("Heartwood", true, false) as Node2D
+	return heart.global_position if heart != null else Vector2.INF
+
+# A HUD counter's once-over: a warm swell (reduced motion: the same, no scale).
+func _pulse_counter(path: String) -> void:
+	var counter := get_parent().get_node_or_null(path) as Control if get_parent() != null else null
+	if counter == null:
+		return
+	counter.pivot_offset = counter.size / 2.0
+	var tween := counter.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tween.set_parallel(true)
+	tween.tween_property(counter, "modulate", Color(1.4, 1.3, 1.05, 1.0), 0.15)  # multiplier: the swell
+	if not _still:
+		tween.tween_property(counter, "scale", Vector2(1.15, 1.15), 0.15)
+	tween.chain().set_parallel(true)
+	tween.tween_property(counter, "modulate", Color.WHITE, 0.35)
+	tween.tween_property(counter, "scale", Vector2.ONE, 0.35)
 
 func _process(_delta: float) -> void:
 	if pulses.is_empty():
