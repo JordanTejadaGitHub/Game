@@ -391,9 +391,11 @@ of filling it.
 - **The frame band** (the outer 3 cells): groves, rock clusters, the feature and ridge roots live here. It should
   read as the forest's edge closing in around a clearing, which also suits the dark fairytale (the dream's lit
   clearing, the nightmares' dark woods).
-- **Ridges become spurs:** 2 short spurs from the frame into the bowl, each reaching **at most ~35%** across, still
-  alternating sides so the opening route has its one guaranteed bend. They taper as now. Blight 9's extra ridge
-  becomes a third spur.
+- **Ridges become spurs** (user, 2026-10-05: *"keep at least one bend but clear some obstacles"*): **one bend
+  spur** from the start's side reaches just far enough to cut the start→Heartwood box and force the bend (+4)
+  (median ~67% across, capped at ~75%). It is a thin, gap-free, tapering line of single obstacles, clearable as
+  usual (a big shortcut later). Any other spur stays ≤ ~35%. Blight 9 adds one more short spur. The obstacle count
+  stays 30–40 by thinning the band, not the bend spur.
 - **The feature** (pond, ruin, grove, log) sits in the frame band or straddling its inner edge, never in the bowl's
   middle. Keep the near-route rule only where the route runs through the band (the start's approach), so it still
   shapes the opening.
