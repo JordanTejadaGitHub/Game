@@ -220,10 +220,10 @@ func _run() -> void:
 	var scarecrow := _still("scarecrow", route[8])
 	scarecrow._path_index = 9  # Walking from route[8] to route[9] (its target cell)
 	scarecrow.take_damage(scarecrow.max_health * 0.21)
-	_check(_count(crow_data) == 4, "4 Crows burst out at 80%% (%d)" % _count(crow_data))
+	_check(_count(crow_data) == 2, "2 Crows burst out at 80%% (%d; Balancing, human run 20)" % _count(crow_data))
 	_check(scarecrow.sprite.animation == &"burst", "and its coat flies open (the burst pose)")
 	scarecrow.take_damage(scarecrow.max_health * 0.4)
-	_check(_count(crow_data) == 12, "4 more at 60%% and 40%% (%d)" % _count(crow_data))
+	_check(_count(crow_data) == 6, "2 more at 60%% and 40%% (%d)" % _count(crow_data))
 	_check(crow_data.leaf_cost == 1, "each Crow that gets through takes 1 leaf (human run 12)")
 	var crows := spawner.get_children().filter(func(e) -> bool: return e.enemy_data == crow_data)
 	var airborne := true
