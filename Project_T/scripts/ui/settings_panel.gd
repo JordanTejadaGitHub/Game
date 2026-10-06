@@ -120,6 +120,7 @@ func _ready() -> void:
 	# Placement grid in build mode (Tower Code 0bc2b870, half_cells.md "Placement feel"): whole-cell lines over buildable
 	# ground, half lines near the ghost.
 	_choice(display, "Placement grid", "placement_grid", ["On", "Near cursor", "Off"], 0)
+	_environment_detail(display)
 	_keepsake_toggles(display)
 
 	var gameplay := _tab("Gameplay")
@@ -481,6 +482,22 @@ func _dot(parent: Control) -> Label:
 	dot.tooltip_text = "Changed: Apply to keep it."
 	parent.add_child(dot)
 	return dot
+
+# Environment detail (Environment Code bfebccbe, mobile_plan.md): the setting is -1 Auto (Low on phones and tablets),
+# 0 Full, 1 Low; the box lists Auto / Full / Low in that order.
+func _environment_detail(box: VBoxContainer) -> void:
+	var key := EnvironmentTiles.DETAIL_SETTING
+	var row := _label_row("Environment detail", key)
+	var pick := OptionButton.new()
+	for option in ["Auto", "Full", "Low"]:
+		pick.add_item(option)
+	pick.set_item_tooltip(0, "Low on phones and tablets, Full elsewhere.")
+	pick.set_item_tooltip(2, "Still fog and mist, fewer particles: lighter on phones and older machines.")
+	pick.focus_mode = Control.FOCUS_NONE
+	pick.item_selected.connect(func(index: int) -> void: _set_value(key, index - 1))
+	_put_pick(row, pick)
+	box.add_child(row)
+	_register(key, -1, func() -> void: pick.selected = clampi(int(_value(key)) + 1, 0, 2))
 
 func _choice(box: VBoxContainer, text: String, key: String, options: Array, default: int = 1) -> OptionButton:
 	var row := _label_row(text, key)
