@@ -5,9 +5,9 @@ free-to-try + one unlock model). Engine stays **Godot** (Android and iOS exports
 platform, possibly launched first.
 
 ## Business model
-- **Free to try, one purchase unlocks the full game.** The free tier is the demo (`game/demo`: acts 1–2, the 4 demo
-  families, the Grove teaser, the "Full game" showcase). One in-app purchase (~$4.99–7.99) unlocks the full game: all
-  acts, the Memory Grove and every family. No ads, no consumables, no paid Grove speed-ups (they'd push the Grove to
+- **Free to try, one purchase unlocks the full game.** The free tier is the demo (`game/demo`, demo_scope.md: the full
+  100-drift run with the 4 demo families, no meta progression, the Grove teaser, the "Full game" showcase). One in-app
+  purchase (~$4.99–7.99) unlocks the full game: the Memory Grove, every family, boss pools, Blight Levels and Memories. No ads, no consumables, no paid Grove speed-ups (they'd push the Grove to
   feel grindy).
 - The unlock offer appears at natural moments only: the demo ending, the Grove teaser, and a "Full game" item in the
   Codex. Never a timer or a nag.
