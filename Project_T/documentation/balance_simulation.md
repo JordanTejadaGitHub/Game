@@ -916,6 +916,10 @@ spender 50%, skip 16%, half default 30% (no-card reference on the same maps: 53 
 (fresh dies in act 2, on target; too few act 2 offers to read the defining rule). Combo share act 1 / 2: 0.16 /
 0.33. The bot took Thorny Walls 22 of 28 and First Frost 1 of 34, which reads as its policy's scores. Default's −17
 is on the edge of noise: 30 more seeds on both builds, and a check of how the policy scores Thorny Walls.
+**Cause found:** the bot's card policy scores tags only (×10 + rarity), never effect size: Thorny Walls 10, Glinting
+Dew 11, Deeper Calm and Quickened Sap 1, First Frost 0. Every tagged card beats every plain stat card, which has
+held the balanced bot's stat picks down all along. Next: a Thorny Walls override arm, then effect-size scoring
+(`--card-value`, damage-equivalent % × k) as a flag, A/B, and the default if it picks sensibly.
 
 ## Drawn route and early deaths (19f426c5, 2026-10-05)
 
