@@ -856,7 +856,7 @@ function fern(out, g, x, y, sz = 1) {
 }
 
 function boulder(A, v, seed, big = false) {  // big: variant 0 as a heavy boulder filling most of the cell (see rock)
-  const out = new Img(), L = new Img(), g = A.grass;
+  const out = new Img(), L = new Img(), g = rockMoss(A);
   ellipse(out, 32, big ? 56 : 54, big ? 29 : 22, big ? 7 : 6, SHADOW(big ? .34 : .3));
   const rocks = big ? [[32, 35, 27, 21]] : v === 0 ? [[32, 38, 20, 16]] : [[24, 43, 14, 11], [42, 35, 13, 12]];
   for (const [x, y, rx, ry] of rocks) blob(L, x, y, rx, ry, big ? BIG_STONE : STONE_RAMP, { lump: .1, seed: seed + x, tex: .12, rim: true });
@@ -1577,7 +1577,7 @@ function mossPass(L, cx, cy, rx, ry, g, seed, amount = .78) {
 // big: a heavy boulder filling most of the cell, never shrunk (2026-10-06, Environment Discussion: the shrunk
 // boulders read as dots in the spurs, so spur lines looked like trees only). Split (3) and lichen (4) only.
 function rock(A, t, seed, big = false) {
-  const out = new Img(), L = new Img(), g = A.grass, dim = [g[0], g[0], g[1], g[2], g[3]];
+  const out = new Img(), L = new Img(), g = rockMoss(A), dim = [g[0], g[0], g[1], g[2], g[3]];
   if (big) {
     ellipse(out, 32, 56, 29, 7, SHADOW(.34));
     const [cx, cy, rx, ry] = t === 3 ? [32, 36, 28, 20] : [32, 37, 27, 19];
@@ -2132,6 +2132,9 @@ function ropeBridge(o) {
 // Rocks read smaller than the (taller) dead trees: each finished 64 px rock is shrunk to 68%
 // (nearest pixel), re-outlined, and set back on its old base line (y 55) in a 64 px cell.
 const ROCK_SCALE = .68;
+// The moss on rocks: the act's grass ramp, but a frozen act's frost tops out at Slate, not Mist (2026-10-06, Theme
+// Discussion: act 4's rocks sat only 0.03 under its path; the path must stay clearly the palest thing).
+const rockMoss = A => A.frozen ? [...A.grass.slice(0, 4), A.grass[3]] : A.grass;
 const BIG_STONE = [ST.d2, ST.d1, ST.m, ST.l1, ST.l2];  // the big boulders: one step heavier, no top highlight (keeps rocks under the path)
 function shrinkRock(im) {
   const n = Math.round(64 * ROCK_SCALE), small = new Img(n, n);
