@@ -892,7 +892,9 @@ Watchtower 2 s linger, Relentless on tick dispels (still ≤ once per 0.5 s): wa
 **No-build check (main 2cb0f584, 2-family picks, card-value, invulnerable to 50, 30 seeds):** no recognisable build
 at 26 / 50: **fresh 87% / 20%**, **full 48% / 3%**. Builds form in act 2 (5 picks by 26; the defining slot starts at
 26). Maze is half the formed builds (before the conditional maze cards). Verdict: a floor, **one archetype slot
-at the drift 25 rest** (most-owned archetype), proposed to Roguelite Mechanic; re-measure after.
+at the drift 25 rest** (most-owned archetype), proposed to Roguelite Mechanic; re-measure after. **Declined**
+(it steers toward the build you have; the user wants "adapt to the cards you get"): instead the defining slot starts
+after **drift 10** (bb57665a). Re-measure no-build + act 1 when it lands; look again if fresh no-build at 26 > ~60%.
 
 **Signatures as counters (warden_stats.md ff93b498):** Crushing only on shelled / coated targets (fine).
 Executioner's price "−10% on non-crits" shrinks as crit rises (−3% at 50% crit against a ~+10–15% gain: still
