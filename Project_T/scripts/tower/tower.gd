@@ -3794,23 +3794,21 @@ static var _rules := {}  # rule -> [stacks (uncapped), level]
 
 # Performance: one rule cache for every Warden (the rules are the run's); its key is compared field by
 # field (no array built per call: hits ask several rules each).
-static var _rules_owner := 0
-static var _rules_board := -1
-static var _rules_stacks := -1
+static var _rules_owner: DreamState = null  # Compared by identity (no get_instance_id call)
+static var _rules_stamp := -1  # DreamState.rules_stamp (66e27693): every take / board change / unlock_everything / load
+static var _rules_stacks := -1  # Kept: tests edit stacks / pool by hand without a bump
 static var _rules_pool := -1
-static var _rules_all := false
+const NO_RULE: Array = [0, 0]
 
 func _rule_entry(rule: StringName) -> Array:
 	if _dream_state == null:  # (Typed DreamState: no has_method string lookup per call, perf)
-		return [0, 0]
+		return NO_RULE
 	var ds := _dream_state
-	if _rules_owner != ds.get_instance_id() or _rules_board != ds.board_version or _rules_stacks != ds.stacks.size() \
-			or _rules_pool != ds.pool.size() or _rules_all != ds.unlock_everything:
-		_rules_owner = ds.get_instance_id()
-		_rules_board = ds.board_version
+	if ds != _rules_owner or ds.rules_stamp != _rules_stamp or ds.stacks.size() != _rules_stacks or ds.pool.size() != _rules_pool:
+		_rules_owner = ds
+		_rules_stamp = ds.rules_stamp
 		_rules_stacks = ds.stacks.size()
 		_rules_pool = ds.pool.size()
-		_rules_all = ds.unlock_everything
 		_rules = {}
 	var entry: Array = _rules.get(rule, [])
 	if entry.is_empty():
