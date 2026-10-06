@@ -1824,12 +1824,11 @@ Kinship were the hardest card builds to reach.
     That's the user's "optimal build rarely", and the defining slot keeps a direction on screen.
   - **Maze is still the default:** 32% of emerging runs (The Long Walk another 19%); the next is
     Daring at 16%. So the two universal maze cards become conditional, Bungus-style:
-    - **Winding Path:** "At each {rest}, +1 Dew for every 5 path tiles **within a Warden's reach**."
+    - **Winding Path:** "At each {rest}, +1 Dew for every **2** path tiles **within a Warden's reach**." (each tile counted once; Balancing: per 5 left only ~3% of a run's Dew)
       (Long empty corridors no longer pay.)
-    - **Hedge Maze:** "A Warden deals **4% more damage for each Thornwall touching it** (up to
-      +24%)." (Was +1% per 3 Thornwalls anywhere; now it rewards wall-hugging placement.)
-  - **Kinship 0% is likely a sim artifact:** Kinship cards wait for the profile's first Kinship,
-    and the sim profile may have none. Balancing Code re-checks with discoveries set. Tall is
+    - **Hedge Maze:** "A Warden deals **5% more damage for each Thornwall touching it** (a twig wall counts half; up to
+      +30%)." (Was +1% per 3 Thornwalls anywhere; now it rewards wall-hugging placement.)
+  - **Kinship 0% is a sim artifact, not discovery:** discoveries are on in the sim, but the emergence bot never arranges a Kinship pair, and most Kinship cards need one on the map (`min_kinships`). Close Kin and Old Friends have no such need: they are the doors. Balancing Code gives the emergence bot a pair when its families allow. Tall is
     measured at drift 75 in part 2.
 - **Family gaps** (Meta Game Discussion's matrix, a read, not measured): Acorn lacks Precision,
   Affliction, Swift and Wide Reach doors; Pebbling lacks Overgrowth, Affliction and Swift. Sap
