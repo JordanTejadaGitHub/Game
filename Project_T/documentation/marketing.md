@@ -68,14 +68,16 @@ page points to the Steam page.
 - **What it is:** acts 1–2, ending at **drift 50**, about **45–60 minutes**. Two fixed bosses (the Hollow Stag at 25,
   the Mire Hag at 50), the **4 demo families** (Sporeling, Firefly Jar, Dewdrop, Bellflower) with their branches and
   finals, the current game rules. It ends on *"Deeper in the dream, something larger stirs…"* with the Seeds banked,
-  a Wishlist button and the Memory Grove teaser; the Codex and Grove teaser show full-game content tagged "Full game".
-  The mobile free tier is this same demo.
+  a Wishlist button. **A small Memory Grove** (demo_scope.md cb0e096c): about 8 nodes plantable with demo Seeds (no
+  families), the rest of the tree visible as "Full game", and **the Grove's progress carries into the full game**. Once
+  the demo Grove is full it offers Wishlist (Steam) / Unlock (mobile). The Codex shows full-game content tagged
+  "Full game". The mobile free tier is this same demo.
 - **Demo page text** (Steam's demo page; itch uses the same):
   *Short description:* "Play the first two acts of Heartwood TD: build the maze with your Wardens, find the combos,
-  and face the first two bosses. About an hour; your progress carries into the full game." *(Carry-over is a claim:
-  confirm the save carries before using that clause; otherwise drop it.)*
-  *About:* the Steam About (§6) cut to demo numbers: the 4 families, two acts, two bosses, Dreams at every rest, and
-  "Acts 3 and 4, the Memory Grove and five more Warden families wait in the full game."
+  and face the first two bosses. About an hour, and your Memory Grove carries into the full game."
+  *About:* the Steam About (§6) cut to demo numbers: the 4 families, two acts, two bosses, Dreams at every rest, the
+  first branches of the Memory Grove ("plant them with Seeds from every run; they carry into the full game"), and
+  "Acts 3 and 4, the rest of the Memory Grove and five more Warden families wait in the full game."
 - **Release timing:**
   1. The Steam store page goes live first (wishlists count from then).
   2. **Register for the next Steam Next Fest** as soon as the page is up (Valve's sign-up closes weeks before each
@@ -275,7 +277,7 @@ words of the short description**. Nothing on the page opens with lore or the loo
   say.) To check before it goes up: the boss pools
   (full game draws the boss per act, BossPool) and "six more families" (3 starting + 6 Grove, Tower Code) hold on the
   build that ships. GIFs: Short Form Video, ≤ 3 MB each, 616 px wide (Steam's About column), reusing the short / trailer
-  boards. **Demo page:** a separate About with demo numbers (4 families, acts 1–2, no Grove spending; see §2 "The demo"), never these.
+  boards. **Demo page:** a separate About with demo numbers (4 families, acts 1–2, a small Grove that carries over; see §2 "The demo"), never these.
 - **Tags** (pitch.md's order; the first 5 matter most): Tower Defense, Roguelite, Strategy, Dark Fantasy, Cute, then Pixel
   Graphics, Atmospheric, Procedural Generation, Replay Value, Singleplayer, Steam Deck (once verified). No
   "Deckbuilding-lite": not a Steam tag, and Dream picks aren't a deck.
@@ -519,8 +521,12 @@ the end of each* (check the boss-pool count before claiming more). Full game onl
 ## 11. Mobile (Android / iOS; owned here since 2026-10-06; the build plan is mobile_plan.md)
 
 Model: **free to try, one purchase unlocks the full game** (the free tier is the Steam demo: acts 1–2 to drift 50, the 4 demo families, the
-Grove teaser). No ads, no consumables. The store page sells the full game and says plainly "Free to try. One purchase
-unlocks the full game."
+small Memory Grove of about 8 nodes). No ads, no consumables. The store page sells the full game and says plainly "Free
+to try. One purchase unlocks the full game."
+**Where the unlock is offered** (natural moments only, never a timer or a nag): the demo's ending after the Mire Hag,
+**the demo Grove once it's full** (its progress carries into the full game, so the unlock is "keep growing" rather
+than "start over"; the strongest moment to ask), and the "Full game" items in the Codex. Track which of the three
+converts best during the soft launch.
 
 ### Timing relative to Steam
 1. **Now → Steam page live:** Steam stays first. Wishlists, Next Fest and the PC press are where a premium tower
