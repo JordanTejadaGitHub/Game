@@ -836,6 +836,9 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 | Dream Oak Yield | run cap +1 Dreamlight per rank (4 → 9); shard bonus trimmed +0.5 → **+0.3** per rank |
 | Drowsy / Exposed / Soaked | Drowsy duration × Potency; past a 40% cap, duration × (Potency ÷ Potency at the cap) |
 
+Rule 1 (distance areas, d3cd75c3 / 03880e14): base radii ≥ 2 got +0.5 (Grove Heart, Dream Oak 2.5; Jarlink link 4.5). Radius 2.5 covers
+20 cells vs the old 5×5 square's 24 (−17%); the first Wide rank (2.7 → 2.9) adds the 4 corners back. Accepted.
+
 ## Brood Cap / Hatchery Yield (Tower Discussion 68120c18, 2026-10-05)
 
 Yield = **+1 sprite alive per rank** (cap 4 → 9 at V), nothing else; Swift = hatches faster (+12% a rank). The
