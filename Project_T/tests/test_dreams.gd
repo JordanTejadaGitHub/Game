@@ -798,7 +798,8 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 					dreams._passed_count.clear()
 					dreams._passed_at.clear()
 		results.append(r)
-	# Act 1 boss rest with every Rare faded: never a Legendary (none in act 1); without a Rare the
+	# An act 1 forced-Rare offer (owed one, drift 20: the boss rest after 25 belongs to act 2 now, 495076d2) with every
+	# Rare faded: never a Legendary (none in act 1); without a Rare the
 	# next offer owes one.
 	var legendary := 0
 	dreams._rng.seed = 5
@@ -813,12 +814,13 @@ func _test_few_and_mighty_sim(main: Node) -> void:
 			if card.rarity == UpgradeData.Rarity.RARE:
 				dreams._passed_count[card.id] = 3
 				dreams._passed_at[card.id] = -5
-		var offer := dreams.make_offer(25)
+		dreams._rare_dreams_left = 1
+		var offer := dreams.make_offer(20)
 		legendary += 1 if offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY) else 0
 		if not offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.RARE):
 			fell += 1
 			owed += 1 if dreams._rare_dreams_left == 1 else 0
-	print("act 1 boss rest with every Rare faded ×0.22: fell to Uncommon in %d of 100" % fell)
+	print("act 1 forced Rare with every Rare faded ×0.22: fell to Uncommon in %d of 100" % fell)
 	_check(legendary == 0, "act 1: a faded forced Rare slot never falls to Legendary")
 	_check(fell > 70 and owed == fell, "…one chance per offer (~22%): it falls to Uncommon and the next offer tries for a Rare again")
 	for tower in planted:
@@ -1344,6 +1346,13 @@ func _test_offer_shape(main: Node) -> void:
 		if not dreams.make_offer(15).any(dreams.is_defining):
 			early_without += 1
 	_check(early_without > 0, "before drift 25 there's no such rule (%d of 60 offers had none)" % early_without)
+	# Legendaries as high points (dream_design.md 495076d2): a boss rest belongs to the next act, has a Legendary slot
+	# when one can be offered, and its other slots are Rare+
+	var legend_open := dreams.pool.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY and dreams.can_offer(c, 2)).size()
+	var boss_offer := dreams.make_offer(25)
+	_check(boss_offer.all(func(c: UpgradeData) -> bool: return c.is_rare_or_better()), "a boss rest: every slot Rare+ (%s)" % [boss_offer.map(func(c: UpgradeData) -> String: return c.id)])
+	_check(legend_open == 0 or boss_offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY),
+		"…and a Legendary when one can be offered (%d open, act 2 at the rest after drift 25)" % legend_open)
 	_reset_dreams(main)
 func _reset_dreams(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")

@@ -2227,7 +2227,9 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	if has_rule(&"restless_dreams") and not waking_legendaries:
 		size = WAKING_OFFER_SIZE  # Waking Dreams' price: every offer shows 2 cards for the rest of the run
 	var offer: Array[UpgradeData] = []
-	var act := drift_director.get_act(drift_number)
+	# A boss rest belongs to the next act (dream_design.md 495076d2): its rarity weights and min_act are the next act's
+	var boss_rest := drift_director.is_boss_drift(drift_number)
+	var act := drift_director.get_act(drift_number + 1 if boss_rest else drift_number)
 	_taken_this_offer.clear()
 	if waking_legendaries:  # Waking Dreams: this offer is 3 Legendaries (any short is filled by the normal draw)
 		waking_legendaries = false
@@ -2249,6 +2251,11 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 		if not legendaries.is_empty():
 			offer.append(_weighted_pick(legendaries))
 			_legendary_next -= 1
+	# Legendaries as high points: every boss rest has one Legendary slot when any can be offered (else Rare+, below)
+	if boss_rest and offer.size() < size and not offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY):
+		var boss_legends: Array = pool.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY and can_offer(c, act))
+		if not boss_legends.is_empty():
+			offer.append(_weighted_pick(boss_legends))
 	current_stray = null
 	if offer.size() < size and drift_number >= STRAY_FROM_DRIFT and not drift_director.is_boss_drift(drift_number):
 		current_stray = _draw_card(act, offer, false, true)
@@ -2265,7 +2272,7 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	_rare_dreams_left = maxi(_rare_dreams_left - 1, 0)
 	var rare_tried := false  # The forced Rare is tried in one slot only (faded Rares: one chance per offer)
 	while offer.size() < size:
-		var want_rare := force_rare and not rare_tried and not offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better())
+		var want_rare := boss_rest or (force_rare and not rare_tried and not offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()))  # A boss rest: every slot Rare+
 		rare_tried = rare_tried or want_rare
 		var card := _draw_card(act, offer, want_rare)
 		if card == null:
