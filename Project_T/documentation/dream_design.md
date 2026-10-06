@@ -2013,6 +2013,7 @@ The Dreamlight / Dew numbers to drift 75 are being measured.
 
 - Future shape cards follow the same rule: name the board condition in the spec.
 - Balancing Code re-checks act 1 survival after the build.
+- **Built:** f701c156. Close Kin's Need is both branches of a listed Kinship pair unlocked (only listed pairs bond). The shape cards read Tower Code's ShapeCards group, the same set their hooks use.
 
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 
