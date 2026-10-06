@@ -227,6 +227,7 @@ func _emerge(runs: int, picker: String = "balanced") -> void:
 	var per_build := {}
 	var offers := [0, 0, 0]  # [offers, with a usable card sharing no tag, …a tagged one]
 	var shown := [0, 0]  # [cards offered, own-family cards]
+	var kin := [0, 0]  # [runs that had a Kinship by drift 50, kinship-tagged cards offered]
 	for run in runs:
 		_reset(run)
 		var rng := RandomNumberGenerator.new()
@@ -252,6 +253,11 @@ func _emerge(runs: int, picker: String = "balanced") -> void:
 				var data := IconInfo.family_data(family)
 				if data != null:
 					lines[data.line] = true
+			# A Kinship as soon as an owned family has two branches unlocked: players pair branches once they hold
+			# them (dream_design.md a59fa4b2), like the C8 chase's EXTRAS kinship path
+			dreams.sim_kinships = 1 if owned.any(func(family: String) -> bool: return _branches_unlocked(family) >= 2) else 0
+			if drift == 50 and dreams.sim_kinships == 1:
+				kin[0] += 1
 			dreams.sim_rest(drift, func(offer: Array) -> UpgradeData:
 				offers[0] += 1
 				var taken_tags := {}
@@ -263,6 +269,7 @@ func _emerge(runs: int, picker: String = "balanced") -> void:
 				offers[1] += 1 if not fresh.is_empty() else 0
 				offers[2] += 1 if fresh.any(func(c: UpgradeData) -> bool: return not c.tags.is_empty()) else 0
 				for c in offer:
+					kin[1] += 1 if c.tags.has("kinship") else 0
 					shown[0] += 1
 					if c.tags.any(func(t: String) -> bool: return lines.has(t)):
 						shown[1] += 1
@@ -275,6 +282,7 @@ func _emerge(runs: int, picker: String = "balanced") -> void:
 				hit = true
 		some += 1 if hit else 0
 	print("EMERGE (%s picker) 3+ cards of some package by drift 50: %d%% of %d runs" % [picker, roundi(100.0 * some / runs), runs])
+	print("EMERGE kinship: %d%% of runs had a Kinship by drift 50; %d kinship cards offered" % [roundi(100.0 * kin[0] / runs), kin[1]])
 	var order: Array = per_build.keys()
 	order.sort_custom(func(a, b) -> bool: return per_build[a] > per_build[b])
 	print("EMERGE each build's share of those runs: " + ", ".join(order.map(func(b: String) -> String:
@@ -311,6 +319,13 @@ func _plant(list: Array) -> void:
 
 # A player spends Dreamlight as it comes: final forms of the owned families first (the costliest that
 # fits), then hidden branches and wall growths.
+# Unlocked branches (tier 2 forms) of `family` (its base Warden id).
+func _branches_unlocked(family: String) -> int:
+	var base := IconInfo.family_data(family)
+	if base == null:
+		return 0
+	return base.evolves_to.filter(func(form) -> bool: return form is TowerData and form.tier == 2 and dreams.is_unlocked(form.get_id())).size()
+
 func _spend_dreamlight() -> void:
 	while true:
 		var best: TowerData = null
