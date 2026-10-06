@@ -2346,6 +2346,8 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		potency *= cached[0]
 		duration = cached[1]
 		max_stacks = cached[2]
+		if stacks > 0 and _dream_state.has_method("get_status_stacks_bonus"):
+			stacks += _dream_state.get_status_stacks_bonus()  # Bitter Sap: statuses a Warden applies start +1 stack
 	# Deep Focus: with status Potency on, Deep is only +18% Potency (which now strengthens every status);
 	# the old rule (statuses last 18% longer per Deep rank) only with the switch off, for Balancing's A/B.
 	var deep := 1.0 if status_potency_on else get_status_focus_multiplier()
@@ -3142,7 +3144,7 @@ func _update_wall(delta: float) -> void:
 	_wall_tick = WALL_TICK
 	# Briar Trap (id thorn_snare; "Fewer, bigger cards" de439ea8): each Thornwall (twig walls too) holds the first
 	# nightmare passing beside it each drift, 0.5 s (II 1 s); no rare-kind or trample trigger any more.
-	var snare_id := &"briar_trap" if _rule_stacks(&"briar_trap") > 0 else &"thorn_snare"
+	var snare_id := &"thorn_snare"  # Briar Trap's card and rule id (Roguelite Code)
 	var snare := _rule_stacks(snare_id) > 0
 	var thorny := _rule_stacks(&"thorny_walls") > 0
 	var scent := _scented_by() if _rule_stacks(&"scented_hedge") > 0 else null
