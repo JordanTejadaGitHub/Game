@@ -585,4 +585,10 @@ Gameplay logic can be tested headless with a `extends SceneTree` script run via
 `--script <path> --fixed-fps 60` that instantiates `res://scenes/main.tscn`, drives it (e.g.
 `TowerPlacer._try_build(cell)`), and `quit(failures)`. `--fixed-fps 60` makes `delta` realistic.
 
+**Nothing project-related on C:** (user, 2026-10-05). Run every test, sim and tool through the wrapper, which
+points user:// (`%APPDATA%`) at `D:\Projects\logs\userdata`: `bash /d/Projects/logs/scripts/godot_dev.sh <args>`
+or `& D:\Projects\logs\scripts\godot_dev.ps1 <name> <args>` (in PowerShell pass a bare `--` quoted: `'--'`).
+Scratch files from game code go through `DevPaths.scratch(name)` (D: in dev builds, user:// elsewhere); logs,
+renders and captures go under `D:\Projects\logs\`, never a C: temp folder.
+
 Headless can't show visuals — for anything visual, ask the user to press Play and describe it.
