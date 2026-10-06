@@ -435,8 +435,19 @@ static func _off_track(check: CheckButton) -> void:
 			return
 		var right := check.get_theme_stylebox("normal").get_margin(SIDE_RIGHT)
 		var at := Vector2(check.size.x - right - icon.get_width(), (check.size.y - icon.get_height()) / 2.0)
-		var track := Rect2(at + Vector2(1, icon.get_height() * 0.25), Vector2(icon.get_width() - 2, icon.get_height() * 0.5))
-		check.draw_rect(track, Color(UiStyle.INK_DIM, 0.55 if check.disabled else 0.9), false, 1.0))
+		# The ON switch's pill (its drawn pixels), so off and on are one control: the same rounded shape and size, an
+		# unfilled track with an INK_DIM rim (fainter when disabled); only the knob and the fill change (story chat).
+		var pill := Rect2(Vector2(1, icon.get_height() * 0.25), Vector2(icon.get_width() - 2, icon.get_height() * 0.5))
+		var on_icon := check.get_theme_icon("checked")
+		if on_icon != null and on_icon.get_image() != null:
+			pill = Rect2(on_icon.get_image().get_used_rect())
+		var rim := StyleBoxFlat.new()  # A drawn shape, not a panel: the rim of the switch's own pill
+		rim.draw_center = false
+		rim.set_border_width_all(1)
+		rim.border_color = Color(UiStyle.INK_DIM, 0.55 if check.disabled else 0.9)
+		rim.set_corner_radius_all(int(pill.size.y / 2.0))
+		rim.anti_aliasing = true
+		check.draw_style_box(rim, Rect2(at + pill.position, pill.size)))
 	check.toggled.connect(func(_on: bool) -> void: check.queue_redraw())
 
 # A label's text starts where a switch's name does (the CheckButton's inner padding), so every row lines up.
