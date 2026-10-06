@@ -859,6 +859,11 @@ Warden: about the Rare all-Wardens budget (+40%), before stacking with route car
 human `longest_path` with the card; **above ~120 cells, cap it** (e.g. twig walls up to 30). A static route
 probe (the bot's wall planner, same walled area, Thornwalls vs twigs, 20 maps) goes in the queue after the
 plant/grow probe.
+**Route probe (c2f1fd3c, 20 maps, same walled area; base route ~40):** route added Thornwall / twig: 10 walls'
+area +28.9 / +40.0 (twig longer on 20 of 20 maps), 20: +42.7 / +55.0 (18 of 20), 30: +51.4 / +59.2 (16 of 20).
+Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my ×1.5: real maps aren't open
+serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
+its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
 ## Human run 20 (2026-10-05 19:06, live main: grow setting + drift 10 eased; 0 Grove)
 
