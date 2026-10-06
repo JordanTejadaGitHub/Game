@@ -340,7 +340,10 @@ Showcase art, exempt from the palette, but it must feel like the game.
 
 **For now it's made in-house** (user, 2026-10-04: "Leave it AI for now, then I'll decide later").
 Theme Asset makes the final capsule A in all 7 sizes and the logo to this brief and the "AI look"
-rules. The brief stays here in case the user hires an artist later.
+rules. **Plan since 2026-10-05:** the user intends to hire a human artist (and a composer) for the
+full release, after the itch.io friend playtests have shaped the game (marketing.md fa740212). This
+brief is the starting point for that hire, along with the hand-polish list above. Until the hire is
+booked, the in-house art ships, and the Steam disclosure stays true to what ships.
 
 - **Concept: draft A, "the watchful Warden"** (the user's pick, 2026-10-04, over B and the A+B
   hybrid). The relit stone Warden from the title art, large, menacing rather than cute, lit warm
