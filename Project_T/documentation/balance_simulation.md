@@ -865,6 +865,13 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## No forcing (user, 2026-10-06)
+
+*"Don't want to be able to force a build; want players to adapt to be optimal. Sometimes they can."* Target for
+chasing one named build: **≤ ~30% by drift 50, ≤ ~50% by 75, with full Grove perks too** (Storm Grid 27 / 50, The
+Long Walk 21 / 49 on fresh: at the line). Grove rerolls / banishes / extra cards must not push a chase past it;
+re-measure the chase on full Grove after the use-now rule.
+
 ## When builds come online (user, 2026-10-06)
 
 Other roguelites (read, not data): a direction by ~⅓ of a run in ~90% of runs, the build carrying by ~½, a chosen
