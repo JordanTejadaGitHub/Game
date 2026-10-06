@@ -865,6 +865,16 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Heartwood gifts: every gift gives something (heartwood_gifts.md b3e464e6, 2026-10-06)
+
+Sized beside the living-ground gifts (Moonwell +1 range within 1 cell, Spring +20%, Heartwood Roots +15%):
+| Gift | Number | Why |
+|---|---|---|
+| Sow a Ridge | Wardens touching it **+10%**; **+2 Seeds** per tended gift tree | the ridge is already a free wall; 3–5 trees touch more cells than a Moonwell |
+| Fallen Giant | touching **+0.5 range**; nightmares beside it **15% slower** | as proposed (an uncleared free wall, Mire is 20% on 3 cells) |
+| Shift the Stones | **+20 Dew × act** per stone moved (act 2 ≈ 120 for 3); the old spot fertile (half price) | 15 × act was under a drift's pot |
+| Shifting Mist | this act's Dew pots **+10%** (≈ 300 Dew in act 2) | +15% ≈ 470 Dew, four times Shift the Stones; the re-facing maze is its cost |
+
 ## Fewer, bigger cards: numbers (dream_design.md de439ea8, 2026-10-06)
 
 **Principle:** one pick ≈ **two** old stacked picks, never three. A rest still gives one card, so sizing every
