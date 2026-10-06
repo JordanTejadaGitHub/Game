@@ -258,6 +258,9 @@ func _run() -> void:
 	var dew_before := run_state.dew
 	# The Dew pot (run_design.md) folds Rich Dew / dew_gain into the table: a dispel pays its plain Dew.
 	var expected_dew := 20
+	if dreams.has_rule(&"dew_line"):  # Kindling's random Common can be Dew Line: every 10th dispel pays twice
+		dreams._dispels_this_drift = 0
+		expected_dew += 20 / DreamState.DEW_LINE_EVERY
 	for i in 20:  # 20 dispels of 1 Dew: the fractions carry over into whole Dew
 		var enemy := Node2D.new()
 		enemy.set_script(_FakeEnemy)
