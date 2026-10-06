@@ -9,6 +9,6 @@ display_name = "Sap Rising"
 description = "Wardens that don't attack (auras, catchers, Dreamcatchers) pulse the 8 cells around them every 2 s, for damage that grows with the bonus they give."
 rarity = 1
 kind = 3
-tags = Array[String](["defining"])
+tags = Array[String](["tending", "defining"])
 max_stacks = 1
 rule_id = &"sap_rising"

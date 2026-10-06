@@ -9,6 +9,6 @@ display_name = "Steadfast"
 description = "Wardens that have stood 5 {drifts} deal 20% more damage; 15 {drifts}: 40% (growing keeps the count, selling resets it)."
 rarity = 2
 kind = 3
-tags = Array[String](["defining"])
+tags = Array[String]([])
 max_stacks = 1
 rule_id = &"old_growth"

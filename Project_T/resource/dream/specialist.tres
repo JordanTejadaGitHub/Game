@@ -9,7 +9,7 @@ display_name = "Specialist"
 description = "A Warden whose every rank took the same choice gets twice the bonus from each of its ranks."
 rarity = 1
 kind = 3
-tags = Array[String](["tall", "nurture", "defining"])
+tags = Array[String](["nurture", "tall", "defining"])
 max_stacks = 1
 rule_id = &"specialist"
 

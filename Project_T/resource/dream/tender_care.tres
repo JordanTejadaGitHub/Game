@@ -9,6 +9,6 @@ display_name = "Tender Care"
 description = "Every Warden's first Nurture rank is free."
 rarity = 0
 kind = 4
-tags = Array[String](["nurture", "tall", "defining"])
+tags = Array[String](["nurture", "tall"])
 max_stacks = 1
 rule_id = &"tender_care"

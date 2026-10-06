@@ -9,6 +9,6 @@ display_name = "Thinning the Herd"
 description = "Each nightmare dispelled in a Warden's range makes that Warden deal 2% more damage for the rest of the {drift} (up to +50%)."
 rarity = 2
 kind = 3
-tags = Array[String](["affliction", "defining"])
+tags = Array[String](["affliction"])
 max_stacks = 1
 rule_id = &"thinning_the_herd"

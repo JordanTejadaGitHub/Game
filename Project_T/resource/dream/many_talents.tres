@@ -9,7 +9,7 @@ display_name = "Many Talents"
 description = "A Warden deals 10% more damage for each different choice among its ranks (up to +40%)."
 rarity = 1
 kind = 3
-tags = Array[String](["tall", "nurture", "defining"])
+tags = Array[String](["nurture", "tall", "defining"])
 max_stacks = 1
 rule_id = &"many_talents"
 

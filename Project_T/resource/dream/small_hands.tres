@@ -9,6 +9,6 @@ display_name = "Small Hands"
 description = "Anything a Warden sends out (sprites, birds, seeds, lobbed stones) deals 35% more damage; sprites and birds stay 1 s longer."
 rarity = 1
 kind = 3
-tags = Array[String](["defining"])
+tags = Array[String](["overgrowth", "defining"])
 max_stacks = 1
 rule_id = &"small_hands"
