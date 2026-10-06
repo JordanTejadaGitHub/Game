@@ -983,6 +983,9 @@ re-based on it next. **Card-value baseline (40bdebda, 30 seeds):** default **63%
 0 dead by d5. All inside the targets (default ~55 ± noise, spender ≤ 80, skip ≤ 15–20); Dreams vs none now a
 50-point gap (was ~33). No curve change. (On 3-family picks; from meta_design e0c02e54 fresh picks show 2,
 Wider Choice 3: note it on later fresh baselines.)
+**More obstacles (04c42701, 38–48):** default 63%, spender 66%, skip **23%** (+2 route cells, ~1 free wall by d5).
+Skip is 3 over its line, inside noise, and the 2-family picks (harder) are coming: **kept**. If the next fresh
+baseline with 2-family picks still has skip > 25%, `act1_health_multiplier` 1.20 → 1.25.
 
 ## Drawn route and early deaths (19f426c5, 2026-10-05)
 
