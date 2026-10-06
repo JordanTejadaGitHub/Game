@@ -22,7 +22,7 @@ const TENDED_FOREST_MAX := 0.40
 const FERTILE_DISCOUNT := 0.5  # Reclaimed Earth: the first Warden on a cleared cell
 const CLEAR_DISCOUNT_MAX := 0.5  # Cleared Ground stacks to −50%
 const RECLAIMED_REFUND := 0.4  # Reclaimed Earth: share of the Dew paid for a clear
-const BURN_BACK_PER_TREE := 5  # Burn Back: Dew per Withered Tree, paid when taken
+const BURN_BACK_PER_TREE := 0  # Burn Back: free now (Bittersweet rework, dream_design.md de439ea8)
 const CLEAR_SURCHARGE := 1  # Every clear this run makes later clears +1 Dew
 const CLEARING_LOCKED_WEIGHT := 2.0  # Clearing cards are this much likelier until you own one
 # Nurture and wide / narrow cards (dream_design.md). [base, Deepened (II)] where it deepens.
@@ -33,13 +33,13 @@ const FREE_RANK_MAX := 7  # Free ranks (Sunlit Rest, seeds, The Old Ones) never 
 const ENDLESS_RANK_GROWTH := 1.2  # Endless Rings: each rank past VII costs ×1.2 the one before
 const SEEPING_PER := [0.08, 0.12]
 const SEEPING_MAX_STATUSES := 5
-const VENOM_HIT_PENALTY := 0.15
+const VENOM_HIT_PENALTY := 0.40  # Venom Bloom: hits −40% (de439ea8)
 const KINDRED_PER_RANK := [0.02, 0.03]
 const KINDRED_MAX := [0.30, 0.45]
 const MEMORY_SEEDS := [1, 2]  # Remembered Care keeps this many seeds
 const SUNLIT_WARDENS := [1, 2]  # Sunlit Rest raises this many per rest
-const CHOSEN_FEW_BONUS := 0.5  # Rank V+
-const CHOSEN_FEW_PENALTY := 0.15  # Below rank III
+const CHOSEN_FEW_BONUS := 1.0  # Rank V+: double (de439ea8)
+const CHOSEN_FEW_PENALTY := 0.5  # Below rank III: half
 const MANY_HANDS_PER := 2  # +1% per this many attacking Wardens
 const MANY_HANDS_MAX := 0.40
 const SPROUT_CHORUS_PER := 0.08
@@ -304,6 +304,9 @@ var glimmer_shards := 0  # Glimmering Hunt's shards this run (10 = 1 Dreamlight,
 var _statuses_cache := []  # [state key, owned statuses] (owned_statuses)
 var _offer_drift := 0  # The drift of the offer being built (half-dreamed checks)
 var mystery_spent := false  # Mystery Dream was taken (it became another card; one copy)
+var waking_legendaries := false  # Waking Dreams: the next offer is 3 Legendaries (then every offer shows 2 cards)
+const WAKING_LEGENDARIES := 3
+const WAKING_OFFER_SIZE := 2
 var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
 var _attackers_planted := 0  # Attacking Wardens planted this run (Canopy)
 var picks_left := 1  # Cards still to take from the current offer (Lucid Dreaming: 2)
@@ -1871,6 +1874,11 @@ func take(card: UpgradeData) -> void:
 	if card.dew_now > 0:
 		run_state.add_dew(card.dew_now)
 		_credit(card.id, "dew", card.dew_now)  # Card credit (Morning Dew…)
+	if card.rule_id == &"thin_bark":  # Thin Bark (Bittersweet, de439ea8): the Heartwood's max leaves halved, the rest lost now
+		run_state.max_leaves = maxi(ceili(run_state.max_leaves / 2.0), 1)
+		run_state.regrow_leaves(0)  # Clamps the leaves to the new maximum
+	if card.rule_id == &"restless_dreams":  # Waking Dreams: the next Dream offers 3 Legendaries
+		waking_legendaries = true
 	if card.max_leaves_add != 0:
 		run_state.max_leaves = maxi(run_state.max_leaves + card.max_leaves_add, 1)
 	if card.leaves_now < 0:
@@ -2181,9 +2189,21 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	if _extra_cards_next > 0:  # Thick Blight / Second Wind: at most 5 cards (Wider Dreams too), never fewer than without them
 		size = maxi(size, mini(size + _extra_cards_next, MAX_OFFER_CARDS))
 	_extra_cards_next = 0
+	if has_rule(&"restless_dreams") and not waking_legendaries:
+		size = WAKING_OFFER_SIZE  # Waking Dreams' price: every offer shows 2 cards for the rest of the run
 	var offer: Array[UpgradeData] = []
 	var act := drift_director.get_act(drift_number)
 	_taken_this_offer.clear()
+	if waking_legendaries:  # Waking Dreams: this offer is 3 Legendaries (any short is filled by the normal draw)
+		waking_legendaries = false
+		size = maxi(size, WAKING_LEGENDARIES)
+		var legends: Array = pool.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY and can_offer(c, act))
+		for i in WAKING_LEGENDARIES:  # Drawn with the run's own rng (a resumed run offers the same)
+			if legends.is_empty():
+				break
+			var legend := _weighted_pick(legends)
+			offer.append(legend)
+			legends.erase(legend)
 	# Entwined cards have no guaranteed slot (dream_design.md "Combo cards are choices, not musts", 2026-10-02): once
 	# their ingredients are owned they're drawn at their rarity's normal odds like any card.
 	# The Stray Dream: from drift 10's rest (never a boss rest), one slot leans away from the build.
@@ -2597,7 +2617,7 @@ func to_save() -> Dictionary:
 		"clearing_opened_by": clearing_opened_by,
 		"free_first_clears": free_first_clears,
 		"cleared_kinds": cleared_kinds.keys().map(func(cell: Vector2) -> Array: return [cell.x, cell.y, cleared_kinds[cell]]),
-		"grown_wardens": grown_wardens.keys(), "mystery_spent": mystery_spent,
+		"grown_wardens": grown_wardens.keys(), "mystery_spent": mystery_spent, "waking_legendaries": waking_legendaries,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -2605,6 +2625,7 @@ func load_save(data: Dictionary) -> void:
 	branch_offers = data.get("branch_offers", {}).duplicate(true)  # First: an unlock signal below must not draw anew
 	wider_roots_family = String(data.get("wider_roots_family", ""))
 	mystery_spent = bool(data.get("mystery_spent", false))
+	waking_legendaries = bool(data.get("waking_legendaries", false))
 	unlocked.clear()
 	for id in data.get("unlocked", []):
 		unlocked[id] = true

@@ -437,7 +437,7 @@ func _test_catalogue() -> void:
 	_check(dreams.get_bolt_multiplier() == 1.0, "no bigger bolts from Live Wire")
 	dreams.take(_card("live_wire"))
 	_check(dreams.get_bolt_multiplier() == 1.0 and dreams.has_rule(&"live_wire"), "Live Wire: bolts jump instead (Tower Code), never bigger")
-	_check(_card("thin_bark").soothe_bonus == 0.35 and _card("thin_bark").max_leaves_add == -3, "Thin Bark: +35% damage, −3 max leaves")
+	_check(_card("thin_bark").soothe_bonus == 0.75 and _card("thin_bark").max_leaves_add == 0, "Thin Bark: +75% damage; its price halves max leaves (rule)")
 	_clear()
 	_reset()
 
