@@ -263,9 +263,11 @@ path. Meta Game Discussion proposed the set; Tower Discussion decided it (change
   Warden with only 2–3 choices still qualifies.
 - **Old picks** that no longer apply (dimmed) still count toward the majority; the signature only
   works where it can (e.g. Firstborn on a Warden that makes nothing does nothing, so the panel warns).
-- **Shown:** from rank III the panel says *"2 more Power ranks: Crushing at rank V"*; at rank V a
-  signature mark joins the rank pips, and the first time ever it fires there's a discovery callout.
-  The Codex lists the signatures (Glossary).
+- **Discovered, never hinted** (user, 2026-10-06: *"don't hint towards signatures"*): nothing
+  announces a signature before it happens: no rank III preview, no card text naming them. The first
+  time one fires ever: the discovery moment (name over the Warden, a toast) and its Codex entry
+  unlocks; until then the Codex shows it as **???** like undiscovered combos. At rank V the mark joins
+  the rank pips only once the signature is active.
 - **Cards:** Roguelite Mechanic Discussion is designing *Specialist / Many Talents / Shared Training*
   around this.
 - **Numbers** (Balancing Discussion, 2026-10-06): Crushing ×2 + 25% shell; Relentless once per 0.5 s; Spreading half, within 2 cells; Executioner 20% (bosses / elites ×1.5); Firstborn and Shelter as designed; Surge ×2 for 2 s every 10 s. Watchtower stays: it reveals only inside its own range.
