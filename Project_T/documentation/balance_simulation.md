@@ -865,6 +865,20 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Friend run 1 (2026-10-05 20:22, a new player, fresh profile, live main)
+
+Firefly Jar, then Dewdrop at 25; lost at **drift 40** (25 min). **Act 1: 1 leaf lost** (a leak at 5), the Stag
+beaten at 25 with 14–15 leaves, closest mostly 0.3–0.7: firm, not a wall. **Act 2: clean to 31**, first
+leaks at 32–35 (−9 leaves), then **38–40 took the last 6**: the same late-act-2 wall as human runs 15–18
+(deaths at 35–42). Board at the end: 33 attackers (13 Firefly Jar, 6 Lanternmoth, Beacon, Prism Jar, 3
+Cloudlet) + 10 Thornwalls + 8 Sprouts, route 60. Dew 3,988: plant 822 / **grow 2,266** / ranks 885. **Combos
+55% of damage** (Marked from Lanternmoth / Beacon; target 25–40%). Omens taken: Swift Stream, Frozen
+Ground, Thick Blight.
+**Read:** right on the fresh-profile target (dies in act 2–3) for a first-time player. Watch: (1) the
+38–40 wall: every human death in act 2 lands at 32–42, so it's the act's real test rather than a single
+spike (drift 38 is 168k health, after a light 37 at 63k); act 2 may need one earlier pressure point to spread
+it. (2) The combo share on Marked builds: one run above 40%, earlier runs 16–21%.
+
 ## Human run 20 (2026-10-05 19:06, live main: grow setting + drift 10 eased; 0 Grove)
 
 Sporeling (13 + Lichenling + 2 Brood Cap), longest path 56. **Drifts 1–24: 0 leaks, 15/15 leaves**, closest
