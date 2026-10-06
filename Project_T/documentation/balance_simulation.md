@@ -859,6 +859,121 @@ Warden: about the Rare all-Wardens budget (+40%), before stacking with route car
 human `longest_path` with the card; **above ~120 cells, cap it** (e.g. twig walls up to 30). A static route
 probe (the bot's wall planner, same walled area, Thornwalls vs twigs, 20 maps) goes in the queue after the
 plant/grow probe.
+**Route probe (c2f1fd3c, 20 maps, same walled area; base route ~40):** route added Thornwall / twig: 10 walls'
+area +28.9 / +40.0 (twig longer on 20 of 20 maps), 20: +42.7 / +55.0 (18 of 20), 30: +51.4 / +59.2 (16 of 20).
+Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my ×1.5: real maps aren't open
+serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
+its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
+
+## Fewer, bigger cards: numbers (dream_design.md de439ea8, 2026-10-06)
+
+**Principle:** one pick ≈ **two** old stacked picks, never three. A rest still gives one card, so sizing every
+one-copy card at its old 3-stack maximum would be an across-the-board raise (the user's constraint). All-Warden
+cards move up a rarity where the number passes their budget.
+
+| Card | Number | Rarity |
+|---|---|---|
+| Deeper Calm / Quickened Sap | **+25%**; II **+25%** more | **Uncommon** (was Common; Uncommon all-Wardens budget) |
+| Longer Roots | **+1 cell**; II **+0.5** more | **Uncommon** |
+| Glinting Dew | **every 5th** attack crits (+20% at ×2) | **Uncommon** |
+| Flurry | every 5th attack fires twice | stays **Uncommon** (not Common: the same +20% as Glinting Dew) |
+| Bitter Sap | +1 stack on apply | Common (conditional, status builds) |
+| Live Wire | bolts jump to a 2nd nightmare | Common |
+| Lasting Dreams | statuses ×2 duration | Common |
+| Quick Step | +50% attack speed until the called drift has arrived | Common |
+| Damp Rot / Sparking Spores | **+100%** (2 old copies) | Common |
+| Rain on Glass | **+70%** | Common |
+| Heavy Dew | twice as wide, Damp +4 s | Common |
+| Heartwood's Reach | clearing half + 3 half-price clears | as is |
+| Hush | **+50%** pulse reach | Common |
+| Longer Flight | **+2 cells** | Common |
+| Sharp Beaks | +2 hits | Common |
+| Dew Bowl | **+50 Dew** now | Common |
+| Sudden Insight | +2 Dreamlight now | Uncommon |
+| Bright Marks | Marked take **+30%** (not 40: Marked boards already hit 55% combo share, friend run 1) | Common |
+
+**New Commons:** Thorny Walls: each Thornwall lashes one nightmare beside it **every 2 s for 5 damage** (half a
+Sprout's hit; 20 walls ≈ +10% of a late act 1 board; Dream damage cards apply; a full Sprout every 1 s would be
+10 DPS per 3 Dew wall, more than a Sporeling per Dew). Passing Dream: statuses jump with their remaining time and
+stacks to the nearest nightmare within **2 cells**. Lantern Glow: **+15%** (in reach covers nearly every hit:
+the Common all-Wardens budget exactly). First Frost: the **first 5** nightmares of each drift are Held **1.5 s**
+at the first Warden they meet (one nightmare for 2 s can't be felt), bosses exempt. Dew Line: every 10th dispel
+pays twice (≈ +10% Dew, beside Wild Dew's ×1.1).
+
+**Bittersweet (spike ≈ 2× a Rare, the price felt every drift):** Thin Bark +75%, max leaves halved → **Rare**
+(with 7–8 leaves any act 2+ boss leak ends the run: that is the price). Venom Bloom Potency ×2, hits −40% (+30%
+on a half-status board, −8% on a 20% one: build-dependent, as meant). Blood Is Thicker kin ×2 / non-kin ×0.5 →
+**Rare** (×2 is above the Uncommon budget). Chosen Few V+ ×2 / below III ×0.5. Deep Sleep **+80%**, no rest bonus
+and no Omens. Burn Back: all Withered Trees free now (no Seeds), **+20%** speed for the run. Waking Dreams: 3
+Legendaries, then no skipping and 2-card offers. All as proposed except the two rarity moves.
+
+**Defining rule (act 2+, one defining card per offer):** no numbers, but it moves picks. The bot's card picker
+must take it as offered; after the build, Balancing Code re-checks act 1–2 (default / spender / skip) and the
+pick rate of defining cards.
+
+## Drawn route and early deaths (19f426c5, 2026-10-05)
+
+After "fewest turns among the shortest", 5–7 of 30 bot runs per arm die by drift 2 (was ~1 in 90). Same-board
+replays (seeds 7 / 8 / 9): the game holds the old boards, but **a new placement can flip the drawn route to
+another lane**, stranding earlier Wardens (seed 8's first Sprout ends at 0 coverage; seed 9 leaks 9 Shades after
+one d7 placement). Partly a bot weakness (it doesn't price the cover it takes from its other Wardens), but for a
+player too. Asked Environment Code for stronger stickiness: shortest → closest to the current route → fewest
+turns. Until then read main's act 1 "past d5" column.
+
+## Sprout-into follows the copy price (user found it, 2026-10-05)
+
+Sprout (~12) + sprout-into (15) was a flat 27, under the Nth planted copy (33 at 5, 43 at 10): a bypass of
+`copy_cost_step`. **Sprout-into = max(base, live planting price − the Sprout's paid price)**; gift Sprouts pay
+the full price; the grown Warden counts as a copy. The two routes cost the same; the Sprout only delays the
+choice. First copy unchanged (15), so the opening holds. In 526df9d7 (Tower.plant_dew; group grows price each Sprout in order).
+
+## Room to maze (maze_feel #5, worktree room-to-maze, 2026-10-05)
+
+Environment Code's open bowl: obstacles ~60 → 30–41, buildable ~275 → ~298 cells, but the **opening route ~46 →
+~25** (20–36); the bot's fresh seed 3 died at drift 2. **Verdict: open bowl yes, opening route kept at ~38–46**
+(the band's minimum ~38, made with ridges and the guaranteed bend): drifts 1–10 and the 60 Dew opening are
+tuned on it, and the user's goal is room to build longer, not a shorter start. **Revised:** Environment Discussion
+wants the short opening on purpose ("the player builds the length"), so it is simmed as is, with a wall-first bot
+opening (Thornwall 3: ~7 walls take 25 → ~45 and leave 3 Sprouts). Go if drifts 1–5 leak no more than main and
+act 1 survival is within ±10 points; else the bend spur adds +8–10 cells.
+**Sim (main 526df9d7 vs room c0ad2808, wall-first bot, 30 seeds per arm):** d1–5 leaks default 1.8 → 3.5, skip
+2.4 → 3.1, spender even; act 1 boss default 50 → 30%, spender 56 → 36%, skip 16 → 6%; route d1 / d10 66 / 73 vs
+44 / 49. Bosses no harder; room runs reach 25 less often. **No-go; the spur fallback (+8–10) asked for**, then the
+room arm re-simmed. (The bot stops walling at ~45 cells; a new player walls less, not more.) Act 1 bot check on the worktree
+before merge; if the extra room makes act 1 easy, the curve answers it.
+**Final (sticky lanes 1c46063d, walls-keep-going bot, 30 seeds):** act 1 boss, main / room / bend10 (opening
+26–41, +10 bend): default 76 / 46 / 53%, spender 70 / 50 / 40%, skip 16 / 26 / 20%; d1–5 leaks 0.6–0.7 / 1.0–1.1 /
+0.2–0.8. Both branches miss "±10 of main", but main itself now sits above target with the walling bot. Judged on the
+targets, **bend10 is on them** (default ~55, skip ≤ 20) with the cleanest opening; the spender's 40% is the attacker
+spam "walls first" means to weaken (fewer free obstacle walls: the player builds the maze). **GO for bend10; room
+stays out.** Watch the first human runs on it; if act 1 is too hard, `act1_health_multiplier` 1.20 → 1.10.
+**Bot baseline change:** from a99d5382 the bot keeps walling by default; every batch before it is the non-walling
+bot. Warm-up and pgr wait for bend10 on main.
+
+## Human run 21 (2026-10-05 20:57, build 91161b = b3c61186; 0 Grove)
+
+Sporeling, Bellflower picked at 25 but **none planted** (board: 10 Sporeling, 6 Inkcap, Hatchery, 6 Sprouts).
+Lost at **drift 33**. Act 1: 4 leaves (drift 20 finale), the Stag beaten at 25 with 11–12, closest 0.5–0.99:
+firm. Act 2: clean to 29; **30 (finale, under Leaf Fall) −4**; 32 dealt only 60% of its health (Puffcaps
+resist spore, Dandelion flyers skip the maze); 33 took the last 8 in 9 s under a **second Leaf Fall** (taken at
+the 30 rest with 8 leaves). Status ticks 41%, combos 13%. **Read: no tuning.** The death is the design working:
+a one-family spore board meets spore resistance and flyers, with leaks doubled by an Omen the player chose.
+It lands in the 32–42 act 2 band again. Watch: the Bellflower pick unused (did the panel make the second family
+clear?), and two Leaf Falls in one run (fine, it's offered, not forced).
+
+## Friend run 1 (2026-10-05 20:22, a new player, fresh profile, live main)
+
+Firefly Jar, then Dewdrop at 25; lost at **drift 40** (25 min). **Act 1: 1 leaf lost** (a leak at 5), the Stag
+beaten at 25 with 14–15 leaves, closest mostly 0.3–0.7: firm, not a wall. **Act 2: clean to 31**, first
+leaks at 32–35 (−9 leaves), then **38–40 took the last 6**: the same late-act-2 wall as human runs 15–18
+(deaths at 35–42). Board at the end: 33 attackers (13 Firefly Jar, 6 Lanternmoth, Beacon, Prism Jar, 3
+Cloudlet) + 10 Thornwalls + 8 Sprouts, route 60. Dew 3,988: plant 822 / **grow 2,266** / ranks 885. **Combos
+55% of damage** (Marked from Lanternmoth / Beacon; target 25–40%). Omens taken: Swift Stream, Frozen
+Ground, Thick Blight.
+**Read:** right on the fresh-profile target (dies in act 2–3) for a first-time player. Watch: (1) the
+38–40 wall: every human death in act 2 lands at 32–42, so it's the act's real test rather than a single
+spike (drift 38 is 168k health, after a light 37 at 63k); act 2 may need one earlier pressure point to spread
+it. (2) The combo share on Marked builds: one run above 40%, earlier runs 16–21%.
 
 ## Human run 20 (2026-10-05 19:06, live main: grow setting + drift 10 eased; 0 Grove)
 

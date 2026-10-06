@@ -235,7 +235,7 @@ above its family's final forms, so veterans keep finding new playstyles. Reviewe
   **this run** (`run_design.md`). A final form not yet grown here shows as *"Memory Grove"* on the
   Remember screen.
 - A family's own Dream cards (`dream_design.md`, "Cards for the new Wardens") come with its family
-  or hidden-branch node automatically: **every family gets at least 2–3 of its own cards** with its family node (or the start pool). Checked 2026-10-01: only Acorn fell short (just Warm Hearth), so **Acorn Cache and Dew Trail (+ II) moved to the Acorn family node** and the empty Catchers node was removed (−50 Seeds). Build-defining support cards (Grandfather Stump, Overflowing Well, Hedgerow Roots, Golden Harvest…) stay on The Quiet Ones / Seeds.
+  or hidden-branch node automatically: **every family gets at least 2–3 of its own cards** with its family node (or the start pool). Checked 2026-10-01: only Acorn fell short (just Warm Hearth), so **Acorn Cache and Dew Trail (+ II) moved to the Acorn family node** (2026-10-06: Acorn Cache was folded into Warm Hearth, so the node brings Dew Trail; with Warm Hearth Acorn still has 2) and the empty Catchers node was removed (−50 Seeds). Build-defining support cards (Grandfather Stump, Overflowing Well, Hedgerow Roots, Golden Harvest…) stay on The Quiet Ones / Seeds.
 - **Ascension nodes** (added 2026-09-27): each family gets one more node at the top of its stack,
   **Ascension (120 Seeds)**, after its hidden branch (or its final forms where a family has no
   hidden-branch node). It makes that family's **Ascended** endgame Warden exist in runs
@@ -318,8 +318,8 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 
 | Branch (direction) | Node 1 (near the trunk) | Node 2 | Tip(s): Legendary |
 |---|---|---|---|
-| **Swift** (attack speed) | *Quickening*: Quickening, Flurry (40) | *Light Feet*: Restless Roots, Hummingheart (60) | **Whirlwind Heart** (120) |
-| **Wide Reach** (area, splash) | *Broad Strokes*: Broad Splash, Lingering Splash (40) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
+| **Swift** (attack speed) | *Quickening*: Hunt's Rush (the card Quickening, renamed in the card pass) (30) | *Light Feet*: Restless Roots, Hummingheart (60) | **Whirlwind Heart** (120) |
+| **Wide Reach** (area, splash) | *Broad Strokes*: Lingering Splash (30) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
 | **Keen Edges** (precision, crit) | *Sharpened*: Still Target, Shattering Blow, **Hunter's Patience**, **Sharpened Light** (50) | — | **Full Moon** (120) · **Hunter's Moon** (80) |
 | **Deep Poison** (affliction, effects) | *Seeping* (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) · **Eternal Charge** (80) |
 | **Daring** (low leaves, tempo) *(new)* | *Scarred Bark*: Scarred Bark, Thin Bark (40) | *Last Stand*: Desperate Bloom, Second Wind, Last Stand (50) | **Last Leaf** (80) · **Restless Night** (80) |
@@ -327,6 +327,7 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 | **Lone Lantern** (narrow) | *One Line*: Monoculture (80) | — | **The Last Light** (120) |
 | **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Mixed Company*: Mixed Grove, Grand Tour (40) | **Rootbound** (100; needs Seedbed) · **Menagerie** (80; needs Mixed Company) |
 | *(2026-10-05: Momentum, Drumbeat, Overlap, Crowd Breaker, Solitude and Odd One Out moved back to the start pool as Uncommons, `dream_design.md` "Fewer family boosters, more build shapes"; their nodes cost 10 less, except Seeping, back to its original 50.)* | | | |
+| *(2026-10-06, "Fewer, bigger cards", `dream_design.md` de439ea8: Flurry moved to the start pool, Broad Splash folded into Far Reach, Acorn Cache into Warm Hearth; Quickening and Broad Strokes now 30.)* | | | |
 | **The Long Way** (path length) | *Dead Wood*: Burn Back the Dead Wood (40) | *Winding Roads*: Forest's Edge (50) | **The Long Walk** (100; needs Dead Wood) · **Crossroads** (80; needs Winding Roads) |
 | **Hedgerows** (walls, holding) *(new)* | *Bitter Hedges*: Bitter Hedges, **Thornheart** (40) | — | **Briar Crown** (80) · **Rooted Nightmares** (80) |
 | **Reclaiming** (clearing) *(new)* | *Reclaimed Earth*: Reclaimed Earth, Tended Stumps, Hollow Ground (50; the "where you clear" payoffs first) | *Thorn and Bramble*: Tended Forest, Thorn Snare, Bramble Oath (70) | **Wildwood Reclaimed** (80) |

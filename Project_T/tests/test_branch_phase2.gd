@@ -244,7 +244,7 @@ func _test_seedbearer() -> void:
 # Dream Oak: 1 shard + 1 per different family within 2 cells.
 func _test_dream_oak() -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
-	var cell := _open_cell()
+	var cell := _open_cell_with_room(2)  # Room for the two family Wardens beside it
 	var oak := _plant("dream_oak", cell)
 	_plant("sporeling", _open_cell_near(cell))
 	_plant("pebbling", _open_cell_near(cell))
@@ -284,6 +284,23 @@ func _neighbours_open(cell: Vector2) -> int:
 	return count
 
 # An open cell next to `cell` (8 around), off the route.
+# An open cell with at least `room` open, off-route cells around it (Environment: on open maps the first open cell
+# could sit by the route with too few neighbours, and _open_cell_near then fell back to a far cell).
+func _open_cell_with_room(room: int) -> Vector2:
+	var route: PackedVector2Array = Tower.route_cells(map.get_path_from(map.startPath))
+	for y in range(2, Tower.MAP_GRID.size.y - 2):
+		for x in range(2, Tower.MAP_GRID.size.x - 2):
+			var c := Vector2(x, y)
+			if not map.is_buildable(c) or _taken(c) or route.has(c):
+				continue
+			var free := 0
+			for d in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN, Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
+				if map.is_buildable(c + d) and not _taken(c + d) and not route.has(c + d):
+					free += 1
+			if free >= room:
+				return c
+	return _open_cell()
+
 func _open_cell_near(cell: Vector2) -> Vector2:
 	var route: PackedVector2Array = Tower.route_cells(map.get_path_from(map.startPath))  # Whole cells (half-cell routes)
 	for d in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN, Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:

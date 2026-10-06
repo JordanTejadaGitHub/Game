@@ -75,7 +75,7 @@ static func brood_max_alive(tower: Tower) -> int:
 
 # Jarlink's link range (cells): its own, + Reach ranks.
 static func link_range(tower: Tower) -> float:
-	return p(tower, "link_range", 4.0) + tower.area_bonus()
+	return p(tower, "link_range", 4.5) + tower.area_bonus()
 
 static func is_final(tower: Tower) -> bool:
 	return tower.attack_data.special_final
@@ -1108,7 +1108,7 @@ static func on_drift_cleared(tower: Tower) -> void:
 					tower.queue_redraw()
 			tower.set_meta(&"seed_drifts", drifts)
 		DREAM_OAK:
-			var shards := 1 + mini(_families_near(tower, p(tower, "family_reach", 2.0) + NurtureChoices.WIDE_STEP * tower.choice_count(Tower.Focus.WIDE)), int(p(tower, "family_max", 3.0)))
+			var shards := 1 + mini(_families_near(tower, p(tower, "family_reach", 2.5) + NurtureChoices.WIDE_STEP * tower.choice_count(Tower.Focus.WIDE)), int(p(tower, "family_max", 3.0)))
 			# Yield: +0.5 shard a drift per rank (the fraction carries).
 			var extra := float(tower.get_meta(&"yield_carry", 0.0)) + NurtureChoices.YIELD_SHARDS * tower.choice_count(Tower.Focus.YIELD)
 			shards += int(extra)
@@ -1599,7 +1599,9 @@ class InkField extends Node:
 		return found
 
 	func mark(enemy: Node2D, tower: Tower) -> void:
-		marked[enemy.get_instance_id()] = [enemy, tower, BranchKit.p(tower, "trail_time", 2.0)]
+		var old: Array = marked.get(enemy.get_instance_id(), [])
+		# [enemy, Tower, trail seconds, where the ink was last laid (pixels; the trail follows the walked ribbon)]
+		marked[enemy.get_instance_id()] = [enemy, tower, BranchKit.p(tower, "trail_time", 2.0), old[3] if old.size() > 3 else enemy.global_position]
 
 	func _process(delta: float) -> void:
 		_clock += delta
@@ -1619,7 +1621,16 @@ class InkField extends Node:
 					cells[cell][0] = maxf(cells[cell][0], _clock + entry[2])  # Fresh ink lasts longer and keeps its tick
 				else:
 					cells[cell] = [_clock + entry[2], entry[1], 1.0, _clock + 1.0]
-					_show(cell, entry[2])
+				# The ink is drawn where it walked (story chat: "bugged and not clear, especially on vertical": it was a
+				# horizontal strip across each whole cell's centre): a piece from the last spot to here, rotated to the
+				# ribbon, every tick, so it follows turns and its fade matches how long the ink lasts.
+				var here: Vector2 = enemy.global_position
+				var last: Vector2 = entry[3]
+				if last.distance_to(here) > BranchKit.CELL * 1.5:
+					last = here  # Pulled back, leapt, or re-routed: start a new stretch
+				if last.distance_to(here) >= 4.0:
+					_lay(last, here, entry[2])
+					entry[3] = here
 		for cell in cells.keys():
 			var ink: Array = cells[cell]
 			if _clock >= ink[0] or not is_instance_valid(ink[1]):
@@ -1645,6 +1656,22 @@ class InkField extends Node:
 			_show(cell, BranchKit.p(tower, "pool_time", 4.0))
 		marked.erase(enemy.get_instance_id())
 
+	# A piece of ink from `from` to `to` (pixels, along the ribbon) for `seconds`, drawn by InkDraw (story chat: a clear
+	# dark-violet smear along the path's centre line, a visible edge, fading as it runs out, a faint Poisoned shimmer).
+	var pieces: Array = []  # [from, to, laid at, gone at]
+	var _draw_node: InkDraw = null
+
+	func _lay(from: Vector2, to: Vector2, seconds: float) -> void:
+		if _draw_node == null or not is_instance_valid(_draw_node):
+			_draw_node = InkDraw.new()
+			_draw_node.field = self
+			_draw_node.z_index = -1  # On the ground, over the path, under the nightmares
+			get_parent().add_child(_draw_node)
+		pieces.append([from, to, _clock, _clock + seconds])
+
+	func clock() -> float:
+		return _clock
+
 	# The ink on `cell` for `seconds` (Tower Assets' ink_trail across the cell).
 	func _show(cell: Vector2, seconds: float) -> void:
 		var at := Tower.MAP_GRID.calculate_map_position(cell)
@@ -1655,6 +1682,41 @@ class InkField extends Node:
 	func ink_at(cell: Vector2) -> bool:
 		return cells.has(cell) and _clock < cells[cell][0]
 
+
+# Inkcap's trail, drawn: per piece a dark edge under a violet core, fading over its last second, with a few spore
+# glints (Poisoned) twinkling along it. Pieces follow the walked ribbon, so vertical legs and turns read like straight ones.
+class InkDraw extends Node2D:
+	const EDGE := Palette.SHADE
+	const CORE := Palette.BRUISE
+	const GLINT := Palette.SPRIG
+	const EDGE_WIDTH := 16.0
+	const CORE_WIDTH := 10.0
+	var field: InkField
+
+	func _process(_delta: float) -> void:
+		if field == null or not is_instance_valid(field):
+			queue_free()
+			return
+		var now := field.clock()
+		field.pieces = field.pieces.filter(func(p: Array) -> bool: return now < p[3])
+		queue_redraw()
+
+	func _draw() -> void:
+		if field == null or not is_instance_valid(field):
+			return
+		var now := field.clock()
+		var steady := Fx.reduce_flashes()
+		for p in field.pieces:
+			var fade := clampf((p[3] - now) / 1.0, 0.0, 1.0)  # Full until its last second
+			var a: Vector2 = to_local(p[0])
+			var b: Vector2 = to_local(p[1])
+			draw_line(a, b, Color(EDGE, 0.85 * fade), EDGE_WIDTH)
+			draw_circle(b, EDGE_WIDTH / 2.0, Color(EDGE, 0.85 * fade))  # Round joins at turns
+			draw_line(a, b, Color(CORE, 0.9 * fade), CORE_WIDTH)
+			draw_circle(b, CORE_WIDTH / 2.0, Color(CORE, 0.9 * fade))
+			var seed := int(p[2] * 100.0) % 7
+			var glint := 1.0 if steady else 0.5 + 0.5 * sin(now * 4.0 + seed)
+			draw_circle(a.lerp(b, 0.3 + 0.08 * seed), 1.5, Color(GLINT, 0.6 * glint * fade))
 
 # Silenced Lantern Bearers: their Wraiths are lost until the silence ends (a dispel keeps them lost for good).
 class SilenceWatch extends Node:

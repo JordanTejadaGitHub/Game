@@ -82,9 +82,10 @@ func _run() -> void:
 		var cost := dreams.get_unlock_cost(final)
 		_check(buy != null and not buy.disabled and CantAfford.is_shown(buy), "short of Dreamlight: the dim can't-afford button, still pressable")
 		if buy != null:
-			var rich: RichTextLabel = buy.get_node_or_null(CantAfford.TEXT_NODE)
-			_check(rich != null and rich.get_parsed_text().strip_edges() == "Unlock · %d Dreamlight" % cost and not rich.get_parsed_text().contains("needed")
-				and rich.text.contains(UiStyle.POOR.to_html(false)), "…\"Unlock · %d Dreamlight\", the cost in POOR, no count" % cost)
+			# One button layout (user, Bramble): "Unlock" centred, the Dreamlight glyph and cost at the right, POOR when short
+			var amount := buy.find_child("Amount", true, false) as Label
+			_check(buy.text == "Unlock" and amount != null and amount.text == str(cost)
+				and amount.get_theme_color("font_color") == UiStyle.POOR, "…\"Unlock\" with [Dreamlight] %d in POOR, no count" % cost)
 			_check(buy.tooltip_text.begins_with("Not enough Dreamlight") and not buy.tooltip_text.contains(str(cost)), "…its hover says where Dreamlight comes from, no count (%s)" % buy.tooltip_text)
 			var refused := []
 			screen.unlock_rejected.connect(func(d: TowerData) -> void: refused.append(d), CONNECT_ONE_SHOT)
@@ -93,8 +94,9 @@ func _run() -> void:
 		dreams.add_dreamlight(cost)
 		await process_frame
 		var buy_now: Button = screen._side_box.find_child("UnlockButton", true, false)
-		_check(buy_now != null and not CantAfford.is_shown(buy_now) and buy_now.text == "Unlock · %d Dreamlight" % cost,
-			"…and the normal button the moment it's affordable")
+		var amount_now := buy_now.find_child("Amount", true, false) as Label if buy_now != null else null
+		_check(buy_now != null and not CantAfford.is_shown(buy_now) and buy_now.text == "Unlock" and amount_now != null
+			and amount_now.get_theme_color("font_color") == UiStyle.GOLD, "…and the normal button (the cost in GOLD) the moment it's affordable")
 		dreams.add_dreamlight(-cost)
 		screen._select(branch)
 
@@ -183,6 +185,23 @@ func _run() -> void:
 	dreams.unlock_everything = true
 	_check(crown.call() == mother, "Test Grove still shows everything")
 	dreams.unlock_everything = false
+	# Fits every UI scale (user, the largest UI size: Done and Peek fell off the bottom): 1280 x 720 is the largest scale's
+	# view, 600 a short window; the panel and Done stay on screen, the middle scrolls.
+	var size_was := root.size
+	dreams.unlock_everything = true  # The tallest tree (every lane)
+	for view in [Vector2i(1280, 800), Vector2i(1280, 720), Vector2i(1280, 600)]:
+		root.size = view
+		screen.open(sporeling)
+		for i in 4:
+			await process_frame
+		var panel_rect: Rect2 = screen._frame.get_global_rect()
+		var done: Control = screen.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.text == "Done").front()
+		var shown := Rect2(Vector2.ZERO, Vector2(view))
+		_check(shown.encloses(panel_rect) and shown.encloses(done.get_global_rect()),
+			"Remember fits %s: the panel %s and Done on screen" % [view, panel_rect])
+		screen.close()
+	dreams.unlock_everything = false
+	root.size = size_was
 	print("remember screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

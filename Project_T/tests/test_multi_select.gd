@@ -65,18 +65,23 @@ func _run() -> void:
 	_check(seller.selected == sprouts[0] and seller.selection.size() == 5, "five selected")
 	var groups := seller.get_selection_groups()
 	_check(groups.size() == 1 and groups[0][0] == sprout and groups[0][1].size() == 5, "grouped by kind")
+	# The price of 3 in grow order (each grown Sporeling raises the next one's copy price: Balancing 2026-10-05)
+	var three := seller.sort_by_heartwood(sprouts).slice(0, 3)
+	var cost3 := 0
+	for i in three.size():
+		cost3 += three[i].get_grow_cost(sporeling, i).total
 	var cost := dreams.get_evolve_cost(sporeling)
-	run_state.dew = cost * 3 + cost / 2
+	run_state.dew = cost3 + cost / 2
 	_check(seller.count_affordable(sprouts, sporeling) == 3, "can afford 3 of 5")
 	run_state.dew_changed.emit(run_state.dew)  # Setting dew directly skips the signal the panel listens to
 	await process_frame
 	var grow_text := _button_texts(panel).filter(func(t: String) -> bool:
 		return t.begins_with("Sporeling · 3 of 5"))  # Light pass: the form once, under "Grow into"
-	_check(grow_text.size() == 1 and ("%d Dew" % (cost * 3)) in grow_text[0],
-		"the panel offers \"Sporeling · 3 of 5 · %d Dew\" (%s)" % [cost * 3, grow_text])
+	_check(grow_text.size() == 1 and ("%d Dew" % cost3) in grow_text[0],
+		"the panel offers \"Sporeling · 3 of 5 · %d Dew\" (%s)" % [cost3, grow_text])
 	var nearest: Array = seller.sort_by_heartwood(sprouts).slice(0, 3)
 	var grown := seller.grow_group(sprouts, sporeling)
-	_check(grown == 3 and run_state.dew == cost / 2, "grew 3 and spent %d Dew" % (cost * 3))
+	_check(grown == 3 and run_state.dew == cost / 2, "grew 3 and spent %d Dew" % cost3)
 	_check(nearest.all(func(t: Tower) -> bool: return t.tower_data == sporeling), "the 3 nearest the Heartwood grew")
 	_check(seller.get_selection_groups().size() == 2, "the selection now shows two kinds")
 
@@ -138,7 +143,7 @@ func _build(placer: TowerPlacer, map_generator, data: TowerData) -> Tower:
 
 func _button_texts(panel: Node) -> Array:
 	var texts := []
-	for button in panel._buttons.get_children():
+	for button in panel._all_buttons():
 		if button is Button and not button.is_queued_for_deletion():
 			texts.append(button.text)
 	return texts

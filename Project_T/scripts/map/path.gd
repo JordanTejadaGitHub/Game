@@ -46,6 +46,7 @@ func draw():
 	# Later re-routes (towers, cleared obstacles, enemies mid-walk) stick to this route when they can.
 	_pathGenerator.set_preferred_cells(current_path)
 	_route_version = _pathGenerator.version
+	_route_mask_version = -2  # join_route's mask follows the new route
 	if current_path.is_empty() and board != null:  # Never expected (every block keeps a way through): leave a trace
 		push_error("PathGenerator.draw: no route from %s to %s" % [cell_start_path, cell_end_path])
 	_route_index.clear()
@@ -160,6 +161,7 @@ const DUAL_SIZE := Vector2i(32, 32)
 const DUAL_FULL_VARIANTS: Array[int] = [15, 16, 17, 18]
 var dual_layer: TileMapLayer
 var _dual_tiles := {}  # What the dual layer shows: tile -> column
+var _dual_halves := {}  # The route halves _dual_tiles were drawn for
 var _act := 1
 
 func _dual() -> TileMapLayer:
@@ -204,25 +206,31 @@ static func dual_mask(halves: Dictionary, at: Vector2i) -> int:
 func _draw_dual() -> void:
 	var layer := _dual()
 	var halves := path_halves()
-	var tiles := {}  # Display tile -> column
-	for h: Vector2i in halves:  # Each path half cell is a corner of 4 display tiles
+	# Only the display tiles at a corner of a half that joined or left the route can change (a placement
+	# moves a short stretch of it): recompute those, keep the rest.
+	var touched := {}
+	for h: Vector2i in halves:
+		if not _dual_halves.has(h):
+			touched[h] = true
+	for h: Vector2i in _dual_halves:
+		if not halves.has(h):
+			touched[h] = true
+	for h: Vector2i in touched:  # Each half is a corner of 4 display tiles
 		for dy in 2:
 			for dx in 2:
 				var at := h + Vector2i(dx, dy)
-				if tiles.has(at):
-					continue
 				var mask := dual_mask(halves, at)
+				if mask == 0:
+					if _dual_tiles.has(at):
+						layer.erase_cell(at)
+						_dual_tiles.erase(at)
+					continue
 				if mask == 15:
 					mask = DUAL_FULL_VARIANTS[EnvironmentTiles.cell_variant(at, DUAL_FULL_VARIANTS.size(), 7)]
-				tiles[at] = mask
-	# Only the tiles that changed (a placement moves a short stretch of the route).
-	for at: Vector2i in _dual_tiles:
-		if not tiles.has(at):
-			layer.erase_cell(at)
-	for at: Vector2i in tiles:
-		if _dual_tiles.get(at, -1) != tiles[at]:
-			layer.set_cell(at, 0, Vector2i(tiles[at], 0))
-	_dual_tiles = tiles
+				if _dual_tiles.get(at, -1) != mask:
+					layer.set_cell(at, 0, Vector2i(mask, 0))
+					_dual_tiles[at] = mask
+	_dual_halves = halves
 
 func get_finder() -> FindPath:
 	return _pathGenerator
@@ -237,6 +245,8 @@ func set_half_blocked(h: Vector2, blocked: bool) -> void:
 
 var _route_version := -1
 var _route_index := {}  # Route point -> its index in current_path (built by draw())
+var _route_mask := PackedByteArray()  # 1 per half on current_path (join_route), for _route_mask_version
+var _route_mask_version := -2
 
 # The route from `point` to the Heartwood when `point` is on the current route and nothing has been
 # blocked or opened since it was drawn: the route's own tail (a shortest route's tail is a shortest
@@ -249,3 +259,22 @@ func route_tail(point: Vector2) -> PackedVector2Array:
 	if not _route_index.has(point):
 		return PackedVector2Array()
 	return current_path.slice(_route_index[point])
+
+# From `point` off the current route: shortest steps down FindPath's distance field until it meets the route,
+# then the route's tail (a shortest route's tail is shortest). Same length as a search, far cheaper for many
+# stranded nightmares at once. Empty when the route isn't current (search instead) or there's no way.
+func join_route(point: Vector2) -> PackedVector2Array:
+	if _pathGenerator == null or _route_version != _pathGenerator.version or current_path.is_empty():
+		return PackedVector2Array()
+	if _route_mask_version != _route_version:  # 1 per half on the current route (where a descent may stop)
+		_route_mask_version = _route_version
+		var size := _pathGenerator.size()
+		_route_mask.resize(size.x * size.y)
+		_route_mask.fill(0)
+		for p in current_path:
+			var n := FindPath.point_to_node(p)
+			_route_mask[n.y * size.x + n.x] = 1
+	var walk := _pathGenerator.descend(point, cell_end_path, _route_mask)
+	if walk.size() > 1 and _route_index.has(walk[-1]):
+		walk.append_array(current_path.slice(_route_index[walk[-1]] + 1))
+	return walk

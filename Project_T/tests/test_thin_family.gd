@@ -118,7 +118,7 @@ func _test_queries() -> void:
 	dreams.take(_card("chorus"))
 	_check(dreams.has_chorus(), "Chorus: on")
 	dreams.take(_card("bright_marks"))
-	_check(is_equal_approx(dreams.get_marked_bonus(), 0.20), "Bright Marks: +20%")
+	_check(is_equal_approx(dreams.get_marked_bonus(), 0.30), "Bright Marks: +30%")
 	dreams.take(_card("homing_instinct"))
 	_check(is_equal_approx(dreams.get_swoop_return_multiplier(), 1.5), "Homing Instinct: 50% faster")
 	dreams.take(_card("homing_instinct_ii"))

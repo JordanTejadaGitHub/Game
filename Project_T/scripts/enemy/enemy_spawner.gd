@@ -27,7 +27,6 @@ var eclipse_left := 0.0
 # since bosses themselves have a fixed health scale.
 var drift_health_scale := 1.0
 const ROOTED_RULE := &"rooted_nightmares"
-const WEATHERED_WALLS_RULE := &"weathered_walls"  # Thornwalls can't be trampled
 var root_web_share := 0.0  # Root Web: touching nightmares are Held for this share of a hold
 var root_web_boss_share := 0.0  # …and bosses for this share
 var release_pull := 0.0  # Tangled Release: tiles pulled back when a hold ends
@@ -287,9 +286,6 @@ func is_lit(cell: Vector2) -> bool:
 # past a Thornwall tramples it, like the Hollow Stag (gone for good, no refund, everyone re-routes).
 # OmenDirector.claim_trample(drift) lets only the first caller of each drift through.
 func try_omen_trample(enemy: Node2D) -> void:
-	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	if dreams != null and dreams.has_rule(WEATHERED_WALLS_RULE):
-		return  # Weathered Walls: Thornwalls stand like any other wall
 	var tower := _wall_beside(enemy)
 	if tower == null:
 		return
@@ -412,9 +408,6 @@ func _on_bellow_requested(stag: Node2D) -> void:
 # Old Stag: knocks down a Thornwall (or Bramble) next to it. The wall is gone for good, with no
 # refund; opening a cell never breaks the path rule, and everyone re-routes.
 func _on_trample_requested(enemy: Node2D) -> void:
-	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
-	if dreams != null and dreams.has_rule(WEATHERED_WALLS_RULE):
-		return  # Weathered Walls: Thornwalls stand like any other wall
 	var tower := _wall_beside(enemy)
 	if tower != null:
 		_trample_tower(tower, tower.cell, enemy)

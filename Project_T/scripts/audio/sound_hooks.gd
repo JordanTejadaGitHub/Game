@@ -107,6 +107,10 @@ const FINAL_BLOOM_DB := -4.0  # A final form's first bloom per run
 const FINAL_SIGNATURE_DELAY := 0.9  # Then the new form's hit, as its signature
 const REMEMBER_DB := -4.0  # The Remember screen (UI bus)
 const REMEMBER_TRAVEL := 0.45  # Seconds for the unlock swell to travel the gold line before the bloom
+const DREAM_CARD_DB := -5.0  # Dream card flip-ins and the pick's swell (UI bus)
+const DREAM_TRIGGER_DB := -10.0  # A trigger card firing in play: quiet, under the hits
+const DREAM_TRIGGER_GAP_MS := 6000  # Between one card's trigger sounds
+const DREAM_PULSE_MAX := 6  # Wardens pulsing after a pick (one soft tock each, Heartwood out)
 const PULL_BOSS_PITCH := 0.8  # Rootcurl dragging a boss: lower, strained
 const DRAG_TAIL := 0.12  # Seconds the soil drag fades when the drag ends early
 const CLOSE_CALL_THROTTLE_MS := 2000
@@ -136,6 +140,7 @@ const AMBIENCE_REST_DB := 3.0
 var _last_signature := {}  # sound id -> msec
 var _path_pixels := 1.0
 var _choice_screens: Array[Control] = []
+var _dream_trigger_at := {}  # Card id -> msec of its last trigger sound
 var _hit_groups := {}  # Tower instance id -> [first hit msec, hits since]
 var _released_at := {}  # Tower instance id -> msec of its last attack release
 var _attack_counts := {}  # Tower instance id -> attacks released (storms, sleepier bells)
@@ -283,6 +288,7 @@ func _ready() -> void:
 		_hook_kinships(node)
 		_hook_economy(node)
 		_hook_remember(node)
+		_hook_dream_cards(node)
 
 	_act = drift_director.get_act(maxi(drift_director.drifts_started, 1))
 	sound.play_music(_set_for(MUSIC_REST), [&"base"])  # A run (or a resumed one) starts resting
@@ -922,6 +928,7 @@ func _on_node_added(node: Node) -> void:
 	_hook_kinships(node)
 	_hook_economy(node)
 	_hook_remember(node)
+	_hook_dream_cards(node)
 
 # Kinships (tower_design.md "Kinships"): whichever node carries these signals (Tower Code's), hooked
 # when it joins the tree. Rewarding but quiet: bonds and stage-ups are chords at rests, the Harmony
@@ -1122,3 +1129,46 @@ func _on_run_ended(won: bool) -> void:
 func _play_win() -> void:
 	sound.stop_music()
 	sound.play(&"win", null, 0.0, 1.0, 0.0, &"UI")
+
+# Dream cards (screens_ui.md "Dream", ecbea61a): a flip-in per rarity as the cards turn in (DreamScreen
+# `card_flipped(card)`, once it has it), the warm swell as a picked card lands in the Dreams row
+# (DreamState `card_chosen`), then a soft tock on each Warden it touches, Heartwood out, and a quiet
+# trigger when a card's name pops over a nightmare (CombatCallouts `card_called`, once per card per gap).
+func _hook_dream_cards(node: Node) -> void:
+	for pair in [["card_flipped", _on_dream_card_flipped], ["card_chosen", _on_dream_card_chosen],
+			["card_called", _on_dream_card_called]]:
+		if node.has_signal(pair[0]) and not node.is_connected(pair[0], pair[1]):
+			node.connect(pair[0], pair[1])
+
+func _rarity_of(card: Resource) -> int:
+	if card == null or card.get("rarity") == null:
+		return 0
+	return clampi(int(card.get("rarity")), 0, 3)
+
+func _on_dream_card_flipped(card: Resource = null, _index := 0) -> void:
+	sound.play(StringName("dream_flip_%d" % _rarity_of(card)), null, DREAM_CARD_DB, 1.0, 0.0, &"UI")
+
+func _on_dream_card_chosen(card: Resource, towers: Array = [], _impact := "") -> void:
+	var rarity := _rarity_of(card)
+	sound.play(&"dream_fly", null, DREAM_CARD_DB, 1.0, 0.0, &"UI")
+	var count := mini(towers.size(), DREAM_PULSE_MAX)
+	var shown := 0
+	for t in towers:
+		if shown >= count or not is_instance_valid(t) or not t is Tower:
+			continue
+		var delay := 0.35 + 0.65 * float(shown) / maxf(float(count - 1), 1.0)  # ~1 s in all, the list's order
+		get_tree().create_timer(delay).timeout.connect(_dream_pulse.bind(t.get_instance_id(), rarity, shown))
+		shown += 1
+
+func _dream_pulse(tower_id: int, rarity: int, n: int) -> void:
+	var tower := _tower_from(tower_id)
+	if tower != null:  # Two small steps up, then level: never a climbing chime
+		sound.play(StringName("dream_trigger_%d" % rarity), tower.global_position, DREAM_TRIGGER_DB, 1.0 + 0.03 * mini(n, 2), 0.0)
+
+func _on_dream_card_called(card_id: String, at: Vector2) -> void:
+	var now := Time.get_ticks_msec()
+	if now - int(_dream_trigger_at.get(card_id, -DREAM_TRIGGER_GAP_MS)) < DREAM_TRIGGER_GAP_MS:
+		return
+	_dream_trigger_at[card_id] = now
+	var card: Resource = dream_state.call("_card_by_id", card_id) if dream_state.has_method("_card_by_id") else null
+	sound.play(StringName("dream_trigger_%d" % _rarity_of(card)), at, DREAM_TRIGGER_DB, 1.0, 0.02)

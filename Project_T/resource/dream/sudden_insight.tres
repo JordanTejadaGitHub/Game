@@ -6,9 +6,9 @@
 script = ExtResource("1_card")
 id = "sudden_insight"
 display_name = "Sudden Insight"
-description = "+1 {dreamlight} now (stacks)."
+description = "+2 {dreamlight} now."
 rarity = 1
 kind = 4
 tags = Array[String](["dreamlight"])
-max_stacks = 0
-dreamlight_now = 1
+max_stacks = 1
+dreamlight_now = 2

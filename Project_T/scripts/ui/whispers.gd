@@ -9,6 +9,7 @@ extends RichTextLabel
 const TEXT := {
 	&"start": "Something moves at the edge of the dream.",
 	&"plant": "Plant a Warden near the path.",
+	&"keep_placing": "Hold Shift, or the Pin, to keep placing.",  # Build mode ends after a placement (Tower Code, "Shift to keep going")
 	&"first_cleanse": "Nightmares. They're coming for the dream. Don't let them reach me.",
 	&"walls": "Wardens are walls. Make them take the long way.",
 	&"flow": "They don't stop. They come in {drifts}, like fog.",
@@ -106,6 +107,7 @@ func _ready() -> void:
 		whisper(&"again")
 	whisper(&"start")
 	whisper(&"plant")
+	tower_placer.tower_built.connect(func(_tower: Tower) -> void: whisper(&"keep_placing"), CONNECT_ONE_SHOT)
 	var spawner = %EnemyContainer
 	spawner.enemy_cleansed.connect(func(_e: Node2D) -> void: whisper(&"first_cleanse"), CONNECT_ONE_SHOT)
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:

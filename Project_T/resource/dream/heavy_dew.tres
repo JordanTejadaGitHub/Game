@@ -6,13 +6,13 @@
 script = ExtResource("1_card")
 id = "heavy_dew"
 display_name = "Heavy Dew"
-description = "The Dewdrop line splashes 50% wider, and its {damp} lasts 2 s longer (stacks)."
+description = "The Dewdrop line splashes twice as wide, and its {damp} lasts 4 s longer."
 rarity = 0
 kind = 2
 tags = Array[String](["water"])
 requires = Array[String](["dewdrop"])
-max_stacks = 0
-status_duration_add = 2
+max_stacks = 1
+status_duration_add = 4
 status_id = &"damp"
 stat_line = "water"
-splash_bonus = 0.5
+splash_bonus = 1.0

@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "far_reach_ii"
 display_name = "Far Reach II"
-description = "Wardens with an area attack get +1.25 range."
+description = "Wardens with an area attack get +1.25 range, and their splashes reach 0.5 cells wider."
 rarity = 1
 kind = 3
 tags = Array[String](["reach"])

@@ -66,7 +66,7 @@ func _run() -> void:
 	quit(failures)
 
 func _live_button(panel: Node) -> Button:
-	for child in panel._buttons.get_children():
+	for child in panel._all_buttons():
 		if child is Button and child.name.begins_with("PlantSprout") and not child.is_queued_for_deletion():
 			return child
 	return null

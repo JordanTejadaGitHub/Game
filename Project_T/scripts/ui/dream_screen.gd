@@ -118,7 +118,9 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 			column.add_child(let_go)
 		_cards.add_child(column)
 	visible = true
+	_picking = false
 	arm.arm()  # Every new set of cards, rerolls too: a second click can't take a card it never saw
+	_flip_in(_cards.get_children(), cards)  # One by one, each with its rarity flare
 
 func _make_card(card: UpgradeData) -> Button:
 	var button := Button.new()
@@ -128,7 +130,7 @@ func _make_card(card: UpgradeData) -> Button:
 		if _held_for_diagram:
 			_held_for_diagram = false  # The long-press was to look, not to take
 			return
-		dream_state.choose(card))
+		_pick(card, button.get_parent() as Control))  # The flight first, then it's taken
 	if CardDiagram.has_diagram(card):
 		button.mouse_entered.connect(show_diagram.bind(card, button))
 		button.mouse_exited.connect(hide_diagram)
@@ -180,6 +182,31 @@ func _make_card(card: UpgradeData) -> Button:
 	gem.draw.connect(func() -> void: UiStyle.draw_gem(gem, gem.size / 2.0, 13.0, card.rarity, glyph))
 	gem_row.add_child(gem)
 	gem_row.add_child(rarity)
+	if card.tags.has("defining"):  # Build-defining (dream_design.md de439ea8): a small mark at the frame's corner, no numbers
+		var corner := Control.new()
+		corner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		corner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		gem_row.add_child(corner)
+		var arch := IconInfo.icon(&"defining")  # UI Asset's stone arch with a gold keystone (74a8baeb), at ×2
+		var build: Control
+		if arch != null:
+			var icon := TextureRect.new()
+			icon.texture = arch
+			icon.custom_minimum_size = Vector2(32, 32)
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			build = icon
+		else:  # The word until the glyph is in the icon sheet
+			var word := Label.new()
+			word.text = "Build"
+			UiStyle.caps(word, 13, UiStyle.GOLD)
+			build = word
+		build.name = "BuildMark"
+		build.tooltip_text = "Build around it: changes what you plant next."
+		build.mouse_filter = Control.MOUSE_FILTER_PASS  # Its own tip; a click still takes the card
+		build.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		gem_row.add_child(build)
 	box.add_child(gem_row)
 	var name_label := Label.new()
 	name_label.text = card.display_name
@@ -199,13 +226,8 @@ func _make_card(card: UpgradeData) -> Button:
 		box.add_child(mark)
 	# The effect comes right after the name; it never shrinks.
 	_add_linked_line(box, card.description, UiStyle.INK, 16)
-	var live: String = dream_state.effects().preview_line(card)
-	# What it would do to your board now (dream_design.md "Feeling the cards"), computed once as the offer opens
-	var impact: Dictionary = dream_state.preview_card_impact(card)
-	var impact_line := _add_line(box, impact.text, UiStyle.GOLD if impact.kind != &"none" else UiStyle.INK_DIM, 14)
-	impact_line.name = "ImpactLine"
-	if live != "" and impact.kind != &"economy":  # Scaling cards: where you stand now (dream_design.md #75)
-		_add_line(box, live, UiStyle.GOLD, 14).name = "LiveLine"
+	# No impact or count preview on the card (user, screens_ui.md "Dream" ecbea61a: "don't want to be too direct in how
+	# much the damage boost is… also how many it affects"): the pick shows it instead (the flight, the Wardens' pulse).
 	if card.cost_description != "":
 		_add_linked_line(box, card.cost_description, BITTERSWEET_COLOR, 15)
 	if card.grows_text != "":  # Seed cards: the bigger effect once its Wardens are yours
@@ -360,6 +382,9 @@ func show_diagram(card: UpgradeData, button: Control) -> void:
 	if not is_instance_valid(panel) or not panel.visible or not is_instance_valid(button):
 		return
 	var card_rect := button.get_global_rect()
+	var column := button.get_parent() as Control
+	if column != null and column.get_parent() == _cards:  # Its laid-out rect, not the turning one (the flip scales it)
+		card_rect = Rect2(_cards.global_position + column.position, column.size)
 	var view := get_viewport_rect().size
 	var size := panel.get_combined_minimum_size()
 	var x := card_rect.end.x + 8.0
@@ -408,6 +433,81 @@ func _on_mystery_revealed(_mystery: UpgradeData, card: UpgradeData) -> void:
 	tween.tween_interval(REVEAL_TIME)
 	tween.tween_property(reveal, "modulate:a", 0.0, 0.4)
 	tween.tween_callback(reveal.queue_free)
+
+# --- The pick's feel (screens_ui.md "Dream", ecbea61a: "more impactful") ---------------------------------------
+# The cards turn in one by one with a flare in their rarity colour; the picked card lifts and flies into the Dreams
+# row with a warm swell while the others fade; then it's taken (CardBloom pulses what it touches). Reduced motion:
+# fades only. The flare is a rarity tint for now (UI Asset's flare art to come). Real time: the rest is paused.
+signal card_flipped(card: UpgradeData)  # Each card as it turns in (Sound: a flip by rarity, d4aab969)
+const FLIP_TIME := 0.22
+const FLIP_STAGGER := 0.12
+const FLY_TIME := 0.5
+var _picking := false
+
+func _flip_in(columns: Array, cards: Array) -> void:
+	var still := bool(Fx.setting("reduced_motion", false))
+	await get_tree().process_frame  # Laid out: the turn pivots on each card's centre
+	for i in columns.size():
+		if not is_instance_valid(columns[i]):
+			continue  # A reroll rebuilt the row meanwhile
+		var column := columns[i] as Control
+		var card: UpgradeData = cards[i] if i < cards.size() else null
+		column.pivot_offset = column.size / 2.0
+		var tween := column.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		if still:
+			column.modulate.a = 0.0
+			tween.tween_interval(i * FLIP_STAGGER * 0.5)
+			if card != null:
+				tween.tween_callback(card_flipped.emit.bind(card))
+			tween.tween_property(column, "modulate:a", 1.0, 0.2)
+			continue
+		column.scale = Vector2(0.0, 1.0)
+		tween.tween_interval(i * FLIP_STAGGER)
+		if card != null:
+			tween.tween_callback(card_flipped.emit.bind(card))
+		tween.tween_property(column, "scale", Vector2.ONE, FLIP_TIME).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		if card != null:  # The flare: a flash in its rarity colour as it lands
+			var flare := UpgradeData.rarity_color(card.rarity).lightened(0.4)
+			tween.tween_property(column, "modulate", Color(flare.r * 1.5, flare.g * 1.5, flare.b * 1.5, 1.0), 0.08)  # multiplier
+			tween.tween_property(column, "modulate", Color.WHITE, 0.25)
+
+# Where the picked card flies: the HUD's Dreams row (top left).
+func _dreams_row_point() -> Vector2:
+	var row := get_parent().get_node_or_null("DreamsRow") as Control if get_parent() != null else null
+	if row == null:
+		return Vector2(40, 40)
+	var rect := row.get_global_rect()
+	return rect.position + Vector2(minf(rect.size.x, 24.0), 24.0)
+
+func _pick(card: UpgradeData, column: Control) -> void:
+	if _picking:
+		return
+	if column == null or not is_instance_valid(column) or not is_inside_tree():
+		dream_state.choose(card)
+		return
+	_picking = true
+	hide_diagram()
+	var still := bool(Fx.setting("reduced_motion", false))
+	for other in _cards.get_children():
+		if other != column:
+			other.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).tween_property(other, "modulate:a", 0.0, 0.2)
+	var tween := column.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	if still:
+		tween.tween_property(column, "modulate", Color(1.25, 1.2, 1.05, 0.0), 0.3)  # multiplier: a warm fade
+	else:
+		var from := column.global_position
+		column.pivot_offset = column.size / 2.0
+		column.top_level = true  # Out of the row's layout: it flies
+		column.global_position = from
+		tween.set_parallel(true)
+		tween.tween_property(column, "global_position", _dreams_row_point() - column.pivot_offset, FLY_TIME) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		tween.tween_property(column, "scale", Vector2(0.12, 0.12), FLY_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		tween.tween_property(column, "modulate", Color(1.35, 1.25, 1.05, 1.0), FLY_TIME * 0.4)  # multiplier: the swell
+		tween.chain().tween_property(column, "modulate:a", 0.0, 0.1)
+	tween.chain().tween_callback(func() -> void:
+		_picking = false
+		dream_state.choose(card))
 
 func _on_closed() -> void:
 	hide_diagram()

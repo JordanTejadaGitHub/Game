@@ -9,6 +9,6 @@ display_name = "Momentum"
 description = "A Warden attacking the same nightmare again attacks 6% faster per hit (up to +45%); a new target resets it."
 rarity = 1
 kind = 3
-tags = Array[String](["swift"])
+tags = Array[String](["swift", "defining"])
 max_stacks = 1
 rule_id = &"momentum"

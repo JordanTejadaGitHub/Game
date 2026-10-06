@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "rain_on_glass"
 display_name = "Rain on Glass"
-description = "Light Wardens deal 35% more damage to {damp} nightmares (stacks, up to +105%)."
+description = "Light Wardens deal 70% more damage to {damp} nightmares."
 cost_description = "Their hits dry the nightmare: its {damp} ends."
 rarity = 0
 kind = 3
@@ -14,5 +14,5 @@ tags = Array[String](["water", "storm", "reaction"])
 discovered_by = Array[String](["reaction:thunderclap"])
 shows_statuses = Array[StringName]([&"damp", &"static"])
 requires = Array[String](["dewdrop", "firefly_jar"])
-max_stacks = 3
+max_stacks = 1
 rule_id = &"rain_on_glass"

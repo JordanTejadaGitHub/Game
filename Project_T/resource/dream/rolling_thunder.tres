@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "rolling_thunder"
 display_name = "Rolling Thunder"
-description = "{combo:thunderclap} arcs reach 3.5 cells."
+description = "{named_combo:thunderclap} arcs reach 3.5 cells."
 cost_description = "Each arc strikes at most 3 nightmares."
 rarity = 1
 kind = 3

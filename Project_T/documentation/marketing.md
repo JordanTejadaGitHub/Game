@@ -318,6 +318,13 @@ human artist and composer replaced.
 - Track per video: 3-second hold, average watch %, shares, and wishlists that day (Steamworks). **Re-post each format 2–3
   times** before judging it; the same video can get 10k views one day and 1M the next.
 - Reply to comments yourself; a real dev voice is the best marketing.
+- **Other games' footage in our videos** (checked 2026-10-05):
+  - *Slay the Spire*: **allowed.** Mega Crit's press kit permits its content in videos "for any commercial or
+    non-commercial purposes", monetized too. Keep it to a few seconds of background behind a hook, mute its music
+    (Content ID), label it on screen, imply no partnership.
+  - *Warcraft 3 / its custom maps*: **not allowed in our marketing.** Blizzard's video policy limits its content to
+    non-commercial use, and a video selling Heartwood is commercial. Name the maps in words only.
+  - Never on the Steam page or in the Steam trailer, whatever the policy: store media shows our game only.
 - **Hooks to A/B** (v2, 2026-10-04, built on the vidIQ outliers and the two studies; compare 3-second holds per platform).
   Every hook: on screen as text in the first second, and the short pays it off.
   | Format | Hook | Where | Clips |

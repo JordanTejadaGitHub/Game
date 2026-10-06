@@ -168,10 +168,8 @@ func _ready() -> void:
 	var gifts := HeartwoodGifts.new(drift_director)
 	add_child(gifts)
 	add_child(GiftScreen.new(drift_director, gifts))
-	if dream_state.has_signal("card_chosen"):
-		dream_state.connect("card_chosen", func(_card: UpgradeData, _towers: Array, impact: String) -> void:
-			if impact.contains(" · "):  # A card with no effect yet sends just its name: "Dreamed: X" stays
-				show_impact_toast(impact))
+	# No impact toast on a pick (user, screens_ui.md "Dream" ecbea61a: not "too direct" about the boost or how many it
+	# affects): the card's flight and CardBloom's pulses say it.
 	drift_director.rest_started.connect(_on_rest_started)
 	# Path length ("Wardens are walls: make their walk longer").
 	var map_generator = %MapGenerator

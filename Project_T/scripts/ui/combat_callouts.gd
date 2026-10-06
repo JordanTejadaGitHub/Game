@@ -25,6 +25,7 @@ var _drawn := false  # Words were on screen last frame
 
 func _ready() -> void:
 	z_index = 21  # Over the damage numbers
+	add_to_group(&"combat_callouts")  # SoundHooks finds it for card_called
 	_connect.call_deferred()  # DamageLog readies later in the scene
 
 func _connect() -> void:
@@ -32,7 +33,35 @@ func _connect() -> void:
 	if log != null:
 		log.damage_dealt.connect(_on_damage)
 
+# Trigger cards (screens_ui.md "Dream" ecbea61a): a taken card whose own damage just landed (its rule's tag, as
+# DreamState credits it) pops its name over the nightmare, no numbers, at most every CARD_COOLDOWN per card.
+const CARD_COOLDOWN := 6.0
+signal card_called(card_id: String, at: Vector2)  # A trigger card's name popped (for Sound: its trigger sound)
+var _card_tags := {}  # Damage tag -> card id (DreamState._credit_rule_map), refreshed once a second
+var _card_tags_age := INF
+
+func _card_callout(event: DamageLog.Event) -> void:
+	if event.tag == &"" or not is_instance_valid(event.enemy):
+		return
+	if _card_tags_age > 1.0:
+		_card_tags_age = 0.0
+		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)
+		_card_tags = dreams.call("_credit_rule_map") if dreams != null and dreams.has_method("_credit_rule_map") else {}
+	var id: String = _card_tags.get(event.tag, "")
+	if id == "":
+		return
+	var key := StringName("card:" + id)
+	var reduced := Fx.reduced()
+	if _cooldowns.get(key, 0.0) > 0.0 or _alive.size() >= (REDUCED_MAX_ALIVE if reduced else MAX_ALIVE):
+		return
+	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)
+	var name: String = dreams.get_display_name(id) if dreams != null and dreams.has_method("get_display_name") else id.capitalize()
+	_cooldowns[key] = CARD_COOLDOWN * (2.0 if reduced else 1.0)
+	_alive.append([0.0, name, UiStyle.GOLD, event.enemy, event.enemy.global_position])
+	card_called.emit(id, event.enemy.global_position)
+
 func _on_damage(event: DamageLog.Event) -> void:
+	_card_callout(event)
 	if event.combos.is_empty() or not is_instance_valid(event.enemy):
 		return
 	for tag in event.combos:
@@ -82,6 +111,7 @@ func _colour(source: Node) -> Color:
 	return tower.tower_data.projectile_color.lightened(0.25)
 
 func _process(delta: float) -> void:
+	_card_tags_age += delta
 	for tag in _cooldowns.keys():
 		_cooldowns[tag] = maxf(_cooldowns[tag] - delta, 0.0)
 	for i in range(_alive.size() - 1, -1, -1):

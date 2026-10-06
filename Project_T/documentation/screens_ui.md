@@ -1028,7 +1028,20 @@ its **own card**, not a normal family card, so it reads as that boss's reward:
   diamond, Rare **hexagon**, Legendary **star** (settled 2026-09-29 to match the game as built; the earlier "Rare star, Legendary crown" is dropped).
 - Card: name, effect, tags, and a kind badge: **Deepened II** (a "II" ribbon), **Entwined** (vine
   border), **Bittersweet** (thorn border, the cost in its own line).
-- Hovering a card highlights the Wardens on the map it would affect.
+- ~~Hovering a card highlights the Wardens on the map it would affect.~~ Removed (user, 2026-10-06: "don't want to be
+  too direct in how much the damage boost is if you get a card, also how many it affects"). No hover preview of
+  affected Wardens, counts or damage numbers; the card text says what it does, the player works out how much.
+- **Impact when picked** (user, 2026-10-06: "do like the effects when you pick a card"):
+  1. The three cards flip in one after another, each with a short rarity flare (Common a soft glint, up to Legendary
+     a slow star burst); a Bittersweet card's thorns draw in.
+  2. On the pick, the card lifts, then flies into the Dreams row (top left) with a warm swell (Sound); the others fade.
+  3. Every Warden the card affects pulses once with the card's glyph above it (a short bloom, staggered nearest the
+     Heartwood first), so the player sees *that* it took hold, not a number. A rule card with no Warden target pulses
+     the thing it changes (the path, the Heartwood, the Dew counter).
+  4. **Triggers show when they fire:** a card with a trigger (a crit rule, "when a nightmare…", a bend bonus) gets a
+     small callout with its name on the target the first times it fires each drift, throttled (CombatCallouts), plus a
+     quiet sound. No numbers.
+  5. Reduced motion: a fade instead of the flip and the flight; the pulses stay, without movement.
 - Buttons: **Let it pass (+15 Dew)**; **Reroll** (only with the Grove perk, shows how many left).
 
 ### Omen

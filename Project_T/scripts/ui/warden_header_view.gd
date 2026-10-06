@@ -27,6 +27,7 @@ static func blocker_text(blocker: String) -> String:
 	return "in the Memory Grove" if blocker == "Memory Grove" else blocker
 
 var compact := false  # The Warden panel (light pass): name + damage type on one line, a short description, no Dreams rows (set_compact)
+var brief := false  # Compact with many actions: the description's opening only (the panel sets it before show_warden)
 var full_description := ""  # Compact: the description in full when the short one left some out (the panel's Details), else ""
 var detail_lines: Array[String] = []  # Compact: stat lines left for the panel's Details ("Soaked: water hits +24%")
 
@@ -88,6 +89,18 @@ func set_compact(width: float) -> void:
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A very long name wraps rather than widening the panel
 	desc.custom_minimum_size = Vector2(width, 0)
 
+# A control at the right end of the name's line (the Warden panel's targeting chip); null clears it.
+func set_corner(control: Control) -> void:
+	var header := portrait.get_parent()
+	for old in header.get_children():
+		if old.has_meta(&"corner"):  # Tagged, not renamed: the control keeps its own name (TargetChip)
+			header.remove_child(old)
+			old.queue_free()
+	if control != null:
+		control.set_meta(&"corner", true)
+		control.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		header.add_child(control)
+
 # The description's opening for the compact header: the first sentence, the second too while both stay short.
 const SHORT_CHARS := 70  # Two lines of the compact panel's description (84 wrapped to 3 with underlined links)
 
@@ -143,6 +156,11 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 	_show_damage_type(data)
 	desc.text = StatusLinks.bbcode(data.description)  # {damp}-style tokens and plain names both work
 	full_description = ""
+	if compact and brief:  # Many actions below (story chat: the description gives way first): its opening, the rest in Details
+		var opening := short_description(data.description)
+		if opening != data.description:
+			desc.text = StatusLinks.bbcode(opening)
+			full_description = data.description
 	detail_lines.clear()
 	# Compact: the description whole, wrapping (user: "The description also cuts off"); short_description stays for
 	# callers that want an opening line.

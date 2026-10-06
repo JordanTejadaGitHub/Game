@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "rolling_thunder_ii"
 display_name = "Rolling Thunder II"
-description = "{combo:thunderclap} arcs reach 4.5 cells and add 2 {static} stacks."
+description = "{named_combo:thunderclap} arcs reach 4.5 cells and add 2 {static} stacks."
 rarity = 1
 kind = 3
 tags = Array[String](["storm", "water", "reaction"])

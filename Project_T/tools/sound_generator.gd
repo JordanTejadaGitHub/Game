@@ -2320,6 +2320,28 @@ func _make_remember() -> void:
 	_ws("dreamlight_glow", 1, 0.4, func(_v: int) -> PackedFloat32Array:  # Dreamlight earned: one warm glow swell
 		return _lowpass(_layers([[_glow_swell(1.0), 1.0], [_air(1.0, 500.0, 0.3, 0.6), 0.3]]), 1600.0))
 
+	# Dream cards (screens_ui.md "Dream", ecbea61a: "make Dream cards more impactful"). Per rarity
+	# (0 Common … 3 Legendary): a flip-in from a soft, low glint up to a slow bloom of light; a warm swell
+	# as a picked card flies into the Dreams row; a quiet, rounded trigger when its effect fires in play.
+	for rarity in 4:
+		_w("dream_flip_%d" % rarity, _own("dream_flip%d" % rarity, func() -> PackedFloat32Array:
+			var notes: Array = [[69], [69, 74], [62, 69, 74], [50, 57, 62, 66]][rarity]
+			var out := _seg(1.0 + rarity * 0.6, SFX_RATE)
+			for k in notes.size():  # The glint: soft-mallet notes, low, a little apart
+				_mix(out, _lowpass(_bell(SFX_RATE, hz(notes[k]), 0.3, 0.5 + rarity * 0.2, MUSIC_BOX, 1.2 + rarity * 0.5), 1600.0), SFX_RATE, k * 0.07)
+			_mix(out, _normalize(_air(0.25, 900.0, 0.03, 0.18), 1.0), SFX_RATE, 0.0, 0.12)  # The card turning
+			if rarity >= 2:  # Rare and up: a soft hummed breath
+				_mix(out, _normalize(_soft_hum([62], 1.2), 1.0), SFX_RATE, 0.1, 0.18 + 0.1 * (rarity - 2))
+			if rarity == 3:  # Legendary: a slow star bloom of tuned air
+				_mix(out, _normalize(_light_burst(0.6, 1.4, [62, 66, 69, 74]), 1.0), SFX_RATE, 0.0, 0.5)
+			return out), 0.35 + 0.05 * rarity)
+		_w("dream_trigger_%d" % rarity, _own("dream_trigger%d" % rarity, func() -> PackedFloat32Array:
+			var out := _layers([[_thump(0.12, 180.0 - rarity * 20.0, 0.025), 1.0], [_glow_swell(0.25 + rarity * 0.05), 0.3 + 0.1 * rarity]])
+			return _lowpass(out, 1400.0)), 0.2 + 0.04 * rarity)
+	_ws("dream_fly", 2, 0.35, func(_v: int) -> PackedFloat32Array:  # A picked card flying into the Dreams row
+		return _lowpass(_layers([[_air(0.7, 600.0, 0.45, 0.2, 0.8), 0.7], [_glow_swell(0.7), 0.5],
+			[_bell(SFX_RATE, hz(74), 0.25, 0.4, MUSIC_BOX, 1.0), 0.4, 0.6]]), 1700.0))
+
 # --- Marketing music (audio_direction.md "Marketing music", marketing.md §9) ----------------------
 # Same world as the game: D minor, 72 bpm 3/4 (2.5 s bars), the Heartwood motif, the act 1 palette.
 # Each cue: four mono stems (low / mid / top / perc), mixed to stereo with a little placement, all

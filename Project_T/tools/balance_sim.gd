@@ -76,6 +76,13 @@ var empty_loadout := false
 var sidegrade := -1
 var carry_pref := true  # --no-carry-pref: act 1 growth and Dreamlight don't prefer the carry branch (DreamState.is_carry), the bot before 2026-10-02
 var fence_pref := true  # --no-fence-pref: Jarlink growth ignores where its arc would fall (the bot before 2026-10-02)
+var wall_first := true  # --no-wall-first: the opening plants attackers first (the bot before 2026-10-05). Wall-first (Balancing, Room to maze): while the route is under WALL_FIRST_ROUTE cells, Thornwalls (the chain planner) come before everything else
+const WALL_FIRST_ROUTE := 45
+var wall_first_keep := 5  # --wall-first-keep=N: wall-first waits until N attackers are planted (the opening rule's 5 Sprouts; 0 = walls before any: on 60 Dew that left 2 Sprouts and drift 1 leaked)
+var _wall_first_stuck := -2  # drifts_started when no wall added route (wall-first rests until the next drift)
+var walls_keep_going := true  # Default since 2026-10-06 (Balancing: closer to how the user wants the maze played); --no-walls-keep-going = off. From Room to maze "a player who walls": past the opening, Thornwall chains whenever each wall adds KEEP_GOING_CELLS+ route cells, before grows and ranks
+const KEEP_GOING_CELLS := 2
+var _keep_going_stuck := -2
 var half_pref := true  # --no-half-pref: full cells only on the half grid (the bot before 2026-10-04)
 var pair_search := true  # --no-pair-search: the half-grid wall search weighs single walls only (greedy, the bot of 0596eb94)
 const PAIR_FIRSTS := 40  # Pair lookahead: the best single walls tried as a pair's first
@@ -196,6 +203,10 @@ func _run() -> void:
 			"--demo": demo_run = true
 			"--no-carry-pref": carry_pref = false
 			"--no-fence-pref": fence_pref = false
+			"--no-wall-first": wall_first = false
+			"--walls-keep-going": walls_keep_going = true
+			"--no-walls-keep-going": walls_keep_going = false
+			"--wall-first-keep": wall_first_keep = int(value)
 			"--no-half-pref": half_pref = false
 			"--no-pair-search": pair_search = false
 			"--old-growth": old_growth = true
@@ -694,6 +705,8 @@ func _next_buy() -> String:
 	var attackers := _attackers().size()
 	var target := mini(int(room[2]), int(room[0] + room[1] * director.drifts_started))
 	var walls := _wall_area()  # Twig walls count a quarter (the same area)
+	if wall_first and _wall_first():
+		return "walls"
 	# Grow into the family first: a Sprout that can become the family's base Warden grows before more
 	# Sprouts are planted (players don't sit on five Sprouts while drift 3 walks in).
 	if style != "sprout" and _grow_sprout_into_family():
@@ -703,6 +716,8 @@ func _next_buy() -> String:
 	if attackers < target and _plant_attacker():
 		return "plant"
 	if walls < int(attackers * plan.walls) and _plant_wall():
+		return "walls"
+	if walls_keep_going and attackers >= wall_first_keep and _walls_keep_going():
 		return "walls"
 	if _grow():
 		_save_since = -1  # The saver got its growth
@@ -734,6 +749,39 @@ func _next_buy() -> String:
 			and _plant_attacker():
 		return "plant"
 	return ""
+
+# Wall-first: under WALL_FIRST_ROUTE route cells, one chain of 1-3 Thornwalls (the most route per Dew). False once
+# the route is long enough, the Dew is short, or no wall adds route (then not again until the next drift starts).
+func _wall_first() -> bool:
+	if _attackers().size() < wall_first_keep or _wall_first_stuck == director.drifts_started or _route_cells(map.get_path_from(map.startPath)) >= WALL_FIRST_ROUTE:
+		return false
+	var wall: TowerData = load("res://resource/tower/thornwall.tres")
+	if not run_state.can_afford(placer.get_cost(wall)):
+		return false
+	placer.tower_data = wall
+	var placed := 0
+	if _half_mode() and placer.half_placement():
+		placed = _plant_wall_chain(run_state.dew)
+	elif _plant_wall():
+		placed = 1
+	if placed == 0:
+		_wall_first_stuck = director.drifts_started
+	return placed > 0
+
+# --walls-keep-going: one Thornwall chain whose walls add at least KEEP_GOING_CELLS route cells each (route points
+# are half steps: 2 per cell). Not again this drift once none does.
+func _walls_keep_going() -> bool:
+	if _keep_going_stuck == director.drifts_started:
+		return false
+	var wall: TowerData = load("res://resource/tower/thornwall.tres")
+	var cost: int = placer.get_cost(wall)
+	if not run_state.can_afford(cost) or not (_half_mode() and placer.half_placement()):
+		return false
+	placer.tower_data = wall
+	var placed := _plant_wall_chain(run_state.dew, 2.0 * KEEP_GOING_CELLS / cost)
+	if placed == 0:
+		_keep_going_stuck = director.drifts_started
+	return placed > 0
 
 # Dew for the cheapest growth open to a Warden on the map (0 = none).
 func _cheapest_growth() -> int:
@@ -879,7 +927,7 @@ func _half_wall_open(origin: Vector2) -> bool:
 # (0 = no chain adds route).
 const WALL_CHAINS := [1, 2, 3]
 
-func _plant_wall_chain(left: int) -> int:
+func _plant_wall_chain(left: int, min_rate := 0.0) -> int:
 	var wall: TowerData = placer.tower_data
 	var cost: int = placer.get_cost(wall)
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
@@ -910,7 +958,7 @@ func _plant_wall_chain(left: int) -> int:
 				if new_route.is_empty():
 					break
 				var rate: float = float(new_route.size() - route.size()) / (length * cost)
-				if rate > best_rate and map.can_block_halves(halves, walkers):
+				if rate > best_rate and rate >= min_rate and map.can_block_halves(halves, walkers):
 					best_rate = rate
 					best = chain.duplicate()
 	var placed := 0
@@ -1029,7 +1077,7 @@ func _build_inner(data: TowerData, cell: Vector2) -> bool:
 					continue
 				if not map.can_block_halves(halves, enemy_cells):
 					continue
-				var new_route: PackedVector2Array = map.get_path_if_blocked_halves(halves)
+				var new_route: PackedVector2Array = _drawn_if_blocked_halves(halves)
 				if new_route.is_empty():
 					continue
 				var score := _spot_score(centre, Tower.half_home_cell(origin), new_route, route, reach, growth_weight, cover_heart, _last_args[3])
@@ -1106,7 +1154,7 @@ func _best_cell(reach: float, growth_weight: float, cover_heart := false, data: 
 				continue
 			if cover_heart and cell.distance_to(map.endPath) > reach:
 				continue
-			var new_route: PackedVector2Array = map.get_path_if_blocked_cells([cell])
+			var new_route: PackedVector2Array = _drawn_if_blocked_cells([cell])
 			if new_route.is_empty() or not map.can_block_cells([cell], enemy_cells):
 				continue
 			var score := _spot_score(cell, cell, new_route, route, reach, growth_weight, cover_heart, data)
@@ -1119,6 +1167,19 @@ func _best_cell(reach: float, growth_weight: float, cover_heart := false, data: 
 	_top = scored.slice(0, NUDGE_TOP)
 	_last_args = [reach, growth_weight, cover_heart, data, route, enemy_cells]
 	return best
+
+# The route nightmares would walk after a placement: since 19f426c5 they follow the drawn route (fewest turns among
+# the shortest), which the fast A* preview may not match (same length, another lane or side), so coverage is scored
+# on the drawn preview as the build ghost shows it. Older builds: the plain preview.
+func _drawn_if_blocked_halves(halves: Array) -> PackedVector2Array:
+	if map.get_method_argument_count("get_path_if_blocked_halves") >= 2:
+		return map.get_path_if_blocked_halves(halves, true)
+	return map.get_path_if_blocked_halves(halves)
+
+func _drawn_if_blocked_cells(cells: Array) -> PackedVector2Array:
+	if map.get_method_argument_count("get_path_if_blocked_cells") >= 2:
+		return map.get_path_if_blocked_cells(cells, true)
+	return map.get_path_if_blocked_cells(cells)
 
 func _coverage(tower: Tower) -> int:
 	var reach := tower.get_range_cells()

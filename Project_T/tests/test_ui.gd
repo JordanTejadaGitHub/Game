@@ -180,9 +180,19 @@ func _run() -> void:
 				picked.size(), screen, panel_rect, bar_rect, drift_rect])
 			# Light pass size (story chat 2026-10-05: "Warden panel is too large"): 280 wide, within 45% of the height.
 			var panel_script = warden_panel.get_script()  # Untyped: its constants
-			_check(panel_rect.size.x <= panel_script.PANEL_WIDTH + 1.0 and panel_rect.size.y <= screen.y * panel_script.MAX_SHARE + 1.0,
-				"the Warden panel (%d selected) is at most %d wide and %d%% of the height at %s (%s)" % [picked.size(),
-				panel_script.PANEL_WIDTH, roundi(panel_script.MAX_SHARE * 100), screen, panel_rect.size])
+			# Every option it can act on is shown (story chat): up to MAX_ROWS (a real run's offer) it keeps 45%; more
+			# (Bellflower's six here, everything unlocked) sit two to a line and the panel need only stay on screen.
+			var options := 0
+			for tower in picked:
+				options = maxi(options, Tower.grow_options(main.get_node("%DreamState"), tower.tower_data).size())
+			var tall_ok: bool = panel_rect.size.y <= screen.y * panel_script.MAX_SHARE + 1.0 if options <= panel_script.MAX_ROWS \
+				else Rect2(Vector2.ZERO, Vector2(screen)).encloses(panel_rect)
+			_check(panel_rect.size.x <= panel_script.PANEL_WIDTH + 1.0 and tall_ok,
+				"the Warden panel (%d selected, %d options) is at most %d wide and %s at %s (%s)" % [picked.size(), options,
+				panel_script.PANEL_WIDTH, ("%d%% of the height" % roundi(panel_script.MAX_SHARE * 100)) if options <= panel_script.MAX_ROWS
+				else "on screen", screen, panel_rect.size])
+			_check(warden_panel._all_buttons().all(func(b) -> bool: return not (b is Button and b.has_meta(&"grow_index")) or b.visible),
+				"every grow / unlock option is shown, none behind \"+N more\"")
 		panel_seller.set_selection([])
 		await _frames(1)
 		# A minimised choice's "Back to …" button never covers the banner, the Coming strip or the bar.
@@ -945,12 +955,12 @@ func _run() -> void:
 		seller.select(tip_tower)
 		await process_frame
 		var panel := main.find_child("WardenPanel", true, false)
-		var priced: Array = panel._buttons.get_children().filter(func(b) -> bool: return b.has_meta(&"cost") and b.get_meta(&"currency", &"dew") == &"dew")  # Dew prices (a locked form is priced in Dreamlight)
-		var ids: Array = panel._buttons.get_children().map(func(b) -> int: return b.get_instance_id())
+		var priced: Array = panel._all_buttons().filter(func(b) -> bool: return b.has_meta(&"cost") and b.get_meta(&"currency", &"dew") == &"dew")  # Dew prices (a locked form is priced in Dreamlight)
+		var ids: Array = panel._all_buttons().map(func(b) -> int: return b.get_instance_id())
 		run_state.dew = 0
 		run_state.dew_changed.emit(0)
 		await process_frame
-		var ids_after: Array = panel._buttons.get_children().map(func(b) -> int: return b.get_instance_id())
+		var ids_after: Array = panel._all_buttons().map(func(b) -> int: return b.get_instance_id())
 		_check(ids_after == ids, "a Dew change keeps the Warden panel's buttons (a tooltip under the pointer stays)")
 		_check(priced.all(func(b) -> bool: return b.get_meta(&"short", false) and not b.disabled), "and their affordability updates in place (dimmed, still pressable for the can't-buy refusal)")
 		run_state.dew = 100000

@@ -50,7 +50,7 @@ var _tab_root: TowerData = null  # The tree shown
 var _was_paused := false
 var _title := Label.new()
 var _light_line := Label.new()
-var _tabs := HBoxContainer.new()
+var _tabs := HFlowContainer.new()  # Wraps to a second row with every family (it ran off the side at the largest UI size)
 var _body: BoxContainer
 var _canvas: TreeCanvas
 var _side := PanelContainer.new()
@@ -94,11 +94,23 @@ func _ready() -> void:
 	_offer_line.add_theme_color_override("font_color", UiStyle.INK)
 	box.add_child(_offer_line)
 
-	_tabs.add_theme_constant_override("separation", 6)
+	_tabs.add_theme_constant_override("h_separation", 6)
+	_tabs.add_theme_constant_override("v_separation", 6)
+	_tabs.custom_minimum_size.x = TREE_SIZE.x + SIDE_WIDTH + 14.0  # Wraps at the panel's width
 	box.add_child(_tabs)
+	_frame = frame
+	_middle.name = "Middle"
+	_middle.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(_middle)
+	_middle_box.add_theme_constant_override("separation", 10)
+	_middle_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_middle.add_child(_middle_box)
+	_middle_box.minimum_size_changed.connect(_fit_middle, CONNECT_DEFERRED)
+	get_viewport().size_changed.connect(_fit_middle, CONNECT_DEFERRED)
+	visibility_changed.connect(_fit_middle, CONNECT_DEFERRED)
 	_body = HBoxContainer.new()
 	_body.add_theme_constant_override("separation", 14)
-	box.add_child(_body)
+	_middle_box.add_child(_body)
 	_canvas = TreeCanvas.new(self)
 	_body.add_child(_canvas)
 	_side.add_theme_stylebox_override("panel", UiStyle.panel_in(UiStyle.GOLD, 12, 12))
@@ -108,7 +120,7 @@ func _ready() -> void:
 	_body.add_child(_side)
 	_misty.name = "NotInDream"  # Branch expansion: this family's branches not in this run, apart from the tree
 	_misty.add_theme_constant_override("separation", 4)
-	box.add_child(_misty)
+	_middle_box.add_child(_misty)
 
 	var footer := HBoxContainer.new()
 	footer.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -350,6 +362,23 @@ func _make_tab(root: TowerData) -> Button:
 		selected = null
 		_rebuild())
 	return tab
+
+# Fits the viewport at every UI scale (user, the largest UI size: Done and Peek fell off the bottom): the header and the
+# footer stay; the middle (the tree, the side panel, "Not in this dream") is as tall as it can be and scrolls past that.
+var _frame: PanelContainer = null
+var _middle := ScrollContainer.new()
+var _middle_box := VBoxContainer.new()
+const VIEW_MARGIN := 24.0  # Kept free above and below the panel
+
+func _fit_middle() -> void:
+	if _frame == null or not is_inside_tree():
+		return
+	var content := _middle_box.get_combined_minimum_size().y
+	var rest := _frame.get_combined_minimum_size().y - _middle.custom_minimum_size.y  # Header, tabs, footer, padding
+	var room := get_viewport_rect().size.y - VIEW_MARGIN * 2.0 - rest
+	var height := clampf(room, 120.0, content)
+	if not is_equal_approx(_middle.custom_minimum_size.y, height):
+		_middle.custom_minimum_size.y = height
 
 # Phones: the side panel goes under the tree (and slides up on selecting) instead of beside it.
 func _layout_for_screen() -> void:
@@ -660,9 +689,14 @@ func _cost_on(button: Button, cost: int, short: bool) -> void:
 	price.name = "Cost"
 	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	price.add_theme_constant_override("separation", 3)
-	price.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
-	price.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	price.anchor_left = 1.0  # The button's full height at its right edge, the glyph and number centred in it
+	price.anchor_right = 1.0
+	price.anchor_top = 0.0
+	price.anchor_bottom = 1.0
+	price.offset_top = 0
+	price.offset_bottom = 0
 	price.offset_right = -14
+	price.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	var glyph := TextureRect.new()
 	glyph.texture = IconInfo.icon(&"dreamlight")
 	glyph.custom_minimum_size = Vector2(16, 16)
@@ -676,6 +710,8 @@ func _cost_on(button: Button, cost: int, short: bool) -> void:
 	number.name = "Amount"
 	number.text = str(cost)
 	number.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	number.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	UiStyle.number(number, 18, UiStyle.POOR if short else UiStyle.GOLD)
 	price.add_child(number)
 	button.add_child(price)
@@ -706,23 +742,32 @@ func _add_unlock(data: TowerData) -> void:
 	var blocker := dream_state.get_unlock_blocker(data)
 	if blocker != "":
 		_line("Locked: " + blocker, UiStyle.INK_DIM, 13)
+	# The one detail-panel button (user, Bramble: "Dreamlight is not centred"; as Call into this dream, b5735f56): 12 px
+	# under the text, "Unlock" centred, the Dreamlight glyph and its cost at the right in GOLD, POOR when short; no " · ".
+	var gap := Control.new()
+	gap.custom_minimum_size.y = 12
+	_side_box.add_child(gap)
 	var button := Button.new()
 	button.name = "UnlockButton"
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(0, 48)
 	var price := dream_state.get_unlock_price(data)  # Waking Root (Heartwood's Gifts): 1 less, once
-	var label := ("Unlock · %d Dreamlight" % price) if price > 0 else "Unlock · free"
-	if price < cost:
-		label += " (Waking Root)"
 	var short := price - dream_state.dreamlight  # > 0: can't afford
 	button.disabled = blocker != ""  # Locked for another reason: a plain disabled button (the line says why)
 	UiStyle.primary(button)
 	_side_box.add_child(button)
-	if blocker == "" and short > 0:  # Can't afford yet (CantAfford): the cost in POOR, no count (user); a press refuses
-		CantAfford.apply(button, "Unlock", "%d Dreamlight" % price, IconInfo.format(SHORT_TIP))
+	button.text = "Unlock" if price > 0 else "Unlock, free"
+	if price > 0:
+		_cost_on(button, price, blocker == "" and short > 0)
+	if price < cost:
+		button.tooltip_text = "Waking Root: 1 Dreamlight less, once."
+	if blocker == "" and short > 0:  # Can't afford yet: dimmed, the cost in POOR, no count (user); a press refuses
+		for state in ["font_color", "font_hover_color", "font_pressed_color"]:
+			button.add_theme_color_override(state, UiStyle.INK_DIM)
+		button.set_meta(&"cant_afford", true)  # CantAfford.is_shown
+		button.tooltip_text = IconInfo.format(SHORT_TIP)
 		button.pressed.connect(_refuse_unlock.bind(data, button))
 	else:
-		button.text = label
 		button.pressed.connect(unlock.bind(data))
 
 # The short button's hover / tap: no count (user: "too much hand-holding"), just where Dreamlight comes from.

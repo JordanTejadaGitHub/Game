@@ -284,6 +284,19 @@ func _run() -> void:
 	dreams.banishes_left = 0
 	await _test_arm_delay(dreams, screen, main)
 	dreams.current_offer = []
+	# Build-defining cards (dream_design.md de439ea8) carry a small "build" mark with its tip; others none
+	var plain: UpgradeData = (load("res://resource/dream/morning_dew.tres") as UpgradeData) if ResourceLoader.exists("res://resource/dream/morning_dew.tres") else dreams.make_offer(10)[0]
+	var defining := plain.duplicate() as UpgradeData
+	defining.tags = plain.tags.duplicate()
+	defining.tags.append("defining")
+	var marked := screen._make_card(defining) as Control
+	var unmarked := screen._make_card(plain) as Control
+	var mark := marked.find_child("BuildMark", true, false) as Control
+	_check(mark != null and mark.tooltip_text.begins_with("Build around it") and (not mark is Label or not (mark as Label).text.is_valid_int())
+		and (plain.tags.has("defining") or unmarked.find_child("BuildMark", true, false) == null),
+		"a build-defining card has the build mark (no numbers), others don't")
+	marked.free()
+	unmarked.free()
 	print("dream screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -322,11 +335,19 @@ func _test_arm_delay(dreams: DreamState, screen, main: Node) -> void:
 	for i in 20:
 		await process_frame
 	_check(is_equal_approx(screen._cards.modulate.a, 1.0), "the cards are fully in")
+	# No impact or count preview on a card (user: "don't want to be too direct… how many it affects")
+	_check(screen._cards.find_children("ImpactLine", "", true, false).is_empty() and screen._cards.find_children("LiveLine", "", true, false).is_empty(),
+		"the cards show no impact or count line")
 	_click(at, true)
 	await process_frame
 	_click(at, false)
 	await process_frame
-	_check(dreams.stacks.has(offer[0].id), "a press and release after arming picks the card")
+	var flying := screen._cards.get_child(0) as Control
+	_check(not dreams.stacks.has(offer[0].id) and (flying.top_level or Fx.setting("reduced_motion", false)),
+		"the picked card flies to the Dreams row before it's taken")
+	for i in int(screen.FLY_TIME * 60.0) + 15:  # The card flies into the Dreams row first (screens_ui.md "Dream" ecbea61a)
+		await process_frame
+	_check(dreams.stacks.has(offer[0].id), "a press and release after arming picks the card (after its flight)")
 	# Omens: right-click (Clear Skies) waits too: a right-click cancelling build mode as the rest begins isn't a pick
 	var omen_screen = main.get_node("HUD/OmenScreen")
 	var omens = main.get_node("%OmenDirector")
