@@ -879,7 +879,9 @@ For a person: usually beats the Stag on the first try, wins the demo in about 1 
 demo-only health multipliers per act (exports in 2e6d4e4a), then the Mire Hag's own health.
 **Demo Grove (demo_scope.md cb0e096c, ~8 perk / card nodes):** fresh hits the table above; a **full demo Grove** wins the
 Mire Hag **+10–15 points** more (≈ 40–55%), never above ~60%. All 8 earned in **~3–5 demo runs**: node costs set from
-the Seeds a demo run actually banks (measured on the baseline).
+the Seeds a demo run actually banks (measured on the baseline). Meta's 8 (490a157e → 5bfb65be): Morning Stores I, Deep
+Taproot I (power, under a Hades split Meta Game Code is adding), Second Thoughts I, Wider Choice, Sharpened, Seedbed,
+Scarred Bark, **Rootling (a 5th family)**: 375 Seeds → target median ≈ 94 per demo run.
 
 ## No forcing (user, 2026-10-06)
 
