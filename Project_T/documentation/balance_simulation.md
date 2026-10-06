@@ -926,6 +926,10 @@ A/B decides whether that is the bot's picks.
 **Thorny Walls override (paired, seeds 1–30):** scored like a plain Common, the bot takes it 1/13 (was 11/13) and
 act 1 goes 36% → **53%**: most of the card pass's act 1 effect was the bot's picks. It also shows Thorny Walls
 under budget (taking it costs a pick): **every 1 s, 5 damage** (was every 2 s; ≈ +20% at 20 walls, fading late). In 62dc0c0f.
+**`--card-value` A/B (paired, seeds 1–30):** act 1 default 36% (tags only) → 53% (Thorny override) → **63%**
+(effect-size scoring); picks look sensible (Tender Care, Old Growth, First Light, big stat cards first; conditional
+cards by board share). **Made the bot's default; every baseline from the flip on is card-value.** Spender / skip
+re-based on it next.
 
 ## Drawn route and early deaths (19f426c5, 2026-10-05)
 
