@@ -27,6 +27,7 @@ static func blocker_text(blocker: String) -> String:
 	return "in the Memory Grove" if blocker == "Memory Grove" else blocker
 
 var compact := false  # The Warden panel (light pass): name + damage type on one line, a short description, no Dreams rows (set_compact)
+var brief := false  # Compact with many actions: the description's opening only (the panel sets it before show_warden)
 var full_description := ""  # Compact: the description in full when the short one left some out (the panel's Details), else ""
 var detail_lines: Array[String] = []  # Compact: stat lines left for the panel's Details ("Soaked: water hits +24%")
 
@@ -143,6 +144,11 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 	_show_damage_type(data)
 	desc.text = StatusLinks.bbcode(data.description)  # {damp}-style tokens and plain names both work
 	full_description = ""
+	if compact and brief:  # Many actions below (story chat: the description gives way first): its opening, the rest in Details
+		var opening := short_description(data.description)
+		if opening != data.description:
+			desc.text = StatusLinks.bbcode(opening)
+			full_description = data.description
 	detail_lines.clear()
 	# Compact: the description whole, wrapping (user: "The description also cuts off"); short_description stays for
 	# callers that want an opening line.

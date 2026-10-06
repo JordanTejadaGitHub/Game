@@ -94,7 +94,7 @@ func _check(condition: bool, label: String) -> void:
 		printerr("FAIL: " + label)
 
 func _button(panel: Node, starts_with: String) -> Button:
-	for child in panel._buttons.get_children():
+	for child in panel._all_buttons():
 		if child is Button and not child.is_queued_for_deletion() and child.text.begins_with(starts_with):
 			return child
 	return null

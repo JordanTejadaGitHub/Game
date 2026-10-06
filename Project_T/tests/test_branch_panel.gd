@@ -72,7 +72,7 @@ func _run() -> void:
 	seller.select(tower)
 	for i in 3:
 		await process_frame
-	var texts: Array = panel._buttons.get_children().filter(func(c) -> bool: return c is Button and not c.is_queued_for_deletion()).map(
+	var texts: Array = panel._all_buttons().filter(func(c) -> bool: return c is Button and not c.is_queued_for_deletion()).map(
 		func(b: Button) -> String: return b.text)
 	var grow_lines := texts.filter(func(t: String) -> bool: return t.contains("test_b"))
 	_check(grow_lines.size() == 2 and not texts.any(func(t: String) -> bool: return t.contains(DreamState.NOT_IN_DREAM + " (")),

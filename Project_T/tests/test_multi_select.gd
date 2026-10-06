@@ -143,7 +143,7 @@ func _build(placer: TowerPlacer, map_generator, data: TowerData) -> Tower:
 
 func _button_texts(panel: Node) -> Array:
 	var texts := []
-	for button in panel._buttons.get_children():
+	for button in panel._all_buttons():
 		if button is Button and not button.is_queued_for_deletion():
 			texts.append(button.text)
 	return texts
