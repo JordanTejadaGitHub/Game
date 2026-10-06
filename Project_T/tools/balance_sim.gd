@@ -80,7 +80,7 @@ var wall_first := true  # --no-wall-first: the opening plants attackers first (t
 const WALL_FIRST_ROUTE := 45
 var wall_first_keep := 5  # --wall-first-keep=N: wall-first waits until N attackers are planted (the opening rule's 5 Sprouts; 0 = walls before any: on 60 Dew that left 2 Sprouts and drift 1 leaked)
 var _wall_first_stuck := -2  # drifts_started when no wall added route (wall-first rests until the next drift)
-var walls_keep_going := false  # --walls-keep-going (Balancing, Room to maze "a player who walls"): past the opening, Thornwall chains whenever each wall adds KEEP_GOING_CELLS+ route cells, before grows and ranks
+var walls_keep_going := true  # Default since 2026-10-06 (Balancing: closer to how the user wants the maze played); --no-walls-keep-going = off. From Room to maze "a player who walls": past the opening, Thornwall chains whenever each wall adds KEEP_GOING_CELLS+ route cells, before grows and ranks
 const KEEP_GOING_CELLS := 2
 var _keep_going_stuck := -2
 var half_pref := true  # --no-half-pref: full cells only on the half grid (the bot before 2026-10-04)
@@ -205,6 +205,7 @@ func _run() -> void:
 			"--no-fence-pref": fence_pref = false
 			"--no-wall-first": wall_first = false
 			"--walls-keep-going": walls_keep_going = true
+			"--no-walls-keep-going": walls_keep_going = false
 			"--wall-first-keep": wall_first_keep = int(value)
 			"--no-half-pref": half_pref = false
 			"--no-pair-search": pair_search = false
