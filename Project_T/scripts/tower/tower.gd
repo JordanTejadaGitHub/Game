@@ -424,10 +424,11 @@ func is_sheltered() -> bool:
 	if not is_inside_tree():
 		return false
 	for other in get_tree().get_nodes_in_group(GROUP):
-		if other == self or not (other is Tower) or other.rank < Signatures.SHARED_RANK or not other.is_aura_support():
+		if other == self or not (other is Tower) or other.rank < Signatures.SHARED_RANK:
 			continue
+		# Every support with an area (audit a09297af): an aura, Prism's, a catcher's catch, Nurse Log's, Dream Oak's reach.
 		if other.signature() == Signatures.SHELTER \
-				and other.global_position.distance_to(global_position) / MAP_GRID.cell_size.x <= other.get_aura_reach() + 0.001:
+				and other.global_position.distance_to(global_position) / MAP_GRID.cell_size.x <= other._wide_radius() + 0.001:
 			return true
 	return false
 
@@ -460,6 +461,10 @@ func _update_watchtower(delta: float) -> void:
 	if revealed:
 		signature_fired.emit(self, Signatures.WATCHTOWER)
 
+# Surge: x2 on this support's own job while it surges (aura, Prism's crit aura, a catcher's catch, Caught's tick bonus).
+func surge_multiplier() -> float:
+	return Signatures.SURGE_MULTIPLIER if _surging else 1.0
+
 # Surge: every SURGE_EVERY s the aura doubles for SURGE_TIME s (the Wardens in it look again at the edges).
 func _update_surge(delta: float) -> void:
 	_surge_clock += delta
@@ -469,7 +474,7 @@ func _update_surge(delta: float) -> void:
 	_surging = now
 	_nudge_neighbours()
 	if _surging:
-		var swell := Reactions._effect(&"surge_pulse", global_position, self, get_aura_reach() * 2.0 / 3.0, Signatures.SURGE_TIME)  # Tower Assets 8d00143e (looped for the surge)
+		var swell := Reactions._effect(&"surge_pulse", global_position, self, _wide_radius() * 2.0 / 3.0, Signatures.SURGE_TIME)  # Tower Assets 8d00143e (looped for the surge)
 		if swell != null:
 			swell.z_index = -1
 		signature_fired.emit(self, Signatures.SURGE)
@@ -2338,6 +2343,7 @@ func _kin_chime_catch(in_range: Array) -> void:
 		if not s.is_caught():
 			Reactions._effect(&"caught", aim_at(enemy), self, 1.0, 0.8)
 		s.caught_time = maxf(s.caught_time, hold)
+		Signatures.touch(enemy, self)  # Spreading
 
 # Night Chimes (Dreamcatcher line): its hits set off Static at 3 charges, like a chime.
 func _kin_night_chimes(enemy: Node2D) -> void:
@@ -2939,9 +2945,15 @@ func _flush_pull() -> void:
 
 # Pulls `enemy` back `tiles` along its route (Patient Roots: the Rootling line 0.5 further), credited to
 # this Warden (SupportLog "tiles_pulled").
+# A puller's pull on `enemy` (its tiles for bosses or others, + Deep).
+func pull_tiles_for(enemy: Node2D) -> float:
+	return (attack_data.pull_boss_tiles if enemy.enemy_data.is_boss else attack_data.pull_tiles) \
+		+ float(NurtureChoices.PULL_DEEP.get(tower_data.get_id(), 0.0)) * choice_count(Focus.DEEP)
+
 func pull(enemy: Node2D, tiles: float) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
+	Signatures.touch(enemy, self)  # Spreading: the pull repeats on the nearest when it's dispelled
 	if tower_data.line == "root" and _rule_stacks(&"patient_roots") > 0:
 		tiles += PATIENT_ROOTS_PULL * _rule_power(&"patient_roots")
 	enemy.push_back(tiles * MAP_GRID.cell_size.x)
@@ -3130,9 +3142,10 @@ func _update_catch(delta: float) -> void:
 			Reactions._effect(&"caught", aim_at(enemy), self, 1.0, 0.8)  # The dreamcatcher glyph
 			ComboFeedback.report(&"caught", self)  # Codex: a nightmare is Caught
 		s.caught_time = maxf(s.caught_time, AURA_TICK * 1.6 + NurtureChoices.CAUGHT_LINGER * choice_count(Focus.DEEP))  # Deep: lingers after it leaves
+		Signatures.touch(enemy, self)  # Spreading: Caught and sleep jump on when it's dispelled
 		s.caught_bonus = maxf(s.caught_bonus if s.is_caught() else 0.0, tower_data.caught_bonus)
 		# Strong (audit b6f44fac, replaces Power): its statuses tick faster while Caught; the strongest catcher's counts.
-		s.caught_strong = maxf(s.caught_strong if s.is_caught() else 0.0, NurtureChoices.CAUGHT_STRONG * choice_count(Focus.STRONG))
+		s.caught_strong = maxf(s.caught_strong if s.is_caught() else 0.0, NurtureChoices.CAUGHT_STRONG * choice_count(Focus.STRONG) * surge_multiplier())  # (Surge: x2)
 		if tower_data.caught_shards:
 			s.caught_shard = true
 			s.caught_shard_tower = self  # Told when the shard drops (shard_dropped)
@@ -3183,6 +3196,7 @@ func _echo_now(id: StringName, mark: Array, share: float, applier, chain: int, a
 	var spot: Vector2 = mark[1]
 	if is_instance_valid(target):
 		spot = target.global_position  # Where it is now (a dispelled one stopped where it died)
+	set_meta(&"last_echo", [id, share, applier if is_instance_valid(applier) else null, chain])  # Spreading repeats it
 	Reactions.echo(id, spot, share, self, applier if is_instance_valid(applier) else null, chain, as_link, depth)
 
 
@@ -3287,6 +3301,7 @@ func get_catch_share(enemy: Node2D) -> float:
 		share = tower_data.catch_share + tower_data.catch_per_rank * get_effective_rank() \
 			+ DewCatch.DEW_BOWL_STEP * _rule_stacks(&"dew_bowl") \
 			+ FOCUS_STRONG_CATCH * choice_count(Focus.STRONG)
+		share *= surge_multiplier()  # Surge: the catch doubles
 	var growth := kin_share(&"old_growth", "a")
 	if growth > 0.0 and distance <= get_aura_reach():
 		share = maxf(share, DewCatch.OLD_GROWTH_CATCH * growth)

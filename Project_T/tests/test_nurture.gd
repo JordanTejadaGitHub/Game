@@ -190,7 +190,7 @@ func _run() -> void:
 
 	# Mid-run save keeps ranks and Focus.
 	var saver: RunSaver = main.get_node("%RunSaver")
-	saver.save_now()
+	_check(saver.save_now(), "(setup) the mid-run save writes (can_save_now: %s)" % saver.can_save_now())
 	var saved: Dictionary = saver._read()
 	var entry := {}
 	for row in saved.get("towers", []):

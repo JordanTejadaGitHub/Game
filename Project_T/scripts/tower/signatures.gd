@@ -148,6 +148,80 @@ func _enter_tree() -> void:
 	if spawner and spawner.has_signal("enemy_cleansed") and not spawner.enemy_cleansed.is_connected(_on_dispelled):
 		spawner.enemy_cleansed.connect(_on_dispelled)
 
+const TOUCHED := &"spread_touch"  # Meta on a nightmare: {Warden instance id: true} (Spreading Wardens that worked on it)
+const STATUS_IN_FULL := [EnemyStatuses.HELD]  # Jumps with all its time left (the rest: half the stacks and time)
+
+# A Spreading Warden worked on `enemy` in a way that isn't a status or damage (pull, grab, hold, silence, catch):
+# remembered, so the dispel can carry it on.
+static func touch(enemy: Node2D, tower: Tower) -> void:
+	if not is_instance_valid(enemy) or tower.rank < SHARED_RANK or tower.signature() != SPREADING:
+		return
+	var touched: Dictionary = enemy.get_meta(TOUCHED, {})
+	touched[tower.get_instance_id()] = true
+	enemy.set_meta(TOUCHED, touched)
+
+# The Spreading Wardens that worked on `enemy`: its statuses' appliers, its recent damage and the touches.
+func _spreaders(enemy: Node2D) -> Array:
+	var found := {}
+	for id in enemy.statuses.active_ids():
+		var source = enemy.statuses.source(id)
+		if source is Tower:
+			found[source] = true
+	for event in (enemy.recent_hits if "recent_hits" in enemy else []):
+		if event.source is Tower:
+			found[event.source] = true
+	for id in enemy.get_meta(TOUCHED, {}):
+		var tower = instance_from_id(id)
+		if tower is Tower:
+			found[tower] = true
+	return found.keys().filter(func(t) -> bool:
+		return is_instance_valid(t) and t.rank >= SHARED_RANK and t.signature() == SPREADING)
+
+# What its Deep strengthens, carried from `enemy` to `next` once (signature audit a09297af).
+func _spread_job(tower: Tower, enemy: Node2D, next: Node2D) -> void:
+	var key := "t%d" % tower.get_instance_id()
+	var jumped: Array = enemy.get_meta(JUMPED, [])
+	if jumped.has(key):
+		return  # It came here by a jump: never again
+	var data := tower.attack_data
+	var s: EnemyStatuses = enemy.statuses
+	var did := false
+	if next == enemy:
+		data = TowerData.new()  # No other nightmare near: only Quaker's reveal (below) has work
+	if data.pull_tiles > 0.0:
+		tower.pull(next, tower.pull_tiles_for(next))  # Pullers: the pull repeats once
+		did = true
+	if data.special == &"groundroot" and next.is_flying() and not next.enemy_data.is_boss:
+		BranchKit.ground(tower, next)  # Groundroot: the grab repeats once
+		did = true
+	if data.special == &"hush" and s.silence_time > 0.0:
+		BranchKit.silence(next, s.silence_time, tower)  # Hushbell: the silence left, in full
+		did = true
+	if data.caught_bonus > 0.0 and (s.caught_time > 0.0 or s.sleep_time > 0.0):
+		var t: EnemyStatuses = next.statuses
+		t.caught_time = maxf(t.caught_time, s.caught_time)  # Dreamcatchers: Caught and sleep, in full
+		t.caught_bonus = maxf(t.caught_bonus, s.caught_bonus)
+		t.caught_strong = maxf(t.caught_strong, s.caught_strong)
+		if s.sleep_time > 0.0:
+			t.sleep(s.sleep_time)
+		did = true
+	if tower.attack_data.special == &"quaker":
+		var reach := SPREAD_REACH * Tower.MAP_GRID.cell_size.x
+		for other in Tower.nightmares_near(get_tree(), enemy.global_position, reach):
+			if is_instance_valid(other) and not other.is_cleansed and other.has_method("is_hidden") and other.is_hidden() \
+					and other.global_position.distance_to(enemy.global_position) <= reach:
+				other.reveal_for(WATCH_REVEAL)  # Quaker: the reveal jumps to hidden ones nearby
+				did = true
+	var echo: Array = tower.get_meta(&"last_echo", [])
+	if data.echo_share > 0.0 and not echo.is_empty():
+		Reactions.echo(echo[0], next.global_position, echo[1], tower, echo[2] if is_instance_valid(echo[2]) else null, echo[3], false)
+		did = true  # Echo Hollow: its last echo repeats on the nearest
+	if did:
+		var marks: Array = next.get_meta(JUMPED, [])
+		marks.append(key)
+		next.set_meta(JUMPED, marks)
+		tower.signature_fired.emit(tower, SPREADING)
+
 func _on_dispelled(enemy: Node2D) -> void:
 	if not is_instance_valid(enemy) or enemy.statuses == null:
 		return
@@ -169,14 +243,24 @@ func _on_dispelled(enemy: Node2D) -> void:
 		if nearest == null:
 			nearest = _nearest(enemy, reach)
 			if nearest == null:
-				return
-		var stacks := maxi(enemy.statuses.stacks(id) / 2, 1)
-		var seconds: float = enemy.statuses.time_left(id) / 2.0
+				break  # Nothing within reach (Quaker's reveal below still looks)
+		var full := STATUS_IN_FULL.has(id)  # A hold's time left jumps whole (Thorncoil, Tangleroot…)
+		var stacks: int = enemy.statuses.stacks(id) if full else maxi(enemy.statuses.stacks(id) / 2, 1)
+		var seconds: float = enemy.statuses.time_left(id) * (1.0 if full else 0.5)
 		nearest.apply_status(id, stacks, seconds, enemy.statuses.potency(id), 0, source.tower_data.line, source)
 		var marks: Array = nearest.get_meta(JUMPED, [])
 		marks.append(id)
 		nearest.set_meta(JUMPED, marks)
 		source.signature_fired.emit(source, SPREADING)
+	# The rest of what Deep strengthens: pulls, grabs, silence, Caught and sleep, Quaker's reveal, Echo Hollow's echo.
+	var spreaders := _spreaders(enemy)
+	if spreaders.is_empty():
+		return
+	if nearest == null:
+		nearest = _nearest(enemy, reach)
+	for tower in spreaders:
+		if nearest != null or tower.attack_data.special == &"quaker":
+			_spread_job(tower, enemy, nearest if nearest != null else enemy)
 
 func _nearest(from: Node2D, reach: float) -> Node2D:
 	var best: Node2D = null
