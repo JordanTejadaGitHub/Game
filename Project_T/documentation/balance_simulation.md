@@ -906,7 +906,9 @@ measured before the pool test. **Result (bf4fe891, fresh 30): no build at 50 13%
 offers unchanged. **GO; the pool test dropped.** Full: 13% at 50 (maze 58, affliction 23, tall 8, swift 6…). **Act 1 on
 bf4fe891 (30):** default **40%** (63 before), spender 60%, skip **26%**; default's First Light picks 10/13 → 0/6. Likely
 the bot's policy scoring the removed "defining" tag; checking before any curve change (skip's 26 alone would ask for
-×1.25, but default is under target).
+×1.25, but default is under target). **Not the scores:** the policy never weighted "defining", and the card-value scores
+are identical on both builds; tag-only default on bf4fe891 is 36% (card-value 40%; on 40bdebda +27). The drop is in
+what act 1 offers: the strong act 1 cards are offered less. Reading the offer logs (best score per offer).
 the all-Acorn check: in a real run that boss drains instead. **Cause:** ×1.3 speed per lap with no cap (it crossed
 the route between two shots). Capped at 3 laps (×2.2) in 8603af1b; real runs never reach lap 4.
 
