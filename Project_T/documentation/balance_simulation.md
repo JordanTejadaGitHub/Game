@@ -880,7 +880,11 @@ Environment Code's open bowl: obstacles ~60 → 30–41, buildable ~275 → ~298
 tuned on it, and the user's goal is room to build longer, not a shorter start. **Revised:** Environment Discussion
 wants the short opening on purpose ("the player builds the length"), so it is simmed as is, with a wall-first bot
 opening (Thornwall 3: ~7 walls take 25 → ~45 and leave 3 Sprouts). Go if drifts 1–5 leak no more than main and
-act 1 survival is within ±10 points; else the bend spur adds +8–10 cells. Act 1 bot check on the worktree
+act 1 survival is within ±10 points; else the bend spur adds +8–10 cells.
+**Sim (main 526df9d7 vs room c0ad2808, wall-first bot, 30 seeds per arm):** d1–5 leaks default 1.8 → 3.5, skip
+2.4 → 3.1, spender even; act 1 boss default 50 → 30%, spender 56 → 36%, skip 16 → 6%; route d1 / d10 66 / 73 vs
+44 / 49. Bosses no harder; room runs reach 25 less often. **No-go; the spur fallback (+8–10) asked for**, then the
+room arm re-simmed. (The bot stops walling at ~45 cells; a new player walls less, not more.) Act 1 bot check on the worktree
 before merge; if the extra room makes act 1 easy, the curve answers it.
 
 ## Friend run 1 (2026-10-05 20:22, a new player, fresh profile, live main)
