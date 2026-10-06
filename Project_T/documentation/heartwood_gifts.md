@@ -24,9 +24,9 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
 | Gift | What it does |
 |---|---|
 | **Sow a Ridge** | Draw a ridge of 3–5 Withered Trees, cell by cell (adjacent cells). **Sheltered:** Wardens touching the ridge deal +10% damage. Each of its trees gives **+2 Seeds** when tended (instead of 1). Clearable at the normal cost (the bonus goes with the tree). |
-| **Fallen Giant** | Lay a fallen log 2–4 cells long, straight, where you choose; it can't be cleared this run. **High ground:** Wardens touching the log get +0.5 range. **Snag:** nightmares walking beside it move 15% slower there. |
+| **Fallen Giant** | Lay a fallen log 2–4 cells long, straight, where you choose; it can't be cleared this run. **Lookout:** attacking Wardens touching the log get +15% crit chance. (2026-10-06: was +0.5 range and a 15% slow, which overlapped Moonwell and Mire.) |
 | **Glade** | Clear **up to 5 obstacles of your choice**, free; each still counts as tended (+1 Seed). Pick them one by one on the gift screen (gold outline + ×, click again to unselect; counter "3 of 5 · −6 path"; the route mist previews live); "Clear them" confirms. (Revised 2026-10-03, user: the radius version "didn't feel right and was unintuitive"; as built 3ab8abee.) |
-| **Shift the Stones** | Move up to 3 obstacles to new empty cells. Each one moved pays **+20 Dew × act**, and the ground it leaves is **fertile**: the next Warden planted there costs half. |
+| **Shift the Stones** | Move up to 3 obstacles to new empty cells. Each one moved pays **+30 Dew × act**. (The fertile half-price spot was dropped 2026-10-06: it overlapped Ancient Stump.) |
 | **Mire** | Pick 3 connected path cells: the ground turns to bog, and nightmares move 20% slower there. |
 
 ### Living ground (terrain that feeds Wardens)
@@ -44,7 +44,7 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
 |---|---|
 | **Heartwood Roots** | Roots grow over the last 4 path cells before the Heartwood: nightmares there take +15% damage. |
 | **Thick Mist** | For the next act, nightmares leave the start mist 25% further apart. |
-| **Bramble Verge** | Thornwalls cost half this run, and nightmares touching one gain +1 Drowsy cap. |
+| **Bramble Verge** | Thornwalls grow into **Bramble for free** this run (no Dew; Bramble unlocked if it wasn't), and nightmares touching a Bramble gain +1 Drowsy cap. (2026-10-06: was "Thornwalls cost half", which overlapped the Weathered Walls card.) |
 
 ### Heartwood and kin
 | Gift | What it does |
@@ -62,3 +62,21 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
 - Everything saved in the run save. Each gift is a card on the gift screen (Moonlit Thread), with an
   animated mini-scene like the placement Dream cards.
 - Numbers are starting points; Balancing Discussion tunes them.
+
+## Overlap check (2026-10-06, user: "isn't there a gift that increases range, check all the other gifts so they don't overlap")
+Each gift now owns one kind of payoff:
+| Payoff | Gift |
+|---|---|
+| range | Moonwell only |
+| damage near terrain | Sow a Ridge (any Warden, +10%), Spring (water Wardens), Heartwood Roots (damage taken, at the end of the path) |
+| crit | Fallen Giant (Lookout) |
+| slow on the path | Mire only |
+| status strength | Mushroom Ring (Poisoned cap), Lightning Tree (Charged bolts), Bramble Verge (Drowsy cap) |
+| attack speed | Bell Stone (song Wardens) |
+| a head start on a Warden | Ancient Stump (rank I) |
+| Dew | Shift the Stones (per stone), Shifting Mist (the act's pots) |
+| clears / Seeds | Glade (5 free clears), Sow a Ridge (+2 Seeds a tree) |
+| arrival pacing | Thick Mist |
+| Dreamlight / growth | Waking Root, Bramble Verge (free Bramble) |
+| Kinships | Old Kin (jumps a stage), Memory Seed (keeps age when moved) |
+Cards vs gifts: no gift repeats a Dream card's effect (Weathered Walls owns cheap Thornwalls).

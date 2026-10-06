@@ -865,6 +865,18 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Shape cards 262–264 (dream_design.md e4d17195, Uncommon, defining)
+
+Budget: Uncommon one-family **+50%** for the kits that match, ~0 for the rest (by design).
+| Card | Number | Why |
+|---|---|---|
+| Small Hands | sent-out things **+35%** damage and **+1 s** | the +1 s adds hits for birds, seeds and lobbed stones, so the total sits ≈ +50% |
+| Sap Rising | each non-attacking Warden (not Thornwalls) pulses the 8 cells around it every 2 s for **2 s × its aura bonus × the summed DPS of the attacking Wardens in its aura**, at least **2 s × 50% of the board's median attacker DPS**. Effect damage (Potency applies) | it deals again, as an area, the damage it already grants: scales with ranks (Strong) and the board; the floor gives catchers and lone support Wardens a real hit |
+| Lingering Ground | ground effects last **×1.5**, not ×2 | overlapping clouds / rings on the same tiles turn duration into damage almost 1:1, so ×2 ≈ +100% for cloud kits |
+
+After the build: an all-Acorn check (fresh, Acorn family forced, the card forced at the first rest, 30 seeds) to
+see whether it makes the user's all-Acorn run viable.
+
 ## Heartwood gifts: every gift gives something (heartwood_gifts.md b3e464e6, 2026-10-06)
 
 Sized beside the living-ground gifts (Moonwell +1 range within 1 cell, Spring +20%, Heartwood Roots +15%):
@@ -874,6 +886,13 @@ Sized beside the living-ground gifts (Moonwell +1 range within 1 cell, Spring +2
 | Fallen Giant | touching **+0.5 range**; nightmares beside it **15% slower** | as proposed (an uncleared free wall, Mire is 20% on 3 cells) |
 | Shift the Stones | **+20 Dew × act** per stone moved (act 2 ≈ 120 for 3); the old spot fertile (half price) | 15 × act was under a drift's pot |
 | Shifting Mist | this act's Dew pots **+10%** (≈ 300 Dew in act 2) | +15% ≈ 470 Dew, four times Shift the Stones; the re-facing maze is its cost |
+
+In: Tower Code cdedfec0 (Warden buffs), Main Merger 285dbd6b (Dew, fertile, Mist), Environment Code 8833efaf (log slow,
+ridge Seeds; fixed to 2 in total in 8ec114cb).
+**Overlap fixes (user, heartwood_gifts.md 8f46c6ac):** Fallen Giant = **+15% crit chance** touching the log only (range
+and slow dropped; 10% at ×2 crits sat under the Ridge's +10% damage). Shift the Stones = Dew only, **30 × act** per
+stone (fertile dropped: 3 half-price plants were worth ~40–75 Dew). Bramble Verge = free Thornwall → Bramble
+growth for the run + Drowsy cap +1 (≈ 10 Dew a wall, ~200–300 by act 2; as designed).
 
 ## Fewer, bigger cards: numbers (dream_design.md de439ea8, 2026-10-06)
 

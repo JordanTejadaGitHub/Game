@@ -55,7 +55,7 @@ const SCENES := {
 	&"thick_mist": [".......\n...a...\nSPPPPPH\n.......\n.......", ".......\n...a...\nSPPPPPH\n.......\n.......", {},
 		"Next act, they leave the mist further apart."],
 	&"bramble_verge": [".......\n.T.T.T.\nSPPPPPH\n.......\n.......", ".......\n.X.X.X.\nSPPPPPH\n.......\n.......",
-		{"proc": "+1 Drowsy cap"}, "Thornwalls for half, and they make nightmares drowsy."],
+		{"proc": "+1 Drowsy cap"}, "Thornwalls grow into Bramble free; it makes nightmares drowsy."],
 	&"old_kin": [".......\n..aa...\nSPPPPPH\n.......\n.......", ".......\n..WW...\nSPPPPPH\n.......\n.......",
 		{"text": "kin +1 stage", "damage": 1.1, "kin": true}, "A Kinship grows a stage at once."],  # The bond drawn (CardScene 4e14a81c)
 	&"shifting_mist": [".......\n.......\nSPPPPPH\n.......\n.......", "...S...\n...P...\n...PPPH\n.......\n.......", {},

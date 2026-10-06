@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "lingering_ground"
+display_name = "Lingering Ground"
+description = "Ground effects (clouds, trails, rings, rubble, pools, lit cells) last 50% longer."
+rarity = 1
+kind = 3
+tags = Array[String](["defining"])
+max_stacks = 1
+rule_id = &"lingering_ground"

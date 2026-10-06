@@ -145,7 +145,7 @@ func _run() -> void:
 		"a resumed run rebuilds the gifts (restoring) and the max leaves stay")
 
 	# Payoffs (heartwood_gifts.md b3e464e6): Shifting Mist's Dew pots +10% for the act it opens; Shift the Stones pays
-	# 20 Dew × act per stone moved and leaves the old spots fertile.
+	# 30 Dew × act per stone moved (Dew only since 8f46c6ac).
 	var mist_act := int(gifts.taken.filter(func(t: Dictionary) -> bool: return StringName(t.id) == &"shifting_mist")[0].act)
 	var first_of := func(act: int) -> int: return (act - 1) * director.drifts_per_act + 1
 	_check(is_equal_approx(gifts.get_dew_pot_multiplier(first_of.call(mist_act + 1)), 1.0 + HeartwoodGifts.MIST_POT_BONUS)
@@ -162,8 +162,8 @@ func _run() -> void:
 	var dew_before := run_state.dew
 	var froms := [Vector2(3, 3), Vector2(4, 3)]
 	gifts.choose(&"shift_stones", {"cells": [Vector2(6, 6), Vector2(7, 6)], "from": froms})
-	_check(run_state.dew - dew_before == HeartwoodGifts.SHIFT_DEW * 2 * 2, "Shift the Stones: 20 Dew × act 2 × 2 stones (%d)" % (run_state.dew - dew_before))
-	_check(froms.all(func(c: Vector2) -> bool: return run_state.fertile_cells.has(c)), "Shift the Stones: the old spots are fertile")
+	_check(run_state.dew - dew_before == HeartwoodGifts.SHIFT_DEW * 2 * 2, "Shift the Stones: 30 Dew × act 2 × 2 stones (%d)" % (run_state.dew - dew_before))
+	_check(not froms.any(func(c: Vector2) -> bool: return run_state.fertile_cells.has(c)), "Shift the Stones: Dew only, no fertile spots")
 
 	main.queue_free()
 	await process_frame
