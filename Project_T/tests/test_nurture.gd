@@ -194,8 +194,9 @@ func _run() -> void:
 	var saved: Dictionary = saver._read()
 	var entry := {}
 	for row in saved.get("towers", []):
-		if Vector2(row.cell[0], row.cell[1]) == tower.cell:
-			entry = row
+		var half: Array = row.get("half", [-1, -1])
+		if Vector2(row.cell[0], row.cell[1]) == tower.cell and Vector2(half[0], half[1]) == tower.half_cell:
+			entry = row  # (Half cells: two Wardens can share a cell; the half-cell origin tells them apart)
 	_check(int(entry.get("rank", -1)) == 5 and int(entry.get("focus", -1)) == Tower.Focus.POWER,
 		"the save keeps a Warden's rank and Focus (saved %s; the Warden: rank %d, focus %d, valid %s)" % [entry, tower.rank, tower.focus, is_instance_valid(tower)])
 	RunSaver.delete_save()
