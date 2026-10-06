@@ -29,7 +29,7 @@ if ($Rebuild) {
 	$html = "<!doctype html><meta charset=`"utf-8`"><body><script>window.addEventListener('error',ev=>{const p=document.createElement('p');p.id='jserr';p.textContent=ev.message+' @'+ev.lineno;document.body.appendChild(p)});</script><script>(() => {`n$helpers`n$parts`n})();</script></body>"
 	[IO.File]::WriteAllText($gen, $html, (New-Object Text.UTF8Encoding $false))
 }
-$profileDir = Join-Path $env:TEMP "meta_art_chrome"
+$profileDir = "D:/Projects/logs/chrome/meta_art"  # nothing temporary on C: (user, 2026-10-05)
 $dump = & "C:\Program Files\Google\Chrome\Application\chrome.exe" --headless=new --disable-gpu --no-first-run --user-data-dir=$profileDir --virtual-time-budget=400000 --dump-dom ("file:///" + ($gen -replace '\\','/')) 2>$null | Out-String
 if ($dump -match '<p id="jserr">([^<]+)') { throw "Generator error: $($Matches[1])" }
 if ($dump -notmatch '<p id="done">') { throw "Generator did not finish" }
