@@ -855,20 +855,20 @@ function fern(out, g, x, y, sz = 1) {
   }
 }
 
-function boulder(A, v, seed) {
+function boulder(A, v, seed, big = false) {  // big: variant 0 as a heavy boulder filling most of the cell (see rock)
   const out = new Img(), L = new Img(), g = A.grass;
-  ellipse(out, 32, 54, 22, 6, SHADOW(.3));
-  const rocks = v === 0 ? [[32, 38, 20, 16]] : [[24, 43, 14, 11], [42, 35, 13, 12]];
-  for (const [x, y, rx, ry] of rocks) blob(L, x, y, rx, ry, STONE_RAMP, { lump: .1, seed: seed + x, tex: .12, rim: true });
+  ellipse(out, 32, big ? 56 : 54, big ? 29 : 22, big ? 7 : 6, SHADOW(big ? .34 : .3));
+  const rocks = big ? [[32, 35, 27, 21]] : v === 0 ? [[32, 38, 20, 16]] : [[24, 43, 14, 11], [42, 35, 13, 12]];
+  for (const [x, y, rx, ry] of rocks) blob(L, x, y, rx, ry, big ? BIG_STONE : STONE_RAMP, { lump: .1, seed: seed + x, tex: .12, rim: true });
   for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
     if (!L.alpha(x, y)) continue;
     let best = rocks[0], bd = 1e9;
     for (const r of rocks) { const d = Math.hypot((x - r[0]) / r[2], (y - r[1]) / r[3]); if (d < bd) { bd = d; best = r; } }
     const dy = (y + .5 - best[1]) / best[3], dx = (x + .5 - best[0]) / best[2], n = pnoise(x, y, 6, seed + 3);
-    if (n - dy * .55 > .68) L.set(x, y, pick([g[2], g[3], g[4], "#86b060"], clamp(.62 - dx * .35 - dy * .4, 0, 1), x, y));
+    if (n - dy * .55 > (big ? .78 : .68)) L.set(x, y, pick([g[2], g[3], g[4], "#86b060"], clamp(.62 - dx * .35 - dy * .4, 0, 1), x, y));
   }
   out.stamp(L, ST.out);
-  fern(out, g, v === 0 ? 12 : 53, 54, .9);
+  if (big) { tuft(out, 5, 59, g); tuft(out, 59, 58, g); } else fern(out, g, v === 0 ? 12 : 53, 54, .9);
   return out;
 }
 
@@ -1574,8 +1574,21 @@ function mossPass(L, cx, cy, rx, ry, g, seed, amount = .78) {
 //    5 ruined waystone, 6 dream-crystal boulder
 // Every rock shares the family look so it never reads as a tree: low and round, waystone lavender,
 // a green moss cap, grass at its foot, and nothing tall, pale-barked or branching.
-function rock(A, t, seed) {
+// big: a heavy boulder filling most of the cell, never shrunk (2026-10-06, Environment Discussion: the shrunk
+// boulders read as dots in the spurs, so spur lines looked like trees only). Split (3) and lichen (4) only.
+function rock(A, t, seed, big = false) {
   const out = new Img(), L = new Img(), g = A.grass, dim = [g[0], g[0], g[1], g[2], g[3]];
+  if (big) {
+    ellipse(out, 32, 56, 29, 7, SHADOW(.34));
+    const [cx, cy, rx, ry] = t === 3 ? [32, 36, 28, 20] : [32, 37, 27, 19];
+    blob(L, cx, cy, rx, ry, BIG_STONE, { lump: .1, seed, tex: .12, rim: true });
+    if (t === 3) for (let y = 16; y <= 56; y++) { const x = 32 + Math.round(Math.sin(y * .4) * 2); if (L.alpha(x, y)) { L.set(x, y, "#0c0a14"); L.set(x + 1, y, ST.d2); if (y < 28 && y % 3 === 0) L.set(x - 1, y, g[3]); } }
+    else for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) if (L.alpha(x, y) && y > 36 && pnoise(x, y, 5, seed + 8) > .7) L.set(x, y, hash(x, y, seed) < .6 ? "#8ab0a0" : "#b8d4c4");
+    mossPass(L, cx, cy, rx, ry, g, seed + 3, .5);
+    out.stamp(L, ST.out);
+    tuft(out, 5, 59, g); tuft(out, 59, 58, g);
+    return out;
+  }
   ellipse(out, 32, 54, 22, 6, SHADOW(.32));
   const MOSS = .66;
   if (t === 0) {
@@ -2119,6 +2132,7 @@ function ropeBridge(o) {
 // Rocks read smaller than the (taller) dead trees: each finished 64 px rock is shrunk to 68%
 // (nearest pixel), re-outlined, and set back on its old base line (y 55) in a 64 px cell.
 const ROCK_SCALE = .68;
+const BIG_STONE = [ST.d2, ST.d1, ST.m, ST.l1, ST.l2];  // the big boulders: one step heavier, no top highlight (keeps rocks under the path)
 function shrinkRock(im) {
   const n = Math.round(64 * ROCK_SCALE), small = new Img(n, n);
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
@@ -2144,7 +2158,7 @@ const BUILD = {
   tree: (A, v) => tree(A, v, SEED + v * 17),
   withered: (A, v, f) => withered(A, f, SEED + v * 13),
   tended: A => tended(A),
-  boulder: (A, v) => shrinkRock(boulder(A, v, SEED + v * 7)),
+  boulder: (A, v) => v === 0 ? boulder(A, 0, SEED, true) : shrinkRock(boulder(A, v, SEED + v * 7)),  // sheet variant 0 is a big boulder
   dent: A => dent(A),
   waystone: (A, v, f) => waystone(A, f),
   pool: (A, v, f) => pool(A, f),
@@ -2161,7 +2175,7 @@ const BUILD = {
   fruit: (A, v, f) => dreamFruit(v, f),
   decor: (A, v) => decorAt(A, v, SEED + v),
   dead: (A, v, f) => deadTree(A, v, f, SEED + v * 29),
-  rock: (A, v) => shrinkRock(rock(A, v, SEED + v * 31)),
+  rock: (A, v) => v === 3 || v === 4 ? rock(A, v, SEED + v * 31, true) : shrinkRock(rock(A, v, SEED + v * 31)),  // sheet variants 5, 6 are big
   isle: (A, k) => islandEdge(A, k & 15, k >> 4),  // k = mask + 16 × variant
   cliff: (A, k) => cliffTile(A, k),
   voidsky: () => voidSky(),
