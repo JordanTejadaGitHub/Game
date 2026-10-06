@@ -70,8 +70,10 @@ func _run() -> void:
 	memory = HeartwoodMemory.load_data()
 	_check(int(memory.seeds) == 700 - 50 - 70 - 120 - 20 - 40 - 60, "Seeds spent (%d left)" % int(memory.seeds))
 	_check(HeartwoodMemory.memories_unlocked(memory) == 1 + 6 / 3, "Memories: 1 + one per 3 unlocks")
-	_check(HeartwoodMemory.buy_problem(HeartwoodMemory.load_data(), _unlock(grove, "early_bloom")) != "", "Early Bloom grows off Second Thoughts")
+	_check(HeartwoodMemory.buy_problem(HeartwoodMemory.load_data(), _unlock(grove, "early_bloom")) != "", "Early Bloom grows off Wider Choice")
 	_check(HeartwoodMemory.buy(_unlock(grove, "second_thoughts")), "buy Second Thoughts")
+	_check(HeartwoodMemory.buy(_unlock(grove, "wider_choice")), "buy Wider Choice")
+	_check(_unlock(grove, "wider_choice").always_on and not _unlock(grove, "wider_choice").is_perk(), "Wider Choice is an option, not a perk")
 	_check(HeartwoodMemory.buy(_unlock(grove, "early_bloom")), "buy Early Bloom")
 	_check(HeartwoodMemory.buy(_unlock(grove, "early_light")), "buy Early Light")
 	_check(HeartwoodMemory.loadout_slots(HeartwoodMemory.load_data()) == 3, "3 loadout slots are open from the start")
@@ -204,7 +206,7 @@ func _run() -> void:
 
 	# The Perks limb's three paths (meta_design.md "Section 1: Perks"): Economy, Survival, Choice.
 	var paths := {"seed_pouch": "rested_roots", "first_care": "deep_taproot", "clear_sight": "first_care",
-		"omen_reader": "let_go", "early_bloom": "second_thoughts", "kindling": "early_light"}
+		"omen_reader": "let_go", "wider_choice": "second_thoughts", "early_bloom": "wider_choice", "kindling": "early_light"}
 	for id in paths:
 		_check(_unlock(grove, id).requires_all.has(paths[id]), "%s grows off %s" % [id, paths[id]])
 	var path_data := HeartwoodMemory.defaults()
@@ -841,7 +843,7 @@ func _layout_node(id: String) -> Dictionary:
 func _check_layout(grove: Array[UnlockData]) -> void:
 	var nodes: Array = GroveTreeView.load_layout().nodes
 	var parked := 0 if MetaRun.MEMORY_WARDENS_ENABLED else 3  # Memory Warden blooms: in the layout, off the tree
-	_check(nodes.size() == 99 and grove.size() == 99 - parked, "99 Grove spots, %d nodes on the tree (layout %d, data %d)" % [99 - parked, nodes.size(), grove.size()])
+	_check(nodes.size() == 100 and grove.size() == 100 - parked, "100 Grove spots, %d nodes on the tree (layout %d, data %d)" % [100 - parked, nodes.size(), grove.size()])
 	for node in nodes:
 		var unlock := HeartwoodMemory.get_unlock(node.id)
 		if unlock == null and node.get("memory_row") != null and parked > 0:

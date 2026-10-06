@@ -12,5 +12,5 @@ root = 2
 costs = Array[int]([80])
 order = 8
 icon = 7
-requires_all = Array[String](["second_thoughts"])
+requires_all = Array[String](["wider_choice"])
 early_bloom = true
