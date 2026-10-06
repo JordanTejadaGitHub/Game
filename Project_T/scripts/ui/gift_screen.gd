@@ -300,7 +300,7 @@ func _card(id: StringName) -> Button:
 	plant.focus_mode = Control.FOCUS_NONE
 	plant.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	plant.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
-	UiStyle.primary(plant)
+	# Secondary, like the Dream cards: no card is the default (story chat)
 	ChoiceCard.link_cue(plant)  # Lights with the card (hover, press)
 	box.add_child(plant)
 	box.minimum_size_changed.connect(func() -> void:
