@@ -81,6 +81,7 @@ const RULE_DE := {
 	"small_hands": 35.0, "sap_rising": 15.0, "lingering_ground": 30.0,
 	# Rank-choice cards (Roguelite Code 31b43636, Balancing's DE 43496006), × their share in card_de
 	"specialist": 45.0, "many_talents": 30.0, "brimming": 30.0,
+	"shared_training": 20.0,  # × the DPS share of kin-paired Wardens at rank III+ whose majority choice matches their partner's (Balancing)
 }
 const SENT_OUT_KINDS := [TowerData.AttackKind.SWOOP, TowerData.AttackKind.SWEEP, TowerData.AttackKind.PECK,
 	TowerData.AttackKind.BOOMERANG, TowerData.AttackKind.PATROL]
@@ -149,6 +150,21 @@ func card_de(card: UpgradeData) -> float:
 					return false
 				var kinds: int = dreams.call("different_choices", t) if dreams.has_method("different_choices") else 1  # call(): older builds lack it
 				return kinds > 1 if mixed else kinds == 1)
+		"shared_training":
+			var kin := Kinships.find(dreams)
+			var total := 0.0
+			var paired := 0.0
+			for t in attackers:
+				var dps: float = t.get_damage() * t.get_attacks_per_second()
+				total += dps
+				if kin == null or t.rank < 3:
+					continue
+				for pair in kin.get_pairs(t):
+					var other = pair.b if pair.a == t else pair.a
+					if is_instance_valid(other) and _majority_choice(t) == _majority_choice(other):
+						paired += dps
+						break
+			rule *= paired / total if total > 0.0 else 0.0
 		"brimming":  # + the Spored appliers, − the Static ones
 			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.applies_status == &"spored") \
 				- share.call(func(t: Tower) -> bool: return t.tower_data.applies_status == &"static")
@@ -172,6 +188,16 @@ func _shape_test(test: StringName, data: TowerData, fallback: bool) -> bool:
 	if _shape_script != null and _shape_script.has_method(test):
 		return _shape_script.call(test, data)
 	return fallback
+
+# The rank choice a Warden took most (-1 = none yet).
+func _majority_choice(t: Tower) -> int:
+	var counts := {}
+	var best := -1
+	for c in t.rank_choices:
+		counts[c] = int(counts.get(c, 0)) + 1
+		if best == -1 or counts[c] > counts[best]:
+			best = c
+	return best
 
 func _tag_score(card: UpgradeData) -> float:
 	var tags: Dictionary = TAG_SCORES[style]
