@@ -89,6 +89,18 @@ func set_compact(width: float) -> void:
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # A very long name wraps rather than widening the panel
 	desc.custom_minimum_size = Vector2(width, 0)
 
+# A control at the right end of the name's line (the Warden panel's targeting chip); null clears it.
+func set_corner(control: Control) -> void:
+	var header := portrait.get_parent()
+	var old := header.get_node_or_null("Corner")
+	if old != null:
+		header.remove_child(old)
+		old.queue_free()
+	if control != null:
+		control.name = "Corner"
+		control.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		header.add_child(control)
+
 # The description's opening for the compact header: the first sentence, the second too while both stay short.
 const SHORT_CHARS := 70  # Two lines of the compact panel's description (84 wrapped to 3 with underlined links)
 

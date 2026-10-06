@@ -258,6 +258,7 @@ func _refresh() -> void:
 		child.get_parent().remove_child(child)  # Out now: the new GrowHeading / DetailsToggle keep their names
 		child.queue_free()
 	_clear_not_in_dream()
+	_header.set_corner(_target_chip([_tower]) if _tower.can_choose_target() else null)  # Walls and untargeted: none
 	if _tower.can_choose_target():
 		_add_target_switch([_tower])
 	if data.has_bird_toggle:
@@ -446,6 +447,7 @@ func _refresh_group() -> void:
 		child.queue_free()
 	_clear_not_in_dream()
 	var aimed := selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_choose_target())
+	_header.set_corner(_target_chip(aimed) if not aimed.is_empty() else null)  # Sets every selected attacker
 	if not aimed.is_empty():
 		_add_target_switch(aimed)
 	var growing := _growable_groups(groups)  # Twig walls never grow
@@ -602,6 +604,38 @@ func _sell_group() -> void:
 		return
 	_confirm_sell = false
 	tower_seller.sell_selection()
+
+# The targeting chip on the name's line (user: "there's no more attack targeting, bring it back"): the current mode
+# (a group's when they agree, else "Mixed") with T as a key chip; a click (or T) cycles every attacker given, its tip
+# lists the modes. The full switch stays in Details.
+func _target_chip(towers: Array) -> Button:
+	var modes := {}
+	for tower in towers:
+		modes[tower.get_target_mode()] = true
+	var chip := Button.new()
+	chip.name = "TargetChip"
+	chip.text = Tower.TARGET_MODE_NAMES[modes.keys()[0]] if modes.size() == 1 else "Mixed"
+	chip.focus_mode = Control.FOCUS_NONE
+	chip.custom_minimum_size = Vector2(0, 36)
+	chip.add_theme_font_size_override("font_size", 14)
+	var lines: Array[String] = ["Targeting (click or T cycles):"]
+	for mode in Tower.PLAYER_TARGET_MODES:
+		lines.append("%s%s: %s" % ["▸ " if modes.size() == 1 and modes.has(mode) else "   ", Tower.TARGET_MODE_NAMES[mode], TARGET_TIPS[mode]])
+	chip.tooltip_text = "\n".join(lines)
+	chip.pressed.connect(func() -> void:
+		tower_seller.cycle_target_group(towers)
+		_refresh())
+	var key := UiStyle.key_chip("T")
+	key.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	key.offset_left = -24
+	key.offset_right = -6
+	chip.add_child(key)
+	for state in ["normal", "hover", "pressed"]:
+		var box := chip.get_theme_stylebox(state).duplicate() as StyleBox
+		box.content_margin_right = box.get_margin(SIDE_RIGHT) + 24.0  # The key chip's room
+		box.content_margin_left = 8.0
+		chip.add_theme_stylebox_override(state, box)
+	return chip
 
 # Targeting (screens_ui.md): a 4-way switch First / Last / Strongest / Closest for `towers` (one Warden or a
 # group). A group with mixed modes shows none pressed; a press sets them all. T cycles (TowerSeller).

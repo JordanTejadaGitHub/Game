@@ -166,6 +166,18 @@ func _run() -> void:
 	var nursling := _build(placer, map, load("res://resource/tower/sporeling.tres"))
 	seller.select(nursling)
 	await process_frame
+	# Targeting back in view (user: "there's no more attack targeting, bring it back"): a chip on the name's line, a click cycles.
+	var chip := panel.find_child("TargetChip", true, false) as Button
+	var mode_before: TowerData.TargetMode = nursling.get_target_mode()
+	_check(chip != null and chip.text == Tower.TARGET_MODE_NAMES[mode_before], "the targeting chip shows the mode (%s)" % (chip.text if chip else "none"))
+	if chip != null:
+		chip.pressed.emit()
+		await process_frame
+		_check(nursling.get_target_mode() != mode_before, "a click on the chip cycles the targeting")
+		nursling.set_target_mode(mode_before)
+		seller.select(null)
+		seller.select(nursling)
+		await process_frame
 	var nurture_buttons: Array = panel.find_children("*", "Button", true, false).filter(func(b: Button) -> bool:
 		return b.text.begins_with("Nurture rank"))
 	_check(nurture_buttons.size() == 1 and nurture_buttons[0].text.ends_with("(R)"), "one Nurture button (%s)" % [nurture_buttons.map(func(b: Button) -> String: return b.text)])
