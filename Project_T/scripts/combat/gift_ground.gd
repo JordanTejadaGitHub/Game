@@ -17,7 +17,53 @@ const LIGHTNING_TREE := &"lightning_tree"
 const MOONWELL := &"moonwell"
 const BELL_STONE := &"bell_stone"
 const STUMP := &"ancient_stump"  # 3 stumps
-const MARK_GIFTS: Array[StringName] = [SPRING, MUSHROOM_RING, LIGHTNING_TREE, MOONWELL, BELL_STONE, STUMP]
+const MARK_GIFTS: Array[StringName] = [SPRING, MUSHROOM_RING, LIGHTNING_TREE, MOONWELL, BELL_STONE, STUMP, SOW_RIDGE, FALLEN_GIANT]
+# Every gift gives a buff or a resource (heartwood_gifts.md b3e464e6; Balancing f32488cd). Attacking Wardens only
+# (walls get no boosts); "touching" = one of its halves beside one of the gift's (MapGifts' cells, by halves).
+const SOW_RIDGE := &"sow_ridge"
+const FALLEN_GIANT := &"fallen_giant"
+const SHELTERED_DAMAGE := 0.10  # Sow a Ridge: a Warden touching one of its standing trees ("Sheltered")
+const HIGH_GROUND_RANGE := 0.5  # Fallen Giant: a Warden touching the log ("High ground")
+
+# Whether any of `halves` is beside (or on) a half of a `kind` cell; Sow a Ridge counts only trees still standing.
+func touching(kind: StringName, halves: Array) -> bool:
+	_sync_taken()
+	var list: Array = marks.get(kind, [])
+	if list.is_empty():
+		return false
+	var map = get_parent().get_node_or_null("%MapGenerator") if get_parent() else null
+	for mark in list:
+		if kind == SOW_RIDGE and map != null and map.has_method("get_obstacle") and map.get_obstacle(mark) == null:
+			continue  # Tended away: no shelter
+		var lo: Vector2 = mark * 2.0 - Vector2.ONE  # The mark cell's halves, grown by one half on every side
+		var hi: Vector2 = mark * 2.0 + Vector2(2, 2)
+		for h in halves:
+			if h.x >= lo.x and h.x <= hi.x and h.y >= lo.y and h.y <= hi.y:
+				return true
+	return false
+
+func sheltered(tower: Tower) -> bool:
+	return tower.tower_data.can_attack and touching(SOW_RIDGE, tower.get_halves())
+
+func high_ground(tower: Tower) -> bool:
+	return tower.tower_data.can_attack and touching(FALLEN_GIANT, tower.get_halves())
+
+# The gift buffs on `tower` as [label, stat, amount] (BuffSources shows them with their source).
+func buff_rows(tower: Tower) -> Array:
+	var rows: Array = []
+	if not tower.tower_data.can_attack:
+		return rows
+	if tower.tower_data.line == "water" and near(SPRING, tower.get_cells(), 1):
+		rows.append(["Spring", "damage", SPRING_DAMAGE])
+	if sheltered(tower):
+		rows.append(["Sheltered (Sow a Ridge)", "damage", SHELTERED_DAMAGE])
+	if near(MOONWELL, tower.get_cells(), 1, true):
+		rows.append(["Moonwell", "range", MOONWELL_RANGE])
+	if high_ground(tower):
+		rows.append(["High ground (Fallen Giant)", "range", HIGH_GROUND_RANGE])
+	if tower.tower_data.line == "song" and near(BELL_STONE, tower.get_cells(), 1):
+		rows.append(["Bell Stone", "attack_speed", BELL_SPEED])
+	return rows
 
 # Numbers (Balancing Discussion's starting values).
 const SPRING_DAMAGE := 0.20  # Water Wardens beside the Spring
@@ -235,11 +281,13 @@ func _changed() -> void:
 
 # Spring: a water Warden beside the pond deals +20%.
 func damage_bonus(tower: Tower) -> float:
-	return SPRING_DAMAGE if tower.tower_data.line == "water" and near(SPRING, tower.get_cells(), 1) else 0.0
+	return (SPRING_DAMAGE if tower.tower_data.line == "water" and near(SPRING, tower.get_cells(), 1) else 0.0) \
+		+ (SHELTERED_DAMAGE if sheltered(tower) else 0.0)
 
 # Moonwell: a Warden in one of its 4 orthogonal cells gets +1 range.
 func range_bonus(tower: Tower) -> float:
-	return MOONWELL_RANGE if tower.tower_data.can_attack and near(MOONWELL, tower.get_cells(), 1, true) else 0.0
+	return (MOONWELL_RANGE if tower.tower_data.can_attack and near(MOONWELL, tower.get_cells(), 1, true) else 0.0) \
+		+ (HIGH_GROUND_RANGE if high_ground(tower) else 0.0)
 
 # Bell Stone: a song Warden within 1 cell pulses 15% faster.
 func speed_bonus(tower: Tower) -> float:

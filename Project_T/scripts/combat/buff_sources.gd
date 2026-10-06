@@ -25,7 +25,7 @@ const COLORS := {
 	"grandmother_oak": Palette.DEADWOOD, "old_growth": Palette.NEWLEAF, "kinship": Palette.NEWLEAF,
 	"kindred": Palette.MOONPATH, "whole_tree": Palette.SPRIG, "kin_cards": Palette.NEWLEAF,
 	"rank": Palette.MOONPATH, "focus": Palette.MOONPATH, "dream": Palette.MIST,
-	"omen": Palette.STONE, "penalty": Palette.BRUISE,  # Bruise (plum): never read as a fire or Ember effect (screens_ui.md)
+	"omen": Palette.STONE, "gift": Palette.LEAF, "penalty": Palette.BRUISE,  # Bruise (plum): never read as a fire or Ember effect (screens_ui.md)
 }
 const PENALTY_TEXT := Palette.WRAITHLIGHT  # Penalty rows in panels: the lighter plum (Bruise is too dark to read as text)
 const STAT_WORDS := {"damage": "damage", "attack_speed": "attack speed", "range": "range", "aura": "aura", "catch": "catch"}
@@ -120,6 +120,13 @@ static func for_tower(tower: Tower) -> Array[Dictionary]:
 			var entry := _entry("omen" if reach > 0.0 else "penalty", null, "range", reach)
 			entry.label = "Omen %s range" % _signed(reach, true)
 			entry.negative = reach < 0.0
+			result.append(entry)
+	# Heartwood's Gifts (Spring, Sheltered, Moonwell, High ground, Bell Stone): GiftGround.buff_rows (Tower Code).
+	var gifts := GiftGround.active_for(tower)
+	if gifts != null:
+		for row in gifts.buff_rows(tower):
+			var entry := _entry("gift", null, row[1], row[2])
+			entry.label = "Gift %s %s %s" % [row[0], _signed(row[2], row[1] == "range"), STAT_WORDS[row[1]]]
 			result.append(entry)
 	if tower.dim_multiplier < 0.999:
 		var entry := _entry("penalty", null, "attack_speed", tower.dim_multiplier - 1.0)
