@@ -929,7 +929,9 @@ under budget (taking it costs a pick): **every 1 s, 5 damage** (was every 2 s; �
 **`--card-value` A/B (paired, seeds 1–30):** act 1 default 36% (tags only) → 53% (Thorny override) → **63%**
 (effect-size scoring); picks look sensible (Tender Care, Old Growth, First Light, big stat cards first; conditional
 cards by board share). **Made the bot's default; every baseline from the flip on is card-value.** Spender / skip
-re-based on it next.
+re-based on it next. **Card-value baseline (40bdebda, 30 seeds):** default **63%**, spender **56%**, skip **13%**,
+0 dead by d5. All inside the targets (default ~55 ± noise, spender ≤ 80, skip ≤ 15–20); Dreams vs none now a
+50-point gap (was ~33). No curve change.
 
 ## Drawn route and early deaths (19f426c5, 2026-10-05)
 
