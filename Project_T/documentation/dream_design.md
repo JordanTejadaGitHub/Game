@@ -1860,6 +1860,7 @@ read those choices, so the Nurture path shapes the build.
     and the Warden panel shows which.
   - Until the signatures are built, it isn't offered.
 - **Built:** cards 266–269 in 31b43636 (Roguelite Code, numbers 43496006). Specialist's and Brimming's hooks are Tower Code's. Shared Training is in offers from ebe67076 (signatures: Tower Code 105f2252, e951b540); like every Kinship card it waits for the profile's first Kinship.
+- **Discovery** (user, 2026-10-06: *"don't hint towards signatures"*): signatures are discoveries, with no panel preview. Shared Training is offered only **after the profile's first signature** (account-wide, like Kinship cards and the first Kinship). Its text names no specific signature: "Two bonded kin with the same training gain its signature one rank sooner."
 - Numbers to Balancing Discussion.
 
 ### Brimming (card 269)
