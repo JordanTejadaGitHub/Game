@@ -1605,6 +1605,13 @@ after the build.
 
 **Built** in e3826bff (offer caps, 10 cards removed, Spore Cascade needs only Driftspore) and 99d0217e (the six cards in the start pool, Momentum II and Odd One Out II with them; the Grove nodes land in the same merge). There is no Entwined guaranteed slot any more, so the cap has no exception.
 
+**Measured** (Balancing Code, before c6fefe1b → after edbbbe1b, bot to drift 50, 20 seeds per group):
+- Family cards per offer: 0.28–0.53 → 0.16–0.44. Plain stat cards per offer: 0.32–0.47 → 0.20–0.45.
+- No offer had 2+ of either kind (0 of 579; it was up to 7% before).
+- The six shapes now reach fresh profiles; before, fresh runs never saw them.
+- Survival is 0.7–2.6 drifts lower, but other gameplay commits landed in between, so it isn't pinned on this change.
+- Reading: even before, only about 1 card in 6–9 needed a family. The "damage booster" feel comes more from the many generic cards worded "deal X% more damage" than from family cards. That is the next lever.
+
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 
 User (typed in Environment Discussion): *"make a card that makes walls 1x1 cell instead of the
