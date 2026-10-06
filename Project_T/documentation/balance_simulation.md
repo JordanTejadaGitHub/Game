@@ -888,6 +888,10 @@ for 2 s every 10 s (≈ +20%, in line with Crushing). In e951b540 (Crushing coun
 full hit), capped at 25%. Acorn Strong 0.01 → **0.025** aura per rank (≈ Power per rank). Held Potency cap 2.25,
 Watchtower 2 s linger, Relentless on tick dispels (still ≤ once per 0.5 s): watch Sporeling boards.
 
+**Maze cards made conditional (dream_design.md 7fc0665c):** Winding Path **+1 Dew per 2 reached path tiles**
+(each once; ≈ +10% of a run's Dew; per 5 fell to ~3%). Hedge Maze **+5% per touching Thornwall, up to +30%**
+(twig half; typical +10–20%).
+
 ## Shape cards 262–264 (dream_design.md e4d17195, Uncommon, defining)
 
 Budget: Uncommon one-family **+50%** for the kits that match, ~0 for the rest (by design).
