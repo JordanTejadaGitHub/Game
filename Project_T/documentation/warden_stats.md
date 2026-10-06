@@ -272,6 +272,36 @@ path. Meta Game Discussion proposed the set; Tower Discussion decided it (change
   around this.
 - **Numbers** (Balancing Discussion, 2026-10-06): Crushing ×2 + 25% shell; Relentless once per 0.5 s; Spreading half, within 2 cells; Executioner 20% (bosses / elites ×1.5); Firstborn and Shelter as designed; Surge ×2 for 2 s every 10 s. Watchtower stays: it reveals only inside its own range.
 
+### Signature audit: every choice and its signature must help (2026-10-06)
+
+User (via Meta Game Discussion): *"make sure every Nurture choice a Warden has is helpful to them"*,
+signatures included. A code audit of every form found ~30 cells where a choice's **signature** did
+nothing (and three choice faults). Almost all came from four code patterns, so the fix is **one rule
+per signature: it works on the Warden's real job, the same way its choice does** (Swift = its main
+cycle, Deep = what its Potency strengthens, etc.).
+
+| Signature | Rule (what counts) |
+|---|---|
+| **Crushing** | **all damage the Warden itself deals** counts: hits, fence arcs, cloud and rain ticks, thorns (not Spored / Charged ticks, which belong to statuses). For ticking damage the shell strip scales with the tick's share of a full hit* |
+| **Relentless** | **any dispel credited to the Warden** (by damage source, status ticks included) restarts **its main cycle**: attack, ability, grab timer, copy timer, zone placement. Beams keep their full ramp on the next target; patrols clear their per-nightmare hit cooldowns; birds and seeds return at once |
+| **Watchtower** | reveals hidden nightmares in its main area (Deeproot: inside its guard ring), **and they stay revealed 2 s after leaving it**. The trail is what makes it worth it on Wardens that already reveal (Quaker, Lanternmoth, Beacon) |
+| **Spreading** | on dispel, **what its Deep strengthens** jumps to the nearest nightmare within 2 cells: statuses (half), and the full remaining hold, silence, Caught or sleep. Pullers and grabbers: the pull / grab repeats once on the nearest. Quaker: the reveal jumps to hidden ones nearby. Echo Hollow: its last echo repeats on the nearest. Thorncoil: the held nightmare's remaining hold jumps |
+| **Shelter / Surge** | on **every support with an area**, not only aura Wardens: Shelter covers Prism Jar's aura, a catcher's catch, Nurse Log's and Dream Oak's reach; Surge doubles **the support's own job** for 2 s every 10 s (Prism's crit aura, a catcher's catch, Dreamcatcher's Caught tick bonus) |
+
+**No signature** (like Kindred) where nothing fits the choice; the choice itself still helps:
+- Jarlink / Lightning Fence and Thorncoil / Crown of Thorns, **Swift** (their 0.25 s ticks have no
+  cycle to restart).
+- Seedbearer / Grove Keeper, **Swift** (its cycle counts drifts).
+- Nurse Log / Mother Log, **Strong** (a discount has no moment to surge).
+- Gust / Zephyr and Whirligig, **Deep** (they're the live spreaders already).
+
+**Choice faults fixed:**
+- **Held cap 2.0 → 2.25 s** (`HELD_POTENCY_CAP`): Deep on Tangleroot / Snugroot, Deeproot / Heartroot
+  and World Root hit the cap at rank IV (rule 2).
+- **Whirligig's Deep** was dead: it copies with Gust's Deep formula (half + per rank).
+- **Rootlight's stretch** keeps the original hold's source and Potency (it was erasing them).
+- **Acorn's Strong** (+1% aura) is too small to feel: Balancing Discussion raises it*.
+
 ### Nurture audit fixes (2026-10-05)
 
 The design hub audited every choice against the code (`nurture_audit.md`, 0422a3bc): 22 rows were
