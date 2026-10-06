@@ -170,7 +170,7 @@ Warden, and many of them did nothing for it:
 | **Reach** | its **main area** is bigger: range, or the area its effect covers | silence radius, catch area, fence length, cone, guard ring, cloud radius |
 | **Deep** | its **effect** is stronger (Potency): statuses, effect damage, holds, pulls, linger | pull distance, grounded time, crack length, copied stacks |
 | **Keen** *(new)* | **+crit chance** per rank (**+10%**, cap 75%; Balancing Discussion 2026-10-03). Replaces Deep for Wardens with no status or effect: the build-around choice for crit (Prism Jar, Pinned, Moonstone, Magpie's Hoard) | Mossback, Whetstone, the birds, Thrum |
-| **Yield** *(new)* | **more of what it makes** (Balancing: +1 sprite / Sprout alive per **2** ranks; Dream Oak +0.5 shard per drift per rank) | Brood Cap sprites, Seedbearer Sprouts, Dream Oak shards |
+| **Yield** *(new)* | **more of what it makes** (Balancing, 2026-10-05: **+1 sprite / Sprout alive per rank**; Dream Oak +0.5 shard per drift per rank) | Brood Cap sprites, Seedbearer Sprouts, Dream Oak shards |
 | **Wide / Strong / Kindred** | supports, as before (Wide = aura/catch reach, Strong = the aura or catch, Kindred = see the table) | |
 
 - **A Warden only shows the choices that do something for it** (3–4, a few economy Wardens 2). Each
