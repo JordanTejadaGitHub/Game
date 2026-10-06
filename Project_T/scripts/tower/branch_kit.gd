@@ -1236,6 +1236,9 @@ static func draw_brood_walk(canvas: CanvasItem, walk: PackedVector2Array, stretc
 		return
 	if stretch:
 		canvas.draw_polyline(walk, Color(BROOD_PATH, BROOD_PATH.a * alpha), 6.0)
+		# The drop spot (user 2026-10-05: "where the minion spawns"): a small ring where its next sprite lands.
+		canvas.draw_arc(walk[0], 8.0, 0.0, TAU, 20, Color(BROOD_END, BROOD_END.a * alpha), 2.0)
+		canvas.draw_circle(walk[0], 2.5, Color(BROOD_END, BROOD_END.a * alpha))
 	var end: Vector2 = walk[-1]
 	var tex := Fx.texture(&"brood_end") if not Fx.info(&"brood_end").is_empty() else null
 	if tex != null:

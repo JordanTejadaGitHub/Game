@@ -699,6 +699,15 @@ var _hover_half := Vector2(-1, -1)
 
 # --- Drawing --------------------------------------------------------------------------------------------
 
+# A selected / hovered Brood Cap or Hatchery: the stretch its sprites walk, from the drop spot to where they give up.
+func _draw_brood(brood: Tower) -> void:
+	if not is_instance_valid(brood) or brood.attack_data == null or brood.attack_data.special != BranchKit.BROOD:
+		return
+	var walk := BranchKit.brood_walk(brood._route(), brood.global_position, BranchKit.p(brood, "sprite_speed", 3.0))
+	for i in walk.size():
+		walk[i] = to_local(walk[i])
+	BranchKit.draw_brood_walk(self, walk, true)
+
 # A selected / hovered Jarlink (user 2026-10-05: "have Jarlink have its range connection"): its link range, its arc
 # brighter, and its partner ringed. An unpaired one shows only the range.
 func _draw_jar_link(jar: Tower) -> void:
@@ -717,12 +726,7 @@ func _draw() -> void:
 		# Aura Wardens: exactly who gets the aura (AuraView); a boosted Warden: lines back to its boosters.
 		if AuraView.is_aura(selected.tower_data):
 			AuraView.draw_selected(self, selected, false)  # Its area and who it boosts (BuffOverlay labels the threads)
-		if selected.attack_data != null and selected.attack_data.special == BranchKit.BROOD:
-			# Brood Cap: the stretch its sprites walk, from the hatch spot to where they give up.
-			var walk := BranchKit.brood_walk(selected._route(), selected.global_position, BranchKit.p(selected, "sprite_speed", 3.0))
-			for i in walk.size():
-				walk[i] = to_local(walk[i])
-			BranchKit.draw_brood_walk(self, walk, true)
+		_draw_brood(selected)
 		_draw_jar_link(selected)
 		# The attack range: a thin, unfilled circle (a warm fill read as "everything in here is boosted").
 		if selected.tower_data.can_attack:
@@ -757,6 +761,7 @@ func _draw() -> void:
 	if _hover_tower == null or _dragging:
 		return
 	if _hover_tower != selected:
+		_draw_brood(_hover_tower)  # User 2026-10-05: hovering a Brood Cap shows where its sprites drop and walk
 		_draw_jar_link(_hover_tower)
 	var center: Vector2 = _hover_tower.position  # The Warden itself (it may sit between cells)
 	var rect := Rect2(center - _hover_tower.body_size() / 2, _hover_tower.body_size()).grow(-2)
