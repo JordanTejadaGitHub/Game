@@ -46,6 +46,7 @@ func _init() -> void:
 	_make_grow_hints()
 	_make_emblems()
 	_make_gift_emblems()
+	_make_dream_fx()
 	print("ui icons written")
 	quit()
 
@@ -2943,3 +2944,147 @@ func _sym_g_memory_seed(k: int, a: int) -> void:
 	_c_line([V(16, 11), V(16, 7.5)], 1.1, _ramp_named(["newleaf", "sprig", "leaf"]))
 	_c_ell(V(18, 7), Vector2(2, 1.1), _ramp_named(["newleaf", "sprig", "leaf"]), -0.4)
 	_dt(int(V(15, 15).x), int(V(15, 15).y), Palette.color("heartlight"))
+
+# --- Dream pick impact (screens_ui.md "Dream", Main Merger 701a8fb6) ------------------------------
+# flare.png: light flaring from a card's edges as it turns in. Cards vary in size, so each frame is a
+# 9-slice: 48x48 art px, patch margins 16, the card's edge 8 px in from the frame's border (the light
+# reaches 8 px out and up to 8 px in). Draw it with a NinePatchRect (axis stretch TILE, so the edge
+# rays repeat every 16 px) at scale x2, over the card rect grown by 8 art px (16 screen px) a side.
+# Rows: common, uncommon, rare, legendary, entwined; 5 frames each, about 0.06 s a frame.
+# pulse_ring.png: 32x32, 5 frames, a ring opening from the glyph (the Warden pulse); neutral light,
+# tint by rarity (modulate). spark.png: 7x7, 4 frames, a twinkle for the flight into the Dreams row.
+
+const FLARE_FRAME := 48
+const FLARE_MARGIN := 16
+const FLARE_EDGE := 8
+const FLARE_ROWS := [
+	["common", ["moonlight", "mist", "stone"], 0.75, false, false],
+	["uncommon", ["newleaf", "sprig", "leaf"], 0.85, false, false],
+	["rare", ["moonlight", "dewlight", "dew"], 1.0, true, false],
+	["legendary", ["heartlight", "glow", "gold"], 1.0, true, true],
+	["entwined", ["newleaf", "leaf", "moss"], 1.0, true, true],
+]
+const FLARE_OUT := [2.0, 4.0, 7.0, 6.0, 3.0]  # how far the light reaches outward per frame (art px)
+const FLARE_IN := [1.0, 3.0, 4.0, 3.0, 1.0]  # how far it washes in over the card
+const FLARE_FADE := [0.8, 1.0, 1.0, 0.7, 0.35]
+const FLARE_RAY := [0.0, 3.0, 4.0, 3.0, 0.0]  # extra reach of an edge ray (rare and up)
+const FLARE_STAR := [0, 2, 4, 3, 1]  # corner star arm length (legendary, entwined)
+
+func _make_dream_fx() -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT + "dream_fx/"))
+	var n := FLARE_OUT.size()
+	var sheet := Image.create(FLARE_FRAME * n, FLARE_FRAME * FLARE_ROWS.size(), false, Image.FORMAT_RGBA8)
+	var rows := {}
+	for r in FLARE_ROWS.size():
+		var row: Array = FLARE_ROWS[r]
+		for f in n:
+			var frame := _flare_frame(f, row[1], row[2], row[3], row[4])
+			sheet.blit_rect(frame, Rect2i(0, 0, FLARE_FRAME, FLARE_FRAME), Vector2i(f * FLARE_FRAME, r * FLARE_FRAME))
+		rows[row[0]] = r
+	sheet.save_png(OUT + "dream_fx/flare.png")
+	var ring := Image.create(32 * 5, 32, false, Image.FORMAT_RGBA8)
+	for f in 5:
+		_ring_frame(ring, f)
+	ring.save_png(OUT + "dream_fx/pulse_ring.png")
+	var spark := Image.create(7 * 4, 7, false, Image.FORMAT_RGBA8)
+	for f in 4:
+		_spark_frame(spark, f)
+	spark.save_png(OUT + "dream_fx/spark.png")
+	var data := {
+		flare = {frame_size = FLARE_FRAME, frames = n, rows = rows, patch_margin = FLARE_MARGIN,
+			card_inset = FLARE_EDGE, scale = 2, seconds_per_frame = 0.06,
+			note = "9-slice per frame (NinePatchRect, axis stretch TILE, scale x2) over the card rect grown by card_inset art px a side. Uncommon has its own row; Entwined uses the vine green."},
+		pulse_ring = {frame_size = 32, frames = 5, scale = 2, note = "Centred on the glyph; neutral light, modulate by the rarity colour."},
+		spark = {frame_size = 7, frames = 4, scale = 2, note = "Trail particles for the card's flight into the Dreams row; modulate by rarity, shrink with the card."},
+	}
+	var file := FileAccess.open(OUT + "dream_fx/dream_fx.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify(data, "\t") + "\n")
+
+# Signed distance (art px) from a pixel centre to the card's edge: positive outside, negative inside.
+func _flare_distance(x: int, y: int) -> float:
+	var lo := float(FLARE_EDGE)
+	var hi := float(FLARE_FRAME - FLARE_EDGE)
+	var p := Vector2(x + 0.5, y + 0.5)
+	var dx := maxf(lo - p.x, p.x - hi)
+	var dy := maxf(lo - p.y, p.y - hi)
+	if dx > 0.0 and dy > 0.0:
+		return Vector2(dx, dy).length()
+	return maxf(dx, dy)
+
+func _flare_frame(f: int, inks: Array, reach: float, rays: bool, stars: bool) -> Image:
+	var img := Image.create(FLARE_FRAME, FLARE_FRAME, false, Image.FORMAT_RGBA8)
+	var core: Color = Palette.color(inks[0])
+	var mid: Color = Palette.color(inks[1])
+	var outer: Color = Palette.color(inks[2])
+	var fade: float = FLARE_FADE[f]
+	var lo := FLARE_EDGE
+	var hi := FLARE_FRAME - FLARE_EDGE
+	for y in FLARE_FRAME:
+		for x in FLARE_FRAME:
+			var d := _flare_distance(x, y)
+			var out_reach: float = FLARE_OUT[f] * reach
+			# Rays: 2 px wide every 16 px along a straight edge (the 9-slice tiles them).
+			if rays and d > 0.0:
+				var along_x := x >= lo and x < hi and (y < lo or y >= hi)
+				var along_y := y >= lo and y < hi and (x < lo or x >= hi)
+				var k := x % 16 if along_x else (y % 16 if along_y else -1)
+				if k == 7 or k == 8:
+					out_reach += FLARE_RAY[f]
+			var level := 0.0
+			if d >= -1.0 and d <= 0.0:
+				level = 1.0  # the rim itself
+			elif d > 0.0 and out_reach > 0.0 and d <= out_reach:
+				level = 1.0 - d / (out_reach + 1.0)
+			elif d < -1.0 and -d <= FLARE_IN[f] * reach + 1.0:
+				level = 0.5 * (1.0 - (-d - 1.0) / (FLARE_IN[f] * reach + 1.0))  # a softer wash over the card
+			level *= fade
+			# Banded, not smooth: three steps of the rarity ramp outside; over the card a faint wash of
+			# the light end only (the dark end muddies the card).
+			if d < -1.0:
+				if level > 0.3:
+					img.set_pixel(x, y, Color(core, 0.26))
+				elif level > 0.1:
+					img.set_pixel(x, y, Color(core, 0.12))
+			elif level > 0.62:
+				img.set_pixel(x, y, core)
+			elif level > 0.34:
+				img.set_pixel(x, y, Color(mid, 0.75))
+			elif level > 0.1:
+				img.set_pixel(x, y, Color(outer, 0.45))
+	if stars:
+		# A diagonal flare out of each corner, past the rim's glow.
+		var arm: int = FLARE_STAR[f] + 2
+		for c in [Vector2i(lo, lo), Vector2i(hi - 1, lo), Vector2i(lo, hi - 1), Vector2i(hi - 1, hi - 1)]:
+			var out := Vector2i(-1 if c.x == lo else 1, -1 if c.y == lo else 1)
+			for i in range(1, arm + 1):
+				var p: Vector2i = c + out * i
+				if p.x >= 0 and p.y >= 0 and p.x < FLARE_FRAME and p.y < FLARE_FRAME:
+					img.set_pixel(p.x, p.y, Color(core if i <= arm - 2 else mid, 1.0 if i < arm else 0.6))
+		# Sparkles drifting off the edge in the later frames (fixed spots, so the 9-slice tiles cleanly).
+		if f >= 2:
+			for s in [Vector2i(3 + f, 12), Vector2i(12, 2 + f), Vector2i(FLARE_FRAME - 4 - f, 20), Vector2i(28, FLARE_FRAME - 3 - f)]:
+				img.set_pixel(s.x, s.y, Color(core if f < 4 else mid, 1.0 if f < 4 else 0.6))
+	return img
+
+func _ring_frame(sheet: Image, f: int) -> void:
+	var radius: float = [3.0, 6.0, 9.0, 12.0, 14.0][f]
+	var width: float = [2.0, 2.0, 1.5, 1.0, 1.0][f]
+	var alpha: float = [1.0, 0.9, 0.7, 0.45, 0.22][f]
+	var c := Vector2(16, 16)
+	for y in 32:
+		for x in 32:
+			var d := absf(Vector2(x + 0.5, y + 0.5).distance_to(c) - radius)
+			if d <= width * 0.5:
+				sheet.set_pixel(f * 32 + x, y, Color(Palette.color("heartlight"), alpha))
+			elif d <= width * 0.5 + 1.0 and f < 3:
+				sheet.set_pixel(f * 32 + x, y, Color(Palette.color("moonlight"), alpha * 0.4))
+
+func _spark_frame(sheet: Image, f: int) -> void:
+	# A four-point twinkle: grows, flashes, shrinks.
+	var arm: int = [1, 2, 3, 1][f]
+	var c := Vector2i(3, 3)
+	sheet.set_pixel(f * 7 + c.x, c.y, Palette.color("heartlight"))
+	for i in range(1, arm + 1):
+		var ink := Color(Palette.color("heartlight") if i == 1 else Palette.color("moonlight"), 1.0 if i < arm or arm == 1 else 0.6)
+		for p in [c + Vector2i(i, 0), c - Vector2i(i, 0), c + Vector2i(0, i), c - Vector2i(0, i)]:
+			sheet.set_pixel(f * 7 + p.x, p.y, ink)
