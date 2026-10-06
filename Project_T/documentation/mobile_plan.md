@@ -24,16 +24,5 @@ platform, possibly launched first.
 | 5 | **The unlock purchase:** Google Play Billing / StoreKit plugins wired to the demo / full switch, with restore purchases. | Main Merger (after 4) |
 | 6 | **Mobile marketing:** store page, launch plan (below). | Marketing Discussion |
 
-## Marketing for mobile (Marketing Discussion owns the details)
-- **The store page carries most installs:** the icon (most-tested asset), a title + subtitle with keywords ("Heartwood
-  TD: Maze Tower Defense Roguelite"), the first 2–3 screenshots showing the maze, and a 15–30 s preview video.
-- **Pre-registration (Google Play) / pre-order (App Store)** to bank day-one installs from the shorts.
-- **Featuring is the big lever for premium games:** apply through Apple's "Promote your app" form and Google Play's
-  indie programmes (Indie Corner, the Indie Games Festival) months ahead.
-- **Short-form video works the same** on TikTok / Reels / Shorts; add "on mobile" versions with the phone UI.
-- **Soft launch** in a small market (Canada or the Philippines are common) to check crashes, the free → paid conversion
-  and the ratings, before launching worldwide.
-- **Ratings:** ask for a review only after a good moment (a boss dispelled, a first win), never on a loss.
-- **Press and community:** Pocket Gamer, mobile-gaming YouTubers who cover TD / roguelites, r/AndroidGaming,
-  r/iosgaming.
-- **Skip paid ads** at first: a premium-unlock game rarely earns back the cost per install.
+## Marketing for mobile
+Owned by Marketing Discussion: **marketing.md §11** (timing, ASO, featuring, soft launch, store checklist). One copy lives there.
