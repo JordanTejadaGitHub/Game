@@ -37,10 +37,10 @@ stop at any rest and come back.
 ## Seeds from the demo, and the demo Grove
 
 **The demo has a small Memory Grove** (user 2026-10-06, `demo_scope.md` cb0e096c; was "no Grove"):
-**8 nodes** plantable with demo Seeds, a connected start of the tree; the rest of the tree is
+**8 nodes** plantable with demo Seeds (one of them a family, user 2026-10-06 "add 1 Warden tree"), a connected start of the tree; the rest of the tree is
 visible but asleep with a *Full game* tag. Once all 8 are planted: *"Your tree keeps growing in the
-full game."* + Wishlist (Steam / itch) or Unlock (mobile). **No extra family** (families stay a
-reason to buy). Everything planted and every Seed banked **carries into the full game** (same save
+full game."* + Wishlist (Steam / itch) or Unlock (mobile). **One extra family, Rootling**; the other four Grove families stay a
+reason to buy. Everything planted and every Seed banked **carries into the full game** (same save
 location; the full game reads the demo profile once: *"The forest remembered you."*).
 
 | # | Node (level) | Limb | Cost | Why it's in the demo |
@@ -49,7 +49,7 @@ location; the full game reads the demo profile once: *"The forest remembered you
 | 2 | Deep Taproot I | Perks | 25 | +1 leaf: the new-player rescue |
 | 3 | Second Thoughts I | Perks | 50 | a Dream reroll: an option, not power |
 | 4 | Wider Choice | Perks | 80 | family picks show 3 of the demo's families instead of 2 (needs Second Thoughts) |
-| 5 | Remembered Seed | Perks | 30 | replay a map or type a seed: shows the left side's run options |
+| 5 | **Rootling** (family) | Families | 50 | the control family (pulls, holds, Rooted): plays most differently from the four starters and shows off the maze; its two current branches (not its hidden branch). Replaced Remembered Seed, the least felt option |
 | 6 | Sharpened | Cards | 50 | the crit / precision cards join the pool |
 | 7 | Seedbed | Cards | 60 | the wide / Sprout cards join the pool |
 | 8 | Scarred Bark | Cards | 40 | the Daring cards join the pool |
@@ -58,7 +58,7 @@ location; the full game reads the demo profile once: *"The forest remembered you
   three card branches in three different directions (precision, wide, daring); two options
   (Wider Choice, Remembered Seed) over raw power, per the sidegrade rule. Only level I of levelled
   perks is awake in the demo.
-- **Costs** are the full game's (so carried nodes are fair): **355 Seeds** in total. Balancing's
+- **Costs** are the full game's (so carried nodes are fair): **375 Seeds** in total. Balancing's
   target is total ≈ 4 × the median demo run's Seeds (≈ 3–5 runs); if the measurement lands far off,
   **swap nodes** (cheaper or dearer ones) rather than giving the demo its own prices.
 - **Power check:** with all 8, the demo win (the Mire Hag) should be +10–15 points over a fresh
