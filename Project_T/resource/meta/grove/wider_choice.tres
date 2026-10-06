@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnlockData" format=3]
+
+[ext_resource type="Script" path="res://resource/meta/script/unlock_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+id = "wider_choice"
+display_name = "Wider Choice"
+description = "Every {family_pick} shows 3 families instead of 2."
+root = 2
+costs = Array[int]([80])
+order = 72
+icon = 26
+requires_all = Array[String](["second_thoughts"])
+always_on = true
