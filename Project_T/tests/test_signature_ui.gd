@@ -1,8 +1,8 @@
 extends SceneTree
 
-# Rank V signatures, the player's side (warden_stats.md 96d728dd; Tower Code's Signatures 105f2252): the Warden panel
-# shows the way there from rank III and a gold mark after the picks at rank V; the first time a signature fires its
-# name pops over the Warden and the HUD says what it does (once); the Codex glossary lists all 8. Temp profile.
+# Rank V signatures, the player's side (warden_stats.md 96d728dd / 8e32e3f8: "don't hint towards signatures"): no
+# hint on the way; at rank V a gold mark after the picks; the first fire pops its name and the HUD says what it does
+# (once); the Codex shows nothing until a first discovery, then the found ones by name and "???" for the rest.
 #   godot --headless --path . --script res://tests/test_signature_ui.gd --fixed-fps 60
 
 const P := Tower.Focus.POWER
@@ -56,8 +56,7 @@ func _run() -> void:
 	await _frames(2)
 	seller.select(growing)
 	await _frames(2)
-	var hint := panel.find_child("SignatureHint", true, false) as Label
-	_check(hint != null and hint.text == "1 more Power rank: Crushing at rank V", "rank III: the hint (%s)" % (hint.text if hint else "none"))
+	_check(panel.find_child("SignatureHint", true, false) == null, "rank III: no hint (user: don't hint towards signatures)")
 	_check(panel.find_child("Signature", true, false) == null, "rank III: no mark yet")
 	seller.select(null)
 	seller.select(crusher)
@@ -84,10 +83,17 @@ func _run() -> void:
 	_check(callouts.discovered.size() == 1, "a second Crushing (another Warden, planted later) is no new discovery")
 	_check(not HeartwoodMemory.load_data().has(callouts.SIGNATURES_SEEN_KEY), "tests never write the profile")
 
-	# The Codex glossary.
+	# The Codex glossary: nothing before a discovery on this profile, then the found one named and "???" for the rest.
 	var groups: Array = CodexData.glossary().filter(func(g: Array) -> bool: return g[0] == "Signatures")
-	_check(groups.size() == 1 and groups[0][1].size() == 8 and groups[0][1].any(func(e: Array) -> bool: return e[0] == "Crushing" and e[1].begins_with("Power majority")),
-		"the glossary lists the 8 signatures")
+	_check(groups.is_empty(), "no discovery yet: the glossary says nothing about signatures")
+	var profile := HeartwoodMemory.load_data()
+	profile[CodexData.SIGNATURES_SEEN_KEY] = ["crushing"]
+	HeartwoodMemory.save_data(profile)
+	groups = CodexData.glossary().filter(func(g: Array) -> bool: return g[0] == "Signatures")
+	var entries: Array = groups[0][1] if groups.size() == 1 else []
+	_check(entries.size() == 9 and entries[0][0] == "Signature" and entries.any(func(e: Array) -> bool: return e[0] == "Crushing" and e[1].begins_with("Power majority"))
+		and entries.filter(func(e: Array) -> bool: return e[0] == "???").size() == 7,
+		"after Crushing: what a signature is, Crushing by name, 7 still ???")
 
 	main.queue_free()
 	await _frames(1)

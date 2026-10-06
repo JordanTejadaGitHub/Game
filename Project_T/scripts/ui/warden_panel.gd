@@ -1018,37 +1018,24 @@ func _signature_icon(sig: StringName) -> TextureRect:
 	rect.mouse_filter = Control.MOUSE_FILTER_PASS
 	return rect
 
-# Rank V signatures (warden_stats.md 96d728dd, Tower Code 105f2252): a gold mark after the picks once it has one
-# (name, what it does in the tooltip; dimmed with a warning where its choice does nothing, e.g. Firstborn on a
-# Warden that makes nothing), else from rank III the way there ("2 more Power ranks: Crushing at rank V").
+# Rank V signatures (warden_stats.md 96d728dd, Tower Code 105f2252): once a Warden has one, a gold mark after its
+# picks (name, what it does in the tooltip). No hints on the way there (user 2026-10-06, warden_stats.md 8e32e3f8:
+# "don't hint towards signatures"): nothing before rank V, no warnings.
 func _add_signature_mark() -> void:
 	var sig: StringName = _tower.signature() if _tower.has_method("signature") else &""
+	if sig == &"":
+		return
 	var mark := Label.new()
+	mark.name = "Signature"
 	mark.add_theme_font_size_override("font_size", 14)
 	mark.mouse_filter = Control.MOUSE_FILTER_PASS
-	if sig != &"":
-		mark.name = "Signature"
-		mark.text = "◆ " + String(Signatures.NAMES.get(sig, sig))
-		mark.add_theme_color_override("font_color", UiStyle.GOLD)
-		mark.tooltip_text = "Signature: %s." % Signatures.TEXT.get(sig, "")
-		var choice: int = Signatures.BY_CHOICE.find_key(sig) if Signatures.BY_CHOICE.find_key(sig) != null else -1
-		var icon := _signature_icon(sig)
-		if icon != null:
-			icon.tooltip_text = mark.tooltip_text
-			_ranks_row.add_child(icon)
-		if choice >= 0 and _tower.has_method("choice_applies") and not _tower.choice_applies(choice):
-			mark.modulate.a = 0.4  # multiplier: dimmed, it does nothing here
-			mark.tooltip_text += "\nDoes nothing on %s." % _tower.tower_data.display_name
-			if icon != null:
-				icon.modulate.a = 0.4  # multiplier: dimmed with it
-	else:
-		var hint: String = _tower.signature_hint() if _tower.has_method("signature_hint") else ""
-		if hint == "":
-			return
-		mark.name = "SignatureHint"
-		mark.text = hint
-		mark.add_theme_color_override("font_color", UiStyle.INK_DIM)
-		mark.tooltip_text = "3 or more of ranks I–V on one choice give a signature at rank V."
+	mark.text = "◆ " + String(Signatures.NAMES.get(sig, sig))
+	mark.add_theme_color_override("font_color", UiStyle.GOLD)
+	mark.tooltip_text = "Signature: %s." % Signatures.TEXT.get(sig, "")
+	var icon := _signature_icon(sig)
+	if icon != null:
+		icon.tooltip_text = mark.tooltip_text
+		_ranks_row.add_child(icon)
 	_ranks_row.add_child(mark)
 
 func _update_cover() -> void:

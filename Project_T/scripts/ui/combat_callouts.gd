@@ -103,7 +103,7 @@ func _note_seen(tag: StringName) -> void:
 # every SIGNATURE_COOLDOWN per signature), and the first time ever a signature fires on this profile the HUD says what
 # it does (a discovery callout; profile SIGNATURES_SEEN_KEY, real game only; `discovered` for tests and Sound).
 const SIGNATURE_COOLDOWN := 8.0
-const SIGNATURES_SEEN_KEY := "signatures_seen"
+const SIGNATURES_SEEN_KEY := CodexData.SIGNATURES_SEEN_KEY
 signal signature_discovered(id: StringName, tower: Node2D)
 var discovered: Array[StringName] = []  # Signatures discovered this session (profile or not)
 var _signatures_seen: Array = []  # The profile's, loaded once
