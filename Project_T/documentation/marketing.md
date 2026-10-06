@@ -492,3 +492,63 @@ average 2.4 videos; and a **muted dev-commentary cut** (Spelunky 2 did one) fits
 **About section format** (from Thronefall): bold number lead-ins, one line each, a GIF under each:
 *Over 100 Wardens.* · *Over 250 Dreams.* · *Reactions* (number to confirm: 8 + 8 Crowned) · *100 drifts, 4 acts, a boss at
 the end of each* (check the boss-pool count before claiming more). Full game only; the demo page uses demo numbers.
+
+## 11. Mobile (Android / iOS; owned here since 2026-10-06; the build plan is mobile_plan.md)
+
+Model: **free to try, one purchase unlocks the full game** (the free tier is the demo: acts 1–2, the demo families, the
+Grove teaser). No ads, no consumables. The store page sells the full game and says plainly "Free to try. One purchase
+unlocks the full game."
+
+### Timing relative to Steam
+1. **Now → Steam page live:** Steam stays first. Wishlists, Next Fest and the PC press are where a premium tower
+   defense roguelite earns its reputation. Meanwhile the Android build doubles as a playtest: **Google Play closed
+   testing** with friends, next to the itch.io page.
+2. **Steam launch:** announce mobile in the launch materials and **open Google Play pre-registration / an App Store
+   pre-order** the same week, so the launch traffic banks mobile installs.
+3. **Featuring applications** (Apple's "Promote your app" form, Google Play's indie programmes): send them at least
+   **3 months before** the mobile launch, with the store page, preview video and a build.
+4. **Soft launch** (Android first) in 1–2 small markets for 2–4 weeks: check crashes, performance on mid-range phones,
+   the free → unlock conversion and the rating. Fix, then launch worldwide.
+5. **Worldwide mobile launch about 3–6 months after Steam**: a second launch moment, with its own press wave and the
+   Steam reviews to quote. (If the user decides to launch mobile first, swap 1 and 5 and keep the rest.)
+
+### Store page (ASO)
+- **Name and subtitle:** "Heartwood TD" + "Maze Tower Defense Roguelite" (28 characters; both stores cap these
+  fields at 30). The keywords that matter: tower defense, maze, roguelite, strategy, offline.
+- **Icon:** the most-tested asset. One bold shape that reads at phone-icon size: the watchful Warden's face or a single
+  glowing Warden on its plinth, warm against the dark. Test 2–3 versions (Google Play store listing experiments).
+- **Screenshots:** the first 2–3 carry the page. #1 the maze with its route (with a one-line caption: "Your Wardens are
+  the walls"), #2 a chain reaction, #3 the Dream pick, then a boss, late game, the Grove. Captured with the phone UI
+  at phone aspect, not cropped PC shots.
+- **Preview video** (15–30 s): the maze being built in the first 3 seconds, then combos; no logo intro. Re-cut from
+  the editor kit at phone aspect with the phone UI.
+- **Short description** (Google Play, 80 characters): *"Build a maze of Wardens. Tower defense roguelite. Free to try,
+  one unlock."*
+- **Long description:** the Steam About (§6) with the same promise lines, plus "Free to try" and "No ads, no
+  microtransactions": for premium mobile players that line sells.
+
+### Launch work
+- **Shorts:** the same videos work on TikTok / Reels / Shorts; add "on your phone" versions showing touch play and
+  the phone UI. The bio links to both stores (separate UTM-style tracking links per store).
+- **Ratings:** ask for a review only after a good moment (a boss dispelled, a first win), never after a loss.
+- **Press and community:** Pocket Gamer, TouchArcade, mobile YouTubers who cover tower defense / roguelites,
+  r/AndroidGaming, r/iosgaming (read each sub's rules).
+- **No paid ads at first:** a one-purchase game rarely earns back the cost per install.
+
+### Mobile store checklist
+| Item | Google Play | App Store | Status |
+|---|---|---|---|
+| Developer account | $25 once | $99 / year, plus a Mac or cloud build for iOS | to do (user) |
+| Name / subtitle | title ≤ 30 | name ≤ 30, subtitle ≤ 30, keyword field ≤ 100 | drafted above |
+| Short description | ≤ 80 | (promotional text, optional) | drafted above |
+| Long description | ≤ 4000 | description | from the Steam About |
+| Icon | 512×512 | 1024×1024 | to make (Theme Asset, or the hired artist) |
+| Feature graphic | 1024×500 | — | to make |
+| Screenshots | phone, 2–8 | the current required iPhone sizes | capture at phone aspect, phone UI |
+| Preview video | YouTube link | app preview, 15–30 s | re-cut from the kit |
+| Age rating | IARC questionnaire | age rating questionnaire | to do |
+| Privacy | data safety form | privacy labels | to do (no data collected is the simplest truth to keep) |
+| The unlock purchase | in-app product + restore | in-app purchase + restore | Main Merger (mobile_plan.md #5) |
+| Pre-registration / pre-order | yes | yes | open at Steam launch |
+| Featuring application | indie programmes | "Promote your app" | 3 months before launch |
+| AI disclosure | check the current policy at submission | check the current policy at submission | keep the same honest story as Steam / itch |
