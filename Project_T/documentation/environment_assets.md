@@ -376,6 +376,99 @@ Open maps read as one flat colour. The fix is **a few deliberate large patches**
 - Tests: patch count 3–5 (+ the glade ring), coverage 15–25%, every cell's mask matches its corners, the save rebuilds
   the same patches. Re-render `map_layouts.png` and one close-up preview per act.
 - When it lands, report to **Theme Discussion** (it's on the stable-before-marketing list).
+## Room to maze (spec, Environment Discussion, 2026-10-05)
+
+For maze_feel.md (8b50fce6), change 5. The user: *"the pathing, so you can create crazy mazes like Tropical Tower
+Wars"*. The map should hand the player a big open floor for switchbacks and spirals. The forest frames it instead
+of filling it.
+
+### 1. An open build bowl
+- **The bowl:** the map's interior inset **3 cells** from the rim (x 3–19, y 3–14 on 23×18), minus nothing. The start
+  and the inland Heartwood both sit in or at the bowl's edge, and the glade is inside it (buildable, as now).
+- **Inside the bowl:** almost no loose obstacles. **No** scatter rocks or tree groves; at most **2–4 lone obstacles**
+  as "decision" pieces (a single rock or tree worth clearing or building around). Ground patches and details stay:
+  they're decoration and walkable.
+- **The frame band** (the outer 3 cells): groves, rock clusters, the feature and ridge roots live here. It should
+  read as the forest's edge closing in around a clearing, which also suits the dark fairytale (the dream's lit
+  clearing, the nightmares' dark woods).
+- **Ridges become spurs** (user, 2026-10-05: *"keep at least one bend but clear some obstacles"*): **one bend
+  spur** from the start's side reaches just far enough to cut the start→Heartwood box and force the bend (+4)
+  (median ~67% across, capped at ~75%). It is a thin, gap-free, tapering line of single obstacles, clearable as
+  usual (a big shortcut later). Any other spur stays ≤ ~35%. Blight 9 adds one more short spur. The obstacle count
+  stays 30–40 by thinning the band, not the bend spur.
+- **The feature** (pond, ruin, grove, log) sits in the frame band or straddling its inner edge, never in the bowl's
+  middle. Keep the near-route rule only where the route runs through the band (the start's approach), so it still
+  shapes the opening.
+- **Obstacle target:** about **30–40** (down from ~60), never under **12** (clearing cards need 8+ left after a few
+  clears). `test_map_density`'s bands change with it, and **Balancing confirms** (fewer clears means fewer Tend Seeds,
+  and clearing cards get weaker).
+
+### 2. Generation guards
+- **The opening route band** (35–57) was set for a forested map. With an open bowl the opening route is short and
+  plain, which is fine: the player builds the length. **Drop `_extend_route_if_short`**, which would put obstacles
+  back into the bowl, and lower the floor to the start→Heartwood Manhattan distance + 4. Keep the guaranteed bend
+  (from the spurs) and the route guarantee. `max_route_length` only matters for generation; it never limits the
+  player's maze.
+- **The glade** stays (the 8 cells around the Heartwood, obstacle-free, buildable).
+- Nothing at play time caps route length (`max_route_length` is generation-only); keep it that way.
+
+### 3. Performance on crazy mazes
+Benchmark a worst-case **serpentine of 600–800 half steps** (and a spiral) built from staggered Wardens, at 150
+walkers:
+- `FindPath.straightest_point_path` (BFS + turn DP over the whole grid, ~2 ms now; it runs on every draw *and* on
+  route previews);
+- a ghost hover over a new cell (can_block + preview route);
+- a placement (block, route, re-route every walker, dual-path redraw of only the changed tiles, route mist and arrows);
+- a drag line of 10 walls (one route update at the end, not 10).
+
+**Budget:** a placement takes ≤ 4 ms to the new route, and ghost hover ≤ 3 ms per new cell, at 1× and while paused.
+If the straightest pass is the cost, run it only for the drawn route and the preview on hover-cell change (never per
+walker), cache it by `FindPath.version`, and fall back to plain A* with the sticky preference if it goes over budget.
+Add the benchmark as a test that prints the timings and fails over 2× budget.
+
+### 4. Out of scope here
+Coverage readout, cheap walls, build flow and Twig Walls belong to Tower Code / Balancing / Roguelite (maze_feel.md
+1–4, 6).
+
+### As built (room-to-maze-bend10, 2026-10-06)
+The spec above was superseded in two places. Balancing's sims found the ~25-cell opening a no-go: first-run players
+build 0–10 walls. So the bend spur forces **+10** (not +4), the opening floor is Manhattan + 10, and the performance
+budget became "a placement fits in one frame (≤ 10 ms), hover ≤ 4 ms" (`tests/test_maze_perf.gd`).
+- **Frame and bowl:** `frame_band` 3. The frame is the 3 cells inside the rim; the bowl is everything inside it.
+  - Groves, rock clusters, lone rocks and spur roots go only in the frame.
+  - The feature sits in the frame or straddles its inner edge (no cell deeper than the bowl's first ring). Its
+    near-route tries start around the route's frame stretch (`feature_near_route`).
+  - The bowl gets 3–6 lone decision obstacles, none touching another obstacle.
+- **Bend spur:** one per map, on the row nearest the start, from the wall that needs the shorter reach.
+  - A sealed line (no 4-way gap) of mixed trees and boulders (30–60% boulders), with a ragged 2–3 cell root, a step to
+    the next row every 3–5 cells (the corner cell is filled, so it still holds) and clumps of 1–2 beside it. The user,
+    2026-10-06: *"looks a bit unnatural if it's just rocks in a line, make sure variety"* (b0fff312). Steps and
+    clumps stay within one row of the spur's base row and `RIDGE_END_GAP` from the start and Heartwood rows, so they
+    can't seal the start in or touch the next spur.
+  - Its tip sits `MapLayout.BEND_EXTRA / 2` = 5 cells past the start→Heartwood box, so every way round costs +10.
+  - The opening floor is `min_route_length` = Manhattan + 10. Cap: 75% across (`MapLayout.BEND_REACH_SHARE`).
+  - Other spurs: mixed (25–75% boulders), 25–35% across, may gap past the root, on alternating walls; Blight 9 adds
+    one. Rock clusters fill 70% with some trees among the boulders. The Ruin (160ea150) is a broken, roughly round
+    ring: 4×4 drops its corners, 3×3 drops 1–2; 1–2 gaps; one stone fallen a cell outward; mixed stones; a Withered
+    Tree on a dropped corner; pebbles on the empty slots. The bend spur ends in a 2–3 clump, then 1–2 strays
+    (`stray_cells`, plain obstacles that don't count for the bend). Over 48 after thinning: strays go first, then bowl
+    extras down to 3.
+- **Heartwood fit check:** `MapLayout.bend_fits()`. A rolled Heartwood with no room for the bend re-rolls among spots
+  where it fits (~16% of rolls; 174 distinct spots over 400 rolls). Every other roll keeps its spot.
+- **Obstacle count:** target 38–48 (user, 2026-10-06: "maybe a bit more obstacles"; was 30–40).
+  - First the band's groves and clusters are thinned, loneliest first (never spurs or the feature).
+  - Then the bowl's extras drop to 3.
+  - Then the band is topped up, off the route, after carving.
+
+  `_extend_route_if_short` is removed; `max_route_length` is generation-only.
+- **Measured** (`test_map_density` bands):
+  - opening route 26–41 cells, median ~31 (band 24–42, Blight 9 up to 46);
+  - obstacles 38–48 at Blight 0 (mean 41) and 38–52 at Blight 9 (mean 45);
+  - the bowl holds 3–6 loose obstacles;
+  - buildable cells ~296 (≥ 285);
+  - the bend appears on every map.
+- **Balancing (Balancing Discussion, 2026-10-06):** GO on the walling bot. Act 1: default 53%, skip 20%, spender 40%.
+  Balancing is watching the first human runs, and `act1_health_multiplier` may ease from 1.20 to 1.10.
 ## Notes
 
 - Colours (2026-09-30, to fit the title and Memory Grove screens): the ground is night-indigo with a moss grain (act 1–2 moss/teal, act 3 violet with rust, act 4 frost), the dead trees are cool night bark with a teal lit side and moss flecks (the Grove trunks), rocks stay lavender stone. Warmth is only the path, the Heartwood and the Wardens.
