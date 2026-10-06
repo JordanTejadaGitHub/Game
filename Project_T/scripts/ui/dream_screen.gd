@@ -413,6 +413,7 @@ func _on_mystery_revealed(_mystery: UpgradeData, card: UpgradeData) -> void:
 # The cards turn in one by one with a flare in their rarity colour; the picked card lifts and flies into the Dreams
 # row with a warm swell while the others fade; then it's taken (CardBloom pulses what it touches). Reduced motion:
 # fades only. The flare is a rarity tint for now (UI Asset's flare art to come). Real time: the rest is paused.
+signal card_flipped(card: UpgradeData)  # Each card as it turns in (Sound: a flip by rarity, d4aab969)
 const FLIP_TIME := 0.22
 const FLIP_STAGGER := 0.12
 const FLY_TIME := 0.5
@@ -431,10 +432,14 @@ func _flip_in(columns: Array, cards: Array) -> void:
 		if still:
 			column.modulate.a = 0.0
 			tween.tween_interval(i * FLIP_STAGGER * 0.5)
+			if card != null:
+				tween.tween_callback(card_flipped.emit.bind(card))
 			tween.tween_property(column, "modulate:a", 1.0, 0.2)
 			continue
 		column.scale = Vector2(0.0, 1.0)
 		tween.tween_interval(i * FLIP_STAGGER)
+		if card != null:
+			tween.tween_callback(card_flipped.emit.bind(card))
 		tween.tween_property(column, "scale", Vector2.ONE, FLIP_TIME).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		if card != null:  # The flare: a flash in its rarity colour as it lands
 			var flare := UpgradeData.rarity_color(card.rarity).lightened(0.4)
