@@ -1703,6 +1703,33 @@ Deepened ones that exist stay.
     ("adapt to the cards you get"). An earlier random defining card gives a direction without
     choosing it for you.
   - Balancing Code re-measures the no-build share with this and the conditional maze cards in.
+- **Narrowed (2026-10-06, Balancing Code's offered/taken numbers):**
+  - The tag had spread to 68 cards, about half of every offer (7.2 offered by drift 26). Fresh
+    runs took 3–4 of their 5 picks as defining cards and held several unrelated directions, so
+    "no build" stayed at 88%. The drift-10 slot changed nothing (+0.1 offered per run).
+  - **The defining set is now 18 cards plus the Legendaries.** Each carries exactly one archetype
+    tag, so a defining card and 2 tag-mates make a build:
+
+    | Card | Archetype |
+    |---|---|
+    | Solitude | precision |
+    | Drumbeat, Momentum | swift |
+    | Crowd Breaker, Lingering Ground, Brimming | affliction |
+    | Overlap | reach |
+    | Odd One Out, Root Network, Small Hands | overgrowth |
+    | Twig Walls, Thorny Walls, Heart of the Maze, Hedge Maze | maze |
+    | Sap Rising | tending |
+    | Specialist, Many Talents | tall |
+    | Shared Training | kinship |
+
+  - Every other card loses `defining` but keeps its archetype tag. That includes Cozy Corners,
+    Straightaway, Lone Hunter, Old Growth, First Light, Watchful Rest, Seedfall, Tender Care and
+    the Grove cards tagged earlier. Cards whose archetype tags change get only the one above.
+  - **The offer slot goes back to act 2** (from the rest after drift 25), as first approved.
+    With a smaller set the slot means something.
+  - **Declined:** drawing a defining card's tag-mates more often once it's owned. That's steering.
+  - Balancing Code re-measures no-build at drift 50 (the bar; drift 26 is dropped) before the run
+    pool test (60 → 70%).
 - **On screen:** a small "build" mark on defining cards (Main / UI Code; the look is UI's).
 
 ### C. Bittersweet: both sides dramatic
