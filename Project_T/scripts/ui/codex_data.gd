@@ -446,7 +446,7 @@ static func glossary() -> Array:
 const SIGNATURES_SEEN_KEY := "signatures_seen"
 # What each signature answers, for its found entry (warden_stats.md ff93b498).
 const SIGNATURE_ANSWERS := {&"crushing": "armour", &"watchtower": "hidden nightmares", &"relentless": "swarms",
-	&"spreading": "dense waves", &"executioner": "big crowds of normal nightmares (its price: all its hits deal 15% less)",
+	&"spreading": "dense waves", &"executioner": "big crowds of normal nightmares",
 	&"firstborn": "long drifts and the economy", &"shelter": "bosses that wither, dim or trample", &"surge": "burst moments"}
 
 static func signature_entries() -> Array:
