@@ -108,7 +108,8 @@ var base_kind := ""  # The family base Warden most on the map at the start, and 
 var copies_at_start := -1
 var _grow_only_tier := 0  # _grow only into this tier (2 = a branch, 3 = a final); 0 = any
 var _grow_cover_pick := 0  # --extra-spend=grow_hi / grow_lo (maze_feel.md 8b50fce6): _grow picks by route coverage alone, 1 = the most, -1 = the least
-var extra_info := {"route_added": 0, "walls": 0, "cover": -1, "cover_hi": -1, "cover_lo": -1}  # The extra spend's walls / grown Warden; cover_hi / lo = the range of coverage among Wardens that could grow
+var _grow_rank_only := -1  # grow_hi / grow_lo: only Wardens of this rank (-1 = any)
+var extra_info := {"route_added": 0, "walls": 0, "cover": -1, "cover_hi": -1, "cover_lo": -1, "rank": -1}  # The extra spend's walls / grown Warden; cover_hi / lo = the range of coverage among Wardens that could grow
 var path_added := {"plant": [0, 0], "wall": [0, 0]}  # Route cells added by the bot's placements: [sum, placements]
 const START_ATTACKERS := {51: 50, 76: 46}  # Human run history (non-dev runs, 2026-10-05): mean "attackers" of runs that ended at 50 (42, 75, 46, 38); at 75, the three runs past it prorated by drift (31@80, 58@100, 88@100)
 const START_PLANT_SHARE := 0.25  # (a) at most this share of the start Dew on planting + walls
@@ -603,10 +604,20 @@ func _extra_spend() -> void:
 			_grow_only_tier = 3 if extra_spend == "final" else 2
 			_grow_cover_pick = {"grow_hi": 1, "grow_lo": -1}.get(extra_spend, 0)
 			if _grow_cover_pick != 0:
-				# Any Warden with a branch may take the grow, whatever its ranks add to the price: paid in full,
-				# extra_spent = that price (X stays the cheapest, for reference)
+				# Position only (Balancing): hi and lo both come from Wardens of one rank, unranked first, else the
+				# lowest rank two of them share; no such pair = no grow. Paid at its price (extra_spent; X for reference).
+				var by_rank := {}
+				for t in _attackers():
+					if _can_branch(t):
+						by_rank[t.rank] = int(by_rank.get(t.rank, 0)) + 1
+				var shared: Array = by_rank.keys().filter(func(r: int) -> bool: return by_rank[r] >= 2)
+				shared.sort()
+				extra_info.rank = shared[0] if not shared.is_empty() else -1
+				_grow_rank_only = extra_info.rank
 				run_state.dew += 100000
-				_grow()
+				if not shared.is_empty():
+					_grow()
+				_grow_rank_only = -1
 				_grow_cover_pick = 0
 				_grow_only_tier = 0
 				extra_spent = before + extra_dew + 100000 - run_state.dew
@@ -616,12 +627,18 @@ func _extra_spend() -> void:
 			_grow()
 			_grow_only_tier = 0
 			_grow_cover_pick = 0
-		"walls":  # (e): only Thornwalls, the bot's wall planner, where they add the most route
+		"walls":  # (e): only Thornwalls, in chains of 1–3, where they add the most route per Dew
 			var route_before := _route_cells(map.get_path_from(map.startPath))
+			var wall: TowerData = load("res://resource/tower/thornwall.tres")
+			placer.tower_data = wall
+			var chains := _half_mode() and placer.half_placement()
 			for guard in 200:
-				if run_state.dew - before <= 0 or not _plant_wall():
+				if run_state.dew - before <= 0:
 					break
-				extra_info.walls += 1
+				var placed := _plant_wall_chain(run_state.dew - before) if chains else (1 if _plant_wall() else 0)
+				if placed == 0:
+					break
+				extra_info.walls += placed
 			extra_info.route_added = _route_cells(map.get_path_from(map.startPath)) - route_before
 		"rank":
 			for guard in 200:
@@ -630,6 +647,14 @@ func _extra_spend() -> void:
 	extra_spent = before + extra_dew - run_state.dew
 	run_state.dew = mini(run_state.dew, before)  # The unspent extra goes back
 	print("EXTRA %s: %d of %d spent (base %s ×%d) %s" % [extra_spend, extra_spent, extra_dew, base_kind, copies_at_start, extra_info])
+
+# A Warden that could grow into an unlocked branch now (Dew aside).
+func _can_branch(t: Tower) -> bool:
+	for form in t.tower_data.evolves_to:
+		if form is TowerData and form.tier == 2 and dreams.is_unlocked(form.get_id()) and placer.ascended_blocker(form) == "" \
+				and (form.footprint <= t.get_footprint() or not placer.get_grow_squares(t, form).is_empty()):
+			return true
+	return false
 
 # The cheapest growth into an unlocked form of `tier` on the board (what it costs a Warden as it stands, ranks
 # included); 0 = none open.
@@ -849,6 +874,55 @@ func _half_wall_open(origin: Vector2) -> bool:
 # Half cells: a Thornwall on the half origin beside the route that adds the most path (staggered walls). Every origin
 # whose footprint touches the halves within one of a route point's body is weighed: the cheap way to cover the half
 # grid, since a wall off the route never lengthens it.
+# --extra-spend=walls (Balancing 2026-10-05): chains of 1–3 Thornwalls side by side in a straight line (the twig
+# planner's bar idea), the chain adding the most route per Dew, while `left` Dew lasts. Returns the walls built
+# (0 = no chain adds route).
+const WALL_CHAINS := [1, 2, 3]
+
+func _plant_wall_chain(left: int) -> int:
+	var wall: TowerData = placer.tower_data
+	var cost: int = placer.get_cost(wall)
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var walkers := placer._walker_points()
+	var starts := {}
+	for point in route:
+		for h in map.body_halves(point):
+			for dy in range(-3, 3):
+				for dx in range(-3, 3):
+					starts[h + Vector2(dx, dy)] = true
+	var best: Array[Vector2] = []
+	var best_rate := 0.0
+	for start in starts:
+		if not _half_wall_open(start):
+			continue
+		for dir in [Vector2.RIGHT, Vector2.DOWN]:
+			var chain: Array[Vector2] = []
+			var halves: Array[Vector2] = []
+			for length in WALL_CHAINS:
+				var origin: Vector2 = start + dir * 2.0 * (length - 1)
+				if length > 1 and not _half_wall_open(origin):
+					break
+				chain.append(origin)
+				halves.append_array(_wall_halves(origin))
+				if length * cost > left:
+					break
+				var new_route: PackedVector2Array = map.get_path_if_blocked_halves(halves)
+				if new_route.is_empty():
+					break
+				var rate: float = float(new_route.size() - route.size()) / (length * cost)
+				if rate > best_rate and map.can_block_halves(halves, walkers):
+					best_rate = rate
+					best = chain.duplicate()
+	var placed := 0
+	for origin in best:
+		if not run_state.can_afford(cost):
+			break
+		var before := _route_cells(map.get_path_from(map.startPath))
+		if placer._try_build_half(origin):
+			_note_path(before, true)
+			placed += 1
+	return placed
+
 func _plant_half_wall() -> bool:
 	var route: PackedVector2Array = map.get_path_from(map.startPath)
 	var origins := {}
@@ -1085,6 +1159,8 @@ func _grow() -> bool:
 				pick_score = form_score
 				pick = form
 		if pick != null:
+			if _grow_rank_only >= 0 and tower.rank != _grow_rank_only:
+				continue  # grow_hi / grow_lo: only the shared rank
 			var route_cover := _coverage(tower)
 			if _grow_only_tier > 0:  # The --extra-spend grow arms: the coverage range among the Wardens that could grow
 				extra_info.cover_hi = maxi(extra_info.cover_hi, route_cover)
@@ -1361,6 +1437,8 @@ func _finish() -> void:
 	summary.extra_cover = extra_info.cover  # Route halves in range of the Warden the extra grow went to (once per pass)
 	summary.cover_hi = extra_info.cover_hi  # The most / least coverage among the Wardens that could take that grow
 	summary.cover_lo = extra_info.cover_lo
+	summary.cover_rank = extra_info.rank  # The rank hi / lo were chosen among (-1 = no two Wardens of one rank: no grow)
+	summary.extra_spent_share = snappedf(float(extra_spent) / extra_dew, 0.01) if extra_dew > 0 else 0.0
 	summary.base_kind = base_kind
 	summary.copies_at_start = copies_at_start
 	summary.path_per_plant = snappedf(float(path_added.plant[0]) / maxf(path_added.plant[1], 1.0), 0.01)
