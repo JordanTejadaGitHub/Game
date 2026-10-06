@@ -151,4 +151,16 @@ func _build(placer: TowerPlacer, map, data: TowerData) -> Tower:
 				var built: Tower = container.get_child(count)
 				built.set_process(false)
 				return built
+	# The route's sides are full (Room to maze's openings are shorter): any free cell will do.
+	for x in int(map.MAP_GRID.size.x):
+		for y in int(map.MAP_GRID.size.y):
+			var cell := Vector2(x, y)
+			if path.has(cell) or not map.can_block(cell) or placer.settling_left([cell]) > 0.0:
+				continue
+			placer.tower_data = data
+			var count := container.get_child_count()
+			if placer._try_build(cell):
+				var built: Tower = container.get_child(count)
+				built.set_process(false)
+				return built
 	return null

@@ -43,7 +43,16 @@ func _run() -> void:
 		if map.is_buildable(above) and not map.get_glade_cells().has(above) and not map.get_path_if_blocked(above).is_empty():
 			open.append(tree)
 	_check(open.size() >= 2, "trees with open ground above (%d)" % open.size())
+	# The first one with room for the half-offset Warden below too (its halves just up and right of the tree), so the
+	# check doesn't hang on which tree the map rolled first.
 	var tree := open[0]
+	for candidate in open:
+		var c := Vector2(candidate)
+		if map.can_block_halves(map.halves_of(Vector2(2 * c.x + 1, 2 * c.y - 3))):
+			tree = candidate
+			break
+	open.erase(tree)
+	open.insert(0, tree)
 	_check(env.get_cell_alternative_tile(tree) == 0, "a tree starts whole")
 
 	# A Warden above: the tree fades; sold: it comes back.

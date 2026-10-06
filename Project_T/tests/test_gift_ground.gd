@@ -98,8 +98,11 @@ func _run() -> void:
 	# tree shelters no one. Fallen Giant: an attacking Warden touching the log gets +15% crit ("Lookout").
 	var tree := Vector2(-1, -1)
 	var spot := Vector2(-1, -1)
-	for c in map.obstacles:
-		spot = _open_cell_near(c)
+	for c in map.obstacles:  # A free cell right beside it ("touching" is by halves, side by side; not diagonal or 2 away)
+		for d in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
+			if map.is_buildable(c + d) and map.can_block(c + d) and _tower_at(c + d) == null:
+				spot = c + d
+				break
 		if spot.x >= 0:
 			tree = c
 			break
