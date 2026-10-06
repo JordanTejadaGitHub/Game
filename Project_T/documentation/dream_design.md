@@ -1832,8 +1832,8 @@ read those choices, so the Nurture path shapes the build.
 
 | # | Card | Rarity | Effect | Tags |
 |---|---|---|---|---|
-| 266 | **Specialist** | Uncommon | A Warden whose every rank took the same choice gets **50% more from each of its ranks** | tall, nurture, defining |
-| 267 | **Many Talents** | Uncommon | A Warden deals **8% more damage for each different choice** among its ranks (up to +32%) | tall, nurture, defining |
+| 266 | **Specialist** | Uncommon | A Warden whose every rank took the same choice gets **double the bonus from each rank's choice** (a true ×2; balance_simulation.md 43496006) | tall, nurture, defining |
+| 267 | **Many Talents** | Uncommon | A Warden deals **10% more damage for each different choice** among its ranks (up to +40%) | tall, nurture, defining |
 | 268 | **Shared Training** | Rare | Two Wardens in a {kinship} with the same majority choice both get its rank V signature at **rank IV** | tall, kinship, defining |
 
 - Specialist and Many Talents pull opposite ways on purpose. Neither needs a Warden; both work from
