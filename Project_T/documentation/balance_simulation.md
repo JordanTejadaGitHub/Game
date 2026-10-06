@@ -872,6 +872,10 @@ build ~20–40%, a dream combo ~5–15%. Ours (bot): direction by 26 ~87%, built
 **The gap is timing:** every human act 2 death lands at 32–42, before most builds are online. **New target: fresh
 runs ~70%+ with a build by drift 35, ~80%+ by 40.** No-build reports now also classify at 35 / 40 (existing rows
 reclassified). Levers if short: stronger act 1–2 openers (the use-now rule is a step), or a softer 32–40.
+**Reclassified (with a build, fresh, at 26 / 35 / 40 / 50):** before the slot moves 13 / 20 / 47 / 80%; drift-10 slot
+17 / 29 / 42 / 58%; **trim 20 / 43 / 70 / 87%** (full: 43 / 57 / 70 / 87%). The trim misses both targets (43 by 35, 70
+by 40): builds come online at 35–50, through the wall. Next read: the use-now chain; then decide between the
+levers.
 
 ## Rank-choice cards 266–269 (dream_design.md cdfbe349)
 
