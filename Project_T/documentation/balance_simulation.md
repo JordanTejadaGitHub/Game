@@ -941,6 +941,12 @@ act 1 survival is within ±10 points; else the bend spur adds +8–10 cells.
 44 / 49. Bosses no harder; room runs reach 25 less often. **No-go; the spur fallback (+8–10) asked for**, then the
 room arm re-simmed. (The bot stops walling at ~45 cells; a new player walls less, not more.) Act 1 bot check on the worktree
 before merge; if the extra room makes act 1 easy, the curve answers it.
+**Final (sticky lanes 1c46063d, walls-keep-going bot, 30 seeds):** act 1 boss, main / room / bend10 (opening
+26–41, +10 bend): default 76 / 46 / 53%, spender 70 / 50 / 40%, skip 16 / 26 / 20%; d1–5 leaks 0.6–0.7 / 1.0–1.1 /
+0.2–0.8. Both branches miss "±10 of main", but main itself now sits above target with the walling bot. Judged on the
+targets, **bend10 is on them** (default ~55, skip ≤ 20) with the cleanest opening; the spender's 40% is the attacker
+spam "walls first" means to weaken (fewer free obstacle walls: the player builds the maze). **GO for bend10; room
+stays out.** Watch the first human runs on it; if act 1 is too hard, `act1_health_multiplier` 1.20 → 1.10.
 
 ## Human run 21 (2026-10-05 20:57, build 91161b = b3c61186; 0 Grove)
 
