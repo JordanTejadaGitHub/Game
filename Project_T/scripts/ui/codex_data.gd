@@ -48,6 +48,7 @@ const GLOSSARY_SOURCE := [
 		["Aura", "A Warden that strengthens the Wardens around it instead of (or as well as) attacking: the 8 cells around it, or its range.", ["Boosts"]],
 		["Harvest and interest", "Some Wardens make Dew: a Dewcatcher's line pours Dew after each drift (its harvest); a Wellspring adds interest on your Dew at each rest, at most 120 a rest for all of them together.", ["Dew", "Rest"]],
 		["Nurture choice", "Each rank you pick how it grows: Power, Swift, Reach or Deep.", ["Nurture", "Potency"]],
+		["Signature", "A Warden at rank V with 3 or more of its ranks I–V on one Nurture choice gains that choice's signature, a new behaviour (the gold mark after its picks). A mixed Warden gets none but keeps its flexible stats.", ["Nurture choice", "Rank"]],
 		["Thornwall", "A cheap wall that doesn't attack; grows into Bramble or Honeysuckle.", ["Warden"]],
 		["Clear tool", "Tend Withered Trees and move Mossy Boulders to reshape the maze. Opens with a clearing Dream.", ["Dew"]],
 		["Ascended", "A family's endgame Warden, from drift 51: unlocked with Dreamlight, grown from a final form for Dew. One per family per run.", ["Final form", "Ascension"]],
@@ -431,10 +432,24 @@ static func glossary() -> Array:
 				entries.append_array(damage_type_entries(entries))
 			if not entries.is_empty():  # The demo's "Branch effects" is empty
 				_glossary.append([group[0], entries])
+			if group[0] == "Wardens":
+				_glossary.append(["Signatures", signature_entries()])
 	var callouts := callout_entries()
 	if callouts.is_empty():
 		return _glossary
 	return _glossary + [["Combat callouts", callouts]]
+
+# Rank V signatures (warden_stats.md 96d728dd), one entry each from Tower Code's Signatures: "Crushing: Power
+# majority. Every 5th hit lands x2 …".
+static func signature_entries() -> Array:
+	var out: Array = []
+	for sig in Signatures.NAMES:
+		var choice = Signatures.BY_CHOICE.find_key(sig)
+		var by: String = Tower.FOCUS_NAMES.get(choice, "?") if choice != null else "?"
+		var text: String = Signatures.TEXT.get(sig, "")
+		out.append([String(Signatures.NAMES[sig]), "%s majority: %s." % [by, text.left(1).to_upper() + text.substr(1)],
+			["Signature", "Nurture choice"], ""])
+	return out
 
 # One entry per damage type, with who deals it, from the data (IconInfo.DAMAGE_TYPES + LINE_FAMILIES):
 # "Spore: the Sporeling family's damage." Types already written by hand (Talon) are kept as they are.

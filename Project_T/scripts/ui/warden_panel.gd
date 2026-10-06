@@ -990,6 +990,34 @@ func _fill_rank_picks() -> void:
 			pick.modulate.a = 0.4  # multiplier: dimmed, it does nothing here
 			pick.tooltip_text = "No effect on %s" % _tower.tower_data.display_name
 		_ranks_row.add_child(pick)
+	_add_signature_mark()
+
+# Rank V signatures (warden_stats.md 96d728dd, Tower Code 105f2252): a gold mark after the picks once it has one
+# (name, what it does in the tooltip; dimmed with a warning where its choice does nothing, e.g. Firstborn on a
+# Warden that makes nothing), else from rank III the way there ("2 more Power ranks: Crushing at rank V").
+func _add_signature_mark() -> void:
+	var sig: StringName = _tower.signature() if _tower.has_method("signature") else &""
+	var mark := Label.new()
+	mark.add_theme_font_size_override("font_size", 14)
+	mark.mouse_filter = Control.MOUSE_FILTER_PASS
+	if sig != &"":
+		mark.name = "Signature"
+		mark.text = "◆ " + String(Signatures.NAMES.get(sig, sig))
+		mark.add_theme_color_override("font_color", UiStyle.GOLD)
+		mark.tooltip_text = "Signature: %s." % Signatures.TEXT.get(sig, "")
+		var choice: int = Signatures.BY_CHOICE.find_key(sig) if Signatures.BY_CHOICE.find_key(sig) != null else -1
+		if choice >= 0 and _tower.has_method("choice_applies") and not _tower.choice_applies(choice):
+			mark.modulate.a = 0.4  # multiplier: dimmed, it does nothing here
+			mark.tooltip_text += "\nDoes nothing on %s." % _tower.tower_data.display_name
+	else:
+		var hint: String = _tower.signature_hint() if _tower.has_method("signature_hint") else ""
+		if hint == "":
+			return
+		mark.name = "SignatureHint"
+		mark.text = hint
+		mark.add_theme_color_override("font_color", UiStyle.INK_DIM)
+		mark.tooltip_text = "3 or more of ranks I–V on one choice give a signature at rank V."
+	_ranks_row.add_child(mark)
 
 func _update_cover() -> void:
 	WorldLabel.set_cover(&"warden_panel", get_global_rect(), is_visible_in_tree())

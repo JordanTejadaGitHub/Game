@@ -46,7 +46,7 @@ const GROUP_LIST_WIDTH := 230.0
 const CARD_ICON := 32.0
 const WIDE_CODEX := 1100.0  # Viewport width from which the entry cards sit in two columns
 # Each glossary group's icon in the left pane (assets/ui/icons.png ids).
-const GROUP_ICONS := {"Resources": &"dew", "The run": &"path_length", "Combat": &"crit_chance", "Wardens": &"rank",
+const GROUP_ICONS := {"Resources": &"dew", "The run": &"path_length", "Combat": &"crit_chance", "Wardens": &"rank", "Signatures": &"rank",
 	"Nightmares": &"nightmare", "Statuses": &"damp", "Damage types": &"damage_type", "Dreams": &"dreamlight",
 	"The Memory Grove": &"seeds", "Combat callouts": &"crit_damage", "Nightmares you've met": &"nightmare"}
 # Terms with an icon of their own (the rest use their group's).

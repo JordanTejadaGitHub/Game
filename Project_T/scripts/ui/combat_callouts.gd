@@ -27,6 +27,7 @@ func _ready() -> void:
 	z_index = 21  # Over the damage numbers
 	add_to_group(&"combat_callouts")  # SoundHooks finds it for card_called
 	_connect.call_deferred()  # DamageLog readies later in the scene
+	_hook_towers.call_deferred()
 
 func _connect() -> void:
 	var log := DamageLog.instance
@@ -96,6 +97,50 @@ func _note_seen(tag: StringName) -> void:
 	if not seen.has(String(tag)):
 		seen.append(String(tag))
 		profile[CodexData.CALLOUT_SEEN_KEY] = seen
+		HeartwoodMemory.save_data(profile)
+
+# Rank V signatures (warden_stats.md 96d728dd, Tower.signature_fired): its name pops in gold over the Warden (at most
+# every SIGNATURE_COOLDOWN per signature), and the first time ever a signature fires on this profile the HUD says what
+# it does (a discovery callout; profile SIGNATURES_SEEN_KEY, real game only; `discovered` for tests and Sound).
+const SIGNATURE_COOLDOWN := 8.0
+const SIGNATURES_SEEN_KEY := "signatures_seen"
+signal signature_discovered(id: StringName, tower: Node2D)
+var discovered: Array[StringName] = []  # Signatures discovered this session (profile or not)
+var _signatures_seen: Array = []  # The profile's, loaded once
+
+func _hook_towers() -> void:
+	_signatures_seen = HeartwoodMemory.load_data().get(SIGNATURES_SEEN_KEY, []).duplicate()
+	get_tree().node_added.connect(_on_node_added)
+	for tower in get_tree().get_nodes_in_group(Tower.GROUP):
+		_on_node_added(tower)
+
+func _on_node_added(node: Node) -> void:
+	if node is Tower and node.has_signal("signature_fired") and not node.signature_fired.is_connected(_on_signature):
+		node.signature_fired.connect(_on_signature)
+
+func _on_signature(tower: Tower, id: StringName) -> void:
+	if not is_instance_valid(tower):
+		return
+	var first := not _signatures_seen.has(String(id)) and not discovered.has(id)
+	var key := StringName("signature:" + String(id))
+	if first or (_cooldowns.get(key, 0.0) <= 0.0 and _alive.size() < (REDUCED_MAX_ALIVE if Fx.reduced() else MAX_ALIVE)):
+		_cooldowns[key] = SIGNATURE_COOLDOWN
+		_alive.append([0.0, String(Signatures.NAMES.get(id, String(id).capitalize())) + "!", UiStyle.GOLD, tower, tower.global_position])
+	if not first:
+		return
+	discovered.append(id)
+	var hud := owner.get_node_or_null("HUD") if owner != null else null
+	if hud != null and hud.has_method("show_toast"):
+		hud.show_toast("Signature discovered: %s (%s): %s." % [Signatures.NAMES.get(id, id), tower.tower_data.display_name,
+			Signatures.TEXT.get(id, "")])
+	signature_discovered.emit(id, tower)
+	if owner == null or get_tree().current_scene != owner:
+		return  # Tests and previews never write the profile
+	var profile := HeartwoodMemory.load_data()
+	var seen: Array = profile.get(SIGNATURES_SEEN_KEY, [])
+	if not seen.has(String(id)):
+		seen.append(String(id))
+		profile[SIGNATURES_SEEN_KEY] = seen
 		HeartwoodMemory.save_data(profile)
 
 func _pick(event: DamageLog.Event) -> StringName:
