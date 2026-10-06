@@ -54,9 +54,9 @@ location; the full game reads the demo profile once: *"The forest remembered you
 | 7 | Seedbed | Cards | 60 | the wide / Sprout cards join the pool |
 | 8 | Scarred Bark | Cards | 40 | the Daring cards join the pool |
 
-- **Shape:** 5 perks for 3 open loadout slots, so the demo already teaches choosing what to carry;
-  three card branches in three different directions (precision, wide, daring); two options
-  (Wider Choice, Remembered Seed) over raw power, per the sidegrade rule. Only level I of levelled
+- **Shape:** 4 perks for 3 open loadout slots, so the demo already teaches choosing what to carry;
+  a fifth family (Rootling); three card branches in three different directions (precision, wide, daring); an option
+  (Wider Choice) over raw power, per the sidegrade rule. Only level I of levelled
   perks is awake in the demo.
 - **Costs** are the full game's (so carried nodes are fair): **375 Seeds** in total. Balancing's
   target is total ≈ 4 × the median demo run's Seeds (≈ 3–5 runs); if the measurement lands far off,
