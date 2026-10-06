@@ -1820,6 +1820,52 @@ Kinship were the hardest card builds to reach.
   Affliction, Swift and Wide Reach doors; Pebbling lacks Overgrowth, Affliction and Swift. Sap
   Rising (263) is Acorn's first. More shape cards for these gaps after the re-measure.
 
+## Nurture-path cards and Brimming (2026-10-06)
+
+Two user requests (via Meta Game Discussion). Both are shape cards: they help one way of playing and
+hurt or ignore another.
+
+### Nurture path (cards 266–268)
+
+Every rank is a choice (Power / Swift / Reach / Deep, support Wide / Strong / Kindred). These cards
+read those choices, so the Nurture path shapes the build.
+
+| # | Card | Rarity | Effect | Tags |
+|---|---|---|---|---|
+| 266 | **Specialist** | Uncommon | A Warden whose every rank took the same choice gets **50% more from each of its ranks** | tall, nurture, defining |
+| 267 | **Many Talents** | Uncommon | A Warden deals **8% more damage for each different choice** among its ranks (up to +32%) | tall, nurture, defining |
+| 268 | **Shared Training** | Rare | Two Wardens in a {kinship} with the same majority choice both get its rank V signature at **rank IV** | tall, kinship, defining |
+
+- Specialist and Many Talents pull opposite ways on purpose. Neither needs a Warden; both work from
+  the first rank, so they're doors into Tall as well.
+- **Shared Training waits** for Tower Discussion's rank V signatures (Crushing, Flurry Heart,
+  Overwatch, Spreading, Executioner, Brood) to be built. Until then it isn't offered.
+- Numbers to Balancing Discussion.
+
+### Brimming (card 269)
+
+User: *"a card that doubles the status cap; it might help poison builds but it hurts Charge
+builds."*
+
+| # | Card | Rarity | Effect | Tags |
+|---|---|---|---|---|
+| 269 | **Brimming** | Rare | Nightmares can hold **twice as many stacks** of every status | status, affliction, defining |
+
+What it does to each status (EnemyStatuses caps 2026-10-06):
+
+| Status | Cap | With Brimming | Effect |
+|---|---|---|---|
+| Spored | 8 | 16 | ticks climb twice as high: **poison soars** |
+| Charged (static) | 5 (bosses 8) | 10 (16) | the bolt fires at the cap, so **bolts come half as often**: Charge builds suffer |
+| Drowsy | 5 (bosses 3) | 10 (6) | deeper slow (the slow floor still holds); Dreamcatchers Catch at full Drowsy, so **catching takes twice as long** |
+| Soaked, Marked, Held | 1 | 1 | on/off statuses: unchanged |
+
+- It's a true doubling (×2 on the cap; text "twice as many" is correct). Heavy Eyelids' +2 Drowsy
+  adds after the doubling.
+- Thunderclap's Charged threshold (`static_needed`) doesn't change. Only the bolt waits for the cap.
+- A real choice, not a flat boost: great for Sporeling, bad for Firefly / Stormcap, mixed for
+  Bellflower / Dreamcatcher.
+
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 
 User (typed in Environment Discussion): *"make a card that makes walls 1x1 cell instead of the
