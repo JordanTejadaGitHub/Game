@@ -271,14 +271,30 @@ func strength(id: StringName) -> float:
 func soaked_bonus(base: float) -> float:
 	return minf(base * strength(DAMP), maxf(SOAKED_CAP, base))
 
+static var _cap_frame := -1
+static var _cap_multiplier := 1
+
+# Brimming's multiplier on caps above 1 (DreamState.status_cap_multiplier), looked up once a frame: every
+# status application asks.
+static func cap_multiplier() -> int:
+	var frame := Engine.get_process_frames()
+	if frame != _cap_frame:
+		_cap_frame = frame
+		var tree := Engine.get_main_loop() as SceneTree
+		var dreams: DreamState = tree.get_first_node_in_group(DreamState.GROUP) as DreamState if tree != null else null
+		_cap_multiplier = dreams.status_cap_multiplier() if dreams != null else 1
+	return _cap_multiplier
+
 func get_max_stacks(id: StringName, override: int = 0) -> int:
 	if not DEFAULT_MAX_STACKS.has(id) and override <= 0:
 		return 1  # Silenced (and any other timer shown as a badge): no stacks
 	var cap: int = override if override > 0 else DEFAULT_MAX_STACKS[id]
 	if is_boss and BOSS_MAX_STACKS.has(id):
 		cap = BOSS_MAX_STACKS[id] if id == DROWSY else maxi(cap, BOSS_MAX_STACKS[id])
+	if cap > 1:
+		cap *= cap_multiplier()  # Brimming (dream_design.md cdfbe349): caps x2, bosses too; a Charged bolt waits for the doubled cap
 	if id == DROWSY:
-		cap += drowsy_cap_bonus
+		cap += drowsy_cap_bonus  # Heavy Eyelids after the doubling
 	return maxi(cap, _active.get(id, {}).get("cap", 0))
 
 func has(id: StringName) -> bool:
