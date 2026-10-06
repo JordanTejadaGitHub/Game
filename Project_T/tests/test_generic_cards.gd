@@ -130,7 +130,14 @@ func _test_nurture_path() -> void:
 	dreams.take(_card("brimming"))
 	_check(dreams.status_cap_multiplier() == 2, "Brimming: caps x2")
 	var training := _card("shared_training")
-	_check(training != null and training.in_start_pool and Array(training.discovered_by) == ["kinship:any"], "Shared Training: start pool now the rank V signatures exist (Tower Code e951b540), after a first Kinship")
+	_check(training != null and training.in_start_pool and Array(training.discovered_by) == ["kinship:any", "event:signature"],
+		"Shared Training: start pool, after a first Kinship and a first signature (dream_design.md db7a0b2c)")
+	dreams.discovery_profile = {"seen": ["thunder_bond"]}  # A Kinship seen, no signature yet
+	_check(not dreams.event_discovered(String(DreamState.EVENT_SIGNATURE)) and not dreams._key_met("event:signature", []), "…no signature yet: it waits")
+	dreams.note_discovery(DreamState.EVENT_SIGNATURE)
+	_check(dreams._key_met("event:signature", []), "…a first signature lets it in")
+	dreams._events_this_run.erase(String(DreamState.EVENT_SIGNATURE))
+	dreams.discovery_profile = null
 	tower.free()
 	dreams.stacks.clear()
 func _test_pool() -> void:

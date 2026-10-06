@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "shared_training"
 display_name = "Shared Training"
-description = "Two Wardens in a {kinship} with the same majority rank choice both get its rank V signature at rank IV."
+description = "Two bonded kin with the same training gain its signature one rank sooner."
 rarity = 2
 kind = 3
 tags = Array[String](["tall", "kinship", "defining"])
 max_stacks = 1
 rule_id = &"shared_training"
-discovered_by = Array[String](["kinship:any"])
+discovered_by = Array[String](["kinship:any", "event:signature"])

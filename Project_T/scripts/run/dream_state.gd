@@ -3881,6 +3881,7 @@ const EVENTS_KEY := "discovery_events"  # Profile: one-off discovery moments (ev
 const EVENT_CHARGED_DROWSY := &"charged_drowsy"
 const EVENT_PUFF_IN_FOG := &"puff_in_fog"
 const EVENT_CRIT_MARKED := &"crit_marked"
+const EVENT_SIGNATURE := &"signature"  # A Warden gained its rank signature (Tower Code calls note_discovery): lets Shared Training in
 var _events_this_run := {}
 
 # Tests: {"seen": [combo ids], "wardens_built": [ids], "best_chain": n} stands in for the profile.
