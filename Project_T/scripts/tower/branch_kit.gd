@@ -150,6 +150,8 @@ static func on_hit(tower: Tower, enemy: Node2D) -> void:
 		INKCAP:
 			InkField.find(tower).mark(enemy, tower)
 		LICHEN:
+			# The impact (Tower Assets c3e6544a): crust crumbs and a Poisoned puff; Old Lichen's is bigger.
+			_fx(&"lichen_hit_big" if is_final(tower) else &"lichen_hit", tower.aim_at(enemy), world(tower))
 			# Crusted Brood (a): 1 in 4 of its shots also hatches a sprite on the target.
 			if Tower._kin_roll(0.25 * tower.kin_share(CRUSTED_BROOD, "a")):
 				BroodSprite.burst_at(tower, enemy, 0.5)
