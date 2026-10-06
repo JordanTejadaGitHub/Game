@@ -1809,6 +1809,7 @@ Kinship were the hardest card builds to reach.
 
   **Extended Family** (Rare) keeps only "Each Warden can be in 2 {kinships}, with two different
   kin". Reach is what lets bonds form inside a maze. Old Friends stays the Uncommon door.
+- **Built:** 16b572f9 (Roguelite Code; Sunlit Rest + II in the start pool, Close Kin owns the `close_kin` reach rule) with Meta's eb3e4c46.
 - **Not yet:** Storm Grid / Spore Bomb reliability and Maze as the default. Their numbers (rounds
   2–3) predate steering being turned off, the Entwined slot removal and the offer caps. Balancing
   Code re-measures first.
