@@ -895,6 +895,9 @@ at 26 / 50: **fresh 87% / 20%**, **full 48% / 3%**. Builds form in act 2 (5 pick
 at the drift 25 rest** (most-owned archetype), proposed to Roguelite Mechanic; re-measure after. **Declined**
 (it steers toward the build you have; the user wants "adapt to the cards you get"): instead the defining slot starts
 after **drift 10** (bb57665a). Re-measure no-build + act 1 when it lands; look again if fresh no-build at 26 > ~60%.
+The "lost at 24" full run was a stall, not a death: an all-Acorn board left the Night Mare at 61 health for 124
+laps (invulnerable, so it never ended). A possible damage floor vs pulses; repro with Enemy Code. Matters for
+the all-Acorn check: in a real run that boss drains instead.
 
 **Signatures as counters (warden_stats.md ff93b498):** Crushing only on shelled / coated targets (fine).
 Executioner's price "−10% on non-crits" shrinks as crit rises (−3% at 50% crit against a ~+10–15% gain: still
