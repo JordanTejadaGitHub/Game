@@ -225,7 +225,13 @@ signal remember_requested(focus: TowerData)
 
 @export var pool: Array[UpgradeData] = []  # Empty = every card in res://resource/dream/
 @export var starting_unlocks: Array[String] = ["sprout", "thornwall"]
-@export var unlock_everything: bool = false  # Debug/tests: every Warden and evolution available
+@export var unlock_everything: bool = false:  # Debug/tests: every Warden and evolution available
+	set(value):
+		unlock_everything = value
+		rules_stamp += 1
+# Bumps whenever a rule lookup could change (cards taken or loaded, the pool, unlock_everything, board_version): Tower
+# compares one int instead of re-checking each field (mobile perf pass). Tests that edit `stacks` directly call bump_board().
+var rules_stamp := 0
 @export var cards_per_offer: int = 3
 @export var skip_dew: int = 15  # "Let it pass"
 var nurture_perk_multiplier := 1.0  # Sidegrade perks (MetaRun, Spire experiment): First Care's cost
@@ -340,6 +346,7 @@ func _ready() -> void:
 	_rng.randomize()
 	if pool.is_empty():
 		pool = load_pool()
+		rules_stamp += 1
 	for id in starting_unlocks:
 		unlocked[id] = true
 	drift_director.rest_started.connect(_credit_rest.unbind(4))  # Before the rest report reads the block
@@ -385,6 +392,7 @@ func _ready() -> void:
 # Something the Dream rows read changed: DreamEffects rebuilds its board and cached rows on next use.
 func bump_board() -> void:
 	board_version += 1
+	rules_stamp += 1
 
 # Nurture: only the Warden and those touching it look again (DreamEffects.rank_changed).
 func _on_rank_changed(tower: Tower) -> void:
@@ -2779,6 +2787,7 @@ func load_save(data: Dictionary) -> void:
 	if data.has("rng_state"):
 		_rng.state = str(data.rng_state).to_int()
 	unlocks_changed.emit()
+	bump_board()  # Loaded cards: rule lookups look again (rules_stamp)
 
 
 # --- Rules ------------------------------------------------------------------------------------------
