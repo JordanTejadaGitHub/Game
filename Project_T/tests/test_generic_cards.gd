@@ -62,6 +62,7 @@ func _run() -> void:
 	_test_new_commons()
 	_test_nurture_path()
 	_test_maze_cards()
+	_test_no_dead_cards()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -162,6 +163,26 @@ func _test_maze_cards() -> void:
 	near.position = near.MAP_GRID.calculate_map_position(route[int(route.size() / 2)])
 	_check(dreams.covered_path_tiles() > 0 and dreams.covered_path_tiles() < route.size(), "…a Warden reaches some of the path (%d of %d)" % [dreams.covered_path_tiles(), route.size()])
 	_clear()
+
+# No dead cards in an offer (dream_design.md 3fd21011): a card waits until the board can use it.
+func _test_no_dead_cards() -> void:
+	_reset()
+	_check(not dreams.board_can_use(_card("specialist")) and not dreams.board_can_use(_card("many_talents")), "Specialist / Many Talents: no rank III Warden yet")
+	var ranked := _plant("sporeling", Vector2(100, 100))
+	ranked.rank = 3
+	_check(dreams.board_can_use(_card("specialist")) and dreams.board_can_use(_card("many_talents")), "…a rank III Warden: offered")
+	_check(not dreams.board_can_use(_card("small_hands")) and not dreams.board_can_use(_card("sap_rising")), "Small Hands / Sap Rising: no sending-out or support Warden yet")
+	_plant("elder_stump", Vector2(103, 100))
+	_check(dreams.board_can_use(_card("sap_rising")), "…an Elder Stump (support): Sap Rising can come")
+	_check(not dreams.board_can_use(_card("close_kin")), "Close Kin: no family with 2 branches yet")
+	dreams.unlocked["rootcurl"] = true  # Rootcurl + Tangleroot: a Kinship pair (Kinships.KINSHIPS)
+	dreams.unlocked["tangleroot"] = true
+	dreams.unlocked["rootling"] = true
+	_check(dreams.board_can_use(_card("close_kin")), "…both branches of a Kinship pair unlocked: Close Kin is the door")
+	_check(_card("brimming").requires_any_status.size() == 3, "Brimming needs a Warden applying Poisoned, Charged or Drowsy")
+	_clear()
+	for id in ["rootcurl", "tangleroot", "rootling"]:
+		dreams.unlocked.erase(id)
 func _test_pool() -> void:
 	for id in IDS:
 		var card := _card(id)

@@ -13,3 +13,4 @@ tags = Array[String](["status", "affliction", "defining"])
 max_stacks = 1
 rule_id = &"brimming"
 
+requires_any_status = Array[StringName]([&"spored", &"static", &"drowsy"])

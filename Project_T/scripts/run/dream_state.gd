@@ -2329,6 +2329,8 @@ func can_offer(card: UpgradeData, act: int = 1) -> bool:
 		return false
 	if not _meets_needs(card):
 		return false
+	if not board_can_use(card):
+		return false  # No dead cards: the board can't use it yet
 	if not discovery_met(card):
 		return false  # Discovery unlocks: combo, Kinship and Warden cards wait until seen once
 	if card.unlocks != null and is_unlocked(card.unlocks.get_id()):
@@ -2441,6 +2443,35 @@ func count_taken_with_tag(tag: String) -> int:
 		if card.tags.has(tag):
 			count += 1
 	return count
+
+# No dead cards in an offer (dream_design.md 3fd21011): cards a fresh board can't use wait until it can (hard Needs,
+# checked at offer time). The shape groups are Tower Code's ShapeCards (the same sets their hooks use).
+const BOARD_RANK_FOR_RANK_CARDS := 3  # Specialist / Many Talents: a Warden at rank III+
+
+func board_can_use(card: UpgradeData) -> bool:
+	match card.rule_id:
+		&"specialist", &"many_talents":
+			return _towers().any(func(t: Tower) -> bool: return t.rank >= BOARD_RANK_FOR_RANK_CARDS)
+		&"shared_training":
+			return count_kinships() > 0
+		&"close_kin":
+			return kinship_possible()
+		&"small_hands":
+			return _towers().any(func(t: Tower) -> bool: return ShapeCards.sends_things_out(t.tower_data))
+		&"lingering_ground":
+			return _towers().any(func(t: Tower) -> bool: return ShapeCards.makes_ground_effects(t.tower_data))
+		&"sap_rising":
+			return _towers().any(func(t: Tower) -> bool: return ShapeCards.is_support(t.tower_data))
+	return true
+
+# Close Kin's door: a family with 2 of its branches unlocked this run, so a Kinship (two branches within reach) can form.
+func kinship_possible() -> bool:
+	if sim_kinships >= 0:
+		return sim_kinships > 0 or unlock_everything
+	for entry in Kinships.KINSHIPS.values():  # [name, line, branch a, branch b, …]: both branches of a pair unlocked
+		if is_unlocked(String(entry[2])) and is_unlocked(String(entry[3])):
+			return true
+	return unlock_everything
 
 # Build-defining cards (dream_design.md de439ea8 "B"): tag `defining`, and every Legendary. Main / UI mark them on screen.
 const DEFINING_FROM_DRIFT := 25  # The act 2 rest, after drift 25 (dream_design.md 6bf745e7)
