@@ -6,9 +6,9 @@
 script = ExtResource("1_unlock")
 id = "quickening"
 display_name = "Quickening"
-description = "Speed Dreams join the pool: Hunt's Rush, Flurry."
+description = "Hunt's Rush joins the pool."
 root = 1
-costs = Array[int]([40])
+costs = Array[int]([30])
 order = 1
 icon = 13
-dream_cards = Array[String](["quickening", "flurry"])
+dream_cards = Array[String](["quickening"])

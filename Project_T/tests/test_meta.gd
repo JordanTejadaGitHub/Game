@@ -474,7 +474,7 @@ func _run() -> void:
 	roots_memory.unlocks.erase("wider_roots")
 	roots_memory.loadout = []
 	HeartwoodMemory.save_data(roots_memory)
-	_check(_unlock(HeartwoodMemory.load_grove(), "acorn").dream_cards.has("acorn_cache") and HeartwoodMemory.get_unlock("catchers") == null
+	_check(_unlock(HeartwoodMemory.load_grove(), "acorn").dream_cards.has("dew_trail") and HeartwoodMemory.get_unlock("catchers") == null
 		and _unlock(HeartwoodMemory.load_grove(), "old_wood").requires_all.is_empty(), "the Acorn family brings its own cards; Old Wood starts its branch")
 
 	# --- The Grove screen: the tree, tapping a bud, planting, the canopy ---
