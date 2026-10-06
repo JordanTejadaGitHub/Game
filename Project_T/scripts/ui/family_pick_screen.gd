@@ -121,7 +121,7 @@ func show_pick(reason: StringName = &"first") -> void:
 	available.shuffle()
 	var count := available.size() if reason == &"first" and offer_all_first else pick_count()
 	if reason == &"boss" and first_boss_pick_fewer > 0 and drift_director.drifts_started <= drift_director.drifts_per_act:
-		count = maxi(count - first_boss_pick_fewer, 1)
+		count = maxi(count - first_boss_pick_fewer, 2)  # Never below 2 (Meta Game Discussion: Early Bloom needs Wider Choice)
 	_keep_an_attacker(available, count)
 	# The first pick never repeats the previous run's offer exactly (when there's a choice), so runs
 	# start differently (dream_design.md "Where Warden families come from").
@@ -240,7 +240,7 @@ func _foretell() -> void:
 		pool.shuffle()
 		var count := pick_count()
 		if first_boss_pick_fewer > 0 and drift <= drift_director.drifts_per_act:
-			count = maxi(count - first_boss_pick_fewer, 1)
+			count = maxi(count - first_boss_pick_fewer, 2)  # Never below 2 (Meta Game Discussion: Early Bloom needs Wider Choice)
 		_keep_an_attacker(pool, count)
 		foretold = pool.slice(0, count).map(func(d: TowerData) -> String: return d.get_id())
 	if foretold.is_empty():
