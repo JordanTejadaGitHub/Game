@@ -112,24 +112,48 @@ func _ready() -> void:
 
 # --- Settling ground ---
 
-# Called by TowerSeller when a Warden is sold (all its cells). Nothing settles during a rest.
-func settle(cells: Array) -> void:
-	var director := get_node_or_null("%DriftDirector")
-	if director == null or director.is_build_phase():
-		return
+# Settling is kept per half cell (user: "selling Wardens between cells locks cells double the size": a half-offset
+# Warden's 2×2 halves straddle up to 4 whole cells, and all 4 used to settle). `settling` maps half -> seconds left;
+# `_spots` holds each sale's halves for its one ring and countdown.
+var _spots: Array = []  # [halves, seconds left]
+
+# The halves a whole cell covers.
+static func cell_halves(cells: Array) -> Array[Vector2]:
+	var out: Array[Vector2] = []
 	for c in cells:
-		settling[c] = SETTLE_SECONDS
+		for dy in 2:
+			for dx in 2:
+				out.append(c * 2.0 + Vector2(dx, dy))
+	return out
+
+# Called by TowerSeller when a Warden is sold: exactly its halves settle. Nothing settles during a rest.
+func settle_halves(halves: Array) -> void:
+	var director := get_node_or_null("%DriftDirector")
+	if director == null or director.is_build_phase() or halves.is_empty():
+		return
+	for h in halves:
+		settling[h] = SETTLE_SECONDS
+	_spots.append([halves.duplicate(), SETTLE_SECONDS])
 	_marks().queue_redraw()
 
-# Seconds until every one of `cells` can be planted on again (0 = now).
-func settling_left(cells: Array) -> float:
+# Whole cells (a 2×2 form on whole cells): their halves.
+func settle(cells: Array) -> void:
+	settle_halves(cell_halves(cells))
+
+# Seconds until every one of `halves` can be planted on again (0 = now).
+func settling_left_halves(halves: Array) -> float:
 	var left := 0.0
-	for c in cells:
-		left = maxf(left, settling.get(c, 0.0))
+	for h in halves:
+		left = maxf(left, settling.get(h, 0.0))
 	return left
+
+# Seconds until every one of whole `cells` can be planted on again (0 = now): any settling half inside them.
+func settling_left(cells: Array) -> float:
+	return settling_left_halves(cell_halves(cells))
 
 func clear_settling() -> void:
 	settling.clear()
+	_spots.clear()
 	if is_instance_valid(_settling_marks):
 		_settling_marks.queue_redraw()
 	queue_redraw()
@@ -141,13 +165,16 @@ func _tick_settling(delta: float) -> void:
 		settling[c] -= delta
 		if settling[c] <= 0.0:
 			settling.erase(c)
+	for spot in _spots:
+		spot[1] -= delta
+	_spots = _spots.filter(func(s: Array) -> bool: return s[1] > 0.0)
 	_marks().queue_redraw()
 	if build_mode and _hover_cell != NO_CELL:
 		queue_redraw()  # The ghost's "settling (5 s)" counts down (_process re-checks validity)
 
 func _hover_cell_valid() -> bool:
 	return not frozen_ground() and not _hover_path.is_empty() and not _halves_occupied(_ghost_halves()) \
-		and not is_unique_placed(tower_data) and settling_left(_ghost_cells()) <= 0.0 \
+		and not is_unique_placed(tower_data) and settling_left_halves(_ghost_halves()) <= 0.0 \
 		and not omen_locked(_ghost_cells())
 
 func _marks() -> Node2D:
@@ -159,12 +186,19 @@ func _marks() -> Node2D:
 		get_parent().add_child(_settling_marks)
 	return _settling_marks
 
-# A dashed ring of loose earth on each settling cell, with its countdown.
+# A dashed ring of loose earth over each sold Warden's own footprint, with its countdown.
 func _draw_settling() -> void:
-	for c in settling:
-		var centre: Vector2 = _settling_marks.to_local(MAP_GRID.calculate_map_position(c))
-		var left: float = settling[c]
-		var radius := MAP_GRID.cell_size.x * 0.36
+	for spot in _spots:
+		var halves: Array = spot[0]
+		var centre := Vector2.ZERO
+		var lo := Vector2(INF, INF)
+		var hi := Vector2(-INF, -INF)
+		for h in halves:
+			lo = Vector2(minf(lo.x, h.x), minf(lo.y, h.y))
+			hi = Vector2(maxf(hi.x, h.x), maxf(hi.y, h.y))
+		centre = _settling_marks.to_local((lo + hi + Vector2.ONE) * MAP_GRID.cell_size / 4.0)
+		var left: float = spot[1]
+		var radius := (hi.x - lo.x + 1.0) * MAP_GRID.cell_size.x / 2.0 * 0.72  # 0.36 of a cell for a 1-cell Warden
 		var share := clampf(left / SETTLE_SECONDS, 0.0, 1.0)
 		for i in 12:
 			var from := TAU * i / 12.0
@@ -359,8 +393,8 @@ func _draw() -> void:
 		tag += " · Frozen Ground: plant at the rest"
 	elif is_unique_placed(tower_data):
 		tag += " · already planted (one per run)"
-	elif settling_left(_ghost_cells()) > 0.0:
-		tag += " · The ground is settling (%d s)" % ceili(settling_left(_ghost_cells()))
+	elif settling_left_halves(_ghost_halves()) > 0.0:
+		tag += " · The ground is settling (%d s)" % ceili(settling_left_halves(_ghost_halves()))
 	elif omen_locked(_ghost_cells()):
 		tag += " · the old way is open until the rest"  # Second Path (Omen)
 	elif hover_breaks_path():
@@ -1094,7 +1128,7 @@ func _try_build_half(origin: Vector2) -> bool:
 		return false
 	var halves: Array[Vector2] = origin_halves(origin)  # A twig wall: its one half
 	var touched := Tower.cells_of_halves(halves)
-	if settling_left(touched) > 0.0 or omen_locked(touched) or _halves_occupied(halves):
+	if settling_left_halves(halves) > 0.0 or omen_locked(touched) or _halves_occupied(halves):
 		build_rejected.emit(home)
 		return false
 	if not map_generator.can_block_halves(halves, _walker_points()):
@@ -1841,7 +1875,7 @@ func _plan_stroke_half() -> void:
 			why = "can't plant here"
 		elif _halves_occupied(halves):
 			why = "nightmare here"
-		elif settling_left(Tower.cells_of_halves(halves)) > 0.0:
+		elif settling_left_halves(halves) > 0.0:
 			why = "the ground is settling"
 		elif unique_used:
 			why = "one per run"
