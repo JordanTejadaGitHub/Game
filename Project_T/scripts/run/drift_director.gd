@@ -445,6 +445,20 @@ func get_early_multiplier(number: int) -> float:
 		return lerpf(act2_steep_value, early_acts_health_multiplier, steep)  # Then most of the rise to drift 45
 	return lerpf(1.0, act1_health_multiplier, act1)
 
+# The demo's own tuning (demo_scope.md e5ce233d, Balancing Discussion): x the live curve, demo only (the full game
+# never reads them). Settable with --set for Balancing Code's A/B; numbers after the first demo sims.
+@export var demo_act1_health_scale: float = 1.0
+@export var demo_act2_health_scale: float = 1.0
+@export var demo_boss_health_scale: Array[float] = [1.0, 1.0]  # Act 1's boss, act 2's boss (their escorts take the act's)
+
+func get_demo_health_scale(data: EnemyData, number: int) -> float:
+	if not ResultsScreen.is_demo():
+		return 1.0
+	var act := get_act(number)
+	if data.is_boss:
+		return demo_boss_health_scale[act - 1] if act >= 1 and act <= demo_boss_health_scale.size() else 1.0
+	return demo_act1_health_scale if act == 1 else (demo_act2_health_scale if act == 2 else 1.0)
+
 # Health multiplier for `data` in drift `number`: get_growth (bosses: ×1.5 their base), × the act 2
 # ramp, or ×1.6 in acts 3–4. Dreams / Omens multiply on top (hook: see get_health_multiplier).
 func get_health_scale(data: EnemyData, number: int, elite: bool = false) -> float:
@@ -460,6 +474,7 @@ func get_health_scale(data: EnemyData, number: int, elite: bool = false) -> floa
 		scale *= get_early_multiplier(number)
 	if not data.is_boss and not elite and number >= block_finale_health_from and get_block_finale_elites(number) >= 0:
 		scale *= block_finale_health_multiplier  # A block finale (spire_difficulty.md); its elites keep their own ×3 (Balancing, run 16)
+	scale *= get_demo_health_scale(data, number)  # 1.0 outside the demo
 	return scale * get_health_multiplier(data, number)
 
 # The per-drift health growth for drift `number`, compounding: ×1.045 per drift to 25, ×1.055 for
