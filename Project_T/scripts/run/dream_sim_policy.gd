@@ -112,10 +112,11 @@ func card_de(card: UpgradeData) -> float:
 		"dew_line": dew += 60.0
 		"winding_path":  # e1fb1540: covered_path_tiles() / 2 Dew a rest, ~2 rests (older builds: ~30 Dew)
 			dew += float(dreams.call("covered_path_tiles")) if dreams.has_method("covered_path_tiles") else 30.0
-		"hedge_maze", "hedge_maze_ii":  # e1fb1540: per Warden, 5% (II 7.5%) per wall touching it, up to 30% (II 45%)
+		"hedge_maze", "hedge_maze_ii":  # e1fb1540: per Warden, DreamState.HEDGE_TOUCH_PER per wall touching it, up to HEDGE_TOUCH_MAX
 			var ii := 1 if card.id == "hedge_maze_ii" else 0
-			var per: float = [0.05, 0.075][ii]
-			var top: float = [0.30, 0.45][ii]
+			var consts: Dictionary = dreams.get_script().get_script_constant_map()  # The build's own numbers when it has them
+			var per: float = consts.get("HEDGE_TOUCH_PER", [0.05, 0.08])[ii]
+			var top: float = consts.get("HEDGE_TOUCH_MAX", [0.30, 0.48])[ii]
 			var walls := dreams._towers().filter(func(t: Tower) -> bool: return t.tower_data.line == "wall")
 			var sum := 0.0
 			for a in attackers:
