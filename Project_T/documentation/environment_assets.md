@@ -448,8 +448,11 @@ budget became "a placement fits in one frame (≤ 10 ms), hover ≤ 4 ms" (`test
   - Its tip sits `MapLayout.BEND_EXTRA / 2` = 5 cells past the start→Heartwood box, so every way round costs +10.
   - The opening floor is `min_route_length` = Manhattan + 10. Cap: 75% across (`MapLayout.BEND_REACH_SHARE`).
   - Other spurs: mixed (25–75% boulders), 25–35% across, may gap past the root, on alternating walls; Blight 9 adds
-    one. Rock clusters fill 70% with some trees among the boulders. The Ruin is a broken, roughly round stone ring (in
-    progress).
+    one. Rock clusters fill 70% with some trees among the boulders. The Ruin (160ea150) is a broken, roughly round
+    ring: 4×4 drops its corners, 3×3 drops 1–2; 1–2 gaps; one stone fallen a cell outward; mixed stones; a Withered
+    Tree on a dropped corner; pebbles on the empty slots. The bend spur ends in a 2–3 clump, then 1–2 strays
+    (`stray_cells`, plain obstacles that don't count for the bend). Over 48 after thinning: strays go first, then bowl
+    extras down to 3.
 - **Heartwood fit check:** `MapLayout.bend_fits()`. A rolled Heartwood with no room for the bend re-rolls among spots
   where it fits (~16% of rolls; 174 distinct spots over 400 rolls). Every other roll keeps its spot.
 - **Obstacle count:** target 38–48 (user, 2026-10-06: "maybe a bit more obstacles"; was 30–40).
