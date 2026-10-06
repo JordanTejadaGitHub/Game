@@ -346,6 +346,20 @@ func _test_arm_delay(dreams: DreamState, screen, main: Node) -> void:
 	var flying := screen._cards.get_child(0) as Control
 	_check(not dreams.stacks.has(offer[0].id) and (flying.top_level or Fx.setting("reduced_motion", false)),
 		"the picked card flies to the Dreams row before it's taken")
+	for i in 8:
+		await process_frame
+	var art_of := func(node: Node, file: String) -> bool:
+		return node is TextureRect and node.texture is AtlasTexture and node.texture.atlas.resource_path.ends_with(file)
+	_check(Fx.setting("reduced_motion", false) or screen.get_children().any(art_of.bind("spark.png")),
+		"UI Asset's sparks trail the flight (DreamFx)")
+	var box := Control.new()
+	box.size = Vector2(200, 300)
+	screen.add_child(box)
+	screen.DreamFx.flare(box, offer[0])
+	var flare := box.get_node_or_null("Flare") as NinePatchRect
+	_check(flare != null and flare.scale == Vector2(2, 2) and flare.size == Vector2(116, 166) and flare.position == Vector2(-16, -16),
+		"the rarity flare is a ×2 9-slice 8 art px outside the card (%s)" % (flare.size if flare else "none"))
+	box.queue_free()
 	for i in int(screen.FLY_TIME * 60.0) + 15:  # The card flies into the Dreams row first (screens_ui.md "Dream" ecbea61a)
 		await process_frame
 	_check(dreams.stacks.has(offer[0].id), "a press and release after arming picks the card (after its flight)")

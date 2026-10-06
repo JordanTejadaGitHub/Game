@@ -437,7 +437,7 @@ func _on_mystery_revealed(_mystery: UpgradeData, card: UpgradeData) -> void:
 # --- The pick's feel (screens_ui.md "Dream", ecbea61a: "more impactful") ---------------------------------------
 # The cards turn in one by one with a flare in their rarity colour; the picked card lifts and flies into the Dreams
 # row with a warm swell while the others fade; then it's taken (CardBloom pulses what it touches). Reduced motion:
-# fades only. The flare is a rarity tint for now (UI Asset's flare art to come). Real time: the rest is paused.
+# fades only. Flare, lift ring and spark trail are UI Asset's art (DreamFx). Real time: the rest is paused.
 signal card_flipped(card: UpgradeData)  # Each card as it turns in (Sound: a flip by rarity, d4aab969)
 const FLIP_TIME := 0.22
 const FLIP_STAGGER := 0.12
@@ -466,10 +466,26 @@ func _flip_in(columns: Array, cards: Array) -> void:
 		if card != null:
 			tween.tween_callback(card_flipped.emit.bind(card))
 		tween.tween_property(column, "scale", Vector2.ONE, FLIP_TIME).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		if card != null:  # The flare: a flash in its rarity colour as it lands
-			var flare := UpgradeData.rarity_color(card.rarity).lightened(0.4)
-			tween.tween_property(column, "modulate", Color(flare.r * 1.5, flare.g * 1.5, flare.b * 1.5, 1.0), 0.08)  # multiplier
-			tween.tween_property(column, "modulate", Color.WHITE, 0.25)
+		if card != null:  # The flare as it lands: UI Asset's rarity 9-slice (DreamFx), around the card itself
+			var box := _card_box(column)
+			tween.tween_callback(func() -> void: DreamFx.flare(box, card))
+
+const DreamFx := preload("res://scripts/ui/dream_fx.gd")  # UI Asset's flare / pulse ring / spark art
+const SPARK_EVERY := 0.05  # Seconds between trail sparks on the flight
+
+# The card itself in a column (the Button; the column also holds the cue under it), else the column.
+func _card_box(column: Control) -> Control:
+	for child in column.get_children():
+		if child is Button:
+			return child
+	return column
+
+# A trail spark at the flying card's centre every SPARK_EVERY of the flight (`t` 0..1), shrinking with it.
+func _trail(t: float, column: Control, colour: Color, state: Array) -> void:
+	if not is_instance_valid(column) or t * FLY_TIME < state[0]:
+		return
+	state[0] += SPARK_EVERY
+	DreamFx.spark(self, column.get_global_rect().get_center(), colour, 1.0 - t)
 
 # Where the picked card flies: the HUD's Dreams row (top left).
 func _dreams_row_point() -> Vector2:
@@ -496,6 +512,8 @@ func _pick(card: UpgradeData, column: Control) -> void:
 		tween.tween_property(column, "modulate", Color(1.25, 1.2, 1.05, 0.0), 0.3)  # multiplier: a warm fade
 	else:
 		var from := column.global_position
+		var glow := UpgradeData.rarity_color(card.rarity)
+		DreamFx.pulse(self, _card_box(column).get_global_rect().get_center(), glow)  # The lift: a ring from the card
 		column.pivot_offset = column.size / 2.0
 		column.top_level = true  # Out of the row's layout: it flies
 		column.global_position = from
@@ -504,6 +522,7 @@ func _pick(card: UpgradeData, column: Control) -> void:
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 		tween.tween_property(column, "scale", Vector2(0.12, 0.12), FLY_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 		tween.tween_property(column, "modulate", Color(1.35, 1.25, 1.05, 1.0), FLY_TIME * 0.4)  # multiplier: the swell
+		tween.tween_method(_trail.bind(column, glow, [0.0]), 0.0, 1.0, FLY_TIME)  # The spark trail
 		tween.chain().tween_property(column, "modulate:a", 0.0, 0.1)
 	tween.chain().tween_callback(func() -> void:
 		_picking = false
