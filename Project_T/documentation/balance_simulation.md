@@ -874,7 +874,9 @@ runs ~70%+ with a build by drift 35, ~80%+ by 40.** No-build reports now also cl
 reclassified). Levers if short: stronger act 1–2 openers (the use-now rule is a step), or a softer 32–40.
 **Reclassified (with a build, fresh, at 26 / 35 / 40 / 50):** before the slot moves 13 / 20 / 47 / 80%; drift-10 slot
 17 / 29 / 42 / 58%; **trim 20 / 43 / 70 / 87%** (full: 43 / 57 / 70 / 87%). The trim misses both targets (43 by 35, 70
-by 40): builds come online at 35–50, through the wall. Next read: the use-now chain; then decide between the
+by 40): builds come online at 35–50, through the wall. **Even-weight arm 1 (bf4fe891):** still only maze / affliction
+form (maze 45% at 50), so the narrowness is the cards, not the bot: a78f3a33's 2-per-archetype set targets it. Timing
+with even weights: 20 / 50 / 80 / 97% (26 / 35 / 40 / 50). Next read: the use-now chain; then decide between the
 levers.
 
 ## Rank-choice cards 266–269 (dream_design.md cdfbe349)
