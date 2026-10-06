@@ -42,6 +42,7 @@ signal interest_paid(tower: Tower, amount: int)
 signal withered(tower: Tower)  # A leaf lost withered the Sapling's yield
 signal statics_set_off(tower: Tower, where: Vector2, count: int)  # An Ascended pulse (the Great Bell) set off Static charges
 signal legacy_released(tower: Tower)  # An Ascended form made its final form's attack (no wind-up; sound)
+signal signature_fired(tower: Tower, id: StringName)  # A rank V signature did its thing (discovery callout, sound)
 
 @export var tower_data: TowerData
 @onready var sprite: Sprite2D = $Sprite2D
@@ -394,6 +395,84 @@ func focus_power() -> float:
 		return 1.0
 	_migrate_choices()
 	return _dream_state.specialist_rank_multiplier(self)  # Roguelite's number (31b43636)
+
+# Rank V signatures (Signatures; warden_stats.md 96d728dd): &"crushing", &"relentless", … or &"" (cached with the
+# stats; Shared Training can bring it at rank IV).
+func signature() -> StringName:
+	if rank < Signatures.SHARED_RANK:
+		return &""
+	if _stats_fresh() and _stats.has(&"signature"):
+		return _stats[&"signature"]
+	var sig := Signatures.compute(self)
+	_stats[&"signature"] = sig
+	if sig == Signatures.SPREADING:
+		Signatures.find(self)  # Its dispel watcher
+	return sig
+
+# The rank its signature arrives at (V; IV with Shared Training and a matching kin).
+func signature_rank() -> int:
+	return Signatures.signature_rank(self)
+
+# The panel's line from rank III ("2 more Power ranks: Crushing at rank V"), "" when none.
+func signature_hint() -> String:
+	return Signatures.hint(self)
+
+# Shelter: a Warden inside the aura of a support with the Shelter signature can't be withered, dimmed or trampled.
+func is_sheltered() -> bool:
+	if not is_inside_tree():
+		return false
+	for other in get_tree().get_nodes_in_group(GROUP):
+		if other == self or not (other is Tower) or other.rank < Signatures.SHARED_RANK or not other.is_aura_support():
+			continue
+		if other.signature() == Signatures.SHELTER \
+				and other.global_position.distance_to(global_position) / MAP_GRID.cell_size.x <= other.get_aura_reach() + 0.001:
+			return true
+	return false
+
+var _relentless_at := -100.0
+var _watch_left := 0.0
+var _surge_clock := 0.0
+var _surging := false
+
+# Watchtower: hidden nightmares in its range show themselves while it stands.
+func _update_watchtower(delta: float) -> void:
+	_watch_left -= delta
+	if _watch_left > 0.0:
+		return
+	_watch_left = Signatures.WATCH_TICK
+	var reach := get_range_pixels()
+	var revealed := false
+	for enemy in nightmares_near(get_tree(), global_position, reach):
+		if is_instance_valid(enemy) and not enemy.is_cleansed and enemy.global_position.distance_to(global_position) <= reach \
+				and enemy.has_method("is_hidden") and enemy.is_hidden():
+			enemy.reveal_for(Signatures.WATCH_REVEAL)
+			revealed = true
+	if revealed:
+		signature_fired.emit(self, Signatures.WATCHTOWER)
+
+# Surge: every SURGE_EVERY s the aura doubles for SURGE_TIME s (the Wardens in it look again at the edges).
+func _update_surge(delta: float) -> void:
+	_surge_clock += delta
+	var now := fmod(_surge_clock, Signatures.SURGE_EVERY) >= Signatures.SURGE_EVERY - Signatures.SURGE_TIME
+	if now == _surging:
+		return
+	_surging = now
+	_nudge_neighbours()
+	if _surging:
+		var swell := Reactions._effect(&"sap_pulse", global_position, self, get_aura_reach() * 2.0 / 3.0)  # Placeholder surge pulse
+		if swell != null:
+			swell.z_index = -1
+		signature_fired.emit(self, Signatures.SURGE)
+
+# Relentless: a dispel by this Warden starts its next cycle at once (attack, timed ability), at most every 0.5 s.
+func _relentless() -> void:
+	if _anim_time - _relentless_at < Signatures.RELENTLESS_GAP:
+		return
+	_relentless_at = _anim_time
+	_cooldown = 0.0
+	if attack_data.ability_every > 0.0:
+		_ability_timer = 0.0
+	signature_fired.emit(self, Signatures.RELENTLESS)
 
 # Old saves and ranks given by Dreams: Power (supports: their first option) for I–II, the old Focus from III.
 func _migrate_choices() -> void:
