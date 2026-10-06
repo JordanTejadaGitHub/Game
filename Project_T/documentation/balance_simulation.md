@@ -806,6 +806,14 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 **tends 120** total (was 300: the profile's tended_total is still 0). Bonuses (+20 to +150) unchanged.
 `longest_path` / `tended` requested in the run history to re-check.
 
+## Brood Cap / Hatchery Yield (Tower Discussion 68120c18, 2026-10-05)
+
+Yield = **+1 sprite alive per rank** (cap 4 → 9 at V), nothing else; Swift = hatches faster (+12% a rank). The
+cap only binds in lulls (a drift's start, gaps between groups); under steady pressure sprites burst as fast as
+they hatch. So Yield is the opening burst and Swift the sustain: even per Dew. Approved per rank, no burst
+cut. The old Yield hooks (−0.25 s interval, +8% burst per rank) must be gone. Seedbearer keeps one Sprout per
+2 ranks (a Sprout is a whole Warden).
+
 ## Twig Walls (card 256, Rare; dream_design.md c6fefe1b)
 
 Geometry: a serpentine's pitch is corridor + wall. One-half corridors with Thornwalls (2 halves thick) =
