@@ -811,8 +811,9 @@ tiles** (was 300: impossible with 240–294 buildable cells; openings are 35–5
 Yield = **+1 sprite alive per rank** (cap 4 → 9 at V), nothing else; Swift = hatches faster (+12% a rank). The
 cap only binds in lulls (a drift's start, gaps between groups); under steady pressure sprites burst as fast as
 they hatch. So Yield is the opening burst and Swift the sustain: even per Dew. Approved per rank, no burst
-cut. The old Yield hooks (−0.25 s interval, +8% burst per rank) must be gone. Seedbearer keeps one Sprout per
-2 ranks (a Sprout is a whole Warden).
+cut. The old Yield hooks (−0.25 s interval, +8% burst per rank) must be gone. Seedbearer too: **+1 Sprout per rank**
+(YIELD_PER 1; five ranks cost 726 Dew at tier 2 for +5 Sprouts of ~12–16 Dew each, not too strong; an odd-rank
+"seed sooner" would duplicate Swift).
 
 ## Twig Walls (card 256, Rare; dream_design.md c6fefe1b)
 
