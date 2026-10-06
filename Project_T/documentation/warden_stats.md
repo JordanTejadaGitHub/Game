@@ -194,7 +194,7 @@ text; Balancing Discussion sets every per-rank number marked *).
 | **Sporeling** family: Sporeling, Driftspore / Puffball, Inkcap / Deliquescent, Lichenling / Old Lichen, Sporemother | afflicter | Power · Swift · Reach · Deep | OK | — |
 | Bloomcap / Dreamshroom | afflicter | Power · Swift · Reach · Deep | Reach only aimed the cloud | Reach also widens the cloud* |
 | Fairy Ring / Elf Circle | afflicter (traps) | Power · Swift · Reach · Deep | Swift stalled at the ring cap | Swift also raises the ring cap (+1 per 2 Swift ranks*) |
-| Brood Cap / Hatchery | afflicter (spawner) | Power · Swift · Deep · **Yield** | Reach did nothing; Swift stalled at 4 sprites | Reach → Yield (+1 sprite alive per rank*) |
+| Brood Cap / Hatchery | afflicter (spawner) | Power · Swift · Deep · **Yield** | Reach did nothing; Swift stalled at 4 sprites | Reach → Yield. **Speed vs quantity** (2026-10-05; as first built Yield also shortened the hatch interval, so it beat Swift outright): **Swift** = hatches faster (attack speed); **Yield** = **+1 sprite alive per rank** (raises the cap of 4), nothing else. Yield is useless while the cap isn't reached, Swift is useless at the cap: a real choice |
 | Dewdrop, Rain Lily / Monsoon, Frostfern / Hoarfrost, Tidecaller | afflicter | Power · Swift · Reach · Deep | OK (Deep = Soaked strength / freeze, to the caps) | text shows "Soaked +20% → +25%" |
 | Mistveil / Morning Fog | afflicter | Power · Swift · Reach · Deep | Reach only aimed | Reach also widens the fog* |
 | Cloudlet / Nimbus | afflicter | Power · Swift · Reach · Deep | Deep only touched Soaked | rain damage becomes effect damage (tag `rain`), so Deep scales it |
