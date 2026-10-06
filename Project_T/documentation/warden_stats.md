@@ -262,7 +262,7 @@ path. Meta Game Discussion proposed the set; Tower Discussion decided it (change
 - **Count:** ranks I–V only; Deeper Rings' VI–VII and free ranks count as the choice they were. A
   Warden with only 2–3 choices still qualifies.
 - **Old picks** that no longer apply (dimmed) still count toward the majority; the signature only
-  works where it can (e.g. Firstborn on a Warden that makes nothing does nothing, so the panel warns).
+  works where it can. The audit below keeps choices whose signature would do nothing off a Warden's list.
 - **Discovered, never hinted** (user, 2026-10-06: *"don't hint towards signatures"*): nothing
   announces a signature before it happens: no rank III preview, no card text naming them. The first
   time one fires ever: the discovery moment (name over the Warden, a toast) and its Codex entry
