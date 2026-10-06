@@ -174,6 +174,9 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			["%.1f/s" % _tower.get_attacks_per_second(), &"attack_speed"], [range_text, &"range"]]
 		if _tower.get_crit_chance() > 0.0:
 			main_row.append(["%d%%" % roundi(_tower.get_crit_chance() * 100), &"crit_chance"])
+		var covers := compact and is_instance_valid(tower) and tower.is_inside_tree()
+		if covers:  # Coverage in the icon row (story chat: always visible, no extra line; the path icon + N)
+			main_row.append([str(_tower.get_coverage()), &"path_length"])
 		_stat_row(main_row, true)
 		var second: Array = []  # The status it applies leads the second row (the first stays one line at 280 px)
 		if attack.applies_status != &"":
@@ -191,8 +194,8 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			second.append([strength, attack.applies_status, true])  # "Soaked: water hits +24%", "Rooted 1.2 s"
 		if not second.is_empty():
 			_stat_row(second, true)  # Wraps too: never wider than the card
-		if compact:  # The panel keeps 45% of the screen: these go to its Details, like status strength
-			detail_lines.append_array(BranchKit.stat_lines(_tower))
+		if compact:  # The panel keeps 45% of the screen: these go to its Details, like status strength (coverage is in the row)
+			detail_lines.append_array(BranchKit.stat_lines(_tower).filter(func(line: String) -> bool: return not line.begins_with("Covers ")))
 		else:
 			notes.append_array(BranchKit.stat_lines(_tower))  # Jarlink's arc, live (Tower Code)
 	else:
@@ -379,6 +382,8 @@ func stat_tip(stat: StringName) -> String:
 			meaning = "Crit chance: %d%% of its hits are critical" % roundi(_tower.get_crit_chance() * 100)
 		&"crit_damage":
 			meaning = "Critical hits deal ×%s damage" % str(attack.crit_multiplier)
+		&"path_length":  # Coverage (maze_feel.md #1: grow where it covers the most route)
+			return "Covers %d path tiles, counted once per pass." % _tower.get_coverage()
 		&"potency":
 			var p := _tower.get_potency()
 			if Tower.status_potency_on:
