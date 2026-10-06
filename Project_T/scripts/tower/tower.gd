@@ -105,6 +105,18 @@ func _beside_reach() -> float:
 	return 0.75 if twig else BESIDE_WALL
 
 var _sap_left := randf() * ShapeCards.SAP_EVERY
+var _sap_support := false  # ShapeCards.is_support, cached in _apply_data
+static var _card_rules_frame := -1
+static var _card_rules_on := false
+
+# Whether the run holds any card a Warden watches for every frame (Lantern Glow, First Frost, Sap Rising), looked
+# up once a frame for all of them (perf: 250 Wardens each asking cost ~0.5 ms a frame).
+func _card_rules_held() -> bool:
+	var frame := Engine.get_process_frames()
+	if frame != _card_rules_frame:
+		_card_rules_frame = frame
+		_card_rules_on = _has_rule(&"lantern_glow") or _has_rule(&"first_frost") or _has_rule(ShapeCards.SAP_RISING)
+	return _card_rules_on
 
 # Sap Rising (ShapeCards): a support Warden pulses the 8 cells around it every 2 s; effect damage, logged under it.
 func _update_sap(delta: float) -> void:
@@ -667,6 +679,7 @@ func _ready() -> void:
 func _apply_data() -> void:
 	clear_dream_cache()
 	_aura_support = SUPPORT_AURA_WARDENS.has(tower_data.get_id())
+	_sap_support = ShapeCards.is_support(tower_data)
 	_twist = FinalTwists.twist_of(tower_data)
 	_twist_state = {}
 	attack_data = tower_data
@@ -758,14 +771,15 @@ func _process(delta: float) -> void:
 		_update_wall(delta)
 	if not tower_data.can_attack:
 		return
-	if _dream_state:
+	var watch_cards := _dream_state != null and _card_rules_held()  # (Once a frame for all Wardens: perf)
+	if watch_cards:
 		_update_card_watch(delta)  # Lantern Glow, First Frost
 	if withered_left > 0.0:  # Withering Oak: grey and drooping, no attacks until it comes back
 		withered_left -= delta
 		if withered_left <= 0.0:
 			sprite.self_modulate = Color.WHITE
 		return
-	if _dream_state and _has_rule(ShapeCards.SAP_RISING) and ShapeCards.is_support(tower_data):
+	if watch_cards and _sap_support and _has_rule(ShapeCards.SAP_RISING):
 		_update_sap(delta)  # Sap Rising
 	if rank >= Signatures.SHARED_RANK:
 		var sig := signature()
@@ -907,8 +921,7 @@ func _compute_attacks_per_second() -> float:
 	var dreams := 1.0
 	if _dream_state:
 		dreams = _dream_state.get_attack_speed_multiplier(tower_data)
-		if _dream_state.has_method("get_tower_attack_speed_bonus"):
-			dreams += _dream_bonus(&"speed")  # Sprout Chorus, The Last Light
+		dreams += _dream_bonus(&"speed")  # Sprout Chorus, The Last Light
 	var omen := _omens.get_warden_speed_multiplier() if _omens and _omens.has_method("get_warden_speed_multiplier") else 1.0  # Wilting
 	if _big_family:
 		speed += DreamState.BIG_FAMILY_SPEED * _rule_power(&"big_family")  # Big Family: a Sprout near a Kinship pair
@@ -984,7 +997,7 @@ func _compute_range_cells() -> float:
 	var reach := RANK_RANGE * _plain_ranks() + FOCUS_REACH * choice_count(Focus.REACH) * focus_power()  # Nurture v3 (Specialist)
 	if is_aura_support():
 		reach = 0.0  # Its ranks scale the aura instead
-	if _dream_state and _dream_state.has_method("get_tower_range_bonus"):
+	if _dream_state:
 		reach += _dream_bonus(&"range")  # Solitude
 	var total := get_range_for(attack_data, _dream_state) + _aura_range + reach + _gift_bonus(&"range")  # Gift: Moonwell
 	if tower_data.get_id() == "honeysuckle" and _rule_stacks(&"sweet_scent") > 0:
@@ -1002,7 +1015,7 @@ func _compute_range_cells() -> float:
 
 # The rank that counts for stats (The Old Ones can lift it by one next to a rank V+ Warden).
 func get_effective_rank() -> int:
-	if _dream_state and _dream_state.has_method("get_effective_rank"):
+	if _dream_state:
 		return _dream_state.get_effective_rank(self)
 	return rank
 
@@ -1015,7 +1028,7 @@ func get_rank_damage_multiplier() -> float:
 	if is_catcher() or is_aura_support():
 		return 1.0  # Catchers' ranks add catch; aura supports' ranks scale the aura (get_aura_bonus)
 	var warm := 0.0
-	if _dream_state and _dream_state.has_method("get_rank_damage_bonus"):
+	if _dream_state:
 		warm = _dream_state.get_rank_damage_bonus()  # Warm Hands: every rank, whatever it chose
 	return 1.0 + RANK_DAMAGE * _plain_ranks() + warm * rank + FOCUS_POWER * choice_count(Focus.POWER) * focus_power()  # Specialist (Many Talents is a DreamEffects row)
 
@@ -1027,7 +1040,7 @@ func _plain_ranks() -> float:
 # per-rank damage, attack speed and range, never the Focus.
 func get_court_ranks() -> float:
 	var court := 0.0
-	if _dream_state and _dream_state.has_method("get_court_rank_share"):
+	if _dream_state:
 		court = _dream_state.get_court_rank_share(self)
 	# Elder Kin (Dream): a ranked kin shares 25% of its ranks, like the Court.
 	if is_instance_valid(_kin) and _rule_stacks(&"elder_kin") > 0:
@@ -1042,7 +1055,7 @@ func get_court_ranks() -> float:
 # Nightshade) + 25% per Deep rank (Nurture v3).
 func get_potency() -> float:
 	var total := attack_data.potency
-	if _dream_state and _dream_state.has_method("get_potency_bonus"):
+	if _dream_state:
 		total += _dream_state.get_potency_bonus(tower_data)
 	total += deep_share() * choice_count(Focus.DEEP) * focus_power()  # Deep ranks (Specialist)
 	return total
@@ -1053,9 +1066,9 @@ func get_status_focus_multiplier() -> float:
 
 func get_max_rank() -> int:
 	var cap := RANK_MAX
-	if _dream_state and _dream_state.has_method("get_max_rank_for"):
+	if _dream_state:
 		cap = _dream_state.get_max_rank_for(self)  # Past V only for the Eldest
-	elif _dream_state and _dream_state.has_method("get_max_rank"):
+	elif _dream_state:
 		cap = _dream_state.get_max_rank()
 	# Nurture v3: ranks I–V for Dew, no Nurture Dream needed (Deeper Rings still opens VI–VII).
 	cap = maxi(cap, RANK_MAX)
@@ -1064,7 +1077,7 @@ func get_max_rank() -> int:
 const UNDREAMED_MAX_RANK := 2
 
 func has_nurture_dream() -> bool:
-	return _dream_state == null or not _dream_state.has_method("count_taken_with_tag") \
+	return _dream_state == null \
 		or _dream_state.count_taken_with_tag("nurture") > 0
 
 # Why the next rank can't be bought, for the Nurture button ("" = it can, or it's simply the top).
@@ -1381,12 +1394,12 @@ static func tier_cost_multiplier_for(data: TowerData) -> float:
 # this Warden's own discounts (Nursery's Sprout half price); otherwise the ones a grown form would get.
 func _rank_price_for(which: int, data: TowerData, self_price: bool) -> int:
 	var base: float = rank_costs[which - 1] if which <= rank_costs.size() else 0.0
-	if which > rank_costs.size() and _dream_state and _dream_state.has_method("get_extra_rank_cost"):
+	if which > rank_costs.size() and _dream_state:
 		base = _dream_state.get_extra_rank_cost(which)
 	var multiplier := tier_cost_multiplier_for(data)
-	if _dream_state and _dream_state.has_method("get_nurture_cost_multiplier"):
+	if _dream_state:
 		multiplier *= _dream_state.get_nurture_cost_multiplier(self if self_price else null)
-	if _dream_state and _dream_state.has_method("rank_cost_factor"):
+	if _dream_state:
 		var factor: float = _dream_state.rank_cost_factor(which)  # Tender Care: rank I free, II: ranks II–V 20% off
 		if factor <= 0.0:
 			return 0
@@ -1457,13 +1470,13 @@ func get_nurture_price() -> int:
 		return 0
 	var next := rank + 1
 	var base: float = rank_costs[rank] if rank < rank_costs.size() else 0.0
-	if next > rank_costs.size() and _dream_state and _dream_state.has_method("get_extra_rank_cost"):
+	if next > rank_costs.size() and _dream_state:
 		base = _dream_state.get_extra_rank_cost(next)  # Deeper Rings: VI and VII
 	var multiplier := get_tier_cost_multiplier()
-	if _dream_state and _dream_state.has_method("get_nurture_cost_multiplier"):
+	if _dream_state:
 		multiplier *= _dream_state.get_nurture_cost_multiplier(self)  # Nursery: Sprouts at half price
 	multiplier *= BranchKit.nurture_multiplier(self)  # Nurse Log: 25% cheaper beside it
-	if _dream_state and _dream_state.has_method("rank_cost_factor"):
+	if _dream_state:
 		var factor: float = _dream_state.rank_cost_factor(next)  # Tender Care: rank I free, II: ranks II–V 20% off
 		if factor <= 0.0:
 			return 0
@@ -1545,7 +1558,7 @@ func _play_rank_up() -> void:
 func get_splash_cells() -> float:
 	if attack_data.splash_radius <= 0.0:
 		return 0.0
-	var broad: float = _dream_state.get_area_radius_add() if _dream_state and _dream_state.has_method("get_area_radius_add") else 0.0  # Broad Splash
+	var broad: float = _dream_state.get_area_radius_add() if _dream_state else 0.0  # Broad Splash
 	return (attack_data.splash_radius + broad) * (_dream_state.get_splash_multiplier(tower_data) if _dream_state else 1.0)
 
 func get_crit_chance(enemy: Node2D = null) -> float:
@@ -1563,10 +1576,10 @@ func get_raw_crit_chance(enemy: Node2D = null) -> float:
 		chance += _gift_bonus(&"crit")  # Gift: Fallen Giant (Lookout)
 		if choice_count(Focus.KEEN) > 0:  # Keen ranks (Nurture rework), up to KEEN_CAP
 			chance = maxf(chance, minf(chance + NurtureChoices.KEEN_CRIT * choice_count(Focus.KEEN) * focus_power(), NurtureChoices.KEEN_CAP))
-		if _dream_state and _dream_state.has_method("get_rank_crit_bonus"):
+		if _dream_state:
 			chance += _dream_state.get_rank_crit_bonus() * get_effective_rank()  # The Old Ones
 		_stats[&"crit_base"] = [chance, attack_data.crit_chance]  # (the data's own chance too: tests change it in place)
-	if _dream_state and _dream_state.has_method("get_crit_chance_bonus"):
+	if _dream_state:
 		chance += _dream_state.get_crit_chance_bonus(self, enemy)  # Still Target, Starlit Aim, Full Moon…
 	if enemy != null and enemy.statuses.is_held():
 		chance += attack_data.crit_bonus_vs_held
@@ -2023,7 +2036,7 @@ var _chorus_sync := false
 
 func _chorus_pulse() -> bool:
 	if tower_data.line != "song" or attack_data.attack_kind != TowerData.AttackKind.PULSE or _dream_state == null \
-			or not _dream_state.has_method("has_chorus") or not _dream_state.has_chorus():
+			or not _dream_state.has_chorus():
 		return false
 	var joined := false
 	for other in _towers_near():
@@ -2550,7 +2563,7 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 		potency *= cached[0]
 		duration = cached[1]
 		max_stacks = cached[2]
-		if stacks > 0 and _dream_state.has_method("get_status_stacks_bonus"):
+		if stacks > 0:
 			stacks += _dream_state.get_status_stacks_bonus()  # Bitter Sap: statuses a Warden applies start +1 stack
 	# Deep Focus: with status Potency on, Deep is only +18% Potency (which now strengthens every status);
 	# the old rule (statuses last 18% longer per Deep rank) only with the switch off, for Balancing's A/B.
@@ -2697,7 +2710,7 @@ func fire_at(target: Node2D) -> void:
 		# Sudden Bloom / Watchful Rest and a legacy attack's data ride the projectile to where it lands.
 		on_land = _land_as.bind(attack_data, _hit_boost)
 	var projectile := Projectile.new(target, attack_data, on_land)
-	if attack_data.projectile_returns and _dream_state and _dream_state.has_method("get_swoop_return_multiplier"):
+	if attack_data.projectile_returns and _dream_state:
 		projectile.return_multiplier = _dream_state.get_swoop_return_multiplier()  # Homing Instinct (swoops only)
 	projectile.trail = kin_look()
 	# Placed before it enters the tree: _ready() takes its home (swoops fly back to it) and a lob's arc
@@ -2762,7 +2775,7 @@ func _update_ability(delta: float) -> void:
 func hold(enemy: Node2D, seconds: float) -> void:
 	if not is_instance_valid(enemy) or enemy.is_cleansed:
 		return
-	var bonus: float = _dream_state.get_held_bonus() if _dream_state and _dream_state.has_method("get_held_bonus") else 0.0
+	var bonus: float = _dream_state.get_held_bonus() if _dream_state else 0.0
 	if bonus > 0.0 and tower_data.line == "root":
 		bonus += PATIENT_ROOTS_ROOT_HOLD * _rule_power(&"patient_roots")
 	enemy.apply_status(EnemyStatuses.HELD, 1, seconds + bonus, 0.0, 0, tower_data.line, self)
@@ -3716,7 +3729,7 @@ static var _rules_pool := -1
 static var _rules_all := false
 
 func _rule_entry(rule: StringName) -> Array:
-	if _dream_state == null or not _dream_state.has_method("rule_stacks"):
+	if _dream_state == null:  # (Typed DreamState: no has_method string lookup per call, perf)
 		return [0, 0]
 	var ds := _dream_state
 	if _rules_owner != ds.get_instance_id() or _rules_board != ds.board_version or _rules_stacks != ds.stacks.size() \
@@ -3744,7 +3757,7 @@ func _rule_level(rule: StringName) -> int:
 
 # A card's power: 1.0 (tag resonance was removed, dream_audit.md a6628056); kept as one place to scale rule numbers.
 func _rule_power(rule: StringName) -> float:
-	return _dream_state.rule_power(rule) if _dream_state and _dream_state.has_method("rule_power") else 1.0
+	return _dream_state.rule_power(rule) if _dream_state else 1.0
 
 # Gust: soothes everything in range a little, then copies the statuses of the most-afflicted
 # nightmare onto up to `spread_targets` others near it (half stacks, full duration).
@@ -3903,7 +3916,7 @@ func _light() -> void:
 		if _is_cell_in_range(at):
 			_lit_cells.append(at)
 	# Long Light (Dream): tiles the light moved on from stay lit a while (still holding once per nightmare).
-	var linger: float = _dream_state.get_lit_linger() if _dream_state and _dream_state.has_method("get_lit_linger") else 0.0
+	var linger: float = _dream_state.get_lit_linger() if _dream_state else 0.0
 	if _has_rule(ShapeCards.LINGERING_GROUND):
 		# Lingering Ground: lit tiles last x1.5. A tile is lit for one attack interval, so the light stays half an
 		# interval on tiles it moved on from (plus Long Light's linger x1.5).
@@ -4112,7 +4125,7 @@ func _draw_blossom() -> void:
 	for i in 5:
 		draw_circle(at + Vector2.from_angle(TAU * i / 5.0 - PI / 2.0) * 2.4, 1.8, Palette.BLOSSOM)
 	draw_circle(at, 1.3, Palette.GLOW)
-	if _dream_state and _dream_state.has_method("is_eldest") and _dream_state.is_eldest(self):
+	if _dream_state and _dream_state.is_eldest(self):
 		# The Eldest: a small crown of three golden rings over the slab.
 		var top := Vector2(0, -MAP_GRID.cell_size.y * 0.5 - 4.0) + tower_data.get_sprite_offset()
 		for i in 3:
@@ -4140,7 +4153,7 @@ func _beam_data() -> TowerData:
 	return attack_data
 
 func _is_underdog() -> bool:
-	return _dream_state != null and _dream_state.has_method("is_underdog") and _dream_state.is_underdog(self)
+	return _dream_state != null and _dream_state.is_underdog(self)
 
 # Whirligig (status jobs, 2026-09-29): every copy_status_every s, the most afflicted nightmare in range
 # (the most status stacks) lends its biggest status, half the stacks, to the nearest other nightmare
@@ -4580,7 +4593,7 @@ func _dream_bonus(key: StringName) -> float:
 # The one pass: bonuses as DreamState.get_soothe_multiplier / get_tower_attack_speed_bonus /
 # get_tower_range_bonus give them (active, non-plain rows), badges = active positional rows.
 func _refresh_dream_rows() -> void:
-	if _dream_state == null or not _dream_state.has_method("effects"):
+	if _dream_state == null:
 		_dream_cache = {&"soothe": 1.0, &"speed": 0.0, &"range": 0.0}
 		return
 	var damage := 0.0
@@ -4600,8 +4613,7 @@ func _refresh_dream_rows() -> void:
 			reach += row.get("range", 0.0)
 		if row.get("positional", false):
 			cards.append(row)
-	var stat: float = _dream_state.get_stat_bonus(tower_data, "soothe_bonus") if _dream_state.has_method("get_stat_bonus") \
-		else _dream_state._sum_stat(tower_data, "soothe_bonus")
+	var stat: float = _dream_state.get_stat_bonus(tower_data, "soothe_bonus")
 	_dream_cache = {&"soothe": 1.0 + stat + damage,
 		&"speed": speed, &"range": reach}
 	if cards.size() != _badge_cards.size():
