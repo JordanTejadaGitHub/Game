@@ -76,6 +76,7 @@ var _keep: Array = []  # The edited EnemyData, held so the cache keeps them
 var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.preset_bosses); "" = the default draw
 var aura_placement := true  # --no-aura: place and grow aura Wardens (Acorn, Elder Stump, Grove Heart, Moon Moth) by path only
 var empty_loadout := false
+var loadout_ids: Array[String] = []  # --loadout=a,b,c: carry exactly these owned perks (e.g. second_thoughts,let_go,wider_dreams)
 var sidegrade := -1
 var carry_pref := true  # --no-carry-pref: act 1 growth and Dreamlight don't prefer the carry branch (DreamState.is_carry), the bot before 2026-10-02
 var fence_pref := true  # --no-fence-pref: Jarlink growth ignores where its arc would fall (the bot before 2026-10-02)
@@ -234,7 +235,10 @@ func _run() -> void:
 			"--even-archetypes": even_archetypes = true
 			"--boss": act1_boss = value
 			"--boss-draw": BossPool.force_draw = true  # The real per-seed boss draw (sims otherwise meet the defaults, like tests)
-			"--loadout": empty_loadout = value == "none"  # --loadout=none: the profile carries no perks (the Grove cap A/B)
+			"--loadout":  # --loadout=none: the profile carries no perks (the Grove cap A/B); --loadout=a,b: exactly these
+				empty_loadout = value == "none"
+				if not empty_loadout:
+					loadout_ids.assign(value.split(","))
 			"--sidegrade": sidegrade = int(value)  # MetaRun.force_sidegrade (Spire branch): 0 Power perks, 1 Sidegrades
 			"--no-aura": aura_placement = false
 			"--no-kin": kin_placement = false
@@ -268,6 +272,10 @@ func _run() -> void:
 		if presets.get("file_path") != null:  # A profile per process: parallel sims with different loadouts must not share one file
 			presets.set("file_path", "user://sim_heartwood_%d.json" % OS.get_process_id())
 		meta.call("load_preset", StringName(profile))
+		if not loadout_ids.is_empty():  # Same Grove, these perks carried
+			var chosen: Dictionary = HeartwoodMemory.load_data()
+			chosen["loadout"] = loadout_ids.duplicate()
+			HeartwoodMemory.save_data(chosen)
 		if empty_loadout:  # Same Grove, nothing carried
 			var data: Dictionary = HeartwoodMemory.load_data()
 			data["loadout"] = []
