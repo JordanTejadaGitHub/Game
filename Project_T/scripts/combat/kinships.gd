@@ -48,7 +48,7 @@ const KINSHIPS := {
 	&"rainfog": ["Rainfog", "water", "rain_lily", "mistveil", true],
 	&"storm_beacon": ["Storm Beacon", "light", "stormcap", "lanternmoth", true],
 	&"hammer_and_anvil": ["Hammer and Anvil", "stone", "mossback", "standing_stone", false],
-	&"snare": ["Snare", "root", "rootcurl", "tangleroot", false],
+	&"snare": ["Snare", "root", "rootcurl", "tangleroot", true],  # In the demo since the demo Grove plants Rootling (meta_design.md 5bfb65be, tower_design.md 4cb2e9e8)
 	&"night_chimes": ["Night Chimes", "song", "chime_stone", "dreamcatcher", true],  # In the demo since Bellflower starts there (meta_design.md a3375108)
 	&"old_growth": ["Old Growth", "acorn", "elder_stump", "dewcatcher", false],
 	&"flock_together": ["Flock Together", "wing", "wrens_nest", "magpie_perch", false],

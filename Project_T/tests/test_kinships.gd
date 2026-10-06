@@ -382,11 +382,13 @@ func _run() -> void:
 	kin._harmony_look(moth.global_position + Vector2(0, 64), sun_pair)
 	_check(kin.get_parent().get_child_count() > fx_before + 2, "an Old Kin Harmony strike shows beams, a bloom and petals")
 
-	# --- The demo has only its three ---
+	# --- The demo has only its five ---
 	Kinships.force_full = false
-	if ResultsScreen.is_demo():
-		_check(not Kinships.is_available(&"snare") and Kinships.is_available(&"slumber_rot") and Kinships.is_available(&"night_chimes"),
-			"the demo has Slumber Rot, Rainfog, Storm Beacon and Night Chimes only (Bellflower starts in the demo)")
+	ResultsScreen.demo_override = 1
+	_check(Kinships.is_available(&"snare") and Kinships.is_available(&"slumber_rot") and Kinships.is_available(&"night_chimes")
+		and not Kinships.is_available(&"hammer_and_anvil"),
+		"the demo has Slumber Rot, Rainfog, Storm Beacon, Night Chimes and Snare only (the demo Grove plants Rootling)")
+	ResultsScreen.demo_override = -1
 	Kinships.force_full = true
 
 	print("kinships test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
