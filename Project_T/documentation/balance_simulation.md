@@ -865,6 +865,18 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Shape cards 262–264 (dream_design.md e4d17195, Uncommon, defining)
+
+Budget: Uncommon one-family **+50%** for the kits that match, ~0 for the rest (by design).
+| Card | Number | Why |
+|---|---|---|
+| Small Hands | sent-out things **+35%** damage and **+1 s** | the +1 s adds hits for birds, seeds and lobbed stones, so the total sits ≈ +50% |
+| Sap Rising | each non-attacking Warden (not Thornwalls) pulses the 8 cells around it every 2 s for **2 s × its aura bonus × the summed DPS of the attacking Wardens in its aura**, at least **2 s × 50% of the board's median attacker DPS**. Effect damage (Potency applies) | it deals again, as an area, the damage it already grants: scales with ranks (Strong) and the board; the floor gives catchers and lone support Wardens a real hit |
+| Lingering Ground | ground effects last **×1.5**, not ×2 | overlapping clouds / rings on the same tiles turn duration into damage almost 1:1, so ×2 ≈ +100% for cloud kits |
+
+After the build: an all-Acorn check (fresh, Acorn family forced, the card forced at the first rest, 30 seeds) to
+see whether it makes the user's all-Acorn run viable.
+
 ## Heartwood gifts: every gift gives something (heartwood_gifts.md b3e464e6, 2026-10-06)
 
 Sized beside the living-ground gifts (Moonwell +1 range within 1 cell, Spring +20%, Heartwood Roots +15%):
