@@ -120,7 +120,8 @@ static func pour_all(director: DriftDirector, run_state: RunState, block: int) -
 		if data.rest_interest <= 0.0:
 			continue
 		var rate: float = data.rest_interest + Tower.KINDRED_INTEREST * tower.choice_count(Tower.Focus.KINDRED)  # Kindred Wellspring ranks
-		var cap := data.rest_interest_max + (DEEP_WELL_CAP if dreams and dreams.has_rule(&"deep_well") else 0)
+		var cap: int = data.rest_interest_max + (DEEP_WELL_CAP if dreams and dreams.has_rule(&"deep_well") else 0) \
+			+ NurtureChoices.WELL_CAP_KINDRED * tower.choice_count(Tower.Focus.KINDRED)  # Kindred: a higher cap too (audit b6f44fac)
 		var uncapped := run_state.dew * rate
 		var dew := mini(mini(floori(uncapped), cap), INTEREST_CAP - paid)
 		if dreams and dreams.has_rule(&"overflowing_well") and uncapped > cap:

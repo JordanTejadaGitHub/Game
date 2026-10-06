@@ -147,7 +147,12 @@ func is_caught() -> bool:
 # Caught by a Great Dreamcatcher (the one that drops shards): its statuses tick +25% (Spored ticks,
 # Static bolts). A plain Dreamcatcher only preserves them. `caught_bonus` is no longer read.
 func get_caught_tick_bonus() -> float:
-	return CAUGHT_GREAT_TICK_BONUS if is_caught() and caught_shard else 0.0
+	if not is_caught():
+		return 0.0
+	return (CAUGHT_GREAT_TICK_BONUS if caught_shard else 0.0) + caught_strong
+
+# Strong on the Dreamcatcher that caught it (Tower Code, Nurture audit b6f44fac): +10% tick per rank, adds to Great's.
+var caught_strong := 0.0
 
 # A single hit this big (share of max health) wakes a sleeper, unless Nightbloom locks the sleep.
 func can_wake_from_hit() -> bool:

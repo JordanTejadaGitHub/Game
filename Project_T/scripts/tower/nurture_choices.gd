@@ -33,7 +33,7 @@ const CHOICES := {
 	"prism_jar": [P, S, W, ST], "rainbow_prism": [P, S, W, ST],
 	"thrum": STRIKER, "resonance": STRIKER,
 	"hushbell": [R, D, P], "silence": [R, D, P],
-	"dreamcatcher": [R, D, P], "great_dreamcatcher": [R, D, P],
+	"dreamcatcher": [R, D, ST], "great_dreamcatcher": [R, D, ST],  # Power -> Strong (audit b6f44fac)
 	"echo_hollow": [R, D, P], "whispering_hollow": [R, D, P],
 	"pebbling": STRIKER, "mossback": STRIKER, "boulderback": STRIKER, "standing_stone": STRIKER, "moonstone": STRIKER,
 	"cairn": STRIKER, "rockslide": STRIKER, "whetstone": STRIKER, "edgestone": STRIKER,
@@ -53,7 +53,7 @@ const CHOICES := {
 	"magpie_perch": STRIKER, "magpies_hoard": STRIKER,
 	"hummingbird_bower": STRIKER, "jewelwing_court": STRIKER,
 	"samara": STRIKER, "autumn_gale": STRIKER,
-	"gust": [S, R, D], "zephyr": [S, R, D],
+	"whirligig": [S, R, D], "gust": [S, R, D], "zephyr": [S, R, D],  # Whirligig: Gust's set (audit b6f44fac)
 	"pinwheel": SPINNER, "windmill": SPINNER,
 	"dawnwing": STRIKER, "tempest": STRIKER,
 }
@@ -69,11 +69,10 @@ const KEEN_CRIT_DAMAGE := 0.10  # Crit damage per Keen rank (Balancing Discussio
 # the old sprite-interval and burst bonuses are gone (Yield beat Swift with them).
 const YIELD_PER := 1  # Seedbearer: Yield ranks per extra Sprout alive (68120c18: was 2)
 const YIELD_SPROUTS := 1  # Seedbearer: Sprouts alive per YIELD_PER Yield ranks
-const YIELD_SHARDS := 0.5  # Dream Oak: shards per drift per Yield rank (fractions carry)
+const YIELD_SHARDS := 0.3  # Dream Oak: shards per drift per Yield rank (fractions carry; audit b6f44fac: was 0.5, the cap rises instead)
 const REACH_AREA := 0.3  # Cells per Reach rank on a Warden's main area (silence, link, jet, grab, cloud, burst…)
 const REACH_GUARD := 0.2  # Deeproot's guard ring, cells per Reach rank
 const SWIFT_RINGS_PER := 2  # Fairy Ring: +1 ring cap per this many Swift ranks
-const LINK_SHARE_CAP := 0.5  # Undercurrent: link share × Potency, up to this
 const BOSS_SILENCE_FLOOR := 0.35  # Silenced bosses' timers: 0.5 × (1 / Potency), never below this
 const CAUGHT_LINGER := 0.5  # Dreamcatcher: Caught statuses keep going this many seconds per Deep rank after leaving
 const GUST_STACKS := 0.10  # Gust / Zephyr: copies carry half the stacks + this per Deep rank
@@ -84,10 +83,23 @@ const SEED_KINDRED := 0.06  # Seedbearer: its Sprouts' damage per Kindred rank
 const NURSE_STRONG := 0.03  # Nurse Log: discount per Strong rank
 const NURSE_KINDRED := 0.02  # Nurse Log: Wardens in range grow this much cheaper per Kindred rank
 const WIDE_STEP := 0.2  # Wide: aura / catch / count reach per rank (Tower.FOCUS_WIDE)
-const PULL_CAP := 1.5  # Rootcurl: pull distance × Potency, up to this × its base
-const GROUND_CAP := 5.0  # Groundroot: grounded seconds × Potency, up to this
-const NURSE_CAP := 0.40  # Nurse Log: the total Nurture discount, up to this
+const GROUND_CAP := 6.75  # Groundroot: grounded seconds × Potency, up to this (audit b6f44fac: five Deep ranks reach it)
+const NURSE_CAP := 0.40  # Nurse Log: the total Nurture discount, up to this (Mother Log: special_params "nurse_cap")
 const SEED_MIN := 1.0  # Seedbearer: Swift never brings a seed in under this many drifts
+
+# Nurture audit fixes (Tower Discussion, warden_stats.md b6f44fac; Balancing's numbers, balance_simulation.md).
+const LINK_DEEP := 1  # Undercurrent / Maelstrom: +linked nightmares per Deep rank (the share stays fixed)
+const PULL_DEEP := {"rootcurl": 0.2, "long_way_home": 0.5}  # Tiles of pull added per Deep rank, no cap
+const HUSH_LINGER := 0.4  # Hushbell / Silence: silence lingers this many seconds per Deep rank after a nightmare leaves
+const RAMP_SWIFT := 0.15  # Sunpetal / Midsummer: beam ramp speed per Swift rank
+const CAUGHT_STRONG := 0.10  # Dreamcatcher / Great: statuses on Caught nightmares tick this much more per Strong rank
+const SEED_SWIFT_BY := {"grove_keeper": 0.2}  # Drifts sooner per Swift rank, per form (else SEED_SWIFT)
+const WELL_CAP_KINDRED := 10  # Wellspring: its interest cap + this per Kindred rank
+const DREAM_CAP_YIELD := 1  # Dream Oak / Dreamroot: the run's Dreamlight cap + this per Yield rank
+
+# Drifts a Seedbearer's next seed comes sooner per Swift rank, for its form (Grove Keeper 0.2: 2 -> 1.0 at V).
+static func seed_swift(data: TowerData) -> float:
+	return float(SEED_SWIFT_BY.get(data.get_id(), SEED_SWIFT)) if data != null else SEED_SWIFT
 
 static func options(data: TowerData) -> Array:
 	if data == null:

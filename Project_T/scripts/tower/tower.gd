@@ -239,7 +239,8 @@ const STAT_TOP_RANK := 7  # Attack speed and range from ranks stop at VII (Endle
 enum Focus { NONE, POWER, SWIFT, REACH, DEEP, WIDE, STRONG, KINDRED, KEEN, YIELD }  # Append only (saved as ints)
 const FOCUS_NAMES := {Focus.POWER: "Power", Focus.SWIFT: "Swift", Focus.REACH: "Reach", Focus.DEEP: "Deep",
 	Focus.WIDE: "Wide", Focus.STRONG: "Strong", Focus.KINDRED: "Kindred", Focus.KEEN: "Keen", Focus.YIELD: "Yield"}
-const FOCUS_TEXT := {Focus.POWER: "deals 18% more damage", Focus.SWIFT: "attacks 12% faster", Focus.REACH: "+0.3 range",
+const FOCUS_TEXT := {Focus.POWER: "deals %d%% more damage" % roundi(FOCUS_POWER * 100), Focus.SWIFT: "attacks %d%% faster" % roundi(FOCUS_SWIFT * 100),
+	Focus.REACH: "+0.3 range",
 	Focus.DEEP: "+25% Potency (stronger statuses and effects)",
 	Focus.WIDE: "+0.2 aura reach", Focus.STRONG: "+5% aura", Focus.KINDRED: "full boost from every source",
 	Focus.KEEN: "+%d%% crit chance" % roundi(NurtureChoices.KEEN_CRIT * 100), Focus.YIELD: "makes more"}  # Read, not typed: it said 8% while Keen gives 10%
@@ -249,7 +250,7 @@ const FOCUS_COLORS := {Focus.POWER: Palette.EMBER, Focus.SWIFT: Palette.NEWLEAF,
 	Focus.KEEN: Palette.MOONLIGHT, Focus.YIELD: Palette.GOLD}
 # Nurture v3 (warden_stats.md): every rank is a choice; each rank of a choice adds this.
 const FOCUS_POWER := 0.18  # Damage
-const FOCUS_SWIFT := 0.12  # Attack speed
+const FOCUS_SWIFT := 0.15  # Attack speed (Balancing 2026-10-05, audit b6f44fac: was 0.12)
 const FOCUS_REACH := 0.3  # Range, cells
 const FOCUS_DEEP := 0.25  # Potency per Deep rank (Balancing Discussion 2026-10-01; was 0.18)
 const FOCUS_DEEP_OLD := 0.18  # The old rule (Potency and status duration), only with status_potency_on off (the A/B)
@@ -923,7 +924,7 @@ func focus_text(which: Focus) -> String:
 			var cycle := _with_choice(which, func() -> float: return _compute_attacks_per_second())
 			var ratio: float = cycle[1] / maxf(cycle[0], 0.0001)
 			if special == BranchKit.SEEDBEARER:
-				var every := func(n: int) -> float: return maxf(BranchKit.p(self, "seed_every", 3.0) - NurtureChoices.SEED_SWIFT * n, NurtureChoices.SEED_MIN)
+				var every := func(n: int) -> float: return maxf(BranchKit.p(self, "seed_every", 3.0) - NurtureChoices.seed_swift(tower_data) * n, NurtureChoices.SEED_MIN)
 				return "a seed every %.1f → %.1f drifts" % [every.call(choice_count(Focus.SWIFT)), every.call(choice_count(Focus.SWIFT) + 1)]
 			var timed := _main_timer()
 			if timed[0] > 0.0:
@@ -941,6 +942,8 @@ func focus_text(which: Focus) -> String:
 				return text + (" · range %.1f → %.1f" % [r[0], r[1]] if tower_data.can_attack and absf(r[1] - r[0]) >= 0.05 else "")
 			return "range %.1f → %.1f cells" % [r[0], r[1]]
 		Focus.DEEP:
+			if attack_data.attack_kind == TowerData.AttackKind.SPREAD:  # Gust / Zephyr (audit b6f44fac): what Deep does for it
+				return "more stacks copied (statuses with stacks), +%d%% of them a rank" % roundi(NurtureChoices.GUST_STACKS * 100)
 			var potency := _with_choice(which, func() -> float: return get_potency())
 			return "Potency %d%% → %d%% (stronger statuses and effects)" % [roundi(potency[0] * 100), roundi(potency[1] * 100)]
 		Focus.KEEN:
@@ -950,17 +953,20 @@ func focus_text(which: Focus) -> String:
 				roundi(minf(crit[1], maxf(NurtureChoices.KEEN_CAP, crit[0])) * 100), roundi(NurtureChoices.KEEN_CRIT_DAMAGE * 100)]
 		Focus.YIELD:
 			if special == BranchKit.DREAM_OAK:
-				return "+%.1f shard every drift" % NurtureChoices.YIELD_SHARDS
+				var cap := int(BranchKit.p(self, "dreamlight_max", 4.0)) + NurtureChoices.DREAM_CAP_YIELD * choice_count(Focus.YIELD)
+				return "Dreamlight a run %d → %d, +%s shard every drift" % [cap, cap + NurtureChoices.DREAM_CAP_YIELD, IconInfo._number(NurtureChoices.YIELD_SHARDS)]
 			# Brood Cap / Hatchery and Seedbearer: +1 alive per Yield rank (Tower Discussion, warden_stats.md 68120c18).
 			var thing := "Sprouts" if special == BranchKit.SEEDBEARER else "sprites"
 			var now := BranchKit.brood_max_alive(self) if special == BranchKit.BROOD \
 				else int(BranchKit.p(self, "seed_max", 3.0)) + BranchKit.yield_ranks(self) * NurtureChoices.YIELD_SPROUTS
 			return "%s alive %d → %d" % [thing, now, now + 1]
 		Focus.STRONG:
+			if tower_data.caught_bonus > 0.0 or tower_data.caught_shards:  # Dreamcatchers (audit b6f44fac)
+				return "statuses on Caught nightmares tick +%d%%" % roundi(NurtureChoices.CAUGHT_STRONG * 100)
 			if special == BranchKit.PRISM:
 				return "+%d%% crit chance in its aura" % roundi(NurtureChoices.STRONG_CRIT_AURA * 100)
 			if special == BranchKit.NURSE_LOG:
-				return "Nurture discount +%d%% (up to %d%%)" % [roundi(NurtureChoices.NURSE_STRONG * 100), roundi(NurtureChoices.NURSE_CAP * 100)]
+				return "Nurture discount +%d%% (up to %d%%)" % [roundi(NurtureChoices.NURSE_STRONG * 100), roundi(BranchKit.p(self, "nurse_cap", NurtureChoices.NURSE_CAP) * 100)]
 			if not is_aura_support():
 				return "its aura +%d%%" % roundi(NurtureChoices.STRONG_ACORN * 100)
 		Focus.WIDE:
@@ -999,7 +1005,7 @@ func focus_short(which: Focus) -> String:
 				return "+%d arc/s" % roundi(arc * d[1] / maxf(d[0], 0.001) - arc)
 		Focus.SWIFT:
 			if special == BranchKit.SEEDBEARER:
-				return "−%s drift a seed" % IconInfo._number(NurtureChoices.SEED_SWIFT)
+				return "−%s drift a seed" % IconInfo._number(NurtureChoices.seed_swift(tower_data))
 			var timed := _main_timer()
 			if timed[0] > 0.0 and special != &"":
 				var cycle := _with_choice(which, func() -> float: return _compute_attacks_per_second())
@@ -1014,9 +1020,11 @@ func focus_short(which: Focus) -> String:
 			return "+%d%% crit" % roundi(NurtureChoices.KEEN_CRIT * 100)
 		Focus.YIELD:
 			if special == BranchKit.DREAM_OAK:
-				return "+%s shard a drift" % IconInfo._number(NurtureChoices.YIELD_SHARDS)
+				return "+%d Dreamlight cap" % NurtureChoices.DREAM_CAP_YIELD
 			return "+1 Sprout alive" if special == BranchKit.SEEDBEARER else "+1 sprite alive"
 		Focus.STRONG:
+			if tower_data.caught_bonus > 0.0 or tower_data.caught_shards:
+				return "+%d%% Caught ticks" % roundi(NurtureChoices.CAUGHT_STRONG * 100)
 			if special == BranchKit.PRISM:
 				return "+%d%% crit aura" % roundi(NurtureChoices.STRONG_CRIT_AURA * 100)
 			if special == BranchKit.NURSE_LOG:
@@ -2436,8 +2444,9 @@ func _update_ability(delta: float) -> void:
 		for enemy in in_range:
 			if attack_data.pull_once and enemy.has_meta(&"pulled_home"):
 				continue
+			# Deep: + tiles per rank, no cap (audit b6f44fac: Rootcurl +0.2, Long Way Home +0.5; was × Potency up to 1.5×)
 			var tiles: float = (attack_data.pull_boss_tiles if enemy.enemy_data.is_boss else attack_data.pull_tiles) \
-				* clampf(get_potency(), 1.0, NurtureChoices.PULL_CAP)  # Deep: farther, up to 1.5×
+				+ float(NurtureChoices.PULL_DEEP.get(tower_data.get_id(), 0.0)) * choice_count(Focus.DEEP)
 			_pull_on_release(func() -> void:
 				if not is_instance_valid(enemy) or enemy.is_cleansed:
 					return
@@ -2832,6 +2841,8 @@ func _update_catch(delta: float) -> void:
 			ComboFeedback.report(&"caught", self)  # Codex: a nightmare is Caught
 		s.caught_time = maxf(s.caught_time, AURA_TICK * 1.6 + NurtureChoices.CAUGHT_LINGER * choice_count(Focus.DEEP))  # Deep: lingers after it leaves
 		s.caught_bonus = maxf(s.caught_bonus if s.is_caught() else 0.0, tower_data.caught_bonus)
+		# Strong (audit b6f44fac, replaces Power): its statuses tick faster while Caught; the strongest catcher's counts.
+		s.caught_strong = maxf(s.caught_strong if s.is_caught() else 0.0, NurtureChoices.CAUGHT_STRONG * choice_count(Focus.STRONG))
 		if tower_data.caught_shards:
 			s.caught_shard = true
 			s.caught_shard_tower = self  # Told when the shard drops (shard_dropped)
@@ -3612,7 +3623,8 @@ func _update_beam(delta: float) -> void:
 		return
 	_animate_beam_pose()
 	var fast: bool = _beam_target.statuses.has(EnemyStatuses.DROWSY) or _beam_target.statuses.is_held()
-	var rate := attack_data.beam_ramp_per_second * (BEAM_RAMP_FAST if fast else 1.0)
+	var rate := attack_data.beam_ramp_per_second * (BEAM_RAMP_FAST if fast else 1.0) \
+		* (1.0 + NurtureChoices.RAMP_SWIFT * choice_count(Focus.SWIFT))  # Swift: the beam ramps faster (audit b6f44fac)
 	_beam_ramp = minf(_beam_ramp + rate * delta, attack_data.beam_ramp_max)
 	_beam_behind = _find_behind(_beam_target) if attack_data.beam_behind_share > 0.0 else null
 	_beam_tick += delta

@@ -275,7 +275,7 @@ static func _whirl(tower: Tower) -> void:
 		p(tower, "duration", 3.0), 0.25)
 	zone.damage_per_second = p(tower, "dps", 14.0)
 	zone.link_share = p(tower, "link_share", 0.25)
-	zone.link_max = int(p(tower, "link_max", 6))
+	zone.link_max = int(p(tower, "link_max", 6)) + NurtureChoices.LINK_DEEP * tower.choice_count(Tower.Focus.DEEP)  # Deep: +1 linked
 	if is_final(tower):
 		zone.bolt_share = p(tower, "bolt_share", 0.5)
 	# Maelstrom Soaks; Eye of the Storm (b): the whirlpool is rained on.
@@ -291,11 +291,8 @@ static func share_hit(enemy: Node2D, dealt: float, tower: Tower) -> void:
 	var zone = enemy.get_meta(LINK_META) if enemy.has_meta(LINK_META) else null  # (get_meta with a null default still errors when missing)
 	if not is_instance_valid(zone) or not zone.linked.has(enemy) or zone.link_share <= 0.0:
 		return
-	# Deep on the Undercurrent: its link share × its Potency, up to LINK_SHARE_CAP.
-	var share: float = zone.link_share
-	if is_instance_valid(zone.tower) and zone.tower.attack_data != null and zone.tower.attack_data.special == WHIRLPOOL:
-		share = minf(share * zone.tower.get_potency(), maxf(share, NurtureChoices.LINK_SHARE_CAP))
-	zone.share(enemy, dealt * share, tower.tower_data.line, tower)
+	# The share is fixed (audit b6f44fac): Deep links more nightmares instead (link_max, _make_zone).
+	zone.share(enemy, dealt * zone.link_share, tower.tower_data.line, tower)
 
 # Reactions.strike_bolt: Maelstrom's current carries a Charged bolt to every other linked nightmare at half.
 static func share_bolt(enemy: Node2D, damage: float, source: Node) -> void:
@@ -614,7 +611,10 @@ static func _update_silence(tower: Tower, delta: float) -> void:
 		return
 	tower.set_meta(&"hush_tick", SILENCE_TICK)
 	var reach := (p(tower, "radius", 2.0) + tower.area_bonus()) * CELL
-	var hold := SILENCE_TICK * 1.5 + (p(tower, "linger", 2.0) * tower.get_potency() if is_final(tower) else 0.0)
+	# Linger after a nightmare leaves: Silence's base, + HUSH_LINGER per Deep rank on both forms (audit b6f44fac; was
+	# Silence's linger × Potency, and nothing on a Hushbell).
+	var hold := SILENCE_TICK * 1.5 + (p(tower, "linger", 2.0) if is_final(tower) else 0.0) \
+		+ NurtureChoices.HUSH_LINGER * tower.choice_count(Tower.Focus.DEEP)
 	for e in field(tower):
 		if e.global_position.distance_to(tower.global_position) <= reach:
 			silence(e, hold, tower)
@@ -877,7 +877,7 @@ static func _update_grounding(tower: Tower, delta: float) -> void:
 static func ground(tower: Tower, e: Node2D) -> void:
 	if not e.has_method("ground"):
 		return  # Enemy's side not in yet
-	e.ground(minf(p(tower, "ground_time", 3.0) * tower.get_potency(), NurtureChoices.GROUND_CAP))  # Deep: longer, up to 5 s
+	e.ground(minf(p(tower, "ground_time", 3.0) * tower.get_potency(), NurtureChoices.GROUND_CAP))  # Deep: longer, up to 6.75 s (audit b6f44fac)
 	_fx(&"flyer_grab", e.global_position, world(tower))
 	if is_final(tower):
 		_land_hold(tower, e, p(tower, "land_hold", 0.5))  # Earthbind: Rooted when it lands
@@ -1008,8 +1008,10 @@ static func nurture_multiplier(tower: Tower) -> float:
 	for other in logs(tower):
 		if other.attack_data != null and other.attack_data.special == NURSE_LOG \
 				and Kinships._distance(tower, other) <= p(other, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * other.choice_count(Tower.Focus.WIDE):
-			best = maxf(best, p(other, "nurture_discount", 0.25) + NurtureChoices.NURSE_STRONG * other.choice_count(Tower.Focus.STRONG))
-	return 1.0 - minf(best, NurtureChoices.NURSE_CAP)
+			# Each log caps its own (audit b6f44fac: Mother Log 0.35 + 0.03 a rank reaches its 0.50 at V; Nurse Log 0.40)
+			best = maxf(best, minf(p(other, "nurture_discount", 0.25) + NurtureChoices.NURSE_STRONG * other.choice_count(Tower.Focus.STRONG),
+				p(other, "nurse_cap", NurtureChoices.NURSE_CAP)))
+	return 1.0 - best
 
 # Nursery (b): Wardens beside the Nurse Log also grow 10% cheaper. Tower.get_grow_cost (the base part).
 static func grow_multiplier(tower: Tower) -> float:
@@ -1061,7 +1063,7 @@ static func on_drift_cleared(tower: Tower) -> void:
 		SEEDBEARER:
 			var drifts := float(tower.get_meta(&"seed_drifts", 0.0)) + 1.0
 			# Swift: a seed sooner (−0.3 drifts per rank, never under 1 drift); fractions carry to the next seed.
-			var every := maxf(p(tower, "seed_every", 3.0) - NurtureChoices.SEED_SWIFT * tower.choice_count(Tower.Focus.SWIFT),
+			var every := maxf(p(tower, "seed_every", 3.0) - NurtureChoices.seed_swift(tower.tower_data) * tower.choice_count(Tower.Focus.SWIFT),
 				NurtureChoices.SEED_MIN)
 			if drifts >= every:
 				drifts -= every
@@ -1100,7 +1102,8 @@ static func _add_shards(tower: Tower, shards: int) -> void:
 		return
 	_fx(&"shard_rise", tower.global_position + Vector2(0, -40), world(tower))
 	if dreams.has_method("add_source_shards"):
-		dreams.add_source_shards(&"dream_oak", shards, int(p(tower, "dreamlight_max", 4.0)))
+		# Yield raises the run cap +1 Dreamlight per rank (audit b6f44fac: 4 -> 9 at V); the shards come slower (YIELD_SHARDS 0.3)
+		dreams.add_source_shards(&"dream_oak", shards, int(p(tower, "dreamlight_max", 4.0)) + NurtureChoices.DREAM_CAP_YIELD * tower.choice_count(Tower.Focus.YIELD))
 	else:
 		for i in shards:
 			dreams.add_dreamlight_shard()
