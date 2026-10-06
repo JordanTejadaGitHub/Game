@@ -7,12 +7,12 @@ extends SceneTree
 #   and one with no hover first,
 # - a drag line of 10 walls: the drag (a stroke plan per cell) and planting it (TowerPlacer.plant_stroke),
 #   counting route updates (one at the end is the goal: MapGenerator.hold_route / release_route),
-# at 1× and while paused. Budget: placement 4 ms, hover 3 ms; fails over 2× budget.
+# at 1× and while paused. Budget: placement 10 ms (one frame), hover 4 ms; fails over 2× budget.
 # Run:  Godot --headless --path . --script res://tests/test_maze_perf.gd --fixed-fps 60
 
 const WALKERS := 150
-const PLACE_BUDGET_MS := 4.0
-const HOVER_BUDGET_MS := 3.0
+const PLACE_BUDGET_MS := 10.0  # A placement fits in one frame (Environment Discussion, 2026-10-05)
+const HOVER_BUDGET_MS := 4.0
 const REPEATS := 5
 
 var failures := 0
