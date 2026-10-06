@@ -29,8 +29,9 @@ func move_bridge(end: Vector2i) -> void:
 
 func _ready() -> void:
 	z_index = VOID_Z
+	var low := EnvironmentTiles.low_detail()  # Low detail: the stars hold still
 	add_child(_layer("void_sky", sky_scroll, Vector2.ZERO))
-	add_child(_layer("void_stars", stars_scroll, stars_drift))
+	add_child(_layer("void_stars", stars_scroll, Vector2.ZERO if low else stars_drift))
 	var islets: Texture2D = load(EnvironmentTiles.shared_path("void_islets"))
 	var count := islets.get_width() / EnvironmentTiles.SIZE.x
 	if bridge_end != Vector2i(-1, -1):
@@ -56,7 +57,7 @@ func _layer(sheet: String, scroll: float, drift: Vector2) -> Parallax2D:
 	var layer := Parallax2D.new()
 	layer.scroll_scale = Vector2.ONE * scroll
 	layer.repeat_size = Vector2(TILE, TILE)
-	layer.repeat_times = REPEATS
+	layer.repeat_times = REPEATS  # Every tier: fewer copies left the void unfilled at a wide zoom-out (off-screen copies cost little)
 	layer.autoscroll = drift
 	var sprite := Sprite2D.new()
 	sprite.texture = load(EnvironmentTiles.shared_path(sheet))

@@ -38,6 +38,11 @@ var _cloud_count := 1
 var _shadows: Node2D  # Draws the crossing cloud shadows at CLOUD_SHADOW_Z
 var _mist: Texture2D
 var _mist_layer: Node2D  # Draws the mist banks at MIST_Z
+var _fog: Node2D  # Draws the edge fog (its own canvas, so Low detail can hold it still)
+var _low := false  # EnvironmentTiles.low_detail(), re-read every LOW_RECHECK s
+var _low_check := 0.0
+var _still_drawn := false  # Low: the fog, mist and cloud shadows are drawn (they hold still)
+const LOW_RECHECK := 1.0
 
 func _ready() -> void:
 	z_index = AMBIENCE_Z
@@ -61,15 +66,31 @@ func _ready() -> void:
 	_mist_layer.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED  # The tile wraps as it drifts
 	_mist_layer.draw.connect(_draw_mist)
 	add_child(_mist_layer)
+	_fog = Node2D.new()
+	_fog.name = "EdgeFog"
+	_fog.show_behind_parent = true  # Under the particles, as when they shared a canvas
+	_fog.draw.connect(_draw_edge_fog)
+	add_child(_fog)
+	_low = EnvironmentTiles.low_detail()
 
 func _process(delta: float) -> void:
+	_low_check -= delta
+	if _low_check <= 0.0:
+		_low_check = LOW_RECHECK
+		var low := EnvironmentTiles.low_detail()
+		if low != _low:
+			_low = low
+			_still_drawn = false
 	_time += delta
-	queue_redraw()
+	queue_redraw()  # The act's particles move every frame
+	if _low and _still_drawn:
+		return  # Low detail: the fog, mist and cloud shadows hold still
+	_still_drawn = true
 	_shadows.queue_redraw()
 	_mist_layer.queue_redraw()
+	_fog.queue_redraw()
 
 func _draw() -> void:
-	_draw_edge_fog()
 	match act:
 		1:
 			_draw_warm_motes()
@@ -85,7 +106,7 @@ func _rand(k: int, salt: int) -> float:
 	return fposmod(sin(k * 12.9898 + salt * 78.233) * 43758.5453, 1.0)
 
 func _count(concept_count: float) -> int:
-	return int(concept_count * _area_scale * particle_scale)
+	return int(concept_count * _area_scale * particle_scale * (0.5 if _low else 1.0))
 
 func _ellipse(center: Vector2, radii: Vector2, color: Color, on: CanvasItem = self) -> void:
 	on.draw_set_transform(center, 0.0, Vector2(1.0, radii.y / radii.x))
@@ -118,7 +139,7 @@ func _draw_mist() -> void:
 		return
 	# Only over the island: past its rim the void's own dark fog takes over (a box of mist out there showed its edge).
 	var edge := float(MAP_GRID.cell_size.x) * 2
-	for layer in 2:
+	for layer in (1 if _low else 2):  # Low: one layer
 		var drift := Vector2((7.0 if layer == 0 else -4.5) * _time + layer * 97.0, layer * 61.0).floor()
 		var weight := 1.0 if layer == 0 else 0.6
 		var y := 0.0
@@ -126,7 +147,9 @@ func _draw_mist() -> void:
 			var mid := (y + MIST_BAND * 0.5) / _size.y
 			var back := clampf(1.0 - mid / 0.7, 0.0, 1.0)
 			var front := clampf((mid - 0.85) / 0.15, 0.0, 1.0)
-			_mist_band(Rect2(0, y, _size.x, MIST_BAND), drift, (0.07 + 0.3 * back + 0.1 * front) * weight)
+			var alpha := (0.07 + 0.3 * back + 0.1 * front) * weight
+			if not _low or alpha >= 0.12:  # Low: not the faint bands over the middle
+				_mist_band(Rect2(0, y, _size.x, MIST_BAND), drift, alpha)
 			y += MIST_BAND
 		for side in 2:
 			_mist_band(Rect2(0.0 if side == 0 else _size.x - edge, 0, edge, _size.y), drift, 0.12 * weight)
@@ -139,7 +162,7 @@ func _mist_band(rect: Rect2, drift: Vector2, alpha: float) -> void:
 func _draw_edge_fog() -> void:
 	var edge_cells := 2 * (MAP_GRID.size.x + MAP_GRID.size.y)
 	var speed_scale := CONCEPT_SIZE.x / _size.x  # Same px/s as the concept on a bigger map
-	for k in int(edge_cells * edge_fog_per_edge_cell):
+	for k in int(edge_cells * edge_fog_per_edge_cell * (0.5 if _low else 1.0)):  # Low: half
 		var side := k % 4
 		var u := fposmod(_rand(k, 1) + _time * (0.012 + (k % 3) * 0.004) * speed_scale, 1.0)
 		var at: Vector2
@@ -152,7 +175,7 @@ func _draw_edge_fog() -> void:
 				at = Vector2((1.0 - u) * _size.x, _size.y - 18)
 			_:
 				at = Vector2(20, (1.0 - u) * _size.y)
-		_cloud(at, k, 0.85 + 0.15 * sin(_time * 0.8 + k))
+		_cloud(at, k, 0.85 + 0.15 * sin(_time * 0.8 + k), _fog)
 
 func _mote(at: Vector2, rgb: Color, alpha: float) -> void:
 	var p := at.floor()
@@ -161,7 +184,7 @@ func _mote(at: Vector2, rgb: Color, alpha: float) -> void:
 
 func _draw_warm_motes() -> void:
 	var rgb := Palette.GLOW
-	for k in int(18 * particle_scale):
+	for k in int(18 * particle_scale * (0.5 if _low else 1.0)):
 		var ph := fposmod(_rand(k, 3) + _time * 0.05, 1.0)
 		var at := heartwood_position + Vector2((_rand(k, 1) - 0.5) * 480 + sin(_time * 0.7 + k) * 16, 60 - ph * 360)
 		_mote(at, rgb, maxf(0.0, sin(_time * 1.6 + k * 1.7)) * sin(ph * PI))

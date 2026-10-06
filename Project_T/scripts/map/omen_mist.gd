@@ -56,10 +56,11 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var disc := _disc
 	var lite := Fx.reduce_flashes()
+	var low := EnvironmentTiles.low_detail()
 	var still := _reduced_motion()
 	var alpha := density * strength * (0.6 if still else 1.0) * (0.7 if lite else 1.0)
 	for i in _blobs.size():
-		if lite and i % 2 == 1:
+		if (lite or low) and i % 2 == 1:  # Low detail (EnvironmentTiles): half the blobs too, at full strength
 			continue
 		var blob: Array = _blobs[i]
 		var home: Vector2 = blob[0]

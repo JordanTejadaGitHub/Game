@@ -61,6 +61,20 @@ const HEARTWOOD_STATES := 21
 static func sheet_path(sheet: String, act: int) -> String:
 	return ROOT + ACT_FOLDERS[clampi(act, 1, ACT_FOLDERS.size()) - 1] + "/" + sheet + ".png"
 
+# --- Detail tier (mobile_plan.md performance pass) ---------------------------------------------------------
+# Settings "environment_detail": -1 Auto (Low on phones and tablets), 0 Full, 1 Low. Low keeps the look but cuts
+# what a phone GPU pays for every frame: the ambience's fog and mist are drawn once and hold still (no per-frame
+# redraw), half the edge fog and particles, one mist layer without its faint middle bands; the void's stars hold
+# still with fewer repeats; smaller Warden glows; half the Omen mist. `force_detail` overrides it (tests).
+const DETAIL_SETTING := "environment_detail"
+static var force_detail := -2  # -2: use the setting; else -1 / 0 / 1 as the setting
+
+static func low_detail() -> bool:
+	var tier := force_detail if force_detail != -2 else int(Fx.setting(DETAIL_SETTING, -1))
+	if tier == -1:
+		return OS.has_feature("mobile")
+	return tier == 1
+
 static func shared_path(sheet: String) -> String:
 	return ROOT + DREAM_FOLDER + "/" + sheet + ".png"
 

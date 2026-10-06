@@ -10,6 +10,7 @@ const VIGNETTE_Z := 3  # Over the map, Wardens and creatures; under attack effec
 const GLOW_Z := 4  # Additive glows (Wardens', the Heartwood's) go over the cold multiply
 const MARGIN_CELLS := 12  # The multiply also covers the forest outside the wall
 const SQRT2 := 1.41421356
+const LOW_GLOW_SCALE := 0.7  # Low detail (EnvironmentTiles): smaller glow discs, about half the overdraw per Warden
 
 # Multiply colours from the map's centre (0) to its corners (1); edge midpoints sit at ~0.71.
 @export var edge_offsets := PackedFloat32Array([0.0, 0.32, 0.6, 1.0])
@@ -116,7 +117,7 @@ func _update_glow(tower: Tower) -> void:
 # Wardens don't move, so it only redraws when one is planted, sold or grows.
 func _draw_glows() -> void:
 	var texture := _disc
-	var size := Vector2.ONE * warden_glow_radius * 2.0
+	var size := Vector2.ONE * warden_glow_radius * 2.0 * (LOW_GLOW_SCALE if EnvironmentTiles.low_detail() else 1.0)
 	var color := Color(warden_glow_color, warden_glow_alpha)
 	for tower: Tower in _wardens:
 		if _wardens[tower] and is_instance_valid(tower):
