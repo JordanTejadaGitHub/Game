@@ -318,7 +318,7 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 
 | Branch (direction) | Node 1 (near the trunk) | Node 2 | Tip(s): Legendary |
 |---|---|---|---|
-| **Swift** (attack speed) | *Quickening*: Quickening (30) | *Light Feet*: Restless Roots, Hummingheart (60) | **Whirlwind Heart** (120) |
+| **Swift** (attack speed) | *Quickening*: Hunt's Rush (the card Quickening, renamed in the card pass) (30) | *Light Feet*: Restless Roots, Hummingheart (60) | **Whirlwind Heart** (120) |
 | **Wide Reach** (area, splash) | *Broad Strokes*: Lingering Splash (30) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
 | **Keen Edges** (precision, crit) | *Sharpened*: Still Target, Shattering Blow, **Hunter's Patience**, **Sharpened Light** (50) | — | **Full Moon** (120) · **Hunter's Moon** (80) |
 | **Deep Poison** (affliction, effects) | *Seeping* (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) · **Eternal Charge** (80) |
