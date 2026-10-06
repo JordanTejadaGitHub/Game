@@ -911,7 +911,9 @@ are identical on both builds; tag-only default on bf4fe891 is 36% (card-value 40
 what act 1 offers: the strong act 1 cards are offered less. **Offer logs:** best card per act 1 offer −7%; the openers
 (Old Growth, Tender Care, First Light, Thinning) −20–30% per offer; ~half a slot per offer goes to new cards dead on a
 fresh board (Brimming, Shared Training, Close Kin, Many Talents, Specialist). Proposed to Roguelite Mechanic: Needs
-gates (Kinship pair; a rank III Warden; Brimming act 2), then re-check act 1.
+gates (Kinship pair; a rank III Warden; Brimming act 2), then re-check act 1. **Taken as a general rule** (3fd21011):
+offered only when the board can use it now (Close Kin: a family with 2 branches unlocked; shape cards: own a Warden
+of that shape; Brimming: a Spored / Charged / Drowsy applier). Act 1 + no-build re-check queued.
 the all-Acorn check: in a real run that boss drains instead. **Cause:** ×1.3 speed per lap with no cap (it crossed
 the route between two shots). Capped at 3 laps (×2.2) in 8603af1b; real runs never reach lap 4.
 
