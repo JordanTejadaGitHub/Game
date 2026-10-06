@@ -600,6 +600,9 @@ func get_dew_pot_multiplier(number: int, called_early: bool = false, with_omen: 
 	var omens := get_tree().get_first_node_in_group(OmenDirector.GROUP) if is_inside_tree() else null
 	if with_omen and omens != null and omens.has_method("get_dew_pot_multiplier"):
 		multiplier *= omens.get_dew_pot_multiplier(number)
+	var gifts := get_tree().get_first_node_in_group(HeartwoodGifts.GROUP) if is_inside_tree() else null
+	if gifts != null and gifts.has_method("get_dew_pot_multiplier"):
+		multiplier *= gifts.get_dew_pot_multiplier(number)  # Shifting Mist (heartwood_gifts.md b3e464e6)
 	return multiplier
 
 # The pot drift `number` would pay if started now (the DriftPanel shows it before it starts).

@@ -6,13 +6,13 @@
 script = ExtResource("1_card")
 id = "deep_sleep"
 display_name = "Deep Sleep"
-description = "All Wardens deal 60% more damage."
-cost_description = "No rest bonus for the rest of the run."
+description = "All Wardens deal 80% more damage."
+cost_description = "No rest bonus, and no Omens can be faced, for the rest of the run."
 rarity = 2
 kind = 2
 tags = Array[String](["bittersweet"])
 max_stacks = 1
 min_act = 2
-soothe_bonus = 0.6
+soothe_bonus = 0.8
 in_start_pool = false
 rule_id = &"deep_sleep"

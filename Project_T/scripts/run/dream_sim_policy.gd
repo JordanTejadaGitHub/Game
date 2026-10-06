@@ -59,7 +59,79 @@ func _init(dream_state: DreamState, play_style: Style = Style.BALANCED) -> void:
 
 # --- Dreams ---------------------------------------------------------------------------------------
 
+var score_overrides := {}  # Card id -> fixed score (the runner's --card-score=id=value; e.g. a card scored like an untagged Common = 0)
+# --card-value (Balancing 2026-10-06): the score also counts the card's size as a damage-equivalent % (DE) × DE_WEIGHT.
+# DE_WEIGHT puts Deeper Calm (+25%) at +30, level with an in-build tagged card ((1 tag + IN_BUILD 2) × 10). Tag terms stay.
+var card_value := false
+const DE_WEIGHT := 1.2
+const DEW_PER_DE := 10.0  # Economy: ~10 Dew = 1% damage
+const DEW_HORIZON := 10  # Economy cards count the Dew of the next 10 drifts
+# Rule cards without stat fields: a first estimate of their DE on the balanced bot's board, before the board share
+# (the share is applied in card_de). Unlisted rule cards = 0 (tags only, as before).
+const RULE_DE := {
+	"old_growth": 25.0, "first_light": 20.0, "heart_of_the_maze": 5.0, "thinning_the_herd": 10.0,
+	"lantern_glow": 12.0, "lone_hunter": 13.0, "cozy_corners": 12.0, "momentum": 15.0, "head_start": 0.0,
+	"last_breath": 8.0, "glinting_dew": 20.0, "flurry": 20.0, "first_frost": 1.0, "quick_step": 0.0, "call_of_the_wild": 0.0,
+	"deep_roots": 5.0, "thick_bark": 5.0, "lucid_dream": 10.0, "heartwoods_reach": 0.0,
+	# × a board share in card_de:
+	"odd_one_out": 45.0, "solitude": 45.0, "crowd_breaker": 20.0, "overlap": 40.0, "root_network": 30.0,
+	"lasting_dreams": 15.0, "passing_dream": 8.0, "bitter_sap": 15.0, "sparking_spores": 10.0, "wildfire_spores": 10.0,
+	"live_wire": 10.0, "static_field": 10.0, "mycelium": 10.0,
+}
+
 func score(card: UpgradeData) -> float:
+	if score_overrides.has(card.id):
+		return score_overrides[card.id]
+	return _tag_score(card) + (DE_WEIGHT * card_de(card) if card_value else 0.0)
+
+# The card's damage-equivalent % on the board as it stands (--card-value).
+func card_de(card: UpgradeData) -> float:
+	var attackers := dreams._towers().filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
+	var n := maxf(attackers.size(), 1.0)
+	var share := func(pred: Callable) -> float: return attackers.filter(pred).size() / n
+	var de := 100.0 * (card.soothe_bonus + card.attack_speed_bonus) + 30.0 * card.range_bonus + 30.0 * card.potency_bonus \
+		+ 20.0 * card.splash_bonus
+	if card.stat_warden != "":
+		de *= share.call(func(t: Tower) -> bool: return t.tower_data.get_id() == card.stat_warden)
+	elif card.stat_line != "":
+		de *= share.call(func(t: Tower) -> bool: return t.tower_data.line == card.stat_line)
+	# Economy: Dew over the next DEW_HORIZON drifts (about 2 rests), ÷ DEW_PER_DE
+	var dew := card.dew_now + 2.0 * card.rest_bonus_add + card.evolve_discount * 150.0 + card.nurture_discount * 100.0 \
+		+ card.plant_discount * 100.0
+	match card.id:
+		"morning_dew": dew += 60.0  # +10% of ~600 Dew of pots
+		"dew_line": dew += 60.0
+		"winding_path": dew += 30.0
+		"weathered_walls": dew += 20.0
+		"tender_care": dew += 25.0 * n  # Every Warden's first rank (25 Dew) free
+		"sudden_insight": de += 10.0  # 2 Dreamlight ≈ a branch soon
+	de += dew / DEW_PER_DE
+	var rule: float = RULE_DE.get(card.id, 0.0)
+	match card.id:
+		"thorny_walls":  # 0.5 per wall (Balancing: 20 walls ≈ +10% of a late act 1 board)
+			rule = 0.5 * dreams._towers().filter(func(t: Tower) -> bool: return t.tower_data.line == "wall").size()
+		"odd_one_out":
+			var kinds := {}
+			for t in attackers:
+				kinds[t.tower_data.get_id()] = int(kinds.get(t.tower_data.get_id(), 0)) + 1
+			rule *= share.call(func(t: Tower) -> bool: return kinds[t.tower_data.get_id()] == 1)
+		"solitude":
+			rule *= share.call(func(t: Tower) -> bool: return not attackers.any(func(o: Tower) -> bool:
+				return o != t and o.cell.distance_to(t.cell) <= 2.0))
+		"crowd_breaker", "overlap":
+			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.splash_radius > 0.0 \
+				or t.tower_data.attack_kind in [TowerData.AttackKind.PULSE, TowerData.AttackKind.CLOUD, TowerData.AttackKind.SPIN, TowerData.AttackKind.SWEEP])
+		"root_network":
+			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.get_id() == "sprout")
+		"lasting_dreams", "passing_dream", "bitter_sap":
+			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.applies_status != &"")
+		"sparking_spores", "wildfire_spores", "mycelium":
+			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.line == "spore")
+		"live_wire", "static_field":
+			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.applies_status == &"static")
+	return de + rule
+
+func _tag_score(card: UpgradeData) -> float:
 	var tags: Dictionary = TAG_SCORES[style]
 	var value := 0.0
 	for tag in card.tags:

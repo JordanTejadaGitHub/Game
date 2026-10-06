@@ -27,13 +27,13 @@ const THICK_MIST_SPACING := 1.25
 # MapGifts.start_options / route_from_start).
 const POOL := {
 	&"sow_ridge": {"name": "Sow a Ridge", "group": "Shape the land", "map": true, "place": &"chain", "size": [3, 5],
-		"text": "Draw a ridge of 3–5 Withered Trees, cell by cell. Clearable later at the normal cost."},
+		"text": "Draw a ridge of 3–5 Withered Trees, cell by cell. Sheltered: attacking Wardens touching it deal 10% more damage. Clearable later at the normal cost."},
 	&"fallen_giant": {"name": "Fallen Giant", "group": "Shape the land", "map": true, "place": &"line", "size": [2, 4],
-		"text": "Lay a Fallen Log 2–4 cells long, straight, where you choose. It can't be cleared this run."},
+		"text": "Lay a Fallen Log 2–4 cells long, straight, where you choose. High ground: attacking Wardens touching it get +0.5 range. It can't be cleared this run."},
 	&"glade": {"name": "Glade", "group": "Shape the land", "map": true, "place": &"obstacles", "size": 5,
 		"text": "Clear up to 5 obstacles of your choice, free. Each still counts as tended."},  # Picked one by one (user)
 	&"shift_stones": {"name": "Shift the Stones", "group": "Shape the land", "map": true, "place": &"move", "size": 3,
-		"text": "Move up to 3 obstacles to new empty cells."},
+		"text": "Move up to 3 obstacles to new empty cells. Each one moved pays 20 Dew × the act, and the ground it leaves is fertile: the next Warden planted there costs half."},
 	&"mire": {"name": "Mire", "group": "Shape the land", "map": true, "place": &"path", "size": 3,
 		"text": "3 connected path cells turn to bog: nightmares move 20% slower there."},
 	&"spring": {"name": "Spring", "group": "Living ground", "map": true, "place": &"area", "size": Vector2i(2, 2),
@@ -57,7 +57,7 @@ const POOL := {
 	&"old_kin": {"name": "Old Kin", "group": "Heartwood and kin", "map": false, "place": &"kinship", "size": 1,
 		"text": "One Kinship jumps a stage; new bonds start one stage up for the next act."},
 	&"shifting_mist": {"name": "Shifting Mist", "group": "Heartwood and kin", "map": true, "place": &"rim", "size": 3,
-		"text": "The start mist moves: pick one of 3 spots on the rim (or keep it). Nightmares come from there for the rest of the run."},
+		"text": "The start mist moves: pick one of 3 spots on the rim (or keep it). Nightmares come from there for the rest of the run. Fresh ground: this act's Dew pots are +10%."},
 	&"waking_root": {"name": "Waking Root", "group": "Heartwood and kin", "map": false, "place": &"none", "size": 0,
 		"text": "The next form you unlock costs 1 less Dreamlight."},
 	&"memory_seed": {"name": "Memory Seed", "group": "Heartwood and kin", "map": false, "place": &"warden", "size": 1,
@@ -179,6 +179,7 @@ func choose(id: StringName, placement: Dictionary = {}) -> void:
 	var record := {"id": String(id), "act": offer_act, "placement": _plain(place)}
 	taken.append(record)
 	_apply(id, record.placement, false)
+	_payoff(id, place, offer_act)  # Once, at the pick (a resume restores the fertile cells from the run save)
 	_close()
 	gift_taken.emit(id, placement)
 
@@ -213,6 +214,33 @@ func get_spacing_multiplier(drift: int) -> float:
 	for t in taken:
 		if StringName(t.id) == &"thick_mist" and int(t.act) + 1 == act:
 			return THICK_MIST_SPACING
+	return 1.0
+
+# Map gifts all pay off (heartwood_gifts.md b3e464e6, user: "everything gives buffs or more resources"). Main's part:
+# Shift the Stones pays SHIFT_DEW × act per stone moved and leaves each old spot fertile (RunState.fertile_cells: the
+# next Warden planted there costs half, as Reclaimed Earth); Shifting Mist adds MIST_POT_BONUS to the next act's Dew
+# pots (the act it opens: gifts come at the act break, `act` is the act that ended). Balancing Discussion sets the numbers.
+const SHIFT_DEW := 20
+const MIST_POT_BONUS := 0.10
+
+func _payoff(id: StringName, placement: Dictionary, act: int) -> void:
+	if id != &"shift_stones":
+		return
+	var froms := cells_of(placement, "from")
+	if froms.is_empty():
+		return
+	for cell in froms:
+		run_state.fertile_cells[cell] = true
+	var map := drift_director.get_node_or_null("%MapGenerator")
+	var at: Vector2 = map.MAP_GRID.calculate_map_position(froms[0]) if map != null else Vector2.ZERO
+	run_state.earn_dew_at(SHIFT_DEW * maxi(act, 1) * froms.size(), at)
+
+# DriftDirector.get_dew_pot_multiplier: Shifting Mist's bonus on the act after the break it was taken at.
+func get_dew_pot_multiplier(number: int) -> float:
+	var act := drift_director.get_act(number)
+	for t in taken:
+		if StringName(t.id) == &"shifting_mist" and int(t.act) + 1 == act:
+			return 1.0 + MIST_POT_BONUS
 	return 1.0
 
 func has_taken(id: StringName) -> bool:

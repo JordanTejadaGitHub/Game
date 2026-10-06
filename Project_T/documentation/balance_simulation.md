@@ -865,6 +865,16 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Heartwood gifts: every gift gives something (heartwood_gifts.md b3e464e6, 2026-10-06)
+
+Sized beside the living-ground gifts (Moonwell +1 range within 1 cell, Spring +20%, Heartwood Roots +15%):
+| Gift | Number | Why |
+|---|---|---|
+| Sow a Ridge | Wardens touching it **+10%**; **+2 Seeds** per tended gift tree | the ridge is already a free wall; 3–5 trees touch more cells than a Moonwell |
+| Fallen Giant | touching **+0.5 range**; nightmares beside it **15% slower** | as proposed (an uncleared free wall, Mire is 20% on 3 cells) |
+| Shift the Stones | **+20 Dew × act** per stone moved (act 2 ≈ 120 for 3); the old spot fertile (half price) | 15 × act was under a drift's pot |
+| Shifting Mist | this act's Dew pots **+10%** (≈ 300 Dew in act 2) | +15% ≈ 470 Dew, four times Shift the Stones; the re-facing maze is its cost |
+
 ## Fewer, bigger cards: numbers (dream_design.md de439ea8, 2026-10-06)
 
 **Principle:** one pick ≈ **two** old stacked picks, never three. A rest still gives one card, so sizing every
@@ -910,6 +920,28 @@ Legendaries, then no skipping and 2-card offers. All as proposed except the two 
 **Defining rule (act 2+, one defining card per offer):** no numbers, but it moves picks. The bot's card picker
 must take it as offered; after the build, Balancing Code re-checks act 1–2 (default / spender / skip) and the
 pick rate of defining cards.
+
+**Re-check (40bdebda = main + bend10 + walling bot + the card pass; 30 seeds, half 20):** act 1 default **36%**,
+spender 50%, skip 16%, half default 30% (no-card reference on the same maps: 53 / 40 / 20). Act 2: 0–3%
+(fresh dies in act 2, on target; too few act 2 offers to read the defining rule). Combo share act 1 / 2: 0.16 /
+0.33. The bot took Thorny Walls 22 of 28 and First Frost 1 of 34, which reads as its policy's scores. Default's −17
+is on the edge of noise: 30 more seeds on both builds, and a check of how the policy scores Thorny Walls.
+**Cause found:** the bot's card policy scores tags only (×10 + rarity), never effect size: Thorny Walls 10, Glinting
+Dew 11, Deeper Calm and Quickened Sap 1, First Frost 0. Every tagged card beats every plain stat card, which has
+held the balanced bot's stat picks down all along. Next: a Thorny Walls override arm, then effect-size scoring
+(`--card-value`, damage-equivalent % × k) as a flag, A/B, and the default if it picks sensibly.
+**Firmed up (60 seeds each):** act 1 default **40%** with the cards vs **46%** without (−6 ± 9: not significant; the
+first −17 was seed luck). The bend10 default reference reads ~46%, a little under the ~55 target; the card-value
+A/B decides whether that is the bot's picks.
+**Thorny Walls override (paired, seeds 1–30):** scored like a plain Common, the bot takes it 1/13 (was 11/13) and
+act 1 goes 36% → **53%**: most of the card pass's act 1 effect was the bot's picks. It also shows Thorny Walls
+under budget (taking it costs a pick): **every 1 s, 5 damage** (was every 2 s; ≈ +20% at 20 walls, fading late). In 62dc0c0f.
+**`--card-value` A/B (paired, seeds 1–30):** act 1 default 36% (tags only) → 53% (Thorny override) → **63%**
+(effect-size scoring); picks look sensible (Tender Care, Old Growth, First Light, big stat cards first; conditional
+cards by board share). **Made the bot's default; every baseline from the flip on is card-value.** Spender / skip
+re-based on it next. **Card-value baseline (40bdebda, 30 seeds):** default **63%**, spender **56%**, skip **13%**,
+0 dead by d5. All inside the targets (default ~55 ± noise, spender ≤ 80, skip ≤ 15–20); Dreams vs none now a
+50-point gap (was ~33). No curve change.
 
 ## Drawn route and early deaths (19f426c5, 2026-10-05)
 

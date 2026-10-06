@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "the_last_light"
 display_name = "The Last Light"
-description = "If you have 5 or fewer attacking Wardens, they attack twice as fast."
+description = "If you have 5 or fewer attacking Wardens, they attack 100% faster."
 rarity = 3
 kind = 3
 tags = Array[String](["narrow", "tall"])

@@ -182,7 +182,7 @@ func _make_card(card: UpgradeData) -> Button:
 	gem.draw.connect(func() -> void: UiStyle.draw_gem(gem, gem.size / 2.0, 13.0, card.rarity, glyph))
 	gem_row.add_child(gem)
 	gem_row.add_child(rarity)
-	if card.tags.has("defining"):  # Build-defining (dream_design.md de439ea8): a small mark at the frame's corner, no numbers
+	if dream_state.is_defining(card) if dream_state.has_method("is_defining") else card.tags.has("defining"):  # Build-defining (tag or Legendary; dream_design.md de439ea8): a small mark, no numbers
 		var corner := Control.new()
 		corner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		corner.mouse_filter = Control.MOUSE_FILTER_IGNORE

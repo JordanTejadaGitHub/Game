@@ -123,8 +123,8 @@ func _test_nurture_rules() -> void:
 	var strong_base := dreams.get_soothe_multiplier(strong)
 	var weak_base := dreams.get_soothe_multiplier(weak)
 	dreams.take(_card("chosen_few"))
-	_check(is_equal_approx(dreams.get_soothe_multiplier(strong) - strong_base, 0.5)
-		and is_equal_approx(dreams.get_soothe_multiplier(weak) - weak_base, -0.15), "Chosen Few: +50% at rank V, −15% below III")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(strong) - strong_base, 1.0)
+		and is_equal_approx(dreams.get_soothe_multiplier(weak) - weak_base, -0.5), "Chosen Few: double at rank V, half below III")
 	_clear_towers()
 
 	# Sunlit Rest: a free rank for the Warden nearest the Heartwood
@@ -602,7 +602,7 @@ func _test_potency_and_endless() -> void:
 	_check(is_equal_approx(dreams.get_effect_bonus(target), 0.24), "Seeping II: +12% per status")
 	target.free()
 	dreams.take(_card("venom_bloom"))
-	_check(is_equal_approx(dreams.get_hit_damage_multiplier(), 0.85), "Venom Bloom: hits −15%")
+	_check(is_equal_approx(dreams.get_hit_damage_multiplier(), 0.6), "Venom Bloom: hits −40%")
 
 	# Endless Rings: no max rank, ×1.2 per rank past VII; free ranks stop at VII
 	_reset()

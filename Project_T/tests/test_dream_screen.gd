@@ -295,8 +295,9 @@ func _run() -> void:
 	_check(mark != null and mark.tooltip_text.begins_with("Build around it") and (not mark is Label or not (mark as Label).text.is_valid_int())
 		and (plain.tags.has("defining") or unmarked.find_child("BuildMark", true, false) == null),
 		"a build-defining card has the build mark (no numbers), others don't")
-	marked.free()
-	unmarked.free()
+	marked.queue_free()
+	unmarked.queue_free()
+	await process_frame
 	print("dream screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

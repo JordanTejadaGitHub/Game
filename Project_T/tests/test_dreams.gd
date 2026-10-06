@@ -299,21 +299,28 @@ func _test_new_cards(main: Node) -> void:
 		and run_state.dew - dew_before == paid[0], "Deep Sleep: no rest bonus, only what Dreams add (%d)" % paid[0])
 	var sprout_tower := Tower.new()
 	sprout_tower.tower_data = load("res://resource/tower/sprout.tres")
-	_check(is_equal_approx(dreams.get_soothe_multiplier(sprout_tower), 1.6), "Deep Sleep: +60% soothe")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(sprout_tower), 1.8), "Deep Sleep: +80% soothe")
+	_check((main.get_node("%OmenDirector") as OmenDirector).omens_locked(), "Deep Sleep: Omens can't be faced (the rest skips their offer)")
 	sprout_tower.free()
 	dreams.stacks.erase("deep_sleep")
 	_check(dreams.keeps_rest_bonus(), "…without it the rest bonus is back")
 	run_state.leaves = 16
 	dreams.take(_card(dreams, "restless_dreams"))
 	_check(not dreams.can_skip(), "Restless Dreams: no Let it pass")
-	var rare_runs := 0
-	dreams.allow_bittersweet = false
-	dreams.unlocked["firefly_jar"] = true
-	dreams.take(_card(dreams, "dream_stormcap"))  # So a Rare (Thunderhead) can be offered
-	for i in 3:
-		if dreams.make_offer(10).any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()):
-			rare_runs += 1
-	_check(rare_runs == 3, "Restless Dreams: the next 3 Dreams include a Rare+ (%d/3)" % rare_runs)
+	# Waking Dreams (dream_design.md de439ea8): the next Dream offers 3 Legendaries, then every offer shows 2 cards
+	_check(dreams.waking_legendaries, "Waking Dreams: the next offer is armed")
+	var legends_open := dreams.pool.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY and dreams.can_offer(c, 2)).size()
+	var legend_offer := dreams.make_offer(30)
+	_check(legend_offer.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY).size() >= mini(DreamState.WAKING_LEGENDARIES, legends_open)
+		and legend_offer.size() >= DreamState.WAKING_LEGENDARIES and not dreams.waking_legendaries,
+		"…3 Legendaries, as many as can be offered (%d open: %s)" % [legends_open, legend_offer.map(func(c: UpgradeData) -> String: return c.id)])
+	_check(dreams.make_offer(31).size() == DreamState.WAKING_OFFER_SIZE and dreams.make_offer(32).size() == DreamState.WAKING_OFFER_SIZE,
+		"…then every offer shows 2 cards")
+	run_state.max_leaves = 15
+	run_state.leaves = 14
+	dreams.take(_card(dreams, "thin_bark"))  # Thin Bark (de439ea8): max leaves halved, those above lost now
+	_check(run_state.max_leaves == 8 and run_state.leaves == 8, "Thin Bark: 15 max leaves become 8, 14 leaves become 8 (%d/%d)" % [run_state.leaves, run_state.max_leaves])
+	dreams.stacks.erase("thin_bark")
 	run_state.max_leaves = 20
 	run_state.leaves = 20
 	_reset_dreams(main)
@@ -464,10 +471,10 @@ func _test_clearing_cards(main: Node) -> void:
 	dreams.take(burn)  # Reclaimed Earth is still owned
 	_check(dreams.count_obstacles(tree) == 0 and dreams.count_obstacles() == rocks, "Burn Back clears every Withered Tree, no rocks")
 	_check(run_state.obstacles_tended == tended, "Burn Back's clears give no Seeds")
-	_check(run_state.dew == dew - DreamState.BURN_BACK_PER_TREE * trees and run_state.fertile_cells.is_empty(), "Burn Back costs 5 Dew per tree and doesn't trigger Reclaimed Earth")
+	_check(run_state.dew == dew - DreamState.BURN_BACK_PER_TREE * trees and run_state.fertile_cells.is_empty(), "Burn Back is free and doesn't trigger Reclaimed Earth")
 	_check(run_state.tended_cells.size() == clears + trees, "Burn Back's clears still count for Tended Forest")
 	var bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
-	_check(is_equal_approx(director.get_spawn_modifiers(bug, 3).get("speed", 1.0), 1.1), "Burn Back: nightmares +10% speed")
+	_check(is_equal_approx(director.get_spawn_modifiers(bug, 3).get("speed", 1.0), 1.2), "Burn Back: nightmares +20% speed")
 	run_state.fertile_cells.clear()
 	_reset_dreams(main)
 	dreams.clearing_open = false  # As before the opener: the later simulations were tuned on this pool

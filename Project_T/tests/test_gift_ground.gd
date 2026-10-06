@@ -94,6 +94,38 @@ func _run() -> void:
 		"Bell Stone: song Wardens within 1 cell 15%% faster (%.2f vs %.2f)" % [ringing.get_attacks_per_second(), quiet.get_attacks_per_second()])
 	await _clean()
 
+	# Sow a Ridge: an attacking Warden touching a standing tree is Sheltered (+10%); walls get nothing; a tended
+	# tree shelters no one. Fallen Giant: an attacking Warden touching the log gets +0.5 range ("High ground").
+	var tree := Vector2(-1, -1)
+	var spot := Vector2(-1, -1)
+	for c in map.obstacles:
+		spot = _open_cell_near(c)
+		if spot.x >= 0:
+			tree = c
+			break
+	_check(tree.x >= 0, "a standing tree with an open cell beside it")
+	var open_far := _plant("sporeling", Vector2(16, 2))
+	var base_damage := open_far.get_damage()
+	var base_range := open_far.get_range_cells()
+	var sheltered := _plant("sporeling", spot)
+	_check(is_equal_approx(sheltered.get_damage(), base_damage), "no shelter before the gift")
+	gifts.add_mark(GiftGround.SOW_RIDGE, [tree])
+	gifts.add_mark(GiftGround.FALLEN_GIANT, [tree])
+	_check(is_equal_approx(sheltered.get_damage(), base_damage * (1.0 + GiftGround.SHELTERED_DAMAGE)),
+		"Sow a Ridge: Sheltered +10%% (%.2f vs %.2f)" % [sheltered.get_damage(), base_damage])
+	_check(is_equal_approx(sheltered.get_range_cells() - base_range, GiftGround.HIGH_GROUND_RANGE),
+		"Fallen Giant: High ground +0.5 range (%.2f vs %.2f)" % [sheltered.get_range_cells(), base_range])
+	_check(is_equal_approx(open_far.get_damage(), base_damage), "a Warden away from the tree isn't Sheltered")
+	var labels: Array = BuffSources.for_tower(sheltered).map(func(e: Dictionary) -> String: return e.label)
+	_check(labels.any(func(l: String) -> bool: return l.begins_with("Gift Sheltered")) and labels.any(func(l: String) -> bool: return l.begins_with("Gift High ground")),
+		"both show as buff chips with their source (%s)" % [labels])
+	_check(gifts.buff_rows(_plant("thornwall", Vector2(16, 4))).is_empty() and not gifts.sheltered(_tower_at(Vector2(16, 4))),
+		"walls get no gift buffs")
+	map.clear_obstacle(tree)
+	gifts.remove_mark(GiftGround.FALLEN_GIANT, tree)
+	_check(is_equal_approx(sheltered.get_damage(), base_damage), "a tended tree shelters no one (%.2f)" % sheltered.get_damage())
+	await _clean()
+
 	# Ancient Stump: a Warden planted on one starts at rank I, nothing invested for it.
 	var stump := _open_cell()
 	gifts.add_mark(GiftGround.STUMP, [stump])

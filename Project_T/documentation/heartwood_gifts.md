@@ -8,7 +8,7 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
 
 - **When:** once per act break: the rests after the bosses at 25, 50 and 75 (3 gifts a run). After the
   Dream and the family pick, before the Omen.
-- **The offer:** 3 gifts drawn from the pool below, **at least 2 that change the map**. Never the same
+- **The offer:** 3 gifts drawn from the pool below, **at least 2 that change the map**. **Every gift gives something** (user, 2026-10-06: "not have any that just only places trees and logs, everything would give buffs or more resources"): a map gift always comes with a buff or a resource, never terrain alone. Never the same
   gift twice in a run. Pick 1, or let them pass for a small Dew sum (like a Dream).
 - **Placing:** map gifts are placed on the gift screen itself, with a ghost preview: the route mist shows the
   new route, the "+N path" tag updates, and invalid cells are refused exactly like Warden placement (never
@@ -23,10 +23,10 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
 ### Shape the land (route and space)
 | Gift | What it does |
 |---|---|
-| **Sow a Ridge** | Draw a ridge of 3–5 Withered Trees, cell by cell (adjacent cells). Clearable later at the normal cost. |
-| **Fallen Giant** | Lay a fallen log 2–4 cells long, straight, where you choose. It can't be cleared this run. |
+| **Sow a Ridge** | Draw a ridge of 3–5 Withered Trees, cell by cell (adjacent cells). **Sheltered:** Wardens touching the ridge deal +10% damage. Each of its trees gives **+2 Seeds** when tended (instead of 1). Clearable at the normal cost (the bonus goes with the tree). |
+| **Fallen Giant** | Lay a fallen log 2–4 cells long, straight, where you choose; it can't be cleared this run. **High ground:** Wardens touching the log get +0.5 range. **Snag:** nightmares walking beside it move 15% slower there. |
 | **Glade** | Clear **up to 5 obstacles of your choice**, free; each still counts as tended (+1 Seed). Pick them one by one on the gift screen (gold outline + ×, click again to unselect; counter "3 of 5 · −6 path"; the route mist previews live); "Clear them" confirms. (Revised 2026-10-03, user: the radius version "didn't feel right and was unintuitive"; as built 3ab8abee.) |
-| **Shift the Stones** | Move up to 3 obstacles to new empty cells. |
+| **Shift the Stones** | Move up to 3 obstacles to new empty cells. Each one moved pays **+20 Dew × act**, and the ground it leaves is **fertile**: the next Warden planted there costs half. |
 | **Mire** | Pick 3 connected path cells: the ground turns to bog, and nightmares move 20% slower there. |
 
 ### Living ground (terrain that feeds Wardens)
@@ -50,7 +50,7 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
 | Gift | What it does |
 |---|---|
 | **Old Kin** | One Kinship you choose jumps a stage, and new bonds start one stage up for the next act. |
-| **Shifting Mist** | The start mist moves. 3 spots on the island's rim are offered (the MapLayout rules: on the rim, far enough from the Heartwood), each previewed with its route mist and path length; pick one, or keep the old start. Nightmares arrive from there for the rest of the run, so your maze faces a new way. Bridge and mist move with it. (Replaces Deeper Glade, 2026-10-04, user: "seems useless".) |
+| **Shifting Mist** | The start mist moves. 3 spots on the island's rim are offered (the MapLayout rules: on the rim, far enough from the Heartwood), each previewed with its route mist and path length; pick one, or keep the old start. Nightmares arrive from there for the rest of the run, so your maze faces a new way. Bridge and mist move with it. **Fresh ground:** this act's Dew pots are +10%. (Replaces Deeper Glade, 2026-10-04, user: "seems useless".) |
 | **Waking Root** | The next form you unlock on the Remember screen costs 1 less Dreamlight. |
 | **Memory Seed** | Choose a Warden: this act, selling and replanting it keeps its ranks and Kinship age (move it freely at rests). |
 

@@ -1664,7 +1664,7 @@ the plan below on 2026-10-06 ("Yes, no juggling").
 
 | # | Card | Effect | Tags |
 |---|---|---|---|
-| 257 | **Thorny Walls** | Thornwalls lash one nightmare beside them for **5 damage every 2 s** | wall, maze, defining |
+| 257 | **Thorny Walls** | Thornwalls lash one nightmare beside them for **5 damage every second** (0421a2f7: every 2 s cost the bot act 1 survival) | wall, maze, defining |
 | 258 | **Passing Dream** | A dispelled nightmare's statuses jump to the nearest nightmare **within 2 cells** | status, affliction |
 | 259 | **Lantern Glow** | The path tiles in each Warden's reach glow; nightmares on glowing tiles can't hide in fog and take 15% more | light, reach |
 | 260 | **First Frost** | The **first 5 nightmares** of each {drift} are {held} **1.5 s** at the first Warden they meet | held, tempo |
@@ -1718,6 +1718,20 @@ The spike is about **double a normal Rare**. The price is felt every drift or re
   - The three plain stat cards, Glinting Dew and Flurry are Uncommon.
   - Thin Bark and Blood Is Thicker are Rare.
   - Balancing Code re-checks acts 1–2 and defining-card pick rates after the build.
+
+**Built** (Roguelite Code, with Balancing's numbers):
+- Commits: f6170178 (Table A), e5e2258d (Passing Dream, Dew Line), f4a5acd5 (`defining` +
+  `is_defining()` + offer rule), 4ec2185b (Bittersweet). Tower Code's hooks are in 4a1409d0 (Thorny
+  Walls, Lantern Glow, First Frost); Enemy Code dropped Weathered Walls' trample immunity in 82cc2829.
+- **Grove cards tagged defining:** Bramble Oath, Forest's Edge, Last Stand, Mixed Grove, Bitter
+  Hedges, Sheltering Boughs, Shared Light, Tended Stumps, Few and Mighty, Grand Tour.
+  - **Not** Canopy (a planted-count milestone, a stat) or Hummingheart (converts speed into damage,
+    a tuning card). Both are untagged by this decision.
+- **"Double / half" on Bittersweet adds like every other bonus.** Blood Is Thicker and Chosen Few
+  add +100% / −50% to the damage sum, not ×2 on top. So their text says **"deal 100% more damage"**
+  and **"deal 50% less damage"** (text_style.md's verb form), never "double" or "half".
+- Deep Sleep's Omen lock: `OmenDirector.omens_skipped(reason)` at each rest. Main / UI shows
+  "Omens: locked".
 - **Roguelite Code:** all card data, `max_stacks` 1, the `defining` tag + offer rule, the new II
   cards, Deep Sleep's Omen lock and Waking Dreams' 2-card offers.
 - **Tower Code:** Thorny Walls (Thornwall attack), Briar Trap's new hold, Glinting Dew's 4th-attack

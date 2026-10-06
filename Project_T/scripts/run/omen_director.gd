@@ -417,6 +417,14 @@ func _extra_rest_bonus(omen: OmenData, rest_bonus: int) -> int:
 # faced).
 # Never an Omen from the previous rest, and the Omens are of different kinds (run_design.md
 # "More Omens"; if there aren't enough kinds, the rest fill in).
+# Deep Sleep (Bittersweet, dream_design.md de439ea8): Omens can't be faced for the rest of the run. omens_skipped fires at
+# each rest that would have offered them, so the HUD can show "Omens: locked".
+signal omens_skipped(reason: String)
+const LOCKED_REASON := "Deep Sleep: no Omens for the rest of the run"
+
+func omens_locked() -> bool:
+	return dream_state != null and dream_state.has_rule(&"deep_sleep")
+
 # Restless Omens (run_design.md): Grove Omens join the pool once their node is planted (the full game; a Dev Grove
 # run reads its preset's profile, Test Grove has everything). Tests name nodes in `force_grove`, never a profile.
 static var force_grove: Array[String] = []
@@ -696,6 +704,9 @@ func _on_rest_started(block: int, is_boss_rest: bool, bonus: int, _perfect: bool
 	if is_boss_rest:
 		return  # No Omen at an act-break rest (user: fewer screens there), not even a forced one; the block's reward was paid above
 	if drift_director.drifts_started < first_rest_drift or not drift_director.has_next_drift() or run_state.is_over:
+		return
+	if omens_locked():
+		omens_skipped.emit(LOCKED_REASON)  # Deep Sleep: no Omen offer (Main / UI show it as locked)
 		return
 	var offer := make_offer(block + 1)
 	if offer.is_empty():
