@@ -825,7 +825,11 @@ Sporeling (Brood Cap ×3), lost at drift 20. Drifts 1–9 calm (closest ≤ 0.33
 plant 437 / grow 375 / rank 456 of 1,400. Drift 10 stacks the Husk-heavy group (10 Shades + 6 Husks), the
 first finale elite and the first +25% count (`extra_nightmares_from` 10); it has been the early cliff before
 (Oct 3: 15 leaves there). **Fix: `extra_nightmares_from` 10 → 11** (full game; the demo keeps 10), so the +25%
-lands a drift after the finale. Sent to Tower Code; bot check after.
+lands a drift after the finale. In 6c54445a. **Bot check (1d5f53ba, 30 seeds):** drifts 10–11 now gentle
+for every arm (≤ 0.4 leaves lost, 83–93% clean); act 1 boss default **50%**, spender **70%**, skip **27%**
+(was 70 / 67 / 10). The default's drop goes the wrong way for an easier drift 10, so it reads as noise.
+Skip sits just over its ≤ 20% line: **kept**, because the user found early too hard and the Dreams still
+separate clearly (27 vs 50–70). Skip re-run on seeds 31–60 queued; above ~25% over 60 seeds, revisit.
 
 ## Plant vs grow vs rank: value per Dew (user via the hub, 2026-10-05: "placing more towers and growing them equal the same math with the new interest")
 
