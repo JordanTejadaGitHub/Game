@@ -375,6 +375,33 @@ func _run() -> void:
 		wall_tower.free()
 	_clear_enemies()
 
+	# --- Shelter (Tower Code's signature): a Warden in a Shelter aura can't be trampled ---
+	var shelter_cell := _free_neighbour(route[12])
+	var safe_wall := ShelteredWall.new()
+	safe_wall.tower_data = load("res://resource/tower/thornwall.tres")
+	var safe_sprite := Sprite2D.new()
+	safe_sprite.name = "Sprite2D"
+	safe_wall.add_child(safe_sprite)
+	safe_wall.cell = shelter_cell
+	safe_wall.position = map_generator.MAP_GRID.calculate_map_position(shelter_cell)
+	tower_container.add_child(safe_wall)
+	safe_wall.set_process(false)
+	var shelter_calls := []
+	safe_wall.signature_fired.connect(func(_t: Tower, id: StringName) -> void: shelter_calls.append(id))
+	var shelter_stag := _still("old_stag", route[12])
+	spawner._on_trample_requested(shelter_stag)
+	spawner._on_trample_requested(shelter_stag)
+	_check(is_instance_valid(safe_wall) and not safe_wall.is_queued_for_deletion(), "Shelter: the Stag can't trample a sheltered Thornwall")
+	_check(shelter_calls == [Signatures.SHELTER], "and the Shelter callout fires (once, not every look: %s)" % [shelter_calls])
+	var unbound_walker := _still("leaf_bug", route[12])
+	unbound_walker.set_path(PackedVector2Array([route[12], shelter_cell]))
+	unbound_walker._path_index = 1
+	spawner._on_trample_cell_requested(unbound_walker, shelter_cell)
+	_check(is_instance_valid(safe_wall) and not safe_wall.is_queued_for_deletion() and unbound_walker._path.size() > 2,
+		"an Unbound walker can't trample it either: it finds a way round")
+	safe_wall.free()
+	_clear_enemies()
+
 	# --- Soaked Rot (Dream 169): Poisoned ticks +20% per stack on Soaked nightmares ---
 	_clear_enemies()
 	var rot_dry := _still("leaf_bug", route[5])
@@ -1041,6 +1068,11 @@ func _wait(seconds: float) -> void:
 	await create_timer(seconds, true, true).timeout
 
 # A Rootling bonded for Snare (kin_share reports it), counting its pulls: for the release-pull cycle.
+# A Thornwall inside a Shelter support's aura (Tower.is_sheltered), without building the support.
+class ShelteredWall extends Tower:
+	func is_sheltered() -> bool:
+		return true
+
 class SnareHolder extends Tower:
 	var pulls := 0
 	func kin_share(id: StringName, side: String) -> float:

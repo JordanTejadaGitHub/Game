@@ -417,8 +417,30 @@ func _on_trample_requested(enemy: Node2D) -> void:
 # doesn't save it; nothing blocks an Unbound nightmare).
 func _on_trample_cell_requested(enemy: Node2D, cell: Vector2) -> void:
 	var tower := tower_at_point(cell)
-	if tower != null:
-		_trample_tower(tower, tower.cell, enemy)
+	if tower == null:
+		return
+	if _shelters(tower):  # A wall it can't pass: it finds a way round from where it stands
+		var around: PackedVector2Array = map_generator.get_path_from(enemy.get_route_point())
+		if not around.is_empty():
+			enemy.set_path(around)
+		return
+	_trample_tower(tower, tower.cell, enemy)
+
+# Shelter (Tower Code's rank V signature, warden_stats.md 96d728dd): a Warden inside a Shelter support's aura
+# can't be trampled (the Stag, the Tramplers Omen, Unbound). True if `tower` is sheltered; then the
+# signature's callout fires (at most once every SHELTER_CALLOUT_MS per Warden).
+const SHELTER_CALLOUT_MS := 3000
+var _shelter_said := {}  # Warden instance id -> msec of its last Shelter callout
+
+func _shelters(tower: Tower) -> bool:
+	if not tower.has_method("is_sheltered") or not tower.is_sheltered():
+		return false
+	var id := tower.get_instance_id()
+	var now := Time.get_ticks_msec()
+	if now - int(_shelter_said.get(id, -SHELTER_CALLOUT_MS)) >= SHELTER_CALLOUT_MS:
+		_shelter_said[id] = now
+		tower.signature_fired.emit(tower, Signatures.SHELTER)
+	return true
 
 # The wall Warden (Thornwall line) beside a walker: one whose footprint takes a half cell up to a cell
 # from the walker's own half, left, right, up or down, nearest first (half cells: walls may sit at half
@@ -432,11 +454,16 @@ func _wall_beside(enemy: Node2D) -> Tower:
 				and not BranchKit.is_stone(tower):
 			for half in tower.get_halves():
 				by_half[half] = tower
+	var sheltered := {}  # Walls in a Shelter aura in reach: skipped (it looks for another), called out once each
 	for reach in [1, 2]:
 		for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
 			var tower = by_half.get(here + offset * reach)
-			if tower != null:
-				return tower
+			if tower == null or sheltered.has(tower):
+				continue
+			if _shelters(tower):
+				sheltered[tower] = true
+				continue
+			return tower
 	return null
 
 # The Warden whose footprint takes route point `point`'s half cell (half cells: Wardens may sit at
