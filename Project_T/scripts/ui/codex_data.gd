@@ -444,6 +444,10 @@ static func glossary() -> Array:
 # glossary until the profile's first discovery (CombatCallouts writes SIGNATURES_SEEN_KEY); then what a signature is,
 # and each one by name once found, "???" until then (like undiscovered combos).
 const SIGNATURES_SEEN_KEY := "signatures_seen"
+# What each signature answers, for its found entry (warden_stats.md ff93b498).
+const SIGNATURE_ANSWERS := {&"crushing": "armour", &"watchtower": "hidden nightmares", &"relentless": "swarms",
+	&"spreading": "dense waves", &"executioner": "big crowds of normal nightmares (its price: all its hits deal 15% less)",
+	&"firstborn": "long drifts and the economy", &"shelter": "bosses that wither, dim or trample", &"surge": "burst moments"}
 
 static func signature_entries() -> Array:
 	var seen: Array = HeartwoodMemory.load_data().get(SIGNATURES_SEEN_KEY, [])
@@ -458,8 +462,9 @@ static func signature_entries() -> Array:
 		var choice = Signatures.BY_CHOICE.find_key(sig)
 		var by: String = Tower.FOCUS_NAMES.get(choice, "?") if choice != null else "?"
 		var text: String = Signatures.TEXT.get(sig, "")
-		out.append([String(Signatures.NAMES[sig]), "%s majority: %s." % [by, text.left(1).to_upper() + text.substr(1)],
-			["Signature", "Nurture choice"], ""])
+		var answers: String = SIGNATURE_ANSWERS.get(sig, "")
+		out.append([String(Signatures.NAMES[sig]), "%s majority: %s.%s" % [by, text.left(1).to_upper() + text.substr(1),
+			(" Answers %s." % answers) if answers != "" else ""], ["Signature", "Nurture choice"], ""])
 	return out
 
 # One entry per damage type, with who deals it, from the data (IconInfo.DAMAGE_TYPES + LINE_FAMILIES):
