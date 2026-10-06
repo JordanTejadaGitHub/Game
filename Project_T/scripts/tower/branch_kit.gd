@@ -54,6 +54,11 @@ static func p(tower: Tower, key: String, fallback: float) -> float:
 static func yield_ranks(tower: Tower) -> int:
 	return tower.choice_count(Tower.Focus.YIELD) / NurtureChoices.YIELD_PER
 
+# Brood Cap / Hatchery: sprites alive at once, max_alive + 1 per Yield rank (Tower Discussion, warden_stats.md 68120c18:
+# Yield only adds sprites, Swift hatches faster).
+static func brood_max_alive(tower: Tower) -> int:
+	return int(p(tower, "max_alive", 4)) + tower.choice_count(Tower.Focus.YIELD)
+
 # Jarlink's link range (cells): its own, + Reach ranks.
 static func link_range(tower: Tower) -> float:
 	return p(tower, "link_range", 4.0) + tower.area_bonus()
@@ -104,7 +109,7 @@ static func process(tower: Tower, delta: float) -> bool:
 static func has_work(tower: Tower):
 	match tower.attack_data.special:
 		BROOD:
-			return BroodSprite.alive_for(tower) < int(p(tower, "max_alive", 4)) and not field(tower).is_empty()
+			return BroodSprite.alive_for(tower) < brood_max_alive(tower) and not field(tower).is_empty()
 		PRISM:
 			return null
 	return null
@@ -1236,6 +1241,9 @@ static func draw_brood_walk(canvas: CanvasItem, walk: PackedVector2Array, stretc
 		return
 	if stretch:
 		canvas.draw_polyline(walk, Color(BROOD_PATH, BROOD_PATH.a * alpha), 6.0)
+		# The drop spot (user 2026-10-05: "where the minion spawns"): a small ring where its next sprite lands.
+		canvas.draw_arc(walk[0], 8.0, 0.0, TAU, 20, Color(BROOD_END, BROOD_END.a * alpha), 2.0)
+		canvas.draw_circle(walk[0], 2.5, Color(BROOD_END, BROOD_END.a * alpha))
 	var end: Vector2 = walk[-1]
 	var tex := Fx.texture(&"brood_end") if not Fx.info(&"brood_end").is_empty() else null
 	if tex != null:
@@ -1312,7 +1320,7 @@ class BroodSprite extends Node2D:
 		if enemy.has_method("is_hidden") and enemy.is_hidden():
 			enemy.reveal_for(2.0)  # Bumped into a Lurker: it shows itself
 		var stacks := int(BranchKit.p(tower, "spored", 2))
-		tower.hit(enemy, 1.0 + NurtureChoices.YIELD_BROOD_DAMAGE * tower.choice_count(Tower.Focus.YIELD), true)  # Yield: harder bursts
+		tower.hit(enemy, 1.0, true)
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
 			enemy.apply_status(EnemyStatuses.SPORED, stacks, 0.0, tower.get_damage() * Tower.SPORE_POTENCY, 0, "spore", tower)
 			# Crusted Brood (b): its sprites also eat dread shell.

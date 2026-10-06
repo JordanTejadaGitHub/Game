@@ -444,33 +444,8 @@ func _fill_side(data: TowerData) -> void:
 		if _dev_free.button_pressed:
 			_add_unlock(data)  # Dev: even Grove-hidden forms
 		return
-	var names := VBoxContainer.new()
-	head.add_child(names)
-	var name_label := Label.new()
-	name_label.text = data.display_name
-	UiStyle.display(name_label, 22)
-	names.add_child(name_label)
-	var kind := HBoxContainer.new()
-	kind.add_theme_constant_override("separation", 6)
-	names.add_child(kind)
-	kind.add_theme_constant_override("separation", 10)  # Two words, no " · " (light pass)
-	var tier := Label.new()
-	tier.text = _tier_name(data)
-	tier.add_theme_color_override("font_color", UiStyle.INK_DIM)
-	kind.add_child(tier)
-	var damage_kind := Label.new()
-	damage_kind.text = "%s damage" % IconInfo.damage_type_name(data.line)  # No icon (user): the damage type in its colour
-	damage_kind.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
-	kind.add_child(damage_kind)
-	var what := StatusLinks.make_label(data.description, 15, UiStyle.INK)
-	what.custom_minimum_size = Vector2(SIDE_WIDTH - 30, 0)
-	_side_box.add_child(what)
-	if data.can_attack:
-		var stats: Array = [[&"damage", str(data.damage)], [&"attack_speed", "%.1f/s" % data.attacks_per_second],
-			[&"range", "%.1f" % data.attack_range]]  # One icon row, as the Warden panel (light pass)
-		if data.potency != 1.0:
-			stats.append([&"potency", "%d%%" % roundi(data.potency * 100)])
-		_side_box.add_child(_icon_stats(stats))
+	_header_names(head, data)
+	_description_and_stats(data)
 	var statuses: Array[String] = []
 	for status in [data.applies_status, data.extra_status]:
 		if status != &"":
@@ -494,6 +469,42 @@ func _fill_side(data: TowerData) -> void:
 		_line(kin, UiStyle.LIVE, 14)
 	_add_combos(data)
 	_add_unlock(data)
+
+# The header beside the portrait (the Warden panel's): the name, then its form and damage type stacked under it.
+func _header_names(head: HBoxContainer, data: TowerData) -> void:
+	var names := VBoxContainer.new()
+	names.alignment = BoxContainer.ALIGNMENT_CENTER
+	names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(names)
+	var name_label := Label.new()
+	name_label.text = data.display_name
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UiStyle.display(name_label, 22)
+	names.add_child(name_label)
+	var kind := HBoxContainer.new()
+	kind.add_theme_constant_override("separation", 10)  # Two words, no " · " (light pass)
+	names.add_child(kind)
+	var tier := Label.new()
+	tier.text = _tier_name(data)
+	tier.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	kind.add_child(tier)
+	var damage_kind := Label.new()
+	damage_kind.text = "%s damage" % IconInfo.damage_type_name(data.line)  # No icon (user): the damage type in its colour
+	damage_kind.add_theme_color_override("font_color", IconInfo.damage_type_color(data.line))
+	kind.add_child(damage_kind)
+
+# What it does (linked) and its stats as one icon row, as the Warden panel (light pass).
+func _description_and_stats(data: TowerData) -> void:
+	if data.description != "":
+		var what := StatusLinks.make_label(data.description, 15, UiStyle.INK)
+		what.custom_minimum_size = Vector2(SIDE_WIDTH - 30, 0)
+		_side_box.add_child(what)
+	if data.can_attack:
+		var stats: Array = [[&"damage", str(data.damage)], [&"attack_speed", "%.1f/s" % data.attacks_per_second],
+			[&"range", "%.1f" % data.attack_range]]
+		if data.potency != 1.0:
+			stats.append([&"potency", "%d%%" % roundi(data.potency * 100)])
+		_side_box.add_child(_icon_stats(stats))
 
 # Stats as icons with their values (the Warden panel's row): [[icon id, value], …]; each icon's tip names it.
 func _icon_stats(stats: Array) -> HFlowContainer:
@@ -599,17 +610,12 @@ func _fill_not_in_dream(data: TowerData) -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 10)
 	_side_box.add_child(head)
-	var portrait := Portrait.new(data, 72.0, true)
-	portrait.modulate = Color(1, 1, 1, 0.6)  # multiplier: the mist
-	head.add_child(portrait)
-	var name_label := Label.new()
-	name_label.text = data.display_name
-	UiStyle.display(name_label, 22)
-	name_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
-	head.add_child(name_label)
-	_line(NOT_IN_DREAM_LINE, UiStyle.INK_DIM, 15)
-	if data.description != "":
-		_line(IconInfo.format(data.description), UiStyle.INK_DIM, 13)
+	# Known and callable (user, Inkcap: "fix"): its real sprite, centred by its drawn pixels, and the Warden panel's
+	# header, description and stats, so it can be judged before spending Dreamlight. Silhouettes stay for Grove-locked forms.
+	head.add_child(Portrait.new(data, 72.0, false))
+	_header_names(head, data)
+	_line(NOT_IN_DREAM_LINE, UiStyle.INK_DIM, 14)
+	_description_and_stats(data)
 	_add_call_back(data)
 
 func _add_call_back(data: TowerData) -> void:
@@ -621,16 +627,22 @@ func _add_call_back(data: TowerData) -> void:
 	var problem := dream_state.call_back_problem(data)
 	var cost := dream_state.call_back_cost(dream_state._parent_in_tree(data))  # 3; Wider Roots' family 4
 	UiStyle.primary(button)
+	var gap := Control.new()  # The text never touches the primary's thread (user, Inkcap)
+	gap.custom_minimum_size.y = 12
+	_side_box.add_child(gap)
 	_side_box.add_child(button)
-	if problem == "Not enough Dreamlight":  # The cost in POOR, a press refuses (as Unlock)
-		CantAfford.apply(button, "Call into this dream", "%d Dreamlight" % cost, IconInfo.format(SHORT_TIP))
+	var short := problem == "Not enough Dreamlight"
+	# "Call into this dream", then [Dreamlight] 3 at the right in GOLD, POOR when short (no " · "; user, Inkcap)
+	button.text = "Call into this dream, free (Borrowed Branch)" if free else "Call into this dream"
+	if not free:
+		_cost_on(button, cost, short)
+	if short:  # Dimmed, a press refuses (as Unlock)
+		for state in ["font_color", "font_hover_color", "font_pressed_color"]:
+			button.add_theme_color_override(state, UiStyle.INK_DIM)
+		button.set_meta(&"cant_afford", true)  # CantAfford.is_shown
+		button.tooltip_text = IconInfo.format(SHORT_TIP)
 		button.pressed.connect(_refuse_call_back.bind(button, cost))
 		return
-	button.text = "Call into this dream, free (Borrowed Branch)" if free else "Call into this dream  %d" % cost  # The glyph after it
-	if not free:
-		button.icon = IconInfo.icon(&"dreamlight")
-		button.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	if problem != "":
 		button.disabled = true
 		_line(problem[0].to_upper() + problem.substr(1) + ".", UiStyle.INK_DIM, 13)
@@ -641,6 +653,32 @@ func _add_call_back(data: TowerData) -> void:
 			selected = data
 			_rebuild()
 			_canvas.bloom(data))
+
+# The Dreamlight price at a button's right: the glyph and the number, GOLD or POOR; the label keeps clear of it.
+func _cost_on(button: Button, cost: int, short: bool) -> void:
+	var price := HBoxContainer.new()
+	price.name = "Cost"
+	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	price.add_theme_constant_override("separation", 3)
+	price.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	price.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	price.offset_right = -14
+	var glyph := TextureRect.new()
+	glyph.texture = IconInfo.icon(&"dreamlight")
+	glyph.custom_minimum_size = Vector2(16, 16)
+	glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	glyph.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	glyph.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	price.add_child(glyph)
+	var number := Label.new()
+	number.name = "Amount"
+	number.text = str(cost)
+	number.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiStyle.number(number, 18, UiStyle.POOR if short else UiStyle.GOLD)
+	price.add_child(number)
+	button.add_child(price)
 
 func _refuse_call_back(button: Button, cost: int) -> void:
 	CantAfford.shake(button)
