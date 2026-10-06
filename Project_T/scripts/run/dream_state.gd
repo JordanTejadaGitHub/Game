@@ -2436,7 +2436,7 @@ func count_taken_with_tag(tag: String) -> int:
 	return count
 
 # Build-defining cards (dream_design.md de439ea8 "B"): tag `defining`, and every Legendary. Main / UI mark them on screen.
-const DEFINING_FROM_DRIFT := 26  # Act 2
+const DEFINING_FROM_DRIFT := 10  # The rest after drift 10 (dream_design.md bb57665a; was 26)
 
 func is_defining(card: UpgradeData) -> bool:
 	return card != null and (card.tags.has("defining") or card.rarity == UpgradeData.Rarity.LEGENDARY)

@@ -1334,16 +1334,16 @@ func _test_offer_shape(main: Node) -> void:
 	var without_defining := 0
 	for i in 60:
 		dreams._passed_count.clear()
-		var late := dreams.make_offer(26 + i % 40)
+		var late := dreams.make_offer(10 + i % 40)
 		if not late.any(func(c: UpgradeData) -> bool: return dreams.is_defining(c) and not dreams.has_card(c.id)):
 			without_defining += 1
-	_check(without_defining == 0, "from drift 26 every offer shows an unowned defining card (%d without)" % without_defining)
+	_check(without_defining == 0, "from the rest after drift 10 every offer shows an unowned defining card (%d without)" % without_defining)
 	var early_without := 0
 	for i in 60:
 		dreams._passed_count.clear()
-		if not dreams.make_offer(10).any(dreams.is_defining):
+		if not dreams.make_offer(5).any(dreams.is_defining):
 			early_without += 1
-	_check(early_without > 0, "before drift 26 there's no such rule (%d of 60 offers had none)" % early_without)
+	_check(early_without > 0, "before drift 10 there's no such rule (%d of 60 offers had none)" % early_without)
 	_reset_dreams(main)
 func _reset_dreams(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")
