@@ -923,6 +923,9 @@ held the balanced bot's stat picks down all along. Next: a Thorny Walls override
 **Firmed up (60 seeds each):** act 1 default **40%** with the cards vs **46%** without (−6 ± 9: not significant; the
 first −17 was seed luck). The bend10 default reference reads ~46%, a little under the ~55 target; the card-value
 A/B decides whether that is the bot's picks.
+**Thorny Walls override (paired, seeds 1–30):** scored like a plain Common, the bot takes it 1/13 (was 11/13) and
+act 1 goes 36% → **53%**: most of the card pass's act 1 effect was the bot's picks. It also shows Thorny Walls
+under budget (taking it costs a pick): **every 1 s, 5 damage** (was every 2 s; ≈ +20% at 20 walls, fading late).
 
 ## Drawn route and early deaths (19f426c5, 2026-10-05)
 
