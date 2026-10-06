@@ -920,6 +920,9 @@ is on the edge of noise: 30 more seeds on both builds, and a check of how the po
 Dew 11, Deeper Calm and Quickened Sap 1, First Frost 0. Every tagged card beats every plain stat card, which has
 held the balanced bot's stat picks down all along. Next: a Thorny Walls override arm, then effect-size scoring
 (`--card-value`, damage-equivalent % × k) as a flag, A/B, and the default if it picks sensibly.
+**Firmed up (60 seeds each):** act 1 default **40%** with the cards vs **46%** without (−6 ± 9: not significant; the
+first −17 was seed luck). The bend10 default reference reads ~46%, a little under the ~55 target; the card-value
+A/B decides whether that is the bot's picks.
 
 ## Drawn route and early deaths (19f426c5, 2026-10-05)
 
