@@ -1722,6 +1722,25 @@ Deepened ones that exist stay.
     | Specialist, Many Talents | tall |
     | Shared Training | kinship |
 
+  - **Rebalanced to 2 per archetype (2026-10-06).** The 18 above gave Maze 4 cards and Daring
+    none, and formed builds were Maze 58% / Affliction 42%. The set is now 20 cards, two per
+    archetype; this supersedes the table above:
+
+    | Archetype | Defining cards |
+    |---|---|
+    | maze | Twig Walls, Heart of the Maze |
+    | affliction | Lingering Ground, Brimming |
+    | reach | Overlap, Crowd Breaker (affliction → reach) |
+    | overgrowth | Root Network, Small Hands |
+    | swift | Drumbeat, Momentum |
+    | tall | Specialist, Many Talents |
+    | precision | Solitude, **Watchful Rest** (new) |
+    | daring | **Fresh Growth**, **Head Start** (new) |
+    | tending | Sap Rising, **Thorny Walls** (maze → tending: walls that tend the maze) |
+    | kinship | Shared Training, **Extended Family** (new) |
+
+    Hedge Maze and Odd One Out lose `defining` and keep their archetype (maze, overgrowth).
+    Balancing Code first runs the even-weight bot on bf4fe891 (bot vs cards), then this set.
   - Every other card loses `defining` but keeps its archetype tag. That includes Cozy Corners,
     Straightaway, Lone Hunter, Old Growth, First Light, Watchful Rest, Seedfall, Tender Care and
     the Grove cards tagged earlier. Cards whose archetype tags change get only the one above.
