@@ -58,7 +58,8 @@ func _run() -> void:
 		striker.hit(target, 1.0, false, Tower.NO_CRIT)
 		hits.append(before - target.health)
 	var plain := (hits[0] + hits[1] + hits[2] + hits[3]) / 4.0  # (Whole numbers: the fraction carries hit to hit)
-	_check(absf(hits[4] / plain - Signatures.CRUSH_MULTIPLIER) < 0.1, "Crushing: the 5th hit x2 (%.1f vs %.1f)" % [hits[4], plain])
+	_check(absf(hits[4] / plain - 1.0) < 0.1, "Crushing: an unarmoured nightmare's 5th hit is plain (%.1f vs %.1f; ff93b498)" % [hits[4], plain])
+	_check(striker._crush_hits == 5, "…and the count still moves on")
 	var shelled := _walker(Vector2(4, 5))
 	shelled.coat_max = 1000.0
 	shelled.coat = 1000.0
@@ -72,6 +73,15 @@ func _run() -> void:
 	low.health = int(low.max_health * 0.15)
 	keen.hit(low, 0.01, false, Tower.CRIT)
 	_check(low.is_cleansed, "Executioner: a crit at 15% health dispels it")
+	_no_crits(keen)
+	var dull := _walker(Vector2(12, 6))
+	var dull_before: float = dull.health
+	for i in 10:
+		keen.hit(dull, 1.0, false, Tower.NO_CRIT)
+	var keen_avg: float = (dull_before - dull.health) / 10.0
+	var base_hit: float = keen.get_damage()
+	_check(absf(keen_avg / base_hit - Signatures.EXECUTE_PRICE) < 0.05,
+		"Executioner: its hits deal 15%% less (%.2f of %.2f)" % [keen_avg, base_hit])
 	var still := _walker(Vector2(12, 5))
 	still.health = int(still.max_health * 0.5)
 	keen.hit(still, 0.01, false, Tower.CRIT)

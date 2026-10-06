@@ -487,8 +487,9 @@ func _crushing(enemy: Node2D, share: float = 1.0) -> float:
 	_crush_hits += 1
 	if _crush_hits % Signatures.CRUSH_EVERY != 0:
 		return 1.0
-	if enemy.coat > 0.0:
-		enemy.coat = maxf(enemy.coat - enemy.coat_max * Signatures.CRUSH_SHELL * clampf(share, 0.0, 1.0), 0.0)
+	if enemy.coat <= 0.0:
+		return 1.0  # Only armour (a dread shell or blight coat) is crushed (ff93b498); the count still moves on
+	enemy.coat = maxf(enemy.coat - enemy.coat_max * Signatures.CRUSH_SHELL * clampf(share, 0.0, 1.0), 0.0)
 	if share >= 0.5:
 		Reactions._effect(&"crushing_hit", aim_at(enemy), self)  # Tower Assets 8d00143e (not on small ticks)
 	signature_fired.emit(self, Signatures.CRUSHING)
@@ -2218,6 +2219,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		# First Light, Last Stand, Hunter's Patience, Bitter Hedges (tracked inside: once per hit).
 		soothe *= _dream_state.on_hit_multiplier(self, enemy)
 	var sig: StringName = signature() if rank >= Signatures.SHARED_RANK else &""
+	if sig == Signatures.EXECUTIONER:
+		soothe *= Signatures.EXECUTE_PRICE  # Executioner's price: every hit 15% weaker, crits too
 	if sig == Signatures.CRUSHING and combo != &"spored" and combo != &"static":
 		soothe *= _crushing(enemy, soothe_multiplier)  # Crushing: every 5th x2, cracks the shell (ticks by their share)
 	# Reactions that change a hit: Pinned (a guaranteed ×3 crit) and Shatter (×2.5, shards).

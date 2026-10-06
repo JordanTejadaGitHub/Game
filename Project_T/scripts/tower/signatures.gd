@@ -23,11 +23,11 @@ const BY_CHOICE := {Tower.Focus.POWER: CRUSHING, Tower.Focus.SWIFT: RELENTLESS, 
 const NAMES := {CRUSHING: "Crushing", RELENTLESS: "Relentless", WATCHTOWER: "Watchtower", SPREADING: "Spreading",
 	EXECUTIONER: "Executioner", FIRSTBORN: "Firstborn", SHELTER: "Shelter", SURGE: "Surge"}
 const TEXT := {
-	CRUSHING: "every 5th hit lands x2 and strips 25% of the dread shell",
+	CRUSHING: "every 5th hit on an armoured nightmare lands x2 and strips 25% of its dread shell",
 	RELENTLESS: "a dispel starts its next cycle at once (at most every 0.5 s)",
 	WATCHTOWER: "reveals hidden nightmares in its range",
 	SPREADING: "when a nightmare carrying its statuses is dispelled, half the stacks jump to the nearest one within 2 cells",
-	EXECUTIONER: "a crit on a nightmare under 20% health dispels it (bosses and elites: the crit x1.5)",
+	EXECUTIONER: "a crit on a nightmare under 20% health dispels it (bosses and elites: the crit x1.5); every hit it lands deals 15% less",
 	FIRSTBORN: "what it makes arrives one step better",
 	SHELTER: "Wardens in its aura can't be withered, dimmed or trampled",
 	SURGE: "every 10 s its aura doubles for 2 s",
@@ -75,6 +75,7 @@ const WATCH_REVEAL := 2.0  # Seconds a reveal lasts: refreshed while inside, so 
 const SPREAD_REACH := 2.0  # Cells
 const EXECUTE_BELOW := 0.2
 const EXECUTE_BIG := 1.5  # Bosses and elites: the crit x1.5 instead
+const EXECUTE_PRICE := 0.85  # …and every hit it lands deals 15% less, crits too (ff93b498, Balancing: not an obvious pick)
 const FIRSTBORN_RANKS := 1  # Seedbearer's Sprouts one rank up (I; Grove Keeper's III)
 const FIRSTBORN_BURST := 1.5  # Brood sprites burst +50%
 const FIRSTBORN_SHARDS := 1.5  # Dream Oak shards x1.5
