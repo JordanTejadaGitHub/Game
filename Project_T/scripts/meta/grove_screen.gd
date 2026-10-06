@@ -39,6 +39,7 @@ var _card_cost := HBoxContainer.new()  # The Seeds glyph, the price, "of N Seeds
 var _card_price := Label.new()
 var _card_wallet := Label.new()
 var _footer := VBoxContainer.new()  # The button column, bottom right (the card keeps clear of it)
+var _start_button: Button  # The footer's Start run
 var _zoom_row := HBoxContainer.new()  # The zoom buttons, bottom left
 var _backdrop := ColorRect.new()
 var _viewer := PanelContainer.new()
@@ -220,7 +221,8 @@ func _build_footer() -> void:
 	footer.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	footer.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	footer.add_theme_constant_override("separation", 10)
-	UiStyle.primary(_button(footer, "Start run", _start_run))  # The screen's one primary (ui_style.md)
+	_start_button = _button(footer, "Start run", _start_run)
+	UiStyle.primary(_start_button)  # The screen's one primary (ui_style.md); framed while a node card is open
 	_button(footer, "Carry", func() -> void: _open_loadout(false))
 	_button(footer, "Codex", func() -> void: codex.open())
 	_button(footer, "Keepsakes", open_keepsakes)
@@ -316,6 +318,8 @@ func _select(unlock: UnlockData) -> void:
 
 func _update_card() -> void:
 	_card.visible = selected != null
+	if _start_button:  # One glow at a time: with a card open, Plant is the primary and Start run drops to framed
+		_start_button.theme_type_variation = &"" if selected != null else &"PrimaryButton"
 	if selected == null:
 		return
 	var section := selected.get_section()
