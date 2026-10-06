@@ -875,7 +875,8 @@ Budget: Uncommon one-family **+50%** for the kits that match, ~0 for the rest (b
 | Lingering Ground | ground effects last **×1.5**, not ×2 | overlapping clouds / rings on the same tiles turn duration into damage almost 1:1, so ×2 ≈ +100% for cloud kits |
 
 After the build: an all-Acorn check (fresh, Acorn family forced, the card forced at the first rest, 30 seeds) to
-see whether it makes the user's all-Acorn run viable.
+see whether it makes the user's all-Acorn run viable. Hooks in Tower Code 712d37d3 (the +1 s only where a timer exists: sprites
+8 → 9 s, hummingbird pecks; seeds and patrols get the damage only).
 
 ## Heartwood gifts: every gift gives something (heartwood_gifts.md b3e464e6, 2026-10-06)
 
