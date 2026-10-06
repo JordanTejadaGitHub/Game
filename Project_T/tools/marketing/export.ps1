@@ -25,7 +25,16 @@ if ($Final -eq "") { $Final = Join-Path $marketing "shorts" }
 $scene = Get-Content (Join-Path $Project "capture\$Name.json") -Raw | ConvertFrom-Json
 $inv = [Globalization.CultureInfo]::InvariantCulture
 
-$movie = Join-Path $Raw "$Name.avi"
+# A raw capture: <name>.avi (capture.ps1), or the <name>.mp4 Short Form Video re-encoded it to (x264 CRF 16) to free disk.
+function Get-RawCapture([string]$clip) {
+	$avi = Join-Path $Raw "$clip.avi"
+	if (Test-Path $avi) { return $avi }
+	$mp4 = Join-Path $Raw "$clip.mp4"
+	if (Test-Path $mp4) { return $mp4 }
+	return $avi  # Neither: the caller's "run capture.ps1" error names the .avi
+}
+
+$movie = Get-RawCapture $Name
 # A cut list ("cuts": [{"clip": "<capture name>", "from": s, "to": s}, …], optional "crossfade_frames"): the clips'
 # raw captures (same size) are trimmed and joined into one timeline first; captions, music and the end card then run
 # over the whole of it (caption times are on the joined timeline).
@@ -35,7 +44,7 @@ if ($null -ne $scene.cuts) {
 	$cutArgs = @("-v", "error", "-y")
 	$graph = ""; $lengths = @()
 	for ($i = 0; $i -lt $parts.Count; $i++) {
-		$src = Join-Path $Raw "$($parts[$i].clip).avi"
+		$src = Get-RawCapture $parts[$i].clip
 		if (-not (Test-Path $src)) { throw "No capture $src for cut $i (run capture.ps1 $($parts[$i].clip) first)" }
 		$cutArgs += @("-i", $src)
 		$from = [double]$parts[$i].from; $to = [double]$parts[$i].to
