@@ -1990,6 +1990,30 @@ The user wants Legendary-anchored builds to be a run's high points.
 Final forms are the other half: 0 of 30 fresh runs and 2 of 30 full runs planted one by drift 50.
 The Dreamlight / Dew numbers to drift 75 are being measured.
 
+## No dead cards in an offer (2026-10-06)
+
+**Measured** (Balancing Code, bf4fe891 vs 40bdebda): the bot's act 1 survival fell from 63% to
+40%, and it isn't the bot's scoring (36% without card values).
+- About half a slot per act 1 offer went to new cards a fresh act 1 board can't use: Brimming,
+  Shared Training, Close Kin, Small Hands, Lingering Ground, Many Talents.
+- The best card per offer was worth 7% less.
+
+**Rule:** a card is offered only when **your board can use it now**. These get hard Needs (not
+`min_act`, so a board that's ready early still sees them):
+
+| Card | Needs |
+|---|---|
+| Specialist, Many Talents | a Warden with 2+ ranks |
+| Shared Training | a {kinship} on the map (it has the signature discovery gate too) |
+| Close Kin | a family with 2 branches unlocked (a Kinship is possible) |
+| Brimming | a Warden that applies a stacking status (Spored, Charged or Drowsy) |
+| Small Hands | a Warden that sends things out (Brood Cap, Nestling line, Samara, Cairn, Hummingbird…) |
+| Lingering Ground | a Warden that leaves a ground effect (clouds, trails, rings, rubble, pools, lit tiles) |
+| Sap Rising | a Warden that doesn't attack (aura, catcher, Dreamcatcher) |
+
+- Future shape cards follow the same rule: name the board condition in the spec.
+- Balancing Code re-checks act 1 survival after the build.
+
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 
 User (typed in Environment Discussion): *"make a card that makes walls 1x1 cell instead of the
