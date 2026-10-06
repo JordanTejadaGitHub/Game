@@ -12,4 +12,4 @@ kind = 3
 tags = Array[String](["tall", "kinship", "defining"])
 max_stacks = 1
 rule_id = &"shared_training"
-in_start_pool = false
+discovered_by = Array[String](["kinship:any"])

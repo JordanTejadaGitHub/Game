@@ -130,7 +130,7 @@ func _test_nurture_path() -> void:
 	dreams.take(_card("brimming"))
 	_check(dreams.status_cap_multiplier() == 2, "Brimming: caps x2")
 	var training := _card("shared_training")
-	_check(training != null and not training.in_start_pool and not dreams.can_offer(training, 3), "Shared Training waits for the rank V signatures")
+	_check(training != null and training.in_start_pool and Array(training.discovered_by) == ["kinship:any"], "Shared Training: start pool now the rank V signatures exist (Tower Code e951b540), after a first Kinship")
 	tower.free()
 	dreams.stacks.clear()
 func _test_pool() -> void:
