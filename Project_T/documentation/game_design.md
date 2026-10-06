@@ -120,6 +120,13 @@ perks can modify them.
   gaps), smaller and rarer tree groves and rock clusters, and most scattered single rocks gone. The
   player's Wardens should build most of the maze, not the map. Keep at least **10 obstacles** so the
   clearing cards (need 8+) still show up; Blight 9's extra ridge still applies. As built (77eb3cd): 46–89 obstacles (mean 60, was 105), 2 ridges. **The starting route always bends at least once** (b50aa3b: the far ridge has no gaps, and the first ridge's gaps sit only over the far ridge's solid part, so any shortcut still doubles back; 44–88 obstacles, mean 63), a hint of shape while the player builds the rest of the zig-zag.
+- **Room to maze** (2026-10-06, maze_feel.md, user: *"so you can create crazy mazes like Tropical Tower Wars"*; replaces
+  the numbers above): the interior inset 3 cells is an **open build bowl** with only 2–4 lone "decision" obstacles; the
+  groves, rocks, ridge roots and the feature sit in a **3-cell edge band**, reading as a lit clearing ringed by dark woods.
+  One thin, clearable **bend spur** from the start's side forces the bend (+10 cells), so the opening route is **26–41
+  cells (median ~31)**; other spurs stay short. **About 30–40 obstacles** (min 12; Blight 9 ~51). Balancing:
+  balance_simulation.md 288fae76 (act 1 on target with walling; may ease act 1 health if first human runs find it hard).
+  Spec: environment_assets.md "Room to maze".
 - **Obstacles**: **Withered Trees** ("Tend", 12 Dew) and **Mossy Boulders** ("Move", 18 Dew), +1 Dew per clear this run, block
   nightmares and building. **Clearing is locked until you take a clearing Dream card**; after that,
   tending one opens space (and often a shortcut) and adds **+1 Seed** at
