@@ -865,6 +865,14 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Room to maze (maze_feel #5, worktree room-to-maze, 2026-10-05)
+
+Environment Code's open bowl: obstacles ~60 → 30–41, buildable ~275 → ~298 cells, but the **opening route ~46 →
+~25** (20–36); the bot's fresh seed 3 died at drift 2. **Verdict: open bowl yes, opening route kept at ~38–46**
+(the band's minimum ~38, made with ridges and the guaranteed bend): drifts 1–10 and the 60 Dew opening are
+tuned on it, and the user's goal is room to build longer, not a shorter start. Act 1 bot check on the worktree
+before merge; if the extra room makes act 1 easy, the curve answers it.
+
 ## Friend run 1 (2026-10-05 20:22, a new player, fresh profile, live main)
 
 Firefly Jar, then Dewdrop at 25; lost at **drift 40** (25 min). **Act 1: 1 leaf lost** (a leak at 5), the Stag
