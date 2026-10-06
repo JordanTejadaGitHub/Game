@@ -10,7 +10,8 @@ const DEMO_SETTING := "game/demo"
 const DEMO_MODE_SETTING := "demo_mode"
 const WISHLIST_SETTING := "game/wishlist_url"
 const TITLE_SCENE := "res://scenes/title.tscn"
-const MEMORY_1 := "Before the Heartwood, there were two trees, and both of them dreamed."
+const DEMO_END_LINE := "Deeper in the dream, something larger stirs…"  # The demo's ending (demo_scope.md e5ce233d)
+const MEMORY_1 :="Before the Heartwood, there were two trees, and both of them dreamed."
 
 @onready var run_state: RunState = %RunState
 @onready var drift_director: DriftDirector = %DriftDirector
@@ -90,12 +91,17 @@ func _build(won: bool) -> void:
 	# families' emblems, the Seeds as rows with a total, then one primary (New run) beside the Memory Grove, and
 	# Copy run report / Title quiet. The long combat report folds behind "Run report".
 	var demo_end := won and is_demo()
-	# Runs go to the Hollow Oak at drift 100, in the demo too (demo_scope.md).
-	var title := _label(box, "The Hollow Oak is dispelled" if won else "The dream goes dark", 36, UiStyle.INK)
+	# The full game ends with the Hollow Oak at drift 100; the demo with the Mire Hag at 50 (demo_scope.md e5ce233d).
+	var won_title := "The Mire Hag is dispelled" if demo_end else "The Hollow Oak is dispelled"
+	var title := _label(box, won_title if won else "The dream goes dark", 36, UiStyle.INK)
+	title.name = "Title"
 	UiStyle.display(title, 36)
 	if not won:
 		UiStyle.whisper(_label(box, "“I'm so tired. Here, take a seed. Try again.”", 17, UiStyle.WHISPER, true), 17)
 	if demo_end:
+		var stirs := _label(box, "“%s”" % DEMO_END_LINE, 17, UiStyle.WHISPER, true)
+		stirs.name = "DemoEnd"
+		UiStyle.whisper(stirs, 17)
 		_label(box, "“%s”" % MEMORY_1, 16, Palette.DEWLIGHT, true)
 
 	var stats := HBoxContainer.new()

@@ -68,7 +68,7 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 # The guaranteed elites for drift `number` if it's a block finale (0 before the first start), else -1.
 func get_block_finale_elites(number: int) -> int:
 	if block_finale_elites.is_empty():
-		return -1  # No block finales (the demo: DEMO_RULES)
+		return -1  # No block finales (an empty table)
 	if number % drifts_per_block != 0 or number % drifts_per_act == 0:
 		return -1  # Not a block's last drift, or a boss drift
 	var count := 0
@@ -91,7 +91,7 @@ func get_block_finale_elites(number: int) -> int:
 # evenly to `act1_health_multiplier` at `act1_ramp_to` and holding to the act's end; act 2 holds that
 # for its first drifts (a breather while the first finals arrive) until `early_ramp_from`, then rises
 # evenly to `early_acts_health_multiplier` at `early_ramp_to`, held until acts 3–4 take over (no stacking).
-@export var act1_health_multiplier: float = 1.20  # Balancing be7b5a94 (with copy pricing 0.08; was 1.30 after half cells, 1.15, 1.25, 1.35). The demo keeps 1.15 (DEMO_RULES)
+@export var act1_health_multiplier: float = 1.20  # Balancing be7b5a94 (with copy pricing 0.08; was 1.30 after half cells, 1.15, 1.25, 1.35).
 @export var act1_ramp_from: int = 3  # Spire: the ramp starts at drift 3 (was 9)
 @export var act1_ramp_to: int = 20
 @export var early_acts_health_multiplier: float = 4.5  # Act 2 ends at this ("Human run 7"; was 3.6, 3.0, 2.5, 1.55)
@@ -101,7 +101,7 @@ func get_block_finale_elites(number: int) -> int:
 @export var act2_steep_from: int = 37  # "Human run 2": drifts 26-37 keep the old ramp (to act2_steep_value), the rest of the rise comes after
 @export var act2_steep_value: float = 3.45  # Drift 37: on the straight line 2.0 @26 → 4.5 @45, so no knee (Spire, Balancing Discussion; was 3.3, 2.9, 2.3, 1.995)
 @export var extra_nightmares: float = 1.25  # Nightmares per drift (rounded up) from `extra_nightmares_from`
-@export var extra_nightmares_from: int = 11  # The intro drifts before it are unchanged (Balancing 2026-10-05: 11, so drift 10 isn't also the first finale; the demo keeps 10, DEMO_RULES)
+@export var extra_nightmares_from: int = 11  # The intro drifts before it are unchanged (Balancing 2026-10-05: 11, so drift 10 isn't also the first finale)
 # Rest bonus = base + per_block × block number (economy pass v2, run_design.md: was 20 + 10 × block,
 # which made the late game "infinite money")
 @export var rest_bonus_base: int = 30
@@ -153,33 +153,16 @@ var bosses: Array[BossData] = []
 var preset_bosses: Array = []  # Boss ids a resumed run drew (RunSaver sets them before the draw)
 var _own_drifts := false  # The drifts came from DEMO_DRIFTS_DIR (boss pools may replace boss drifts)
 
-# The demo keeps the rules from before the Spire merge (2026-10-02, Balancing Discussion): the old health curve, the
-# full Dew pots and no block finales (so no finale line or Rare reward either). The full game uses the exports above.
-const DEMO_RULES := {
-	"act1_ramp_from": 9, "act2_start_health_multiplier": 1.7, "act2_steep_value": 3.3, "act4_health_multiplier": 1.0,
-	"dew_pot_acts": [Vector2(30, 115), Vector2(115, 135), Vector2(135, 145), Vector2(140, 145)],
-	"dew_pot_bosses": [220.0, 270.0, 320.0, 0.0],
-	"block_finale_elites": {}, "block_finale_health_multiplier": 1.0,
-	"act1_health_multiplier": 1.15,  # The full game is at 1.20 (be7b5a94); the demo keeps its tuning
-	"extra_nightmares_from": 10,  # The full game moved it to 11 (2026-10-05)
-}
-
-func apply_demo_rules() -> void:
-	for key in DEMO_RULES:
-		var value = DEMO_RULES[key]
-		if key == "dew_pot_acts":
-			dew_pot_acts.assign(value)
-		elif key == "dew_pot_bosses":
-			dew_pot_bosses.assign(value)
-		else:
-			set(key, value.duplicate() if value is Dictionary else value)
+# The demo plays by the current rules (demo_scope.md e5ce233d, user 2026-10-06; DEMO_RULES retired): only its content is
+# limited, and it ends with the act 2 boss (the Mire Hag) at DEMO_LAST_DRIFT. Demo-only tuning: get_demo_health_scale.
+const DEMO_LAST_DRIFT := 50
 
 func _ready() -> void:
-	if ResultsScreen.is_demo():
-		apply_demo_rules()
 	if drifts.is_empty():
 		drifts = load_demo_drifts()
 		_own_drifts = true
+		if ResultsScreen.is_demo() and drifts.size() > DEMO_LAST_DRIFT:
+			drifts.resize(DEMO_LAST_DRIFT)  # The Mire Hag is the last drift: dispelling her is the demo's win
 	if boss_pools and _own_drifts:
 		_draw_bosses.call_deferred()  # Before the roll: DriftRoller keeps boss drifts as they are
 	if get_tree().current_scene == owner:  # The player's default (tests keep the export's)

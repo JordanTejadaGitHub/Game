@@ -111,9 +111,9 @@ func _ready() -> void:
 			let_pass()  # Never carried into a drift
 	)
 
-# Off in the demo (heartwood_gifts.md); acts 1–3's breaks only (the Hollow Oak's is the win).
+# Every act break but the last (the run's end is the win): the demo's drift 25 too (demo_scope.md e5ce233d: the demo plays by the current rules).
 func _on_rest_started(_block: int, boss_rest: bool, _bonus: int, _perfect: bool) -> void:
-	if not boss_rest or ResultsScreen.is_demo() or not drift_director.has_next_drift():
+	if not boss_rest or not drift_director.has_next_drift():
 		return
 	var act := drift_director.get_act(drift_director.drifts_started)
 	if taken.any(func(t: Dictionary) -> bool: return int(t.act) == act) or passed.has(act):
