@@ -186,9 +186,12 @@ func _run() -> void:
 			"the keys are chips 1–4 in one column (%s)" % [ends])
 		var row_changes: Array = rows.map(func(b: Button) -> String: return (b.get_node("Row/Price") as Label).text)
 		_check(row_changes.all(func(c: String) -> bool: return c.begins_with("+") and not c.ends_with(" Dew")), "each row says its short change, no price (%s)" % [row_changes])
+		# User, Dewdrop: "looks like we can't purchase in nurture": each row shows its price ([Dew] 48) before its key, so
+		# the rows read as buttons; the heading just names the rank.
 		var heading := panel.find_child("NurtureHeading", true, false)
-		_check(heading != null and (heading.get_node("Price") as Label).text == "%d Dew" % nursling.get_nurture_price(),
-			"the heading says the price once (%s)" % [(heading.get_node("Price") as Label).text if heading else "none"])
+		_check(heading != null and not (heading.get_node("Price") as Label).visible, "the heading names the rank, no price")
+		var costs: Array = rows.map(func(b: Button) -> String: return (b.get_node("Row/Cost/Amount") as Label).text if b.has_node("Row/Cost") else "")
+		_check(costs.all(func(c: String) -> bool: return c == str(nursling.get_nurture_price())), "each row shows its price (%s)" % [costs])
 		_check(rows.all(func(b: Button) -> bool: return b.size.y >= UiStyle.HUD_BUTTON_H - 0.5), "48 px rows")
 	var options_now := nursling.focus_options()
 	_push(KEY_2)

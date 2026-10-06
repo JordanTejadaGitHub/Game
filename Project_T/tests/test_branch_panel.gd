@@ -2,7 +2,7 @@ extends SceneTree
 
 # Branch expansion in the Warden panel (Spire branch; Roguelite 320b4969, Main 2026-10-02): branches this run didn't
 # draw aren't Grow buttons (Tower.grow_options skips them, so Q / E / Z stay on the shown ones); one quiet line,
-# "N more not in this dream · Remember", opens Remember on the first of them, where it can be called back. The hover
+# "N more not in this dream: Remember", opens Remember on the first of them, where it can be called back. The hover
 # card's "Grows into" ends with the same count. Temp profile.
 
 var failures := 0
@@ -78,7 +78,7 @@ func _run() -> void:
 	_check(grow_lines.size() == 2 and not texts.any(func(t: String) -> bool: return t.contains(DreamState.NOT_IN_DREAM + " (")),
 		"the panel shows 2 grow lines, no dead \"not in this dream\" buttons (%s)" % [texts])
 	var more := panel._content.get_node_or_null("NotInDream") as Button
-	_check(more != null and more.text == "3 more not in this dream · Remember" and more.tooltip_text.contains(hidden[0].display_name),
+	_check(more != null and more.text == "3 more not in this dream: Remember" and more.tooltip_text.contains(hidden[0].display_name),
 		"one quiet line points at Remember, in the info part (it scrolls; the actions stay put)")
 	var asked := [null]
 	dreams.remember_requested.connect(func(focus: TowerData) -> void: asked[0] = focus)

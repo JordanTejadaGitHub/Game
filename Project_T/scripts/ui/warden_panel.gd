@@ -355,7 +355,7 @@ func _refresh() -> void:
 				# unboxed row each, the name and its short change, the key as a chip; the full change is the tip.
 				var price := 0 if _free_rank() else cost
 				_nurture_gap()
-				_nurture_heading("Nurture to rank %s" % Tower.rank_name(_tower.rank + 1), price)
+				_nurture_heading("Nurture to rank %s" % Tower.rank_name(_tower.rank + 1), -1)  # The price is on each row
 				var choices: Array = _tower.focus_options()
 				for index in choices.size():
 					var which: Tower.Focus = choices[index]
@@ -889,11 +889,14 @@ func _not_in_dream_button(data: TowerData) -> void:
 		return
 	var button := Button.new()
 	button.name = "NotInDream"
-	button.text = "%d more not in this dream · Remember" % hidden.size()
+	button.text = "%d more not in this dream: Remember" % hidden.size()
 	button.focus_mode = Control.FOCUS_NONE
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_content.add_child(button)
 	button.flat = true
+	# Small and quiet (user, Dewdrop: it was louder than the panel's own heading): body text, the row note size.
+	button.add_theme_font_override("font", UiStyle.body_font())
+	button.add_theme_font_size_override("font_size", ROW_NOTE_SIZE)
 	button.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	button.tooltip_text = "%s: not in this dream. Call one back on Remember." % ", ".join(hidden.map(
 		func(form: TowerData) -> String: return form.display_name))
@@ -908,6 +911,12 @@ func _fill_rank_picks() -> void:
 	_ranks_row.visible = _tower != null and _tower.rank > 0 and not _tower.rank_choices.is_empty()
 	if not _ranks_row.visible:
 		return
+	var head := Label.new()  # Said what they are (user, Dewdrop: a lone orange "Power" read like an error)
+	head.name = "RanksHead"
+	head.text = "Nurtured:"
+	head.add_theme_font_size_override("font_size", 14)
+	head.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	_ranks_row.add_child(head)
 	var order: Array = []
 	for which in _tower.rank_choices:
 		if not order.has(which):
@@ -1349,7 +1358,7 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 	price_label.visible = price_label.text != ""
 	if change:  # One line, cut with "…" rather than wrapped (its tip has the whole change)
 		price_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		price_label.size_flags_stretch_ratio = 1.6
+		price_label.size_flags_stretch_ratio = 3.0  # Names are short (Power, Yield): the change gets the room
 		price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		price_label.clip_text = true
 		price_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -1365,6 +1374,7 @@ func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 	var chip := row.get_node("Key") as Label
 	chip.text = key.strip_edges().trim_prefix("(").trim_suffix(")")
 	chip.visible = chip.text != ""
+	_row_cost(row, button, short)
 
 # A row that can't be pressed, with its reason as the small line ("Needs 3 free cells beside it", "Awake elsewhere").
 # A row's name is never cut (user, Jarlink: "Unlock Lightning F…"): it steps down a font size or two until it fits its
@@ -1383,6 +1393,42 @@ static func _fit_name(label: Label) -> void:
 	# Only a real change: a new size resizes the label, which asks again (deferred; the same answer then stops it).
 	if label.get_theme_font_size("font_size") != fit:
 		label.add_theme_font_size_override("font_size", fit)
+
+# A Nurture choice's price, small before its key ([Dew] 48), GOLD or POOR (user, Dewdrop: "looks like we can't purchase
+# in nurture": rows without a price read like a list, not buttons). Only on rows with a change (meta "change").
+func _row_cost(row: HBoxContainer, button: Button, short: bool) -> void:
+	var cost_box := row.get_node_or_null("Cost") as HBoxContainer
+	if not button.get_meta(&"change", false):
+		if cost_box != null:
+			cost_box.visible = false
+		return
+	if cost_box == null:
+		cost_box = HBoxContainer.new()
+		cost_box.name = "Cost"
+		cost_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cost_box.add_theme_constant_override("separation", 2)
+		var glyph := TextureRect.new()
+		glyph.texture = IconInfo.icon(&"dew")
+		glyph.custom_minimum_size = Vector2(14, 14)
+		glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		glyph.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		glyph.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cost_box.add_child(glyph)
+		var amount := Label.new()
+		amount.name = "Amount"
+		amount.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		amount.add_theme_font_size_override("font_size", ROW_NOTE_SIZE + 1)
+		cost_box.add_child(amount)
+		row.add_child(cost_box)
+		row.move_child(cost_box, row.get_node("Key").get_index())  # Before the key chip
+	var cost := int(button.get_meta(&"cost", 0))
+	var label := cost_box.get_node("Amount") as Label
+	label.text = "free" if cost <= 0 else str(cost)
+	cost_box.get_child(0).visible = cost > 0
+	label.add_theme_color_override("font_color", UiStyle.POOR if short else UiStyle.GOLD)
+	cost_box.visible = true
 
 func _row_note(button: Button, form_name: String, reason: String) -> void:
 	button.set_meta(&"label", form_name)
