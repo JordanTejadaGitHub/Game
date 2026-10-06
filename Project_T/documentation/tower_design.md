@@ -929,7 +929,7 @@ Kinships are built too (6ba79b8). Whole Tree family perks: check with Tower Code
 | Nestling | Hummingbird Bower + Magpie Perch | **Jewel Thieves** | every 6th peck strips a nightmare buff (+1 Dew if there's none) | pecks twice per swoop |
 | Whirligig | Samara + Gust | **Tailwind** | the seed carries full stacks | copies reach nightmares up to 3 cells away in a line |
 
-**In the demo:** Slumber Rot, Rainfog and Storm Beacon (the starting families) and Kindred. They
+**In the demo:** Slumber Rot, Rainfog, Storm Beacon, Night Chimes (Bellflower) and, since the demo Grove plants Rootling (2026-10-06), **Snare** (Rootcurl + Tangleroot): one named Kinship per demo family, plus Kindred. They
 give demo players a second layer of combos, since Crowned Reactions need 3 families. Whole Tree
 needs a hidden branch, so it's full game only.
 
