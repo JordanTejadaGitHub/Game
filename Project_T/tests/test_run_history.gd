@@ -87,10 +87,13 @@ func _run() -> void:
 	var spawner = main.get_node("%EnemyContainer")
 	var walker: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"), 1.0, {}, false)
 	await process_frame
+	# Counted as changes (Environment Code, short "Room to maze" routes): earlier nightmares may already have leaked
+	var dispels_before := int(history._route_block.dispels[0])
+	var leaked_before := int(history._route_block.leaked)
 	history._on_dispelled(walker)
 	history._note_leak(walker)
-	_check(int(history._route_block.dispels[0]) == 1 and float(history._route_block.dispel_health[0]) > 0.0
-		and int(history._route_block.leaked) == 1, "a dispel counts in its route bin (just spawned: the first), a leak apart")
+	_check(int(history._route_block.dispels[0]) == dispels_before + 1 and float(history._route_block.dispel_health[0]) > 0.0
+		and int(history._route_block.leaked) == leaked_before + 1, "a dispel counts in its route bin (just spawned: the first), a leak apart")
 	# Every Dream offer (Roguelite Mechanic Discussion: pick rates): [drift, [offered ids], taken or "" for Let it pass].
 	var dreams: DreamState = main.get_node("%DreamState")
 	var cards: Array[UpgradeData] = []
