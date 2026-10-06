@@ -911,6 +911,12 @@ Legendaries, then no skipping and 2-card offers. All as proposed except the two 
 must take it as offered; after the build, Balancing Code re-checks act 1–2 (default / spender / skip) and the
 pick rate of defining cards.
 
+**Re-check (40bdebda = main + bend10 + walling bot + the card pass; 30 seeds, half 20):** act 1 default **36%**,
+spender 50%, skip 16%, half default 30% (no-card reference on the same maps: 53 / 40 / 20). Act 2: 0–3%
+(fresh dies in act 2, on target; too few act 2 offers to read the defining rule). Combo share act 1 / 2: 0.16 /
+0.33. The bot took Thorny Walls 22 of 28 and First Frost 1 of 34, which reads as its policy's scores. Default's −17
+is on the edge of noise: 30 more seeds on both builds, and a check of how the policy scores Thorny Walls.
+
 ## Drawn route and early deaths (19f426c5, 2026-10-05)
 
 After "fewest turns among the shortest", 5–7 of 30 bot runs per arm die by drift 2 (was ~1 in 90). Same-board
