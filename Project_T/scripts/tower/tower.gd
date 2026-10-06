@@ -1165,8 +1165,24 @@ func _rank_price_for(which: int, data: TowerData, self_price: bool) -> int:
 # the evolve cost plus, for each rank held, that rank's price at the new tier minus its price at this
 # one (free ranks pay it too). {"total", "base", "ranks"}. Every Grow button, group grow, the G hotkey
 # and TowerPlacer.evolve use this, so they all agree.
-func get_grow_cost(into: TowerData) -> Dictionary:
+# Dew paid to plant this Warden (TowerPlacer sets it; -1 = unknown, e.g. a Warden from an older save: invested_dew).
+var plant_dew := -1
+
+# Sprout into a family base (Balancing 2026-10-05: growing bypassed the per-copy price): at least that Warden's
+# planting price now (copies included) minus what this Sprout cost; a gift Sprout (0 Dew) pays the full price.
+# `planned`: copies of `into` grown earlier in the same group grow (each raises the next one's planting price).
+func _sprout_into_floor(into: TowerData, planned: int = 0) -> int:
+	if tower_data.get_id() != "sprout" or not into.buildable_directly or placer_ref == null:
+		return 0
+	var placer = placer_ref.get_ref()
+	if placer == null or not placer.has_method("get_cost"):
+		return 0
+	var paid: int = plant_dew if plant_dew >= 0 else invested_dew
+	return placer.get_cost(into, cell, planned) - paid
+
+func get_grow_cost(into: TowerData, planned: int = 0) -> Dictionary:
 	var base: int = _dream_state.get_evolve_cost(into) if _dream_state else into.evolve_cost
+	base = maxi(base, _sprout_into_floor(into, planned))
 	base = roundi(base * BranchKit.grow_multiplier(self))  # Nursery (b): 10% cheaper beside the Nurse Log
 	var ranks := 0
 	for which in range(1, rank + 1):

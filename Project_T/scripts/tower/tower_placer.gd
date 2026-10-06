@@ -1068,6 +1068,7 @@ func _try_build(cell: Vector2) -> bool:
 	tower.tower_data = tower_data
 	tower.cell = cell
 	tower.invested_dew = cost
+	tower.plant_dew = cost  # What it was planted for (a Sprout growing into a base: the copy floor)
 	if tower_data.get_id() == "sprout" and cost == 0:
 		tower.set_meta(&"gift_sprout", true)  # A Seedling Gift charge: never raises the Sprout price
 	tower.rest_dew = cost if Tower.resting else 0  # Placed this rest: a full refund until Start
@@ -1108,6 +1109,7 @@ func _try_build_half(origin: Vector2) -> bool:
 	tower.half_cell = origin
 	tower.cell = home
 	tower.invested_dew = cost
+	tower.plant_dew = cost  # What it was planted for (a Sprout growing into a base: the copy floor)
 	if tower_data.get_id() == "sprout" and cost == 0:
 		tower.set_meta(&"gift_sprout", true)
 	tower.rest_dew = cost if Tower.resting else 0

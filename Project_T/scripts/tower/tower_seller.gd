@@ -312,7 +312,7 @@ func plan_grow(towers: Array, into: TowerData) -> Array:
 			continue
 		if into.footprint > tower.get_footprint() and tower_placer.get_grow_squares(tower, into).is_empty():
 			continue  # No room for the 2×2 form: skipped (grow_group picks the best square for the rest)
-		var cost: int = tower.get_grow_cost(into).total
+		var cost: int = tower.get_grow_cost(into, count).total  # Earlier ones in the group raise the copy price
 		if total + cost > run_state.dew:
 			continue
 		count += 1
@@ -322,9 +322,11 @@ func plan_grow(towers: Array, into: TowerData) -> Array:
 # What growing all of `towers` into `into` would cost.
 func full_grow_cost(towers: Array, into: TowerData) -> int:
 	var total := 0
-	for tower in towers:
+	var grown := 0
+	for tower in sort_by_heartwood(towers):  # In grow order: each grown copy raises the next one's price
 		if is_instance_valid(tower):
-			total += tower.get_grow_cost(into).total
+			total += tower.get_grow_cost(into, grown).total
+			grown += 1
 	return total
 
 # Grows as many of `towers` into `into` as the player can afford, closest to the Heartwood first.
