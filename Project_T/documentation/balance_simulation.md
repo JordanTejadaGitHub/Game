@@ -839,7 +839,7 @@ bot data asked of Balancing Code before choosing a fix.
 (default / spender). The Scarecrow itself never reached the Heartwood; its drift leaks **~4 per surviving run vs
 ~0.4 for the Stag**: the Crows. The bot hides the cliff because it covers the Heartwood end. **Fix: Scarecrow
 `grief_count` 4 → 2 and `split_count` 4 → 2** (10 Crows in all, was 20 with the 4 on its fall): at 1 leaf each, 20 could end a clean run alone; 10 leaves a clean run
-alive. Sent to Enemy Code. Watch: Night Mare for the spender (57%, small n).
+alive. In 5155f17e. Watch: Night Mare for the spender (57%, small n).
 
 ## Human run 19 (2026-10-05, build c473ca = 4aae45a5, the new grow setting; 0 Grove): "a bit too hard early on"
 
