@@ -12,6 +12,5 @@ rarity = 1
 kind = 3
 tags = Array[String](["nurture", "tall"])
 max_stacks = 1
-in_start_pool = false
 deepens = "sunlit_rest"
 rule_id = &"sunlit_rest"

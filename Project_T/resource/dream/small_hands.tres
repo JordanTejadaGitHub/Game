@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "small_hands"
 display_name = "Small Hands"
-description = "Anything a Warden sends out (sprites, birds, seeds, lobbed stones) deals 35% more damage and lasts 1 s longer."
+description = "Anything a Warden sends out (sprites, birds, seeds, lobbed stones) deals 35% more damage; sprites and birds stay 1 s longer."
 rarity = 1
 kind = 3
 tags = Array[String](["defining"])
