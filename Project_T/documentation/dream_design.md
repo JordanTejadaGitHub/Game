@@ -1646,6 +1646,9 @@ The player builds finer, twistier mazes in the same space.
     about +40–50% damage, the Rare budget.
   - If `longest_path` on human runs with the card passes ~120 cells, it gets a cap (e.g. up to 30
     twig walls).
+  - **Route probe** (balance_simulation.md f75724fe, 20 maps): the whole route is only ~10–15%
+    longer, not ×1.5. Twigs add +40 / +55 / +59 cells vs Thornwall +29 / +43 / +51 at 10 / 20 / 30
+    walls' worth. That's under the Rare budget: no cap, `min_act` 2 stays.
 - **Who builds it:**
   - Roguelite Code: the card.
   - Tower Code: a one-half footprint for the Thornwall under the card, covering the ghost snap,
