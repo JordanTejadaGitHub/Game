@@ -440,10 +440,16 @@ budget became "a placement fits in one frame (≤ 10 ms), hover ≤ 4 ms" (`test
     near-route tries start around the route's frame stretch (`feature_near_route`).
   - The bowl gets 3–6 lone decision obstacles, none touching another obstacle.
 - **Bend spur:** one per map, on the row nearest the start, from the wall that needs the shorter reach.
-  - A thin, gap-free line with a 2-cell root (3 rows thick).
+  - A sealed line (no 4-way gap) of mixed trees and boulders (30–60% boulders), with a ragged 2–3 cell root, a step to
+    the next row every 3–5 cells (the corner cell is filled, so it still holds) and clumps of 1–2 beside it. The user,
+    2026-10-06: *"looks a bit unnatural if it's just rocks in a line, make sure variety"* (b0fff312). Steps and
+    clumps stay within one row of the spur's base row and `RIDGE_END_GAP` from the start and Heartwood rows, so they
+    can't seal the start in or touch the next spur.
   - Its tip sits `MapLayout.BEND_EXTRA / 2` = 5 cells past the start→Heartwood box, so every way round costs +10.
   - The opening floor is `min_route_length` = Manhattan + 10. Cap: 75% across (`MapLayout.BEND_REACH_SHARE`).
-  - Other spurs: gap-free, 25–35% across, on alternating walls; Blight 9 adds one. No strays.
+  - Other spurs: mixed (25–75% boulders), 25–35% across, may gap past the root, on alternating walls; Blight 9 adds
+    one. Rock clusters fill 70% with some trees among the boulders. The Ruin is a broken, roughly round stone ring (in
+    progress).
 - **Heartwood fit check:** `MapLayout.bend_fits()`. A rolled Heartwood with no room for the bend re-rolls among spots
   where it fits (~16% of rolls; 174 distinct spots over 400 rolls). Every other roll keeps its spot.
 - **Obstacle count:** target 38–48 (user, 2026-10-06: "maybe a bit more obstacles"; was 30–40).
