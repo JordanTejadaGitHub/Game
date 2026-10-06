@@ -197,7 +197,7 @@ func _run() -> void:
 		if Vector2(row.cell[0], row.cell[1]) == tower.cell:
 			entry = row
 	_check(int(entry.get("rank", -1)) == 5 and int(entry.get("focus", -1)) == Tower.Focus.POWER,
-		"the save keeps a Warden's rank and Focus")
+		"the save keeps a Warden's rank and Focus (saved %s; the Warden: rank %d, focus %d, valid %s)" % [entry, tower.rank, tower.focus, is_instance_valid(tower)])
 	RunSaver.delete_save()
 
 	# The Nurture button says what a rank adds to the next growth (warden_stats.md; growing pays the ranks).
