@@ -6,10 +6,10 @@
 script = ExtResource("1_unlock")
 id = "elders"
 display_name = "Elders"
-description = "Tall-build Dreams join the pool: Elder Kin, Few and Mighty."
+description = "Few and Mighty joins the pool."
 root = 1
-costs = Array[int]([40])
+costs = Array[int]([30])
 order = 10
 icon = 3
 requires_all = Array[String](["nursery"])
-dream_cards = Array[String](["elder_kin", "few_and_mighty"])
+dream_cards = Array[String](["few_and_mighty"])
