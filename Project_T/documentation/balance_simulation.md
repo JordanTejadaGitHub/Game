@@ -892,7 +892,8 @@ ridge Seeds; fixed to 2 in total in 8ec114cb).
 **Overlap fixes (user, heartwood_gifts.md 8f46c6ac):** Fallen Giant = **+15% crit chance** touching the log only (range
 and slow dropped; 10% at ×2 crits sat under the Ridge's +10% damage). Shift the Stones = Dew only, **30 × act** per
 stone (fertile dropped: 3 half-price plants were worth ~40–75 Dew). Bramble Verge = free Thornwall → Bramble
-growth for the run + Drowsy cap +1 (≈ 10 Dew a wall, ~200–300 by act 2; as designed).
+growth for the run + Drowsy cap +1 (≈ 10 Dew a wall, ~200–300 by act 2; as designed). In: Main Merger d8f18e55, Tower Code
+5f61e09a, Environment Code 23c2f39b.
 
 ## Fewer, bigger cards: numbers (dream_design.md de439ea8, 2026-10-06)
 
