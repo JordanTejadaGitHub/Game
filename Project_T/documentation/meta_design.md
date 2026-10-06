@@ -321,7 +321,7 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 |---|---|---|---|
 | **Swift** (attack speed) | *Quickening*: Hunt's Rush (the card Quickening, renamed in the card pass) (30) | *Light Feet*: Restless Roots, Hummingheart (60) | **Whirlwind Heart** (120) |
 | **Wide Reach** (area, splash) | *Broad Strokes*: Lingering Splash (30) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
-| **Keen Edges** (precision, crit) | *Sharpened*: Still Target, Shattering Blow, **Hunter's Patience**, **Sharpened Light** (50) | — | **Full Moon** (120) · **Hunter's Moon** (80) |
+| **Keen Edges** (precision, crit) | *Sharpened*: Still Target, Shattering Blow, **Hunter's Patience**, **Sharpened Light** (50) | — | **Full Moon** (120) (Hunter's Moon moved to the start pool 2026-10-06) |
 | **Deep Poison** (affliction, effects) | *Seeping* (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) · **Eternal Charge** (80) |
 | **Daring** (low leaves, tempo) *(new)* | *Scarred Bark*: Scarred Bark, Thin Bark (40) | *Last Stand*: Desperate Bloom, Second Wind, Last Stand (50) | **Last Leaf** (80) · **Restless Night** (80) |
 | **Tending** (nurture, tall) | *Tending Hands*: Deeper Rings (50; Sunlit Rest moved to the start pool 2026-10-06 as Tall's third door) | *Nursery*: Nursery, Chosen Few (70) → *Elders*: Few and Mighty (30; Elder Kin moved to the start pool 2026-10-06 as a Kinship door) | **The Old Ones** + **Endless Rings** (150; needs Elders) |
@@ -329,7 +329,8 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 | **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Mixed Company*: Mixed Grove, Grand Tour (40) | **Rootbound** (100; needs Seedbed) · **Menagerie** (80; needs Mixed Company) |
 | *(2026-10-05: Momentum, Drumbeat, Overlap, Crowd Breaker, Solitude and Odd One Out moved back to the start pool as Uncommons, `dream_design.md` "Fewer family boosters, more build shapes"; their nodes cost 10 less, except Seeping, back to its original 50.)* | | | |
 | *(2026-10-06, "Fewer, bigger cards", `dream_design.md` de439ea8: Flurry moved to the start pool, Broad Splash folded into Far Reach, Acorn Cache into Warm Hearth; Quickening and Broad Strokes now 30.)* | | | |
-| **The Long Way** (path length) | *Dead Wood*: Burn Back the Dead Wood (40) | *Winding Roads*: Forest's Edge (50) | **The Long Walk** (100; needs Dead Wood) · **Crossroads** (80; needs Winding Roads) |
+| *(2026-10-06: The Long Walk and Hunter's Moon moved to the start pool so a fresh profile can see a Legendary; each forked branch keeps its other tip. Boss-rest offers now hold one Legendary slot, `dream_design.md`.)* | | | |
+| **The Long Way** (path length) | *Dead Wood*: Burn Back the Dead Wood (40) | *Winding Roads*: Forest's Edge (50) | **Crossroads** (80; needs Winding Roads) (The Long Walk moved to the start pool 2026-10-06) |
 | **Hedgerows** (walls, holding) *(new)* | *Bitter Hedges*: Bitter Hedges, **Thornheart** (40) | — | **Briar Crown** (80) · **Rooted Nightmares** (80) |
 | **Reclaiming** (clearing) *(new)* | *Reclaimed Earth*: Reclaimed Earth, Tended Stumps, Hollow Ground (50; the "where you clear" payoffs first) | *Thorn and Bramble*: Tended Forest, Thorn Snare, Bramble Oath (70) | **Wildwood Reclaimed** (80) |
 | **The Quiet Ones** (support Wardens) | *Old Wood*: Overflowing Well, Hedgerow Roots, Grandfather Stump, Living Walls, **Scented Hedge**, Many Threads (70) | — (*Catchers* removed 2026-10-01: Dew Trail and Acorn Cache moved to the Acorn family node) | **The Quiet Ones** (120; needs Old Wood) |
