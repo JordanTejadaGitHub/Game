@@ -108,8 +108,8 @@ func card_de(card: UpgradeData) -> float:
 	de += dew / DEW_PER_DE
 	var rule: float = RULE_DE.get(card.id, 0.0)
 	match card.id:
-		"thorny_walls":  # A Sprout's damage (~5 per 2 s) per wall with a nightmare beside it about half the time
-			rule = 1.0 * dreams._towers().filter(func(t: Tower) -> bool: return t.tower_data.line == "wall").size()
+		"thorny_walls":  # 0.5 per wall (Balancing: 20 walls ≈ +10% of a late act 1 board)
+			rule = 0.5 * dreams._towers().filter(func(t: Tower) -> bool: return t.tower_data.line == "wall").size()
 		"odd_one_out":
 			var kinds := {}
 			for t in attackers:
