@@ -24,9 +24,9 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
 | Gift | What it does |
 |---|---|
 | **Sow a Ridge** | Draw a ridge of 3–5 Withered Trees, cell by cell (adjacent cells). **Sheltered:** Wardens touching the ridge deal +10% damage. Each of its trees gives **+2 Seeds** when tended (instead of 1). Clearable at the normal cost (the bonus goes with the tree). |
-| **Fallen Giant** | Lay a fallen log 2–4 cells long, straight, where you choose; it can't be cleared this run. **Lookout:** attacking Wardens touching the log get +10% crit chance. (2026-10-06: was +0.5 range and a 15% slow, which overlapped Moonwell and Mire.) |
+| **Fallen Giant** | Lay a fallen log 2–4 cells long, straight, where you choose; it can't be cleared this run. **Lookout:** attacking Wardens touching the log get +15% crit chance. (2026-10-06: was +0.5 range and a 15% slow, which overlapped Moonwell and Mire.) |
 | **Glade** | Clear **up to 5 obstacles of your choice**, free; each still counts as tended (+1 Seed). Pick them one by one on the gift screen (gold outline + ×, click again to unselect; counter "3 of 5 · −6 path"; the route mist previews live); "Clear them" confirms. (Revised 2026-10-03, user: the radius version "didn't feel right and was unintuitive"; as built 3ab8abee.) |
-| **Shift the Stones** | Move up to 3 obstacles to new empty cells. Each one moved pays **+20 Dew × act**. (The fertile half-price spot was dropped 2026-10-06: it overlapped Ancient Stump.) |
+| **Shift the Stones** | Move up to 3 obstacles to new empty cells. Each one moved pays **+30 Dew × act**. (The fertile half-price spot was dropped 2026-10-06: it overlapped Ancient Stump.) |
 | **Mire** | Pick 3 connected path cells: the ground turns to bog, and nightmares move 20% slower there. |
 
 ### Living ground (terrain that feeds Wardens)
