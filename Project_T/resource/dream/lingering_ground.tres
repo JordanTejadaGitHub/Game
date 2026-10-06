@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "lingering_ground"
 display_name = "Lingering Ground"
-description = "Ground effects (clouds, trails, rings, rubble, pools, lit cells) last twice as long."
+description = "Ground effects (clouds, trails, rings, rubble, pools, lit cells) last 50% longer."
 rarity = 1
 kind = 3
 tags = Array[String](["defining"])
