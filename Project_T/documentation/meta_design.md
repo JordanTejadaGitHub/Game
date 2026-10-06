@@ -202,6 +202,8 @@ the card one is **purple**, on the Cards limb (the right side).
 - **Rule (user 2026-10-05): anything card-like (Dreams, Omens) goes on the right side, purple; the left side, orange, holds run and loadout options.** These count toward the Heartwood's Crown like any bought node. +300 Seeds. (Second Look, a map reroll, was dropped 2026-10-05 as a duplicate of Remembered Seed; Waystone Swap was declined.) (Wanderer's Map, a new map layout, was dropped 2026-10-05: user "Removing it".)
 - Each node waits for its content; until then it isn't on the tree.
 
+**Control budget** (user 2026-10-06, via Balancing: *"don't want to be able to force a build; want players to adapt to be optimal; sometimes they can"*): the Grove's control nodes (Second Thoughts rerolls, Let Go, Wider Dreams, Omen Reader, Wider Choice, Wider Roots, Kin Foretold, Chosen Hunt) must not let a full Grove force one named build. Chase target with a full loadout: ≤ ~30% of runs reach a chosen build by drift 50, ≤ ~50% by 75 (Balancing Code measures). Over the line → those nodes are trimmed or become sidegrades, never more control added.
+
 **Power budget:** 15 perks, carry 3 at the start, up to 5 (6 once the whole tree is grown). A full economy loadout (Morning Stores III, Rich Dew
 III, Rested Roots II, Sprout Bed, Clear Sight) makes the early game noticeably smoother, which is
 why **Blight Levels** exist: each level takes back some of that power. Caps: starting Dew +30,
