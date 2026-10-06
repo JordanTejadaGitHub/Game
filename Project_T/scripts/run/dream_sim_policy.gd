@@ -59,7 +59,11 @@ func _init(dream_state: DreamState, play_style: Style = Style.BALANCED) -> void:
 
 # --- Dreams ---------------------------------------------------------------------------------------
 
+var score_overrides := {}  # Card id -> fixed score (the runner's --card-score=id=value; e.g. a card scored like an untagged Common = 0)
+
 func score(card: UpgradeData) -> float:
+	if score_overrides.has(card.id):
+		return score_overrides[card.id]
 	var tags: Dictionary = TAG_SCORES[style]
 	var value := 0.0
 	for tag in card.tags:
