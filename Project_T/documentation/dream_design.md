@@ -1838,8 +1838,27 @@ read those choices, so the Nurture path shapes the build.
 
 - Specialist and Many Talents pull opposite ways on purpose. Neither needs a Warden; both work from
   the first rank, so they're doors into Tall as well.
-- **Shared Training waits** for Tower Discussion's rank V signatures (Crushing, Flurry Heart,
-  Overwatch, Spreading, Executioner, Brood) to be built. Until then it isn't offered.
+- **Shared Training waits** for Tower Code to build the rank V signatures, which Tower Discussion
+  has decided (warden_stats.md "Rank V signatures", 96d728dd): a Warden with 3+ of ranks I–V on one
+  choice gets that choice's signature:
+
+  | Choice | Signature |
+  |---|---|
+  | Power | Crushing |
+  | Swift | Relentless |
+  | Reach | Watchtower |
+  | Deep | Spreading |
+  | Keen | Executioner |
+  | Yield | Firstborn |
+  | Wide | Shelter |
+  | Strong | Surge |
+  | Kindred | none |
+
+  - **With Shared Training:** two kin that both have 3 of ranks I–IV on the same choice get its
+    signature at **rank IV**.
+  - Kindred has no signature, so a Kindred pair gains nothing; the card text says "the same choice"
+    and the Warden panel shows which.
+  - Until the signatures are built, it isn't offered.
 - Numbers to Balancing Discussion.
 
 ### Brimming (card 269)
