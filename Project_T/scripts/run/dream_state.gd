@@ -4367,7 +4367,7 @@ func in_hollow(cell: Vector2) -> bool:
 # nothing; a card discovered mid-run joins at once; an Entwined card only if it was drawn. Saved with the run. On in the real game; tests and tools switch it on with run_pool_forced.
 const RUN_POOL_BASICS: Array[String] = ["quickened_sap", "deeper_calm", "longer_roots", "deep_roots", "thick_bark",
 	"evergreen", "morning_dew"]
-const RUN_POOL_SHARE := 0.6
+@export var run_pool_share := 0.6  # Share of each rarity drawn into a run's pool (an export so sims can set it: --set=%DreamState.run_pool_share=0.7)
 const RUN_POOL_FLOORS := {UpgradeData.Rarity.COMMON: 12, UpgradeData.Rarity.UNCOMMON: 12, UpgradeData.Rarity.RARE: 6,
 	UpgradeData.Rarity.LEGENDARY: 3}
 var run_pool_forced := false
@@ -4439,7 +4439,7 @@ func build_run_pool(seed_value: int = -1) -> void:
 			var swap = cards[i]
 			cards[i] = cards[j]
 			cards[j] = swap
-		var take := maxi(roundi(cards.size() * RUN_POOL_SHARE), mini(int(RUN_POOL_FLOORS.get(rarity, 0)), cards.size()))
+		var take := maxi(roundi(cards.size() * run_pool_share), mini(int(RUN_POOL_FLOORS.get(rarity, 0)), cards.size()))
 		for k in take:
 			run_pool[cards[k].id] = true
 
@@ -4452,7 +4452,7 @@ func _add_new_family_cards() -> void:
 		_sample_family(family)
 
 # A held family's cards (Needs name it or its Wardens, and its Blessing) are not core (user 2026-10-01: "there
-# shouldn't always be a family card in the pool"): a seeded RUN_POOL_SHARE per rarity joins (seed: the map seed and
+# shouldn't always be a family card in the pool"): a seeded run_pool_share per rarity joins (seed: the map seed and
 # the family id, so a run and its save draw the same), no floors, and never every card of a family with 5 or more.
 # Undiscovered ones drawn wait for their discovery like the rest.
 func _sample_family(family: String) -> void:
@@ -4476,7 +4476,7 @@ func _sample_family(family: String) -> void:
 			var swap = cards[i]
 			cards[i] = cards[j]
 			cards[j] = swap
-		drawn.append_array(cards.slice(0, roundi(cards.size() * RUN_POOL_SHARE)))
+		drawn.append_array(cards.slice(0, roundi(cards.size() * run_pool_share)))
 	if total >= 5 and drawn.size() >= total:
 		drawn.remove_at(rng.randi_range(0, drawn.size() - 1))  # Never the whole family
 	for card in drawn:
