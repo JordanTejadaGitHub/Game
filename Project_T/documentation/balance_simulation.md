@@ -865,6 +865,24 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Rank-choice cards 266–269 (dream_design.md cdfbe349)
+
+| Card | Number | Why |
+|---|---|---|
+| Specialist (U) | a Warden whose every rank is the same choice gets that choice's bonus **×2** (not ×1.5) | Power V: +90% → +180% choice damage, ≈ +47% on that Warden (base ranks included): the Uncommon conditional budget (+45%); ×1.5 gave +24% |
+| Many Talents (U) | **+10%** damage per different choice among its ranks, up to **+40%** (4 choices) | sits just under Specialist, so mixing and specialising are both live |
+| Shared Training (R) | as designed (a kin pair with the same majority gets the rank V signature at IV) | worth one rank (~135 × tier Dew) per pair plus the signature early; a build-shaper, not a number |
+| Brimming (R) | every status cap ×2, as designed | Spore boards up to ≈ +40% once stacks reach 16 (status share ~40%); Charge boards lose about half their bolts; Drowsy's slow already meets its floor, so ×2 only slows catching. A real trade, under the Rare one-family ×1.8 |
+
+## Rank V signatures (warden_stats.md 96d728dd)
+
+Crushing: every 5th hit ×2 + strips 25% of dread shell. Relentless: a dispel resets the cooldown (≤ once per
+0.5 s). Watchtower: reveals hidden nightmares within its own range (≈ 726 Dew of tier-2 ranks for one stretch:
+the Lurker counter isn't trivialised). Spreading: half the stacks (min 1) jump within 2 cells on dispel.
+**Executioner: a crit under 20%** (not 30) dispels; bosses / elites take ×1.5 (at Moonstone / Hoard crit rates
+30% erased the last third of every normal nightmare, ≈ +40%). Firstborn, Shelter as designed. Surge: aura ×2
+for 2 s every 10 s (≈ +20%, in line with Crushing).
+
 ## Shape cards 262–264 (dream_design.md e4d17195, Uncommon, defining)
 
 Budget: Uncommon one-family **+50%** for the kits that match, ~0 for the rest (by design).

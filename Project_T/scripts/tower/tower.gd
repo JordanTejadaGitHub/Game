@@ -124,7 +124,9 @@ func _update_sap(delta: float) -> void:
 			enemy.take_damage(damage, tower_data.line, true, false, self, &"sap")
 			struck = true
 	if struck:
-		Reactions._effect(&"landing_dust", global_position, self, half.x * 2.0 / MAP_GRID.cell_size.x)  # Placeholder pulse
+		var swell := Reactions._effect(&"sap_pulse", global_position, self, half.x * 2.0 / (MAP_GRID.cell_size.x * 3.0))  # Tower Assets 70df154e: 3×3 cells at 1.0
+		if swell != null:
+			swell.z_index = -1  # A ground effect: under the Wardens and nightmares
 
 # Lantern Glow and First Frost, every CARD_TICK for an attacking Warden (only when either card is held).
 func _update_card_watch(delta: float) -> void:
@@ -383,6 +385,15 @@ func choices_text() -> String:
 func choice_count(which: Focus) -> int:
 	_migrate_choices()
 	return rank_choices.count(which)
+
+# Rank cards (dream_design.md cdfbe349). Specialist: every rank the same choice -> each rank's bonus x2.
+
+# The multiplier on what each chosen rank gives (Specialist: x2 when all its ranks chose alike; DreamState holds the number).
+func focus_power() -> float:
+	if rank_choices.is_empty() or not _has_rule(&"specialist"):
+		return 1.0
+	_migrate_choices()
+	return _dream_state.specialist_rank_multiplier(self)  # Roguelite's number (31b43636)
 
 # Old saves and ranks given by Dreams: Power (supports: their first option) for I–II, the old Focus from III.
 func _migrate_choices() -> void:
@@ -740,7 +751,7 @@ func get_attacks_per_second() -> float:
 
 func _compute_attacks_per_second() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
-	var speed := 1.0 + RANK_SPEED * _plain_ranks() + FOCUS_SWIFT * choice_count(Focus.SWIFT)  # Nurture v3
+	var speed := 1.0 + RANK_SPEED * _plain_ranks() + FOCUS_SWIFT * choice_count(Focus.SWIFT) * focus_power()  # Nurture v3 (Specialist)
 	if is_aura_support():
 		speed = 1.0  # Its ranks scale the aura instead
 	var dreams := 1.0
@@ -819,7 +830,7 @@ func _gift_version() -> int:
 
 func _compute_range_cells() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
-	var reach := RANK_RANGE * _plain_ranks() + FOCUS_REACH * choice_count(Focus.REACH)  # Nurture v3
+	var reach := RANK_RANGE * _plain_ranks() + FOCUS_REACH * choice_count(Focus.REACH) * focus_power()  # Nurture v3 (Specialist)
 	if is_aura_support():
 		reach = 0.0  # Its ranks scale the aura instead
 	if _dream_state and _dream_state.has_method("get_tower_range_bonus"):
@@ -855,7 +866,7 @@ func get_rank_damage_multiplier() -> float:
 	var warm := 0.0
 	if _dream_state and _dream_state.has_method("get_rank_damage_bonus"):
 		warm = _dream_state.get_rank_damage_bonus()  # Warm Hands: every rank, whatever it chose
-	return 1.0 + RANK_DAMAGE * _plain_ranks() + warm * rank + FOCUS_POWER * choice_count(Focus.POWER)
+	return 1.0 + RANK_DAMAGE * _plain_ranks() + warm * rank + FOCUS_POWER * choice_count(Focus.POWER) * focus_power()  # Specialist (Many Talents is a DreamEffects row)
 
 # Rank-equivalents that aren't chosen ranks (The Old Ones' +1, the Eldest's Court): the plain old gains.
 func _plain_ranks() -> float:
@@ -882,7 +893,7 @@ func get_potency() -> float:
 	var total := attack_data.potency
 	if _dream_state and _dream_state.has_method("get_potency_bonus"):
 		total += _dream_state.get_potency_bonus(tower_data)
-	total += deep_share() * choice_count(Focus.DEEP)  # Deep ranks
+	total += deep_share() * choice_count(Focus.DEEP) * focus_power()  # Deep ranks (Specialist)
 	return total
 
 # The old Deep rule: status strength and duration (only with status Potency off, Balancing's A/B).
@@ -1059,11 +1070,11 @@ func _wide_radius() -> float:
 	if is_catcher():
 		return get_catch_radius()
 	if special == BranchKit.DREAM_OAK:
-		return BranchKit.p(self, "family_reach", 2.5) + NurtureChoices.WIDE_STEP * choice_count(Focus.WIDE)
+		return BranchKit.p(self, "family_reach", 2.5) + NurtureChoices.WIDE_STEP * choice_count(Focus.WIDE) * focus_power()
 	if special == BranchKit.PRISM:
-		return BranchKit.p(self, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * choice_count(Focus.WIDE)
+		return BranchKit.p(self, "aura_radius", 1.5) + NurtureChoices.WIDE_STEP * choice_count(Focus.WIDE) * focus_power()
 	if special == BranchKit.NURSE_LOG:
-		return BranchKit.p(self, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * choice_count(Focus.WIDE)
+		return BranchKit.p(self, "nurse_radius", 1.5) + NurtureChoices.WIDE_STEP * choice_count(Focus.WIDE) * focus_power()
 	return get_aura_reach()
 
 # " (+N cells)" for one more rank widening `radius` by `step` (rule 1: the panel shows the ground it adds).
@@ -1400,7 +1411,7 @@ func get_raw_crit_chance(enemy: Node2D = null) -> float:
 		chance = attack_data.crit_chance + _aura_crit + BranchKit.crit_aura(self) + 0.1 * kin_share(&"hammer_and_anvil", "a")  # Hammer and Anvil: the sniper's eye
 		chance += _gift_bonus(&"crit")  # Gift: Fallen Giant (Lookout)
 		if choice_count(Focus.KEEN) > 0:  # Keen ranks (Nurture rework), up to KEEN_CAP
-			chance = maxf(chance, minf(chance + NurtureChoices.KEEN_CRIT * choice_count(Focus.KEEN), NurtureChoices.KEEN_CAP))
+			chance = maxf(chance, minf(chance + NurtureChoices.KEEN_CRIT * choice_count(Focus.KEEN) * focus_power(), NurtureChoices.KEEN_CAP))
 		if _dream_state and _dream_state.has_method("get_rank_crit_bonus"):
 			chance += _dream_state.get_rank_crit_bonus() * get_effective_rank()  # The Old Ones
 		_stats[&"crit_base"] = [chance, attack_data.crit_chance]  # (the data's own chance too: tests change it in place)
@@ -1467,7 +1478,7 @@ func get_aura_reach() -> float:
 	if _rule_stacks(&"kind_canopy") > 0 and KIND_CANOPY_WARDENS.has(tower_data.get_id()):
 		reach += KIND_CANOPY_REACH
 	if is_aura_support():
-		reach += FOCUS_WIDE * choice_count(Focus.WIDE)  # Wide ranks
+		reach += FOCUS_WIDE * choice_count(Focus.WIDE) * focus_power()  # Wide ranks (Specialist)
 	return reach
 
 # Grove Heart: +aura_per_warden for each Warden in its radius, keeping the total under aura_max.
@@ -1490,11 +1501,11 @@ func get_aura_bonus(speed: bool) -> float:
 	if not speed and tower_data.get_id() == "acorn" and _rule_stacks(&"acorn_cache") > 0:
 		base = 0.05 + (ACORN_CACHE_AURA - 0.05) * _rule_power(&"acorn_cache")  # (rule_power is 1.0 since tag resonance was removed, dream_audit.md a6628056)
 	if not is_aura_support() and choice_count(Focus.STRONG) > 0:
-		base += NurtureChoices.STRONG_ACORN * choice_count(Focus.STRONG)  # Acorn's Strong ranks: +1% aura each
+		base += NurtureChoices.STRONG_ACORN * choice_count(Focus.STRONG) * focus_power()  # Acorn's Strong ranks: +1% aura each
 	if is_aura_support():
 		var ranks := get_effective_rank()
 		base *= pow(AURA_PER_RANK, ranks)  # Grove Heart: its base only, not the per-Warden extra
-		base *= 1.0 + FOCUS_STRONG_AURA * choice_count(Focus.STRONG)  # Strong ranks
+		base *= 1.0 + FOCUS_STRONG_AURA * choice_count(Focus.STRONG) * focus_power()  # Strong ranks (Specialist)
 	var bonus := base + get_aura_extra()
 	if _rule_stacks(&"shared_light") > 0:
 		bonus *= 1.0 + SHARED_LIGHT * _rule_power(&"shared_light")
@@ -2060,7 +2071,7 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var crit_multiplier: float = reaction.crit_multiplier
 	if is_crit:
 		crit_multiplier += BranchKit.crit_damage_aura(self)  # Prism Jar's aura: harder crits around it
-		crit_multiplier += NurtureChoices.KEEN_CRIT_DAMAGE * choice_count(Focus.KEEN)  # Keen ranks: harder crits too
+		crit_multiplier += NurtureChoices.KEEN_CRIT_DAMAGE * choice_count(Focus.KEEN) * focus_power()  # Keen ranks: harder crits too
 	var hammer := kin_share(&"hammer_and_anvil", "a")
 	if hammer > 0.0:
 		crit_multiplier = maxf(crit_multiplier, 2.0 + 0.5 * hammer)  # Hammer and Anvil: the sniper's eye
@@ -3103,7 +3114,7 @@ func is_catcher() -> bool:
 
 func get_catch_radius() -> float:
 	# Dew Trail (any level) also widens the catch (Wide Bowl merged into it, dream_audit.md).
-	return tower_data.catch_radius + (DewCatch.WIDE_BOWL_STEP if _rule_stacks(&"dew_trail") > 0 else 0.0) + FOCUS_WIDE * choice_count(Focus.WIDE)
+	return tower_data.catch_radius + (DewCatch.WIDE_BOWL_STEP if _rule_stacks(&"dew_trail") > 0 else 0.0) + FOCUS_WIDE * choice_count(Focus.WIDE) * focus_power()
 
 # The extra share of Dew `enemy` drops if it's dispelled now (0 = out of reach). Nurture ranks add
 # catch instead of damage; Old Growth's Elder Stump catches inside its aura.

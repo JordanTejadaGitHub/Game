@@ -28,7 +28,12 @@ const TITLES := {
 	preload("res://resource/tower/dewdrop.tres"),
 	preload("res://resource/tower/bellflower.tres"),
 ]
-@export var cards_per_pick: int = 3
+# Family picks show 2, the Grove widens them (user 2026-10-06, meta_design.md e0c02e54): every pick shows
+# `cards_per_pick`; the Perks node Wider Choice adds one. A pick always holds an attacking family (never only support).
+@export var cards_per_pick: int = 2
+const WIDER_CHOICE_ID := "wider_choice"
+static var force_wider_choice := false  # Tests: as if the node were planted
+const SUPPORT_FAMILIES := ["acorn"]  # Family roots that mostly strengthen others (meta_design.md: "today: Acorn")
 var offer_all_first := false  # Early Bloom (set by MetaRun)
 var first_boss_pick_fewer := 0  # Sidegrade Early Bloom (MetaRun, Spire experiment): the drift 25 pick shows this many fewer
 # Memory Warden (tower_design.md): set by MetaRun when a boss whose bloom the Grove has grown is dispelled;
@@ -114,9 +119,10 @@ func get_available() -> Array[TowerData]:
 func show_pick(reason: StringName = &"first") -> void:
 	var available := get_available()
 	available.shuffle()
-	var count := available.size() if reason == &"first" and offer_all_first else cards_per_pick
+	var count := available.size() if reason == &"first" and offer_all_first else pick_count()
 	if reason == &"boss" and first_boss_pick_fewer > 0 and drift_director.drifts_started <= drift_director.drifts_per_act:
 		count = maxi(count - first_boss_pick_fewer, 1)
+	_keep_an_attacker(available, count)
 	# The first pick never repeats the previous run's offer exactly (when there's a choice), so runs
 	# start differently (dream_design.md "Where Warden families come from").
 	if reason == &"first" and available.size() > count:
@@ -124,6 +130,7 @@ func show_pick(reason: StringName = &"first") -> void:
 			if _ids(available.slice(0, count)) != previous_first_offer:
 				break
 			available.shuffle()
+			_keep_an_attacker(available, count)
 	# Picks follow only their own rules: no card puts a family into them (user, "make it predictable"; dream_design.md
 	# half-dreamed "Picks stay pure"). A half-dreamed card sleeps until a pick happens to offer its family.
 	offer = []  # Untyped: families (TowerData) and Blessings (UpgradeData) share it
@@ -132,10 +139,11 @@ func show_pick(reason: StringName = &"first") -> void:
 		promised.sort_custom(func(a: TowerData, b: TowerData) -> bool: return foretold.find(a.get_id()) < foretold.find(b.get_id()))
 		available.assign(promised + available.filter(func(d: TowerData) -> bool: return not promised.has(d)))  # Typed: assign
 		count = maxi(count, promised.size())
+		_keep_an_attacker(available, count)  # A promised family taken some other way since: still never only support
 	foretold = []
 	offer.append_array(available.slice(0, count))
 	if reason == &"boss" and pending_memory_warden != null and not dream_state.is_unlocked(pending_memory_warden.get_id()):
-		if offer.size() >= cards_per_pick:
+		if offer.size() >= pick_count():
 			offer.pop_back()
 		offer.push_front(pending_memory_warden)
 	pending_memory_warden = null
@@ -178,6 +186,34 @@ func show_pick(reason: StringName = &"first") -> void:
 	visible = true
 	arm.arm()
 
+static func wider_choice_owned() -> bool:
+	if force_wider_choice:
+		return true
+	if ResultsScreen.is_demo():
+		return false
+	var unlock := HeartwoodMemory.get_unlock(WIDER_CHOICE_ID)
+	return unlock != null and HeartwoodMemory.node_level(HeartwoodMemory.load_data(), unlock) > 0
+
+# Cards a pick shows: 2, 3 with Wider Choice (fewer when fewer families are left: the caller slices).
+func pick_count() -> int:
+	return cards_per_pick + (1 if wider_choice_owned() else 0)
+
+static func is_support_family(data: TowerData) -> bool:
+	return data != null and (SUPPORT_FAMILIES.has(data.get_id()) or data.role_tag == &"support")
+
+# Puts an attacking family into the first `count` of `pool` when they'd all be support (the first attacker after them
+# takes the last slot), so no pick offers only support families.
+static func _keep_an_attacker(pool: Array, count: int) -> void:
+	var shown := mini(count, pool.size())
+	if shown <= 0 or pool.slice(0, shown).any(func(d: TowerData) -> bool: return not is_support_family(d)):
+		return
+	for i in range(shown, pool.size()):
+		if not is_support_family(pool[i]):
+			var attacker = pool[i]
+			pool[i] = pool[shown - 1]
+			pool[shown - 1] = attacker
+			return
+
 static func kin_foretold_owned() -> bool:
 	if force_kin_foretold:
 		return true
@@ -202,9 +238,10 @@ func _foretell() -> void:
 		var on_screen := _ids(offer)
 		var pool := get_available().filter(func(d: TowerData) -> bool: return not on_screen.has(d.get_id()))
 		pool.shuffle()
-		var count := cards_per_pick
+		var count := pick_count()
 		if first_boss_pick_fewer > 0 and drift <= drift_director.drifts_per_act:
 			count = maxi(count - first_boss_pick_fewer, 1)
+		_keep_an_attacker(pool, count)
 		foretold = pool.slice(0, count).map(func(d: TowerData) -> String: return d.get_id())
 	if foretold.is_empty():
 		return  # Every family offered: nothing to foretell

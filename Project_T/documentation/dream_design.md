@@ -1820,6 +1820,72 @@ Kinship were the hardest card builds to reach.
   Affliction, Swift and Wide Reach doors; Pebbling lacks Overgrowth, Affliction and Swift. Sap
   Rising (263) is Acorn's first. More shape cards for these gaps after the re-measure.
 
+## Nurture-path cards and Brimming (2026-10-06)
+
+Two user requests (via Meta Game Discussion). Both are shape cards: they help one way of playing and
+hurt or ignore another.
+
+### Nurture path (cards 266–268)
+
+Every rank is a choice (Power / Swift / Reach / Deep, support Wide / Strong / Kindred). These cards
+read those choices, so the Nurture path shapes the build.
+
+| # | Card | Rarity | Effect | Tags |
+|---|---|---|---|---|
+| 266 | **Specialist** | Uncommon | A Warden whose every rank took the same choice gets **double the bonus from each rank's choice** (a true ×2; balance_simulation.md 43496006) | tall, nurture, defining |
+| 267 | **Many Talents** | Uncommon | A Warden deals **10% more damage for each different choice** among its ranks (up to +40%) | tall, nurture, defining |
+| 268 | **Shared Training** | Rare | Two Wardens in a {kinship} with the same majority choice both get its rank V signature at **rank IV** | tall, kinship, defining |
+
+- Specialist and Many Talents pull opposite ways on purpose. Neither needs a Warden; both work from
+  the first rank, so they're doors into Tall as well.
+- **Shared Training waits** for Tower Code to build the rank V signatures, which Tower Discussion
+  has decided (warden_stats.md "Rank V signatures", 96d728dd): a Warden with 3+ of ranks I–V on one
+  choice gets that choice's signature:
+
+  | Choice | Signature |
+  |---|---|
+  | Power | Crushing |
+  | Swift | Relentless |
+  | Reach | Watchtower |
+  | Deep | Spreading |
+  | Keen | Executioner |
+  | Yield | Firstborn |
+  | Wide | Shelter |
+  | Strong | Surge |
+  | Kindred | none |
+
+  - **With Shared Training:** two kin that both have 3 of ranks I–IV on the same choice get its
+    signature at **rank IV**.
+  - Kindred has no signature, so a Kindred pair gains nothing; the card text says "the same choice"
+    and the Warden panel shows which.
+  - Until the signatures are built, it isn't offered.
+- **Built:** cards 266–269 in 31b43636 (Roguelite Code, numbers 43496006). Specialist's and Brimming's hooks are Tower Code's. Shared Training's file has `in_start_pool = false` until the signatures land.
+- Numbers to Balancing Discussion.
+
+### Brimming (card 269)
+
+User: *"a card that doubles the status cap; it might help poison builds but it hurts Charge
+builds."*
+
+| # | Card | Rarity | Effect | Tags |
+|---|---|---|---|---|
+| 269 | **Brimming** | Rare | Nightmares can hold **twice as many stacks** of every status | status, affliction, defining |
+
+What it does to each status (EnemyStatuses caps 2026-10-06):
+
+| Status | Cap | With Brimming | Effect |
+|---|---|---|---|
+| Spored | 8 | 16 | ticks climb twice as high: **poison soars** |
+| Charged (static) | 5 (bosses 8) | 10 (16) | the bolt fires at the cap, so **bolts come half as often**: Charge builds suffer |
+| Drowsy | 5 (bosses 3) | 10 (6) | deeper slow (the slow floor still holds); Dreamcatchers Catch at full Drowsy, so **catching takes twice as long** |
+| Soaked, Marked, Held | 1 | 1 | on/off statuses: unchanged |
+
+- It's a true doubling (×2 on the cap; text "twice as many" is correct). Heavy Eyelids' +2 Drowsy
+  adds after the doubling.
+- Thunderclap's Charged threshold (`static_needed`) doesn't change. Only the bolt waits for the cap.
+- A real choice, not a flat boost: great for Sporeling, bad for Firefly / Stormcap, mixed for
+  Bellflower / Dreamcatcher.
+
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 
 User (typed in Environment Discussion): *"make a card that makes walls 1x1 cell instead of the
