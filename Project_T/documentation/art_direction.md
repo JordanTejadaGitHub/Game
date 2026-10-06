@@ -220,7 +220,9 @@ lost 0–20). They're wired into the map (`EnvironmentTiles`), with the lighting
     stay at 64 px (the calm-mode art). **Only branches, finals and Ascended forms are 1.4×**, so
     growing a Warden visibly makes it bigger.
   - **Three size steps** (user, 2026-10-05: *"make assets for the middle Warden to be a bigger
-    size than the starting family Warden but smaller than the final tier"*). **Proof first.**
+    size than the starting family Warden but smaller than the final tier"*). **Approved 2026-10-05**
+    after Tower Assets' proof (Sporeling → Driftspore → Puffball, Sporeling → Lichenling → Old
+    Lichen, Firefly Jar → Stormcap → Thunderhead; branch frames 72 wide).
     | Tier | Size |
     |---|---|
     | Base (tier 1), plus Sprout and Thornwall | today's 64 |
