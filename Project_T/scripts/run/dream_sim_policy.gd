@@ -79,6 +79,8 @@ const RULE_DE := {
 	"live_wire": 10.0, "static_field": 10.0, "mycelium": 10.0,
 	# Shape cards (Roguelite Code d1d0f4aa, Balancing's DE e89eb28d), × their share in card_de
 	"small_hands": 35.0, "sap_rising": 15.0, "lingering_ground": 30.0,
+	# Rank-choice cards (Roguelite Code 31b43636, Balancing's DE 43496006), × their share in card_de
+	"specialist": 45.0, "many_talents": 30.0, "brimming": 30.0,
 }
 const SENT_OUT_KINDS := [TowerData.AttackKind.SWOOP, TowerData.AttackKind.SWEEP, TowerData.AttackKind.PECK,
 	TowerData.AttackKind.BOOMERANG, TowerData.AttackKind.PATROL]
@@ -140,6 +142,16 @@ func card_de(card: UpgradeData) -> float:
 		"lingering_ground":  # Clouds, rings, lit cells, rubble, pools
 			rule *= share.call(func(t: Tower) -> bool: return _shape_test(&"makes_ground_effects", t.tower_data,
 				t.tower_data.attack_kind in GROUND_KINDS or t.tower_data.lob))
+		"specialist", "many_talents":  # Ranked Wardens whose rank choices are all one (Specialist) / mixed (Many Talents)
+			var mixed := card.id == "many_talents"
+			rule *= share.call(func(t: Tower) -> bool:
+				if t.rank <= 0:
+					return false
+				var kinds: int = dreams.call("different_choices", t) if dreams.has_method("different_choices") else 1  # call(): older builds lack it
+				return kinds > 1 if mixed else kinds == 1)
+		"brimming":  # + the Spored appliers, − the Static ones
+			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.applies_status == &"spored") \
+				- share.call(func(t: Tower) -> bool: return t.tower_data.applies_status == &"static")
 		"sap_rising":  # The support Wardens (walls aside) among all Wardens
 			var wardens := dreams._towers().filter(func(t: Tower) -> bool: return t.tower_data.line != "wall")
 			rule *= wardens.filter(func(t: Tower) -> bool: return _shape_test(&"is_support", t.tower_data,
