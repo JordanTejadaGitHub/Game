@@ -59,6 +59,7 @@ func _init(dream_state: DreamState, play_style: Style = Style.BALANCED) -> void:
 
 # --- Dreams ---------------------------------------------------------------------------------------
 
+var extra_tag_scores := {}  # Tag -> added to every style's weight (build_packages emergence: a flat +1 per archetype tag, Balancing 2026-10-06; the balance bot leaves it empty)
 var score_overrides := {}  # Card id -> fixed score (the runner's --card-score=id=value; e.g. a card scored like an untagged Common = 0)
 # --card-value (Balancing 2026-10-06): the score also counts the card's size as a damage-equivalent % (DE) × DE_WEIGHT.
 # DE_WEIGHT puts Deeper Calm (+25%) at +30, level with an in-build tagged card ((1 tag + IN_BUILD 2) × 10). Tag terms stay.
@@ -203,7 +204,7 @@ func _tag_score(card: UpgradeData) -> float:
 	var tags: Dictionary = TAG_SCORES[style]
 	var value := 0.0
 	for tag in card.tags:
-		value += tags.get(tag, 0.0)
+		value += tags.get(tag, 0.0) + extra_tag_scores.get(tag, 0.0)
 	if dreams.is_in_build(card):
 		value += IN_BUILD
 	if dreams.is_half_dreamed(card):

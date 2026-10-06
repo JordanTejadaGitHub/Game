@@ -222,6 +222,11 @@ func _build_chase_board(package: Array, extras: Dictionary) -> void:
 
 # --- Emergence ----------------------------------------------------------------------------------------
 
+# Emergence: a flat +1 for every archetype tag in every style, so a build's share measures the cards, not the bot's style weights
+# (Roguelite Mechanic + Balancing 2026-10-06). The balance runner never sets it.
+const EMERGE_TAG_BONUS := {"affliction": 1.0, "daring": 1.0, "kinship": 1.0, "maze": 1.0, "overgrowth": 1.0, "precision": 1.0,
+	"support": 1.0, "tall": 1.0, "tending": 1.0, "swift": 1.0, "reach": 1.0}
+
 func _emerge(runs: int, picker: String = "balanced") -> void:
 	var some := 0
 	var per_build := {}
@@ -235,6 +240,7 @@ func _emerge(runs: int, picker: String = "balanced") -> void:
 		var policy := _policy  # Balanced; "mixed" = a random style each run; "random" = any card
 		if picker == "mixed":
 			policy = DreamSimPolicy.new(dreams, DreamSimPolicy.Style.values()[rng.randi_range(0, DreamSimPolicy.Style.size() - 1)])
+		policy.extra_tag_scores = EMERGE_TAG_BONUS  # Every archetype weighs the same (kinship too), in every style
 		var roots: Array = dreams._family_roots().map(func(d: TowerData) -> String: return d.get_id())
 		var owned: Array = []
 		for drift in range(5, 51, 5):
