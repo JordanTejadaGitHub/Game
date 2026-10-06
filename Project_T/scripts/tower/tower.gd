@@ -52,7 +52,7 @@ const SPORE_POTENCY := 0.25  # Spored soothes this share of the Warden's soothe 
 const CHAIN_DAMP_EXTRA_JUMPS := 2
 const CHAIN_DAMP_EXTRA_RANGE := 1.0  # Cells
 const LOOSE_STONE_SHARE := 0.35  # Loose Stones: each of the 3 fragments
-const HUSH_RADIUS := 0.25  # Hush: Bellflower-line pulses +25% radius per stack (max 3; dream_audit.md)
+const HUSH_RADIUS := 0.50  # Hush: Bellflower-line pulses +50% radius (one copy, balance_simulation.md e32b882d)
 const BEAM_TICK := 0.25  # Seconds between beam hits
 const BEAM_RAMP_FAST := 2.0  # Beams ramp this much faster on Drowsy or Held nightmares
 const AURA_TICK := 0.25  # Seconds between aura refreshes (White Stag)
@@ -83,10 +83,51 @@ const GROVE_AREA_RULES: Array[StringName] = [&"lingering_splash", &"great_ripple
 const WALL_DROWSY_CAP := 3  # Drowsy from walls (Honeysuckle, Scented Hedge) stops here; Wardens' Drowsy can go past it
 const BRAMBLE_OATH := 0.5  # Bramble Oath (Seed card): +50%
 const WALL_TICK := 0.2
-const THORN_SNARE_KINDS := ["dandelion_seed", "gravecrawler"]  # Phantom (through), Gravecrawler (under)
-const THORN_SNARE_REACH := 0.6  # Cells from the wall's centre that count as passing through / under it
-const THORN_SNARE_SPRINT_REACH := 1.5  # II: a Night Hound sprinting past
 const THORN_SNARE_TIME := [0.5, 1.0]
+# "Fewer, bigger cards" (dream_design.md de439ea8; Balancing e32b882d). Rule ids = card ids (Roguelite Code's data).
+const BESIDE_WALL := 1.1  # Cells from a full Thornwall's centre that count as passing beside it (a twig wall: 0.75)
+const THORNY_EVERY := 2.0  # Thorny Walls: a lash every 2 s…
+const THORNY_DAMAGE := 5.0  # …for 5 damage (Dream damage cards apply), at one nightmare beside the wall
+const GLINT_EVERY := 5  # Glinting Dew: every 5th attack of each Warden is a crit
+const LANTERN_GLOW := 0.15  # Lantern Glow: nightmares in a Warden's reach take +15% (and can't hide in fog)
+const LANTERN_REVEAL := 0.6  # Seconds a reveal lasts, refreshed every tick while in reach
+const FROST_COUNT := 5  # First Frost: the first 5 nightmares of each drift…
+const FROST_HOLD := 1.5  # …are Held 1.5 s at the first Warden they meet (bosses exempt)
+const CARD_TICK := 0.2  # Lantern Glow / First Frost look this often per Warden
+static var _frost_drift := -1
+static var _frost_left := 0
+var _card_tick := randf() * CARD_TICK
+var _thorny_left := randf() * THORNY_EVERY
+var _briar_drift := -1  # Briar Trap: the drift this wall last held someone in
+
+func _beside_reach() -> float:
+	return 0.75 if twig else BESIDE_WALL
+
+# Lantern Glow and First Frost, every CARD_TICK for an attacking Warden (only when either card is held).
+func _update_card_watch(delta: float) -> void:
+	_card_tick -= delta
+	if _card_tick > 0.0:
+		return
+	_card_tick = CARD_TICK
+	var glow := _has_rule(&"lantern_glow")
+	var frost := _has_rule(&"first_frost")
+	if not glow and not frost:
+		return
+	var reach := get_range_pixels()
+	if frost and _dream_state.drift_director:
+		var drift: int = _dream_state.drift_director.drifts_started
+		if drift != _frost_drift:
+			_frost_drift = drift
+			_frost_left = FROST_COUNT
+	for enemy in nightmares_near(get_tree(), global_position, reach):
+		if not is_instance_valid(enemy) or enemy.is_cleansed or enemy.global_position.distance_to(global_position) > reach:
+			continue
+		if glow and enemy.has_method("is_hidden") and enemy.is_hidden() and enemy.has_method("reveal_for"):
+			enemy.reveal_for(LANTERN_REVEAL)  # It can't hide in fog in a Warden's glow
+		if frost and _frost_left > 0 and not enemy.enemy_data.is_boss and not enemy.has_meta(&"first_frost"):
+			enemy.set_meta(&"first_frost", true)
+			_frost_left -= 1
+			hold(enemy, FROST_HOLD)
 const SCENTED_HEDGE := 0.5  # Scented Hedge: the Thornwall's scent is half the Honeysuckle's
 const LIVING_WALLS_DRIFTS := 5
 const MANY_THREADS_DROWSY := 4
@@ -545,6 +586,8 @@ func _process(delta: float) -> void:
 		_update_wall(delta)
 	if not tower_data.can_attack:
 		return
+	if _dream_state:
+		_update_card_watch(delta)  # Lantern Glow, First Frost
 	if withered_left > 0.0:  # Withering Oak: grey and drooping, no attacks until it comes back
 		withered_left -= delta
 		if withered_left <= 0.0:
@@ -1957,6 +2000,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	var is_crit := roll_crit(enemy) if crit == ROLL_CRIT else crit == CRIT
 	if _has_rule(&"called_shot") and _dream_state.called_shot(self, enemy):
 		is_crit = true  # Called Shot: the first hit on a Marked nightmare (once per Warden per nightmare)
+	if not is_crit and crit == ROLL_CRIT and _attack_count > 0 and _attack_count % GLINT_EVERY == 0 and _has_rule(&"glinting_dew"):
+		is_crit = true  # Glinting Dew: every 5th attack of this Warden crits (its own crit damage)
 	if attack_data.dew_mark:
 		enemy.bonus_dew = maxi(enemy.bonus_dew, 1)  # Before the hit, so a dispelling hit counts
 	if attack_data.strips_buffs and enemy.has_method("strip_buff"):
@@ -1973,6 +2018,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 		soothe *= _dream_state.get_hit_damage_multiplier()  # Venom Bloom: hits weaker, effects stronger
 	if is_area and _dream_state and _has_rule(&"overlap"):
 		soothe *= _dream_state.overlap_multiplier(self, enemy)  # Overlap: another Warden's area hit within 1 s
+	if _dream_state and _has_rule(&"lantern_glow"):
+		soothe *= 1.0 + LANTERN_GLOW  # Lantern Glow: a nightmare in a Warden's reach glows and takes +15%
 	if _dream_state:
 		# First Light, Last Stand, Hunter's Patience, Bitter Hedges (tracked inside: once per hit).
 		soothe *= _dream_state.on_hit_multiplier(self, enemy)
@@ -2348,7 +2395,7 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 		_spotter_splash(target, where)
 		# Sharp Beaks: Wren's Nest's wrens strike again (+1 per stack).
 		if tower_data.get_id() == "wrens_nest":
-			for i in _rule_stacks(&"sharp_beaks"):
+			for i in DreamState.SHARP_BEAKS_HITS * _rule_stacks(&"sharp_beaks"):
 				hit(target)
 		return
 	var crit := CRIT if target != null and is_instance_valid(target) and roll_crit(target) else NO_CRIT
@@ -3093,23 +3140,40 @@ func _update_wall(delta: float) -> void:
 	if _wall_tick > 0.0:
 		return
 	_wall_tick = WALL_TICK
-	var snare := _rule_stacks(&"thorn_snare") > 0
+	# Briar Trap (id thorn_snare; "Fewer, bigger cards" de439ea8): each Thornwall (twig walls too) holds the first
+	# nightmare passing beside it each drift, 0.5 s (II 1 s); no rare-kind or trample trigger any more.
+	var snare_id := &"briar_trap" if _rule_stacks(&"briar_trap") > 0 else &"thorn_snare"
+	var snare := _rule_stacks(snare_id) > 0
+	var thorny := _rule_stacks(&"thorny_walls") > 0
 	var scent := _scented_by() if _rule_stacks(&"scented_hedge") > 0 else null
-	if not snare and scent == null:
+	if not snare and scent == null and not thorny:
 		return
-	var level: int = _rule_level(&"thorn_snare") if snare else 0
+	var level: int = mini(_rule_level(snare_id), THORN_SNARE_TIME.size() - 1) if snare else 0
+	var drift: int = _dream_state.drift_director.drifts_started if _dream_state.drift_director else 0
+	if thorny:
+		_thorny_left -= WALL_TICK
+	var lash := thorny and _thorny_left <= 0.0
+	if lash:
+		_thorny_left = THORNY_EVERY
+	if (snare and _briar_drift != drift) or lash:
+		var beside := _beside_reach() * MAP_GRID.cell_size.x
+		var nearest: Node2D = null
+		var best := INF
+		for enemy in nightmares_near(get_tree(), global_position, beside):
+			if not is_instance_valid(enemy) or enemy.is_cleansed or enemy.is_flying():
+				continue
+			var d: float = enemy.global_position.distance_to(global_position)
+			if d <= beside and d < best:
+				best = d
+				nearest = enemy
+		if nearest != null:
+			if snare and _briar_drift != drift:
+				_briar_drift = drift
+				hold(nearest, THORN_SNARE_TIME[level])
+			if lash:
+				# Thorny Walls: the wall's own hit (Dream damage cards apply), credited to it.
+				nearest.take_damage(THORNY_DAMAGE * _dream_bonus(&"soothe"), tower_data.line, false, false, self, &"hit")
 	var cell_px := MAP_GRID.cell_size.x
-	for enemy in get_tree().get_nodes_in_group(ENEMY_GROUP):
-		if not is_instance_valid(enemy) or enemy.is_cleansed:
-			continue
-		var distance: float = enemy.global_position.distance_to(global_position) / cell_px
-		if snare and not enemy.has_meta(_snare_key()):
-			var kind: String = enemy.enemy_data.resource_path.get_file().get_basename()
-			var caught: bool = distance <= THORN_SNARE_REACH and THORN_SNARE_KINDS.has(kind) \
-				or level > 0 and kind == "hedgehog" and enemy.rolling and distance <= THORN_SNARE_SPRINT_REACH
-			if caught:
-				enemy.set_meta(_snare_key(), true)
-				hold(enemy, THORN_SNARE_TIME[level])
 	if scent != null:
 		_scent_time -= WALL_TICK
 		if _scent_time <= 0.0:
@@ -3321,7 +3385,7 @@ func _send_hummingbirds() -> void:
 	var targets := []
 	for i in birds:
 		targets.append(chosen[i % chosen.size()])
-	var pecks := attack_data.pecks + _rule_stacks(&"sharp_beaks")
+	var pecks := attack_data.pecks + DreamState.SHARP_BEAKS_HITS * _rule_stacks(&"sharp_beaks")
 	for target in targets:
 		var bird := PeckingBird.new(self, target, pecks, attack_data.peck_time)
 		add_child(bird)
@@ -3361,7 +3425,7 @@ func _throw_seeds() -> void:
 	if target == null:
 		return
 	_throws += 1
-	var length := (attack_data.boomerang_length + _rule_stacks(&"longer_flight")) * MAP_GRID.cell_size.x
+	var length := (attack_data.boomerang_length + DreamState.LONGER_FLIGHT_CELLS * _rule_stacks(&"longer_flight")) * MAP_GRID.cell_size.x
 	var from := global_position + tower_data.get_attack_origin()
 	var directions: Array[Vector2] = []
 	if attack_data.boomerang_seeds > 1:
