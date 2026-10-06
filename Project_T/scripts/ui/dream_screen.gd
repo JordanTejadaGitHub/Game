@@ -187,10 +187,22 @@ func _make_card(card: UpgradeData) -> Button:
 		corner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		corner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		gem_row.add_child(corner)
-		var build := Label.new()  # Words for now; UI Asset's glyph replaces them
+		var arch := IconInfo.icon(&"defining")  # UI Asset's stone arch with a gold keystone (74a8baeb), at ×2
+		var build: Control
+		if arch != null:
+			var icon := TextureRect.new()
+			icon.texture = arch
+			icon.custom_minimum_size = Vector2(32, 32)
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			build = icon
+		else:  # The word until the glyph is in the icon sheet
+			var word := Label.new()
+			word.text = "Build"
+			UiStyle.caps(word, 13, UiStyle.GOLD)
+			build = word
 		build.name = "BuildMark"
-		build.text = "Build"
-		UiStyle.caps(build, 13, UiStyle.GOLD)
 		build.tooltip_text = "Build around it: changes what you plant next."
 		build.mouse_filter = Control.MOUSE_FILTER_PASS  # Its own tip; a click still takes the card
 		build.size_flags_vertical = Control.SIZE_SHRINK_CENTER

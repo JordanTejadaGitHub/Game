@@ -291,8 +291,8 @@ func _run() -> void:
 	defining.tags.append("defining")
 	var marked := screen._make_card(defining) as Control
 	var unmarked := screen._make_card(plain) as Control
-	var mark := marked.find_child("BuildMark", true, false) as Label
-	_check(mark != null and mark.tooltip_text.begins_with("Build around it") and not mark.text.is_valid_int()
+	var mark := marked.find_child("BuildMark", true, false) as Control
+	_check(mark != null and mark.tooltip_text.begins_with("Build around it") and (not mark is Label or not (mark as Label).text.is_valid_int())
 		and (plain.tags.has("defining") or unmarked.find_child("BuildMark", true, false) == null),
 		"a build-defining card has the build mark (no numbers), others don't")
 	marked.free()
