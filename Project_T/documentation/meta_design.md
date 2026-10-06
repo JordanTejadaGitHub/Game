@@ -155,7 +155,8 @@ visibly separate paths look too neat, not like a real tree).
 | 2 | Let Go | 1 | 60 | banish 1 card per run | Second Thoughts |
 | 3 | Omen Reader | 1 | 80 | after choosing **Face an Omen**, pick from **3** Omens instead of 2 (2026-09-30, see `run_design.md` Omens) | Let Go |
 | 4 | Wider Dreams | 1 | 150 | 4 cards per Dream instead of 3 | Omen Reader + Second Thoughts II |
-| side 1 | Early Bloom | 1 | 80 | the first family pick offers **every** unlocked family | Second Thoughts |
+| side 1 | **Wider Choice** *(new 2026-10-06)* | 1 | 80 | every family pick shows **3** families instead of 2 | Second Thoughts |
+| side 2 | Early Bloom | 1 | 80 | the first family pick offers **every** unlocked family | Wider Choice |
 | side 2 | Early Light | 1 | 120 | **+1 Dreamlight** at run start | Early Bloom |
 | side 3 | Kindling | 1 | 90 | start with **a random Common Dream** already taken | Early Light |
 
@@ -318,12 +319,12 @@ discovery in play. Branches may **fork** into two tips (each tip needs the node 
 
 | Branch (direction) | Node 1 (near the trunk) | Node 2 | Tip(s): Legendary |
 |---|---|---|---|
-| **Swift** (attack speed) | *Quickening*: Quickening (30) | *Light Feet*: Restless Roots, Hummingheart (60) | **Whirlwind Heart** (120) |
+| **Swift** (attack speed) | *Quickening*: Hunt's Rush (the card Quickening, renamed in the card pass) (30) | *Light Feet*: Restless Roots, Hummingheart (60) | **Whirlwind Heart** (120) |
 | **Wide Reach** (area, splash) | *Broad Strokes*: Lingering Splash (30) | *Far Reach*: Far Reach, Spillover (70) | **Great Ripple** (120) |
 | **Keen Edges** (precision, crit) | *Sharpened*: Still Target, Shattering Blow, **Hunter's Patience**, **Sharpened Light** (50) | — | **Full Moon** (120) · **Hunter's Moon** (80) |
 | **Deep Poison** (affliction, effects) | *Seeping* (50) | *Venom*: Venom Bloom (40) | **Nightshade** (120) · **Eternal Charge** (80) |
 | **Daring** (low leaves, tempo) *(new)* | *Scarred Bark*: Scarred Bark, Thin Bark (40) | *Last Stand*: Desperate Bloom, Second Wind, Last Stand (50) | **Last Leaf** (80) · **Restless Night** (80) |
-| **Tending** (nurture, tall) | *Tending Hands*: Sunlit Rest, Deeper Rings (60) | *Nursery*: Nursery, Chosen Few (70) → *Elders*: Elder Kin, Few and Mighty (40) | **The Old Ones** + **Endless Rings** (150; needs Elders) |
+| **Tending** (nurture, tall) | *Tending Hands*: Deeper Rings (50; Sunlit Rest moved to the start pool 2026-10-06 as Tall's third door) | *Nursery*: Nursery, Chosen Few (70) → *Elders*: Elder Kin, Few and Mighty (40) | **The Old Ones** + **Endless Rings** (150; needs Elders) |
 | **Lone Lantern** (narrow) | *One Line*: Monoculture (80) | — | **The Last Light** (120) |
 | **Overgrowth** (wide) | *Seedbed*: Seedling Gift, Canopy (60) | *Mixed Company*: Mixed Grove, Grand Tour (40) | **Rootbound** (100; needs Seedbed) · **Menagerie** (80; needs Mixed Company) |
 | *(2026-10-05: Momentum, Drumbeat, Overlap, Crowd Breaker, Solitude and Odd One Out moved back to the start pool as Uncommons, `dream_design.md` "Fewer family boosters, more build shapes"; their nodes cost 10 less, except Seeping, back to its original 50.)* | | | |
@@ -357,6 +358,15 @@ Dawnbreak, Grove of Kin (2026-09-30, no combo cards in the Grove).
 - **Start-pool cards** (65 since 2026-09-30: basics, the starting families' cards, one or two tasters per build) are always available, so a
   new player already has a full Dream pool; this limb adds depth and big payoffs.
 - Total ≈ 3,370 Seeds as of 2026-09-30 (lean starting pool). New cards join an existing branch's bundle or start a new branch; **combo cards never go here**.
+**Family picks show 2, the Grove widens them** (user 2026-10-06): every family pick (drift 1 and the
+25 / 50 / 75 bosses) shows **2** families, so new players have fewer choices and a run takes what the
+forest gives more often. The Perks node **Wider Choice** (80, Choice path) raises every pick to 3;
+**Early Bloom** (after it) makes the first pick show every owned family.
+- **At least one attacking family in every pick:** a pick never offers only support families
+  (today: Acorn), so a run can't start with no real damage.
+- Fewer than 2 new families left: show what's left (1 card); none left: +2 Dreamlight as before.
+- Kin Foretold previews 2 (3 with Wider Choice). Wider Roots is unchanged.
+
 
 **Families before the Grove fills in:** a new player has only 4 families (Sporeling, Firefly Jar,
 Dewdrop, Bellflower; was 3 until 2026-10-01), but a run offers family picks at drift 1 and at the 25/50/75 bosses. When there are

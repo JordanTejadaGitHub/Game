@@ -63,6 +63,8 @@ var start_cards: Array[String] = []
 var forced_families: Array[String] = []
 var hand_drifts := false  # --hand-drifts: the hand-made drift files instead of rolled ones (DriftDirector.random_drifts)
 var save_mode := ""  # --save=spender (never saves up) or saver (holds Dew up to SAVER_DRIFTS drifts for a growth)
+var card_value := true  # Default since 2026-10-06 (Balancing; --no-card-value = the tag-only policy): DreamSimPolicy.card_value (card size as a damage-equivalent %); offers.csv then logs each card's score
+var card_scores := {}  # --card-score=<card id>:<score> (repeatable): DreamSimPolicy.score_overrides (Balancing 2026-10-06: Thorny Walls scored like an untagged Common = 0)
 var omen_mode := ""  # --omens=face (every Omen, the lower-risk one) | clear | always | clean (DreamSimPolicy.omen_mode); default: no Omens drawn
 var all_families := false  # --all-families: the developer "Unlock all families" run (MetaRun.force_all_families)
 var favored: Array[String] = []  # --favor=many_hands,seedfall: these Dream cards score highest (a player's build)
@@ -80,7 +82,7 @@ var wall_first := true  # --no-wall-first: the opening plants attackers first (t
 const WALL_FIRST_ROUTE := 45
 var wall_first_keep := 5  # --wall-first-keep=N: wall-first waits until N attackers are planted (the opening rule's 5 Sprouts; 0 = walls before any: on 60 Dew that left 2 Sprouts and drift 1 leaked)
 var _wall_first_stuck := -2  # drifts_started when no wall added route (wall-first rests until the next drift)
-var walls_keep_going := false  # --walls-keep-going (Balancing, Room to maze "a player who walls"): past the opening, Thornwall chains whenever each wall adds KEEP_GOING_CELLS+ route cells, before grows and ranks
+var walls_keep_going := true  # Default since 2026-10-06 (Balancing: closer to how the user wants the maze played); --no-walls-keep-going = off. From Room to maze "a player who walls": past the opening, Thornwall chains whenever each wall adds KEEP_GOING_CELLS+ route cells, before grows and ranks
 const KEEP_GOING_CELLS := 2
 var _keep_going_stuck := -2
 var half_pref := true  # --no-half-pref: full cells only on the half grid (the bot before 2026-10-04)
@@ -205,6 +207,7 @@ func _run() -> void:
 			"--no-fence-pref": fence_pref = false
 			"--no-wall-first": wall_first = false
 			"--walls-keep-going": walls_keep_going = true
+			"--no-walls-keep-going": walls_keep_going = false
 			"--wall-first-keep": wall_first_keep = int(value)
 			"--no-half-pref": half_pref = false
 			"--no-pair-search": pair_search = false
@@ -224,6 +227,9 @@ func _run() -> void:
 					extra_dew = int(value)
 			"--favor": favored.assign(value.split(","))
 			"--dreams": dream_mode = value
+			"--card-score": card_scores[value.get_slice(":", 0)] = float(value.get_slice(":", 1))
+			"--card-value": card_value = true
+			"--no-card-value": card_value = false
 			"--boss": act1_boss = value
 			"--boss-draw": BossPool.force_draw = true  # The real per-seed boss draw (sims otherwise meet the defaults, like tests)
 			"--loadout": empty_loadout = value == "none"  # --loadout=none: the profile carries no perks (the Grove cap A/B)
@@ -339,6 +345,8 @@ func _run() -> void:
 	policy.carry_first = carry_pref
 	policy.deep = focus_mode == "deep"
 	policy.mode = dream_mode
+	policy.score_overrides = card_scores
+	policy.card_value = card_value
 	policy.rng.seed = map_seed
 	omens = main.get_node_or_null("%OmenDirector")
 	if _facing() and omens:
@@ -2046,9 +2054,12 @@ func _log_pick(offer: Array, pick) -> void:
 	if file == null:
 		return
 	if new_file:
-		file.store_line("profile,style,dreams,seed,drift,offered,taken,guaranteed")
+		file.store_line("profile,style,dreams,seed,drift,offered,taken,guaranteed,scores")
 	file.seek_end()
 	var cards := "+".join(offer.map(func(c: UpgradeData) -> String: return "%s:%d" % [c.id, c.rarity]))
-	file.store_line("%s,%s,%s,%d,%d,%s,%s,%s" % [profile, style, dream_mode, map_seed, director.drifts_started, cards,
-		pick.id if pick != null else "-", str(dreams.get("_guaranteed_id")) if dreams.get("_guaranteed_id") != null else ""])
+	# scores (--card-value): id=score/DE per card offered, for checking the policy's values by hand
+	var scores := "" if not card_value else "+".join(offer.map(func(c: UpgradeData) -> String:
+		return "%s=%.0f/%.0f" % [c.id, policy.score(c), policy.card_de(c)]))
+	file.store_line("%s,%s,%s,%d,%d,%s,%s,%s,%s" % [profile, style, dream_mode, map_seed, director.drifts_started, cards,
+		pick.id if pick != null else "-", str(dreams.get("_guaranteed_id")) if dreams.get("_guaranteed_id") != null else "", scores])
 	file.close()

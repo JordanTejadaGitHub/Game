@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "glinting_dew"
 display_name = "Glinting Dew"
-description = "All Wardens +8% crit chance (stacks, up to +24%)."
-rarity = 0
+description = "Every 5th attack from each Warden is a crit."
+rarity = 1
 kind = 3
 tags = Array[String](["crit", "precision"])
 requires = Array[String]([])
-max_stacks = 3
+max_stacks = 1
 rule_id = &"glinting_dew"

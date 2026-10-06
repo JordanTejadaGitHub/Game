@@ -59,6 +59,7 @@ func _run() -> void:
 	_test_source_shards()
 	_test_impact_conditions()
 	_test_twig_walls()
+	_test_new_commons()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -71,7 +72,7 @@ class TwigWall extends Node:
 func _test_twig_walls() -> void:
 	_reset()
 	var twig := _card("twig_walls")
-	_check(twig != null and twig.rarity == UpgradeData.Rarity.RARE and twig.tags == ["maze"] and twig.in_start_pool and twig.min_act == 2
+	_check(twig != null and twig.rarity == UpgradeData.Rarity.RARE and twig.tags == ["maze", "defining"] and twig.in_start_pool and twig.min_act == 2
 		and twig.requires.is_empty(), "Twig Walls: Rare, maze, start pool, act 2+, no needs")
 	_check(not dreams.twig_walls(), "no Twig Walls: full-size Thornwalls")
 	dreams.take(twig)
@@ -79,6 +80,34 @@ func _test_twig_walls() -> void:
 	var stick := TwigWall.new()
 	_check(DreamState.wall_weight(stick) == 0.5 and DreamState.wall_weight(null) == 1.0, "a twig wall counts half a Thornwall for Hedge Maze")
 	stick.free()
+	dreams.stacks.clear()
+
+# New Commons 258 / 261 (dream_design.md de439ea8): Passing Dream (statuses jump on a dispel) and Dew Line (every 10th
+# dispel of a drift pays its share twice).
+func _test_new_commons() -> void:
+	_reset()
+	dreams.take(_card("passing_dream"))
+	var gone := _spawn(Vector2(10, 10))
+	var near := _spawn(Vector2(11, 10))
+	var far := _spawn(Vector2(16, 10))
+	gone.apply_status(EnemyStatuses.SPORED, 3, 5.0)
+	gone.apply_status(EnemyStatuses.DROWSY, 1, 4.0)
+	dreams._passing_dream(gone)
+	_check(near.statuses.stacks(EnemyStatuses.SPORED) == 3 and near.statuses.has(EnemyStatuses.DROWSY) and not far.statuses.has(EnemyStatuses.SPORED),
+		"Passing Dream: the statuses jump to the nearest nightmare within 2 cells, stacks and all")
+	_free_enemies()
+	dreams.stacks.clear()
+	dreams._dispels_this_drift = 0
+	var extras: Array[float] = []
+	for i in 10:
+		extras.append(dreams.dew_line_extra())
+	_check(extras.max() == 0.0, "no Dew Line: never twice")
+	dreams.take(_card("dew_line"))
+	dreams._dispels_this_drift = 0
+	extras.clear()
+	for i in 20:
+		extras.append(dreams.dew_line_extra())
+	_check(extras[9] == 1.0 and extras[19] == 1.0 and extras.count(1.0) == 2, "Dew Line: the 10th and 20th dispels pay twice")
 	dreams.stacks.clear()
 func _test_pool() -> void:
 	for id in IDS:
@@ -211,17 +240,16 @@ func _test_hit_rules() -> void:
 	dreams.unlocked["firefly_jar"] = true
 	dreams.take(_card("rain_on_glass"))
 	dreams.unlocked["firefly_jar"] = true
-	dreams.take(_card("rain_on_glass"))
 	_check(dreams.get_spored_tick_multiplier(soaked) == 1.0 and dreams.get_ignite_multiplier() == 1.0, "no Soaked Rot / Sparking Spores: ×1")
 	var dry := dreams.on_hit_multiplier(jar, soaked)
 	soaked.apply_status(EnemyStatuses.DAMP, 1, 4.0)
 	_check(is_equal_approx(dreams.on_hit_multiplier(jar, soaked) / dry, (1.0 + 0.70) / 1.0) or is_equal_approx(dreams.on_hit_multiplier(jar, soaked) - dry, 0.70),
-		"Rain on Glass ×2: light Wardens +70% vs Soaked")
+		"Rain on Glass: light Wardens +70% vs Soaked")
 	_check(dreams.on_hit_multiplier(tower, soaked) == dreams.on_hit_multiplier(tower, soaked), "…not other lines")
 	dreams.take(_card("damp_rot"))
 	dreams.take(_card("sparking_spores"))
-	_check(is_equal_approx(dreams.get_spored_tick_multiplier(soaked), 1.5) and is_equal_approx(dreams.get_ignite_multiplier(), 1.5),
-		"Soaked Rot: Poisoned ticks +50% on Soaked; Sparking Spores: Ignite +50%")
+	_check(is_equal_approx(dreams.get_spored_tick_multiplier(soaked), 2.0) and is_equal_approx(dreams.get_ignite_multiplier(), 2.0),
+		"Soaked Rot: Poisoned ticks double on Soaked; Sparking Spores: Ignite twice as hot")
 	_free_enemies()
 	_clear()
 
@@ -395,16 +423,21 @@ func _test_catalogue() -> void:
 	_check(_has_row(sprout_data, Vector2(3, 3), "reclaimed_earth", 0.20) and not _has_row(sprout_data, Vector2(4, 3), "reclaimed_earth", 0.20),
 		"Reclaimed Earth: Sprouts +20% on a cleared cell only")
 	run_state.tended_cells.erase(Vector2(3, 3))
-	# Quick Step: 10 s of speed after a call early
+	# Quick Step (dream_design.md de439ea8): +50% speed while a drift called early is still arriving
 	dreams.take(_card("quick_step"))
 	_check(not dreams.quick_step_active(), "Quick Step: off until you call a drift early")
-	dreams._quick_step_until = dreams._game_clock + DreamState.QUICK_STEP_TIME
-	_check(dreams.quick_step_active() and is_equal_approx(_row(eye.tower_data, eye.cell, "quick_step", eye).speed, 0.15), "…then +15% speed")
-	# Live Wire and Thin Bark
-	_check(dreams.get_bolt_multiplier() == 1.0, "no Live Wire: bolts ×1")
+	var director: DriftDirector = main.get_node("%DriftDirector")
+	dreams._quick_step_drift = 7
+	director._arriving[7] = {}
+	dreams.bump_board()
+	_check(dreams.quick_step_active() and is_equal_approx(_row(eye.tower_data, eye.cell, "quick_step", eye).speed, 0.5), "…then +50% speed while it arrives")
+	director._arriving.erase(7)
+	_check(not dreams.quick_step_active(), "…and off once it has fully arrived")
+	# Live Wire (a jump now, Tower Code) and Thin Bark
+	_check(dreams.get_bolt_multiplier() == 1.0, "no bigger bolts from Live Wire")
 	dreams.take(_card("live_wire"))
-	_check(is_equal_approx(dreams.get_bolt_multiplier(), 1.15), "Live Wire: bolts +15%")
-	_check(_card("thin_bark").soothe_bonus == 0.35 and _card("thin_bark").max_leaves_add == -3, "Thin Bark: +35% damage, −3 max leaves")
+	_check(dreams.get_bolt_multiplier() == 1.0 and dreams.has_rule(&"live_wire"), "Live Wire: bolts jump instead (Tower Code), never bigger")
+	_check(_card("thin_bark").soothe_bonus == 0.75 and _card("thin_bark").max_leaves_add == 0, "Thin Bark: +75% damage; its price halves max leaves (rule)")
 	_clear()
 	_reset()
 
@@ -427,7 +460,7 @@ func _test_eleven_cards() -> void:
 	var spore := _plant("sporeling", Vector2(104, 100))
 	var base := dreams.get_crit_chance_bonus(spore)
 	dreams.take(_card("glinting_dew"))
-	_check(is_equal_approx(dreams.get_crit_chance_bonus(spore) - base, 0.08), "Glinting Dew: +8% crit, all Wardens")
+	_check(is_equal_approx(dreams.get_crit_chance_bonus(spore) - base, 0.0), "Glinting Dew: no crit chance (every 5th attack crits: Tower Code)")
 	_check(dreams.get_crit_overflow_multiplier(0.5) == 0.0, "no Sharpened Light: crits ×2 as before")
 	dreams.take(_card("sharpened_light"))
 	_check(is_equal_approx(dreams.get_crit_overflow_multiplier(0.5), 0.5), "Sharpened Light: crits +0.5×")
@@ -641,7 +674,7 @@ func _test_seed_cards() -> void:
 func _test_support_cards() -> void:
 	_reset()
 	var start := []  # Lean starting pool: Thorn Snare (Thorn and Bramble) and Scented Hedge (Old Wood) are Grove cards now
-	for id in ["dew_trail", "dew_trail_ii", "overflowing_well", "acorn_cache", "hedgerow_roots",
+	for id in ["dew_trail", "dew_trail_ii", "overflowing_well", "hedgerow_roots",
 			"grandfather_stump", "thorn_snare", "thorn_snare_ii", "scented_hedge", "living_walls", "many_threads", "the_quiet_ones"]:
 		var card := _card(id)
 		if card:
@@ -649,11 +682,11 @@ func _test_support_cards() -> void:
 			_check(card.tags.has("tending" if moved else "support") and card.in_start_pool == start.has(id), "%s: support card (tending since round 3), pool" % id)
 	dreams.grove_cards.append_array(["thorn_snare", "scented_hedge"])
 	_check(dreams.can_offer(_card("thorn_snare")) and not dreams.can_offer(_card("scented_hedge")), "Thorn Snare needs nothing; Scented Hedge needs Honeysuckle")
-	dreams.grove_cards.assign(["acorn_cache", "the_quiet_ones"])
+	dreams.grove_cards.assign(["the_quiet_ones"])
 	var acorn: TowerData = load("res://resource/tower/acorn.tres")
 	dreams.unlocked["acorn"] = true
-	dreams.take(_card("acorn_cache"))
-	_check(dreams.get_build_cost(acorn) == 12, "Acorn Cache: Acorns cost 12 Dew")
+	dreams.take(_card("warm_hearth"))  # Absorbed Acorn Cache (dream_design.md de439ea8)
+	_check(dreams.get_build_cost(acorn) == 12, "Warm Hearth: Acorns cost 12 Dew")
 	var quiet := _card("the_quiet_ones")
 	_check(not dreams.can_offer(quiet, 2), "The Quiet Ones needs 3+ non-attacking Wardens")
 	for i in 3:
@@ -715,15 +748,15 @@ func _test_clearing_payoffs() -> void:
 func _test_grove_branches() -> void:
 	_reset()
 	var swift := ["momentum", "momentum_ii", "quickening", "flurry", "restless_roots", "hummingheart", "whirlwind_heart", "drumbeat"]
-	var reach := ["broad_splash", "lingering_splash", "lingering_splash_ii", "far_reach", "far_reach_ii", "spillover", "great_ripple", "overlap"]
-	var start_pool := ["momentum", "momentum_ii", "drumbeat", "overlap"]  # Back in the start pool (dream_design.md 21ac910b)
+	var reach := ["lingering_splash", "lingering_splash_ii", "far_reach", "far_reach_ii", "spillover", "great_ripple", "overlap"]
+	var start_pool := ["momentum", "momentum_ii", "drumbeat", "overlap", "flurry"]  # Back in the start pool (dream_design.md 21ac910b, de439ea8)
 	for id in swift + reach:
 		var card := _card(id)
-		_check(card != null and card.in_start_pool == start_pool.has(id) and card.tags == [("swift" if swift.has(id) else "reach")],
+		_check(card != null and card.in_start_pool == start_pool.has(id) and card.tags.filter(func(t: String) -> bool: return t != "defining") == [("swift" if swift.has(id) else "reach")],
 			"%s: %s, the %s tag" % [id, "start pool" if start_pool.has(id) else "Grove pool", "swift" if swift.has(id) else "reach"])
 	_check(DreamState.ARCHETYPE_TAGS.has("swift") and DreamState.ARCHETYPE_TAGS.has("reach"), "swift and reach are build tags")
 	_check(_card("whirlwind_heart").rarity == UpgradeData.Rarity.LEGENDARY and _card("great_ripple").rarity == UpgradeData.Rarity.LEGENDARY
-		and _card("broad_splash").max_stacks == 3 and _card("momentum_ii").deepens == "momentum", "rarities, stacks, Deepened")
+		and _card("momentum_ii").deepens == "momentum", "rarities, Deepened")
 	# Restless Roots: slow Wardens attack 45% faster
 	var slow: TowerData = null
 	var fast: TowerData = null
@@ -754,15 +787,13 @@ func _test_grove_branches() -> void:
 	dreams.take(_card("far_reach_ii"))
 	if area != null:
 		_check(is_equal_approx(_row(area, Vector2(100, 100), "far_reach").range, 1.25), "Far Reach II: +1.25")
-	# Whirlwind Heart, Hummingheart, Broad Splash, Momentum, Lingering Splash: the numbers Tower reads
+	# Whirlwind Heart, Hummingheart, Far Reach's splash, Momentum, Lingering Splash: the numbers Tower reads
 	_check(dreams.attack_speed_bonus_factor() == 1.0 and dreams.get_hit_damage_multiplier() == 1.0, "no Whirlwind Heart: ×1")
 	dreams.take(_card("whirlwind_heart"))
 	_check(dreams.attack_speed_bonus_factor() == 2.0 and is_equal_approx(dreams.get_hit_damage_multiplier(), 0.8), "Whirlwind Heart: bonuses ×2, hits −20%")
 	dreams.take(_card("hummingheart"))
 	_check(is_equal_approx(dreams.hummingheart_bonus(0.35), 0.09) and is_equal_approx(dreams.hummingheart_bonus(5.0), 0.60), "Hummingheart: +3% per +10% speed, max +60%")
-	for i in 3:
-		dreams.take(_card("broad_splash"))
-	_check(is_equal_approx(dreams.get_area_radius_add(), 0.75), "Broad Splash ×3: area radius +0.75 cells")
+	_check(dreams.has_rule(&"far_reach") and is_equal_approx(dreams.get_area_radius_add(), DreamState.FAR_REACH_SPLASH), "Far Reach: splashes 0.5 cells wider (Broad Splash folded in)")
 	dreams.take(_card("momentum"))
 	_check(dreams.momentum_step().is_equal_approx(Vector2(0.06, 0.45)), "Momentum: +6% per hit, max +45%")
 	dreams.take(_card("momentum_ii"))
@@ -1011,14 +1042,14 @@ func _test_card_feel() -> void:
 	_reset()
 	var a := _plant("sporeling", Vector2(100, 100))
 	var b := _plant("sporeling", Vector2(102, 100))
-	var calm := _card("deeper_calm")  # +15% damage on every Warden
+	var calm := _card("deeper_calm")  # +25% damage on every Warden (dream_design.md de439ea8)
 	var impact := dreams.preview_card_impact(calm)
-	_check(impact.kind == &"stat" and impact.towers.size() == 2 and impact.text == "On your board · +15% damage on 2 Wardens",
+	_check(impact.kind == &"stat" and impact.towers.size() == 2 and impact.text == "On your board · +25% damage on 2 Wardens",
 		"impact preview: %s" % impact.text)
 	var before := a.get_damage()
 	dreams.take(calm)
 	var after := a.get_damage()
-	_check(absf(after / before - 1.15) < 0.011, "…matches the real change once taken (×%.3f)" % (after / before))
+	_check(absf(after / before - 1.25) < 0.011, "…matches the real change once taken (×%.3f)" % (after / before))
 	_check(not dreams.stacks.has("thick_bark") and dreams.preview_card_impact(_card("thick_bark")).kind != &"stat", "…and taking nothing for a preview")
 	var event := DamageLog.Event.new()
 	event.source = a
@@ -1027,9 +1058,9 @@ func _test_card_feel() -> void:
 	dreams.card_credit = {"block": {}, "run": {}}
 	dreams._credit_hit(event)
 	var credit := dreams.get_card_credit("deeper_calm", &"run")
-	_check(credit.kind == &"damage" and absf(credit.damage - 15.0) < 0.01 and credit.damage <= event.amount,
+	_check(credit.kind == &"damage" and absf(credit.damage - 23.0) < 0.01 and credit.damage <= event.amount,
 		"card credit: the bonus part of a hit (%.2f of 115)" % credit.damage)
-	_check(credit.text == "Deeper Calm · +15", "…named for the reports (%s)" % credit.text)
+	_check(credit.text == "Deeper Calm · +23", "…named for the reports (%s)" % credit.text)
 	dreams.take(_card("last_breath"))
 	var burst := DamageLog.Event.new()
 	burst.source = a
@@ -1042,7 +1073,7 @@ func _test_card_feel() -> void:
 	var saved := dreams.to_save()
 	dreams.card_credit = {"block": {}, "run": {}}
 	dreams.load_save(JSON.parse_string(JSON.stringify(saved)))
-	_check(absf(dreams.get_card_credit("deeper_calm", &"run").damage - 15.0) < 0.01, "…kept in the run save")
+	_check(absf(dreams.get_card_credit("deeper_calm", &"run").damage - 23.0) < 0.01, "…kept in the run save")
 	dreams.card_credit = {"block": {}, "run": {}}
 	_clear()
 
@@ -1122,9 +1153,9 @@ func _test_impact_conditions() -> void:
 	_reset()
 	for c in [Vector2(80, 80), Vector2(84, 80), Vector2(88, 80)]:  # Three attackers, far apart: no Kinship
 		_plant("sporeling", c)
-	var ties := dreams.preview_card_impact(_card("family_ties"))
+	var ties := dreams.preview_card_impact(_card("sweet_harmony"))  # A Kinship card (Family Ties was cut)
 	_check(ties.kind == &"none" and ties.text == "None of your Wardens yet" and ties.towers.is_empty(),
-		"Family Ties with no Kinship: \"None of your Wardens yet\" (%s)" % ties.text)
+		"a Kinship card with no Kinship: \"None of your Wardens yet\" (%s)" % ties.text)
 	var sunlit := dreams.preview_card_impact(_card("sunlit_rest"))
 	_check(sunlit.towers.size() == 1 and sunlit.text == "Reaches one of your Wardens",
 		"Sunlit Rest counts the one Warden the next rest raises, not all attackers (%s)" % sunlit.text)

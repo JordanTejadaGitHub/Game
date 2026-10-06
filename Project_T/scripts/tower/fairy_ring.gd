@@ -27,7 +27,7 @@ func _init(tower: Tower, at_cell: Vector2, data: TowerData = null, strength: flo
 	_data = data if data != null else tower.attack_data  # What it was made with (a legacy attack, a Graftling's copy)
 	_boost = tower._hit_boost * strength  # Sudden Bloom / Watchful Rest
 	cell = at_cell
-	_lifetime = _data.trap_lifetime
+	_lifetime = ShapeCards.ground_time(_data.trap_lifetime)  # Lingering Ground: x1.5 (0 stays "until stepped on")
 	add_to_group(GROUP)
 	top_level = true
 	z_index = -1  # On the path (after the ground and path layers), under the y-sorted nightmares

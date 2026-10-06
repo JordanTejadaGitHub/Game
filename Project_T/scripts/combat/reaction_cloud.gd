@@ -20,7 +20,7 @@ var _effect: Node2D = null
 func _init(at: Vector2, radius: float, duration: float, potency: float, line: String, source: Node, chain: int) -> void:
 	position = at
 	_radius = radius
-	_duration = duration
+	_duration = ShapeCards.ground_time(duration)  # Lingering Ground: x1.5
 	_potency = potency
 	_line = line
 	_source = source

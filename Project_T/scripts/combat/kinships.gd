@@ -33,8 +33,8 @@ const WHOLE_TREE_BONUS := 0.20
 const DIM_ALPHA := 0.5  # Vines during drifts (playtest: 0.3 was easy to miss)
 # Kinship cards (dream_design.md "Kinship cards: going deep")
 const FAMILY_TIES_PER := 0.20  # Family Ties: Wardens in a Kinship, per stack (dream_audit.md)
-const BLOOD_BONDED := 0.50  # Blood is Thicker (bittersweet): in a Kinship… (dream_audit.md)
-const BLOOD_UNBONDED := 0.15  # …and the cost for attacking Wardens not in one
+const BLOOD_BONDED := 1.0  # Blood is Thicker (bittersweet): in a Kinship double… (dream_design.md de439ea8)
+const BLOOD_UNBONDED := 0.5  # …and half for attacking Wardens not in one
 const GROVE_OF_KIN_PER := 0.05  # Grove of Kin: every Warden, per Kinship on the map… (dream_audit.md)
 const GROVE_OF_KIN_MAX := 0.50
 const SWEET_BONUS: Array[float] = [0.5, 1.0]  # Sweet Harmony (II)
@@ -1187,7 +1187,7 @@ func trait_fired(learner: Tower, id: StringName) -> void:
 func fog_patch(at: Vector2, seconds: float) -> void:
 	if seconds <= 0.0:
 		return
-	var fog := KinFog.new(seconds)
+	var fog := KinFog.new(ShapeCards.ground_time(seconds))  # Lingering Ground: x1.5
 	get_parent().add_child(fog)
 	fog.global_position = at
 

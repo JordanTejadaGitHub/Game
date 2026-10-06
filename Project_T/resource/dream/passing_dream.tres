@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "passing_dream"
+display_name = "Passing Dream"
+description = "When a nightmare is dispelled, its statuses jump to the nearest nightmare within 2 cells, with their stacks and time left."
+rarity = 0
+kind = 3
+tags = Array[String](["status", "affliction"])
+max_stacks = 1
+rule_id = &"passing_dream"

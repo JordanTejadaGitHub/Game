@@ -111,6 +111,8 @@ func _ready() -> void:
 	omens.offer_closed.connect(_on_closed)
 	omens.omen_started.connect(_on_omen_started)
 	omens.omen_rewarded.connect(_on_omen_rewarded)
+	if omens.has_signal("omens_skipped"):  # Deep Sleep (Roguelite Code): the tag says Omens are locked
+		omens.omens_skipped.connect(_on_omens_skipped)
 	var run_state := get_node_or_null("%RunState")
 	if run_state:
 		run_state.leaves_changed.connect(func(_l: int, _m: int) -> void: _refresh_tag())  # The reward line follows the block's losses
@@ -501,6 +503,19 @@ func _place_tag_icon() -> void:
 	_tag_icon.size = Vector2(side, side)
 	_tag_icon.position = Vector2(left + maxf((inner - width) / 2.0, 0.0), top + (line_height - side) / 2.0)
 	_tag_icon.visible = true
+
+# Deep Sleep (dream_design.md de439ea8): Omens locked for the rest of the run. Where the Omen tag sits, a dim
+# "Omens locked" with the reason in its tip (OmenDirector.omens_skipped fires at each rest that would have offered them).
+func _on_omens_skipped(reason: String) -> void:
+	_tag_icon.texture = IconInfo.icon(&"omen")
+	_active_tag.text = _icon_pad() + "Omens locked"
+	_tag_rich.text = "[center]%s[color=#%s]Omens locked[/color][/center]" % [_icon_pad(), UiStyle.INK_DIM.to_html(false)]
+	if _tag_tip == null:
+		_tag_tip = TapTip.attach(_active_tag, reason)
+	_active_tag.tooltip_text = reason
+	_tag_tip._label.text = reason
+	_active_tag.visible = true
+	_place_tag_icon.call_deferred()
 
 func _on_omen_rewarded(omen: OmenData, summary: String) -> void:
 	_active_tag.visible = false

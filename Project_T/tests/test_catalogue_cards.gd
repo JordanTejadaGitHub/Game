@@ -95,10 +95,10 @@ func _run() -> void:
 	_check(is_equal_approx(bramble.get_wall_multiplier(), thorns * (1.0 + 2 * DreamState.THORNHEART_PER * dreams.rule_power(&"thornheart"))),
 		"Thornheart: +5%% per Bramble (%.3f)" % bramble.get_wall_multiplier())
 
-	# Live Wire: Charged bolts hit harder.
+	# Live Wire: Charged bolts jump to a 2nd nightmare (Tower Code), never bigger.
 	var bolt_before: float = dreams.get_bolt_multiplier()
 	_rule(&"live_wire")
-	_check(dreams.get_bolt_multiplier() > bolt_before, "Live Wire: the bolt multiplier grows (%.2f)" % dreams.get_bolt_multiplier())
+	_check(dreams.get_bolt_multiplier() == bolt_before and dreams.has_rule(&"live_wire"), "Live Wire: a jump, not a bigger bolt (%.2f)" % dreams.get_bolt_multiplier())
 
 	# --- Crit / new-Warden cards and 227-234 (34a713c0, f771aaf5) ---
 	# Patient Aim (dream_design.md e1e39b56): waiting longer means more crit chance, never more damage.

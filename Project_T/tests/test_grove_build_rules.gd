@@ -6,7 +6,7 @@ extends SceneTree
 #   godot --headless --path . --script res://tests/test_grove_build_rules.gd --fixed-fps 60
 
 const CELL := 64.0
-const RULES := ["momentum", "quickening", "flurry", "hummingheart", "whirlwind_heart", "broad_splash",
+const RULES := ["momentum", "quickening", "flurry", "hummingheart", "whirlwind_heart", "far_reach",
 	"lingering_splash", "spillover", "great_ripple"]
 
 var failures := 0
@@ -94,13 +94,13 @@ func _run() -> void:
 	_check(hum > 0.0 and absf(swift.get_damage() - damage * (1.0 + hum)) < 0.5, "Hummingheart: +%d%% damage from %d%% bonus speed" % [roundi(hum * 100), roundi(bonus * 100)])
 	_drop("hummingheart")
 
-	# Broad Splash: every area attack's radius +0.25 cells per stack.
+	# Far Reach (Broad Splash folded in, dream_design.md de439ea8): every area attack's splash 0.5 cells wider.
 	var drop := _plant("rain_lily", Vector2(14, 12))
 	var splash := drop.get_splash_cells()
-	_take("broad_splash")
-	_check(is_equal_approx(drop.get_splash_cells(), splash + DreamState.BROAD_SPLASH_PER * dreams.get_splash_multiplier(drop.tower_data)),
-		"Broad Splash: splash %.2f -> %.2f cells" % [splash, drop.get_splash_cells()])
-	_drop("broad_splash")
+	_take("far_reach")
+	_check(is_equal_approx(drop.get_splash_cells(), splash + DreamState.FAR_REACH_SPLASH * dreams.get_splash_multiplier(drop.tower_data)),
+		"Far Reach: splash %.2f -> %.2f cells" % [splash, drop.get_splash_cells()])
+	_drop("far_reach")
 
 	# Lingering Splash: every 3rd area attack leaves a patch.
 	_take("lingering_splash")

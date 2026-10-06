@@ -104,4 +104,13 @@ func _run() -> void:
 	if face != null:
 		await _move(face.get_global_rect().get_center())
 		_check(await _cue_shows(face, "hover"), "hovering Face an Omen lights Face it")
+	# Deep Sleep: Omens locked for the run; the tag says so where an Omen's would be
+	omens.visible = false
+	var director = main.get_node("%OmenDirector")
+	if director.has_signal("omens_skipped"):
+		director.omens_skipped.emit("Deep Sleep: no Omens for the rest of the run")
+		await _frames(2)
+		var tag := main.get_node("HUD").find_child("ActiveOmen", true, false) as Label
+		_check(tag != null and tag.visible and tag.text.contains("Omens locked") and tag.tooltip_text.begins_with("Deep Sleep"),
+			"Deep Sleep shows the Omen tag as locked (%s)" % (tag.text if tag else "none"))
 	RunSaver.safe_quit(self, failures)

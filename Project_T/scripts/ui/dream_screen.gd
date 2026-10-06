@@ -182,6 +182,31 @@ func _make_card(card: UpgradeData) -> Button:
 	gem.draw.connect(func() -> void: UiStyle.draw_gem(gem, gem.size / 2.0, 13.0, card.rarity, glyph))
 	gem_row.add_child(gem)
 	gem_row.add_child(rarity)
+	if dream_state.is_defining(card) if dream_state.has_method("is_defining") else card.tags.has("defining"):  # Build-defining (tag or Legendary; dream_design.md de439ea8): a small mark, no numbers
+		var corner := Control.new()
+		corner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		corner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		gem_row.add_child(corner)
+		var arch := IconInfo.icon(&"defining")  # UI Asset's stone arch with a gold keystone (74a8baeb), at ×2
+		var build: Control
+		if arch != null:
+			var icon := TextureRect.new()
+			icon.texture = arch
+			icon.custom_minimum_size = Vector2(32, 32)
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			build = icon
+		else:  # The word until the glyph is in the icon sheet
+			var word := Label.new()
+			word.text = "Build"
+			UiStyle.caps(word, 13, UiStyle.GOLD)
+			build = word
+		build.name = "BuildMark"
+		build.tooltip_text = "Build around it: changes what you plant next."
+		build.mouse_filter = Control.MOUSE_FILTER_PASS  # Its own tip; a click still takes the card
+		build.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		gem_row.add_child(build)
 	box.add_child(gem_row)
 	var name_label := Label.new()
 	name_label.text = card.display_name

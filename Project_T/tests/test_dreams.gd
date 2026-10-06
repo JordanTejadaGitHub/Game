@@ -299,21 +299,28 @@ func _test_new_cards(main: Node) -> void:
 		and run_state.dew - dew_before == paid[0], "Deep Sleep: no rest bonus, only what Dreams add (%d)" % paid[0])
 	var sprout_tower := Tower.new()
 	sprout_tower.tower_data = load("res://resource/tower/sprout.tres")
-	_check(is_equal_approx(dreams.get_soothe_multiplier(sprout_tower), 1.6), "Deep Sleep: +60% soothe")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(sprout_tower), 1.8), "Deep Sleep: +80% soothe")
+	_check((main.get_node("%OmenDirector") as OmenDirector).omens_locked(), "Deep Sleep: Omens can't be faced (the rest skips their offer)")
 	sprout_tower.free()
 	dreams.stacks.erase("deep_sleep")
 	_check(dreams.keeps_rest_bonus(), "…without it the rest bonus is back")
 	run_state.leaves = 16
 	dreams.take(_card(dreams, "restless_dreams"))
 	_check(not dreams.can_skip(), "Restless Dreams: no Let it pass")
-	var rare_runs := 0
-	dreams.allow_bittersweet = false
-	dreams.unlocked["firefly_jar"] = true
-	dreams.take(_card(dreams, "dream_stormcap"))  # So a Rare (Thunderhead) can be offered
-	for i in 3:
-		if dreams.make_offer(10).any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()):
-			rare_runs += 1
-	_check(rare_runs == 3, "Restless Dreams: the next 3 Dreams include a Rare+ (%d/3)" % rare_runs)
+	# Waking Dreams (dream_design.md de439ea8): the next Dream offers 3 Legendaries, then every offer shows 2 cards
+	_check(dreams.waking_legendaries, "Waking Dreams: the next offer is armed")
+	var legends_open := dreams.pool.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY and dreams.can_offer(c, 2)).size()
+	var legend_offer := dreams.make_offer(30)
+	_check(legend_offer.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY).size() >= mini(DreamState.WAKING_LEGENDARIES, legends_open)
+		and legend_offer.size() >= DreamState.WAKING_LEGENDARIES and not dreams.waking_legendaries,
+		"…3 Legendaries, as many as can be offered (%d open: %s)" % [legends_open, legend_offer.map(func(c: UpgradeData) -> String: return c.id)])
+	_check(dreams.make_offer(31).size() == DreamState.WAKING_OFFER_SIZE and dreams.make_offer(32).size() == DreamState.WAKING_OFFER_SIZE,
+		"…then every offer shows 2 cards")
+	run_state.max_leaves = 15
+	run_state.leaves = 14
+	dreams.take(_card(dreams, "thin_bark"))  # Thin Bark (de439ea8): max leaves halved, those above lost now
+	_check(run_state.max_leaves == 8 and run_state.leaves == 8, "Thin Bark: 15 max leaves become 8, 14 leaves become 8 (%d/%d)" % [run_state.leaves, run_state.max_leaves])
+	dreams.stacks.erase("thin_bark")
 	run_state.max_leaves = 20
 	run_state.leaves = 20
 	_reset_dreams(main)
@@ -325,8 +332,7 @@ func _test_card_effects(main: Node) -> void:
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	var thornwall: TowerData = load("res://resource/tower/thornwall.tres")
 	dreams.take(_card(dreams, "quickened_sap"))
-	dreams.take(_card(dreams, "quickened_sap"))
-	_check(is_equal_approx(dreams.get_attack_speed_multiplier(sprout), 1.3), "Quickened Sap stacks additively (×1.3)")
+	_check(is_equal_approx(dreams.get_attack_speed_multiplier(sprout), 1.25), "Quickened Sap: one copy, +25% (dream_design.md de439ea8)")
 	var dew := run_state.dew
 	dreams.take(_card(dreams, "morning_dew"))
 	_check(run_state.dew == dew + 20 and dreams.get_dew_per_clear() == 0, "Morning Dew: +20 now, no Dew per clear")
@@ -397,12 +403,9 @@ func _test_clearing_cards(main: Node) -> void:
 	run_state.tended_cells.clear()  # No clears yet: no surcharge
 	run_state.add_free_clears(-run_state.free_clears)
 	dreams.take(opener)
-	_check(clearer.get_clear_cost(tree) == roundi(tree.clear_cost * 0.75) and run_state.free_clears == 3,
-		"Heartwood's Reach: −25%% (tree %d → %d) and 3 half-price clears (%d)" % [tree.clear_cost, clearer.get_clear_cost(tree), run_state.free_clears])
-	dreams.take(opener)
 	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) and clearer.get_clear_cost(rock) == ceili(rock.clear_cost / 2.0)
-		and run_state.free_clears == 6 and opener.max_stacks == 2,
-		"…two stacks: −50%%, never below half the base (tree %d, boulder %d), 6 charges" % [clearer.get_clear_cost(tree), clearer.get_clear_cost(rock)])
+		and run_state.free_clears == 3 and opener.max_stacks == 1,
+		"Heartwood's Reach (one copy): half price (tree %d, boulder %d) and 3 half-price clears" % [clearer.get_clear_cost(tree), clearer.get_clear_cost(rock)])
 	_check(clearer.get_clear_cost(tree, true) == ceili(tree.clear_cost / 2.0), "…a half-price charge on top still hits the floor")
 	run_state.tended_cells.assign([Vector2(-1, -1), Vector2(-2, -2), Vector2(-3, -3)])
 	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) + 3, "every clear so far adds +1 Dew after the discounts (%d)" % clearer.get_clear_cost(tree))
@@ -413,11 +416,11 @@ func _test_clearing_cards(main: Node) -> void:
 	run_state.dew = 0
 	var tended := run_state.obstacles_tended
 	var cell: Vector2 = map_generator.obstacles.keys()[0]
-	_check(not clearer.try_clear(cell) and run_state.free_clears == 6, "a charge doesn't make a clear free: no Dew, no clear, charge kept")
+	_check(not clearer.try_clear(cell) and run_state.free_clears == 3, "a charge doesn't make a clear free: no Dew, no clear, charge kept")
 	var cost := clearer.get_next_clear_cost(map_generator.get_obstacle(cell))
 	_check(cost == ceili(map_generator.get_obstacle(cell).clear_cost / 2.0), "…it halves the price (%d)" % cost)
 	run_state.dew = 100
-	_check(clearer.try_clear(cell) and run_state.free_clears == 5 and run_state.dew == 100 - cost, "a half-price clear")
+	_check(clearer.try_clear(cell) and run_state.free_clears == 2 and run_state.dew == 100 - cost, "a half-price clear")
 	_check(run_state.obstacles_tended == tended + 1, "half-price clears still give a Seed")
 	run_state.add_free_clears(-run_state.free_clears)
 	dreams.stacks.erase("heartwoods_reach")
@@ -468,10 +471,10 @@ func _test_clearing_cards(main: Node) -> void:
 	dreams.take(burn)  # Reclaimed Earth is still owned
 	_check(dreams.count_obstacles(tree) == 0 and dreams.count_obstacles() == rocks, "Burn Back clears every Withered Tree, no rocks")
 	_check(run_state.obstacles_tended == tended, "Burn Back's clears give no Seeds")
-	_check(run_state.dew == dew - DreamState.BURN_BACK_PER_TREE * trees and run_state.fertile_cells.is_empty(), "Burn Back costs 5 Dew per tree and doesn't trigger Reclaimed Earth")
+	_check(run_state.dew == dew - DreamState.BURN_BACK_PER_TREE * trees and run_state.fertile_cells.is_empty(), "Burn Back is free and doesn't trigger Reclaimed Earth")
 	_check(run_state.tended_cells.size() == clears + trees, "Burn Back's clears still count for Tended Forest")
 	var bug: EnemyData = load("res://resource/enemy/leaf_bug.tres")
-	_check(is_equal_approx(director.get_spawn_modifiers(bug, 3).get("speed", 1.0), 1.1), "Burn Back: nightmares +10% speed")
+	_check(is_equal_approx(director.get_spawn_modifiers(bug, 3).get("speed", 1.0), 1.2), "Burn Back: nightmares +20% speed")
 	run_state.fertile_cells.clear()
 	_reset_dreams(main)
 	dreams.clearing_open = false  # As before the opener: the later simulations were tuned on this pool
@@ -634,11 +637,11 @@ func _test_dreamlight(main: Node) -> void:
 
 	# Cards and the save
 	dreams.take(_card(dreams, "sudden_insight"))
-	_check(dreams.dreamlight == 1, "Sudden Insight: +1 Dreamlight")
+	_check(dreams.dreamlight == 2, "Sudden Insight: +2 Dreamlight")
 	var saved := dreams.to_save()
 	dreams.dreamlight = 0
 	dreams.load_save(saved)
-	_check(dreams.dreamlight == 1, "Dreamlight survives the save")
+	_check(dreams.dreamlight == 2, "Dreamlight survives the save")
 	run_state.max_leaves = 20
 	_reset_dreams(main)
 	dreams.dreamlight = 0
@@ -1089,8 +1092,8 @@ func _test_discovery(main: Node) -> void:
 	_check(dreams.event_discovered("crit_marked") and dreams._key_met("event:crit_marked", []), "a crit on a Marked nightmare discovers Starlit Aim")
 	dreams.note_discovery(DreamState.EVENT_PUFF_IN_FOG)  # Tower Code calls this when a puff lands in Mistveil's fog
 	_check(dreams.event_discovered("puff_in_fog"), "a Puffball puff in Mistveil's fog discovers Chain Bloom")
-	var cache := _card(dreams, "acorn_cache")
-	_check(not dreams.discovery_met(cache), "Acorn Cache waits for an Acorn to be built")
+	var cache := _card(dreams, "warm_hearth")  # Needs an Acorn (Acorn Cache was cut)
+	_check(not dreams.discovery_met(cache), "Warm Hearth waits for an Acorn to be built")
 	var before: Array[UpgradeData] = [cache]  # A Grove card: not in this run's pool
 	var acorn := _build(main, "acorn")
 	_check(dreams.discovery_met(cache) and dreams.newly_discovered(before).has(cache.display_name),
@@ -1325,6 +1328,22 @@ func _test_offer_shape(main: Node) -> void:
 		most_plain = maxi(most_plain, offer.filter(func(c: UpgradeData) -> bool: return DreamState.PLAIN_STAT_CARDS.has(c.id)).size())
 	_check(most_family <= 1, "at most 1 family card per offer (saw %d)" % most_family)
 	_check(most_plain <= 1, "at most 1 plain stat card per offer (saw %d)" % most_plain)
+	# Build-defining cards (dream_design.md de439ea8 "B"): from drift 26 every offer holds an unowned defining card
+	_check(dreams.is_defining(_card(dreams, "solitude")) and dreams.is_defining(_card(dreams, "thorny_walls"))
+		and not dreams.is_defining(_card(dreams, "deeper_calm")), "defining: Solitude and Thorny Walls yes, Deeper Calm no")
+	var without_defining := 0
+	for i in 60:
+		dreams._passed_count.clear()
+		var late := dreams.make_offer(26 + i % 40)
+		if not late.any(func(c: UpgradeData) -> bool: return dreams.is_defining(c) and not dreams.has_card(c.id)):
+			without_defining += 1
+	_check(without_defining == 0, "from drift 26 every offer shows an unowned defining card (%d without)" % without_defining)
+	var early_without := 0
+	for i in 60:
+		dreams._passed_count.clear()
+		if not dreams.make_offer(10).any(dreams.is_defining):
+			early_without += 1
+	_check(early_without > 0, "before drift 26 there's no such rule (%d of 60 offers had none)" % early_without)
 	_reset_dreams(main)
 func _reset_dreams(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")

@@ -223,8 +223,6 @@ func _run() -> void:
 	_rule(dreams, &"old_friends")
 	_check(kin.get_stage_drifts() == [0, 4, 9], "Old Friends (Quick Bonds merged in): Blooming at 4, Old Kin at 9 (%s)" % [kin.get_stage_drifts()])
 	var bonded := far_a.get_damage()
-	_rule(dreams, &"family_ties")
-	_check(far_a.get_damage() > bonded, "Family Ties: Wardens in a Kinship hit harder")
 	seller.sell(far_b.cell)
 	await process_frame
 	_rule(dreams, &"old_friends")

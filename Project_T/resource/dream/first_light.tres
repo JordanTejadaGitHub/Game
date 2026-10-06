@@ -9,6 +9,6 @@ display_name = "First Light"
 description = "Each Warden's first hit on a nightmare deals ×3 damage."
 rarity = 2
 kind = 3
-tags = Array[String](["precision"])
+tags = Array[String](["precision", "defining"])
 max_stacks = 1
 rule_id = &"first_light"

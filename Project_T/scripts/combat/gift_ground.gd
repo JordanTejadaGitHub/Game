@@ -17,7 +17,53 @@ const LIGHTNING_TREE := &"lightning_tree"
 const MOONWELL := &"moonwell"
 const BELL_STONE := &"bell_stone"
 const STUMP := &"ancient_stump"  # 3 stumps
-const MARK_GIFTS: Array[StringName] = [SPRING, MUSHROOM_RING, LIGHTNING_TREE, MOONWELL, BELL_STONE, STUMP]
+const MARK_GIFTS: Array[StringName] = [SPRING, MUSHROOM_RING, LIGHTNING_TREE, MOONWELL, BELL_STONE, STUMP, SOW_RIDGE, FALLEN_GIANT]
+# Every gift gives a buff or a resource (heartwood_gifts.md b3e464e6; Balancing f32488cd). Attacking Wardens only
+# (walls get no boosts); "touching" = one of its halves beside one of the gift's (MapGifts' cells, by halves).
+const SOW_RIDGE := &"sow_ridge"
+const FALLEN_GIANT := &"fallen_giant"
+const SHELTERED_DAMAGE := 0.10  # Sow a Ridge: a Warden touching one of its standing trees ("Sheltered")
+const LOOKOUT_CRIT := 0.15  # Fallen Giant: a Warden touching the log ("Lookout"; 8f46c6ac, Balancing 15%: Moonwell already gives range)
+
+# Whether any of `halves` is beside (or on) a half of a `kind` cell; Sow a Ridge counts only trees still standing.
+func touching(kind: StringName, halves: Array) -> bool:
+	_sync_taken()
+	var list: Array = marks.get(kind, [])
+	if list.is_empty():
+		return false
+	var map = get_parent().get_node_or_null("%MapGenerator") if get_parent() else null
+	for mark in list:
+		if kind == SOW_RIDGE and map != null and map.has_method("get_obstacle") and map.get_obstacle(mark) == null:
+			continue  # Tended away: no shelter
+		var lo: Vector2 = mark * 2.0 - Vector2.ONE  # The mark cell's halves, grown by one half on every side
+		var hi: Vector2 = mark * 2.0 + Vector2(2, 2)
+		for h in halves:
+			if h.x >= lo.x and h.x <= hi.x and h.y >= lo.y and h.y <= hi.y:
+				return true
+	return false
+
+func sheltered(tower: Tower) -> bool:
+	return tower.tower_data.can_attack and touching(SOW_RIDGE, tower.get_halves())
+
+func lookout(tower: Tower) -> bool:
+	return tower.tower_data.can_attack and touching(FALLEN_GIANT, tower.get_halves())
+
+# The gift buffs on `tower` as [label, stat, amount] (BuffSources shows them with their source).
+func buff_rows(tower: Tower) -> Array:
+	var rows: Array = []
+	if not tower.tower_data.can_attack:
+		return rows
+	if tower.tower_data.line == "water" and near(SPRING, tower.get_cells(), 1):
+		rows.append(["Spring", "damage", SPRING_DAMAGE])
+	if sheltered(tower):
+		rows.append(["Sheltered (Sow a Ridge)", "damage", SHELTERED_DAMAGE])
+	if near(MOONWELL, tower.get_cells(), 1, true):
+		rows.append(["Moonwell", "range", MOONWELL_RANGE])
+	if lookout(tower):
+		rows.append(["Lookout (Fallen Giant)", "crit", LOOKOUT_CRIT])
+	if tower.tower_data.line == "song" and near(BELL_STONE, tower.get_cells(), 1):
+		rows.append(["Bell Stone", "attack_speed", BELL_SPEED])
+	return rows
 
 # Numbers (Balancing Discussion's starting values).
 const SPRING_DAMAGE := 0.20  # Water Wardens beside the Spring
@@ -29,8 +75,8 @@ const LIGHTNING_REACH := 2  # …within this many cells of the tree
 const MOONWELL_RANGE := 1.0  # Wardens in its 4 orthogonal cells (not all 8: too much)
 const BELL_SPEED := 0.15  # Song Wardens within 1 cell pulse faster
 const STUMP_RANK := 1  # A Warden planted on a stump starts at rank I
-const BRAMBLE_COST := 0.5  # Thornwalls cost half this run…
-const BRAMBLE_DROWSY_CAP := 1  # …and nightmares touching one get +1 Drowsy cap
+const BRAMBLE := "bramble"  # Bramble Verge (8f46c6ac): Thornwall -> Bramble grows free this run (Bramble unlocked)…
+const BRAMBLE_DROWSY_CAP := 1  # …and nightmares touching a Bramble get +1 Drowsy cap
 const THORNWALL := "thornwall"
 const NO_CELL := Vector2(-1, -1)
 
@@ -235,11 +281,16 @@ func _changed() -> void:
 
 # Spring: a water Warden beside the pond deals +20%.
 func damage_bonus(tower: Tower) -> float:
-	return SPRING_DAMAGE if tower.tower_data.line == "water" and near(SPRING, tower.get_cells(), 1) else 0.0
+	return (SPRING_DAMAGE if tower.tower_data.line == "water" and near(SPRING, tower.get_cells(), 1) else 0.0) \
+		+ (SHELTERED_DAMAGE if sheltered(tower) else 0.0)
 
 # Moonwell: a Warden in one of its 4 orthogonal cells gets +1 range.
 func range_bonus(tower: Tower) -> float:
 	return MOONWELL_RANGE if tower.tower_data.can_attack and near(MOONWELL, tower.get_cells(), 1, true) else 0.0
+
+# Fallen Giant (Lookout): crit chance for an attacking Warden touching the log.
+func crit_bonus(tower: Tower) -> float:
+	return LOOKOUT_CRIT if lookout(tower) else 0.0
 
 # Bell Stone: a song Warden within 1 cell pulses 15% faster.
 func speed_bonus(tower: Tower) -> float:
@@ -264,10 +315,14 @@ func bolt_multiplier(at: Vector2) -> float:
 	return 1.0 + LIGHTNING_BOLT if near(LIGHTNING_TREE, [Tower.MAP_GRID.calculate_grid_coordinates(at)], LIGHTNING_REACH) else 1.0
 
 # Bramble Verge: Thornwalls cost half.
-func cost_multiplier(data: TowerData) -> float:
-	return BRAMBLE_COST if bramble_verge and data != null and data.get_id() == THORNWALL else 1.0
+func cost_multiplier(_data: TowerData) -> float:
+	return 1.0  # No gift changes planting prices now (Bramble Verge was "Thornwalls half price" until 8f46c6ac)
 
-# Bramble Verge: a nightmare touching a Thornwall (one of the 8 cells around it) has +1 Drowsy cap.
+# Bramble Verge: growing a Thornwall into a Bramble costs no Dew this run.
+func free_growth(from: TowerData, into: TowerData) -> bool:
+	return bramble_verge and from != null and into != null and from.get_id() == THORNWALL and into.get_id() == BRAMBLE
+
+# Bramble Verge: a nightmare touching a Bramble (one of the 8 cells around it) has +1 Drowsy cap.
 func drowsy_cap_bonus(enemy: Node2D) -> int:
 	if not bramble_verge or not is_instance_valid(enemy):
 		return 0
@@ -289,7 +344,7 @@ func _thornwalls() -> Dictionary:
 		_thorn_key = key
 		_thorn_cells = {}
 		for tower in towers:
-			if tower is Tower and tower.tower_data != null and tower.tower_data.get_id() == THORNWALL:
+			if tower is Tower and tower.tower_data != null and tower.tower_data.get_id() == BRAMBLE:
 				for c in tower.get_cells():
 					_thorn_cells[c] = true
 	return _thorn_cells
@@ -298,6 +353,10 @@ func _thornwalls() -> Dictionary:
 
 func set_bramble_verge() -> void:
 	bramble_verge = true
+	var dreams: DreamState = get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
+	if dreams and not dreams.unlocked.has(BRAMBLE):
+		dreams.unlocked[BRAMBLE] = true  # Bramble unlocked if it wasn't
+		dreams.unlocks_changed.emit()
 	_changed()
 
 # Old Kin: `pair_key` (a Kinship on the map) jumps a stage now, and new bonds start a stage up through `act`.

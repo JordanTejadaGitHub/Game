@@ -4,13 +4,12 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "family_ties"
-display_name = "Family Ties"
-description = "Wardens in a {kinship} deal 20% more damage (stacks)."
+id = "close_kin"
+display_name = "Close Kin"
+description = "{kinships} reach 3 cells."
 rarity = 0
 kind = 3
 tags = Array[String](["kinship"])
 discovered_by = Array[String](["kinship:any"])
-max_stacks = 0
-rule_id = &"family_ties"
-in_start_pool = true
+max_stacks = 1
+rule_id = &"close_kin"

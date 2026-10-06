@@ -363,15 +363,16 @@ func _run() -> void:
 	_check(hound.statuses.is_held(), "a walking one can")
 	_clear_enemies()
 
-	# --- Weathered Walls (no trampling; Tangled was cut in the pool trim) ---
+	# --- Weathered Walls is only "Thornwalls cost 1 Dew" now (dream_design.md de439ea8): no trample shield ---
 	_clear_enemies()
 	var stag_wall := _free_neighbour(route[12])
 	var wall_tower := _plant("thornwall", stag_wall)
 	var walker_stag := _still("old_stag", route[12])
 	_take_card(dreams, "weathered_walls")
 	spawner._on_trample_requested(walker_stag)
-	_check(is_instance_valid(wall_tower) and not wall_tower.is_queued_for_deletion(), "Weathered Walls: the Stag can't trample a Thornwall")
-	wall_tower.free()
+	_check(not is_instance_valid(wall_tower) or wall_tower.is_queued_for_deletion(), "with Weathered Walls the Stag still tramples a Thornwall")
+	if is_instance_valid(wall_tower):
+		wall_tower.free()
 	_clear_enemies()
 
 	# --- Soaked Rot (Dream 169): Poisoned ticks +20% per stack on Soaked nightmares ---
@@ -646,15 +647,8 @@ func _run() -> void:
 	drifts._drift_of[trampler] = 30
 	trampler.set_path(route)
 	trampler._path_index = 15
-	var walls_card: int = dreams.stacks.get("weathered_walls", 0)
-	if walls_card > 0:  # Taken earlier in this test: Weathered Walls keeps Thornwalls standing
-		trampler._on_cell_reached()
-		_check(is_instance_valid(hedge) and not hedge.is_queued_for_deletion(), "Tramplers: Weathered Walls still holds")
-		dreams.stacks.erase("weathered_walls")
-	trampler._on_cell_reached()
+	trampler._on_cell_reached()  # (Weathered Walls, taken earlier in this test, no longer shields it)
 	_check(not is_instance_valid(hedge) or hedge.is_queued_for_deletion(), "Tramplers: the first nightmare past a Thornwall tramples it")
-	if walls_card > 0:
-		dreams.stacks["weathered_walls"] = walls_card
 	var second := _still("leaf_bug", route[16])
 	second.modifiers = {"tramples_thornwall": true}
 	drifts._drift_of[second] = 30

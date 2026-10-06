@@ -1634,40 +1634,40 @@ the plan below on 2026-10-06 ("Yes, no juggling").
 
 | Id | Was | Now | Kind |
 |---|---|---|---|
-| `deeper_calm` | +15% damage (stacks) | all Wardens deal **30%** more damage; **II** +30% more | one copy + II |
-| `quickened_sap` | +15% attack speed (stacks) | all Wardens attack **30%** faster; **II** +30% more | one copy + II |
-| `longer_roots` | +0.5 range (stacks) | all Wardens reach **1 cell** further; **II** +1 more | one copy + II |
-| `glinting_dew` | +8% crit chance (stacks, up to +24%) | **every 4th attack from each Warden is a crit** | rule |
+| `deeper_calm` | +15% damage (stacks) | all Wardens deal **25%** more damage; **II** +25% more; **Uncommon** | one copy + II |
+| `quickened_sap` | +15% attack speed (stacks) | all Wardens attack **25%** faster; **II** +25% more; **Uncommon** | one copy + II |
+| `longer_roots` | +0.5 range (stacks) | all Wardens reach **1 cell** further; **II** +0.5 more; **Uncommon** | one copy + II |
+| `glinting_dew` | +8% crit chance (stacks, up to +24%) | **every 5th attack from each Warden is a crit**; **Uncommon** | rule |
 | `bitter_sap` | +20% Potency (stacks) | **statuses your Wardens apply start with 1 extra stack** | rule |
 | `live_wire` | Static bolts +15% (stacks, up to +45%) | **{static} bolts jump to a second nightmare** | rule |
 | `lasting_dreams` | statuses +2 s (stacks, up to +6 s) | **statuses your Wardens apply last twice as long** | rule |
 | `quick_step` | calling early: +15% speed for 10 s (stacks) | calling a {drift} early makes all Wardens attack **50% faster until it has fully arrived** | rule |
-| `damp_rot` | +50% (stacks, up to +150%) | one copy at **+150%** | one copy |
-| `sparking_spores` | +50% (stacks, up to +150%) | one copy at **+150%** | one copy |
-| `rain_on_glass` | +35% (stacks, up to +105%) | one copy at **+105%** | one copy |
+| `damp_rot` | +50% (stacks, up to +150%) | one copy at **+100%** | one copy |
+| `sparking_spores` | +50% (stacks, up to +150%) | one copy at **+100%** | one copy |
+| `rain_on_glass` | +35% (stacks, up to +105%) | one copy at **+70%** | one copy |
 | `heavy_dew` | +50% wider, +2 s (stacks) | one copy: splashes **twice as wide**, {damp} **+4 s** | one copy |
 | `heartwoods_reach` | 25% off (stacks, up to 50%) + 3 half-price clears | one copy: clearing costs **half**, + 3 half-price clears | one copy |
-| `hush` | +25% pulse reach (stacks, up to +75%) | one copy at **+75%** | one copy |
-| `longer_flight` | +1 cell (stacks, up to +3) | one copy at **+3 cells** | one copy |
+| `hush` | +25% pulse reach (stacks, up to +75%) | one copy at **+50%** | one copy |
+| `longer_flight` | +1 cell (stacks, up to +3) | one copy at **+2 cells** | one copy |
 | `sharp_beaks` | +1 hit (stacks, up to +3) | one copy at **+2 hits** | one copy |
-| `dew_bowl` | +25 Dew now (stacks, up to +75) | one copy: **+60 Dew now** | one copy |
+| `dew_bowl` | +25 Dew now (stacks, up to +75) | one copy: **+50 Dew now** | one copy |
 | `sudden_insight` | +1 Dreamlight now (stacks) | one copy: **+2 Dreamlight now** | one copy |
-| `bright_marks` | Marked +20% | {marked} nightmares take **40%** more | bigger |
+| `bright_marks` | Marked +20% | {marked} nightmares take **30%** more | bigger |
 | `family_ties` | Kinship +20% (stacks) | **cut** (Blood Is Thicker and Kindred cover Kinship damage) | cut |
 | `broad_splash` | +0.25 cells (stacks) | **cut**, folded into `far_reach`: area Wardens get +0.75 range **and splash 0.5 cells wider** | fold |
 | `acorn_cache` | Acorns 12 Dew, aura +10% | **cut**, folded into `warm_hearth`: aura bonuses are 50% stronger on Sprouts, **and Acorns cost 12 Dew** | fold |
 | `weathered_walls` | can't be trampled + cost 1 Dew | **Thornwalls cost 1 Dew** (only; no trample, no resell rule: "no juggling") | trample rule |
 | `thorn_snare` (Briar Trap) | Phantoms / Gravecrawlers through a wall are held 0.5 s | **each Thornwall holds the first nightmare that passes beside it each {drift} for 0.5 s**; II: 1 s | trample-like rule |
-| `flurry` | Grove (node `quickening`) | **start pool**, Common: every 5th attack from a Warden fires twice | moved |
+| `flurry` | Grove (node `quickening`) | **start pool**, Uncommon: every 5th attack from a Warden fires twice | moved |
 
 **New Commons** you can see (cards 257–261, start pool, no needs):
 
 | # | Card | Effect | Tags |
 |---|---|---|---|
-| 257 | **Thorny Walls** | Thornwalls lash one nightmare beside them every second (a Sprout's damage) | wall, maze, defining |
-| 258 | **Passing Dream** | A dispelled nightmare's statuses jump to the nearest nightmare | status, affliction |
+| 257 | **Thorny Walls** | Thornwalls lash one nightmare beside them for **5 damage every second** (0421a2f7: every 2 s cost the bot act 1 survival) | wall, maze, defining |
+| 258 | **Passing Dream** | A dispelled nightmare's statuses jump to the nearest nightmare **within 2 cells** | status, affliction |
 | 259 | **Lantern Glow** | The path tiles in each Warden's reach glow; nightmares on glowing tiles can't hide in fog and take 15% more | light, reach |
-| 260 | **First Frost** | The first nightmare of each {drift} is {held} 2 s at the first Warden it meets | held, tempo |
+| 260 | **First Frost** | The **first 5 nightmares** of each {drift} are {held} **1.5 s** at the first Warden they meet | held, tempo |
 | 261 | **Dew Line** | Every 10th nightmare dispelled in a {drift} drops its Dew share twice | economy |
 
 Net count: −3 cuts, +5 new Commons, Flurry moves. Each stacking card collapses from up to 3 copies
@@ -1703,9 +1703,9 @@ The spike is about **double a normal Rare**. The price is felt every drift or re
 
 | Card | Spike | Price |
 |---|---|---|
-| **Thin Bark** | all Wardens deal **75%** more damage | the Heartwood's max leaves are **halved**, and you lose them now (never offered if it'd end the run) |
+| **Thin Bark** (**Rare**) | all Wardens deal **75%** more damage | the Heartwood's max leaves are **halved**, and you lose them now (never offered if it'd end the run) |
 | **Venom Bloom** | Potency **×2** | direct hits deal **40% less** |
-| **Blood Is Thicker** | Wardens in a {kinship} deal **double** damage | Wardens outside one deal **half** |
+| **Blood Is Thicker** (**Rare**) | Wardens in a {kinship} deal **double** damage | Wardens outside one deal **half** |
 | **Chosen Few** | rank V+ Wardens deal **double** damage | Wardens below rank III deal **half** |
 | **Deep Sleep** | all Wardens deal **80%** more damage | no rest bonus, **and Omens can't be faced**, for the rest of the run |
 | **Burn Back** | every Withered Tree is cleared **free, now** (no Seeds for them) | nightmares move **20% faster** for the rest of the run |
@@ -1713,7 +1713,25 @@ The spike is about **double a normal Rare**. The price is felt every drift or re
 
 ### Who does what
 
-- **Balancing Discussion:** numbers for A (one-copy values, the 5 new Commons), B (nothing) and C.
+- **Balancing Discussion:** numbers set in balance_simulation.md e32b882d. The tables above carry them.
+  - Principle: one pick ≈ two old stacked picks, not three, because each rest still gives one card.
+  - The three plain stat cards, Glinting Dew and Flurry are Uncommon.
+  - Thin Bark and Blood Is Thicker are Rare.
+  - Balancing Code re-checks acts 1–2 and defining-card pick rates after the build.
+
+**Built** (Roguelite Code, with Balancing's numbers):
+- Commits: f6170178 (Table A), e5e2258d (Passing Dream, Dew Line), f4a5acd5 (`defining` +
+  `is_defining()` + offer rule), 4ec2185b (Bittersweet). Tower Code's hooks are in 4a1409d0 (Thorny
+  Walls, Lantern Glow, First Frost); Enemy Code dropped Weathered Walls' trample immunity in 82cc2829.
+- **Grove cards tagged defining:** Bramble Oath, Forest's Edge, Last Stand, Mixed Grove, Bitter
+  Hedges, Sheltering Boughs, Shared Light, Tended Stumps, Few and Mighty, Grand Tour.
+  - **Not** Canopy (a planted-count milestone, a stat) or Hummingheart (converts speed into damage,
+    a tuning card). Both are untagged by this decision.
+- **"Double / half" on Bittersweet adds like every other bonus.** Blood Is Thicker and Chosen Few
+  add +100% / −50% to the damage sum, not ×2 on top. So their text says **"deal 100% more damage"**
+  and **"deal 50% less damage"** (text_style.md's verb form), never "double" or "half".
+- Deep Sleep's Omen lock: `OmenDirector.omens_skipped(reason)` at each rest. Main / UI shows
+  "Omens: locked".
 - **Roguelite Code:** all card data, `max_stacks` 1, the `defining` tag + offer rule, the new II
   cards, Deep Sleep's Omen lock and Waking Dreams' 2-card offers.
 - **Tower Code:** Thorny Walls (Thornwall attack), Briar Trap's new hold, Glinting Dew's 4th-attack
@@ -1721,6 +1739,86 @@ The spike is about **double a normal Rare**. The price is felt every drift or re
 - **Main / UI:** the "build" mark.
 - **Meta Game Discussion:** Flurry leaves node `quickening`; Broad Splash and Acorn Cache are cut
   (check which nodes list them).
+
+## Shape cards: one card, a different run per family (2026-10-06)
+
+User (via Meta Game Discussion): *"with a family, you have a new playstyle because you got a certain
+mix of cards"*, like Risk of Rain 2's Bustling Fungus (weak for most, amazing for Engineer). Also:
+*"don't want users to get the most optimal build often."*
+
+**The pattern:** a generic card whose **condition favours an attack shape**, never naming a family.
+Each family's kit then meets the condition or doesn't, so the same card is dead in one run and the
+centre of another.
+
+**We already have most of these.** Meta Game Discussion proposed six; three of them duplicate
+existing cards, so those cards fill the role instead of new ones:
+
+| Shape | Proposed | Existing card (kept) |
+|---|---|---|
+| slow, heavy hitters | Patient Bloom | **Watchful Rest** (start pool), **Stirring Roots** (Grove), **Patient Aim** (Grove) |
+| many fast hits | Echoing Hit | **Flurry** (every 5th attack fires twice; more attacks = more procs), **Momentum** |
+| lone Wardens | Wallflower | **Solitude**, **Lone Hunter** |
+
+**New, cards 262–264** (start pool, Uncommon, tag `defining`, no needs; numbers to Balancing):
+
+| # | Card | Effect | Shines with |
+|---|---|---|---|
+| 262 | **Small Hands** | Anything a Warden sends out (sprites, birds, seeds, stones it lobs) deals **35%** more and lasts 1 s longer | Brood Cap, Nestling birds, Samara, Cairn |
+| 263 | **Sap Rising** | Wardens that don't attack (auras, catchers, Dreamcatchers) pulse the 8 cells around them every 2 s; each pulse deals **2 s × its aura bonus × the summed DPS of the attackers in its aura** (at least 2 s × 50% of the median attacker DPS, so catchers and Dreamcatchers hit too) | the Acorn line's Elder Stump, Grove Heart, Grandmother Oak; Dewcatcher, Wellspring, Dreamcatchers (the base Acorn attacks, so it doesn't pulse) |
+| 264 | **Lingering Ground** | Ground effects (clouds, trails, rings, rubble, pools, lit tiles) **last 50% longer** (×1.5: overlapping clouds turn duration into damage almost 1:1) | Sporeling, Fairy Ring, Dewdrop pools, Cairn rubble, Rootlight |
+
+- **Sap Rising vs The Quiet Ones:** The Quiet Ones (Legendary) makes non-attacking Wardens 50%
+  stronger at their job. Sap Rising makes them deal damage. Thornwalls are left out (Thorny Walls
+  covers them).
+- **Small Hands:** sent-out things already hit through their Warden's `hit()`, so they carried every
+  Dream bonus; the card is the +35% on top (numbers: balance_simulation.md 60dad611).
+  - The +1 s only applies to things with a timer: brood sprites (9 s instead of 8) and
+    hummingbirds' pecking.
+  - Seeds fly by distance and patrols never end, so they get only the damage.
+  - Text: "…deal 35% more damage; sprites and birds stay 1 s longer."
+- **Built:** Tower Code 712d37d3 (hooks), Roguelite Code d1d0f4aa / e89eb28d (cards). The Sap
+  Rising pulse uses a placeholder dust ring until Tower Assets draws one.
+- **Opposite pairs**, so no setup is best for every family mix:
+  - Watchful Rest / Stirring Roots vs Flurry / Momentum
+  - Solitude vs Drumbeat and the Kinship cards
+  - Lingering Ground (slow, wide) vs Overlap (fast stacking)
+
+**Rules, so the best build stays rare:**
+- **No new offer cap.** Offers already have 1 family / 1 plain stat / ≥1 defining from act 2; a
+  fourth rule would make offers predictable. The three new cards are `defining`, so they come
+  through that slot.
+- **Start pool, not the Grove:** discovery in a run is the point. The 60% run-pool sample already
+  leaves any one of them out of ~40% of runs. With the right family, the right branch (2 of 5
+  offered) and the card in this run's sample, a payoff is three random gates: a lucky run, not a
+  plan.
+- Existing limits stay: no pins, 3 rerolls, the paid call-back.
+
+## Doors for Tall and Kinship (2026-10-06)
+
+The user wants many builds with distinct playstyles, and the best build reached rarely. Tall and
+Kinship were the hardest card builds to reach.
+
+- **Tall:** **Sunlit Rest** moves from the Grove (node `tending_hands`, which keeps Deeper Rings;
+  meta_design.md 77cd092c) to the **start pool**, Uncommon. With Tender Care (Common) and Kindred
+  Roots (Uncommon), Tall has three doors. It stays a late build by nature.
+- **Kinship:** it lost its Common door when Family Ties was cut ("Fewer, bigger cards"). New:
+
+  | # | Card | Rarity | Effect | Tags | Pool |
+  |---|---|---|---|---|---|
+  | 265 | **Close Kin** | Common | {kinships} reach 3 cells | kinship | Start |
+
+  **Extended Family** (Rare) keeps only "Each Warden can be in 2 {kinships}, with two different
+  kin". Reach is what lets bonds form inside a maze. Old Friends stays the Uncommon door.
+- **Built:** 16b572f9 (Roguelite Code; Sunlit Rest + II in the start pool, Close Kin owns the `close_kin` reach rule) with Meta's eb3e4c46.
+- **Not yet:** Storm Grid / Spore Bomb reliability and Maze as the default. Their numbers (rounds
+  2–3) predate steering being turned off, the Entwined slot removal and the offer caps. Balancing
+  Code re-measures first.
+  - Targets: combos 25–40% once both families are held.
+  - If Maze is still the default, Winding Path counts only tiles a Warden reaches, and Hedge Maze
+    counts only Thornwalls touching attacking Wardens.
+- **Family gaps** (Meta Game Discussion's matrix, a read, not measured): Acorn lacks Precision,
+  Affliction, Swift and Wide Reach doors; Pebbling lacks Overgrowth, Affliction and Swift. Sap
+  Rising (263) is Acorn's first. More shape cards for these gaps after the re-measure.
 
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 

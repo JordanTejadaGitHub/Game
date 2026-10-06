@@ -197,7 +197,7 @@ static func on_status(enemy: Node2D, _id: StringName, source: Node) -> void:
 # never with crit (except Nightshade). Shatter's own hit is a hit; its spreads are effects.
 const EFFECT_TAGS: Array[StringName] = [&"spored", &"static", &"thunderclap", &"ignite", &"lightning_rod",
 	&"popped", &"echo", &"carried_storm", &"avalanche", &"starfall", &"fever_dream", &"fog", &"cloud", &"harmony", &"last_breath", &"drown",
-	&"lingering_splash", &"thorns", &"rain"]  # thorns: Thorncoil; rain: Cloudlet / Nimbus (BranchKit)
+	&"lingering_splash", &"thorns", &"rain", &"sap"]  # thorns: Thorncoil; rain: Cloudlet / Nimbus (BranchKit); sap: Sap Rising (ShapeCards)
 
 static func is_effect(tag: StringName) -> bool:
 	return tag in EFFECT_TAGS
@@ -419,10 +419,37 @@ static func strike_bolt(target: Node2D, damage: float, tower: Node, tag: StringN
 		if tag == &"static":
 			var reach := _static_field(target, at, damage, tower)
 			_bolt_seen(target, at, damage, reach, tracker)
+			_live_wire(target, at, damage, tower)
 		return target
 	_fire(rod, &"lightning_rod", [tower] if tower else [], true)
 	rod.take_damage(_rx(rod, damage * ROD_MULTIPLIER), "light", false, false, tower, &"lightning_rod")
 	return rod
+
+# Live Wire ("Fewer, bigger cards" de439ea8; Balancing: full damage): a Charged bolt jumps once to the nearest other
+# nightmare within LIVE_WIRE_REACH, at the same damage. A plain hit, so it never sets off more bolts or Reactions.
+const LIVE_WIRE_REACH := 2.0  # Cells
+static func _live_wire(target: Node2D, at: Vector2, damage: float, tower: Node) -> void:
+	var dreams := _dreams(target) if is_instance_valid(target) else null
+	if dreams == null or not dreams.has_rule(&"live_wire") or damage <= 0.0:
+		return
+	var reach := LIVE_WIRE_REACH * Tower.MAP_GRID.cell_size.x
+	var next: Node2D = null
+	var best := INF
+	for other in Tower.nightmares_near(dreams.get_tree(), at, reach):
+		if other == target or not is_instance_valid(other) or other.is_cleansed:
+			continue
+		var d: float = other.global_position.distance_to(at)
+		if d <= reach and d < best:
+			best = d
+			next = other
+	if next == null:
+		return
+	var points := PackedVector2Array([at, next.global_position])
+	var world := _world(tower if is_instance_valid(tower) else next)
+	if world != null and not Fx.reduce_flashes():
+		var bolt := ChainBolt.new(points)
+		world.add_child(bolt)
+	next.take_damage(damage, "light", false, false, tower, &"static")
 
 # A Charged bolt struck at `at` (screens_ui.md "Charged bolt"): the bolt and spark burst (ChargedBolt, budgeted),
 # the Charged pips empty with a pop, and ReactionTracker.bolt_struck for Sound. `reach` = Static Field's ring.

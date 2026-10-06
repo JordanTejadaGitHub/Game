@@ -6,8 +6,8 @@
 script = ExtResource("1_card")
 id = "falling_stars"
 display_name = "Falling Stars"
-description = "{combo:starfall} pulls bolts from 5 cells away."
-cost_description = "{combo:starfall} can fire half as often."
+description = "{named_combo:starfall} pulls bolts from 5 cells away."
+cost_description = "{named_combo:starfall} can fire half as often."
 rarity = 2
 kind = 3
 tags = Array[String](["reaction"])

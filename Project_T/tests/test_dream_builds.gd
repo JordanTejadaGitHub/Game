@@ -123,8 +123,8 @@ func _test_nurture_rules() -> void:
 	var strong_base := dreams.get_soothe_multiplier(strong)
 	var weak_base := dreams.get_soothe_multiplier(weak)
 	dreams.take(_card("chosen_few"))
-	_check(is_equal_approx(dreams.get_soothe_multiplier(strong) - strong_base, 0.5)
-		and is_equal_approx(dreams.get_soothe_multiplier(weak) - weak_base, -0.15), "Chosen Few: +50% at rank V, −15% below III")
+	_check(is_equal_approx(dreams.get_soothe_multiplier(strong) - strong_base, 1.0)
+		and is_equal_approx(dreams.get_soothe_multiplier(weak) - weak_base, -0.5), "Chosen Few: double at rank V, half below III")
 	_clear_towers()
 
 	# Sunlit Rest: a free rank for the Warden nearest the Heartwood
@@ -583,8 +583,7 @@ func _test_potency_and_endless() -> void:
 	_reset()
 	var sporeling: TowerData = load("res://resource/tower/sporeling.tres")
 	dreams.take(_card("bitter_sap"))
-	dreams.take(_card("bitter_sap"))
-	_check(is_equal_approx(dreams.get_potency_bonus(sporeling), 0.40), "Bitter Sap stacks: +20% Potency each")
+	_check(dreams.get_status_stacks_bonus() == 1 and is_equal_approx(dreams.get_potency_bonus(sporeling), 0.0), "Bitter Sap: statuses start with 1 extra stack, no Potency (dream_design.md de439ea8)")
 	var seeping := _card("seeping")
 	dreams.grove_cards.assign(["seeping", "seeping_ii", "venom_bloom", "nightshade", "endless_rings", "deeper_rings"])
 	_check(not dreams.is_eligible(seeping), "Seeping needs 2 status families")
@@ -603,7 +602,7 @@ func _test_potency_and_endless() -> void:
 	_check(is_equal_approx(dreams.get_effect_bonus(target), 0.24), "Seeping II: +12% per status")
 	target.free()
 	dreams.take(_card("venom_bloom"))
-	_check(is_equal_approx(dreams.get_hit_damage_multiplier(), 0.85), "Venom Bloom: hits −15%")
+	_check(is_equal_approx(dreams.get_hit_damage_multiplier(), 0.6), "Venom Bloom: hits −40%")
 
 	# Endless Rings: no max rank, ×1.2 per rank past VII; free ranks stop at VII
 	_reset()
@@ -704,7 +703,7 @@ func _row(rows: Array[Dictionary], id: String) -> Dictionary:
 # map" Need, Entwined Kin and Kindling, and the kinship tag counting as your build.
 func _test_kinship_cards() -> void:
 	_reset()
-	for id in ["family_ties", "sweet_harmony", "sweet_harmony_ii",
+	for id in ["sweet_harmony", "sweet_harmony_ii",
 			"old_friends", "old_friends_ii", "rooted_bond", "extended_family", "kin_and_kindling", "grove_of_kin",
 			"blood_is_thicker"]:
 		var card := _card(id)
@@ -713,7 +712,6 @@ func _test_kinship_cards() -> void:
 			# and waits for any Kinship.
 			_check(card.in_start_pool and card.tags.has("kinship") and Array(card.discovered_by) == ["kinship:any"],
 				"Kinship card %s: pool, tag and discovery" % id)
-	_check(_card("family_ties").max_stacks == 0, "Family Ties stacks (Quick Bonds merged into Old Friends)")
 	var kin := Kinships.find(dreams)
 	_check(kin != null, "Kinships found in the run")
 	if kin == null:

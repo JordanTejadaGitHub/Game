@@ -865,6 +865,106 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Shape cards 262–264 (dream_design.md e4d17195, Uncommon, defining)
+
+Budget: Uncommon one-family **+50%** for the kits that match, ~0 for the rest (by design).
+| Card | Number | Why |
+|---|---|---|
+| Small Hands | sent-out things **+35%** damage and **+1 s** | the +1 s adds hits for birds, seeds and lobbed stones, so the total sits ≈ +50% |
+| Sap Rising | each non-attacking Warden (not Thornwalls) pulses the 8 cells around it every 2 s for **2 s × its aura bonus × the summed DPS of the attacking Wardens in its aura**, at least **2 s × 50% of the board's median attacker DPS**. Effect damage (Potency applies) | it deals again, as an area, the damage it already grants: scales with ranks (Strong) and the board; the floor gives catchers and lone support Wardens a real hit |
+| Lingering Ground | ground effects last **×1.5**, not ×2 | overlapping clouds / rings on the same tiles turn duration into damage almost 1:1, so ×2 ≈ +100% for cloud kits |
+
+After the build: an all-Acorn check (fresh, Acorn family forced, the card forced at the first rest, 30 seeds) to
+see whether it makes the user's all-Acorn run viable. Hooks in Tower Code 712d37d3 (the +1 s only where a timer exists: sprites
+8 → 9 s, hummingbird pecks; seeds and patrols get the damage only).
+
+## Heartwood gifts: every gift gives something (heartwood_gifts.md b3e464e6, 2026-10-06)
+
+Sized beside the living-ground gifts (Moonwell +1 range within 1 cell, Spring +20%, Heartwood Roots +15%):
+| Gift | Number | Why |
+|---|---|---|
+| Sow a Ridge | Wardens touching it **+10%**; **+2 Seeds** per tended gift tree | the ridge is already a free wall; 3–5 trees touch more cells than a Moonwell |
+| Fallen Giant | touching **+0.5 range**; nightmares beside it **15% slower** | as proposed (an uncleared free wall, Mire is 20% on 3 cells) |
+| Shift the Stones | **+20 Dew × act** per stone moved (act 2 ≈ 120 for 3); the old spot fertile (half price) | 15 × act was under a drift's pot |
+| Shifting Mist | this act's Dew pots **+10%** (≈ 300 Dew in act 2) | +15% ≈ 470 Dew, four times Shift the Stones; the re-facing maze is its cost |
+
+In: Tower Code cdedfec0 (Warden buffs), Main Merger 285dbd6b (Dew, fertile, Mist), Environment Code 8833efaf (log slow,
+ridge Seeds; fixed to 2 in total in 8ec114cb).
+**Overlap fixes (user, heartwood_gifts.md 8f46c6ac):** Fallen Giant = **+15% crit chance** touching the log only (range
+and slow dropped; 10% at ×2 crits sat under the Ridge's +10% damage). Shift the Stones = Dew only, **30 × act** per
+stone (fertile dropped: 3 half-price plants were worth ~40–75 Dew). Bramble Verge = free Thornwall → Bramble
+growth for the run + Drowsy cap +1 (≈ 10 Dew a wall, ~200–300 by act 2; as designed). In: Main Merger d8f18e55, Tower Code
+5f61e09a, Environment Code 23c2f39b.
+
+## Fewer, bigger cards: numbers (dream_design.md de439ea8, 2026-10-06)
+
+**Principle:** one pick ≈ **two** old stacked picks, never three. A rest still gives one card, so sizing every
+one-copy card at its old 3-stack maximum would be an across-the-board raise (the user's constraint). All-Warden
+cards move up a rarity where the number passes their budget.
+
+| Card | Number | Rarity |
+|---|---|---|
+| Deeper Calm / Quickened Sap | **+25%**; II **+25%** more | **Uncommon** (was Common; Uncommon all-Wardens budget) |
+| Longer Roots | **+1 cell**; II **+0.5** more | **Uncommon** |
+| Glinting Dew | **every 5th** attack crits (+20% at ×2) | **Uncommon** |
+| Flurry | every 5th attack fires twice | stays **Uncommon** (not Common: the same +20% as Glinting Dew) |
+| Bitter Sap | +1 stack on apply | Common (conditional, status builds) |
+| Live Wire | bolts jump to a 2nd nightmare | Common |
+| Lasting Dreams | statuses ×2 duration | Common |
+| Quick Step | +50% attack speed until the called drift has arrived | Common |
+| Damp Rot / Sparking Spores | **+100%** (2 old copies) | Common |
+| Rain on Glass | **+70%** | Common |
+| Heavy Dew | twice as wide, Damp +4 s | Common |
+| Heartwood's Reach | clearing half + 3 half-price clears | as is |
+| Hush | **+50%** pulse reach | Common |
+| Longer Flight | **+2 cells** | Common |
+| Sharp Beaks | +2 hits | Common |
+| Dew Bowl | **+50 Dew** now | Common |
+| Sudden Insight | +2 Dreamlight now | Uncommon |
+| Bright Marks | Marked take **+30%** (not 40: Marked boards already hit 55% combo share, friend run 1) | Common |
+
+**New Commons:** Thorny Walls: each Thornwall lashes one nightmare beside it **every 2 s for 5 damage** (half a
+Sprout's hit; 20 walls ≈ +10% of a late act 1 board; Dream damage cards apply; a full Sprout every 1 s would be
+10 DPS per 3 Dew wall, more than a Sporeling per Dew). Passing Dream: statuses jump with their remaining time and
+stacks to the nearest nightmare within **2 cells**. Lantern Glow: **+15%** (in reach covers nearly every hit:
+the Common all-Wardens budget exactly). First Frost: the **first 5** nightmares of each drift are Held **1.5 s**
+at the first Warden they meet (one nightmare for 2 s can't be felt), bosses exempt. Dew Line: every 10th dispel
+pays twice (≈ +10% Dew, beside Wild Dew's ×1.1).
+
+**Bittersweet (spike ≈ 2× a Rare, the price felt every drift):** Thin Bark +75%, max leaves halved → **Rare**
+(with 7–8 leaves any act 2+ boss leak ends the run: that is the price). Venom Bloom Potency ×2, hits −40% (+30%
+on a half-status board, −8% on a 20% one: build-dependent, as meant). Blood Is Thicker kin ×2 / non-kin ×0.5 →
+**Rare** (×2 is above the Uncommon budget). Chosen Few V+ ×2 / below III ×0.5. Deep Sleep **+80%**, no rest bonus
+and no Omens. Burn Back: all Withered Trees free now (no Seeds), **+20%** speed for the run. Waking Dreams: 3
+Legendaries, then no skipping and 2-card offers. All as proposed except the two rarity moves.
+
+**Defining rule (act 2+, one defining card per offer):** no numbers, but it moves picks. The bot's card picker
+must take it as offered; after the build, Balancing Code re-checks act 1–2 (default / spender / skip) and the
+pick rate of defining cards.
+
+**Re-check (40bdebda = main + bend10 + walling bot + the card pass; 30 seeds, half 20):** act 1 default **36%**,
+spender 50%, skip 16%, half default 30% (no-card reference on the same maps: 53 / 40 / 20). Act 2: 0–3%
+(fresh dies in act 2, on target; too few act 2 offers to read the defining rule). Combo share act 1 / 2: 0.16 /
+0.33. The bot took Thorny Walls 22 of 28 and First Frost 1 of 34, which reads as its policy's scores. Default's −17
+is on the edge of noise: 30 more seeds on both builds, and a check of how the policy scores Thorny Walls.
+**Cause found:** the bot's card policy scores tags only (×10 + rarity), never effect size: Thorny Walls 10, Glinting
+Dew 11, Deeper Calm and Quickened Sap 1, First Frost 0. Every tagged card beats every plain stat card, which has
+held the balanced bot's stat picks down all along. Next: a Thorny Walls override arm, then effect-size scoring
+(`--card-value`, damage-equivalent % × k) as a flag, A/B, and the default if it picks sensibly.
+**Firmed up (60 seeds each):** act 1 default **40%** with the cards vs **46%** without (−6 ± 9: not significant; the
+first −17 was seed luck). The bend10 default reference reads ~46%, a little under the ~55 target; the card-value
+A/B decides whether that is the bot's picks.
+**Thorny Walls override (paired, seeds 1–30):** scored like a plain Common, the bot takes it 1/13 (was 11/13) and
+act 1 goes 36% → **53%**: most of the card pass's act 1 effect was the bot's picks. It also shows Thorny Walls
+under budget (taking it costs a pick): **every 1 s, 5 damage** (was every 2 s; ≈ +20% at 20 walls, fading late). In 62dc0c0f.
+**`--card-value` A/B (paired, seeds 1–30):** act 1 default 36% (tags only) → 53% (Thorny override) → **63%**
+(effect-size scoring); picks look sensible (Tender Care, Old Growth, First Light, big stat cards first; conditional
+cards by board share). **Made the bot's default; every baseline from the flip on is card-value.** Spender / skip
+re-based on it next. **Card-value baseline (40bdebda, 30 seeds):** default **63%**, spender **56%**, skip **13%**,
+0 dead by d5. All inside the targets (default ~55 ± noise, spender ≤ 80, skip ≤ 15–20); Dreams vs none now a
+50-point gap (was ~33). No curve change. (On 3-family picks; from meta_design e0c02e54 fresh picks show 2,
+Wider Choice 3: note it on later fresh baselines.)
+
 ## Drawn route and early deaths (19f426c5, 2026-10-05)
 
 After "fewest turns among the shortest", 5–7 of 30 bot runs per arm die by drift 2 (was ~1 in 90). Same-board
@@ -895,6 +995,14 @@ act 1 survival is within ±10 points; else the bend spur adds +8–10 cells.
 44 / 49. Bosses no harder; room runs reach 25 less often. **No-go; the spur fallback (+8–10) asked for**, then the
 room arm re-simmed. (The bot stops walling at ~45 cells; a new player walls less, not more.) Act 1 bot check on the worktree
 before merge; if the extra room makes act 1 easy, the curve answers it.
+**Final (sticky lanes 1c46063d, walls-keep-going bot, 30 seeds):** act 1 boss, main / room / bend10 (opening
+26–41, +10 bend): default 76 / 46 / 53%, spender 70 / 50 / 40%, skip 16 / 26 / 20%; d1–5 leaks 0.6–0.7 / 1.0–1.1 /
+0.2–0.8. Both branches miss "±10 of main", but main itself now sits above target with the walling bot. Judged on the
+targets, **bend10 is on them** (default ~55, skip ≤ 20) with the cleanest opening; the spender's 40% is the attacker
+spam "walls first" means to weaken (fewer free obstacle walls: the player builds the maze). **GO for bend10; room
+stays out.** Watch the first human runs on it; if act 1 is too hard, `act1_health_multiplier` 1.20 → 1.10.
+**Bot baseline change:** from a99d5382 the bot keeps walling by default; every batch before it is the non-walling
+bot. Warm-up and pgr wait for bend10 on main.
 
 ## Human run 21 (2026-10-05 20:57, build 91161b = b3c61186; 0 Grove)
 

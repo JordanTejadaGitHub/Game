@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "longer_flight"
 display_name = "Longer Flight"
-description = "The Samara line throws 1 cell further (stacks, up to +3)."
+description = "The Samara line throws 2 cells further."
 rarity = 0
 kind = 3
 tags = Array[String](["wind", "maze"])
 requires = Array[String](["samara"])
-max_stacks = 3
+max_stacks = 1
 rule_id = &"longer_flight"
 in_start_pool = false

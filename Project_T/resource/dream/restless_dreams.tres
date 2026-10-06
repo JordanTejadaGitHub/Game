@@ -6,13 +6,12 @@
 script = ExtResource("1_card")
 id = "restless_dreams"
 display_name = "Waking Dreams"
-description = "The next 3 Dreams each include a Rare or better card."
-cost_description = "Dreams can't be let pass for the rest of the run."
+description = "The next Dream offers 3 Legendaries."
+cost_description = "For the rest of the run, Dreams can't be let pass and every Dream shows only 2 cards."
 rarity = 2
 kind = 3
 tags = Array[String](["bittersweet"])
 max_stacks = 1
 min_act = 2
-rare_dreams_add = 3
 rule_id = &"restless_dreams"
 in_start_pool = false

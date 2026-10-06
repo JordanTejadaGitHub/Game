@@ -1209,6 +1209,7 @@ class CrackField extends Node2D:
 	func crack(cell: Vector2, seconds: float) -> void:
 		if seconds <= 0.0:
 			return
+		seconds = ShapeCards.ground_time(seconds)  # Lingering Ground: x1.5
 		if not cells.has(cell):
 			ages[cell] = 0.0
 		cells[cell] = maxf(float(cells.get(cell, 0.0)), seconds)
@@ -1334,6 +1335,7 @@ class BroodSprite extends Node2D:
 		sprite.index = best
 		sprite.big = is_big
 		sprite.speed = BranchKit.p(t, "sprite_speed", 3.0) * CELL
+		sprite.life += ShapeCards.hands_seconds(t)  # Small Hands: +1 s
 		sprite.z_index = 2
 		BranchKit.world(t).add_child(sprite)
 		sprite.global_position = Tower.MAP_GRID.calculate_map_position(path[best])
@@ -1368,7 +1370,7 @@ class BroodSprite extends Node2D:
 		if enemy.has_method("is_hidden") and enemy.is_hidden():
 			enemy.reveal_for(2.0)  # Bumped into a Lurker: it shows itself
 		var stacks := int(BranchKit.p(tower, "spored", 2))
-		tower.hit(enemy, 1.0, true)
+		tower.hit(enemy, ShapeCards.hands(tower), true)  # Small Hands: +35%
 		if is_instance_valid(enemy) and not enemy.is_cleansed:
 			enemy.apply_status(EnemyStatuses.SPORED, stacks, 0.0, tower.get_damage() * Tower.SPORE_POTENCY, 0, "spore", tower)
 			# Crusted Brood (b): its sprites also eat dread shell.
@@ -1382,7 +1384,7 @@ class BroodSprite extends Node2D:
 				small.route = route
 				small.index = maxi(index - 1, 1)
 				small.speed = speed
-				small.life = 3.0
+				small.life = 3.0 + ShapeCards.hands_seconds(tower)  # Small Hands: +1 s
 				small.z_index = 2
 				get_parent().add_child(small)
 				small.global_position = global_position + Vector2(randf_range(-10, 10), randf_range(-10, 10))
@@ -1447,8 +1449,8 @@ class GroundZone extends Node2D:
 		kind = k
 		position = at
 		radius = r
-		left = seconds
-		_duration = seconds
+		left = ShapeCards.ground_time(seconds)  # Lingering Ground: x1.5
+		_duration = left
 		tick = every
 		z_index = -1 if k != &"rain" else 5
 
@@ -1601,7 +1603,7 @@ class InkField extends Node:
 	func mark(enemy: Node2D, tower: Tower) -> void:
 		var old: Array = marked.get(enemy.get_instance_id(), [])
 		# [enemy, Tower, trail seconds, where the ink was last laid (pixels; the trail follows the walked ribbon)]
-		marked[enemy.get_instance_id()] = [enemy, tower, BranchKit.p(tower, "trail_time", 2.0), old[3] if old.size() > 3 else enemy.global_position]
+		marked[enemy.get_instance_id()] = [enemy, tower, ShapeCards.ground_time(BranchKit.p(tower, "trail_time", 2.0)), old[3] if old.size() > 3 else enemy.global_position]
 
 	func _process(delta: float) -> void:
 		_clock += delta
@@ -1652,8 +1654,8 @@ class InkField extends Node:
 		var here: Vector2 = enemy.get_current_cell()
 		var pool: Array[Vector2] = [here, enemy.get_target_cell()]
 		for cell in pool:
-			cells[cell] = [_clock + BranchKit.p(tower, "pool_time", 4.0), tower, BranchKit.p(tower, "pool_every", 0.5), _clock]
-			_show(cell, BranchKit.p(tower, "pool_time", 4.0))
+			cells[cell] = [_clock + ShapeCards.ground_time(BranchKit.p(tower, "pool_time", 4.0)), tower, BranchKit.p(tower, "pool_every", 0.5), _clock]
+			_show(cell, ShapeCards.ground_time(BranchKit.p(tower, "pool_time", 4.0)))  # Lingering Ground: x1.5 (trail and pool)
 		marked.erase(enemy.get_instance_id())
 
 	# A piece of ink from `from` to `to` (pixels, along the ribbon) for `seconds`, drawn by InkDraw (story chat: a clear

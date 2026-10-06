@@ -131,6 +131,7 @@ func _hit_along(from: Vector2, to: Vector2) -> void:
 		var pass_multiplier := _damage_multiplier * (2.0 if _returning and dreams and dreams.has_rule(&"heavy_seed") else 1.0)
 		if dreams and dreams.has_rule(&"windborne_rain"):
 			pass_multiplier *= WINDBORNE_RAIN_DAMAGE  # Windborne Rain (dream_design.md 83c40cd7): the seeds Soak but deal 25% less
+		pass_multiplier *= ShapeCards.hands(_tower)  # Small Hands: +35%
 		_tower.run_as(_data, _boost, func() -> void: _tower.hit(enemy, pass_multiplier, false, crit))
 		if not _storm.is_empty() and not _stormed.has(id) and is_instance_valid(enemy) and not enemy.is_cleansed:
 			_stormed[id] = true

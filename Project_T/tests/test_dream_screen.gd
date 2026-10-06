@@ -284,6 +284,20 @@ func _run() -> void:
 	dreams.banishes_left = 0
 	await _test_arm_delay(dreams, screen, main)
 	dreams.current_offer = []
+	# Build-defining cards (dream_design.md de439ea8) carry a small "build" mark with its tip; others none
+	var plain: UpgradeData = (load("res://resource/dream/morning_dew.tres") as UpgradeData) if ResourceLoader.exists("res://resource/dream/morning_dew.tres") else dreams.make_offer(10)[0]
+	var defining := plain.duplicate() as UpgradeData
+	defining.tags = plain.tags.duplicate()
+	defining.tags.append("defining")
+	var marked := screen._make_card(defining) as Control
+	var unmarked := screen._make_card(plain) as Control
+	var mark := marked.find_child("BuildMark", true, false) as Control
+	_check(mark != null and mark.tooltip_text.begins_with("Build around it") and (not mark is Label or not (mark as Label).text.is_valid_int())
+		and (plain.tags.has("defining") or unmarked.find_child("BuildMark", true, false) == null),
+		"a build-defining card has the build mark (no numbers), others don't")
+	marked.queue_free()
+	unmarked.queue_free()
+	await process_frame
 	print("dream screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

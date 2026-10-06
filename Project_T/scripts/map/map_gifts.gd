@@ -36,6 +36,7 @@ const TERRAIN_GIFTS: Array[StringName] = [SOW_RIDGE, FALLEN_GIANT, GLADE, SHIFT_
 
 # Numbers (spire_difficulty.md Phase 3 starting points; Balancing tunes).
 const MIRE_SLOW := 0.2  # Through EnemyStatuses' extra slow: the slow floors still hold
+const SOWN_TREE_SEEDS := 2  # Sow a Ridge: each of its trees tended pays this many Seeds in all (instead of the usual 1)
 const ROOTS_CELLS := 4
 const ROOTS_TAKEN := 0.15
 const TICK := 0.2  # s between ground checks on the nightmares
@@ -51,7 +52,7 @@ const ANIMATED: Array[String] = ["lightning_tree", "moonwell", "bell_stone", "mu
 
 var map: Node  # MapGenerator
 var act := 1
-var gift_obstacles := {}  # {cell: [kind ("tree" / "rock" / "lightning"), tile (Vector2i)]}: obstacles a gift put down
+var gift_obstacles := {}  # {cell: [kind ("sown" / "tree" / "rock" / "lightning"), tile (Vector2i)]}: obstacles a gift put down
 var logs: Array = []  # [[cells…], …]: Fallen Giants (blocked, never clearable)
 var spring_cells: Array[Vector2] = []
 var moonwells: Array[Vector2] = []
@@ -188,7 +189,7 @@ func apply(gift: StringName, cells: Array[Vector2], from: Array[Vector2] = [], r
 		SOW_RIDGE:
 			for cell in cells:
 				if not tended_later.call(cell):
-					_put_obstacle(cell, "tree", TREE_DATA.tiles[EnvironmentTiles.cell_variant(Vector2i(cell), TREE_DATA.tiles.size())])
+					_put_obstacle(cell, "sown", TREE_DATA.tiles[EnvironmentTiles.cell_variant(Vector2i(cell), TREE_DATA.tiles.size())])
 		FALLEN_GIANT:
 			logs.append(cells.duplicate())
 			_block(cells)
@@ -328,6 +329,10 @@ func _data_for(kind: String) -> ObstacleData:
 
 func _on_obstacle_cleared(cell: Vector2, _data: ObstacleData) -> void:
 	if gift_obstacles.has(cell):
+		if gift_obstacles[cell][0] == "sown":  # Sow a Ridge's tree: SOWN_TREE_SEEDS in all (RunState already counted the usual 1)
+			var run_state: Node = map.get_node_or_null("%RunState")
+			if run_state != null and not run_state.clearing_without_seeds:
+				run_state.obstacles_tended += SOWN_TREE_SEEDS - 1
 		gift_obstacles.erase(cell)
 		_rebuild_props()
 		gifts_changed.emit()

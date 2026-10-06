@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "longer_roots"
 display_name = "Longer Roots"
-description = "All Wardens reach 0.5 cells further (stacks)."
-rarity = 0
+description = "All Wardens reach 1 cell further."
+rarity = 1
 kind = 2
 tags = Array[String]([])
 requires = Array[String]([])
-max_stacks = 0
-range_bonus = 0.5
+max_stacks = 1
+range_bonus = 1.0

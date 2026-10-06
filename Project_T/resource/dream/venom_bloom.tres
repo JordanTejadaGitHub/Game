@@ -6,13 +6,13 @@
 script = ExtResource("1_card")
 id = "venom_bloom"
 display_name = "Venom Bloom"
-description = "All Wardens +50% Potency."
-cost_description = "Hits deal 15% less damage."
+description = "All Wardens get +100% Potency."
+cost_description = "Direct hits deal 40% less damage."
 rarity = 1
 kind = 2
 tags = Array[String](["potency", "bittersweet", "affliction"])
 max_stacks = 1
 min_act = 2
-potency_bonus = 0.5
+potency_bonus = 1.0
 rule_id = &"venom_bloom"
 in_start_pool = false

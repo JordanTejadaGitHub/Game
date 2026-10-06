@@ -54,7 +54,7 @@ static func bbcode(text: String) -> String:
 			terms.append(_link(FAMILY_PREFIX + id, data.display_name if data != null else id.capitalize()))
 		for found in _combo_pattern().search_all(text):  # {combo:thunderclap}: its name, or ??? until found
 			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
-			terms.append(combo_link(StringName(found.get_string(1))))
+			terms.append(combo_link(StringName(found.get_string(1)), found.get_string().begins_with("{named_")))
 	# Terms written as plain words (user: "Potency in cards doesn't have the underline"): whole word, any case, singular
 	# or plural, linked as written ("A dread shell", "Dread shells").
 	for id in PLAIN_TERMS:
@@ -89,14 +89,14 @@ static var _combo_regex: RegEx = null
 static func _combo_pattern() -> RegEx:
 	if _combo_regex == null:
 		UiStyle.release_at_exit(func() -> void: _combo_regex = null)
-		_combo_regex = RegEx.create_from_string("\\{combo:([a-z_]+)\\}")
+		_combo_regex = RegEx.create_from_string("\\{(?:named_)?combo:([a-z_]+)\\}")  # {named_combo:x}: always named (Dream cards)
 	return _combo_regex
 
 # A combo as a link (screens_ui.md: every combo link everywhere works the same): its name, or "???"
 # until discovered; hover / tap shows its tip, a second tap or a click opens it in the Codex.
-static func combo_link(id: StringName) -> String:
+static func combo_link(id: StringName, named: bool = false) -> String:
 	var combo := CodexData.get_any(id)
-	var found := CodexData.is_discovered(id)
+	var found := named or CodexData.is_discovered(id)  # named: {named_combo:x} on a Dream card always shows its name
 	return _link(COMBO_PREFIX + String(id), combo.get("name", String(id).capitalize()) if found and not combo.is_empty() else "???")
 
 # The combo tip's text: "Soaked + Charged. Lightning arcs … Set off 12 times." (??? until found).

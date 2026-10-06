@@ -76,7 +76,12 @@ thing):
 - **Caps are "up to":** "(up to +45%)", never "(max +45%)".
 - **Warden bonuses read as verbs:** "deal 30% more damage", "attack 20% faster", "+0.5 range";
   not "+30% damage" / "+20% attack speed". Nightmare side: "take 25% more damage".
-- **Stacking:** "(stacks, up to +X)" for stacking cards; nothing for one-copy cards.
+- **Stacking:** none since 2026-10-06 ("Fewer, bigger cards"): every card is one copy, so no
+  "(stacks…)" anywhere.
+- **"Double / twice / half" only for true multipliers** (2026-10-06): a bonus that adds to the
+  damage, speed or Potency sum is written in percent ("deal 100% more damage", "deal 50% less",
+  "attack 100% faster", "+100% Potency"). "Double", "twice" and "half" are kept for real ×2 / ×0.5
+  effects (Nightshade, Lasting Dreams, "fires twice").
 
 ## Text lint test
 

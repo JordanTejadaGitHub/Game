@@ -94,6 +94,39 @@ func _run() -> void:
 		"Bell Stone: song Wardens within 1 cell 15%% faster (%.2f vs %.2f)" % [ringing.get_attacks_per_second(), quiet.get_attacks_per_second()])
 	await _clean()
 
+	# Sow a Ridge: an attacking Warden touching a standing tree is Sheltered (+10%); walls get nothing; a tended
+	# tree shelters no one. Fallen Giant: an attacking Warden touching the log gets +15% crit ("Lookout").
+	var tree := Vector2(-1, -1)
+	var spot := Vector2(-1, -1)
+	for c in map.obstacles:
+		spot = _open_cell_near(c)
+		if spot.x >= 0:
+			tree = c
+			break
+	_check(tree.x >= 0, "a standing tree with an open cell beside it")
+	var open_far := _plant("sporeling", Vector2(16, 2))
+	var base_damage := open_far.get_damage()
+	var base_range := open_far.get_range_cells()
+	var sheltered := _plant("sporeling", spot)
+	_check(is_equal_approx(sheltered.get_damage(), base_damage), "no shelter before the gift")
+	gifts.add_mark(GiftGround.SOW_RIDGE, [tree])
+	gifts.add_mark(GiftGround.FALLEN_GIANT, [tree])
+	_check(is_equal_approx(sheltered.get_damage(), base_damage * (1.0 + GiftGround.SHELTERED_DAMAGE)),
+		"Sow a Ridge: Sheltered +10%% (%.2f vs %.2f)" % [sheltered.get_damage(), base_damage])
+	_check(is_equal_approx(sheltered.get_range_cells(), base_range), "Fallen Giant: no range now (%.2f)" % sheltered.get_range_cells())
+	_check(is_equal_approx(sheltered.get_raw_crit_chance() - open_far.get_raw_crit_chance(), GiftGround.LOOKOUT_CRIT),
+		"Fallen Giant: Lookout +15%% crit (%.2f vs %.2f)" % [sheltered.get_raw_crit_chance(), open_far.get_raw_crit_chance()])
+	_check(is_equal_approx(open_far.get_damage(), base_damage), "a Warden away from the tree isn't Sheltered")
+	var labels: Array = BuffSources.for_tower(sheltered).map(func(e: Dictionary) -> String: return e.label)
+	_check(labels.any(func(l: String) -> bool: return l.begins_with("Gift Sheltered")) and labels.any(func(l: String) -> bool: return l.begins_with("Gift Lookout")),
+		"both show as buff chips with their source (%s)" % [labels])
+	_check(gifts.buff_rows(_plant("thornwall", Vector2(16, 4))).is_empty() and not gifts.sheltered(_tower_at(Vector2(16, 4))),
+		"walls get no gift buffs")
+	map.clear_obstacle(tree)
+	gifts.remove_mark(GiftGround.FALLEN_GIANT, tree)
+	_check(is_equal_approx(sheltered.get_damage(), base_damage), "a tended tree shelters no one (%.2f)" % sheltered.get_damage())
+	await _clean()
+
 	# Ancient Stump: a Warden planted on one starts at rank I, nothing invested for it.
 	var stump := _open_cell()
 	gifts.add_mark(GiftGround.STUMP, [stump])
@@ -106,17 +139,30 @@ func _run() -> void:
 	await _clean()
 	gifts.remove_mark(GiftGround.STUMP, stump)
 
-	# Bramble Verge: Thornwalls half price; a nightmare touching one gets +1 Drowsy cap.
+	# Bramble Verge (8f46c6ac): Thornwall -> Bramble grows free, Bramble unlocked, Thornwalls keep their price;
+	# a nightmare touching a Bramble gets +1 Drowsy cap (a Thornwall no longer counts).
 	var thorn: TowerData = load("res://resource/tower/thornwall.tres")
+	var bramble_data: TowerData = load("res://resource/tower/bramble.tres")
 	var full := placer.get_cost(thorn)
+	var grower := _plant("thornwall", Vector2(16, 12))
+	var paid: int = grower.get_grow_cost(bramble_data).total
 	gifts.set_bramble_verge()
-	_check(placer.get_cost(thorn) == roundi(full * GiftGround.BRAMBLE_COST), "Bramble Verge: Thornwalls cost half (%d of %d)" % [placer.get_cost(thorn), full])
+	var dreams: DreamState = main.get_node("%DreamState")
+	_check(dreams.unlocked.has(GiftGround.BRAMBLE), "Bramble Verge: Bramble unlocked")
+	_check(placer.get_cost(thorn) == full, "Bramble Verge: Thornwalls keep their price (%d of %d)" % [placer.get_cost(thorn), full])
+	_check(paid > 0 and grower.get_grow_cost(bramble_data).total == 0,
+		"Bramble Verge: Thornwall -> Bramble is free (%d -> %d)" % [paid, grower.get_grow_cost(bramble_data).total])
 	var wall := _plant("thornwall", Vector2(9, 5))
 	var touching := _spawn(Vector2(10, 5))
 	var apart := _spawn(Vector2(14, 12))
-	_check(Reactions.drowsy_cap_bonus(touching) == GiftGround.BRAMBLE_DROWSY_CAP and Reactions.drowsy_cap_bonus(apart) == 0,
-		"Bramble Verge: +1 Drowsy cap touching a Thornwall, none away from it")
+	_check(Reactions.drowsy_cap_bonus(touching) == 0, "Bramble Verge: a Thornwall alone gives no Drowsy cap")
 	wall.queue_free()
+	await process_frame
+	var briar := _plant("bramble", Vector2(9, 5))
+	touching = _spawn(Vector2(10, 5))
+	_check(Reactions.drowsy_cap_bonus(touching) == GiftGround.BRAMBLE_DROWSY_CAP and Reactions.drowsy_cap_bonus(apart) == 0,
+		"Bramble Verge: +1 Drowsy cap touching a Bramble, none away from it")
+	briar.queue_free()
 	await _clean()
 
 	# Old Kin: the chosen Kinship jumps a stage; new bonds start a stage up through the given act.

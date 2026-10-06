@@ -1166,7 +1166,7 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 	var cost: int = dream_state.get_build_cost(warden) if cell == NO_CELL else dream_state.get_build_cost_at(warden, cell)
 	var gifts := GiftGround.active_for(self)
 	if gifts:
-		cost = roundi(cost * gifts.cost_multiplier(warden))  # Heartwood's Gift Bramble Verge: Thornwalls half price
+		cost = roundi(cost * gifts.cost_multiplier(warden))  # Heartwood's Gifts: planting prices (none change them now; Bramble Verge makes growing Bramble free instead)
 	# Sprouts get pricier as you plant (warden_stats.md "Sprouts cost more, walls do the maze"): every
 	# sprout_per_step() Sprouts on the map add sprout_step_dew() to the next one (12, 16, 20, …); Seedling
 	# Gift Sprouts don't count and a free one stays free. Seedfall (the card sets the start): +2 per 5 instead

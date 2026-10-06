@@ -22,7 +22,7 @@ const TENDED_FOREST_MAX := 0.40
 const FERTILE_DISCOUNT := 0.5  # Reclaimed Earth: the first Warden on a cleared cell
 const CLEAR_DISCOUNT_MAX := 0.5  # Cleared Ground stacks to −50%
 const RECLAIMED_REFUND := 0.4  # Reclaimed Earth: share of the Dew paid for a clear
-const BURN_BACK_PER_TREE := 5  # Burn Back: Dew per Withered Tree, paid when taken
+const BURN_BACK_PER_TREE := 0  # Burn Back: free now (Bittersweet rework, dream_design.md de439ea8)
 const CLEAR_SURCHARGE := 1  # Every clear this run makes later clears +1 Dew
 const CLEARING_LOCKED_WEIGHT := 2.0  # Clearing cards are this much likelier until you own one
 # Nurture and wide / narrow cards (dream_design.md). [base, Deepened (II)] where it deepens.
@@ -33,13 +33,13 @@ const FREE_RANK_MAX := 7  # Free ranks (Sunlit Rest, seeds, The Old Ones) never 
 const ENDLESS_RANK_GROWTH := 1.2  # Endless Rings: each rank past VII costs ×1.2 the one before
 const SEEPING_PER := [0.08, 0.12]
 const SEEPING_MAX_STATUSES := 5
-const VENOM_HIT_PENALTY := 0.15
+const VENOM_HIT_PENALTY := 0.40  # Venom Bloom: hits −40% (de439ea8)
 const KINDRED_PER_RANK := [0.02, 0.03]
 const KINDRED_MAX := [0.30, 0.45]
 const MEMORY_SEEDS := [1, 2]  # Remembered Care keeps this many seeds
 const SUNLIT_WARDENS := [1, 2]  # Sunlit Rest raises this many per rest
-const CHOSEN_FEW_BONUS := 0.5  # Rank V+
-const CHOSEN_FEW_PENALTY := 0.15  # Below rank III
+const CHOSEN_FEW_BONUS := 1.0  # Rank V+: double (de439ea8)
+const CHOSEN_FEW_PENALTY := 0.5  # Below rank III: half
 const MANY_HANDS_PER := 2  # +1% per this many attacking Wardens
 const MANY_HANDS_MAX := 0.40
 const SPROUT_CHORUS_PER := 0.08
@@ -118,7 +118,9 @@ const BITTER_TIME := 2.0
 # Generic Commons and Uncommons (142–156) and the second batch (157–168)
 const GATHERED_DEW_PER := 0.10  # Morning Dew (absorbed Gathered Dew)
 const CALL_OF_THE_WILD_CAP := 40
-const LASTING_DREAMS_PER := 2.0  # Seconds per stack
+const LASTING_DREAMS_MULTIPLIER := 2.0  # Status duration (dream_design.md de439ea8)
+const SHARP_BEAKS_HITS := 2  # Multi-hit Wardens: hits added per attack (one copy, balance_simulation.md e32b882d)
+const LONGER_FLIGHT_CELLS := 2.0  # Samara line: cells further
 const SHORT_ROOTS_RANGE := 2.0
 const SHORT_ROOTS_BONUS := 0.35
 const FORESTS_EDGE_CELLS := 3  # From the start (Chebyshev)
@@ -150,9 +152,9 @@ const STRAIGHT_TILES := 5
 const STRAIGHTAWAY := [[0.30, 0.5], [0.50, 0.5]]  # [damage, range]
 const HEART_OF_MAZE_BONUS := 1.00
 # Half-dreamed Commons (189–191, stack to 3)
-const DAMP_ROT_PER := 0.50  # Poisoned (Spored) ticks on Soaked nightmares
-const SPARKING_SPORES_PER := 0.50  # Ignite detonations
-const RAIN_ON_GLASS_PER := 0.35  # Light Wardens vs Soaked
+const DAMP_ROT_PER := 1.00  # Poisoned (Spored) ticks on Soaked nightmares (one copy: balance_simulation.md e32b882d)
+const SPARKING_SPORES_PER := 1.00  # Ignite detonations (one copy)
+const RAIN_ON_GLASS_PER := 0.70  # Light Wardens vs Soaked (one copy)
 # Seed cards (dream_design.md "Seed cards", 169–176)
 const DEEP_WELL_RATE := 0.05
 const DEEP_WELL_MAX := 40
@@ -178,7 +180,7 @@ const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_fr
 	# Pool trim (dream_design.md "Pool trim", 2026-09-30)
 	"gathered_dew": "morning_dew", "fresh_soil": "reclaimed_earth", "tend_the_forest": "heartwoods_reach",
 	"mending_bark": "thick_bark", "heartwoods_fury": "last_stand", "warm_hands": "tender_care",
-	"court_of_the_eldest": "endless_rings", "sprout_surge": "seedfall", "close_kin": "extended_family",
+	"court_of_the_eldest": "endless_rings", "sprout_surge": "seedfall",
 	"close_kin_ii": "extended_family", "skyward_gaze": "hunters_patience", "crush": "crowd_breaker", "crush_ii": "crowd_breaker",
 	"hurried_harvest": "call_of_the_wild", "borrowed_dew": "", "hungry_roots": "", "overgrown": "", "wild_growth": "",
 	"reckless_bloom": "", "overgrowth": "", "borrowed_memory": "", "remembered_care": "", "remembered_care_ii": "",
@@ -186,7 +188,9 @@ const MERGED_CARDS := {"cheap_hedges": "weathered_walls", "quick_bonds": "old_fr
 	"cliffside": "", "tangled": "", "patchwork": "", "hedgerow": "", "shelter_of_stones": "", "short_roots": "",
 	# Fewer family boosters (dream_design.md 21ac910b): cut
 	"brighter_jars": "", "clear_tones": "", "heavy_stones": "", "soft_spores": "", "lingering_mark": "", "lingering_mark_ii": "",
-	"lingering_spores": "", "lingering_spores_ii": "", "soaked_through": "", "soaked_through_ii": ""}
+	"lingering_spores": "", "lingering_spores_ii": "", "soaked_through": "", "soaked_through_ii": "",
+	# Fewer, bigger cards (dream_design.md de439ea8): cut or folded
+	"family_ties": "", "broad_splash": "far_reach", "acorn_cache": "warm_hearth"}
 const BOSS_DREAMLIGHT := 3  # Each boss rest (user 2026-10-01: "only 3 Dreamlight every 25 drifts"; was 4, plus +1 a rest from drift 51)
 const BRANCH_DREAMLIGHT := 1  # Branch (regular or hidden), wall growth: bought with Dreamlight in a run (clarified 2026-09-30)
 const FINAL_DREAMLIGHT := 2  # Final form (needs its branch)
@@ -300,6 +304,9 @@ var glimmer_shards := 0  # Glimmering Hunt's shards this run (10 = 1 Dreamlight,
 var _statuses_cache := []  # [state key, owned statuses] (owned_statuses)
 var _offer_drift := 0  # The drift of the offer being built (half-dreamed checks)
 var mystery_spent := false  # Mystery Dream was taken (it became another card; one copy)
+var waking_legendaries := false  # Waking Dreams: the next offer is 3 Legendaries (then every offer shows 2 cards)
+const WAKING_LEGENDARIES := 3
+const WAKING_OFFER_SIZE := 2
 var _before_offer := {}  # Offer counters from before the current offer (a reroll rolls them back)
 var _attackers_planted := 0  # Attacking Wardens planted this run (Canopy)
 var picks_left := 1  # Cards still to take from the current offer (Lucid Dreaming: 2)
@@ -1140,7 +1147,6 @@ func get_crit_chance_bonus(_tower: Tower, enemy: Node2D = null) -> float:
 	if not _any_crit_rule:
 		return 0.0  # The common case: no crit card owned (asked on every Warden hit)
 	var bonus := 0.0
-	bonus += GLINTING_DEW_PER * rule_stacks(&"glinting_dew") * rule_power(&"glinting_dew")  # Glinting Dew
 	if _tower != null and has_rule(&"seasoned_eye"):  # +1% per rank (max +7%: only the Eldest reaches it)
 		bonus += minf(SEASONED_EYE_PER * _tower.rank, SEASONED_EYE_MAX) * rule_power(&"seasoned_eye")
 	if _tower != null and has_rule(&"patient_aim"):  # Patient Aim: crit chance per second it waited (no damage)
@@ -1317,6 +1323,7 @@ func crossroads_at(cell: Vector2) -> bool:
 # Restless Night: a real call early = the previous drift was still arriving.
 func _on_drift_started(number: int) -> void:
 	_herd.clear()  # Thinning the Herd lasts the rest of the drift
+	_dispels_this_drift = 0  # Dew Line counts per drift
 	for tower in _towers():
 		_watch_growth(tower)
 	_first_hits.clear()
@@ -1325,7 +1332,7 @@ func _on_drift_started(number: int) -> void:
 	if number > 1 and drift_director._arriving.has(number - 1):
 		_early_calls += 1
 		if has_rule(&"quick_step"):
-			_quick_step_until = _game_clock + QUICK_STEP_TIME
+			_quick_step_drift = number  # Quick Step: until this drift has fully arrived
 			bump_board()
 		if has_rule(&"head_start"):
 			_head_start_drift = number
@@ -1533,6 +1540,11 @@ func get_status_strength_multiplier(status: StringName) -> float:
 		bonus += HEAVY_AIR_BONUS * rule_power(&"heavy_air")  # Heavy Air: every slow 20% stronger
 	return 1.0 + bonus
 
+# Bitter Sap (dream_design.md de439ea8): statuses your Wardens apply start with this many extra stacks (Tower reads it
+# where a Warden applies a status).
+func get_status_stacks_bonus() -> int:
+	return 1 if has_rule(&"bitter_sap") else 0
+
 # Duration of `status` when `data` applies it (its own duration or the default, plus Dreams).
 func get_status_duration(data: TowerData, status: StringName) -> float:
 	var duration: float = data.status_duration if data.status_duration > 0.0 else EnemyStatuses.DEFAULT_DURATION[status]
@@ -1542,7 +1554,8 @@ func get_status_duration(data: TowerData, status: StringName) -> float:
 			continue
 		duration += card.status_duration_add * stacks[card.id]
 		multiplier *= pow(card.status_duration_multiplier, stacks[card.id])
-	duration += LASTING_DREAMS_PER * rule_stacks(&"lasting_dreams")  # Lasting Dreams: every status +1 s
+	if has_rule(&"lasting_dreams"):
+		multiplier *= LASTING_DREAMS_MULTIPLIER  # Lasting Dreams: statuses your Wardens apply last twice as long
 	return duration * multiplier
 
 # Stack cap of `status` when `data` applies it: its own cap (0 = the status default) plus Dreams
@@ -1861,6 +1874,11 @@ func take(card: UpgradeData) -> void:
 	if card.dew_now > 0:
 		run_state.add_dew(card.dew_now)
 		_credit(card.id, "dew", card.dew_now)  # Card credit (Morning Dew…)
+	if card.rule_id == &"thin_bark":  # Thin Bark (Bittersweet, de439ea8): the Heartwood's max leaves halved, the rest lost now
+		run_state.max_leaves = maxi(ceili(run_state.max_leaves / 2.0), 1)
+		run_state.regrow_leaves(0)  # Clamps the leaves to the new maximum
+	if card.rule_id == &"restless_dreams":  # Waking Dreams: the next Dream offers 3 Legendaries
+		waking_legendaries = true
 	if card.max_leaves_add != 0:
 		run_state.max_leaves = maxi(run_state.max_leaves + card.max_leaves_add, 1)
 	if card.leaves_now < 0:
@@ -2171,9 +2189,21 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 	if _extra_cards_next > 0:  # Thick Blight / Second Wind: at most 5 cards (Wider Dreams too), never fewer than without them
 		size = maxi(size, mini(size + _extra_cards_next, MAX_OFFER_CARDS))
 	_extra_cards_next = 0
+	if has_rule(&"restless_dreams") and not waking_legendaries:
+		size = WAKING_OFFER_SIZE  # Waking Dreams' price: every offer shows 2 cards for the rest of the run
 	var offer: Array[UpgradeData] = []
 	var act := drift_director.get_act(drift_number)
 	_taken_this_offer.clear()
+	if waking_legendaries:  # Waking Dreams: this offer is 3 Legendaries (any short is filled by the normal draw)
+		waking_legendaries = false
+		size = maxi(size, WAKING_LEGENDARIES)
+		var legends: Array = pool.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY and can_offer(c, act))
+		for i in WAKING_LEGENDARIES:  # Drawn with the run's own rng (a resumed run offers the same)
+			if legends.is_empty():
+				break
+			var legend := _weighted_pick(legends)
+			offer.append(legend)
+			legends.erase(legend)
 	# Entwined cards have no guaranteed slot (dream_design.md "Combo cards are choices, not musts", 2026-10-02): once
 	# their ingredients are owned they're drawn at their rarity's normal odds like any card.
 	# The Stray Dream: from drift 10's rest (never a boss rest), one slot leans away from the build.
@@ -2206,6 +2236,7 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 		if card == null:
 			break
 		offer.append(card)
+	_ensure_defining(offer, act, drift_number)
 	if offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()):
 		_dreams_without_rare = 0
 	else:
@@ -2368,6 +2399,38 @@ func count_taken_with_tag(tag: String) -> int:
 		if card.tags.has(tag):
 			count += 1
 	return count
+
+# Build-defining cards (dream_design.md de439ea8 "B"): tag `defining`, and every Legendary. Main / UI mark them on screen.
+const DEFINING_FROM_DRIFT := 26  # Act 2
+
+func is_defining(card: UpgradeData) -> bool:
+	return card != null and (card.tags.has("defining") or card.rarity == UpgradeData.Rarity.LEGENDARY)
+
+# From act 2 every offer holds at least 1 defining card you don't own: if the draw has none, the lowest-rarity non-family
+# slot becomes a random unowned defining card of that rarity (else an Uncommon). Stops once none can be offered.
+func _ensure_defining(offer: Array[UpgradeData], act: int, drift_number: int) -> void:
+	if drift_number < DEFINING_FROM_DRIFT or offer.is_empty():
+		return
+	if offer.any(func(c: UpgradeData) -> bool: return is_defining(c) and not has_card(c.id)):
+		return
+	var slots := offer.filter(func(c: UpgradeData) -> bool: return not is_family_card(c))
+	if slots.is_empty():
+		return
+	slots.sort_custom(func(a: UpgradeData, b: UpgradeData) -> bool: return a.rarity < b.rarity)
+	var slot: UpgradeData = slots[0]
+	var others := offer.filter(func(c: UpgradeData) -> bool: return c != slot)
+	var family_taken := others.any(is_family_card)
+	var choices: Array = pool.filter(func(c: UpgradeData) -> bool: return _defining_choice(c, slot.rarity, offer, act, family_taken))
+	if choices.is_empty():
+		choices = pool.filter(func(c: UpgradeData) -> bool: return _defining_choice(c, UpgradeData.Rarity.UNCOMMON, offer, act, family_taken))
+	if choices.is_empty():
+		return
+	offer[offer.find(slot)] = _weighted_pick(choices)
+
+func _defining_choice(card: UpgradeData, rarity: int, offer: Array[UpgradeData], act: int, family_taken: bool) -> bool:
+	if not is_defining(card) or has_card(card.id) or card.rarity != rarity or offer.has(card):
+		return false
+	return can_offer(card, act) and not (family_taken and is_family_card(card))
 
 # The plain stat cards (at most one per offer, dream_design.md 21ac910b).
 const PLAIN_STAT_CARDS: Array[String] = ["deeper_calm", "quickened_sap", "longer_roots", "bitter_sap", "glinting_dew"]
@@ -2554,7 +2617,7 @@ func to_save() -> Dictionary:
 		"clearing_opened_by": clearing_opened_by,
 		"free_first_clears": free_first_clears,
 		"cleared_kinds": cleared_kinds.keys().map(func(cell: Vector2) -> Array: return [cell.x, cell.y, cleared_kinds[cell]]),
-		"grown_wardens": grown_wardens.keys(), "mystery_spent": mystery_spent,
+		"grown_wardens": grown_wardens.keys(), "mystery_spent": mystery_spent, "waking_legendaries": waking_legendaries,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -2562,6 +2625,7 @@ func load_save(data: Dictionary) -> void:
 	branch_offers = data.get("branch_offers", {}).duplicate(true)  # First: an unlock signal below must not draw anew
 	wider_roots_family = String(data.get("wider_roots_family", ""))
 	mystery_spent = bool(data.get("mystery_spent", false))
+	waking_legendaries = bool(data.get("waking_legendaries", false))
 	unlocked.clear()
 	for id in data.get("unlocked", []):
 		unlocked[id] = true
@@ -2747,6 +2811,39 @@ func _on_obstacle_cleared(cell: Vector2, data: ObstacleData) -> void:
 	if dew > 0:
 		run_state.earn_dew_at(dew, map_generator.MAP_GRID.calculate_map_position(cell))
 
+# Passing Dream (card 258, balance_simulation.md e32b882d): a dispelled nightmare's statuses jump, with their stacks and
+# time left, to the nearest nightmare within PASSING_DREAM_CELLS.
+const PASSING_DREAM_CELLS := 2.0
+
+func _passing_dream(enemy: Node2D) -> void:
+	if not has_rule(&"passing_dream") or enemy.statuses.active_ids().is_empty():
+		return
+	var reach: float = PASSING_DREAM_CELLS * map_generator.MAP_GRID.cell_size.x
+	var nearest: Node2D = null
+	for other in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+		if other == enemy or other.is_cleansed:
+			continue
+		var d: float = other.global_position.distance_to(enemy.global_position)
+		if d <= reach and (nearest == null or d < nearest.global_position.distance_to(enemy.global_position)):
+			nearest = other
+	if nearest == null:
+		return
+	for id in enemy.statuses.active_ids():
+		var line: String = enemy.statuses.spore_line() if id == EnemyStatuses.SPORED else ""
+		nearest.apply_status(id, maxi(enemy.statuses.stacks(id), 1), enemy.statuses.time_left(id), enemy.statuses.potency(id), 0,
+			line, enemy.statuses.source(id))
+
+# Dew Line (card 261): every DEW_LINE_EVERY-th nightmare dispelled in a drift pays its Dew share twice. RunState asks once
+# per dispel: 1.0 = pay the share once more, 0.0 = not this one.
+const DEW_LINE_EVERY := 10
+var _dispels_this_drift := 0
+
+func dew_line_extra() -> float:
+	_dispels_this_drift += 1
+	if has_rule(&"dew_line") and _dispels_this_drift % DEW_LINE_EVERY == 0:
+		return 1.0
+	return 0.0
+
 # Spore Cascade: a cleansed creature's Spored stacks spread to the nearest creatures.
 func _on_enemy_cleansed(enemy: Node2D) -> void:
 	_hurried_harvest(enemy)
@@ -2754,6 +2851,7 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 	_glimmer(enemy)
 	_last_breath(enemy)
 	_hunters_spread(enemy)
+	_passing_dream(enemy)
 	if not has_rule(&"spore_cascade") or not enemy.statuses.has(EnemyStatuses.SPORED):
 		return
 	var spores: int = enemy.statuses.stacks(EnemyStatuses.SPORED)
@@ -3944,7 +4042,7 @@ const LULLABY_LINGER: Array[float] = [1.0, 2.0]  # II
 const CHORUS_CELLS := 3.0
 const CHORUS_SYNC_WINDOW := 0.3  # Others whose attack is ready within this fire together
 const CHORUS_BONUS := 0.30
-const BRIGHT_MARKS_PER := 0.20  # Marked nightmares take +20% more (on top of Marked; Beacon too)
+const BRIGHT_MARKS_PER := 0.30  # Marked nightmares take +30% more (on top of Marked; Beacon too; balance_simulation.md e32b882d)
 const HOMING_SPEED: Array[float] = [1.5, 1.9]  # Swoop return speed (II)
 
 var _game_clock := 0.0
@@ -4052,8 +4150,7 @@ const FALLING_WEIGHT_BONUS := 0.45  # Pebbling line vs Held or Asleep
 const WARM_HEARTH_SPROUTS := 0.50  # Aura bonuses on Sprouts
 const FRESH_SOIL_BONUS := 0.20  # Reclaimed Earth (absorbed Fresh Soil)  # A Sprout on a cleared cell
 const FRESH_SOIL_COST := 7
-const QUICK_STEP_SPEED := 0.15  # Per stack, for QUICK_STEP_TIME after calling a drift early
-const QUICK_STEP_TIME := 10.0
+const QUICK_STEP_SPEED := 0.50  # All Wardens, while a drift called early is still arriving (dream_design.md de439ea8)
 const HURRIED_HARVEST_CAP := 40  # +1 Dew per nightmare of an early-called drift, per drift
 const HURRIED_HARVEST_DEW := 2  # Per nightmare
 const FURY_CELLS := 4  # Heartwood's Fury: from the Heartwood (Chebyshev)
@@ -4063,14 +4160,13 @@ const PATCHWORK_PER := 0.05  # Per family owned
 const PATCHWORK_MAX := 0.15
 const MIXED_GROVE_PER := 0.15  # Per neighbouring family that isn't the Warden's own
 const MIXED_GROVE_MAX := 0.45
-const LIVE_WIRE_PER := 0.15  # Charged bolts, per stack (max 3)
 
-var _quick_step_until := -1.0
+var _quick_step_drift := -1  # The drift Quick Step was called for
 var _hurried_drift := -1
 var _hurried_paid := 0
 
 func quick_step_active() -> bool:
-	return has_rule(&"quick_step") and _game_clock < _quick_step_until
+	return has_rule(&"quick_step") and drift_director != null and drift_director._arriving.has(_quick_step_drift)
 
 # Hurried Harvest: +1 Dew for each nightmare dispelled during a drift you called early (cap per drift).
 func _hurried_harvest(enemy: Node2D) -> void:
@@ -4081,7 +4177,7 @@ func _hurried_harvest(enemy: Node2D) -> void:
 
 # Live Wire: Charged bolts multiplier (Enemy / Reactions bolt code; 1.0 without the card).
 func get_bolt_multiplier() -> float:
-	return 1.0 + LIVE_WIRE_PER * rule_stacks(&"live_wire") * rule_power(&"live_wire")
+	return 1.0  # Live Wire is a jump now (Tower Code), not a bigger bolt
 
 # Families you own (Patchwork, Mixed Grove's Need).
 func count_owned_families() -> int:
@@ -4092,7 +4188,6 @@ func count_owned_families() -> int:
 # Mine: Glinting Dew (crit chance), Sharpened Light / II (crit multiplier), Deep Frost
 # (per hit) and Long Shadows (a DreamEffects row). Tower Code reads the rest by rule id: Patient Aim,
 # Ring Dance, Carried on the Wind, Sweet Scent, Shiny Things, Hairpin Winds.
-const GLINTING_DEW_PER := 0.08  # All Wardens, per stack (max 3)
 const SHARPENED_LIGHT: Array[float] = [0.5, 1.0]  # Crit multiplier (II)
 const DEEP_FROST_BONUS := 0.45  # Frozen nightmares
 const LONG_SHADOWS_RANGE := 2.0  # Wardens whose range is LONG_SHADOWS_FROM or more
@@ -4163,7 +4258,7 @@ const HUMMINGHEART_PER := 0.03  # Damage per +10% bonus attack speed
 const HUMMINGHEART_STEP := 0.10
 const HUMMINGHEART_MAX := 0.60
 const WHIRLWIND_HIT_PENALTY := 0.20
-const BROAD_SPLASH_PER := 0.25  # Cells of area radius per stack (max 3)
+const FAR_REACH_SPLASH := 0.5  # Far Reach: area attacks splash this many cells wider (Broad Splash folded in)
 const LINGERING_SPLASH_EVERY: Array[int] = [3, 2]  # II: every 2nd area attack
 const LINGERING_SPLASH_SHARE := 0.25  # Of the hit, per second, for LINGERING_SPLASH_TIME (effect damage)
 const LINGERING_SPLASH_TIME := 2.0
@@ -4183,9 +4278,9 @@ func hummingheart_bonus(bonus_speed: float) -> float:
 		return 0.0
 	return minf(floorf(bonus_speed / HUMMINGHEART_STEP + 0.0001) * HUMMINGHEART_PER * rule_power(&"hummingheart"), HUMMINGHEART_MAX)
 
-# Broad Splash: cells added to every area attack's radius.
+# Far Reach (absorbed Broad Splash, dream_design.md de439ea8): cells added to every area attack's radius.
 func get_area_radius_add() -> float:
-	return BROAD_SPLASH_PER * rule_stacks(&"broad_splash") * (rule_power(&"broad_splash") if has_rule(&"broad_splash") else 1.0)
+	return FAR_REACH_SPLASH if has_rule(&"far_reach") else 0.0
 
 # Momentum's per-hit step and cap (Tower keeps the streak per Warden and target).
 func momentum_step() -> Vector2:
