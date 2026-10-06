@@ -2338,6 +2338,15 @@ func _make_remember() -> void:
 		_w("dream_trigger_%d" % rarity, _own("dream_trigger%d" % rarity, func() -> PackedFloat32Array:
 			var out := _layers([[_thump(0.12, 180.0 - rarity * 20.0, 0.025), 1.0], [_glow_swell(0.25 + rarity * 0.05), 0.3 + 0.1 * rarity]])
 			return _lowpass(out, 1400.0)), 0.2 + 0.04 * rarity)
+	# A rank V signature firing for the first time on the profile (CombatCallouts signature_discovered):
+	# a low warm fifth (one step, never a climb) over a short bloom of tuned air.
+	_w("discover_signature", _own("discover_signature", func() -> PackedFloat32Array:
+		var out := _seg(2.4, SFX_RATE)
+		for k in 2:
+			_mix(out, _lowpass(_bell(SFX_RATE, hz([62, 69][k]), 0.3, 0.9, MUSIC_BOX, 2.0), 1500.0), SFX_RATE, k * 0.16)
+		_mix(out, _normalize(_light_burst(0.3, 1.2, [50, 57, 62]), 1.0), SFX_RATE, 0.0, 0.4)
+		_mix(out, _normalize(_glow_swell(1.2), 1.0), SFX_RATE, 0.1, 0.3)
+		return out), 0.4)
 	_ws("dream_fly", 2, 0.35, func(_v: int) -> PackedFloat32Array:  # A picked card flying into the Dreams row
 		return _lowpass(_layers([[_air(0.7, 600.0, 0.45, 0.2, 0.8), 0.7], [_glow_swell(0.7), 0.5],
 			[_bell(SFX_RATE, hz(74), 0.25, 0.4, MUSIC_BOX, 1.0), 0.4, 0.6]]), 1700.0))

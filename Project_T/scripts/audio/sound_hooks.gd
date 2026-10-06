@@ -1136,7 +1136,7 @@ func _play_win() -> void:
 # trigger when a card's name pops over a nightmare (CombatCallouts `card_called`, once per card per gap).
 func _hook_dream_cards(node: Node) -> void:
 	for pair in [["card_flipped", _on_dream_card_flipped], ["card_chosen", _on_dream_card_chosen],
-			["card_called", _on_dream_card_called]]:
+			["card_called", _on_dream_card_called], ["signature_discovered", _on_signature_discovered]]:
 		if node.has_signal(pair[0]) and not node.is_connected(pair[0], pair[1]):
 			node.connect(pair[0], pair[1])
 
@@ -1172,3 +1172,7 @@ func _on_dream_card_called(card_id: String, at: Vector2) -> void:
 	_dream_trigger_at[card_id] = now
 	var card: Resource = dream_state.call("_card_by_id", card_id) if dream_state.has_method("_card_by_id") else null
 	sound.play(StringName("dream_trigger_%d" % _rarity_of(card)), at, DREAM_TRIGGER_DB, 1.0, 0.02)
+
+# A rank V signature firing for the first time on this profile (CombatCallouts, d097e055): a discovery chime.
+func _on_signature_discovered(_id: StringName, _tower: Node2D = null) -> void:
+	sound.play(&"discover_signature", null, -4.0, 1.0, 0.0, &"UI")

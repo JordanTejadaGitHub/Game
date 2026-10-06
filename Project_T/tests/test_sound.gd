@@ -97,7 +97,7 @@ func _initialize() -> void:
 		_check(sound.has_sound(StringName("kin_bond_" + family)), "kin_bond_%s exists" % family)
 	for id in [&"kin_bond", &"kin_stage_up", &"harmony_strike", &"whole_tree", &"dew_catch", &"harvest", &"interest_ripple", &"close_call", &"root_yank", &"soil_drag_short", &"soil_drag_long", &"boss_reveal", &"final_bloom", &"bolt_strike", &"dispel_elite", &"remember_open", &"remember_close",
 			&"remember_tap", &"remember_travel", &"remember_note", &"remember_fifth", &"dreamlight_glow",
-			&"dream_flip_0", &"dream_flip_3", &"dream_fly", &"dream_trigger_0", &"dream_trigger_3"]:
+			&"dream_flip_0", &"dream_flip_3", &"dream_fly", &"dream_trigger_0", &"dream_trigger_3", &"discover_signature"]:
 		_check(sound.has_sound(id), "%s exists" % id)
 	# Nurture: a swell per family material, Focus leans, and Dawnwing's calm + busy loops in sync.
 	for file in DirAccess.get_files_at("res://resource/tower/"):
