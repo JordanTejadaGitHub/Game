@@ -1694,6 +1694,7 @@ Deepened ones that exist stay.
   - It works with "1 family / 1 plain stat per offer".
   - Which defining card appears is random, so the player still adapts, never handed a build.
   - Once every defining card is owned, the rule stops.
+  - **Legendary archetypes (2026-10-06 audit):** each Legendary carries exactly one archetype tag. Fixed: Dawnbreak and Eternal Charge affliction, Golden Harvest tending, Hunter's Moon precision, Rooted Nightmares maze, Rootbound overgrowth only. **Lucid Dreaming** is the one exception: a Dream-rule Legendary, no archetype.
   - **Starts earlier (2026-10-06):** from the **rest after drift 10**, not drift 26. Balancing's
     no-build check: fresh runs had no build at drift 26 in 87% of runs (full Grove 48%), and 20% at
     drift 50.
