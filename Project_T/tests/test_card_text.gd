@@ -63,13 +63,13 @@ func _initialize() -> void:
 	var hidden: Array[String] = []
 	for card in Check.load_cards():
 		for text in [card.description, card.cost_description, card.grows_text]:
-			if IconInfo.format(text).contains("???") or StatusLinks.bbcode(text).contains("???"):
+			if IconInfo.format(text).contains("???") or IconInfo.format(text).contains("combo:") or StatusLinks.bbcode(text).contains("???"):
 				hidden.append(card.id)
 	for file in ResourceLoader.list_directory("res://resource/omen/"):
 		var omen := load("res://resource/omen/" + file) as OmenData if file.ends_with(".tres") else null
 		if omen != null and IconInfo.format(omen.description).contains("???"):
 			hidden.append(omen.id)
-	_check(hidden.is_empty(), "no card or Omen text shows ??? (%s): write {named_combo:x}" % ", ".join(hidden))
+	_check(hidden.is_empty(), "no card or Omen text shows ??? or a leftover token (%s): write {named_combo:x}" % ", ".join(hidden))
 	# text_style.md "Card wording, one way each" (e2176ea3) on every card's text and cost line, and the stacking note
 	for card in Check.load_cards():
 		for text in [card.description, card.cost_description]:

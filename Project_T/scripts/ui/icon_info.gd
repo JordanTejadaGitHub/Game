@@ -268,7 +268,7 @@ static func format(text: String) -> String:
 	if text.contains("{nightmare:"):  # A nightmare: its name, or ??? until met
 		for found in nightmare_pattern().search_all(text):
 			text = text.replace(found.get_string(), nightmare_name(found.get_string(1)))
-	if text.contains("{combo:"):  # A combo (or Crowned Reaction): its name, or ??? until discovered
+	if text.contains("combo:"):  # A combo (or Crowned Reaction): its name, or ??? until discovered ({named_combo:x} always named)
 		for found in _combo_pattern().search_all(text):
 			var id := StringName(found.get_string(1))
 			var combo := CodexData.get_any(id)

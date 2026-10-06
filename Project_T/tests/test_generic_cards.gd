@@ -59,6 +59,7 @@ func _run() -> void:
 	_test_source_shards()
 	_test_impact_conditions()
 	_test_twig_walls()
+	_test_new_commons()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -79,6 +80,34 @@ func _test_twig_walls() -> void:
 	var stick := TwigWall.new()
 	_check(DreamState.wall_weight(stick) == 0.5 and DreamState.wall_weight(null) == 1.0, "a twig wall counts half a Thornwall for Hedge Maze")
 	stick.free()
+	dreams.stacks.clear()
+
+# New Commons 258 / 261 (dream_design.md de439ea8): Passing Dream (statuses jump on a dispel) and Dew Line (every 10th
+# dispel of a drift pays its share twice).
+func _test_new_commons() -> void:
+	_reset()
+	dreams.take(_card("passing_dream"))
+	var gone := _spawn(Vector2(10, 10))
+	var near := _spawn(Vector2(11, 10))
+	var far := _spawn(Vector2(16, 10))
+	gone.apply_status(EnemyStatuses.SPORED, 3, 5.0)
+	gone.apply_status(EnemyStatuses.DROWSY, 1, 4.0)
+	dreams._passing_dream(gone)
+	_check(near.statuses.stacks(EnemyStatuses.SPORED) == 3 and near.statuses.has(EnemyStatuses.DROWSY) and not far.statuses.has(EnemyStatuses.SPORED),
+		"Passing Dream: the statuses jump to the nearest nightmare within 2 cells, stacks and all")
+	_free_enemies()
+	dreams.stacks.clear()
+	dreams._dispels_this_drift = 0
+	var extras: Array[float] = []
+	for i in 10:
+		extras.append(dreams.dew_line_extra())
+	_check(extras.max() == 0.0, "no Dew Line: never twice")
+	dreams.take(_card("dew_line"))
+	dreams._dispels_this_drift = 0
+	extras.clear()
+	for i in 20:
+		extras.append(dreams.dew_line_extra())
+	_check(extras[9] == 1.0 and extras[19] == 1.0 and extras.count(1.0) == 2, "Dew Line: the 10th and 20th dispels pay twice")
 	dreams.stacks.clear()
 func _test_pool() -> void:
 	for id in IDS:

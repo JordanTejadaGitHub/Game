@@ -1320,6 +1320,7 @@ func crossroads_at(cell: Vector2) -> bool:
 # Restless Night: a real call early = the previous drift was still arriving.
 func _on_drift_started(number: int) -> void:
 	_herd.clear()  # Thinning the Herd lasts the rest of the drift
+	_dispels_this_drift = 0  # Dew Line counts per drift
 	for tower in _towers():
 		_watch_growth(tower)
 	_first_hits.clear()
@@ -2756,6 +2757,39 @@ func _on_obstacle_cleared(cell: Vector2, data: ObstacleData) -> void:
 	if dew > 0:
 		run_state.earn_dew_at(dew, map_generator.MAP_GRID.calculate_map_position(cell))
 
+# Passing Dream (card 258, balance_simulation.md e32b882d): a dispelled nightmare's statuses jump, with their stacks and
+# time left, to the nearest nightmare within PASSING_DREAM_CELLS.
+const PASSING_DREAM_CELLS := 2.0
+
+func _passing_dream(enemy: Node2D) -> void:
+	if not has_rule(&"passing_dream") or enemy.statuses.active_ids().is_empty():
+		return
+	var reach: float = PASSING_DREAM_CELLS * map_generator.MAP_GRID.cell_size.x
+	var nearest: Node2D = null
+	for other in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+		if other == enemy or other.is_cleansed:
+			continue
+		var d: float = other.global_position.distance_to(enemy.global_position)
+		if d <= reach and (nearest == null or d < nearest.global_position.distance_to(enemy.global_position)):
+			nearest = other
+	if nearest == null:
+		return
+	for id in enemy.statuses.active_ids():
+		var line: String = enemy.statuses.spore_line() if id == EnemyStatuses.SPORED else ""
+		nearest.apply_status(id, maxi(enemy.statuses.stacks(id), 1), enemy.statuses.time_left(id), enemy.statuses.potency(id), 0,
+			line, enemy.statuses.source(id))
+
+# Dew Line (card 261): every DEW_LINE_EVERY-th nightmare dispelled in a drift pays its Dew share twice. RunState asks once
+# per dispel: 1.0 = pay the share once more, 0.0 = not this one.
+const DEW_LINE_EVERY := 10
+var _dispels_this_drift := 0
+
+func dew_line_extra() -> float:
+	_dispels_this_drift += 1
+	if has_rule(&"dew_line") and _dispels_this_drift % DEW_LINE_EVERY == 0:
+		return 1.0
+	return 0.0
+
 # Spore Cascade: a cleansed creature's Spored stacks spread to the nearest creatures.
 func _on_enemy_cleansed(enemy: Node2D) -> void:
 	_hurried_harvest(enemy)
@@ -2763,6 +2797,7 @@ func _on_enemy_cleansed(enemy: Node2D) -> void:
 	_glimmer(enemy)
 	_last_breath(enemy)
 	_hunters_spread(enemy)
+	_passing_dream(enemy)
 	if not has_rule(&"spore_cascade") or not enemy.statuses.has(EnemyStatuses.SPORED):
 		return
 	var spores: int = enemy.statuses.stacks(EnemyStatuses.SPORED)
