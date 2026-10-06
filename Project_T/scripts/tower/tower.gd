@@ -44,8 +44,19 @@ signal statics_set_off(tower: Tower, where: Vector2, count: int)  # An Ascended 
 signal legacy_released(tower: Tower)  # An Ascended form made its final form's attack (no wind-up; sound)
 signal signature_fired(tower: Tower, id: StringName)  # A rank V signature did its thing (discovery callout, sound)
 
-@export var tower_data: TowerData
+@export var tower_data: TowerData:
+	set(value):
+		tower_data = value
+		# Perf (mobile pass): flags _process reads every frame, kept with the data (a Resource read costs a lookup).
+		_t_thornwall = value != null and value.get_id() == "thornwall"
+		_t_attacks = value != null and value.can_attack
+		_t_catches = value != null and value.caught_bonus > 0.0
+		_t_fps = value.animation_fps if value != null else 0.0
 @onready var sprite: Sprite2D = $Sprite2D
+var _t_fps := 0.0
+var _t_thornwall := false
+var _t_attacks := false
+var _t_catches := false
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const ENEMY_GROUP := "enemies"
@@ -117,6 +128,19 @@ func _card_rules_held() -> bool:
 		_card_rules_frame = frame
 		_card_rules_on = _has_rule(&"lantern_glow") or _has_rule(&"first_frost") or _has_rule(ShapeCards.SAP_RISING)
 	return _card_rules_on
+
+static var _frame_rules_frame := -1
+static var _frame_rules := {}
+
+# Whether the run holds `rule`, looked up once a frame for every Warden (perf: rules are the run's, not a Warden's).
+func _frame_rule(rule: StringName) -> bool:
+	var frame := Engine.get_process_frames()
+	if frame != _frame_rules_frame:
+		_frame_rules_frame = frame
+		_frame_rules.clear()
+	if not _frame_rules.has(rule):
+		_frame_rules[rule] = _has_rule(rule)
+	return _frame_rules[rule]
 
 # Sap Rising (ShapeCards): a support Warden pulses the 8 cells around it every 2 s; effect damage, logged under it.
 func _update_sap(delta: float) -> void:
@@ -565,7 +589,20 @@ func default_choice() -> Focus:
 			return which
 	return focus_options()[0]
 # What the attack does: `tower_data` itself, or for a Graftling the neighbour it copies.
-var attack_data: TowerData
+var attack_data: TowerData:
+	set(value):
+		attack_data = value
+		# Perf (mobile pass): what _process checks every frame (run_as / legacy swaps keep it current).
+		_a_kind = value.attack_kind if value != null else -1
+		_a_ability = value != null and value.ability_every > 0.0
+		_a_lit = value != null and value.lit_hold_multiplier > 0.0
+		_a_copy = value != null and value.copy_status_every > 0.0
+		_a_special = value != null and value.special != &""
+var _a_kind := -1
+var _a_ability := false
+var _a_lit := false
+var _a_copy := false
+var _a_special := false
 # Who snipers shoot at (the player can change it in the Warden panel).
 var target_mode: TowerData.TargetMode = TowerData.TargetMode.FIRST
 var target_chosen := false  # The player set target_mode (kept through growing, saved with the run)
@@ -751,7 +788,7 @@ func _process(delta: float) -> void:
 	else:
 		# Performance: frames change a few times a second; only set them when they do (each set redraws),
 		# and the rank art / Withered overlay are looked up by name only when this frame changed.
-		var idle_frame := int(_anim_time * tower_data.animation_fps)
+		var idle_frame := int(_anim_time * _t_fps)
 		# Effects quality Reduced / long frames: an off-screen Warden doesn't animate (nobody sees it).
 		if idle_frame != _last_idle_frame and (not Fx.reduced() or Fx.on_screen(global_position, 96.0)):
 			_last_idle_frame = idle_frame
@@ -767,9 +804,9 @@ func _process(delta: float) -> void:
 				for art in [get_node_or_null("RankUnder"), get_node_or_null("RankOver")]:
 					if art:
 						art.frame = idle_frame % 8
-	if tower_data.get_id() == "thornwall" and _dream_state:
+	if _t_thornwall and _dream_state:
 		_update_wall(delta)
-	if not tower_data.can_attack:
+	if not _t_attacks:
 		return
 	var watch_cards := _dream_state != null and _card_rules_held()  # (Once a frame for all Wardens: perf)
 	if watch_cards:
@@ -790,20 +827,21 @@ func _process(delta: float) -> void:
 		elif _surging:
 			_surging = false  # Lost the signature mid-surge
 			_nudge_neighbours()
-	if tower_data.caught_bonus > 0.0:
+	if _t_catches:
 		_update_catch(delta)  # Dreamcatchers catch sleepy nightmares whether or not they're shooting
-	if attack_data.ability_every > 0.0:
+	if _a_ability:
 		_update_ability(delta)
-	if attack_data.lit_hold_multiplier > 0.0 and not _lit_cells.is_empty():
+	if _a_lit and not _lit_cells.is_empty():
 		_update_lit_holds(delta)
-	if attack_data.copy_status_every > 0.0:
+	if _a_copy:
 		_update_status_copy(delta)
-	_update_legacy(delta)
+	if legacy_data != null:
+		_update_legacy(delta)
 	if _twist != &"":
 		FinalTwists.update(self, delta)  # Signature twists (tower_design.md)
-	if attack_data.special != &"" and BranchKit.process(self, delta):
+	if _a_special and BranchKit.process(self, delta):
 		return  # Expansion branches: fences, silence, Cloudburst (BranchKit)
-	match attack_data.attack_kind:
+	match _a_kind:
 		TowerData.AttackKind.AURA:
 			_update_aura(delta)
 			return
@@ -821,7 +859,8 @@ func _process(delta: float) -> void:
 			return
 		TowerData.AttackKind.COPY:
 			return  # A Graftling with nothing to copy
-	_update_watch(delta)
+	if bloom_left > 0.0 or (not watch_charged and _frame_rule(&"watchful_rest")):
+		_update_watch(delta)  # (Sudden Bloom fading, Watchful Rest: most Wardens skip the call)
 	_cooldown = maxf(_cooldown - delta, 0.0)
 	if _cooldown > 0.0 or _attack_time >= 0.0:
 		return
@@ -1974,7 +2013,8 @@ func _advance_attack(delta: float) -> void:
 		_pull_only = false
 		_show_idle()
 		return
-	sprite.frame = frame
+	if sprite.frame != frame:
+		sprite.frame = frame  # (Only on a change: set_frame emits frame_changed every call)
 
 const TWIG_TEXTURE := "res://assets/towers/thornwall_twig.png"  # Tower Assets f82c1f8f: 32×40 frames, same count as the Thornwall
 
