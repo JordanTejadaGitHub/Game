@@ -205,10 +205,14 @@ func get_maze_walkers() -> Array[Node]:
 
 var hud_text_scale := 1.0  # WorldLabel.text_scale, once a frame for every nightmare's HUD (perf: was per nightmare)
 var hud_frame := 0  # Engine.get_process_frames(), once a frame (the badges' staggered time-bar look)
+# Low detail (EnvironmentTiles.low_detail: phones, or the setting), read once a frame: off-screen nightmares
+# pause their cosmetics (animation, HUD, rounded corners); gameplay never. Desktop Full: always false.
+var low_detail_now := false
 
 func _process(delta: float) -> void:
 	hud_text_scale = WorldLabel.text_scale(self)  # (The spawner processes before its children)
 	hud_frame = Engine.get_process_frames()
+	low_detail_now = EnvironmentTiles.low_detail()
 	eclipse_left = maxf(eclipse_left - delta, 0.0)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	# Thin-family cards (dream_design.md 2026-09-30), read once a frame for every nightmare.

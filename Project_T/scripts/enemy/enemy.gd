@@ -241,6 +241,10 @@ var _target_serial := -1
 # the step, the route or the map's blocking changes, the corner and squeeze checks are skipped.
 var _steady_index := -1
 var _steady_serial := -1
+# Low detail only (spawner.low_detail_now; mobile_plan.md): off screen, its cosmetics pause (the sprite's
+# animation, the HUD, rounded corners and the squeeze) and catch up the frame it's back. Walking, statuses and
+# presence never pause.
+var _culled := false
 # Pixels the drawn body (sprite, its HUD, its glows) is raised so its feet and contact shadow sit on the
 # route point, the path ribbon's centreline (art_direction.md "Bigger Wardens"); 0 for flyers.
 var _foot_lift := 0.0
@@ -513,8 +517,19 @@ func _process(delta: float) -> void:
 		queue_redraw()
 	# The HUD only when something it shows may have changed (perf, mobile_plan.md): its inputs' setters, a status
 	# change, the zoom, or while badges (their time bars), flashes or pops are on
+	var culled: bool = _spawner != null and _spawner.low_detail_now and not _on_screen(self)
+	if culled != _culled:
+		_culled = culled
+		if culled:
+			sprite.pause()  # Off screen on low detail: no frames to advance
+		else:
+			sprite.play()  # Back in view: carries on where it was
+			_hud_dirty = true  # …and its HUD catches up this frame
+			_steady_index = -1  # (The corner and squeeze checks too)
 	# (Badges' time bars: every HUD_TIME_FRAMES frames, staggered, as _update_hud itself looks at them)
-	if _hud_dirty or statuses.hud_dirty or statuses.changes != _hud_changes \
+	if _culled:
+		pass  # Off screen on low detail: the HUD waits (its dirty marks keep) until it's back in view
+	elif _hud_dirty or statuses.hud_dirty or statuses.changes != _hud_changes \
 			or _hud_flashing or _hud_popping or not _status_flash.is_empty() or not _hud_pops.is_empty() \
 			or (_spawner != null and (_spawner.hud_text_scale != _hud_scale \
 				or (not _hud_ids.is_empty() and (_spawner.hud_frame + _hud_stagger) % HUD_TIME_FRAMES == 0))):
@@ -594,9 +609,10 @@ func _process(delta: float) -> void:
 			remaining = 0.0
 
 	# Update animation based on movement direction
-	update_animation(position - previous_position)
-	if _steady_index != _path_index or _steady_serial != _path_serial or _corner_offset != Vector2.ZERO \
-			or _squeeze != 1.0 or (_gap_finder != null and _gap_finder.version != _gap_version):
+	if not _culled:
+		update_animation(position - previous_position)
+	if not _culled and (_steady_index != _path_index or _steady_serial != _path_serial or _corner_offset != Vector2.ZERO \
+			or _squeeze != 1.0 or (_gap_finder != null and _gap_finder.version != _gap_version)):
 		_round_corners()
 		_update_squeeze(delta)
 		if _corner_offset == Vector2.ZERO and _squeeze == 1.0 and not _gap_answer and not _near_turn():
@@ -1007,9 +1023,12 @@ static func _on_screen(node: Node2D) -> bool:
 		if camera != null and camera.zoom.x > 0.0 and DisplayServer.get_name() != "headless":
 			var size := node.get_viewport().get_visible_rect().size / camera.zoom
 			_view_rect = Rect2(camera.get_screen_center_position() - size / 2.0, size).grow(VIEW_MARGIN)
+	if test_view_rect.has_area():
+		return test_view_rect.has_point(node.global_position)
 	return not _view_rect.has_area() or _view_rect.has_point(node.global_position)
 static var _view_frame := -1
 static var _view_rect := Rect2()
+static var test_view_rect := Rect2()  # Tests: stands in for the camera's view (headless has none)
 
 # The statuses its badges show, most important first (BADGE_ORDER), at most STATUS_BADGES_MAX; the
 # rest only count towards the "+N".

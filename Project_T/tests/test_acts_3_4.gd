@@ -771,6 +771,31 @@ func _run() -> void:
 		hud_walker.statuses.remove(id)
 		hud_walker._process(step)
 		_check(shown and not hud_walker._hud_ids.has(id), "HUD: %s's badge comes and goes the same frame" % id)
+	# Low detail (phones): off screen its cosmetics pause and catch up in view; desktop Full never pauses them.
+	var far_view := Rect2(hud_walker.global_position + Vector2(5000, 5000), Vector2(100, 100))
+	var near_view := Rect2(hud_walker.global_position - Vector2(50, 50), Vector2(100, 100))
+	_set_view(far_view)
+	EnvironmentTiles.force_detail = 0
+	spawner._process(step)
+	hud_walker._process(step)
+	_check(not hud_walker._culled and hud_walker.sprite.is_playing(), "desktop Full: off screen it still animates")
+	EnvironmentTiles.force_detail = 1
+	spawner._process(step)
+	hud_walker._process(step)
+	_check(hud_walker._culled and not hud_walker.sprite.is_playing(), "low detail: off screen its animation pauses")
+	var bar_before: int = hud_walker._hud_health
+	var position_before: Vector2 = hud_walker.position
+	hud_walker.health -= hud_walker.max_health / 4
+	hud_walker._process(step)
+	_check(hud_walker._hud_health == bar_before and hud_walker.position != position_before,
+		"…its HUD waits, but it still walks")
+	_set_view(near_view)
+	hud_walker._process(step)
+	_check(not hud_walker._culled and hud_walker.sprite.is_playing()
+		and hud_walker._hud_health == int(hud_walker.HEALTH_BAR_SIZE.x * hud_walker.health / hud_walker.max_health),
+		"back in view: it animates and its health bar catches up the same frame")
+	_set_view(Rect2())
+	EnvironmentTiles.force_detail = -2
 	_clear_enemies()
 
 	# --- Rounded corners: the drawn path curves, the route and the timing stay square ---
@@ -1105,6 +1130,10 @@ func _wait(seconds: float) -> void:
 	await create_timer(seconds, true, true).timeout
 
 # A Rootling bonded for Snare (kin_share reports it), counting its pulls: for the release-pull cycle.
+# Sets the camera view the nightmares cull against (Enemy.test_view_rect; empty = none, as headless).
+func _set_view(view: Rect2) -> void:
+	load("res://scripts/enemy/enemy.gd").test_view_rect = view
+
 # A Thornwall inside a Shelter support's aura (Tower.is_sheltered), without building the support.
 class ShelteredWall extends Tower:
 	func is_sheltered() -> bool:
