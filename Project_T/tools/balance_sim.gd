@@ -65,6 +65,7 @@ var hand_drifts := false  # --hand-drifts: the hand-made drift files instead of 
 var save_mode := ""  # --save=spender (never saves up) or saver (holds Dew up to SAVER_DRIFTS drifts for a growth)
 var even_archetypes := false  # --even-archetypes: DreamSimPolicy.extra_tag_scores = +1 for every archetype tag (as build_packages emergence), so no style steers toward one archetype (Balancing 2026-10-06)
 var card_value := true  # Default since 2026-10-06 (Balancing; --no-card-value = the tag-only policy): DreamSimPolicy.card_value (card size as a damage-equivalent %); offers.csv then logs each card's score
+var want_families: Array[String] = []  # --want-families=a,b: the chase takes these when offered (families not forced; Balancing / Meta 2026-10-06)
 var card_scores := {}  # --card-score=<card id>:<score> (repeatable): DreamSimPolicy.score_overrides (Balancing 2026-10-06: Thorny Walls scored like an untagged Common = 0)
 var omen_mode := ""  # --omens=face (every Omen, the lower-risk one) | clear | always | clean (DreamSimPolicy.omen_mode); default: no Omens drawn
 var all_families := false  # --all-families: the developer "Unlock all families" run (MetaRun.force_all_families)
@@ -228,6 +229,7 @@ func _run() -> void:
 				else:
 					extra_dew = int(value)
 			"--favor": favored.assign(value.split(","))
+			"--want-families": want_families.assign(value.split(","))
 			"--dreams": dream_mode = value
 			"--card-score": card_scores[value.get_slice(":", 0)] = float(value.get_slice(":", 1))
 			"--card-value": card_value = true
@@ -349,6 +351,7 @@ func _run() -> void:
 			dreams.take(card)
 	policy = FavorPolicy.new(dreams, STYLES.get(style, 0))
 	policy.favored = favored
+	policy.wanted_families = want_families
 	policy.on_offer = _note_offer
 	policy.on_pick = _log_pick
 	policy.branches_first = kin_placement
@@ -1662,6 +1665,13 @@ func _sprout_waits(tower: Tower) -> bool:
 class FavorPolicy extends DreamSimPolicy:
 	const FAVOR := 1000.0
 	var favored: Array[String] = []
+	var wanted_families: Array[String] = []  # --want-families: take one of these when a family pick offers it (else the style's pick)
+
+	func pick_family(offered: Array) -> StringName:
+		for id in wanted_families:
+			if offered.has(id):
+				return StringName(id)
+		return super.pick_family(offered)
 	var mode := "balanced"  # --dreams: "skip" lets every offer pass, "random" takes any card, "balanced" the style's pick; "damage":
 	# damage, attack speed and Potency cards first, economy last (act 1 "damage-first")
 	var rng := RandomNumberGenerator.new()
