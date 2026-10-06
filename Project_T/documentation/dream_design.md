@@ -1816,6 +1816,21 @@ Kinship were the hardest card builds to reach.
   - Targets: combos 25–40% once both families are held.
   - If Maze is still the default, Winding Path counts only tiles a Warden reaches, and Hedge Maze
     counts only Thornwalls touching attacking Wardens.
+- **Re-measured** (Balancing Code, part 1, main e951b540: steering 1.0, offer caps, defining slot,
+  card pass):
+  - **Storm Grid chase: 27% 3+ by drift 50** (round 2: 89%), 50% by 75. In the 25–40% band:
+    reachable, not reliable. **No change.**
+  - **Emergence: 47%** of runs have 3+ cards of one package by drift 50 (was 74% with steering).
+    That's the user's "optimal build rarely", and the defining slot keeps a direction on screen.
+  - **Maze is still the default:** 32% of emerging runs (The Long Walk another 19%); the next is
+    Daring at 16%. So the two universal maze cards become conditional, Bungus-style:
+    - **Winding Path:** "At each {rest}, +1 Dew for every 5 path tiles **within a Warden's reach**."
+      (Long empty corridors no longer pay.)
+    - **Hedge Maze:** "A Warden deals **4% more damage for each Thornwall touching it** (up to
+      +24%)." (Was +1% per 3 Thornwalls anywhere; now it rewards wall-hugging placement.)
+  - **Kinship 0% is likely a sim artifact:** Kinship cards wait for the profile's first Kinship,
+    and the sim profile may have none. Balancing Code re-checks with discoveries set. Tall is
+    measured at drift 75 in part 2.
 - **Family gaps** (Meta Game Discussion's matrix, a read, not measured): Acorn lacks Precision,
   Affliction, Swift and Wide Reach doors; Pebbling lacks Overgrowth, Affliction and Swift. Sap
   Rising (263) is Acorn's first. More shape cards for these gaps after the re-measure.
