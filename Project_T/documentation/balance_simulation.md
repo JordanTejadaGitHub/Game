@@ -881,7 +881,9 @@ demo-only health multipliers per act (exports in 2e6d4e4a), then the Mire Hag's 
 Mire Hag **+10–15 points** more (≈ 40–55%), never above ~60%. All 8 earned in **~3–5 demo runs**: node costs set from
 the Seeds a demo run actually banks (measured on the baseline). Meta's 8 (490a157e → 5bfb65be): Morning Stores I, Deep
 Taproot I (power, under a Hades split Meta Game Code is adding), Second Thoughts I, Wider Choice, Sharpened, Seedbed,
-Scarred Bark, **Rootling (a 5th family)**: 375 Seeds → target median ≈ 94 per demo run.
+Scarred Bark, **Rootling (a 5th family)**: 375 Seeds → target median ≈ 94 per demo run. Hades perk style (power: Morning
+Stores, Deep Taproot I–II, Rested Roots; the rest sidegrade) becomes the default in cf8dae16, demo_full preset 90c593ec
+(both awaiting the user's Approve); Grove-profile baselines before it are the pure-sidegrade style.
 
 ## No forcing (user, 2026-10-06)
 
