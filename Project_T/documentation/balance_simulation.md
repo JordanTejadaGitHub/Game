@@ -865,6 +865,52 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Fewer, bigger cards: numbers (dream_design.md de439ea8, 2026-10-06)
+
+**Principle:** one pick ≈ **two** old stacked picks, never three. A rest still gives one card, so sizing every
+one-copy card at its old 3-stack maximum would be an across-the-board raise (the user's constraint). All-Warden
+cards move up a rarity where the number passes their budget.
+
+| Card | Number | Rarity |
+|---|---|---|
+| Deeper Calm / Quickened Sap | **+25%**; II **+25%** more | **Uncommon** (was Common; Uncommon all-Wardens budget) |
+| Longer Roots | **+1 cell**; II **+0.5** more | **Uncommon** |
+| Glinting Dew | **every 5th** attack crits (+20% at ×2) | **Uncommon** |
+| Flurry | every 5th attack fires twice | stays **Uncommon** (not Common: the same +20% as Glinting Dew) |
+| Bitter Sap | +1 stack on apply | Common (conditional, status builds) |
+| Live Wire | bolts jump to a 2nd nightmare | Common |
+| Lasting Dreams | statuses ×2 duration | Common |
+| Quick Step | +50% attack speed until the called drift has arrived | Common |
+| Damp Rot / Sparking Spores | **+100%** (2 old copies) | Common |
+| Rain on Glass | **+70%** | Common |
+| Heavy Dew | twice as wide, Damp +4 s | Common |
+| Heartwood's Reach | clearing half + 3 half-price clears | as is |
+| Hush | **+50%** pulse reach | Common |
+| Longer Flight | **+2 cells** | Common |
+| Sharp Beaks | +2 hits | Common |
+| Dew Bowl | **+50 Dew** now | Common |
+| Sudden Insight | +2 Dreamlight now | Uncommon |
+| Bright Marks | Marked take **+30%** (not 40: Marked boards already hit 55% combo share, friend run 1) | Common |
+
+**New Commons:** Thorny Walls: each Thornwall lashes one nightmare beside it **every 2 s for 5 damage** (half a
+Sprout's hit; 20 walls ≈ +10% of a late act 1 board; Dream damage cards apply; a full Sprout every 1 s would be
+10 DPS per 3 Dew wall, more than a Sporeling per Dew). Passing Dream: statuses jump with their remaining time and
+stacks to the nearest nightmare within **2 cells**. Lantern Glow: **+15%** (in reach covers nearly every hit:
+the Common all-Wardens budget exactly). First Frost: the **first 5** nightmares of each drift are Held **1.5 s**
+at the first Warden they meet (one nightmare for 2 s can't be felt), bosses exempt. Dew Line: every 10th dispel
+pays twice (≈ +10% Dew, beside Wild Dew's ×1.1).
+
+**Bittersweet (spike ≈ 2× a Rare, the price felt every drift):** Thin Bark +75%, max leaves halved → **Rare**
+(with 7–8 leaves any act 2+ boss leak ends the run: that is the price). Venom Bloom Potency ×2, hits −40% (+30%
+on a half-status board, −8% on a 20% one: build-dependent, as meant). Blood Is Thicker kin ×2 / non-kin ×0.5 →
+**Rare** (×2 is above the Uncommon budget). Chosen Few V+ ×2 / below III ×0.5. Deep Sleep **+80%**, no rest bonus
+and no Omens. Burn Back: all Withered Trees free now (no Seeds), **+20%** speed for the run. Waking Dreams: 3
+Legendaries, then no skipping and 2-card offers. All as proposed except the two rarity moves.
+
+**Defining rule (act 2+, one defining card per offer):** no numbers, but it moves picks. The bot's card picker
+must take it as offered; after the build, Balancing Code re-checks act 1–2 (default / spender / skip) and the
+pick rate of defining cards.
+
 ## Drawn route and early deaths (19f426c5, 2026-10-05)
 
 After "fewest turns among the shortest", 5–7 of 30 bot runs per arm die by drift 2 (was ~1 in 90). Same-board
