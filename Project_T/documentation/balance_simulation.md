@@ -900,7 +900,9 @@ laps (invulnerable, so it never ended). A possible damage floor vs pulses; repro
 **Defining slot at 10 (76e860ac, 16 fresh runs):** no build 88% at 26, 44% at 50 (was 87 / 20): no better; the
 drift-50 rise is likely the conditional maze cards (Maze was half the builds). Agreed with Roguelite Mechanic:
 **judge at drift 50 only**; at ≥ 35% no-build, first the run pool 60% → 70%, then a 4-card act 2 offer; no
-steering pull.
+steering pull. Then: defining cards are ~half of all offers and the bot takes 3.6 of 5 by 26 (directions that
+don't connect). **Defining tag trimmed 68 → 18 + Legendaries, one archetype each, slot back to act 2** (6bf745e7);
+measured before the pool test.
 the all-Acorn check: in a real run that boss drains instead. **Cause:** ×1.3 speed per lap with no cap (it crossed
 the route between two shots). Capped at 3 laps (×2.2) in 8603af1b; real runs never reach lap 4.
 
