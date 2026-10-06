@@ -33,7 +33,7 @@ const POOL := {
 	&"glade": {"name": "Glade", "group": "Shape the land", "map": true, "place": &"obstacles", "size": 5,
 		"text": "Clear up to 5 obstacles of your choice, free. Each still counts as tended."},  # Picked one by one (user)
 	&"shift_stones": {"name": "Shift the Stones", "group": "Shape the land", "map": true, "place": &"move", "size": 3,
-		"text": "Move up to 3 obstacles to new empty cells. Each one moved pays 20 Dew × the act, and the ground it leaves is fertile: the next Warden planted there costs half."},
+		"text": "Move up to 3 obstacles to new empty cells. Each one moved pays 30 Dew × the act."},
 	&"mire": {"name": "Mire", "group": "Shape the land", "map": true, "place": &"path", "size": 3,
 		"text": "3 connected path cells turn to bog: nightmares move 20% slower there."},
 	&"spring": {"name": "Spring", "group": "Living ground", "map": true, "place": &"area", "size": Vector2i(2, 2),
@@ -179,7 +179,7 @@ func choose(id: StringName, placement: Dictionary = {}) -> void:
 	var record := {"id": String(id), "act": offer_act, "placement": _plain(place)}
 	taken.append(record)
 	_apply(id, record.placement, false)
-	_payoff(id, place, offer_act)  # Once, at the pick (a resume restores the fertile cells from the run save)
+	_payoff(id, place, offer_act)  # Once, at the pick (the Dew is in the run save's total)
 	_close()
 	gift_taken.emit(id, placement)
 
@@ -217,10 +217,9 @@ func get_spacing_multiplier(drift: int) -> float:
 	return 1.0
 
 # Map gifts all pay off (heartwood_gifts.md b3e464e6, user: "everything gives buffs or more resources"). Main's part:
-# Shift the Stones pays SHIFT_DEW × act per stone moved and leaves each old spot fertile (RunState.fertile_cells: the
-# next Warden planted there costs half, as Reclaimed Earth); Shifting Mist adds MIST_POT_BONUS to the next act's Dew
+# Shift the Stones pays SHIFT_DEW × act per stone moved (Dew only: the fertile spot overlapped Ancient Stump, 8f46c6ac); Shifting Mist adds MIST_POT_BONUS to the next act's Dew
 # pots (the act it opens: gifts come at the act break, `act` is the act that ended). Balancing Discussion sets the numbers.
-const SHIFT_DEW := 20
+const SHIFT_DEW := 30
 const MIST_POT_BONUS := 0.10
 
 func _payoff(id: StringName, placement: Dictionary, act: int) -> void:
@@ -229,8 +228,6 @@ func _payoff(id: StringName, placement: Dictionary, act: int) -> void:
 	var froms := cells_of(placement, "from")
 	if froms.is_empty():
 		return
-	for cell in froms:
-		run_state.fertile_cells[cell] = true
 	var map := drift_director.get_node_or_null("%MapGenerator")
 	var at: Vector2 = map.MAP_GRID.calculate_map_position(froms[0]) if map != null else Vector2.ZERO
 	run_state.earn_dew_at(SHIFT_DEW * maxi(act, 1) * froms.size(), at)
