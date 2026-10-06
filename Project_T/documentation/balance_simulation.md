@@ -947,6 +947,8 @@ before merge; if the extra room makes act 1 easy, the curve answers it.
 targets, **bend10 is on them** (default ~55, skip ≤ 20) with the cleanest opening; the spender's 40% is the attacker
 spam "walls first" means to weaken (fewer free obstacle walls: the player builds the maze). **GO for bend10; room
 stays out.** Watch the first human runs on it; if act 1 is too hard, `act1_health_multiplier` 1.20 → 1.10.
+**Bot baseline change:** from a99d5382 the bot keeps walling by default; every batch before it is the non-walling
+bot. Warm-up and pgr wait for bend10 on main.
 
 ## Human run 21 (2026-10-05 20:57, build 91161b = b3c61186; 0 Grove)
 
