@@ -804,6 +804,61 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 	MetaRun.force_all_families = false
+
+	# --- The demo Grove (demo_scope.md cb0e096c, meta_design.md 490a157e / 5bfb65be): 8 nodes at level I, the rest
+	# asleep ("Full game"), 3 slots, no Blight, Memory 1; MetaRun applies only that part, even from a full profile ---
+	var demo_data := HeartwoodMemory.defaults()
+	demo_data.seeds = 1000
+	demo_data.runs_played = 4
+	demo_data.runs_won = 2
+	HeartwoodMemory.save_data(demo_data)
+	_check(ResultsScreen.is_demo() and DemoGrove.is_active(), "the demo is on")
+	_check(HeartwoodMemory.buy_problem(demo_data, _unlock(grove, "rich_dew")) == DemoGrove.ASLEEP
+		and HeartwoodMemory.buy_problem(demo_data, _unlock(grove, "pebbling")) == DemoGrove.ASLEEP
+		and HeartwoodMemory.buy_problem(demo_data, _unlock(grove, "rootling_hidden")) == DemoGrove.ASLEEP, "other nodes sleep (Full game)")
+	_check(HeartwoodMemory.buy_problem(demo_data, _unlock(grove, "sporeling")) == "Grown", "the starting families stay grown")
+	var demo_cost := 0
+	for id in DemoGrove.NODES:
+		demo_cost += _unlock(grove, id).get_cost(0)
+		_check(HeartwoodMemory.buy(_unlock(grove, id)), "demo: plant %s" % id)
+	_check(demo_cost == 375, "the demo Grove costs 375 Seeds (%d)" % demo_cost)
+	demo_data = HeartwoodMemory.load_data()
+	_check(int(demo_data.seeds) == 1000 - 375, "at full-game costs")
+	_check(HeartwoodMemory.buy_problem(demo_data, _unlock(grove, "morning_stores")) == DemoGrove.ASLEEP, "Morning Stores II waits for the full game")
+	_check(DemoGrove.complete(demo_data), "all 8 planted")
+	_check(HeartwoodMemory.loadout_slots(demo_data) == 3 and HeartwoodMemory.max_blight_level(demo_data) == 0
+		and HeartwoodMemory.memories_unlocked(demo_data) == 1, "demo: 3 slots, no Blight, Memory 1")
+	demo_data.unlocks.rich_dew = 3  # A full-game profile played in the demo keeps only the demo part there
+	demo_data.unlocks.morning_stores = 3
+	demo_data.loadout = ["rich_dew", "morning_stores", "deep_taproot", "second_thoughts"]
+	HeartwoodMemory.save_data(demo_data)
+	_check(HeartwoodMemory.get_loadout(demo_data) == ["morning_stores", "deep_taproot", "second_thoughts"], "demo carries only demo perks (%s)" % [HeartwoodMemory.get_loadout(demo_data)])
+	main = await _new_run()
+	dreams = main.get_node("%DreamState")
+	run_state = main.get_node("%RunState")
+	_check(dreams.grove_cards.has("still_target") and dreams.grove_cards.has("canopy") and dreams.grove_cards.has("scarred_bark")
+		and dreams.grove_cards.has("wandering_mind"), "demo: the planted card nodes' cards join the pool")
+	_check(main.get_node("%FamilyPickScreen").families.any(func(d: TowerData) -> bool: return d.get_id() == "rootling"), "demo: Rootling joins the picks")
+	_check(run_state.dew_gain_bonus == 0.0, "demo: Rich Dew sleeps")
+	_check(run_state.dew == run_state.starting_dew + 10, "demo: Morning Stores at level I (+10 Dew, %d)" % (run_state.dew - run_state.starting_dew))
+	_check(dreams.rerolls_left == 1, "demo: Second Thoughts I (1 reroll)")
+	main.queue_free()
+	await process_frame
+	grove_screen = load("res://scenes/grove.tscn").instantiate()
+	root.add_child(grove_screen)
+	await process_frame
+	_check(grove_screen.demo_done.visible and grove_screen.demo_done.find_child("Wishlist", true, false) != null,
+		"demo Grove screen: all planted shows the full-game line and Wishlist")
+	grove_screen._select(_unlock(grove, "pebbling"))
+	_check(not grove_screen._plant.visible and grove_screen._card_status.text.begins_with("Full game"), "an asleep node: Full game, no Plant")
+	grove_screen._select(_unlock(grove, "deep_taproot"))
+	_check(not grove_screen._plant.visible and grove_screen._card_status.text.contains("II"), "Deep Taproot II: Full game (%s)" % grove_screen._card_status.text)
+	grove_screen.queue_free()
+	await process_frame
+	ProjectSettings.set_setting("game/demo", false)
+	_check(HeartwoodMemory.node_level(HeartwoodMemory.load_data(), _unlock(grove, "rich_dew")) == 3, "the full game wakes the rest")
+	var demo_preset := GrovePresets.profile(&"demo_full")
+	_check(DemoGrove.complete(demo_preset) and demo_preset.unlocks.size() == DemoGrove.NODES.size(), "GrovePresets demo_full: the 8 demo nodes")
 	ProjectSettings.set_setting("game/demo", was_demo)
 	_delete(PROFILE_PATH)
 	_delete(SIM_PATH)

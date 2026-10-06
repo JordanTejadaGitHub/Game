@@ -106,7 +106,7 @@ func toggle(id: String) -> void:
 func _owned_perks() -> Array[UnlockData]:
 	var result: Array[UnlockData] = []
 	for unlock in HeartwoodMemory.load_grove():
-		if unlock.is_perk() and HeartwoodMemory.node_level(_memory, unlock) > 0:
+		if unlock.is_perk() and DemoGrove.level(_memory, unlock) > 0:
 			result.append(unlock)
 	return result
 

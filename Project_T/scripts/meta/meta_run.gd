@@ -234,7 +234,9 @@ func _ready() -> void:
 			dream_state.pool.append(blessing)
 	var all_families := all_families_active() and not TestGrove.is_active()
 	if not active:
-		if all_families:  # Also in the demo build's debug runs
+		# The demo Grove (DemoGrove): its 8 nodes' cards and carried perks, at level I. No Blight, nothing recorded.
+		_apply_grove(HeartwoodMemory.load_data())
+		if all_families:  # Also in the demo build's debug runs (after the Grove, which sets the Grove cards)
 			_apply_all_families()
 		return
 	add_to_group(GROUP)
@@ -302,7 +304,7 @@ func _apply_grove(memory: Dictionary) -> void:
 	var sprouts := 0
 	var nurtures := 0
 	for unlock in HeartwoodMemory.load_grove():
-		var level := HeartwoodMemory.node_level(memory, unlock)
+		var level := DemoGrove.level(memory, unlock)  # The profile's level (the demo's part only, in the demo)
 		if level == 0:
 			continue
 		for id in unlock.families:
