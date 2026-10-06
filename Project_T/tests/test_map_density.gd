@@ -19,7 +19,7 @@ const ROUTE_MAX_BLIGHT_9 := 46  # Its extra spur can stretch the opening a littl
 const OBSTACLES_BLIGHT_0 := Vector2i(38, 48)  # User 2026-10-06: "a bit more obstacles" (was 30-42)
 const OBSTACLES_BLIGHT_9 := Vector2i(38, 56)  # The extra spur is a deliberate step: less open floor
 const BOWL_LOOSE := Vector2i(3, 6)  # Lone decision obstacles in the bowl (not spur or feature cells)
-const BUILDABLE_MIN := 285  # ~298 median with the bowl (was ~275 before it opened)
+const BUILDABLE_MIN := 275  # ~291 median with 38-48 obstacles (was ~275 before the bowl opened)
 
 var failures := 0
 

@@ -51,7 +51,12 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 @export_group("Layouts")
 @export var feature_clearance: int = 3  # Feature cells stay at least this far (chessboard) from start and end
 const RUIN_STONES: Array[int] = [2, 3, 7]  # mossy_boulder.png: standing stone, cairn, ruined waystone
-const BEND_ROOT := 2  # Cells of the bend spur's root (3 rows thick) at its wall
+const BEND_ROOT := 2  # Cells of the bend spur's root (up to 3 rows thick) at its wall, +0-1
+const BEND_ROOT_FILL := 0.65  # Root: chance for each of the rows either side
+const BEND_CLUMP_CHANCE := 0.2  # Past the root: chance per cell of a clump beside the line
+const BEND_ROCK_SHARE := Vector2(0.3, 0.6)  # Boulders among its trees (a mix, never all one kind)
+const CLUSTER_FILL := 0.7  # Rock clusters: share of the blob's cells taken (gaps between clumps)
+const CLUSTER_ROCK_SHARE := 0.65  # Rock clusters: boulders, the rest Withered Trees
 const RIDGE_END_GAP := 3  # Ridge rows keep this far from the start's row and the Heartwood's (its glade is ±1)
 # Pond blob sizes (half the ponds; the rest are 3×3 with corners dropped or an L, with pond_inner.png
 # drawing their inside corners).
@@ -252,24 +257,44 @@ func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 	var from_low := reach_low <= reach_high
 	var cap := roundi(u_inner * MapLayout.BEND_REACH_SHARE)
 	bend_reach = mini(reach_low if from_low else reach_high, cap)
-	_bend_spur(rng, rows[0], from_low, bend_reach, skip_cells, obstacles)
+	_bend_spur(rng, rows[0], from_low, bend_reach, Vector2i(mini(a, b) + RIDGE_END_GAP, maxi(a, b) - RIDGE_END_GAP), skip_cells, obstacles)
 	for ridge in range(1, rows.size()):  # Any others: short spurs from alternating walls
 		from_low = not from_low
 		var length := maxi(frame_band + 1, roundi(u_inner * rng.randf_range(ridge_length_min, ridge_length_max)))
-		_ridge(rng, rows[ridge], from_low, length, length, skip_cells, obstacles)  # Gap-free: a spur is short
+		_ridge(rng, rows[ridge], from_low, length, 0, skip_cells, obstacles)  # Gaps past the root (only the bend must hold)
 
-# The bend spur: a straight, gap-free line of single obstacles `length` cells from its wall, with a 2-cell
-# root (the rows either side filled in) in the frame. Clearable like any obstacle (a big shortcut later).
-func _bend_spur(rng: RandomNumberGenerator, v: int, from_low: bool, length: int,
+# The bend spur: a gap-free line `length` cells from its wall (clearable like any obstacle: a big shortcut
+# later). Natural, not a dotted row (user 2026-10-06: "make sure variety"): trees and boulders mixed, a ragged
+# 2-3 cell root in the frame, a step to the next row every few cells (the corner cell filled, so it still holds),
+# and the odd clump beside the line. Steps and clumps stay on `rows` (the rows the spur may use: RIDGE_END_GAP
+# from the start's and the Heartwood's), so they never seal the start in with the frame's groves.
+func _bend_spur(rng: RandomNumberGenerator, v_base: int, from_low: bool, length: int, rows: Vector2i,
 		skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
 	var u_inner := _u_size() - 2
-	var rock_share := rng.randf()
+	var rock_share := rng.randf_range(BEND_ROCK_SHARE.x, BEND_ROCK_SHARE.y)
+	var root := BEND_ROOT + rng.randi_range(0, 1)
+	var v := v_base
+	var next_step := root + rng.randi_range(1, 3)
 	for i in length:
 		var u := 1 + i if from_low else u_inner - i
+		if i == next_step and i < length - 1:
+			_place_ridge_cell(rng, _cell(u, v), rock_share, skip_cells, obstacles)  # The corner: no diagonal gap
+			v = clampi(v + (1 if rng.randf() < 0.5 else -1), maxi(v_base - 1, rows.x), mini(v_base + 1, rows.y))
+			next_step = i + rng.randi_range(3, 5)
 		_place_ridge_cell(rng, _cell(u, v), rock_share, skip_cells, obstacles)
-		if i < BEND_ROOT:
+		if i < root:  # Ragged root: most of the rows either side
 			for other in [v - 1, v + 1]:
-				_place_ridge_cell(rng, _cell(u, other), rock_share, skip_cells, obstacles)
+				if rng.randf() < BEND_ROOT_FILL:
+					_place_ridge_cell(rng, _cell(u, other), rock_share, skip_cells, obstacles)
+		elif rng.randf() < BEND_CLUMP_CHANCE:  # A clump of 1-2 beside the line (inside `rows`)
+			var side := 1 if rng.randf() < 0.5 else -1
+			if v + side < maxi(rows.x, v_base - 1) or v + side > mini(rows.y, v_base + 1):  # Within a row of its base: a free row to the next spur
+				side = -side
+			if v + side < maxi(rows.x, v_base - 1) or v + side > mini(rows.y, v_base + 1):
+				continue
+			_place_ridge_cell(rng, _cell(u, v + side), rock_share, skip_cells, obstacles)
+			if i + 1 < length and rng.randf() < 0.5:
+				_place_ridge_cell(rng, _cell(1 + i + 1 if from_low else u_inner - i - 1, v + side), rock_share, skip_cells, obstacles)
 
 # One tapering ridge: from the low-u wall (or the high one) `length` cells along u, wandering inside
 # its band (v_base ±1): a thicket/outcrop root, a two-row middle, a one-row tip, then a few strays.
@@ -277,7 +302,7 @@ func _bend_spur(rng: RandomNumberGenerator, v: int, from_low: bool, length: int,
 func _ridge(rng: RandomNumberGenerator, v_base: int, from_low: bool, length: int, gaps_from: int,
 		skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
 	var u_inner := _u_size() - 2
-	var rock_share := rng.randf()
+	var rock_share := rng.randf_range(0.25, 0.75)  # A mix of trees and boulders (user: variety)
 	var root_end := roundi(length * ridge_root_fraction)
 	var tip_start := length - roundi(length * ridge_tip_fraction)
 	var v := v_base
@@ -340,8 +365,10 @@ func _generate_rock_clusters(rng: RandomNumberGenerator, skip_cells: PackedVecto
 				var distance := Vector2(dx, dy).length()
 				if distance > radius or skip_cells.has(cell) or obstacles.has(cell) or not in_band(cell):
 					continue
-				if rng.randf() < 1.0 - distance / (radius + 1.0):
-					_place_obstacle(rng, cell, rock_obstacle, obstacles)
+				# Sparser, and the odd Withered Tree among the boulders: a solid blob of single boulders read as a
+				# grid (user 2026-10-06: "looks a bit unnatural if it's just rocks in a line, make sure variety").
+				if rng.randf() < CLUSTER_FILL * (1.0 - distance / (radius + 1.0)):
+					_place_obstacle(rng, cell, rock_obstacle if rng.randf() < CLUSTER_ROCK_SHARE else tree_obstacle, obstacles)
 
 # Up to `count` rows between `first` and `last`, sorted, each at least `ridge_min_spacing` apart.
 func _pick_ridge_rows(rng: RandomNumberGenerator, count: int, first: int, last: int) -> Array[int]:
