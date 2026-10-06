@@ -87,6 +87,7 @@ const SQUEEZE_WIDTH := 0.8  # Drawn width in a one-half gap (half_cells.md "The 
 const SQUEEZE_RATE := 14.0  # Eases in and out over a few frames (reduced motion: at once)
 const BOSS_SILENCE_SPEED := 0.5  # A silenced boss's timed abilities run this fast (Hushbell; tower_design.md 279ebb63)
 const BOSS_SILENCE_FLOOR := 0.35  # …and never slower than this, however deep the Hushbell (Nurture rework e2631f54)
+const LAP_SPEED_LAPS := 3  # Night Mare: laps that speed it up (×1.3 each: ×2.2 at most; Balancing Code's sim, seed 25)
 const UNTOUCHABLE_TINT := Color(0.42, 0.38, 0.55)  # The Night Mare lingering: a dark, smoky shimmer (a self_modulate multiplier)
 const UNTOUCHABLE_ALPHA := 0.55
 const AWAKE_RING_COLOR := Color(Palette.MOONLIGHT, 0.35)  # Just woke: can't fall asleep again yet
@@ -582,7 +583,8 @@ func _set_untouchable(value: bool) -> void:
 # the start, faster each time.
 func _lap() -> void:
 	laps += 1
-	speed *= enemy_data.lap_speed_multiplier
+	if laps <= LAP_SPEED_LAPS:  # Faster for its first laps only: unbounded, it soon crossed the map between two shots
+		speed *= enemy_data.lap_speed_multiplier
 	_speed_stale = true
 	lapped.emit(self)
 	_restart_route()

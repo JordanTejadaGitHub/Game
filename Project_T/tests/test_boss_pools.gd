@@ -213,6 +213,10 @@ func _run() -> void:
 	_check(mare.laps == 2 and run_state.leaves == after_first - 7, "7 leaves on its second visit (%d → %d)" % [after_first, run_state.leaves])
 	mare.take_damage(mare.max_health * 0.55)
 	_check(mare._charge_left > 0.0, "it bolts at half health")
+	mare._lap()
+	mare._lap()  # Laps 3 and 4: only the first LAP_SPEED_LAPS speed it up
+	_check(mare.laps == 4 and is_equal_approx(mare.speed, mare_speed * pow(1.3, mare.LAP_SPEED_LAPS)),
+		"its lap speed-up stops after %d laps (×%.2f)" % [mare.LAP_SPEED_LAPS, mare.speed / mare_speed])
 	_clear_enemies()
 
 	# --- Scarecrow: crows at every 20% ---
