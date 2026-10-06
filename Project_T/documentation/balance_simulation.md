@@ -889,6 +889,11 @@ full hit), capped at 25%. Acorn Strong 0.01 → **0.025** aura per rank (≈ Pow
 Watchtower 2 s linger, Relentless on tick dispels (still ≤ once per 0.5 s): watch Sporeling boards. In ba55f063,
 8d89bbb2, 08d7ef32.
 
+**No-build check (main 2cb0f584, 2-family picks, card-value, invulnerable to 50, 30 seeds):** no recognisable build
+at 26 / 50: **fresh 87% / 20%**, **full 48% / 3%**. Builds form in act 2 (5 picks by 26; the defining slot starts at
+26). Maze is half the formed builds (before the conditional maze cards). Verdict: a floor, **one archetype slot
+at the drift 25 rest** (most-owned archetype), proposed to Roguelite Mechanic; re-measure after.
+
 **Signatures as counters (warden_stats.md ff93b498):** Crushing only on shelled / coated targets (fine).
 Executioner's price "−10% on non-crits" shrinks as crit rises (−3% at 50% crit against a ~+10–15% gain: still
 automatic). Proposed to Tower Discussion: **−15% on every hit**, so high crit wins against swarms, loses ~5–10%
