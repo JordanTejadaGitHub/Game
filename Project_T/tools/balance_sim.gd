@@ -100,13 +100,15 @@ var resumed_at := -1  # The drift the resumed save was resting after (resumed_at
 var _finals_first := false  # _grow prefers the highest tier (the --start-at build)
 var warmup_to := 0  # --warmup-to=51|76 (Balancing, the late-start option (2)): drifts before it play with RunState.invulnerable; at the rest before it the leaves are set to START_LEAVES and the real run begins. Warm-up rows are tagged warmup=1
 var warm := {"dew": 0, "leaks": 0, "attackers": -1, "walls": -1, "done": false}
-var extra_spend := ""  # --extra-spend=plant|grow|final|rank|none (balance_simulation.md a8c0365c "Plant vs grow vs rank"): at the resumed rest, X extra Dew spent only that way
+var extra_spend := ""  # --extra-spend=plant|grow|grow_hi|grow_lo|final|rank|walls|none (balance_simulation.md a8c0365c "Plant vs grow vs rank"): at the resumed rest, X extra Dew spent only that way
 var extra_dew := 0  # --extra-dew=X
 var extra_x_mode := ""  # --extra-dew=grow|final: X = the cheapest base → branch / branch → final growth on the board
 var extra_spent := 0
 var base_kind := ""  # The family base Warden most on the map at the start, and its copies (copy number N)
 var copies_at_start := -1
 var _grow_only_tier := 0  # _grow only into this tier (2 = a branch, 3 = a final); 0 = any
+var _grow_cover_pick := 0  # --extra-spend=grow_hi / grow_lo (maze_feel.md 8b50fce6): _grow picks by route coverage alone, 1 = the most, -1 = the least
+var extra_info := {"route_added": 0, "walls": 0, "cover": -1, "cover_hi": -1, "cover_lo": -1}  # The extra spend's walls / grown Warden; cover_hi / lo = the range of coverage among Wardens that could grow
 var path_added := {"plant": [0, 0], "wall": [0, 0]}  # Route cells added by the bot's placements: [sum, placements]
 const START_ATTACKERS := {51: 50, 76: 46}  # Human run history (non-dev runs, 2026-10-05): mean "attackers" of runs that ended at 50 (42, 75, 46, 38); at 75, the three runs past it prorated by drift (31@80, 58@100, 88@100)
 const START_PLANT_SHARE := 0.25  # (a) at most this share of the start Dew on planting + walls
@@ -597,17 +599,37 @@ func _extra_spend() -> void:
 				var cell := _best_cell(base.attack_range, 0.5, false, base)
 				if cell == NO_CELL or not _build(base, cell):
 					break
-		"grow", "final":
-			_grow_only_tier = 2 if extra_spend == "grow" else 3
+		"grow", "final", "grow_hi", "grow_lo":
+			_grow_only_tier = 3 if extra_spend == "final" else 2
+			_grow_cover_pick = {"grow_hi": 1, "grow_lo": -1}.get(extra_spend, 0)
+			if _grow_cover_pick != 0:
+				# Any Warden with a branch may take the grow, whatever its ranks add to the price: paid in full,
+				# extra_spent = that price (X stays the cheapest, for reference)
+				run_state.dew += 100000
+				_grow()
+				_grow_cover_pick = 0
+				_grow_only_tier = 0
+				extra_spent = before + extra_dew + 100000 - run_state.dew
+				run_state.dew = before
+				print("EXTRA %s: grow of %d (X %d) %s" % [extra_spend, extra_spent, extra_dew, extra_info])
+				return
 			_grow()
 			_grow_only_tier = 0
+			_grow_cover_pick = 0
+		"walls":  # (e): only Thornwalls, the bot's wall planner, where they add the most route
+			var route_before := _route_cells(map.get_path_from(map.startPath))
+			for guard in 200:
+				if run_state.dew - before <= 0 or not _plant_wall():
+					break
+				extra_info.walls += 1
+			extra_info.route_added = _route_cells(map.get_path_from(map.startPath)) - route_before
 		"rank":
 			for guard in 200:
 				if run_state.dew - before <= 0 or not _nurture():
 					break
 	extra_spent = before + extra_dew - run_state.dew
 	run_state.dew = mini(run_state.dew, before)  # The unspent extra goes back
-	print("EXTRA %s: %d of %d spent (base %s ×%d)" % [extra_spend, extra_spent, extra_dew, base_kind, copies_at_start])
+	print("EXTRA %s: %d of %d spent (base %s ×%d) %s" % [extra_spend, extra_spent, extra_dew, base_kind, copies_at_start, extra_info])
 
 # The cheapest growth into an unlocked form of `tier` on the board (what it costs a Warden as it stands, ranks
 # included); 0 = none open.
@@ -1063,8 +1085,17 @@ func _grow() -> bool:
 				pick_score = form_score
 				pick = form
 		if pick != null:
+			var route_cover := _coverage(tower)
+			if _grow_only_tier > 0:  # The --extra-spend grow arms: the coverage range among the Wardens that could grow
+				extra_info.cover_hi = maxi(extra_info.cover_hi, route_cover)
+				extra_info.cover_lo = route_cover if extra_info.cover_lo < 0 else mini(extra_info.cover_lo, route_cover)
+			if _grow_cover_pick != 0:  # grow_hi / grow_lo: coverage alone decides
+				print("COVER %s %s %d" % [tower.tower_data.get_id(), tower.cell, route_cover])
+				if best.is_empty() or route_cover * _grow_cover_pick > best[0] * _grow_cover_pick:
+					best = [route_cover, tower, pick]
+				continue
 			# Growing into an aura Warden: the Wardens around it count; into a kin branch: its unbonded kin.
-			var cover := _coverage(tower) + _aura_bonus(tower.cell, pick, tower, false) + _kin_bonus(tower.cell, pick, tower)
+			var cover := route_cover + _aura_bonus(tower.cell, pick, tower, false) + _kin_bonus(tower.cell, pick, tower)
 			if _finals_first:
 				cover += 1000.0 * pick.tier  # The late-start build: finals before new branches
 			if fence_pref and pick.special == &"jarlink":
@@ -1073,6 +1104,8 @@ func _grow() -> bool:
 					continue  # Its arc would cover no route tile: not here
 			if best.is_empty() or cover > best[0]:
 				best = [cover, tower, pick]
+	if not best.is_empty() and _grow_only_tier > 0:
+		extra_info.cover = _coverage(best[1])
 	return not best.is_empty() and placer.evolve(best[1], best[2])
 
 # Balanced: the lowest rank first, most path in range among those; Narrow the same but it plants few.
@@ -1323,6 +1356,11 @@ func _finish() -> void:
 	summary.extra_dew = extra_dew  # X (with --extra-dew=grow / final: the cheapest such growth on the board)
 	summary.extra_x = extra_x_mode
 	summary.extra_spent = extra_spent
+	summary.extra_route_added = extra_info.route_added  # --extra-spend=walls: route cells the walls added, and how many
+	summary.extra_walls = extra_info.walls
+	summary.extra_cover = extra_info.cover  # Route halves in range of the Warden the extra grow went to (once per pass)
+	summary.cover_hi = extra_info.cover_hi  # The most / least coverage among the Wardens that could take that grow
+	summary.cover_lo = extra_info.cover_lo
 	summary.base_kind = base_kind
 	summary.copies_at_start = copies_at_start
 	summary.path_per_plant = snappedf(float(path_added.plant[0]) / maxf(path_added.plant[1], 1.0), 0.01)
