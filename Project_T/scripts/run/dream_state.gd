@@ -13,9 +13,8 @@ const RARITY_WEIGHTS := [[65, 28, 7, 0], [50, 32, 15, 3], [38, 34, 22, 6]]
 # Rule numbers: [base, Deepened (II)].
 const COZY_CORNERS_BONUS := [0.30, 0.50]
 const COZY_CORNERS_REACH := [1, 2]  # Cells from a bend, diagonals included (1 = the 8 around, 2 = 5×5)
-const HEDGE_PER_WALLS := [3, 2]
-const HEDGE_BONUS_PER := 0.01
-const HEDGE_BONUS_MAX := [0.30, 0.45]
+const HEDGE_TOUCH_PER := [0.05, 0.075]  # Hedge Maze / II: per Thornwall touching the Warden (dream_design.md 7fc0665c, Balancing)
+const HEDGE_TOUCH_MAX := [0.30, 0.45]
 const SPORE_CASCADE_TARGETS := [2, 3]
 const TENDED_FOREST_PER_CLEAR := 0.02
 const TENDED_FOREST_MAX := 0.40
@@ -136,7 +135,7 @@ const UNDERDOG := [[3, 0.40], [4, 0.60]]  # [Wardens, damage] (II)
 const HEAVY_AIR_BONUS := 0.40
 const SLOW_STATUSES: Array[StringName] = [&"drowsy"]  # Damp and fog no longer slow; frost is a freeze (5821d9f)
 const WANDERING_MIND_REROLLS := 2
-const WINDING_PATH_TILES := 5  # +1 Dew per this many path tiles at each rest
+const WINDING_PATH_TILES := 2  # +1 Dew per this many path tiles within a Warden's reach, at each rest (Balancing, 7fc0665c)
 const SHELTER_BONUS := 0.30
 const CLIFFSIDE_RANGE := 1.0
 const CLIFFSIDE_BONUS := 0.20  # …and +20% damage (dream_audit.md)
@@ -1648,6 +1647,18 @@ const BRIMMING_MULTIPLIER := 2
 func status_cap_multiplier() -> int:
 	return BRIMMING_MULTIPLIER if has_rule(&"brimming") else 1
 
+# Winding Path (dream_design.md 7fc0665c): route cells inside at least one attacking Warden's reach, each counted once.
+func covered_path_tiles() -> int:
+	var attackers := _towers().filter(func(t: Tower) -> bool: return t.tower_data.can_attack)
+	if attackers.is_empty():
+		return 0
+	var count := 0
+	for cell in _path_index:
+		var at: Vector2 = map_generator.MAP_GRID.calculate_map_position(cell)
+		if attackers.any(func(t: Tower) -> bool: return t.global_position.distance_to(at) <= t.get_range_pixels()):
+			count += 1
+	return count
+
 # Thornwalls on the map for Hedge Maze, a twig wall counting half.
 func thornwall_count() -> float:
 	var count := 0.0
@@ -1667,7 +1678,7 @@ func get_rest_bonus_add() -> int:
 	for card in _taken_cards():
 		add += card.rest_bonus_add * stacks[card.id]
 	if has_rule(&"winding_path"):
-		add += roundi(path_length / WINDING_PATH_TILES * rule_power(&"winding_path"))  # Winding Path: +1 Dew per 5 path tiles
+		add += roundi(covered_path_tiles() / WINDING_PATH_TILES * rule_power(&"winding_path"))  # Winding Path: +1 Dew per 2 covered path tiles
 	return add
 
 # Dew to clear `data` (Cleared Ground: −40% per stack, never below 1 Dew).

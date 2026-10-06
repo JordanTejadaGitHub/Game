@@ -61,6 +61,7 @@ func _run() -> void:
 	_test_twig_walls()
 	_test_new_commons()
 	_test_nurture_path()
+	_test_maze_cards()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -140,6 +141,27 @@ func _test_nurture_path() -> void:
 	dreams.discovery_profile = null
 	tower.free()
 	dreams.stacks.clear()
+
+# Maze cards made conditional (dream_design.md 7fc0665c, Balancing): Hedge Maze per Warden (+5% per touching Thornwall,
+# up to +30%), Winding Path counts only path tiles in an attacking Warden's reach.
+func _test_maze_cards() -> void:
+	_reset()
+	dreams.take(_card("hedge_maze"))
+	var warden := _plant("sporeling", Vector2(101, 101))
+	_plant("thornwall", Vector2(100, 101))
+	_plant("thornwall", Vector2(102, 102))
+	dreams.bump_board()
+	var hedge := _row(warden.tower_data, warden.cell, "hedge_maze", warden)
+	_check(hedge.active and is_equal_approx(hedge.damage, 0.10), "Hedge Maze: 2 Thornwalls touching -> +10%% (%.2f)" % hedge.damage)
+	_clear()
+	dreams.stacks.clear()
+	dreams.bump_board()
+	_check(dreams.covered_path_tiles() == 0, "Winding Path: no attackers, no path in reach")
+	var route: PackedVector2Array = Tower.route_cells(map_generator.get_path_from(map_generator.startPath))
+	var near := _plant("sporeling", route[int(route.size() / 2)] + Vector2(0, 0))
+	near.position = near.MAP_GRID.calculate_map_position(route[int(route.size() / 2)])
+	_check(dreams.covered_path_tiles() > 0 and dreams.covered_path_tiles() < route.size(), "…a Warden reaches some of the path (%d of %d)" % [dreams.covered_path_tiles(), route.size()])
+	_clear()
 func _test_pool() -> void:
 	for id in IDS:
 		var card := _card(id)
@@ -174,7 +196,7 @@ func _test_economy() -> void:
 	_check(is_equal_approx(director.get_effective_pot(12, true), director.get_dew_pot(12) * 1.2) and is_equal_approx(director.get_effective_pot(12), director.get_dew_pot(12) * 1.1),
 		"Call of the Wild: +10% pot only on a drift called early")
 	dreams.take(_card("winding_path"))
-	_check(dreams.get_rest_bonus_add() == 10 + dreams.path_length / 5, "Winding Path: +1 Dew per 5 path tiles (%d tiles, + Morning Dew's 10)" % dreams.path_length)
+	_check(dreams.get_rest_bonus_add() == 10 + dreams.covered_path_tiles() / DreamState.WINDING_PATH_TILES, "Winding Path: +1 Dew per 2 path tiles in a Warden's reach (%d in reach, + Morning Dew's 10)" % dreams.covered_path_tiles())
 	# Half cells: the route steps half a cell, path tiles stay full cells (not the point count)
 	var route_points: PackedVector2Array = main.get_node("MapGenerator").get_path_from(main.get_node("MapGenerator").startPath)
 	_check(dreams.path_length == main.get_node("MapGenerator").route_length(route_points) and dreams.path_length < route_points.size(),
@@ -863,7 +885,7 @@ func _test_live_lines() -> void:
 	_reset()
 	var fx := dreams.effects()
 	var line: String = fx.preview_line(_card("winding_path"))
-	_check(line == "Now: %d path tiles · +%d Dew per rest" % [dreams.path_length, dreams.path_length / DreamState.WINDING_PATH_TILES], "Winding Path: %s" % line)
+	_check(line == "Now: %s in reach · +%d Dew per rest" % [("%d path tiles" % dreams.covered_path_tiles()) if dreams.covered_path_tiles() != 1 else "1 path tile", dreams.covered_path_tiles() / DreamState.WINDING_PATH_TILES], "Winding Path: %s" % line)
 	var dew := run_state.dew
 	run_state.dew = 275
 	line = fx.preview_line(_card("deep_well"))
@@ -871,7 +893,7 @@ func _test_live_lines() -> void:
 	run_state.dew = dew
 	_plant("thornwall", Vector2(100, 100))
 	line = fx.preview_line(_card("hedge_maze"))
-	_check(line == "Now: 1 Thornwall · +0% (3 for the next +1%)", "Hedge Maze: \"+0%%\", singular (%s)" % line)
+	_check(line == "Now: +5% for each Thornwall touching a Warden (up to +30%)", "Hedge Maze: the per-Warden rule (%s)" % line)
 	line = fx.preview_line(_card("canopy"))
 	_check(line.begins_with("Now: 0 attacking Wardens planted · +0% (20 for the next +12%)"), "Canopy shows its next step (%s)" % line)
 	var director: DriftDirector = main.get_node("%DriftDirector")

@@ -314,11 +314,17 @@ func _cozy_corners(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dicti
 		"reason": "" if on else ("no bend in the path in the 8 cells around it" if reach == 1 else "no bend in the path within %d cells, diagonals included" % reach)}
 
 func _hedge_maze(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
+	# Per Warden (dream_design.md 7fc0665c): +5% for each Thornwall among the 8 cells around it (a twig wall half), capped
+	if not spot.data.can_attack:
+		return {}
 	var level := ds.rule_level(&"hedge_maze")
-	var walls := board.walls_with(spot)
-	var bonus := minf(DreamState.HEDGE_BONUS_PER * (floori(walls) / DreamState.HEDGE_PER_WALLS[level]), DreamState.HEDGE_BONUS_MAX[level])
-	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%s Thornwalls" % str(snappedf(walls, 0.5)),
-		"reason": "" if bonus > 0.0 else "needs %d Thornwalls" % DreamState.HEDGE_PER_WALLS[level]}
+	var walls := 0.0
+	for o in board.touching(spot):
+		if _data(o).get_id() == "thornwall":
+			walls += DreamState.wall_weight(o.get("node"))
+	var bonus := minf(DreamState.HEDGE_TOUCH_PER[level] * walls, DreamState.HEDGE_TOUCH_MAX[level])
+	return {"positional": true, "radius": 1.0, "active": bonus > 0.0, "damage": bonus,
+		"note": "%s Thornwalls touching" % str(snappedf(walls, 0.5)), "reason": "" if bonus > 0.0 else "no Thornwall touching it"}
 
 func _tended_forest(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var clears := ds.run_state.tended_cells.size()
@@ -759,8 +765,8 @@ func _state_line(rule: StringName, power: float) -> String:
 		&"sunlit_rest":
 			return ds.sunlit_line()
 		&"winding_path":
-			var tiles: int = ds.path_length
-			return "Now: %s · +%d Dew per rest" % [count_text(tiles, "path tile"),
+			var tiles: int = ds.covered_path_tiles()  # Only the path within a Warden's reach (dream_design.md 7fc0665c)
+			return "Now: %s in reach · +%d Dew per rest" % [count_text(tiles, "path tile"),
 				roundi(tiles / DreamState.WINDING_PATH_TILES * power)]
 		&"deep_well":
 			return "Now: %d Dew banked · +%d Dew at the next rest" % [ds.run_state.dew, ds.deep_well_interest(power)]
@@ -785,12 +791,8 @@ func _state_line(rule: StringName, power: float) -> String:
 				roundi(minf(DreamState.BITTER_PER * walls, DreamState.BITTER_MAX) * power * 100)]
 		&"hedge_maze":
 			var level := ds.rule_level(&"hedge_maze") if ds.has_rule(&"hedge_maze") else 0
-			var per: int = DreamState.HEDGE_PER_WALLS[level]
-			var walls := floori(ds.thornwall_count())  # A twig wall counts half (Twig Walls)
-			var bonus := minf(DreamState.HEDGE_BONUS_PER * (walls / per), DreamState.HEDGE_BONUS_MAX[level]) * power
-			var next := (walls / per + 1) * per
-			return "Now: %s · %+d%% (%d for the next %+d%%)" % [count_text(walls, "Thornwall"), roundi(bonus * 100), next,
-				roundi(DreamState.HEDGE_BONUS_PER * power * 100)]
+			return "Now: +%d%% for each Thornwall touching a Warden (up to +%d%%)" % [roundi(DreamState.HEDGE_TOUCH_PER[level] * power * 100),
+				roundi(DreamState.HEDGE_TOUCH_MAX[level] * power * 100)]
 		&"crowded_path", &"lone_hunter", &"last_stand":
 			return _drift_line(rule, power)
 		&"quick_step":  # About calling drifts early: only during a block (user: it showed the attacker count)
