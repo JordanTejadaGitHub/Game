@@ -25,6 +25,7 @@ var _drawn := false  # Words were on screen last frame
 
 func _ready() -> void:
 	z_index = 21  # Over the damage numbers
+	add_to_group(&"combat_callouts")  # SoundHooks finds it for card_called
 	_connect.call_deferred()  # DamageLog readies later in the scene
 
 func _connect() -> void:
@@ -35,6 +36,7 @@ func _connect() -> void:
 # Trigger cards (screens_ui.md "Dream" ecbea61a): a taken card whose own damage just landed (its rule's tag, as
 # DreamState credits it) pops its name over the nightmare, no numbers, at most every CARD_COOLDOWN per card.
 const CARD_COOLDOWN := 6.0
+signal card_called(card_id: String, at: Vector2)  # A trigger card's name popped (for Sound: its trigger sound)
 var _card_tags := {}  # Damage tag -> card id (DreamState._credit_rule_map), refreshed once a second
 var _card_tags_age := INF
 
@@ -56,6 +58,7 @@ func _card_callout(event: DamageLog.Event) -> void:
 	var name: String = dreams.get_display_name(id) if dreams != null and dreams.has_method("get_display_name") else id.capitalize()
 	_cooldowns[key] = CARD_COOLDOWN * (2.0 if reduced else 1.0)
 	_alive.append([0.0, name, UiStyle.GOLD, event.enemy, event.enemy.global_position])
+	card_called.emit(id, event.enemy.global_position)
 
 func _on_damage(event: DamageLog.Event) -> void:
 	_card_callout(event)
