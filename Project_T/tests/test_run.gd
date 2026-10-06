@@ -195,7 +195,7 @@ func _test_blocks_and_rests() -> void:
 
 	await _play_until(main, func() -> bool: return director.awaiting_family_pick)
 	_check(picks == [&"first"] and rests.is_empty(), "after drift 1: family pick, no rest")
-	_check(family.visible and family.offer.size() == 3, "3 families offered")
+	_check(family.visible and family.offer.size() == family.pick_count(), "2 families offered (3 with Wider Choice)")
 	var picked: TowerData = family.offer[0]
 	family.choose(picked)
 	_check(dreams.is_unlocked(picked.get_id()) and not director.awaiting_family_pick, "picking unlocks the family")
