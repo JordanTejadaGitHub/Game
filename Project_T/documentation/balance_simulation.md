@@ -908,7 +908,10 @@ bf4fe891 (30):** default **40%** (63 before), spender 60%, skip **26%**; default
 the bot's policy scoring the removed "defining" tag; checking before any curve change (skip's 26 alone would ask for
 ×1.25, but default is under target). **Not the scores:** the policy never weighted "defining", and the card-value scores
 are identical on both builds; tag-only default on bf4fe891 is 36% (card-value 40%; on 40bdebda +27). The drop is in
-what act 1 offers: the strong act 1 cards are offered less. Reading the offer logs (best score per offer).
+what act 1 offers: the strong act 1 cards are offered less. **Offer logs:** best card per act 1 offer −7%; the openers
+(Old Growth, Tender Care, First Light, Thinning) −20–30% per offer; ~half a slot per offer goes to new cards dead on a
+fresh board (Brimming, Shared Training, Close Kin, Many Talents, Specialist). Proposed to Roguelite Mechanic: Needs
+gates (Kinship pair; a rank III Warden; Brimming act 2), then re-check act 1.
 the all-Acorn check: in a real run that boss drains instead. **Cause:** ×1.3 speed per lap with no cap (it crossed
 the route between two shots). Capped at 3 laps (×2.2) in 8603af1b; real runs never reach lap 4.
 
