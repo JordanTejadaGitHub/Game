@@ -119,7 +119,7 @@ func _ready() -> void:
 	done.focus_mode = Control.FOCUS_NONE
 	done.custom_minimum_size = Vector2(160, 48)
 	done.pressed.connect(close)
-	UiStyle.quiet(done)  # Light pass: Done and Peek as plain text; Unlock is the framed primary
+	# A framed secondary (user: "why are all the buttons different?"); Peek stays quiet (a utility); Unlock is the primary
 	footer.add_child(done)
 	_dev_free.text = "Dev: unlock free"
 	_dev_free.focus_mode = Control.FOCUS_NONE

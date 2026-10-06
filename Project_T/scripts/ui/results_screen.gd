@@ -203,9 +203,9 @@ func _build(won: bool) -> void:
 	new_run.pressed.connect(func() -> void: get_tree().reload_current_scene())
 	var quiet := HBoxContainer.new()
 	quiet.alignment = BoxContainer.ALIGNMENT_CENTER
-	quiet.add_theme_constant_override("separation", 24)
+	quiet.add_theme_constant_override("separation", 12)
 	box.add_child(quiet)
-	var copy := _link(quiet, "Copy run report")  # For the design chat (RunHistory.report_text)
+	var copy := _small(quiet, "Copy run report")  # For the design chat (RunHistory.report_text)
 	copy.name = "CopyReport"
 	copy.tooltip_text = "Copies this run's numbers as text."
 	copy.pressed.connect(func() -> void:
@@ -216,7 +216,7 @@ func _build(won: bool) -> void:
 			get_tree().create_timer(1.5, true).timeout.connect(func() -> void:
 				if is_instance_valid(copy):
 					copy.text = "Copy run report"))
-	var to_title := _link(quiet, "Title")
+	var to_title := _small(quiet, "Title")
 	to_title.name = "ToTitle"
 	to_title.pressed.connect(func() -> void: get_tree().change_scene_to_file(TITLE_SCENE))
 
@@ -357,6 +357,14 @@ func _label(parent: Control, text: String, font_size: int, color: Color, wrap: b
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	parent.add_child(label)
 	return label
+
+# A small framed secondary (Copy run report, Title; user: "why are all the buttons different?": real choices are
+# framed, quiet text only for in-panel utilities like Details).
+func _small(parent: Control, text: String) -> Button:
+	var button := _button(parent, text)
+	button.custom_minimum_size = Vector2(130, 40)
+	button.add_theme_font_size_override("font_size", 14)
+	return button
 
 # A quiet link (Details, Copy run report, Title): one shared look, the light pass's quiet style with an underline on
 # hover, so they read as links and not stray labels.

@@ -137,6 +137,7 @@ func _build_quit_box(center: Control, row: Control) -> void:
 	_quit_box.visible = false
 	_quit_box.custom_minimum_size = Vector2(420, 0)
 	center.add_child(_quit_box)
+	_solid(_quit_box)  # Solid behind the text, like Settings
 	_quit_box.set_meta("row", row)
 	var pages := VBoxContainer.new()
 	_quit_box.add_child(pages)
@@ -152,17 +153,20 @@ func _build_quit_box(center: Control, row: Control) -> void:
 	_quit_body.custom_minimum_size.x = 380
 	_quit_body.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	_quit_page.add_child(_quit_body)
+	_gap(_quit_page)  # The text never touches the primary's thread
 	var to_title := _dialog_button(_quit_page, "Quit to title", _quit_to.bind(false))
 	to_title.name = "QuitToTitle"
 	UiStyle.primary(to_title)
 	_dialog_button(_quit_page, "Quit to desktop", _quit_to.bind(true)).name = "QuitToDesktop"
 	var cancel := _dialog_button(_quit_page, "Cancel", cancel_quit)
 	cancel.name = "Cancel"
-	UiStyle.quiet(cancel)
-	_key_chip_on(cancel, "Esc")
+	_key_chip_on(cancel, "Esc")  # Inside its frame, like every key chip
+	_quit_page.add_child(HSeparator.new())  # The dangerous one apart
 	var abandon_link := _dialog_button(_quit_page, "Abandon this run…", _show_abandon)
 	abandon_link.name = "AbandonLink"
-	UiStyle.quiet(abandon_link)
+	abandon_link.custom_minimum_size.y = 40  # Smaller, framed in POOR
+	abandon_link.add_theme_font_size_override("font_size", 14)
+	_danger(abandon_link)
 	var sure := Label.new()
 	sure.text = "End this run?"
 	UiStyle.display(sure, 28)
@@ -173,13 +177,38 @@ func _build_quit_box(center: Control, row: Control) -> void:
 	seeds.custom_minimum_size.x = 380
 	seeds.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	_abandon_page.add_child(seeds)
-	var abandon := _dialog_button(_abandon_page, "Abandon", _abandon)
-	abandon.name = "Abandon"
-	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
-		abandon.add_theme_color_override(state, UiStyle.POOR)
-	var keep := _dialog_button(_abandon_page, "Keep playing", cancel_quit)
+	_gap(_abandon_page)
+	var keep := _dialog_button(_abandon_page, "Keep playing", cancel_quit)  # The default: the primary
 	keep.name = "KeepPlaying"
 	UiStyle.primary(keep)
+	var abandon := _dialog_button(_abandon_page, "Abandon", _abandon)
+	abandon.name = "Abandon"
+	_danger(abandon)
+
+# Dialogs (user: "why are all the buttons different?"): every choice a framed button of one size and font, the default
+# the primary, the rest the plain frame; the dangerous one framed in POOR. A 12 px gap under the text, a solid fill.
+func _gap(page: Control, height: float = 12.0) -> void:
+	var gap := Control.new()
+	gap.custom_minimum_size.y = height
+	page.add_child(gap)
+
+static func _danger(button: Button) -> void:
+	for state in ["normal", "hover", "pressed"]:
+		var box := button.get_theme_stylebox(state)
+		if box is MoonStyleBox:
+			box = (box as MoonStyleBox).duplicate()
+			(box as MoonStyleBox).frame_color = Color(UiStyle.POOR, 0.85 if state == "normal" else 1.0)
+			button.add_theme_stylebox_override(state, box)
+	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
+		button.add_theme_color_override(state, UiStyle.POOR)
+
+static func _solid(panel: PanelContainer) -> void:
+	var fill := panel.get_theme_stylebox("panel")
+	if fill is MoonStyleBox:
+		var solid := (fill as MoonStyleBox).duplicate() as MoonStyleBox
+		solid.center_alpha = UiStyle.TIP_ALPHA
+		solid.edge_alpha = UiStyle.TIP_ALPHA
+		panel.add_theme_stylebox_override("panel", solid)
 
 func _dialog_button(page: Control, text: String, action: Callable) -> Button:
 	var button := Button.new()
