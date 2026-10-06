@@ -247,6 +247,10 @@ func _render(main: Node, layers: Array, file: String) -> void:
 		var sprite: Image = tower.tower_data.texture.get_image()
 		sprite.convert(Image.FORMAT_RGBA8)
 		image.blend_rect(sprite, Rect2i(Vector2i.ZERO, tile), Vector2i(tower.position) - tile / 2 + offset)
+	if OS.get_cmdline_user_args().has("--route-dots"):  # Each route point (a half's centre, where walkers aim) as a red dot
+		for point in map.path_layer.current_path:
+			var dot := Vector2i(map.MAP_GRID.calculate_map_position(point)) + offset
+			image.fill_rect(Rect2i(dot - Vector2i(2, 2), Vector2i(5, 5)).intersection(Rect2i(Vector2i.ZERO, image.get_size())), Palette.EMBER)
 	for enemy in main.get_node("%EnemyContainer").get_enemies():  # `-- --nightmares`: their first frame, as drawn
 		var body: AnimatedSprite2D = enemy.sprite
 		var art: Image = body.sprite_frames.get_frame_texture(body.animation, 0).get_image()

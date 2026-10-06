@@ -53,7 +53,7 @@ func _run() -> void:
 	run_state.dew = 10000
 	var cost := clearer.get_next_clear_cost_at(log[1])
 	_check(cost == TREE.clear_cost * log.size(), "cost = %d per cell × %d = %d" % [TREE.clear_cost, log.size(), cost])
-	var preview: PackedVector2Array = map.get_path_if_cleared(log[1])
+	var preview: PackedVector2Array = map.get_path_if_cleared(log[1], true)  # The hover preview: as it will be drawn
 	var tended := run_state.obstacles_tended
 	var clears := run_state.tended_cells.size()
 	var piece_at := {}

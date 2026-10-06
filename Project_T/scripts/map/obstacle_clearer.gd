@@ -223,7 +223,7 @@ func _refresh_hover() -> void:
 	RouteLine.clear(_path_preview)
 	if _hover_obstacle != null and tool_active:
 		# Only preview when clearing actually changes the route creatures take (route mist, screens_ui.md).
-		var new_path: PackedVector2Array = map_generator.get_path_if_cleared(_hover_cell)
+		var new_path: PackedVector2Array = map_generator.get_path_if_cleared(_hover_cell, true)
 		var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
 		if new_path != route:
 			RouteLine.draw_route(_path_preview, new_path, Color(HIGHLIGHT_COLOR, 0.6), 6.0, route)

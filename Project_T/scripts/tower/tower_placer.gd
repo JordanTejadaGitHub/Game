@@ -930,8 +930,8 @@ func _refresh_hover(defer := false) -> void:
 		return
 	_hover_path = PackedVector2Array()
 	if _ghost_buildable():
-		_hover_path = map_generator.get_path_if_blocked_halves(_ghost_halves()) if half_placement() \
-			else map_generator.get_path_if_blocked_cells(_footprint(_hover_cell))
+		_hover_path = map_generator.get_path_if_blocked_halves(_ghost_halves(), true) if half_placement() \
+			else map_generator.get_path_if_blocked_cells(_footprint(_hover_cell), true)  # As it will be drawn
 	# Route mist (screens_ui.md): the new route, the old one faint where it differs, a glint when it gets longer.
 	RouteLine.draw_route(_path_preview, _hover_path, PREVIEW_COLOR, 6.0, map_generator.get_path_from(map_generator.startPath))
 	_hover_valid = _hover_cell_valid()
@@ -1742,7 +1742,7 @@ func _plan_stroke_half() -> void:
 		_stroke_plan[o] = why
 	_stroke_cost = run_state.dew - dew
 	var route: PackedVector2Array = map_generator.get_path_from(map_generator.startPath)
-	var new_route: PackedVector2Array = map_generator.get_path_if_blocked_halves(blocked) if not blocked.is_empty() else route
+	var new_route: PackedVector2Array = map_generator.get_path_if_blocked_halves(blocked, true) if not blocked.is_empty() else route
 	_stroke_growth = map_generator.route_length(new_route) - map_generator.route_length(route)
 	RouteLine.draw_route(_path_preview, new_route, PREVIEW_COLOR, 6.0, route)
 	queue_redraw()

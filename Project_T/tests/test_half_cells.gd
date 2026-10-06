@@ -50,7 +50,7 @@ func _run() -> void:
 			if not map.can_block_halves(halves):
 				continue
 			var before: PackedVector2Array = map.get_path_from(map.startPath)
-			var preview: PackedVector2Array = map.get_path_if_blocked_halves(halves)
+			var preview: PackedVector2Array = map.get_path_if_blocked_halves(halves, true)  # As it will be drawn
 			map.block_halves(halves)
 			var after: PackedVector2Array = map.get_path_from(map.startPath)
 			_check(after == preview, "the preview is the route after blocking")
@@ -147,6 +147,25 @@ func _corridor_rule() -> void:
 	_check(finder.calculate_point_path(start, end).is_empty(), "a full wall: no way through")
 	_check(is_equal_approx(Tower.MAP_GRID.calculate_map_position(FindPath.node_to_point(Vector2i(7, 0))).x, 7 * 32 + 16),
 		"a route point's pixel is its half's centre")
+	# The drawn route: as short as A*'s, but no lane-to-lane jogs (corner to corner of an open grid: one turn)
+	var open := FindPath.new(grid, cells)
+	var from := FindPath.node_to_point(Vector2i(0, 0))
+	var to := FindPath.node_to_point(Vector2i(11, 7))
+	var straight := open.straightest_point_path(from, to)
+	_check(straight.size() == open.calculate_point_path(from, to).size(), "the straightest route is a shortest route")
+	_check(_turns(straight) == 1, "open grid corner to corner: one turn (%d)" % _turns(straight))
+	for y in 6:  # A wall with a gap at the bottom: the shortest way still turns only where it must
+		open.set_half_blocked(Vector2(6, y), true)
+	straight = open.straightest_point_path(from, to)
+	_check(straight.size() == open.calculate_point_path(from, to).size() and _turns(straight) <= 2,
+		"round a wall: shortest, 2 turns at most (%d)" % _turns(straight))
+
+func _turns(route: PackedVector2Array) -> int:
+	var n := 0
+	for i in range(2, route.size()):
+		if route[i] - route[i - 1] != route[i - 1] - route[i - 2]:
+			n += 1
+	return n
 
 # The dual grid's corner masks (TL 1, TR 2, BR 4, BL 8) on a few sets of path halves (2 wide here).
 func _dual_masks() -> void:

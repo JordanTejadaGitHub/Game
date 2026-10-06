@@ -388,8 +388,8 @@ func is_buildable(cell: Vector2) -> bool:
 
 # Returns the start-to-end path that would exist if `cell` were blocked, without changing anything.
 # Empty means blocking `cell` would leave enemies with no way through.
-func get_path_if_blocked(cell: Vector2) -> PackedVector2Array:
-	return get_path_if_blocked_cells([cell])
+func get_path_if_blocked(cell: Vector2, drawn := false) -> PackedVector2Array:
+	return get_path_if_blocked_cells([cell], drawn)
 
 # True if blocking `cell` keeps the end reachable from the start and from every cell in `also_from`
 # (e.g. cells enemies are currently walking toward).
@@ -415,13 +415,13 @@ func block_cell(cell: Vector2) -> void:
 # --- Several cells at once (the 2×2 Heartwood Sapling) ---
 
 # The start-to-end path if all of `cells` were blocked (empty = no way through). Changes nothing.
-func get_path_if_blocked_cells(cells: Array) -> PackedVector2Array:
+func get_path_if_blocked_cells(cells: Array, drawn := false) -> PackedVector2Array:
 	# Only the halves free now are closed and opened again: a whole cell may already hold a Warden's half, and
 	# opening all 4 afterwards used to punch holes in walls.
 	var halves: Array = []
 	for c in cells:
 		halves.append_array(FindPath.halves_of_cell(c))
-	return get_path_if_blocked_halves(halves)
+	return get_path_if_blocked_halves(halves, drawn)
 
 # True if every cell is buildable and blocking them all keeps the end reachable from the start and
 # from every cell in `also_from`.
@@ -525,22 +525,23 @@ func can_block_halves(halves: Array, also_from: PackedVector2Array = PackedVecto
 func block_refusal() -> StringName:
 	return _refusal
 
-# The start's route if `halves` were blocked (empty = no way through). Changes nothing.
-func get_path_if_blocked_halves(halves: Array) -> PackedVector2Array:
+# The start's route if `halves` were blocked (empty = no way through). Changes nothing. `drawn`: the route
+# draw() would draw then (fewest turns, ~2 ms) for a preview the player sees; else plain A* (same length).
+func get_path_if_blocked_halves(halves: Array, drawn := false) -> PackedVector2Array:
 	var changed: Array = halves.filter(func(h: Vector2) -> bool: return not path_layer.is_half_blocked(h))
 	for h in changed:
 		path_layer.set_half_blocked(h, true)
-	var path := path_layer.find_path_from(startPath)
+	var path := path_layer.find_drawn_route() if drawn else path_layer.find_path_from(startPath)
 	for h in changed:
 		path_layer.set_half_blocked(h, false)
 	return path
 
 # The start's route if `halves` were opened (a Warden there gone), without changing anything.
-func get_path_if_opened_halves(halves: Array) -> PackedVector2Array:
+func get_path_if_opened_halves(halves: Array, drawn := false) -> PackedVector2Array:
 	var changed: Array = halves.filter(func(h: Vector2) -> bool: return path_layer.is_half_blocked(h))
 	for h in changed:
 		path_layer.set_half_blocked(h, false)
-	var path := path_layer.find_path_from(startPath)
+	var path := path_layer.find_drawn_route() if drawn else path_layer.find_path_from(startPath)
 	for h in changed:
 		path_layer.set_half_blocked(h, true)
 	return path
@@ -591,7 +592,7 @@ func get_obstacle(cell: Vector2) -> ObstacleData:
 
 # The start-to-end path that would exist if the obstacle on `cell` were cleared, without changing
 # anything. Clearing only ever opens routes, so this is never empty when a path exists now.
-func get_path_if_cleared(cell: Vector2) -> PackedVector2Array:
+func get_path_if_cleared(cell: Vector2, drawn := false) -> PackedVector2Array:
 	# Only the halves blocked now are opened and closed again: a whole cell may hold free halves (a half-offset
 	# Warden straddles cells), and re-blocking all 4 used to wall off free ground (the run-breaking "sold a
 	# Warden and the maze vanished": Second Path measured its Thornwalls this way).
@@ -600,7 +601,7 @@ func get_path_if_cleared(cell: Vector2) -> PackedVector2Array:
 		for h in FindPath.halves_of_cell(at):
 			if path_layer.is_half_blocked(h):
 				halves.append(h)
-	return get_path_if_opened_halves(halves)
+	return get_path_if_opened_halves(halves, drawn)
 
 # Removes the obstacle on `cell` (no-op if there isn't one), redraws the path and notifies enemies.
 func clear_obstacle(cell: Vector2) -> bool:

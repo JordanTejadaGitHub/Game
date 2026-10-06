@@ -74,7 +74,7 @@ func _run() -> void:
 		var events := []
 		map.path_changed.connect(func() -> void: events.append("path_changed"))
 		map.obstacle_cleared.connect(func(cell: Vector2, _data: ObstacleData) -> void: events.append(cell))
-		var preview: PackedVector2Array = map.get_path_if_cleared(shortcut)
+		var preview: PackedVector2Array = map.get_path_if_cleared(shortcut, true)  # The hover preview: as it will be drawn
 		_check(clearer.try_clear(shortcut), "clearing an obstacle succeeds")
 		_check(not map.obstacles.has(shortcut), "cleared obstacle is gone")
 		_check(events == [shortcut, "path_changed"], "clearing emits obstacle_cleared then path_changed")

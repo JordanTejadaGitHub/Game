@@ -169,7 +169,7 @@ func route_from_start(spot: Vector2) -> PackedVector2Array:
 		if map.path_layer.is_half_blocked(h):
 			opened.append(h)
 			map.path_layer.set_half_blocked(h, false)
-	var route: PackedVector2Array = map.path_layer.find_path_from(spot)
+	var route: PackedVector2Array = map.path_layer.get_finder().straightest_point_path(spot, map.endPath)  # As draw() will
 	for h in opened:
 		map.path_layer.set_half_blocked(h, true)
 	return route

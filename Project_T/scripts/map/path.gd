@@ -42,7 +42,7 @@ func draw():
 	clear()
 	current_path.clear()
 	current_path_curve.clear_points()
-	current_path = _pathGenerator.calculate_point_path(cell_start_path, cell_end_path)
+	current_path = _pathGenerator.straightest_point_path(cell_start_path, cell_end_path)  # No lane-to-lane jogs
 	# Later re-routes (towers, cleared obstacles, enemies mid-walk) stick to this route when they can.
 	_pathGenerator.set_preferred_cells(current_path)
 	_route_version = _pathGenerator.version
@@ -108,6 +108,12 @@ func set_cell_blocked(cell: Vector2, blocked: bool) -> void:
 # Path from `cell` to the end of the map, in cell coordinates. Empty if the end can't be reached.
 func find_path_from(cell: Vector2) -> PackedVector2Array:
 	return _pathGenerator.calculate_point_path(cell, cell_end_path)
+
+# The route draw() would draw from the start now (as long as A*'s, fewer turns; ~2 ms): for route previews,
+# so a preview matches the route that gets drawn. Checks that only need "a way through" or a length use
+# find_path_from().
+func find_drawn_route() -> PackedVector2Array:
+	return _pathGenerator.straightest_point_path(cell_start_path, cell_end_path)
 
 func get_curr_path() -> PackedVector2Array:
 	return current_path

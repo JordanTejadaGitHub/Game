@@ -129,6 +129,101 @@ func calculate_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
 		points[i] = node_to_point(nodes[i])
 	return points
 
+# The route calculate_point_path() would take, but with the fewest turns among the shortest routes
+# (ties: the most of the preferred route kept). The drawn route uses it: corridors are two or more halves
+# wide, and a plain A* route jogs between their lanes one half at a time, which draws as a broad smeared
+# band with the walkers on its edge.
+func straightest_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
+	var a := point_to_node(start)
+	var b := point_to_node(end)
+	if is_whole_cell(end):
+		b = _nearest_half(end, Vector2(a) if not is_whole_cell(start) else start * HALF + Vector2.ONE * 0.5)
+	if is_whole_cell(start):
+		a = _nearest_half(start, Vector2(b))
+	if not _walkable_node(a) or not _walkable_node(b):
+		return PackedVector2Array()
+	if a == b:
+		return PackedVector2Array([node_to_point(a)])
+	var count := _size.x * _size.y
+	var ia := a.y * _size.x + a.x
+	var ib := b.y * _size.x + b.x
+	# Breadth-first distances from `a`, in visiting order (each layer complete before the next)
+	var dist := PackedInt32Array()
+	dist.resize(count)
+	dist.fill(-1)
+	dist[ia] = 0
+	var order := PackedInt32Array([ia])
+	var steps: Array[Vector2i] = [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT]
+	var head := 0
+	while head < order.size():
+		var i := order[head]
+		head += 1
+		if dist[ib] != -1 and dist[i] >= dist[ib]:
+			break
+		var node := Vector2i(i % _size.x, i / _size.x)
+		for step in steps:
+			var to := node + step
+			if not _walkable_node(to):
+				continue
+			var j := to.y * _size.x + to.x
+			if dist[j] == -1:
+				dist[j] = dist[i] + 1
+				order.append(j)
+	if dist[ib] == -1:
+		return PackedVector2Array()
+	var preferred := PackedByteArray()
+	preferred.resize(count)
+	for n in _preferred_nodes:
+		if _astar.is_in_boundsv(n):
+			preferred[n.y * _size.x + n.x] = 1
+	# cost[node * 4 + heading] = turns * TURN + nodes off the preferred route; from[...] = the key before
+	const TURN := 1 << 16
+	var cost := PackedInt32Array()
+	cost.resize(count * 4)
+	cost.fill(-1)
+	var from := PackedInt32Array()
+	from.resize(count * 4)
+	from.fill(-1)
+	for h in 4:
+		cost[ia * 4 + h] = 0
+	for k in range(1, order.size()):
+		var i := order[k]
+		if dist[i] > dist[ib]:
+			break
+		var node := Vector2i(i % _size.x, i / _size.x)
+		var off := 0 if preferred[i] == 1 else 1
+		for h in 4:
+			var back := node - steps[h]
+			if back.x < 0 or back.y < 0 or back.x >= _size.x or back.y >= _size.y:
+				continue
+			var p := back.y * _size.x + back.x
+			if dist[p] != dist[i] - 1:
+				continue
+			for before in 4:
+				var c := cost[p * 4 + before]
+				if c < 0:
+					continue
+				c += off + (TURN if before != h and p != ia else 0)
+				if cost[i * 4 + h] < 0 or c < cost[i * 4 + h]:
+					cost[i * 4 + h] = c
+					from[i * 4 + h] = p * 4 + before
+	var key := -1
+	for h in 4:
+		var c := cost[ib * 4 + h]
+		if c >= 0 and (key == -1 or c < cost[key]):
+			key = ib * 4 + h
+	var nodes: Array[Vector2i] = []
+	while key != -1:
+		var i := key / 4
+		nodes.append(Vector2i(i % _size.x, i / _size.x))
+		key = -1 if i == ia else from[key]
+	nodes.reverse()
+	var points := PackedVector2Array()
+	points.resize(nodes.size())
+	for i in nodes.size():
+		points[i] = node_to_point(nodes[i])
+	return points
+
 # A nightmare fits at `point` (a route point; a whole cell: its top-left half).
 func is_walkable(point: Vector2) -> bool:
 	return _walkable_node(point_to_node(point))
