@@ -339,6 +339,14 @@ func _run() -> void:
 			return
 		var raw: String = s.get_slice("=", 1)
 		var current = node.get(prop)
+		if current is Array:  # --set=%Node.list=1.1|1.25 (e.g. DriftDirector.demo_boss_health_scale): same type as the elements there
+			var items: Array = Array(raw.split("|")).map(func(v: String): return float(v))
+			var typed = current.duplicate()
+			typed.clear()
+			for v in items:
+				typed.append(int(v) if not current.is_empty() and current[0] is int else v)
+			node.set(prop, typed)
+			continue
 		node.set(prop, (raw == "true" or raw == "1") if current is bool else (int(raw) if current is int else float(raw)))
 	dreams.dreamlight_earned.connect(func(amount: int, source: StringName) -> void: dreamlight_by_source[source] = dreamlight_by_source.get(source, 0) + amount)
 	run_state = main.get_node("%RunState")
