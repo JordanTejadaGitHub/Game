@@ -1740,6 +1740,53 @@ The spike is about **double a normal Rare**. The price is felt every drift or re
 - **Meta Game Discussion:** Flurry leaves node `quickening`; Broad Splash and Acorn Cache are cut
   (check which nodes list them).
 
+## Shape cards: one card, a different run per family (2026-10-06)
+
+User (via Meta Game Discussion): *"with a family, you have a new playstyle because you got a certain
+mix of cards"*, like Risk of Rain 2's Bustling Fungus (weak for most, amazing for Engineer). Also:
+*"don't want users to get the most optimal build often."*
+
+**The pattern:** a generic card whose **condition favours an attack shape**, never naming a family.
+Each family's kit then meets the condition or doesn't, so the same card is dead in one run and the
+centre of another.
+
+**We already have most of these.** Meta Game Discussion proposed six; three of them duplicate
+existing cards, so those cards fill the role instead of new ones:
+
+| Shape | Proposed | Existing card (kept) |
+|---|---|---|
+| slow, heavy hitters | Patient Bloom | **Watchful Rest** (start pool), **Stirring Roots** (Grove), **Patient Aim** (Grove) |
+| many fast hits | Echoing Hit | **Flurry** (every 5th attack fires twice; more attacks = more procs), **Momentum** |
+| lone Wardens | Wallflower | **Solitude**, **Lone Hunter** |
+
+**New, cards 262–264** (start pool, Uncommon, tag `defining`, no needs; numbers to Balancing):
+
+| # | Card | Effect | Shines with |
+|---|---|---|---|
+| 262 | **Small Hands** | Anything a Warden sends out (sprites, birds, seeds, stones it lobs) deals 40% more and lasts 1 s longer | Brood Cap, Nestling birds, Samara, Cairn |
+| 263 | **Sap Rising** | Wardens that don't attack (auras, catchers, Dreamcatchers) pulse the 8 cells around them every 2 s for damage that grows with the bonus they give | Acorn, Grove Heart, Dewcatcher, Dreamcatcher |
+| 264 | **Lingering Ground** | Ground effects (clouds, trails, rings, rubble, pools, lit tiles) last twice as long | Sporeling, Fairy Ring, Dewdrop pools, Cairn rubble, Rootlight |
+
+- **Sap Rising vs The Quiet Ones:** The Quiet Ones (Legendary) makes non-attacking Wardens 50%
+  stronger at their job. Sap Rising makes them deal damage. Thornwalls are left out (Thorny Walls
+  covers them).
+- **Small Hands:** Tower Code first checks whether sent-out things already carry Dream bonuses. If
+  they don't, the card's first effect is that they do; the 40% sits on top.
+- **Opposite pairs**, so no setup is best for every family mix:
+  - Watchful Rest / Stirring Roots vs Flurry / Momentum
+  - Solitude vs Drumbeat and the Kinship cards
+  - Lingering Ground (slow, wide) vs Overlap (fast stacking)
+
+**Rules, so the best build stays rare:**
+- **No new offer cap.** Offers already have 1 family / 1 plain stat / ≥1 defining from act 2; a
+  fourth rule would make offers predictable. The three new cards are `defining`, so they come
+  through that slot.
+- **Start pool, not the Grove:** discovery in a run is the point. The 60% run-pool sample already
+  leaves any one of them out of ~40% of runs. With the right family, the right branch (2 of 5
+  offered) and the card in this run's sample, a payoff is three random gates: a lucky run, not a
+  plan.
+- Existing limits stay: no pins, 3 rerolls, the paid call-back.
+
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 
 User (typed in Environment Discussion): *"make a card that makes walls 1x1 cell instead of the
