@@ -877,7 +877,10 @@ choice. First copy unchanged (15), so the opening holds. Sent to Tower Code.
 Environment Code's open bowl: obstacles ~60 → 30–41, buildable ~275 → ~298 cells, but the **opening route ~46 →
 ~25** (20–36); the bot's fresh seed 3 died at drift 2. **Verdict: open bowl yes, opening route kept at ~38–46**
 (the band's minimum ~38, made with ridges and the guaranteed bend): drifts 1–10 and the 60 Dew opening are
-tuned on it, and the user's goal is room to build longer, not a shorter start. Act 1 bot check on the worktree
+tuned on it, and the user's goal is room to build longer, not a shorter start. **Revised:** Environment Discussion
+wants the short opening on purpose ("the player builds the length"), so it is simmed as is, with a wall-first bot
+opening (Thornwall 3: ~7 walls take 25 → ~45 and leave 3 Sprouts). Go if drifts 1–5 leak no more than main and
+act 1 survival is within ±10 points; else the bend spur adds +8–10 cells. Act 1 bot check on the worktree
 before merge; if the extra room makes act 1 easy, the curve answers it.
 
 ## Friend run 1 (2026-10-05 20:22, a new player, fresh profile, live main)
