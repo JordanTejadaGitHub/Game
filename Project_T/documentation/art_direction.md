@@ -219,6 +219,15 @@ lost 0–20). They're wired into the map (`EnvironmentTiles`), with the lighting
     Dewdrop, Pebbling, Rootling, Acorn, Bellflower, Nestling, Whirligig and every other family root
     stay at 64 px (the calm-mode art). **Only branches, finals and Ascended forms are 1.4×**, so
     growing a Warden visibly makes it bigger.
+  - **Three size steps** (user, 2026-10-05: *"make assets for the middle Warden to be a bigger
+    size than the starting family Warden but smaller than the final tier"*). **Proof first.**
+    | Tier | Size |
+    |---|---|
+    | Base (tier 1), plus Sprout and Thornwall | today's 64 |
+    | Branch (tier 2) | **about 1.2× the body**, redrawn natively at the same pixel density |
+    | Final and Ascended (tier 3+) | 1.4×, unchanged (≤ 80×128) |
+    Each grow is a visible step, and the grow bloom covers the swap. The silhouette rule still
+    applies at each size. The tall finals stay the tallest.
   - **Nightmares must look like they walk on the path**, not float over it or beside it, next to
     the bigger Wardens.
   - **The footprint stays one cell** (2×2 half cells); only the art grows. Gameplay, pathing and
