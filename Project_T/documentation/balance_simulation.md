@@ -835,6 +835,11 @@ Sporeling (13 + Lichenling + 2 Brood Cap), longest path 56. **Drifts 1–24: 0 l
 this was a favourable draw: a clean run wiped by the boss alone is a cliff. Suspect: its 16 Crows (speed 190,
 4 at each of 80 / 60 / 40 / 20%) leaking on a short route, plus the 10-leaf bite. Per-boss survival from the
 bot data asked of Balancing Code before choosing a fix.
+**Per boss (bot, live tuning, survivors of 25):** Stag 83 / 86%, Night Mare 92 / 57%, Scarecrow 71 / 84%
+(default / spender). The Scarecrow itself never reached the Heartwood; its drift leaks **~4 per surviving run vs
+~0.4 for the Stag**: the Crows. The bot hides the cliff because it covers the Heartwood end. **Fix: Scarecrow
+`grief_count` 4 → 2** (8 Crows, not 16): at 1 leaf each, 16 could end a clean run alone; 8 leaves a clean run
+alive. Sent to Enemy Code. Watch: Night Mare for the spender (57%, small n).
 
 ## Human run 19 (2026-10-05, build c473ca = 4aae45a5, the new grow setting; 0 Grove): "a bit too hard early on"
 
