@@ -49,9 +49,21 @@ const FOG_SPORE_BONUS := 0.5  # Spored ticks +50% while in fog (Mistveil)
 var is_boss := false
 var is_elite := false  # Deeply Blighted (Enemy sets it with is_boss): its own slow floor
 var slow_capped := false  # All slows together hit the floor ("Slowed to the limit" in the status UI)
-var sleep_cooldown := 0.0  # After waking, seconds before it can fall Asleep again
-var dream_spores_cooldown := 0.0  # Dreamshroom's Dream Spores: this sleeper puffed; no Dreamshroom makes it puff again yet (shared)
-var hold_cooldown := 0.0  # After a Hold ends, seconds before it can be Held again
+var sleep_cooldown := 0.0:  # After waking, seconds before it can fall Asleep again
+	set(value):
+		sleep_cooldown = value
+		if value > 0.0:
+			_timers_live = true
+var dream_spores_cooldown := 0.0:  # Dreamshroom's Dream Spores: this sleeper puffed; no Dreamshroom makes it puff again yet (shared)
+	set(value):
+		dream_spores_cooldown = value
+		if value > 0.0:
+			_timers_live = true
+var hold_cooldown := 0.0:  # After a Hold ends, seconds before it can be Held again
+	set(value):
+		hold_cooldown = value
+		if value > 0.0:
+			_timers_live = true
 var _hold_just_ended := false  # The frame a Hold ran out (Snare's release-pull Hold may follow)
 const SLOW_FLOOR := 0.5
 const SLOW_FLOOR_ELITE := 0.6
@@ -67,12 +79,23 @@ var duration_multipliers := {}
 # Every status's duration on this creature (Omens: Stubborn Blight halves them).
 var duration_multiplier_all := 1.0
 # {id: {"stacks": int, "time": float (seconds left), "potency": float}}
+# Perf (mobile_plan.md): true while any countdown timer below may be running. Their setters set it on any
+# positive write (from here or outside: BranchKit, Reactions, MapGifts…); tick() counts them down only then.
+var _timers_live := false
 var _active := {}
 var _spore_timer := 0.0
-var _fog_time := 0.0
+var _fog_time := 0.0:
+	set(value):
+		_fog_time = value
+		if value > 0.0:
+			_timers_live = true
 var fog_source: Node = null  # The Warden whose fog it's in (credit for the fog-boosted part of Spored ticks)
 var _spore_by := {}  # Spored credit: applier instance id -> [applier, stacks it added] (DamageLog splits ticks by it)
-var _stag_time := 0.0  # Seconds left inside the White Stag's aura
+var _stag_time := 0.0:  # Seconds left inside the White Stag's aura
+	set(value):
+		_stag_time = value
+		if value > 0.0:
+			_timers_live = true
 
 # Reactions (tower_design.md "Reactions"; rules in Reactions). Per nightmare:
 const MUSHROOM_SPORE_BONUS := 0.5  # Mushrooming: Spored ticks +50%
@@ -80,40 +103,84 @@ const SMOTHER_SPORE_RATE := 3.0  # Smother: Spored ticks this much faster while 
 var reaction_cooldowns := {}  # Reaction id -> seconds before it can fire here again
 # The latest Reaction whose output touched this nightmare, while it can still start a chain.
 var chain_count := 0
-var chain_time := 0.0
+var chain_time := 0.0:
+	set(value):
+		chain_time = value
+		if value > 0.0:
+			_timers_live = true
 var chain_towers: Array = []  # Wardens that took part in that chain so far
 var pinned := false  # Pinned: the next Warden hit is a guaranteed ×3 crit
 var drowned := 0  # Times Drown made it sleep (once per nightmare; Deep Water II: twice)
-var mushroom_time := 0.0  # Mushrooming: Spored ticks harder while > 0
-var burn_time := 0.0  # Ignite (status jobs, 2026-09-29): Spored ticks burn_rate x as fast while > 0 (Reactions.burn)
+var mushroom_time := 0.0:  # Mushrooming: Spored ticks harder while > 0
+	set(value):
+		mushroom_time = value
+		if value > 0.0:
+			_timers_live = true
+var burn_time := 0.0:  # Ignite (status jobs, 2026-09-29): Spored ticks burn_rate x as fast while > 0 (Reactions.burn)
+	set(value):
+		burn_time = value
+		if value > 0.0:
+			_timers_live = true
 var burn_rate := 3.0
 # Bumped whenever a status comes, goes or changes stacks: the status icons redraw only then.
 var changes := 0
-var sleep_locked_time := 0.0  # Nightbloom: while > 0, sleep neither breaks on a big hit nor ends (Enemy's wake rule reads it)
-var slow_time := 0.0  # Drown on bosses (and Held-immune nightmares): an extra slow instead of sleep
+var sleep_locked_time := 0.0:  # Nightbloom: while > 0, sleep neither breaks on a big hit nor ends (Enemy's wake rule reads it)
+	set(value):
+		sleep_locked_time = value
+		if value > 0.0:
+			_timers_live = true
+var slow_time := 0.0:  # Drown on bosses (and Held-immune nightmares): an extra slow instead of sleep
+	set(value):
+		slow_time = value
+		if value > 0.0:
+			_timers_live = true
 var slow_amount := 0.0
 var ground_taken := 0.0  # Heartwood Roots (MapGifts): extra soothe taken while on the marked cells
-var ground_taken_time := 0.0  # Refreshed by MapGifts while the nightmare stands there
+var ground_taken_time := 0.0:  # Refreshed by MapGifts while the nightmare stands there
+	set(value):
+		ground_taken_time = value
+		if value > 0.0:
+			_timers_live = true
 var smothering := false  # Held + Spored right now (Spored ticks faster)
 
 # Sleep (Drown; Great Dreamcatcher lengthens it): can't move while > 0. Not a status (no icon, no
 # Reactions of its own), but it counts as asleep for Pinned and Caught.
-var sleep_time := 0.0
+var sleep_time := 0.0:
+	set(value):
+		sleep_time = value
+		if value > 0.0:
+			_timers_live = true
 var sleep_extended := false  # Great Dreamcatcher's +1 s happened already
 var dreamshroom_slept := false  # Dreamshroom puts each nightmare to sleep once
 var held_bonus := 0.0  # World Root: +damage taken while Held (set when it Holds this nightmare)
 # Crowned Reactions (Reactions): the Tempest cap, Storm Front (a Gust just copied statuses here), a
 # Prismstorm Shatter about to throw its shards, and Smother having just ended (Fever Dream).
-var tempest_time := 0.0
-var gust_time := 0.0
+var tempest_time := 0.0:
+	set(value):
+		tempest_time = value
+		if value > 0.0:
+			_timers_live = true
+var gust_time := 0.0:
+	set(value):
+		gust_time = value
+		if value > 0.0:
+			_timers_live = true
 var prism_pending := false
 var smother_ended := false
 # The Warden whose charge the last bolt from apply() was (the strongest Static applier, whose potency it used),
 # not whoever added the final stack (story chat: a spore Warden's carried Static took Live Wire bolts' credit).
 var bolt_source: Node = null
 var every_hits := {}  # Warden instance id -> hits on this nightmare (TowerData.status_every counts per nightmare)
-var veil_time := 0.0  # Morning Fog's Veil (FinalTwists): while > 0 it can't be healed (Enemy.heal reads it)
-var silence_time := 0.0  # Hushbell (BranchKit.silence): while > 0 it uses no abilities (Enemy._update_presence reads it)
+var veil_time := 0.0:  # Morning Fog's Veil (FinalTwists): while > 0 it can't be healed (Enemy.heal reads it)
+	set(value):
+		veil_time = value
+		if value > 0.0:
+			_timers_live = true
+var silence_time := 0.0:  # Hushbell (BranchKit.silence): while > 0 it uses no abilities (Enemy._update_presence reads it)
+	set(value):
+		silence_time = value
+		if value > 0.0:
+			_timers_live = true
 # Silence as a status badge (Main 2421cbd6): SILENCED is its id (not in _active); silence_full is the
 # longest it was set to this silence (for the time bar), and starting or ending it bumps `changes`.
 const SILENCED := &"silenced"
@@ -125,7 +192,11 @@ var marked_bonus := 0.0  # Bright Marks (Dream): added to either (the nightmare 
 var marked_forever := false
 var static_forever := false
 # Caught (Dreamcatcher): asleep or at max Drowsy inside a Dreamcatcher's range; takes more damage.
-var caught_time := 0.0
+var caught_time := 0.0:
+	set(value):
+		caught_time = value
+		if value > 0.0:
+			_timers_live = true
 var caught_bonus := 0.0
 var caught_shard := false  # Caught by a Great Dreamcatcher: dispelling it drops a Dreamlight shard
 var caught_shard_tower: Node = null  # That Great Dreamcatcher (for its shard_dropped signal)
@@ -135,7 +206,11 @@ const CUT_BONUS := 0.02
 const CUT_MAX := 30
 const CUT_WINDOW := 2.0
 var cut_stacks := 0
-var cut_time := 0.0
+var cut_time := 0.0:
+	set(value):
+		cut_time = value
+		if value > 0.0:
+			_timers_live = true
 # Heavy Eyelids: extra Drowsy cap (set by the nightmare from the Dream before Drowsy lands).
 var drowsy_cap_bonus := 0
 
@@ -419,8 +494,10 @@ func get_damage_taken_multiplier() -> float:
 	return multiplier
 
 # Advances timers. Returns the Spored soothe to deal this frame (already fog-boosted).
-func tick(delta: float) -> float:
-	var was_smothering := smothering
+# Perf (mobile_plan.md): the countdown timers, only while one may be running (_timers_live; their setters
+# set it). Clears the flag first: any timer still running sets it again as it is counted down.
+func _tick_timers(delta: float) -> void:
+	_timers_live = false
 	# Most timers sit at 0 on most nightmares: only count down the running ones (this runs every
 	# frame for every nightmare).
 	if tempest_time > 0.0:
@@ -458,7 +535,6 @@ func tick(delta: float) -> float:
 		sleep_cooldown = maxf(sleep_cooldown - delta, 0.0)
 	if dream_spores_cooldown > 0.0:
 		dream_spores_cooldown = maxf(dream_spores_cooldown - delta, 0.0)
-	_hold_just_ended = false
 	if hold_cooldown > 0.0:
 		hold_cooldown = maxf(hold_cooldown - delta, 0.0)
 	if sleep_time > 0.0:
@@ -474,6 +550,12 @@ func tick(delta: float) -> float:
 		cut_time = maxf(cut_time - delta, 0.0)
 		if cut_time <= 0.0:
 			cut_stacks = 0
+
+func tick(delta: float) -> float:
+	var was_smothering := smothering
+	_hold_just_ended = false
+	if _timers_live:
+		_tick_timers(delta)
 	if not reaction_cooldowns.is_empty():  # (No empty array made every frame for the many without any)
 		for reaction in reaction_cooldowns.keys():
 			reaction_cooldowns[reaction] -= delta

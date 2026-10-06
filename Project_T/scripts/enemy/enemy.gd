@@ -222,6 +222,10 @@ var _turns_serial := -1
 var _target_px := Vector2.ZERO  # The pixel of _path[_target_index] (walking: no Grid call every frame)
 var _target_index := -1
 var _target_serial := -1
+# The route step (and route) on which it was last found on a straight with no gap and nothing to ease: until
+# the step, the route or the map's blocking changes, the corner and squeeze checks are skipped.
+var _steady_index := -1
+var _steady_serial := -1
 # Pixels the drawn body (sprite, its HUD, its glows) is raised so its feet and contact shadow sit on the
 # route point, the path ribbon's centreline (art_direction.md "Bigger Wardens"); 0 for flyers.
 var _foot_lift := 0.0
@@ -515,8 +519,11 @@ func _process(delta: float) -> void:
 	_update_trait(delta)
 	if _leaping:
 		return
-	if _is_blocked_ahead(delta):
-		return  # Rooted Nightmares: waiting for a Held nightmare in the next cell
+	if _spawner != null and not _spawner.rooted_cells.is_empty():  # (Perf: the call only when something is rooted)
+		if _is_blocked_ahead(delta):
+			return  # Rooted Nightmares: waiting for a Held nightmare in the next cell
+	elif waiting:
+		waiting = false
 	if unbound:
 		_trample_ahead()
 
@@ -531,7 +538,9 @@ func _process(delta: float) -> void:
 		_speed_base = speed
 	var remaining := _speed_cache * delta
 	while remaining > 0.0 and _path_index < _path.size():
-		var target := _point_px(_path_index)
+		if _target_index != _path_index or _target_serial != _path_serial:
+			_point_px(_path_index)  # (The next point's pixel, once a step)
+		var target := _target_px
 		var to_target := target - position
 		var distance := to_target.length()
 		if distance <= remaining:
@@ -552,8 +561,13 @@ func _process(delta: float) -> void:
 
 	# Update animation based on movement direction
 	update_animation(position - previous_position)
-	_round_corners()
-	_update_squeeze(delta)
+	if _steady_index != _path_index or _steady_serial != _path_serial or _corner_offset != Vector2.ZERO \
+			or _squeeze != 1.0 or (_gap_finder != null and _gap_finder.version != _gap_version):
+		_round_corners()
+		_update_squeeze(delta)
+		if _corner_offset == Vector2.ZERO and _squeeze == 1.0 and not _gap_answer and not _near_turn():
+			_steady_index = _path_index  # A straight, no gap: nothing to check until the next step
+			_steady_serial = _path_serial
 
 	if _path_index >= _path.size():
 		if loops_route:
