@@ -956,21 +956,53 @@ var _range_value := 0.0
 # clear_dream_cache drops them too.
 const STAT_CACHE_TIME := 2.0
 var _stats := {}
-var _stats_key := []
 var _stats_until := -1.0
 
+# Perf (test_perf_stress): the key is compared field by field against the stored one, no array built per stat read.
+var _k_valid := false  # False = recompute (clear_dream_cache)
+var _k_data: TowerData
+var _k_rank := -1
+var _k_focus := -1
+var _k_aura := Vector4.ZERO  # _aura_range, _aura_damage, _aura_speed, _aura_crit
+var _k_share := -1.0
+var _k_dim := -1.0
+var _k_big := false
+var _k_board := -1
+var _k_stacks := -1
+var _k_kin := -1
+var _k_chorus := -1.0
+var _k_gift := -1
+var _k_omen: OmenData = null
+
 func _stats_fresh() -> bool:
-	var key := [attack_data, rank, focus, _aura_range, _aura_damage, _aura_speed, _damage_share, _aura_crit, dim_multiplier, _big_family,
-		_dream_state.board_version if _dream_state else 0, _dream_state.stacks.size() if _dream_state else 0,
-		_kin.version if is_instance_valid(_kin) else 0,  # Pairs / families changed (was a pairs lookup and a dictionary hash per call)
-		_chorus, _gift_version(),
-		_omens.active if _omens else null]
-	if key != _stats_key or _anim_time > _stats_until:
-		_stats_key = key
-		_stats = {}
-		_stats_until = _anim_time + STAT_CACHE_TIME * randf_range(0.75, 1.25)  # Staggered: ~200 Wardens never all recompute in one frame (a 60 ms hitch every 2 s)
-		return false
-	return true
+	var board: int = _dream_state.board_version if _dream_state else 0
+	var stacks: int = _dream_state.stacks.size() if _dream_state else 0
+	var kin: int = _kin.version if is_instance_valid(_kin) else 0  # Pairs / families changed
+	var gift := _gift_version()
+	var omen: OmenData = _omens.active if _omens else null
+	var aura := Vector4(_aura_range, _aura_damage, _aura_speed, _aura_crit)
+	if _k_valid and _anim_time <= _stats_until and attack_data == _k_data and rank == _k_rank and focus == _k_focus \
+			and aura == _k_aura and _damage_share == _k_share and dim_multiplier == _k_dim and _big_family == _k_big \
+			and board == _k_board and stacks == _k_stacks and kin == _k_kin and _chorus == _k_chorus and gift == _k_gift \
+			and omen == _k_omen:
+		return true
+	_k_valid = true
+	_k_data = attack_data
+	_k_rank = rank
+	_k_focus = focus
+	_k_aura = aura
+	_k_share = _damage_share
+	_k_dim = dim_multiplier
+	_k_big = _big_family
+	_k_board = board
+	_k_stacks = stacks
+	_k_kin = kin
+	_k_chorus = _chorus
+	_k_gift = gift
+	_k_omen = omen
+	_stats = {}
+	_stats_until = _anim_time + STAT_CACHE_TIME * randf_range(0.75, 1.25)  # Staggered: ~200 Wardens never all recompute in one frame (a 60 ms hitch every 2 s)
+	return false
 
 # Heartwood's Gifts (GiftGround): Spring (&"damage"), Bell Stone (&"speed"), Moonwell (&"range") for this Warden.
 func _gift_bonus(stat: StringName) -> float:
@@ -4623,7 +4655,7 @@ func _refresh_dream_rows() -> void:
 func clear_dream_cache() -> void:
 	_dream_cache.clear()
 	_range_frame = -1
-	_stats_key = []
+	_k_valid = false
 
 # A Warden planted, sold or grown: Dream rows and neighbours (auras, copies, Root Network) look again
 # soon, spread over the next few frames rather than all at once.
