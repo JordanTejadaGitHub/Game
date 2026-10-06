@@ -1859,6 +1859,7 @@ read those choices, so the Nurture path shapes the build.
   - Kindred has no signature, so a Kindred pair gains nothing; the card text says "the same choice"
     and the Warden panel shows which.
   - Until the signatures are built, it isn't offered.
+- **Built:** cards 266–269 in 31b43636 (Roguelite Code, numbers 43496006). Specialist's and Brimming's hooks are Tower Code's. Shared Training's file has `in_start_pool = false` until the signatures land.
 - Numbers to Balancing Discussion.
 
 ### Brimming (card 269)
