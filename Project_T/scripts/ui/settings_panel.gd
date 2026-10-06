@@ -342,10 +342,14 @@ func _tab(title: String) -> VBoxContainer:
 	_tab_keys[title] = []
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	tabs.add_child(scroll)
+	var gutter := MarginContainer.new()  # 12 px between the control column and the scrollbar
+	gutter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gutter.add_theme_constant_override("margin_right", 12)
+	scroll.add_child(gutter)
 	var page := VBoxContainer.new()
 	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page.add_theme_constant_override("separation", 8)
-	scroll.add_child(page)
+	gutter.add_child(page)
 	return page
 
 # V-sync, and the window size (windowed only) when `resize` or the first time; also run from
@@ -422,6 +426,20 @@ func _note_under(names: Control, tip: String) -> void:
 	_inset(note)
 	names.add_child(note)
 
+# An OFF switch reads as off, not missing (user: "a bare grey dot"): its track outlined in INK_DIM while unpressed.
+static func _off_track(check: CheckButton) -> void:
+	check.draw.connect(func() -> void:
+		if check.button_pressed:
+			return
+		var icon := check.get_theme_icon("unchecked_disabled" if check.disabled else "unchecked")
+		if icon == null:
+			return
+		var right := check.get_theme_stylebox("normal").get_margin(SIDE_RIGHT)
+		var at := Vector2(check.size.x - right - icon.get_width(), (check.size.y - icon.get_height()) / 2.0)
+		var track := Rect2(at + Vector2(1, icon.get_height() * 0.25), Vector2(icon.get_width() - 2, icon.get_height() * 0.5))
+		check.draw_rect(track, Color(UiStyle.INK_DIM, 0.55 if check.disabled else 0.9), false, 1.0))
+	check.toggled.connect(func(_on: bool) -> void: check.queue_redraw())
+
 # A label's text starts where a switch's name does (the CheckButton's inner padding), so every row lines up.
 const TEXT_INSET := 6.0
 
@@ -432,6 +450,7 @@ static func _inset(label: Label) -> void:
 
 # A dropdown in the column: CONTROL_W wide, CONTROL_H tall, body text at the label size (list too).
 func _put_pick(row: HBoxContainer, pick: OptionButton) -> void:
+	pick.fit_to_longest_item = false  # Every dropdown exactly CONTROL_W
 	pick.custom_minimum_size = Vector2(CONTROL_W, CONTROL_H)
 	pick.size_flags_horizontal = Control.SIZE_SHRINK_END
 	pick.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -554,6 +573,7 @@ func _toggle(box: VBoxContainer, text: String, key: String, default: bool = fals
 	check.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	check.add_theme_font_size_override("font_size", TEXT_SIZE)
 	check.toggled.connect(func(on: bool) -> void: _set_value(key, on))
+	_off_track(check)
 	names.add_child(check)
 	_note_under(names, tip)
 	box.add_child(row)
@@ -564,8 +584,11 @@ func _toggle(box: VBoxContainer, text: String, key: String, default: bool = fals
 func _choice_nearest(box: VBoxContainer, text: String, key: String, presets: Array, default: float) -> void:
 	var row := _label_row(text, key)
 	var pick := OptionButton.new()
-	for preset in presets:
-		pick.add_item(preset[0])
+	for preset in presets:  # The short name in the box ("Largest"), the rest in its tooltip
+		var words: PackedStringArray = String(preset[0]).split(" (", true, 1)
+		pick.add_item(words[0])
+		if words.size() > 1:
+			pick.set_item_tooltip(pick.item_count - 1, String(preset[0]))
 	pick.focus_mode = Control.FOCUS_NONE
 	pick.item_selected.connect(func(index: int) -> void: _set_value(key, float(presets[index][1])))
 	_put_pick(row, pick)
