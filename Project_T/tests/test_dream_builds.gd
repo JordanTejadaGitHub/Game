@@ -406,7 +406,7 @@ func _test_grove_cards() -> void:
 	_reset()
 	# Charged Bloom, Charged Field, Guiding Light, Starlit Aim and Twin Puff left the Grove (2026-09-30: start pool, discovery-gated)
 	var ids := ["still_target",
-		"shattering_blow", "full_moon", "rootbound", "monoculture", "the_long_walk",
+		"shattering_blow", "full_moon", "rootbound", "monoculture",  # The Long Walk: start pool since 495076d2
 		"deep_sleep", "restless_dreams"]
 	for id in ids:
 		_check(not _card(id).in_start_pool, "%s waits for its Grove node" % id)

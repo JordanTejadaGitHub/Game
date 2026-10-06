@@ -552,7 +552,7 @@ func _test_cards_227() -> void:
 	for pair in [["head_start_ii", "head_start"], ["scarred_bark_ii", "scarred_bark"], ["odd_one_out_ii", "odd_one_out"]]:
 		_check(_card(pair[0]).deepens == pair[1], "%s deepens %s" % pair)
 	_check(_card("desperate_bloom").min_act == 2 and _card("grand_tour").min_owned_statuses == 2, "Desperate Bloom act 2+; Grand Tour needs 2 statuses")
-	for id in ["crowded_path", "last_breath", "thinning_the_herd", "crowd_breaker"]:
+	for id in ["crowded_path", "last_breath", "thinning_the_herd"]:  # (Crowd Breaker is reach since da74709b)
 		_check(_card(id).tags.has("affliction") and not _card(id).tags.has("swarm"), "%s: swarm merged into affliction" % id)
 	_check(_card("shattering_blow").tags.has("precision") and not _card("shattering_blow").tags.has("swarm"), "Shattering Blow keeps precision only")
 	var tower := _plant("sporeling", Vector2(100, 100))

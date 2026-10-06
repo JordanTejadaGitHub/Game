@@ -9,6 +9,6 @@ display_name = "Thorny Walls"
 description = "Thornwalls lash one nightmare beside them every second, for a Sprout's damage."
 rarity = 0
 kind = 3
-tags = Array[String](["wall", "maze", "defining"])
+tags = Array[String](["wall", "tending", "defining"])
 max_stacks = 1
 rule_id = &"thorny_walls"
