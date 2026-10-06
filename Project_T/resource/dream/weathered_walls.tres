@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "weathered_walls"
 display_name = "Weathered Walls"
-description = "Thornwalls can't be trampled and cost 1 Dew."
+description = "Thornwalls cost 1 Dew."
 rarity = 1
 kind = 3
 tags = Array[String](["wall", "maze"])

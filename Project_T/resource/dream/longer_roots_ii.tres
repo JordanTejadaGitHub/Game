@@ -4,11 +4,12 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "flurry"
-display_name = "Flurry"
-description = "Every 5th attack from a Warden fires twice."
+id = "longer_roots_ii"
+display_name = "Longer Roots II"
+description = "All Wardens reach 1.5 cells further."
 rarity = 1
-kind = 3
-tags = Array[String](["swift"])
+kind = 2
+tags = Array[String]([])
 max_stacks = 1
-rule_id = &"flurry"
+deepens = "longer_roots"
+range_bonus = 1.5

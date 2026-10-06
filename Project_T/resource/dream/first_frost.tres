@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "flurry"
-display_name = "Flurry"
-description = "Every 5th attack from a Warden fires twice."
-rarity = 1
+id = "first_frost"
+display_name = "First Frost"
+description = "The first nightmare of each {drift} is {held} for 2 s at the first Warden it meets."
+rarity = 0
 kind = 3
-tags = Array[String](["swift"])
+tags = Array[String](["held", "tempo"])
 max_stacks = 1
-rule_id = &"flurry"
+rule_id = &"first_frost"

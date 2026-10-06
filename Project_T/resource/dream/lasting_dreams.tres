@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "lasting_dreams"
 display_name = "Lasting Dreams"
-description = "Every status your Wardens apply lasts 2 s longer (stacks, up to +6 s)."
+description = "Statuses your Wardens apply last twice as long."
 rarity = 0
 kind = 3
 tags = Array[String](["status", "affliction"])
-max_stacks = 3
+max_stacks = 1
 min_owned_statuses = 1
 rule_id = &"lasting_dreams"

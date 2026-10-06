@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "bright_marks"
 display_name = "Bright Marks"
-description = "{marked} nightmares take 20% more from every Warden."
+description = "{marked} nightmares take 30% more from every Warden."
 rarity = 0
 kind = 3
 tags = Array[String](["light", "mark"])

@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "sharp_beaks"
 display_name = "Sharp Beaks"
-description = "Multi-hit Wardens (Hummingbird, Wren's Nest) hit once more per attack (stacks, up to +3)."
+description = "Multi-hit Wardens (Hummingbird, Wren's Nest) hit 2 more times per attack."
 rarity = 0
 kind = 3
 tags = Array[String](["wing", "on-hit"])
 requires_any = Array[String](["hummingbird_bower", "wrens_nest"])
-max_stacks = 3
+max_stacks = 1
 rule_id = &"sharp_beaks"
 in_start_pool = false

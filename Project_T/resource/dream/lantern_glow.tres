@@ -4,13 +4,11 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "longer_flight"
-display_name = "Longer Flight"
-description = "The Samara line throws 2 cells further."
+id = "lantern_glow"
+display_name = "Lantern Glow"
+description = "The path cells in each Warden's reach glow: nightmares on them can't hide in fog and take 15% more damage."
 rarity = 0
 kind = 3
-tags = Array[String](["wind", "maze"])
-requires = Array[String](["samara"])
+tags = Array[String](["light", "reach"])
 max_stacks = 1
-rule_id = &"longer_flight"
-in_start_pool = false
+rule_id = &"lantern_glow"

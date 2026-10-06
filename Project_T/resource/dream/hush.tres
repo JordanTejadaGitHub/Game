@@ -6,11 +6,11 @@
 script = ExtResource("1_card")
 id = "hush"
 display_name = "Hush"
-description = "Bellflower-line pulses reach 25% further (stacks, up to +75%)."
+description = "Bellflower-line pulses reach 50% further."
 rarity = 0
 kind = 3
 tags = Array[String](["song", "sleep"])
 requires = Array[String](["bellflower"])
-max_stacks = 3
+max_stacks = 1
 rule_id = &"hush"
 in_start_pool = false

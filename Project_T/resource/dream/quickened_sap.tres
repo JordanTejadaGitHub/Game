@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "quickened_sap"
 display_name = "Quickened Sap"
-description = "All Wardens attack 15% faster (stacks)."
-rarity = 0
+description = "All Wardens attack 25% faster."
+rarity = 1
 kind = 2
 tags = Array[String]([])
 requires = Array[String]([])
-max_stacks = 0
-attack_speed_bonus = 0.15
+max_stacks = 1
+attack_speed_bonus = 0.25

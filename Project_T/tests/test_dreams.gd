@@ -325,8 +325,7 @@ func _test_card_effects(main: Node) -> void:
 	var sprout: TowerData = load("res://resource/tower/sprout.tres")
 	var thornwall: TowerData = load("res://resource/tower/thornwall.tres")
 	dreams.take(_card(dreams, "quickened_sap"))
-	dreams.take(_card(dreams, "quickened_sap"))
-	_check(is_equal_approx(dreams.get_attack_speed_multiplier(sprout), 1.3), "Quickened Sap stacks additively (×1.3)")
+	_check(is_equal_approx(dreams.get_attack_speed_multiplier(sprout), 1.25), "Quickened Sap: one copy, +25% (dream_design.md de439ea8)")
 	var dew := run_state.dew
 	dreams.take(_card(dreams, "morning_dew"))
 	_check(run_state.dew == dew + 20 and dreams.get_dew_per_clear() == 0, "Morning Dew: +20 now, no Dew per clear")
@@ -397,12 +396,9 @@ func _test_clearing_cards(main: Node) -> void:
 	run_state.tended_cells.clear()  # No clears yet: no surcharge
 	run_state.add_free_clears(-run_state.free_clears)
 	dreams.take(opener)
-	_check(clearer.get_clear_cost(tree) == roundi(tree.clear_cost * 0.75) and run_state.free_clears == 3,
-		"Heartwood's Reach: −25%% (tree %d → %d) and 3 half-price clears (%d)" % [tree.clear_cost, clearer.get_clear_cost(tree), run_state.free_clears])
-	dreams.take(opener)
 	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) and clearer.get_clear_cost(rock) == ceili(rock.clear_cost / 2.0)
-		and run_state.free_clears == 6 and opener.max_stacks == 2,
-		"…two stacks: −50%%, never below half the base (tree %d, boulder %d), 6 charges" % [clearer.get_clear_cost(tree), clearer.get_clear_cost(rock)])
+		and run_state.free_clears == 3 and opener.max_stacks == 1,
+		"Heartwood's Reach (one copy): half price (tree %d, boulder %d) and 3 half-price clears" % [clearer.get_clear_cost(tree), clearer.get_clear_cost(rock)])
 	_check(clearer.get_clear_cost(tree, true) == ceili(tree.clear_cost / 2.0), "…a half-price charge on top still hits the floor")
 	run_state.tended_cells.assign([Vector2(-1, -1), Vector2(-2, -2), Vector2(-3, -3)])
 	_check(clearer.get_clear_cost(tree) == ceili(tree.clear_cost / 2.0) + 3, "every clear so far adds +1 Dew after the discounts (%d)" % clearer.get_clear_cost(tree))
@@ -413,11 +409,11 @@ func _test_clearing_cards(main: Node) -> void:
 	run_state.dew = 0
 	var tended := run_state.obstacles_tended
 	var cell: Vector2 = map_generator.obstacles.keys()[0]
-	_check(not clearer.try_clear(cell) and run_state.free_clears == 6, "a charge doesn't make a clear free: no Dew, no clear, charge kept")
+	_check(not clearer.try_clear(cell) and run_state.free_clears == 3, "a charge doesn't make a clear free: no Dew, no clear, charge kept")
 	var cost := clearer.get_next_clear_cost(map_generator.get_obstacle(cell))
 	_check(cost == ceili(map_generator.get_obstacle(cell).clear_cost / 2.0), "…it halves the price (%d)" % cost)
 	run_state.dew = 100
-	_check(clearer.try_clear(cell) and run_state.free_clears == 5 and run_state.dew == 100 - cost, "a half-price clear")
+	_check(clearer.try_clear(cell) and run_state.free_clears == 2 and run_state.dew == 100 - cost, "a half-price clear")
 	_check(run_state.obstacles_tended == tended + 1, "half-price clears still give a Seed")
 	run_state.add_free_clears(-run_state.free_clears)
 	dreams.stacks.erase("heartwoods_reach")
@@ -634,11 +630,11 @@ func _test_dreamlight(main: Node) -> void:
 
 	# Cards and the save
 	dreams.take(_card(dreams, "sudden_insight"))
-	_check(dreams.dreamlight == 1, "Sudden Insight: +1 Dreamlight")
+	_check(dreams.dreamlight == 2, "Sudden Insight: +2 Dreamlight")
 	var saved := dreams.to_save()
 	dreams.dreamlight = 0
 	dreams.load_save(saved)
-	_check(dreams.dreamlight == 1, "Dreamlight survives the save")
+	_check(dreams.dreamlight == 2, "Dreamlight survives the save")
 	run_state.max_leaves = 20
 	_reset_dreams(main)
 	dreams.dreamlight = 0
@@ -1089,8 +1085,8 @@ func _test_discovery(main: Node) -> void:
 	_check(dreams.event_discovered("crit_marked") and dreams._key_met("event:crit_marked", []), "a crit on a Marked nightmare discovers Starlit Aim")
 	dreams.note_discovery(DreamState.EVENT_PUFF_IN_FOG)  # Tower Code calls this when a puff lands in Mistveil's fog
 	_check(dreams.event_discovered("puff_in_fog"), "a Puffball puff in Mistveil's fog discovers Chain Bloom")
-	var cache := _card(dreams, "acorn_cache")
-	_check(not dreams.discovery_met(cache), "Acorn Cache waits for an Acorn to be built")
+	var cache := _card(dreams, "warm_hearth")  # Needs an Acorn (Acorn Cache was cut)
+	_check(not dreams.discovery_met(cache), "Warm Hearth waits for an Acorn to be built")
 	var before: Array[UpgradeData] = [cache]  # A Grove card: not in this run's pool
 	var acorn := _build(main, "acorn")
 	_check(dreams.discovery_met(cache) and dreams.newly_discovered(before).has(cache.display_name),
