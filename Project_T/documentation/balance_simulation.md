@@ -957,7 +957,9 @@ gates (Kinship pair; a rank III Warden; Brimming act 2), then re-check act 1. **
 offered only when the board can use it now (Close Kin: a family with 2 branches unlocked; shape cards: own a Warden
 of that shape; Brimming: a Spored / Charged / Drowsy applier). **Act 1 on f701c156 (30):** default **63%**, spender **66%**,
 skip **3%**; best card per act 1 offer back to 24.5. Fixed. Watch: the spender vs the Night Mare again (1 / 4 here, 57%
-earlier).
+earlier). **No-build on f701c156 (fresh 30, with the rebalance and boss-rest Legendaries):** with a build at 26 / 35 / 40 /
+50: 43 / 57 / 63 / 87% (targets ~50 / 70 / 85–90 at 35 / 40 / 50: on, just under, on). Builds: affliction 46, maze 37,
+precision 17%. **Steering:** matching offers +1–4 points in act 1, −2 in act 2: none.
 the all-Acorn check: in a real run that boss drains instead. **Cause:** ×1.3 speed per lap with no cap (it crossed
 the route between two shots). Capped at 3 laps (×2.2) in 8603af1b; real runs never reach lap 4.
 
