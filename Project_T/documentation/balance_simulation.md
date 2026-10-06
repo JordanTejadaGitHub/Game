@@ -865,6 +865,13 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Sprout-into follows the copy price (user found it, 2026-10-05)
+
+Sprout (~12) + sprout-into (15) was a flat 27, under the Nth planted copy (33 at 5, 43 at 10): a bypass of
+`copy_cost_step`. **Sprout-into = max(base, live planting price − the Sprout's paid price)**; gift Sprouts pay
+the full price; the grown Warden counts as a copy. The two routes cost the same; the Sprout only delays the
+choice. First copy unchanged (15), so the opening holds. Sent to Tower Code.
+
 ## Room to maze (maze_feel #5, worktree room-to-maze, 2026-10-05)
 
 Environment Code's open bowl: obstacles ~60 → 30–41, buildable ~275 → ~298 cells, but the **opening route ~46 →
