@@ -33,7 +33,6 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 @export_group("Ridges")
 # Ridges are tapered spurs of rocks and trees reaching in from the frame, from alternating walls. They give
 # the opening route its bend; clearing one of their cells opens a shortcut.
-@export_range(0.3, 1.0) var bend_spur_cap: float = 0.75  # The bend spur reaches at most this share across
 @export var ridge_count_min: int = 2
 @export var ridge_count_max: int = 2  # As many as fit between the start and the inland Heartwood
 @export_range(0.1, 1.0) var ridge_length_min: float = 0.25  # Fraction of the map's width
@@ -225,7 +224,7 @@ func _fill_to_minimum(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 # creatures only move up/down/left/right.
 # Room to maze (environment_assets.md a5178f53), on rows between the start and the Heartwood: first the bend
 # spur (the row nearest the start), a thin line just long enough to cut the start→Heartwood box, so the opening
-# route bends round it at +4 or more (game_design.md "The forest (map)"); then short gap-free spurs (~35% across
+# route bends round it at +MapLayout.BEND_EXTRA or more (game_design.md "The forest (map)"); then short gap-free spurs (~35% across
 # at most, from alternating walls; +1 at Blight 9, as many as fit). Roots sit in the frame band, tips reach into
 # the bowl. Rows stay RIDGE_END_GAP from the start's and the Heartwood's rows, so no spur reaches the glade.
 func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
@@ -244,13 +243,14 @@ func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 	if rows.is_empty():
 		return
 	# The bend spur (environment_assets.md a5178f53): from the wall that needs the shorter reach, just far enough
-	# past the start→Heartwood box that every way round it costs +4 (its tip one cell past the box's far side).
+	# past the start→Heartwood box that every way round it costs +BEND_EXTRA.
 	var lo_u := mini(_u_of(_start), _u_of(_end))
 	var hi_u := maxi(_u_of(_start), _u_of(_end))
-	var reach_low := hi_u + 1  # From the low wall: cells 1..hi_u + 1
-	var reach_high := u_inner - lo_u + 2  # From the high wall: cells lo_u - 1..u_inner
+	var k := MapLayout.BEND_EXTRA / 2  # The tip k cells past the box: every way round costs 2k (MapLayout.bend_fits)
+	var reach_low := hi_u + k - 1  # From the low wall: cells 1..hi_u + k - 1
+	var reach_high := u_inner - lo_u + k  # From the high wall: cells lo_u - k + 1..u_inner
 	var from_low := reach_low <= reach_high
-	var cap := roundi(u_inner * bend_spur_cap)
+	var cap := roundi(u_inner * MapLayout.BEND_REACH_SHARE)
 	bend_reach = mini(reach_low if from_low else reach_high, cap)
 	_bend_spur(rng, rows[0], from_low, bend_reach, skip_cells, obstacles)
 	for ridge in range(1, rows.size()):  # Any others: short spurs from alternating walls

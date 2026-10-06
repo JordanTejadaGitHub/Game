@@ -18,7 +18,8 @@ const SIDE_JITTER := 3  # Cells either side of the edge's middle
 const EDGE_MARGIN := 2  # The Heartwood keeps this many cells from every edge
 const MIN_DISTANCE_SHARE := 0.5  # Of the map's diagonal, from the start
 const FALLBACK_COUNT := 6  # If no cell is far enough: one of this many farthest
-const BEND_REACH_SHARE := 0.75  # = EnvironmentObjectGenerator.bend_spur_cap: the bend spur's longest reach
+const BEND_REACH_SHARE := 0.75  # The bend spur's longest reach across (EnvironmentObjectGenerator reads it)
+const BEND_EXTRA := 10  # The opening route's floor over the start→Heartwood Manhattan distance (Balancing 2026-10-05: was 4)
 
 var kind: Kind
 var start: Vector2i
@@ -90,14 +91,15 @@ func _pick_heartwood(rng: RandomNumberGenerator, size: Vector2i) -> Vector2i:
 	return pick
 
 # True if a bend spur from one wall, at most BEND_REACH_SHARE across, can cut the start→`end` box with its
-# tip a cell past it (EnvironmentObjectGenerator._generate_ridges: the opening route then bends at +4 or more).
+# tip BEND_EXTRA / 2 cells past it (EnvironmentObjectGenerator._generate_ridges: the opening route bends at +BEND_EXTRA or more).
 static func bend_fits(start_cell: Vector2i, end_cell: Vector2i, size: Vector2i) -> bool:
 	var travel := end_cell - start_cell
 	var axis := 1 if absi(travel.x) >= absi(travel.y) else 0  # As ridge_axis: the spurs run along u
 	var lo := mini(start_cell.x, end_cell.x) if axis == 0 else mini(start_cell.y, end_cell.y)
 	var hi := maxi(start_cell.x, end_cell.x) if axis == 0 else maxi(start_cell.y, end_cell.y)
 	var inner := (size.x if axis == 0 else size.y) - 2
-	return mini(hi + 1, inner - lo + 2) <= roundi(inner * BEND_REACH_SHARE)
+	var k := BEND_EXTRA / 2  # The tip sits k cells past the box: a way round it costs 2k
+	return mini(hi + k - 1, inner - lo + k) <= roundi(inner * BEND_REACH_SHARE)
 
 func get_kind_name() -> String:
 	return "corner" if kind == Kind.CORNER else "side"

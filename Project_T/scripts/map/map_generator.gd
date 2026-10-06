@@ -26,7 +26,7 @@ var layout: MapLayout
 @export var force_feature := -1
 # Starting-route cap, generation only (nothing caps the route in play): environment_assets.md "Map layouts".
 @export var max_route_length := 57
-# And its floor (Room to maze): the start→Heartwood Manhattan distance + 4, set per map in _ready(). Nothing
+# And its floor (Room to maze): the start→Heartwood Manhattan distance + MapLayout.BEND_EXTRA, set per map in _ready(). Nothing
 # lengthens a short route any more (that filled the open bowl); the spurs give it its bend.
 var min_route_length := 0
 @export var map_seed: int = 0  # 0 = new random map every run; anything else reproduces a map
@@ -101,7 +101,7 @@ func _ready() -> void:
 			on_route[(Vector2(FindPath.point_to_node(point)) / 2.0).floor()] = true
 		for cell in environment_object_layer.top_up(rng, skip, on_route, obstacles):
 			path_layer.set_cell_blocked(cell, true)
-	min_route_length = int(absf(endPath.x - startPath.x) + absf(endPath.y - startPath.y)) + 4
+	min_route_length = int(absf(endPath.x - startPath.x) + absf(endPath.y - startPath.y)) + MapLayout.BEND_EXTRA
 	path_layer.prefer_route(_straightest_route())  # Fewest turns among the shortest routes
 
 	path_layer.draw()

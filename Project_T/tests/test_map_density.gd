@@ -3,7 +3,7 @@ extends SceneTree
 # layouts" and "Room to maze"): an open build bowl the player's Wardens maze, the obstacles in the frame.
 # - Random layouts at Blight 0 and 9: obstacles in OBSTACLES_BLIGHT_0 / _9 (at least MIN_OBSTACLES: the
 #   clearing Dream cards need 8+), at most MAX_RIDGES spurs (+1 at Blight 9), BOWL_LOOSE lone obstacles in the
-#   bowl, an opening route in ROUTE_RANGE that bends round the bend spur (>= Manhattan + 4) on every map.
+#   bowl, an opening route in ROUTE_RANGE that bends round the bend spur (>= Manhattan + MapLayout.BEND_EXTRA) on every map.
 # - Each layout forced over LAYOUT_SEEDS seeds: route in ROUTE_RANGE and bent, the bowl open (buildable cells
 #   at least BUILDABLE_MIN), the layout's median obstacle count in OBSTACLES_BLIGHT_0.
 # - Each feature forced: it's placed, keeps its distance from the start and end, sits in the frame band or
@@ -14,8 +14,8 @@ const SEEDS := 50
 const LAYOUT_SEEDS := 20
 const MIN_OBSTACLES := 12
 const MAX_RIDGES := 2  # The bend spur + one short spur; +1 at Blight 9 (as many as fit)
-const ROUTE_RANGE := Vector2i(20, 36)  # Opening route, full cells (Room to maze, 2026-10-05; was ~46)
-const ROUTE_MAX_BLIGHT_9 := 40  # Its extra spur can stretch the opening a little
+const ROUTE_RANGE := Vector2i(24, 42)  # Opening route, full cells (Room to maze with the +10 bend, 2026-10-05; was ~46)
+const ROUTE_MAX_BLIGHT_9 := 46  # Its extra spur can stretch the opening a little
 const OBSTACLES_BLIGHT_0 := Vector2i(30, 42)
 const OBSTACLES_BLIGHT_9 := Vector2i(30, 52)  # The extra spur is a deliberate step: less open floor
 const BOWL_LOOSE := Vector2i(2, 4)  # Lone decision obstacles in the bowl (not spur or feature cells)
@@ -198,7 +198,7 @@ func _check_heartwood(map: Node, env: Node, what: String) -> void:
 		_check(not map.obstacles.has(cell) and not env.pond_cells.has(cell) and not env.feature_cells.has(cell)
 			and not env.ridge_cells.has(cell), "%s: glade cell %s is clear" % [what, cell])
 
-# The opening route bends round the bend spur: at least the start→Heartwood Manhattan distance + 4.
+# The opening route bends round the bend spur: at least the start→Heartwood Manhattan distance + MapLayout.BEND_EXTRA.
 func _bends(map: Node) -> bool:
 	return map.route_length(map.get_path_from(map.startPath)) >= map.min_route_length
 
