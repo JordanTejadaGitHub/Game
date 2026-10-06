@@ -228,14 +228,12 @@ func _ready() -> void:
 	outer.add_child(row)
 	defaults_button = _footer_button(row, "Reset this tab", reset_tab)
 	defaults_button.name = "Defaults"
-	defaults_button.tooltip_text = "This tab's defaults (Apply to keep them)."
-	UiStyle.quiet(defaults_button)
+	defaults_button.tooltip_text = "This tab's defaults (Apply to keep them)."  # Framed: a real choice (button rule)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
 	cancel_button = _footer_button(row, "Cancel", cancel)
-	cancel_button.tooltip_text = "Closes without saving the changes."
-	UiStyle.quiet(cancel_button)
+	cancel_button.tooltip_text = "Closes without saving the changes."  # Framed: a real choice
 	apply_button = _footer_button(row, "Apply and close", _close_apply)
 	apply_button.name = "Apply"
 	apply_button.custom_minimum_size.x = 200
@@ -295,13 +293,14 @@ func _profile_reset_box() -> VBoxContainer:
 	reset.name = "Reset"
 	reset.text = "Reset"
 	reset.focus_mode = Control.FOCUS_NONE
-	UiStyle.primary(reset)
 	row.add_child(reset)
+	ChoiceCard.danger(reset)  # Destructive: POOR, never the primary (ui_style.md button rule)
 	var cancel := Button.new()
 	cancel.name = "Cancel"
 	cancel.text = "Cancel"
 	cancel.focus_mode = Control.FOCUS_NONE
 	row.add_child(cancel)
+	UiStyle.primary(cancel)  # The safe default
 	confirm.add_child(row)
 	box.add_child(confirm)
 	var restore := Button.new()

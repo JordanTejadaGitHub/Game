@@ -313,6 +313,8 @@ func _show_sapling() -> void:
 		button.focus_mode = Control.FOCUS_NONE
 		button.custom_minimum_size = Vector2(180, 48)
 		button.pressed.connect(pair[1])
+		if pair[0] == "Take the Sapling":
+			UiStyle.primary(button)  # The default (button rule)
 		row.add_child(button)
 	card.add_child(row)
 	_cards.add_child(card)

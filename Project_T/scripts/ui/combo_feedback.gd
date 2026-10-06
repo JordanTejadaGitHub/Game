@@ -151,6 +151,8 @@ func _ready() -> void:
 		button.focus_mode = Control.FOCUS_NONE
 		button.custom_minimum_size = Vector2(150, 48)
 		button.pressed.connect(pair[1])
+		if pair[0] == "Continue":
+			UiStyle.primary(button)  # The default (Space / Enter; button rule)
 		_buttons.add_child(button)
 	# Crowned Reactions get gold corners (effects.json crowned_card_accent: the top-left corner,
 	# mirrored for the others).

@@ -40,6 +40,8 @@ func _ready() -> void:
 		button.custom_minimum_size = Vector2(150 if button == _plant else 110, BUTTON_HEIGHT)
 		button.add_theme_font_size_override("font_size", 18)
 		button.pressed.connect(pair[2])
+		if button == _plant:
+			UiStyle.primary(button)  # The default (button rule)
 		add_child(button)
 	visible = false
 	if tower_placer != null and tower_placer.has_signal("stroke_changed"):

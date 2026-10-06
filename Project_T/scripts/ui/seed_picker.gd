@@ -89,8 +89,7 @@ func _ready() -> void:
 	for map in maps:
 		var row := _button(_list, "%s   drift %d, %s" % [String(map.date).replace("T", " ").left(16), map.survived, map.result])
 		row.name = "Map_%d" % map.seed
-		row.tooltip_text = "Seed %d" % map.seed
-		UiStyle.quiet(row)
+		row.tooltip_text = "Seed %d" % map.seed  # Framed: each a real choice (button rule)
 		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		row.pressed.connect(_choose.bind(int(map.seed)))
 	# A typed seed (digits; any whole number from 1 up).
@@ -118,8 +117,7 @@ func _ready() -> void:
 	_typed_go.custom_minimum_size = Vector2(120, UiStyle.HUD_BUTTON_H)
 	_typed_go.pressed.connect(func() -> void: _choose(typed_seed()))
 	typed_row.add_child(_typed_go)
-	var back := _button(box, "Back")
-	UiStyle.quiet(back)
+	var back := _button(box, "Back")  # Framed secondary
 	back.pressed.connect(queue_free)
 
 # The typed seed as a whole number from 1 (0 = nothing usable typed).

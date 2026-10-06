@@ -47,3 +47,15 @@ static func link_cue(cue: Button) -> void:
 				state = "hover"
 			cue.add_theme_stylebox_override("normal", looks[state])
 			cue.add_theme_color_override("font_color", looks[state + "_font"])), CONNECT_ONE_SHOT)
+
+# A destructive action (Abandon, Reset profile; ui_style.md button rule): the plain frame in POOR, lettered POOR, never the
+# primary; the caller sets it apart (a divider, a smaller size).
+static func danger(button: Button) -> void:
+	for state in ["normal", "hover", "pressed"]:
+		var box := button.get_theme_stylebox(state)
+		if box is MoonStyleBox:
+			box = (box as MoonStyleBox).duplicate()
+			(box as MoonStyleBox).frame_color = Color(UiStyle.POOR, 0.85 if state == "normal" else 1.0)
+			button.add_theme_stylebox_override(state, box)
+	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
+		button.add_theme_color_override(state, UiStyle.POOR)

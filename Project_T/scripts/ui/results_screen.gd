@@ -366,7 +366,7 @@ func _small(parent: Control, text: String) -> Button:
 	button.add_theme_font_size_override("font_size", 14)
 	return button
 
-# A quiet link (Details, Copy run report, Title): one shared look, the light pass's quiet style with an underline on
+# A quiet link (Details, an in-panel utility): one shared look, the light pass's quiet style with an underline on
 # hover, so they read as links and not stray labels.
 func _link(parent: Control, text: String) -> Button:
 	var link := _button(parent, text)

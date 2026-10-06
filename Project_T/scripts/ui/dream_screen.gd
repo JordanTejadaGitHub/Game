@@ -71,7 +71,9 @@ func _ready() -> void:
 	skip_row.add_child(_dev_any)
 	box.add_child(skip_row)
 	peek = ChoicePeek.new(self, [dim, center], "Back to the Dream")
-	box.add_child(peek.make_peek_button())
+	var peek_button := peek.make_peek_button()
+	UiStyle.quiet(peek_button)  # A utility (button rule), as on every choice screen
+	box.add_child(peek_button)
 	arm = ChoiceArm.attach(self, _cards)
 
 	visible = false
