@@ -827,6 +827,15 @@ human `longest_path` with the card; **above ~120 cells, cap it** (e.g. twig wall
 probe (the bot's wall planner, same walled area, Thornwalls vs twigs, 20 maps) goes in the queue after the
 plant/grow probe.
 
+## Human run 20 (2026-10-05 19:06, live main: grow setting + drift 10 eased; 0 Grove)
+
+Sporeling (13 + Lichenling + 2 Brood Cap), longest path 56. **Drifts 1–24: 0 leaks, 15/15 leaves**, closest
+≤ 0.87 (drift 10 now 0.37). **Drift 25, the Scarecrow: 14 leaks, all 15 leaves**; the board dealt 14.7k of
+18.8k health. Dew 2,150: plant 597 / grow 435 / ranks 1,062. Combos 16%. The Scarecrow is weak to spore, so
+this was a favourable draw: a clean run wiped by the boss alone is a cliff. Suspect: its 16 Crows (speed 190,
+4 at each of 80 / 60 / 40 / 20%) leaking on a short route, plus the 10-leaf bite. Per-boss survival from the
+bot data asked of Balancing Code before choosing a fix.
+
 ## Human run 19 (2026-10-05, build c473ca = 4aae45a5, the new grow setting; 0 Grove): "a bit too hard early on"
 
 Sporeling (Brood Cap ×3), lost at drift 20. Drifts 1–9 calm (closest ≤ 0.33, 0 leaks). **Drift 10: 10 leaks,
