@@ -376,6 +376,57 @@ Open maps read as one flat colour. The fix is **a few deliberate large patches**
 - Tests: patch count 3–5 (+ the glade ring), coverage 15–25%, every cell's mask matches its corners, the save rebuilds
   the same patches. Re-render `map_layouts.png` and one close-up preview per act.
 - When it lands, report to **Theme Discussion** (it's on the stable-before-marketing list).
+## Room to maze (spec, Environment Discussion, 2026-10-05)
+
+For maze_feel.md (8b50fce6), change 5. The user: *"the pathing, so you can create crazy mazes like Tropical Tower
+Wars"*. The map should hand the player a big open floor for switchbacks and spirals. The forest frames it instead
+of filling it.
+
+### 1. An open build bowl
+- **The bowl:** the map's interior inset **3 cells** from the rim (x 3–19, y 3–14 on 23×18), minus nothing. The start
+  and the inland Heartwood both sit in or at the bowl's edge, and the glade is inside it (buildable, as now).
+- **Inside the bowl:** almost no loose obstacles. **No** scatter rocks or tree groves; at most **2–4 lone obstacles**
+  as "decision" pieces (a single rock or tree worth clearing or building around). Ground patches and details stay:
+  they're decoration and walkable.
+- **The frame band** (the outer 3 cells): groves, rock clusters, the feature and ridge roots live here. It should
+  read as the forest's edge closing in around a clearing, which also suits the dark fairytale (the dream's lit
+  clearing, the nightmares' dark woods).
+- **Ridges become spurs:** 2 short spurs from the frame into the bowl, each reaching **at most ~35%** across, still
+  alternating sides so the opening route has its one guaranteed bend. They taper as now. Blight 9's extra ridge
+  becomes a third spur.
+- **The feature** (pond, ruin, grove, log) sits in the frame band or straddling its inner edge, never in the bowl's
+  middle. Keep the near-route rule only where the route runs through the band (the start's approach), so it still
+  shapes the opening.
+- **Obstacle target:** about **30–40** (down from ~60), never under **12** (clearing cards need 8+ left after a few
+  clears). `test_map_density`'s bands change with it, and **Balancing confirms** (fewer clears means fewer Tend Seeds,
+  and clearing cards get weaker).
+
+### 2. Generation guards
+- **The opening route band** (35–57) was set for a forested map. With an open bowl the opening route is short and
+  plain, which is fine: the player builds the length. **Drop `_extend_route_if_short`**, which would put obstacles
+  back into the bowl, and lower the floor to the start→Heartwood Manhattan distance + 4. Keep the guaranteed bend
+  (from the spurs) and the route guarantee. `max_route_length` only matters for generation; it never limits the
+  player's maze.
+- **The glade** stays (the 8 cells around the Heartwood, obstacle-free, buildable).
+- Nothing at play time caps route length (`max_route_length` is generation-only); keep it that way.
+
+### 3. Performance on crazy mazes
+Benchmark a worst-case **serpentine of 600–800 half steps** (and a spiral) built from staggered Wardens, at 150
+walkers:
+- `FindPath.straightest_point_path` (BFS + turn DP over the whole grid, ~2 ms now; it runs on every draw *and* on
+  route previews);
+- a ghost hover over a new cell (can_block + preview route);
+- a placement (block, route, re-route every walker, dual-path redraw of only the changed tiles, route mist and arrows);
+- a drag line of 10 walls (one route update at the end, not 10).
+
+**Budget:** a placement takes ≤ 4 ms to the new route, and ghost hover ≤ 3 ms per new cell, at 1× and while paused.
+If the straightest pass is the cost, run it only for the drawn route and the preview on hover-cell change (never per
+walker), cache it by `FindPath.version`, and fall back to plain A* with the sticky preference if it goes over budget.
+Add the benchmark as a test that prints the timings and fails over 2× budget.
+
+### 4. Out of scope here
+Coverage readout, cheap walls, build flow and Twig Walls belong to Tower Code / Balancing / Roguelite (maze_feel.md
+1–4, 6).
 ## Notes
 
 - Colours (2026-09-30, to fit the title and Memory Grove screens): the ground is night-indigo with a moss grain (act 1–2 moss/teal, act 3 violet with rust, act 4 frost), the dead trees are cool night bark with a teal lit side and moss flecks (the Grove trunks), rocks stay lavender stone. Warmth is only the path, the Heartwood and the Wardens.
