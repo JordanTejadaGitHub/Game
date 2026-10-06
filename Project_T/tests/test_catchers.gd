@@ -99,12 +99,12 @@ func _run() -> void:
 		"SupportLog: Dew caught and paid per catcher")
 	_check(log.get_panel_line(catcher).begins_with("Caught this run: "), "panel line (%s)" % log.get_panel_line(catcher))
 
-	# Interest caps: 60 each, 120 together
+	# Interest caps: 60 each, DewCatch.INTEREST_CAP together (130 since Balancing 2026-10-05)
 	var well2 := _plant("wellspring", Vector2(8, 5))
 	var well3 := _plant("wellspring", Vector2(10, 5))
 	run_state.dew = 5000
 	director.rest_started.emit(2, false, 0, true)
-	_check(run_state.dew == 5000 + 120, "all Wellsprings together pay at most 120 (%d)" % (run_state.dew - 5000))
+	_check(run_state.dew == 5000 + DewCatch.INTEREST_CAP, "all Wellsprings together pay at most the shared cap (%d)" % (run_state.dew - 5000))
 	well3.queue_free()
 	await process_frame
 
@@ -117,8 +117,8 @@ func _run() -> void:
 	run_state.dew = 1500
 	director.drift_started.emit(11)  # A new block: Still Waters watches
 	director.rest_started.emit(3, false, 0, true)
-	_check(paid_now.max() == 90 and paid_now.reduce(func(a, b): return a + b) == 120,
-		"Deep Well: a Wellspring's cap is 90, all together still 120 (%s)" % str(paid_now))
+	_check(paid_now.max() == 90 and paid_now.reduce(func(a, b): return a + b) == DewCatch.INTEREST_CAP,
+		"Deep Well: a Wellspring's cap is 90, all together still the shared cap (%s)" % str(paid_now))
 	_take("overflowing_well")
 	var shards := dreams.dreamlight_shards
 	run_state.dew = 3000
