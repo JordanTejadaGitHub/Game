@@ -78,7 +78,7 @@ var act1_boss := ""  # --boss=night_mare: act 1's boss forced (DriftDirector.pre
 var aura_placement := true  # --no-aura: place and grow aura Wardens (Acorn, Elder Stump, Grove Heart, Moon Moth) by path only
 var empty_loadout := false
 var loadout_ids: Array[String] = []  # --loadout=a,b,c: carry exactly these owned perks (e.g. second_thoughts,let_go,wider_dreams)
-var sidegrade := -1
+var sidegrade := -1  # --sidegrade=N: MetaRun.force_sidegrade, the perk style: 0 Power, 1 pure Sidegrade (Spire), 2 Hades (Meta Game Code); -1 = the setting (default Hades from cf8dae16). Before cf8dae16, 1 meant the Hades-like sidegrades
 var carry_pref := true  # --no-carry-pref: act 1 growth and Dreamlight don't prefer the carry branch (DreamState.is_carry), the bot before 2026-10-02
 var fence_pref := true  # --no-fence-pref: Jarlink growth ignores where its arc would fall (the bot before 2026-10-02)
 var wall_first := true  # --no-wall-first: the opening plants attackers first (the bot before 2026-10-05). Wall-first (Balancing, Room to maze): while the route is under WALL_FIRST_ROUTE cells, Thornwalls (the chain planner) come before everything else
@@ -241,7 +241,7 @@ func _run() -> void:
 				empty_loadout = value == "none"
 				if not empty_loadout:
 					loadout_ids.assign(value.split(","))
-			"--sidegrade": sidegrade = int(value)  # MetaRun.force_sidegrade (Spire branch): 0 Power perks, 1 Sidegrades
+			"--sidegrade": sidegrade = int(value)  # MetaRun.force_sidegrade: 0 Power, 1 pure Sidegrade (Spire), 2 Hades; -1 = the setting
 			"--no-aura": aura_placement = false
 			"--no-kin": kin_placement = false
 			"--focus": focus_mode = value
