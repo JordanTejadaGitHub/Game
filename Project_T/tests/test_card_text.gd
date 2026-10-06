@@ -58,6 +58,18 @@ func _initialize() -> void:
 	var beacon: UpgradeData = load("res://resource/dream/dream_beacon.tres")
 	var mark := "+%d%%" % roundi((load("res://resource/tower/beacon.tres") as TowerData).marked_bonus * 100.0)
 	_check(IconInfo.format(beacon.description).contains(mark), "Beacon's text shows its marked_bonus (%s): \"%s\"" % [mark, IconInfo.format(beacon.description)])
+	# An offered card always names what it's about (story chat, Mushroom Rain read "???'s spore cloud"): no "???" from a
+	# combo or nightmare not yet found, in any card's or Omen's text ({named_combo:x} on cards).
+	var hidden: Array[String] = []
+	for card in Check.load_cards():
+		for text in [card.description, card.cost_description, card.grows_text]:
+			if IconInfo.format(text).contains("???") or StatusLinks.bbcode(text).contains("???"):
+				hidden.append(card.id)
+	for file in ResourceLoader.list_directory("res://resource/omen/"):
+		var omen := load("res://resource/omen/" + file) as OmenData if file.ends_with(".tres") else null
+		if omen != null and IconInfo.format(omen.description).contains("???"):
+			hidden.append(omen.id)
+	_check(hidden.is_empty(), "no card or Omen text shows ??? (%s): write {named_combo:x}" % ", ".join(hidden))
 	# text_style.md "Card wording, one way each" (e2176ea3) on every card's text and cost line, and the stacking note
 	for card in Check.load_cards():
 		for text in [card.description, card.cost_description]:

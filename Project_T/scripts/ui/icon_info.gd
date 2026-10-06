@@ -272,7 +272,8 @@ static func format(text: String) -> String:
 		for found in _combo_pattern().search_all(text):
 			var id := StringName(found.get_string(1))
 			var combo := CodexData.get_any(id)
-			text = text.replace(found.get_string(), combo.get("name", "???") if not combo.is_empty() and CodexData.is_discovered(id) else "???")
+			var named := found.get_string().begins_with("{named_") or CodexData.is_discovered(id)  # A Dream card always names its combo
+			text = text.replace(found.get_string(), combo.get("name", String(id).capitalize()) if named and not combo.is_empty() else "???")
 	if text.contains("{echo:"):  # An echo Warden's echo_share, so a retune updates its texts: "75%", or "full"
 		for found in _echo_pattern().search_all(text):
 			text = text.replace(found.get_string(), echo_text(found.get_string(1)))
@@ -384,7 +385,7 @@ static var _combo_regex: RegEx = null
 static func _combo_pattern() -> RegEx:
 	if _combo_regex == null:
 		UiStyle.release_at_exit(func() -> void: _combo_regex = null)
-		_combo_regex = RegEx.create_from_string("\\{combo:([a-z_]+)\\}")
+		_combo_regex = RegEx.create_from_string("\\{(?:named_)?combo:([a-z_]+)\\}")  # {named_combo:x}: always named (Dream cards)
 	return _combo_regex
 
 # Family names as links (screens_ui.md "remove Half-dreamed"): "{family:dewdrop}" is the family's
