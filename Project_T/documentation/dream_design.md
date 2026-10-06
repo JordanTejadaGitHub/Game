@@ -1612,6 +1612,116 @@ after the build.
 - Survival is 0.7–2.6 drifts lower, but other gameplay commits landed in between, so it isn't pinned on this change.
 - Reading: even before, only about 1 card in 6–9 needed a family. The "damage booster" feel comes more from the many generic cards worded "deal X% more damage" than from family cards. That is the next lever.
 
+## Fewer, bigger cards (2026-10-06; user-approved)
+
+User: Dream cards should feel more impactful. Many are small stat bumps (+8% damage, +10% speed) that
+can't be felt in play. The Dream screen shows no hover previews of how much a card adds
+(screens_ui.md "Dream", ecbea61a), so **the card text must carry the meaning**. The user approved
+the plan below on 2026-10-06 ("Yes, no juggling").
+
+### Rules (all cards, from now on)
+
+1. **Nothing stacks.** A card is taken once, at a number you can feel. Its second step is its
+   Deepened **II** card. `max_stacks` is 1 everywhere, and "(stacks…)" leaves every text.
+2. **Prefer a rule you can see over a number.** "Every 4th attack is a crit" beats "+8% crit chance".
+3. **No trample triggers** (user: *"don't make cards that do stuff on trample, since the boss is the
+   only trample unit"*). Also no trigger that only one rare nightmare kind sets off. Triggers must
+   fire in most drifts.
+4. **Build-defining cards** (tag `defining`, below): from act 2, every offer shows one.
+5. **Bittersweet is dramatic on both sides** (below).
+
+### A. The changes, card by card
+
+| Id | Was | Now | Kind |
+|---|---|---|---|
+| `deeper_calm` | +15% damage (stacks) | all Wardens deal **30%** more damage; **II** +30% more | one copy + II |
+| `quickened_sap` | +15% attack speed (stacks) | all Wardens attack **30%** faster; **II** +30% more | one copy + II |
+| `longer_roots` | +0.5 range (stacks) | all Wardens reach **1 cell** further; **II** +1 more | one copy + II |
+| `glinting_dew` | +8% crit chance (stacks, up to +24%) | **every 4th attack from each Warden is a crit** | rule |
+| `bitter_sap` | +20% Potency (stacks) | **statuses your Wardens apply start with 1 extra stack** | rule |
+| `live_wire` | Static bolts +15% (stacks, up to +45%) | **{static} bolts jump to a second nightmare** | rule |
+| `lasting_dreams` | statuses +2 s (stacks, up to +6 s) | **statuses your Wardens apply last twice as long** | rule |
+| `quick_step` | calling early: +15% speed for 10 s (stacks) | calling a {drift} early makes all Wardens attack **50% faster until it has fully arrived** | rule |
+| `damp_rot` | +50% (stacks, up to +150%) | one copy at **+150%** | one copy |
+| `sparking_spores` | +50% (stacks, up to +150%) | one copy at **+150%** | one copy |
+| `rain_on_glass` | +35% (stacks, up to +105%) | one copy at **+105%** | one copy |
+| `heavy_dew` | +50% wider, +2 s (stacks) | one copy: splashes **twice as wide**, {damp} **+4 s** | one copy |
+| `heartwoods_reach` | 25% off (stacks, up to 50%) + 3 half-price clears | one copy: clearing costs **half**, + 3 half-price clears | one copy |
+| `hush` | +25% pulse reach (stacks, up to +75%) | one copy at **+75%** | one copy |
+| `longer_flight` | +1 cell (stacks, up to +3) | one copy at **+3 cells** | one copy |
+| `sharp_beaks` | +1 hit (stacks, up to +3) | one copy at **+2 hits** | one copy |
+| `dew_bowl` | +25 Dew now (stacks, up to +75) | one copy: **+60 Dew now** | one copy |
+| `sudden_insight` | +1 Dreamlight now (stacks) | one copy: **+2 Dreamlight now** | one copy |
+| `bright_marks` | Marked +20% | {marked} nightmares take **40%** more | bigger |
+| `family_ties` | Kinship +20% (stacks) | **cut** (Blood Is Thicker and Kindred cover Kinship damage) | cut |
+| `broad_splash` | +0.25 cells (stacks) | **cut**, folded into `far_reach`: area Wardens get +0.75 range **and splash 0.5 cells wider** | fold |
+| `acorn_cache` | Acorns 12 Dew, aura +10% | **cut**, folded into `warm_hearth`: aura bonuses are 50% stronger on Sprouts, **and Acorns cost 12 Dew** | fold |
+| `weathered_walls` | can't be trampled + cost 1 Dew | **Thornwalls cost 1 Dew** (only; no trample, no resell rule: "no juggling") | trample rule |
+| `thorn_snare` (Briar Trap) | Phantoms / Gravecrawlers through a wall are held 0.5 s | **each Thornwall holds the first nightmare that passes beside it each {drift} for 0.5 s**; II: 1 s | trample-like rule |
+| `flurry` | Grove (node `quickening`) | **start pool**, Common: every 5th attack from a Warden fires twice | moved |
+
+**New Commons** you can see (cards 257–261, start pool, no needs):
+
+| # | Card | Effect | Tags |
+|---|---|---|---|
+| 257 | **Thorny Walls** | Thornwalls lash one nightmare beside them every second (a Sprout's damage) | wall, maze, defining |
+| 258 | **Passing Dream** | A dispelled nightmare's statuses jump to the nearest nightmare | status, affliction |
+| 259 | **Lantern Glow** | The path tiles in each Warden's reach glow; nightmares on glowing tiles can't hide in fog and take 15% more | light, reach |
+| 260 | **First Frost** | The first nightmare of each {drift} is {held} 2 s at the first Warden it meets | held, tempo |
+| 261 | **Dew Line** | Every 10th nightmare dispelled in a {drift} drops its Dew share twice | economy |
+
+Net count: −3 cuts, +5 new Commons, Flurry moves. Each stacking card collapses from up to 3 copies
+to 1. Deepened II files: new ones only for Deeper Calm, Quickened Sap and Longer Roots. The
+Deepened ones that exist stay.
+
+### B. Build-defining cards: tag `defining`
+
+- **What counts:** the card adds a rule that rewards building around it (where you plant, how
+  Wardens attack, timing, maze shape), works with any families, and changes what you plant next.
+- **What doesn't:** flat stats, economy, single-family payoffs, leaves.
+- **Start-pool set** (Roguelite Code adds the tag):
+  - Solitude, Drumbeat, Momentum, Crowd Breaker, Odd One Out, Overlap, Twig Walls
+  - Cozy Corners, Straightaway, Lone Hunter, In the Thick, Thicket, Root Network, Heart of the Maze
+  - Watchful Rest, First Light, Old Growth, Fresh Growth, Head Start, Last Breath, Thinning the Herd
+  - Hedge Maze, Seedfall, Tender Care, Extended Family, Quick Reactions, Thorny Walls
+  - **Every Legendary** counts as defining.
+  - Grove cards that fit get the tag too (Bramble Oath, Forest's Edge, Last Stand, Mixed Grove,
+    Drumbeat-style placement cards); Roguelite Code tags them by this definition and lists them back.
+- **Offer rule:** from act 2 (drift 26+), every offer holds **at least 1 `defining` card you don't
+  own**.
+  - If the draw has none, the lowest-rarity non-family slot is swapped for a random unowned defining
+    card of that rarity, or an Uncommon if there is none.
+  - It works with "1 family / 1 plain stat per offer".
+  - Which defining card appears is random, so the player still adapts, never handed a build.
+  - Once every defining card is owned, the rule stops.
+- **On screen:** a small "build" mark on defining cards (Main / UI Code; the look is UI's).
+
+### C. Bittersweet: both sides dramatic
+
+The spike is about **double a normal Rare**. The price is felt every drift or rest, never a quiet
+−15%. Numbers below are targets; Balancing Discussion sets them.
+
+| Card | Spike | Price |
+|---|---|---|
+| **Thin Bark** | all Wardens deal **75%** more damage | the Heartwood's max leaves are **halved**, and you lose them now (never offered if it'd end the run) |
+| **Venom Bloom** | Potency **×2** | direct hits deal **40% less** |
+| **Blood Is Thicker** | Wardens in a {kinship} deal **double** damage | Wardens outside one deal **half** |
+| **Chosen Few** | rank V+ Wardens deal **double** damage | Wardens below rank III deal **half** |
+| **Deep Sleep** | all Wardens deal **80%** more damage | no rest bonus, **and Omens can't be faced**, for the rest of the run |
+| **Burn Back** | every Withered Tree is cleared **free, now** (no Seeds for them) | nightmares move **20% faster** for the rest of the run |
+| **Waking Dreams** (`restless_dreams`) | the next Dream offers **3 Legendaries** | Dreams can't be let pass, and **every offer shows 2 cards** for the rest of the run |
+
+### Who does what
+
+- **Balancing Discussion:** numbers for A (one-copy values, the 5 new Commons), B (nothing) and C.
+- **Roguelite Code:** all card data, `max_stacks` 1, the `defining` tag + offer rule, the new II
+  cards, Deep Sleep's Omen lock and Waking Dreams' 2-card offers.
+- **Tower Code:** Thorny Walls (Thornwall attack), Briar Trap's new hold, Glinting Dew's 4th-attack
+  crit, Live Wire's jump, Lantern Glow, First Frost, Flurry if its hook moves.
+- **Main / UI:** the "build" mark.
+- **Meta Game Discussion:** Flurry leaves node `quickening`; Broad Splash and Acorn Cache are cut
+  (check which nodes list them).
+
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 
 User (typed in Environment Discussion): *"make a card that makes walls 1x1 cell instead of the
