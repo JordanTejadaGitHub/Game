@@ -12,16 +12,16 @@
 				1
 			],
 			"frame": [
-				80,
-				83
+				72,
+				74
 			],
 			"point": [
-				37,
-				-12
+				34,
+				-3
 			],
 			"radius": [
-				15.0,
-				3.0
+				13.0,
+				2.0
 			]
 		},
 		"wellspring": {
@@ -103,13 +103,13 @@
 		},
 		"bloomcap": {
 			"frame": [
-				80,
-				85
+				72,
+				75
 			],
 			"kind": "cloud",
 			"point": [
-				64,
-				1
+				57,
+				8
 			]
 		},
 		"boulderback": {
@@ -137,48 +137,48 @@
 		},
 		"brood_cap": {
 			"frame": [
-				80,
-				89
+				72,
+				79
 			],
 			"kind": "spawn",
 			"point": [
-				57,
-				1
+				51,
+				8
 			],
 			"projectile": "spore_sprite"
 		},
 		"cairn": {
 			"frame": [
-				80,
-				79
+				72,
+				71
 			],
 			"kind": "lob",
 			"point": [
 				12,
-				-2
+				5
 			],
 			"projectile": "lob_stone"
 		},
 		"chime_stone": {
 			"frame": [
-				80,
-				81
+				72,
+				72
 			],
 			"kind": "pulse",
 			"point": [
-				39,
+				35,
 				46
 			]
 		},
 		"cloudlet": {
 			"frame": [
-				80,
-				90
+				72,
+				80
 			],
 			"kind": "zone",
 			"point": [
 				11,
-				-2
+				5
 			]
 		},
 		"crown_of_thorns": {
@@ -194,12 +194,12 @@
 		},
 		"deeproot": {
 			"frame": [
-				80,
-				88
+				72,
+				78
 			],
 			"kind": "pulse",
 			"point": [
-				39,
+				35,
 				46
 			]
 		},
@@ -225,13 +225,13 @@
 		},
 		"dreamcatcher": {
 			"frame": [
-				80,
-				82
+				72,
+				73
 			],
 			"kind": "projectile",
 			"point": [
-				60,
-				1
+				53,
+				8
 			],
 			"projectile": "dream_mote"
 		},
@@ -248,13 +248,13 @@
 		},
 		"driftspore": {
 			"frame": [
-				80,
-				86
+				72,
+				77
 			],
 			"kind": "projectile",
 			"point": [
-				60,
-				-6
+				53,
+				2
 			],
 			"projectile": "spore"
 		},
@@ -282,13 +282,13 @@
 		},
 		"echo_hollow": {
 			"frame": [
-				80,
-				85
+				72,
+				76
 			],
 			"kind": "echo",
 			"point": [
-				43,
-				22
+				39,
+				26
 			]
 		},
 		"edgestone": {
@@ -305,12 +305,12 @@
 		},
 		"elder_stump": {
 			"frame": [
-				80,
-				85
+				72,
+				76
 			],
 			"kind": "pulse",
 			"point": [
-				39,
+				35,
 				46
 			]
 		},
@@ -328,12 +328,12 @@
 		},
 		"fairy_ring": {
 			"frame": [
-				80,
-				82
+				72,
+				73
 			],
 			"kind": "trap",
 			"point": [
-				39,
+				35,
 				51
 			],
 			"projectile": "fairy_ring"
@@ -348,13 +348,13 @@
 		},
 		"frostfern": {
 			"frame": [
-				80,
-				93
+				72,
+				83
 			],
 			"kind": "projectile",
 			"point": [
-				58,
-				-13
+				52,
+				-4
 			],
 			"projectile": "frost_shard"
 		},
@@ -371,13 +371,13 @@
 		},
 		"graftling": {
 			"frame": [
-				80,
-				93
+				72,
+				83
 			],
 			"kind": "copy",
 			"point": [
-				39,
-				-17
+				35,
+				-8
 			]
 		},
 		"great_dreamcatcher": {
@@ -394,12 +394,12 @@
 		},
 		"groundroot": {
 			"frame": [
-				80,
-				88
+				72,
+				78
 			],
 			"kind": "pulse",
 			"point": [
-				39,
+				35,
 				46
 			]
 		},
@@ -416,12 +416,12 @@
 		},
 		"gust": {
 			"frame": [
-				80,
-				98
+				72,
+				87
 			],
 			"kind": "spread",
 			"point": [
-				39,
+				35,
 				46
 			]
 		},
@@ -473,59 +473,59 @@
 		},
 		"hummingbird_bower": {
 			"frame": [
-				80,
-				80
+				72,
+				71
 			],
 			"kind": "multi",
 			"point": [
-				67,
-				4
+				59,
+				10
 			],
 			"projectile": "hummingbird"
 		},
 		"hushbell": {
 			"frame": [
-				80,
-				89
+				72,
+				79
 			],
 			"kind": "aura",
 			"point": [
-				39,
-				37
+				35,
+				39
 			]
 		},
 		"inkcap": {
 			"frame": [
-				80,
-				86
+				72,
+				77
 			],
 			"kind": "projectile",
 			"point": [
-				51,
-				-2
+				46,
+				5
 			],
 			"projectile": "ink_drop"
 		},
 		"jarlink": {
 			"frame": [
-				80,
-				92
+				72,
+				81
 			],
 			"kind": "fence",
 			"point": [
-				8,
-				-6
+				9,
+				2
 			]
 		},
 		"jetreed": {
 			"frame": [
-				80,
-				90
+				72,
+				80
 			],
 			"kind": "jet",
 			"point": [
-				73,
-				9
+				64,
+				15
 			]
 		},
 		"jewelwing_court": {
@@ -542,25 +542,25 @@
 		},
 		"lanternmoth": {
 			"frame": [
-				80,
-				94
+				72,
+				84
 			],
 			"kind": "projectile",
 			"point": [
-				39,
-				-13
+				35,
+				-4
 			],
 			"projectile": "light_orb"
 		},
 		"lichenling": {
 			"frame": [
-				80,
-				90
+				72,
+				87
 			],
 			"kind": "projectile",
 			"point": [
-				60,
-				-10
+				53,
+				-2
 			],
 			"projectile": "lichen_flake"
 		},
@@ -610,13 +610,13 @@
 		},
 		"magpie_perch": {
 			"frame": [
-				80,
-				79
+				72,
+				71
 			],
 			"kind": "swoop",
 			"point": [
-				65,
-				-5
+				58,
+				3
 			],
 			"projectile": "magpie"
 		},
@@ -645,12 +645,12 @@
 		},
 		"mistveil": {
 			"frame": [
-				80,
-				86
+				72,
+				77
 			],
 			"kind": "cloud",
 			"point": [
-				39,
+				35,
 				46
 			]
 		},
@@ -702,13 +702,13 @@
 		},
 		"mossback": {
 			"frame": [
-				80,
-				81
+				72,
+				73
 			],
 			"kind": "projectile",
 			"point": [
-				67,
-				-7
+				59,
+				0
 			],
 			"projectile": "boulder"
 		},
@@ -734,14 +734,14 @@
 		"old_lichen": {
 			"frame": [
 				80,
-				93
+				106
 			],
 			"kind": "projectile",
 			"point": [
 				63,
 				-13
 			],
-			"projectile": "lichen_flake"
+			"projectile": "lichen_clump"
 		},
 		"pebbling": {
 			"kind": "projectile",
@@ -753,13 +753,13 @@
 		},
 		"pinwheel": {
 			"frame": [
-				80,
-				79
+				72,
+				71
 			],
 			"kind": "spin",
 			"point": [
-				39,
-				35
+				35,
+				36
 			]
 		},
 		"pond_keeper": {
@@ -769,19 +769,19 @@
 			],
 			"kind": "pull",
 			"point": [
-				75,
+				73,
 				23
 			]
 		},
 		"prism_jar": {
 			"frame": [
-				80,
-				96
+				72,
+				88
 			],
 			"kind": "aura",
 			"point": [
-				37,
-				-6
+				34,
+				2
 			]
 		},
 		"puffball": {
@@ -798,24 +798,24 @@
 		},
 		"quaker": {
 			"frame": [
-				80,
-				81
+				72,
+				72
 			],
 			"kind": "pulse",
 			"point": [
-				39,
-				43
+				35,
+				44
 			]
 		},
 		"rain_lily": {
 			"frame": [
-				80,
-				90
+				72,
+				80
 			],
 			"kind": "projectile",
 			"point": [
-				37,
-				-16
+				34,
+				-7
 			],
 			"projectile": "dew_drop"
 		},
@@ -832,13 +832,13 @@
 		},
 		"rampart": {
 			"frame": [
-				80,
-				79
+				72,
+				71
 			],
 			"kind": "pulse",
 			"point": [
-				39,
-				43
+				35,
+				44
 			]
 		},
 		"resonance": {
@@ -866,23 +866,23 @@
 		},
 		"rootcurl": {
 			"frame": [
-				80,
-				88
+				72,
+				78
 			],
 			"kind": "pull",
 			"point": [
-				79,
-				25
+				70,
+				28
 			]
 		},
 		"rootlight": {
 			"frame": [
-				80,
-				88
+				72,
+				78
 			],
 			"kind": "light",
 			"point": [
-				39,
+				35,
 				46
 			]
 		},
@@ -895,13 +895,13 @@
 		},
 		"samara": {
 			"frame": [
-				80,
-				85
+				72,
+				75
 			],
 			"kind": "boomerang",
 			"point": [
-				70,
-				1
+				61,
+				8
 			],
 			"projectile": "maple_seed"
 		},
@@ -918,13 +918,13 @@
 		},
 		"silver_bell": {
 			"frame": [
-				80,
-				86
+				72,
+				77
 			],
 			"kind": "toll",
 			"point": [
-				58,
-				1
+				52,
+				8
 			]
 		},
 		"snugroot": {
@@ -940,13 +940,13 @@
 		},
 		"sparkler": {
 			"frame": [
-				80,
-				93
+				72,
+				83
 			],
 			"kind": "firework",
 			"point": [
-				70,
-				-2
+				62,
+				5
 			]
 		},
 		"sporeling": {
@@ -967,13 +967,13 @@
 		},
 		"standing_stone": {
 			"frame": [
-				80,
-				79
+				72,
+				71
 			],
 			"kind": "projectile",
 			"point": [
-				46,
-				-3
+				41,
+				4
 			],
 			"projectile": "sling_stone"
 		},
@@ -1013,57 +1013,57 @@
 		},
 		"stormcap": {
 			"frame": [
-				80,
-				88
+				72,
+				78
 			],
 			"kind": "chain",
 			"point": [
-				51,
-				-10
+				46,
+				-2
 			]
 		},
 		"sunpetal": {
 			"frame": [
-				80,
-				92
+				72,
+				81
 			],
 			"kind": "beam",
 			"point": [
-				49,
-				-2
+				43,
+				5
 			]
 		},
 		"tangleroot": {
 			"frame": [
-				80,
-				88
+				72,
+				78
 			],
 			"kind": "hold",
 			"point": [
-				39,
+				35,
 				46
 			]
 		},
 		"thorncoil": {
 			"frame": [
-				80,
-				88
+				72,
+				78
 			],
 			"kind": "pulse",
 			"point": [
-				39,
+				35,
 				46
 			]
 		},
 		"thrum": {
 			"frame": [
-				80,
-				90
+				72,
+				80
 			],
 			"kind": "cone",
 			"point": [
-				67,
-				-6
+				59,
+				2
 			]
 		},
 		"thunderhead": {
@@ -1090,13 +1090,13 @@
 		},
 		"undercurrent": {
 			"frame": [
-				80,
-				90
+				72,
+				80
 			],
 			"kind": "zone",
 			"point": [
-				39,
-				43
+				35,
+				44
 			]
 		},
 		"vesper_bell": {
@@ -1112,13 +1112,13 @@
 		},
 		"whetstone": {
 			"frame": [
-				80,
-				79
+				72,
+				71
 			],
 			"kind": "projectile",
 			"point": [
-				68,
-				12
+				60,
+				17
 			],
 			"projectile": "whetstone_slash"
 		},
@@ -1164,13 +1164,13 @@
 		},
 		"wrens_nest": {
 			"frame": [
-				80,
-				86
+				72,
+				76
 			],
 			"kind": "swoop",
 			"point": [
-				57,
-				-7
+				51,
+				0
 			],
 			"projectile": "wren"
 		},
