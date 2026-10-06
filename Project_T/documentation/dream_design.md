@@ -1764,14 +1764,20 @@ existing cards, so those cards fill the role instead of new ones:
 | # | Card | Effect | Shines with |
 |---|---|---|---|
 | 262 | **Small Hands** | Anything a Warden sends out (sprites, birds, seeds, stones it lobs) deals **35%** more and lasts 1 s longer | Brood Cap, Nestling birds, Samara, Cairn |
-| 263 | **Sap Rising** | Wardens that don't attack (auras, catchers, Dreamcatchers) pulse the 8 cells around them every 2 s; each pulse deals **2 s × its aura bonus × the summed DPS of the attackers in its aura** (at least 2 s × 50% of the median attacker DPS, so catchers and Dreamcatchers hit too) | Acorn, Grove Heart, Dewcatcher, Dreamcatcher |
+| 263 | **Sap Rising** | Wardens that don't attack (auras, catchers, Dreamcatchers) pulse the 8 cells around them every 2 s; each pulse deals **2 s × its aura bonus × the summed DPS of the attackers in its aura** (at least 2 s × 50% of the median attacker DPS, so catchers and Dreamcatchers hit too) | the Acorn line's Elder Stump, Grove Heart, Grandmother Oak; Dewcatcher, Wellspring, Dreamcatchers (the base Acorn attacks, so it doesn't pulse) |
 | 264 | **Lingering Ground** | Ground effects (clouds, trails, rings, rubble, pools, lit tiles) **last 50% longer** (×1.5: overlapping clouds turn duration into damage almost 1:1) | Sporeling, Fairy Ring, Dewdrop pools, Cairn rubble, Rootlight |
 
 - **Sap Rising vs The Quiet Ones:** The Quiet Ones (Legendary) makes non-attacking Wardens 50%
   stronger at their job. Sap Rising makes them deal damage. Thornwalls are left out (Thorny Walls
   covers them).
-- **Small Hands:** Tower Code first checks whether sent-out things already carry Dream bonuses. If
-  they don't, the card's first effect is that they do; the 35% sits on top. Numbers: balance_simulation.md 60dad611.
+- **Small Hands:** sent-out things already hit through their Warden's `hit()`, so they carried every
+  Dream bonus; the card is the +35% on top (numbers: balance_simulation.md 60dad611).
+  - The +1 s only applies to things with a timer: brood sprites (9 s instead of 8) and
+    hummingbirds' pecking.
+  - Seeds fly by distance and patrols never end, so they get only the damage.
+  - Text: "…deal 35% more damage; sprites and birds stay 1 s longer."
+- **Built:** Tower Code 712d37d3 (hooks), Roguelite Code d1d0f4aa / e89eb28d (cards). The Sap
+  Rising pulse uses a placeholder dust ring until Tower Assets draws one.
 - **Opposite pairs**, so no setup is best for every family mix:
   - Watchful Rest / Stirring Roots vs Flurry / Momentum
   - Solitude vs Drumbeat and the Kinship cards
