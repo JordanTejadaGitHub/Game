@@ -1740,6 +1740,22 @@
 			"loop": true,
 			"note": "Rockslide: one path tile of slowing rubble. Draw under nightmares. Loops: Fx.play(&\"rubble\", tile, world, 1.0, true, 3.0) holds it 3 s and fades it out."
 		},
+		"sap_pulse": {
+			"anchor": [
+				96,
+				96
+			],
+			"file": "sap_pulse.png",
+			"fps": 12.0,
+			"frame_size": [
+				192,
+				192
+			],
+			"frames": 8,
+			"kind": "ground",
+			"loop": false,
+			"note": "Sap Rising: a support Warden's pulse covering its 3x3 cells at scale 1.0 (anchor = the Warden's cell centre; scale x2/3 per extra cell for bigger footprints). ~0.67 s, z -1."
+		},
 		"shard_rise": {
 			"anchor": [
 				12,
