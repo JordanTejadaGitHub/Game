@@ -101,6 +101,7 @@ func set_blocked(cell: Vector2, blocked: bool) -> void:
 
 # Makes future paths stick to `points` (the current route) when there's a tie.
 func set_preferred_cells(points: PackedVector2Array) -> void:
+	_preferred_version += 1
 	for node in _preferred_nodes:
 		if _astar.is_in_boundsv(node):
 			_astar.set_point_weight_scale(node, _off_route_weight)
@@ -134,6 +135,21 @@ func calculate_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
 # wide, and a plain A* route jogs between their lanes one half at a time, which draws as a broad smeared
 # band with the walkers on its edge.
 func straightest_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
+	# Cached by what it depends on (the blocked halves, the ends, the preferred route): the build ghost's
+	# preview already searched the grid the placement makes, so draw() right after reuses it.
+	var key := [hash(_blocked), start, end, _preferred_version]
+	if key == _straight_key:
+		return _straight_route.duplicate()
+	var route := _straightest_search(start, end)
+	_straight_key = key
+	_straight_route = route.duplicate()
+	return route
+
+var _straight_key: Array = []
+var _straight_route := PackedVector2Array()
+var _preferred_version := 0  # Bumped by set_preferred_cells (part of the straightest cache key)
+
+func _straightest_search(start: Vector2, end: Vector2) -> PackedVector2Array:
 	var a := point_to_node(start)
 	var b := point_to_node(end)
 	if is_whole_cell(end):
@@ -223,6 +239,87 @@ func straightest_point_path(start: Vector2, end: Vector2) -> PackedVector2Array:
 	for i in nodes.size():
 		points[i] = node_to_point(nodes[i])
 	return points
+
+# True if calculate_point_path(point, end) would find a route: one flood fill from the end per grid version,
+# then a lookup per point (the path rule asks this for every walking nightmare, ~150, after every change).
+func reaches(point: Vector2, end: Vector2) -> bool:
+	var key := [version, end]
+	if key != _reach_key:
+		_reach_key = key
+		_flood_from(end)
+	if is_whole_cell(point):  # A whole cell (the start): any free half of it (they're side by side)
+		for h in halves_of_cell(point):
+			var n := Vector2i(h)
+			if _walkable_node(n) and _dist[n.y * _size.x + n.x] >= 0:
+				return true
+		return false
+	var node := point_to_node(point)
+	return _walkable_node(node) and _dist[node.y * _size.x + node.x] >= 0
+
+var _reach_key: Array = []
+var _dist := PackedInt32Array()  # Steps from each half cell to the end (-1: no way there)
+
+# From route point `point` towards `end`, one shortest step at a time (down the distance field), until it
+# stands on a half marked in `stop` (1 per half: a route the caller knows) or at the end: the points walked,
+# `point` first. Empty if there's no way. Ties keep going straight. Much cheaper than a search per nightmare.
+func descend(point: Vector2, end: Vector2, stop: PackedByteArray) -> PackedVector2Array:
+	if is_whole_cell(point) or not reaches(point, end):
+		return PackedVector2Array()
+	var node := point_to_node(point)
+	var i := node.y * _size.x + node.x
+	var points := PackedVector2Array([point])
+	var w := _size.x
+	var offsets := PackedInt32Array([-w, 1, w, -1])  # Up, right, down, left
+	var heading := -1
+	while _dist[i] > 0:
+		if points.size() > 1 and stop[i] == 1:
+			return points
+		var want := _dist[i] - 1
+		var x := i % w
+		var next := -1
+		for k in 5:
+			var dir := heading if k == 0 else k - 1
+			if dir < 0 or (k > 0 and dir == heading):
+				continue
+			if (dir == 1 and x == w - 1) or (dir == 3 and x == 0):
+				continue
+			var j := i + offsets[dir]
+			if j >= 0 and j < _dist.size() and _dist[j] == want:
+				next = j
+				heading = dir
+				break
+		i = next
+		points.append(node_to_point(Vector2i(i % w, i / w)))
+	return points
+
+func _flood_from(end: Vector2) -> void:
+	_dist.resize(_size.x * _size.y)
+	_dist.fill(-1)
+	var queue := PackedInt32Array()
+	var seeds: Array[Vector2] = halves_of_cell(end) if is_whole_cell(end) else [Vector2(point_to_node(end))]
+	for h in seeds:
+		var n := Vector2i(h)
+		if _walkable_node(n) and _dist[n.y * _size.x + n.x] < 0:
+			_dist[n.y * _size.x + n.x] = 0
+			queue.append(n.y * _size.x + n.x)
+	var head := 0
+	while head < queue.size():
+		var i := queue[head]
+		head += 1
+		var x := i % _size.x
+		var next := _dist[i] + 1
+		if x > 0 and _dist[i - 1] < 0 and _blocked[i - 1] == 0:
+			_dist[i - 1] = next
+			queue.append(i - 1)
+		if x < _size.x - 1 and _dist[i + 1] < 0 and _blocked[i + 1] == 0:
+			_dist[i + 1] = next
+			queue.append(i + 1)
+		if i >= _size.x and _dist[i - _size.x] < 0 and _blocked[i - _size.x] == 0:
+			_dist[i - _size.x] = next
+			queue.append(i - _size.x)
+		if i + _size.x < _dist.size() and _dist[i + _size.x] < 0 and _blocked[i + _size.x] == 0:
+			_dist[i + _size.x] = next
+			queue.append(i + _size.x)
 
 # A nightmare fits at `point` (a route point; a whole cell: its top-left half).
 func is_walkable(point: Vector2) -> bool:

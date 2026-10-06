@@ -43,6 +43,8 @@ var ambience: EnvironmentAmbience  # Edge fog and the act's particles
 var ground_patches: GroundPatches  # Ground variation (environment_assets.md "Ground variation")
 var tree_fade: TallObstacleFade  # Withered Trees fade their overhang over what's behind them
 var gifts: MapGifts  # Heartwood's Gifts: terrain the act-break gifts leave (map_gifts.gd)
+var _route_hold := 0  # hold_route() depth
+var _route_dirty := false  # A block changed while held: redraw at release_route()
 
 
 # Called when the node enters the scene tree for the first time.
@@ -396,6 +398,7 @@ func get_path_if_blocked(cell: Vector2, drawn := false) -> PackedVector2Array:
 func can_block(cell: Vector2, also_from: PackedVector2Array = PackedVector2Array()) -> bool:
 	if not is_buildable(cell):
 		return false
+	var version := probe_begin()
 	path_layer.set_cell_blocked(cell, true)
 	var ok := not path_layer.find_path_from(startPath).is_empty()
 	for from_cell in also_from:
@@ -403,7 +406,17 @@ func can_block(cell: Vector2, also_from: PackedVector2Array = PackedVector2Array
 			break
 		ok = not path_layer.find_path_from(from_cell).is_empty()
 	path_layer.set_cell_blocked(cell, false)
+	probe_end(version)
 	return ok
+
+# A probe (block, search, open again) leaves the grid exactly as it was, so it puts FindPath.version back too:
+# the drawn route's tail stays valid (PathGenerator.route_tail), and the next placement check doesn't search
+# again from all ~150 nightmares (that was ~9 ms on a serpentine after every hover).
+func probe_begin() -> int:
+	return path_layer.get_finder().version
+
+func probe_end(version: int) -> void:
+	path_layer.get_finder().version = version
 
 # Permanently blocks `cell` (call can_block() first), redraws the path and notifies enemies.
 func block_cell(cell: Vector2) -> void:
@@ -429,6 +442,7 @@ func can_block_cells(cells: Array, also_from: PackedVector2Array = PackedVector2
 	for c in cells:
 		if not is_buildable(c):
 			return false
+	var version := probe_begin()
 	for c in cells:
 		path_layer.set_cell_blocked(c, true)
 	var ok := not path_layer.find_path_from(startPath).is_empty()
@@ -438,6 +452,7 @@ func can_block_cells(cells: Array, also_from: PackedVector2Array = PackedVector2
 		ok = not path_layer.find_path_from(from_cell).is_empty()
 	for c in cells:
 		path_layer.set_cell_blocked(c, false)
+	probe_end(version)
 	return ok
 
 # Blocks all of `cells` at once (call can_block_cells() first); one redraw, one path_changed.
@@ -501,6 +516,7 @@ func can_block_halves(halves: Array, also_from: PackedVector2Array = PackedVecto
 		if not is_buildable_half(h):
 			_refusal = &"occupied"
 			return false
+	var version := probe_begin()
 	for h in halves:
 		path_layer.set_half_blocked(h, true)
 	var route := path_layer.find_path_from(startPath)
@@ -513,13 +529,14 @@ func can_block_halves(halves: Array, also_from: PackedVector2Array = PackedVecto
 			if on_route.has(from_point):
 				continue
 			on_route[from_point] = true  # Searched (and fine if we go on)
-			if path_layer.find_path_from(from_point).is_empty():
+			if not path_layer.get_finder().reaches(from_point, endPath):  # One flood fill for all of them
 				ok = false
 				break
 	if not ok:
 		_refusal = &"closes"
 	for h in halves:
 		path_layer.set_half_blocked(h, false)
+	probe_end(version)
 	return ok
 
 func block_refusal() -> StringName:
@@ -529,21 +546,25 @@ func block_refusal() -> StringName:
 # draw() would draw then (fewest turns, ~2 ms) for a preview the player sees; else plain A* (same length).
 func get_path_if_blocked_halves(halves: Array, drawn := false) -> PackedVector2Array:
 	var changed: Array = halves.filter(func(h: Vector2) -> bool: return not path_layer.is_half_blocked(h))
+	var version := probe_begin()
 	for h in changed:
 		path_layer.set_half_blocked(h, true)
 	var path := path_layer.find_drawn_route() if drawn else path_layer.find_path_from(startPath)
 	for h in changed:
 		path_layer.set_half_blocked(h, false)
+	probe_end(version)
 	return path
 
 # The start's route if `halves` were opened (a Warden there gone), without changing anything.
 func get_path_if_opened_halves(halves: Array, drawn := false) -> PackedVector2Array:
 	var changed: Array = halves.filter(func(h: Vector2) -> bool: return path_layer.is_half_blocked(h))
+	var version := probe_begin()
 	for h in changed:
 		path_layer.set_half_blocked(h, false)
 	var path := path_layer.find_drawn_route() if drawn else path_layer.find_path_from(startPath)
 	for h in changed:
 		path_layer.set_half_blocked(h, true)
+	probe_end(version)
 	return path
 
 # Blocks `halves` (call can_block_halves() first), redraws the route and notifies nightmares.
@@ -551,13 +572,31 @@ func block_halves(halves: Array) -> void:
 	for h in halves:
 		path_layer.set_half_blocked(h, true)
 		environment_object_layer.erase_cell(Vector2i((h / 2.0).floor()))  # No grass detail under the Warden
-	path_layer.draw()
-	path_changed.emit()
+	_route_changed()
 
 # Opens `halves` again (a Warden sold). Opening never cuts a route.
 func unblock_halves(halves: Array) -> void:
 	for h in halves:
 		path_layer.set_half_blocked(h, false)
+	_route_changed()
+
+# Several blocks in a row (a drag stroke of Wardens): between hold_route() and release_route() the halves
+# change at once, but the route is redrawn and the nightmares re-routed only once, at the release.
+# Validity checks (can_block_halves) search the live grid, so each Warden is still checked after the last.
+func hold_route() -> void:
+	_route_hold += 1
+
+func release_route() -> void:
+	_route_hold = maxi(_route_hold - 1, 0)
+	if _route_hold == 0 and _route_dirty:
+		_route_dirty = false
+		path_layer.draw()
+		path_changed.emit()
+
+func _route_changed() -> void:
+	if _route_hold > 0:
+		_route_dirty = true
+		return
 	path_layer.draw()
 	path_changed.emit()
 
@@ -636,6 +675,13 @@ func remove_obstacle(cell: Vector2) -> void:
 	path_changed.emit()
 
 # Path from `cell` to the end, in cell coordinates. Used by enemies to re-route.
+# True if a nightmare at route point `point` still has a way to the Heartwood (get_path_from would find one),
+# without building the path: one flood fill per grid change, then a lookup. For checks over every walker.
+func has_route_from(point: Vector2) -> bool:
+	return path_layer.get_finder().reaches(point, endPath)
+
 func get_path_from(cell: Vector2) -> PackedVector2Array:
 	var tail := path_layer.route_tail(cell)  # On the current route: its tail, no search (every walker re-routes)
+	if tail.is_empty():
+		tail = path_layer.join_route(cell)  # Off it: down the distance field to the route, then its tail
 	return tail if not tail.is_empty() else path_layer.find_path_from(cell)
