@@ -149,16 +149,28 @@ static func sixth_slot_dev_active() -> bool:
 
 # Spire experiment "sidegrade perks" (meta_design.md, experiment/spire-difficulty): Grove perks become
 # trade-offs, not raw power. Same costs, levels and prerequisites; each carried perk keeps its upside and
-# adds a downside (SIDEGRADE_*). Developer setting "Perk style" (0 Power / 1 Sidegrade); since the Spire merge
-# (2026-10-02, Balancing Discussion) the full game defaults to Sidegrade, Power stays as the developer switch.
+# adds a downside (_apply_sidegrade). Developer setting "Perk style": 0 Power / 1 Sidegrade (every perk a
+# trade-off, pure Spire) / 2 Hades (the default, demo too; user 2026-10-02): Morning Stores, Rested Roots and Deep
+# Taproot stay plain power (Deep Taproot capped at level II), every other perk is its sidegrade. Power and
+# Sidegrade stay as developer switches for comparison.
 const PERK_STYLE_SETTING := "perk_style"
-const SIDEGRADE_LEAF_CAP := 2  # Deep Taproot's leaves in sidegrade mode (its level III adds nothing more)
-static var force_sidegrade := -1  # Tests: 0 Power, 1 Sidegrade, -1 = the setting
+enum PerkStyle { POWER, SIDEGRADE, HADES }
+const DEFAULT_PERK_STYLE := PerkStyle.HADES
+const HADES_POWER_PERKS := ["morning_stores", "rested_roots", "deep_taproot"]  # Plain power in the Hades style
+const SIDEGRADE_LEAF_CAP := 2  # Deep Taproot's leaves in the Hades style (its level III adds nothing more)
+static var force_sidegrade := -1  # Tests / balance_sim --sidegrade: a PerkStyle (0 Power, 1 Sidegrade, 2 Hades), -1 = the setting
 
-static func sidegrade_active() -> bool:
+static func perk_style() -> int:
 	if force_sidegrade >= 0:
-		return force_sidegrade == 1
-	return int(HeartwoodMemory.get_settings().get(PERK_STYLE_SETTING, 1)) == 1
+		return force_sidegrade
+	return int(HeartwoodMemory.get_settings().get(PERK_STYLE_SETTING, DEFAULT_PERK_STYLE))
+
+# Perks are trade-offs (Sidegrade or Hades): sidegrade texts and costs apply.
+static func sidegrade_active() -> bool:
+	return perk_style() != PerkStyle.POWER
+
+static func hades_active() -> bool:
+	return perk_style() == PerkStyle.HADES
 
 # Clear Sight's sidegrade cost, read by the map generator before the run starts: one extra ridge (like
 # Blight 9's) while it's carried. The full game only. A resumed run uses the count it was saved with
@@ -171,7 +183,7 @@ static func perk_extra_ridges() -> int:
 	return run_extra_ridges
 
 static func _loadout_extra_ridges() -> int:
-	if not sidegrade_active() or ResultsScreen.is_demo():
+	if not sidegrade_active():  # The demo too (Clear Sight sleeps there, so get_loadout never carries it)
 		return 0
 	var memory := HeartwoodMemory.load_data()
 	var unlock := HeartwoodMemory.get_unlock("clear_sight")
@@ -325,7 +337,7 @@ func _apply_grove(memory: Dictionary) -> void:
 		dew += unlock.starting_dew * level
 		run_state.dew_gain_bonus += unlock.dew_gain * level
 		drift_director.rest_bonus_perk_multiplier += unlock.rest_bonus * level
-		leaves += unlock.max_leaves * (mini(level, SIDEGRADE_LEAF_CAP) if sidegrade_active() else level)  # Hades-style: Deep Taproot tops out at +2
+		leaves += unlock.max_leaves * (mini(level, SIDEGRADE_LEAF_CAP) if hades_active() else level)  # Hades-style: Deep Taproot tops out at +2
 		rerolls += unlock.dream_rerolls * level
 		banishes += unlock.dream_banishes * level
 		extra_cards += unlock.extra_dream_cards * level
@@ -378,9 +390,20 @@ func _apply_grove(memory: Dictionary) -> void:
 # its normal effect. Returns the starting Dew it changes. Seed Pouch, Second Thoughts, Let Go, Omen Reader
 # and the slots are unchanged.
 # Hades-style (user, 2026-10-02): Morning Stores, Rested Roots and Deep Taproot stay honest power (Deep Taproot
-# capped at +2 leaves, SIDEGRADE_LEAF_CAP), so struggling new players get a little help.
+# capped at +2 leaves, SIDEGRADE_LEAF_CAP), so struggling new players get a little help. The pure Sidegrade
+# style (developer) gives those three their old costs too.
 func _apply_sidegrade(id: String, level: int) -> int:
 	match id:
+		"morning_stores":  # Pure Sidegrade: drifts 1–5 pay −15% of their Dew pot per level
+			if not hades_active() and "early_pot_multiplier" in drift_director:
+				drift_director.early_pot_multiplier -= 0.15 * level
+		"rested_roots":  # Pure Sidegrade: rest bonus +20% per level (not +10%), Dew pot −5% per level
+			if not hades_active():
+				drift_director.rest_bonus_perk_multiplier += 0.1 * level
+				run_state.dew_gain_bonus -= 0.05 * level
+		"deep_taproot":  # Pure Sidegrade: no leaf regrows at act breaks
+			if not hades_active():
+				drift_director.act_break_leaves = 0
 		"rich_dew":  # Rest bonus −10% per level
 			drift_director.rest_bonus_perk_multiplier -= 0.1 * level
 		"sprout_bed":  # −30 starting Dew

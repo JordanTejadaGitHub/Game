@@ -297,8 +297,11 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 
-	# --- Sidegrade perks (Spire experiment, MetaRun.sidegrade_active): each carried perk adds a cost ---
-	MetaRun.force_sidegrade = 1
+	# --- Sidegrade perks (Spire experiment, MetaRun.sidegrade_active): each carried perk adds a cost. The Hades style
+	# (the default) keeps Morning Stores, Rested Roots and Deep Taproot plain power ---
+	MetaRun.force_sidegrade = -1
+	_check(MetaRun.perk_style() == MetaRun.PerkStyle.HADES, "the default perk style is Hades")
+	MetaRun.force_sidegrade = MetaRun.PerkStyle.HADES
 	memory = HeartwoodMemory.load_data()
 	for id in ["morning_stores", "early_bloom", "early_light"]:
 		memory.unlocks[id] = _unlock(grove, id).get_levels()
@@ -343,6 +346,22 @@ func _run() -> void:
 	dreams = main.get_node("%DreamState")
 	_check(dreams.cards_per_offer == 4 and dreams.skip_dew == 0, "sidegrade Wider Dreams: 4 cards, Let it pass gives no Dew")
 	_check(dreams.first_offer_cards == 2, "sidegrade Kindling: the first Dream offer has 2 cards")
+	main.queue_free()
+	await process_frame
+	# Pure Sidegrade (developer style): those three get their costs too, and Deep Taproot keeps level III.
+	MetaRun.force_sidegrade = MetaRun.PerkStyle.SIDEGRADE
+	_check(taproot.get_levels() == 3 and taproot.get_description().contains("act breaks"), "pure Sidegrade Deep Taproot: 3 levels, its cost text")
+	memory = HeartwoodMemory.load_data()
+	memory.unlocks.deep_taproot = 3
+	memory.loadout = ["morning_stores", "rested_roots", "deep_taproot"]
+	HeartwoodMemory.save_data(memory)
+	main = await _new_run()
+	run_state = main.get_node("%RunState")
+	director = main.get_node("%DriftDirector")
+	_check(director.get_dew_pot_multiplier(3, false, false) < director.get_dew_pot_multiplier(6, false, false), "pure Sidegrade Morning Stores: drifts 1–5 pay less")
+	_check(is_equal_approx(director.rest_bonus_perk_multiplier, 1.0 + 0.2 + 0.2) and is_equal_approx(run_state.dew_gain_bonus, -0.1),
+		"pure Sidegrade Rested Roots II: +40%% rest bonus, −10%% pot (%s, %s)" % [director.rest_bonus_perk_multiplier, run_state.dew_gain_bonus])
+	_check(director.act_break_leaves == 0 and run_state.max_leaves == run_state.starting_leaves + 3, "pure Sidegrade Deep Taproot III: +3 leaves, no act-break regrow")
 	main.queue_free()
 	await process_frame
 	MetaRun.force_sidegrade = 0
