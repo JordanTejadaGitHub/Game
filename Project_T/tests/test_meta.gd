@@ -522,6 +522,12 @@ func _run() -> void:
 	_check(card_rect.end.x <= grove_screen._footer.position.x - grove_screen.CARD_GAP + 1
 		and card_rect.end.y <= grove_screen._zoom_row.position.y - grove_screen.CARD_GAP + 1,
 		"the card keeps clear of the button column and the zoom row (%s, column x %d)" % [card_rect, grove_screen._footer.position.x])
+	# A node with requirements, then one without: "needs" must hide (UI Code found it left empty on Bitter Hedges).
+	grove_screen._select(_unlock(grove, "rich_dew"))
+	_check(grove_screen._card_needs.visible, "Rich Dew's card shows what it needs")
+	grove_screen._select(_unlock(grove, "bitter_hedges"))
+	_check(not grove_screen._card_needs.visible, "a node that needs nothing shows no empty 'needs' heading")
+	grove_screen._select(_unlock(grove, "morning_stores"))
 	_check(view.state_of(_unlock(grove, "morning_stores")) == GroveTreeView.State.AFFORDABLE, "Morning Stores glows (affordable)")
 	_check(view.state_of(_unlock(grove, "rich_dew")) == GroveTreeView.State.LOCKED, "Rich Dew stays a bare twig until its parent grows")
 	grove_screen._plant_selected()
