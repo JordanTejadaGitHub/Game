@@ -14,8 +14,10 @@ replayable run, then leave players wanting the Deep Wood and the Memory Grove.
 - Only acts 1–2 nightmares need finished art and sound for the public demo.
 - Mobile's free tier is this same 50-drift demo (mobile_plan.md).
 - **A small demo Grove** (user, 2026-10-06: "yes sounds good"; replaces "no meta progression in the demo"): about **8
-  nodes** from the start of the tree are plantable in the demo with demo Seeds: perks and a few cards, **no extra
-  family** (families stay a reason to buy). The rest of the tree is visible but asleep, tagged "Full game", next to the
+  nodes** from the start of the tree are plantable in the demo with demo Seeds: perks and a few cards, **plus one
+  Warden family** (user, 2026-10-06: "add 1 Warden tree"; was "no extra family"): its family node is the demo
+  Grove's big carrot, the other families stay a reason to buy. Planting it adds it to the family picks (and its
+  branches to Remember) in demo runs. The rest of the tree is visible but asleep, tagged "Full game", next to the
   plantable ones. When all 8 are planted, the Grove says "Your tree keeps growing in the full game." with **Wishlist on
   Steam** (Steam / itch) or **Unlock the full game** (mobile). Everything planted and banked carries into the full game.
   Balancing tunes the demo so a fresh profile hits the targets and a full demo Grove makes it somewhat easier.
