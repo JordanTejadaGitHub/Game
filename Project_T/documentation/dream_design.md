@@ -1664,7 +1664,7 @@ the plan below on 2026-10-06 ("Yes, no juggling").
 
 | # | Card | Effect | Tags |
 |---|---|---|---|
-| 257 | **Thorny Walls** | Thornwalls lash one nightmare beside them for **5 damage every 2 s** | wall, maze, defining |
+| 257 | **Thorny Walls** | Thornwalls lash one nightmare beside them for **5 damage every second** (0421a2f7: every 2 s cost the bot act 1 survival) | wall, maze, defining |
 | 258 | **Passing Dream** | A dispelled nightmare's statuses jump to the nearest nightmare **within 2 cells** | status, affliction |
 | 259 | **Lantern Glow** | The path tiles in each Warden's reach glow; nightmares on glowing tiles can't hide in fog and take 15% more | light, reach |
 | 260 | **First Frost** | The **first 5 nightmares** of each {drift} are {held} **1.5 s** at the first Warden they meet | held, tempo |
