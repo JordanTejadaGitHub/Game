@@ -38,7 +38,7 @@ const STYLES := {"balanced": 0, "wide": 1, "narrow": 2, "combo": 3, "sleep": 4, 
 const COLUMNS := ["drift", "act", "seconds", "health_spawned", "damage", "leaks", "leaves_lost", "leaves_left",
 	"dew_rest", "dew_other", "spent_plant", "spent_walls", "spent_grow", "spent_nurture", "banked",
 	"attackers", "walls", "tier1", "tier2", "tier3", "tier4", "avg_rank", "route", "families", "cards",
-	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain", "combo_amount_share", "status_share", "hit_share", "combo_damage", "reaction_damage", "status_damage", "combo_share", "leaked_health", "closest_mean"]
+	"dreamlight", "top_warden", "top_share", "asleep_share", "reaction_share", "crit_share", "restless", "trampled", "approach", "chain_share", "longest_chain", "combo_amount_share", "status_share", "hit_share", "combo_damage", "reaction_damage", "status_damage", "combo_share", "leaked_health", "closest_mean", "warmup"]
 
 # Per style: [attacker room at drift 0, + per drift, cap], walls per attacker, nurture weight.
 const STYLE_PLAN := {
@@ -98,6 +98,8 @@ var save_at: Array[int] = []  # --save-at=N (repeatable): after the bot's spendi
 var _save_copy := ""
 var resumed_at := -1  # The drift the resumed save was resting after (resumed_at column)
 var _finals_first := false  # _grow prefers the highest tier (the --start-at build)
+var warmup_to := 0  # --warmup-to=51|76 (Balancing, the late-start option (2)): drifts before it play with RunState.invulnerable; at the rest before it the leaves are set to START_LEAVES and the real run begins. Warm-up rows are tagged warmup=1
+var warm := {"dew": 0, "leaks": 0, "attackers": -1, "walls": -1, "done": false}
 var extra_spend := ""  # --extra-spend=plant|grow|final|rank|none (balance_simulation.md a8c0365c "Plant vs grow vs rank"): at the resumed rest, X extra Dew spent only that way
 var extra_dew := 0  # --extra-dew=X
 var extra_x_mode := ""  # --extra-dew=grow|final: X = the cheapest base → branch / branch → final growth on the board
@@ -200,6 +202,7 @@ func _run() -> void:
 			"--start-leaves": start_leaves = int(value)
 			"--from-save": from_save = arg.substr(arg.find("=") + 1)
 			"--save-at": save_at.append(int(value))
+			"--warmup-to": warmup_to = int(value)
 			"--extra-spend": extra_spend = value
 			"--extra-dew":  # A number, or grow / final: the cheapest such growth on the resumed board (Balancing)
 				if value in ["grow", "final"]:
@@ -341,6 +344,8 @@ func _run() -> void:
 	route_base = _route_cells(map.get_path_from(map.startPath))
 	if start_at > 1:
 		_synthetic_start()
+	if warmup_to > 1:
+		run_state.invulnerable = true  # The warm-up: real drifts, real Dew and Dreams, no leaves lost until warmup_to
 	if extra_spend != "":
 		_extra_spend()  # Instead of the opening spend: every arm (the control too) keeps the saved board as it was
 	else:
@@ -454,9 +459,21 @@ func _on_rest(perfect: bool) -> void:
 	if n % director.drifts_per_act == 0:
 		run.banked_at_act[n / director.drifts_per_act + 1] = run_state.dew
 	_spend()
+	if warmup_to > 1 and not warm.done and n >= warmup_to - 1:
+		_end_warmup()
 	if save_at.has(n):
 		_write_snapshot(n)
 	_busy = false
+
+# --warmup-to: at the rest before it (after this rest's spending, the act-break leaf regrown), the run turns real.
+func _end_warmup() -> void:
+	warm.done = true
+	run_state.invulnerable = false
+	run_state.leaves = mini(start_leaves if start_leaves >= 0 else int(START_LEAVES.get(warmup_to, run_state.max_leaves)), run_state.max_leaves)
+	warm.attackers = _attackers().size()
+	warm.walls = _walls().size()
+	print("WARMUP done at the rest after drift %d: Dew earned %d, leaks %d, attackers %d, walls %d, leaves set to %d" % [
+		director.drifts_started, warm.dew, warm.leaks, warm.attackers, warm.walls, run_state.leaves])
 
 # --save-at: the board as it stands after this rest's spending, as a RunSaver run.json (for --from-save and the
 # snapshot library). Written into --out; RunSaver's own path is put back right away.
@@ -1168,7 +1185,10 @@ func _close_window(n: int) -> void:
 			top = name.get_slice("#", 0)
 	var damage := maxf(d.damage, 1.0)
 
-	var row := {"drift": n, "act": director.get_act(n), "seconds": snappedf(game_time - d.start, 0.1),
+	if warmup_to > 0 and n < warmup_to:
+		warm.dew += d.dew_rest + d.dew_other
+		warm.leaks += d.leaks
+	var row := {"warmup": 1 if warmup_to > 0 and n < warmup_to else 0, "drift": n, "act": director.get_act(n), "seconds": snappedf(game_time - d.start, 0.1),
 		"health_spawned": roundi(d.health_spawned), "damage": roundi(d.damage), "leaks": d.leaks,
 		"leaves_lost": run_state.leaves_lost, "leaves_left": run_state.leaves,
 		"dew_rest": d.dew_rest, "dew_other": maxi(d.dew_other - d.dew_rest, 0),
@@ -1290,6 +1310,10 @@ func _finish() -> void:
 	summary.start_dew = start_dew
 	summary.start_dreamlight = start_dl
 	summary.start_leaves = START_LEAVES.get(start_at, -1) if start_leaves < 0 else start_leaves
+	summary.warmup_to = warmup_to
+	summary.warmup_dew = warm.dew
+	summary.warmup_leaks = warm.leaks
+	summary.warmup_board = "%d/%d" % [warm.attackers, warm.walls]
 	summary.start_build = start_counts.replace(",", ";")
 	summary.from_save = from_save.get_file()
 	summary.resumed_at = resumed_at
