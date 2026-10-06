@@ -15,6 +15,7 @@ const LAYOUT_SEEDS := 20
 const MIN_OBSTACLES := 12
 const MAX_RIDGES := 2  # The bend spur + one short spur; +1 at Blight 9 (as many as fit)
 const ROUTE_RANGE := Vector2i(20, 36)  # Opening route, full cells (Room to maze, 2026-10-05; was ~46)
+const ROUTE_MAX_BLIGHT_9 := 40  # Its extra spur can stretch the opening a little
 const OBSTACLES_BLIGHT_0 := Vector2i(30, 42)
 const OBSTACLES_BLIGHT_9 := Vector2i(30, 52)  # The extra spur is a deliberate step: less open floor
 const BOWL_LOOSE := Vector2i(2, 4)  # Lone decision obstacles in the bowl (not spur or feature cells)
@@ -66,8 +67,9 @@ func _survey(blight: int, max_ridges: int) -> void:
 		_check(loose >= BOWL_LOOSE.x and loose <= BOWL_LOOSE.y, "blight %d seed %d: %d lone obstacles in the bowl (%d-%d)" % [
 			blight, seed_value, loose, BOWL_LOOSE.x, BOWL_LOOSE.y])
 		var length: int = map.route_length(map.get_path_from(map.startPath))
-		_check(length >= ROUTE_RANGE.x and length <= ROUTE_RANGE.y, "blight %d seed %d: opening route %d cells (%d-%d)" % [
-			blight, seed_value, length, ROUTE_RANGE.x, ROUTE_RANGE.y])
+		var most := ROUTE_MAX_BLIGHT_9 if blight >= 9 else ROUTE_RANGE.y
+		_check(length >= ROUTE_RANGE.x and length <= most, "blight %d seed %d: opening route %d cells (%d-%d)" % [
+			blight, seed_value, length, ROUTE_RANGE.x, most])
 		_check(env.ridge_count <= max_ridges, "blight %d seed %d: %d ridges (max %d)" % [
 			blight, seed_value, env.ridge_count, max_ridges])
 		_check(not map.get_path_from(map.startPath).is_empty(), "blight %d seed %d: a route exists" % [blight, seed_value])

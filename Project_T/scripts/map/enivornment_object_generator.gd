@@ -86,6 +86,7 @@ var pond_corners: Array = []  # [cell (Vector2), pond_inner column (0 NE, 1 SE, 
 var feature_cells: Array[Vector2] = []
 var log_cells: Array[Vector2] = []  # The log feature's cells: one obstacle, cleared as a unit (MapGenerator.get_obstacle_cells)
 var feature_near_route := false  # The feature was placed by a near-the-route try (the route ran through the band)
+var bowl_cells: Array[Vector2] = []  # The lone decision obstacles in the bowl
 
 func initialize(startPath: Vector2i, endPath: Vector2i) -> PackedVector2Array:
 	_start = startPath
@@ -133,6 +134,11 @@ func generate_obstacles(rng: RandomNumberGenerator, skip_cells: PackedVector2Arr
 		if in_band(cell) and not ridge_cells.has(cell) and not feature_cells.has(cell):
 			scatter.append(cell)
 	_thin_to_target(scatter, obstacles)
+	for cell in bowl_cells.slice(bowl_obstacles_min):  # Still over (long spurs, a big feature): fewer decision obstacles
+		if obstacles.size() <= target_obstacles_max:
+			break
+		obstacles.erase(cell)
+		erase_cell(Vector2i(cell))
 	_fill_to_minimum(rng, skip, obstacles)
 	return obstacles
 
@@ -152,8 +158,11 @@ func in_bowl(cell: Vector2) -> bool:
 
 # A few lone "decision" obstacles in the open bowl, never touching another obstacle (8 around).
 func _place_bowl_obstacles(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
+	bowl_cells.clear()
 	var want := rng.randi_range(bowl_obstacles_min, bowl_obstacles_max)
 	var placed := 0
+	if 1 + frame_band > int(MAP_GRID.size.y) - 2 - frame_band:
+		return  # No bowl (a frame as wide as the map: tests)
 	for attempt in 200:
 		if placed >= want:
 			return
@@ -162,6 +171,7 @@ func _place_bowl_obstacles(rng: RandomNumberGenerator, skip_cells: PackedVector2
 		if skip_cells.has(cell) or _touches_obstacle(cell, obstacles):
 			continue
 		_place_obstacle(rng, cell, tree_obstacle if rng.randf() < 0.5 else rock_obstacle, obstacles)
+		bowl_cells.append(cell)
 		placed += 1
 
 func _touches_obstacle(cell: Vector2, obstacles: Dictionary) -> bool:
@@ -197,13 +207,16 @@ func _thin_to_target(scatter: Array[Vector2], obstacles: Dictionary) -> void:
 
 # Tops a sparse map up to `target_obstacles_min` with lone trees and rocks on free band cells (route carving
 # still guarantees a way through).
-func _fill_to_minimum(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
+func _fill_to_minimum(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> Array[Vector2]:
+	var placed: Array[Vector2] = []
 	for attempt in 800:
 		if obstacles.size() >= maxi(min_obstacles, target_obstacles_min):
-			return
+			return placed
 		var cell := Vector2(rng.randi_range(1, int(MAP_GRID.size.x) - 2), rng.randi_range(1, int(MAP_GRID.size.y) - 2))
 		if in_band(cell) and not skip_cells.has(cell) and not obstacles.has(cell):
 			_place_obstacle(rng, cell, tree_obstacle if rng.randf() < 0.5 else rock_obstacle, obstacles)
+			placed.append(cell)
+	return placed
 
 # Ridges are wobbly tapering lines of rocks and trees running in from a wall, laid out by the map's
 # layout (MapLayout, environment_assets.md "Map layouts" / "Inland Heartwood"). They're generated in a
@@ -717,3 +730,12 @@ func _find_pond_corners(cells: Array[Vector2]) -> void:
 			var d := diagonals[column]
 			if cells.has(cell + Vector2(d.x, 0)) and cells.has(cell + Vector2(0, d.y)) and not cells.has(cell + d):
 				pond_corners.append([cell, column])
+
+# After route carving took some away: back up to the minimum with lone band obstacles, never on `route`
+# (whole cells the start's route runs through), so the route stays. Returns the cells placed.
+func top_up(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, route: Dictionary, obstacles: Dictionary) -> Array[Vector2]:
+	var skip := skip_cells.duplicate()
+	for cell: Vector2 in route:
+		skip.append(cell)
+	skip.append_array(PackedVector2Array(pond_cells))
+	return _fill_to_minimum(rng, skip, obstacles)

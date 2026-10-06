@@ -94,7 +94,10 @@ func _make_main(map_seed: int, rock_chance: float = -1.0) -> Node:
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
 	if rock_chance >= 0.0:
-		main.get_node("%EnvironmentObjectTileMapLayer").rock_chance = rock_chance
+		var env = main.get_node("%EnvironmentObjectTileMapLayer")
+		env.rock_chance = rock_chance
+		env.frame_band = 20  # No open bowl and no obstacle cap: a forest the route must be carved through
+		env.target_obstacles_max = 1000
 	root.add_child(main)
 	await process_frame
 	return main

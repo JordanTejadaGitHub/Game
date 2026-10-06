@@ -95,6 +95,12 @@ func _ready() -> void:
 		path_layer.set_cell_blocked(cell, true)
 	_carve_route_if_blocked()
 	_trim_route_if_long()  # No route extension any more: it refilled the open bowl (Room to maze)
+	if obstacles.size() < environment_object_layer.target_obstacles_min:  # Carving took some: lone band ones back, off the route
+		var on_route := {}
+		for point in path_layer.find_path_from(startPath):
+			on_route[(Vector2(FindPath.point_to_node(point)) / 2.0).floor()] = true
+		for cell in environment_object_layer.top_up(rng, skip, on_route, obstacles):
+			path_layer.set_cell_blocked(cell, true)
 	min_route_length = int(absf(endPath.x - startPath.x) + absf(endPath.y - startPath.y)) + 4
 	path_layer.prefer_route(_straightest_route())  # Fewest turns among the shortest routes
 
