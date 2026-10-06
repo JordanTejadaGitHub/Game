@@ -875,6 +875,9 @@ Sized beside the living-ground gifts (Moonwell +1 range within 1 cell, Spring +2
 | Shift the Stones | **+20 Dew × act** per stone moved (act 2 ≈ 120 for 3); the old spot fertile (half price) | 15 × act was under a drift's pot |
 | Shifting Mist | this act's Dew pots **+10%** (≈ 300 Dew in act 2) | +15% ≈ 470 Dew, four times Shift the Stones; the re-facing maze is its cost |
 
+In: Tower Code cdedfec0 (Warden buffs), Main Merger 285dbd6b (Dew, fertile, Mist), Environment Code 8833efaf (log slow,
+ridge Seeds; ridge trees paid 3 in total, asked to make it 2 as the doc says).
+
 ## Fewer, bigger cards: numbers (dream_design.md de439ea8, 2026-10-06)
 
 **Principle:** one pick ≈ **two** old stacked picks, never three. A rest still gives one card, so sizing every
