@@ -111,8 +111,14 @@ const MOTE_COLOR := Palette.GLOW  # Dispelled: the Wardens' light bursting out (
 
 @export var grid: Grid = preload("res://resource/map/map_grid.tres") # Reference to the shared Grid resource
 
-var health: int
-var max_health: int
+var health: int:
+	set(value):
+		health = value
+		_hud_dirty = true
+var max_health: int:
+	set(value):
+		max_health = value
+		_hud_dirty = true
 var speed: float
 var is_cleansed := false
 # Multiplies `enemy_data.health` (set before adding to the tree; drifts grow creatures this way).
@@ -178,8 +184,14 @@ var _bolt_flash := 0.0
 var _hit_mark := 0  # -1 resisted, +1 weak, 0 none
 var _hit_mark_time := 0.0
 # Blight coat left to soak up, and soothe it takes off each hit (both already health-scaled).
-var coat := 0.0
-var coat_max := 0.0
+var coat := 0.0:
+	set(value):
+		coat = value
+		_hud_dirty = true
+var coat_max := 0.0:
+	set(value):
+		coat_max = value
+		_hud_dirty = true
 var _coat_per_hit := 0.0
 # Omen modifiers for this creature's drift (set before adding to the tree; bosses get none):
 # {"speed", "coat", "dew", "status_duration": multiplier}. Split-off creatures inherit them.
@@ -189,7 +201,10 @@ var elite := false  # Deeply Blighted (set before adding to the tree)
 var _haze_phase := 0.0
 # Cached display settings (Fx.setting): health bars at full health too ("health_bars" 1), and the
 # elite outline ("blight_outline"). Re-read on the presence tick so the settings panel applies live.
-var _bars_always := false
+var _bars_always := false:
+	set(value):
+		_bars_always = value
+		_hud_dirty = true
 var _outlined := false
 var _status_flash := {}  # {status id: seconds left} for icons a combo just used
 var hold_time := 0.0  # Seconds to stand still before setting off (Wraiths in single file)
@@ -245,8 +260,14 @@ const RESTLESS_SPEED := 0.2
 const UNBOUND_AT := 3
 const RESTLESS_COLOR := Palette.DEWLIGHT
 const UNBOUND_GLOW := Palette.WRAITHLIGHT
-var restless := 0
-var unbound := false
+var restless := 0:
+	set(value):
+		restless = value
+		_hud_dirty = true
+var unbound := false:
+	set(value):
+		unbound = value
+		_hud_dirty = true
 var _last_cell := Vector2(-1, -1)  # The cell it last stood on (a turn-back heads there again)
 var _unbound_trail: CPUParticles2D
 var waiting := false
@@ -272,6 +293,7 @@ var _hud_root := RID()
 var _hud_items: Array[RID] = []
 var _hud_shown := false
 var _hud_scale := -1.0
+var _hud_dirty := true  # Something the HUD shows changed (the setters above); _process looks at the HUD only then
 # What the bars item shows (health, coat, Restless, bars always), and the marks item (statuses, time-bar steps)
 var _hud_health := -2  # (Bar width in px; -1 = hidden)
 var _hud_coat := -1
@@ -313,7 +335,10 @@ const HIDDEN_ALPHA := 0.22
 const ALWAYS_DAMP_TIME := 3600.0
 const ASH_COLOR := Color(Palette.DEWLIGHT, 0.5)  # Cold ghost-fire (art_direction.md: no warm embers on nightmares)
 const DIRECTIONS: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
-var _hidden := false
+var _hidden := false:
+	set(value):
+		_hidden = value
+		_hud_dirty = true
 var _presence_elapsed := 0.0
 var _ash_cells := {}  # {cell: seconds the ash still burns}
 var _always_statuses: Array[StringName] = []  # See _keep_always_statuses
@@ -486,7 +511,16 @@ func _process(delta: float) -> void:
 	if _redraw_pending and _on_screen(self):
 		_redraw_pending = false
 		queue_redraw()
-	_update_hud(delta)
+	# The HUD only when something it shows may have changed (perf, mobile_plan.md): its inputs' setters, a status
+	# change, the zoom, or while badges (their time bars), flashes or pops are on
+	# (Badges' time bars: every HUD_TIME_FRAMES frames, staggered, as _update_hud itself looks at them)
+	if _hud_dirty or statuses.hud_dirty or statuses.changes != _hud_changes \
+			or _hud_flashing or _hud_popping or not _status_flash.is_empty() or not _hud_pops.is_empty() \
+			or (_spawner != null and (_spawner.hud_text_scale != _hud_scale \
+				or (not _hud_ids.is_empty() and (_spawner.hud_frame + _hud_stagger) % HUD_TIME_FRAMES == 0))):
+		_hud_dirty = false
+		statuses.hud_dirty = false
+		_update_hud(delta)
 	_update_presence(delta)
 
 	if _dragging:
@@ -688,6 +722,7 @@ func _draw() -> void:
 func _update_hud(delta: float) -> void:
 	var overlay: NightmareOverlay = _spawner.overlay if _spawner != null else null
 	if overlay == null or overlay.badge_atlas == null:
+		_hud_dirty = true  # Not ready yet: look again next frame
 		return
 	var show := not _hidden and not is_cleansed
 	if not _hud_root.is_valid():

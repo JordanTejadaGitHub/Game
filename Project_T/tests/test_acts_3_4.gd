@@ -736,6 +736,43 @@ func _run() -> void:
 	_check(not streamer.stream_speeding, "not on a 2.5-cell straight")
 	_clear_enemies()
 
+	# --- The HUD is looked at only when something it shows changed (perf): every change shows the same frame ---
+	var hud_walker := _still("leaf_bug", route[5])
+	hud_walker.set_path(route.slice(5))
+	hud_walker._path_index = 1
+	var step := 1.0 / 60.0
+	hud_walker._process(step)
+	_check(hud_walker._hud_root.is_valid(), "HUD: built on the first frame")
+	hud_walker.health -= hud_walker.max_health / 3
+	hud_walker._process(step)
+	_check(hud_walker._hud_health == int(hud_walker.HEALTH_BAR_SIZE.x * hud_walker.health / hud_walker.max_health),
+		"HUD: a hit shows on the health bar the same frame (%d px)" % hud_walker._hud_health)
+	hud_walker.coat_max = 20.0
+	hud_walker.coat = 10.0
+	hud_walker._process(step)
+	_check(hud_walker._hud_coat == int(hud_walker.HEALTH_BAR_SIZE.x * 0.5), "HUD: the blight coat shows the same frame")
+	hud_walker.coat = 0.0
+	hud_walker._process(step)
+	_check(hud_walker._hud_coat == -1, "HUD: and goes when it's broken")
+	hud_walker.add_restless()
+	hud_walker._process(step)
+	_check(hud_walker._hud_restless == hud_walker.restless, "HUD: a Restless arrow shows the same frame")
+	hud_walker.statuses.slow_capped = true
+	hud_walker._process(step)
+	_check(hud_walker._hud_slow_capped, "HUD: 'slowed to the limit' shows the same frame")
+	hud_walker.statuses.sleep_cooldown = 3.0
+	hud_walker._process(step)
+	_check(hud_walker._hud_awake, "HUD: the awake ring shows the same frame")
+	for id: StringName in [EnemyStatuses.DAMP, EnemyStatuses.DROWSY, EnemyStatuses.SPORED, EnemyStatuses.MARKED,
+			EnemyStatuses.STATIC, EnemyStatuses.HELD]:
+		hud_walker.apply_status(id, 1, 5.0, 1.0)
+		hud_walker._process(step)
+		var shown: bool = hud_walker._hud_ids.has(id)
+		hud_walker.statuses.remove(id)
+		hud_walker._process(step)
+		_check(shown and not hud_walker._hud_ids.has(id), "HUD: %s's badge comes and goes the same frame" % id)
+	_clear_enemies()
+
 	# --- Rounded corners: the drawn path curves, the route and the timing stay square ---
 	_clear_enemies()
 	var l_walker := _still("leaf_bug", Vector2(2, 2))

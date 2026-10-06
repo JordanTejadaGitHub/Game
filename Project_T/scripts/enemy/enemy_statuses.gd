@@ -48,9 +48,16 @@ const FOG_SPORE_BONUS := 0.5  # Spored ticks +50% while in fog (Mistveil)
 
 var is_boss := false
 var is_elite := false  # Deeply Blighted (Enemy sets it with is_boss): its own slow floor
-var slow_capped := false  # All slows together hit the floor ("Slowed to the limit" in the status UI)
+var hud_dirty := false  # Something the nightmare's HUD shows changed here (it clears it): slow_capped, awake
+var slow_capped := false:  # All slows together hit the floor ("Slowed to the limit" in the status UI)
+	set(value):
+		if value != slow_capped:
+			hud_dirty = true
+		slow_capped = value
 var sleep_cooldown := 0.0:  # After waking, seconds before it can fall Asleep again
 	set(value):
+		if (value > 0.0) != (sleep_cooldown > 0.0):
+			hud_dirty = true  # The HUD's "awake" ring comes or goes
 		sleep_cooldown = value
 		if value > 0.0:
 			_timers_live = true

@@ -204,9 +204,11 @@ func get_maze_walkers() -> Array[Node]:
 	return get_enemies().filter(func(enemy: Node) -> bool: return not enemy.is_flying())
 
 var hud_text_scale := 1.0  # WorldLabel.text_scale, once a frame for every nightmare's HUD (perf: was per nightmare)
+var hud_frame := 0  # Engine.get_process_frames(), once a frame (the badges' staggered time-bar look)
 
 func _process(delta: float) -> void:
 	hud_text_scale = WorldLabel.text_scale(self)  # (The spawner processes before its children)
+	hud_frame = Engine.get_process_frames()
 	eclipse_left = maxf(eclipse_left - delta, 0.0)
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState
 	# Thin-family cards (dream_design.md 2026-09-30), read once a frame for every nightmare.
