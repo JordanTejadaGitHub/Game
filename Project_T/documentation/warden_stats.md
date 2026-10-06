@@ -280,7 +280,7 @@ path. Meta Game Discussion proposed the set; Tower Discussion decided it (change
   | Watchtower | hidden nightmares (Lurkers, the Moth Queen's drops) | — |
   | Relentless | swarms (many small kills) | — |
   | Spreading | dense waves (statuses carried along the crowd) | — |
-  | Executioner | elites and high-health crowds | **a price:** the Warden's non-crit hits deal −10%* (it's the one signature still good against anything) |
+  | Executioner | big crowds of normal nightmares (elites and bosses only take ×1.5) | **a price:** all its hits deal **−15%** (Balancing: a non-crit-only price shrank as crit chance grew). Net ≈ +0–5% against crowds, −5–10% against tanky or boss drifts, worse at low crit: a choice by what the board faces |
   | Firstborn | long drifts and economy runs | — |
   | Shelter | bosses that wither, dim or trample | — |
   | Surge | burst moments (boss phases, packed drifts) | — |
