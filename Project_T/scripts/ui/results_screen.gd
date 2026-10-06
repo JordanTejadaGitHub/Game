@@ -66,6 +66,13 @@ func _build(won: bool) -> void:
 	add_child(center)
 	var panel := PanelContainer.new()
 	center.add_child(panel)
+	# Solid behind the text (story chat: a whisper read through it beside the quote), as the dossier and Settings
+	var fill := panel.get_theme_stylebox("panel")
+	if fill is MoonStyleBox:
+		var solid := (fill as MoonStyleBox).duplicate() as MoonStyleBox
+		solid.center_alpha = UiStyle.TIP_ALPHA
+		solid.edge_alpha = UiStyle.TIP_ALPHA
+		panel.add_theme_stylebox_override("panel", solid)
 	var scroll := ScrollContainer.new()  # A short screen: the panel scrolls rather than leaving it
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	panel.add_child(scroll)

@@ -11,6 +11,8 @@ class_name SettingsPanel
 
 signal closed
 
+var _growth_marks: CheckButton = null  # Under Hints: off while Hints is off
+
 # Rebindable keyboard actions and their labels.
 const REBINDABLE := [
 	["move_camera_up", "Camera up"], ["move_camera_down", "Camera down"],
@@ -77,6 +79,13 @@ func _ready() -> void:
 	HeartwoodMemory.preview_settings = {}
 	_settings = HeartwoodMemory.get_settings()
 	custom_minimum_size = Vector2(760, 0)  # All six tabs on one row (user: only 3 showed at 1280×720 virtual)
+	# Solid behind the text, as the dossier (user, Settings: the map competed with the text through the fog)
+	var fill := get_theme_stylebox("panel")
+	if fill is MoonStyleBox:
+		var solid := (fill as MoonStyleBox).duplicate() as MoonStyleBox
+		solid.center_alpha = UiStyle.TIP_ALPHA
+		solid.edge_alpha = UiStyle.TIP_ALPHA
+		add_theme_stylebox_override("panel", solid)
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 8)
 	add_child(outer)
@@ -117,8 +126,9 @@ func _ready() -> void:
 	# Hints (user, 2026-10-01: "update it to hints"; were "Heartwood whispers"): the Heartwood's lines the first time
 	# something happens, and under them the Growth marks (GrowHints), so hints live in one place.
 	_toggle(gameplay, "Hints", "whispers", true, "The Heartwood's short hints, the first time something happens.")
-	var growth_marks := _toggle(gameplay, "Growth marks", GrowHints.SETTING, true, "At rests, a bud on Wardens that can grow now and a dewdrop when a rank is affordable.")
-	growth_marks.get_parent().get_child(0).custom_minimum_size.x = 36  # Indented under Hints (its dot holds the space)
+	# A sub-option of Hints: indented one step, the same switch, dimmed only while Hints is off (_mark)
+	_growth_marks = _toggle(gameplay, "Growth marks", GrowHints.SETTING, true,
+		"At rests, a bud on Wardens that can grow now and a dewdrop when a rank is affordable.", SUB_INDENT)
 	_toggle(gameplay, "Auto-drift on by default", "auto_drift")
 	_choice(gameplay, "Damage numbers", "damage_numbers", ["Off", "Big hits", "All"], 0)
 	_choice(gameplay, "Warden DPS tags", DpsTags.SETTING, ["Rests only", "Always", "Off"], 0)
@@ -230,6 +240,8 @@ func _ready() -> void:
 	apply_button.name = "Apply"
 	apply_button.custom_minimum_size.x = 200
 	UiStyle.primary(apply_button)
+	# Nothing to apply: dimmed, but still the primary's frame (user, Settings: it read as missing)
+	apply_button.add_theme_stylebox_override("disabled", apply_button.get_theme_stylebox("normal"))
 	tabs.tab_changed.connect(func(_index: int) -> void: _mark())
 
 	close_prompt = _prompt("ClosePrompt", "Apply your changes?",
@@ -363,18 +375,71 @@ func _register(key: String, default, refresh: Callable) -> void:
 	if _building_tab != "":
 		_tab_keys[_building_tab].append(key)
 
-# A row with the dot and the setting's name.
-func _label_row(text: String, key: String) -> HBoxContainer:
+# One control column (user, Display: "boxes seem too big"): every row is its name on the left (a short description
+# under it, small) and its control at the right, the same width and the same right edge on every tab.
+const CONTROL_W := 200.0  # Dropdowns, and a slider with its value
+const CONTROL_H := 36.0  # A dropdown's box inside the 48 px row (the row keeps the hit area)
+const TEXT_SIZE := 16  # Labels and dropdown text alike (body font)
+const NOTE_LIMIT := 90  # A description this short reads under the name; longer stays the tooltip
+const SUB_INDENT := 24.0  # A sub-option (Growth marks under Hints)
+
+# A row with the dot, the setting's name and its note under it; the control goes in with _put_control.
+func _label_row(text: String, key: String, tip: String = "", indent: float = 0.0) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.custom_minimum_size.y = UiStyle.HUD_BUTTON_H  # Light pass: 48 px rows (touch)
-	row.add_theme_constant_override("separation", 16)
+	row.add_theme_constant_override("separation", 12)
+	if indent > 0.0:
+		var step := Control.new()
+		step.custom_minimum_size.x = indent
+		row.add_child(step)
 	_dots[key] = _dot(row)
+	var names := VBoxContainer.new()
+	names.name = "Names"
+	names.alignment = BoxContainer.ALIGNMENT_CENTER
+	names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	names.add_theme_constant_override("separation", 0)
+	row.add_child(names)
 	var label := Label.new()
+	label.name = "Name"
 	label.text = text
-	label.custom_minimum_size = Vector2(140, 0)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(label)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_size_override("font_size", TEXT_SIZE)
+	_inset(label)
+	names.add_child(label)
+	_note_under(names, tip)
 	return row
+
+# A short description under a setting's name, small and dim; a long one stays the tooltip.
+func _note_under(names: Control, tip: String) -> void:
+	if tip == "" or tip.length() > NOTE_LIMIT:
+		return
+	var note := Label.new()
+	note.name = "Note"
+	note.text = tip
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.add_theme_font_size_override("font_size", 13)
+	note.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	_inset(note)
+	names.add_child(note)
+
+# A label's text starts where a switch's name does (the CheckButton's inner padding), so every row lines up.
+const TEXT_INSET := 6.0
+
+static func _inset(label: Label) -> void:
+	var room := StyleBoxEmpty.new()
+	room.content_margin_left = TEXT_INSET
+	label.add_theme_stylebox_override("normal", room)
+
+# A dropdown in the column: CONTROL_W wide, CONTROL_H tall, body text at the label size (list too).
+func _put_pick(row: HBoxContainer, pick: OptionButton) -> void:
+	pick.custom_minimum_size = Vector2(CONTROL_W, CONTROL_H)
+	pick.size_flags_horizontal = Control.SIZE_SHRINK_END
+	pick.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pick.add_theme_font_override("font", UiStyle.body_font())
+	pick.add_theme_font_size_override("font_size", TEXT_SIZE)
+	pick.get_popup().add_theme_font_override("font", UiStyle.body_font())
+	pick.get_popup().add_theme_font_size_override("font_size", TEXT_SIZE)
+	row.add_child(pick)
 
 # The gold dot of a changed setting: always there (no layout jump), shown by its alpha.
 func _dot(parent: Control) -> Label:
@@ -395,7 +460,7 @@ func _choice(box: VBoxContainer, text: String, key: String, options: Array, defa
 		pick.add_item(option)
 	pick.focus_mode = Control.FOCUS_NONE
 	pick.item_selected.connect(func(index: int) -> void: _set_value(key, index))
-	row.add_child(pick)
+	_put_pick(row, pick)
 	box.add_child(row)
 	_register(key, default, func() -> void: pick.selected = int(_value(key)))
 	return pick
@@ -407,7 +472,7 @@ func _slider(box: VBoxContainer, text: String, key: String, min_value: float = 0
 	slider.min_value = min_value
 	slider.max_value = max_value
 	slider.step = step
-	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.custom_minimum_size.x = CONTROL_W - 44.0  # With its value: the column's width
 	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER  # Level with its label in the 48 px row
 	slider.focus_mode = Control.FOCUS_NONE
 	slider.value_changed.connect(func(value: float) -> void: _set_value(key, value))
@@ -449,6 +514,9 @@ func _keepsake_toggles(box: VBoxContainer) -> void:
 		check.text = unlock.display_name if unlock != null else String(id).capitalize()
 		check.tooltip_text = unlock.description if unlock != null else ""
 		check.focus_mode = Control.FOCUS_NONE
+		check.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # Its switch in the column, like every row
+		check.add_theme_font_size_override("font_size", TEXT_SIZE)
+		row.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 		check.toggled.connect(func(on: bool) -> void:
 			var hidden: Array = (_value(key) as Array).duplicate()
 			hidden.erase(id)
@@ -462,26 +530,32 @@ func _keepsake_toggles(box: VBoxContainer) -> void:
 		for id in checks:
 			checks[id].set_pressed_no_signal(not (_value(key) as Array).has(id)))
 
-func _toggle(box: VBoxContainer, text: String, key: String, default: bool = false, tip: String = "") -> CheckButton:
+# A switch in the column: the CheckButton spans the row, so its name sits on the left like every label and its switch
+# at the column's right edge; a short tip under it, like every row's (no note beside the switch any more).
+func _toggle(box: VBoxContainer, text: String, key: String, default: bool = false, tip: String = "", indent: float = 0.0) -> CheckButton:
 	var row := HBoxContainer.new()
 	row.custom_minimum_size.y = UiStyle.HUD_BUTTON_H  # Light pass: 48 px rows (touch)
 	row.add_theme_constant_override("separation", 12)
+	if indent > 0.0:
+		var step := Control.new()
+		step.custom_minimum_size.x = indent
+		row.add_child(step)
 	_dots[key] = _dot(row)
+	var names := VBoxContainer.new()
+	names.name = "Names"
+	names.alignment = BoxContainer.ALIGNMENT_CENTER
+	names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	names.add_theme_constant_override("separation", 0)
+	row.add_child(names)
 	var check := CheckButton.new()
 	check.text = text
 	check.tooltip_text = tip
 	check.focus_mode = Control.FOCUS_NONE
+	check.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	check.add_theme_font_size_override("font_size", TEXT_SIZE)
 	check.toggled.connect(func(on: bool) -> void: _set_value(key, on))
-	row.add_child(check)
-	if tip != "" and tip.length() <= 70:  # A short tip reads beside the switch, quiet (a long one stays the tooltip)
-		var note := Label.new()
-		note.name = "Note"
-		note.text = tip
-		note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		note.add_theme_font_size_override("font_size", 13)
-		note.add_theme_color_override("font_color", UiStyle.INK_DIM)
-		row.add_child(note)
+	names.add_child(check)
+	_note_under(names, tip)
 	box.add_child(row)
 	_register(key, default, func() -> void: check.set_pressed_no_signal(bool(_value(key))))
 	return check
@@ -494,7 +568,7 @@ func _choice_nearest(box: VBoxContainer, text: String, key: String, presets: Arr
 		pick.add_item(preset[0])
 	pick.focus_mode = Control.FOCUS_NONE
 	pick.item_selected.connect(func(index: int) -> void: _set_value(key, float(presets[index][1])))
-	row.add_child(pick)
+	_put_pick(row, pick)
 	box.add_child(row)
 	_register(key, default, func() -> void:
 		var saved := float(_value(key))
@@ -512,7 +586,7 @@ func _choice_values(box: VBoxContainer, text: String, key: String, options: Arra
 		pick.add_item(option)
 	pick.focus_mode = Control.FOCUS_NONE
 	pick.item_selected.connect(func(index: int) -> void: _set_value(key, values[index]))
-	row.add_child(pick)
+	_put_pick(row, pick)
 	box.add_child(row)
 	_register(key, default, func() -> void: pick.selected = maxi(values.find(str(_value(key))), 0))
 
@@ -781,6 +855,8 @@ func _mark() -> void:
 		var tab_name := String(tabs.get_tab_control(i).name)
 		var dirty: bool = _tab_keys.get(tab_name, []).any(func(key: String) -> bool: return is_changed(key))
 		tabs.set_tab_title(i, tab_name + (" •" if dirty else ""))
+	if _growth_marks != null:
+		_growth_marks.disabled = not bool(_value("whispers"))  # Growth marks live under Hints
 	var fullscreen := bool(_value("fullscreen"))
 	window_size_pick.disabled = fullscreen
 	window_size_pick.tooltip_text = SIZE_FULLSCREEN_TIP if fullscreen else ""
