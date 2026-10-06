@@ -86,6 +86,13 @@ func _run() -> void:
 			tags = child
 	_check(tags != null, "the DPS tags layer exists")
 	if tags != null:
+		# A full-screen screen (the family pick after drift 1) hides every world tag (WorldLabel.cover_while_visible): close
+		# them, as the player would, before reading the tags.
+		for screen in ["%FamilyPickScreen", "%DreamScreen", "HUD/OmenScreen", "HUD/BossDossier"]:
+			var node := main.get_node_or_null(screen) as Control
+			if node != null:
+				node.visible = false
+		_check(WorldLabel.covers.is_empty(), "no full-screen screen covers the map now (%s)" % [WorldLabel.covers.keys()])
 		tags._clock = 0.0
 		tags._process(0.1)
 		if director.is_resting():
