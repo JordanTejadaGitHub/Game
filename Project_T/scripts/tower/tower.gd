@@ -687,11 +687,6 @@ func _compute_attacks_per_second() -> float:
 		bonus = GroveRules.whirlwind(self, bonus)  # Whirlwind Heart: the bonus part counts double
 	var aps := attack_data.attacks_per_second * bonus * dim_multiplier \
 		* (get_wall_multiplier() if attack_data.damage <= 0 else 1.0)  # Honeysuckle: Bramble Oath, The Quiet Ones
-	if attack_data.special == BranchKit.BROOD and choice_count(Focus.YIELD) > 0 and aps > 0.0:
-		# Yield on a Brood Cap / Hatchery: a sprite 0.25 s sooner per rank, never under 0.5 s (Balancing's probe).
-		var interval := 1.0 / aps
-		aps = 1.0 / maxf(interval - NurtureChoices.YIELD_BROOD_INTERVAL * choice_count(Focus.YIELD),
-			minf(interval, NurtureChoices.YIELD_BROOD_FLOOR))
 	return aps
 
 func get_range_cells() -> float:
@@ -944,14 +939,11 @@ func focus_text(which: Focus) -> String:
 		Focus.YIELD:
 			if special == BranchKit.DREAM_OAK:
 				return "+%.1f shard every drift" % NurtureChoices.YIELD_SHARDS
-			if special == BranchKit.BROOD:
-				var every := _with_choice(which, func() -> float: return 1.0 / maxf(_compute_attacks_per_second(), 0.0001))
-				return "a sprite every %.2f → %.2f s, bursts +%d%%" % [every[0], every[1], roundi(NurtureChoices.YIELD_BROOD_DAMAGE * 100)]
+			# Brood Cap / Hatchery and Seedbearer: +1 alive per Yield rank (Tower Discussion, warden_stats.md 68120c18).
 			var thing := "Sprouts" if special == BranchKit.SEEDBEARER else "sprites"
-			var base := int(BranchKit.p(self, "seed_max" if special == BranchKit.SEEDBEARER else "max_alive", 3.0 if special == BranchKit.SEEDBEARER else 4.0))
-			var now := base + BranchKit.yield_ranks(self)
-			var next := base + (choice_count(Focus.YIELD) + 1) / NurtureChoices.YIELD_PER
-			return "%s alive %d → %d" % [thing, now, next] if next > now else "%s alive %d (+1 at the next Yield rank)" % [thing, now]
+			var now := BranchKit.brood_max_alive(self) if special == BranchKit.BROOD \
+				else int(BranchKit.p(self, "seed_max", 3.0)) + BranchKit.yield_ranks(self) * NurtureChoices.YIELD_SPROUTS
+			return "%s alive %d → %d" % [thing, now, now + 1]
 		Focus.STRONG:
 			if special == BranchKit.PRISM:
 				return "+%d%% crit chance in its aura" % roundi(NurtureChoices.STRONG_CRIT_AURA * 100)
@@ -1011,12 +1003,7 @@ func focus_short(which: Focus) -> String:
 		Focus.YIELD:
 			if special == BranchKit.DREAM_OAK:
 				return "+%s shard a drift" % IconInfo._number(NurtureChoices.YIELD_SHARDS)
-			if special == BranchKit.BROOD:
-				var every := _with_choice(which, func() -> float: return 1.0 / maxf(_compute_attacks_per_second(), 0.0001))
-				return "sprite %s s sooner" % IconInfo._number(every[0] - every[1])
-			var base := int(BranchKit.p(self, "seed_max" if special == BranchKit.SEEDBEARER else "max_alive", 3.0 if special == BranchKit.SEEDBEARER else 4.0))
-			var next := base + (choice_count(Focus.YIELD) + 1) / NurtureChoices.YIELD_PER
-			return "+1 alive" if next > base + BranchKit.yield_ranks(self) else "toward +1 alive"
+			return "+1 Sprout alive" if special == BranchKit.SEEDBEARER else "+1 sprite alive"
 		Focus.STRONG:
 			if special == BranchKit.PRISM:
 				return "+%d%% crit aura" % roundi(NurtureChoices.STRONG_CRIT_AURA * 100)

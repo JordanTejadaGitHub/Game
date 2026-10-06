@@ -84,13 +84,19 @@ func _run() -> void:
 	stone.clear_dream_cache()
 	_check(is_equal_approx(stone.get_raw_crit_chance() - before, NurtureChoices.KEEN_CRIT), "Keen: +%d%% crit (%.3f → %.3f)" % [roundi(NurtureChoices.KEEN_CRIT * 100), before, stone.get_raw_crit_chance()])
 
-	# Yield on a Brood Cap: a sprite 0.25 s sooner per rank (never under 0.5 s).
+	# Yield on a Brood Cap (warden_stats.md 68120c18): +1 sprite alive per rank, and nothing else (Swift hatches faster).
 	var brood := _plant("brood_cap", Vector2(16, 13))  # Away from the supports' auras
 	var every_before := 1.0 / brood._compute_attacks_per_second()
+	var alive_before := BranchKit.brood_max_alive(brood)
+	_check(brood.focus_text(F.YIELD) == "sprites alive %d → %d" % [alive_before, alive_before + 1], "Yield's line: %s" % brood.focus_text(F.YIELD))
 	brood.nurture(0, F.YIELD)
 	brood.nurture(0, F.YIELD)
-	var every_after := 1.0 / brood._compute_attacks_per_second()
-	_check(every_after < every_before - 0.4, "two Yield ranks: sprites come sooner (%.2f → %.2f s)" % [every_before, every_after])
+	_check(BranchKit.brood_max_alive(brood) == alive_before + 2, "two Yield ranks: two more sprites alive (%d)" % BranchKit.brood_max_alive(brood))
+	_check(is_equal_approx(1.0 / brood._compute_attacks_per_second(), every_before), "and they don't hatch faster (that's Swift)")
+	# Seedbearer: +1 Sprout alive per Yield rank too.
+	var bearer := _plant("seedbearer", Vector2(18, 13))
+	var sprouts := bearer.focus_text(F.YIELD)
+	_check(sprouts.begins_with("Sprouts alive ") and sprouts.ends_with("→ %d" % (int(BranchKit.p(bearer, "seed_max", 3.0)) + 1)), "Seedbearer's Yield: %s" % sprouts)
 	_check(stone.focus_text(F.KEEN).contains("crit damage"), "Keen's line names the crit damage (%s)" % stone.focus_text(F.KEEN))
 
 	# Group Nurture: Power skips the control Warden.
