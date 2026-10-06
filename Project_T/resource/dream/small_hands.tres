@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "small_hands"
+display_name = "Small Hands"
+description = "Anything a Warden sends out (sprites, birds, seeds, lobbed stones) deals 40% more damage and lasts 1 s longer."
+rarity = 1
+kind = 3
+tags = Array[String](["defining"])
+max_stacks = 1
+rule_id = &"small_hands"
