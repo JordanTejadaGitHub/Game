@@ -1029,7 +1029,7 @@ func _build_inner(data: TowerData, cell: Vector2) -> bool:
 					continue
 				if not map.can_block_halves(halves, enemy_cells):
 					continue
-				var new_route: PackedVector2Array = map.get_path_if_blocked_halves(halves)
+				var new_route: PackedVector2Array = _drawn_if_blocked_halves(halves)
 				if new_route.is_empty():
 					continue
 				var score := _spot_score(centre, Tower.half_home_cell(origin), new_route, route, reach, growth_weight, cover_heart, _last_args[3])
@@ -1106,7 +1106,7 @@ func _best_cell(reach: float, growth_weight: float, cover_heart := false, data: 
 				continue
 			if cover_heart and cell.distance_to(map.endPath) > reach:
 				continue
-			var new_route: PackedVector2Array = map.get_path_if_blocked_cells([cell])
+			var new_route: PackedVector2Array = _drawn_if_blocked_cells([cell])
 			if new_route.is_empty() or not map.can_block_cells([cell], enemy_cells):
 				continue
 			var score := _spot_score(cell, cell, new_route, route, reach, growth_weight, cover_heart, data)
@@ -1119,6 +1119,19 @@ func _best_cell(reach: float, growth_weight: float, cover_heart := false, data: 
 	_top = scored.slice(0, NUDGE_TOP)
 	_last_args = [reach, growth_weight, cover_heart, data, route, enemy_cells]
 	return best
+
+# The route nightmares would walk after a placement: since 19f426c5 they follow the drawn route (fewest turns among
+# the shortest), which the fast A* preview may not match (same length, another lane or side), so coverage is scored
+# on the drawn preview as the build ghost shows it. Older builds: the plain preview.
+func _drawn_if_blocked_halves(halves: Array) -> PackedVector2Array:
+	if map.get_method_argument_count("get_path_if_blocked_halves") >= 2:
+		return map.get_path_if_blocked_halves(halves, true)
+	return map.get_path_if_blocked_halves(halves)
+
+func _drawn_if_blocked_cells(cells: Array) -> PackedVector2Array:
+	if map.get_method_argument_count("get_path_if_blocked_cells") >= 2:
+		return map.get_path_if_blocked_cells(cells, true)
+	return map.get_path_if_blocked_cells(cells)
 
 func _coverage(tower: Tower) -> int:
 	var reach := tower.get_range_cells()
