@@ -183,6 +183,23 @@ func _run() -> void:
 	dreams.unlock_everything = true
 	_check(crown.call() == mother, "Test Grove still shows everything")
 	dreams.unlock_everything = false
+	# Fits every UI scale (user, the largest UI size: Done and Peek fell off the bottom): 1280 x 720 is the largest scale's
+	# view, 600 a short window; the panel and Done stay on screen, the middle scrolls.
+	var size_was := root.size
+	dreams.unlock_everything = true  # The tallest tree (every lane)
+	for view in [Vector2i(1280, 800), Vector2i(1280, 720), Vector2i(1280, 600)]:
+		root.size = view
+		screen.open(sporeling)
+		for i in 4:
+			await process_frame
+		var panel_rect: Rect2 = screen._frame.get_global_rect()
+		var done: Control = screen.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.text == "Done").front()
+		var shown := Rect2(Vector2.ZERO, Vector2(view))
+		_check(shown.encloses(panel_rect) and shown.encloses(done.get_global_rect()),
+			"Remember fits %s: the panel %s and Done on screen" % [view, panel_rect])
+		screen.close()
+	dreams.unlock_everything = false
+	root.size = size_was
 	print("remember screen test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 

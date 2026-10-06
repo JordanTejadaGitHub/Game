@@ -50,7 +50,7 @@ var _tab_root: TowerData = null  # The tree shown
 var _was_paused := false
 var _title := Label.new()
 var _light_line := Label.new()
-var _tabs := HBoxContainer.new()
+var _tabs := HFlowContainer.new()  # Wraps to a second row with every family (it ran off the side at the largest UI size)
 var _body: BoxContainer
 var _canvas: TreeCanvas
 var _side := PanelContainer.new()
@@ -94,11 +94,23 @@ func _ready() -> void:
 	_offer_line.add_theme_color_override("font_color", UiStyle.INK)
 	box.add_child(_offer_line)
 
-	_tabs.add_theme_constant_override("separation", 6)
+	_tabs.add_theme_constant_override("h_separation", 6)
+	_tabs.add_theme_constant_override("v_separation", 6)
+	_tabs.custom_minimum_size.x = TREE_SIZE.x + SIDE_WIDTH + 14.0  # Wraps at the panel's width
 	box.add_child(_tabs)
+	_frame = frame
+	_middle.name = "Middle"
+	_middle.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(_middle)
+	_middle_box.add_theme_constant_override("separation", 10)
+	_middle_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_middle.add_child(_middle_box)
+	_middle_box.minimum_size_changed.connect(_fit_middle, CONNECT_DEFERRED)
+	get_viewport().size_changed.connect(_fit_middle, CONNECT_DEFERRED)
+	visibility_changed.connect(_fit_middle, CONNECT_DEFERRED)
 	_body = HBoxContainer.new()
 	_body.add_theme_constant_override("separation", 14)
-	box.add_child(_body)
+	_middle_box.add_child(_body)
 	_canvas = TreeCanvas.new(self)
 	_body.add_child(_canvas)
 	_side.add_theme_stylebox_override("panel", UiStyle.panel_in(UiStyle.GOLD, 12, 12))
@@ -108,7 +120,7 @@ func _ready() -> void:
 	_body.add_child(_side)
 	_misty.name = "NotInDream"  # Branch expansion: this family's branches not in this run, apart from the tree
 	_misty.add_theme_constant_override("separation", 4)
-	box.add_child(_misty)
+	_middle_box.add_child(_misty)
 
 	var footer := HBoxContainer.new()
 	footer.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -350,6 +362,23 @@ func _make_tab(root: TowerData) -> Button:
 		selected = null
 		_rebuild())
 	return tab
+
+# Fits the viewport at every UI scale (user, the largest UI size: Done and Peek fell off the bottom): the header and the
+# footer stay; the middle (the tree, the side panel, "Not in this dream") is as tall as it can be and scrolls past that.
+var _frame: PanelContainer = null
+var _middle := ScrollContainer.new()
+var _middle_box := VBoxContainer.new()
+const VIEW_MARGIN := 24.0  # Kept free above and below the panel
+
+func _fit_middle() -> void:
+	if _frame == null or not is_inside_tree():
+		return
+	var content := _middle_box.get_combined_minimum_size().y
+	var rest := _frame.get_combined_minimum_size().y - _middle.custom_minimum_size.y  # Header, tabs, footer, padding
+	var room := get_viewport_rect().size.y - VIEW_MARGIN * 2.0 - rest
+	var height := clampf(room, 120.0, content)
+	if not is_equal_approx(_middle.custom_minimum_size.y, height):
+		_middle.custom_minimum_size.y = height
 
 # Phones: the side panel goes under the tree (and slides up on selecting) instead of beside it.
 func _layout_for_screen() -> void:
