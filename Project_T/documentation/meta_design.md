@@ -6,7 +6,7 @@ Phase 3 of `design_plan.md`. Numbers are starting points for tuning.
 
 | Question | Decision |
 |---|---|
-| Time to unlock everything | **~30 hours** (≈ 24 runs; user confirmed 2026-09-28 and again 2026-09-29, was 15–20 h) |
+| Time to unlock everything | **~35 hours** (≈ 26–28 runs; user 2026-10-06, was ~30 h, first 15–20 h) |
 | What meta gives | **Both new options and some permanent power**; power perks are capped |
 | Difficulty ladder | **Slay the Spire style**: Blight Levels 1–10, each adds one modifier on top of the previous ones |
 | Story delivery | **Memory fragments** revealed through progression, leading to a true ending |
