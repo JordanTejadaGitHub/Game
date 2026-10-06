@@ -202,8 +202,9 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 	status.stacks = mini(status.stacks + stacks, cap)
 	if id == SPORED and source != null:
 		_note_spores(source, status.stacks - before, before == 0)
+	var strength := _applier_potency(source)
 	var length: float = (duration if duration > 0.0 else DEFAULT_DURATION[id]) * duration_multipliers.get(id, 1.0) \
-		* duration_multiplier_all
+		* duration_multiplier_all * _potency_stretch(id, strength)  # Rule 3: Potency past a cap lengthens it
 	if length >= status.time:
 		status["full"] = length  # A fresh timer: the badge's rim arc drains from full again
 	status.time = maxf(status.time, length)
@@ -212,8 +213,8 @@ func apply(id: StringName, stacks: int = 1, duration: float = 0.0, potency: floa
 		status["source"] = source  # …and gets the credit for them
 	status.potency = maxf(status.potency, potency)
 	# Status strength (tower_design.md "Potency: effect damage and status strength"): the strongest applier's
-	# Potency while the status lasts (never a sum). Rooted's length scales with it here, capped.
-	var strength := _applier_potency(source)
+	# Potency while the status lasts (never a sum). Rooted's length scales with it here, capped. (`strength` is read
+	# above, before the length.)
 	status["strength"] = maxf(status.get("strength", 0.0), strength)
 	if id == HELD and Tower.status_potency_on and strength > 1.0:
 		var held := minf(length * strength, maxf(HELD_POTENCY_CAP, length))
@@ -242,6 +243,22 @@ const HELD_POTENCY_CAP := 2.0  # Seconds: the longest Potency makes a Hold
 
 func _applier_potency(source: Node) -> float:
 	return source.get_potency() if source is Tower and is_instance_valid(source) else 1.0
+
+# Rule 3 (Tower Discussion, warden_stats.md b6f44fac; Balancing: duration × max(1, Potency / the Potency that reaches the
+# cap)): past a strength cap, the rest of the applier's Potency lengthens the status. Drowsy: its length scales with
+# Potency (its slow no longer does). Tower Code, reviewed by Enemy Code.
+func _potency_stretch(id: StringName, strength: float) -> float:
+	if not Tower.status_potency_on or strength <= 1.0:
+		return 1.0
+	match id:
+		DROWSY:
+			return strength
+		MARKED:
+			var base := maxf(MARKED_EXTRA, marked_extra) + marked_bonus
+			return maxf(1.0, strength / maxf(EXPOSED_CAP / maxf(base, 0.001), 1.0))
+		DAMP:
+			return maxf(1.0, strength / maxf(SOAKED_CAP / DAMP_WATER_BONUS, 1.0))
+	return 1.0
 
 # The strength multiplier of status `id`: its strongest applier's Potency (1.0 with the switch off,
 # Tower.status_potency_on, or with no Warden behind it).
@@ -357,7 +374,7 @@ func get_speed_multiplier(extra_slow: float = 0.0) -> float:
 		return 1.0
 	# Slowing belongs to Drowsy (status jobs, 2026-09-29): Damp conducts instead (Enemy.take_damage).
 	var slow := extra_slow
-	slow += DROWSY_SLOW_PER_STACK * stacks(DROWSY) * strength(DROWSY)  # Potency; the floors below still hold
+	slow += DROWSY_SLOW_PER_STACK * stacks(DROWSY)  # Rule 3: Potency lengthens Drowsy instead (the floor bound almost at once)
 	if is_in_stag_aura():
 		slow += STAG_SLOW
 	if slow_time > 0.0:
