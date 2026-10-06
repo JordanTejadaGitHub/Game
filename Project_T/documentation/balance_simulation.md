@@ -897,7 +897,8 @@ at the drift 25 rest** (most-owned archetype), proposed to Roguelite Mechanic; r
 after **drift 10** (bb57665a). Re-measure no-build + act 1 when it lands; look again if fresh no-build at 26 > ~60%.
 The "lost at 24" full run was a stall, not a death: an all-Acorn board left the Night Mare at 61 health for 124
 laps (invulnerable, so it never ended). A possible damage floor vs pulses; repro with Enemy Code. Matters for
-the all-Acorn check: in a real run that boss drains instead.
+the all-Acorn check: in a real run that boss drains instead. **Cause:** ×1.3 speed per lap with no cap (it crossed
+the route between two shots). Capped at 3 laps (×2.2) in 8603af1b; real runs never reach lap 4.
 
 **Signatures as counters (warden_stats.md ff93b498):** Crushing only on shelled / coated targets (fine).
 Executioner's price "−10% on non-crits" shrinks as crit rises (−3% at 50% crit against a ~+10–15% gain: still
