@@ -269,6 +269,7 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 	reset_size()
 	# Above-right of the pointer, flipped at the edges: never over the word or the line being read.
 	global_position = UiStyle.tip_position(mouse, size, get_viewport_rect().size)
+	_place_beside_panel(host, mouse)
 	_hide_in = -1.0
 
 # A met nightmare's NightmareCard over the word's label (one per label; the same word again closes it).
@@ -284,6 +285,22 @@ func _open_nightmare_card(kind: String, host: Control) -> void:
 	var run := get_tree().current_scene  # In a run: health as it'd arrive next; elsewhere (title, Grove) its base numbers
 	var director := run.get_node_or_null("%DriftDirector") as DriftDirector if run != null else null
 	card.toggle_for(data, director.drifts_started + 1 if director != null else 1, director, host)
+
+# A word inside a panel that asks for it (meta "tips_beside": the Warden panel) opens its tip beside the panel, to its
+# right, or above it when there's no room, never over the text being read (user, Lichenling: "Poisoned" covered the
+# description).
+func _place_beside_panel(host: Control, mouse: Vector2) -> void:
+	var node: Node = host
+	while node != null and not (node is Control and node.has_meta(&"tips_beside")):
+		node = node.get_parent()
+	if node == null:
+		return
+	var panel := (node as Control).get_global_rect()
+	var screen := get_viewport_rect().size
+	if panel.end.x + 8.0 + size.x <= screen.x - 4.0:
+		global_position = Vector2(panel.end.x + 8.0, clampf(mouse.y - size.y / 2.0, 4.0, screen.y - size.y - 4.0))
+	else:
+		global_position = Vector2(clampf(panel.position.x, 4.0, screen.x - size.x - 4.0), maxf(4.0, panel.position.y - size.y - 8.0))
 
 func _hide_soon() -> void:
 	if visible:
