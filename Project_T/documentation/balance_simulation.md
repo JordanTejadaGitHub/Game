@@ -906,6 +906,11 @@ f66dae95, `%DreamState.final_damage_multiplier` 3707c71c (tier 3 only). **User s
 **70–80% die in the first drift:** the bot turns ~5,700 / ~9,700 Dew into 16–26 attackers, where the user had
 42–88 at these drifts. These arms measure the bot's board-building, not acts 3–4. Next: a late-start build
 rule (plant to the human attacker count, then grow, then rank, near the human 52 / 29 / 13 split), then rerun.
+**With the build rule (7fdf5a3e):** the right board size (34 / 46 attackers), and a board that holds is as strong as
+the user's at 51 (damage ≈ health spawned, 0–1 leaks), but **40–80% still die inside the first drift**: a board
+built in one rest from an act 1 maze isn't laid out like one grown over 50 drifts. **Next: an invulnerable
+warm-up**: drifts 1–50 (or 1–75) played for real with the Heartwood invulnerable, then leaves set to 10 / 8 and
+acts 3–4 played for real. Real snapshots (`--from-save`) once the user has deep saves.
 
 ## Overlap-audit reworks, power check (2026-10-05, dream_design.md e1e39b56; dream_audit.md budgets)
 
