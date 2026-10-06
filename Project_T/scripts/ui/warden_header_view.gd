@@ -92,12 +92,12 @@ func set_compact(width: float) -> void:
 # A control at the right end of the name's line (the Warden panel's targeting chip); null clears it.
 func set_corner(control: Control) -> void:
 	var header := portrait.get_parent()
-	var old := header.get_node_or_null("Corner")
-	if old != null:
-		header.remove_child(old)
-		old.queue_free()
+	for old in header.get_children():
+		if old.has_meta(&"corner"):  # Tagged, not renamed: the control keeps its own name (TargetChip)
+			header.remove_child(old)
+			old.queue_free()
 	if control != null:
-		control.name = "Corner"
+		control.set_meta(&"corner", true)
 		control.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		header.add_child(control)
 
