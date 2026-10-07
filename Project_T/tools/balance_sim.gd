@@ -183,6 +183,8 @@ var trace_drift := 0  # --trace-drift=N: TRACE lines from drift N's start to the
 var _trace_t := -1.0
 var _trace_next := 0.0
 var _trace_spawned := 0
+var rank_budget := 0  # --rank-budget=D: finals-first puts D Dew into ranks by the warm-up's end (_warm_rank)
+var warm_rank_spent := 0
 var _trace_hp := 0.0  # Health spawned since the trace began
 var _trace_dmg := 0.0  # Damage dealt since the trace began
 var _spend_timer := 0.0
@@ -220,6 +222,7 @@ func _run() -> void:
 			"--no-wall-first": wall_first = false
 			"--walls-keep-going": walls_keep_going = true
 			"--trace-drift": trace_drift = int(value)
+			"--rank-budget": rank_budget = int(value)
 			"--no-walls-keep-going": walls_keep_going = false
 			"--wall-first-keep": wall_first_keep = int(value)
 			"--no-half-pref": half_pref = false
@@ -555,6 +558,7 @@ func _warm_finals_spend(n: int) -> void:
 		grow_count += 1
 		d.spent_grow += maxi(before - run_state.dew, 0)
 	_finals_first = false
+	_warm_rank(n)
 	var final_price := _cheapest_growth_price(3)
 	if final_price == 0:
 		final_price = _cheapest_growth_price(2)  # No final open: save for a branch (the way to a final)
@@ -571,6 +575,22 @@ func _warm_finals_spend(n: int) -> void:
 		if not _nurture():
 			break
 		d.spent_nurture += maxi(before - run_state.dew, 0)
+
+# --rank-budget=D (Balancing 2026-10-08: the user's run had ~1,000 Dew in ranks by 50): after growth, finals-first nurtures (the
+# normal bot's pick) until the Dew put into ranks reaches D × (n - 10) / (warmup_to - 11), so all of D by the warm-up's last rest.
+func _warm_rank(n: int) -> void:
+	if rank_budget <= 0:
+		return
+	var goal := rank_budget * clampf(float(n - 10) / maxf(warmup_to - 11, 1), 0.0, 1.0)
+	for guard in 300:
+		if warm_rank_spent >= goal:
+			break
+		var before := run_state.dew
+		if not _nurture():
+			break
+		var spent := maxi(before - run_state.dew, 0)
+		warm_rank_spent += spent
+		d.spent_nurture += spent
 
 # Attackers a human run holds by drift `n` (run history, 2026-10-05: 38–75 at 50, mean ~50): ~5 + 0.9 a drift, at most 50.
 func _human_attackers(n: int) -> int:
@@ -603,8 +623,8 @@ func _end_warmup() -> void:
 	run_state.leaves = mini(start_leaves if start_leaves >= 0 else int(START_LEAVES.get(warmup_to, run_state.max_leaves)), run_state.max_leaves)
 	warm.attackers = _attackers().size()
 	warm.walls = _walls().size()
-	print("WARMUP done at the rest after drift %d: Dew earned %d, leaks %d, attackers %d, walls %d, leaves set to %d" % [
-		director.drifts_started, warm.dew, warm.leaks, warm.attackers, warm.walls, run_state.leaves])
+	print("WARMUP done at the rest after drift %d: Dew earned %d, leaks %d, attackers %d, walls %d, leaves set to %d, Dew in ranks %d" % [
+		director.drifts_started, warm.dew, warm.leaks, warm.attackers, warm.walls, run_state.leaves, warm_rank_spent])
 
 # --save-at: the board as it stands after this rest's spending, as a RunSaver run.json (for --from-save and the
 # snapshot library). Written into --out; RunSaver's own path is put back right away.
