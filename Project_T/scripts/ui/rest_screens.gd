@@ -9,7 +9,7 @@ extends RefCounted
 
 # HUD screens that cover the map while open.
 const SCREENS := ["FamilyPickScreen", "DreamScreen", "GiftScreen", "OmenScreen", "RememberScreen", "BossDossier",
-	"NightmareIntro", "PauseMenu", "ResultsScreen"]
+	"NightmareIntro", "LessonCard", "PauseMenu", "ResultsScreen"]
 
 # Whether a covering screen other than `caller` is open (a choice screen waits for it before opening).
 static func any_open(caller: Node, director: DriftDirector) -> bool:
