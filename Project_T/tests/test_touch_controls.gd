@@ -123,6 +123,72 @@ func _run() -> void:
 	touch._done.pressed.emit()
 	_check(not seller.sell_mode and not placer.build_mode, "Done in sell mode leaves it")
 
+	# Mobile UI (user 2026-10-07): drag a pending Warden to move it; long-press then drag draws a line
+	_close_screens()
+	await process_frame
+	placer.select_tower(load("res://resource/tower/thornwall.tres"))
+	var row := _free_row(map_generator, 4)
+	_check(row.size() == 4, "four free cells in a row")
+	await _tap(_screen_of(MAP_GRID_CELL(row[0])))
+	var first_spot: Vector2 = placer.get_stroke_cells()[0] if placer.stroking else Vector2(-99, -99)
+	cam_before = camera.target_position
+	before = container.get_child_count()
+	await _drag(_screen_of(MAP_GRID_CELL(row[0])), _screen_of(MAP_GRID_CELL(row[2])) - _screen_of(MAP_GRID_CELL(row[0])))
+	var moved_to: Array[Vector2] = placer.get_stroke_cells()
+	_check(moved_to.size() == 1 and moved_to[0] != first_spot and moved_to[0].y == first_spot.y, "dragging a pending Warden moves it (%s)" % [placer.get_stroke_cells()])
+	_check(camera.target_position.distance_to(cam_before) < 1.0 and container.get_child_count() == before, "…without panning or planting")
+	await _tap(_screen_of(MAP_GRID_CELL(row[2])))
+	_check(not placer.stroking, "a tap without moving still takes it back")
+
+	var from := _screen_of(MAP_GRID_CELL(row[0]))
+	_touch(0, from, true)
+	var held := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - held < TowerPlacer.LONG_PRESS_MS + 60:
+		await process_frame
+	_check(placer.stroking and placer.get_stroke_cells().size() == 1, "a long-press starts a line at the finger")
+	var to := _screen_of(MAP_GRID_CELL(row[3]))
+	for i in 6:
+		var at := from.lerp(to, (i + 1) / 6.0)
+		_move(0, at, (to - from) / 6.0)
+		await process_frame
+	_touch(0, to, false)
+	await process_frame
+	var line: Array[Vector2] = placer.get_stroke_cells()
+	_check(line.size() == 4 and line.all(func(s: Vector2) -> bool: return s.y == line[0].y), "…dragging draws a row of pending Wardens (%s)" % [placer.get_stroke_cells()])
+	_check(camera.target_position.distance_to(cam_before) < 1.0, "…and never pans the map")
+	_check(container.get_child_count() == before, "…nothing planted before Confirm")
+	# Android Back (open_menu) while building: pending Wardens, then sell mode, then build mode, never the pause menu
+	var pause_menu := main.get_node("HUD/PauseMenu") as CanvasItem
+	_back()
+	_check(not placer.stroking and placer.build_mode and not pause_menu.visible, "Back drops the pending Wardens first")
+	touch._sell.button_pressed = true
+	_back()
+	_check(not seller.sell_mode and placer.build_mode and not pause_menu.visible, "…then leaves sell mode")
+	_back()
+	_check(not placer.build_mode and not pause_menu.visible, "…then stops building")
+	_back()
+	_check(pause_menu.visible, "…then opens the pause menu")
+	_close_screens()
+
+	# Dream cards: the first tap looks, the second takes (phones)
+	_close_screens()
+	var dreams: DreamState = main.get_node("%DreamState")
+	var screen := main.get_node("HUD/DreamScreen")
+	dreams._pending_drifts.append(1)
+	dreams._show_next_offer()
+	await process_frame
+	_check(screen.visible and dreams.is_offering(), "a Dream offer is up")
+	var faces: Array = screen._cards.get_children().map(func(c: Node) -> Control: return screen._card_box(c))
+	(faces[0] as Button).pressed.emit()
+	var hint0: Label = screen._cards.get_child(0).get_node("TapHint")
+	_check(dreams.is_offering() and hint0.text == "Tap again to take" and faces[1].modulate.a < 1.0, "first tap: looks, the others dim, nothing taken")
+	(faces[1] as Button).pressed.emit()
+	_check(dreams.is_offering() and hint0.text.strip_edges() == "" and screen._looked == faces[1], "a tap on another card looks at that one instead")
+	(faces[1] as Button).pressed.emit()
+	for i in 60:
+		await process_frame
+	_check(not dreams.is_offering(), "the second tap on the same card takes it")
+
 	main.queue_free()
 	await process_frame
 	print("FAILURES: %d" % failures if failures > 0 else "PASS")
@@ -232,6 +298,27 @@ func _free_cells(map_generator, count: int) -> Array[Vector2]:
 		if found.size() == count:
 			break
 	return found
+
+func _back() -> void:
+	var event := InputEventAction.new()
+	event.action = &"open_menu"
+	event.pressed = true
+	_send(event)
+
+# `count` buildable cells in one row, off the route, that can all be blocked one by one.
+func _free_row(map_generator, count: int) -> Array[Vector2]:
+	var path: PackedVector2Array = Tower.route_cells(map_generator.get_path_from(map_generator.startPath))
+	for y in range(2, 16):
+		for x in range(2, 20 - count):
+			var row: Array[Vector2] = []
+			for i in count:
+				var cell := Vector2(x + i, y)
+				if path.has(cell) or not map_generator.can_block(cell):
+					break
+				row.append(cell)
+			if row.size() == count:
+				return row
+	return []
 
 func _check(condition: bool, label: String) -> void:
 	if condition:

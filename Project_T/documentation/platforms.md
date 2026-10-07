@@ -50,20 +50,22 @@ made now must not block it**. This doc is the checklist.
      frame-time percentiles and fails over budget.
 6. **Short sessions work:** the mid-run save at every rest already allows 5-minute play; keep it.
 
-## Touch controls (target design for the port)
+## Touch controls (phones: built 2026-10-07, mobile only)
 
 | Action | PC | Touch |
 |---|---|---|
-| Move the camera | WASD / edge | **one-finger drag** on empty ground |
-| Zoom | mouse wheel | **pinch** |
-| Place a Warden | pick in the bar, click a cell | pick in the bar, **tap a cell**: the ghost, range and route preview appear with **✓ / ✕** buttons; tap ✓ to build (drag the ghost to adjust) |
+| Move the camera | WASD / edge | **one-finger drag** anywhere on the map, in and out of build mode (user 2026-10-06: "one finger should be scrolling") |
+| Zoom | mouse wheel | **two-finger pinch** (it also drags) |
+| Place a Warden | pick in the bar, click a cell (drag a line) | pick in the bar, then **each tap drops a pending Warden** (tap it again to take it back); **Confirm (N)** builds them all, Cancel drops them. Mobile UI adds: drag a pending Warden to move it, long-press then drag for a line. Build mode stays on; **Done** ends it |
 | Select a Warden | click | tap |
-| Select several | drag box, double-click | a **"Select" mode button**, then drag to box-select; **"Select all of this kind"** button in the Warden panel (no double-tap needed) |
+| Select several | drag box, double-click | no drag box on phones (one finger pans); double-tap = same kind; "Select all of this kind" in the Warden panel |
 | Nightmare / obstacle info | hover | **tap** (shows the info card; tap elsewhere to close) |
 | Clear an obstacle | click | tap it (shows cost + route preview), then **✓** |
-| Sell, grow, nurture | panel buttons, Delete / G / R | panel buttons |
+| Sell, grow, nurture | panel buttons, Delete / G / R; X while building = sell mode | panel buttons; **Sell** toggle on the touch bar (a tap sells, a pan never does) |
 | Cancel | right-click / Esc | **✕** button, or tap empty ground |
-| Pause, speed, start drift | Space / Tab / Enter | on-screen buttons (already exist) |
+| Pause, speed, start drift | Space / Tab / Enter | on-screen buttons; phones hide every key chip and "(Enter)" |
+
+Code: `TouchBuild` (`mobile_controls()`: Android / iOS, `force_mobile`, or `-- --mobile` on a PC), `TowerPlacer.tap_to_place`; the PC (touch screens too) keeps its own flow. Phone layout base: `UiStyle.PHONE_LAYOUT_MIN` 1100×540 (`is_phone()`, tablets keep 1280×720). Tests: `test_touch_controls`, `test_phone_layout`, `test_remember_phone`.
 
 ## Things in the current design that need a touch answer
 

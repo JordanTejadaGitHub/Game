@@ -91,6 +91,19 @@ func get_block_finale_elites(number: int) -> int:
 @export var act4_health_multiplier: float = 1.2  # Spire: act 4 on top of the late multiplier, bosses and the Oak too
 @export var final_boss_late_multiplier: float = 3.0  # …except the Hollow Oak at drift 100 ("Human run 2": it died in 17 s at 1.6)
 @export var late_acts_from_act: int = 3
+# Act 3's ramp in (Balancing Discussion, shared curve: an eased act 2 ending ~1.9 would meet a x6 cliff at drift 51):
+# from act3_start_health_multiplier at act 3's first drift up to late_acts_health_multiplier at act3_ramp_to, linear.
+# Defaults (6.0, 51) = no ramp, today's curve. The final boss keeps final_boss_late_multiplier.
+@export var act3_start_health_multiplier: float = 6.0
+@export var act3_ramp_to: int = 51
+
+# The late-acts multiplier for drift `number` (acts 3–4): act 3's ramp, then late_acts_health_multiplier.
+func get_late_multiplier(number: int) -> float:
+	var start := drifts_per_act * (late_acts_from_act - 1) + 1
+	if act3_ramp_to <= start or number >= act3_ramp_to:
+		return late_acts_health_multiplier
+	var t := clampf(float(number - start) / float(act3_ramp_to - start), 0.0, 1.0)
+	return lerpf(act3_start_health_multiplier, late_acts_health_multiplier, t)
 # Acts 1–2 (run_design.md 72860af, balance batches): act 1 is x1.0 through `act1_ramp_from`, rising
 # evenly to `act1_health_multiplier` at `act1_ramp_to` and holding to the act's end; act 2 holds that
 # for its first drifts (a breather while the first finals arrive) until `early_ramp_from`, then rises
@@ -455,7 +468,7 @@ func get_health_scale(data: EnemyData, number: int, elite: bool = false) -> floa
 	var scale := boss if data.is_boss else get_growth(number)
 	if get_act(number) >= late_acts_from_act:
 		var final_boss := data.is_boss and number >= drifts_per_act * 4
-		scale *= final_boss_late_multiplier if final_boss else late_acts_health_multiplier
+		scale *= final_boss_late_multiplier if final_boss else get_late_multiplier(number)
 		if act >= 4:
 			scale *= act4_health_multiplier  # Spire: act 4 harder still, bosses and the Oak included
 	elif not (data.is_boss and get_act(number) == 1):  # Act 1's boss keeps its own multiplier (its escort takes the ramp)
