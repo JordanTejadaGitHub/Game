@@ -880,7 +880,11 @@ may need to come down with act 2). Tower Code removes the demo_* exports once th
 2.1 / 2.6 (easing the climb, not the start, so act 2 never starts below act 1's end); `mid_boss_health_multiplier`
 raised per arm so the Mire Hag keeps its absolute health. Fresh full game and demo side by side. **Interim:** A (1.2 / 1.7 / 2.0)
 reaches 50 in only 5% (full) / 15% (demo), Stag 75%: still harder than the demo pair. B / C dropped; **D 1.0 / 1.4 / 1.8**
-and **E 1.1 / 1.5 / 1.9** (act 2 boss raised to keep the Mire Hag) run instead.
+and **E 1.1 / 1.5 / 1.9** (act 2 boss raised to keep the Mire Hag) run instead. **Sweep result (default, Stag / reach / win):**
+full A 75 / 5 / 5, D 80 / 20 / 15, E 75 / 15 / 5; demo A 75 / 15 / 5, D 75 / 30 / 20, **E 80 / 40 / 35** (on target). Full D spender
+95 / 65 / 45, skip 35 / 0. The full game reaches 50 far less than the demo on the same curve. Next: softer **F 1.0 / 1.3 /
+1.6**, tuned to the full game (the demo may sit up to ~10 above its band), and a breakdown of the gap (act 1 boss drawn,
+leaves at 26, families).
 
 ## Demo targets (demo_scope.md e5ce233d, 2026-10-06)
 
