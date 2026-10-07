@@ -208,7 +208,7 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 		parts.append("the block's Dew back, and a quarter more")
 	var seeds := floori(roundi(omen.reward_seeds * scale) * share)
 	if seeds > 0:
-		parts.append("+%d Seeds" % seeds)
+		parts.append(UiStyle.seeds_amount(seeds, true))
 	var max_leaves := floori(omen.reward_max_leaves * share)
 	if max_leaves > 0:
 		parts.append("+%d max %s" % [max_leaves, "leaf" if max_leaves == 1 else "leaves"])
@@ -226,12 +226,12 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 			parts.append("rest bonus ×%s" % str(omen.reward_rest_bonus_multiplier).trim_suffix(".0"))
 	var dreamlight := floori(floori(omen.reward_dreamlight * scale) * share)  # By act: +1 / +1 / +2 / +2
 	if dreamlight > 0:
-		parts.append("+%d Dreamlight" % dreamlight)
+		parts.append(UiStyle.dreamlight_amount(dreamlight, true))
 	if omen.reward_legendary and dreams:
 		parts.append("next Dream includes a Legendary")
 	var tree_seeds := floori(omen.reward_tree_seeds * share)
 	if tree_seeds > 0:
-		parts.append("Withered Trees you clear this run give %d Seeds (not 1)" % (1 + tree_seeds))
+		parts.append("Withered Trees you clear this run give %s (not 1)" % UiStyle.seeds_amount(1 + tree_seeds))
 	var text := " · ".join(parts)
 	if lost > 0 and not is_dew_prize(omen):  # Why it's less (the rest report and toast show it)
 		var why := "%d %s lost" % [lost, "leaf" if lost == 1 else "leaves"]
@@ -287,7 +287,7 @@ func per_leaf_text(omen: OmenData, act: int, block: int = 0) -> String:
 	var dew := floori((roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)) * REWARD_CUT_PER_LEAF)
 	var seeds := floori(roundi(omen.reward_seeds * scale) * REWARD_CUT_PER_LEAF)
 	if dew > 0 and seeds > 0:
-		return "minus %d Dew and %d %s" % [dew, seeds, "Seed" if seeds == 1 else "Seeds"]
+		return "minus %s and %s" % [UiStyle.dew_amount(dew), UiStyle.seeds_amount(seeds)]
 	if dew > 0:
 		return "minus %d" % dew
 	if seeds > 0:
@@ -321,9 +321,9 @@ func reward_bullets(omen: OmenData, act: int, block: int = 0) -> Array[String]:
 	var seeds := roundi(omen.reward_seeds * scale)
 	if seeds > 0:
 		var seed_cut := floori(seeds * REWARD_CUT_PER_LEAF)
-		bullets.append("+%d Seeds, %s for each leaf you lose" % [seeds, "minus %d" % seed_cut if seed_cut > 0 else "less"])
+		bullets.append("%s, %s for each leaf you lose" % [UiStyle.seeds_amount(seeds, true), "minus %d" % seed_cut if seed_cut > 0 else "less"])
 	if omen.reward_tree_seeds > 0:
-		bullets.append("%d Seeds for every Withered Tree you clear this run, less for each leaf you lose" % (1 + omen.reward_tree_seeds))
+		bullets.append("%s for every Withered Tree you clear this run, less for each leaf you lose" % UiStyle.seeds_amount(1 + omen.reward_tree_seeds))
 	var cards := maxi(dream_state.cards_per_offer, mini(dream_state.cards_per_offer + omen.reward_extra_dream_cards, DreamState.MAX_OFFER_CARDS))
 	if omen.reward_extra_dream_cards > 0:
 		bullets.append("Next Dream offers %d cards%s%s" % [cards, ", one of them Rare+" if omen.reward_rare_dreams > 0 else "", keep])
@@ -388,10 +388,10 @@ func _reward_parts(omen: OmenData, act: int, block: int, share: float, dreams: b
 		scaled.append("the block's Dew back, and a quarter more")
 	var seeds := floori(roundi(omen.reward_seeds * scale) * share)
 	if seeds > 0:
-		scaled.append("+%d Seeds" % seeds)
+		scaled.append(UiStyle.seeds_amount(seeds, true))
 	var tree_seeds := floori(omen.reward_tree_seeds * share)
 	if tree_seeds > 0:
-		scaled.append("%d Seeds for every Withered Tree you clear this run (not 1)" % (1 + tree_seeds))
+		scaled.append("%s for every Withered Tree you clear this run (not 1)" % UiStyle.seeds_amount(1 + tree_seeds))
 	var times := dream_times(share)  # Double or Nothing, nothing lost: Dream rewards count twice
 	var cards := maxi(dream_state.cards_per_offer, mini(dream_state.cards_per_offer + omen.reward_extra_dream_cards * times, DreamState.MAX_OFFER_CARDS))
 	var rare_text := "a Rare+ card in your next Dream" if times == 1 else "a Rare+ card in each of your next %d Dreams" % (omen.reward_rare_dreams * times)

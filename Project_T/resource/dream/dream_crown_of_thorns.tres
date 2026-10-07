@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_crown_of_thorns"
 display_name = "Crown of Thorns"
-description = "Thorncoils can now grow into Crowns of Thorns ({grow_cost:crown_of_thorns} Dew): sharper thorns that spread."
+description = "Thorncoils can now grow into Crowns of Thorns ({dew:{grow_cost:crown_of_thorns}}): sharper thorns that spread."
 rarity = 2
 kind = 1
 tags = Array[String](["root"])

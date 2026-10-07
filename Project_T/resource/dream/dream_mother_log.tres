@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_mother_log"
 display_name = "Mother Log"
-description = "Nurse Logs can now grow into Mother Logs ({grow_cost:mother_log} Dew): cheaper still, and a sold Warden's rank stays in the log."
+description = "Nurse Logs can now grow into Mother Logs ({dew:{grow_cost:mother_log}}): cheaper still, and a sold Warden's rank stays in the log."
 rarity = 2
 kind = 1
 tags = Array[String](["acorn"])
