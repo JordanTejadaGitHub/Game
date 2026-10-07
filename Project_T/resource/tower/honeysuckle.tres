@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Honeysuckle"
-role_line = "Sweet wall, makes passers-by drowsy"
+role_line = "Wall, drowses"
 description = "Its sweet scent makes nightmares walking past it slowly {drowsy} (walls alone stop at 3)."
 cost = 0
 texture = ExtResource("2_tex")

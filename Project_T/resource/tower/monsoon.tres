@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Monsoon"
-role_line = "Rains on everything in range"
+role_line = "Soaks, area damage, high damage"
 description = "Every 3 s, rain falls on every nightmare in range: it soothes them all and leaves them {damp} for 9 s."
 cost = 0
 counter_tags = Array[StringName]([&"anti_swarm"])

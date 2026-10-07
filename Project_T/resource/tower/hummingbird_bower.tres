@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Hummingbird Bower"
-role_line = "Six quick pecks, on-hit engine"
+role_line = "Fast attacks, crits"
 description = "A hummingbird pecks one nightmare six times in a second; every peck is a full hit."
 cost = 0
 texture = ExtResource("2_tex")

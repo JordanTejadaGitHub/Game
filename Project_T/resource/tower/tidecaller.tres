@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Tidecaller"
-role_line = "Tides wash nightmares back"
+role_line = "Pulls back, soaks, area damage"
 description = "Every 6 s a great wave leaves everything in range {damp}, pushes it back a tile and freezes the ones already {damp}."
 cost = 0
 line = "water"

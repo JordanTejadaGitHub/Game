@@ -13,7 +13,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Bellflower"
-role_line = "Soft pulse, makes them drowsy"
+role_line = "Drowses, area damage"
 description = "A soft ringing pulse; every second pulse on a nightmare makes it {drowsy}."
 cost = 25
 texture = ExtResource("2_tex")

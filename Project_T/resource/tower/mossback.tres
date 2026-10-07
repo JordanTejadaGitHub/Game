@@ -10,7 +10,7 @@
 script = ExtResource("1_tdata")
 counter_tags = Array[StringName]([&"anti_armour"])
 display_name = "Mossback"
-role_line = "Huge close hits, crushes the exposed"
+role_line = "Short range, high damage"
 description = "One huge, slow hit at short range; double damage against {marked} nightmares."
 cost = 0
 texture = ExtResource("2_tex")

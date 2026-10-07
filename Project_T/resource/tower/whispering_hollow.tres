@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Whispering Hollow"
-role_line = "Full echoes, longer chains"
+role_line = "Repeats combos, area damage"
 description = "Echoes at {echo:whispering_hollow} strength over a wider area, and every echo counts as a chain link."
 cost = 0
 texture = ExtResource("2_tex")

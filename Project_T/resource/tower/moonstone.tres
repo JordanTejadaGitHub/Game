@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Moonstone"
-role_line = "Longest range, first hit crits"
+role_line = "Long range, boss killer"
 description = "Range 10; its first hit on each nightmare is always a crit, and its crits hit ×4."
 cost = 0
 texture = ExtResource("2_tex")

@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "The Whirlwind"
-role_line = "Cyclone carries statuses along the path"
+role_line = "Spreads statuses, area damage"
 description = "A cyclone roams the path in its range, hitting everything it passes; statuses it touches travel with it and settle on the rest."
 cost = 0
 line = "wind"

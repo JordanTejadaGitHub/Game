@@ -14,7 +14,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Dewdrop"
-role_line = "Small splash, soaks crowds"
+role_line = "Soaks, area damage"
 cost = 25
 texture = ExtResource("2_tex")
 frame_count = 8

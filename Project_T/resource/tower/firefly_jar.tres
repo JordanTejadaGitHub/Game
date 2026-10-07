@@ -14,7 +14,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Firefly Jar"
-role_line = "Small spark, charges"
+role_line = "Charges, low damage"
 cost = 25
 texture = ExtResource("2_tex")
 frame_count = 8

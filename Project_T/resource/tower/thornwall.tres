@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Thornwall"
-role_line = "Cheap wall, shapes the maze"
+role_line = "Wall"
 cost = 3
 texture = ExtResource("2_tex")
 frame_count = 8

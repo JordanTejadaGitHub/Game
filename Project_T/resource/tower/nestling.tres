@@ -11,7 +11,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Nestling"
-role_line = "Swooping bird, quick hunter"
+role_line = "Fast attacks, single target"
 description = "A bird swoops at a nightmare, rakes one more beside it for half, and flies home; extra damage to Phantoms."
 cost = 25
 texture = ExtResource("2_tex")

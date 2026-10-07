@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Midsummer"
-role_line = "Fierce beam, forks at full power"
+role_line = "Boss killer, high damage"
 description = "A brighter beam that ramps much higher and carries on to the nightmare right behind its target. Switching targets keeps half its ramp."
 cost = 0
 texture = ExtResource("2_tex")
