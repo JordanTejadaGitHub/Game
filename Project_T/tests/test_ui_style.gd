@@ -72,6 +72,14 @@ func _initialize() -> void:
 		"amounts are the glyph, then the number")
 	_check(IconInfo.format("Costs {dew:15}, pays {seeds:+30} and {dreamlight:2}") == "Costs %s, pays %s and %s"
 		% [UiStyle.dew_amount(15), UiStyle.seeds_amount(30, true), UiStyle.dreamlight_amount(2)], "{dew:N} tokens format to amounts")
+	# Amount tokens wrap the number tokens (cards: "({dew:{grow_cost:x}})", "+{dew:{field:x.y:count}}").
+	var hoard := load("res://resource/tower/magpies_hoard.tres") as TowerData
+	if hoard != null:
+		var price := IconInfo.format("{grow_cost:magpies_hoard}")
+		var per_crit := IconInfo.format("{field:magpies_hoard.crit_dew:count}")
+		_check(IconInfo.format("({dew:{grow_cost:magpies_hoard}})") == "(%s)" % (UiStyle.DEW_GLYPH + price)
+			and IconInfo.format("+{dew:{field:magpies_hoard.crit_dew:count}}") == "+" + UiStyle.DEW_GLYPH + per_crit,
+			"{dew:…} wraps {grow_cost:…} and {field:…} (%s, %s)" % [price, per_crit])
 	var world_font := UiStyle.with_glyphs(ThemeDB.fallback_font)
 	_check(world_font.get_string_size(UiStyle.DEW_GLYPH, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x > 4.0
 		and world_font == UiStyle.with_glyphs(ThemeDB.fallback_font), "world tags (WorldLabel) draw the glyphs, one cached font")
