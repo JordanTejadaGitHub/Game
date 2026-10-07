@@ -228,6 +228,8 @@ func _run() -> void:
 			"--rank-budget": rank_budget = int(value)
 			"--plant-full": plant_full = true
 			"--omen-force": omen_force = value
+			"--probe-warden": probe_warden = value
+			"--probe-spot": probe_spot = value
 			"--no-walls-keep-going": walls_keep_going = false
 			"--wall-first-keep": wall_first_keep = int(value)
 			"--no-half-pref": half_pref = false
@@ -408,6 +410,9 @@ func _run() -> void:
 		omens.omen_rewarded.connect(func(omen, _summary) -> void: _on_omen_rewarded(omen))
 	for r in Reactions.all() + Reactions.crowned():
 		reaction_tags[r.id] = true
+	if probe_warden != "" and not _place_probe():
+		quit(1)
+		return
 	if omen_force != "" and not _force_omen():
 		_finish()
 		quit(0)
@@ -679,6 +684,92 @@ func _force_omen() -> bool:
 	omen_forced_status = omen_force
 	omens_faced.append("%d:%s" % [resumed_at + 1, omen.id])
 	print("OMEN forced %s for block %d" % [omen_force, block])
+	return true
+
+# --probe-warden=<form> --probe-spot=best|median (Balancing 2026-10-08, "Mossback vs Standing Stone" in a real maze; with --from-save):
+# one candidate planted on the resumed board, base form then each growth, at no cost (Dew restored after), no ranks. Spots: every
+# free cell off the route that may be blocked, scored by coverage = route cells within [min_range, range] of it; best = the
+# highest, median = the median of those with coverage > 0. Its damage (DamageLog, by source) is reported per drift.
+var probe_warden := ""
+var probe_spot := "best"
+var probe_tower: Tower = null
+var probe_info := {}
+var probe_damage_by_drift := {}
+
+func _probe_chain(id: String) -> Array[TowerData]:
+	var parent := {}
+	var all := {}
+	for file in DirAccess.get_files_at("res://resource/tower/"):
+		if not file.ends_with(".tres"):
+			continue
+		var data := load("res://resource/tower/" + file) as TowerData
+		if data == null:
+			continue
+		all[data.get_id()] = data
+		for next in data.evolves_to:
+			if next is TowerData and not parent.has(next.get_id()):
+				parent[next.get_id()] = data
+	var chain: Array[TowerData] = []
+	var at: TowerData = all.get(id)
+	while at != null:
+		chain.push_front(at)
+		if at.buildable_directly:
+			break
+		at = parent.get(at.get_id())
+	return chain if not chain.is_empty() and chain[0].buildable_directly else ([] as Array[TowerData])
+
+func _place_probe() -> bool:
+	var chain := _probe_chain(probe_warden)
+	if chain.is_empty():
+		printerr("--probe-warden=%s: no buildable chain" % probe_warden)
+		return false
+	var data: TowerData = chain[-1]
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	var scored: Array = []  # [coverage, cell]
+	var seen := {}
+	for p in route:
+		for dx in range(-int(data.attack_range) - 1, int(data.attack_range) + 2):
+			for dy in range(-int(data.attack_range) - 1, int(data.attack_range) + 2):
+				var cell := p + Vector2(dx, dy)
+				if seen.has(cell):
+					continue
+				seen[cell] = true
+				if route.has(cell) or not map.is_buildable(cell) or not map.can_block(cell):
+					continue
+				var cover := 0
+				for q in route:
+					var dist := cell.distance_to(q)
+					if dist <= data.attack_range and dist >= data.min_range:
+						cover += 1
+				if cover > 0:
+					scored.append([cover, cell])
+	if scored.is_empty():
+		printerr("--probe-warden: no spot covers the route")
+		return false
+	scored.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
+	var order: Array = scored.duplicate() if probe_spot == "best" else scored.slice(scored.size() / 2) + scored.slice(0, scored.size() / 2)
+	var dew_before := run_state.dew
+	run_state.dew = 1000000
+	var container: Node = main.get_node("%TowerContainer")
+	for s in order:
+		placer.tower_data = chain[0]
+		var before := container.get_child_count()
+		if placer._try_build(s[1]):
+			probe_tower = container.get_child(before)
+			probe_info = {"cell": s[1], "coverage": s[0], "best": scored[0][0], "median": scored[scored.size() / 2][0], "spots": scored.size()}
+			break
+	if probe_tower != null:
+		var unlocked: bool = dreams.unlock_everything
+		dreams.unlock_everything = true  # Branches / finals need Dreamlight unlocks; the probe skips them
+		for step in chain.slice(1):
+			placer.evolve(probe_tower, step)
+		dreams.unlock_everything = unlocked
+	run_state.dew = dew_before
+	if probe_tower == null:
+		printerr("--probe-warden: could not plant %s" % probe_warden)
+		return false
+	print("PROBE %s at %s (%s): coverage %d (best %d, median %d of %d spots)" % [probe_tower.tower_data.get_id(), probe_info.cell,
+		probe_spot, probe_info.coverage, probe_info.best, probe_info.median, probe_info.spots])
 	return true
 
 func _write_snapshot(n: int) -> void:
@@ -990,8 +1081,8 @@ func _cheapest_growth() -> int:
 	return cheapest
 
 func _attackers() -> Array:
-	return container.get_children().filter(func(t) -> bool:
-		return t is Tower and not t.is_queued_for_deletion() and t.tower_data.can_attack)
+	return container.get_children().filter(func(t) -> bool:  # --probe-warden: the candidate is never the bot's (no growth, ranks or sale)
+		return t is Tower and not t.is_queued_for_deletion() and t.tower_data.can_attack and t != probe_tower)
 
 # Wall area in Thornwalls: a twig wall (Tower.twig, one half) counts a quarter.
 func _wall_area() -> float:
@@ -1547,6 +1638,9 @@ func _new_window() -> void:
 		"restless": 0, "trampled": 0, "approach": 0.0, "combo": 0.0, "status": 0.0, "hit": 0.0, "combo_damage": 0.0, "reaction_damage": 0.0, "status_damage": 0.0, "leaked_health": 0.0, "approach_sum": 0.0, "approach_n": 0, "leaked_kinds": {}}
 
 func _on_damage(event) -> void:
+	if probe_tower != null and event.source == probe_tower:
+		var n := director.drifts_started
+		probe_damage_by_drift[n] = float(probe_damage_by_drift.get(n, 0.0)) + event.amount
 	d.damage += event.amount
 	if _trace_t >= 0.0:
 		_trace_dmg += event.amount
@@ -1737,6 +1831,16 @@ func _finish() -> void:
 	summary.from_save = from_save.get_file()
 	summary.resumed_at = resumed_at
 	summary.omen_forced = omen_forced_status
+	if probe_warden != "":
+		var total := 0.0
+		for k in probe_damage_by_drift:
+			total += probe_damage_by_drift[k]
+		summary.probe = probe_warden
+		summary.probe_spot = probe_spot
+		summary.probe_coverage = probe_info.get("coverage", -1)
+		summary.probe_damage = roundi(total)
+		summary.probe_by_drift = ";".join(probe_damage_by_drift.keys().map(func(k) -> String: return "%d:%d" % [k, roundi(probe_damage_by_drift[k])]))
+		summary.probe_invested = probe_tower.invested_dew if is_instance_valid(probe_tower) else -1
 	summary.extra_spend = extra_spend
 	summary.extra_dew = extra_dew  # X (with --extra-dew=grow / final: the cheapest such growth on the board)
 	summary.extra_x = extra_x_mode
