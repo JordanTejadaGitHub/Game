@@ -1330,43 +1330,37 @@ func _test_offer_shape(main: Node) -> void:
 		most_plain = maxi(most_plain, offer.filter(func(c: UpgradeData) -> bool: return DreamState.PLAIN_STAT_CARDS.has(c.id)).size())
 	_check(most_family <= 1, "at most 1 family card per offer (saw %d)" % most_family)
 	_check(most_plain <= 1, "at most 1 plain stat card per offer (saw %d)" % most_plain)
-	# Build-defining cards (dream_design.md de439ea8 "B"): from drift 26 every offer holds an unowned defining card
+	# Build-defining cards (dream_design.md ee3d2851): normal offers draw them at their usual odds (no guarantee); a boss
+	# rest (the next act's weights) guarantees one unowned defining card rolled Rare+, and Legendaries are never guaranteed
 	_check(dreams.is_defining(_card(dreams, "solitude")) and dreams.is_defining(_card(dreams, "thorny_walls"))
 		and not dreams.is_defining(_card(dreams, "deeper_calm")), "defining: Solitude and Thorny Walls yes, Deeper Calm no")
 	var without_defining := 0
 	for i in 60:
 		dreams._passed_count.clear()
-		var late := dreams.make_offer(25 + i % 40)
+		var late := dreams.make_offer(26 + i % 20)
 		if not late.any(func(c: UpgradeData) -> bool: return dreams.is_defining(c) and not dreams.has_card(c.id)):
 			without_defining += 1
-	_check(without_defining == 0, "from the act 2 rest (after drift 25) every offer shows an unowned defining card (%d without)" % without_defining)
-	var early_without := 0
-	for i in 60:
-		dreams._passed_count.clear()
-		if not dreams.make_offer(15).any(dreams.is_defining):
-			early_without += 1
-	_check(early_without > 0, "before drift 25 there's no such rule (%d of 60 offers had none)" % early_without)
-	# Legendaries as high points (dream_design.md 495076d2): a boss rest belongs to the next act, has a Legendary slot
-	# when one can be offered, and its other slots are Rare+
-	var legend_open := dreams.pool.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY and dreams.can_offer(c, 2)).size()
+	_check(without_defining > 0, "normal offers have no defining guarantee (%d of 60 had none)" % without_defining)
 	var boss_offer := dreams.make_offer(25)
 	_check(boss_offer.all(func(c: UpgradeData) -> bool: return c.is_rare_or_better()), "a boss rest: every slot Rare+ (%s)" % [boss_offer.map(func(c: UpgradeData) -> String: return c.id)])
-	_check(legend_open == 0 or boss_offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY),
-		"…and a Legendary when one can be offered (%d open, act 2 at the rest after drift 25)" % legend_open)
 	# At most 1 Legendary per offer outside the explicit sources (story chat 2026-10-07: a 4-card boss Dream showed 3):
 	# the boss rest's slot is the one; its other slots are Rare (Legendaries excluded). With and without Wider Choice.
 	for cards in [3, 4]:
 		dreams.cards_per_offer = cards
 		var over := 0
 		var with_legend := 0
+		var boss_without := 0
 		for i in 200:
 			dreams._passed_count.clear()
 			var o := dreams.make_offer(25)
 			var n := o.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY).size()
 			over += 1 if n > 1 else 0
 			with_legend += 1 if n == 1 else 0
+			boss_without += 0 if o.any(func(c: UpgradeData) -> bool: return dreams.is_defining(c) and not dreams.has_card(c.id)) else 1
 		print("  boss rest, %d cards: %d of 200 offers held exactly 1 Legendary, %d more than 1" % [cards, with_legend, over])
 		_check(over == 0, "%d-card boss offers never hold more than 1 Legendary (%d of 200 did)" % [cards, over])
+		_check(boss_without == 0, "…every one holds an unowned defining card (%d without)" % boss_without)
+		_check(with_legend < 200, "…and the Legendary isn't guaranteed (%d of 200)" % with_legend)
 	dreams.cards_per_offer = 3
 	_reset_dreams(main)
 func _reset_dreams(main: Node) -> void:

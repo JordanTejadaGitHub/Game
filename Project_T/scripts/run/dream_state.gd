@@ -2271,11 +2271,12 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 		if not legendaries.is_empty():
 			offer.append(_weighted_pick(legendaries))
 			_legendary_next -= 1
-	# Legendaries as high points: every boss rest has one Legendary slot when any can be offered (else Rare+, below)
-	if boss_rest and offer.size() < size and not offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY):
-		var boss_legends: Array = pool.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY and can_offer(c, act))
-		if not boss_legends.is_empty():
-			offer.append(_weighted_pick(boss_legends))
+	# A boss rest guarantees one unowned defining card, rolled Rare+ (dream_design.md ee3d2851; it replaced the Legendary
+	# slot: Legendaries come only at their normal odds). The other slots are Rare+ below.
+	if boss_rest and offer.size() < size and not offer.any(func(c: UpgradeData) -> bool: return is_defining(c) and not has_card(c.id)):
+		var defining := _boss_defining_card(act, offer)
+		if defining != null:
+			offer.append(defining)
 	current_stray = null
 	if offer.size() < size and drift_number >= STRAY_FROM_DRIFT and not drift_director.is_boss_drift(drift_number):
 		current_stray = _draw_card(act, offer, false, true)
@@ -2298,7 +2299,6 @@ func make_offer(drift_number: int) -> Array[UpgradeData]:
 		if card == null:
 			break
 		offer.append(card)
-	_ensure_defining(offer, act, drift_number)
 	if offer.any(func(c: UpgradeData) -> bool: return c.is_rare_or_better()):
 		_dreams_without_rare = 0
 	else:
@@ -2551,31 +2551,20 @@ func kinship_possible() -> bool:
 	return unlock_everything
 
 # Build-defining cards (dream_design.md de439ea8 "B"): tag `defining`, and every Legendary. Main / UI mark them on screen.
-const DEFINING_FROM_DRIFT := 25  # The act 2 rest, after drift 25 (dream_design.md 6bf745e7)
 
 func is_defining(card: UpgradeData) -> bool:
 	return card != null and (card.tags.has("defining") or card.rarity == UpgradeData.Rarity.LEGENDARY)
 
-# From act 2 every offer holds at least 1 defining card you don't own: if the draw has none, the lowest-rarity non-family
-# slot becomes a random unowned defining card of that rarity (else an Uncommon). Stops once none can be offered.
-func _ensure_defining(offer: Array[UpgradeData], act: int, drift_number: int) -> void:
-	if drift_number < DEFINING_FROM_DRIFT or offer.is_empty():
-		return
-	if offer.any(func(c: UpgradeData) -> bool: return is_defining(c) and not has_card(c.id)):
-		return
-	var slots := offer.filter(func(c: UpgradeData) -> bool: return not is_family_card(c))
-	if slots.is_empty():
-		return
-	slots.sort_custom(func(a: UpgradeData, b: UpgradeData) -> bool: return a.rarity < b.rarity)
-	var slot: UpgradeData = slots[0]
-	var others := offer.filter(func(c: UpgradeData) -> bool: return c != slot)
-	var family_taken := others.any(is_family_card)
-	var choices: Array = pool.filter(func(c: UpgradeData) -> bool: return _defining_choice(c, slot.rarity, offer, act, family_taken))
-	if choices.is_empty():
-		choices = pool.filter(func(c: UpgradeData) -> bool: return _defining_choice(c, UpgradeData.Rarity.UNCOMMON, offer, act, family_taken))
-	if choices.is_empty():
-		return
-	offer[offer.find(slot)] = _weighted_pick(choices)
+# A boss rest's guaranteed slot (dream_design.md ee3d2851): one unowned defining card, its rarity rolled Rare+ at the
+# act's weights (so it can be a Legendary: they're defining); the other Rare+ rarity if that one has none. null = none left.
+func _boss_defining_card(act: int, offer: Array[UpgradeData]) -> UpgradeData:
+	var family_taken := offer.any(is_family_card)
+	var rolled := _roll_rarity(act, true)
+	for rarity in [rolled, UpgradeData.Rarity.RARE if rolled == UpgradeData.Rarity.LEGENDARY else UpgradeData.Rarity.LEGENDARY]:
+		var choices: Array = pool.filter(func(c: UpgradeData) -> bool: return _defining_choice(c, rarity, offer, act, family_taken))
+		if not choices.is_empty():
+			return _weighted_pick(choices)
+	return null
 
 func _defining_choice(card: UpgradeData, rarity: int, offer: Array[UpgradeData], act: int, family_taken: bool) -> bool:
 	if not is_defining(card) or has_card(card.id) or card.rarity != rarity or offer.has(card):
