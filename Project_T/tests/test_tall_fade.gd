@@ -56,8 +56,8 @@ func _run() -> void:
 		await process_frame
 	_check(tall._tall_alpha > 0.95, "a Warden in the cell above doesn't fade it (%.2f)" % tall._tall_alpha)
 	above.queue_free()
-	# Over the trail (user 2026-10-04): the overhang parts over route halves are see-through all the time; a big
-	# Warden whose art covers only ground and Wardens has no path mask.
+	# Over the trail (was see-through, user 2026-10-04; removed 2026-10-07): a big Warden over route halves and one
+	# over only ground both have no path mask.
 	var map = main.get_node("%MapGenerator")
 	var route_set := {}
 	for c in Tower.route_cells(map.get_path_from(map.startPath)):
@@ -83,7 +83,9 @@ func _run() -> void:
 	await process_frame
 	over._refresh_path_mask()
 	clear._refresh_path_mask()
-	_check(not over.path_mask.is_empty(), "a big Warden below the trail fades the part over it (%s at %s)" % [over.path_mask.size(), by_path])
+	# User 2026-10-07: "remove the transparency on routes": no trail mask; big Wardens draw opaque over the trail.
+	_check(over.path_mask.is_empty() and over._tall_fade.get_shader_parameter(&"path_count") == 0,
+		"a big Warden below the trail stays opaque over it (%s at %s)" % [over.path_mask.size(), by_path])
 	_check(clear.path_mask.is_empty(), "one with only ground around stays opaque (%s at %s)" % [clear.path_mask.size(), away])
 	var sprout_over := _plant(placer, container, "sprout", by_path + Vector2(0, 0))
 	_check(not sprout_over.is_tall(), "64x80 art (Sprout, the family bases) never fades")
