@@ -893,6 +893,9 @@ sweep (0.85 / 0.9) follows the act 2 one. **Act 2 sweep (20 per arm), Stag / rea
 widened to 0.75 / 0.8 / 0.85 at act 2 0.5, plus 0.8 / 0.4. Final act 2 sweep: easing moves deaths later (default mostly 36–48:
 the steep stretch from drift 37), it doesn't remove them. Of the runs that reach the Mire Hag, 59% beat it at boss
 scale 1.0 (≈ the 2-in-3 aim): the boss itself needs little or no change.
+**Seeds rework (user, meta_design.md 192baf87):** survival Seeds from drift 26 only, act 1 dispels 1 per 50, no
+first-run +20. Check: act 1 losses bank **p90 < 20** (the cheapest node), clear-heavy runs included; tune the dispel
+rate if not. The demo Seeds median (≈ 94 target) is re-measured on the new formula.
 
 ## No forcing (user, 2026-10-06)
 
