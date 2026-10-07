@@ -599,11 +599,17 @@ static func _burst_sparks(tower: Tower) -> void:
 		sparks *= 2
 	_spark_burst_at(tower, target.global_position, sparks, float(tower.attack_data.damage), true)
 
+const SPARK_BURST_SCALE := 1.5
+
 # `sparks` sparks of `each` damage on nightmares within the burst radius of `at`, each adding Charged.
 static func _spark_burst_at(tower: Tower, at: Vector2, sparks: int, each: float, may_rebound: bool) -> void:
 	var radius := (p(tower, "burst_radius", 1.5) + tower.area_bonus()) * CELL
 	var near := targetable(tower).filter(func(e) -> bool: return e.global_position.distance_to(at) <= radius)
-	Fx.play(&"spark_burst" if not may_rebound else &"firework_burst", at, world(tower))  # A full burst, or the small spark of a fence crossing
+	# A full burst, or the small spark of a fence crossing. The Sparkler's own burst is 1.5x and a touch brighter (the
+	# user: "the Sparkler and Starburst don't have attack animations"; Fx keeps its size cap, budget and reduce_flashes).
+	var burst := Fx.play(&"spark_burst" if not may_rebound else &"firework_burst", at, world(tower), SPARK_BURST_SCALE if may_rebound else 1.0)
+	if burst != null and may_rebound and not Fx.reduce_flashes():
+		burst.modulate = Color(1.25, 1.25, 1.2)  # multiplier: brighter on the release
 	if near.is_empty():
 		return
 	var mult := each / maxf(float(tower.attack_data.damage), 1.0)
