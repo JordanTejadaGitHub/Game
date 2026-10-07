@@ -870,7 +870,8 @@ its pick rate and human `longest_path`, and raise its effect only if humans pass
 Target: a loss at drift 45–50 banks **~80–100 Seeds** (≈ 3 entry nodes). Meta's start: act 2 dispels 1 per 40 (was 20), act 1
 boss 15 (was 20); the rest unchanged. Measured with invulnerable runs to 50 (the Seeds a drift-50 loss banks), fresh + half,
 then the rates swept to land the median ~90. Also: whole-tree time (~35 h) and the demo arc (375 Seeds in ~4 runs; the 325
-fallback).
+fallback). **Act 1 losses (960411c3, new formula, 39 runs):** median ~8 Seeds, p90 ~13–16: under 20 (the user's rule
+holds); the one outlier (33) dispelled the Stag (+20) and died in 25. Re-checked on the chosen rates.
 
 ## Omen weighing (user, 2026-10-07: "make sure ones that are worse than others give more rewards")
 
