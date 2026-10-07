@@ -1282,7 +1282,7 @@ Jar, 8 walls, route 50. Act 1: 15 / 15 to 24; the Scarecrow took 3 (its Crows). 
 −6**, dead at 35; drifts between them clean.
 **Finale cliff, across runs 21–25 + the friend:** the act 2 block finales (30 / 35 / 40 / 45) took **42 of 59** act 2 leaves
 lost outside the boss (~71%). The bot can't show it (it dies first). **Fix: `block_finale_elites` from 30: 3 → 2** (and 60: 4 →
-3), the user's "fix cliffs" rule; sent to Tower Code.
+3), the user's "fix cliffs" rule. In 90229047.
 
 ## Human run 24 (2026-10-07 12:22, build 80fc4c25: **before the Sparkler fix**; 9-node Grove)
 
