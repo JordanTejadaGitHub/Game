@@ -1596,7 +1596,7 @@ func _finish() -> void:
 			hoard += float(run.rest_banked[i]) / maxf(run.rest_bonus[i], 1.0)
 			count += 1
 	var summary := {"profile": profile, "style": style, "seed": map_seed, "survived": survived, "won": won,
-		"first_leak": run.first_leak, "lost_25": run.lost_by[25], "lost_50": run.lost_by[50], "lost_75": run.lost_by[75],
+		"started": director.drifts_started, "first_leak": run.first_leak, "lost_25": run.lost_by[25], "lost_50": run.lost_by[50], "lost_75": run.lost_by[75],
 		"bank_act2": run.banked_at_act.get(2, -1), "bank_act3": run.banked_at_act.get(3, -1), "bank_act4": run.banked_at_act.get(4, -1),
 		"hoard_rests": snappedf(hoard / maxf(count, 1), 0.01), "top_warden": top, "max_top_share": run.max_top_share,
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
