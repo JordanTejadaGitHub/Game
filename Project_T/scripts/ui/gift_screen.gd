@@ -702,16 +702,23 @@ class GiftPlacer extends Node2D:
 	static func _adjacent(a: Vector2, b: Vector2) -> bool:
 		return absf(a.x - b.x) + absf(a.y - b.y) == 1.0
 
+	# The pieces from `from` to `to` in a straight line, one piece apart; empty unless they share a row or column and lie
+	# a whole number of pieces apart (half-cell hovers can be half a piece off: the old step-until-equal loop never met
+	# `to` and grew until memory ran out, the user's Fallen Giant crash). Never longer than MAX_LINE.
+	const MAX_LINE := 64
+
 	func _line(from: Vector2, to: Vector2) -> Array[Vector2]:
 		var out: Array[Vector2] = []
-		if from.x != to.x and from.y != to.y:
+		var d := to - from
+		if not is_zero_approx(d.x) and not is_zero_approx(d.y):
 			return out
-		var step := (to - from).sign()
-		var at := from
-		out.append(at)
-		while at != to:
-			at += step
-			out.append(at)
+		var length := absf(d.x) + absf(d.y)
+		var steps := roundi(length)
+		if not is_equal_approx(length, float(steps)) or steps > MAX_LINE:
+			return out
+		var step := d.sign()
+		for i in steps + 1:
+			out.append(from + step * i)
 		return out
 
 	func _area(origin: Vector2) -> Array[Vector2]:

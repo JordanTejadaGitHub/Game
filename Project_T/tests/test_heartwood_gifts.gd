@@ -158,6 +158,14 @@ func _run() -> void:
 	_check(ridge.placement().pieces.size() == 1 and refused.size() == 1, "a piece on the start is refused, with the refusal sound")
 	main.get_node("%TowerPlacer").build_rejected.disconnect(refuse_hook)
 	ridge.queue_free()
+	# A log's line with half-offset hovers (the user's Fallen Giant crash: the old loop never met `to` and ran out of
+	# memory): only whole pieces in one row or column, always bounded.
+	var log_placer := GiftScreen.GiftPlacer.new(director, &"fallen_giant", true)
+	_check(log_placer._line(Vector2(3, 4), Vector2(5.5, 4)).is_empty() and log_placer._line(Vector2(3, 4), Vector2(5, 4.5)).is_empty()
+		and log_placer._line(Vector2(3.5, 4), Vector2(6.5, 4)).size() == 4 and log_placer._line(Vector2(3, 4), Vector2(3, 1)).size() == 4
+		and log_placer._line(Vector2(0, 0), Vector2(1000, 0)).is_empty(),
+		"a log line: whole pieces only, half-offset ends allowed when aligned, never unbounded")
+	log_placer.free()
 	var mire := GiftScreen.GiftPlacer.new(director, &"mire", false)
 	main.add_child(mire)
 	var route_half := Vector2(FindPath.point_to_node(map.get_path_from(map.startPath)[6]))
