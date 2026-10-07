@@ -189,7 +189,7 @@ func save_now() -> bool:
 	for tower in tower_container.get_children():
 		if tower is Tower and not tower.is_queued_for_deletion():
 			towers.append({"cell": [tower.cell.x, tower.cell.y], "half": [tower.half_cell.x, tower.half_cell.y], "data": tower.tower_data.resource_path,
-				"invested": tower.invested_dew, "rest_dew": tower.rest_dew, "rank": tower.rank, "focus": tower.focus, "rank_choices": Array(tower.rank_choices),
+				"invested": tower.invested_dew, "rest_dew": tower.rest_dew, "rank": tower.rank, "paid_ranks": Array(tower.paid_ranks), "focus": tower.focus, "rank_choices": Array(tower.rank_choices),
 				"target_mode": tower.target_mode, "target_chosen": tower.target_chosen, "kin_branch": tower.kin_branch, "size": tower.get_footprint(),
 				"legacy": tower.legacy_data.resource_path if tower.legacy_data else "",  # An Ascended form's final
 				"drifts_stood": int(tower.get_meta(&"drifts_stood", 0)),  # Old Growth (DreamState counts it)
@@ -281,6 +281,9 @@ func _restore(data: Dictionary) -> void:
 		tower.invested_dew = int(saved.invested)
 		tower.rest_dew = int(saved.get("rest_dew", 0))  # Placed this rest (saves happen at rests)
 		tower.rank = int(saved.get("rank", 0))  # Saves from before Nurture have none
+		tower.paid_ranks.clear()  # Bought ranks (free ones stay free through growth); older saves: every rank paid
+		for r in saved.get("paid_ranks", range(1, tower.rank + 1)):
+			tower.paid_ranks.append(int(r))
 		tower.focus = int(saved.get("focus", 0)) as Tower.Focus
 		tower.rank_choices.clear()  # Nurture v3: one choice per rank (older saves: Tower._migrate_choices fills them)
 		for choice in saved.get("rank_choices", []):

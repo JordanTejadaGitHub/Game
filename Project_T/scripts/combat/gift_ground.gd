@@ -415,7 +415,8 @@ func _on_tower_sold(tower: Tower, _refund: int) -> void:
 			if is_instance_valid(other):
 				partners[other.get_instance_id()] = int(kin.ages.get(pair.key, 0))
 	memory_kind = tower.tower_data.get_id()
-	memory_state = {"rank": tower.rank, "choices": tower.rank_choices.duplicate(), "focus": tower.focus, "partners": partners}
+	memory_state = {"rank": tower.rank, "choices": tower.rank_choices.duplicate(), "focus": tower.focus, "partners": partners,
+		"paid": Array(tower.paid_ranks)}
 	memory_cell = NO_CELL
 
 func _on_tower_built(tower: Tower) -> void:
@@ -426,6 +427,7 @@ func _on_tower_built(tower: Tower) -> void:
 	if memory_kind != "" and tower.tower_data.get_id() == memory_kind and _memory_holds():
 		tower.rank = maxi(tower.rank, int(memory_state.get("rank", 0)))
 		tower.rank_choices.assign(memory_state.get("choices", []))
+		tower.paid_ranks.assign(memory_state.get("paid", []))  # Free ranks stay free through the move
 		tower.focus = memory_state.get("focus", tower.focus)
 		tower.clear_dream_cache()
 		var kin := Kinships.find(self)

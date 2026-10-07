@@ -1549,12 +1549,16 @@ func get_grow_cost(into: TowerData, planned: int = 0) -> Dictionary:
 		base = 0  # Heartwood's Gift Bramble Verge: Thornwall -> Bramble is free this run
 	var ranks := 0
 	for which in range(1, rank + 1):
+		if not paid_ranks.has(which):
+			continue  # A free rank stays free through growth
 		ranks += maxi(_rank_price_for(which, into, false) - _rank_price_for(which, tower_data, true), 0)
-	return {"total": base + ranks, "base": base, "ranks": ranks}
+	return {"total": base + ranks, "base": base, "ranks": ranks, "free_ranks": free_rank_count()}
 
 # What the next rank adds to growing into `into` (warden_stats.md: growing pays the ranks held; the
 # Nurture button says so, so players don't rank a Warden out of its growth).
 func get_next_rank_growth_extra(into: TowerData) -> int:
+	if free_nurtures_left() > 0:
+		return 0  # First Care: the next rank is free, so it stays free through growth
 	var which := rank + 1
 	return maxi(_rank_price_for(which, into, false) - _rank_price_for(which, tower_data, true), 0)
 
@@ -1600,6 +1604,16 @@ func get_nurture_price() -> int:
 
 # Raises the rank by one; `cost` is added to invested Dew (TowerPlacer.nurture charges it).
 # `chosen` sets the Focus when this is the rank that asks for one.
+# The ranks bought with Dew (their numbers). Every other rank came free (Sunlit Rest, First Care, Ancient Stump,
+# Seedbearer, Mother Log…) and stays free through growth: get_grow_cost charges no difference for it (story chat,
+# the user: "should upgrading into a Sparkler be cheaper since I had the first one free"). Saved; kept through
+# evolution and Memory Seed.
+var paid_ranks: Array[int] = []
+
+# Ranks it holds that cost nothing.
+func free_rank_count() -> int:
+	return rank - paid_ranks.filter(func(r: int) -> bool: return r <= rank).size()
+
 func nurture(cost: int, chosen: Focus = Focus.NONE) -> void:
 	if chosen == Focus.NONE or not choice_available(chosen):
 		chosen = default_choice()
@@ -1609,6 +1623,8 @@ func nurture(cost: int, chosen: Focus = Focus.NONE) -> void:
 	if rank > before:
 		rank_choices.append(chosen)
 		focus = chosen
+		if cost > 0:
+			paid_ranks.append(rank)
 	clear_dream_cache()
 	_nudge_neighbours()
 	invested_dew += cost
