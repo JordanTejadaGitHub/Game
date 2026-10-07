@@ -14,6 +14,18 @@ Discussion (art_direction.md "Style references"); this file covers player-facing
 - **Numbers and names match the data.** Player text that states a number reads it from the resource where it can; one
   name per thing (Rooted, not Held; Soaked, not Damp).
 - Plain mechanical card text is fine as is; it already reads as human.
+- **Capitalisation** (user, 2026-10-07: "let's be consistent with capitalisation"):
+  - **Names of things are capitalised everywhere:** Wardens and their forms (Rootling, Standing Stone), nightmares (Shade, the
+    Hollow Stag), Dream cards, Omens, Gifts, Reactions and Kinships (Heart of the Maze, Fog Bank, Still Pool), statuses in
+    every form, noun or verb (Rooted / Roots, Soaked / Soaks, Charged / Charges, Poisoned / Poisons, Drowsy / Drowses,
+    Exposed / Exposes, Frozen / Freezes, Silenced / Silences, Asleep, Hidden), currencies (Dew, Dreamlight, Seeds),
+    named systems (Nurture, the Memory Grove, the Remember screen, Deeply Blighted, Blight Level) and the Heartwood.
+  - **Everything else is lower case in running text:** drift, rest, block, act, leaf / leaves, rank, focus names used as
+    words (power, reach), range, damage, path, route, wall, sprout as a verb. (Sprout the Warden is a name: capital.)
+  - **Titles and names of cards / Dreams / Omens:** title case (Heart of the Maze, Let It Pass is NOT a name: it's a button).
+  - **Buttons, headings, labels, tags and role lines:** sentence case: first word capital, then lower case except names
+    ("Take this Omen", "Start drift 1", "Dreams this run", "Long range, high damage", "Anti-air, Roots").
+  - Small-caps labels (CapsLabel) are written in sentence case in the data; the font does the rest.
 
 ## Fixes (audit by a read-only pass; owners apply)
 
