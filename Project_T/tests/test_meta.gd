@@ -156,6 +156,10 @@ func _run() -> void:
 	_check(seeds[0][1] == 0 and seeds[1][1] == 60 / 50 + 40 / 20 and not seeds.any(func(l: Array) -> bool: return l[0] == "The first seed"),
 		"act 1: no survival Seeds, dispels 1 per 50 (then 1 per 20), no first-run bonus (%s)" % [seeds])
 	_check(run_state.get_seed_breakdown(31, 0, false)[0][1] == 3, "drifts 26–31 survived: 3 Seeds")
+	run_state.cleansed_in_act_2 = 40  # ce725e43: act 2 dispels 1 per 40, the act 1 boss 15 Seeds
+	seeds = run_state.get_seed_breakdown(50, 2, false)
+	_check(seeds[1][1] == 60 / 50 + 40 / 40 + 0 and seeds[2][1] == 15 + 20, "act 2 dispels 1 per 40; bosses 15 then 20 (%s)" % [seeds])
+	run_state.cleansed_in_act_2 = 0
 	run_state.creatures_cleansed = kept_cleansed[0]
 	run_state.cleansed_in_act_1 = kept_cleansed[1]
 	run_state.seed_bonus = kept_cleansed[2]
