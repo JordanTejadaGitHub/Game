@@ -85,7 +85,10 @@ func _ready() -> void:
 	overlay.director = drift_director
 	overlay.container = get_node_or_null("%TowerContainer")
 	get_parent().add_child.call_deferred(overlay)
-	tower_placer.build_mode_changed.connect(func(building: bool) -> void: set_active(not building))
+	tower_placer.build_mode_changed.connect(func(building: bool) -> void:
+		set_active(not building)
+		if building:
+			set_sell_mode(false))  # A Warden picked (hotkey / bar): back to building
 	# The refund changes when a drift starts or ends.
 	drift_director.build_phase_changed.connect(queue_redraw.unbind(1))
 	drift_director.build_phase_changed.connect(_on_build_phase_changed)
@@ -93,6 +96,40 @@ func _ready() -> void:
 	# A Warden leaving any other way (trampled by an Unbound nightmare) leaves the selection too.
 	tower_container.child_exiting_tree.connect(_on_tower_leaving)
 	_ensure_target_action()
+
+# --- Sell mode (user, maze_feel.md 9356ec5a: "you're trying to sell the thing you just bought") ------------
+# X while building switches here: no ghost, the hovered Warden outlined in POOR with its refund, a click sells it
+# (sell()'s rules: settling ground, rooted refused, the block reasons), until right-click / Esc or a Warden is
+# picked (TowerPlacer.select_tower: back to build mode). Main: cursor and hint on sell_mode_changed.
+signal sell_mode_changed(on: bool)
+var sell_mode := false
+
+func set_sell_mode(on: bool) -> void:
+	if on and tower_placer.build_mode:
+		tower_placer.set_build_mode(false)  # Its build_mode_changed makes the seller active
+	if on:
+		select(null)
+	if sell_mode == on:
+		return
+	sell_mode = on
+	sell_mode_changed.emit(on)
+	queue_redraw()
+
+# Sell mode: a click on `tower` sells it now (one Warden: no drift confirm; that's for 3+ group sells). True if sold.
+func sell_clicked(tower: Tower) -> bool:
+	if tower == null or not is_instance_valid(tower):
+		return false
+	var hud := owner.get_node_or_null("HUD") if owner else null
+	var refused := ""
+	if not can_sell():
+		refused = sell_block_reason()
+	elif tower.tower_data.rooted:
+		refused = "Rooted: it can't be sold"
+	if refused != "":
+		if hud and hud.has_method("show_toast"):
+			hud.show_toast(refused)
+		return false
+	return sell_tower(tower)
 
 func set_active(value: bool) -> void:
 	active = value
@@ -168,7 +205,10 @@ func get_tower_at_point(world: Vector2) -> Tower:
 
 # Sells the Warden on `cell`. Returns false if there's none.
 func sell(cell: Vector2) -> bool:
-	var tower := get_tower_at(cell)
+	return sell_tower(get_tower_at(cell))
+
+# Sells `tower` itself (half cells: two Wardens can share a cell, so sell mode passes the hovered one).
+func sell_tower(tower: Tower) -> bool:
 	if tower == null or not can_sell() or tower.tower_data.rooted:
 		return false  # The Heartwood Sapling is rooted: never sold or moved
 	var refund := get_refund(tower)
@@ -585,6 +625,18 @@ func _dreams() -> DreamState:
 func _unhandled_input(event: InputEvent) -> void:
 	if not active:
 		return
+	if sell_mode and event.is_action_pressed("cancel_build"):
+		set_sell_mode(false)  # Right-click / Esc: out of sell mode
+		get_viewport().set_input_as_handled()
+		return
+	if sell_mode and event.is_action_pressed("clear_obstacle"):
+		_pressing = true  # Sells on release (touch: unless the finger panned)
+		_dragging = false
+		_press_screen = (event as InputEventMouseButton).position if event is InputEventMouseButton and TouchBuild.is_touch() \
+			else get_viewport().get_mouse_position()
+		_press_world = get_canvas_transform().affine_inverse() * _press_screen
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("sell_tower") and not (event is InputEventMouseButton) and not _typing():
 		if sell_key():
 			get_viewport().set_input_as_handled()
@@ -656,6 +708,11 @@ func _input(event: InputEvent) -> void:
 		_dragging = false
 		queue_redraw()
 		return
+	if sell_mode:
+		_dragging = false
+		sell_clicked(get_tower_at_point(_press_world))  # Sell mode: the click sells (no box, no selection)
+		queue_redraw()
+		return
 	if _dragging:
 		_dragging = false
 		var box := Rect2(_press_world, Vector2.ZERO).expand(get_global_mouse_position())
@@ -690,7 +747,7 @@ func _process(delta: float) -> void:
 		queue_redraw()
 	if not active:
 		return
-	if _pressing and not _dragging and not TouchBuild.is_touch() \
+	if _pressing and not _dragging and not sell_mode and not TouchBuild.is_touch() \
 			and get_viewport().get_mouse_position().distance_to(_press_screen) >= DRAG_THRESHOLD:  # Touch: one finger pans, no box
 		_dragging = true
 	if _dragging:
@@ -773,6 +830,12 @@ func _draw() -> void:
 		_draw_jar_link(_hover_tower)
 	var center: Vector2 = _hover_tower.position  # The Warden itself (it may sit between cells)
 	var rect := Rect2(center - _hover_tower.body_size() / 2, _hover_tower.body_size()).grow(-2)
+	if sell_mode:
+		# Sell mode: the POOR outline and what it gives back now (the live rest / drift rate), or why it can't be sold.
+		draw_rect(rect, UiStyle.POOR, false, 3.0)
+		var tag := "Rooted" if _hover_tower.tower_data.rooted else ("+%d Dew" % get_refund(_hover_tower) if can_sell() else sell_block_reason())
+		WorldLabel.draw_tag(self, center.x, rect.position.y - 8, tag, UiStyle.POOR)
+		return
 	draw_rect(rect, HIGHLIGHT_COLOR, false, 2.0)
 	var label := _hover_tower.tower_data.display_name  # Just the name (text_style.md: no hints on hover)
 	WorldLabel.draw_tag(self, center.x, rect.position.y - 8, label)
