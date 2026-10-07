@@ -88,6 +88,48 @@ func _run() -> void:
 	scene.show_scene(BEFORE, AFTER, {}, "")
 	await process_frame
 	_check(scene._world.get_node_or_null("KinBond") == null, "…and only with that key")
+	# Every gift scene shows its payoff (user, 2026-10-07: "the Waking Root gift video doesn't show what it does")
+	for id in GiftScreen.SCENES:
+		var s: Array = GiftScreen.SCENES[id]
+		_check(not CardScene.diff_cells(s[0], s[1]).is_empty() or not (s[2] as Dictionary).is_empty(), "%s: the after differs from the before or has an effect" % id)
+	var mist: Array = GiftScreen.SCENES[&"thick_mist"]
+	_check(not CardScene.diff_cells(mist[0], mist[1]).is_empty() and mist[2].has("spacing"), "Thick Mist's before and after differ, and it spaces the nightmares")
+	scene.show_scene(mist[0], mist[1], mist[2], mist[3])
+	await process_frame
+	var gap_before: float = scene.spacing_gap()
+	var line_before := scene._walkers.size()
+	scene._phase_left = 0.0
+	await process_frame
+	await process_frame
+	_check(scene._showing_after and line_before > 1 and scene.spacing_gap() > gap_before * 1.2 \
+		and scene._world.get_node_or_null("Mist") != null, "…the After line leaves the thick mist further apart (%.0f → %.0f px)" % [gap_before, scene.spacing_gap()])
+	var waking: Array = GiftScreen.SCENES[&"waking_root"]
+	_check(bool(waking[2].get("unlock", false)), "Waking Root's scene has the unlock effect")
+	scene.show_scene(waking[0], waking[1], waking[2], waking[3])
+	await process_frame
+	_check(scene._unlock != null and scene._unlock_colour.modulate.a == 0.0, "…its locked form starts as a silhouette with its price")
+	scene._phase_left = 0.0
+	for i in int((CardScene.UNLOCK_AT + CardScene.UNLOCK_FADE) * 60.0) + 10:
+		await process_frame
+	_check(scene._showing_after and scene._unlock != null and is_equal_approx(scene._unlock_colour.modulate.a, 1.0), "…and fills with colour once the root reaches it")
+	if preview != "":
+		await _shot(preview + "/gift_waking_root.png")
+	# Lookout's crits, the bog's slow tag, the cleared obstacles' tags
+	var giant: Array = GiftScreen.SCENES[&"fallen_giant"]
+	scene.show_scene(giant[0], giant[1], giant[2], giant[3])
+	await process_frame
+	var target := {"sprite": Node2D.new(), "hits": 0.0, "fade": -1.0}
+	scene._world.add_child(target.sprite)
+	for i in 3:
+		scene._hit(target, true)
+	_check(String(scene._effects[-1].node.text).begins_with("Critical!") and is_equal_approx(target.hits, 4.0), "Fallen Giant: every third favoured hit is a crit")
+	var stones: Array = GiftScreen.SCENES[&"shift_stones"]
+	scene.show_scene(stones[0], stones[1], stones[2], stones[3])
+	await process_frame
+	var tags := scene._effects.size()
+	scene._phase_left = 0.0
+	await process_frame
+	_check(scene._effects.size() - tags >= 3, "Shift the Stones: each moved stone pays its Dew (%d tags)" % (scene._effects.size() - tags))
 	# Reduced motion: the still after-diagram
 	var settings: Dictionary = Fx._settings.duplicate()
 	Fx._settings = {"reduced_motion": true}

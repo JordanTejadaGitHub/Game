@@ -16,6 +16,15 @@ class_name CardScene
 # pond, m moonwell, b bell stone, z lightning tree, u ancient stump (all off the path), k mushroom ring (its art
 # covers 3×3 from the k cells' top-left), B bog path (walked at BOG_SPEED), r root-covered path (hits there show the
 # effect's text in gold). Under reduced motion the scene is the still after-diagram.
+# Each gift scene shows its payoff (user: "the Waking Root gift video doesn't show what it does"). More gift letters:
+# R a Warden on an ancient stump, M thick mist, f a locked form on a Remember-style moon disc. More effect keys:
+#   "unlock": true (+ "price_from" / "price_to"): the f form is a silhouette with its Dreamlight price; in the After half
+#     a root of light curls up to it from the Heartwood, the price ticks down (the old one struck through), and the
+#     form fills in with colour (Waking Root);
+#   "spacing": a line of nightmares leaves the start SPACING_GAP apart, × spacing in the After half (Thick Mist);
+#   "chip": a gold tag in the After half ("Dew pots +10%"); "bog": text once per nightmare stepping onto bog;
+#   "crit": every third favoured hit is a crit with this word; "cleared": text over each obstacle (O) the After half
+#     moved or cleared.
 
 const CELL := 64.0
 const COLS := 7
@@ -91,6 +100,14 @@ const SWAP_FADE := 0.4  # The new diagram fades in over this
 const PULSE_TIME := 1.2  # The changed cells glow gold for this long after the swap
 const BOG_SPEED := 0.8
 const PROP_FPS := 4.0
+const SPACING_GAP := 52.0  # World px between the nightmares leaving the mist ("spacing")
+const CLEARED_TIME := 1.6  # How long a "cleared" tag floats
+const UNLOCK_FORM := preload("res://resource/tower/driftspore.tres")  # The locked form Waking Root's scene shows
+const UNLOCK_SCALE := 1.3
+const UNLOCK_DISC := 44.0  # World px: the moon disc's radius
+const ROOT_TIME := 1.2  # After-half seconds for the root of light to reach the form; then the price ticks down
+const UNLOCK_AT := 2.0  # After-half second the form starts filling with colour
+const UNLOCK_FADE := 0.6
 var _in_scene := false
 var _before := ""
 var _after := ""
@@ -103,6 +120,9 @@ var _overlay: Node2D = null  # The gold pulse on changed cells, and the Before /
 var _props: Array[Node2D] = []
 var _anim := 0.0
 var _sheets := {}  # MapGifts sheet name -> Texture2D (act 1), loaded on first use (never static: exit crash)
+var _unlock: Node2D = null  # The f form's disc, root and price ("unlock")
+var _unlock_colour: Sprite2D = null  # Its full-colour sprite over the silhouette
+var _boosted_hits := 0  # Counts favoured hits for "crit"
 
 # Reduced motion keeps the still diagram (CardDiagram) instead.
 static func wants_motion() -> bool:
@@ -169,6 +189,7 @@ func show_scene(before: String, after: String, effect: Dictionary, caption: Stri
 	card = null
 	_in_scene = true
 	_effect = effect
+	_boosted_hits = 0
 	_before = before
 	_after = after
 	_caption.text = IconInfo.format(caption)
@@ -201,6 +222,8 @@ func _clear_world() -> void:
 	_walls.clear()
 	_props.clear()
 	_overlay = null
+	_unlock = null
+	_unlock_colour = null
 
 func _cell_at(rows: PackedStringArray, x: int, y: int) -> String:
 	return rows[y][x] if y < rows.size() and x < rows[y].length() else "."
@@ -260,8 +283,10 @@ func _build(diagram: String) -> void:
 				objects.set_cell(cell, EnvironmentTiles.TENDED_STUMP, Vector2i.ZERO)
 			if c == "Q":  # A Warden standing in a moved hollow
 				ground.set_cell(cell, EnvironmentTiles.MOVED_HOLLOW, Vector2i.ZERO)
-			if QUALIFYING.contains(c) or OTHERS.contains(c) or WALLS.contains(c):
-				_add_warden(cell, c)
+			if QUALIFYING.contains(c) or OTHERS.contains(c) or WALLS.contains(c) or c == "R":
+				_add_warden(cell, "W" if c == "R" else c)  # R: a favoured Warden on an ancient stump (drawn with the ground)
+			elif c == "f":
+				_add_unlock(cell)
 			elif c == "~":  # Spring: pond tiles by neighbour mask
 				objects.set_cell(cell, EnvironmentTiles.POND, Vector2i(MapGifts._mask(Vector2(cell), _letter_is.bind("~")), 0))
 			elif c == "L":
@@ -286,6 +311,13 @@ func _build(diagram: String) -> void:
 	marks.z_index = -1
 	marks.draw.connect(_draw_marks.bind(marks, rows))
 	_world.add_child(marks)
+	if "\n".join(rows).contains("M"):  # Thick mist over the M cells (and the start beside them), over the walkers
+		var mist := Node2D.new()
+		mist.name = "Mist"
+		mist.z_index = 3
+		mist.draw.connect(_draw_mist.bind(mist))
+		_props.append(mist)  # Redrawn each frame: it drifts
+		_world.add_child(mist)
 	if _in_scene:
 		_overlay = Node2D.new()  # The swap's gold pulse and the Before / After tag, over everything
 		_overlay.z_index = 6
@@ -294,6 +326,125 @@ func _build(diagram: String) -> void:
 	_path = _walk_order(rows, start if start.x >= 0 else _open_end(rows))
 	_spawn_left = 0.0
 	_spawned = 0
+	if _spacing_mode() and _path.size() >= 2:
+		_queue_line()
+
+# --- Payoff effects (gift scenes) ---------------------------------------------------------------------------
+
+func _spacing_mode() -> bool:
+	return _in_scene and _effect.has("spacing")
+
+# The gap between the nightmares leaving the mist: SPACING_GAP before, × the gift's spacing after.
+func spacing_gap() -> float:
+	return SPACING_GAP * (float(_effect.get("spacing", 1.0)) if _showing_after else 1.0)
+
+# Thick Mist: a line of nightmares leaving the start one gap apart (the ones behind still in the mist).
+func _queue_line() -> void:
+	for i in NIGHTMARES + 1:
+		_spawn_walker(-i * spacing_gap())
+	_spawn_left = INF  # No other spawns: the line loops (_move_walkers)
+
+func _draw_mist(canvas: Node2D) -> void:
+	for y in ROWS:
+		for x in COLS:
+			var c := _cell_at(_rows, x, y)
+			var beside_mist := c == "S" and _beside(Vector2i(x, y), "M")
+			if c != "M" and not beside_mist:
+				continue
+			var centre := _centre(Vector2i(x, y)) - Vector2(16.0, 0.0)  # Banked against the rim the nightmares come in from
+			for i in 6:
+				var at := centre + Vector2.from_angle(TAU * i / 6.0 + x + y + _anim * 0.3) * 18.0
+				for layer in 3:  # Soft edges: three fainter rings per puff
+					canvas.draw_circle(at, 34.0 - layer * 9.0, Color(Palette.MIST, 0.07))
+			canvas.draw_circle(centre, 20.0, Color(Palette.MOONLIGHT, 0.08))
+
+# Whether a neighbour (not diagonal) of `cell` holds `letter`.
+func _beside(cell: Vector2i, letter: String) -> bool:
+	for d in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+		if _letter_is(Vector2(cell + d), letter):
+			return true
+	return false
+
+# Waking Root: the locked form on its moon disc (silhouette, with the full-colour sprite over it, hidden until it unlocks).
+func _add_unlock(cell: Vector2i) -> void:
+	_unlock = Node2D.new()
+	_unlock.name = "Unlock"
+	_unlock.position = _centre(cell)
+	_unlock.z_index = 2  # Over the Wardens and the Heartwood's canopy
+	_unlock.draw.connect(_draw_unlock.bind(_unlock))  # Bound: a freed old one never draws on the new
+	_world.add_child(_unlock)
+	var region := WardenIcon.visible_region(UNLOCK_FORM)
+	for colour in [false, true]:
+		var sprite := Sprite2D.new()
+		sprite.texture = UNLOCK_FORM.texture
+		sprite.region_enabled = region.size != Vector2.ZERO
+		sprite.region_rect = region
+		sprite.scale = Vector2.ONE * UNLOCK_SCALE
+		if colour:
+			sprite.modulate.a = 0.0  # multiplier: fades in as it unlocks
+			_unlock_colour = sprite
+		else:
+			sprite.material = RememberScreen.Portrait.silhouette_material()  # The Remember screen's locked look
+		_unlock.add_child(sprite)
+	_tick_unlock()
+
+# Seconds into the After half (the end state under reduced motion), else -1 in the Before half.
+func _after_clock() -> float:
+	if not _showing_after:
+		return -1.0
+	return AFTER_TIME - _phase_left if can_show_scene() else AFTER_TIME
+
+func _tick_unlock() -> void:
+	if _unlock == null:
+		return
+	var t := _after_clock()
+	_unlock_colour.modulate.a = clampf((t - UNLOCK_AT) / UNLOCK_FADE, 0.0, 1.0) if t >= 0.0 else 0.0  # multiplier
+	_unlock.queue_redraw()
+
+func _draw_unlock(canvas: Node2D) -> void:
+	var t := _after_clock()
+	var root_share := clampf(t / ROOT_TIME, 0.0, 1.0) if t >= 0.0 else 0.0
+	if root_share > 0.0:  # The root of light, from the Heartwood curling up to the disc
+		var from := Vector2(COLS - 1, ROWS - 1) * CELL
+		for y in ROWS:
+			for x in COLS:
+				if _cell_at(_rows, x, y) == "H":
+					from = _centre(Vector2i(x, y)) + Vector2(-20, -10)
+		from -= canvas.position
+		var to := Vector2(UNLOCK_DISC * 0.5, UNLOCK_DISC * 0.85)
+		var bend := from.lerp(to, 0.5) + (to - from).orthogonal().normalized() * 50.0
+		var points := PackedVector2Array()
+		var steps := 32
+		for i in int(ceil(steps * root_share)) + 1:
+			var s := minf(float(i) / steps, root_share)
+			var on := from.lerp(bend, s).lerp(bend.lerp(to, s), s)
+			points.append(on + (to - from).orthogonal().normalized() * sin(s * TAU * 1.5) * 8.0 * (1.0 - s))
+		if points.size() >= 2:
+			canvas.draw_polyline(points, Color(Palette.GOLD, 0.35), 10.0, true)
+			canvas.draw_polyline(points, Palette.GLOW, 4.0, true)
+			if root_share < 1.0:
+				canvas.draw_circle(points[-1], 6.0, Palette.HEARTLIGHT)
+	UiStyle.draw_moon_disc(canvas, Vector2.ZERO, UNLOCK_DISC)
+	var unlocked := t >= UNLOCK_AT
+	if root_share >= 1.0:
+		canvas.draw_arc(Vector2.ZERO, UNLOCK_DISC + 3.0, 0.0, TAU, 48, Color(UiStyle.GOLD, 0.9 if unlocked else 0.5), 3.0, true)
+	# The price under the disc: its Dreamlight; once the root arrives the old number is struck through, the new one gold
+	var font := UiStyle.with_glyphs(UiStyle.number_font())
+	var font_size := 32
+	var old_text := UiStyle.dreamlight_amount(int(_effect.get("price_from", 2)))
+	var new_text := " " + str(int(_effect.get("price_to", 1)))
+	var ticked := root_share >= 1.0
+	var width := font.get_string_size(old_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var total := width + (font.get_string_size(new_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x if ticked else 0.0)
+	var at := Vector2(-total / 2.0, UNLOCK_DISC + 30.0)
+	canvas.draw_string_outline(font, at, old_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 6, Palette.DREAD)
+	canvas.draw_string(font, at, old_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, UiStyle.INK_DIM if ticked else UiStyle.INK)
+	if ticked:
+		var digit := font.get_string_size(old_text.right(1), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		canvas.draw_line(at + Vector2(width - digit - 2, -9), at + Vector2(width + 2, -9), UiStyle.POOR, 3.0)
+		var new_at := at + Vector2(width, 0)
+		canvas.draw_string_outline(font, new_at, new_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 6, Palette.DREAD)
+		canvas.draw_string(font, new_at, new_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, UiStyle.GOLD)
 
 # --- Gift terrain (MapGifts' art) ---------------------------------------------------------------------------
 
@@ -407,7 +558,7 @@ func _draw_gift_ground(canvas: Node2D) -> void:
 						var c2 := rect.get_center()
 						canvas.draw_line(c2 + Vector2(-26, -10), c2 + Vector2(24, 12), Palette.OAK, 4.0)
 						canvas.draw_line(c2 + Vector2(-20, 16), c2 + Vector2(26, -14), Palette.BARK, 3.0)
-				"u":
+				"u", "R":  # R: the stump under a Warden
 					var stump := _sheet("ancient_stump")
 					if stump != null:
 						canvas.draw_texture_rect_region(stump, rect, _frame_rect("ancient_stump", EnvironmentTiles.cell_variant(Vector2i(x, y), 3)))
@@ -433,6 +584,25 @@ func _draw_overlay(canvas: Node2D) -> void:
 			var rect := Rect2(Vector2(cell) * CELL, Vector2(CELL, CELL)).grow(-3.0)
 			canvas.draw_rect(rect, Color(Palette.GOLD, 0.28 * a))
 			canvas.draw_rect(rect, Color(Palette.GOLD, 0.9 * a), false, 3.0)
+	if _spacing_mode():  # Thick Mist: the gap between each two nightmares out of the mist, measured over their heads
+		var out: Array[float] = []
+		for walker in _walkers:
+			if walker.distance >= 0.0:
+				out.append(walker.distance)
+		out.sort()
+		var colour := UiStyle.GOLD if _showing_after else Color(UiStyle.INK, 0.6)
+		for i in out.size() - 1:
+			var a: Vector2 = _along(out[i])[0] + Vector2(0, -46)
+			var b: Vector2 = _along(out[i + 1])[0] + Vector2(0, -46)
+			canvas.draw_line(a, b, colour, 2.0)
+			for end in [a, b]:
+				canvas.draw_line(end + Vector2(0, -6), end + Vector2(0, 6), colour, 2.0)
+	var chip: String = _effect.get("chip", "")
+	if chip != "" and _showing_after:  # The gift's payoff as a tag along the bottom
+		var chip_font := UiStyle.with_glyphs(UiStyle.number_font())
+		var chip_at := Vector2(12, ROWS * CELL - 16)
+		canvas.draw_string_outline(chip_font, chip_at, chip, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, 6, Palette.DREAD)
+		canvas.draw_string(chip_font, chip_at, chip, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, UiStyle.GOLD)
 	var font := UiStyle.caps_font()
 	var tag := "After" if _showing_after else "Before"
 	canvas.draw_string_outline(font, Vector2(10, 30), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, 6, Palette.DREAD)
@@ -464,7 +634,14 @@ func _swap() -> void:
 	_fade_left = SWAP_FADE
 	_world.modulate.a = 0.35  # multiplier: the fade in
 	_phase_left = AFTER_TIME if _showing_after else BEFORE_TIME
-	if _path.size() >= 2:
+	_tick_unlock()
+	var cleared: String = _effect.get("cleared", "")
+	if _showing_after and cleared != "":  # Each obstacle moved or cleared: its payoff floats up where it stood
+		var before_rows := _before.strip_edges().split("\n")
+		for cell in _changed:
+			if _cell_at(before_rows, cell.x, cell.y) == "O":
+				_float_text(cleared, _centre(cell) + Vector2(0, 36), true, CLEARED_TIME)
+	if _path.size() >= 2 and not _spacing_mode():  # (Thick Mist's line starts afresh from the mist: _build)
 		for place in places:
 			_spawn_walker(_closest_distance(place))
 		_spawn_left = SPAWN_EVERY
@@ -625,6 +802,7 @@ func _tick_scene(delta: float) -> bool:
 	if _overlay != null:
 		_overlay.queue_redraw()
 	_phase_left -= delta
+	_tick_unlock()
 	if _phase_left <= 0.0:
 		_swap()
 		return true
@@ -679,7 +857,18 @@ func _move_walkers(delta: float) -> void:
 					walker.procs[i] = true
 					_float_text(proc, sprite.position, true)
 					walker.hits += 1.0
-		if dir == Vector2.ZERO:  # Reached the end: back to the start (the loop)
+		var bog: String = _effect.get("bog", "")
+		if bog != "" and not walker.procs.has("bog") and _letter_at(sprite.position) == "B":  # Stepping onto the bog
+			walker.procs["bog"] = true
+			_float_text(bog, sprite.position, true)
+		if dir == Vector2.ZERO and _spacing_mode():  # Thick Mist: back into the mist, one gap behind the last
+			var last := INF
+			for other in _walkers:
+				if other != walker:
+					last = minf(last, other.distance)
+			walker.distance = (last if last < INF else 0.0) - spacing_gap()
+			walker.procs = {}
+		elif dir == Vector2.ZERO:  # Reached the end: back to the start (the loop)
 			walker.distance = 0.0
 			walker.hits = 0.0
 			walker.procs = {}
@@ -752,9 +941,10 @@ func _tick_effects(delta: float) -> void:
 				if node is Sprite2D and node.hframes > 1:
 					node.frame = int(effect.time * 12.0) % node.hframes
 		else:  # A floating number
-			node.position.y -= NUMBER_RISE * delta / NUMBER_TIME
-			node.modulate.a = clampf(1.5 - effect.time / NUMBER_TIME * 1.5, 0.0, 1.0)
-			if effect.time >= NUMBER_TIME:
+			var life: float = effect.get("life", NUMBER_TIME)
+			node.position.y -= NUMBER_RISE * delta / life
+			node.modulate.a = clampf(1.5 - effect.time / life * 1.5, 0.0, 1.0)
+			if effect.time >= life:
 				node.queue_free()
 				_effects.erase(effect)
 
@@ -762,6 +952,13 @@ func _tick_effects(delta: float) -> void:
 # rest), the nightmare flinches, and enough hits dispel it.
 func _hit(walker: Dictionary, boosted: bool) -> void:
 	boosted = boosted or _letter_at(walker.sprite.position) == "r"  # Root-covered path (gift scenes): the effect shows on hits there
+	var crit: String = _effect.get("crit", "")
+	if crit != "" and boosted:  # Lookout: every third favoured hit is a crit (twice the number), the rest plain
+		_boosted_hits += 1
+		var critical := _boosted_hits % 3 == 0
+		walker.hits += 2.0 if critical else 1.0
+		_float_text("%s · %d" % [crit, BASE_HIT * 2] if critical else str(BASE_HIT), walker.sprite.position, critical)
+		return
 	var damage: float = float(_effect.get("damage", 1.0)) if boosted else 1.0
 	walker.hits += damage
 	_float_text(hit_text(boosted), walker.sprite.position, boosted)
@@ -774,10 +971,10 @@ func hit_text(boosted: bool) -> String:
 	var text: String = _effect.get("text", "")
 	return "%s · %d" % [text, number] if text != "" else str(number)
 
-func _float_text(text: String, at: Vector2, gold: bool) -> void:
+func _float_text(text: String, at: Vector2, gold: bool, life: float = NUMBER_TIME) -> void:
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_override("font", UiStyle.number_font())
+	label.add_theme_font_override("font", UiStyle.with_glyphs(UiStyle.number_font()))  # Dew / Dreamlight icons in the tags
 	label.add_theme_font_size_override("font_size", 24 if gold else 20)
 	label.add_theme_color_override("font_color", UiStyle.GOLD if gold else UiStyle.INK)
 	label.add_theme_color_override("font_outline_color", Palette.DREAD)
@@ -785,7 +982,7 @@ func _float_text(text: String, at: Vector2, gold: bool) -> void:
 	label.position = at + Vector2(-20, -60)
 	label.z_index = 5
 	_world.add_child(label)
-	_effects.append({"node": label, "kind": "number", "time": 0.0})
+	_effects.append({"node": label, "kind": "number", "time": 0.0, "life": life})
 	if _walkers.any(func(w: Dictionary) -> bool: return w.fade < 0.0 and w.hits >= HITS_TO_DISPEL):
 		for w in _walkers:
 			if w.fade < 0.0 and w.hits >= HITS_TO_DISPEL:
