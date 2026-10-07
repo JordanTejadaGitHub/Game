@@ -147,6 +147,18 @@ func _run() -> void:
 		"one Blessing per family, all 9 (%s)" % [blessed])
 	var seeds := run_state.get_seed_breakdown(10, 0, false)
 	_check(seeds.any(func(l: Array) -> bool: return l[0].begins_with("Seed bonus")), "the Seed bonus shows in the breakdown")
+	# Seeds (meta_design.md 192baf87): survival only from drift 26, act 1 dispels 1 per 50, no first-run bonus.
+	var kept_cleansed := [run_state.creatures_cleansed, run_state.cleansed_in_act_1, run_state.seed_bonus]
+	run_state.creatures_cleansed = 100
+	run_state.cleansed_in_act_1 = 60
+	run_state.seed_bonus = 0.0
+	seeds = run_state.get_seed_breakdown(25, 0, true)
+	_check(seeds[0][1] == 0 and seeds[1][1] == 60 / 50 + 40 / 20 and not seeds.any(func(l: Array) -> bool: return l[0] == "The first seed"),
+		"act 1: no survival Seeds, dispels 1 per 50 (then 1 per 20), no first-run bonus (%s)" % [seeds])
+	_check(run_state.get_seed_breakdown(31, 0, false)[0][1] == 3, "drifts 26–31 survived: 3 Seeds")
+	run_state.creatures_cleansed = kept_cleansed[0]
+	run_state.cleansed_in_act_1 = kept_cleansed[1]
+	run_state.seed_bonus = kept_cleansed[2]
 
 	# --- Milestones at run end ---
 	var meta: MetaRun = main.get_node("%MetaRun")
@@ -866,7 +878,7 @@ func _run() -> void:
 	grove_screen = load("res://scenes/grove.tscn").instantiate()
 	root.add_child(grove_screen)
 	await process_frame
-	_check(grove_screen.demo_done.visible and grove_screen.demo_done.find_child("Wishlist", true, false) != null,
+	_check(grove_screen.demo_done.visible and grove_screen.demo_done.find_child("StoreButton", true, false) != null,
 		"demo Grove screen: all planted shows the full-game line and Wishlist")
 	grove_screen._select(_unlock(grove, "pebbling"))
 	_check(not grove_screen._plant.visible and grove_screen._card_status.text.begins_with("Full game"), "an asleep node: Full game, no Plant")
