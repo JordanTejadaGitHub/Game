@@ -314,6 +314,20 @@ static func _spaced(key: String, file: String) -> Font:
 		_fonts[key] = font
 	return _fonts[key]
 
+# `font` with the resource glyphs as its fallback (cached per font), for text drawn outside the theme: the world tags
+# (WorldLabel.draw_tag) draw "+15" Dew popups and map prices with the engine's fallback font.
+static func with_glyphs(font: Font) -> Font:
+	var glyphs := glyph_font()
+	if glyphs == null or font == null:
+		return font
+	var key := "glyphs:%d" % font.get_instance_id()
+	if not _fonts.has(key):
+		var variation := FontVariation.new()
+		variation.base_font = font
+		variation.fallbacks = [glyphs]
+		_fonts[key] = variation
+	return _fonts[key]
+
 # The resource glyph font (DEW_GLYPH…), or null before tools/ui_glyph_font_generator.gd has made it.
 static func glyph_font() -> Font:
 	if not _fonts.has("glyphs"):
@@ -943,16 +957,21 @@ static func key_chip(text: String) -> Label:
 		chip.add_theme_stylebox_override("normal", frame)
 	chip.tree_entered.connect(paint)
 	paint.call()
-	if TouchBuild.mobile_controls():  # Phones have no keys: the chip never shows (mobile only; Mobile chat)
+	# Touch controls have no keys (InputMode: phones, a touchscreen driving a PC, or the Touch setting): the chip
+	# hides whenever it would show or draw, so it follows a switch mid-run too.
+	if InputMode.touch():
 		chip.visible = false
-		chip.visibility_changed.connect(func() -> void:
-			if chip.visible:
-				chip.hide())
+	chip.visibility_changed.connect(func() -> void:
+		if chip.visible and InputMode.touch():
+			chip.hide())
+	chip.draw.connect(func() -> void:
+		if InputMode.touch():
+			chip.hide.call_deferred())
 	return chip
 
-# A button label's keyboard hint (" (Enter)"), dropped on phones: "Start drift 3" + key_suffix("Enter").
+# A button label's keyboard hint (" (Enter)"), dropped under touch controls (InputMode): "Start drift 3" + key_suffix("Enter").
 static func key_suffix(key: String) -> String:
-	return "" if TouchBuild.mobile_controls() else " (%s)" % key
+	return "" if InputMode.touch() else " (%s)" % key
 
 # Gives a Button the card look in `colour` (normal + hover + pressed).
 static func card_button(button: Button, colour: Color) -> void:

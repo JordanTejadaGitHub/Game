@@ -72,6 +72,21 @@ func _initialize() -> void:
 		"amounts are the glyph, then the number")
 	_check(IconInfo.format("Costs {dew:15}, pays {seeds:+30} and {dreamlight:2}") == "Costs %s, pays %s and %s"
 		% [UiStyle.dew_amount(15), UiStyle.seeds_amount(30, true), UiStyle.dreamlight_amount(2)], "{dew:N} tokens format to amounts")
+	var world_font := UiStyle.with_glyphs(ThemeDB.fallback_font)
+	_check(world_font.get_string_size(UiStyle.DEW_GLYPH, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x > 4.0
+		and world_font == UiStyle.with_glyphs(ThemeDB.fallback_font), "world tags (WorldLabel) draw the glyphs, one cached font")
+	# Key hints follow InputMode (phones, a PC touchscreen, or the Touch setting): no chip, no " (Enter)".
+	InputMode.force = 1
+	var touch_chip := UiStyle.key_chip("Q")
+	_check(UiStyle.key_suffix("Enter") == "" and not touch_chip.visible, "touch controls hide key chips and key suffixes")
+	touch_chip.show()
+	_check(not touch_chip.visible, "a key chip shown under touch controls hides again")
+	InputMode.force = 0
+	var pc_chip := UiStyle.key_chip("Q")
+	_check(UiStyle.key_suffix("Enter") == " (Enter)" and pc_chip.visible, "mouse & keyboard keeps key chips and suffixes")
+	InputMode.force = -2
+	touch_chip.free()
+	pc_chip.free()
 	# Every glyph id has a non-empty cell inside the sheet (a blank region drew a white square).
 	var sheet: Texture2D = load(UiStyle.DREAM_GLYPHS + ".png")
 	var glyph_ids: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(UiStyle.DREAM_GLYPHS + ".json")).icons
