@@ -190,7 +190,6 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			range_text = "%.1f–%.1f" % [attack.min_range, _tower.get_range_cells()]
 		var main_row: Array = [[BossDossier.thousands(roundi(_tower.get_damage())), &"damage"],
 			["%.1f/s" % _tower.get_attacks_per_second(), &"attack_speed"], [range_text, &"range"]]
-		main_row.append([shape_name(attack), &"attack_shape"])  # How it attacks (the tip says what that means)
 		var reach := BranchKit.ability_reach(_tower) if is_instance_valid(tower) else 0.0
 		if reach > 0.0:  # Groundroot / Earthbind grab flyers beyond their attack range (Tower Code e530a46a)
 			main_row.append(["Grab %.1f" % reach, &"grab_reach"])
@@ -199,8 +198,15 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 		var covers := compact and is_instance_valid(tower) and tower.is_inside_tree()
 		if covers:  # Coverage in the icon row (story chat: always visible, no extra line; the path icon + N)
 			main_row.append([str(_tower.get_coverage()), &"path_length"])
-		_stat_row(main_row, true)
 		var second: Array = []  # The status it applies leads the second row (the first stays one line at 280 px)
+		# How it attacks: an icon in the first row once UI Asset draws shape_<kind> (the name in its tip; user: the row
+		# stays one line); until then its name leads the second row.
+		var shape_icon := StringName("shape_" + String(Tower.attack_shape(attack)))
+		if IconInfo.icon(shape_icon) != null:
+			main_row.append(["", shape_icon])
+		else:
+			second.append([shape_name(attack), &"attack_shape"])
+		_stat_row(main_row, true)
 		if attack.applies_status != &"":
 			second.append(["%s%s" % [IconInfo.status_name(attack.applies_status),
 				" ×%d" % attack.status_stacks if attack.status_stacks > 1 else ""], attack.applies_status, true])
@@ -417,6 +423,8 @@ func stat_tip(stat: StringName) -> String:
 			meaning = ("Range: %.1f–%.1f cells" % [attack.min_range, _tower.get_range_cells()]) if attack.min_range > 0.0 \
 				else "Range: %.1f cells" % _tower.get_range_cells()
 		&"attack_shape":
+			return shape_tip(attack)
+		_ when String(stat).begins_with("shape_"):
 			return shape_tip(attack)
 		&"grab_reach":
 			return "Grab reach: %.1f cells. It pulls flyers down from this far, beyond its attack range (%.1f)." % [BranchKit.ability_reach(_tower), _tower.get_range_cells()]
