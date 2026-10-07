@@ -105,16 +105,8 @@ func _build_demo_done() -> void:
 	line.add_theme_font_size_override("font_size", 18)
 	line.add_theme_color_override("font_color", Palette.HEARTLIGHT)
 	box.add_child(line)
-	var store := Button.new()
-	store.name = "Wishlist"
-	store.text = "Wishlist on Steam"
-	store.focus_mode = Control.FOCUS_NONE
-	store.custom_minimum_size = Vector2(200, 48)
+	var store := ResultsScreen.store_button()  # Wishlist (desktop) or the phone unlock (Main's shared button)
 	store.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	var url: String = ProjectSettings.get_setting(ResultsScreen.WISHLIST_SETTING, "")
-	store.disabled = url == ""
-	store.tooltip_text = "Store page coming soon" if url == "" else url
-	store.pressed.connect(func() -> void: OS.shell_open(url))
 	box.add_child(store)
 	add_child(demo_done)
 	demo_done.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 56)

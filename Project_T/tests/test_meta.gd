@@ -866,7 +866,7 @@ func _run() -> void:
 	grove_screen = load("res://scenes/grove.tscn").instantiate()
 	root.add_child(grove_screen)
 	await process_frame
-	_check(grove_screen.demo_done.visible and grove_screen.demo_done.find_child("Wishlist", true, false) != null,
+	_check(grove_screen.demo_done.visible and grove_screen.demo_done.find_child("StoreButton", true, false) != null,
 		"demo Grove screen: all planted shows the full-game line and Wishlist")
 	grove_screen._select(_unlock(grove, "pebbling"))
 	_check(not grove_screen._plant.visible and grove_screen._card_status.text.begins_with("Full game"), "an asleep node: Full game, no Plant")
