@@ -887,7 +887,8 @@ full A 75 / 5 / 5, D 80 / 20 / 15, E 75 / 15 / 5; demo A 75 / 15 / 5, D 75 / 30 
 leaves at 26, families). **Breakdown (D, default, 20 each):** of runs entering act 2, full 4 / 16 reach 50 vs demo 6 / 15;
 leaves at 26 full 11.0 vs demo 12.3; full deaths cluster at **44–47** (8 of 11; the drift 45 finale), demo spread. DEMO_RULES
 are retired (checked); the remaining differences are the act 1 boss draw and the demo's family-limited card pool, both
-by design. If F full still clusters at 44–47, the drift 45 finale is the next lever.
+by design. If F full still clusters at 44–47, the drift 45 finale is the next lever. **Confirmation D (main 89f40404, full,
+30):** Stag 66 / reach 26 / win 20%: stopped. Act 1 deaths cluster 19–24, act 2 at 40–44. F (act 1 1.0) and **F2 (act 1 0.9)** next.
 
 ## Demo targets (demo_scope.md e5ce233d, 2026-10-06)
 
