@@ -1257,6 +1257,11 @@ the user's at 51 (damage ≈ health spawned, 0–1 leaks), but **40–80% still 
 built in one rest from an act 1 maze isn't laid out like one grown over 50 drifts. **Next: an invulnerable
 warm-up**: drifts 1–50 (or 1–75) played for real with the Heartwood invulnerable, then leaves set to 10 / 8 and
 acts 3–4 played for real. Real snapshots (`--from-save`) once the user has deep saves.
+**Warm-up result (b2495efa, half Grove, old perk style, 20 seeds per arm):** both bots die within 1–2 drifts of the switch
+(0 / 40 past 60; 0 / 40 to 90). Boards: default ~17 attackers holding 4–6k Dew, spender ~40–46 + ~40 walls (humans 38–75).
+**Finals: 0 of 60 runs at 50, 3 of 20 at 75; 0–4% of damage.** The bot never grows finals, so the finals question still
+can't be read. Next: `--finals-first` + spend-down warm-up, then the `final_damage_multiplier` 1.0 vs 1.125 A/B on it.
+Gifts: mostly passed; Heartwood Roots the most taken.
 
 ## Overlap-audit reworks, power check (2026-10-05, dream_design.md e1e39b56; dream_audit.md budgets)
 
