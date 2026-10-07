@@ -152,7 +152,7 @@ func _make_card(card: UpgradeData) -> Button:
 		button.mouse_entered.connect(show_diagram.bind(card, button))
 		button.mouse_exited.connect(hide_diagram)
 		button.button_down.connect(func() -> void:  # Touch: a long-press shows it
-			await get_tree().create_timer(LONG_PRESS, true).timeout
+			await UiTime.timer(self, LONG_PRESS).timeout
 			if is_instance_valid(button) and button.button_pressed:
 				_held_for_diagram = true
 				show_diagram(card, button))
@@ -314,6 +314,7 @@ func _add_starlit_back(button: Button, _card: UpgradeData) -> void:
 	twinkle.wait_time = 1.0 / STARLIT_FPS
 	twinkle.autostart = true
 	twinkle.process_mode = Node.PROCESS_MODE_ALWAYS  # The Dream screen pauses the game
+	twinkle.ignore_time_scale = true  # Real time at any game speed
 	twinkle.timeout.connect(func() -> void:
 		var frame := (int(sky.region_rect.position.x / STARLIT_FRAME.x) + 1) % STARLIT_FRAMES
 		sky.region_rect = Rect2(Vector2(frame * STARLIT_FRAME.x, 0), STARLIT_FRAME))
@@ -439,7 +440,7 @@ func _on_mystery_revealed(_mystery: UpgradeData, card: UpgradeData) -> void:
 		if event is InputEventMouseButton and event.pressed or event is InputEventScreenTouch and event.pressed:
 			reveal.queue_free())
 	(get_parent() if get_parent() != null else self).add_child(reveal)
-	var tween := reveal.create_tween()
+	var tween := UiTime.tween(reveal, false)
 	tween.tween_interval(REVEAL_TIME)
 	tween.tween_property(reveal, "modulate:a", 0.0, 0.4)
 	tween.tween_callback(reveal.queue_free)
@@ -463,7 +464,7 @@ func _flip_in(columns: Array, cards: Array) -> void:
 		var column := columns[i] as Control
 		var card: UpgradeData = cards[i] if i < cards.size() else null
 		column.pivot_offset = column.size / 2.0
-		var tween := column.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		var tween := UiTime.tween(column)
 		if still:
 			column.modulate.a = 0.0
 			tween.tween_interval(i * FLIP_STAGGER * 0.5)
@@ -516,8 +517,8 @@ func _pick(card: UpgradeData, column: Control) -> void:
 	var still := bool(Fx.setting("reduced_motion", false))
 	for other in _cards.get_children():
 		if other != column:
-			other.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).tween_property(other, "modulate:a", 0.0, 0.2)
-	var tween := column.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+			UiTime.tween(other).tween_property(other, "modulate:a", 0.0, 0.2)
+	var tween := UiTime.tween(column)
 	if still:
 		tween.tween_property(column, "modulate", Color(1.25, 1.2, 1.05, 0.0), 0.3)  # multiplier: a warm fade
 	else:

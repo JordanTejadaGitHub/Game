@@ -47,7 +47,7 @@ static func shake(control: Control) -> void:
 	if not is_instance_valid(control) or bool(Fx.setting("reduced_motion", false)):
 		return
 	var home := control.position
-	var tween := control.create_tween()
+	var tween := UiTime.tween(control, false)
 	for offset in [-6.0, 6.0, -4.0, 4.0, 0.0]:
 		tween.tween_property(control, "position", home + Vector2(offset, 0), 0.04)
 
@@ -57,7 +57,7 @@ static func flash_counter(label: Label, normal: Color) -> void:
 		return
 	label.pivot_offset = label.size / 2
 	label.add_theme_color_override("font_color", UiStyle.POOR)
-	var tween := label.create_tween()
+	var tween := UiTime.tween(label, false)
 	if not bool(Fx.setting("reduced_motion", false)):
 		for offset in [-3.0, 3.0, -2.0, 2.0, 0.0]:
 			tween.tween_property(label, "rotation_degrees", offset, 0.04)

@@ -240,7 +240,7 @@ func _focus(scroll: ScrollContainer, target: Control) -> void:
 	if not is_instance_valid(target) or not scroll.is_ancestor_of(target):
 		return  # Rebuilt since the jump was asked for (the page reopened in the same frame)
 	scroll.ensure_control_visible(target)
-	var tween := target.create_tween()
+	var tween := UiTime.tween(target, false)
 	target.modulate = Color(1.6, 1.5, 1.1)  # A multiplier (flash), not a colour
 	tween.tween_property(target, "modulate", Color.WHITE, 0.8)
 

@@ -282,8 +282,7 @@ func _reveal(offer: Array[OmenData], from: Button) -> void:
 	_subtitle.text = "for drifts %d to %d, no going back" % [_drifts.x, _drifts.y]
 	if from != null and not HeartwoodMemory.get_settings().get("reduced_motion", false):  # The flip
 		from.pivot_offset = from.size / 2.0
-		var tween := create_tween()
-		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		var tween := UiTime.tween(self)
 		tween.tween_property(from, "scale:x", 0.0, 0.18)
 		tween.tween_callback(func() -> void:
 			_cards.remove_child(from)
@@ -292,7 +291,7 @@ func _reveal(offer: Array[OmenData], from: Button) -> void:
 				_cards.add_child(front)
 				front.pivot_offset = CARD_SIZE / 2.0
 				front.scale.x = 0.0
-				front.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).tween_property(front, "scale:x", 1.0, 0.18))
+				UiTime.tween(front).tween_property(front, "scale:x", 1.0, 0.18))
 	else:
 		if from != null:
 			_cards.remove_child(from)

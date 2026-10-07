@@ -519,7 +519,7 @@ func _on_dew_short() -> void:
 		_dew_flash.kill()
 	dew_label.pivot_offset = dew_label.size / 2
 	dew_label.add_theme_color_override("font_color", DEW_SHORT_COLOR)
-	_dew_flash = create_tween()
+	_dew_flash = UiTime.tween(self, false)
 	for offset in [-6.0, 6.0, -4.0, 4.0, 0.0]:
 		_dew_flash.tween_property(dew_label, "rotation_degrees", offset * 0.5, 0.04)
 	_dew_flash.tween_interval(0.25)
@@ -592,7 +592,7 @@ func _on_leaves_changed(leaves: int, max_leaves: int) -> void:
 	if _leaf_flash:
 		_leaf_flash.kill()
 	leaves_label.add_theme_color_override("font_color", LEAF_LOST_COLOR)
-	_leaf_flash = create_tween()
+	_leaf_flash = UiTime.tween(self, false)
 	# The leaves counter shakes as well as flashing (screens_ui.md "Leak"), unless reduced motion.
 	if not HeartwoodMemory.get_settings().get("reduced_motion", false):
 		leaves_label.pivot_offset = leaves_label.size / 2
@@ -688,7 +688,7 @@ func show_impact_toast(text: String) -> void:
 		_impact_tween.kill()
 	impact_label.text = text
 	impact_label.modulate.a = 1.0
-	_impact_tween = create_tween()
+	_impact_tween = UiTime.tween(self, false)
 	_impact_tween.tween_interval(TOAST_TIME)
 	_impact_tween.tween_property(impact_label, "modulate:a", 0.0, 0.6)
 
@@ -700,7 +700,7 @@ func show_toast(text: String) -> void:
 		impact_label.modulate.a = 0.0
 	toast_label.text = text
 	toast_label.modulate.a = 1.0
-	_toast_tween = create_tween()
+	_toast_tween = UiTime.tween(self, false)
 	_toast_tween.tween_interval(TOAST_TIME)
 	_toast_tween.tween_property(toast_label, "modulate:a", 0.0, 0.6)
 

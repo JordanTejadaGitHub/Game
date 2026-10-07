@@ -121,7 +121,7 @@ func _on_clear_pending(cell: Vector2) -> void:
 func _process(delta: float) -> void:
 	_update_icon()  # Cheap: only swaps the texture when the state changes
 	if _glow > 0.0:
-		_glow = maxf(_glow - delta / 1.5, 0.0)
+		_glow = maxf(_glow - UiTime.delta(delta) / 1.5, 0.0)
 		queue_redraw()
 	if _confirm.visible and not clearer.is_tool_active():
 		_confirm.visible = false

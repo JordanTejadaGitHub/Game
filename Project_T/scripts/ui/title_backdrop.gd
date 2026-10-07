@@ -64,6 +64,7 @@ func has_layers() -> bool:
 func _process(delta: float) -> void:
 	if _still:
 		return
+	delta = UiTime.delta(delta)  # Real time, whatever speed a run left behind
 	_time += delta
 	for mote in _motes:
 		mote.pos.y -= mote.speed * delta
