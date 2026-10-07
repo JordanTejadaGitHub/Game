@@ -513,6 +513,24 @@ func _compute_noise_levels(noise: FastNoiseLite, tree_density: float) -> void:
 func _generate_border(_start_path: Vector2i, _end_path: Vector2i) -> void:
 	unwalkable_cells.clear()
 
+# The island's outermost cells, bar the start and the cell inward of it: ground anyone can build on, but while the map is
+# generated the route is shaped as if they were the old rim (Balancing's A/B: an opening along the edge, Wardens on one
+# side only, leaked 4× in act 1). MapGenerator shuts them while it carves and trims, then opens them (open_edge_ring).
+func edge_ring() -> Array[Vector2]:
+	var ring: Array[Vector2] = []
+	var last := Vector2i(MAP_GRID.size) - Vector2i.ONE
+	var inward := _start - _outward(_start)  # The way in (a corner start's own edge cell)
+	for y in last.y + 1:
+		for x in last.x + 1:
+			var cell := Vector2i(x, y)
+			if (x == 0 or y == 0 or x == last.x or y == last.y) and cell != _start and cell != inward:
+				ring.append(Vector2(cell))
+	return ring
+
+# The walls the generation's route searches go around: the unwalkable cells and the edge ring.
+func route_walls() -> PackedVector2Array:
+	return unwalkable_cells + PackedVector2Array(edge_ring())
+
 # The rope bridge runs from the start cell straight out into the void, where the nightmares cross over. StartGate
 # draws it (on the lane's half row) and the nightmare fog at its far end; this only keeps where that end is.
 func _generate_bridge(startPath: Vector2i) -> void:
@@ -719,7 +737,7 @@ func _feature_cell_ok(cell: Vector2, skip: PackedVector2Array, obstacles: Dictio
 # cleared at all, and carving through a ruin or grove would break it.
 func _route_survives(pond: Array[Vector2]) -> bool:
 	var blocked := {}
-	for cell in unwalkable_cells:
+	for cell in route_walls():
 		blocked[Vector2i(cell)] = true
 	for cell in ridge_cells:
 		blocked[Vector2i(cell)] = true
@@ -745,7 +763,7 @@ func _route_survives(pond: Array[Vector2]) -> bool:
 # Steps from the start to the end past the rim, the ridges and `extra` (-1 = no way through).
 func _route_length(extra: Array) -> int:
 	var blocked := {}
-	for cell in unwalkable_cells:
+	for cell in route_walls():
 		blocked[Vector2i(cell)] = true
 	for cell in ridge_cells:
 		blocked[Vector2i(cell)] = true
@@ -778,7 +796,7 @@ func _place_obstacle_tile(cell: Vector2, data: ObstacleData, tile: Vector2i, obs
 # the end past the rim and the ridges. {cell (Vector2i): true}; empty if there's none yet.
 func _provisional_route() -> Dictionary:
 	var blocked := {}
-	for cell in unwalkable_cells:
+	for cell in route_walls():
 		blocked[Vector2i(cell)] = true
 	for cell in ridge_cells:
 		blocked[Vector2i(cell)] = true

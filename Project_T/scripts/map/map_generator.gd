@@ -98,6 +98,9 @@ func _ready() -> void:
 		path_layer.set_cell_blocked(cell, true)
 	for cell in environment_object_layer.pond_cells:  # Water: never walkable, buildable or cleared
 		path_layer.set_cell_blocked(cell, true)
+	_edge_ring = environment_object_layer.edge_ring()  # Shut while the route is shaped, as the old rim was
+	for cell in _edge_ring:
+		path_layer.set_cell_blocked(cell, true)
 	_carve_route_if_blocked()
 	_trim_route_if_long()  # No route extension any more: it refilled the open bowl (Room to maze)
 	if obstacles.size() < environment_object_layer.target_obstacles_min:  # Carving took some: lone band ones back, off the route
@@ -108,6 +111,7 @@ func _ready() -> void:
 			path_layer.set_cell_blocked(cell, true)
 	min_route_length = int(absf(endPath.x - startPath.x) + absf(endPath.y - startPath.y)) + MapLayout.BEND_EXTRA
 	path_layer.prefer_route(_straightest_route())  # Fewest turns among the shortest routes
+	_open_edge_ring(rng)
 
 	path_layer.draw()
 	ground_patches = GroundPatches.new()  # Ground variation: big soft patches over the grass, under the path
@@ -203,6 +207,33 @@ func set_act(act: int) -> void:
 	ground_patches.set_act(act)
 	gifts.set_act(act)
 	ambience.act = act
+
+# Island edge B: the outermost cells (bar the start's pocket) are walled while the route is carved, trimmed and
+# picked (EnvironmentObjectGenerator.edge_ring), so the maze is shaped as it was with the old rim; then they open.
+var _edge_ring: Array[Vector2] = []
+
+# Opens the edge ring. Where it would now give a shortcut (a shorter route running along the edge, Wardens on one side
+# only), a band tree or stone goes on the first edge cell it uses, until the drawn route keeps off the edge. The route
+# picked with the ring shut is always still there, so this never closes the way.
+func _open_edge_ring(rng: RandomNumberGenerator) -> void:
+	var ring := {}
+	for cell in _edge_ring:
+		ring[cell] = true
+		if not obstacles.has(cell) and not environment_object_layer.pond_cells.has(cell):  # Water stays shut
+			path_layer.set_cell_blocked(cell, false)
+	_edge_ring.clear()
+	for attempt in 40:
+		var shortcut := Vector2(-1, -1)
+		for point in path_layer.find_drawn_route():
+			var cell := (Vector2(FindPath.point_to_node(point)) / 2.0).floor()
+			if ring.has(cell) and not obstacles.has(cell):
+				shortcut = cell
+				break
+		if shortcut == Vector2(-1, -1):
+			return
+		var data: ObstacleData = environment_object_layer.tree_obstacle if rng.randf() < 0.5 else environment_object_layer.rock_obstacle
+		environment_object_layer._place_obstacle(rng, shortcut, data, obstacles)
+		path_layer.set_cell_blocked(shortcut, true)
 
 # If obstacles cut the start off from the end, clears the fewest-obstacle route between them.
 # Ridges are left intact (they create the zig-zag) unless there's no other way through.
@@ -317,7 +348,7 @@ func _find_carve_route(level: int) -> PackedVector2Array:
 	astar.default_compute_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
 	astar.default_estimate_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
 	astar.update()
-	for cell in unwalkable_cells:
+	for cell in unwalkable_cells + PackedVector2Array(_edge_ring):
 		if astar.is_in_boundsv(Vector2i(cell)):
 			astar.set_point_solid(Vector2i(cell), true)
 	for cell in environment_object_layer.pond_cells:
