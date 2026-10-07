@@ -929,7 +929,10 @@ rate if not. The demo Seeds median (≈ 94 target) is re-measured on the new for
 *"Don't want to be able to force a build; want players to adapt to be optimal. Sometimes they can."* Target for
 chasing one named build: **≤ ~30% by drift 50, ≤ ~50% by 75, with full Grove perks too** (Storm Grid 27 / 50, The
 Long Walk 21 / 49 on fresh: at the line). Grove rerolls / banishes / extra cards must not push a chase past it;
-re-measure the chase on full Grove after the use-now rule.
+re-measure the chase on full Grove after the use-now rule. **Chase (f701c156, 30 per arm, 3+ by 50 / 75):** Storm Grid fresh
+23 / 43, full (families forced) 36 / 53, unforced fresh 16 / 26, full 20 / 26; The Long Walk fresh 10 / 26, **full Grove 63 / 83**
+(no family gate, 11 cards: rerolls and banishes find them). Leave-one-out on the control perks next, to choose Meta's or
+Roguelite's lever.
 
 ## When builds come online (user, 2026-10-06)
 
