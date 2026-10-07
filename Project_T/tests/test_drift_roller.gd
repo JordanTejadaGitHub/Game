@@ -80,7 +80,8 @@ func _run() -> void:
 	var fallbacks := 0
 	var fallback_drifts := {}  # drift -> seeds that fell back
 	var template_counts := {}
-	var bad := {"budget": 0, "intro": 0, "fixed": 0, "cap": 0, "flyers": 0, "limited": 0, "repeat": 0, "leans": 0, "density": 0, "leaves_cap": 0}
+	var bad := {"budget": 0, "intro": 0, "fixed": 0, "cap": 0, "flyers": 0, "limited": 0, "repeat": 0, "leans": 0, "density": 0, "leaves_cap": 0,
+		"phantom_cap": 0, "phantom_lead": 0}
 	var phantoms_by_drift := {}  # Drift -> Phantoms over all seeds
 	for seed in SEEDS:
 		DriftRoller.roll_run(director, seed + 1)
@@ -129,9 +130,16 @@ func _run() -> void:
 			var hand_leaves := DriftRoller.get_leaves(DriftRoller._slots_of(original, false))
 			if rolled_leaves > maxi(ceili(hand_leaves * DriftRoller.LEAVES_SCALE), hand_leaves + DriftRoller.LEAVES_EXTRA):
 				bad.leaves_cap += 1
+			var phantoms_here := 0
 			for entry in entries:
 				if entry.enemy.is_through_walls() and not entry.elite:
 					phantoms_by_drift[n] = phantoms_by_drift.get(n, 0) + entry.count
+				if entry.enemy.drift_max > 0:
+					phantoms_here += entry.count
+			if phantoms_here > 4:  # "Phantoms stay rare" (enemy_design.md e75b99a7): at most 4 a rolled drift
+				bad.phantom_cap += 1
+			if entries[0].enemy.drift_max > 0 and template != &"special":
+				bad.phantom_lead += 1  # A Phantom leads only Special drifts
 			if absf(rolled_budget - budget) > budget * DriftRoller.BUDGET_TOLERANCE + 0.01:
 				bad.budget += 1
 			if all_flyers:
@@ -163,6 +171,18 @@ func _run() -> void:
 			if template == previous:
 				bad.repeat += 1
 			previous = template
+	var over_cap: Array = []  # Hand-made drifts too (random_drifts off, sims, the budget reference): at most drift_max
+	for n in hand_made.size():
+		for group in hand_made[n].groups:
+			for entry in group.entries:
+				if entry.enemy != null and entry.enemy.drift_max > 0 and entry.count > entry.enemy.drift_max:
+					over_cap.append(n + 1)
+	_check(over_cap.is_empty(), "no hand-made drift brings more of a kind than its drift_max (%s)" % [over_cap])
+	var phantom_entry := DriftEntry.new()
+	phantom_entry.enemy = load("res://resource/enemy/dandelion_seed.tres")
+	phantom_entry.count = 4
+	_check(phantom_entry.get_count(1.0, 1.0, 1.25) == 4, "the extra nightmares never round 4 Phantoms up to 5")
+	_check(phantom_entry.get_count(1.0, 1.6, 1.25) == 6, "an Omen that adds flyers still can (Moth Night: 6)")
 	for n in [28, 29, 30]:
 		var average: float = phantoms_by_drift.get(n, 0) / float(SEEDS)
 		_check(average <= 8.0, "drift %d: Phantoms stay near the hand-made count (%.1f on average)" % [n, average])

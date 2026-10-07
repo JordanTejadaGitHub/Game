@@ -124,7 +124,8 @@ func _on_built(tower: Tower) -> void:
 		_plants_in_mode += 1
 		if _plants_in_mode >= 2:
 			lesson(&"build_mode", &"rank", "Build mode",
-				"Build mode stays on. Right-click or Esc to stop building (touch: Done).")
+				InputMode.text("Build mode stays on. Right-click or Esc to stop building.",
+					"Build mode stays on. Tap Done to stop building."))
 	var data := tower.tower_data
 	if not is_family_warden(data) or tower.get_meta(&"gift_sprout", false):
 		return

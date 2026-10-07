@@ -106,7 +106,7 @@ Crawler. One elite per drift is added automatically.
 | 56 | 4 GC (3 s apart) | Gravecrawler intro |
 | 57 | 32 SH, 8 HU, 6 GC | |
 | 58 | 5 SW (2 s apart) | Sleepwalker intro |
-| 59 | 30 SH, 8 NH, 6 SW, 6 PH | |
+| 59 | 30 SH, 8 NH, 6 SW, 4 PH | |
 | 60 | **Burial:** 12 GC, 10 HU, 10 SH | rest |
 | 61 | 4 DO (2.5 s apart) | Drowned One intro |
 | 62 | 32 SH, 10 HU, 8 DO | |
@@ -121,7 +121,7 @@ Crawler. One elite per drift is added automatically.
 | 71 | 36 SH, 12 HU, 8 NH, 6 DO, 4 WA | |
 | 72 | 36 SH, 10 LU, 4 WW, 6 GC, 3 PR | |
 | 73 | **Ashfall:** 10 AC, 30 SH | |
-| 74 | 40 SH, 12 HU, 10 NH, 8 DO, 4 BW, 6 PH | |
+| 74 | 40 SH, 12 HU, 10 NH, 8 DO, 4 BW, 4 PH | |
 | 75 | **The Moth Queen:** 12 LU, the Queen, 6 NH | **rest: family pick + Rare Dream** |
 
 ## Act 4: Heartwood Glade (drifts 76–100)
@@ -147,11 +147,11 @@ are added automatically.
 | 89 | 42 SH, 6 WS, 8 DO, 6 AC, 4 PR | |
 | 90 | **Lament:** 6 WE, 12 MO, 10 HU | rest |
 | 91 | 44 SH, 14 HU, 10 NH, 6 WI, 6 DT | |
-| 92 | 44 SH, 8 SB, 6 WE, 6 WA, 8 PH | |
+| 92 | 44 SH, 8 SB, 6 WE, 6 WA, 4 PH | |
 | 93 | 44 SH, 8 WS, 10 DO, 6 GC, 6 SW | |
 | 94 | 46 SH, 14 HU, 8 BW, 10 LU, 4 WW, 4 PR | |
 | 95 | **Shell Wall:** 10 SB, 4 WI, 6 WE | rest |
-| 96 | **The Long Night:** 30 SH, 6 of every other kind | |
+| 96 | **The Long Night:** 30 SH, 6 of every other kind (Phantoms 4: the cap, 2026-10-07) | |
 | 97 | 48 SH, 16 HU, 10 NH, 8 DT, 8 WS | |
 | 98 | **Swarm:** 80 SH (0.2 s apart) | |
 | 99 | 50 SH, 12 of MO, NH, LU, DO; 6 of WI, SB, WE, AC; 4 PR | |

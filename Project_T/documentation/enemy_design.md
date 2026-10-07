@@ -453,6 +453,23 @@ water weakness: rain douses the ghost-fire in its antlers.
 - Status testers come after the first Dreams, when the player has statuses to be tested on.
 - A boss drift ends each act.
 
+**Phantoms stay rare (2026-10-07, design pick; judged by Balancing Discussion: both parts, act 2 included, its hand-made drifts have ≤ 3; with Enemy Code).** Balancing
+Code's drift 51–60 trace (10 runs, full Grove, 35 attackers with finals): Phantoms took 53 of 101
+leaves lost. When a seed drew them, 9–10 leaked in ~25 s whatever their health (×6 or ×2.4), because
+they skip the maze. The cause is the roller, not the Phantom: tagged `fast`, a cheap 60-health
+Phantom can lead a "Fast" drift at 50–75% of its budget, i.e. a stream of 9–10. That breaks the
+roster's own rule above ("Rare, in its own drifts"). Picked:
+- **Retag the Phantom `fast` → `special`.** It can then lead only a Special drift, which the roller
+  already limits to one per block; elsewhere it's a minority type (≥ 15%, never the lead).
+- **A hard cap per drift: at most 4 Phantoms in acts 2–4** (the teaching drift, 31, stays as written).
+  Hand-made drifts 59 and 74 (6 each) drop to 4. Proposed number: 4 leaks is a sting, not a run-ender,
+  and leaves the goal-defence test intact.
+- **Not picked:** 1 leaf per 2 Phantoms (invisible to the player, and a flock should cost what it
+  looks like); a wider counter across families (a Warden-design change that belongs to the Tower
+  chats if the cap isn't enough).
+- Lurkers are not flyers (hidden, they walk the maze); their 11 leaves are a detection question, and
+  Mourners + Sobs (21) a splash one. Neither is part of this change.
+
 ## Art
 
 Final art is original (brief above). Placeholders from the Foozle enemy pack are in use until then;

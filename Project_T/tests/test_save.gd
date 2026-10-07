@@ -118,8 +118,11 @@ func _run() -> void:
 		quit(failures)
 		return
 	var total: int = results.breakdown[-1][1]
-	var expected: int = mini(5 / 2, 50) + saved.cleansed / RunState.CLEANSES_PER_SEED + saved.tended + 20  # + first-run bonus
-	_check(total == expected, "Seeds: drifts, cleansed, tended, first run = %d (got %d, %s)" % [expected, total, results.breakdown])
+	# Act 1 (meta_design.md 192baf87): no survival Seeds before drift 26, 1 Seed per 50 dispels, no first-run bonus.
+	_check(run_state.cleansed_in_act_1 == run_state.creatures_cleansed and run_state.cleansed_in_act_1 >= saved.cleansed,
+		"every dispel so far was in act 1, kept through the save (%d of %d)" % [run_state.cleansed_in_act_1, run_state.creatures_cleansed])
+	var expected: int = run_state.cleansed_in_act_1 / run_state.act_1_cleanses_per_seed + saved.tended
+	_check(total == expected, "Seeds in act 1: dispels / 50 and tends only = %d (got %d, %s)" % [expected, total, results.breakdown])
 	_check(HeartwoodMemory.load_data().seeds == total and HeartwoodMemory.load_data().runs_played == 1, "Seeds banked")
 	_check(not RunSaver.has_save(), "the run save is deleted when the run ends")
 	_check(not HeartwoodMemory.is_first_run(), "no first-run bonus next time")

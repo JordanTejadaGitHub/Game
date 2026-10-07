@@ -444,7 +444,7 @@ func _on_sell_mode(on: bool) -> void:
 		_sell_hint.add_theme_stylebox_override("panel", UiStyle.fog_patch(14.0, 8.0))
 		_sell_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var text := Label.new()
-		text.text = "Sell mode: click a Warden. Right-click or Esc to stop."
+		text.name = "Text"
 		text.add_theme_color_override("font_color", UiStyle.POOR)
 		_sell_hint.add_child(text)
 		add_child(_sell_hint)
@@ -452,6 +452,8 @@ func _on_sell_mode(on: bool) -> void:
 		_sell_hint.grow_horizontal = Control.GROW_DIRECTION_BOTH
 		_sell_hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
 		_sell_hint.offset_bottom = -130.0  # Above the Warden bar, where the touch build bar sits
+	(_sell_hint.get_node("Text") as Label).text = InputMode.text("Sell mode: click a Warden. Right-click or Esc to stop.",
+		"Sell mode: tap a Warden to sell it. Tap Sell again to stop.")
 	_sell_hint.visible = on
 	tower_bar.modulate.a = 0.55 if on else 1.0  # multiplier: the bar steps back while selling
 	var dew := IconInfo.icon(&"dew") if on else null
@@ -533,7 +535,7 @@ func _add_menu_button() -> void:
 	var button := Button.new()
 	button.name = "MenuButton"
 	button.text = "≡"  # An icon button; the name is in the tooltip (Moonlit mock)
-	button.tooltip_text = "Pause menu (Esc)"
+	button.tooltip_text = "Pause menu" + UiStyle.key_suffix(InputMode.key(&"pause_menu", "Esc"))
 	button.focus_mode = Control.FOCUS_NONE
 	_place_top_button(button, MENU_SLOT)
 	button.pressed.connect(func() -> void:

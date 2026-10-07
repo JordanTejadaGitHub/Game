@@ -12,7 +12,7 @@
 [sub_resource type="Resource" id="Entry_1"]
 script = ExtResource("3_entry")
 enemy = ExtResource("e_LB")
-count = 32
+count = 33
 
 [sub_resource type="Resource" id="Entry_2"]
 script = ExtResource("3_entry")
@@ -32,7 +32,7 @@ count = 3
 [sub_resource type="Resource" id="Entry_5"]
 script = ExtResource("3_entry")
 enemy = ExtResource("e_DS")
-count = 6
+count = 4
 
 [sub_resource type="Resource" id="Group_1"]
 script = ExtResource("2_group")

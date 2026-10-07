@@ -110,7 +110,7 @@ func _ready() -> void:
 	_auto_toggle.toggled.connect(drift_director.set_auto_drift)
 	speed_row.add_child(_auto_toggle)
 	_pause_button.text = "II"
-	_pause_button.tooltip_text = "Pause (Space). You can still build while paused."
+	_pause_button.tooltip_text = "Pause%s. You can still build while paused." % UiStyle.key_suffix(InputMode.key(&"pause_game", "Space"))
 	_pause_button.pressed.connect(game_speed.toggle_pause)
 	_add_speed_button(speed_row, _pause_button)
 	for speed in game_speed.speeds:

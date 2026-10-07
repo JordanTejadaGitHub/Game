@@ -20,6 +20,8 @@ func get_count(count_multiplier: float = 1.0, flyer_multiplier: float = 1.0, ext
 	var base := count
 	if count >= EXTRA_MIN_COUNT and not elite:
 		base = ceili(count * extra - 0.0001)
+		if enemy.drift_max > 0:
+			base = mini(base, maxi(count, enemy.drift_max))  # The extras never round a capped kind past its cap
 	var multiplier := count_multiplier
 	if enemy.trait_kind == EnemyData.Trait.FLYING:
 		multiplier *= flyer_multiplier

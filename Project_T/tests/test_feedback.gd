@@ -77,7 +77,7 @@ func _run() -> void:
 	# Rest report card
 	var report: RestReport = main.get_node("%RestReport")
 	report.show_report(1)
-	_check(report.visible == RestReport.auto_show() and report.last_block_text.contains("Stormcap") and report._label.get_parsed_text().contains("Stormcap") and report._label.get_parsed_text().contains("Lightning through Soaked: 2 times"),
+	_check(report.visible == RestReport.auto_show() and report.last_block_text.contains("Stormcap") and report._label.get_parsed_text().contains("Stormcap") and report._label.get_parsed_text().replace(IconInfo.NBSP, " ").contains("Lightning through Soaked: 2 times"),
 		"the rest report shows the top Warden and the combos (%s)" % report._label.get_parsed_text())
 	# The Omen paid at this rest, and why it was cut ("Omens with teeth"): the summary from omen_rewarded.
 	var omens: OmenDirector = main.get_node("%OmenDirector")
@@ -311,7 +311,7 @@ func _run() -> void:
 		var kin_count := Kinships.count_on_map(report)
 		report.show_report(2)
 		if kin_count == 0:
-			_check(report._label.get_parsed_text().contains("No Kinships yet: two branches of one family within 2 cells"),
+			_check(report._label.get_parsed_text().replace(IconInfo.NBSP, " ").contains("No Kinships yet: two branches of one family within 2 cells"),
 				"the no-Kinship hint at the first rest with two branches")
 			report.show_report(2)
 			_check(not report._label.get_parsed_text().contains("No Kinships yet"), "…once per run")

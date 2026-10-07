@@ -865,6 +865,16 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Omen weighing (user, 2026-10-07: "make sure ones that are worse than others give more rewards")
+
+All 27 Omens (the 4 Restless included). **Cost** measured, paired: bot boards saved at drifts 15 / 35, each Omen forced for
+one block vs Clear Skies on the same seeds (15 seeds): extra leaves, deaths, Dew lost; build-dependent Omens split by family;
+act 3 from human runs. **Value scale (Dew-equivalent):** Dew at face; 1 Seed ≈ 10 Dew (meta, a side track); a card ≈ 15% of
+the Dew invested in the board (~300 act 1, ~900 act 2); Rare+ ≈ ½ card; a 4-card Dream ≈ ⅓ card; a Legendary ≈ 2 cards;
+rest bonus ×2 = that rest bonus; pot multipliers = the multiplier × the block's pot. **Rule:** value ∝ cost; the act scaling
+stays; "facing every rest loses more leaves than picking moments" re-checked after. Free-money Omens and run-killers get a
+twist fix.
+
 ## One curve (user, 2026-10-06: "shouldn't it be the same?")
 
 The demo and a fresh full-game run share acts 1–2: **no demo-only multipliers**. The full game's fresh-profile acts 1–2
@@ -880,7 +890,20 @@ may need to come down with act 2). Tower Code removes the demo_* exports once th
 2.1 / 2.6 (easing the climb, not the start, so act 2 never starts below act 1's end); `mid_boss_health_multiplier`
 raised per arm so the Mire Hag keeps its absolute health. Fresh full game and demo side by side. **Interim:** A (1.2 / 1.7 / 2.0)
 reaches 50 in only 5% (full) / 15% (demo), Stag 75%: still harder than the demo pair. B / C dropped; **D 1.0 / 1.4 / 1.8**
-and **E 1.1 / 1.5 / 1.9** (act 2 boss raised to keep the Mire Hag) run instead.
+and **E 1.1 / 1.5 / 1.9** (act 2 boss raised to keep the Mire Hag) run instead. **Sweep result (default, Stag / reach / win):**
+full A 75 / 5 / 5, D 80 / 20 / 15, E 75 / 15 / 5; demo A 75 / 15 / 5, D 75 / 30 / 20, **E 80 / 40 / 35** (on target). Full D spender
+95 / 65 / 45, skip 35 / 0. The full game reaches 50 far less than the demo on the same curve. Next: softer **F 1.0 / 1.3 /
+1.6**, tuned to the full game (the demo may sit up to ~10 above its band), and a breakdown of the gap (act 1 boss drawn,
+leaves at 26, families). **Breakdown (D, default, 20 each):** of runs entering act 2, full 4 / 16 reach 50 vs demo 6 / 15;
+leaves at 26 full 11.0 vs demo 12.3; full deaths cluster at **44–47** (8 of 11; the drift 45 finale), demo spread. DEMO_RULES
+are retired (checked); the remaining differences are the act 1 boss draw and the demo's family-limited card pool, both
+by design. If F full still clusters at 44–47, the drift 45 finale is the next lever. **Confirmation D (main 89f40404, full,
+30):** Stag 66 / reach 26 / win 20%: stopped. Act 1 deaths cluster 19–24, act 2 at 40–44. F (act 1 1.0) and **F2 (act 1 0.9)** next. Demo D
+(30): 80 / 16 / 13 (act 2 deaths pile at 47–49). No curve changes between the builds (checked), so D pooled: reach ≈ 23% in
+**both** modes; the earlier "demo easier" was mostly noise. **F / F2 (20 each):** full F 75 / 25 / 15, F2 75 / 20 / 15; demo F
+80 / 50 / 35, F2 80 / 45 / 45. The act 2 climb and act 1 no longer move full-game reach (D ≈ 23%, F 25%); full deaths still
+cluster at 41–47 (the drift 40 / 45 finales, 3 elites each from 30). Next: an elite read, F at n=30 in both modes, and a
+finale sweep (×1.2 / ×1.0, or 2 finale elites from 30), all on a build with the Phantom cap, death drifts traced.
 
 ## Demo targets (demo_scope.md e5ce233d, 2026-10-06)
 
@@ -919,7 +942,10 @@ rate if not. The demo Seeds median (≈ 94 target) is re-measured on the new for
 *"Don't want to be able to force a build; want players to adapt to be optimal. Sometimes they can."* Target for
 chasing one named build: **≤ ~30% by drift 50, ≤ ~50% by 75, with full Grove perks too** (Storm Grid 27 / 50, The
 Long Walk 21 / 49 on fresh: at the line). Grove rerolls / banishes / extra cards must not push a chase past it;
-re-measure the chase on full Grove after the use-now rule.
+re-measure the chase on full Grove after the use-now rule. **Chase (f701c156, 30 per arm, 3+ by 50 / 75):** Storm Grid fresh
+23 / 43, full (families forced) 36 / 53, unforced fresh 16 / 26, full 20 / 26; The Long Walk fresh 10 / 26, **full Grove 63 / 83**
+(no family gate, 11 cards: rerolls and banishes find them). Leave-one-out on the control perks next, to choose Meta's or
+Roguelite's lever.
 
 ## When builds come online (user, 2026-10-06)
 
@@ -1297,6 +1323,27 @@ acts 3–4 played for real. Real snapshots (`--from-save`) once the user has dee
 **Finals: 0 of 60 runs at 50, 3 of 20 at 75; 0–4% of damage.** The bot never grows finals, so the finals question still
 can't be read. Next: `--finals-first` + spend-down warm-up, then the `final_damage_multiplier` 1.0 vs 1.125 A/B on it.
 Gifts: mostly passed; Heartwood Roots the most taken.
+**Act 3 ramp batch (finals-first, warm-up to 51, last 76, half / full, 20 per arm):** clears of 60 / 75: control 5 / 0, start
+2.4 10–20 / 0, start 3.6 15–20 / 0–5. **41 of 120 die inside drift 51** (22 of 40 on the controls), 9–10 leaves gone in one drift.
+Drift 51 is 30 Shades + 10 Husks + 6 hedgehogs + 2 Lantern Bearers at 0.625 s spacing (~60 with the extras): a swarm at the
+×6 jump. A drift 51 trace (content vs entry multiplier vs bot) comes before any ramp numbers. **Correction:** "survived" counts
+cleared drifts, so those death drifts are too early. Trace: drift 51 content is rolled per seed; 8 of 10 runs leak nothing
+in 51, but the field piles up (25–60 alive) and carries over; the only direct leakers are fast Dandelion flyers. Control
+and start 2.4 look alike, and the bot's ranks at 51 are ≈ 0: likely a DPS-short bot board, not the multiplier. Rerun to 60
+with damage vs health per drift. **Full trace (10 runs to 60):** at 51 every board has 35 attackers, 3–9 finals, **ranks 0**, ~1,600 DPS;
+deaths control 51–59, start 2.4 51–60 (the ramp buys 1–2 drifts); damage / health falls behind on both. **Dandelion seeds take 53
+of 101 leaves** (Dusk Moths 11 more), at either multiplier (flyers skip the maze). Next: finals-first with a ranking budget (~1,000 Dew in ranks by
+50, as the user), the same trace; Dandelions sent to Enemy types design. **Cause: the roller** (Phantoms tagged "fast" lead
+Fast act 3 drifts as 9–10 streams). Fix (Enemy types design e75b99a7, judged here): retag to special + **cap 4 Phantoms per
+drift in acts 2–4**; to Enemy Code. Dusk Moths (Lurkers) walk hidden: their 11 leaves are detection, not flyers. In 447e277b +
+76cb1516 (every hand-made drift ≤ 4 Phantoms, freed health to Shades; drift 43 = 4 Phantoms then 10 Shades; Moth Night
+stays above the cap; test_drift_roller enforces it).
+**Ranked trace (1,000 Dew in ranks by 50):** board DPS at 51 no higher (median ~1,430 vs ~1,600: the rank Dew came out of
+finals); start 2.4 still dies at 53–60. The bot banks as much Dew as the user (5.7–9.9k vs 6.6k by 50) but turns it into less
+DPS. **The bot can't judge act 3**: act 3 numbers come from a rule + human snapshots (`--from-save`), not this bot. **Plant-full
+try (447e277b):** 50 attackers, no finals, ranks 31–65, DPS still ~1,540: every split of ~6.5k Dew lands near 1,500 DPS for
+this bot. **Act 3 parked.** Phantom cap works: Phantoms 19 of 92 leaves (was 53 of 101), no drift 51 instant loss. Now on top:
+Lurkers (dusk_moth) 18, hedgehogs 17: detection and rolling, to watch on human runs.
 
 ## Overlap-audit reworks, power check (2026-10-05, dream_design.md e1e39b56; dream_audit.md budgets)
 

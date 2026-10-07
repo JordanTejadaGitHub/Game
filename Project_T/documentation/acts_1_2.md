@@ -141,17 +141,17 @@ PH = Phantom, NH = Night Hound, PR = Procession (Lantern Bearer + 4 Wraiths).
 | 36 | 1 PR | Procession intro |
 | 37 | 20 SH, 2 PR | |
 | 38 | 24 SH, 8 HU, 6 NH | |
-| 39 | 20 SH, 6 MO, 8 PH | |
+| 39 | 20 SH, 6 MO, 4 PH | |
 | 40 | **Funeral:** 4 PR back to back, 10 SH | rest |
 | 41 | 28 SH, 8 HU, 6 NH, 1 PR | |
-| 42 | 26 SH, 8 MO, 6 PH | |
-| 43 | **Haunting:** 20 PH | |
+| 42 | 26 SH, 8 MO, 4 PH | |
+| 43 | **Haunting:** 4 PH, then 10 SH (was 20 PH; the cap 2026-10-07, freed health refilled with Shades) | |
 | 44 | 30 SH, 10 HU, 6 NH, 2 PR | |
 | 45 | **Deeply Blighted:** 20 SH, 2 NH★, 2 Lantern Bearers★ (with their Wraiths) | rest |
 | 46 | 30 SH, 10 HU, 8 MO | |
-| 47 | 28 SH, 8 NH, 8 PH, 2 PR | |
+| 47 | 28 SH, 8 NH, 4 PH, 2 PR | |
 | 48 | **Swarm:** 50 SH (0.25 s apart) | |
-| 49 | 32 SH, 12 HU, 8 NH, 3 PR, 6 PH | |
+| 49 | 32 SH, 12 HU, 8 NH, 3 PR, 4 PH | |
 | 50 | **The Mire Hag:** 10 NH, the Hag, 2 PR | **demo ends** / full game: family pick + Rare Dream |
 
 ## To check in playtests

@@ -6,10 +6,15 @@ extends RichTextLabel
 # Mostly polls simple conditions each frame, so it
 # needs no hooks in the systems it teaches.
 
+# The touch variant of a whisper that names a control (InputMode, user 2026-10-07: no keys on phones, no "touch" on PC).
+const TOUCH_TEXT := {
+	&"keep_placing": "Build mode stays on. Tap Done to stop building.",
+}
+
 const TEXT := {
 	&"start": "Something moves at the edge of the dream.",
 	&"plant": "Plant a Warden near the path.",
-	&"keep_placing": "Build mode stays on: right-click or Esc to stop building (touch: Done).",  # User 2026-10-06 (the one-shot reversed)
+	&"keep_placing": "Build mode stays on. Right-click or Esc to stop building.",  # User 2026-10-06 (the one-shot reversed); touch: TOUCH_TEXT
 	&"first_cleanse": "Nightmares. They're coming for the dream. Don't let them reach me.",
 	&"walls": "Wardens are walls. Make them take the long way.",
 	&"flow": "They don't stop. They come in {drifts}, like fog.",
@@ -277,7 +282,7 @@ func _show_next() -> void:
 		return  # _process shows it once the choice closes
 	_seen.append(String(id))
 	_remember()
-	var raw: String = TEXT.get(id, "")
+	var raw: String = TOUCH_TEXT.get(id, TEXT.get(id, "")) if InputMode.touch() else TEXT.get(id, "")
 	if _args.has(id):
 		raw = raw % _args[id]
 	plain = IconInfo.format(raw)  # {damp} … become today's status names

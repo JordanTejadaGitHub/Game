@@ -179,6 +179,17 @@ var policy
 var reaction_tags := {}
 
 var game_time := 0.0
+var trace_drift := 0  # --trace-drift=N: TRACE lines from drift N's start to the run's end (board, later drift starts, nightmares alive per second, each leak)
+var _trace_t := -1.0
+var _trace_next := 0.0
+var _trace_spawned := 0
+var rank_budget := 0  # --rank-budget=D: finals-first puts D Dew into ranks by the warm-up's end (_warm_rank)
+var warm_rank_spent := 0
+var omen_force := ""  # --omen-force=<omen id>|clear (with --from-save and --omens=face): that Omen twists the block after the save's rest
+var omen_forced_status := ""  # RUN JSON omen_forced: "<id>" taken, "clear", or "na:<id>" (its offer rule forbids it there)
+var plant_full := false  # --plant-full: finals-first plants to 1.0 × the human count before the save-for-a-final rule (Balancing 2026-10-08)
+var _trace_hp := 0.0  # Health spawned since the trace began
+var _trace_dmg := 0.0  # Damage dealt since the trace began
 var _spend_timer := 0.0
 var _busy := false  # A family pick / rest is being handled
 var rows: Array = []
@@ -213,6 +224,10 @@ func _run() -> void:
 			"--no-fence-pref": fence_pref = false
 			"--no-wall-first": wall_first = false
 			"--walls-keep-going": walls_keep_going = true
+			"--trace-drift": trace_drift = int(value)
+			"--rank-budget": rank_budget = int(value)
+			"--plant-full": plant_full = true
+			"--omen-force": omen_force = value
 			"--no-walls-keep-going": walls_keep_going = false
 			"--wall-first-keep": wall_first_keep = int(value)
 			"--no-half-pref": half_pref = false
@@ -345,6 +360,12 @@ func _run() -> void:
 			return
 		var raw: String = s.get_slice("=", 1)
 		var current = node.get(prop)
+		if current is Dictionary:  # --set=%Node.dict=10:1|15:2|30:2 (e.g. DriftDirector.block_finale_elites): int keys and values
+			var dict := {}
+			for pair in raw.split("|"):
+				dict[int(pair.get_slice(":", 0))] = int(pair.get_slice(":", 1))
+			node.set(prop, dict)
+			continue
 		if current is Array:  # --set=%Node.list=1.1|1.25 (e.g. DriftDirector.demo_boss_health_scale): same type as the elements there
 			var items: Array = Array(raw.split("|")).map(func(v: String): return float(v))
 			var typed = current.duplicate()
@@ -387,6 +408,10 @@ func _run() -> void:
 		omens.omen_rewarded.connect(func(omen, _summary) -> void: _on_omen_rewarded(omen))
 	for r in Reactions.all() + Reactions.crowned():
 		reaction_tags[r.id] = true
+	if omen_force != "" and not _force_omen():
+		_finish()
+		quit(0)
+		return
 	_take_over_choices()
 	director.set_auto_drift(true)  # Drifts in a block flow (the HUD applies the player's own default)
 	_hook_stats()
@@ -415,6 +440,7 @@ func _run() -> void:
 		await process_frame
 		frames += 1
 		game_time += speed / 60.0
+		_trace_tick()
 		_spend_timer -= speed / 60.0
 		_approach_timer -= speed / 60.0
 		if _approach_timer <= 0.0:
@@ -443,6 +469,9 @@ func _run() -> void:
 				_warm_finals_spend(director.drifts_started)  # The same rule mid-drift: save for an open final
 			else:
 				_spend()
+	if _trace_t >= 0.0:
+		print("TRACE end t=%.1f drifts_started %d drifts_cleared %d leaves %d alive %d" % [game_time - _trace_t, director.drifts_started,
+			director.drifts_cleared, run_state.leaves, spawner.get_enemies().size()])
 	Engine.time_scale = 1.0
 	_finish()
 	if profile != "fresh" and ResourceLoader.exists("res://scripts/meta/grove_presets.gd"):
@@ -544,6 +573,13 @@ func _warm_finals_spend(n: int) -> void:
 		grow_count += 1
 		d.spent_grow += maxi(before - run_state.dew, 0)
 	_finals_first = false
+	if plant_full:  # --plant-full: the board reaches the full human count before saving for a final can stop it
+		for guard in 80:
+			var before := run_state.dew
+			if _attackers().size() >= target or not _plant_attacker():
+				break
+			d.spent_plant += maxi(before - run_state.dew, 0)
+	_warm_rank(n)
 	var final_price := _cheapest_growth_price(3)
 	if final_price == 0:
 		final_price = _cheapest_growth_price(2)  # No final open: save for a branch (the way to a final)
@@ -560,6 +596,22 @@ func _warm_finals_spend(n: int) -> void:
 		if not _nurture():
 			break
 		d.spent_nurture += maxi(before - run_state.dew, 0)
+
+# --rank-budget=D (Balancing 2026-10-08: the user's run had ~1,000 Dew in ranks by 50): after growth, finals-first nurtures (the
+# normal bot's pick) until the Dew put into ranks reaches D × (n - 10) / (warmup_to - 11), so all of D by the warm-up's last rest.
+func _warm_rank(n: int) -> void:
+	if rank_budget <= 0:
+		return
+	var goal := rank_budget * clampf(float(n - 10) / maxf(warmup_to - 11, 1), 0.0, 1.0)
+	for guard in 300:
+		if warm_rank_spent >= goal:
+			break
+		var before := run_state.dew
+		if not _nurture():
+			break
+		var spent := maxi(before - run_state.dew, 0)
+		warm_rank_spent += spent
+		d.spent_nurture += spent
 
 # Attackers a human run holds by drift `n` (run history, 2026-10-05: 38–75 at 50, mean ~50): ~5 + 0.9 a drift, at most 50.
 func _human_attackers(n: int) -> int:
@@ -592,11 +644,43 @@ func _end_warmup() -> void:
 	run_state.leaves = mini(start_leaves if start_leaves >= 0 else int(START_LEAVES.get(warmup_to, run_state.max_leaves)), run_state.max_leaves)
 	warm.attackers = _attackers().size()
 	warm.walls = _walls().size()
-	print("WARMUP done at the rest after drift %d: Dew earned %d, leaks %d, attackers %d, walls %d, leaves set to %d" % [
-		director.drifts_started, warm.dew, warm.leaks, warm.attackers, warm.walls, run_state.leaves])
+	print("WARMUP done at the rest after drift %d: Dew earned %d, leaks %d, attackers %d, walls %d, leaves set to %d, Dew in ranks %d" % [
+		director.drifts_started, warm.dew, warm.leaks, warm.attackers, warm.walls, run_state.leaves, warm_rank_spent])
 
 # --save-at: the board as it stands after this rest's spending, as a RunSaver run.json (for --from-save and the
 # snapshot library). Written into --out; RunSaver's own path is put back right away.
+# --omen-force (Balancing 2026-10-08, the Omen cost probe): on a resumed save, the next block's offer is this one Omen under
+# the real offer rules (make_offer on a one-Omen pool; the Restless Omens' Grove node is waived), and the bot takes it.
+# Returns false when the rules forbid it there (omen_forced "na:<id>"; the run ends at once). "clear" = Clear Skies.
+func _force_omen() -> bool:
+	if omen_force == "clear":
+		omen_forced_status = "clear"
+		return true
+	var omen: OmenData = load("res://resource/omen/%s.tres" % omen_force)
+	if omens == null or omen == null or resumed_at <= 0:
+		printerr("--omen-force=%s: needs --from-save, --omens=face and a resource/omen file" % omen_force)
+		omen_forced_status = "na:%s" % omen_force
+		return false
+	omen.requires_grove = ""
+	var block := director.get_block(resumed_at) + 1
+	var saved_pool: Array[OmenData] = omens.pool.duplicate()
+	var one: Array[OmenData] = [omen]
+	omens.pool = one
+	omens._last_offer_ids.clear()
+	var offer: Array[OmenData] = omens.make_offer(block)
+	omens.pool = saved_pool
+	if offer.is_empty():
+		omen_forced_status = "na:%s" % omen_force
+		print("OMEN n/a %s at the rest after drift %d" % [omen_force, resumed_at])
+		return false
+	omens.current_offer = offer
+	omens.current_offer_block = block
+	omens.choose(omen)
+	omen_forced_status = omen_force
+	omens_faced.append("%d:%s" % [resumed_at + 1, omen.id])
+	print("OMEN forced %s for block %d" % [omen_force, block])
+	return true
+
 func _write_snapshot(n: int) -> void:
 	var saver: Node = main.get_node_or_null("%RunSaver")
 	if saver == null:
@@ -1371,7 +1455,48 @@ func _family_count(base: TowerData) -> int:
 var dl_earned := 0  # Dreamlight gained this run (dl_earned column; held = the dreamlight column)
 var _dl_last := -1
 
+# --trace-drift: drift N's start prints the board, later drift starts print their time; the trace runs to the run's end
+# (a flowing run keeps drifts_cleared at N - 1 while the field never empties, so "survived" alone can't place the death).
+func _trace_drift_started(n: int) -> void:
+	if n == trace_drift:
+		_trace_t = game_time
+		_trace_next = game_time
+		_trace_spawned = 0
+		var tiers := {}
+		for t in _attackers():
+			tiers[t.tower_data.tier] = int(tiers.get(t.tower_data.tier, 0)) + 1
+		var ranks := 0.0
+		var dps := 0.0
+		for t in _attackers():
+			ranks += t.rank
+			dps += t.get_damage() * t.get_attacks_per_second()
+		print("TRACE start drift %d leaves %d dew %d attackers %d tiers %s avg_rank %.2f rank_total %d dps %.0f route %d" % [n, run_state.leaves,
+			run_state.dew, _attackers().size(), str(tiers), ranks / maxf(_attackers().size(), 1), int(ranks), dps,
+			_route_cells(map.get_path_from(map.startPath))])
+	elif n > trace_drift and _trace_t >= 0.0:
+		print("TRACE drift %d starts t=%.1f hp=%.0f dmg=%.0f alive %d leaves %d" % [n, game_time - _trace_t, _trace_hp, _trace_dmg,
+			spawner.get_enemies().size(), run_state.leaves])
+
+func _trace_tick() -> void:
+	if _trace_t < 0.0 or game_time < _trace_next:
+		return
+	_trace_next += 1.0
+	var kinds := {}
+	for e in spawner.get_enemies():
+		var kind: String = e.enemy_data.resource_path.get_file().get_basename()
+		kinds[kind] = int(kinds.get(kind, 0)) + 1
+	print("TRACE alive t=%.1f n=%d spawned=%d hp=%.0f dmg=%.0f leaves=%d %s" % [game_time - _trace_t, spawner.get_enemies().size(), _trace_spawned,
+		_trace_hp, _trace_dmg, run_state.leaves, str(kinds)])
+
+func _trace_leak(e: Node) -> void:
+	if _trace_t < 0.0 or not is_instance_valid(e):
+		return
+	print("TRACE leak t=%.1f drift %d kind %s elite %s cost %d hp %d/%d leaves %d" % [game_time - _trace_t, director.drifts_started,
+		e.enemy_data.resource_path.get_file().get_basename(), e.elite, e.get_leaf_cost(), int(e.health), int(e.max_health), run_state.leaves])
+
 func _hook_stats() -> void:
+	if trace_drift > 0:
+		director.drift_started.connect(_trace_drift_started)
 	dreams.dreamlight_changed.connect(func(now: int) -> void:
 		if _dl_last >= 0 and now > _dl_last:
 			dl_earned += now - _dl_last
@@ -1381,8 +1506,14 @@ func _hook_stats() -> void:
 		DamageLog.instance.damage_dealt.connect(_on_damage)
 	spawner.child_entered_tree.connect(func(n) -> void:
 		if n.has_method("take_damage"):
-			(func() -> void: d.health_spawned += n.max_health).call_deferred())
+			if _trace_t >= 0.0:
+				_trace_spawned += 1
+			(func() -> void:
+				d.health_spawned += n.max_health
+				if _trace_t >= 0.0:
+					_trace_hp += n.max_health).call_deferred())
 	spawner.enemy_reached_goal.connect(func(e) -> void:
+		_trace_leak(e)
 		d.leaks += 1
 		if is_instance_valid(e):
 			d.leaked_health += e.health  # Health that got through (dispelled share = 1 - leaked / spawned)
@@ -1417,6 +1548,8 @@ func _new_window() -> void:
 
 func _on_damage(event) -> void:
 	d.damage += event.amount
+	if _trace_t >= 0.0:
+		_trace_dmg += event.amount
 	var tag := String(event.tag) if event.tag != &"" else String(event.kind)
 	damage_by_tag[tag] = float(damage_by_tag.get(tag, 0.0)) + event.amount
 	_note_form_damage(event)
@@ -1548,7 +1681,7 @@ func _finish() -> void:
 			hoard += float(run.rest_banked[i]) / maxf(run.rest_bonus[i], 1.0)
 			count += 1
 	var summary := {"profile": profile, "style": style, "seed": map_seed, "survived": survived, "won": won,
-		"first_leak": run.first_leak, "lost_25": run.lost_by[25], "lost_50": run.lost_by[50], "lost_75": run.lost_by[75],
+		"started": director.drifts_started, "first_leak": run.first_leak, "lost_25": run.lost_by[25], "lost_50": run.lost_by[50], "lost_75": run.lost_by[75],
 		"bank_act2": run.banked_at_act.get(2, -1), "bank_act3": run.banked_at_act.get(3, -1), "bank_act4": run.banked_at_act.get(4, -1),
 		"hoard_rests": snappedf(hoard / maxf(count, 1), 0.01), "top_warden": top, "max_top_share": run.max_top_share,
 		"max_top_warden": run.max_top_warden, "max_asleep": snappedf(run.max_asleep, 0.001), "cards": dreams.stacks.size(),
@@ -1603,6 +1736,7 @@ func _finish() -> void:
 	summary.start_build = start_counts.replace(",", ";")
 	summary.from_save = from_save.get_file()
 	summary.resumed_at = resumed_at
+	summary.omen_forced = omen_forced_status
 	summary.extra_spend = extra_spend
 	summary.extra_dew = extra_dew  # X (with --extra-dew=grow / final: the cheapest such growth on the board)
 	summary.extra_x = extra_x_mode

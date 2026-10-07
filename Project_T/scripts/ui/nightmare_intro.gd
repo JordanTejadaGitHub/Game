@@ -92,7 +92,7 @@ func _ready() -> void:
 	cross.name = "Close"
 	cross.text = "✕"
 	cross.focus_mode = Control.FOCUS_NONE
-	cross.tooltip_text = "Close (Esc)"
+	cross.tooltip_text = "Close" + UiStyle.key_suffix("Esc")
 	cross.pressed.connect(close)
 	UiStyle.quiet(cross)
 	cross.custom_minimum_size = Vector2(44, 44)  # Tap-sized
