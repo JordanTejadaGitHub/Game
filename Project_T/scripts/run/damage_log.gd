@@ -50,6 +50,7 @@ class Event:
 	var amount := 0.0  # Soothe dealt, after every multiplier and the blight coat
 	var combos: Array[StringName] = []
 	var combo_amount := 0.0  # Part of `amount` that combos added
+	var overkill := 0.0  # Part of `amount` past the health it had left (Enemy fills it; RunHistory's damage column leaves it out)
 	# Breakdown for Inspect: base × family/shape × taken (Marked, White Stag), crit already in base.
 	var base := 0.0
 	var family_multiplier := 1.0

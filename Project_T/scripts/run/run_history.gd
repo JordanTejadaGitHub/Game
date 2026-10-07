@@ -244,6 +244,7 @@ func _flush_rows() -> void:
 	for number in numbers:
 		var row: Dictionary = _open[number]
 		row["damage"] = roundi(float(row.get("damage", 0.0)))
+		row["overkill"] = roundi(float(row.get("overkill", 0.0)))
 		for key in ["combo_damage", "reaction_damage", "status_damage"]:
 			row[key] = roundi(float(row.get(key, 0.0)))
 		row["combo_share"] = snappedf(combo_share(row, "damage"), 0.001)
@@ -413,7 +414,10 @@ func _on_damage(event: DamageLog.Event) -> void:
 	_add_parts(run, event.amount, parts)
 	var row := _row_for(event.enemy)
 	if not row.is_empty():
-		row["damage"] = float(row.get("damage", 0.0)) + event.amount
+		# Effective damage only (Balancing, run 24: overkill made damage 2–4× health_spawned); the rest in "overkill".
+		var over := clampf(event.overkill, 0.0, event.amount)
+		row["damage"] = float(row.get("damage", 0.0)) + event.amount - over
+		row["overkill"] = float(row.get("overkill", 0.0)) + over
 		_add_parts(row, 0.0, parts)
 
 # [combo, reaction, status] parts of one event's damage.
