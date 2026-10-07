@@ -2196,6 +2196,97 @@ func _update_watch(delta: float) -> void:
 		watch_charged = true
 		queue_redraw()
 
+# --- Area attacks you can see (story chat: "can't tell if something is an aura attack"; art Tower Assets a15e9b9b) ---
+# Every PULSE release: a ring rolling out to the live range (area_pulse_<style>, drawn for 120 px), a spark on each
+# nightmare it touches (root_snap for root lines, area_hit otherwise) and the range ring flashing faintly. Fx keeps the
+# budget and reduced motion; Monsoon keeps its rain sweep instead.
+const PULSE_STYLES := {"root": "root", "wall": "root", "song": "song", "acorn": "grove", "wind": "wind", "water": "water",
+	"stone": "stone", "spore": "spore"}
+const PULSE_ART_RADIUS := 120.0
+const PULSE_SPARKS_MAX := 3  # Sparks per pulse (the ring shows the area; perf: 50 pulsing Wardens made 500 sparks a second at 10)
+
+func _area_pulse_fx(in_range: Array) -> void:
+	var style: String = PULSE_STYLES.get(tower_data.line, "")
+	var world := Reactions._world(self)
+	if style == "" or world == null or attack_data.rain:
+		return
+	var reach := get_range_pixels()
+	if Fx.reduced() and not Fx.on_screen(global_position, reach):
+		return  # Nobody sees it
+	var ring := Fx.play(StringName("area_pulse_" + style), global_position, world, reach / PULSE_ART_RADIUS)
+	if ring != null:
+		ring.z_index = -1  # On the ground
+	if not Fx.reduced():
+		var flash := RangeFlash.new(reach)
+		world.add_child(flash)
+		flash.global_position = global_position
+	var spark := &"root_snap" if style == "root" else &"area_hit"
+	for i in mini(in_range.size(), PULSE_SPARKS_MAX):
+		var enemy: Node2D = in_range[i]
+		if is_instance_valid(enemy):
+			Fx.play(spark, enemy.global_position, world)
+
+# The range ring, faintly, for a moment (a pulse firing).
+class RangeFlash extends Node2D:
+	const TIME := 0.35
+	var radius := 0.0
+	var _left := TIME
+
+	func _init(reach: float) -> void:
+		radius = reach
+		z_index = -1
+
+	func _process(delta: float) -> void:
+		_left -= delta
+		if _left <= 0.0:
+			queue_free()
+		else:
+			queue_redraw()
+
+	func _draw() -> void:
+		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 64, Color(Palette.HEARTLIGHT, 0.35 * _left / TIME), 1.5)
+
+# The attack's shape for the UI (story chat; Main's attack-type chip): &"single", &"splash", &"area", &"chain", &"cloud",
+# &"trap", &"beam", &"birds", &"seed", &"patrol", &"copy", &"light", &"pull", &"spread", &"aura", &"none" (walls).
+const ATTACK_SHAPE_NAMES := {&"single": "Single target", &"splash": "Splash", &"area": "Area", &"chain": "Chain",
+	&"cloud": "Cloud", &"trap": "Trap", &"beam": "Beam", &"birds": "Birds", &"seed": "Seed", &"patrol": "Patrol",
+	&"copy": "Copies a neighbour", &"light": "Lit path", &"pull": "Pull", &"spread": "Spreads statuses", &"aura": "Aura",
+	&"none": "No attack"}
+
+static func attack_shape(data: TowerData) -> StringName:
+	if data == null or not data.can_attack:
+		return &"none"
+	match data.attack_kind:
+		TowerData.AttackKind.PROJECTILE:
+			return &"splash" if data.splash_radius > 0.0 or data.lob else &"single"
+		TowerData.AttackKind.PULSE, TowerData.AttackKind.SPIN:
+			return &"area"
+		TowerData.AttackKind.CHAIN:
+			return &"chain"
+		TowerData.AttackKind.CLOUD:
+			return &"cloud"
+		TowerData.AttackKind.TRAP:
+			return &"trap"
+		TowerData.AttackKind.BEAM:
+			return &"beam"
+		TowerData.AttackKind.SWOOP, TowerData.AttackKind.SWEEP, TowerData.AttackKind.PECK:
+			return &"birds"
+		TowerData.AttackKind.BOOMERANG:
+			return &"seed"
+		TowerData.AttackKind.PATROL:
+			return &"patrol"
+		TowerData.AttackKind.COPY:
+			return &"copy"
+		TowerData.AttackKind.LIGHT:
+			return &"light"
+		TowerData.AttackKind.PULL:
+			return &"pull"
+		TowerData.AttackKind.SPREAD:
+			return &"spread"
+		TowerData.AttackKind.AURA:
+			return &"aura"
+	return &"single"
+
 func _release_attack() -> void:
 	if attack_data.special != &"" and BranchKit.release(self):
 		return  # The expansion branches' own attacks (BranchKit)
@@ -2211,6 +2302,7 @@ func _release_attack() -> void:
 					Fx.rain_sweep(global_position, get_range_pixels(), world)  # Monsoon's sheet of rain
 			if attack_data.tier >= 4:
 				ascended_event.emit(self, global_position, in_range.size())
+			_area_pulse_fx(in_range)  # The ring out to its range, a spark on each nightmare it touches
 			for enemy in in_range:
 				if attack_data.hit_effect_texture != null:  # Tidecaller's wave, World Root's grasp
 					play_sheet(attack_data.hit_effect_texture, attack_data.hit_effect_frames,
