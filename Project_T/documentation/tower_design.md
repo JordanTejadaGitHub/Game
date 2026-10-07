@@ -385,7 +385,7 @@ Checked on role, owned status, attack shapes and their 5 branches.
 |---|---|---|---|---|---|
 | **Jarlink → Lightning Fence** | **maze geometry** | two Jarlinks within 4 cells join with an arc, a **damaging line**: nightmares touching it take damage per second and **1 Charged per second**. Lay it **along** a corridor and it works like a wall of lightning (revised 2026-10-02: a damage-per-crossing fence measured ~0.04× Driftspore, since a nightmare crosses an arc only once or twice). **Flyers** crossing it (the arc hangs in the air) take **3 Charged** at once, so it still answers them across their straight line | the fence also hits Phantoms gliding through it | Phantoms, flyers, long straight corridors | a jar on a tall pole with a wire coil |
 | **Prism Jar → Rainbow Prism** | **crit support** (the only crit aura) | aura: Wardens within 1.5 cells +10% crit chance | its own hits split into 3 coloured beams | tanks (via allies' crits) | a faceted crystal jar |
-| **Sparkler → Starburst** | **anti-swarm** burst | a firework bursting into 6 sparks over a crowd, each adding Charged | every 4th burst is a double | Whisper Swarm, Sobs, Creeps | a jar with a fizzing stick of sparks |
+| **Sparkler → Starburst** | **anti-swarm** burst | a firework bursting into 6 sparks over a crowd: each spark deals a quarter of its damage, spreading to different nightmares first, **at most 3 per nightmare**, and Charged once per nightmare per burst (2026-10-07, Balancing: full-damage sparks made Starburst 61% of a run's damage). A lone target takes 0.75×, a crowd 1.5× | every 4th burst is a double | Whisper Swarm, Sobs, Creeps | a jar with a fizzing stick of sparks |
 
 **Bellflower** (Drowsy)
 
