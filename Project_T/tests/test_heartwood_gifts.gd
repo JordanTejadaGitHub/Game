@@ -160,11 +160,14 @@ func _run() -> void:
 	ridge.queue_free()
 	# A log's line with half-offset hovers (the user's Fallen Giant crash: the old loop never met `to` and ran out of
 	# memory): only whole pieces in one row or column, always bounded.
+	# The line follows the pointer's main direction in whole pieces (user: "doesn't plant half cells and the image
+	# disappears"), bounded; a click past the limit plants up to it (heartwood_gifts.md 52d11575).
 	var log_placer := GiftScreen.GiftPlacer.new(director, &"fallen_giant", true)
-	_check(log_placer._line(Vector2(3, 4), Vector2(5.5, 4)).is_empty() and log_placer._line(Vector2(3, 4), Vector2(5, 4.5)).is_empty()
-		and log_placer._line(Vector2(3.5, 4), Vector2(6.5, 4)).size() == 4 and log_placer._line(Vector2(3, 4), Vector2(3, 1)).size() == 4
-		and log_placer._line(Vector2(0, 0), Vector2(1000, 0)).is_empty(),
-		"a log line: whole pieces only, half-offset ends allowed when aligned, never unbounded")
+	_check(log_placer._line(Vector2(3, 4), Vector2(5.5, 4)).size() == 4 and log_placer._line(Vector2(3, 4), Vector2(5, 4.5)).size() == 3
+		and log_placer._line(Vector2(3, 4), Vector2(5, 4.5)).all(func(c: Vector2) -> bool: return c.y == 4.0)
+		and log_placer._line(Vector2(3, 4), Vector2(3, 1)).size() == 4 and log_placer._line(Vector2(0, 0), Vector2(1000, 0)).size() == 65
+		and log_placer._line_fit(Vector2(3, 4), Vector2(9, 4)).size() == int(log_placer.size[1]),
+		"a log line: the main direction in whole pieces, half-offset pointers too, bounded; a far click fits the limit")
 	log_placer.free()
 	var mire := GiftScreen.GiftPlacer.new(director, &"mire", false)
 	main.add_child(mire)
@@ -180,6 +183,41 @@ func _run() -> void:
 	gifts.load_save(saved)
 	_check(gifts.taken.size() == 3 and applied.size() == 2 and applied.all(func(a: Array) -> bool: return a[1].restoring) and run_state.max_leaves == max_now,
 		"a resumed run rebuilds the gifts (restoring) and the max leaves stay")
+	# Three ways out of placing (heartwood_gifts.md 42f5da78): Undo takes back the last pick, Clear empties them, Back
+	# returns to the cards with nothing spent; "Plant it" commits. Plus the length tag (52d11575).
+	gifts.current_offer = [&"fallen_giant", &"mire", &"spring"]
+	gifts.waiting = true
+	screen.open()
+	screen.pick(&"fallen_giant")
+	var lp: GiftScreen.GiftPlacer = screen.placer
+	var log_start := Vector2(-1, -1)
+	for y in range(2, 16):
+		for x in range(2, 18):
+			if log_start == Vector2(-1, -1) and lp._cell_ok(Vector2(x, y)) and lp._line(Vector2(x, y), Vector2(x + 3, y)).all(lp._cell_ok):
+				log_start = Vector2(x, y)
+	lp.click(log_start)
+	_check(lp.cells == [log_start], "the log's start is picked")
+	lp.hover = log_start + Vector2(9, 0)
+	_check(lp.length_tag().begins_with("%d / %d · max" % [int(lp.size[1]), int(lp.size[1])]), "past the limit the tag says max (%s)" % lp.length_tag())
+	lp.hover = log_start
+	_check(lp.length_tag().contains("1 more"), "too short: the tag counts what's missing (%s)" % lp.length_tag())
+	lp.undo()
+	_check(lp.cells.is_empty() and screen.placing == &"fallen_giant", "Undo takes back the start; still placing")
+	lp.click(log_start)
+	lp.clear()
+	_check(lp.cells.is_empty() and screen.placing == &"fallen_giant", "Clear empties the picks; still placing")
+	var taken_before := gifts.taken.size()
+	screen.cancel_placing()
+	_check(screen.placing == &"" and screen._choose.visible and gifts.waiting and gifts.taken.size() == taken_before,
+		"Back returns to the cards with nothing spent")
+	screen.pick(&"fallen_giant")
+	screen.placer.click(log_start)
+	screen.placer.click(log_start + Vector2(9, 0))  # Past the limit: plants up to it
+	_check(screen.placer.is_complete() and screen.placer.placement().pieces.size() == int(screen.placer.size[1]),
+		"a click past the limit plants a full-length log")
+	screen.confirm_placing()
+	_check(gifts.taken.size() == taken_before + 1 and not screen.visible and not gifts.waiting, "Plant it commits; the choice is gone")
+
 
 	# Payoffs (heartwood_gifts.md b3e464e6): Shifting Mist's Dew pots +10% for the act it opens; Shift the Stones pays
 	# 30 Dew × act per stone moved (Dew only since 8f46c6ac).

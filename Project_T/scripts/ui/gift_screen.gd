@@ -82,6 +82,8 @@ var _dim := ColorRect.new()
 var _place_bar := PanelContainer.new()
 var _place_label := Label.new()
 var _plant := Button.new()
+var _undo := Button.new()  # Touch only (PC: right-click)
+var _clear := Button.new()
 
 func _init(director: DriftDirector = null, gift_node: HeartwoodGifts = null) -> void:
 	drift_director = director
@@ -152,13 +154,27 @@ func _ready() -> void:
 	_place_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_place_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	bar.add_child(_place_label)
+	# Three ways out of placing (heartwood_gifts.md 42f5da78): Undo (right-click; touch: this button) and Clear (quiet
+	# utilities: still placing), Back (secondary: the three cards again, nothing spent), Plant it (the primary: commits).
+	_undo.name = "Undo"
+	_undo.text = "Undo"
+	_undo.pressed.connect(func() -> void: if placer != null: placer.undo())
+	_clear.name = "ClearPicks"
+	_clear.text = "Clear"
+	_clear.pressed.connect(func() -> void: if placer != null: placer.clear())
+	for utility in [_undo, _clear]:
+		utility.focus_mode = Control.FOCUS_NONE
+		utility.custom_minimum_size = Vector2(80, 44)
+		UiStyle.quiet(utility)
+		bar.add_child(utility)
 	var back := Button.new()
+	back.name = "Back"
 	back.text = "Back"
 	back.focus_mode = Control.FOCUS_NONE
 	back.custom_minimum_size = Vector2(100, 44)
 	back.pressed.connect(cancel_placing)
 	bar.add_child(back)
-	_plant.text = "Plant"
+	_plant.text = "Plant it"
 	_plant.focus_mode = Control.FOCUS_NONE
 	_plant.custom_minimum_size = Vector2(120, 44)
 	UiStyle.primary(_plant)
@@ -174,7 +190,9 @@ func _process(_delta: float) -> void:
 		open()  # Its turn, and nothing else on screen (one paused screen at a time)
 	if placing != &"" and placer != null:
 		_plant.disabled = not placer.is_complete()
-		_place_label.text = "%s: %s" % [HeartwoodGifts.POOL[placing].name, placer.status()]
+		_undo.visible = InputMode.touch()
+		_place_label.text = "%s: %s\n%s" % [HeartwoodGifts.POOL[placing].name, placer.status(),
+			InputMode.text("Right-click undoes the last pick, Esc goes back to the gifts.", "Undo takes back the last pick, Back returns to the gifts.")]
 
 func open() -> void:
 	for child in _cards.get_children():
@@ -350,7 +368,8 @@ func pick(id: StringName) -> void:
 	placer = GiftPlacer.new(drift_director, id, BLOCKING.has(id))
 	placer.on_placed = piece_placed.emit  # Each piece put down: SoundHooks plays the Warden plant sound
 	drift_director.owner.add_child(placer)
-	_plant.text = "Clear them" if placer.kind == &"obstacles" else "Plant"
+	_plant.text = "Clear them" if placer.kind == &"obstacles" else "Plant it"
+	_clear.text = "Unpick all" if placer.kind == &"obstacles" else "Clear"  # Glade's commit is "Clear them"
 
 func cancel_placing() -> void:
 	var was := placing
@@ -387,8 +406,14 @@ func _close() -> void:
 	visible = false
 
 func _unhandled_input(event: InputEvent) -> void:
-	if placing != &"" and (event.is_action_pressed("ui_cancel") or event.is_action_pressed("cancel_build")):
-		get_viewport().set_input_as_handled()
+	if placing == &"":
+		return
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		get_viewport().set_input_as_handled()  # Right-click: undo the last pick (heartwood_gifts.md 42f5da78)
+		if placer != null:
+			placer.undo()
+	elif event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.is_action_pressed("cancel_build")):
+		get_viewport().set_input_as_handled()  # Esc: back to the three gifts, nothing spent
 		cancel_placing()
 
 
@@ -440,6 +465,33 @@ class GiftPlacer extends Node2D:
 			click(hover)
 			get_viewport().set_input_as_handled()
 
+	# Takes back the last pick (heartwood_gifts.md 42f5da78 "Three ways out of placing"): a line's start (or the whole
+	# line), a chain's last piece, the last cell or stone; a held stone goes back first. Nothing picked: nothing.
+	func undo() -> void:
+		match kind:
+			&"line", &"rim":
+				cells.clear()
+			&"warden", &"kinship":
+				tower = null
+			&"move":
+				if froms.size() > cells.size():
+					froms.pop_back()
+				elif not cells.is_empty():
+					cells.pop_back()
+			_:
+				if not cells.is_empty():
+					cells.pop_back()
+		_refresh_route()
+		queue_redraw()
+
+	# Empties every pick; still placing the same gift.
+	func clear() -> void:
+		cells.clear()
+		froms.clear()
+		tower = null
+		_refresh_route()
+		queue_redraw()
+
 	# One click on `cell` (this kind's units, see _hover_at), by kind (tests call it too). A piece put down plays the
 	# Warden build sound; a click that couldn't place plays the refusal.
 	func click(cell: Vector2) -> void:
@@ -465,8 +517,8 @@ class GiftPlacer extends Node2D:
 					cells.append(cell)
 			&"line":
 				if cells.size() >= 1 and cells.size() < 2:
-					var line := _line(cells[0], cell)
-					if line.size() >= size[0] and line.size() <= size[1] and line.all(_cell_ok) and _route_ok(line):
+					var line := _line_fit(cells[0], cell)  # Past the limit: up to it (heartwood_gifts.md 52d11575)
+					if line.size() >= size[0] and line.all(_cell_ok) and _route_ok(line):
 						cells.assign(line)
 						cells.append(Vector2(-99, -99))  # Marker: done (removed in placement())
 				else:
@@ -708,18 +760,21 @@ class GiftPlacer extends Node2D:
 	const MAX_LINE := 64
 
 	func _line(from: Vector2, to: Vector2) -> Array[Vector2]:
+		# Along the pointer's main direction, whole pieces from `from` (user: the log "doesn't plant half cells and the
+		# image disappears" when the pointer sat half a piece off the start's row or pitch).
 		var out: Array[Vector2] = []
 		var d := to - from
-		if not is_zero_approx(d.x) and not is_zero_approx(d.y):
-			return out
-		var length := absf(d.x) + absf(d.y)
-		var steps := roundi(length)
-		if not is_equal_approx(length, float(steps)) or steps > MAX_LINE:
-			return out
-		var step := d.sign()
+		var along_x := absf(d.x) >= absf(d.y)
+		var steps := mini(roundi(absf(d.x if along_x else d.y)), MAX_LINE)
+		var step := Vector2(signf(d.x), 0.0) if along_x else Vector2(0.0, signf(d.y))
 		for i in steps + 1:
 			out.append(from + step * i)
 		return out
+
+	# The line the next click would plant: at most size[1] pieces (a click past the limit plants up to it).
+	func _line_fit(from: Vector2, to: Vector2) -> Array[Vector2]:
+		var full := _line(from, to)
+		return full.slice(0, int(size[1])) if full.size() > int(size[1]) else full
 
 	func _area(origin: Vector2) -> Array[Vector2]:
 		var out: Array[Vector2] = []
@@ -780,6 +835,56 @@ class GiftPlacer extends Node2D:
 			for c in hover_cells:
 				draw_rect(Rect2(map.MAP_GRID.calculate_map_position(c) - half, half * 2.0),
 					Color(Palette.SPRIG if ok else Palette.EMBER, 0.25), false, 2.0)
+			_draw_length(half)
+
+	# Length feedback (heartwood_gifts.md 52d11575, user: "no feedback on the log when it's past the limit"): a line's
+	# pieces past the limit are a red "too far" stretch, a blocked piece is red on its own cell, and a tag at the pointer
+	# counts against the limit ("4 / 4 · max", "1 / 2 · 1 more") with the reason a piece is refused.
+	const REFUSALS := {&"occupied": "blocked", &"closes": "would close the route", &"off_route": "off the route"}
+
+	func length_tag() -> String:
+		var count := 0
+		var reason := ""
+		var past := false
+		match kind:
+			&"line":
+				if cells.size() != 1:
+					return ""
+				var full := _line(cells[0], hover)
+				var fit := _line_fit(cells[0], hover)
+				count = fit.size()
+				past = full.size() > fit.size()
+				for c in fit:
+					if not _cell_ok(c):
+						reason = REFUSALS.get(map.gifts.refusal(), "blocked") if map.get("gifts") != null else "blocked"
+						break
+			&"chain":
+				count = cells.size()
+			_:
+				return ""
+		var low := int(size[0])
+		var high := int(size[1])
+		var text := "%d / %d" % [count, high]
+		if past or count >= high:
+			text += " · max"
+		elif count < low:
+			text += " · %d more" % (low - count)
+		return text + (" · " + reason if reason != "" else "")
+
+	func _draw_length(half: Vector2) -> void:
+		var tag := length_tag()
+		if tag == "":
+			return
+		if kind == &"line" and cells.size() == 1:
+			var full := _line(cells[0], hover)
+			var fit := _line_fit(cells[0], hover)
+			for c in full.slice(fit.size()):  # Too far: past the limit
+				draw_rect(Rect2(map.MAP_GRID.calculate_map_position(c) - half, half * 2.0).grow(-3), Color(Palette.EMBER, 0.3))
+			for c in fit:  # A blocked piece, red on its own cell
+				if not _cell_ok(c):
+					draw_rect(Rect2(map.MAP_GRID.calculate_map_position(c) - half, half * 2.0).grow(-3), Color(Palette.EMBER, 0.5), false, 2.5)
+		var at: Vector2 = map.MAP_GRID.calculate_map_position(hover)
+		WorldLabel.draw_tag(self, at.x, at.y - half.y * 2.0 - 6.0, tag, Palette.EMBER if tag.contains("blocked") or tag.contains("route") else UiStyle.GOLD)
 
 	# --- The ghost (user: "you don't see the moonwell you're placing") ---------------------------------------
 	# The real art MapGifts will put down (its own sheets and tiles, so the preview always matches), see-through on the
@@ -793,7 +898,7 @@ class GiftPlacer extends Node2D:
 		match kind:
 			&"line":
 				if cells.size() == 1:
-					var line := _line(cells[0], hover)
+					var line := _line_fit(cells[0], hover)
 					if line.size() >= 1:
 						out.assign(line)
 			&"area":
