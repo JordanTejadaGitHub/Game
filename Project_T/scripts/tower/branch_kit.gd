@@ -590,7 +590,7 @@ static func _prism_beams(tower: Tower) -> void:
 # projectile (firework_shell / _big, TowerData.projectile_texture); where it lands, Tower.projectile_landed calls
 # this: the firework_pop (twice on Starburst's double, the second a beat later and offset), then the sparks.
 const SPARKS_PER_NIGHTMARE := 3  # A burst lands at most this many sparks on one nightmare
-const SPARK_SHARE := 0.25  # Each spark: the Warden's damage ÷ 4, so a burst is 1.5× in all (Balancing: 6 full-damage sparks made Starburst 61% of a run's damage)
+const SPARK_SHARE := 0.25  # Fallback per-spark share of the Warden's damage; each form sets special_params "spark_share" (Balancing: 6 full-damage sparks made Starburst 61% of a run's damage)
 const FIREWORK_POP := &"firework_pop"
 const FIREWORK_POP_RADIUS := 96.0  # The pop's streaks reach this at scale 1 (1.5 cells)
 const FIREWORK_SPARK := "res://assets/towers/projectiles/firework_spark.png"  # 16x16 x4, pointing right
@@ -611,7 +611,7 @@ static func firework_landed(tower: Tower, at: Vector2) -> void:
 			later.timeout.connect(func() -> void:
 				if is_instance_valid(w):
 					Fx.play(FIREWORK_POP, at + Vector2(14, -10), w, scale * 0.85))
-	_spark_burst_at(tower, at, sparks, float(tower.attack_data.damage) * SPARK_SHARE, true)
+	_spark_burst_at(tower, at, sparks, float(tower.attack_data.damage) * p(tower, "spark_share", SPARK_SHARE), true)  # Per form (Balancing: Sparkler 0.4, Starburst 0.5)
 
 # A spark flying from the pop to the nightmare it hit (cosmetic: the hit lands at once, as before).
 class FireworkSpark extends Node2D:
