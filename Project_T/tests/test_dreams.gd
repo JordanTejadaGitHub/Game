@@ -1353,6 +1353,21 @@ func _test_offer_shape(main: Node) -> void:
 	_check(boss_offer.all(func(c: UpgradeData) -> bool: return c.is_rare_or_better()), "a boss rest: every slot Rare+ (%s)" % [boss_offer.map(func(c: UpgradeData) -> String: return c.id)])
 	_check(legend_open == 0 or boss_offer.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY),
 		"…and a Legendary when one can be offered (%d open, act 2 at the rest after drift 25)" % legend_open)
+	# At most 1 Legendary per offer outside the explicit sources (story chat 2026-10-07: a 4-card boss Dream showed 3):
+	# the boss rest's slot is the one; its other slots are Rare (Legendaries excluded). With and without Wider Choice.
+	for cards in [3, 4]:
+		dreams.cards_per_offer = cards
+		var over := 0
+		var with_legend := 0
+		for i in 200:
+			dreams._passed_count.clear()
+			var o := dreams.make_offer(25)
+			var n := o.filter(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY).size()
+			over += 1 if n > 1 else 0
+			with_legend += 1 if n == 1 else 0
+		print("  boss rest, %d cards: %d of 200 offers held exactly 1 Legendary, %d more than 1" % [cards, with_legend, over])
+		_check(over == 0, "%d-card boss offers never hold more than 1 Legendary (%d of 200 did)" % [cards, over])
+	dreams.cards_per_offer = 3
 	_reset_dreams(main)
 func _reset_dreams(main: Node) -> void:
 	var dreams: DreamState = main.get_node("%DreamState")

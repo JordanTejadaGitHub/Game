@@ -2526,10 +2526,15 @@ func is_family_card(card: UpgradeData) -> bool:
 
 func _draw_card(act: int, exclude: Array[UpgradeData], want_rare: bool, stray: bool = false) -> UpgradeData:
 	var has_bittersweet := exclude.any(func(c: UpgradeData) -> bool: return c.is_bittersweet())
+	# At most 1 Legendary per offer from the draw (story chat 2026-10-07: a boss Dream showed 3). The explicit sources
+	# (Waking Dreams' 3, Lean Season's, the boss rest's slot) add theirs before the draw; the draw never adds another.
+	var has_legendary := exclude.any(func(c: UpgradeData) -> bool: return c.rarity == UpgradeData.Rarity.LEGENDARY)
 	var eligible: Array[UpgradeData] = []
 	for card in pool:
 		if exclude.has(card) or (has_bittersweet and card.is_bittersweet()):
 			continue  # At most one bittersweet card per offer
+		if has_legendary and card.rarity == UpgradeData.Rarity.LEGENDARY:
+			continue
 		if card.rarity == UpgradeData.Rarity.COMMON and has_rule(&"lucid_dreaming"):
 			continue  # Lucid Dreaming: no Commons
 		if want_rare and is_half_dreamed(card):
