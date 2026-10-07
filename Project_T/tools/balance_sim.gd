@@ -179,7 +179,7 @@ var policy
 var reaction_tags := {}
 
 var game_time := 0.0
-var trace_drift := 0  # --trace-drift=N: TRACE lines from drift N's start until N + 2 starts (board, nightmares alive per second, each leak)
+var trace_drift := 0  # --trace-drift=N: TRACE lines from drift N's start to the run's end (board, later drift starts, nightmares alive per second, each leak)
 var _trace_t := -1.0
 var _trace_next := 0.0
 var _trace_spawned := 0
@@ -449,6 +449,9 @@ func _run() -> void:
 				_warm_finals_spend(director.drifts_started)  # The same rule mid-drift: save for an open final
 			else:
 				_spend()
+	if _trace_t >= 0.0:
+		print("TRACE end t=%.1f drifts_started %d drifts_cleared %d leaves %d alive %d" % [game_time - _trace_t, director.drifts_started,
+			director.drifts_cleared, run_state.leaves, spawner.get_enemies().size()])
 	Engine.time_scale = 1.0
 	_finish()
 	if profile != "fresh" and ResourceLoader.exists("res://scripts/meta/grove_presets.gd"):
@@ -1377,7 +1380,8 @@ func _family_count(base: TowerData) -> int:
 var dl_earned := 0  # Dreamlight gained this run (dl_earned column; held = the dreamlight column)
 var _dl_last := -1
 
-# --trace-drift: drift N's start prints the board; N + 2 ends the trace (N's stragglers still count while N + 1 flows).
+# --trace-drift: drift N's start prints the board, later drift starts print their time; the trace runs to the run's end
+# (a flowing run keeps drifts_cleared at N - 1 while the field never empties, so "survived" alone can't place the death).
 func _trace_drift_started(n: int) -> void:
 	if n == trace_drift:
 		_trace_t = game_time
@@ -1391,10 +1395,8 @@ func _trace_drift_started(n: int) -> void:
 			ranks += t.rank
 		print("TRACE start drift %d leaves %d dew %d attackers %d tiers %s avg_rank %.2f route %d" % [n, run_state.leaves, run_state.dew,
 			_attackers().size(), str(tiers), ranks / maxf(_attackers().size(), 1), _route_cells(map.get_path_from(map.startPath))])
-	elif n == trace_drift + 1 and _trace_t >= 0.0:
+	elif n > trace_drift and _trace_t >= 0.0:
 		print("TRACE drift %d starts t=%.1f" % [n, game_time - _trace_t])
-	elif n == trace_drift + 2:
-		_trace_t = -1.0
 
 func _trace_tick() -> void:
 	if _trace_t < 0.0 or game_time < _trace_next:
