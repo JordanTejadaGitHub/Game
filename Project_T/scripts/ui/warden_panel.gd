@@ -347,7 +347,7 @@ func _refresh() -> void:
 				_nurture_gap()  # Apart from the grow rows (user: "a little separation")
 				var nurture := _add_button("")
 				_as_choice(nurture)  # The same weight as the grow rows (no primary)
-				nurture.set_meta(&"key", " (R)")
+				nurture.set_meta(&"key", UiStyle.key_suffix("R"))
 				nurture.tooltip_text = ("Choose what rank %s adds. Kept when it grows; can't be changed." % Tower.rank_name(_tower.rank + 1)
 					if _tower.needs_focus() else "Rank %s: %s." % [Tower.rank_name(_tower.rank + 1), _tower.focus_text(_tower.default_choice())]) + _growth_note()
 				var price := 0 if _free_rank() else cost
@@ -512,7 +512,7 @@ func _refresh_group() -> void:
 		_nurture_gap()
 		var open := _add_button("")
 		_as_choice(open)
-		open.set_meta(&"key", " (R)")
+		open.set_meta(&"key", UiStyle.key_suffix("R"))
 		var cheapest_rank: int = 0 if _free_rank() else nurturable.map(func(t: Tower) -> int: return t.get_nurture_price()).min()
 		open.tooltip_text = "Choose the rank each one gains."  # Before _priced: it keeps the tip
 		_priced(open, "Nurture %d" % nurturable.size(), _price(cheapest_rank), cheapest_rank, &"dew", false)  # A choice like the grow rows; short: R refuses
@@ -1599,7 +1599,7 @@ func _seed_button() -> void:
 		return
 	var button := _add_button("Plant Sprout (%d)" % seeds)
 	button.name = "PlantSprout"
-	button.tooltip_text = "A free Sprout in an open cell beside it. Pick the cell on the map (Esc cancels)."
+	button.tooltip_text = "A free Sprout in an open cell beside it. Pick the cell on the map" + InputMode.text(" (Esc cancels).", ".")
 	if not Tower.resting:
 		button.text = "Plant Sprout (%d) · at the next rest" % seeds
 		button.disabled = true
