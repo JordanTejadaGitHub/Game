@@ -171,6 +171,13 @@ func _run() -> void:
 			if template == previous:
 				bad.repeat += 1
 			previous = template
+	var over_cap: Array = []  # Hand-made drifts too (random_drifts off, sims, the budget reference): at most drift_max
+	for n in hand_made.size():
+		for group in hand_made[n].groups:
+			for entry in group.entries:
+				if entry.enemy != null and entry.enemy.drift_max > 0 and entry.count > entry.enemy.drift_max:
+					over_cap.append(n + 1)
+	_check(over_cap.is_empty(), "no hand-made drift brings more of a kind than its drift_max (%s)" % [over_cap])
 	var phantom_entry := DriftEntry.new()
 	phantom_entry.enemy = load("res://resource/enemy/dandelion_seed.tres")
 	phantom_entry.count = 4

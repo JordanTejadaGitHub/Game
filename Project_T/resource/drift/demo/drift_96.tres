@@ -26,7 +26,7 @@
 [sub_resource type="Resource" id="Resource_tptsf"]
 script = ExtResource("2_4g0kg")
 enemy = ExtResource("3_vplnp")
-count = 30
+count = 31
 
 [sub_resource type="Resource" id="Resource_q0teu"]
 script = ExtResource("2_4g0kg")
@@ -41,7 +41,7 @@ count = 6
 [sub_resource type="Resource" id="Resource_ppqeh"]
 script = ExtResource("2_4g0kg")
 enemy = ExtResource("6_tpve6")
-count = 6
+count = 4
 
 [sub_resource type="Resource" id="Resource_eulec"]
 script = ExtResource("2_4g0kg")
