@@ -865,6 +865,12 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Free ranks don't charge on growth (Tower Code 221af5d7 / 0d59136d, story chat)
+
+A rank the player got free (Sunlit Rest, First Care, Ancient Stump, Seedbearer, Mother Log…) no longer charges its rank
+difference when the Warden grows; Sunlit Rest / Ancient Stump bank the rank for Nurture instead of applying it. A small buff
+to those cards and perks (one rank's difference, ~48–135 × tier Dew per Warden); accepted, no number change.
+
 ## Helper Commons 270–285 (dream_design.md c15d05ac / b6c1c199)
 
 Common budget: all Wardens +15%, conditional +30%. The proposed numbers were mostly under it (a helper must still be felt).
