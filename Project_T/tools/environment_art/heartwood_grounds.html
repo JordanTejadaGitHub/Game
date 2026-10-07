@@ -2256,13 +2256,13 @@ function laneBridge(o) {
 // end disappears (it replaces the islet), with pale cold eyes that open now and then. Clouds stepped Shade → Night → Dread (never Void: a void-dark
 // core read as a hole into the sky), drifting a little each frame, with faint Wraithlight eyes that blink.
 function nightmareFog(f) {
-  const S = 192, L = new Img(S, S), s = SEED + 5200, c = S / 2, ph = f * Math.PI / 2;
-  const puffs = [[0, 0, 58], [34, -30, 36], [38, 32, 34], [-30, -40, 38], [-28, 44, 40], [56, 2, 26], [-52, 4, 32]];
+  const S = 192, L = new Img(S, S), s = SEED + 5200, c = S / 2, ph = f * Math.PI / 2, cx = c + 4, cy = c - 5;  // cx, cy: the noise leans the mass left and down; this puts it back on the frame's centre
+  const puffs = [[0, 0, 58], [34, -32, 36], [36, 32, 35], [-30, -38, 38], [-30, 38, 38], [56, 0, 26], [-54, 0, 30]];  // balanced round the centre: the bridge enters its middle from any side
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
     let v = -1;
     puffs.forEach(([px, py, r], i) => {
       const dx = px + Math.cos(ph + i) * 2, dy = py + Math.sin(ph + i * 1.7) * 2;
-      v = Math.max(v, 1 - Math.hypot(x - c - dx, (y - c - dy) * 1.1) / r);
+      v = Math.max(v, 1 - Math.hypot(x - cx - dx, (y - cy - dy) * 1.1) / r);
     });
     v += (pnoise(x, y, 22, s) - .5) * .5 + (pnoise(x + Math.cos(ph) * 3, y + Math.sin(ph) * 3, 9, s + 1) - .5) * .22;
     // Wisps (Theme Discussion: not a flat lobed blob): long streaks drifting off the edge, only out where it thins.
