@@ -27,6 +27,11 @@ var walls_built := 0
 var wall_dew := 0
 var keep_away: Array = []  # Cells a new pair must stay over 4 cells from (other pairs' jars), so each jar links to its own partner
 var director_overrides := {}  # --director=export=value (repeatable): DriftDirector exports, e.g. second_elite_from=1 (two elites a drift)
+# --dummies=N (Balancing 2026-10-08, single target vs a crowd): no drifts; N Target Dummies of --dummy-kind (bark_beetle) walk the
+# route in a pack (0.4 s apart) and loop it for --seconds (120) of game time, at drift --drift's health ×100 so none nears the floor.
+var dummies := 0
+var dummy_kind := "bark_beetle"
+var dummy_seconds := 120.0
 
 var main: Node
 var form_id := "dreamshroom"
@@ -70,6 +75,9 @@ func _run() -> void:
 			"--near-goal": near_goal = true
 			"--focus": cand_focus = Tower.FOCUS_NAMES.find_key(value.capitalize()) if Tower.FOCUS_NAMES.find_key(value.capitalize()) != null else -2
 			"--director": director_overrides[arg.get_slice("=", 1)] = arg.get_slice("=", 2)
+			"--dummies": dummies = int(value)
+			"--dummy-kind": dummy_kind = value
+			"--seconds": dummy_seconds = float(value)
 	ProjectSettings.set_setting("game/demo", false)  # The full game (as the user plays it)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("%MapGenerator").map_seed = map_seed
@@ -148,6 +156,11 @@ func _run() -> void:
 	director.family_pick_requested.connect(func(_kind) -> void: director.family_picked.call_deferred())  # No new family: the probe's board is fixed
 	director.drifts_started = first - 1
 	director.drifts_cleared = first - 1
+	if dummies > 0:
+		await _run_dummies(director, spawner)
+		_report(director)
+		quit(0)
+		return
 	Engine.time_scale = SPEED
 	var frames := 0
 	var last := first + count - 1
@@ -184,6 +197,25 @@ func _run() -> void:
 	Engine.time_scale = 1.0
 	_report(director)
 	quit(0)
+
+func _run_dummies(director: DriftDirector, spawner) -> void:
+	var data: EnemyData = load("res://resource/enemy/%s.tres" % dummy_kind)
+	var scale := director.get_health_scale(data, first) * 100.0
+	Engine.time_scale = SPEED
+	var spawned := 0
+	var next_spawn := 0.0
+	while game_time < dummy_seconds:
+		paused = false
+		if spawned < dummies and game_time >= next_spawn:
+			var e: Node2D = spawner.spawn_enemy(data, scale)
+			if e != null:
+				e.unkillable = true
+				e.loops_route = true
+			spawned += 1
+			next_spawn = game_time + 0.4
+		await process_frame
+		game_time += SPEED / 60.0
+	Engine.time_scale = 1.0
 
 # Builds the base form on the best open cell next to the path, grows it to `id` and ranks it to `rank`,
 # all paid with Dew. Returns the Warden, or null.
@@ -336,7 +368,7 @@ func _report(director: DriftDirector) -> void:
 		damage += by_tower.get(tower.get_instance_id(), 0.0)
 		invested += tower.invested_dew
 	var t := maxf(damage, 1.0)
-	var row := {"form": form_id, "seed": map_seed, "drift": first, "count": count, "cleared": director.drifts_cleared - first + 1,
+	var row := {"form": form_id, "seed": map_seed, "drift": first, "count": count, "cleared": director.drifts_cleared - first + 1, "dummies": dummies, "dummy_kind": dummy_kind if dummies > 0 else "", "dps_per_warden": snappedf(damage / COPIES / dummy_seconds, 0.1) if dummies > 0 else -1.0,
 		"per_warden": roundi(damage / COPIES), "dew_per_warden": invested / COPIES, "per_100_dew": snappedf(100.0 * damage / maxf(invested, 1), 0.1),
 		"share": snappedf(damage / maxf(total, 1.0), 0.001), "rank": candidates[0].rank,
 		"hit": snappedf(split.hit / t, 0.01), "cloud": snappedf(split.cloud / t, 0.01), "status": snappedf(split.status / t, 0.01),
