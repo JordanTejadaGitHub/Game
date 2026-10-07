@@ -265,6 +265,16 @@ func _run() -> void:
 	_check(not seller.grow_selected() and poor.tower_data == poor_data and shorts.size() == 1 and panel.grow_refused == refused_before + 1,
 		"G with too little Dew grows nothing and refuses (%s)" % [shorts])
 
+	# A banked rank (Ancient Stump, Tower Code 0d59136d) is free in the panel even with no Dew.
+	if "banked_ranks" in poor:
+		seller.select(null)
+		seller.select(poor)
+		poor.banked_ranks = 1
+		run_state.dew = 0
+		await process_frame
+		_check(panel._free_rank() and panel._can_afford_a_rank(), "a banked rank is free in the Warden panel")
+		poor.banked_ranks = 0
+
 	print("grow keys test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
 	await process_frame

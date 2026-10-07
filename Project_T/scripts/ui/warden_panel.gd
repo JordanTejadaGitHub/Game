@@ -289,6 +289,9 @@ func _refresh() -> void:
 			button.tooltip_text = tower_placer.grow_changes(_tower, next) + "\n\n" + IconInfo.format(next.description)  # {spored}-style tokens as words
 			if grow.ranks > 0:
 				button.tooltip_text += "\n\n%s + %d for its rank %s." % [UiStyle.dew_amount(grow.base), grow.ranks, Tower.rank_name(_tower.rank)]
+			var free_ranks := int(grow.get("free_ranks", 0))
+			if free_ranks > 0:  # Free ranks stay free through growth (Tower Code 221af5d7)
+				button.tooltip_text += "\n(%d free rank%s, not charged)" % [free_ranks, "" if free_ranks == 1 else "s"]
 			# The row says the form once, under the "Grow into" heading (light pass); touch: the second tap grows.
 			var label := "Grow %s" % next.display_name if _confirm_grow == next else next.display_name
 			button.set_meta(&"grow_form", next)  # A form it can grow into now (pulse, tests)
@@ -904,7 +907,7 @@ func _can_afford_a_rank() -> bool:
 	var towers: Array = tower_seller.selection.filter(func(t) -> bool: return is_instance_valid(t) and t.can_nurture())
 	if towers.is_empty() or int(run_state.get("free_nurtures") if run_state.get("free_nurtures") != null else 0) > 0:
 		return true
-	return towers.any(func(t: Tower) -> bool: return t.get_nurture_price() <= run_state.dew)
+	return towers.any(func(t: Tower) -> bool: return int(t.get("banked_ranks") if t.get("banked_ranks") != null else 0) > 0 or t.get_nurture_price() <= run_state.dew)
 
 # Short of Dew for any rank: no choices open, nothing is spent; the "can't buy" refusal instead (the Nurture
 # button shakes; dew_short brings the "needs N Dew" toast, the Dew counter's flash and the refusal sound).
@@ -919,8 +922,10 @@ func _refuse_nurture() -> void:
 		if button is Button and String(button.text).begins_with("Nurture"):
 			_shake(button)
 
-# First Care's free ranks: the next rank costs nothing.
+# First Care's free ranks, or this Warden's banked ones (Ancient Stump, Tower Code 0d59136d): the next rank costs nothing.
 func _free_rank() -> bool:
+	if is_instance_valid(_tower) and int(_tower.get("banked_ranks") if _tower.get("banked_ranks") != null else 0) > 0:
+		return true
 	return int(run_state.get("free_nurtures") if run_state.get("free_nurtures") != null else 0) > 0
 var nurture_refused := 0  # Refusals so far (tests)
 
