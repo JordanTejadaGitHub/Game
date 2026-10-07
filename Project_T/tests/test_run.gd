@@ -33,7 +33,7 @@ func _test_demo_data() -> void:
 	_check(drifts[97].get_creature_count() == 80, "drift 98: the Swarm of 80 Shades")
 	_check(drifts[0].get_creature_count() == 6, "drift 1 is 6 Shades")
 	var boss_25: Array = drifts[24].get_schedule().map(func(a: Array) -> String: return _kind(a[1]))
-	_check(boss_25.count("old_stag") == 1 and boss_25.find("old_stag") == 12, "drift 25: 12 Leaf Bugs, then the boss")
+	_check(boss_25.count("old_stag") == 1 and boss_25.find("old_stag") == 18, "drift 25: 18 Leaf Bugs, then the boss (stone-resisted escort at most 40%)")
 	var boss_50: Array = drifts[49].get_schedule().map(func(a: Array) -> String: return _kind(a[1]))
 	_check(boss_50.has("great_toad"), "drift 50 brings its boss")
 	var elites: int = drifts[44].get_schedule().filter(func(a: Array) -> bool: return a[2]).size()
@@ -212,15 +212,15 @@ func _test_blocks_and_rests() -> void:
 	await _settle(main)  # Let the rest's Dream (built a frame later) show and be dismissed
 	# Block 2: call early, a leak, health growth
 	var bonus_now := [0]
-	_check(director.start_next_drift(), "Start drift 6 (3 Bark Beetles, 2.5 s apart)")
+	_check(director.start_next_drift(), "Start drift 6 (3 Husks and 4 Shades, 1.5 s apart)")
 	await _frames(2)
 	bonus_now[0] = director.get_call_early_bonus()
-	_check(bonus_now[0] == 2, "calling drift 7 early skips ~5 s = 2 Dew (%d)" % bonus_now[0])
+	_check(bonus_now[0] == 4, "calling drift 7 early skips ~9 s = 4 Dew (%d)" % bonus_now[0])
 	dew = run_state.dew
 	director.start_next_drift()
 	_check(director.drifts_started == 7 and run_state.dew == dew + bonus_now[0], "call early pays")
 	var bug: Node2D = spawner.get_enemies().filter(func(e: Node2D) -> bool:
-		return _kind(e.enemy_data) == "leaf_bug")[0]
+		return _kind(e.enemy_data) == "leaf_bug" and director.drift_of(e) == 7)[0]  # (Drift 6 has Shades too now)
 	_check(bug.max_health == roundi(100 * pow(1.045, 6) * director.get_early_multiplier(7)), "drift 7 Leaf Bug health ×1.045^6 × the act 1 ramp (%d)" % bug.max_health)
 	var leaves_before := run_state.leaves
 	_send_to_goal(bug, map_generator)
