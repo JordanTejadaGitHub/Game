@@ -190,6 +190,9 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			range_text = "%.1f–%.1f" % [attack.min_range, _tower.get_range_cells()]
 		var main_row: Array = [[BossDossier.thousands(roundi(_tower.get_damage())), &"damage"],
 			["%.1f/s" % _tower.get_attacks_per_second(), &"attack_speed"], [range_text, &"range"]]
+		var reach := BranchKit.ability_reach(_tower) if is_instance_valid(tower) else 0.0
+		if reach > 0.0:  # Groundroot / Earthbind grab flyers beyond their attack range (Tower Code e530a46a)
+			main_row.append(["Grab %.1f" % reach, &"grab_reach"])
 		if _tower.get_crit_chance() > 0.0:
 			main_row.append(["%d%%" % roundi(_tower.get_crit_chance() * 100), &"crit_chance"])
 		var covers := compact and is_instance_valid(tower) and tower.is_inside_tree()
@@ -396,6 +399,8 @@ func stat_tip(stat: StringName) -> String:
 		&"range":
 			meaning = ("Range: %.1f–%.1f cells" % [attack.min_range, _tower.get_range_cells()]) if attack.min_range > 0.0 \
 				else "Range: %.1f cells" % _tower.get_range_cells()
+		&"grab_reach":
+			return "Grab reach: %.1f cells. It pulls flyers down from this far, beyond its attack range (%.1f)." % [BranchKit.ability_reach(_tower), _tower.get_range_cells()]
 		&"crit_chance":
 			meaning = "Crit chance: %d%% of its hits are critical" % roundi(_tower.get_crit_chance() * 100)
 		&"crit_damage":

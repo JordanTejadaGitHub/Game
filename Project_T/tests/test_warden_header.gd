@@ -39,6 +39,22 @@ func _run() -> void:
 	_check(view.find_children("*", "Button", true, false).is_empty(), "no buttons")
 	view.queue_free()
 
+	# Groundroot's grab reach beside its range (Tower Code e530a46a: the panel's range read as its reach).
+	var groundroot: TowerData = load("res://resource/tower/groundroot.tres")
+	var rooted: Tower = placer.tower_scene.instantiate()
+	rooted.tower_data = groundroot
+	rooted.cell = Vector2(2, 2)
+	placer.tower_container.add_child(rooted)
+	rooted.set_process(false)
+	var grab_view := WardenHeaderView.build(groundroot, rooted, dreams)
+	main.get_node("HUD").add_child(grab_view)
+	await process_frame
+	var grab := grab_view.stats.find_child("Value_grab_reach", true, false) as Label
+	_check(grab != null and grab.text == "Grab %.1f" % BranchKit.ability_reach(rooted) and BranchKit.ability_reach(rooted) > rooted.get_range_cells(),
+		"Groundroot shows its grab reach beside its range (%s)" % (grab.text if grab else "none"))
+	grab_view.queue_free()
+	rooted.queue_free()
+
 	# A run-wide damage Dream shows on the unplanted card too.
 	var boost: UpgradeData = null
 	for card in dreams.pool:
