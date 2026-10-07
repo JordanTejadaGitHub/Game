@@ -286,7 +286,7 @@ func _refresh() -> void:
 			var grow := _tower.get_grow_cost(next)  # Ranked Wardens also pay the rank difference
 			var cost: int = grow.total
 			# The form's name and key changes first ("Thunderhead: damage 30 → 48, chains 3 → 5, range 3.0 → 3.5").
-			button.tooltip_text = tower_placer.grow_changes(_tower, next) + _role_suffix(next) + "\n\n" + IconInfo.format(next.description)  # {spored}-style tokens as words
+			button.tooltip_text = _grow_tip(tower_placer.grow_changes(_tower, next), next)
 			if grow.ranks > 0:
 				button.tooltip_text += "\n\n%s + %d for its rank %s." % [UiStyle.dew_amount(grow.base), grow.ranks, Tower.rank_name(_tower.rank)]
 			var free_ranks := int(grow.get("free_ranks", 0))
@@ -472,7 +472,7 @@ func _refresh_group() -> void:
 			if not option[1]:
 				_locked_form_button(button, "Unlock %s" % next.display_name, next, towers, index)
 				continue  # Locked: no ring, no ghost
-			button.tooltip_text = tower_placer.grow_changes(towers[0], next) + _role_suffix(next) + "\n\n" + IconInfo.format(next.description)  # As the first of them
+			button.tooltip_text = _grow_tip(tower_placer.grow_changes(towers[0], next), next)  # As the first of them
 			# Each pays Tower.get_grow_cost (ranked ones their rank difference too).
 			var plan: Array = tower_seller.plan_grow(towers, next)
 			var affordable: int = plan[0]
@@ -922,10 +922,19 @@ func _refuse_nurture() -> void:
 		if button is Button and String(button.text).begins_with("Nurture"):
 			_shake(button)
 
-# "\nSplash shot, boosts neighbours a little": a form's role line under its changes in the grow tips (Tower Code 7824a02e).
-static func _role_suffix(form: TowerData) -> String:
+# A grow tip, as Remember's (story chat): its name, its role line (Tower Code 7824a02e), then the key changes
+# ("Damage 14 → 27, …" from describe_growth's "Name: changes"), then its description, a blank line between.
+static func _grow_tip(changes: String, form: TowerData) -> String:
+	var tip := form.display_name
 	var role := IconInfo.role_text(form)
-	return "\n" + role if role != "" else ""
+	if role != "":
+		tip += "\n" + role
+	var rest := changes.trim_prefix(form.display_name).trim_prefix(": ")
+	if rest != "":
+		tip += "\n\n" + rest.left(1).to_upper() + rest.substr(1)
+	if form.description != "":
+		tip += "\n\n" + IconInfo.format(form.description)  # {spored}-style tokens as words
+	return tip
 
 # First Care's free ranks, or this Warden's banked ones (Ancient Stump, Tower Code 0d59136d): the next rank costs nothing.
 func _free_rank() -> bool:

@@ -26,6 +26,8 @@ const NAME_MIN_SIZE := 11  # A long name shrinks to this, then wraps onto two li
 const NAME_FLOOR_SIZE := 9  # …and a still-too-wide line shrinks down to this (never cut)
 const EMBLEM_BADGE := 20.0  # A branch emblem badge on a tree node (BranchEmblem, when UI Asset's art exists)
 const PORTRAIT := 56.0
+const ROLE_SIZE := 11  # A form's role line under its name on the tree (FormNode._role_caption)
+const ROLE_WIDTH := 124.0
 const PORTRAIT_NUDGE := 6.0  # The Warden sits this much below the disc's centre, its plinth low (UI Asset)
 const TREE_SIZE := Vector2(560, 380)  # Shorter for the "Not in this dream" strip under it and the offer line above (fits 1280×800)
 const SIDE_WIDTH := 300.0
@@ -1274,6 +1276,26 @@ class FormNode extends Button:
 			var font := UiStyle.body_font() if words else UiStyle.number_font()
 			var font_size := NAME_SIZE if words else 16
 			_caption(text, font, font_size, colour, NODE_SIZE.y - 6)
+		if state != State.GROVE and data.tier >= 2:
+			_role_caption(IconInfo.role_text(data))
+
+	# Its role line under the name, small and muted like the family pick's lanes (story chat; Tower Code 7824a02e): up to
+	# two lines ROLE_WIDTH wide, centred under the node (wider than it, in the gap below). The base sits on the strip.
+	func _role_caption(text: String) -> void:
+		if text == "":
+			return
+		var font := UiStyle.body_font()
+		var lines: Array[String] = [""]
+		for word in text.split(" "):
+			var next := (lines[-1] + " " + word).strip_edges()
+			if lines[-1] != "" and font.get_string_size(next, HORIZONTAL_ALIGNMENT_LEFT, -1, ROLE_SIZE).x > ROLE_WIDTH:
+				lines.append(word)
+			else:
+				lines[-1] = next
+		for i in mini(lines.size(), 2):
+			var line := lines[i] if i == 0 or lines.size() <= 2 else lines[i] + "…"
+			var width := font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, ROLE_SIZE).x
+			draw_string(font, Vector2((NODE_SIZE.x - width) / 2.0, NODE_SIZE.y + 6 + i * (ROLE_SIZE + 1)), line, HORIZONTAL_ALIGNMENT_LEFT, -1, ROLE_SIZE, UiStyle.INK_DIM)
 
 	# The name this node shows: "???" for a form the Memory Grove hasn't planted (user), else its own.
 	func name_shown() -> String:
