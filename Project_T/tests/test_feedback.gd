@@ -149,6 +149,8 @@ func _run() -> void:
 	_check(recipe == ["Soaked", "+", "Charged", "→", "Thunderclap"] and feedback._card_title.text == "Thunderclap"
 		and not feedback._card_label.text.contains("Soaked + Charged") and feedback._hero.visible,
 		"the Thunderclap card: its icon on the disc, the recipe once as icons (%s)" % [recipe])
+	_check(ComboFeedback.recipe_free("Soaked + 3 Charged: ×4 damage, and more.") == "×4 damage, and more."
+		and ComboFeedback.recipe_free("No recipe here.") == "No recipe here.", "the rule line drops its leading recipe")
 	await process_frame
 	var pair: Array = feedback._buttons.get_children()
 	_check(pair.size() == 2 and absf((pair[0] as Control).size.x - (pair[1] as Control).size.x) < 1.0

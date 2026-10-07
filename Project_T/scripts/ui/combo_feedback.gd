@@ -419,6 +419,15 @@ var _best_this_session := {}  # Tests and scenes that don't write the profile
 var _best_ever := {}  # The profile's longest chain, read once (real game), raised in memory
 var _best_dirty := false  # A longer chain to write at the next rest / run end
 
+# The card's rule line without its leading recipe ("Soaked + 3 Charged: ×4 damage, …" → "×4 damage, …"): the icon row
+# above already says it (UI Asset). The Codex keeps the whole string.
+static func recipe_free(text: String) -> String:
+	var colon := text.find(": ")
+	if colon <= 0 or not text.substr(0, colon).contains(" + "):
+		return text
+	var rest := text.substr(colon + 2)
+	return rest.left(1).to_upper() + rest.substr(1) if rest.left(1) != "×" else rest
+
 # The one chain discovery: what a chain is, then the longest so far (screens_ui.md "Chains: one discovery").
 const CHAIN_LINE := "A Reaction can spread its statuses and set off another. Past the fifth link each one hits a little softer, but the chain keeps counting."
 
@@ -834,7 +843,7 @@ func _fill_card(id: StringName, is_chain: bool, order: Array) -> void:
 		var combo := CodexData.get_any(id)
 		var kind: String = combo.get("kind", "")
 		title = combo.get("name", String(id).capitalize())
-		rule = combo.get("text", "")
+		rule = recipe_free(combo.get("text", ""))
 		var data: ReactionData = Reactions.get_data(id) if kind in ["Reaction", "Crowned"] else null
 		if data != null:
 			colour = data.callout_color
