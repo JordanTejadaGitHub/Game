@@ -214,7 +214,7 @@ once earned (also in Settings → Display → Keepsakes). Unearned ones show gre
 | Gilded Pages | Discover every combo (`all_combos`) | the Codex pages get gilded edges |
 | Starlit Card Backs | See every Dream card (`all_dreams`) | Dream offer cards get the night-sky frame |
 
-**New bought nodes instead** (user 2026-10-05): options, not power; no loadout slot, always
+**New bought nodes instead** (user 2026-10-05): options, not power. **Orange (Perks) ones are carried in the loadout like any perk** (user 2026-10-07: *"all the orange nodes should be able to be put in the slots, like rerolls are a choice you need to bring in"*); purple (Cards) ones are pool unlocks, always
 on once planted. Placement by limb colour (user: *"should be the orange seed, all the card ones
 should be purple"*): the non-card ones are **orange Perks nodes on the Perks limb, the left side of the tree** (user: *"the orange seeds are the left side of the Grove tree"*), among the other perks, not a separate twig;
 the card one is **purple**, on the Cards limb (the right side).
@@ -230,6 +230,14 @@ the card one is **purple**, on the Cards limb (the right side).
 
 - **Rule (user 2026-10-05): anything card-like (Dreams, Omens) goes on the right side, purple; the left side, orange, holds run and loadout options.** These count toward the Heartwood's Crown like any bought node. +300 Seeds. (Second Look, a map reroll, was dropped 2026-10-05 as a duplicate of Remembered Seed; Waystone Swap was declined.) (Wanderer's Map, a new map layout, was dropped 2026-10-05: user "Removing it".)
 - Each node waits for its content; until then it isn't on the tree.
+
+**No always-on perks** (user 2026-10-07): every orange Perks node is a loadout choice, carried in a
+slot or left home: Wider Choice, Remembered Seed, Chosen Hunt, Leaf or Dew, Kin Foretold and Wider
+Roots join the 15 classic perks (~21 to choose from for 3–6 slots, so the loadout is a real
+choice). Only the slot nodes (slot 4, slot 5, the Heartwood's Crown) are structural. Purple Cards
+nodes (card bundles, Strange Dreams, Restless Omens) stay pool unlocks: owning them is enough,
+because they add to what a run can draw rather than change how you play it. In the demo (3 slots):
+Morning Stores, Deep Taproot, Second Thoughts and Wider Choice compete for the slots.
 
 **Perk style: Hades** (user 2026-10-02, "Hades-style rather than pure Spire"; default on main and in the demo from 2026-10-06): three perks stay honest power to rescue new players (**Morning Stores I–III, Deep Taproot I–II** (level III hidden in this style), **Rested Roots I–II**); every other power perk is its **sidegrade** (a trade-off, table in `spire_difficulty.md` Phase 2 / 4). Total Grove power is capped at about +10–15% (Balancing measures full loadout vs none). Power and full-Sidegrade stay as Developer options for comparison.
 
