@@ -888,6 +888,30 @@ Common budget: all Wardens +15%, conditional +30%. The proposed numbers were mos
 | Weed Puller | clearing a Mossy Boulder refunds **6** Dew (a third of 18) | |
 Measure after: distinct cards per run, consecutive-run overlap, no-build at 50 (≤ ~20%), the chase ceiling (30 / 50).
 
+## More helper Commons 286–303 (dream_design.md ae90720e)
+
+Same budget (all +15%, conditional +30%); raised where the target couldn't be felt:
+| Card | Number |
+|---|---|
+| Narrow Way | beside a one-half-wide stretch **+25%** |
+| Weary Feet | +1% per **4** tiles walked, up to **+25%** (per 5 / 20 averaged ~+10%) |
+| Wide Swing | every **3rd** area attack **0.75** cells wider |
+| Scatter | an area hit on 3+ slows them **25% for 1.5 s** |
+| Bountiful | every 5th Sprout free (as proposed; worth more as the price climbs) |
+| Undergrowth | Sprouts touching 2+ Sprouts +0.5 cells (as proposed) |
+| Quick Draw | the first attack on a nightmare entering range comes at once (as proposed) |
+| Rush | 10+ on the field → +20% attack speed (as proposed) |
+| First Among Equals | the highest-rank Warden **+50%** (one Warden: 25% couldn't be felt) |
+| Growth Rings | +0.1 range per rank (as proposed: doubles the rank range) |
+| Hobble | a crit slows 30% for 1 s (as proposed) |
+| Head of the Line | **+25%** to the nightmare furthest along |
+| Stung | +10% per leaf lost this block, up to +30% (as proposed) |
+| Bold Opening | calling a block's first drift early: that drift's Dew **+40%** (15% ≈ 3% of a block) |
+| Forest Floor | touching an obstacle **+20%** |
+| Groundskeeper | **+3** Dew per obstacle cleared that block |
+| Twin Strike | **+20%** to a nightmare its kin hit in the last second |
+| Close Quarters | kin touching each other **+20%** attack speed |
+
 ## Sparkler / Starburst too strong (user, 2026-10-07)
 
 Cause in code: every one of the 6 sparks hit for the Warden's full damage (`_spark_burst_at(..., damage, ...)`), so a shot
