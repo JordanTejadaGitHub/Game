@@ -155,6 +155,10 @@ lost 0–20). They're wired into the map (`EnvironmentTiles`), with the lighting
   ordinary ground** (buildable, ~74 more cells), and a thin earth lip with grass overhang and a
   short cliff in shadow are drawn **outside the grid**. The value order is void < cliff < ground <
   stones < path. The extra buildable cells are a balance change (Balancing Discussion).
+  **The south edge** gets a short tucked cliff with **hanging vines into the void** (user: *"B
+  but on the bottom of the map have the hanging vines"*). Following the AI-look rules, the vines
+  vary in length, spacing and curl (never an even fringe), with only a few ending in a leaf or
+  dream-fruit glint. Spec: environment_assets.md "Island edge outside the grid" (9329b7a5).
 - **Path width: at least half a cell** (user, 2026-10-04, on "make the path half a cell"). The pale
   path is **one half cell (32 px) of pale earth everywhere**: never thinner, and not broader (the
   user found the old broad path "too big"). A hairline path
