@@ -2591,8 +2591,9 @@ func _sound_cone_fx(img: Image, f: int) -> void:
 
 # --- Support and economy feedback (screens_ui.md "Support and economy feedback") -------------------
 # Kind "support". Gold is caught / harvested Dew (the ordinary Dew pop stays blue).
-#   dew_catch_droplet: a gold dew bead, drawn flying right (rotate to travel), shimmering; the code
-#     arcs it from a dispelled nightmare into a Dewcatcher / Wellspring. harvest_pour reuses it.
+#   dew_catch_droplet: the Dew drop (the UI's dew icon), drawn flying right (rotate to travel), its
+#     sparkle twinkling; the code arcs it from a dispelled nightmare into a Dewcatcher / Wellspring.
+#     harvest_pour reuses it.
 #   dew_pop_gold: a small gold sparkle burst to play behind the "+N Dew" of caught Dew.
 #   catcher_fill_dewcatcher / catcher_fill_wellspring: 64x64 overlays drawn to line up with the
 #     Warden sprite (same origin), frame = fill level 0 empty, 1 quarter, 2 half, 3 full. Add the
@@ -2622,36 +2623,53 @@ func _support() -> void:
 	_sheet("aura_ring_breath", Vector2i(64, 64), 8, 6, Vector2i(32, 32), true, "support", _aura_ring,
 		{note = "White, tint it and scale it to the aura's range (64 px = 1 cell radius 28). Brighter (higher alpha) in build mode."})
 
+# The Dew drop (UI f5192eb6: "a drop always means Dew"): the 16 px 'dew' icon's drop, flying right
+# (its tip trailing behind), pale blue with the cream highlight on its lit side, the darker blue
+# underside, the dark ink outline, and the icon's little sparkle twinkling as it flies.
+const DEW_DROP := {o = Color("#140f26"), lit = Color("#fff4dc"), fill = Color("#9cd4fc"), shade = Color("#4c8ca4")}
+
 func _dew_droplet(img: Image, f: int) -> void:
-	# A bead with a short tail behind it (pointing right), the glint sliding round.
-	var c := Vector2(8.5, 7.5)
-	for step in 8:
-		var t := step / 7.0
-		var r := 3.2 * (1.0 - t * 0.85)
-		_disc(img, c + Vector2(-t * 5.0, 0), r, DEW_GOLD[1])
-	_disc(img, c, 3.2, DEW_GOLD[1])
-	_disc(img, c + Vector2(-0.4, -0.6), 2.2, DEW_GOLD[2])
-	var glint: Vector2i = [Vector2i(9, 5), Vector2i(10, 6), Vector2i(10, 7), Vector2i(9, 6), Vector2i(8, 5), Vector2i(8, 6)][f]
-	_px(img, glint.x, glint.y, DEW_GOLD[3])
-	_px(img, glint.x, glint.y - 1 if f % 3 == 0 else glint.y, DEW_GOLD[3])
-	# Outline, then a faint warm glow.
-	var outline := img.duplicate()
-	for y in img.get_height():
-		for x in img.get_width():
-			if img.get_pixel(x, y).a > 0.0:
+	var c := Vector2(8.0, 7.0)
+	var body := Image.create_empty(14, 14, false, Image.FORMAT_RGBA8)
+	for y in 14:
+		for x in 14:
+			var p := Vector2(x + 0.5, y + 0.5)
+			var d := p - c
+			# A teardrop: a round head (radius 3.4) drawn out into a point at x = 2.
+			var inside := d.length() <= 3.4
+			if not inside and d.x < 0.0 and d.x > -6.0:
+				inside = absf(d.y) <= 3.4 * (1.0 + d.x / 6.0)
+			if inside:
+				var col: Color = DEW_DROP.fill
+				if d.y > 1.2 or (d.x > 1.8 and d.y > -0.5):
+					col = DEW_DROP.shade
+				body.set_pixel(x, y, col)
+	# The cream highlight along its lit (upper) inner edge, like the icon.
+	for x in range(3, 11):
+		for y in 14:
+			if body.get_pixel(x, y).a > 0.0:
+				if y + 1 < 14 and body.get_pixel(x, y + 1).a > 0.0 and x > 4:
+					body.set_pixel(x, y + 1, DEW_DROP.lit)
+				break
+	# The ink outline round it.
+	for y in 14:
+		for x in 14:
+			if body.get_pixel(x, y).a > 0.0:
+				img.set_pixel(x, y, body.get_pixel(x, y))
 				continue
-			for d: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
-				var q := Vector2i(x, y) + d
-				if q.x >= 0 and q.y >= 0 and q.x < img.get_width() and q.y < img.get_height() and img.get_pixelv(q).a > 0.9:
-					outline.set_pixel(x, y, DEW_GOLD[0])
+			for n: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var q := Vector2i(x, y) + n
+				if q.x >= 0 and q.y >= 0 and q.x < 14 and q.y < 14 and body.get_pixelv(q).a > 0.0:
+					img.set_pixel(x, y, DEW_DROP.o)
 					break
-	img.copy_from(outline)
-	for y in img.get_height():
-		for x in img.get_width():
-			if img.get_pixel(x, y).a == 0.0:
-				var q := Vector2(x + 0.5, y + 0.5).distance_to(c) / 6.5
-				if q < 1.0:
-					img.set_pixel(x, y, Color(DEW_GOLD[2], snappedf(0.3 * (1.0 - q), 0.05)))
+	# The sparkle above its head, twinkling: a small cross, then a dot, then gone, then back.
+	var s := Vector2i(11, 2)
+	match f % 3:
+		0:
+			for n: Vector2i in [Vector2i.ZERO, Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				_px(img, s.x + n.x, s.y + n.y, DEW_DROP.lit)
+		1:
+			_px(img, s.x, s.y, DEW_DROP.lit)
 
 func _dew_pop_gold(img: Image, f: int) -> void:
 	var c := Vector2(12, 12)
