@@ -110,6 +110,7 @@ var save_at: Array[int] = []  # --save-at=N (repeatable): after the bot's spendi
 var _save_copy := ""
 var resumed_at := -1  # The drift the resumed save was resting after (resumed_at column)
 var _finals_first := false  # _grow prefers the highest tier (the --start-at build)
+var clear_each := 0  # --clear-each=N: clear up to N route-neutral obstacles at each rest (the tending worst case for Seeds)
 var finals_first_plant := 0.7  # --finals-first-plant=X: the share of the human attacker count planted before growing (Balancing: 0.7, 0.5 if finals starve)
 var finals_first := false  # --finals-first (Balancing 2026-10-06): warm-up rests grow into finals first, then plant up to a human attacker count, then the usual buys, then rank the rest of the bank (spend-down)
 var warmup_to := 0  # --warmup-to=51|76 (Balancing, the late-start option (2)): drifts before it play with RunState.invulnerable; at the rest before it the leaves are set to START_LEAVES and the real run begins. Warm-up rows are tagged warmup=1
@@ -225,6 +226,7 @@ func _run() -> void:
 			"--save-at": save_at.append(int(value))
 			"--warmup-to": warmup_to = int(value)
 			"--finals-first": finals_first = true
+			"--clear-each": clear_each = int(value)
 			"--finals-first-plant": finals_first_plant = float(value)
 			"--extra-spend": extra_spend = value
 			"--extra-dew":  # A number, or grow / final: the cheapest such growth on the resumed board (Balancing)
@@ -497,6 +499,8 @@ func _on_rest(perfect: bool) -> void:
 	_busy = true
 	var n := director.drifts_started
 	policy.rest(n, perfect)
+	if clear_each > 0:
+		_clear_obstacles(clear_each)
 	_answer_gifts(n)
 	if _facing() and omens and not omens.current_offer.is_empty():
 		omens._offer_waiting = false  # The bot answers instead of the screen
@@ -560,6 +564,26 @@ func _warm_finals_spend(n: int) -> void:
 # Attackers a human run holds by drift `n` (run history, 2026-10-05: 38–75 at 50, mean ~50): ~5 + 0.9 a drift, at most 50.
 func _human_attackers(n: int) -> int:
 	return clampi(roundi(5.0 + 0.9 * n), 5, 50)
+
+# --clear-each=N (Balancing / Meta: the Seeds worst case from tending, +1 Seed per clear): at each rest, up to N obstacles
+# whose clearing doesn't shorten the route, cheapest first, while the Dew lasts.
+func _clear_obstacles(count: int) -> void:
+	var clearer := main.get_node_or_null("%ObstacleClearer")
+	if clearer == null:
+		return
+	var route := _route_cells(map.get_path_from(map.startPath))
+	var options: Array = []
+	for cell in map.obstacles.keys():
+		var after: PackedVector2Array = map.get_path_if_cleared(cell)
+		if not after.is_empty() and _route_cells(after) >= route:
+			options.append([clearer.get_clear_cost_at(cell), cell])
+	options.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+	var done := 0
+	for o in options:
+		if done >= count or not run_state.can_afford(o[0]):
+			break
+		if clearer.try_clear(o[1]):
+			done += 1
 
 # --warmup-to: at the rest before it (after this rest's spending, the act-break leaf regrown), the run turns real.
 func _end_warmup() -> void:
@@ -1590,6 +1614,7 @@ func _finish() -> void:
 		if not String(line[0]).begins_with("Total"):  # The breakdown ends with its own Total line
 			seed_total += int(line[1])
 	summary.seeds = seed_total
+	summary.tended = run_state.obstacles_tended
 	summary.seed_lines = ";".join(seed_lines.map(func(l) -> String: return "%s=%d" % [String(l[0]).get_slice(":", 0), int(l[1])]))
 	summary.extra_route_added = extra_info.route_added  # --extra-spend=walls: route cells the walls added, and how many
 	summary.extra_walls = extra_info.walls
