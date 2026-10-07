@@ -297,10 +297,22 @@ func credit_text(card: UpgradeData) -> String:
 	var at := text.find(" · ")
 	return "This run: " + (text.substr(at + 3) if at >= 0 else text)
 
+# One left panel at a time (screens_ui.md principle 5; user screenshot: "Dreams this run" over the Warden panel, its
+# Close over the panel's header): opening the list clears the Warden selection (its panel and name tag go), and picking
+# a Warden closes the list.
 func _toggle_list() -> void:
 	_list.visible = not _list.visible
+	var seller := get_node_or_null("%TowerSeller") as TowerSeller
+	if seller != null and not seller.selection_changed.is_connected(_on_selection):
+		seller.selection_changed.connect(_on_selection)
 	if _list.visible:
+		if seller != null and seller.selected != null:
+			seller.select(null)
 		_build_list()
+
+func _on_selection(towers: Array[Tower]) -> void:
+	if not towers.is_empty() and _list.visible:
+		_list.visible = false
 
 class DreamIcon extends Control:
 	signal pressed
