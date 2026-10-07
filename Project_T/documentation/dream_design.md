@@ -2081,28 +2081,28 @@ count. The gaps get **16 new Commons** (cards 270–285, start pool; numbers: ba
 User: *"think there should be more helper cards"*. The floor rises from 4 to **6 start-pool helpers
 per archetype**. Affliction already has 6; the other nine archetypes get 2 new Commons each, **18
 cards (286–303)**. Rules: start pool, Common, one archetype, no family, not defining, use-now Needs,
-no trample triggers. Numbers to Balancing.
+no trample triggers. Numbers: balance_simulation.md 6075f796.
 
 | Archetype | New helper | Effect (target) | Needs |
 |---|---|---|---|
-| maze | **Narrow Way** | Wardens beside a one-half-wide stretch of path deal 20% more damage | — |
-| maze | **Weary Feet** | nightmares take 1% more damage for every 5 path tiles they've walked (up to +20%) | — |
-| reach | **Wide Swing** | every 4th area attack hits 0.5 cells wider | an area Warden |
-| reach | **Scatter** | an area attack that hits 3+ nightmares slows them 15% for 1 s | an area Warden |
+| maze | **Narrow Way** | Wardens beside a one-half-wide stretch of path deal 25% more damage | — |
+| maze | **Weary Feet** | nightmares take 1% more damage for every 4 path tiles they've walked (up to +25%) | — |
+| reach | **Wide Swing** | every 3rd area attack hits 0.75 cells wider | an area Warden |
+| reach | **Scatter** | an area attack that hits 3+ nightmares slows them 25% for 1.5 s | an area Warden |
 | overgrowth | **Bountiful** | every 5th Sprout you plant is free | — |
 | overgrowth | **Undergrowth** | Sprouts touching 2+ other Sprouts reach 0.5 cells further | — |
 | swift | **Quick Draw** | a Warden's first attack on a nightmare entering its range comes at once | — |
 | swift | **Rush** | while 10+ nightmares are on the field, all Wardens attack 20% faster | — |
-| tall | **First Among Equals** | your highest-rank Warden deals 25% more damage | a ranked Warden |
+| tall | **First Among Equals** | your highest-rank Warden deals 50% more damage | a ranked Warden |
 | tall | **Growth Rings** | each Nurture rank also gives +0.1 range | a ranked Warden |
 | precision | **Hobble** | a crit slows the nightmare 30% for 1 s | — |
-| precision | **Head of the Line** | Wardens deal 20% more to the nightmare furthest along the path | — |
+| precision | **Head of the Line** | Wardens deal 25% more to the nightmare furthest along the path | — |
 | daring | **Stung** | each leaf lost this {block} makes all Wardens deal 10% more damage until the {rest} (up to +30%) | — |
-| daring | **Bold Opening** | the first {drift} you call early in each {block} holds 15% more Dew (a block's 1st drift starts from a rest and can't be called early) | — |
-| tending | **Forest Floor** | Wardens touching an obstacle deal 15% more damage | an obstacle left |
-| tending | **Groundskeeper** | at each {rest}, +2 Dew for every obstacle cleared that {block} | clearing unlocked |
-| kinship | **Twin Strike** | a Warden in a {kinship} deals 15% more to a nightmare its kin hit in the last second | a Kinship possible |
-| kinship | **Close Quarters** | kin touching each other attack 15% faster | a Kinship possible |
+| daring | **Bold Opening** | the first {drift} you call early in each {block} holds 40% more Dew (a block's 1st drift starts from a rest and can't be called early) | — |
+| tending | **Forest Floor** | Wardens touching an obstacle deal 20% more damage | an obstacle left |
+| tending | **Groundskeeper** | at each {rest}, +3 Dew for every obstacle cleared that {block} | clearing unlocked |
+| kinship | **Twin Strike** | a Warden in a {kinship} deals 20% more to a nightmare its kin hit in the last second | a Kinship possible |
+| kinship | **Close Quarters** | kin touching each other attack 20% faster | a Kinship possible |
 
 - Names checked against existing cards, Wardens, Reactions and Omens. Avoided: Pinned (a
   Reaction), Echo (Echo Hollow), "Long …" (Long Shadows / Long Light).
