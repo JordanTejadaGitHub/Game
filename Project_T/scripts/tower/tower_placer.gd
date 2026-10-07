@@ -266,6 +266,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			set_build_mode(false)
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("sell_tower") and not (event is InputEventMouseButton) and not stroking:
+		# X while building: sell mode (user, maze_feel.md 9356ec5a: "you're trying to sell the thing you just bought").
+		var seller := get_node_or_null("%TowerSeller") as TowerSeller
+		if seller != null:
+			seller.set_sell_mode(true)
+			get_viewport().set_input_as_handled()
 	elif tap_to_place and event.is_action_released("place_tower") and _tap_armed:
 		_tap_armed = false
 		if not TouchBuild.gesture_moved():  # A pan or a pinch is never a placement

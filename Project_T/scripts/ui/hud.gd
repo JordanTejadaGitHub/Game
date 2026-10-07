@@ -122,6 +122,9 @@ func _ready() -> void:
 	var drift_meter := DriftMeter.new(drift_director)
 	drift_meter.name = "DriftMeter"
 	add_child(drift_meter)
+	var lessons := LessonCard.new()  # onboarding.md "Lessons": a paused card for a rule the player can't guess
+	lessons.name = "LessonCard"
+	add_child(lessons)
 	owner.add_child.call_deferred(DpsTags.new())
 	# Close calls (run_design.md): a nightmare past 85% of the route trembles the Heartwood (world).
 	var close_calls := CloseCalls.new()
