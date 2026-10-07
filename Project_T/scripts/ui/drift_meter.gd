@@ -229,10 +229,10 @@ func _fit() -> void:
 	var hud := get_parent()
 	if hud == null:
 		return
-	# While the nightmare info shows, only the header line (user: "Maze 3,173 DPS · ↓54%"), never over the DriftPanel;
-	# it opens again when the info closes.
-	var info_now := hud.get_node_or_null("NightmareInfo") as Control
-	var collapse := info_now != null and info_now.visible
+	# The nightmare info never closes the meter (user 2026-10-06: "hovering over nightmares closes the DPS meter"): the
+	# meter moves below the info and lists fewer rows (the rest in "and N more"), never over the DriftPanel. `collapsed`
+	# stays false (it was the header-only fold).
+	var collapse := false
 	if collapse != collapsed:
 		collapsed = collapse
 		_body.visible = _user_open and not collapsed
@@ -248,7 +248,7 @@ func _fit() -> void:
 	var panel := hud.get_node_or_null("DriftPanel") as Control
 	var bottom := panel.get_global_rect().position.y - GAP if panel != null else get_viewport_rect().size.y - 16.0
 	var used := _header.size.y + _last.size.y + 32.0 + 28.0  # Header, last drift, tabs, margins (the summary scrolls)
-	var room := maxf(bottom - top - used, 72.0)  # At least two rows
+	var room := maxf(bottom - top - used, 0.0 if info != null and info.visible else 72.0)  # Two rows, or as few as fit under the info
 	var wanted := _summary.get_combined_minimum_size().y if block_summary else 0.0
 	_scroll.custom_minimum_size = Vector2(0, minf(wanted, room))
 	# Never over the DriftPanel (user: "maze dps shouldn't go over the call drift"): the whole card
@@ -271,7 +271,7 @@ func _fit() -> void:
 		var row_h := _rows.size.y / row_count
 		var spare := bottom - (top + height)
 		if spare < 0.0:
-			_max_rows = maxi(_max_rows - ceili(-spare / maxf(row_h, 1.0)), 1)
+			_max_rows = maxi(_max_rows - ceili(-spare / maxf(row_h, 1.0)), 0 if info != null and info.visible else 1)
 		elif _max_rows < TOP_ROWS and spare > row_h + 4.0:
 			_max_rows += 1
 	# No refresh here: rebuilding the rows every frame swallowed row clicks (the press and the release

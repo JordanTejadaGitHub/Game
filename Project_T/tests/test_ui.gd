@@ -272,8 +272,8 @@ func _run() -> void:
 			var panel_rect := (main.get_node("HUD/DriftPanel") as Control).get_global_rect()
 			_check(not meter_rect.intersects(panel_rect) and meter_rect.position.y >= DriftMeter.TOP_LIMIT - 1.0,
 				"the damage meter (%s tab) clears the DriftPanel at %s (%s vs %s)" % ["block" if summary else "Wardens", screen, meter_rect, panel_rect])
-		# With the nightmare info open (user screenshot: a Mourner pinned), the meter shrinks to its header line
-		# and never reaches the DriftPanel; it opens again when the info closes.
+		# With the nightmare info open the meter stays open (user 2026-10-06: hovering closed it), below the info,
+		# never over the DriftPanel; the player's open choice never changes.
 		meter.block_summary = false
 		meter._user_open = true
 		meter._body.visible = true
@@ -281,19 +281,21 @@ func _run() -> void:
 		var pinned: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
 		pinned.set_process(false)
 		info_node._target = pinned
-		for f in 4:
+		for f in 8:
 			await process_frame
 			meter._fit()
+			while meter._rows.get_child_count() > meter._max_rows:  # What refresh does with real rows: list _max_rows
+				meter._rows.remove_child(meter._rows.get_child(-1))
 		var meter_info_rect := meter.get_global_rect()
 		var panel_info_rect := (main.get_node("HUD/DriftPanel") as Control).get_global_rect()
-		_check(info_node.visible and meter.collapsed and not meter._body.visible and not meter_info_rect.intersects(panel_info_rect),
-			"with the nightmare info open the meter is its header line, clear of the DriftPanel at %s (%s vs %s)" % [screen, meter_info_rect, panel_info_rect])
+		_check(info_node.visible and not meter.collapsed and meter._body.visible and meter._user_open and not meter_info_rect.intersects(panel_info_rect),
+			"with the nightmare info open the meter stays open, clear of the DriftPanel at %s (%s vs %s)" % [screen, meter_info_rect, panel_info_rect])
 		info_node._target = null
 		pinned.queue_free()
 		for f in 3:
 			await process_frame
 			meter._fit()
-		_check(not meter.collapsed and meter._body.visible, "…and opens again when the info closes at %s" % screen)
+		_check(not meter.collapsed and meter._body.visible and meter._user_open, "…and still open when the info closes at %s" % screen)
 		meter._user_open = false
 		for row in fake_rows.filter(func(r) -> bool: return is_instance_valid(r)):
 			row.queue_free()
@@ -734,8 +736,8 @@ func _run() -> void:
 	_check(touch.visible and touch._plant.text.begins_with("Plant"), "the Plant button shows for a pending stroke (" + touch._plant.text + ")")
 	var planted_before: int = main.get_node("%TowerContainer").get_child_count()
 	touch._on_plant()
-	_check(not touch_placer.stroking and not touch.visible and main.get_node("%TowerContainer").get_child_count() > planted_before,
-		"Plant plants the stroke")
+	_check(not touch_placer.stroking and not touch._plant.visible and main.get_node("%TowerContainer").get_child_count() > planted_before,
+		"Plant plants the stroke (build mode stays on: Done, not Plant)")
 	touch_placer.begin_stroke(_free_cell(main.get_node("%MapGenerator")))
 	var touch_camera = main.get_node("GameCameraNode")
 	var open_dossier := main.get_tree().get_first_node_in_group(BossDossier.GROUP) as BossDossier
