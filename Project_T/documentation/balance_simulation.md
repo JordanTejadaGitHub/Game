@@ -874,6 +874,11 @@ opens acts 3–4 over runs; Blight Levels keep veterans honest. This replaces th
 Plan: finish the demo pair sweep (direction), then sweep the full-game exports (`act1_health_multiplier`, the act 2
 start / 37+ climb / end) on fresh full game and demo side by side; then acts 3–4 with Grove presets (the act 3 jump
 may need to come down with act 2). Tower Code removes the demo_* exports once the shared numbers land.
+**Demo pair sweep (direction, Mire Hag 1.0):** act 1 0.8 + act 2 0.4: default Stag 90 / reach 35 / win 25%, spender 100 / 55 /
+30, skip 30 / 0; act 1 0.75–0.85 ends the drift 18 cluster; 67% of reachers win. **Shared-curve grid:**
+`act1_health_multiplier` 1.20 → **1.0**; act 2 start / 37 / 45 (now 2.0 / 3.45 / 4.5): A 1.2 / 1.7 / 2.0, B 1.2 / 1.9 / 2.3, C 1.4 /
+2.1 / 2.6 (easing the climb, not the start, so act 2 never starts below act 1's end); `mid_boss_health_multiplier`
+raised per arm so the Mire Hag keeps its absolute health. Fresh full game and demo side by side.
 
 ## Demo targets (demo_scope.md e5ce233d, 2026-10-06)
 
