@@ -18,8 +18,8 @@ Revised for 100-drift runs (`run_design.md`).
 | Source | Seeds |
 |---|---|
 | Every 2 drifts survived | 1 (max 50), **from drift 26 only** (2026-10-06) |
-| Nightmares dispelled | 1 per **20** (~75 in a full run); in act 1 only 1 per 50 (2026-10-06, Balancing tunes) |
-| Each boss dispelled | **20** |
+| Nightmares dispelled | act 1: 1 per 50; **act 2: 1 per 40** (2026-10-07); acts 3–4: 1 per 20 (Balancing tunes) |
+| Each boss dispelled | **20** (the act 1 boss: **15**, 2026-10-07) |
 | Each obstacle tended | 1 (see `run_design.md`) |
 | Winning | **+120** |
 | Blight Level | +10% per level (Level 10 = double) |
@@ -29,6 +29,8 @@ Averaging ~280 across a player's first runs, the full tech tree (**~5,960 Seeds*
 Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs ≈ 30 hours** (confirmed as the target, 2026-09-28). **2026-09-29:** discovery unlocks removed 6 fully covered Cards nodes (Reactions, Woven Dreams I–II, Kin Lore, Deep Bonds; `dream_design.md` "Grove overlap"), the cards now come from discovering combos and Kinships in play. **As built (763f228): 5 nodes removed; the tree is 6,722 Seeds** (Families 2,470, Cards 2,162, Perks 2,090; the earlier 5,960 predates the Seeds and Quiet Ones rows and the Ascension nodes), about **24 runs ≈ 34 hours** at ~280 Seeds per run, a little over the 30-hour target. **2026-09-29:** slot_2 / slot_3 removed (−120): **6,602 Seeds ≈ 24 runs ≈ 33 hours**. The user confirmed ~30 hours is right, so no cuts. **2026-09-30:** Reckless and Wild Planting removed (−90, refunded to old saves): **6,512 Seeds**. **2026-09-30:** the 9 final-forms nodes removed (≈ −470, refunded): **≈ 6,040 Seeds ≈ 22 runs ≈ 30 hours**, right on the target, so the freed Seeds are not re-spent (no rebalancing). **2026-09-30 (later):** the Cards limb swap (≈ 6,140) and the lean starting pool (+1,200): **≈ 7,340 Seeds ≈ 26 runs ≈ 33–36 hours**.
 (Raised twice on 2026-09-27 as the Grove grew; the first unlocks still come every run, and a full
 Grove is a long-term goal next to Blight Levels.)
+
+**A loss around drift 50 buys about 3 nodes** (user 2026-10-07: *"realistically you should only be able to unlock around 3 nodes if you fail on drift 50"*): a drift-50 loss should bank about **80–100 Seeds** (≈ 3 entry nodes at 20–40). Act 2 pays less (dispels 1 per 40, the act 1 boss 15); acts 3–4, the later bosses and the win are unchanged, so finishing runs is where Seeds come from (~35–37 h for the whole tree). Balancing measures and fine-tunes to hit it.
 
 **A loss in act 1 can't buy a node** (user 2026-10-06, replaces "every run should buy something
 early"): survival Seeds start at drift 26, act 1 dispels pay a trickle, and the **first-run +20

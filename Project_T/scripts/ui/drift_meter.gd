@@ -220,6 +220,7 @@ func _process(delta: float) -> void:
 # Never crowd the neighbours (UI Code measured it at 1280×800): the meter sits below the nightmare
 # info when that's showing, and its rows scroll instead of reaching the DriftPanel.
 const GAP := 8.0
+const ROW_GUESS := 28.0  # A Warden row's height when none is listed to measure
 const BASE_TOP := 40.0  # Offset from the vertical centre, as anchored
 const TOP_LIMIT := 200.0  # Highest it may move up to (clear of the resources and the top-right buttons)
 var _max_rows := TOP_ROWS  # Fewer when the screen is short (_fit)
@@ -255,6 +256,9 @@ func _fit() -> void:
 	# (header, tabs, rows, "and N more") moves up into the room above, down to TOP_LIMIT; if it still
 	# doesn't fit, it lists fewer Warden rows (the rest go into "and N more").
 	var height := get_combined_minimum_size().y
+	var info_open := info != null and info.visible
+	if not info_open and _max_rows < 1:
+		_max_rows = 1  # Rows hidden under the nightmare info come back when it closes (user: "doesn't show the Warden")
 	if get_viewport_rect().size.y < UiStyle.LAYOUT_MIN.y * 0.5:
 		return  # No real screen (headless stand-in window): nothing to fit into
 	if top + height > bottom:
@@ -267,8 +271,9 @@ func _fit() -> void:
 			top = bottom - height
 			offset_top = top - screen_mid
 	var row_count := _rows.get_child_count()
-	if not block_summary and row_count > 0:
-		var row_h := _rows.size.y / row_count
+	# With no rows listed (all squeezed out under the info) a row's height is guessed, so they can grow back.
+	if not block_summary and (row_count > 0 or _max_rows < TOP_ROWS):
+		var row_h := _rows.size.y / row_count if row_count > 0 else ROW_GUESS
 		var spare := bottom - (top + height)
 		if spare < 0.0:
 			_max_rows = maxi(_max_rows - ceili(-spare / maxf(row_h, 1.0)), 0 if info != null and info.visible else 1)

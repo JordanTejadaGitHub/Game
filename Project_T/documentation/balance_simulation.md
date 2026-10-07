@@ -865,6 +865,16 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Seeds per run (user, 2026-10-07, meta_design.md ce725e43: "only ~3 nodes if you fail on drift 50")
+
+Target: a loss at drift 45–50 banks **~80–100 Seeds** (≈ 3 entry nodes). Meta's start: act 2 dispels 1 per 40 (was 20), act 1
+boss 15 (was 20); the rest unchanged. Measured with invulnerable runs to 50 (the Seeds a drift-50 loss banks), fresh + half,
+then the rates swept to land the median ~90. Also: whole-tree time (~35 h) and the demo arc (375 Seeds in ~4 runs; the 325
+fallback). **Act 1 losses (960411c3, new formula, 39 runs):** median ~8 Seeds, p90 ~13–16: under 20 (the user's rule
+holds); the one outlier (33) dispelled the Stag (+20) and died in 25. Re-checked on the chosen rates. **Tree cost (Meta Game Code,
+Hades style):** 7,847 Seeds for every buyable level (families 2,000, cards 3,142, perks 2,455, the Crown 250). 35 h → **~225
+Seeds per hour**; a drift-50 loss at ~90 Seeds in ~25 min is ~215 / h, so the target is in reach if later runs earn more.
+
 ## Omen weighing (user, 2026-10-07: "make sure ones that are worse than others give more rewards")
 
 All 27 Omens (the 4 Restless included). **Cost** measured, paired: bot boards saved at drifts 15 / 35, each Omen forced for
@@ -886,7 +896,8 @@ exports go (removed in 5012e304). Act 3: the ramp exports stay at their no-chang
 obstacles); sim relative to main on the same seeds: act 1 within ±10, d1–5 leaks no worse, route at 10 ≤ ~15% longer.
 **Husk resists stone (Enemy Assets 12a47530):** rolled drifts stay ≤ 40% stone-resisted (roller cap). Hand-made: drift 6 (intro)
 → 3 Husks + 4 Shades (69% Husk, 900 → 1,300 hp; the ease-in cap unchanged); drift 25's escorts → ≤ 40% stone-resisted, same
-total health, for all three act 1 bosses (Enemy Code).
+total health, for all three act 1 bosses. In fb11f4e4: drift 6 spacing 2.5 → 1.5 s (~9 s); Stag escorts 4 Husks + 18 Shades
+(40%), Night Mare 2 + 16 (27%), Scarecrow unchanged.
 
 ## One curve (user, 2026-10-06: "shouldn't it be the same?")
 

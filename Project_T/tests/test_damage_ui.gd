@@ -45,6 +45,20 @@ func _run() -> void:
 	meter.set_open(true)
 	_check(meter.visible and meter._header.text.contains("Maze ") and meter._rows.get_child_count() >= 2,
 		"the drift meter lists the Wardens (%s, %d rows)" % [meter._header.text, meter._rows.get_child_count()])
+	# Rows squeezed out under the nightmare info come back when it closes (user, drift 45: "doesn't show the Warden";
+	# the limit stuck at 0 with no row to measure).
+	var listed: int = meter._rows.get_child_count()
+	meter._max_rows = 0
+	meter.refresh()
+	_check(meter._rows.get_child_count() == 0, "squeezed to no rows (as under a tall nightmare info)")
+	for f in 6:
+		meter._fit()
+		meter.refresh()
+		await process_frame
+	_check(meter._rows.get_child_count() >= mini(listed, 1) and meter._max_rows >= 1,
+		"…the Warden rows come back once nothing covers them (%d rows, limit %d)" % [meter._rows.get_child_count(), meter._max_rows])
+	meter._max_rows = DriftMeter.TOP_ROWS  # Back to the full list for the checks below (headless has no room to grow into)
+	meter.refresh()
 	var first: Button = meter._rows.get_child(0)
 	meter._fit()
 	meter.refresh()

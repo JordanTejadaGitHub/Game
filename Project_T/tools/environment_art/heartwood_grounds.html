@@ -1811,21 +1811,59 @@ function islandLip(A, k) {
 }
 // The S side (row 0–3) and the S corners (4 SW, 5 SE), 64×128, frame f of 4.
 function islandUnderside(A, row, f) {
-  // The old cliff face under the south lip only (2026-10-07, the user: "don't like the vines, should look closer to the
-  // old design but just on the bottom"): cliff.png's banded rock, drips and hanging roots, hung just under the lip.
-  // Static (the 4 frame columns stay so the sheet layout doesn't change). The S corners keep only the cliff under the
-  // lip's arc, tapering into the corner.
-  const L = new Img(T, T * 2), piece = row < 4 ? 5 : row === 4 ? 6 : 7, v = row < 4 ? row : 0, CY = 8;
-  const face = cliffTile(A, (piece === 5 ? 3 : piece === 6 ? 2 : 1) + 4 * v);  // 3 = cliff both sides, 2 = east only, 1 = west only
-  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
-    if (!face.alpha(x, y)) continue;
-    if (piece === 6 && x < T - LIP_W - 2) continue;  // the corner: only under the lip's arc
-    if (piece === 7 && x > LIP_W + 1) continue;
-    const taper = piece === 6 ? Math.sqrt(clamp((x - (T - LIP_W - 2)) / (LIP_W + 2), 0, 1)) : piece === 7 ? Math.sqrt(clamp((LIP_W + 1 - x) / (LIP_W + 2), 0, 1)) : 1;
-    if (y > 8 + 50 * taper) continue;
-    L.set(x, y + CY, face.get(x, y));
+  // The old cliff design under the south lip only (2026-10-07, the user: "closer to the old design but just on the
+  // bottom"; then "make sure the color matches the rest of the island and the corners merge"): the old banded face,
+  // drips and hanging roots, but in the island's own colours (the lip's Root earth, the Night / Shade ground, Dread and
+  // Void into the dark; a Bark ledge here and there like the lip's lit edge) with calm bands, no checker dither. Each
+  // column hangs from the lip's lowest pixel, so the face follows the lip; in the corners it wraps under the lip's arc
+  // on a rounded profile instead of stopping at a straight cut. Static (4 identical frame columns keep the layout).
+  const L = new Img(T, T * 2), piece = row < 4 ? 5 : row === 4 ? 6 : 7, v = row < 4 ? row : 0, s = SEED + 950 + v * 17, s0 = SEED + 950;  // s0: the fields that must join across tiles
+  const top = new Img(); paintLip(top, A, piece, v);
+  const drips = [0, 1, 2, 3].map(i => [10 + hash(i, 1, s) * 44, 5 + hash(i, 2, s) * 7, 8 + hash(i, 3, s) * 20]);
+  const lens = [];
+  for (let x = 0; x < T; x++) {
+    lens[x] = 0;
+    let yl = -1;
+    for (let y = 0; y < T; y++) if (top.alpha(x, y)) yl = y;
+    if (yl < 0) continue;
+    // Corners: 0 at the arc's far end, 1 where it meets the S side; a quarter-circle profile so the face rounds off.
+    const t = piece === 6 ? clamp((x + 1 - (T - LIP_W - 2)) / (LIP_W + 2), 0, 1) : piece === 7 ? clamp((LIP_W + 2 - x) / (LIP_W + 2), 0, 1) : 1;
+    const shape = Math.sqrt(1 - (1 - t) * (1 - t));
+    let len = 22 + pnoise(x, 0, 16, s0, 4) * 10;
+    for (const [cx, w, h] of drips) len = Math.max(len, 22 + h * (1 - Math.abs(x + .5 - cx) / w));
+    len *= shape;
+    lens[x] = len;
+    for (let i = 1; i <= len; i++) {
+      // (solid to its tip: a fading, broken bottom read as holes into the sky)
+      const y = yl + i, k = i / Math.max(len, 1);
+      let c;
+      if (i < 3) c = "#241c14";  // the lip's Root earth carries on down
+      else {
+        const band = Math.floor((i + pnoise(x, i, 16, s0 + 4, 4) * 6) / 7), tone = pnoise(x, band * 8, 32, s0 + 5, 2) * .8 + hash(band, 0, s0 + 5) * .25 - k * .3 + (band % 2 ? .06 : 0);  // long strata along each band (8 px cells made checker squares)
+        const ledge = Math.floor((i - 1 + pnoise(x, i - 1, 16, s0 + 4, 4) * 6) / 7) !== band;  // a band's top row
+        c = ledge && tone > .45 && hash(x >> 1, band, s + 6) < .5 ? "#5c3c24"  // Bark: a ledge catching light, like the lip's edge
+          : tone > .55 ? "#2c2444" : tone > .25 ? "#241c14" : tone > .1 ? "#24243c" : "#140f26";  // Shade, Root, Night, Dread only in small crevices: never as dark as the sky
+      }
+      L.set(x, y, c);
+    }
   }
-  const top = new Img(); paintLip(top, A, piece, v); L.put(top);  // the lip over the cliff's top
+  // A faint cool rim on the silhouette's outer pixels (bottom tips and sides), so the face separates from the void
+  // (the user: "the dark spots look like the sky").
+  const face = new Img(T, T * 2); face.put(L);
+  for (let y = 0; y < T * 2; y++) for (let x = 0; x < T; x++) {
+    if (!face.alpha(x, y) || top.alpha(x, y)) continue;
+    const below = !face.alpha(x, y + 1) && y + 1 < T * 2, side = (x > 0 && !face.alpha(x - 1, y)) || (x < T - 1 && !face.alpha(x + 1, y));
+    if (below) L.set(x, y, "#3c3c5c");  // Dusk: the underside edge catching the void's cold light
+    else if (side) L.set(x, y, "#24243c");  // Night: the face's sides, a step above the sky
+  }
+  for (let r = 0; r < 5; r++) {  // roots hanging out of the face (only where the face is tall enough)
+    const x = Math.floor(4 + hash(r, 1, s) * (T - 8));
+    if (lens[x] < 14) continue;
+    let yl = 0; for (let y = 0; y < T; y++) if (top.alpha(x, y)) yl = y;
+    const end = Math.min(T * 2 - 1, yl + lens[x] + 6 + hash(r, 2, s) * 12);
+    for (let y = yl + 6; y < end; y++) L.set(x + Math.round(Math.sin(y * .2 + r)), y, y >= end - 2 ? "#5c3c24" : y % 5 ? "#241c14" : "#5c3c24");  // a solid Bark tip
+  }
+  L.put(top);  // the lip over the face's top
   return L;
 }
 const mixC = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, 255];
@@ -2195,6 +2233,46 @@ function ropeBridge(o) {
   return L;
 }
 
+// The start (2026-10-07, the user's pick of the start mock: "looks a lot better now"): the nightmares come out of a
+// black fog bank in the void, cross a narrow bridge on the lane's exact half-cell line, and step onto the island.
+// rope_bridge_lane.png (dream/, 128×64): the narrow bridge, same layout as rope_bridge.png (column 0 east-west,
+// 1 north-south), a 20 px deck centred in the 64 px cell (the game offsets it 16 px onto the lane's half row).
+// Planks, a lit leading edge, Loam rope rails that sag between the posts, one post pair per cell.
+function laneBridge(o) {
+  const L = new Img();
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const along = o ? y : x, across = o ? x : y, sag = Math.round(Math.sin(Math.PI * along / T) * 1.5);
+    const a = across - sag;
+    if (a >= 22 && a <= 41) {
+      const plank = Math.floor(along / 4), gap = along % 4 === 3;
+      L.set(x, y, gap || a === 41 ? "#241c14" : a === 22 ? "#8c5c34" : hash(plank, 0, 731) < .3 ? "#8c5c34" : "#5c3c24");
+    } else if (a === 19 || a === 44) L.set(x, y, "#6c5c5c");  // rope rails (Loam)
+  }
+  for (const side of [13, 45]) for (let al = 59; al <= 61; al++) for (let ac = side; ac < side + 7; ac++)  // a post pair at the cell's end
+    L.set(o ? ac : al, o ? al : ac, al === 59 ? "#8c5c34" : "#5c3c24");
+  return L;
+}
+// nightmare_fog.png (dream/, 4 frames of 192×192): the black fog the nightmares come out of, where the bridge's far
+// end disappears (it replaces the islet). Layered dark clouds stepped Shade → Night → Dread (never Void: a void-dark
+// core read as a hole into the sky), drifting a little each frame, with faint Wraithlight eyes that blink.
+function nightmareFog(f) {
+  const S = 192, L = new Img(S, S), s = SEED + 5200, c = S / 2, ph = f * Math.PI / 2;
+  const puffs = [[0, 0, 62], [34, -30, 38], [38, 32, 36], [-30, -40, 40], [-28, 44, 42], [56, 2, 28], [-52, 4, 34]];
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    let v = -1;
+    puffs.forEach(([px, py, r], i) => {
+      const dx = px + Math.cos(ph + i) * 2, dy = py + Math.sin(ph + i * 1.7) * 2;
+      v = Math.max(v, 1 - Math.hypot(x - c - dx, (y - c - dy) * 1.1) / r);
+    });
+    v += (pnoise(x, y, 22, s) - .5) * .5 + (pnoise(x + Math.cos(ph) * 3, y + Math.sin(ph) * 3, 9, s + 1) - .5) * .22;  // ragged wisps, not round puffs
+    if (v <= 0 || x < 1 || y < 1 || x > S - 2 || y > S - 2) continue;
+    L.set(x, y, v > .45 ? "#140f26" : v > .22 ? "#24243c" : "#2c2444");
+  }
+  const eyes = [[c + 8, c - 30], [c - 18, c + 24], [c + 26, c + 10], [c - 30, c - 12]];
+  eyes.forEach(([ex, ey], i) => { if ((f + i) % 4 !== 3) { L.set(ex, ey, "#9a84e8"); L.set(ex + 4, ey, "#9a84e8"); } });  // each pair blinks once a loop
+  return L;
+}
+
 // Rocks read smaller than the (taller) dead trees: each finished 64 px rock is shrunk to 68%
 // (nearest pixel), re-outlined, and set back on its old base line (y 55) in a 64 px cell.
 const ROCK_SCALE = .68;
@@ -2253,6 +2331,8 @@ const BUILD = {
   voidstars: () => voidStars(),
   islet: (A, v) => islet(A, v),
   bridge: (A, v) => ropeBridge(v),
+  lbridge: (A, v) => laneBridge(v),  // the narrow bridge on the lane: 0 east-west, 1 north-south
+  nfog: (A, v, f) => nightmareFog(f),
   cloud: (A, v) => cloudShadow(v),
   mistbank: () => mistBanks(),
   route: (A, v) => routeMist(v),  // 0 strip, 1 start cap, 2 end cap
@@ -2267,8 +2347,8 @@ const BUILD = {
   astump: (A, v) => ancientStump(A, v),
   rwisp: (A, v, f) => routeWisp(f),
 };
-const ANIM = new Set(["under", "withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "ltree", "mwell", "bstone", "mring", "dead"]);
-const TILES = new Set(["lip", "under", "grass", "path", "wall", "pool", "pond", "pondin", "flog", "lfurrow", "pdual", "gpatch", "hroots", "bog", "bogd", "rootsd", "blight"]);
+const ANIM = new Set(["nfog", "under", "withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "ltree", "mwell", "bstone", "mring", "dead"]);
+const TILES = new Set(["lbridge", "nfog", "lip", "under", "grass", "path", "wall", "pool", "pond", "pondin", "flog", "lfurrow", "pdual", "gpatch", "hroots", "bog", "bogd", "rootsd", "blight"]);
 const SOLID = 200;
 function copyPx(dst, x, y, c) { const i = (y * dst.w + x) * 4; dst.d[i] = c[0]; dst.d[i+1] = c[1]; dst.d[i+2] = c[2]; dst.d[i+3] = c[3]; }
 // Storybook: halve the resolution (most common solid colour per 2×2 block), outline sprites in a

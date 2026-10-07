@@ -79,6 +79,9 @@ for (const A of ACTS) {
     emit("dream/void_stars.png", getImg("voidstars"));
     emit("dream/void_islets.png", strip([0, 1, 2, 3].map(v => getImg("islet:" + v))));
     emit("dream/rope_bridge.png", strip([getImg("bridge:0"), getImg("bridge:1")]));
+    // The start: the narrow bridge on the lane (rope_bridge.png's layout) and the black fog it comes out of (4 frames, 192 px).
+    emit("dream/rope_bridge_lane.png", strip([getImg("lbridge:0"), getImg("lbridge:1")]));
+    emit("dream/nightmare_fog.png", frames("nfog", 4));
     emit("dream/cloud_shadows.png", strip([0, 1, 2, 3, 4, 5].map(v => getImg("cloud:" + v))));
     emit("dream/mist_banks.png", getImg("mistbank"));
     emit("dream/route_mist.png", getImg("route:0"));

@@ -243,7 +243,8 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 	var node := play(effect, at, parent, 1.0, true, seconds)
 	var colour := Color(info(effect).get("callout", "#fff0c0"))
 	if row[1] != "":
-		var shown := callout(row[1], colour, at, parent, reaction)
+		# The name without its "!" and the reaction's icon (the callout redo; the crowned ones by their own id).
+		var shown := callout(String(row[1]).trim_suffix("!"), colour, at, parent, reaction, IconInfo.icon(reaction))
 		if shown != null and String(effect).begins_with("crowned_"):
 			# The crown mark sits on the callout and goes with it (the sheet loops: never leave it in the
 			# world, or every Crowned Reaction leaves a crown behind).
@@ -259,7 +260,7 @@ static func reaction(reaction: StringName, at: Vector2, parent: Node, towers: Ar
 
 # A word popping over the nightmare in `colour` (throttled: a few at a time, one per reaction).
 # Returns the callout, or null when it was throttled.
-static func callout(text: String, colour: Color, at: Vector2, parent: Node, key: StringName = &"") -> Node2D:
+static func callout(text: String, colour: Color, at: Vector2, parent: Node, key: StringName = &"", icon: Texture2D = null) -> Node2D:
 	var now := Time.get_ticks_msec()
 	_callouts_alive = _callouts_alive.filter(func(c): return is_instance_valid(c))
 	if _callouts_alive.size() >= MAX_CALLOUTS or now < _callout_cooldown.get(key, 0):
@@ -272,7 +273,7 @@ static func callout(text: String, colour: Color, at: Vector2, parent: Node, key:
 				and absf(c.global_position.x - at.x) < CALLOUT_CLEAR.x and absf(c.global_position.y - at.y) < CALLOUT_CLEAR.y):
 			break
 		at.y -= CALLOUT_CLEAR.y
-	var node := FxCallout.new(text, colour)
+	var node := FxCallout.new(text, colour, icon)
 	parent.add_child(node)
 	node.global_position = at
 	_callouts_alive.append(node)
@@ -297,6 +298,14 @@ static func chain(count: int, where: Vector2, parent: Node, towers: Array = []) 
 	if parent == null or not is_instance_valid(parent) or count < 2:
 		return
 	longest_chain = maxi(longest_chain, count)
+	# The count rides on the newest Reaction word near the chain's link (the callout redo).
+	var newest: FxCallout = null
+	for c in _callouts_alive:
+		if is_instance_valid(c) and c is FxCallout and absf(c.global_position.x - where.x) < CALLOUT_CLEAR.x \
+				and absf(c.global_position.y - where.y) < CALLOUT_CLEAR.y * MAX_CALLOUTS:
+			newest = c
+	if newest != null:
+		newest.set_count(count)
 	if is_instance_valid(_badge):
 		_badge.queue_free()
 	var badge_entry := info(&"chain_badge")
@@ -550,19 +559,40 @@ class FxRain extends Node2D:
 
 
 # A Reaction's name rising over the nightmare in its colour, with a little pop as it appears.
+# The callout word (UI Asset's combat-callout redo, mock-up 3k6Xa3cvGTGFSvvHhuVZSd; the user: "that works"): the
+# reaction's icon at ×2, then its name in Cormorant SemiBold 22 in its colour (no "!"), and a running chain's "×N"
+# (number font 15, Glow). It pops 125% → 100% over 0.12 s, rises 18 px and fades over CALLOUT_LIFE. Specified at 1280:
+# WorldLabel's text scale carries the UI factor (×1.5 at 1920) and the camera zoom. The background (pill or a soft
+# halo) waits for the user's pick; a thin Void outline keeps it readable meanwhile.
 class FxCallout extends Node2D:
+	const TEXT_SIZE := 22
+	const COUNT_SIZE := 15
+	const ICON_PX := 32.0  # A 16 px icon at ×2
+	const GAP := 6.0
+	const POP := 1.25
+	const POP_TIME := 0.12
+	const RISE := 18.0
+	const LIFT := 52.0  # Above the nightmare
 	var _text: String
 	var _colour: Color
+	var _icon: Texture2D
+	var _count := 0
 	var _age := 0.0
 
 	# Out of Fx's static list as it leaves (a static holding freed nodes crashed the engine's teardown).
 	func _exit_tree() -> void:
 		Fx._callouts_alive.erase(self)
 
-	func _init(text: String, colour: Color) -> void:
+	func _init(text: String, colour: Color, icon: Texture2D = null) -> void:
 		_text = text
 		_colour = colour
+		_icon = icon
 		z_index = Fx.Z + 2
+
+	# A running chain's length rides on it ("×3").
+	func set_count(count: int) -> void:
+		_count = count
+		queue_redraw()
 
 	func _process(delta: float) -> void:
 		_age += delta
@@ -572,16 +602,30 @@ class FxCallout extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
-		WorldLabel.begin_screen_size(self, Vector2.ZERO)  # Keeps its screen size when zoomed in (2.5×)
 		var t := _age / Fx.CALLOUT_LIFE
 		var alpha := 1.0 - t * t
-		var size := 20 if t > 0.12 else 26
-		var font := ThemeDB.fallback_font
-		var width := font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
-		var at := Vector2(-width / 2.0, -52.0 - 20.0 * t)
-		draw_string_outline(font, at, _text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 6, Color(Palette.VOID, alpha))
-		draw_string(font, at, _text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(_colour, alpha))
-		WorldLabel.end_screen_size(self)
+		var pop := lerpf(POP, 1.0, clampf(_age / POP_TIME, 0.0, 1.0))
+		var s := WorldLabel.text_scale(self) * pop  # Screen size when zoomed in, the UI factor, and the pop
+		draw_set_transform(Vector2(0.0, -(LIFT + RISE * t) * WorldLabel.text_scale(self)), 0.0, Vector2(s, s))
+		var font := UiStyle.display_font()
+		var count_font := UiStyle.number_font()
+		var count_text := ("×%d" % _count) if _count > 1 else ""
+		var text_w := font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE).x
+		var count_w := count_font.get_string_size(count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE).x if count_text != "" else 0.0
+		var icon_w := ICON_PX + GAP if _icon != null else 0.0
+		var total := icon_w + text_w + (GAP + count_w if count_text != "" else 0.0)
+		var x := -total / 2.0
+		var baseline := font.get_ascent(TEXT_SIZE) / 2.0 - 2.0  # The word centred on the line
+		if _icon != null:
+			draw_texture_rect(_icon, Rect2(x, -ICON_PX / 2.0, ICON_PX, ICON_PX), false, Color(1, 1, 1, alpha))  # multiplier
+			x += icon_w
+		draw_string_outline(font, Vector2(x, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE, 4, Color(Palette.VOID, alpha * 0.8))
+		draw_string(font, Vector2(x, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE, Color(_colour, alpha))
+		if count_text != "":
+			var cx := x + text_w + GAP
+			draw_string_outline(count_font, Vector2(cx, baseline), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE, 3, Color(Palette.VOID, alpha * 0.8))
+			draw_string(count_font, Vector2(cx, baseline), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE, Color(Palette.GLOW, alpha))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 # The chain badge: pops in, shows "x" + the count in its window, holds, then fades.
