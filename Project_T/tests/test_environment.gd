@@ -52,8 +52,11 @@ func _init() -> void:
 	_check(env.get_cell_source_id(Vector2i(map.startPath) + out) == -1 and env.get_cell_source_id(Vector2i(map.startPath)) == -1,
 		"no rope-bridge or mist tiles at the start any more")
 	_check(map.dream_void.get_child(0) is Parallax2D and map.dream_void.z_index < 0, "the void sits behind the map")
-	_check(not map.dream_void.get_children().any(func(n: Node) -> bool: return n is Sprite2D
-		and n.position.distance_to(map.MAP_GRID.calculate_map_position(Vector2(env.bridge_end))) < 1.0), "no islet under the fog")
+	var fog_at: Vector2 = map.MAP_GRID.calculate_map_position(Vector2(env.bridge_end))
+	var islet_at_fog := false
+	for n in map.dream_void.get_children():
+		islet_at_fog = islet_at_fog or (n is Sprite2D and n.position.distance_to(fog_at) < 1.0)
+	_check(not islet_at_fog, "no islet under the fog")
 	var trees := map.tile_set.get_source(EnvironmentTiles.WITHERED_TREE) as TileSetAtlasSource
 	_check(trees.get_tile_animation_mode(Vector2i(0, 0)) == TileSetAtlasSource.TILE_ANIMATION_MODE_RANDOM_START_TIMES,
 		"dead trees start their animation at random times")
