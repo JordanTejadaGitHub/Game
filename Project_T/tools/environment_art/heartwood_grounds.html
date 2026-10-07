@@ -1835,7 +1835,7 @@ function islandUnderside(A, row, f) {
     lens[x] = len;
     for (let i = 1; i <= len; i++) {
       // (solid to its tip: a fading, broken bottom read as holes into the sky)
-      const y = yl + i, k = i / Math.max(len, 1);
+      const y = yl + i, k = Math.min(1, i / 32);  // depth in px, not a share of the column: short corner columns read darker otherwise
       let c;
       if (i < 3) c = "#241c14";  // the lip's Root earth carries on down
       else {
