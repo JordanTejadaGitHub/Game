@@ -888,7 +888,9 @@ leaves at 26, families). **Breakdown (D, default, 20 each):** of runs entering a
 leaves at 26 full 11.0 vs demo 12.3; full deaths cluster at **44–47** (8 of 11; the drift 45 finale), demo spread. DEMO_RULES
 are retired (checked); the remaining differences are the act 1 boss draw and the demo's family-limited card pool, both
 by design. If F full still clusters at 44–47, the drift 45 finale is the next lever. **Confirmation D (main 89f40404, full,
-30):** Stag 66 / reach 26 / win 20%: stopped. Act 1 deaths cluster 19–24, act 2 at 40–44. F (act 1 1.0) and **F2 (act 1 0.9)** next.
+30):** Stag 66 / reach 26 / win 20%: stopped. Act 1 deaths cluster 19–24, act 2 at 40–44. F (act 1 1.0) and **F2 (act 1 0.9)** next. Demo D
+(30): 80 / 16 / 13 (act 2 deaths pile at 47–49). No curve changes between the builds (checked), so D pooled: reach ≈ 23% in
+**both** modes; the earlier "demo easier" was mostly noise.
 
 ## Demo targets (demo_scope.md e5ce233d, 2026-10-06)
 
