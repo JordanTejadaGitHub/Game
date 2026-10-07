@@ -2054,19 +2054,19 @@ Scatter came from an uneven 68 with many untagged, not from the number.
 
 Helpers are "smaller" cards: non-defining, one archetype tag, no family. They make a build
 better, and they're Bungus-style where it fits (the condition suits a shape). Existing helpers
-count. The gaps get **16 new Commons** (cards 270–285, start pool, numbers to Balancing):
+count. The gaps get **16 new Commons** (cards 270–285, start pool; numbers: balance_simulation.md 605a8ea7, raised to the Common budget so a helper is felt):
 
 | Archetype | Existing helpers | New |
 |---|---|---|
-| maze | Winding Path, Hedge Maze, Weathered Walls | **Switchback**: Wardens beside a bend in the path attack 10% faster |
+| maze | Winding Path, Hedge Maze, Weathered Walls | **Switchback**: Wardens beside a bend in the path attack 20% faster |
 | affliction | Bitter Sap, Lasting Dreams, Passing Dream, Heavy Air, In the Thick, Thinning the Herd | — |
-| reach | Lantern Glow | **Ripples**: area attacks deal 15% more to nightmares other than the main target · **Close Guard**: Wardens with range 3 or less reach 0.5 cells further · **Wide Petals**: splashes and clouds reach 0.25 cells wider |
-| overgrowth | Seedfall, Many Hands, Odd One Out | **Cheap Seeds**: Sprouts cost 2 Dew less |
-| swift | Flurry | **Light Steps**: all Wardens attack 20% faster for 5 s when a {drift} starts · **Nimble Twigs**: Wardens that attack more than once a second deal 10% more damage · **Rhythm**: a Warden that hits the same nightmare 5 times in a row attacks 15% faster for 3 s |
-| tall | Tender Care, Kindred Roots | **Steady Roots**: Nurture ranks cost 10% less · **Seasoned**: Wardens at rank II+ deal 10% more damage |
-| precision | Glinting Dew, First Light | **Edge of Sight**: Wardens deal 15% more to nightmares in the outer half of their range · **Steady Aim**: a Warden's crits deal 25% more against nightmares with full health |
-| daring | Call of the Wild, Quick Step | **Close Shave**: when a nightmare reaches the Heartwood, all Wardens attack 30% faster for 5 s · **Early Bird**: calling a {drift} early also gives +3 Dew |
-| tending | Heartwood's Reach, Morning Dew | **Mulch**: a Warden planted on a cleared cell deals 10% more damage · **Weed Puller**: clearing a Mossy Boulder refunds 5 Dew |
+| reach | Lantern Glow | **Ripples**: area attacks deal 25% more to nightmares other than the main target · **Close Guard**: Wardens with range 3 or less reach 0.5 cells further · **Wide Petals**: splashes and clouds reach 0.5 cells wider |
+| overgrowth | Seedfall, Many Hands, Odd One Out | **Cheap Seeds**: Sprouts cost 3 Dew less |
+| swift | Flurry | **Light Steps**: all Wardens attack 30% faster for 8 s when a {drift} starts · **Nimble Twigs**: Wardens that attack more than once a second deal 20% more damage · **Rhythm**: a Warden that hits the same nightmare 5 times in a row attacks 20% faster for 3 s |
+| tall | Tender Care, Kindred Roots | **Steady Roots**: Nurture ranks cost 15% less · **Seasoned**: Wardens at rank II+ deal 15% more damage |
+| precision | Glinting Dew, First Light | **Edge of Sight**: Wardens deal 25% more to nightmares in the outer half of their range · **Steady Aim**: crits deal 40% more against nightmares above 50% health |
+| daring | Call of the Wild, Quick Step | **Close Shave**: when a nightmare reaches the Heartwood, all Wardens attack 30% faster for 8 s · **Early Bird**: calling a {drift} early also gives +5 Dew |
+| tending | Heartwood's Reach, Morning Dew | **Mulch**: a Warden planted on a cleared cell deals 20% more damage · **Weed Puller**: clearing a Mossy Boulder refunds 6 Dew |
 | kinship | Close Kin, Old Friends, Rooted Bond, Kin and Kindling | — |
 
 - **Rules kept:** 1 family / 1 plain stat per offer, use-now Needs (Seasoned needs a rank II
