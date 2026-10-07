@@ -1103,11 +1103,14 @@ func _all_buttons() -> Array:
 	return out
 
 # Every option it can act on now is always shown (story chat; only not-in-this-dream forms wait, behind their Remember
-# link). Past MAX_ROWS they sit two to a line (GrowGrid: name, its price under it, the key chip), so the panel keeps 45%.
+# link), each a full-width 48 px row: the two-to-a-line GrowGrid cut names ("Unlock Chime …", "needs Bellflo…"; UI
+# Asset, 2026-10-07), so it's off (GROW_GRID); the panel scrolls when they don't fit.
+const GROW_GRID := false
+
 func _grow_row(index: int, count: int) -> Button:
 	var button := _add_button("")
 	_as_choice(button)
-	if count > MAX_ROWS:
+	if GROW_GRID and count > MAX_ROWS:
 		var grid := _buttons.get_node_or_null("GrowGrid") as GridContainer
 		if grid == null or grid.is_queued_for_deletion():
 			grid = GridContainer.new()
