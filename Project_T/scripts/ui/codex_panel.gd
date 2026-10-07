@@ -1238,19 +1238,17 @@ func _branch_list(root: TowerData) -> Control:
 	for branch in regular + hidden:
 		var final := _final_of(branch)
 		var known := _form_in_scope(branch)
-		var line := Label.new()
-		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		var parts: Array[String] = [branch.display_name if known else "???"]
 		if final != null:
 			parts[0] += " → " + (final.display_name if _form_in_scope(final) else "???")
+		parts[0] = parts[0].replace("[", "[lb]")
 		var role := IconInfo.role_text(branch)
 		if known and role != "":
-			parts.append(role)
+			parts.append(StatusLinks.role_bbcode(role))  # Its glossary words are links (user: "Silences")
 		if hidden.has(branch):
 			parts.append("the Grove's hidden branch")
+		var line := StatusLinks.make_label("", 15, UiStyle.INK if known else GROVE_COLOR)
 		line.text = " · ".join(parts)
-		line.add_theme_font_size_override("font_size", 15)
-		line.add_theme_color_override("font_color", UiStyle.INK if known else GROVE_COLOR)
 		box.add_child(line)
 	return box
 
@@ -1392,11 +1390,9 @@ func _show_form_card(data: TowerData) -> void:
 	box.add_child(costs)
 	var role := IconInfo.role_text(data)  # Its job against the roster, from its counter tags (the family pick says the same)
 	if role != "":
-		var role_label := Label.new()
+		var counters := IconInfo.counters_text(data)
+		var role_label := StatusLinks.make_role_label(role.left(1).to_upper() + role.substr(1) + (" · " + counters if counters != "" else ""), 15, UiStyle.GOLD)  # Glossary words are links (user: "Silences")
 		role_label.name = "Role"
-		role_label.text = "%s · %s" % [role.left(1).to_upper() + role.substr(1), IconInfo.counters_text(data)]
-		role_label.add_theme_font_size_override("font_size", 15)
-		role_label.add_theme_color_override("font_color", UiStyle.GOLD)
 		box.add_child(role_label)
 	if shown:
 		# The Warden panel's top half (Tower Code's shared WardenHeaderView): stats, statuses, Potency, Grows into.

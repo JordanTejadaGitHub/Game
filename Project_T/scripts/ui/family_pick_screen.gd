@@ -624,7 +624,9 @@ func _route_lane(branch: TowerData) -> Control:
 	if dream_state.is_hidden_branch(branch):
 		role = "Grove's hidden branch" + (", " + role if role != "" else "")
 	if role != "":
-		words.add_child(_lane_line(role, 11, UiStyle.GOLD, "Role"))
+		var role_label := StatusLinks.make_role_label(role, 11, UiStyle.GOLD)  # Its glossary words are links (user: "Silences")
+		role_label.name = "Role"
+		words.add_child(role_label)
 	lane.add_child(words)
 	# One tip for the lane (its emblem and words ignore the mouse, so nothing stacks), saying each thing once: its name
 	# and what it counters. The role is on the lane itself (user: "repeated explanations of the branch").

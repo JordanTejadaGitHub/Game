@@ -142,6 +142,38 @@ static func _statuses(text: String) -> String:
 		at = found.get_end()
 	return out + text.substr(at)
 
+# Role lines (TowerData.role_line, test_role_lines' vocabulary) link their glossary words (user, 2026-10-07: "make sure
+# for Silences, it has the underline of what it means"): word -> IconInfo STATUSES / STATS id. A vocabulary word not
+# here, or an id with no entry, stays plain.
+const ROLE_TERMS := {"silences": &"silenced", "exposes": &"marked", "roots": &"held", "soaks": &"damp",
+	"charges": &"static", "poisons": &"spored", "drowses": &"drowsy", "freezes": &"frozen", "reveals hidden": &"hidden",
+	"crits": &"crit_chance"}
+static var _role_pattern: RegEx = null
+
+# `role` as bbcode: its ROLE_TERMS words (any case, whole words) as links, other "[" escaped.
+static func role_bbcode(role: String) -> String:
+	if _role_pattern == null:
+		var words: Array = ROLE_TERMS.keys()
+		words.sort_custom(func(a: String, b: String) -> bool: return a.length() > b.length())
+		UiStyle.release_at_exit(func() -> void: _role_pattern = null)
+		_role_pattern = RegEx.create_from_string("(?i)\\b(" + "|".join(words.map(func(w: String) -> String: return _escape(w))) + ")\\b")
+	role = role.replace("[", "[lb]")
+	var out := ""
+	var at := 0
+	for found in _role_pattern.search_all(role):
+		var id: StringName = ROLE_TERMS[found.get_string().to_lower()]
+		out += role.substr(at, found.get_start() - at)
+		var known := IconInfo.STATUSES.has(id) or IconInfo.STATS.has(id)
+		out += _link(META_PREFIX + String(id), found.get_string()) if known else found.get_string()
+		at = found.get_end()
+	return out + role.substr(at)
+
+# A RichTextLabel showing a role line with its glossary words as links (hover / tap), wrapping, sized to its content.
+static func make_role_label(role: String, font_size: int = 11, colour: Color = UiStyle.GOLD) -> RichTextLabel:
+	var label := make_label("", font_size, colour)
+	label.text = role_bbcode(role)
+	return label
+
 # A RichTextLabel showing `text` with its status names as links (wraps, sizes to its content).
 static func make_label(text: String, font_size: int = 15, colour: Color = UiStyle.INK) -> RichTextLabel:
 	var label := RichTextLabel.new()
@@ -261,8 +293,9 @@ func _show_for(meta: String, host: Control, tapped: bool) -> void:
 	else:
 		_icon.texture = IconInfo.icon(id)
 		_icon.visible = _icon.texture != null
-		_name.text = IconInfo.status_name(id)
-		_text.text = IconInfo.format(IconInfo.STATUSES.get(id, ["", ""])[1])
+		var entry: Array = IconInfo.STATUSES.get(id, IconInfo.STATS.get(id, []))  # A role line's "Crits" links a stat
+		_name.text = entry[0] if not entry.is_empty() else IconInfo.status_name(id)
+		_text.text = IconInfo.format(entry[1]) if not entry.is_empty() else ""
 	var mouse := host.get_global_mouse_position()
 	UiStyle.lift_tip(self, host)  # Above every panel and screen (screens_ui.md "tips are opaque")
 	visible = true

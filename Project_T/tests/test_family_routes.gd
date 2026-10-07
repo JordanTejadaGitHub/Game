@@ -14,6 +14,14 @@ func _check(ok: bool, what: String) -> void:
 		failures += 1
 		push_error("FAIL: " + what)
 
+# Inside a lane's role line (its RichTextLabel, or the link popup it holds).
+func _in_role(node: Node) -> bool:
+	while node != null and not String(node.name).begins_with("Route_"):
+		if node.name == "Role":
+			return true
+		node = node.get_parent()
+	return false
+
 func _initialize() -> void:
 	_run.call_deferred()
 
@@ -65,8 +73,9 @@ func _run() -> void:
 			and offer_line.tooltip_text.contains(UiStyle.DREAMLIGHT_GLYPH)), "%s: says the branches are drawn per run (%s)" % [data.display_name, offer_line.text if offer_line else "none"])
 		for lane in card.find_children("Route_*", "", true, false):
 			# Hovering an emblem (user: "repeated explanations of the branch"): one tip, the lane's, each line once.
+			# The role line takes the mouse for its glossary links (user: "Silences"), its popup inside it: not a tip.
 			var tipped: Array = lane.find_children("*", "Control", true, false).filter(func(c: Control) -> bool:
-				return c.tooltip_text != "" or c.mouse_filter != Control.MOUSE_FILTER_IGNORE)
+				return not _in_role(c) and (c.tooltip_text != "" or c.mouse_filter != Control.MOUSE_FILTER_IGNORE))
 			var tip_lines: Array = (lane.tooltip_text as String).split("\n")
 			var unique := {}
 			for tip_line in tip_lines:
@@ -75,11 +84,14 @@ func _run() -> void:
 				"%s: hovering its emblem shows one tip, nothing said twice (%s)" % [lane.get_meta(&"branch").display_name, lane.tooltip_text.replace("\n", " / ")])
 			var branch: TowerData = lane.get_meta(&"branch")
 			var final: TowerData = family.final_of(branch)
-			var texts: Array = lane.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
+			var texts: Array = lane.find_children("*", "Label", true, false).filter(func(l: Label) -> bool: return not _in_role(l)).map(func(l: Label) -> String: return l.text)
+			var role_node: RichTextLabel = lane.find_child("Role", true, false)
+			if role_node != null:
+				texts.append(role_node.get_parsed_text())
 			# Whole words: Hushbell's role line "Silences abilities" isn't its final, Silence (role lines, 7824a02e)
 			var named := RegEx.create_from_string("\\b%s\\b" % final.display_name) if final != null else null
 			_check(final == null or (named.search(lane.tooltip_text) == null and not texts.any(func(t: String) -> bool: return named.search(t) != null)
-				and lane.find_children("*", "TextureRect", true, false).size() == 1),
+				and lane.find_children("*", "TextureRect", true, false).filter(func(t: TextureRect) -> bool: return not _in_role(t)).size() == 1),
 				"%s's lane hides its final (%s)" % [branch.display_name, texts])
 	var picked: TowerData = shown.keys()[0]
 	var card_ids: Array = shown[picked].duplicate()
@@ -98,7 +110,7 @@ func _run() -> void:
 	codex._family = "sporeling"
 	codex._build_families()
 	var list: Node = codex.find_child("BranchList", true, false)
-	var rows: Array = list.get_children().map(func(l: Label) -> String: return l.text) if list != null else []
+	var rows: Array = list.get_children().map(func(l: Control) -> String: return l.get_parsed_text() if l is RichTextLabel else l.text) if list != null else []  # Branch rows are RichTextLabels (role-line links)
 	_check(rows.size() == 7 and String(rows[0]).contains("2 offered each run") and String(rows[-1]).contains("hidden branch"),
 		"the Codex lists Sporeling's 5 branches + the hidden one, 2 offered each run (%s)" % [rows])
 	pause.close()
@@ -118,6 +130,14 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 	ResultsScreen.demo_override = -1
+	# Role lines link their glossary words (user, 2026-10-07: "make sure for Silences, it has the underline"); words
+	# without an entry stay plain.
+	var linked := StatusLinks.role_bbcode("Silences, crits, long range")
+	_check(linked.contains("status:silenced") and linked.contains("]Silences[/color]") and linked.contains("status:crit_chance")
+		and not linked.contains("long range[") and linked.ends_with("long range"), "role lines link Silences and crits, not long range (%s)" % linked)
+	for word in StatusLinks.ROLE_TERMS:
+		var id: StringName = StatusLinks.ROLE_TERMS[word]
+		_check(IconInfo.STATUSES.has(id) or IconInfo.STATS.has(id), "role word \"%s\" has a glossary entry (%s)" % [word, id])
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(HeartwoodMemory.file_path))
 	print("PASS" if failures == 0 else "FAILURES: %d" % failures)
 	quit(failures)

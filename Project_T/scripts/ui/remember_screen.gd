@@ -1223,7 +1223,24 @@ class FormNode extends Button:
 		if veiled:  # A final not revealed yet: its dark silhouette only (user: "show the silhouette still"): no name, cost or button
 			portrait.modulate = Color(1, 1, 1, 0.85)  # multiplier: the shadow at .85
 			tooltip_text = "? · " + screen.veil_hint(data)
+		if not veiled and state != State.GROVE and data.tier >= 2:
+			_add_role(IconInfo.role_text(data))
 		pressed.connect(func() -> void: screen._select(data))
+
+	# Its role line under the name, small and muted like the family pick's lanes (story chat; Tower Code 7824a02e), its
+	# glossary words links (user: "Silences"): ROLE_WIDTH wide, centred under the node, in the gap below. The base sits
+	# on the strip, so it has none.
+	func _add_role(text: String) -> void:
+		if text == "":
+			return
+		var role := StatusLinks.make_role_label("", ROLE_SIZE, UiStyle.INK_DIM)
+		role.name = "Role"
+		role.text = "[center]%s[/center]" % StatusLinks.role_bbcode(text)
+		role.custom_minimum_size = Vector2(ROLE_WIDTH, 0)
+		role.size = Vector2(ROLE_WIDTH, 0)
+		role.position = Vector2((NODE_SIZE.x - ROLE_WIDTH) / 2.0, NODE_SIZE.y - 4)
+		role.add_theme_constant_override("line_separation", -2)
+		add_child(role)
 
 	func _process(delta: float) -> void:
 		if screen.state_of(data) == State.CAN_UNLOCK:
@@ -1276,26 +1293,6 @@ class FormNode extends Button:
 			var font := UiStyle.body_font() if words else UiStyle.number_font()
 			var font_size := NAME_SIZE if words else 16
 			_caption(text, font, font_size, colour, NODE_SIZE.y - 6)
-		if state != State.GROVE and data.tier >= 2:
-			_role_caption(IconInfo.role_text(data))
-
-	# Its role line under the name, small and muted like the family pick's lanes (story chat; Tower Code 7824a02e): up to
-	# two lines ROLE_WIDTH wide, centred under the node (wider than it, in the gap below). The base sits on the strip.
-	func _role_caption(text: String) -> void:
-		if text == "":
-			return
-		var font := UiStyle.body_font()
-		var lines: Array[String] = [""]
-		for word in text.split(" "):
-			var next := (lines[-1] + " " + word).strip_edges()
-			if lines[-1] != "" and font.get_string_size(next, HORIZONTAL_ALIGNMENT_LEFT, -1, ROLE_SIZE).x > ROLE_WIDTH:
-				lines.append(word)
-			else:
-				lines[-1] = next
-		for i in mini(lines.size(), 2):
-			var line := lines[i] if i == 0 or lines.size() <= 2 else lines[i] + "…"
-			var width := font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, ROLE_SIZE).x
-			draw_string(font, Vector2((NODE_SIZE.x - width) / 2.0, NODE_SIZE.y + 6 + i * (ROLE_SIZE + 1)), line, HORIZONTAL_ALIGNMENT_LEFT, -1, ROLE_SIZE, UiStyle.INK_DIM)
 
 	# The name this node shows: "???" for a form the Memory Grove hasn't planted (user), else its own.
 	func name_shown() -> String:
