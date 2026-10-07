@@ -771,6 +771,18 @@ func _run() -> void:
 		hud_walker.statuses.remove(id)
 		hud_walker._process(step)
 		_check(shown and not hud_walker._hud_ids.has(id), "HUD: %s's badge comes and goes the same frame" % id)
+	# Overkill (Balancing, run 24): a hit past the health left reports the excess, so RunHistory counts effective damage.
+	var overkilled := _still("leaf_bug", route[6])
+	overkilled.coat = 0.0
+	overkilled.health = 50
+	overkilled.take_damage(30.0)
+	var light_hit: Variant = overkilled.recent_hits[-1] if not overkilled.recent_hits.is_empty() else null
+	overkilled.take_damage(80.0)
+	var killing_hit: Variant = overkilled.recent_hits[-1] if not overkilled.recent_hits.is_empty() else null
+	_check(light_hit != null and is_zero_approx(light_hit.overkill) and killing_hit != null
+		and is_equal_approx(killing_hit.overkill, killing_hit.amount - 20.0),
+		"overkill: the hit past its last 20 health reports the rest (%s of %s)"
+			% [killing_hit.overkill if killing_hit != null else -1, killing_hit.amount if killing_hit != null else -1])
 	# Low detail (phones): off screen its cosmetics pause and catch up in view; desktop Full never pauses them.
 	var far_view := Rect2(hud_walker.global_position + Vector2(5000, 5000), Vector2(100, 100))
 	var near_view := Rect2(hud_walker.global_position - Vector2(50, 50), Vector2(100, 100))

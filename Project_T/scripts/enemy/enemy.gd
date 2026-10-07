@@ -2244,12 +2244,14 @@ func take_damage(amount: float, line: String = "", is_area: bool = false, is_cri
 	_soothe_carry += soothe
 	var whole := int(_soothe_carry)
 	_soothe_carry -= whole
+	var health_before := health
 	health = maxi(health - whole, 1 if unkillable else 0)
 	# Asleep is long but fragile: one hit (not an effect tick) of 10%+ of max health wakes it.
 	if statuses.can_wake_from_hit() and not Reactions.is_effect(tag) \
 			and soothe >= max_health * EnemyStatuses.WAKE_HIT_SHARE:
 		statuses.sleep_time = 0.0
-	_report_damage(amount, family, taken, soothe_before_coat - soothe, soothe, line, is_crit, source, tag)
+	_report_damage(amount, family, taken, soothe_before_coat - soothe, soothe, line, is_crit, source, tag,
+		maxf(soothe - health_before, 0.0))
 	if health == 0 and not _try_rise():
 		_cleanse()
 		return
@@ -2343,7 +2345,7 @@ func _on_caught_lapsed() -> void:
 
 # Tells the DamageLog what this hit did, with the combos that boosted it (see DamageLog).
 func _report_damage(amount: float, family: float, taken: float, soaked: float, dealt: float, line: String,
-		is_crit: bool, source: Node, tag: StringName) -> void:
+		is_crit: bool, source: Node, tag: StringName, overkill: float = 0.0) -> void:
 	var damage_log := DamageLog.instance
 	if damage_log == null:
 		return
@@ -2355,6 +2357,7 @@ func _report_damage(amount: float, family: float, taken: float, soaked: float, d
 	if tag in REACTION_TAGS:
 		event.kind = &"reaction"
 	event.amount = dealt
+	event.overkill = overkill  # Of `dealt`, the part past the health it had left (RunHistory counts effective damage)
 	event.base = amount
 	event.family_multiplier = family
 	event.taken_multiplier = taken
