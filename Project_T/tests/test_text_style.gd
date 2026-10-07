@@ -215,7 +215,7 @@ func _lint(owner: String, source: String, text: String, is_title := false, is_co
 # in every form (Soaked / Soaks) and the currencies (Dew, Dreamlight, Seeds) are names, so never lower case; drift and
 # rest are common words, so never capitalised mid-sentence ("Start drift 1", "at the next rest"). Findings go under
 # "<owner> caps": TODO until the owner's sweep, then the owner joins CAPS_ENFORCED.
-const CAPS_ENFORCED: Array[String] = ["Main", "Roguelite Code", "Enemy Code"]  # Main's sweep, Roguelite's, Enemy Code's (2026-10-07)
+const CAPS_ENFORCED: Array[String] = ["Main", "Roguelite Code", "Enemy Code", "Tower Code"]  # Main's sweep, Roguelite's, Enemy Code's, Tower Code's (2026-10-07)
 # Status verbs as role lines and descriptions use them ("Anti-air, Roots"); the nouns come from IconInfo.STATUSES.
 const STATUS_VERBS := ["roots", "soaks", "charges", "poisons", "drowses", "exposes", "silences", "freezes"]
 # Substrings of a text (lowercase) that use one of those words in its ordinary sense on purpose.
