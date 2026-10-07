@@ -384,6 +384,13 @@ static func cells_within(radius: float) -> int:
 static func cells_gained(radius: float, step: float) -> int:
 	return cells_within(radius + step) - cells_within(radius)
 
+# An ability that reaches further than the attack range, in cells (0 = none): Groundroot / Earthbind's flyer grab.
+# The range ring shows it dashed beside the attack ring (story chat: players read the range 2.0 as its reach).
+static func ability_reach(tower: Tower) -> float:
+	if tower == null or tower.attack_data == null or tower.attack_data.special != GROUNDROOT:
+		return 0.0
+	return p(tower, "ground_reach", 3.5) + tower.area_bonus()
+
 static func draw_link_area(canvas: CanvasItem, centre: Vector2, reach: float, alpha: float = 0.7) -> void:
 	# A dashed circle (rule 1: the link reaches by distance, b6f44fac; it was a Chebyshev square).
 	var radius := reach * CELL
@@ -899,7 +906,7 @@ static func _update_grounding(tower: Tower, delta: float) -> void:
 	if left > 0.0:
 		tower.set_meta(&"ground_left", left)
 		return
-	var reach := (p(tower, "ground_reach", 3.5) + tower.area_bonus()) * CELL
+	var reach := ability_reach(tower) * CELL
 	var flyers := targetable(tower).filter(func(e) -> bool:
 		return e.is_flying() and not e.enemy_data.is_boss and e.global_position.distance_to(tower.global_position) <= reach)
 	if flyers.is_empty():

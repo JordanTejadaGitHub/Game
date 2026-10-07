@@ -796,6 +796,9 @@ func _draw() -> void:
 		# The attack range: a thin, unfilled circle (a warm fill read as "everything in here is boosted").
 		if selected.tower_data.can_attack:
 			draw_arc(selected.position, selected.get_range_pixels(), 0.0, TAU, 64, Color(SELECTED_COLOR, 0.45), 1.5)
+		var ability := BranchKit.ability_reach(selected)
+		if ability > 0.0:
+			BranchKit.draw_link_area(self, selected.position, ability, 0.55)  # Its ability's reach, dashed (Groundroot's grab)
 	for tower in selection:
 		if is_instance_valid(tower):
 			draw_rect(Rect2(tower.position - tower.body_size() / 2, tower.body_size()).grow(-2),
