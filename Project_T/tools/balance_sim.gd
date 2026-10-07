@@ -1569,7 +1569,7 @@ func _finish() -> void:
 	if new_file:
 		runs.store_line(",".join(keys))
 	runs.seek_end()
-	runs.store_line(",".join(keys.map(func(k) -> String: return str(summary[k]))))
+	runs.store_line(",".join(keys.map(func(k) -> String: return str(summary[k]).replace(",", ";"))))  # A comma in a value (growth_costs' rank list) shifted every later column
 	runs.close()
 	print("RUN %s" % JSON.stringify(summary))
 	print("CHOICES %s" % " | ".join(policy.choices))
