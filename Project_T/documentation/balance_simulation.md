@@ -903,7 +903,10 @@ by design. If F full still clusters at 44–47, the drift 45 finale is the next 
 **both** modes; the earlier "demo easier" was mostly noise. **F / F2 (20 each):** full F 75 / 25 / 15, F2 75 / 20 / 15; demo F
 80 / 50 / 35, F2 80 / 45 / 45. The act 2 climb and act 1 no longer move full-game reach (D ≈ 23%, F 25%); full deaths still
 cluster at 41–47 (the drift 40 / 45 finales, 3 elites each from 30). Next: an elite read, F at n=30 in both modes, and a
-finale sweep (×1.2 / ×1.0, or 2 finale elites from 30), all on a build with the Phantom cap, death drifts traced.
+finale sweep (×1.2 / ×1.0, or 2 finale elites from 30), all on a build with the Phantom cap, death drifts traced. **F + Phantom cap (695fb72d,
+n=30):** full **80 / 46 / 26** (near target; 7 of 21 act 2 deaths at the Mire Hag), demo 60 / 23 / 20 (the mode gap flips sign
+between builds: noise + build drift; judged on the full game). Full act 2 leaves at 36–49: **elites ≈ 70%** (half at the 40 / 45
+finales; elite Phantoms 30); demo: Shade / puffcaplet swarms. Finale arms next; the curve is applied after them.
 
 ## Demo targets (demo_scope.md e5ce233d, 2026-10-06)
 
