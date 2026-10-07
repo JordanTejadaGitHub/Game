@@ -60,7 +60,7 @@ location; the full game reads the demo profile once: *"The forest remembered you
   perks is awake in the demo.
 - **Costs** are the full game's (so carried nodes are fair): **375 Seeds** in total. Balancing's
   target is total ≈ 4 × the median demo run's Seeds (≈ 3–5 runs); if the measurement lands far off,
-  **swap nodes** (cheaper or dearer ones) rather than giving the demo its own prices.
+  **swap nodes** (cheaper or dearer ones) rather than giving the demo its own prices. Approved fallback (user 2026-10-06): if a median demo run still banks ~60 Seeds after the act 2 retune, Wider Choice (80) swaps back to Remembered Seed (30), total 325.
 - **Power check:** with all 8, the demo win (the Mire Hag) should be +10–15 points over a fresh
   profile, never above ~60% (Balancing; a `demo_full` Grove preset is needed for the sims).
 - The demo's own cards must exist in the demo pool; if any of Sharpened / Seedbed / Scarred Bark's
