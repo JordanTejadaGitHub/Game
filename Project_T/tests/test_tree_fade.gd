@@ -69,17 +69,16 @@ func _run() -> void:
 	await _frames(20)
 	_check(env.get_cell_alternative_tile(tree) == 0, "the Warden gone: the tree is whole again")
 
-	# A nightmare above another tree.
+	# A nightmare above another tree: the tree stays solid (user 2026-10-07: no transparency on routes for obstacles).
 	var other := open[1]
 	var shade: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
 	shade.set_physics_process(false)
 	shade.set_process(false)
 	shade.position = map.MAP_GRID.calculate_map_position(Vector2(other + Vector2i.UP))
 	await _frames(20)
-	_check(env.get_cell_alternative_tile(other) == EnvironmentTiles.FADE_STEP_SEEN, "a nightmare above: the overhang fades")
+	_check(env.get_cell_alternative_tile(other) == 0, "a nightmare above: the overhang stays solid")
 	shade.free()
 	await _frames(20)
-	_check(env.get_cell_alternative_tile(other) == 0, "the nightmare gone: whole again")
 
 	# A half-offset Warden whose centre is beside the cell above (Tower.cell elsewhere), one of its halves in it.
 	var t := Vector2(tree)

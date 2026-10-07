@@ -5003,20 +5003,23 @@ func get_coverage() -> int:
 		return 0
 	return coverage_at(_dream_state.map_generator, global_position, get_range_pixels(), attack_data.min_range * MAP_GRID.cell_size.x)
 
+const TRAIL_SEE_THROUGH := false  # User (story chat, 2026-10-07): "remove the transparency on routes for Wardens and obstacles"
+
 func _refresh_path_mask() -> void:
 	_path_mask_dirty = false
 	path_mask.clear()
-	var map = _dream_state.map_generator if _dream_state else null
-	var art := _art_rect()
 	var foot := Rect2(global_position - MAP_GRID.cell_size / 2.0, MAP_GRID.cell_size)
-	for at in _route_pixels(map):
-		if path_mask.size() >= PATH_MASK_MAX:
-			break
-		var half := Rect2(at - Vector2(ROUTE_HALF, ROUTE_HALF), Vector2(ROUTE_HALF, ROUTE_HALF) * 2.0)
-		var over := art.intersection(half)
-		if over.get_area() < 1.0 or foot.encloses(over):
-			continue
-		path_mask.append(over)
+	if TRAIL_SEE_THROUGH:  # (Off: big Wardens draw opaque over the trail; the event fades below stay)
+		var map = _dream_state.map_generator if _dream_state else null
+		var art := _art_rect()
+		for at in _route_pixels(map):
+			if path_mask.size() >= PATH_MASK_MAX:
+				break
+			var half := Rect2(at - Vector2(ROUTE_HALF, ROUTE_HALF), Vector2(ROUTE_HALF, ROUTE_HALF) * 2.0)
+			var over := art.intersection(half)
+			if over.get_area() < 1.0 or foot.encloses(over):
+				continue
+			path_mask.append(over)
 	var to_sprite := sprite.get_global_transform().affine_inverse()
 	var rects := PackedVector4Array()
 	for r in path_mask:

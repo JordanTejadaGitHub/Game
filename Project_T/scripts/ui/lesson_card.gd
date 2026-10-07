@@ -127,19 +127,23 @@ func _on_built(tower: Tower) -> void:
 				InputMode.text("Build mode stays on. Right-click or Esc to stop building.",
 					"Build mode stays on. Tap Done to stop building."))
 	var data := tower.tower_data
-	if not is_family_warden(data) or tower.get_meta(&"gift_sprout", false):
+	if tower.get_meta(&"gift_sprout", false):
+		return
+	if data.get_id() == "sprout":  # The first time the Sprout price steps up (onboarding.md a599a72d)
+		var per_step := tower_placer.sprout_per_step()
+		var paid := tower_placer.count_paid_sprouts()
+		if per_step > 0 and paid > 0 and paid % per_step == 0:
+			lesson(&"sprouts_cost_more", &"dew", "Sprouts cost more",
+				"Every %d Sprouts on the map, the next one costs %s more." % [per_step, dew_text(tower_placer.sprout_step_dew())])
+		return
+	if not is_family_warden(data):
 		return
 	var name := data.display_name
 	lesson(&"planted_directly", &"rank", "Sprout or %s?" % name,
 		"Planting a %s directly costs the same as growing a Sprout into one. A Sprout lets you choose later." % name)
-	var copies := tower_placer.count_copies(data)
-	if copies >= 2:
+	if tower_placer.count_copies(data) >= 2:
 		lesson(&"copies", &"dew", "Copies cost more",
-			"Each %s you plant costs a little more than the last (%s, the next %s). Mixing Wardens keeps prices low."
-			% [name, dew_text(tower.invested_dew), dew_text(tower_placer.get_cost(data))])
-	if copies >= 5:
-		lesson(&"copies_five", &"dew", "Five %ss" % name,
-			"Five %ss: each new one now costs %s. Sprouts and walls never get pricier." % [name, dew_text(tower_placer.get_cost(data))])
+			"Each %s you plant costs a little more than the last. Every kind of Warden counts on its own, so mixing them keeps prices low. Walls never get pricier." % name)
 
 func _on_sold(_tower: Tower, _refund: int) -> void:
 	if drift_director == null or drift_director.is_build_phase():
@@ -152,9 +156,9 @@ func _on_sold(_tower: Tower, _refund: int) -> void:
 static func is_family_warden(data: TowerData) -> bool:
 	return data != null and data.buildable_directly and data.line != "wall" and data.get_id() != "sprout"
 
-# "15 Dew" (the Dew glyph once UiStyle has it: UI Code's amount helper).
+# The Dew glyph and the number (UI Code's font, 99d0b3f1).
 static func dew_text(amount: int) -> String:
-	return "%d Dew" % amount
+	return UiStyle.dew_amount(amount)
 
 # --- Showing ------------------------------------------------------------------------------------------------------
 
