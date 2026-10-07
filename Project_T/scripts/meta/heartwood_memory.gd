@@ -446,6 +446,12 @@ static func requirements_met(data: Dictionary, unlock: UnlockData) -> bool:
 
 # Why `unlock` can't be bought now ("" = it can).
 static func buy_problem(data: Dictionary, unlock: UnlockData) -> String:
+	if DemoGrove.is_active():  # The demo Grove: 8 nodes, level I only; the rest sleeps until the full game
+		var cap := DemoGrove.level_cap(unlock)
+		if cap == 0:
+			return "Grown" if unlock.start else DemoGrove.ASLEEP  # The starting families are the demo's own
+		if node_level(data, unlock) >= cap:
+			return "Grown" if is_grown(data, unlock) else DemoGrove.ASLEEP
 	if is_grown(data, unlock):
 		return "Grown"
 	if unlock.is_free():
@@ -495,6 +501,8 @@ const BASE_LOADOUT_SLOTS := 3  # Slots 1–3 are open from the start; 4 and 5 ar
 const CROWN := "heartwoods_crown"  # The Heartwood's Crown: the secret 6th slot's node (was the full_bloom milestone)
 
 static func loadout_slots(data: Dictionary) -> int:
+	if DemoGrove.is_active():
+		return DemoGrove.LOADOUT_SLOTS
 	var slots := BASE_LOADOUT_SLOTS
 	for unlock in load_grove():
 		if unlock.loadout_slots > 0:
@@ -517,7 +525,7 @@ static func get_loadout(data: Dictionary) -> Array[String]:
 	var result: Array[String] = []
 	for id in data.get("loadout", []):
 		var unlock := get_unlock(str(id))
-		if unlock != null and unlock.is_perk() and node_level(data, unlock) > 0 and not result.has(unlock.id):
+		if unlock != null and unlock.is_perk() and DemoGrove.level(data, unlock) > 0 and not result.has(unlock.id):
 			result.append(unlock.id)
 	return result.slice(0, loadout_slots(data))
 
@@ -537,11 +545,14 @@ static func total_unlock_levels(data: Dictionary) -> int:
 static func memories_unlocked(data: Dictionary) -> int:
 	if data.runs_played == 0:
 		return 0
+	if DemoGrove.is_active():
+		return DemoGrove.MEMORIES
 	return mini(1 + total_unlock_levels(data) / UNLOCKS_PER_MEMORY, MEMORIES.size())
 
 # Blight Levels open after the first win; you can pick up to one above your best.
 static func max_blight_level(data: Dictionary) -> int:
-	if data.runs_won == 0:
+	if data.runs_won == 0 or DemoGrove.is_active():  # No Blight in the demo
+		return 0
 		return 0
 	return mini(int(data.highest_blight_won) + 1, 10)
 

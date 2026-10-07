@@ -59,16 +59,25 @@ enum Root { WARDENS, DREAMS, PERKS, FORESTS }  # Limbs: Families, Cards, Perks (
 # effect is read where it applies (SeedPicker.available, the Omen pool), not by MetaRun's perk loop.
 @export var always_on: bool = false
 
-# The text the node card and loadout show: the sidegrade one while sidegrade perks are on.
+# The text the node card and loadout show: the sidegrade one while sidegrade perks are on (the Hades style's
+# plain-power perks have their pure-Sidegrade text here, for the developer style).
+const PURE_SIDEGRADE_TEXT := {
+	"morning_stores": "+10 starting Dew per level, up to +30. Costs: {drift}s 1–5 pay 15% less Dew per level.",
+	"rested_roots": "+20% {rest} bonus per level, up to +40%. Costs: every {drift} pays 5% less Dew per level.",
+	"deep_taproot": "+1 max leaf per level, up to +3. Costs: no leaf regrows at act breaks.",
+}
+
 func get_description() -> String:
+	if MetaRun.perk_style() == MetaRun.PerkStyle.SIDEGRADE and PURE_SIDEGRADE_TEXT.has(id):
+		return PURE_SIDEGRADE_TEXT[id]
 	return sidegrade_description if sidegrade_description != "" and MetaRun.sidegrade_active() else description
 
-# Hades-style sidegrade perks (Spire experiment): Deep Taproot stops at level II, so no level is a Seed
+# Hades-style perks: Deep Taproot stops at level II, so no level is a Seed
 # trap and "The Heartwood in full bloom" (every node at its max level) doesn't ask for it.
 const SIDEGRADE_MAX_LEVELS := {"deep_taproot": 2}
 
 func get_levels() -> int:
-	if SIDEGRADE_MAX_LEVELS.has(id) and MetaRun.sidegrade_active():
+	if SIDEGRADE_MAX_LEVELS.has(id) and MetaRun.hades_active():
 		return mini(costs.size(), SIDEGRADE_MAX_LEVELS[id])
 	return costs.size()
 

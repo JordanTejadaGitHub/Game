@@ -4,12 +4,13 @@ class_name GrovePresets
 # Grove profiles for the balance simulation (balance_simulation.md "Profiles"): a whole
 # HeartwoodMemory profile standing for a player's progress, written to a temp file so the real
 # profile is never touched. Load one with MetaRun.load_preset(&"half") before the run scene starts.
-#   fresh: nothing (first runs, every demo run)
+#   fresh: nothing (first runs, a new demo player)
 #   early: ~5 cheap unlocks, 3 slots (~3 hours in)
 #   half:  about half the tree by Seed cost, 3 slots (~15 hours in)
 #   full:  everything, all 6 slots (endgame, Blight 0)
+#   demo_full: the demo Grove grown (DemoGrove.NODES), 3 slots; run it with the demo on (ResultsScreen.demo_override = 1)
 
-const PRESETS: Array[StringName] = [&"fresh", &"early", &"half", &"full"]
+const PRESETS: Array[StringName] = [&"fresh", &"early", &"half", &"full", &"demo_full"]
 const PATH := "user://sim_heartwood.json"
 static var file_path := PATH  # Tests use a per-process name (every checkout shares user://)
 # Early: Morning Stores I, Deep Taproot I, one family, two card bundles.
@@ -41,6 +42,9 @@ static func profile(preset: StringName) -> Dictionary:
 			for unlock in HeartwoodMemory.load_grove():
 				if not unlock.is_free():  # Every node, The Heartwood's Crown (the 6th slot) too
 					data.unlocks[unlock.id] = unlock.get_levels()
+		&"demo_full":
+			data.runs_played = 5
+			data.unlocks = DemoGrove.NODES.duplicate()
 		_:
 			push_error("Unknown Grove preset %s" % preset)
 	data.loadout = _loadout(data)

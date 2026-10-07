@@ -6,7 +6,7 @@ extends Control
 # read), the waystones at the roots are the perk loadout (LoadoutPanel). Start run opens the loadout
 # first when there are perks to carry, then the Blight Level picker after the first win. Codex
 # (Reactions) and Back. The first visit with Seeds already banked (from the demo) says "The forest
-# remembered you." Full game only. Built in code.
+# remembered you." The demo shows the small demo Grove (DemoGrove). Built in code.
 
 const TITLE_SCENE := "res://scenes/title.tscn"
 const GAME_SCENE := "res://scenes/main.tscn"
@@ -83,9 +83,42 @@ func _ready() -> void:
 	_blight.picked.connect(func(level: int) -> void:
 		MetaRun.blight_level = level
 		_go())
+	if DemoGrove.is_active():
+		_build_demo_done()
 	_refresh()
 	_welcome()
 	_check_crown()
+
+# The demo Grove, every node planted: "Your tree keeps growing in the full game." and the store button, under the title
+# line (framed: Start run stays the one primary).
+var demo_done := PanelContainer.new()
+
+func _build_demo_done() -> void:
+	demo_done.visible = false
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 8)
+	demo_done.add_child(box)
+	var line := Label.new()
+	line.text = "Your tree keeps growing in the full game."
+	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	line.add_theme_font_size_override("font_size", 18)
+	line.add_theme_color_override("font_color", Palette.HEARTLIGHT)
+	box.add_child(line)
+	var store := Button.new()
+	store.name = "Wishlist"
+	store.text = "Wishlist on Steam"
+	store.focus_mode = Control.FOCUS_NONE
+	store.custom_minimum_size = Vector2(200, 48)
+	store.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var url: String = ProjectSettings.get_setting(ResultsScreen.WISHLIST_SETTING, "")
+	store.disabled = url == ""
+	store.tooltip_text = "Store page coming soon" if url == "" else url
+	store.pressed.connect(func() -> void: OS.shell_open(url))
+	box.add_child(store)
+	add_child(demo_done)
+	demo_done.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 56)
+	demo_done.grow_horizontal = Control.GROW_DIRECTION_BOTH
 
 func _build_header() -> void:
 	var header := VBoxContainer.new()
@@ -225,7 +258,8 @@ func _build_footer() -> void:
 	UiStyle.primary(_start_button)  # The screen's one primary (ui_style.md); framed while a node card is open
 	_button(footer, "Carry", func() -> void: _open_loadout(false))
 	_button(footer, "Codex", func() -> void: codex.open())
-	_button(footer, "Keepsakes", open_keepsakes)
+	if not DemoGrove.is_active():  # Keepsakes come from milestones, which the demo doesn't record
+		_button(footer, "Keepsakes", open_keepsakes)
 	_button(footer, "Back", func() -> void: get_tree().change_scene_to_file(TITLE_SCENE))
 	add_child(footer)
 	footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 20)
@@ -294,6 +328,8 @@ func _refresh() -> void:
 	_memory = HeartwoodMemory.load_data()
 	_seeds_label.text = "Seeds %d" % int(_memory.seeds)
 	tree_view.refresh(_memory)
+	if DemoGrove.is_active():
+		demo_done.visible = DemoGrove.complete(_memory)
 	_update_card()
 	_backdrop.visible = loadout.visible or _viewer.visible
 
@@ -353,8 +389,9 @@ func _update_card() -> void:
 	# From the list, not the row: the last node's chips are only queued for deletion and still count as children.
 	_card_needs.visible = not requirements.is_empty() and not HeartwoodMemory.is_grown(_memory, selected)
 	var problem := HeartwoodMemory.buy_problem(_memory, selected)
-	var cost := selected.get_cost(HeartwoodMemory.unlock_level(_memory, selected.id))
-	var buyable := problem != "Grown" and not selected.is_free()
+	_card_needs.visible = _card_needs.visible and problem != DemoGrove.ASLEEP  # Asleep: no needs, it waits for the full game
+	var cost :=selected.get_cost(HeartwoodMemory.unlock_level(_memory, selected.id))
+	var buyable := problem != "Grown" and problem != DemoGrove.ASLEEP and not selected.is_free()
 	_card_cost.visible = buyable
 	_card_price.text = str(cost)
 	_card_wallet.text = "of %d Seeds" % int(_memory.seeds)
@@ -366,6 +403,9 @@ func _update_card() -> void:
 			_card_status.text = "In bloom" if not selected.start else "Grown from the start"
 		"Grows by itself":  # A parked Memory Warden bloom: grown by its boss's first dispel
 			_card_status.text = "Grows by itself."
+		DemoGrove.ASLEEP:  # The demo Grove: the rest of the tree sleeps until the full game
+			_card_status.text = "Full game. Level %s grows there." % _roman(level + 1) if level > 0 \
+				else "Full game. It sleeps until then."
 		"Not enough Seeds":
 			_card_status.text = "You need %d more Seeds." % (cost - int(_memory.seeds))
 		_:
@@ -373,7 +413,7 @@ func _update_card() -> void:
 	_card_status.visible = _card_status.text != ""
 	_card_status.add_theme_color_override("font_color", Palette.SPRIG if problem == "Grown" else Palette.MIST)
 	var carried := HeartwoodMemory.get_loadout(_memory).has(selected.id)
-	_carry.visible = selected.is_perk() and level > 0
+	_carry.visible = selected.is_perk() and DemoGrove.level(_memory, selected) > 0
 	_carry.text = "Put back" if carried else "Carry into the dream"
 	_carry.disabled = not carried and HeartwoodMemory.get_loadout(_memory).size() >= HeartwoodMemory.loadout_slots(_memory)
 	if _carry.disabled:
@@ -497,8 +537,11 @@ func _requirement_name(requirement: String) -> String:
 	var unlock := HeartwoodMemory.get_unlock(parts[0])
 	var name := unlock.display_name.trim_suffix(" family") if unlock else parts[0]
 	if parts.size() > 1:
-		name += " " + ["", "I", "II", "III"][clampi(int(parts[1]), 0, 3)]
+		name += " " + _roman(int(parts[1]))
 	return name
+
+static func _roman(level: int) -> String:
+	return ["", "I", "II", "III"][clampi(level, 0, 3)]
 
 func _plant_selected() -> void:
 	if selected == null:
@@ -581,7 +624,7 @@ func _close_viewer() -> void:
 
 func _has_perks() -> bool:
 	for unlock in HeartwoodMemory.load_grove():
-		if unlock.is_perk() and HeartwoodMemory.node_level(_memory, unlock) > 0:
+		if unlock.is_perk() and DemoGrove.level(_memory, unlock) > 0:
 			return true
 	return false
 

@@ -183,8 +183,8 @@ func _ready() -> void:
 		dev_note.add_theme_font_size_override("font_size", 13)
 		dev_note.modulate = Color(1, 1, 1, 0.7)
 		box.add_child(dev_note)
-		# Grove perks as trade-offs (MetaRun.sidegrade_active): Sidegrade by default since the Spire merge, Power for testing.
-		_choice(box, "Perk style", MetaRun.PERK_STYLE_SETTING, ["Power", "Sidegrade"], 1)
+		# Grove perks (MetaRun.perk_style): Hades by default (user 2026-10-02), Power and pure Sidegrade for comparison.
+		_choice(box, "Perk style", MetaRun.PERK_STYLE_SETTING, ["Power", "Sidegrade", "Hades"], MetaRun.DEFAULT_PERK_STYLE)
 		# Capture mode (marketing.md §3): clean frames for recording; scripted scenes use -- --capture=<file>.
 		_choice(box, "Capture mode (hides dev tools, DPS tags, damage meter)", CaptureDirector.SETTING, ["Off", "Clean HUD", "No HUD"], 0)
 		box.add_child(HSeparator.new())

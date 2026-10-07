@@ -203,6 +203,8 @@ func get_canopy_stage() -> int:
 	return _canopy_stage
 
 func state_of(unlock: UnlockData) -> State:
+	if DemoGrove.is_asleep(unlock) and not unlock.start:  # The demo Grove: asleep until the full game (dim)
+		return State.LOCKED
 	if HeartwoodMemory.node_level(_memory, unlock) > 0:
 		return State.OWNED
 	if unlock.is_free() or not HeartwoodMemory.requirements_met(_memory, unlock):
