@@ -890,7 +890,10 @@ are retired (checked); the remaining differences are the act 1 boss draw and the
 by design. If F full still clusters at 44–47, the drift 45 finale is the next lever. **Confirmation D (main 89f40404, full,
 30):** Stag 66 / reach 26 / win 20%: stopped. Act 1 deaths cluster 19–24, act 2 at 40–44. F (act 1 1.0) and **F2 (act 1 0.9)** next. Demo D
 (30): 80 / 16 / 13 (act 2 deaths pile at 47–49). No curve changes between the builds (checked), so D pooled: reach ≈ 23% in
-**both** modes; the earlier "demo easier" was mostly noise.
+**both** modes; the earlier "demo easier" was mostly noise. **F / F2 (20 each):** full F 75 / 25 / 15, F2 75 / 20 / 15; demo F
+80 / 50 / 35, F2 80 / 45 / 45. The act 2 climb and act 1 no longer move full-game reach (D ≈ 23%, F 25%); full deaths still
+cluster at 41–47 (the drift 40 / 45 finales, 3 elites each from 30). Next: an elite read, F at n=30 in both modes, and a
+finale sweep (×1.2 / ×1.0, or 2 finale elites from 30).
 
 ## Demo targets (demo_scope.md e5ce233d, 2026-10-06)
 
