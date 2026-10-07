@@ -1269,6 +1269,14 @@ stays out.** Watch the first human runs on it; if act 1 is too hard, `act1_healt
 **Bot baseline change:** from a99d5382 the bot keeps walling by default; every batch before it is the non-walling
 bot. Warm-up and pgr wait for bend10 on main.
 
+## Human run 24 (2026-10-07 12:22, build 80fc4c25: **before the Sparkler fix**; 9-node Grove)
+
+Firefly Jar + Pebbling: Moonstone 62% of damage, 3 Sparklers ~30% (still ×6), 17 Sprouts, 16 Thornwalls, route 82, combos 55%.
+**15 / 15 through drift 28**, closest ≤ 0.72. Took **Leaf Fall** at the 25 rest; **drift 29 leaked 14** (closest 1.0) and with
+leaks doubled the run ended at 30. Damage logged 2–4× the health spawned in act 2 (150k vs 63k at 29): overkill is being
+counted. **Read:** a narrow, single-target-heavy board (one sniper carrying 62%) let a swarm through, and the Omen the player
+chose doubled it. No tuning. Flag to Main Merger: the run report's damage column counts overkill.
+
 ## Human run 23 (2026-10-07 09:10, build 695fb72d = the live curve, act 2 ×2.0 → 3.45 → 4.5; 6-node Grove)
 
 Firefly Jar (Starburst ×6 finals, Sparkler ×2) + Rootling, **39 Thornwalls**, 24 attackers, route **97**, combos **35%**. Dreams:
