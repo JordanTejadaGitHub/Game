@@ -11,7 +11,7 @@ const OUT := "res://assets/environment"
 # Detail pass kind per sheet.
 const KINDS := {
 	"grass": DetailPass.Kind.TILE, "path": DetailPass.Kind.TILE, "path_rim": DetailPass.Kind.TILE,
-	"island_edge": DetailPass.Kind.TILE,
+	"island_edge": DetailPass.Kind.TILE, "island_lip": DetailPass.Kind.TILE, "island_underside": DetailPass.Kind.TILE,
 	"cliff": DetailPass.Kind.TILE, "dew_pool": DetailPass.Kind.TILE, "pond": DetailPass.Kind.TILE, "pond_inner": DetailPass.Kind.TILE,
 	"heartwood_roots": DetailPass.Kind.TILE, "bog_path": DetailPass.Kind.TILE,
 	"lightning_tree": DetailPass.Kind.OBSTACLE, "moonwell": DetailPass.Kind.OBSTACLE, "bell_stone": DetailPass.Kind.OBSTACLE, "ancient_stump": DetailPass.Kind.OBSTACLE, "blight_patch": DetailPass.Kind.TILE,
@@ -31,7 +31,7 @@ const SNAP_ONLY := ["edge_mist", "void_sky", "void_stars", "cloud_shadows", "mis
 	"route_mist", "route_mist_start", "route_mist_end", "route_wisp", "mushroom_ring"]  # heartwood*: drawn with its own rim and banded glow (matches the Memory Grove)
 # Grain strength (the user's picks, 2026-09-28): no added grain on anything grassy, a light grain on
 # the other ground tiles, full detail on props.
-const NO_GRAIN := ["grass", "island_edge", "dew_pool", "pond", "pond_inner", "heartwood_roots", "blight_patch", "ground_patch"]
+const NO_GRAIN := ["grass", "island_edge", "island_lip", "island_underside", "dew_pool", "pond", "pond_inner", "heartwood_roots", "blight_patch", "ground_patch"]
 const TILE_GRAIN := 0.0  # was 0.3; the AI-look audit (2026-10-04): grain on ground tiles read as generated
 
 func _init() -> void:
@@ -101,6 +101,8 @@ func _detail(img: Image, sheet: String) -> void:
 	var frame := Vector2i(32, 32) if sheet.ends_with("_dual") else Vector2i(64, 64)  # dual-grid half-cell tiles are 32 px
 	if sheet == "heartwood":
 		frame = Vector2i(128, 128)
+	elif sheet == "island_underside":
+		frame = Vector2i(64, 128)  # The S lip, its cliff and the vines reaching into the cell below
 	elif sheet == "withered_tree" or sheet == "lightning_tree":
 		frame = Vector2i(96, 128)  # Big trees: the bottom 64 px rows are the cell, centred
 	# Ground tiles in the pass's calm mode (Theme Code 3426257d; the AI-look audit, 2026-10-04): no random
