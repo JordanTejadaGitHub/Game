@@ -24,7 +24,9 @@ func _run() -> void:
 	_check(Synergies.link(stormcap, dewdrop) == "Soaked → Stormcap", "the link works both ways")
 	_check(Synergies.link(sprout, stormcap) == "", "a Sprout doesn't combo with Stormcap")
 
+	root.size = Vector2i(1280, 800)  # A real screen, so the discovery card has room beside the nightmare
 	var main: Node = load("res://scenes/main.tscn").instantiate()
+	main.get_node("%MapGenerator").map_seed = 4242  # One map: the card placement and link checks were flaky on random ones
 	root.add_child(main)
 	await process_frame
 	await process_frame
