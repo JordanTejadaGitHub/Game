@@ -258,7 +258,7 @@ func _build_tower_bar() -> void:
 		_shadowed(button)  # Reads over the bright path (user screenshot)
 		button.custom_minimum_size = BUTTON_SIZE
 		# Hover (long-press on touch) shows the Warden card (WardenHeaderView + price), not a plain tooltip.
-		button.set_meta(&"price_line", "Cost: %d Dew · key %s" % [tower_placer.get_cost(data), str(i + 1) if i < 9 else "none"])
+		button.set_meta(&"price_line", "Cost: %s · key %s" % [UiStyle.dew_amount(tower_placer.get_cost(data)), str(i + 1) if i < 9 else "none"])
 		button.mouse_entered.connect(_show_hover_card.bind(button, data))
 		button.mouse_exited.connect(_hide_hover_card.bind(button))
 		button.button_down.connect(_on_slot_down.bind(button, data))
@@ -495,7 +495,7 @@ func _on_dew_changed(dew: int) -> void:
 			continue
 		_tower_buttons[i].set_meta(&"bar_state", bar_state)
 		_tower_buttons[i].text = str(cost)
-		_tower_buttons[i].set_meta(&"price_line", "Cost: %d Dew" % cost)
+		_tower_buttons[i].set_meta(&"price_line", "Cost: %s" % UiStyle.dew_amount(cost))
 		if _bar_towers[i].get_id() == SPROUT_ID:
 			_update_sprout_rule(_tower_buttons[i], cost)
 		# The slot stays a dark, readable tile; only the Warden dims (UI Asset: the whole slot faded into the path).
@@ -602,7 +602,7 @@ func _on_leaves_changed(leaves: int, max_leaves: int) -> void:
 	_leaf_flash.tween_callback(leaves_label.add_theme_color_override.bind("font_color", LEAVES_COLOR))
 
 func _on_rest_started(_block: int, _is_boss_rest: bool, bonus: int, perfect: bool) -> void:
-	var text := "Rest · +%d Dew" % bonus
+	var text := "Rest · %s" % UiStyle.dew_amount(bonus, true)
 	if perfect:
 		text += " · perfect block"
 	show_toast(text)
@@ -1009,10 +1009,10 @@ var _sprout_last_cost := -1
 func sprout_rule_text(cost: int) -> String:
 	var per := tower_placer.sprout_per_step()
 	if per <= 0:
-		return "Sprout · %d Dew, fixed." % cost
+		return "Sprout · %s, fixed." % UiStyle.dew_amount(cost)
 	var next := (tower_placer.count_paid_sprouts() / per + 1) * per
-	return "Sprout · %d Dew. Every %d Sprouts on the map add +%d Dew to the price (next rise at %d Sprouts).%s Selling or growing one lowers it." % [
-		cost, per, tower_placer.sprout_step_dew(), next, " (Seedfall: a slower rise.)" if tower_placer.sprout_price_halved() else ""]
+	return "Sprout · %s. Every %d Sprouts on the map add %s to the price (next rise at %d Sprouts).%s Selling or growing one lowers it." % [
+		UiStyle.dew_amount(cost), per, UiStyle.dew_amount(tower_placer.sprout_step_dew(), true), next, " (Seedfall: a slower rise.)" if tower_placer.sprout_price_halved() else ""]
 
 func _update_sprout_rule(button: Button, cost: int) -> void:
 	var tag := button.get_node_or_null("SproutRise") as Label
@@ -1035,7 +1035,7 @@ func _update_sprout_rule(button: Button, cost: int) -> void:
 	button.set_meta(&"price_line", sprout_rule_text(cost))  # The hover card's price line
 	if _sprout_last_cost >= 0 and cost > _sprout_last_cost and per > 0 and not _sprout_rise_told:
 		_sprout_rise_told = true
-		show_toast("Sprouts now cost %d Dew: the more you have, the more they cost." % cost)
+		show_toast("Sprouts now cost %s: the more you have, the more they cost." % UiStyle.dew_amount(cost))
 	_sprout_last_cost = cost
 
 # --- The Warden bar's hover card (screens_ui.md, the bullets above "Readable tooltips") --------------

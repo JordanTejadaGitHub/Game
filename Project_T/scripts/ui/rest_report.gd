@@ -149,7 +149,7 @@ static func support_text(near: Node, period: String) -> String:
 	var lines: Array[String] = []
 	var totals: Dictionary = support.get_totals(period)
 	if period == "block" and int(totals.get("dew_paid", 0)) > 0:
-		lines.append("Harvest +%d Dew" % int(totals.dew_paid))
+		lines.append("Harvest %s" % UiStyle.dew_amount(int(totals.dew_paid), true))
 	var top: Dictionary = support.get_top_support(period)
 	if not top.is_empty():
 		lines.append("%s: %s" % ["Top support" if period == "block" else "Best supporter", top.get("text", "")])
@@ -190,7 +190,7 @@ static func credit_value(row: Dictionary) -> String:
 	var n := roundi(float(row.amount))
 	match row.kind:
 		&"dew":
-			return "+%d Dew" % n
+			return UiStyle.dew_amount(n, true)
 		&"leaves":
 			return "saved %d %s" % [n, "leaf" if n == 1 else "leaves"]
 		&"clears":

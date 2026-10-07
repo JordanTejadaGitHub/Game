@@ -255,7 +255,7 @@ func _fill_growth(data: TowerData, dreams: DreamState) -> void:
 		var tip := LOCKED_FORM_TIP  # Locked (story chat 2026-10-01): only where it's unlocked; Grove-locked: "???"
 		if option[1]:
 			var cost: int = tower_grow_cost(next, dreams)
-			line.text = "%s · %d Dew" % [next.display_name, cost]
+			line.text = "%s · %s" % [next.display_name, UiStyle.dew_amount(cost)]
 			# Unlocked: its name and key changes ("Thunderhead: damage 30 → 48, chains 3 → 5, range 3.0 → 3.5").
 			tip = IconInfo.format(next.description)
 			if is_instance_valid(_tower):
@@ -266,7 +266,7 @@ func _fill_growth(data: TowerData, dreams: DreamState) -> void:
 				line.text = "%s · %s" % [RememberScreen.UNKNOWN_NAME, blocker_text(blocker)]
 				tip = RememberScreen.UNKNOWN_NAME
 			else:
-				line.text = "Unlock %s · %s" % [next.display_name, blocker_text(blocker) if blocker != "" else ("%d Dreamlight" % dreams.get_unlock_price(next)) if dreams.get_unlock_price(next) > 0 else "free"]
+				line.text = "Unlock %s · %s" % [next.display_name, blocker_text(blocker) if blocker != "" else UiStyle.dreamlight_amount(dreams.get_unlock_price(next)) if dreams.get_unlock_price(next) > 0 else "free"]
 			line.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		else:
 			line.text = "%s · needs a Dream" % next.display_name

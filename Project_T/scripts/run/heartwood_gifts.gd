@@ -27,13 +27,13 @@ const THICK_MIST_SPACING := 1.25
 # MapGifts.start_options / route_from_start).
 const POOL := {
 	&"sow_ridge": {"name": "Sow a Ridge", "group": "Shape the land", "map": true, "place": &"chain", "size": [3, 5],
-		"text": "Draw a ridge of 3–5 Withered Trees, cell by cell. Sheltered: attacking Wardens touching it deal 10% more damage. Its trees give 2 Seeds when tended instead of 1 (clearable at the normal cost)."},
+		"text": "Draw a ridge of 3–5 Withered Trees, cell by cell. Sheltered: attacking Wardens touching it deal 10% more damage. Its trees give {seeds:2} when tended instead of {seeds:1} (clearable at the normal cost)."},
 	&"fallen_giant": {"name": "Fallen Giant", "group": "Shape the land", "map": true, "place": &"line", "size": [2, 4],
 		"text": "Lay a Fallen Log 2–4 cells long, straight, where you choose. Lookout: attacking Wardens touching it get +15% crit chance. It can't be cleared this run."},
 	&"glade": {"name": "Glade", "group": "Shape the land", "map": true, "place": &"obstacles", "size": 5,
 		"text": "Clear up to 5 obstacles of your choice, free. Each still counts as tended."},  # Picked one by one (user)
 	&"shift_stones": {"name": "Shift the Stones", "group": "Shape the land", "map": true, "place": &"move", "size": 3,
-		"text": "Move up to 3 obstacles to new empty cells. Each one moved pays 30 Dew × the act."},
+		"text": "Move up to 3 obstacles to new empty cells. Each one moved pays {dew:30} × the act."},
 	&"mire": {"name": "Mire", "group": "Shape the land", "map": true, "place": &"path", "size": 3,
 		"text": "3 connected path cells turn to bog: nightmares move 20% slower there."},
 	&"spring": {"name": "Spring", "group": "Living ground", "map": true, "place": &"area", "size": Vector2i(2, 2),

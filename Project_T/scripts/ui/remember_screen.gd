@@ -745,13 +745,13 @@ func _fill_side_content(data: TowerData) -> void:
 	_line(WardenHeaderView.shape_tip(data), UiStyle.INK_DIM, 14).name = "AttackShape"  # How it attacks (aura or not)
 	# Dew to grow into it (from its parent), or to plant the base
 	if data.buildable_directly:
-		_line("Plant: %d Dew" % data.cost, UiStyle.GOLD, 14)
+		_line("Plant: %s" % UiStyle.dew_amount(data.cost), UiStyle.GOLD, 14)
 	elif data.tier >= DreamState.ASCENDED_TIER:
-		_line("Grow from its final form: %d Dew" % dream_state.get_evolve_cost(data), UiStyle.GOLD, 14)
+		_line("Grow from its final form: %s" % UiStyle.dew_amount(dream_state.get_evolve_cost(data)), UiStyle.GOLD, 14)
 	else:
 		var parent := dream_state.get_parent_form(data)
 		if parent != null:
-			_line("Grow from %s: %d Dew" % [parent.display_name, dream_state.get_evolve_cost(data)], UiStyle.GOLD, 14)
+			_line("Grow from %s: %s" % [parent.display_name, UiStyle.dew_amount(dream_state.get_evolve_cost(data))], UiStyle.GOLD, 14)
 	var count := count_on_map(data)
 	if count > 0:
 		_line("On your map: ×%d" % count, UiStyle.INK_DIM, 14)
@@ -1023,7 +1023,7 @@ func _add_unlock(data: TowerData) -> void:
 	if price > 0:
 		_cost_on(button, price, blocker == "" and short > 0)
 	if price < cost:
-		button.tooltip_text = "Waking Root: 1 Dreamlight less, once."
+		button.tooltip_text = "Waking Root: %s less, once." % UiStyle.dreamlight_amount(1)
 	if blocker == "" and short > 0:  # Can't afford yet: dimmed, the cost in POOR, no count (user); a press refuses
 		for state in ["font_color", "font_hover_color", "font_pressed_color"]:
 			button.add_theme_color_override(state, UiStyle.INK_DIM)

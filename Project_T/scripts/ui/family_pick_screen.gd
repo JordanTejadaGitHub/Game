@@ -323,8 +323,9 @@ func _show_sapling() -> void:
 		card.add_child(icon)
 	for line in [["The Heartwood Sapling", 22, UiStyle.INK],
 			["Free to plant, 2×2, a wall like any Warden. Permanent: once planted it can't be sold or moved.", 15, UiStyle.INK],
-			["It doesn't attack. After every drift it yields %d Dew, +%d per rank, and every %d drifts +1 Dreamlight. Nurture it for more; leaks wither it a little."
-				% ([data.dew_per_drift, data.dew_per_rank, data.dreamlight_every] if data != null else [8, 4, 10]), 15, UiStyle.MOONLIGHT],  # From the data
+			["It doesn't attack. After every drift it yields %s, +%d per rank, and every %d drifts %s. Nurture it for more; leaks wither it a little."
+				% ([UiStyle.dew_amount(data.dew_per_drift), data.dew_per_rank, data.dreamlight_every, UiStyle.dreamlight_amount(1, true)] if data != null
+					else [UiStyle.dew_amount(8), 4, 10, UiStyle.dreamlight_amount(1, true)]), 15, UiStyle.MOONLIGHT],  # From the data
 			["Not now? You can plant it later from the rest panel.", 13, UiStyle.WHISPER]]:
 		var label := Label.new()
 		label.text = line[0]
@@ -585,7 +586,7 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 	if regular > size:
 		head.name = "OfferLine"
 		head.mouse_filter = Control.MOUSE_FILTER_PASS
-		head.tooltip_text = OFFER_TIP % dream_state.call_back_cost(data)
+		head.tooltip_text = OFFER_TIP % UiStyle.dreamlight_amount(dream_state.call_back_cost(data))
 	for branch: TowerData in offered:
 		box.add_child(_route_lane(branch))
 	var missing: Array = routes.not_offered
@@ -603,8 +604,8 @@ func _add_routes(box: VBoxContainer, data: TowerData) -> void:
 		words.add_theme_color_override("font_color", UiStyle.INK_DIM)
 		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(words)
-		row.tooltip_text = "%s: not in this dream. Call one in on Remember for %d Dreamlight." % [
-			", ".join(missing.map(func(f: TowerData) -> String: return f.display_name)), dream_state.call_back_cost(data)]
+		row.tooltip_text = "%s: not in this dream. Call one in on Remember for %s." % [
+			", ".join(missing.map(func(f: TowerData) -> String: return f.display_name)), UiStyle.dreamlight_amount(dream_state.call_back_cost(data))]
 		box.add_child(row)
 
 # One lane: the branch (portrait, name, role). No final form (user, 2026-10-02: "don't show the final evolution in the
@@ -640,12 +641,12 @@ func _route_lane(branch: TowerData) -> Control:
 
 # "This dream offers 2 of 5 branches, different each run." Hover / tap: the call-in rule.
 const OFFER_LINE := "Dreams into, %d of %d this run"  # Small caps lower it
-const OFFER_TIP := "The others aren't in this dream. Call one in on Remember for %d Dreamlight, once per family."
+const OFFER_TIP := "The others aren't in this dream. Call one in on Remember for %s, once per family."
 
 func _offer_line(data: TowerData, size: int, regular: int) -> Label:
 	var line := _lane_line(OFFER_LINE % [size, regular], 12, UiStyle.INK_DIM, "OfferLine")
 	line.mouse_filter = Control.MOUSE_FILTER_PASS
-	line.tooltip_text = OFFER_TIP % dream_state.call_back_cost(data)
+	line.tooltip_text = OFFER_TIP % UiStyle.dreamlight_amount(dream_state.call_back_cost(data))
 	return line
 
 # One line of a lane's words: wraps within the card (a long name takes two lines), never trimmed.

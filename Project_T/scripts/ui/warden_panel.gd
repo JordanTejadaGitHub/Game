@@ -243,7 +243,7 @@ func _refresh() -> void:
 	var support := SupportLog.find(_tower)
 	var support_line := support.get_panel_line(_tower) if support else ""
 	if support_line != "":
-		lines.append(support_line)  # "Caught this run: 240 Dew · paid back ✓", "Held 42 s · …"
+		lines.append(support_line)  # "Caught this run: <dew>240 · paid back ✓", "Held 42 s · …"
 	_fill_buffs(_tower)  # The Buffs section (auras with falloff, Kinships, rank, Dreams, Omens)
 	if dream_state.has_method("get_crossroads_bonus") and dream_state.has_rule(&"crossroads"):
 		var crossroads: float = dream_state.get_crossroads_bonus(_tower)
@@ -288,7 +288,7 @@ func _refresh() -> void:
 			# The form's name and key changes first ("Thunderhead: damage 30 → 48, chains 3 → 5, range 3.0 → 3.5").
 			button.tooltip_text = tower_placer.grow_changes(_tower, next) + "\n\n" + IconInfo.format(next.description)  # {spored}-style tokens as words
 			if grow.ranks > 0:
-				button.tooltip_text += "\n\n%d Dew + %d for its rank %s." % [grow.base, grow.ranks, Tower.rank_name(_tower.rank)]
+				button.tooltip_text += "\n\n%s + %d for its rank %s." % [UiStyle.dew_amount(grow.base), grow.ranks, Tower.rank_name(_tower.rank)]
 			# The row says the form once, under the "Grow into" heading (light pass); touch: the second tap grows.
 			var label := "Grow %s" % next.display_name if _confirm_grow == next else next.display_name
 			button.set_meta(&"grow_form", next)  # A form it can grow into now (pulse, tests)
@@ -305,7 +305,7 @@ func _refresh() -> void:
 				grow_primary = grow_primary and not primary  # Only the first affordable one
 				if primary:
 					can_rank = false  # A grow took the primary
-				_priced(button, label, "%s Dew" % BossDossier.thousands(cost), cost, &"dew", primary)  # Short: dim, the cost in POOR; a press refuses
+				_priced(button, label, UiStyle.DEW_GLYPH + BossDossier.thousands(cost), cost, &"dew", primary)  # Short: dim, the cost in POOR; a press refuses
 			var tower := _tower
 			button.pressed.connect(func() -> void:
 				if tower_seller.refuse_if_short([tower], next, true, index):
@@ -386,9 +386,9 @@ func _refresh() -> void:
 	if tower_seller.is_placed_this_rest(_tower):
 		note = "Placed this rest: all its Dew back."
 	elif drift_director.is_build_phase() and _tower.rest_dew > 0:
-		note = "This rest's %d Dew comes back in full." % _tower.rest_dew
+		note = "This rest's %s comes back in full." % UiStyle.dew_amount(_tower.rest_dew)
 	_details_toggle()
-	var sell := _add_footer_button("Sell +%s Dew" % BossDossier.thousands(refund))
+	var sell := _add_footer_button("Sell %s+%s" % [UiStyle.DEW_GLYPH, BossDossier.thousands(refund)])
 	_key_on(sell, tower_seller.sell_key_name())  # Light pass: the key as a chip (no " · ")
 	sell.tooltip_text = (note + "\n\n" if note != "" else "") + "Key: %s" % tower_seller.sell_key_name()  # Light pass: the key in the tip
 	sell.pressed.connect(func() -> void: tower_seller.sell(_tower.cell))
@@ -493,7 +493,7 @@ func _refresh_group() -> void:
 				button.disabled = true
 				_row_note(button, next.display_name, awake)
 			else:
-				_priced(button, label, "%s Dew" % BossDossier.thousands(price), cheapest, &"dew", false)  # Short of even one: the can't-afford style
+				_priced(button, label, UiStyle.DEW_GLYPH + BossDossier.thousands(price), cheapest, &"dew", false)  # Short of even one: the can't-afford style
 			button.pressed.connect(func() -> void:
 				if not tower_seller.refuse_if_short(towers, next, true, index):
 					tower_seller.grow_group(towers, next))
@@ -546,7 +546,7 @@ func _refresh_group() -> void:
 	var refund := tower_seller.get_selection_refund()
 	var in_drift := not drift_director.is_build_phase()
 	_details_toggle()
-	var sell := _add_footer_button("Sell %d +%s Dew" % [selection.size(), BossDossier.thousands(refund)])
+	var sell := _add_footer_button("Sell %d %s+%s" % [selection.size(), UiStyle.DEW_GLYPH, BossDossier.thousands(refund)])
 	_key_on(sell, tower_seller.sell_key_name())
 	sell.tooltip_text = ("Half the Dew back while nightmares walk.\n\n" if in_drift else "") + "Key: %s" % tower_seller.sell_key_name()
 	if _confirm_sell:
@@ -789,7 +789,7 @@ func _locked_form_button(button: Button, label: String, next: TowerData, towers:
 		button.set_meta(&"price", WardenHeaderView.blocker_text(blocker))
 		_set_short(button, true, false)  # Not a price: just the dim look
 	else:
-		_priced(button, label, ("%d Dreamlight" % cost) if cost > 0 else "free", cost, &"dreamlight", false)  # A row: the one primary is Nurture or a grow
+		_priced(button, label, UiStyle.dreamlight_amount(cost) if cost > 0 else "free", cost, &"dreamlight", false)  # A row: the one primary is Nurture or a grow
 	button.pressed.connect(func() -> void:
 		_confirm_unlock = null
 		if tower_seller.refuse_if_short(towers, next, false, index):
@@ -931,7 +931,7 @@ func _nurture_with(which: Tower.Focus) -> void:
 
 # A Nurture price for a button: "40 Dew", or "free" (First Care's free ranks).
 static func _price(dew: int) -> String:
-	return "free" if dew <= 0 else "%d Dew" % dew
+	return "free" if dew <= 0 else UiStyle.dew_amount(dew)
 
 # Branch expansion: the branches this run didn't draw aren't Grow buttons (Tower.grow_options); one quiet line
 # points at Remember, where a misty branch can be called back into the dream for Dreamlight. It sits in the info part
@@ -1413,9 +1413,9 @@ func _as_choice(button: Button) -> void:
 	button.theme_type_variation = &""
 	button.custom_minimum_size.y = maxf(button.custom_minimum_size.y, UiStyle.HUD_BUTTON_H)
 
-# A price for the right-hand column ("180 Dew", "1 Dreamlight", "free"); anything longer is a note under the name.
+# A price for the right-hand column ("<dew>180", "<dreamlight>1", "free"); anything longer is a note under the name.
 static func _is_price(text: String) -> bool:
-	return text == "free" or text.ends_with(" Dew") or text.ends_with(" Dreamlight")
+	return text == "free" or text.begins_with(UiStyle.DEW_GLYPH) or text.begins_with(UiStyle.DREAMLIGHT_GLYPH) or text.ends_with(" Dew") or text.ends_with(" Dreamlight")
 
 func _row_look(button: Button, short: bool, poor_price: bool) -> void:
 	button.set_meta(&"short", short)

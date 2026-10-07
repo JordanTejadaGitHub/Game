@@ -62,7 +62,7 @@ func _run() -> void:
 		var offer_line: Label = card.find_child("OfferLine", true, false)
 		var size: int = dreams.branch_offer_size(data)
 		_check(regular <= size or (offer_line != null and offer_line.text == ("Dreams into, %d of %d this run" % [size, regular]).to_lower()
-			and offer_line.tooltip_text.contains("Dreamlight")), "%s: says the branches are drawn per run (%s)" % [data.display_name, offer_line.text if offer_line else "none"])
+			and offer_line.tooltip_text.contains(UiStyle.DREAMLIGHT_GLYPH)), "%s: says the branches are drawn per run (%s)" % [data.display_name, offer_line.text if offer_line else "none"])
 		for lane in card.find_children("Route_*", "", true, false):
 			# Hovering an emblem (user: "repeated explanations of the branch"): one tip, the lane's, each line once.
 			var tipped: Array = lane.find_children("*", "Control", true, false).filter(func(c: Control) -> bool:

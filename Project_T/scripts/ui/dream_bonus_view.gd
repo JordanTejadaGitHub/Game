@@ -286,13 +286,13 @@ static func _actual(tower: Tower, stat: StringName) -> float:
 			return tower.get_range_cells()
 	return 0.0
 
-# "+30%" (damage, speed), "+0.5" (range, cells), "−10 Dew" (cost).
+# "+30%" (damage, speed), "+0.5" (range, cells), "<dew>-10" (cost).
 static func _amount_text(stat: StringName, amount: float) -> String:
 	match stat:
 		&"range":
 			return "%+.1f" % amount
 		&"cost":
-			return "%+d Dew" % roundi(amount)
+			return UiStyle.dew_amount(roundi(amount), true)
 		_:
 			return "%+d%%" % roundi(amount * 100.0)
 
