@@ -489,7 +489,13 @@ just outside the grid.
   design but just on the bottom"*; Environment Assets 21eeec6). Under the thin south lip hangs the old cliff face
   (banded rock, drips, roots), only on the south edge. The N, E and W sides keep only the lip. It's the island's
   underside, never a wall in front of the play area. (The hanging vines, 4bedb870 / 9157d2ab, are dropped.)
-- **The rope bridge** joins the lip at the start, and the start's path runs out to the lip.
+- **The start: fog → bridge → island** (the user: *"looks a lot better now"*; art b10f169b). The source is a black
+  nightmare fog bank in the void at the bridge's far end (`nightmare_fog.png`, 4 frames: it drifts with soft edges, in
+  cold violet-black, faint Wraithlight eyes that open now and then, and nightmares fade in out of it). It replaces
+  the bridge-end islet and the start cell's mist. A narrow ~20 px rope bridge (`rope_bridge_lane.png`) runs on the
+  lane's exact half-cell line and lands on the lip. There's no square start block: the half-cell lane runs straight
+  off the island's edge onto the bridge. Code (Environment Code): drop the start square, align the bridge to the
+  lane's half row, and swap the islet and mist for the fog (the fog draws in the void, behind nothing on the map).
 - Heartwood 32, calm detail pass, value order unchanged (the lip stays below the ground's value).
 
 ### Code (Environment Code)
