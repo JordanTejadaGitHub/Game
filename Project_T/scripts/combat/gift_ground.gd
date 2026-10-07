@@ -239,13 +239,24 @@ func _sync_taken() -> void:
 	for t in (gifts.taken if gifts else []):
 		var id := StringName(t.id)
 		if MARK_GIFTS.has(id):
-			var cells: Array = Array(HeartwoodGifts.cells_of(t.get("placement", {})))
+			var cells: Array = mark_cells(t.get("placement", {}))
 			if id == LIGHTNING_TREE and terrain != null:
 				var standing := terrain.lightning_trees()  # A tended Lightning Tree is gone, and its bonus with it
 				cells = cells.filter(func(c: Vector2) -> bool: return standing.has(c))
 			_taken_marks[id] = _taken_marks.get(id, []) + cells
 			add_mark(id, cells)
 	_changed()
+
+# The mark cells of a gift's placement. Half-cell placement (heartwood_gifts.md 2554c638; Main's GiftPlacer): each
+# 2×2 piece's half origin / 2 (x.5 when half-offset), which is also its obstacle key (map.get_obstacle) and puts
+# touching()'s halves exactly on the piece's own; older placements keep their "cells".
+static func mark_cells(placement: Dictionary) -> Array:
+	if placement.has("pieces"):
+		var marks_out: Array = []
+		for o in HeartwoodGifts.cells_of(placement, "pieces"):
+			marks_out.append(o / 2.0)
+		return marks_out
+	return Array(HeartwoodGifts.cells_of(placement))
 
 # Environment Code's terrain (map_generator.gifts), followed so a gift's terrain that changes (a Lightning Tree
 # tended away) is read again.
