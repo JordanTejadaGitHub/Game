@@ -884,6 +884,8 @@ absolute act 1–2 numbers are no longer targets (A/B only); the demo targets be
 exports go (removed in 5012e304). Act 3: the ramp exports stay at their no-change defaults.
 **Island edge B (environment_assets.md 9329b7a5, +74 rim cells):** new rim cells filled at the frame band's density (≈ +12–18
 obstacles); sim relative to main on the same seeds: act 1 within ±10, d1–5 leaks no worse, route at 10 ≤ ~15% longer.
+**Husk resists stone (Enemy Assets 12a47530):** rolled drifts stay ≤ 40% stone-resisted (roller cap). Hand-made: drift 6 (intro)
+→ ~60% Husk health with Shades mixed in; drift 25's escorts → ≤ 40% stone-resisted, same total health (to Enemy Code).
 
 ## One curve (user, 2026-10-06: "shouldn't it be the same?")
 
