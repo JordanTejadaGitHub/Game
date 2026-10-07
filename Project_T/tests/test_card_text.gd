@@ -8,8 +8,6 @@ extends SceneTree
 
 const Check := preload("res://tools/card_text_check.gd")
 const KNOWN := {
-	"burn_back": "5 Dew a tree is DreamState.BURN_BACK_PER_TREE, not a field",
-	"deeper_rings": "130 / 180 Dew are rank cost constants, not fields",
 }
 
 const TYPED_KNOWN := {

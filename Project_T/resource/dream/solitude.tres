@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "solitude"
 display_name = "Solitude"
-description = "A Warden with no other attacking Warden within 2 cells deals 45% more damage and gets +0.5 range."
+description = "An attacking Warden with no other attacker within 2 cells deals 45% more damage and gets +0.5 range. Walls don't count."
 rarity = 1
 kind = 3
 tags = Array[String](["narrow", "precision", "defining"])

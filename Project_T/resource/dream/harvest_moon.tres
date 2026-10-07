@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "harvest_moon"
 display_name = "Harvest Moon"
-description = "+15 Dew at every {rest}."
+description = "{dew:+15} at every {rest}."
 rarity = 1
 kind = 3
 tags = Array[String](["seed", "acorn", "economy", "support"])

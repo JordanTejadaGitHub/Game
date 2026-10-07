@@ -633,8 +633,8 @@ func _heart_of_the_maze(spot: Dictionary, _board: Board, _card: UpgradeData) -> 
 		return {}
 	var heart := ds.get_heart_of_maze()
 	var on: bool = spot.node != null and heart == spot.node
-	return {"run_wide": true, "active": on, "damage": DreamState.HEART_OF_MAZE_BONUS,
-		"reason": "" if on else "another Warden stands furthest from the rest"}
+	return {"positional": true, "radius": 0.0, "active": on, "damage": DreamState.HEART_OF_MAZE_BONUS,  # positional: its Warden shows the badge (the text can't say which)
+		"reason": "" if on else "another Warden is the loneliest"}
 
 func _rain_on_glass(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.data.line != "light":
