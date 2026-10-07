@@ -1324,7 +1324,10 @@ drift in acts 2–4**; to Enemy Code. Dusk Moths (Lurkers) walk hidden: their 11
 stays above the cap; test_drift_roller enforces it).
 **Ranked trace (1,000 Dew in ranks by 50):** board DPS at 51 no higher (median ~1,430 vs ~1,600: the rank Dew came out of
 finals); start 2.4 still dies at 53–60. The bot banks as much Dew as the user (5.7–9.9k vs 6.6k by 50) but turns it into less
-DPS. **The bot can't judge act 3**: act 3 numbers come from a rule + human snapshots (`--from-save`), not this bot.
+DPS. **The bot can't judge act 3**: act 3 numbers come from a rule + human snapshots (`--from-save`), not this bot. **Plant-full
+try (447e277b):** 50 attackers, no finals, ranks 31–65, DPS still ~1,540: every split of ~6.5k Dew lands near 1,500 DPS for
+this bot. **Act 3 parked.** Phantom cap works: Phantoms 19 of 92 leaves (was 53 of 101), no drift 51 instant loss. Now on top:
+Lurkers (dusk_moth) 18, hedgehogs 17: detection and rolling, to watch on human runs.
 
 ## Overlap-audit reworks, power check (2026-10-05, dream_design.md e1e39b56; dream_audit.md budgets)
 
