@@ -102,6 +102,28 @@ trigger at these moments:
 | Blight Levels | after the first win |
 | Forests root | after the first win (shown greyed before, as a promise) |
 
+## Lessons: pause and explain a new rule (2026-10-06)
+
+User: *"learning new things should pause and put a text up, like the first time Sporeling hits 5 builds the cost
+increases, and the first time placing non-Sprout Wardens and placing multiples increases the price."*
+
+A **Lesson** is for a rule the player can't guess and that costs them if missed. Unlike a Hint (a short line that
+doesn't stop the game), a Lesson **pauses the game** and shows a small centred card (the new-nightmare card's look:
+an icon, a title, one or two plain sentences, a "Got it" primary; Esc / Enter close it). Each fires **once per
+profile**; the Hints setting (Gameplay) turns Lessons off too. A Lesson never fires during a choice screen; it waits for
+the map. At most one per drift (the rest queue).
+
+| Lesson | Fires | Text |
+|---|---|---|
+| **Copies cost more** | the first time a family Warden's price rises because you already have some (the 2nd copy) | "Each {warden} you plant costs a little more than the last. Mixing Wardens keeps prices low." (the price before → now shown with the Dew icon) |
+| **Copies, again** | the first time one Warden reaches 5 copies | "Five {warden}s: each new one now costs {price}. Sprouts and walls never get pricier." |
+| **Sprout or Warden?** | the first family Warden planted directly (not grown from a Sprout) | "Planting a {warden} directly costs the same as growing a Sprout into one. A Sprout lets you choose later." |
+| **Selling mid-drift** | the first sell during a drift | "Selling during a drift returns half. At a rest you get it all back." |
+| **Turned around** | the first nightmare to gain Restless | "Changing the route under them makes them restless and faster. Do it too often and they stop listening." |
+| **Build mode** | the first time the player plants twice in a row | "Build mode stays on. Right-click or Esc to stop building." |
+| **Dreamlight** | the first Dreamlight earned | "Dreamlight unlocks new forms on the Remember screen (Q)." |
+Copy texts use the live numbers and icons, never hard-coded values.
+
 ## Forest Journal (later: not in the first playable or demo)
 
 **Update 2026-09-30:** the nightmare half of this is now the Codex's **Nightmares** section
