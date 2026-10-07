@@ -212,16 +212,78 @@ func _process(delta: float) -> void:
 		queue_redraw()
 		_drawn = not _alive.is_empty()
 
+# The look (UI Asset's "Combo moments", approved 2026-10-07): a combo word is its status icon and the word in
+# Cormorant SemiBold 17 px with a 1 px Dread outline, no pill; a matchup is a small triangle and "weak" /
+# "strong" in Cormorant SC 14 px (Newleaf / Mist). Both pop from 125% to 100% over POP_TIME, rise RISE px
+# and fade over LIFE. (The Reaction tier's pill is Fx.reaction's.)
+const WORD_SIZE := 17
+const MATCHUP_SIZE := 14
+const POP_TIME := 0.12
+const POP_FROM := 1.25
+const RISE := 18.0
+const LIFT := 46.0  # The word's middle above the nightmare's centre
+const ICON_GAP := 6.0
+const MATCHUP_LABELS := {&"weak": "weak", &"resisted": "strong"}
+# The status icon drawn before a combo word (16 px art ×1).
+const WORD_ICONS := {"Conducted!": &"damp", "Asleep!": &"drowsy", "Critical!": &"crit_chance"}
+var _display_font: Font
+var _caps_font: Font
+var _icons := {}  # Icon id -> Texture2D (or null)
+
+func _word_icon(text: String) -> Texture2D:
+	var id: StringName = WORD_ICONS.get(text, &"")
+	if id == &"":
+		return null
+	if not _icons.has(id):
+		_icons[id] = IconInfo.icon(id)
+	return _icons[id]
+
 func _draw() -> void:
-	var font := ThemeDB.fallback_font
+	if _display_font == null:
+		_display_font = UiStyle.display_font()
+		_caps_font = UiStyle.caps_font()
+	var screen_scale := WorldLabel.text_scale(self)  # Keeps its screen size when zoomed in (as begin_screen_size)
 	for callout in _alive:
-		var t: float = callout[0] / LIFE
+		var age: float = callout[0]
+		var t := age / LIFE
 		var alpha := 1.0 - t * t
-		var size := 18 if t > 0.12 else 22  # A little pop as it appears
-		var text: String = callout[1]
-		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
-		var at: Vector2 = callout[4] + Vector2(-width / 2.0, -46.0 - 18.0 * t)
-		WorldLabel.begin_screen_size(self, callout[4])  # Keeps its screen size when zoomed in
-		draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 5, Color(Palette.DREAD, alpha))
-		draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(callout[2], alpha))
-		WorldLabel.end_screen_size(self)
+		var pop := lerpf(POP_FROM, 1.0, clampf(age / POP_TIME, 0.0, 1.0))
+		var anchor: Vector2 = callout[4]
+		var centre := anchor + Vector2(0.0, -LIFT - RISE * t)  # The word's middle, in world px
+		# Screen size around the nightmare, then the pop around the word's own middle.
+		draw_set_transform(anchor + (centre - anchor) * screen_scale, 0.0, Vector2.ONE * screen_scale * pop)
+		if callout[5] != &"":
+			_draw_matchup(callout[5], callout[2], alpha)
+		else:
+			_draw_word(String(callout[1]).trim_suffix("!"), _word_icon(callout[1]), callout[2], alpha)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+# A combo word centred on the origin: its status icon, then the word.
+func _draw_word(text: String, icon: Texture2D, colour: Color, alpha: float) -> void:
+	var font := _display_font
+	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, WORD_SIZE).x
+	var icon_w := 16.0 + ICON_GAP if icon != null else 0.0
+	var x := -(width + icon_w) / 2.0
+	if icon != null:
+		draw_texture_rect(icon, Rect2(x, -8.0, 16.0, 16.0), false, Color(Color.WHITE, alpha))  # multiplier (modulate)
+		x += icon_w
+	var baseline := font.get_ascent(WORD_SIZE) - font.get_height(WORD_SIZE) / 2.0
+	var at := Vector2(x, baseline)
+	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, WORD_SIZE, 2, Color(Palette.DREAD, alpha))
+	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, WORD_SIZE, Color(colour, alpha))
+
+# "▲ weak" / "▼ strong" centred on the origin (the triangle is drawn: the fonts have no arrow glyphs).
+func _draw_matchup(tag: StringName, colour: Color, alpha: float) -> void:
+	var font := _caps_font
+	var text: String = MATCHUP_LABELS.get(tag, "")
+	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, MATCHUP_SIZE).x
+	var x := -(width + 12.0) / 2.0
+	var tip := -3.5 if tag == &"weak" else 3.5  # Up for weak, down for strong
+	var points := PackedVector2Array([Vector2(x, -tip), Vector2(x + 8.0, -tip), Vector2(x + 4.0, tip)])
+	var outline := Color(Palette.DREAD, alpha)
+	draw_colored_polygon(points, Color(colour, alpha))
+	draw_polyline(PackedVector2Array([points[0], points[1], points[2], points[0]]), outline, 1.0, true)
+	var baseline := font.get_ascent(MATCHUP_SIZE) - font.get_height(MATCHUP_SIZE) / 2.0
+	var at := Vector2(x + 12.0, baseline)
+	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, MATCHUP_SIZE, 2, outline)
+	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, MATCHUP_SIZE, Color(colour, alpha))

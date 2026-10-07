@@ -3,8 +3,8 @@ class_name ComboFeedback
 
 # Combos in play (screens_ui.md "The Codex: Glossary and Combos"): the 7 synergies and the 8
 # Reactions (CodexData.combos()). Discovered the first time each one fires, ever: the game pauses on
-# the moment (the nightmare ringed) with a card in the screen centre ("Combo discovered: Thunderclap",
-# ingredients, one line, "Added to the Codex"; Continue / Open in Codex); several queue behind one
+# the moment (the nightmare ringed) with a card beside it ("combo discovered", the name, its recipe as icons,
+# the rule in one line, "Added to the Codex"; Continue / Open in Codex); several queue behind one
 # pause, and it waits while a choice screen or the pause menu is open. With the Gameplay setting
 # "Pause on new combos" off, the old 5 s slide-in card instead. Saved in the profile
 # (`combos_seen`, lifetime `combo_counts`; also in the demo; never tests; developer-run finds carry a
@@ -46,9 +46,30 @@ var _seen: Array = []  # Combo ids (String) discovered ever
 var _unsaved := {}  # Combo id -> count not yet added to the profile's lifetime counts
 var _queue: Array[StringName] = []
 var _card := PanelContainer.new()
-var _card_label := Label.new()  # The body (18 px)
-var _card_title := Label.new()  # "Combo discovered: Thunderclap" (display 28, gold)
-var _card_icons := HFlowContainer.new()  # 48 px status icons, or a chain's Reactions with arrows
+var _card_label := Label.new()  # The rule, one Mist line (15 px)
+var _card_title := Label.new()  # "Thunderclap" (display 34, in the Reaction's colour)
+var _card_icons := HFlowContainer.new()  # The recipe: status icons ×1.5 + names, "+", "→" the Reaction; a chain's Reactions
+var _card_caps := Label.new()  # "combo discovered" (caps, Mist)
+var _card_sub := Label.new()  # "a Reaction: two statuses meet on one nightmare" (Mist)
+var _head := HBoxContainer.new()  # The disc and the name
+var _disc := PanelContainer.new()  # A 60 px dark disc with the Reaction's icon ×3 (or a chain's ×N)
+var _disc_box := StyleBoxFlat.new()
+var _hero := TextureRect.new()
+var _disc_number := Label.new()  # "×3" on a chain's disc
+var _gem := _LegendaryGem.new()  # Dawnbreak without icon art
+var _foot := HBoxContainer.new()  # "Added to the Codex" … Peek at the map
+var _foot_label := Label.new()
+var _peek_button: Button
+var _thread := _CardThread.new()  # 1 px Gold from the ring to the card
+var _card_enemy = null  # (Untyped: may be freed) The ringed nightmare the card sits beside
+var _last_reaction_enemy = null  # The nightmare the latest Reaction fired on (a chain's card sits beside it)
+const CARD_WIDTH := 470.0
+const DISC := 60.0
+const CARD_EDGE := 16.0  # Kept from the screen's sides
+const CARD_TOP := 90.0  # Clear of the drift banner
+const CARD_BOTTOM := 110.0  # Clear of the Warden bar
+const RING_REACH := 42.0  # The ring's outer radius (world px, ComboRing)
+const CARD_GAP := 40.0  # From the ring's edge to the card
 var _dim := TextureRect.new()  # The world dimmed behind a pausing card, the nightmare left lit
 var card_text := ""  # The card's whole text (title + body; tests)
 const DIM_ALPHA := 0.6  # The world at ~40%
@@ -112,48 +133,100 @@ func _ready() -> void:
 	_best_ever = chain_best() if _may_write() else {}  # Read once: the per-chain check stays in memory
 	_card.visible = false
 	_card.mouse_filter = Control.MOUSE_FILTER_STOP
-	# Screen centre on its own layer above the HUD: the drift banner, Omen line and Coming strip never
-	# draw over it (user playtest 2026-09-30).
-	_card.set_anchors_preset(Control.PRESET_CENTER)
-	_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_card.grow_vertical = Control.GROW_DIRECTION_BOTH
-	# It stands out in combat (screens_ui.md "The discovery card stands out in combat"): a solid panel
-	# with the gold thread, the title in the display font, 48 px icons, 18 px body.
-	var style := UiStyle.panel(28.0, 20.0)
+	# On its own layer above the HUD: the drift banner, Omen line and Coming strip never draw over it (user
+	# playtest 2026-09-30). Placed by _place_card: beside the ringed nightmare, else the screen centre.
+	_card.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_card.custom_minimum_size = Vector2(CARD_WIDTH, 0)
+	# It stands out in combat (screens_ui.md "The discovery card stands out in combat"; UI Asset's "Combo
+	# moments", approved 2026-10-07): a solid panel whose thread carries the one sprout; "combo discovered"
+	# in caps, the Reaction's icon on a dark disc beside its name (display 34, in its colour) and a Mist
+	# subline, the recipe as one icon row, the rule in one Mist line, two equal buttons, then the foot.
+	var style := UiStyle.panel(22.0, 18.0)
 	style.center_alpha = UiStyle.TIP_ALPHA
 	style.edge_alpha = UiStyle.TIP_ALPHA
 	style.shadow_size = 14
 	_card.add_theme_stylebox_override("panel", style)
+	var inner := CARD_WIDTH - 44.0
+	UiStyle.caps(_card_caps, 14, UiStyle.INK_DIM)
+	_disc_box.bg_color = Palette.NIGHT
+	_disc_box.set_border_width_all(1)
+	_disc_box.set_corner_radius_all(999)  # Clamped to half the size: a circle
+	_disc_box.anti_aliasing = true
+	_disc_box.shadow_size = 8
+	_disc.add_theme_stylebox_override("panel", _disc_box)
+	_disc.custom_minimum_size = Vector2(DISC, DISC)
+	_disc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hero.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_hero.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_hero.custom_minimum_size = Vector2(48, 48)
+	_hero.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_hero.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_disc.add_child(_hero)
+	UiStyle.number(_disc_number, 28, UiStyle.GOLD)
+	_disc_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_disc_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_disc.add_child(_disc_number)
+	_gem.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_gem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_disc.add_child(_gem)
 	_card_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_card_title.custom_minimum_size = Vector2(440, 0)
-	_card_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UiStyle.display(_card_title, 28)
-	_card_title.add_theme_color_override("font_color", UiStyle.GOLD)
-	_card_icons.alignment = FlowContainer.ALIGNMENT_CENTER
-	_card_icons.add_theme_constant_override("h_separation", 8)
+	_card_title.custom_minimum_size = Vector2(inner - DISC - 14.0, 0)
+	_card_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_card_sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_card_sub.custom_minimum_size = Vector2(inner - DISC - 14.0, 0)
+	_card_sub.add_theme_font_size_override("font_size", 14)
+	_card_sub.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	var naming := VBoxContainer.new()
+	naming.add_theme_constant_override("separation", 2)
+	naming.alignment = BoxContainer.ALIGNMENT_CENTER
+	naming.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	naming.add_child(_card_title)
+	naming.add_child(_card_sub)
+	_head.add_theme_constant_override("separation", 14)
+	_head.add_child(_disc)
+	_head.add_child(naming)
+	_card_icons.add_theme_constant_override("h_separation", 10)
+	_card_icons.add_theme_constant_override("v_separation", 4)
 	_card_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_card_label.custom_minimum_size = Vector2(440, 0)
-	_card_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_card_label.add_theme_font_size_override("font_size", 18)
+	_card_label.custom_minimum_size = Vector2(inner, 0)
+	_card_label.add_theme_font_size_override("font_size", 15)
+	_card_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
 	var card_box := VBoxContainer.new()
 	card_box.add_theme_constant_override("separation", 12)
 	_card.add_child(card_box)
-	card_box.add_child(_card_title)
+	card_box.add_child(_card_caps)
+	card_box.add_child(_head)
 	card_box.add_child(_card_icons)
 	card_box.add_child(_card_label)
-	# Pausing cards: Continue (also Space / Enter / a tap on the card) and Open in Codex.
-	_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	# Pausing cards: Continue (also Space / Enter / a tap on the card) and Open in Codex, the same size.
 	_buttons.add_theme_constant_override("separation", 12)
 	card_box.add_child(_buttons)
 	for pair in [["Continue", continue_on], ["Open in Codex", _continue_to_codex]]:
 		var button := Button.new()
 		button.text = pair[0]
 		button.focus_mode = Control.FOCUS_NONE
-		button.custom_minimum_size = Vector2(150, 48)
+		button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(pair[1])
 		if pair[0] == "Continue":
 			UiStyle.primary(button)  # The default (Space / Enter; button rule)
+			_plain_primary(button)  # One sprout per card: the panel's; the primary keeps only its thread
+			var enter := UiStyle.key_chip("⏎")
+			enter.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+			enter.offset_left = -38
+			enter.offset_right = -14
+			button.add_child(enter)
 		_buttons.add_child(button)
+	# The foot: "Added to the Codex" on the left, Peek at the map as quiet text on the right.
+	_foot_label.text = "Added to the Codex"
+	_foot_label.add_theme_font_size_override("font_size", 14)
+	_foot_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+	_foot_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_foot_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_foot.add_child(_foot_label)
+	card_box.add_child(_foot)
 	# Crowned Reactions get gold corners (effects.json crowned_card_accent: the top-left corner,
 	# mirrored for the others).
 	_crown_corners.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -197,14 +270,21 @@ func _ready() -> void:
 	_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_dim.visible = false
 	holder.add_child(_dim)
+	holder.add_child(_thread)
 	holder.add_child(_card)
+	_card.visibility_changed.connect(_update_thread)
 	peek = ChoicePeek.new(holder, [_card, _dim], "Combo discovered")
 	peek.catch_mouse = false  # The holder stays click-through: the world under it pans, zooms and hovers
 	peek.place_back_centre()  # The "Return" pill mid-screen (pausing cards, ChoicePeek)
 	peek.changed.connect(func(on: bool) -> void:
 		if on:
-			peek.back_button().text = return_text())
-	_buttons.add_child(peek.make_peek_button())
+			peek.back_button().text = return_text()
+		elif _card.visible:
+			_show_dim(_card_enemy)  # The camera may have moved while peeking: beside the nightmare again
+			_place_card())
+	_peek_button = peek.make_peek_button()
+	UiStyle.quiet(_peek_button)
+	_foot.add_child(_peek_button)
 	drift_director.rest_ended.connect(func(_block: int) -> void:
 		block_counts.clear()
 		block_longest_chain = 0
@@ -305,6 +385,7 @@ func _on_chain(links: int, _where: Vector2, _towers: Array) -> void:
 	block_new_chains.append(tier)
 	var id := StringName(CHAIN_PREFIX + str(tier))
 	_chain_orders[id] = order
+	_enemies[id] = _last_reaction_enemy  # The chain's newest link (reaction_fired comes just before): ringed, the card beside it
 	_queue.append(id)
 	if not showing():
 		_try_show()
@@ -392,6 +473,7 @@ func _on_reaction(id: StringName, enemy: Node2D, chain: int, _towers: Array) -> 
 	block_counts[id] = block_counts.get(id, 0) + 1
 	block_longest_chain = maxi(block_longest_chain, chain)
 	_note_firing(id, chain)
+	_last_reaction_enemy = enemy
 	record(id, enemy)
 
 # One firing of combo `id` (on `enemy`, if known): counted, and discovered if it's the first time ever.
@@ -573,34 +655,26 @@ func _show_next() -> void:
 		card_text = discovery_text(_card_id)
 	if new_dreams.has(_card_id):  # "New Dreams: Rolling Thunder, Rain on Glass" (discovery unlocks)
 		card_text += "\nNew Dreams: " + ", ".join(new_dreams[_card_id])
-	# Title (display 28, gold), the icons, then the body (a chain's order is in the icons row).
-	var lines := card_text.split("\n")
-	_card_title.text = lines[0]
-	var body := lines.slice(1)
-	if is_chain and not order.is_empty() and body.size() > 0:
-		body = body.slice(1)
-	_card_label.text = "\n".join(body)
-	_card_label.add_theme_color_override("font_color", UiStyle.INK)
-	_build_card_icons(_card_id, is_chain, order)
+	_fill_card(_card_id, is_chain, order)
 	_crown_corners.visible = CodexData.CROWNED.has(_card_id)
 	var pausing := pause_setting()
 	_buttons.visible = pausing
+	_peek_button.visible = pausing
 	if pausing and not _pausing:  # The first of a queue freezes the world; the last Continue thaws it
 		_pausing = true
 		var speed = get_node_or_null("%GameSpeed")
 		if speed != null:
 			_was_paused = speed.paused
 			speed.set_paused(true)
+	_card_enemy = null
 	if pausing:
-		_highlight(_enemies.get(_card_id))
-		_show_dim(_enemies.get(_card_id))
+		var found = _enemies.get(_card_id)
+		_card_enemy = found if is_instance_valid(found) else null
+		_highlight(_card_enemy)
+		_show_dim(_card_enemy)
 	_enemies.erase(_card_id)
 	_card.visible = true
-	_card.reset_size()
-	_card.offset_left = -_card.size.x / 2.0
-	_card.offset_right = _card.size.x / 2.0
-	_card.offset_top = -_card.size.y / 2.0
-	_card.offset_bottom = _card.size.y / 2.0
+	_place_card()
 	_card.modulate.a = 0.0
 	if _card_tween:
 		_card_tween.kill()
@@ -719,49 +793,162 @@ func _show_dim(enemy: Node2D) -> void:
 	_dim_gradient.set_offset(1, minf((hole * 2.0 + 1.0) / reach, 1.0))
 	_dim.visible = true
 
-# The card's icons: a combo's two statuses at 48 px ("Soaked + Charged"); a chain's Reactions in
-# order with arrows, repeats collapsed ("Drown → Nightbloom ×2").
-func _build_card_icons(id: StringName, is_chain: bool, order: Array) -> void:
+
+# --- The card's look (UI Asset's "Combo moments", approved 2026-10-07) ---------------------------------
+# Every discovery shares one layout: caps line, the disc + name + subline, the recipe row, the rule, the
+# buttons and the foot. `card_text` (above) stays the plain-text summary the tests and logs read.
+
+const SUB_LINES := {"Reaction": "a Reaction: two statuses meet on one nightmare",
+	"Kinship": "a Kinship: two branches of one family, planted close"}
+const CHAIN_SUB := "one Reaction setting off the next"
+
+func _fill_card(id: StringName, is_chain: bool, order: Array) -> void:
 	for child in _card_icons.get_children():
 		_card_icons.remove_child(child)
 		child.queue_free()
-	if id == DAWNBREAK_ID:  # Its own icon (UI Asset, icons.json "legendary"), else the Legendary gem
-		_card_icons.add_child(_card_icon(id) if IconInfo.icon(id) != null else _LegendaryGem.new())
-		return
+	var colour := UiStyle.GOLD
+	var hero: Texture2D = null
+	var number := ""
+	var caps := "combo discovered"
+	var title := ""
+	var sub := ""
+	var rule := ""
+	var foot := "Added to the Codex"
 	if is_chain:
-		var runs: Array = []  # [name, count]
-		for name in order:
-			if not runs.is_empty() and runs[-1][0] == name:
-				runs[-1][1] += 1
-			else:
-				runs.append([name, 1])
-		for i in runs.size():
-			if i > 0:
-				_card_icons.add_child(_card_word("→", UiStyle.INK_DIM))
-			var reaction_id := _reaction_id_named(String(runs[i][0]))
-			if reaction_id != &"" and IconInfo.icon(reaction_id) != null:
-				_card_icons.add_child(_card_icon(reaction_id))  # Each Reaction's own icon (UI Asset), 48 px
-			_card_icons.add_child(_card_word(runs[i][0] + (" ×%d" % runs[i][1] if runs[i][1] > 1 else ""), UiStyle.GOLD))
-		return
-	var combo := CodexData.get_any(id)
-	var statuses: Array = combo.get("statuses", [])
-	for i in statuses.size():
-		if i > 0:
-			_card_icons.add_child(_card_word("+", UiStyle.INK_DIM))
-		_card_icons.add_child(IconInfo.make_icon(statuses[i], 3))  # 48 px, with its tap tip
-	if IconInfo.icon(id) != null:  # A Reaction: its own icon after its statuses (it's discovered now)
-		_card_icons.add_child(_card_word("→", UiStyle.INK_DIM))
-		_card_icons.add_child(_card_icon(id))
+		var tier := int(String(id).trim_prefix(CHAIN_PREFIX))
+		var best: Dictionary = chain_best() if _may_write() else _best_this_session
+		caps = "chain discovered"
+		number = "×%d" % tier
+		title = "Chain ×%d" % tier
+		sub = CHAIN_SUB
+		rule = CHAIN_LINE
+		foot = "Your longest ×%d, added to the Codex" % maxi(int(best.get("links", 0)), tier)
+		_build_chain_row(order)
+	elif id == DAWNBREAK_ID:
+		caps = "legendary discovered"
+		hero = IconInfo.icon(id)
+		title = "Dawnbreak"
+		sub = "a Chain 10 broke into dawn"
+		rule = "10% of max health to every nightmare within 4 cells (bosses 2%)."
+	else:
+		var combo := CodexData.get_any(id)
+		var kind: String = combo.get("kind", "")
+		title = combo.get("name", String(id).capitalize())
+		rule = combo.get("text", "")
+		var data: ReactionData = Reactions.get_data(id) if kind in ["Reaction", "Crowned"] else null
+		if data != null:
+			colour = data.callout_color
+		hero = IconInfo.icon(id)
+		match kind:
+			"Synergy":
+				sub = "a Synergy: a status sets up %s" % combo.by if combo.get("by", "") != "" else "a Synergy: two Wardens working together"
+				if hero == null and not combo.statuses.is_empty():
+					hero = IconInfo.icon(combo.statuses[-1])
+			"Crowned":
+				caps = "crowned reaction discovered"
+				var families: Array[String] = []
+				for family in combo.families:
+					families.append(CodexData.FAMILY_NAMES.get(family, family))
+				sub = "a Reaction with a third status: %s" % ", ".join(families)
+			"Kinship":
+				caps = "kinship discovered"
+				hero = CodexData.family_icon(CodexData.LINE_FAMILIES.get(combo.get("line", ""), ""))
+				sub = SUB_LINES["Kinship"]
+			_:
+				sub = SUB_LINES.get(kind, "")
+		_build_recipe(id, combo, colour)
+	if new_dreams.has(id):  # Discovery unlocks: the Dreams this find let into the pool
+		rule += "\nNew Dreams: " + ", ".join(new_dreams[id])
+	_card_caps.text = caps
+	_card_title.text = title
+	UiStyle.display(_card_title, 34)
+	_card_title.add_theme_color_override("font_color", colour)
+	_card_sub.text = sub
+	_card_sub.visible = sub != ""
+	_card_label.text = rule
+	_card_label.visible = rule != ""
+	_card_icons.visible = _card_icons.get_child_count() > 0
+	_foot_label.text = foot
+	_hero.texture = hero
+	_hero.visible = hero != null and number == ""
+	_disc_number.text = number
+	_disc_number.visible = number != ""
+	_gem.visible = hero == null and number == "" and id == DAWNBREAK_ID
+	_disc.visible = _hero.visible or _disc_number.visible or _gem.visible
+	_disc_box.border_color = Color(colour, 0.5)
+	_disc_box.shadow_color = Color(colour, 0.25)
 
-# A Reaction's icon at 48 px (16 px art ×3, nearest).
-func _card_icon(id: StringName) -> TextureRect:
-	var icon := TextureRect.new()
-	icon.texture = IconInfo.icon(id)
-	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.custom_minimum_size = Vector2(48, 48)
-	return icon
+# Reaction / Synergy: each status ×1.5 with its name, "+", then "→" the combo; Crowned: its base Reaction +
+# the third status → it; Kinship: the two Wardens → it.
+func _build_recipe(id: StringName, combo: Dictionary, colour: Color) -> void:
+	var parts: Array = []  # [icon or null, name]
+	match combo.get("kind", ""):
+		"Crowned":
+			var base := Reactions.get_data(combo.base)
+			parts.append([IconInfo.icon(combo.base), base.display_name if base != null else String(combo.base).capitalize()])
+			parts.append([IconInfo.icon(combo.statuses[-1]), IconInfo.status_name(combo.statuses[-1])])
+		"Kinship":
+			parts.append([null, combo.get("a", "?")])
+			parts.append([null, combo.get("b", "?")])
+		_:
+			var seen: Array[StringName] = []
+			for status in combo.get("statuses", []):
+				if not seen.has(status):
+					seen.append(status)
+					parts.append([IconInfo.icon(status), IconInfo.status_name(status)])
+	for i in parts.size():
+		if i > 0:
+			_card_icons.add_child(_recipe_word("+", UiStyle.INK_DIM))
+		_card_icons.add_child(_recipe_item(parts[i][0], parts[i][1], UiStyle.INK))
+	_card_icons.add_child(_recipe_word("→", UiStyle.INK_DIM))
+	_card_icons.add_child(_recipe_item(IconInfo.icon(id), combo.get("name", ""), colour))
+
+# A chain's Reactions in order, joined by short Gold lines, repeats collapsed ("Nightbloom ×2").
+func _build_chain_row(order: Array) -> void:
+	var runs: Array = []  # [name, count]
+	for name in order:
+		if not runs.is_empty() and runs[-1][0] == name:
+			runs[-1][1] += 1
+		else:
+			runs.append([name, 1])
+	for i in runs.size():
+		if i > 0:
+			var link := ColorRect.new()
+			link.color = Color(UiStyle.GOLD, 0.6)
+			link.custom_minimum_size = Vector2(14, 1)
+			link.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			link.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_card_icons.add_child(link)
+		var reaction_id := _reaction_id_named(String(runs[i][0]))
+		var icon := IconInfo.icon(reaction_id) if reaction_id != &"" else null
+		_card_icons.add_child(_recipe_item(icon, runs[i][0] + (" ×%d" % runs[i][1] if runs[i][1] > 1 else ""), UiStyle.INK))
+
+# One recipe ingredient: its icon ×1.5 (24 px, nearest) and its name.
+func _recipe_item(icon: Texture2D, text: String, colour: Color) -> HBoxContainer:
+	var item := HBoxContainer.new()
+	item.add_theme_constant_override("separation", 5)
+	item.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if icon != null:
+		var rect := TextureRect.new()
+		rect.texture = icon
+		rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		rect.custom_minimum_size = Vector2(24, 24)
+		rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		item.add_child(rect)
+	item.add_child(_recipe_word(text, colour))
+	return item
+
+func _recipe_word(text: String, colour: Color) -> Label:
+	var word := Label.new()
+	word.text = text
+	word.add_theme_font_size_override("font_size", 15)
+	word.add_theme_color_override("font_color", colour)
+	word.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	word.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return word
 
 # The Reaction (or Crowned Reaction) id for a name in a chain's order.
 static func _reaction_id_named(name: String) -> StringName:
@@ -770,10 +957,54 @@ static func _reaction_id_named(name: String) -> StringName:
 			return StringName(entry.id)
 	return &""
 
-func _card_word(text: String, colour: Color) -> Label:
-	var word := Label.new()
-	word.text = text
-	UiStyle.display(word, 22)
-	word.add_theme_color_override("font_color", colour)
-	word.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	return word
+# The primary without its own Heartwood mark (one sprout per card: the panel's), keeping its thread.
+static func _plain_primary(button: Button) -> void:
+	for state in [["normal", false, false], ["hover", true, false], ["pressed", false, true], ["hover_pressed", true, false]]:
+		var box := UiStyle.primary_box(state[1], state[2])
+		box.diamond = false
+		button.add_theme_stylebox_override(state[0], box)
+
+# Beside the ringed nightmare, on the side with more room, never over it, with the thread to the ring; the
+# screen centre when there is no nightmare (chains, the slide-in card).
+func _place_card() -> void:
+	_card.reset_size()
+	var screen := get_viewport().get_visible_rect().size
+	var card_size := _card.size
+	var pos := (screen - card_size) / 2.0
+	_thread.on = false
+	if is_instance_valid(_card_enemy) and _card_enemy.is_inside_tree():
+		var canvas: Transform2D = (_card_enemy as Node2D).get_global_transform_with_canvas()
+		var at := canvas.origin
+		var ring := RING_REACH * absf(canvas.get_scale().x)
+		var right := at.x < screen.x / 2.0
+		pos.x = at.x + ring + CARD_GAP if right else at.x - ring - CARD_GAP - card_size.x
+		pos.y = at.y - card_size.y / 2.0
+		pos.x = clampf(pos.x, CARD_EDGE, maxf(CARD_EDGE, screen.x - card_size.x - CARD_EDGE))
+		pos.y = clampf(pos.y, CARD_TOP, maxf(CARD_TOP, screen.y - card_size.y - CARD_BOTTOM))
+		var edge_x := pos.x if right else pos.x + card_size.x
+		var to := Vector2(edge_x, clampf(at.y, pos.y + 16.0, pos.y + card_size.y - 16.0))
+		if absf(to.x - at.x) > ring:  # Room for a thread (the card isn't pushed over the ring)
+			_thread.from = at + (to - at).normalized() * ring
+			_thread.to = to
+			_thread.on = true
+	_card.position = pos
+	_card.pivot_offset = card_size / 2.0
+	_update_thread()
+
+func _update_thread() -> void:
+	_thread.visible = _thread.on and _card.visible
+	_thread.queue_redraw()
+
+# The 1 px Gold thread from the ring (alpha .7) to the card's edge (.15).
+class _CardThread extends Control:
+	var from := Vector2.ZERO
+	var to := Vector2.ZERO
+	var on := false
+
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		visible = false
+
+	func _draw() -> void:
+		draw_polyline_colors(PackedVector2Array([from, to]),
+			PackedColorArray([Color(UiStyle.GOLD, 0.7), Color(UiStyle.GOLD, 0.15)]), 1.0, true)

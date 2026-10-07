@@ -128,12 +128,15 @@ func _run() -> void:
 	whispers.set_enabled(false)
 	_check(feedback._card.visible and feedback.card_text.begins_with("Combo discovered: Set Off"),
 		"the first Set Off shows a discovery card (%s)" % feedback.card_text)
+	# Beside the ringed nightmare, never over it, above the HUD (headless views are 64 px: no on-screen check) (UI Asset's "Combo moments", 2026-10-07).
 	var card_layer := feedback._card.get_canvas_layer_node()
-	var card_centre := feedback._card.get_global_rect().get_center()
-	var screen_centre := feedback._card.get_viewport_rect().size / 2.0
+	var card_rect := feedback._card.get_global_rect()
+	var foe_at := shade.get_global_transform_with_canvas().origin
 	_check(card_layer != null and card_layer.layer > (feedback.get_canvas_layer_node() as CanvasLayer).layer
-			and card_centre.distance_to(screen_centre) < 2.0,
-		"the discovery card sits in the screen centre above the HUD (%s vs %s)" % [card_centre, screen_centre])
+			and not card_rect.grow(20.0).has_point(foe_at),
+		"the discovery card sits beside the nightmare, never over it, above the HUD (%s vs %s)" % [card_rect, foe_at])
+	_check(feedback._card.size.x >= ComboFeedback.CARD_WIDTH - 1.0 and feedback._card_caps.text == "combo discovered"
+		and feedback._card_title.text == "Set Off", "…~470 wide: 'combo discovered', then the name (%s)" % feedback._card_title.text)
 	_check(feedback._queue == [&"thunderclap"], "Thunderclap waits its turn (%s)" % [feedback._queue])
 	_check(ComboFeedback.discovery_text(&"thunderclap").contains("Soaked + Charged") and ComboFeedback.discovery_text(&"thunderclap").ends_with("Added to the Codex."),
 		"the card names the ingredients and says it's in the Codex")
@@ -141,6 +144,16 @@ func _run() -> void:
 	feedback.continue_on()
 	_check(feedback._card.visible and feedback.card_text.begins_with("Combo discovered: Thunderclap") and game_speed.paused,
 		"Continue shows the next discovery, still paused")
+	# The recipe once, as one icon row (Soaked + Charged → Thunderclap); the two buttons the same size.
+	var recipe: Array = feedback._card_icons.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
+	_check(recipe == ["Soaked", "+", "Charged", "→", "Thunderclap"] and feedback._card_title.text == "Thunderclap"
+		and not feedback._card_label.text.contains("Soaked + Charged") and feedback._hero.visible,
+		"the Thunderclap card: its icon on the disc, the recipe once as icons (%s)" % [recipe])
+	await process_frame
+	var pair: Array = feedback._buttons.get_children()
+	_check(pair.size() == 2 and absf((pair[0] as Control).size.x - (pair[1] as Control).size.x) < 1.0
+		and feedback._peek_button.visible and feedback._foot_label.text == "Added to the Codex",
+		"Continue and Open in Codex the same size; the foot says Added to the Codex, Peek beside it")
 	# Peek at the map (screens_ui.md "The discovery card can be minimised"): the card and the dim go, the
 	# game stays paused, the world pans; a solid "Return to Thunderclap" pill mid-screen reopens it (pausing cards).
 	feedback.peek.set_peeking(true)
@@ -200,10 +213,12 @@ func _run() -> void:
 	# It stands out in combat: a solid panel, the title in display gold, its Reactions in the icons row,
 	# the world dimmed behind it.
 	var card_style := feedback._card.get_theme_stylebox("panel") as MoonStyleBox
-	var words: Array = feedback._card_icons.get_children().filter(func(c: Node) -> bool: return c is Label).map(func(l: Label) -> String: return l.text)
-	_check(card_style != null and card_style.center_alpha >= 0.9 and feedback._card_title.text == "Chain discovered: Chain 3"
-		and words == ["Thunderclap", "→", "Ignite", "→", "Mushrooming"] and feedback._dim.visible,
-		"the discovery card is solid, titled, shows the chain in its icons row and dims the world (%s)" % [words])
+	var words: Array = feedback._card_icons.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
+	_check(card_style != null and card_style.center_alpha >= 0.9 and feedback._card_title.text == "Chain ×3"
+		and feedback._card_caps.text == "chain discovered" and feedback._disc_number.text == "×3"
+		and words == ["Thunderclap", "Ignite", "Mushrooming"] and feedback._dim.visible
+		and feedback._foot_label.text == "Your longest ×3, added to the Codex",
+		"the chain card is solid, titled Chain ×3, shows its Reactions in order and dims the world (%s)" % [words])
 	tracker.record(&"thunderclap", shade, 3, [storm])
 	feedback._on_chain(10, Vector2.ZERO, [])
 	_check(feedback._queue.is_empty(), "chains are discovered once: no card at Chain 3 again, nor at Chain 10")
@@ -220,7 +235,8 @@ func _run() -> void:
 	dawn.enemy = shade
 	feedback._on_damage(dawn)
 	_check(feedback._card.visible and feedback.card_text == ComboFeedback.DAWNBREAK_TEXT and feedback.card_text.contains("10% of max health")
-		and feedback._card_icons.get_child_count() == 1, "Dawnbreak's first Dawnburst shows its discovery card with its gem (%s)" % feedback.card_text)
+		and feedback._card_title.text == "Dawnbreak" and (feedback._hero.visible or feedback._gem.visible),
+		"Dawnbreak's first Dawnburst shows its discovery card with its icon (%s)" % feedback.card_text)
 	feedback.continue_on()
 	feedback._on_damage(dawn)
 	_check(not feedback._card.visible and feedback._queue.is_empty(), "…once")
