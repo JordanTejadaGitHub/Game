@@ -357,6 +357,12 @@ func _run() -> void:
 			return
 		var raw: String = s.get_slice("=", 1)
 		var current = node.get(prop)
+		if current is Dictionary:  # --set=%Node.dict=10:1|15:2|30:2 (e.g. DriftDirector.block_finale_elites): int keys and values
+			var dict := {}
+			for pair in raw.split("|"):
+				dict[int(pair.get_slice(":", 0))] = int(pair.get_slice(":", 1))
+			node.set(prop, dict)
+			continue
 		if current is Array:  # --set=%Node.list=1.1|1.25 (e.g. DriftDirector.demo_boss_health_scale): same type as the elements there
 			var items: Array = Array(raw.split("|")).map(func(v: String): return float(v))
 			var typed = current.duplicate()
