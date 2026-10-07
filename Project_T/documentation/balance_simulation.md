@@ -1315,8 +1315,8 @@ cleared drifts, so those death drifts are too early. Trace: drift 51 content is 
 in 51, but the field piles up (25–60 alive) and carries over; the only direct leakers are fast Dandelion flyers. Control
 and start 2.4 look alike, and the bot's ranks at 51 are ≈ 0: likely a DPS-short bot board, not the multiplier. Rerun to 60
 with damage vs health per drift. **Full trace (10 runs to 60):** at 51 every board has 35 attackers, 3–9 finals, **ranks 0**, ~1,600 DPS;
-deaths control 51–59, start 2.4 51–60 (the ramp buys 1–2 drifts); damage / health falls behind on both. **Dandelion seeds take 50
-of 88 leaves**, at either multiplier (flyers skip the maze). Next: finals-first with a ranking budget (~1,000 Dew in ranks by
+deaths control 51–59, start 2.4 51–60 (the ramp buys 1–2 drifts); damage / health falls behind on both. **Dandelion seeds take 53
+of 101 leaves** (Dusk Moths 11 more), at either multiplier (flyers skip the maze). Next: finals-first with a ranking budget (~1,000 Dew in ranks by
 50, as the user), the same trace; Dandelions sent to Enemy types design.
 
 ## Overlap-audit reworks, power check (2026-10-05, dream_design.md e1e39b56; dream_audit.md budgets)
