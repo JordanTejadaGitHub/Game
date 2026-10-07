@@ -43,8 +43,33 @@ func _notification(what: int) -> void:
 			menu.ask_quit()
 		else:
 			safe_quit(get_tree())
+	elif what == NOTIFICATION_APPLICATION_PAUSED:
+		_on_backgrounded()
+	elif what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		_press_menu_key()
 	elif what == NOTIFICATION_EXIT_TREE:
 		get_tree().auto_accept_quit = true  # Back to the title / Grove: their close is the engine's
+		get_tree().quit_on_go_back = true
+
+# Mobile (mobile_plan.md "Shorter sessions"): the OS may kill a backgrounded app without warning. Save what a
+# Continue can keep (at a rest: everything built since the rest began), and pause a live game so coming back
+# never costs leaves. Mid-drift the save stays the last rest's, as on PC.
+func _on_backgrounded() -> void:
+	if run_state.is_over:
+		return
+	if autosave and can_save_now():
+		save_now()
+	var menu := get_tree().get_first_node_in_group(&"pause_menu")
+	if menu != null and not get_tree().paused:
+		menu.open()
+
+# Android's Back button is Esc: cancel building, deselect, open / close the pause menu (open_menu handlers).
+func _press_menu_key() -> void:
+	for pressed in [true, false]:
+		var event := InputEventAction.new()
+		event.action = &"open_menu"
+		event.pressed = pressed
+		Input.parse_input_event(event)
 
 # Quits without tearing the run scene down during exit: frees the current scene, waits a few frames,
 # then quits. Static, so it keeps going after this node is freed with the scene. Tests that quit with
@@ -111,6 +136,7 @@ func _ready() -> void:
 	# can crash tearing this scene down at exit (Tower Code, ~5% under load). Only while a run is open;
 	# other scenes keep the engine's own close.
 	get_tree().auto_accept_quit = false
+	get_tree().quit_on_go_back = false  # Back = Esc during a run (_press_menu_key); the title's Back still quits
 	# Never in tests, and never in Test Grove (a dev playtest would overwrite the real saved run).
 	autosave = get_tree().current_scene == owner and not TestGrove.is_active()
 	MetaRun.resumed_extra_ridges = -1  # A new run reads Clear Sight from the loadout; a resumed one from its save
