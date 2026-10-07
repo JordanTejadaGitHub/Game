@@ -1035,7 +1035,9 @@ func _update_sprout_rule(button: Button, cost: int) -> void:
 	button.set_meta(&"price_line", sprout_rule_text(cost))  # The hover card's price line
 	if _sprout_last_cost >= 0 and cost > _sprout_last_cost and per > 0 and not _sprout_rise_told:
 		_sprout_rise_told = true
-		show_toast("Sprouts now cost %s: the more you have, the more they cost." % UiStyle.dew_amount(cost))
+		var lessons := get_node_or_null("LessonCard") as LessonCard
+		if lessons == null or not lessons.enabled:  # The "Sprouts cost more" Lesson says it, as a card (user)
+			show_toast("Sprouts now cost %s: the more you have, the more they cost." % UiStyle.dew_amount(cost))
 	_sprout_last_cost = cost
 
 # --- The Warden bar's hover card (screens_ui.md, the bullets above "Readable tooltips") --------------

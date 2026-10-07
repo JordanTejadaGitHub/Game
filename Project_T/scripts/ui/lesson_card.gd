@@ -132,7 +132,7 @@ func _on_built(tower: Tower) -> void:
 	if data.get_id() == "sprout":  # The first time the Sprout price steps up (onboarding.md a599a72d)
 		var per_step := tower_placer.sprout_per_step()
 		var paid := tower_placer.count_paid_sprouts()
-		if per_step > 0 and paid > 0 and paid % per_step == 0:
+		if per_step > 0 and paid >= per_step:  # The first crossing (a drag can plant past an exact multiple)
 			lesson(&"sprouts_cost_more", &"dew", "Sprouts cost more",
 				"Every %d Sprouts on the map, the next one costs %s more." % [per_step, dew_text(tower_placer.sprout_step_dew())])
 		return
@@ -170,7 +170,7 @@ func lesson(id: StringName, icon: StringName, title: String, text: String) -> vo
 func can_show() -> bool:
 	if drift_director == null or not is_inside_tree():
 		return false
-	if one_per_drift and drift_director.drifts_started == _last_drift:
+	if one_per_drift and drift_director.drifts_started == _last_drift and not drift_director.is_resting():  # Rests: one after another
 		return false
 	var run_state := main.get_node_or_null("%RunState")
 	if run_state != null and run_state.is_over:

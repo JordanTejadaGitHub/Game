@@ -90,6 +90,24 @@ func _run() -> void:
 		_check(ids.has(want), "Lesson %s showed (%s)" % [want, ids])
 	_check(ids.count(&"planted_directly") == 1 and not ids.has(&"copies_five"), "each Lesson once, no 'five copies' (%s)" % [ids])
 
+	# The user: "first time learning about the Sprouts costing more, a window should appear". At a rest where a Lesson
+	# already showed, a Sprout past the step (a drag can skip the exact multiple) still opens the card and pauses.
+	lessons.seen.erase("sprouts_cost_more")
+	lessons.one_per_drift = true
+	lessons._last_drift = director.drifts_started  # A Lesson already showed this rest
+	speed.set_paused(false)
+	placer.select_tower(load("res://resource/tower/sprout.tres"))
+	var extra := _free_cells(map, 2)
+	var sprouted := false
+	for cell in extra:
+		if not sprouted and placer._try_build(cell):
+			sprouted = true
+	await _frames(2)
+	_check(director.is_resting() and lessons.visible and lessons.shown_id == &"sprouts_cost_more" and speed.paused,
+		"a Sprout past the step at a rest: the Sprouts Lesson card opens and pauses (%s)" % lessons.shown_id)
+	lessons.close()
+	lessons.one_per_drift = false
+
 	# The card pauses the game and gives the pause back.
 	lessons.lesson(&"probe", &"dew", "Probe", "Probe text.")
 	speed.set_paused(false)
@@ -98,8 +116,13 @@ func _run() -> void:
 	lessons.close()
 	_check(not speed.paused, "…and closing it gives the pause back")
 
-	# One per drift: the second waits for the next drift.
+	# At a rest Lessons follow one another; during a drift, one per drift (the second waits for the next).
 	lessons.one_per_drift = true
+	lessons._last_drift = -1
+	lessons.lesson(&"probe_r1", &"dew", "R1", "r")
+	lessons.lesson(&"probe_r2", &"dew", "R2", "r")
+	_check(await _take(lessons) == &"probe_r1" and await _take(lessons) == &"probe_r2", "at a rest: one after another")
+	director.resting = false  # As if a drift were on (no nightmares needed)
 	lessons._last_drift = -1  # A fresh drift: nothing shown in it yet
 	lessons.lesson(&"probe_a", &"dew", "A", "a")
 	lessons.lesson(&"probe_b", &"dew", "B", "b")
@@ -107,6 +130,7 @@ func _run() -> void:
 	_check(await _take(lessons) == &"", "…the second waits")
 	lessons._last_drift = -1  # As if the next drift began
 	_check(await _take(lessons) == &"probe_b", "…and shows in the next drift")
+	director.resting = true
 
 	# Never over a screen: a Dream offer open keeps it waiting.
 	lessons.one_per_drift = false
