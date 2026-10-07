@@ -884,7 +884,10 @@ and **E 1.1 / 1.5 / 1.9** (act 2 boss raised to keep the Mire Hag) run instead. 
 full A 75 / 5 / 5, D 80 / 20 / 15, E 75 / 15 / 5; demo A 75 / 15 / 5, D 75 / 30 / 20, **E 80 / 40 / 35** (on target). Full D spender
 95 / 65 / 45, skip 35 / 0. The full game reaches 50 far less than the demo on the same curve. Next: softer **F 1.0 / 1.3 /
 1.6**, tuned to the full game (the demo may sit up to ~10 above its band), and a breakdown of the gap (act 1 boss drawn,
-leaves at 26, families).
+leaves at 26, families). **Breakdown (D, default, 20 each):** of runs entering act 2, full 4 / 16 reach 50 vs demo 6 / 15;
+leaves at 26 full 11.0 vs demo 12.3; full deaths cluster at **44–47** (8 of 11; the drift 45 finale), demo spread. DEMO_RULES
+are retired (checked); the remaining differences are the act 1 boss draw and the demo's family-limited card pool, both
+by design. If F full still clusters at 44–47, the drift 45 finale is the next lever.
 
 ## Demo targets (demo_scope.md e5ce233d, 2026-10-06)
 
