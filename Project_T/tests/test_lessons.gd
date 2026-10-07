@@ -68,25 +68,27 @@ func _run() -> void:
 	dreams.unlock_everything = true
 	main.get_node("%RunState").dew = 100000
 
-	# Planting: directly, twice in build mode, copies at 2 and 5.
-	var cells := _free_cells(map, 6)
+	# Planting: directly, twice in build mode, the 2nd copy; then Sprouts until their price steps up.
+	var per_step := placer.sprout_per_step()
+	var cells := _free_cells(map, 6 + per_step)
 	placer.set_build_mode(true)
-	placer.select_tower(load("res://resource/tower/sporeling.tres"))
 	var planted := 0
 	var ids: Array = []
-	for cell in cells:
-		if planted >= 5:
-			break
-		if placer._try_build(cell):
-			planted += 1
-			var id := await _take(lessons)
-			while id != &"":
-				ids.append(id)
-				id = await _take(lessons)
-	_check(planted == 5, "planted 5 Sporelings (%d)" % planted)
-	for want in [&"planted_directly", &"build_mode", &"copies", &"copies_five"]:
+	for pick in [["sporeling", 3], ["sprout", per_step]]:
+		placer.select_tower(load("res://resource/tower/%s.tres" % pick[0]))
+		var done := 0
+		while done < pick[1] and not cells.is_empty():
+			if placer._try_build(cells.pop_front()):
+				done += 1
+				planted += 1
+				var id := await _take(lessons)
+				while id != &"":
+					ids.append(id)
+					id = await _take(lessons)
+	_check(planted == 3 + per_step, "planted 3 Sporelings and %d Sprouts (%d)" % [per_step, planted])
+	for want in [&"planted_directly", &"build_mode", &"copies", &"sprouts_cost_more"]:
 		_check(ids.has(want), "Lesson %s showed (%s)" % [want, ids])
-	_check(ids.count(&"planted_directly") == 1, "each Lesson once (%s)" % [ids])
+	_check(ids.count(&"planted_directly") == 1 and not ids.has(&"copies_five"), "each Lesson once, no 'five copies' (%s)" % [ids])
 
 	# The card pauses the game and gives the pause back.
 	lessons.lesson(&"probe", &"dew", "Probe", "Probe text.")
