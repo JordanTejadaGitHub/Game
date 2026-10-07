@@ -865,6 +865,14 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Sparkler / Starburst too strong (user, 2026-10-07)
+
+Cause in code: every one of the 6 sparks hit for the Warden's full damage (`_spark_burst_at(..., damage, ...)`), so a shot
+dealt 6× (all 6 on a lone target: Sparkler 240, Starburst 468, 936 on the doubled burst), plus a Static stack per spark.
+Human run 23: Starbursts did 61% of all damage. **Fix: each spark = damage ÷ 4** (a burst totals 1.5×), **Static once per
+nightmare per burst.** Sparkler single-target ≈ 30 DPS (Driftspore 28), Starburst ≈ 58 + doubles. Sent to Tower Code;
+fixed-board probe after.
+
 ## Seeds per run (user, 2026-10-07, meta_design.md ce725e43: "only ~3 nodes if you fail on drift 50")
 
 Target: a loss at drift 45–50 banks **~80–100 Seeds** (≈ 3 entry nodes). Meta's start: act 2 dispels 1 per 40 (was 20), act 1
