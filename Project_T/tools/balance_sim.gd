@@ -1749,6 +1749,11 @@ func _finish() -> void:
 			seed_total += int(line[1])
 	summary.seeds = seed_total
 	summary.tended = run_state.obstacles_tended
+	# Raw counts behind the Seeds lines, so other rates can be recomputed offline (-1 where the build has no such counter)
+	summary.cleansed = run_state.creatures_cleansed
+	summary.cleansed_a1 = run_state.get("cleansed_in_act_1") if run_state.get("cleansed_in_act_1") != null else -1
+	summary.cleansed_a2 = run_state.get("cleansed_in_act_2") if run_state.get("cleansed_in_act_2") != null else -1
+	summary.bosses_cleansed = director.bosses_cleansed
 	summary.seed_lines = ";".join(seed_lines.map(func(l) -> String: return "%s=%d" % [String(l[0]).get_slice(":", 0), int(l[1])]))
 	summary.extra_route_added = extra_info.route_added  # --extra-spend=walls: route cells the walls added, and how many
 	summary.extra_walls = extra_info.walls
