@@ -55,7 +55,7 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
 | **Lightning Tree** | A dead tree you place (an obstacle). Charged bolts within 2 cells of it deal +25%. |
 | **Moonwell** | A lit stone cell (unbuildable). Wardens within 1 cell get +1 range. |
 | **Bell Stone** | A singing stone. Song Wardens within 1 cell pulse 15% faster. |
-| **Ancient Stump** | 3 stumps you place: a Warden planted on a stump starts at rank I. |
+| **Ancient Stump** | 3 stumps you place: a Warden planted on a stump gets a free rank, banked: the player picks its focus (2026-10-07: granted ranks are banked, never auto-applied). |
 
 ### The nightmares' way
 | Gift | What it does |
@@ -91,7 +91,7 @@ Each gift now owns one kind of payoff:
 | slow on the path | Mire only |
 | status strength | Mushroom Ring (Poisoned cap), Lightning Tree (Charged bolts), Bramble Verge (Drowsy cap) |
 | attack speed | Bell Stone (song Wardens) |
-| a head start on a Warden | Ancient Stump (rank I) |
+| a head start on a Warden | Ancient Stump (a free banked rank) |
 | Dew | Shift the Stones (per stone), Shifting Mist (the act's pots) |
 | clears / Seeds | Glade (5 free clears), Sow a Ridge (+2 Seeds a tree) |
 | arrival pacing | Thick Mist |

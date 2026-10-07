@@ -26,6 +26,9 @@ Discussion (art_direction.md "Style references"); this file covers player-facing
   - **Buttons, headings, labels, tags and role lines:** sentence case: first word capital, then lower case except names
     ("Take this Omen", "Start drift 1", "Dreams this run", "Long range, high damage", "Anti-air, Roots").
   - Small-caps labels (CapsLabel) are written in sentence case in the data; the font does the rest.
+  - The capital marks the **game term**. Ordinary words that happen to match stay lower case: thrown or planted seeds
+    (not the Seeds currency), weather and growth in flavour lines ("Rain soaks everything.", "Nothing takes root.").
+    Flavour lines (italic) are prose and are exempt from the status rule.
 
 ## Fixes (audit by a read-only pass; owners apply)
 
