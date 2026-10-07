@@ -181,8 +181,71 @@ func _init() -> void:
 	_check(run_state2.obstacles_tended == 0, "replaying counts nothing as tended again")
 	again.queue_free()
 	await process_frame
+	await _half_pieces_case()
 	print("test_map_gifts: %d failure(s)" % failures)
 	quit(failures)
+
+# Gifts on half cells like Wardens (heartwood_gifts.md 2554c638), through the effect GiftPlacer's placement reaches:
+# "pieces" (half origins), "from" (obstacle keys × 2), "halves" (Mire / Roots route halves).
+func _half_pieces_case() -> void:
+	var main := await _make_main()
+	var map = main.get_node("%MapGenerator")
+	var gifts: MapGifts = map.gifts
+	var run_state: RunState = main.get_node("%RunState")
+	# A two-piece ridge at a half offset (odd origins), beside the route.
+	var ridge: Array = []
+	for x in range(3, 40, 2):
+		for y in range(3, 30, 2):
+			var pieces := [Vector2(x, y), Vector2(x + 2, y)]
+			if gifts.can_place(MapGifts.SOW_RIDGE, pieces):
+				ridge = pieces
+				break
+		if not ridge.is_empty():
+			break
+	_check(not ridge.is_empty(), "room for a half-offset ridge")
+	if ridge.is_empty():
+		main.free()
+		return
+	_check(not gifts.can_place(MapGifts.SOW_RIDGE, [ridge[0], ridge[0] + Vector2(1, 0)]) and gifts.refusal() == &"occupied",
+		"overlapping pieces are refused (%s)" % gifts.refusal())
+	MapGifts._effect(main, {"pieces": ridge}, MapGifts.SOW_RIDGE)
+	var key: Vector2 = ridge[0] / 2.0
+	_check(not FindPath.is_whole_cell(key) and map.obstacles.has(key) and map.get_obstacle(key) == MapGifts.TREE_DATA,
+		"a tree keyed at %s (half-offset)" % key)
+	_check(MapGifts.piece_halves(ridge[0]).all(func(h: Vector2) -> bool: return map.path_layer.is_half_blocked(h)),
+		"it blocks its 2×2 halves")
+	_check(map.obstacle_key_at(ridge[0] + Vector2(1, 1)) == key, "found by any of its halves")
+	_check(gifts._props.any(func(p: Node) -> bool: return p.kind == "tile" and p.position == map.MAP_GRID.calculate_map_position(key)),
+		"drawn by a prop at the piece's centre")
+	var tended_before := run_state.obstacles_tended
+	_check(map.clear_obstacle(key) and run_state.obstacles_tended == tended_before + MapGifts.SOWN_TREE_SEEDS,
+		"tending it pays %d Seeds" % MapGifts.SOWN_TREE_SEEDS)
+	_check(MapGifts.piece_halves(ridge[0]).all(func(h: Vector2) -> bool: return not map.path_layer.is_half_blocked(h)),
+		"tended: its halves open again")
+	# Shift the Stones: the other tree moves to a half-offset spot.
+	var from_key: Vector2 = ridge[1] / 2.0
+	var to: Vector2 = ridge[1] + Vector2(0, 4)
+	if gifts.can_place(MapGifts.SHIFT_STONES, [to]):
+		MapGifts._effect(main, {"pieces": [to], "from": [ridge[1]]}, MapGifts.SHIFT_STONES)
+		_check(not map.obstacles.has(from_key) and map.obstacles.has(to / 2.0), "a stone moves from %s to %s" % [from_key, to / 2.0])
+	# Mire on route halves: a nightmare on one is slowed.
+	var route: PackedVector2Array = map.path_layer.current_path
+	var bog: Array = [route[route.size() / 2], route[route.size() / 2 + 1]]
+	_check(gifts.can_place(MapGifts.MIRE, bog) or gifts.can_place(MapGifts.MIRE,
+		bog.map(func(p: Vector2) -> Vector2: return Vector2(FindPath.point_to_node(p)))), "route halves take a Mire")
+	_check(not gifts.can_place(MapGifts.MIRE, [Vector2(FindPath.point_to_node(route[route.size() / 2])) + Vector2(0, 9)])
+		and gifts.refusal() == &"off_route", "off the route: refused")
+	MapGifts._effect(main, {"halves": bog}, MapGifts.MIRE)
+	_check(gifts.is_bog(bog[0]) and gifts.is_bog(bog[1]), "the bog is on those halves")
+	var walker: Node2D = main.get_node("%EnemyContainer").spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+	if walker != null:
+		walker.position = map.MAP_GRID.calculate_map_position(bog[0])
+		walker.set_path(PackedVector2Array([bog[0], bog[1]]))
+		gifts._tick = 0.0
+		gifts._process(0.01)
+		_check(walker.statuses.slow_amount >= MapGifts.MIRE_SLOW, "a nightmare on a bog half is slowed")
+	main.free()
+	await process_frame
 
 # As HeartwoodGifts.choose does: apply now, remember what to replay.
 func _give(gifts: MapGifts, run_state: RunState, id: StringName, cells: Array, from: Array[Vector2] = []) -> void:
