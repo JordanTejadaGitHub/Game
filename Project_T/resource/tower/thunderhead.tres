@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Thunderhead"
-role_line = "Chains, charges, high damage"
+role_line = "Chains, Charges, high damage"
 description = "Chains to 4; every 3rd strike hits every {damp} nightmare in range."
 cost = 0
 texture = ExtResource("2_tex")

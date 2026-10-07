@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Old Mountain"
-role_line = "Area damage, roots, high damage"
+role_line = "Area damage, Roots, high damage"
 description = "Every 3 s it drops a boulder: what it hits is {held} for 0.5 s, and it always crits on {held} or {drowsy} nightmares."
 cost = 0
 line = "stone"

@@ -6,12 +6,21 @@ extends SceneTree
 # Memory Wardens (is_unique) are left out until they return.
 #   godot --headless --path . --script res://tests/test_role_lines.gd
 
-# tower_design.md "Role lines" vocabulary (a new term goes there first, then here).
+# tower_design.md "Role lines" vocabulary (a new term goes there first, then here), as each reads mid-line: sentence
+# case, but statuses keep their capital as names in every form (text_pass.md 7e151e86: "Anti-air, Roots").
 const VOCABULARY := ["short range", "long range", "high damage", "low damage", "damage over time", "fast attacks",
-	"slow attacks", "single target", "multi-target", "area damage", "chains", "hits a line", "slows", "roots", "freezes",
-	"stuns", "pulls back", "silences", "soaks", "charges", "poisons", "drowses", "exposes", "spreads statuses",
-	"sets up statuses", "anti-air", "boss killer", "crowd clearer", "breaks armour", "reveals hidden", "guards the goal",
+	"slow attacks", "single target", "multi-target", "area damage", "chains", "hits a line", "slows", "Roots", "Freezes",
+	"stuns", "pulls back", "Silences", "Soaks", "Charges", "Poisons", "Drowses", "Exposes", "spreads statuses",
+	"sets up statuses", "anti-air", "boss killer", "crowd clearer", "breaks armour", "reveals Hidden", "guards the goal",
 	"strips buffs", "crits", "repeats combos", "traps", "spawns", "copies a neighbour", "support", "economy", "wall"]
+
+# `term` at `position` in a line reads exactly as the vocabulary has it (the first term with a leading capital).
+static func _term_ok(term: String, position: int) -> bool:
+	for word in VOCABULARY:
+		var expected: String = word if position > 0 else word[0].to_upper() + word.substr(1)
+		if term == expected:
+			return true
+	return false
 
 var failures := 0
 
@@ -31,8 +40,8 @@ func _initialize() -> void:
 		_check(not line.ends_with("."), "%s: no full stop" % data.get_id())
 		var terms := line.split(", ")
 		_check(terms.size() >= 1 and terms.size() <= 3, "%s: 1–3 terms (%d)" % [data.get_id(), terms.size()])
-		for term in terms:
-			_check(VOCABULARY.has(term.to_lower()), "%s: \"%s\" is in the vocabulary" % [data.get_id(), term])
+		for i in terms.size():
+			_check(_term_ok(terms[i], i), "%s: \"%s\" is in the vocabulary, capitalised as the rules say" % [data.get_id(), terms[i]])
 		_check(line == "" or line[0] == line[0].to_upper(), "%s: sentence case" % data.get_id())
 		var seen: Dictionary = by_family.get(data.line, {})
 		if seen.has(line):

@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Fairy Ring"
-role_line = "Traps, poisons"
+role_line = "Traps, Poisons"
 description = "Plants mushroom rings on the path; a nightmare that steps on one makes it burst into spores."
 cost = 0
 texture = ExtResource("2_tex")
