@@ -73,7 +73,7 @@ func _run() -> void:
 	_check(HeartwoodMemory.buy_problem(HeartwoodMemory.load_data(), _unlock(grove, "early_bloom")) != "", "Early Bloom grows off Wider Choice")
 	_check(HeartwoodMemory.buy(_unlock(grove, "second_thoughts")), "buy Second Thoughts")
 	_check(HeartwoodMemory.buy(_unlock(grove, "wider_choice")), "buy Wider Choice")
-	_check(_unlock(grove, "wider_choice").always_on and not _unlock(grove, "wider_choice").is_perk(), "Wider Choice is an option, not a perk")
+	_check(not _unlock(grove, "wider_choice").always_on and _unlock(grove, "wider_choice").is_perk(), "Wider Choice is a perk you carry (0931c55f)")
 	_check(HeartwoodMemory.buy(_unlock(grove, "early_bloom")), "buy Early Bloom")
 	_check(HeartwoodMemory.buy(_unlock(grove, "early_light")), "buy Early Light")
 	_check(HeartwoodMemory.loadout_slots(HeartwoodMemory.load_data()) == 3, "3 loadout slots are open from the start")
@@ -456,21 +456,26 @@ func _run() -> void:
 	var roots_perk := _unlock(HeartwoodMemory.load_grove(), "wider_roots")
 	_check(roots_perk != null and roots_perk.is_perk() and roots_perk.costs == [120] and roots_perk.requires_all == ["omen_reader"] and roots_perk.wider_roots,
 		"Wider Roots: a 120-Seed perk after Omen Reader")
-	# Remembered Seed (meta_design.md 952b986e): an option on the Perks twig, always on once planted, never carried.
+	# Remembered Seed (meta_design.md 952b986e): an option perk; since 0931c55f it works only while carried.
 	var seed_node := _unlock(HeartwoodMemory.load_grove(), SeedPicker.NODE_ID)
 	var seed_profile := HeartwoodMemory.load_data()
 	var seed_before: bool = SeedPicker.available()
 	seed_profile.unlocks[SeedPicker.NODE_ID] = 1
+	seed_profile.loadout = []
+	HeartwoodMemory.save_data(seed_profile)
+	var seed_planted: bool = SeedPicker.available()
 	seed_profile.loadout = [SeedPicker.NODE_ID]
 	HeartwoodMemory.save_data(seed_profile)
-	_check(seed_node != null and seed_node.costs == [30] and seed_node.always_on and not seed_node.is_perk() and not seed_before
-		and SeedPicker.available() and HeartwoodMemory.get_loadout(HeartwoodMemory.load_data()).is_empty(),
-		"Remembered Seed: 30 Seeds, opens the map choice once planted, never carried")
+	_check(seed_node != null and seed_node.costs == [30] and not seed_node.always_on and seed_node.is_perk() and not seed_before
+		and not seed_planted and SeedPicker.available(), "Remembered Seed: a 30-Seed perk, the map choice only while carried")
 	seed_profile.unlocks.erase(SeedPicker.NODE_ID)
 	seed_profile.loadout = []
-	# Leaf or Dew (meta_design.md f7a357de): −3…+3 before the run; max leaves move with the leaves.
+	# Leaf or Dew (meta_design.md f7a357de): −3…+3 before the run; max leaves move with the leaves. Carried (0931c55f).
 	_check(not MetaRun.leaf_or_dew_available(), "Leaf or Dew needs its node")
 	seed_profile.unlocks[MetaRun.LEAF_DEW_NODE] = 1
+	HeartwoodMemory.save_data(seed_profile)
+	_check(not MetaRun.leaf_or_dew_available(), "…carried, not just planted")
+	seed_profile.loadout = [MetaRun.LEAF_DEW_NODE]
 	HeartwoodMemory.save_data(seed_profile)
 	MetaRun.leaf_dew_trade = 2
 	var trade_run := await _new_run()
@@ -488,13 +493,30 @@ func _run() -> void:
 	trade_run.queue_free()
 	await process_frame
 	seed_profile.unlocks.erase(MetaRun.LEAF_DEW_NODE)
+	seed_profile.loadout = []
 	HeartwoodMemory.save_data(seed_profile)
 	# The other option nodes (meta_design.md 72ccfceb): their effects live with their owners, gated on the node.
 	var hunt := _unlock(HeartwoodMemory.load_grove(), "chosen_hunt")
 	var omens_node := _unlock(HeartwoodMemory.load_grove(), "restless_omens")
 	var strange := _unlock(HeartwoodMemory.load_grove(), "strange_dreams")
-	_check(hunt != null and hunt.always_on and not hunt.is_perk() and hunt.root == UnlockData.Root.PERKS and hunt.costs == [80],
-		"Chosen Hunt: an 80-Seed option on the Perks limb")
+	_check(hunt != null and not hunt.always_on and hunt.is_perk() and hunt.root == UnlockData.Root.PERKS and hunt.costs == [80],
+		"Chosen Hunt: an 80-Seed perk on the Perks limb (carried, 0931c55f)")
+	for id in ["wider_choice", "remembered_seed", "chosen_hunt", "leaf_or_dew", "kin_foretold"]:  # The orange option perks
+		_check(_unlock(HeartwoodMemory.load_grove(), id).is_perk(), "%s goes in a slot" % id)
+	var hunt_profile := HeartwoodMemory.load_data()
+	hunt_profile.unlocks.chosen_hunt = 1
+	hunt_profile.unlocks.kin_foretold = 1
+	hunt_profile.loadout = []
+	HeartwoodMemory.save_data(hunt_profile)
+	var pick_script: GDScript = load("res://scripts/ui/family_pick_screen.gd")
+	var planted_only: bool = BossPool.chosen_hunt_active() or pick_script.kin_foretold_owned()
+	hunt_profile.loadout = ["chosen_hunt", "kin_foretold"]
+	HeartwoodMemory.save_data(hunt_profile)
+	_check(not planted_only and BossPool.chosen_hunt_active() and pick_script.kin_foretold_owned(), "Chosen Hunt and Kin Foretold work only while carried")
+	hunt_profile.unlocks.erase("chosen_hunt")
+	hunt_profile.unlocks.erase("kin_foretold")
+	hunt_profile.loadout = []
+	HeartwoodMemory.save_data(hunt_profile)
 	_check(omens_node != null and omens_node.always_on and omens_node.root == UnlockData.Root.DREAMS and omens_node.costs == [40]
 		and strange != null and strange.root == UnlockData.Root.DREAMS and strange.costs == [50]
 		and strange.dream_cards.all(func(id: String) -> bool: return ResourceLoader.exists("res://resource/dream/%s.tres" % id)),

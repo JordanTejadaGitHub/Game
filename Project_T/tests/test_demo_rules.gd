@@ -60,6 +60,7 @@ func _run() -> void:
 	var profile := HeartwoodMemory.load_data()
 	profile.unlocks["rootling"] = 1
 	profile.unlocks["wider_choice"] = 1
+	profile.loadout = ["wider_choice"]  # A carried perk since meta_design.md 0931c55f
 	HeartwoodMemory.save_data(profile)
 	_check(CodexData.scope().families.has("rootling"), "demo: a planted Rootling is in scope")
 	_check(family.pick_count() == 3, "demo: a planted Wider Choice shows 3")

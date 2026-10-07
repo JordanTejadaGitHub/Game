@@ -105,10 +105,7 @@ const LEAF_DEW_MAX := 3
 static var leaf_dew_trade := 0
 
 static func leaf_or_dew_available() -> bool:
-	if ResultsScreen.is_demo():
-		return false
-	var unlock := HeartwoodMemory.get_unlock(LEAF_DEW_NODE)
-	return unlock != null and HeartwoodMemory.node_level(HeartwoodMemory.load_data(), unlock) > 0
+	return HeartwoodMemory.carries(LEAF_DEW_NODE)  # A carried perk (meta_design.md 0931c55f); asleep in the demo
 
 # Applied once at run start (after the perks), then cleared, so a resumed run never trades again.
 func _apply_leaf_dew_trade() -> void:

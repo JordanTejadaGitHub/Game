@@ -187,7 +187,7 @@ func show_pick(reason: StringName = &"first") -> void:
 	arm.arm()
 
 static func wider_choice_owned() -> bool:
-	return force_wider_choice or DemoGrove.owns(WIDER_CHOICE_ID)  # The demo Grove grows it too (DemoGrove.NODES)
+	return force_wider_choice or HeartwoodMemory.carries(WIDER_CHOICE_ID)  # A carried perk (meta_design.md 0931c55f), the demo too
 
 # Cards a pick shows: 2, 3 with Wider Choice (fewer when fewer families are left: the caller slices).
 func pick_count() -> int:
@@ -212,10 +212,7 @@ static func _keep_an_attacker(pool: Array, count: int) -> void:
 static func kin_foretold_owned() -> bool:
 	if force_kin_foretold:
 		return true
-	if ResultsScreen.is_demo():
-		return false
-	var unlock := HeartwoodMemory.get_unlock(KIN_FORETOLD_ID)
-	return unlock != null and HeartwoodMemory.node_level(HeartwoodMemory.load_data(), unlock) > 0
+	return HeartwoodMemory.carries(KIN_FORETOLD_ID)  # A carried perk (meta_design.md 0931c55f); asleep in the demo
 
 # The drift of the next boss pick (the act's last), or 0 when this is the last pick of the run.
 func next_pick_drift() -> int:

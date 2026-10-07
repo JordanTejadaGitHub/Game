@@ -529,6 +529,12 @@ static func get_loadout(data: Dictionary) -> Array[String]:
 			result.append(unlock.id)
 	return result.slice(0, loadout_slots(data))
 
+# Perk `id` carried in the current loadout (the demo's part only, in the demo). The option perks' gates read this
+# (meta_design.md 0931c55f: "like rerolls are a choice you need to bring in"): SeedPicker, BossPool's Chosen Hunt,
+# FamilyPickScreen's Wider Choice / Kin Foretold, MetaRun's Leaf or Dew.
+static func carries(id: String) -> bool:
+	return get_loadout(load_data()).has(id)
+
 static func save_loadout(ids: Array[String]) -> void:
 	var data := load_data()
 	data.loadout = ids.slice(0, loadout_slots(data))
