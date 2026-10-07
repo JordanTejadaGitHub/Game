@@ -573,18 +573,15 @@ func _raw_frame(tower_name: String, st: Dictionary, draw: Callable, extra: Calla
 	draw.call(canvas, st)
 	_final_extra(tower_name, canvas, st)
 	var fx: Image = null
-	if extra.is_valid():
-		if _is_big(tower_name):
-			var body := canvas.duplicate()
-			extra.call(canvas, st)
-			fx = _layer()
-			for y in range(-OY, S):
-				for x in S:
-					if _gp(canvas, x, y) != _gp(body, x, y):
-						_sp(fx, x, y, _gp(canvas, x, y))
-			canvas = body
-		else:
-			extra.call(canvas, st)
+	if extra.is_valid():  # the attack / channel effect, kept apart from the body (its own shading, moved for big Wardens)
+		var body := canvas.duplicate()
+		extra.call(canvas, st)
+		fx = _layer()
+		for y in range(-OY, S):
+			for x in S:
+				if _gp(canvas, x, y) != _gp(body, x, y):
+					_sp(fx, x, y, _gp(canvas, x, y))
+		canvas = body
 	var h := _frame_h(tower_name)
 	var frame := _tall_frame(tower_name, canvas, st)  # (OY is 0 from here)
 	var slab := Image.create_empty(S, h, false, Image.FORMAT_RGBA8)
@@ -612,15 +609,23 @@ func _finish(tower_name: String, raw: Dictionary, size_of: String = "") -> Dicti
 	for kind: String in raw:
 		var list: Array = raw[kind]
 		var sheet := Image.create_empty(w * list.size(), full, false, Image.FORMAT_RGBA8)
+		var body := Image.create_empty(w * list.size(), full, false, Image.FORMAT_RGBA8)  # without the effect
+		var has_fx := false
 		for i in list.size():
 			var r: Array = list[i]
-			sheet.blit_rect(_big_compose(r[0], r[1], r[2]) if big else r[0], Rect2i(0, 0, w, full), Vector2i(i * w, 0))
+			has_fx = has_fx or r[2] != null
+			sheet.blit_rect(_compose_frame(r[0], r[1], r[2], big), Rect2i(0, 0, w, full), Vector2i(i * w, 0))
+			if r[2] != null:
+				body.blit_rect(_compose_frame(r[0], r[1], null, big), Rect2i(0, 0, w, full), Vector2i(i * w, 0))
 		var still := kind == "idle" or kind == "stone"
-		sheet = _detail_pass(sheet, Vector2i(w, full), still)
-		if still:
-			sheet = _warden_night(sheet)
-			if NIGHT_RIM.has(tower_name):
-				_night_rim(sheet, HeartwoodPalette_color(NIGHT_RIM[tower_name]))
+		if has_fx and tower_name in IDLE_SHADED_ATTACKS:
+			sheet = _shaded_like_idle(tower_name, sheet, body, Vector2i(w, full))
+		else:
+			sheet = _detail_pass(sheet, Vector2i(w, full), still)
+			if still:
+				sheet = _warden_night(sheet)
+				if NIGHT_RIM.has(tower_name):
+					_night_rim(sheet, HeartwoodPalette_color(NIGHT_RIM[tower_name]))
 		sheets[kind] = sheet
 		top = mini(top, _top_row(sheet))
 	# Cropped to the tallest frame (+ BIG_MARGIN), the cell in the bottom 64 rows.
@@ -655,6 +660,36 @@ func _body_extent(raw: Dictionary) -> float:
 					if c.a > 0.0 and c != slab.get_pixel(x, y):
 						extent = maxf(extent, absf(x + 0.5 - BIG_FEET.x) + 0.5)
 	return extent
+
+# A frame: the big re-raster (bigger Wardens) or the 64 px frame with its effect laid over it.
+func _compose_frame(frame: Image, slab: Image, fx: Image, big: bool) -> Image:
+	if big:
+		return _big_compose(frame, slab, fx)
+	if fx == null:
+		return frame
+	var out := frame.duplicate()
+	out.blend_rect(fx, Rect2i(Vector2i.ZERO, fx.get_size()), Vector2i.ZERO)
+	return out
+
+# Wardens whose attack keeps the idle's shading (user approved for Rootling, 2026-10-07; the others keep
+# the attack pass's brighter light until asked).
+const IDLE_SHADED_ATTACKS := ["rootling"]
+
+# Attack / channel sheets keep the idle's shading on the body (user: the Warden "visibly changes colour
+# every attack"): the body is passed like the idle (no glow, Warden Night, night rim); only the effect
+# and the glow it throws keep the attack pass's warm light. `full` has the effect, `body` doesn't.
+func _shaded_like_idle(tower_name: String, full: Image, body: Image, frame: Vector2i) -> Image:
+	var lit := _detail_pass(full, frame, false)
+	var lit_body := _detail_pass(body.duplicate(), frame, false)
+	var calm := _warden_night(_detail_pass(body, frame, true))
+	if NIGHT_RIM.has(tower_name):
+		_night_rim(calm, HeartwoodPalette_color(NIGHT_RIM[tower_name]))
+	for y in lit.get_height():
+		for x in lit.get_width():
+			var c := lit.get_pixel(x, y)
+			if c != lit_body.get_pixel(x, y):  # the effect, or its glow
+				calm.set_pixel(x, y, c)
+	return calm
 
 # True when any frame has art on its left, right or top edge.
 func _touches_edge(sheet: Image, w: int, n: int) -> bool:
@@ -2134,13 +2169,53 @@ func _golem_face(canvas: Image, st: Dictionary, fig: Dictionary, eye: Color = Co
 		for bx: int in [24, 25, 34, 35]:
 			_px(canvas, bx, EYE_TOP + 3 + dy, BLUSH)
 	var closed: bool = asleep or st.blink
+	# Eyes always read against the face (user: "make sure all the wardens eyes are able to see clearly";
+	# then "the eyes are fine design wise, just fix the colors"): same eyes, but one too close to the skin
+	# in lightness turns the darkest ink or cream, whichever stands out more.
+	var skin := _face_skin(canvas, dy)
+	var pupil: Color = eye if eye.a > 0.0 else fig.o
+	if skin.a > 0.0 and _gap(pupil, skin) < EYE_CONTRAST:
+		pupil = _eye_colour(skin)
+	var line: Color = fig.o
+	if skin.a > 0.0 and _gap(line, skin) < EYE_CONTRAST:
+		line = _eye_colour(skin)
 	for ex: int in EYES:
 		for k in 3:
-			var col: Color = fig.a if closed and k != 1 else (eye if eye.a > 0.0 else fig.o)
+			var col: Color = fig.a if closed and k != 1 else pupil
 			_px(canvas, ex, EYE_TOP + k + dy, col)
 		if closed:
-			_px(canvas, ex, EYE_TOP + 1 + dy, fig.o)
-			_px(canvas, ex + 1, EYE_TOP + 1 + dy, fig.o)
+			_px(canvas, ex, EYE_TOP + 1 + dy, line)
+			_px(canvas, ex + 1, EYE_TOP + 1 + dy, line)
+
+const EYE_CONTRAST := 0.5  # the lightness gap eyes need over the face round them
+
+func _gap(a: Color, b: Color) -> float:
+	return absf(_lightness(a) - _lightness(b))
+
+# The eye colour that stands out most on `skin`: the darkest ink or cream.
+func _eye_colour(skin: Color) -> Color:
+	return EYE_DARK if _gap(EYE_DARK, skin) > _gap(EYE_LIGHT, skin) else EYE_LIGHT
+const EYE_DARK := Color("#140f26")
+const EYE_LIGHT := Color("#fff4dc")
+
+# The face skin round the eyes: the commonest colour of a few pixels beside and between them.
+func _face_skin(canvas: Image, dy: int) -> Color:
+	var count := {}
+	for p: Vector2i in [Vector2i(EYES[0] - 2, EYE_TOP + 1 + dy), Vector2i(EYES[0] + 2, EYE_TOP + 1 + dy),
+			Vector2i(EYES[1] - 2, EYE_TOP + 1 + dy), Vector2i(EYES[1] + 2, EYE_TOP + 1 + dy), Vector2i(EYES[0] + 3, EYE_TOP - 1 + dy)]:
+		var c := _gpv(canvas, p)
+		if c.a > 0.0:
+			count[c] = count.get(c, 0) + 1
+	var best := Color(0, 0, 0, 0)
+	for c: Color in count:
+		if best.a == 0.0 or count[c] > count[best]:
+			best = c
+	return best
+
+# Perceived lightness, 0 (black) to 1 (white): OKLab L from sRGB.
+func _lightness(c: Color) -> float:
+	var l := c.srgb_to_linear()
+	return pow(0.4122 * l.r + 0.5363 * l.g + 0.0514 * l.b, 1.0 / 3.0)
 
 # Pixels of the figure that aren't outline, for texture and decorations.
 func _skin_px(canvas: Image, mask: Image, o: Color, pts: Array, color: Color) -> void:
@@ -2699,13 +2774,46 @@ func _attack_firefly_jar(canvas: Image, st: Dictionary) -> void:
 			_px(canvas, roundi(c.x + d.x), roundi(c.y + d.y), Color("#fff27a") if a == RELEASE_FRAME + 1 else GLOW_OUTER)
 
 # Rootling: its tendrils fling up and a Drowsy pulse ripples out over the stone, sending up z's.
+# Rootling (user: "the Rootling animation doesn't look clean"): it hunches while four roots coil at
+# its feet, then on the release they slam out across the slab, thick (2-3 px) with a lit top edge,
+# kicking up soil at the tips, and sink back. No scratchy root ring, no stray letters.
+const ROOT_LASH := [  # [start at the feet, end at full reach]
+	[Vector2(21, 44), Vector2(5, 46)], [Vector2(42, 44), Vector2(59, 46)],
+	[Vector2(26, 47), Vector2(14, 55)], [Vector2(37, 47), Vector2(50, 55)]]
+
 func _attack_rootling(canvas: Image, st: Dictionary) -> void:
-	_root_burst(canvas, st, 1.0, false)
 	var a: int = st.attack
-	var zs: Array = [[], [], [Vector2i(45, 14)], [Vector2i(47, 10), Vector2i(15, 12)], [Vector2i(49, 6), Vector2i(13, 8)], [Vector2i(14, 4)]]
-	for z: Vector2i in zs[a]:
-		for d: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(1, 1), Vector2i(0, 2), Vector2i(1, 2), Vector2i(2, 2)]:
-			_px(canvas, z.x + d.x, z.y + d.y, Color("#ece0ff"))
+	var reach: float = [0.22, 0.3, 0.9, 1.0, 0.6, 0.25][a]
+	var lift: float = [3.0, 6.0, 4.0, -1.0, 0.0, 0.0][a]  # coiled up in the wind-up, whipping up on the release
+	var arch: float = [2.0, 4.0, 11.0, 1.0, 2.0, 1.0][a]  # how high the root arcs between its foot and its tip
+	var bark := Color("#dccdb2")  # pale root wood, lighter than the stump slab's tan
+	var lit := Color("#fff4dc")
+	var o := Color("#241c14")
+	var roots := _layer()
+	var tops: Array = []
+	for r: Array in ROOT_LASH:
+		var s: Vector2 = r[0]
+		var e: Vector2 = s.lerp(r[1], reach) + Vector2(0, -lift)
+		var mid := s.lerp(e, 0.5) + Vector2(0, -arch)
+		var pts: Array = []
+		for i in 9:
+			var t := i / 8.0
+			pts.append(s.lerp(mid, t).lerp(mid.lerp(e, t), t))
+		for i in pts.size() - 1:
+			_stroke(roots, [pts[i], pts[i + 1]], 2.4 - i * 0.16, bark)  # thick, tapering to the tip
+		tops.append(pts)
+	_stamp(canvas, roots, o)
+	for pts: Array in tops:  # the lit top edge
+		for i in pts.size() - 2:
+			var p: Vector2 = pts[i]
+			var y := roundi(p.y) - 1 if _gp(roots, roundi(p.x), roundi(p.y) - 1).a > 0.0 else roundi(p.y)
+			_px(canvas, roundi(p.x), y, lit)
+	if a == RELEASE_FRAME or a == RELEASE_FRAME + 1:  # soil kicked up where they slam down
+		for r: Array in ROOT_LASH:
+			var tip: Vector2 = r[1]
+			var puff := _layer()
+			_flat_ellipse(puff, tip + Vector2(0, -1 - (a - RELEASE_FRAME)), Vector2(3.0, 1.8) + Vector2(1, 0.4) * (a - RELEASE_FRAME), Color("#bca48c"))
+			_stamp(canvas, puff, Color("#5c3c24"))
 
 # The Rootling pulse: an earthen ring rolling out over the slab and a ring of root tips breaking the
 # ground all round its base (the front half and sides, so they don't cover its body).
@@ -5889,6 +5997,15 @@ func _faceted_crystal(canvas: Image, c: Vector2, w: float, h: float, o: Color, f
 func _draw_prism_jar(canvas: Image, st: Dictionary) -> void:
 	_draw_firefly_jar(canvas, st)
 	_faceted_crystal(canvas, Vector2(30.5, 9 + st.dy), 8.0, 9.0, Color("#1a2230"), st.f)
+	# Its face shows through the crystal (the crystal covered its eyes): cream eyes, which read on the
+	# teal and dark facets the shading gives the glass round them.
+	for ex: int in EYES:
+		if st.blink:
+			_px(canvas, ex, EYE_TOP + 1 + st.dy, EYE_LIGHT)
+			_px(canvas, ex + 1, EYE_TOP + 1 + st.dy, EYE_LIGHT)
+		else:
+			for k in 3:
+				_px(canvas, ex, EYE_TOP + k + st.dy, EYE_LIGHT)
 
 func _draw_rainbow_prism(canvas: Image, st: Dictionary) -> void:
 	var dy: int = st.dy
@@ -7168,11 +7285,14 @@ func _epic_final(tower_name: String, canvas: Image, st: Dictionary) -> void:
 		call("_epic_" + tower_name, canvas, cfg, st, glow, core)
 	else:
 		_epic_family_motif(_epic_family(tower_name), canvas, cfg, st, glow, core)
-	# Its eyes glow in its light.
+	# Its eyes glow in its light; when the glow is too close to the face in lightness, the eyes take the
+	# ink or cream that stands out instead (same eyes, a colour that reads).
 	if not st.blink:
+		var skin := _face_skin(canvas, st.dy)
+		var dim := skin.a > 0.0 and _gap(glow, skin) < EYE_CONTRAST
 		for ex: int in EYES:
 			for k in 3:
-				_px(canvas, ex, EYE_TOP + k + st.dy, core if k == 1 else glow)
+				_px(canvas, ex, EYE_TOP + k + st.dy, _eye_colour(skin) if dim else (core if k == 1 else glow))
 
 # Each family's own motif (a final without its own version takes it as it is).
 func _epic_family_motif(family: String, canvas: Image, cfg: Dictionary, st: Dictionary, glow: Color, core: Color) -> void:
