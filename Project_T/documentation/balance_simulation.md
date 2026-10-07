@@ -891,7 +891,10 @@ twist fix.
 bot-tuned F (act 2 to ~⅓) is dropped: a skilled human cleared the live act 2 at full leaves while the bot clears it 0–3%.
 **Boss bite stays flat at 10.** Only cliffs get fixed (finale elites / health, tested as relative effects). The bot's
 absolute act 1–2 numbers are no longer targets (A/B only); the demo targets below are judged on human runs. The demo_*
-exports go (removed in 5012e304). Act 3: the ramp exports stay at their no-change defaults.
+exports go (removed in 5012e304). Act 3: the ramp exports stay at their no-change defaults. **Cliff arms on today's
+curve (c5b614fe, full, 30 each):** control 70 / 0 / 0, 2 finale elites from 30: 66 / 3 / 3, finale ×1.2: 70 / 0 / 0; act 2 death
+medians 38 / 38 / 34. The bot dies at 28–40, before the finales, and elites are only ~¼ of the leaves at 36–49: **no finale
+cliff to fix**, so the finale values stay. Human deaths spread over 30–50 too (runs 21–23, the friend).
 **Island edge B (environment_assets.md 9329b7a5, +74 rim cells):** new rim cells filled at the frame band's density (≈ +12–18
 obstacles); sim relative to main on the same seeds: act 1 within ±10, d1–5 leaks no worse, route at 10 ≤ ~15% longer.
 **Husk resists stone (Enemy Assets 12a47530):** rolled drifts stay ≤ 40% stone-resisted (roller cap). Hand-made: drift 6 (intro)
