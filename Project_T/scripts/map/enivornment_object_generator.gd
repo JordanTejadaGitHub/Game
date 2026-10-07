@@ -3,7 +3,7 @@ class_name EnvironmentObjectGenerator
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 # Rings of healthy trees outside the border wall: dark silhouettes where the maze never goes.
-const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVoid puts an islet at its end)
+const BRIDGE_CELLS := StartGate.BRIDGE_CELLS  # Rope bridge from the start out into the void, into the nightmare fog
 @export var noise_texture: NoiseTexture2D
 @export var tree_obstacle: ObstacleData = preload("res://resource/obstacle/tree.tres")
 @export var rock_obstacle: ObstacleData = preload("res://resource/obstacle/rock.tres")
@@ -99,9 +99,7 @@ func initialize(startPath: Vector2i, endPath: Vector2i) -> PackedVector2Array:
 	_start = startPath
 	_end = endPath
 	_generate_border(startPath, endPath)
-	_generate_bridge(startPath)
-	# Nightmare mist where drifts arrive. Nothing is ever built or cleared on the start cell.
-	set_cell(startPath, EnvironmentTiles.EDGE_MIST, Vector2i.ZERO)
+	_generate_bridge(startPath)  # The bridge and the nightmare fog are StartGate's (MapGenerator). Nothing is ever built or cleared on the start cell.
 	return unwalkable_cells
 
 # Places ridges, rock clusters, trees (clustered by noise) and lone rocks, skipping `skip_cells`.
@@ -515,25 +513,16 @@ func _compute_noise_levels(noise: FastNoiseLite, tree_density: float) -> void:
 func _generate_border(_start_path: Vector2i, _end_path: Vector2i) -> void:
 	unwalkable_cells.clear()
 
-# A rope bridge from the start cell straight out into the void, where the nightmares cross over.
+# The rope bridge runs from the start cell straight out into the void, where the nightmares cross over. StartGate
+# draws it (on the lane's half row) and the nightmare fog at its far end; this only keeps where that end is.
 func _generate_bridge(startPath: Vector2i) -> void:
-	var out := _outward(startPath)
-	var tile := Vector2i(1, 0) if out.x == 0 else Vector2i(0, 0)  # North-south or east-west planks
-	for i in range(1, BRIDGE_CELLS + 1):
-		set_cell(startPath + out * i, EnvironmentTiles.ROPE_BRIDGE, tile)
+	bridge_end = startPath + _outward(startPath) * (BRIDGE_CELLS + 1)
 
-	bridge_end = startPath + out * (BRIDGE_CELLS + 1)
-
-# Shifting Mist (heartwood_gifts.md 0c552b28): the start moves to `new` on the rim. The old start turns back
-# into rim (its bridge goes, the cliffs come back under the bottom row); the new one gets the mist and a bridge.
-func move_start(old: Vector2i, new: Vector2i) -> void:
-	var out := _outward(old)
-	for i in range(1, BRIDGE_CELLS + 1):
-		erase_cell(old + out * i)
-	erase_cell(old)  # The old start's mist: plain ground again (no rim ring any more)
+# Shifting Mist (heartwood_gifts.md 0c552b28): the start moves to `new` on the island's edge. The old start is
+# plain ground already; the bridge and fog move with StartGate.
+func move_start(_old: Vector2i, new: Vector2i) -> void:
 	_start = new
 	_generate_bridge(new)
-	set_cell(new, EnvironmentTiles.EDGE_MIST, Vector2i.ZERO)
 
 # The direction off the island from an edge cell.
 func _outward(cell: Vector2i) -> Vector2i:

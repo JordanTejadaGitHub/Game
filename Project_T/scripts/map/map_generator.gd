@@ -44,6 +44,7 @@ var ambience: EnvironmentAmbience  # Edge fog and the act's particles
 var ground_patches: GroundPatches  # Ground variation (environment_assets.md "Ground variation")
 var tree_fade: TallObstacleFade  # Withered Trees fade their overhang over what's behind them
 var island_lip: IslandLip  # The island's edge and the south vines, drawn just outside the grid
+var start_gate: StartGate  # The rope bridge on the lane and the nightmare fog it comes out of
 var gifts: MapGifts  # Heartwood's Gifts: terrain the act-break gifts leave (map_gifts.gd)
 var _route_hold := 0  # hold_route() depth
 var _route_dirty := false  # A block changed while held: redraw at release_route()
@@ -133,6 +134,12 @@ func _ready() -> void:
 	dream_void.map_seed = map_seed
 	add_child(dream_void)
 	move_child(dream_void, 0)  # Behind the tile layers
+
+	start_gate = StartGate.new()
+	start_gate.name = "StartGate"
+	start_gate.map = self
+	start_gate.set_start(Vector2i(startPath))
+	add_child(start_gate)
 
 	omen_mist = OmenMist.new()
 	omen_mist.map_generator = self
@@ -614,6 +621,8 @@ func move_start(new_start: Vector2) -> void:
 	if dream_void != null:
 		dream_void.move_bridge(environment_object_layer.bridge_end)
 	path_layer.draw()
+	if start_gate != null:
+		start_gate.set_start(Vector2i(new_start))
 	path_changed.emit()
 
 # --- Obstacles ------------------------------------------------------------------------------------

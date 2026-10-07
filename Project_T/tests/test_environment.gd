@@ -42,10 +42,18 @@ func _init() -> void:
 		and tree_sheet.get_tile_data(Vector2i(0, 8), 0).texture_origin == Vector2i(0, 32),
 		"Withered Trees are 96x128, 9 kinds, bottom 64 px on their own cell")
 	var out: Vector2i = env._outward(Vector2i(map.startPath))
-	_check(env.get_cell_source_id(Vector2i(map.startPath) + out) == EnvironmentTiles.ROPE_BRIDGE,
-		"a rope bridge leads out from the start, off its edge")
+	var gate: StartGate = map.start_gate
+	var first_half: Vector2 = map.path_layer.current_path[0]
+	var lane_px: float = (map.MAP_GRID.calculate_map_position(first_half) - gate.position).dot(Vector2(absf(out.y), absf(out.x)))
+	_check(gate != null and gate.start == Vector2i(map.startPath) and gate.position == map.MAP_GRID.calculate_map_position(map.startPath)
+		and gate._bridge != null and gate._fog != null and gate._fog.get_width() == 4 * 192 and gate._fog.get_height() == 192,
+		"the start gate (the lane's rope bridge, the nightmare fog) stands at the start")
+	_check(absf(gate.lane) == 16.0 and gate.lane == lane_px, "the bridge runs on the lane's half row (%s px, route half %s)" % [gate.lane, first_half])
+	_check(env.get_cell_source_id(Vector2i(map.startPath) + out) == -1 and env.get_cell_source_id(Vector2i(map.startPath)) == -1,
+		"no rope-bridge or mist tiles at the start any more")
 	_check(map.dream_void.get_child(0) is Parallax2D and map.dream_void.z_index < 0, "the void sits behind the map")
-	_check(env.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.EDGE_MIST, "mist on the start cell")
+	_check(not map.dream_void.get_children().any(func(n: Node) -> bool: return n is Sprite2D
+		and n.position.distance_to(map.MAP_GRID.calculate_map_position(Vector2(env.bridge_end))) < 1.0), "no islet under the fog")
 	var trees := map.tile_set.get_source(EnvironmentTiles.WITHERED_TREE) as TileSetAtlasSource
 	_check(trees.get_tile_animation_mode(Vector2i(0, 0)) == TileSetAtlasSource.TILE_ANIMATION_MODE_RANDOM_START_TIMES,
 		"dead trees start their animation at random times")
@@ -82,7 +90,6 @@ func _init() -> void:
 	env.set_cell(worn, EnvironmentTiles.GROUND_DETAILS, Vector2i.ZERO)
 	path.call("draw")  # PathGenerator.draw(), not CanvasItem's draw signal
 	_check(env.get_cell_source_id(worn) == -1, "the path wears away a ground detail under it")
-	_check(env.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.EDGE_MIST, "but not the start's mist")
 
 	# The Heartwood blackens as leaves are lost.
 	var heartwood: Heartwood = map.heartwood

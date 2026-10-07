@@ -2,9 +2,9 @@ class_name DreamVoid
 extends Node2D
 
 # The starry void the island of dream drifts in (environment_assets.md, "The dream's outer layer"):
-# two parallax layers behind the map (the sky, then brighter stars), a small islet at the far end of
-# the rope bridge where nightmares come from, and a few more islets scattered around. The same in
-# every act. MapGenerator makes it and moves it behind the tile layers.
+# two parallax layers behind the map (the sky, then brighter stars) and a few islets scattered around,
+# kept clear of the nightmare fog at the rope bridge's far end (StartGate). The same in every act.
+# MapGenerator makes it and moves it behind the tile layers.
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const VOID_Z := -10  # Behind the map
@@ -17,15 +17,12 @@ const REPEATS := 16  # Copies each way, enough for a fully zoomed-out wide scree
 @export var scattered_islets := 7
 @export var islet_distance := Vector2(2.0, 6.0)  # Cells out from the island's edge
 
-var bridge_end := Vector2i(-1, -1)  # Cell for the bridge's islet (set before adding)
+var bridge_end := Vector2i(-1, -1)  # The fog's cell, kept clear of islets (set before adding)
 var map_seed := 0  # Scatter is reproducible per map
-var _bridge_islet: Sprite2D  # The big islet the rope bridge reaches
 
-# The bridge moved (Shifting Mist): its islet goes to the new far end.
+# The bridge moved (Shifting Mist). The islets stay where they are.
 func move_bridge(end: Vector2i) -> void:
 	bridge_end = end
-	if _bridge_islet != null:
-		_bridge_islet.position = MAP_GRID.calculate_map_position(Vector2(end))
 
 func _ready() -> void:
 	z_index = VOID_Z
@@ -34,9 +31,6 @@ func _ready() -> void:
 	add_child(_layer("void_stars", stars_scroll, Vector2.ZERO if low else stars_drift))
 	var islets: Texture2D = load(EnvironmentTiles.shared_path("void_islets"))
 	var count := islets.get_width() / EnvironmentTiles.SIZE.x
-	if bridge_end != Vector2i(-1, -1):
-		_bridge_islet = _islet(islets, 2, MAP_GRID.calculate_map_position(Vector2(bridge_end)))  # The biggest one
-		add_child(_bridge_islet)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = map_seed + 7
 	var map_rect := Rect2(Vector2.ZERO, MAP_GRID.size * MAP_GRID.cell_size)
