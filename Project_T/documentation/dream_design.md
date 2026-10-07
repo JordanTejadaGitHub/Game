@@ -2074,6 +2074,7 @@ count. The gaps get **16 new Commons** (cards 270–285, start pool; numbers: ba
   steering, chase ceiling 30% / 50%.
 - **Measure** (Balancing Code): distinct cards seen per run, overlap between consecutive runs, the
   no-build share at 50 (stay ≤ ~20%), and the chase ceiling.
+- **Built:** e1209bae (defining to 40; Kindred Roots tall), 1cb6b96d (16 helpers), Tower Code dd610257 (per-hit hooks). Mulch and Weed Puller also wait for clearing to be unlocked (`can_clear`), per the use-now rule.
 
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 
