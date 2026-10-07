@@ -613,7 +613,7 @@ static func firework_landed(tower: Tower, at: Vector2) -> void:
 			later.timeout.connect(func() -> void:
 				if is_instance_valid(w):
 					Fx.play(FIREWORK_POP, at + Vector2(14, -10), w, scale * 0.85))
-	_spark_burst_at(tower, at, sparks, float(tower.attack_data.damage) * p(tower, "spark_share", SPARK_SHARE) * spark_share_scale, true)  # Per form (Balancing: Sparkler 0.4, Starburst 0.5)
+	_spark_burst_at(tower, at, sparks, float(tower.attack_data.damage) * p(tower, "spark_share", SPARK_SHARE) * spark_share_scale, true)  # Per form (Balancing sweep: Sparkler 0.6, Starburst 0.75)
 
 # A spark flying from the pop to the nightmare it hit (cosmetic: the hit lands at once, as before).
 class FireworkSpark extends Node2D:
