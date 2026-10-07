@@ -2233,6 +2233,46 @@ function ropeBridge(o) {
   return L;
 }
 
+// The start (2026-10-07, the user's pick of the start mock: "looks a lot better now"): the nightmares come out of a
+// black fog bank in the void, cross a narrow bridge on the lane's exact half-cell line, and step onto the island.
+// rope_bridge_lane.png (dream/, 128×64): the narrow bridge, same layout as rope_bridge.png (column 0 east-west,
+// 1 north-south), a 20 px deck centred in the 64 px cell (the game offsets it 16 px onto the lane's half row).
+// Planks, a lit leading edge, Loam rope rails that sag between the posts, one post pair per cell.
+function laneBridge(o) {
+  const L = new Img();
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const along = o ? y : x, across = o ? x : y, sag = Math.round(Math.sin(Math.PI * along / T) * 1.5);
+    const a = across - sag;
+    if (a >= 22 && a <= 41) {
+      const plank = Math.floor(along / 4), gap = along % 4 === 3;
+      L.set(x, y, gap || a === 41 ? "#241c14" : a === 22 ? "#8c5c34" : hash(plank, 0, 731) < .3 ? "#8c5c34" : "#5c3c24");
+    } else if (a === 19 || a === 44) L.set(x, y, "#6c5c5c");  // rope rails (Loam)
+  }
+  for (const side of [13, 45]) for (let al = 59; al <= 61; al++) for (let ac = side; ac < side + 7; ac++)  // a post pair at the cell's end
+    L.set(o ? ac : al, o ? al : ac, al === 59 ? "#8c5c34" : "#5c3c24");
+  return L;
+}
+// nightmare_fog.png (dream/, 4 frames of 192×192): the black fog the nightmares come out of, where the bridge's far
+// end disappears (it replaces the islet). Layered dark clouds stepped Shade → Night → Dread (never Void: a void-dark
+// core read as a hole into the sky), drifting a little each frame, with faint Wraithlight eyes that blink.
+function nightmareFog(f) {
+  const S = 192, L = new Img(S, S), s = SEED + 5200, c = S / 2, ph = f * Math.PI / 2;
+  const puffs = [[0, 0, 62], [34, -30, 38], [38, 32, 36], [-30, -40, 40], [-28, 44, 42], [56, 2, 28], [-52, 4, 34]];
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    let v = -1;
+    puffs.forEach(([px, py, r], i) => {
+      const dx = px + Math.cos(ph + i) * 2, dy = py + Math.sin(ph + i * 1.7) * 2;
+      v = Math.max(v, 1 - Math.hypot(x - c - dx, (y - c - dy) * 1.1) / r);
+    });
+    v += (pnoise(x, y, 22, s) - .5) * .5 + (pnoise(x + Math.cos(ph) * 3, y + Math.sin(ph) * 3, 9, s + 1) - .5) * .22;  // ragged wisps, not round puffs
+    if (v <= 0 || x < 1 || y < 1 || x > S - 2 || y > S - 2) continue;
+    L.set(x, y, v > .45 ? "#140f26" : v > .22 ? "#24243c" : "#2c2444");
+  }
+  const eyes = [[c + 8, c - 30], [c - 18, c + 24], [c + 26, c + 10], [c - 30, c - 12]];
+  eyes.forEach(([ex, ey], i) => { if ((f + i) % 4 !== 3) { L.set(ex, ey, "#9a84e8"); L.set(ex + 4, ey, "#9a84e8"); } });  // each pair blinks once a loop
+  return L;
+}
+
 // Rocks read smaller than the (taller) dead trees: each finished 64 px rock is shrunk to 68%
 // (nearest pixel), re-outlined, and set back on its old base line (y 55) in a 64 px cell.
 const ROCK_SCALE = .68;
@@ -2291,6 +2331,8 @@ const BUILD = {
   voidstars: () => voidStars(),
   islet: (A, v) => islet(A, v),
   bridge: (A, v) => ropeBridge(v),
+  lbridge: (A, v) => laneBridge(v),  // the narrow bridge on the lane: 0 east-west, 1 north-south
+  nfog: (A, v, f) => nightmareFog(f),
   cloud: (A, v) => cloudShadow(v),
   mistbank: () => mistBanks(),
   route: (A, v) => routeMist(v),  // 0 strip, 1 start cap, 2 end cap
@@ -2305,8 +2347,8 @@ const BUILD = {
   astump: (A, v) => ancientStump(A, v),
   rwisp: (A, v, f) => routeWisp(f),
 };
-const ANIM = new Set(["under", "withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "ltree", "mwell", "bstone", "mring", "dead"]);
-const TILES = new Set(["lip", "under", "grass", "path", "wall", "pool", "pond", "pondin", "flog", "lfurrow", "pdual", "gpatch", "hroots", "bog", "bogd", "rootsd", "blight"]);
+const ANIM = new Set(["nfog", "under", "withered", "waystone", "pool", "pond", "blight", "mist", "heart", "hstage", "fruit", "rwisp", "ltree", "mwell", "bstone", "mring", "dead"]);
+const TILES = new Set(["lbridge", "nfog", "lip", "under", "grass", "path", "wall", "pool", "pond", "pondin", "flog", "lfurrow", "pdual", "gpatch", "hroots", "bog", "bogd", "rootsd", "blight"]);
 const SOLID = 200;
 function copyPx(dst, x, y, c) { const i = (y * dst.w + x) * 4; dst.d[i] = c[0]; dst.d[i+1] = c[1]; dst.d[i+2] = c[2]; dst.d[i+3] = c[3]; }
 // Storybook: halve the resolution (most common solid colour per 2×2 block), outline sprites in a
