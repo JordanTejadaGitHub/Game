@@ -894,7 +894,8 @@ exports go (removed in 5012e304). Act 3: the ramp exports stay at their no-chang
 obstacles); sim relative to main on the same seeds: act 1 within ±10, d1–5 leaks no worse, route at 10 ≤ ~15% longer.
 **Husk resists stone (Enemy Assets 12a47530):** rolled drifts stay ≤ 40% stone-resisted (roller cap). Hand-made: drift 6 (intro)
 → 3 Husks + 4 Shades (69% Husk, 900 → 1,300 hp; the ease-in cap unchanged); drift 25's escorts → ≤ 40% stone-resisted, same
-total health, for all three act 1 bosses (Enemy Code).
+total health, for all three act 1 bosses. In fb11f4e4: drift 6 spacing 2.5 → 1.5 s (~9 s); Stag escorts 4 Husks + 18 Shades
+(40%), Night Mare 2 + 16 (27%), Scarecrow unchanged.
 
 ## One curve (user, 2026-10-06: "shouldn't it be the same?")
 
