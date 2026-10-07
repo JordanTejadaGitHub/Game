@@ -483,9 +483,10 @@ just outside the grid.
   tongues and a Dread shadow beneath, drawn **outside** the outermost cells, all the way round. No teeth. Corners are
   rounded and the outline wobbles. It's a new sheet that traces the island's outline by neighbour mask (layout
   Environment Assets' call), per act.
-- **The bottom: hanging vines.** Under the south lip, a short tucked cliff (Root → Dread → Void, about 13–21 px) with
-  **hanging vines** draping into the void at uneven lengths (some long, a few with a dull leaf or a dead dream-bud,
-  swaying gently at 4 frames). They're the island's underside, never a wall in front of the play area.
+- **The bottom: the old cliff face** (changed 2026-10-07, the user: *"Don't like the vines, should look closer to the old
+  design but just on the bottom"*; Environment Assets 21eeec6). Under the thin south lip hangs the old cliff face
+  (banded rock, drips, roots), only on the south edge. The N, E and W sides keep only the lip. It's the island's
+  underside, never a wall in front of the play area. (The hanging vines, 4bedb870 / 9157d2ab, are dropped.)
 - **The rope bridge** joins the lip at the start, and the start's path runs out to the lip.
 - Heartwood 32, calm detail pass, value order unchanged (the lip stays below the ground's value).
 
