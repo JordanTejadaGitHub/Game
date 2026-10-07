@@ -46,6 +46,7 @@ func _init() -> void:
 	_signature_effects()
 	_area_effects()
 	_firework_effects()
+	_root_pulse_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -3640,3 +3641,63 @@ func _firework_pop(img: Image, f: int) -> void:
 			_px(img, roundi(hp.x) + 1, roundi(hp.y) + 1, Color(WARM, a))
 	if f == 1:
 		_ellipse(img, c, Vector2(6, 6), Color(WARM, 0.75))
+
+# --- Rootling's pulse, calmer (user: the pulse circles "don't look right") --------------------------
+# root_lash: on each nightmare the pulse touches, pale roots (the new Rootling attack's roots: cream
+# wood, a lighter top edge, ink outline) whip up round its feet and sink back. (The pulse ring itself is
+# drawn in code by Tower Code.)
+const LASH_WOOD := Color("#dccdb2")
+const LASH_LIT := Color("#fff4dc")
+const LASH_INK := Color("#241c14")
+
+func _root_pulse_effects() -> void:
+	_sheet("root_lash", Vector2i(32, 32), 5, 14, Vector2i(16, 26), false, "signature", _root_lash,
+		{note = "Rootling family: roots whipping up round a nightmare's feet as the pulse touches it, then sinking (anchor = its feet). ~0.36 s."})
+
+func _root_lash(img: Image, f: int) -> void:
+	# Three roots out of the ground at the feet: they rise, curl in over the feet, then sink back.
+	var base := Vector2(16, 26)
+	var h: float = [4.0, 11.0, 13.0, 9.0, 3.0][f]
+	var curl: float = [0.0, 2.0, 5.0, 6.0, 3.0][f]
+	var a := 1.0 if f < 4 else 0.75
+	var body := Image.create_empty(32, 32, false, Image.FORMAT_RGBA8)
+	var crests: Array = []
+	for s: int in [-1, 0, 1]:
+		var foot := base + Vector2(s * 7, 1 if s == 0 else 0)
+		var tip := foot + Vector2(-s * curl, -h * (0.85 if s == 0 else 1.0))
+		var mid := foot.lerp(tip, 0.55) + Vector2(s * 2.5, 0)
+		var pts: Array = []
+		for i in 7:
+			var t := i / 6.0
+			pts.append(foot.lerp(mid, t).lerp(mid.lerp(tip, t), t))
+		for i in pts.size() - 1:
+			var r := 1.6 - i * 0.18
+			var p0: Vector2 = pts[i]
+			var p1: Vector2 = pts[i + 1]
+			for k in 4:
+				var p := p0.lerp(p1, k / 3.0)
+				for y in range(int(p.y - r) - 1, int(p.y + r) + 2):
+					for x in range(int(p.x - r) - 1, int(p.x + r) + 2):
+						if x >= 0 and y >= 0 and x < 32 and y < 32 and Vector2(x + 0.5, y + 0.5).distance_to(p) <= r:
+							body.set_pixel(x, y, LASH_WOOD)
+		crests.append(pts)
+	for y in 32:  # ink outline
+		for x in 32:
+			if body.get_pixel(x, y).a > 0.0:
+				img.set_pixel(x, y, Color(LASH_WOOD, a))
+				continue
+			for n: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var q := Vector2i(x, y) + n
+				if q.x >= 0 and q.y >= 0 and q.x < 32 and q.y < 32 and body.get_pixelv(q).a > 0.0:
+					img.set_pixel(x, y, Color(LASH_INK, a))
+					break
+	for pts: Array in crests:  # the lighter top edge
+		for i in range(1, pts.size() - 1):
+			var p: Vector2 = pts[i]
+			_px(img, roundi(p.x) - 1, roundi(p.y), Color(LASH_LIT, a))
+	# Torn soil at their feet as they break out.
+	if f <= 2:
+		for s: int in [-1, 1]:
+			_px(img, int(base.x) + s * (10 + f), int(base.y) - f, Color(Color("#8c5c34"), a))
+			_px(img, int(base.x) + s * (12 + f * 2), int(base.y) - 1 - f, Color(Color("#5c3c24"), a))
+

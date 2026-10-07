@@ -1900,6 +1900,22 @@
 				7
 			]
 		},
+		"root_lash": {
+			"anchor": [
+				16,
+				26
+			],
+			"file": "root_lash.png",
+			"fps": 14.0,
+			"frame_size": [
+				32,
+				32
+			],
+			"frames": 5,
+			"kind": "signature",
+			"loop": false,
+			"note": "Rootling family: roots whipping up round a nightmare's feet as the pulse touches it, then sinking (anchor = its feet). ~0.36 s."
+		},
 		"root_snap": {
 			"anchor": [
 				12,
