@@ -140,7 +140,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
   (+1 leaf, `act_started`). `family_pick_requested(&"first"|&"boss")` fires after drift 1 and
   before a boss rest; `FamilyPickScreen` calls `family_picked()` (first pick: 3 random of every
   unlocked family, never the last run's offer again, profile `last_first_pick`). `is_build_phase()`
-  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5 (act 1's boss × 1.75, `act1_boss_health_multiplier`; acts 2–3 × 2.25, `mid_boss_health_multiplier`); acts 3–4 × 4.8 on top, bosses too (`late_acts_health_multiplier`; the Hollow Oak × 3.0, `final_boss_late_multiplier`). From drift 31 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
+  = resting (75% refunds). Health `get_growth(n)`: × 1.045 per drift, × 1.055 from drift 26 (`late_growth_from`), × 1.045 from 51 (`endgame_growth_from`); bosses × 1.5 (act 1's boss × 1.75, `act1_boss_health_multiplier`; act 2 × 1.75, `act2_boss_health_multiplier`; act 3 × 1.75, `act3_boss_health_multiplier`); acts 3–4 × 4.8 on top, bosses too (`late_acts_health_multiplier`; the Hollow Oak × 3.0, `final_boss_late_multiplier`). From drift 31 a drift listing no elites gets one, two from 76 (`add_guaranteed_elite`). Hooks for Dreams/Omens:
   `get_health_multiplier`, `get_schedule_modifiers`, `get_spawn_modifiers`, `_pay_rest_bonus`. Acts 1–2 health (`get_early_multiplier`, `act1_*` / `early_*` exports): ×1.0 to drift 9 → ×1.15 at 20, held to 25 (act 1's boss exempt: its own ×1.75); act 2 ×1.6 at 26 → ×2.3 at 37 → ×3.6 at 45, held to 50 (`act2_*`); acts 3–4 ×4.8.
 - **The Dew pot** (run_design.md): each drift pays a fixed pot from `DriftDirector.dew_pot_acts` / `dew_pot_bosses`
   (act 1 30 → 115 … bosses 220 / 270 / 320, the win 0), split at its start across its nightmares by `dew_reward`
@@ -213,7 +213,7 @@ accessibility, Steam achievements (milestones map to them). Acts 3–4 and all f
 - `HeartwoodMemory` (`scripts/meta/heartwood_memory.gd`, static, `user://heartwood.json`): banked
   Seeds, run counts, `whispers_seen`, settings (volumes, fullscreen, whispers, keybinds);
   `apply_settings()`. `SettingsPanel` edits it (title + pause menu).
-- Seeds: `RunState.get_seed_breakdown()` (meta_design.md formula + first-run +20).
+- Seeds: `RunState.get_seed_breakdown()` (meta_design.md formula: survival Seeds from drift `survival_seeds_from` 26, act 1 dispels 1 per `act_1_cleanses_per_seed` 50; no first-run bonus).
   `ResultsScreen` (`%ResultsScreen`) shows it on `run_ended`, banks it, and in the demo shows the
   Deep Wood ending, Memory 1, the sleeping Grove teaser and a Wishlist button.
 - `RunHistory` (made by the HUD, group `run_history`; balance_simulation.md "Run history"): every run end (won / lost /
