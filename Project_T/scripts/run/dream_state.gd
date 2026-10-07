@@ -2499,13 +2499,6 @@ var _bold_opening_drift := -1  # The drift that took this block's Bold Opening
 func bountiful_next_free() -> bool:
 	return has_rule(&"bountiful") and (sprouts_planted + 1) % BOUNTIFUL_EVERY == 0
 
-# An area Warden (Wide Swing / Scatter's Need): its attacks hit more than one nightmare at once.
-static func is_area_warden(data: TowerData) -> bool:
-	if data == null or not data.can_attack:
-		return false
-	return data.splash_radius > 0.0 or data.attack_kind in [TowerData.AttackKind.PULSE, TowerData.AttackKind.CLOUD,
-		TowerData.AttackKind.SPIN, TowerData.AttackKind.SWEEP]
-
 func light_steps_active() -> bool:
 	return has_rule(&"light_steps") and _game_clock < _light_steps_until
 
@@ -2537,7 +2530,7 @@ func board_can_use(card: UpgradeData) -> bool:
 		&"mulch", &"weed_puller":
 			return can_clear() and count_obstacles() > 0  # Clearing open and something left to clear
 		&"wide_swing", &"scatter":
-			return _towers().any(func(t: Tower) -> bool: return is_area_warden(t.tower_data))
+			return _towers().any(func(t: Tower) -> bool: return HelperCommons.is_area_attack(t.tower_data))  # Tower Code's own set (lobbers too)
 		&"first_among_equals", &"growth_rings":
 			return _towers().any(func(t: Tower) -> bool: return t.rank >= 1)
 		&"forest_floor":
