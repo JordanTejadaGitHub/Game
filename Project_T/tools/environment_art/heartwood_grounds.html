@@ -1811,21 +1811,50 @@ function islandLip(A, k) {
 }
 // The S side (row 0–3) and the S corners (4 SW, 5 SE), 64×128, frame f of 4.
 function islandUnderside(A, row, f) {
-  // The old cliff face under the south lip only (2026-10-07, the user: "don't like the vines, should look closer to the
-  // old design but just on the bottom"): cliff.png's banded rock, drips and hanging roots, hung just under the lip.
-  // Static (the 4 frame columns stay so the sheet layout doesn't change). The S corners keep only the cliff under the
-  // lip's arc, tapering into the corner.
-  const L = new Img(T, T * 2), piece = row < 4 ? 5 : row === 4 ? 6 : 7, v = row < 4 ? row : 0, CY = 8;
-  const face = cliffTile(A, (piece === 5 ? 3 : piece === 6 ? 2 : 1) + 4 * v);  // 3 = cliff both sides, 2 = east only, 1 = west only
-  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
-    if (!face.alpha(x, y)) continue;
-    if (piece === 6 && x < T - LIP_W - 2) continue;  // the corner: only under the lip's arc
-    if (piece === 7 && x > LIP_W + 1) continue;
-    const taper = piece === 6 ? Math.sqrt(clamp((x - (T - LIP_W - 2)) / (LIP_W + 2), 0, 1)) : piece === 7 ? Math.sqrt(clamp((LIP_W + 1 - x) / (LIP_W + 2), 0, 1)) : 1;
-    if (y > 8 + 50 * taper) continue;
-    L.set(x, y + CY, face.get(x, y));
+  // The old cliff design under the south lip only (2026-10-07, the user: "closer to the old design but just on the
+  // bottom"; then "make sure the color matches the rest of the island and the corners merge"): the old banded face,
+  // drips and hanging roots, but in the island's own colours (the lip's Root earth, the Night / Shade ground, Dread and
+  // Void into the dark; a Bark ledge here and there like the lip's lit edge) with calm bands, no checker dither. Each
+  // column hangs from the lip's lowest pixel, so the face follows the lip; in the corners it wraps under the lip's arc
+  // on a rounded profile instead of stopping at a straight cut. Static (4 identical frame columns keep the layout).
+  const L = new Img(T, T * 2), piece = row < 4 ? 5 : row === 4 ? 6 : 7, v = row < 4 ? row : 0, s = SEED + 950 + v * 17;
+  const top = new Img(); paintLip(top, A, piece, v);
+  const drips = [0, 1, 2, 3].map(i => [10 + hash(i, 1, s) * 44, 5 + hash(i, 2, s) * 7, 8 + hash(i, 3, s) * 20]);
+  const lens = [];
+  for (let x = 0; x < T; x++) {
+    lens[x] = 0;
+    let yl = -1;
+    for (let y = 0; y < T; y++) if (top.alpha(x, y)) yl = y;
+    if (yl < 0) continue;
+    // Corners: 0 at the arc's far end, 1 where it meets the S side; a quarter-circle profile so the face rounds off.
+    const t = piece === 6 ? clamp((x + 1 - (T - LIP_W - 2)) / (LIP_W + 2), 0, 1) : piece === 7 ? clamp((LIP_W + 2 - x) / (LIP_W + 2), 0, 1) : 1;
+    const shape = Math.sqrt(1 - (1 - t) * (1 - t));
+    let len = 22 + pnoise(x, 0, 16, s, 4) * 10;
+    for (const [cx, w, h] of drips) len = Math.max(len, 22 + h * (1 - Math.abs(x + .5 - cx) / w));
+    len *= shape;
+    lens[x] = len;
+    for (let i = 1; i <= len; i++) {
+      if (i > len - 3 && hash(x, i, s + 2) < .5) continue;  // a ragged, soft bottom
+      const y = yl + i, k = i / Math.max(len, 1);
+      let c;
+      if (i < 3) c = "#241c14";  // the lip's Root earth carries on down
+      else {
+        const band = Math.floor((i + pnoise(x, i, 16, s + 4, 4) * 6) / 7), tone = pnoise(x, band * 8, 8, s + 5, 8) - k * .55 + (band % 2 ? .06 : 0);
+        const ledge = Math.floor((i - 1 + pnoise(x, i - 1, 16, s + 4, 4) * 6) / 7) !== band;  // a band's top row
+        c = ledge && tone > .45 && hash(x >> 1, band, s + 6) < .5 ? "#5c3c24"  // Bark: a ledge catching light, like the lip's edge
+          : tone > .6 ? "#2c2444" : tone > .42 ? "#241c14" : tone > .2 ? "#140f26" : "#05050d";  // Shade, Root, Dread, Void
+      }
+      L.set(x, y, c);
+    }
   }
-  const top = new Img(); paintLip(top, A, piece, v); L.put(top);  // the lip over the cliff's top
+  for (let r = 0; r < 5; r++) {  // roots hanging out of the face (only where the face is tall enough)
+    const x = Math.floor(4 + hash(r, 1, s) * (T - 8));
+    if (lens[x] < 14) continue;
+    let yl = 0; for (let y = 0; y < T; y++) if (top.alpha(x, y)) yl = y;
+    const end = Math.min(T * 2 - 1, yl + lens[x] + 6 + hash(r, 2, s) * 12);
+    for (let y = yl + 6; y < end; y++) L.set(x + Math.round(Math.sin(y * .2 + r)), y, y % 5 ? "#241c14" : "#5c3c24");
+  }
+  L.put(top);  // the lip over the face's top
   return L;
 }
 const mixC = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, 255];
