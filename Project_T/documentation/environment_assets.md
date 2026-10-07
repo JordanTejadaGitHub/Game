@@ -469,6 +469,39 @@ budget became "a placement fits in one frame (≤ 10 ms), hover ≤ 4 ms" (`test
   - the bend appears on every map.
 - **Balancing (Balancing Discussion, 2026-10-06):** GO on the walling bot. Act 1: default 53%, skip 20%, spender 40%.
   Balancing is watching the first human runs, and `act1_health_multiplier` may ease from 1.20 to 1.10.
+
+## Island edge outside the grid (spec, Environment Discussion, 2026-10-07)
+
+The user, after the rim mock (BEFORE / A / B, Environment Assets): **"B but on the bottom of the map have the hanging
+vines"**. The heavy dark rim ring goes. Its cells become normal ground, and the island's edge is drawn in the void
+just outside the grid.
+
+### Art (Environment Assets)
+- **The lip:** a thin ~10 px earth lip (Root, its inner edge catching a little Bark light) with soft grass-overhang
+  tongues and a Dread shadow beneath, drawn **outside** the outermost cells, all the way round. No teeth. Corners are
+  rounded and the outline wobbles. It's a new sheet that traces the island's outline by neighbour mask (layout
+  Environment Assets' call), per act.
+- **The bottom: hanging vines.** Under the south lip, a short tucked cliff (Root → Dread → Void, about 13–21 px) with
+  **hanging vines** draping into the void at uneven lengths (some long, a few with a dull leaf or a dead dream-bud,
+  swaying gently at 4 frames). They're the island's underside, never a wall in front of the play area.
+- **The rope bridge** joins the lip at the start, and the start's path runs out to the lip.
+- Heartwood 32, calm detail pass, value order unchanged (the lip stays below the ground's value).
+
+### Code (Environment Code)
+- **Cells:** the old rim ring is buildable ground (grass, patches, details), +~74 cells. `island_edge` / `path_rim` on
+  rim cells are retired, and the lip and vines draw as a layer outside the grid (and `DreamVoid` parallax stays
+  behind). The start stays on the outermost row or column, with the bridge out from it.
+- **Generation keeps the bowl the same:** the frame band becomes the outer **4** rows (the old rim ring + 3), so the
+  bowl, spurs and feature rules sit where they are now.
+  - **Spur roots must reach the new outer edge**, or the route slips round a spur's root through the old rim ring
+    and the bend breaks.
+  - The Heartwood's inland rule is measured from the new edge (≥ 3 cells), which keeps its current spots.
+  - Obstacle count: Balancing to confirm (the band is now bigger).
+- Checks: `test_map_density` (bend, bands), building on old rim cells, nothing placeable outside the grid, the
+  camera's clamp and overscroll (the lip and vines sit just past the grid), the start mist and bridge.
+- **Balancing (Balancing Discussion):** +~74 buildable cells, mostly in the frame band. Sim act 1 before merging.
+- **Freeze:** Theme Discussion clears it against the marketing freeze. Marketing holds whole-island shots until it
+  lands.
 ## Notes
 
 - Colours (2026-09-30, to fit the title and Memory Grove screens): the ground is night-indigo with a moss grain (act 1–2 moss/teal, act 3 violet with rust, act 4 frost), the dead trees are cool night bark with a teal lit side and moss flecks (the Grove trunks), rocks stay lavender stone. Warmth is only the path, the Heartwood and the Wardens.
