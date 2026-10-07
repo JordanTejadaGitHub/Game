@@ -176,6 +176,8 @@ func choose(id: StringName, placement: Dictionary = {}) -> void:
 	var map := drift_director.get_node_or_null("%MapGenerator")
 	if id == &"heartwood_roots" and map != null and map.get("gifts") != null and map.gifts.has_method("roots_cells"):
 		place["cells"] = map.gifts.roots_cells()  # The route at pick time (on resume the Wardens come back after)
+		if map.gifts.has_method("roots_halves"):
+			place["halves"] = map.gifts.roots_halves()  # Half precision (heartwood_gifts.md 2554c638)
 	var record := {"id": String(id), "act": offer_act, "placement": _plain(place)}
 	taken.append(record)
 	_apply(id, record.placement, false)

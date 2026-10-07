@@ -1,6 +1,8 @@
 extends Control
 class_name GiftScreen
 
+signal piece_placed(at: Vector2)  # A gift piece put down on the map (world position): SoundHooks' plant sound
+
 # The gift screen (heartwood_gifts.md): at an act break, after the Dream and the family pick and before the Omen, the
 # three gifts HeartwoodGifts drew as cards, or "Let them pass" (+30 Dew × the act). A map gift is placed on the screen
 # itself (GiftPlacer, in the world): a ghost of its cells, the route mist showing the new route, "+N path", and cells
@@ -346,6 +348,7 @@ func pick(id: StringName) -> void:
 	if preview != null:
 		preview.stop()  # Hidden while placing: nothing runs
 	placer = GiftPlacer.new(drift_director, id, BLOCKING.has(id))
+	placer.on_placed = piece_placed.emit  # Each piece put down: SoundHooks plays the Warden plant sound
 	drift_director.owner.add_child(placer)
 	_plant.text = "Clear them" if placer.kind == &"obstacles" else "Plant"
 
@@ -426,7 +429,7 @@ class GiftPlacer extends Node2D:
 			options.assign(map.gifts.start_options(int(size)))
 
 	func _process(_delta: float) -> void:
-		var cell: Vector2 = map.MAP_GRID.calculate_grid_coordinates(map.get_local_mouse_position())
+		var cell := _hover_at(map.get_local_mouse_position())
 		if cell != hover:
 			hover = cell
 			_refresh_route()
@@ -437,8 +440,23 @@ class GiftPlacer extends Node2D:
 			click(hover)
 			get_viewport().set_input_as_handled()
 
-	# One click on `cell`, by kind (tests call it too).
+	# One click on `cell` (this kind's units, see _hover_at), by kind (tests call it too). A piece put down plays the
+	# Warden build sound; a click that couldn't place plays the refusal.
 	func click(cell: Vector2) -> void:
+		var before := cells.size()
+		var toggling := cells.has(cell)
+		_click(cell)
+		var places := PIECE_KINDS.has(kind) or kind == &"path"
+		if places and kind == &"move" and froms.size() > before and cells.size() == before:
+			places = false  # Picked a stone up, nothing put down yet
+		if places and cells.size() > before:
+			_placed(cells[-1] if cells[-1] != Vector2(-99, -99) else cells[0])
+		elif places and not toggling and cells.size() <= before and not (kind == &"line" and before == 2):
+			_refused(cell)
+		_refresh_route()
+		queue_redraw()
+
+	func _click(cell: Vector2) -> void:
 		match kind:
 			&"chain":
 				if cells.has(cell):
@@ -464,14 +482,10 @@ class GiftPlacer extends Node2D:
 					cells.erase(cell)
 				elif cells.size() < int(size) and _cell_ok(cell):
 					cells.append(cell)
-			&"path":
-				var route := {}  # The full cells the route covers (half-cell points: the cell each lies in)
-				for point in map.get_path_from(map.startPath):
-					for c in DreamState.route_cells(point):
-						route[c] = true
+			&"path":  # Route halves, connected (Mire: `size` cells of route = twice as many halves)
 				if cells.has(cell):
 					cells.erase(cell)
-				elif cells.size() < int(size) and route.has(cell) and cell != map.startPath and cell != map.endPath \
+				elif cells.size() < int(size) * 2 and _route_half_ok(cell) \
 						and (cells.is_empty() or cells.any(func(c: Vector2) -> bool: return _adjacent(c, cell))):
 					cells.append(cell)
 			&"area":
@@ -529,8 +543,10 @@ class GiftPlacer extends Node2D:
 				return cells.size() >= 2 and cells[-1] == Vector2(-99, -99)
 			&"cell":
 				return cells.size() == 1
-			&"cells", &"path":
+			&"cells":
 				return cells.size() == int(size)
+			&"path":
+				return cells.size() == int(size) * 2
 			&"area":
 				return not cells.is_empty()
 			&"move":
@@ -570,33 +586,37 @@ class GiftPlacer extends Node2D:
 		var picked: Array[Vector2] = []
 		picked.assign(cells.filter(func(c: Vector2) -> bool: return c != Vector2(-99, -99)))
 		var out := {"cells": picked}
+		if PIECE_KINDS.has(kind):  # Warden-style half origins (MapGifts reads these; "cells" stays for old readers)
+			out["pieces"] = picked.map(func(c: Vector2) -> Vector2: return c * 2.0)
 		if kind == &"move":
-			out["from"] = froms
+			out["from"] = froms.map(func(c: Vector2) -> Vector2: return c * 2.0)  # Obstacle keys × 2
+		if kind == &"path":  # Route halves; "cells" = the cells they lie in
+			out["halves"] = picked
+			var homes: Array[Vector2] = []
+			for h in picked:
+				if not homes.has((h / 2.0).floor()):
+					homes.append((h / 2.0).floor())
+			out["cells"] = homes
 		if tower != null:
 			out["cells"] = [tower.cell]
 		return out
 
-	# Empty ground a Warden could stand on, not in the Heartwood's glade (the glade is the Heartwood's).
+	# A piece a Warden could stand on here (MapGifts: every half free, off the glade; for a blocking gift alone, the
+	# route still open).
 	func _cell_ok(cell: Vector2) -> bool:
-		if map == null or not map.is_buildable(cell):
-			return false
-		if map.has_method("get_glade_cells") and Array(map.get_glade_cells()).has(cell):
-			return false
-		return true
+		return map != null and map.get("gifts") != null and map.gifts.can_place(id, [cell * 2.0])
 
-	# A blocking gift must leave the start a way to the Heartwood. (Moving obstacles also frees their old cells, which
-	# only opens more: checking the new cells alone is the safe side.)
+	# All the pieces together: free, not overlapping, and a blocking gift leaves every nightmare a way through (moving
+	# obstacles also frees their old halves, which only opens more: checking the new ones alone is the safe side).
 	func _route_ok(blocked: Array, _freed: Array = []) -> bool:
-		if not blocking:
-			return true
-		var all := blocked.filter(func(c) -> bool: return c != Vector2(-99, -99))
-		return map.get_path_if_blocked_cells(all).size() > 0
+		var all := blocked.filter(func(c) -> bool: return c != Vector2(-99, -99)).map(func(c: Vector2) -> Vector2: return c * 2.0)
+		return map.get("gifts") != null and map.gifts.can_place(id, all)
 
 	func _route_len() -> int:
 		var all: Array = placement().cells.duplicate()
 		if all.is_empty() or not blocking:
 			return _route_now
-		return map.route_length(map.get_path_if_blocked_cells(all))
+		return map.route_length(map.get_path_if_blocked_halves(_halves_of(all)))
 
 	# The route from a new start (Environment's preview), empty if the map can't say.
 	func _rim_route(spot: Vector2) -> PackedVector2Array:
@@ -630,11 +650,54 @@ class GiftPlacer extends Node2D:
 		var preview: Array = placement().cells.duplicate()
 		if not is_complete() and _cell_ok(hover) and kind != &"move" and kind != &"line":
 			preview.append(hover)
-		var route: PackedVector2Array = map.get_path_if_blocked_cells(preview) if not preview.is_empty() else PackedVector2Array()
+		var route: PackedVector2Array = map.get_path_if_blocked_halves(_halves_of(preview)) if not preview.is_empty() else PackedVector2Array()
 		if route.is_empty():
 			RouteLine.clear(route_line)
 		else:
 			RouteLine.draw_route(route_line, route, Color(UiStyle.GOLD, 0.6), 6.0, map.get_path_from(map.startPath))
+
+	# --- Half cells (heartwood_gifts.md 2554c638, user: "should be going by half a cell like Wardens") ---------------
+	# A piece is a Warden's 2×2 halves, snapped like TowerPlacer (half_origin_at). Pieces are kept as "virtual cells":
+	# origin / 2 (x.5 when half-offset), so neighbours are 1 apart, a line steps by 1 and the ghost art keeps its cell
+	# maths; placement() hands MapGifts the origins ("pieces"). Mire / Roots ("path") keep route halves instead.
+	const PIECE_KINDS: Array[StringName] = [&"chain", &"line", &"cell", &"cells", &"area", &"move"]
+	var on_placed: Callable  # GiftScreen.piece_placed (Sound: the Warden plant sound)
+
+	# What the pointer is over, in this kind's units: a piece's virtual cell, an obstacle's key, a route half or a cell.
+	func _hover_at(local: Vector2) -> Vector2:
+		match kind:
+			&"chain", &"line", &"cell", &"cells", &"area":
+				return TowerPlacer.half_origin_at(local) / 2.0
+			&"move":  # Picking a stone up by the half under the pointer; putting it down as a piece
+				return TowerPlacer.half_origin_at(local) / 2.0 if froms.size() > cells.size() else map.obstacle_key_at(map.pixels_to_half(local))
+			&"obstacles":
+				return map.obstacle_key_at(map.pixels_to_half(local))
+			&"path":
+				return map.pixels_to_half(local)
+		return map.MAP_GRID.calculate_grid_coordinates(local)
+
+	# Every half the pieces at these virtual cells cover.
+	func _halves_of(pieces: Array) -> Array[Vector2]:
+		var out: Array[Vector2] = []
+		for c in pieces:
+			if c != Vector2(-99, -99):
+				out.append_array(MapGifts.piece_halves(c * 2.0))
+		return out
+
+	# A route half Mire / Roots may take: on the drawn route, not in the start's or the Heartwood's cell.
+	func _route_half_ok(h: Vector2) -> bool:
+		var home := (h / 2.0).floor()
+		return home != map.startPath and home != map.endPath and map.get("gifts") != null and map.gifts.can_place(id, [h])
+
+	# The Warden build sound for a placed piece, the refusal sound for a click that couldn't place (SoundHooks).
+	func _placed(c: Vector2) -> void:
+		if on_placed.is_valid():
+			on_placed.call(map.to_global(map.MAP_GRID.calculate_map_position(c) if kind != &"path" else (c + Vector2(0.5, 0.5)) * map.MAP_GRID.cell_size / 2.0))
+
+	func _refused(c: Vector2) -> void:
+		var placer := director.get_node_or_null("%TowerPlacer") as TowerPlacer
+		if placer != null:
+			placer.build_rejected.emit((c if kind != &"path" else c / 2.0).floor())
 
 	static func _adjacent(a: Vector2, b: Vector2) -> bool:
 		return absf(a.x - b.x) + absf(a.y - b.y) == 1.0
@@ -664,6 +727,13 @@ class GiftPlacer extends Node2D:
 
 	func _draw() -> void:
 		var half: Vector2 = map.MAP_GRID.cell_size / 2.0
+		if kind == &"path":  # Route halves: each picked half, and the hovered one (green if it can be taken)
+			for h in cells:
+				draw_rect(Rect2(h * half, half).grow(-1), Color(Palette.SPRIG, 0.45))
+			if not is_complete() and not cells.has(hover):
+				var ok := _route_half_ok(hover) and (cells.is_empty() or cells.any(func(c: Vector2) -> bool: return _adjacent(c, hover)))
+				draw_rect(Rect2(hover * half, half).grow(-1), Color(Palette.SPRIG if ok else Palette.EMBER, 0.35), false, 2.0)
+			return
 		if kind == &"rim":  # Each offered spot a ring (gold when picked), the old start a dim ring
 			var gifts = map.get("gifts")
 			if gifts != null and gifts.has_method("draw_start_ghost"):  # Environment's mist + bridge at each new spot

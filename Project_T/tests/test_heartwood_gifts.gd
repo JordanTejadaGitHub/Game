@@ -136,6 +136,35 @@ func _run() -> void:
 		"Shifting Mist: the effect gets the picked spot")
 	mist.queue_free()
 
+	# Half cells (heartwood_gifts.md 2554c638, user: "should be going by half a cell like Wardens"): a piece snaps like a
+	# Warden and may sit half-offset; each piece put down plays the plant sound, a refused click the refusal; Mire takes
+	# route halves.
+	var ridge := GiftScreen.GiftPlacer.new(director, &"sow_ridge", true)
+	main.add_child(ridge)
+	var heard: Array = []
+	ridge.on_placed = func(at: Vector2) -> void: heard.append(at)
+	var refused: Array = []
+	var refuse_hook := func(c: Vector2) -> void: refused.append(c)
+	main.get_node("%TowerPlacer").build_rejected.connect(refuse_hook)
+	var offset_spot := Vector2(-1, -1)
+	for y in range(1, 17):
+		for x in range(1, 22):
+			if offset_spot == Vector2(-1, -1) and ridge._cell_ok(Vector2(x + 0.5, y)):
+				offset_spot = Vector2(x + 0.5, y)
+	ridge.click(offset_spot)
+	_check(offset_spot != Vector2(-1, -1) and ridge.placement().pieces == [offset_spot * 2.0] and heard.size() == 1,
+		"a half-offset ridge piece: origin %s, the plant sound (%d)" % [offset_spot * 2.0, heard.size()])
+	ridge.click(map.startPath)
+	_check(ridge.placement().pieces.size() == 1 and refused.size() == 1, "a piece on the start is refused, with the refusal sound")
+	main.get_node("%TowerPlacer").build_rejected.disconnect(refuse_hook)
+	ridge.queue_free()
+	var mire := GiftScreen.GiftPlacer.new(director, &"mire", false)
+	main.add_child(mire)
+	var route_half := Vector2(FindPath.point_to_node(map.get_path_from(map.startPath)[6]))
+	mire.click(route_half)
+	_check(mire.placement().halves == [route_half], "Mire takes a route half (%s)" % [mire.placement().get("halves")])
+	mire.queue_free()
+
 	# Saved and rebuilt.
 	var max_now := run_state.max_leaves
 	var saved := gifts.to_save()
