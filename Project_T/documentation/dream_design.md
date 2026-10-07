@@ -2016,6 +2016,65 @@ The Dreamlight / Dew numbers to drift 75 are being measured.
 - **Built:** f701c156. Close Kin's Need is both branches of a listed Kinship pair unlocked (only listed pairs bond). The shape cards read Tower Code's ShapeCards group, the same set their hooks use.
 - **Chase ceiling** (user: *"Don't want to be able to force a build; want players to adapt to be optimal. Sometimes they can."*): chasing one named build reaches 3+ cards in **at most ~30% of runs by drift 50 and ~50% by 75**. Storm Grid sits at the line (27 / 50). The use-now Needs remove dead slots, so they could raise it; Balancing Code re-measures fresh + full. If a build goes over, the fix is on its cards (rarity, Needs, pool), never steering.
 
+## Wider defining list and helper cards (2026-10-07)
+
+User (via Meta Game Discussion): *"seeing a lot of the same cards every run"*. Asked what to
+change, the user picked: *"a wider build-defining list. There should be 'smaller' cards that help
+builds out as well."*
+
+**Cause:**
+- The defining slot (act 2+) drew from 20 cards, about 13 of them in the start pool, so the same
+  few filled it.
+- Several builds had only 0–2 start-pool helpers: Reach 1, Swift 1, Tall 2, Precision 2, Daring
+  2, Tending 2. Their non-defining slots fell back to the same stat cards.
+
+### 1. Defining: 4 per archetype (40 + Legendaries)
+
+The 2026-10-06 lesson stands: every defining card has **exactly one** archetype, spread evenly.
+Scatter came from an uneven 68 with many untagged, not from the number.
+
+| Archetype | Had | Adds (pool) |
+|---|---|---|
+| maze | Twig Walls, Heart of the Maze | Straightaway (S), Cozy Corners (S) |
+| affliction | Lingering Ground, Brimming | Last Breath (S), Seeping (G) |
+| reach | Overlap, Crowd Breaker | Lingering Splash (G), Spillover (G) |
+| overgrowth | Root Network, Small Hands | Thicket (S), Seedling Gift (G) |
+| swift | Drumbeat, Momentum | Stirring Roots (G), Hummingheart (G) |
+| tall | Specialist, Many Talents | Sunlit Rest (S), Deeper Rings (G) |
+| precision | Solitude, Watchful Rest | Lone Hunter (S), Hunter's Patience (G) |
+| daring | Fresh Growth, Head Start | Scarred Bark (G), Desperate Bloom (G) |
+| tending | Sap Rising, Thorny Walls | Tended Stumps (G), Hollow Ground (G) |
+| kinship | Shared Training, Extended Family | Elder Kin (S), Sweet Harmony (S) |
+
+- Cards keep their pool; no Grove moves. Fresh profiles get 30 start-pool defining cards, and the
+  Grove adds 10.
+- Fix: **Kindred Roots** is tall, not maze.
+
+### 2. Helpers: at least 4 start-pool Common / Uncommon cards per archetype
+
+Helpers are "smaller" cards: non-defining, one archetype tag, no family. They make a build
+better, and they're Bungus-style where it fits (the condition suits a shape). Existing helpers
+count. The gaps get **16 new Commons** (cards 270–285, start pool, numbers to Balancing):
+
+| Archetype | Existing helpers | New |
+|---|---|---|
+| maze | Winding Path, Hedge Maze, Weathered Walls | **Long Way Round**: Wardens beside a bend in the path attack 10% faster |
+| affliction | Bitter Sap, Lasting Dreams, Passing Dream, Heavy Air, In the Thick, Thinning the Herd | — |
+| reach | Lantern Glow | **Ripples**: area attacks deal 15% more to nightmares other than the main target · **Short Reach**: Wardens with range 3 or less reach 0.5 cells further · **Wide Petals**: splashes and clouds reach 0.25 cells wider |
+| overgrowth | Seedfall, Many Hands, Odd One Out | **Cheap Seeds**: Sprouts cost 2 Dew less |
+| swift | Flurry | **Light Steps**: all Wardens attack 20% faster for 5 s when a {drift} starts · **Quick Hands**: Wardens that attack more than once a second deal 10% more damage · **Second Breath**: a Warden that hits the same nightmare 5 times in a row attacks 15% faster for 3 s |
+| tall | Tender Care, Kindred Roots | **Steady Roots**: Nurture ranks cost 10% less · **Seasoned**: Wardens at rank II+ deal 10% more damage |
+| precision | Glinting Dew, First Light | **Long Sight**: Wardens deal 15% more to nightmares in the outer half of their range · **Steady Aim**: a Warden's crits deal 25% more against nightmares with full health |
+| daring | Call of the Wild, Quick Step | **Close Shave**: when a nightmare reaches the Heartwood, all Wardens attack 30% faster for 5 s · **Early Bird**: calling a {drift} early also gives +3 Dew |
+| tending | Heartwood's Reach, Morning Dew | **Mulch**: a Warden planted on a cleared cell deals 10% more damage · **Weed Puller**: clearing a Mossy Boulder refunds 5 Dew |
+| kinship | Close Kin, Old Friends, Rooted Bond, Kin and Kindling | — |
+
+- **Rules kept:** 1 family / 1 plain stat per offer, use-now Needs (Seasoned needs a rank II
+  Warden, Mulch and Weed Puller need an obstacle left, Long Sight needs a range-4+ Warden), no
+  steering, chase ceiling 30% / 50%.
+- **Measure** (Balancing Code): distinct cards seen per run, overlap between consecutive runs, the
+  no-build share at 50 (stay ≤ ~20%), and the chase ceiling.
+
 ## Twig Walls: one-half Thornwalls (2026-10-05; card 256)
 
 User (typed in Environment Discussion): *"make a card that makes walls 1x1 cell instead of the
