@@ -1307,6 +1307,10 @@ acts 3–4 played for real. Real snapshots (`--from-save`) once the user has dee
 **Finals: 0 of 60 runs at 50, 3 of 20 at 75; 0–4% of damage.** The bot never grows finals, so the finals question still
 can't be read. Next: `--finals-first` + spend-down warm-up, then the `final_damage_multiplier` 1.0 vs 1.125 A/B on it.
 Gifts: mostly passed; Heartwood Roots the most taken.
+**Act 3 ramp batch (finals-first, warm-up to 51, last 76, half / full, 20 per arm):** clears of 60 / 75: control 5 / 0, start
+2.4 10–20 / 0, start 3.6 15–20 / 0–5. **41 of 120 die inside drift 51** (22 of 40 on the controls), 9–10 leaves gone in one drift.
+Drift 51 is 30 Shades + 10 Husks + 6 hedgehogs + 2 Lantern Bearers at 0.625 s spacing (~60 with the extras): a swarm at the
+×6 jump. A drift 51 trace (content vs entry multiplier vs bot) comes before any ramp numbers.
 
 ## Overlap-audit reworks, power check (2026-10-05, dream_design.md e1e39b56; dream_audit.md budgets)
 
