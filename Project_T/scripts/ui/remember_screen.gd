@@ -223,6 +223,11 @@ var _tree_holder: Control = null
 var _margin: MarginContainer = null
 var _side_scroll: ScrollContainer = null
 var _info_tip: TapTip = null
+var _tab_scroll: ScrollContainer = null
+var _top_bar: HBoxContainer = null
+var _top_spacer: Control = null
+var _phone_box: VBoxContainer = null
+const PHONE_COMPACT_HEIGHT := 640.0  # Below this the tabs share the top bar (no title): the tree keeps its room
 
 # The phone layout: Android / iOS builds (and TouchBuild.force_mobile / `-- --mobile` for testing on a PC).
 static func phone_layout() -> bool:
@@ -304,6 +309,10 @@ func _build_phone() -> void:
 	tab_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	tab_scroll.custom_minimum_size.y = PHONE_TAB_H
 	box.add_child(tab_scroll)
+	_tab_scroll = tab_scroll
+	_top_bar = bar
+	_top_spacer = spacer
+	_phone_box = box
 	_tabs.free()  # The PC's wrapping tabs, never in the tree here
 	_tabs = HBoxContainer.new()
 	_tabs.name = "Tabs"
@@ -383,6 +392,7 @@ func _fit_phone() -> void:
 	_margin.add_theme_constant_override("margin_right", int(PHONE_MARGIN + inset.size.x))
 	_margin.add_theme_constant_override("margin_bottom", int(PHONE_MARGIN + inset.size.y))
 	_side.custom_minimum_size.x = clampf(view.x * PHONE_SIDE_SHARE, PHONE_SIDE_MIN, PHONE_SIDE_MAX)
+	_set_compact(view.y < PHONE_COMPACT_HEIGHT)
 	_fit_tree()
 
 # The screen's unsafe edges in view units: left / top in `position`, right / bottom in `size`. Only on a real phone.
@@ -395,6 +405,23 @@ func _safe_insets(view: Vector2) -> Rect2:
 		return Rect2()
 	var k := view.x / screen.x
 	return Rect2(Vector2(safe.position) * k, (screen - Vector2(safe.end)) * k)
+
+# Short screens (under PHONE_COMPACT_HEIGHT): the family tabs move into the top bar in place of the title, so the tree
+# keeps its room; taller screens give them their own row.
+func _set_compact(compact: bool) -> void:
+	if _tab_scroll == null or (_tab_scroll.get_parent() == _top_bar) == compact:
+		return
+	_tab_scroll.get_parent().remove_child(_tab_scroll)
+	_title.visible = not compact
+	_top_spacer.visible = not compact
+	if compact:
+		_tab_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_top_bar.add_child(_tab_scroll)
+		_top_bar.move_child(_tab_scroll, _top_spacer.get_index())
+	else:
+		_tab_scroll.size_flags_horizontal = Control.SIZE_FILL
+		_phone_box.add_child(_tab_scroll)
+		_phone_box.move_child(_tab_scroll, _top_bar.get_index() + 1)
 
 # The tree scales to the room beside the panel (never so small its nodes drop under ~60 px), centred.
 func _fit_tree() -> void:
