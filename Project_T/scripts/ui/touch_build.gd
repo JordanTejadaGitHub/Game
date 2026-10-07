@@ -39,6 +39,8 @@ var touch_mode := false
 var _plant := Button.new()
 var _cancel := Button.new()
 var _done := Button.new()  # Stops build mode (it stays on after each placement; desktop: right-click or Esc)
+var _sell := Button.new()  # Phones: sell mode (TowerSeller.set_sell_mode; desktop: X while building)
+var seller: Node = null
 var _touches := {}  # Finger index -> screen position
 var _map_finger := -1  # The one finger that went down on the map (no HUD control took it): it pans
 var _map_from := Vector2.ZERO
@@ -73,10 +75,26 @@ func _ready() -> void:
 	_done.custom_minimum_size = Vector2(110, BUTTON_HEIGHT)
 	_done.add_theme_font_size_override("font_size", 18)
 	_done.tooltip_text = "Stop building."
-	_done.pressed.connect(func() -> void:
-		if tower_placer != null:
-			tower_placer.set_build_mode(false))
+	_done.pressed.connect(_on_done)
 	add_child(_done)
+	# Phones: Sell beside Done (Tower Code a5d16d5f). On, a tap on a Warden sells it on release (a pan never does);
+	# off again, building resumes with the same Warden. Picking a Warden on the bar ends it by itself.
+	_sell.name = "SellToggle"
+	_sell.text = "Sell"
+	_sell.toggle_mode = true
+	_sell.focus_mode = Control.FOCUS_NONE
+	_sell.custom_minimum_size = Vector2(110, BUTTON_HEIGHT)
+	_sell.add_theme_font_size_override("font_size", 18)
+	_sell.tooltip_text = "Tap a Warden to sell it."
+	_sell.toggled.connect(_on_sell_toggled)
+	add_child(_sell)
+	move_child(_sell, _done.get_index())  # Sell, Done
+	if tower_placer != null:
+		seller = tower_placer.get_node_or_null("%TowerSeller")
+	if seller != null and seller.has_signal("sell_mode_changed"):
+		seller.sell_mode_changed.connect(func(on: bool) -> void:
+			_sell.set_pressed_no_signal(on)
+			_refresh())
 	visible = false
 	if tower_placer != null and tower_placer.has_signal("stroke_changed"):
 		tower_placer.stroke_changed.connect(func(_active: bool) -> void: _refresh())
@@ -97,10 +115,12 @@ func set_touch_mode(on: bool) -> void:
 func _refresh() -> void:
 	var pending: bool = tower_placer != null and bool(tower_placer.get("stroking"))
 	var building: bool = tower_placer != null and bool(tower_placer.get("build_mode"))
-	visible = touch_mode and (pending or building)  # Done all through build mode, Confirm / Cancel with pending Wardens
+	var selling: bool = mobile_controls() and seller != null and bool(seller.get("sell_mode"))
+	visible = touch_mode and (pending or building or selling)  # Done all through build (and sell) mode, Confirm / Cancel with pending Wardens
 	_plant.visible = pending
 	_cancel.visible = pending
-	_done.visible = building and not pending
+	_done.visible = (building or selling) and not pending
+	_sell.visible = mobile_controls() and seller != null and seller.has_method("set_sell_mode") and (building or selling) and not pending
 	if visible and tower_placer.has_method("get_stroke_tag"):
 		var plan: Dictionary = tower_placer.get_stroke_plan()
 		var count: int = plan.values().count("")
@@ -116,6 +136,25 @@ func _on_plant() -> void:
 	var planted: int = tower_placer.plant_stroke()
 	if tower_placer.has_method("after_player_placement"):
 		tower_placer.after_player_placement(planted > 0)  # TowerPlacer's hook (build mode now stays on: Done stops it)
+	_refresh()
+
+# Done: out of sell mode, or out of build mode.
+func _on_done() -> void:
+	if seller != null and bool(seller.get("sell_mode")):
+		seller.set_sell_mode(false)
+	elif tower_placer != null:
+		tower_placer.set_build_mode(false)
+	_refresh()
+
+func _on_sell_toggled(on: bool) -> void:
+	if seller == null or not seller.has_method("set_sell_mode"):
+		return
+	if on:
+		seller.set_sell_mode(true)
+	else:
+		seller.set_sell_mode(false)
+		if tower_placer != null and tower_placer.get("tower_data") != null:
+			tower_placer.set_build_mode(true)  # Back to building the same Warden
 	_refresh()
 
 func _on_cancel() -> void:

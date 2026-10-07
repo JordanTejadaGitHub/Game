@@ -256,7 +256,7 @@ static func the_name(name: String, start := false) -> String:
 # Charged", "each {block}" -> "each block". Unknown tokens stay as they are.
 static func format(text: String) -> String:
 	if not text.contains("{"):
-		return text
+		return keep_units(text)
 	for id in STATUSES:
 		text = text.replace("{%s}" % id, STATUSES[id][0])
 	for token in term_tokens():
@@ -289,7 +289,7 @@ static func format(text: String) -> String:
 	if text.contains("{dew:") or text.contains("{dreamlight:") or text.contains("{seeds:"):  # An amount: the icon and the number
 		for found in _amount_pattern().search_all(text):
 			text = text.replace(found.get_string(), amount_text(found.get_string(1), found.get_string(2)))
-	return text
+	return keep_units(text)
 
 # "{dew:15}", "{dreamlight:+2}", "{seeds:30}" -> the resource's glyph and the number (UiStyle.dew_amount; user via
 # Main Merger 2026-10-06: prices and rewards are the icon and the number, never "15 Dew"). A "+" stays.
@@ -405,6 +405,18 @@ static func _combo_pattern() -> RegEx:
 
 # Family names as links (screens_ui.md "remove Half-dreamed"): "{family:dewdrop}" is the family's
 # name, a link (StatusLinks) whose popup is its emblem, damage type and identity.
+# A number and its unit never split across lines (user, Groundroot's panel: "every 3" / "s"): the space between them
+# becomes a non-breaking one ("3 s", "3.5 cells", "+0.3 link", "×1.5 range"). format() runs every text through it.
+const NBSP := " "  # Non-breaking space
+static var _unit_pattern: RegEx = null
+
+static func keep_units(text: String) -> String:
+	if _unit_pattern == null:
+		UiStyle.release_at_exit(func() -> void: _unit_pattern = null)
+		_unit_pattern = RegEx.create_from_string(
+			"(\\d%?) (s|sec|seconds?|cells?|tiles?|link|range|Dew|drifts?|Seeds?|leaf|leaves|Dreamlight|stacks?|ranks?|nightmares?|Wardens?|hits?|times?|damage|%)(?![A-Za-z])")
+	return _unit_pattern.sub(text, "$1" + NBSP + "$2", true)
+
 static var _family_pattern: RegEx = null
 static func family_pattern() -> RegEx:
 	if _family_pattern == null:

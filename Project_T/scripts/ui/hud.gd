@@ -94,6 +94,9 @@ func _ready() -> void:
 	tower_placer.tower_container.child_exiting_tree.connect(_queue_price_refresh.unbind(1))
 	# Keep the buttons in sync when build mode is toggled with B / cancelled with Esc or right-click.
 	tower_placer.build_mode_changed.connect(_sync_buttons.unbind(1))
+	var seller := get_node_or_null("%TowerSeller") as TowerSeller
+	if seller != null and seller.has_signal("sell_mode_changed"):
+		seller.sell_mode_changed.connect(_on_sell_mode)
 
 	run_state.sprout_charges_changed.connect(_update_seed_badge)
 	run_state.dew_changed.connect(_on_dew_changed)
@@ -421,6 +424,35 @@ func _on_tower_pressed(data: TowerData) -> void:
 	else:
 		tower_placer.select_tower(data)
 	_sync_buttons()
+
+# Sell mode (maze_feel.md 9356ec5a, Tower Code a5d16d5f: X while building): a Dew cursor, a hint above the Warden bar
+# for as long as it's on, and the bar dimmed (picking a Warden there ends it). Touch toggles it from TouchBuild.
+var _sell_hint: PanelContainer
+
+func _on_sell_mode(on: bool) -> void:
+	if _sell_hint == null:
+		_sell_hint = PanelContainer.new()
+		_sell_hint.name = "SellModeHint"
+		_sell_hint.add_theme_stylebox_override("panel", UiStyle.fog_patch(14.0, 8.0))
+		_sell_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var text := Label.new()
+		text.text = "Sell mode: click a Warden. Right-click or Esc to stop."
+		text.add_theme_color_override("font_color", UiStyle.POOR)
+		_sell_hint.add_child(text)
+		add_child(_sell_hint)
+		_sell_hint.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+		_sell_hint.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_sell_hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		_sell_hint.offset_bottom = -130.0  # Above the Warden bar, where the touch build bar sits
+	_sell_hint.visible = on
+	tower_bar.modulate.a = 0.55 if on else 1.0  # multiplier: the bar steps back while selling
+	var dew := IconInfo.icon(&"dew") if on else null
+	if dew != null:
+		var image := dew.get_image()
+		image.resize(image.get_width() * 2, image.get_height() * 2, Image.INTERPOLATE_NEAREST)
+		Input.set_custom_mouse_cursor(ImageTexture.create_from_image(image), Input.CURSOR_ARROW, image.get_size() / 2.0)
+	else:
+		Input.set_custom_mouse_cursor(null)
 
 func _sync_buttons() -> void:
 	for i in _tower_buttons.size():

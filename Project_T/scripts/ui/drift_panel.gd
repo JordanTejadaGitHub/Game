@@ -185,7 +185,7 @@ func _process(_delta: float) -> void:
 		# Light pass (user-approved): "Resting, 75% refunds"; the drift's Dew pot (run_design.md) moved to the tooltip.
 		_status_label.text = "Resting, %d%% refunds" % roundi(tower_seller.build_phase_refund * 100)
 		_status_label.tooltip_text = "Drift %d pays %d Dew, shared among its nightmares." % [next, roundi(drift_director.get_effective_pot(next))]
-		_start_button.text = ("Start boss drift %d (Enter)" if drift_director.is_boss_drift(next) else "Start drift %d (Enter)") % next
+		_start_button.text = ("Start boss drift %d" if drift_director.is_boss_drift(next) else "Start drift %d") % next + UiStyle.key_suffix("Enter")
 	elif drift_director.can_start_next_drift():
 		var countdown := drift_director.get_auto_countdown()
 		_status_label.text = "Drift %d in %d s" % [next, ceili(countdown)] if countdown >= 0.0 \
@@ -209,7 +209,7 @@ func _process(_delta: float) -> void:
 		_start_button.disabled = false
 	# Paused mid-drift (user: "it should resume instead of bringing the next drift wave in"): the button only resumes.
 	if game_speed.paused and pending == &"" and not drift_director.is_resting() and not run_state.is_over:
-		_start_button.text = "Resume (Enter)"
+		_start_button.text = "Resume" + UiStyle.key_suffix("Enter")
 		_start_button.disabled = false
 
 const MIST_FULL := "The mist is full: it holds nightmares back until there's room on the path. Calling early waits until they're out."

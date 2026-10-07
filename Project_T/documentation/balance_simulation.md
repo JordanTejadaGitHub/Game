@@ -878,7 +878,9 @@ may need to come down with act 2). Tower Code removes the demo_* exports once th
 30, skip 30 / 0; act 1 0.75–0.85 ends the drift 18 cluster; 67% of reachers win. **Shared-curve grid:**
 `act1_health_multiplier` 1.20 → **1.0**; act 2 start / 37 / 45 (now 2.0 / 3.45 / 4.5): A 1.2 / 1.7 / 2.0, B 1.2 / 1.9 / 2.3, C 1.4 /
 2.1 / 2.6 (easing the climb, not the start, so act 2 never starts below act 1's end); `mid_boss_health_multiplier`
-raised per arm so the Mire Hag keeps its absolute health. Fresh full game and demo side by side.
+raised per arm so the Mire Hag keeps its absolute health. Fresh full game and demo side by side. **Interim:** A (1.2 / 1.7 / 2.0)
+reaches 50 in only 5% (full) / 15% (demo), Stag 75%: still harder than the demo pair. B / C dropped; **D 1.0 / 1.4 / 1.8**
+and **E 1.1 / 1.5 / 1.9** (act 2 boss raised to keep the Mire Hag) run instead.
 
 ## Demo targets (demo_scope.md e5ce233d, 2026-10-06)
 
@@ -1142,6 +1144,17 @@ spam "walls first" means to weaken (fewer free obstacle walls: the player builds
 stays out.** Watch the first human runs on it; if act 1 is too hard, `act1_health_multiplier` 1.20 → 1.10.
 **Bot baseline change:** from a99d5382 the bot keeps walling by default; every batch before it is the non-walling
 bot. Warm-up and pgr wait for bend10 on main.
+
+## Human run 22 (2026-10-07, build 0c802811 + local; Blight 0, a 6-node Grove)
+
+Dewdrop (10 + Undercurrent ×5, Maelstrom, Groundroot), 2 Rootlings, **28 Sprouts**; 47 attackers, route 76, 5 clears, gift
+Spring. Lost at **drift 40**. 15 → 13 at the drift 15 finale; **the Hollow Stag survived and its bite took 10** (13 → 3–4);
+−2 at 35; dead at 40. The act 2 jump showed exactly where the curve says: 24 → 26 is ×1.8 health, and 38–39 spawned 109k /
+165k against 101k / 126k dealt (the drift 37+ climb). Dew 4,530: plant 1,087 / grow 2,151 / ranks 1,020. **Combos 2%**
+(one family, Sprout-heavy). Dreams: The Long Walk, Quickened Sap, Seedfall.
+**Read:** the shared-curve grid targets this run's death (the 37+ climb). New: the Stag bite decided the run, on a board the
+bots would call healthy. Watch: if the next human runs also lose the Stag, act 1 boss bite 10 → 8 (or Stag health) comes
+next; the bots beat it 85–90%, so humans and bots differ here.
 
 ## Human run 21 (2026-10-05 20:57, build 91161b = b3c61186; 0 Grove)
 

@@ -481,8 +481,8 @@ func _run() -> void:
 		{"card": some_card, "active": true, "effect": "+40% against flying"}])
 	_check(two_rules.size() == 1 and String(two_rules[0].effect).contains("+20% damage") and String(two_rules[0].effect).contains("+40% against flying"),
 		"a card with two rules shows once, both lines joined (%s)" % [two_rules])
-	_check(DreamBonusView.chip_text({"card": some_card, "active": true, "effect": "+30% damage"}) == some_card.display_name + " ✓ +30% damage"
-		and DreamBonusView.chip_text({"card": some_card, "active": false, "reason": "Rain Lily is 1 cell away"}).ends_with("✗ Rain Lily is 1 cell away"),
+	_check(DreamBonusView.chip_text({"card": some_card, "active": true, "effect": "+30% damage"}).replace(IconInfo.NBSP, " ") == some_card.display_name + " ✓ +30% damage"
+		and DreamBonusView.chip_text({"card": some_card, "active": false, "reason": "Rain Lily is 1 cell away"}).replace(IconInfo.NBSP, " ").ends_with("✗ Rain Lily is 1 cell away"),
 		"ghost chips: ✓ with the effect, ✗ with the reason")
 	_check(DreamBonusView.is_positional({"conditional": true}) and not DreamBonusView.is_positional({"conditional": true, "run_wide": true}),
 		"positional chips are the conditional, non-run-wide ones")

@@ -197,7 +197,8 @@ static func play(effect: StringName, at: Vector2, parent: Node, scale: float = 1
 	# most of the map): no effect is drawn wider than MAX_EFFECT_PX, so nightmares stay readable.
 	var frame_size: Array = entry.get("frame_size", [0, 0])
 	var widest: float = maxf(float(frame_size[0]), float(frame_size[1])) * final_scale
-	if widest > MAX_EFFECT_PX:
+	# Ground rings (area_pulse_*, sap_pulse, surge_pulse) mark an area's real size and are drawn thin and quiet: not capped.
+	if widest > MAX_EFFECT_PX and entry.get("kind", "") != "ground":
 		final_scale *= MAX_EFFECT_PX / widest
 	var node := FxSprite.new(entry, tex, final_scale, seconds)
 	node.effect = shown

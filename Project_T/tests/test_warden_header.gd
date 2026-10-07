@@ -39,6 +39,30 @@ func _run() -> void:
 	_check(view.find_children("*", "Button", true, false).is_empty(), "no buttons")
 	view.queue_free()
 
+	# Groundroot's grab reach beside its range (Tower Code e530a46a: the panel's range read as its reach).
+	var groundroot: TowerData = load("res://resource/tower/groundroot.tres")
+	var rooted: Tower = placer.tower_scene.instantiate()
+	rooted.tower_data = groundroot
+	rooted.cell = Vector2(2, 2)
+	placer.tower_container.add_child(rooted)
+	rooted.set_process(false)
+	var grab_view := WardenHeaderView.build(groundroot, rooted, dreams)
+	main.get_node("HUD").add_child(grab_view)
+	await process_frame
+	var grab := grab_view.stats.find_child("Value_grab_reach", true, false) as Label
+	_check(grab != null and grab.text == "Grab %.1f" % BranchKit.ability_reach(rooted) and BranchKit.ability_reach(rooted) > rooted.get_range_cells(),
+		"Groundroot shows its grab reach beside its range (%s)" % (grab.text if grab else "none"))
+	# The attack shape chip (user: "can't tell if something is an aura attack or not"; Tower.attack_shape).
+	var shape := grab_view.stats.find_child("Value_attack_shape", true, false) as Label
+	_check(shape != null and shape.text == WardenHeaderView.shape_name(groundroot) and shape.text != "",
+		"the attack shape chip (%s)" % (shape.text if shape else "none"))
+	_check(WardenHeaderView.shape_tip(load("res://resource/tower/acorn.tres")).length() > 10
+		and WardenHeaderView.shape_tip(load("res://resource/tower/thornwall.tres")).begins_with("No attack"),
+		"shape tips: %s / %s" % [WardenHeaderView.shape_tip(load("res://resource/tower/acorn.tres")),
+			WardenHeaderView.shape_tip(load("res://resource/tower/thornwall.tres"))])
+	grab_view.queue_free()
+	rooted.queue_free()
+
 	# A run-wide damage Dream shows on the unplanted card too.
 	var boost: UpgradeData = null
 	for card in dreams.pool:

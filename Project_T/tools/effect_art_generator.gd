@@ -44,6 +44,7 @@ func _init() -> void:
 	_lichen_effects()
 	_sap_effects()
 	_signature_effects()
+	_area_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -3427,3 +3428,156 @@ func _executioner_slash(img: Image, f: int) -> void:
 			_px(img, roundi(p.x), roundi(p.y), Color(CORE if j == 0 else (GOLD if j < 2 else AMBER), a))
 	if f == 2:
 		_star(img, c + Vector2.from_angle(end) * 15.0, 3, CORE, GOLD)
+
+# --- Area pulses (story chat 2026-10-06: "can't tell if something is an aura attack or not") ---------
+# One visual language for every PULSE Warden: a ring rolling out from the Warden to the edge of its
+# range, then fading, so area attacks never look like shots. Each family has its own ring (roots,
+# song, grove, wind, water, stone, spores), each a dark rim under a bright line so it reads on the pale
+# path and the dark ground. Drawn for a 120 px radius: scale = range in px / 120.
+const AREA := 256
+const AREA_R := 120.0
+const AREA_STYLES := ["root", "song", "grove", "wind", "water", "stone", "spore"]
+
+func _area_effects() -> void:
+	for style: String in AREA_STYLES:
+		_sheet("area_pulse_" + style, Vector2i(AREA, AREA), 6, 12, Vector2i(AREA / 2, AREA / 2), false, "ground",
+			_area_pulse.bind(style),
+			{note = "PULSE Wardens (%s): the ring rolling out to the range edge, ~0.5 s (anchor = the Warden's cell centre; drawn for a 120 px radius, scale = range px / 120), z -1." % style})
+	_sheet("root_snap", Vector2i(24, 24), 5, 14, Vector2i(12, 18), false, "signature", _root_snap,
+		{note = "Rootling family: a root tip snapping up at a nightmare the pulse touches (anchor = its feet). ~0.36 s."})
+	_sheet("area_hit", Vector2i(24, 24), 4, 14, Vector2i(12, 12), false, "signature", _area_hit,
+		{note = "Any other PULSE Warden: a small warm tick on each nightmare the pulse touches (anchor = the nightmare; modulate it to the family's colour if wanted). ~0.29 s."})
+
+func _area_pulse(img: Image, f: int, style: String) -> void:
+	var c := Vector2(AREA, AREA) / 2.0
+	var t: float = [0.12, 0.38, 0.62, 0.82, 0.95, 1.0][f]
+	var r := 14.0 + (AREA_R - 14.0) * t
+	var a := 1.0 if f < 3 else (0.75 if f < 5 else 0.4)
+	var dark_col := Color("#241c14")
+	var light_col := GOLD
+	match style:
+		"song":
+			dark_col = Color("#2c2444")
+			light_col = Color("#e8dcff")
+		"grove":
+			dark_col = Color("#1c3c2c")
+			light_col = Color("#d4ec9c")
+		"wind":
+			dark_col = Color("#3c3c5c")
+			light_col = Color("#dce8f4")
+		"water":
+			dark_col = Color("#2c4c5c")
+			light_col = Color("#9cd4fc")
+		"stone":
+			dark_col = Color("#5c5a78")
+			light_col = Color("#dccdb2")
+		"spore":
+			dark_col = Color("#bc44dc")
+			light_col = Color("#ec9cf4")
+	for y in AREA:
+		for x in AREA:
+			var v := Vector2(x + 0.5, y + 0.5) - c
+			var d := v.length()
+			if absf(d - r) > 14.0:
+				continue
+			var ang := fposmod(v.angle(), TAU) / TAU
+			var seg := int(ang * 48.0)
+			var off := (d - r) / 1.8  # band widths below are for a 1.8x thinner ring
+			var col := Color(0, 0, 0, 0)
+			match style:
+				"root":  # a jagged band of root cracks, gold light glowing in them
+					var jag := float((seg * 7) % 3) - 1.0
+					if seg % 6 != 0:
+						if absf(off - jag) < 1.0:
+							col = light_col
+						elif absf(off - jag) < 2.6:
+							col = Color("#8c5c34") if off > jag else dark_col
+				"song":  # two thin rings, the inner one dotted like a fading note
+					if absf(off) < 0.8:
+						col = light_col
+					elif absf(off - 1.6) < 0.8 or absf(off + 1.6) < 0.8:
+						col = dark_col
+					elif absf(off + 5.0) < 0.8 and seg % 2 == 0:
+						col = Color("#9a84e8")
+				"grove":  # a warm green band
+					if absf(off) < 0.9:
+						col = light_col
+					elif absf(off) < 2.4:
+						col = Color("#5c944c") if off < 0.0 else dark_col
+				"wind":  # dashes sweeping round
+					if fmod(ang * 20.0 + f * 0.35, 1.0) < 0.55:
+						if absf(off) < 0.9:
+							col = light_col
+						elif absf(off - 1.8) < 0.9:
+							col = dark_col
+				"water":  # two ripples
+					for rr: float in [0.0, -5.0]:
+						if absf(off - rr) < 0.9:
+							col = light_col
+						elif absf(off - rr - 1.8) < 0.9 and col.a == 0.0:
+							col = dark_col
+				"stone":  # a rolling dust band, thicker, with gaps
+					if seg % 5 != 2:
+						if absf(off) < 1.0:
+							col = light_col
+						elif absf(off) < 3.4:
+							col = Color("#bca48c") if off < 0.0 else dark_col
+				"spore":  # a thin pink ring (puffs added below)
+					if absf(off) < 0.9:
+						col = light_col
+					elif absf(off - 1.8) < 0.9:
+						col = dark_col
+			if col.a > 0.0:
+				img.set_pixel(x, y, Color(col, a))
+			elif f >= 1 and f <= 3 and d < r - 3.0 and d > r - 12.0:  # a faint wash just inside the leading edge
+				img.set_pixel(x, y, Color(light_col, 0.4))
+	# Things riding the ring: earth motes, leaves, spore puffs, pebbles.
+	var riders := {"root": 14, "grove": 16, "spore": 18, "stone": 12}
+	if riders.has(style) and f < 5:
+		for k in int(riders[style]):
+			var p := c + Vector2.from_angle(k * TAU / riders[style] + 0.13) * (r - 6.0) + Vector2(0, -f)
+			var x := int(p.x)
+			var y := int(p.y)
+			match style:
+				"root":  # a clump of earth flicked up
+					_px(img, x, y, Color(Color("#bca48c"), a))
+					_px(img, x + 1, y, Color(Color("#8c5c34"), a))
+					_px(img, x, y + 1, Color(dark_col, a))
+				"grove":  # a little leaf
+					_px(img, x, y, Color(light_col, a))
+					_px(img, x + 1, y - 1, Color(Color("#9cc46c"), a))
+					_px(img, x - 1, y + 1, Color(dark_col, a))
+				"spore":  # a spore puff
+					_ellipse(img, p, Vector2(2.2, 1.8), Color(dark_col, a))
+					_ellipse(img, p + Vector2(-0.5, -0.5), Vector2(1.4, 1.1), Color(light_col, a))
+				"stone":  # a pebble
+					_px(img, x, y, Color(Color("#b4b0c8"), a))
+					_px(img, x + 1, y, Color(Color("#5c5a78"), a))
+
+func _root_snap(img: Image, f: int) -> void:
+	# A pale root tip whips up out of the ground beside the nightmare and snaps with a gold spark.
+	var base := Vector2(12, 18)
+	var h: float = [3.0, 8.0, 10.0, 8.0, 4.0][f]
+	var a := 1.0 if f < 3 else (0.75 if f < 4 else 0.4)
+	var tip := base + Vector2(2, -h)
+	_line(img, base, tip, Color(Color("#241c14"), a), 3)
+	_line(img, base, tip, Color(Color("#dccdb2"), a))
+	_ellipse(img, base + Vector2(0, 1), Vector2(4.5, 2.2), Color(Color("#8c5c34"), a))
+	_ellipse(img, base + Vector2(-1, 0), Vector2(2.5, 1.2), Color(Color("#bca48c"), a))
+	if f == 2:
+		_star(img, tip, 3, CORE, GOLD)
+	elif f == 3:
+		for k in 4:
+			var d := Vector2.from_angle(k * TAU / 4.0 + 0.4) * 4.0
+			_px(img, int(tip.x + d.x), int(tip.y + d.y), Color(GOLD, a))
+
+func _area_hit(img: Image, f: int) -> void:
+	var c := Vector2(12, 12)
+	var r: float = [3.0, 6.0, 8.0, 9.0][f]
+	var a := 1.0 if f < 2 else (0.75 if f < 3 else 0.4)
+	_ring(img, c, Vector2(r, r * 0.8), 1.0, Color(WARM, a))
+	if f == 0:
+		_ellipse(img, c, Vector2(2, 2), CORE)
+	for k in 4:
+		var d := Vector2.from_angle(k * TAU / 4.0 + PI / 4.0) * (r + 1.5)
+		_px(img, int(c.x + d.x), int(c.y + d.y), Color(GOLD, a))
