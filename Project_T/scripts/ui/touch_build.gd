@@ -162,6 +162,10 @@ func _on_cancel() -> void:
 	_refresh()
 
 func _input(event: InputEvent) -> void:
+	# Before the pause menu's _unhandled_input (it would open from sell mode, where build mode is off)
+	if mobile_controls() and event.is_action_pressed("open_menu") and _back():
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventScreenTouch:
 		set_touch_mode(true)
 		if event.pressed:
@@ -208,6 +212,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag and event.index == _map_finger and _touches.size() == 1:
 		if camera != null and camera.has_method("modal_open") and camera.modal_open():
 			return
+		if tower_placer != null and tower_placer.has_method("touch_claims") and tower_placer.touch_claims():
+			return  # The finger moves a pending Warden or draws a line
 		if not _moved and event.position.distance_to(_map_from) >= PAN_SLOP:
 			_moved = true
 			if camera != null:
@@ -216,6 +222,22 @@ func _unhandled_input(event: InputEvent) -> void:
 			if camera != null:
 				camera.pan_screen(event.relative)
 			get_viewport().set_input_as_handled()
+
+# Android Back (open_menu, Mobile code 36d73487) while building, one step at a time: drop the pending Wardens, then
+# leave sell mode, then stop building (the pause menu ignores it in build mode). Returns whether it did something.
+func _back() -> bool:
+	if tower_placer == null or (camera != null and camera.has_method("modal_open") and camera.modal_open()):
+		return false  # A screen is up: Back is its own
+	if bool(tower_placer.get("stroking")):
+		tower_placer.cancel_stroke()
+	elif seller != null and bool(seller.get("sell_mode")):
+		_on_sell_toggled(false)  # Back to building the same Warden, as the Sell toggle does
+	elif bool(tower_placer.get("build_mode")):
+		tower_placer.set_build_mode(false)
+	else:
+		return false
+	_refresh()
+	return true
 
 func _other_touch(index: int) -> Vector2:
 	for i in _touches:

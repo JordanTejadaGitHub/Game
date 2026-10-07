@@ -226,6 +226,8 @@ func select_tower(data: TowerData) -> void:
 
 # While picking a square for a 2×2 growth, clicks go to the choice first (before selection handles them).
 func _input(event: InputEvent) -> void:
+	if tap_to_place:
+		_touch_input(event)  # Phones: moving a pending Warden, drawing a line
 	if stroking:
 		_stroke_input(event)
 		return
@@ -274,7 +276,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 	elif tap_to_place and event.is_action_released("place_tower") and _tap_armed:
 		_tap_armed = false
-		if not TouchBuild.gesture_moved():  # A pan or a pinch is never a placement
+		var claimed := _touch_moved  # The finger moved a pending Warden or drew a line
+		_touch_moved = false
+		_end_touch_claim()
+		if not claimed and not TouchBuild.gesture_moved():  # A pan or a pinch is never a placement
 			if tower_data.footprint > 1:
 				_update_hover()
 				after_player_placement(_try_build(_hover_cell))  # Big Wardens: one per tap
@@ -285,6 +290,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("place_tower"):
 		if tap_to_place:
 			_tap_armed = true  # Touch: decided on release (a tap adds or takes back; a drag pans)
+			_touch_pressed(event)  # …or moves a pending Warden, or a long-press draws a line
 			get_viewport().set_input_as_handled()
 			return
 		_update_hover()  # Placement feel: the click places where the cursor is this frame
@@ -296,6 +302,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	_tick_settling(delta)
+	_tick_long_press()
 	if not _grow_preview.is_empty():
 		_grow_preview_time += delta
 		queue_redraw()  # The new form idles
@@ -1750,6 +1757,144 @@ func _pending_under(world: Vector2) -> Vector2:
 		if origin_halves(o).has(half):
 			return o
 	return NO_CELL
+
+# --- Phones: move a pending Warden, draw a line (Mobile UI, platforms.md; user 2026-10-07 after the mobile TD survey) ---
+# A press on a pending Warden claims the finger: dragging it moves that Warden (a tap without moving still takes it
+# back). A press elsewhere held still for LONG_PRESS_MS starts a line: dragging draws a row or column of pending
+# Wardens from there (one finger pans, so phones have no drag-to-build otherwise). Confirm still plants them.
+const LONG_PRESS_MS := 400
+var _fingers := {}  # Screen touch index -> position (one finger only: a second one is a pinch)
+var _press_ms := -1  # When a press on the map started its long-press clock (-1: none running)
+var _press_screen := Vector2.ZERO
+var _press_world := Vector2.ZERO
+var _moving := NO_CELL  # The pending Warden the finger moves
+var _moving_offset := Vector2.ZERO  # Spot under the press minus that Warden's spot (no jump when pressed off-centre)
+var _line_start := NO_CELL
+var _line_axis := -1  # -1 not locked yet, 0 = a row, 1 = a column
+var _line_base: Array[Vector2] = []  # The pending Wardens before the line started
+var _touch_moved := false  # The claimed finger moved a Warden or drew a line: its release is not a tap
+
+# TouchBuild asks: this finger moves a pending Warden or draws a line, so it doesn't pan the map.
+func touch_claims() -> bool:
+	return _moving != NO_CELL or _line_start != NO_CELL
+
+func _spot_at(world: Vector2) -> Vector2:
+	var spot := origin_at(world) if half_placement() else MAP_GRID.calculate_grid_coordinates(world)
+	if spot == NO_CELL or not (half_placement() or MAP_GRID.is_within_bounds(spot)):
+		return NO_CELL
+	return spot
+
+func _end_touch_claim() -> void:
+	_moving = NO_CELL
+	_line_start = NO_CELL
+	_line_axis = -1
+	_line_base.clear()
+	_press_ms = -1
+
+# A one-finger press on the map in tap-to-place (from _unhandled_input).
+func _touch_pressed(event: InputEvent) -> void:
+	_touch_moved = false
+	_end_touch_claim()
+	if tower_data == null or tower_data.footprint > 1:
+		return
+	_press_screen = event.position if event is InputEventMouseButton else get_viewport().get_mouse_position()
+	_press_world = get_canvas_transform().affine_inverse() * _press_screen
+	var under := _pending_under(_press_world) if stroking else NO_CELL
+	if under != NO_CELL:
+		_moving = under
+		var spot := _spot_at(_press_world)
+		_moving_offset = spot - under if spot != NO_CELL else Vector2.ZERO
+	else:
+		_press_ms = Time.get_ticks_msec()  # Real time: the game may be paused or sped up
+
+# Screen touches and drags, before anything else in _input (never consumes them: TouchBuild still tracks them).
+func _touch_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			_fingers[event.index] = event.position
+		else:
+			_fingers.erase(event.index)
+		if _fingers.size() > 1:
+			_end_touch_claim()  # Two fingers: a pinch
+	elif event is InputEventScreenDrag and _fingers.size() == 1:
+		var world: Vector2 = get_canvas_transform().affine_inverse() * event.position
+		if _line_start != NO_CELL:
+			_draw_line_to(world)
+		elif _moving != NO_CELL:
+			if not _touch_moved and event.position.distance_to(_press_screen) >= TouchBuild.PAN_SLOP:
+				_touch_moved = true
+			if _touch_moved:
+				_move_pending(world)
+
+func _move_pending(world: Vector2) -> void:
+	var spot := _spot_at(world)
+	if spot == NO_CELL:
+		return
+	spot -= _moving_offset
+	var i := _stroke.find(_moving)
+	if i < 0:
+		_end_touch_claim()  # Cancelled or confirmed under the finger
+		return
+	if spot == _moving or _stroke.has(spot):
+		return
+	_stroke[i] = spot
+	_moving = spot
+	_plan_cache = {}
+	_plan_stroke()
+	stroke_changed.emit(true)
+	queue_redraw()
+
+# The long-press clock (from _process): still and long enough starts a line at the press.
+func _tick_long_press() -> void:
+	if _press_ms < 0:
+		return
+	if not (tap_to_place and build_mode and _tap_armed) or TouchBuild.gesture_moved() or _fingers.size() > 1:
+		_press_ms = -1  # Lifted, panned or pinched
+		return
+	if Time.get_ticks_msec() - _press_ms < LONG_PRESS_MS:
+		return
+	_press_ms = -1
+	var spot := _spot_at(_press_world)
+	if spot == NO_CELL:
+		return
+	if not stroking:
+		_start_stroke(spot)
+	_line_base.assign(_stroke)
+	_line_start = spot
+	_line_axis = -1
+	_touch_moved = true  # Its release ends the line, never a tap
+	Input.vibrate_handheld(25)  # Phones feel the line start
+	_draw_line_to(_press_world)
+
+# The line from its start toward `world`: locked to a row or column by the first step, a Warden's width apart.
+func _draw_line_to(world: Vector2) -> void:
+	var target := _spot_at(world)
+	if target == NO_CELL or not stroking:
+		return
+	var unit := 1.0
+	if half_placement():
+		unit = 1.0 if twig_mode() else 2.0
+	var d := ((target - _line_start) / unit).round()
+	if _line_axis == -1 and d != Vector2.ZERO:
+		_line_axis = 0 if absf(d.x) >= absf(d.y) else 1
+	var n := 0
+	if _line_axis != -1:
+		n = int(d.x) if _line_axis == 0 else int(d.y)
+	var step := (Vector2(signf(n), 0.0) if _line_axis == 0 else Vector2(0.0, signf(n))) * unit
+	var cells: Array[Vector2] = _line_base.duplicate()
+	for k in absi(n) + 1:
+		var c := _line_start + step * k
+		if not half_placement() and not MAP_GRID.is_within_bounds(c):
+			break
+		if not cells.has(c):
+			cells.append(c)
+	if cells == _stroke:
+		return
+	_stroke.assign(cells)
+	_plan_cache = {}
+	_plan_stroke()
+	stroke_changed.emit(true)
+	queue_redraw()
 
 # Starts a stroke on whole cell `cell` (clicks, touch, tests). With half cells, the hovered cell starts at the
 # ghost's half offset; any other whole cell at its own corner's half origin (cell × 2).

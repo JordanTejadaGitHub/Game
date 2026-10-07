@@ -30,6 +30,9 @@ var peek: ChoicePeek  # Minimise to look at the map (screens_ui.md "Choice scree
 var _diagram: CardDiagram = null  # The hovered placement card's map picture (dream_design.md "Placement cards show a diagram")
 var _scene: CardScene = null  # The living mini-scene (pooled: one view, reused card to card)
 var _held_for_diagram := false  # A long-press showed the diagram: that release doesn't take the card
+# Phones (Mobile UI, platforms.md "tap a card once to preview, tap again to choose"; user 2026-10-07): the first tap
+# on a card looks (diagram, the others dimmed, "Tap again to take" under it), the second takes it. PC: one click.
+var _looked: Button = null
 var arm: ChoiceArm  # Cards ignore input for a moment as the screen appears (clicks meant for the map)
 const LONG_PRESS := 0.45
 
@@ -119,9 +122,17 @@ func _show_offer(cards: Array[UpgradeData], drift_number: int) -> void:
 				_let_go_in = dream_state.current_offer_drift
 				dream_state.banish(card))
 			column.add_child(let_go)
+		if TouchBuild.mobile_controls():
+			var hint := Label.new()
+			hint.name = "TapHint"
+			hint.text = " "  # Holds its line from the start, so the row never shifts
+			hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			UiStyle.caps(hint, 15, UiStyle.GOLD)
+			column.add_child(hint)
 		_cards.add_child(column)
 	visible = true
 	_picking = false
+	_looked = null
 	arm.arm()  # Every new set of cards, rerolls too: a second click can't take a card it never saw
 	_flip_in(_cards.get_children(), cards)  # One by one, each with its rarity flare
 
@@ -132,6 +143,9 @@ func _make_card(card: UpgradeData) -> Button:
 	button.pressed.connect(func() -> void:
 		if _held_for_diagram:
 			_held_for_diagram = false  # The long-press was to look, not to take
+			return
+		if TouchBuild.mobile_controls() and _looked != button:
+			_look_at(card, button)  # Phones: the first tap looks
 			return
 		_pick(card, button.get_parent() as Control))  # The flight first, then it's taken
 	if CardDiagram.has_diagram(card):
@@ -395,6 +409,22 @@ func show_diagram(card: UpgradeData, button: Control) -> void:
 		x = card_rect.position.x - size.x - 8.0
 	var y := clampf(card_rect.position.y + 24.0, 8.0, view.y - size.y - 8.0)
 	panel.global_position = Vector2(maxf(x, 8.0), y)
+
+# Phones: the first tap on a card. The others dim, its diagram shows, "Tap again to take" under it.
+func _look_at(card: UpgradeData, button: Button) -> void:
+	_looked = button
+	for column in _cards.get_children():
+		var looked := button.get_parent() == column
+		var face := _card_box(column)
+		if face != null:
+			face.modulate = Color(1, 1, 1, 1.0 if looked else 0.55)  # multiplier
+		var hint := column.get_node_or_null("TapHint") as Label
+		if hint != null:
+			hint.text = "Tap again to take" if looked else " "
+	if CardDiagram.has_diagram(card):
+		show_diagram(card, button)
+	else:
+		hide_diagram()
 
 func hide_diagram() -> void:
 	if _diagram != null and is_instance_valid(_diagram):
