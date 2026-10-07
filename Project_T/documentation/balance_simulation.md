@@ -1143,6 +1143,17 @@ stays out.** Watch the first human runs on it; if act 1 is too hard, `act1_healt
 **Bot baseline change:** from a99d5382 the bot keeps walling by default; every batch before it is the non-walling
 bot. Warm-up and pgr wait for bend10 on main.
 
+## Human run 22 (2026-10-07, build 0c802811 + local; Blight 0, a 6-node Grove)
+
+Dewdrop (10 + Undercurrent ×5, Maelstrom, Groundroot), 2 Rootlings, **28 Sprouts**; 47 attackers, route 76, 5 clears, gift
+Spring. Lost at **drift 40**. 15 → 13 at the drift 15 finale; **the Hollow Stag survived and its bite took 10** (13 → 3–4);
+−2 at 35; dead at 40. The act 2 jump showed exactly where the curve says: 24 → 26 is ×1.8 health, and 38–39 spawned 109k /
+165k against 101k / 126k dealt (the drift 37+ climb). Dew 4,530: plant 1,087 / grow 2,151 / ranks 1,020. **Combos 2%**
+(one family, Sprout-heavy). Dreams: The Long Walk, Quickened Sap, Seedfall.
+**Read:** the shared-curve grid targets this run's death (the 37+ climb). New: the Stag bite decided the run, on a board the
+bots would call healthy. Watch: if the next human runs also lose the Stag, act 1 boss bite 10 → 8 (or Stag health) comes
+next; the bots beat it 85–90%, so humans and bots differ here.
+
 ## Human run 21 (2026-10-05 20:57, build 91161b = b3c61186; 0 Grove)
 
 Sporeling, Bellflower picked at 25 but **none planted** (board: 10 Sporeling, 6 Inkcap, Hatchery, 6 Sprouts).
