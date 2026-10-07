@@ -2098,7 +2098,7 @@ no trample triggers. Numbers to Balancing.
 | precision | **Hobble** | a crit slows the nightmare 30% for 1 s | — |
 | precision | **Head of the Line** | Wardens deal 20% more to the nightmare furthest along the path | — |
 | daring | **Stung** | each leaf lost this {block} makes all Wardens deal 10% more damage until the {rest} (up to +30%) | — |
-| daring | **Bold Opening** | calling the first {drift} of a {block} early: that drift holds 15% more Dew | — |
+| daring | **Bold Opening** | the first {drift} you call early in each {block} holds 15% more Dew (a block's 1st drift starts from a rest and can't be called early) | — |
 | tending | **Forest Floor** | Wardens touching an obstacle deal 15% more damage | an obstacle left |
 | tending | **Groundskeeper** | at each {rest}, +2 Dew for every obstacle cleared that {block} | clearing unlocked |
 | kinship | **Twin Strike** | a Warden in a {kinship} deals 15% more to a nightmare its kin hit in the last second | a Kinship possible |
