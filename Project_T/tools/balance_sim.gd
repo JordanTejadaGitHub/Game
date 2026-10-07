@@ -185,6 +185,7 @@ var _trace_next := 0.0
 var _trace_spawned := 0
 var rank_budget := 0  # --rank-budget=D: finals-first puts D Dew into ranks by the warm-up's end (_warm_rank)
 var warm_rank_spent := 0
+var plant_full := false  # --plant-full: finals-first plants to 1.0 × the human count before the save-for-a-final rule (Balancing 2026-10-08)
 var _trace_hp := 0.0  # Health spawned since the trace began
 var _trace_dmg := 0.0  # Damage dealt since the trace began
 var _spend_timer := 0.0
@@ -223,6 +224,7 @@ func _run() -> void:
 			"--walls-keep-going": walls_keep_going = true
 			"--trace-drift": trace_drift = int(value)
 			"--rank-budget": rank_budget = int(value)
+			"--plant-full": plant_full = true
 			"--no-walls-keep-going": walls_keep_going = false
 			"--wall-first-keep": wall_first_keep = int(value)
 			"--no-half-pref": half_pref = false
@@ -558,6 +560,12 @@ func _warm_finals_spend(n: int) -> void:
 		grow_count += 1
 		d.spent_grow += maxi(before - run_state.dew, 0)
 	_finals_first = false
+	if plant_full:  # --plant-full: the board reaches the full human count before saving for a final can stop it
+		for guard in 80:
+			var before := run_state.dew
+			if _attackers().size() >= target or not _plant_attacker():
+				break
+			d.spent_plant += maxi(before - run_state.dew, 0)
 	_warm_rank(n)
 	var final_price := _cheapest_growth_price(3)
 	if final_price == 0:
