@@ -110,6 +110,7 @@ var save_at: Array[int] = []  # --save-at=N (repeatable): after the bot's spendi
 var _save_copy := ""
 var resumed_at := -1  # The drift the resumed save was resting after (resumed_at column)
 var _finals_first := false  # _grow prefers the highest tier (the --start-at build)
+var finals_first := false  # --finals-first (Balancing 2026-10-06): warm-up rests grow into finals first, then plant up to a human attacker count, then the usual buys, then rank the rest of the bank (spend-down)
 var warmup_to := 0  # --warmup-to=51|76 (Balancing, the late-start option (2)): drifts before it play with RunState.invulnerable; at the rest before it the leaves are set to START_LEAVES and the real run begins. Warm-up rows are tagged warmup=1
 var warm := {"dew": 0, "leaks": 0, "attackers": -1, "walls": -1, "done": false}
 var extra_spend := ""  # --extra-spend=plant|grow|grow_hi|grow_lo|final|rank|walls|none (balance_simulation.md a8c0365c "Plant vs grow vs rank"): at the resumed rest, X extra Dew spent only that way
@@ -222,6 +223,7 @@ func _run() -> void:
 			"--from-save": from_save = arg.substr(arg.find("=") + 1)
 			"--save-at": save_at.append(int(value))
 			"--warmup-to": warmup_to = int(value)
+			"--finals-first": finals_first = true
 			"--extra-spend": extra_spend = value
 			"--extra-dew":  # A number, or grow / final: the cheapest such growth on the resumed board (Balancing)
 				if value in ["grow", "final"]:
@@ -433,7 +435,10 @@ func _run() -> void:
 				dreams_20 = "+".join(dreams._taken_cards().map(func(c: UpgradeData) -> String: return c.id))
 		if _spend_timer <= 0.0 and not _busy:
 			_spend_timer = SPEND_EVERY
-			_spend()
+			if finals_first and warmup_to > 1 and not warm.done:
+				_warm_finals_spend(director.drifts_started)  # The same rule mid-drift: save for an open final
+			else:
+				_spend()
 	Engine.time_scale = 1.0
 	_finish()
 	if profile != "fresh" and ResourceLoader.exists("res://scripts/meta/grove_presets.gd"):
@@ -503,12 +508,50 @@ func _on_rest(perfect: bool) -> void:
 	run.rest_bonus.append(bonus)
 	if n % director.drifts_per_act == 0:
 		run.banked_at_act[n / director.drifts_per_act + 1] = run_state.dew
-	_spend()
+	if finals_first and warmup_to > 1 and not warm.done:
+		_warm_finals_spend(n)
+	else:
+		_spend()
 	if warmup_to > 1 and not warm.done and n >= warmup_to - 1:
 		_end_warmup()
 	if save_at.has(n):
 		_write_snapshot(n)
 	_busy = false
+
+# --finals-first (with --warmup-to): a warm-up rest's spending. 1) Growths, highest tier first (finals before new branches);
+# while a final is open but not affordable, the rest of the bank is saved for it (nothing below runs). Else:
+# branches), while any is affordable. 2) Plant attackers up to the human count for this drift (_human_attackers).
+# 3) The usual buys (walls, …). 4) Spend-down: ranks with whatever is left, never holding Dew.
+func _warm_finals_spend(n: int) -> void:
+	_finals_first = true
+	for guard in 40:
+		var before := run_state.dew
+		if not _grow():
+			break
+		grow_count += 1
+		d.spent_grow += maxi(before - run_state.dew, 0)
+	_finals_first = false
+	var final_price := _cheapest_growth_price(3)
+	if final_price == 0:
+		final_price = _cheapest_growth_price(2)  # No final open: save for a branch (the way to a final)
+	if final_price > run_state.dew:
+		return  # A growth (a final, else a branch) is open but not affordable yet: save for it (spend-down only when none is waiting)
+	var target := _human_attackers(n)
+	for guard in 80:
+		var before := run_state.dew
+		if _attackers().size() >= target or not _plant_attacker():
+			break
+		d.spent_plant += maxi(before - run_state.dew, 0)
+	_spend()
+	for guard in 300:
+		var before := run_state.dew
+		if not _nurture():
+			break
+		d.spent_nurture += maxi(before - run_state.dew, 0)
+
+# Attackers a human run holds by drift `n` (run history, 2026-10-05: 38–75 at 50, mean ~50): ~5 + 0.9 a drift, at most 50.
+func _human_attackers(n: int) -> int:
+	return clampi(roundi(5.0 + 0.9 * n), 5, 50)
 
 # --warmup-to: at the rest before it (after this rest's spending, the act-break leaf regrown), the run turns real.
 func _end_warmup() -> void:
