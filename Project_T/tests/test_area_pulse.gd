@@ -45,7 +45,7 @@ func _run() -> void:
 	for n in world.get_children():
 		if n is Tower.GroundRipple:
 			ripple = n
-		elif String(n.name).begins_with("Fx_root_snap"):
+		elif String(n.name).begins_with("Fx_root_lash"):
 			sparks += 1
 	_check(world.get_children().size() > before and ripple != null, "a Rootling's pulse draws a ground ripple (the user: \"the circles don't look right\")")
 	_check(ripple != null and is_equal_approx(ripple._radius, rootling.get_range_pixels()) and ripple.z_index == -1,

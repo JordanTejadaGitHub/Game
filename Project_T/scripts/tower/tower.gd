@@ -2288,7 +2288,7 @@ func _area_pulse_fx(in_range: Array) -> void:
 		var ripple := GroundRipple.new(reach, RIPPLE_COLOURS.get(style, Palette.OAK))
 		world.add_child(ripple)
 		ripple.global_position = global_position
-	var spark := &"root_snap" if style == "root" else &"area_hit"
+	var spark := &"root_lash" if style == "root" else &"area_hit"  # Root lines: roots curling over its feet (Tower Assets e5b8617b)
 	for i in mini(in_range.size(), PULSE_SPARKS_MAX):
 		var enemy: Node2D = in_range[i]
 		if is_instance_valid(enemy):
@@ -4556,6 +4556,8 @@ func _pulse_hold(in_range: Array) -> void:
 			furthest = enemy
 	if furthest:
 		hold(furthest, attack_data.pulse_hold_time)
+		if tower_data.line == "root":
+			Reactions._effect(&"goal_hold", furthest.global_position, self, 1.5)  # The bigger coil (Tower Assets e5b8617b)
 
 # Heavy Air (card, rule heavy_air): slows that aren't statuses (Rockslide's rubble, Drown's pull-under)
 # are 20% stronger too; Drowsy gets it in DreamState.get_status_strength_multiplier (fog no longer slows).
