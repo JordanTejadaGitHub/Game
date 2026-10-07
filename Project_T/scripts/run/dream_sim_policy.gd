@@ -88,6 +88,11 @@ const RULE_DE := {
 	"rhythm": 10.0, "steady_roots": 15.0, "seasoned": 15.0, "edge_of_sight": 12.5, "steady_aim": 20.0, "close_shave": 3.0,
 	"mulch": 20.0,
 	"cheap_seeds": 2.4, "early_bird": 0.0, "weed_puller": 0.0,  # Dew ÷ 10: 3 Dew × ~8 Sprouts a horizon; the bot never calls early, clears only with --clear-each
+	# Helper Commons 286-303 (Tower 5eacc2a0 / Roguelite 90ab8a34, Balancing 6075f796), same rule
+	"narrow_way": 25.0, "weary_feet": 12.0, "wide_swing": 10.0, "scatter": 5.0, "bountiful": 2.0, "undergrowth": 15.0,
+	"quick_draw": 5.0, "rush": 10.0, "first_among_equals": 50.0, "growth_rings": 3.0, "hobble": 30.0, "head_of_the_line": 20.0,
+	"stung": 3.0, "forest_floor": 20.0, "twin_strike": 10.0, "close_quarters": 20.0,
+	"bold_opening": 0.0, "groundskeeper": 0.0,  # Bot-blind: no early calls, no clearing
 }
 const SENT_OUT_KINDS := [TowerData.AttackKind.SWOOP, TowerData.AttackKind.SWEEP, TowerData.AttackKind.PECK,
 	TowerData.AttackKind.BOOMERANG, TowerData.AttackKind.PATROL]
@@ -214,6 +219,50 @@ func card_de(card: UpgradeData) -> float:
 		"mulch":
 			var run_state = dreams.get("run_state")
 			rule *= share.call(func(t: Tower) -> bool: return run_state != null and run_state.tended_cells.has(t.cell))
+		"narrow_way", "forest_floor":  # HelperCommons' own placement tests when the build has them
+			var test := "_beside_narrow" if card.id == "narrow_way" else "_touching_obstacle"
+			var hc := _helper_commons()
+			var map = dreams.get("map_generator")
+			rule *= share.call(func(t: Tower) -> bool: return hc != null and map != null and hc.call(test, t, map)) if hc != null else 0.3
+		"wide_swing", "scatter":
+			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.splash_radius > 0.0 \
+				or t.tower_data.attack_kind in [TowerData.AttackKind.PULSE, TowerData.AttackKind.CLOUD, TowerData.AttackKind.SPIN, TowerData.AttackKind.SWEEP])
+		"undergrowth":  # Sprouts touching 2+ Sprouts
+			var sprouts := attackers.filter(func(t: Tower) -> bool: return t.tower_data.get_id() == "sprout")
+			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.get_id() == "sprout" \
+				and sprouts.filter(func(o: Tower) -> bool: return o != t and o.cell.distance_to(t.cell) <= 1.5).size() >= 2)
+		"first_among_equals":  # × the highest-rank attacker's DPS share
+			var total := 0.0
+			var top: Tower = null
+			for t in attackers:
+				total += t.get_damage() * t.get_attacks_per_second()
+				if top == null or t.rank > top.rank:
+					top = t
+			rule *= (top.get_damage() * top.get_attacks_per_second() / total) if top != null and total > 0.0 else 0.0
+		"growth_rings":  # 3 × the average rank
+			var ranks := 0.0
+			for t in attackers:
+				ranks += t.rank
+			rule *= ranks / n
+		"hobble":
+			var crit := 0.0
+			for t in attackers:
+				crit += t.tower_data.crit_chance
+			rule *= crit / n
+		"head_of_the_line":
+			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.splash_radius <= 0.0 \
+				and t.tower_data.attack_kind == TowerData.AttackKind.PROJECTILE)
+		"twin_strike", "close_quarters":  # Kin-paired attackers (Close Quarters: the pair touching)
+			var kin := Kinships.find(dreams)
+			var touch := card.id == "close_quarters"
+			rule *= share.call(func(t: Tower) -> bool:
+				if kin == null:
+					return false
+				for pair in kin.get_pairs(t):
+					var other = pair.b if pair.a == t else pair.a
+					if is_instance_valid(other) and (not touch or other.cell.distance_to(t.cell) <= 1.5):
+						return true
+				return false)
 		"sap_rising":  # The support Wardens (walls aside) among all Wardens
 			var wardens := dreams._towers().filter(func(t: Tower) -> bool: return t.tower_data.line != "wall")
 			rule *= wardens.filter(func(t: Tower) -> bool: return _shape_test(&"is_support", t.tower_data,
@@ -234,6 +283,18 @@ func _shape_test(test: StringName, data: TowerData, fallback: bool) -> bool:
 	if _shape_script != null and _shape_script.has_method(test):
 		return _shape_script.call(test, data)
 	return fallback
+
+# Tower Code's HelperCommons (5eacc2a0) when this build has it, looked up at run time like ShapeCards.
+const HELPER_COMMONS_PATH := "res://scripts/tower/helper_commons.gd"
+var _hc_script: Script = null
+var _hc_checked := false
+
+func _helper_commons() -> Script:
+	if not _hc_checked:
+		_hc_checked = true
+		if ResourceLoader.exists(HELPER_COMMONS_PATH):
+			_hc_script = load(HELPER_COMMONS_PATH)
+	return _hc_script
 
 # The rank choice a Warden took most (-1 = none yet).
 func _majority_choice(t: Tower) -> int:
