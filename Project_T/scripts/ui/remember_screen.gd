@@ -50,7 +50,7 @@ var _tab_root: TowerData = null  # The tree shown
 var _was_paused := false
 var _title := Label.new()
 var _light_line := Label.new()
-var _tabs := HFlowContainer.new()  # Wraps to a second row with every family (it ran off the side at the largest UI size)
+var _tabs: Container = HFlowContainer.new()  # Wraps to a second row with every family (it ran off the side at the largest UI size); phones: one swiping row
 var _body: BoxContainer
 var _canvas: TreeCanvas
 var _side := PanelContainer.new()
@@ -63,6 +63,9 @@ func _ready() -> void:
 	WorldLabel.cover_while_visible(self, &"remember_screen")  # No world tags (DPS, hover names) over a full-screen screen
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	if phone_layout():
+		_build_phone()
+		return
 	var dim := ColorRect.new()
 	dim.color = Color(UiStyle.FOG, 0.82)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -143,7 +146,9 @@ func _ready() -> void:
 		UiStyle.quiet(peek_button)
 	footer.add_child(peek_button)
 	visible = false
+	_connect_dream_state()
 
+func _connect_dream_state() -> void:
 	dream_state.remember_requested.connect(open)
 	dream_state.dreamlight_changed.connect(func(_n: int) -> void:
 		if visible:
@@ -195,6 +200,235 @@ func _unhandled_input(event: InputEvent) -> void:
 		close()
 		get_viewport().set_input_as_handled()
 
+# --- Phones ---------------------------------------------------------------------------------------------
+
+# mobile_plan.md "Phone layouts" (Mobile chat; user 2026-10-06: "the remember tech tree needs a new mobile rework"):
+# full screen instead of a floating panel. One top bar (Remember, Dreamlight, ?, Peek, Done), the families as one
+# row of tabs that swipes, then the tree (scaled to the room left) beside the detail panel, which scrolls on its own
+# and keeps its Unlock / Call in button pinned at its bottom right, under the thumb. The offer line and the "Not in
+# this dream" explanation move into the ? tip (tooltips don't exist on touch). Mobile only: PC keeps its panel.
+const PHONE_MARGIN := 16.0
+const PHONE_TITLE_SIZE := 26
+const PHONE_SIDE_SHARE := 0.4  # Of the screen's width
+const PHONE_SIDE_MIN := 320.0
+const PHONE_SIDE_MAX := 480.0
+const PHONE_TREE_SCALE_MIN := 0.8  # Tree nodes stay at least ~60 px
+const PHONE_TREE_SCALE_MAX := 1.4
+const PHONE_TAB_H := 56.0
+const PHONE_ACTION_H := 56.0
+const PHONE_TEXT_BUMP := 2  # Panel text a little larger on a phone
+
+var _action_box: VBoxContainer = null  # Phones: the panel's button, under its scroll
+var _tree_holder: Control = null
+var _margin: MarginContainer = null
+var _side_scroll: ScrollContainer = null
+var _info_tip: TapTip = null
+
+# The phone layout: Android / iOS builds (and TouchBuild.force_mobile / `-- --mobile` for testing on a PC).
+static func phone_layout() -> bool:
+	return TouchBuild.mobile_controls()
+
+func _phone_bump() -> int:
+	return PHONE_TEXT_BUMP if phone_layout() else 0
+
+# How wide the detail panel's text wraps.
+func _text_width() -> float:
+	if not phone_layout():
+		return SIDE_WIDTH - 30
+	return maxf(_side.custom_minimum_size.x - 44.0, 200.0)
+
+func _build_phone() -> void:
+	var dim := ColorRect.new()
+	dim.color = Color(UiStyle.FOG, 0.94)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(dim)
+	_margin = MarginContainer.new()
+	_margin.name = "PhoneMargin"
+	_margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_margin)
+	var frame := PanelContainer.new()
+	var frame_style := UiStyle.panel(14, 10)
+	frame_style.edge_alpha = ChoiceCard.EDGE_ALPHA
+	frame_style.center_alpha = ChoiceCard.CENTER_ALPHA
+	frame.add_theme_stylebox_override("panel", frame_style)
+	_margin.add_child(frame)
+	_frame = frame
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	frame.add_child(box)
+
+	# The top bar: Remember, Dreamlight, ?, then Peek and Done at the right
+	var bar := HBoxContainer.new()
+	bar.name = "TopBar"
+	bar.add_theme_constant_override("separation", 14)
+	box.add_child(bar)
+	UiStyle.title(_title, PHONE_TITLE_SIZE, HEADER_COLOR)
+	_title.text = "Remember"
+	_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bar.add_child(_title)
+	UiStyle.number(_light_line, 22)
+	_light_line.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bar.add_child(_light_line)
+	var info := Button.new()
+	info.name = "InfoButton"
+	info.text = "?"
+	info.focus_mode = Control.FOCUS_NONE
+	info.custom_minimum_size = Vector2(48, 48)
+	UiStyle.quiet(info)
+	bar.add_child(info)
+	_info_tip = TapTip.attach(info, "Dreamlight unlocks, Dew grows.")
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.add_child(spacer)
+	_dev_free.text = "Dev: unlock free"
+	_dev_free.focus_mode = Control.FOCUS_NONE
+	_dev_free.toggled.connect(func(_on: bool) -> void: _fill_side(selected))
+	bar.add_child(_dev_free)
+	peek = ChoicePeek.new(self, [dim, _margin], "Back to Remember")
+	var peek_button := peek.make_peek_button()
+	if peek_button is Button:
+		UiStyle.quiet(peek_button)
+	bar.add_child(peek_button)
+	var done := Button.new()
+	done.name = "DoneButton"
+	done.text = "Done"
+	done.focus_mode = Control.FOCUS_NONE
+	done.custom_minimum_size = Vector2(120, 48)
+	done.pressed.connect(close)
+	bar.add_child(done)
+
+	# The families: one row that swipes sideways
+	var tab_scroll := ScrollContainer.new()
+	tab_scroll.name = "TabScroll"
+	tab_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	tab_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	tab_scroll.custom_minimum_size.y = PHONE_TAB_H
+	box.add_child(tab_scroll)
+	_tabs.free()  # The PC's wrapping tabs, never in the tree here
+	_tabs = HBoxContainer.new()
+	_tabs.name = "Tabs"
+	_tabs.add_theme_constant_override("separation", 8)
+	tab_scroll.add_child(_tabs)
+	_offer_line.name = "OfferLine"
+	_offer_line.visible = false  # In the ? tip on phones
+	box.add_child(_offer_line)
+
+	# The body: the tree (and "Not in this dream" under it) beside the detail panel
+	_body = HBoxContainer.new()
+	_body.add_theme_constant_override("separation", 12)
+	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(_body)
+	var left := VBoxContainer.new()
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	left.add_theme_constant_override("separation", 6)
+	_body.add_child(left)
+	_tree_holder = Control.new()
+	_tree_holder.name = "TreeHolder"
+	_tree_holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tree_holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_tree_holder.custom_minimum_size = TREE_SIZE * PHONE_TREE_SCALE_MIN
+	_tree_holder.mouse_filter = Control.MOUSE_FILTER_PASS
+	left.add_child(_tree_holder)
+	_canvas = TreeCanvas.new(self)
+	_tree_holder.add_child(_canvas)
+	_tree_holder.resized.connect(_fit_tree)
+	var misty_scroll := ScrollContainer.new()
+	misty_scroll.name = "MistyScroll"
+	misty_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	misty_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	left.add_child(misty_scroll)
+	_misty.name = "NotInDream"
+	_misty.add_theme_constant_override("separation", 4)
+	misty_scroll.add_child(_misty)
+	_misty.minimum_size_changed.connect(_fit_misty_scroll.bind(misty_scroll))
+	_misty.visibility_changed.connect(_fit_misty_scroll.bind(misty_scroll))
+
+	_side.add_theme_stylebox_override("panel", UiStyle.panel_in(UiStyle.GOLD, 12, 12))
+	_side.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 8)
+	_side.add_child(column)
+	_side_scroll = ScrollContainer.new()
+	_side_scroll.name = "SideScroll"
+	_side_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_side_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(_side_scroll)
+	_side_box.add_theme_constant_override("separation", 6)
+	_side_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_side_scroll.add_child(_side_box)
+	_action_box = VBoxContainer.new()
+	_action_box.name = "ActionBox"
+	column.add_child(_action_box)
+	_body.add_child(_side)
+
+	visible = false
+	_middle_box.free()  # The PC layout's scrolling middle: unused on phones
+	_middle.free()
+	get_viewport().size_changed.connect(_fit_phone, CONNECT_DEFERRED)
+	_connect_dream_state()
+
+# The strip's scroll is as tall as the strip (a ScrollContainer doesn't grow with its content by itself), 0 when hidden.
+func _fit_misty_scroll(scroll: ScrollContainer) -> void:
+	scroll.custom_minimum_size.y = _misty.get_combined_minimum_size().y if _misty.visible else 0.0
+
+# The margins (the notch and rounded corners on a phone) and the detail panel's width for this screen.
+func _fit_phone() -> void:
+	if _margin == null or not is_inside_tree():
+		return
+	var view := get_viewport_rect().size
+	var inset := _safe_insets(view)
+	_margin.add_theme_constant_override("margin_left", int(PHONE_MARGIN + inset.position.x))
+	_margin.add_theme_constant_override("margin_top", int(PHONE_MARGIN + inset.position.y))
+	_margin.add_theme_constant_override("margin_right", int(PHONE_MARGIN + inset.size.x))
+	_margin.add_theme_constant_override("margin_bottom", int(PHONE_MARGIN + inset.size.y))
+	_side.custom_minimum_size.x = clampf(view.x * PHONE_SIDE_SHARE, PHONE_SIDE_MIN, PHONE_SIDE_MAX)
+	_fit_tree()
+
+# The screen's unsafe edges in view units: left / top in `position`, right / bottom in `size`. Only on a real phone.
+func _safe_insets(view: Vector2) -> Rect2:
+	if not OS.has_feature("mobile"):
+		return Rect2()
+	var screen := Vector2(DisplayServer.screen_get_size())
+	var safe := DisplayServer.get_display_safe_area()
+	if screen.x <= 0.0 or safe.size.x <= 0:
+		return Rect2()
+	var k := view.x / screen.x
+	return Rect2(Vector2(safe.position) * k, (screen - Vector2(safe.end)) * k)
+
+# The tree scales to the room beside the panel (never so small its nodes drop under ~60 px), centred.
+func _fit_tree() -> void:
+	if _tree_holder == null:
+		return
+	var room := _tree_holder.size
+	var s := clampf(minf(room.x / TREE_SIZE.x, room.y / TREE_SIZE.y), PHONE_TREE_SCALE_MIN, PHONE_TREE_SCALE_MAX)
+	_canvas.scale = Vector2(s, s)
+	_canvas.position = ((room - TREE_SIZE * s) / 2.0).max(Vector2.ZERO)
+
+# Phones: the panel's Unlock / Call in button leaves the scroll and sits at the panel's foot, full width.
+func _pin_action() -> void:
+	for button_name in ["UnlockButton", "CallBackButton", "DevUnlockButton"]:
+		var button := _side_box.find_child(button_name, false, false) as Button
+		if button == null:
+			continue
+		_side_box.remove_child(button)
+		button.custom_minimum_size.y = PHONE_ACTION_H
+		_action_box.add_child(button)
+
+# The ? tip: this family's offer line, what Dreamlight and Dew do, and why some branches are missing.
+func _update_info(root: TowerData) -> void:
+	if _info_tip == null:
+		return
+	var parts: Array[String] = ["Dreamlight unlocks, Dew grows."]
+	var offer := offer_line(root)
+	if offer != "":
+		parts.push_front(offer)
+	if root != null and root.tier == 1 and not dream_state.not_offered_branches(root).is_empty():
+		parts.append(MISTY_TIP)
+	var text := "\n\n".join(parts)
+	_info_tip._label.text = text
+	(_info_tip.get_parent() as Control).tooltip_text = text
+
 # --- Building -------------------------------------------------------------------------------------------
 
 func _trees() -> Array:
@@ -237,7 +471,9 @@ func _rebuild() -> void:
 	_fill_side(selected)
 	_fill_misty(shown[0])
 	_offer_line.text = offer_line(shown[0])
-	_offer_line.visible = _offer_line.text != ""
+	_offer_line.visible = _offer_line.text != "" and not phone_layout()  # Phones: in the ? tip
+	if phone_layout():
+		_update_info(shown[0])
 
 # The line above the tree (user: players should be told the branches are random): "This dream offers 2 of 5
 # branches, different each run. Call others in with Dreamlight." ("" outside the branch expansion, or for a family
@@ -356,7 +592,7 @@ func _make_tab(root: TowerData) -> Button:
 	tab.toggle_mode = true
 	tab.button_pressed = root == _tab_root
 	tab.focus_mode = Control.FOCUS_NONE
-	tab.custom_minimum_size = Vector2(0, 48)
+	tab.custom_minimum_size = Vector2(0, PHONE_TAB_H if phone_layout() else 48.0)
 	tab.pressed.connect(func() -> void:
 		_tab_root = root
 		selected = null
@@ -371,8 +607,8 @@ var _middle_box := VBoxContainer.new()
 const VIEW_MARGIN := 24.0  # Kept free above and below the panel
 
 func _fit_middle() -> void:
-	if _frame == null or not is_inside_tree():
-		return
+	if _frame == null or not is_inside_tree() or phone_layout():
+		return  # Phones: the full-screen layout gives the middle the room itself (_fit_phone)
 	var content := _middle_box.get_combined_minimum_size().y
 	var rest := _frame.get_combined_minimum_size().y - _middle.custom_minimum_size.y  # Header, tabs, footer, padding
 	var room := get_viewport_rect().size.y - VIEW_MARGIN * 2.0 - rest
@@ -382,6 +618,9 @@ func _fit_middle() -> void:
 
 # Phones: the side panel goes under the tree (and slides up on selecting) instead of beside it.
 func _layout_for_screen() -> void:
+	if phone_layout():
+		_fit_phone()  # Landscape phones: tree and detail panel side by side, always
+		return
 	var want_vertical := get_viewport_rect().size.x < NARROW_WIDTH
 	if (_body is VBoxContainer) == want_vertical:
 		return
@@ -441,6 +680,15 @@ func veil_hint(data: TowerData) -> String:
 	return "Unlock %s to see what it becomes" % (branch.display_name if branch != null else "its branch")
 
 func _fill_side(data: TowerData) -> void:
+	if _action_box != null:
+		for child in _action_box.get_children():
+			_action_box.remove_child(child)
+			child.queue_free()
+	_fill_side_content(data)
+	if _action_box != null:
+		_pin_action()
+
+func _fill_side_content(data: TowerData) -> void:
 	for child in _side_box.get_children():
 		_side_box.remove_child(child)
 		child.queue_free()
@@ -481,6 +729,7 @@ func _fill_side(data: TowerData) -> void:
 			statuses.append(IconInfo.status_name(status))
 	if not statuses.is_empty():
 		_line("Applies " + " and ".join(statuses), STATUS_LINE_COLOR, 14)
+	_line(WardenHeaderView.shape_tip(data), UiStyle.INK_DIM, 14).name = "AttackShape"  # How it attacks (aura or not)
 	# Dew to grow into it (from its parent), or to plant the base
 	if data.buildable_directly:
 		_line("Plant: %d Dew" % data.cost, UiStyle.GOLD, 14)
@@ -525,8 +774,8 @@ func _header_names(head: HBoxContainer, data: TowerData) -> void:
 # What it does (linked) and its stats as one icon row, as the Warden panel (light pass).
 func _description_and_stats(data: TowerData) -> void:
 	if data.description != "":
-		var what := StatusLinks.make_label(data.description, 15, UiStyle.INK)
-		what.custom_minimum_size = Vector2(SIDE_WIDTH - 30, 0)
+		var what := StatusLinks.make_label(data.description, 15 + _phone_bump(), UiStyle.INK)
+		what.custom_minimum_size = Vector2(_text_width(), 0)
 		_side_box.add_child(what)
 	if data.can_attack:
 		var stats: Array = [[&"damage", str(data.damage)], [&"attack_speed", "%.1f/s" % data.attacks_per_second],
@@ -565,9 +814,9 @@ func _line(text: String, colour: Color, font_size: int) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.custom_minimum_size = Vector2(SIDE_WIDTH - 30, 0)
+	label.custom_minimum_size = Vector2(_text_width(), 0)
 	label.add_theme_color_override("font_color", colour)
-	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_font_size_override("font_size", font_size + _phone_bump())
 	_side_box.add_child(label)
 	return label
 
@@ -628,7 +877,7 @@ func _add_combos(data: TowerData) -> void:
 		tokens.append("%d to discover" % hidden)
 	var links := StatusLinks.make_label(" · ".join(tokens), 15, UiStyle.INK)
 	links.name = "Combos"
-	links.custom_minimum_size = Vector2(SIDE_WIDTH - 30, 0)
+	links.custom_minimum_size = Vector2(_text_width(), 0)
 	_side_box.add_child(links)
 
 # Branch expansion: a branch not in this run. Its silhouette and name, the line, what it does (to judge a call),
@@ -729,6 +978,7 @@ func _add_unlock(data: TowerData) -> void:
 		return
 	if _dev_free.button_pressed and not data.buildable_directly:
 		var free := Button.new()
+		free.name = "DevUnlockButton"
 		free.text = "Unlock free (dev)"
 		free.focus_mode = Control.FOCUS_NONE
 		free.custom_minimum_size = Vector2(0, 48)
@@ -789,6 +1039,8 @@ func _select(data: TowerData) -> void:
 	for node in _canvas.nodes.values():
 		node.queue_redraw()
 	_fill_side(data)
+	if _side_scroll != null:
+		_side_scroll.scroll_vertical = 0  # Phones: a new form's details start at the top
 	if _body is VBoxContainer:  # Phones: the panel slides up into view
 		_side.modulate.a = 0.0
 		var tween := create_tween()

@@ -190,6 +190,7 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 			range_text = "%.1f–%.1f" % [attack.min_range, _tower.get_range_cells()]
 		var main_row: Array = [[BossDossier.thousands(roundi(_tower.get_damage())), &"damage"],
 			["%.1f/s" % _tower.get_attacks_per_second(), &"attack_speed"], [range_text, &"range"]]
+		main_row.append([shape_name(attack), &"attack_shape"])  # How it attacks (the tip says what that means)
 		var reach := BranchKit.ability_reach(_tower) if is_instance_valid(tower) else 0.0
 		if reach > 0.0:  # Groundroot / Earthbind grab flyers beyond their attack range (Tower Code e530a46a)
 			main_row.append(["Grab %.1f" % reach, &"grab_reach"])
@@ -383,6 +384,22 @@ static func status_strength_text(status: StringName, potency: float, duration: f
 			return "Rooted %s s" % str(snappedf(held, 0.1))
 	return ""
 
+# How it attacks (user: "can't tell if something is an aura attack or not"; Tower Code 6fa3e5ce Tower.attack_shape):
+# a chip in the icon row, the tooltip saying what the shape means. Also the Remember side panel's line.
+const SHAPE_TIPS := {&"single": "hits one nightmare at a time", &"splash": "hits one nightmare and splashes the ones beside it",
+	&"area": "hits everything in range at once", &"chain": "jumps from nightmare to nightmare", &"cloud": "leaves a cloud on the path",
+	&"trap": "sets traps on the path", &"beam": "a beam that grows stronger the longer it holds", &"birds": "sends birds out to strike",
+	&"seed": "a seed that flies out and back", &"patrol": "flies a patrol over the path", &"copy": "copies the strongest Warden beside it",
+	&"light": "lights path tiles that hurt nightmares", &"pull": "pulls nightmares back along the path",
+	&"spread": "spreads statuses between nightmares", &"aura": "boosts the Wardens near it", &"none": "doesn't attack: a wall"}
+
+static func shape_name(data: TowerData) -> String:
+	return String(Tower.ATTACK_SHAPE_NAMES.get(Tower.attack_shape(data), ""))
+
+static func shape_tip(data: TowerData) -> String:
+	var shape := Tower.attack_shape(data)
+	return "%s: %s." % [Tower.ATTACK_SHAPE_NAMES.get(shape, "Attack"), SHAPE_TIPS.get(shape, "")]
+
 const LOCAL_BUFF_STATS :={&"damage": "damage", &"attack_speed": "attack_speed", &"range": "range"}
 
 # What `stat` means for the shown Warden, then what made it ("base 24 · Nurture II +20% · Acorn +5%").
@@ -399,6 +416,8 @@ func stat_tip(stat: StringName) -> String:
 		&"range":
 			meaning = ("Range: %.1f–%.1f cells" % [attack.min_range, _tower.get_range_cells()]) if attack.min_range > 0.0 \
 				else "Range: %.1f cells" % _tower.get_range_cells()
+		&"attack_shape":
+			return shape_tip(attack)
 		&"grab_reach":
 			return "Grab reach: %.1f cells. It pulls flyers down from this far, beyond its attack range (%.1f)." % [BranchKit.ability_reach(_tower), _tower.get_range_cells()]
 		&"crit_chance":
