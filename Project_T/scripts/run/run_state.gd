@@ -49,6 +49,7 @@ func add_sprout_charges(amount: int) -> void:
 	sprout_charges_changed.emit(sprout_charges)
 var creatures_cleansed := 0
 var cleansed_in_act_1 := 0  # Of those, dispelled in drifts 1–25 (they pay fewer Seeds)
+var cleansed_in_act_2 := 0  # …and in drifts 26–50
 var leaves_lost := 0
 var seed_bonus := 0.0  # +share of Seeds at run end (Seed Pouch, Blight Levels); set by MetaRun
 var dew_gain_bonus := 0.0  # Rich Dew (Grove dew_gain), set by MetaRun: multiplies every drift's Dew pot (DriftDirector)
@@ -61,15 +62,20 @@ var is_over := false
 var won := false
 
 # Seeds formula (meta_design.md "Seeds", 192baf87: an act 1 loss shouldn't afford a node): 1 per 2 drifts survived
-# from drift 26 on (max 50), 1 per 20 nightmares dispelled (1 per 50 in act 1), 20 per boss, 1 per obstacle tended,
-# +120 for winning. No first-run bonus (the first_boss milestone pays +20 for reaching act 2). Demo too.
+# from drift 26 on (max 50), 1 per 20 nightmares dispelled (1 per 50 in act 1, 1 per 40 in act 2: ce725e43, a drift-50
+# loss buys about 3 nodes), bosses 15 / 20 / 20 / 20 by act, 1 per obstacle tended, +120 for winning. No first-run
+# bonus (the first_boss milestone pays +20 for reaching act 2). Demo too. The exports are Balancing's knobs.
 const SEEDS_PER_DRIFTS := 2
 const SEEDS_DRIFT_MAX := 50
-const CLEANSES_PER_SEED := 20
-const SEEDS_PER_BOSS := 20
+const CLEANSES_PER_SEED := 20  # Acts 3–4
+const SEEDS_PER_BOSS := 20  # A boss past the end of boss_seeds_by_act
 const SEEDS_FOR_WIN := 120
 @export var survival_seeds_from := 26  # Drifts before this one pay no survival Seeds (Balancing)
 @export var act_1_cleanses_per_seed := 50  # Act 1 dispels per Seed (Balancing)
+@export var act_2_cleanses_per_seed := 40  # Act 2 dispels per Seed (Balancing)
+@export var boss_seeds_by_act: Array[int] = [15, 20, 20, 20]  # Seeds for the act 1..4 boss (Balancing)
+@export var late_cleanses_per_seed := CLEANSES_PER_SEED  # Acts 3–4 dispels per Seed (Balancing)
+@export var win_seeds := SEEDS_FOR_WIN  # Dispelling the Hollow Oak (Balancing)
 
 @onready var enemy_spawner = %EnemyContainer
 @onready var map_generator = %MapGenerator
@@ -92,18 +98,21 @@ func _ready() -> void:
 # come from the DriftDirector; `_first_run` is kept for callers (the first-run bonus is gone).
 func get_seed_breakdown(drifts_cleared: int, bosses: int, _first_run: bool) -> Array:
 	var survived := maxi(drifts_cleared - (survival_seeds_from - 1), 0)
-	var later := creatures_cleansed - cleansed_in_act_1
+	var later := creatures_cleansed - cleansed_in_act_1 - cleansed_in_act_2
+	var boss_seeds := 0
+	for i in bosses:  # Bosses fall in act order
+		boss_seeds += boss_seeds_by_act[i] if i < boss_seeds_by_act.size() else SEEDS_PER_BOSS
 	var lines: Array = [
 		["Drifts survived from %d: %d" % [survival_seeds_from, survived], mini(survived / SEEDS_PER_DRIFTS, SEEDS_DRIFT_MAX)],
-		["Nightmares dispelled: %d" % creatures_cleansed,
-			cleansed_in_act_1 / maxi(act_1_cleanses_per_seed, 1) + later / CLEANSES_PER_SEED],
-		["Bosses dispelled: %d" % bosses, bosses * SEEDS_PER_BOSS],
+		["Nightmares dispelled: %d" % creatures_cleansed, cleansed_in_act_1 / maxi(act_1_cleanses_per_seed, 1)
+			+ cleansed_in_act_2 / maxi(act_2_cleanses_per_seed, 1) + later / maxi(late_cleanses_per_seed, 1)],
+		["Bosses dispelled: %d" % bosses, boss_seeds],
 		["Tended: %d" % obstacles_tended, obstacles_tended],
 	]
 	if omen_seeds > 0:
 		lines.append(["Omens", omen_seeds])
 	if won:
-		lines.append(["The Hollow Oak is dispelled", SEEDS_FOR_WIN])
+		lines.append(["The Hollow Oak is dispelled", win_seeds])
 	var total := 0
 	for line in lines:
 		total += line[1]
@@ -192,8 +201,10 @@ func end_run(did_win: bool) -> void:
 func _on_enemy_cleansed(enemy: Node2D) -> void:
 	creatures_cleansed += 1
 	var director := get_node_or_null("%DriftDirector")
-	if director != null and director.drifts_started <= director.drifts_per_act:  # Act 1 dispels pay fewer Seeds
+	if director != null and director.drifts_started <= director.drifts_per_act:  # Acts 1 and 2 dispels pay fewer Seeds
 		cleansed_in_act_1 += 1
+	elif director != null and director.drifts_started <= director.drifts_per_act * 2:
+		cleansed_in_act_2 += 1
 	# Its share of its drift's pot (already multiplied by the pot's Dreams / Omens); a nightmare from outside
 	# a drift (Test Grove spawns) pays its plain dew_reward.
 	var share: float = enemy.get_dew_share() if enemy.has_method("get_dew_share") else float(enemy.get_dew_reward())

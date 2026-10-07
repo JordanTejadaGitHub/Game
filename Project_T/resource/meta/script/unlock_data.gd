@@ -55,8 +55,9 @@ enum Root { WARDENS, DREAMS, PERKS, FORESTS }  # Limbs: Families, Cards, Perks (
 @export var free_nurtures: int = 0  # First Care: free Nurture ranks
 @export var wider_roots: bool = false  # Wider Roots: the first-picked family offers 3 of its branches, call-back 4 Dreamlight
 @export var crown: bool = false  # The Heartwood's Crown: needs every other node at max level; hidden until then
-# An option, always on once planted, never carried (meta_design.md 952b986e: Remembered Seed, Restless Omens); its
-# effect is read where it applies (SeedPicker.available, the Omen pool), not by MetaRun's perk loop.
+# Always on once planted, never carried: only the purple pool unlocks (Restless Omens). The orange option perks
+# (Remembered Seed, Chosen Hunt, Leaf or Dew, Kin Foretold, Wider Choice) are carried since meta_design.md 0931c55f;
+# their gates read HeartwoodMemory.carries(id).
 @export var always_on: bool = false
 
 # The text the node card and loadout show: the sidegrade one while sidegrade perks are on (the Hades style's

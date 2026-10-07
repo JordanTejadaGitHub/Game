@@ -12,4 +12,3 @@ costs = Array[int]([80])
 order = 72
 icon = 26
 requires_all = Array[String](["second_thoughts"])
-always_on = true

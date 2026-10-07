@@ -18,10 +18,7 @@ var _typed_go := Button.new()
 
 # Whether the run-start choice applies: the full game, with the node planted.
 static func available() -> bool:
-	if ResultsScreen.is_demo():
-		return false
-	var unlock := HeartwoodMemory.get_unlock(NODE_ID)
-	return unlock != null and HeartwoodMemory.node_level(HeartwoodMemory.load_data(), unlock) > 0
+	return HeartwoodMemory.carries(NODE_ID)  # A carried perk (meta_design.md 0931c55f); asleep in the demo
 
 # Starts a run through the choice when Remembered Seed is planted, else at once. `start` launches the run scene.
 static func ask(parent: Node, start: Callable) -> void:

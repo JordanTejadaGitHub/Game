@@ -410,6 +410,9 @@ func _update_card() -> void:
 	_carry.disabled = not carried and HeartwoodMemory.get_loadout(_memory).size() >= HeartwoodMemory.loadout_slots(_memory)
 	if _carry.disabled:
 		_carry.text = "Loadout full"
+	if _carry.visible and not carried and _card_status.text in ["", "In bloom"]:  # Perks work only while carried
+		_card_status.text = "Carry it to use it."
+		_card_status.visible = true
 	# Shrink to the content (a card with fewer lines than the last one), still centred on the right.
 	_fit_card.call_deferred()  # After the labels have re-measured
 
@@ -628,7 +631,7 @@ func _open_loadout(start_run: bool) -> void:
 func _on_loadout_closed(start: bool) -> void:
 	_refresh()
 	if start:
-		_pick_blight()
+		_after_loadout()
 
 # First visit with Seeds already waiting (e.g. from the demo): "Back again. Good." (text_pass.md)
 func _welcome() -> void:
@@ -650,16 +653,20 @@ func _start_run() -> void:
 		confirm.popup_centered()
 		return
 	MetaRun.leaf_dew_trade = 0
-	if MetaRun.leaf_or_dew_available():
-		open_leaf_dew()  # Its Continue goes on to the loadout / Blight steps
-	else:
-		_after_leaf_dew()
-
-func _after_leaf_dew() -> void:
 	if _has_perks():
-		_open_loadout(true)
+		_open_loadout(true)  # Its Start goes on to Leaf or Dew (if carried) and the Blight step
+	else:
+		_after_loadout()
+
+# After the loadout: Leaf or Dew only when it's carried (a perk since meta_design.md 0931c55f), then Blight.
+func _after_loadout() -> void:
+	if MetaRun.leaf_or_dew_available():
+		open_leaf_dew()
 	else:
 		_pick_blight()
+
+func _after_leaf_dew() -> void:
+	_pick_blight()
 
 # Leaf or Dew (Grove option node): a −3…+3 stepper before the run, applied once at run start (MetaRun).
 var leaf_dew_step := PanelContainer.new()

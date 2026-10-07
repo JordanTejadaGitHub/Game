@@ -89,10 +89,7 @@ static var force_chosen_hunt := false  # Tests
 static func chosen_hunt_active() -> bool:
 	if force_chosen_hunt:
 		return true
-	if ResultsScreen.is_demo():
-		return false
-	var unlock := HeartwoodMemory.get_unlock(CHOSEN_HUNT_NODE)
-	return unlock != null and HeartwoodMemory.node_level(HeartwoodMemory.load_data(), unlock) > 0
+	return HeartwoodMemory.carries(CHOSEN_HUNT_NODE)  # A carried perk (meta_design.md 0931c55f); asleep in the demo
 
 # Makes `data` act `act`'s boss in this run: its drift goes in at drift 25 × act.
 static func choose(director: Node, act: int, data: BossData) -> void:

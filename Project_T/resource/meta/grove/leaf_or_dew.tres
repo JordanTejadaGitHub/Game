@@ -11,4 +11,3 @@ root = 2
 costs = Array[int]([40])
 order = 46
 icon = 24
-always_on = true

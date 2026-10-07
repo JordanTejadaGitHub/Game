@@ -16,9 +16,11 @@ static var file_path := PATH  # Tests use a per-process name (every checkout sha
 # Early: Morning Stores I, Deep Taproot I, one family, two card bundles.
 const EARLY := {"morning_stores": 1, "deep_taproot": 1, "pebbling": 1, "sharpened": 1, "tending_hands": 1}
 # Perks carried, best first (the loadout takes as many as there are slots).
-const LOADOUT_PRIORITY: Array[String] = ["morning_stores", "deep_taproot", "rich_dew", "second_thoughts",
-	"wider_dreams", "sprout_bed", "rested_roots", "early_bloom", "clear_sight", "first_care", "kindling",
-	"seed_pouch", "omen_reader", "early_light", "let_go"]
+# Balancing Discussion 2026-10-07: rescue and economy first (the Hades power trio), then one or two control perks.
+const LOADOUT_PRIORITY: Array[String] = ["morning_stores", "deep_taproot", "rested_roots", "wider_choice",
+	"second_thoughts", "wider_dreams", "let_go", "wider_roots", "leaf_or_dew", "remembered_seed", "kin_foretold",
+	"chosen_hunt", "rich_dew", "sprout_bed", "early_bloom", "clear_sight", "first_care", "kindling", "seed_pouch",
+	"omen_reader", "early_light"]
 
 # The profile for `preset` (a full HeartwoodMemory dictionary).
 static func profile(preset: StringName) -> Dictionary:
