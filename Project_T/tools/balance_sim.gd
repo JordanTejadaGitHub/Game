@@ -179,6 +179,10 @@ var policy
 var reaction_tags := {}
 
 var game_time := 0.0
+var trace_drift := 0  # --trace-drift=N: TRACE lines from drift N's start until N + 2 starts (board, nightmares alive per second, each leak)
+var _trace_t := -1.0
+var _trace_next := 0.0
+var _trace_spawned := 0
 var _spend_timer := 0.0
 var _busy := false  # A family pick / rest is being handled
 var rows: Array = []
@@ -213,6 +217,7 @@ func _run() -> void:
 			"--no-fence-pref": fence_pref = false
 			"--no-wall-first": wall_first = false
 			"--walls-keep-going": walls_keep_going = true
+			"--trace-drift": trace_drift = int(value)
 			"--no-walls-keep-going": walls_keep_going = false
 			"--wall-first-keep": wall_first_keep = int(value)
 			"--no-half-pref": half_pref = false
@@ -415,6 +420,7 @@ func _run() -> void:
 		await process_frame
 		frames += 1
 		game_time += speed / 60.0
+		_trace_tick()
 		_spend_timer -= speed / 60.0
 		_approach_timer -= speed / 60.0
 		if _approach_timer <= 0.0:
@@ -1371,7 +1377,44 @@ func _family_count(base: TowerData) -> int:
 var dl_earned := 0  # Dreamlight gained this run (dl_earned column; held = the dreamlight column)
 var _dl_last := -1
 
+# --trace-drift: drift N's start prints the board; N + 2 ends the trace (N's stragglers still count while N + 1 flows).
+func _trace_drift_started(n: int) -> void:
+	if n == trace_drift:
+		_trace_t = game_time
+		_trace_next = game_time
+		_trace_spawned = 0
+		var tiers := {}
+		for t in _attackers():
+			tiers[t.tower_data.tier] = int(tiers.get(t.tower_data.tier, 0)) + 1
+		var ranks := 0.0
+		for t in _attackers():
+			ranks += t.rank
+		print("TRACE start drift %d leaves %d dew %d attackers %d tiers %s avg_rank %.2f route %d" % [n, run_state.leaves, run_state.dew,
+			_attackers().size(), str(tiers), ranks / maxf(_attackers().size(), 1), _route_cells(map.get_path_from(map.startPath))])
+	elif n == trace_drift + 1 and _trace_t >= 0.0:
+		print("TRACE drift %d starts t=%.1f" % [n, game_time - _trace_t])
+	elif n == trace_drift + 2:
+		_trace_t = -1.0
+
+func _trace_tick() -> void:
+	if _trace_t < 0.0 or game_time < _trace_next:
+		return
+	_trace_next += 1.0
+	var kinds := {}
+	for e in spawner.get_enemies():
+		var kind: String = e.enemy_data.resource_path.get_file().get_basename()
+		kinds[kind] = int(kinds.get(kind, 0)) + 1
+	print("TRACE alive t=%.1f n=%d spawned=%d leaves=%d %s" % [game_time - _trace_t, spawner.get_enemies().size(), _trace_spawned, run_state.leaves, str(kinds)])
+
+func _trace_leak(e: Node) -> void:
+	if _trace_t < 0.0 or not is_instance_valid(e):
+		return
+	print("TRACE leak t=%.1f drift %d kind %s elite %s cost %d hp %d/%d leaves %d" % [game_time - _trace_t, director.drifts_started,
+		e.enemy_data.resource_path.get_file().get_basename(), e.elite, e.get_leaf_cost(), int(e.health), int(e.max_health), run_state.leaves])
+
 func _hook_stats() -> void:
+	if trace_drift > 0:
+		director.drift_started.connect(_trace_drift_started)
 	dreams.dreamlight_changed.connect(func(now: int) -> void:
 		if _dl_last >= 0 and now > _dl_last:
 			dl_earned += now - _dl_last
@@ -1381,8 +1424,11 @@ func _hook_stats() -> void:
 		DamageLog.instance.damage_dealt.connect(_on_damage)
 	spawner.child_entered_tree.connect(func(n) -> void:
 		if n.has_method("take_damage"):
+			if _trace_t >= 0.0:
+				_trace_spawned += 1
 			(func() -> void: d.health_spawned += n.max_health).call_deferred())
 	spawner.enemy_reached_goal.connect(func(e) -> void:
+		_trace_leak(e)
 		d.leaks += 1
 		if is_instance_valid(e):
 			d.leaked_health += e.health  # Health that got through (dispelled share = 1 - leaked / spawned)
