@@ -163,8 +163,11 @@ static func _counter_tags(form: TowerData) -> Array:
 const ROLE_TAG_WORDS := {&"control": "holds the line", &"setup": "sets up combos", &"support": "strengthens Wardens",
 	&"economy": "earns Dew"}
 
-# "tank killer, hits flyers" (the first two counter tags), else its role tag's words, else "".
+# Its role line (TowerData.role_line, tower_design.md "Role lines", Tower Code 7824a02e), else "tank killer, hits flyers"
+# (the first two counter tags), else its role tag's words, else "".
 static func role_text(form: TowerData) -> String:
+	if form != null and form.role_line != "":
+		return form.role_line
 	var words: Array = _counter_tags(form).map(func(tag: StringName) -> String: return ROLE_WORDS.get(tag, "")).filter(func(w: String) -> bool: return w != "")
 	if words.is_empty() and form != null:
 		var tag = form.get("role_tag")

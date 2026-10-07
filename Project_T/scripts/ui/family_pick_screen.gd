@@ -631,8 +631,8 @@ func _route_lane(branch: TowerData) -> Control:
 	var tip := branch.display_name
 	if counters_text(branch) != "":
 		tip += "\n" + counters_text(branch)
-	elif role_text(branch) != "":
-		tip += "\n" + role_text(branch).left(1).to_upper() + role_text(branch).substr(1)  # No counters: its job instead
+	elif role_text(branch) != "" and branch.role_line == "":
+		tip += "\n" + role_text(branch).left(1).to_upper() + role_text(branch).substr(1)  # No counters: its job instead (a role line is on the lane already)
 	lane.tooltip_text = tip
 	return lane
 

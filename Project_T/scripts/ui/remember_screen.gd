@@ -504,7 +504,8 @@ const GROVE_HINT := "One more branch grows in the Memory Grove."
 # what it does, never the strip's general explanation (that's on the header, once).
 func branch_tip(form: TowerData) -> String:
 	var does := IconInfo.format(form.description) if form.description != "" else ""
-	return form.display_name + ("\n" + does if does != "" else "")
+	var role := IconInfo.role_text(form)  # Its role line first (Tower Code 7824a02e)
+	return form.display_name + ("\n" + role if role != "" else "") + ("\n" + does if does != "" else "")
 
 # The strip under the tree (story chat: the not-offered branches beside the base read as its siblings): each
 # branch of `root`'s family not in this run, a faint silhouette with its name and "Call in · 3 Dreamlight" (once per

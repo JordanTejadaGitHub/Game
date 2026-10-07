@@ -76,7 +76,9 @@ func _run() -> void:
 			var branch: TowerData = lane.get_meta(&"branch")
 			var final: TowerData = family.final_of(branch)
 			var texts: Array = lane.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
-			_check(final == null or (not lane.tooltip_text.contains(final.display_name) and not texts.any(func(t: String) -> bool: return t.contains(final.display_name))
+			# Whole words: Hushbell's role line "Silences abilities" isn't its final, Silence (role lines, 7824a02e)
+			var named := RegEx.create_from_string("\\b%s\\b" % final.display_name) if final != null else null
+			_check(final == null or (named.search(lane.tooltip_text) == null and not texts.any(func(t: String) -> bool: return named.search(t) != null)
 				and lane.find_children("*", "TextureRect", true, false).size() == 1),
 				"%s's lane hides its final (%s)" % [branch.display_name, texts])
 	var picked: TowerData = shown.keys()[0]
