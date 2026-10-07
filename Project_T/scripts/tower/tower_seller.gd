@@ -643,13 +643,19 @@ func _on_press(event: InputEvent) -> void:
 	_dragging = false
 	_press_shift = shift
 	_press_screen = get_viewport().get_mouse_position()
-	_press_world = get_global_mouse_position()
+	if mouse != null and TouchBuild.is_touch():
+		_press_screen = mouse.position  # Touch: where the finger landed (the hover may still be last frame's)
+	_press_world = get_canvas_transform().affine_inverse() * _press_screen
 
 # Releases arrive here even over the HUD, so a drag always ends.
 func _input(event: InputEvent) -> void:
 	if not _pressing or not event.is_action_released("clear_obstacle"):
 		return
 	_pressing = false
+	if TouchBuild.gesture_moved():  # Touch: the finger panned or pinched the map, not a tap
+		_dragging = false
+		queue_redraw()
+		return
 	if _dragging:
 		_dragging = false
 		var box := Rect2(_press_world, Vector2.ZERO).expand(get_global_mouse_position())
@@ -684,8 +690,8 @@ func _process(delta: float) -> void:
 		queue_redraw()
 	if not active:
 		return
-	if _pressing and not _dragging \
-			and get_viewport().get_mouse_position().distance_to(_press_screen) >= DRAG_THRESHOLD:
+	if _pressing and not _dragging and not TouchBuild.is_touch() \
+			and get_viewport().get_mouse_position().distance_to(_press_screen) >= DRAG_THRESHOLD:  # Touch: one finger pans, no box
 		_dragging = true
 	if _dragging:
 		queue_redraw()

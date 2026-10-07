@@ -93,13 +93,36 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("cancel_build"):
 		set_tool_active(false)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("clear_obstacle") and _hover_obstacle != null:
-		if confirm_clears and not _same_obstacle(pending_cell, _hover_cell):
-			_set_pending(_hover_cell)  # Touch: wait for the ✓ (or a second tap)
-		else:
-			_set_pending(NO_CELL)
-			try_clear(_hover_cell)
+	elif TouchBuild.is_touch() and event.is_action_pressed("clear_obstacle") and _hover_at(event) != null:
+		_tap_armed = true  # Touch: decided on release, so a finger panning the map never marks or clears
 		get_viewport().set_input_as_handled()
+	elif TouchBuild.is_touch() and event.is_action_released("clear_obstacle") and _tap_armed:
+		_tap_armed = false
+		if not TouchBuild.gesture_moved() and _hover_at(event) != null:
+			_tap_obstacle()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("clear_obstacle") and _hover_obstacle != null:
+		_tap_obstacle()
+		get_viewport().set_input_as_handled()
+
+var _tap_armed := false
+
+# Touch: hovers the obstacle under the finger now (the hover follows the mouse a frame late) and returns it.
+func _hover_at(event: InputEvent) -> ObstacleData:
+	if event is InputEventMouseButton:
+		var cell: Vector2 = MAP_GRID.calculate_grid_coordinates(get_canvas_transform().affine_inverse() * event.position)
+		if cell != _hover_cell:
+			_hover_cell = cell
+			_refresh_hover()
+	return _hover_obstacle
+
+# A click (or a touch tap) on the hovered obstacle: touch marks it first and clears on the ✓ or a second tap.
+func _tap_obstacle() -> void:
+	if (confirm_clears or TouchBuild.is_touch()) and not _same_obstacle(pending_cell, _hover_cell):
+		_set_pending(_hover_cell)  # Touch: wait for the ✓ (or a second tap)
+	else:
+		_set_pending(NO_CELL)
+		try_clear(_hover_cell)
 
 # Touch: the ✓ for the pending obstacle.
 func confirm_pending() -> bool:
