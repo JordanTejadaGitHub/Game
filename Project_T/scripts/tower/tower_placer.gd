@@ -1208,6 +1208,11 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 		cost = roundi(cost * (1.0 + copy_cost_step * (count_copies(warden) + planned_sprouts)))
 	if cost > 0 and twig_mode(warden):
 		cost = maxi(ceili(cost / 2.0), 1)  # Twig Walls: half a wall's price, rounded up, at least 1
+	# Bountiful (card, Roguelite's DreamState.bountiful_next_free): every 5th Sprout planted is free, after the step
+	# price; a drag line counts its earlier Sprouts.
+	if cost > 0 and warden.get_id() == "sprout" and dream_state != null and dream_state.has_rule(&"bountiful") \
+			and (dream_state.sprouts_planted + 1 + planned_sprouts) % DreamState.BOUNTIFUL_EVERY == 0:
+		cost = 0
 	return cost
 
 @export var copy_cost_step := 0.08  # +8% per copy on the map (be7b5a94; was 0.05. 0 = off, the sims' A/B)
