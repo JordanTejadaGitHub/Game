@@ -943,16 +943,21 @@ static func key_chip(text: String) -> Label:
 		chip.add_theme_stylebox_override("normal", frame)
 	chip.tree_entered.connect(paint)
 	paint.call()
-	if TouchBuild.mobile_controls():  # Phones have no keys: the chip never shows (mobile only; Mobile chat)
+	# Touch controls have no keys (InputMode: phones, a touchscreen driving a PC, or the Touch setting): the chip
+	# hides whenever it would show or draw, so it follows a switch mid-run too.
+	if InputMode.touch():
 		chip.visible = false
-		chip.visibility_changed.connect(func() -> void:
-			if chip.visible:
-				chip.hide())
+	chip.visibility_changed.connect(func() -> void:
+		if chip.visible and InputMode.touch():
+			chip.hide())
+	chip.draw.connect(func() -> void:
+		if InputMode.touch():
+			chip.hide.call_deferred())
 	return chip
 
-# A button label's keyboard hint (" (Enter)"), dropped on phones: "Start drift 3" + key_suffix("Enter").
+# A button label's keyboard hint (" (Enter)"), dropped under touch controls (InputMode): "Start drift 3" + key_suffix("Enter").
 static func key_suffix(key: String) -> String:
-	return "" if TouchBuild.mobile_controls() else " (%s)" % key
+	return "" if InputMode.touch() else " (%s)" % key
 
 # Gives a Button the card look in `colour` (normal + hover + pressed).
 static func card_button(button: Button, colour: Color) -> void:
