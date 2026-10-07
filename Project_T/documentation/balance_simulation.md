@@ -920,7 +920,8 @@ Human run 23: Starbursts did 61% of all damage. **Fix: each spark = damage ÷ 4*
 nightmare per burst**, and (with Tower Discussion) **sparks spread first, max 3 per nightmare** per burst: a lone target 0.75×
 (Sparkler ≈ 15 DPS), a crowd 1.5× (a 2× pull to swarms; 2 per nightmare would leave 0.5×, dead weight vs elites). In 63240c67; **Probe:** it overshot: Sparkler
 0.52× / 0.61× Driftspore (single / crowd), Starburst 0.56× / 0.44× Puffball. **Per-form spark share: Sparkler 0.4, Starburst 0.5**
-(≈ 0.83 / 0.98× and 1.13 / 0.87×); asked of Tower Code, probe after;
+(≈ 0.83 / 0.98× and 1.13 / 0.87×) in 387759ca. **Probe:** Sparkler 0.66 / 0.73×, Starburst 0.81 / 0.61× (DPS rises less than the
+share: the board's combo part doesn't scale). Next: a sweep of a share scale (1.0 / 1.25 / 1.5) × the per-nightmare cap (3 / 4);
 fixed-board probe after.
 
 ## Seeds per run (user, 2026-10-07, meta_design.md ce725e43: "only ~3 nodes if you fail on drift 50")
