@@ -1834,25 +1834,34 @@ function islandUnderside(A, row, f) {
     len *= shape;
     lens[x] = len;
     for (let i = 1; i <= len; i++) {
-      if (i > len - 3 && hash(x, i, s + 2) < .5) continue;  // a ragged, soft bottom
+      // (solid to its tip: a fading, broken bottom read as holes into the sky)
       const y = yl + i, k = i / Math.max(len, 1);
       let c;
       if (i < 3) c = "#241c14";  // the lip's Root earth carries on down
       else {
-        const band = Math.floor((i + pnoise(x, i, 16, s + 4, 4) * 6) / 7), tone = pnoise(x, band * 8, 8, s + 5, 8) - k * .55 + (band % 2 ? .06 : 0);
+        const band = Math.floor((i + pnoise(x, i, 16, s + 4, 4) * 6) / 7), tone = pnoise(x, band * 8, 8, s + 5, 8) - k * .3 + (band % 2 ? .06 : 0);
         const ledge = Math.floor((i - 1 + pnoise(x, i - 1, 16, s + 4, 4) * 6) / 7) !== band;  // a band's top row
         c = ledge && tone > .45 && hash(x >> 1, band, s + 6) < .5 ? "#5c3c24"  // Bark: a ledge catching light, like the lip's edge
-          : tone > .6 ? "#2c2444" : tone > .42 ? "#241c14" : tone > .2 ? "#140f26" : "#05050d";  // Shade, Root, Dread, Void
+          : tone > .55 ? "#2c2444" : tone > .25 ? "#241c14" : tone > .1 ? "#24243c" : "#140f26";  // Shade, Root, Night, Dread only in small crevices: never as dark as the sky
       }
       L.set(x, y, c);
     }
+  }
+  // A faint cool rim on the silhouette's outer pixels (bottom tips and sides), so the face separates from the void
+  // (the user: "the dark spots look like the sky").
+  const face = new Img(T, T * 2); face.put(L);
+  for (let y = 0; y < T * 2; y++) for (let x = 0; x < T; x++) {
+    if (!face.alpha(x, y) || top.alpha(x, y)) continue;
+    const below = !face.alpha(x, y + 1) && y + 1 < T * 2, side = (x > 0 && !face.alpha(x - 1, y)) || (x < T - 1 && !face.alpha(x + 1, y));
+    if (below) L.set(x, y, "#3c3c5c");  // Dusk: the underside edge catching the void's cold light
+    else if (side) L.set(x, y, "#24243c");  // Night: the face's sides, a step above the sky
   }
   for (let r = 0; r < 5; r++) {  // roots hanging out of the face (only where the face is tall enough)
     const x = Math.floor(4 + hash(r, 1, s) * (T - 8));
     if (lens[x] < 14) continue;
     let yl = 0; for (let y = 0; y < T; y++) if (top.alpha(x, y)) yl = y;
     const end = Math.min(T * 2 - 1, yl + lens[x] + 6 + hash(r, 2, s) * 12);
-    for (let y = yl + 6; y < end; y++) L.set(x + Math.round(Math.sin(y * .2 + r)), y, y % 5 ? "#241c14" : "#5c3c24");
+    for (let y = yl + 6; y < end; y++) L.set(x + Math.round(Math.sin(y * .2 + r)), y, y >= end - 2 ? "#5c3c24" : y % 5 ? "#241c14" : "#5c3c24");  // a solid Bark tip
   }
   L.put(top);  // the lip over the face's top
   return L;
