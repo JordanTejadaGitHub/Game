@@ -14,6 +14,12 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
   new route, the "+N path" tag updates, and invalid cells are refused exactly like Warden placement (never
   closing the route, never on the start or the Heartwood glade's inner ring, never on a Warden). Esc goes
   back to the three cards.
+  **Three ways out of placing** (user, 2026-10-07): **Undo / right-click** takes back the last piece (a line's
+  start point, a chain's last tree), and when nothing is picked it does nothing, so you're never kicked out by
+  accident. A **"Clear"** button empties what you've picked and keeps you placing the same gift. **Back** (and Esc)
+  drops the placement and returns to the three gift cards, with nothing spent. **Plant it** commits: the gift is
+  placed and taken, and there's no going back to the choice. Plant it stays greyed until the placement is valid
+  (enough pieces, route open).
   **Half cells, like Wardens** (user, 2026-10-07: "should be going by half a cells like wardens"): every placed
   piece (a tree, a log segment, a stone, a stump, a pond, a well) takes a Warden's footprint (2×2 halves) and snaps
   to the half grid with the same ghost and grid lines as Warden placement; a piece one half off a Warden is fine as
