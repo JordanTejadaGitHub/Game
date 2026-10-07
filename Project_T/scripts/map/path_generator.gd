@@ -198,12 +198,6 @@ func _straightest_search(start: Vector2, end: Vector2) -> PackedVector2Array:
 	# from the Wardens built for it); turns still keep new stretches straight.
 	const OFF := 1  # A node off the current route; a turn costs TURN of them
 	const TURN := 2  # Measured: higher lets a placement flip the lane, a strict order (turns last) leaves jogs
-	# Island edge B (no rim ring): a new stretch keeps off the island's outermost cells (bar the start's), where Wardens
-	# can stand on one side only. Without it the opening ran along the edge on 18 of 30 maps (one turn fewer), and act 1
-	# leaked 4× (Balancing's A/B). Only between equally short routes, and never against the current route.
-	const EDGE := 2
-	var start_cell := (Vector2(a) / HALF).floor() if not is_whole_cell(start) else start
-	var last_cell := Vector2(_grid.size) - Vector2.ONE
 	var cost := PackedInt32Array()
 	cost.resize(count * 4)
 	cost.fill(-1)
@@ -218,10 +212,6 @@ func _straightest_search(start: Vector2, end: Vector2) -> PackedVector2Array:
 			break
 		var node := Vector2i(i % _size.x, i / _size.x)
 		var off := 0 if preferred[i] == 1 else OFF
-		if off > 0:
-			var cell := (Vector2(node) / HALF).floor()
-			if (cell.x == 0 or cell.y == 0 or cell.x == last_cell.x or cell.y == last_cell.y) and cell != start_cell:
-				off += EDGE
 		for h in 4:
 			var back := node - steps[h]
 			if back.x < 0 or back.y < 0 or back.x >= _size.x or back.y >= _size.y:
