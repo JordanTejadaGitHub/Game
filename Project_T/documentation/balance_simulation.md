@@ -1319,7 +1319,9 @@ deaths control 51–59, start 2.4 51–60 (the ramp buys 1–2 drifts); damage /
 of 101 leaves** (Dusk Moths 11 more), at either multiplier (flyers skip the maze). Next: finals-first with a ranking budget (~1,000 Dew in ranks by
 50, as the user), the same trace; Dandelions sent to Enemy types design. **Cause: the roller** (Phantoms tagged "fast" lead
 Fast act 3 drifts as 9–10 streams). Fix (Enemy types design e75b99a7, judged here): retag to special + **cap 4 Phantoms per
-drift in acts 2–4**; to Enemy Code. Dusk Moths (Lurkers) walk hidden: their 11 leaves are detection, not flyers.
+drift in acts 2–4**; to Enemy Code. Dusk Moths (Lurkers) walk hidden: their 11 leaves are detection, not flyers. In 447e277b +
+76cb1516 (every hand-made drift ≤ 4 Phantoms, freed health to Shades; drift 43 = 4 Phantoms then 10 Shades; Moth Night
+stays above the cap; test_drift_roller enforces it).
 
 ## Overlap-audit reworks, power check (2026-10-05, dream_design.md e1e39b56; dream_audit.md budgets)
 
