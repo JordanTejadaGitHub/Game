@@ -888,7 +888,14 @@ Stores, Deep Taproot I–II, Rested Roots; the rest sidegrade) becomes the defau
 the Mire Hag 0%**: deaths spread over 29–47, the same act 2 wall as every fresh human run (32–42). Seeds per run ≈ 68
 (target median ~94). Act 2 sweep queued: `demo_act2_health_scale` 0.5 / 0.6 / 0.7. **Full baseline (30):** the Stag 56 / 73 / 16%,
 reach the Mire Hag 0 / 3 / 0%, Seeds median 59 / 76 / 29. Act 1 is also ~20 under for default (drift 18 cluster): an act 1
-sweep (0.85 / 0.9) follows the act 2 one.
+sweep (0.85 / 0.9) follows the act 2 one. **Act 2 sweep (20 per arm), Stag / reach / win, default:** 0.5 55 / 15 / 10, 0.6 65 / 10 / 5,
+0.7 61 / 11 / 5 (spender at 0.5: 80 / 35 / 25). Seeds medians ~92–118 with any ease. Default is held by act 1 too: act 1 sweep
+widened to 0.75 / 0.8 / 0.85 at act 2 0.5, plus 0.8 / 0.4. Final act 2 sweep: easing moves deaths later (default mostly 36–48:
+the steep stretch from drift 37), it doesn't remove them. Of the runs that reach the Mire Hag, 59% beat it at boss
+scale 1.0 (≈ the 2-in-3 aim): the boss itself needs little or no change.
+**Seeds rework (user, meta_design.md 192baf87):** survival Seeds from drift 26 only, act 1 dispels 1 per 50, no
+first-run +20. Check: act 1 losses bank **p90 < 20** (the cheapest node), clear-heavy runs included; tune the dispel
+rate if not. The demo Seeds median (≈ 94 target) is re-measured on the new formula.
 
 ## No forcing (user, 2026-10-06)
 
@@ -1257,6 +1264,11 @@ the user's at 51 (damage ≈ health spawned, 0–1 leaks), but **40–80% still 
 built in one rest from an act 1 maze isn't laid out like one grown over 50 drifts. **Next: an invulnerable
 warm-up**: drifts 1–50 (or 1–75) played for real with the Heartwood invulnerable, then leaves set to 10 / 8 and
 acts 3–4 played for real. Real snapshots (`--from-save`) once the user has deep saves.
+**Warm-up result (b2495efa, half Grove, old perk style, 20 seeds per arm):** both bots die within 1–2 drifts of the switch
+(0 / 40 past 60; 0 / 40 to 90). Boards: default ~17 attackers holding 4–6k Dew, spender ~40–46 + ~40 walls (humans 38–75).
+**Finals: 0 of 60 runs at 50, 3 of 20 at 75; 0–4% of damage.** The bot never grows finals, so the finals question still
+can't be read. Next: `--finals-first` + spend-down warm-up, then the `final_damage_multiplier` 1.0 vs 1.125 A/B on it.
+Gifts: mostly passed; Heartwood Roots the most taken.
 
 ## Overlap-audit reworks, power check (2026-10-05, dream_design.md e1e39b56; dream_audit.md budgets)
 
