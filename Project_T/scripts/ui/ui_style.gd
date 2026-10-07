@@ -67,6 +67,7 @@ static var _fonts := {}
 
 # The HUD is laid out for at least this much room (screens_ui.md: 1280×800 is the base, 16:9 needs
 # 1280×720). The UI never scales past what leaves it this much, so it can't overlap itself.
+# Phones lay out for PHONE_LAYOUT_MIN instead (layout_min(), below): LAYOUT_MIN is the PC and tablet base.
 const LAYOUT_MIN := Vector2(1280.0, 720.0)
 const UI_SHARE_MIN := 0.5  # The settings slider: 50% … 100% of the fitting scale
 const UI_SHARE_MAX := 1.0
@@ -74,6 +75,28 @@ const UI_SHARE_MAX := 1.0
 const UI_SIZES := [["Small", 0.6], ["Medium", 0.75], ["Large", 0.9], ["Largest (fits the screen)", 1.0]]
 
 static var _scale_share := 1.0
+
+# Phones (mobile only; Mobile chat, mobile_plan.md "Phone layouts"): at the PC base a 48-unit button is ~4–5 mm on a
+# phone. The phone base is smaller, so everything draws ~1.3× bigger: 1200×540 on a 20:9 phone, 1100×619 on 16:9.
+# Every screen is checked at those (tests/test_phone_layout.gd). Tablets (short side ≥ TABLET_INCHES) keep the PC base.
+const PHONE_LAYOUT_MIN := Vector2(1100.0, 540.0)
+const TABLET_INCHES := 4.5
+
+static func is_phone() -> bool:
+	if not TouchBuild.mobile_controls():
+		return false
+	if not OS.has_feature("mobile"):
+		return true  # `-- --mobile` / tests on a PC preview the phone base
+	var dpi := DisplayServer.screen_get_dpi()
+	var screen := DisplayServer.screen_get_size()
+	var short_side := minf(screen.x, screen.y)
+	if dpi <= 72:
+		return short_side <= 1200.0  # Some Android builds report 0 or 72: judge by pixels (UI Code)
+	return short_side / float(dpi) < TABLET_INCHES
+
+# The room the UI is laid out for on this device: LAYOUT_MIN, or PHONE_LAYOUT_MIN on a phone.
+static func layout_min() -> Vector2:
+	return PHONE_LAYOUT_MIN if is_phone() else LAYOUT_MIN
 
 # The root's content scale for a window of `window_size` pixels: the largest scale that still leaves
 # LAYOUT_MIN (1.5 at 1920×1080, 1 at 1280×800, 2 at 4K), times the player's `share` of it.
@@ -209,7 +232,7 @@ static func _inside_threaded_panel(control: Control) -> bool:
 static func _set_factor(root: Window) -> void:
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
-	root.content_scale_size = Vector2i(LAYOUT_MIN)
+	root.content_scale_size = Vector2i(layout_min())  # Phones: the smaller phone base
 	root.content_scale_factor = clampf(_scale_share, UI_SHARE_MIN, UI_SHARE_MAX)
 
 # The total scale everything is drawn at (the stretch times the share), for the camera.
