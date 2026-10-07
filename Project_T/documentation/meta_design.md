@@ -17,8 +17,8 @@ Revised for 100-drift runs (`run_design.md`).
 
 | Source | Seeds |
 |---|---|
-| Every 2 drifts survived | 1 (max 50) |
-| Nightmares dispelled | 1 per **20** (~75 in a full run) |
+| Every 2 drifts survived | 1 (max 50), **from drift 26 only** (2026-10-06) |
+| Nightmares dispelled | 1 per **20** (~75 in a full run); in act 1 only 1 per 50 (2026-10-06, Balancing tunes) |
 | Each boss dispelled | **20** |
 | Each obstacle tended | 1 (see `run_design.md`) |
 | Winning | **+120** |
@@ -30,9 +30,14 @@ Perks ~2,090, Families ~2,470 incl. Ascension, Cards ~1,400) takes **~21 runs â‰
 (Raised twice on 2026-09-27 as the Grove grew; the first unlocks still come every run, and a full
 Grove is a long-term goal next to Blight Levels.)
 
-**Every run should buy something early on**: the cheapest unlocks cost 20â€“25, so even a bad first
-run grows the Grove. Losing early in a long run is also cushioned by the mid-run save: players can
-stop at any rest and come back.
+**A loss in act 1 can't buy a node** (user 2026-10-06, replaces "every run should buy something
+early"): survival Seeds start at drift 26, act 1 dispels pay a trickle, and the **first-run +20
+bonus is dropped** (the first boss milestone already pays +20 for reaching act 2). A run that ends in
+act 1 banks a few Seeds toward the next one, but always fewer than the cheapest node (20); reaching
+act 2 is when the Grove opens up. **Balancing** checks that the 90th percentile of act 1 losses stays
+under 20 (and re-measures the demo arc, where most Seeds now come from act 2 and the bosses).
+Losing early in a long run is still cushioned by the mid-run save: players can stop at any rest and
+come back.
 
 ## Seeds from the demo, and the demo Grove
 
