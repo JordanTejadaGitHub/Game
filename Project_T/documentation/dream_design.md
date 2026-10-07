@@ -2076,6 +2076,30 @@ count. The gaps get **16 new Commons** (cards 270–285, start pool; numbers: ba
   no-build share at 50 (stay ≤ ~20%), and the chase ceiling.
 - **Built:** e1209bae (defining to 40; Kindred Roots tall), 1cb6b96d (16 helpers), Tower Code dd610257 (per-hit hooks). Mulch and Weed Puller also wait for clearing to be unlocked (`can_clear`), per the use-now rule.
 
+## Helpers carry builds; lighter boss-rest slot (2026-10-07, user-approved)
+
+User: *"these helper cards make it so we don't have to be given a build card, we can build around
+smaller build cards and it still works."* Also: *"it's fine if act 2 ends with no 'build', it means
+the player didn't build correctly"* and *"we also shouldn't always offer legendaries at bosses."*
+
+**Decided:**
+- **A build is 3+ cards of one archetype**, helpers included. Defining cards are spikes; helpers
+  are the steady route; either works.
+- **Normal offers have no guaranteed defining card any more.** The act 2+ slot rule (f4a5acd5 /
+  a78f3a33) is removed. Defining cards are drawn at their normal odds. They're about a quarter of
+  the start pool, so roughly every other offer shows one (estimate).
+  - Why: the slot drew from a fixed ~30 start-pool cards and fed the "same cards every run"
+    feeling. It didn't stop adapting.
+- **Boss rests: one guaranteed unowned defining card**, any rarity it rolls, so sometimes a
+  Legendary. The other slots stay Rare+.
+  - This **replaces the guaranteed Legendary slot** (495076d2). Legendaries only come at normal
+    odds: the next act's weights, through the Rare+ slots or the defining card (estimate: about 40%
+    of boss rests show one).
+- **No-build is a reading, not a target.** Ending act 2 without a build means the player didn't
+  build one; offers don't rescue it. The chase ceiling (30% by 50 / 50% by 75) stays.
+- Balancing Code measures card variety, run-to-run overlap and Legendaries per run after the
+  build, for information.
+
 ## More helper cards: 6 per archetype (2026-10-07)
 
 User: *"think there should be more helper cards"*. The floor rises from 4 to **6 start-pool helpers
