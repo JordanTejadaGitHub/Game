@@ -3,7 +3,7 @@ extends SceneTree
 # The family pick's routes (user, 2026-10-02: "when picking a family, it should show the family routes it can dream
 # into"): in the full game each card shows this run's 2 branches (DreamState.preview_branch_offer), never their finals
 # ("don't show the final evolution in the card"), the rest as "not in this dream" silhouettes; after the pick, the picked family's offer (what Remember shows) is exactly
-# the card's. The demo shows its fixed branches, no silhouettes. Temp profile.
+# the card's. The demo draws the same way (it plays by the current rules). Temp profile.
 
 var failures := 0
 
@@ -103,15 +103,16 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 
-	# The demo: its fixed branches, no silhouettes.
+	# The demo plays by the current rules (demo_scope.md e5ce233d; Roguelite 9e3b5b9c): the same per-run branch draw.
 	main = await _new_run(1)
 	family = main.get_node("%FamilyPickScreen")
 	family.show_pick(&"first")
 	await process_frame
-	_check(family._cards.find_children("NotInDream", "", true, false).is_empty() and family._cards.find_children("OfferLine", "", true, false).is_empty(),
-		"demo: no 'not in this dream' row, no per-run line")
+	var demo_dreams: DreamState = main.get_node("%DreamState")
 	for data: TowerData in _card_routes(family):
-		_check(_card_routes(family)[data].size() == main.get_node("%DreamState").regular_branches(data).size(), "demo: %s shows its fixed branches" % data.display_name)
+		var demo_size: int = demo_dreams.branch_offer_size(data)
+		_check(_card_routes(family)[data].size() == mini(demo_size, demo_dreams.regular_branches(data).size()),
+			"demo: %s shows this run's %d branches" % [data.display_name, demo_size])
 	main.queue_free()
 	await process_frame
 	ResultsScreen.demo_override = -1
