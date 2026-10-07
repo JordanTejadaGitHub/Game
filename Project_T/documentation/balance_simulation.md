@@ -930,7 +930,7 @@ nightmare per burst**, and (with Tower Discussion) **sparks spread first, max 3 
 0.52× / 0.61× Driftspore (single / crowd), Starburst 0.56× / 0.44× Puffball. **Per-form spark share: Sparkler 0.4, Starburst 0.5**
 (≈ 0.83 / 0.98× and 1.13 / 0.87×) in 387759ca. **Probe:** Sparkler 0.66 / 0.73×, Starburst 0.81 / 0.61× (DPS rises less than the
 share: the board's combo part doesn't scale). **Sweep (share scale × cap):** no shared pair fits both; chosen **cap 3, Sparkler
-spark_share 0.6, Starburst 0.75** (0.84 / 0.86× and 1.05 / 0.77×; cap 4 would fit tighter but shrink the 2× crowd pull);
+spark_share 0.6, Starburst 0.75** (0.84 / 0.86× and 1.05 / 0.77×; cap 4 would fit tighter but shrink the 2× crowd pull); in b2b6b5d0;
 fixed-board probe after.
 
 ## Seeds per run (user, 2026-10-07, meta_design.md ce725e43: "only ~3 nodes if you fail on drift 50")
