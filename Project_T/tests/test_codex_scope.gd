@@ -119,8 +119,8 @@ func _run() -> void:
 	var fresh := HeartwoodMemory.defaults()
 	HeartwoodMemory.save_data(fresh)
 	var names := CodexData.callout_entries().map(func(e: Array) -> String: return e[0])
-	_check(names.has("Weak") and names.has("Resisted") and not names.has("Critical") and not names.has("Thunderclap"),
-		"before seeing them: only Weak and Resisted (%s)" % [names])
+	_check(names.has("Weak") and names.has("Strong") and not names.has("Critical") and not names.has("Thunderclap"),
+		"before seeing them: only Weak and Strong (%s)" % [names])
 	fresh[CodexData.CALLOUT_SEEN_KEY] = ["crit"]
 	fresh["combos_seen"] = ["thunderclap"]
 	HeartwoodMemory.save_data(fresh)

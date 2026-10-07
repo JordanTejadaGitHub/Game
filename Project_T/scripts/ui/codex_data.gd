@@ -483,15 +483,15 @@ static func damage_type_entries(existing: Array) -> Array:
 # Combat callouts (screens_ui.md, user: "been seeing 'Shattered' but don't know what it means"): every
 # word that pops over nightmares gets a plain line, linking to its Codex combo. An entry shows once
 # its callout has been seen on this profile (callouts_seen; Reactions: combos_seen), so it never
-# spoils a "???" combo. "Resisted" and "Weak" are basics: always there.
+# spoils a "???" combo. "Strong" (resisted) and "Weak" are basics: always there.
 const CALLOUT_SEEN_KEY := "callouts_seen"
 const CALLOUT_ENTRIES := [
 	# [callout id, entry name, line, related]
 	[&"crit", "Critical", "A critical hit: the Warden's hit landed for extra damage (its crit chance is on the Warden panel). Not the Shatter Reaction (\"Shatter!\").", ["Crit"]],
 	[&"conducted", "Conducted", "Lightning through {damp}: bolts jump farther and more often between {damp} nightmares (the Conducted combo).", ["Conducted"]],
 	[&"asleep", "Asleep", "Full {drowsy}: the nightmare falls asleep for a moment; a big hit wakes it (the Asleep combo).", ["Asleep"]],
-	[&"weak", "Weak", "A hit from a family this nightmare is weak to: ×1.5 damage (the sparkle).", []],
-	[&"resisted", "Resisted", "A hit from a family this nightmare resists: ×0.5 damage (the gray puff).", []],
+	[&"weak", "Weak", "A hit from a family this nightmare is weak to: ×1.5 damage (the sparkle and \"Weak!\").", []],
+	[&"resisted", "Strong", "A hit from a family this nightmare resists (its shield): ×0.5 damage (the gray puff and \"Strong!\").", []],
 ]
 const ALWAYS_SHOWN := [&"weak", &"resisted"]
 

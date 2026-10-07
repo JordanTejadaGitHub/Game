@@ -70,6 +70,10 @@ for (const A of ACTS) {
   // island_edge.png: column = neighbour mask, row = variant.
   emit(d + "island_edge.png", stack(Array.from({ length: RIM_VARIANTS }, (_, v) => strip(Array.from({ length: 16 }, (_, m) => getImg("isle:" + (m + 16 * v)))))));
   emit(d + "cliff.png", stack([0, 1, 2, 3].map(v => strip([0, 1, 2, 3].map(cm => getImg("cliff:" + (cm + 4 * v)))))));
+  // The island edge outside the grid: island_lip.png (64×64; columns N, E, W, NE, NW; rows = 4 variants) and
+  // island_underside.png (64×128; columns = 4 sway frames; rows 0–3 S side variants, 4 SW, 5 SE).
+  emit(d + "island_lip.png", stack([0, 1, 2, 3].map(v => strip([0, 1, 2, 3, 4].map(p => getImg("lip:" + (p + 8 * v)))))));
+  emit(d + "island_underside.png", stack([0, 1, 2, 3, 4, 5].map(r => strip([0, 1, 2, 3].map(f => getImg("under:" + r, f))))));
   if (A.id === "edge") {
     emit("dream/void_sky.png", getImg("voidsky"));
     emit("dream/void_stars.png", getImg("voidstars"));

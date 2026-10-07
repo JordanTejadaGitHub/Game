@@ -286,7 +286,7 @@ some are hard, so every drift plays a little differently. They must never make a
   nightmares (see the tally below). Drift composition mixes resistances so no drift hard-counters
   a single family.
 - **Readable.** Each nightmare shows its resistance and weakness icons on hover and on its
-  first-appearance card. Resisted hits make a small grey puff; weak hits flare brightly.
+  first-appearance card. Resisted hits make a small grey puff; weak hits flare brightly. **Every weak hit pops "Weak!" and every resisted hit "Strong!"** (2026-10-07; one per nightmare, re-popped in place; the Codex glossary calls the resisted entry "Strong").
 - **In the fiction**, a resistance is part of what the nightmare *is* ("stone passes through a
   Phantom like smoke"; "wind only fans the Ash Crawler's embers").
 
@@ -358,8 +358,8 @@ with the nightmare's per-drift health scale.
 
 ### Family tally
 
-Resists: spore 3 · stone **2** (the Husk lost its stone resistance, 2026-09-29) · water 3 · light 3 · root 3 · wing 3 · wind 3 · song 3.
-Weak to: spore 3 · stone 3 · water 3 · light 3 · root 3 · wing 2 · wind 2 · song 3.
+Resists: spore 3 · stone 3 (the Husk resists stone again, 2026-10-07) · water 3 · light 3 · root 3 · wing 3 · wind 3 · song 3.
+Weak to: spore **2** (the Husk lost its spore weakness, 2026-10-07) · stone 3 · water 3 · light 3 · root 3 · wing 2 · wind 2 · song 3.
 Re-check this whenever a nightmare is added or changed. There are 22 weakness slots for 8
 families, so two families sit at 2: wing and wind, the full-game families (Whirligig is an
 amplifier, so it leans on weaknesses least).
@@ -398,7 +398,7 @@ are marked ✓; the rest are proposals to tune.
 | Nightmare (old name) | Health | Speed | Dew | Leaves | Resists | Weak to | Other |
 |---|---|---|---|---|---|---|---|
 | Shade (Leaf Bug) ✓ | 100 | 100 | 3 | 1 | — | — | baseline |
-| Husk (Bark Beetle) ✓ | 300 | 58 | 8 | 2 | **—** (was stone; user decision 2026-09-29: stone halved Pebbling against most of act 1, and water would break the act 1 40% rule, since Husks are 45–100% of act 1 drift health) | spore | |
+| Husk (Bark Beetle) ✓ | 300 | 58 | 8 | 2 | **stone** (user decision 2026-10-07, "Husk: shield only": an armoured nightmare shows the shield icon, not a weakness; data 12a47530. Reverses 2026-09-29, when stone was removed because it halved Pebbling against most of act 1) | **—** (was spore) | |
 | Lurker (Dusk Moth) ✓ | 70 | 140 | 4 | 1 | spore | wing | hidden in fog |
 | Phantom (Dandelion Seed) ✓ | 50 | 70 | 3 | 1 | root | water | glides through walls to the goal |
 | Gravecrawler (Mole) | 180 | 75 | 5 | 1 | wing | song | burrows under 1 Warden per trip |
