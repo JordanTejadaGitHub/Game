@@ -871,7 +871,7 @@ Cause in code: every one of the 6 sparks hit for the Warden's full damage (`_spa
 dealt 6× (all 6 on a lone target: Sparkler 240, Starburst 468, 936 on the doubled burst), plus a Static stack per spark.
 Human run 23: Starbursts did 61% of all damage. **Fix: each spark = damage ÷ 4** (a burst totals 1.5×), **Static once per
 nightmare per burst**, and (with Tower Discussion) **sparks spread first, max 3 per nightmare** per burst: a lone target 0.75×
-(Sparkler ≈ 15 DPS), a crowd 1.5× (a 2× pull to swarms; 2 per nightmare would leave 0.5×, dead weight vs elites). Sent to Tower Code;
+(Sparkler ≈ 15 DPS), a crowd 1.5× (a 2× pull to swarms; 2 per nightmare would leave 0.5×, dead weight vs elites). In 63240c67;
 fixed-board probe after.
 
 ## Seeds per run (user, 2026-10-07, meta_design.md ce725e43: "only ~3 nodes if you fail on drift 50")
