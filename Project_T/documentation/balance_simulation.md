@@ -865,6 +865,13 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Seeds per run (user, 2026-10-07, meta_design.md ce725e43: "only ~3 nodes if you fail on drift 50")
+
+Target: a loss at drift 45–50 banks **~80–100 Seeds** (≈ 3 entry nodes). Meta's start: act 2 dispels 1 per 40 (was 20), act 1
+boss 15 (was 20); the rest unchanged. Measured with invulnerable runs to 50 (the Seeds a drift-50 loss banks), fresh + half,
+then the rates swept to land the median ~90. Also: whole-tree time (~35 h) and the demo arc (375 Seeds in ~4 runs; the 325
+fallback).
+
 ## Omen weighing (user, 2026-10-07: "make sure ones that are worse than others give more rewards")
 
 All 27 Omens (the 4 Restless included). **Cost** measured, paired: bot boards saved at drifts 15 / 35, each Omen forced for
