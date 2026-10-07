@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Rockslide"
-role_line = "Lobs over walls, area damage, slows"
+role_line = "Lobs over walls, area damage, slows, can't hit up close"
 description = "A bigger splash, and the path where its stones land is left with rubble that slows for 3 s (40% slower). It can't hit nightmares right beside it."
 cost = 0
 texture = ExtResource("2_tex")

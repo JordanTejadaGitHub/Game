@@ -1,7 +1,7 @@
 extends SceneTree
 
-# Every Warden form has its role line (tower_design.md "Role lines", 903b99a2: how it attacks, never its weakness; the user: "use more generic wording to
-# describe"): non-empty, no full stop, 1–3 comma-separated terms, each from the fixed tower-defence vocabulary.
+# Every Warden form has its role line (tower_design.md "Role lines", 111e5ddf: how it attacks, ending with any hard limit; the user: "use more generic wording to
+# describe"): non-empty, no full stop, 1–4 comma-separated terms, each from the fixed tower-defence vocabulary.
 # Siblings may share a line where they truly play alike, so uniqueness within a family is only a warning. The parked
 # Memory Wardens (is_unique) are left out until they return.
 #   godot --headless --path . --script res://tests/test_role_lines.gd
@@ -9,8 +9,8 @@ extends SceneTree
 # tower_design.md "Role lines" vocabulary (a new term goes there first, then here), as each reads mid-line: sentence
 # case, but statuses keep their capital as names in every form (text_pass.md 7e151e86: "Anti-air, Roots").
 const VOCABULARY := ["short range", "long range", "longest range", "high damage", "very high damage", "damage over time",
-	"ramps up", "finisher", "fast attacks", "very fast attacks", "slow attacks", "single target", "multi-target",
-	"area damage", "chains", "hits a line", "cone", "beam", "sniper", "boomerang", "lobs over walls", "crushing blows",
+	"ramps up", "finishes off the weak", "fast attacks", "very fast attacks", "slow attacks", "single target", "multi-target",
+	"area damage", "chains", "hits a line", "cone", "beam", "boomerang", "lobs over walls", "crushing blows",
 	"spins at bends", "rain cloud", "trails", "shares hits", "links to a partner", "grows with walls", "stacks high",
 	"hurts the Rooted", "slows", "Roots", "Freezes", "stuns", "pulls back", "Silences", "stops sprints", "Soaks", "Charges",
 	"Poisons", "Drowses", "Exposes", "spreads statuses", "sets up statuses", "anti-air", "boss killer", "crowd clearer",
@@ -26,7 +26,29 @@ static func _term_ok(term: String, position: int) -> bool:
 			return true
 	return false
 
+const HARD_LIMITS := ["can't hit up close", "can't hit flyers", "doesn't attack"]
+# Attacks that never touch a flyer: rings on path tiles, sprites bursting on walkers, the whirlpool (no hits_flyers).
+const GROUND_ONLY_SPECIALS := [&"brood", &"whirlpool"]
+
 var failures := 0
+
+# A hard limit the data has is in the line, and comes last (111e5ddf: "drawbacks like 'can't hit up close' must show").
+func _check_hard_limits(data: TowerData, terms: PackedStringArray) -> void:
+	var lower: Array[String] = []
+	for term in terms:
+		lower.append(term.to_lower())
+	var id := data.get_id()
+	_check((data.min_range > 0.0) == lower.has("can't hit up close"), "%s: min_range %.1f ⇔ \"can't hit up close\"" % [id, data.min_range])
+	var ground_only := data.attack_kind == TowerData.AttackKind.TRAP or GROUND_ONLY_SPECIALS.has(data.special)
+	_check(ground_only == lower.has("can't hit flyers"), "%s: never hits flyers ⇔ \"can't hit flyers\"" % id)
+	if lower.has("doesn't attack"):
+		_check(not data.can_attack or data.damage <= 0.0, "%s: \"doesn't attack\" only where it deals no damage" % id)
+	var seen_limit := false
+	for term in lower:
+		if HARD_LIMITS.has(term):
+			seen_limit = true
+		else:
+			_check(not seen_limit, "%s: the hard limit comes last" % id)
 
 func _initialize() -> void:
 	var by_family := {}
@@ -43,10 +65,11 @@ func _initialize() -> void:
 		_check(line != "", "%s has a role line" % data.get_id())
 		_check(not line.ends_with("."), "%s: no full stop" % data.get_id())
 		var terms := line.split(", ")
-		_check(terms.size() >= 1 and terms.size() <= 3, "%s: 1–3 terms (%d)" % [data.get_id(), terms.size()])
+		_check(terms.size() >= 1 and terms.size() <= 4, "%s: 1–4 terms (%d)" % [data.get_id(), terms.size()])
 		for i in terms.size():
 			_check(_term_ok(terms[i], i), "%s: \"%s\" is in the vocabulary, capitalised as the rules say" % [data.get_id(), terms[i]])
 		_check(line == "" or line[0] == line[0].to_upper(), "%s: sentence case" % data.get_id())
+		_check_hard_limits(data, terms)
 		var seen: Dictionary = by_family.get(data.line, {})
 		if seen.has(line):
 			shared += 1
