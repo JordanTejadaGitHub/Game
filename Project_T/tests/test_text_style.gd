@@ -207,7 +207,7 @@ func _lint(owner: String, source: String, text: String, is_title := false, is_co
 # Prices and rewards as the resource icon and the number (user via Main Merger 2026-10-06): "15 Dew", "%d Dew",
 # "+1 Dreamlight", "{plant_cost:x} Seeds" should be UiStyle.dew_amount(15) / "{dew:15}". Findings go under
 # "<owner> glyphs": TODO until the owner's sweep, then the owner joins GLYPHS_ENFORCED.
-const GLYPHS_ENFORCED: Array[String] = ["Main"]  # Main's sweep 41982196 (2026-10-07)
+const GLYPHS_ENFORCED: Array[String] = ["Main", "Roguelite Code"]  # Sweeps: Main 41982196, Roguelite e8bc7105 (2026-10-07)
 # Texts that keep the word on purpose: the plain-text run report (a glyph would paste as a box) and a block index.
 # "+%d Dew" is DewPopup's until it switches to UiStyle.dew_amount (WorldLabel draws the glyphs since UI Code's with_glyphs).
 const GLYPH_EXCEPTIONS := ["%d drifts · %d Dew", "Block %d Dew by route", "+%d Dew"]
