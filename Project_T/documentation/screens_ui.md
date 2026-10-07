@@ -15,6 +15,11 @@ game. The checklist at the end lists what to compare against the current build.
    `design_plan.md`, accessibility).
 4. **Time stops for choices.** Family picks, Dreams and Omens pause the game; nothing is ever
    decided under time pressure.
+   **Game speed is for the field only** (user, 2026-10-07: "speed only changes gameplay, not everything else
+   like Dream pick animations"): ×2 / ×3 speeds up nightmares, Wardens, attacks, effects on the map, statuses and
+   drift timers. Everything else runs in real time at any speed: choice screens and their animations (Dream,
+   pick impact, family pick, Omens, gifts, Lessons, the boss dossier), menus, HUD and panel animations, toasts,
+   whispers, the camera and its glides, the Dew / Seeds counters, music and UI sounds.
 5. **Never cover the map's ends.** The camera must be able to scroll so that every part of the
    map, especially the start and **the Heartwood**, can sit clear of the HUD (let the camera go a
    little past the map edges by the HUD's size). Panels never overlap each other: one left panel at
