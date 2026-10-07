@@ -139,8 +139,6 @@ static func release(tower: Tower) -> bool:
 			_whirl(tower)
 		JET:
 			_jet(tower)
-		SPARKLER:
-			_burst_sparks(tower)
 		SILVER_BELL:
 			_toll(tower)
 		THRUM:
@@ -588,49 +586,91 @@ static func _prism_beams(tower: Tower) -> void:
 
 # --- Sparkler / Starburst: a firework over a crowd ---------------------------------------------------------------
 
-static func _burst_sparks(tower: Tower) -> void:
-	var target := tower.find_target()
-	if target == null:
-		return
+# Sparkler / Starburst (Tower Assets e9c6a5e5; user: "I can't see what it's attacking"): the shell is a real
+# projectile (firework_shell / _big, TowerData.projectile_texture); where it lands, Tower.projectile_landed calls
+# this: the firework_pop (twice on Starburst's double, the second a beat later and offset), then the sparks.
+const FIREWORK_POP := &"firework_pop"
+const FIREWORK_POP_RADIUS := 96.0  # The pop's streaks reach this at scale 1 (1.5 cells)
+const FIREWORK_SPARK := "res://assets/towers/projectiles/firework_spark.png"  # 16x16 x4, pointing right
+
+static func firework_landed(tower: Tower, at: Vector2) -> void:
 	var count := tower.get_meta(&"bursts", 0) as int + 1
 	tower.set_meta(&"bursts", count)
 	var sparks := int(p(tower, "sparks", 6))
-	if is_final(tower) and count % int(p(tower, "double_every", 4)) == 0:
+	var doubled := is_final(tower) and count % int(p(tower, "double_every", 4)) == 0
+	if doubled:
 		sparks *= 2
-	# The shell's flight from the Warden to where it bursts (user: "I can't see what it's attacking"), until Tower
-	# Assets' firework shell projectile lands.
-	if _streaks_ok(target.global_position):
-		Fx.segment(&"light_thread", tower.global_position + tower.tower_data.get_attack_origin(), target.global_position, world(tower), 0.25)
-	_spark_burst_at(tower, target.global_position, sparks, float(tower.attack_data.damage), true)
+	var w := world(tower)
+	var scale := (p(tower, "burst_radius", 1.5) + tower.area_bonus()) * CELL / FIREWORK_POP_RADIUS
+	if w != null and _streaks_ok(at):
+		Fx.play(FIREWORK_POP, at, w, scale)
+		if doubled:
+			var later := w.get_tree().create_timer(0.12, false)
+			later.timeout.connect(func() -> void:
+				if is_instance_valid(w):
+					Fx.play(FIREWORK_POP, at + Vector2(14, -10), w, scale * 0.85))
+	_spark_burst_at(tower, at, sparks, float(tower.attack_data.damage), true)
 
-const SPARK_STREAKS_MAX := 6  # Streaks per burst (Fx.segment has no budget of its own)
+# A spark flying from the pop to the nightmare it hit (cosmetic: the hit lands at once, as before).
+class FireworkSpark extends Node2D:
+	const TIME := 0.16
+	var _from: Vector2
+	var _to: Vector2
+	var _tex: Texture2D
+	var _age := 0.0
+
+	func _init(from: Vector2, to: Vector2, tex: Texture2D) -> void:
+		_from = from
+		_to = to
+		_tex = tex
+		z_index = 5
+		rotation = from.angle_to_point(to)
+
+	func _ready() -> void:
+		global_position = _from
+
+	func _process(delta: float) -> void:
+		_age += delta
+		if _age >= TIME:
+			queue_free()
+			return
+		global_position = _from.lerp(_to, _age / TIME)
+		queue_redraw()
+
+	func _draw() -> void:
+		var frames := 4
+		var w := _tex.get_width() / frames
+		var f := int(_age / TIME * frames) % frames
+		draw_texture_rect_region(_tex, Rect2(-w / 2.0, -_tex.get_height() / 2.0, w, _tex.get_height()),
+			Rect2(f * w, 0, w, _tex.get_height()))
+
+const SPARK_STREAKS_MAX := 6  # Sparks drawn flying per burst (the rest hit unseen)
 
 # Whether streaks are worth drawing at `at` (reduced effects: only on screen).
 static func _streaks_ok(at: Vector2) -> bool:
 	return not Fx.reduced() or Fx.on_screen(at, 96.0)
 
-const SPARK_BURST_SCALE := 1.5
 
 # `sparks` sparks of `each` damage on nightmares within the burst radius of `at`, each adding Charged.
 static func _spark_burst_at(tower: Tower, at: Vector2, sparks: int, each: float, may_rebound: bool) -> void:
 	var radius := (p(tower, "burst_radius", 1.5) + tower.area_bonus()) * CELL
 	var near := targetable(tower).filter(func(e) -> bool: return e.global_position.distance_to(at) <= radius)
-	# A full burst, or the small spark of a fence crossing. The Sparkler's own burst is 1.5x and a touch brighter (the
-	# user: "the Sparkler and Starburst don't have attack animations"; Fx keeps its size cap, budget and reduce_flashes).
-	var burst := Fx.play(&"spark_burst" if not may_rebound else &"firework_burst", at, world(tower), SPARK_BURST_SCALE if may_rebound else 1.0)
-	if burst != null and may_rebound and not Fx.reduce_flashes():
-		burst.modulate = Color(1.25, 1.25, 1.2)  # multiplier: brighter on the release
+	# The Sparkler's own burst: firework_landed played the pop; here its sparks fly to who they hit. A fence crossing
+	# (Fireworks Fence) keeps its small spark_burst.
+	if not may_rebound:
+		Fx.play(&"spark_burst", at, world(tower))
 	if near.is_empty():
 		return
 	var mult := each / maxf(float(tower.attack_data.damage), 1.0)
 	var streaks := SPARK_STREAKS_MAX if may_rebound and _streaks_ok(at) else 0
+	var spark_tex: Texture2D = load(FIREWORK_SPARK) as Texture2D if streaks > 0 and ResourceLoader.exists(FIREWORK_SPARK) else null
 	for i in sparks:
 		var e: Node2D = near[randi() % near.size()]
 		if not is_instance_valid(e) or e.is_cleansed:
 			continue
-		if streaks > 0 and e.global_position.distance_to(at) > 4.0:
+		if spark_tex != null and streaks > 0 and e.global_position.distance_to(at) > 4.0:
 			streaks -= 1
-			Fx.segment(&"light_thread", at, e.global_position, world(tower), 0.2)  # Each spark flies to the one it hits
+			world(tower).add_child(FireworkSpark.new(at, e.global_position, spark_tex))  # Each spark flies to the one it hits
 		tower.hit(e, mult, true)
 		if is_instance_valid(e) and not e.is_cleansed:
 			e.apply_status(EnemyStatuses.STATIC, 1, 0.0, tower.get_damage(), 0, "light", tower)

@@ -300,7 +300,7 @@ func _test_firefly() -> void:
 	# Sparkler: a burst of sparks over the crowd, each adding Charged.
 	var sparkler := _plant("sparkler", Vector2(6, 12))
 	var crowd := [_spawn(Vector2(8, 12)), _spawn(Vector2(8, 13))]
-	BranchKit.release(sparkler)
+	BranchKit.firework_landed(sparkler, crowd[0].global_position)  # The shell lands on the crowd (e9c6a5e5: a real projectile now)
 	_check(crowd.any(func(e) -> bool: return e.statuses.has(EnemyStatuses.STATIC)), "Sparkler's sparks hit the crowd and add Charged")
 	await _clean()
 
@@ -437,7 +437,7 @@ func _test_finals() -> void:
 	var star := _plant("starburst", Vector2(6, 10))
 	star.set_meta(&"bursts", 3)
 	var lone = _spawn(Vector2(8, 10))
-	BranchKit.release(star)
+	BranchKit.firework_landed(star, lone.global_position)
 	var spark_damage := float(star.attack_data.damage)
 	_check(lone.max_health - lone.health >= int(spark_damage * 11), "Starburst: the 4th burst is a double (%d)" % (lone.max_health - lone.health))
 	await _clean()

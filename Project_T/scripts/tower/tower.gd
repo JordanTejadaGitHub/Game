@@ -2762,6 +2762,9 @@ func _apply_one_status(enemy: Node2D, status: StringName, stacks: int, soothe: f
 # Projectile landed at `where` (on `target` if it's still there): soothe it, or everything in the
 # splash radius (the splash shares the main hit's crit roll).
 func projectile_landed(target: Node2D, where: Vector2) -> void:
+	if attack_data.special == BranchKit.SPARKLER:
+		BranchKit.firework_landed(self, where)  # Sparkler / Starburst: the shell bursts where it lands (its sparks hit)
+		return
 	var hand := ShapeCards.hands(self) if ShapeCards.sends_things_out(attack_data) else 1.0  # Small Hands: swooping birds, lobbed stones +35%
 	var splash := get_splash_cells() * MAP_GRID.cell_size.x
 	if splash > 0.0 and tower_data.get_id() == "puffball" and _dream_state \
