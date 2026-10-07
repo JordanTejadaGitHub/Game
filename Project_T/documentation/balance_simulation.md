@@ -888,7 +888,9 @@ Stores, Deep Taproot I–II, Rested Roots; the rest sidegrade) becomes the defau
 the Mire Hag 0%**: deaths spread over 29–47, the same act 2 wall as every fresh human run (32–42). Seeds per run ≈ 68
 (target median ~94). Act 2 sweep queued: `demo_act2_health_scale` 0.5 / 0.6 / 0.7. **Full baseline (30):** the Stag 56 / 73 / 16%,
 reach the Mire Hag 0 / 3 / 0%, Seeds median 59 / 76 / 29. Act 1 is also ~20 under for default (drift 18 cluster): an act 1
-sweep (0.85 / 0.9) follows the act 2 one.
+sweep (0.85 / 0.9) follows the act 2 one. **Act 2 sweep (20 per arm), Stag / reach / win, default:** 0.5 55 / 15 / 10, 0.6 65 / 10 / 5,
+0.7 61 / 11 / 5 (spender at 0.5: 80 / 35 / 25). Seeds medians ~92–118 with any ease. Default is held by act 1 too: act 1 sweep
+widened to 0.75 / 0.8 / 0.85 at act 2 0.5, plus 0.8 / 0.4.
 
 ## No forcing (user, 2026-10-06)
 
