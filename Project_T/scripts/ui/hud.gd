@@ -85,6 +85,9 @@ func _ready() -> void:
 	add_child(clear_tool)
 	_build_tower_bar()
 	get_viewport().size_changed.connect(_fit_tower_bar)
+	if OS.has_feature("mobile"):  # Phones with a notch: the whole HUD fits the safe area (Mobile chat)
+		get_viewport().size_changed.connect(_fit_safe_area)
+		_fit_safe_area()
 	# New Wardens unlocked by Dreams appear in the bar (and prices can change).
 	dream_state.unlocks_changed.connect(_build_tower_bar)
 	# The Sprout price follows the Sprouts on the map (planted, sold, grown): refresh the bar after each.
@@ -289,6 +292,11 @@ const SLOT_MIN_WIDTH := 48.0
 const ARROW_W := 32.0  # Narrow and quiet
 var _bar_offset := 0  # The first Warden shown when the bar scrolls
 var _bar_arrows: Array[Button] = []
+
+# Phones: the HUD layer (every panel and screen in it) scaled a little and centred in the safe area, clear of a notch.
+func _fit_safe_area() -> void:
+	var view := get_viewport().get_visible_rect().size
+	transform = UiStyle.safe_transform(view, UiStyle.safe_insets(view))
 
 func _fit_tower_bar() -> void:
 	if _tower_buttons.is_empty():

@@ -380,30 +380,17 @@ func _build_phone() -> void:
 func _fit_misty_scroll(scroll: ScrollContainer) -> void:
 	scroll.custom_minimum_size.y = _misty.get_combined_minimum_size().y if _misty.visible else 0.0
 
-# The margins (the notch and rounded corners on a phone) and the detail panel's width for this screen.
+# The margins and the detail panel's width for this screen. (The notch: the HUD layer it sits in is fitted into the
+# safe area, UiStyle.safe_transform.)
 func _fit_phone() -> void:
 	if _margin == null or not is_inside_tree():
 		return
 	var view := get_viewport_rect().size
-	var inset := _safe_insets(view)
-	_margin.add_theme_constant_override("margin_left", int(PHONE_MARGIN + inset.position.x))
-	_margin.add_theme_constant_override("margin_top", int(PHONE_MARGIN + inset.position.y))
-	_margin.add_theme_constant_override("margin_right", int(PHONE_MARGIN + inset.size.x))
-	_margin.add_theme_constant_override("margin_bottom", int(PHONE_MARGIN + inset.size.y))
+	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
+		_margin.add_theme_constant_override(side, int(PHONE_MARGIN))
 	_side.custom_minimum_size.x = clampf(view.x * PHONE_SIDE_SHARE, PHONE_SIDE_MIN, PHONE_SIDE_MAX)
 	_set_compact(view.y < PHONE_COMPACT_HEIGHT)
 	_fit_tree()
-
-# The screen's unsafe edges in view units: left / top in `position`, right / bottom in `size`. Only on a real phone.
-func _safe_insets(view: Vector2) -> Rect2:
-	if not OS.has_feature("mobile"):
-		return Rect2()
-	var screen := Vector2(DisplayServer.screen_get_size())
-	var safe := DisplayServer.get_display_safe_area()
-	if screen.x <= 0.0 or safe.size.x <= 0:
-		return Rect2()
-	var k := view.x / screen.x
-	return Rect2(Vector2(safe.position) * k, (screen - Vector2(safe.end)) * k)
 
 # Short screens (under PHONE_COMPACT_HEIGHT): the family tabs move into the top bar in place of the title, so the tree
 # keeps its room; taller screens give them their own row.

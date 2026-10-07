@@ -98,6 +98,28 @@ static func is_phone() -> bool:
 static func layout_min() -> Vector2:
 	return PHONE_LAYOUT_MIN if is_phone() else LAYOUT_MIN
 
+# A real phone's unsafe edges (notch, rounded corners) in view units: left / top in `position`, right / bottom in
+# `size`. Empty anywhere else (PC, `--mobile` previews, headless).
+static func safe_insets(view: Vector2) -> Rect2:
+	if not OS.has_feature("mobile"):
+		return Rect2()
+	var screen := Vector2(DisplayServer.screen_get_size())
+	var safe := DisplayServer.get_display_safe_area()
+	if screen.x <= 0.0 or safe.size.x <= 0:
+		return Rect2()
+	var k := view.x / screen.x
+	return Rect2(Vector2(safe.position) * k, (screen - Vector2(safe.end)) * k)
+
+# Fits a full-screen layer (the HUD) into the safe part of `view`: one uniform scale, centred in the safe rect, so
+# nothing sits under a notch. Identity when nothing is unsafe.
+static func safe_transform(view: Vector2, insets: Rect2) -> Transform2D:
+	if insets.position == Vector2.ZERO and insets.size == Vector2.ZERO:
+		return Transform2D.IDENTITY
+	var room := view - insets.position - insets.size
+	var s := minf(room.x / view.x, room.y / view.y)
+	var origin := insets.position + (room - view * s) / 2.0
+	return Transform2D(0.0, Vector2(s, s), 0.0, origin)
+
 # The root's content scale for a window of `window_size` pixels: the largest scale that still leaves
 # LAYOUT_MIN (1.5 at 1920×1080, 1 at 1280×800, 2 at 4K), times the player's `share` of it.
 static func ui_scale_factor(window_size: Vector2, share: float) -> float:

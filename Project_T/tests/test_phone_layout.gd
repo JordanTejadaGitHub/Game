@@ -17,6 +17,15 @@ func _initialize() -> void:
 func _run() -> void:
 	TouchBuild.force_mobile = true
 	_check(UiStyle.is_phone() and UiStyle.layout_min() == UiStyle.PHONE_LAYOUT_MIN, "phones lay out for the phone base")
+	# The notch: the HUD layer fits the safe area (UiStyle.safe_transform; real phones only)
+	_check(UiStyle.safe_transform(Vector2(1200, 540), Rect2()) == Transform2D.IDENTITY, "no unsafe edges: the HUD stays as is")
+	var notch := Rect2(Vector2(60, 0), Vector2(20, 10))  # 60 left, 20 right, 10 bottom
+	var fitted := UiStyle.safe_transform(Vector2(1200, 540), notch)
+	var top_left: Vector2 = fitted * Vector2.ZERO
+	var bottom_right: Vector2 = fitted * Vector2(1200, 540)
+	_check(top_left.x >= 60.0 - 0.01 and bottom_right.x <= 1180.0 + 0.01 and bottom_right.y <= 530.0 + 0.01
+		and is_equal_approx(fitted.get_scale().x, fitted.get_scale().y),
+		"a notch: the HUD scales evenly into the safe rect (%s → %s)" % [top_left, bottom_right])
 	main = load("res://scenes/main.tscn").instantiate()
 	main.get_node("MapGenerator").map_seed = 424242
 	root.add_child(main)
