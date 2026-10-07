@@ -1275,6 +1275,15 @@ stays out.** Watch the first human runs on it; if act 1 is too hard, `act1_healt
 **Bot baseline change:** from a99d5382 the bot keeps walling by default; every batch before it is the non-walling
 bot. Warm-up and pgr wait for bend10 on main.
 
+## Human run 25 (2026-10-07 14:39, build 52d11575: Sparkler fix in; 9-node Grove)
+
+Firefly Jar + Rootling: 5 Sparklers (44% of damage across 36% of attackers: in line now), 3 Rootcurl, 3 Groundroot, 3 Firefly
+Jar, 8 walls, route 50. Act 1: 15 / 15 to 24; the Scarecrow took 3 (its Crows). Act 2: **drift 30 finale −7, drift 35 finale
+−6**, dead at 35; drifts between them clean.
+**Finale cliff, across runs 21–25 + the friend:** the act 2 block finales (30 / 35 / 40 / 45) took **42 of 59** act 2 leaves
+lost outside the boss (~71%). The bot can't show it (it dies first). **Fix: `block_finale_elites` from 30: 3 → 2** (and 60: 4 →
+3), the user's "fix cliffs" rule; sent to Tower Code.
+
 ## Human run 24 (2026-10-07 12:22, build 80fc4c25: **before the Sparkler fix**; 9-node Grove)
 
 Firefly Jar + Pebbling: Moonstone 62% of damage, 3 Sparklers ~30% (still ×6), 17 Sprouts, 16 Thornwalls, route 82, combos 55%.
