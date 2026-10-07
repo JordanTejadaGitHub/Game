@@ -871,7 +871,9 @@ Target: a loss at drift 45–50 banks **~80–100 Seeds** (≈ 3 entry nodes). M
 boss 15 (was 20); the rest unchanged. Measured with invulnerable runs to 50 (the Seeds a drift-50 loss banks), fresh + half,
 then the rates swept to land the median ~90. Also: whole-tree time (~35 h) and the demo arc (375 Seeds in ~4 runs; the 325
 fallback). **Act 1 losses (960411c3, new formula, 39 runs):** median ~8 Seeds, p90 ~13–16: under 20 (the user's rule
-holds); the one outlier (33) dispelled the Stag (+20) and died in 25. Re-checked on the chosen rates.
+holds); the one outlier (33) dispelled the Stag (+20) and died in 25. Re-checked on the chosen rates. **Tree cost (Meta Game Code,
+Hades style):** 7,847 Seeds for every buyable level (families 2,000, cards 3,142, perks 2,455, the Crown 250). 35 h → **~225
+Seeds per hour**; a drift-50 loss at ~90 Seeds in ~25 min is ~215 / h, so the target is in reach if later runs earn more.
 
 ## Omen weighing (user, 2026-10-07: "make sure ones that are worse than others give more rewards")
 
