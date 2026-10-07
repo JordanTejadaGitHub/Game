@@ -286,6 +286,11 @@ const LATE_STATUS_ICONS := ["silenced"]
 # Dream card marks added later (appended, so no column moves): "defining" marks a build-defining card
 # (dream_design.md de439ea8, tag "defining"), top-right on the card and in the Dreams row.
 const CARD_MARK_ICONS := ["defining"]
+# Attack shapes (Tower.attack_shape() ids) for the Warden panel's stat row (Main Merger 194ff652): the
+# attack in gold light, the nightmares it reaches as small pale dots. Appended, so no column moves.
+const SHAPE_ICONS := ["shape_single", "shape_splash", "shape_area", "shape_chain", "shape_cloud", "shape_trap",
+	"shape_beam", "shape_birds", "shape_seed", "shape_patrol", "shape_copy", "shape_light", "shape_pull",
+	"shape_spread", "shape_aura", "shape_none"]
 # Ids that share another icon's column.
 const ICON_ALIASES := {"always_damp": "damp", "burrows": "rises", "dew": "dew_cost", "dreamlight": "dreamlight_cost"}
 
@@ -296,7 +301,7 @@ var _n := ICON  # size of the icon being drawn (16; the Omen card emblems are 32
 
 func _make_icons() -> void:
 	var ids: Array = STATUS_ICONS + STAT_ICONS + NIGHTMARE_ICONS + DAMAGE_TYPE_ICONS + RESOURCE_ICONS + OMEN_ICONS \
-		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS + LATE_STATUS_ICONS + CARD_MARK_ICONS
+		+ REACTION_ICONS + CROWNED_ICONS + LEGENDARY_ICONS + LATE_STATUS_ICONS + CARD_MARK_ICONS + SHAPE_ICONS
 	var sheet := Image.create(ICON * ids.size(), ICON, false, Image.FORMAT_RGBA8)
 	var index := {}
 	for i in ids.size():
@@ -311,7 +316,7 @@ func _make_icons() -> void:
 		nightmare = NIGHTMARE_ICONS + ["hidden", "always_damp", "burrows"], damage_type = DAMAGE_TYPE_ICONS,
 		resources = RESOURCE_ICONS + ["dew", "dreamlight"],
 		omen = OMEN_ICONS,
-		reactions = REACTION_ICONS, crowned = CROWNED_ICONS, legendary = LEGENDARY_ICONS, card_marks = CARD_MARK_ICONS,
+		reactions = REACTION_ICONS, crowned = CROWNED_ICONS, legendary = LEGENDARY_ICONS, card_marks = CARD_MARK_ICONS, shapes = SHAPE_ICONS,
 		note = "One row of 16x16 icons; column = icons[id]. Readable at 12 px; for 24-32 px panels scale by whole numbers with nearest filtering."}
 	var file := FileAccess.open(OUT + "icons.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t") + "\n")
@@ -2119,6 +2124,130 @@ func _ic_defining() -> void:
 	_c_poly(PackedVector2Array([Vector2(5.0, 1.0), Vector2(11.0, 1.0), Vector2(9.6, 8.0), Vector2(6.4, 8.0)]),
 		_rpn("heartlight", "glow", "gold"))
 	_dt(6, 2, Palette.color("heartlight"))
+
+# Attack shapes: one look for the family. _shape_light() is the attack, _shape_foe() a nightmare it reaches.
+func _shape_light() -> int:
+	return _rpn("heartlight", "glow", "gold")
+
+func _shape_foe(c: Vector2, r: float = 1.8) -> void:
+	_c_disc(c, r, _rpn("moonlight", "mist", "stone"))
+
+func _ic_shape_single() -> void:
+	# One shot at one nightmare: a bolt with a dashed trail.
+	var k := _shape_light()
+	for a in [Vector2(1, 13), Vector2(3.4, 10.6)]:
+		_c_line([a, a + Vector2(1.2, -1.2)], 1.4, k)
+	_c_line([Vector2(6, 8), Vector2(9.6, 4.4)], 2.2, k)
+	_shape_foe(Vector2(12.6, 3.4), 2.4)
+
+func _ic_shape_splash() -> void:
+	# A hit that bursts onto the ones around it.
+	_c_ring(Vector2(8, 8), 6.8, 5.2, _shape_light())
+	_shape_foe(Vector2(8, 8), 2.4)
+	for p in [Vector2(3, 3.4), Vector2(13, 3.4), Vector2(8, 14)]:
+		_shape_foe(p, 1.5)
+
+func _ic_shape_area() -> void:
+	# A pulse that reaches everything in range.
+	_c_ring(Vector2(8, 8), 7.6, 6.4, _shape_light())
+	_c_disc(Vector2(8, 8), 1.6, _shape_light())
+	for p in [Vector2(4.4, 5), Vector2(11.6, 5.4), Vector2(5.4, 11.6), Vector2(11, 11)]:
+		_shape_foe(p, 1.4)
+
+func _ic_shape_chain() -> void:
+	# A bolt that jumps from one to the next.
+	_c_line([Vector2(2.5, 12.5), Vector2(6, 6), Vector2(9.5, 10.5), Vector2(13.5, 3.5)], 1.3, _shape_light())
+	for p in [Vector2(2.5, 12.5), Vector2(6, 5.5), Vector2(9.5, 11), Vector2(13.5, 3.2)]:
+		_shape_foe(p, 1.7)
+
+func _ic_shape_cloud() -> void:
+	# A lingering cloud on the path: wide puffs on a flat base.
+	var k := _shape_light()
+	_c_disc(Vector2(4.4, 9.2), 3.2, k)
+	_c_disc(Vector2(8.4, 6.8), 4.0, k)
+	_c_disc(Vector2(12, 9.0), 3.2, k)
+	_c_rect(Rect2i(2, 9, 12, 4), k)
+
+func _ic_shape_trap() -> void:
+	# A ring set on the path, waiting.
+	_c_rect(Rect2i(0, 9, 16, 5), _rpn("moonpath", "path", "loam"))
+	_c_ring(Vector2(8, 9), 4.6, 2.8, _shape_light())
+	_shape_foe(Vector2(14, 5), 1.5)
+
+func _ic_shape_beam() -> void:
+	# A steady beam that builds while it holds: one unbroken bar, brighter in its core.
+	_c_rect(Rect2i(0, 6, 11, 4), _shape_light())
+	_dt_line(Vector2i(0, 7), Vector2i(10, 7), Palette.color("heartlight"))
+	_shape_foe(Vector2(13, 8), 2.6)
+
+func _ic_shape_birds() -> void:
+	# Birds that fly out and strike.
+	for b in [Vector2(5, 6), Vector2(11, 10)]:
+		_c_line([b + Vector2(-3.4, -1.6), b, b + Vector2(3.4, -1.6)], 1.4, _shape_light())
+	_shape_foe(Vector2(13, 3), 1.6)
+
+func _ic_shape_seed() -> void:
+	# A seed thrown out that comes back.
+	var k := _shape_light()
+	_c_ring(Vector2(8, 8.5), 6.2, 4.8, k)
+	for cell: Vector2i in _cells.keys():
+		if cell.x < 8 and cell.y > 8:
+			_cells.erase(cell)
+	_c_poly(PackedVector2Array([Vector2(0.6, 7.6), Vector2(4.6, 7.6), Vector2(2.6, 11.4)]), k)
+	_c_ell(Vector2(8, 2.6), Vector2(2.2, 1.4), _rpn("sprig", "leaf", "moss"))
+
+func _ic_shape_patrol() -> void:
+	# Flies a loop around its post.
+	var k := _shape_light()
+	_c_ring(Vector2(8, 8), 6.4, 4.8, k)
+	for cell: Vector2i in _cells.keys():
+		if cell.x > 8 and cell.y < 6:
+			_cells.erase(cell)
+	_c_poly(PackedVector2Array([Vector2(8.4, 0.6), Vector2(8.4, 5.4), Vector2(12.4, 3)]), k)
+	_shape_foe(Vector2(8, 8), 1.4)
+
+func _ic_shape_copy() -> void:
+	# Borrows a neighbour's attack: two overlapping cards.
+	_c_rect(Rect2i(1, 1, 9, 9), _rpn("moonlight", "mist", "stone"))
+	_c_rect(Rect2i(6, 6, 9, 9), _shape_light())
+
+func _ic_shape_light() -> void:
+	# Lights the tiles around it: a lit tile, short rays on each side, sparks at the corners.
+	_c_rect(Rect2i(4, 4, 8, 8), _shape_light())
+	for p: Vector2i in [Vector2i(7, 1), Vector2i(8, 1), Vector2i(7, 14), Vector2i(8, 14), Vector2i(1, 7), Vector2i(1, 8),
+			Vector2i(14, 7), Vector2i(14, 8)]:
+		_dt(p.x, p.y, Palette.color("glow"))
+	for p: Vector2i in [Vector2i(2, 2), Vector2i(13, 2), Vector2i(2, 13), Vector2i(13, 13)]:
+		_dt(p.x, p.y, Palette.color("gold"))
+
+func _ic_shape_pull() -> void:
+	# Drags a nightmare back along its path.
+	_c_line([Vector2(4.5, 8), Vector2(14.5, 8)], 1.6, _shape_light())
+	_c_poly(PackedVector2Array([Vector2(1, 8), Vector2(5.4, 4), Vector2(5.4, 12)]), _shape_light())
+	_shape_foe(Vector2(12.5, 3.6), 1.7)
+	_shape_foe(Vector2(12.5, 12.4), 1.7)
+
+func _ic_shape_spread(  ) -> void:
+	# Passes what one nightmare carries on to the ones around it.
+	_shape_foe(Vector2(3.4, 8), 2.4)
+	for t in [Vector2(13, 2.6), Vector2(14, 8), Vector2(13, 13.4)]:
+		_c_line([Vector2(6, 8), t + (Vector2(6, 8) - t).normalized() * 2.4], 1.2, _shape_light())
+		_shape_foe(t, 1.6)
+
+func _ic_shape_aura() -> void:
+	# Strengthens the Wardens around it.
+	var k := _shape_light()
+	_c_disc(Vector2(8, 8), 2.6, k)
+	for i in 8:
+		var d := Vector2.from_angle(i * PI / 4.0)
+		var p := Vector2i((Vector2(8, 8) + d * 6.2).round())
+		_dt(p.x, p.y, Palette.color("glow"))
+	_c_ring(Vector2(8, 8), 7.8, 7.0, _rpn("glow", "gold", "ember"))
+
+func _ic_shape_none() -> void:
+	# Doesn't attack (a wall): a hollow ring, crossed.
+	_c_ring(Vector2(8, 8), 6.2, 4.6, _rpn("moonlight", "mist", "stone"))
+	_c_line([Vector2(3.4, 12.6), Vector2(12.6, 3.4)], 1.4, _rpn("moonlight", "mist", "stone"))
 
 # --- Family and branch emblems (32x32, shown x1 / x2) ---------------------------------------------
 # Heraldic badges, not portraits. Each family has its own frame SHAPE and border colour (its Kinship
