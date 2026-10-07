@@ -422,7 +422,7 @@ func _on_tower_sold(tower: Tower, _refund: int) -> void:
 func _on_tower_built(tower: Tower) -> void:
 	# Ancient Stump: planted on a stump, a Warden starts at rank I (free: nothing invested).
 	if tower.rank < STUMP_RANK and tower.can_nurture() and tower.get_cells().any(func(c) -> bool: return has_mark(STUMP, c)):
-		tower.nurture(0)
+		tower.bank_rank(STUMP_RANK - tower.rank)  # Banked: the player spends it through Nurture ("Free rank")
 	# Memory Seed: the next Warden of the remembered form takes back its ranks and its bonds' ages.
 	if memory_kind != "" and tower.tower_data.get_id() == memory_kind and _memory_holds():
 		tower.rank = maxi(tower.rank, int(memory_state.get("rank", 0)))

@@ -1581,7 +1581,16 @@ func get_nurture_cost() -> int:
 # First Care (a Grove perk): free Nurture ranks left this run (RunState.free_nurtures).
 func free_nurtures_left() -> int:
 	var run_state = _dream_state.run_state if _dream_state else null
-	return run_state.free_nurtures if run_state and "free_nurtures" in run_state else 0
+	return banked_ranks + (run_state.free_nurtures if run_state and "free_nurtures" in run_state else 0)
+
+# Banked ranks (story chat, the user: "the Sunlit Rest is auto upgrading"): a granted rank (Sunlit Rest, Ancient
+# Stump) waits on the Warden and the player spends it through the normal Nurture choice ("Free rank"); spent first,
+# never paid (free through growth), saved, lost on selling.
+var banked_ranks := 0
+
+func bank_rank(n: int = 1) -> void:
+	banked_ranks += maxi(n, 0)
+	queue_redraw()
 
 # Dew for the next rank at its normal price (ignoring First Care's free ranks).
 func get_nurture_price() -> int:

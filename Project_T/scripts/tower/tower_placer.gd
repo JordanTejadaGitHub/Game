@@ -1673,7 +1673,9 @@ func nurture(tower: Tower, focus: Tower.Focus = Tower.Focus.NONE) -> bool:
 	if dream_state.has_method("needs_eldest_confirm") and dream_state.needs_eldest_confirm(tower):
 		return false
 	var cost := tower.get_nurture_cost()
-	if cost == 0 and tower.free_nurtures_left() > 0:
+	if cost == 0 and tower.banked_ranks > 0:
+		tower.banked_ranks -= 1  # A banked rank (Sunlit Rest, Ancient Stump): free, and free through growth
+	elif cost == 0 and tower.free_nurtures_left() > 0:
 		run_state.free_nurtures -= 1  # First Care: a free rank (nothing invested, nothing refunded)
 	elif not run_state.spend_dew(cost):
 		return false

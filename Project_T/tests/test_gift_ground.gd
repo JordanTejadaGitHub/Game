@@ -139,15 +139,20 @@ func _run() -> void:
 		"touching reads the piece's own halves")
 	gifts.remove_mark(GiftGround.FALLEN_GIANT, piece / 2.0)
 
-	# Ancient Stump: a Warden planted on one starts at rank I, nothing invested for it.
+	# Ancient Stump: a Warden planted on one gets a banked rank (the user: no auto upgrades), spent through Nurture
+	# for free and free through growth.
 	var stump := _open_cell()
 	gifts.add_mark(GiftGround.STUMP, [stump])
 	placer.tower_data = load("res://resource/tower/sporeling.tres")
 	var price := placer.get_cost(null, stump)
 	_check(placer._try_build(stump), "(setup) a Sporeling planted on the stump")
 	var on_stump := _tower_at(stump)
-	_check(on_stump != null and on_stump.rank == 1 and on_stump.invested_dew == price,
-		"Ancient Stump: it starts at rank I, free (rank %d, invested %d of %d)" % [on_stump.rank if on_stump else -1, on_stump.invested_dew if on_stump else -1, price])
+	_check(on_stump != null and on_stump.rank == 0 and on_stump.banked_ranks == 1 and on_stump.get_nurture_cost() == 0,
+		"Ancient Stump: a banked rank, free to spend (rank %d, banked %d)" % [on_stump.rank if on_stump else -1, on_stump.banked_ranks if on_stump else -1])
+	var dew_before: int = main.get_node("%RunState").dew
+	_check(placer.nurture(on_stump) and on_stump.rank == 1 and on_stump.banked_ranks == 0 and on_stump.paid_ranks.is_empty()
+		and main.get_node("%RunState").dew == dew_before and on_stump.invested_dew == price,
+		"…Nurture spends it: rank I, no Dew, not a paid rank (invested %d of %d)" % [on_stump.invested_dew, price])
 	await _clean()
 	gifts.remove_mark(GiftGround.STUMP, stump)
 

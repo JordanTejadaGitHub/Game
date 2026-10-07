@@ -33,6 +33,8 @@ func _run() -> void:
 	_check(int(paid.total) > int(grow.total), "…so it costs more than the gifted one (%d vs %d)" % [int(paid.total), int(grow.total)])
 
 	# The save keeps it: a free rank stays free after Continue.
+	gifted.bank_rank()  # A granted rank waiting (Sunlit Rest)
+	_check(gifted.get_nurture_cost() == 0 and gifted.get_next_rank_growth_extra(sparkler) == 0, "a banked rank: free to spend, free through growth")
 	var saver: RunSaver = main.get_node("%RunSaver")
 	saver.file_path = "user://test_free_ranks_save_%d.json" % OS.get_process_id()
 	_check(saver.save_now(), "(setup) the save writes")
@@ -42,6 +44,7 @@ func _run() -> void:
 		if Vector2(r.cell[0], r.cell[1]) == gifted.cell and Vector2(r.get("half", [-1, -1])[0], r.get("half", [-1, -1])[1]) == gifted.half_cell:
 			row = r
 	_check(row.has("paid_ranks") and Array(row.paid_ranks).is_empty(), "the save keeps which ranks were paid (%s)" % [row.get("paid_ranks")])
+	_check(int(row.get("banked_ranks", -1)) == 1, "…and the banked ranks (%s)" % [row.get("banked_ranks")])
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(saver.file_path))
 
 	print("free ranks test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
