@@ -185,6 +185,8 @@ var _trace_next := 0.0
 var _trace_spawned := 0
 var rank_budget := 0  # --rank-budget=D: finals-first puts D Dew into ranks by the warm-up's end (_warm_rank)
 var warm_rank_spent := 0
+var omen_force := ""  # --omen-force=<omen id>|clear (with --from-save and --omens=face): that Omen twists the block after the save's rest
+var omen_forced_status := ""  # RUN JSON omen_forced: "<id>" taken, "clear", or "na:<id>" (its offer rule forbids it there)
 var plant_full := false  # --plant-full: finals-first plants to 1.0 × the human count before the save-for-a-final rule (Balancing 2026-10-08)
 var _trace_hp := 0.0  # Health spawned since the trace began
 var _trace_dmg := 0.0  # Damage dealt since the trace began
@@ -225,6 +227,7 @@ func _run() -> void:
 			"--trace-drift": trace_drift = int(value)
 			"--rank-budget": rank_budget = int(value)
 			"--plant-full": plant_full = true
+			"--omen-force": omen_force = value
 			"--no-walls-keep-going": walls_keep_going = false
 			"--wall-first-keep": wall_first_keep = int(value)
 			"--no-half-pref": half_pref = false
@@ -405,6 +408,10 @@ func _run() -> void:
 		omens.omen_rewarded.connect(func(omen, _summary) -> void: _on_omen_rewarded(omen))
 	for r in Reactions.all() + Reactions.crowned():
 		reaction_tags[r.id] = true
+	if omen_force != "" and not _force_omen():
+		_finish()
+		quit(0)
+		return
 	_take_over_choices()
 	director.set_auto_drift(true)  # Drifts in a block flow (the HUD applies the player's own default)
 	_hook_stats()
@@ -642,6 +649,38 @@ func _end_warmup() -> void:
 
 # --save-at: the board as it stands after this rest's spending, as a RunSaver run.json (for --from-save and the
 # snapshot library). Written into --out; RunSaver's own path is put back right away.
+# --omen-force (Balancing 2026-10-08, the Omen cost probe): on a resumed save, the next block's offer is this one Omen under
+# the real offer rules (make_offer on a one-Omen pool; the Restless Omens' Grove node is waived), and the bot takes it.
+# Returns false when the rules forbid it there (omen_forced "na:<id>"; the run ends at once). "clear" = Clear Skies.
+func _force_omen() -> bool:
+	if omen_force == "clear":
+		omen_forced_status = "clear"
+		return true
+	var omen: OmenData = load("res://resource/omen/%s.tres" % omen_force)
+	if omens == null or omen == null or resumed_at <= 0:
+		printerr("--omen-force=%s: needs --from-save, --omens=face and a resource/omen file" % omen_force)
+		omen_forced_status = "na:%s" % omen_force
+		return false
+	omen.requires_grove = ""
+	var block := director.get_block(resumed_at) + 1
+	var saved_pool: Array[OmenData] = omens.pool.duplicate()
+	var one: Array[OmenData] = [omen]
+	omens.pool = one
+	omens._last_offer_ids.clear()
+	var offer: Array[OmenData] = omens.make_offer(block)
+	omens.pool = saved_pool
+	if offer.is_empty():
+		omen_forced_status = "na:%s" % omen_force
+		print("OMEN n/a %s at the rest after drift %d" % [omen_force, resumed_at])
+		return false
+	omens.current_offer = offer
+	omens.current_offer_block = block
+	omens.choose(omen)
+	omen_forced_status = omen_force
+	omens_faced.append("%d:%s" % [resumed_at + 1, omen.id])
+	print("OMEN forced %s for block %d" % [omen_force, block])
+	return true
+
 func _write_snapshot(n: int) -> void:
 	var saver: Node = main.get_node_or_null("%RunSaver")
 	if saver == null:
@@ -1697,6 +1736,7 @@ func _finish() -> void:
 	summary.start_build = start_counts.replace(",", ";")
 	summary.from_save = from_save.get_file()
 	summary.resumed_at = resumed_at
+	summary.omen_forced = omen_forced_status
 	summary.extra_spend = extra_spend
 	summary.extra_dew = extra_dew  # X (with --extra-dew=grow / final: the cheapest such growth on the board)
 	summary.extra_x = extra_x_mode
