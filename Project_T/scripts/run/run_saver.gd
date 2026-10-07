@@ -190,6 +190,7 @@ func save_now() -> bool:
 		"dew_harvested": run_state.dew_harvested,  # The Harvest + interest (Golden Harvest)
 		"fertile_cells": run_state.fertile_cells.keys().map(func(c: Vector2) -> Array: return [c.x, c.y]),
 		"creatures_cleansed": run_state.creatures_cleansed,
+		"cleansed_in_act_1": run_state.cleansed_in_act_1,  # Act 1 dispels pay fewer Seeds
 		"leaves_lost": run_state.leaves_lost,
 		"longest_path": run_state.longest_path,
 		"play_time": run_state.play_time,
@@ -299,6 +300,7 @@ func _restore(data: Dictionary) -> void:
 	run_state.tended_cells.assign(data.tended.map(func(c: Array) -> Vector2: return Vector2(c[0], c[1])))
 	run_state.omen_seeds = int(data.omen_seeds)
 	run_state.creatures_cleansed = int(data.creatures_cleansed)
+	run_state.cleansed_in_act_1 = int(data.get("cleansed_in_act_1", 0))
 	run_state.leaves_lost = int(data.get("leaves_lost", 0))
 	run_state.longest_path = maxi(run_state.longest_path, int(data.get("longest_path", 0)))
 	run_state.play_time = float(data.get("play_time", 0.0))
