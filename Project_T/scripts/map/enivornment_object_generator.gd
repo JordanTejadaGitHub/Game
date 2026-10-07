@@ -28,8 +28,8 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 @export var frame_band: int = 4  # Cells of frame between the island's edge and the bowl (the old rim ring + 3)
 @export var bowl_obstacles_min: int = 3  # Lone decision obstacles in the bowl (user 2026-10-06: "a bit more obstacles")
 @export var bowl_obstacles_max: int = 6
-@export var target_obstacles_min: int = 38  # The whole map: band groves are thinned or topped up into this
-@export var target_obstacles_max: int = 48
+@export var target_obstacles_min: int = 48  # Island edge B: +10 for the old rim ring at the frame band's density (13.1% of 78 cells)
+@export var target_obstacles_max: int = 58
 @export_group("Ridges")
 # Ridges are tapered spurs of rocks and trees reaching in from the frame, from alternating walls. They give
 # the opening route its bend; clearing one of their cells opens a shortcut.
