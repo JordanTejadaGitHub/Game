@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_dream_oak"
 display_name = "Dream Oak"
-description = "Acorns can now grow into Dream Oaks ({grow_cost:dream_oak} Dew): Dreamlight shards from a mixed grove."
+description = "Acorns can now grow into Dream Oaks ({dew:{grow_cost:dream_oak}}): Dreamlight shards from a mixed grove."
 rarity = 1
 kind = 1
 tags = Array[String](["acorn"])

@@ -258,7 +258,7 @@ static func _describe(row: Dictionary) -> String:
 	if row.range != 0.0:
 		parts.append("%+.1f range" % row.range)
 	if row.cost != 0:
-		parts.append("%+d Dew to plant" % row.cost)
+		parts.append("%s to plant" % UiStyle.dew_amount(row.cost, true))
 	if row.rank_share != 0.0:
 		parts.append("+%.1f ranks from the Eldest" % row.rank_share)
 	return ", ".join(parts)
@@ -670,8 +670,8 @@ func _bramble_oath(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dict
 func _golden_harvest(_spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	var dew := ds.golden_harvest_dew()
 	var bonus := minf(DreamState.GOLDEN_HARVEST_PER * (dew / DreamState.GOLDEN_HARVEST_STEP), DreamState.GOLDEN_HARVEST_MAX)
-	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%d Dew counted" % dew,
-		"reason": "" if bonus > 0.0 else "earn %d Dew" % DreamState.GOLDEN_HARVEST_STEP}
+	return {"run_wide": true, "active": bonus > 0.0, "damage": bonus, "note": "%s counted" % UiStyle.dew_amount(dew),
+		"reason": "" if bonus > 0.0 else "earn %s" % UiStyle.dew_amount(DreamState.GOLDEN_HARVEST_STEP)}
 
 # Drumbeat (card 248, Swift): touching 2+ other attacking Wardens (the 8 cells) = +30% attack speed. Live.
 func _drumbeat(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:

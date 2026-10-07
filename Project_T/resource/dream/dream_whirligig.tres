@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_whirligig"
 display_name = "Whirligig"
-description = "Sprouts can now grow into Whirligigs ({grow_cost:whirligig} Dew), or plant one directly ({plant_cost:whirligig} Dew). Gusts nudge nightmares back a little."
+description = "Sprouts can now grow into Whirligigs ({dew:{grow_cost:whirligig}}), or plant one directly ({dew:{plant_cost:whirligig}}). Gusts nudge nightmares back a little."
 rarity = 0
 kind = 0
 tags = Array[String](["wind"])

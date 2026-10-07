@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_whetstone"
 display_name = "Whetstone"
-description = "Pebblings can now grow into Whetstones ({grow_cost:whetstone} Dew): the finisher, its hits on worn-down nightmares land far harder."
+description = "Pebblings can now grow into Whetstones ({dew:{grow_cost:whetstone}}): the finisher, its hits on worn-down nightmares land far harder."
 rarity = 1
 kind = 1
 tags = Array[String](["stone"])

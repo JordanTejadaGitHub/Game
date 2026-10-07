@@ -1056,8 +1056,7 @@ func _select(data: TowerData) -> void:
 		_side_scroll.scroll_vertical = 0  # Phones: a new form's details start at the top
 	if _body is VBoxContainer:  # Phones: the panel slides up into view
 		_side.modulate.a = 0.0
-		var tween := create_tween()
-		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		var tween := UiTime.tween(self)
 		tween.tween_property(_side, "modulate:a", 1.0, 0.18)
 
 
@@ -1142,8 +1141,7 @@ class TreeCanvas extends Control:
 			if edge[1] == data:
 				_bloom_edge = edge
 				_bloom_t = 0.0
-				var tween := create_tween()
-				tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+				var tween := UiTime.tween(self)
 				tween.tween_method(func(t: float) -> void:
 					_bloom_t = t
 					queue_redraw(), 0.0, 1.0, 0.6)

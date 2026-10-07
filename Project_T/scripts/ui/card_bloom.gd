@@ -56,7 +56,7 @@ func _pulse_counter(path: String) -> void:
 	if counter == null:
 		return
 	counter.pivot_offset = counter.size / 2.0
-	var tween := counter.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	var tween := UiTime.tween(counter)
 	tween.set_parallel(true)
 	tween.tween_property(counter, "modulate", Color(1.4, 1.3, 1.05, 1.0), 0.15)  # multiplier: the swell
 	if not _still:

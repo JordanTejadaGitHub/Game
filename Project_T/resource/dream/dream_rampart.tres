@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_rampart"
 display_name = "Rampart"
-description = "Pebblings can now grow into Ramparts ({grow_cost:rampart} Dew): heavy blows that grow with the Thornwalls touching it, and turn them to stone."
+description = "Pebblings can now grow into Ramparts ({dew:{grow_cost:rampart}}): heavy blows that grow with the Thornwalls touching it, and turn them to stone."
 rarity = 1
 kind = 1
 tags = Array[String](["stone"])

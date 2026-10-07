@@ -508,7 +508,7 @@ func _fit_scroll() -> void:
 func _entrance(data: EnemyData) -> void:
 	boss_revealed.emit(data)
 	_clock = 0.0
-	var tween := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	var tween := UiTime.tween(self)
 	_panel.modulate.a = 0.0
 	if _reduced_motion():
 		tween.tween_property(_panel, "modulate:a", 1.0, 0.4)

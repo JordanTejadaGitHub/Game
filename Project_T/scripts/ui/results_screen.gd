@@ -216,7 +216,7 @@ func _build(won: bool) -> void:
 		if history != null:
 			DisplayServer.clipboard_set(RunHistory.report_text(history.run))
 			copy.text = "Copied ✓"  # A flash on the link itself, then back (user: not a separate-looking item)
-			get_tree().create_timer(1.5, true).timeout.connect(func() -> void:
+			UiTime.timer(self, 1.5).timeout.connect(func() -> void:
 				if is_instance_valid(copy):
 					copy.text = "Copy run report"))
 	var to_title := _small(quiet, "Title")

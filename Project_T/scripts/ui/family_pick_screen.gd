@@ -798,6 +798,7 @@ func _add_memory_border(button: Button) -> void:
 	pulse.wait_time = 1.0 / MEMORY_BORDER_FPS
 	pulse.autostart = true
 	pulse.process_mode = Node.PROCESS_MODE_ALWAYS  # The pick pauses the game
+	pulse.ignore_time_scale = true  # Real time at any game speed
 	pulse.timeout.connect(func() -> void:
 		var frame := (int(border.region_rect.position.x / MEMORY_BORDER_FRAME.x) + 1) % 4
 		border.region_rect = Rect2(Vector2(frame * MEMORY_BORDER_FRAME.x, 0), MEMORY_BORDER_FRAME))

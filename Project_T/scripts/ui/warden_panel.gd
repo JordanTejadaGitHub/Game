@@ -597,7 +597,7 @@ func _sell_group() -> void:
 	if ((ask and not drift_director.is_build_phase()) or big) and not _confirm_sell:
 		_confirm_sell = true
 		_refresh()
-		get_tree().create_timer(SELL_CONFIRM_TIME, true).timeout.connect(func() -> void:
+		UiTime.timer(self, SELL_CONFIRM_TIME).timeout.connect(func() -> void:
 			if _confirm_sell:
 				_confirm_sell = false  # Not pressed again in time
 				_refresh())
@@ -1209,9 +1209,9 @@ func _pointer_inside() -> bool:
 	return is_visible_in_tree() and get_global_rect().has_point(get_global_mouse_position())
 
 func _process(delta: float) -> void:
-	_animate_portrait(delta)
+	_animate_portrait(UiTime.delta(delta))  # The HUD panel: real time
 	# A Warden grown or nurtured by a hotkey (Q / E / Z, G, R) or a group bloom: show its new form.
-	_watch_left -= delta
+	_watch_left -= UiTime.delta(delta)
 	if visible and _watch_left <= 0.0:
 		_watch_left = WATCH_EVERY
 		if _selection_state() != _shown:
@@ -1650,7 +1650,7 @@ func pulse(kind: StringName) -> int:
 			or (kind == &"nurture" and text.begins_with("Nurture"))
 		if match_kind:
 			count += 1
-			var tween: Tween = button.create_tween()
+			var tween: Tween = UiTime.tween(button, false)
 			tween.tween_property(button, "modulate", Color(1.5, 1.35, 1.0), 0.25)  # A multiplier (glow), not a colour
 			tween.tween_property(button, "modulate", Color.WHITE, 0.6)
 	return count

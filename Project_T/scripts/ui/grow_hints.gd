@@ -116,7 +116,7 @@ func _process(delta: float) -> void:
 			spotlight = null
 			_redraw()
 		return
-	_time += delta
+	_time += UiTime.delta(delta)  # Hints (rests only): real time
 	if spotlight != null:
 		queue_redraw()  # The shimmer
 	if not marks.is_empty():

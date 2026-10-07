@@ -300,8 +300,7 @@ func _show_next() -> void:
 	_place.call_deferred()  # Again once the text has its height
 	if _tween:
 		_tween.kill()
-	_tween = create_tween()
-	_tween.set_ignore_time_scale(true)  # Real time: 3× speed doesn't cut it short (and the node runs while paused)
+	_tween = UiTime.tween(self, false)  # Real time: 3× speed doesn't cut it short (and the node runs while paused)
 	_tween.tween_property(self, "modulate:a", 1.0, 0.3)  # A fade only: nothing moves (reduced motion too)
 	_tween.tween_interval(show_time(plain))
 	_tween.tween_property(self, "modulate:a", 0.0, FADE_OUT)

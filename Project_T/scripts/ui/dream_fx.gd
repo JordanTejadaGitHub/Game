@@ -53,7 +53,7 @@ static func flare(card_box: Control, card: UpgradeData) -> void:
 	patch.scale = Vector2(SCALE, SCALE)
 	patch.z_index = 1
 	card_box.add_child(patch)
-	var tween := patch.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	var tween := UiTime.tween(patch)
 	for f in range(1, FLARE_FRAMES):
 		tween.tween_interval(FRAME_TIME)
 		tween.tween_callback(func() -> void: patch.texture = _frame(sheet, FLARE_FRAME, f, row))
@@ -66,7 +66,7 @@ static func pulse(parent: Control, at: Vector2, colour: Color) -> void:
 	if sheet == null or not is_instance_valid(parent):
 		return
 	var ring := _sprite(parent, _frame(sheet, RING_FRAME, 0), RING_FRAME, at, colour)
-	var tween := ring.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	var tween := UiTime.tween(ring)
 	for f in range(1, RING_FRAMES):
 		tween.tween_interval(FRAME_TIME)
 		tween.tween_callback(func() -> void: ring.texture = _frame(sheet, RING_FRAME, f))
@@ -80,7 +80,7 @@ static func spark(parent: Control, at: Vector2, colour: Color, shrink: float = 1
 		return
 	var dot := _sprite(parent, _frame(sheet, SPARK_FRAME, 0), SPARK_FRAME, at, colour)
 	dot.scale = Vector2.ONE * maxf(shrink, 0.5)
-	var tween := dot.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	var tween := UiTime.tween(dot)
 	for f in range(1, SPARK_FRAMES):
 		tween.tween_interval(FRAME_TIME)
 		tween.tween_callback(func() -> void: dot.texture = _frame(sheet, SPARK_FRAME, f))

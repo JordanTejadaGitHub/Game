@@ -616,7 +616,7 @@ class ComboRing extends Node2D:
 		z_index = 20
 
 	func _process(delta: float) -> void:
-		_time += delta
+		_time += UiTime.delta(delta)  # The discovery highlight: real time
 		queue_redraw()
 
 	func _draw() -> void:
@@ -687,7 +687,7 @@ func _show_next() -> void:
 	_card.modulate.a = 0.0
 	if _card_tween:
 		_card_tween.kill()
-	_card_tween = create_tween()
+	_card_tween = UiTime.tween(self, false)
 	_card_tween.tween_property(_card, "modulate:a", 1.0, 0.3)
 	if not bool(HeartwoodMemory.get_settings().get("reduced_motion", false)):  # A soft rise-in
 		_card.pivot_offset = _card.size / 2.0  # A soft rise-in: it grows into place (its rect never moves)

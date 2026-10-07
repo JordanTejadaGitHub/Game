@@ -7,7 +7,7 @@
 script = ExtResource("1_card")
 id = "dream_groundroot"
 display_name = "Groundroot"
-description = "Rootlings can now grow into Groundroots ({grow_cost:groundroot} Dew): roots that drag flyers down to walk the maze."
+description = "Rootlings can now grow into Groundroots ({dew:{grow_cost:groundroot}}): roots that drag flyers down to walk the maze."
 rarity = 1
 kind = 1
 tags = Array[String](["root"])
