@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Windmill"
-role_line = "Short range, fast attacks"
+role_line = "Spins at bends, very fast attacks"
 description = "Bigger, faster blades; loves hairpin bends even more (+35% per extra path tile)."
 cost = 0
 texture = ExtResource("2_tex")

@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Driftspore"
-role_line = "Poisons, boss killer"
+role_line = "Poisons, fast attacks, stacks high"
 description = "Two {spored} stacks per puff, and nightmares can hold more of them."
 cost = 0
 texture = ExtResource("2_tex")

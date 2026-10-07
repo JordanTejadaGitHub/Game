@@ -10,7 +10,7 @@
 script = ExtResource("1_tdata")
 counter_tags = Array[StringName]([&"anti_air", &"anti_tank"])
 display_name = "Standing Stone"
-role_line = "Long range, high damage"
+role_line = "Long range, sniper"
 description = "Sniper: one slow, heavy shot that hits harder the further away; it can't hit nightmares right beside it."
 cost = 0
 texture = ExtResource("2_tex")

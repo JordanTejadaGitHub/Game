@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Sporemother"
-role_line = "Poisons, area damage, long range"
+role_line = "Poisons, area damage, high damage"
 description = "Every second she breathes spores over everything in range (2 {spored} each). {spored} never wears off while a nightmare is in her range."
 cost = 0
 line = "spore"

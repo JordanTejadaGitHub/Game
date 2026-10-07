@@ -25,7 +25,7 @@ const NAMES := {CRUSHING: "Crushing", RELENTLESS: "Relentless", WATCHTOWER: "Wat
 const TEXT := {
 	CRUSHING: "every 5th hit on an armoured nightmare lands x2 and strips 25% of its dread shell",
 	RELENTLESS: "a dispel starts its next cycle at once (at most every 0.5 s)",
-	WATCHTOWER: "reveals hidden nightmares in its range",
+	WATCHTOWER: "reveals Hidden nightmares in its range",
 	SPREADING: "when a nightmare carrying its statuses is dispelled, half the stacks jump to the nearest one within 2 cells",
 	EXECUTIONER: "a crit on a nightmare under 20% health dispels it (bosses and elites: the crit x1.5); every hit it lands deals 15% less",
 	FIRSTBORN: "what it makes arrives one step better",

@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Samara"
-role_line = "Hits a line, spreads statuses"
+role_line = "Boomerang, hits a line"
 description = "Throws a spinning maple seed down a straight line and back through everything, carrying the first nightmare's statuses along it."
 cost = 0
 texture = ExtResource("2_tex")

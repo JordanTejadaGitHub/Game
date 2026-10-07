@@ -9,8 +9,8 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Hoarfrost"
-role_line = "Freezes, area damage"
-description = "Splashing frost shards that leave nightmares {damp} (up to 2); a nightmare {damp} twice freezes for 2.5 s. More crits on {held} nightmares."
+role_line = "Freezes, area damage, Soaks"
+description = "Splashing frost shards that leave nightmares {damp} (up to 2); a nightmare {damp} twice Freezes for 2.5 s. More crits on {held} nightmares."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

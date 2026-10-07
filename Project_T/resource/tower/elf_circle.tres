@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Elf Circle"
-role_line = "Traps, Poisons, Roots"
+role_line = "Traps, Poisons, high damage"
 description = "Many more rings (up to 9), and they wait until a nightmare steps on them."
 cost = 0
 texture = ExtResource("2_tex")

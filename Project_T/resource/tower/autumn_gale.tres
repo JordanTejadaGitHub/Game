@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Autumn Gale"
-role_line = "Hits a line, multi-target"
+role_line = "Boomerang, hits a line, multi-target"
 description = "Three seeds down the three busiest lines; each caught seed that hit something makes the next throw 10% stronger (up to 50%)."
 cost = 0
 texture = ExtResource("2_tex")

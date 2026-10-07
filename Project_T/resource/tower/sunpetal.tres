@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Sunpetal"
-role_line = "Single target, boss killer"
+role_line = "Beam, ramps up, boss killer"
 description = "A beam that grows stronger the longer it stays on one nightmare; twice as fast on {drowsy} or {held} ones."
 cost = 0
 texture = ExtResource("2_tex")

@@ -1,6 +1,6 @@
 extends SceneTree
 
-# Every Warden form has its role line (tower_design.md "Role lines", a223bade; the user: "use more generic wording to
+# Every Warden form has its role line (tower_design.md "Role lines", 903b99a2: how it attacks, never its weakness; the user: "use more generic wording to
 # describe"): non-empty, no full stop, 1–3 comma-separated terms, each from the fixed tower-defence vocabulary.
 # Siblings may share a line where they truly play alike, so uniqueness within a family is only a warning. The parked
 # Memory Wardens (is_unique) are left out until they return.
@@ -8,11 +8,14 @@ extends SceneTree
 
 # tower_design.md "Role lines" vocabulary (a new term goes there first, then here), as each reads mid-line: sentence
 # case, but statuses keep their capital as names in every form (text_pass.md 7e151e86: "Anti-air, Roots").
-const VOCABULARY := ["short range", "long range", "high damage", "low damage", "damage over time", "fast attacks",
-	"slow attacks", "single target", "multi-target", "area damage", "chains", "hits a line", "slows", "Roots", "Freezes",
-	"stuns", "pulls back", "Silences", "Soaks", "Charges", "Poisons", "Drowses", "Exposes", "spreads statuses",
-	"sets up statuses", "anti-air", "boss killer", "crowd clearer", "breaks armour", "reveals Hidden", "guards the goal",
-	"strips buffs", "crits", "repeats combos", "traps", "spawns", "copies a neighbour", "support", "economy", "wall"]
+const VOCABULARY := ["short range", "long range", "longest range", "high damage", "very high damage", "damage over time",
+	"ramps up", "finisher", "fast attacks", "very fast attacks", "slow attacks", "single target", "multi-target",
+	"area damage", "chains", "hits a line", "cone", "beam", "sniper", "boomerang", "lobs over walls", "crushing blows",
+	"spins at bends", "rain cloud", "trails", "shares hits", "links to a partner", "grows with walls", "stacks high",
+	"hurts the Rooted", "slows", "Roots", "Freezes", "stuns", "pulls back", "Silences", "stops sprints", "Soaks", "Charges",
+	"Poisons", "Drowses", "Exposes", "spreads statuses", "sets up statuses", "anti-air", "boss killer", "crowd clearer",
+	"breaks armour", "reveals Hidden", "guards the goal", "strips buffs", "crits", "repeats combos", "traps", "spawns",
+	"copies a neighbour", "speeds allies", "boosts damage", "grows into any family", "support", "economy", "wall"]
 
 # `term` at `position` in a line reads exactly as the vocabulary has it (the first term with a leading capital).
 static func _term_ok(term: String, position: int) -> bool:
