@@ -47,7 +47,7 @@ const POOL := {
 	&"bell_stone": {"name": "Bell Stone", "group": "Living ground", "map": true, "place": &"cell", "size": 1,
 		"text": "A singing stone. Song Wardens within 1 cell pulse 15% faster."},
 	&"ancient_stump": {"name": "Ancient Stump", "group": "Living ground", "map": true, "place": &"cells", "size": 3,
-		"text": "3 stumps: a Warden planted on one starts at rank I."},
+		"text": "3 stumps: a Warden planted on one gets a free rank, its focus yours to pick."},
 	&"heartwood_roots": {"name": "Heartwood Roots", "group": "The nightmares' way", "map": true, "place": &"none", "size": 0,
 		"text": "Roots over the last 4 path cells before the Heartwood: nightmares there take 15% more damage."},
 	&"thick_mist": {"name": "Thick Mist", "group": "The nightmares' way", "map": false, "place": &"none", "size": 0,
