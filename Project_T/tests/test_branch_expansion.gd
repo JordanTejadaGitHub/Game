@@ -433,13 +433,29 @@ func _test_finals() -> void:
 	_check(targets.all(func(e) -> bool: return e.health < e.max_health), "Rainbow Prism: 3 beams, one on each nightmare")
 	await _clean()
 
-	# Starburst: every 4th burst is a double (12 sparks).
+	# Starburst (Balancing with Tower Discussion): every 4th burst is a double (12 sparks); each spark is ¼ damage,
+	# round-robin over the burst's nightmares, at most 3 on one, and one {static} stack a nightmare a burst.
 	var star := _plant("starburst", Vector2(6, 10))
-	star.set_meta(&"bursts", 3)
+	var hits := {}
+	star.hit_landed.connect(func(_t, e, _area, _crit) -> void: hits[e] = int(hits.get(e, 0)) + 1)
 	var lone = _spawn(Vector2(8, 10))
 	BranchKit.firework_landed(star, lone.global_position)
-	var spark_damage := float(star.attack_data.damage)
-	_check(lone.max_health - lone.health >= int(spark_damage * 11), "Starburst: the 4th burst is a double (%d)" % (lone.max_health - lone.health))
+	await process_frame  # (Area hits may land a frame later)
+	_check(int(hits.get(lone, 0)) == BranchKit.SPARKS_PER_NIGHTMARE, "a lone nightmare takes at most 3 sparks (%d)" % int(hits.get(lone, 0)))
+	_check(lone.statuses.stacks(EnemyStatuses.STATIC) == 1, "one Charged stack a burst (%d)" % lone.statuses.stacks(EnemyStatuses.STATIC))
+	lone.queue_free()
+	await process_frame
+	hits.clear()
+	star.set_meta(&"bursts", 3)
+	var crowd4: Array = []
+	for i in 4:
+		crowd4.append(_spawn(Vector2(8, 10)))
+	BranchKit.firework_landed(star, crowd4[0].global_position)
+	await process_frame
+	var total := 0
+	for e in crowd4:
+		total += int(hits.get(e, 0))
+	_check(total == 12 and crowd4.all(func(e) -> bool: return int(hits.get(e, 0)) == 3), "Starburst: the 4th burst is a double, 12 sparks over 4 (%s)" % [hits.values()])
 	await _clean()
 
 	# Vesper Bell: the toll echoes to the next-strongest at half.

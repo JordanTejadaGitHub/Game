@@ -589,6 +589,8 @@ static func _prism_beams(tower: Tower) -> void:
 # Sparkler / Starburst (Tower Assets e9c6a5e5; user: "I can't see what it's attacking"): the shell is a real
 # projectile (firework_shell / _big, TowerData.projectile_texture); where it lands, Tower.projectile_landed calls
 # this: the firework_pop (twice on Starburst's double, the second a beat later and offset), then the sparks.
+const SPARKS_PER_NIGHTMARE := 3  # A burst lands at most this many sparks on one nightmare
+const SPARK_SHARE := 0.25  # Each spark: the Warden's damage ÷ 4, so a burst is 1.5× in all (Balancing: 6 full-damage sparks made Starburst 61% of a run's damage)
 const FIREWORK_POP := &"firework_pop"
 const FIREWORK_POP_RADIUS := 96.0  # The pop's streaks reach this at scale 1 (1.5 cells)
 const FIREWORK_SPARK := "res://assets/towers/projectiles/firework_spark.png"  # 16x16 x4, pointing right
@@ -609,7 +611,7 @@ static func firework_landed(tower: Tower, at: Vector2) -> void:
 			later.timeout.connect(func() -> void:
 				if is_instance_valid(w):
 					Fx.play(FIREWORK_POP, at + Vector2(14, -10), w, scale * 0.85))
-	_spark_burst_at(tower, at, sparks, float(tower.attack_data.damage), true)
+	_spark_burst_at(tower, at, sparks, float(tower.attack_data.damage) * SPARK_SHARE, true)
 
 # A spark flying from the pop to the nightmare it hit (cosmetic: the hit lands at once, as before).
 class FireworkSpark extends Node2D:
@@ -664,16 +666,23 @@ static func _spark_burst_at(tower: Tower, at: Vector2, sparks: int, each: float,
 	var mult := each / maxf(float(tower.attack_data.damage), 1.0)
 	var streaks := SPARK_STREAKS_MAX if may_rebound and _streaks_ok(at) else 0
 	var spark_tex: Texture2D = load(FIREWORK_SPARK) as Texture2D if streaks > 0 and ResourceLoader.exists(FIREWORK_SPARK) else null
+	var charged := {}
+	var landed := {}  # Sparks per nightmare this burst
 	for i in sparks:
-		var e: Node2D = near[randi() % near.size()]
-		if not is_instance_valid(e) or e.is_cleansed:
+		# Round-robin over the nightmares in the burst, at most SPARKS_PER_NIGHTMARE each; the rest are lost (Balancing
+		# with Tower Discussion: a lone target takes 3 × ¼ = 0.75×, a crowd of 2+ the full 1.5×).
+		var e: Node2D = near[i % near.size()]
+		if not is_instance_valid(e) or e.is_cleansed or int(landed.get(e, 0)) >= SPARKS_PER_NIGHTMARE:
 			continue
+		landed[e] = int(landed.get(e, 0)) + 1
 		if spark_tex != null and streaks > 0 and e.global_position.distance_to(at) > 4.0:
 			streaks -= 1
 			world(tower).add_child(FireworkSpark.new(at, e.global_position, spark_tex))  # Each spark flies to the one it hits
 		tower.hit(e, mult, true)
 		if is_instance_valid(e) and not e.is_cleansed:
-			e.apply_status(EnemyStatuses.STATIC, 1, 0.0, tower.get_damage(), 0, "light", tower)
+			if not charged.has(e):
+				charged[e] = true  # One {static} stack a nightmare a burst, however many sparks hit it (Balancing)
+				e.apply_status(EnemyStatuses.STATIC, 1, 0.0, tower.get_damage(), 0, "light", tower)
 	# Fireworks Fence (b): a burst landing on a fence re-bursts once.
 	if may_rebound and _on_fence(tower, at) and Tower._kin_roll(tower.kin_share(FIREWORKS_FENCE, "b")):
 		_spark_burst_at(tower, at, sparks, each * 0.5, false)
