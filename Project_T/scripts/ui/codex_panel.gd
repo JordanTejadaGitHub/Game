@@ -1354,13 +1354,13 @@ static func tier_name(data: TowerData) -> String:
 			return "Final form"
 	return "Branch"
 
-# "Branch · 120 Dew · 1 Dreamlight" (from the data).
+# "Branch · <dew>120 · <dreamlight>1" (from the data).
 static func form_costs(data: TowerData) -> String:
 	if data.buildable_directly:
-		return "Base · %d Dew" % data.cost
+		return "Base · %s" % UiStyle.dew_amount(data.cost)
 	var dreamlight: int = DreamState.ASCENDED_DREAMLIGHT if data.tier >= DreamState.ASCENDED_TIER \
 		else (DreamState.FINAL_DREAMLIGHT if data.tier >= 3 else DreamState.BRANCH_DREAMLIGHT)
-	return "%s · %d Dew · %d Dreamlight" % [tier_name(data), data.get_grow_price(), dreamlight]
+	return "%s · %s · %s" % [tier_name(data), UiStyle.dew_amount(data.get_grow_price()), UiStyle.dreamlight_amount(dreamlight)]
 
 # The tapped form's card under the tree (the Warden panel's top half when Tower Code's shared
 # builder lands; until then: portrait, name, tier and costs, stats, the description with links).
@@ -1541,9 +1541,9 @@ class FamilyTree extends Control:
 		name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		node.add_child(name)
 		var costs := Label.new()
-		costs.text = ("%s · %d" % [CodexPanel.tier_name(data), data.cost]) if data.buildable_directly \
-			else ("%d Dew · %d ✦" % [data.get_grow_price(), DreamState.ASCENDED_DREAMLIGHT if data.tier >= DreamState.ASCENDED_TIER \
-				else (DreamState.FINAL_DREAMLIGHT if data.tier >= 3 else DreamState.BRANCH_DREAMLIGHT)])
+		costs.text = ("%s · %s" % [CodexPanel.tier_name(data), UiStyle.dew_amount(data.cost)]) if data.buildable_directly \
+			else ("%s · %s" % [UiStyle.dew_amount(data.get_grow_price()), UiStyle.dreamlight_amount(DreamState.ASCENDED_DREAMLIGHT if data.tier >= DreamState.ASCENDED_TIER \
+				else (DreamState.FINAL_DREAMLIGHT if data.tier >= 3 else DreamState.BRANCH_DREAMLIGHT))])
 		costs.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		costs.position = Vector2(0, NODE_PORTRAIT + 24.0)
 		costs.size = Vector2(NODE_W, 18)

@@ -470,7 +470,7 @@ func tag_share_text() -> String:
 	var share := omens.get_reward_share()
 	if share <= 0.0:
 		return "Reward gone"
-	var live := omens.live_reward_text()  # "+30 Dew": the live amount (user: "or show the live Dew")
+	var live := omens.live_reward_text()  # "<dew>+30": the live amount (user: "or show the live Dew")
 	return live if live != "" else "Reward %d%%" % roundi(share * 100)
 
 # The icon sits in leading spaces at the start of the centred line, clear of the text.

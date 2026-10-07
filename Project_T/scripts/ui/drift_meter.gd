@@ -425,7 +425,7 @@ func _fill_row(button: Button, r: Dictionary) -> void:
 	var colour: Color = r.get("rank_color", FINE_COLOR)  # By rank on the board, like the DPS tags
 	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
 		button.add_theme_color_override(state, colour)
-	var tip := "%s: %s DPS, %d%% of the maze, %s Dew invested" % [name, fmt(r.dps), roundi(float(r.share) * 100.0), fmt(r.dew_invested)]
+	var tip := "%s: %s DPS, %d%% of the maze, %s invested" % [name, fmt(r.dps), roundi(float(r.share) * 100.0), UiStyle.DEW_GLYPH + fmt(r.dew_invested)]
 	if r.get("rating_label", &"") == &"carrying":
 		tip += "\nCarrying: far more than its cost."
 	elif r.get("rating_label", &"") == &"underused":

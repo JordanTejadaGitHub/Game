@@ -14,13 +14,13 @@ const GLOSSARY_SOURCE := [
 		["Dreamlight", "Freed by great nightmares (bosses, the first family pick): unlocks branches and final forms on the Remember screen.", ["Remember screen", "Branch", "Final form"]],
 		["Leaves", "The Heartwood's life. A nightmare that reaches it takes leaves; lose them all and the dream goes dark.", ["Act"]],
 		["Seeds", "Earned every run, win or lose; spent in the Memory Grove between runs.", ["Memory Grove"]],
-		["Dreamlight shard", "Shards gather into Dreamlight: 10 shards make 1. Each source keeps its own cap: Dreamcatchers' shards from caught nightmares make at most 2 Dreamlight a run; other sources (Glimmering Hunt and the like) say theirs on their card.", ["Dreamlight", "Caught"]],
+		["Dreamlight shard", "Shards gather into Dreamlight: 10 shards make 1. Each source keeps its own cap: Dreamcatchers' shards from caught nightmares make at most {dreamlight:2} a run; other sources (Glimmering Hunt and the like) say theirs on their card.", ["Dreamlight", "Caught"]],
 		["The Dew pot", "Each drift pays a set pot of Dew, shared out among its nightmares as they are dispelled. A nightmare that leaks takes its share with it.", ["Dew", "Act"]],
 	]],
 	["The run", [
 		["Drift", "A wave of nightmares. A run is 100 drifts in 4 acts.", ["Block", "Act"]],
 		["Block", "The 5 drifts between two rests; they flow into each other.", ["Drift", "Rest"]],
-		["Perfect block", "A block in which no nightmare reached the Heartwood: no leaf lost. Its rest pays +10 Dew.", ["Block", "Rest", "Leaves"]],
+		["Perfect block", "A block in which no nightmare reached the Heartwood: no leaf lost. Its rest pays {dew:+10}.", ["Block", "Rest", "Leaves"]],
 		["Rest", "The pause after a block: a Dew bonus, a Dream, rebuild freely at a 75% refund, then Start.", ["Dream", "Omen"]],
 		["Act", "25 drifts ending in a boss. Between acts the season changes and the Heartwood regrows a leaf.", ["Boss", "Leaves"]],
 		["Boss", "A great nightmare at the end of each act. Dispelling it brings a family pick, Dreamlight and a rare Dream.", ["Family pick", "Dreamlight"]],
@@ -57,7 +57,7 @@ const GLOSSARY_SOURCE := [
 		["Boosts", "Wardens that strengthen others near them: auras, Kinship bonds, and Kindred / Whole Tree. The Boosts button shows who's boosted, and by what.", ["Kinship"]],
 		["Kindred", "Two different branches of one family on the map: that family's Wardens deal 10% more damage.", ["Whole Tree", "Kinship"]],
 		["Whole Tree", "Three different branches of one family on the map at once (a branch or its final form each): that family's Wardens deal 20% more damage, in place of Kindred's 10%. Announced at the next rest.", ["Kindred"]],
-		["Not in this dream", "A family has five branches and each run offers two of them (plus the Grove's hidden one). The others are not in this dream: misty on the Remember screen, where you can call one in for 3 Dreamlight, once per family.", ["Branch", "Remember screen"]],
+		["Not in this dream", "A family has five branches and each run offers two of them (plus the Grove's hidden one). The others are not in this dream: misty on the Remember screen, where you can call one in for {dreamlight:3}, once per family.", ["Branch", "Remember screen"]],
 	]],
 	["Branch effects", [
 		["Current", "Undercurrent opens a whirlpool on the path for 3 s that links up to 6 nightmares in it: 25% of any hit on one reaches each of the others. Maelstrom's is wider and links up to 8 at 45%, and its current also carries {static} bolts to the others at half.", ["Erosion"], "Shared damage is an effect: no crits, never shared twice, never part of a Reaction."],
@@ -218,7 +218,7 @@ const KINSHIP_TEXT := {
 	&"snare": "Rootcurl's pulls end in a 0.5 s hold; Tangleroot's holds drag the nightmare back half a tile.",
 	&"night_chimes": "Chime Stone's pulses Catch nightmares at full {drowsy}, as if a Dreamcatcher stood by; Dreamcatcher's threads set off {static} at 3 stacks.",
 	&"old_growth": "Nightmares dispelled inside Elder Stump's aura drop +25% Dew; Dewcatcher gains a small aura: neighbors attack 10% faster.",
-	&"flock_together": "Wren's Nest hits strip a buff (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops +1 Dew; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
+	&"flock_together": "Wren's Nest hits strip a buff (a shell chips twice as fast, a Weeper stops mending, Omen boosts fall away) and the robbed nightmare drops {dew:+1}; Magpie Perch hunts the fastest nightmare, +25% vs Phantoms.",
 	# Branch expansion's named pairs (Phase 1 and 2; full game only), checked against BranchKit.
 	&"crusted_brood": "1 in 4 of Lichenling's shots also hatches a {spore_sprite} on its target (half a burst); Brood Cap's {spore_sprites} also chip 5% of a {dread_shell}.",
 	&"eye_of_the_storm": "Nightmares under Cloudlet's cloud are linked by a {current} at 10% (up to 6); Undercurrent's whirlpool is rained on and leaves nightmares {damp}.",
@@ -235,7 +235,7 @@ const KINSHIP_TEXT := {
 	&"lantern_roots": "Rootlight's lit tiles hold a nightmare stepping on them for 0.3 s (once); Tangleroot's holds reveal {hidden} nightmares and stop burrowing.",
 	&"resonant_hollow": "Echo Hollow's echoes set off {static} like a chime; Chime Stone's pulses echo once at 30%.",
 	&"true_graft": "Graftling copies at 100%; Elder Stump's pulse adds its strongest neighbor's status.",
-	&"jewel_thieves": "Every 6th peck steals a nightmare's buff (+1 Dew if there's none); the Magpie pecks twice per swoop.",
+	&"jewel_thieves": "Every 6th peck steals a nightmare's buff ({dew:+1} if there's none); the Magpie pecks twice per swoop.",
 	&"tailwind": "Samara's seed carries full stacks; Gust's copies reach nightmares up to 3 cells away.",
 	&"dust_devil": "Gust's copies also deal a blade hit; Pinwheel's blades copy statuses (half stacks) onto what they hit.",
 }

@@ -14,6 +14,13 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
   new route, the "+N path" tag updates, and invalid cells are refused exactly like Warden placement (never
   closing the route, never on the start or the Heartwood glade's inner ring, never on a Warden). Esc goes
   back to the three cards.
+  **Half cells, like Wardens** (user, 2026-10-07: "should be going by half a cells like wardens"): every placed
+  piece (a tree, a log segment, a stone, a stump, a pond, a well) takes a Warden's footprint (2×2 halves) and snaps
+  to the half grid with the same ghost and grid lines as Warden placement; a piece one half off a Warden is fine as
+  long as the route stays open (nightmares fit one-half gaps). "Adjacent" / "straight" / "connected" are measured
+  in pieces, so a ridge or log reads the same as before. Mire and Heartwood Roots pick route halves (the cells the
+  drawn route covers). Placing a piece plays the Warden build sound and its plant pop; a refused piece plays
+  `build_rejected`.
 - **Why it's ours, not Slay the Spire's:** every gift is about the forest and the maze: terrain, routes,
   living ground that feeds Wardens. No heal, no flat upgrade.
 - **Demo:** off (the demo stays on main's rules).

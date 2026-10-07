@@ -331,13 +331,26 @@ func _remove_obstacle(cell: Vector2, mark: bool = true) -> void:
 	for at in get_obstacle_cells(cell):
 		var data: ObstacleData = obstacles.get(at)
 		obstacles.erase(at)
-		if mark and data != null:
+		if not FindPath.is_whole_cell(at):
+			pass  # Half-offset (a gift piece): no tile of its own (MapGifts drew it)
+		elif mark and data != null:
 			environment_object_layer.mark_cleared(at, data)
 		else:
 			environment_object_layer.erase_cell(Vector2i(at))
 		path_layer.set_cell_blocked(at, false)
 	if environment_object_layer.log_cells.has(cell):
 		environment_object_layer.log_cells.clear()  # Gone as a unit
+
+# The key in `obstacles` of the obstacle covering half cell `half`, else Vector2(-1, -1). Keys are positions in
+# full-cell units: a whole cell, or x.5 for a gift piece placed at a half offset (heartwood_gifts.md 2554c638),
+# whose 2×2 halves start at key × 2.
+func obstacle_key_at(half: Vector2) -> Vector2:
+	var h := half.floor()
+	for d: Vector2 in [Vector2.ZERO, Vector2(1, 0), Vector2(0, 1), Vector2(1, 1)]:
+		var key := (h - d) / 2.0
+		if obstacles.has(key):
+			return key
+	return Vector2(-1, -1)
 
 # The cells of the obstacle on `cell`: all of the log's for a log cell, else just `cell`.
 func get_obstacle_cells(cell: Vector2) -> Array[Vector2]:
@@ -636,7 +649,9 @@ func clear_obstacle(cell: Vector2) -> bool:
 # Puts obstacle `data` on `cell` mid-run (the Hollow Oak's thorn-saplings): blocks and draws it, and
 # re-routes nightmares. Call can_block() first; it can then be cleared like any obstacle.
 func place_obstacle(cell: Vector2, data: ObstacleData) -> void:
-	if not data.tiles.is_empty():  # No tiles: something else draws it (the saplings' animation)
+	if not FindPath.is_whole_cell(cell):
+		pass  # Half-offset (a gift piece, key x.5): no tile; MapGifts draws it
+	elif not data.tiles.is_empty():  # No tiles: something else draws it (the saplings' animation)
 		environment_object_layer.set_cell(Vector2i(cell), data.source_id, data.tiles.pick_random())
 	else:
 		environment_object_layer.erase_cell(Vector2i(cell))  # No grass detail showing through

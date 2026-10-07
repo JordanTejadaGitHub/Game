@@ -110,7 +110,7 @@ var _tap_armed := false
 # Touch: hovers the obstacle under the finger now (the hover follows the mouse a frame late) and returns it.
 func _hover_at(event: InputEvent) -> ObstacleData:
 	if event is InputEventMouseButton:
-		var cell: Vector2 = MAP_GRID.calculate_grid_coordinates(get_canvas_transform().affine_inverse() * event.position)
+		var cell: Vector2 = _cell_at(get_canvas_transform().affine_inverse() * event.position)
 		if cell != _hover_cell:
 			_hover_cell = cell
 			_refresh_hover()
@@ -151,7 +151,7 @@ func _check_lock() -> void:
 func _process(_delta: float) -> void:
 	if not active:
 		return
-	var cell: Vector2 = MAP_GRID.calculate_grid_coordinates(get_global_mouse_position())
+	var cell: Vector2 = _cell_at(get_global_mouse_position())
 	if cell != _hover_cell:
 		_hover_cell = cell
 		_refresh_hover()
@@ -258,3 +258,8 @@ func _cells_rect(cells: Array[Vector2]) -> Rect2:
 	for cell in cells:
 		rect = rect.merge(Rect2(MAP_GRID.calculate_map_position(cell) - MAP_GRID.cell_size / 2, MAP_GRID.cell_size))
 	return rect.grow(-2)
+
+# The obstacle key under world point `at`: a half-offset gift piece (key x.5) by the half under it, else the whole cell.
+func _cell_at(at: Vector2) -> Vector2:
+	var key: Vector2 = map_generator.obstacle_key_at((at / (MAP_GRID.cell_size / 2.0)).floor())
+	return key if key != Vector2(-1, -1) else MAP_GRID.calculate_grid_coordinates(at)

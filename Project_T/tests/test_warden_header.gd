@@ -34,7 +34,7 @@ func _run() -> void:
 	_check(damage_value != null and damage_value.text == str(driftspore.damage), "base damage %d (%s)" % [driftspore.damage, texts])
 	_check(view.stats.find_child("Value_%s" % driftspore.applies_status, true, false) != null, "the status it applies, in the same row (%s)" % [texts])
 	var grows := _texts(view.growth)
-	_check(view.growth.visible and grows.any(func(t: String) -> bool: return t.to_lower() == "grows into") and grows.any(func(t: String) -> bool: return t.contains("Dew")),
+	_check(view.growth.visible and grows.any(func(t: String) -> bool: return t.to_lower() == "grows into") and grows.any(func(t: String) -> bool: return t.contains(UiStyle.DEW_GLYPH)),
 		"Grows into, with the Dew (%s)" % [grows])
 	_check(view.find_children("*", "Button", true, false).is_empty(), "no buttons")
 	view.queue_free()

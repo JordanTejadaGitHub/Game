@@ -184,14 +184,14 @@ func _process(_delta: float) -> void:
 	elif drift_director.is_resting():
 		# Light pass (user-approved): "Resting, 75% refunds"; the drift's Dew pot (run_design.md) moved to the tooltip.
 		_status_label.text = "Resting, %d%% refunds" % roundi(tower_seller.build_phase_refund * 100)
-		_status_label.tooltip_text = "Drift %d pays %d Dew, shared among its nightmares." % [next, roundi(drift_director.get_effective_pot(next))]
+		_status_label.tooltip_text = "Drift %d pays %s, shared among its nightmares." % [next, UiStyle.dew_amount(roundi(drift_director.get_effective_pot(next)))]
 		_start_button.text = ("Start boss drift %d" if drift_director.is_boss_drift(next) else "Start drift %d") % next + UiStyle.key_suffix("Enter")
 	elif drift_director.can_start_next_drift():
 		var countdown := drift_director.get_auto_countdown()
 		_status_label.text = "Drift %d in %d s" % [next, ceili(countdown)] if countdown >= 0.0 \
 			else "Rest after drift %d" % block_end
 		var bonus := drift_director.get_call_early_bonus()
-		_start_button.text = "Call drift %d early, +%d Dew" % [next, bonus] if bonus > 0 \
+		_start_button.text = "Call drift %d early, %s" % [next, UiStyle.dew_amount(bonus, true)] if bonus > 0 \
 			else "Start drift %d now" % next
 	elif drift_director.is_mist_full() and drift_director.get_block(next) == drift_director.get_block(latest):
 		_status_label.text = "The mist is full"  # Calling early waits until the queue is out

@@ -326,7 +326,7 @@ func _fit_dock() -> void:
 		_dock.offset_bottom = -gap
 
 func _build_tools(box: VBoxContainer) -> void:
-	_button(box, "+%d Dew  (F9)" % DEW_GIFT, give_dew)
+	_button(box, "%s  (F9)" % UiStyle.dew_amount(DEW_GIFT, true), give_dew)
 	var skip_row := HBoxContainer.new()
 	box.add_child(skip_row)
 	_skip_to.min_value = 1

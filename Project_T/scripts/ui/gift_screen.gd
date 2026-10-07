@@ -61,7 +61,7 @@ const SCENES := {
 	&"shifting_mist": [".......\n.......\nSPPPPPH\n.......\n.......", "...S...\n...P...\n...PPPH\n.......\n.......", {},
 		"The start mist moves; they come a new way."],
 	&"waking_root": [".......\n...a...\nSPPPPPH\n.......\n.......", ".......\n...W...\nSPPPPPH\n.......\n.......",
-		{"text": "-1 Dreamlight"}, "The next form you unlock costs less."],
+		{"text": UiStyle.DREAMLIGHT_GLYPH + "-1"}, "The next form you unlock costs less."],
 	&"memory_seed": [".......\n.a.....\nSPPPPPH\n.......\n.......", ".......\n.....W.\nSPPPPPH\n.......\n.......",
 		{"text": "keeps its ranks"}, "Move a Warden this act: it keeps its ranks and kin."],
 }

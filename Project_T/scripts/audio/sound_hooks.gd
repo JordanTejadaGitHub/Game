@@ -1136,7 +1136,7 @@ func _play_win() -> void:
 # trigger when a card's name pops over a nightmare (CombatCallouts `card_called`, once per card per gap).
 func _hook_dream_cards(node: Node) -> void:
 	for pair in [["card_flipped", _on_dream_card_flipped], ["card_chosen", _on_dream_card_chosen],
-			["card_called", _on_dream_card_called], ["signature_discovered", _on_signature_discovered]]:
+			["card_called", _on_dream_card_called], ["signature_discovered", _on_signature_discovered], ["piece_placed", _on_gift_piece_placed]]:
 		if node.has_signal(pair[0]) and not node.is_connected(pair[0], pair[1]):
 			node.connect(pair[0], pair[1])
 
@@ -1176,3 +1176,8 @@ func _on_dream_card_called(card_id: String, at: Vector2) -> void:
 # A rank V signature firing for the first time on this profile (CombatCallouts, d097e055): a discovery chime.
 func _on_signature_discovered(_id: StringName, _tower: Node2D = null) -> void:
 	sound.play(&"discover_signature", null, -4.0, 1.0, 0.0, &"UI")
+
+# A Heartwood gift piece placed (GiftScreen piece_placed, world position): the same planting as a Warden.
+# A refused gift click comes through TowerPlacer.build_rejected like any refused build.
+func _on_gift_piece_placed(at: Vector2) -> void:
+	sound.play(&"plant", at)

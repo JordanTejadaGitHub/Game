@@ -80,8 +80,16 @@ static func _effect(main: Node, placement: Dictionary, id: StringName) -> void:
 		return
 	var run_state := main.get_node_or_null("%RunState")
 	var tended: Array = run_state.tended_cells if run_state != null else []
-	map_generator.gifts.apply(id, HeartwoodGifts.cells_of(placement), HeartwoodGifts.cells_of(placement, "from"),
-		bool(placement.get("restoring", false)), int(placement.get("tended_before", -1)), tended)
+	# Half cells (heartwood_gifts.md 2554c638): "pieces" are Warden-style half origins (a 2×2 each; key = origin / 2,
+	# x.5 when half-offset), "from" the obstacles Shift the Stones picked up (their keys × 2), "halves" the route
+	# halves Mire / Heartwood Roots picked. An older placement has whole "cells" (and whole-cell "from").
+	var keys: Array[Vector2] = HeartwoodGifts.cells_of(placement)
+	var from: Array[Vector2] = HeartwoodGifts.cells_of(placement, "from")
+	if placement.has("pieces"):
+		keys.assign(HeartwoodGifts.cells_of(placement, "pieces").map(func(p: Vector2) -> Vector2: return p / 2.0))
+		from.assign(from.map(func(p: Vector2) -> Vector2: return p / 2.0))
+	map_generator.gifts.apply(id, keys, from, bool(placement.get("restoring", false)), int(placement.get("tended_before", -1)),
+		tended, HeartwoodGifts.cells_of(placement, "halves"))
 
 func _ready() -> void:
 	z_index = -1  # Ground overlays: over the path (added after it), under everything standing
@@ -104,6 +112,20 @@ func roots_cells() -> Array[Vector2]:
 		if cells.size() >= ROOTS_CELLS:
 			break
 	return cells
+
+# The route halves Heartwood Roots grows over by default: the last ROOTS_CELLS × 2 of the route before the Heartwood.
+func roots_halves() -> Array[Vector2]:
+	var halves: Array[Vector2] = []
+	var route: PackedVector2Array = map.get_path_from(map.startPath)
+	for i in range(route.size() - 1, 0, -1):
+		var h := Vector2(FindPath.point_to_node(route[i]))
+		var cell := (h / 2.0).floor()
+		if cell == map.endPath or cell == map.startPath or halves.has(h):
+			continue
+		halves.append(h)
+		if halves.size() >= ROOTS_CELLS * 2:
+			break
+	return halves
 
 # Shifting Mist: up to `count` rim cells the start could move to (MapLayout's rules: on the rim, not by a
 # corner, far enough from the Heartwood, a route from it with today's Wardens: they never rule a spot out on their own), spread
@@ -181,8 +203,10 @@ func route_from_start(spot: Vector2) -> PackedVector2Array:
 # `restoring`: rebuilding a resumed run on the regenerated map. Obstacles a gift put down and the player
 # tended later stay gone: `tended` (RunState.tended_cells) from index `tended_before` (the count when the
 # gift was taken; -1 = unknown, any tending of the cell counts).
+# `cells` are piece positions in full-cell units (x.5 when half-offset: a 2×2 of halves from cell × 2); `halves` the
+# route halves Mire / Heartwood Roots picked (else their whole `cells`' halves).
 func apply(gift: StringName, cells: Array[Vector2], from: Array[Vector2] = [], restoring := false,
-		tended_before := -1, tended: Array = []) -> void:
+		tended_before := -1, tended: Array = [], halves: Array[Vector2] = []) -> void:
 	var tended_later := func(cell: Vector2) -> bool:
 		return restoring and tended.slice(maxi(tended_before, 0)).has(cell)
 	match gift:
@@ -200,7 +224,7 @@ func apply(gift: StringName, cells: Array[Vector2], from: Array[Vector2] = [], r
 			for i in mini(from.size(), cells.size()):
 				_move_obstacle(from[i], cells[i], tended_later.call(cells[i]))
 		MIRE:
-			bog_cells.append_array(cells)
+			bog_cells.append_array(_halves_for(halves, cells))
 		SPRING:
 			spring_cells.append_array(cells)
 			_block(cells)
@@ -220,7 +244,7 @@ func apply(gift: StringName, cells: Array[Vector2], from: Array[Vector2] = [], r
 		ANCIENT_STUMP:
 			stumps.append_array(cells)
 		HEARTWOOD_ROOTS:
-			root_cells.append_array(cells if not cells.is_empty() else roots_cells())
+			root_cells.append_array(_halves_for(halves, cells) if not (halves.is_empty() and cells.is_empty()) else roots_halves())
 		SHIFTING_MIST:  # Replayed on a resume: the regenerated map starts at the old start again
 			if not cells.is_empty():
 				map.move_start(cells[0])
@@ -230,11 +254,75 @@ func apply(gift: StringName, cells: Array[Vector2], from: Array[Vector2] = [], r
 	queue_redraw()
 	gifts_changed.emit()
 
-func is_bog(cell: Vector2) -> bool:
-	return bog_cells.has(cell)
+# Mire / Roots halves: the picked route halves (route points → their half), or a whole cell's 4 (older placements).
+func _halves_for(points: Array[Vector2], cells: Array[Vector2]) -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	for p in points:  # Route points (x.25 / x.75) are turned into their half; whole numbers are taken as halves already
+		out.append(p if FindPath.is_whole_cell(p) else Vector2(FindPath.point_to_node(p)))
+	if points.is_empty():
+		for cell in cells:
+			out.append_array(FindPath.halves_of_cell(cell))
+	return out
 
-func is_rooted(cell: Vector2) -> bool:
-	return root_cells.has(cell)
+# A whole cell: any of its halves is bog; a route point (x.25 / x.75): its own half.
+func is_bog(point: Vector2) -> bool:
+	return _covers(bog_cells, point)
+
+func is_rooted(point: Vector2) -> bool:
+	return _covers(root_cells, point)
+
+func _covers(halves: Array[Vector2], point: Vector2) -> bool:
+	if FindPath.is_whole_cell(point):
+		return FindPath.halves_of_cell(point).any(func(h: Vector2) -> bool: return halves.has(h))
+	return halves.has(Vector2(FindPath.point_to_node(point)))
+
+# --- Placing pieces (GiftPlacer, Main's gift_screen.gd; heartwood_gifts.md 2554c638) ---------------------------
+# A piece is a Warden's footprint: the 2×2 halves from half origin `origin`.
+static func piece_halves(origin: Vector2) -> Array[Vector2]:
+	return FindPath.halves_of(origin)
+
+const BLOCKING_GIFTS: Array[StringName] = [SOW_RIDGE, FALLEN_GIANT, SHIFT_STONES, SPRING, LIGHTNING_TREE, MOONWELL, BELL_STONE]
+const ROUTE_GIFTS: Array[StringName] = [MIRE, HEARTWOOD_ROOTS]
+var _refusal := &""
+
+# Whether `gift` can go on `pieces` (half origins; Mire / Roots: route halves). Every half free and off the glade
+# (not the start or Heartwood), and a blocking gift leaves every nightmare a way through, like a Warden. Mire / Roots:
+# every half on the drawn route. The gift's own shape rules (a line, connected, in pieces) are GiftPlacer's.
+func can_place(gift: StringName, pieces: Array) -> bool:
+	_refusal = &""
+	if ROUTE_GIFTS.has(gift):
+		var route: Dictionary = map.path_layer.path_halves()
+		for h: Vector2 in pieces:
+			if not route.has(Vector2i(h)):
+				_refusal = &"off_route"
+				return false
+		return true
+	var halves: Array[Vector2] = []
+	var glade: PackedVector2Array = map.get_glade_cells()
+	for origin: Vector2 in pieces:
+		for h in piece_halves(origin):
+			if not map.is_buildable_half(h) or glade.has((h / 2.0).floor()) or halves.has(h):
+				_refusal = &"occupied"
+				return false
+			halves.append(h)
+	if BLOCKING_GIFTS.has(gift) and not map.can_block_halves(halves, _walker_points()):
+		_refusal = &"closes"
+		return false
+	return true
+
+# Why the last can_place() said no: &"occupied", &"closes" or &"off_route" (&"" after a yes).
+func refusal() -> StringName:
+	return _refusal
+
+func _walker_points() -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var spawner: Node = map.get_node_or_null("%EnemyContainer")
+	if spawner != null and spawner.has_method("get_maze_walkers"):
+		for enemy in spawner.get_maze_walkers():
+			var target: Vector2 = enemy.get_target_cell()
+			if map.has_route_from(target):
+				points.append(target)
+	return points
 
 func lightning_trees() -> Array[Vector2]:
 	var cells: Array[Vector2] = []
@@ -264,12 +352,12 @@ func _process(delta: float) -> void:
 	if spawner == null:
 		return
 	for enemy in spawner.get_enemies():
-		var cell: Vector2 = enemy.get_current_cell()
+		var half := Vector2(FindPath.point_to_node(enemy.get_route_point()))  # The half its body is on
 		var s: EnemyStatuses = enemy.statuses
-		if bog_cells.has(cell) and not enemy.is_flying():  # Flyers pass over the bog
+		if bog_cells.has(half) and not enemy.is_flying():  # Flyers pass over the bog
 			s.slow_time = maxf(s.slow_time, TICK * 1.6)
 			s.slow_amount = maxf(s.slow_amount if s.slow_time > 0.0 else 0.0, MIRE_SLOW)
-		if root_cells.has(cell):
+		if root_cells.has(half):
 			s.ground_taken = ROOTS_TAKEN
 			s.ground_taken_time = maxf(s.ground_taken_time, TICK * 1.6)
 
@@ -280,9 +368,9 @@ func _put_obstacle(cell: Vector2, kind: String, tile: Vector2i) -> void:
 		map._remove_obstacle(cell, false)
 	var data := _data_for(kind)
 	map.place_obstacle(cell, data)
-	if kind != "lightning":  # place_obstacle picked a random tile: use ours (moves keep their look)
+	if kind != "lightning" and FindPath.is_whole_cell(cell):  # place_obstacle picked a random tile: use ours (moves keep their look)
 		map.environment_object_layer.set_cell(Vector2i(cell), data.source_id, tile)
-	gift_obstacles[cell] = [kind, tile]
+	gift_obstacles[cell] = [kind, tile]  # Half-offset ones are drawn by a GiftProp (_rebuild_props)
 
 # Moves the tree / stone on `from` to `to` (not a clear: nothing tended). `gone`: restoring, and the
 # player tended it on `to` since.
@@ -291,7 +379,8 @@ func _move_obstacle(from: Vector2, to: Vector2, gone: bool) -> void:
 	if data == null:
 		return  # Restoring: already tended away before the move? (the move needs it: nothing to do)
 	var kind := "rock" if data.source_id == ROCK_DATA.source_id else "tree"
-	var tile: Vector2i = map.environment_object_layer.get_cell_atlas_coords(Vector2i(from))
+	var tile: Vector2i = gift_obstacles[from][1] if gift_obstacles.has(from) \
+		else map.environment_object_layer.get_cell_atlas_coords(Vector2i(from))
 	gift_obstacles.erase(from)
 	map._remove_obstacle(from, false)
 	if not gone:
@@ -307,12 +396,15 @@ func _clear(cell: Vector2, restoring: bool) -> void:
 		map.clear_obstacle(cell)
 
 func _block(cells: Array[Vector2]) -> void:
-	for cell in cells:
+	for cell in cells:  # Its 2×2 halves (x.5 keys: a half-offset piece)
 		map.path_layer.set_cell_blocked(cell, true)
-		map.environment_object_layer.erase_cell(Vector2i(cell))
+		if FindPath.is_whole_cell(cell):
+			map.environment_object_layer.erase_cell(Vector2i(cell))
 
 func _draw_spring() -> void:
-	for cell in spring_cells:  # Pond tiles by neighbour mask, banks facing the land
+	for cell in spring_cells:  # Pond tiles by neighbour mask, banks facing the land (half-offset pieces: _draw)
+		if not FindPath.is_whole_cell(cell):
+			continue
 		map.environment_object_layer.set_cell(Vector2i(cell), EnvironmentTiles.POND,
 			Vector2i(_mask(cell, func(c: Vector2) -> bool: return spring_cells.has(c)), 0))
 
@@ -377,25 +469,22 @@ func frame_region(sheet: String, column: int) -> Rect2:
 
 func _draw() -> void:
 	var cell_size := Vector2(MAP_GRID.cell_size)
-	var path_cells: PackedVector2Array = map.path_layer.current_path
-	for cell in bog_cells if not has_dual("bog") else []:
-		var at := MAP_GRID.calculate_map_position(cell) - cell_size / 2.0
-		if _sheets.has("bog_path"):
-			var mask := _mask(cell, func(c: Vector2) -> bool: return path_cells.has(c) or bog_cells.has(c))
-			draw_texture_rect_region(_sheets.bog_path, Rect2(at, cell_size), frame_region("bog_path", mask))
-		else:  # Placeholder: dark peat with two puddles
-			draw_rect(Rect2(at + Vector2(6, 6), cell_size - Vector2(12, 12)), Color(Palette.ROOT, 0.7))
-			draw_circle(at + Vector2(22, 26), 7.0, Palette.POOL)
-			draw_circle(at + Vector2(42, 40), 5.0, Palette.POOL)
-	for cell in root_cells if not has_dual("roots") else []:
-		var at := MAP_GRID.calculate_map_position(cell) - cell_size / 2.0
-		if _sheets.has("heartwood_roots"):
-			var mask := _mask(cell, func(c: Vector2) -> bool: return path_cells.has(c) or root_cells.has(c) or c == map.endPath)
-			draw_texture_rect_region(_sheets.heartwood_roots, Rect2(at, cell_size), frame_region("heartwood_roots", mask))
-		else:  # Placeholder: warm root lines across the cell
-			var c := at + cell_size / 2.0
-			draw_line(c + Vector2(-26, -10), c + Vector2(24, 12), Palette.OAK, 4.0)
-			draw_line(c + Vector2(-20, 16), c + Vector2(26, -14), Palette.BARK, 3.0)
+	var half_size := cell_size / 2.0
+	for h in bog_cells if not has_dual("bog") else []:  # Without the dual sheets: a placeholder per half
+		var at := h * half_size
+		draw_rect(Rect2(at + Vector2(3, 3), half_size - Vector2(6, 6)), Color(Palette.ROOT, 0.7))
+		draw_circle(at + half_size / 2.0, 5.0, Palette.POOL)
+	for h in root_cells if not has_dual("roots") else []:
+		var c := h * half_size + half_size / 2.0
+		draw_line(c + Vector2(-13, -5), c + Vector2(12, 6), Palette.OAK, 3.0)
+		draw_line(c + Vector2(-10, 8), c + Vector2(13, -7), Palette.BARK, 2.0)
+	for cell in spring_cells:  # A half-offset Spring piece: its pond tile drawn here (whole ones are object-layer tiles)
+		if FindPath.is_whole_cell(cell):
+			continue
+		var pond := map.tile_set.get_source(EnvironmentTiles.POND) as TileSetAtlasSource
+		var mask := _mask(cell, func(c: Vector2) -> bool: return spring_cells.has(c))
+		draw_texture_rect_region(pond.texture, Rect2(MAP_GRID.calculate_map_position(cell) - cell_size / 2.0, cell_size),
+			pond.get_tile_texture_region(Vector2i(mask, 0)))
 	for top in rings:
 		var at := MAP_GRID.calculate_map_position(top) - cell_size / 2.0
 		if _sheets.has("mushroom_ring"):
@@ -431,8 +520,14 @@ func _rebuild_props() -> void:
 		_add_prop("bell_stone", cell)
 	for cell in lightning_trees():
 		_add_prop("lightning_tree", cell)
+	for cell: Vector2 in gift_obstacles:  # Half-offset trees and stones: no tile of their own, a prop draws the tile art
+		var entry: Array = gift_obstacles[cell]
+		if entry[0] != "lightning" and not FindPath.is_whole_cell(cell):
+			var prop := _add_prop("tile", cell)
+			prop.source_id = (ROCK_DATA if entry[0] == "rock" else TREE_DATA).source_id
+			prop.tile = entry[1]
 
-func _add_prop(kind: String, cell: Vector2, line: Array = []) -> void:
+func _add_prop(kind: String, cell: Vector2, line: Array = []) -> GiftProp:
 	var prop := GiftProp.new()
 	prop.gifts = self
 	prop.kind = kind
@@ -441,6 +536,7 @@ func _add_prop(kind: String, cell: Vector2, line: Array = []) -> void:
 	prop.position = MAP_GRID.calculate_map_position(cell)
 	map.add_child(prop)
 	_props.append(prop)
+	return prop
 
 # Which fallen_log.png piece a Fallen Giant cell takes: its ends and middles along the line.
 static func _log_piece(cell: Vector2, line: Array) -> int:
@@ -457,8 +553,17 @@ class GiftProp extends Node2D:
 	var kind: String
 	var line: Array = []
 	var piece := -1  # A Fallen Giant cell's piece of fallen_log.png; -1 = the animation frame
+	var source_id := -1  # kind "tile": an object-layer tile drawn off the grid (a half-offset tree or stone)
+	var tile := Vector2i.ZERO
 
 	func _draw() -> void:
+		if kind == "tile":
+			var source := gifts.map.tile_set.get_source(source_id) as TileSetAtlasSource
+			if source != null and source.has_tile(tile):
+				var region := source.get_tile_texture_region(tile)
+				var size := Vector2(region.size)
+				draw_texture_rect_region(source.texture, Rect2(Vector2(-size.x / 2.0, 32.0 - size.y), size), region)  # Bottom on the piece
+			return
 		var sheet: Texture2D = gifts._sheets.get(kind)
 		if sheet != null:
 			var size := Vector2(MapGifts.ART[kind][0])
@@ -530,14 +635,13 @@ func _draw_duals() -> void:
 	for kind: String in _dual_layers:
 		var layer: TileMapLayer = _dual_layers[kind]
 		layer.clear()
-		var cells: Array[Vector2] = bog_cells if kind == "bog" else root_cells
-		if cells.is_empty():
+		var picked: Array[Vector2] = bog_cells if kind == "bog" else root_cells  # Halves
+		if picked.is_empty():
 			continue
 		var marked := {}
-		for cell in cells:
-			for h in FindPath.halves_of_cell(cell):
-				if halves.has(Vector2i(h)):
-					marked[Vector2i(h)] = true
+		for h in picked:
+			if halves.has(Vector2i(h)):
+				marked[Vector2i(h)] = true
 		var done := {}
 		for h: Vector2i in marked:  # Each marked path half is a corner of 4 display tiles
 			for dy in 2:
