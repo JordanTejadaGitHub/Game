@@ -70,6 +70,9 @@ var unwalkable_cells: PackedVector2Array
 # Cells that belong to a ridge (set of Vector2 -> true), so route carving can avoid breaking them.
 var ridge_cells: Dictionary = {}
 var bridge_end: Vector2i  # The void cell just past the rope bridge's far end
+# The island's rim and the cliffs under it (MapGenerator's RimLayer, z -1 like the ground): ground-level, so Warden
+# attack effects on the ground (Main, z -1, drawn after) show over them, while they still cover the void (z -10).
+var rim_layer: TileMapLayer
 var ridge_count := 0  # Ridges the last generate_obstacles() placed
 var bend_reach := 0  # Cells the last bend spur reached from its wall
 
@@ -521,7 +524,7 @@ func _generate_border(startPath: Vector2i, endPath: Vector2i) -> void:
 			if (x != 0 and y != 0 and x != last.x and y != last.y) or cell == startPath or cell == endPath:
 				continue
 			var variant := absi(hash(cell)) % maxi(variants, 1)
-			set_cell(cell, EnvironmentTiles.ISLAND_EDGE, Vector2i(EnvironmentTiles.rim_mask(cell, last + Vector2i.ONE), variant))
+			_rim().set_cell(cell, EnvironmentTiles.ISLAND_EDGE, Vector2i(EnvironmentTiles.rim_mask(cell, last + Vector2i.ONE), variant))
 			unwalkable_cells.append(Vector2(cell))
 
 # Cliff faces hanging under the island's bottom row.
@@ -530,7 +533,7 @@ func _generate_cliffs() -> void:
 	for x in size.x:
 		var cell := Vector2i(x, size.y)
 		var column := (1 if x > 0 else 0) | (2 if x < size.x - 1 else 0)
-		set_cell(cell, EnvironmentTiles.CLIFF, Vector2i(column, EnvironmentTiles.cell_variant(cell, 4)))
+		_rim().set_cell(cell, EnvironmentTiles.CLIFF, Vector2i(column, EnvironmentTiles.cell_variant(cell, 4)))
 
 # A rope bridge from the start cell straight out into the void, where the nightmares cross over.
 func _generate_bridge(startPath: Vector2i) -> void:
@@ -538,6 +541,7 @@ func _generate_bridge(startPath: Vector2i) -> void:
 	var tile := Vector2i(1, 0) if out.x == 0 else Vector2i(0, 0)  # North-south or east-west planks
 	for i in range(1, BRIDGE_CELLS + 1):
 		set_cell(startPath + out * i, EnvironmentTiles.ROPE_BRIDGE, tile)
+		_rim().erase_cell(startPath + out * i)  # No cliff face under the planks
 	bridge_end = startPath + out * (BRIDGE_CELLS + 1)
 
 # Shifting Mist (heartwood_gifts.md 0c552b28): the start moves to `new` on the rim. The old start turns back
@@ -549,14 +553,16 @@ func move_start(old: Vector2i, new: Vector2i) -> void:
 		var cell := old + out * i
 		erase_cell(cell)
 		if cell.y == size.y and cell.x >= 0 and cell.x < size.x:  # Under the bottom row: its cliff face again
-			set_cell(cell, EnvironmentTiles.CLIFF, Vector2i((1 if cell.x > 0 else 0) | (2 if cell.x < size.x - 1 else 0), EnvironmentTiles.cell_variant(cell, 4)))
+			_rim().set_cell(cell, EnvironmentTiles.CLIFF, Vector2i((1 if cell.x > 0 else 0) | (2 if cell.x < size.x - 1 else 0), EnvironmentTiles.cell_variant(cell, 4)))
 	var variants := (tile_set.get_source(EnvironmentTiles.ISLAND_EDGE) as TileSetAtlasSource).get_atlas_grid_size().y
-	set_cell(old, EnvironmentTiles.ISLAND_EDGE, Vector2i(EnvironmentTiles.rim_mask(old, size), absi(hash(old)) % maxi(variants, 1)))
+	_rim().set_cell(old, EnvironmentTiles.ISLAND_EDGE, Vector2i(EnvironmentTiles.rim_mask(old, size), absi(hash(old)) % maxi(variants, 1)))
+	erase_cell(old)  # The old start's mist
 	unwalkable_cells.append(Vector2(old))
 	var at := unwalkable_cells.find(Vector2(new))
 	if at >= 0:
 		unwalkable_cells.remove_at(at)
 	_start = new
+	_rim().erase_cell(new)  # The new start: no rim tile (the ground layer has its rim under the path)
 	_generate_bridge(new)
 	set_cell(new, EnvironmentTiles.EDGE_MIST, Vector2i.ZERO)
 
@@ -872,3 +878,6 @@ func top_up(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, route: D
 		skip.append(cell)
 	skip.append_array(PackedVector2Array(pond_cells))
 	return _fill_to_minimum(rng, skip, obstacles)
+
+func _rim() -> TileMapLayer:
+	return rim_layer if rim_layer != null else self

@@ -142,7 +142,7 @@ func _init() -> void:
 	_give(gifts, run_state, MapGifts.SHIFTING_MIST, shift)
 	_check(map.startPath == options[0] and map.get_path_from(map.startPath) == preview, "the start moves; the route is the preview")
 	_check(env.get_cell_source_id(Vector2i(options[0])) == EnvironmentTiles.EDGE_MIST
-		and env.get_cell_source_id(Vector2i(old_start)) == EnvironmentTiles.ISLAND_EDGE
+		and map.rim_layer.get_cell_source_id(Vector2i(old_start)) == EnvironmentTiles.ISLAND_EDGE and map.rim_layer.get_cell_source_id(Vector2i(options[0])) == -1
 		and map.path_layer.is_cell_blocked(old_start) and not map.path_layer.is_cell_blocked(options[0]),
 		"the mist and the way in move; the old start is rim again")
 	var out: Vector2i = env._outward(Vector2i(options[0]))

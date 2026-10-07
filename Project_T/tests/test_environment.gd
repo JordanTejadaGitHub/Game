@@ -28,16 +28,20 @@ func _init() -> void:
 	while Vector2(rim_cell) == map.startPath or Vector2(rim_cell) == map.endPath:
 		rim_cell.y += 1
 	_check(ground.get_cell_source_id(rim_cell) == -1, "no grass square under the island's rim")
-	_check(env.get_cell_source_id(rim_cell) == EnvironmentTiles.ISLAND_EDGE
-		and env.get_cell_atlas_coords(rim_cell).x == 1 | 2 | 4, "the left rim: island to the N, E and S")
-	_check(env.get_cell_atlas_coords(Vector2i(0, 0)).x == 2 | 4, "the top-left corner: island to the E and S")
+	_check(map.rim_layer.get_cell_source_id(rim_cell) == EnvironmentTiles.ISLAND_EDGE
+		and map.rim_layer.get_cell_atlas_coords(rim_cell).x == 1 | 2 | 4, "the left rim: island to the N, E and S")
+	_check(map.rim_layer.get_cell_atlas_coords(Vector2i(0, 0)).x == 2 | 4, "the top-left corner: island to the E and S")
+	# Ground-level, not y-sorted with the trees: a Warden's ground ring (Main, z -1, added later) draws over the rim
+	# and the cliffs, which still cover the void (z -10).
+	_check(map.rim_layer.z_index == -1 and map.rim_layer.z_index > map.dream_void.z_index and env.get_cell_source_id(rim_cell) == -1
+		and map.rim_layer.get_index() > map.path_layer.get_index(), "the rim is on its own ground-level layer, after the path")
 	var tree_sheet := map.tile_set.get_source(EnvironmentTiles.WITHERED_TREE) as TileSetAtlasSource
 	_check(tree_sheet.texture_region_size == Vector2i(96, 128) and tree_sheet.get_tiles_count() == 9
 		and tree_sheet.get_tile_data(Vector2i(0, 8), 0).texture_origin == Vector2i(0, 32),
 		"Withered Trees are 96x128, 9 kinds, bottom 64 px on their own cell")
 	var cliffs := 0  # Under the bottom row, except where a rope bridge crosses out over them
 	for x in range(1, size.x - 1):
-		if env.get_cell_source_id(Vector2i(x, size.y)) == EnvironmentTiles.CLIFF and env.get_cell_atlas_coords(Vector2i(x, size.y)).x == 3:
+		if map.rim_layer.get_cell_source_id(Vector2i(x, size.y)) == EnvironmentTiles.CLIFF and map.rim_layer.get_cell_atlas_coords(Vector2i(x, size.y)).x == 3:
 			cliffs += 1
 	_check(cliffs >= size.x - 3, "cliffs hang under the bottom row (%d)" % cliffs)
 	var out: Vector2i = env._outward(Vector2i(map.startPath))
