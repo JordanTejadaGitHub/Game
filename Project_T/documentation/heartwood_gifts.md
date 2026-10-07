@@ -20,6 +20,11 @@ Owner: design hub (story chat). Replaces the per-rest "rest choices" (Rest / Ten
   drops the placement and returns to the three gift cards, with nothing spent. **Plant it** commits: the gift is
   placed and taken, and there's no going back to the choice. Plant it stays greyed until the placement is valid
   (enough pieces, route open).
+  **Length feedback** (user, 2026-10-07: "no feedback on the log when it's past the limit"): for line and chain
+  gifts, the ghost shows the pieces that fit as valid, plus a red "too far" stretch from the last fitting piece
+  to the pointer. A tag at the pointer reads the count against the limit ("4 / 4 · max"; "1 / 2 · 1 more" when
+  too short). A click past the limit plants up to the max, it isn't refused. A refused piece (blocked, closes
+  the route) is red on its own cell, with the reason in the tag.
   **Half cells, like Wardens** (user, 2026-10-07: "should be going by half a cells like wardens"): every placed
   piece (a tree, a log segment, a stone, a stump, a pond, a well) takes a Warden's footprint (2×2 halves) and snaps
   to the half grid with the same ghost and grid lines as Warden placement; a piece one half off a Warden is fine as
