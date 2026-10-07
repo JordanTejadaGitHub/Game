@@ -881,7 +881,12 @@ twist fix.
 bot-tuned F (act 2 to ~⅓) is dropped: a skilled human cleared the live act 2 at full leaves while the bot clears it 0–3%.
 **Boss bite stays flat at 10.** Only cliffs get fixed (finale elites / health, tested as relative effects). The bot's
 absolute act 1–2 numbers are no longer targets (A/B only); the demo targets below are judged on human runs. The demo_*
-exports go. Act 3: the ramp exports stay at their no-change defaults.
+exports go (removed in 5012e304). Act 3: the ramp exports stay at their no-change defaults.
+**Island edge B (environment_assets.md 9329b7a5, +74 rim cells):** new rim cells filled at the frame band's density (≈ +12–18
+obstacles); sim relative to main on the same seeds: act 1 within ±10, d1–5 leaks no worse, route at 10 ≤ ~15% longer.
+**Husk resists stone (Enemy Assets 12a47530):** rolled drifts stay ≤ 40% stone-resisted (roller cap). Hand-made: drift 6 (intro)
+→ 3 Husks + 4 Shades (69% Husk, 900 → 1,300 hp; the ease-in cap unchanged); drift 25's escorts → ≤ 40% stone-resisted, same
+total health, for all three act 1 bosses (Enemy Code).
 
 ## One curve (user, 2026-10-06: "shouldn't it be the same?")
 

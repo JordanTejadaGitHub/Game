@@ -43,6 +43,7 @@ var lighting: EnvironmentLighting  # Cold edges, warm Warden lights
 var ambience: EnvironmentAmbience  # Edge fog and the act's particles
 var ground_patches: GroundPatches  # Ground variation (environment_assets.md "Ground variation")
 var tree_fade: TallObstacleFade  # Withered Trees fade their overhang over what's behind them
+var rim_layer: TileMapLayer  # The island's rim and the cliffs under it (ground-level, z -1)
 var gifts: MapGifts  # Heartwood's Gifts: terrain the act-break gifts leave (map_gifts.gd)
 var _route_hold := 0  # hold_route() depth
 var _route_dirty := false  # A block changed while held: redraw at release_route()
@@ -77,6 +78,15 @@ func _ready() -> void:
 	# path), on the ground layer since the object layer draws over the path. The Heartwood is inland.
 	ground_layer.set_cell(Vector2i(startPath), EnvironmentTiles.ISLAND_EDGE,
 		Vector2i(EnvironmentTiles.rim_mask(Vector2i(startPath), Vector2i(MAP_GRID.size)), 0))
+	# The rim and the cliffs: ground-level (z -1, after the path), not on the y-sorted object layer, so a Warden's
+	# ground ring by the border draws over them (user 2026-10-07: "the ring attack gets blocked by the outer edges").
+	rim_layer = TileMapLayer.new()
+	rim_layer.name = "RimLayer"
+	rim_layer.tile_set = tile_set
+	rim_layer.z_index = -1
+	add_child(rim_layer)
+	move_child(rim_layer, path_layer.get_index() + 1)
+	environment_object_layer.rim_layer = rim_layer
 	unwalkable_cells = environment_object_layer.initialize(startPath, endPath)
 	path_layer.initialize(get_array_board(), startPath, endPath)
 
