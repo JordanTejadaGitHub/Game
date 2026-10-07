@@ -10,6 +10,6 @@ description = "At every {rest}, the attacking Warden nearest the Heartwood gains
 tip = "The free rank repeats that Warden's last rank choice (Power if it has none). If it's at max rank, the next-nearest gets it."
 rarity = 1
 kind = 3
-tags = Array[String](["nurture", "tall"])
+tags = Array[String](["nurture", "tall", "defining"])
 max_stacks = 1
 rule_id = &"sunlit_rest"
