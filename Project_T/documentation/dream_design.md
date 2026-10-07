@@ -2099,6 +2099,7 @@ the player didn't build correctly"* and *"we also shouldn't always offer legenda
   build one; offers don't rescue it. The chase ceiling (30% by 50 / 50% by 75) stays.
 - Balancing Code measures card variety, run-to-run overlap and Legendaries per run after the
   build, for information.
+- **Built:** 277cdbfe (boss rests: one unowned defining card, Rare+ at next-act weights; test_dreams sees a Legendary in ~45–50% of boss offers). Helpers 286–303 are all live: Roguelite 90ab8a34 / 525fc749, Tower Code 5eacc2a0 / 6e2a494a.
 
 ## More helper cards: 6 per archetype (2026-10-07)
 
