@@ -1310,7 +1310,11 @@ Gifts: mostly passed; Heartwood Roots the most taken.
 **Act 3 ramp batch (finals-first, warm-up to 51, last 76, half / full, 20 per arm):** clears of 60 / 75: control 5 / 0, start
 2.4 10–20 / 0, start 3.6 15–20 / 0–5. **41 of 120 die inside drift 51** (22 of 40 on the controls), 9–10 leaves gone in one drift.
 Drift 51 is 30 Shades + 10 Husks + 6 hedgehogs + 2 Lantern Bearers at 0.625 s spacing (~60 with the extras): a swarm at the
-×6 jump. A drift 51 trace (content vs entry multiplier vs bot) comes before any ramp numbers.
+×6 jump. A drift 51 trace (content vs entry multiplier vs bot) comes before any ramp numbers. **Correction:** "survived" counts
+cleared drifts, so those death drifts are too early. Trace: drift 51 content is rolled per seed; 8 of 10 runs leak nothing
+in 51, but the field piles up (25–60 alive) and carries over; the only direct leakers are fast Dandelion flyers. Control
+and start 2.4 look alike, and the bot's ranks at 51 are ≈ 0: likely a DPS-short bot board, not the multiplier. Rerun to 60
+with damage vs health per drift.
 
 ## Overlap-audit reworks, power check (2026-10-05, dream_design.md e1e39b56; dream_audit.md budgets)
 
