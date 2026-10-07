@@ -52,7 +52,8 @@ func _initialize() -> void:
 	var share := "%d%%" % roundi((load("res://resource/tower/graftling.tres") as TowerData).copy_share * 100.0)
 	_check(IconInfo.format(graft.description).contains("at " + share), "Graftling's card reads copy_share (%s): \"%s\"" % [share, IconInfo.format(graft.description)])
 	var acorn: UpgradeData = load("res://resource/dream/dream_acorn.tres")
-	_check(IconInfo.format(acorn.description).contains("(15 Dew)") or IconInfo.format(acorn.description).contains("(%d Dew)" % (load("res://resource/tower/acorn.tres") as TowerData).evolve_cost),
+	var acorn_text := IconInfo.format(acorn.description).replace(IconInfo.NBSP, " ")  # (Numbers keep their units with a non-breaking space)
+	_check(acorn_text.contains("(15 Dew)") or acorn_text.contains("(%d Dew)" % (load("res://resource/tower/acorn.tres") as TowerData).evolve_cost),
 		"the price tokens read the Warden (\"%s\")" % IconInfo.format(acorn.description))
 	# {pct:warden.field} reads the Warden's share field (Beacon's Mark, Grafted Elder's copy), so the text can't drift
 	var beacon: UpgradeData = load("res://resource/dream/dream_beacon.tres")

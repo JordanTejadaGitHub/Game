@@ -256,7 +256,7 @@ static func the_name(name: String, start := false) -> String:
 # Charged", "each {block}" -> "each block". Unknown tokens stay as they are.
 static func format(text: String) -> String:
 	if not text.contains("{"):
-		return text
+		return keep_units(text)
 	for id in STATUSES:
 		text = text.replace("{%s}" % id, STATUSES[id][0])
 	for token in term_tokens():
@@ -286,7 +286,7 @@ static func format(text: String) -> String:
 	if text.contains("{field:"):  # Any Warden number: "{field:thunderhead.storm_every}", "{field:graftling.copy_share:pct}"
 		for found in _field_pattern().search_all(text):
 			text = text.replace(found.get_string(), field_text(found.get_string(1), found.get_string(2), found.get_string(3)))
-	return text
+	return keep_units(text)
 
 # "{pct:beacon.marked_bonus}" -> "50%": TowerData field `field` of Warden `warden_id`, × 100 ("full strength" at 1.0).
 static func pct_text(warden_id: String, field: String) -> String:
@@ -390,6 +390,18 @@ static func _combo_pattern() -> RegEx:
 
 # Family names as links (screens_ui.md "remove Half-dreamed"): "{family:dewdrop}" is the family's
 # name, a link (StatusLinks) whose popup is its emblem, damage type and identity.
+# A number and its unit never split across lines (user, Groundroot's panel: "every 3" / "s"): the space between them
+# becomes a non-breaking one ("3 s", "3.5 cells", "+0.3 link", "×1.5 range"). format() runs every text through it.
+const NBSP := " "  # Non-breaking space
+static var _unit_pattern: RegEx = null
+
+static func keep_units(text: String) -> String:
+	if _unit_pattern == null:
+		UiStyle.release_at_exit(func() -> void: _unit_pattern = null)
+		_unit_pattern = RegEx.create_from_string(
+			"(\\d%?) (s|sec|seconds?|cells?|tiles?|link|range|Dew|drifts?|Seeds?|leaf|leaves|Dreamlight|stacks?|ranks?|nightmares?|Wardens?|hits?|times?|damage|%)(?![A-Za-z])")
+	return _unit_pattern.sub(text, "$1" + NBSP + "$2", true)
+
 static var _family_pattern: RegEx = null
 static func family_pattern() -> RegEx:
 	if _family_pattern == null:
