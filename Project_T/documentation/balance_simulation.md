@@ -875,6 +875,14 @@ rest bonus ×2 = that rest bonus; pot multipliers = the multiplier × the block'
 stays; "facing every rest loses more leaves than picking moments" re-checked after. Free-money Omens and run-killers get a
 twist fix.
 
+## Curve decision (user, 2026-10-07, after human run 23)
+
+**Keep today's acts 1–2 curve** (act 1 → ×1.2, act 2 ×2.0 → 3.45 → 4.5), one curve for the demo and the full game; the
+bot-tuned F (act 2 to ~⅓) is dropped: a skilled human cleared the live act 2 at full leaves while the bot clears it 0–3%.
+**Boss bite stays flat at 10.** Only cliffs get fixed (finale elites / health, tested as relative effects). The bot's
+absolute act 1–2 numbers are no longer targets (A/B only); the demo targets below are judged on human runs. The demo_*
+exports go. Act 3: the ramp exports stay at their no-change defaults.
+
 ## One curve (user, 2026-10-06: "shouldn't it be the same?")
 
 The demo and a fresh full-game run share acts 1–2: **no demo-only multipliers**. The full game's fresh-profile acts 1–2
