@@ -182,6 +182,7 @@ func _init() -> void:
 	again.queue_free()
 	await process_frame
 	await _half_pieces_case()
+	await _half_log_case()
 	print("test_map_gifts: %d failure(s)" % failures)
 	quit(failures)
 
@@ -245,6 +246,56 @@ func _half_pieces_case() -> void:
 		gifts._process(0.01)
 		_check(walker.statuses.slow_amount >= MapGifts.MIRE_SLOW, "a nightmare on a bog half is slowed")
 	main.free()
+	await process_frame
+
+# A Fallen Giant at a half offset (user 2026-10-07: "doesn't plant half cells and the image disappears"): a line of
+# three pieces at odd origins, as GiftPlacer's placement hands it over. Its halves block, every piece is drawn (W end,
+# middle, E end of fallen_log.png at the piece's centre), and a save (plain arrays through JSON, as RunSaver writes
+# it) replayed on a fresh map rebuilds the same log.
+func _half_log_case() -> void:
+	var main := await _make_main()
+	var map = main.get_node("%MapGenerator")
+	var gifts: MapGifts = map.gifts
+	var pieces: Array = []
+	for y in range(3, 30, 2):
+		for x in range(3, 36, 2):
+			var line := [Vector2(x, y), Vector2(x + 2, y), Vector2(x + 4, y)]
+			if gifts.can_place(MapGifts.FALLEN_GIANT, line):
+				pieces = line
+				break
+		if not pieces.is_empty():
+			break
+	_check(not pieces.is_empty(), "room for a half-offset log")
+	if pieces.is_empty():
+		main.free()
+		return
+	var placement := {"pieces": pieces, "cells": pieces.map(func(p: Vector2) -> Vector2: return p / 2.0)}
+	MapGifts._effect(main, placement, MapGifts.FALLEN_GIANT)
+	var keys: Array = pieces.map(func(p: Vector2) -> Vector2: return p / 2.0)
+	_check(gifts.logs.size() == 1 and gifts.logs[0] == keys and keys.all(func(k: Vector2) -> bool: return not FindPath.is_whole_cell(k)),
+		"the log keeps its half-offset pieces (%s)" % [gifts.logs])
+	var halves: Array[Vector2] = []
+	for p in pieces:
+		halves.append_array(MapGifts.piece_halves(p))
+	_check(halves.all(func(h: Vector2) -> bool: return map.path_layer.is_half_blocked(h)), "the log blocks all %d halves" % halves.size())
+	_check(not map.get_path_from(map.startPath).is_empty(), "the way stays open around it")
+	var log_props: Array = gifts._props.filter(func(p: Node) -> bool: return p.kind == "fallen_log")
+	var centres: Array = keys.map(func(k: Vector2) -> Vector2: return map.MAP_GRID.calculate_map_position(k))
+	_check(log_props.size() == 3 and log_props.all(func(p: Node) -> bool: return centres.has(p.position) and p.is_inside_tree() and p.visible),
+		"a prop draws each piece at its centre (%d)" % log_props.size())
+	_check(log_props.map(func(p: Node) -> int: return p.piece) == [0, 1, 2], "W end, middle, E end")
+	_check(gifts._sheets.has("fallen_log"), "from the act's fallen_log.png (not the placeholder)")
+	var saved = JSON.parse_string(JSON.stringify(HeartwoodGifts._plain(placement)))
+	main.free()
+	await process_frame
+	var again := await _make_main()
+	var map2 = again.get_node("%MapGenerator")
+	saved["restoring"] = true
+	MapGifts._effect(again, saved, MapGifts.FALLEN_GIANT)
+	_check(map2.gifts.logs.size() == 1 and map2.gifts.logs[0] == keys, "resumed: the same half-offset log (%s)" % [map2.gifts.logs])
+	_check(halves.all(func(h: Vector2) -> bool: return map2.path_layer.is_half_blocked(h)), "resumed: its halves still block")
+	_check(map2.gifts._props.filter(func(p: Node) -> bool: return p.kind == "fallen_log").size() == 3, "resumed: still drawn")
+	again.free()
 	await process_frame
 
 # As HeartwoodGifts.choose does: apply now, remember what to replay.
