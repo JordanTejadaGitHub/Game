@@ -973,7 +973,9 @@ cliff to fix**, so the finale values stay. Human deaths spread over 30–50 too 
 **Island edge B (environment_assets.md 9329b7a5, +74 rim cells):** new rim cells filled at the frame band's density (≈ +12–18
 obstacles); sim relative to main on the same seeds: act 1 within ±10, d1–5 leaks no worse, route at 10 ≤ ~15% longer. **A/B
 (efadcbfb vs 97be1554, 30 seeds):** act 1 default 56 → 40%, spender 56 → 30%; d1–5 Shade leaks ~4×; route unchanged. **No-go**;
-the route's first stretch / opening cells are the suspect; Environment Code diffing the layouts.
+the route's first stretch / opening cells are the suspect. **Cause found:** the opening ran along the open outer row on
+18 of 30 seeds (one-sided Warden spots). Fixed in 8ae842a1 (route picked with the ring shut, shortcuts closed, an edge
+tie-break); rerun queued.
 **Husk resists stone (Enemy Assets 12a47530):** rolled drifts stay ≤ 40% stone-resisted (roller cap). Hand-made: drift 6 (intro)
 → 3 Husks + 4 Shades (69% Husk, 900 → 1,300 hp; the ease-in cap unchanged); drift 25's escorts → ≤ 40% stone-resisted, same
 total health, for all three act 1 bosses. In fb11f4e4: drift 6 spacing 2.5 → 1.5 s (~9 s); Stag escorts 4 Husks + 18 Shades
