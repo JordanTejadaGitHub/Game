@@ -314,6 +314,20 @@ static func _spaced(key: String, file: String) -> Font:
 		_fonts[key] = font
 	return _fonts[key]
 
+# `font` with the resource glyphs as its fallback (cached per font), for text drawn outside the theme: the world tags
+# (WorldLabel.draw_tag) draw "+15" Dew popups and map prices with the engine's fallback font.
+static func with_glyphs(font: Font) -> Font:
+	var glyphs := glyph_font()
+	if glyphs == null or font == null:
+		return font
+	var key := "glyphs:%d" % font.get_instance_id()
+	if not _fonts.has(key):
+		var variation := FontVariation.new()
+		variation.base_font = font
+		variation.fallbacks = [glyphs]
+		_fonts[key] = variation
+	return _fonts[key]
+
 # The resource glyph font (DEW_GLYPH…), or null before tools/ui_glyph_font_generator.gd has made it.
 static func glyph_font() -> Font:
 	if not _fonts.has("glyphs"):

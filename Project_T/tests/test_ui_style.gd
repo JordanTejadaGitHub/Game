@@ -72,6 +72,9 @@ func _initialize() -> void:
 		"amounts are the glyph, then the number")
 	_check(IconInfo.format("Costs {dew:15}, pays {seeds:+30} and {dreamlight:2}") == "Costs %s, pays %s and %s"
 		% [UiStyle.dew_amount(15), UiStyle.seeds_amount(30, true), UiStyle.dreamlight_amount(2)], "{dew:N} tokens format to amounts")
+	var world_font := UiStyle.with_glyphs(ThemeDB.fallback_font)
+	_check(world_font.get_string_size(UiStyle.DEW_GLYPH, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x > 4.0
+		and world_font == UiStyle.with_glyphs(ThemeDB.fallback_font), "world tags (WorldLabel) draw the glyphs, one cached font")
 	# Key hints follow InputMode (phones, a PC touchscreen, or the Touch setting): no chip, no " (Enter)".
 	InputMode.force = 1
 	var touch_chip := UiStyle.key_chip("Q")

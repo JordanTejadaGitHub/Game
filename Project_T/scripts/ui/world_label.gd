@@ -69,7 +69,7 @@ static func covered(canvas: CanvasItem, local_rect: Rect2) -> bool:
 
 static func draw_tag(canvas: CanvasItem, center_x: float, baseline_y: float, text: String,
 		color: Color = AFFORDABLE_COLOR) -> void:
-	var font := ThemeDB.fallback_font
+	var font := UiStyle.with_glyphs(ThemeDB.fallback_font)  # UiStyle.dew_amount's icon draws in world tags too
 	var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE)
 	var origin := Vector2(center_x - size.x / 2, baseline_y)
 	var s := text_scale(canvas)
