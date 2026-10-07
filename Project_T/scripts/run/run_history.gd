@@ -415,7 +415,7 @@ func _on_damage(event: DamageLog.Event) -> void:
 	var row := _row_for(event.enemy)
 	if not row.is_empty():
 		# Effective damage only (Balancing, run 24: overkill made damage 2–4× health_spawned); the rest in "overkill".
-		var over := clampf(event.overkill, 0.0, event.amount)
+		var over := event.amount * (1.0 - DamageLog.effective_share(event))  # (the Target Dummy: none)
 		row["damage"] = float(row.get("damage", 0.0)) + event.amount - over
 		row["overkill"] = float(row.get("overkill", 0.0)) + over
 		_add_parts(row, 0.0, parts)

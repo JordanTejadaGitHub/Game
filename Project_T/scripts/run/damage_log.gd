@@ -397,9 +397,17 @@ class FloatingNumber:
 # --- Credit ------------------------------------------------------------------------------------------
 
 # Adds `share` of `event` to `source`'s totals, with `weights` of each combo tag's part ({tag: 0..1}).
+# The part of an event that hit health (1.0 with no overkill; Enemy fills Event.overkill).
+static func effective_share(event: Event) -> float:
+	if event.amount <= 0.0 or (is_instance_valid(event.enemy) and event.enemy.get("unkillable") == true):
+		return 1.0  # The Test Grove's Target Dummy measures DPS: every hit counts
+	return clampf(1.0 - event.overkill / event.amount, 0.0, 1.0)
+
 func _credit(source: Node, event: Event, share: float, weights: Dictionary) -> void:
 	var row: Dictionary = _row(source)
-	var amount := event.amount * share
+	# What actually came off the nightmare (Balancing: overkill inflated big single hitters on the meter); combos scale too.
+	var effective := effective_share(event)
+	var amount := event.amount * share * effective
 	row.run += amount
 	row.drift += amount
 	row["block"] = row.get("block", 0.0) + amount
@@ -412,6 +420,7 @@ func _credit(source: Node, event: Event, share: float, weights: Dictionary) -> v
 		combo += part
 	if event.combos.size() > 1 and weights.size() == event.combos.size():
 		combo = event.combo_amount * share  # Whole-hit combos overlap: the event's combo total, not their sum
+	combo *= effective
 	row.run_combo += combo
 	row.drift_combo += combo
 
