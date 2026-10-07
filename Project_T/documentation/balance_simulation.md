@@ -886,7 +886,9 @@ Stores, Deep Taproot I–II, Rested Roots; the rest sidegrade) becomes the defau
 (both awaiting the user's Approve); Grove-profile baselines before it are the pure-sidegrade style.
 **Demo baseline, early (9e3b5b9c, 11–12 per arm):** the Stag 66 / 81 / 18% (default / spender / skip, near band); **reach
 the Mire Hag 0%**: deaths spread over 29–47, the same act 2 wall as every fresh human run (32–42). Seeds per run ≈ 68
-(target median ~94). Act 2 sweep queued: `demo_act2_health_scale` 0.5 / 0.6 / 0.7.
+(target median ~94). Act 2 sweep queued: `demo_act2_health_scale` 0.5 / 0.6 / 0.7. **Full baseline (30):** the Stag 56 / 73 / 16%,
+reach the Mire Hag 0 / 3 / 0%, Seeds median 59 / 76 / 29. Act 1 is also ~20 under for default (drift 18 cluster): an act 1
+sweep (0.85 / 0.9) follows the act 2 one.
 
 ## No forcing (user, 2026-10-06)
 
