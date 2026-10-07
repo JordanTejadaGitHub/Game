@@ -2253,23 +2253,34 @@ function laneBridge(o) {
   return L;
 }
 // nightmare_fog.png (dream/, 4 frames of 192×192): the black fog the nightmares come out of, where the bridge's far
-// end disappears (it replaces the islet). Layered dark clouds stepped Shade → Night → Dread (never Void: a void-dark
+// end disappears (it replaces the islet), with pale cold eyes that open now and then. Clouds stepped Shade → Night → Dread (never Void: a void-dark
 // core read as a hole into the sky), drifting a little each frame, with faint Wraithlight eyes that blink.
 function nightmareFog(f) {
   const S = 192, L = new Img(S, S), s = SEED + 5200, c = S / 2, ph = f * Math.PI / 2;
-  const puffs = [[0, 0, 62], [34, -30, 38], [38, 32, 36], [-30, -40, 40], [-28, 44, 42], [56, 2, 28], [-52, 4, 34]];
+  const puffs = [[0, 0, 58], [34, -30, 36], [38, 32, 34], [-30, -40, 38], [-28, 44, 40], [56, 2, 26], [-52, 4, 32]];
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
     let v = -1;
     puffs.forEach(([px, py, r], i) => {
       const dx = px + Math.cos(ph + i) * 2, dy = py + Math.sin(ph + i * 1.7) * 2;
       v = Math.max(v, 1 - Math.hypot(x - c - dx, (y - c - dy) * 1.1) / r);
     });
-    v += (pnoise(x, y, 22, s) - .5) * .5 + (pnoise(x + Math.cos(ph) * 3, y + Math.sin(ph) * 3, 9, s + 1) - .5) * .22;  // ragged wisps, not round puffs
+    v += (pnoise(x, y, 22, s) - .5) * .5 + (pnoise(x + Math.cos(ph) * 3, y + Math.sin(ph) * 3, 9, s + 1) - .5) * .22;
+    // Wisps (Theme Discussion: not a flat lobed blob): long streaks drifting off the edge, only out where it thins.
+    if (v < .25) v += (pnoise(x * .3 + f * 2, y * 1.1, 12, s + 2) - .55) * .8;
     if (v <= 0 || x < 1 || y < 1 || x > S - 2 || y > S - 2) continue;
     L.set(x, y, v > .45 ? "#140f26" : v > .22 ? "#24243c" : "#2c2444");
   }
-  const eyes = [[c + 8, c - 30], [c - 18, c + 24], [c + 26, c + 10], [c - 30, c - 12]];
-  eyes.forEach(([ex, ey], i) => { if ((f + i) % 4 !== 3) { L.set(ex, ey, "#9a84e8"); L.set(ex + 4, ey, "#9a84e8"); } });  // each pair blinks once a loop
+  // Pale cold eyes that open now and then (art_direction.md): 3 pairs, each open in 2 of the 4 frames, half-lidded in
+  // a third, shut in the last, out of step so the fog never blinks as one. Moonlight with a hard Wraithlight lower step.
+  const eyes = [[c + 6, c - 30, 0], [c - 22, c + 18, 1], [c + 24, c + 10, 2]];
+  for (const [ex, ey, o] of eyes) {
+    const st = (f + o) % 4;  // 0, 1 open; 2 half; 3 shut
+    if (st === 3) continue;
+    for (const dx of [0, 7]) {
+      if (st < 2) { L.set(ex + dx, ey, "#dce8f4"); L.set(ex + dx + 1, ey, "#dce8f4"); L.set(ex + dx, ey + 1, "#9a84e8"); L.set(ex + dx + 1, ey + 1, "#9a84e8"); }
+      else { L.set(ex + dx, ey + 1, "#9a84e8"); L.set(ex + dx + 1, ey + 1, "#9a84e8"); }  // a cold slit
+    }
+  }
   return L;
 }
 
