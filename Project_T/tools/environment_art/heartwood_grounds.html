@@ -1817,7 +1817,7 @@ function islandUnderside(A, row, f) {
   // Void into the dark; a Bark ledge here and there like the lip's lit edge) with calm bands, no checker dither. Each
   // column hangs from the lip's lowest pixel, so the face follows the lip; in the corners it wraps under the lip's arc
   // on a rounded profile instead of stopping at a straight cut. Static (4 identical frame columns keep the layout).
-  const L = new Img(T, T * 2), piece = row < 4 ? 5 : row === 4 ? 6 : 7, v = row < 4 ? row : 0, s = SEED + 950 + v * 17;
+  const L = new Img(T, T * 2), piece = row < 4 ? 5 : row === 4 ? 6 : 7, v = row < 4 ? row : 0, s = SEED + 950 + v * 17, s0 = SEED + 950;  // s0: the fields that must join across tiles
   const top = new Img(); paintLip(top, A, piece, v);
   const drips = [0, 1, 2, 3].map(i => [10 + hash(i, 1, s) * 44, 5 + hash(i, 2, s) * 7, 8 + hash(i, 3, s) * 20]);
   const lens = [];
@@ -1829,7 +1829,7 @@ function islandUnderside(A, row, f) {
     // Corners: 0 at the arc's far end, 1 where it meets the S side; a quarter-circle profile so the face rounds off.
     const t = piece === 6 ? clamp((x + 1 - (T - LIP_W - 2)) / (LIP_W + 2), 0, 1) : piece === 7 ? clamp((LIP_W + 2 - x) / (LIP_W + 2), 0, 1) : 1;
     const shape = Math.sqrt(1 - (1 - t) * (1 - t));
-    let len = 22 + pnoise(x, 0, 16, s, 4) * 10;
+    let len = 22 + pnoise(x, 0, 16, s0, 4) * 10;
     for (const [cx, w, h] of drips) len = Math.max(len, 22 + h * (1 - Math.abs(x + .5 - cx) / w));
     len *= shape;
     lens[x] = len;
@@ -1839,8 +1839,8 @@ function islandUnderside(A, row, f) {
       let c;
       if (i < 3) c = "#241c14";  // the lip's Root earth carries on down
       else {
-        const band = Math.floor((i + pnoise(x, i, 16, s + 4, 4) * 6) / 7), tone = pnoise(x, band * 8, 8, s + 5, 8) - k * .3 + (band % 2 ? .06 : 0);
-        const ledge = Math.floor((i - 1 + pnoise(x, i - 1, 16, s + 4, 4) * 6) / 7) !== band;  // a band's top row
+        const band = Math.floor((i + pnoise(x, i, 16, s0 + 4, 4) * 6) / 7), tone = pnoise(x, band * 8, 32, s0 + 5, 2) * .8 + hash(band, 0, s0 + 5) * .25 - k * .3 + (band % 2 ? .06 : 0);  // long strata along each band (8 px cells made checker squares)
+        const ledge = Math.floor((i - 1 + pnoise(x, i - 1, 16, s0 + 4, 4) * 6) / 7) !== band;  // a band's top row
         c = ledge && tone > .45 && hash(x >> 1, band, s + 6) < .5 ? "#5c3c24"  // Bark: a ledge catching light, like the lip's edge
           : tone > .55 ? "#2c2444" : tone > .25 ? "#241c14" : tone > .1 ? "#24243c" : "#140f26";  // Shade, Root, Night, Dread only in small crevices: never as dark as the sky
       }
