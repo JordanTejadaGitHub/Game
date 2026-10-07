@@ -306,12 +306,14 @@ static func chain(count: int, where: Vector2, parent: Node, towers: Array = []) 
 			newest = c
 	if newest != null:
 		newest.set_count(count)
-	if is_instance_valid(_badge):
-		_badge.queue_free()
-	var badge_entry := info(&"chain_badge")
-	if not badge_entry.is_empty():
-		var link := StringName(info(&"chain_link").get("bright", "chain_link")) if count >= 5 else &"chain_link"
-		_badge = FxBadge.new(badge_entry, texture(&"chain_badge"), info(link), texture(link), count)
+	# One badge, updated in place (the callout redo); a new one only when there's none here.
+	if is_instance_valid(_badge) and _badge.get_parent() == parent and _badge is FxBadge:
+		(_badge as FxBadge).set_count(count)
+		_badge.global_position = where + BADGE_OFFSET
+	else:
+		if is_instance_valid(_badge):
+			_badge.queue_free()
+		_badge = FxBadge.new(count)
 		parent.add_child(_badge)
 		_badge.global_position = where + BADGE_OFFSET
 	if count == 5 or count == 10:
@@ -559,11 +561,28 @@ class FxRain extends Node2D:
 
 
 # A Reaction's name rising over the nightmare in its colour, with a little pop as it appears.
+# The soft edgeless halo behind a callout word and the chain badge (the user's pick, "no pill"): a radial fade, Void
+# 0.8 at the centre, 0.5 at 55%, 0 at the edge, an ellipse of half-size `half` round `centre`. Drawn as stacked
+# ellipses whose alphas compose to that curve (no gradient texture: textures in statics crash at exit). `origin` /
+# `scale` are the canvas transform the caller draws in; it's set back after.
+const HALO_LAYERS := 10
+
+static func draw_halo(canvas: CanvasItem, origin: Vector2, scale: float, centre: Vector2, half: Vector2, alpha: float = 1.0) -> void:
+	var covered := 0.0  # Alpha so far at this ring (the layers outside it)
+	for k in HALO_LAYERS:
+		var r := 1.0 - float(k) / HALO_LAYERS  # Outer ring first
+		var target := (0.8 - 0.3 * r / 0.55) if r <= 0.55 else 0.5 * (1.0 - r) / 0.45  # The curve's alpha at this ring
+		var layer := clampf(1.0 - (1.0 - target) / maxf(1.0 - covered, 0.001), 0.0, 1.0)
+		covered = 1.0 - (1.0 - covered) * (1.0 - layer)
+		canvas.draw_set_transform(origin + centre * scale, 0.0, half * r * scale)
+		canvas.draw_circle(Vector2.ZERO, 1.0, Color(Palette.VOID, layer * alpha))
+	canvas.draw_set_transform(origin, 0.0, Vector2(scale, scale))
+
 # The callout word (UI Asset's combat-callout redo, mock-up 3k6Xa3cvGTGFSvvHhuVZSd; the user: "that works"): the
 # reaction's icon at ×2, then its name in Cormorant SemiBold 22 in its colour (no "!"), and a running chain's "×N"
 # (number font 15, Glow). It pops 125% → 100% over 0.12 s, rises 18 px and fades over CALLOUT_LIFE. Specified at 1280:
-# WorldLabel's text scale carries the UI factor (×1.5 at 1920) and the camera zoom. The background (pill or a soft
-# halo) waits for the user's pick; a thin Void outline keeps it readable meanwhile.
+# WorldLabel's text scale carries the UI factor (×1.5 at 1920) and the camera zoom. No pill (the user's pick): a 1 px
+# Dread outline and the soft halo behind (Fx.draw_halo), padded 12 px up and down, 24 px each side.
 class FxCallout extends Node2D:
 	const TEXT_SIZE := 22
 	const COUNT_SIZE := 15
@@ -573,6 +592,7 @@ class FxCallout extends Node2D:
 	const POP_TIME := 0.12
 	const RISE := 18.0
 	const LIFT := 52.0  # Above the nightmare
+	const HALO_PAD := Vector2(24.0, 12.0)  # The halo past the content: 24 px each side, 12 up and down
 	var _text: String
 	var _colour: Color
 	var _icon: Texture2D
@@ -616,93 +636,102 @@ class FxCallout extends Node2D:
 		var total := icon_w + text_w + (GAP + count_w if count_text != "" else 0.0)
 		var x := -total / 2.0
 		var baseline := font.get_ascent(TEXT_SIZE) / 2.0 - 2.0  # The word centred on the line
+		var origin := Vector2(0.0, -(LIFT + RISE * t) * WorldLabel.text_scale(self))
+		Fx.draw_halo(self, origin, s, Vector2.ZERO, Vector2(total / 2.0 + HALO_PAD.x, ICON_PX / 2.0 + HALO_PAD.y), alpha)
 		if _icon != null:
 			draw_texture_rect(_icon, Rect2(x, -ICON_PX / 2.0, ICON_PX, ICON_PX), false, Color(1, 1, 1, alpha))  # multiplier
 			x += icon_w
-		draw_string_outline(font, Vector2(x, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE, 4, Color(Palette.VOID, alpha * 0.8))
+		draw_string_outline(font, Vector2(x, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE, 2, Color(Palette.DREAD, alpha))
 		draw_string(font, Vector2(x, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE, Color(_colour, alpha))
 		if count_text != "":
 			var cx := x + text_w + GAP
-			draw_string_outline(count_font, Vector2(cx, baseline), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE, 3, Color(Palette.VOID, alpha * 0.8))
+			draw_string_outline(count_font, Vector2(cx, baseline), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE, 2, Color(Palette.DREAD, alpha))
 			draw_string(count_font, Vector2(cx, baseline), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE, Color(Palette.GLOW, alpha))
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
-# The chain badge: pops in, shows "x" + the count in its window, holds, then fades.
+# The chain badge (the user's pick, the callout redo): no box, the same soft halo as the callout words. "chain" in
+# Cormorant SC 12.5 (Mist) then "×N" (number font 21, 24 from ×5) in Glow, over a row of 5 pips: up to ×5 they fill
+# Gold, at ×5 all five go bright Glow, from ×6 they count on toward 10. At ×10 the Dawnbreak icon ×1.5 and
+# "Dawnbreak" (display 20, Glow). One badge, updated in place (set_count), fading 1 s after the last link.
 class FxBadge extends Node2D:
-	const HOLD := 0.9
+	const HOLD := 1.0  # After the last link
+	const FADE := 0.3
+	const POP_TIME := 0.12
+	const WORD_SIZE := 12.5
+	const COUNT_SIZE := 21
+	const COUNT_SIZE_BIG := 24  # From ×5
+	const DAWN_SIZE := 20
+	const PIP := Vector2(6.0, 3.0)
+	const PIP_GAP := 3.0
+	const HALO_PAD := Vector2(24.0, 12.0)
+	var _count := 0
+	var _age := 0.0
+	var _dawn: Texture2D
 
 	func _exit_tree() -> void:
 		if Fx._badge == self:
 			Fx._badge = null  # (See FxCallout._exit_tree)
-	const TEXT_SIZE := 8  # Drawn at 2× (the badge is scaled up)
-	const LINK_SIZE := Vector2(16, 16)  # Room for the icon (its sheet is 16×16 frames)
-	var _tex: Texture2D
-	var _size: Vector2
-	var _frames: int
-	var _fps: float
-	var _link: Texture2D  # The chain-link icon (bright from Chain 5), a looping glint
-	var _link_size: Vector2
-	var _link_frames: int
-	var _link_fps: float
-	var _text: String
-	var _age := 0.0
 
-	func _init(entry: Dictionary, tex: Texture2D, link_entry: Dictionary, link: Texture2D, count: int) -> void:
-		_tex = tex
-		_size = Vector2(entry.frame_size[0], entry.frame_size[1])
-		_frames = maxi(int(entry.frames), 1)
-		_fps = maxf(float(entry.fps), 1.0)
-		_link = link
-		var frame_size: Array = link_entry.get("frame_size", [16, 16])
-		_link_size = Vector2(frame_size[0], frame_size[1])
-		_link_frames = maxi(int(link_entry.get("frames", 1)), 1)
-		_link_fps = maxf(float(link_entry.get("fps", 8.0)), 1.0)
-		_text = "Chain %d" % count  # Never "×N": × means a damage multiplier elsewhere (crit ×2)
+	func _init(count: int) -> void:
 		z_index = Fx.Z + 3
 		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		scale = Vector2(2, 2)
+		_dawn = IconInfo.icon(&"dawnbreak")
+		set_count(count)
+
+	# A new link: the count goes up and the hold starts again (one badge, updated in place).
+	func set_count(count: int) -> void:
+		_count = count
+		_age = 0.0
+		queue_redraw()
 
 	func _process(delta: float) -> void:
 		_age += delta
-		if _age >= HOLD + 0.3:
+		if _age >= HOLD + FADE:
 			queue_free()
 			return
 		queue_redraw()
 
 	func _draw() -> void:
-		var frame := mini(int(_age * _fps), _frames - 1)
-		var alpha := clampf((HOLD + 0.3 - _age) / 0.3, 0.0, 1.0)
-		WorldLabel.begin_screen_size(self, Vector2.ZERO)  # Keeps its screen size when zoomed in
-		var tint := Color(1, 1, 1, alpha)
-		# The badge stretches to fit "Chain N" and its link icon.
-		var font := ThemeDB.fallback_font
-		var text_width := font.get_string_size(_text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE).x
-		var content := LINK_SIZE.x + 2.0 + text_width
-		var width := maxf(_size.x, content + 10.0)
-		draw_texture_rect_region(_tex, Rect2(Vector2(-width / 2.0, -_size.y / 2.0), Vector2(width, _size.y)),
-			Rect2(_size.x * frame, 0, _size.x, _size.y), tint)
-		if frame < 2:
-			WorldLabel.end_screen_size(self)
-			return  # The words appear once the badge has popped open
-		var x := -content / 2.0
-		_draw_link(Vector2(x + LINK_SIZE.x / 2.0, 0.0), tint)
-		var baseline := font.get_ascent(TEXT_SIZE) / 2.0 - 1.0
-		draw_string_outline(font, Vector2(x + LINK_SIZE.x + 2.0, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1,
-			TEXT_SIZE, 2, Color(Palette.ROOT, alpha))
-		draw_string(font, Vector2(x + LINK_SIZE.x + 2.0, baseline), _text, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_SIZE,
-			Color(Palette.HEARTLIGHT, alpha))
-		WorldLabel.end_screen_size(self)
-
-	# The chain-link icon (chain_link / chain_link_bright), centred on `at`; drawn links if the art is missing.
-	func _draw_link(at: Vector2, tint: Color) -> void:
-		if _link != null:
-			var frame := int(_age * _link_fps) % _link_frames
-			draw_texture_rect_region(_link, Rect2(at - _link_size / 2.0, _link_size),
-				Rect2(_link_size.x * frame, 0, _link_size.x, _link_size.y), tint)
-			return
-		var colour := Color(Palette.GLOW, tint.a)
-		for offset in [Vector2(-1.5, 1.0), Vector2(1.5, -1.0)]:
-			draw_set_transform(at + offset, -0.6, Vector2(1.0, 0.55))
-			draw_arc(Vector2.ZERO, 3.0, 0.0, TAU, 12, colour, 1.2)
-		draw_set_transform(Vector2.ZERO)
+		var alpha := clampf((HOLD + FADE - _age) / FADE, 0.0, 1.0)
+		var pop := lerpf(1.15, 1.0, clampf(_age / POP_TIME, 0.0, 1.0))
+		var s := WorldLabel.text_scale(self) * pop
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(s, s))
+		var caps := UiStyle.caps_font()
+		var numbers := UiStyle.number_font()
+		var display := UiStyle.display_font()
+		var dawn := _count >= 10
+		var word := "Dawnbreak" if dawn else "chain"
+		var word_font := display if dawn else caps
+		var word_size := DAWN_SIZE if dawn else int(round(WORD_SIZE))
+		var word_w := word_font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, word_size).x
+		var count_text := "" if dawn else "×%d" % _count
+		var count_size := COUNT_SIZE_BIG if _count >= 5 else COUNT_SIZE
+		var count_w := numbers.get_string_size(count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, count_size).x if count_text != "" else 0.0
+		var icon_w := 24.0 + 6.0 if dawn and _dawn != null else 0.0  # Dawnbreak's icon at ×1.5
+		var line_w := icon_w + word_w + (6.0 + count_w if count_text != "" else 0.0)
+		var pips_w := PIP.x * 5 + PIP_GAP * 4
+		var total := maxf(line_w, pips_w)
+		Fx.draw_halo(self, Vector2.ZERO, s, Vector2(0.0, 2.0), Vector2(total / 2.0 + HALO_PAD.x, 14.0 + HALO_PAD.y), alpha)
+		var x := -line_w / 2.0
+		var baseline := 4.0
+		if icon_w > 0.0:
+			draw_texture_rect(_dawn, Rect2(x, baseline - 20.0, 24.0, 24.0), false, Color(1, 1, 1, alpha))  # multiplier
+			x += icon_w
+		var word_colour := Palette.GLOW if dawn else Palette.MIST
+		draw_string_outline(word_font, Vector2(x, baseline), word, HORIZONTAL_ALIGNMENT_LEFT, -1, word_size, 2, Color(Palette.DREAD, alpha))
+		draw_string(word_font, Vector2(x, baseline), word, HORIZONTAL_ALIGNMENT_LEFT, -1, word_size, Color(word_colour, alpha))
+		if count_text != "":
+			var cx := x + word_w + 6.0
+			draw_string_outline(numbers, Vector2(cx, baseline), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, count_size, 2, Color(Palette.DREAD, alpha))
+			draw_string(numbers, Vector2(cx, baseline), count_text, HORIZONTAL_ALIGNMENT_LEFT, -1, count_size, Color(Palette.GLOW, alpha))
+		# The pips: Gold up to ×5, all Glow at ×5, then counting on toward 10.
+		var lit := mini(_count, 5) if _count <= 5 else mini(_count - 5, 5)
+		var px := -pips_w / 2.0
+		for i in 5:
+			var on := i < lit
+			var colour := Palette.GLOW if _count == 5 or (_count > 5 and on) or dawn else (Palette.GOLD if on else Palette.DUSK)
+			if _count > 5 and not on and not dawn:
+				colour = Palette.GOLD  # The first five stay full under the second count
+			draw_rect(Rect2(px + i * (PIP.x + PIP_GAP), baseline + 6.0, PIP.x, PIP.y), Color(colour, alpha))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
