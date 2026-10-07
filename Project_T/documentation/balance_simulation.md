@@ -888,6 +888,14 @@ Common budget: all Wardens +15%, conditional +30%. The proposed numbers were mos
 | Weed Puller | clearing a Mossy Boulder refunds **6** Dew (a third of 18) | |
 Measure after: distinct cards per run, consecutive-run overlap, no-build at 50 (≤ ~20%), the chase ceiling (30 / 50).
 
+## Builds redefined (user, dream_design.md ee3d2851, 2026-10-07)
+
+A build = **3+ cards of one archetype, helpers included**. Normal offers no longer hold a guaranteed defining card; **boss
+rests guarantee one unowned defining card** (Rare+, sometimes a Legendary; replaces the guaranteed Legendary). **No-build is no
+longer a target** (user: "it's fine if act 2 ends with no build, it means the player didn't build correctly"): reported for
+information only, no floors. The chase ceiling (≤ 30% by 50, ≤ 50% by 75) stays. After the build: variety, overlap,
+Legendaries per run, the chase.
+
 ## More helper Commons 286–303 (dream_design.md ae90720e)
 
 Same budget (all +15%, conditional +30%); raised where the target couldn't be felt:
