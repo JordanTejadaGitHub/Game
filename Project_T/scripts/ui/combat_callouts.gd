@@ -24,7 +24,7 @@ const MATCHUP_WORDS := {&"weak": "Weak!", &"resisted": "Strong!"}
 const MAX_MATCHUPS := 8  # Matchup words on screen at once (their own budget, so combos still show)
 const REDUCED_MAX_MATCHUPS := 3
 const WEAK_COLOUR := Palette.NEWLEAF
-const STRONG_COLOUR := Palette.MIST
+const STRONG_COLOUR := Palette.WRAITHLIGHT  # cold violet: Mist was the same value as the pale path and hard to see (user 2026-10-07)
 
 var _cooldowns := {}  # tag -> seconds left
 var _alive: Array = []  # [age, text, colour, enemy (weak ref target), offset, matchup tag or &""]
@@ -285,5 +285,5 @@ func _draw_matchup(tag: StringName, colour: Color, alpha: float) -> void:
 	draw_polyline(PackedVector2Array([points[0], points[1], points[2], points[0]]), outline, 1.0, true)
 	var baseline := font.get_ascent(MATCHUP_SIZE) - font.get_height(MATCHUP_SIZE) / 2.0
 	var at := Vector2(x + 12.0, baseline)
-	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, MATCHUP_SIZE, 2, outline)
+	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, MATCHUP_SIZE, 3, outline)  # 3 px: reads on the pale path too
 	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, MATCHUP_SIZE, Color(colour, alpha))
