@@ -77,7 +77,7 @@ func _run() -> void:
 	await process_frame
 	var grow_text := _button_texts(panel).filter(func(t: String) -> bool:
 		return t.begins_with("Sporeling · 3 of 5"))  # Light pass: the form once, under "Grow into"
-	_check(grow_text.size() == 1 and ("%d Dew" % cost3) in grow_text[0],
+	_check(grow_text.size() == 1 and UiStyle.dew_amount(cost3) in grow_text[0],
 		"the panel offers \"Sporeling · 3 of 5 · %d Dew\" (%s)" % [cost3, grow_text])
 	var nearest: Array = seller.sort_by_heartwood(sprouts).slice(0, 3)
 	var grown := seller.grow_group(sprouts, sporeling)

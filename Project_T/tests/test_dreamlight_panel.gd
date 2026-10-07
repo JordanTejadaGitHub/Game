@@ -43,7 +43,7 @@ func _run() -> void:
 	await process_frame
 	var cost := dreams.get_unlock_cost(final_form)
 	var button := _button(panel, "Unlock " + final_name)
-	_check(button != null and ("· %d Dreamlight" % cost) in button.text and button.get_meta(&"short", false)
+	_check(button != null and ("· " + UiStyle.dreamlight_amount(cost)) in button.text and button.get_meta(&"short", false)
 		and not button.disabled, "a locked form shows its Dreamlight cost in POOR (%s)" % (button.text if button else "none"))
 	var asked := []
 	var shorts := []
@@ -65,7 +65,7 @@ func _run() -> void:
 	dreams.dreamlight_changed.emit(dreams.dreamlight)
 	await process_frame
 	asked.clear()
-	_check(("· %d Dreamlight" % cost) in _button(panel, "Unlock " + final_name).text
+	_check(("· " + UiStyle.dreamlight_amount(cost)) in _button(panel, "Unlock " + final_name).text
 		and not _button(panel, "Unlock " + final_name).get_meta(&"short", true), "with the Dreamlight it's the normal look at once")
 	_button(panel, "Unlock " + final_name).pressed.emit()
 	await process_frame
@@ -82,7 +82,7 @@ func _run() -> void:
 	_check(dreams.is_unlocked(final_form.get_id()) and dreams.dreamlight == 0 and run_state.dew == dew,
 		"unlocking spends its Dreamlight (not Dew) and unlocks the final form")
 	var grow := _button(panel, final_name + " · ")  # Light pass: the form once, under "Grow into"
-	_check(grow != null and "Dew" in grow.text and _button(panel, "Unlock " + final_name) == null,
+	_check(grow != null and UiStyle.DEW_GLYPH in grow.text and _button(panel, "Unlock " + final_name) == null,
 		"then the same slot reads the form for Dew, no Unlock (%s)" % (grow.text if grow else "none"))
 
 	print("dreamlight panel test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
