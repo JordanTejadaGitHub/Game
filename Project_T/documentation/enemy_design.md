@@ -453,7 +453,7 @@ water weakness: rain douses the ghost-fire in its antlers.
 - Status testers come after the first Dreams, when the player has statuses to be tested on.
 - A boss drift ends each act.
 
-**Phantoms stay rare (2026-10-07, design pick; numbers for Balancing Discussion to judge).** Balancing
+**Phantoms stay rare (2026-10-07, design pick; judged by Balancing Discussion: both parts, act 2 included, its hand-made drifts have ≤ 3; with Enemy Code).** Balancing
 Code's drift 51–60 trace (10 runs, full Grove, 35 attackers with finals): Phantoms took 53 of 101
 leaves lost. When a seed drew them, 9–10 leaked in ~25 s whatever their health (×6 or ×2.4), because
 they skip the maze. The cause is the roller, not the Phantom: tagged `fast`, a cheap 60-health
