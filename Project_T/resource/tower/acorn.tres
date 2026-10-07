@@ -13,6 +13,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Acorn"
+role_line = "Splash shot, boosts neighbours a little"
 cost = 25
 texture = ExtResource("2_tex")
 frame_count = 8

@@ -9,6 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Jewelwing Court"
+role_line = "Three birds, crit flurries"
 description = "Three hummingbirds, twelve pecks each; every sixth peck is a guaranteed crit. They spread out or all focus the strongest."
 cost = 0
 texture = ExtResource("2_tex")

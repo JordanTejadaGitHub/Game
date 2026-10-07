@@ -8,6 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Zephyr"
+role_line = "Wide spread, gusts down the lane"
 description = "Spreads the most-afflicted nightmare's statuses to up to 7 others."
 cost = 0
 texture = ExtResource("2_tex")

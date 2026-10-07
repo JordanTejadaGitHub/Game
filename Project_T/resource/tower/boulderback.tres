@@ -9,6 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Boulderback"
+role_line = "Splashing blows, rolling boulders"
 description = "A crushing hit that splashes three quarters of its damage around; double damage on {marked}, and it always crits on {drowsy} nightmares."
 cost = 0
 texture = ExtResource("2_tex")

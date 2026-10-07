@@ -9,6 +9,7 @@ script = ExtResource("1_tdata")
 texture = ExtResource("2_tex")
 frame_count = 8
 display_name = "Grove Keeper"
+role_line = "Plants ranked Sprouts, sooner"
 description = "A seed every 2 drifts, and its Sprouts arrive at rank II."
 cost = 0
 placeholder_color = Color(0.54902, 0.360784, 0.203922, 1)

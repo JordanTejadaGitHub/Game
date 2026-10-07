@@ -10,6 +10,7 @@
 script = ExtResource("1_tdata")
 counter_tags = Array[StringName]([&"anti_swarm"])
 display_name = "Rain Lily"
+role_line = "Big splash, long soak"
 description = "A bigger splash that keeps nightmares {damp} for longer."
 cost = 0
 texture = ExtResource("2_tex")

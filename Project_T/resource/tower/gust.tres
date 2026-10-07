@@ -8,6 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Gust"
+role_line = "Spreads statuses through a crowd"
 description = "Copies the statuses of the most-afflicted nightmare in range onto 3 nearby ones (half stacks)."
 cost = 0
 texture = ExtResource("2_tex")

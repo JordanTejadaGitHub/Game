@@ -13,6 +13,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Rootling"
+role_line = "Nips feet, brief holds"
 cost = 25
 texture = ExtResource("2_tex")
 frame_count = 8

@@ -24,6 +24,9 @@ const ASCENDED_JSON := "res://assets/towers/ascended/ascended.json"  # 128×128 
 
 @export var id: String = ""  # Unique id (Dream prerequisites, unlocks). Empty = the .tres file name
 @export var display_name: String = "Tower"  # Name shown in the UI
+# One short line of what sets this form apart (tower_design.md "Role lines", 8c737201): the family pick, Remember,
+# Codex Families and the grow list show it in place of the tag words. Unique within its family (test_role_lines).
+@export var role_line: String = ""
 @export_multiline var description: String = ""  # One line for the Warden panel
 @export var cost: int = 10  # Dew cost to build
 @export var texture: Texture2D  # Tower sprite; leave empty to draw a placeholder block

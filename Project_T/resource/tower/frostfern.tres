@@ -9,6 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Frostfern"
+role_line = "Freezes the soaked"
 description = "Hits on {damp} nightmares leave them {held} for a moment."
 cost = 0
 texture = ExtResource("2_tex")

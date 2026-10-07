@@ -8,6 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Starcave"
+role_line = "Wide light, snares the first step"
 description = "A bigger lit area; {held} lasts three times as long on lit tiles, and hidden nightmares show in the light."
 cost = 0
 texture = ExtResource("2_tex")

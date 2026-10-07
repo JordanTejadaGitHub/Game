@@ -9,6 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Cairn"
+role_line = "Lobs stones over the maze"
 description = "A mortar: lobs its top stone over the maze onto a tile up to 6 cells away, splashing everything there."
 cost = 0
 texture = ExtResource("2_tex")

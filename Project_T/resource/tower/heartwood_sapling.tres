@@ -9,6 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Heartwood Sapling"
+role_line = "Two cells wide, yields every drift"
 description = "A seedling of the Heartwood, 2×2 and rooted for good. Gives 8 Dew after every drift and 1 Dreamlight every 10 drifts. Each Nurture rank adds 4 Dew; from rank III, Dreamlight every 8 drifts. Each leaf lost withers the yield 5% until the next rest."
 cost = 0
 texture = ExtResource("art_idle")

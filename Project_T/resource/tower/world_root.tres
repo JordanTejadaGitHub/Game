@@ -8,6 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "World Root"
+role_line = "Holds everything in range"
 description = "Every 5 s roots erupt and leave everything in range {held} for 1 s; {held} nightmares take 30% more from every Warden."
 cost = 0
 line = "root"

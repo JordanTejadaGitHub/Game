@@ -17,6 +17,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Sprout"
+role_line = "Weak spore puffs, grows into any family"
 cost = 12
 texture = ExtResource("2_tex")
 frame_count = 8

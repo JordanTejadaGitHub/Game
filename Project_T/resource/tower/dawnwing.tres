@@ -9,6 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Dawnwing"
+role_line = "Great bird circles the path"
 description = "A great bird patrols the path in its range, striking every nightmare it passes; it flies faster the more nightmares there are."
 cost = 0
 line = "wing"

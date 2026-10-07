@@ -8,6 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Rootcurl"
+role_line = "Pulls nightmares back, slow"
 description = "Every 4 s, pulls the nightmare furthest along back 1 cell."
 cost = 0
 role_tag = &"control"

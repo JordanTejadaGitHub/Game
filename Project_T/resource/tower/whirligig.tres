@@ -10,6 +10,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Whirligig"
+role_line = "Copies a status to a neighbour"
 description = "Gusts carry trouble along: every 3 s it copies one status (half the stacks) from the most afflicted nightmare in range onto a neighbour."
 cost = 25
 texture = ExtResource("2_tex")

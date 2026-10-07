@@ -8,6 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Dreamshroom"
+role_line = "Sleep clouds, sleepers breathe spores"
 description = "A bigger sleepy cloud that adds 2 {drowsy} per tick; once its {drowsy} stacks are full, a nightmare is {asleep} for 4.5 s (once)."
 cost = 0
 texture = ExtResource("2_tex")

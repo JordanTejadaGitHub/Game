@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Wellspring"
+role_line = "Big catch, interest on saved Dew"
 description = "Catches more: nightmares dispelled within 3 cells drop +90% Dew for the Harvest. At every rest, +8% of your banked Dew (up to 60; all Wellsprings together up to 120). Also +4 Dew each drift."
 cost = 0
 role_tag = &"economy"

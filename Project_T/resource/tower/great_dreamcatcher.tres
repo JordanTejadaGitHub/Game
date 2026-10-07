@@ -9,6 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Great Dreamcatcher"
+role_line = "Wide catch, Dreamlight shards"
 description = "A wider net (Caught +80%): Caught nightmares' statuses stop wearing off and tick 25% harder; Asleep lasts 1 s longer in its range, and Caught nightmares leave Dreamlight shards."
 cost = 0
 texture = ExtResource("2_tex")

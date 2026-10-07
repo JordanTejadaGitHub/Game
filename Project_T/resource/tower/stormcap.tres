@@ -8,6 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Stormcap"
+role_line = "Chain lightning, loves the soaked"
 description = "Lightning that chains to 4 nightmares; jumps further and more often between {damp} ones."
 cost = 0
 texture = ExtResource("2_tex")

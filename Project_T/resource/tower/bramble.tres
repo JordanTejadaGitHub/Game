@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Bramble"
+role_line = "Thorny wall, hurts passers-by"
 description = "A thorny wall that damages nightmares walking right past it."
 cost = 0
 texture = ExtResource("2_tex")
