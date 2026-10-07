@@ -597,7 +597,17 @@ static func _burst_sparks(tower: Tower) -> void:
 	var sparks := int(p(tower, "sparks", 6))
 	if is_final(tower) and count % int(p(tower, "double_every", 4)) == 0:
 		sparks *= 2
+	# The shell's flight from the Warden to where it bursts (user: "I can't see what it's attacking"), until Tower
+	# Assets' firework shell projectile lands.
+	if _streaks_ok(target.global_position):
+		Fx.segment(&"light_thread", tower.global_position + tower.tower_data.get_attack_origin(), target.global_position, world(tower), 0.25)
 	_spark_burst_at(tower, target.global_position, sparks, float(tower.attack_data.damage), true)
+
+const SPARK_STREAKS_MAX := 6  # Streaks per burst (Fx.segment has no budget of its own)
+
+# Whether streaks are worth drawing at `at` (reduced effects: only on screen).
+static func _streaks_ok(at: Vector2) -> bool:
+	return not Fx.reduced() or Fx.on_screen(at, 96.0)
 
 const SPARK_BURST_SCALE := 1.5
 
@@ -613,10 +623,14 @@ static func _spark_burst_at(tower: Tower, at: Vector2, sparks: int, each: float,
 	if near.is_empty():
 		return
 	var mult := each / maxf(float(tower.attack_data.damage), 1.0)
+	var streaks := SPARK_STREAKS_MAX if may_rebound and _streaks_ok(at) else 0
 	for i in sparks:
 		var e: Node2D = near[randi() % near.size()]
 		if not is_instance_valid(e) or e.is_cleansed:
 			continue
+		if streaks > 0 and e.global_position.distance_to(at) > 4.0:
+			streaks -= 1
+			Fx.segment(&"light_thread", at, e.global_position, world(tower), 0.2)  # Each spark flies to the one it hits
 		tower.hit(e, mult, true)
 		if is_instance_valid(e) and not e.is_cleansed:
 			e.apply_status(EnemyStatuses.STATIC, 1, 0.0, tower.get_damage(), 0, "light", tower)
