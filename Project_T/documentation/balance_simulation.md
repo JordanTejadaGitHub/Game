@@ -1275,6 +1275,14 @@ stays out.** Watch the first human runs on it; if act 1 is too hard, `act1_healt
 **Bot baseline change:** from a99d5382 the bot keeps walling by default; every batch before it is the non-walling
 bot. Warm-up and pgr wait for bend10 on main.
 
+## Mossback vs Standing Stone (user via the hub, 2026-10-07)
+
+Paper: Mossback 372 × 0.4 /s ≈ 150–165 DPS at range 1.75 (×2 on Marked); Standing Stone 225 × 0.33 /s ≈ 75–100 at range 8
+(min 2, distance bonus); Boulderback 472 × 0.35 /s + 75% splash; Moonstone 490 × 0.29 /s at range 10, first hit always a ×4
+crit (≈ 245 DPS + a ~2,000 opener per nightmare). On a 23 × 18 map, range 8–10 covers most of the route, so coverage likely
+decides it; Moonstone carried 62% of human run 24. **Probe queued:** each candidate added to saved bot boards (typical and
+serpentine) at its best and a median cell, effective damage over a block and leaves saved vs a control. Fix after the numbers.
+
 ## Human run 25 (2026-10-07 14:39, build 52d11575: Sparkler fix in; 9-node Grove)
 
 Firefly Jar + Rootling: 5 Sparklers (44% of damage across 36% of attackers: in line now), 3 Rootcurl, 3 Groundroot, 3 Firefly
