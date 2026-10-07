@@ -16,6 +16,134 @@
 			"loop": true,
 			"note": "Jarlink / Lightning Fence: the arc between two Jarlinks' jars, stretched along x (y = 8 on the line). Loop."
 		},
+		"area_hit": {
+			"anchor": [
+				12,
+				12
+			],
+			"file": "area_hit.png",
+			"fps": 14.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 4,
+			"kind": "signature",
+			"loop": false,
+			"note": "Any other PULSE Warden: a small warm tick on each nightmare the pulse touches (anchor = the nightmare; modulate it to the family's colour if wanted). ~0.29 s."
+		},
+		"area_pulse_grove": {
+			"anchor": [
+				128,
+				128
+			],
+			"file": "area_pulse_grove.png",
+			"fps": 12.0,
+			"frame_size": [
+				256,
+				256
+			],
+			"frames": 6,
+			"kind": "ground",
+			"loop": false,
+			"note": "PULSE Wardens (grove): the ring rolling out to the range edge, ~0.5 s (anchor = the Warden's cell centre; drawn for a 120 px radius, scale = range px / 120), z -1."
+		},
+		"area_pulse_root": {
+			"anchor": [
+				128,
+				128
+			],
+			"file": "area_pulse_root.png",
+			"fps": 12.0,
+			"frame_size": [
+				256,
+				256
+			],
+			"frames": 6,
+			"kind": "ground",
+			"loop": false,
+			"note": "PULSE Wardens (root): the ring rolling out to the range edge, ~0.5 s (anchor = the Warden's cell centre; drawn for a 120 px radius, scale = range px / 120), z -1."
+		},
+		"area_pulse_song": {
+			"anchor": [
+				128,
+				128
+			],
+			"file": "area_pulse_song.png",
+			"fps": 12.0,
+			"frame_size": [
+				256,
+				256
+			],
+			"frames": 6,
+			"kind": "ground",
+			"loop": false,
+			"note": "PULSE Wardens (song): the ring rolling out to the range edge, ~0.5 s (anchor = the Warden's cell centre; drawn for a 120 px radius, scale = range px / 120), z -1."
+		},
+		"area_pulse_spore": {
+			"anchor": [
+				128,
+				128
+			],
+			"file": "area_pulse_spore.png",
+			"fps": 12.0,
+			"frame_size": [
+				256,
+				256
+			],
+			"frames": 6,
+			"kind": "ground",
+			"loop": false,
+			"note": "PULSE Wardens (spore): the ring rolling out to the range edge, ~0.5 s (anchor = the Warden's cell centre; drawn for a 120 px radius, scale = range px / 120), z -1."
+		},
+		"area_pulse_stone": {
+			"anchor": [
+				128,
+				128
+			],
+			"file": "area_pulse_stone.png",
+			"fps": 12.0,
+			"frame_size": [
+				256,
+				256
+			],
+			"frames": 6,
+			"kind": "ground",
+			"loop": false,
+			"note": "PULSE Wardens (stone): the ring rolling out to the range edge, ~0.5 s (anchor = the Warden's cell centre; drawn for a 120 px radius, scale = range px / 120), z -1."
+		},
+		"area_pulse_water": {
+			"anchor": [
+				128,
+				128
+			],
+			"file": "area_pulse_water.png",
+			"fps": 12.0,
+			"frame_size": [
+				256,
+				256
+			],
+			"frames": 6,
+			"kind": "ground",
+			"loop": false,
+			"note": "PULSE Wardens (water): the ring rolling out to the range edge, ~0.5 s (anchor = the Warden's cell centre; drawn for a 120 px radius, scale = range px / 120), z -1."
+		},
+		"area_pulse_wind": {
+			"anchor": [
+				128,
+				128
+			],
+			"file": "area_pulse_wind.png",
+			"fps": 12.0,
+			"frame_size": [
+				256,
+				256
+			],
+			"frames": 6,
+			"kind": "ground",
+			"loop": false,
+			"note": "PULSE Wardens (wind): the ring rolling out to the range edge, ~0.5 s (anchor = the Warden's cell centre; drawn for a 120 px radius, scale = range px / 120), z -1."
+		},
 		"aura_ring_breath": {
 			"anchor": [
 				32,
@@ -1755,6 +1883,22 @@
 				6,
 				7
 			]
+		},
+		"root_snap": {
+			"anchor": [
+				12,
+				18
+			],
+			"file": "root_snap.png",
+			"fps": 14.0,
+			"frame_size": [
+				24,
+				24
+			],
+			"frames": 5,
+			"kind": "signature",
+			"loop": false,
+			"note": "Rootling family: a root tip snapping up at a nightmare the pulse touches (anchor = its feet). ~0.36 s."
 		},
 		"rubble": {
 			"anchor": [
