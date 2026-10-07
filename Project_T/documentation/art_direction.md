@@ -150,6 +150,15 @@ lost 0–20). They're wired into the map (`EnvironmentTiles`), with the lighting
 - **Readability order (value):** dark ground < pale obstacles < **palest path**, and the island rim
   < the ground. The path is pale, moonlit earth and must always be the most readable thing on the
   map. Checked in every act after the colour pass.
+- **The island's edge** (user, 2026-10-07: *"update the outer edges to fit more"*; picked option B
+  from Environment Assets' mock). The heavy dark toothed rim band is gone: **the rim cells become
+  ordinary ground** (buildable, ~74 more cells), and a thin earth lip with grass overhang and a
+  short cliff in shadow are drawn **outside the grid**. The value order is void < cliff < ground <
+  stones < path. The extra buildable cells are a balance change (Balancing Discussion).
+  **The south edge** keeps **the old cliff face** (banded rock, drips, roots: the cliff.png look)
+  hanging under the lip, on the bottom only; the other sides keep just the thin lip (user: *"Don't
+  like the vines, should look closer to the old design but just on the bottom"*; Environment Assets
+  21eeec6 replaced the vines). Spec: environment_assets.md "Island edge outside the grid" (9329b7a5).
 - **Path width: at least half a cell** (user, 2026-10-04, on "make the path half a cell"). The pale
   path is **one half cell (32 px) of pale earth everywhere**: never thinner, and not broader (the
   user found the old broad path "too big"). A hairline path
