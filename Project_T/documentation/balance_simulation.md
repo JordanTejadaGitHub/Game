@@ -1174,6 +1174,15 @@ stays out.** Watch the first human runs on it; if act 1 is too hard, `act1_healt
 **Bot baseline change:** from a99d5382 the bot keeps walling by default; every batch before it is the non-walling
 bot. Warm-up and pgr wait for bend10 on main.
 
+## Human run 23 (2026-10-07 09:10, build 695fb72d = the live curve, act 2 ×2.0 → 3.45 → 4.5; 6-node Grove)
+
+Firefly Jar (Starburst ×6 finals, Sparkler ×2) + Rootling, **39 Thornwalls**, 24 attackers, route **97**, combos **35%**. Dreams:
+The Long Walk, Solitude, Flurry, Old Growth, First Light, Dawnbreak. **15 / 15 leaves through drift 49** (closest ≤ 0.54
+until 48), all 7 Omens faced. Drifts 48–49 leaked 13 (closest 1.0); **the Huntsman at 50 took all 15 in 18 s** (the board dealt
+76% of that drift's health). **Read:** a skilled human clears the *live* act 2, which the bots clear 0–3%: humans are far
+stronger than the bot, so a curve tuned to the bot (F: act 2 end ×1.6 vs ×4.5) would be much too easy for people. And a
+full-leaf board lost to the act 2 boss + escort leaks in one drift: the boss-cliff again (the scaled-bite question).
+
 ## Human run 22 (2026-10-07, build 0c802811 + local; Blight 0, a 6-node Grove)
 
 Dewdrop (10 + Undercurrent ×5, Maelstrom, Groundroot), 2 Rootlings, **28 Sprouts**; 47 attackers, route 76, 5 clears, gift
