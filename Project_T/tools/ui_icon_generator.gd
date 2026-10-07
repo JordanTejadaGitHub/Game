@@ -434,13 +434,16 @@ func _dt_line(a: Vector2i, b: Vector2i, col: Color) -> void:
 # Statuses ---------------------------------------------------------------------------------------
 
 func _ic_damp() -> void:
+	# Soaked: rolling water, three waves (never a drop: a drop always means Dew).
 	var k := _rp("#d8f0ff", "#6ab0f0", "#3a70c0")
-	_c_disc(Vector2(7, 9.6), 4.2, k)
-	_c_poly(PackedVector2Array([Vector2(7, 1.6), Vector2(3.0, 8.6), Vector2(11.0, 8.6)]), k)
-	_c_disc(Vector2(12.6, 12.4), 1.8, k)
-	_c_poly(PackedVector2Array([Vector2(12.6, 8.8), Vector2(11.0, 11.8), Vector2(14.2, 11.8)]), k)
-	_dt(5, 8, Color.WHITE)
-	_dt(5, 9, Color("#f0faff"))
+	for y0 in [3.6, 8.0, 12.4]:
+		var pts: Array = []
+		for i in 9:
+			var x := 1.0 + i * 1.75
+			pts.append(Vector2(x, y0 + sin(i * PI / 2.0) * 1.3))
+		_c_line(pts, 1.7, k)
+	_dt(3, 2, Color.WHITE)
+	_dt(3, 7, Color("#f0faff"))
 
 func _ic_drowsy() -> void:
 	var k := _rp("#f4ecff", "#c8a8f0", "#8a6ac8")
@@ -976,15 +979,12 @@ func _ic_stone() -> void:
 	_dt_line(Vector2i(7, 8), Vector2i(9, 10), Color("#626890"))
 
 func _ic_water() -> void:
-	# A single round-bottomed drop with a wave line through it (the status Soaked is a bare drop
-	# with a second small drop and no badge).
+	# A wave crest curling over in the badge (water is waves; a drop always means Dew).
 	_type_badge()
 	var k := _rp("#d8f0ff", "#6ab0f0", "#3a70c0")
-	_c_disc(Vector2(8, 9.4), 3.2, k)
-	_c_poly(PackedVector2Array([Vector2(8, 3.2), Vector2(5, 8.6), Vector2(11, 8.6)]), k)
-	_dt(6, 8, Color.WHITE)
-	_dt_line(Vector2i(6, 10), Vector2i(7, 10), Color("#f0faff"))
-	_dt_line(Vector2i(8, 11), Vector2i(10, 11), Color("#f0faff"))
+	_c_line([Vector2(3.6, 11.4), Vector2(5.4, 9.4), Vector2(7.4, 7.0), Vector2(9.6, 5.6), Vector2(11.4, 6.2), Vector2(12.0, 7.8), Vector2(10.6, 8.6)], 1.8, k)
+	_c_line([Vector2(3.6, 12.2), Vector2(12.4, 12.2)], 1.4, k)
+	_dt(8, 6, Color.WHITE)
 
 func _ic_light() -> void:
 	_type_badge()
@@ -1436,18 +1436,18 @@ const HUD_COUNTERS := {
 		"obgooo......",
 		"bo.........."],
 	"dew_hud": [
-		".....oo.....",
-		"....oDdo....",
-		"...oDDddo...",
-		"...oDdddo...",
-		"..oDHdddPo..",
-		".oDHHddddPo.",
-		".oDHdddddPo.",
-		".oDddddddPo.",
-		".oddddddPPo.",
-		"..oddddPPo..",
-		"...oPPPPo...",
-		"....oooo...."],
+		"....oo....C.",
+		"...oDDo..CHC",
+		"...oDDo...C.",
+		"..oDDDdo....",
+		"..oHDDdo....",
+		".oHHDDDdo...",
+		".oHDDDDdo...",
+		".oDDDDDdo...",
+		".oDDDDddo...",
+		".oDDDddPo...",
+		"..oddPPo....",
+		"...oooo....."],
 	"dreamlight_hud": [
 		".....oo.....",
 		"....oHWo....",
