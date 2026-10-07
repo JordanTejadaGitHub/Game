@@ -865,6 +865,29 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Helper Commons 270–285 (dream_design.md c15d05ac / b6c1c199)
+
+Common budget: all Wardens +15%, conditional +30%. The proposed numbers were mostly under it (a helper must still be felt).
+| Card | Number | Why |
+|---|---|---|
+| Switchback | Wardens beside a bend attack **20%** faster | position-conditional (+30 budget) |
+| Ripples | area attacks **+25%** to non-main targets | conditional (secondary hits only) |
+| Close Guard | range ≤ 3 Wardens **+0.5** cells | ≈ +15% on most Wardens: the all-Wardens budget |
+| Wide Petals | splashes and clouds **+0.5** cells (not 0.25) | 0.25 was the old cut Broad Splash |
+| Cheap Seeds | Sprouts **−3** Dew | 25% of a 12-Dew Sprout |
+| Light Steps | +**30%** attack speed for **8 s** at a drift's start | the first 5 s rarely has nightmares in range |
+| Nimble Twigs | Wardens over 1 attack / s deal **+20%** | conditional on fast attackers |
+| Rhythm | 5 hits on one nightmare in a row → **+20%** speed for 3 s | |
+| Steady Roots | Nurture **−15%** | |
+| Seasoned | rank II+ Wardens **+15%** damage | |
+| Edge of Sight | **+25%** to nightmares in the outer half of range | a nightmare spends ~half its pass there |
+| Steady Aim | crits **+40%** against nightmares above **50%** health (twist widened from "full health") | first-hit-only was too rare to feel |
+| Close Shave | a leak → all Wardens **+30%** speed for **8 s** | |
+| Early Bird | calling a drift early **+5** Dew | |
+| Mulch | planted on a cleared cell **+20%** damage | conditional, and clearing costs Dew |
+| Weed Puller | clearing a Mossy Boulder refunds **6** Dew (a third of 18) | |
+Measure after: distinct cards per run, consecutive-run overlap, no-build at 50 (≤ ~20%), the chase ceiling (30 / 50).
+
 ## Sparkler / Starburst too strong (user, 2026-10-07)
 
 Cause in code: every one of the 6 sparks hit for the Warden's full damage (`_spark_burst_at(..., damage, ...)`), so a shot
