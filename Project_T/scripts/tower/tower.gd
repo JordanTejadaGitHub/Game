@@ -119,6 +119,7 @@ var _sap_left := randf() * ShapeCards.SAP_EVERY
 var _sap_support := false  # ShapeCards.is_support, cached in _apply_data
 static var _card_rules_frame := -1
 static var _card_rules_on := false
+static var _quick_draw_on := false  # Quick Draw, looked up with the others once a frame (perf: it was a lookup per Warden per frame)
 
 # Whether the run holds any card a Warden watches for every frame (Lantern Glow, First Frost, Sap Rising), looked
 # up once a frame for all of them (perf: 250 Wardens each asking cost ~0.5 ms a frame).
@@ -127,6 +128,7 @@ func _card_rules_held() -> bool:
 	if frame != _card_rules_frame:
 		_card_rules_frame = frame
 		_card_rules_on = _has_rule(&"lantern_glow") or _has_rule(&"first_frost") or _has_rule(ShapeCards.SAP_RISING)
+		_quick_draw_on = _has_rule(&"quick_draw")
 	return _card_rules_on
 
 static var _frame_rules_frame := -1
@@ -862,7 +864,7 @@ func _process(delta: float) -> void:
 	if bloom_left > 0.0 or (not watch_charged and _frame_rule(&"watchful_rest")):
 		_update_watch(delta)  # (Sudden Bloom fading, Watchful Rest: most Wardens skip the call)
 	_cooldown = maxf(_cooldown - delta, 0.0)
-	if _cooldown > 0.0 and _attack_time < 0.0 and _dream_state != null and _frame_rule(&"quick_draw"):
+	if _quick_draw_on and _cooldown > 0.0 and _attack_time < 0.0:
 		_quick_draw(delta)  # Quick Draw: a nightmare entering its range is attacked at once
 	if _cooldown > 0.0 or _attack_time >= 0.0:
 		return
