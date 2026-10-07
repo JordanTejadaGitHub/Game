@@ -83,6 +83,11 @@ const RULE_DE := {
 	# Rank-choice cards (Roguelite Code 31b43636, Balancing's DE 43496006), × their share in card_de
 	"specialist": 45.0, "many_talents": 30.0, "brimming": 30.0,
 	"shared_training": 20.0,  # × the DPS share of kin-paired Wardens at rank III+ whose majority choice matches their partner's (Balancing)
+	# Helper Commons 270-285 (Roguelite 1cb6b96d, Balancing 605a8ea7): their % × the board share they touch, in card_de
+	"switchback": 20.0, "ripples": 25.0, "close_guard": 15.0, "wide_petals": 15.0, "light_steps": 6.0, "nimble_twigs": 20.0,
+	"rhythm": 10.0, "steady_roots": 15.0, "seasoned": 15.0, "edge_of_sight": 12.5, "steady_aim": 20.0, "close_shave": 3.0,
+	"mulch": 20.0,
+	"cheap_seeds": 2.4, "early_bird": 0.0, "weed_puller": 0.0,  # Dew ÷ 10: 3 Dew × ~8 Sprouts a horizon; the bot never calls early, clears only with --clear-each
 }
 const SENT_OUT_KINDS := [TowerData.AttackKind.SWOOP, TowerData.AttackKind.SWEEP, TowerData.AttackKind.PECK,
 	TowerData.AttackKind.BOOMERANG, TowerData.AttackKind.PATROL]
@@ -184,6 +189,31 @@ func card_de(card: UpgradeData) -> float:
 		"brimming":  # + the Spored appliers, − the Static ones
 			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.applies_status == &"spored") \
 				- share.call(func(t: Tower) -> bool: return t.tower_data.applies_status == &"static")
+		"switchback":  # Attackers beside a bend of the route (DreamState.is_beside_bend when the build has it)
+			rule *= share.call(func(t: Tower) -> bool: return dreams.has_method("is_beside_bend") and dreams.call("is_beside_bend", t.cell, 1))
+		"ripples", "wide_petals":  # Area attackers
+			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.splash_radius > 0.0 \
+				or t.tower_data.attack_kind in [TowerData.AttackKind.PULSE, TowerData.AttackKind.CLOUD, TowerData.AttackKind.SPIN, TowerData.AttackKind.SWEEP])
+		"close_guard":
+			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.attack_range <= 3.0)
+		"nimble_twigs":
+			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.attacks_per_second > 1.0)
+		"rhythm":  # Single-target attackers (20% × ~0.5 uptime = the 10 above)
+			rule *= share.call(func(t: Tower) -> bool: return t.tower_data.splash_radius <= 0.0 \
+				and t.tower_data.attack_kind == TowerData.AttackKind.PROJECTILE)
+		"steady_roots":  # × the share of attackers already ranked (its nurture_discount is not also counted as Dew)
+			rule *= share.call(func(t: Tower) -> bool: return t.rank > 0)
+			de -= card.nurture_discount * 100.0 / DEW_PER_DE
+		"seasoned":
+			rule *= share.call(func(t: Tower) -> bool: return t.rank >= 2)
+		"steady_aim":  # 40% × 0.5 (above half health) × the mean crit chance
+			var crit := 0.0
+			for t in attackers:
+				crit += t.tower_data.crit_chance
+			rule *= crit / n
+		"mulch":
+			var run_state = dreams.get("run_state")
+			rule *= share.call(func(t: Tower) -> bool: return run_state != null and run_state.tended_cells.has(t.cell))
 		"sap_rising":  # The support Wardens (walls aside) among all Wardens
 			var wardens := dreams._towers().filter(func(t: Tower) -> bool: return t.tower_data.line != "wall")
 			rule *= wardens.filter(func(t: Tower) -> bool: return _shape_test(&"is_support", t.tower_data,
