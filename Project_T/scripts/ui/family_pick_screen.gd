@@ -72,7 +72,7 @@ func _ready() -> void:
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 18)
+	box.add_theme_constant_override("separation", 8 if TouchBuild.mobile_controls() else 18)  # Phones: the cards and Peek fit 540 tall
 	center.add_child(box)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UiStyle.display(_title, 28)

@@ -65,6 +65,9 @@ func _ready() -> void:
 	skip_row.add_theme_constant_override("separation", 16)
 	skip_row.add_child(_reroll)
 	skip_row.add_child(_skip)
+	if TouchBuild.mobile_controls():  # Phones: 48 px tap targets (platforms.md; mobile only)
+		_skip.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
+		_reroll.custom_minimum_size.y = UiStyle.HUD_BUTTON_H
 	_dev_any.text = "Dev: any card…"
 	_dev_any.focus_mode = Control.FOCUS_NONE
 	_dev_any.pressed.connect(func() -> void: DevCardPicker.open(self, dream_state, dream_state.choose_any))
