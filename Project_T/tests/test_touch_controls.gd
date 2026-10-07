@@ -32,6 +32,8 @@ func _run() -> void:
 	_close_screens()
 	await process_frame
 	_check(ProjectSettings.get_setting("input_devices/pointing/emulate_mouse_from_touch", true), "touches emulate the mouse (taps press buttons)")
+	var start_button: Button = main.get_node("HUD/DriftPanel").find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.text.begins_with("Start")).front()
+	_check(not start_button.text.contains("(Enter)") and not UiStyle.key_chip("Q").visible, "phones show no keyboard hints (%s)" % start_button.text)
 
 	# Build mode by touch: taps add pending Wardens, nothing is planted yet
 	_close_screens()

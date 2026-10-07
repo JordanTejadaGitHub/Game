@@ -279,7 +279,6 @@ func _build_phone() -> void:
 	info.text = "?"
 	info.focus_mode = Control.FOCUS_NONE
 	info.custom_minimum_size = Vector2(48, 48)
-	UiStyle.quiet(info)
 	bar.add_child(info)
 	_info_tip = TapTip.attach(info, "Dreamlight unlocks, Dew grows.")
 	var spacer := Control.new()
