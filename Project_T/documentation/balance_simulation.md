@@ -865,6 +865,16 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Omen weighing (user, 2026-10-07: "make sure ones that are worse than others give more rewards")
+
+All 27 Omens (the 4 Restless included). **Cost** measured, paired: bot boards saved at drifts 15 / 35, each Omen forced for
+one block vs Clear Skies on the same seeds (15 seeds): extra leaves, deaths, Dew lost; build-dependent Omens split by family;
+act 3 from human runs. **Value scale (Dew-equivalent):** Dew at face; 1 Seed ≈ 10 Dew (meta, a side track); a card ≈ 15% of
+the Dew invested in the board (~300 act 1, ~900 act 2); Rare+ ≈ ½ card; a 4-card Dream ≈ ⅓ card; a Legendary ≈ 2 cards;
+rest bonus ×2 = that rest bonus; pot multipliers = the multiplier × the block's pot. **Rule:** value ∝ cost; the act scaling
+stays; "facing every rest loses more leaves than picking moments" re-checked after. Free-money Omens and run-killers get a
+twist fix.
+
 ## One curve (user, 2026-10-06: "shouldn't it be the same?")
 
 The demo and a fresh full-game run share acts 1–2: **no demo-only multipliers**. The full game's fresh-profile acts 1–2
