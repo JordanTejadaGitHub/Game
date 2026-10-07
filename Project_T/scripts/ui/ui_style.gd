@@ -61,6 +61,28 @@ const TIP_WIDTH := 330.0  # ~42 characters of the body face at TIP_SIZE
 
 const FONT_DIR := "res://assets/ui/fonts/"
 
+# Resource glyphs (user via Main Merger 2026-10-06: every price or reward is the resource icon and the number,
+# never "15 Dew"): private-use characters that the glyph font (tools/ui_glyph_font_generator.gd) draws as the
+# icons.png art, a fallback of every theme face, so plain Labels, Buttons and tooltips show them. [char, icon id]
+const DEW_GLYPH := ""
+const DREAMLIGHT_GLYPH := ""
+const SEEDS_GLYPH := ""
+const GLYPHS := [[0xE000, "dew"], [0xE001, "dreamlight"], [0xE002, "seeds"]]
+const GLYPH_FONT_PATH := "res://assets/ui/fonts/heartwood_glyphs.res"
+
+# "15" with the Dew icon first; signed: "+30" / "-5" (the number keeps its own colour: GOLD, or POOR when short).
+static func dew_amount(amount: int, signed: bool = false) -> String:
+	return DEW_GLYPH + _signed(amount, signed)
+
+static func dreamlight_amount(amount: int, signed: bool = false) -> String:
+	return DREAMLIGHT_GLYPH + _signed(amount, signed)
+
+static func seeds_amount(amount: int, signed: bool = false) -> String:
+	return SEEDS_GLYPH + _signed(amount, signed)
+
+static func _signed(amount: int, signed: bool) -> String:
+	return ("+%d" % amount) if signed and amount >= 0 else str(amount)
+
 static var _fonts := {}
 
 # --- UI scale ----------------------------------------------------------------------------------
@@ -241,8 +263,19 @@ static func _spaced(key: String, file: String) -> Font:
 		var font := FontVariation.new()
 		font.base_font = _file(file)
 		font.spacing_space = SPACE_EXTRA
+		var glyphs := glyph_font()
+		if glyphs != null:
+			font.fallbacks = [glyphs]  # The resource icons; every other face falls back to the body face
 		_fonts[key] = font
 	return _fonts[key]
+
+# The resource glyph font (DEW_GLYPH…), or null before tools/ui_glyph_font_generator.gd has made it.
+static func glyph_font() -> Font:
+	if not _fonts.has("glyphs"):
+		if _fonts.is_empty():
+			release_at_exit(func() -> void: _fonts.clear())
+		_fonts["glyphs"] = load(GLYPH_FONT_PATH) if ResourceLoader.exists(GLYPH_FONT_PATH) else null
+	return _fonts["glyphs"]
 
 # Cormorant Garamond SemiBold: titles, card names, buttons. Every Cormorant face uses lining figures
 # (its default old-style ones read small in "Drift 8" or "1×").

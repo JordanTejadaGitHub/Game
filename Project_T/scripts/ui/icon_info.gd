@@ -286,7 +286,22 @@ static func format(text: String) -> String:
 	if text.contains("{field:"):  # Any Warden number: "{field:thunderhead.storm_every}", "{field:graftling.copy_share:pct}"
 		for found in _field_pattern().search_all(text):
 			text = text.replace(found.get_string(), field_text(found.get_string(1), found.get_string(2), found.get_string(3)))
+	if text.contains("{dew:") or text.contains("{dreamlight:") or text.contains("{seeds:"):  # An amount: the icon and the number
+		for found in _amount_pattern().search_all(text):
+			text = text.replace(found.get_string(), amount_text(found.get_string(1), found.get_string(2)))
 	return text
+
+# "{dew:15}", "{dreamlight:+2}", "{seeds:30}" -> the resource's glyph and the number (UiStyle.dew_amount; user via
+# Main Merger 2026-10-06: prices and rewards are the icon and the number, never "15 Dew"). A "+" stays.
+static func amount_text(resource: String, amount: String) -> String:
+	var glyph: String = {"dew": UiStyle.DEW_GLYPH, "dreamlight": UiStyle.DREAMLIGHT_GLYPH, "seeds": UiStyle.SEEDS_GLYPH}.get(resource, "")
+	return glyph + amount
+
+static var _amount_regex: RegEx = null
+static func _amount_pattern() -> RegEx:
+	if _amount_regex == null:
+		_amount_regex = RegEx.create_from_string("\\{(dew|dreamlight|seeds):([-+]?\\d+)\\}")
+	return _amount_regex
 
 # "{pct:beacon.marked_bonus}" -> "50%": TowerData field `field` of Warden `warden_id`, × 100 ("full strength" at 1.0).
 static func pct_text(warden_id: String, field: String) -> String:

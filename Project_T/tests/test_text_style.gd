@@ -57,7 +57,8 @@ func _init() -> void:
 	var failures := 0
 	for owner in findings:
 		var list: Array = findings[owner]
-		var enforced: bool = WORDING_ENFORCED.has(owner.trim_suffix(" wording")) if owner.ends_with(" wording") else ENFORCED.has(owner)
+		var enforced: bool = WORDING_ENFORCED.has(owner.trim_suffix(" wording")) if owner.ends_with(" wording") \
+				else GLYPHS_ENFORCED.has(owner.trim_suffix(" glyphs")) if owner.ends_with(" glyphs") else ENFORCED.has(owner)
 		print("%s %s: %d" % ["FAIL" if enforced else "TODO", owner, list.size()])
 		for line in list.slice(0, 40):
 			print("  ", line)
@@ -152,6 +153,7 @@ func _scan_script_strings(dir: String, owner: String, wording_only := false) -> 
 					var file_owner: String = FILE_OWNERS.get(file, owner)
 					if wording_only:
 						_wording(file_owner, "%s:%d" % [file, i + 1], text)
+						_glyphs(file_owner, "%s:%d" % [file, i + 1], text)
 					else:
 						_lint(file_owner, "%s:%d" % [file, i + 1], text, false, true)
 
@@ -200,6 +202,18 @@ func _lint(owner: String, source: String, text: String, is_title := false, is_co
 			findings[owner] = []
 		findings[owner].append("%s: %s  [%s]" % [source, problem, text.left(90).replace("\n", " / ")])
 	_wording(owner, source, text)
+	_glyphs(owner, source, text)
+
+# Prices and rewards as the resource icon and the number (user via Main Merger 2026-10-06): "15 Dew", "%d Dew",
+# "+1 Dreamlight", "{plant_cost:x} Seeds" should be UiStyle.dew_amount(15) / "{dew:15}". Findings go under
+# "<owner> glyphs": TODO until the owner's sweep, then the owner joins GLYPHS_ENFORCED.
+const GLYPHS_ENFORCED: Array[String] = []
+var _glyph_rule := RegEx.create_from_string("(?:\\d+|%[-+.\\d]*[ds]|\\{[a-z_]+:[^}]*\\})\\s+(?:Dew|Dreamlight|Seeds?)\\b")
+func _glyphs(owner: String, source: String, text: String) -> void:
+	var found := _glyph_rule.search(text)
+	if found != null:
+		findings.get_or_add(owner + " glyphs", []).append("%s: \"%s\" (the icon and the number: UiStyle.dew_amount / {dew:N})  [%s]"
+			% [source, found.get_string(), text.left(90).replace("\n", " / ")])
 
 # Card wording, one way each (text_style.md, 2026-10-02): distances in cells, caps as "up to", Warden bonuses as
 # verbs. Its findings go under "<owner> wording": enforced for WORDING_ENFORCED, TODO for the rest until their sweep.

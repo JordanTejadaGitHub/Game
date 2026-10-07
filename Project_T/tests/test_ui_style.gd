@@ -59,6 +59,19 @@ func _initialize() -> void:
 	var saved_default: Theme = load(UiStyle.THEME_PATH)
 	_check(saved_default.default_font is FontVariation and (saved_default.default_font as FontVariation).spacing_space >= 1,
 		"the saved theme's default font has the extra space (re-run the generator?)")
+	# Resource glyphs: the glyph font draws each one, every face reaches it, and the amount helpers / tokens use it.
+	var glyphs := UiStyle.glyph_font()
+	_check(glyphs != null, "the glyph font exists (run tools/ui_glyph_font_generator.gd)")
+	for glyph in [UiStyle.DEW_GLYPH, UiStyle.DREAMLIGHT_GLYPH, UiStyle.SEEDS_GLYPH]:
+		_check(glyphs != null and glyphs.has_char(glyph.unicode_at(0)), "the glyph font has U+%X" % glyph.unicode_at(0))
+		for face in [UiStyle.body_font(), UiStyle.display_font(), UiStyle.caps_font(), saved_default.default_font]:
+			_check(face.get_string_size(glyph, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x > 4.0,
+				"%s draws U+%X through its fallbacks" % [face, glyph.unicode_at(0)])
+	_check(UiStyle.dew_amount(15) == UiStyle.DEW_GLYPH + "15" and UiStyle.dew_amount(30, true) == UiStyle.DEW_GLYPH + "+30"
+		and UiStyle.dreamlight_amount(2) == UiStyle.DREAMLIGHT_GLYPH + "2" and UiStyle.seeds_amount(-5, true) == UiStyle.SEEDS_GLYPH + "-5",
+		"amounts are the glyph, then the number")
+	_check(IconInfo.format("Costs {dew:15}, pays {seeds:+30} and {dreamlight:2}") == "Costs %s, pays %s and %s"
+		% [UiStyle.dew_amount(15), UiStyle.seeds_amount(30, true), UiStyle.dreamlight_amount(2)], "{dew:N} tokens format to amounts")
 	# Every glyph id has a non-empty cell inside the sheet (a blank region drew a white square).
 	var sheet: Texture2D = load(UiStyle.DREAM_GLYPHS + ".png")
 	var glyph_ids: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(UiStyle.DREAM_GLYPHS + ".json")).icons
