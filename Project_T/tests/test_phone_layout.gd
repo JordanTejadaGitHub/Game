@@ -40,6 +40,12 @@ func _run() -> void:
 		pause.open()
 		await _settle()
 		_check_buttons("pause menu", pause, view)
+		pause._show_settings()  # Settings: every tab
+		await _settle()
+		await _check_tabs("settings", pause._settings, view)
+		pause.open_codex()  # The Codex: every tab
+		await _settle()
+		await _check_tabs("Codex", pause.find_children("*", "CodexPanel", true, false).front(), view)
 		pause.close()
 		var cards := dreams.make_offer(5)
 		dreams.offer_ready.emit(cards, 5)
@@ -56,6 +62,14 @@ func _run() -> void:
 		_check_buttons("boss dossier", dossier, view)
 		dossier.close_dossier()
 		main.get_node("%GameSpeed").set_paused(false)
+	# The results screen (last: a run end can't be undone)
+	for view in VIEWS:
+		root.size = view
+		var results := main.get_node("%ResultsScreen")
+		if view == VIEWS[0]:
+			main.get_node("%RunState").end_run(false)
+		await _settle()
+		_check_buttons("results", results, view)
 
 	TouchBuild.force_mobile = false
 	_check(not UiStyle.is_phone() and UiStyle.layout_min() == UiStyle.LAYOUT_MIN, "the PC keeps its base")
@@ -63,6 +77,23 @@ func _run() -> void:
 	await process_frame
 	print("FAILURES: %d" % failures if failures > 0 else "PASS")
 	quit(failures)
+
+# A tabbed panel: its buttons on every tab.
+func _check_tabs(what: String, panel: Node, view: Vector2i) -> void:
+	if panel == null:
+		_check(false, "%s %s: found" % [what, view])
+		return
+	var tabs: Array = panel.find_children("*", "TabContainer", true, false)
+	if tabs.is_empty():
+		_check_buttons(what, panel, view)
+		return
+	var container: TabContainer = tabs.front()
+	for i in container.get_tab_count():
+		if container.is_tab_hidden(i):
+			continue
+		container.current_tab = i
+		await _settle()
+		_check_buttons("%s/%s" % [what, container.get_tab_title(i)], panel, view)
 
 func _settle() -> void:
 	for i in 3:
@@ -95,12 +126,23 @@ func _check_buttons(what: String, node: Node, view: Vector2i, hud_only := false)
 		if r.size.x < 2.0:
 			continue
 		var label: String = button.text if "text" in button and button.text != "" else String(button.name)
+		var scroll := _scroll_of(button)
+		if scroll != null:
+			r = scroll.get_global_rect()  # In a scrolling list: the list is on screen, the rest scrolls into view
 		if not rect.encloses(r.grow(-0.5)):
 			off.append("%s %s" % [label.left(24), r])
-		if r.size.y < MIN_H:
-			small.append("%s (%d)" % [label.left(24), int(r.size.y)])
+		if button.size.y < MIN_H:
+			small.append("%s (%d)" % [label.left(24), int(button.size.y)])
 	_check(off.is_empty(), "%s %s: every button on screen %s" % [what, view, off])
 	_check(small.is_empty(), "%s %s: every button %d+ tall %s" % [what, view, int(MIN_H), small])
+
+func _scroll_of(control: Node) -> ScrollContainer:
+	var up := control.get_parent()
+	while up != null:
+		if up is ScrollContainer:
+			return up
+		up = up.get_parent()
+	return null
 
 func _inside_screen(control: Node) -> bool:
 	var up := control.get_parent()

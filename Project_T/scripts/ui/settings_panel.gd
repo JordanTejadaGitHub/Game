@@ -247,12 +247,30 @@ func _ready() -> void:
 		[["Apply", _close_apply, true], ["Discard", _close_discard, false], ["Keep editing", _hide_prompts, false]])
 	keep_prompt = _prompt("KeepPrompt", KEEP_TEXT % int(revert_seconds), [["Keep", keep, true], ["Revert", revert, false]])
 	_keep_label = keep_prompt.find_child("Text", true, false)
+	if TouchBuild.mobile_controls():
+		_phone_pass()
 	visibility_changed.connect(func() -> void:
 		if visible:
 			_open()
 		else:
 			_closing())
 	_open()
+
+# Phones (mobile only; Mobile chat, platforms.md): no keys to rebind and no window, so the Controls tab and the
+# Fullscreen / Window size / V-sync rows go; every toggle, dropdown and button is a 48 px tap target.
+const PHONE_HIDDEN_ROWS := ["fullscreen", WINDOW_SIZE_SETTING, VSYNC_SETTING]
+
+func _phone_pass() -> void:
+	var controls := tabs.get_node_or_null("Controls")
+	if controls != null:
+		tabs.set_tab_hidden(controls.get_index(), true)
+	for key in PHONE_HIDDEN_ROWS:
+		var dot: Control = _dots.get(key)
+		if dot != null and dot.get_parent() is Control:
+			(dot.get_parent() as Control).visible = false
+	for button in find_children("*", "BaseButton", true, false):
+		var control := button as Control
+		control.custom_minimum_size.y = maxf(control.custom_minimum_size.y, UiStyle.HUD_BUTTON_H)
 
 # --- Start over as a new profile (demo_scope.md "Reset to a new profile"; Developer, debug builds) ---
 
