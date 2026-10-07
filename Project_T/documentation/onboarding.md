@@ -118,7 +118,7 @@ the map. At most one per drift (the rest queue).
 | **Copies cost more** | the first time a family Warden's price rises because you already have some (the 2nd copy) | "Each {warden} you plant costs a little more than the last. Mixing Wardens keeps prices low." (the price before → now shown with the Dew icon) |
 | **Copies, again** | the first time one Warden reaches 5 copies | "Five {warden}s: each new one now costs {price}. Sprouts and walls never get pricier." |
 | **Sprout or Warden?** | the first family Warden planted directly (not grown from a Sprout) | "Planting a {warden} directly costs the same as growing a Sprout into one. A Sprout lets you choose later." |
-| **Selling mid-drift** | the first sell during a drift | "Selling during a drift returns half. At a rest you get it all back." |
+| **Selling mid-drift** | the first sell during a drift | "Selling during a drift returns {drift_refund}; at a rest, {rest_refund}." (live values; today 50% and 75%) |
 | **Turned around** | the first nightmare to gain Restless | "Changing the route under them makes them restless and faster. Do it too often and they stop listening." |
 | **Build mode** | the first time the player plants twice in a row | "Build mode stays on. Right-click or Esc to stop building." |
 | **Dreamlight** | the first Dreamlight earned | "Dreamlight unlocks new forms on the Remember screen (Q)." |
