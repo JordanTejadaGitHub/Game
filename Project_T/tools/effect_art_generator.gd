@@ -45,6 +45,7 @@ func _init() -> void:
 	_sap_effects()
 	_signature_effects()
 	_area_effects()
+	_firework_effects()
 	var file := FileAccess.open(OUT + "effects.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({effects = index}, "\t") + "\n")
 	_save_preview()
@@ -3581,3 +3582,43 @@ func _area_hit(img: Image, f: int) -> void:
 	for k in 4:
 		var d := Vector2.from_angle(k * TAU / 4.0 + PI / 4.0) * (r + 1.5)
 		_px(img, int(c.x + d.x), int(c.y + d.y), Color(GOLD, a))
+
+# --- Sparkler / Starburst's pop (story chat 2026-10-07) ---------------------------------------------
+# The firework shell bursting over its target: a white flash, a starburst of gold and pink streaks
+# out to a 1.5-cell radius, crackling heads, then embers drifting down. Starburst plays it twice.
+func _firework_effects() -> void:
+	_sheet("firework_pop", Vector2i(192, 192), 7, 16, Vector2i(96, 96), false, "signature", _firework_pop,
+		{note = "Sparkler / Starburst: the shell bursting over its target (anchor = the burst point), streaks out to a 1.5-cell radius (96 px at scale 1). ~0.44 s. Starburst: play two (the second a beat later, offset)."})
+
+func _firework_pop(img: Image, f: int) -> void:
+	var c := Vector2(96, 96)
+	var a := 1.0 if f < 4 else (0.75 if f < 6 else 0.4)
+	if f == 0:
+		_ellipse(img, c, Vector2(16, 16), Color(GOLD, 0.4))
+		_ellipse(img, c, Vector2(11, 11), Color(GOLD, 0.75))
+		_ellipse(img, c, Vector2(6, 6), CORE)
+		_star(img, c, 12, CORE, GOLD)
+		return
+	var n := 14
+	var head: float = [0.0, 30.0, 56.0, 76.0, 88.0, 92.0, 94.0][f]
+	var tail: float = [0.0, 6.0, 26.0, 50.0, 70.0, 84.0, 90.0][f]
+	var drop: float = [0.0, 0.0, 1.0, 3.0, 6.0, 10.0, 14.0][f]
+	for s in n:
+		var d := Vector2.from_angle(s * TAU / n + 0.12)
+		var col := Color("#ec9cf4") if s % 3 == 0 else GOLD
+		var steps := int(head - tail)
+		for i in steps + 1:
+			var r := tail + i
+			var sag := drop * pow(r / 94.0, 2.0)  # gravity bends the streaks down as they fly
+			var p := c + d * r + Vector2(0, sag)
+			if f >= 4 and i % 2 == 1:
+				continue
+			_px(img, roundi(p.x), roundi(p.y), Color(col, a))
+			if f < 4:  # two pixels thick while it's bright
+				_px(img, roundi(p.x + d.orthogonal().x), roundi(p.y + d.orthogonal().y), Color(col, a))
+		var hp := c + d * head + Vector2(0, drop * pow(head / 94.0, 2.0))
+		if f < 6:  # a bright crackling head
+			_ellipse(img, hp, Vector2(1.6, 1.6), Color(CORE, a))
+			_px(img, roundi(hp.x) + 1, roundi(hp.y) + 1, Color(WARM, a))
+	if f == 1:
+		_ellipse(img, c, Vector2(6, 6), Color(WARM, 0.75))

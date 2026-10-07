@@ -341,7 +341,7 @@ func _init() -> void:
 	for p: String in ["spore", "pebble", "boulder", "dew_drop", "spark", "light_orb", "sling_stone", "moon_shard",
 			"frost_shard", "sparrow", "wren", "magpie", "starling", "moon_mote", "fairy_ring", "elf_circle",
 			"dream_mote", "lob_stone", "hummingbird", "maple_seed", "autumn_seed", "starling_bird",
-			"lichen_flake", "lichen_clump", "ink_drop", "spore_sprite", "whetstone_slash"]:
+			"lichen_flake", "lichen_clump", "ink_drop", "spore_sprite", "whetstone_slash", "firework_shell", "firework_shell_big", "firework_spark"]:
 		_make_projectile(p)
 	_save_projectile_preview()
 	quit()
@@ -1391,11 +1391,11 @@ func _pal(o: String, a: String, b: String, c: String) -> Dictionary:
 
 const P := 24
 const P_FRAMES := 4
-const P_SIZE := {"lichen_clump": 32}  # shots on a bigger frame than P (Tower Code reads the size from the sheet)
+const P_SIZE := {"lichen_clump": 32, "firework_shell_big": 32, "firework_spark": 16}  # shots on a bigger frame than P (Tower Code reads the size from the sheet)
 const P_AT := 20  # the frame's top-left on the work canvas
 # Shots that light themselves in their own colour, and traps (they lie on the path, unlit).
 const P_OWN_GLOW := ["dew_drop", "spark", "light_orb", "moon_shard", "frost_shard", "moon_mote", "dream_mote",
-	"fairy_ring", "elf_circle", "spore_sprite"]  # spore_sprite: its own warm rim
+	"fairy_ring", "elf_circle", "spore_sprite", "firework_shell", "firework_shell_big", "firework_spark"]  # spore_sprite: its own warm rim; fireworks: their own sparks
 var projectile_sheets: Array[Image] = []
 
 func _make_projectile(proj_name: String) -> void:
@@ -5453,6 +5453,59 @@ func _attack_deliquescent(canvas: Image, st: Dictionary) -> void:
 		_flat_ellipse(pool, Vector2(31, 48), Vector2(24, 4.5), Color(INK[2]))
 		_stamp(canvas, pool)
 
+# Sparkler / Starburst (user: "the Sparkler had no attack asset, or I can't see what it's attacking"):
+# a firework shell flying at its target (drawn pointing right, a fizzing spark trail behind it;
+# Starburst's is bigger and brighter on a 32 px frame), and the sparks the pop throws at the
+# nightmares round it (firework_spark, 16 px, pointing right).
+func _proj_firework_shell(canvas: Image, f: int) -> void:
+	_firework_shell(canvas, f, 1.0, false)
+
+func _proj_firework_shell_big(canvas: Image, f: int) -> void:
+	_firework_shell(canvas, f, 1.45, true)
+
+func _firework_shell(canvas: Image, f: int, z: float, big: bool) -> void:
+	var o := Color("#241c14")
+	var c := Vector2(33, 32)
+	var body := _layer()
+	# A paper tube, a gold band, a bright cone nose, two little fins at the back.
+	_flat_polygon(body, PackedVector2Array([c + Vector2(-5, -2.2) * z, c + Vector2(3, -2.2) * z, c + Vector2(3, 2.2) * z, c + Vector2(-5, 2.2) * z]), Color("#b8662c"))
+	_flat_polygon(body, PackedVector2Array([c + Vector2(3, -2.2) * z, c + Vector2(7, 0) * z, c + Vector2(3, 2.2) * z]), Color("#e9a83c"))
+	for s: float in [-1.0, 1.0]:
+		_flat_polygon(body, PackedVector2Array([c + Vector2(-5, 2.2 * s) * z, c + Vector2(-3, 2.2 * s) * z, c + Vector2(-6.5, 4.2 * s) * z]), Color("#8c5c34"))
+	_stamp(canvas, body, o)
+	for y in range(int(c.y - 2 * z), int(c.y + 2 * z) + 1):  # the gold band
+		_px(canvas, int(c.x - 1 * z), y, Color("#fcd47c"))
+	_px(canvas, int(c.x + 4 * z), int(c.y - 1), Color("#fff4dc"))  # a glint on the nose
+	# The fizzing trail: a hot flame plume out of the back, then sparks streaming off it, flickering.
+	var tail := c + Vector2(-6, 0) * z
+	var plume := _layer()
+	_flat_polygon(plume, PackedVector2Array([tail + Vector2(0, -1.6) * z, tail + Vector2(-5 - f % 2, 0) * z, tail + Vector2(0, 1.6) * z]), Color("#e9a83c"))
+	_flat_polygon(plume, PackedVector2Array([tail + Vector2(0, -0.9) * z, tail + Vector2(-3, 0) * z, tail + Vector2(0, 0.9) * z]), Color("#fff4dc"))
+	_stamp(canvas, plume)
+	_px(canvas, int(tail.x), int(tail.y), Color.WHITE)
+	tail += Vector2(-5, 0) * z
+	var n := 7 if big else 5
+	for k in n:
+		var x := tail.x - 2 - k * 1.6 * z
+		var y: float = tail.y + [0, -1, 1, 0, -1, 1, 0][(k + f) % 7] * (1 + k / 3)
+		var col: Color = [Color("#fff4dc"), Color("#fcd47c"), Color("#e9a83c")][mini(k / 2, 2)]
+		if big and (k + f) % 3 == 0:
+			col = Color("#ec9cf4")
+		if (k + f) % 4 != 3:
+			_px(canvas, roundi(x), roundi(y), col)
+
+func _proj_firework_spark(canvas: Image, f: int) -> void:
+	# A bright spark head with a short gold trail, flickering.
+	var c := Vector2(36, 32)
+	_px(canvas, int(c.x), int(c.y), Color.WHITE)
+	_px(canvas, int(c.x) + 1, int(c.y), Color("#fff4dc"))
+	_px(canvas, int(c.x), int(c.y) - 1, Color("#fcd47c"))
+	_px(canvas, int(c.x), int(c.y) + 1, Color("#fcd47c"))
+	for k in 5:
+		if (k + f) % 3 == 2:
+			continue
+		_px(canvas, int(c.x) - 1 - k, int(c.y) + (1 if k == 3 and f % 2 == 0 else 0), Color("#fcd47c") if k < 2 else Color("#e9a83c"))
+
 # Projectiles: a spinning lichen flake (Lichenling), a falling ink drop (Inkcap), and the brood's
 # walking spore-sprite (Brood Cap: 4 walk frames, drawn walking right).
 # Lichenling's shot (user: "make the Lichenling attack bigger"): a crusted spore clump about 1.5x the
@@ -5899,35 +5952,88 @@ func _sparkler(canvas: Image, hand: Vector2, tip: Vector2, f: int, o: Color) -> 
 
 func _draw_sparkler(canvas: Image, st: Dictionary) -> void:
 	_draw_firefly_jar(canvas, st)
-	_sparkler(canvas, Vector2(44, 30), Vector2(54, 12 + st.dy), st.f, Color("#1a2230"))
+	_sparkler(canvas, Vector2(44, 30), Vector2(54, 12 + st.dy) + _wand_swing(st), st.f, Color("#1a2230"))
 
 func _draw_starburst(canvas: Image, st: Dictionary) -> void:
 	_draw_firefly_jar(canvas, st)
-	_sparkler(canvas, Vector2(44, 30), Vector2(56, 13 + st.dy), st.f, Color("#1a2230"))
-	_sparkler(canvas, Vector2(18, 30), Vector2(6, 13 + st.dy), st.f + 2, Color("#1a2230"))
+	var swing := _wand_swing(st)
+	_sparkler(canvas, Vector2(44, 30), Vector2(56, 13 + st.dy) + swing, st.f, Color("#1a2230"))
+	_sparkler(canvas, Vector2(18, 30), Vector2(6, 13 + st.dy) + Vector2(-swing.x, swing.y), st.f + 2, Color("#1a2230"))
+
+# The wand's swing through an attack (user: "the Sparkler and Starburst don't have attack animations"):
+# drawn back and down while the sparks gather (wind-up), flicked up and out on the release, settling.
+const WAND_SWING := [Vector2(-3, 5), Vector2(-5, 8), Vector2(3, -4), Vector2(2, -2), Vector2(1, 0), Vector2(0, 0)]
+
+func _wand_swing(st: Dictionary) -> Vector2:
+	return WAND_SWING[st.attack] if st.attack >= 0 else Vector2.ZERO
 
 func _attack_sparkler(canvas: Image, st: Dictionary) -> void:
-	_firework_burst(canvas, st, "sparkler", 6, false)
+	_wand_burst(canvas, st, Vector2(ATTACKS["sparkler"].point) + Vector2(0, st.dy) + _wand_swing(st), false)
 
 func _attack_starburst(canvas: Image, st: Dictionary) -> void:
-	_firework_burst(canvas, st, "starburst", 6, true)
+	var swing := _wand_swing(st)
+	_jar_starburst(canvas, st)
+	_wand_burst(canvas, st, Vector2(ATTACKS["starburst"].point) + Vector2(0, st.dy) + swing, false)  # the jar ring is the star here; the wands flare smaller
+	_wand_burst(canvas, st, Vector2(6, 13 + st.dy) + Vector2(-swing.x, swing.y), false)
 
-# A firework shoots up out of the sparkler and bursts into sparks (twice for Starburst).
-func _firework_burst(canvas: Image, st: Dictionary, key: String, n: int, double: bool) -> void:
+# The wand's attack: sparks drawn in to its tip (wind-up), a bright rayed flash on the release, the
+# rays stretching out, then sparks falling away.
+func _wand_burst(canvas: Image, st: Dictionary, tip: Vector2, big: bool) -> void:
+	var a: int = st.attack
+	var k := a - RELEASE_FRAME
+	var rays := 12 if big else 10
+	if k < 0:  # gathering
+		_warm_glow(canvas, tip, Vector2(4, 4) + Vector2(2, 2) * a, a)
+		for s in 6:
+			var p := tip + Vector2.from_angle(s * TAU / 6.0 + a * 0.5) * (9.0 - a * 3.0)
+			_px(canvas, roundi(p.x), roundi(p.y), Color("#fcd47c"))
+	elif k == 0:  # the flash
+		for s in rays:
+			var d := Vector2.from_angle(s * TAU / rays + 0.2)
+			var reach := 10.0 if s % 2 == 0 else 7.0
+			for i in range(2, int(reach) + 1):
+				_px(canvas, roundi(tip.x + d.x * i), roundi(tip.y + d.y * i), Color("#ffffff") if i < 5 else Color("#fcd47c"))
+		var core := _layer()
+		_flat_ellipse(core, tip, Vector2(2.6, 2.6), Color("#fff4dc"))
+		_stamp(canvas, core)
+		_px(canvas, int(tip.x), int(tip.y), Color.WHITE)
+		_warm_glow(canvas, tip, Vector2(11, 10), 0)
+	elif k == 1:  # the rays stretching out, broken
+		for s in rays:
+			var d := Vector2.from_angle(s * TAU / rays + 0.2)
+			for i in range(7, 15 if s % 2 == 0 else 12):
+				if i % 3 != 0:
+					_px(canvas, roundi(tip.x + d.x * i), roundi(tip.y + d.y * i), Color("#fcd47c") if i < 11 else Color("#e9a83c"))
+		_warm_glow(canvas, tip, Vector2(8, 7), 1)
+	else:  # sparks falling away
+		for s in rays / 2:
+			var d := Vector2.from_angle(s * TAU / (rays / 2) + 0.5)
+			var p := tip + d * (13.0 + k * 2.0) + Vector2(0, (k - 1) * 3)
+			_px(canvas, roundi(p.x), roundi(p.y), Color("#e9a83c"))
+			if k == 2:
+				_px(canvas, roundi(p.x), roundi(p.y) - 1, Color("#fcd47c"))
+
+# Starburst's own: a ring of rays bursting out of its jar body on the release.
+func _jar_starburst(canvas: Image, st: Dictionary) -> void:
 	var k: int = st.attack - RELEASE_FRAME
-	var from := Vector2(ATTACKS[key].point)
-	if k == 0:
-		_line(canvas, [from, from + Vector2(2, -8)], Color("#fcd47c"))
-		_glow_dot(canvas, Vector2i(from + Vector2(2, -9)), Color.WHITE, Color("#fcd47c"))
-	elif k == 1 or k == 2:
-		var centres := [from + Vector2(2, -10)]
-		if double:
-			centres.append(from + Vector2(-12, -6))
-		for c: Vector2 in centres:
-			for s in n:
-				var d := Vector2.from_angle(s * TAU / n) * (4.0 + k * 3.0)
-				_px(canvas, int(c.x + d.x), int(c.y + d.y), Color("#fff4dc") if k == 1 else Color("#e9a83c"))
-			_warm_glow(canvas, c, Vector2(6, 6), k)
+	if k < 0 or k > 2:
+		return
+	var c := Vector2(31, 21 + st.dy)
+	var r0: float = [17.0, 21.0, 26.0][k]  # out past the jar body, so the ring reads round it
+	var r1: float = [29.0, 31.0, 31.0][k]
+	for s in 16:
+		var d := Vector2.from_angle(s * TAU / 16.0 + 0.1)
+		var long := s % 2 == 0
+		for i in range(int(r0), int(r1 if long else r1 - 4.0) + 1):
+			if k == 2 and i % 2 == 0:
+				continue
+			var col := Color("#ffffff") if k == 0 and i < r0 + 4 else (Color("#fcd47c") if long else Color("#ec9cf4"))
+			var p := c + d * i
+			_px(canvas, roundi(p.x), roundi(p.y), col)
+			if k < 2:  # two pixels thick on the flash and the stretch
+				_px(canvas, roundi(p.x + d.orthogonal().x), roundi(p.y + d.orthogonal().y), col)
+	if k == 0:  # the jar itself flares
+		_warm_glow(canvas, c, Vector2(16, 14), 0)
 
 
 # --- Branch expansion, Bellflower --------------------------------------------------------------

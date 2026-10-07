@@ -941,11 +941,11 @@
 		"sparkler": {
 			"frame": [
 				72,
-				83
+				80
 			],
 			"kind": "firework",
 			"point": [
-				62,
+				61,
 				5
 			]
 		},

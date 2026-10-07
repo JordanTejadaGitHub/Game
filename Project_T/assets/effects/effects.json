@@ -958,6 +958,22 @@
 			"loop": false,
 			"note": "Sparkler / Starburst: a firework bursting over a crowd into 6 sparks (Starburst: play two, offset)."
 		},
+		"firework_pop": {
+			"anchor": [
+				96,
+				96
+			],
+			"file": "firework_pop.png",
+			"fps": 16.0,
+			"frame_size": [
+				192,
+				192
+			],
+			"frames": 7,
+			"kind": "signature",
+			"loop": false,
+			"note": "Sparkler / Starburst: the shell bursting over its target (anchor = the burst point), streaks out to a 1.5-cell radius (96 px at scale 1). ~0.44 s. Starburst: play two (the second a beat later, offset)."
+		},
 		"flyer_grab": {
 			"anchor": [
 				24,
