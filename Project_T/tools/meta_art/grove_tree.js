@@ -581,7 +581,7 @@ function groveCanopy(stage) {
   }
   const small = new Img(W, H); small.stamp(L, P[0]);
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
-    if (L.alpha(x, y) && !L.alpha(x - 1, y - 1) && !L.alpha(x - 3, y - 3) && !L.alpha(x - 6, y - 6) && L.alpha(x + 1, y + 1) && y * s < 420 && hash(x, y, 35) < .8) small.set(x, y, HW.Gold);  // only the outer edge, not every gap  // warm rim where the light catches the upper-left edge
+    if (L.alpha(x, y) && !L.alpha(x - 1, y - 1) && !L.alpha(x - 3, y - 3) && !L.alpha(x - 6, y - 6) && L.alpha(x + 1, y + 1) && y * s < 420 && hash(x, y, 35) < .3) small.set(x, y, HW.Pool);  // a sparse cool moonlit edge (the gold rim read as an outline: user 2026-10-07)  // only the outer edge, not every gap  // warm rim where the light catches the upper-left edge
   // Scale up 2× into the tree's space.
   const out = new Img(GW, GH);
   for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const X = x / s | 0, Y = y / s | 0; if (small.alpha(X, Y)) out.set(x, y, small.get(X, Y)); }
@@ -696,6 +696,9 @@ function limbsInCrown(img) {
     }
   }
 }
+const NODE_MARGIN = 34, LINK_MAX = 70, FIRST_MAX = 50, NODE_GAP = 36;
+// The Cards limb carries the most nodes: a little more reach and room, so they fill the right of the crown instead of clumping (user 2026-10-07).
+const linkMax = n => n.section === "cards" ? (n.parent ? 88 : 64) : (n.parent ? LINK_MAX : FIRST_MAX), nodeGap = (a, b) => a.section === "cards" && b.section === "cards" ? 46 : NODE_GAP;  // nodes stay well inside the leaves, links stay short (user 2026-10-07: "how far the branches are")
 const TWIG_MAX_X = 556, TWIG_MIN_X = 724;  // the twigs at a limb's foot stay on their own side of the trunk (Perks left, Cards right)
 const twigOut = (n, x) => n.twig && (n.section === "cards" ? x < TWIG_MIN_X : x > TWIG_MAX_X);
 function spreadNodes(mask) {
@@ -708,15 +711,15 @@ function spreadNodes(mask) {
   for (const [sec, limb] of Object.entries(LIMBS)) { const all = limb.cut || catmull(limb.pts, 16), inside = all.filter(([x, y]) => inMask(x, y, 8)); limbPts[sec] = inside.length ? inside : all; }
   const nearestLimb = n => limbPts[n.section].reduce((b, p) => (p[0] - n.x) ** 2 + (p[1] - n.y) ** 2 < (b[0] - n.x) ** 2 + (b[1] - n.y) ** 2 ? p : b);
   const anchor = n => n.parent ? byId[n.parent] : (([x, y]) => ({ x, y }))(nearestLimb(n));
-  for (const n of list) for (let k = 0; k < 250 && !inMask(n.x, n.y, 24); k++) {
+  for (const n of list) for (let k = 0; k < 250 && !inMask(n.x, n.y, NODE_MARGIN); k++) {
     const dx = 640 - n.x, dy = 300 - n.y, d = Math.hypot(dx, dy) || 1;
     n.x = Math.round(n.x + dx / d * 4); n.y = Math.round(n.y + dy / d * 4);
   }
-  let area = 0; for (let y = 0; y < GH; y += 4) for (let x = 0; x < GW; x += 4) if (inMask(x, y, 26)) area += 16;
+  let area = 0; for (let y = 0; y < GH; y += 4) for (let x = 0; x < GW; x += 4) if (inMask(x, y, NODE_MARGIN)) area += 16;
   const R = Math.sqrt(area / list.length) * 1.08;
   // Even coverage (Lloyd relaxation): each node moves toward the middle of the leaf area nearest to
   // it, but never far from what it grows from.
-  const samples = []; for (let y = 0; y < GH; y += 8) for (let x = 0; x < GW; x += 8) if (inMask(x, y, 26)) samples.push([x, y]);
+  const samples = []; for (let y = 0; y < GH; y += 8) for (let x = 0; x < GW; x += 8) if (inMask(x, y, NODE_MARGIN)) samples.push([x, y]);
   for (let it = 0; it < 60; it++) {
     const sx = new Float64Array(list.length), sy = new Float64Array(list.length), sc = new Float64Array(list.length);
     for (const [x, y] of samples) {
@@ -732,7 +735,7 @@ function spreadNodes(mask) {
       const p = anchor(n); if (Math.hypot(p.x - n.x - mx, p.y - n.y - my) > R * (n.twig ? .9 : n.parent ? (n.section === "cards" ? 2.4 : 1.6) : (n.section === "cards" ? 1.1 : .75))) { mx *= .2; my *= .2; }
       if (twigOut(n, n.x + mx)) mx = n.section === "cards" ? Math.max(mx, 0) : Math.min(mx, 0);
       mx = clamp(mx, -8, 8); my = clamp(my, -8, 8);
-      if (inMask(n.x + mx, n.y + my, 26)) { n.x += mx; n.y += my; }
+      if (inMask(n.x + mx, n.y + my, NODE_MARGIN)) { n.x += mx; n.y += my; }
     });
   }
   // A last nudge: close neighbours push apart, far-flung children pull back toward their parent.
@@ -745,12 +748,12 @@ function spreadNodes(mask) {
     }
     list.forEach((n, i) => {
       const p = anchor(n), dx = p.x - n.x, dy = p.y - n.y, d = Math.hypot(dx, dy);
-      const lim = R * (n.twig ? .8 : n.parent ? 1.3 : .6);  // a line's first node stays close to its limb
-      if (d > lim) { mv[i][0] += dx / d * (d - lim) * .25; mv[i][1] += dy / d * (d - lim) * .25; }
+      const lim = linkMax(n);  // short links: every node sits close to what it grows from
+      if (d > lim) { mv[i][0] += dx / d * (d - lim) * .5; mv[i][1] += dy / d * (d - lim) * .5; }
     });
     list.forEach((n, i) => {
       const mx = clamp(mv[i][0], twigOut(n, n.x - 4) ? 0 : -4, twigOut(n, n.x + 4) ? 0 : 4), my = clamp(mv[i][1], -4, 4);
-      if (inMask(n.x + mx, n.y + my, 26)) { n.x += mx; n.y += my; } else if (inMask(n.x + mx, n.y, 26)) n.x += mx; else if (inMask(n.x, n.y + my, 26)) n.y += my;
+      if (inMask(n.x + mx, n.y + my, NODE_MARGIN)) { n.x += mx; n.y += my; } else if (inMask(n.x + mx, n.y, NODE_MARGIN)) n.x += mx; else if (inMask(n.x, n.y + my, NODE_MARGIN)) n.y += my;
     });
   }
   list.forEach(n => { n.x = Math.round(n.x); n.y = Math.round(n.y); });
@@ -797,6 +800,28 @@ function spreadNodes(mask) {
     }
     if (!improved) break;
   }
+  // Settle (user 2026-10-07: nodes floating far from their branch): every node is pulled to within
+  // LINK_MAX of what it grows from (FIRST_MAX for a line's first node), close neighbours push apart,
+  // and nothing leaves the leaves' inner area. Parents settle before their children.
+  const order = [...list].sort((a, b) => (a.depth || 0) - (b.depth || 0));
+  for (let it = 0; it < 80; it++) {
+    for (const n of order) {
+      const p = anchor(n), dx = p.x - n.x, dy = p.y - n.y, d = Math.hypot(dx, dy) || 1, lim = linkMax(n);
+      let mx = d > lim ? dx / d * Math.min(6, (d - lim) * .6) : 0, my = d > lim ? dy / d * Math.min(6, (d - lim) * .6) : 0;
+      for (const o of list) {
+        if (o === n) continue;
+        const ex = n.x - o.x, ey = n.y - o.y, e = Math.hypot(ex, ey) || .01;
+        const gap = nodeGap(n, o); if (e < gap) { mx += ex / e * (gap - e) * .35; my += ey / e * (gap - e) * .35; }
+      }
+      const inside = inMask(n.x, n.y, NODE_MARGIN);
+      if (!inside) { const cx = 640 - n.x, cy = 330 - n.y, c = Math.hypot(cx, cy) || 1; mx += cx / c * 3; my += cy / c * 3; }  // outside the inner area: drift inward
+      mx = clamp(mx, -6, 6); my = clamp(my, -6, 6);
+      if (twigOut(n, n.x + mx)) mx = 0;
+      if (!inside && inMask(n.x + mx, n.y + my, 0)) { n.x += mx; n.y += my; }
+      else if (inMask(n.x + mx, n.y + my, NODE_MARGIN)) { n.x += mx; n.y += my; } else if (inMask(n.x + mx, n.y, NODE_MARGIN)) n.x += mx; else if (inMask(n.x, n.y + my, NODE_MARGIN)) n.y += my;
+    }
+  }
+  list.forEach(n => { n.x = Math.round(n.x); n.y = Math.round(n.y); });
   // A line's first node must sit off its limb, never on the limb's own line (a zero-length branch
   // has no sheet): if it ended up closer than MIN_FIRST to its limb point, it steps out sideways,
   // across the limb to the side it was seeded on, to the first spot inside the leaves.
@@ -817,6 +842,37 @@ function spreadNodes(mask) {
       f = nearestLimb(n);
     }
     n.from = f.map(Math.round);
+  }
+  // Last: no two nodes on top of each other. The deeper one of a pair closer than 24 px moves to the
+  // nearest free spot (ring search) that stays inside the leaves and near what it grows from.
+  for (let pass = 0; pass < 3; pass++) for (const a of list) for (const b of list) {
+    if (a === b || Math.hypot(a.x - b.x, a.y - b.y) >= 24) continue;
+    const n = (a.depth || 0) >= (b.depth || 0) ? a : b, p = anchor(n);
+    search: for (let r = 26; r < 90; r += 4) for (let k = 0; k < 16; k++) {
+      const x = Math.round(n.x + Math.cos(k * Math.PI / 8) * r), y = Math.round(n.y + Math.sin(k * Math.PI / 8) * r);
+      if (inMask(x, y, 24) && Math.hypot(p.x - x, p.y - y) <= linkMax(n) + 10 && list.every(o => o === n || Math.hypot(o.x - x, o.y - y) >= 30)) { n.x = x; n.y = y; break search; }
+    }
+  }
+  // Repair: a node whose link is still too long, or whose link crosses another, moves to the closest
+  // free spot near what it grows from where its own link and its children's links cross nothing.
+  const base = m => m.parent ? byId[m.parent] : { x: m.from[0], y: m.from[1] };
+  const ori = (p, q, r) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x));
+  const segX = (a1, a2, b1, b2) => ![b1, b2].some(p => Math.hypot(p.x - a1.x, p.y - a1.y) < 2 || Math.hypot(p.x - a2.x, p.y - a2.y) < 2) && ori(a1, a2, b1) * ori(a1, a2, b2) < 0 && ori(b1, b2, a1) * ori(b1, b2, a2) < 0;
+  const linksOf = m => [[base(m), m], ...list.filter(c => c.parent === m.id).map(c => [m, c])];
+  const crossing = m => linksOf(m).some(([a, b]) => list.some(o => o !== m && o !== b && o.id !== m.parent && !(o.parent === m.id) && segX(a, b, base(o), o)));
+  for (let pass = 0; pass < 4; pass++) for (const n of list) {
+    const P = base(n), long = Math.hypot(P.x - n.x, P.y - n.y) > linkMax(n) + 12;
+    if (!long && !crossing(n)) continue;
+    let best = null, bd = 1e9;
+    const x0 = n.x, y0 = n.y;
+    for (let r = 30; r <= linkMax(n) + (pass > 1 ? 24 : 0); r += 4) for (let k = 0; k < 24; k++) {
+      const x = Math.round(P.x + Math.cos(k * Math.PI / 12) * r), y = Math.round(P.y + Math.sin(k * Math.PI / 12) * r);
+      if (!inMask(x, y, pass > 1 ? 16 : 24) || !list.every(o => o === n || Math.hypot(o.x - x, o.y - y) >= 30)) continue;
+      n.x = x; n.y = y; const bad = crossing(n); n.x = x0; n.y = y0;
+      if (bad) continue;
+      const d = Math.hypot(x - x0, y - y0); if (d < bd) { bd = d; best = [x, y]; }
+    }
+    if (best) { n.x = best[0]; n.y = best[1]; }
   }
 }
 // The lowest leafy pixel in a column (where dream-fruit hang from).
@@ -887,8 +943,11 @@ function segBox(gs) {
   return [Math.floor(x0), Math.floor(y0), Math.ceil(x1), Math.ceil(y1)];
 }
 function drawTwig(L, g, ox, oy, seed) {
-  const steps = Math.ceil(g.len * 2);
-  for (let i = 0; i <= steps; i++) { const [x, y] = along(g, i / steps); L.set(x - ox, y - oy, "#3a2616"); L.set(x - ox, y - oy + 1, "#24160c"); if (g.w0 >= 9) { L.set(x - ox, y - oy - 1, "#4a3220"); L.set(x - ox, y - oy + 2, "#24160c"); } }  // a first branch is a thicker twig
+  // The bare branch (before planting) is real bark too, a little thinner than the grown one, so every node
+  // visibly sits on a branch from the start (user 2026-10-07: "straight lines", "how it binds").
+  const steps = Math.ceil(g.len * 2), fn = barkBig(seed + 3), w0 = Math.max(3, g.w0 * .6), w1 = Math.max(2.2, g.w1 * .65);
+  let last = g.a;
+  for (let i = 1; i <= steps; i++) { const t = i / steps, [x, y] = along(g, t), w = w0 + (w1 - w0) * t; litStroke(L, last[0] - ox, last[1] - oy, x - ox, y - oy, w, w, fn); last = [x, y]; }
   for (const t of [.35, .7]) {
     const [x, y] = along(g, t), s = hash(Math.floor(t * 10), 1, seed) < .5 ? -1 : 1;
     for (let i = 1; i < 5; i++) L.set(x - ox + s * i, y - oy - i, "#3a2616");
@@ -944,7 +1003,7 @@ function segment(n) {
       drawTwig(T, f.g, box[0], box[1], seed + 5);
       const [ex, ey] = f.g.b; [[1, -1], [2, -2], [-1, -1]].forEach(([dx, dy]) => T.set(ex - box[0] + dx, ey - box[1] + dy, "#3a2616"));  // bare split tip
     });
-    out.put(T);
+    out.stamp(T, HB6[0]);
     if (upto > 0) {
       // False branches first, so the real branch lies over them.
       const growing = fbs.filter(f => fbGrowth(f, upto) > 0);
@@ -971,7 +1030,8 @@ function integrateBranch(img, g, box, seed) {
     if (!img.alpha(x, y)) continue;
     const was = img.get(x, y).slice(0, 3).join(), to = shade.get(was);
     // One pass (Loam -> Bark must not then become Root): only the lit edge keeps Bark.
-    if (to) img.set(x, y, was === C(HW.Loam).slice(0, 3).join() || was === C(HW.Oak).slice(0, 3).join() ? (img.alpha(x - 1, y - 1) ? HW.Root : HW.Bark) : to);
+    // Mid bark (Bark) with the dark underside barkBig already gives (Root / Night): readable against the leaves' shade, never the bright brown (user 2026-10-07: bare branches must show).
+    if (to) img.set(x, y, was === C(HW.Bark).slice(0, 3).join() ? (img.alpha(x + 1, y + 1) ? HW.Bark : HW.Root) : HW.Bark);
   }
   const n = clamp(Math.round(g.len / 55), 1, 3);
   for (let k = 0; k < n; k++) {
