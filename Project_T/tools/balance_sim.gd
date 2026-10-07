@@ -366,7 +366,7 @@ func _run() -> void:
 				dict[int(pair.get_slice(":", 0))] = int(pair.get_slice(":", 1))
 			node.set(prop, dict)
 			continue
-		if current is Array:  # --set=%Node.list=1.1|1.25 (e.g. DriftDirector.demo_boss_health_scale): same type as the elements there
+		if current is Array:  # --set=%Node.list=1.1|1.25: int or float lists, same type as the elements there
 			var items: Array = Array(raw.split("|")).map(func(v: String): return float(v))
 			var typed = current.duplicate()
 			typed.clear()
