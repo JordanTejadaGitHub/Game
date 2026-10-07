@@ -38,6 +38,8 @@ const REPORTERS := {
 	&"long_shadows": "_long_shadows", &"scarred_bark": "_scarred_bark", &"desperate_bloom": "_desperate_bloom",
 	&"odd_one_out": "_odd_one_out", &"grand_tour": "_grand_tour",
 	&"heart_of_the_maze": "_heart_of_the_maze", &"moonflip": "_moonflip", &"many_talents": "_many_talents",
+	&"switchback": "_switchback", &"close_guard": "_close_guard", &"nimble_twigs": "_nimble_twigs", &"seasoned": "_seasoned",
+	&"mulch": "_mulch", &"light_steps": "_light_steps", &"close_shave": "_close_shave",
 	&"rain_on_glass": "_rain_on_glass",
 	&"kind_canopy": "_kind_canopy", &"shared_light": "_shared_light", &"bramble_oath": "_bramble_oath",
 	&"golden_harvest": "_golden_harvest",
@@ -47,7 +49,7 @@ const STAT_KEYS := {&"damage": "damage", &"attack_speed": "speed", &"range": "ra
 # The rows that move with the field between board changes (nightmares in range, dispels this drift):
 # rows_cached recomputes these on every call.
 const LIVE_RULES: Array[StringName] = [&"crowded_path", &"thinning_the_herd", &"quick_step", &"scarred_bark", &"desperate_bloom",
-	&"fresh_growth", &"old_growth"]  # Rows that read per-Warden or run state the row cache key doesn't cover
+	&"fresh_growth", &"old_growth", &"light_steps", &"close_shave", &"seasoned"]  # Rows that read per-Warden or run state the row cache key doesn't cover
 
 var ds: DreamState
 var _board: Board = null
@@ -380,6 +382,51 @@ func _solitude(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary
 		"damage": DreamState.SOLITUDE_BONUS, "range": DreamState.SOLITUDE_RANGE,
 		"reason": "" if on else "%s is %s away (needs no attacking Warden within %d)" % [DreamEffects._data(nearest).display_name,
 			_cells_word(_cheb(nearest.cell, spot.cell)), DreamState.NEARBY_CELLS]}
+
+# Helper Commons 270-285 (dream_design.md c15d05ac / b6c1c199; balance_simulation.md 605a8ea7)
+func _switchback(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on := ds.is_beside_bend(spot.cell, 1)
+	return {"positional": true, "radius": 1.0, "active": on, "speed": DreamState.SWITCHBACK_SPEED,
+		"reason": "" if on else "no bend in the path in the 8 cells around it"}
+
+func _close_guard(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on: bool = spot.data.attack_range <= DreamState.CLOSE_GUARD_MAX_RANGE
+	return {"active": on, "range": DreamState.CLOSE_GUARD_RANGE, "reason": "" if on else "its range is over 3"}
+
+func _nimble_twigs(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on: bool = spot.data.attacks_per_second > DreamState.NIMBLE_TWIGS_APS
+	return {"active": on, "damage": DreamState.NIMBLE_TWIGS_DAMAGE, "reason": "" if on else "1 attack a second or slower"}
+
+func _seasoned(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on: bool = _rank(spot) >= DreamState.SEASONED_RANK
+	return {"active": on, "damage": DreamState.SEASONED_DAMAGE, "reason": "" if on else "below rank II"}
+
+func _mulch(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	var on: bool = ds.run_state.tended_cells.has(spot.cell)
+	return {"positional": true, "radius": 0.0, "active": on, "damage": DreamState.MULCH_DAMAGE,
+		"reason": "" if on else "not planted on a cleared cell"}
+
+func _light_steps(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	return {"run_wide": true, "active": ds.light_steps_active(), "speed": DreamState.LIGHT_STEPS_SPEED,
+		"reason": "" if ds.light_steps_active() else "at the start of each drift"}
+
+func _close_shave(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if not spot.data.can_attack:
+		return {}
+	return {"run_wide": true, "active": ds.close_shave_active(), "speed": DreamState.CLOSE_SHAVE_SPEED,
+		"reason": "" if ds.close_shave_active() else "after a nightmare reaches the Heartwood"}
 
 # Many Talents (card 267): +10% damage per different Nurture choice among a planted Warden's ranks (up to +40%).
 func _many_talents(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:

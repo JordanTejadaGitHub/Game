@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "mulch"
+display_name = "Mulch"
+description = "A Warden planted on a cleared cell deals 20% more damage."
+rarity = 0
+kind = 3
+tags = Array[String](["tending"])
+max_stacks = 1
+rule_id = &"mulch"
+

@@ -470,6 +470,8 @@ func get_build_cost(data: TowerData) -> int:
 		else:
 			surcharge = maxi(surcharge, card.set_cost)
 	cost = maxi(cost, surcharge)
+	if data.get_id() == "sprout" and has_rule(&"cheap_seeds"):
+		cost = maxi(cost - CHEAP_SEEDS_DEW, 1)  # Cheap Seeds
 	var plant_discount := 0.0
 	for card in _taken_cards():
 		plant_discount += card.plant_discount * stacks[card.id]
@@ -1336,7 +1338,11 @@ func _on_drift_started(number: int) -> void:
 	_first_hits.clear()
 	for tower in _towers():  # Steadfast (old_growth): drifts this Warden has stood (growing keeps the node)
 		tower.set_meta(&"drifts_stood", int(tower.get_meta(&"drifts_stood", 0)) + 1)
+	if has_rule(&"light_steps"):  # Light Steps: each drift starts with a burst of speed
+		_light_steps_until = _game_clock + LIGHT_STEPS_TIME
 	if number > 1 and drift_director._arriving.has(number - 1):
+		if has_rule(&"early_bird"):
+			run_state.add_dew(EARLY_BIRD_DEW)  # Early Bird: calling a drift early
 		_early_calls += 1
 		if has_rule(&"quick_step"):
 			_quick_step_drift = number  # Quick Step: until this drift has fully arrived
@@ -2452,6 +2458,34 @@ func count_taken_with_tag(tag: String) -> int:
 			count += 1
 	return count
 
+# Helper Commons 270-285 (dream_design.md c15d05ac / b6c1c199; numbers balance_simulation.md 605a8ea7). Ripples, Rhythm,
+# Edge of Sight and Steady Aim are Tower Code's (Tower.CARD_*); the rest are DreamEffects rows and these hooks.
+const SWITCHBACK_SPEED := 0.20  # Beside a bend: attack speed
+const CLOSE_GUARD_RANGE := 0.5  # Range <= CLOSE_GUARD_MAX_RANGE: more range
+const CLOSE_GUARD_MAX_RANGE := 3.0
+const WIDE_PETALS_RADIUS := 0.5  # Splashes and clouds wider
+const CHEAP_SEEDS_DEW := 3  # Sprouts cheaper
+const LIGHT_STEPS_SPEED := 0.30  # At each drift's start…
+const LIGHT_STEPS_TIME := 8.0  # …for this long
+const NIMBLE_TWIGS_DAMAGE := 0.20  # Wardens over NIMBLE_TWIGS_APS attacks a second (base)
+const NIMBLE_TWIGS_APS := 1.0
+const SEASONED_DAMAGE := 0.15  # Rank II+ Wardens
+const SEASONED_RANK := 2
+const CLOSE_SHAVE_SPEED := 0.30  # When a nightmare reaches the Heartwood…
+const CLOSE_SHAVE_TIME := 8.0  # …all Wardens, for this long
+const EARLY_BIRD_DEW := 5  # Calling a drift early
+const MULCH_DAMAGE := 0.20  # A Warden on a cleared cell
+const WEED_PULLER_DEW := 6  # Clearing a Mossy Boulder refunds this
+const EDGE_OF_SIGHT_RANGE := 4.0  # Edge of Sight's Need: a Warden with this range or more
+var _light_steps_until := -1.0
+var _close_shave_until := -1.0
+
+func light_steps_active() -> bool:
+	return has_rule(&"light_steps") and _game_clock < _light_steps_until
+
+func close_shave_active() -> bool:
+	return has_rule(&"close_shave") and _game_clock < _close_shave_until
+
 # No dead cards in an offer (dream_design.md 3fd21011): cards a fresh board can't use wait until it can (hard Needs,
 # checked at offer time). The shape groups are Tower Code's ShapeCards (the same sets their hooks use).
 const BOARD_RANK_FOR_RANK_CARDS := 3  # Specialist / Many Talents: a Warden at rank III+
@@ -2470,6 +2504,12 @@ func board_can_use(card: UpgradeData) -> bool:
 			return _towers().any(func(t: Tower) -> bool: return ShapeCards.makes_ground_effects(t.tower_data))
 		&"sap_rising":
 			return _towers().any(func(t: Tower) -> bool: return ShapeCards.is_support(t.tower_data))
+		&"seasoned":
+			return _towers().any(func(t: Tower) -> bool: return t.rank >= SEASONED_RANK)
+		&"edge_of_sight":
+			return _towers().any(func(t: Tower) -> bool: return t.tower_data.can_attack and t.tower_data.attack_range >= EDGE_OF_SIGHT_RANGE)
+		&"mulch", &"weed_puller":
+			return can_clear() and count_obstacles() > 0  # Clearing open and something left to clear
 	return true
 
 # Close Kin's door: a family with 2 of its branches unlocked this run, so a Kinship (two branches within reach) can form.
@@ -2892,6 +2932,8 @@ func _on_obstacle_cleared(cell: Vector2, data: ObstacleData) -> void:
 	var dew := 0
 	for card in _taken_cards():
 		dew += card.dew_per_obstacle_clear * stacks[card.id]
+	if has_rule(&"weed_puller") and data != null and data.resource_path.get_file().begins_with("rock"):
+		dew += WEED_PULLER_DEW  # Weed Puller: a Mossy Boulder's clear refunds a little
 	if has_rule(&"reclaimed_earth"):
 		dew += floori(paid * RECLAIMED_REFUND)  # 40% of what the clear cost: never a profit
 		run_state.fertile_cells[cell] = true
@@ -3280,6 +3322,9 @@ func get_call_early_bonus(uncapped: int, cap: int) -> int:
 
 # Thick Bark: RunState.lose_leaves asks this first; true = this leak is saved (whole, even a boss's).
 func absorb_leak() -> bool:
+	if has_rule(&"close_shave"):  # Close Shave: a nightmare reached the Heartwood: all Wardens faster for a moment
+		_close_shave_until = _game_clock + CLOSE_SHAVE_TIME
+		bump_board()
 	if bark_charges <= 0 or not has_rule(&"thick_bark"):
 		return false
 	bark_charges -= 1
@@ -4368,7 +4413,7 @@ func hummingheart_bonus(bonus_speed: float) -> float:
 
 # Far Reach (absorbed Broad Splash, dream_design.md de439ea8): cells added to every area attack's radius.
 func get_area_radius_add() -> float:
-	return FAR_REACH_SPLASH if has_rule(&"far_reach") else 0.0
+	return (FAR_REACH_SPLASH if has_rule(&"far_reach") else 0.0) + (WIDE_PETALS_RADIUS if has_rule(&"wide_petals") else 0.0)  # + Wide Petals
 
 # Momentum's per-hit step and cap (Tower keeps the streak per Warden and target).
 func momentum_step() -> Vector2:

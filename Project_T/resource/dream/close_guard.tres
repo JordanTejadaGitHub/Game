@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "close_guard"
+display_name = "Close Guard"
+description = "Wardens with range 3 or less reach 0.5 cells further."
+rarity = 0
+kind = 3
+tags = Array[String](["reach"])
+max_stacks = 1
+rule_id = &"close_guard"
+

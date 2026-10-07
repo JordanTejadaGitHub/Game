@@ -63,6 +63,7 @@ func _run() -> void:
 	_test_nurture_path()
 	_test_maze_cards()
 	_test_no_dead_cards()
+	_test_helper_commons()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -183,6 +184,50 @@ func _test_no_dead_cards() -> void:
 	_clear()
 	for id in ["rootcurl", "tangleroot", "rootling"]:
 		dreams.unlocked.erase(id)
+
+# Helper Commons 270-285, Roguelite's hooks (dream_design.md c15d05ac; balance_simulation.md 605a8ea7). Ripples, Rhythm,
+# Edge of Sight's hit and Steady Aim are Tower Code's (test_new_commons).
+func _test_helper_commons() -> void:
+	_reset()
+	for id in ["switchback", "close_guard", "nimble_twigs", "seasoned", "mulch", "light_steps", "close_shave", "wide_petals", "cheap_seeds", "steady_roots", "early_bird", "weed_puller"]:
+		dreams.take(_card(id))
+	dreams.bump_board()
+	var short := _plant("sporeling", Vector2(100, 100))
+	var guard := _row(short.tower_data, short.cell, "close_guard", short)
+	_check(guard.active == (short.tower_data.attack_range <= 3.0) and guard.range == DreamState.CLOSE_GUARD_RANGE, "Close Guard: +0.5 range at range 3 or less")
+	var nimble := _row(short.tower_data, short.cell, "nimble_twigs", short)
+	_check(nimble.active == (short.tower_data.attacks_per_second > 1.0), "Nimble Twigs: only over 1 attack a second")
+	short.rank = 2
+	dreams.bump_board()
+	_check(_row(short.tower_data, short.cell, "seasoned", short).active, "Seasoned: rank II+")
+	_check(not _row(short.tower_data, short.cell, "mulch", short).active, "Mulch: not on a cleared cell")
+	run_state.tended_cells.append(short.cell)
+	dreams.bump_board()
+	_check(_row(short.tower_data, short.cell, "mulch", short).active, "…on a cleared cell: +20%")
+	run_state.tended_cells.erase(short.cell)
+	_check(not dreams.light_steps_active() and not dreams.close_shave_active(), "Light Steps / Close Shave: off until their moment")
+	dreams._light_steps_until = dreams._game_clock + DreamState.LIGHT_STEPS_TIME
+	dreams.absorb_leak()
+	_check(dreams.light_steps_active() and dreams.close_shave_active() and _row(short.tower_data, short.cell, "close_shave", short).active,
+		"…a drift start / a leak turns them on")
+	_check(is_equal_approx(dreams.get_area_radius_add(), DreamState.WIDE_PETALS_RADIUS), "Wide Petals: +0.5 cells")
+	var sprout: TowerData = load("res://resource/tower/sprout.tres")
+	_check(dreams.get_build_cost(sprout) == maxi(sprout.cost - DreamState.CHEAP_SEEDS_DEW, 1), "Cheap Seeds: Sprouts -3")
+	var dew := run_state.dew
+	dreams._on_obstacle_cleared(Vector2(-9, -9), load("res://resource/obstacle/rock.tres"))
+	_check(run_state.dew == dew + DreamState.WEED_PULLER_DEW, "Weed Puller: a Mossy Boulder refunds 6 (%d)" % (run_state.dew - dew))
+	_check(dreams.board_can_use(_card("seasoned")) and dreams.board_can_use(_card("edge_of_sight")) == _towers_reach(4.0),
+		"Needs: Seasoned a rank II Warden; Edge of Sight a range 4+ Warden")
+	short.free()
+	dreams.stacks.clear()
+	dreams._close_shave_until = -1.0
+	dreams._light_steps_until = -1.0
+
+func _towers_reach(cells: float) -> bool:
+	for t in main.get_node("%TowerContainer").get_children():
+		if t is Tower and t.tower_data.can_attack and t.tower_data.attack_range >= cells:
+			return true
+	return false
 func _test_pool() -> void:
 	for id in IDS:
 		var card := _card(id)
