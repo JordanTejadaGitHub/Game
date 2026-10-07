@@ -27,6 +27,7 @@ var walls_built := 0
 var wall_dew := 0
 var keep_away: Array = []  # Cells a new pair must stay over 4 cells from (other pairs' jars), so each jar links to its own partner
 var director_overrides := {}  # --director=export=value (repeatable): DriftDirector exports, e.g. second_elite_from=1 (two elites a drift)
+var node_sets: Array[String] = []  # --set=%Node.prop=value (repeatable, after _ready, as in balance_sim): int / float / bool, e.g. %TowerPlacer.spark_share_scale=1.25
 # --dummies=N (Balancing 2026-10-08, single target vs a crowd): no drifts; N Target Dummies of --dummy-kind (bark_beetle) walk the
 # route in a pack (0.4 s apart) and loop it for --seconds (120) of game time, at drift --drift's health ×100 so none nears the floor.
 var dummies := 0
@@ -75,6 +76,7 @@ func _run() -> void:
 			"--near-goal": near_goal = true
 			"--focus": cand_focus = Tower.FOCUS_NAMES.find_key(value.capitalize()) if Tower.FOCUS_NAMES.find_key(value.capitalize()) != null else -2
 			"--director": director_overrides[arg.get_slice("=", 1)] = arg.get_slice("=", 2)
+			"--set": node_sets.append(arg.substr(arg.find("=") + 1))
 			"--dummies": dummies = int(value)
 			"--dummy-kind": dummy_kind = value
 			"--seconds": dummy_seconds = float(value)
@@ -93,6 +95,17 @@ func _run() -> void:
 		main.get_node("%DriftDirector").preset_bosses = ["hollow_stag", boss2]  # Set before the deferred draw
 	root.add_child(main)
 	await process_frame
+	for s in node_sets:
+		var target: String = s.get_slice("=", 0)
+		var node := main.get_node_or_null(target.get_slice(".", 0))
+		var prop := target.get_slice(".", 1)
+		if node == null or node.get(prop) == null:
+			printerr("--set: no %s" % target)
+			quit(1)
+			return
+		var raw: String = s.get_slice("=", 1)
+		var current = node.get(prop)
+		node.set(prop, (raw == "true" or raw == "1") if current is bool else (int(raw) if current is int else float(raw)))
 	var dreams: DreamState = main.get_node("%DreamState")
 	var run_state: RunState = main.get_node("%RunState")
 	var director: DriftDirector = main.get_node("%DriftDirector")
@@ -373,7 +386,7 @@ func _report(director: DriftDirector) -> void:
 		"share": snappedf(damage / maxf(total, 1.0), 0.001), "rank": candidates[0].rank,
 		"hit": snappedf(split.hit / t, 0.01), "cloud": snappedf(split.cloud / t, 0.01), "status": snappedf(split.status / t, 0.01),
 		"combo": snappedf(split.combo / t, 0.01), "asleep": snappedf(split.asleep / t, 0.01),
-		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "pairs": pairs, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "board_damage": roundi(total),
+		"leaked": snappedf(leaked_health / maxf(spawned_health, 1.0), 0.001), "status_potency": Tower.status_potency_on, "cast": "act1" if cast == CAST_ACT1 else ("nocharge" if cast == CAST_NOCHARGE else ("finals" if cast == CAST else "+".join(cast))), "next_to": "+".join(next_to), "pairs": pairs, "director": ";".join(director_overrides.keys().map(func(k) -> String: return "%s=%s" % [k, director_overrides[k]])), "sets": ";".join(node_sets), "board_damage": roundi(total),
 		"bosses": ";".join(boss_fights.values().map(func(b) -> String: return "%s:%d:%s:%.0f:%d" % [b.kind, b.health, "1" if b.dispelled else "0", (b.end - b.spawn) if b.dispelled else -1.0, b.hp_arrive])),
 		"tags": _tag_text(t), "spore_appliers": _share_text(spore_appliers, t), "spore_combos": _share_text(spore_combos, t), "spored_burning": snappedf(spored_burning / t, 0.001), "hit_target_hp": roundi(hit_target_hp.x / maxf(hit_target_hp.y, 1.0)), "base_damage": snappedf(candidates[0].get_damage(), 0.1), "walls": snappedf(float(walls_built) / COPIES, 0.01), "wall_dew": wall_dew, "near_goal": near_goal, "focus": Tower.FOCUS_NAMES.get(cand_focus, "power-first"), "focus_ranks": candidates[0].choice_count(cand_focus) if cand_focus >= 0 else -1, "sprites_alive": snappedf(sprite_samples.x / maxf(sprite_samples.y, 1.0), 0.01)}
 	print("FINALS %s" % JSON.stringify(row))
