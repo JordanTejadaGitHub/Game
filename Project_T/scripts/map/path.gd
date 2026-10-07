@@ -53,13 +53,12 @@ func draw():
 	for i in current_path.size():
 		_route_index[current_path[i]] = i
 	# Half cells (documentation/half_cells.md): route points step by half a cell, so the path is drawn on the
-	# dual grid (path_dual.png, _draw_dual), not one tile per cell. The start still runs off the rim onto the bridge.
+	# dual grid (path_dual.png, _draw_dual), not one tile per cell. At the start it runs on out to the island's edge,
+	# under the rope bridge (path_halves).
 	for cell in current_path:
 		if board != null:  # The path wore the debris away on the whole cell of this point's half
 			board.environment_object_layer.wear_away(FindPath.point_to_node(cell) / 2)
 		current_path_curve.add_point(grid.calculate_map_position(cell))
-	if not current_path.is_empty():
-		set_cell(cell_start_path, EnvironmentTiles.PATH_RIM, EnvironmentTiles.path_tile(_edge_mask(cell_start_path)))
 	_draw_dual()
 
 # The neighbour bit pointing off the map from an edge cell (N=1, E=2, S=4, W=8), else 0.
@@ -196,6 +195,15 @@ func path_halves() -> Dictionary:
 	var halves := {}
 	for point in current_path:
 		halves[FindPath.point_to_node(point)] = true
+	if not current_path.is_empty():  # From the first route half out to the island's edge, and one past it under the bridge
+		var step: Vector2i = {1: Vector2i.UP, 2: Vector2i.RIGHT, 4: Vector2i.DOWN, 8: Vector2i.LEFT}.get(_edge_mask(cell_start_path), Vector2i.ZERO)
+		var h := FindPath.point_to_node(current_path[0])
+		var size := Vector2i(grid.size) * FindPath.HALF
+		while step != Vector2i.ZERO:
+			h += step
+			halves[h] = true
+			if h.x < 0 or h.y < 0 or h.x >= size.x or h.y >= size.y:
+				break
 	return halves
 
 # path_dual.png's column for the display tile `at`: its corners are half cells at-1 .. at.

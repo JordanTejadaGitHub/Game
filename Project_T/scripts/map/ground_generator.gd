@@ -12,8 +12,8 @@ func initialize() -> void:
 
 # Every variant tiles with every other, so each cell just rolls one.
 func _generate_grass() -> void:
-	for x in range(1, MAP_GRID.size.x - 1):
-		for y in range(1, MAP_GRID.size.y - 1):
+	for x in range(0, MAP_GRID.size.x):  # Every cell: the old rim ring is ground too (environment_assets.md "Island edge outside the grid")
+		for y in range(0, MAP_GRID.size.y):
 			var cell := Vector2i(x, y)
 			set_cell(cell, EnvironmentTiles.GRASS, Vector2i(_grass_variant(cell), 0))
 

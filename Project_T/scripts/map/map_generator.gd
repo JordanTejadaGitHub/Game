@@ -43,7 +43,7 @@ var lighting: EnvironmentLighting  # Cold edges, warm Warden lights
 var ambience: EnvironmentAmbience  # Edge fog and the act's particles
 var ground_patches: GroundPatches  # Ground variation (environment_assets.md "Ground variation")
 var tree_fade: TallObstacleFade  # Withered Trees fade their overhang over what's behind them
-var rim_layer: TileMapLayer  # The island's rim and the cliffs under it (ground-level, z -1)
+var island_lip: IslandLip  # The island's edge and the south vines, drawn just outside the grid
 var gifts: MapGifts  # Heartwood's Gifts: terrain the act-break gifts leave (map_gifts.gd)
 var _route_hold := 0  # hold_route() depth
 var _route_dirty := false  # A block changed while held: redraw at release_route()
@@ -74,19 +74,13 @@ func _ready() -> void:
 	ground_layer.light_mask |= Heartwood.GROUND_LIGHT_MASK  # The Heartwood's light lifts the grass only, never the path
 	path_layer.z_index = -1
 	ground_layer.initialize()
-	# The start sits in the rim ring: the rim goes under its path (path_rim.png is transparent outside the
-	# path), on the ground layer since the object layer draws over the path. The Heartwood is inland.
-	ground_layer.set_cell(Vector2i(startPath), EnvironmentTiles.ISLAND_EDGE,
-		Vector2i(EnvironmentTiles.rim_mask(Vector2i(startPath), Vector2i(MAP_GRID.size)), 0))
-	# The rim and the cliffs: ground-level (z -1, after the path), not on the y-sorted object layer, so a Warden's
-	# ground ring by the border draws over them (user 2026-10-07: "the ring attack gets blocked by the outer edges").
-	rim_layer = TileMapLayer.new()
-	rim_layer.name = "RimLayer"
-	rim_layer.tile_set = tile_set
-	rim_layer.z_index = -1
-	add_child(rim_layer)
-	move_child(rim_layer, path_layer.get_index() + 1)
-	environment_object_layer.rim_layer = rim_layer
+	# The island's edge (environment_assets.md "Island edge outside the grid"): no rim ring, every cell is ground; the
+	# lip and the south vines are drawn just outside the grid (z -1, before everything else on the ground: Warden
+	# rings and other ground effects draw over them), over the void. The start is on the outermost row or column.
+	island_lip = IslandLip.new()
+	island_lip.name = "IslandLip"
+	add_child(island_lip)
+	move_child(island_lip, ground_layer.get_index())
 	unwalkable_cells = environment_object_layer.initialize(startPath, endPath)
 	path_layer.initialize(get_array_board(), startPath, endPath)
 
@@ -198,6 +192,7 @@ func set_act(act: int) -> void:
 		corner.texture = (tile_set.get_source(EnvironmentTiles.POND_INNER) as TileSetAtlasSource).texture
 	heartwood.set_act(act)
 	path_layer.set_act(act)  # The dual-grid path sheet
+	island_lip.set_act(act)  # The lip and the underside are per act too
 	ground_patches.set_act(act)
 	gifts.set_act(act)
 	ambience.act = act
@@ -603,20 +598,15 @@ func _route_changed() -> void:
 	path_layer.draw()
 	path_changed.emit()
 
-# Shifting Mist (heartwood_gifts.md 0c552b28): nightmares come from `new_start`, a rim cell, from now on. The
-# rim, mist and bridge move (EnvironmentObjectGenerator.move_start), the halves swap, the route is redrawn and
+# Shifting Mist (heartwood_gifts.md 0c552b28): nightmares come from `new_start`, an edge cell, from now on. The
+# mist and bridge move (EnvironmentObjectGenerator.move_start), the route is redrawn and
 # path_changed re-routes everything walking. Spawns read startPath, so they follow.
 func move_start(new_start: Vector2) -> void:
 	var old := startPath
 	if new_start == old:
 		return
 	environment_object_layer.move_start(Vector2i(old), Vector2i(new_start))
-	unwalkable_cells = environment_object_layer.unwalkable_cells
-	ground_layer.erase_cell(Vector2i(old))  # Rim cells have no ground under them; the start's rim sits on the ground layer
-	ground_layer.set_cell(Vector2i(new_start), EnvironmentTiles.ISLAND_EDGE,
-		Vector2i(EnvironmentTiles.rim_mask(Vector2i(new_start), Vector2i(MAP_GRID.size)), 0))
-	path_layer.set_cell_blocked(old, true)
-	path_layer.set_cell_blocked(new_start, false)
+	unwalkable_cells = environment_object_layer.unwalkable_cells  # (The old start is plain ground now: it stays open.)
 	startPath = new_start
 	path_layer.cell_start_path = new_start
 	if layout != null:

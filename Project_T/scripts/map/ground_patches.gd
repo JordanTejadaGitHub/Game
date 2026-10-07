@@ -47,7 +47,7 @@ func build(map: Node, act: int = 1) -> void:
 		glade.append(cell)
 	glade.append(map.endPath)
 	_add(GLADE_RING, glade)
-	var interior := (int(map.MAP_GRID.size.x) - 2) * (int(map.MAP_GRID.size.y) - 2)
+	var interior := int(map.MAP_GRID.size.x) * int(map.MAP_GRID.size.y)  # Every cell is ground (no rim ring)
 	var count := rng.randi_range(3, 5)
 	var total := roundi(rng.randf_range(COVERAGE.x, COVERAGE.y) * interior)
 	var kinds: Array[int] = [DEEP_MOSS, WORN_EARTH, FERN_BED]
@@ -77,7 +77,7 @@ func coverage() -> float:
 	for patch: Dictionary in patches:
 		if patch.kind != GLADE_RING:
 			cells += patch.cells.size()
-	return float(cells) / ((_map.MAP_GRID.size.x - 2) * (_map.MAP_GRID.size.y - 2))
+	return float(cells) / (_map.MAP_GRID.size.x * _map.MAP_GRID.size.y)
 
 func kind_of(cell: Vector2) -> int:
 	return kind_at.get(cell, -1)
@@ -97,7 +97,7 @@ func _add(kind: int, cells: Array[Vector2]) -> void:
 # A patch may take `cell`: inside the island, not the start or the pond, and not touching another patch.
 func _free(cell: Vector2, own: Dictionary) -> bool:
 	var size: Vector2 = _map.MAP_GRID.size
-	if cell.x < 1 or cell.y < 1 or cell.x > size.x - 2 or cell.y > size.y - 2 or cell == _map.startPath:
+	if cell.x < 0 or cell.y < 0 or cell.x > size.x - 1 or cell.y > size.y - 1 or cell == _map.startPath:
 		return false
 	if _map.environment_object_layer.pond_cells.has(cell):
 		return false
@@ -211,8 +211,8 @@ func _anchors(kind: int) -> Array[Vector2]:
 	var suited: Array[Vector2] = []
 	var obstacles: Dictionary = _map.obstacles
 	var env = _map.environment_object_layer
-	for x in range(1, int(_map.MAP_GRID.size.x) - 1):
-		for y in range(1, int(_map.MAP_GRID.size.y) - 1):
+	for x in range(0, int(_map.MAP_GRID.size.x)):
+		for y in range(0, int(_map.MAP_GRID.size.y)):
 			var cell := Vector2(x, y)
 			if not _free(cell, {}):
 				continue

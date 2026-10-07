@@ -141,7 +141,7 @@ func start_options(count: int) -> Array[Vector2]:
 			var cell := Vector2i(x, y)
 			var on_rim := x == 0 or y == 0 or x == last.x or y == last.y
 			var by_corner := (x <= 1 or x >= last.x - 1) and (y <= 1 or y >= last.y - 1)
-			if not on_rim or by_corner or Vector2(cell) == map.startPath:
+			if not on_rim or by_corner or Vector2(cell) == map.startPath or map.path_layer.is_cell_blocked(Vector2(cell)):  # Edge cells are ground now: not under an obstacle or a Warden
 				continue
 			candidates.append(Vector2(cell))
 			if Vector2(cell).distance_to(map.endPath) >= reach:
