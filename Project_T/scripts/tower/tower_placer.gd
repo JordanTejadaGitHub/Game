@@ -255,11 +255,6 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _shift_chain and event is InputEventKey and event.keycode == KEY_SHIFT and not event.pressed:
-		_shift_chain = false  # Shift let go after a placement: disarm (unless a line is being dragged)
-		if build_mode and not stroking and not keep_building:
-			set_build_mode(false)
-		return
 	if event.is_action_pressed("toggle_build_mode"):
 		set_build_mode(not build_mode)
 		get_viewport().set_input_as_handled()
@@ -271,7 +266,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			set_build_mode(false)
 		get_viewport().set_input_as_handled()
+	elif tap_to_place and event.is_action_released("place_tower") and _tap_armed:
+		_tap_armed = false
+		if not TouchBuild.gesture_moved():  # A pan or a pinch is never a placement
+			if tower_data.footprint > 1:
+				_update_hover()
+				after_player_placement(_try_build(_hover_cell))  # Big Wardens: one per tap
+			else:
+				var at: Vector2 = event.position if event is InputEventMouseButton else get_viewport().get_mouse_position()
+				toggle_pending_at(get_canvas_transform().affine_inverse() * at)  # Where the finger lifted
+		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("place_tower"):
+		if tap_to_place:
+			_tap_armed = true  # Touch: decided on release (a tap adds or takes back; a drag pans)
+			get_viewport().set_input_as_handled()
+			return
 		_update_hover()  # Placement feel: the click places where the cursor is this frame
 		if tower_data.footprint > 1:
 			after_player_placement(_try_build(_hover_cell))  # Big Wardens: one per click
@@ -1699,6 +1708,42 @@ var _stroke_plan := {}  # cell -> "" (plant) or why it's skipped
 var _stroke_axis := -1  # -1 not locked yet, 0 = a row (y fixed), 1 = a column (x fixed)
 var _stroke_cost := 0
 var _stroke_growth := 0
+# Touch (TouchBuild, user 2026-10-06): each tap on the map adds a pending Warden or takes one back; TouchBuild's Confirm
+# plants them (plant_stroke). One finger dragging pans the map, so there is no drag-to-build on touch.
+var tap_to_place := false
+var _tap_armed := false  # A press landed on the map: its release (if the finger didn't pan) is a tap
+
+# A tap at `world`: takes back the pending Warden under it, else adds one there (its cell, or with half cells the
+# ghost's half origin). The stroke holds the pending Wardens in tap order; its plan prices and checks them together.
+func toggle_pending_at(world: Vector2) -> void:
+	var spot := origin_at(world) if half_placement() else MAP_GRID.calculate_grid_coordinates(world)
+	if spot == NO_CELL or not (half_placement() or MAP_GRID.is_within_bounds(spot)):
+		return
+	if not stroking:
+		_start_stroke(spot)
+		return
+	var under := _pending_under(world)
+	if under != NO_CELL:
+		_stroke.erase(under)
+		_plan_cache = {}  # The order changed: plan from the start
+		if _stroke.is_empty():
+			cancel_stroke()
+			return
+	else:
+		_stroke.append(spot)
+	_plan_stroke()
+	stroke_changed.emit(true)
+
+# The pending Warden whose footprint holds `world`, or NO_CELL.
+func _pending_under(world: Vector2) -> Vector2:
+	if not half_placement():
+		var cell := MAP_GRID.calculate_grid_coordinates(world)
+		return cell if _stroke.has(cell) else NO_CELL
+	var half: Vector2 = map_generator.pixels_to_half(world)
+	for o in _stroke:
+		if origin_halves(o).has(half):
+			return o
+	return NO_CELL
 
 # Starts a stroke on whole cell `cell` (clicks, touch, tests). With half cells, the hovered cell starts at the
 # ghost's half offset; any other whole cell at its own corner's half origin (cell × 2).
@@ -1804,35 +1849,28 @@ func get_stroke_tag() -> String:
 		tag += " · %d skipped" % skipped
 	return tag
 
-# Build flow (user 2026-10-05, maze_feel.md: "Shift to keep going", Tropical Tower Wars): a player's placement (a click,
-# a dragged line, a big Warden) disarms build mode afterwards; the Warden stays selected in the bar, so its hotkey or a
-# click re-arms it. Holding Shift keeps it armed, and letting go of Shift after a placement disarms. Touch has no
-# Shift: the HUD's "keep building" pin sets keep_building (platforms.md: nothing keyboard-only).
+# Build flow (user, maze_feel.md ec8fab5b, replacing "Shift to keep going"): build mode stays on after a placement (a
+# click, a dragged line, a big Warden) until right-click / Esc or another Warden is picked. Shift no longer matters.
+# keep_building / set_keep_building stay (always on in effect) until the HUD's touch Pin is gone (Main Merger).
 signal keep_building_changed(on: bool)
 var keep_building := false
-var _shift_chain := false  # Armed by Shift after a placement: letting go of Shift disarms
+var _shift_chain := false  # (Unused since ec8fab5b; kept so older callers parse)
 
 func set_keep_building(on: bool) -> void:
 	if keep_building != on:
 		keep_building = on
 		keep_building_changed.emit(on)
 
-# Called after a player's placement (input paths and the touch Plant button; tests calling _try_build / plant_stroke
-# directly stay armed).
-func after_player_placement(placed: bool) -> void:
-	if not placed or not build_mode:
-		return
-	if Input.is_key_pressed(KEY_SHIFT):
-		_shift_chain = true
-		return
-	if keep_building:
-		return
-	set_build_mode(false)
+# Called after a player's placement (input paths and the touch Plant button): build mode stays armed (ec8fab5b).
+func after_player_placement(_placed: bool) -> void:
+	pass
 
 func _stroke_input(event: InputEvent) -> void:
 	if event.is_action_pressed("cancel_build"):
 		cancel_stroke()
 		get_viewport().set_input_as_handled()
+	elif tap_to_place:
+		return  # Touch: taps add pending Wardens (_unhandled_input), Confirm plants; a moving finger pans
 	elif event is InputEventMouseMotion and get_viewport().gui_get_hovered_control() == null:
 		# (Over a HUD button, e.g. touch's Plant: an emulated nudge mustn't extend the stroke.)
 		extend_stroke(origin_at(get_global_mouse_position()) if half_placement() else MAP_GRID.calculate_grid_coordinates(get_global_mouse_position()), event.alt_pressed)
