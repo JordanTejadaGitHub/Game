@@ -862,6 +862,8 @@ func _process(delta: float) -> void:
 	if bloom_left > 0.0 or (not watch_charged and _frame_rule(&"watchful_rest")):
 		_update_watch(delta)  # (Sudden Bloom fading, Watchful Rest: most Wardens skip the call)
 	_cooldown = maxf(_cooldown - delta, 0.0)
+	if _cooldown > 0.0 and _attack_time < 0.0 and _dream_state != null and _frame_rule(&"quick_draw"):
+		_quick_draw(delta)  # Quick Draw: a nightmare entering its range is attacked at once
 	if _cooldown > 0.0 or _attack_time >= 0.0:
 		return
 	# Performance: a Warden with nothing to do looks again IDLE_SEARCH seconds later instead of every
@@ -941,7 +943,7 @@ func get_cycle_multiplier() -> float:
 
 # Reach (Nurture rework): a Warden's main area grows by `per` cells per Reach rank.
 func area_bonus(per: float = NurtureChoices.REACH_AREA) -> float:
-	return per * choice_count(Focus.REACH)
+	return per * choice_count(Focus.REACH) + _swing_cells
 
 # New Commons 270–285, the per-hit ones (dream_design.md c15d05ac / b6c1c199; rule id = card id, Roguelite's data).
 const CARD_RIPPLES := 0.25  # Ripples: area hits on nightmares other than the attack's own target (Balancing 605a8ea7)
@@ -964,6 +966,9 @@ func _commons_hit_multiplier(enemy: Node2D, is_area: bool, is_crit: bool) -> flo
 		m *= 1.0 + CARD_EDGE
 	if is_crit and float(enemy.health) > enemy.max_health * CARD_STEADY_ABOVE and _has_rule(&"steady_aim"):
 		m *= 1.0 + CARD_STEADY_AIM
+	m *= HelperCommons.hit_multiplier(self, enemy)  # Helper Commons 286–303 (Narrow Way, Weary Feet, Head of the Line…)
+	if is_crit:
+		HelperCommons.after_crit(self, enemy)  # Hobble
 	if not is_area and _has_rule(&"rhythm"):
 		if enemy == _rhythm_target:
 			_rhythm_count += 1
@@ -978,6 +983,8 @@ func get_attacks_per_second() -> float:
 	var momentum := FinalTwists.momentum(self) if _twist == &"momentum" else 0.0  # Windmill: spins up
 	if _rhythm_until > _anim_time:
 		momentum += CARD_RHYTHM_SPEED  # Rhythm (card): a streak on one nightmare
+	if _dream_state:
+		momentum += HelperCommons.speed_bonus(self)  # Rush, Close Quarters
 	if _dream_state and _any_rule(&"grove_speed", GROVE_SPEED_RULES):
 		momentum += GroveRules.speed_bonus(self)  # Momentum (a streak), Quickening (a dispel in range)
 	if _stats_fresh() and _stats.has(&"speed"):
@@ -1099,6 +1106,8 @@ func _gift_version() -> int:
 func _compute_range_cells() -> float:
 	var ranks := mini(get_effective_rank(), STAT_TOP_RANK)
 	var reach := RANK_RANGE * _plain_ranks() + FOCUS_REACH * choice_count(Focus.REACH) * focus_power()  # Nurture v3 (Specialist)
+	if rank > 0 and _has_rule(&"growth_rings"):
+		reach += HelperCommons.GROWTH_RINGS * rank  # Growth Rings: each Nurture rank +0.1 range
 	if is_aura_support():
 		reach = 0.0  # Its ranks scale the aura instead
 	if _dream_state:
@@ -2326,6 +2335,11 @@ func _release_attack() -> void:
 	match attack_data.attack_kind:
 		TowerData.AttackKind.PULSE:
 			var in_range := get_enemies_in_range()
+			var swing := HelperCommons.area_attack_extra(self) if _dream_state else 0.0
+			if swing > 0.0:
+				in_range = _enemies_within_px(get_range_pixels() + swing * MAP_GRID.cell_size.x)  # Wide Swing: this pulse wider
+			if _dream_state:
+				HelperCommons.area_attack_hit(self, in_range)  # Scatter: 3+ hit are slowed
 			_area_count = in_range.size()
 			_status_pulse_hits.clear()
 			var statics := 0
@@ -2802,6 +2816,8 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 		return
 	var hand := ShapeCards.hands(self) if ShapeCards.sends_things_out(attack_data) else 1.0  # Small Hands: swooping birds, lobbed stones +35%
 	var splash := get_splash_cells() * MAP_GRID.cell_size.x
+	if splash > 0.0 and _dream_state:
+		splash += HelperCommons.area_attack_extra(self) * MAP_GRID.cell_size.x  # Wide Swing: every 3rd splash wider
 	if splash > 0.0 and tower_data.get_id() == "puffball" and _dream_state \
 			and PathCloud.fog_at(get_tree(), where, "mistveil"):
 		_dream_state.note_discovery(DreamState.EVENT_PUFF_IN_FOG)  # Lets Chain Bloom into the profile's pool
@@ -2840,6 +2856,9 @@ func projectile_landed(target: Node2D, where: Vector2) -> void:
 		if rainfog > 0.0 and is_instance_valid(_kin):
 			_kin.fog_patch(where, 2.0 * rainfog)  # Rainfog: the splash leaves a fog patch
 		_kin_fired(&"rainfog")
+	if _dream_state and _has_rule(&"scatter"):
+		HelperCommons.area_attack_hit(self, get_tree().get_nodes_in_group(ENEMY_GROUP).filter(func(e) -> bool:
+			return e.global_position.distance_to(where) <= splash))  # Scatter: a splash that hit 3+ slows them
 	if attack_data.lob:
 		_lob_landed(where, splash)
 	if attack_data.impact_texture != null:  # Old Mountain's crush
@@ -3249,9 +3268,45 @@ func _nearest_jump(struck: Array[Node2D]) -> Node2D:
 	return best
 
 # A lingering cloud on the path tile the target is walking through.
+# Quick Draw (helper Common): a nightmare entering its range gets the next attack at once (checked every 0.1 s;
+# one leaving and coming back counts again).
+var _qd_seen := {}
+var _qd_left := 0.0
+
+func _quick_draw(delta: float) -> void:
+	_qd_left -= delta
+	if _qd_left > 0.0:
+		return
+	_qd_left = 0.1
+	var now := {}
+	var fresh := false
+	for e in get_enemies_in_range():
+		var id := e.get_instance_id()
+		now[id] = true
+		if not _qd_seen.has(id):
+			fresh = true
+	_qd_seen = now
+	if fresh:
+		_cooldown = 0.0
+
+# The nightmares within `px` of it (Wide Swing's wider pulse; its min range kept).
+func _enemies_within_px(px: float) -> Array[Node2D]:
+	var out: Array[Node2D] = []
+	var min_sq := (attack_data.min_range * MAP_GRID.cell_size.x) ** 2
+	for e in nightmares_near(get_tree(), global_position, px):
+		if is_instance_valid(e) and not e.is_cleansed and e.is_in_group(ENEMY_GROUP):
+			var d := global_position.distance_squared_to(e.global_position)
+			if d <= px * px and d >= min_sq:
+				out.append(e)
+	return out
+
+var _swing_cells := 0.0  # Wide Swing: extra area for the attack being made (area_bonus reads it)
+
 func _drop_cloud(target: Node2D) -> void:
 	var center: Vector2 = MAP_GRID.calculate_map_position(target.get_current_cell())
+	_swing_cells = HelperCommons.area_attack_extra(self) if _dream_state else 0.0  # Wide Swing: this cloud wider
 	var cloud := PathCloud.new(self, center)
+	_swing_cells = 0.0
 	cloud.flecks = kin_look()
 	add_child(cloud)
 	cloud_formed.emit(self, center, attack_data.cloud_duration)
