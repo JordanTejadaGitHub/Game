@@ -183,7 +183,7 @@ func _build(won: bool) -> void:
 		# The demo's Memory Grove grows 8 nodes (DemoGrove, demo_scope.md cb0e096c): plant the Seeds there; the full
 		# game's tree waits beyond it (a few real nodes, tagged "Full game"; user 7938c7b2).
 		_label(box, "Your %d Seeds are waiting in the Memory Grove." % banked, 18, Palette.PATH).name = "PlantLine"
-		_label(box, "The full game wakes the whole tree:", 15, UiStyle.INK_DIM, true)
+		_label(box, "The full game wakes the rest of the tree:", 15, UiStyle.INK_DIM, true)
 		var teaser := _grove_teaser()
 		if teaser.get_child_count() > 0:
 			box.add_child(teaser)
