@@ -132,7 +132,7 @@ func _test_double_or_nothing() -> void:
 	rare_before = dreams._rare_dreams_left
 	var lost := _paid(omen, 1)
 	_check(lost == 0 and plain_lost > 0 and dreams._rare_dreams_left == rare_before, "a leaf lost pays nothing (not %d)" % plain_lost)
-	_check(omens.reward_sentence(omen, 1).contains("+%d Dew" % (plain_clean * 2)) and omens.reward_sentence(omen, 1).contains("Double or Nothing"),
+	_check(omens.reward_sentence(omen, 1).contains(UiStyle.dew_amount(plain_clean * 2, true)) and omens.reward_sentence(omen, 1).contains("Double or Nothing"),
 		"the Omen's reward line says so: %s" % omens.reward_sentence(omen, 1))
 	var prize := OmenData.new()  # A double-edged Omen (its extra Dew is the prize): unaffected
 	prize.creature_dew_multiplier = 1.5

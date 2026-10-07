@@ -203,7 +203,7 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 		dreams = dreams_kept_for(lost)
 	var dew := floori((roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)) * share)
 	if dew > 0:
-		parts.append("+%d Dew" % dew)
+		parts.append(UiStyle.dew_amount(dew, true))
 	elif omen.reward_pot_multiplier > 0.0 and block <= 0:  # Dry Spell before its block is known
 		parts.append("the block's Dew back, and a quarter more")
 	var seeds := floori(roundi(omen.reward_seeds * scale) * share)
@@ -221,7 +221,7 @@ func describe_reward(omen: OmenData, act: int, rest_bonus: int = -1, lost: int =
 		if rest_bonus >= 0:
 			var extra := floori(_extra_rest_bonus(omen, rest_bonus) * share)
 			if extra > 0:
-				parts.append("rest bonus +%d Dew" % extra)
+				parts.append("rest bonus %s" % UiStyle.dew_amount(extra, true))
 		else:
 			parts.append("rest bonus ×%s" % str(omen.reward_rest_bonus_multiplier).trim_suffix(".0"))
 	var dreamlight := floori(floori(omen.reward_dreamlight * scale) * share)  # By act: +1 / +1 / +2 / +2
@@ -262,7 +262,7 @@ static func is_dew_prize(omen: OmenData) -> bool:
 
 func reward_sentence(omen: OmenData, act: int, block: int = 0) -> String:
 	if is_dew_prize(omen):
-		return ("Reward: about +%d extra Dew over these drifts." % estimate_extra_dew(omen, block)) if block > 0 else DOUBLE_EDGED_LINE
+		return ("Reward: about %s extra over these drifts." % UiStyle.dew_amount(estimate_extra_dew(omen, block), true)) if block > 0 else DOUBLE_EDGED_LINE
 	if double_or_nothing():  # Double or Nothing: all of it twice with no leaf lost, nothing with any
 		var doubled := _reward_parts(omen, act, block, DOUBLE_OR_NOTHING, true)
 		var all: Array = doubled[0] + doubled[1]
@@ -289,9 +289,9 @@ func per_leaf_text(omen: OmenData, act: int, block: int = 0) -> String:
 	if dew > 0 and seeds > 0:
 		return "minus %s and %s" % [UiStyle.dew_amount(dew), UiStyle.seeds_amount(seeds)]
 	if dew > 0:
-		return "minus %d" % dew
+		return "minus %s" % UiStyle.dew_amount(dew)
 	if seeds > 0:
-		return "minus %d" % seeds
+		return "minus %s" % UiStyle.seeds_amount(seeds)
 	return ""
 
 # The Omen card's reward bullets (user: "point form for each different reward given on the single card"), each with
@@ -300,7 +300,7 @@ func per_leaf_text(omen: OmenData, act: int, block: int = 0) -> String:
 func reward_bullets(omen: OmenData, act: int, block: int = 0) -> Array[String]:
 	var bullets: Array[String] = []
 	if is_dew_prize(omen):  # The computed extra Dew (user: "should calculate how much Dew would come from the Omen")
-		bullets.append("About +%d extra Dew over these drifts" % estimate_extra_dew(omen, block) if block > 0 else "Extra Dew from every nightmare")
+		bullets.append("About %s extra over these drifts" % UiStyle.dew_amount(estimate_extra_dew(omen, block), true) if block > 0 else "Extra Dew from every nightmare")
 		return bullets
 	if double_or_nothing():  # Each doubled part, kept only with no leaf lost
 		var doubled := _reward_parts(omen, act, block, DOUBLE_OR_NOTHING, true)
@@ -314,8 +314,8 @@ func reward_bullets(omen: OmenData, act: int, block: int = 0) -> Array[String]:
 	var dew := roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)
 	if dew > 0:
 		var cut := floori(dew * REWARD_CUT_PER_LEAF)
-		bullets.append("+%d Dew%s, %s for each leaf you lose" % [dew, " at the rest" if omen.reward_pot_multiplier > 0.0 else "",
-			"minus %d" % cut if cut > 0 else "less"])
+		bullets.append("%s%s, %s for each leaf you lose" % [UiStyle.dew_amount(dew, true), " at the rest" if omen.reward_pot_multiplier > 0.0 else "",
+			"minus %s" % UiStyle.dew_amount(cut) if cut > 0 else "less"])
 	elif omen.reward_pot_multiplier > 0.0:
 		bullets.append("The block's Dew back, and a quarter more, less for each leaf you lose")
 	var seeds := roundi(omen.reward_seeds * scale)
@@ -338,11 +338,11 @@ func live_reward_text() -> String:
 	if active == null:
 		return ""
 	if is_dew_prize(active):  # "+120 of ~310": the extra Dew earned so far, of the estimate
-		return "+%d of ~%d" % [extra_dew_so_far(), estimate_extra_dew(active, active_block)]
+		return "%s of ~%s" % [UiStyle.dew_amount(extra_dew_so_far(), true), UiStyle.dew_amount(estimate_extra_dew(active, active_block))]
 	var parts := _reward_parts(active, drift_director.get_act(maxi(drift_director.drifts_started, 1)), active_block,
 		get_reward_share(), true)
 	var scaled: Array = parts[0]
-	return scaled[0] if not scaled.is_empty() and String(scaled[0]).begins_with("+") else ""
+	return scaled[0] if not scaled.is_empty() and (String(scaled[0]).begins_with(UiStyle.DEW_GLYPH) or String(scaled[0]).begins_with(UiStyle.SEEDS_GLYPH)) else ""  # An amount: Dew or Seeds
 
 # What a block with `lost` leaves lost paid, in the same words (the rest report and the toast): "Reward: +30 Dew
 # (1 leaf lost).", "No reward: 4 leaves lost.", "… The Dream reward is gone."
@@ -350,7 +350,7 @@ func paid_sentence(omen: OmenData, act: int, rest_bonus: int, lost: int, block: 
 	if is_dew_prize(omen):  # What the block really paid on top (the pot earned, less what it'd be without the Omen)
 		var pots := block_pots(omen, block)
 		var extra := floori(run_state.pot_earned_block * (1.0 - pots[0] / pots[1])) if pots[1] > 0.0 else 0
-		return "+%d extra Dew" % extra
+		return "%s extra" % UiStyle.dew_amount(extra, true)
 	var share := share_for(lost)
 	var parts := _reward_parts(omen, act, block, share, dreams_kept_for(lost), rest_bonus)
 	var got: Array = parts[0] + parts[1]
@@ -383,7 +383,7 @@ func _reward_parts(omen: OmenData, act: int, block: int, share: float, dreams: b
 	var dew := floori((roundi(omen.reward_dew * scale) + get_pot_reward(omen, block)
 		+ (_extra_rest_bonus(omen, rest_bonus) if rest_bonus >= 0 and omen.reward_rest_bonus_multiplier > 1.0 else 0)) * share)
 	if dew > 0:
-		scaled.append("+%d Dew" % dew)
+		scaled.append(UiStyle.dew_amount(dew, true))
 	elif omen.reward_pot_multiplier > 0.0 and block <= 0:
 		scaled.append("the block's Dew back, and a quarter more")
 	var seeds := floori(roundi(omen.reward_seeds * scale) * share)
