@@ -15,7 +15,8 @@ const VOCABULARY := ["short range", "long range", "longest range", "high damage"
 	"hurts the Rooted", "slows", "Roots", "Freezes", "stuns", "pulls back", "Silences", "stops sprints", "Soaks", "Charges",
 	"Poisons", "Drowses", "Exposes", "spreads statuses", "sets up statuses", "anti-air", "boss killer", "crowd clearer",
 	"breaks armour", "reveals Hidden", "guards the goal", "strips buffs", "crits", "repeats combos", "traps", "spawns",
-	"copies a neighbour", "speeds allies", "boosts damage", "grows into any family", "support", "economy", "wall"]
+	"copies a neighbour", "speeds allies", "boosts damage", "grows into any family", "support", "economy", "wall",
+	"can't hit up close", "can't hit flyers", "doesn't attack"]
 
 # `term` at `position` in a line reads exactly as the vocabulary has it (the first term with a leading capital).
 static func _term_ok(term: String, position: int) -> bool:

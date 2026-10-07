@@ -10,7 +10,7 @@
 script = ExtResource("1_tdata")
 display_name = "Moonstone"
 role_line = "Longest range, sniper, crits"
-description = "Sniper: range 10; its first hit on each nightmare is always a crit, and its crits hit ×4. It can't hit nightmares right beside it."
+description = "Range 10; its first hit on each nightmare is always a crit, and its crits hit ×4. It can't hit nightmares right beside it."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8

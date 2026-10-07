@@ -10,7 +10,7 @@
 script = ExtResource("1_tdata")
 display_name = "Cairn"
 role_line = "Lobs over walls, area damage"
-description = "A mortar: lobs its top stone over the maze onto a tile up to 6 cells away, splashing everything there."
+description = "A mortar: lobs its top stone over the maze onto a tile up to 6 cells away, splashing everything there. It can't hit nightmares right beside it."
 cost = 0
 texture = ExtResource("2_tex")
 frame_count = 8
