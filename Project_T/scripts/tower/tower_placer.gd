@@ -88,6 +88,8 @@ var _settling_marks: Node2D = null
 
 func _ready() -> void:
 	GiftGround.register_effects()  # Heartwood's Gifts: the Warden-side effects (Spire)
+	BranchKit.spark_share_scale = spark_share_scale  # (Statics: a run starts from this scene's values)
+	BranchKit.spark_cap = spark_cap_per_target
 	Tower.placer_ref = weakref(self)  # Tall Wardens fade when the build ghost is behind them
 	if tower_scene == null:
 		tower_scene = load(TOWER_SCENE_PATH)
@@ -1209,6 +1211,16 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 	return cost
 
 @export var copy_cost_step := 0.08  # +8% per copy on the map (be7b5a94; was 0.05. 0 = off, the sims' A/B)
+# Sparkler / Starburst sweeps (Balancing): x every form's spark_share, and the sparks one nightmare can take a burst.
+# They write BranchKit's statics, read at burst time, so a --set after _ready lands.
+@export var spark_share_scale := 1.0:
+	set(value):
+		spark_share_scale = value
+		BranchKit.spark_share_scale = value
+@export var spark_cap_per_target := BranchKit.SPARKS_PER_NIGHTMARE:
+	set(value):
+		spark_cap_per_target = value
+		BranchKit.spark_cap = value
 var _copy_counts := {}  # id -> planted copies, rebuilt when the board changes
 var _copy_board := -1
 

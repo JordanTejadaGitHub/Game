@@ -589,7 +589,9 @@ static func _prism_beams(tower: Tower) -> void:
 # Sparkler / Starburst (Tower Assets e9c6a5e5; user: "I can't see what it's attacking"): the shell is a real
 # projectile (firework_shell / _big, TowerData.projectile_texture); where it lands, Tower.projectile_landed calls
 # this: the firework_pop (twice on Starburst's double, the second a beat later and offset), then the sparks.
-const SPARKS_PER_NIGHTMARE := 3  # A burst lands at most this many sparks on one nightmare
+const SPARKS_PER_NIGHTMARE := 3  # A burst lands at most this many sparks on one nightmare (default of spark_cap)
+static var spark_share_scale := 1.0  # Sweeps: x every form's spark_share (%TowerPlacer.spark_share_scale)
+static var spark_cap := SPARKS_PER_NIGHTMARE  # Sweeps: %TowerPlacer.spark_cap_per_target
 const SPARK_SHARE := 0.25  # Fallback per-spark share of the Warden's damage; each form sets special_params "spark_share" (Balancing: 6 full-damage sparks made Starburst 61% of a run's damage)
 const FIREWORK_POP := &"firework_pop"
 const FIREWORK_POP_RADIUS := 96.0  # The pop's streaks reach this at scale 1 (1.5 cells)
@@ -611,7 +613,7 @@ static func firework_landed(tower: Tower, at: Vector2) -> void:
 			later.timeout.connect(func() -> void:
 				if is_instance_valid(w):
 					Fx.play(FIREWORK_POP, at + Vector2(14, -10), w, scale * 0.85))
-	_spark_burst_at(tower, at, sparks, float(tower.attack_data.damage) * p(tower, "spark_share", SPARK_SHARE), true)  # Per form (Balancing: Sparkler 0.4, Starburst 0.5)
+	_spark_burst_at(tower, at, sparks, float(tower.attack_data.damage) * p(tower, "spark_share", SPARK_SHARE) * spark_share_scale, true)  # Per form (Balancing: Sparkler 0.4, Starburst 0.5)
 
 # A spark flying from the pop to the nightmare it hit (cosmetic: the hit lands at once, as before).
 class FireworkSpark extends Node2D:
@@ -672,7 +674,7 @@ static func _spark_burst_at(tower: Tower, at: Vector2, sparks: int, each: float,
 		# Round-robin over the nightmares in the burst, at most SPARKS_PER_NIGHTMARE each; the rest are lost (Balancing
 		# with Tower Discussion: a lone target takes 3 × ¼ = 0.75×, a crowd of 2+ the full 1.5×).
 		var e: Node2D = near[i % near.size()]
-		if not is_instance_valid(e) or e.is_cleansed or int(landed.get(e, 0)) >= SPARKS_PER_NIGHTMARE:
+		if not is_instance_valid(e) or e.is_cleansed or int(landed.get(e, 0)) >= spark_cap:
 			continue
 		landed[e] = int(landed.get(e, 0)) + 1
 		if spark_tex != null and streaks > 0 and e.global_position.distance_to(at) > 4.0:
