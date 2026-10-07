@@ -324,17 +324,16 @@ static func scope(profile: Dictionary = {}) -> Dictionary:
 	if not demo_limited() and MetaRun.is_dev_run():
 		return {"all": true, "families": [], "wardens": {}, "names": {}, "statuses": {}}
 	var demo := demo_limited()
-	if profile.is_empty() and not demo:
+	if profile.is_empty():
 		profile = HeartwoodMemory.load_data()
 	var families: Array = DEMO_FAMILIES.duplicate()
 	var planted := {}
-	if not demo:
-		for unlock in HeartwoodMemory.load_grove():
-			if HeartwoodMemory.node_level(profile, unlock) > 0:
-				planted[unlock.id] = true
-				for id in unlock.families:
-					if not families.has(id):
-						families.append(id)
+	for unlock in HeartwoodMemory.load_grove():  # The demo too: its Grove grows Rootling (DemoGrove, meta_design.md 5bfb65be)
+		if DemoGrove.level(profile, unlock) > 0:
+			planted[unlock.id] = true
+			for id in unlock.families:
+				if not families.has(id):
+					families.append(id)
 	var forms := grove_forms()
 	var wardens := {}
 	var names := {}

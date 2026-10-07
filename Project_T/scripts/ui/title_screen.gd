@@ -93,16 +93,13 @@ func _ready() -> void:
 	var new_run := _add_button("New run", _new_run)
 	if not RunSaver.has_save():
 		UiStyle.primary(new_run)
+	# The Memory Grove opens in the demo too: its 8 nodes grow, the rest sleep (DemoGrove, demo_scope.md cb0e096c).
+	_add_button("Memory Grove", func() -> void: get_tree().change_scene_to_file(GROVE_SCENE))
 	if ResultsScreen.is_demo():
-		var grove := _add_button("Memory Grove", func() -> void: pass)
-		grove.disabled = true
-		grove.tooltip_text = "In the full game."
 		var url: String = ProjectSettings.get_setting(ResultsScreen.WISHLIST_SETTING, "")
 		var wishlist := _add_button("Wishlist on Steam", func() -> void: OS.shell_open(url))
 		wishlist.disabled = url == ""
 		wishlist.tooltip_text = "Store page coming soon." if url == "" else url
-	else:
-		_add_button("Memory Grove", func() -> void: get_tree().change_scene_to_file(GROVE_SCENE))
 	_add_button("Settings", _show_settings)
 	_add_button("Codex", func() -> void:  # screens_ui.md "The Codex"
 		_menu.visible = false

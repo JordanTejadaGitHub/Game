@@ -54,6 +54,18 @@ func _run() -> void:
 		demo.drifts_started = 25
 		gifts._on_rest_started(5, true, 0, false)  # The act 1 boss rest
 		_check(gifts.is_offering(), "demo: Heartwood's Gifts at the drift 25 break")
+	# The demo Grove (DemoGrove, demo_scope.md cb0e096c): planted Rootling counts as owned, Wider Choice works.
+	var family = demo.owner.get_node("%FamilyPickScreen")
+	_check(not CodexData.scope().families.has("rootling") and family.pick_count() == 2, "demo, nothing planted: no Rootling, 2 cards")
+	var profile := HeartwoodMemory.load_data()
+	profile.unlocks["rootling"] = 1
+	profile.unlocks["wider_choice"] = 1
+	HeartwoodMemory.save_data(profile)
+	_check(CodexData.scope().families.has("rootling"), "demo: a planted Rootling is in scope")
+	_check(family.pick_count() == 3, "demo: a planted Wider Choice shows 3")
+	var store := ResultsScreen.store_button()
+	_check(store.text == "Wishlist on Steam", "the store button (desktop): Wishlist")
+	store.free()
 	demo.owner.queue_free()
 	await process_frame
 	ResultsScreen.demo_override = -1

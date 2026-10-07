@@ -187,12 +187,7 @@ func show_pick(reason: StringName = &"first") -> void:
 	arm.arm()
 
 static func wider_choice_owned() -> bool:
-	if force_wider_choice:
-		return true
-	if ResultsScreen.is_demo():
-		return false
-	var unlock := HeartwoodMemory.get_unlock(WIDER_CHOICE_ID)
-	return unlock != null and HeartwoodMemory.node_level(HeartwoodMemory.load_data(), unlock) > 0
+	return force_wider_choice or DemoGrove.owns(WIDER_CHOICE_ID)  # The demo Grove grows it too (DemoGrove.NODES)
 
 # Cards a pick shows: 2, 3 with Wider Choice (fewer when fewer families are left: the caller slices).
 func pick_count() -> int:

@@ -180,27 +180,24 @@ func _build(won: bool) -> void:
 		_label(box, "%s: nothing was banked." % ("Test Grove" if TestGrove.is_active() else "Developer run"), 15,
 			UiStyle.GOLD)
 	if is_demo():
-		# The Memory Grove teaser: asleep in the demo, waiting in the full game.
-		_label(box, "The Memory Grove sleeps.", 18, Palette.PATH)
-		var teaser := _grove_teaser()  # A few real nodes by name and icon, tagged "Full game" (user 7938c7b2)
+		# The demo's Memory Grove grows 8 nodes (DemoGrove, demo_scope.md cb0e096c): plant the Seeds there; the full
+		# game's tree waits beyond it (a few real nodes, tagged "Full game"; user 7938c7b2).
+		_label(box, "Your %d Seeds are waiting in the Memory Grove." % banked, 18, Palette.PATH).name = "PlantLine"
+		_label(box, "The full game wakes the whole tree:", 15, UiStyle.INK_DIM, true)
+		var teaser := _grove_teaser()
 		if teaser.get_child_count() > 0:
 			box.add_child(teaser)
-		_label(box, "In the full game, every run grows your Memory Grove. Your %d Seeds will be waiting." % banked,
-			15, UiStyle.INK_DIM, true)
 
 	var buttons := GridContainer.new()
 	buttons.columns = 2
 	buttons.add_theme_constant_override("h_separation", 12)
 	box.add_child(buttons)
+	# screens_ui.md: Results → Memory Grove (the demo's grows its 8 nodes: "Plant your Seeds")
+	var grove := _button(buttons, "Plant your Seeds" if is_demo() else "Memory Grove")
+	grove.name = "GroveButton"
+	grove.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/grove.tscn"))
 	if is_demo():
-		var wishlist := _button(buttons, "Wishlist on Steam")
-		var url: String = ProjectSettings.get_setting(WISHLIST_SETTING, "")
-		wishlist.disabled = url == ""
-		wishlist.tooltip_text = "Store page coming soon" if url == "" else url
-		wishlist.pressed.connect(func() -> void: OS.shell_open(url))
-	else:  # screens_ui.md: Results → Memory Grove
-		_button(buttons, "Memory Grove").pressed.connect(func() -> void:
-			get_tree().change_scene_to_file("res://scenes/grove.tscn"))
+		buttons.add_child(store_button())
 	for button in buttons.get_children():
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var new_run := _button(buttons, "New run")
@@ -390,6 +387,21 @@ func _link(parent: Control, text: String) -> Button:
 	link.mouse_entered.connect(link.queue_redraw)
 	link.mouse_exited.connect(link.queue_redraw)
 	return link
+
+# The demo's way to the full game, one helper for every screen that offers it (results, title, the Grove's "Your tree
+# keeps growing" panel): "Wishlist on Steam" on desktop (disabled until game/wishlist_url is set); on phones it becomes
+# the unlock purchase (mobile_plan.md, later).
+static func store_button() -> Button:
+	var button := Button.new()
+	button.name = "StoreButton"
+	button.text = "Wishlist on Steam"
+	button.focus_mode = Control.FOCUS_NONE
+	button.custom_minimum_size = Vector2(150, UiStyle.HUD_BUTTON_H)
+	var url: String = ProjectSettings.get_setting(WISHLIST_SETTING, "")
+	button.disabled = url == ""
+	button.tooltip_text = "Store page coming soon" if url == "" else url
+	button.pressed.connect(func() -> void: OS.shell_open(url))
+	return button
 
 func _button(parent: Control, text: String) -> Button:
 	var button := Button.new()
