@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Beacon"
-description = "Every 2 s, Exposes every nightmare in range, and its Exposed is stronger: +50% damage taken."
+description = "Every 2 s, leaves every nightmare in range {marked}, and its {marked} is stronger: +50% damage taken."
 cost = 0
 counter_tags = Array[StringName]([&"detection"])
 line = "light"

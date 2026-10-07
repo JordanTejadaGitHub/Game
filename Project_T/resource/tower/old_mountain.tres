@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Old Mountain"
-description = "Every 3 s it drops a boulder: Roots what it hits for 0.5 s and always crits on Rooted or Drowsy nightmares."
+description = "Every 3 s it drops a boulder: what it hits is {held} for 0.5 s, and it always crits on {held} or {drowsy} nightmares."
 cost = 0
 line = "stone"
 tier = 4
