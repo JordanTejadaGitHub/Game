@@ -865,6 +865,16 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## One curve (user, 2026-10-06: "shouldn't it be the same?")
+
+The demo and a fresh full-game run share acts 1–2: **no demo-only multipliers**. The full game's fresh-profile acts 1–2
+are tuned to the demo targets below (default bot: the Stag 75–85%, reach 50 45–55%, win at 50 30–40%). That also fixes
+the full game's harsh first runs (fresh act 2 clears 0–3% today). The Grove (and the demo Grove) then eases acts 1–2 and
+opens acts 3–4 over runs; Blight Levels keep veterans honest. This replaces the earlier fresh act 1 target (~55%).
+Plan: finish the demo pair sweep (direction), then sweep the full-game exports (`act1_health_multiplier`, the act 2
+start / 37+ climb / end) on fresh full game and demo side by side; then acts 3–4 with Grove presets (the act 3 jump
+may need to come down with act 2). Tower Code removes the demo_* exports once the shared numbers land.
+
 ## Demo targets (demo_scope.md e5ce233d, 2026-10-06)
 
 The demo now ends at drift 50 (the Mire Hag), on the current rules (gifts at 25, card pool, prices, room-to-maze,
