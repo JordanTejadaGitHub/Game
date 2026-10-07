@@ -943,8 +943,41 @@ func get_cycle_multiplier() -> float:
 func area_bonus(per: float = NurtureChoices.REACH_AREA) -> float:
 	return per * choice_count(Focus.REACH)
 
+# New Commons 270–285, the per-hit ones (dream_design.md c15d05ac / b6c1c199; rule id = card id, Roguelite's data).
+const CARD_RIPPLES := 0.25  # Ripples: area hits on nightmares other than the attack's own target (Balancing 605a8ea7)
+const CARD_RHYTHM_HITS := 5  # Rhythm: this many hits in a row on one nightmare…
+const CARD_RHYTHM_SPEED := 0.20  # …give +20% attack speed…
+const CARD_RHYTHM_TIME := 3.0  # …for 3 s
+const CARD_EDGE := 0.25  # Edge of Sight: nightmares in the outer half of its range
+const CARD_STEADY_AIM := 0.40  # Steady Aim: a crit on a nightmare above half health…
+const CARD_STEADY_ABOVE := 0.5  # …(Balancing: above 50%, not only at full)
+var _rhythm_target: Node2D = null
+var _rhythm_count := 0
+var _rhythm_until := -1.0
+
+# The new Commons' hit multiplier for this hit (Rhythm also counts its streak here).
+func _commons_hit_multiplier(enemy: Node2D, is_area: bool, is_crit: bool) -> float:
+	var m := 1.0
+	if is_area and enemy != _last_fired and _has_rule(&"ripples"):
+		m *= 1.0 + CARD_RIPPLES
+	if _has_rule(&"edge_of_sight") and enemy.global_position.distance_to(global_position) > get_range_pixels() * 0.5:
+		m *= 1.0 + CARD_EDGE
+	if is_crit and float(enemy.health) > enemy.max_health * CARD_STEADY_ABOVE and _has_rule(&"steady_aim"):
+		m *= 1.0 + CARD_STEADY_AIM
+	if not is_area and _has_rule(&"rhythm"):
+		if enemy == _rhythm_target:
+			_rhythm_count += 1
+		else:
+			_rhythm_target = enemy
+			_rhythm_count = 1
+		if _rhythm_count >= CARD_RHYTHM_HITS:
+			_rhythm_until = _anim_time + CARD_RHYTHM_TIME  # Each further hit in the streak keeps it going
+	return m
+
 func get_attacks_per_second() -> float:
 	var momentum := FinalTwists.momentum(self) if _twist == &"momentum" else 0.0  # Windmill: spins up
+	if _rhythm_until > _anim_time:
+		momentum += CARD_RHYTHM_SPEED  # Rhythm (card): a streak on one nightmare
 	if _dream_state and _any_rule(&"grove_speed", GROVE_SPEED_RULES):
 		momentum += GroveRules.speed_bonus(self)  # Momentum (a streak), Quickening (a dispel in range)
 	if _stats_fresh() and _stats.has(&"speed"):
@@ -2425,6 +2458,8 @@ func hit(enemy: Node2D, soothe_multiplier: float = 1.0, is_area: bool = false, c
 	if not is_crit and _dream_state:
 		non_crit = _dream_state.get_non_crit_multiplier()  # Reckless Bloom
 	var dealt: float = soothe * (crit_multiplier if is_crit else non_crit) * reaction.multiplier
+	if _dream_state:
+		dealt *= _commons_hit_multiplier(enemy, is_area, is_crit)  # Ripples, Edge of Sight, Steady Aim (Rhythm counts)
 	if reaction.tag != &"":
 		combo = reaction.tag
 	var damage_line := "light" if _resonance() else tower_data.line  # Resonance: Chime Stone pulses count as lightning
