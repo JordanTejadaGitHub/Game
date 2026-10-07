@@ -179,6 +179,9 @@ static func _roll_drift(director: Node, number: int, drift: DriftData, hand_made
 				if slot[0] == data:
 					at_intro += slot[1]
 			fresh_caps[data] = maxi(at_intro, 1)
+	for data in pool:  # A kind's drift_max (the Phantom: 4) caps it like an easing-in type: the rest spills to known ones
+		if data.drift_max > 0:
+			fresh_caps[data] = mini(fresh_caps.get(data, data.drift_max), data.drift_max)
 	var kept_elites: Array = []  # [[EnemyData, count, true]] from the hand-made drift
 	for group in drift.groups:
 		for entry in group.entries:
@@ -229,7 +232,11 @@ static func _pick_template(rng: RandomNumberGenerator, act: int, pool: Array[Ene
 # [[EnemyData, count, elite], …] sharing `budget`, or [] if the counts can't land close enough.
 static func _mix(rng: RandomNumberGenerator, template: DriftTemplate, pool: Array[EnemyData], budget: float,
 		cap: float, act: int = 2, fresh_caps: Dictionary = {}) -> Array:
-	var leads := pool.filter(template.can_lead)
+	# A capped kind (drift_max: the Phantom) leads only Special drifts; elsewhere it's a minority type
+	var leads := pool.filter(func(data: EnemyData) -> bool:
+		return template.can_lead(data) and (data.drift_max <= 0 or &"special" in template.lead_tags))
+	if leads.is_empty():
+		return []
 	var lead: EnemyData = leads[rng.randi() % leads.size()]
 	var max_types := mini(template.max_types, pool.size())
 	var types: Array[EnemyData] = [lead]

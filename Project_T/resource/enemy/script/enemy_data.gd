@@ -171,6 +171,10 @@ enum Trait { NONE, FLYING, ROLLING, TRAMPLE, LEAP, BURROW, WANDER }
 # trait-heavy type, the old named drifts). Flying / through walls come from the trait.
 @export var intro_drift: int = 0
 @export var roll_tags: Array[StringName] = []
+# The most of this kind one drift brings (0 = no cap): a rolled drift never deals more, and the difficulty's
+# extra nightmares never round it past this (DriftEntry.get_count). Omens that add flyers still can (Moth Night).
+# The Phantom: 4 (enemy_design.md "Phantoms stay rare": streams of 9–10 took half a run's leaves).
+@export var drift_max: int = 0
 # How much more than its health one of these weighs in a rolled drift's budget: nightmares whose
 # threat isn't health (the Phantom skips the whole maze for a leaf) would otherwise come by the dozen.
 @export var roll_threat: float = 1.0

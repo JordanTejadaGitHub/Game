@@ -17,5 +17,6 @@ trait_text = "Drifts straight through the walls to the Heartwood."
 intro_lines = Array[String](["Your maze doesn't exist for it: it takes the shortest line to the Heartwood, walls and all."])
 hint = "Guard the ground near the Heartwood: every Phantom passes there."
 intro_drift = 31
-roll_tags = Array[StringName]([&"fast"])
+roll_tags = Array[StringName]([&"special"])
+drift_max = 4
 roll_threat = 4.0
