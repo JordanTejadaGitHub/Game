@@ -2282,38 +2282,70 @@ func _area_pulse_fx(in_range: Array) -> void:
 	var reach := get_range_pixels()
 	if Fx.reduced() and not Fx.on_screen(global_position, reach):
 		return  # Nobody sees it
-	var ring := Fx.play(StringName("area_pulse_" + style), global_position, world, reach / PULSE_ART_RADIUS)
-	if ring != null:
-		ring.z_index = -1  # On the ground
-	if not Fx.reduced():
-		var flash := RangeFlash.new(reach)
-		world.add_child(flash)
-		flash.global_position = global_position
+	# The user: "the circles don't look right" (the scaled sheet drew stepped, uneven arcs): a drawn ground ripple,
+	# one clean circle out to the live range, thinned when nearby Wardens pulse together.
+	if GroundRipple.may_start(global_position):
+		var ripple := GroundRipple.new(reach, RIPPLE_COLOURS.get(style, Palette.OAK))
+		world.add_child(ripple)
+		ripple.global_position = global_position
 	var spark := &"root_snap" if style == "root" else &"area_hit"
 	for i in mini(in_range.size(), PULSE_SPARKS_MAX):
 		var enemy: Node2D = in_range[i]
 		if is_instance_valid(enemy):
 			Fx.play(spark, enemy.global_position, world)
 
-# The range ring, faintly, for a moment (a pulse firing).
-class RangeFlash extends Node2D:
-	const TIME := 0.35
-	var radius := 0.0
-	var _left := TIME
+# Muted ground colours per pulse family (warm for the root / grove lines).
+const RIPPLE_COLOURS := {"root": Palette.DEADWOOD, "grove": Palette.OAK, "song": Palette.MOONPATH, "water": Palette.DEW,
+	"wind": Palette.MIST, "stone": Palette.STONE, "spore": Palette.MOSS}
 
-	func _init(reach: float) -> void:
-		radius = reach
-		z_index = -1
+# A pulse's ground ripple: one continuous 2 px circle (no antialiasing, so it stays a clean pixel line) growing from
+# the Warden out to its range and fading over TIME, on the ground under Wardens, trees and nightmares.
+class GroundRipple extends Node2D:
+	const TIME := 0.3
+	const WIDTH := 2.0
+	const ALPHA := 0.6
+	const GAP_MS := 200  # Another ripple this soon…
+	const NEAR := 96.0  # …this close (1.5 cells) is skipped: pulses side by side never stack into a tangle
+	const MAX_ALIVE := 12
+	const MAX_ALIVE_REDUCED := 6
+	static var _recent: Array = []  # [msec, position] of the latest ripples (plain data)
+	static var _alive := 0
+	var _radius := 0.0
+	var _colour: Color
+	var _age := 0.0
+
+	static func may_start(at: Vector2) -> bool:
+		var now := Time.get_ticks_msec()
+		_recent = _recent.filter(func(r: Array) -> bool: return now - int(r[0]) < GAP_MS)
+		if _alive >= (MAX_ALIVE_REDUCED if Fx.reduced() else MAX_ALIVE):
+			return false
+		for r in _recent:
+			if (r[1] as Vector2).distance_to(at) < NEAR:
+				return false
+		_recent.append([now, at])
+		return true
+
+	func _init(reach: float, colour: Color) -> void:
+		_radius = reach
+		_colour = colour
+		z_index = -1  # On the ground
+		_alive += 1
+
+	func _exit_tree() -> void:
+		_alive = maxi(_alive - 1, 0)
 
 	func _process(delta: float) -> void:
-		_left -= delta
-		if _left <= 0.0:
+		_age += delta
+		if _age >= TIME:
 			queue_free()
 		else:
 			queue_redraw()
 
 	func _draw() -> void:
-		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 64, Color(Palette.HEARTLIGHT, 0.35 * _left / TIME), 1.5)
+		var t := _age / TIME
+		var r := _radius * (1.0 - pow(1.0 - t, 2.0))  # Eases out to the range
+		var points := clampi(int(r / 3.0), 24, 160)  # Enough points that the circle reads as one curve
+		draw_arc(Vector2.ZERO, maxf(r, 1.0), 0.0, TAU, points, Color(_colour, ALPHA * (1.0 - t)), WIDTH, false)
 
 # The attack's shape for the UI (story chat; Main's attack-type chip): &"single", &"splash", &"area", &"chain", &"cloud",
 # &"trap", &"beam", &"birds", &"seed", &"patrol", &"copy", &"light", &"pull", &"spread", &"aura", &"none" (walls).

@@ -40,22 +40,21 @@ func _run() -> void:
 	var world := Reactions._world(rootling)
 	var before := world.get_children().size()
 	rootling._release_attack()
-	var ring: Node2D = null
+	var ripple: Node2D = null
 	var sparks := 0
-	var flash := false
 	for n in world.get_children():
-		if String(n.name).begins_with("Fx_area_pulse_root"):
-			ring = n
+		if n is Tower.GroundRipple:
+			ripple = n
 		elif String(n.name).begins_with("Fx_root_snap"):
 			sparks += 1
-		elif n is Tower.RangeFlash:
-			flash = true
-	_check(world.get_children().size() > before and ring != null, "a Rootling's pulse plays the root ring")
-	var drawn: float = ring._scale if ring != null else 0.0  # FxSprite keeps its scale itself
-	_check(is_equal_approx(drawn * Tower.PULSE_ART_RADIUS, rootling.get_range_pixels()),
-		"…scaled to its range, not capped like a flash (scale %.2f, range %.0f px)" % [drawn, rootling.get_range_pixels()])
+	_check(world.get_children().size() > before and ripple != null, "a Rootling's pulse draws a ground ripple (the user: \"the circles don't look right\")")
+	_check(ripple != null and is_equal_approx(ripple._radius, rootling.get_range_pixels()) and ripple.z_index == -1,
+		"…out to its live range, on the ground (%.0f px)" % (ripple._radius if ripple else 0.0))
 	_check(sparks >= 1, "a spark on the nightmare it touched (%d)" % sparks)
-	_check(flash, "the range ring flashes faintly")
+	# Two Wardens side by side pulsing together: one ripple, never a tangle.
+	var ripples_before := world.get_children().filter(func(n) -> bool: return n is Tower.GroundRipple).size()
+	_check(not Tower.GroundRipple.may_start(rootling.global_position + Vector2(64, 0)), "a second pulse beside it at once is thinned")
+	_check(world.get_children().filter(func(n) -> bool: return n is Tower.GroundRipple).size() == ripples_before, "(no extra ripple)")
 
 	# The shape the UI shows.
 	_check(Tower.attack_shape(load("res://resource/tower/rootling.tres")) == &"area", "Rootling: area")
