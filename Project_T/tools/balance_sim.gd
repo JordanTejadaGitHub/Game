@@ -183,6 +183,8 @@ var trace_drift := 0  # --trace-drift=N: TRACE lines from drift N's start to the
 var _trace_t := -1.0
 var _trace_next := 0.0
 var _trace_spawned := 0
+var _trace_hp := 0.0  # Health spawned since the trace began
+var _trace_dmg := 0.0  # Damage dealt since the trace began
 var _spend_timer := 0.0
 var _busy := false  # A family pick / rest is being handled
 var rows: Array = []
@@ -1391,12 +1393,16 @@ func _trace_drift_started(n: int) -> void:
 		for t in _attackers():
 			tiers[t.tower_data.tier] = int(tiers.get(t.tower_data.tier, 0)) + 1
 		var ranks := 0.0
+		var dps := 0.0
 		for t in _attackers():
 			ranks += t.rank
-		print("TRACE start drift %d leaves %d dew %d attackers %d tiers %s avg_rank %.2f route %d" % [n, run_state.leaves, run_state.dew,
-			_attackers().size(), str(tiers), ranks / maxf(_attackers().size(), 1), _route_cells(map.get_path_from(map.startPath))])
+			dps += t.get_damage() * t.get_attacks_per_second()
+		print("TRACE start drift %d leaves %d dew %d attackers %d tiers %s avg_rank %.2f rank_total %d dps %.0f route %d" % [n, run_state.leaves,
+			run_state.dew, _attackers().size(), str(tiers), ranks / maxf(_attackers().size(), 1), int(ranks), dps,
+			_route_cells(map.get_path_from(map.startPath))])
 	elif n > trace_drift and _trace_t >= 0.0:
-		print("TRACE drift %d starts t=%.1f" % [n, game_time - _trace_t])
+		print("TRACE drift %d starts t=%.1f hp=%.0f dmg=%.0f alive %d leaves %d" % [n, game_time - _trace_t, _trace_hp, _trace_dmg,
+			spawner.get_enemies().size(), run_state.leaves])
 
 func _trace_tick() -> void:
 	if _trace_t < 0.0 or game_time < _trace_next:
@@ -1406,7 +1412,8 @@ func _trace_tick() -> void:
 	for e in spawner.get_enemies():
 		var kind: String = e.enemy_data.resource_path.get_file().get_basename()
 		kinds[kind] = int(kinds.get(kind, 0)) + 1
-	print("TRACE alive t=%.1f n=%d spawned=%d leaves=%d %s" % [game_time - _trace_t, spawner.get_enemies().size(), _trace_spawned, run_state.leaves, str(kinds)])
+	print("TRACE alive t=%.1f n=%d spawned=%d hp=%.0f dmg=%.0f leaves=%d %s" % [game_time - _trace_t, spawner.get_enemies().size(), _trace_spawned,
+		_trace_hp, _trace_dmg, run_state.leaves, str(kinds)])
 
 func _trace_leak(e: Node) -> void:
 	if _trace_t < 0.0 or not is_instance_valid(e):
@@ -1428,7 +1435,10 @@ func _hook_stats() -> void:
 		if n.has_method("take_damage"):
 			if _trace_t >= 0.0:
 				_trace_spawned += 1
-			(func() -> void: d.health_spawned += n.max_health).call_deferred())
+			(func() -> void:
+				d.health_spawned += n.max_health
+				if _trace_t >= 0.0:
+					_trace_hp += n.max_health).call_deferred())
 	spawner.enemy_reached_goal.connect(func(e) -> void:
 		_trace_leak(e)
 		d.leaks += 1
@@ -1465,6 +1475,8 @@ func _new_window() -> void:
 
 func _on_damage(event) -> void:
 	d.damage += event.amount
+	if _trace_t >= 0.0:
+		_trace_dmg += event.amount
 	var tag := String(event.tag) if event.tag != &"" else String(event.kind)
 	damage_by_tag[tag] = float(damage_by_tag.get(tag, 0.0)) + event.amount
 	_note_form_damage(event)
