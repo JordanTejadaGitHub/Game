@@ -39,7 +39,7 @@ const REPORTERS := {
 	&"odd_one_out": "_odd_one_out", &"grand_tour": "_grand_tour",
 	&"heart_of_the_maze": "_heart_of_the_maze", &"moonflip": "_moonflip", &"many_talents": "_many_talents",
 	&"switchback": "_switchback", &"close_guard": "_close_guard", &"nimble_twigs": "_nimble_twigs", &"seasoned": "_seasoned",
-	&"mulch": "_mulch", &"light_steps": "_light_steps", &"close_shave": "_close_shave",
+	&"mulch": "_mulch", &"light_steps": "_light_steps", &"close_shave": "_close_shave", &"undergrowth": "_undergrowth",
 	&"rain_on_glass": "_rain_on_glass",
 	&"kind_canopy": "_kind_canopy", &"shared_light": "_shared_light", &"bramble_oath": "_bramble_oath",
 	&"golden_harvest": "_golden_harvest",
@@ -427,6 +427,15 @@ func _close_shave(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictio
 		return {}
 	return {"run_wide": true, "active": ds.close_shave_active(), "speed": DreamState.CLOSE_SHAVE_SPEED,
 		"reason": "" if ds.close_shave_active() else "after a nightmare reaches the Heartwood"}
+
+# Undergrowth (card 289): a Sprout touching 2+ other Sprouts reaches 0.5 cells further.
+func _undergrowth(spot: Dictionary, board: Board, _card: UpgradeData) -> Dictionary:
+	if spot.data.get_id() != "sprout":
+		return {}
+	var sprouts := board.touching(spot).filter(func(o: Dictionary) -> bool: return _data(o).get_id() == "sprout").size()
+	var on := sprouts >= DreamState.UNDERGROWTH_TOUCHING
+	return {"positional": true, "radius": 1.0, "active": on, "range": DreamState.UNDERGROWTH_RANGE,
+		"reason": "" if on else "touches %d other Sprouts (needs %d)" % [sprouts, DreamState.UNDERGROWTH_TOUCHING]}
 
 # Many Talents (card 267): +10% damage per different Nurture choice among a planted Warden's ranks (up to +40%).
 func _many_talents(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:

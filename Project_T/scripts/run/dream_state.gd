@@ -1343,6 +1343,8 @@ func _on_drift_started(number: int) -> void:
 	if number > 1 and drift_director._arriving.has(number - 1):
 		if has_rule(&"early_bird"):
 			run_state.add_dew(EARLY_BIRD_DEW)  # Early Bird: calling a drift early
+		if _early_calls == 0:
+			_bold_opening_drift = number  # Bold Opening: this block's opening call
 		_early_calls += 1
 		if has_rule(&"quick_step"):
 			_quick_step_drift = number  # Quick Step: until this drift has fully arrived
@@ -1689,6 +1691,8 @@ func keeps_rest_bonus() -> bool:
 # Added to every rest (drift-clear) bonus; negative after Borrowed Dew. The bonus never goes below 0.
 func get_rest_bonus_add() -> int:
 	var add := 0
+	if has_rule(&"groundskeeper"):
+		add += GROUNDSKEEPER_DEW * _clears_this_block  # Groundskeeper: this block's clears
 	for card in _taken_cards():
 		add += card.rest_bonus_add * stacks[card.id]
 	if has_rule(&"winding_path"):
@@ -2061,6 +2065,8 @@ func _on_rest_started(_block: int, is_boss_rest: bool, _bonus: int, _perfect: bo
 		return
 	_second_wind()
 	_early_calls = 0  # Restless Night counts per block
+	_clears_this_block = 0  # Groundskeeper paid (the rest bonus came first)
+	_bold_opening_drift = -1
 	_rest_rules(_perfect)
 	if is_boss_rest:
 		# The freed light: +3 Dreamlight, and the Remember screen opens before the Dream.
@@ -2480,6 +2486,26 @@ const EDGE_OF_SIGHT_RANGE := 4.0  # Edge of Sight's Need: a Warden with this ran
 var _light_steps_until := -1.0
 var _close_shave_until := -1.0
 
+# Helper Commons 286-303 (dream_design.md ae90720e): Roguelite's hooks; the combat ones are Tower Code's.
+const BOUNTIFUL_EVERY := 5  # Every 5th Sprout you plant is free (TowerPlacer asks bountiful_next_free)
+const UNDERGROWTH_RANGE := 0.5  # Sprouts touching UNDERGROWTH_TOUCHING+ other Sprouts reach further
+const UNDERGROWTH_TOUCHING := 2
+const BOLD_OPENING_POT := 0.40  # The first drift you call early in each block: its pot holds this much more Dew
+const GROUNDSKEEPER_DEW := 3  # At each rest, per obstacle cleared that block
+var sprouts_planted := 0  # Sprouts planted this run (Bountiful); saved
+var _clears_this_block := 0  # Groundskeeper
+var _bold_opening_drift := -1  # The drift that took this block's Bold Opening
+
+func bountiful_next_free() -> bool:
+	return has_rule(&"bountiful") and (sprouts_planted + 1) % BOUNTIFUL_EVERY == 0
+
+# An area Warden (Wide Swing / Scatter's Need): its attacks hit more than one nightmare at once.
+static func is_area_warden(data: TowerData) -> bool:
+	if data == null or not data.can_attack:
+		return false
+	return data.splash_radius > 0.0 or data.attack_kind in [TowerData.AttackKind.PULSE, TowerData.AttackKind.CLOUD,
+		TowerData.AttackKind.SPIN, TowerData.AttackKind.SWEEP]
+
 func light_steps_active() -> bool:
 	return has_rule(&"light_steps") and _game_clock < _light_steps_until
 
@@ -2510,6 +2536,16 @@ func board_can_use(card: UpgradeData) -> bool:
 			return _towers().any(func(t: Tower) -> bool: return t.tower_data.can_attack and t.tower_data.attack_range >= EDGE_OF_SIGHT_RANGE)
 		&"mulch", &"weed_puller":
 			return can_clear() and count_obstacles() > 0  # Clearing open and something left to clear
+		&"wide_swing", &"scatter":
+			return _towers().any(func(t: Tower) -> bool: return is_area_warden(t.tower_data))
+		&"first_among_equals", &"growth_rings":
+			return _towers().any(func(t: Tower) -> bool: return t.rank >= 1)
+		&"forest_floor":
+			return count_obstacles() > 0
+		&"groundskeeper":
+			return can_clear()
+		&"twin_strike", &"close_quarters":
+			return kinship_possible()
 	return true
 
 # Close Kin's door: a family with 2 of its branches unlocked this run, so a Kinship (two branches within reach) can form.
@@ -2743,7 +2779,7 @@ func to_save() -> Dictionary:
 		"clearing_opened_by": clearing_opened_by,
 		"free_first_clears": free_first_clears,
 		"cleared_kinds": cleared_kinds.keys().map(func(cell: Vector2) -> Array: return [cell.x, cell.y, cleared_kinds[cell]]),
-		"grown_wardens": grown_wardens.keys(), "mystery_spent": mystery_spent, "waking_legendaries": waking_legendaries,
+		"grown_wardens": grown_wardens.keys(), "mystery_spent": mystery_spent, "waking_legendaries": waking_legendaries, "sprouts_planted": sprouts_planted,
 		"rng_state": str(_rng.state),  # A string: JSON would round a 64-bit int
 	}
 
@@ -2752,6 +2788,7 @@ func load_save(data: Dictionary) -> void:
 	wider_roots_family = String(data.get("wider_roots_family", ""))
 	mystery_spent = bool(data.get("mystery_spent", false))
 	waking_legendaries = bool(data.get("waking_legendaries", false))
+	sprouts_planted = int(data.get("sprouts_planted", 0))
 	unlocked.clear()
 	for id in data.get("unlocked", []):
 		unlocked[id] = true
@@ -2901,6 +2938,8 @@ func _on_tower_sold(tower: Tower, _refund: int) -> void:
 func _on_tower_built(tower: Tower) -> void:
 	if tower.tower_data.get_id() == "thornwall":
 		_walls_planted += 1  # Weathered Walls
+	if tower.tower_data.get_id() == "sprout":
+		sprouts_planted += 1  # Bountiful
 	_mark_fresh(tower)
 	_watch_growth(tower)
 	_discover_warden(tower)
@@ -2922,6 +2961,7 @@ func _on_tower_built(tower: Tower) -> void:
 # (it would flood the Dew economy, same as its no-Seeds rule).
 func _on_obstacle_cleared(cell: Vector2, data: ObstacleData) -> void:
 	cleared_kinds[cell] = STUMP if data != null and data.resource_path.get_file().begins_with("tree") else HOLLOW  # Tended Stumps / Hollow Ground
+	_clears_this_block += 1  # Groundskeeper
 	bump_board()  # Neighbours' card rows read it
 	if has_card("heartwoods_reach"):
 		_credit("heartwoods_reach", "clears", 1.0)  # Card credit: a cheaper (or free) clear
@@ -3246,6 +3286,8 @@ func get_dew_pot_multiplier(number: int, called_early: bool) -> float:
 	var bonus := get_dew_gain_bonus()
 	if called_early and has_rule(&"call_of_the_wild"):
 		bonus += CALL_OF_THE_WILD_POT * rule_power(&"call_of_the_wild")
+	if called_early and has_rule(&"bold_opening") and (_early_calls == 0 or _bold_opening_drift == number):
+		bonus += BOLD_OPENING_POT  # Bold Opening: the first drift called early this block
 	return (1.0 + bonus) * wild_dew_roll(number)
 
 # --- Strange Dreams (dream_design.md "Strange Dreams: gamble cards") ------------------------------------------

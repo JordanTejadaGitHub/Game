@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "scatter"
+display_name = "Scatter"
+description = "An area attack that hits 3 or more nightmares slows them 25% for 1.5 s."
+rarity = 0
+kind = 3
+tags = Array[String](["reach"])
+max_stacks = 1
+rule_id = &"scatter"

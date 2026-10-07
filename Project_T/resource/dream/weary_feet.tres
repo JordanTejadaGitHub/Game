@@ -4,12 +4,11 @@
 
 [resource]
 script = ExtResource("1_card")
-id = "broad_splash"
-display_name = "Broad Splash"
-description = "Splashes and clouds reach 0.25 cells wider (stacks, up to +0.75 cells)."
+id = "weary_feet"
+display_name = "Weary Feet"
+description = "Nightmares take 1% more damage for every 4 path tiles they've walked (up to +25%)."
 rarity = 0
 kind = 3
-tags = Array[String](["reach"])
-max_stacks = 3
-in_start_pool = false
-rule_id = &"broad_splash"
+tags = Array[String](["maze"])
+max_stacks = 1
+rule_id = &"weary_feet"

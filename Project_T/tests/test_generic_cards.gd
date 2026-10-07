@@ -64,6 +64,7 @@ func _run() -> void:
 	_test_maze_cards()
 	_test_no_dead_cards()
 	_test_helper_commons()
+	_test_more_helpers()
 	print("generic cards test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	quit(failures)
 
@@ -228,6 +229,45 @@ func _towers_reach(cells: float) -> bool:
 		if t is Tower and t.tower_data.can_attack and t.tower_data.attack_range >= cells:
 			return true
 	return false
+
+# Helper Commons 286-303, Roguelite's hooks (dream_design.md ae90720e; balance_simulation.md 6075f796): Bountiful,
+# Undergrowth, Bold Opening, Groundskeeper and the offer Needs. The combat hooks are Tower Code's.
+func _test_more_helpers() -> void:
+	_reset()
+	for id in ["bountiful", "undergrowth", "bold_opening", "groundskeeper"]:
+		dreams.take(_card(id))
+	dreams.sprouts_planted = 3
+	_check(not dreams.bountiful_next_free(), "Bountiful: the 4th Sprout costs")
+	dreams.sprouts_planted = 4
+	_check(dreams.bountiful_next_free(), "…the 5th is free")
+	var mid := _plant("sprout", Vector2(101, 101))
+	_plant("sprout", Vector2(100, 101))
+	dreams.bump_board()
+	_check(not _row(mid.tower_data, mid.cell, "undergrowth", mid).active, "Undergrowth: 1 Sprout touching isn't enough")
+	_plant("sprout", Vector2(102, 101))
+	dreams.bump_board()
+	_check(_row(mid.tower_data, mid.cell, "undergrowth", mid).active, "…2 Sprouts touching: +0.5 range")
+	_clear()
+	dreams._early_calls = 0
+	dreams._bold_opening_drift = -1
+	var plain := dreams.get_dew_pot_multiplier(12, false)
+	_check(is_equal_approx(dreams.get_dew_pot_multiplier(12, true) - plain, DreamState.BOLD_OPENING_POT), "Bold Opening: the block's first early call +40%")
+	dreams._early_calls = 1
+	dreams._bold_opening_drift = 11
+	_check(is_equal_approx(dreams.get_dew_pot_multiplier(13, true), plain), "…a later early call in the block gets nothing")
+	_check(is_equal_approx(dreams.get_dew_pot_multiplier(11, true) - plain, DreamState.BOLD_OPENING_POT), "…the opening drift itself keeps it")
+	dreams._clears_this_block = 2
+	var base_add := dreams.get_rest_bonus_add()
+	dreams._clears_this_block = 0
+	_check(base_add - dreams.get_rest_bonus_add() == 2 * DreamState.GROUNDSKEEPER_DEW, "Groundskeeper: +3 per clear this block at the rest")
+	_check(not dreams.board_can_use(_card("first_among_equals")), "First Among Equals: needs a ranked Warden")
+	var ranked := _plant("sporeling", Vector2(100, 100))
+	ranked.rank = 1
+	_check(dreams.board_can_use(_card("first_among_equals")) and dreams.board_can_use(_card("growth_rings")), "…a rank I Warden: offered")
+	_clear()
+	dreams.stacks.clear()
+	dreams._early_calls = 0
+	dreams._bold_opening_drift = -1
 func _test_pool() -> void:
 	for id in IDS:
 		var card := _card(id)

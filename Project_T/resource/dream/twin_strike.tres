@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resource/dream/script/upgrade_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "twin_strike"
+display_name = "Twin Strike"
+description = "A Warden in a {kinship} deals 20% more damage to a nightmare its kin hit in the last second."
+rarity = 0
+kind = 3
+tags = Array[String](["kinship"])
+max_stacks = 1
+rule_id = &"twin_strike"
