@@ -43,7 +43,7 @@ func _init() -> void:
 		_lint("Main", "status %s" % id, IconInfo.STATUSES[id][1])
 	var whispers: Dictionary = (load("res://scripts/ui/whispers.gd") as Script).get_script_constant_map().get("TEXT", {})
 	for id in whispers:
-		_lint("Main", "whisper %s" % id, whispers[id])
+		_lint("Main", "whisper %s" % id, whispers[id], false, false, true)  # Shown through UiStyle.whisper(): flavour
 	_scan_script_strings("res://scripts/ui", "Main")
 	_scan_script_strings("res://scripts/run", "Main")
 	# Card wording (text_style.md "Card wording, one way each", story chat 2026-10-02: all player-facing text, not just
@@ -58,7 +58,8 @@ func _init() -> void:
 	for owner in findings:
 		var list: Array = findings[owner]
 		var enforced: bool = WORDING_ENFORCED.has(owner.trim_suffix(" wording")) if owner.ends_with(" wording") \
-				else GLYPHS_ENFORCED.has(owner.trim_suffix(" glyphs")) if owner.ends_with(" glyphs") else ENFORCED.has(owner)
+				else GLYPHS_ENFORCED.has(owner.trim_suffix(" glyphs")) if owner.ends_with(" glyphs") \
+				else CAPS_ENFORCED.has(owner.trim_suffix(" caps")) if owner.ends_with(" caps") else ENFORCED.has(owner)
 		print("%s %s: %d" % ["FAIL" if enforced else "TODO", owner, list.size()])
 		for line in list.slice(0, 40):
 			print("  ", line)
@@ -145,6 +146,9 @@ func _scan_script_strings(dir: String, owner: String, wording_only := false) -> 
 		for i in lines.size():
 			var line := lines[i]
 			var code := line.strip_edges()
+			# Italic flavour (UiStyle.whisper(), *flavo(u)r* fields) is prose: exempt from the status-name rule (text_pass.md da416134).
+			var flavour := FLAVOUR_FILES.has(file) or code.contains("whisper(") or code.to_lower().contains("flavo")
+			_caps_off = CAPS_SKIP_LINES.any(func(s: String) -> bool: return code.contains(s))
 			if code.begins_with("#") or code.begins_with("print") or code.contains("push_warning") or code.contains("push_error"):
 				continue
 			for m in literal.search_all(line):
@@ -154,10 +158,12 @@ func _scan_script_strings(dir: String, owner: String, wording_only := false) -> 
 					if wording_only:
 						_wording(file_owner, "%s:%d" % [file, i + 1], text)
 						_glyphs(file_owner, "%s:%d" % [file, i + 1], text)
+						_caps(file_owner, "%s:%d" % [file, i + 1], text, flavour)
 					else:
-						_lint(file_owner, "%s:%d" % [file, i + 1], text, false, true)
+						_lint(file_owner, "%s:%d" % [file, i + 1], text, false, true, flavour)
+	_caps_off = false
 
-func _lint(owner: String, source: String, text: String, is_title := false, is_code := false) -> void:
+func _lint(owner: String, source: String, text: String, is_title := false, is_code := false, is_flavour := false) -> void:
 	var problems: Array[String] = []
 	var lower := text.to_lower()
 	if text.contains(" - ") or text.contains(" | "):
@@ -203,6 +209,66 @@ func _lint(owner: String, source: String, text: String, is_title := false, is_co
 		findings[owner].append("%s: %s  [%s]" % [source, problem, text.left(90).replace("\n", " / ")])
 	_wording(owner, source, text)
 	_glyphs(owner, source, text)
+	_caps(owner, source, text, is_flavour)
+
+# Capitalisation (text_pass.md "Capitalisation", user 2026-10-07: "let's be consistent with capitalisation"): statuses
+# in every form (Soaked / Soaks) and the currencies (Dew, Dreamlight, Seeds) are names, so never lower case; drift and
+# rest are common words, so never capitalised mid-sentence ("Start drift 1", "at the next rest"). Findings go under
+# "<owner> caps": TODO until the owner's sweep, then the owner joins CAPS_ENFORCED.
+const CAPS_ENFORCED: Array[String] = ["Main"]  # Main's sweep (2026-10-07)
+# Status verbs as role lines and descriptions use them ("Anti-air, Roots"); the nouns come from IconInfo.STATUSES.
+const STATUS_VERBS := ["roots", "soaks", "charges", "poisons", "drowses", "exposes", "silences", "freezes"]
+# Substrings of a text (lowercase) that use one of those words in its ordinary sense on purpose.
+const CAPS_EXCEPTIONS := [
+	# Literal seeds (a Samara's, the Grove Keeper's), not the Seeds currency (text_pass.md da416134).
+	"the seed a samara throws", "seeds it throws", "its seeds", "samara's seeds", "seeds in a fan", "5 seeds", "three seeds",
+	"seeds come", "birds, seeds", "rings and seeds", "seeds down",
+	"sprout charges", "five charges", "5 charges", "charges down",  # charges as a count, or a stag's charge
+	"heartwood's roots", "their roots", "its roots", "roots went", "roots that", "glowing roots", "roots erupt",  # roots of a tree
+	"caught seed", "when caught", "caught %d", "caught this run",  # caught as in catching, not the Caught status
+	"fall asleep", "falls asleep", "not charged", "rooted for good", "hidden one", "hidden branch",  # ordinary words
+	"sunlit rest", "watchful rest",  # Dream card names
+]
+# Code lines whose strings are lookup keys, not text.
+const CAPS_SKIP_LINES := ["const ROLE_TERMS", "\"reveals hidden\": &"]
+# Scripts whose every string is italic flavour (shown through UiStyle.whisper()).
+const FLAVOUR_FILES := ["whispers.gd"]
+var _caps_rules: Array = []
+var _caps_off := false  # A CAPS_SKIP_LINES line is being scanned
+func _caps(owner: String, source: String, text: String, is_flavour := false) -> void:
+	if _caps_off:
+		return
+	if _caps_rules.is_empty():
+		var statuses: Array[String] = []
+		for id in IconInfo.STATUSES:
+			var word := String(IconInfo.STATUSES[id][0]).to_lower()
+			if not word.contains(" "):  # Deeply Blighted is a name the main lint checks
+				statuses.append(word)
+		statuses.append_array(STATUS_VERBS)
+		_caps_rules = [
+			[RegEx.create_from_string("(?<![A-Za-z_%{])(" + "|".join(statuses) + ")(?![A-Za-z_])"), "a status in lower case (statuses are names)"],
+			[RegEx.create_from_string("(?<![A-Za-z_%{])(dew|dreamlight|seeds)(?![A-Za-z_])"), "a currency in lower case (Dew, Dreamlight, Seeds)"],
+			[RegEx.create_from_string("(?<=[a-z0-9,;] )(?:Drifts?|Rests?)(?![A-Za-z])"), "\"Drift\" / \"Rest\" capitalised mid-sentence"],
+		]
+	# Tokens, BBCode tags and <icon> tags ("<dew>240") hold ids, not words.
+	var plain := RegEx.create_from_string("\\{[^}]*\\}|\\[[^\\]]*\\]|<[a-z_]+>").sub(text, " ", true)
+	var lower := text.to_lower()
+	for i in _caps_rules.size():
+		var rule: Array = _caps_rules[i]
+		if is_flavour and i == 0:
+			continue  # Flavour prose may say "Rain soaks everything."
+		for hit in (rule[0] as RegEx).search_all(plain):
+			if _caps_excepted(lower, hit.get_string().to_lower()):
+				continue
+			findings.get_or_add(owner + " caps", []).append("%s: %s \"%s\"  [%s]"
+				% [source, rule[1], hit.get_string(), text.left(90).replace("\n", " / ")])
+			break
+
+func _caps_excepted(lower_text: String, word: String) -> bool:
+	for exception in CAPS_EXCEPTIONS:
+		if exception.contains(word) and lower_text.contains(exception):
+			return true
+	return false
 
 # Prices and rewards as the resource icon and the number (user via Main Merger 2026-10-06): "15 Dew", "%d Dew",
 # "+1 Dreamlight", "{plant_cost:x} Seeds" should be UiStyle.dew_amount(15) / "{dew:15}". Findings go under
@@ -291,8 +357,16 @@ func _self_check() -> void:
 	_lint("Self", "d", "About The Mire Hag")
 	_lint("Self", "f", "+20% from 2 wide cards")
 	_lint("Self", "e", "Tend Withered Trees and move Mossy Boulders.")
+	_caps("Self", "g", "It roots nightmares.")
+	_caps("Self", "h", "Earn dew each drift.")
+	_caps("Self", "i", "Wait for the next Rest.")
+	_caps("Self", "j", "Rain soaks everything.", true)  # Flavour
+	_caps("Self", "k", "Rest bonus. Soaked nightmares pay [color=gold]Dew[/color]; a Samara's seeds fly.")
+	var caps_hits: Array = findings.get("Self caps", [])
 	var hits: Array = findings.get("Self", [])
-	var ok := hits.size() == 5 and not hits.any(func(h: String) -> bool: return h.begins_with("e:"))
+	var ok := hits.size() == 5 and not hits.any(func(h: String) -> bool: return h.begins_with("e:")) \
+			and caps_hits.size() == 3 and not caps_hits.any(func(h: String) -> bool: return h.begins_with("j:") or h.begins_with("k:"))
+	hits = hits + caps_hits
 	findings = saved
 	if not ok:
 		findings["Main"] = findings.get("Main", []) + ["linter self-check: %s" % [hits]]

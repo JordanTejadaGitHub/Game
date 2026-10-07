@@ -14,7 +14,7 @@ const GLOSSARY_SOURCE := [
 		["Dreamlight", "Freed by great nightmares (bosses, the first family pick): unlocks branches and final forms on the Remember screen.", ["Remember screen", "Branch", "Final form"]],
 		["Leaves", "The Heartwood's life. A nightmare that reaches it takes leaves; lose them all and the dream goes dark.", ["Act"]],
 		["Seeds", "Earned every run, win or lose; spent in the Memory Grove between runs.", ["Memory Grove"]],
-		["Dreamlight shard", "Shards gather into Dreamlight: 10 shards make 1. Each source keeps its own cap: Dreamcatchers' shards from caught nightmares make at most {dreamlight:2} a run; other sources (Glimmering Hunt and the like) say theirs on their card.", ["Dreamlight", "Caught"]],
+		["Dreamlight shard", "Shards gather into Dreamlight: 10 shards make 1. Each source keeps its own cap: Dreamcatchers' shards from Caught nightmares make at most {dreamlight:2} a run; other sources (Glimmering Hunt and the like) say theirs on their card.", ["Dreamlight", "Caught"]],
 		["The Dew pot", "Each drift pays a set pot of Dew, shared out among its nightmares as they are dispelled. A nightmare that leaks takes its share with it.", ["Dew", "Act"]],
 	]],
 	["The run", [
@@ -78,7 +78,7 @@ const GLOSSARY_SOURCE := [
 		["Dispel", "Breaking a nightmare apart with your Wardens' light. It leaves Dew behind.", ["Nightmare"]],
 		["Deeply Blighted", "An elite nightmare: three times the health, a triple share of the Dew, and it takes two leaves.", ["Leaves"]],
 		["Leak", "A nightmare that reaches the Heartwood: it takes leaves (most take 1, elites 2, bosses more) and its share of the Dew with it.", ["Leaves", "The Dew pot"]],
-		["Dread shell", "A shell that soaks part of every hit: chip damage barely gets through, heavy hits mostly do. Each hit wears it down until it cracks for good.", ["Crit"], "Crits and big single hits get through it best."],  # Who wears one: nightmares_line (from the data)
+		["Dread shell", "A shell that absorbs part of every hit: chip damage barely gets through, heavy hits mostly do. Each hit wears it down until it cracks for good.", ["Crit"], "Crits and big single hits get through it best."],  # Who wears one: nightmares_line (from the data)
 		["Hidden", "Lurkers can't be seen or targeted until revealed or close.", ["Nightmare"]],
 		["Flying", "Flies straight over the maze, ignoring walls.", ["Nightmare"]],
 		["Restless", "A nightmare turned back by a change of route: +20% speed per stack, for good. Three make it Unbound. Not a status.", ["Unbound"]],
@@ -229,7 +229,7 @@ const KINSHIP_TEXT := {
 	&"nursery_bond": "A Sprout from the Seedbearer planted beside the Nurse Log arrives at rank I; Wardens beside the Nurse Log also grow 10% cheaper.",
 	# The 9 hidden Kinships (a hidden branch first; full game only, Tower Code 6ba79b8).
 	&"spore_nursery": "Fairy Ring's rings apply double {spored}; Driftspore's puffs plant a mushroom ring where they land (one at a time).",
-	&"hoar_fog": "Frostfern's shots leave a fog puff; Mistveil's fog freezes nightmares that stay in it 2 s.",
+	&"hoar_fog": "Frostfern's shots leave a fog puff; Mistveil's fog Freezes nightmares that stay in it 2 s.",
 	&"sunspot": "Sunpetal's beam makes its target {marked}; Lanternmoth's shots grow +10% per hit on the same target (up to +50%).",
 	&"spotter": "Cairn lobs at the Standing Stone's target and the landing crits; Standing Stone's shots splash 30% beside the target.",
 	&"lantern_roots": "Rootlight's lit tiles hold a nightmare stepping on them for 0.3 s (once); Tangleroot's holds reveal {hidden} nightmares and stop burrowing.",
@@ -444,7 +444,7 @@ static func glossary() -> Array:
 # and each one by name once found, "???" until then (like undiscovered combos).
 const SIGNATURES_SEEN_KEY := "signatures_seen"
 # What each signature answers, for its found entry (warden_stats.md ff93b498).
-const SIGNATURE_ANSWERS := {&"crushing": "armour", &"watchtower": "hidden nightmares", &"relentless": "swarms",
+const SIGNATURE_ANSWERS := {&"crushing": "armour", &"watchtower": "Hidden nightmares", &"relentless": "swarms",
 	&"spreading": "dense waves", &"executioner": "big crowds of normal nightmares",
 	&"firstborn": "long drifts and the economy", &"shelter": "bosses that wither, dim or trample", &"surge": "burst moments"}
 

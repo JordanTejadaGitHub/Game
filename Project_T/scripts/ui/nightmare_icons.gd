@@ -34,7 +34,7 @@ const TRAITS := {
 	&"flying": ["Flying", "Flies over the maze: walls don't bend its route."],
 	&"through_walls": ["Passes through walls", "Glides straight through the maze: walls don't bend its route."],
 	&"hidden": ["Hidden", "Can't be seen or targeted until something reveals it, or it comes close."],
-	&"dread_shell": ["Dread shell", "A shell soaks up part of every hit until it cracks for good."],
+	&"dread_shell": ["Dread shell", "A shell absorbs part of every hit until it cracks for good."],
 	&"always_damp": ["Always {damp}", "It's always {damp}: lightning loves it."],
 	&"ignores_slows": ["Never slowed", "{damp}, {drowsy} and slowing auras don't slow it."],
 	&"sprints": ["Sprints", "Speeds up down long straight corridors, until the next turn."],

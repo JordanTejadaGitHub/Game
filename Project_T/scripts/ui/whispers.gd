@@ -28,7 +28,7 @@ const TEXT := {
 	&"unbound": "Turn them too often, and they stop listening.",
 	&"dead_wood": "Dead wood. I can't move it… yet.",
 	&"tend": "Clear it if you like. I keep count.",
-	&"chain": "One reaction set off another: a chain. Reach 10 for a Dawnburst.",
+	&"chain": "One Reaction set off another: a chain. Reach 10 for a Dawnburst.",
 	&"leaf": "It fed. A leaf blackens and falls.",
 	&"flyer": "Some of them don't walk. Guard the ground near the Heartwood.",
 	&"sell": "Selling gives back most of it during a {rest}, and half while nightmares walk.",  # 75% / 50% (TowerSeller)

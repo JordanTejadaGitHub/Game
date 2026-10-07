@@ -150,9 +150,9 @@ static func make_icon(id: StringName, scale: int = 1) -> TextureRect:
 # A Warden form's role and counters from its counter tags (TowerData.counter_tags, Tower Code): one place for the family
 # pick's routes, the Codex Families page and the hover cards.
 const COUNTER_WORDS := {&"anti_air": "flyers", &"anti_tank": "tanks", &"anti_armour": "armour", &"anti_swarm": "swarms",
-	&"anti_support": "support nightmares", &"detection": "hidden nightmares", &"boss_abilities": "boss abilities"}
+	&"anti_support": "support nightmares", &"detection": "Hidden nightmares", &"boss_abilities": "boss abilities"}
 const ROLE_WORDS := {&"anti_air": "hits flyers", &"anti_tank": "tank killer", &"anti_armour": "cracks armour",
-	&"anti_swarm": "thins swarms", &"anti_support": "quiets support", &"detection": "reveals the hidden",
+	&"anti_swarm": "thins swarms", &"anti_support": "quiets support", &"detection": "reveals Hidden",
 	&"boss_abilities": "answers bosses"}
 
 static func _counter_tags(form: TowerData) -> Array:

@@ -66,7 +66,7 @@ func _ready() -> void:
 	status_row.add_child(_remember_button)
 	# The Heartwood Sapling (run_design.md): plant it later if it was declined, or place it if taken.
 	_sapling_button.text = "Sapling"
-	_sapling_button.tooltip_text = "Plant the Heartwood Sapling: free, 2×2, rooted; yields Dew after every drift."
+	_sapling_button.tooltip_text = "Plant the Heartwood Sapling: free, 2×2, rooted for good; yields Dew after every drift."
 	_sapling_button.focus_mode = Control.FOCUS_NONE
 	_sapling_button.custom_minimum_size = Vector2(0, UiStyle.HUD_BUTTON_H)
 	_sapling_button.theme_type_variation = &"HudButton"
