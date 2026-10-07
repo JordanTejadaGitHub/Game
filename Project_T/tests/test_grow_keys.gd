@@ -85,7 +85,7 @@ func _run() -> void:
 	_check(not placer.build_mode and placer.is_visible_in_tree() and is_equal_approx(spore.sprite.modulate.a, TowerPlacer.PREVIEW_FADE),
 		"outside build mode the preview is drawn (placer visible) and the Warden fades under the ghost")
 	# Name, role line, then the changes (story chat: the same order as Remember's tips)
-	var role := IconInfo.role_text(open_form)
+	var role := IconInfo.role_points(IconInfo.role_text(open_form))  # As points (user: "point form")
 	_check(open_button.tooltip_text.begins_with(open_form.display_name + ("\n" + role if role != "" else "") + "\n\n") and open_button.tooltip_text.contains("→"),
 		"its tooltip names the form, its role line, then its changes (%s)" % open_button.tooltip_text.replace("\n", " / "))
 	open_button.mouse_exited.emit()

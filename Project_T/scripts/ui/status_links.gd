@@ -168,10 +168,19 @@ static func role_bbcode(role: String) -> String:
 		at = found.get_end()
 	return out + role.substr(at)
 
-# A RichTextLabel showing a role line with its glossary words as links (hover / tap), wrapping, sized to its content.
-static func make_role_label(role: String, font_size: int = 11, colour: Color = UiStyle.GOLD) -> RichTextLabel:
+# A role line as bbcode points (user: "point form"): "• Long range" one per line, glossary words linked.
+static func role_points_bbcode(role: String) -> String:
+	return "\n".join(IconInfo.role_terms(role).map(func(t: String) -> String: return IconInfo.ROLE_BULLET + " " + role_bbcode(t)))
+
+# Inline, where space is tight: "Long range · Charges", glossary words linked.
+static func role_inline_bbcode(role: String) -> String:
+	return " · ".join(IconInfo.role_terms(role).map(func(t: String) -> String: return role_bbcode(t)))
+
+# A RichTextLabel showing a role line as points (one per line), its glossary words as links (hover / tap), sized to its
+# content. `inline` = one wrapping run of " · " instead.
+static func make_role_label(role: String, font_size: int = 11, colour: Color = UiStyle.GOLD, inline := false) -> RichTextLabel:
 	var label := make_label("", font_size, colour)
-	label.text = role_bbcode(role)
+	label.text = role_inline_bbcode(role) if inline else role_points_bbcode(role)
 	return label
 
 # A RichTextLabel showing `text` with its status names as links (wraps, sizes to its content).

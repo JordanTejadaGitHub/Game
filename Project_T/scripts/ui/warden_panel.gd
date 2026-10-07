@@ -926,7 +926,7 @@ func _refuse_nurture() -> void:
 # ("Damage 14 → 27, …" from describe_growth's "Name: changes"), then its description, a blank line between.
 static func _grow_tip(changes: String, form: TowerData) -> String:
 	var tip := form.display_name
-	var role := IconInfo.role_text(form)
+	var role := IconInfo.role_points(IconInfo.role_text(form))  # As points (user: "point form")
 	if role != "":
 		tip += "\n" + role
 	var rest := changes.trim_prefix(form.display_name).trim_prefix(": ")

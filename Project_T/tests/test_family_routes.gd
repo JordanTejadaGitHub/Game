@@ -135,6 +135,10 @@ func _run() -> void:
 	var linked := StatusLinks.role_bbcode("Silences, crits, long range")
 	_check(linked.contains("status:silenced") and linked.contains("]Silences[/color]") and linked.contains("status:crit_chance")
 		and not linked.contains("long range[") and linked.ends_with("long range"), "role lines link Silences and crits, not long range (%s)" % linked)
+	# Point form (user, 2026-10-07): one capitalised term per point, inline with " · " where space is tight.
+	var points := IconInfo.role_points("long range, Charges, can't hit up close")
+	_check(points == "• Long range\n• Charges\n• Can't hit up close" and IconInfo.role_inline("long range, high damage") == "Long range · High damage",
+		"role lines read as points (%s)" % points.replace("\n", " / "))
 	for word in StatusLinks.ROLE_TERMS:
 		var id: StringName = StatusLinks.ROLE_TERMS[word]
 		_check(IconInfo.STATUSES.has(id) or IconInfo.STATS.has(id), "role word \"%s\" has a glossary entry (%s)" % [word, id])

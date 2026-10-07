@@ -177,6 +177,26 @@ static func role_text(form: TowerData) -> String:
 			return ROLE_WORDS[StringName(tag)]  # A counter job named as a role only (it doesn't weight the branch draw)
 	return ", ".join(words.slice(0, 2))
 
+# A role line as points (user, 2026-10-07: "can you make it point form"): its comma-separated terms (test_role_lines: no
+# comma inside a term), each with a capital first letter: ["Long range", "High damage", "Can't hit up close"].
+static func role_terms(role: String) -> Array[String]:
+	var terms: Array[String] = []
+	for term in role.split(", ", false):
+		term = term.strip_edges()
+		if term != "":
+			terms.append(term.left(1).to_upper() + term.substr(1))
+	return terms
+
+const ROLE_BULLET := "•"
+
+# "• Long range\n• High damage": one point per line, where there's room (plain text: tips).
+static func role_points(role: String) -> String:
+	return "\n".join(role_terms(role).map(func(t: String) -> String: return ROLE_BULLET + " " + t))
+
+# "Long range · High damage": inline, where space is tight.
+static func role_inline(role: String) -> String:
+	return " · ".join(role_terms(role))
+
 # "Counters flyers, tanks", "" without tags.
 static func counters_text(form: TowerData) -> String:
 	var words: Array = _counter_tags(form).map(func(tag: StringName) -> String: return COUNTER_WORDS.get(tag, "")).filter(func(w: String) -> bool: return w != "")

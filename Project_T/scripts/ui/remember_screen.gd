@@ -506,7 +506,7 @@ const GROVE_HINT := "One more branch grows in the Memory Grove."
 # what it does, never the strip's general explanation (that's on the header, once).
 func branch_tip(form: TowerData) -> String:
 	var does := IconInfo.format(form.description) if form.description != "" else ""
-	var role := IconInfo.role_text(form)  # Its role line first (Tower Code 7824a02e)
+	var role := IconInfo.role_points(IconInfo.role_text(form))  # Its role first, as points (Tower Code 7824a02e; user: "point form")
 	return form.display_name + ("\n" + role if role != "" else "") + ("\n" + does if does != "" else "")
 
 # The strip under the tree (story chat: the not-offered branches beside the base read as its siblings): each
@@ -789,6 +789,12 @@ func _header_names(head: HBoxContainer, data: TowerData) -> void:
 
 # What it does (linked) and its stats as one icon row, as the Warden panel (light pass).
 func _description_and_stats(data: TowerData) -> void:
+	var role_text := IconInfo.role_text(data) if data.tier >= 2 else ""
+	if role_text != "":  # Its role as points (user: "point form"), glossary words linked
+		var role := StatusLinks.make_role_label(role_text, 14 + _phone_bump(), UiStyle.GOLD)
+		role.name = "Role"
+		role.custom_minimum_size = Vector2(_text_width(), 0)
+		_side_box.add_child(role)
 	if data.description != "":
 		var what := StatusLinks.make_label(data.description, 15 + _phone_bump(), UiStyle.INK)
 		what.custom_minimum_size = Vector2(_text_width(), 0)
@@ -1235,7 +1241,7 @@ class FormNode extends Button:
 			return
 		var role := StatusLinks.make_role_label("", ROLE_SIZE, UiStyle.INK_DIM)
 		role.name = "Role"
-		role.text = "[center]%s[/center]" % StatusLinks.role_bbcode(text)
+		role.text = "[center]%s[/center]" % StatusLinks.role_inline_bbcode(text)  # Inline here: "Long range · Exposes" (tight space)
 		role.custom_minimum_size = Vector2(ROLE_WIDTH, 0)
 		role.size = Vector2(ROLE_WIDTH, 0)
 		role.position = Vector2((NODE_SIZE.x - ROLE_WIDTH) / 2.0, NODE_SIZE.y - 4)

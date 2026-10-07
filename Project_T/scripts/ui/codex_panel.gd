@@ -813,7 +813,7 @@ static func full_game_card(card: UpgradeData, scope: Dictionary) -> bool:
 # A form's one line for a Full game row: its role, else the opening of its description.
 static func _one_line(form: TowerData) -> String:
 	var role := IconInfo.role_text(form)
-	return role if role != "" else IconInfo.format(WardenHeaderView.short_description(form.description))
+	return IconInfo.role_inline(role) if role != "" else IconInfo.format(WardenHeaderView.short_description(form.description))
 
 # Entries covered now but not at the last look get the leaf mark; the covered set is then remembered
 # (the real game only: never tests or dev runs). The first look ever marks nothing.
@@ -1242,13 +1242,13 @@ func _branch_list(root: TowerData) -> Control:
 		if final != null:
 			parts[0] += " → " + (final.display_name if _form_in_scope(final) else "???")
 		parts[0] = parts[0].replace("[", "[lb]")
-		var role := IconInfo.role_text(branch)
-		if known and role != "":
-			parts.append(StatusLinks.role_bbcode(role))  # Its glossary words are links (user: "Silences")
 		if hidden.has(branch):
 			parts.append("the Grove's hidden branch")
 		var line := StatusLinks.make_label("", 15, UiStyle.INK if known else GROVE_COLOR)
 		line.text = " · ".join(parts)
+		var role := IconInfo.role_text(branch)
+		if known and role != "":  # Its role as points under the name (user: "point form"), glossary words linked
+			line.text += "\n[indent][font_size=14][color=#%s]%s[/color][/font_size][/indent]" % [UiStyle.GOLD.to_html(false), StatusLinks.role_points_bbcode(role)]
 		box.add_child(line)
 	return box
 
@@ -1390,10 +1390,16 @@ func _show_form_card(data: TowerData) -> void:
 	box.add_child(costs)
 	var role := IconInfo.role_text(data)  # Its job against the roster, from its counter tags (the family pick says the same)
 	if role != "":
-		var counters := IconInfo.counters_text(data)
-		var role_label := StatusLinks.make_role_label(role.left(1).to_upper() + role.substr(1) + (" · " + counters if counters != "" else ""), 15, UiStyle.GOLD)  # Glossary words are links (user: "Silences")
+		var role_label := StatusLinks.make_role_label(role, 15, UiStyle.GOLD)  # Points, glossary words linked (user: "point form", "Silences")
 		role_label.name = "Role"
 		box.add_child(role_label)
+		var counters := IconInfo.counters_text(data)
+		if counters != "":
+			var counters_label := Label.new()
+			counters_label.text = counters
+			counters_label.add_theme_font_size_override("font_size", 15)
+			counters_label.add_theme_color_override("font_color", UiStyle.INK_DIM)
+			box.add_child(counters_label)
 	if shown:
 		# The Warden panel's top half (Tower Code's shared WardenHeaderView): stats, statuses, Potency, Grows into.
 		var dreams := get_tree().get_first_node_in_group(DreamState.GROUP) as DreamState if is_inside_tree() else null
