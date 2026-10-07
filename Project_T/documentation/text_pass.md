@@ -22,7 +22,7 @@ Discussion (art_direction.md "Style references"); this file covers player-facing
     named systems (Nurture, the Memory Grove, the Remember screen, Deeply Blighted, Blight Level) and the Heartwood.
   - **Everything else is lower case in running text:** drift, rest, block, act, leaf / leaves, rank, focus names used as
     words (power, reach), range, damage, path, route, wall, sprout as a verb. (Sprout the Warden is a name: capital.)
-  - **Titles and names of cards / Dreams / Omens:** title case (Heart of the Maze, Let It Pass is NOT a name: it's a button).
+  - **Titles and names of cards / Dreams / Omens:** title case (Heart of the Maze, Fog Bank). A button is not a name: "Let it pass".
   - **Buttons, headings, labels, tags and role lines:** sentence case: first word capital, then lower case except names
     ("Take this Omen", "Start drift 1", "Dreams this run", "Long range, high damage", "Anti-air, Roots").
   - Small-caps labels (CapsLabel) are written in sentence case in the data; the font does the rest.
