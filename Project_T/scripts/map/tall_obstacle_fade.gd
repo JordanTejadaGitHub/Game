@@ -1,13 +1,13 @@
 class_name TallObstacleFade
 extends Node
 
-# Withered Trees overhang the cell above them (96×128). Like tall Wardens (Tower._update_tall_fade) and the
-# inland Heartwood's canopy, a tree's overhang fades to EnvironmentTiles.FADE_ALPHA while a Warden, a
-# nightmare, the build ghost or the hovered / selected cell is in the cell above it, and comes back once
-# clear. The fade is a tile alternative (EnvironmentTiles._add_fade_alternatives), stepped one level every
-# STEP_TIME. Made by MapGenerator. Warden cells (every whole cell any of its half cells touches) are cached
-# (refreshed when one is planted or sold);
-# nightmares, hover and selection are checked CHECK_EVERY seconds, only against the cells below them.
+# Withered Trees overhang the cell above them (96×128). A tree's overhang fades to EnvironmentTiles.FADE_ALPHA
+# while a Warden, the build ghost or the hovered / selected cell is in the cell above it, and comes back once
+# clear. Not for nightmares: they walk the route all drift long, so the crowns beside it stayed see-through
+# (user 2026-10-07: "remove the transparency on routes for obstacles"). The fade is a tile alternative
+# (EnvironmentTiles._add_fade_alternatives), stepped one level every STEP_TIME. Made by MapGenerator. Warden
+# cells (every whole cell any of its half cells touches) are cached (refreshed when one is planted or sold);
+# hover and selection are checked CHECK_EVERY seconds, only against the cells below them.
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 const CHECK_EVERY := 0.1  # s
@@ -67,9 +67,8 @@ func _find_behind() -> void:
 	_behind.clear()
 	for cell in _warden_cells:
 		_mark(cell, EnvironmentTiles.FADE_STEP_WARDEN)
-	if enemy_container != null and enemy_container.has_method("get_enemies"):
-		for enemy: Node2D in enemy_container.get_enemies():
-			_mark(MAP_GRID.calculate_grid_coordinates(enemy.position))
+	# Not for nightmares (user 2026-10-07: "remove the transparency on routes for obstacles"): they walk the route
+	# behind the trees beside it all drift long, which kept those crowns as faint ghosts over the path.
 	var seller: TowerSeller = Tower.seller_ref.get_ref() if Tower.seller_ref != null else null
 	if seller != null:
 		_mark(seller._hover_cell)
