@@ -130,6 +130,15 @@ func _run() -> void:
 	_check(is_equal_approx(sheltered.get_damage(), base_damage), "a tended tree shelters no one (%.2f)" % sheltered.get_damage())
 	await _clean()
 
+	# Half-cell gift placement (heartwood_gifts.md 2554c638): a piece at a half offset marks origin / 2, and touching
+	# reads exactly its halves (origin .. origin + 1): the half beside it touches, two halves away doesn't.
+	var piece := Vector2(9, 7)  # Half origin, odd: half-offset
+	_check(GiftGround.mark_cells({"pieces": [[9, 7]], "cells": [[4, 3]]}) == [Vector2(4.5, 3.5)], "a half-offset piece marks origin / 2 (not its home cell)")
+	gifts.add_mark(GiftGround.FALLEN_GIANT, [piece / 2.0])
+	_check(gifts.touching(GiftGround.FALLEN_GIANT, [piece + Vector2(2, 0)]) and not gifts.touching(GiftGround.FALLEN_GIANT, [piece + Vector2(3, 0)]),
+		"touching reads the piece's own halves")
+	gifts.remove_mark(GiftGround.FALLEN_GIANT, piece / 2.0)
+
 	# Ancient Stump: a Warden planted on one starts at rank I, nothing invested for it.
 	var stump := _open_cell()
 	gifts.add_mark(GiftGround.STUMP, [stump])
