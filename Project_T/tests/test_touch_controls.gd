@@ -99,6 +99,28 @@ func _run() -> void:
 	await _drag(slot.get_global_rect().get_center(), Vector2(-150, 0))
 	_check(camera.target_position.distance_to(cam_before) < 1.0, "a drag that starts on the Warden bar doesn't move the map")
 
+	# Sell (phones, Tower Code's sell mode): the toggle beside Done; a tap sells, a pan never does; off = building again
+	_close_screens()
+	await process_frame
+	placer.select_tower(load("res://resource/tower/thornwall.tres"))
+	touch._refresh()
+	_check(touch._sell.visible and touch._done.visible, "building: Sell and Done on the touch bar")
+	touch._sell.button_pressed = true
+	_check(seller.sell_mode and not placer.build_mode and touch.visible and touch._sell.button_pressed, "Sell turns sell mode on (the bar stays)")
+	var victim: Tower = container.get_children().filter(func(t: Node) -> bool: return t is Tower and not t.is_queued_for_deletion()).back()
+	var count_before: int = container.get_children().filter(func(t: Node) -> bool: return t is Tower and not t.is_queued_for_deletion()).size()
+	await _drag(_screen_of(victim.global_position), Vector2(-90, 0))
+	_check(is_instance_valid(victim) and not victim.is_queued_for_deletion(), "sell mode: a pan that starts on a Warden never sells it")
+	victim = container.get_children().filter(func(t: Node) -> bool: return t is Tower and not t.is_queued_for_deletion()).back()
+	await _tap(_screen_of(victim.global_position))
+	var count_after: int = container.get_children().filter(func(t: Node) -> bool: return t is Tower and not t.is_queued_for_deletion()).size()
+	_check(count_after == count_before - 1, "sell mode: a tap sells the Warden (%d → %d)" % [count_before, count_after])
+	touch._sell.button_pressed = false
+	_check(not seller.sell_mode and placer.build_mode, "Sell off: back to building")
+	touch._sell.button_pressed = true
+	touch._done.pressed.emit()
+	_check(not seller.sell_mode and not placer.build_mode, "Done in sell mode leaves it")
+
 	main.queue_free()
 	await process_frame
 	print("FAILURES: %d" % failures if failures > 0 else "PASS")
