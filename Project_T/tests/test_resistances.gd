@@ -18,9 +18,9 @@ func _run() -> void:
 		child.queue_free()
 	await process_frame
 
-	# --- Family resistance / weakness (Bark Beetle: weak to spore, no resistance since 2026-09-29;
+	# --- Family resistance / weakness (Barrow Wight: weak to spore, resists only wind; the Husk resists stone since 2026-10-07;
 	# Night Hound: resists stone) ---
-	var beetle = _spawn(spawner, _sturdy("res://resource/enemy/bark_beetle.tres"))
+	var beetle = _spawn(spawner, _sturdy("res://resource/enemy/barrow_wight.tres"))
 	var hound = _spawn(spawner, _sturdy("res://resource/enemy/hedgehog.tres"))
 	_check(_loss(hound, 100.0, "stone") == roundi(100 * EnemyData.RESIST_MULTIPLIER), "resisted family soothes ×%s" % EnemyData.RESIST_MULTIPLIER)
 	_check(_loss(beetle, 100.0, "spore") == roundi(100 * EnemyData.WEAK_MULTIPLIER), "weak family soothes ×%s" % EnemyData.WEAK_MULTIPLIER)
@@ -30,6 +30,22 @@ func _run() -> void:
 	_check(beetle._hit_mark == 1, "a weak hit shows the sparkle")
 	hound.take_damage(10.0, "stone")
 	_check(hound._hit_mark == -1, "a resisted hit shows the grey puff")
+
+	# --- Matchup words (user 2026-10-07): every weak hit pops "Weak!", every resisted one "Strong!",
+	# one word per nightmare (a new hit re-pops it in place, never a second one) ---
+	var callouts = main.get_node("%CombatCallouts")
+	callouts._alive.clear()
+	beetle.take_damage(10.0, "spore")
+	beetle.take_damage(10.0, "spore")
+	var words: Array = callouts._alive.filter(func(c: Array) -> bool: return c[3] == beetle)
+	_check(words.size() == 1 and words[0][1] == "Weak!", "weak hits pop one Weak! per nightmare, never stacked (%s)" % [words])
+	words[0][0] = 0.5  # Partway through its life: the next hit pops it again
+	beetle.take_damage(10.0, "spore")
+	_check(words[0][0] == 0.0, "another weak hit re-pops the same Weak!")
+	hound.take_damage(10.0, "stone")
+	_check(callouts._alive.any(func(c: Array) -> bool: return c[3] == hound and c[1] == "Strong!"), "a resisted hit pops Strong!")
+	var husk: EnemyData = load("res://resource/enemy/bark_beetle.tres")
+	_check(husk.resists.has("stone") and husk.weak_to.is_empty(), "the Husk (armoured) resists stone and has no weakness")
 
 	# --- Marked stacks multiplicatively with the family multiplier ---
 	beetle.apply_status(EnemyStatuses.MARKED)
@@ -74,7 +90,7 @@ func _run() -> void:
 	_check(&"held" in seed_data.status_immune, "Dandelion Seed can't be Held")
 
 	# --- Spored ticks count as the applier's family (and as area); Static bolts count as light ---
-	var weak_to_spores = _spawn(spawner, _sturdy("res://resource/enemy/bark_beetle.tres"))
+	var weak_to_spores = _spawn(spawner, _sturdy("res://resource/enemy/barrow_wight.tres"))
 	weak_to_spores.speed = 0.0  # Tick statuses in place instead of walking off the one-cell path
 	weak_to_spores.apply_status(EnemyStatuses.SPORED, 1, 10.0, 10.0, 0, "spore")
 	_check(weak_to_spores.statuses.spore_line() == "spore", "Spored remembers the applier's family")

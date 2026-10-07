@@ -16,11 +16,18 @@ const WORDS := {&"conducted": "Conducted!", &"asleep": "Asleep!",
 # Combo tag -> the status it used (flashes on the nightmare).
 const USES_STATUS := {&"conducted": &"damp", &"asleep": &"drowsy",
 	&"marked": &"marked", &"fog": &"spored", &"static": &"static"}
-const PRIORITY: Array[StringName] = [&"asleep", &"conducted", &"crit", &"weak"]
+const PRIORITY: Array[StringName] = [&"asleep", &"conducted", &"crit"]
+# Matchups (user 2026-10-07): every hit from a family the nightmare is weak to pops "Weak!", every hit
+# from one it resists "Strong!", but never stacked: a new hit re-pops the nightmare's word in place.
+# Combo words above win and replace it. Ids match CodexData.CALLOUT_ENTRIES (&"resisted" = "Strong!").
+const MATCHUP_WORDS := {&"weak": "Weak!", &"resisted": "Strong!"}
+const MAX_MATCHUPS := 8  # Matchup words on screen at once (their own budget, so combos still show)
+const REDUCED_MAX_MATCHUPS := 3
+const WEAK_COLOUR := Palette.NEWLEAF
+const STRONG_COLOUR := Palette.MIST
 
 var _cooldowns := {}  # tag -> seconds left
-var _alive: Array = []  # [age, text, colour, enemy (weak ref target), offset]
-var _weak_shown := {}  # enemy instance id -> true ("Weak!" once per nightmare)
+var _alive: Array = []  # [age, text, colour, enemy (weak ref target), offset, matchup tag or &""]
 var _drawn := false  # Words were on screen last frame
 
 func _ready() -> void:
@@ -58,12 +65,12 @@ func _card_callout(event: DamageLog.Event) -> void:
 	var dreams := get_tree().get_first_node_in_group(DreamState.GROUP)
 	var name: String = dreams.get_display_name(id) if dreams != null and dreams.has_method("get_display_name") else id.capitalize()
 	_cooldowns[key] = CARD_COOLDOWN * (2.0 if reduced else 1.0)
-	_alive.append([0.0, name, UiStyle.GOLD, event.enemy, event.enemy.global_position])
+	_alive.append([0.0, name, UiStyle.GOLD, event.enemy, event.enemy.global_position, &""])
 	card_called.emit(id, event.enemy.global_position)
 
 func _on_damage(event: DamageLog.Event) -> void:
 	_card_callout(event)
-	if event.combos.is_empty() or not is_instance_valid(event.enemy):
+	if not is_instance_valid(event.enemy):
 		return
 	for tag in event.combos:
 		var status: StringName = USES_STATUS.get(tag, &"")
@@ -71,19 +78,54 @@ func _on_damage(event: DamageLog.Event) -> void:
 			event.enemy.flash_status(status)
 	var tag := _pick(event)
 	var reduced := Fx.reduced()  # Effects quality Reduced, or Fx stepped down on long frames: one at a time, slower repeats
-	if tag == &"" or _alive.size() >= (REDUCED_MAX_ALIVE if reduced else MAX_ALIVE) or _cooldowns.get(tag, 0.0) > 0.0:
+	if tag == &"" or _combo_count() >= (REDUCED_MAX_ALIVE if reduced else MAX_ALIVE) or _cooldowns.get(tag, 0.0) > 0.0:
+		_matchup_callout(event)
 		return
-	if tag == &"weak":
-		var id := event.enemy.get_instance_id()
-		if _weak_shown.has(id):
-			return
-		_weak_shown[id] = true
-	for callout in _alive:
-		if callout[3] == event.enemy:
-			return  # One callout per nightmare at a time
+	var existing: Variant = _callout_for(event.enemy)
+	if existing != null and existing[5] == &"":
+		return  # One callout per nightmare at a time
+	if existing != null:
+		_alive.erase(existing)  # A combo word replaces the nightmare's Weak / Strong
 	_cooldowns[tag] = REDUCED_COOLDOWN if reduced else TAG_COOLDOWN
-	_alive.append([0.0, WORDS[tag], _colour(event.source), event.enemy, event.enemy.global_position])
+	_alive.append([0.0, WORDS[tag], _colour(event.source), event.enemy, event.enemy.global_position, &""])
 	_note_seen(tag)
+
+# "Weak!" / "Strong!" on every weak / resisted hit, one per nightmare: a new hit re-pops it in place.
+func _matchup_callout(event: DamageLog.Event) -> void:
+	var tag := &""
+	if event.combos.has(&"weak"):
+		tag = &"weak"
+	elif event.family_multiplier > 0.0 and event.family_multiplier < 1.0:
+		tag = &"resisted"
+	if tag == &"":
+		return
+	var colour: Color = WEAK_COLOUR if tag == &"weak" else STRONG_COLOUR
+	var existing: Variant = _callout_for(event.enemy)
+	if existing != null:
+		if existing[5] != &"":  # Its Weak / Strong: pop it again
+			existing[0] = 0.0
+			existing[1] = MATCHUP_WORDS[tag]
+			existing[2] = colour
+			existing[5] = tag
+		return  # A combo word is showing: leave it
+	var matchups := _alive.size() - _combo_count()
+	if matchups >= (REDUCED_MAX_MATCHUPS if Fx.reduced() else MAX_MATCHUPS):
+		return
+	_alive.append([0.0, MATCHUP_WORDS[tag], colour, event.enemy, event.enemy.global_position, tag])
+	_note_seen(tag)
+
+func _callout_for(enemy: Node) -> Variant:
+	for callout in _alive:
+		if callout[3] == enemy:
+			return callout
+	return null
+
+func _combo_count() -> int:
+	var n := 0
+	for callout in _alive:
+		if callout[5] == &"":
+			n += 1
+	return n
 
 # The glossary explains a callout once it has been seen (CodexData.callout_entries): remembered on the
 # profile the first time each word shows (real game only; account knowledge).
@@ -125,7 +167,7 @@ func _on_signature(tower: Tower, id: StringName) -> void:
 	var key := StringName("signature:" + String(id))
 	if first or (_cooldowns.get(key, 0.0) <= 0.0 and _alive.size() < (REDUCED_MAX_ALIVE if Fx.reduced() else MAX_ALIVE)):
 		_cooldowns[key] = SIGNATURE_COOLDOWN
-		_alive.append([0.0, String(Signatures.NAMES.get(id, String(id).capitalize())) + "!", UiStyle.GOLD, tower, tower.global_position])
+		_alive.append([0.0, String(Signatures.NAMES.get(id, String(id).capitalize())) + "!", UiStyle.GOLD, tower, tower.global_position, &""])
 	if not first:
 		return
 	discovered.append(id)
