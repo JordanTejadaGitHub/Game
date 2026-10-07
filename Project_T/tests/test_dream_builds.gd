@@ -135,8 +135,8 @@ func _test_nurture_rules() -> void:
 	var late := _plant_at("sporeling", _beside(path, path.size() - 6), 1)
 	var nearest := _plant_at("sporeling", _beside(path, path.size() - 4), 2)
 	var raised := dreams.sunlit_rest()
-	_check(raised == [nearest] and nearest.rank == 3 and late.rank == 1 and early.rank == 1,
-		"Sunlit Rest raises the Warden nearest the Heartwood (%s)" % [raised])
+	_check(raised == [nearest] and nearest.banked_ranks == 1 and nearest.rank == 2 and late.banked_ranks == 0 and early.banked_ranks == 0,
+		"Sunlit Rest banks a free rank on the Warden nearest the Heartwood (user: 'auto upgrading': the player picks its focus) (%s)" % [raised])
 	dreams.take(_card("sunlit_rest_ii"))
 	late.rank = 1
 	_check(dreams.sunlit_rest().size() == 2, "Sunlit Rest II raises two")
@@ -147,9 +147,9 @@ func _test_nurture_rules() -> void:
 	var first := _plant_at("sporeling", _beside(path, 5), 0)
 	var last := _plant_at("sporeling", _beside(path, path.size() - 6), 0)
 	_plant_at("thornwall", _beside(path, path.size() - 4), 0)
-	_check(dreams.sunlit_rest() == [last] and last.rank == 1 and first.rank == 0,
-		"Sunlit Rest with no ranked Warden: rank I to the attacking one nearest the Heartwood (not a wall)")
-	_check(last.rank_choices == [Tower.Focus.POWER], "…its first free rank is Power (no choice of its own yet)")
+	_check(dreams.sunlit_rest() == [last] and last.banked_ranks == 1 and first.banked_ranks == 0,
+		"Sunlit Rest with no ranked Warden: the attacking one nearest the Heartwood (not a wall)")
+	_check(last.rank == 0 and last.rank_choices.is_empty(), "…the rank waits: no focus is picked for the player")
 	_check(_card("sunlit_rest").requires_tag == "", "…and it needs no Nurture card")
 	_clear_towers()
 	# The simplified rule (dream_design.md 06143ab9, user: "confusing"): nearest the Heartwood, ranked or not; at max
@@ -161,8 +161,8 @@ func _test_nurture_rules() -> void:
 	_check(dreams.sunlit_rest() == [unranked_near] and ranked_far.rank == 2, "the nearest gets it, ranked or not")
 	unranked_near.rank = unranked_near.get_max_rank()
 	ranked_far.rank_choices = [Tower.Focus.SWIFT, Tower.Focus.REACH]
-	_check(dreams.sunlit_rest() == [ranked_far] and ranked_far.rank == 3 and ranked_far.rank_choices[-1] == Tower.Focus.REACH,
-		"…at max rank it passes to the next-nearest, which repeats its last choice (Reach)")
+	_check(dreams.sunlit_rest() == [ranked_far] and ranked_far.banked_ranks == 1 and ranked_far.rank == 2,
+		"…at max rank it passes to the next-nearest")
 	_check(dreams.preview_card_impact(_card("sunlit_rest")).towers.size() == 1, "its impact counts the one Warden it raises")
 	_clear_towers()
 

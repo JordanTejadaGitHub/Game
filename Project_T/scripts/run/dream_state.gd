@@ -353,6 +353,12 @@ func _ready() -> void:
 	drift_director.rest_started.connect(_judge_finale.unbind(4))  # Before the offer is built (spire_difficulty.md)
 	drift_director.rest_started.connect(_on_rest_started)
 	drift_director.rest_started.connect(_save_discoveries.unbind(4))
+	var mark: Node2D = SUNLIT_MARK.new()  # Sunlit Rest's sun on the Warden the next rest gives a free rank
+	mark.name = "SunlitMark"
+	mark.set("dream_state", self)
+	var world := owner if owner != null else get_parent()
+	if world != null:
+		world.add_child.call_deferred(mark)
 	drift_director.rest_ended.connect(func(_block: int) -> void: card_credit["block"] = {})  # A new block's credit
 	run_state.run_ended.connect(_save_discoveries.unbind(1))
 	drift_director.family_pick_requested.connect(func(reason: StringName) -> void:
@@ -2865,36 +2871,58 @@ func _clear_all(kind: ObstacleData) -> void:
 		map_generator.clear_obstacle(cell)
 	run_state.clearing_without_seeds = false
 
-# Sunlit Rest: the ranked Warden(s) nearest the Heartwood that can still gain a rank get one free
-# (II: two). Nurture v3: a free rank takes the Warden's default choice (Tower.nurture(0), never asks).
-# With none, unranked attacking Wardens get rank I instead.
 # Sunlit Rest (dream_design.md 06143ab9, user: the old ranked-first / rank-I rule was "confusing"): at every rest the
 # nurturable Warden nearest the Heartwood (path distance, group-Nurture order) gains a free rank, ranked or not; one at
-# its top rank (V; VII for the Eldest with Deeper Rings) passes it to the next-nearest. II: the two nearest. The rank
-# repeats the Warden's last choice, or Power (support Wardens: Strong) when it has none; no pop-up at the rest.
+# its top rank (V; VII for the Eldest with Deeper Rings) passes it to the next-nearest. II: the two nearest.
+# Banked, not applied (story chat, user: "the Sunlit Rest is auto upgrading"): the Warden holds a free rank
+# (Tower.bank_rank, Tower Code 0d59136d) and the player spends it through the usual focus choice.
+signal sunlit_granted(towers: Array)  # Sunlit Rest banked its free rank(s) on these Wardens (SunlitMark's flourish)
+
 func sunlit_rest() -> Array[Tower]:
 	var raised: Array[Tower] = []
 	for tower in sunlit_targets():
-		tower.nurture(0, sunlit_choice(tower))  # A free rank (adds no Dew to what it's worth)
+		tower.bank_rank()  # Spent through TowerPlacer.nurture: free, and free through growth
 		raised.append(tower)
+	if not raised.is_empty():
+		var hud := owner.get_node_or_null("HUD") if owner != null else null
+		if hud != null and hud.has_method("show_toast"):
+			hud.show_toast("Sunlit Rest: a free rank waits on %s." % " and ".join(
+				raised.map(func(t: Tower) -> String: return t.tower_data.display_name)))
+		sunlit_granted.emit(raised)
+	_sunlit_cache = []
 	return raised
 
-# The Warden(s) the next rest's free rank goes to, nearest the Heartwood first.
+# Ranks a Warden holds or has waiting (banked free ranks count against the free-rank cap).
+static func ranks_with_banked(tower: Tower) -> int:
+	return tower.rank + tower.banked_ranks
+
+# The Warden(s) the next rest's free rank goes to, nearest the Heartwood first. The rule's own count is cached for
+# the frame (every Warden's Dream rows and the SunlitMark ask).
+var _sunlit_cache: Array = []  # [key, targets]
+const SUNLIT_MARK := preload("res://scripts/run/sunlit_mark.gd")
+
 func sunlit_targets(count: int = -1) -> Array[Tower]:
+	var ranks := 0
+	for tower in _towers():
+		ranks += ranks_with_banked(tower)
+	var key := [Engine.get_process_frames(), board_version, ranks, rule_level(&"sunlit_rest")]
+	if count < 0 and _sunlit_cache.size() == 2 and _sunlit_cache[0] == key:
+		var cached: Array[Tower] = []
+		for tower in _sunlit_cache[1]:
+			if is_instance_valid(tower):
+				cached.append(tower)
+		return cached
 	var seller := get_node_or_null("%TowerSeller")
 	var open: Array = _towers().filter(func(t: Tower) -> bool:
-		return t.can_nurture() and t.rank < mini(FREE_RANK_MAX, get_max_rank_for(t)))  # Free ranks stop at V (VII: the Eldest)
+		return t.can_nurture() and ranks_with_banked(t) < mini(FREE_RANK_MAX, get_max_rank_for(t)))  # Free ranks stop at V (VII: the Eldest)
 	if seller and seller.has_method("sort_by_heartwood"):
 		open = seller.sort_by_heartwood(open)  # Same order as group Nurture
 	var out: Array[Tower] = []
 	for tower in open.slice(0, count if count >= 0 else SUNLIT_WARDENS[rule_level(&"sunlit_rest")]):
 		out.append(tower)
+	if count < 0:
+		_sunlit_cache = [key, out]
 	return out
-
-func sunlit_choice(tower: Tower) -> Tower.Focus:
-	if not tower.rank_choices.is_empty():
-		return tower.rank_choices[-1] as Tower.Focus
-	return Tower.Focus.STRONG if tower.is_support() else Tower.Focus.POWER
 
 # "Next rest: your Monsoon by the Heartwood" (the Dreams row and the card's live line).
 func sunlit_line() -> String:

@@ -43,6 +43,7 @@ const REPORTERS := {
 	&"rain_on_glass": "_rain_on_glass",
 	&"kind_canopy": "_kind_canopy", &"shared_light": "_shared_light", &"bramble_oath": "_bramble_oath",
 	&"golden_harvest": "_golden_harvest",
+	&"sunlit_rest": "_sunlit_rest",
 }
 const STAT_KEYS := {&"damage": "damage", &"attack_speed": "speed", &"range": "range", &"cost": "cost"}
 
@@ -691,6 +692,13 @@ func _heart_of_the_maze(spot: Dictionary, _board: Board, _card: UpgradeData) -> 
 	var on: bool = spot.node != null and heart == spot.node
 	return {"positional": true, "radius": 0.0, "active": on, "damage": DreamState.HEART_OF_MAZE_BONUS,  # positional: its Warden shows the badge (the text can't say which)
 		"reason": "" if on else "another Warden is the loneliest"}
+
+# Sunlit Rest (story chat, user: "should have an icon of which Warden would get the free Nurture upgrade"): the Warden
+# the next rest gives a free rank shows the card badge, and its panel says so. Only that Warden reports (ghosts: none).
+func _sunlit_rest(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
+	if spot.node == null or not ds.sunlit_targets().has(spot.node):
+		return {}
+	return {"positional": true, "radius": 0.0, "active": true, "effect": "Next Sunlit Rest rank"}
 
 func _rain_on_glass(spot: Dictionary, _board: Board, _card: UpgradeData) -> Dictionary:
 	if spot.data.line != "light":
