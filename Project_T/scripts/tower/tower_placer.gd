@@ -342,6 +342,8 @@ func _draw() -> void:
 	if is_choosing_seed():
 		_draw_seed_choice()
 		return
+	if build_mode and tap_to_place:
+		_draw_placement_grid()  # Phones: the grid shows all through build mode, under the pending Wardens (user 2026-10-08)
 	if stroking:
 		_draw_stroke()
 		return
@@ -353,7 +355,8 @@ func _draw() -> void:
 	if _hover_cell == NO_CELL or not MAP_GRID.is_within_bounds(_hover_cell):
 		return
 	if build_mode:
-		_draw_placement_grid()
+		if not tap_to_place:  # (Phones drew it above, every frame of build mode)
+			_draw_placement_grid()
 		_draw_ghost_footprint()
 	if tower_data.catch_share > 0.0:
 		_draw_catch_zone(_ghost_centre(), tower_data.catch_radius \
@@ -980,13 +983,22 @@ const GRID_NEAR := 3.0  # Cells around the cursor that show half lines (and, in 
 const GRID_FOOTPRINT := Color(Palette.GOLD, 0.9)
 const GRID_REFUSED := Color(Palette.EMBER, 0.35)  # The palette has no red: Ember is "no" (INVALID_TINT's colour)
 
+# Where the grid's half lines (and Near cursor mode) centre: the ghost; on phones the last pending Warden, or the
+# middle of the view before the first tap (a touch screen has no hover).
+func _grid_cursor() -> Vector2:
+	if tap_to_place:
+		if stroking and not _stroke.is_empty():
+			return origin_centre(_stroke.back()) if half_placement() else MAP_GRID.calculate_map_position(_stroke.back())
+		if _hover_cell == NO_CELL:
+			return get_canvas_transform().affine_inverse() * (get_viewport_rect().size / 2.0)
+	return _ghost_centre()
 func _draw_placement_grid() -> void:
 	var mode := int(Fx.setting("placement_grid", 0))
 	if mode >= 2 or not half_placement():
 		return
 	draw_set_transform(Vector2.ZERO)
 	var size := MAP_GRID.cell_size
-	var cursor := _ghost_centre()
+	var cursor := _grid_cursor()
 	var near := GRID_NEAR * size.x
 	var lines := PackedVector2Array()
 	var halves := PackedVector2Array()
@@ -1756,6 +1768,8 @@ var _stroke_growth := 0
 # Touch (TouchBuild, user 2026-10-06): each tap on the map adds a pending Warden or takes one back; TouchBuild's Confirm
 # plants them (plant_stroke). One finger dragging pans the map, so there is no drag-to-build on touch.
 var tap_to_place := false
+const PENDING_TINT := Color(Palette.DEWLIGHT, 0.8)  # Phones: pending Wardens are blue (placed, not built yet)
+const PENDING_OUTLINE := Color(Palette.DEWLIGHT, 0.9)
 var _tap_armed := false  # A press landed on the map: its release (if the finger didn't pan) is a tap
 
 # A tap at `world`: takes back the pending Warden under it, else adds one there (its cell, or with half cells the
@@ -2172,6 +2186,12 @@ func _draw_stroke() -> void:
 		draw_set_transform(origin_centre(c) if half_placement() else MAP_GRID.calculate_map_position(c))
 		var ok: bool = _stroke_plan.get(c, "x") == ""
 		var tint := VALID_TINT if ok else STROKE_SKIP_TINT
+		if ok and tap_to_place:  # Phones: a pending Warden glows blue in its outlined cell until Confirm (user 2026-10-08)
+			tint = PENDING_TINT
+			var foot := MAP_GRID.cell_size / (2.0 if twig_mode() else 1.0)  # A twig wall takes one half cell
+			var cell_rect := Rect2(-foot / 2.0, foot).grow(-2.0)
+			draw_rect(cell_rect, Color(PENDING_TINT, 0.18))
+			draw_rect(cell_rect, PENDING_OUTLINE, false, 2.0)
 		if tower_data.texture == null:
 			Tower.draw_placeholder(self, tint)
 		else:
