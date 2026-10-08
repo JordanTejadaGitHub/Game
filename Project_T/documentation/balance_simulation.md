@@ -865,6 +865,12 @@ Useful twig bars run out past ~60. **Whole route only +10–15% longer** (not my
 serpentines). Under the Rare budget; **no cap**, min_act 2 stays. The bot takes it 8 of 9 times offered: watch
 its pick rate and human `longest_path`, and raise its effect only if humans pass it by.
 
+## Sprout price keeps counting grown Sprouts (Tower Code 7e3d3a1b, user: "growing Sprouts shouldn't restart its interest cost")
+
+The Sprout step counts paid Sprouts still on the map in any form, so a plant-then-grow loop no longer resets the next
+Sprout to base price; selling lowers it; Gift Sprouts and Seedfall unchanged; the 5-Sprout opening unchanged. Closes the
+loop beside the sprout-into-copy-price rule (526df9d7). Accepted; the next batches carry it.
+
 ## Free ranks don't charge on growth (Tower Code 221af5d7 / 0d59136d, story chat)
 
 A rank the player got free (Sunlit Rest, First Care, Ancient Stump, Seedbearer, Mother Log…) no longer charges its rank
