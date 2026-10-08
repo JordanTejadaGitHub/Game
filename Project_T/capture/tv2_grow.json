@@ -1,0 +1,33 @@
+{
+	"title": "Trailer v2: grow over 100 Wardens (four families grow fast), then the Remember tree.",
+	"note": "Marketing (user 2026-10-08 trailer v2, beat 7: grow faster, show the Remember tree with several families). Open island; four Sprouts in a row grow into four families, then each into its final form and its Ascended form, about a second a step; the Ascended forms as silhouettes (a tease); from 4.6 s the Remember screen pages through the four families.",
+	"seed": 4242, "size": [1920, 1080], "obstacles": "edge", "dew": 99999, "hud": "clean", "drift": 60, "families": ["sporeling", "dewdrop", "firefly_jar", "acorn"], "length": 6.5, "captions": [],
+	"timeline": [
+		{"t": 0.0, "camera": "hold", "at": [7.5, 8.9], "zoom": 3.0},
+		{"t": 0.0, "plant": "sprout", "at": [8, 18], "tag": false},
+		{"t": 0.0, "plant": "sprout", "at": [12, 18], "tag": false},
+		{"t": 0.0, "plant": "sprout", "at": [16, 18], "tag": false},
+		{"t": 0.0, "plant": "sprout", "at": [20, 18], "tag": false},
+		{"t": 0.4, "grow": [8, 18], "into": "sporeling"},
+		{"t": 0.5, "grow": [12, 18], "into": "dewdrop"},
+		{"t": 0.6, "grow": [16, 18], "into": "firefly_jar"},
+		{"t": 0.7, "grow": [20, 18], "into": "acorn"},
+		{"t": 1.2, "grow": [8, 18], "into": "puffball"},
+		{"t": 1.3, "grow": [12, 18], "into": "monsoon"},
+		{"t": 1.4, "grow": [16, 18], "into": "thunderhead"},
+		{"t": 1.5, "grow": [20, 18], "into": "grove_keeper"},
+		{"t": 2.0, "grow": [8, 18], "into": "sporemother"},
+		{"t": 2.1, "grow": [12, 18], "into": "tidecaller"},
+		{"t": 2.2, "grow": [16, 18], "into": "stormheart"},
+		{"t": 2.3, "grow": [20, 18], "into": "grandmother_oak"},
+		{"t": 2.0, "silhouette": [8, 18], "on": true},
+		{"t": 2.1, "silhouette": [12, 18], "on": true},
+		{"t": 2.2, "silhouette": [16, 18], "on": true},
+		{"t": 2.3, "silhouette": [20, 18], "on": true},
+		{"t": 2.6, "quiet": false},
+		{"t": 2.9, "remember": true, "focus": "puffball"},
+		{"t": 3.6, "remember": true, "focus": "monsoon"},
+		{"t": 4.3, "remember": true, "focus": "thunderhead"},
+		{"t": 5.0, "remember": true, "focus": "grove_keeper"}
+	]
+}

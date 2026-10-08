@@ -6,7 +6,7 @@
 	"drift": 25,
 	"dew": 99999,
 	"obstacles": "edge",
-	"families": ["sporeling", "dewdrop"],
+	"families": ["acorn", "dewdrop"],
 	"hud": "none",
 	"length": 32.0,
 	"end_button": "D:/Projects/Game/marketing/music/endcard_button_full.wav",
@@ -18,9 +18,9 @@
 		[27.0, 32.0, "A few tiles from the tree. It never got its run-up."]
 	],
 	"timeline": [
-		{"t": 0.0, "plant_each": 0.05, "count": 14, "plant": "thornwall", "auto": "maze", "tag": false},
-		{"t": 0.0, "plant_each": 0.1, "count": 14, "plant": "sporeling", "auto": "cover", "rank": 5, "tag": false},
-		{"t": 0.0, "plant_each": 0.1, "count": 6, "plant": "dewdrop", "auto": "cover", "rank": 3, "tag": false},
+		{"t": 0.0, "plant_each": 0.05, "count": 16, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 18, "plant": "acorn", "auto": "cover", "rank": 0, "tag": false},
+		{"t": 0.0, "plant_each": 0.1, "count": 6, "plant": "dewdrop", "auto": "cover", "rank": 1, "tag": false},
 		{"t": 0.2, "dossier": true, "drift": 25},
 		{"t": 2.3, "dossier": false},
 		{"t": 2.5, "spawn": "old_stag"},

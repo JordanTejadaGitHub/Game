@@ -1,20 +1,22 @@
 {
-	"title": "Trailer 57.5-60 s: the Hollow Oak arrives.",
-	"note": "Trailer chat (marketing.md section 5, scene 9). The trailer_01 maze at drift 100; the Hollow Oak drops in a quarter of the way along (progress 0.25, inland so the camera can centre it) and walks on, camera following. Only its arrival is used, on the cue's drums.",
-	"seed": 4242,
+	"title": "Trailer: the Hollow Oak on the late-game storm board.",
+	"note": "Marketing (user 2026-10-08: each boss on a different maze; no walking through the maze). kit_late_game's board (seed 9177, its own island, act 4 look: 16 auto Thornwalls, Monsoon / Tidecaller / Thunderhead / Stormheart / Lanternmoth); no drift started. The Hollow Oak is placed 25% along (the recorder skips its walk-in); a wide look at the board, then the camera follows it.",
+	"seed": 9177,
 	"size": [1920, 1080],
 	"drift": 100,
-	"dew": 999,
-	"obstacles": "edge",
-	"families": ["sporeling"],
+	"dew": 99999,
 	"hud": "none",
-	"length": 10.0,
+	"length": 12.0,
 	"captions": [],
 	"timeline": [
-		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 2.0},
-		{"t": 0.0, "plant_each": 0.0, "plant": "thornwall", "spots": [[7, 10], [7, 12], [7, 14], [7, 16], [7, 18], [6, 20], [6, 22], [6, 24], [6, 26], [6, 28], [6, 30], [15, 6], [14, 8], [15, 10], [14, 12], [15, 14], [14, 16], [15, 18], [14, 20], [23, 10], [23, 12], [23, 14], [23, 16], [23, 18], [24, 20], [24, 22], [24, 24], [24, 26], [24, 28], [24, 30], [24, 32], [25, 14], [27, 14], [29, 14], [31, 14], [33, 14], [35, 14], [35, 16], [35, 18], [35, 20], [35, 22], [35, 24], [35, 26], [26, 24], [28, 24], [30, 24]], "tag": false},
-		{"t": 0.0, "plant_each": 0.0, "plant": "sporeling", "spots": [[7, 8], [15, 22], [23, 8], [35, 28], [37, 20]], "rank": 5, "tag": false},
+		{"t": 0.0, "camera": "hold", "at": "centre", "zoom": 1.0},
+		{"t": 0.0, "plant_each": 0.0, "count": 16, "plant": "thornwall", "auto": "maze", "tag": false},
+		{"t": 0.0, "plant_each": 0.0, "count": 3, "plant": "monsoon", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.0, "count": 2, "plant": "tidecaller", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.0, "count": 3, "plant": "thunderhead", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.0, "count": 2, "plant": "stormheart", "auto": "cover", "tag": false},
+		{"t": 0.0, "plant_each": 0.0, "count": 2, "plant": "lanternmoth", "auto": "cover", "tag": false},
 		{"t": 0.5, "spawn": "hollow_oak", "progress": 0.25},
-		{"t": 0.5, "camera": "follow", "target": "boss", "zoom": 3.0}
+		{"t": 1.5, "camera": "follow", "target": "boss", "zoom": 2.5}
 	]
 }
