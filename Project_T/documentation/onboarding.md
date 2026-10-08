@@ -116,7 +116,7 @@ the map. At most one per drift (the rest queue).
 | Lesson | Fires | Text |
 |---|---|---|
 | **Copies cost more** | the first time a family Warden's price rises because you already have some (the 2nd copy) | "Each {warden} you plant costs a little more than the last. Every kind of Warden counts on its own, so mixing them keeps prices low. Walls never get pricier." (the price before → now, with the Dew icon) |
-| **Sprouts cost more** | the first time the Sprout price steps up | "Every {sprout_step} Sprouts on the map, the next one costs {sprout_step_dew} more." (live values) (2026-10-06: replaces "Copies, again", which repeated the lesson above and wrongly said Sprouts never get pricier) |
+| **Sprouts cost more** | the first time the Sprout price steps up | "Every {sprout_step} Sprouts you plant, the next one costs {sprout_step_dew} more. Growing them doesn't lower it; selling one does." (live values; 2026-10-07, user: growing Sprouts shouldn't reset the price) (2026-10-06: replaces "Copies, again", which repeated the lesson above and wrongly said Sprouts never get pricier) |
 | **Sprout or Warden?** | the first family Warden planted directly (not grown from a Sprout) | "Planting a {warden} directly costs the same as growing a Sprout into one. A Sprout lets you choose later." |
 | **Selling mid-drift** | the first sell during a drift | "Selling during a drift returns {drift_refund}; at a rest, {rest_refund}." (live values; today 50% and 75%) |
 | **Turned around** | the first nightmare to gain Restless | "Changing the route under them makes them restless and faster. Do it too often and they stop listening." |
