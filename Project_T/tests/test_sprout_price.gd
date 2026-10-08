@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Headless test for "Sprouts cost more, walls do the maze" (warden_stats.md): every 5 Sprouts on the map
-# add +4 Dew to the next one's price (12 for the first 5, 16 at 5-9, …); selling or growing one lowers it;
+# add +4 Dew to the next one's price (12 for the first 5, 16 at 5-9, …); selling one lowers it (a grown one still counts);
 # Seedling Gift Sprouts are free and don't count; a drag stroke prices each Sprout after the ones before it;
 # Seedfall sets the start (its card) and the price rises +2 per 5. Run:
 #   godot --headless --path . --script res://tests/test_sprout_price.gd --fixed-fps 60
@@ -37,26 +37,26 @@ func _run() -> void:
 	seller.sell(planted[4].cell)
 	_check(placer.get_cost(sprout) == 12, "selling one lowers it")
 	planted[3].evolve(sprout.evolves_to[0], 0)
-	_check(placer.count_paid_sprouts() == 3 and placer.get_cost(sprout) == 12, "a Sprout that grows no longer counts")
+	_check(placer.count_paid_sprouts() == 4 and placer.get_cost(sprout) == 12, "a Sprout that grows still counts (the user: \"growing Sprouts shouldn't restart its interest cost\")")
 
 	# Seedling Gift: a charge plants one free, and it doesn't raise the price
 	run_state.add_sprout_charges(1)
 	var gift := _build(placer, map, sprout)
 	_check(gift.invested_dew == 0 and gift.get_meta(&"gift_sprout", false), "a gift Sprout is free")
-	_check(placer.count_paid_sprouts() == 3, "and doesn't count toward the price")
-	_build(placer, map, sprout)  # A fourth paid Sprout
+	_check(placer.count_paid_sprouts() == 4, "and doesn't count toward the price")
+	_build(placer, map, sprout)  # A fifth paid Sprout (with the grown one)
 
-	# A drag stroke: each Sprout priced after the ones before it (4 on the map: 12, then 16, 16)
+	# A drag stroke: each Sprout priced after the ones before it (5 counted: 16, 16, 16)
 	var cells := _row_of_three(map, placer)
 	if cells.size() == 3:
 		placer.set_build_mode(true)
 		placer.select_tower(sprout)
 		placer.begin_stroke(cells[0])
 		placer.extend_stroke(cells[2] * (2.0 if placer.half_placement() else 1.0))  # Strokes hold half origins (half cells)
-		_check(placer.get_stroke_tag().contains("3 Sprouts · 44 Dew"), "a stroke of 3 costs 12 + 16 + 16 (%s)" % placer.get_stroke_tag())
+		_check(placer.get_stroke_tag().contains("3 Sprouts · 48 Dew"), "a stroke of 3 costs 16 + 16 + 16 (%s)" % placer.get_stroke_tag())
 		var dew := run_state.dew
 		placer.plant_stroke()
-		_check(dew - run_state.dew == 44, "and plants for exactly that (%d)" % (dew - run_state.dew))
+		_check(dew - run_state.dew == 48, "and plants for exactly that (%d)" % (dew - run_state.dew))
 		placer.set_build_mode(false)
 	else:
 		_check(false, "found 3 open cells in a row for the stroke")
