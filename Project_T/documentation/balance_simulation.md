@@ -976,7 +976,9 @@ obstacles); sim relative to main on the same seeds: act 1 within ±10, d1–5 le
 the route's first stretch / opening cells are the suspect. **Cause found:** the opening ran along the open outer row on
 18 of 30 seeds (one-sided Warden spots). Fixed in 8ae842a1 (route picked with the ring shut, shortcuts closed, an edge
 tie-break); rerun on the final bf3cbe74 (tie-break dropped): act 1 passes (−3 / +3 / −10), route at 10 unchanged, but **d1–5
-leaks ~5×**, all Shades, from seeds 19, 24, 6 (and 16, 30): sent to Environment Code; a seeds-only rerun after their fix.
+leaks ~5×**, all Shades, from seeds 19, 24, 6 (and 16, 30): sent to Environment Code; a seeds-only rerun after their fix. **Merged by the
+user** (68e6f2f6). Seed 19: the route is longer (46 vs 41) yet 5 Shades leak at drift 1; likely the bot spending opening
+Sprouts on the one-sided edge row (a bot fix, if confirmed).
 **Husk resists stone (Enemy Assets 12a47530):** rolled drifts stay ≤ 40% stone-resisted (roller cap). Hand-made: drift 6 (intro)
 → 3 Husks + 4 Shades (69% Husk, 900 → 1,300 hp; the ease-in cap unchanged); drift 25's escorts → ≤ 40% stone-resisted, same
 total health, for all three act 1 bosses. In fb11f4e4: drift 6 spacing 2.5 → 1.5 s (~9 s); Stag escorts 4 Husks + 18 Shades
