@@ -1169,6 +1169,49 @@ func get_court_ranks() -> float:
 				court += DreamState.ELDER_KIN_SHARE * _rule_power(&"elder_kin") * partner.rank
 	return court
 
+# What Potency does on this form (story chat; the user: "Potency hover over Wardens should describe what it does for
+# that Warden"), as short {token} lines for the Warden panel / Remember. Derived from the data, so new forms are
+# covered: the statuses it applies (EnemyStatuses: strength from the applier's Potency, past a cap a longer status),
+# its effect damage (Reactions.EFFECT_TAGS: clouds, thorns, rain) and the timers BranchKit scales. [] = Potency does
+# nothing on this form.
+const POTENCY_STATUS_LINES := {&"spored": "{spored} ticks hit harder", &"static": "{static} bolts hit harder",
+	&"damp": "{damp} is stronger, then lasts longer", &"marked": "{marked} is stronger, then lasts longer",
+	&"drowsy": "{drowsy} lasts longer"}
+
+static func potency_uses(data: TowerData) -> Array[String]:
+	var lines: Array[String] = []
+	if data == null or not data.can_attack:
+		return lines
+	var statuses := false
+	for id in [data.applies_status, data.extra_status]:
+		if POTENCY_STATUS_LINES.has(id) and not lines.has(POTENCY_STATUS_LINES[id]):
+			lines.append(POTENCY_STATUS_LINES[id])
+			statuses = true
+	if data.pulse_hold_every > 0 or data.hold_targets > 0 or data.applies_status == EnemyStatuses.HELD:
+		lines.append("{held} lasts longer")
+		statuses = true
+	if data.lit_hold_multiplier > 0.0:
+		lines.append("{held} lasts longer on its lit tiles")
+		statuses = true
+	if data.attack_kind == TowerData.AttackKind.CLOUD:
+		lines.append("its cloud hits harder")
+	match data.special:
+		BranchKit.THORNCOIL:
+			lines.append("its thorns hit harder")
+		BranchKit.CLOUD:
+			lines.append("its rain hits harder")
+		BranchKit.GROUNDROOT:
+			lines.append("grounded flyers stay down longer")
+		BranchKit.QUAKER:
+			lines.append("{hidden} nightmares stay revealed longer")
+	if statuses:
+		lines.append("its Reactions hit harder")  # A status it applies can complete a Reaction it gets the credit for
+	return lines
+
+# The same for this Warden's live attack (a Graftling reports what it copies).
+func get_potency_uses() -> Array[String]:
+	return potency_uses(attack_data if attack_data != null else tower_data)
+
 # Potency: the multiplier on this Warden's effect damage (Spored, Static bolts, clouds, pops, Reactions
 # it completes, echoes). The Warden's own (100% by default) + Dreams (Bitter Sap, Venom Bloom,
 # Nightshade) + 25% per Deep rank (Nurture v3).
