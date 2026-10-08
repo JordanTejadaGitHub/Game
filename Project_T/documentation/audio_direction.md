@@ -202,7 +202,32 @@ apart), landing on a soft, warm **D major chord** that rings ~0.7 s. Same notes 
 series has a sound. It's the in-game motif turned hopeful, so players hear it again in the game when a
 boss falls.
 
-### 1. Trailer cue (~75 s = 30 bars at 72 bpm)
+### 1. Trailer cue v3 (2026-10-08, the user's spec; 78 s = a 3.0 s intro + 30 bars)
+
+The user edits the trailer from the editor kit and cuts the picture to this cue. Same world as v2.1:
+D minor, 72 bpm, 3/4 (bar 2.5 s), the same instruments, rounded and never sharp, and the score's rules
+(no dead air; every section change prepared; the turn, never a stop). **The intro is 3.0 s, not a
+bar: the bar grid starts at 3.0 s**, so every hit below is a downbeat (3.0 + n × 2.5).
+
+| Time | Card on screen | Music |
+|---|---|---|
+| 0.0–3.0 | (no text) eyes open in the dark | near-silence over a **low cold drone** (never true silence); a **soft cold sting at 0.5** (the first pair of eyes); **1.05–2.15 a swell** as ~20 more pairs open, building into the downbeat at 3.0 |
+| 3.0–10.5 | "Build a living maze. Protect the Heartwood." | steady, building pulse (Wardens snapping down); the motif's warm form; **hit 10.5** = the first dispel (the approved burst of light) |
+| 10.5–23.0 | "Discover combos between Wardens" | rising tension: nightmares walking the maze (dread layers), then the combos; **hit 23.0** = the ×5 Thunderclap (warm boom + far thunder) |
+| 23.0–33.0 | "Chain lightning through the whole crowd" | driving harder; the arcs as **rolling warm blooms and far thunder, no crackle or buzz**; **biggest hit 33.0** = the ×10 chain |
+| 33.0–40.5 | "Pick a Dream to power your maze" | a **breath** after the big hit (the big hit's tail rings into it), then a dreamy lift; the pick lands ~1 s after the **35.5** bar line: a soft accent there |
+| 40.5–50.5 | "Grow over 100 Wardens" | warm and building; **accents every half bar (1.25 s)** for the montage of families growing, each in a family's material over the pulse |
+| 50.5–63.0 | "Defeat the bosses" | the heaviest, darkest section (the boss theme, bass an octave lower, the Hollow form); **accents at 53.0 and 55.5** (two boss shots), then a long build into **hit 63.0** = the boss dispelled |
+| 63.0–73.0 | "Grow the Memory Grove" | **the turn**: the boss bass's A♭ rises to A under the dispel's ringing tail, and the Grove grows on the Hope form (D–A–F♯), resolving |
+| 73.0–78.0 | "Wishlist on Steam" | a held warm D major chord with the **end-card button** on top; a clean ending at 78.0 |
+
+Hits as parameters (Sound Code's `TRAILER_HITS`, re-timeable if the cut moves): 0.5 (sting) · 1.05–2.15
+(swell) · 3.0 (grid start) · **10.5** · **23.0** · **33.0** (biggest) · 35.5 + ~1 (pick) · 40.5–50.5
+every 1.25 · 53.0 · 55.5 · **63.0** · 73.0 (chord + button) · 78.0 (end).
+Delivered to `D:\Projects\Game\marketing\editor_kit\4_music\`: `trailer_v3_full.wav` + stems
+`_low` / `_mid` / `_top` / `_perc` / `_hits` + `_voice`, 44.1 kHz stereo.
+
+### 1a. Trailer cue v2.1 (~75 s = 30 bars at 72 bpm; superseded by v3)
 
 **v2 (2026-10-04, the user re-ordered the trailer: "discover combos, then straight to chain
 lightning").** The loud peak (the Dawnburst) now comes early, at 30 s; the ending is a **warm peak**
