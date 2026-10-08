@@ -762,6 +762,8 @@ func evolve(data: TowerData, cost: int) -> void:
 	var old_frame := tower_data.get_frame_rect(0).size if tower_data.texture else Vector2.ZERO
 	if data.tier >= DreamState.ASCENDED_TIER and tower_data.tier == DreamState.ASCENDED_TIER - 1:
 		legacy_data = tower_data  # It keeps its final form's attack
+	if tower_data.get_id() == "sprout" and not get_meta(&"gift_sprout", false):
+		set_meta(&"sprout_line", true)  # A paid Sprout keeps raising the Sprout price in every later form (TowerPlacer)
 	tower_data = data
 	if size != data.footprint:
 		footprint_size = size

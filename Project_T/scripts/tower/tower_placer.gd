@@ -1190,7 +1190,7 @@ func get_cost(data: TowerData = null, cell: Vector2 = NO_CELL, planned_sprouts: 
 	if gifts:
 		cost = roundi(cost * gifts.cost_multiplier(warden))  # Heartwood's Gifts: planting prices (none change them now; Bramble Verge makes growing Bramble free instead)
 	# Sprouts get pricier as you plant (warden_stats.md "Sprouts cost more, walls do the maze"): every
-	# sprout_per_step() Sprouts on the map add sprout_step_dew() to the next one (12, 16, 20, …); Seedling
+	# sprout_per_step() paid Sprouts on the map (grown ones too) add sprout_step_dew() to the next one (12, 16, 20, …); Seedling
 	# Gift Sprouts don't count and a free one stays free. Seedfall (the card sets the start): +2 per 5 instead
 	# of +4. `planned_sprouts`: Sprouts earlier in the same drag stroke.
 	if warden.get_id() == "sprout" and cost > 0:
@@ -1256,14 +1256,21 @@ func sprout_per_step() -> int:
 func sprout_step_dew() -> int:
 	return SEEDFALL_STEP_DEW if sprout_price_halved() else SPROUT_STEP_DEW
 
-# Sprouts on the map that raise the price (not the free ones from Seedling Gift charges).
-func count_paid_sprouts() -> int:
+# Paid Sprouts still on the map in any form: Sprouts, and Wardens grown from a paid Sprout (Tower.evolve marks them
+# "sprout_line"; the user: "growing Sprouts shouldn't restart its interest cost"). Selling one lowers it; Seedling
+# Gift Sprouts never count.
+func count_sprout_line() -> int:
 	var count := 0
 	for tower in tower_container.get_children():
-		if tower is Tower and not tower.is_queued_for_deletion() and tower.tower_data.get_id() == "sprout" \
-				and not tower.get_meta(&"gift_sprout", false):
+		if not tower is Tower or tower.is_queued_for_deletion() or tower.get_meta(&"gift_sprout", false):
+			continue
+		if tower.tower_data.get_id() == "sprout" or tower.get_meta(&"sprout_line", false):
 			count += 1
 	return count
+
+# The count the Sprout price steps on (kept for the HUD and the Lesson): the same as count_sprout_line().
+func count_paid_sprouts() -> int:
+	return count_sprout_line()
 
 # Wardens that can be planted right now (unlocked this run), in roster order.
 func get_buildable_towers() -> Array[TowerData]:

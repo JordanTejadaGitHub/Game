@@ -194,6 +194,7 @@ func save_now() -> bool:
 				"legacy": tower.legacy_data.resource_path if tower.legacy_data else "",  # An Ascended form's final
 				"drifts_stood": int(tower.get_meta(&"drifts_stood", 0)),  # Old Growth (DreamState counts it)
 				"gift_sprout": bool(tower.get_meta(&"gift_sprout", false)),  # Never raises the Sprout price
+				"sprout_line": bool(tower.get_meta(&"sprout_line", false)),  # Grown from a paid Sprout: still raises it
 				"twig": tower.twig,  # Twig Walls: a one-half Thornwall (walls planted before the card stay 2×2)
 				"underdog": bool(tower.get_meta(&"underdog", false))})  # Underdog's mark (set at each rest)
 	var data := {
@@ -299,6 +300,8 @@ func _restore(data: Dictionary) -> void:
 			tower.set_meta(&"drifts_stood", int(saved.drifts_stood))
 		if bool(saved.get("gift_sprout", false)):
 			tower.set_meta(&"gift_sprout", true)
+		if bool(saved.get("sprout_line", false)):
+			tower.set_meta(&"sprout_line", true)
 		if bool(saved.get("underdog", false)):
 			tower.set_meta(&"underdog", true)
 		# Ascended forms grew to 2×2: one saved before that (no "size") stays on its one cell.
