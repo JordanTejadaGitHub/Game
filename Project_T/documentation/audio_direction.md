@@ -202,7 +202,26 @@ apart), landing on a soft, warm **D major chord** that rings ~0.7 s. Same notes 
 series has a sound. It's the in-game motif turned hopeful, so players hear it again in the game when a
 boss falls.
 
-### 1. Trailer cue v3 (2026-10-08, the user's spec: 45.5 s = a 3.0 s intro + 17 bars)
+### 1. Trailer cue v3, current: 30.5 s (2026-10-08)
+
+The user re-cut the trailer to **30 s** (spec given to Sound Code directly; built aa290b31, overwriting
+`trailer_v3_*` in `editor_kit\4_music\`). Same sections and character as the 45.5 s spec below,
+compressed; the rules above still hold (the "crackling build" is a fast rolling build of warm blooms,
+no crackle). Measured (start / peak, s):
+
+| Moment | Time |
+|---|---|
+| sting / swell | 0.51 / 0.61; swell 1.05–2.15 into 3.0 |
+| maze hit | 7.98 / 8.05 (quick eighth-note plucks from 5.5) |
+| **chain peak (the loudest, −1.9 dB)** | **10.53 / 10.54** |
+| Mushrooming / Ignite | 12.19 / 12.35 · 13.86 / 13.90 |
+| Dream shimmer | bells 16.30, peak 16.56 (breath from 15.65) |
+| growing Wardens | 18.40 · 19.00 · 19.60 |
+| Remember reveal | strum 20.00, hum peak 20.15 |
+| boss dispels | 22.15 · 23.85 · **25.52** (−4.9 / −4.4 / −3.6 dB); the last is the turn into the Grove (peak 25.78) |
+| end card | chord + button from 28.00; clean end 30.50 |
+
+### 1b. Trailer cue v3, 45.5 s version (superseded by the 30.5 s cut)
 
 Replaces the user's earlier 78 s v3 request. The user edits the trailer from the editor kit and cuts
 the picture to this cue. **Fast and punchy: every beat lasts 1–3 bars.** Same world as v2.1: D minor,
