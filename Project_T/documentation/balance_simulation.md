@@ -1289,6 +1289,15 @@ crit (≈ 245 DPS + a ~2,000 opener per nightmare). On a 23 × 18 map, range 8�
 decides it; Moonstone carried 62% of human run 24. **Probe queued:** each candidate added to saved bot boards (typical and
 serpentine) at its best and a median cell, effective damage over a block and leaves saved vs a control. Fix after the numbers.
 
+## Human run 26 (2026-10-07 18:28, build c320f07c: finale fix in; 9-node Grove)
+
+Rootling (12) + Dewdrop (Jetreed, Torrent), 3 Thorncoil (44% of damage), route 58, **combos 1%**. **15 / 15 through drift 32**
+(closest mostly ≤ 0.2). Took **Leaf Fall** at the 30 rest: the **drift 35 finale leaked 6 for 10 leaves**, dead at 38.
+**Leaf Fall pattern:** in runs 24 and 26 (and 21's 33) Leaf Fall turned a single bad drift into the run's end; its
+reward is a 4-card Dream with a Rare+ (≈ ⅔ of a card on the value scale) for "every leak ×2 and +20% speed" across a block
+with a finale. Flagged as the first suspect for the Omen weighing (likely a run-killer at its price). Combos 1% on a
+Rootling / Dewdrop board: below 25–40% but a board choice, watched.
+
 ## Human run 25 (2026-10-07 14:39, build 52d11575: Sparkler fix in; 9-node Grove)
 
 Firefly Jar + Rootling: 5 Sparklers (44% of damage across 36% of attackers: in line now), 3 Rootcurl, 3 Groundroot, 3 Firefly
