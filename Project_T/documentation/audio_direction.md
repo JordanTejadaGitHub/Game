@@ -202,7 +202,25 @@ apart), landing on a soft, warm **D major chord** that rings ~0.7 s. Same notes 
 series has a sound. It's the in-game motif turned hopeful, so players hear it again in the game when a
 boss falls.
 
-### 1. Trailer cue v3, current: 30.5 s (2026-10-08)
+### 1. Trailer cue v3, current: 38.0 s (2026-10-08)
+
+The user's latest cut (spec given to Sound Code directly; built 564ec628, overwriting `trailer_v3_*` in
+`editor_kit\4_music\`). Same character and rules as below. Hit start times (s):
+
+| Moment | Time |
+|---|---|
+| sting | 0.51 |
+| maze hit | 7.98 |
+| **chain peak (the loudest, −1.9 dB)** | **10.53** |
+| combos | 12.19 · 13.86 |
+| cards shimmer / pick | 15.86 · 18.01 |
+| growth steps | 20.71 · 21.51 · 22.32 |
+| Remember tree | 23.20 (breath from 23.0); family turns 23.90 · 24.60 · 25.30 |
+| boss dispels | 27.13 · 28.81 · **30.54** (−5.7 / −5.0 / −2.3 dB) |
+| Grove | node planted 30.80; swell from 32.0 |
+| end card | chord + button 35.50; end 38.00 |
+
+### 1a′. Trailer cue v3, 30.5 s cut (superseded by the 38 s cut)
 
 The user re-cut the trailer to **30 s** (spec given to Sound Code directly; built aa290b31, overwriting
 `trailer_v3_*` in `editor_kit\4_music\`). Same sections and character as the 45.5 s spec below,
