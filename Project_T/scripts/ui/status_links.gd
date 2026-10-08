@@ -52,9 +52,9 @@ static func bbcode(text: String) -> String:
 			var data := IconInfo.family_data(id)
 			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
 			terms.append(_link(FAMILY_PREFIX + id, data.display_name if data != null else id.capitalize()))
-		for found in IconInfo.card_pattern().search_all(text):  # {card:charged_feathers}: plain, never a status link
+		for found in IconInfo.card_pattern().search_all(text):  # {card:charged_feathers}, {omen:static_sky}: plain, never a status link
 			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
-			terms.append(IconInfo.card_name(found.get_string(1)).replace("[", "[lb]"))
+			terms.append(IconInfo.card_name(found.get_string(2), found.get_string(1)).replace("[", "[lb]"))
 		for found in _combo_pattern().search_all(text):  # {combo:thunderclap}: its name, or ??? until found
 			text = text.replace(found.get_string(), "\u0001%d\u0001" % terms.size())
 			terms.append(combo_link(StringName(found.get_string(1)), found.get_string().begins_with("{named_")))

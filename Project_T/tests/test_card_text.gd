@@ -79,6 +79,8 @@ func _initialize() -> void:
 	# A card named in text is {card:id}: plain, never a status link (story chat, user: "Charged Feathers" linked "Charged")
 	_check(not StatusLinks.bbcode("removes {card:charged_feathers}").contains(StatusLinks.META_PREFIX)
 		and IconInfo.format("{card:charged_feathers}") == "Charged Feathers", "{card:x} renders the plain card name")
+	_check(not StatusLinks.bbcode("{omen:static_sky}, {omen:fog_bank}").contains(StatusLinks.META_PREFIX)
+		and IconInfo.format("{omen:static_sky}") == "Crackling Sky", "{omen:x} renders the plain Omen name")
 	var names: Array[String] = []
 	for card in Check.load_cards():
 		if StatusLinks.bbcode(card.display_name).contains(StatusLinks.META_PREFIX):
