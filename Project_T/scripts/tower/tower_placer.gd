@@ -91,6 +91,7 @@ func _ready() -> void:
 	BranchKit.spark_share_scale = spark_share_scale  # (Statics: a run starts from this scene's values)
 	BranchKit.spark_cap = spark_cap_per_target
 	Tower.placer_ref = weakref(self)  # Tall Wardens fade when the build ghost is behind them
+	tower_built.connect(_on_tower_built)  # Phones: this build mode's Wardens stay blue
 	if tower_scene == null:
 		tower_scene = load(TOWER_SCENE_PATH)
 	# Parked Wardens (the Memory Wardens, cut for now) never join the roster: not in the bar, not buildable,
@@ -213,6 +214,7 @@ func set_build_mode(active: bool) -> void:
 		cancel_stroke()
 	if not active:
 		_shift_chain = false
+		_session_built.clear()  # Phones: the blue outlines end with build mode
 	build_mode = active
 	Tower.set_badges_visible(&"build", active)  # Card badges show in build mode
 	_update_visible()
@@ -344,6 +346,7 @@ func _draw() -> void:
 		return
 	if build_mode and tap_to_place:
 		_draw_placement_grid()  # Phones: the grid shows all through build mode, under the pending Wardens (user 2026-10-08)
+		_draw_session_built()  # …and the Wardens built since it started stay outlined blue
 	if stroking:
 		_draw_stroke()
 		return
@@ -1770,6 +1773,29 @@ var _stroke_growth := 0
 var tap_to_place := false
 const PENDING_TINT := Color(Palette.DEWLIGHT, 0.8)  # Phones: pending Wardens are blue (placed, not built yet)
 const PENDING_OUTLINE := Color(Palette.DEWLIGHT, 0.9)
+var _session_built: Array[Tower] = []  # Phones: Wardens built in this build mode stay outlined blue until it ends
+
+func _on_tower_built(tower: Tower) -> void:
+	if tap_to_place and build_mode:
+		_session_built.append(tower)
+		queue_redraw()
+
+# Phones: an outline (and a faint blue wash) over each Warden built since build mode started.
+func _draw_session_built() -> void:
+	draw_set_transform(Vector2.ZERO)
+	var half := MAP_GRID.cell_size / 2.0
+	for tower in _session_built:
+		if not is_instance_valid(tower) or tower.is_queued_for_deletion():
+			continue
+		var halves: Array[Vector2] = tower.get_halves()
+		if halves.is_empty():
+			continue
+		var box := Rect2(halves[0] * half, half)
+		for h in halves:
+			box = box.merge(Rect2(h * half, half))
+		var local := Rect2(to_local(box.position), box.size).grow(-2.0)
+		draw_rect(local, Color(PENDING_TINT, 0.14))
+		draw_rect(local, PENDING_OUTLINE, false, 2.0)
 var _tap_armed := false  # A press landed on the map: its release (if the finger didn't pan) is a tap
 
 # A tap at `world`: takes back the pending Warden under it, else adds one there (its cell, or with half cells the
