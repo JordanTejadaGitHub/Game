@@ -622,6 +622,14 @@ func _draw_grow_preview() -> void:
 				draw_rect(rect.grow(-3), Color(VALID_TINT, 0.08))
 				draw_rect(rect.grow(-3), Color(VALID_TINT, 0.5), false, 2.0)
 			continue
+		if into.special == BranchKit.BROOD:
+			# Brood Cap / Hatchery (user: "when hovering over brood cap upgrade, show the initial spawn and the length"):
+			# where its first sprite would drop and how far up the path sprites walk, as the build ghost shows it.
+			var walk := BranchKit.brood_walk(tower._route(), tower.global_position, float(into.special_params.get("sprite_speed", 3.0)))
+			for i in walk.size():
+				walk[i] = to_local(walk[i])
+			draw_set_transform(Vector2.ZERO)
+			BranchKit.draw_brood_walk(self, walk, true)
 		draw_set_transform(to_local(tower.global_position))
 		if into.can_attack:
 			var now_px := Tower.range_to_pixels(tower.get_range_cells()) if tower.tower_data.can_attack else 0.0
