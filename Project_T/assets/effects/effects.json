@@ -1263,6 +1263,70 @@
 			"kind": "reaction",
 			"loop": false
 		},
+		"ink_puddle_a": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "ink_puddle_a.png",
+			"fps": 5.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Deliquescent: an ink pool on one 64 px route cell (variant a of a-d), the Torrent puddle in Heartwood violets, z -1."
+		},
+		"ink_puddle_b": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "ink_puddle_b.png",
+			"fps": 5.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Deliquescent: an ink pool on one 64 px route cell (variant b of a-d), the Torrent puddle in Heartwood violets, z -1."
+		},
+		"ink_puddle_c": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "ink_puddle_c.png",
+			"fps": 5.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Deliquescent: an ink pool on one 64 px route cell (variant c of a-d), the Torrent puddle in Heartwood violets, z -1."
+		},
+		"ink_puddle_d": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "ink_puddle_d.png",
+			"fps": 5.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Deliquescent: an ink pool on one 64 px route cell (variant d of a-d), the Torrent puddle in Heartwood violets, z -1."
+		},
 		"ink_trail": {
 			"anchor": [
 				0,
@@ -2383,6 +2447,70 @@
 			"kind": "signature",
 			"loop": false,
 			"note": "Silver Bell / Vesper Bell: the toll landing on its far target: a silver ring spreading on the ground under it (anchor = its feet)."
+		},
+		"torrent_puddle_a": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "torrent_puddle_a.png",
+			"fps": 5.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Torrent: a wet puddle on one 64 px route cell, inside its central ~44 px (variant a of a-d; pick per cell), a quiet looped shimmer, z -1."
+		},
+		"torrent_puddle_b": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "torrent_puddle_b.png",
+			"fps": 5.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Torrent: a wet puddle on one 64 px route cell, inside its central ~44 px (variant b of a-d; pick per cell), a quiet looped shimmer, z -1."
+		},
+		"torrent_puddle_c": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "torrent_puddle_c.png",
+			"fps": 5.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Torrent: a wet puddle on one 64 px route cell, inside its central ~44 px (variant c of a-d; pick per cell), a quiet looped shimmer, z -1."
+		},
+		"torrent_puddle_d": {
+			"anchor": [
+				32,
+				32
+			],
+			"file": "torrent_puddle_d.png",
+			"fps": 5.0,
+			"frame_size": [
+				64,
+				64
+			],
+			"frames": 4,
+			"kind": "ground",
+			"loop": true,
+			"note": "Torrent: a wet puddle on one 64 px route cell, inside its central ~44 px (variant d of a-d; pick per cell), a quiet looped shimmer, z -1."
 		},
 		"veil_glint": {
 			"anchor": [
