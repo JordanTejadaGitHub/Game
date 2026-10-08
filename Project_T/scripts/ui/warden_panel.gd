@@ -529,7 +529,7 @@ func _refresh_group() -> void:
 		var cost: Array = tower_seller.full_nurture_cost(selection, which)
 		var plan_focus: Array = tower_seller.plan_nurture(selection, which)
 		var all_of_them: bool = plan_focus[0].size() >= cost[0]
-		# The selected Warden's real change when it offers this choice ("holds every 3.0 → 2.7 s"), else the general text.
+		# The selected Warden's real change when it offers this choice ("+10% faster Roots (every 3.0 → 2.7 s)"), else the general text.
 		var lead: Tower = _tower if is_instance_valid(_tower) and _tower.focus_options().has(which) else null
 		var tip := "Each gains a rank of %s: %s. Kept when it grows; can't be changed." % [
 			Tower.FOCUS_NAMES[which], lead.focus_text(which) if lead != null else Tower.FOCUS_TEXT[which]]
