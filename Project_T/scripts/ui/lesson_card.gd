@@ -134,7 +134,7 @@ func _on_built(tower: Tower) -> void:
 		var paid := tower_placer.count_paid_sprouts()
 		if per_step > 0 and paid >= per_step:  # The first crossing (a drag can plant past an exact multiple)
 			lesson(&"sprouts_cost_more", &"dew", "Sprouts cost more",
-				"Every %d Sprouts on the map, the next one costs %s more." % [per_step, dew_text(tower_placer.sprout_step_dew())])
+				"Every %d Sprouts you plant, the next one costs %s more. Growing them doesn't lower it; selling one does." % [per_step, dew_text(tower_placer.sprout_step_dew())])
 		return
 	if not is_family_warden(data):
 		return

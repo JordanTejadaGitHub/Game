@@ -1000,7 +1000,7 @@ func _raise_overlays() -> void:
 			move_child(overlay, get_child_count() - 1)
 
 # --- The Sprout price rule (warden_stats.md "The rule is shown") -------------------------------------
-# Every TowerPlacer.sprout_per_step() Sprouts on the map add sprout_step_dew() to the price (Seedfall:
+# Every TowerPlacer.sprout_per_step() Sprouts planted (still on the map, in any form) add sprout_step_dew() to the price (Seedfall:
 # a slower rise). The tooltip says so, a small "↑ 8/10" tag above the button counts to the next rise,
 # and the first rise in a run gets a one-line toast.
 var _sprout_rise_told := false
@@ -1011,7 +1011,7 @@ func sprout_rule_text(cost: int) -> String:
 	if per <= 0:
 		return "Sprout · %s, fixed." % UiStyle.dew_amount(cost)
 	var next := (tower_placer.count_paid_sprouts() / per + 1) * per
-	return "Sprout · %s. Every %d Sprouts on the map add %s to the price (next rise at %d Sprouts).%s Selling or growing one lowers it." % [
+	return "Sprout · %s. Every %d Sprouts you plant add %s to the price (next rise at %d Sprouts).%s Selling one lowers it." % [
 		UiStyle.dew_amount(cost), per, UiStyle.dew_amount(tower_placer.sprout_step_dew(), true), next, " (Seedfall: a slower rise.)" if tower_placer.sprout_price_halved() else ""]
 
 func _update_sprout_rule(button: Button, cost: int) -> void:
