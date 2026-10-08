@@ -2600,13 +2600,16 @@ func _cue_trailer() -> Dictionary:
 # --- Trailer v3 (the user's 38 s spec, 2026-10-08; replaces the 78, 53, 45.5 and 30.5 s v3): 38.0 s = a 3.0 s
 # intro + 14 bars. The bar grid starts at TRAILER3_GRID (bars at 3.0 + n × 2.5). Hit sounds go on their own
 # `hits` stem; their times are parameters, and the render prints each one as measured.
-const TRAILER3_LENGTH := 38.0
+const TRAILER3_LENGTH := 36.75
 const TRAILER3_GRID := 3.0
+# The user: the Dream is 1.5 bars, so its second bar is a half bar and everything after it is 1.25 s earlier.
+const TRAILER3_SHORT_BAR := 7
+const TRAILER3_SHORT_CUT := MK_BAR / 2.0
 const TRAILER3_HITS := {"sting": 0.5, "swell_from": 1.05, "swell_peak": 2.15, "coming": 3.0, "maze": 5.5,
 	"maze_hit": 8.0, "chain": 10.5, "mushrooming": 12.17, "ignite": 13.83, "dream": 15.5, "cards": 15.8,
-	"pick": 18.0, "grow_from": 20.5, "grow_steps": [20.7, 21.5, 22.3], "remember": 23.2,
-	"families": [23.9, 24.6, 25.3], "boss": 25.5, "boss_dispels": [27.17, 28.83], "turn": 30.5, "planted": 30.8,
-	"grove_swell": 32.0, "endcard": 35.5}
+	"pick": 18.0, "grow_from": 19.25, "grow_steps": [19.45, 20.25, 21.05], "remember": 21.95,
+	"families": [22.65, 23.35, 24.05], "boss": 24.25, "boss_dispels": [25.92, 27.58], "turn": 29.25, "planted": 29.55,
+	"grove_swell": 30.75, "endcard": 34.25}
 # Chords per bar (14 bars): [root midi, third].
 const TRAILER3_CHORDS := [[50, 3],  # 3–5.5 they're coming
 	[46, 4],  # 5.5–8 the maze
@@ -2619,7 +2622,7 @@ const TRAILER3_CHORDS := [[50, 3],  # 3–5.5 they're coming
 	[50, 4]]  # 35.5–38 the end card
 
 func _t3(bar: int) -> float:  # The downbeat of bar `bar` (1-based)
-	return TRAILER3_GRID + (bar - 1) * MK_BAR
+	return TRAILER3_GRID + (bar - 1) * MK_BAR - (TRAILER3_SHORT_CUT if bar > TRAILER3_SHORT_BAR else 0.0)
 
 func _t3_harmony(stems: Dictionary, from: int, to: int, level: float) -> void:
 	var r := SFX_RATE
@@ -2756,7 +2759,7 @@ func _cue_trailer_v3() -> Dictionary:
 	# Wardens it reaches light up.
 	for bar in range(6, 8):
 		var chord: Array = TRAILER3_CHORDS[bar - 1]
-		for k in 3:
+		for k in (2 if bar == TRAILER3_SHORT_BAR else 3):  # The half bar has two beats' room
 			_mix(stems.mid, _pluck(r, hz([chord[0], chord[0] + 7, chord[0] + 12 + chord[1]][k]), 0.3, 3.0, 0.7, 0.998), r, _t3(bar) + k * MK_BEAT)
 		_mix(stems.mid, _mk_pad_chord(chord, b * 1.1), r, _t3(bar), 0.4)
 		_mix(stems.low, _bowed(r, chord[0] - 12, b * 1.05, 350.0), r, _t3(bar), 0.3)
@@ -2769,7 +2772,7 @@ func _cue_trailer_v3() -> Dictionary:
 	_mix(stems.hits, _bell(r, hz(62), 0.4, 0.6, MUSIC_BOX, 2.0), r, pick, 1.4)
 	_mix(stems.hits, _bell(r, hz(69), 0.3, 0.6, MUSIC_BOX, 1.8), r, pick + 0.08, 0.9)
 	_mix(stems.hits, _normalize(_glow_swell(1.0), 1.0), r, pick, 0.5)
-	for k in 5:  # The glow spreading: soft warm tocks, Warden by Warden
+	for k in 3:  # The glow spreading: soft warm tocks, Warden by Warden (inside the half bar)
 		_mix(stems.top, _lowpass(_layers([[_thump(0.12, 180.0, 0.025), 1.0], [_glow_swell(0.4), 0.5]]), 1400.0), r, pick + 0.6 + k * 0.35, 0.3 + 0.03 * k)
 	_mix(stems.mid, _env(_mk_pad([53, 57, 60, 65], 1.4), r, swell(1.2, 0.2, 1.4)), r, h.grow_from - 1.2, 0.45)  # Lead-in
 
