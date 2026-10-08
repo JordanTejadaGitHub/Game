@@ -187,7 +187,8 @@ var rank_budget := 0  # --rank-budget=D: finals-first puts D Dew into ranks by t
 var warm_rank_spent := 0
 var omen_force := ""  # --omen-force=<omen id>|clear (with --from-save and --omens=face): that Omen twists the block after the save's rest
 var omen_forced_status := ""  # RUN JSON omen_forced: "<id>" taken, "clear", or "na:<id>" (its offer rule forbids it there)
-var plant_full := false  # --plant-full: finals-first plants to 1.0 × the human count before the save-for-a-final rule (Balancing 2026-10-08)
+var plant_full := false
+var edge_aware := true  # Route growth counts only route points off the outermost ring (_off_ring); --no-edge-aware turns it off  # --plant-full: finals-first plants to 1.0 × the human count before the save-for-a-final rule (Balancing 2026-10-08)
 var _trace_hp := 0.0  # Health spawned since the trace began
 var _trace_dmg := 0.0  # Damage dealt since the trace began
 var _spend_timer := 0.0
@@ -227,6 +228,7 @@ func _run() -> void:
 			"--trace-drift": trace_drift = int(value)
 			"--rank-budget": rank_budget = int(value)
 			"--plant-full": plant_full = true
+			"--no-edge-aware": edge_aware = false
 			"--omen-force": omen_force = value
 			"--probe-warden": probe_warden = value
 			"--probe-spot": probe_spot = value
@@ -1170,7 +1172,7 @@ func _plant_twig_bar() -> bool:
 				var new_route: PackedVector2Array = map.get_path_if_blocked_halves(bar)
 				if new_route.is_empty():
 					continue
-				var rate: float = float(new_route.size() - route.size()) / length
+				var rate: float = float(_growth(new_route, route)) / length
 				if rate > best_rate and map.can_block_halves(bar, walkers):
 					best_rate = rate
 					best = bar
@@ -1238,7 +1240,7 @@ func _plant_wall_chain(left: int, min_rate := 0.0) -> int:
 				var new_route: PackedVector2Array = map.get_path_if_blocked_halves(halves)
 				if new_route.is_empty():
 					break
-				var rate: float = float(new_route.size() - route.size()) / (length * cost)
+				var rate: float = float(_growth(new_route, route)) / (length * cost)
 				if rate > best_rate and rate >= min_rate and map.can_block_halves(halves, walkers):
 					best_rate = rate
 					best = chain.duplicate()
@@ -1271,7 +1273,7 @@ func _plant_half_wall() -> bool:
 		var new_route: PackedVector2Array = map.get_path_if_blocked_halves(halves)
 		if new_route.is_empty():
 			continue
-		var growth := new_route.size() - route.size()
+		var growth := _growth(new_route, route)
 		if pair_search:
 			singles.append([growth, origin])
 		if growth <= best_growth or not map.can_block_halves(halves, walkers):
@@ -1298,7 +1300,7 @@ func _plant_half_wall() -> bool:
 						continue
 					var both: Array = first_halves + second_halves
 					var new_route: PackedVector2Array = map.get_path_if_blocked_halves(both)
-					var growth := new_route.size() - route.size()
+					var growth := _growth(new_route, route)
 					if new_route.is_empty() or growth <= pair_best or not map.can_block_halves(both, walkers):
 						continue
 					pair_best = growth
@@ -1415,7 +1417,23 @@ func _spot_score(centre: Vector2, anchor: Vector2, new_route: PackedVector2Array
 		for i in new_route.size():
 			if new_route[i].distance_to(centre) <= reach:
 				cover += 2 if cover_heart and i >= new_route.size() - stretch else 1
-	return cover + growth_weight * (new_route.size() - route.size()) + (_aura_bonus(anchor, data) + _kin_bonus(anchor, data) if data != null else 0.0)
+	var growth := _growth(new_route, route)
+	return cover + growth_weight * growth + (_aura_bonus(anchor, data) + _kin_bonus(anchor, data) if data != null else 0.0)
+
+# The route a placement adds, as every planner scores it: with edge_aware only the points off the outermost ring count.
+func _growth(new_route: PackedVector2Array, route: PackedVector2Array) -> int:
+	return (_off_ring(new_route) - _off_ring(route)) if edge_aware else (new_route.size() - route.size())
+
+# Route points off the map's outermost ring (island edge B, 68e6f2f6: the edge row is walkable ground, and a Warden can only
+# stand on one side of it). With edge_aware (default; --no-edge-aware = before 2026-10-08) route growth counts only these,
+# so the opening no longer pushes the route along the edge row where its Wardens barely reach (Environment Code's seed 19).
+func _off_ring(route: PackedVector2Array) -> int:
+	var top := Vector2(Tower.MAP_GRID.size) - Vector2.ONE
+	var count := 0
+	for p in route:
+		if p.x > 0.5 and p.y > 0.5 and p.x < top.x - 0.25 and p.y < top.y - 0.25:
+			count += 1
+	return count
 
 # The open cell scoring best: path cells within `reach` + `growth_weight` × the path it adds. Walls
 # (reach 0) only count if they add path. `cover_heart`: only cells reaching the Heartwood, the last
@@ -1831,6 +1849,7 @@ func _finish() -> void:
 	summary.from_save = from_save.get_file()
 	summary.resumed_at = resumed_at
 	summary.omen_forced = omen_forced_status
+	summary.edge_aware = edge_aware
 	if probe_warden != "":
 		var total := 0.0
 		for k in probe_damage_by_drift:
