@@ -73,6 +73,19 @@ static func draw_gate(canvas: CanvasItem, cell: Vector2i, lane_px: float, frame:
 	else:  # Placeholder fog
 		canvas.draw_circle(centre, 80.0, Color(Palette.VOID, 0.9 * tint.a))
 
+# The way in for a nightmare (user 2026-10-07: "mobs just spawning out of nowhere"): from the fog's centre straight
+# along the bridge's lane to the start cell's lane point (its route half), in MapGenerator's space (pixels). Three
+# points: the fog, where the bridge lands on the island's edge, the start. The spawner walks it before the route.
+func walk_in() -> PackedVector2Array:
+	return walk_in_for(start, lane)
+
+static func walk_in_for(cell: Vector2i, lane_px: float) -> PackedVector2Array:
+	var size := Vector2(MAP_GRID.cell_size)
+	var out := Vector2(outward(cell))
+	var across := Vector2(absf(out.y), absf(out.x)) * lane_px
+	var centre := MAP_GRID.calculate_map_position(Vector2(cell))
+	return PackedVector2Array([centre + out * size * (BRIDGE_CELLS + 1) + across, centre + out * size / 2.0 + across, centre + across])
+
 # The lane's offset across the bridge: the route's first half against the start cell's centre (±16 px).
 static func lane_offset(cell: Vector2i, first_point: Vector2) -> float:
 	var out := Vector2(outward(cell))
