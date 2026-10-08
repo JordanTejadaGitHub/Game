@@ -8,7 +8,7 @@ extends Node2D
 #   first half). With the island edge outside the grid, its first plank lands on the lip.
 # - nightmare_fog.png (4 frames of 192×192): centred on the cell past the bridge's far end, over the last plank, so
 #   the bridge vanishes into it.
-# Both shared (dream/). Sits on the start cell's centre (MapGenerator is the y-sort root). Shifting Mist moves it
+# Both shared (dream/). Sits on the start cell's centre: the deck at z -1, the fog (child "Fog") at z 1. Shifting Mist moves it
 # (set_start); a re-route whose first half crosses to the other half row moves the bridge.
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
@@ -22,10 +22,20 @@ var _bridge: Texture2D
 var _fog: Texture2D
 var _frame := 0
 var _frame_time := 0.0
+var _fog_layer: Node2D
 
 func _ready() -> void:
 	_bridge = load(EnvironmentTiles.shared_path("rope_bridge_lane"))
 	_fog = load(EnvironmentTiles.shared_path("nightmare_fog"))
+	# Layers (user: "they're coming from underneath the bridge"): the deck at ground level (z -1, over the lip, which comes
+	# first among MapGenerator's children), so nightmares crossing it always draw on top whichever side the start is on;
+	# the fog above them (z 1), so they come out of it.
+	z_index = -1
+	_fog_layer = Node2D.new()
+	_fog_layer.name = "Fog"
+	_fog_layer.z_index = 2  # Relative: 1
+	_fog_layer.draw.connect(func() -> void: draw_fog(_fog_layer, start, lane, _frame, _fog, Vector2.ZERO))
+	add_child(_fog_layer)
 	_follow_route()
 
 # Shifting Mist: the bridge and fog go to the new start.
@@ -41,21 +51,29 @@ func _follow_route() -> void:
 	if new_lane != lane:
 		lane = new_lane
 		queue_redraw()
+		if _fog_layer != null:
+			_fog_layer.queue_redraw()
 
 func _process(delta: float) -> void:
 	_follow_route()  # Every redraw of the route (not all of them emit path_changed); one lookup
 	_frame_time = fmod(_frame_time + delta * EnvironmentTiles.FPS, FOG_FRAMES)
 	if int(_frame_time) != _frame:
 		_frame = int(_frame_time)
-		queue_redraw()  # Only the fog moves
+		if _fog_layer != null:
+			_fog_layer.queue_redraw()  # Only the fog moves
 
 func _draw() -> void:
-	draw_gate(self, start, lane, _frame, _bridge, _fog, Vector2.ZERO)
+	draw_bridge(self, start, lane, _bridge, Vector2.ZERO)
 
 # Draws the bridge and fog for start `cell` on `canvas`, with `origin` at the cell's centre in the canvas's space
 # (the node itself: zero; the gift screen's ghost: the cell's map position). `tint` is a multiplier on the art.
 static func draw_gate(canvas: CanvasItem, cell: Vector2i, lane_px: float, frame: int, bridge: Texture2D, fog: Texture2D,
 		origin: Vector2, tint := Color.WHITE) -> void:
+	draw_bridge(canvas, cell, lane_px, bridge, origin, tint)
+	draw_fog(canvas, cell, lane_px, frame, fog, origin, tint)
+
+# The bridge's planks, BRIDGE_CELLS cells out from the start on the lane.
+static func draw_bridge(canvas: CanvasItem, cell: Vector2i, lane_px: float, bridge: Texture2D, origin: Vector2, tint := Color.WHITE) -> void:
 	var size := Vector2(MAP_GRID.cell_size)
 	var out := Vector2(outward(cell))
 	var across := Vector2(absf(out.y), absf(out.x))
@@ -66,6 +84,12 @@ static func draw_gate(canvas: CanvasItem, cell: Vector2i, lane_px: float, frame:
 			canvas.draw_texture_rect_region(bridge, Rect2(at, size), Rect2(Vector2(column * size.x, 0), size), tint)
 		else:  # Placeholder deck
 			canvas.draw_rect(Rect2(at + across * (size - Vector2(20, 20)) / 2.0, size - across * (size - Vector2(20, 20))), Color(Palette.ROOT, tint.a))
+
+# The nightmare fog at the bridge's far end, over its last plank.
+static func draw_fog(canvas: CanvasItem, cell: Vector2i, lane_px: float, frame: int, fog: Texture2D, origin: Vector2, tint := Color.WHITE) -> void:
+	var size := Vector2(MAP_GRID.cell_size)
+	var out := Vector2(outward(cell))
+	var across := Vector2(absf(out.y), absf(out.x))
 	var centre := origin + out * size * (BRIDGE_CELLS + 1) + across * lane_px
 	if fog != null:
 		var frame_size := Vector2(fog.get_width() / float(FOG_FRAMES), fog.get_height())

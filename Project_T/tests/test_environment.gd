@@ -71,8 +71,12 @@ func _init() -> void:
 		_check(false, "no whole-cell path tile left (%s)" % cell)
 		break
 	var halves: Dictionary = map.path_layer.path_halves()
-	_check(halves.keys().any(func(h: Vector2i) -> bool: return (Vector2(h) / 2.0).floor() == map.startPath + Vector2(out)),
-		"the start's path runs out past the island's edge, under the bridge")
+	var edge_half := Vector2i((map.startPath * 2.0 + Vector2.ONE * 0.5 + Vector2(out) * 0.5).floor())  # The start cell's outer halves
+	_check(halves.keys().any(func(h: Vector2i) -> bool: return (Vector2(h) / 2.0).floor() == map.startPath and (h - edge_half) * out == Vector2i.ZERO),
+		"the start's path reaches the island's edge, where the bridge lands")
+	_check(not halves.keys().any(func(h: Vector2i) -> bool: return (Vector2(h) / 2.0).floor() == map.startPath + Vector2(out)),
+		"no path past the edge (no plug under the bridge's foot)")
+	_check(gate.z_index == -1 and gate.get_node("Fog").z_index == 2, "the deck at ground level under the nightmares, the fog over them")
 	_check(map.halves_of(map.endPath * 2).has(Vector2(FindPath.point_to_node(map.path_layer.current_path[-1])))  # Ends on a Heartwood half
 		and ground.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.GRASS, "the Heartwood stands inland, on grass")
 	for cell in map.obstacles:
