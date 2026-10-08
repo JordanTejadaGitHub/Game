@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Mistveil"
-role_line = "Soaks, sets up statuses"
+role_line = "Area damage, Soaks, sets up statuses"
 description = "Fog on the path: nightmares stay {damp}, and {spored} ticks harder inside."
 cost = 0
 texture = ExtResource("2_tex")

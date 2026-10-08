@@ -1,6 +1,6 @@
 extends SceneTree
 
-# Every Warden form has its role line (tower_design.md "Role lines", cae6d300: how it attacks in plain words, ending with any hard limit; the user: "use more generic wording to
+# Every Warden form has its role line (tower_design.md "Role lines", 164cd0b5: its attack shape first, in plain words, ending with any hard limit; the user: "use more generic wording to
 # describe"): non-empty, no full stop, 1–4 comma-separated terms, each from the fixed tower-defence vocabulary.
 # Siblings may share a line where they truly play alike, so uniqueness within a family is only a warning. The parked
 # Memory Wardens (is_unique) are left out until they return.
@@ -12,7 +12,7 @@ const VOCABULARY := ["short range", "long range", "longest range", "high damage"
 	"ramps up", "finishes off the weak", "fast attacks", "very fast attacks", "slow attacks", "single target", "multi-target",
 	"area damage", "chains", "hits a line", "cone", "beam", "boomerang", "lobs over walls", "hits all around it",
 	"rain cloud", "leaves trails", "spreads damage", "links to a partner", "grows with walls", "hurts the Rooted", "slows",
-	"Roots", "Freezes", "puts to sleep", "pulls back", "Silences", "stops sprints", "Soaks", "Charges", "Poisons", "Drowses",
+	"Roots", "Roots the leader", "Roots the leaders", "Freezes", "puts to sleep", "pulls back", "Silences", "stops sprints", "Soaks", "Charges", "Poisons", "Drowses",
 	"Exposes", "spreads statuses", "sets up statuses", "anti-air", "boss killer", "crowd clearer", "breaks armour",
 	"reveals Hidden", "guards the goal", "removes boosts", "crits", "repeats combos", "traps", "summons helpers",
 	"plants free Sprouts", "copies a neighbour", "speeds allies", "boosts damage", "grows into any family", "support", "economy", "wall",
@@ -29,6 +29,45 @@ static func _term_ok(term: String, position: int) -> bool:
 const HARD_LIMITS := ["can't hit up close", "can't hit flyers", "doesn't attack"]
 # Attacks that never touch a flyer: rings on path tiles, sprites bursting on walkers, the whirlpool (no hits_flyers).
 const GROUND_ONLY_SPECIALS := [&"brood", &"whirlpool"]
+
+# Every line names the attack's shape (164cd0b5: a form keeps its family's base shape), read from the data: the
+# shape terms a form may use. A special's own shape (helpers, the whirlpool's shared hits, a rain cloud…) counts.
+const SPECIAL_SHAPES := {&"brood": ["summons helpers"], &"whirlpool": ["spreads damage"], &"cloud": ["rain cloud", "area damage"],
+	&"jet": ["hits a line"], &"jarlink": ["hits a line"], &"thrum": ["cone"], &"sparkler": ["area damage"], &"inkcap": ["leaves trails"]}
+# Forms whose line names another shape on purpose (Tower Discussion's call, 164cd0b5).
+const SHAPE_EXCEPTIONS := {"honeysuckle": "a wall first: its pulse only Drowses its neighbours"}
+
+static func shape_terms(data: TowerData) -> Array:
+	if SPECIAL_SHAPES.has(data.special):
+		return SPECIAL_SHAPES[data.special]
+	match data.attack_kind:
+		TowerData.AttackKind.PROJECTILE:
+			if data.splash_radius > 0.0 or data.lob:
+				return ["area damage"]
+			return ["single target", "multi-target"]
+		TowerData.AttackKind.PULSE, TowerData.AttackKind.CLOUD, TowerData.AttackKind.PATROL:
+			return ["area damage"]
+		TowerData.AttackKind.CHAIN:
+			return ["chains"]
+		TowerData.AttackKind.BEAM:
+			return ["beam"]
+		TowerData.AttackKind.SPIN:
+			return ["hits all around it"]
+		TowerData.AttackKind.TRAP:
+			return ["traps"]
+		TowerData.AttackKind.BOOMERANG:
+			return ["hits a line"]
+		TowerData.AttackKind.SWOOP, TowerData.AttackKind.PECK:
+			return ["single target", "multi-target"]
+		TowerData.AttackKind.AURA:
+			return ["doesn't attack"]
+		TowerData.AttackKind.COPY:
+			return ["copies a neighbour"]
+		TowerData.AttackKind.SPREAD:
+			return ["spreads statuses", "multi-target"]
+		TowerData.AttackKind.LIGHT:
+			return ["support"]
+	return []
 
 var failures := 0
 
@@ -70,6 +109,12 @@ func _initialize() -> void:
 			_check(_term_ok(terms[i], i), "%s: \"%s\" is in the vocabulary, capitalised as the rules say" % [data.get_id(), terms[i]])
 		_check(line == "" or line[0] == line[0].to_upper(), "%s: sentence case" % data.get_id())
 		_check_hard_limits(data, terms)
+		if data.can_attack and not SHAPE_EXCEPTIONS.has(data.get_id()):
+			var shapes := shape_terms(data)
+			var named := false
+			for term in terms:
+				named = named or shapes.has(term.to_lower())
+			_check(shapes.is_empty() or named, "%s: the line names its attack shape (%s)" % [data.get_id(), " / ".join(shapes)])
 		var seen: Dictionary = by_family.get(data.line, {})
 		if seen.has(line):
 			shared += 1

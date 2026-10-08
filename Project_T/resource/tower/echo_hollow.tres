@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_tdata")
 display_name = "Echo Hollow"
-role_line = "Repeats combos"
+role_line = "Area damage, repeats combos"
 description = "A hollow log that echoes Reactions: one nearby repeats a second later on the same nightmare, at {echo:echo_hollow} strength."
 cost = 0
 texture = ExtResource("2_tex")

@@ -10,7 +10,7 @@
 script = ExtResource("1_tdata")
 counter_tags = Array[StringName]([&"detection"])
 display_name = "Lanternmoth"
-role_line = "Long range, Exposes"
+role_line = "Long range, single target, Exposes"
 description = "Long-range light that Exposes nightmares: they take 25% more damage."
 cost = 0
 texture = ExtResource("2_tex")
