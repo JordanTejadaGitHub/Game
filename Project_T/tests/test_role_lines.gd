@@ -33,9 +33,7 @@ const GROUND_ONLY_SPECIALS := [&"brood", &"whirlpool"]
 # Every line names the attack's shape (164cd0b5: a form keeps its family's base shape), read from the data: the
 # shape terms a form may use. A special's own shape (helpers, the whirlpool's shared hits, a rain cloud…) counts.
 const SPECIAL_SHAPES := {&"brood": ["summons helpers"], &"whirlpool": ["spreads damage"], &"cloud": ["rain cloud", "area damage"],
-	&"jet": ["hits a line"], &"jarlink": ["hits a line"], &"thrum": ["cone"], &"sparkler": ["area damage"], &"inkcap": ["leaves trails"]}
-# Forms whose line names another shape on purpose (Tower Discussion's call, 164cd0b5).
-const SHAPE_EXCEPTIONS := {"honeysuckle": "a wall first: its pulse only Drowses its neighbours"}
+	&"jet": ["hits a line"], &"jarlink": ["hits a line"], &"thrum": ["cone"], &"sparkler": ["area damage"]}
 
 static func shape_terms(data: TowerData) -> Array:
 	if SPECIAL_SHAPES.has(data.special):
@@ -109,7 +107,7 @@ func _initialize() -> void:
 			_check(_term_ok(terms[i], i), "%s: \"%s\" is in the vocabulary, capitalised as the rules say" % [data.get_id(), terms[i]])
 		_check(line == "" or line[0] == line[0].to_upper(), "%s: sentence case" % data.get_id())
 		_check_hard_limits(data, terms)
-		if data.can_attack and not SHAPE_EXCEPTIONS.has(data.get_id()):
+		if data.can_attack and data.damage > 0.0:  # No damage, no shape to name (Honeysuckle: "Wall, Drowses")
 			var shapes := shape_terms(data)
 			var named := false
 			for term in terms:
