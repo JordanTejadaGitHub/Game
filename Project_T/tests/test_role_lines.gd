@@ -1,6 +1,6 @@
 extends SceneTree
 
-# Every Warden form has its role line (tower_design.md "Role lines", 111e5ddf: how it attacks, ending with any hard limit; the user: "use more generic wording to
+# Every Warden form has its role line (tower_design.md "Role lines", cae6d300: how it attacks in plain words, ending with any hard limit; the user: "use more generic wording to
 # describe"): non-empty, no full stop, 1–4 comma-separated terms, each from the fixed tower-defence vocabulary.
 # Siblings may share a line where they truly play alike, so uniqueness within a family is only a warning. The parked
 # Memory Wardens (is_unique) are left out until they return.
@@ -10,12 +10,12 @@ extends SceneTree
 # case, but statuses keep their capital as names in every form (text_pass.md 7e151e86: "Anti-air, Roots").
 const VOCABULARY := ["short range", "long range", "longest range", "high damage", "very high damage", "damage over time",
 	"ramps up", "finishes off the weak", "fast attacks", "very fast attacks", "slow attacks", "single target", "multi-target",
-	"area damage", "chains", "hits a line", "cone", "beam", "boomerang", "lobs over walls", "crushing blows",
-	"spins at bends", "rain cloud", "trails", "shares hits", "links to a partner", "grows with walls", "stacks high",
-	"hurts the Rooted", "slows", "Roots", "Freezes", "stuns", "pulls back", "Silences", "stops sprints", "Soaks", "Charges",
-	"Poisons", "Drowses", "Exposes", "spreads statuses", "sets up statuses", "anti-air", "boss killer", "crowd clearer",
-	"breaks armour", "reveals Hidden", "guards the goal", "strips buffs", "crits", "repeats combos", "traps", "spawns",
-	"copies a neighbour", "speeds allies", "boosts damage", "grows into any family", "support", "economy", "wall",
+	"area damage", "chains", "hits a line", "cone", "beam", "boomerang", "lobs over walls", "hits all around it",
+	"rain cloud", "leaves trails", "spreads damage", "links to a partner", "grows with walls", "hurts the Rooted", "slows",
+	"Roots", "Freezes", "puts to sleep", "pulls back", "Silences", "stops sprints", "Soaks", "Charges", "Poisons", "Drowses",
+	"Exposes", "spreads statuses", "sets up statuses", "anti-air", "boss killer", "crowd clearer", "breaks armour",
+	"reveals Hidden", "guards the goal", "removes boosts", "crits", "repeats combos", "traps", "summons helpers",
+	"plants free Sprouts", "copies a neighbour", "speeds allies", "boosts damage", "grows into any family", "support", "economy", "wall",
 	"can't hit up close", "can't hit flyers", "doesn't attack"]
 
 # `term` at `position` in a line reads exactly as the vocabulary has it (the first term with a leading capital).
