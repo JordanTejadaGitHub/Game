@@ -109,6 +109,7 @@ roots, with **three sections**. Each node costs Seeds and needs its parent node(
 - **Memories hang as dream-fruit** (the glowing fruit from the Heartwood's art): a new fruit appears
   every 3 nodes planted; tapping it plays that Memory.
 - Tap or click a node for its card and a **Plant** button (no hover needed). Pan and zoom like the
+- **A node card shows what it adds, not just names** (user 2026-10-07: *"need to add more description of the cards being added to the pool when unlocking in the Grove"*): every node that adds Dream cards (card bundles, Legendary tips, family and hidden-branch nodes, Strange Dreams) lists each card as a row: rarity gem, name, its effect text (the same line as on the Dream card, statuses linked), and small tags for *defining* and *has a II*. Tapping a row opens the full card face. Restless Omens lists its Omens the same way (name, twist, reward). Perks already show their effect; they keep it.
   map. A Seeds counter top left; **Start run** opens the loadout (below) first.
 - **Carried into the run: the Heartwood you defend is your Grove** (user idea via the design hub,
   2026-10-01; cosmetic only, no gameplay). The in-run Heartwood matches the Grove screen's tree:
