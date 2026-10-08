@@ -1335,8 +1335,12 @@ func focus_text(which: Focus) -> String:
 				return "a seed every %.1f → %.1f drifts" % [every.call(choice_count(Focus.SWIFT)), every.call(choice_count(Focus.SWIFT) + 1)]
 			var timed := _main_timer()
 			if timed[0] > 0.0:
-				var fmt := "%s every %.2f → %.2f s" if timed[0] < 1.0 else "%s every %.1f → %.1f s"  # The arc's 0.25 s tick reads 0.25 → 0.22
-				return fmt % [timed[1], timed[0] / get_cycle_multiplier(), timed[0] / (get_cycle_multiplier() * ratio)]
+				# Always a percentage (story chat; the user: "why is Swift different for Thorncoil?"); the seconds only
+				# where they're whole enough to read (never "0.25 → 0.22 s").
+				var text := "+%d%% faster %s" % [roundi((ratio - 1.0) * 100.0), timed[2]]
+				if timed[0] >= 1.0:
+					text += " (every %.1f → %.1f s)" % [timed[0] / get_cycle_multiplier(), timed[0] / (get_cycle_multiplier() * ratio)]
+				return text
 			if id == "fairy_ring" or id == "elf_circle":
 				return "attacks %.2f → %.2f a second; +1 ring every 2 ranks" % [cycle[0], cycle[1]]
 			return "attacks %.2f → %.2f a second" % [cycle[0], cycle[1]]
@@ -1434,11 +1438,10 @@ func focus_short(which: Focus) -> String:
 			if special == BranchKit.SEEDBEARER:
 				return "−%s drift a seed" % IconInfo._number(NurtureChoices.seed_swift(tower_data))
 			var timed := _main_timer()
-			if timed[0] > 0.0 and special != &"":
+			if timed[0] > 0.0:
 				var cycle := _with_choice(which, func() -> float: return _compute_attacks_per_second())
 				var ratio: float = cycle[1] / maxf(cycle[0], 0.0001)
-				var now: float = timed[0] / get_cycle_multiplier()
-				return "%s %s s sooner" % ["tick" if special == BranchKit.JARLINK else "acts", IconInfo._number(now - now / ratio)]
+				return "+%d%% faster %s" % [roundi((ratio - 1.0) * 100.0), timed[2]]  # "+15% faster thorns", never seconds
 		Focus.REACH:
 			var area := _main_area()
 			if area[1] != "":
@@ -1537,24 +1540,25 @@ func get_timer_tracker() -> Array:
 		left = float(get_meta(&"rock_left", period))
 	return [clampf(left, 0.0, period), period]
 
-# Swift's main timer for this form, [base seconds, what it does], or [0, ""] when it's the attack itself.
+# Swift's main timer for this form, [base seconds, what it does, what speeds up], or [0, "", ""] when it's the attack.
 func _main_timer() -> Array:
 	if attack_data.ability_every > 0.0:
 		var verb := "pulls" if attack_data.pull_tiles > 0.0 else ("holds" if attack_data.hold_targets > 0 else "acts")
-		return [attack_data.ability_every, verb]
+		var noun := "pulls" if attack_data.pull_tiles > 0.0 else ("Roots" if attack_data.hold_targets > 0 else ("Exposes" if attack_data.mark_all else "ability"))
+		return [attack_data.ability_every, verb, noun]
 	if attack_data.copy_status_every > 0.0:
-		return [attack_data.copy_status_every, "copies"]
+		return [attack_data.copy_status_every, "copies", "copies"]
 	match attack_data.special:
 		BranchKit.GROUNDROOT:
-			return [BranchKit.p(self, "ground_every", 4.0), "grabs"]
+			return [BranchKit.p(self, "ground_every", 4.0), "grabs", "grabs"]
 		BranchKit.THORNCOIL:
-			return [BranchKit.THORN_TICK, "thorns bite"]
+			return [BranchKit.THORN_TICK, "thorns bite", "thorns"]
 		BranchKit.JARLINK:
-			return [BranchKit.FENCE_TICK, "the arc ticks"]
+			return [BranchKit.FENCE_TICK, "the arc ticks", "arc"]
 		BranchKit.RAMPART:
 			if BranchKit.is_final(self):
-				return [BranchKit.p(self, "rock_every", 6.0), "rocks fall"]
-	return [0.0, ""]
+				return [BranchKit.p(self, "rock_every", 6.0), "rocks fall", "rockfalls"]
+	return [0.0, "", ""]
 
 # Reach's main area for this form, [cells now, what it is, cells per rank], or [0, "", 0] when it's the range.
 func _main_area() -> Array:
@@ -1577,9 +1581,11 @@ func _main_area() -> Array:
 			return [BranchKit.p(self, "radius", 1.5) + now, "whirlpool", per]
 		BranchKit.SPARKLER:
 			return [BranchKit.p(self, "burst_radius", 1.5) + now, "burst", per]
-	if attack_data.cloud_radius > 0.0:
+	# cloud_radius / chain_jump_range have defaults on every TowerData: only a real cloud or chain counts (story chat:
+	# Rootling's Reach read "+0.3 cloud").
+	if attack_data.attack_kind == TowerData.AttackKind.CLOUD and attack_data.cloud_radius > 0.0:
 		return [attack_data.cloud_radius + now, "cloud", per]
-	if attack_data.chain_jump_range > 0.0:
+	if attack_data.attack_kind == TowerData.AttackKind.CHAIN and attack_data.chain_jump_range > 0.0:
 		return [attack_data.chain_jump_range + now, "chain jumps", per]
 	return [0.0, "", 0.0]
 
