@@ -349,12 +349,10 @@ static func _jet(tower: Tower) -> void:
 				cells.append(route[i])
 				if cells.size() >= int(p(tower, "trail_tiles", 3)):
 					break
-		for cell in cells:
-			var wet := GroundZone.new(tower, &"wet", Tower.MAP_GRID.calculate_map_position(cell), 0.5 * CELL,
-				p(tower, "trail_time", 3.0), 0.5)
-			wet.square = true
-			wet.status = EnemyStatuses.DAMP
-			world(tower).add_child(wet)
+		var puddles := Puddles.find(tower)  # Path cells only, on the ground; a second jet merges (story chat)
+		if puddles != null:
+			for cell in cells:
+				puddles.wet(cell, ShapeCards.ground_time(p(tower, "trail_time", 3.0)), tower)  # Lingering Ground: x1.5
 
 # --- Jarlink / Lightning Fence: two Jarlinks within 4 cells make an arc ---------------------------------------
 
@@ -1509,6 +1507,112 @@ class BroodSprite extends Node2D:
 		draw_texture_rect_region(_tex, rect, region)
 
 
+# Puddles on path cells (story chat; the user: "update the wet trail from Torrent"; the Rootling ripple's rules): one
+# node per world on the ground (z −1), a soft puddle per route point (half grid), fading out over its time. A cell wetted again
+# merges (the later end wins), never stacks. Water puddles (Torrent's Flood) Soak the walkers on them every TICK s; ink
+# (Deliquescent's pool) is only the look, InkField does its Poisoned. Reduced effects: no shimmer.
+class Puddles extends Node2D:
+	const TICK := 0.5
+	const FADE := 1.0  # The last second fades out
+	const SIZE := 14.0  # Half-width in px: route points are 32 px apart (half grid), so neighbours join into one band
+	const REACH := 20.0  # A walker this close to a puddle's centre stands in it
+	var cells := {}  # cell -> [ends at, lasts, Tower that Soaks (or null), style]
+	var _clock := 0.0
+	var _next := 0.0
+
+	static func find(near: Node) -> Puddles:
+		var w := BranchKit.world(near)
+		if w == null:
+			return null
+		var node := w.get_node_or_null("Puddles") as Puddles
+		if node == null or node.is_queued_for_deletion():
+			node = Puddles.new()
+			node.name = "Puddles"
+			node.z_index = -1  # On the ground: under the Wardens and the nightmares
+			w.add_child(node)
+		return node
+
+	func wet(cell: Vector2, seconds: float, tower: Tower, style: StringName = &"water") -> void:
+		var old: Array = cells.get(cell, [])
+		var ends := _clock + seconds
+		if old.is_empty() or ends > float(old[0]):
+			cells[cell] = [ends, seconds, tower if tower != null else (old[2] if not old.is_empty() else null), style]
+
+	func has_puddle(cell: Vector2) -> bool:
+		return cells.has(cell) and _clock < float(cells[cell][0])
+
+	func _process(delta: float) -> void:
+		_clock += delta
+		if cells.is_empty():
+			return
+		for cell in cells.keys():
+			if _clock >= float(cells[cell][0]):
+				cells.erase(cell)
+		_next -= delta
+		if _next <= 0.0:
+			_next += TICK
+			_soak()
+		queue_redraw()
+
+	func _soak() -> void:
+		for e in get_tree().get_nodes_in_group(Tower.ENEMY_GROUP):
+			if not is_instance_valid(e) or e.is_cleansed or e.is_flying():
+				continue
+			# Route points sit on the half grid (32 px apart): a walker within REACH of a puddle's centre stands in it.
+			for cell in cells:
+				var entry: Array = cells[cell]
+				if entry[3] != &"water" or not is_instance_valid(entry[2]):
+					continue
+				if e.global_position.distance_to(Tower.MAP_GRID.calculate_map_position(cell)) <= REACH:
+					var tower: Tower = entry[2]
+					tower._apply_one_status(e, EnemyStatuses.DAMP, 1, tower.get_damage())
+					break  # One Soak a tick, however many puddles it touches (they merge)
+
+	func _draw() -> void:
+		var shimmer := not Fx.reduced()
+		for cell in cells:
+			var entry: Array = cells[cell]
+			var left := float(entry[0]) - _clock
+			var fade := clampf(left / FADE, 0.0, 1.0) * (0.6 + 0.4 * clampf(left / maxf(float(entry[1]), 0.01), 0.0, 1.0))
+			var at := Tower.MAP_GRID.calculate_map_position(cell)
+			var ink: bool = entry[3] == &"ink"
+			var rim := Palette.SHADE if ink else Palette.POOL
+			var core := Palette.BRUISE if ink else Palette.DEW
+			var glint := Palette.SPRIG if ink else Palette.DEWLIGHT
+			var seed := absi(hash(cell))
+			# Tower Assets' puddles (5f9da433): torrent_ / ink_puddle_a..d, the variant fixed per cell, frame 0 held under
+			# reduced effects. The drawn blob below stays as the fallback.
+			var sheet := _sheet(StringName(("ink_puddle_" if ink else "torrent_puddle_") + "abcd"[seed % 4]))
+			if not sheet.is_empty():
+				var tex: Texture2D = sheet[0]
+				var size: Vector2 = sheet[1]
+				var frame := int(_clock * float(sheet[3])) % int(sheet[2]) if shimmer else 0
+				draw_texture_rect_region(tex, Rect2((at - sheet[4]).round(), size), Rect2(Vector2(frame * size.x, 0), size),
+					Color(1, 1, 1, fade))  # multiplier (the fade)
+				continue
+			# A soft blob from three overlapping flattened circles, its shape fixed per cell.
+			for i in 3:
+				var off := Vector2(((seed >> (i * 4)) % 9) - 4.0, ((seed >> (i * 4 + 2)) % 7) - 3.0)
+				var r := SIZE * (0.62 + 0.08 * ((seed >> (i * 3)) % 4))
+				draw_set_transform(at + off, 0.0, Vector2(1.0, 0.72))
+				draw_circle(Vector2.ZERO, r + 2.0, Color(rim, 0.30 * fade))
+				draw_circle(Vector2.ZERO, r, Color(core, 0.38 * fade))
+			var phase := (_clock * 2.2 + float(seed % 628) / 100.0) if shimmer else 0.0
+			var glint_at := at + Vector2(sin(phase) * 5.0 - 3.0, -3.0)
+			draw_set_transform(glint_at, 0.0, Vector2(1.0, 0.45))
+			draw_circle(Vector2.ZERO, 4.0, Color(glint, (0.30 + (0.18 * sin(phase * 1.7) if shimmer else 0.0)) * fade))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+	# [texture, frame size, frames, fps, anchor] of a puddle sheet, [] if it isn't there. Held on the node, never static.
+	var _sheets := {}
+	func _sheet(id: StringName) -> Array:
+		if not _sheets.has(id):
+			var entry := Fx.info(id)
+			var tex := Fx.texture(id) if not entry.is_empty() else null
+			_sheets[id] = [] if tex == null else [tex, Vector2(entry.frame_size[0], entry.frame_size[1]), maxi(int(entry.get("frames", 1)), 1),
+				float(entry.get("fps", 5.0)), Vector2(entry.anchor[0], entry.anchor[1])]
+		return _sheets[id]
+
 # A patch of ground with an effect for a while: rain clouds, whirlpools, ink, wet trails. Ticks every `tick` s on the
 # nightmares inside (a square or a circle of `radius`).
 class GroundZone extends Node2D:
@@ -1558,11 +1662,6 @@ class GroundZone extends Node2D:
 						_art = Fx.play(&"rain_zone", global_position + Vector2(dx, dy) * CELL, self, 1.0, true, left) != null or _art
 			&"whirlpool":
 				_art = Fx.play(&"whirlpool", global_position, self, radius * 2.0 / CELL, true, left) != null
-			&"wet":  # Torrent's trail: the ink sheet, tinted water-blue
-				var trail := Fx.segment(&"ink_trail", global_position - Vector2(CELL / 2.0, 0), global_position + Vector2(CELL / 2.0, 0), self, left)
-				if trail:
-					trail.modulate = Palette.DEWLIGHT  # multiplier (a tint on the ink sheet)
-					_art = true
 
 	func _process(delta: float) -> void:
 		left -= delta
@@ -1659,7 +1758,7 @@ class GroundZone extends Node2D:
 		match kind:
 			&"rain":
 				colour = Palette.DEWLIGHT
-			&"whirlpool", &"wet":
+			&"whirlpool":
 				colour = Palette.DEWLIGHT
 			_:
 				colour = Palette.ORCHID  # Ink
@@ -1768,12 +1867,11 @@ class InkField extends Node:
 	func clock() -> float:
 		return _clock
 
-	# The ink on `cell` for `seconds` (Tower Assets' ink_trail across the cell).
+	# The ink on `cell` for `seconds`: an ink puddle (Puddles).
 	func _show(cell: Vector2, seconds: float) -> void:
-		var at := Tower.MAP_GRID.calculate_map_position(cell)
-		var ink := Fx.segment(&"ink_trail", at - Vector2(BranchKit.CELL / 2.0, 0), at + Vector2(BranchKit.CELL / 2.0, 0), get_parent(), seconds)
-		if ink:
-			ink.z_index = -1  # On the ground
+		var puddles := Puddles.find(get_parent())  # An ink puddle on the path cell (Torrent's rule: path only, on the ground)
+		if puddles != null:
+			puddles.wet(cell, seconds, null, &"ink")
 
 	func ink_at(cell: Vector2) -> bool:
 		return cells.has(cell) and _clock < cells[cell][0]

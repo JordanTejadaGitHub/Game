@@ -385,8 +385,19 @@ func _test_finals() -> void:
 	var route := torrent._route()
 	var in_line = _spawn(route[8])
 	BranchKit.release(torrent)
-	var trails := main.get_children().filter(func(n) -> bool: return n is BranchKit.GroundZone and n.kind == &"wet")
-	_check(not trails.is_empty(), "Torrent: the jet leaves a wet trail (%d tiles)" % trails.size())
+	var puddles := BranchKit.Puddles.find(torrent)
+	var wet: Array = puddles.cells.keys()
+	_check(not wet.is_empty(), "Torrent: the jet leaves a wet trail (%d tiles)" % wet.size())
+	_check(wet.all(func(c) -> bool: return route.has(c)) and puddles.z_index == -1,
+		"…puddles on path cells only, on the ground (the user: \"update the wet trail from Torrent\")")
+	var before := wet.size()
+	BranchKit.release(torrent)
+	_check(puddles.cells.size() == before, "a second jet over the same cells merges, never stacks (%d)" % puddles.cells.size())
+	var walker = _spawn(wet[0])
+	walker.set_process(false)
+	puddles._soak()
+	_check(walker.statuses.has(EnemyStatuses.DAMP), "a walker on a puddle is Soaked")
+	puddles.cells.clear()
 	await _clean()
 
 	# Lightning Fence: catches flyers crossing it; a Jarlink fence doesn't.
@@ -534,7 +545,8 @@ func _clean() -> void:
 	for tower in container.get_children():
 		tower.queue_free()
 	for node in main.get_children():
-		if node is BranchKit.GroundZone or node is BranchKit.BroodSprite or node is BranchKit.LineFlash or node is BranchKit.ConeFlash:
+		if node is BranchKit.GroundZone or node is BranchKit.BroodSprite or node is BranchKit.LineFlash or node is BranchKit.ConeFlash \
+				or node is BranchKit.Puddles:
 			node.queue_free()
 	await process_frame
 
