@@ -600,6 +600,9 @@ var attack_data: TowerData:
 		_a_lit = value != null and value.lit_hold_multiplier > 0.0
 		_a_copy = value != null and value.copy_status_every > 0.0
 		_a_special = value != null and value.special != &""
+		if is_inside_tree() and not _tracker_sync_queued:
+			_tracker_sync_queued = true
+			_sync_count_tracker.call_deferred()  # Growing / a Graftling's copy may bring or drop a counted trigger
 var _a_kind := -1
 var _a_ability := false
 var _a_lit := false
@@ -712,6 +715,7 @@ func _ready() -> void:
 			_dream_state.map_generator.path_changed.connect(_on_map_changed)
 	add_to_group(GROUP)
 	_apply_data()
+	_sync_count_tracker()  # The attack tracker over its head, for forms with an every-Nth or timed trigger
 	# Start each tower at a random point in its idle loop so neighbours don't breathe in sync.
 	_anim_time = randf() * tower_data.frame_count / tower_data.animation_fps
 
@@ -1435,6 +1439,60 @@ func _with_choice(which: Focus, measure: Callable) -> Array:
 	_previewing_choice = false
 	return [now, after]
 var _previewing_choice := false
+
+# Count tracker (story chat; user: "every 4th pulse Roots on the Warden, they need a tracker then"): an every-Nth
+# trigger as [count so far in the cycle, N], or [0, 0] when the form has none. Read from the attack code's own counters.
+func get_count_tracker() -> Array:
+	if attack_data == null:
+		return [0, 0]
+	if attack_data.pulse_hold_every > 0:
+		return [_attack_count % attack_data.pulse_hold_every, attack_data.pulse_hold_every]  # Rootling: the Nth pulse Roots
+	if attack_data.storm_every > 0:
+		return [_attack_count % attack_data.storm_every, attack_data.storm_every]  # Thunderhead / Stormheart's storm
+	if attack_data.flurry_every > 0:
+		return [_pecks_landed % attack_data.flurry_every, attack_data.flurry_every]  # Jewelwing Court's sure crit
+	if attack_data.special == BranchKit.SPARKLER and BranchKit.is_final(self):
+		var every := maxi(int(BranchKit.p(self, "double_every", 4)), 1)
+		return [int(get_meta(&"bursts", 0)) % every, every]  # Starburst's double burst
+	if tower_data.dreamlight_every > 0:
+		var per := tower_data.dreamlight_every_ranked if rank >= FOCUS_RANK and tower_data.dreamlight_every_ranked > 0 \
+			else tower_data.dreamlight_every
+		return [_drifts_yielded % per, per]  # The Sapling ripens every N drifts
+	return [0, 0]
+
+# The tracker over its head (CountTracker) exists only while this form has a counted or timed trigger.
+var _tracker_sync_queued := false
+func _sync_count_tracker() -> void:
+	_tracker_sync_queued = false
+	if not is_inside_tree() or attack_data == null:
+		return
+	var wanted := int(get_count_tracker()[1]) > 0 or float(get_timer_tracker()[1]) > 0.0
+	var node := get_node_or_null("CountTracker")
+	if wanted and node == null:
+		add_child(CountTracker.new(self))
+	elif not wanted and node != null:
+		node.queue_free()
+	elif node != null:
+		node._top = node._head_top()  # Growing changes the art's height
+		node._read(true)
+
+# A timed trigger as [seconds left, period], or [0, 0]: the timed ability, Whirligig's copy, Groundroot's grab,
+# Rampart's rocks. Ticks quicker than a second (Thorncoil, Jarlink) aren't worth a ring.
+func get_timer_tracker() -> Array:
+	var main := _main_timer()
+	var period: float = main[0]
+	if period < 1.0:
+		return [0.0, 0.0]
+	var left := 0.0
+	if attack_data.ability_every > 0.0:
+		left = _ability_timer
+	elif attack_data.copy_status_every > 0.0:
+		left = _copy_timer
+	elif attack_data.special == BranchKit.GROUNDROOT:
+		left = float(get_meta(&"ground_left", 0.0))
+	elif attack_data.special == BranchKit.RAMPART:
+		left = float(get_meta(&"rock_left", period))
+	return [clampf(left, 0.0, period), period]
 
 # Swift's main timer for this form, [base seconds, what it does], or [0, ""] when it's the attack itself.
 func _main_timer() -> Array:
