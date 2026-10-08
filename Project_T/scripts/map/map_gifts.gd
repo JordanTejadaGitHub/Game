@@ -141,7 +141,7 @@ func start_options(count: int) -> Array[Vector2]:
 			var cell := Vector2i(x, y)
 			var on_rim := x == 0 or y == 0 or x == last.x or y == last.y
 			var by_corner := (x <= 1 or x >= last.x - 1) and (y <= 1 or y >= last.y - 1)
-			if not on_rim or by_corner or Vector2(cell) == map.startPath:
+			if not on_rim or by_corner or Vector2(cell) == map.startPath or map.path_layer.is_cell_blocked(Vector2(cell)):  # Edge cells are ground now: not under an obstacle or a Warden
 				continue
 			candidates.append(Vector2(cell))
 			if Vector2(cell).distance_to(map.endPath) >= reach:
@@ -168,20 +168,14 @@ func start_options(count: int) -> Array[Vector2]:
 			picked.append(cell)
 	return picked
 
-# Shifting Mist's ghost on the gift screen: the start mist on rim cell `cell` and its rope bridge out into the
-# void, drawn on `canvas` (any CanvasItem in the map's space) at `alpha`. Uses the act's own tiles (frame 0).
+# Shifting Mist's ghost on the gift screen: the rope bridge out from edge cell `cell` on its lane and the nightmare
+# fog at its end (StartGate's art, frame 0), drawn on `canvas` (any CanvasItem in the map's space) at `alpha`.
 func draw_start_ghost(canvas: CanvasItem, cell: Vector2, alpha: float = 0.6) -> void:
-	var size := Vector2(MAP_GRID.cell_size)
-	var tint := Color(1, 1, 1, alpha)  # A multiplier on the tile art, not a colour
-	var out: Vector2i = map.environment_object_layer._outward(Vector2i(cell))
-	var bridge := map.tile_set.get_source(EnvironmentTiles.ROPE_BRIDGE) as TileSetAtlasSource
-	var planks := Vector2i(1, 0) if out.x == 0 else Vector2i(0, 0)  # North-south or east-west
-	for i in range(1, map.environment_object_layer.BRIDGE_CELLS + 1):
-		var at := MAP_GRID.calculate_map_position(cell + Vector2(out * i)) - size / 2.0
-		canvas.draw_texture_rect_region(bridge.texture, Rect2(at, size), bridge.get_tile_texture_region(planks), tint)
-	var mist := map.tile_set.get_source(EnvironmentTiles.EDGE_MIST) as TileSetAtlasSource
-	canvas.draw_texture_rect_region(mist.texture, Rect2(MAP_GRID.calculate_map_position(cell) - size / 2.0, size),
-		mist.get_tile_texture_region(Vector2i.ZERO), tint)
+	var tint := Color(1, 1, 1, alpha)  # A multiplier on the art, not a colour
+	var route := route_from_start(cell)
+	var lane := StartGate.lane_offset(Vector2i(cell), route[0] if not route.is_empty() else cell)
+	StartGate.draw_gate(canvas, Vector2i(cell), lane, 0, load(EnvironmentTiles.shared_path("rope_bridge_lane")),
+		load(EnvironmentTiles.shared_path("nightmare_fog")), MAP_GRID.calculate_map_position(cell), tint)
 
 # The route nightmares would take from rim cell `spot` (the gift screen's preview). Changes nothing.
 func route_from_start(spot: Vector2) -> PackedVector2Array:

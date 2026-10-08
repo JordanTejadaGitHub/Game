@@ -43,7 +43,8 @@ var lighting: EnvironmentLighting  # Cold edges, warm Warden lights
 var ambience: EnvironmentAmbience  # Edge fog and the act's particles
 var ground_patches: GroundPatches  # Ground variation (environment_assets.md "Ground variation")
 var tree_fade: TallObstacleFade  # Withered Trees fade their overhang over what's behind them
-var rim_layer: TileMapLayer  # The island's rim and the cliffs under it (ground-level, z -1)
+var island_lip: IslandLip  # The island's edge and the south vines, drawn just outside the grid
+var start_gate: StartGate  # The rope bridge on the lane and the nightmare fog it comes out of
 var gifts: MapGifts  # Heartwood's Gifts: terrain the act-break gifts leave (map_gifts.gd)
 var _route_hold := 0  # hold_route() depth
 var _route_dirty := false  # A block changed while held: redraw at release_route()
@@ -74,19 +75,13 @@ func _ready() -> void:
 	ground_layer.light_mask |= Heartwood.GROUND_LIGHT_MASK  # The Heartwood's light lifts the grass only, never the path
 	path_layer.z_index = -1
 	ground_layer.initialize()
-	# The start sits in the rim ring: the rim goes under its path (path_rim.png is transparent outside the
-	# path), on the ground layer since the object layer draws over the path. The Heartwood is inland.
-	ground_layer.set_cell(Vector2i(startPath), EnvironmentTiles.ISLAND_EDGE,
-		Vector2i(EnvironmentTiles.rim_mask(Vector2i(startPath), Vector2i(MAP_GRID.size)), 0))
-	# The rim and the cliffs: ground-level (z -1, after the path), not on the y-sorted object layer, so a Warden's
-	# ground ring by the border draws over them (user 2026-10-07: "the ring attack gets blocked by the outer edges").
-	rim_layer = TileMapLayer.new()
-	rim_layer.name = "RimLayer"
-	rim_layer.tile_set = tile_set
-	rim_layer.z_index = -1
-	add_child(rim_layer)
-	move_child(rim_layer, path_layer.get_index() + 1)
-	environment_object_layer.rim_layer = rim_layer
+	# The island's edge (environment_assets.md "Island edge outside the grid"): no rim ring, every cell is ground; the
+	# lip and the south vines are drawn just outside the grid (z -1, before everything else on the ground: Warden
+	# rings and other ground effects draw over them), over the void. The start is on the outermost row or column.
+	island_lip = IslandLip.new()
+	island_lip.name = "IslandLip"
+	add_child(island_lip)
+	move_child(island_lip, ground_layer.get_index())
 	unwalkable_cells = environment_object_layer.initialize(startPath, endPath)
 	path_layer.initialize(get_array_board(), startPath, endPath)
 
@@ -103,6 +98,9 @@ func _ready() -> void:
 		path_layer.set_cell_blocked(cell, true)
 	for cell in environment_object_layer.pond_cells:  # Water: never walkable, buildable or cleared
 		path_layer.set_cell_blocked(cell, true)
+	_edge_ring = environment_object_layer.edge_ring()  # Shut while the route is shaped, as the old rim was
+	for cell in _edge_ring:
+		path_layer.set_cell_blocked(cell, true)
 	_carve_route_if_blocked()
 	_trim_route_if_long()  # No route extension any more: it refilled the open bowl (Room to maze)
 	if obstacles.size() < environment_object_layer.target_obstacles_min:  # Carving took some: lone band ones back, off the route
@@ -113,6 +111,7 @@ func _ready() -> void:
 			path_layer.set_cell_blocked(cell, true)
 	min_route_length = int(absf(endPath.x - startPath.x) + absf(endPath.y - startPath.y)) + MapLayout.BEND_EXTRA
 	path_layer.prefer_route(_straightest_route())  # Fewest turns among the shortest routes
+	_open_edge_ring(rng)
 
 	path_layer.draw()
 	ground_patches = GroundPatches.new()  # Ground variation: big soft patches over the grass, under the path
@@ -139,6 +138,12 @@ func _ready() -> void:
 	dream_void.map_seed = map_seed
 	add_child(dream_void)
 	move_child(dream_void, 0)  # Behind the tile layers
+
+	start_gate = StartGate.new()
+	start_gate.name = "StartGate"
+	start_gate.map = self
+	start_gate.set_start(Vector2i(startPath))
+	add_child(start_gate)
 
 	omen_mist = OmenMist.new()
 	omen_mist.map_generator = self
@@ -198,9 +203,37 @@ func set_act(act: int) -> void:
 		corner.texture = (tile_set.get_source(EnvironmentTiles.POND_INNER) as TileSetAtlasSource).texture
 	heartwood.set_act(act)
 	path_layer.set_act(act)  # The dual-grid path sheet
+	island_lip.set_act(act)  # The lip and the underside are per act too
 	ground_patches.set_act(act)
 	gifts.set_act(act)
 	ambience.act = act
+
+# Island edge B: the outermost cells (bar the start's pocket) are walled while the route is carved, trimmed and
+# picked (EnvironmentObjectGenerator.edge_ring), so the maze is shaped as it was with the old rim; then they open.
+var _edge_ring: Array[Vector2] = []
+
+# Opens the edge ring. Where it would now give a shortcut (a shorter route running along the edge, Wardens on one side
+# only), a band tree or stone goes on the first edge cell it uses, until the drawn route keeps off the edge. The route
+# picked with the ring shut is always still there, so this never closes the way.
+func _open_edge_ring(rng: RandomNumberGenerator) -> void:
+	var ring := {}
+	for cell in _edge_ring:
+		ring[cell] = true
+		if not obstacles.has(cell) and not environment_object_layer.pond_cells.has(cell):  # Water stays shut
+			path_layer.set_cell_blocked(cell, false)
+	_edge_ring.clear()
+	for attempt in 40:
+		var shortcut := Vector2(-1, -1)
+		for point in path_layer.find_drawn_route():
+			var cell := (Vector2(FindPath.point_to_node(point)) / 2.0).floor()
+			if ring.has(cell) and not obstacles.has(cell):
+				shortcut = cell
+				break
+		if shortcut == Vector2(-1, -1):
+			return
+		var data: ObstacleData = environment_object_layer.tree_obstacle if rng.randf() < 0.5 else environment_object_layer.rock_obstacle
+		environment_object_layer._place_obstacle(rng, shortcut, data, obstacles)
+		path_layer.set_cell_blocked(shortcut, true)
 
 # If obstacles cut the start off from the end, clears the fewest-obstacle route between them.
 # Ridges are left intact (they create the zig-zag) unless there's no other way through.
@@ -315,7 +348,7 @@ func _find_carve_route(level: int) -> PackedVector2Array:
 	astar.default_compute_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
 	astar.default_estimate_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
 	astar.update()
-	for cell in unwalkable_cells:
+	for cell in unwalkable_cells + PackedVector2Array(_edge_ring):
 		if astar.is_in_boundsv(Vector2i(cell)):
 			astar.set_point_solid(Vector2i(cell), true)
 	for cell in environment_object_layer.pond_cells:
@@ -603,20 +636,15 @@ func _route_changed() -> void:
 	path_layer.draw()
 	path_changed.emit()
 
-# Shifting Mist (heartwood_gifts.md 0c552b28): nightmares come from `new_start`, a rim cell, from now on. The
-# rim, mist and bridge move (EnvironmentObjectGenerator.move_start), the halves swap, the route is redrawn and
+# Shifting Mist (heartwood_gifts.md 0c552b28): nightmares come from `new_start`, an edge cell, from now on. The
+# mist and bridge move (EnvironmentObjectGenerator.move_start), the route is redrawn and
 # path_changed re-routes everything walking. Spawns read startPath, so they follow.
 func move_start(new_start: Vector2) -> void:
 	var old := startPath
 	if new_start == old:
 		return
 	environment_object_layer.move_start(Vector2i(old), Vector2i(new_start))
-	unwalkable_cells = environment_object_layer.unwalkable_cells
-	ground_layer.erase_cell(Vector2i(old))  # Rim cells have no ground under them; the start's rim sits on the ground layer
-	ground_layer.set_cell(Vector2i(new_start), EnvironmentTiles.ISLAND_EDGE,
-		Vector2i(EnvironmentTiles.rim_mask(Vector2i(new_start), Vector2i(MAP_GRID.size)), 0))
-	path_layer.set_cell_blocked(old, true)
-	path_layer.set_cell_blocked(new_start, false)
+	unwalkable_cells = environment_object_layer.unwalkable_cells  # (The old start is plain ground now: it stays open.)
 	startPath = new_start
 	path_layer.cell_start_path = new_start
 	if layout != null:
@@ -624,6 +652,8 @@ func move_start(new_start: Vector2) -> void:
 	if dream_void != null:
 		dream_void.move_bridge(environment_object_layer.bridge_end)
 	path_layer.draw()
+	if start_gate != null:
+		start_gate.set_start(Vector2i(new_start))
 	path_changed.emit()
 
 # --- Obstacles ------------------------------------------------------------------------------------

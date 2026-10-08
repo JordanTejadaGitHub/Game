@@ -291,6 +291,9 @@ func _free_cells(map_generator, count: int) -> Array[Vector2]:
 			var cell: Vector2 = path[i] + offset
 			if path.has(cell) or found.has(cell) or not map_generator.can_block(cell):
 				continue
+			var last: Vector2 = map_generator.MAP_GRID.size - Vector2.ONE  # Island edge B: the edge cells are ground, but taps there can land on the HUD
+			if cell.x <= 0 or cell.y <= 0 or cell.x >= last.x or cell.y >= last.y:
+				continue
 			if found.any(func(f: Vector2) -> bool: return f.distance_to(cell) < 2.5):
 				continue
 			found.append(cell)

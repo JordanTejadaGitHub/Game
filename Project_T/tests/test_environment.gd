@@ -24,50 +24,53 @@ func _init() -> void:
 		"all layers share the environment TileSet")
 	_check(ground.get_cell_source_id(Vector2i(5, 5)) == EnvironmentTiles.GRASS, "ground is grass")
 	var size := Vector2i(map.MAP_GRID.size)
-	var rim_cell := Vector2i(0, 1)  # A left-edge rim cell that isn't the start or the goal (layouts move them)
-	while Vector2(rim_cell) == map.startPath or Vector2(rim_cell) == map.endPath:
-		rim_cell.y += 1
-	_check(ground.get_cell_source_id(rim_cell) == -1, "no grass square under the island's rim")
-	_check(map.rim_layer.get_cell_source_id(rim_cell) == EnvironmentTiles.ISLAND_EDGE
-		and map.rim_layer.get_cell_atlas_coords(rim_cell).x == 1 | 2 | 4, "the left rim: island to the N, E and S")
-	_check(map.rim_layer.get_cell_atlas_coords(Vector2i(0, 0)).x == 2 | 4, "the top-left corner: island to the E and S")
-	# Ground-level, not y-sorted with the trees: a Warden's ground ring (Main, z -1, added later) draws over the rim
-	# and the cliffs, which still cover the void (z -10).
-	_check(map.rim_layer.z_index == -1 and map.rim_layer.z_index > map.dream_void.z_index and env.get_cell_source_id(rim_cell) == -1
-		and map.rim_layer.get_index() > map.path_layer.get_index(), "the rim is on its own ground-level layer, after the path")
+	# Island edge outside the grid (environment_assets.md, user "B"): the outer ring is ground you can build on; the
+	# lip and the south cliff are drawn just outside the grid (IslandLip), ground-level so Warden rings draw over them.
+	var edge_cell := Vector2i(0, 1)  # A left-edge cell that isn't the start or the goal (layouts move them)
+	while Vector2(edge_cell) == map.startPath or Vector2(edge_cell) == map.endPath or map.obstacles.has(Vector2(edge_cell)):
+		edge_cell.y += 1
+	_check(ground.get_cell_source_id(edge_cell) == EnvironmentTiles.GRASS and env.get_cell_source_id(edge_cell) != EnvironmentTiles.ISLAND_EDGE,
+		"the outer ring is grass, no rim tile")
+	_check(map.is_buildable(Vector2(edge_cell)) and not map.is_buildable(Vector2(-1, edge_cell.y)) and not map.is_buildable_half(Vector2(-1, edge_cell.y * 2)),
+		"an edge cell is buildable; outside the grid is not")
+	var lip: IslandLip = map.island_lip
+	_check(lip != null and lip.z_index == -1 and lip.z_index > map.dream_void.z_index and lip.get_index() < map.ground_layer.get_index(),
+		"the lip is ground-level, over the void, under the ground (Warden rings in Main draw over it)")
+	_check(lip._lip != null and lip._under != null, "the lip and underside sheets load")
 	var tree_sheet := map.tile_set.get_source(EnvironmentTiles.WITHERED_TREE) as TileSetAtlasSource
 	_check(tree_sheet.texture_region_size == Vector2i(96, 128) and tree_sheet.get_tiles_count() == 9
 		and tree_sheet.get_tile_data(Vector2i(0, 8), 0).texture_origin == Vector2i(0, 32),
 		"Withered Trees are 96x128, 9 kinds, bottom 64 px on their own cell")
-	var cliffs := 0  # Under the bottom row, except where a rope bridge crosses out over them
-	for x in range(1, size.x - 1):
-		if map.rim_layer.get_cell_source_id(Vector2i(x, size.y)) == EnvironmentTiles.CLIFF and map.rim_layer.get_cell_atlas_coords(Vector2i(x, size.y)).x == 3:
-			cliffs += 1
-	_check(cliffs >= size.x - 3, "cliffs hang under the bottom row (%d)" % cliffs)
 	var out: Vector2i = env._outward(Vector2i(map.startPath))
-	_check(env.get_cell_source_id(Vector2i(map.startPath) + out) == EnvironmentTiles.ROPE_BRIDGE,
-		"a rope bridge leads out from the start, off its edge")
+	var gate: StartGate = map.start_gate
+	var first_half: Vector2 = map.path_layer.current_path[0]
+	var lane_px: float = (map.MAP_GRID.calculate_map_position(first_half) - gate.position).dot(Vector2(absf(out.y), absf(out.x)))
+	_check(gate != null and gate.start == Vector2i(map.startPath) and gate.position == map.MAP_GRID.calculate_map_position(map.startPath)
+		and gate._bridge != null and gate._fog != null and gate._fog.get_width() == 4 * 192 and gate._fog.get_height() == 192,
+		"the start gate (the lane's rope bridge, the nightmare fog) stands at the start")
+	_check(absf(gate.lane) == 16.0 and gate.lane == lane_px, "the bridge runs on the lane's half row (%s px, route half %s)" % [gate.lane, first_half])
+	_check(env.get_cell_source_id(Vector2i(map.startPath) + out) == -1 and env.get_cell_source_id(Vector2i(map.startPath)) == -1,
+		"no rope-bridge or mist tiles at the start any more")
 	_check(map.dream_void.get_child(0) is Parallax2D and map.dream_void.z_index < 0, "the void sits behind the map")
-	_check(env.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.EDGE_MIST, "mist on the start cell")
+	var fog_at: Vector2 = map.MAP_GRID.calculate_map_position(Vector2(env.bridge_end))
+	var islet_at_fog := false
+	for n in map.dream_void.get_children():
+		islet_at_fog = islet_at_fog or (n is Sprite2D and n.position.distance_to(fog_at) < 1.0)
+	_check(not islet_at_fog, "no islet under the fog")
 	var trees := map.tile_set.get_source(EnvironmentTiles.WITHERED_TREE) as TileSetAtlasSource
 	_check(trees.get_tile_animation_mode(Vector2i(0, 0)) == TileSetAtlasSource.TILE_ANIMATION_MODE_RANDOM_START_TIMES,
 		"dead trees start their animation at random times")
 	_check(trees.get_tile_animation_speed(Vector2i(0, 3)) != trees.get_tile_animation_speed(Vector2i(0, 4))
 		and trees.get_tile_animation_frame_duration(Vector2i(0, 0), 0) != trees.get_tile_animation_frame_duration(Vector2i(0, 0), 1),
 		"each dead-tree type animates at its own pace")
-	for cell in path.get_used_cells():
-		var on_rim: bool = Vector2(cell) == map.startPath
-		if path.get_cell_source_id(cell) != (EnvironmentTiles.PATH_RIM if on_rim else EnvironmentTiles.PATH):
-			_check(false, "path cell %s uses the path sheet" % cell)
-			break
-	var start_mask: int = path.get_cell_atlas_coords(Vector2i(map.startPath)).x
-	_check(path.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.PATH_RIM
-		and ground.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.ISLAND_EDGE,
-		"the start draws rim-edge path over the rim, no grass")
+	for cell in path.get_used_cells():  # The path is all on the dual grid now (no rim tile at the start)
+		_check(false, "no whole-cell path tile left (%s)" % cell)
+		break
+	var halves: Dictionary = map.path_layer.path_halves()
+	_check(halves.keys().any(func(h: Vector2i) -> bool: return (Vector2(h) / 2.0).floor() == map.startPath + Vector2(out)),
+		"the start's path runs out past the island's edge, under the bridge")
 	_check(map.halves_of(map.endPath * 2).has(Vector2(FindPath.point_to_node(map.path_layer.current_path[-1])))  # Ends on a Heartwood half
 		and ground.get_cell_source_id(Vector2i(map.endPath)) == EnvironmentTiles.GRASS, "the Heartwood stands inland, on grass")
-	var out_bit: int = {Vector2i.UP: 1, Vector2i.RIGHT: 2, Vector2i.DOWN: 4, Vector2i.LEFT: 8}[out]
-	_check(start_mask & out_bit, "the start's path tile runs off its edge (mask %d)" % start_mask)
 	for cell in map.obstacles:
 		var data: ObstacleData = map.obstacles[cell]
 		if env.get_cell_source_id(Vector2i(cell)) != data.source_id:
@@ -90,7 +93,6 @@ func _init() -> void:
 	env.set_cell(worn, EnvironmentTiles.GROUND_DETAILS, Vector2i.ZERO)
 	path.call("draw")  # PathGenerator.draw(), not CanvasItem's draw signal
 	_check(env.get_cell_source_id(worn) == -1, "the path wears away a ground detail under it")
-	_check(env.get_cell_source_id(Vector2i(map.startPath)) == EnvironmentTiles.EDGE_MIST, "but not the start's mist")
 
 	# The Heartwood blackens as leaves are lost.
 	var heartwood: Heartwood = map.heartwood
@@ -155,8 +157,8 @@ func _init() -> void:
 	var hatched := hatch.get_hatched_halves()  # Half cells (half_cells.md)
 	var an_obstacle: Vector2 = map.obstacles.keys()[0]
 	var all_halves := func(cell: Vector2) -> bool: return map.halves_of(cell * 2).all(func(h: Vector2) -> bool: return hatched.has(h))
-	_check(hatch.visible and all_halves.call(Vector2(rim_cell)) and all_halves.call(map.startPath) and all_halves.call(map.endPath)
-		and all_halves.call(an_obstacle), "build mode hatches the rim, the start, the end and obstacles (all their halves)")
+	_check(hatch.visible and not all_halves.call(Vector2(edge_cell)) and all_halves.call(map.startPath) and all_halves.call(map.endPath)
+		and all_halves.call(an_obstacle), "build mode hatches the start, the end and obstacles (all their halves), not the buildable edge")
 	var open_cell := Vector2(-1, -1)
 	_check(hatched.all(func(h: Vector2) -> bool: return not map.is_buildable_half(h)), "only unbuildable halves are hatched")
 	for x in range(1, 22):

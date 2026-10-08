@@ -3,7 +3,7 @@ class_name EnvironmentObjectGenerator
 
 const MAP_GRID = preload("res://resource/map/map_grid.tres")
 # Rings of healthy trees outside the border wall: dark silhouettes where the maze never goes.
-const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVoid puts an islet at its end)
+const BRIDGE_CELLS := StartGate.BRIDGE_CELLS  # Rope bridge from the start out into the void, into the nightmare fog
 @export var noise_texture: NoiseTexture2D
 @export var tree_obstacle: ObstacleData = preload("res://resource/obstacle/tree.tres")
 @export var rock_obstacle: ObstacleData = preload("res://resource/obstacle/rock.tres")
@@ -25,11 +25,11 @@ const BRIDGE_CELLS := 3  # Rope bridge from the start out into the void (DreamVo
 # environment_assets.md "Room to maze": an open build bowl in the middle (the interior `frame_band` cells in
 # from the rim) for the player's switchbacks. Groves, rock clusters, the feature and the spurs' roots go in the
 # frame band around it; the bowl only gets a few lone "decision" obstacles. Ground patches and details stay.
-@export var frame_band: int = 3  # Cells of frame between the rim and the bowl
+@export var frame_band: int = 4  # Cells of frame between the island's edge and the bowl (the old rim ring + 3)
 @export var bowl_obstacles_min: int = 3  # Lone decision obstacles in the bowl (user 2026-10-06: "a bit more obstacles")
 @export var bowl_obstacles_max: int = 6
-@export var target_obstacles_min: int = 38  # The whole map: band groves are thinned or topped up into this
-@export var target_obstacles_max: int = 48
+@export var target_obstacles_min: int = 48  # Island edge B: +10 for the old rim ring at the frame band's density (13.1% of 78 cells)
+@export var target_obstacles_max: int = 58
 @export_group("Ridges")
 # Ridges are tapered spurs of rocks and trees reaching in from the frame, from alternating walls. They give
 # the opening route its bend; clearing one of their cells opens a shortcut.
@@ -70,9 +70,6 @@ var unwalkable_cells: PackedVector2Array
 # Cells that belong to a ridge (set of Vector2 -> true), so route carving can avoid breaking them.
 var ridge_cells: Dictionary = {}
 var bridge_end: Vector2i  # The void cell just past the rope bridge's far end
-# The island's rim and the cliffs under it (MapGenerator's RimLayer, z -1 like the ground): ground-level, so Warden
-# attack effects on the ground (Main, z -1, drawn after) show over them, while they still cover the void (z -10).
-var rim_layer: TileMapLayer
 var ridge_count := 0  # Ridges the last generate_obstacles() placed
 var bend_reach := 0  # Cells the last bend spur reached from its wall
 
@@ -102,10 +99,7 @@ func initialize(startPath: Vector2i, endPath: Vector2i) -> PackedVector2Array:
 	_start = startPath
 	_end = endPath
 	_generate_border(startPath, endPath)
-	_generate_cliffs()
-	_generate_bridge(startPath)
-	# Nightmare mist where drifts arrive. Nothing is ever built or cleared on the start cell.
-	set_cell(startPath, EnvironmentTiles.EDGE_MIST, Vector2i.ZERO)
+	_generate_bridge(startPath)  # The bridge and the nightmare fog are StartGate's (MapGenerator). Nothing is ever built or cleared on the start cell.
 	return unwalkable_cells
 
 # Places ridges, rock clusters, trees (clustered by noise) and lone rocks, skipping `skip_cells`.
@@ -159,28 +153,28 @@ func generate_obstacles(rng: RandomNumberGenerator, skip_cells: PackedVector2Arr
 func in_band(cell: Vector2) -> bool:
 	var size := Vector2i(MAP_GRID.size)
 	var c := Vector2i(cell)
-	if c.x < 1 or c.y < 1 or c.x > size.x - 2 or c.y > size.y - 2:
-		return false  # The rim (or off the map)
+	if c.x < 0 or c.y < 0 or c.x > size.x - 1 or c.y > size.y - 1:
+		return false  # Off the map
 	return not in_bowl(cell)
 
 # True for a cell in the open build bowl: `frame_band` cells or more in from the rim.
 func in_bowl(cell: Vector2) -> bool:
 	var size := Vector2i(MAP_GRID.size)
 	var c := Vector2i(cell)
-	return c.x >= 1 + frame_band and c.y >= 1 + frame_band and c.x <= size.x - 2 - frame_band and c.y <= size.y - 2 - frame_band
+	return c.x >= frame_band and c.y >= frame_band and c.x <= size.x - 1 - frame_band and c.y <= size.y - 1 - frame_band
 
 # A few lone "decision" obstacles in the open bowl, never touching another obstacle (8 around).
 func _place_bowl_obstacles(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
 	bowl_cells.clear()
 	var want := rng.randi_range(bowl_obstacles_min, bowl_obstacles_max)
 	var placed := 0
-	if 1 + frame_band > int(MAP_GRID.size.y) - 2 - frame_band:
+	if frame_band > int(MAP_GRID.size.y) - 1 - frame_band:
 		return  # No bowl (a frame as wide as the map: tests)
 	for attempt in 200:
 		if placed >= want:
 			return
-		var cell := Vector2(rng.randi_range(1 + frame_band, int(MAP_GRID.size.x) - 2 - frame_band),
-			rng.randi_range(1 + frame_band, int(MAP_GRID.size.y) - 2 - frame_band))
+		var cell := Vector2(rng.randi_range(frame_band, int(MAP_GRID.size.x) - 1 - frame_band),
+			rng.randi_range(frame_band, int(MAP_GRID.size.y) - 1 - frame_band))
 		if skip_cells.has(cell) or _touches_obstacle(cell, obstacles):
 			continue
 		_place_obstacle(rng, cell, tree_obstacle if rng.randf() < 0.5 else rock_obstacle, obstacles)
@@ -225,7 +219,7 @@ func _fill_to_minimum(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 	for attempt in 800:
 		if obstacles.size() >= maxi(min_obstacles, target_obstacles_min):
 			return placed
-		var cell := Vector2(rng.randi_range(1, int(MAP_GRID.size.x) - 2), rng.randi_range(1, int(MAP_GRID.size.y) - 2))
+		var cell := Vector2(rng.randi_range(0, int(MAP_GRID.size.x) - 1), rng.randi_range(0, int(MAP_GRID.size.y) - 1))
 		if in_band(cell) and not skip_cells.has(cell) and not obstacles.has(cell):
 			_place_obstacle(rng, cell, tree_obstacle if rng.randf() < 0.5 else rock_obstacle, obstacles)
 			placed.append(cell)
@@ -269,7 +263,7 @@ func _generate_ridges(rng: RandomNumberGenerator, skip_cells: PackedVector2Array
 	_bend_spur(rng, rows[0], from_low, bend_reach, Vector2i(mini(a, b) + RIDGE_END_GAP, maxi(a, b) - RIDGE_END_GAP), skip_cells, obstacles)
 	for ridge in range(1, rows.size()):  # Any others: short spurs from alternating walls
 		from_low = not from_low
-		var length := maxi(frame_band + 1, roundi(u_inner * rng.randf_range(ridge_length_min, ridge_length_max)))
+		var length := maxi(frame_band, roundi(u_inner * rng.randf_range(ridge_length_min, ridge_length_max)))
 		_ridge(rng, rows[ridge], from_low, length, 0, skip_cells, obstacles)  # Gaps past the root (only the bend must hold)
 
 # The bend spur: a gap-free line `length` cells from its wall (clearable like any obstacle: a big shortcut
@@ -288,7 +282,7 @@ func _bend_spur(rng: RandomNumberGenerator, v_base: int, from_low: bool, length:
 	var v := v_base
 	var next_step := root + rng.randi_range(1, 3)
 	var u_at := func(i: int) -> int: return 1 + i if from_low else u_inner - i
-	for i in length:
+	for i in range(-1, length):  # From the island's edge (i = -1, the old rim ring): the route can't slip round the root
 		var u: int = u_at.call(i)
 		if i == next_step and i < length - 1:
 			_place_spur_cell(rng, _cell(u, v), run, skip_cells, obstacles)  # The corner: no diagonal gap
@@ -357,7 +351,7 @@ func _ridge(rng: RandomNumberGenerator, v_base: int, from_low: bool, length: int
 	var root_end := roundi(length * ridge_root_fraction)
 	var tip_start := length - roundi(length * ridge_tip_fraction)
 	var v := v_base
-	for i in length:
+	for i in range(-1, length):  # From the island's edge (i = -1, the old rim ring): the route can't slip round the root
 		if rng.randf() < ridge_wander_chance:
 			v = clampi(v + (1 if rng.randf() < 0.5 else -1), v_base - 1, v_base + 1)
 		if i >= maxi(root_end, gaps_from) and rng.randf() < ridge_gap_chance:
@@ -403,11 +397,11 @@ func _place_ridge_cell(rng: RandomNumberGenerator, cell: Vector2, rock_share: fl
 # Round-ish blobs of rocks, denser in the middle.
 func _generate_rock_clusters(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, obstacles: Dictionary) -> void:
 	for cluster in rng.randi_range(rock_cluster_count_min, rock_cluster_count_max):
-		var center := Vector2(rng.randi_range(1, int(MAP_GRID.size.x) - 2), rng.randi_range(1, int(MAP_GRID.size.y) - 2))
+		var center := Vector2(rng.randi_range(0, int(MAP_GRID.size.x) - 1), rng.randi_range(0, int(MAP_GRID.size.y) - 1))
 		for retry in 20:  # In the frame band
 			if in_band(center):
 				break
-			center = Vector2(rng.randi_range(1, int(MAP_GRID.size.x) - 2), rng.randi_range(1, int(MAP_GRID.size.y) - 2))
+			center = Vector2(rng.randi_range(0, int(MAP_GRID.size.x) - 1), rng.randi_range(0, int(MAP_GRID.size.y) - 1))
 		var radius := rng.randf_range(rock_cluster_radius_min, rock_cluster_radius_max)
 		var reach := ceili(radius)
 		for dx in range(-reach, reach + 1):
@@ -513,58 +507,40 @@ func _compute_noise_levels(noise: FastNoiseLite, tree_density: float) -> void:
 # The map is an island of dream adrift in the void (environment_assets.md, "The dream's outer
 # layer"): its border cells are the island's rim, each tile picked by which neighbours are island.
 # The rim stays unwalkable; the start and end are open (the path draws them).
-func _generate_border(startPath: Vector2i, endPath: Vector2i) -> void:
+# Island edge outside the grid (environment_assets.md, user 2026-10-07 "B"): there is no rim ring any more. Every cell
+# is ground; the island's edge (the lip, and the hanging vines under the south side) is drawn just outside the grid by
+# IslandLip. Nothing is unwalkable at the start (only obstacles and Wardens block).
+func _generate_border(_start_path: Vector2i, _end_path: Vector2i) -> void:
+	unwalkable_cells.clear()
+
+# The island's outermost cells, bar the start and the cell inward of it: ground anyone can build on, but while the map is
+# generated the route is shaped as if they were the old rim (Balancing's A/B: an opening along the edge, Wardens on one
+# side only, leaked 4× in act 1). MapGenerator shuts them while it carves and trims, then opens them (open_edge_ring).
+func edge_ring() -> Array[Vector2]:
+	var ring: Array[Vector2] = []
 	var last := Vector2i(MAP_GRID.size) - Vector2i.ONE
-	# island_edge.png has a variant per row (they all meet at the tile ends): a mix of them keeps the
-	# rim from repeating one scallop round the island. Picked by a hash of the cell, so the rng is untouched.
-	var variants := (tile_set.get_source(EnvironmentTiles.ISLAND_EDGE) as TileSetAtlasSource).get_atlas_grid_size().y
-	for x in range(0, last.x + 1):
-		for y in range(0, last.y + 1):
+	var inward := _start - _outward(_start)  # The way in (a corner start's own edge cell)
+	for y in last.y + 1:
+		for x in last.x + 1:
 			var cell := Vector2i(x, y)
-			if (x != 0 and y != 0 and x != last.x and y != last.y) or cell == startPath or cell == endPath:
-				continue
-			var variant := absi(hash(cell)) % maxi(variants, 1)
-			_rim().set_cell(cell, EnvironmentTiles.ISLAND_EDGE, Vector2i(EnvironmentTiles.rim_mask(cell, last + Vector2i.ONE), variant))
-			unwalkable_cells.append(Vector2(cell))
+			if (x == 0 or y == 0 or x == last.x or y == last.y) and cell != _start and cell != inward:
+				ring.append(Vector2(cell))
+	return ring
 
-# Cliff faces hanging under the island's bottom row.
-func _generate_cliffs() -> void:
-	var size := Vector2i(MAP_GRID.size)
-	for x in size.x:
-		var cell := Vector2i(x, size.y)
-		var column := (1 if x > 0 else 0) | (2 if x < size.x - 1 else 0)
-		_rim().set_cell(cell, EnvironmentTiles.CLIFF, Vector2i(column, EnvironmentTiles.cell_variant(cell, 4)))
+# The walls the generation's route searches go around: the unwalkable cells and the edge ring.
+func route_walls() -> PackedVector2Array:
+	return unwalkable_cells + PackedVector2Array(edge_ring())
 
-# A rope bridge from the start cell straight out into the void, where the nightmares cross over.
+# The rope bridge runs from the start cell straight out into the void, where the nightmares cross over. StartGate
+# draws it (on the lane's half row) and the nightmare fog at its far end; this only keeps where that end is.
 func _generate_bridge(startPath: Vector2i) -> void:
-	var out := _outward(startPath)
-	var tile := Vector2i(1, 0) if out.x == 0 else Vector2i(0, 0)  # North-south or east-west planks
-	for i in range(1, BRIDGE_CELLS + 1):
-		set_cell(startPath + out * i, EnvironmentTiles.ROPE_BRIDGE, tile)
-		_rim().erase_cell(startPath + out * i)  # No cliff face under the planks
-	bridge_end = startPath + out * (BRIDGE_CELLS + 1)
+	bridge_end = startPath + _outward(startPath) * (BRIDGE_CELLS + 1)
 
-# Shifting Mist (heartwood_gifts.md 0c552b28): the start moves to `new` on the rim. The old start turns back
-# into rim (its bridge goes, the cliffs come back under the bottom row); the new one gets the mist and a bridge.
-func move_start(old: Vector2i, new: Vector2i) -> void:
-	var size := Vector2i(MAP_GRID.size)
-	var out := _outward(old)
-	for i in range(1, BRIDGE_CELLS + 1):
-		var cell := old + out * i
-		erase_cell(cell)
-		if cell.y == size.y and cell.x >= 0 and cell.x < size.x:  # Under the bottom row: its cliff face again
-			_rim().set_cell(cell, EnvironmentTiles.CLIFF, Vector2i((1 if cell.x > 0 else 0) | (2 if cell.x < size.x - 1 else 0), EnvironmentTiles.cell_variant(cell, 4)))
-	var variants := (tile_set.get_source(EnvironmentTiles.ISLAND_EDGE) as TileSetAtlasSource).get_atlas_grid_size().y
-	_rim().set_cell(old, EnvironmentTiles.ISLAND_EDGE, Vector2i(EnvironmentTiles.rim_mask(old, size), absi(hash(old)) % maxi(variants, 1)))
-	erase_cell(old)  # The old start's mist
-	unwalkable_cells.append(Vector2(old))
-	var at := unwalkable_cells.find(Vector2(new))
-	if at >= 0:
-		unwalkable_cells.remove_at(at)
+# Shifting Mist (heartwood_gifts.md 0c552b28): the start moves to `new` on the island's edge. The old start is
+# plain ground already; the bridge and fog move with StartGate.
+func move_start(_old: Vector2i, new: Vector2i) -> void:
 	_start = new
-	_rim().erase_cell(new)  # The new start: no rim tile (the ground layer has its rim under the path)
 	_generate_bridge(new)
-	set_cell(new, EnvironmentTiles.EDGE_MIST, Vector2i.ZERO)
 
 # The direction off the island from an edge cell.
 func _outward(cell: Vector2i) -> Vector2i:
@@ -754,14 +730,14 @@ func _deep_in_bowl(cell: Vector2) -> bool:
 func _feature_cell_ok(cell: Vector2, skip: PackedVector2Array, obstacles: Dictionary) -> bool:
 	var far := maxi(absi(int(cell.x) - _start.x), absi(int(cell.y) - _start.y)) >= feature_clearance \
 		and maxi(absi(int(cell.x) - _end.x), absi(int(cell.y) - _end.y)) >= feature_clearance
-	return far and cell.x >= 1 and cell.y >= 1 and cell.x <= MAP_GRID.size.x - 2 and cell.y <= MAP_GRID.size.y - 2 \
+	return far and cell.x >= 0 and cell.y >= 0 and cell.x <= MAP_GRID.size.x - 1 and cell.y <= MAP_GRID.size.y - 1 \
 		and not skip.has(cell) and not obstacles.has(cell)
 
 # A feature must never cut the start from the end, even with every ridge standing: a pond can't be
 # cleared at all, and carving through a ruin or grove would break it.
 func _route_survives(pond: Array[Vector2]) -> bool:
 	var blocked := {}
-	for cell in unwalkable_cells:
+	for cell in route_walls():
 		blocked[Vector2i(cell)] = true
 	for cell in ridge_cells:
 		blocked[Vector2i(cell)] = true
@@ -787,7 +763,7 @@ func _route_survives(pond: Array[Vector2]) -> bool:
 # Steps from the start to the end past the rim, the ridges and `extra` (-1 = no way through).
 func _route_length(extra: Array) -> int:
 	var blocked := {}
-	for cell in unwalkable_cells:
+	for cell in route_walls():
 		blocked[Vector2i(cell)] = true
 	for cell in ridge_cells:
 		blocked[Vector2i(cell)] = true
@@ -820,7 +796,7 @@ func _place_obstacle_tile(cell: Vector2, data: ObstacleData, tile: Vector2i, obs
 # the end past the rim and the ridges. {cell (Vector2i): true}; empty if there's none yet.
 func _provisional_route() -> Dictionary:
 	var blocked := {}
-	for cell in unwalkable_cells:
+	for cell in route_walls():
 		blocked[Vector2i(cell)] = true
 	for cell in ridge_cells:
 		blocked[Vector2i(cell)] = true
@@ -878,6 +854,3 @@ func top_up(rng: RandomNumberGenerator, skip_cells: PackedVector2Array, route: D
 		skip.append(cell)
 	skip.append_array(PackedVector2Array(pond_cells))
 	return _fill_to_minimum(rng, skip, obstacles)
-
-func _rim() -> TileMapLayer:
-	return rim_layer if rim_layer != null else self

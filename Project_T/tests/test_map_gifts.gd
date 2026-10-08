@@ -141,12 +141,15 @@ func _init() -> void:
 	var shift: Array[Vector2] = [options[0]]
 	_give(gifts, run_state, MapGifts.SHIFTING_MIST, shift)
 	_check(map.startPath == options[0] and map.get_path_from(map.startPath) == preview, "the start moves; the route is the preview")
-	_check(env.get_cell_source_id(Vector2i(options[0])) == EnvironmentTiles.EDGE_MIST
-		and map.rim_layer.get_cell_source_id(Vector2i(old_start)) == EnvironmentTiles.ISLAND_EDGE and map.rim_layer.get_cell_source_id(Vector2i(options[0])) == -1
-		and map.path_layer.is_cell_blocked(old_start) and not map.path_layer.is_cell_blocked(options[0]),
-		"the mist and the way in move; the old start is rim again")
+	_check(env.get_cell_source_id(Vector2i(old_start)) == -1 and not map.path_layer.is_cell_blocked(options[0]),
+		"the way in moves; the old start is plain ground again")
+	await process_frame
+	_check(map.start_gate.start == Vector2i(options[0]) and map.start_gate.position == map.MAP_GRID.calculate_map_position(options[0])
+		and map.start_gate.lane == StartGate.lane_offset(Vector2i(options[0]), preview[0]),
+		"the bridge and the nightmare fog move to the new start, on its lane")
 	var out: Vector2i = env._outward(Vector2i(options[0]))
-	_check(env.get_cell_source_id(Vector2i(options[0]) + out) == EnvironmentTiles.ROPE_BRIDGE, "a rope bridge out from the new start")
+	_check(env.bridge_end == Vector2i(options[0]) + out * (StartGate.BRIDGE_CELLS + 1) and map.dream_void.bridge_end == env.bridge_end,
+		"the bridge's far end moves with it")
 
 	# The player tends a gift tree and the moved stone afterwards: they stay gone on resume.
 	var tended_before: int = run_state.obstacles_tended

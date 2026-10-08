@@ -49,7 +49,7 @@ func _run() -> void:
 
 	# --- Invalid cell charges nothing ---
 	run_state.dew = 100
-	_check(not placer._try_build(Vector2(0, 5)), "border cell refused")
+	_check(not placer._try_build(Vector2(-1, 5)), "a cell off the island refused")  # The edge cells are ground now (island edge B)
 	_check(run_state.dew == 100, "invalid placement charges nothing")
 
 	# --- Clearing obstacles costs Dew ---
