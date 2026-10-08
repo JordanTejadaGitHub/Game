@@ -2370,7 +2370,7 @@ const TRAILER_CHORDS := [[50, 3], [50, 3], [50, 3], [50, 3], [50, 3], [46, 4], [
 
 func _make_marketing(out_dir: String, only: Array) -> void:
 	DirAccess.make_dir_recursive_absolute(out_dir)
-	var cues := {"trailer": _cue_trailer, "endcard_button": _cue_endcard}
+	var cues := {"trailer": _cue_trailer, "trailer_v3": _cue_trailer_v3, "endcard_button": _cue_endcard}
 	for bed in BED_CUES:
 		cues[bed] = _cue_bed.bind(bed)
 	for cue in cues:
@@ -2596,6 +2596,280 @@ func _cue_trailer() -> Dictionary:
 	_endcard_into(stems, TRAILER_HITS.endcard, TRAILER_LENGTH - TRAILER_HITS.endcard - 1.2)
 	_mk_trim(stems, TRAILER_LENGTH, 1.5)  # Exactly 75 s for the edit; the held chord fades out at the very end
 	return stems
+
+# --- Trailer v3 (audio_direction.md "1. Trailer cue v3", dc65a7a0): 78 s = a 3.0 s intro + 30 bars. ------
+# The bar grid starts at TRAILER3_GRID, so every hit is a downbeat (3.0 + n × 2.5). Hit sounds go on their own
+# `hits` stem; their times are parameters, and the render prints each one as measured (its loudest point).
+const TRAILER3_LENGTH := 78.0
+const TRAILER3_GRID := 3.0
+const TRAILER3_HITS := {"sting": 0.5, "swell_from": 1.05, "swell_peak": 2.15, "dispel": 10.5, "thunderclap": 23.0,
+	"chain": 33.0, "pick": 36.5, "montage_from": 40.5, "montage_to": 50.5, "boss_shot_1": 53.0, "boss_shot_2": 55.5,
+	"boss_dispelled": 63.0, "endcard": 73.0}
+# Chords per bar (30 bars): [root midi, third].
+const TRAILER3_CHORDS := [[50, 3], [46, 4], [50, 3],  # 3–10.5 the maze
+	[50, 3], [46, 4], [53, 4], [48, 4], [45, 4],  # 10.5–23 tension, A into the Thunderclap
+	[50, 3], [46, 4], [53, 4], [45, 4],  # 23–33 the chain drive
+	[50, 4], [46, 4], [48, 4],  # 33–40.5 the breath, the Dream
+	[53, 4], [48, 4], [50, 3], [45, 4],  # 40.5–50.5 growing
+	[50, 3], [50, 3], [50, 3], [50, 3], [50, 3],  # 50.5–63 bosses (the hollow ostinato carries it)
+	[50, 4], [46, 4], [48, 4], [50, 4],  # 63–73 the Grove
+	[50, 4], [50, 4]]  # 73–78 the end card
+
+func _t3(bar: int) -> float:  # The downbeat of bar `bar` (1-based)
+	return TRAILER3_GRID + (bar - 1) * MK_BAR
+
+func _t3_harmony(stems: Dictionary, from: int, to: int, level: float) -> void:
+	var r := SFX_RATE
+	for bar in range(from, to + 1):
+		var chord: Array = TRAILER3_CHORDS[bar - 1]
+		var t0 := _t3(bar)
+		_mix(stems.mid, _pluck(r, hz(chord[0]), 0.4 * level, 2.4, 0.7, 0.998), r, t0)
+		_mix(stems.mid, _pluck(r, hz(chord[0] + 7), 0.28 * level, 2.0, 0.6, 0.998), r, t0 + MK_BEAT)
+		_mix(stems.mid, _pluck(r, hz(chord[0] + 12 + chord[1]), 0.26 * level, 2.0, 0.6, 0.998), r, t0 + 2 * MK_BEAT)
+		_mix(stems.mid, _mk_pad_chord(chord, MK_BAR * 1.1), r, t0, 0.3 * level)
+		_mix(stems.low, _bowed(r, chord[0] - 12, MK_BAR * 1.05, 350.0), r, t0, 0.45 * level)
+
+# One family's material for the growing montage (40.5–50.5), at `at`: stone, water, light, spore, root,
+# sprout, song, wind, in turn. All rounded; pitched on the bar's chord.
+func _t3_family(stems: Dictionary, k: int, at: float, chord: Array) -> void:
+	var r := SFX_RATE
+	var root: int = chord[0] + 12
+	match k % 8:
+		0:  # Stone: a deep knock + a low thump
+			_mix(stems.hits, _knock(r, hz(root - 12), 0.08), r, at, 0.6)
+			_mix(stems.hits, _normalize(_thump(0.3, 140.0, 0.06), 1.0), r, at, 0.4)
+		1:  # Water: a low drop of music box
+			_mix(stems.hits, _lowpass(_bell(r, hz(root + 7), 0.3, 0.6, MUSIC_BOX, 1.4), 1400.0), r, at, 0.8)
+		2:  # Light: a small bloom of tuned air
+			_mix(stems.hits, _normalize(_light_burst(0.12, 0.8, [root + 12, root + 16, root + 19]), 1.0), r, at - 0.12, 0.45)
+		3:  # Spore: a soft puff
+			_mix(stems.hits, _normalize(_air(0.5, 500.0, 0.03, 0.35), 1.0), r, at, 0.4)
+			_mix(stems.hits, _normalize(_thump(0.2, 200.0, 0.04), 1.0), r, at, 0.3)
+		4:  # Root: a bowed low note
+			_mix(stems.hits, _env(_bowed(r, root - 12, 1.0, 420.0), r, swell(0.06, 0.6, 1.0)), r, at, 0.55)
+		5:  # Sprout: a harp pluck
+			_mix(stems.hits, _pluck(r, hz(root + chord[1]), 0.4, 1.6, 0.7, 0.998), r, at, 0.9)
+		6:  # Song: a soft bell on the fifth
+			_mix(stems.hits, _bell(r, hz(root + 19), 0.28, 0.9, MUSIC_BOX, 1.8), r, at, 0.8)
+		7:  # Wind: a rising breath
+			_mix(stems.hits, _normalize(_air(0.7, 700.0, 0.3, 0.3), 1.0), r, at - 0.25, 0.45)
+
+func _cue_trailer_v3() -> Dictionary:
+	var r := SFX_RATE
+	var b := MK_BAR
+	var h := TRAILER3_HITS
+	var stems := _mk_stems(TRAILER3_LENGTH + 0.5)
+	stems["hits"] = _seg(TRAILER3_LENGTH + 0.5, r)
+
+	# 0–3.0: eyes open in the dark. A low cold drone (never silence), a soft cold sting at 0.5, then a swell
+	# from 1.05 peaking at 2.15 and carrying into the first downbeat.
+	_mix(stems.low, _env(_mk_drone(4.0), r, swell(0.25, 1.2, 4.0)), r, 0.0, 0.45)
+	_mix(stems.low, _env(_bowed(r, 44, 3.2, 380.0), r, swell(0.6, 0.4, 3.2)), r, 0.0, 0.25)  # The hollow A-flat
+	var sting: float = h.sting
+	_mix(stems.hits, _lowpass(_bell(r, hz(56), 0.3, 1.0, MUSIC_BOX, 2.4), 1100.0), r, sting, 0.7)
+	_mix(stems.hits, _normalize(_air(1.2, 380.0, 0.02, 1.0, 0.7), 1.0), r, sting, 0.25)
+	var swell_from: float = h.swell_from
+	var rise := TRAILER3_GRID - swell_from
+	var peak_share: float = (h.swell_peak - swell_from) / rise
+	_mix(stems.top, _env(_air(rise + 0.4, 600.0, 0.1, 0.3, 0.7), r, swell(rise * peak_share, 0.4, rise + 0.4)), r, swell_from, 0.5)
+	_mix(stems.mid, _env(_mk_pad([56, 62, 65], rise + 0.3), r, swell(rise * peak_share, 0.5, rise + 0.3)), r, swell_from, 0.6)
+	for k in 3:  # A soft fill into the downbeat
+		_mix(stems.perc, _tom(r, [80.0, 74.0, 66.0][k]), r, TRAILER3_GRID - (3 - k) * MK_EIGHTH, 0.25 + 0.08 * k)
+
+	# 3.0–10.5: build a living maze. The motif's warm form on music box, a felt pulse that builds (Wardens
+	# snapping down), quarters, then eighths in the last bar; the pad carries through the hit.
+	_mk_motif(stems, _t3(1), 0)
+	_t3_harmony(stems, 1, 3, 0.55)
+	for bar in range(1, 4):
+		var steps := 3 if bar < 3 else 6
+		for k in steps:
+			_mix(stems.perc, _mk_felt(r, 110.0), r, _t3(bar) + k * MK_BAR / steps, 0.35 + 0.07 * bar)
+	_mk_motif(stems, _t3(3), -12)
+	_mix(stems.perc, _tom(r, 76.0), r, h.dispel - 2 * MK_EIGHTH, 0.3)
+	_mix(stems.perc, _tom(r, 70.0), r, h.dispel - MK_EIGHTH, 0.35)
+	var dispel: float = h.dispel  # The first dispel: the approved burst of light
+	_mix(stems.hits, _normalize(_light_burst(0.15, 1.2, DISPEL_CHORD + [50, 57]), 1.0), r, dispel - 0.15, 1.1)  # Under the Thunderclap
+	_mix(stems.mid, _env(_mk_pad([62, 66, 69], 1.6), r, swell(0.05, 1.2, 1.6)), r, dispel, 0.5)
+
+	# 10.5–23: rising tension. Nightmares walk the maze (the cold drone under the harp), then the combos:
+	# toms join, the frame drum from bar 7, a swell into the Thunderclap.
+	_mix(stems.low, _env(_mk_drone(12.8), r, swell(2.0, 1.0, 12.8)), r, dispel, 0.5)
+	_t3_harmony(stems, 4, 8, 0.75)
+	for bar in range(4, 9):
+		var t0 := _t3(bar)
+		for k in 3:
+			_mix(stems.perc, _mk_felt(r, 102.0), r, t0 + k * MK_BEAT, 0.4 + 0.03 * (bar - 4))
+		if bar >= 5:
+			_mix(stems.perc, _tom(r, 58.0), r, t0, 0.5 + 0.08 * (bar - 5))
+		if bar >= 7:
+			_mix(stems.perc, _frame_drum(r), r, t0 + MK_BEAT, 0.45)
+			_mix(stems.perc, _tom(r, 70.0), r, t0 + 2 * MK_BEAT, 0.5)
+	_mk_motif(stems, _t3(6), 0)
+	var clap: float = h.thunderclap
+	_mix(stems.mid, _env(_mk_pad([57, 61, 64, 69], 2.6), r, swell(2.2, 0.3, 2.6)), r, clap - 2.2, 0.6)
+	for k in 3:
+		_mix(stems.perc, _tom(r, [80.0, 72.0, 64.0][k]), r, clap - (3 - k) * MK_EIGHTH, 0.35 + 0.1 * k)
+	_mix(stems.hits, _normalize(_thump(1.2, 60.0, 0.3), 1.0), r, clap, 0.9)  # The ×5 Thunderclap
+	_mix(stems.hits, _normalize(_thunder_roll(), 1.0), r, clap + 0.1, 0.6)
+	_mix(stems.hits, _normalize(_glow_swell(1.2), 1.0), r, clap, 0.5)
+
+	# 23–33: chain lightning. The drive in eighths, harder each bar; the arcs are rolling warm blooms and far
+	# thunder (no crackle, no buzz); the warm form climbs into the biggest hit at 33.
+	var chain: float = h.chain
+	_t3_harmony(stems, 9, 12, 0.9)
+	for bar in range(9, 13):
+		var t0 := _t3(bar)
+		for k in 6:
+			var accent := k % 3 == 0
+			_mix(stems.perc, _tom(r, 58.0 if accent else 74.0), r, t0 + k * MK_EIGHTH, (0.75 if accent else 0.35) + 0.04 * (bar - 9))
+		if bar >= 10:
+			_mix(stems.perc, _frame_drum(r), r, t0, 0.55)
+		for k in 2:  # The arcs: a warm bloom rolling over beats 2 and 3
+			_mix(stems.top, _normalize(_glow_swell(0.9), 1.0), r, t0 + (1 + k) * MK_BEAT - 0.2, 0.3 + 0.05 * (bar - 9))
+		_mix(stems.low, _normalize(_thunder_roll(), 1.0), r, t0 + MK_BEAT, 0.25)  # Far thunder
+	_mk_motif(stems, _t3(9), 0)
+	_mk_motif(stems, _t3(11), 12)
+	_mix(stems.mid, _env(_mk_pad([57, 61, 64, 69], 2.5), r, swell(2.3, 0.2, 2.5)), r, chain - 2.3, 0.6)
+	for k in 6:  # The fill into the biggest hit
+		_mix(stems.perc, _tom(r, 84.0 - 4.0 * k), r, chain - (6 - k) * MK_EIGHTH * 0.5, 0.4 + 0.06 * k)
+	_mix(stems.hits, _normalize(_thump(1.4, 45.0, 0.4), 1.0), r, chain, 1.6)  # The ×10 chain: the loudest moment
+	_mix(stems.hits, _normalize(_rumble(2.4, 70.0, 0.02, 1.8), 1.0), r, chain, 1.0)
+	_mix(stems.hits, _normalize(_air(2.4, 450.0, 0.2, 1.8, 0.7), 1.0), r, chain, 0.8)
+	_mix(stems.hits, _normalize(_glow_swell(2.0), 1.0), r, chain, 0.5)
+	_mix(stems.hits, _normalize(_light_burst(0.1, 2.0, [50, 57, 62, 66, 69, 74]), 1.0), r, chain - 0.1, 0.9)
+	for k in 3:  # The Hope form on the hit
+		_mix(stems.top, _bell(r, hz([74, 81, 78][k]), 0.34, 1.0, MUSIC_BOX, 2.6), r, chain + k * MK_BEAT)
+
+	# 33–40.5: a breath. The big hit's tail rings into it (a long warm pad), the harp alone, then a dreamy
+	# lift; the Dream pick lands ~1 s after the 35.5 bar line: a soft accent.
+	_mix(stems.mid, _env(_mk_pad([50, 54, 57, 62], 5.0), r, swell(0.2, 3.0, 5.0)), r, chain, 0.8)
+	for bar in range(13, 16):
+		var chord: Array = TRAILER3_CHORDS[bar - 1]
+		for k in 3:
+			_mix(stems.mid, _pluck(r, hz([chord[0], chord[0] + 7, chord[0] + 12 + chord[1]][k]), 0.3, 3.0, 0.7, 0.998), r, _t3(bar) + k * 0.09 + (0.6 if bar == 13 else 0.0))
+		if bar > 13:
+			_mix(stems.mid, _mk_pad_chord(chord, b * 1.1), r, _t3(bar), 0.35)
+	_mix(stems.top, _env(_air(4.5, 900.0, 2.0, 1.5, 0.7), r, swell(2.5, 1.5, 4.5)), r, _t3(14), 0.25)  # The lift
+	_mk_motif(stems, _t3(14), 12)
+	var pick: float = h.pick
+	_mix(stems.hits, _bell(r, hz(74), 0.3, 1.0, MUSIC_BOX, 2.2), r, pick, 0.9)
+	_mix(stems.hits, _normalize(_glow_swell(0.9), 1.0), r, pick - 0.05, 0.4)
+	_mix(stems.mid, _env(_mk_pad([57, 62, 65], 2.0), r, swell(1.8, 0.2, 2.0)), r, h.montage_from - 1.8, 0.5)  # Lead-in
+
+	# 40.5–50.5: grow over 100 Wardens. Warm and building: eighths underneath, the bass climbing, and an
+	# accent every half bar, each in a family's material.
+	var montage_from: float = h.montage_from
+	_t3_harmony(stems, 16, 19, 0.7)
+	for bar in range(16, 20):
+		for k in 6:
+			_mix(stems.perc, _mk_felt(r, 110.0), r, _t3(bar) + k * MK_EIGHTH, 0.3 + 0.07 * (bar - 16))
+	var climb := [38, 40, 41, 43, 45, 46, 47, 48]
+	var accents := int(round((h.montage_to - montage_from) / (b * 0.5)))
+	for k in accents:
+		var at: float = montage_from + k * b * 0.5
+		_t3_family(stems, k, at, TRAILER3_CHORDS[15 + floori(k / 2.0)])
+		_mix(stems.low, _bowed(r, climb[mini(k, climb.size() - 1)], b * 0.55, 400.0), r, at, 0.6)
+	_mix(stems.low, _env(_mk_drone(1.5), r, swell(1.2, 0.2, 1.5)), r, h.montage_to - 1.4, 0.4)  # Lead-in to the bosses
+	for k in 3:  # The gallop's first hooves a beat early, soft
+		_mix(stems.perc, _felt_hoof(r, [95.0, 100.0, 85.0][k]), r, h.montage_to - MK_BEAT + k * MK_EIGHTH, 0.2)
+
+	# 50.5–63: defeat the bosses. The heaviest section: the hollow ostinato an octave down, the gallop, the
+	# Oak's drums, the cold bowed theme; two boss shots at 53 and 55.5, then a long build into 63.
+	var boss_from: float = h.montage_to
+	var down: float = h.boss_dispelled
+	for bar in int(round((down - boss_from) / b)):
+		var t0 := boss_from + bar * b
+		var pattern := [26, 26, 32, 29, 29, 26]
+		for k in 6:
+			_mix(stems.low, _bowed(r, pattern[k], MK_EIGHTH * 1.1, 300.0), r, t0 + k * MK_EIGHTH, (0.8 if k % 3 == 0 else 0.55) * (0.9 + 0.05 * bar))
+		for half in 2:
+			for k in 3:
+				_mix(stems.perc, _felt_hoof(r, [95.0, 100.0, 85.0][k]), r, t0 + half * b * 0.5 + k * MK_EIGHTH, [0.35, 0.4, 0.65][k] * 0.6)
+		for k in 3:  # The Oak's drums
+			_mix(stems.perc, _knock(r, 48.0, 0.2), r, t0 + k * MK_BEAT, 0.4 + 0.05 * bar)
+		if bar >= 2:  # The full drive, building
+			_mix(stems.perc, _tom(r, 52.0), r, t0, 0.45 + 0.08 * (bar - 2))
+			_mix(stems.perc, _frame_drum(r), r, t0, 0.45 + 0.05 * (bar - 2))
+			_mix(stems.perc, _tom(r, 58.0), r, t0 + 3 * MK_EIGHTH, 0.5 + 0.08 * (bar - 2))
+		if bar >= 3:
+			_mix(stems.perc, _tom(r, 70.0), r, t0 + 5 * MK_EIGHTH, 0.4 + 0.08 * (bar - 3))
+	_mix(stems.mid, _horn_call(r, 50, b * 0.6), r, h.boss_shot_1, 0.8)
+	_mix(stems.mid, _horn_call(r, 57, b * 1.2), r, h.boss_shot_2, 0.8)
+	for shot in [h.boss_shot_1, h.boss_shot_2]:  # Two boss shots: a deep thump and a short rumble
+		_mix(stems.hits, _normalize(_thump(0.9, 55.0, 0.25), 1.0), r, shot, 0.9)
+		_mix(stems.hits, _normalize(_rumble(1.2, 80.0, 0.02, 0.9), 1.0), r, shot, 0.5)
+	var slot := b / 2.0
+	for note in BOSS1_THEME:  # The cold bowed theme from the second shot
+		var at: float = h.boss_shot_2 + note[0] * slot
+		if at < down - 0.2:
+			_mix(stems.mid, _bowed(r, note[1], minf(slot * note[2] * 1.05, down - at), 1100.0, true), r, at, 0.55)
+	_mix(stems.mid, _env(_mk_pad([44, 50, 56], 5.0), r, swell(4.6, 0.4, 5.0)), r, down - 4.6, 0.5)  # The long build
+	_mix(stems.top, _env(_air(5.0, 500.0, 4.5, 0.3, 0.7), r, swell(4.5, 0.3, 5.0)), r, down - 4.5, 0.3)
+	for k in 6:
+		_mix(stems.perc, _tom(r, 86.0 - 4.0 * k), r, down - (6 - k) * MK_EIGHTH * 0.5, 0.35 + 0.05 * k)
+	for stem in [stems.perc, stems.low, stems.mid]:  # The bosses sit under the ×10 chain (the loudest moment)
+		for i in range(int(boss_from * r), mini(int(down * r) + int(r), stem.size())):
+			stem[i] *= 0.8
+
+	# 63: the turn, never a stop. The drums fall away on the downbeat, the boss dispel blooms with a long
+	# ringing tail, and the bowed bass's hollow A-flat rises to A under it.
+	for pair in [[stems.perc, 0.25], [stems.low, 0.9], [stems.mid, 0.9]]:
+		var stem: PackedFloat32Array = pair[0]
+		var cut := int(down * r)
+		for i in range(cut, stem.size()):
+			stem[i] *= clampf(1.0 - float(i - cut) / (pair[1] * r), 0.0, 1.0)
+	_mix(stems.hits, _normalize(_light_burst(0.4, 3.5, [50, 54, 57, 62, 66, 69, 74]), 1.0), r, down - 0.2, 1.2)
+	_mix(stems.hits, _normalize(_thump(0.8, 60.0, 0.2), 1.0), r, down, 0.5)
+	_mix(stems.low, _env(_mk_pad([38, 45, 50, 54], 6.0), r, swell(0.3, 4.0, 6.0)), r, down, 0.9)
+	_mix(stems.low, _env(_bowed(r, 44, 2.0, 380.0), r, swell(0.6, 0.2, 2.0)), r, down - 1.25, 0.6)  # A-flat …
+	_mix(stems.low, _env(_bowed(r, 45, 4.0, 380.0), r, swell(0.2, 2.5, 4.0)), r, down + 0.6, 0.6)  # … rising to A
+
+	# 63–73: grow the Memory Grove. The Hope form (D-A-F#) starts inside the tail and grows, fuller each bar;
+	# the hummed choir and strings rise to the climax at 70.5, then the end card.
+	for bar in range(26, 29):
+		var t0 := _t3(bar)
+		var level := 0.5 + 0.25 * (bar - 26)
+		var chord: Array = TRAILER3_CHORDS[bar - 1]
+		for k in 3:
+			_mix(stems.mid, _pluck(r, hz([chord[0], chord[0] + 7, chord[0] + 12 + chord[1]][k]), 0.4 * level, 2.6, 0.7, 0.998), r, t0 + k * MK_BEAT)
+		_mix(stems.mid, _mk_pad_chord(chord, b * 1.1), r, t0, 0.5 * level)
+		_mix(stems.low, _bowed(r, chord[0] - 12, b * 1.05, 350.0), r, t0, 0.5 * level)
+		for k in 3:
+			_mix(stems.perc, _mk_felt(r, 105.0), r, t0 + k * MK_BEAT, 0.25 * level)
+	for i in 3:
+		var at: float = down + 1.25 + i * b
+		for k in 3:
+			_mix(stems.top, _bell(r, hz([74, 81, 78][k]), 0.26 + 0.04 * i, 1.0, MUSIC_BOX, 2.4), r, at + k * MK_BEAT)
+			_mix(stems.mid, _pluck(r, hz([62, 69, 66][k]), 0.2 + 0.05 * i, 2.0, 0.7, 0.998), r, at + k * MK_BEAT)
+	var endcard: float = h.endcard
+	var peak_len := endcard + 1.5 - (down + 1.0)
+	for m in [50, 57, 62, 66]:
+		_mix(stems.mid, _env(_lowpass(_choir(r, hz(m), peak_len), 900.0), r, swell(peak_len * 0.8, 1.2, peak_len)), r, down + 1.0, 0.22)
+	for m in [62, 66, 69]:
+		_mix(stems.mid, _env(_bowed(r, m, peak_len, 1400.0, true), r, swell(peak_len * 0.75, 1.2, peak_len)), r, down + 1.0, 0.26)
+	var climax := _t3(28)
+	for k in 3:
+		_mix(stems.top, _bell(r, hz([74, 81, 78][k]), 0.36, 1.1, MUSIC_BOX, 2.6), r, climax + k * MK_BEAT)
+	_mix(stems.mid, _env(_mk_pad([50, 54, 57, 62, 66], 3.4), r, swell(0.2, 1.4, 3.4)), r, climax, 0.5)
+	_mix(stems.low, _normalize(_thump(0.9, 70.0, 0.2), 1.0), r, climax, 0.5)
+	_mix(stems.top, _normalize(_glow_swell(1.6), 1.0), r, climax, 0.4)
+
+	# 73–78: Wishlist. The end-card button on top of a held warm D major chord; a clean end at 78.0.
+	_endcard_into(stems, endcard, TRAILER3_LENGTH - endcard - 1.2)
+	_mk_trim(stems, TRAILER3_LENGTH, 1.0)
+	_print_hits(stems.hits, [h.sting, h.dispel, h.thunderclap, h.chain, h.pick, h.boss_shot_1, h.boss_shot_2, h.boss_dispelled])
+	return stems
+
+# Prints where each hit actually peaks on the hits stem (the loudest point within −0.3…+0.6 s of its slot).
+func _print_hits(hits: PackedFloat32Array, times: Array) -> void:
+	for t in times:
+		var from := maxi(int((t - 0.3) * SFX_RATE), 0)
+		var to := mini(int((t + 0.6) * SFX_RATE), hits.size())
+		var best := from
+		for i in range(from, to):
+			if absf(hits[i]) > absf(hits[best]):
+				best = i
+		print("    hit %.2f -> peak at %.3f s" % [t, float(best) / SFX_RATE])
 
 # Cuts every stem to `length` s, fading the last `fade` s.
 func _mk_trim(stems: Dictionary, length: float, fade: float) -> void:
