@@ -202,30 +202,31 @@ apart), landing on a soft, warm **D major chord** that rings ~0.7 s. Same notes 
 series has a sound. It's the in-game motif turned hopeful, so players hear it again in the game when a
 boss falls.
 
-### 1. Trailer cue v3 (2026-10-08, the user's spec; 78 s = a 3.0 s intro + 30 bars)
+### 1. Trailer cue v3 (2026-10-08, the user's spec: 45.5 s = a 3.0 s intro + 17 bars)
 
-The user edits the trailer from the editor kit and cuts the picture to this cue. Same world as v2.1:
-D minor, 72 bpm, 3/4 (bar 2.5 s), the same instruments, rounded and never sharp, and the score's rules
-(no dead air; every section change prepared; the turn, never a stop). **The intro is 3.0 s, not a
-bar: the bar grid starts at 3.0 s**, so every hit below is a downbeat (3.0 + n × 2.5).
+Replaces the user's earlier 78 s v3 request. The user edits the trailer from the editor kit and cuts
+the picture to this cue. **Fast and punchy: every beat lasts 1–3 bars.** Same world as v2.1: D minor,
+72 bpm, 3/4 (beat 0.833 s, bar 2.5 s), the same instruments, rounded and never sharp, and the score's
+rules (no dead air, every change prepared, the turn rather than a stop). **The bar grid starts at 3.0 s**
+(bars at 3.0 + n × 2.5); accents between bar lines sit on the hits stem.
 
 | Time | Card on screen | Music |
 |---|---|---|
-| 0.0–3.0 | (no text) eyes open in the dark | near-silence over a **low cold drone** (never true silence); a **soft cold sting at 0.5** (the first pair of eyes); **1.05–2.15 a swell** as ~20 more pairs open, building into the downbeat at 3.0 |
-| 3.0–10.5 | "Build a living maze. Protect the Heartwood." | steady, building pulse (Wardens snapping down); the motif's warm form; **hit 10.5** = the first dispel (the approved burst of light) |
-| 10.5–23.0 | "Discover combos between Wardens" | rising tension: nightmares walking the maze (dread layers), then the combos; **hit 23.0** = the ×5 Thunderclap (warm boom + far thunder) |
-| 23.0–33.0 | "Chain lightning through the whole crowd" | driving harder; the arcs as **rolling warm blooms and far thunder, no crackle or buzz**; **biggest hit 33.0** = the ×10 chain |
-| 33.0–40.5 | "Pick a Dream to power your maze" | a **breath** after the big hit (the big hit's tail rings into it), then a dreamy lift; the pick lands ~1 s after the **35.5** bar line: a soft accent there |
-| 40.5–50.5 | "Grow over 100 Wardens" | warm and building; **accents every half bar (1.25 s)** for the montage of families growing, each in a family's material over the pulse |
-| 50.5–63.0 | "Defeat the bosses" | the heaviest, darkest section (the boss theme, bass an octave lower, the Hollow form); **accents at 53.0 and 55.5** (two boss shots), then a long build into **hit 63.0** = the boss dispelled |
-| 63.0–73.0 | "Grow the Memory Grove" | **the turn**: the boss bass's A♭ rises to A under the dispel's ringing tail, and the Grove grows on the Hope form (D–A–F♯), resolving |
-| 73.0–78.0 | "Wishlist on Steam" | a held warm D major chord with the **end-card button** on top; a clean ending at 78.0 |
+| 0.0–3.0 | (no text) eyes open in the dark | a **low cold drone** (never true silence); **soft cold sting at 0.5**; **swell 1.05–2.15** as ~20 more pairs open, into the downbeat at 3.0 |
+| 3.0–8.0 (2 bars) | "They're coming" | low, driving dread: dread1's pulse and the Hollow form (D–A♭–F) in bowed bass |
+| 8.0–13.0 (2 bars) | "Build a living maze" | a **soft harp pluck on each Warden placement (~every 0.55 s)** over a building pulse, the motif's warm form emerging; **hit 13.0** |
+| 13.0–18.0 (2 bars) | "Chain lightning through the whole crowd" | a fast build (the storm drive, eighth-note figures, bass climbing); **biggest hit of the cue at 18.0** = the chain peak (rolling warm bloom + far thunder, no crackle or buzz) |
+| 18.0–25.5 (3 bars) | "Discover new combos" | one combo per bar, **accents at 18.0, 20.5, 23.0**, each its Reaction's colour: water + lightning (Thunderclap: wet whumpf + far thunder), spores + water (Mushrooming: soft fleshy pops + damp exhale), spores + lightning (Ignite: warm fwoomp) |
+| 25.5–28.0 (1 bar) | "Pick a Dream to power your maze" | a dreamy lift (the percussion drops away); **shimmer at 26.5** (the pick: the Dream-screen breath + soft shimmer), then a warm glow swell as the Wardens light up |
+| 28.0–33.0 (2 bars) | "Grow over 100 Wardens" | warm, rising; **accents at 28.6, 29.8, 31.0** (Wardens growing, each a family's material), then a **reveal at 31.5** (the Remember tree: the Final Bloom harp strum + crown swell) |
+| 33.0–38.0 (2 bars) | "Defeat the bosses" | the heaviest, darkest section (the boss theme, bass an octave lower); **three boss dispels at 34.67, 36.33, 38.0** (every 2 beats), each bigger; **38.0 is the biggest and is the turn**: the bass A♭ rises to A under its ringing tail |
+| 38.0–43.0 (2 bars) | "Grow the Memory Grove" | warmth resolving: the Hope form (D–A–F♯) growing out of the turn |
+| 43.0–45.5 (1 bar) | "Wishlist on Steam" | a **held warm D major chord from 43.0** with the **end-card button on top**; a clean ending at 45.5 |
 
-Hits as parameters (Sound Code's `TRAILER_HITS`, re-timeable if the cut moves): 0.5 (sting) · 1.05–2.15
-(swell) · 3.0 (grid start) · **10.5** · **23.0** · **33.0** (biggest) · 35.5 + ~1 (pick) · 40.5–50.5
-every 1.25 · 53.0 · 55.5 · **63.0** · 73.0 (chord + button) · 78.0 (end).
+Hits as parameters (`TRAILER3_HITS`): 0.5 · 1.05–2.15 · 3.0 · 13.0 · **18.0** (biggest) · 20.5 · 23.0 ·
+26.5 · 28.6 · 29.8 · 31.0 · 31.5 · 34.67 · 36.33 · **38.0** (boss, the turn) · 43.0 · 45.5 (end).
 Delivered to `D:\Projects\Game\marketing\editor_kit\4_music\`: `trailer_v3_full.wav` + stems
-`_low` / `_mid` / `_top` / `_perc` / `_hits` + `_voice`, 44.1 kHz stereo.
+`_low` / `_mid` / `_top` / `_perc` / `_hits` + `_voice`, 44.1 kHz stereo (overwrites the 78 s render).
 
 ### 1a. Trailer cue v2.1 (~75 s = 30 bars at 72 bpm; superseded by v3)
 
