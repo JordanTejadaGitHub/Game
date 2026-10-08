@@ -590,6 +590,23 @@ func _run() -> void:
 	grove_screen._select(_unlock(grove, "bitter_hedges"))
 	_check(not grove_screen._card_needs.visible, "a node that needs nothing shows no empty 'needs' heading")
 	_check(grove_screen._start_button.theme_type_variation == &"", "with a card open, Start run drops to framed (Plant is the one glow)")
+	# What a node adds (meta_design.md 95e464a4): a row per card (a Deepened II folds into its base's "+ II"), Omens too;
+	# a row opens the full face.
+	grove_screen._select(_unlock(grove, "sharpened"))
+	var card_rows: GroveCardList = grove_screen._card_list
+	_check(grove_screen._card_list_scroll.visible and card_rows.get_child_count() == 4 and card_rows.has_node("still_target")
+		and not card_rows.has_node("still_target_ii"), "Sharpened lists its 4 cards, the IIs folded in (%d rows)" % card_rows.get_child_count())
+	_check(card_rows.get_node("still_target").find_children("*", "Label", true, false).any(func(l: Label) -> bool: return l.text == "+ II"),
+		"a card with its II on the node is tagged + II")
+	(card_rows.get_node("still_target") as Button).pressed.emit()
+	await process_frame
+	_check(grove_screen.card_face.visible and grove_screen._backdrop.visible, "tapping a row opens the full card face")
+	grove_screen.close_face()
+	_check(not grove_screen.card_face.visible, "Close closes it")
+	grove_screen._select(_unlock(grove, "restless_omens"))
+	_check(card_rows.get_child_count() == 4 and card_rows.has_node("static_sky"), "Restless Omens lists its 4 Omens (%d)" % card_rows.get_child_count())
+	grove_screen._select(_unlock(grove, "morning_stores"))
+	_check(not grove_screen._card_list_scroll.visible, "a perk adds no cards: no list")
 	grove_screen._select(null)
 	_check(grove_screen._start_button.theme_type_variation == &"PrimaryButton", "with no card, Start run is the primary again")
 	grove_screen._select(_unlock(grove, "morning_stores"))
@@ -908,6 +925,8 @@ func _run() -> void:
 		"demo Grove screen: all planted shows the full-game line and Wishlist")
 	grove_screen._select(_unlock(grove, "pebbling"))
 	_check(not grove_screen._plant.visible and grove_screen._card_status.text.begins_with("Full game"), "an asleep node: Full game, no Plant")
+	grove_screen._select(_unlock(grove, "bitter_hedges"))
+	_check(grove_screen._card_list_scroll.visible and grove_screen._card_list.get_child_count() > 0, "an asleep card node still lists its cards (a preview)")
 	grove_screen._select(_unlock(grove, "deep_taproot"))
 	_check(not grove_screen._plant.visible and grove_screen._card_status.text.contains("II"), "Deep Taproot II: Full game (%s)" % grove_screen._card_status.text)
 	grove_screen.queue_free()
