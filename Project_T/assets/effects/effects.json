@@ -1265,67 +1265,67 @@
 		},
 		"ink_puddle_a": {
 			"anchor": [
-				32,
-				32
+				16,
+				16
 			],
 			"file": "ink_puddle_a.png",
 			"fps": 5.0,
 			"frame_size": [
-				64,
-				64
+				32,
+				32
 			],
 			"frames": 4,
 			"kind": "ground",
 			"loop": true,
-			"note": "Deliquescent: an ink pool on one 64 px route cell (variant a of a-d), the Torrent puddle in Heartwood violets, z -1."
+			"note": "Deliquescent: an ink pool on one 32 px route point (variant a of a-d), the Torrent puddle in Heartwood violets, z -1."
 		},
 		"ink_puddle_b": {
 			"anchor": [
-				32,
-				32
+				16,
+				16
 			],
 			"file": "ink_puddle_b.png",
 			"fps": 5.0,
 			"frame_size": [
-				64,
-				64
+				32,
+				32
 			],
 			"frames": 4,
 			"kind": "ground",
 			"loop": true,
-			"note": "Deliquescent: an ink pool on one 64 px route cell (variant b of a-d), the Torrent puddle in Heartwood violets, z -1."
+			"note": "Deliquescent: an ink pool on one 32 px route point (variant b of a-d), the Torrent puddle in Heartwood violets, z -1."
 		},
 		"ink_puddle_c": {
 			"anchor": [
-				32,
-				32
+				16,
+				16
 			],
 			"file": "ink_puddle_c.png",
 			"fps": 5.0,
 			"frame_size": [
-				64,
-				64
+				32,
+				32
 			],
 			"frames": 4,
 			"kind": "ground",
 			"loop": true,
-			"note": "Deliquescent: an ink pool on one 64 px route cell (variant c of a-d), the Torrent puddle in Heartwood violets, z -1."
+			"note": "Deliquescent: an ink pool on one 32 px route point (variant c of a-d), the Torrent puddle in Heartwood violets, z -1."
 		},
 		"ink_puddle_d": {
 			"anchor": [
-				32,
-				32
+				16,
+				16
 			],
 			"file": "ink_puddle_d.png",
 			"fps": 5.0,
 			"frame_size": [
-				64,
-				64
+				32,
+				32
 			],
 			"frames": 4,
 			"kind": "ground",
 			"loop": true,
-			"note": "Deliquescent: an ink pool on one 64 px route cell (variant d of a-d), the Torrent puddle in Heartwood violets, z -1."
+			"note": "Deliquescent: an ink pool on one 32 px route point (variant d of a-d), the Torrent puddle in Heartwood violets, z -1."
 		},
 		"ink_trail": {
 			"anchor": [
@@ -2450,67 +2450,67 @@
 		},
 		"torrent_puddle_a": {
 			"anchor": [
-				32,
-				32
+				16,
+				16
 			],
 			"file": "torrent_puddle_a.png",
 			"fps": 5.0,
 			"frame_size": [
-				64,
-				64
+				32,
+				32
 			],
 			"frames": 4,
 			"kind": "ground",
 			"loop": true,
-			"note": "Torrent: a wet puddle on one 64 px route cell, inside its central ~44 px (variant a of a-d; pick per cell), a quiet looped shimmer, z -1."
+			"note": "Torrent: a wet puddle on one 32 px route point (neighbours touch into one wet band), within ~28 px (variant a of a-d; pick per cell), a quiet looped shimmer, z -1."
 		},
 		"torrent_puddle_b": {
 			"anchor": [
-				32,
-				32
+				16,
+				16
 			],
 			"file": "torrent_puddle_b.png",
 			"fps": 5.0,
 			"frame_size": [
-				64,
-				64
+				32,
+				32
 			],
 			"frames": 4,
 			"kind": "ground",
 			"loop": true,
-			"note": "Torrent: a wet puddle on one 64 px route cell, inside its central ~44 px (variant b of a-d; pick per cell), a quiet looped shimmer, z -1."
+			"note": "Torrent: a wet puddle on one 32 px route point (neighbours touch into one wet band), within ~28 px (variant b of a-d; pick per cell), a quiet looped shimmer, z -1."
 		},
 		"torrent_puddle_c": {
 			"anchor": [
-				32,
-				32
+				16,
+				16
 			],
 			"file": "torrent_puddle_c.png",
 			"fps": 5.0,
 			"frame_size": [
-				64,
-				64
+				32,
+				32
 			],
 			"frames": 4,
 			"kind": "ground",
 			"loop": true,
-			"note": "Torrent: a wet puddle on one 64 px route cell, inside its central ~44 px (variant c of a-d; pick per cell), a quiet looped shimmer, z -1."
+			"note": "Torrent: a wet puddle on one 32 px route point (neighbours touch into one wet band), within ~28 px (variant c of a-d; pick per cell), a quiet looped shimmer, z -1."
 		},
 		"torrent_puddle_d": {
 			"anchor": [
-				32,
-				32
+				16,
+				16
 			],
 			"file": "torrent_puddle_d.png",
 			"fps": 5.0,
 			"frame_size": [
-				64,
-				64
+				32,
+				32
 			],
 			"frames": 4,
 			"kind": "ground",
 			"loop": true,
-			"note": "Torrent: a wet puddle on one 64 px route cell, inside its central ~44 px (variant d of a-d; pick per cell), a quiet looped shimmer, z -1."
+			"note": "Torrent: a wet puddle on one 32 px route point (neighbours touch into one wet band), within ~28 px (variant d of a-d; pick per cell), a quiet looped shimmer, z -1."
 		},
 		"veil_glint": {
 			"anchor": [
