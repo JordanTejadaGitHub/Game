@@ -245,6 +245,14 @@ var _steady_serial := -1
 # animation, the HUD, rounded corners and the squeeze) and catch up the frame it's back. Walking, statuses and
 # presence never pause.
 var _culled := false
+# The way in (StartGate, Environment Assets' mock): it comes out of the fog in the void and crosses the rope
+# bridge to the start along `_entry` (MapGenerator pixels) in ENTRY_TIME s, untargetable (out of the enemies
+# group) until it steps onto the island; then the route as before.
+const ENTRY_TIME := 1.5
+const ENTRY_FADE := 0.3  # Share of the way in over which it fades in out of the fog
+const ENTRY_Z := 0  # While crossing: over the deck (z -1) and under the fog (z 1): StartGate 0eb9153b layers them
+var _entry := PackedVector2Array()
+var _entry_time := 0.0
 # Pixels the drawn body (sprite, its HUD, its glows) is raised so its feet and contact shadow sit on the
 # route point, the path ribbon's centreline (art_direction.md "Bigger Wardens"); 0 for flyers.
 var _foot_lift := 0.0
@@ -562,6 +570,9 @@ func _process(delta: float) -> void:
 	if hold_time > 0.0:
 		hold_time -= delta
 		return
+	if not _entry.is_empty():
+		_update_entry(delta)  # Still crossing the bridge from the fog
+		return
 	if statuses.is_held() or statuses.is_asleep():
 		return  # Frozen / rooted in place, or asleep (Drown)
 	_charge_left = maxf(_charge_left - delta, 0.0)
@@ -686,6 +697,44 @@ func flash_status(id: StringName) -> void:
 		var world := Reactions._world(self)
 		if world:
 			Fx.status_flash(id, global_position, world)
+
+# Comes in along `points` (the fog, the bridge, the start's lane point; MapGenerator pixels) before its route.
+func enter_along(points: PackedVector2Array) -> void:
+	if points.size() < 2:
+		return
+	_entry = points
+	_entry_time = 0.0
+	position = points[0]
+	remove_from_group(GROUP)  # Not on the island yet: no Warden can reach it
+	modulate.a = 0.0  # It fades in out of the fog (its HUD with it)
+	z_index = ENTRY_Z  # Between the deck and the fog (it emerges from the fog)
+
+func is_entering() -> bool:
+	return not _entry.is_empty()
+
+# Walks the way in at an even pace; on the island it joins the enemies group and its route begins.
+func _update_entry(delta: float) -> void:
+	_entry_time += delta
+	var t := clampf(_entry_time / ENTRY_TIME, 0.0, 1.0)
+	var total := 0.0
+	for i in range(1, _entry.size()):
+		total += _entry[i].distance_to(_entry[i - 1])
+	var along := total * t
+	var previous := position
+	for i in range(1, _entry.size()):
+		var leg := _entry[i].distance_to(_entry[i - 1])
+		if along <= leg or i == _entry.size() - 1:
+			position = _entry[i - 1].lerp(_entry[i], clampf(along / maxf(leg, 0.001), 0.0, 1.0))
+			break
+		along -= leg
+	update_animation(position - previous)
+	modulate.a = clampf(t / ENTRY_FADE, 0.0, 1.0)
+	if t >= 1.0:
+		_entry = PackedVector2Array()
+		modulate.a = 1.0
+		z_index = 0  # On the island: y-sorted with the Wardens again
+		if not _hidden and not _untouchable and not is_cleansed:
+			add_to_group(GROUP)  # On the island: the Wardens can reach it
 
 # Target Dummy: back to the forest's edge to walk the maze again.
 func _restart_route() -> void:
@@ -2037,7 +2086,7 @@ func _set_hidden(value: bool) -> void:
 	_hidden = value
 	if value:
 		remove_from_group(GROUP)
-	else:
+	elif not is_entering():  # (Still on the bridge: it joins once on the island)
 		add_to_group(GROUP)
 	sprite.self_modulate.a = HIDDEN_ALPHA if value else 1.0
 	_refresh_display_settings()

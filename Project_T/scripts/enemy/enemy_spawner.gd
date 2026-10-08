@@ -134,8 +134,28 @@ func spawn_enemy(enemy_data: EnemyData, health_scale: float = 1.0, modifiers: Di
 	var enemy := _create(enemy_data, health_scale, modifiers, elite)
 	enemy.position = enemy.grid.calculate_map_position(path_points[0])  # Start at the first waypoint (pixels)
 	enemy.set_path(path_points)
-	_spawn_followers(enemy, path_points)
+	var way_in := _way_in(enemy.position)
+	if not way_in.is_empty():
+		enemy.enter_along(way_in)  # Out of the fog and across the bridge first (flyers too: straight from the fog)
+	_spawn_followers(enemy, path_points, way_in)
 	return enemy
+
+# The way in from the start's fog (StartGate.walk_in: fog, bridge landing, the start's lane point) on to
+# `first` (the route's first point, ≤ 16 px further), or [] without a gate (the way in is the start itself).
+func _way_in(first: Vector2) -> PackedVector2Array:
+	var gate = map_generator.get("start_gate") if map_generator != null else null
+	# The real game only (main.tscn running, like autosave): tests place and spawn nightmares by hand
+	var playing := owner != null and is_inside_tree() and get_tree().current_scene == owner
+	if gate == null or not (force_walk_in or playing):
+		return PackedVector2Array()
+	var points: PackedVector2Array = gate.walk_in()
+	if points.is_empty():
+		return points
+	if points[points.size() - 1] != first:
+		points.append(first)
+	return points
+
+static var force_walk_in := false  # Tests: walk in from the fog outside the real game too
 
 func _create(enemy_data: EnemyData, health_scale: float, modifiers: Dictionary = {},
 		elite: bool = false) -> Node2D:
@@ -168,7 +188,7 @@ func _create_prepared(enemy, enemy_data: EnemyData, health_scale: float, modifie
 
 # A Mother Duck's Ducklings set off one after another right behind her. If she's cleansed while
 # they're still walking, they get lost and slow down.
-func _spawn_followers(leader: Node2D, path: PackedVector2Array) -> void:
+func _spawn_followers(leader: Node2D, path: PackedVector2Array, way_in: PackedVector2Array = PackedVector2Array()) -> void:
 	var data: EnemyData = leader.enemy_data
 	if data.followers == null or data.follower_count <= 0:
 		return
@@ -180,6 +200,8 @@ func _spawn_followers(leader: Node2D, path: PackedVector2Array) -> void:
 		follower.position = leader.position
 		follower.set_path(path)
 		follower.hold_time = data.follower_spacing * (i + 1)
+		if not way_in.is_empty():
+			follower.enter_along(way_in)  # Waits its hold_time in the fog, then crosses after the leader
 		followers.append(follower)
 		enemy_split.emit(leader, follower)
 	leader.dew_followers.append_array(followers)  # They share half its Dew pot share (Enemy.set_dew_share)

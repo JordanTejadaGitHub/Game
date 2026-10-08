@@ -771,6 +771,27 @@ func _run() -> void:
 		hud_walker.statuses.remove(id)
 		hud_walker._process(step)
 		_check(shown and not hud_walker._hud_ids.has(id), "HUD: %s's badge comes and goes the same frame" % id)
+	# The way in (StartGate): out of the fog, across the bridge, untargetable until it's on the island.
+	spawner.force_walk_in = true
+	var gate_points: PackedVector2Array = map_generator.start_gate.walk_in()
+	var comer: Node2D = spawner.spawn_enemy(load("res://resource/enemy/leaf_bug.tres"))
+	spawner.force_walk_in = false
+	comer.set_process(false)
+	_check(comer.is_entering() and comer.position.is_equal_approx(gate_points[0]) and not comer.is_in_group(comer.GROUP),
+		"walk-in: a nightmare comes out of the fog, out of the Wardens' reach")
+	_check(is_zero_approx(comer.modulate.a) and comer.z_index == comer.ENTRY_Z, "…faded out in the fog, drawn over the bridge's deck")
+	var halfway := int(comer.ENTRY_TIME / step / 2.0)
+	for f in halfway:
+		comer._process(step)
+	_check(comer.is_entering() and not comer.is_in_group(comer.GROUP)
+		and comer.position.distance_to(gate_points[0]) > 32.0, "…crossing the bridge, still out of reach")
+	for f in halfway + 3:
+		comer._process(step)
+	var first_px: Vector2 = comer.grid.calculate_map_position(map_generator.get_path_from(map_generator.startPath)[0])
+	_check(not comer.is_entering() and comer.is_in_group(comer.GROUP) and comer.position.distance_to(first_px) < 24.0,
+		"…then on the island, on its route and targetable (%.0f px from the start)" % comer.position.distance_to(first_px))
+	_check(is_equal_approx(comer.modulate.a, 1.0) and comer.z_index == 0, "…fully faded in, y-sorted with the Wardens again")
+	comer.free()  # (Only this one: the HUD walker above is used below)
 	# Overkill (Balancing, run 24): a hit past the health left reports the excess, so RunHistory counts effective damage.
 	var overkilled := _still("leaf_bug", route[6])
 	overkilled.coat = 0.0
