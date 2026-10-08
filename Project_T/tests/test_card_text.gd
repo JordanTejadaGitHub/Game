@@ -76,6 +76,18 @@ func _initialize() -> void:
 				_check(false, "%s: %s" % [card.id, problem])
 		var stacking := Check.stacking_break(card)
 		_check(stacking == "", "%s: %s (\"%s\")" % [card.id, stacking, card.description])
+	# A card named in text is {card:id}: plain, never a status link (story chat, user: "Charged Feathers" linked "Charged")
+	_check(not StatusLinks.bbcode("removes {card:charged_feathers}").contains(StatusLinks.META_PREFIX)
+		and IconInfo.format("{card:charged_feathers}") == "Charged Feathers", "{card:x} renders the plain card name")
+	var names: Array[String] = []
+	for card in Check.load_cards():
+		if StatusLinks.bbcode(card.display_name).contains(StatusLinks.META_PREFIX):
+			names.append(card.display_name)  # A name with a status word in it (Charged Bloom, Soaked Rot…)
+	for card in Check.load_cards():
+		for text in [card.description, card.cost_description, card.grows_text]:
+			_check(not IconInfo.format(text).contains("{card:"), "%s: a {card:x} with no card" % card.id)
+			for name in names:
+				_check(not text.contains(name), "%s names %s as plain text: write {card:id}" % [card.id, name])
 	print("card text test: %s (%d stat cards, %d known exceptions)" % ["PASS" if failures == 0 else "%d FAILED" % failures, stat_cards, KNOWN.size()])
 	quit(failures)
 

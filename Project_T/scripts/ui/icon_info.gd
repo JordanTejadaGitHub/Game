@@ -288,6 +288,9 @@ static func format(text: String) -> String:
 		for found in family_pattern().search_all(text):
 			var data := family_data(found.get_string(1))
 			text = text.replace(found.get_string(), data.display_name if data != null else found.get_string(1).capitalize())
+	if text.contains("{card:"):  # A Dream card: its name, plain
+		for found in card_pattern().search_all(text):
+			text = text.replace(found.get_string(), card_name(found.get_string(1)))
 	if text.contains("{nightmare:"):  # A nightmare: its name, or ??? until met
 		for found in nightmare_pattern().search_all(text):
 			text = text.replace(found.get_string(), nightmare_name(found.get_string(1)))
@@ -447,6 +450,23 @@ static func family_pattern() -> RegEx:
 		UiStyle.release_at_exit(func() -> void: _family_pattern = null)
 		_family_pattern = RegEx.create_from_string("\\{family:([a-z_]+)\\}")
 	return _family_pattern
+
+# "{card:charged_feathers}" -> "Charged Feathers": a Dream card named in text, always plain (story chat, user: the
+# "Charged" in a card name was linked as the status). StatusLinks keeps it out of the status links.
+static var _card_pattern: RegEx = null
+static func card_pattern() -> RegEx:
+	if _card_pattern == null:
+		UiStyle.release_at_exit(func() -> void: _card_pattern = null)
+		_card_pattern = RegEx.create_from_string("\\{card:([a-z0-9_]+)\\}")
+	return _card_pattern
+
+static func card_name(id: String) -> String:
+	var path := "res://resource/dream/%s.tres" % id
+	if ResourceLoader.exists(path):
+		var card = load(path)
+		if card is UpgradeData:
+			return card.display_name
+	return id.capitalize()
 
 # The family's base Warden (resource/tower/<id>.tres), or null.
 static func family_data(id: String) -> TowerData:

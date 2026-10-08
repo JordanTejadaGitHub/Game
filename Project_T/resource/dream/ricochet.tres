@@ -6,7 +6,7 @@
 script = ExtResource("1_card")
 id = "ricochet"
 display_name = "Ricochet"
-description = "At the end of its line the seed turns 90° once toward the nearest nightmare before returning."
+description = "At the end of its throw, the Samara line's seed turns 90° once toward the nearest nightmare before returning."
 rarity = 1
 kind = 3
 tags = Array[String](["wind", "maze"])
