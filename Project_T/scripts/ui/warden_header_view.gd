@@ -213,8 +213,8 @@ func show_warden(data: TowerData, tower: Tower = null, dreams: DreamState = null
 		if _tower.get_crit_chance() > 0.0:
 			second.append(["Crit ×%s" % str(attack.crit_multiplier), &"crit_damage"])
 		var potency := _tower.get_potency()
-		if not is_equal_approx(potency, 1.0):
-			second.append(["Potency %d%%" % roundi(potency * 100), &"potency"])  # Statuses and effect damage
+		if not _tower.get_potency_uses().is_empty():  # Shown wherever it does something (user), with what in its tip
+			second.append(["Potency %s" % str(snappedf(potency, 0.01)), &"potency"])  # Statuses and effect damage
 		var strength := status_strength_text(attack.applies_status, potency, attack.status_duration)
 		if strength != "" and compact:
 			detail_lines.append(strength)  # The panel's Details
@@ -402,6 +402,15 @@ const SHAPE_TIPS := {&"single": "hits one nightmare at a time", &"splash": "hits
 static func shape_name(data: TowerData) -> String:
 	return String(Tower.ATTACK_SHAPE_NAMES.get(Tower.attack_shape(data), ""))
 
+# The Potency tip for one Warden (user, 2026-10-07: "Potency hover over Wardens should describe what it does for that
+# Warden"): "Potency 1.3 (why)", "On this Warden: Rooted lasts longer.", then the general line. `uses` = Tower Code's
+# Tower.potency_uses / get_potency_uses ({token} lines; empty = Potency does nothing here, the stat is hidden).
+static func potency_tip(potency: float, uses: Array[String], why := "") -> String:
+	var lines: Array = uses.map(func(use: String) -> String: return IconInfo.format(use))
+	var on_it := "; ".join(lines)
+	return "Potency %s%s\nOn this Warden: %s.\nHigher Potency strengthens its statuses and effects." % [
+		str(snappedf(potency, 0.01)), " (%s)" % why if why != "" else "", on_it.left(1).to_upper() + on_it.substr(1)]
+
 static func shape_tip(data: TowerData) -> String:
 	var shape := Tower.attack_shape(data)
 	return "%s: %s." % [Tower.ATTACK_SHAPE_NAMES.get(shape, "Attack"), SHAPE_TIPS.get(shape, "")]
@@ -435,11 +444,9 @@ func stat_tip(stat: StringName) -> String:
 		&"path_length":  # Coverage (maze_feel.md #1: grow where it covers the most route)
 			return "Covers %d path tiles, counted once per pass." % _tower.get_coverage()
 		&"potency":
-			var p := _tower.get_potency()
-			if Tower.status_potency_on:
-				meaning = "Potency ×%s: its statuses and effects are %d%% %s" % [str(snappedf(p, 0.01)), roundi(absf(p - 1.0) * 100), "stronger" if p >= 1.0 else "weaker"]
-			else:
-				meaning = "Potency ×%s: its effects (Poisoned ticks, Charged bolts, clouds, Reactions) deal %d%%" % [str(snappedf(p, 0.01)), roundi(p * 100)]
+			var breakdown := DreamBonusView.stat_breakdown(_tower, stat) if _tower != _probe else ""
+			return potency_tip(_tower.get_potency(), _tower.get_potency_uses(),
+				breakdown.split(": ", true, 1)[1] if breakdown.contains(": ") else "")
 		_:
 			return IconInfo.stat_tooltip(stat)
 	var why: Array[String] = []

@@ -802,8 +802,9 @@ func _description_and_stats(data: TowerData) -> void:
 	if data.can_attack:
 		var stats: Array = [[&"damage", str(data.damage)], [&"attack_speed", "%.1f/s" % data.attacks_per_second],
 			[&"range", "%.1f" % data.attack_range]]
-		if data.potency != 1.0:
-			stats.append([&"potency", "%d%%" % roundi(data.potency * 100)])
+		var uses := Tower.potency_uses(data)
+		if not uses.is_empty():  # Only where Potency does something, its tip saying what (user, 2026-10-07)
+			stats.append([&"potency", str(snappedf(data.potency, 0.01)), WardenHeaderView.potency_tip(data.potency, uses)])
 		_side_box.add_child(_icon_stats(stats))
 
 # Stats as icons with their values (the Warden panel's row): [[icon id, value], …]; each icon's tip names it.
@@ -827,7 +828,7 @@ func _icon_stats(stats: Array) -> HFlowContainer:
 		value.text = stat[1]
 		value.add_theme_font_size_override("font_size", 14)
 		pair.add_child(value)
-		pair.tooltip_text = IconInfo.stat_tooltip(stat[0])
+		pair.tooltip_text = stat[2] if stat.size() > 2 else IconInfo.stat_tooltip(stat[0])  # Its own tip (Potency), else the stat's
 		pair.mouse_filter = Control.MOUSE_FILTER_PASS
 		row.add_child(pair)
 	return row

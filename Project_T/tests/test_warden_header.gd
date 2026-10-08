@@ -96,6 +96,19 @@ func _run() -> void:
 	await process_frame
 	_check(_texts(planted.stats).slice(0, 3) == _texts(panel._stats).slice(0, 3), "a planted card matches the panel (%s)" % [_texts(planted.stats).slice(0, 3)])
 
+	# Potency says what it does on this Warden (user, 2026-10-07), and is hidden where it does nothing.
+	var rootling: TowerData = load("res://resource/tower/rootling.tres")
+	var rootling_uses := Tower.potency_uses(rootling)
+	var rootling_tip := WardenHeaderView.potency_tip(rootling.potency, rootling_uses)
+	_check(not rootling_uses.is_empty() and rootling_tip.begins_with("Potency 1") and rootling_tip.contains("\nOn this Warden: ")
+		and not rootling_tip.contains("{") and rootling_tip.ends_with("Higher Potency strengthens its statuses and effects."),
+		"Rootling's Potency tip says what it does there (%s)" % rootling_tip.replace("\n", " / "))
+	var wall := WardenHeaderView.build(load("res://resource/tower/thornwall.tres"), null, null)
+	main.get_node("HUD").add_child(wall)
+	await process_frame
+	_check(Tower.potency_uses(load("res://resource/tower/thornwall.tres")).is_empty() and not _texts(wall.stats).any(func(t: String) -> bool: return t.begins_with("Potency")),
+		"a wall shows no Potency (%s)" % [_texts(wall.stats)])
+
 	print("warden header test: %s" % ("PASS" if failures == 0 else "%d FAILED" % failures))
 	main.queue_free()
 	await process_frame
