@@ -147,7 +147,7 @@ static func _statuses(text: String) -> String:
 # here, or an id with no entry, stays plain.
 const ROLE_TERMS := {"silences": &"silenced", "exposes": &"marked", "roots": &"held", "soaks": &"damp",
 	"charges": &"static", "poisons": &"spored", "drowses": &"drowsy", "freezes": &"frozen", "reveals hidden": &"hidden",
-	"crits": &"crit_chance"}
+	"crits": &"crit_chance", "puts to sleep": &"asleep"}  # Tower Discussion cae6d300: "Stuns" became "Puts to sleep"
 static var _role_pattern: RegEx = null
 
 # `role` as bbcode: its ROLE_TERMS words (any case, whole words) as links, other "[" escaped.
