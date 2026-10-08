@@ -27,6 +27,8 @@ var _card_icon := TextureRect.new()
 var _card_name := Label.new()
 var _card_section := Label.new()
 var _card_text := RichTextLabel.new()  # The description, with status / term / family links (StatusLinks)
+var _card_list := GroveCardList.new()  # The cards / Omens the node adds, a row each (tap: the full face)
+var _card_list_scroll := ScrollContainer.new()
 var _card_status := Label.new()
 var _plant := Button.new()
 var _carry := Button.new()
@@ -70,7 +72,9 @@ func _ready() -> void:
 	_backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_backdrop.visible = false
 	_backdrop.gui_input.connect(func(event: InputEvent) -> void:
-		if event is InputEventMouseButton and event.pressed and _viewer.visible:
+		if event is InputEventMouseButton and event.pressed and card_face.visible:
+			close_face()
+		elif event is InputEventMouseButton and event.pressed and _viewer.visible:
 			_close_viewer())
 	add_child(_backdrop)
 	_add_centred(loadout)
@@ -186,6 +190,15 @@ func _build_card() -> void:
 	_card_text.add_theme_color_override("default_color", Palette.MIST)
 	box.add_child(_card_text)
 	StatusLinks.hook(_card_text)
+	# What the node adds to the pool, a row per card / Omen (GroveCardList); it scrolls when the card runs out of room.
+	_card_list.inner_width = inner - 20
+	_card_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_card_list.card_pressed.connect(open_card_face)
+	_card_list.omen_pressed.connect(open_omen_face)
+	_card_list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_card_list_scroll.custom_minimum_size = Vector2(inner, 0)
+	_card_list_scroll.add_child(_card_list)
+	box.add_child(_card_list_scroll)
 	_card_levels.add_theme_constant_override("separation", 10)
 	_card_level_bars.add_theme_constant_override("separation", 4)
 	_card_level_bars.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -323,11 +336,13 @@ func _refresh() -> void:
 	if DemoGrove.is_active():
 		demo_done.visible = DemoGrove.complete(_memory)
 	_update_card()
-	_backdrop.visible = loadout.visible or _viewer.visible
+	_backdrop.visible = loadout.visible or _viewer.visible or card_face.visible
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
-		if _viewer.visible:
+		if card_face.visible:
+			close_face()
+		elif _viewer.visible:
 			_close_viewer()
 		elif loadout.visible:
 			loadout.close(false)
@@ -361,6 +376,8 @@ func _update_card() -> void:
 		kind = "legendary " + kind
 	_card_section.text = "%s, level %d of %d" % [kind, level, levels] if levels > 1 else kind
 	_card_text.text = StatusLinks.bbcode(selected.get_description() + family_branches_text(selected))
+	_card_list.show_for(selected)  # Asleep demo nodes too: a preview of the full game
+	_card_list_scroll.visible = not _card_list.is_empty()
 	# Levels as small bars: Glow for the ones grown, dim for the rest, then the effect now and next.
 	for bar in _card_level_bars.get_children():
 		bar.queue_free()
@@ -415,6 +432,114 @@ func _update_card() -> void:
 		_card_status.visible = true
 	# Shrink to the content (a card with fewer lines than the last one), still centred on the right.
 	_fit_card.call_deferred()  # After the labels have re-measured
+
+# The full face of a card a node adds (a GroveCardList row tapped): the Dream screen's face (gem and rarity, name,
+# effect with status links, its cost, the Deepened II's text when the node brings one) and the card's living
+# mini-scene or diagram where it has one. Omens: name, flavour, twist, reward. Over the dimmed Grove; Close, Esc
+# or a tap outside closes it.
+var card_face := PanelContainer.new()
+var _face_box := VBoxContainer.new()
+
+func open_card_face(card: UpgradeData) -> void:
+	_open_face(UpgradeData.rarity_color(card.rarity))
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 8)
+	var gem := Control.new()
+	gem.custom_minimum_size = Vector2(28, 28)
+	gem.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	gem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var glyph := UiStyle.dream_glyph(card)
+	gem.draw.connect(func() -> void: UiStyle.draw_gem(gem, gem.size / 2.0, 13.0, card.rarity, glyph))
+	head.add_child(gem)
+	var rarity := Label.new()
+	rarity.text = UpgradeData.rarity_name(card.rarity)
+	UiStyle.caps(rarity, 16, UpgradeData.rarity_color(card.rarity))
+	head.add_child(rarity)
+	_face_box.add_child(head)
+	var title := Label.new()
+	title.text = card.display_name
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UiStyle.title(title, UiStyle.CARD_NAME_SIZE)
+	_face_box.add_child(title)
+	_face_text(card.description, UiStyle.INK, 16)
+	if card.cost_description != "":
+		_face_text(card.cost_description, Palette.EMBER, 15)
+	var deeper := GroveCardList.load_card(card.id + "_ii")
+	if deeper != null and selected != null and selected.dream_cards.has(deeper.id):
+		_face_text("%s, Deepened: %s" % [deeper.display_name, deeper.description], UiStyle.GOLD, 14)
+	if CardScene.can_show(card):
+		var scene := CardScene.new()
+		_face_box.add_child(scene)
+		scene.show_card.call_deferred(card)
+	elif CardDiagram.has_diagram(card):
+		_face_box.add_child(CardDiagram.make(card))
+	_close_face_button()
+
+func open_omen_face(omen: OmenData) -> void:
+	_open_face(Palette.WRAITHLIGHT)
+	var title := Label.new()
+	title.text = omen.display_name
+	UiStyle.title(title, UiStyle.CARD_NAME_SIZE)
+	_face_box.add_child(title)
+	if omen.flavor != "":
+		var flavour := Label.new()
+		flavour.text = omen.flavor
+		flavour.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		flavour.custom_minimum_size.x = FACE_WIDTH - 40
+		UiStyle.whisper(flavour, 17)
+		_face_box.add_child(flavour)
+	_face_text(omen.description, UiStyle.INK, 16)
+	var reward := GroveCardList.omen_reward_text(omen)
+	if reward != "":
+		_face_text(reward, UiStyle.GOLD, 14)
+	_close_face_button()
+
+const FACE_WIDTH := 400.0
+
+func _open_face(colour: Color) -> void:
+	if card_face.get_parent() == null:
+		card_face.custom_minimum_size = Vector2(FACE_WIDTH, 0)
+		_face_box.add_theme_constant_override("separation", 10)
+		card_face.add_child(_face_box)
+		add_child(card_face)
+	var frame := Button.new()  # The Dream card's frame in this colour, used as the face's panel
+	UiStyle.card_button(frame, colour)
+	card_face.add_theme_stylebox_override("panel", frame.get_theme_stylebox("normal"))
+	frame.free()
+	for child in _face_box.get_children():
+		_face_box.remove_child(child)
+		child.queue_free()
+	card_face.visible = true
+	_backdrop.visible = true
+	_center_panel.call_deferred(card_face)
+
+func _face_text(text: String, colour: Color, font_size: int) -> void:
+	var label := StatusLinks.make_label(text, font_size, colour)
+	label.custom_minimum_size.x = FACE_WIDTH - 40
+	_face_box.add_child(label)
+
+func _close_face_button() -> void:
+	var close := Button.new()
+	close.text = "Close"
+	close.focus_mode = Control.FOCUS_NONE
+	close.custom_minimum_size = Vector2(0, 48)
+	UiStyle.quiet(close)
+	close.pressed.connect(close_face)
+	_face_box.add_child(close)
+	_refit_face()
+
+# Sized again once its rich text has wrapped (measured before that, the face came out far too tall).
+func _refit_face() -> void:
+	await get_tree().process_frame
+	if card_face.visible:
+		_center_panel(card_face)
+
+func close_face() -> void:
+	card_face.visible = false
+	for child in _face_box.get_children():
+		if child is CardScene:
+			(child as CardScene).stop()
+	_backdrop.visible = loadout.visible or _viewer.visible
 
 # "+5% now, +10% next" for a node with levels, from its per-level perk numbers ("" at 0 / when nothing scales).
 static func _level_effect_text(unlock: UnlockData, level: int) -> String:
@@ -482,14 +607,20 @@ func _chip(text: String, met: bool) -> PanelContainer:
 # 1.5× UI scale at 1920 follows by itself.
 const CARD_GAP := 16.0
 const CARD_TOP_SHARE := 0.27  # The card's top, as a share of the screen height (under the moon)
+const CARD_LIST_MIN := 120.0  # The card list's smallest scrolling height
 
 func _fit_card() -> void:
 	_card_text.fit_content = true
 	_card_text.scroll_active = false
 	_card_text.custom_minimum_size.y = 0
+	var list_height := _card_list.get_combined_minimum_size().y if _card_list_scroll.visible else 0.0
+	_card_list_scroll.custom_minimum_size.y = list_height
 	_card.reset_size()
 	var top := size.y * CARD_TOP_SHARE
 	var bottom := _zoom_row.position.y - CARD_GAP
+	if _card.size.y > bottom - top and list_height > 0.0:  # Many cards: the list scrolls first (at least a row and a half)
+		_card_list_scroll.custom_minimum_size.y = maxf(list_height - (_card.size.y - (bottom - top)), minf(list_height, CARD_LIST_MIN))
+		_card.reset_size()
 	if _card.size.y > bottom - top:  # Long text: the description scrolls, the card keeps its place
 		var over := _card.size.y - (bottom - top)
 		_card_text.fit_content = false
