@@ -202,9 +202,9 @@ apart), landing on a soft, warm **D major chord** that rings ~0.7 s. Same notes 
 series has a sound. It's the in-game motif turned hopeful, so players hear it again in the game when a
 boss falls.
 
-### 1. Trailer cue v3, current: 38.0 s (2026-10-08)
+### 1. Trailer cue v3, current: 36.75 s (2026-10-08)
 
-The user's latest cut (spec given to Sound Code directly; built 564ec628, overwriting `trailer_v3_*` in
+The user's latest cut (spec given to Sound Code directly; built 564ec628, then the Dream section shortened to 1.5 bars, 15.5–19.25, in 06408d4b, moving everything after it 1.25 s earlier; `trailer_v3_*` in
 `editor_kit\4_music\`). Same character and rules as below. Hit start times (s):
 
 | Moment | Time |
@@ -213,12 +213,12 @@ The user's latest cut (spec given to Sound Code directly; built 564ec628, overwr
 | maze hit | 7.98 |
 | **chain peak (the loudest, −1.9 dB)** | **10.53** |
 | combos | 12.19 · 13.86 |
-| cards shimmer / pick | 15.86 · 18.01 |
-| growth steps | 20.71 · 21.51 · 22.32 |
-| Remember tree | 23.20 (breath from 23.0); family turns 23.90 · 24.60 · 25.30 |
-| boss dispels | 27.13 · 28.81 · **30.54** (−5.7 / −5.0 / −2.3 dB) |
-| Grove | node planted 30.80; swell from 32.0 |
-| end card | chord + button 35.50; end 38.00 |
+| cards shimmer / pick (Dream section 15.5–19.25) | 15.8 · 18.0 |
+| growth steps | 19.45 · 20.25 · 21.05 |
+| Remember tree | 21.95; family turns 22.65 · 23.35 · 24.05 |
+| bosses | from 24.25; dispels 25.92 · 27.58 · **29.25** (the last turns into the Grove) |
+| Grove | node planted 29.55; swell from 30.75 |
+| end card | chord + button 34.25; end 36.75 |
 
 ### 1a′. Trailer cue v3, 30.5 s cut (superseded by the 38 s cut)
 
