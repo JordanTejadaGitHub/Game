@@ -52,8 +52,9 @@ func _ready() -> void:
 	var center := CenterContainer.new()  # Settings and the Codex open in the middle
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
-	if OS.is_debug_build():  # The exact build on disk ("Sep 30 21:14 · 3f9a2c"; balance_simulation.md)
-		_add_build_label()
+	# Debug: the exact build on disk ("Sep 30 21:14 · 3f9a2c"; balance_simulation.md). Exported: its version ("v0.1.3",
+	# application/config/version, set by tools/build_release.ps1), so testers can say which build they played.
+	_add_build_label()
 
 	# The left column, in the art's calm side: the title over a Moon panel with the menu.
 	var column := MarginContainer.new()
@@ -309,5 +310,5 @@ func _add_build_label() -> void:
 	timer.timeout.connect(func() -> void:
 		var text := BuildInfo.label_if_ready()
 		if text != "":
-			label.text = "Build " + text
+			label.text = ("Build " + text) if OS.is_debug_build() else ("v" + text if text != "release" else "")
 			timer.queue_free())
