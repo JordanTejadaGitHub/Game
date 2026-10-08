@@ -4482,7 +4482,7 @@ func lingering_splash_every() -> int:
 static func has_area_attack(data: TowerData) -> bool:
 	if data == null or not data.can_attack:
 		return false
-	if data.splash_radius > 0.0 or data.cloud_radius > 0.0:
+	if data.splash_radius > 0.0:  # cloud_radius defaults to 0.7 on every Warden (Tower Code): CLOUD is in the kinds below
 		return true
 	return data.attack_kind in [TowerData.AttackKind.PULSE, TowerData.AttackKind.CLOUD, TowerData.AttackKind.CHAIN,
 		TowerData.AttackKind.SWEEP, TowerData.AttackKind.SPIN] or ("lob" in data and data.lob)

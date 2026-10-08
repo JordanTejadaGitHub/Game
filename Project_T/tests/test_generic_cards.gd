@@ -938,6 +938,9 @@ func _test_grove_branches() -> void:
 			area = data
 		elif data.can_attack and not DreamState.has_area_attack(data) and single == null:
 			single = data
+	# Tower Code: cloud_radius defaults to 0.7 on every Warden, which once made every attacker "area"
+	_check(single != null and not DreamState.has_area_attack(load("res://resource/tower/sporeling.tres")),
+		"a single-target Warden (Sporeling) is not an area attacker")
 	dreams.take(_card("far_reach"))
 	if area != null:
 		_check(is_equal_approx(_row(area, Vector2(100, 100), "far_reach").range, 0.75), "Far Reach: %s +0.75 range" % area.display_name)
