@@ -62,7 +62,7 @@ const DEMO_DRIFTS_DIR := "res://resource/drift/demo/"
 @export var block_finale_elites := {10: 1, 15: 2, 30: 2, 60: 3}  # Drift 10 eased (it was the run's hardest point at 2); 30 / 60 one fewer (Balancing: act 2 finales took ~71% of act 2's leaves in human runs)
 # Elites alone didn't make a spike (Balancing: +2 elites cost the bot 0.35 leaves), so every non-boss nightmare on a
 # block finale from `block_finale_health_from` has this much more health, on top of everything else.
-@export var block_finale_health_multiplier: float = 1.4
+@export var block_finale_health_multiplier: float = 1.2  # Balancing: act 2 finales still the run-ender with elites at 2 (was 1.4)
 @export var block_finale_health_from: int = 15  # Drift 10 keeps only its elite (Balancing: ×1.4 there ended a full-leaf run)
 
 # The guaranteed elites for drift `number` if it's a block finale (0 before the first start), else -1.
