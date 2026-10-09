@@ -1304,7 +1304,7 @@ serpentine) at its best and a median cell, effective damage over a block and lea
 Relayed by Balancing Code. Lost at **drift 45**; the user: "might be a bit too hard". Clean through drift 42. The Night Mare
 took 5 at 25. Omens: Blood Moon, Restless Wind. Drift 44 spawned 389k health; **the drift 45 finale leaked 5 for 11 leaves**.
 That's the fifth human run in a row lost at, or just after, an act 2 block finale, and the elites were already cut to 2.
-**Fix (cliff rule, no sim): `block_finale_health_multiplier` 1.4 → 1.2** (Tower Code). The act 2 end curve (×4.5 at 45)
+**Fix (cliff rule, no sim): `block_finale_health_multiplier` 1.4 → 1.2** (Tower Code, e9524077). The act 2 end curve (×4.5 at 45)
 stays as the user set it unless they ask to ease it; the option is `early_acts_health_multiplier` 4.5 → ~4.0.
 To check: whether Blood Moon covered 41–45.
 
