@@ -147,6 +147,7 @@ const STACK_FONT_SIZE := 16
 const STACK_POP_TIME := 0.18  # An icon's quick scale bump when a stack is added
 const STACK_POP_SCALE := 0.35  # …up to this much bigger
 const STACK_PIP_MAX := 4.0  # Stack pips above an icon: at most this big (px), smaller when many
+const STACK_PIP_MIN := 2.0  # …never smaller: a doubled cap (Brimming) wraps into rows instead
 const BOLT_FLASH_TIME := 0.2
 const HIT_MARK_TIME := 0.35  # Grey puff (resisted) / sparkle (weak) after a hit
 # Damage that only happened because of a Reaction (DamageLog: whole-hit combos, event kind "reaction").
@@ -973,13 +974,19 @@ func _build_hud_marks(item: RID, overlay: NightmareOverlay) -> void:
 			atlas.draw_rect_region(item, Rect2(centre - Vector2(g, g), Vector2(g, g) * 2.0),
 				overlay.badge_region(NightmareOverlay.MARK_GLOW), Color(Palette.GOLD, 0.75))
 		var cap := statuses.get_max_stacks(id)
-		if cap > 1:  # Stack pips, centred over the icon
-			var pip := minf(STACK_PIP_MAX, (r * 2.0 - (cap - 1)) / cap)
-			var x := centre.x - (cap * pip + (cap - 1)) / 2.0
-			var y := centre.y - r - pip - 2.0
+		if cap > 1:  # Stack pips, centred over the icon; rows (filled from the bottom one) when a row would be too fine
+			var width := r * 2.0
+			var most := maxi(int((width + 1.0) / (STACK_PIP_MIN + 1.0)), 1)  # Pips a row holds at the smallest size
+			var rows := ceili(float(cap) / most)
+			var per_row := ceili(float(cap) / rows)
+			var pip := minf(STACK_PIP_MAX, (width - (per_row - 1)) / per_row)
 			var lit: Color = Palette.GOLD if _hud_full[i] else color
 			for k in cap:
-				var at := Rect2(x + k * (pip + 1.0), y, pip, pip)
+				var row := floori(float(k) / per_row)
+				var in_row := mini(per_row, cap - row * per_row)
+				var x := centre.x - (in_row * pip + (in_row - 1)) / 2.0
+				var y := centre.y - r - pip - 2.0 - row * (pip + 1.0)
+				var at := Rect2(x + (k - row * per_row) * (pip + 1.0), y, pip, pip)
 				atlas.draw_rect_region(item, at.grow(1.0), dot, Color(Palette.VOID, 0.8))
 				atlas.draw_rect_region(item, at, dot, lit if k < _hud_stacks[i] else Color(color, 0.25))
 		var bar := Rect2(centre + Vector2(-r * 0.8, r + 1.5), Vector2(r * 1.6, TIME_BAR_HEIGHT))
